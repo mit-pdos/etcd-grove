@@ -10,6 +10,12 @@ ids in order (a loop over `resp.Leases`: 3h's unfold of `replyOwn _ (.leaseLease
 
 Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/lessor__Leases.lean`: restated over the model.
 
+verify-round (A2-provability L2): the per-member clause (`via`) now has a source: `leaseViaPre`'s
+`leaseOf v c ∗ clientVia c ep` gives, through `lessorHandle`'s realization, `remoteVia` of the remote
+(`NewLeaseFromLeaseClient`'s premise), and `remoteLeaseAt_call` at `V = remoteVia remote` gives the
+answer's `viaFact` (from 2a's `AttemptTriple` through `uiOk_call`); a lease read's fact holds for an
+answer of the lessor (`leaseAnsRes`), not for a refusal.
+
 Margin: none.
 -/
 module

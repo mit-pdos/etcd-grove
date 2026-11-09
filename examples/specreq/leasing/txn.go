@@ -27,6 +27,30 @@ func ReqDoProxyRange(ctx context.Context, lkv clientv3.KV, k string) {
 	}
 }
 
+// REQ leasing/do-put-delete: the proxy's Put and DeleteRange: Do of OpPut (with its options) and
+// of OpDelete returns a put reply (Put() non-nil) and a delete reply (Del() non-nil) on success.
+// Users: server/proxy/grpcproxy/kv.go:86 (PutRequestToOp), :94 (DelRequestToOp).
+// Assumes: the common assumptions.
+// Specs: leasingKV.Do.spec (LKV.DoTriple, doReplyL), OpPut.spec, OpDelete.spec, WithPrevKV.spec;
+// laws: msgOwn_ne_null.
+func ReqDoPutDelete(ctx context.Context, lkv clientv3.KV, k, v string) {
+	// as PutRequestToOp and DelRequestToOp build them, from requests asking for the previous kv
+	presp, err := lkv.Do(ctx, clientv3.OpPut(k, v, clientv3.WithPrevKV()))
+	if err != nil {
+		return
+	}
+	if presp.Put() == nil {
+		panic("do-put-delete: no put reply")
+	}
+	dresp, err := lkv.Do(ctx, clientv3.OpDelete(k, clientv3.WithPrevKV()))
+	if err != nil {
+		return
+	}
+	if dresp.Del() == nil {
+		panic("do-put-delete: no delete reply")
+	}
+}
+
 // REQ leasing/do-txn: the proxy's Txn: Do of OpTxn over slices of exactly their length, nested
 // transactions included, returns a transaction reply on success.
 // Users: server/proxy/grpcproxy/kv.go:116 (TxnRequestToOp).

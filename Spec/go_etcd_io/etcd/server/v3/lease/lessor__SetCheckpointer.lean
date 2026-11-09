@@ -17,6 +17,9 @@ on `R`**: the server's closure needs the server started (`ensureLeadership` read
 
 **Changes** (from `specs-ref`, which had none: the old `NewLessor` took `ckptEffectsOk` and gave
 `lessorCkptOk`): the contract is the closure's, given here; round 1: the once token and the gate.
+Verify round (A9 3c F2): `ckptOk` is at `context.Background()` (the lessor's only context) with a
+`threadTok` lent by the caller (`Renew`'s, the run loop's), so that the server's closure, which
+calls `raftRequest`, meets it.
 **Margin.** None.
 -/
 module

@@ -15,6 +15,8 @@ caller's update (`□?` as given); `ContextError.spec` on the error; unlocks, th
 
 Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/txn__Commit.lean`: restated over `txnAt` and the model's requests; any transaction (with leases, `IgnoreLease`, nested, read-only: a read-only one takes a persistent update, as the server answers it from the read index or, serializable, from a member's view: `issues/etcd-txn-empty-serializable.md` in the model).
 
+verify-round: the `TxnRequest` and its `RequestOp`s are built at `own 1` and persisted to the one fraction `txnReqOwn r DFrac.discard t` takes by `protoRest_persist` (A1-provability F6); `Txn.CommitTriple` takes the state predicate as a parameter (`txnAt_intro`, A1-completeness F2).
+
 Margin: on success the code also guarantees the reply's header names the member that
 answered (`MemberId`, `RaftTerm`), not modelled; on an indefinite error the code may still have
 applied the put (the update fires later or not at all), which is all the spec says.

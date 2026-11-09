@@ -58,7 +58,10 @@ explicit: `clientReady c` (persistent) is minted by `newClient` once `c.Auth` is
 take it, and so do the bundle introductions of the handles the members' constructors return
 (`authHandle_authAt`, `lessorHandle_leaseAt`, ...: each handle records its client `c`; a handle
 over a caller's remote records `null`, `clientReady_null`). The constructors themselves do not
-need it. W0's `kvHandle_kvAt` needs the same premise (`req/go_etcd_io_etcd_client_v3.md`, from 1c).
+need it. Intended realization (verify round, A2-provability S3): `clientReady c := ⌜c = null⌝ ∨ ∃
+γ' who', clientCore c γ' who' ∗ (c.Auth set, read-only)`, with `clientPre` agreeing on `γ` and
+`who`, so that the interceptors' token refresh (`refreshToken`, `getToken`: pre `clientCore c γ
+who`) gets what it reads from `uiOk`'s `c` (made at `clientPre` time) and `clientReady c`. W0's `kvHandle_kvAt` needs the same premise (`req/go_etcd_io_etcd_client_v3.md`, from 1c).
 
 ## Endpoints (`epsTok c dq eps`)
 
@@ -76,8 +79,9 @@ per-member lease reads use (`ApiLease.lean`).
 * `cfgOk cfg γ who` (def): the configuration `New` takes: its endpoints all serve `γ`
   (`servesAt`), its credentials name the principal `who` (`cfgPrincipal`), its dial options keep the
   client's credentials and call each invoker at most once (`dialOptsOk`), its TLS configuration
-  (`Transport.tlsCfgOk`), logger and context are usable, and an auto-sync is on only with
-  verification off (`Verify.verifyOff`).
+  (`Transport.tlsCfgOk`), logger and context are usable, and auto-sync is off
+  (`AutoSyncInterval = 0`: the coordinator's decision on `issues/etcd-client-resolver-build-race.md`,
+  see `resolverIdle`).
 * `cfgPrincipal γ cfg who` (opaque): the client's default principal: the user name with a password
   (and, with a client certificate, a certificate the members do not take as a principal); the
   token's user (`tokenUser`); the TLS certificate's (`tlsPrincipal`, 2e's slot); none otherwise.
@@ -87,8 +91,10 @@ per-member lease reads use (`ApiLease.lean`).
 * `replyAns rq res`, `wireAns rq` (defs): the answers a member sends as a reply message (every
   success, and `LeaseTimeToLive`'s `ErrLeaseNotFound` as a `TTL = -1` reply, 2a's
   `V3rpc.ansOutcome`), and the wire call's return for them (`RemoteCallTriple`).
-* `clientBase c who` (opaque): the context (`ctxOk`, `ctxPrin who _ who`), cancel function and
-  logger every client has (`Ctx`, `GetLogger`, `Close`'s cancel); `clientPre c γ who` the client
+* `clientBase c who` (opaque): the context (`ctxOk`, `ctxPrin who _ who`), cancel function,
+  logger and call options (`c.callOpts`, read-only, `callOptsOk _ false`: `defaultCallOpts`, a
+  configured literal, or `NewCtxClient`'s `nil`) every client has (`Ctx`, `GetLogger`, `Close`'s
+  cancel, the `From*Client` constructors); `clientPre c γ who` the client
   under construction (`clientBase`, configuration, credentials, `epMu` with endpoints serving `γ`,
   resolver, `callOpts`, grpc's `msgsFit` from `cfgOk`); `clientCore c γ who` the built client (`clientPre`, the connection, the
   members' fields). Laws: `clientCore_pre`, `clientPre_base`, `clientRest_core` (W0's
@@ -223,11 +229,15 @@ with no token (persistent; slot, 2e: the certificate's common name if the member
 opaque tlsPrincipal [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (tls : Loc) (who : Principal) : IProp GF := iprop(True)
 
 /-- **A slice of `grpc.DialOption`s that keep the client's calls sound** (persistent; slot, 2a):
-keepalive parameters, context dialers, stats handlers, `WithBlock`, chained interceptors, and
-`WithUnaryInterceptor`/`WithStreamInterceptor` (which replace the client's:
-`nonissues/etcd-client-dialoptions-unary-interceptor.md`; the gRPC proxy's), each interceptor
-calling its invoker or streamer at most once with a context carrying the call's principal; no
-per-RPC credentials. -/
+keepalive parameters, context dialers (`Grpc.ctxDialerOk`), stats handlers (`Grpc.statsOk`:
+otelgrpc's `NewClientHandler`), `WithBlock`, chained pass-through interceptors (`Grpc.cliIcPass`,
+`cliSicPass`), all neutral on `Grpc.DialCfg` as 2a states them (`dialOptsOk_neutral`), and
+`WithUnaryInterceptor`/`WithStreamInterceptor`, each interceptor calling its invoker or streamer at
+most once with a context carrying the call's principal; no per-RPC credentials. grpc keeps the last `WithUnaryInterceptor` given; at the pinned
+fork `dialSetupOpts` appends the caller's options before the client's interceptors
+(`client.go:238`, `:266-271`), so the client's are kept (verify round, A2-completeness S7: the
+nonissue `etcd-client-dialoptions-unary-interceptor.md` was checked at an upstream commit; not
+rechecked at the pin). -/
 opaque dialOptsOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (sl : GoSlice) : IProp GF := iprop(True)
 
 /-- **The default principal of a client configured by `cfg`** (persistent): see the intro laws. -/
@@ -250,10 +260,11 @@ def cfgOk (cfg : go_etcd_io.etcd.client.v3.Config) (γ : Cluster) (who : Princip
     (⌜cfg.TLS' = null⌝ ∨ Transport.tlsCfgOk cfg.TLS') ∗
     (⌜cfg.Logger' = null ∧ cfg.LogConfig' = null⌝ ∨ Zap.isLogger cfg.Logger') ∗
     (⌜cfg.Context' = GoInterface.nil⌝ ∨ Context.ctxOk cfg.Context' ∗ ctxPrin who cfg.Context' who) ∗
-    (⌜cfg.AutoSyncInterval' = W64 0⌝ ∨ Verify.verifyOff) ∗
+    ⌜cfg.AutoSyncInterval' = W64 0⌝ ∗
     idUpd γ ∗ ⌜Grpc.msgsFit⌝)
 
-/-- **A client's context, cancel function and logger** (persistent). -/
+/-- **A client's context, cancel function, logger and call options** (persistent; see the
+header). -/
 opaque clientBase [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c : Loc) (who : Principal) : IProp GF := iprop(True)
 /-- **The client under construction** (persistent; see the header). -/
 opaque clientPre [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
@@ -265,6 +276,15 @@ opaque clientCore [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunct
 opaque epsTok [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c : Loc) (dq : DFrac) (eps : List GoString) : IProp GF := iprop(True)
 /-- **A client frozen at one endpoint**: every call is answered by the member at `ep`. -/
 def clientVia (c : Loc) (ep : GoString) : IProp GF := epsTok c DFrac.discard [ep]
+/-- **No RPC has been made on the client `c`'s connection yet** (exclusive; verify round, the
+coordinator's decision (b) on `issues/etcd-client-resolver-build-race.md`): grpc builds the
+resolver (`EtcdManualResolver.Build`, reading its endpoints unlocked) when the channel leaves idle,
+on an RPC, while `SetEndpoints` writes them under `epMu` only: `SetEndpoints` is safe only while no
+RPC can wake the channel. `newClient` holds it for its own `SetEndpoints` (before it dials) and gives
+it to no caller: `Sync` and auto-sync are out of the top-level workloads (`cfgOk` requires
+`AutoSyncInterval = 0`), and a caller's `SetEndpoints` after `New` has no spec it can meet. -/
+opaque resolverIdle [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c : Loc) : IProp GF := iprop(True)
+
 /-- **A `NewCtxClient`'s client before its fields are set** (exclusive). -/
 opaque clientBare [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c : Loc) (who : Principal) : IProp GF := iprop(True)
 /-- **A `clientv3.Option` closure** (persistent): `WithZapLogger(lg)`'s (stores a logger). -/
@@ -338,14 +358,17 @@ def callAU (γ : Cluster) (p : Principal) (rq : Req) (rep : Bool)
            COMM Q σ σ' res }>)
 
 /-- **A non-KV call** `e` sending `rq` as the principal `p` for the caller's update (persistent if
-`rep`), `P` the caller's resources, `B` given back. -/
+`rep`), `P` the caller's resources, `B` given back; `F` what the answer's firing tells besides `Q`
+(a member's lessor view, `viaFact`; nothing by default). -/
 def CallTriple (e : Expr) (P B : IProp GF) (γ : Cluster) (p : Principal) (rq : Req) (rep : Bool)
-    (reply : Resp → Loc → GoInterface → IProp GF) : Prop :=
+    (reply : Resp → Loc → GoInterface → IProp GF)
+    (F : State → State → Resp → IProp GF := fun _ _ _ => iprop(True)) : Prop :=
   ∀ (Q : State → State → Resp → IProp GF),
   {{ P ∗ callAU γ p rq rep Q }}
     e
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); B ∗
-      ((∃ σ σ' res, Q σ σ' res ∗ reply res resp err) ∨ (⌜resp = null⌝ ∗ indefCall err)) }}
+      ((∃ σ σ' res, Q σ σ' res ∗ reply res resp err ∗ F σ σ' res) ∨
+       (⌜resp = null⌝ ∗ indefCall err)) }}
 
 /-- **A non-KV call with a local check** (`ok`: the arguments pass it): if they do not, the call
 returns an error before sending anything, the update given back. -/
@@ -372,6 +395,39 @@ def wireAns (rq : Req) (res : Resp) (resp : Loc) (err : GoInterface) : IProp GF 
       iprop(⌜err = GoInterface.nil⌝ ∗ replyOwn resp (.leaseTimeToLive id (-1) 0 []))
   | _, _ => wireReply ansReply res resp err
 
+/-- **A connection whose every attempt reaches the member at `ep`** (persistent; slot, 2a: the
+connection's resolver holds `ep` alone; from a client frozen at `ep`, `clientVia_conn`). -/
+opaque grpcConnVia [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (cc : Loc) (ep : GoString) : IProp GF := iprop(True)
+
+/-- The answers a member gives from its own lessor (`State.leaseAnsAt`): a lease read's reply, or
+`TimeToLive`'s not-found. -/
+def leaseAnsRes (res : Resp) : Prop := (∃ b, res = .ok b) ∨ res = .err .leaseNotFound
+
+/-- **The per-member premise of a call** (`via = some (ep, i)`; verify round, A2-provability L2):
+the call reaches only the member at `ep` (`V ep`: the remote's, the connection's or the client's
+form), whose lessor has reached table `i` (`i = 0`: nothing known). -/
+def viaPre (γ : Cluster) (V : GoString → IProp GF) : Option (GoString × Nat) → IProp GF
+  | none => iprop(True)
+  | some (ep, i) => iprop(V ep ∗ (⌜i = 0⌝ ∨ leaseViewLb γ ep i))
+
+/-- **What an answer by the member at `ep` tells of its lessor** (W0's `leaseViewLb`; the server
+side, 2a's `leaseFact`, is where it comes from): a grant answered `.ok` gives the table it created;
+a lease read's answer (`leaseAnsRes`) is from a table `j ≥ i`, whose bound it gives; nothing else.
+-/
+def viaFact (γ : Cluster) (via : Option (GoString × Nat)) (rq : Req) (σ σ' : State) (res : Resp) :
+    IProp GF :=
+  match via with
+  | none => iprop(True)
+  | some (ep, i) =>
+    match rq with
+    | .leaseGrant .. =>
+      match res with
+      | .ok _ => leaseViewLb γ ep (σ'.leaseTables.length - 1)
+      | _ => iprop(True)
+    | .leaseTimeToLive .. | .leaseLeases =>
+      iprop(⌜¬ leaseAnsRes res⌝ ∨ ∃ j, ⌜i ≤ j ∧ σ.leaseAnsAt j rq res⌝ ∗ leaseViewLb γ ep j)
+    | _ => iprop(True)
+
 /-- **The single-use right a request needs** (integration I1, the coordinator's decision): a member
 addition or update gives the member its peer URLs, which takes W0's `urlsRight γ urls` (2e's
 `AddMember`/`UpdateMember` consume it at the server; how it crosses the wire is 2a's to state:
@@ -384,15 +440,18 @@ def reqRight (γ : Cluster) : Req → IProp GF
 /-- **The wire contract of a non-KV unary RPC**: the method `m (reqRpc rq)` sends the request
 message `req` (modelled by `rq`, given back) with a context carrying the principal `p`, the update
 persistent if the RPC is repeatable, the options `callOptsOk` (a non-repeatable RPC's not
-repeatable). -/
+repeatable). Per member (`via`; A2-provability L2): when the remote reaches only the member at `ep`
+(`V ep`: `remoteVia`, or the retry wrapper's `clientVia c`; `False` by default: no per-member
+form), the answer's `viaFact`. -/
 def RemoteCallTriple (m : GoString → val) (P : IProp GF) (γ : Cluster)
-    (who : Principal) (rq : Req) : Prop :=
-  ∀ (ctx : GoInterface) (p : Principal) (req : Loc) (dq : DFrac) (opts : GoSlice) (rep : Bool),
+    (who : Principal) (rq : Req) (V : GoString → IProp GF := fun _ => iprop(False)) : Prop :=
+  ∀ (ctx : GoInterface) (p : Principal) (req : Loc) (dq : DFrac) (opts : GoSlice) (rep : Bool)
+    (via : Option (GoString × Nat)),
   (reqRetryRep rq = false → rep = false) →
   CallTriple (App (App (App (Val (m (reqRpc rq))) (Val #ctx)) (Val #req)) (Val #opts))
     iprop(P ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ reqOwn req dq rq ∗ callOptsOk opts rep ∗
-      reqRight γ rq)
-    (reqOwn req dq rq) γ p rq (reqRetryRep rq) (wireAns rq)
+      reqRight γ rq ∗ viaPre γ V via)
+    (reqOwn req dq rq) γ p rq (reqRetryRep rq) (wireAns rq) (viaFact γ via rq)
 
 end res
 
@@ -417,23 +476,31 @@ opaque grpcConnAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunct
 definite error, the update fired (over `Step … lo` for the call's auth index `lo`, `authLb γ lo`;
 `LeaseTimeToLive`'s not-found answer comes as a reply, `err =
 nil`: `replyAns`); an error after which the request is known not applied (not sent,
-a token or learner refusal), the update given back; or another indefinite error, the update lost. -/
+a token or learner refusal), the update given back; or another indefinite error, the update lost.
+On a connection reaching only the member at `ep` (`via`, `grpcConnVia`), the answer's `viaFact`
+(A2-provability L2: the member's lessor view, which only the server side can give). The request's
+single-use right (`reqRight`: a member addition's URLs) is spent by an attempt that may have taken
+effect and given back with the unfired update (outcome 3; second pass, grpc-v3rpc's P-F7: 2a's
+`etcdUnary` gives it back so). -/
 def AttemptTriple (inv : val) (cc : Loc) (P : IProp GF) (γ : Cluster) (who : Principal) : Prop :=
   ∀ (ctx : GoInterface) (p : Principal) (method : GoString) (req reply : GoInterface) (rq : Req)
-    (R : Resp → IProp GF) (opts : GoSlice) (rep : Bool) (Q : State → State → Resp → IProp GF) (lo : Nat),
+    (R : Resp → IProp GF) (opts : GoSlice) (rep : Bool) (Q : State → State → Resp → IProp GF) (lo : Nat)
+    (via : Option (GoString × Nat)),
   {{ P ∗ grpcConnAt cc ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ unaryArgs method req reply rq R ∗
-      grpcCallOptsOk opts ∗ authLb γ lo ∗ callAU γ p rq rep Q lo }}
+      grpcCallOptsOk opts ∗ authLb γ lo ∗ callAU γ p rq rep Q lo ∗ viaPre γ (grpcConnVia cc) via ∗
+      reqRight γ rq }}
     (App (App (App (App (App (App (Val inv) (Val #ctx)) (Val #method)) (Val #req)) (Val #reply))
       (Val #cc)) (Val #opts))
   {{ (err : GoInterface), RET #err;
-      (⌜err = GoInterface.nil⌝ ∗ ∃ σ σ' res, ⌜replyAns rq res⌝ ∗ Q σ σ' res ∗ R res) ∨
-      (∃ σ σ' e, Q σ σ' (.err e) ∗ callErr err (.etcd e) ∗
+      (⌜err = GoInterface.nil⌝ ∗ ∃ σ σ' res, ⌜replyAns rq res⌝ ∗ Q σ σ' res ∗ R res ∗
+        viaFact γ via rq σ σ' res) ∨
+      (∃ σ σ' e, Q σ σ' (.err e) ∗ viaFact γ via rq σ σ' (.err e) ∗ callErr err (.etcd e) ∗
         ⌜e.indefinite = false ∧ errRetryAuth e = false ∧ e ≠ .notSupportedForLearner ∧
           ¬ replyAns rq (.err e)⌝ ∗
         unaryArgs method req reply rq R) ∨
       ((callErr err .notSent ∨
         (∃ e, callErr err (.etcd e) ∗ ⌜errRetryAuth e = true ∨ e = .notSupportedForLearner⌝)) ∗
-        callAU γ p rq rep Q lo ∗ unaryArgs method req reply rq R) ∨
+        callAU γ p rq rep Q lo ∗ reqRight γ rq ∗ unaryArgs method req reply rq R) ∨
       ((∃ k, callErr err k ∗ ⌜k.indefinite = true ∧ k ≠ .notSent⌝) ∗ unaryArgs method req reply rq R) }}
 
 /-- **The client's unary interceptor `ui`** (persistent): see `uiOk_call`. -/
@@ -443,18 +510,23 @@ opaque uiOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [
 opaque siOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (si : val) (c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 
 /-- **A call through the unary interceptor** of a ready client, for any invoker meeting
-`AttemptTriple`: the update fired with a success or a definite answer, or an indefinite error. -/
+`AttemptTriple`: the update fired with a success or a definite answer, or an indefinite error; per
+member (`via`), the answer's `viaFact` (the attempt's; a refusal the interceptor fires itself tells
+nothing, which `viaFact` says of refusals). The request's right (`reqRight`) is passed to each
+attempt and back after an unfired one; it is spent when the call returns (a refusal the interceptor
+fires itself spends it: `reqRight`'s margin). -/
 def uiOk_call.spec : Prop := ∀ (ui : val) (c : Loc) (γ : Cluster) (who : Principal) (inv : val)
     (cc : Loc) (Pinv : IProp GF), AttemptTriple inv cc Pinv γ who →
   ∀ (ctx : GoInterface) (p : Principal) (method : GoString) (req reply : GoInterface) (rq : Req)
-    (R : Resp → IProp GF) (opts : GoSlice) (rep : Bool) (Q : State → State → Resp → IProp GF) (lo : Nat),
+    (R : Resp → IProp GF) (opts : GoSlice) (rep : Bool) (Q : State → State → Resp → IProp GF) (lo : Nat)
+    (via : Option (GoString × Nat)),
   {{ uiOk (GF := GF) ui c γ who ∗ clientReady c ∗ grpcConnAt cc ∗ □ Pinv ∗ Context.ctxOk ctx ∗
       ctxPrin who ctx p ∗ unaryArgs method req reply rq R ∗ callOptsOk opts rep ∗ authLb γ lo ∗
-      callAU γ p rq rep Q lo }}
+      callAU γ p rq rep Q lo ∗ viaPre γ (grpcConnVia cc) via ∗ reqRight γ rq }}
     (App (App (App (App (App (App (App (Val ui) (Val #ctx)) (Val #method)) (Val #req)) (Val #reply))
       (Val #cc)) (Val inv)) (Val #opts))
   {{ (err : GoInterface), RET #err;
-      (∃ σ σ' res, Q σ σ' res ∗
+      (∃ σ σ' res, Q σ σ' res ∗ viaFact γ via rq σ σ' res ∗
         ((⌜err = GoInterface.nil ∧ replyAns rq res⌝ ∗ R res) ∨
          (∃ e, ⌜res = .err e ∧ ¬ replyAns rq res⌝ ∗ callErr err (.etcd e) ∗
            unaryArgs method req reply rq R))) ∨
@@ -649,6 +721,7 @@ def handles1c_persistent.spec : Prop :=
   (∀ si c γ who, Persistent (siOk (GF := GF) si c γ who)) ∧
   (∀ sl, Persistent (grpcCallOptsOk (GF := GF) sl)) ∧
   (∀ cc, Persistent (grpcConnAt (GF := GF) cc)) ∧
+  (∀ cc ep, Persistent (grpcConnVia (GF := GF) cc ep)) ∧
   (∀ p b, Persistent (userAddOptsAt (GF := GF) p b)) ∧
   (∀ p tok, Persistent (authTokenAt (GF := GF) p tok)) ∧
   (∀ v c, Persistent (maintOf (GF := GF) v c)) ∧
@@ -694,6 +767,19 @@ def cfgPrincipal_none.spec : Prop := ∀ (γ : Cluster) (cfg : go_etcd_io.etcd.c
 
 /-- No dial options. -/
 def dialOptsOk_nil.spec : Prop := ⊢ dialOptsOk (GF := GF) slice.nil
+
+/-- **A caller's dial options that leave the dial's configuration as grpc's specs model it**
+(verify round, A2-completeness F2): each a `grpc.DialOption` (`Grpc.dialOptAt v f`, 2a) acting as
+the identity on `Grpc.DialCfg` (keeps the interceptors, the addresses reached and the per-RPC
+credentials: keepalive parameters, a stats handler, a context dialer that dials the address it is
+given, `WithBlock`, as 2a states them; second pass: 2a's `WithChainUnaryInterceptor`/
+`WithChainStreamInterceptor` of pass-through interceptors and `WithStatsHandler` of a `statsOk`
+handler are neutral too, which covers Kubernetes' options). The gRPC proxy's replacing
+`WithUnaryInterceptor`/`WithStreamInterceptor` are not covered (kept by grpc only if last; at the pin
+the client's come last). -/
+def dialOptsOk_neutral.spec : Prop := ∀ (sl : GoSlice) (vs : List GoInterface),
+  sl ↦*□ vs ∗ ([∗list] v ∈ vs, ∃ f, Grpc.dialOptAt (GF := GF) v f ∗ ⌜∀ cfg, f cfg = cfg⌝) ⊢
+    dialOptsOk sl
 
 /-- `Authenticate`'s reply: the token. -/
 def replyOwn_authenticate.spec : Prop := ∀ (p : Loc) (tok : GoString),
@@ -741,6 +827,16 @@ def epsTok_serves.spec : Prop := ∀ c dq eps γ who,
   clientPre (GF := GF) c γ who ∗ epsTok c dq eps ⊢ [∗list] ep ∈ eps, servesAt γ ep
 def epsTok_persist.spec : Prop := ∀ c eps,
   epsTok (GF := GF) c (DFrac.own 1) eps ⊢ |==> epsTok c DFrac.discard eps
+
+/-- No client is `nil`: a `nil` client has no endpoints token (so `clientVia null ep` is false; a
+lessor over a caller's remote has no per-member form). -/
+def epsTok_null.spec : Prop := ∀ dq eps, epsTok (GF := GF) null dq eps ⊢ False
+
+/-- **A client frozen at `ep` dials `ep` alone** (A2-provability L2): its connection's resolver
+holds the client's endpoints (`SetEndpoints` updates both; the token frozen at `[ep]` stops it). -/
+def clientVia_conn.spec : Prop := ∀ c γ who ep,
+  clientConnOk (GF := GF) c γ who ∗ clientVia c ep ⊢
+    ∃ cc : Loc, c.[go_etcd_io.etcd.client.v3.Client, go!"conn"] ↦□ cc ∗ grpcConnVia cc ep
 
 /-- **Assembling an in-process client** (`v3client.New`): a `NewCtxClient`'s client whose six
 interface fields the caller has set, each meeting its contract for the default principal `none`

@@ -22,6 +22,8 @@ reads it (an empty key is `"\x00"`: review 1f-provability-1, F1).
 **Premise**: `0 < rev`: a watch from revision `0` or below starts at the member's current revision,
 which the spec would have to name; every caller passes a revision it read (`≥ 1`).
 
+**Changes (second pass)**: the returned event is, unconditionally, a real event of some revision that the watch keeps (in its range, of its types): 1b's `watchStep` now states this outside the `exactFrom` gate; the prefix of the history stays gated.
+
 **Margin**: as `waitEvents`'.
 
 **Integration (I1)**: the prefix claim holds under `exactFrom σ.kv rev`, as `waitEvents`'.
@@ -60,6 +62,9 @@ def WaitEvents.spec : Prop :=
       (⌜err = GoInterface.nil⌝ ∗ ∃ (es : List WEv) (e : WEv) (m : EventM) (σ : State),
         eventOwn ev (DFrac.own 1) m ∗ etcdLb γ σ ∗
         ⌜m.del = e.del ∧ m.kv = e.kv ∧
+          (∃ (r : Nat) (ev0 : Event), ev0 ∈ σ.kv.eventsAt r ∧ (WEv.ofEvent r ev0).del = e.del ∧
+            (WEv.ofEvent r ev0).kv = e.kv ∧ ((opWatchM key [withRevM rev]).watchReq).keeps (WEv.ofEvent r ev0)) ∧
+          
           (EtcdModel.exactFrom σ.kv (sint.Z rev).toNat →
             es ++ [e] <+: watchEvents (opWatchM key [withRevM rev]).watchReq σ.kv (sint.Z rev).toNat σ.kv.rev) ∧
           matchCount ts es < ts.length ∧ matchCount ts (es ++ [e]) = ts.length⌝) ∨

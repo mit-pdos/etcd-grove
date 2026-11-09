@@ -3,6 +3,9 @@
 
 **Users.** None in etcd (a common bbolt idiom for ids). Snippet: `ReqNested`. **Proof sketch.** As
 `SetSequence`, with `IncSequence`. **Changes.** New.
+**Proof sketch in the internal vocabulary** (verify-round, A11 F9). As `SetSequence`'s:
+`Bucket.node` (root materialized), `wtxCore_seq` (its counter is the bucket's `seq`), 4d's
+`IncSequence`, then `InSequence` read before the wand closes with `seq + 1`.
 -/
 module
 

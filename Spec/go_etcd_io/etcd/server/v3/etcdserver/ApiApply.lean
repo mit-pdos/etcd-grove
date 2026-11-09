@@ -48,7 +48,7 @@ indices): the state machine (the uber-applier over mvcc, the lessor, auth, membe
 consistent indexer) at a TTL-variant of `histAt γ ci` (`Apply.ttlEq`) for its consistent index `ci ≥ p.appliedi` (always: every
 applied entry past `ci` moves `ci` to it, a restart's backend is at or past the raft snapshot, an
 installed image at or past its index; entries up to `ci` are replayed for the in-memory membership
-only, `shouldApplyV3 = false`), and `ep.confState` listing the configuration at `ci`. R1's `nodeConf`
+only, `shouldApplyV3 = false`), and `ep.confState` listing the configuration at `ci` (raftpb's `confStateFull`, read-only). R1's `nodeConf`
 is the `Ready` loop's, lent to the apply thread with a batch that has conf changes and returned
 through `notifyc` (round 1, F3). Passed from one `applyAll` job to the
 next (`schedTail`, `pkg/schedule`).
@@ -92,7 +92,7 @@ in it on a quorum.
 * `applyThread`: the `etcdProgress` points-to's, `Cindex.ciWriter` (with an agreement half of the
   indexer's state, whose authority is in one invariant the pre-commit hook also opens), the
   uber-applier's contract (3a's) at the server's state machine, `confAt γ.raft ci m` with
-  `ep.confState` listing `m`, the snapshot indices with `storSnapLb`.
+  `ep.confState` a `RaftPb.confStateFull` listing `m`, the snapshot indices with `storSnapLb`.
 * `isRaftNode`/`rnLoop`/`rnStopper`/`applyBatch`: the loop's ghost driver state (R1's `nodeDriver`,
   `readyStor`), the `applyc` protocol (each batch's committed entries with `committedLb`/
   `deliveredLb`, its snapshot's `snapValid`, the `notifyc` handshake: the loop's `Save` before the
@@ -108,7 +108,7 @@ K7's realization), `histAt_committed`, `histAt_of_committed`, `answered_agree`, 
 `readCtx_register`, `readReg_register`, `readReg_get`; the member: `srvApplied_mono`,
 `srvApplied_zero`, `srvApplied_hist`, `srvApplied_read`, `srvReadAt_mono`, `srvNode_raftNode`,
 `srvNode_agree`, `srvNode_cfg`, `srvCfg_agree`, `srvNode_errorc`, `isServer_names`, `srvNode_raftNames`,
-`srvMember_node`, `srvRunTok_intro`, `srvNode_raftOk`, `srvStores_agree`, `srvWatchable_hist`, `srvReadAt_mvcc`,
+`srvMember_node`, `srvNode_member`, `srvStarted_isServer`, `isServer_member`, `applyLent_opts` (verify round), `srvRunTok_intro`, `srvNode_raftOk`, `srvStores_agree`, `srvWatchable_hist`, `srvReadAt_mvcc`,
 `srvReader_mvcc`, `srvReadAt_lessor`, `srvReader_lessor`, `srvReadAt_auth`,
 `applyInit_ep`, `srvStopped_disk`, `isRaftNode_node`, `isRaftNode_storage`, `nodeSnapLb_stor`,
 `nodeAdvanced_applied`, `rnInit_place`, `applyThread_at`, `applyThread_applied`, `applyBatch_terms`,
@@ -340,6 +340,24 @@ opaque applyAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors
 `ForceSnapshot` through its `SnapshotServer`). Exclusive. -/
 opaque forceSnapW [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) : IProp GF := iprop(True)
 
+/-- **What the apply thread lends the uber-applier** (3a's `R` in `optsOk`/`nextOk`; verify round,
+A7-completeness F6): the consistent indexer's writer with its applying index `i` (the index of the
+entry being applied, committed: `committedLb` with entry `i`), `forceSnapW s`. Exclusive. The
+apply thread holds it inside `applyAt`/`applyThread` between applies. -/
+opaque applyLent [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : Names) : IProp GF := iprop(True)
+
+/-- The server as an interface value (`*EtcdServer`: the uber-applier's `RaftStatus` and
+`SnapshotServer`). -/
+def srvIface (s : Loc) : GoInterface :=
+  interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) #s
+
+/-- (internal) **The member's stores at their fields, at model state `σ`** (`s.kv`, `s.lessor`,
+`s.authStore`, `s.alarmStore`, `s.cluster`, `s.be` under `bemu`): 3a's `optsSt` of the options
+`NewUberApplier` builds from them. Exclusive; the apply thread's (inside `applyAt` between
+applies, given to the uber-applier's `smAt` while one applies; verify round, A7-provability F7:
+`EtcdServer.NewUberApplier.spec`). -/
+opaque srvStores [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (σ : EtcdModel.State) : IProp GF := iprop(True)
+
 /-! ### The raft node driver -/
 
 /-- **`r` is member `id`'s raft node driver**, over raft node `n` (a `raftNode`). Persistent. -/
@@ -414,11 +432,11 @@ opaque entryAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors
 
 /-- **`bs` is a backend snapshot** (`backend.Snapshot`) of the state machine at a committed point
 `k`, with consistent index `k`. Exclusive (its `Close`). Integration X (Y's (8)): 4a's open
-snapshot of an image that is the state machine at the history point `k` (`Backend.smImage`). -/
+snapshot of an image that is the state machine at the history point `k` (`Backend.smImage`), of its size `n` (verify round: 4a's `beSnapN`). -/
 def beSnap (bs : GoInterface) (γ : Names) (k : Nat) : IProp GF :=
-  iprop(∃ (γb : Backend.BeNames) (s : Loc) (I : Backend.Image) (bys : List w8) (σ : EtcdModel.State),
+  iprop(∃ (γb : Backend.BeNames) (s : Loc) (I : Backend.Image) (n : Nat) (σ : EtcdModel.State),
     ⌜bs = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.snapshot.ty) #s⌝ ∗
-    Backend.beSnap γb s I bys ∗ histAt γ k σ ∗ ⌜Backend.smImage I σ k⌝)
+    Backend.beSnapN γb s I n ∗ histAt γ k σ ∗ ⌜Backend.smImage I σ k⌝)
 
 /-- **`rc` is an `io.ReadCloser` streaming the database image** of the state machine at committed
 point `k`. Exclusive. Integration X: 2e's `Snap.dbReader` of an image that is the state machine at
@@ -590,6 +608,55 @@ persistent `srvMember` gives `srvNode` at the names over its cluster. -/
 def srvMember_node.spec : Prop :=
   ∀ (s : Loc) (γ : EtcdModel.Cluster) (id : Nat), srvMember (GF := GF) s γ id ⊢
     ∃ N : Names, ⌜N.etcd = γ⌝ ∗ srvNode s N id
+
+/-- **The converse bridge** (verify round, A7-provability F2): a member of the history is 2e's
+built member (`Logger`, the getters take `srvMember`). -/
+def srvNode_member.spec : Prop :=
+  ∀ (s : Loc) (γ : Names) (id : Nat), srvNode (GF := GF) s γ id ⊢ srvMember s γ.etcd id
+
+/-- **A started member serves its cluster** (verify round, A7-provability F1, completeness F1):
+`start` makes `isServer` before `go s.run()` from the fields `srvStarted` names, so the server's own
+goroutines (`run`, the lessor's revocations, the `NOSPACE` alarm, the merged snapshot, the
+checkpointer, `publishV3`, the monitors) hold the request path's handle. -/
+def srvStarted_isServer.spec : Prop :=
+  ∀ (s : Loc) (γ : Names) (id : Nat),
+    srvNode (GF := GF) s γ id ∗ srvStarted s γ id ⊢ isServer s γ.etcd
+
+/-- 2e's handle names a built member (`isServer_names` with `srvNode_member`). -/
+def isServer_member.spec : Prop :=
+  ∀ (s : Loc) (γ : EtcdModel.Cluster), isServer (GF := GF) s γ ⊢ ∃ id, srvMember s γ id
+
+/-- **The uber-applier's handles from the server** (3a's provisional `statusOk`, `snapSrvOk`,
+`ciOk`, `authnIdx`: their introductions, verify round, A7-completeness F6): the server is a raft
+status getter (`MemberID`, `Leader`, `Term`: atomics and a read-only field of `srvNode`) and,
+under the lent `applyLent s γ` (which holds `forceSnapW s`), a snapshot server (2d's
+`ForceSnapshot.spec`); the server's consistent indexer, under the lent resource (its writer at the
+applying index), answers `ConsistentIndex()`; and for the `Authenticate` entry being applied (the
+committed entry at the applying index `applyLent` records) the cluster issued its token: the
+history's step of that entry registers `tokenUser γ (tok ++ "." ++ idx) name` (W0's), `idx` above
+every earlier `Authenticate` index. (`authnIdx`'s meaning is read as conditional on the entry being
+applied asking `Authenticate(name, tok)`: requested of 3a.) -/
+def applyLent_opts.spec : Prop :=
+  ∀ (s : Loc) (γ : Names) (id : Nat), srvNode (GF := GF) s γ id ⊢
+    Apply.statusOk (srvIface s) ∗ Apply.snapSrvOk (srvIface s) (applyLent s γ) ∗
+    (∃ ci : GoInterface,
+      structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"consistIndex" s ↦□ ci ∗
+      Apply.ciOk ci (applyLent s γ)) ∗
+    □ (∀ name tok, Apply.authnIdx (applyLent s γ) γ.etcd name tok)
+
+/-- **The store's slots of 3a's options, together** (verify round, apply-txn's request, A9 F2/F6):
+the member's KV `s.kv` is 3a's `kvOk` under the lent `applyLent s γ` (realized at `NewServer` from
+`NewStore`'s post: `isMvcc`, `mvccLessorIs` at the member's lessor, `mvccBackend` with the
+post-lock hook's contract), its range deleter is set as the lessor's (`kvDelOk`: `NewStore`'s
+`mvccDeleter rd γ`, 4a's `leaseTxHeld_intro` relating the store's and the lessor's view of the
+backend `be`, which is `s.be`, after a snapshot `Recover`'s new backend), and the apply thread's
+stores at `σ` hold its `kvSt` at `σ.kv` (lent out and back). -/
+def srvStores_kv.spec : Prop :=
+  ∀ (s : Loc) (γ : Names) (id : Nat) (σ : EtcdModel.State), srvNode (GF := GF) s γ id ∗ srvStores s σ ⊢
+    ∃ (kv be : GoInterface) (γl : Lease.Names) (rd : GoFunc),
+      structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"kv" s ↦□ kv ∗
+      srvLessor s γl ∗ Apply.kvOk kv (applyLent s γ) ∗ Apply.kvDelOk kv γl be rd ∗
+      Apply.kvSt kv σ.kv ∗ (Apply.kvSt kv σ.kv -∗ srvStores s σ)
 
 /-- A member has one apply configuration, which `NewServer` fixed (2e's `srvNode`). -/
 def srvNode_cfg.spec : Prop :=

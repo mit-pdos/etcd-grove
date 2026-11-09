@@ -4,7 +4,8 @@
 **Users.** `EtcdServer.Txn`'s deferred warning for a read-only transaction (`v3_server.go:359`: its
 request, the reply, `nil`, or the partly filled response after a context error). Snippet: none.
 
-**Proof sketch.** `pb.NewLoggableTxnRequest(r)` (3h: a stringer, `stringerOk`); past the duration,
+**Proof sketch.** `pb.NewLoggableTxnRequest(r)` (3h's: `stringerAt s` lent from the request's share, given back by
+`stringerAt s -∗ msgAt …`); past the duration,
 `isNil`, the loop over `Responses` (each a range response, its message `nil` or a reply:
 `GetResponseRange`, `GetKvs`, 3h's getters), `proto.Size` (a read-only transaction's response is at
 most four levels deep), `warnOfExpensiveGenericRequest`.

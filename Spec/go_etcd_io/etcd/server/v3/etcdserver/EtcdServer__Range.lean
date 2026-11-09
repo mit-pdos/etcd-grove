@@ -58,6 +58,10 @@ builds its range request, `endsDecoded_range_intro`).
 **Margin.** A linearizable read is answered at a state at or after the read index, which may be
 behind the cluster's latest (the model's linearization point is the moment the cluster was in it,
 inside the call).
+
+Changes: verify-round (client-core's request): a permission denial is fired at W0's three-view `deniedSince` (the auth table the member checked, at or after the call's `lo`: `srvReadAt_auth`).
+
+Changes: verify-round, second pass (grpc-v3rpc's request): `endsDecoded` is now a share of the request message with the pure `endsOk` fact; 2a's handler gets it by `endsDecoded_of_canon` (`Proto.norm c = c` of a decoded message), a builder by `endsDecoded_range_intro`.
 -/
 module
 

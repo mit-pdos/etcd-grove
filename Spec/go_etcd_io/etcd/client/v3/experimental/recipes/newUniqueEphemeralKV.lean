@@ -9,6 +9,8 @@ retried with a new time while the key exists.
 **Changes**: old spec over `concurrency.isSession` and the recipes' client invariant; now 1d's
 `isSession s c γ id` with `isClient c γ who`, and the caller's update.
 
+Changes: verify-round: `ErrKeyExists` is the value its variable holds (`putNewRetAt`), not a Lean constant (A3 F4).
+
 **Margin**: as `newUniqueKV`'s.
 -/
 module
@@ -47,7 +49,7 @@ def newUniqueEphemeralKV.spec : Prop :=
       (Val #pre)) (Val #val))
 
   {{ (rk : Loc) (err : GoInterface), RET (PairV #rk #err);
-      (∃ (σ σ' : State) (k : GoString) (res : Resp) (rev : w64), Q σ σ' k res ∗ ⌜putNewRet res rev err⌝ ∗
+      (∃ (σ σ' : State) (k : GoString) (res : Resp) (rev : w64), Q σ σ' k res ∗ putNewRetAt res rev err ∗
         ((⌜err = GoInterface.nil⌝ ∗ ekOwn rk γ who { live := true, key := k, rev := rev, val := val }) ∨
          ⌜err ≠ GoInterface.nil ∧ rk = null⌝)) ∨
       (⌜rk = null⌝ ∗ indefCall err) }}

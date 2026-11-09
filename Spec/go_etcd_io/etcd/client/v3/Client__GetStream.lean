@@ -8,8 +8,9 @@ the initial list of a watch). Snippet: `clientv3kv/stream.go` (`ReqGetStream`).
 Proof sketch: `isClient_KV`, `kvAt_methods`' `GetStream`.
 
 Changes: none (no old spec): Kubernetes' store now lists with it.
+verify-round: as `kv.GetStream`'s (no thread token; the scope premise `emptyEnd = false`).
 
-Margin: a sorted or filtered stream's key-values are not modelled (`streamMatches`); a stream at the default ordering is the range's answer. The thread token comes back only for a drained stream: if the consumer stops receiving, the goroutine blocks for good (`nonissues/etcd-client-getstream-abandoned-leak.md`).
+Margin: a sorted or filtered stream's key-values are not modelled (`streamMatches`); a stream at the default ordering is the range's answer. If the consumer stops receiving, the goroutine blocks for good, a leaked goroutine (`nonissues/etcd-client-getstream-abandoned-leak.md`).
 -/
 module
 

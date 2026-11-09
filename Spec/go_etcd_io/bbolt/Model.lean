@@ -118,26 +118,7 @@ def curEnts (e : Ent) : List (GoString × Option GoString) :=
     | .val v => some v
     | .bkt _ _ => none))
 
-/-- **A well-formed entry**: every bucket's keys non-empty and strictly sorted (`go.GoStringLt`,
-`bytes.Compare`), recursively. Every state bbolt holds is well-formed (`Api.lean`'s `boltTx_wf`, for
-a transaction's views and the committed data, and `boltImage_wf`). -/
-inductive wf : Ent → Prop
-  | val (v : GoString) : wf (.val v)
-  | bkt (s : w64) (es : List (GoString × Ent)) :
-      es.Pairwise (fun a b => go.GoStringLt a.1 b.1) → (∀ x ∈ es, x.1 ≠ []) →
-      (∀ x ∈ es, wf x.2) → wf (.bkt s es)
-
 end Ent
-
-/-- A cursor entry: a key and its value (`none`: a nested bucket). -/
-abbrev CurEnt := GoString × Option GoString
-
-/-- The first index of a sorted entry list whose key is not below `k` (`Cursor.Seek`). -/
-def seekIdx (es : List CurEnt) (k : GoString) : Nat :=
-  (es.takeWhile (fun e => decide (go.GoStringLt e.1 k))).length
-
-/-- The path of the bucket `k` inside the bucket at `p`. -/
-abbrev BPath.child (p : BPath) (k : GoString) : BPath := p ++ [k]
 
 /-! ## Size bounds -/
 
@@ -154,6 +135,35 @@ buffer must stay below `MaxAllocSize = 2^31 - 1`, or `Commit` (`WriteInodeToPage
 panics (`issues/bbolt-max-value-size-unusable.md`, `issues/bbolt-large-values-leaf-unreadable.md`).
 Rests on the split threshold being at most the page size (`splitThreshold`'s trusted model, D17). -/
 @[word_unfold] def bboltEntryMax : Nat := 2 ^ 28
+
+namespace Ent
+
+/-- **A well-formed entry**: every bucket's keys non-empty, **at most `maxKeySize`** and strictly
+sorted (`go.GoStringLt`, `bytes.Compare`), and **each plain value's key and value together at most
+`bboltEntryMax`**, recursively. Every state bbolt holds is well-formed (`Api.lean`'s `boltTx_wf`,
+for a transaction's views and the committed data, and `boltImage_wf`): `Put` refuses a longer key
+and takes the entry bound as a premise, `CreateBucket*` take the name bound, and a file bbolt opens
+holds only such entries (`fileHolds`). The bounds are what a copy needs to meet `Put`'s and
+`CreateBucketIfNotExists`' premises with data it read (etcd's defrag; verify-round A11 F6). -/
+inductive wf : Ent → Prop
+  | val (v : GoString) : wf (.val v)
+  | bkt (s : w64) (es : List (GoString × Ent)) :
+      es.Pairwise (fun a b => go.GoStringLt a.1 b.1) → (∀ x ∈ es, x.1 ≠ []) →
+      (∀ x ∈ es, x.1.length ≤ maxKeySize) →
+      (∀ k v, (k, Ent.val v) ∈ es → k.length + v.length ≤ bboltEntryMax) →
+      (∀ x ∈ es, wf x.2) → wf (.bkt s es)
+
+end Ent
+
+/-- A cursor entry: a key and its value (`none`: a nested bucket). -/
+abbrev CurEnt := GoString × Option GoString
+
+/-- The first index of a sorted entry list whose key is not below `k` (`Cursor.Seek`). -/
+def seekIdx (es : List CurEnt) (k : GoString) : Nat :=
+  (es.takeWhile (fun e => decide (go.GoStringLt e.1 k))).length
+
+/-- The path of the bucket `k` inside the bucket at `p`. -/
+abbrev BPath.child (p : BPath) (k : GoString) : BPath := p ++ [k]
 
 /-- `f`, a `float64`'s bits, is a NaN: exponent all ones, mantissa non-zero. -/
 def float64IsNaN (f : w64) : Prop :=
@@ -200,11 +210,16 @@ def TxView.ents (T : TxView) (p : BPath) : List CurEnt :=
 /-- The view with its data changed to `D`. -/
 def TxView.setCur (T : TxView) (D : Data) : TxView := { T with cur := D }
 
-/-- The view with the bucket `p.child k` deleted (with everything in it) and its generation
-bumped. -/
+/-- The view with the bucket `p.child k` deleted (with everything in it), its generation bumped,
+and the generations of the paths strictly below it reset to `0` (their handles are stale anyway:
+their generation lists hold `p.child k`'s, which only grows until an ancestor's is bumped).
+Resetting, not keeping, the paths below is what makes `DeleteBucket`'s recursion (each nested
+bucket deleted by its own `DeleteBucket`, bumping its own path) end at this view exactly
+(verify-round A11 F9). -/
 def TxView.dropBkt (T : TxView) (p : BPath) (k : GoString) : TxView :=
   { T with cur := T.cur.modAt p (fun b => b.setKey k none),
-           gen := fun x => if x = p.child k then T.gen x + 1 else T.gen x }
+           gen := fun x => if x = p.child k then T.gen x + 1
+             else if (p.child k).isPrefixOf x then 0 else T.gen x }
 
 /-! ## The client-owned state: committed data and durability -/
 
@@ -221,21 +236,37 @@ def TxView.dropBkt (T : TxView) (p : BPath) (k : GoString) : TxView :=
   (`nonissues/bbolt-commit-after-failed-sync.md`);
 - `broken`: a commit failed after the database lost its mapping (a failed remap in `allocate`):
   every later `Begin` fails (`ErrInvalidMapping`). A client whose commits all succeeded knows it is
-  `false`. -/
+  `false`;
+- `named`: the file's name is durable in its directory. bbolt creates a missing file
+  (`O_CREATE`) and never syncs its directory (`nonissues/bbolt-create-dir-not-synced.md`; OsFs's
+  D4: a created file's name is not durable), so a generation that starts from no file (or from an
+  empty file whose name may not be durable: `boltFresh_alloc`, `BoltSt.fresh`) has `named = false`
+  for its whole life, and a crash may then also find no file at all, which the next generation
+  starts from again (verify-round A11 F1, a user decision: `notes/specs-only/verify/repair-bbolt.md`,
+  "New decisions"). A generation that opens an existing file whose name is durable (`fileHolds`:
+  one that survived a crash, a snapshot synced with its name, an empty file its creator made
+  durable) has `named = true`. -/
 structure BoltSt where
   data : Data
   dur : Option (List Data)
   busy : Bool
   lost : Bool
   broken : Bool
+  named : Bool
 
-/-- The state of a file just opened by a generation (or a fresh file): `D`, all of it durable. -/
+/-- The state of an existing file a generation opens (`fileHolds`): `D`, all of it durable, its
+name too. -/
 def BoltSt.init (D : Data) : BoltSt :=
-  { data := D, dur := some [], busy := false, lost := false, broken := false }
+  { data := D, dur := some [], busy := false, lost := false, broken := false, named := true }
 
-/-- **A crash may leave the database holding `D`.** -/
+/-- The state of a database bbolt will create (no file, or an empty one whose name may not be
+durable: `boltFresh_alloc`): empty, and the file may vanish at a crash. -/
+def BoltSt.fresh : BoltSt := { BoltSt.init Data.empty with named := false }
+
+/-- **A crash may leave the database holding `D`**: (with a promise, `dur ≠ none`) the committed
+data, one of `dur`'s, or, while the file's name is not durable, the empty database (no file). -/
 def BoltSt.recovers (σ : BoltSt) (D : Data) : Prop :=
-  ∃ ds, σ.dur = some ds ∧ (D = σ.data ∨ D ∈ ds)
+  ∃ ds, σ.dur = some ds ∧ (D = σ.data ∨ D ∈ ds ∨ (σ.named = false ∧ D = Data.empty))
 
 /-- **A commit of `D` takes effect** (its meta page is written): `D` is committed, the old data
 stays recoverable until a sync; under `NoSync`, or after a failed sync (`lost`: pages this commit's

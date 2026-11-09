@@ -6,7 +6,10 @@
 `NewElection`/`ResumeElection` of the request's name and key, with the lent permission
 `etcdLent γ T P ∗ P` 1d's method takes. `Election.Resign.spec` (a delete of the key if its create revision
 is still the leader key's). **Changes**: from `specs-ref`'s `electionServer__Resign.lean`.
-**Margin.** The deletion is not stated (the key may have expired already).
+Changes: verify-round: the lent token `P` back on success (1d returns it; A3 completeness F7); the
+messages 3h's.
+**Margin.** The deletion is not stated (the key may have expired already); on an error `P` is not
+returned.
 
 **The principal** (round 1, completeness F9): the in-process client (`v3client.New(s)`, default
 principal `dflt`: none) forwards each call's token, so the call's principal is the context's `who`
@@ -43,7 +46,7 @@ def electionServer.Resign.spec : Prop :=
         effIn (delEff (fun k => k = x.key)) T⌝ ∗ etcdLent γ T P ∗ P }}
     (App (App (Val (es @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer.ty @!! go!"Resign")) (Val #ctx)) (Val #req))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      (⌜err = GoInterface.nil⌝ ∗ resignResp resp) ∨ ⌜err ≠ GoInterface.nil⌝ }}
+      (⌜err = GoInterface.nil⌝ ∗ P ∗ resignResp resp) ∨ ⌜err ≠ GoInterface.nil⌝ }}
 
 end spec
 

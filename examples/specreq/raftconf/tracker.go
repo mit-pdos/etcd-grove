@@ -175,7 +175,7 @@ func ReqProgressFlow() {
 // it out in Status, the client's to keep).
 // Users: status.go:74 (getStatus), confchange.go:283 (checkAndCopy).
 // Assumes: cs lists at most 2^62 ids.
-// Specs: Config.Clone.spec; laws: configOwn_open.spec.
+// Specs: Config.Clone.spec, JointConfig.IDs.spec; laws: configOwn_open.spec.
 func ReqCloneFresh(cs *pb.ConfState) {
 	trk, ok := restored(cs, 1)
 	if !ok {
@@ -183,7 +183,8 @@ func ReqCloneFresh(cs *pb.ConfState) {
 	}
 	n := len(trk.Voters[0])
 	c := trk.Config.Clone()
-	for id := range c.Voters[0] {
+	ids := c.Voters.IDs() // a fresh map: the deletes below do not write the map ranged over
+	for id := range ids {
 		delete(c.Voters[0], id)
 	}
 	if len(trk.Voters[0]) != n {

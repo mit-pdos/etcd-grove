@@ -10,6 +10,9 @@ interval, `Sync` with a timeout child of `c.ctx` (`ctxPrin_child`; `verifyOff`: 
 Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/Client__autoSync.lean` (the interval `0`
 only): any interval.
 
+verify-round: only the interval `0` (returns at once): auto-sync is out of the top-level workloads
+(`cfgOk`; the coordinator's decision (b) on `issues/etcd-client-resolver-build-race.md`).
+
 Margin: none.
 -/
 module
@@ -39,7 +42,7 @@ def Client.autoSync.spec : Prop :=
   ∀ (c : Loc) (γ : Cluster) (who : Principal),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientCore c γ who ∗ clientReady c ∗
       ∃ cfg : go_etcd_io.etcd.client.v3.Config, c.[go_etcd_io.etcd.client.v3.Client, go!"cfg"] ↦□ cfg ∗
-        (⌜cfg.AutoSyncInterval' = W64 0⌝ ∨ ∃ eps, epsTok c (DFrac.own 1) eps) }}
+        ⌜cfg.AutoSyncInterval' = W64 0⌝ }}
     (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"autoSync")) (Val #()))
   {{ RET #(); True }}
 

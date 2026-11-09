@@ -6,11 +6,15 @@ Users: `kv.GetStream`.
 Proof sketch: the stub's `RangeStream` with the same options (a stream is not retried by the unary interceptor; the stream interceptor, 1c, may reopen it before the first message: the update is persistent).
 
 Integration (I1): the stub opens the stream through 1c's `siOk_call` (over 2a's `streamerOk_call` with
-`V3rpc.rangeStreamSpec`); `wireStreamAt` is realized by 2a's stream laws and `rsReq`/`rsChunk`. **Open**:
-`rangeStreamSpec`'s update is over `Step who (.range r)` at `lo = 0`, the client's at `lo`
-(`authLb γ lo`): 2a's contract must carry `lo` (report I1).
+`V3rpc.rangeStreamSpec`); `wireStreamAt` is realized by 2a's stream laws and `rsReq`/`rsChunk`.
+The client's `lo` (`authLb γ lo`) is carried: `rangeStreamSpec`'s request clause holds
+`authLb γ lo ∗ etcdAU γ who (.range r) true lo Q`. The member receives the request's wire view
+(`Proto.norm c`), which models the same range under `endsOk` (3h's `holds_norm`), what `kv.GetStream`'s
+`emptyEnd = false` gives.
 
 Changes: none (no old spec): added for the users named above.
+verify-round (second pass): the stale "Open" note on `lo` dropped (2a carries it; A6-completeness
+C-F1).
 
 Margin: none.
 -/

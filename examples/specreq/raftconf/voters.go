@@ -39,8 +39,10 @@ func ReqQuorumActive() {
 // Users: raft.go:1992 (switchToConfig: r.isLearner), raft.go:1948 (promotable), node.go:395 and
 // rawnode.go:121 (an untracked sender), raft.go:1652 (a learner's MsgAppResp).
 // Assumes: cs lists at most 2^62 ids.
-// Specs: Restore.spec, Changer.EnterJoint.spec (TrackerOk of the result); laws: configOwn_valid.spec
-// (Membership.Valid: staged learners are outgoing voters), configOwn_open.spec.
+// Specs: Restore.spec, Changer.EnterJoint.spec (TrackerOk of the result),
+// ProgressTracker.LearnerNodes.spec (the learners read through it: raft never reads the Learners
+// map directly); laws: configOwn_valid.spec (Membership.Valid: staged learners are outgoing
+// voters), configOwn_open.spec.
 func ReqLearnerFlag(cs *pb.ConfState) {
 	trk, ok := restored(cs, 1)
 	if !ok {
@@ -59,8 +61,9 @@ func ReqLearnerFlag(cs *pb.ConfState) {
 			trk.Config, trk.Progress = cfg, prs
 		}
 	}
+	learners := trk.LearnerNodes()
 	for id, pr := range trk.Progress {
-		_, l := trk.Learners[id]
+		l := contains(learners, id)
 		_, v0 := trk.Voters[0][id]
 		_, v1 := trk.Voters[1][id]
 		if pr.IsLearner != l {
@@ -122,4 +125,14 @@ func ReqProgressCopy(pr *tracker.Progress) tracker.Progress {
 		}
 	}
 	return p
+}
+
+// contains reports whether x is in xs (a plain loop: the snippets use no unspecified library call).
+func contains(xs []uint64, x uint64) bool {
+	for _, y := range xs {
+		if y == x {
+			return true
+		}
+	}
+	return false
 }

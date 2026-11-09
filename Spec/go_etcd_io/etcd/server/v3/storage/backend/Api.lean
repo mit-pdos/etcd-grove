@@ -58,13 +58,21 @@ membership, alarms, the schema's version. So the vocabulary is **one image, owne
   cells `F`** at its `Unlock` (the visible-image updates of `F`; `F` may grow, `beSess_widen`).
   Lendable whole: a callee writing under its caller's session (the lessor under mvcc's) takes it
   and gives it back.
+* `beTurn γ` (exclusive, timeless; verify-round, A10-provability B1): **the batch lock's turn**:
+  every `Lock*` returns it with the session, and `Unlock`'s second update takes it back at its
+  commit point (the lock's invariant holds it between sessions). A client that parks lock-scoped
+  state between sessions (mvcc's storage bridge takes its batch part out at the lock and puts it back
+  at the second update) parks the turn with it; a new session's turn refutes a stale parked case
+  (`beTurn_excl`): no session begins before the previous one's second update fired.
 * `beCurIs γ I` (exclusive, ephemeral): the whole batch image is `I`: what a commit hands its
   client's commit step (`commitOk`, `beReq`) to compare with the parts it holds.
 * `beHist γ L` (exclusive, timeless; client-owned): **the images committed (or attempted) so far, in
   order; the file holds the last; a crash leaves one of them** (bbolt's `BoltSt.recovers`, with
   `UnsafeNoFsync` off). Each commit appends the batch image by the client's update (`commitOk`).
   `beCommitted γ I` (persistent): `I` is in the history. `beFinal γ I` (persistent): the backend is
-  closed, `I` its last commit.
+  closed, `I` its last commit. `beHistLb γ L` (persistent; verify-round, A10-completeness F1): the
+  history has the prefix `L` (a lower bound: what `Snapshot` takes, to return an image at least as
+  new as `L`'s last).
 * `beRdToks γ n` (counted, splits): `n` reader slots (a read transaction's: the read lock and the
   interval's wait group; a snapshot's and a hash's bbolt read transaction). `New` gives
   `beReaderN` of them (sealed); the backend's close does not take them back (in-flight readers
@@ -86,10 +94,15 @@ membership, alarms, the schema's version. So the vocabulary is **one image, owne
   copy the deleted keys back).
 * `beMade γ b` (persistent): bucket `b` exists, for good (`beCur_freeze`: its existence cell given
   up); creating it again is a no-op.
-* `beSnap γ s I bs` (exclusive): an open snapshot `s` of the committed image `I`, whose bytes
-  (`WriteTo`) are `bs` (`imgBytes I bs`).
-* `beFile p o` (exclusive, timeless): the closed database file at `p` holds `o` (`none`: no file).
-  Intended realization: 4c's `fileHolds p D` with `imgOf D = I`.
+* `beSnapN γ s I n` (exclusive): an open snapshot `s` of the committed image `I`, of size `n`; each
+  `WriteTo` writes some bytes `bs` of `I` of that length (`imgBytes I bs`, `bs.length = n`): not the
+  same bytes each time (bbolt's `Tx.WriteTo` reads the free pages below the high-water mark from the
+  file, which a concurrent commit may rewrite: A11-completeness F5).
+* `beFile p o` (exclusive, timeless): the closed database file at `p` holds `o` (`none`: no file,
+  or an empty one). Intended realization: 4c's `fileHolds p D` with `imgOf D = I`; for `none`,
+  `boltFresh_alloc`'s premise. `beRevert p o0`/`beNoRevert p` (exclusive; second pass): a rename
+  onto `p` awaits a directory sync (a crash may bring back the previous file `o0`), or none does
+  (`Durable.lean`).
 * `bucketOk bk bi` (transparent, persistent): `bk`'s methods `ID()`, `Name()`,
   `IsSafeRangeBucket()` return `bi` (4b proves it of `Schema.bucketAt`).
 * `envOk` (persistent): **the program-start environment**: `ETCD_VERIFY` unset (the lock checks and
@@ -120,9 +133,10 @@ membership, alarms, the schema's version. So the vocabulary is **one image, owne
 
 `isBackend_persistent`, `beOpen_fractional`, `beCur_split`, `beCur_excl`, `beCur_agree`,
 `beVis_split`, `beVis_agree`, `beVis_none`, `beVis_timeless`, `beVis_drop`, `beNoVis_persistent`,
-`beNoVis_mono`, `beNoVis_excl`, `beSess_excl`, `beSess_widen`, `beSess_cur`, `beSess_vis`, `beSess_rd`,
+`beNoVis_mono`, `beNoVis_excl`, `beSess_excl`, `beSess_widen`, `beSess_cur`, `beSess_vis`, `beSess_rd`, `beTurn_excl`, `beTurn_timeless`,
 `beCurIs_cur`, `beCurIs_vis`, `beCurIs_flush`, `beHist_timeless`,
-`beHist_mem`, `beHist_final`, `beCommitted_persistent`, `beFinal_persistent`, `beFinal_cur`,
+`beHist_mem`, `beHist_final`, `beHist_lb`, `beHist_lb_prefix`, `beHistLb_persistent`, `beHistLb_mono`,
+`beHistLb_nil`, `beCommitted_persistent`, `beFinal_persistent`, `beFinal_cur`,
 `beRdToks_split`, `beLive_fractional`, `beReaderN_ge`, `beHook_fractional`, `beHook_agree`, `beHook_persistent`, `beDel_excl`,
 `beCur_freeze`, `beMade_persistent`, `beMade_cur`, `beFile_timeless`, `beFile_excl`,
 `beBkt_{persistent, inj}`, `beHookFp_persistent`, `beSynced_persistent`, `beDurInv_persistent`,
@@ -407,11 +421,17 @@ opaque beNoVis [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors
 /-- **This thread holds the batch lock, in session `S`, publishing `F`** (exclusive). -/
 opaque beSess [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : BeNames) (q : Qp) (F : Fp) (S : Sess) : IProp GF := iprop(True)
 
+/-- **The batch lock's turn** (exclusive; see the header). -/
+opaque beTurn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : BeNames) : IProp GF := iprop(True)
+
 /-- The whole batch image is `I` (ephemeral: lent at a commit). -/
 opaque beCurIs [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : BeNames) (I : Image) : IProp GF := iprop(True)
 
 /-- **The committed (or attempted) images so far, in order** (client-owned). -/
 opaque beHist [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : BeNames) (L : List Image) : IProp GF := iprop(True)
+
+/-- **The history has the prefix `L`** (persistent, monotone). -/
+opaque beHistLb [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : BeNames) (L : List Image) : IProp GF := iprop(True)
 
 /-- `I` was committed (persistent). -/
 opaque beCommitted [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : BeNames) (I : Image) : IProp GF := iprop(True)
@@ -440,11 +460,24 @@ opaque beDelHeld [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFuncto
 /-- Bucket `b` exists for good (persistent). -/
 opaque beMade [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : BeNames) (b : GoString) : IProp GF := iprop(True)
 
-/-- An open snapshot `s` of the committed image `I`, its bytes `bs` (exclusive). -/
-opaque beSnap [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : BeNames) (s : Loc) (I : Image) (bs : List w8) : IProp GF := iprop(True)
+/-- **An open snapshot `s` of the committed image `I`, of size `n`** (exclusive): each `WriteTo`
+writes some bytes of `I` of length `n` (see the header). -/
+opaque beSnapN [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : BeNames) (s : Loc) (I : Image) (n : Nat) : IProp GF := iprop(True)
 
 /-- **The closed database file at `p` holds `o`** (`none`: no file; exclusive). -/
 opaque beFile [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : GoString) (o : Option Image) : IProp GF := iprop(True)
+
+/-- **A rename onto `p` awaits a directory sync; a crash may bring back the previous file, which
+held `o`** (exclusive; `Durable.lean`'s header). -/
+opaque beRevert [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : GoString) (o : Option Image) : IProp GF := iprop(True)
+
+/-- **No rename onto `p` awaits a directory sync** (exclusive). -/
+opaque beNoRevert [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : GoString) : IProp GF := iprop(True)
+
+/-- `p`'s revert state: none pending, or a pending rename over a file that held `o`. -/
+def beRev (p : GoString) : Option (Option Image) → IProp GF
+  | none => beNoRevert p
+  | some o => beRevert p o
 
 /-- **`bk` is a `Bucket` value with identity `bi`** (transparent, persistent): the bundle of the
 three methods the backend calls (`ID()`, `Name()` (a read-only slice), `IsSafeRangeBucket()`), as an
@@ -693,6 +726,11 @@ def beSess_rd.spec : Prop := ∀ γ q F S G V,
     beRd γ (rtLoc γ) G V ∗ beLive γ (rtLoc γ) 1 ∗
     (beRd γ (rtLoc γ) G V -∗ beLive γ (rtLoc γ) 1 -∗ beSess γ q F S ∗ beVis γ G V)
 
+/-- **One turn at a time** (the lock's invariant holds it between sessions). -/
+def beTurn_excl.spec : Prop := ∀ γ, beTurn (GF := GF) γ ∗ beTurn γ ⊢ iprop(False)
+
+def beTurn_timeless.spec : Prop := ∀ γ, Timeless (beTurn (GF := GF) γ)
+
 def beCurIs_cur.spec : Prop := ∀ γ I G C,
   beCurIs (GF := GF) γ I ∗ beCur γ G C ⊢ ⌜Image.agree G I C⌝
 
@@ -710,6 +748,19 @@ def beHist_timeless.spec : Prop := ∀ γ L, Timeless (beHist (GF := GF) γ L)
 def beHist_mem.spec : Prop := ∀ γ L I, beHist (GF := GF) γ L ∗ beCommitted γ I ⊢ ⌜I ∈ L⌝
 
 def beHist_final.spec : Prop := ∀ γ L I, beHist (GF := GF) γ L ∗ beFinal γ I ⊢ ⌜L.getLast? = some I⌝
+
+/-- The history's lower bound, taken from the history (the client's). -/
+def beHist_lb.spec : Prop := ∀ γ L, beHist (GF := GF) γ L ⊢ beHistLb γ L
+
+def beHist_lb_prefix.spec : Prop := ∀ γ L L0,
+  beHist (GF := GF) γ L ∗ beHistLb γ L0 ⊢ ⌜L0 <+: L⌝
+
+def beHistLb_persistent.spec : Prop := ∀ γ L, Persistent (beHistLb (GF := GF) γ L)
+
+def beHistLb_mono.spec : Prop := ∀ γ (L0 L : List Image), L0 <+: L →
+  (beHistLb (GF := GF) γ L ⊢ beHistLb γ L0)
+
+def beHistLb_nil.spec : Prop := ∀ γ, ⊢ beHistLb (GF := GF) γ []
 
 def beCommitted_persistent.spec : Prop := ∀ γ I, Persistent (beCommitted (GF := GF) γ I)
 

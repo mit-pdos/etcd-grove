@@ -10,6 +10,7 @@ premise), the method directly or through the interceptor (with a `*UnaryServerIn
 `func(ctx, req) { return srv.(KVServer).Range(ctx, req.(*RangeRequest)) }`). 2a composes it with
 `icChain_call` and the method's `HandlerTriple` into `Grpc.unaryOk`.
 Changes: from `specs-ref/Spec/go_etcd_io/etcd/api/v3/etcdserverpb/_KV_Range_Handler.lean`: WP form over grpc's `decOk` and the request's content (2a), instead of the old `grpcHandlerOkMd` over caller-built `ProtoMsg`s (`specs-ref/notes/grpc-msg-models.md`); the interceptor chain is 2a's (`icChain_call`).
+verify-round (A6 F2): the decoded request is canonical, `⌜Proto.norm c = c⌝` (was `Proto.decodedAt`).
 Margin: none.
 -/
 module
@@ -41,7 +42,7 @@ def _KV_Range_Handler.spec : Prop :=
   go.typeSetContains srv.ty etcdserverpb.KVServer.ty = true →
   isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ Grpc.decOk dec etcdserverpb.RangeRequest.ty c ∗
     (∀ q : Loc, Proto.msgAt etcdserverpb.RangeRequest.ty q (DFrac.own 1) c -∗
-      Proto.decodedAt etcdserverpb.RangeRequest.ty q -∗
+      ⌜Proto.norm c = c⌝ -∗
       handlerBodyWP srv go!"Range" etcdserverpb.RangeRequest.ty etcdserverpb.RangeResponse.ty go!"/etcdserverpb.KV/Range"
         ctx q ic Ψ) ⊢
   WP (App (App (App (App (Val (@! etcdserverpb._KV_Range_Handler)) (Val #(GoInterface.ok srv)))

@@ -6,7 +6,9 @@ Go type `T`, ordered by a `LessFunc[T]`. Its users: etcd's cache (`cache/store.g
 `cache/snapshot.go`: `New`, `ReplaceOrInsert`, `Delete`, `Get`, `AscendGreaterOrEqual`, `AscendRange`,
 `Clone`) and etcd's mvcc key index (`server/v3/storage/mvcc/index.go`, batch 3e: `New`, `Get` whose
 item it mutates in place, `ReplaceOrInsert`, `Delete`, `Clone`, `Ascend`, `AscendGreaterOrEqual`
-stopped early, `Len`, readers under an `RWMutex`'s read lock at fractions); every other exported
+stopped early, `Len`, readers under an `RWMutex`'s read lock at fractions), and Kubernetes'
+apiserver cacher (`k8s.io/apiserver/pkg/storage/cacher/store/{snapshotter,btree}.go`: a tree of
+frozen clones, `DescendLessOrEqual`, `Min`, `DeleteMin`, `Clear`); every other exported
 method has a spec too (PRINCIPLES, "A smaller API is not a narrower scope": all were verified).
 
 ## The model
@@ -56,7 +58,10 @@ clone), `ownBTree_discard_persistent`, `isFreeList_persistent`.
 `examples/specreq/btree/mvcc.go`: mvcc's uses (`ReqMutateInPlace`, `ReqFractionalReaders`,
 `ReqStopEarly`, `ReqCompactClone`). `examples/specreq/btree/btree.go`: the cache's uses (a sorted map of `*kvItem` by key: insert,
 replace, delete, point and range reads, a frozen clone read concurrently with writes to the
-original) and an ordered tree (`NewOrdered`).
+original), an ordered tree (`NewOrdered`), and Kubernetes' (`ReqTreeOfSnapshots`: the apiserver
+cacher's snapshotter, a tree of frozen clones keyed by resource version, read with
+`DescendLessOrEqual` stopped at the first item, trimmed with `Min`/`DeleteMin`, reset with `Clear`;
+verify-round A3 completeness F4).
 -/
 module
 

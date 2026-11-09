@@ -11,7 +11,8 @@ leader's side of a forwarded keep-alive; untranslated). Any goroutine. Snippet `
 `l.revokec` (closed by `Revoke` after the lease left the map: `ErrLeaseNotFound`, at that later
 state), `demotec` or `stopC` (`ErrNotPrimary`). A checkpointer and a checkpointed remaining TTL: `cp(
 context.Background(), &LeaseCheckpointRequest{...})` (`ckptOk cp R`, its gate `□ R` in the invariant
-since the `Promote` that made the lessor primary: `nil` or `ErrNotPrimary`, returned as is; `Context.ctxOk_background`); `le.mu.Lock()`; `leaseMap[id]` absent: `ErrLeaseNotFound`; else
+since the `Promote` that made the lessor primary, and the caller's `threadTok`, lent and given back:
+`nil` or `ErrNotPrimary`, returned as is); `le.mu.Lock()`; `leaseMap[id]` absent: `ErrLeaseNotFound`; else
 `refresh(0)` and the notifier (time), unlock, `l.ttl` of the live object. Untranslated (time,
 channels of the expiry), so assumed.
 
@@ -21,6 +22,8 @@ expiry (time is not modelled; W0's keep-alive step allows any TTL). Whether `Err
 answered depends on the primary flag and the clock, not modelled: it may be answered any time.
 **Integration (I5).** The post's reader token scoped over all three outcomes (it was parsed as part
 of the first disjunct only: `∗` binds tighter than `∨`, so the errors lost the token).
+**Verify round (A9 3c F2).** The caller's `threadTok` (its one caller, `EtcdServer.LeaseRenew`, holds
+one), lent to the checkpointer (`ckptOk` takes one: the server's closure calls `raftRequest`).
 **Round 1.** A reader token (`lessorReaders γ 1`: the slot of the `RWMutex` it read-locks; the
 writer borrows one, `lessorState_reader`), the bounds plan's reader slots.
 -/
@@ -52,11 +55,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 def lessor.Renew.spec : Prop :=
   ∀ (le : Loc) (γ : Names) (c : Cfg) (i : Nat) (id : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ isLessor le γ c ∗
-      lessorReaders γ 1 ∗ lessorLb γ i }}
+      lessorReaders γ 1 ∗ lessorLb γ i ∗ threadTok }}
     (App (Val (le @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty @!!
       go!"Renew")) (Val #id))
   {{ (ttl : w64) (err : GoInterface), RET (PairV #ttl #err);
-      lessorReaders γ 1 ∗
+      lessorReaders γ 1 ∗ threadTok ∗
       ((⌜err = interface.nil⌝ ∗ ∃ (j : Nat) (ls : LessorState) (e : LeaseEnt),
         ⌜i ≤ j ∧ ls.leases (sint.Z id) = some e ∧ sint.Z ttl = e.ttl⌝ ∗ lessorAt γ j ls) ∨
        (errIs go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound err ∗ ∃ (j : Nat) (ls : LessorState),

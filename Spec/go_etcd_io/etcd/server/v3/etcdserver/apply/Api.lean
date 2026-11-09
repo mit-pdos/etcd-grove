@@ -47,8 +47,9 @@ computes is the one the cluster fixes at the commit.
 
 `opStep mc σ op σ' res` (opaque, a function: `opStep_fun`): **what the backend applier does** with a
 request that passed the gates: mvcc's operation (3b's `txn` over 3e), the lessor's (3c), the auth
-store's (3d). Its meaning is fixed by its laws: it is a `Step` of W0's model (`opStep_step`, for an
-admitted request: the gRPC layer's validation passed, `reqAdmitted`), it changes nothing for a token
+store's (3d). Its meaning is fixed by its laws: it is the request's own step of W0's model, never
+one of `Step`'s refusals (`opStep_step`: `ownStep`, for an admitted request: the gRPC layer's
+validation passed, `reqAdmitted`), it changes nothing for a token
 assignment (`opStep_authenticate`), a hashed user change is W0's with the hash in the password's
 place (`opStep_userAdd`, `opStep_userChangePassword`), a member's lease TTLs only change the TTLs
 (`opStep_ttl`). It is opaque because Go's answer is a function W0 leaves relational (the order of a
@@ -107,8 +108,10 @@ v` with `applierAt v (chainLayers σ) b aa` and `stAt b σ`, which is the callee
 3e's store at `σ.kv`, 3c's lessor at `σ.leases` with the attachment of `σ.kv.store`'s lease fields,
 3d's auth state `σ.auth`, 2e's `alarmSt γa σ.alarms` (the request path's concurrent `Alarms()` reads
 are 2e's/2d's protocol: requested), 2e's `beView c st` with `st.members` a permutation of
-`σ.members`; `granted`, `leaseHist` ghost. `aiAt aa ai`: `aa.authInfo ↦ ai` (the mutex's
-invariant is `∃ ai, aa.authInfo ↦ ai`).
+`σ.members`; `granted`, `leaseHist` ghost. `aiAt aa u rev`: `aa.authInfo ↦ (u, rev)`; the mutex's
+invariant is `aa.authInfo ↦ ("", 0)` (every path of `authApplierV3.Apply` resets the field before
+unlocking, `auth.go:54-55,60-61`), so a header-less request (`auth.go:46`: the field kept) runs
+with `("", 0)`, which is `aiAt aa ir.user ir.revW` (verify-round A9 F5).
 
 ## Laws
 
@@ -121,6 +124,22 @@ or nothing), `irrStep_quiet` (a checkpoint, a token, a version, a downgrade: not
 `irrStep_noV3`, `irrStep_oldRev` (a stale auth revision changes nothing), `irrStep_ttl`; round 1:
 `reachable`, `irrStep_alarm`, `irrStep_read`, `applyStep_reach`, `applyStep_ttl_same`,
 `opStep_noOldRev`, `opStep_read`, `uberOpts` with `smAt_optsSt`, `smAt_alarms`.
+
+## Verify round (2026-11-09, `notes/specs-only/verify/repair-apply-txn.md`)
+
+* `txnAdmitted` includes 3b's `Txn.txnSafe` (A9 F1: a delete then an ignore-put of the same key
+  panics in `txn.put`; the server gets it from 2a's `txnChecked` through `txnChecked_safe`).
+* `lessorSt` carries what the backend's `Put`, `Txn` and `LeaseRevoke` need of the lessor (A9 F2,
+  F6): every key's lease live (3b's `Txn.leasesLive`), the lessor's backend the options' `Backend`,
+  its range deleter set and `kv`'s (`kvDelOk`, provisional with `kvOk`: what turns into 3c's
+  `Lease.rdOk` per revocation through 3e's `Mvcc.mvccDeleter_rdOk`).
+* `optsOk` carries the backends' post-lock hook contracts under the lent `R` (`hooksOk`, A9 F3,
+  F6): the lessor's (`Lease.beHook`/`beHookRun` at the options' backend) and the auth store's
+  (`Auth.authBeHook` of the options' backend's auth wrapper, which 3d's `authHook_intro` turns
+  into `Auth.authHook` at `authSt`'s `Auth.authBeCur`: lease-auth's request), each giving `R` back.
+* `opStep_step` concludes `ownStep` (W0's `Step` without its refusal disjunct, A9 F4): the backend
+  makes no refusal of its own, so a client learns that a valid write at auth off with no alarm is
+  applied (`ReqApplyWrite`).
 
 ## Integration I5 (2026-11-09)
 
@@ -139,7 +158,10 @@ or nothing), `irrStep_quiet` (a checkpoint, a token, a version, a downgrade: not
 * 3c's slots: `lessorOk`, `lessorSt` are transparent over `Lease.isLessor`, `Lease.lessorState`.
 * Left provisional (owners have no such predicate yet): `kvOk`, `kvSt` (3e/2d: the apply thread's
   authority over `Mvcc.mvccState`, 3b's S6), `statusOk`, `snapSrvOk`, `ciOk`, `authnIdx` (2d),
-  `irrDecodes`, `irrMsgAt`, `reqMsgAt` (3h), `clusterVerOk` (2e), `invRefused` (3d).
+  `irrDecodes`, `irrMsgAt`, `reqMsgAt` (3h), `invRefused` (3d). (`clusterVerOk` is transparent
+  since the verify round, over 2e's `Membership.verFits`. Second pass: `statusOk`, `snapSrvOk`,
+  `ciOk`, `authnIdx` are introduced by 2d's `EtcdServer.applyLent_opts`; `kvOk`, `kvSt`, `kvDelOk`
+  by 2d's `EtcdServer.srvStores_kv`; their realizations are 2d's.)
 * The coordinator's decisions (after the batch passes): a token provider's error (no-op provider
   always, JWT on signing) is admitted as the member's result for a token assignment the step
   answered (`IrrOp.isAuthn`, `provErrResult`, `replyAt_result`); a non-`nil` empty range end is out of
@@ -163,8 +185,11 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.Api
 public import Spec.go_etcd_io.etcd.server.v3.storage.Api
 public import Spec.go_etcd_io.etcd.server.v3.auth.Api
 public import Spec.go_etcd_io.etcd.server.v3.lease.Api
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.Api
+public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.Api
 public import Spec.go_uber_org.zap.Api
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.apply
+public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.schema
 public import Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.apply
 
 set_option autoImplicit false
@@ -525,15 +550,20 @@ def applyStep (mc : MemberCfg) (σ : State) (e : Raft.LogEntry) (σ' : State) (r
 
 /-! ## Admission and the panic-free requests -/
 
-/-- (provisional, 2e's: membership and `version`) **A cluster version every member's apply
-accepts**: `semver.MustParse` parses it, and the member's binary is not older
-(`MustDetectDowngrade`). -/
-opaque clusterVerOk (ver : GoString) : Prop
+/-- **A cluster version every member's apply accepts**: `semver.MustParse` parses it, and the
+parsed version fits the member's binary (2e's `Membership.verFits`: `RaftCluster.SetVersion`'s
+`MustDetectDowngrade` and `Version`'s re-parse do not panic). Verify round (server-boot's request):
+was a provisional opaque. -/
+def clusterVerOk (ver : GoString) : Prop :=
+  ∃ sv, Semver.parse ver = some sv ∧ Membership.verFits sv
 
-/-- A transaction the gRPC layer admits, in W0's terms: valid, and every run of either branch puts
-each key at most once (`checkIntervals`, 2a's `txnChecked` gives it). -/
+/-- A transaction the gRPC layer admits, in W0's terms: valid, every run of either branch puts
+each key at most once, and no ignore-put follows a delete covering its key (3b's `Txn.txnSafe`:
+`txn.put` indexes the previous value an ignore-put reads, `put.go:55`, a panic after the delete,
+`issues/etcd-txn-delete-then-ignore-put.md`); `checkIntervals` refuses both (2a's `txnChecked`
+gives them: 2c's `txnChecked_safe`, and the law asked of 2c in `repair-apply-txn.md`). -/
 def txnAdmitted (t : TxnReq) : Prop :=
-  t.valid ∧ ∀ (h : KVHist) s0 lv R s evs rs ops, (ops = t.success ∨ ops = t.failure) →
+  t.valid ∧ Txn.txnSafe t ∧ ∀ (h : KVHist) s0 lv R s evs rs ops, (ops = t.success ∨ ops = t.failure) →
     TxnRun h s0 lv R ops (s0, []) (.ok (s, evs, rs)) → putOnce evs
 
 /-- **A request the request path proposes** (the gRPC layer's validation, the server's chosen lease
@@ -547,6 +577,12 @@ def reqAdmitted : Req → Prop
   | .leaseGrant id _ => id ≠ 0
   | .compact rev _ => rev ≠ 0
   | _ => True
+
+/-- **A request's own step** (W0's `Step` without its refusal disjunct, at `lo = 0`): what the
+backend applier does with a request the gates let through (`opStep_step`). -/
+def ownStep (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) : Prop :=
+  kvStep who rq σ σ' res ∨ leaseStep who rq σ σ' res ∨ authStep who rq σ σ' res ∨
+    clusterStep who rq σ σ' res
 
 /-- **The requests a member applies without panicking** (with `irrDecodes` and `Irr.hasId`), as
 the request path proposes them: an admitted client request, a user's credential that is a hash of
@@ -659,16 +695,32 @@ def lessorOk (le : GoInterface) (mc : MemberCfg) : IProp GF :=
   iprop(∃ (p : Loc) (γl : Lease.Names) (c : Lease.Cfg), ⌜le = Lease.lessorIface p ∧
     c.minTTL = mc.minLeaseTTL⌝ ∗ Lease.isLessor p γl c)
 
+/-- (provisional, 3e's and 2d's, with `kvOk`) **`rd` is the range deleter of `kv`'s store, for a
+lessor named `γl` persisting to `be`** (persistent): what the apply thread turns into 3c's
+`Lease.rdOk γl rd n ls P D Q` at each revocation, with `P` the store's writer resources (`kvSt`,
+`kvOk`'s backend and hook under `R`). Intended realization: at `kvOk kv R`'s store `γ` and storage
+`B`, `⌜be = GoInterface.ok (Mvcc.storageVal B)⌝ ∗ Mvcc.mvccDeleter rd γ ∗ Mvcc.mvccLessorIs γ γl ∗
+□ (Mvcc.kbHeld B ∗-∗ Lease.beTxHeld be)` (3e's `Mvcc.mvccDeleter_rdOk`'s premises; the last is 4a's
+`Backend.leaseTxHeld_intro`). Introduced with `kvOk` and `kvSt` by 2d's `EtcdServer.srvStores_kv`
+(from `NewStore`'s post, which sets the deleter; after a snapshot, `applySnapshot`'s new store). -/
+opaque kvDelOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (kv : GoInterface) (γl : Lease.Names) (be : GoInterface) (rd : GoFunc) :
+    IProp GF := iprop(True)
+
 /-- **`le`'s live leases are `lt`, each attached to the keys of the store `s` that name it** (3c's
 writer token `Lease.lessorState`: its table `lt`, its `itemMap` the store's lease fields, each live
-lease's item set its keys). Exclusive. The range deleter's contract (`Lease.rdOk`, for `Revoke`) is
-2d's/3e's, inside `stAt` (`notes/specs-only/integration-I5.md`). -/
-def lessorSt (le : GoInterface) (lt : Int → Option LeaseRec) (s : EtcdModel.Store) : IProp GF :=
+lease's item set its keys), **every key's lease live** (3b's `Txn.leasesLive`: mvcc's `Attach` of a
+dead lease panics, so `txn.Put`/`txn.Txn` take it; true of every reachable state), persisting to the
+backend `be` (the options' `Backend`: the server passes `s.be` to both, `server.go:344,1193`; after
+a snapshot, `Recover`'s new backend and the new options'), its range deleter set and `kv`'s
+(`kvDelOk`: `Revoke`'s `Lease.rdOk`). Exclusive. -/
+def lessorSt (le kv be : GoInterface) (lt : Int → Option LeaseRec) (s : EtcdModel.Store) :
+    IProp GF :=
   iprop(∃ (p : Loc) (γl : Lease.Names) (c : Lease.Cfg) (n : Nat) (ls : Lease.LessorState),
     ⌜le = Lease.lessorIface p ∧ ls.table = lt ∧
       (∀ k, ls.items k = match s k with | some r => r.lease | none => 0) ∧
-      (∀ id e, ls.leases id = some e → ∀ k, ls.keys e.obj k ↔ ls.items k = id)⌝ ∗
-    Lease.isLessor p γl c ∗ Lease.lessorState γl n ls)
+      (∀ id e, ls.leases id = some e → ∀ k, ls.keys e.obj k ↔ ls.items k = id) ∧
+      Txn.leasesLive s ls ∧ ls.be = be ∧ ls.rd ≠ func.nil⌝ ∗
+    kvDelOk kv γl be ls.rd ∗ Lease.isLessor p γl c ∗ Lease.lessorState γl n ls)
 
 /-- **The auth store `ast`** (3d's `Auth.authStoreAt`), its tokens registered in W0's `γ`
 (`tokenUser`). Persistent. -/
@@ -677,22 +729,30 @@ def authOk (ast : GoInterface) (γ : Cluster) : IProp GF :=
     go_etcd_io.etcd.server.v3.auth.authStore.ty) #st⌝ ∗ Auth.authStoreAt st γ γa)
 
 /-- **`ast`'s state is `a`** (3d's writer `Auth.authCur`, with the simple provider's token right
-`Auth.tokFrom`: the apply thread is the only writer). Exclusive. -/
-def authSt (ast : GoInterface) (a : AuthState) : IProp GF :=
-  iprop(∃ (st : Loc) (γ : Cluster) (γa : Auth.AuthNames) (i n : Nat), ⌜ast = interface.mkOk
-    (go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty) #st⌝ ∗
-    Auth.authStoreAt st γ γa ∗ Auth.authCur γa i a ∗ Auth.tokFrom γa n)
+`Auth.tokFrom`: the apply thread is the only writer), **its current backend the wrapper of `be`**
+(3d's `Auth.authBeCur` at the `*authBackend` that 4b's `schema.NewAuthBackend(lg, be)` built: the
+options' `Backend`, as the server passes `s.be` to both, `server.go:369,1193`; `Recover` moves it to
+a snapshot's, `server.go:1127`, before the new options are built). Exclusive. With `hooksOk`'s
+`authBeHook` producer, 3d's `authHook_intro` gives each admin method's `Auth.authHook` (verify
+round: lease-auth's request). -/
+def authSt (ast be : GoInterface) (a : AuthState) : IProp GF :=
+  iprop(∃ (st : Loc) (γ : Cluster) (γa : Auth.AuthNames) (i n : Nat) (abe : Loc) (lg : Loc),
+    ⌜ast = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty) #st⌝ ∗
+    Auth.authStoreAt st γ γa ∗ Auth.authCur γa i a ∗ Auth.tokFrom γa n ∗
+    Auth.authBeCur γa (interface.mkOk
+      (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authBackend.ty) #abe) ∗
+    (abe ↦□ go_etcd_io.etcd.server.v3.storage.schema.authBackend.mk be lg : IProp GF))
 
-/-- (provisional, 2d's) **The raft status getter `rs`** (the `*EtcdServer`): `MemberID`, `Leader`,
+/-- (2d's: introduced by `EtcdServer.applyLent_opts`) **The raft status getter `rs`** (the `*EtcdServer`): `MemberID`, `Leader`,
 `Term` safe to call (any answer). Persistent. -/
 opaque statusOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (rs : GoInterface) : IProp GF := iprop(True)
 
-/-- (provisional, 2d's) **The snapshot server `ss`**: `ForceSnapshot()` with `R`, given back.
+/-- (2d's: introduced by `EtcdServer.applyLent_opts`) **The snapshot server `ss`**: `ForceSnapshot()` with `R`, given back.
 Persistent. Intended: `ss` the `*EtcdServer` `s` and `R ⊢ EtcdServer.forceSnapW s ∗ ...` (2d's
 `EtcdServer.ForceSnapshot.spec`). -/
 opaque snapSrvOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ss : GoInterface) (R : IProp GF) : IProp GF := iprop(True)
 
-/-- (provisional, 2d's) **The consistent indexer `ci`**: `ConsistentIndex()` with `R` (any answer).
+/-- (2d's: introduced by `EtcdServer.applyLent_opts`) **The consistent indexer `ci`**: `ConsistentIndex()` with `R` (any answer).
 Persistent. -/
 opaque ciOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ci : GoInterface) (R : IProp GF) : IProp GF := iprop(True)
 
@@ -711,11 +771,16 @@ def Check.isLease : Check → Bool
   | .lease _ => true
   | .op .. => false
 
-/-- (provisional, 2d's) **The apply thread's token index for `Authenticate`** (persistent): under
-the lent `R`, `ConsistentIndex()` answers the index `idx` of the entry being applied, and the
-cluster `γ` issued the simple token `tok ++ "." ++ idx` (decimal) to `name` (`tokenUser`, 2d's: the
-committed entry), `idx` above every `Authenticate` index applied before (3d's `tokFrom`, held in
-`authSt`). What 3d's `Auth.authnCtx` and `Auth.tokFrom` need at `applierV3backend.Authenticate`. -/
+/-- (2d's: introduced by `EtcdServer.applyLent_opts`, for every `name`, `tok`) **The apply
+thread's token index for `Authenticate`** (persistent): under the lent `R`, `ConsistentIndex()`
+answers the index `idx` of the entry being applied, and **if that entry asks `Authenticate(name,
+tok)`**, the cluster `γ` issued the simple token `tok ++ "." ++ idx` (decimal) to `name`
+(`tokenUser`, 2d's: the committed entry), `idx` above every `Authenticate` index applied before
+(3d's `tokFrom`, held in `authSt`). Conditional (second pass, server-core's request): an
+unconditional reading is false for any other name, and `applyLent_opts` gives it for all; the
+applier uses it at the entry it is applying, whose request is `.authenticate name _ tok`. What 3d's `Auth.authnCtx γ ctx name idx` (transparent: the two `ctxValIs` that
+`context.WithValue` gives, and this `tokenUser`) and `Auth.tokFrom` need at
+`applierV3backend.Authenticate`. -/
 opaque authnIdx [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (R : IProp GF) (γ : Cluster) (name tok : GoString) : IProp GF := iprop(True)
 
 /-- **The apply thread's facts about the next state** of a step `S` (from 2d's committed entry: the
@@ -729,23 +794,49 @@ def nextOk (γ : Cluster) (R : IProp GF) (op : IrrOp) (S : State → Prop) : IPr
     | .authenticate name _ tok => authnIdx R γ name tok
     | _ => True)
 
+/-- **The backends' post-lock hook contracts, lent `R`** (persistent): the lessor's batch
+transaction (`Grant`, `Checkpoint`: 3c's `Lease.beHook be Pk f ∗ Lease.beHookRun be Pk f Pre Q ∗
+(Q ={⊤}=∗ Pk ∗ Post)`) at the backend `be`, and the auth store's (3d's `Auth.authBeHook abe Pre Q`
+of any auth backend wrapping `be`, `schema.NewAuthBackend`'s `*authBackend`, which 3d's
+`authHook_intro` turns into the admin methods' `Auth.authHook` at the store's `authBeCur`, `authSt`),
+each run from the apply thread's `R` and giving `R` back. The hook is the server's
+`getTxPostLockInsideApplyHook` (`server.go:409,1098`: the consistent index saved under the lock,
+which the lent `R` owns), proved once over 4a's `Backend.hookRun` at every share; the lessor's half
+by 4a's `Backend.leaseBeHook_intro`/`leaseHookRun_intro`, the auth half by 4a's introduction of
+`Auth.authBeHook` (requested of 4a by lease-auth). -/
+def hooksOk (be : GoInterface) (R : IProp GF) : IProp GF :=
+  iprop((∃ (Pk Q : IProp GF) (f : GoFunc), Lease.beHook be Pk f ∗
+      □ Lease.beHookRun be Pk f R Q ∗ □ (Q ={⊤}=∗ Pk ∗ R)) ∗
+    □ ∀ (abe lg : Loc),
+      (abe ↦□ go_etcd_io.etcd.server.v3.storage.schema.authBackend.mk be lg : IProp GF) -∗
+      ∃ Q : IProp GF, □ Auth.authBeHook (interface.mkOk
+          (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authBackend.ty) #abe) R Q ∗
+        □ (Q ={⊤}=∗ R))
+
 /-- **The options' handles** (`NewUberApplier`'s persistent premise): the logger, mvcc's KV, the
 lessor at `mc`, the auth store registering in `γ`, the membership with view `γc`, the backend for
-the quota, the raft status, the snapshot server and the consistent indexer under `R`. -/
+the quota, the raft status, the snapshot server and the consistent indexer under `R`, the
+backends' post-lock hook contracts under `R` (`hooksOk`), and the server's invariant over the
+view's cluster version (2e's `Membership.clusterVerInv γc`: `ClusterVersionSet`'s `Version` and
+`SetVersion`, `DowngradeInfoSet`'s `SetDowngradeInfo` fire their updates in it). -/
 def optsOk (o : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (mc : MemberCfg)
     (γ : Cluster) (γc : Membership.CNames) (R : IProp GF) : IProp GF :=
   iprop(Zap.isLogger o.Logger' ∗ kvOk o.KV' R ∗ lessorOk o.Lessor' mc ∗ authOk o.AuthStore' γ ∗
     (∃ cid lid, Membership.isCluster o.Cluster' γc cid lid) ∗ ServerStorage.beReadable o.Backend' ∗
-    statusOk o.RaftStatus' ∗ snapSrvOk o.SnapshotServer' R ∗ ciOk o.ConsistentIndex' R)
+    statusOk o.RaftStatus' ∗ snapSrvOk o.SnapshotServer' R ∗ ciOk o.ConsistentIndex' R ∗
+    hooksOk o.Backend' R ∗ Membership.clusterVerInv γc)
 
 /-- **The options' stores at the model state `σ`** (`NewUberApplier`'s exclusive premise, `smAt`'s
-content): mvcc at `σ.kv`, the lessor at `σ.leases` attached by `σ.kv.store`, the auth store at
-`σ.auth`, the alarm store at `σ.alarms`, the backend's member buckets at `σ.members`. -/
+content): mvcc at `σ.kv`, the lessor at `σ.leases` attached by `σ.kv.store` (persisting to the
+options' backend, its deleter `o.KV'`'s), the auth store at `σ.auth`, the alarm store at
+`σ.alarms`, the backend's member buckets at `σ.members` and its stored cluster version and
+downgrade info (2e's `Membership.beVer`, outside the model: any). -/
 def optsSt (o : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (σ : State) :
     IProp GF :=
-  iprop(kvSt o.KV' σ.kv ∗ lessorSt o.Lessor' σ.leases σ.kv.store ∗ authSt o.AuthStore' σ.auth ∗
+  iprop(kvSt o.KV' σ.kv ∗ lessorSt o.Lessor' o.KV' o.Backend' σ.leases σ.kv.store ∗ authSt o.AuthStore' o.Backend' σ.auth ∗
     (∃ γa, V3alarm.isAlarmStore o.AlarmStore' γa ∗ V3alarm.alarmSt γa σ.alarms) ∗
-    (∃ st : Membership.ClusterSt, Membership.beView o.Cluster' st ∗ ⌜st.members.Perm σ.members⌝))
+    (∃ st : Membership.ClusterSt, Membership.beView o.Cluster' st ∗ ⌜st.members.Perm σ.members⌝) ∗
+    (∃ v : Membership.VerSt, Membership.beVer o.Cluster' v))
 
 /-! ### Internal (the package's own specs) -/
 
@@ -782,19 +873,23 @@ opaque irrMsgAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctor
 `*membershippb.ClusterVersionSetRequest`), read-only. Persistent. -/
 opaque reqMsgAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (op : IrrOp) : IProp GF := iprop(True)
 
-/-- (provisional, W0's/3h's) **Every range end in the transaction message `rt` is as protobuf
-decodes it**: each `RangeEnd` slice of its compares and (nested) range and delete operations is
-`nil` or non-empty (`Unmarshal` of a gRPC request gives it: proto3 omits an empty `bytes` field, so
-it decodes as `nil`). Excludes a non-`nil` empty end, which the auth check reads as the key alone
-and mvcc as every key from it on (`nonissues/etcd-auth-empty-range-end-point-check.md`): a scope
-premise of the request path's checks, false only for an in-process adapter request. Persistent. -/
-opaque endsDecoded [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (rt : Loc) : IProp GF := iprop(True)
+/-- **Every range end in the transaction message `rt` is as protobuf decodes it** (3h's
+`EtcdServerPb.endsDecoded` at `*TxnRequest`: a share of the message whose content has `endsOk`,
+each `RangeEnd` of its compares and (nested) range and delete operations `nil` or non-empty).
+Excludes a non-`nil` empty end, which the auth check reads as the key alone and mvcc as every key
+from it on (`nonissues/etcd-auth-empty-range-end-point-check.md`): a scope premise of the request
+path's checks, false only for an in-process adapter request. Not persistent (the request path holds
+a share: `CheckTxnAuth` gives it back); persistent at the apply thread's read-only entries (3h's
+`endsDecoded_ro`, `reqMsgAt_endsDecoded`). Second pass (grpc-v3rpc's P-F2): was a provisional
+persistent opaque. -/
+def endsDecoded (rt : Loc) : IProp GF :=
+  EtcdServerPb.endsDecoded go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty rt
 
-/-- (provisional, W0's/3h's) **`endsDecoded` of a slice of `*pb.RequestOp`** (each operation's
-range end, nested transactions included, `nil` or non-empty). Persistent. The helpers' proofs need
-W0's split laws with the realization (`endsDecoded rt` gives `opsDecoded` of its branches; an
-operation's nested transaction is `endsDecoded`): requested, `integration-I5.md`. -/
-opaque opsDecoded [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (sl : GoSlice) : IProp GF := iprop(True)
+/-- **`endsDecoded` of a slice of `*pb.RequestOp`** (3h's `EtcdServerPb.opsDecoded`: a share of the
+slice and of each operation with `endsOk`; given back). The helpers' recursion reads a branch's and
+a nested transaction's through 3h's split laws (`endsDecoded_txn`, `endsDecoded_op`). Second pass:
+was a provisional persistent opaque. -/
+def opsDecoded (sl : GoSlice) : IProp GF := EtcdServerPb.opsDecoded sl
 
 /-- **A wrapper of `ir`** (`*InternalRaftRequestWrapper`), skipping the ranges if `sk`. -/
 def wrapperAt (r : Loc) (ir : Irr) (sk : Bool) : IProp GF :=
@@ -814,7 +909,7 @@ end vocab
 
 section laws
 variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors}
-  [hG : HeapGS HasLC.hasLC GF] [go_gctx : GoGlobalContext]
+  [hG : HeapGS HasLC.hasLC GF] [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
 def persistent.spec : Prop :=
   (∀ ua mc γ γc R, Persistent (isUber (GF := GF) ua mc γ γc R)) ∧
@@ -822,22 +917,22 @@ def persistent.spec : Prop :=
   (∀ v ls b aa, Persistent (applierAt (GF := GF) v ls b aa)) ∧
   (∀ p b aa mc γ γc R, Persistent (uberAt (GF := GF) p b aa mc γ γc R)) ∧
   (∀ kv R, Persistent (kvOk (GF := GF) kv R)) ∧
+  (∀ kv γl be rd, Persistent (kvDelOk (GF := GF) kv γl be rd)) ∧
   (∀ rs, Persistent (statusOk (GF := GF) rs)) ∧
   (∀ ss R, Persistent (snapSrvOk (GF := GF) ss R)) ∧ (∀ ci R, Persistent (ciOk (GF := GF) ci R)) ∧
   (∀ ast le u rev A L C, Persistent (permReads (GF := GF) ast le u rev A L C)) ∧
   (∀ R γ n t, Persistent (authnIdx (GF := GF) R γ n t)) ∧
   (∀ p ir, Persistent (irrMsgAt (GF := GF) p ir)) ∧
-  (∀ p op, Persistent (reqMsgAt (GF := GF) p op)) ∧
-  (∀ rt, Persistent (endsDecoded (GF := GF) rt)) ∧
-  (∀ sl, Persistent (opsDecoded (GF := GF) sl))
+  (∀ p op, Persistent (reqMsgAt (GF := GF) p op))
 
 def smAt_timeless.spec : Prop := ∀ ua σ, Timeless (smAt (GF := GF) ua σ)
 
-/-- (provisional, 3h's) **A decoded transaction message's ends are decoded**: the apply thread's
-requests come from `Unmarshal` of the entry (`reqMsgAt`), so the empty-end gap does not reach its
-checks. -/
+/-- (provisional with `reqMsgAt`, 3h's) **A decoded transaction message's ends are decoded, for
+good**: the apply thread's requests come from `Unmarshal` of the entry, read-only (`reqMsgAt`'s
+realization: the message at `DFrac.discard`, canonical), so 3h's `endsDecoded_of_canon` and
+`endsDecoded_ro` give it persistently and the empty-end gap does not reach the apply's checks. -/
 def reqMsgAt_endsDecoded.spec : Prop := ∀ p t,
-  reqMsgAt (GF := GF) p (.req (.txn t)) ⊢ endsDecoded p
+  reqMsgAt (GF := GF) p (.req (.txn t)) ⊢ □ endsDecoded p
 
 /-- **The stores back out of the state machine** (giving up the applier: `applySnapshot` recovers
 them, then builds a new one with `NewUberApplier`). -/
@@ -863,6 +958,14 @@ def smAt_unfold.spec : Prop :=
         go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier.ty) #p) σ ∗-∗
       uberChain p (chainLayers σ) ∗ stAt b σ)
 
+/-- (provisional with `irrMsgAt`, 3h's) **The entry's decoded request is a read-only message**
+(`irrMsgAt`'s realization: `Unmarshal`'s `*InternalRaftRequest`, never written after): what 3h's
+`EtcdServerPb.stringerAt_irr` needs for `dispatch`'s `&pb.InternalRaftStringer{Request: r}`
+(`uber_applier.go:99,101`). Second pass (grpc-v3rpc's `stringerAt_irr`). -/
+def irrMsgAt_msg.spec : Prop := ∀ p ir,
+  irrMsgAt (GF := GF) p ir ⊢
+    ∃ c, Proto.msgAt go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty p DFrac.discard c
+
 def aiAt_excl.spec : Prop := ∀ aa u u' r r', aiAt (GF := GF) aa u r ∗ aiAt aa u' r' ⊢ iprop(False)
 
 end laws
@@ -879,14 +982,15 @@ def opStep_fun.spec : Prop :=
 /-- **It is defined** for every request a member applies without panicking. -/
 def opStep_total.spec : Prop := ∀ mc σ op, op.ok → ∃ σ' res, opStep mc σ op σ' res
 
-/-- **A client request's operation is a step of W0's model** by any principal the gates let
+/-- **A client request's operation is its own step of W0's model** by any principal the gates let
 through (the auth layer passed: `layersErr` none at the chain the alarms select), for an admitted
-request at a configuration etcd builds. -/
+request at a configuration etcd builds: never one of `Step`'s refusals (the backend's errors are
+mvcc's, the lessor's and the auth store's, each inside its request's step; verify-round A9 F4). -/
 def opStep_step.spec : Prop :=
   ∀ (mc : MemberCfg) σ (ir : Irr) rq σ' res, mc.ok → ir.op = .req rq → ir.op.ok → reachable σ →
     (ir.op.needAdmin = true → adminErr σ.auth ir.user = none) →
     layersErr σ ir.user ir.authRev ir.op (chainLayers σ) = none →
-    opStep mc σ (.req rq) σ' res → Step ir.who rq σ σ' res
+    opStep mc σ (.req rq) σ' res → ownStep ir.who rq σ σ' res
 
 /-- A token assignment changes nothing: the token, or `ErrAuthNotEnabled`, `ErrAuthFailed` (no such
 user, or one without a password). The answer is the model's: the token provider's own failure (the

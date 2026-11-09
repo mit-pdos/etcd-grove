@@ -33,6 +33,11 @@ empty map and indexes `leases[0]`: a panic; only `0` is defaulted). The post add
 checkpointer's once token (`lessorCkptTok`) and the reader tokens (`lessorReaders γ lessorTokN`; one
 more stays with the run loop).
 
+**Verify round (A9 3c F2).** The run loop's `threadTok`, lent by the caller (the loop calls the
+checkpointer, whose contract `ckptOk` now takes one, as the server's closure's `raftRequest` does; a
+goroutine of the program, it is counted by adequacy), given back by `Stop`. `clusterOk` is
+transparent (F3): the caller proves the `Version()` triple of its own cluster type.
+
 **Integration (I5).** `beOk b` is an open share (4a: not persistent), kept in the writer's token
 (`lessorState_beOk` lends it back for the backend's close).
 **Margin.** `MinLeaseTTL`, the intervals and `CheckpointPersist` are any values (no premise: the
@@ -68,7 +73,7 @@ def NewLessor.spec : Prop :=
   ∀ (lg : Loc) (b cl : GoInterface) (cfg : go_etcd_io.etcd.server.v3.lease.LessorConfig)
     (B : Int → Option Int) (exp : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ Zap.isLogger lg ∗
-      beOk b ∗ beLeases b B ∗ clusterOk cl ∗ ⌜0 ≤ sint.Z cfg.leaseRevokeRate'⌝ ∗
+      beOk b ∗ beLeases b B ∗ clusterOk cl ∗ threadTok ∗ ⌜0 ≤ sint.Z cfg.leaseRevokeRate'⌝ ∗
       ⌜exp = false → leasesOutliveRun⌝ }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.lease.NewLessor)) (Val #lg)) (Val #b))
       (Val #cl)) (Val #cfg))

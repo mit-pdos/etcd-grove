@@ -21,6 +21,7 @@ One opaque **ownership predicate per message type**, over the model of `Model.le
 | `snapshotRaw p dq s` | `*Snapshot`, any presence | (none: what `EnsureSnapshot` takes) |
 | `msgPts p dq m` | `*Message`, well-formed | (R1) `msgPts` |
 | `msgRecv p m` | `*Message` received: `msgPts` at `own 1`, its `Entries` capacity owned | (I2; the old `msgPtsC … cap`) |
+| `msgOut p dq m rs` | `*Message` with `Responses` `rs` (`AsyncStorageWrites`' local messages) | (verify round) |
 | `confChangeV1Pts p dq c`, `confChangeV2Pts p dq c`, `singlePts p dq s` | `*ConfChange`, `*ConfChangeV2`, `*ConfChangeSingle` | |
 
 and transparent definitions over them: `entryRO p k e`, `entriesRO sl k es` (R1's, R3's: a slice of
@@ -57,7 +58,9 @@ merges into set submessages and appends into repeated fields' spare capacity), a
 hold submessages read-only for good and slices without their capacity (a `MsgApp`'s entries are a
 sub-slice of the leader's log). No law here gives protobuf's merge-destination premise (2a's
 `Proto.mergeDst`, which replaced 3h's `mergeDstOk` at integration I3) for a raftpb type; raft and
-etcd never merge raft messages.
+etcd never merge raft messages. The other direction is used: a `*Message` that *is* a merge
+destination (protobuf's `Clone` and `Unmarshal` allocate one, requested of 2a at the verify round)
+is a received message (`msgRecv_intro`).
 
 **A homogeneous cluster** (round 1, second tier 8): `msgPts` requires a set snapshot to be full.
 The Go comment on `Message.Snapshot` allows peers running older binaries to send a non-nil, empty
@@ -70,9 +73,21 @@ Persistence, timelessness, non-null (`raftpb_persistent`, `raftpb_timeless`, `ra
 the **unfold laws** (field by field: what a client reads and, at `own 1`, writes; R2's field writes
 of `From`/`To` and R3's `entriesRO` indexing are instances); the **relation laws** to `Proto.msgAt`
 (what `proto.Clone`, `Marshal`, `Unmarshal`, `Size`, `Equal` need: each of those specs is 2a's, over
-`msgAt`); `pbRest_zero`; the content laws `confState_ext` (for `Equivalent`), `bootCC_*` (the
-bootstrap entry), `decodeConfChange_empty` (the auto-leave entry), `wire_fun` (`msgEncodes`, `entryEncodes`:
-decoding is a function of the bytes).
+`msgAt`); `raftpb_norm` and `noFloats_raftpb` (the models survive protobuf's wire view `Proto.norm`;
+`proto.Equal`'s converse); `msgRecv_intro` (a fresh decoded or cloned message is a received one), `msgRecv_lend`
+(a read share of it); `msgOut_unfold`,
+`msgOut_nil` (a message with responses); `pbRest_zero`; the content laws `confState_ext` (for
+`Equivalent`), `bootCC_*` and `bootEntryData_marshal` with `noMaps_raftpb` (the bootstrap entry:
+its bytes are `Marshal`'s output, the same at every founder), `decodeConfChange_empty` (the
+auto-leave entry), `wire_fun` (`msgEncodes`, `entryEncodes`: decoding is a function of the bytes).
+
+## Assumed specs (trust boundary)
+
+`FmtErrorf.lean` (`fmtErrorf.spec`: `fmt.Errorf` with raftpb enum and `*ConfState` arguments,
+which Perennial's `ArgsWf` excludes; used by `Equivalent` and confchange's `Changer.apply`),
+`MessageType.String`, `ConfChangeType.String`, `EntryType.String` (untranslated protoc-gen-go
+methods), `ConfChangesToString` (translated, but over `strings.Builder` and `fmt.Fprintf`, which
+have no spec).
 
 ## Requirement snippets
 
@@ -148,6 +163,14 @@ not record it; an in-process transport must clone it (`nonissues/raft-msgapp-inp
 decision; the old proof's `msgPtsC … cap`.) -/
 opaque msgRecv [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (m : Msg) : IProp GF := iprop(True)
 
+/-- **A local `*Message` with responses** (`AsyncStorageWrites`' `MsgStorageAppend`/`MsgStorageApply`,
+whose `Responses` raft fills: `rawnode.go:254-258`, `:380`): `msgPts`'s fields of `m` (snapshot,
+entries, cells as there) and `Responses` holding well-formed messages modelled by `rs`
+(`msgOut_unfold`); with no response it is `msgPts` (`msgOut_nil`). Such a message is never
+marshaled (it goes to the local storage threads), so it has no relation to `Proto.msgAt`.
+(Verify round, A5-completeness F5.) -/
+opaque msgOut [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (dq : DFrac) (m : Msg) (rs : List Msg) : IProp GF := iprop(True)
+
 /-- **A `*ConfChange`.** -/
 opaque confChangeV1Pts [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (dq : DFrac) (c : ConfChangeV1) : IProp GF := iprop(True)
 
@@ -221,10 +244,9 @@ def snapshotGo (p : Loc) (dq : DFrac) (s : Snapshot) (full : Bool) : IProp GF :=
     if full then snapMetaGo mp dq s.meta true
     else ⌜mp = null ∧ s.meta = Snapshot.empty.meta⌝ ∨ snapMetaGo mp dq s.meta false)
 
-/-- A `*Message`'s fields, its `Entries` slice `es` (what `msgPts_unfold` and `msgRecv_unfold`
-open to). -/
-def msgFields (p : Loc) (dq : DFrac) (m : Msg) (es : GoSlice) : IProp GF :=
-  iprop(∃ (yp tp fp trp ltp ip cp vp sp rp rhp : Loc) (cs rs : GoSlice),
+/-- A `*Message`'s fields but `Responses`, its `Entries` slice `es`. -/
+def msgCore (p : Loc) (dq : DFrac) (m : Msg) (es : GoSlice) : IProp GF :=
+  iprop(∃ (yp tp fp trp ltp ip cp vp sp rp rhp : Loc) (cs : GoSlice),
     pbRest raftpb.Message p dq ∗
     p.[raftpb.Message, go!"Type"] ↦{dq} yp ∗ optCell yp m.type (W32 0) ∗
     p.[raftpb.Message, go!"To"] ↦{dq} tp ∗ optCell tp m.to (W64 0) ∗
@@ -241,8 +263,20 @@ def msgFields (p : Loc) (dq : DFrac) (m : Msg) (es : GoSlice) : IProp GF :=
      | some s => snapshotPts sp DFrac.discard s) ∗
     p.[raftpb.Message, go!"Reject"] ↦{dq} rp ∗ optCell rp m.reject false ∗
     p.[raftpb.Message, go!"RejectHint"] ↦{dq} rhp ∗ optCell rhp m.rejectHint (W64 0) ∗
-    p.[raftpb.Message, go!"Context"] ↦{dq} cs ∗ cs ↦*□ m.context ∗
-    p.[raftpb.Message, go!"Responses"] ↦{dq} rs ∗ rs ↦*□ ([] : List Loc))
+    p.[raftpb.Message, go!"Context"] ↦{dq} cs ∗ cs ↦*□ m.context)
+
+/-- A `*Message`'s `Responses` field: a slice, read-only for good, of well-formed messages (each
+`msgPts` read-only) modelled by `rs`. Only `AsyncStorageWrites`' local messages
+(`newStorageAppendMsg`, `newStorageApplyMsg`) carry responses. -/
+def msgResps (p : Loc) (dq : DFrac) (rs : List Msg) : IProp GF :=
+  iprop(∃ (rsl : GoSlice) (rps : List Loc), p.[raftpb.Message, go!"Responses"] ↦{dq} rsl ∗
+    rsl ↦*□ rps ∗ [∗list] q; r ∈ rps; rs, msgPts q DFrac.discard r)
+
+/-- A `*Message`'s fields, its `Entries` slice `es`, no `Responses` (what `msgPts_unfold` and
+`msgRecv_unfold` open to). -/
+def msgFields (p : Loc) (dq : DFrac) (m : Msg) (es : GoSlice) : IProp GF :=
+  iprop(msgCore p dq m es ∗ ∃ rsl : GoSlice, p.[raftpb.Message, go!"Responses"] ↦{dq} rsl ∗
+    rsl ↦*□ ([] : List Loc))
 
 end vocab
 
@@ -262,6 +296,7 @@ def raftpb_persistent.spec : Prop :=
   (∀ p s, Persistent (snapshotPts (GF := GF) p DFrac.discard s)) ∧
   (∀ p s, Persistent (snapshotRaw (GF := GF) p DFrac.discard s)) ∧
   (∀ p m, Persistent (msgPts (GF := GF) p DFrac.discard m)) ∧
+  (∀ p m rs, Persistent (msgOut (GF := GF) p DFrac.discard m rs)) ∧
   (∀ p c, Persistent (confChangeV1Pts (GF := GF) p DFrac.discard c)) ∧
   (∀ p c, Persistent (confChangeV2Pts (GF := GF) p DFrac.discard c)) ∧
   (∀ p s, Persistent (singlePts (GF := GF) p DFrac.discard s)) ∧
@@ -277,6 +312,7 @@ def raftpb_timeless.spec : Prop :=
   (∀ p dq s, Timeless (snapshotRaw (GF := GF) p dq s)) ∧
   (∀ p dq m, Timeless (msgPts (GF := GF) p dq m)) ∧
   (∀ p m, Timeless (msgRecv (GF := GF) p m)) ∧
+  (∀ p dq m rs, Timeless (msgOut (GF := GF) p dq m rs)) ∧
   (∀ p dq c, Timeless (confChangeV1Pts (GF := GF) p dq c)) ∧
   (∀ p dq c, Timeless (confChangeV2Pts (GF := GF) p dq c)) ∧
   (∀ p dq s, Timeless (singlePts (GF := GF) p dq s)) ∧
@@ -291,6 +327,7 @@ def raftpb_ne_null.spec : Prop :=
   (∀ p dq s, snapshotPts (GF := GF) p dq s ⊢ ⌜p ≠ null⌝) ∧
   (∀ p dq s, snapshotRaw (GF := GF) p dq s ⊢ ⌜p ≠ null⌝) ∧
   (∀ p dq m, msgPts (GF := GF) p dq m ⊢ ⌜p ≠ null⌝) ∧
+  (∀ p dq m rs, msgOut (GF := GF) p dq m rs ⊢ ⌜p ≠ null⌝) ∧
   (∀ p dq c, confChangeV1Pts (GF := GF) p dq c ⊢ ⌜p ≠ null⌝) ∧
   (∀ p dq c, confChangeV2Pts (GF := GF) p dq c ⊢ ⌜p ≠ null⌝) ∧
   (∀ p dq s, singlePts (GF := GF) p dq s ⊢ ⌜p ≠ null⌝)
@@ -360,6 +397,34 @@ def msgPts_unfold.spec : Prop := ∀ (p : Loc) (dq : DFrac) (m : Msg),
 def msgRecv_unfold.spec : Prop := ∀ (p : Loc) (m : Msg),
   msgRecv (GF := GF) p m ⊣⊢ ∃ es : GoSlice, msgFields p (DFrac.own 1) m es ∗
     ownSliceCap Loc es (DFrac.own 1)
+
+/-- **A local message with responses** (`msgOut`): `msgPts`'s fields but `Responses`, which holds
+the responses. Read and written as `msgPts` is (`newStorageAppendMsg` builds the message, then sets
+`Responses`). -/
+def msgOut_unfold.spec : Prop := ∀ (p : Loc) (dq : DFrac) (m : Msg) (rs : List Msg),
+  msgOut (GF := GF) p dq m rs ⊣⊢ ∃ es : GoSlice, msgCore p dq m es ∗ msgResps p dq rs
+
+/-- **No response: a well-formed message.** -/
+def msgOut_nil.spec : Prop := ∀ (p : Loc) (dq : DFrac) (m : Msg),
+  msgOut (GF := GF) p dq m [] ⊣⊢ msgPts p dq m
+
+/-- **A received message from a fresh protobuf message** (verify round, A5-completeness F4: the
+introduction of `msgRecv`, coordinator decision A12): a `*Message` that is a merge destination
+(`Proto.mergeDst`: owned, its repeated fields' slices to their capacity, its set submessages
+writable: what protobuf's `Clone` and `Unmarshal` allocate) holding a well-formed content of model
+`m` is a received message (its snapshot and entries made read-only for good, the `Entries`
+capacity kept). Second pass: 2a's `Clone.spec` gives `mergeDst t p' (norm c)` of a `msgPts`'s
+content `c` (`raftpb_norm` carries `msgIs` over), `Unmarshal.spec` a canonical `mergeDst t p c` with
+`encodes t c bs` (`msgEncodes bs m`, `encodes_fun` and `raftpb_norm` give `msgIs c m`). -/
+def msgRecv_intro.spec : Prop := ∀ (p : Loc) (c : Proto.Content) (m : Msg),
+  Proto.mergeDst (GF := GF) raftpb.Message.ty p c ∗ ⌜msgIs c m⌝ ⊢ |==> msgRecv p m
+
+/-- **A received message lends a read share of itself** (rafthttp's request at the verify round):
+`msgPts` at some fraction (the getters work at any), returned to rebuild `msgRecv`. Not at `own 1`:
+the kept share pins the `Entries` slice whose capacity `msgRecv` owns (a full `msgPts` could come
+back with another slice). -/
+def msgRecv_lend.spec : Prop := ∀ (p : Loc) (m : Msg),
+  msgRecv (GF := GF) p m ⊢ ∃ dq : DFrac, msgPts p dq m ∗ (msgPts p dq m -∗ msgRecv p m)
 
 def confChangeV1Pts_unfold.spec : Prop := ∀ (p : Loc) (dq : DFrac) (c : ConfChangeV1),
   confChangeV1Pts (GF := GF) p dq c ⊣⊢
@@ -433,10 +498,38 @@ def msgEnts_app.spec : Prop := ∀ (sl : GoSlice) (m : Msg), m.type = MsgApp →
 
 /-! ### Content laws -/
 
-/-- **A plain full `ConfState` content is its model** (`proto.Equal` of two such contents with one
-model answers `true`: `Equivalent`). -/
+/-- **A plain full `ConfState`'s wire view is its model** (`proto.Equal` of two such contents with
+one model answers `true`: `Equivalent`). Up to `Proto.norm` (second pass: a content holds Go values,
+so a `nil` and an empty list differ as contents, not on the wire). -/
 def confState_ext.spec : Prop := ∀ (c c' : Proto.Content) (cs : ConfState),
-  confStateIs c cs true → confStateIs c' cs true → c = c'
+  confStateIs c cs true → confStateIs c' cs true → Proto.norm c = Proto.norm c'
+
+/-- **raftpb's models survive the wire view** (second pass, after 2a made `Content` hold Go values
+with the wire view `Proto.norm`): each relation of a content to its model holds of `norm c` too.
+What it needs of `norm`: raftpb is proto2, so every optional scalar and submessage field has
+explicit presence (a pointer: `nil` is unset, a set zero is populated), which `norm` keeps; it only
+replaces an empty repeated field or empty `bytes` by `nil`, which the models do not distinguish
+(`List`s), and keeps plainness, depth, size and `marshalOk` (`Proto.norm_facts`). Used across
+`Clone` (the copy holds `norm c`), `Unmarshal` (a decoded content is canonical: with
+`encodes_fun` the decoded content is `norm` of the sender's) and `msgRecv_intro`. -/
+def raftpb_norm.spec : Prop := ∀ (c : Proto.Content),
+  (∀ i e, entryIs c i e → entryIs (Proto.norm c) i e) ∧
+  (∀ hs, hardStateIs c hs → hardStateIs (Proto.norm c) hs) ∧
+  (∀ cs full, confStateIs c cs full → confStateIs (Proto.norm c) cs full) ∧
+  (∀ s full, snapshotIs c s full → snapshotIs (Proto.norm c) s full) ∧
+  (∀ m, msgIs c m → msgIs (Proto.norm c) m) ∧
+  (∀ cc, confChangeV1Is c cc → confChangeV1Is (Proto.norm c) cc) ∧
+  (∀ cc, confChangeV2Is c cc → confChangeV2Is (Proto.norm c) cc) ∧
+  (∀ sc, singleIs c sc → singleIs (Proto.norm c) sc)
+
+/-- **raftpb's message types have no floating-point field** (`proto.Equal`'s converse,
+`Equal.spec`'s `noFloats t → norm c = norm d → b = true`: `Equivalent` needs it for `ConfState`). -/
+def noFloats_raftpb.spec : Prop :=
+  Proto.noFloats raftpb.Entry.ty ∧ Proto.noFloats raftpb.HardState.ty ∧
+  Proto.noFloats raftpb.ConfState.ty ∧ Proto.noFloats raftpb.SnapshotMetadata.ty ∧
+  Proto.noFloats raftpb.Snapshot.ty ∧ Proto.noFloats raftpb.Message.ty ∧
+  Proto.noFloats raftpb.ConfChange.ty ∧ Proto.noFloats raftpb.ConfChangeV2.ty ∧
+  Proto.noFloats raftpb.ConfChangeSingle.ty
 
 /-- **The bootstrap `ConfChange` literal** `&pb.ConfChange{Type: AddNode.Enum(), NodeId: new(id),
 Context: ctx}` (`RawNode.Bootstrap`, `bootstrap.go:52`), with a non-empty context, holds the
@@ -450,21 +543,43 @@ def bootCC_lit.spec : Prop := ∀ (p yp np : Loc) (cs : GoSlice) (id : w64) (ctx
     p.[raftpb.ConfChange, go!"Id"] ↦ (null : Loc) ⊢
   ∃ c, Proto.msgAt raftpb.ConfChange.ty p (DFrac.own 1) c ∗ ⌜bootCC id ctx c⌝
 
-/-- **The bootstrap content**: unique, the model `⟨AddNode, id, ctx, 0⟩`, and encoded by
-`bootEntryData id ctx` (so `decodeConfChange EntryConfChange (bootEntryData id ctx) = some (.v1
+/-- **The bootstrap content**: unique, the model `⟨AddNode, id, ctx, 0⟩`, encoded by
+`bootEntryData id ctx`, and canonical (`norm c = c`: its set fields are populated, `Id` is unset and
+the context non-empty; second pass) (so `decodeConfChange EntryConfChange (bootEntryData id ctx) = some (.v1
 ⟨AddNode, id, ctx, 0⟩)`: R1's `bootEntryData_decode`). -/
 def bootCC_facts.spec : Prop := ∀ (id : w64) (ctx : List w8) (c c' : Proto.Content),
   bootCC id ctx c →
     (bootCC id ctx c' → c = c') ∧
     confChangeV1Is c ⟨ConfChangeAddNode, id, ctx, W64 0⟩ ∧
-    Proto.encodes raftpb.ConfChange.ty c (bootEntryData id ctx)
+    Proto.encodes raftpb.ConfChange.ty c (bootEntryData id ctx) ∧
+    Proto.norm c = c
+
+/-- **raftpb's message types have no map field** (`raft.proto`: scalars, bytes, enums, repeated
+scalars and submessages only): `proto.Marshal` of each is a function of the content (2a's
+`Marshal.spec`: `noMaps t → bs = marshalOut t c`). -/
+def noMaps_raftpb.spec : Prop :=
+  Proto.noMaps raftpb.Entry.ty ∧ Proto.noMaps raftpb.HardState.ty ∧
+  Proto.noMaps raftpb.ConfState.ty ∧ Proto.noMaps raftpb.SnapshotMetadata.ty ∧
+  Proto.noMaps raftpb.Snapshot.ty ∧ Proto.noMaps raftpb.Message.ty ∧
+  Proto.noMaps raftpb.ConfChange.ty ∧ Proto.noMaps raftpb.ConfChangeV2.ty ∧
+  Proto.noMaps raftpb.ConfChangeSingle.ty
+
+/-- **The bootstrap bytes are what `proto.Marshal` gives the bootstrap change** (verify round,
+A5 F4/F3: every founder appends the same bytes): for the content `c` of the bootstrap `ConfChange`
+(`bootCC id ctx c`, unique by `bootCC_facts`), `bootEntryData id ctx` is `Marshal`'s output.
+`RawNode.Bootstrap` (R1) gets its bytes from `Marshal.spec`'s `noMaps t → bs = marshalOut t c`
+with `noMaps_raftpb`. Intended realization: `bootEntryData id ctx` is defined as `marshalOut
+ConfChange.ty` of the unique `bootCC id ctx` content. -/
+def bootEntryData_marshal.spec : Prop := ∀ (id : w64) (ctx : List w8) (c : Proto.Content),
+  bootCC id ctx c → bootEntryData id ctx = Proto.marshalOut raftpb.ConfChange.ty c
 
 /-- **The empty bytes decode to the empty `ConfChangeV2`** (the auto-leave entry raft appends with
 `MarshalConfChange(nil)`'s `nil` data). -/
 def decodeConfChange_empty.spec : Prop :=
   decodeConfChange EntryConfChangeV2 [] = some (.v2 ⟨ConfChangeTransitionAuto, [], []⟩)
 
-/-- **Decoding is a function of the bytes** (from `Proto.encodes_fun`). -/
+/-- **Decoding is a function of the bytes** (from `Proto.encodes_fun`, up to `norm`, and
+`raftpb_norm`: the models are functions of the wire view). -/
 def wire_fun.spec : Prop :=
   (∀ bs (m m' : Msg), msgEncodes bs m → msgEncodes bs m' → m = m') ∧
   (∀ bs (i i' : w64) (e e' : LogEntry), entryEncodes bs i e → entryEncodes bs i' e' →

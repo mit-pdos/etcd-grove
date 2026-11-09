@@ -3,9 +3,9 @@
 
 **Users.** `streamReader.start` (forked).
 
-**Proof sketch.** `dial`, `decodeLoop`, `errors.Is`, `transport.IsClosedConnError` (trust), `rate.Limiter.Wait` (trust: returns or the context's error), `ctx.Err()`; `close(done)` when cancelled.
+**Proof sketch.** `dial`, `decodeLoop`, `errors.Is`, `transport.IsClosedConnError` (trust), `rate.Limiter.Wait` (trust: returns or the context's error), `ctx.Err()`; `close(done)` when cancelled. `types.ID`'s `String()` on an addressable `ID` (log fields, headers) is 1c's `Types.ID.String_ptr.spec` (Goose's pointer receiver).
 
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour.
+**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour. verify-round (second pass): the sketch cites `Types.ID.String_ptr.spec`.
 
 **Margin.** None.
 -/

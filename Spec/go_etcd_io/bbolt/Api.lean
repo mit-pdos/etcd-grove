@@ -34,14 +34,29 @@ updates are `⊤ \ ↑γ.ns`).
   the file's OsFs resources (a half of each byte and of its `OsMeta`, as the old
   `Proof/os/CrashSt.lean`'s `csInv`; the other half is the open database's, or the invariant's
   while closed) and the other half of `σ`, with the fact that **every image a crash may leave**
-  (OsFs's crash relation, with D9's aligned page rule, **plus the sector rule of decision 4c-D1**: a
-  write of a clean, idle page reaches the disk sector-atomically. That rule is not in OsFs's crash
-  relation today; whether it goes there (option (a)) or into a crash premise of every bbolt closed
-  theorem (option (b)) is the user's open decision (`batch-4c.md`, 4c-D1), and `boltCrash.spec` is
-  true under either, false under OsFs as it is) **is a bbolt file whose data `σ.recovers`**. This is the meta-page rule: a commit writes
-  its pages, syncs them, then writes its meta page (one aligned OS page) at page `txid % 2` (the
-  page the current meta is not on), then syncs; at every point the newest valid meta of any crash
-  image is the old or the new one.
+  (OsFs's crash relation, with D9's aligned page rule, **plus the sector rule of decision 4c-D1**)
+  **is a bbolt file whose data `σ.recovers`** (or no file, while its name is not durable:
+  `BoltSt.named`, verify-round A11 F1; then `σ.recovers Data.empty`). This is the meta-page rule: a commit writes its pages,
+  syncs them, then writes its meta page (one aligned OS page) at page `txid % 2` (the page the
+  current meta is not on), then syncs; at every point the newest valid meta of any crash image is
+  the old or the new one.
+
+  **The sector rule (decision 4c-D1, open; sharpened at the verify round, A11 F2 and F10).** A
+  sector written by one `pwrite` since the last successful sync of the file holds, in a crash
+  image, its durable bytes or that write's bytes; **a sector past the durable size** (no durable
+  bytes: `init`'s first write of four pages over an empty file, `db.go:722-731`, before its
+  sync) **holds zeros or that write's bytes** (true of ext4 `data=ordered` and xfs, which never
+  expose unwritten blocks; false of ext4 `data=writeback`, which the environment hypothesis
+  excludes). So a crash before `init`'s first sync leaves zero metas, which the next `Open`'s
+  `metasZero` sends to `init` again (`Data.empty`). OsFs's crash relation knows neither half today
+  (`CrashImage`: bytes past the durable image are arbitrary). The two options: **(a)** the rule
+  goes into OsFs's crash relation, which then carries the ghost record of the writes since the
+  last sync (so `crashRest`'s `CrashRel` states it), and `boltCrash.spec` is stated over
+  `crashRest` as below; **(b)** the rule is a crash premise of every bbolt closed theorem, and
+  `boltCrash.spec` is stated over OsFs's premise-carrying restart resources (`crashRestQ`,
+  `CrashP1.lean`) in place of `crashRest`. The law's **conclusion** (a file holding a state `σ`
+  recovers) is the same under both; its **statement** is the one written below under (a), and
+  changes to `crashRestQ` under (b). Under OsFs as it is, it is false.
 * **`boltClosed γ`** (exclusive): the file is closed: the right to `Open` it.
 * **`isBolt db γ ns`** (persistent): `db` is an open (or closed by a `Close`, after which `Begin`
   fails) `*DB` of `γ`'s file, opened with `NoSync = ns`. It carries bbolt's package initialization
@@ -79,14 +94,20 @@ updates are `⊤ \ ↑γ.ns`).
   bytes it returned are read (the backend's compaction deletes the very keys its range returned,
   holding them: `kvstore_compaction.go:58-71`).
 * **`fileHolds path D`** (exclusive, timeless): **the file at `path` holds a database with the
-  data `D`, all of it durable**, in the generation's OsFs terms (`osMeta`, `osBytes`, every byte
-  clean; or no file, or an empty one, or one `init` redoes: then `D = Data.empty`), well-formed
+  data `D`, all of it durable, its name too** (verify-round A11 F1: a path with no file, or an
+  empty file whose name may not be durable, is not a `fileHolds`: a generation starts from it by
+  `boltFresh_alloc`, with `BoltSt.fresh`), in the generation's OsFs terms (`osMeta`, `osBytes`,
+  every byte clean, `lo = hi`, `named`; or an empty file with nothing past it (`hi = 0`), or one
+  `init` redoes: then `D = Data.empty`), well-formed
   as the old `fileHolds`' docstring lists (valid metas recording page size 4096, the current at page
   `txid % 2`, the tree's pages within the high-water mark, disjoint, sorted, exact branch keys, no
   empty non-root page, leaves at one depth, an inline bucket's page a leaf within its value, entries
-  within `bboltEntryMax`, bucket names within `maxKeySize`, a synced freelist page well-formed, the
+  within `bboltEntryMax`, keys within `maxKeySize` (`Ent.wf`), a synced freelist page well-formed, the
   txid at least 1 and below the receipts' bound). What a generation starts from: `fileHolds_new`
-  (a fresh path), `fileHolds_image` (a snapshot file), and the crash law's conclusion.
+  (an empty file whose name is durable), `fileHolds_image` (a snapshot file), and the crash law's
+  conclusion; or, for no file, `boltFresh_alloc`. A closed
+  database's file comes back out of `boltFile γ` by `boltRelease` (to rename, remove or reopen it:
+  etcd's defrag).
 * **`optsAt l dq o`**: the `Options` at `l` (an axiomatized type) has the fields `o`.
 
 ## Contracts (opaque, the client's to establish)
@@ -95,10 +116,13 @@ updates are `⊤ \ ↑γ.ns`).
   `Errorf`, `Infof`, `Warningf` return for any format and arguments of the kinds bbolt passes
   (`logArgOk`: basic values, errors whose `Error()` returns, byte slices readable now), reading
   only them. A `*zapBoltLogger` meets it from zap's `Sugar` specs (4a). `boltLogger_nil`.
-* `openFileOk f path` (transparent): the `OpenFile` option `f` called with `(path, flag, mode)`
-  returns an `*os.File` (`osFileOf`, provisional: the `os` package's representation, `req/os.md`)
-  over an fd of `path`'s OsFs file, read-write, or an error; etcd's defrag closure returning the
-  file it created meets it from that file (`ReqDefrag`).
+* `openFileOk f path R` (transparent, **one-shot**: `Open` calls `f` once): the `OpenFile` option
+  `f` called with `(path, flag, mode)` returns an `*os.File` (`osFileOf`, provisional: the `os`
+  package's representation, `req/os.md`) over an fd of `path`'s OsFs file, read-write, with a way
+  back to the caller's `R` from the file's handle, or an error and `R`; `Open`'s error gives `R`
+  back (bbolt has closed the file: etcd then closes it again and removes it). etcd's defrag closure
+  returning the file it created meets it from that file, once (`ReqDefrag`; verify-round A11 F4,
+  was persistent, which a closure returning one exclusive file cannot meet).
 * `writerOk w W` (transparent): an `io.Writer` `w` whose `Write` appends a prefix of its argument
   to the stream `W` (the client's predicate of what was written), all unless it fails; with
   `writerPlain` (transparent): its dynamic type has no `ReadFrom` (else `io.CopyN` calls that).
@@ -118,10 +142,12 @@ updates are `⊤ \ ↑γ.ns`).
 Persistence, timelessness, fractions, agreement, validity, exclusivity of each predicate
 (`boltOpened_closed`); `boltTx_later`, `boltTx_nonnull`, `boltTx_base`, `bktH_live`,
 `txBytes_acc`, `txLive_frac`, `boltTx_fill`; well-formedness (`boltTx_wf`, for views and the committed data; `boltImage_wf`); the
-size (`boltTx_size`, with `txSize`'s agreement); `putLoan_done`; `dbBroken_state`; the
-updates a holder of `boltState γ 1 σ` can supply (`boltState_read_au`, `boltState_commit_au`,
-`boltState_settle_au`); the file laws (`fileHolds_new`, `fileHolds_image`, `fileHolds_alloc`) and
-**the crash law** (`boltCrash`). The error values (`errIs`, `isErr`; laws `errIs_init`,
+size (`boltTx_size`, with `txSize`'s agreement); `putLoan_done`; `dbBroken_state`; `statSlot_wtx`
+(a write transaction pays for `Stats`); the updates a holder of `boltState γ 1 σ` can supply
+(`boltState_read_au`, `boltState_commit_au`: a commit's two updates, the settling one given at the
+commit's, `commitAU`; `boltState_settle_au`, any update, a sync's); the file laws
+(`fileHolds_new`, `fileHolds_image`, `fileHolds_alloc`, `boltFresh_alloc`, `boltRelease`) and **the crash law**
+(`boltCrash`). The error values (`errIs`, `isErr`; laws `errIs_init`,
 `errIs_distinct`) are `bbolt/errors`' (`Spec/go_etcd_io/bbolt/errors/Api.lean`, re-exported).
 
 ## Requirement snippets (`examples/specreq/bbolt/`)
@@ -130,7 +156,9 @@ updates a holder of `boltState γ 1 σ` can supply (`boltState_read_au`, `boltSt
 `FillPercent`, `Put`, `Delete`, a range by `Seek`/`Next`, `Commit`, `Stats`), `ReqBackendRead` (the
 read transaction: `Begin(false)`, `Bucket`, `Cursor`, `Rollback`, `Size`, `DB().Info()`),
 `ReqDeleteBucketNotFound`, `ReqHash` (`View`, root cursor, `ForEach`), `ReqSnapshot` (`WriteTo`),
-`ReqDefrag` (two databases, custom `OpenFile`, `NoSync`, `Sync`, `Close`), `ReqBank` (crash
+`ReqDefrag` (two databases, custom `OpenFile` and its error path, `NoSync`, `Sync`, `Close`, the
+file released by `boltRelease`, renamed and reopened), `ReqDeleteReturned` (a write transaction
+deletes the keys its own range returned: `txLive`), `ReqBank` (crash
 safety: atomicity and durability of `Update`, `View` snapshots), `ReqNested` (nested buckets,
 `NextSequence`), `ReqReadOnlyPut` (a mutation on a read transaction fails),
 `ReqCursorDelete`.
@@ -305,14 +333,16 @@ def boltLogger (l : GoInterface) : IProp GF :=
         ▷ (args ↦*{dq} xs -∗ R -∗ Φ #()) -∗
         WP (App (App (Val #(methods li.ty m li.v)) (Val #fmtS)) (Val #args)) {{ Φ }})
 
-/-- **The `OpenFile` contract for `path`**: `f(path, flag, mode)` returns an `*os.File` over a
-read-write fd of `path`'s OsFs file, or an error (persistent: `Open` calls it once, its retry
-none). -/
-def openFileOk [HasExt osFsExt] (f : GoFunc) (path : GoString) : IProp GF :=
-  iprop(□ ∀ (flag : w64) (mode : w32) (Φ : val → IProp GF),
+/-- **The `OpenFile` contract for `path`** (one-shot: `Open` calls `f` once, `db.go:243`):
+`f(path, flag, mode)` returns an `*os.File` over a read-write fd of `path`'s OsFs file, with a
+wand from its handle back to the caller's `R` (what `Open`'s error returns once bbolt has closed
+the file), or an error and `R`. -/
+def openFileOk [HasExt osFsExt] (f : GoFunc) (path : GoString) (R : IProp GF) : IProp GF :=
+  iprop(∀ (flag : w64) (mode : w32) (Φ : val → IProp GF),
     ▷ (∀ (fl : Loc) (err : GoInterface),
         ((⌜err = GoInterface.nil⌝ ∗ ∃ fd : w64, osFileOf fl fd ∗
-           osFd fd (DFrac.own 1) ⟨path, true, true⟩) ∨ ⌜err ≠ GoInterface.nil⌝) -∗
+           osFd fd (DFrac.own 1) ⟨path, true, true⟩ ∗ (osFileOf fl fd -∗ R)) ∨
+         (⌜err ≠ GoInterface.nil⌝ ∗ R)) -∗
         Φ (PairV #fl #err)) -∗
     WP (App (App (App (Val #f) (Val #path)) (Val #flag)) (Val #mode)) {{ Φ }})
 
@@ -346,12 +376,33 @@ def curAt [HasExt osFsExt] [hG : HeapGS HasLC.hasLC GF] (tx : Loc) (γ : BoltNam
   | none => iprop(⌜k = slice.nil ∧ v = slice.nil⌝)
 
 /-- What pays for `statlock`'s reader slot in `DB.Stats` (the old `statSlot`, D2): the caller's
-`threadTok` (`none`), or the whole of a read transaction (`some (tx, T)`), whose reader slot covers
-`statlock` too (the reader pool lends a pair per token). -/
+`threadTok` (`none`), or the whole of a transaction (`some (tx, T)`): a read transaction's reader
+slot covers `statlock` too (the reader pool lends a pair per token); a write transaction's holder
+holds `rwlock`, so it is the only writer, and `isBolt` keeps one spare `statlock` reader slot for
+it (as one spare `mmaplock` slot for its `freepages`; verify-round A11-completeness F4: the
+backend's `begin(true)` calls `db.Stats()` holding only its write transaction,
+`backend.go:1086-1098`). -/
 def statSlot [HasExt osFsExt] [hG : HeapGS HasLC.hasLC GF] (γ : BoltName) :
     Option (Loc × TxView) → IProp GF
   | none => threadTok
-  | some (tx, T) => iprop(boltTx tx γ 1 T ∗ ⌜T.rw = false⌝)
+  | some (tx, T) => boltTx tx γ 1 T
+
+/-- **A commit's updates** (what `Tx.Commit` and `DB.Update`'s callback take), nested: the
+**commit update** (at the meta page write: `ok`, committed; else attempted, the data unchanged;
+bbolt shows the data was `B` when it began) whose commit **gives the settling update** (when the
+commit ends: `synced`, the meta page synced; `failed`, a sync failed; `brk`, the mapping was lost),
+which commits to the client's `S ok synced failed brk`. bbolt fires the commit update first on
+every path, so a holder of the whole state builds both from its one copy
+(`boltState_commit_au`), an invariant holder from its invariant (verify-round A11 F5: two
+independent updates each needed the state up front, which a holder of one copy cannot give). -/
+def commitAU [HasExt osFsExt] [hG : HeapGS HasLC.hasLC GF] (γ : BoltName) (B D : Data) (ns : Bool)
+    (S : Bool → Bool → Bool → Bool → IProp GF) : IProp GF :=
+  iprop(AU <{ ∃∃ (σ : BoltSt), boltState γ 1 σ }> @ ⊤ \ ↑γ.ns, ∅
+    <{ ∀∀ (ok : Bool), ⌜σ.data = B⌝ ∗
+       boltState γ 1 (if ok then σ.commit D ns else σ.attempt D ns),
+       COMM (AU <{ ∃∃ (σ' : BoltSt), boltState γ 1 σ' }> @ ⊤ \ ↑γ.ns, ∅
+         <{ ∀∀ (synced failed brk : Bool), boltState γ 1 (σ'.settle synced failed brk),
+            COMM S ok synced failed brk }>) }>)
 
 end vocab2
 
@@ -474,27 +525,56 @@ def boltState_read_au.spec [HasExt osFsExt] : Prop :=
     AU <{ ∃∃ (q : Qp) (σ' : BoltSt), boltState γ q σ' }> @ ⊤ \ ↑γ.ns, ∅
       <{ boltState γ q σ', COMM boltState γ 1 σ ∗ ⌜σ' = σ⌝ }>
 
-/-- **A holder of the whole state supplies a commit's update** of the data `D` from `σ`. -/
+/-- **A holder of the whole state supplies a commit's updates** (`commitAU`, both from its one
+copy: the settling update is built, at the commit update's commit, from the state that update
+gives back), ending with the whole state settled: `σ` committed (`ok`) or attempted, then settled;
+and the data was `B` (verify-round A11 F5: was the commit update alone, whose state a second law
+for the settling update could not also consume). -/
 def boltState_commit_au.spec [HasExt osFsExt] : Prop :=
-  ∀ γ σ D ns, boltState (GF := GF) γ 1 σ ⊢
-    AU <{ ∃∃ (σ' : BoltSt), boltState γ 1 σ' }> @ ⊤ \ ↑γ.ns, ∅
-      <{ ∀∀ (ok : Bool), boltState γ 1 (if ok then σ'.commit D ns else σ'.attempt D ns),
-         COMM ⌜σ' = σ⌝ ∗ boltState γ 1 (if ok then σ.commit D ns else σ.attempt D ns) }>
+  ∀ γ σ B D ns, boltState (GF := GF) γ 1 σ ⊢
+    commitAU γ B D ns (fun ok synced failed brk => iprop(⌜σ.data = B⌝ ∗
+      boltState γ 1 ((if ok then σ.commit D ns else σ.attempt D ns).settle synced failed brk)))
 
-/-- **A holder of the whole state supplies a commit's settling update** (and a sync's). -/
+/-- **A write transaction pays for `DB.Stats`** (`statSlot`'s `some` case is any transaction's
+whole; listed for the backend's `begin(true)`, `backend.go:1086-1098`, verify-round A11-completeness
+F4: the realization's spare `statlock` reader slot in `isBolt`, used only by the writer, which
+holds `rwlock`). -/
+def statSlot_wtx.spec [HasExt osFsExt] : Prop :=
+  ∀ tx γ T, T.rw = true → (boltTx (GF := GF) tx γ 1 T ⊣⊢ statSlot γ (some (tx, T)))
+
+/-- **A holder of the whole state supplies any update of it** (a sync's, `DB.Sync`; a settling
+update built apart). -/
 def boltState_settle_au.spec [HasExt osFsExt] : Prop :=
   ∀ γ σ, boltState (GF := GF) γ 1 σ ⊢
     AU <{ ∃∃ (σ' : BoltSt), boltState γ 1 σ' }> @ ⊤ \ ↑γ.ns, ∅
       <{ ∀∀ (σ'' : BoltSt), boltState γ 1 σ'', COMM ⌜σ' = σ⌝ ∗ boltState γ 1 σ'' }>
 
-/-- **A fresh path holds the empty database**: no file, or an empty one with no mapping. -/
+/-- **An empty file whose name is durable holds the empty database**: no mapping, nothing past
+its end a crash could bring back (`hi = 0`: no un-synced truncation; verify-round A11 F3, true of
+every empty file OsFs's specs make: `newMeta`, a boot file's `initMeta`), its name durable
+(`named`: a boot file, or one whose creator synced its directory; A11 F1). A path with no file,
+or an empty file whose name may not be durable: `boltFresh_alloc`. -/
 def fileHolds_new.spec [HasExt osFsExt] : Prop :=
-  ∀ (path : GoString) (mo : Option OsMeta),
+  ∀ (path : GoString) (m : OsMeta),
+    osMeta (GF := GF) path (DFrac.own 1) (some m) ∗
+      ⌜m.size = 0 ∧ m.hi = 0 ∧ m.maps = ∅ ∧ m.named = true⌝ ∗
+      osBytes (GF := GF) path 0 (DFrac.own 1) []
+    ⊢ fileHolds path Data.empty
+
+/-- **Allocating a database's names over a path bbolt will create the file at** (no file; or an
+empty one, named or not, with nothing past its end; etcd's first boot, `member/snap/db`, and
+defrag's `os.CreateTemp` file): as `fileHolds_alloc`, with the state `BoltSt.fresh` (empty, its
+name not durable: bbolt never syncs the directory, so a crash may leave no file;
+`nonissues/bbolt-create-dir-not-synced.md`; verify-round A11 F1, a user decision). -/
+def boltFresh_alloc.spec [HasExt osFsExt] : Prop :=
+  ∀ (E : CoPset) (N : Namespace) (path : GoString) (mo : Option OsMeta), ↑N ## ↑osN →
     osMeta (GF := GF) path (DFrac.own 1) mo ∗
       (match mo with
        | none => iprop(emp)
-       | some m => iprop(⌜m.size = 0 ∧ m.maps = ∅⌝ ∗ osBytes (GF := GF) path 0 (DFrac.own 1) []))
-    ⊢ fileHolds path Data.empty
+       | some m => iprop(⌜m.size = 0 ∧ m.hi = 0 ∧ m.maps = ∅⌝ ∗
+           osBytes (GF := GF) path 0 (DFrac.own 1) []))
+    ⊢ |={E}=> ∃ γ : BoltName, ⌜γ.ns = N ∧ γ.path = path⌝ ∗
+      boltFile γ ∗ boltClosed γ ∗ boltState γ 1 BoltSt.fresh
 
 /-- **A durable file image of `D` holds `D`** (a snapshot written by `WriteTo`, then synced): its
 bytes all clean, its size and name durable, no mapping. -/
@@ -514,12 +594,39 @@ def fileHolds_alloc.spec [HasExt osFsExt] : Prop :=
     fileHolds (GF := GF) path D ⊢ |={E}=> ∃ γ : BoltName, ⌜γ.ns = N ∧ γ.path = path⌝ ∗
       boltFile γ ∗ boltClosed γ ∗ boltState γ 1 (BoltSt.init D)
 
+/-- **A closed database's file comes back out of its crash invariant** (verify-round
+A11-completeness F3: etcd's defrag renames the synced copy over the database, removes it on a
+failure, `backend.go:553-606`): with the closed token and the whole state, the file's OsFs
+resources at their whole fractions (no mapping: it is closed); when the state promises only its
+data (`dur = some []`, no commit in flight) and the data is not empty, the file's bytes are all
+clean and durable to its size and form an image of that data (`fileHolds_image`'s premise but for
+the name; its name durable as `σ.named` says). No file only if the data is empty (never opened in
+this generation, from `boltFresh_alloc`). Realization: `boltFile γ` is a cancelable invariant whose
+token is split between `boltClosed γ` and the invariant's half of `σ`. -/
+def boltRelease.spec [HasExt osFsExt] : Prop :=
+  ∀ (E : CoPset) (γ : BoltName) (σ : BoltSt), ↑γ.ns ⊆ E →
+    boltFile (GF := GF) γ ∗ boltClosed γ ∗ boltState γ 1 σ ⊢ |={E}=>
+      ∃ mo : Option OsMeta, osMeta (GF := GF) γ.path (DFrac.own 1) mo ∗
+        (match mo with
+         | none => iprop(⌜σ.data = Data.empty⌝)
+         | some m => iprop(∃ xs : List (w8 × Bool),
+             osBytes (GF := GF) γ.path 0 (DFrac.own 1) xs ∗
+             ⌜m.size = xs.length ∧ m.maps = ∅ ∧ (σ.named = true → m.named = true) ∧
+               (σ.dur = some [] → σ.busy = false → σ.data ≠ Data.empty →
+                 boltImage (xs.map Prod.fst) σ.data ∧ (∀ x ∈ xs, x.2 = true) ∧
+                 m.lo = xs.length ∧ m.hi = xs.length)⌝))
+
 /-- **The crash law.** After the generation crashes (its `crashed`), from the file's crash
 invariant and any fraction of the state `σ` (a crash-safe client keeps one in an invariant, which
 survives the crash), the next generation `L'` gets the file holding a state `σ` says a crash may
 recover, out of the extension's restart resources (`crashRest`, the files not yet taken `Ps`).
-Nothing is promised when `σ.dur = none` (a `NoSync` commit not synced). True only with the sector
-rule of decision 4c-D1 (open: (a) OsFs's crash relation, or (b) a crash premise), see the header. -/
+Nothing is promised when `σ.dur = none` (a `NoSync` commit not synced). While the file's name is
+not durable (`σ.named = false`, a generation that created it), the file may be gone (OsFs's D4;
+verify-round A11 F1): then `D` is empty (`σ.recovers` admits it) and the next generation gets the
+path with no file, from which `boltFresh_alloc` starts it again. True only with the sector
+rule of decision 4c-D1 (open), including its clause for sectors past the durable size; this is
+its statement under option (a); under (b) it is stated over `crashRestQ` instead (see the header,
+A11 F10). -/
 def boltCrash.spec [HasExt osFsExt] : Prop :=
   ∀ (L' : GooseLocalGS GF) (γ : BoltName) (q : Qp) (σ : BoltSt) (ds : List Data)
     (Ps : List GoString),
@@ -527,7 +634,9 @@ def boltCrash.spec [HasExt osFsExt] : Prop :=
     boltFile (GF := GF) γ ∗ boltState γ q σ ∗ crashed ∗
       crashRest (gooseOsGS (L := hG.goose_localGS)) (gooseOsGS (L := L')) Ps ⊢
     |={⊤}=> ∃ D : Data, ⌜σ.recovers D⌝ ∗
-      @fileHolds _ _ _ GF _ ⟨hG.goose_globalGS, L'⟩ γ.path D ∗
+      (@fileHolds _ _ _ GF _ ⟨hG.goose_globalGS, L'⟩ γ.path D ∨
+       (⌜σ.named = false ∧ D = Data.empty⌝ ∗
+         osMeta (GF := GF) (L := L') γ.path (DFrac.own 1) none)) ∗
       crashRest (gooseOsGS (L := hG.goose_localGS)) (gooseOsGS (L := L')) (γ.path :: Ps)
 
 /-- The nil logger meets the contract (`Open` replaces it by the discard logger). -/

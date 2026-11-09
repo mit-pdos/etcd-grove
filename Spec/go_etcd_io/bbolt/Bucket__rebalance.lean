@@ -6,6 +6,8 @@ the child buckets. (internal, mirrors the code)
 **Proof sketch.** Over the node cache's abstraction relation: `node.rebalance` keeps the entries,
 removes empty pages, merges below `minKeys`, collapses a root branch of one child (the old D-E: all
 leaves at one depth makes the merge type-correct); freed pages pending (4d's `freelist.Free`).
+**Verify-round (A11 F9).** Each `node.rebalance` keeps the abstraction relation (`repKept` in
+its post), so `wtxAt … nodes` is reached at the same `T`.
 -/
 module
 

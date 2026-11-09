@@ -78,7 +78,9 @@ fired: a watch reports the past. This is the server-side mirror of 1b's `watchSt
   watchers (v3rpc's receive loop). The counter cannot wrap: `Watch` takes a time receipt bounded by
   the adequacy theorem's receipt bound (`ReceiptBoundLe`), which the stream's invariant counts.
 * `wsOpen ι` (exclusive): the right to close the stream (`Close` closes its channel: a second
-  `Close` panics).
+  `Close` panics). It excludes `wsClosed ι` (`wsOpen_closed`): while the holder keeps it, the
+  stream is open, so `Watch` refuses only an empty range. Intended realization: a ghost variable
+  owned whole, which `Close` discards (`wsClosed` its discarded fraction).
 * `wsCons ι rs` (exclusive): **the consumer has received the responses `rs`**, in order.
 * `wsReg ι id W` (persistent): the stream's watcher `id` was registered as `W`.
 * `wsCanceled ι id c` (persistent): every response of the watcher `id` is among the first `c` the
@@ -93,7 +95,7 @@ fired: a watch reports the past. This is the server-side mirror of 1b's `watchSt
 ## Laws
 
 `mvccLb_le`, `mvccLb_get` (the lower bound against 3e's `mvccState`), `watch_persistent`,
-`wsReg_agree`, `wsCanceled_mono`, `wsSentLb_zero`, `wsSentLb_mono`,
+`wsReg_agree`, `wsOpen_closed` (an open stream is not closed), `wsCanceled_mono`, `wsSentLb_zero`, `wsSentLb_mono`,
 `watchableAt_shape`, `watchableAt_isMvcc`, `wsCons_recv` (receiving on the stream's channel, plain or in a
 `select`, and the non-blocking receive of a drain: empty means every response sent before is
 received), `watch_init` (the package's watch variables and error values).
@@ -222,15 +224,23 @@ def progStep (W : WatcherM) (h : KVHist) (p : Nat) (rev : w64) : Prop :=
 `pe` (`posEvOf`), against the reached history `h`: a compaction (the revision after `W`'s last
 event, `pe + 1`, is below a compaction revision of the store: not `p + 1`, a progress does not
 protect a watcher from a compaction); a progress (`progStep`); events: up to the last event's
-revision `c'` (above `p`, at most the response's revision, which is reached), and (under the
-compaction condition) exactly `W`'s events of the revisions `p + 1 .. c'`. (Margin of the
-condition: only the compaction revision itself can lose a key's earlier change in it.) -/
+revision `c'` (above `p`, at most the response's revision, which is reached); unconditionally,
+each event is an event of the history at its revision `rv` (its `ModRevision`) that `W` keeps (key in
+its range, no filter drops it); and (under the compaction condition) exactly `W`'s events of the
+revisions `p + 1 .. c'`. (Margin of the condition: only the compaction revision itself can lose a
+key's earlier change in it.) The unconditional clause (second pass, client-watch's request: 1b's
+`watchStep` says the same, and 2b's chain derives it from here) is true at every compaction state:
+`syncWatchers` reads backend records of real revisions and `kvsToEvents` keeps only those
+`w.contains`; `notify` passes the committing transaction's own changes; `watcher.send` applies the
+filters; a delete's `ModRevision` is patched to its revision (`kvsToEvents`, `End`). -/
 def wStep (W : WatcherM) (h : KVHist) (p pe : Nat) (r : WResp) : Prop :=
   if r.compactRev ≠ W64 0 then
     ∃ cr : Nat, sint.Z r.compactRev = cr ∧ pe + 1 < cr ∧ cr ≤ h.compacted
   else if r.evs = [] then progStep W h p r.rev
   else ∃ c' : Nat, p < c' ∧ (c' : Int) ≤ sint.Z r.rev ∧ sint.Z r.rev ≤ h.rev ∧
     r.evs.getLast?.map (fun e => e.kv.modRevision) = some (W64 c') ∧
+    (∀ e ∈ r.evs, ∃ (rv : Nat) (ev : Event), ev ∈ h.eventsAt rv ∧ e = evOf rv ev ∧
+      e.kv.modRevision = W64 rv ∧ W.keeps rv ev) ∧
     (exactFrom h (p + 1) → r.evs = (wEvents W h (p + 1) c').map (fun x => evOf x.1 x.2))
 
 /-- **`h'` extends `h`**: its revisions continue `h`'s, its compaction revision is not below. -/
@@ -357,6 +367,12 @@ def wsReg_ctl.spec : Prop := ∀ ι id W n,
 def wsReg_agree.spec : Prop := ∀ ι id W W',
   wsReg (GF := GF) ι id W ∗ wsReg ι id W' ⊢ ⌜W = W'⌝
 
+/-- **The holder of `wsOpen` sees the stream open**: `wsClosed` is `Close`'s, which spends
+`wsOpen`. (Verify round, A10 W1: without it a caller holding `wsOpen` cannot refute `Watch`'s
+`wsClosed` refusal of a valid range.) -/
+def wsOpen_closed.spec : Prop := ∀ ι,
+  wsOpen (GF := GF) ι ∗ wsClosed ι ⊢ iprop(False)
+
 def wsCanceled_mono.spec : Prop := ∀ ι id (c c' : Nat), c ≤ c' →
   wsCanceled (GF := GF) ι id c ⊢ wsCanceled ι id c'
 
@@ -393,7 +409,8 @@ def wsCons_recv.spec : Prop := ∀ (w : Loc) (γ : MvccName) (ι : WsNames),
 
 /-- **The package's watch variables after initialization** (no verified code writes them): the
 buffer of a stream's channel, the batch sizes, the resync period, and the three error values with
-their messages. -/
+their messages: existential (fresh `errors.New` values), non-`nil` (`errMsgOk`) and distinct (a
+caller may tell them apart with `==`; verify round, the sentinel encoding, A3 F4). -/
 def watch_init.spec : Prop :=
   isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ⊢
     globalAddr chanBufLen ↦□ (W64 128) ∗ globalAddr maxWatchersPerSync ↦□ (W64 512) ∗
@@ -403,7 +420,8 @@ def watch_init.spec : Prop :=
       globalAddr ErrEmptyWatcherRange ↦□ e1 ∗ errMsgOk e1 go!"mvcc: watcher range is empty" ∗
       globalAddr ErrWatcherNotExist ↦□ e2 ∗ errMsgOk e2 go!"mvcc: watcher does not exist" ∗
       globalAddr ErrWatcherDuplicateID ↦□ e3 ∗
-      errMsgOk e3 go!"mvcc: duplicate watch ID provided on the WatchStream"
+      errMsgOk e3 go!"mvcc: duplicate watch ID provided on the WatchStream" ∗
+      ⌜[e1, e2, e3].Nodup⌝
 
 end res
 

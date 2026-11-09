@@ -11,6 +11,8 @@ Snippet: `etcdserverboot/compactor.go`.
 the compactor's safety needs no permit in W0's model (`Api.lean`'s header).
 
 **Margin.** None.
+Changes: verify-round (A7 completeness F2): the compactor's handles carry the gate `R` of its `Compactable`
+(`compactable c R`: `Compact` is safe once `□ R`, the server's start); `Run` takes `□ R`.
 -/
 module
 
@@ -36,12 +38,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Ass
 
 /-- **A compactor** in `mode` (`periodic` or `revision`), or an error for another mode. -/
 def New.spec : Prop :=
-  ∀ (lg : Loc) (mode : GoString) (ret : time.Duration) (rg c : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor ∗ (⌜lg = null⌝ ∨ Zap.isLogger lg) ∗ revGetter rg ∗ compactable c ∗
+  ∀ (R : IProp GF) (lg : Loc) (mode : GoString) (ret : time.Duration) (rg c : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor ∗ (⌜lg = null⌝ ∨ Zap.isLogger lg) ∗ revGetter rg ∗ compactable c R ∗
       ⌜mode = go!"periodic" → (10 ≤ sint.Z ret ∨ sint.Z ret ≤ -10)⌝ }}
     (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.New)) (Val #lg)) (Val #mode)) (Val #ret)) (Val #rg)) (Val #c))
   {{ (cp err : GoInterface), RET (PairV #cp #err);
-      (⌜err = GoInterface.nil⌝ ∗ isCompactor cp) ∨
+      (⌜err = GoInterface.nil⌝ ∗ isCompactor cp R) ∨
       ⌜err ≠ GoInterface.nil ∧ mode ≠ go!"periodic" ∧ mode ≠ go!"revision"⌝ }}
 
 end spec

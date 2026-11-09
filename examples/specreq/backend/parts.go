@@ -69,14 +69,19 @@ func ReqWriteThenRead(be backend.Backend, k, v []byte) {
 	}
 }
 
-// REQ backend/delete-visible: a key deleted in a session is gone for a read begun after its
-// Unlock (Unlock commits a session that deleted: etcd-io/etcd#17119), also when the same session
-// put another key.
+// REQ backend/delete-visible: a key deleted in a session is gone for a read of the shared read
+// transaction begun after its Unlock (Unlock commits a session that deleted: etcd-io/etcd#17119),
+// also when the same session put another key.
 // Users: storage/mvcc/kvstore_compaction.go:56-71 (deletes and the finished-compaction put in one
-// session), storage/schema/auth_users.go:49 (a user deleted, the auth revision put), alarm.go:81.
-// Assumes: as ReqWriteThenRead; k is in the bucket, k2 is another key.
+// session), storage/schema/auth_users.go:49 (a user deleted, the auth revision put), alarm.go:81
+// (then GetAllAlarms on the ReadTx).
+// Assumes: as ReqWriteThenRead; k is in the bucket, k2 is another key. (Not through a
+// ConcurrentReadTx: its buffer copy may predate the commit and still hold k,
+// nonissues/etcd-backend-read-buffer-cache-stale-after-commit.md, lingerSingle; verify-round
+// A10-provability B3.)
 // Specs: UnsafeDelete.spec, UnsafePut.spec, Unlock.spec (Sess.mid, then Sess.fin at the commit),
-// backend.ConcurrentReadTx.spec, concurrentReadTx.UnsafeRange.spec.
+// backend.ReadTx.spec, readTx.RLock.spec, readTx.UnsafeRange.spec (rdRange's single: exact),
+// readTx.RUnlock.spec.
 func ReqDeleteVisible(be backend.Backend, k, k2, v2 []byte) {
 	tx := be.BatchTx()
 	tx.LockOutsideApply()
@@ -84,7 +89,8 @@ func ReqDeleteVisible(be backend.Backend, k, k2, v2 []byte) {
 	tx.UnsafePut(schema.Alarm, k2, v2)
 	tx.Unlock()
 
-	rt := be.ConcurrentReadTx()
+	rt := be.ReadTx()
+	rt.RLock()
 	ks, _ := rt.UnsafeRange(schema.Alarm, k, nil, 0)
 	ks2, _ := rt.UnsafeRange(schema.Alarm, k2, nil, 0)
 	rt.RUnlock()

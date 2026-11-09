@@ -3,9 +3,9 @@
 
 **Users.** `Transport.AddPeer`.
 
-**Proof sketch.** `newPeerStatus`, `newURLPicker` (`pickerAt`), the pipeline literal (`pipeFresh`) and `pipeline.start`, two `startStreamWriter`s, `newSnapshotSender`, `recvc`/`propc` (`recvChanAt`: every value a fresh message with `recvd`), `context.WithCancel(Background)`, two goroutines each receiving from one channel and calling `Raft.Process` (`raftOk`, with the goroutine's own thread token), two `streamReader` literals (`srFresh`, `rate.NewLimiter`: trust) and their `start`. The stop right holds the writers', pipeline's, sender's and readers' stop rights and the loops' stop channel.
+**Proof sketch.** `newPeerStatus`, `newURLPicker` (`pickerAt`), the pipeline literal (`pipeFresh`) and `pipeline.start`, two `startStreamWriter`s, `newSnapshotSender`, `recvc`/`propc` (`recvChanAt`: every value a fresh message with `recvd`), `context.WithCancel(Background)`, two goroutines each receiving from one channel and calling `Raft.Process` (`raftOk`, with the goroutine's own thread token), two `streamReader` literals (`srFresh`, `rate.NewLimiter`: trust) and their `start`. The stop right holds the writers', pipeline's, sender's and readers' stop rights and the loops' stop channel. `types.ID`'s `String()` on an addressable `ID` (log fields, headers) is 1c's `Types.ID.String_ptr.spec` (Goose's pointer receiver).
 
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour. The loops' `R`s (eight per peer, from `raftPool`) are gone: each goroutine has its thread token from `Fork`.
+**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour. The loops' `R`s (eight per peer, from `raftPool`) are gone: each goroutine has its thread token from `Fork`. verify-round (second pass): the sketch cites `Types.ID.String_ptr.spec`.
 
 **Margin.** None.
 -/

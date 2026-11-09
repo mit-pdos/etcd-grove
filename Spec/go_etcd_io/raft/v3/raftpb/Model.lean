@@ -21,8 +21,10 @@ LogEntry := RaftPb.LogEntry`, ...: the same field names), its opaque `decodeConf
 ## Contents (the wire model)
 
 A message's protobuf content is protobuf's `Proto.Content` (batch 2a, `proto/Api.lean`): a value,
-the message's fields and its unknown fields up to `proto.Equal`, independent of any address or
-heap. What raft reads of a content is a **function** of it, one per message type: `entryOf c`,
+the message's Go field values and its unknown fields, independent of any address or heap; the wire
+carries its view `Proto.norm c` (empty repeated and `bytes` fields as `nil`; raftpb is proto2, so
+set optional fields keep their presence), and every relation below survives it (`raftpb_norm`,
+`Api.lean`). What raft reads of a content is a **function** of it, one per message type: `entryOf c`,
 `hardStateOf c`, `confStateOf c`, `snapshotOf c`, `msgOf c`, `confChangeOf c`, `confChangeV2Of c`,
 `singleOf c` (the getters' values: presence is forgotten, as the getters forget it), and a few
 predicates of the content that the getters do not show but raft relies on:
@@ -37,8 +39,8 @@ predicates of the content that the getters do not show but raft relies on:
   on shared read-only snapshots, which must then write nothing.
 * `msgEntryIndexes c`, `msgSnapFull c`, `msgNoResponses c`: a message's entries' `Index` fields
   (which `Msg` forgets: a log entry's index is its position), whether its snapshot (if set) is full,
-  and that `Responses` is empty (`Msg` has no responses: only `AsyncStorageWrites`, which no client
-  enables, fills it). `msgWf` combines them with the index rule of a `MsgApp` (its entries at
+  and that `Responses` is empty (`Msg` has no responses: only `AsyncStorageWrites`' local messages carry
+  them, `Api.lean`'s `msgOut`). `msgWf` combines them with the index rule of a `MsgApp` (its entries at
   `index + 1, index + 2, ...`).
 
 These readers are opaque functions: any function is consistent, and their meaning is fixed by the
@@ -60,9 +62,9 @@ per-type-blockers.md` (b)); no statement is quantified over a caller-built wire 
   name): `c` is the content of the `ConfChange{Type: AddNode, NodeId: id, Context: ctx}` that
   `RawNode.Bootstrap` builds (`Id` unset); `bootEntryData id ctx` (opaque bytes): what
   `proto.Marshal` gives it. Determinism (every founder appends the same bytes) is protobuf-go's: a
-  message without map fields marshals to a function of its content; requested of 2a's boundary
-  (`req/google_golang_org_protobuf_proto.md`, "from 3h"): once it has `Proto.marshalOut`,
-  `bootEntryData id ctx` is `Proto.marshalOut ConfChange.ty c` for the `c` with `bootCC id ctx c`.
+  message without map fields marshals to a function of its content (2a's `Proto.marshalOut`):
+  `bootEntryData id ctx` is `Proto.marshalOut ConfChange.ty c` for the `c` with `bootCC id ctx c`
+  (law `bootEntryData_marshal`, with `noMaps_raftpb`, `Api.lean`).
 
 **What a content of each type satisfies** (`entryIs`, `hardStateIs`, `confStateIs`, `snapshotIs`,
 `msgIs`, `confChangeV1Is`, `confChangeV2Is`, `singleIs`): the readers' values, plainness (and

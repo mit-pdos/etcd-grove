@@ -6,7 +6,10 @@ false for an entry at or below the backend's consistent index, replayed after a 
 
 **Proof sketch.** Under the lock: at `shouldApplyV3` the member saved to the backend
 (`MustSaveMemberToBackend`, 4b: `beView`) and put in the map (the pointer: the caller's member
-moves in); else only a log line. The view's update fires at the map write.
+moves in); else only a log line. The view's update fires at the map write. The log lines'
+`c.cid.String()`, `c.localID.String()`, `m.ID.String()` are client-core's `Types.ID.String_ptr.spec`
+(pointer receivers: the cluster's fields read-only in `isCluster`'s realization, the member's from
+`memberPts`). Second pass: `ID.String_ptr` cited.
 
 **Changes** (from `specs-ref`'s `RaftCluster__AddMember.lean`): the view's update and the backend's
 view. **Margin.** Exact.

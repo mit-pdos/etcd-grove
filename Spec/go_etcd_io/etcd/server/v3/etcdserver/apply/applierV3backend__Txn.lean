@@ -3,9 +3,14 @@
 
 **Users.** `uberApplier.dispatch` through the chain (promoted methods of the outer layers).
 
-**Proof sketch.** 3b's `txn.Txn` (`TxnRun` at the store; with `skip` the ranges' answers empty, `skipRanges`).
+**Proof sketch.** 3b's `txn.Txn` (`TxnRun` at the store; with `skip` the ranges' answers empty,
+`skipRanges`): its `⌜txnSafe t⌝` from `op.ok`'s `txnAdmitted`, its `targetOk` from `t.valid`'s
+`validSort`, its `leasesLive σ₀.kv.store ls` from `stAt`'s `lessorSt`, the writer's resources from
+`kvSt`/`kvOk`.
 
-**Changes** from `specs-ref`'s `applierV3backend__Txn.lean`: the old triple over the chain's `AEnv`, the mvcc log and the write tokens (`putPre`, `kvPostF`, `mPostW`, ...) restated over the model state (`stAt`, `layersStep`): any auth mode, leases, compaction
+**Changes** from `specs-ref`'s `applierV3backend__Txn.lean`: the old triple over the chain's `AEnv`, the mvcc log and the write tokens (`putPre`, `kvPostF`, `mPostW`, ...) restated over the model state (`stAt`, `layersStep`): any auth mode, leases, compaction.
+verify-round (A9 F1, F2): `op.ok` now carries `Txn.txnSafe` (`txnAdmitted`), `stAt` `leasesLive`
+(`lessorSt`); the statement is unchanged.
 
 **Margin.** The header's other fields (cluster, member, term, leader) any.
 -/

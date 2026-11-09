@@ -4,15 +4,26 @@
 **Users.** 2d's `applySnapshot` (a received snapshot installed: the old backend closed first),
 `RecoverSnapshotBackend` (`bootstrap`, names only). Snippet: `etcdserverboot/snap.go`.
 
-**Proof sketch.** `ss.DBFilePath(index)` (`Snapshotter.DBFilePath.spec`: the update's read of
-`snapDbs`; `ErrNoDBSnapshot`, returned, if there is no file: the update fired with `none`),
-`os.Rename` onto `BackendPath()` (trusted, Perennial's `os`: the db file's image moves onto the
-path: the update's commit removes it from `snapDbs`; a failure is `diskOk`'s: `applySnapshot` panics
-on any error here), `OpenBackend.spec` over the renamed file.
+**Proof sketch.** `ss.DBFilePath(index)` (`Snapshotter.DBFilePath.spec`, its update a read of
+`snapDbs` that fires nothing of the caller's: an atomic update read-only on the client's side is
+built from the caller's by peeking, i.e. opened and closed with the state unchanged;
+`ErrNoDBSnapshot`, returned: the caller's update then fired at that read with `none`, the state
+unchanged since `releaseAt F i = F` when `F i = none`), its path `Snap.dbPathOf sd index`;
+`os.Rename` of that path onto `BackendPath()` (`Snap.dbFile_rename.spec`, the trusted bridge from
+`os.Rename` to the snapshotter's model: the caller's update fires at the rename, the image
+`F index` is the backend file's; a missing file, if a concurrent release removed it, is the
+`none` arm), `OpenBackend.spec` over the renamed file (its allocation step the caller's).
 
 **Changes** (from `specs-ref`'s `OpenSnapshotBackend.lean`, D22 S-f): over the snapshotter's model.
+Verify-round (A8 provability F5): over 4a's `New` (as `OpenBackend`'s); the rename through
+`Snap.dbFile_rename` (the round-1 sketch cited a spec of `os.Rename` over OsFs that says nothing of
+`snapDbs`); the removal recorded in `Snap.snapGone` (the rename is not fsynced: F9).
 
-**Margin.** None.
+Last pass (backend-schema's request): the rename's revert state, `Backend.beNoRevert` before,
+`Backend.beRevert path o` after (the previous file may come back after a crash, 4a's `beCrash`,
+until the next `SaveDBFrom`'s directory fsync gives `beNoRevert` back).
+
+**Margin.** The error's cause is not stated.
 -/
 module
 
@@ -20,6 +31,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.Api
 public import Spec.go_etcd_io.raft.v3.Api
 public import Spec.go_uber_org.zap.Api
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiBoot
+public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
 
@@ -38,23 +50,36 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.Assumptions]
 
-/-- **Installs the snapshot's database as the backend and opens it.** -/
+/-- **Installs the snapshot's database as the backend and opens it**: the db file of the
+snapshot's index renamed onto the backend's path (the caller's update at the rename), then 4a's
+`New` over it with the caller's allocation step at that image. -/
 def OpenSnapshotBackend.spec : Prop :=
   ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (ss : Loc) (p : Loc) (dq : DFrac)
     (sn : Raft.Snapshot) (h : Loc) (ci : GoInterface) (o : Option Snap.BeImage)
+    (Bs : Backend.BktInfo → Prop) (Fh : Backend.Fp) (Pk K : Backend.BeNames → IProp GF)
     (Q : Option Snap.BeImage → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗ Zap.isLogger cfg.Logger' ∗ EtcdServer.backendBootRes cfg ∗ ⌜diskOk⌝ ∗
-      Snap.isSnapshotter ss (Config.snapDirOf cfg.DataDir') ∗ Raft.snapshotPts p dq sn ∗
-      isHooks h ci ∗ Snap.beFile (Config.backendPathOf cfg.DataDir') o ∗
-      (AU <{ ∃∃ (F : Nat → Option Snap.BeImage), Snap.snapDbs (Config.snapDirOf cfg.DataDir') F }> @ ⊤, ∅
-        <{ Snap.snapDbs (Config.snapDirOf cfg.DataDir')
-              (fun j => if j = uint.nat sn.index then none else F j),
-            COMM Q (F (uint.nat sn.index)) }>) }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗ Zap.isLogger cfg.Logger' ∗ EtcdServer.backendBootRes cfg ∗
+      ⌜diskOk ∧ cfg.MemoryMlock' = false ∧ Backend.bktsOk Bs⌝ ∗ Backend.envOk ∗ Backend.safeRegOk ∗
+      threadTok ∗ Snap.isSnapshotter ss (Config.snapDirOf cfg.DataDir') ∗ Raft.snapshotPts p dq sn ∗
+      isHooks h ci ∗ Backend.beFile (Config.backendPathOf cfg.DataDir') o ∗
+      Backend.beNoRevert (Config.backendPathOf cfg.DataDir') ∗
+      (AU <{ ∃∃ (F : Nat → Option Snap.BeImage) (H : Nat → Snap.BeImage → Prop),
+              Snap.snapDbs (Config.snapDirOf cfg.DataDir') F ∗ Snap.snapGone (Config.snapDirOf cfg.DataDir') H }> @ ⊤, ∅
+        <{ Snap.snapDbs (Config.snapDirOf cfg.DataDir') (Snap.releaseAt F (uint.nat sn.index)) ∗
+            Snap.snapGone (Config.snapDirOf cfg.DataDir') (Snap.goneAdd H F (Snap.releaseAt F (uint.nat sn.index))),
+            COMM Q (F (uint.nat sn.index)) }>) ∗
+      (∀ (img : Snap.BeImage) (γ : Backend.BeNames), Q (some img) -∗ Backend.beNew γ img ={⊤}=∗
+        Pk γ ∗ Backend.hookOk γ (hooksIface h) Fh (Pk γ) ∗ Backend.commitOk γ (Pk γ) ∗ K γ) }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.OpenSnapshotBackend)) (Val #cfg)) (Val #ss)) (Val #p)) (Val #h))
   {{ (be : GoInterface) (err : GoInterface), RET (PairV #be #err); Raft.snapshotPts p dq sn ∗
-      ((⌜err = GoInterface.nil⌝ ∗ ∃ img, Q (some img) ∗
-          beOpen be (Config.backendPathOf cfg.DataDir') img) ∨
-       (⌜err ≠ GoInterface.nil⌝ ∗ Q none ∗ Snap.beFile (Config.backendPathOf cfg.DataDir') o)) }}
+      ((⌜err = GoInterface.nil⌝ ∗ ∃ (b : Loc) (γ : Backend.BeNames), ⌜be = Backend.beIface b⌝ ∗
+          Backend.isBackend γ b (Config.backendPathOf cfg.DataDir') (Pk γ) ∗ K γ ∗ Backend.beHookFp γ Fh ∗
+          (□ ∀ bi, ⌜Bs bi⌝ -∗ Backend.beBkt γ bi) ∗ Backend.beDurInv γ (Config.backendPathOf cfg.DataDir') ∗
+          (if cfg.UnsafeNoFsync' then iprop(True) else Backend.beSynced γ) ∗
+          Backend.beRevert (Config.backendPathOf cfg.DataDir') o) ∨
+       (⌜err ≠ GoInterface.nil⌝ ∗ Q none ∗ threadTok ∗
+          Backend.beFile (Config.backendPathOf cfg.DataDir') o ∗
+          Backend.beNoRevert (Config.backendPathOf cfg.DataDir'))) }}
 
 end spec
 

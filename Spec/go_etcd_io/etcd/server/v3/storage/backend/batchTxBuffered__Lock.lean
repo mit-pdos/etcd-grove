@@ -5,6 +5,10 @@
 LockOutsideApply here", `:974`), tests. **Proof sketch.** `ValidateCalledInsideUnittest` (a no-op:
 `envOk`), `t.lock()`: as `LockOutsideApply`. **Changes.** From `specs-ref`'s: as
 `LockOutsideApply`. **Margin.** None.
+
+**Changes** (verify-round: A10-provability B1): the post also gives the session's turn
+`beTurn γ` (exclusive), which `Unlock`'s second update takes back: a client parks it with what it
+took out at the lock, so that a later session refutes a stale parked state (`beTurn_excl`).
 -/
 module
 
@@ -32,7 +36,7 @@ def batchTxBuffered.Lock.spec : Prop :=
   ∀ (γ : BeNames) (b : Loc) (p : GoString) (Pk : IProp GF) (q : Qp),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ b p Pk ∗ beOpen γ q }}
     (App (Val ((btLoc γ) @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty @!! go!"Lock")) (Val #()))
-  {{ RET #(); ∃ I : Image, beSess γ q Fp.none (Sess.init I) ∗ beLive γ (btLoc γ) 1 ∗ Pk }}
+  {{ RET #(); ∃ I : Image, beSess γ q Fp.none (Sess.init I) ∗ beTurn γ ∗ beLive γ (btLoc γ) 1 ∗ Pk }}
 
 end spec
 

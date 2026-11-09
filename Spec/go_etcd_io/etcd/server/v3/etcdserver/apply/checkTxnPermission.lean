@@ -6,6 +6,8 @@
 **Proof sketch.** 3d's `IsRangePermitted` per comparison; `checkTxnReqsPermission.spec` twice.
 
 **Changes** from `specs-ref`'s file of the same name: one spec for both callers, parametric in how each check is reported (`permReads`' `C`); the old two-mode `isAuthStore … on` and `authApplyErrIs` gone
+verify-round, second pass (grpc-v3rpc's P-F2): `endsDecoded` is 3h's share-holding `EtcdServerPb.endsDecoded` (no
+longer a persistent opaque), given back in the post.
 
 **Margin.** None.
 
@@ -50,7 +52,7 @@ def checkTxnPermission.spec : Prop :=
       ai.[go_etcd_io.etcd.server.v3.auth.AuthInfo, go!"Revision"] ↦{dq} rev ∗ EtcdWire.txnReqOwn rt dq' t ∗ endsDecoded rt ∗ threadTok }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.checkTxnPermission)) (Val #ast)) (Val #ai)) (Val #le)) (Val #rt))
   {{ (err : GoInterface), RET #err; A ∗ ai.[go_etcd_io.etcd.server.v3.auth.AuthInfo, go!"Username"] ↦{dq} u ∗
-      ai.[go_etcd_io.etcd.server.v3.auth.AuthInfo, go!"Revision"] ↦{dq} rev ∗ threadTok ∗ EtcdWire.txnReqOwn rt dq' t ∗
+      ai.[go_etcd_io.etcd.server.v3.auth.AuthInfo, go!"Revision"] ↦{dq} rev ∗ threadTok ∗ EtcdWire.txnReqOwn rt dq' t ∗ endsDecoded rt ∗
       checksOut C (RequestOp.checks (RequestOp.txn t.compare t.success t.failure)) err }}
 
 end spec

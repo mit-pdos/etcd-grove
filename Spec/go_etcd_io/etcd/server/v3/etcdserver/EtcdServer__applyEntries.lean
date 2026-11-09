@@ -19,6 +19,8 @@ from `srvStarted`'s pool; `stopWithDelay` is names-only in the translation: 2e's
 window `kvBatchR`, the restart point, the auth component, the write-token pool `srvWTPool`).
 
 **Margin**: none beyond the applied index.
+
+Changes: verify-round: takes and gives back the thread's `threadTok` (A7-provability F2: `s.Logger()`, `createMergedSnapshotMessage`, `newSnapshotReaderCloser` take one). `run`'s is the fresh token of `start`'s `go s.run()` (Perennial's `wp_fork_tok_body`); the apply jobs' is the scheduler worker's, lent to each job (`Schedule.funcOk`). The `srvMember` that `Logger` takes comes from `srvNode_member`.
 -/
 module
 
@@ -53,10 +55,10 @@ def EtcdServer.applyEntries.spec : Prop :=
       srvNode s γ id ∗ srvStarted s γ id ∗ applyThread s γ ep p ∗ ap ↦□ apv ∗
       applyBatch (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"r" s) γ apv B
         true ∗
-      ⌜uint.nat p.appliedi = B.base⌝ }}
+      ⌜uint.nat p.appliedi = B.base⌝ ∗ threadTok }}
     (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!!
       go!"applyEntries")) (Val #ep)) (Val #ap))
-  {{ RET #(); ∃ p', applyThread s γ ep p' ∗
+  {{ RET #(); threadTok ∗ ∃ p', applyThread s γ ep p' ∗
       applyBatch (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"r" s) γ apv B
         true ∗
       ⌜uint.nat p'.appliedi = B.last⌝ }}

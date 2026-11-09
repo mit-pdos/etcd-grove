@@ -16,9 +16,10 @@ import (
 // 346,838), interface.go:46 (the corruption checker's hasher, corrupt.go:187), the lease HTTP
 // handler (server.go:688).
 // Assumes: the put's reply was received before the call.
-// Specs: EtcdServer.Put.spec, Read.LinearizableReadNotify.spec (through EtcdServer's
-// LinearizableReadNotify, 2e's interface.go: depends on 2e's spec of it, not yet written); 2d's
-// srvApplied, histAt; 3e's Rev (a law relating it to srvApplied/histAt, not yet written).
+// Specs: EtcdServer.Put.spec, EtcdServer.LinearizableReadNotify.spec (verify round: a nil return
+// gives a committed log extending the put's, with srvApplied of its length), EtcdServer.KV.spec; 2d's
+// srvApplied_read, srvReadAt_mvcc, histAt; 3e's KV.Rev contract (the store's revision at a history
+// point at or past the read point: assumed of 3e, not checked against its statement here).
 func ReqReadAfterWrite(ctx context.Context, s *etcdserver.EtcdServer, k, v []byte) {
 	presp, err := s.Put(ctx, &pb.PutRequest{Key: k, Value: v})
 	if err != nil {
@@ -37,10 +38,10 @@ func ReqReadAfterWrite(ctx context.Context, s *etcdserver.EtcdServer, k, v []byt
 // end): no definite answer is invented.
 // Users: v3_server.go:141 (Range returns it as is; the handler maps it: ErrStopped, ErrLeaderChanged,
 // ErrTimeout to their rpctypes errors, the context's errors to grpc's codes).
-// Specs: Read.LinearizableReadNotify.spec (readErr, transparent: the server's sentinels srvErrVal
-// .stopped, .leaderChanged, .timeout, raft's raftStoppedErr, or a context's error),
-// EtcdServer.readErr_indef; laws: srvErrVal_leaf (errors.Is is equality on the sentinels), the
-// packages' initialization laws (srverrors' and raft's globals hold those values: req/).
+// Specs: EtcdServer.LinearizableReadNotify.spec (readErr, transparent: the server's sentinels srvErr
+// .stopped, .leaderChanged, .timeout, raft's errIs ErrStopped, or a context's error),
+// EtcdServer.readErr_indef; laws: srvErr_leaf (errors.Is is equality on the sentinels), srvErr_inj,
+// errors_init (srverrors' globals hold those sentinels), raft's errs_init and errIs_agree.
 func ReqReadErrIndef(ctx context.Context, s *etcdserver.EtcdServer) {
 	err := s.LinearizableReadNotify(ctx)
 	if err == nil {

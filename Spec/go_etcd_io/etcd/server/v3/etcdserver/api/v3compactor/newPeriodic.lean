@@ -4,6 +4,8 @@
 **Users.** `New`. **Proof sketch.** A struct literal, a cancellable context
 and the revisions' buffer of `getRetentions()` capacity (`period / (period / 10) + 1`: a period below 10ns in absolute value divides by zero, the premise).
 **Changes**: from `specs-ref`'s `newPeriodic.lean`. **Margin.** None.
+Changes: verify-round (A7 completeness F2): the compactor's handles carry the gate `R` of its `Compactable`
+(`compactable c R`: `Compact` is safe once `□ R`, the server's start); `Run` takes `□ R`.
 -/
 module
 
@@ -29,10 +31,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Ass
 
 /-- **A periodic compactor.** -/
 def newPeriodic.spec : Prop :=
-  ∀ (lg : Loc) (clk : GoInterface) (h : time.Duration) (rg c : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor ∗ Zap.isLogger lg ∗ clockOk clk ∗ revGetter rg ∗ compactable c ∗ ⌜10 ≤ sint.Z h ∨ sint.Z h ≤ -10⌝ }}
+  ∀ (R : IProp GF) (lg : Loc) (clk : GoInterface) (h : time.Duration) (rg c : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor ∗ Zap.isLogger lg ∗ clockOk clk ∗ revGetter rg ∗ compactable c R ∗ ⌜10 ≤ sint.Z h ∨ sint.Z h ≤ -10⌝ }}
     (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.newPeriodic)) (Val #lg)) (Val #clk)) (Val #h)) (Val #rg)) (Val #c))
-  {{ (p : Loc), RET #p; isPeriodic p }}
+  {{ (p : Loc), RET #p; isPeriodic p R }}
 
 end spec
 

@@ -9,6 +9,11 @@ repeatable RPC.
 
 Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/retryLeaseClient__LeaseTimeToLive.lean`: restated over the wire contract; the update persistent (the old `LeaseGrant`, `LeaseRevoke` specs took an exclusive one, unsound against the resend).
 
+verify-round: per member (A2-provability L2): with the client frozen at `ep` (`clientVia c`, the
+`RemoteCallTriple`'s `V`), the answer's `viaFact` (the member's lessor view): the stub's connection
+is `c.conn`, which reaches `ep` alone (`clientVia_conn`), and `uiOk_call`/`AttemptTriple` give the
+fact from the member that answered.
+
 Margin: none.
 -/
 module
@@ -38,6 +43,7 @@ def retryLeaseClient.LeaseTimeToLive.spec : Prop :=
   ∀ (r c : Loc) (γ : Cluster) (who : Principal) (id : Int) (keys : Bool),
   RemoteCallTriple (fun s => r @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryLeaseClient.ty @!! s)
     iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryLeaseHandle r c γ who ∗ clientReady c) γ who (.leaseTimeToLive id keys)
+    (clientVia c)
 
 end spec
 

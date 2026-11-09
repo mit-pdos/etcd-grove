@@ -3,9 +3,9 @@
 
 **Users.** etcd's `NewServer` (`server.go:431`, the remotes of a joining member); rafthttp's `addRemoteFromRequest` and `streamHandler` (requests from unknown members). Snippet: `transport.go` (`ReqStartTransport`).
 
-**Proof sketch.** `Lock`; `remotes` nil (stopped), a known peer or remote: return. `NewURLs` succeeds; `startRemote` (`remoteAt`, its stop right into the map invariant); `Unlock`.
+**Proof sketch.** `Lock`; `remotes` nil (stopped), a known peer or remote: return. `NewURLs` succeeds; `startRemote` (`remoteAt`, its stop right into the map invariant); `Unlock`. `types.ID`'s `String()` on an addressable `ID` (log fields, headers) is 1c's `Types.ID.String_ptr.spec` (Goose's pointer receiver).
 
-**Changes.** Restated over `peerAddr` (was `trURLsOk`/the network directory `γn.dir`: the URLs had to be the member's own; delivery to another member is now harmless, `Process` checks `To`). The remote-id list `L` and the four `R`s of a remote's pipeline are gone (thread tokens come from `Fork`).
+**Changes.** Restated over `peerAddr` (was `trURLsOk`/the network directory `γn.dir`: the URLs had to be the member's own; delivery to another member is now harmless, `Process` checks `To`). The remote-id list `L` and the four `R`s of a remote's pipeline are gone (thread tokens come from `Fork`). verify-round (second pass): the sketch cites `Types.ID.String_ptr.spec`.
 
 **Margin.** The peer set is not tracked in the statement (no client needs it).
 -/

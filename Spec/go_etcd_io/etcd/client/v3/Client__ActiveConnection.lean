@@ -1,11 +1,14 @@
 /-
 `(*clientv3.Client).ActiveConnection` (`client/v3/client.go`).
 
-Users: no user in scope (the gRPC proxy, tests).
+Users: Kubernetes' `blockUntilReady` (`storagebackend/factory/etcd3.go:358-380`: then `GetState`,
+`Connect`, `WaitForStateChange` on the connection, which `connOk` gives no specs for: not served,
+recorded as not done, `batch-1c.md` C-S1); the gRPC proxy, tests.
 
 Proof sketch: reads `c.conn` (`clientCore`).
 
 Changes: new (no old spec).
+verify-round: the Users line (A2-completeness S2: it said no user).
 
 Margin: none.
 -/

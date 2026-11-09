@@ -9,13 +9,17 @@ listing them all. Questions a later round settled are left out; technical gaps t
 (provisional names, unrealized slots, sketches still to check) are not listed: see each report's
 "Not done" and "Needed from" sections.
 
+The verification round's repairs (`notes/specs-only/verify/repair-*.md`, 2026-11-09) added section C
+(at the end) and the **verify-round:** notes under the entries they settle or change.
+
 Sections: [A. Decided by the coordinator](#a-decided-by-the-coordinator-revisit-if-you-disagree) ·
 [1. Top-level model & client](#1-top-level-model--client) · [2. Raft](#2-raft) ·
 [3. Server](#3-server) · [4. Storage & bbolt](#4-storage--bbolt) ·
 [5. Trust boundaries & environment premises](#5-trust-boundaries--environment-premises) ·
 [6. Fork fixes proposed for real etcd/raft bugs](#6-fork-fixes-proposed-for-real-etcdraft-bugs) ·
 [7. Perennial / translation changes](#7-perennial--translation-changes) ·
-[Real bugs found](#real-bugs-found)
+[Real bugs found](#real-bugs-found) ·
+[C. Decisions from the verification round](#c-decisions-from-the-verification-round-2026-11-09)
 
 ## A. Decided by the coordinator (revisit if you disagree)
 
@@ -52,11 +56,17 @@ A6. **Members configured differently.** The history records the proposer's lease
 A7. **Stopping a member: a drain premise.** `HardStop`/`Stop` take the whole `srvGate s 1`; every
    request-path call holds a share. Alt.: the fork fix (§6, F3), after which a program could stop a
    member while serving it. (`batch-2e.md` round 1 F2, Q7.)
+   **verify-round:** unchanged; server-core also states the `errorc` self-stop (A8-provability F3) as a
+   scope in `run.spec`'s text (C46). (`repair-server-core.md`.)
 A8. **mvcc's compactor `Rev()` and hashing.** `Rev()` without a reader token (option (a), then Y's
    persistent `mvccRevTok`); `Hash`/`HashByRev` take a share of `mvccRestoreGate`, so hashing excludes
    `Restore`. Alt. for hashing: `Restore` returns the old storage's slots except those of hashes in
    flight (cuts nothing off, more bookkeeping); for `Rev`: make the server wait for the compactor
    (a code change). (`batch-3e.md` Q1, Q3, round 1; `integration-Y.md` (2).)
+   **verify-round:** still yours: `KV.Restore.contract`'s whole gate cannot be collected from
+   unsynchronized hashers (A10 O1); server-core states "no hash during a snapshot install" as a scope
+   in `applySnapshot.spec`/`run.spec`'s text until you decide (C46). (`repair-server-core.md`,
+   `repair-mvcc.md`.)
 A9. **Reader tokens (not thread tokens) for mvcc's and the lessor's reads, and the watch stream's
    loops** (applying your 2026-11-06/07 decision). (`batch-3f.md` Q4; `batch-3c.md` round 1.)
 A10. **4a F1: `Unlock` publishes in two visible updates** (the session's puts, then its deletes).
@@ -69,6 +79,9 @@ A12. **`MsgApp` entries' capacity: `msgRecv`.** A message stepped into raft from
    `Unmarshal`/`Clone` supply it). Alt.: the fork clips in `logSliceFromMsgApp`
    (`slices.Clip`), and the premise goes back to `msgPts`. (`integration-I2.md` item 8;
    `nonissues/raft-msgapp-inprocess-aliasing.md`.)
+   **verify-round:** `msgRecv` now has a producer, `RaftPb.msgRecv_intro` (from protobuf's `mergeDst`,
+   which `Clone`/`Unmarshal` now give; C36), and rafthttp's decoders and `raftOk`'s `Process` deliver
+   it (C39). (`repair-raft-conf-pb.md`, `repair-rafthttp.md`.)
 A13. **A token provider's error in `Authenticate`'s apply is admitted, no provider flag**
    (`provErrResult`; the no-op provider always fails, JWT on signing). Alt.: an `aok` flag on
    `tokenProviderAt`, given by the simple provider only, letting `Authenticate.spec` drop the error
@@ -78,9 +91,15 @@ A14. **Non-`nil` empty `RangeEnd`: a scope premise.** Filed `nonissues/etcd-auth
    `CheckTxnAuth`/`checkTxnPermission` take `endsDecoded`/`opsDecoded` (what gRPC decoding gives).
    Alt.: a margin in 2c/3a at that input, or a fork fix of the auth check. (`integration-I5.md`
    "Coordinator's decisions" 2.)
+   **verify-round:** extended to the client (C3: W0's and leasing's KV triples and `Cmp.WithRange`
+   exclude such an end); `endsDecoded` is now a share of the message with the pure `endsOk` (C13).
+   (`repair-client-core.md`, `repair-grpc-v3rpc.md`.)
 A15. **The peer-URL right `urlsRight γ urls` lives in W0's `State.lean`** and is taken by the client's
    `MemberAdd`/`MemberUpdate`; spent even when the call is refused. (`integration-I1.md`, first
    section.) See 3.1 for the single-use question itself.
+   **verify-round:** new law `urlsRight_norm` (the right survives `urlsNorm`); the server's
+   `AddMember`/`UpdateMember` now give the right back on a refusal, while the client's calls still
+   spend it (`reqRight`'s margin). (`repair-client-core.md`, `repair-server-core.md`.)
 A16. **`IrrBody` (the raft request's model) is 3h's**, 2c's copy dropped. (`batch-3h.md` Q4;
    `integration-I4.md`.)
 A17. **Watch exactness gated on `exactFrom`** (1b round 3, adopted downstream by I1): events are exact
@@ -88,6 +107,10 @@ A17. **Watch exactness gated on `exactFrom`** (1b round 3, adopted downstream by
    gate the condition into the watch's creation (the approved old design), or exclude such
    revisions in W0's model (false of the code). Users (1d `Observe`, 1f, 1g cache) carry it as an
    invariant clause. (`batch-3f.md` Q1; `batch-1b.md` round 3; `integration-I1.md`.)
+   **verify-round:** narrowed (C9): `watchStep` and mvcc's `wStep` now say unconditionally that each
+   delivered event is a history event the watch keeps; only exactness stays gated. Recipes' `Dequeue`
+   value is ungated, its front still gated (C11). (`repair-client-watch.md`, `repair-mvcc.md`,
+   `repair-client-users.md`.)
 A18. **Decided inside W0 (not the coordinator):** `Cluster` stays an opaque client-side name, with the
    bridge `isServer_names` to 2d's `Names` (alt.: `Cluster` a structure with raft's names and the
    configuration, putting raft's vocabulary into every client spec); 3c's per-member granted TTLs not
@@ -112,6 +135,8 @@ A18. **Decided inside W0 (not the coordinator):** `Cluster` stays an opaque clie
    `AlarmDisarm` of a model alarm (`alarmKindM`), `LogConfig` without `Logger` out of scope, auto-sync
    only with `ETCD_VERIFY` off, `Status` only with the endpoints token. Accept as filed scope
    restrictions? `batch-1c.md` Q3, round 1. **Now:** premises.
+   **verify-round:** auto-sync is no longer an `ETCD_VERIFY` premise: `cfgOk` requires
+   `AutoSyncInterval = 0` (C1); the other premises stand. (`repair-client-core.md` A2 S4.)
 1.5 **The in-process client (`v3client`: v3lock, v3election, the gateway's adapter).** Its watches are
    out of scope (the adapter's pipe passes message pointers; both ends read fields after `Send`).
    Options: restate `Send` at both ends as a transfer with read-only shares, 1b and 2a adjusting their
@@ -119,6 +144,9 @@ A18. **Decided inside W0 (not the coordinator):** `Cluster` stays an opaque clie
    Also open with it: `isClient_conn` is false for an in-process client, and a principal for an
    unissued token (`tokenUnissued`, 3d). 2b round 1, 1c round 1 items 2-3, 2a round 1 "Still open",
    `integration-I1.md` needs 3-4; `batch-2b.md`, `batch-1c.md`. **Now:** out of scope.
+   **verify-round:** still out of scope. The in-process client's lease and watcher constructors now
+   take a ghost client `null` for readiness (C4); `tokenUnissued` unchanged (gaps); any new `ctxPrin`
+   introduction must keep `ctxStreamKey_prin` (C8). (`repair-client-core.md`, `repair-client-watch.md`.)
 1.6 **Client-certificate principals.** With `ClientCertAuthEnabled`, a token-less request's principal is
    its certificate's CN. W0 covers it only when the client's certificate names its own principal (a
    scope premise of `connOk`: one identity per client); otherwise
@@ -147,12 +175,18 @@ A18. **Decided inside W0 (not the coordinator):** `Cluster` stays an opaque clie
    linearizable freshness as an anchor (`etcdLb γ σ0` in `Get`'s pre) rather than the caller's update;
    (c) confirm `New` taking `etcdPeek γ` (a new premise on a client-facing spec). 1g D1-D3,
    `batch-1g.md`; `integration-I1.md` table. **Now:** own vocabulary, anchor, `etcdPeek`.
+   **verify-round:** unchanged; the cache's "no progress without `WithProgressNotify`" clause is left
+   open (gaps). (`repair-client-users.md` C-F5.)
 1.12 **`txnlin`'s scope** (`top.md` §2): a compare-only transaction is answered from a stale view
    (`issues/etcd-txn-empty-serializable.md`), so the example's generator must not send one or its model
    must accept stale answers. Which? `notes/specs-only/top.md`.
 1.13 **`Mutex`'s guarantee is revision fencing, not time** (`top.md` §2, W0 D2; the recipes' "no one
    acquires while I hold" likewise, 1f D2): time-based exclusion only under `EnvCfg.leaseExpiry =
    false` (5.3). Accept? `batch-W0.md`, `batch-1f.md`.
+   **verify-round:** now true (C10): `mutexEff`/`campaignEff` write only the session's key (`sessKey`)
+   and `Mutex.Lock` orders create revisions, so holders of two sessions are exclusive in time under
+   `leaseExpiry = false` (snippet `ReqMutexNoTwoHolders`); fencing only without it. What remains is
+   5.3. (`repair-client-users.md` C-F2.)
 
 ## 2. Raft
 
@@ -180,6 +214,8 @@ A18. **Decided inside W0 (not the coordinator):** `Cluster` stays an opaque clie
 2.7 **A crash's vacancy** (`nodeVacant` after a process crash): from the adequacy theorem's crash rule
    (assumed), or should raft export a crash law? R1 Q8, `batch-R1.md`. **Now:** the crash rule's
    (`crashGone`, 2e round 2).
+   **verify-round:** `crashGone_intro` (from `srvRunning` at the crash) is now its producer, and
+   `diskIdle_crash` carries an idle disk across. (`repair-server-core.md`.)
 2.8 **Crash restart scope `confAboveOk`** (at most one conf-change entry above the stored commit) and
    no crash during a snapshot-carrying batch's write. etcd's WAL writes entries, then the state, then
    one fsync: a crash in between can break `confAboveOk` (a lagging follower catching up across several
@@ -189,6 +225,11 @@ A18. **Decided inside W0 (not the coordinator):** `Cluster` stays an opaque clie
    (§6 F8); for snapshots, extend R1's crash law to snapshot batches. R1 Q10 and round 3, 2e Q2 and
    round 2, `integration-I2.md`; `batch-R1.md`, `batch-2e.md`. **Now:** `crashScope` premise; K6 holds
    only within it.
+   **verify-round:** `crashScope` is gone: `disk_crash` is per generation and concludes the disjunct
+   `crashOutOfScope γ ds` (`confAboveOk` broken, or a snapshot batch interrupted); raft's
+   `raftState_crash` is split into two whole-record cases matching the WAL's `crashedMid`; the WAL and
+   the snapshotter have crash laws (C40). The question stands. (`repair-server-core.md`,
+   `repair-raft-core.md`, `repair-server-boot.md`.)
 
 ## 3. Server
 
@@ -201,6 +242,8 @@ A18. **Decided inside W0 (not the coordinator):** `Cluster` stays an opaque clie
 3.2 **etcd's own peer handler** (`etcdhttp.NewPeerHandler`, embed's): a join through it needs its spec
    (`/members` from the applied view); the repository's starters serve only the raft handler, with
    which a join always fails. Specify it, or keep joins out of the examples? 2e Q8.
+   **verify-round:** specifying it (a `leaseCompat` protocol on `/leases/internal`) would also make
+   lease-auth's `leasePeerURL` premise derivable (C24). (`repair-lease-auth.md`.)
 3.3 **A failed `NewServer` loses the start right** (a half-made WAL or backend; a started raft node
    leaks if the transport fails): a program cannot retry a failed start. Accept? 2e Q3.
 3.4 **`bootstrap`'s scope**: excludes `--force-new-cluster` and discovery; trusts remote peers'
@@ -212,11 +255,17 @@ A18. **Decided inside W0 (not the coordinator):** `Cluster` stays an opaque clie
    leader proposes the minimum of the members' versions) or a deployment premise (no member runs a
    binary older than the cluster version) (3a D4, "2e's to settle"). `batch-2e.md`, `batch-3a.md`.
    (Lease TTLs: A6.)
+   **verify-round:** (b): `clusterVerOk ver` is now transparent, `∃ sv, Semver.parse ver = some sv ∧
+   Membership.verFits sv`, over 2e's `clusterVerInv` and `RaftCluster.Version`/`SetVersion` specs;
+   invariant vs deployment premise for `verFits` is still open. (`repair-apply-txn.md`,
+   `repair-server-boot.md`.)
 3.6 **Requests in flight at a stop, beyond the gate (A7).** (a) `LeaseServer.LeaseKeepAlive`'s
    context-done path returns while its goroutine may still be in `LeaseRenew` holding a `srvGate`
    share: options, 2c's `LeaseRenew` without the gate (it touches nothing `Cleanup` closes) or a fork
    change; (b) `maintenanceServer.Snapshot` reads the backend without a gate share (the same race as
    `issues/etcd-read-after-backend-close-panic.md`). `integration-X.md` open items 1, 3.
+   **verify-round:** unchanged ((a) recorded again by grpc-v3rpc); `LeaseRevoke.spec` no longer takes
+   a `srvGate` share. (`repair-grpc-v3rpc.md`, `repair-server-core.md`.)
 3.7 **The TLS path lends no run resource** (`Grpc.startHTTP`): a member serving clients over TLS cannot
    run handlers over 2c's request path from these specs. Needs net/http's handler pool to lend a run
    resource too (2f's `Http.handlerPool`): a protocol decision. `integration-X.md` open item 2.
@@ -264,12 +313,18 @@ A18. **Decided inside W0 (not the coordinator):** `Cluster` stays an opaque clie
    write's), with the kernel argument in `Impl.lean` (`folio_wait_stable`), benefiting every OsFs
    client; (b) a crash premise visible in every bbolt closed theorem (`osFsSemWith Q`, as minibolt's
    P1). `batch-4c.md` 4c-D1. **Now:** undecided; the spec is true under either.
+   **verify-round:** the rule needs a second clause (C31): a sector past the durable size written by
+   one `pwrite` since the last sync holds zeros or that write's bytes (ext4 `data=ordered`, xfs; not
+   `data=writeback`); `boltCrash` is written as under (a), over `crashRestQ` under (b). Still
+   undecided. (`repair-bbolt.md` F2, F10.)
 4.2 **The commit's prophecy (4c-D2)**: resolved on "the meta page was written" (its mapped txid), not
    `err == nil`, via a prophecy patch in `etc/proph-patches/bbolt/` (`etc/prophcheck` must admit that
    read: not checked). Alt.: a third update. `batch-4c.md`.
 4.3 **The durable state in the client's state (4c-D3, D4)**: `BoltSt` carries `dur`, `busy`, `lost`
    (alt.: a bbolt-owned "synced" witness, unsound under `NoSync`; a synced flag, raced by `DB.Sync`);
    files named once per generation, the state living across opens. Confirm. `batch-4c.md`.
+   **verify-round:** `BoltSt` also gains `named` (C2); `fileHolds_new` now needs `named` and
+   `m.hi = 0`. (`repair-bbolt.md` F1, F3.)
 4.4 **The txid bound across crash generations.** Receipts are counted per generation (`Open`'s
    `2^62`), and the crash law hands `fileHolds` on, so no fixed bound survives unboundedly many
    crashes. Options: txid `< 2^63` plus a premise on the number of generations, or a bound carried in
@@ -278,6 +333,9 @@ A18. **Decided inside W0 (not the coordinator):** `Cluster` stays an opaque clie
    resource `Pk` and its commit step `commitOk`, which every commit (including the run loop's) runs
    (alt.: a persistent atomic update handed to `New`, the same thing spelled differently). Accept?
    4a Q2, `batch-4a.md`.
+   **verify-round:** the commit's two updates are now one nested `commitAU` (C28), which the batch
+   lock's whole `boltState` builds (`boltState_commit_au`). (`repair-bbolt.md` F5,
+   `repair-backend-schema.md`.)
 4.6 **`lg.Fatal` paths in the backend** (puts into a missing bucket, an empty key, a failed commit):
    the specs take no premise (`Fatal` never returns). Is an exit acceptable in the closed theorems, or
    should premises exclude it (`beMade` on writes)? 4a Q4, `batch-4a.md`; `integration-I6.md`
@@ -306,6 +364,8 @@ A18. **Decided inside W0 (not the coordinator):** `Cluster` stays an opaque clie
    restrictions; a size bound in `Membership.Valid` with `changeV2` refusing past it (a refusal Go
    does not make). R1 Q9, R2 Q1, R3 Q2-Q3, R4 Q2, 3f round 1 S2, `top.md` K7, `integration-I2.md`.
    **Now:** in `cluster_alloc`'s docstring only, not its statement.
+   **verify-round:** also waiting on it: `histPropose`'s step budget (A7-provability F8).
+   (`repair-server-core.md`.)
 5.2 **Message size premises.** grpc-go's codec panics on an encoding over `2^48` bytes. Now:
    the opaque workload premise `Grpc.msgsFit` where connections and servers are made (closed
    theorems conditional on it; may subsume K8's `--max-request-bytes`); `MarshalConfChange`'s
@@ -336,12 +396,18 @@ A18. **Decided inside W0 (not the coordinator):** `Cluster` stays an opaque clie
    `x/time/rate`, `Masterminds/semver`; prometheus metrics, the otel tracer, `verify.Assert`,
    `math/rand.Int63n`, zap; `fmt.Sprintf` forms, `strings.Split`, `time.Now().UnixNano()`,
    `errors.Is`. Who owns them (and their specs)? 2f Q5, 2b open questions, 1f open questions.
+   **verify-round:** some now specified: zap's `Float64`, `Time`, `Binary`, `Logger.{Named,With,Sync}`,
+   otelgrpc's handlers (`statsOk`), `fmt.Sprintf("%+v", md)` (assumed); not zap's `Logger.Core`,
+   `WithOptions`, `Sugar` (gaps). (`repair-client-core.md`.)
 5.9 **Configuration scope premises at `NewServer`/the client** (each filed): `--max-txn-ops ≤ 4999`,
    `--max-request-bytes` below the keys-only amplification bound, `Compact` at a revision other than
    `0` (W0 Q1: alt., model a first `Compact(0)` as a no-op and accept a false spec in that corner),
    `watchIntervalCfgOk` (your 2026-10 "skip"), rafthttp's `ConnReadTimeout`/`ConnWriteTimeout ≥ 5s`,
    no distributed tracing (`traceutil.Init` never called: 4b Q3). `top.md` K8, `batch-W0.md`,
    `batch-2c.md` D6, `batch-2f.md` round 1, `batch-4b.md`.
+   **verify-round:** rafthttp's `vars_init` docstring now says embed binds the timeouts to flags and
+   etcdmain clamps them to `5s`; taking their points-to as a `Transport.Start` premise was declined
+   (gaps). (`repair-rafthttp.md`.)
 
 ## 6. Fork fixes proposed for real etcd/raft bugs
 
@@ -421,6 +487,10 @@ F15. **Repeatable lease writes** (1.3): make `LeaseGrant`/`LeaseRevoke` non-repe
    structs `Member`, `MemberAddResponse`, `MemberListResponse`, `StatusResponse`, `AlarmResponse`;
    `Event.IsCreate`/`IsModify`; `RangeRequest_SortOrder_name`/`_SortTarget_name`. Translate them?
    `batch-3h.md` "Consolidated translation request".
+   **verify-round:** the missing stubs and handlers now have WP-form specs
+   (`etcdserverpb/StreamShapes.lean`; `authClient.*`, `clusterClient.*`, `maintenanceClient.*`,
+   `RangeStream`); their proofs still need the bodies, so the question stands (gaps).
+   (`repair-grpc-v3rpc.md`.)
 7.5 **OsFs's crash relation** (this repository's `GooseLang/Ext/OsFs/`, trust base): 4.1's option (a).
 7.6 **A bbolt prophecy patch** (`etc/proph-patches/bbolt/`) reading the mapped meta page's txid: 4.2;
    `etc/prophcheck` must admit the read.
@@ -429,6 +499,8 @@ F15. **Repeatable lease writes** (1.3): make `LeaseGrant`/`LeaseRevoke` non-repe
    (`Backend.beFile`, `Mvcc.kbData`, ...). Fix: put the binders in each opaque's own signature (also
    settles 4a's `[HasExt osFsExt]` gap). The README convention causes it. `integration-I6.md` "Two
    findings left open" 2.
+   **verify-round:** settled: the binders landed branch-wide (`1aa6fc1337`); `beCrash` now concludes
+   at the crashed heap. (`repair-backend-schema.md` B2.)
 
 ## Real bugs found
 
@@ -444,6 +516,7 @@ New in `issues/` on this branch (each with a Go test), relative to `037bf21c75`:
 - `issues/leasing-delete-range-drops-prevkv.md`: a range delete through the leasing KV ignores `WithPrevKV` (yes).
 - `issues/raft-commit-lost-with-entries-kept.md`: a crash after a `Ready`'s entries are written but before its `HardState` lets two nodes commit different entries at one index (no; moved from `nonissues/`).
 - Updated: `issues/etcd-mvcc-hash-currentrev-race.md` (proof section: `mvccRestoreGate`, #22609).
+- verify-round: `issues/etcd-client-resolver-build-race.md`: `SetEndpoints` (a caller's or auto-sync's) races grpc's `Build` of the resolver when the channel leaves idle (no; excluded by C1).
 
 New in `nonissues/`:
 
@@ -486,3 +559,4 @@ New in `nonissues/`:
 - `raft-msgapp-inprocess-aliasing`: a stepped `MsgApp`'s entries slice is adopted, so its spare capacity must be the receiver's (no).
 - `recipes-dbarrier-leave-without-key`: `DoubleBarrier.Leave`, `RWMutex.Unlock`/`RUnlock` panic when the process created no key (no).
 - Updated: `bbolt-hashmap-init-empty-stale-cache` (the four specs' premise), `bbolt-txid0-reader-release` (mechanism: two calls; the `2^64-1` mirror), `etcd-client-dialoptions-unary-interceptor` (the gRPC proxy).
+- verify-round: `bbolt-create-dir-not-synced` (a database file bbolt creates can vanish at a crash; C2), `etcd-auth-read-denied-across-views` (a read denied though permitted at every auth state it spans), `etcd-backend-defrag-rollback-nil-tx` (a deferred `Rollback` on a `nil` transaction), `etcd-client-withrange-empty-end` (C3), `etcd-member-id-raft-reserved` (a member id raft reserves, about 2^-63) (all no).

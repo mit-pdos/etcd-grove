@@ -33,14 +33,6 @@ func ReqMemberAddThenList(ctx context.Context, cli *clientv3.Client, peerURL str
 	panic("memberlist: added member missing")
 }
 
-// REQ clientv3client/sync: Sync never panics (verification off) and leaves endpoints serving the
-// cluster.
-// Users: client.go's autoSync (AutoSyncInterval > 0).
-// Assumes: ETCD_VERIFY off (verifyOff).
-// Specs: Client.Sync.spec, Client.Endpoints.spec.
-func ReqSync(ctx context.Context, cli *clientv3.Client) {
-	if err := cli.Sync(ctx); err != nil {
-		return
-	}
-	_ = cli.Endpoints()
-}
+// (No snippet for Sync or auto-sync: out of the top-level workloads, the coordinator's decision on
+// issues/etcd-client-resolver-build-race.md; Client.Sync.spec takes resolverIdle, which no caller
+// after New holds.)

@@ -11,7 +11,7 @@ import (
 // Users: v3rpc's recvLoop (a Created carries the id; 1b's wireStep: an announced id is fresh,
 // WireSt.seen; -1 is the stream-wide id).
 // Assumes: one reader token; the control side is this goroutine.
-// Specs: watchStream.Watch.spec (id = n, wsCtl ι (n + 1)), watchStream.Cancel.spec.
+// Specs: watchStream.Watch.spec (+ wsOpen_closed) (id = n, wsCtl ι (n + 1)), watchStream.Cancel.spec.
 func ReqFreshIds(kv mvcc.WatchableKV, k []byte) {
 	ws := kv.NewWatchStream()
 	defer ws.Close()
@@ -35,7 +35,7 @@ func ReqFreshIds(kv mvcc.WatchableKV, k []byte) {
 // with a message (v3rpc answers the create Canceled with it as the reason).
 // Users: v3rpc's recvLoop (watch.go:342-364: id = -1, CancelReason = err.Error(), non-empty).
 // Assumes: none but a reader token.
-// Specs: watchStream.Watch.spec (the error disjunct: the package's ErrEmptyWatcherRange; its
+// Specs: watchStream.Watch.spec (+ wsOpen_closed) (the error disjunct: the package's ErrEmptyWatcherRange; its
 // success disjunct excludes an empty range), watch_init.spec (its message).
 func ReqEmptyRange(kv mvcc.WatchableKV) {
 	ws := kv.NewWatchStream()
@@ -58,7 +58,7 @@ func ReqEmptyRange(kv mvcc.WatchableKV) {
 // Users: v3rpc's recvLoop (watch.go:377: a cancel request; nil answers it, an error does not).
 // Assumes: none but the stream.
 // Specs: watchStream.Cancel.spec (nil gives wsReg of the id: an id never registered is not
-// cancelled, wsReg_ctl), watchStream.Watch.spec.
+// cancelled, wsReg_ctl), watchStream.Watch.spec (+ wsOpen_closed).
 func ReqCancel(kv mvcc.WatchableKV, k, other []byte) {
 	ws := kv.NewWatchStream()
 	defer ws.Close()

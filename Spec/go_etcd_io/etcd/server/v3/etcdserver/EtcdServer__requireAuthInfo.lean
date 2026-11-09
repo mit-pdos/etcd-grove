@@ -35,7 +35,7 @@ def EtcdServer.requireAuthInfo.spec : Prop :=
     (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"requireAuthInfo")) (Val #ctx))
   {{ (err : GoInterface), RET #err; threadTok ∗
       (⌜err = GoInterface.nil⌝ ∨
-       ⌜srvErrOf err .invalidAuthToken ∨ srvErrOf err .userEmpty⌝ ∗ srvErrShape err) }}
+       (srvErr err .invalidAuthToken ∨ srvErr err .userEmpty) ∗ srvErrShape err) }}
 
 end spec
 end EtcdServer

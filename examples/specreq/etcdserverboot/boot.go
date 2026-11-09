@@ -195,15 +195,75 @@ func ReqJoin(s1 *etcdserver.EtcdServer, name1 string, peer1 types.URLs, name2 st
 
 // REQ etcdserverboot/partition: cutting and mending the link to a peer, from any goroutine, at any
 // time after the build, never panics.
-// Users: examples/lib/cluster3.PeerStep (as etcd's integration tests' InjectPartition).
+// Users: examples/lib/cluster3.PeerStep (as etcd's integration tests' InjectPartition); the
+// integration framework's Member.Pause/Resume (tests/framework/integration/cluster.go:1166-1172).
 // Assumes: s and t are members of one cluster.
-// Specs: EtcdServer.CutPeer.spec, EtcdServer.MendPeer.spec (each with a thread token, given
-// back), EtcdServer.MemberID.spec; law: srvMember_agree (s and t are distinct members).
+// Specs: EtcdServer.CutPeer.spec, EtcdServer.MendPeer.spec, EtcdServer.PauseSending.spec,
+// EtcdServer.ResumeSending.spec (each with a thread token, given back), EtcdServer.MemberID.spec;
+// law: srvMember_agree (s and t are distinct members).
 func ReqPartition(s, t *etcdserver.EtcdServer) {
 	s.CutPeer(t.MemberID())
 	t.CutPeer(s.MemberID())
 	s.MendPeer(t.MemberID())
 	t.MendPeer(s.MemberID())
+	s.PauseSending()
+	s.ResumeSending()
+}
+
+// REQ etcdserverboot/ready-or-stop: a started member's ready and stop channels can be waited on
+// from any goroutine, never blocking forever on both once the member publishes or stops.
+// Users: embed/serve.go:134-136 (StoppingNotify/ReadyNotify), etcdmain/etcd.go:187-188
+// (ReadyNotify/StopNotify), examples' tests (<-s.ReadyNotify()).
+// Assumes: s was started (isServer).
+// Specs: EtcdServer.ReadyNotify.spec (readyCh), EtcdServer.StopNotify.spec (doneCh),
+// EtcdServer.StoppingNotify.spec (stoppingCh): receives give nothing.
+func ReqReadyOrStop(s *etcdserver.EtcdServer) bool {
+	select {
+	case <-s.ReadyNotify():
+		return true
+	case <-s.StoppingNotify():
+		return false
+	case <-s.StopNotify():
+		return false
+	}
+}
+
+// REQ etcdserverboot/member-list-after-add: a linearizable member list after an acknowledged
+// MemberAdd lists the added member (the list is the cluster's, up to order).
+// Users: api/v3rpc/member.go:93 (ClusterServer.MemberList; the client's MemberList, Client.Sync).
+// Assumes: s was started; the caller holds urlsRight for urls; no other client removes members.
+// Specs: EtcdServer.AddMember.spec, EtcdServer.MemberList.spec (srvStep's memberList: the members
+// up to permutation when linearizable); laws: etcdState_lb, etcdLb_ord.
+func ReqMemberListAfterAdd(ctx context.Context, s *etcdserver.EtcdServer, m membership.Member) {
+	if _, err := s.AddMember(ctx, m); err != nil {
+		return
+	}
+	ms, err := s.MemberList(ctx, &pb.MemberListRequest{Linearizable: true})
+	if err != nil {
+		return
+	}
+	for _, x := range ms {
+		if x.ID == m.ID {
+			return
+		}
+	}
+	panic("member-list: added member missing")
+}
+
+// REQ etcdserverboot/getters: the status getters a maintenance handler reads never panic.
+// Users: api/v3rpc/maintenance.go (Status: CommittedIndex, Backend, Config, ClusterVersion,
+// AppliedIndex, Term, Leader), api/v3rpc/quota.go (newBackendQuota: Backend), the health server
+// (FeatureEnabled), the auth handlers (AuthStore).
+// Assumes: s was started.
+// Specs: EtcdServer.{CommittedIndex,Backend,Config,ClusterVersion,AppliedIndex,AuthStore,
+// FeatureEnabled}.spec.
+func ReqGetters(s *etcdserver.EtcdServer) uint64 {
+	_ = s.Backend()
+	_ = s.Config()
+	_ = s.ClusterVersion()
+	_ = s.AuthStore()
+	_ = s.FeatureEnabled(features.StopGRPCServiceOnDefrag)
+	return s.CommittedIndex() + s.AppliedIndex()
 }
 
 // REQ etcdserverboot/stop-after-error: HardStop returns when the server already stopped on its own
@@ -246,12 +306,12 @@ func ReqStopDrained(s *etcdserver.EtcdServer) {
 }
 
 // REQ etcdserverboot/crash-restart: after a crash of the process at any point (outside the scope
-// crashScope excludes), the member restarted on its directory continues the cluster's history: a
+// crashOutOfScope names), the member restarted on its directory continues the cluster's history: a
 // write acknowledged before the crash is read after the restart. Not runnable in-process (a crash is
 // the adequacy theorem's crash rule: the restart below is the recovery procedure's body).
 // Users: every etcd deployment (systemd restarts after a kill); examples/etcd/restart's crash variant.
 // Assumes: the recovery runs after a crash of the process that ran the member on name+".etcd" (the
-// crash rule's crashGone), within crashScope (R1's confAboveOk at the crash, no crash during a
+// crash rule's crashGone), unless crashOutOfScope (R1's confAboveOk at the crash, no crash during a
 // snapshot-carrying write: batch-2e.md Q2), and the program's crash invariant holds diskState; k was
 // put before the crash by a client that got an answer.
 // Specs: disk_crash, diskIdle_agree, memberStart_disk, NewServer.spec, EtcdServer.Start.spec, the

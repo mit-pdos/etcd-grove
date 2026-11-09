@@ -1,7 +1,9 @@
 package auth
 
 import (
+	"context"
 	"errors"
+	"sync/atomic"
 	"time"
 
 	"go.uber.org/zap"
@@ -15,11 +17,21 @@ import (
 // Users: server/etcdserver/server.go:~360-369 (NewServer: NewTokenProvider, NewAuthStore).
 // Assumes: be's auth buckets hold a state the cluster reached (a fresh backend: the initial
 // state; a restart: the state at the consistent index), its permissions valid and its records
-// fitting; waiter is the server's applyWait.Wait; a jwt kind's keys are the cluster's
-// (jwtTokOk).
-// Specs: NewTokenProvider.spec, NewAuthStore.spec, authStore.Revision.spec, IsAuthEnabled.spec.
-func ReqBoot(lg *zap.Logger, be etcdauth.AuthBackend, opts string, waiter func(uint64) <-chan struct{},
-	ttl time.Duration, cost int) (etcdauth.AuthStore, error) {
+// fitting; wait is the server's applyWait.Wait, usable only once the server started (the
+// closure below panics before, as the server's, whose applyWait is set in start()); a jwt kind's
+// keys are the cluster's (jwtTokOk); ctx is a request's (ctxToken).
+// Specs: NewTokenProvider.spec (waiterOk iw R, R: started's load is true), NewAuthStore.spec
+// (authGate γa R), authStore.Revision.spec, IsAuthEnabled.spec, AuthInfoFromCtx.spec (authGate,
+// □ R after the start).
+func ReqBoot(ctx context.Context, lg *zap.Logger, be etcdauth.AuthBackend, opts string,
+	wait func(uint64) <-chan struct{}, ttl time.Duration, cost int) (etcdauth.AuthStore, error) {
+	var started atomic.Bool
+	waiter := func(i uint64) <-chan struct{} {
+		if !started.Load() {
+			panic("boot: the index waiter called before the server started")
+		}
+		return wait(i)
+	}
 	tp, err := etcdauth.NewTokenProvider(lg, opts, waiter, ttl)
 	if err != nil {
 		if !errors.Is(err, etcdauth.ErrInvalidAuthOpts) && opts != "jwt" && (len(opts) < 4 || opts[:4] != "jwt,") {
@@ -32,6 +44,8 @@ func ReqBoot(lg *zap.Logger, be etcdauth.AuthBackend, opts string, waiter func(u
 		panic("boot: a store at revision 0")
 	}
 	_ = as.IsAuthEnabled()
+	started.Store(true)
+	_, _ = as.AuthInfoFromCtx(ctx)
 	return as, nil
 }
 

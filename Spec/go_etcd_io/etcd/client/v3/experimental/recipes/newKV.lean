@@ -9,6 +9,8 @@
 **Changes**: old spec over the recipes' client invariant (`ownRemoteKV`, `keyCreatedAt`); now the
 caller's update, any lease.
 
+Changes: verify-round: `ErrKeyExists` is the value its variable holds (`putNewRetAt`), not a Lean constant (A3 F4).
+
 **Margin**: none.
 -/
 module
@@ -46,7 +48,7 @@ def newKV.spec : Prop :=
       (Val #key)) (Val #val)) (Val #lease))
 
   {{ (rk : Loc) (err : GoInterface), RET (PairV #rk #err);
-      (∃ (σ σ' : State) (res : Resp) (rev : w64), Q σ σ' res ∗ ⌜putNewRet res rev err⌝ ∗
+      (∃ (σ σ' : State) (res : Resp) (rev : w64), Q σ σ' res ∗ putNewRetAt res rev err ∗
         ((⌜err = GoInterface.nil⌝ ∗ rkOwn rk γ who { live := true, key := key, rev := rev, val := val }) ∨
          ⌜err ≠ GoInterface.nil ∧ rk = null⌝)) ∨
       (⌜rk = null⌝ ∗ indefCall err) }}

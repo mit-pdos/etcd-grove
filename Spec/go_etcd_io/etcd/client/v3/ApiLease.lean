@@ -43,7 +43,9 @@ context carries (`ctxPrin who ctx p`).
 ## Vocabulary
 
 * `lessorHandle l c γ who` (persistent): a `*lessor` over the client `c` (`NewLease`'s; `null` over
-  a caller's remote). Intended realization: its `remote` a `remoteLeaseAt` value once `c` is ready,
+  a caller's remote: `NewLeaseFromLeaseClient`'s choice). Intended realization: its `remote` a
+  `remoteLeaseAt` value once `c` is ready, reaching `ep` alone once `c` is frozen at `ep`
+  (`remoteVia`, for the per-member clauses),
   `callOpts` the client's, `lg` an `isLogger` (never `nil`:
   `nonissues/etcd-client-lessor-nil-logger.md`), and an invariant over `l.mu` holding `keepAlives`
   (each entry's channels with their `kaChan` invariants, the close token of each channel held by
@@ -57,6 +59,10 @@ context carries (`ctxPrin who ctx p`).
   `kaRecvAt`, slots of 2a, over the stream's name `g`; `kaSent g id` (integration X: `∃ i, kaReq g
   i id`, 2a's record of the `i`-th request, `kaSpec`), `kaSent_sent`: a response is about a lease id sent on the
   stream). Realized for `*retryLeaseClient` (`retryLeaseHandle_remoteLeaseAt`).
+* `remoteVia v ep` (persistent): every call through `v` is answered by the member at `ep`; with it,
+  `remoteLeaseAt_call`'s triples give the member's lessor view (`ApiClient.lean`'s `viaFact`, from
+  2a's `AttemptTriple` through the interceptor's `uiOk_call`): where the per-member clauses of
+  `Grant`, `TimeToLive` and `Leases` come from (verify round, A2-provability L2).
 
 ## Requirement snippets
 
@@ -157,6 +163,11 @@ opaque leaseOf [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors
 stream). -/
 opaque remoteLeaseAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (v : GoInterface) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 
+/-- **Every call through the `LeaseClient` value `v` is answered by the member at `ep`**
+(persistent; A2-provability L2): a retry wrapper over a client frozen at `ep`
+(`retryLeaseHandle_remoteVia`), 2a's stub over a connection reaching `ep` alone. -/
+opaque remoteVia [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (v : GoInterface) (ep : GoString) : IProp GF := iprop(True)
+
 /-- A `*retryLeaseClient` over the connection of the client `c`. -/
 opaque retryLeaseHandle [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 
@@ -233,8 +244,9 @@ def Lease.GrantTriple (m : GoString → val) (v : GoInterface) (P : IProp GF) (�
       (⌜resp = null⌝ ∗ indefCall err) }}
 
 /-- **A lease read** (`TimeToLive`, `Leases`) `e` sending `rq`, the update persistent; through a
-member `ep` with `leaseViewLb γ ep i` (`via = some (ep, i)`), answered from a table `j ≥ i`, whose
-lower bound it gives. -/
+member `ep` with `leaseViewLb γ ep i` (`via = some (ep, i)`), an answer from the lessor
+(`leaseAnsRes`: not a refusal) is from a table `j ≥ i`, whose lower bound it gives (`viaFact`;
+verify round: a refusal tells nothing, the post claimed `leaseAnsAt` of it). -/
 def LeaseRead.Triple (e : Expr) (v : GoInterface) (P B : IProp GF) (γ : Cluster) (p : Principal)
     (rq : Req) (reply : Resp → Loc → GoInterface → IProp GF) : Prop :=
   ∀ (via : Option (GoString × Nat)) (Q : State → State → Resp → IProp GF),
@@ -243,10 +255,7 @@ def LeaseRead.Triple (e : Expr) (v : GoInterface) (P B : IProp GF) (γ : Cluster
       callAU γ p rq true Q }}
     e
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); B ∗
-      ((∃ σ σ' res, Q σ σ' res ∗ reply res resp err ∗
-         match via with
-         | some (ep, i) => iprop(∃ j, ⌜i ≤ j ∧ σ.leaseAnsAt j rq res⌝ ∗ leaseViewLb γ ep j)
-         | none => iprop(True)) ∨
+      ((∃ σ σ' res, Q σ σ' res ∗ reply res resp err ∗ viaFact γ via rq σ σ' res) ∨
        (⌜resp = null⌝ ∗ indefCall err)) }}
 
 /-- `Revoke(ctx, id)`. -/
@@ -308,7 +317,8 @@ def handles1cLease_persistent.spec : Prop :=
   (∀ v γ who, Persistent (remoteLeaseAt (GF := GF) v γ who)) ∧
   (∀ r c γ who, Persistent (retryLeaseHandle (GF := GF) r c γ who)) ∧
   (∀ ch, Persistent (kaDonec (GF := GF) ch)) ∧
-  (∀ g id, Persistent (kaSent (GF := GF) g id))
+  (∀ g id, Persistent (kaSent (GF := GF) g id)) ∧
+  (∀ v ep, Persistent (remoteVia (GF := GF) v ep))
 
 /-- **Receiving from a keep-alive channel**: a response about the lease with a positive TTL, or the
 channel closed (and then closed for good). -/
@@ -334,10 +344,11 @@ def clientCore_leaseOf.spec : Prop := ∀ c γ who,
   clientCore (GF := GF) c γ who ⊢
     ∃ v, c.[go_etcd_io.etcd.client.v3.Client, go!"Lease"] ↦□ v ∗ leaseOf v c
 
-/-- The wire contract's unary RPCs. -/
+/-- The wire contract's unary RPCs, per member when the value reaches one member alone
+(`remoteVia v`). -/
 def remoteLeaseAt_call.spec : Prop := ∀ (v : GoInterface) (γ : Cluster) (who : Principal) (rq : Req),
   reqIsLease rq → RemoteCallTriple (fun s => v @!! go_etcd_io.etcd.api.v3.etcdserverpb.LeaseClient.ty @!! s)
-    (remoteLeaseAt (GF := GF) v γ who) γ who rq
+    (remoteLeaseAt (GF := GF) v γ who) γ who rq (remoteVia v)
 
 /-- **Opening a keep-alive stream** (`LeaseKeepAlive(ctx, opts...)`): its two halves, or an error. -/
 def remoteLeaseAt_keepAlive.spec : Prop := ∀ (v : GoInterface) (γ : Cluster) (who : Principal)
@@ -398,6 +409,12 @@ def kaReq_persistent.spec : Prop := ∀ g i id, Persistent (kaReq (GF := GF) g i
 `kaReq_lookup`). -/
 def kaSent_sent.spec : Prop := ∀ (sc : GoInterface) (g : Grpc.StreamName) (ids : List Int) (id : Int),
   kaSendAt (GF := GF) sc g ids ∗ kaSent g id ⊢ ⌜id ∈ ids⌝
+
+/-- A `*retryLeaseClient` over a client frozen at `ep` reaches `ep` alone (`clientVia_conn`, 2a's
+stub over that connection). -/
+def retryLeaseHandle_remoteVia.spec : Prop := ∀ r c γ who ep,
+  retryLeaseHandle (GF := GF) r c γ who ∗ clientVia c ep ⊢
+    remoteVia (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.retryLeaseClient.ty) #r) ep
 
 /-- A `*retryLeaseClient` over a ready client meets the wire contract. -/
 def retryLeaseHandle_remoteLeaseAt.spec : Prop := ∀ r c γ who,

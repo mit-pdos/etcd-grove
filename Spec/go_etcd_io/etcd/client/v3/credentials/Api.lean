@@ -72,6 +72,18 @@ lowercase). -/
 def rpcCredsAt_perRPC.spec : Prop := ∀ (v : GoInterface) (γ : Cluster) (who : Principal),
   rpcCredsAt (GF := GF) v γ who ⊢ Grpc.perRPCAt v (credMD γ who)
 
+/-- **What W0's `connOk` is** (second pass, grpc-v3rpc's P-F7; here, not in `Api.lean`, because it
+mentions `credMD`): a grpc connection (`Grpc.connAt`) whose unary and stream interceptors are a
+client's (`uiOk`, `siOk` of some client `c`), whose per-RPC credentials add `credMD γ who`, and every
+address of whose resolver serves `γ`. Elimination: what the generated stubs' specs (2a/3h) unfold to
+reach `ClientConn.Invoke`/`NewStream`; introduction: `Client.dial`'s, from `Grpc.NewClient.spec`'s
+post at the client's dial options (`clientDialOpts`, the caller's `dialOptsOk` options neutral). -/
+def connOk_unfold.spec : Prop := ∀ (conn : Loc) (γ : Cluster) (who : Principal),
+  ClientV3.connOk (GF := GF) conn γ who ⊣⊢
+    ∃ (A : GoString → IProp GF) (ui si : val) (c : Loc),
+      Grpc.connAt conn A (some ui) (some si) (credMD γ who) ∗ ClientV3.uiOk ui c γ who ∗
+      ClientV3.siOk si c γ who ∗ □ (∀ ep, A ep -∗ servesAt γ ep)
+
 end res
 
 end Credentials

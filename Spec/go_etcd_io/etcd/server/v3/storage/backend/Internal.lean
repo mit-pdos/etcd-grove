@@ -19,7 +19,8 @@ transactions' plumbing) are written over. No client imports this module: the API
   content), `btPhys γ I n d` (bbolt's write transaction at `I`, `pending = n`,
   `pendingDeleteOperations = d`; `btStopped γ`: no write transaction, after `CommitAndStop`),
   `rtHeld γ` (`readTx.mu` held for writing, with the read buffer and the read transaction),
-  `beRun γ` (the run loop's right to run: `stopc` not yet closed).
+  `beRun γ` (the run loop's right to run: `stopc` not yet closed); `rtNew γ tx I` (a just-begun
+  bbolt read transaction at `I` with its reader slot: `begin(false)`'s).
 
 Intended realization: the struct fields' points-to with the slices' read-only points-to; the
 batch session's authority (`Api.lean`'s header) split into these physical pieces.
@@ -114,6 +115,11 @@ opaque rtHeld [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors}
 /-- (provisional, 4c's cursor) `c` is a bbolt cursor of a bucket whose entries are `L`
 (exclusive). -/
 opaque curOver [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c : Loc) (L : GoString → Option GoString) : IProp GF := iprop(True)
+
+/-- **A just-begun bbolt read transaction `tx` at the committed image `I`** (exclusive; verify-round,
+A11-completeness F4): `begin(false)`'s result, holding its reader slot (the token of the thread that
+will roll it back), which `unsafeCommit` installs as the read side's transaction. -/
+opaque rtNew [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : BeNames) (tx : Loc) (I : Image) : IProp GF := iprop(True)
 
 /-- The run loop's right to run (`stopc` not yet closed; exclusive). -/
 opaque beRun [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : BeNames) : IProp GF := iprop(True)

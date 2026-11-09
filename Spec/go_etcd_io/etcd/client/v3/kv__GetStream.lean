@@ -7,10 +7,12 @@ the initial list of a watch). Snippet: `clientv3kv/stream.go` (`ReqGetStream`).
 
 Proof sketch: `OpGet.spec`; `kvHandle`'s remote: `RemoteKV.RangeStreamTriple` with the persistent update
 (`toRangeRequest.spec`, the client's options); on an error, `ContextError.spec` (indefinite); else
-a channel of capacity 1 (Perennial's `isSpsc`, the producer side to the goroutine, with the
-thread token: `wp_fork`), whose loop receives from the wire stream (`wireStreamAt_recv`): a chunk
-is sent with its message (`streamAt`'s per-chunk resource), `io.EOF` (`errors.Is`, Perennial)
-closes the channel with the caller's `Q` (the spsc's final resource), another error is sent as
+a channel of capacity 1 (Perennial's `isSpsc`, the producer side to the goroutine, forked by
+`wp_fork`: no thread token), whose loop receives from the wire stream (`wireStreamAt_recv`): a chunk
+is sent with its message (`streamAt`'s per-chunk resource), `io.EOF` (`errors.Is(err, io.EOF)`: true
+at the clean end, where `err` is `io.EOF`'s value; false for the error branches' errors, which are
+not, by `errorsIs_callErr_eof`) closes the channel with the caller's `Q` (the spsc's final
+resource), another error is sent as
 the terminal chunk (`ContextError.spec`: `.etcd e` as `errVal e` with its `Q`; `ErrCompacted`
 without `Q` when the server's pinned revision was compacted before a later read, before any chunk
 too; else indefinite) and the channel closed. An open error (the stream interceptor
@@ -18,8 +20,12 @@ re-authenticates at every open) is a refusal that fired nothing or indefinite. T
 is not negative (premise: such a stream is not pinned).
 
 Changes: none (no old spec): Kubernetes' store now lists with it.
+verify-round: no thread token (A1-completeness F1: it was taken and never given back on success,
+so a request goroutine could not list; the goroutine needs none, `wp_fork`); the `io.EOF` test
+closes by `wireStreamAt_recv`'s non-EOF errors and `errorsIs_callErr_eof` (A1-provability F3); the
+scope premise `emptyEnd = false` (A1-provability F5).
 
-Margin: a sorted or filtered stream's key-values are not modelled (`streamMatches`); a stream at the default ordering is the range's answer. The thread token comes back only for a drained stream: if the consumer stops receiving, the goroutine blocks for good (`nonissues/etcd-client-getstream-abandoned-leak.md`).
+Margin: a sorted or filtered stream's key-values are not modelled (`streamMatches`); a stream at the default ordering is the range's answer. If the consumer stops receiving, the goroutine blocks for good, a leaked goroutine (`nonissues/etcd-client-getstream-abandoned-leak.md`).
 -/
 module
 

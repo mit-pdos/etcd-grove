@@ -6,10 +6,18 @@ Users: the client's `cloneCompare` (`compare.go:193`, W0), raft's `raftLog.snaps
 `raft.go:228,231`, `bootstrap.go:470`, `snapshot_merge.go:48` (2d, 2e: snapshots and `ConfState`s).
 
 Why true: `Clone` allocates a new message of the same type and merges the source into it: a deep
-copy (every submessage and byte slice new), recursing per level; it reads the source only.
+copy (every submessage and byte slice new), recursing per level; it reads the source only. The
+merge copies only populated fields (`mergeBytesNoZero` skips an empty proto3 `bytes` field, a
+repeated field is appended to a `nil` one), so the copy holds the source's wire view `norm c`, not
+`c` itself when `c` has a non-`nil` empty field.
 
 Changes: from `specs-ref/.../proto/{Clone,ClonePb,CloneEntry,CloneSnapshot,CloneConfState}.lean`:
 one spec over `msgAt`; the result's owner relation law gives each caller its model back.
+verify-round (raft-conf-pb's request, A5-compl F4): the copy is `mergeDst` (freshly allocated:
+its slices owned to capacity; `mergeDst_msgAt` gives the old `msgAt (own 1)`).
+verify-round (A6 F2): the copy holds `norm c` (the content is no longer up to `proto.Equal`); an
+owner whose model does not distinguish a `nil` from an empty field states `xModels c m →
+xModels (norm c) m` (3h's `holds_norm`; requested of raft-conf-pb and the snapshot owners).
 
 Margin: none (a `nil` message, which `Clone` returns as `nil`, is not specified: no user).
 -/
@@ -41,7 +49,7 @@ def Clone.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗ msgAt t p dq c ∗ ⌜depth c < depthMax⌝ }}
     (App (Val (@! google_golang_org.protobuf.proto.Clone)) (Val #(msgVal t p)))
   {{ (v : GoInterface), RET #v; msgAt t p dq c ∗
-      ∃ p' : Loc, ⌜v = msgVal t p'⌝ ∗ msgAt t p' (DFrac.own 1) c }}
+      ∃ p' : Loc, ⌜v = msgVal t p'⌝ ∗ mergeDst t p' (norm c) }}
 
 end spec
 

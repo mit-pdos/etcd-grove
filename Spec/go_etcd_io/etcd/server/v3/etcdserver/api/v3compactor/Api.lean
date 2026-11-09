@@ -23,17 +23,23 @@ environment's update is then aborted).
   `periodic.go:getRetentions`). Intro laws `bootCfg_off`, `bootCfg_on`; one narrow elimination,
   `bootCfg_build` (what `NewServer`'s proof hands `New` and the `Compactable`'s construction).
   Kubernetes' deployment (compaction by clients, the compactor off) is `bootCfg_off` at any `ac`.
-* `compactable c` (persistent): **the interface value `c` (`Compactable`) may be called**: for any
-  context `Context.ctxOk` and any compaction request, `Compact` returns (any response, any error).
-  The receiver's need (PRINCIPLES, "A contract between packages states the receiver's need").
+* `compactable c R` (persistent): **the interface value `c` (`Compactable`) may be called once `R`
+  holds**: under `□ R`, for a child of `context.Background()` (the compactor's own context,
+  `WithCancel(Background())`, `periodic.go:61`, `revision.go:58`) and a fresh, non-physical compaction request,
+  `Compact` returns (any response, any error). The receiver's need (PRINCIPLES, "A contract between
+  packages states the receiver's need"). Verify-round (A7 completeness F2): the gate `R` and the
+  context's shape are new: the server makes the compactor in `NewServer`, before `start`, and its
+  `Compact` needs the started server (`s.w` is nil before `start`: a panic) and a context with no
+  incoming metadata; `R` is what `start` publishes (2d's choice, as 3c's `ckptGate`), and only
+  `Run` (called by `start`) needs `□ R`.
 * `revGetter rg` (persistent): `rg.Rev()` returns (any `int64`), at any time, also after the store
   is closed (3e's obligation: `req/go_etcd_io_etcd_server_v3_storage_mvcc.md`, "from 2e").
-* `isCompactor cp` (persistent): `cp` is a `Compactor` (`*Periodic` or `*Revision`) over a
-  `compactable` and a `revGetter`: `Run`, `Pause`, `Resume`, `Stop` may be called any number of
-  times, from any goroutine (each takes the compactor's mutex or cancels its context; `Run` forks
-  the loop, which exits once the context is cancelled).
-* `isPeriodic p`, `isRevision r` (persistent): the concrete ones (`isCompactor` of their interface
-  values: `isCompactor_periodic`, `isCompactor_revision`).
+* `isCompactor cp R` (persistent): `cp` is a `Compactor` (`*Periodic` or `*Revision`) over a
+  `compactable` gated by `R` and a `revGetter`: `Run` (with `□ R`), `Pause`, `Resume`, `Stop` may be
+  called any number of times, from any goroutine (each takes the compactor's mutex or cancels its
+  context; `Run` forks the loop, which exits once the context is cancelled).
+* `isPeriodic p R`, `isRevision r R` (persistent): the concrete ones (`isCompactor` of their
+  interface values: `isCompactor_periodic`, `isCompactor_revision`).
 
 ## Laws
 
@@ -86,41 +92,47 @@ section res
 variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
-/-- **`c.Compact(ctx, r)` may be called** (persistent). -/
-opaque compactable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c : GoInterface) : IProp GF := iprop(True)
+/-- **`c.Compact(ctx, r)` may be called once `R` holds** (persistent). -/
+opaque compactable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c : GoInterface) (R : IProp GF) : IProp GF := iprop(True)
 
 /-- **`rg.Rev()` may be called** (persistent). -/
 opaque revGetter [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (rg : GoInterface) : IProp GF := iprop(True)
 
-/-- **`cp` is a compactor** (persistent). -/
-opaque isCompactor [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (cp : GoInterface) : IProp GF := iprop(True)
+/-- **`cp` is a compactor whose `Compactable` is gated by `R`** (persistent). -/
+opaque isCompactor [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (cp : GoInterface) (R : IProp GF) : IProp GF := iprop(True)
 
 /-- **Provisional (the `clockwork` boundary):** `clk` is a `clockwork.Clock` whose `Now`, `After`
 may be called from any goroutine (`NewRealClock()`'s: the real clock). Persistent. -/
 opaque clockOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (clk : GoInterface) : IProp GF := iprop(True)
 
 /-- `p` is a `*Periodic` compactor (persistent). -/
-opaque isPeriodic [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) : IProp GF := iprop(True)
+opaque isPeriodic [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (R : IProp GF) : IProp GF := iprop(True)
 
 /-- `r` is a `*Revision` compactor (persistent). -/
-opaque isRevision [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : Loc) : IProp GF := iprop(True)
+opaque isRevision [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : Loc) (R : IProp GF) : IProp GF := iprop(True)
 
-def compactable_persistent.spec : Prop := ∀ c, Persistent (compactable (GF := GF) c)
+def compactable_persistent.spec : Prop := ∀ c R, Persistent (compactable (GF := GF) c R)
 def revGetter_persistent.spec : Prop := ∀ rg, Persistent (revGetter (GF := GF) rg)
-def isCompactor_persistent.spec : Prop := ∀ cp, Persistent (isCompactor (GF := GF) cp)
-def isPeriodic_persistent.spec : Prop := ∀ p, Persistent (isPeriodic (GF := GF) p)
-def isRevision_persistent.spec : Prop := ∀ r, Persistent (isRevision (GF := GF) r)
+def isCompactor_persistent.spec : Prop := ∀ cp R, Persistent (isCompactor (GF := GF) cp R)
+def isPeriodic_persistent.spec : Prop := ∀ p R, Persistent (isPeriodic (GF := GF) p R)
+def isRevision_persistent.spec : Prop := ∀ r R, Persistent (isRevision (GF := GF) r R)
 
-/-- **Introduction of `compactable`** (round 1, completeness F7): `Compact` at the interface's
-dynamic type is safe for any context, with a fresh compaction request (what the loop builds), on a
-goroutine holding a thread token. The server proves it from 2c's `EtcdServer.Compact.spec` and
-`envUpd`; a test's fake from its method's WP. -/
-def compactable_intro.spec : Prop := ∀ i : GoInterfaceOk,
-  (□ ∀ (ctx : GoInterface) (r : Loc) (rev : Int) (phys : Bool),
-      Context.ctxOk ctx ∗ EtcdWire.compactReqOwn r (DFrac.own 1) rev phys ∗ threadTok -∗
+/-- **Introduction of `compactable`** (round 1, completeness F7; verify-round, A7 completeness
+F2): once `R` holds, `Compact` at the interface's dynamic type is safe for a child of
+`context.Background()` (the compactor's context), with a fresh compaction request (what the loop
+builds: `&CompactionRequest{Revision: rev}`, not physical, `periodic.go:142`, `revision.go:92`; second
+pass, server-core's request 2: so the server's `Compact` needs no `srvGate` share), on a goroutine
+holding a thread token. The server proves it from 2c's `EtcdServer.Compact.spec`
+(its `isServer` and gate share from `R`, the context's `ctxNoIncoming` and `reqPrin … none none` from
+2c's `ctxNoIncoming_background`/`_child`) and `envUpd`; a test's fake from its method's WP
+(`R := True`). -/
+def compactable_intro.spec : Prop := ∀ (i : GoInterfaceOk) (R : IProp GF),
+  (□ (R -∗ ∀ (ctx : GoInterface) (r : Loc) (rev : Int),
+      Context.ctxOk ctx ∗ Context.ctxChild (GoInterface.ok context.backgroundCtxVal) ctx ∗
+        EtcdWire.compactReqOwn r (DFrac.own 1) rev false ∗ threadTok -∗
       WP (App (App (Val #(methods i.ty go!"Compact" i.v)) (Val #ctx)) (Val #r))
-        {{ fun _ => iprop(threadTok) }}) ⊢
-  compactable (GF := GF) (interface.ok i)
+        {{ fun _ => iprop(threadTok) }})) ⊢
+  compactable (GF := GF) (interface.ok i) R
 
 /-- **Introduction of `revGetter`**: `Rev` safe at any time on a goroutine holding a thread token,
 given back (3e's store, also after `Close`: its `KV.Rev.contract` at `revRd γ true`, the persistent
@@ -133,20 +145,20 @@ def revGetter_intro.spec : Prop := ∀ i : GoInterfaceOk,
 /-- **Elimination of `isCompactor`** (round 1, provability F7: the calls through the `Compactor`
 interface, `start`'s `Run`, the ready handler's `Pause`/`Resume`, `Cleanup`'s `Stop`): each method
 safe at any time (`Run` with the caller's thread token, which the loop keeps). -/
-def isCompactor_methods.spec : Prop := ∀ i : GoInterfaceOk,
-  isCompactor (GF := GF) (interface.ok i) ⊢
-    □ ((threadTok -∗ WP (App (Val #(methods i.ty go!"Run" i.v)) (Val #())) {{ fun _ => iprop(True) }}) ∗
+def isCompactor_methods.spec : Prop := ∀ (i : GoInterfaceOk) (R : IProp GF),
+  isCompactor (GF := GF) (interface.ok i) R ⊢
+    □ ((threadTok -∗ □ R -∗ WP (App (Val #(methods i.ty go!"Run" i.v)) (Val #())) {{ fun _ => iprop(True) }}) ∗
        WP (App (Val #(methods i.ty go!"Stop" i.v)) (Val #())) {{ fun _ => iprop(True) }} ∗
        WP (App (Val #(methods i.ty go!"Pause" i.v)) (Val #())) {{ fun _ => iprop(True) }} ∗
        WP (App (Val #(methods i.ty go!"Resume" i.v)) (Val #())) {{ fun _ => iprop(True) }})
 
-def isCompactor_periodic.spec : Prop := ∀ p, isPeriodic (GF := GF) p ⊢
+def isCompactor_periodic.spec : Prop := ∀ p R, isPeriodic (GF := GF) p R ⊢
   isCompactor (interface.mkOk
-    (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic.ty) #p)
+    (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic.ty) #p) R
 
-def isCompactor_revision.spec : Prop := ∀ r, isRevision (GF := GF) r ⊢
+def isCompactor_revision.spec : Prop := ∀ r R, isRevision (GF := GF) r R ⊢
   isCompactor (interface.mkOk
-    (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision.ty) #r)
+    (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision.ty) #r) R
 
 end res
 

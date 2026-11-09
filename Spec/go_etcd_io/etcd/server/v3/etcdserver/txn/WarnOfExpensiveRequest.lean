@@ -10,7 +10,8 @@ of the entry's request, the apply's response or `nil`). Snippet: none (a log lin
 (`lg.Warn`, the stringer's `String()`).
 
 **Changes.** The old spec's premise (a fresh `InternalRaftStringer` of a non-nil request) as
-`stringerOk` (3h), and the response sized (`msgOpt`, given back).
+3h's `EtcdServerPb.stringerAt` (given back; second pass: was the provisional persistent
+`stringerOk`), and the response sized (`msgOpt`, given back).
 **Margin.** None.
 -/
 module
@@ -40,9 +41,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 def WarnOfExpensiveRequest.spec : Prop :=
   ∀ (lg : Loc) (d : time.Duration) (now : time.Time) (req msg : GoInterface)
     (o : Option (DFrac × Proto.Content)) (err : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ Zap.isLogger lg ∗ stringerOk req ∗ msgOpt msg o }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ Zap.isLogger lg ∗ EtcdServerPb.stringerAt req ∗ msgOpt msg o }}
     (App (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.WarnOfExpensiveRequest)) (Val #lg)) (Val #d)) (Val #now)) (Val #req)) (Val #msg)) (Val #err))
-  {{ RET #(); msgOpt msg o }}
+  {{ RET #(); EtcdServerPb.stringerAt req ∗ msgOpt msg o }}
 
 end spec
 end Txn

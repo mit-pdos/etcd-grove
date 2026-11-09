@@ -36,7 +36,9 @@ is **attached** (`logFresh_attach`), and the client writes only through the log'
   `ls.stored`;
 - `logStor_compact`: up to a floor (`logFloor l i t`: an index raft published as applied,
   `raftLog_publish`, or the stored snapshot's) and the stored snapshot (`logSnapLb l j`);
-- `logStor_createSnapshot`: at a floor, of a valid snapshot (the client's `V s`) of its term;
+- `logStor_createSnapshot`: at a stored committed index (`logStored l i t`: given by the append for
+  the batch's committed entries, by `raftLog_storedStable` for the stable ones, by any floor), of a
+  valid snapshot (the client's `V s`) of its term;
 - `logStor_read`: a read (the compaction point is a floor, the stored snapshot valid);
 - `logStor_setHardState`: any hard state (the log does not read it).
 `logStorage l S V N` (persistent) names the attached storage: its contents predicate `S` (R1's
@@ -88,7 +90,8 @@ code. `maybeAdvance` takes the voters' configuration through R4's quorum (`joint
   variable holding the batch handed out (its other half in the invariant, its existence recorded
   by `ls.handing`).
 - `unstable u us`: the struct's fields, `entriesRO` of its entries with their slice capacity, the
-  pending snapshot read-only (`snapshotPts □`: a clone nothing writes).
+  pending snapshot read-only (`snapshotPts □`: a clone nothing writes), and `loggerOk` of its
+  `logger` field (persistent: `stableTo` and `truncateAndAppend` log; verify-round A5 S1).
 - `readOnly ro rs`: the struct, `ownMap` of `acks`, the `unconfirmedReads` slice with each request
   `↦□` (a request is never written after `addRequest`; `maybeAdvance` hands the confirmed prefix
   out read-only, as the old spec did).
@@ -235,7 +238,10 @@ applying budget (`applyingEntsSize`, `maxApplyingEntsSize`, `applyingEntsPaused`
 fields (the module header): the base, raft's knowledge of the stored entries, whether the pending
 snapshot is stored, whether a batch is handed out, and the **frozen terms** (`frozen j = some t`:
 the storage holds a committed entry of term `t` at `j`, unless compacted or replaced by a later
-snapshot; what `raftLog_publish` publishes from when the log moved since the write). -/
+snapshot; what `raftLog_publish` publishes from when the log moved since the write), and the
+**published floor** (`floor`: the highest index `raftLog_publish` published, at most `applying`;
+above `applied` only while `Advance` steps its acknowledgements: verify-round A4 P3, R2's
+`coreIdle`). -/
 structure LogState where
   us : UnstableState
   committed : Nat
@@ -250,6 +256,7 @@ structure LogState where
   snapStored : Bool
   handing : Bool
   frozen : Nat → Option w64
+  floor : Nat
 
 namespace LogState
 
@@ -273,8 +280,9 @@ def firstIdx (ls : LogState) : Nat :=
   | some i => i
   | none => ls.base + 1
 
-/-- **The index the storage may have been compacted to**: the applied index, or the base. -/
-def compactFloor (ls : LogState) : Nat := max ls.base ls.applied
+/-- **The index the storage may have been compacted to**: the applied index, the published floor
+(above the applied index while `Advance` steps the apply acknowledgement), or the base. -/
+def compactFloor (ls : LogState) : Nat := max ls.base (max ls.applied ls.floor)
 
 /-- **The log's entries** from index `base + 1`: the stable ones (the storage's, as `stored` knows
 them) then the unstable ones. -/
@@ -303,7 +311,8 @@ def maxAppliable (ls : LogState) (allowUnstable : Bool) : Nat :=
 /-- `newLogWithSize` over a storage at `σ`. -/
 def init (σ : StorState) (maxSize : w64) : LogState :=
   ⟨⟨none, [], σ.last + 1, false, σ.last + 1⟩, σ.off, σ.off, σ.off, W64 0, maxSize, false,
-    σ.off, σ.offTerm, σ.ents, false, false, fun j => if j = σ.off then some σ.offTerm else none⟩
+    σ.off, σ.offTerm, σ.ents, false, false, (fun j => if j = σ.off then some σ.offTerm else none),
+    σ.off⟩
 
 /-- `append(es)` (`truncateAndAppend`), `es` at `k, k+1, ...`. -/
 def truncateAppend (ls : LogState) (k : Nat) (es : List LogEntry) : LogState :=
@@ -405,6 +414,7 @@ def Wf (ls : LogState) : Prop :=
   (∀ s, ls.us.snap = some s → uint.nat s.index = ls.base ∧ s.term = ls.baseTerm) ∧
   (ls.snapStored = true → ls.us.snap.isSome) ∧
   ls.applied ≤ ls.applying ∧ ls.applying ≤ ls.committed ∧ ls.base ≤ ls.committed ∧
+  ls.floor ≤ ls.applying ∧
   ls.committed ≤ ls.end ∧ ls.base + ls.stored.length < 2 ^ 64 ∧
   (ls.us.ents = [] → ls.us.snap = none → ls.base + ls.stored.length = ls.stable) ∧
   (ls.applyingPaused = false → uint.nat ls.applyingSize < uint.nat ls.maxApplyingSize) ∧
@@ -502,6 +512,12 @@ opaque logFloor [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctor
 /-- **The storage holds a snapshot at `j` or later.** Persistent. -/
 opaque logSnapLb [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (l : Loc) (j : Nat) : IProp GF := iprop(True)
 
+/-- **The storage holds a committed entry of term `t` at `i`**, fixed (a later write rewrites a
+committed index only with the same entry; a compaction or a later snapshot may cover it): what
+storing a snapshot at `i` needs (`logStor_createSnapshot`), without permitting a compaction through
+`i`. (Verify-round, A4 completeness F1.) Persistent. -/
+opaque logStored [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (l : Loc) (i : Nat) (t : w64) : IProp GF := iprop(True)
+
 /-- **An index below `j` was found compacted**: the snapshot the log would send
 (`raftLog.snapshot()`) is at `j` or later. Persistent. -/
 opaque logCompactedLb [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (l : Loc) (j : Nat) : IProp GF := iprop(True)
@@ -535,6 +551,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 def logPersistent.spec : Prop :=
   (∀ l S V N, Persistent (logStorage (GF := GF) l S V N)) ∧
   (∀ l i t, Persistent (logFloor (GF := GF) l i t)) ∧
+  (∀ l i t, Persistent (logStored (GF := GF) l i t)) ∧
   (∀ l j, Persistent (logSnapLb (GF := GF) l j)) ∧
   (∀ l j, Persistent (logCompactedLb (GF := GF) l j))
 
@@ -590,13 +607,27 @@ def logFresh_attach.spec : Prop :=
 def raftLog_absorb.spec : Prop :=
   ∀ l ls h, raftLog (GF := GF) l ls ∗ logPending l h false false ⊢ |==> raftLog l (ls.absorb h)
 
-/-- **Publish an applied index** whose stored term is known: frozen (written and committed, or
-stored and committed when a snapshot was restored), or in the stable part with nothing pending
-unstored. -/
+/-- **Publish an index being applied** whose stored term is known: frozen (written and committed,
+or stored and committed when a snapshot was restored), or in the stable part with nothing pending
+unstored. (Verify-round, A4 P3: at `i ≤ applying` with the written batch absorbed, so that R2's
+`rawNodeAt_advance` publishes the delivered log at `Advance`'s rendezvous, before the apply
+acknowledgement moves `applied`: `node.Advance` returns then. The floor is recorded, `floor`: reads
+until `applied` catches up may answer `ErrCompacted` up to it, `compactFloor`.) -/
 def raftLog_publish.spec : Prop :=
   ∀ l ls (i : Nat) (t : w64),
-    i ≤ ls.applied → ls.freezeStable i = some t →
-    raftLog (GF := GF) l ls ⊢ |==> raftLog l ls ∗ logFloor l i t
+    i ≤ ls.applying → ls.handing = false → ls.freezeStable i = some t →
+    raftLog (GF := GF) l ls ⊢ |==> raftLog l { ls with floor := max ls.floor i } ∗ logFloor l i t
+
+/-- **The stable committed entries are stored**: each index whose term `freezeStable` knows is held
+by the storage at that term (R1's `storedLb` for the entries a `Ready` delivers that an earlier batch
+wrote; R2 takes it at the hand-out). -/
+def raftLog_storedStable.spec : Prop :=
+  ∀ l ls, raftLog (GF := GF) l ls ⊢ |==> raftLog l ls ∗
+    □ ∀ (j : Nat) (t : w64), ⌜ls.freezeStable j = some t⌝ -∗ logStored l j t
+
+/-- A floor is stored. -/
+def logFloor_stored.spec : Prop :=
+  ∀ l (i : Nat) (t : w64), logFloor (GF := GF) l i t ⊢ logStored l i t
 
 /-- **Floors agree** on the term (every floor is a committed entry's, or the compaction point's,
 which the storage keeps). -/
@@ -613,13 +644,16 @@ def logStor_install.spec : Prop :=
         <{ S (σ.applySnapshot s), COMM logPending l h false e ∗ logSnapLb l (uint.nat s.index) ∗
              logFloor l (uint.nat s.index) s.term }>
 
-/-- **Append the batch's entries** (after its snapshot): no gap. -/
+/-- **Append the batch's entries** (after its snapshot): no gap. The batch's entries committed at
+the hand-out are then stored (verify-round, A4 completeness F1). -/
 def logStor_append.spec : Prop :=
   ∀ l S V N h (e : Bool) (Eo : CoPset), ↑N ⊆ Eo →
     logStorage (GF := GF) l S V N ∗ logPending l h false e ⊢
       AU <{ ∃∃ σ, S σ ∗ ⌜(σ.append h.start h.ents).isSome ∧ h.start + h.ents.length < 2 ^ 64⌝ }>
           @ Eo, ∅
-        <{ S ((σ.append h.start h.ents).getD σ), COMM logPending l h false false }>
+        <{ S ((σ.append h.start h.ents).getD σ), COMM logPending l h false false ∗
+             □ ∀ (j : Nat) (en : LogEntry), ⌜h.start ≤ j ∧ j ≤ h.upto ∧ h.ents[j - h.start]? = some en⌝ -∗
+               logStored l j en.term }>
 
 /-- A batch with no entries needs no append. -/
 def logPending_noEnts.spec : Prop :=
@@ -633,10 +667,11 @@ def logStor_compact.spec : Prop :=
       AU <{ ∃∃ σ, S σ ∗ ⌜i ≤ σ.last ∧ i ≤ uint.nat σ.snap.index⌝ }> @ Eo, ∅
         <{ S (σ.compact i), COMM True }>
 
-/-- **Store a valid snapshot** at a published applied index, of its term. -/
+/-- **Store a valid snapshot** at a stored committed index, of its term. (Verify-round, A4
+completeness F1: was at a published floor, `logFloor`, which `logFloor_stored` still gives.) -/
 def logStor_createSnapshot.spec : Prop :=
   ∀ l S V N (s : Snapshot) (t : w64) (Eo : CoPset), ↑N ⊆ Eo → s.term = t →
-    logStorage (GF := GF) l S V N ∗ logFloor l (uint.nat s.index) t ∗ V s ⊢
+    logStorage (GF := GF) l S V N ∗ logStored l (uint.nat s.index) t ∗ V s ⊢
       AU <{ ∃∃ σ, S σ ∗ ⌜uint.nat s.index ≤ σ.last ∧ σ.off ≤ uint.nat σ.snap.index ∧
               (σ.off ≤ uint.nat s.index → σ.termAt (uint.nat s.index) = some t)⌝ }> @ Eo, ∅
         <{ S (σ.createSnapshot (uint.nat s.index) (some s.conf) s.data),

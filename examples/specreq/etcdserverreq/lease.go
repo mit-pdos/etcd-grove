@@ -2,6 +2,7 @@ package etcdserverreq
 
 import (
 	"context"
+	"errors"
 
 	pb "go.etcd.io/etcd/api/v3/etcdserverpb"
 	"go.etcd.io/etcd/server/v3/etcdserver"
@@ -27,11 +28,13 @@ func ReqGrantThenRevoke(ctx context.Context, s *etcdserver.EtcdServer, ttl int64
 
 // REQ etcdserverreq/expiry-revoke: the lessor's revocation of an expired lease, with the root
 // context, never panics (it ignores the reply).
-// Users: server.go:882 (revokeExpiredLeases, one goroutine per lease).
-// Assumes: the update is built from envUpd (EnvStep.leaseExpire; the identity aborted).
-// Specs: EtcdServer.LeaseRevoke.spec; reqPrin_noIncoming of ctx (s.ctx: ctxNoIncoming), and 3d's
-// WithRoot spec: reqPrin rctx (some root) none with auth enabled at the call, the context unchanged
-// otherwise.
+// Users: server.go:882 (revokeExpiredLeases, one goroutine per lease, attached: it runs through
+// HardStop until run's s.wg.Wait(), so it holds no srvGate share).
+// Assumes: the update is built from envUpd (EnvStep.leaseExpire; the identity aborted); ctx has no
+// incoming metadata or peer (s.ctx: ctxNoIncoming); the caller holds a thread token (GoAttach's).
+// Specs: EtcdServer.AuthStore.spec, 3d's WithRoot spec, EtcdServer.LeaseRevoke.spec (no gate:
+// verify round); laws: reqPrin_noIncoming (the context unchanged), reqPrin_root (the root token),
+// and reqCtxOk of rctx (3d's WithRoot post giving rctx as a value-child of ctx: requested).
 func ReqExpiryRevoke(ctx context.Context, s *etcdserver.EtcdServer, id int64) {
 	rctx := s.AuthStore().WithRoot(ctx)
 	_, _ = s.LeaseRevoke(rctx, &pb.LeaseRevokeRequest{ID: id})
@@ -47,6 +50,44 @@ func ReqKeepAlive(ctx context.Context, s *etcdserver.EtcdServer, id int64) int64
 		return -1
 	}
 	return ttl
+}
+
+// REQ etcdserverreq/keepalive-follower: on a follower, a keep-alive is forwarded to the leader
+// (leasehttp.RenewHTTP to its peer URLs); a not-found answer comes back as lease's
+// ErrLeaseNotFound (definite: the client stops), any other forwarding error is retried until the
+// request timeout (ErrTimeout, ErrCanceled: indefinite).
+// Users: api/v3rpc/lease.go:136 on a member that is not the leader (every follower serving a
+// keep-alive stream).
+// Assumes: s is started and not the leader; the caller holds a gate share and a thread token.
+// Specs: EtcdServer.LeaseRenew.spec (its forwarding path: waitLeader.spec, 3c's RenewHTTP post);
+// laws: leaseErr_srv (ErrLeaseNotFound is the server sentinel of leaseNotFound), srvErr_leaf.
+func ReqKeepAliveFollower(ctx context.Context, s *etcdserver.EtcdServer, id int64) (int64, bool) {
+	ttl, err := s.LeaseRenew(ctx, lease.LeaseID(id))
+	if errors.Is(err, lease.ErrLeaseNotFound) {
+		return 0, false // definite: the lease is gone
+	}
+	if err != nil {
+		return -1, true // indefinite: the client retries
+	}
+	return ttl, true
+}
+
+// REQ etcdserverreq/lease-reply-header: a lease method's success reply carries a header (the gRPC
+// handler fills it: hdr.fill panics on a nil one).
+// Users: api/v3rpc/lease.go:45,54,63,79 (hdr.fill(resp.Header) after LeaseGrant, LeaseRevoke,
+// LeaseTimeToLive, LeaseLeases).
+// Specs: EtcdServer.LeaseGrant.spec, EtcdServer.LeaseLeases.spec (srvHdrReply); law:
+// replyHdrOwn_header (verify round, A6-provability F1).
+func ReqLeaseReplyHeader(ctx context.Context, s *etcdserver.EtcdServer, ttl int64) uint64 {
+	g, err := s.LeaseGrant(ctx, &pb.LeaseGrantRequest{TTL: ttl})
+	if err != nil {
+		return 0
+	}
+	ls, err := s.LeaseLeases(ctx, &pb.LeaseLeasesRequest{})
+	if err != nil {
+		return g.Header.MemberId
+	}
+	return g.Header.MemberId + ls.Header.MemberId
 }
 
 // REQ etcdserverreq/time-to-live: a time-to-live answer names a lease that was granted, with the

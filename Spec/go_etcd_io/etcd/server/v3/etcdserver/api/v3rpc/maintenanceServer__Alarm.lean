@@ -7,6 +7,7 @@ registered by `v3rpc.Server`); `authMaintenanceServer`'s method (this batch), th
 Proof sketch: `ms.a.Alarm(ctx, ar)` (2c's `EtcdServer.Alarm.spec` over `alarmReqOwn`: `GET` is `.alarmList`, `DEACTIVATE` `.alarmDisarm`, the update passed on); errors through `togRPCError`; the header filled.
 
 Changes: new (the inner method; the old specs were of the wrapper's: `specs-ref/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/authMaintenanceServer__Alarm.lean`).
+verify-round (A6 F1): no change needed: the handler replaces a `nil` header with `&pb.ResponseHeader{}` before `hdr.fill` (`maintenance.go:263-265`); the reviewer's finding does not apply to `Alarm`.
 
 Round 1: the contract is the member's at `ep` (`etcdContract γ ep`; the lease requests' `leaseFact`); the first way fires no token or learner refusal (`firedAns`: 2c returns an apply-time `ErrUserEmpty`/`ErrAuthOldRevision`/`ErrInvalidAuthToken` unfired, its outcome 2, which this handler sends by the second way); errors reach `togRPCError` with 2c's `srvErrOk`; a read composes with 2c's `SrvCallTriple` (W0's `lo`, rounds 4-6; integration I3: the Api header's "Composition with 2c").
 

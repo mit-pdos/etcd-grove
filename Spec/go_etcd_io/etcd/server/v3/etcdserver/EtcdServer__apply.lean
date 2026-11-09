@@ -27,6 +27,8 @@ the general case (`applyV3`), not a restart window.
 
 **Margin**: `shouldStop` is `true` exactly when a conf change removed this member; the post does not
 say so (`applyEntries` only uses it to schedule the stop, which is safe either way).
+
+Changes: verify-round: takes and gives back the thread's `threadTok` (A7-provability F2: `s.Logger()`, `createMergedSnapshotMessage`, `newSnapshotReaderCloser` take one). `run`'s is the fresh token of `start`'s `go s.run()` (Perennial's `wp_fork_tok_body`); the apply jobs' is the scheduler worker's, lent to each job (`Schedule.funcOk`). The `srvMember` that `Logger` takes comes from `srvNode_member`.
 -/
 module
 
@@ -62,10 +64,10 @@ def EtcdServer.apply.spec : Prop :=
       srvNode s γ id ∗ srvStarted s γ id ∗ applyAt s γ ep p a c ai ∗ Raft.entriesRO es (a + 1) ents ∗
       Raft.committedLb γ.raft l ∗
       advancedAt (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"r" s) rac k ∗
-      ⌜ents ≠ [] ∧ (l.drop a).take ents.length = ents ∧ a + ents.length ≤ k⌝ }}
+      ⌜ents ≠ [] ∧ (l.drop a).take ents.length = ents ∧ a + ents.length ≤ k⌝ ∗ threadTok }}
     (App (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!!
       go!"apply")) (Val #es)) (Val #ep)) (Val #rac))
-  {{ (t i : w64) (stop : Bool), RET (PairV (PairV #t #i) #stop);
+  {{ (t i : w64) (stop : Bool), RET (PairV (PairV #t #i) #stop); threadTok ∗
       ∃ c' ai', applyAt s γ ep p (a + ents.length) c' ai' ∗
       ⌜uint.nat i = a + ents.length ∧ (ents.getLast?).map (·.term) = some t⌝ }}
 

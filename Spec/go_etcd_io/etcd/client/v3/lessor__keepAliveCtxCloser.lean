@@ -12,6 +12,11 @@ every closer removes the channel from the entry under `l.mu`) and removes it; dr
 Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/lessor__keepAliveCtxCloser.lean`: restated
 over `lessorHandle`.
 
+verify-round: the comparison `c.Value(keepAliveCtxKey{}) == ctx.Value(keepAliveCtxKey{})` by
+`Context.Value.spec` on both contexts, each a `WithValue` context of `KeepAlive` recorded by
+`ctxValueIs` at that key (its value `&ctx`, a pointer: comparable, so the `==` cannot panic; the
+same pointer exactly when it is this call's context): A1-completeness F5, the callee spec was missing.
+
 Margin: none.
 -/
 module

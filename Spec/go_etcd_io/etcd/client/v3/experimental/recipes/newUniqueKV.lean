@@ -13,6 +13,8 @@ error is returned (`errors.Is(err, ErrKeyExists)` is false: `errorsIs_recipeErr`
 **Changes**: old spec over the recipes' client invariant; now the caller's update, the key's shape
 stated (`uniqueKeyIn`).
 
+Changes: verify-round: `ErrKeyExists` is the value its variable holds (`putNewRetAt`), not a Lean constant (A3 F4).
+
 **Margin**: the key's suffix is a decimal time, not tied to a clock (the model has none).
 -/
 module
@@ -51,7 +53,7 @@ def newUniqueKV.spec : Prop :=
       (Val #pre)) (Val #val))
 
   {{ (rk : Loc) (err : GoInterface), RET (PairV #rk #err);
-      (∃ (σ σ' : State) (k : GoString) (res : Resp) (rev : w64), Q σ σ' k res ∗ ⌜putNewRet res rev err⌝ ∗
+      (∃ (σ σ' : State) (k : GoString) (res : Resp) (rev : w64), Q σ σ' k res ∗ putNewRetAt res rev err ∗
         ((⌜err = GoInterface.nil⌝ ∗ rkOwn rk γ who { live := true, key := k, rev := rev, val := val }) ∨
          ⌜err ≠ GoInterface.nil ∧ rk = null⌝)) ∨
       (⌜rk = null⌝ ∗ indefCall err) }}

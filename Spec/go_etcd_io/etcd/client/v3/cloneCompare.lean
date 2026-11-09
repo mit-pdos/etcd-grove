@@ -7,6 +7,12 @@ Proof sketch: `proto.Clone` (protobuf's boundary, 2a: a deep copy, owned) and th
 
 Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/cloneCompare.lean`: restated over this branch's vocabulary (the `OpM` model, `opAt`, `optsAt`); otherwise unchanged.
 
+verify-round: the fresh `*pb.Compare` (its `protoRest` from `protoRest_zero` at `own 1`) is made read-only for `cmpAt` by `protoRest_persist` (A1-provability F6: the sketch had no law for it).
+
+second pass: `proto.Clone` (3h's `Proto.Clone.spec`) gives the copy the original's wire view
+(`Proto.norm c`), whose model is the same comparison under `endsOk` (3h's `holds_norm`): every
+`cmpAt` comparison has a `nil` or non-empty end (`Cmp.WithRange` takes `e ≠ []`).
+
 Margin: none.
 -/
 module

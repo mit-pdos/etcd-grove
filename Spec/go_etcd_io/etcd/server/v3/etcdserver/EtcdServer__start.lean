@@ -15,6 +15,8 @@ stop escrow deposits `memberDisk` in `s.done`'s closing, which `srvRunning` read
 **Changes**: from `specs-ref`'s `EtcdServer__start.lean`: over `srvBuilt`.
 
 **Margin.** As `Start`.
+
+Changes: verify-round (server-boot's request): the compactor's `Run` takes `□ R` with `R := srvStarted s γ id` (`compactable c R`: A7-completeness F2).
 -/
 module
 

@@ -5,6 +5,8 @@
 **Proof sketch.** starts the compaction loop on a goroutine (it calls `Rev` and `Compact` until stopped): under the compactor's mutex or its context; the loop's calls through
 `revGetter` and `compactable` (the handle's). **Changes**: from `specs-ref`'s `Revision__Run.lean`:
 no run token (any number of calls is safe). **Margin.** None.
+Changes: verify-round (A7 completeness F2): the compactor's handles carry the gate `R` of its `Compactable`
+(`compactable c R`: `Compact` is safe once `□ R`, the server's start); `Run` takes `□ R`.
 -/
 module
 
@@ -30,8 +32,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Ass
 
 /-- **`Run`**: starts the compaction loop on a goroutine. -/
 def Revision.Run.spec : Prop :=
-  ∀ (p : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor ∗ isRevision p ∗ threadTok }}
+  ∀ (R : IProp GF) (p : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor ∗ isRevision p R ∗ threadTok ∗ □ R }}
     (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision.ty @!! go!"Run")) (Val #()))
   {{ RET #(); True }}
 

@@ -7,6 +7,7 @@ registered by `v3rpc.Server`); 1c's `RemoteCallTriple` for the auth RPCs (`examp
 Proof sketch: `as.authenticator.UserGet(ctx, r)` (2c's `EtcdServer.UserGet.spec`, the update passed on); errors through `togRPCError`.
 
 Changes: from `specs-ref/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/AuthServer__UserGet.lean`: over the contract (was the auth plan's `authServerIs` with per-method answers).
+verify-round (server-core's request): the auth store through 2c's `EtcdServer.AuthStore.spec` where the handler reads it.
 
 Round 1: the contract is the member's at `ep` (`etcdContract γ ep`; the lease requests' `leaseFact`); the first way fires no token or learner refusal (`firedAns`: 2c returns an apply-time `ErrUserEmpty`/`ErrAuthOldRevision`/`ErrInvalidAuthToken` unfired, its outcome 2, which this handler sends by the second way); errors reach `togRPCError` with 2c's `srvErrOk`; a read composes with 2c's `SrvCallTriple` (W0's `lo`, rounds 4-6; integration I3: the Api header's "Composition with 2c").
 

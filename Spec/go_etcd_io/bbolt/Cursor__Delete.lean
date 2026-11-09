@@ -11,6 +11,9 @@ all of the transaction). The cursor stays at the old view: `Next`/`Prev` need a 
 
 **Changes.** New. The cursor must be at an entry (`c.node()` asserts a non-empty stack; a cursor past
 the end deletes nothing, left out).
+**Proof sketch, the success arm in the internal vocabulary** (verify-round, A11 F9).
+`Cursor.node` at `boltCur … (some i)` gives `keyLeaf C' p kb n` for the entry's key (`curKey`),
+`node.del`, `physRep_del` (a value: `vo ≠ none`), `wtxCore_view`.
 -/
 module
 

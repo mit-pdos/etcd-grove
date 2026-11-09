@@ -5,7 +5,8 @@ What 2d's `beSnap bs γ k` and `dbReader rc γ k` (and 2e's `beHolds γ img ci`)
 image `I` is the state machine at the state `σ`, its consistent index `ci`** (`smImage I σ ci`), each
 owner's part of the image decoding to `σ`'s part. A pure relation (no resource): the server's
 invariant attaches it to the images it commits (`beCommitted`, through its commit step `commitOk`),
-and the snapshot path reads it back (`Backend.beSnap γ s I bs` of a committed `I`).
+and the snapshot path reads it back (`Backend.beSnapN γ s I n` of a committed `I`, no older than the caller's history prefix:
+`backend.Snapshot.spec`'s `beHistLb`).
 
 * mvcc's part (the `key` bucket, `meta`'s compaction keys): an image of `σ.kv`
   (`Mvcc.mvccImage (keyDataOf I) σ.kv u`, its compaction possibly unfinished: `u`);
@@ -19,8 +20,8 @@ and the snapshot path reads it back (`Backend.beSnap γ s I bs` of a committed `
   schema's version. Opaque until their owners state those relations (recorded in
   `notes/specs-only/integration-Y.md`).
 
-For 2d (X): `beSnap bs γ k := ∃ γb s I bs' σ, ⌜bs = GoInterface.ok (snapshot s)⌝ ∗ Backend.beSnap γb s I
-bs' ∗ histAt γ k σ ∗ ⌜smImage I σ k⌝`; `dbReader rc γ k := ∃ I σ, Snap.dbReader rc I ∗ histAt γ k σ ∗
+For 2d (X): `beSnap bs γ k := ∃ γb s I n σ, ⌜bs = GoInterface.ok (snapshot s)⌝ ∗ Backend.beSnapN γb s I
+n ∗ histAt γ k σ ∗ ⌜smImage I σ k⌝`; `dbReader rc γ k := ∃ I σ, Snap.dbReader rc I ∗ histAt γ k σ ∗
 ⌜smImage I σ k⌝` (2e's `Snap.BeImage` being `Backend.Image`).
 -/
 module

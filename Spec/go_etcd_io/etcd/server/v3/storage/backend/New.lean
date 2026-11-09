@@ -7,9 +7,10 @@ waiting): `bootstrapBackend` (`bootstrap.go:240`), `OpenSnapshotBackend` (2d's `
 `ReqHookWrites`), every snippet's setup (`openBackend`).
 
 **Proof sketch.** `newBackend`: the options (`boltOpenOptions`, the package's initialized global:
-`MAP_POPULATE`, 4c's `OptsM.ok` with `Mlock` off), the logger (`nil`: `zap.NewNop()`;
+`MAP_POPULATE`, `Durable.lean`'s assumed `boltOpenOptions_init`; 4c's `OptsM.ok` with `Mlock` off), the logger (`nil`: `zap.NewNop()`;
 `newBoltLoggerZap`, a pointer-typed logger: 4c's logger contract), bbolt's `Open` of `cfg.Path`
-(4c's `Open.spec` from `fileHolds` (the realization of `beFile p o`), `dbOpenOk` excluding its error,
+(4c's `Open.spec` from `fileHolds` (the realization of `beFile p (some I)`; for
+`beFile p none`, the names from 4c's `boltFresh_alloc`, state `BoltSt.fresh`), `dbOpenOk` excluding its error,
 which `lg.Panic`s: `isBolt`, `boltState (init D)` with `imgOf D = I`). The struct, `readTx` with an
 empty buffer, `newBatchTxBuffered` (its first `Commit`: `pending = 0`, no hook yet: begins bbolt's
 write transaction and the read transaction, `begin`), `b.hooks := cfg.Hooks`. The ghost state is

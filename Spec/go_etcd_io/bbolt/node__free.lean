@@ -8,7 +8,9 @@ side": a cached node with `pgid ≠ 0` holds a base-tree page not yet freed by t
 neither free nor pending, not allocated by `txid`), then `n.pgid = 0`, which keeps that invariant.
 
 **Changes (integration I7).** The post said the node cache unchanged, but the code sets the
-node's `pgid` to `0`: now the node is `{ N with pgid := 0 }`.
+node's `pgid` to `0`: now the node is `{ N with pgid := 0 }`. Verify-round (A11 F9): and the
+cache still represents every view it did (`repKept`: a cached node's data is its inodes, not its
+page; the freed page stays readable in the snapshot until the commit).
 -/
 module
 
@@ -37,7 +39,8 @@ def node.free.spec : Prop :=
   {{ wtxCore (GF := GF) tx γ C ∗ ⌜C.nodes n = some N⌝ }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"free")) (Val #()))
   {{ RET #(); ∃ C' : TxCore, wtxCore tx γ C' ∗
-      ⌜C'.nodes = fun x => if x = n then some { N with pgid := W64 0 } else C.nodes x⌝ }}
+      ⌜C'.nodes = (fun x => if x = n then some { N with pgid := W64 0 } else C.nodes x) ∧
+        repKept C C'⌝ }}
 
 end spec
 

@@ -15,7 +15,8 @@ import (
 // one revision at a time on a ConcurrentReadTx), storage/mvcc/kvstore.go:327-355 (restore: ReadTx
 // ranges of Key in chunks of restoreChunkKeys, after NewStore's ForceCommit).
 // Assumes: the caller owns the Key bucket (published, its buffer flag tracked), a and b are above
-// every key in it, a < b; a reader slot.
+// every key in it, a < b < end (verify-round A10-provability S3: with end <= b the unlimited range
+// has one entry); a reader slot.
 // Specs: UnsafeSeqPut.spec (Sess.fresh), Unlock.spec, backend.ConcurrentReadTx.spec (Key disjoint
 // from the hooks' cells), concurrentReadTx.UnsafeRange.spec (lingerSingle: a key of the view is
 // read exactly), backend.ForceCommit.spec (beReq: the step records the bucket clean,

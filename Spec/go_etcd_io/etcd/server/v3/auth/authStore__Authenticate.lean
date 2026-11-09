@@ -14,6 +14,10 @@ simple provider's token `p.idx`, fresh since no index above `n < idx` was assign
 signed token, `jwtTokOk`); a debug log (`redactToken`); the response. The password is not checked
 here (the proposer's `CheckPassword` did).
 
+**Verify round.** `authnCtx` is transparent (A9 3d F4: it was opaque with no introduction), over
+the cluster `γ` (the applier builds it with `context.WithValue` twice); the errors are the globals'
+values (`errIs`, the sentinel encoding).
+
 **Changes.** The old token binding (`S5`, per mode) restated over W0's `tokenUser`; the simple
 provider's right to issue as `tokFrom`.
 
@@ -51,13 +55,13 @@ def authStore.Authenticate.spec : Prop :=
   ∀ (st : Loc) (γ : Cluster) (γa : AuthNames) (i : Nat) (a : AuthState) (ctx : GoInterface)
     (name pw : GoString) (n idx : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authStoreAt st γ γa ∗ authCur γa i a ∗ threadTok ∗ tokFrom γa n ∗
-      authnCtx γa ctx name idx ∗ ⌜n < idx⌝ ∗ Context.ctxOk ctx }}
+      authnCtx γ ctx name idx ∗ ⌜n < idx⌝ ∗ Context.ctxOk ctx }}
     (App (App (App (Val (st @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty @!! go!"Authenticate")) (Val #ctx)) (Val #name)) (Val #pw))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); authCur γa i a ∗ threadTok ∗
       tokFrom γa idx ∗
-      (⌜resp = null ∧ err = errOf .authNotEnabled ∧ a.enabled = false⌝ ∨
-       ⌜resp = null ∧ err = errOf .authFailed ∧ a.enabled = true ∧
-          ∀ ur, a.users name = some ur → ur.password = none⌝ ∨
+      ((⌜resp = null ∧ a.enabled = false⌝ ∗ errIs .authNotEnabled err) ∨
+       (⌜resp = null ∧ a.enabled = true ∧
+          ∀ ur, a.users name = some ur → ur.password = none⌝ ∗ errIs .authFailed err) ∨
        ⌜resp = null ∧ err ≠ GoInterface.nil ∧ a.enabled = true ∧
           ∃ ur c, a.users name = some ur ∧ ur.password = some c⌝ ∨
        (⌜err = GoInterface.nil ∧ a.enabled = true ∧

@@ -22,6 +22,12 @@ a keep-alive tells nothing of the lease's liveness).
 contract) restated over W0's step and the three outcomes.
 
 **Margin.** The TTL is the leader's lessor's (any `int64`); the model has no time.
+
+Changes: verify-round (lease-auth's request): on the leader, `lessor.Renew` takes the caller's
+`threadTok` (given back); on the forwarding path, `leasehttp.RenewHTTP`'s post: `Lease.errIs
+ErrLeaseNotFound` for that error (returned: `leaseErr_srv` makes it the sentinel of
+`.leaseNotFound`), `errIsNot` for the others (their `errors.Is` is false: the loop goes on). Snippet
+`etcdserverreq/lease.go` `ReqKeepAliveFollower`. Errors by `srvErr` (the sentinel encoding).
 -/
 module
 
@@ -60,13 +66,13 @@ def EtcdServer.LeaseRenew.spec : Prop :=
       ((∃ σ σ' res, ⌜srvFiredAns res⌝ ∗ Q σ σ' res ∗
           match res with
           | .ok (.leaseKeepAlive _ t) => iprop(⌜err = GoInterface.nil ∧ ttl = W64 t⌝)
-          | .err e => iprop(⌜srvErrOf err e⌝ ∗ srvErrShape err)
+          | .err e => iprop(srvErr err e ∗ srvErrShape err)
           | _ => iprop(False)) ∨
-       (⌜srvUnfired err⌝ ∗ srvErrShape err ∗
+       (srvUnfired err ∗ srvErrShape err ∗
           AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
             <{ ∀∀ (σ' : State) (res : Resp), ⌜srvStep p tls (.leaseKeepAlive (sint.Z id)) σ σ' res lo⌝ ∗
                  etcdState γ σ', COMM Q σ σ' res }>) ∨
-       (⌜srvIndef err⌝ ∗ srvErrShape err)) }}
+       (srvIndef err ∗ srvErrShape err)) }}
 
 end spec
 end EtcdServer

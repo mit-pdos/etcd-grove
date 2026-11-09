@@ -12,6 +12,10 @@ apply thread's hook under `R`, as the KV writes'); its post `admStep`, the write
 `newHeader`.
 
 **Changes** from `specs-ref`'s `applierV3backend__RoleAdd.lean`: the old triple over the chain's `AEnv`, the mvcc log and the write tokens (`putPre`, `kvPostF`, `mPostW`, ...) restated over the model state (`stAt`, `layersStep`): any auth mode, leases, compaction
+verify-round (A9 F3, F6): the auth store's hook `Auth.authHook γa R Q` now has a source, `beAt`'s
+`optsOk`'s `hooksOk` (its `Auth.authBeHook` with `authSt`'s `Auth.authBeCur`, by 3d's `authHook_intro`;
+`Pre := R`; `hookOut`'s `Q`, or `R` with the unused hook, gives `R` back); the
+statement is unchanged.
 
 **Margin.** The header's other fields (cluster, member, term, leader) any.
 

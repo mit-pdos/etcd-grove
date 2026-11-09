@@ -135,11 +135,11 @@ func ReqTxnReadOnly(ctx context.Context, s *etcdserver.EtcdServer, k []byte) {
 	}
 }
 
-// REQ etcdserverreq/compactor-compact: the compactor's compaction (and a client's) at a revision
-// the cluster reached never panics and, on success, has a reply with a header.
-// Users: api/v3compactor/periodic.go:142, revision.go:92 (Compactable.Compact, errors logged),
-// api/v3rpc/key.go:144.
-// Assumes: rev ≥ 1 (the compactors never compact at 0, issues/etcd-restore-scheduled-compact-zero.md).
+// REQ etcdserverreq/compactor-compact: a client's compaction at a revision the cluster reached
+// never panics and, on success, has a reply with a header.
+// Users: api/v3rpc/key.go:144.
+// Assumes: rev ≥ 1 (the compactors never compact at 0, issues/etcd-restore-scheduled-compact-zero.md);
+// the caller holds a gate share when physical (the handler's).
 // Specs: EtcdServer.Compact.spec.
 func ReqCompactorCompact(ctx context.Context, s *etcdserver.EtcdServer, rev int64, physical bool) {
 	resp, err := s.Compact(ctx, &pb.CompactionRequest{Revision: rev, Physical: physical})
@@ -151,15 +151,30 @@ func ReqCompactorCompact(ctx context.Context, s *etcdserver.EtcdServer, rev int6
 	}
 }
 
+// REQ etcdserverreq/compactor-internal: the auto-compactor's compaction, from its own goroutine,
+// with the context it built (a child of Background), holding no gate share, keeps running through
+// the member's stop until Cleanup stops the compactor, and never panics.
+// Users: api/v3compactor/periodic.go:142, revision.go:92 (Compactable.Compact, errors logged).
+// Assumes: s was started (the compactor runs only from start: Compact before start panics on the
+// nil wait registry); rev ≥ 1; the caller holds a thread token.
+// Specs: EtcdServer.Compact.spec at phys = false (no srvGate: verify round, A7-completeness F1/F2);
+// laws: ctxNoIncoming_background, ctxNoIncoming_child, reqPrin_noIncoming, reqCtxOk of a child of
+// Background (4b's and otel's _background and _child laws).
+func ReqCompactorInternal(s *etcdserver.EtcdServer, rev int64) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	_, _ = s.Compact(ctx, &pb.CompactionRequest{Revision: rev})
+}
+
 // REQ etcdserverreq/refusal-not-applied: a request the server refuses (too many requests, too large,
 // an invalid token, a stale auth revision) did not take effect: the key is still absent.
 // Users: the client's retry interceptor (client/v3/retry_interceptor.go: it resends after
 // ErrAuthOldRevision and ErrInvalidAuthToken), api/v3rpc/key.go:95.
 // Assumes: k is owned and absent.
 // Specs: EtcdServer.Put.spec (outcome 1 with a refusal, or outcome 2: the update given back; every
-// error with srvErrShape), EtcdServer.Range.spec; laws: srvErrOf_val, srvErrOf_inj, srvErrVal_leaf
-// (errors.Is against a sentinel is equality: Perennial's errors.wp_Is_leaf), srvErrOf_notCtx, the
-// packages' initialization laws (the sentinels' globals hold srvErrVal e: req/).
+// error with srvErrShape), EtcdServer.Range.spec; laws: srvErr_inj, srvErr_leaf
+// (errors.Is against a sentinel is equality: Perennial's errors.wp_Is_leaf), srvErr_notCtx, the
+// packages' initialization laws (sentinelAt: each global holds the sentinel of its e; errors_init).
 func ReqRefusalNotApplied(ctx context.Context, s *etcdserver.EtcdServer, k, v []byte) {
 	_, err := s.Put(ctx, &pb.PutRequest{Key: k, Value: v})
 	if !errors.Is(err, srverrors.ErrTooManyRequests) && !errors.Is(err, srverrors.ErrRequestTooLarge) &&

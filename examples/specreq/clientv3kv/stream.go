@@ -16,8 +16,9 @@ import (
 // WithRev, WithLimit...), then `for r := range stream { if r.Err() != nil ...; r.Kvs ... }`) and
 // watcher (etcd3/watcher.go:391, the initial list).
 // Assumes: rev >= 0 (a negative revision is not pinned: nonissues/etcd-rangestream-negative-
-// revision-unpinned.md); to is neither empty nor "\x00" (a half-open range); the caller has a
-// thread token for the client's reading goroutine.
+// revision-unpinned.md); to is neither empty nor "\x00" (a half-open range; an empty one is out
+// of scope: nonissues/etcd-client-withrange-empty-end.md). No thread token: the client's reading
+// goroutine is forked without one.
 // Specs: Client.GetStream.spec (KV.GetStreamTriple), streamAt_recv, RangeStreamResponse.Err.spec;
 // the model's streamMatches (default ordering: the chunks are the range's answer).
 func ReqGetStream(ctx context.Context, cli *clientv3.Client, from, to string, rev int64) {
@@ -67,7 +68,8 @@ func ReqGetStream(ctx context.Context, cli *clientv3.Client, from, to string, re
 // ends with ErrFutureRev.
 // Users: Kubernetes' watcher (etcd3/watcher.go:410-415: "a compaction mid-stream can't be resumed
 // ... surface it as ResourceExpired") and store (store.go:978-980, listReadError).
-// Assumes: the caller holds no permission problem (auth off), so no read refusal of its range.
+// Assumes: the caller holds no permission problem (auth off), so no read refusal of its range;
+// to is not empty (nonissues/etcd-client-withrange-empty-end.md).
 // Specs: Client.GetStream.spec, streamAt_recv (the ms ≠ [] compaction disjunct), errorsIs_errVal.
 func ReqGetStreamCompacted(ctx context.Context, cli *clientv3.Client, from, to string) {
 	ch, err := cli.GetStream(ctx, from, clientv3.WithRange(to))
@@ -84,5 +86,30 @@ func ReqGetStreamCompacted(ctx context.Context, cli *clientv3.Client, from, to s
 			}
 			return
 		}
+	}
+}
+
+// REQ clientv3kv/get-stream-whole: GetStreamToGetResponse merges a stream into one reply carrying
+// the answer's header, or returns the terminal error: a linearized one, ErrCompacted when the
+// server's pinned revision was compacted mid-stream (the caller relists), or one that settles
+// nothing; never ErrFutureRev for an unpinned stream.
+// Users: etcdctl get --stream; any user that wants the whole answer.
+// Assumes: auth off; to is neither empty nor "\x00".
+// Specs: Client.GetStream.spec, GetStreamToGetResponse.spec (its ErrCompacted disjunct),
+// errorsIs_errVal.
+func ReqGetStreamWhole(ctx context.Context, cli *clientv3.Client, from, to string) {
+	ch, err := cli.GetStream(ctx, from, clientv3.WithRange(to))
+	if err != nil {
+		return
+	}
+	resp, err := clientv3.GetStreamToGetResponse(ch)
+	if err != nil {
+		if errors.Is(err, rpctypes.ErrFutureRev) {
+			panic("get-stream-whole: an unpinned stream is never in the future")
+		}
+		return
+	}
+	if resp.Header == nil {
+		panic("get-stream-whole: no header")
 	}
 }

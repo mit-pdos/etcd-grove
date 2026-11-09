@@ -12,6 +12,10 @@ bucket's key: `ErrIncompatibleValue`; else `node.del` on the materialized leaf (
 transaction).
 
 **Changes.** Over paths; read transactions' error; `ErrIncompatibleValue`.
+**Proof sketch, the success arm in the internal vocabulary** (verify-round, A11 F9). As
+`Put`'s: `seek`, `Cursor.node` (`repKept`, `keyLeaf`), `node.del`, `physRep_del` (the key not a
+bucket), `wtxCore_view`. An absent key: `node.del` changes nothing and `setKey kb none` of a bucket
+without `kb` is the bucket (`delEnt`).
 -/
 module
 

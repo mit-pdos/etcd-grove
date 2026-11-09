@@ -12,6 +12,8 @@ Proof sketch: as `Then`, into `t.fas`.
 
 Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/txn__Else.lean`: restated over `txnAt` and the model's requests; a nested transaction (`OpTxn`) is now admitted in `Then`/`Else` (the old builder model excluded it); otherwise unchanged.
 
+verify-round: premise `OpM.anyEmptyEnd os = false` (A1-provability F5); `Txn.ElseTriple` takes the state predicate as a parameter (`txnAt` by default; `txnAt_intro`, A1-completeness F2).
+
 Margin: none.
 -/
 module

@@ -31,6 +31,26 @@ func ReqCheckPass(as etcdauth.AuthStore, ai *etcdauth.AuthInfo, key, rangeEnd []
 	return false
 }
 
+// REQ auth/denied: a reader's denial is justified at the three views it read (the flag, the
+// user's record, the permission cache), each a state at or after the reader's lower bound, not
+// at one state: so a client whose workload keeps auth off, or keeps the user of the root role,
+// from the call's start on never sees ErrPermissionDenied (the denial's flag view is on, its
+// record view not root).
+// Users: v3_server.go:146,183,355 (Range, RangeStream, read-only Txn's denial).
+// Assumes: from the reader's lower bound on, every state of the store has auth off, or has user
+// with the root role (the caller's workload: no AuthEnable, no revocation of root).
+// Specs: authStore.IsRangePermitted.spec (checkPost's denial, checkDenied: af.enabled,
+// ¬ ax.isRoot u).
+func ReqDenied(as etcdauth.AuthStore, user string, rev uint64, key []byte, authOff bool) {
+	err := as.IsRangePermitted(&etcdauth.AuthInfo{Username: user, Revision: rev}, key, nil)
+	if errors.Is(err, etcdauth.ErrPermissionDenied) {
+		if authOff {
+			panic("denied: a denial while auth stayed off")
+		}
+		panic("denied: the root user denied")
+	}
+}
+
 // REQ auth/no-user: with no credentials (the empty AuthInfo doSerialize passes), a check passes
 // only where auth is off; with auth on it is ErrUserEmpty, never a pass for a user's roles.
 // Users: v3_server.go:1043 (doSerialize's &auth.AuthInfo{}).

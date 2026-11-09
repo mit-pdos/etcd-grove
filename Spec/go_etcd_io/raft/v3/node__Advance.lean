@@ -5,10 +5,14 @@
 and the wait for the batch's conf changes to be applied, `notifyc`); the examples' run loops after
 applying (`kvdurable/kv.go:511`). Snippet: `readyloop.go` (`ReqReadyLoop`).
 
-**Proof sketch.** Send on `advancec`: the run goroutine calls `RawNode.Advance` (the steps queued at
-`acceptReady`: the storage-append and apply responses -- the batch's entries are in the storage now,
-`readyStor ... none k []`; the applied index moves to the delivered log, `appliedLb`; a snapshot's
-configuration takes effect, `appliedSnap`: its `confAt` from `snapValid`). Or `done`.
+**Proof sketch.** Send on `advancec`: at the rendezvous (the channel's handshake, the run
+goroutine's `nodeLoop` holding `rawNodeAt`), R2's `rawNodeAt_advance` with the client's resources
+gives the post (the driver, `appliedLb` at the delivered log: R3's floor published at once, the view
+wand) to the sender and `rawNodeAdv` to the run goroutine, which then calls `RawNode.Advance` (the
+steps queued at `acceptReady`: the storage-append and apply responses; a snapshot's configuration
+takes effect in the tracker, `appliedSnap`) concurrently with the returned caller; until those steps
+end the struct is not idle (`coreIdle`), and `node.run` steps nothing else. Or `done`.
+(Verify-round, A4 P3: the post had no source at the return when it came from the closing.)
 
 **Changes.** The storage's receipt is `readyStor` with nothing left (was `advReceipt`); the snapshot's
 batch is the driver's `lastSnap` (was the driver's `handling`); the conf entries not applied by

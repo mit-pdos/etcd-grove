@@ -4,12 +4,16 @@
 **Users.** `uberApplier.dispatch` through the chain (promoted methods of the outer layers).
 
 **Proof sketch.** 3c's `lessor.Revoke` at the writer's `lessorState`, with `ls.rd ≠ func.nil` and the
-deleter's contract `Lease.rdOk γl ls.rd n ls P D Q` (3e's `Mvcc.mvccDeleter_rdOk` until the first
-snapshot, 2d's closure after: inside `stAt`, the apply thread's): `ErrLeaseNotFound`, or the lease's
+deleter's contract `Lease.rdOk γl ls.rd n ls P D Q`, both from `stAt`'s `lessorSt`: `kvDelOk o.KV'
+γl ls.be ls.rd` (realized as 3e's `Mvcc.mvccDeleter` with the backend identification) gives `rdOk`
+by 3e's `Mvcc.mvccDeleter_rdOk`, with `P` the store's writer resources (`kvSt`, `kvOk`'s backend
+and hook under `R`), `Q` the store at the deletes' commit: `ErrLeaseNotFound`, or the lease's
 keys deleted at one revision (`lessorSt`'s attachment: W0's `State.attachedKVs`, so `State.revoke`)
 and the lease removed; `newHeader`.
 
-**Changes** from `specs-ref`'s `applierV3backend__LeaseRevoke.lean`: the old triple over the chain's `AEnv`, the mvcc log and the write tokens (`putPre`, `kvPostF`, `mPostW`, ...) restated over the model state (`stAt`, `layersStep`): any auth mode, leases, compaction
+**Changes** from `specs-ref`'s `applierV3backend__LeaseRevoke.lean`: the old triple over the chain's `AEnv`, the mvcc log and the write tokens (`putPre`, `kvPostF`, `mPostW`, ...) restated over the model state (`stAt`, `layersStep`): any auth mode, leases, compaction.
+verify-round (A9 F2, F6): the deleter's facts now have a source (`lessorSt`'s `ls.rd ≠ func.nil`,
+`kvDelOk`); the statement is unchanged.
 
 **Margin.** The header's other fields (cluster, member, term, leader) any.
 -/

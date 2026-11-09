@@ -43,10 +43,11 @@ func ReqWatchSelect(ctx context.Context, cli *clientv3.Client, k string, rev int
 // Users: concurrency's Election.Observe (election.go:190: wr.Header.Revision = kv.ModRevision),
 // the namespace wrapper (namespace/watch.go: ev.Kv.Key = ev.Kv.Key[len(pfx):], relying on the
 // prefix: a shorter key would panic on the slice).
-// Assumes: the compaction condition (history.go package comment).
+// Assumes: none (verify-round A2 S2: the key in the range holds whatever compaction did; the
+// namespace wrapper slices without any compaction assumption).
 // Specs: Client.Watch.spec, WithPrefix.spec; watchRespAt_fields (the header owned in full with
-// events, the events in full), eventOwn_unfold, keyValueOwn_unfold; watchStep (WatchReq.keeps:
-// the key in the range).
+// events, the events in full), eventOwn_unfold, keyValueOwn_unfold; watchStep (the event case's
+// unconditional clause: each event an event of the history that WatchReq.keeps).
 func ReqWatchRewrite(ctx context.Context, cli *clientv3.Client, pfx string) {
 	for wr := range cli.Watch(ctx, pfx, clientv3.WithPrefix()) {
 		if wr.Err() != nil {
@@ -134,4 +135,28 @@ func ReqWatchOptions(ctx context.Context, cli *clientv3.Client, a, b string) {
 	lctx := clientv3.WithRequireLeader(ctx)
 	_ = cli.Watch(lctx, "", clientv3.WithPrefix(), clientv3.WithRev(1))
 	_ = cli.Watch(lctx, a, clientv3.WithRange(b), clientv3.WithWatchBufLog())
+}
+
+// REQ clientv3watch/shared-stream: watches whose contexts carry the same metadata share one gRPC
+// stream (streamKeyFromCtx), the second joining the stream the first opened; each still gets its
+// own watch's facts, for the caller's principal.
+// Users: Kubernetes' etcd3 watcher (a fresh WithRequireLeader context per watch, watcher.go:489),
+// grpcproxy (one require-leader context per forwarded watch).
+// Assumes: none.
+// Specs: WithRequireLeader.spec (ctxPrin kept), Client.Watch.spec (watcher.Watch.spec's join:
+// ctxStreamKey_prin), WithPrefix.spec; watchStep (the event case's unconditional clause: the key
+// in the prefix).
+func ReqWatchSharedStream(ctx context.Context, cli *clientv3.Client, pfx string) {
+	w1 := cli.Watch(clientv3.WithRequireLeader(ctx), pfx, clientv3.WithPrefix())
+	w2 := cli.Watch(clientv3.WithRequireLeader(ctx), pfx, clientv3.WithPrefix())
+	for _, wch := range []clientv3.WatchChan{w1, w2} {
+		for wr := range wch {
+			if wr.Err() != nil {
+				break
+			}
+			for _, ev := range wr.Events {
+				_ = ev.Kv.Key[len(pfx):]
+			}
+		}
+	}
 }

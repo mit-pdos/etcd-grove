@@ -17,6 +17,12 @@ concrete method's spec (`uberApplier.Apply.spec`) as its bundle (`isUber_apply`)
 refusal is a margin of the result, `resMatch`); one spec for every mode (the auth mode, the alarms,
 leases, compaction are in `σ`); the options as two slots (`optsOk`, `optsSt`) over the callees'
 vocabulary, not the old `AEnv`.
+verify-round (A9 F2, F3, F6): `optsOk` now carries the backends' post-lock hook contracts under `R`
+(`hooksOk`), `optsSt`'s `lessorSt` every key's lease live, the lessor's backend the options' and
+its range deleter `o.KV'`'s (`kvDelOk`): what the backend's `Put`, `Txn`, `LeaseGrant`,
+`LeaseCheckpoint`, `LeaseRevoke` and admin methods take. The callers (2e's `NewServer`, 2d's
+`applySnapshot`) establish them: the lessor's hook by 4a's `leaseBeHook_intro`/`leaseHookRun_intro`,
+the auth store's and `kvDelOk` by the introductions requested in `repair-apply-txn.md`.
 
 **Margin.** None. (Round 1: `uberOpts ua opts`, persistent, gets the stores back out of `smAt`: `smAt_optsSt`, `smAt_alarms`.)
 -/

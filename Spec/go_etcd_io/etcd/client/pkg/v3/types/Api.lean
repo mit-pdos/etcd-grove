@@ -45,6 +45,15 @@ def urlsValid (urls : List GoString) : Prop := (urlsHosts urls).isSome
 def urlsHosts_len.spec : Prop := ∀ ss hs, urlsHosts ss = some hs →
   hs.length = ss.length ∧ (urlsNorm ss).length = ss.length ∧ ss ≠ []
 
+/-- **Parsing a URL's `String()` form gives it back** (assumed, `net/url`: `url.Parse(u.String())`
+of a parsed `u` prints as `u`; verify round, server-boot's request, for W0's `urlsRight_norm`). -/
+def urlsNorm_idem.spec : Prop := ∀ ss, urlsValid ss →
+  urlsValid (urlsNorm ss) ∧ urlsNorm (urlsNorm ss) = urlsNorm ss
+
+/-- **`NewURLs` parses each URL on its own** (its result in the input's order): a permutation of the
+input permutes the result. -/
+def urlsNorm_perm.spec : Prop := ∀ ss ss', ss.Perm ss' → (urlsNorm ss).Perm (urlsNorm ss')
+
 /-- `ID(x).String()`. -/
 def idStr (x : w64) : GoString := (Nat.toDigits 16 (uint.nat x)).map (fun c => W8 c.toNat)
 

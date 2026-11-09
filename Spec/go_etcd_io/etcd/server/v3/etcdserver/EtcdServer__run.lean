@@ -51,6 +51,17 @@ WAL allowed, `c₀ ≥ p₀.appliedi`, and no window token); no `σ.b = 0` scope
 the directories `ds` (the stop's deposit is 2e's `memberDisk`), the `applyc` cursor, `errorc`.
 
 **Margin**: none (a goroutine; the stop's deposit is in `srvStarted`'s `done` protocol).
+
+**Scope** (verify round, A8-provability F3; a decision for the user): the `errorc` arm (a member
+that applied its own removal, `stopWithDelay`; rafthttp's critical errors) runs the shutdown and
+`Cleanup` while request-path calls may hold `srvGate` shares, closing the backend under their reads
+(`issues/etcd-read-after-backend-close-panic.md`). No proof of this spec closes on that arm as the
+gate stands: either the fork's gate in the Go code (reads take it shared, `Cleanup` exclusively,
+later reads fail with `ErrStopped`: 2e's Q7 option), or a scope premise that the program's
+request-path calls are drained before a self-stop, which no serving program can establish. Also
+(A10-completeness O1) no hash runs during a snapshot install (`applySnapshot`'s scope).
+
+Changes: verify-round: takes and gives back the thread's `threadTok` (A7-provability F2: `s.Logger()`, `createMergedSnapshotMessage`, `newSnapshotReaderCloser` take one). `run`'s is the fresh token of `start`'s `go s.run()` (Perennial's `wp_fork_tok_body`); the apply jobs' is the scheduler worker's, lent to each job (`Schedule.funcOk`). The `srvMember` that `Logger` takes comes from `srvNode_member`.
 -/
 module
 
@@ -82,10 +93,10 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 def EtcdServer.run.spec : Prop :=
   ∀ (s : Loc) (γ : Names) (id : Nat) (ds : Config.Dirs),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvNode s γ id ∗ srvStarted s γ id ∗ srvRunTok s γ id ds }}
+      srvNode s γ id ∗ srvStarted s γ id ∗ srvRunTok s γ id ds ∗ threadTok }}
     (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!!
       go!"run")) (Val #()))
-  {{ RET #(); True }}
+  {{ RET #(); threadTok }}
 
 end spec
 end EtcdServer

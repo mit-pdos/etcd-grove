@@ -18,6 +18,13 @@ value it read from another open transaction). The abstraction relation then maps
 **Changes.** Over paths; a read transaction's `Put` returns `ErrTxNotWritable` (was a premise
 `T.rw`); `ErrIncompatibleValue` on a bucket's key; the errors named (`isErr`). Kept: the entry bound
 `bboltEntryMax` (D4: the code would panic later, in `Commit`).
+**Proof sketch, the success arm in the internal vocabulary** (verify-round, A11 F9).
+`wtxCore_view` opens `boltTx` (`T.rw`) to `wtxCore tx γ C` with `physRep T C`; `seek` leaves
+`curPath … T kb`; `Cursor.node` gives the leaf `n` with `repKept` (so `physRep T C'`) and
+`keyLeaf C' p kb n` (the handle current: `C.gens p = T.gens p = gs` by `physRep_meta`);
+`node.put kb kb value 0 0`; `physRep_set` with `newEnt 0 vb (Ent.val vb)` (the key not a bucket:
+the `ErrIncompatibleValue` test; its bounds: the checks and the premise) gives `physRep` of
+`T.setCur (… setKey kb (some (Ent.val vb)))`; `wtxCore_view` closes `boltTx`.
 -/
 module
 

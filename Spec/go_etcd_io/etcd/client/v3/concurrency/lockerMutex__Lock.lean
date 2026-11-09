@@ -15,6 +15,8 @@ panic outcome).
 
 Changes: from `specs-ref`'s `lockerMutex__Lock.lean`: as `Mutex.Lock`.
 
+Changes: verify-round: the key is the session's (`sessKey`) and `cr` a create revision after `σ0`, as `Mutex.Lock.spec`'s.
+
 Margin: the panic carries the error; the caller (a `sync.Locker` user) cannot recover it usefully.
 -/
 module
@@ -50,7 +52,8 @@ def lockerMutex.Lock.spec : Prop :=
       (⌜r = #()⌝ ∗ P ∗ ∃ (k : GoString) (cr : Nat) (hd : Loc) (hm : HeaderM) (σ : State),
           mutexSt m { key := k, rev := W64 cr, hdr := hd } ∗ etcdLb γ σ ∗
           respHeaderOwn hd DFrac.discard hm ∗
-          ⌜Reach σ0 σ ∧ lockedSince pfx k cr σ ∧ hm.revision = W64 σ.kv.rev⌝) ∨
+          ⌜Reach σ0 σ ∧ k = sessKey pfx (sint.Z id) ∧ lockedSince pfx k cr σ ∧ hm.revision = W64 σ.kv.rev ∧
+            (σ0.kv.rev < cr ∨ ∃ r, σ0.kv.store k = some r ∧ r.createRev = cr)⌝) ∨
       (⌜∃ err : GoInterface, err ≠ GoInterface.nil ∧ r = PanicV #err⌝ ∗ ∃ st' : MutexSt, mutexSt m st') }}
 
 end spec

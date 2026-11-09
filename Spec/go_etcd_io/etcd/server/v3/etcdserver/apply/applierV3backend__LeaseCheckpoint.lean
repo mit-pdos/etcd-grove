@@ -4,9 +4,11 @@
 **Users.** `uberApplier.dispatch` through the chain (promoted methods of the outer layers).
 
 **Proof sketch.** 3c's `lessor.Checkpoint` per entry (the remaining TTL, not in the model: the
-table unchanged, `persist` moves only the bucket; the backend's hook as `LeaseGrant`'s); `newHeader`.
+table unchanged, `persist` moves only the bucket; the backend's hook as `LeaseGrant`'s: `optsOk`'s
+`hooksOk` at `Pre := R`, once per checkpoint, `R` back each time); `newHeader`.
 
-**Changes** from `specs-ref`'s `applierV3backend__LeaseCheckpoint.lean`: the old triple over the chain's `AEnv`, the mvcc log and the write tokens (`putPre`, `kvPostF`, `mPostW`, ...) restated over the model state (`stAt`, `layersStep`): any auth mode, leases, compaction
+**Changes** from `specs-ref`'s `applierV3backend__LeaseCheckpoint.lean`: the old triple over the chain's `AEnv`, the mvcc log and the write tokens (`putPre`, `kvPostF`, `mPostW`, ...) restated over the model state (`stAt`, `layersStep`): any auth mode, leases, compaction.
+verify-round (A9 F3, F6): the hook's contract has a source (`hooksOk`); the statement is unchanged.
 
 **Margin.** The header's other fields (cluster, member, term, leader) any.
 -/

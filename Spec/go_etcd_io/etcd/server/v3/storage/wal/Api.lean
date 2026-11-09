@@ -33,6 +33,12 @@ here can check.
   member runs (moved by the storage's updates), by `EtcdServer.memberDisk` while it is stopped.
 * `walOpen w wd` (exclusive): `w` is an open `*wal.WAL` writing to `wd`, holding its file locks.
   Given by `bootstrap`, taken by `serverstorage.NewStorage`, consumed by `Close`.
+* `walWriting wd R w` (exclusive, timeless): **a write `w` (`WalWrite`: a `Save` or a
+  `SaveSnapshot`) is in progress on `wd`, whose records were `R` before it** (verify-round, A8
+  provability F1.2: a crash during a write leaves states `R` alone does not describe). The raft
+  loop's write moves `walRecs wd R` to it when it begins writing and on to `walRecs wd (w.apply R)`
+  when it is done (`storage.Save.spec`, `storage.SaveSnap.spec`: two updates); the server's disk
+  invariant holds whichever of the two is current.
 * `walPurgeRight wd` (exclusive): **the right to purge `wd`'s unlocked files**
   (`fileutil.PurgeFileWithDoneNotify` in `EtcdServer.purgeFile`). `Close` releases every lock, so
   the records survive a close only once the purge has stopped: `Close` takes this right; the purge
@@ -40,14 +46,38 @@ here can check.
 
 ## Laws
 
-`walRecs_timeless`, `walRecs_excl`, `walOpen_excl`, `walPurgeRight_excl`.
+`walRecs_timeless`, `walRecs_excl`, `walOpen_excl`, `walPurgeRight_excl`, `walWriting_timeless`,
+`walWriting_excl`, `walWriting_recs_excl`, and the crash laws `walRecs_crash`, `walWriting_crash`.
 
-## Crashes
+## Crashes (verify-round, A8 provability F1.2-3)
 
-`Recs.crashed`, `Recs.crashedMid`: what a crash may leave, true of the WAL's code (a commit-only
-state record not fsynced may be lost; a crash during a `Save` leaves a prefix of its entries and
-not its state). The server's specs restart only after a stop (`batch-2e.md`, round 1, "Crashes": the
-blocker is raft's durable state, which has no transition for a partly written `Ready`).
+`Recs.crashed`: what a crash may leave of records at rest (a commit-only state record not fsynced
+may be lost: the state's commit is anything from the synced commit up). `Recs.crashedDuring R w`:
+what a crash during the write `w` may leave:
+
+* a `Save` (`Recs.crashedMid`): a prefix of its entries with the old state record, **or all of
+  them with the new state record not yet fsynced** (the second case was missing: under OsFs's power
+  loss a dirty byte is arbitrary, its written value included, so the whole write may reach the disk
+  before the fsync; R1's `raftState_crash` allows the batch's term and vote with a commit between
+  the old `wcommit` and the batch's commit (its second case; the new record's commit is the
+  batch's), which is this case; the first, a prefix with the old record, is its first case: the
+  old term and vote, a commit between `wcommit` and `D.commit`);
+* a `SaveSnapshot`: the record lost, or kept not yet fsynced.
+
+Each then `crashed` (the commit-only loss). **Why it is true** (trusted, as the records' meaning):
+`WAL.Save` writes its entries' records, then the state's, then fsyncs when `mustSync` (a segment
+cut fsyncs too); `SaveSnapshot` writes one record and fsyncs; records are appended in order, each
+CRC-chained, and a restart's `ReadAll` stops at a torn tail (`io.ErrUnexpectedEOF`, then
+`wal.Repair` truncates it), so what survives is a prefix of the records written. A crash that
+corrupts a record behind a later surviving one (or leaves garbage passing the CRC) makes `ReadAll`
+fail with `ErrCRCMismatch`, which `bootstrap` treats as fatal: excluded by `ServerStorage.diskOk`
+(its docstring lists it), which the crash laws take.
+
+**Generations.** The laws take the old generation's crash token (`crashed`, Perennial's
+`CrashToken`) and give `walRecs` at the next generation's heap `⟨hG.goose_globalGS, L'⟩`, as 4c's
+`boltCrash` does; `walRecs` is a trusted ghost variable whose meaning (what the directory's files
+make a later `Open` + `ReadAll` return) is not over OsFs's resources, so no OsFs `crashRest` is
+threaded (the closed world, `EtcdServer.dataDirFresh`: nothing else writes `wd`).
 -/
 module
 
@@ -61,6 +91,14 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
+
+namespace ServerStorage
+/-- **The environment premise of the server's storage**: declared here, below the WAL's crash laws
+that take it; its meaning (the failures it excludes) is in `storage/Api.lean`'s header and on
+`ServerStorage.diskOk`'s uses there. -/
+opaque diskOk : Prop
+end ServerStorage
+
 namespace Wal
 
 open Iris Iris.BI Classical
@@ -124,11 +162,30 @@ def Recs.crashed (R R' : Recs) : Prop :=
     R' = { R with hs := { R.hs with commit := c }, syncedCommit := c }
 
 /-- **What a crash during `Save(hs, es)` from `k` may leave**: some prefix of the entries written
-(each record a whole one: a torn tail is repaired, `wal.Repair`), the new state not (it follows
-them), then `crashed`. -/
-def Recs.crashedMid (R : Recs) (k : Nat) (es : List Raft.LogEntry) (R' : Recs) : Prop :=
-  ∃ j, j ≤ es.length ∧
-    Recs.crashed (if j = 0 then R else { R with log := R.log.take (k - R.floor - 1) ++ es.take j }) R'
+(each record a whole one: a torn tail is repaired, `wal.Repair`) with the old state record, or all
+of them with the new state record (written, not yet fsynced: the synced commit is the old one),
+then `crashed`. -/
+def Recs.crashedMid (R : Recs) (hs : Raft.HardState) (k : Nat) (es : List Raft.LogEntry)
+    (R' : Recs) : Prop :=
+  (∃ j, j ≤ es.length ∧
+    Recs.crashed (if j = 0 then R else { R with log := R.log.take (k - R.floor - 1) ++ es.take j }) R') ∨
+  Recs.crashed { R.save hs k es with syncedCommit := R.syncedCommit } R'
+
+/-- **A write in progress** (`walWriting`): a `Save(hs, es)` of the entries from index `k`, or a
+`SaveSnapshot(s)`. -/
+inductive WalWrite where
+  | save (hs : Raft.HardState) (k : Nat) (es : List Raft.LogEntry)
+  | saveSnap (s : WalSnap)
+
+/-- The records once the write is done. -/
+def WalWrite.apply : WalWrite → Recs → Recs
+  | .save hs k es, R => R.save hs k es
+  | .saveSnap s, R => R.saveSnap s
+
+/-- **What a crash during the write `w` on records `R` may leave** (see the header). -/
+def Recs.crashedDuring (R : Recs) : WalWrite → Recs → Prop
+  | .save hs k es, R' => R.crashedMid hs k es R'
+  | .saveSnap s, R' => R.crashed R' ∨ Recs.crashed { R.saveSnap s with syncedCommit := R.syncedCommit } R'
 
 /-- `ReleaseLockTo(i)`, then a purge: what is below `i` may be gone. -/
 def Recs.release (R : Recs) (i : Nat) : Recs :=
@@ -167,6 +224,9 @@ opaque walRecs [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors
 /-- **`w` is an open WAL of directory `wd`** (exclusive). -/
 opaque walOpen [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (w : Loc) (wd : GoString) : IProp GF := iprop(True)
 
+/-- **The write `w` is in progress on `wd`, whose records were `R`** (exclusive, timeless). -/
+opaque walWriting [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (wd : GoString) (R : Recs) (w : WalWrite) : IProp GF := iprop(True)
+
 /-- **The right to purge `wd`'s unlocked files** (exclusive). -/
 opaque walPurgeRight [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (wd : GoString) : IProp GF := iprop(True)
 
@@ -180,6 +240,30 @@ def walOpen_excl.spec : Prop := ∀ w w' wd,
 
 def walPurgeRight_excl.spec : Prop := ∀ wd,
   walPurgeRight (GF := GF) wd ∗ walPurgeRight wd ⊢ iprop(False)
+
+def walWriting_timeless.spec : Prop := ∀ wd R w, Timeless (walWriting (GF := GF) wd R w)
+
+def walWriting_excl.spec : Prop := ∀ wd R R' w w',
+  walWriting (GF := GF) wd R w ∗ walWriting wd R' w' ⊢ iprop(False)
+
+/-- A directory is at rest or being written, not both. -/
+def walWriting_recs_excl.spec : Prop := ∀ wd R R' w,
+  walWriting (GF := GF) wd R w ∗ walRecs wd R' ⊢ iprop(False)
+
+/-- **A crash of records at rest** (trusted; see the header): the next generation `L'` finds the
+records `R` with a commit-only state possibly lost. -/
+def walRecs_crash.spec : Prop := ∀ (L' : GooseLocalGS GF) (wd : GoString) (R : Recs),
+  ServerStorage.diskOk →
+  walRecs (GF := GF) wd R ∗ crashed ⊢
+    |==> ∃ R' : Recs, ⌜R.crashed R'⌝ ∗ @walRecs _ _ _ GF ⟨hG.goose_globalGS, L'⟩ wd R'
+
+/-- **A crash during a write** (trusted; see the header): the next generation `L'` finds a state
+the interrupted write may leave. -/
+def walWriting_crash.spec : Prop := ∀ (L' : GooseLocalGS GF) (wd : GoString) (R : Recs)
+    (w : WalWrite),
+  ServerStorage.diskOk →
+  walWriting (GF := GF) wd R w ∗ crashed ⊢
+    |==> ∃ R' : Recs, ⌜R.crashedDuring w R'⌝ ∗ @walRecs _ _ _ GF ⟨hG.goose_globalGS, L'⟩ wd R'
 
 end res
 

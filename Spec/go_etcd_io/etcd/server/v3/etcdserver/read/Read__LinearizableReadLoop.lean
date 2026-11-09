@@ -22,6 +22,8 @@ server's and raft's contracts, the logger's resource, the id budget `□ |==> NR
 environment is `readEnv`, given once to `readNew_init`, which hands out this token.
 
 **Margin.** The loop's liveness (it serves every round while raft has a leader) is not stated.
+
+Changes: verify-round: takes and gives back the goroutine's `threadTok` (`GoAttach` gives it one; its environment's `Logger`, `LeaderChanged`, `FirstCommitInTermNotify` take a read lock: A7-provability F6).
 -/
 module
 
@@ -51,10 +53,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.read.Assumptions]
 `LinearizableReadNotify.spec`'s guarantee. -/
 def Read.LinearizableReadLoop.spec : Prop :=
   ∀ (r : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read ∗ readLoopTok r }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read ∗ readLoopTok r ∗ threadTok }}
     (App (Val (r @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.read.Read.ty @!!
       go!"LinearizableReadLoop")) (Val #()))
-  {{ RET #(); True }}
+  {{ RET #(); threadTok }}
 
 end spec
 end Read

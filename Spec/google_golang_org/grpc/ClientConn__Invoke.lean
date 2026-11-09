@@ -13,8 +13,9 @@ returns the reply or the status the server sent, or an error of its own.
 
 Proof sketch of 1c's `AttemptTriple` from it (the realization of W0's at-most-once): the invoker is
 `inv` with `attemptOk cc A R inv`; the method's contract at every address the client's resolver
-reports is `V3rpc.etcdUnary γ m` (`servesAt γ ep`, V3rpc's `servesAt_serves`); the caller builds
-`S md c Φ` from its update and `R` (its token's principal), `Φ` mapping the outcome to the four
+reports is `V3rpc.etcdUnary γ m` (`servesAt γ ep`, which V3rpc's `servesAt_addr` makes `addrAt ep (etcdContract γ ep)`, whose
+entry for `m` is `etcdUnary γ ep m`; verify-round, A1-C S4: it cited a nonexistent `servesAt_serves`); the caller builds
+`S md (norm c) Φ` from its update (the member decodes the wire view, 3h's `holds_norm`) and `R` (its token's principal), `Φ` mapping the outcome to the four
 cases of `AttemptTriple`.
 
 Changes: from `specs-ref/Spec/google_golang_org/grpc/ClientConn__Invoke.lean`: the attempt is over

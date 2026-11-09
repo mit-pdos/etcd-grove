@@ -1,7 +1,7 @@
 /-
 ## `NewElectionServer(c)` (`election.go`): translated
 
-**Users.** v3rpc's server registration (`v3rpc.Server`, 2a, with `v3client.New(s)`).
+**Users.** embed (`embed/serve.go:149-150`: `v3electionpb.RegisterElectionServer(gs, v3election.NewElectionServer(v3c))` on each member's gRPC server, `v3c := v3client.New(s)`) and the integration framework (`framework/integration/cluster.go:987-988`); not `v3rpc.Server` (second pass, grpc-v3rpc's C-F4).
 **Proof sketch.** A struct literal. **Changes**: new. **Margin.** None.
 -/
 module

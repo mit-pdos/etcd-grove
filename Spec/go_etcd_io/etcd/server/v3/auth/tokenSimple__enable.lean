@@ -34,8 +34,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
 /-- **`t.enable()`**: no panic, nothing a caller observes. -/
 def tokenSimple.enable.spec : Prop :=
-  ∀ (t : Loc) (γ : Cluster),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ simpleAt t γ }}
+  ∀ (t : Loc) (γ : Cluster) (R : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ simpleAt t γ R }}
     (App (Val (t @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.tokenSimple.ty @!! go!"enable")) (Val #()))
   {{ RET #(); True }}
 

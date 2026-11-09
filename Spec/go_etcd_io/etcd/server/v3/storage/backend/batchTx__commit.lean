@@ -1,8 +1,10 @@
 /-
 `t.commit(stop)` (`batch_tx.go:282-305`): translated; internal (under the batch mutex and
 `readTx.Lock`, after the hooks). Nothing pending and not stopping: nothing. Else bbolt's `Commit`
-(4c's update of `boltState`: the client's commit step `commitOk` fires at it, from `isBackend`; an
-error is `lg.Fatal`), the metrics, `pending := 0`; unless stopping, a new write transaction
+(4c's `Tx.Commit` over its nested `commitAU`, built from the whole `boltState` the batch lock's
+invariant holds (`boltState_commit_au`): the commit update, at the meta page write, is where the
+client's commit step `commitOk` (from `isBackend`) and the published updates fire; its commit gives
+the settling update, fired when the commit ends (synced, or a failure); an error is `lg.Fatal`), the metrics, `pending := 0`; unless stopping, a new write transaction
 (`begin(true)`). Changes: over `btPhys`. Margin: none.
 -/
 module

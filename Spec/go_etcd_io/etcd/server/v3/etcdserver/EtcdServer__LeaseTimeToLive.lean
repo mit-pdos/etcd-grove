@@ -21,6 +21,8 @@ one-shot update fired at the return.
 
 **Margin.** The TTLs are any (W0's model has no time); a permission denial is fired with the
 member's auth state, which W0's step allows at any state.
+
+Changes: verify-round (A6-provability F1): the success reply has its header set (`srvHdrReply`, `replyHdrOwn`: the apply's `newHeader()`, `s.newHeader()`, `ResponseHeader{}`, or the leader's through `leasehttp`, whose decoded reply must carry one: requested of lease-auth), so the gRPC handler's `hdr.fill(resp.Header)` cannot panic.
 -/
 module
 
@@ -51,7 +53,7 @@ def EtcdServer.LeaseTimeToLive.spec : Prop :=
   SrvCallTriple (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"LeaseTimeToLive")) (Val #ctx)) (Val #r))
     iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ srvGate s q ∗
         Context.ctxOk ctx ∗ reqCtxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ ClientV3.reqOwn r dq (.leaseTimeToLive id keys))
-    iprop(srvGate s q ∗ threadTok ∗ ClientV3.reqOwn r dq (.leaseTimeToLive id keys)) γ p tls (.leaseTimeToLive id keys) false (ClientV3.ansReply)
+    iprop(srvGate s q ∗ threadTok ∗ ClientV3.reqOwn r dq (.leaseTimeToLive id keys)) γ p tls (.leaseTimeToLive id keys) false srvHdrReply
 
 end spec
 end EtcdServer

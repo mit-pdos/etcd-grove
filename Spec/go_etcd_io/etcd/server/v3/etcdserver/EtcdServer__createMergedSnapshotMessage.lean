@@ -9,7 +9,7 @@ whose snapshot is at or below the applied index. Snippet `snapshot.go` (`ReqMerg
 **Proof sketch**. The `ConfState` passed is the thread's (`ep.confState`: a configuration at a
 committed point at or past the applied index, the replay's included; R1's `confStatePts`/`confAt`,
 which `applyAll` reads off the thread). `s.KV().Commit()` (3e's: the backend's committed state is the state machine at
-`c = max appliedi ci`, the hook saving `c`); `s.be.Snapshot()` (4a's: `beSnap bs γ c`);
+`c = max appliedi ci`, the hook saving `c`); `s.be.Snapshot()` (4a's, given the `beHistLb` the commit leaves, verify round: backend-schema's request; `beSnap bs γ c`, of size `n`, `beSnapN`);
 `newSnapshotReaderCloser.spec` (the goroutine's thread token: `threadTok`); the new snapshot
 `sn' = (snapi, snapt, cs, [])` is valid (R1's `snap_make`, as `snapshot.spec`: the delivered prefix
 of length `snapi`, the configuration at `c ≥ snapi`), with its point (`snapPoint γ sn' c`) and its image (`imgAt γ snapi`, the backend at `c ≥ snapi`:
@@ -24,6 +24,8 @@ in `[0, 2^62)`, 4a's `Size`) gives `mergedSnap`.
 `winNoMergedSend` was false at restarts); the term guard is a premise (`snapt ≤ m.term`).
 
 **Margin**: none.
+
+Changes: verify-round: the `ConfState` is raftpb's `confStateFull` (its `AutoLeave` set: what the snapshot carries; raft-conf-pb's request), which `ep.confState` keeps (`applyThread`'s realization).
 -/
 module
 
@@ -57,7 +59,7 @@ def EtcdServer.createMergedSnapshotMessage.spec : Prop :=
     (sn : Raft.Snapshot) (csm : Raft.ConfState) (a : Nat) (mb : Raft.Membership),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvNode s γ id ∗ applyThread s γ ep p ∗ threadTok ∗
-      Raft.confStatePts cs DFrac.discard csm ∗ Raft.confAt γ.raft a mb ∗
+      RaftPb.confStateFull cs DFrac.discard csm ∗ Raft.confAt γ.raft a mb ∗
       ⌜csm.Is mb ∧ uint.nat p.appliedi ≤ a⌝ ∗
       Raft.msgPts mp (DFrac.own 1) m ∗ Raft.msgSent γ.raft m ∗
       ⌜m.type = Raft.MsgSnap ∧ m.src = W64 id ∧ m.snapshot = some sn ∧

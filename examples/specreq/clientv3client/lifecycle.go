@@ -23,7 +23,7 @@ import (
 // (kubernetes.New, then client.KV = NewETCDLatencyTracker(client.KV), destroy: client.Close()),
 // newClient's own error paths.
 // Assumes: ep serves the cluster; lg a logger.
-// Specs: New.spec (clientMut), clientMut_KV, clientMut_freeze (W0), Client.Close.spec,
+// Specs: New.spec (clientMut), kvAt_intro (the wrapper), clientMut_KV, clientMut_freeze (W0), Client.Close.spec,
 // Client.Put.spec (W0: an indefinite error after Close).
 func ReqNewWrapClose(ep string, lg *zap.Logger) {
 	cli, err := clientv3.New(clientv3.Config{Endpoints: []string{ep}, Logger: lg})

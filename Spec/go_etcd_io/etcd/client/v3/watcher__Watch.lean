@@ -29,9 +29,13 @@ every one through `Client.Watch` or a `Watcher` value, `watcherAt`), by pattern:
   `consume.go`.
 
 **Proof sketch.** `OpWatch.spec` (W0) gives the `Op` (`watchPanics` excluded); the filters are
-built from it. The loop: `w.mu.Lock()` (the watcher's lock invariant: `streams` is `nil` after
-`Close`, else a map of `wgsAt` streams); `nil` → a fresh channel, closed: `WatchPos.closed`. Else
-`newWatcherGRPCStream.spec` for a missing key, then `select` on `reqc` (`wgsAt`'s protocol: the
+built from it. `streamKeyFromCtx.spec` gives `ctxStreamKey ctx k`. The loop: `w.mu.Lock()` (the
+watcher's lock invariant: `streams` is `nil` after `Close`, else a map from keys to `wgsAt` streams,
+each key `k'` with the opening context's `ctxStreamKey ctx₀ k' ∗ ctxPrin who ctx₀ p₀` and the
+stream at `p₀`); `nil` → a fresh channel, closed: `WatchPos.closed`. An existing stream of key `k`
+is at the caller's principal `p` by `ctxStreamKey_prin` (verify-round W2). Else
+`newWatcherGRPCStream.spec` for a missing key (with `clientReady c`, which turns the handle's
+gated stub into `remoteWatchAt` for the stream's `run`, verify-round W3), then `select` on `reqc` (`wgsAt`'s protocol: the
 `*watchRequest` goes with the `retc` protocol, whose receiver gets the channel `ch` with its
 consumer: `watchChAt` at `WatchPos.init rev r0` with `etcdLb γ σ0`, `r0 = σ0.kv.rev`, the state of
 the registration's `Created` response, whose header `H ≤ r0` the substream made its resume
@@ -51,6 +55,10 @@ members): event responses carry the admitting auth state (`σa.permits who`), re
 one-member gate `watchCheckOk`; no size premise (`watchSizeOk`: an oversized create fails the
 stream, `req/google_golang_org_grpc.md`), no `noDupKeys` server premise (a key written twice in
 one revision gives both events, as the model's history has them).
+
+verify-round (A2-provability W2, W3): the joined stream's principal from `ctxStreamKey_prin`; the
+handle records its client `c` and the triple takes `clientReady c` (the stub opens streams through
+the client's stream interceptor, whose token refresh reads `c.Auth`).
 
 **Margin.** Liveness (that the channel closes when `ctx` is done or after an error, that a
 `Created` or progress response comes) is not stated. A watch from the current revision is complete
@@ -85,11 +93,12 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `watcher.Watch` meets the `Watcher` contract's `Watch` (`Watcher.WatchTriple`, `ApiWatch.lean`),
-for a `*watcher` of `γ` as `who` (`watcherHandle`). -/
+for a `*watcher` of `γ` as `who` (`watcherHandle`) over a ready client (`clientReady c`). -/
 def watcher.Watch.spec : Prop :=
-  ∀ (w : Loc) (γ : Cluster) (who : Principal),
+  ∀ (w c : Loc) (γ : Cluster) (who : Principal),
   Watcher.WatchTriple (w @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watcher.ty @!! go!"Watch")
-    (iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ watcherHandle w γ who)) γ who
+    (iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ watcherHandle w c γ who ∗
+      clientReady c)) γ who
 
 end spec
 

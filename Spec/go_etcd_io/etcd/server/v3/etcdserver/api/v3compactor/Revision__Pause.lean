@@ -5,6 +5,8 @@
 **Proof sketch.** pauses compactions (the leader lost): under the compactor's mutex or its context; the loop's calls through
 `revGetter` and `compactable` (the handle's). **Changes**: from `specs-ref`'s `Revision__Pause.lean`:
 no run token (any number of calls is safe). **Margin.** None.
+Changes: verify-round (A7 completeness F2): the compactor's handles carry the gate `R` of its `Compactable`
+(`compactable c R`: `Compact` is safe once `□ R`, the server's start); `Run` takes `□ R`.
 -/
 module
 
@@ -30,8 +32,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Ass
 
 /-- **`Pause`**: pauses compactions. -/
 def Revision.Pause.spec : Prop :=
-  ∀ (p : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor ∗ isRevision p }}
+  ∀ (R : IProp GF) (p : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor ∗ isRevision p R }}
     (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision.ty @!! go!"Pause")) (Val #()))
   {{ RET #(); True }}
 

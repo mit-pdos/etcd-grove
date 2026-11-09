@@ -34,6 +34,16 @@ the front (`frontByRev`): the queue is linearizable as a FIFO queue by mod revis
 writes the prefix (the lost-claim path included: `nonissues/recipes-pqueue-dequeue-order.md` left
 `Queue`'s case open; it is FIFO).
 
+**Changes (second pass)**: the claimed key's membership in the prefix, its record at the claim and
+the returned value are now unconditional (1b's `watchStep` now says, outside the `exactFrom` gate,
+that each event is a real event of its revision kept by the watch, so on the watch path the event's
+key is under the prefix and its key-value is the record of its mod revision, which the successful
+`deleteRevReq` claims: `putOnce`); only the front condition stays gated (the watch path's "first
+put after the read" needs exact events). `ReqEveryItemOnce`, `ReqDequeueClosed` no longer assume
+the compaction condition.
+
+**Changes (verify-round)**: none to the triple; the snippets that dequeue from a non-empty queue now assume the compaction condition too (A3 F3: the gate covers every path, as the caller cannot tell them apart). Making the read path's facts unconditional needs 1b's unconditional in-range event fact (requested).
+
 **Margin**: on an error the caller's update is not given back, though only an indefinite error of a
 claim may have fired it. The order is by mod revision (`WithFirstRev()`), which is the creation
 order of keys never rewritten (an `Enqueue`'s).
@@ -73,12 +83,13 @@ def Queue.Dequeue.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ queueAt q c γ who kp ∗ etcdPeek γ ∗
       AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
         <{ ∀∀ (σ' : State) (k : GoString) (kr : KeyRec) (res : Resp),
-             ⌜(EtcdModel.exactFrom σ.kv 1 → frontByRev (pfxRange kp) σ.kv.store k kr) ∧
+             ⌜(pfxRange kp).mem k ∧ σ.kv.store k = some kr ∧
+              (EtcdModel.exactFrom σ.kv 1 → frontByRev (pfxRange kp) σ.kv.store k kr) ∧
               Step who (deleteRevReq k kr.modRev) σ σ' res ∧ txnSucceeded res⌝ ∗ etcdState γ σ',
            COMM Q σ σ' k kr }> }}
     (App (Val (q @!! go.GoType.PointerType Queue.ty @!! go!"Dequeue")) (Val #()))
   {{ (v : GoString) (err : GoInterface), RET (PairV #v #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ σ σ' k kr, Q σ σ' k kr ∗ ⌜EtcdModel.exactFrom σ.kv 1 → v = kr.value⌝) ∨
+      (⌜err = GoInterface.nil⌝ ∗ ∃ σ σ' k kr, Q σ σ' k kr ∗ ⌜v = kr.value⌝) ∨
       (⌜err ≠ GoInterface.nil ∧ v = []⌝ ∗ recipeErrOk err) }}
 
 end spec

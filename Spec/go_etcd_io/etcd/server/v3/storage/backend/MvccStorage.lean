@@ -9,15 +9,20 @@ proofs import this module (mvcc never does).
 ## mvcc's part of the image
 
 `mvccFp`: the `key` bucket (its existence, entries, buffer flag) and `meta`'s two compaction keys.
-`meta`'s existence is not mvcc's: the server creates `meta` before `mvcc.New` (`bootstrap.go:266`)
-and freezes it (`beMade`). `keyDataOf V`: mvcc's `KeyData` read off a visible (or batch) image.
+`meta`'s existence is mvcc's or not (`mvccFpM m`): the server creates `meta` before `mvcc.New`
+(`bootstrap.go:266`) and freezes it (`beMade`: `m = true`, footprint `mvccFp`); `examples/mvccrand`
+(`mvccrand.go:809-811`) hands `mvcc.New` a fresh backend, whose `NewStore` creates `meta` itself
+under its lock (`kvstore.go:121-123`): then `meta`'s existence cell is mvcc's too (`m = false`,
+footprint `mvccFp ∪ Fp.bkt metaBkt`; verify-round, A10-completeness F2, the mvcc group's request).
+`keyDataOfM m V`: mvcc's `KeyData` read off a visible (or batch) image (`metaMade` true when frozen,
+else the image's; `keyDataOf V = keyDataOfM true V`).
 `schemaBkts`: the schema's buckets as the backend's declared set (`New`'s `Bs`; `schemaBkts_ok`).
 
 ## The law
 
-`keyBackend_intro`: from the opener's resources on mvcc's part (its batch and visible images, equal
-outside a session; the delete right; `mvccReaderN` slots; an open share (`q` in the statement,
-`q0` below); `meta` made; mvcc's
+`keyBackend_intro`: from the opener's resources on mvcc's part `mvccFpM m` (its batch and visible
+images, equal outside a session; the delete right; `mvccReaderN` slots; an open share (`q` in the
+statement, `q0` below); `meta` made when `m`; mvcc's
 part disjoint from the hooks' cells) and the schema's buckets as the backend's (4b's `bucketAt` gives
 `bucketOk`, `New`'s `Bs` gives `beBkt`), a storage `B` whose value is the backend: the contract at the
 batch lock's `Pk`, mvcc's data at the visible image, the delete right, the slots, the whole open share
@@ -25,26 +30,35 @@ batch lock's `Pk`, mvcc's data at the visible image, the delete right, the slots
 (lendable to the lessor's write of cells mvcc does not track, and back), and the way back.
 
 Intended realization (`q0` the share handed over; `B`'s names hold `γ`, `q0` and a ghost cell `γB`):
-* `kbData B D := ∃ V, beVis γ mvccFp V ∗ ⌜D = keyDataOf V⌝ ∗ (∃ C, beCur γ mvccFp C ∗ ⌜Image.agree
-  mvccFp C V⌝ ∨ lockTok γB)` (between sessions the batch part is here; a session takes it out at its
-  lock's observation, leaving a token, and puts it back at its `Unlock`'s second update);
-* `kbLocked B q D0 D := ∃ S C, beSess γ (q * q0) mvccFp S ∗ beCur γ mvccFp C ∗ lockTok' γB ∗
-  ⌜D0 = keyDataOf S.base ∧ D = keyDataCur S C⌝` (the session widened to `mvccFp` at the lock,
-  `beSess_widen` of `Fp.none`; `keyDataCur S C`: `C`'s data, the buffer flag `S.base`'s cleared by a put
+(`Fm := mvccFpM m` below.)
+* `kbData B D := ∃ V, beVis γ Fm V ∗ ⌜D = keyDataOfM m V⌝ ∗ ((∃ C, beCur γ Fm C ∗ ⌜Image.agree
+  Fm C V⌝) ∨ (lockTok γB ∗ beTurn γ))` (between sessions the batch part is here; a session takes it
+  out at its lock's observation, leaving a token **and the session's turn** (verify-round,
+  A10-provability B1), and puts it back at its `Unlock`'s second update, whose atomic precondition
+  takes the turn from here in the same step). The lock rows close so: the new session's `Lock*`
+  gave a turn, so `kbData`'s parked case is refuted by `beTurn_excl` (no session begins before the
+  previous one's second update fired), and the observation finds `beCur` in `kbData`;
+* `kbLocked B q D0 D := ∃ S C, beSess γ (q * q0) Fm S ∗ beCur γ Fm C ∗ lockTok' γB q ∗
+  ⌜D0 = keyDataOfM m S.base ∧ D = keyDataCur m S C⌝` (the session widened to `Fm` at the lock,
+  `beSess_widen` of `Fp.none`; `keyDataCur m S C`: `C`'s data, the buffer flag `S.base`'s cleared by a put
   of `key`, as `Sess.mid`'s; so `KeyData.mid D0 D = keyDataOf S.mid` for a session that deleted no
   `key` it put, the delete row's premise (b), and `D = keyDataOf S.fin`);
-* `kbOpen B q := beOpen γ (q * q0)`; `kbLive B t p := beLive γ (loc t) p` (`btLoc γ`, `rtLoc γ`, a
+* `kbOpen B q := beOpen γ (q * q0) ∗ fracTok γB q` (a bridge-owned fraction, of which `kbLocked`
+  holds its `q` with `lockTok'`: the way back's whole `kbOpen B 1` excludes an outstanding
+  `kbLocked`, so `kbData` is in its batch case there: A10-provability B1's second part); `kbLive B t p := beLive γ (loc t) p` (`btLoc γ`, `rtLoc γ`, a
   concurrent one's `l`); `kbRead B rt D := ∃ V, beRd γ (loc rt) mvccFp V ∗ ⌜D = keyDataOf V⌝`;
   `kbRdToks B n := beRdToks γ n`; `kbBareSlot B := beRdToks γ 1`, `kbBare B := ∃ V, beRd γ (rtLoc γ)
   Fp.none V ∗ beLive γ (rtLoc γ) 1`; `kbSafe B := beDel γ`; `kbSafeHeld B := beDelHeld γ`;
-  `kbMade B b := beMade γ b.name` (`key`: by `beCur_freeze` once created; `meta`: the server's);
+  `kbMade B b := beMade γ b.name ∨ madeFlag γB b` (`key`, and `meta` when `m = false`: a monotone
+bridge flag set when the bucket is created in mvcc's part, which no row drops; `meta` when `m`: the
+server's `beMade`);
   `storageHook B dq f := beHook γ dq f`; `storageReq B Pk X Y := beReq γ Pk X Y`;
   `kbLent B H := □ (H -∗ ∃ q S, beSess γ q Fp.none S ∗ (beSess γ q Fp.none S -∗ H))` (the hook's
   session, 4a's (g), integration Y: so mvcc's `hookRun B Pk f Pre Q` gives 4a's `hookRun γ q Pk f Pre
   Q` at `H := beSess γ (q * q0) Fp.none S`, and a hook proved over 4a's `hookRun` at every share gives
-  mvcc's, `hookRun_mvcc` below); `mvccOn γ B` (persistent): a ghost record of the pair, in a global
+  mvcc's: the hook conversion, a conjunct of the law's post); `mvccOn γ B` (persistent): a ghost record of the pair, in a global
   map from the backend's names (one storage per backend: `keyBackend_intro` takes `beDel γ`);
-* `kbHeld B := ∃ q S, beSess γ q mvccFp S ∗ beLive γ (btLoc γ) 1 ∗ ⌜…⌝`, lent from `kbLocked` (with
+* `kbHeld B := ∃ q S, beSess γ q Fm S ∗ beLive γ (btLoc γ) 1 ∗ ⌜…⌝`, lent from `kbLocked` (with
   the session's liveness, `kbLocked_held`: the schema's `btView` holds it) with `lockTok'`'s other half
   (so the way back recovers the same share and a session that agrees with `S` on mvcc's cells:
   `heldBack`).
@@ -58,7 +72,8 @@ updates mvcc's nested ones through `kbData`'s realization: `keyDataOf S.mid = Ke
 the delete row's (b), `beOpen` back as `kbOpen B q`); the puts (`UnsafePut`/`UnsafeSeqPut.spec`:
 `Sess.fresh` from the row's freshness over `D0`, `D`; the entry bound `kbEntryMax = bboltEntryMax`;
 `writable` by `mvccFp`); the delete (`UnsafeDelete.spec`, `beDelHeld`); `UnsafeCreateBucket` (`key`:
-the `some (mvccFp, C)` case; `meta`: `none`, `beMade`); the batch range (`btRange` is `KeyData.range`;
+the `some (Fm, C)` case; `meta`: `none`, `beMade`, when `m`, else the `some (Fm, C)` case, setting
+the bridge's `madeFlag`); the batch range (`btRange` is `KeyData.range`;
 the bytes lent against `beLive`, as `kbLive`); `ConcurrentReadTx` (`beHookFp`, `Fp.disj mvccFp Fh`) and
 its single-key range (`lingerSingle` is `KeyData.linger`, `mvccFp` covers the key); the shared
 `RLock`/`RUnlock`/range (`rdRange` with `key` safe, `Fh` none of `key`'s cells: the plain cut when
@@ -70,7 +85,8 @@ close too); `ForceCommit` (`backend.ForceCommit.spec`); the safe-range lock; `Si
 4a's round-1 (g), lending the hook the session, is taken (integration Y): mvcc's `hookRun B` names
 the storage and lends `kbLent B H`. The server proves its hook once, over 4a's `hookRun γ q Pk f Pre Q`
 at every share (its `UnsafeConsistentIndex` reads through `beSess_rd`), and turns it into mvcc's by
-`hookRun_mvcc` (this law's post), into the lessor's by `LeaseBackend.lean`'s `beHookRun_intro`, into
+this law's hook conversion (a conjunct of its post), into the lessor's by `LeaseBackend.lean`'s
+`leaseHookRun_intro`, into
 the schema's by `SchemaTx.lean`'s `applyHook_intro`. The rows rest on 4a's backend specs as they now
 are; their own realization over 4c reads the bytes a range returned while the session writes (the
 compaction deletes the keys its range returned): 4c's liveness token `Bbolt.txLive` (integration Y),
@@ -105,16 +121,23 @@ def mvccFp : Fp :=
   Fp.union (Fp.bucket keyBkt)
     (Fp.union (Fp.key metaBkt (Mvcc.metaKey .sched)) (Fp.key metaBkt (Mvcc.metaKey .fin)))
 
-/-- **mvcc's data read off an image** (`meta` made: the server's). -/
-def keyDataOf (V : Image) : Mvcc.KeyData :=
-  { keyMade := V.made keyBkt, metaMade := true, keys := V.ents keyBkt,
+/-- **mvcc's part, `meta`'s existence included unless frozen** (`m`: `meta` made for good, the
+server's `beMade`). -/
+def mvccFpM (m : Bool) : Fp := if m then mvccFp else Fp.union mvccFp (Fp.bkt metaBkt)
+
+/-- **mvcc's data read off an image** (`m`: `meta` made for good, the server's; else the image's). -/
+def keyDataOfM (m : Bool) (V : Image) : Mvcc.KeyData :=
+  { keyMade := V.made keyBkt, metaMade := m || V.made metaBkt, keys := V.ents keyBkt,
     sched := V.ents metaBkt (Mvcc.metaKey .sched), fin := V.ents metaBkt (Mvcc.metaKey .fin),
     clean := V.clean keyBkt }
 
+/-- **mvcc's data read off an image with `meta` made** (the server's case). -/
+def keyDataOf (V : Image) : Mvcc.KeyData := keyDataOfM true V
+
 /-- **mvcc's data during a session `S` whose batch part is `C`**: `C`'s data, the `key` bucket's
 buffer flag the session's base's, cleared by a put of `key` (as `Sess.mid`'s). -/
-def keyDataCur (S : Sess) (C : Image) : Mvcc.KeyData :=
-  { keyDataOf C with clean := S.mid.clean keyBkt }
+def keyDataCur (m : Bool) (S : Sess) (C : Image) : Mvcc.KeyData :=
+  { keyDataOfM m C with clean := S.mid.clean keyBkt }
 
 /-- **A session given back unchanged on `F`**: the same base, the same batch cells and puts of `F`
 (a borrower of the lock wrote other cells only). -/
@@ -167,38 +190,41 @@ def mvccOn_val.spec : Prop := ∀ γ B,
 lessor's `beTxHeld`, `LeaseBackend.lean`): lent to a writer of cells mvcc does not track, and given
 back unchanged on mvcc's cells. -/
 def mvccOn_held.spec : Prop := ∀ γ B,
-  mvccOn (GF := GF) γ B ⊢ □ (Mvcc.kbHeld B -∗ ∃ (q' : Qp) (S : Sess), beSess γ q' mvccFp S ∗
-    beLive γ (btLoc γ) 1 ∗
-    ∀ S' : Sess, ⌜Sess.sameOn mvccFp S S'⌝ -∗ beSess γ q' mvccFp S' -∗ beLive γ (btLoc γ) 1 -∗
-      Mvcc.kbHeld B)
+  mvccOn (GF := GF) γ B ⊢ □ (Mvcc.kbHeld B -∗ ∃ (m : Bool) (q' : Qp) (S : Sess),
+    beSess γ q' (mvccFpM m) S ∗ beLive γ (btLoc γ) 1 ∗
+    ∀ S' : Sess, ⌜Sess.sameOn (mvccFpM m) S S'⌝ -∗ beSess γ q' (mvccFpM m) S' -∗
+      beLive γ (btLoc γ) 1 -∗ Mvcc.kbHeld B)
 
-/-- **etcd's backend is a storage for mvcc** (see the header). -/
+/-- **etcd's backend is a storage for mvcc** (see the header): `m` whether `meta` is made for good
+(the server's boot) or its existence is mvcc's too (a fresh backend, `examples/mvccrand`). -/
 def keyBackend_intro.spec : Prop :=
-  ∀ (γ : BeNames) (b : Loc) (p : GoString) (Pk : IProp GF) (C V : Image) (q : Qp) (Fh : Fp),
+  ∀ (γ : BeNames) (b : Loc) (p : GoString) (Pk : IProp GF) (C V : Image) (q : Qp) (Fh : Fp)
+    (m : Bool),
   isBackend γ b p Pk ∗
     (□ ∀ (bk : Schema.Bkt) (bv : GoInterface),
       Schema.bucketAt bk bv -∗ bkt γ bv ⟨bk.name, bk.id, bk.safe⟩) ∗
-    beHookFp γ Fh ∗ ⌜Fp.disj mvccFp Fh⌝ ∗ beMade γ metaBkt ∗
-    beCur γ mvccFp C ∗ beVis γ mvccFp V ∗ ⌜Image.agree mvccFp C V⌝ ∗
+    beHookFp γ Fh ∗ ⌜Fp.disj (mvccFpM m) Fh⌝ ∗ (if m then beMade γ metaBkt else iprop(True)) ∗
+    beCur γ (mvccFpM m) C ∗ beVis γ (mvccFpM m) V ∗ ⌜Image.agree (mvccFpM m) C V⌝ ∗
     beDel γ ∗ beRdToks γ Mvcc.mvccReaderN ∗ beOpen γ q
   ⊢ |={⊤}=> ∃ B : Mvcc.MvccStorage,
     ⌜GoInterface.ok (Mvcc.storageVal B) = beIface b⌝ ∗ Mvcc.keyBackend B Pk ∗
-    Mvcc.kbData B (keyDataOf V) ∗ Mvcc.kbSafe B ∗ Mvcc.kbRdToks B Mvcc.mvccReaderN ∗
+    Mvcc.kbData B (keyDataOfM m V) ∗ Mvcc.kbSafe B ∗ Mvcc.kbRdToks B Mvcc.mvccReaderN ∗
     Mvcc.kbOpen B 1 ∗ mvccOn γ B ∗
-    Mvcc.kbMade B .metaB ∗ (⌜C.made keyBkt = true⌝ -∗ Mvcc.kbMade B .keyB) ∗
+    (⌜m = true ∨ C.made metaBkt = true⌝ -∗ Mvcc.kbMade B .metaB) ∗
+    (⌜C.made keyBkt = true⌝ -∗ Mvcc.kbMade B .keyB) ∗
     -- the hook and the commit request are the backend's
     □ (∀ dq f, Mvcc.storageHook B dq f ∗-∗ beHook γ dq f) ∗
-    -- a hook proved over the backend's contract at every share is one over mvcc's (`hookRun_mvcc`)
+    -- a hook proved over the backend's contract at every share is one over mvcc's (the hook conversion)
     □ (∀ (f : GoFunc) (Pre Q : IProp GF), (∀ q, hookRun γ q Pk f Pre Q) -∗ Mvcc.hookRun B Pk f Pre Q) ∗
     □ (∀ (X : IProp GF) (Y : IProp GF), beReq γ Pk X Y -∗ Mvcc.storageReq B Pk X Y) ∗
     -- the lent lock is mvcc's session, lent to a writer of cells mvcc does not track (the
     -- lessor's lease delete under mvcc's transaction) and given back unchanged on mvcc's cells
-    □ (Mvcc.kbHeld B -∗ ∃ (q' : Qp) (S : Sess), beSess γ q' mvccFp S ∗ beLive γ (btLoc γ) 1 ∗
-        ∀ S' : Sess, ⌜Sess.sameOn mvccFp S S'⌝ -∗ beSess γ q' mvccFp S' -∗ beLive γ (btLoc γ) 1 -∗
-          Mvcc.kbHeld B) ∗
+    □ (Mvcc.kbHeld B -∗ ∃ (q' : Qp) (S : Sess), beSess γ q' (mvccFpM m) S ∗ beLive γ (btLoc γ) 1 ∗
+        ∀ S' : Sess, ⌜Sess.sameOn (mvccFpM m) S S'⌝ -∗ beSess γ q' (mvccFpM m) S' -∗
+          beLive γ (btLoc γ) 1 -∗ Mvcc.kbHeld B) ∗
     -- the way back, for the backend's close: the trackers at mvcc's last data
     □ (∀ (n : Nat), Mvcc.storageRest B n ={⊤}=∗ ∃ (V' C' : Image),
-        beVis γ mvccFp V' ∗ beCur γ mvccFp C' ∗ ⌜Image.agree mvccFp C' V'⌝ ∗
+        beVis γ (mvccFpM m) V' ∗ beCur γ (mvccFpM m) C' ∗ ⌜Image.agree (mvccFpM m) C' V'⌝ ∗
         beDel γ ∗ beRdToks γ n ∗ beOpen γ q)
 
 end laws

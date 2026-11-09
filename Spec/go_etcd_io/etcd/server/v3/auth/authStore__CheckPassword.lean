@@ -51,13 +51,13 @@ def authStore.CheckPassword.spec : Prop :=
     (App (App (Val (st @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty @!! go!"CheckPassword")) (Val #name)) (Val #pw))
   {{ (r : w64) (err : GoInterface), RET (PairV #r #err); threadTok ∗
       ∃ (jf jx : Nat) (af ax : AuthState), ⌜i0 ≤ jf ∧ i0 ≤ jx⌝ ∗ authAt γa jf af ∗ authAt γa jx ax ∗
-      ⌜(af.enabled = false ∧ r = W64 0 ∧ err = errOf .authNotEnabled) ∨
-       (af.enabled = true ∧ r = W64 0 ∧ err = errOf .authFailed ∧
-          (ax.users name = none ∨ ∃ ur c, ax.users name = some ur ∧ ur.password = some c ∧ ¬ pwMatch c pw)) ∨
-       (af.enabled = true ∧ r = W64 0 ∧ err = errOf .noPasswordUser ∧
-          ∃ ur, ax.users name = some ur ∧ ur.password = none) ∨
-       (af.enabled = true ∧ err = GoInterface.nil ∧ uint.nat r = ax.rev ∧
-          ∃ ur c, ax.users name = some ur ∧ ur.password = some c ∧ pwMatch c pw)⌝ }}
+      ((errIs .authNotEnabled err ∗ ⌜af.enabled = false ∧ r = W64 0⌝) ∨
+       (errIs .authFailed err ∗ ⌜af.enabled = true ∧ r = W64 0 ∧
+          (ax.users name = none ∨ ∃ ur c, ax.users name = some ur ∧ ur.password = some c ∧ ¬ pwMatch c pw)⌝) ∨
+       (errIs .noPasswordUser err ∗ ⌜af.enabled = true ∧ r = W64 0 ∧
+          ∃ ur, ax.users name = some ur ∧ ur.password = none⌝) ∨
+       ⌜af.enabled = true ∧ err = GoInterface.nil ∧ uint.nat r = ax.rev ∧
+          ∃ ur c, ax.users name = some ur ∧ ur.password = some c ∧ pwMatch c pw⌝) }}
 
 end spec
 end Auth

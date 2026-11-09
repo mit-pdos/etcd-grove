@@ -53,7 +53,7 @@ facts those frames carried for the `RawNode` layer are its phases (`rawNodeAt`, 
 receiver is a fact of its `msgSent`.
 
 **Margin.** Says nothing of the new view `ρ'` (the getters read it); a proposal dropped may still be
-forwarded and commit (R1's `propErr`); `ErrProposalDropped` is returned only for `MsgProp`.
+forwarded and commit (R1's `propErr`); `ErrProposalDropped` is returned only for `MsgProp`. Verify-round (A4 P3): a step from outside takes and gives back the struct's idle token (`stepPre`/`stepPost`, `coreIdle`).
 -/
 module
 
@@ -83,7 +83,7 @@ def raft.Step.spec : Prop :=
   ∀ (r : Loc) (γ : Cluster) (id : w64) (ρ : CoreView) (ml : Loc) (m : Msg) (src : StepSrc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftCore r γ id ρ ∗ stepMsg ml m ∗ stepPre r γ id m src }}
     (App (Val (r @!! go.GoType.PointerType go_etcd_io.raft.v3.raft.ty @!! go!"Step")) (Val #ml))
-  {{ (err : GoInterface), RET #err; ∃ ρ', raftCore r γ id ρ' ∗ stepPost γ m src ∗
+  {{ (err : GoInterface), RET #err; ∃ ρ', raftCore r γ id ρ' ∗ stepPost r γ m src ∗
       (⌜err = interface.nil⌝ ∨
         (⌜m.type = MsgProp⌝ ∗ errIs go_etcd_io.raft.v3.ErrProposalDropped err)) }}
 

@@ -13,7 +13,12 @@ old tree has a spec here; they mirror the code.
   key, page id (`0`: new), parent and children (locations), inodes (flags, page id, key, value).
 * `TxCore`: the write transaction's physical state: its txid, its meta's high-water mark and root,
   its node cache (`nodes`: every cached node's model, keyed by location; `bnodes`: the bucket
-  handles' caches merged), the pages it allocated (`tx.pages`).
+  handles' caches merged), the pages it allocated (`tx.pages`) and their buffers (`bufs`), the
+  bucket handles it caches with their paths (`bkts`) and roots (`roots`), the snapshot's pages
+  (`snap`) that the nodes not yet read stand for, and the view's non-physical parts (`managed`,
+  `noSync`, `base`, `gen`), which the abstraction relation compares with the view's (verify-round
+  A11 F9: without them `physRep T C` could not tell views apart that differ only there, and
+  `wtxCore_view` would identify a managed transaction with an unmanaged one).
 * `nodeSize`, `nodeInsIdx`, `NodeR.put`, `NodeR.del`, `minKeysOf`, `splitIdx`: the code's
   arithmetic on a node, transparent.
 * `DbM`: the `DB` fields the open/mmap/grow path reads and writes: open or not, the page size, the
@@ -23,8 +28,17 @@ old tree has a spec here; they mirror the code.
 
 * `wtxCore tx γ C` (exclusive): the write transaction's physical state `C`, all of its node cache
   (`boltTx tx γ 1 T` with `T.rw` is `∃ C, wtxCore tx γ C` with `physRep T C`: `wtxCore_view`).
-* `physRep T C` (an opaque `Prop`): the abstraction relation, `C`'s nodes over the mapped pages
-  represent `T.cur`.
+* `physRep T C` (an opaque `Prop`): the abstraction relation, `C`'s cached handles and nodes over
+  the snapshot's pages represent `T.cur` (each cached handle the bucket at its path; a bucket with
+  no cached handle by its parent's stored value), and `C`'s non-physical parts are `T`'s
+  (`physRep_meta`). Its laws (verify-round A11 F9) are the steps of the write path:
+  `physRep_set`/`physRep_del` (`node.put`/`node.del` at the key's leaf, `keyLeaf`, give the view
+  with the key set or removed), `physRep_delBkt` (`DeleteBucket`'s), `wtxCore_seq` (a handle's
+  sequence); the internal posts that only rearrange the cache keep it (`repKept`: materializing a
+  node, `node.free`, `Bucket.free`, `node.rebalance`, `node.spill`, the allocations).
+* `keyLeaf C p k n` (an opaque `Prop`): the cached node `n` is the leaf of the bucket at `p`'s tree
+  (its handle in `C`) where the key `k` belongs (the leaf its search path ends in). Stable under
+  `node.put`/`node.del` (they neither split nor merge; `spill`/`rebalance` do, at the commit).
 * `wtxAt tx γ T st`: the commit's stages (`CommitStage`), as before.
 * `txPage tx γ id p bs` (persistent): page `id` of `tx`'s snapshot is at `p` (in the mapping or
   `tx.pages`), its bytes `bs` (4d's decoders give its meaning: `BboltCommon.hdrOf`, `pageItems`).
@@ -78,7 +92,12 @@ structure NodeR where
   inodes : List InodeR
 
 /-- (internal) The write transaction's physical state (`roots b`: the bucket handle `b`'s
-`rootNode`, `none` while nil; integration I7, for `Bucket.inlineable`/`Bucket.write`). -/
+`rootNode`, `none` while nil; integration I7, for `Bucket.inlineable`/`Bucket.write`). Verify-round
+(A11 F9): `bufs id`, the buffer of the allocated page `id` (its location and bytes, while
+`wtxCore` holds it: `wtxCore_buf`); `bkts b`, the path of the cached bucket handle `b` (the root's,
+`tx.root`, at `[]`; the child caches'); `snap id`, the bytes of page `id` of the snapshot the
+transaction began at (the mapping's, fixed for its life); `managed`, `noSync`, `base`, `gen`: the
+view's non-physical parts. -/
 structure TxCore where
   txid : w64
   hwm : w64
@@ -86,6 +105,21 @@ structure TxCore where
   nodes : Loc → Option NodeR
   pages : List w64
   roots : Loc → Option Loc
+  bufs : w64 → Option (Loc × List w8)
+  bkts : Loc → Option BPath
+  snap : w64 → Option (List w8)
+  managed : Bool
+  noSync : Bool
+  base : Data
+  gen : BPath → Nat
+
+/-- (internal) The cache with the node at `n` set to `N`. -/
+def TxCore.setNode (C : TxCore) (n : Loc) (N : NodeR) : TxCore :=
+  { C with nodes := fun x => if x = n then some N else C.nodes x }
+
+/-- (internal) The generations of `p` and its ancestors in `C` (`TxView.gens`' counterpart). -/
+def TxCore.gens (C : TxCore) (p : BPath) : List Nat :=
+  (List.range (p.length + 1)).map (fun i => C.gen (p.take i))
 
 /-- `common.PageHeaderSize` and the element size (both 16). -/
 @[word_unfold] def hdrSize : Nat := 16
@@ -132,6 +166,14 @@ def splitIdx (N : NodeR) (th : Nat) : Nat × Nat :=
   if N.inodes.length ≤ 2 then (0, hdrSize)
   else go 0 hdrSize N.inodes (N.inodes.length - 2)
 
+/-- (internal) **A fresh page run** (`db.allocate`'s buffer): `cnt` pages of 4096 bytes (the page
+size `OptsM.ok` fixes), its header the id `id`, no flags, no elements, `cnt - 1` overflow pages
+(a pooled page is zeroed when returned to the pool, a larger one is `make`'s): what `node.write`'s
+`nodeWritable` and `freelist.Write` need of it. -/
+def freshPage (id cnt : w64) (bs : List w8) : Prop :=
+  bs.length = sint.nat cnt * 4096 ∧
+  BboltCommon.hdrOf bs = ⟨id, W16 0, W16 0, W32 (sint.Z cnt - 1)⟩
+
 /-- (internal) A `DB`'s fields on the open, mmap and grow paths. -/
 structure DbM where
   opened : Bool
@@ -158,6 +200,24 @@ opaque wtxCore [HasExt osFsExt] [hG : HeapGS HasLC.hasLC GF] (tx : Loc) (γ : Bo
 
 /-- (internal) The abstraction relation: `C` represents the view `T`. -/
 opaque physRep (T : TxView) (C : TxCore) : Prop
+
+/-- (internal) The cached node `n` is the leaf of the bucket at `p`'s tree where `k` belongs. -/
+opaque keyLeaf (C : TxCore) (p : BPath) (k : GoString) (n : Loc) : Prop
+
+/-- (internal) **`C'` represents every view `C` does** (the cache rearranged, the data the same). -/
+def repKept (C C' : TxCore) : Prop := ∀ T, physRep T C → physRep T C'
+
+/-- (internal) The key a cursor's state `st` is about at the view `T`: the sought key (`curPath`),
+or the key of the entry it is at. -/
+def curKey (T : TxView) (p : BPath) : Option Nat ⊕ GoString → GoString → Prop
+  | .inr k, k' => k' = k
+  | .inl (some i), k' => ∃ v, (T.ents p)[i]? = some (k', v)
+  | .inl none, _ => False
+
+/-- (internal) No handle at or below `q` is cached in `C` (`DeleteBucket` dropped the deleted
+bucket's handle from its parent's cache, its nested ones dropped by the recursion). -/
+def bktDropped (C : TxCore) (q : BPath) : Prop :=
+  ∀ b q', C.bkts b = some q' → q.isPrefixOf q' = false
 
 /-- (internal) Page `id` of `tx`'s snapshot is at `p` with bytes `bs` (persistent). Its
 realization keeps what 4d's page specs take (integration I7): `pageHeaderSize ≤ bs.length`, the
@@ -283,6 +343,18 @@ def inlineOk (N : NodeR) : Prop :=
 /-- (internal) A new empty leaf (`&node{isLeaf: true}`, `CreateBucket`'s inline bucket's root). -/
 def NodeR.emptyLeaf : NodeR := ⟨true, false, false, [], W64 0, Loc.null, [], []⟩
 
+/-- (internal) The value `CreateBucket` stores for a new bucket (`Bucket.write` of its fresh local:
+a zero header, then an empty leaf page). -/
+def emptyBktVal : GoString :=
+  BboltCommon.encInBucket ⟨W64 0, W64 0⟩ ++
+    nodePage (List.replicate (nodeSize NodeR.emptyLeaf) (W8 0)) NodeR.emptyLeaf
+
+/-- (internal) **What `node.put`'s flags and value store**, as an entry: a plain value (flags `0`),
+or a new empty bucket (`BucketLeafFlag`, `emptyBktVal`). -/
+def newEnt (fl : w32) (vb : GoString) (x : Ent) : Prop :=
+  (fl = W32 0 ∧ x = Ent.val vb) ∨
+  (fl = BboltCommon.bucketLeafFlag ∧ vb = emptyBktVal ∧ x = Ent.bkt (W64 0) [])
+
 end pages
 
 section pages_vocab
@@ -339,6 +411,74 @@ def bktVal_persistent.spec [HasExt osFsExt] : Prop :=
   ∀ tx γ p v, Persistent (bktVal (GF := GF) tx γ p v)
 
 end pages_laws
+
+/-! ## The abstraction relation's laws (verify-round A11 F9) -/
+
+section rep_laws
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [common_sem : go_etcd_io.bbolt.internal.common.Assumptions]
+
+/-- (internal) **The abstraction relation pins the view's non-physical parts** to `C`'s, and the
+view is a write transaction's, well-formed. -/
+def physRep_meta.spec : Prop :=
+  ∀ T C, physRep T C →
+    T.rw = true ∧ T.managed = C.managed ∧ T.noSync = C.noSync ∧ T.base = C.base ∧ T.gen = C.gen ∧
+    T.cur.wf
+
+/-- (internal) **`node.put` at the key's leaf sets the key** (`Bucket.Put`: a value, flags `0`;
+`CreateBucket*`: a new inline bucket's value, `BucketLeafFlag`; `newEnt`), the key not a nested
+bucket, within the bounds `Ent.wf` keeps. -/
+def physRep_set.spec : Prop :=
+  ∀ T C p k n N fl vb x, physRep T C → keyLeaf C p k n → C.nodes n = some N → newEnt fl vb x →
+    (T.cur.atPath (p.child k)).any Ent.isBkt = false → k ≠ [] → k.length ≤ maxKeySize →
+    (x.isBkt = false → k.length + vb.length ≤ bboltEntryMax) →
+    physRep (T.setCur (T.cur.modAt p (fun e => e.setKey k (some x))))
+      (C.setNode n (N.put k k vb (W64 0) fl))
+
+/-- (internal) **`node.del` at the key's leaf removes the key** (`Bucket.Delete`, `Cursor.Delete`),
+the key not a nested bucket. -/
+def physRep_del.spec : Prop :=
+  ∀ T C p k n N, physRep T C → keyLeaf C p k n → C.nodes n = some N →
+    (T.cur.atPath (p.child k)).any Ent.isBkt = false →
+    physRep (T.setCur (T.cur.modAt p (fun e => e.setKey k none))) (C.setNode n (N.del k))
+
+/-- (internal) **`DeleteBucket`'s `node.del` removes the nested bucket** once no handle at or
+below it is cached (`bktDropped`), with its path's generation bumped and those below reset
+(`TxView.dropBkt`). The view `T` here is the one the cache represents once the deleted bucket's
+handle is dropped (its contents as its parent's stored value has them: a realization step of
+`DeleteBucket`'s own body, `delete(b.buckets, key)`, `child.nodes = nil`, `child.rootNode = nil`);
+`dropBkt` of it is `dropBkt` of the view before (the bucket is gone either way). -/
+def physRep_delBkt.spec : Prop :=
+  ∀ T C p k n N s es, physRep T C → keyLeaf C p k n → C.nodes n = some N →
+    T.cur.atPath (p.child k) = some (Ent.bkt s es) → bktDropped C (p.child k) →
+    physRep (T.dropBkt p k) { C.setNode n (N.del k) with gen := (T.dropBkt p k).gen }
+
+/-- (internal) **A page buffer `wtxCore` holds is lent out and back** (`node.spill` writes a node
+into the page `tx.allocate` gave, `commitFreelist` the freelist; then `tx.write` writes them):
+taken with its bytes, given back with any bytes. -/
+def wtxCore_buf.spec [HasExt osFsExt] : Prop :=
+  ∀ tx γ C id pg bs, C.bufs id = some (pg, bs) →
+    (wtxCore (GF := GF) tx γ C ⊣⊢
+      wtxCore tx γ { C with bufs := fun x => if x = id then none else C.bufs x } ∗
+        bytesPointsto pg (DFrac.own 1) bs)
+
+/-- (internal) **A current handle's sequence** (`SetSequence`, `NextSequence`), once its root is
+materialized (`Bucket.node` at its root page with a nil parent: so `spill` writes its header): its
+`InBucket`'s points-to holds the bucket's counter, and storing `v` there sets it. -/
+def wtxCore_seq.spec [HasExt osFsExt] : Prop :=
+  ∀ tx γ C T b p gs, physRep T C → T.gens p = gs → (C.roots b).isSome = true →
+    wtxCore (GF := GF) tx γ C ∗ bktH tx γ b p gs ⊢
+      ∃ (l : Loc) (ib : go_etcd_io.bbolt.internal.common.InBucket),
+        structFieldRef go_etcd_io.bbolt.Bucket go!"InBucket" b ↦{DFrac.discard} l ∗ l ↦ ib ∗
+        ⌜ib.sequence' = ((T.cur.atPath p).map Ent.seq).getD (W64 0)⌝ ∗
+        ∀ v : w64, l ↦ ({ ib with sequence' := v } : go_etcd_io.bbolt.internal.common.InBucket) -∗
+          ∃ C' : TxCore, wtxCore tx γ C' ∗
+            ⌜physRep (T.setCur (T.cur.modAt p (fun e => e.setSeq v))) C'⌝
+
+end rep_laws
 
 end Bbolt
 end EtcdGrove

@@ -3,8 +3,8 @@
 code). **Users**: `Checkpoint`. **Proof sketch**: `le.cluster.Version()` (`clusterOk`, from
 `isLessor`: `nil` or a readable version), `greaterOrEqual(*cv, version.V3_6)` (`greaterOrEqual.spec`;
 `V3_6` is `api/v3/version`'s package variable, read from its initialization: 3h's), or
-`le.checkpointPersist` (read-only). `clusterOk` is still provisional (2e has no `RaftCluster.Version`
-spec). **Changes** (from `specs-ref`'s
+`le.checkpointPersist` (read-only). `clusterOk` is transparent since the verify round (A9 3c F3): the
+`Version()` triple, applied here. **Changes** (from `specs-ref`'s
 `lessor__shouldPersistCheckpoints.lean`): over `isLessor`. **Margin**: the answer.
 -/
 module

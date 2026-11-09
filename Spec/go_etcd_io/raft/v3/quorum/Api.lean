@@ -42,11 +42,16 @@ configuration, or of two configurations one change apart, share a voter (`jointQ
 by a majority of each half), `ReqJointVote` (a joint vote is won only with both halves),
 `ReqEmptyHalf` (an empty half does not constrain).
 
-## Limitation kept local
+## Limitation (not as local as intended)
 
 `CommittedIndex` sorts the acknowledged indices with `slices.Sort`, whose Perennial spec takes at
-most `2^62` elements (`sortMax`): a bound no Go program needs, kept as a premise of the two
-`CommittedIndex` specs only (PRINCIPLES, "Keep a tool's temporary limitation as local as possible").
+most `2^62` elements (`sortMax`): a bound no Go program needs. It was meant to stay a premise of the
+two `CommittedIndex` specs only (PRINCIPLES, "Keep a tool's temporary limitation as local as
+possible"), but every function that sorts ids carries it too: tracker's `Visit`, `ConfState`,
+`LearnerNodes`, `VoterNodes`, `QuorumActive`, and R3's `readOnly.maybeAdvance`. Their callers
+discharge it from the size of a configuration (confchange's `Membership.Valid`: fewer than `2^62`
+ids), which raft's own callers get from the open receipt-bound decision at `cluster_alloc` (R1's
+`ApiCore.lean`; verify round, A5-completeness second tier).
 -/
 module
 

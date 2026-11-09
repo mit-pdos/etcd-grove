@@ -15,6 +15,9 @@ synced-freelist clause for the next meta). The page itself was allocated, so it 
 nor pending; the base's freelist page, freed by `Commit` just before, is pending, so in the ids.
 Every free page is then among the new page's ids: the reload invariant (`Internal.lean`, "The
 freelist's side") for the meta this commit writes.
+**Verify-round (A11 F9).** The allocated page's buffer comes from `Tx.allocate`'s `C.bufs`
+(`freshPage`: the room `(est / 4096 + 1) * 4096`, an empty header), lent by `wtxCore_buf` to 4d's
+`freelist.Write` and taken back.
 -/
 module
 

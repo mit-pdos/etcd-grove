@@ -3,9 +3,9 @@
 
 **Users.** the three handlers.
 
-**Proof sketch.** `Header.Get`s, `serverVersion`, `minClusterVersion`, `checkVersionCompatibility`, `ID.String` (1c).
+**Proof sketch.** `Header.Get`s, `serverVersion`, `minClusterVersion`, `checkVersionCompatibility`, `ID.String` (1c). `types.ID`'s `String()` on an addressable `ID` (log fields, headers) is 1c's `Types.ID.String_ptr.spec` (Goose's pointer receiver).
 
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour.
+**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour. verify-round (brief item 3): the package's error variables' values come from `vars_init.spec` (each `errIs g e`, non-nil, `Http.errOk`; pairwise distinct by `errVars_distinct.spec`), not from Lean constants; statement unchanged. verify-round (second pass): the sketch cites `Types.ID.String_ptr.spec`.
 
 **Margin.** A request from a non-member with a malformed version header panics the handler, which `Serve` recovers (outside the closed world).
 -/

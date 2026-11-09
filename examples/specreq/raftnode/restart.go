@@ -23,7 +23,9 @@ func config(id uint64, s raft.Storage, preVote bool) *raft.Config {
 // Users: server/etcdserver/bootstrap.go:599 (newRaftNode, peers from bootstrapRaftFromCluster).
 // Assumes: the cluster was allocated with these peers' bootstrap log; id's durable state is empty
 // and vacant.
-// Specs: StartNode.spec, NewMemoryStorage.spec; laws: cluster_alloc.spec, memStor_isStorage.spec.
+// Specs: StartNode.spec, NewMemoryStorage.spec; laws: cluster_alloc.spec, memStor_isStorage.spec;
+// peersPts (a definition over the []Peer slice and its contexts: the caller's own slice); a nil
+// logger (Config.validate takes the package logger, raft_init.spec's raftLoggerMu invariant).
 func ReqStartFresh(id uint64, peers []raft.Peer) raft.Node {
 	if len(peers) == 0 {
 		panic("no peers")
@@ -62,4 +64,38 @@ func ReqStopRestart(n raft.Node, id uint64, ms *raft.MemoryStorage) raft.Node {
 	n.Stop()
 	n.Stop()
 	return raft.RestartNode(config(id, ms, false))
+}
+
+// quietLogger is the examples' logger (kv/cluster.go:157, kvreconf/cluster.go:159, kvdurable): it
+// drops everything.
+type quietLogger struct{}
+
+func (quietLogger) Debug(v ...interface{})                   {}
+func (quietLogger) Debugf(format string, v ...interface{})   {}
+func (quietLogger) Error(v ...interface{})                   {}
+func (quietLogger) Errorf(format string, v ...interface{})   {}
+func (quietLogger) Info(v ...interface{})                    {}
+func (quietLogger) Infof(format string, v ...interface{})    {}
+func (quietLogger) Warning(v ...interface{})                 {}
+func (quietLogger) Warningf(format string, v ...interface{}) {}
+func (quietLogger) Fatal(v ...interface{})                   { panic("fatal") }
+func (quietLogger) Fatalf(format string, v ...interface{})   { panic("fatal") }
+func (quietLogger) Panic(v ...interface{})                   { panic("panic") }
+func (quietLogger) Panicf(format string, v ...interface{})   { panic("panic") }
+
+// REQ raftnode/client-logger: a client-defined logger is passed to raft, in a Config and as the
+// package logger; raft calls its formatting methods (not Fatal/Panic) on reachable paths.
+// Users: server/etcdserver/bootstrap.go:591 (NewRaftLoggerZap in Config.Logger), raft.go:138
+// (raft.SetLogger); examples/raft/kv/cluster.go:157, kvreconf/cluster.go:159 (quietLogger{}).
+// Assumes: as ReqStartFresh.
+// Specs: StartNode.spec, SetLogger.spec; loggerOk (a definition: the logger's Debugf, Infof,
+// Warningf, Errorf and Error return, which quietLogger's empty bodies give).
+func ReqClientLogger(id uint64, peers []raft.Peer) raft.Node {
+	raft.SetLogger(quietLogger{})
+	c := config(id, raft.NewMemoryStorage(), true)
+	c.Logger = quietLogger{}
+	if len(peers) == 0 {
+		panic("no peers")
+	}
+	return raft.StartNode(c, peers)
 }

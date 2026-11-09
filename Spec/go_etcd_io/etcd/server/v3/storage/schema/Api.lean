@@ -105,7 +105,7 @@ hooks (2e: `MustUnsafeSaveConfStateToBackend`). Snippets: `examples/specreq/sche
 
 `bucketAt_persistent`, `bucketVars_init`, `keyNames_init`, `leaseMsg_of_struct`,
 `leaseMsg_to_struct`, `alarmBkt_timeless`, `memberBkts_timeless`, `alarmBkt_excl`,
-`memberBkts_excl`, `alarmEnts_empty`, `memberEnts_empty`. The laws relating the schema to the
+`memberBkts_excl`, `schema_norm` (second pass), `alarmEnts_empty`, `memberEnts_empty`. The laws relating the schema to the
 backend (`bucketAt` gives `Backend.bucketOk`, the safe-range registry, the bundles, `applyHook`,
 `alarmBkt`, `memberBkts`) are in `backend/SchemaTx.lean`: the schema does not import the backend.
 -/
@@ -613,6 +613,18 @@ def alarmBkt_excl.spec : Prop := ∀ be al al',
 def memberBkts_timeless.spec : Prop := ∀ be st, Timeless (memberBkts (GF := GF) be st)
 def memberBkts_excl.spec : Prop := ∀ be st st',
   memberBkts (GF := GF) be st ∗ memberBkts be st' ⊢ iprop(False)
+
+/-- **The schema's message models survive the wire view `Proto.norm`** (second pass, grpc-v3rpc's
+request, as raftpb's `raftpb_norm`): `leasepb.Lease`, `authpb.User`/`Role` and
+`etcdserverpb.AlarmMember` are proto3 messages whose modelled fields are scalars, strings and
+`bytes`; `norm` unsets an implicit-presence field at its zero value and replaces an empty repeated
+field or `bytes` by `nil`, and Go reads an unset field as its zero (a `nil` slice as empty), so the
+fields the models read are the same. True of the decodings 3h states (the models are opaque here:
+`leaseModel`, `userName`, `roleName`, `alarmMemberIs`). -/
+def schema_norm.spec : Prop := ∀ (c : Proto.Content),
+  leaseModel (Proto.norm c) = leaseModel c ∧ userName (Proto.norm c) = userName c ∧
+  roleName (Proto.norm c) = roleName c ∧
+  ∀ a, alarmMemberIs (Proto.norm c) a ↔ alarmMemberIs c a
 
 /-- An empty `Alarm` bucket holds no alarm (`CreateAlarmBucket` on a fresh member). -/
 def alarmEnts_empty.spec : Prop := alarmEnts BData.empty []

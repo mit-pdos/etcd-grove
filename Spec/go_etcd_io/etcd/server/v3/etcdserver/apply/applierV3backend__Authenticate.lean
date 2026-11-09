@@ -4,15 +4,18 @@
 **Users.** `uberApplier.dispatch` through the chain (promoted methods of the outer layers).
 
 **Proof sketch.** `ConsistentIndex()` (`ciOk`, with `R`: the applying index `idx`, `nextOk`'s
-`authnIdx`); `context.WithValue` twice, giving 3d's `Auth.authnCtx γa ctx name idx` (from `authnIdx`'s
-`tokenUser γ (tok.idx) name`); 3d's `authStore.Authenticate` with `Auth.tokFrom γa n` (`n < idx`, held in
+`authnIdx`); `context.WithValue` twice over `Background()`, giving the two `ctxValIs` of 3d's
+`Auth.authnCtx γ ctx name idx` (transparent; client-core's `WithValue` value law), with `authnIdx`'s
+`tokenUser γ (simpleTok tok idx) name`; 3d's `authStore.Authenticate` with `Auth.tokFrom γa n` (`n < idx`, held in
 `stAt`'s `authSt`; back at `idx`): auth off, `ErrAuthFailed`, or a token `tokenUser`-registered;
 the state unchanged (`opStep_authenticate`); `newHeader`. 3d's fourth outcome, the token
 provider's error for a user with a password (`err ≠ nil`, `resp = nil`: the no-op provider always,
 JWT on signing), is the step's `.ok .authenticate` with the provider's error as the reply
 (`replyAt_result`'s authenticate disjunct; `provErrResult` in the result).
 
-**Changes** from `specs-ref`'s `applierV3backend__Authenticate.lean`: the old triple over the chain's `AEnv`, the mvcc log and the write tokens (`putPre`, `kvPostF`, `mPostW`, ...) restated over the model state (`stAt`, `layersStep`): any auth mode, leases, compaction
+**Changes** from `specs-ref`'s `applierV3backend__Authenticate.lean`: the old triple over the chain's `AEnv`, the mvcc log and the write tokens (`putPre`, `kvPostF`, `mPostW`, ...) restated over the model state (`stAt`, `layersStep`): any auth mode, leases, compaction.
+verify-round (lease-auth's request): `authnCtx` is 3d's transparent one over the cluster `γ`; the
+statement is unchanged.
 
 **Margin.** The header's other fields (cluster, member, term, leader) any. A token provider's
 error is any non-`nil` error (the coordinator's decision, I5: true of the code, no provider flag).

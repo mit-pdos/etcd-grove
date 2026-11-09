@@ -2,12 +2,18 @@
 `db.Stats()` (`db.go`): a copy of the statistics under `statlock`'s read lock.
 
 **Users.** `backend.defrag`'s size (`backend.go:606`: `db.Stats().FreePageN` right after
-`Begin(false)`), and the backend's metrics. Snippet: `ReqBackendRead`.
+`Begin(false)`), `backend.begin(true)` right after `Begin(true)` (`backend.go:1086-1098`, every
+batch commit: holding only the write transaction), and the backend's metrics. Snippets:
+`ReqBackendRead`, `ReqBackendBatch`.
 
 **Proof sketch.** `statlock.RLock` on a reader slot: the caller's `threadTok`, or the slot pair a
-read transaction's token bought (`statSlot`, the old D2); copy the struct; release.
+read transaction's token bought (`statSlot`, the old D2), or, for a write transaction, the spare
+`statlock` slot `isBolt` keeps for the writer (it holds `rwlock`: no other writer can use it);
+copy the struct; release.
 
-**Changes.** Unchanged (`statSlot` over a read transaction's view).
+**Changes.** Verify-round (A11-completeness F4): `statSlot (some (tx, T))` accepts a write
+transaction too (`statSlot_wtx`); was a read transaction's only, leaving the backend's
+`begin(true)` with no slot to pay.
 
 **Margin.** The statistics' values are not described.
 -/

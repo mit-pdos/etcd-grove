@@ -43,7 +43,9 @@ func ReqSendOrSnapshot(l *raftLog, next uint64, maxSize entryEncodingSize) {
 // REQ raftlog/conflict-hint: the probing hint is at most the index probed, and every entry
 // between it and the probe has a larger term.
 // Users: raft.go:1519 (stepLeader's MsgAppResp reject), raft.go:1839 (handleAppendEntries).
-// Assumes: index >= committed (both callers), so no re-read is below the compaction floor.
+// Assumes: nothing of compaction: findConflictByTerm walks below committed, so the hint may be below
+// the compaction floor, and a re-read there may answer ErrCompacted (the callers use the hint only as
+// a hint). (Verify-round, A5 F5: the snippet assumed the re-reads stay above the floor.)
 // Specs: raftLog.findConflictByTerm.spec, raftLog.term.spec.
 func ReqConflictHint(l *raftLog, index, term uint64) {
 	hint, hintTerm := l.findConflictByTerm(index, term)
@@ -54,7 +56,11 @@ func ReqConflictHint(l *raftLog, index, term uint64) {
 		panic("conflict-hint: term too large")
 	}
 	for j := hint + 1; j <= index; j++ {
-		if t, err := l.term(j); err != nil || t <= term {
+		t, err := l.term(j)
+		if err == ErrCompacted {
+			continue
+		}
+		if err != nil || t <= term {
 			panic("conflict-hint: skipped a candidate")
 		}
 	}

@@ -3,9 +3,9 @@
 
 **Users.** `startPeer`, `startRemote`.
 
-**Proof sketch.** `stopc`, `msgc` (`msgChanAt`), `wg.Add(4)` (the wait group backed by the workers' thread tokens: Perennial's `tokJoin`), four forks of `handle` with a `pipeWorker` each.
+**Proof sketch.** `stopc`, `msgc` (`msgChanAt`), `wg.Add(4)` (the wait group backed by the workers' thread tokens: Perennial's `tokJoin`), four forks of `handle` with a `pipeWorker` each. `types.ID`'s `String()` on an addressable `ID` (log fields, headers) is 1c's `Types.ID.String_ptr.spec` (Goose's pointer receiver).
 
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour. The four `R`s are gone.
+**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour. The four `R`s are gone. verify-round (second pass): the sketch cites `Types.ID.String_ptr.spec`.
 
 **Margin.** None.
 -/

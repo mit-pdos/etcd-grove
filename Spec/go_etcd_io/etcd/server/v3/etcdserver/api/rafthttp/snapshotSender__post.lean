@@ -5,7 +5,7 @@
 
 **Proof sketch.** `WithCancel`, `WithContext`, a goroutine doing `RoundTrip` (with the request's knowledge and ticket), a `time.AfterFunc` closing the body on a timeout (`readerCloser`), `io.ReadAll`, a result channel of capacity 1; a `select` on `stopc` (`errStopped`) and the result; `checkPostResponse`.
 
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour.
+**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour. verify-round (brief item 3): the package's error variables' values come from `vars_init.spec` (each `errIs g e`, non-nil, `Http.errOk`; pairwise distinct by `errVars_distinct.spec`), not from Lean constants; statement unchanged.
 
 **Margin.** None.
 -/

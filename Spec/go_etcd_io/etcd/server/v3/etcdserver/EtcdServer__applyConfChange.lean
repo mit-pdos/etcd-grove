@@ -40,6 +40,8 @@ the ghost log): over `applyAt`; the decision is R1's `confDecide` (was etcd's ow
 **Margin**: `removed` is `true` iff an accepted `RemoveNode` names this member; the post does not say
 so. A refusal's error is the membership's (2e's `ErrIDRemoved`, `ErrIDExists`, ...): the post says
 only that it is not `nil`.
+
+Changes: verify-round: takes and gives back the thread's `threadTok` (A7-provability F2: `s.Logger()`, `createMergedSnapshotMessage`, `newSnapshotReaderCloser` take one). `run`'s is the fresh token of `start`'s `go s.run()` (Perennial's `wp_fork_tok_body`); the apply jobs' is the scheduler worker's, lent to each job (`Schedule.funcOk`). The `srvMember` that `Logger` takes comes from `srvNode_member`.
 -/
 module
 
@@ -77,10 +79,10 @@ def EtcdServer.applyConfChange.spec : Prop :=
       Raft.committedLb γ.raft l ∗
       ⌜0 < k ∧ l[k - 1]? = some e ∧ e.type = Raft.EntryConfChange ∧
         Raft.decodeConfChange e.type e.data = some (.v1 cc) ∧ v3 = applyV3 c k ∧
-        (v3 = true → ai = k)⌝ }}
+        (v3 = true → ai = k)⌝ ∗ threadTok }}
     (App (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!!
       go!"applyConfChange")) (Val #ccp)) (Val #ep)) (Val #v3))
-  {{ (removed : Bool) (err : GoInterface), RET (PairV #removed #err);
+  {{ (removed : Bool) (err : GoInterface), RET (PairV #removed #err); threadTok ∗
       applyAt s γ ep p k (if v3 then k else c) ai ∗
       ⌜err = interface.nil ∨ removed = false⌝ }}
 

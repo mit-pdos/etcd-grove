@@ -26,8 +26,9 @@ var _ rh.Raft = (*Receiver)(nil)
 
 // REQ rafthttp/receive: Process is called with a fresh message some member's transport was given
 // by Send (or SendSnapshot) with its raft facts (msgSent, its credit), each message at most once:
-// a message addressed here is stepped with node.Step's precondition, whose only errors are node
-// errors. (A proposal may still reach a member twice as two messages: raft re-forwards a forwarded
+// a message addressed here is stepped with node.Step's precondition (raftOk hands Process the
+// message as msgRecv: fresh, owned with its Entries capacity, as node.Step takes it), whose only
+// errors are node errors. (A proposal may still reach a member twice as two messages: raft re-forwards a forwarded
 // proposal, each hop with the credit it received; the transport only never duplicates a message.)
 // Users: server/etcdserver/server.go:702-722 (EtcdServer.Process: removed sender, To mismatch:
 // 403; else node.Step), rafthttp's pipeline and snapshot handlers and the peers' Process loops.

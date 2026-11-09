@@ -3,9 +3,9 @@
 
 **Users.** etcd's `applyConfChange` (`server.go:2101`, `ConfChangeUpdateNode`). Snippet: `transport.go` (`ReqMembership`).
 
-**Proof sketch.** `Lock`; an unknown id: return. `NewURLs`; `peer.update` (the picker's URLs replaced: each host a peer address); the probes re-added; `Unlock`.
+**Proof sketch.** `Lock`; an unknown id: return. `NewURLs`; `peer.update` (the picker's URLs replaced: each host a peer address); the probes re-added; `Unlock`. `types.ID`'s `String()` on an addressable `ID` (log fields, headers) is 1c's `Types.ID.String_ptr.spec` (Goose's pointer receiver).
 
-**Changes.** Restated over `peerAddr` (was `trURLsOk`/the network directory `γn.dir`: the URLs had to be the member's own; delivery to another member is now harmless, `Process` checks `To`).
+**Changes.** Restated over `peerAddr` (was `trURLsOk`/the network directory `γn.dir`: the URLs had to be the member's own; delivery to another member is now harmless, `Process` checks `To`). verify-round (second pass): the sketch cites `Types.ID.String_ptr.spec`.
 
 **Margin.** The peer set is not tracked in the statement (no client needs it).
 -/

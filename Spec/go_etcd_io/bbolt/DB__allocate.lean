@@ -11,6 +11,9 @@ the high-water mark and a remap.
 negative `int` meets (then `make` panics and `Allocate`'s `0 < sint.Z n` fails); now
 `0 < sint.Z cnt < 2 ^ 32` (`make`'s size, and the overflow stored as a `uint32`). Callers meet
 it: a spilled node is below `2 ^ 32` bytes, the freelist page below `2 ^ 36 * 8` bytes.
+Verify-round (A11 F9): the post gives the buffer (`freshPage`: the id, the overflow, an empty
+header; a pooled page is zeroed when `tx.write` returns it to the pool) to `Tx.allocate`, which
+records it in `tx.pages` (`C.bufs`), and keeps the abstraction relation (`repKept`).
 -/
 module
 
@@ -38,7 +41,12 @@ def DB.allocate.spec : Prop :=
   ∀ [HasExt osFsExt] (tx : Loc) (db : Loc) (γ : BoltName) (C : TxCore) (txid cnt : w64),
   {{ wtxCore (GF := GF) tx γ C ∗ txDB tx db ∗ ⌜0 < sint.Z cnt ∧ sint.Z cnt < 2 ^ 32⌝ }}
     (App (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"allocate")) (Val #txid)) (Val #cnt))
-  {{ (pg : Loc) (err : GoInterface), RET (PairV #pg #err); ∃ C' : TxCore, wtxCore tx γ C' ∗ ⌜uint.nat C.hwm ≤ uint.nat C'.hwm⌝ }}
+  {{ (pg : Loc) (err : GoInterface), RET (PairV #pg #err); ∃ C' : TxCore, wtxCore tx γ C' ∗
+      ⌜uint.nat C.hwm ≤ uint.nat C'.hwm ∧ repKept C C' ∧ C'.pages = C.pages ∧ C'.bufs = C.bufs⌝ ∗
+      (⌜err ≠ GoInterface.nil⌝ ∨
+       (⌜err = GoInterface.nil⌝ ∗ ∃ (id : w64) (bs : List w8), bytesPointsto pg (DFrac.own 1) bs ∗
+         ⌜freshPage id cnt bs ∧ id ∉ C.pages ∧ 2 ≤ uint.nat id ∧
+           uint.nat id + uint.nat cnt ≤ uint.nat C'.hwm⌝)) }}
 
 end spec
 

@@ -2,6 +2,10 @@
 `b.SetSequence(v)` (`bucket.go`). **Users.** None in etcd. Snippet: `ReqNested`.
 **Proof sketch.** Not writable: error; materialize the root node (so `spill` writes the bucket
 header); `SetInSequence`. **Changes.** New.
+**Proof sketch in the internal vocabulary** (verify-round, A11 F9). `Bucket.node` of the root
+page with a nil parent if `rootNode` is nil (`repKept`, the root then materialized); `wtxCore_seq`
+gives the handle's `InBucket` points-to; 4d's `InBucket.SetInSequence`; the wand gives `physRep`
+of the view with the counter set.
 -/
 module
 

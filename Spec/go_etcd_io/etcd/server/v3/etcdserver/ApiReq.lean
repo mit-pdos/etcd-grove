@@ -7,7 +7,7 @@ gives its callers: the gRPC handlers (2a), the server's own internal requesters 
 revocations and checkpoints, the compactor, the alarms, `publishV3`, the cluster version, the
 health checks: 2d/2e). Namespace `EtcdServer`, shared with the apply thread (2d, `ApiApply.lean`)
 and the lifecycle (2e, `ApiBoot.lean`, whose `isServer s γ` is the handle every spec here takes).
-The error values are in `errors/Api.lean` (`srvErrOf`, `srvErrVal`, `srvErrShape`, `srvIndef`,
+The error values are in `errors/Api.lean` (`srvErr`, `sentinelAt`, `srvErrShape`, `srvIndef`,
 `srvUnfired`).
 
 ## The shape, in words
@@ -19,7 +19,7 @@ back one of three outcomes (`SrvCallTriple`):
 
 1. **fired**: the update fired once (a write: at its entry's commit, with the answer its apply
    computes; a read: at the state the member read), and the reply is that answer: the reply message
-   on success, or a server error of the answer's `EtcdErr` (`srvErrOf`);
+   on success, or a server error of the answer's `EtcdErr` (`srvErr`);
 2. **not fired, given back** (`srvUnfired`): the request never took effect and never will (a
    refusal before proposing: too many requests, too large, an invalid token; a stale auth revision
    at the apply, which the client's interceptor resends; an error before anything was proposed);
@@ -69,15 +69,28 @@ holds.
   depth bound: `issues/etcd-txn-nested-depth-apply-panic.md`), `irrBackOk`, `respTy`,
   `irrReply`, `irrOwn p dq ir` (3h's, integration X), `applyResult` (its trace
   4b's `traceOpt`).
-* `reqCtxOk ctx` (4b's `ctxTraceIs ctx none`, otel's `ctxSpanOk`): the request context's tracing,
-  in every spec's pre; `ctxTrace ctx` (the context's trace, owned: `doSerialize`).
-* `txnChecked t` (pure, opaque; provisional, 2a's: `checkTxnRequest`'s `nil`) with the
+* `reqCtxOk ctx` (4b's `ctxTraceIs ctx none`, otel's `ctxSpanOk`): the tracing of the context
+  a request-path method is called with (the methods that call `EnsureTrace`: `EnsureTrace` keeps a
+  trace it finds only given its emptiness, which a caller does not know, so their callers' contexts
+  carry none: the gRPC handlers' `rpcCtx_reqCtxOk`, the internal requesters' children of `s.ctx`);
+  `reqCtxSpan ctx` (otel's `ctxSpanOk` only, **any** trace): what the inner calls made after an
+  `EnsureTrace` need (`AuthInfoFromCtx`, `raftRequest`, `processInternalRaftRequestOnce`: they read
+  no trace; verify round, A7-provability F5), `reqCtxOk_span`; `ctxTrace ctx` (the context's trace,
+  owned: `doSerialize`).
+* `txnChecked t` (pure, opaque; 2a's: `checkTxnRequest`'s `nil`, 2a's `txnCheck_checked`) with the
   introduction `txnChecked_small` (a flat transaction of at most one comparison and one operation per
   branch, each valid).
 * `rangeStreamOk r` (pure): the default order and no revision filters (`checkRangeStreamRequest`).
-* `alarmReqOwn p dq ir` (3h's), `rsSink rs γ p r ms` (provisional, 2a's: a range stream's
-  send end), `srvWatchable s γ w` (provisional, 2d's and 3f's) with `srvWatchable_persistent`,
-  `srvWatchable_mvcc`.
+* `alarmReqOwn p dq ir` (3h's), `rsSink rs γ p r ms` (2a's laws: a range stream's send end),
+  `srvWatchable s γ w` (2d's and 3f's) with `srvWatchable_persistent`, `srvWatchable_mvcc`,
+  `srvWatchable_hist`.
+* `replyHdrOwn p b` (exclusive, opaque): a reply message whose header the server set (non-`nil`):
+  the lease methods' replies (`srvHdrReply`), whose gRPC handlers call `hdr.fill(resp.Header)`,
+  which panics on a `nil` header (verify round, A6-provability F1); `replyHdrOwn_replyOwn`,
+  `replyHdrOwn_header`. (`Alarm`'s reply may have none: `apply`'s `AlarmResponse{}`; its handler
+  checks.)
+* `reqPrin_root`: the principal of the lessor's revocations' `WithRoot(s.ctx)` (verify round,
+  A7-completeness F5).
 * `SrvCallTriple e P B γ p tls rq rep reply`: the three-outcome call shape.
 * `txnMsgDepth` (3h's).
 
@@ -111,6 +124,7 @@ public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.apply
 public import GeneratedProof.google_golang_org.grpc.peer
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.Api
 public import Spec.go_opentelemetry_io.otel.trace.Api
+public import Spec.go_etcd_io.etcd.server.v3.lease.leasehttp.Api
 
 set_option autoImplicit false
 
@@ -184,6 +198,11 @@ opaque txnChecked (t : TxnReq) : Prop
 written twice on a path, the fork's fix of `issues/etcd-txn-delete-then-ignore-put.md`; 3b's
 request, integration I3 item (e)). -/
 def txnChecked_safe.spec : Prop := ∀ (t : TxnReq), txnChecked t → Txn.txnSafe t
+
+/-- **The gRPC layer's checks admit a transaction to the apply** (3a's `Apply.txnAdmitted`: valid,
+`txnSafe`, every branch's run putting each key once; verify round, apply-txn's request: the apply
+thread's `ir.op.ok` for a transaction, `isUber_apply`'s premise, has its source here). -/
+def txnChecked_admitted.spec : Prop := ∀ (t : TxnReq), txnChecked t → Apply.txnAdmitted t
 
 /-- A flat valid operation: a range, put or delete W0's `RequestOp.valid` accepts. -/
 def opFlatValid : RequestOp → Prop
@@ -263,8 +282,8 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG 
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
 /-- The read loop's errors are unsettled ones (`ErrStopped`, `ErrLeaderChanged`, `ErrTimeout`;
-raft's `ErrStopped`, unmapped; a context's error, never mapped: `srvErrOf_notCtx`). -/
-def readErr_indef.spec : Prop := ∀ err, Read.readErr (GF := GF) err ⊢ ⌜srvIndef err⌝
+raft's `ErrStopped`, unmapped; a context's error, never mapped: `srvErr_notCtx`). -/
+def readErr_indef.spec : Prop := ∀ err, Read.readErr (GF := GF) err ⊢ srvIndef err
 
 /-- The read loop's errors have the returned errors' shape. -/
 def readErr_shape.spec : Prop := ∀ err, Read.readErr (GF := GF) err ⊢ srvErrShape err
@@ -307,6 +326,16 @@ def ctxNoIncoming_value.spec : Prop := ∀ (ctx ctx' : GoInterface) (ki : GoInte
   ctxNoIncoming (GF := GF) ctx ∗ Context.ctxValueAt ctx ctx' (GoInterface.ok ki) ∗
     ⌜ki.ty ≠ google_golang_org.grpc.metadata.mdIncomingKey.ty ∧
       ki.ty ≠ google_golang_org.grpc.peer.peerKey.ty⌝ ⊢ ctxNoIncoming ctx'
+
+/-- **The root context of the lessor's revocations** (verify round, A7-completeness F5): 3d's
+`WithRoot(ctx)` of a context without incoming metadata or peer (`s.ctx`) carries a token the
+cluster issued to `root` and no certificate's name: its principals are `root` and none. (The
+context's tracing, `reqCtxOk`, needs 3d's `WithRoot` post to say `ctx'` is a value-child of `ctx`
+at the incoming-metadata key: requested.) -/
+def reqPrin_root.spec : Prop := ∀ (γ : Cluster) (ctx ctx' : GoInterface) (tok : GoString),
+  ctxNoIncoming (GF := GF) ctx ∗ Auth.ctxToken ctx' (some tok) ∗ tokenUser γ tok rootUser ∗
+    □ (∀ c, Auth.ctxPeerCN ctx c -∗ Auth.ctxCertUser ctx' c) ⊢
+      reqPrin ctx' (some rootUser) none
 
 /-! ### Messages and slots -/
 
@@ -351,6 +380,14 @@ Persistent; the incoming gRPC context's (2a), the internal requesters' (`ctxTrac
 def reqCtxOk (ctx : GoInterface) : IProp GF :=
   iprop(TraceUtil.ctxTraceIs ctx none ∗ OtelTrace.ctxSpanOk ctx)
 
+/-- **The tracing an inner request-path call needs** (`AuthInfoFromCtx`, `raftRequest`,
+`processInternalRaftRequestOnce`: they read no `traceutil` trace, only the otel span; any trace,
+in particular the one the outer method's `EnsureTrace` installed). Persistent; kept by children and
+`WithValue`s (otel's `ctxSpanOk_child`, `_value`). Verify round, A7-provability F5. -/
+def reqCtxSpan (ctx : GoInterface) : IProp GF := iprop(OtelTrace.ctxSpanOk ctx)
+
+def reqCtxOk_span.spec : Prop := ∀ ctx, reqCtxOk (GF := GF) ctx ⊢ reqCtxSpan ctx
+
 /-- **The trace a context carries, owned** (`doSerialize`'s `traceutil.Get`: the trace the caller's
 `EnsureTrace` installed). -/
 def ctxTrace (ctx : GoInterface) : IProp GF :=
@@ -377,8 +414,53 @@ server error of the answer's `EtcdErr`, with its shape. -/
 def srvReply (reply : Resp → Loc → GoInterface → IProp GF) (res : Resp) (resp : Loc)
     (err : GoInterface) : IProp GF :=
   match res with
-  | .err e => iprop(⌜resp = null ∧ srvErrOf err e⌝ ∗ srvErrShape err)
+  | .err e => iprop(⌜resp = null⌝ ∗ srvErr err e ∗ srvErrShape err)
   | .ok _ => reply res resp err
+
+/-- **A reply message whose header the server set** (non-`nil`; owned): `replyOwn p b` with its
+`Header` field pointing to a header message. The lease methods' replies (the apply's
+`LeaseGrantResponse`/`LeaseRevokeResponse` carry `newHeader()`, `LeaseLeases` `s.newHeader()`,
+`LeaseTimeToLive` a `ResponseHeader{}` or the leader's): their gRPC handlers fill it. -/
+opaque replyHdrOwn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (b : RespBody) : IProp GF := iprop(True)
+
+/-- A lease method's success reply: `ansReply`'s, with the header set. -/
+def srvHdrReply (res : Resp) (resp : Loc) (err : GoInterface) : IProp GF :=
+  match res with
+  | .ok b => iprop(⌜err = GoInterface.nil⌝ ∗ replyHdrOwn resp b)
+  | .err _ => ClientV3.ansReply res resp err
+
+/-- Forgetting the header's presence. -/
+def replyHdrOwn_replyOwn.spec : Prop := ∀ p b, replyHdrOwn (GF := GF) p b ⊢ ClientV3.replyOwn p b
+
+/-- `T`'s `Header` field of `p` holds a header message, owned, whatever its content becomes. -/
+def hdrFillable (T : Type) (p : Loc) (b : RespBody) : IProp GF :=
+  iprop(∃ (h : Loc) (m : HeaderM), p.[T, go!"Header"] ↦ h ∗
+    respHeaderOwn h (DFrac.own 1) m ∗
+    ∀ m', p.[T, go!"Header"] ↦ h -∗ respHeaderOwn h (DFrac.own 1) m' -∗ ClientV3.replyOwn p b)
+
+open go_etcd_io.etcd.api.v3.etcdserverpb in
+/-- **The lease replies' set header** (what `hdr.fill(resp.Header)` needs: A6-provability F1). -/
+def replyHdrOwn_header.spec : Prop :=
+  (∀ p id ttl, replyHdrOwn (GF := GF) p (.leaseGrant id ttl) ⊢
+    hdrFillable LeaseGrantResponse p (.leaseGrant id ttl)) ∧
+  (∀ p, replyHdrOwn (GF := GF) p .leaseRevoke ⊢ hdrFillable LeaseRevokeResponse p .leaseRevoke) ∧
+  (∀ p id ttl gttl ks, replyHdrOwn (GF := GF) p (.leaseTimeToLive id ttl gttl ks) ⊢
+    hdrFillable LeaseTimeToLiveResponse p (.leaseTimeToLive id ttl gttl ks)) ∧
+  (∀ p ids, replyHdrOwn (GF := GF) p (.leaseLeases ids) ⊢
+    hdrFillable LeaseLeasesResponse p (.leaseLeases ids))
+
+/-- **The leader's forwarded time-to-live reply** (verify round, second pass, lease-auth's request):
+3c's `leasehttp.TimeToLiveHTTP` returns a decoded, canonical `LeaseInternalResponse` with
+`Leasehttp.ltlReply c id` (the leader's answer for lease `id`, its header set); its
+`LeaseTimeToLiveResponse` field is a reply with its header set, whatever the TTLs and keys (W0's
+`leaseTimeToLive` tolerates any). `leasepb`'s message type is axiomatized in the translation, so the
+field's read is the trusted `leaseTimeToLive`'s: the law gives the inner reply, by its address `p`,
+which that read returns. -/
+def ltlReply_replyHdr.spec : Prop := ∀ (resp : Loc) (c : Proto.Content) (id : Int),
+  Proto.msgAt (GF := GF) go_etcd_io.etcd.server.v3.lease.leasepb.LeaseInternalResponse.ty resp
+      (DFrac.own 1) c ∗ ⌜Leasehttp.ltlReply c id⌝ ⊢
+    ∃ (p : Loc) (ttl gttl : Int) (ks : List Key),
+      replyHdrOwn p (.leaseTimeToLive id ttl gttl ks)
 
 /-- **An internal request's reply** as a `proto.Message`: a client request's reply message (its
 dynamic type `*pb.<Kind>Response`), `Authenticate`'s token's (an `*AuthenticateResponse`), an
@@ -425,7 +507,7 @@ def applyResult (γ : Cluster) (x : Loc) (ir : IrrBody) (res : Resp) : IProp GF 
     TraceUtil.traceOpt tr ∗ (⌜ph = null⌝ ∨ Read.recvAny ph) ∗
     match res with
     | .ok _ => iprop(⌜err = GoInterface.nil⌝ ∗ irrReply γ ir res resp)
-    | .err e => iprop(⌜srvErrOf err e⌝ ∗ srvErrShape err))
+    | .err e => iprop(srvErr err e ∗ srvErrShape err))
 
 /-- **The answers a server call fires** (outcome 1): not a token refusal (`ErrUserEmpty`,
 `ErrAuthOldRevision`, `ErrInvalidAuthToken`: the client's interceptor resends with a new token, so
@@ -460,11 +542,11 @@ def SrvCallTriple (e : Expr) (P B : IProp GF) (γ : Cluster) (p tls : Principal)
     e
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); B ∗
       ((∃ σ σ' res, ⌜srvFiredAns res⌝ ∗ Q σ σ' res ∗ srvReply reply res resp err) ∨
-       (⌜resp = null ∧ srvUnfired err⌝ ∗ srvErrShape err ∗
+       (⌜resp = null⌝ ∗ srvUnfired err ∗ srvErrShape err ∗
           □?rep AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
             <{ ∀∀ (σ' : State) (res : Resp), ⌜srvStep p tls rq σ σ' res lo⌝ ∗ etcdState γ σ',
                COMM Q σ σ' res }>) ∨
-       (⌜resp = null ∧ srvIndef err⌝ ∗ srvErrShape err)) }}
+       (⌜resp = null⌝ ∗ srvIndef err ∗ srvErrShape err)) }}
 
 end vocab
 

@@ -20,6 +20,8 @@ Changes: from `specs-ref`'s `Election__Resign.lean`: over the cluster's states. 
 effect is the delete only (round 0 also allowed a lease-free put, which `Campaign`'s cleanup could
 not grant); the lent permission; `σ0`; the principal per call.
 
+Changes: verify-round: the effect excludes the empty key (A3 F2: `Campaign`'s cleanup after a failed `Proclaim` resigns with the leader key `""`; etcd refuses an empty key, so that step is no change, and `delEff (· = [])` was not within `campaignEff`).
+
 Margin: none.
 -/
 module
@@ -51,7 +53,7 @@ def Election.Resign.spec : Prop :=
   ∀ (e s c : Loc) (pfx : GoString) (st : ElectionSt) (γ : Cluster) (dflt who : Principal) (id : w64)
     (ctx : GoInterface) (T : State → State → Prop) (P : IProp GF) (σ0 : State),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isElection e s pfx ∗ electionSt e st ∗ isSession s c γ id ∗ isClient c γ dflt ∗
-      Context.ctxOk ctx ∗ ctxPrin dflt ctx who ∗ etcdLent γ T P ∗ P ∗ etcdLb γ σ0 ∗ ⌜effIn (delEff (fun k => k = st.leaderKey)) T⌝ }}
+      Context.ctxOk ctx ∗ ctxPrin dflt ctx who ∗ etcdLent γ T P ∗ P ∗ etcdLb γ σ0 ∗ ⌜effIn (delEff (fun k => k = st.leaderKey ∧ k ≠ [])) T⌝ }}
     (App (Val (e @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.concurrency.Election.ty @!! go!"Resign")) (Val #ctx))
   {{ (err : GoInterface), RET #err;
       (⌜st.leaderSession = null ∧ err = GoInterface.nil⌝ ∗ P ∗ electionSt e st) ∨

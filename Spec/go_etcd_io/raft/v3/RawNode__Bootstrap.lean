@@ -1,15 +1,19 @@
 /-
 ## `RawNode.Bootstrap(peers)`
 
-**Users.** No client calls `RawNode` directly (etcd and the examples use `node`); `node.run`
-calls it from its goroutine, holding the token. `setupNode` (`StartNode`).
+**Users.** No client calls `RawNode` directly (etcd and the examples use `node`); `setupNode`
+(`StartNode`).
 
 **Proof sketch.** The storage is empty (`LastIndex` 0: the driver's empty durable state, which the
 storage holds); `becomeFollower(1)`; the bootstrap entries appended (unstable) and committed by
-fiat -- they are the cluster's (`bootLog`); the voters' `AddNode`s applied to the tracker
+fiat -- they are the cluster's (`bootLog`): each entry's bytes are `proto.Marshal`'s output for the
+`ConfChange{AddNode, id, ctx}` built (2a's `Marshal.spec` gives `marshalOut` under `noMaps`, which
+raftpb's `noMaps_raftpb.spec` gives; raftpb's `bootEntryData_marshal.spec` equates that output with
+`bootEntryData id ctx`, `BootLog`'s; verify-round, A5 F4); the empty hard state is `raft_init`'s
+`emptyState`; the voters' `AddNode`s applied to the tracker
 (`confAt γ |boot|`, `cluster_alloc`); `prevHardSt` reset so the first `Ready` hands out the hard state.
 
-**Changes.** Unchanged in substance. **Margin.** The errors (no peers, a non-empty storage) are
+**Changes.** Unchanged in substance; (verify-round) the bytes' source and `emptyState` cited. **Margin.** The errors (no peers, a non-empty storage) are
 excluded by the premises; `proto.Marshal` of a `ConfChange` does not fail.
 -/
 module

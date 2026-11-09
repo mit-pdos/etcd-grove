@@ -7,6 +7,8 @@ Proof sketch: `Cmp.ensureCompare.spec`, the field.
 
 Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/Cmp__GetCompare.lean`: restated over this branch's vocabulary (the `OpM` model, `opAt`, `optsAt`); otherwise unchanged.
 
+verify-round: the fresh `*pb.Compare` (its `protoRest` from `protoRest_zero` at `own 1`) is made read-only for `cmpAt` by `protoRest_persist` (A1-provability F6: the sketch had no law for it).
+
 Margin: none.
 -/
 module

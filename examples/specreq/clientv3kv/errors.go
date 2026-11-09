@@ -62,7 +62,9 @@ func ReqGetErrors(ctx context.Context, cli *clientv3.Client, k string, rev int64
 // Assumes: auth is on and stays on, cli authenticates as user u (not of the root role) whose only
 // role grants read on [pfx, end) and nothing else, and no administrator changes u or its roles
 // during the calls (the owner's invariant); pfx < end, end neither "" nor "\x00" (a half-open
-// range); outside is not in [pfx, end).
+// range); outside is not in [pfx, end). Each read passes authLb γ lo at an auth index lo where
+// auth is already on with u's roles as above (from an etcdLb the caller holds of such a state:
+// at lo = 0 permittedSince would admit the initial auth-off table).
 // Specs: Client.Get.spec (State.permits at the firing state); laws: errorsIs_errVal.
 func ReqAuthRefusal(ctx context.Context, cli *clientv3.Client, pfx, end, outside string) {
 	if _, err := cli.Get(ctx, outside); err == nil {

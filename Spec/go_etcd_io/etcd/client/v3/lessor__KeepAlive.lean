@@ -5,8 +5,8 @@ Users: `concurrency.NewSession` (`session.go:58`: `for range keepAlive`, then `c
 leasing and recipes through sessions; snippet `clientv3lease/session.go` (`ReqSessionLifecycle`,
 `ReqKeepAliveValues`).
 
-Proof sketch: a fresh channel of capacity `LeaseResponseChSize` (the package variable: `init.spec`'s
-value 16 is not needed, any capacity); under `l.mu` (the lessor's invariant): if `donec` is closed,
+Proof sketch: a fresh channel of capacity `LeaseResponseChSize` (the package variable, read-only by
+W0's `init.spec`: `16`); under `l.mu` (the lessor's invariant): if `donec` is closed,
 closes the channel (its close token is fresh) and returns it with `ErrKeepAliveHalted`; else adds the
 channel (its `kaChan` invariant allocated, its close token into the entry) and `ctx` (wrapped by
 `context.WithValue` when `ctx.Done() != nil`: W0's context API) to the lease's entry (a new one, its

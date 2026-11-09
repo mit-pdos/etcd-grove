@@ -11,6 +11,8 @@ a pure fact), or with the key's mark the shape; else `acquire` (a protocol step)
 token deposited; `monitorLease`), or the plain get's response as is
 (`issues/leasing-get-failed-acquire-options.md`): both fired as a cached answer at the current state.
 Changes: from `specs-ref`'s `leasingKV__get.lean`: restated over `isLeasingKV`/`Internal.lean` (was the cache's log states and the history premise); weakened to what the leasing contract's proofs need.
+
+Changes: second pass: premise `o.emptyEnd = false` (W0's KV triples take it: A1-provability F5's scope premise; this call forwards the op to the client's KV).
 -/
 module
 
@@ -38,7 +40,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 def leasingKV.get.spec : Prop :=
   ∀ (lkv : Loc) (γ : Cluster) (who p : Principal) (lo : Nat) (pfx : Key) (γL : LeasingNames) (q : Qp) (ctx : GoInterface) (op : go_etcd_io.etcd.client.v3.Op) (o : OpM)
     (Q : State → State → Resp → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ who pfx γL ∗ lkvOpen γL q ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ authLb γ lo ∗ opAt op o ∗ ⌜o.t = tRange⌝ ∗ threadTok ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ who pfx γL ∗ lkvOpen γL q ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ authLb γ lo ∗ opAt op o ∗ ⌜o.t = tRange ∧ o.emptyEnd = false⌝ ∗ threadTok ∗
       □ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
         <{ ∀∀ (σ' : State) (r : Option Resp), lstep γL pfx p lo (.range o.rangeReq) σ σ' r ∗ etcdState γ σ',
            COMM LQ Q σ σ' r }> }}

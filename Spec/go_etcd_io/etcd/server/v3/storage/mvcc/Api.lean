@@ -55,6 +55,8 @@ predicate opaque, the pure model W0's history (`Model.lean`), the storage a cont
   leases, `storeItems`): mvcc's steps keep it, and say so only through these functions.
 * Provisional, **4b's** (traceutil; `req/go_etcd_io_etcd_pkg_v3_traceutil.md`, "from 3e"):
   `traceOwn tr` (exclusive): the trace `tr` is the caller's (its `Step` may be called).
+* `rangeCtxErr err` (persistent): `err` is the error a full range returns once its context is
+  done (`fmt.Errorf` wrapping `ctx.Err()`: fresh, none of the sentinels).
 * Definitions: `rangeResOwn` (a `*RangeResult` and error holding an outcome), `compactChanOk` (a
   receive on a compaction's channel does not panic), `mvccDeleter rd γ` (the range deleter
   `NewStore` hands the lessor: `KV.Write`'s triple), the contracts of the interfaces' methods at a
@@ -69,6 +71,8 @@ store's (3f) likewise.
 ## Laws
 
 `persistent` (persistence, timelessness, fractions), `excl`, `init` (the error variables),
+`rangeCtxErr_persistent`, `rangeCtxErr_ne_nil`, `rangeCtxErr_fresh` (a range's context error is
+none of the sentinels),
 `mvccReaders_split`, `mvccClosed_rest`, `mvccStorageFor_rest`, `mvccBackend_agree`,
 `mvccLessorIs_agree`, `mvccState_reachable`, `mvccTxn_state`, `shapes` (a handle, a transaction, a
 hash storage meet their interface's contracts), `names_nonempty`, `mvccImage_obs` (what the storage's
@@ -242,6 +246,20 @@ opaque isHashStorage [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFu
 gives one, `Trace.Step.spec` keeps it). -/
 abbrev traceOwn (tr : Loc) : IProp GF := TraceUtil.traceOwn tr
 
+/-- **`err` is the error a full range returns once its context is done** (persistent):
+`fmt.Errorf("rangeKeys: context cancelled: %w", ctx.Err())` (`kvstore_txn.go:121`), a fresh value,
+none of the package's sentinels (`rangeCtxErr_ne_nil`, `rangeCtxErr_fresh`). Not the context's own
+error (`context.isCtxErr`): Go wraps it (`errors.Is(err, ctx.Err())` holds in Go; Perennial's model of
+`Errorf`, `errors.New(format)`, does not wrap, so nothing here says it). Intended realization:
+Perennial's `fmt.Errorf` model, a fresh `*errorString` whose `s` is the format (read-only); a
+trust-boundary step, since `Errorf.spec`'s `ArgsWf` excludes the error argument
+(`notes/perennial-changes.md`, owed). Second pass: replaces the `.ctxErr` case's
+`context.isCtxErr err`, false of the code. -/
+opaque rangeCtxErr [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (err : GoInterface) : IProp GF := iprop(True)
+
+/-- The format of the context's range error (`kvstore_txn.go:121`). -/
+def rangeCtxFmt : GoString := go!"rangeKeys: context cancelled: %w"
+
 /-- **A `*RangeResult` `r` and an error `err` holding the outcome `out`** of a range under the
 context `ctx` (the key-values fresh, the caller's; their key and value bytes read-only: a keys-only
 read shares the index's key slices). -/
@@ -253,7 +271,7 @@ def rangeResOwn (ctx : GoInterface) (r : Loc) (err : GoInterface) : RangeOut →
       r ↦ ({ KVs' := slice.nil, Rev' := W64 cur, Count' := W64 (-1) } : RangeResult))
   | .compacted => iprop(globalAddr ErrCompacted ↦□ err ∗
       r ↦ ({ KVs' := slice.nil, Rev' := W64 0, Count' := W64 (-1) } : RangeResult))
-  | .ctxErr => iprop(⌜r = null ∧ err ≠ GoInterface.nil⌝ ∗ Context.ctxDone ctx ∗ context.isCtxErr err)
+  | .ctxErr => iprop(⌜r = null ∧ err ≠ GoInterface.nil⌝ ∗ Context.ctxDone ctx ∗ rangeCtxErr err)
 
 /-- **A compaction's channel**: a `chan struct{}` any goroutine may receive on, a plain receive or a
 `select` case (Perennial's `recvAu`); it is only ever closed (once the compaction's job has run), or
@@ -655,19 +673,45 @@ def excl.spec : Prop :=
   (∀ γ, mvccOpen (GF := GF) γ ∗ mvccClosed γ ⊢ iprop(False)) ∧
   (∀ γ m m', mvccRevLent (GF := GF) γ m ∗ mvccRevLent γ m' ⊢ iprop(False))
 
-/-- **The package's error variables** (`ErrCompacted`, `ErrFutureRev`): `errors.New` values with
-their messages, read-only, distinct (so a client's `err == mvcc.ErrCompacted`, Go's interface `==`,
-needs no internals; the tester's migration's G2). -/
+/-- **The package's error variables** (`ErrCompacted`, `ErrFutureRev`, `ErrRevisionNotFound`):
+`errors.New` values with their messages, read-only, distinct (so a client's `err ==
+mvcc.ErrCompacted`, Go's interface `==`, needs no internals; the tester's migration's G2). The
+values are existential (each `errors.New` allocates a fresh `*errorString`; the sentinel encoding
+of the verify round, A3 F4), hence non-`nil`. `ErrRevisionNotFound` is the key index's (the
+internal `keyIndex`/`treeIndex` specs take `globalAddr ErrRevisionNotFound ↦□ e`; their callers
+test `err == nil`, which needs `e` non-`nil`: from here, by agreement). The server's view
+(`EtcdServer.sentinelAt ErrCompacted .compacted`, `… ErrFutureRev .futureRev`) is tied in
+`etcdserver/errors/Api.lean` from this law, as for lease's (`leaseErr_srv`): mvcc, a lower layer,
+does not import the server's error vocabulary (second pass, server-core's request). -/
 def init.spec : Prop :=
   isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ⊢
-    ∃ (x1 x2 : Loc),
+    ∃ (x1 x2 x3 : Loc),
       globalAddr ErrCompacted ↦□
         (interface.mkOk (go.GoType.PointerType errors.errorString.ty) #x1 : GoInterface) ∗
       x1.[errors.errorString, go!"s"] ↦□ go!"mvcc: required revision has been compacted" ∗
       globalAddr ErrFutureRev ↦□
         (interface.mkOk (go.GoType.PointerType errors.errorString.ty) #x2 : GoInterface) ∗
       x2.[errors.errorString, go!"s"] ↦□ go!"mvcc: required revision is a future revision" ∗
-      ⌜x1 ≠ x2⌝
+      globalAddr ErrRevisionNotFound ↦□
+        (interface.mkOk (go.GoType.PointerType errors.errorString.ty) #x3 : GoInterface) ∗
+      x3.[errors.errorString, go!"s"] ↦□ go!"mvcc: revision not found" ∗
+      ⌜[x1, x2, x3].Nodup⌝
+
+/-- **A range's context error is persistent.** -/
+def rangeCtxErr_persistent.spec : Prop := ∀ err, Persistent (rangeCtxErr (GF := GF) err)
+
+/-- **A range's context error is not `nil`.** -/
+def rangeCtxErr_ne_nil.spec : Prop := ∀ err, rangeCtxErr (GF := GF) err ⊢ ⌜err ≠ GoInterface.nil⌝
+
+/-- **A range's context error is no `*errorString` of another message than its format**, so none
+of the sentinels: mvcc's `ErrCompacted`/`ErrFutureRev`/`ErrRevisionNotFound` by `init`'s messages,
+another package's by its own shape. True in Go (the value is a `*fmt.wrapError`, never an
+`*errorString`) and in Perennial's model (an `*errorString` of the format: `↦□` agreement). Second
+pass: 3b's `ctxErr_not_errIs` (apply-txn's request). -/
+def rangeCtxErr_fresh.spec : Prop :=
+  ∀ err (x : Loc) (msg : GoString), msg ≠ rangeCtxFmt →
+    rangeCtxErr (GF := GF) err ∗ x.[errors.errorString, go!"s"] ↦□ msg ⊢
+      ⌜err ≠ (interface.mkOk (go.GoType.PointerType errors.errorString.ty) #x : GoInterface)⌝
 
 /-- **The reader tokens split and join.** -/
 def mvccTxnChs_persistent.spec : Prop := ∀ t sl, Persistent (mvccTxnChs (GF := GF) t sl)

@@ -12,6 +12,8 @@
 provisional name; the closed file given back (a closer gives back: PRINCIPLES).
 
 **Margin.** A second `Close` panics in Go (`close(b.stopc)`): the token is taken once.
+
+Changes: verify-round (server-boot's request, A8-provability F5): over 4a's backend (`beClosable`: `isBackend` with its whole open token; `Backend.beFile` after), not the provisional `ServerStorage.beOpen`/`Snap.beFile`.
 -/
 module
 
@@ -37,10 +39,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **Closes the bootstrapped backend** `bootstrappedServer` reaches. -/
 def bootstrappedServer.Close.spec : Prop :=
-  ∀ (b : Loc) (be : GoInterface) (path : GoString) (img : Snap.BeImage),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ bootBackendAt b be ∗ ServerStorage.beOpen be path img }}
+  ∀ (b : Loc) (be : GoInterface) (path : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ bootBackendAt b be ∗ beClosable be path }}
     (App (Val (b @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.bootstrappedServer.ty @!! go!"Close")) (Val #()))
-  {{ RET #(); ∃ img' : Snap.BeImage, Snap.beFile path (some img') }}
+  {{ RET #(); ∃ I : Backend.Image, Backend.beFile path (some I) }}
 
 end spec
 

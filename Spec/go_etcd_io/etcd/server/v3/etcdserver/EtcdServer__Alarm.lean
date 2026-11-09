@@ -56,9 +56,9 @@ def EtcdServer.Alarm.spec : Prop :=
       ((∃ σ σ' res, irrFired ao Q σ σ' res ∗
           match ao with
           | some aq => srvReply (reqReply γ aq) res resp err
-          | none => iprop(⌜err = GoInterface.nil⌝ ∨ ∃ e, ⌜resp = null ∧ srvErrOf err e⌝ ∗ srvErrShape err)) ∨
-       (⌜resp = null ∧ srvUnfired err⌝ ∗ srvErrShape err ∗ irrUpd γ p tls lo ao false Q) ∨
-       (⌜resp = null ∧ srvIndef err⌝ ∗ srvErrShape err)) }}
+          | none => iprop(⌜err = GoInterface.nil⌝ ∨ ∃ e, ⌜resp = null⌝ ∗ srvErr err e ∗ srvErrShape err)) ∨
+       (⌜resp = null⌝ ∗ srvUnfired err ∗ srvErrShape err ∗ irrUpd γ p tls lo ao false Q) ∨
+       (⌜resp = null⌝ ∗ srvIndef err ∗ srvErrShape err)) }}
 
 end spec
 end EtcdServer

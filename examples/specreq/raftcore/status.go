@@ -24,7 +24,8 @@ func ReqStatus(r *raft) {
 // REQ raftcore/fields: node.run's direct reads of the raft struct and its filter of responses
 // from unknown peers.
 // Users: node.go:349-381 (lead, Term, id, logger, hasLeader), :395 (trk.Progress).
-// Assumes: nothing.
+// Assumes: m is a well-formed message (msgPts) of a type in range, 0 <= type (IsResponseMsg
+// indexes a table by it; a received message has one by msgSent_type).
 // Specs: raftRO_peek.spec, raft.hasLeader.spec.
 func ReqFields(r *raft, m *pb.Message) bool {
 	if r.hasLeader() != (r.lead != None) {
@@ -46,7 +47,8 @@ func ReqTickMissed(r *raft) {
 // REQ raftcore/logger: a logger set for the package is what a Config without one gets.
 // Users: etcd's newRaftNode (raft.SetLogger with its zap adapter); Config.validate.
 // Assumes: l meets raft's Logger contract (loggerOk).
-// Specs: SetLogger.spec, getLogger.spec, loggerOk_nonnil.spec.
+// Specs: SetLogger.spec, getLogger.spec, loggerOk_nonnil.spec; raft_init.spec (raftLoggerMu's lock
+// invariant: the package logger meets loggerOk).
 func ReqLogger(l Logger) {
 	SetLogger(l)
 	if getLogger() == nil {

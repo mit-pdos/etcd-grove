@@ -122,7 +122,8 @@ func ReqReloadEmpty(f Interface) {
 // ones stay pending); NoSyncReload of the same ids does too.
 // Users: tx.go:285-297 (commitFreelist: EstimatedWritePageSize, allocate, Write), db.go:454-461
 // (loadFreelist: a new freelist, Read or Init), tx.go:336-347 (rollback: Reload, NoSyncReload).
-// Assumes: pageSize is positive.
+// Assumes: pageSize is positive and at most 2^16 (bbolt's: 4096; a page size near 2^62 would
+// overflow the buffer's size and make panic).
 // Specs: Interface.EstimatedWritePageSize, Interface.Write, Interface.Count, Interface.FreeCount,
 // NewHashMapFreelist, Interface.Read, Interface.Reload, Interface.Copyall,
 // Interface.NoSyncReload; common's Page.IsFreelistPage; laws: freelistPage_read, flOwn_wf.

@@ -6,38 +6,43 @@ The laws that tie 4a's file vocabulary to 4c's (`Spec/go_etcd_io/bbolt/Api.lean`
 
 * `imgOf D`: bbolt's data as etcd sees it (the root's buckets and their plain values; sequence
   counters dropped; nested buckets, which etcd never makes, read as absent values).
+* `beFile_bytes`: a file of an image's bytes (`imgBytes`) is a backend file of it (verify-round).
 * `beFile_of`: **a file bbolt holds is a backend file of its image** (4c's `fileHolds`, from
   `fileHolds_new` for a fresh path or a deleted file, `fileHolds_image` for a received snapshot's
-  file, or the crash law): so `New` can be called. `beFile_none`: an absent path (`osMeta … none`).
-  Renaming a snapshot file over the backend's path (`os.Rename` in `OpenSnapshotBackend`) carries
-  `fileHolds` by OsFs's rename rule, hence `beFile`.
+  file, or the crash law): so `New` can be called. `beFile_none`: an absent path (`osMeta … none`)
+  or an empty file with nothing past its end, named or not (second pass: `New` starts it through
+  4c's `boltFresh_alloc`, the state `BoltSt.fresh`, whose name is not durable).
+* **Unsynced renames** (second pass, server-boot's request): `OpenSnapshotBackend` renames a
+  snapshot file onto the backend's path with no directory fsync (`backend.go:61-70`; the next
+  `SaveDBFrom`'s fsync of the same directory makes it durable). A crash before that may bring the
+  destination's previous file back. `beRevert p o0` (exclusive): such a rename onto `p` is pending,
+  and `o0` is what the previous file held (closed, so fixed); `beNoRevert p` (exclusive): none is.
+  The file laws (`beFile_of`, `beFile_bytes`, `beFile_none`) give `beNoRevert` (4c's `fileHolds` is
+  of a durably named file); the rename's bridge (server-boot's trusted `Snap.dbFile_rename`, until
+  OsFs has `rename`) consumes the destination's `beFile p o0 ∗ beNoRevert p` and gives the renamed
+  file's `beFile p (some I) ∗ beRevert p o0`; the directory fsync (server-boot's `SaveDBFrom`) turns
+  `beRevert p o0` into `beNoRevert p`. Realization: OsFs's name state of `p` (`named`) with the
+  previous inode's contents; **needs OsFs's crash relation for an unsynced rename to bring the old
+  entry back** (4c's `boltCrash` says only "may be gone" for `named = false`): recorded as a gap.
 * `beCrash`: **a crash leaves the file at one of the committed images** (4c's `boltCrash`, over the
   history the client keeps in an invariant): from the file's crash invariant `beDurInv γ p`, crash
   safety on (`beSynced γ`: `UnsafeNoFsync` off), the client's `beHist γ L` (any fraction of bbolt's
   state is folded into it: the realization keeps one in the history's authority) and OsFs's restart
-  resources, the next generation gets `beFile p (some I)` for some `I ∈ L`. Serves 2d's item 3 (a
+  resources, the next generation gets `beFile p (some I)` for some `I ∈ L`; or, for a file created
+  in this generation whose name was not yet durable (4c's `boltCrash`, `named = false`), no file
+  (`beFile p none`, with `Image.empty ∈ L`: such a file began empty); or, with a pending rename
+  (`beRevert p o0`), the previous file `o0`. The revert state comes back `beNoRevert`. Serves 2d's item 3 (a
   restart finds a committed image, whose meaning the server's invariant attached at its commit),
   2e's `memberDisk`, 3c's item 4 (a session's writes land in one commit).
 
-The next generation's `beFile` must be at the next generation's heap; see the gap below.
-
-Recorded gap (integration, 2026-11-09; checked with `#check`): the gap is wider than the
-extension binder. `Api.lean`'s opaque predicates are declared under section variables their
-`iprop(True)` bodies do not use, so Lean drops them: `#check @beFile` is `{GF} → GoString → Option
-Image → IProp GF`, with **no `HeapGS` and no `HasExt osFsExt`** (likewise `isBackend`, `beHist`,
-`beCur`, `beSess`, ...). None of them can be realized over the heap (a points-to needs `hG`) or over
-4c's predicates, and `beCrash`'s conclusion cannot name the next generation's heap. Not fixable in
-this file (the predicates are `Api.lean`'s). The fix, in `Api.lean`:
-1. every opaque resource predicate takes `[GooseSemantics] [GooseInterp] [hG : HeapGS HasLC.hasLC
-   GF]` in its own signature (as 4c's `Bbolt.Api`; `GooseExts` is kept already);
-2. `HasExt osFsExt` need **not** be a binder of the backend's predicates or triples: it is a `Prop`
-   class (`Perennial/GooseLang/Lifting.lean`), so a realization over 4c's predicates holds it as
-   `∃ _ : HasExt osFsExt, …` (proof-irrelevant: every instance is the same). Every triple's
-   predicates come from `New`, whose premise `beFile` carries it; only the three laws here, which
-   build `beFile` from bbolt's or OsFs's resources, take the binder (they do);
-3. then `beCrash`'s conclusion becomes `@beFile _ _ _ GF ⟨hG.goose_globalGS, L'⟩ p (some I)` (the
-   next generation's heap, as `Bbolt.boltCrash`'s `fileHolds`), and `beFile_of`/`beFile_none` are
-   unchanged.
+The next generation's `beFile` is at the next generation's heap (`⟨hG.goose_globalGS, L'⟩`), as
+`Bbolt.boltCrash`'s `fileHolds` (verify-round, A10-provability B2: it was stated at the crashed
+generation's heap, which `boltCrash` does not give and a restart cannot use). This needs the heap
+binders on the opaque predicates, which landed at `1aa6fc1337` (`#check @beFile` takes `hG`); the
+gap recorded at integration I6 (item 2) is closed. `HasExt osFsExt` stays a binder of the three
+laws here only: a realization over 4c's predicates holds it as `∃ _ : HasExt osFsExt, …` (a `Prop`
+class, proof-irrelevant), and every triple's predicates come from `New`, whose premise `beFile`
+carries it.
 -/
 module
 
@@ -72,26 +77,70 @@ section laws
 variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
-/-- **A file bbolt holds is a backend file of its image.** -/
+/-- **A file bbolt holds is a backend file of its image** (durably named: no rename pending). -/
 def beFile_of.spec : Prop :=
   ∀ [HasExt osFsExt] (p : GoString) (D : Bbolt.Data),
-    Bbolt.fileHolds (GF := GF) p D ⊢ beFile p (some (imgOf D))
+    Bbolt.fileHolds (GF := GF) p D ⊢ beFile p (some (imgOf D)) ∗ beNoRevert p
 
-/-- **No file at `p`**: a backend file that `New` creates empty. -/
+/-- **A file of an image's bytes is a backend file of the image** (verify-round, A10-completeness
+F1: a snapshot's bytes written to a file and opened, `ReqSnapshotFresh`; 2e's received snapshot
+file). Realization: `imgBytes I bs := ∃ D, Bbolt.boltImage bs D ∧ imgOf D = I`, then 4c's
+`fileHolds_image` and `beFile_of`. -/
+def beFile_bytes.spec : Prop :=
+  ∀ [HasExt osFsExt] (p : GoString) (m : OsMeta) (xs : List (w8 × Bool)) (I : Image),
+    ⌜imgBytes I (xs.map Prod.fst) ∧ (∀ x ∈ xs, x.2 = true) ∧ m.size = xs.length ∧
+      m.lo = xs.length ∧ m.hi = xs.length ∧ m.named = true ∧ m.maps = ∅⌝ ∗
+    osMeta (GF := GF) p (DFrac.own 1) (some m) ∗ osBytes (GF := GF) p 0 (DFrac.own 1) xs
+    ⊢ beFile p (some I) ∗ beNoRevert p
+
+/-- **No file at `p`, or an empty one with nothing past its end** (named or not): a backend file
+that `New` starts empty through 4c's `boltFresh_alloc` (second pass). -/
 def beFile_none.spec : Prop :=
-  ∀ [HasExt osFsExt] (p : GoString), osMeta (GF := GF) p (DFrac.own 1) none ⊢ beFile p none
+  ∀ [HasExt osFsExt] (p : GoString) (mo : Option OsMeta),
+    osMeta (GF := GF) p (DFrac.own 1) mo ∗
+      (match mo with
+       | none => iprop(emp)
+       | some m => iprop(⌜m.size = 0 ∧ m.hi = 0 ∧ m.maps = ∅⌝ ∗
+           osBytes (GF := GF) p 0 (DFrac.own 1) []))
+    ⊢ beFile p none ∗ beNoRevert p
+
+/-- One revert state per path. -/
+def beRevert_excl.spec : Prop := ∀ p o o',
+  beRevert (GF := GF) p o ∗ beRevert p o' ⊢ iprop(False)
+
+def beNoRevert_excl.spec : Prop := ∀ p,
+  beNoRevert (GF := GF) p ∗ beNoRevert p ⊢ iprop(False)
+
+def beRevert_noRevert.spec : Prop := ∀ p o,
+  beRevert (GF := GF) p o ∗ beNoRevert p ⊢ iprop(False)
 
 /-- **The crash law** (see the header): the next generation `L'` finds the file at one of the
-committed images. -/
+committed images; or no file, if the file was created empty in this generation and its name was not
+yet durable; or, with a rename onto `p` pending (`rv = some o0`), the previous file `o0`. -/
 def beCrash.spec : Prop :=
   ∀ [HasExt osFsExt] (L' : GooseLocalGS GF) (γ : BeNames) (p : GoString) (L : List Image)
-    (Ps : List GoString),
+    (rv : Option (Option Image)) (Ps : List GoString),
     p ∉ Ps →
-    beDurInv (GF := GF) γ p ∗ beSynced γ ∗ beHist γ L ∗ crashed ∗
+    beDurInv (GF := GF) γ p ∗ beSynced γ ∗ beHist γ L ∗ beRev p rv ∗ crashed ∗
       crashRest (gooseOsGS (L := hG.goose_localGS)) (gooseOsGS (L := L')) Ps ⊢
-    |={⊤}=> ∃ I : Image, ⌜I ∈ L⌝ ∗
-      beFile (GF := GF) p (some I) ∗
+    |={⊤}=> ∃ o : Option Image,
+      ⌜(∃ I, o = some I ∧ I ∈ L) ∨ (o = none ∧ Image.empty ∈ L) ∨ rv = some o⌝ ∗
+      @beFile _ _ _ GF ⟨hG.goose_globalGS, L'⟩ p o ∗
+      @beNoRevert _ _ _ GF ⟨hG.goose_globalGS, L'⟩ p ∗
       crashRest (gooseOsGS (L := hG.goose_localGS)) (gooseOsGS (L := L')) (p :: Ps)
+
+/-- **The package's bbolt options** (second pass, 4c's A11 F7: no keyed-literal spec in bbolt; the
+initializer `&bolt.Options{MmapFlags: syscall.MAP_POPULATE, NoFreelistSync: true}`,
+`config_linux.go:29-32`, is untranslated, `boltOpenOptions.init`): **assumed**, as this package's own
+`PkgInit` fact. The global holds a pointer to options read-only for good, `MmapFlags` =
+`MAP_POPULATE`, every tracked field else at `bolt.Options{}`'s (`NoFreelistSync` is not tracked by
+4c's `OptsM`: the model reads no freelist-sync choice). `newBackend` loads it (`*bopts =
+*boltOpenOptions`, 4c's `optsLoad`/`optsStore`). True of the Go: the literal above, never written
+after initialization. -/
+def boltOpenOptions_init.spec [HasExt osFsExt] : Prop :=
+  isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ⊢
+    ∃ l : Loc, globalAddr go_etcd_io.etcd.server.v3.storage.backend.boltOpenOptions ↦□ l ∗
+      Bbolt.optsAt l DFrac.discard { Bbolt.OptsM.dflt with mmapFlags := W64 Bbolt.mapPopulate }
 
 end laws
 

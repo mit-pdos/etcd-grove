@@ -3,9 +3,9 @@
 
 **Users.** `RemovePeer`, `RemoveAllPeers`.
 
-**Proof sketch.** The map entry's `peerStopRight`: `peer.stop`; delete; `delete(LeaderStats.Followers, ...)` (`leaderStatsOwn`, kept in the lock's invariant); the probes removed (trust).
+**Proof sketch.** The map entry's `peerStopRight`: `peer.stop`; delete; `delete(LeaderStats.Followers, ...)` (`leaderStatsOwn`, kept in the lock's invariant); the probes removed (trust). `types.ID`'s `String()` on an addressable `ID` (log fields, headers) is 1c's `Types.ID.String_ptr.spec` (Goose's pointer receiver).
 
-**Changes.** New (no old spec).
+**Changes.** New (no old spec). verify-round (second pass): the sketch cites `Types.ID.String_ptr.spec`.
 
 **Margin.** None.
 -/

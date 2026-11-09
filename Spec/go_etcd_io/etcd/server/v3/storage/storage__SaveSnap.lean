@@ -8,7 +8,11 @@
 configuration, encoded and fsynced (`SaveSnapshot`). `ValidateSnapshotForWrite` refuses a nil
 configuration, which a raft snapshot never has (`Raft.snapshotPts`: its `ConfState` is there).
 
-**Changes** (from `walSaveSnap_spec`): over the records model. **Margin.** Once, at the write.
+Two updates, as `Save`'s: the first before the record is written (`Wal.walWriting wd R (.saveSnap
+s)`: a crash then loses the record or keeps it, `Wal.Recs.crashedDuring`), the second after its
+fsync.
+**Changes** (from `walSaveSnap_spec`): over the records model. Verify-round (A8 provability F1.2):
+two updates around the write (`walWriting`). **Margin.** None.
 -/
 module
 
@@ -39,7 +43,9 @@ def storage.SaveSnap.spec : Prop :=
     (Q : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗ isStorage s wd sd ∗ storageOpen s q ∗ Raft.snapshotPts p dq sn ∗ ⌜diskOk⌝ ∗
       (AU <{ ∃∃ (R : Wal.Recs), Wal.walRecs wd R }> @ ⊤, ∅
-        <{ Wal.walRecs wd (R.saveSnap ⟨sn.index, sn.term, some sn.conf⟩), COMM Q }>) }}
+        <{ Wal.walWriting wd R (.saveSnap ⟨sn.index, sn.term, some sn.conf⟩), COMM
+           AU <{ Wal.walWriting wd R (.saveSnap ⟨sn.index, sn.term, some sn.conf⟩) }> @ ⊤, ∅
+             <{ Wal.walRecs wd (R.saveSnap ⟨sn.index, sn.term, some sn.conf⟩), COMM Q }> }>) }}
     (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty @!! go!"SaveSnap")) (Val #p))
   {{ RET #GoInterface.nil; storageOpen s q ∗ Raft.snapshotPts p dq sn ∗ Q }}
 

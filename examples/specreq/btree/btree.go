@@ -109,3 +109,60 @@ func ReqOrdered() {
 		panic("ordered: len")
 	}
 }
+
+// snap is Kubernetes' btreeStore as its snapshotter keeps it: a frozen clone of the store's tree,
+// ordered by its resource version.
+type snap struct {
+	rv   uint64
+	tree *btree.BTree[*item]
+}
+
+func snapLess(a, b *snap) bool { return a.rv < b.rv }
+
+// REQ btree/tree-of-snapshots: a tree whose items are frozen clones, keyed by an immutable
+// resource version: DescendLessOrEqual stopping at the first item finds the newest snapshot at or
+// below a version, and that snapshot's tree still reads as it was when cloned; Min and DeleteMin
+// drop the oldest; Clear empties the tree.
+// Users: k8s.io/apiserver/pkg/storage/cacher/store/snapshotter.go:65-170 (newSnapshotter,
+// GetSnapshot's DescendLessOrEqual, HasSnapshot's Min, RemoveLess's Min/DeleteMin, reset's
+// Clear(false), Add's ReplaceOrInsert), store/btree.go:41-121 (Clone, Delete, ReplaceOrInsert,
+// AscendGreaterOrEqual on the store's tree). Translated with bodies in
+// Code/k8s_io/apiserver/pkg/storage/cacher/store.lean; its specs are not on this branch.
+// Assumes: nothing.
+// Specs: New.spec, BTree.Clone.spec, BTree.ReplaceOrInsert.spec, BTree.Delete.spec,
+// BTree.DescendLessOrEqual.spec, BTree.Get.spec, BTree.Min.spec, BTree.DeleteMin.spec,
+// BTree.Clear.spec, BTree.Len.spec; laws: ownBTree_persist (an item's predicate holds the frozen
+// inner tree at DFrac.discard, persistent).
+func ReqTreeOfSnapshots() {
+	store := btree.New[*item](4, itemLess)
+	snaps := btree.New[*snap](4, snapLess)
+	for i, k := range []string{"a", "b", "c"} {
+		store.ReplaceOrInsert(&item{key: k, val: i + 1})
+		snaps.ReplaceOrInsert(&snap{rv: uint64(i + 1), tree: store.Clone()})
+	}
+	store.Delete(&item{key: "a"})
+	var found *snap
+	snaps.DescendLessOrEqual(&snap{rv: 2}, func(s *snap) bool {
+		found = s
+		return false
+	})
+	if found == nil || found.rv != 2 {
+		panic("tree-of-snapshots: not the newest snapshot at or below the version")
+	}
+	if it, ok := found.tree.Get(&item{key: "a"}); !ok || it.val != 1 {
+		panic("tree-of-snapshots: a snapshot changed after a write to the store")
+	}
+	if _, ok := found.tree.Get(&item{key: "c"}); ok {
+		panic("tree-of-snapshots: a snapshot sees a later write")
+	}
+	if oldest, ok := snaps.Min(); !ok || oldest.rv != 1 {
+		panic("tree-of-snapshots: Min is not the oldest")
+	}
+	if oldest, ok := snaps.DeleteMin(); !ok || oldest.rv != 1 || snaps.Len() != 2 {
+		panic("tree-of-snapshots: DeleteMin did not drop the oldest")
+	}
+	snaps.Clear(false)
+	if snaps.Len() != 0 {
+		panic("tree-of-snapshots: Clear left items")
+	}
+}

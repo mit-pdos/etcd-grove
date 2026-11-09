@@ -12,8 +12,8 @@ import (
 	"go.etcd.io/etcd/server/v3/storage/mvcc"
 )
 
-// recvEvents receives from the stream until n events of the watcher id arrived; any other
-// response of id is a progress (no events: skipped; mvcc may send one unrequested only through a
+// recvEvents receives from the stream until n events of the watcher id arrived; a stream-wide
+// progress (id -1) is skipped; any other response of id is a progress (no events: skipped; mvcc may send one unrequested only through a
 // RequestProgress, but the specs admit it at any time) or a compaction (which the snippets'
 // assumptions rule out). The stream's only watcher is id (wsReg_ctl: a registered id is one Watch
 // returned).
@@ -39,6 +39,11 @@ func recvEvents(ws mvcc.WatchStream, id mvcc.WatchID, n int) []*mvccpb.Event {
 		if !ok {
 			panic("history: channel closed while the stream is open")
 		}
+		if resp.WatchID == -1 {
+			// A stream-wide progress: wsRespOk admits one at any time (only RequestProgressAll
+			// sends one, which no spec says), so it is skipped, as nextNonProgress does.
+			continue
+		}
 		if resp.WatchID != id {
 			panic("history: a response of a watcher this stream does not have")
 		}
@@ -62,7 +67,7 @@ func recvEvents(ws mvcc.WatchStream, id mvcc.WatchID, n int) []*mvccpb.Event {
 // revision), watch.go:516 (sendLoop forwards each response).
 // Assumes: kv is a watchable store this snippet alone writes (the server's apply thread is the
 // only writer: its invariant holds mvccState) and never compacts; one reader token.
-// Specs: watchableStore.Rev.spec, watchableStore.NewWatchStream.spec, watchStream.Watch.spec (id = n,
+// Specs: watchableStore.Rev.spec, watchableStore.NewWatchStream.spec, watchStream.Watch.spec (+ wsOpen_closed) (id = n,
 // the read update), wsReg_ctl,
 // watchableStore.Put.spec, watchableStore.DeleteRange.spec, watchStream.Close.spec; laws:
 // wsCons_recv.spec (wStep's events: wEvents of the range from the position), mvccLb_le.spec.
@@ -96,7 +101,7 @@ func ReqFromStart(kv mvcc.WatchableKV, k []byte) {
 // revision at its registration, which is at most a revision Rev() reports after Watch returned.
 // Users: v3rpc's recvLoop (a create with start revision 0, its Created header from Rev()).
 // Assumes: as ReqFromStart.
-// Specs: watchStream.Watch.spec (W.pos = σ.rev at the state its read update fired),
+// Specs: watchStream.Watch.spec (+ wsOpen_closed) (W.pos = σ.rev at the state its read update fired),
 // watchStream.Rev.spec (its read update at a later state: the snippet's state only grows);
 // wsCons_recv.spec.
 func ReqFromCurrent(kv mvcc.WatchableKV, k []byte) {
@@ -122,7 +127,7 @@ func ReqFromCurrent(kv mvcc.WatchableKV, k []byte) {
 // Users: v3rpc's sendLoop (one gRPC response per mvcc response; 1b's wireStep: whole revisions).
 // Assumes: as ReqFromStart.
 // Specs: watchableStore.Write.spec, watchableStoreTxnWrite.Put.spec, watchableStoreTxnWrite.End.spec,
-// watchStream.Watch.spec; wsCons_recv.spec (wEvents up to the last event's revision).
+// watchStream.Watch.spec (+ wsOpen_closed); wsCons_recv.spec (wEvents up to the last event's revision).
 func ReqWholeRevision(kv mvcc.WatchableKV) {
 	ws := kv.NewWatchStream()
 	defer ws.Close()
@@ -144,7 +149,7 @@ func ReqWholeRevision(kv mvcc.WatchableKV) {
 // events were all dropped is not sent.
 // Users: v3rpc's FiltersFromRequest (NOPUT, NODELETE) passed to Watch (watch.go:338-342).
 // Assumes: as ReqFromStart.
-// Specs: watchStream.Watch.spec with filtersAt (filterOk of the function); wsCons_recv.spec.
+// Specs: watchStream.Watch.spec (+ wsOpen_closed) with filtersAt (filterOk of the function); wsCons_recv.spec.
 func ReqFilters(kv mvcc.WatchableKV, k []byte) {
 	noPut := func(e *mvccpb.Event) bool { return e.Type == mvccpb.PUT }
 	ws := kv.NewWatchStream()
@@ -168,7 +173,7 @@ func ReqFilters(kv mvcc.WatchableKV, k []byte) {
 // Users: v3rpc's sendLoop (Canceled iff CompactRevision != 0; 1b's watchStep error arm).
 // Assumes: kv is written and compacted by this snippet alone; at least two revisions written
 // before (so that the compaction revision exceeds the start 1).
-// Specs: watchableStore.Compact.spec, watchStream.Watch.spec; wsCons_recv.spec (wStep's
+// Specs: watchableStore.Compact.spec, watchStream.Watch.spec (+ wsOpen_closed); wsCons_recv.spec (wStep's
 // compaction case against posEvOf, respShape).
 func ReqCompaction(kv mvcc.WatchableKV, k []byte) {
 	kv.Put(k, []byte("a"), lease.NoLease)

@@ -22,6 +22,9 @@ Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/newClient.lean`: as `New
 Readiness (round 1): the members are built before `c.Auth` is set; their handles record `c` and
 meet their bundles only with `clientReady c`, which `newClient` mints once `c.Auth` is set (before
 `getToken`, its first call), so `clientMut`/`isClient` carry it (`clientMut_ready`).
+verify-round: `NewLease` returns `lessorHandle l c` (A2-provability L1: `NewLeaseFromLeaseClient` at
+`cr = c`); `NewWatcher` returns `watcherHandle w c` (1b's W3), whose `watcherHandle_watcherAt` is
+applied, as the other handles' laws, after `clientReady c` is minted.
 
 Margin: none.
 -/
@@ -55,8 +58,7 @@ def newClient.spec : Prop :=
   {{ (c : Loc) (err : GoInterface), RET (PairV #c #err); p ↦ cfg ∗
       ⌜cfg.Endpoints'.len = W64 0 → c = null ∧ err ≠ GoInterface.nil⌝ ∗
       ((⌜err = GoInterface.nil⌝ ∗ clientMut c γ who ∗
-         (⌜cfg.AutoSyncInterval' ≠ W64 0⌝ ∨
-          ∃ eps, cfg.Endpoints' ↦*□ eps ∗ epsTok c (DFrac.own 1) eps)) ∨
+         (∃ eps, cfg.Endpoints' ↦*□ eps ∗ epsTok c (DFrac.own 1) eps)) ∨
        ⌜c = null ∧ err ≠ GoInterface.nil⌝) }}
 
 end spec

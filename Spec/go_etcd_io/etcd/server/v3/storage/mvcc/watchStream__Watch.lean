@@ -30,6 +30,9 @@ use of `ctx`; 2b's `Tracer.Start` context has it) in place of `TODO` or an `isCo
 (integration: `Context.ctxOk` dropped, the code never calls the context); the id `0` stays a premise (a scope restriction, below). (Round 1: the read update, F2;
 `id = n` with `wsReg_ctl`, the range non-empty on success, F4; the error value, F6; the receipt
 bound, S2.)
+Changes: verify-round: the closed-stream refusal (`wsClosed ι`) is refuted by a caller holding
+`wsOpen ι` through the new law `wsOpen_closed` (A10 W1); the triple is unchanged (it does not take
+`wsOpen`: v3rpc's receive loop may call it while another goroutine closes the stream).
 
 **Margin.** A caller-chosen id (`id ≠ 0`) is out of scope: it can reuse a cancelled watcher's id,
 whose queued responses then read as the new watcher's (`issues/etcd-watch-id-reuse-stale-events.md`);
@@ -61,7 +64,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- **`w.Watch(ctx, 0, key, end, startRev, fcs...)`**: an empty range (`end` neither `nil` nor
-empty, and not above `key`), or a closed stream, is refused (`-1`, the package's
+empty, and not above `key`), or a closed stream (`wsClosed`, which a holder of `wsOpen` refutes:
+`wsOpen_closed`), is refused (`-1`, the package's
 `ErrEmptyWatcherRange`, the caller's update back); else, by the caller's read update fired at the
 state `σ` the registration reads (nothing pending: under `s.mu`), a watcher registered under the
 stream's next id `n`, as `W`: its range, its filters, its start revision, its position

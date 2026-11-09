@@ -8,6 +8,8 @@ the reply or `nil`). Snippet: none (a log line).
 over the reply's content: 3h's relation law, depth at most `3`), `warnOfExpensiveGenericRequest`.
 
 **Changes.** The old spec's lent `P` and `sizeOk` replaced by the reply itself (`optOwn`), given back.
+verify-round, second pass (grpc-v3rpc's C-F6): the request is 3h's `stringerAt` (was the provisional
+persistent `stringerOk`), given back: `EtcdServer.Range` holds the request at a share (`stringerAt_msg`).
 **Margin.** None.
 -/
 module
@@ -38,9 +40,9 @@ reply given back. -/
 def WarnOfExpensiveReadOnlyRangeRequest.spec : Prop :=
   ∀ (lg : Loc) (d : time.Duration) (now : time.Time) (req : GoInterface) (resp : Loc) (dq : DFrac)
     (mo : Option RangeRespM) (err : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ Zap.isLogger lg ∗ stringerOk req ∗ optOwn rangeRespOwn resp dq mo }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ Zap.isLogger lg ∗ EtcdServerPb.stringerAt req ∗ optOwn rangeRespOwn resp dq mo }}
     (App (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.WarnOfExpensiveReadOnlyRangeRequest)) (Val #lg)) (Val #d)) (Val #now)) (Val #req)) (Val #resp)) (Val #err))
-  {{ RET #(); optOwn rangeRespOwn resp dq mo }}
+  {{ RET #(); EtcdServerPb.stringerAt req ∗ optOwn rangeRespOwn resp dq mo }}
 
 end spec
 end Txn

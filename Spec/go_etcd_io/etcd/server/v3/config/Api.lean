@@ -81,6 +81,7 @@ def dirsOf [GooseExts] [GoGlobalContext] (cfg : go_etcd_io.etcd.server.v3.config
 opaque backendPathOf (d : GoString) : GoString
 
 /-- `WALDir()` of a configuration with these directories. -/
+-- (`backendPath_entry.spec` below: `backendPathOf d` is the entry `db` of `snapDirOf d`.)
 opaque walDirOf (ds : Dirs) : GoString
 
 /-- `SnapDir()` of a configuration whose data directory is `d` (`<d>/member/snap`). -/
@@ -104,6 +105,13 @@ def electionTimeoutOf (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : w6
 /-- `PeerDialTimeout()`: `1s + electionMs * 1ms` (wrapping). -/
 def peerDialTimeoutOf (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : w64 :=
   W64 1000000000 + electionMs cfg * W64 1000000
+
+/-- **The backend file is the entry `db` of the snapshot directory** (`BackendPath()` is
+`datadir.ToBackendFileName`: `filepath.Join(ToSnapDir(d), "db")`, `datadir.go:26-28`; the snapshot
+directory is a clean path ending in `snap`, so the join only appends): what makes `SaveDBFrom`'s fsync of the snapshot directory settle a pending rename onto
+the backend file (`Snap.inDir`; last pass, backend-schema's `beRevert`). -/
+def backendPath_entry.spec : Prop :=
+  ∀ d : GoString, backendPathOf d = snapDirOf d ++ go!"/" ++ go!"db"
 
 end vals
 

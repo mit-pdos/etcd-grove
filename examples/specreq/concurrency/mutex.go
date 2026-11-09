@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/concurrency"
@@ -78,8 +79,9 @@ func ReqV3LockPattern(ctx context.Context, cli *clientv3.Client, lease clientv3.
 // the mutex released (a following Unlock is ErrLockReleased).
 // Users: etcd's tests (mutex_test.go: TestMutexTryLock*), example_mutex_test.go.
 // Assumes: none.
-// Specs: NewMutex.spec, Mutex.TryLock.spec, Mutex.Unlock.spec, Mutex.Header.spec; laws:
-// concErrVal_ok, concErrVal_notCanceled, W0's callErr_errorsNew, init.spec.
+// Specs: NewMutex.spec, Mutex.TryLock.spec (ErrLocked: the value of its variable; any other
+// error notConcErr), Mutex.Unlock.spec (on the released mutex only ErrLockReleased); law: init.spec
+// (the variables' values, concErrsOk).
 func ReqTryLock(ctx context.Context, s *concurrency.Session, pfx string) {
 	m := concurrency.NewMutex(s, pfx)
 	err := m.TryLock(ctx)
@@ -100,7 +102,8 @@ func ReqTryLock(ctx context.Context, s *concurrency.Session, pfx string) {
 // ErrLockReleased.
 // Users: etcd's tests (mutex_test.go), v3lock's clients.
 // Assumes: none.
-// Specs: Mutex.Lock.spec, Mutex.Unlock.spec; law: init.spec.
+// Specs: Mutex.Lock.spec, Mutex.Unlock.spec (nil releases; on the released mutex only
+// ErrLockReleased); law: init.spec.
 func ReqLockUnlock(ctx context.Context, s *concurrency.Session, pfx string) {
 	m := concurrency.NewMutex(s, pfx)
 	if err := m.Lock(ctx); err != nil {
@@ -151,4 +154,51 @@ func ReqLockAfterUnlock(ctx context.Context, s1, s2 *concurrency.Session, pfx st
 	if m2.Header().Revision <= r1 {
 		panic("lock: a later lock's header is not later")
 	}
+}
+
+// REQ concurrency/mutex-no-two-holders: with no lease expiry, a second locker does not return
+// from Lock while the first holds the lock (time exclusion, not only revision fencing).
+// Users: tests/integration/clientv3/experimental/recipes/v3_lock_test.go:57-99 (testMutexLock:
+// "lock %d followers did not wait"), :194-284 (TestMutexWaitsOnCurrentHolder: "new owner obtained
+// lock before first owner unlocked"); etcdctl lock (lockUntilSignal runs the command holding it).
+// Assumes: no lease expiry (W0's EnvCfg.leaseExpiry = false); pfx+"/" owned, empty at the start;
+// the two sessions' leases granted here (distinct: the first is live at the second grant).
+// Specs: NewSession.spec (grantEff: a fresh lease id), NewMutex.spec, Mutex.Lock.spec (the key
+// k = sessKey pfx id, lockedSince, cr above sigma0's revision for a key created after it),
+// Mutex.Unlock.spec; mutexEff (each mutex writes only its session's key, so "k1 present while
+// released is false" is stable under m2's permission); laws: etcdLb_reach, etcdLb_init.
+// Proof idea: m1's key k1 is present, created at r1 <= sigma1's revision, until m1.Unlock; m2's
+// key k2 is absent at sigma1 (fresh lease), so m2's cr is above sigma1's revision; m2's lockedSince
+// (noOlder pfx cr) at its state sigma2 excludes k1 there, so released was set before sigma2.
+func ReqMutexNoTwoHolders(ctx context.Context, cli *clientv3.Client, pfx string) {
+	s1, err := concurrency.NewSession(cli)
+	if err != nil {
+		return
+	}
+	defer s1.Close()
+	s2, err := concurrency.NewSession(cli)
+	if err != nil {
+		return
+	}
+	defer s2.Close()
+	m1 := concurrency.NewMutex(s1, pfx)
+	if err := m1.Lock(ctx); err != nil {
+		return
+	}
+	var released atomic.Bool
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		m2 := concurrency.NewMutex(s2, pfx)
+		if err := m2.Lock(ctx); err != nil {
+			return
+		}
+		if !released.Load() {
+			panic("mutex: two holders at once")
+		}
+		_ = m2.Unlock(ctx)
+	}()
+	released.Store(true)
+	_ = m1.Unlock(ctx)
+	<-done
 }

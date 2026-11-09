@@ -14,7 +14,9 @@ to the committed log's state (2d's realization).
 * `memberIdOf urls token` (opaque, pure): the id `computeMemberID` gives a member of an initial
   cluster with these peer URLs in a cluster of this token (SHA-1 of the sorted URLs and the token,
   its first 8 bytes big-endian; `member.go:63-76`). Trusted: what Go computes; a program learns a
-  concrete value only by running Go (a computed fact, checked by a Go run).
+  concrete value only by running Go (a computed fact, checked by a Go run). Nothing in etcd refuses
+  an id equal to raft's reserved local targets (`2^64-1`, `2^64-2`): a premise of the cluster's
+  allocation (`nonissues/etcd-member-id-raft-reserved.md`).
 * `initialMembers token cl` (transparent): the members `NewClusterFromURLsMap` builds from an
   initial-cluster map (`cluster.go:81-95`): each name with its peer URLs, no client URL, a voter.
   `bootstrap` fails on two equal ids or an id `0` (the same lines), so no premise on them.
@@ -37,12 +39,27 @@ to the committed log's state (2d's realization).
 * The conf-change check: `decodeCtx`, `decodeMember` (opaque: `encoding/json` on the bytes etcd
   marshalled), `ccPanicFree c` (the change's type is one of the four v1 kinds and its context
   decodes: `ValidateConfigurationChange` panics otherwise), `ccResult st c r` (transparent: the
-  outcome `cluster.go:306-391` computes), `vErr e` (the error values).
+  outcome `cluster.go:306-391` computes). **The error values** (verify-round, sentinel errors,
+  A3 provability F4): `VErr.global e` is the package variable of error `e` (`ErrIDRemoved`, ...);
+  its value is not a Lean constant (`errors.New` allocates it at initialization): `init.spec` gives
+  the variables' values `ev`, read-only, non-`nil`, pairwise distinct, and a spec returning error
+  `e` says `globalAddr e.global ↦□ err`.
+* **The cluster version and downgrade info** (verify-round, A8 completeness F3: 3a's
+  `ClusterVersionSet`/`DowngradeInfoSet` and 3c's lessor need them): `VerSt` (transparent: the
+  version, if set, and the downgrade info, if set, as `Enabled`/`TargetVersion`), `clusterVer γ v`
+  (exclusive, timeless: the view's, the other half of the mutex's ghost variable, as `clusterSt`),
+  `beVer c v` (exclusive: the backend's stored version and downgrade info, as `beView`).
+  `binaryVer`: the binary's version (`version.Version` parsed; trusted constant); `verFits sv`: `sv`
+  survives `MustParse(sv.String())` and is not above the binary's major.minor
+  (`MustDetectDowngrade` panics otherwise): `SetVersion`'s premise, kept by the view for `Version`.
+  `Version`'s spec gives 3c's `Lease.clusterOk` of the cluster: with the view in an invariant
+  (`clusterVerInv`), `Version()` from any goroutine returns `nil` or a read-only `*Version`.
 
 ## Laws
 
 `isCluster_persistent`, `isCluster_agree`, `clusterSt_timeless`, `clusterSt_excl`,
-`memberPts_fractional`, `memberPts_agree`, `vErr_ne_nil`, `vErr_inj`.
+`clusterVer_timeless`, `clusterVer_excl`, `memberPts_fractional`, `memberPts_agree`, `init`
+(the error variables; replaces round 1's `vErr_ne_nil`, `vErr_inj` over a constant `vErr`).
 
 ## Requirement snippets
 
@@ -53,6 +70,7 @@ module
 
 public import Spec.go_etcd_io.etcd.api.v3.Model
 public import Spec.go_etcd_io.raft.v3.Model
+public import Spec.github_com.Masterminds.semver.v3.Api
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.membership
 public import Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.api.membership
 
@@ -98,6 +116,25 @@ def ClusterSt.isMember (st : ClusterSt) (id : Nat) : Prop := ∃ m ∈ st.member
 /-- A view's ghost names (opaque). -/
 opaque CNames : Type := Unit
 
+/-- **A view's cluster version and downgrade info** (`RaftCluster.version`, `downgradeInfo`:
+`Enabled`, `TargetVersion`). -/
+structure VerSt where
+  ver : Option Semver.SemVer
+  dg : Option (Bool × GoString)
+
+/-- **The binary's version** (`semver.MustParse(version.Version)`; trusted constant). -/
+opaque binaryVer : Semver.SemVer := ⟨W64 0, W64 0, W64 0, [], []⟩
+
+/-- **A cluster version `SetVersion` and `Version` do not panic on**: its `String()` parses back
+to it (`Version` returns `MustParse(c.version.String())`), and the binary's major.minor is not below
+it (`MustDetectDowngrade`). -/
+def verFits (sv : Semver.SemVer) : Prop :=
+  Semver.parse (Semver.render sv) = some sv ∧
+  Semver.SemVer.ltb ⟨binaryVer.major, binaryVer.minor, W64 0, [], []⟩ sv = false
+
+/-- A view's version facts: every version it holds fits. -/
+def VerSt.ok (v : VerSt) : Prop := ∀ sv, v.ver = some sv → verFits sv
+
 /-! ## Validating a configuration change (`ValidateConfigurationChange`, `cluster.go:306-391`) -/
 
 /-- A conf change's context, as `json.Unmarshal` reads it (`ConfigChangeContext`): the member it
@@ -116,6 +153,21 @@ opaque decodeMember (b : List w8) : Option Member
 /-- The errors `ValidateConfigurationChange` returns. -/
 inductive VErr where
   | idRemoved | idNotFound | memberNotLearner | idExists | peerURLExists | tooManyLearners
+
+section errs
+variable [GooseExts] [go_gctx : GoGlobalContext]
+open go_etcd_io.etcd.server.v3.etcdserver.api.membership
+
+/-- The package variable holding each error. -/
+def VErr.global : VErr → GoString
+  | .idRemoved => ErrIDRemoved
+  | .idNotFound => ErrIDNotFound
+  | .memberNotLearner => ErrMemberNotLearner
+  | .idExists => ErrIDExists
+  | .peerURLExists => ErrPeerURLexists
+  | .tooManyLearners => ErrTooManyLearners
+
+end errs
 
 /-- The conf changes `ValidateConfigurationChange` does not panic on: one of the four v1 types,
 whose context decodes where it is read. -/
@@ -176,12 +228,41 @@ opaque beView [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors}
 (exclusive); `SetBackend(mb)` turns it into `beView c st`. -/
 opaque beMembers [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (mb : GoInterface) (st : ClusterSt) : IProp GF := iprop(True)
 
-/-- The Go error value of `ValidateConfigurationChange`'s error `e` (`membership.ErrIDRemoved`,
-...: package variables, non-nil, distinct). -/
-opaque vErr (e : VErr) : GoInterface
+/-- **The view `γ`'s version and downgrade info are `v`** (exclusive). -/
+opaque clusterVer [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : CNames) (v : VerSt) : IProp GF := iprop(True)
 
-def vErr_ne_nil.spec : Prop := ∀ e, vErr e ≠ GoInterface.nil
-def vErr_inj.spec : Prop := ∀ e e', vErr e = vErr e' → e = e'
+/-- **The backend's stored version and downgrade info, as the cluster `c` writes them, are `v`**
+(exclusive; the caller's, beside `beView`). Intended realization: 4b's `ClusterBkts`' `ver`/`dg` of
+`c.be`'s backend. -/
+opaque beVer [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c : Loc) (v : VerSt) : IProp GF := iprop(True)
+
+/-- The namespace of the invariant holding the version notifier's count
+(`SetVersionChangedNotifier`'s premise), disjoint from pkg notify's. -/
+def clusterNotifyN : Namespace := nroot .@ "clusterNotify"
+
+/-- The namespace of a server's invariant holding the view's version (`clusterVerInv`). -/
+def clusterVerN : Namespace := nroot .@ "clusterVer"
+
+/-- **The view's version, kept in an invariant** (persistent): what makes `Version()` callable from
+any goroutine (the lessor's `cluster`). The server allocates it at `NewServer` (2d); the apply
+thread's `SetVersion`/`SetDowngradeInfo` fire their updates inside it. -/
+def clusterVerInv (γ : CNames) : IProp GF :=
+  iprop(inv clusterVerN (iprop(∃ v : VerSt, clusterVer γ v ∗ ⌜v.ok⌝)))
+
+/-- **The package's error variables hold `ev`**, read-only (persistent). -/
+def vErrs (ev : VErr → GoInterface) : IProp GF :=
+  iprop(□ ∀ e : VErr, globalAddr e.global ↦□ ev e)
+
+/-- **The package's error variables**: read-only, non-`nil`, pairwise distinct. -/
+def init.spec : Prop :=
+  isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ⊢
+    ∃ ev : VErr → GoInterface, vErrs ev ∗
+      ⌜(∀ e e', ev e = ev e' → e = e') ∧ ∀ e, ev e ≠ GoInterface.nil⌝
+
+def clusterVer_timeless.spec : Prop := ∀ γ v, Timeless (clusterVer (GF := GF) γ v)
+
+def clusterVer_excl.spec : Prop := ∀ γ v v',
+  clusterVer (GF := GF) γ v ∗ clusterVer γ v' ⊢ iprop(False)
 
 /-- A fresh `[]*Member` of the members `ms`. -/
 def membersOwn (sl : GoSlice) (ms : List Member) : IProp GF :=

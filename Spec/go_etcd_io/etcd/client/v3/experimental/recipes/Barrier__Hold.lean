@@ -10,6 +10,8 @@ and the caller's update unchanged.
 **Changes**: old spec over the recipes' client invariant, with a `held` token; now the caller's
 update over the transaction, every answer linearized (`ErrKeyExists`: the key existed).
 
+Changes: verify-round: `ErrKeyExists` is the value its variable holds (`putNewRetAt`), not a Lean constant (A3 F4).
+
 **Margin**: none.
 -/
 module
@@ -45,7 +47,7 @@ def Barrier.Hold.spec : Prop :=
            COMM Q σ σ' res }> }}
     (App (Val (b @!! go.GoType.PointerType Barrier.ty @!! go!"Hold")) (Val #()))
   {{ (err : GoInterface), RET #err;
-      (∃ (σ σ' : State) (res : Resp) (rev : w64), Q σ σ' res ∗ ⌜putNewRet res rev err⌝) ∨ indefCall err }}
+      (∃ (σ σ' : State) (res : Resp) (rev : w64), Q σ σ' res ∗ putNewRetAt res rev err) ∨ indefCall err }}
 
 end spec
 

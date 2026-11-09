@@ -38,7 +38,18 @@ repeatable, and 1c's specs take persistent updates for them), and returns either
 
 There is no other case: in particular a definite error (`ErrCompacted`, `ErrLeaseNotFound`,
 `ErrPermissionDenied`, `ErrTooManyRequests`, ...) is always a linearized answer. Which errors are
-which is `EtcdErr.indefinite` (`Model.lean`).
+which is `EtcdErr.indefinite` (`Model.lean`). The exceptions are the refusals that are also
+indefinite (`.noSpace`, `.unhealthy`: `EtcdErr.refusal` and `EtcdErr.indefinite` both hold): the
+member may fire the update with them, but `ContextError` returns them as `indefCall` (the `Q`
+dropped), which is sound and all a caller gets.
+
+**Range ends** (verify round, A1-provability F5): an `Op` or `Cmp` whose range end is a non-`nil`
+empty slice (`WithRange("")`, `Op.WithRangeBytes([]byte{})`, `Cmp.WithRange("")`) is read as one
+key by a member it reaches over gRPC (proto3 does not encode an empty `bytes` field) and as every
+key from the key on in-process (`v3client`'s adapter passes the message itself, mvcc reads a
+non-`nil` empty end so): no one model of the request is right for both, so the KV specs take the
+scope premise that no range end is such (`OpM.emptyEnd`, `Cmp.WithRange.spec`'s `e ≠ []`;
+`nonissues/etcd-client-withrange-empty-end.md`).
 
 ## Handles (all persistent)
 
@@ -100,9 +111,13 @@ which is `EtcdErr.indefinite` (`Model.lean`).
 ## Laws
 
 Persistence of the handles and values; `isClient_KV`, `clientMut_KV`, `clientMut_conn`,
-`clientMut_freeze`; the bundles' laws (`kvAt_methods`, `remoteKVAt_methods`, `txnAt_methods`);
-`kvHandle_kvAt`, `retryKVHandle_remoteKVAt`; `callErr_errVal`; the package's initial globals
-(`init.spec`: `noPrefixEnd` holds `[0]`, read-only).
+`clientMut_freeze`; the bundles' laws (`kvAt_methods`, `remoteKVAt_methods`, `txnAt_methods`) and
+their introductions for any implementation (`kvAt_intro`, `txnAt_intro`: a wrapper such as
+Kubernetes' latency tracker); `kvHandle_kvAt`, `retryKVHandle_remoteKVAt`; `callErr_errVal`,
+`callErr_errorsNew`, `errorsIs_errVal`, `errorsIs_callErr_eof`; `compactOptAt_rev`; the package's initial
+globals (`init.spec`: `noPrefixEnd` holds `[0]`, read-only; the error variables
+`ErrNoAvailableEndpoints`, `ErrOldCluster`, `ErrMutuallyExclusiveCfg` read-only, distinct,
+non-`nil`).
 
 ## Requirement snippets
 
@@ -272,8 +287,8 @@ def OpM.deletePanics (o : OpM) : Prop :=
   o.leaseID ≠ W64 0 ∨ o.hasRangeOpts ∨ o.rev ≠ W64 0 ∨ o.filterDelete = true ∨
   o.filterPut = true ∨ o.createdNotify = true
 
-/-- `OpPut`'s `switch` may panic: also any range end set (`end != nil`; the model of a range end
-does not say whether an empty one is `nil`, so every one is ruled out). -/
+/-- `OpPut`'s `switch` panics: also any range end set (`end != nil`: `rangeEnd ≠ none`, which
+`OpM` tells apart from a non-`nil` empty end, `some []`). -/
 def OpM.putPanics (o : OpM) : Prop :=
   o.rangeEnd ≠ none ∨ o.hasRangeOpts ∨ o.rev ≠ W64 0 ∨ o.filterDelete = true ∨
   o.filterPut = true ∨ o.createdNotify = true
@@ -287,7 +302,8 @@ def OpM.watchPanics (o : OpM) : Prop := o.leaseID ≠ W64 0 ∨ o.hasRangeOpts
 def toEnum32 (x : w64) : Int := sint.Z (W32 (sint.Z x))
 
 /-- The request's range end of an `Op`'s `end` (`Wire.endOf`): `nil` one key, a non-`nil` empty end
-every key from the key on. -/
+every key from the key on (as mvcc reads it in-process; a member reached over gRPC reads it as one
+key: the KV specs exclude it, `OpM.emptyEnd`). -/
 def OpM.endReq (o : OpM) : GoString :=
   match o.rangeEnd with
   | none => []
@@ -344,6 +360,19 @@ def OpM.toReq (o : OpM) : Option Req :=
   | some (.deleteRange d) => some (.deleteRange d)
   | some (.txn c s f) => some (.txn { compare := c, success := s, failure := f })
   | _ => none
+
+mutual
+/-- **An `Op` with a non-`nil` empty range end, at any depth** (`WithRange("")`,
+`Op.WithRangeBytes([]byte{})`): a member reached over gRPC reads it as one key, in-process as every
+key from the key on (the header, "Range ends"); the KV specs take `emptyEnd = false`. -/
+def OpM.emptyEnd : OpM → Bool
+  | { rangeEnd, thenOps, elseOps, .. } =>
+    Bool.or (match rangeEnd with | some [] => true | _ => false)
+      (Bool.or (OpM.anyEmptyEnd thenOps) (OpM.anyEmptyEnd elseOps))
+def OpM.anyEmptyEnd : List OpM → Bool
+  | [] => false
+  | o :: os => Bool.or (OpM.emptyEnd o) (OpM.anyEmptyEnd os)
+end
 
 mutual
 /-- `isWrite`: not a range (a transaction: one of its operations is a write). -/
@@ -565,7 +594,12 @@ Introduced for contexts with no gRPC outgoing metadata (`ctxPrin_of_noMeta` from
 `Context.ctxNoMeta`, which a root context's owner discharges; `ctxPrin_background`,
 `ctxPrin_todo`), kept by children (`ctxPrin_child`), by a `WithValue` at another key
 (`ctxPrin_value`), by `WithRequireLeader` and `withVersion` (their specs); a context a caller builds
-with grpc metadata of its own needs an introduction from grpc's `metadata` (2a). -/
+with grpc metadata of its own needs an introduction from grpc's `metadata` (2a). Every
+introduction must keep 1b's `ctxStreamKey_prin` (`ApiWatch.lean`: equal stream keys, equal
+principals) true: a new one for a context with other outgoing metadata must print injectively
+(lower-case keys, values free of space, `:`, `[`, `]`: `Fmt.printMD_inj`). Intended realization:
+`∃ md, Grpc.outMD ctx md ∗ ⌜the principal md's token names (or dflt without one)⌝`, so that
+`streamKeyFromCtx`'s proof reads the same metadata. -/
 opaque ctxPrin [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (dflt : Principal) (ctx : GoInterface) (p : Principal) : IProp GF := iprop(True)
 
 /-- **Slot (2a)**: `ctx` carries the outgoing metadata `token: tok` (grpc's `metadata`: the gRPC
@@ -682,7 +716,8 @@ serializable: answered at a member's possibly stale view, `Step`), the caller's 
 def KV.GetTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal) : Prop :=
   ∀ (ctx : GoInterface) (p : Principal) (lo : Nat) (key : GoString) (opts : GoSlice) (gs : List (OpM → OpM))
     (Q : State → State → Resp → IProp GF),
-  {{ P ∗ Context.ctxOk ctx ∗ authLb γ lo ∗ ctxPrin who ctx p ∗ optsAt opts gs ∗ ⌜¬ prefixAndFromKey gs⌝ ∗
+  {{ P ∗ Context.ctxOk ctx ∗ authLb γ lo ∗ ctxPrin who ctx p ∗ optsAt opts gs ∗
+      ⌜¬ prefixAndFromKey gs ∧ (opGetM key gs).emptyEnd = false⌝ ∗
       □ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
         <{ ∀∀ (σ' : State) (res : Resp),
              ⌜Step p (.range (opGetM key gs).rangeReq) σ σ' res lo⌝ ∗ etcdState γ σ',
@@ -696,7 +731,8 @@ def KV.DeleteTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal) : 
   ∀ (ctx : GoInterface) (p : Principal) (key : GoString) (opts : GoSlice) (gs : List (OpM → OpM))
     (Q : State → State → Resp → IProp GF),
   {{ P ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ optsAt opts gs ∗
-      ⌜¬ prefixAndFromKey gs ∧ ¬ (opDeleteM key gs).deletePanics⌝ ∗
+      ⌜¬ prefixAndFromKey gs ∧ ¬ (opDeleteM key gs).deletePanics ∧
+        (opDeleteM key gs).emptyEnd = false⌝ ∗
       AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
         <{ ∀∀ (σ' : State) (res : Resp),
              ⌜Step p (.deleteRange (opDeleteM key gs).deleteReq) σ σ' res⌝ ∗ etcdState γ σ',
@@ -729,7 +765,8 @@ every depth (`toReq`; `Do` and `toRequestOp` panic on a zero `Op`). -/
 def KV.DoTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal) : Prop :=
   ∀ (ctx : GoInterface) (p : Principal) (lo : Nat) (op : go_etcd_io.etcd.client.v3.Op) (o : OpM) (rq : Req)
     (Q : State → State → Resp → IProp GF),
-  {{ P ∗ Context.ctxOk ctx ∗ authLb γ lo ∗ ctxPrin who ctx p ∗ opAt op o ∗ ⌜o.toReq = some rq⌝ ∗
+  {{ P ∗ Context.ctxOk ctx ∗ authLb γ lo ∗ ctxPrin who ctx p ∗ opAt op o ∗
+      ⌜o.toReq = some rq ∧ o.emptyEnd = false⌝ ∗
       □?(rq.isRead) AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
         <{ ∀∀ (σ' : State) (res : Resp), ⌜Step p rq σ σ' res lo⌝ ∗ etcdState γ σ',
            COMM Q σ σ' res }> }}
@@ -739,15 +776,17 @@ def KV.DoTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal) : Prop
       (⌜r.put' = null ∧ r.get' = null ∧ r.del' = null ∧ r.txn' = null⌝ ∗ indefCall err) }}
 
 /-- **`GetStream(ctx, key, opts...)`**: the range `OpGet(key, opts...)` builds, answered in chunks
-on a channel (`streamAt`), read by a goroutine (the caller's thread token); the caller's update
-persistent. An error opening the stream is indefinite, or a refusal that fired nothing (the stream
+on a channel (`streamAt`), read by a goroutine it forks (no thread token: Perennial's `wp_fork`; an
+abandoned stream leaks the goroutine, `nonissues/etcd-client-getstream-abandoned-leak.md`); the
+caller's update persistent. An error opening the stream is indefinite, or a refusal that fired nothing (the stream
 interceptor re-authenticates at every open: `ErrAuthFailed`, ...). The revision asked is not
 negative (`nonissues/etcd-rangestream-negative-revision-unpinned.md`: such a stream is read at a
 new revision on every page). -/
 def KV.GetStreamTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal) : Prop :=
   ∀ (ctx : GoInterface) (p : Principal) (lo : Nat) (key : GoString) (opts : GoSlice) (gs : List (OpM → OpM))
     (Q : State → State → Resp → IProp GF),
-  {{ P ∗ Context.ctxOk ctx ∗ authLb γ lo ∗ ctxPrin who ctx p ∗ optsAt opts gs ∗ ⌜¬ prefixAndFromKey gs⌝ ∗ threadTok ∗
+  {{ P ∗ Context.ctxOk ctx ∗ authLb γ lo ∗ ctxPrin who ctx p ∗ optsAt opts gs ∗
+      ⌜¬ prefixAndFromKey gs ∧ (opGetM key gs).emptyEnd = false⌝ ∗
       ⌜0 ≤ sint.Z (opGetM key gs).rev⌝ ∗
       □ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
         <{ ∀∀ (σ' : State) (res : Resp),
@@ -756,7 +795,7 @@ def KV.GetStreamTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal)
     (App (App (App (Val f) (Val #ctx)) (Val #key)) (Val #opts))
   {{ (ch : Loc) (err : GoInterface), RET (PairV #ch #err); optsAt opts gs ∗
       ((⌜err = GoInterface.nil⌝ ∗ streamAt ch γ p (opGetM key gs).rangeReq Q [] false) ∨
-       (⌜ch = null⌝ ∗ threadTok ∗
+       (⌜ch = null⌝ ∗
          (indefCall err ∨ ⌜∃ e : EtcdErr, e.refusal = true ∧ err = errVal e⌝))) }}
 
 /-- **`Txn(ctx)`**: a new transaction over `ctx`, nothing set. -/
@@ -768,43 +807,50 @@ def KV.TxnTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal) : Pro
 
 /-- **`If(cs...)`** (the first of the three; it panics otherwise): the comparisons appended (a
 zero `Cmp` as a zero `Compare`). The transaction is the value returned (`*txn` returns itself; a
-wrapper may return the `Txn` it wraps, as Kubernetes' latency tracker does). -/
-def Txn.IfTriple (f : val) (iv : GoInterface) (γ : Cluster) (who : Principal) (ctx : GoInterface) :
+wrapper may return the `Txn` it wraps, as Kubernetes' latency tracker does). `T` is the
+transaction's state predicate: `txnAt` (the default), or an implementation's own (`txnAt_intro`). -/
+def Txn.IfTriple (f : val) (iv : GoInterface) (γ : Cluster) (who : Principal) (ctx : GoInterface)
+    (T : GoInterface → TxnSt → IProp GF := fun iv st => txnAt (GF := GF) iv γ who ctx st) :
     Prop :=
   ∀ (st : TxnSt) (cs : GoSlice) (ms : List (Option EtcdModel.Compare)),
-  {{ txnAt (GF := GF) iv γ who ctx st ∗ cmpsAt cs ms ∗
+  {{ T iv st ∗ cmpsAt cs ms ∗
       ⌜st.cif = false ∧ st.cthen = false ∧ st.celse = false⌝ }}
     (App (Val f) (Val #cs))
-  {{ (r : GoInterface), RET #r; txnAt r γ who ctx { st with cif := true, cmps := st.cmps ++ ms.map (fun c => c.getD Compare.zero) } }}
+  {{ (r : GoInterface), RET #r; T r { st with cif := true, cmps := st.cmps ++ ms.map (fun c => c.getD Compare.zero) } }}
 
 /-- **`Then(ops...)`** (before `Else`, once): the operations' requests appended. -/
 def Txn.ThenTriple (f : val) (iv : GoInterface) (γ : Cluster) (who : Principal)
-    (ctx : GoInterface) : Prop :=
+    (ctx : GoInterface)
+    (T : GoInterface → TxnSt → IProp GF := fun iv st => txnAt (GF := GF) iv γ who ctx st) : Prop :=
   ∀ (st : TxnSt) (ops : GoSlice) (os : List OpM) (rs : List RequestOp),
-  {{ txnAt (GF := GF) iv γ who ctx st ∗ opsAt ops os ∗ ⌜OpM.toReqOps os = some rs⌝ ∗
+  {{ T iv st ∗ opsAt ops os ∗
+      ⌜OpM.toReqOps os = some rs ∧ OpM.anyEmptyEnd os = false⌝ ∗
       ⌜st.cthen = false ∧ st.celse = false⌝ }}
     (App (Val f) (Val #ops))
-  {{ (r : GoInterface), RET #r; txnAt r γ who ctx { st with cthen := true, sus := st.sus ++ rs } }}
+  {{ (r : GoInterface), RET #r; T r { st with cthen := true, sus := st.sus ++ rs } }}
 
 /-- **`Else(ops...)`** (once). -/
 def Txn.ElseTriple (f : val) (iv : GoInterface) (γ : Cluster) (who : Principal)
-    (ctx : GoInterface) : Prop :=
+    (ctx : GoInterface)
+    (T : GoInterface → TxnSt → IProp GF := fun iv st => txnAt (GF := GF) iv γ who ctx st) : Prop :=
   ∀ (st : TxnSt) (ops : GoSlice) (os : List OpM) (rs : List RequestOp),
-  {{ txnAt (GF := GF) iv γ who ctx st ∗ opsAt ops os ∗ ⌜OpM.toReqOps os = some rs⌝ ∗ ⌜st.celse = false⌝ }}
+  {{ T iv st ∗ opsAt ops os ∗
+      ⌜OpM.toReqOps os = some rs ∧ OpM.anyEmptyEnd os = false⌝ ∗ ⌜st.celse = false⌝ }}
     (App (Val f) (Val #ops))
-  {{ (r : GoInterface), RET #r; txnAt r γ who ctx { st with celse := true, fas := st.fas ++ rs } }}
+  {{ (r : GoInterface), RET #r; T r { st with celse := true, fas := st.fas ++ rs } }}
 
 /-- **`Commit()`**: the transaction so far, over the context it was built with (a read-only one's
 update persistent); the transaction is given back (a second `Commit` sends it again). -/
 def Txn.CommitTriple (f : val) (iv : GoInterface) (γ : Cluster) (who : Principal)
-    (ctx : GoInterface) : Prop :=
+    (ctx : GoInterface)
+    (T : GoInterface → TxnSt → IProp GF := fun iv st => txnAt (GF := GF) iv γ who ctx st) : Prop :=
   ∀ (st : TxnSt) (lo : Nat) (Q : State → State → Resp → IProp GF),
-  {{ txnAt (GF := GF) iv γ who ctx st ∗ authLb γ lo ∗
+  {{ T iv st ∗ authLb γ lo ∗
       □?((Req.txn st.req).isRead) AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
         <{ ∀∀ (σ' : State) (res : Resp), ⌜Step who (.txn st.req) σ σ' res lo⌝ ∗ etcdState γ σ',
            COMM Q σ σ' res }> }}
     (App (Val f) (Val #()))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); txnAt iv γ who ctx st ∗
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); T iv st ∗
       ((∃ σ σ' res, Q σ σ' res ∗ txnReply res resp err) ∨ (⌜resp = null⌝ ∗ indefCall err)) }}
 
 /-! ## The wire-level contract (`RemoteKV.*Triple`): the gRPC boundary
@@ -947,6 +993,12 @@ def optAt_type.spec : Prop := ∀ (f : GoFunc) (g : OpM → OpM),
   optAt (GF := GF) f g ⊢
     ⌜∀ o, (g o).t = o.t ∧ (g o).cmps = o.cmps ∧ (g o).thenOps = o.thenOps ∧ (g o).elseOps = o.elseOps⌝
 
+/-- A compact option never changes the revision (`CompactOp`'s fields are unexported and the
+package's only `CompactOption`, `WithCompactPhysical`, sets `physical`; verify round,
+A1-provability F7: what `kv.Compact` needs to send the caller's `rev`). -/
+def compactOptAt_rev.spec : Prop := ∀ (f : GoFunc) (g : CompactOpM → CompactOpM),
+  compactOptAt (GF := GF) f g ⊢ ⌜∀ o, (g o).revision = o.revision⌝
+
 def compactOptAt_call.spec : Prop := ∀ (f : GoFunc) (g : CompactOpM → CompactOpM) (p : Loc)
     (op : go_etcd_io.etcd.client.v3.CompactOp),
   {{ compactOptAt (GF := GF) f g ∗ p ↦ op }}
@@ -989,6 +1041,13 @@ def clientMut_KV.spec : Prop := ∀ c γ who,
 
 def clientMut_conn.spec : Prop := ∀ c γ who, clientMut (GF := GF) c γ who ⊢ clientConnOk c γ who
 
+/-- **A client's connection** (second pass, grpc-v3rpc's request: what the stub constructors'
+pre, `connOk conn γ who ∗ clientConnOk c γ who ∗ c.conn ↦□ conn`, needs from `RetryKVClient`
+and the other retry wrappers): the `conn` field, read-only, a `connOk` connection. -/
+def clientConnOk_conn.spec : Prop := ∀ c γ who,
+  clientConnOk (GF := GF) c γ who ⊢
+    ∃ conn : Loc, c.[go_etcd_io.etcd.client.v3.Client, go!"conn"] ↦□ conn ∗ connOk conn γ who
+
 def clientMut_freeze.spec : Prop := ∀ c γ who, clientMut (GF := GF) c γ who ⊢ |==> isClient c γ who
 
 /-- **Freeze all but the `KV` field**: the field stays the caller's (writable, any value), the rest
@@ -1020,6 +1079,22 @@ def kvAt_methods.spec : Prop := ∀ (v : GoInterface) (γ : Cluster) (who : Prin
   KV.TxnTriple (v @!! go_etcd_io.etcd.client.v3.KV.ty @!! go!"Txn") (kvAt (GF := GF) v γ who) γ who ∧
   KV.GetStreamTriple (v @!! go_etcd_io.etcd.client.v3.KV.ty @!! go!"GetStream") (kvAt (GF := GF) v γ who) γ who
 
+/-- **Introducing `kvAt` for any implementation** (verify round, A1-completeness F2): a value whose
+seven methods meet the KV contract with a persistent receiver resource `P` (a wrapper of a `kvAt`
+value: Kubernetes' latency tracker, `factory/etcd3.go`'s `client.KV =
+etcd3.NewETCDLatencyTracker(client.KV)`, then `clientMut_KV`). Intended realization of `kvAt`: the
+existential bundle `∃ P, □ P ∗ ⌜the seven triples over P⌝`. -/
+def kvAt_intro.spec : Prop := ∀ (v : GoInterface) (γ : Cluster) (who : Principal) (P : IProp GF),
+  Persistent P →
+  KV.PutTriple (v @!! go_etcd_io.etcd.client.v3.KV.ty @!! go!"Put") P γ who →
+  KV.GetTriple (v @!! go_etcd_io.etcd.client.v3.KV.ty @!! go!"Get") P γ who →
+  KV.DeleteTriple (v @!! go_etcd_io.etcd.client.v3.KV.ty @!! go!"Delete") P γ who →
+  KV.CompactTriple (v @!! go_etcd_io.etcd.client.v3.KV.ty @!! go!"Compact") P γ who →
+  KV.DoTriple (v @!! go_etcd_io.etcd.client.v3.KV.ty @!! go!"Do") P γ who →
+  KV.TxnTriple (v @!! go_etcd_io.etcd.client.v3.KV.ty @!! go!"Txn") P γ who →
+  KV.GetStreamTriple (v @!! go_etcd_io.etcd.client.v3.KV.ty @!! go!"GetStream") P γ who →
+  (P ⊢ kvAt v γ who)
+
 /-- A `*kv` meets the KV contract (its methods' specs, `kv__*.lean`) once its client is ready
 (`clientReady c`: `newClient` builds the `*kv` before it sets `c.Auth`, which a call's token refresh
 reads; 1c's request; `clientReady_null` for a handle over a caller's remote). -/
@@ -1034,6 +1109,19 @@ def txnAt_methods.spec : Prop := ∀ (iv : GoInterface) (γ : Cluster) (who : Pr
   Txn.ThenTriple (GF := GF) (iv @!! go_etcd_io.etcd.client.v3.Txn.ty @!! go!"Then") iv γ who ctx ∧
   Txn.ElseTriple (GF := GF) (iv @!! go_etcd_io.etcd.client.v3.Txn.ty @!! go!"Else") iv γ who ctx ∧
   Txn.CommitTriple (GF := GF) (iv @!! go_etcd_io.etcd.client.v3.Txn.ty @!! go!"Commit") iv γ who ctx
+
+/-- **Introducing `txnAt` for any implementation** (verify round, A1-completeness F2): a state
+predicate `S` (over the `Txn` value and the transaction so far) whose values' four methods meet the
+`Txn` triples with `S` in place of `txnAt` (Kubernetes' `clientV3TxnTracker`: its `If`, `Then`,
+`Else` are the wrapped `Txn`'s, promoted, and return the wrapped value; its `Commit` its own).
+Intended realization of `txnAt`: `∃ S, S iv st ∗ ⌜the four triples over S at every value⌝`. -/
+def txnAt_intro.spec : Prop := ∀ (γ : Cluster) (who : Principal) (ctx : GoInterface)
+    (S : GoInterface → TxnSt → IProp GF),
+  (∀ iv, Txn.IfTriple (iv @!! go_etcd_io.etcd.client.v3.Txn.ty @!! go!"If") iv γ who ctx S) →
+  (∀ iv, Txn.ThenTriple (iv @!! go_etcd_io.etcd.client.v3.Txn.ty @!! go!"Then") iv γ who ctx S) →
+  (∀ iv, Txn.ElseTriple (iv @!! go_etcd_io.etcd.client.v3.Txn.ty @!! go!"Else") iv γ who ctx S) →
+  (∀ iv, Txn.CommitTriple (iv @!! go_etcd_io.etcd.client.v3.Txn.ty @!! go!"Commit") iv γ who ctx S) →
+  ∀ iv st, S iv st ⊢ txnAt iv γ who ctx st
 
 /-- The wire-level bundle's triples. -/
 def remoteKVAt_methods.spec : Prop := ∀ (v : GoInterface) (γ : Cluster) (who : Principal),
@@ -1083,7 +1171,10 @@ def streamAt_recv.spec : Prop := ∀ (ch : Loc) (γ : Cluster) (who : Principal)
         Q σ σ' (.ok (.range rev a)) ∗ ⌜streamMatches r ms rev a⌝ }}
 
 /-- **Receiving from the wire stream** (`sc.Recv()`, 2a): a chunk, the end (`io.EOF`, the caller's
-`Q` with the answer the chunks make), or an error (linearized, or settling nothing). -/
+`Q` with the answer the chunks make), or an error (linearized, or settling nothing), which is not
+`io.EOF`'s value (grpc returns `io.EOF` only at the clean end; its other errors are statuses or the
+context's: verify round, A1-provability F3; with `errorsIs_callErr_eof`, `errors.Is(err, io.EOF)`
+is false for it). -/
 def wireStreamAt_recv.spec : Prop := ∀ (sc : GoInterface) (γ : Cluster) (who : Principal)
     (r : RangeReq) (Q : State → State → Resp → IProp GF) (ms : List RangeRespM),
   {{ wireStreamAt (GF := GF) sc γ who r Q ms }}
@@ -1097,7 +1188,8 @@ def wireStreamAt_recv.spec : Prop := ∀ (sc : GoInterface) (γ : Cluster) (who 
       (⌜p = null⌝ ∗ globalAddr io.EOF ↦□ err ∗
          ∃ (σ σ' : State) (rev : Nat) (a : RangeAns),
            Q σ σ' (.ok (.range rev a)) ∗ ⌜streamMatches r ms rev a⌝) ∨
-      (⌜p = null⌝ ∗ ((∃ (σ σ' : State) (e : EtcdErr), Q σ σ' (.err e) ∗ callErr err (.etcd e)) ∨
+      (⌜p = null⌝ ∗ (∃ eof : GoInterface, globalAddr io.EOF ↦□ eof ∗ ⌜err ≠ eof⌝) ∗
+        ((∃ (σ σ' : State) (e : EtcdErr), Q σ σ' (.err e) ∗ callErr err (.etcd e)) ∨
          callErr err (.etcd .compacted) ∨
          indefCall err)) }}
 
@@ -1124,22 +1216,23 @@ def ctxPrin_value.spec : Prop := ∀ (ctx ctx' : GoInterface) (ki : GoInterfaceO
 
 /-- **A client call's error is no package's own `errors.New` value** (1d's `ErrLocked`, the
 recipes' sentinels): of the `*errors.errorString` errors, a call returns only `context.Canceled`'s
-(2a: gRPC's errors are statuses, etcd's `EtcdError`s, a deadline `deadlineExceededError`). A
-caller tells its sentinel `x.[errorString, "s"] ↦□ msg` apart by its message. -/
+or `io.EOF`'s (a stream's `SendMsg`/`Recv` returns `io.EOF`: rpctypes' `callErr_eof`; 2a: gRPC's
+other errors are statuses, etcd's `EtcdError`s, a deadline `deadlineExceededError`). A caller tells
+its sentinel `x.[errorString, "s"] ↦□ msg` apart from both by its message. (Verify round,
+A1-provability F2: the law concluded `context.Canceled` alone, which contradicted `callErr_eof`.) -/
 def callErr_errorsNew.spec : Prop := ∀ (err : GoInterface) (k : CallErr) (x : Loc),
   callErr (GF := GF) err k ∗
     ⌜err = interface.mkOk (go.GoType.PointerType errors.errorString.ty) #x⌝ ⊢
-  globalAddr context.Canceled ↦□ err
+  globalAddr context.Canceled ↦□ err ∨ globalAddr io.EOF ↦□ err
 
 def ctxPrin_background.spec : Prop := ∀ dflt,
   ⊢ ctxPrin (GF := GF) dflt (GoInterface.ok context.backgroundCtxVal) dflt
 
-/-- `TODO()`'s context carries no metadata. -/
-def ctxPrin_todo.spec : Prop :=
-  ∀ (dflt : Principal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.context }}
-    (App (Val (@! context.TODO)) (Val #()))
-  {{ (ctx : GoInterface), RET #ctx; ctxPrin dflt ctx dflt }}
+/-- `TODO()`'s context (the value `Context.TODO.spec` names) carries no metadata. (Verify round,
+A1-completeness F3: it was a second triple on `TODO()`, which a caller could not combine with
+`TODO.spec`'s.) -/
+def ctxPrin_todo.spec : Prop := ∀ dflt,
+  ⊢ ctxPrin (GF := GF) dflt (GoInterface.ok context.todoCtxVal) dflt
 
 /-- A child (`WithCancel`, `WithTimeout`, ...) carries its parent's metadata. -/
 def ctxPrin_child.spec : Prop := ∀ ctx ctx' dflt p,
@@ -1158,6 +1251,17 @@ def errorsIs_errVal.spec : Prop :=
     (App (App (Val (@! errors.Is)) (Val #err)) (Val #(errVal e)))
   {{ (b : Bool), RET #b; ⌜b = true ↔ err = errVal e⌝ }}
 
+/-- **`errors.Is(err, io.EOF)` of a call's error that is not `io.EOF`'s value** is false (2a: grpc
+returns `io.EOF` itself only at a stream's clean end and never wraps it; its other errors are
+statuses, whose `Is` matches statuses only, context errors and `EtcdError`s, none of which wraps
+anything). What `GetStream`'s goroutine needs (`kv.go`: `errors.Is(err, io.EOF)` on the wire
+stream's error; verify round, A1-provability F3). -/
+def errorsIs_callErr_eof.spec : Prop := ∀ (err eof : GoInterface) (k : CallErr),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.errors ∗ callErr err k ∗ globalAddr io.EOF ↦□ eof ∗
+      ⌜err ≠ eof⌝ }}
+    (App (App (Val (@! errors.Is)) (Val #err)) (Val #eof))
+  {{ (b : Bool), RET #b; ⌜b = false⌝ }}
+
 /-- An indefinite call error is no definite etcd error (`indefErr`). -/
 def indefCall_pure.spec : Prop := ∀ err, indefCall (GF := GF) err ⊢ ⌜indefErr err⌝
 
@@ -1168,10 +1272,26 @@ def callErr_ctxErr.spec : Prop := ∀ err, context.isCtxErr (GF := GF) err ⊢ c
 /-- `errVal e` is itself an etcd error a call may return (2a: `rpctypes.Error` keeps it). -/
 def callErr_errVal.spec : Prop := ∀ e, ⊢ callErr (GF := GF) (errVal e) (.etcd e)
 
-/-- The client package's globals after initialization: `noPrefixEnd` holds `[0]`, read-only. -/
+open go_etcd_io.etcd.client.v3 in
+/-- The client package's globals after initialization: `noPrefixEnd` holds `[0]`, read-only; the
+error variables `ErrNoAvailableEndpoints`, `ErrOldCluster`, `ErrMutuallyExclusiveCfg`
+(`errors.New`'s, so fresh pointers: no fixed Lean value; the sentinel encoding of the verify round,
+brief item 3) read-only, non-`nil`, pairwise distinct, none of etcd's errors. A spec that returns
+one returns the value read from its global (`New.spec`). `LeaseResponseChSize` holds `16`,
+read-only (an exported variable no program in scope writes; `lessor.KeepAlive`'s
+`make(chan, LeaseResponseChSize)` reads it). -/
 def init.spec : Prop :=
   isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ⊢
-    ∃ sl : GoSlice, globalAddr go_etcd_io.etcd.client.v3.noPrefixEnd ↦□ sl ∗ sl ↦*□ [W8 0]
+    (∃ sl : GoSlice, globalAddr noPrefixEnd ↦□ sl ∗ sl ↦*□ [W8 0]) ∗
+    ∃ e1 e2 e3 : GoInterface,
+      globalAddr ErrNoAvailableEndpoints ↦□ e1 ∗ globalAddr ErrOldCluster ↦□ e2 ∗
+      globalAddr ErrMutuallyExclusiveCfg ↦□ e3 ∗
+      ⌜[e1, e2, e3].Nodup ∧ ∀ e ∈ [e1, e2, e3], e ≠ GoInterface.nil ∧ ∀ x : EtcdErr, e ≠ errVal x⌝ ∗
+    globalAddr LeaseResponseChSize ↦□ (W64 16)
+
+-- The stream key's law (A2 W2: contexts of one stream key carry one principal) is 1b's
+-- `ctxStreamKey_prin` (`ApiWatch.lean`); it constrains `ctxPrin`'s introductions (see `ctxPrin`).
+
 
 end res
 

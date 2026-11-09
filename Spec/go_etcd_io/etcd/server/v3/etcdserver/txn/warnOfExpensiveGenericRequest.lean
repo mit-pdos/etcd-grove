@@ -1,7 +1,8 @@
 /-
 `warnOfExpensiveGenericRequest(lg, d, now, reqStringer, prefix, resp, err)` (`util.go`), internal:
-`lg.Warn` (W0's zap: the request's `String()`, `stringerOk`) and `slowApplies.Inc()` (prometheus,
-names-only: returns). Old spec: same.
+`lg.Warn` (W0's zap: the request's `String()`, 3h's `stringerAt_call`) and `slowApplies.Inc()`
+(prometheus, names-only: returns). Old spec: same. Second pass: `stringerAt` (was `stringerOk`),
+given back.
 -/
 module
 
@@ -30,9 +31,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 def warnOfExpensiveGenericRequest.spec : Prop :=
   ∀ (lg : Loc) (d : time.Duration) (now : time.Time) (req : GoInterface) (pfx resp : GoString)
     (err : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ Zap.isLogger lg ∗ stringerOk req }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ Zap.isLogger lg ∗ EtcdServerPb.stringerAt req }}
     (App (App (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.warnOfExpensiveGenericRequest)) (Val #lg)) (Val #d)) (Val #now)) (Val #req)) (Val #pfx)) (Val #resp)) (Val #err))
-  {{ RET #(); True }}
+  {{ RET #(); EtcdServerPb.stringerAt req }}
 
 end spec
 end Txn

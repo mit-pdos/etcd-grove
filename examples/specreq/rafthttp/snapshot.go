@@ -31,8 +31,11 @@ func ReqSendMergedSnapshot(tr *rh.Transport, m *raftpb.Message, rc io.ReadCloser
 // Process).
 // Assumes: the network's dbIn i is the server's "a file of index i is in the directory until the
 // apply thread installs an index >= i" (its invariant over snap's snapDbs); r processed a MsgSnap
-// of index i and nothing was installed or released since.
-// Specs: Transport.Handler.spec (snapshotHandler: saveOk's update fired, then Process with dbIn),
+// of index i and nothing was installed or released since. dbIn is not persistent: Process, which
+// receives it with the message (recvd), stores it in r.mu's lock invariant beside snapIndex
+// (dbIn snapIndex, or nothing at 0), and this reader takes it from there under the lock.
+// Specs: Transport.Handler.spec (snapshotHandler: saveOk's two updates fired, around the rename
+// and the directory fsync (snapSaving between), then Process with dbIn),
 // Snapshotter.DBFilePath (2e).
 func ReqInstallReceived(r *Receiver, ss *snap.Snapshotter) string {
 	r.mu.Lock()

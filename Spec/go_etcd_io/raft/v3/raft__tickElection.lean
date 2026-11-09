@@ -9,7 +9,7 @@ method relies on it).
 **Changes** (from `specs-ref`'s `raft__tickElection.lean`): over `raftCore` (was `NState` with a tick
 credit for the term budget: the budget is the cluster's, `ApiCore.lean`).
 
-**Margin.** Says nothing of the new view.
+**Margin.** Says nothing of the new view. Verify-round (A4 P3): takes and gives the struct's idle token `coreIdle` (it may campaign: `hup`'s scan of `(applied, committed]` needs the published floor at most `applied`, `coreIdle_floor`).
 -/
 module
 
@@ -37,9 +37,9 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- A tick of node `id`'s raft struct. -/
 def raft.tickElection.spec : Prop :=
   ∀ (r : Loc) (γ : Cluster) (id : w64) (ρ : CoreView),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftCore r γ id ρ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftCore r γ id ρ ∗ coreIdle r }}
     (App (Val (r @!! go.GoType.PointerType go_etcd_io.raft.v3.raft.ty @!! go!"tickElection")) (Val #()))
-  {{ RET #(); ∃ ρ', raftCore r γ id ρ' }}
+  {{ RET #(); ∃ ρ', raftCore r γ id ρ' ∗ coreIdle r }}
 
 end spec
 end Raft

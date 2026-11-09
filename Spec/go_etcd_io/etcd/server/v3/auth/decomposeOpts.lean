@@ -40,7 +40,7 @@ def decomposeOpts.spec : Prop :=
     (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.decomposeOpts)) (Val #lg)) (Val #opts))
   {{ (kind : GoString) (m : Loc) (err : GoInterface), RET (PairV (PairV #kind #m) #err);
       (⌜err = GoInterface.nil ∧ kind = optsKind opts⌝ ∗ optsMapAt m opts) ∨
-      ⌜err = errOf .invalidAuthOpts⌝ }}
+      errIs .invalidAuthOpts err }}
 
 end spec
 end Auth

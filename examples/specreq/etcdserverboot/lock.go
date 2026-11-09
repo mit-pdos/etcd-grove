@@ -17,18 +17,18 @@ import (
 // Assumes: s serves a cluster with auth off (the call's principal: ctx carries no token, so the
 // in-process client's default, none); a thread token for the session.
 // Specs: v3client.New (1c, requested), v3lock.NewLockServer.spec, lockServer.Lock.spec,
-// lockServer.Unlock.spec.
+// lockServer.Unlock.spec (the key under name ++ "/": verify round, A8-provability F6).
 func ReqLockOverInProc(s *etcdserver.EtcdServer) {
 	c := v3client.New(s)
 	ls := v3lock.NewLockServer(c)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	resp, err := ls.Lock(ctx, &v3lockpb.LockRequest{Name: []byte("lk/")})
+	resp, err := ls.Lock(ctx, &v3lockpb.LockRequest{Name: []byte("lk")})
 	if err != nil {
 		return
 	}
 	k := resp.GetKey()
-	if len(k) < 3 || string(k[:3]) != "lk/" {
+	if len(k) < 3 || string(k[:3]) != "lk/" { // name + "/" (NewMutex works on pfx + "/")
 		panic("lock-in-proc: the lock's key is not under its name")
 	}
 	_, _ = ls.Unlock(ctx, &v3lockpb.UnlockRequest{Key: k})

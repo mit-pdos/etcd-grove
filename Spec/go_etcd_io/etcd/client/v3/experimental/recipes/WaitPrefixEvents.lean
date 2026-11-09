@@ -12,6 +12,8 @@ prefix (`WithPrefix()`).
 
 **Premise**: as `WaitEvents`'.
 
+**Changes (second pass)**: the returned event is, unconditionally, a real event of some revision that the watch keeps (in its range, of its types): 1b's `watchStep` now states this outside the `exactFrom` gate; the prefix of the history stays gated.
+
 **Margin**: as `waitEvents`'.
 
 **Integration (I1)**: the prefix claim holds under `exactFrom σ.kv rev`, as `waitEvents`'.
@@ -50,6 +52,9 @@ def WaitPrefixEvents.spec : Prop :=
       (⌜err = GoInterface.nil⌝ ∗ ∃ (es : List WEv) (e : WEv) (m : EventM) (σ : State),
         eventOwn ev (DFrac.own 1) m ∗ etcdLb γ σ ∗
         ⌜m.del = e.del ∧ m.kv = e.kv ∧
+          (∃ (r : Nat) (ev0 : Event), ev0 ∈ σ.kv.eventsAt r ∧ (WEv.ofEvent r ev0).del = e.del ∧
+            (WEv.ofEvent r ev0).kv = e.kv ∧ ((opWatchM pre [withPrefixM, withRevM rev]).watchReq).keeps (WEv.ofEvent r ev0)) ∧
+          
           (EtcdModel.exactFrom σ.kv (sint.Z rev).toNat →
             es ++ [e] <+: watchEvents (opWatchM pre [withPrefixM, withRevM rev]).watchReq σ.kv (sint.Z rev).toNat σ.kv.rev) ∧
           matchCount ts es < ts.length ∧ matchCount ts (es ++ [e]) = ts.length⌝) ∨

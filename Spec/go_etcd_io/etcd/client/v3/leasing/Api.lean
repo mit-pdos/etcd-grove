@@ -111,6 +111,8 @@ and every cached answer serializable; linearizable cached reads need a model of 
 options, the close function), `reads.go`, `writes.go`, `txn.go` (positional responses, nested
 transactions, one client over both kinds of KV), and `unmet.go`: the requirements the KV
 contract's users have that the pinned code violates (each with its issue), which no spec here gives.
+
+Second pass (2026-11-09): the contract's `Get`, `Delete`, `Do`, `Then`, `Else` take W0's scope premise `emptyEnd = false` (no empty non-nil range end), as W0's KV triples now do, so `kvAt_lkvAt` stays provable.
 -/
 module
 
@@ -332,8 +334,8 @@ def LKV.GetTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal) (pfx
     (γL : LeasingNames) : Prop :=
   ∀ (ctx : GoInterface) (p : Principal) (lo : Nat) (key : GoString) (opts : GoSlice)
     (gs : List (OpM → OpM)) (Q : State → State → Resp → IProp GF),
-  {{ P ∗ Context.ctxOk ctx ∗ authLb γ lo ∗ ctxPrin who ctx p ∗ optsAt opts gs ∗ ⌜¬ prefixAndFromKey gs⌝ ∗
-      threadTok ∗
+  {{ P ∗ Context.ctxOk ctx ∗ authLb γ lo ∗ ctxPrin who ctx p ∗ optsAt opts gs ∗
+      ⌜¬ prefixAndFromKey gs ∧ (opGetM key gs).emptyEnd = false⌝ ∗ threadTok ∗
       □ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
         <{ ∀∀ (σ' : State) (r : Option Resp),
              lstep γL pfx p lo (.range (opGetM key gs).rangeReq) σ σ' r ∗ etcdState γ σ',
@@ -368,7 +370,8 @@ def LKV.DeleteTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal) (
   ∀ (ctx : GoInterface) (p : Principal) (key : GoString) (opts : GoSlice) (gs : List (OpM → OpM))
     (Q : State → State → Resp → IProp GF),
   {{ P ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ optsAt opts gs ∗
-      ⌜¬ prefixAndFromKey gs ∧ ¬ (opDeleteM key gs).deletePanics⌝ ∗
+      ⌜¬ prefixAndFromKey gs ∧ ¬ (opDeleteM key gs).deletePanics ∧
+        (opDeleteM key gs).emptyEnd = false⌝ ∗
       lkvMarks γL (reqWrites (.deleteRange (opDeleteM key gs).deleteReq)) ∗ threadTok ∗
       □ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
         <{ ∀∀ (σ' : State) (r : Option Resp),
@@ -387,7 +390,7 @@ def LKV.DoTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal) (pfx 
   ∀ (ctx : GoInterface) (p : Principal) (lo : Nat) (op : go_etcd_io.etcd.client.v3.Op) (o : OpM)
     (rq : Req) (Q : State → State → Resp → IProp GF),
   {{ P ∗ Context.ctxOk ctx ∗ authLb γ lo ∗ ctxPrin who ctx p ∗ opAt op o ∗ opCapOk op ∗
-      ⌜o.toReq = some rq⌝ ∗ lkvMarks γL (reqWrites rq) ∗ threadTok ∗
+      ⌜o.toReq = some rq ∧ o.emptyEnd = false⌝ ∗ lkvMarks γL (reqWrites rq) ∗ threadTok ∗
       □ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
         <{ ∀∀ (σ' : State) (r : Option Resp), lstep γL pfx p lo rq σ σ' r ∗ etcdState γ σ',
            COMM LQ Q σ σ' r }> }}
@@ -424,7 +427,7 @@ def LTxn.ThenTriple (f : val) (iv : GoInterface) (γ : Cluster) (who : Principal
     (γL : LeasingNames) (ctx : GoInterface) : Prop :=
   ∀ (st : TxnSt) (ops : GoSlice) (os : List OpM) (rs : List RequestOp),
   {{ ltxnAt (GF := GF) iv γ who pfx γL ctx st ∗ opsAt ops os ∗ opsCapOk ops ∗
-      ⌜OpM.toReqOps os = some rs⌝ ∗ ⌜st.cthen = false ∧ st.celse = false⌝ }}
+      ⌜OpM.toReqOps os = some rs ∧ OpM.anyEmptyEnd os = false⌝ ∗ ⌜st.cthen = false ∧ st.celse = false⌝ }}
     (App (Val f) (Val #ops))
   {{ (r : GoInterface), RET #r;
       ltxnAt r γ who pfx γL ctx { st with cthen := true, sus := st.sus ++ rs } }}
@@ -434,7 +437,7 @@ def LTxn.ElseTriple (f : val) (iv : GoInterface) (γ : Cluster) (who : Principal
     (γL : LeasingNames) (ctx : GoInterface) : Prop :=
   ∀ (st : TxnSt) (ops : GoSlice) (os : List OpM) (rs : List RequestOp),
   {{ ltxnAt (GF := GF) iv γ who pfx γL ctx st ∗ opsAt ops os ∗ opsCapOk ops ∗
-      ⌜OpM.toReqOps os = some rs⌝ ∗ ⌜st.celse = false⌝ }}
+      ⌜OpM.toReqOps os = some rs ∧ OpM.anyEmptyEnd os = false⌝ ∗ ⌜st.celse = false⌝ }}
     (App (Val f) (Val #ops))
   {{ (r : GoInterface), RET #r;
       ltxnAt r γ who pfx γL ctx { st with celse := true, fas := st.fas ++ rs } }}

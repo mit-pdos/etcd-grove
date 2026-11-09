@@ -4,8 +4,13 @@
 **Proof sketch** (what it carries around its loop): `wgsRun s γ who r` and the current stream's
 sending half (`wgsSend`, from `newWatchClient.spec`; the receiving half went to
 `serveWatchClient`), `cancelSet` and `closing` (local maps: ids it asked to cancel, substreams it
-closed the `recvc` of), `cur` (a fragment being reassembled: a `wireWatchRespOwn` with the
-fragments' `wireStep` facts). Cases: a `*watchRequest` from `reqc` (its `retc` protocol: a new
+closed the `recvc` of), `cur` (a fragment being reassembled: the **first** fragment's
+`wireWatchRespOwn`, the later fragments' events appended to it, `watch.go:596-603`; the receiving
+state's `WireSt.frag` is `some (first, evs)` with `cur`'s model the first's with the events `evs`).
+The completing response's `wireStep` is stated on `m.toResp evs` for the last message `m`, which
+`wireStep` makes agree with the first on the header, the compaction revision and the cancel reason
+(and both are neither `Created` nor `Canceled`): so `m.toResp evs` is `cur`'s model's `toResp`, and
+`dispatchEvent.spec` gets the `deliverOk` of what it dispatches (verify-round W1). Cases: a `*watchRequest` from `reqc` (its `retc` protocol: a new
 substream, `wsOwn` at `WatchPos.init` handed to a forked `serveSubstream` with `wsServe`, the
 consumer's `watchChAt` kept for `retc`), sent on the stream if first in `resuming`
 (`watchRequest.toPB.spec`, `wireWatchSend_send`: recorded as sent even when `Send` fails, which
@@ -26,6 +31,10 @@ keeps equal to the substream's: a resume re-creates it from `initReq.rev`, the p
 
 Internal (`WatchInternal.lean`'s vocabulary). **Changes** from `specs-ref`'s file of the same
 name: restated over this branch's vocabulary (the old `isWGS`, `WEnv`, `watchSrvFacts` gone).
+verify-round (A2-provability W1): the fragment case now closes: `wireStep` keeps the first fragment
+(`WireSt.frag`) and makes the later ones agree with its header and compaction revision. The
+teardown's `closeStream.spec` takes the watcher's handle, which `wgsAt`'s realization keeps
+(`∃ c who', watcherHandle w c γ who'`).
 **Margin**: mirrors the code.
 -/
 module

@@ -3,9 +3,9 @@
 
 **Users.** `pipeline.post`, `snapshotSender.post`.
 
-**Proof sketch.** The status switch; `strings.TrimSuffix`, the errors' `Error()`; `Header.Get` on the response and the request (read-only); `http.StatusText`, `url.URL.String`, `fmt.Errorf` (errors with `errOk`).
+**Proof sketch.** The status switch; `strings.TrimSuffix`, the errors' `Error()`; `Header.Get` on the response and the request (read-only); `http.StatusText`, `url.URL.String`, `fmt.Errorf` (errors with `errOk`). `types.ID`'s `String()` on an addressable `ID` (log fields, headers) is 1c's `Types.ID.String_ptr.spec` (Goose's pointer receiver).
 
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour.
+**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour. verify-round (brief item 3): the package's error variables' values come from `vars_init.spec` (each `errIs g e`, non-nil, `Http.errOk`; pairwise distinct by `errVars_distinct.spec`), not from Lean constants; statement unchanged. verify-round (second pass): the sketch cites `Types.ID.String_ptr.spec`.
 
 **Margin.** The error's kind is not stated.
 -/

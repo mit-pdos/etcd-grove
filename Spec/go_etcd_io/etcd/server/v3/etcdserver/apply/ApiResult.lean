@@ -94,10 +94,11 @@ def checksOut (C : Check → GoInterface → IProp GF) (cs : List Check) (err : 
       [∗list] c' ∈ cs.take i, C c' GoInterface.nil)
 
 /-- **The apply thread's report of a check** at the auth info `u`, `rev`: exactly `checkErr` at
-the stores' one state `σ` (`nil` for a pass, the server error of the refusal). -/
+the stores' one state `σ` (`nil` for a pass, the server error of the refusal: 2c's `srvErr`, the
+sentinel's global value; second pass, was the deprecated pure `srvErrOf`). -/
 def chkExact (σ : State) (u : GoString) (rev : Nat) (c : Check) (err : GoInterface) : IProp GF :=
-  iprop(⌜(err = GoInterface.nil ∧ checkErr σ u rev c = none) ∨
-    (∃ e, checkErr σ u rev c = some e ∧ EtcdServer.srvErrOf err e)⌝)
+  iprop(⌜err = GoInterface.nil ∧ checkErr σ u rev c = none⌝ ∨
+    (∃ e, ⌜checkErr σ u rev c = some e⌝ ∗ EtcdServer.srvErr err e))
 
 /-- **What one check of the request path reports** (3d's `Auth.checkPost`, from the lower bound
 `i0`): an operation's check with its recorded states (a denial with the states it failed at); a
@@ -123,7 +124,17 @@ def replyAt_result.spec : Prop :=
       match res with
       | .ok _ => iprop((⌜err = GoInterface.nil⌝ ∗ ∃ b, ⌜opBody op b⌝ ∗ EtcdServer.irrReply γ b res resp) ∨
           ⌜op.isAuthn = true ∧ res = .ok .authenticate ∧ err ≠ GoInterface.nil⌝)
-      | .err e => iprop(⌜EtcdServer.srvErrOf err e⌝ ∗ EtcdServer.srvErrShape err)
+      | .err e => iprop(EtcdServer.srvErr err e ∗ EtcdServer.srvErrShape err)
+
+/-- (internal) **A method's reply message lends what the deferred warnings size** (`dispatch`'s
+`warnOfExpensiveRequest(..., ar.Resp, ar.Err)`, 3b's `WarnOfExpensiveRequest` takes `msgOpt`): the
+`*pb.<Kind>Response` a method built (a fresh message, its depth below protobuf's bound) or a typed
+`nil` on an error, lent and given back (verify-round A9, second tier: the depth fact was looked for
+in 2c's `irrReply`, which says nothing of a `.noop`'s reply). -/
+def replyAt_msgOpt.spec : Prop :=
+  ∀ (γ : Cluster) (op : IrrOp) (res : Resp) (resp err : GoInterface),
+    replyAt (GF := GF) γ op res resp err ⊢
+      ∃ m, Txn.msgOpt resp m ∗ (Txn.msgOpt resp m -∗ replyAt γ op res resp err)
 
 /-- **The apply thread's permission checks** (internal): through the options' auth store and
 lessor, lending the stores at `σ`, each check is answered exactly (`chkExact`): the writer's views

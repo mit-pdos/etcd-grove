@@ -8,7 +8,8 @@
 state: later `Watch`es return a closed channel); for each stream, `watchGRPCStream.close.spec`
 (persistent `wgsAt`: concurrent closes are fine); `errors.Is` (2a's spec, any error).
 
-**Changes**: over `watcherHandle`. **Margin**: the error is not modelled; that every watch's
+**Changes**: over `watcherHandle`. verify-round (W3): the handle records its client `c`; no
+`clientReady c` (`Close` opens no stream). **Margin**: the error is not modelled; that every watch's
 channel then closes is liveness. `issues/etcd-watch-close-hang-refused-create.md` (a hang, fixed
 or not, is liveness only).
 -/
@@ -36,9 +37,9 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `watcher.Close` meets `Watcher.CloseTriple`. -/
 def watcher.Close.spec : Prop :=
-  ∀ (w : Loc) (γ : Cluster) (who : Principal),
+  ∀ (w c : Loc) (γ : Cluster) (who : Principal),
   Watcher.CloseTriple (w @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watcher.ty @!! go!"Close")
-    (iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ watcherHandle w γ who))
+    (iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ watcherHandle w c γ who))
 
 end spec
 

@@ -16,6 +16,10 @@ was); it ignores the reply). Snippet: `examples/specreq/etcdserverreq/lease.go`
 `leaseStep` (the keys attached deleted at one revision, the permission of `checkLeasePuts`).
 
 **Margin.** As `Put`.
+
+Changes: verify-round (A7-completeness F1): no `srvGate` share (Go reads nothing `Cleanup` closes: `requireAuthInfo` then `raftRequest`), so the lessor's revocations, which run through `HardStop` until `run`'s `s.wg.Wait()`, can call it; the root context's principal by `reqPrin_root`.
+
+Changes: verify-round (A6-provability F1): the success reply has its header set (`srvHdrReply`, `replyHdrOwn`: the apply's `newHeader()`, `s.newHeader()`, `ResponseHeader{}`, or the leader's through `leasehttp`, whose decoded reply must carry one: requested of lease-auth), so the gRPC handler's `hdr.fill(resp.Header)` cannot panic.
 -/
 module
 
@@ -42,11 +46,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`s.LeaseRevoke(ctx, r)`**: the revocation of lease `id`, as `Put` (through raft). -/
 def EtcdServer.LeaseRevoke.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (q : Qp) (ctx : GoInterface) (p tls : Principal) (r : Loc) (dq : DFrac) (id : Int),
+  ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (p tls : Principal) (r : Loc) (dq : DFrac) (id : Int),
   SrvCallTriple (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"LeaseRevoke")) (Val #ctx)) (Val #r))
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ srvGate s q ∗
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗
         Context.ctxOk ctx ∗ reqCtxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ ClientV3.reqOwn r dq (.leaseRevoke id))
-    iprop(srvGate s q ∗ threadTok ∗ ClientV3.reqOwn r dq (.leaseRevoke id)) γ p tls (.leaseRevoke id) false (ClientV3.ansReply)
+    iprop(threadTok ∗ ClientV3.reqOwn r dq (.leaseRevoke id)) γ p tls (.leaseRevoke id) false srvHdrReply
 
 end spec
 end EtcdServer

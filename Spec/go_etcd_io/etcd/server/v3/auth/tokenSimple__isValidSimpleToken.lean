@@ -5,7 +5,8 @@
 
 **Proof sketch.** `strings.Split(token, ".")` (not two parts: `false`); `strconv.ParseUint` of the index (an error: `false`); `select` on `t.indexWaiter(index)` (the waiter, `simpleAt`'s `waiterOk`: `recvOk`) or `ctx.Done()` (`Context.Done.spec`, `doneRecv`): `true` once the index is applied, `false` once the context is done; it may block (a context never done, an index never applied).
 
-**Changes.** New (round 1, review S6: per (type, method); the old proofs' lemmas in `Proof/.../auth/TokenSimple*.lean`, `TokenKeeperRun.lean`, `TokenNop.lean`, `PermSorter.lean`).
+**Changes.** New (round 1, review S6: per (type, method); the old proofs' lemmas in `Proof/.../auth/TokenSimple*.lean`, `TokenKeeperRun.lean`, `TokenNop.lean`, `PermSorter.lean`). Verify round (A9 3d F7): the waiter's gate `□ R` (`simpleAt t γ R`), which the index
+waiter needs.
 
 **Margin.** The answer is not stated (`info` relies on the map, not on it).
 -/
@@ -35,8 +36,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
 /-- **`t.isValidSimpleToken(ctx, tok)`**: some answer; no panic. -/
 def tokenSimple.isValidSimpleToken.spec : Prop :=
-  ∀ (t : Loc) (γ : Cluster) (ctx : GoInterface) (tok : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ simpleAt t γ ∗ Context.ctxOk ctx }}
+  ∀ (t : Loc) (γ : Cluster) (R : IProp GF) (ctx : GoInterface) (tok : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ simpleAt t γ R ∗ □ R ∗ Context.ctxOk ctx }}
     (App (App (Val (t @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.tokenSimple.ty @!! go!"isValidSimpleToken")) (Val #ctx)) (Val #tok))
   {{ (b : Bool), RET #b; True }}
 

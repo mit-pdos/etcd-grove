@@ -68,7 +68,8 @@ func ReqLeaderAppend(l *raftLog, term uint64, ents []*pb.Entry) {
 // Users: raft.go:1809-1851 (handleAppendEntries, handleHeartbeat's commitTo).
 // Assumes: a.prev.index >= committed (the early return before it); the cluster's log matching:
 // past a matching prev, the leader's entries agree with the committed prefix; a.entries are at
-// indices a.prev.index+1, ... (the MsgApp's), with no spare capacity (a decoded message).
+// indices a.prev.index+1, ... (the MsgApp's), with no spare capacity (a decoded message), and
+// a.prev.index + len(a.entries) < 2^64 (maybeAppend's premise; verify-round, A5 S3).
 // Specs: raftLog.maybeAppend.spec, raftLog.matchTerm.spec, raftLog.commitTo.spec,
 // raftLog.findConflictByTerm.spec, raftLog.lastIndex.spec.
 func ReqFollowerAppend(l *raftLog, a logSlice, leaderCommit uint64) {

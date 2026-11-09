@@ -3,9 +3,16 @@
 
 **Users.** `uberApplier.dispatch` (through the outer layers' promoted methods), in both modes.
 
-**Proof sketch.** `semver.MustParse` and `SetVersion`'s `MustDetectDowngrade` (`clusterVerOk`: 2e's/4b's, requested); `RaftCluster.Version`/`SetVersion` (2e's, requested); `snapSrvOk`'s `ForceSnapshot` with `R`.
+**Proof sketch.** `semver.MustParse` (`clusterVerOk`'s `Semver.parse ver = some sv`);
+2e's `RaftCluster.Version.spec` (its update fired in `optsOk`'s `Membership.clusterVerInv γc`: the
+previous version, any); `RaftCluster.SetVersion.spec` with `verFits sv` (`clusterVerOk`), the
+backend's `Membership.beVer` (`stAt`'s `optsSt`, moved by `shouldApplyV3`) and its update fired in
+the same invariant (`{v with ver := some sv}` keeps `VerSt.ok` by `verFits sv`); `onSet`
+(`api.UpdateCapability`) with the logger; `snapSrvOk`'s `ForceSnapshot` with `R` after a downgrade.
 
 **Changes** from `specs-ref`'s file of the same name: restated over the new vocabulary (`beAt`, `stAt`, `applierAt`, the model state); one spec for every mode.
+verify-round (server-boot's request): `clusterVerOk` defined over 2e's `verFits`; 2e's `Version`,
+`SetVersion` cited, `beVer` and `clusterVerInv` from the options' slots; the statement is unchanged.
 
 **Margin.** The version is outside the model.
 -/

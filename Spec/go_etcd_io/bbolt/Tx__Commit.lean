@@ -45,6 +45,13 @@ settles the durable state; both fire on every error (round 1: the error records 
 lost mapping). A read transaction's `Commit` needs no update and returns `ErrTxNotWritable`, still
 live (was a premise `T.rw`). Managed transactions are excluded (`Commit` panics on one).
 
+**Changes (verify-round, A11 F5).** The two updates are nested (`commitAU`): the commit update's
+commit gives the settling update, which bbolt fires after it on every path (`writeMeta`'s `Q` is
+that settling update; an error before the meta write fires the commit update with `ok = false`
+first). A holder of the whole state builds both from its one copy (`boltState_commit_au`); with
+two independent updates in the pre it could build only one. The rebalance/spill chain's internal
+specs now carry the abstraction relation (`Internal.lean`, `physRep`'s laws, A11 F9).
+
 **Margin.** `StrictMode` (a client must not set it, `isBolt`); `OnCommit` handlers (left out). The
 error's identity is not described for a write transaction.
 -/
@@ -69,29 +76,22 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- `tx.Commit()` (not managed). A write transaction commits `T.cur` by the client's two updates:
-the **commit update** fires at the meta page write with its outcome (`ok`: committed; else attempted,
-the data unchanged), the **settling update** when the commit ends (`synced`: the meta page synced;
-`failed`: a sync failed; `brk`: the mapping was lost). On success `ok`, `synced` unless `NoSync`,
-no failure; on an error both fired too, with what they record. A read transaction:
-`ErrTxNotWritable`, no update, still live. -/
+/-- `tx.Commit()` (not managed). A write transaction commits `T.cur` by the client's updates
+(`commitAU`): the **commit update** fires at the meta page write with its outcome (`ok`: committed;
+else attempted, the data unchanged) and gives the **settling update**, fired when the commit ends
+(`synced`: the meta page synced; `failed`: a sync failed; `brk`: the mapping was lost). On success
+`ok`, `synced` unless `NoSync`, no failure; on an error both fired too, with what they record. A
+read transaction: `ErrTxNotWritable`, no update, still live. -/
 def Tx.Commit.spec : Prop :=
-  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (T : TxView) (Q : Bool → IProp GF)
-    (S : Bool → Bool → Bool → IProp GF),
+  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (T : TxView)
+    (S : Bool → Bool → Bool → Bool → IProp GF),
   {{ boltTx (GF := GF) tx γ 1 T ∗ txLive tx 1 ∗ ⌜T.managed = false⌝ ∗
-      (if T.rw then iprop(
-        AU <{ ∃∃ (σ : BoltSt), boltState γ 1 σ }> @ ⊤ \ ↑γ.ns, ∅
-        <{ ∀∀ (ok : Bool), ⌜σ.data = T.base⌝ ∗
-           boltState γ 1 (if ok then σ.commit T.cur T.noSync else σ.attempt T.cur T.noSync),
-           COMM Q ok }> ∗
-        AU <{ ∃∃ (σ : BoltSt), boltState γ 1 σ }> @ ⊤ \ ↑γ.ns, ∅
-        <{ ∀∀ (synced failed brk : Bool), boltState γ 1 (σ.settle synced failed brk),
-           COMM S synced failed brk }>) else emp) }}
+      (if T.rw then commitAU γ T.base T.cur T.noSync S else emp) }}
     (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"Commit")) (Val #()))
   {{ (err : GoInterface), RET #err;
       if T.rw then iprop(txDone tx ∗
-        ((⌜err = GoInterface.nil⌝ ∗ Q true ∗ S (!T.noSync) false false) ∨
-         (⌜err ≠ GoInterface.nil⌝ ∗ ∃ ok synced failed brk : Bool, Q ok ∗ S synced failed brk)))
+        ((⌜err = GoInterface.nil⌝ ∗ S true (!T.noSync) false false) ∨
+         (⌜err ≠ GoInterface.nil⌝ ∗ ∃ ok synced failed brk : Bool, S ok synced failed brk)))
       else iprop(boltTx tx γ 1 T ∗ txLive tx 1 ∗ isErr go_etcd_io.bbolt.errors.ErrTxNotWritable err) }}
 
 end spec

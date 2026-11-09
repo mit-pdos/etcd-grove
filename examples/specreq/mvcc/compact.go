@@ -1,11 +1,14 @@
 package mvcc
 
 import (
+	"bytes"
 	"context"
 	"errors"
 
 	"go.etcd.io/etcd/pkg/v3/traceutil"
+	"go.etcd.io/etcd/server/v3/storage/backend"
 	smvcc "go.etcd.io/etcd/server/v3/storage/mvcc"
+	"go.etcd.io/etcd/server/v3/storage/schema"
 )
 
 // REQ mvcc/compact: a compaction at a revision above the compaction revision and at most the
@@ -61,4 +64,49 @@ func ReqCompactErrors(kv smvcc.KV, crev, cur int64) {
 	if kv.FirstRev() != crev || kv.Rev() != cur {
 		panic("compact-errors: a failed compaction changed the store")
 	}
+}
+
+// REQ mvcc/compact-delete-returned: within one batch session under the safe-range lock, the
+// compaction deletes keys its own UnsafeRange returned, passing the returned byte slices themselves
+// (the storage's memory, lent against the session's liveness), and reads the later returned keys
+// and every returned value after those deletes: a delete changes none of the returned bytes; a
+// range of the batch afterwards no longer has the deleted keys.
+// Users: server/storage/mvcc/kvstore_compaction.go:31-71 (scheduleCompaction: UnsafeRange, then
+// UnsafeDelete(schema.Key, keys[i]) and h.WriteKeyValue(keys[i], values[i]) for each).
+// Assumes: be is etcd's backend opened for mvcc (keyBackend_intro, Key made); the caller holds the
+// delete right (kbSafe: compactions one at a time) and an open share; nothing in [start, end) was
+// put by this session (the batch begins here); start < end, end non-empty.
+// Specs: keyBackend's rows LockForSafeRangeDelete, BatchTx, LockOutsideApply, UnsafeRange
+// (rangeLent against kbLive's share), UnsafeDelete (D.keys k = D0.keys k; the key's bytes given
+// back), Unlock, UnlockForSafeRangeDelete; kbLive_fractional; bbolt's txLive/txBytes_acc (A11 S1)
+// through 4a.
+func ReqCompactDeleteReturned(be backend.Backend, start, end []byte) {
+	be.LockForSafeRangeDelete()
+	defer be.UnlockForSafeRangeDelete()
+	tx := be.BatchTx()
+	tx.LockOutsideApply()
+	keys, values := tx.UnsafeRange(schema.Key, start, end, 1000)
+	ks := make([][]byte, len(keys))
+	vs := make([][]byte, len(values))
+	for i := range keys {
+		ks[i] = append([]byte(nil), keys[i]...)
+		vs[i] = append([]byte(nil), values[i]...)
+	}
+	for i := range keys {
+		tx.UnsafeDelete(schema.Key, keys[i])
+		for j := range keys {
+			if !bytes.Equal(keys[j], ks[j]) || !bytes.Equal(values[j], vs[j]) {
+				panic("compact-delete-returned: a delete changed a returned key or value")
+			}
+		}
+	}
+	left, _ := tx.UnsafeRange(schema.Key, start, end, 1000)
+	for _, k := range left {
+		for _, d := range ks {
+			if bytes.Equal(k, d) {
+				panic("compact-delete-returned: a deleted key is still in the batch")
+			}
+		}
+	}
+	tx.Unlock()
 }

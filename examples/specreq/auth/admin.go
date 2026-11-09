@@ -78,6 +78,20 @@ func ReqUserAddThenCheck(as etcdauth.AuthStore, pw string) {
 	}
 }
 
+// REQ auth/long-password: the server hashes a password before proposing it; one over 72 bytes is
+// refused with bcrypt's ErrPasswordTooLong (whatever the cost), which UserAdd returns to the
+// client as an unmapped error (its message).
+// Users: v3_server.go:893,918 (EtcdServer.UserAdd, UserChangePassword).
+// Assumes: len(pw) > 72.
+// Specs: bcrypt GenerateFromPassword.spec (errIs ErrPasswordTooLong), bcrypt init.spec.
+func ReqLongPassword(as etcdauth.AuthStore, pw []byte) error {
+	_, err := bcrypt.GenerateFromPassword(pw, as.BcryptCost())
+	if !errors.Is(err, bcrypt.ErrPasswordTooLong) {
+		panic("long-password: a password over 72 bytes not refused with ErrPasswordTooLong")
+	}
+	return err
+}
+
 // REQ auth/revision-bumped: an admin step that changes the users or roles bumps the revision:
 // a reader's two equal Revision() reads mean no such change between the states they read.
 // Users: v3_server.go:881 (Authenticate's retry), :601,:779 (the lease checks' re-check),

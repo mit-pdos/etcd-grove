@@ -4,7 +4,7 @@
 Users: `Mutex.Lock`, `Mutex.TryLock`.
 
 Proof sketch: `isSession_client` (the client, the lease); `fmt.Sprintf("%s%x", pfx, lease)`
-(Perennial's model: the prefix, then some suffix); `CreateRevision.spec`, `Compare.spec`,
+(Perennial's `SprintfOut`: `%s` then `%x` exactly, so the key is `sessKey pfx lease`); `CreateRevision.spec`, `Compare.spec`,
 `WithLease.spec`, `OpPut.spec`, `OpGet.spec`, `WithFirstCreate.spec`; `isClient_KV`, the KV
 contract's `Txn`, `If`, `Then`, `Else`, `Commit` (W0) with the update from the lent permission
 (the step is `mutexEff`'s put: the key created empty with the lease if absent, else nothing); its
@@ -18,6 +18,8 @@ whose writes have all been answered; an error after which a write may be pending
 
 Changes: from `specs-ref`'s `Mutex__tryAcquire.lean`: over W0's reply model and the cluster's
 states (`etcdLb`) instead of the old `acquireResp`/`etcdReached`.
+
+Changes: verify-round: the key is `sessKey pfx id` (A3 completeness F2), on the error path too.
 
 Margin: none.
 -/
@@ -51,12 +53,11 @@ def Mutex.tryAcquire.spec : Prop :=
       Context.ctxOk ctx ∗ ctxPrin dflt ctx who ∗ etcdLent γ T P ∗ P ∗ etcdLb γ σ0 ∗ ⌜effIn (mutexEff pfx (sint.Z id)) T⌝ }}
     (App (Val (m @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.concurrency.Mutex.ty @!! go!"tryAcquire")) (Val #ctx))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ k : GoString, ⌜pfx <+: k⌝ ∗
-          mutexSt m { st with key := k }) ∨
+      (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ mutexSt m { st with key := sessKey pfx (sint.Z id) }) ∨
       (⌜err = GoInterface.nil⌝ ∗ P ∗ ∃ (k : GoString) (cr : Nat) (σ : State) (mr : TxnRespM),
           mutexSt m { st with key := k, rev := W64 cr } ∗ etcdLb γ σ ∗
           txnRespOwn resp (DFrac.own 1) mr ∗
-          ⌜Reach σ0 σ ∧ pfx <+: k ∧ 0 < cr ∧ cr ≤ σ.kv.rev ∧
+          ⌜Reach σ0 σ ∧ k = sessKey pfx (sint.Z id) ∧ 0 < cr ∧ cr ≤ σ.kv.rev ∧
             (∃ r, σ.kv.store k = some r ∧ r.createRev = cr) ∧ mr.hdr.revision = W64 σ.kv.rev ∧
             ∃ x owner l, mr.responses = [x, .range owner] ∧ owner.kvs = l.map KeyValueM.ofKV ∧
               firstCreate pfx σ.kv.store l⌝) }}

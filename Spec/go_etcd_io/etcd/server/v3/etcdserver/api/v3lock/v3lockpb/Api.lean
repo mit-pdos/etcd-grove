@@ -14,6 +14,7 @@ realization at each type; a request read-only for good; a reply's header a `resp
 module
 
 public import Spec.google_golang_org.protobuf.proto.Api
+public import Spec.google_golang_org.grpc.Api
 public import Spec.go_etcd_io.etcd.api.v3.Wire
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb
 public import Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb
@@ -87,6 +88,28 @@ def resp_fold.spec : Prop :=
     protoRest (GF := GF) v3lockpb.UnlockResponse p (DFrac.own 1) ∗
       p.[v3lockpb.UnlockResponse, go!"Header"] ↦ h ∗ optOwn respHeaderOwn h (DFrac.own 1) ho ⊢
       unlockResp p)
+
+/-- **The replies' fields** (server-boot's request, verify-round: `Lock`'s post reads and fills the
+reply): the converse of `resp_fold`. -/
+def resp_unfold.spec : Prop :=
+  (∀ p k, lockResp (GF := GF) p k ⊢
+    ∃ (h : Loc) (ho : Option HeaderM) (ks : GoSlice), protoRest v3lockpb.LockResponse p (DFrac.own 1) ∗
+      p.[v3lockpb.LockResponse, go!"Header"] ↦ h ∗ optOwn respHeaderOwn h (DFrac.own 1) ho ∗
+      p.[v3lockpb.LockResponse, go!"Key"] ↦ ks ∗ ks ↦*□ k) ∧
+  (∀ p, unlockResp (GF := GF) p ⊢
+    ∃ (h : Loc) (ho : Option HeaderM), protoRest v3lockpb.UnlockResponse p (DFrac.own 1) ∗
+      p.[v3lockpb.UnlockResponse, go!"Header"] ↦ h ∗ optOwn respHeaderOwn h (DFrac.own 1) ho)
+
+/-- **The service's descriptor** (`Lock_ServiceDesc`, read-only after init; verify-round, A6-completeness F4:
+what `RegisterLockServer` registers on a member's gRPC server, `embed/serve.go:184-186,
+244-246`). Its initializer is generated code Goose leaves untranslated (`Lock_ServiceDesc.init`): a fact about
+it, as `EtcdServerPb`'s descriptors. -/
+def lockDesc_init.spec : Prop :=
+  isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb ⊢
+    Grpc.serviceDescAt (globalAddr v3lockpb.Lock_ServiceDesc) go!"v3lockpb.Lock"
+      [(go!"Lock", @! v3lockpb._Lock_Lock_Handler),
+       (go!"Unlock", @! v3lockpb._Lock_Unlock_Handler)]
+      []
 
 end res
 

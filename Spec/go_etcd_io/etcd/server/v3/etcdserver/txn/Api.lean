@@ -58,7 +58,10 @@ reply predicates `rangeOk`, `putOk`, `delOk`, `txnOk` (transparent, over W0's `W
 read-only transaction's partly filled response) and `respSkel` (opaque, internal: the response
 tree `newTxnResp` allocates).
 
-**Provisional**, 3h's: `stringerOk s` (persistent: a `fmt.Stringer` whose `String()` returns).
+The warnings' request is 3h's `EtcdServerPb.stringerAt s` (a `fmt.Stringer` whose `String()`
+returns, holding what it reads; not persistent: given back by the `Warn*` specs). Second pass
+(grpc-v3rpc's C-F6): replaces the provisional persistent `stringerOk`, which no law could introduce
+soundly for a request held at a share.
 
 ## Intended realization
 
@@ -67,22 +70,23 @@ mvcc's transaction contracts (3e: `Read`'s update fired at the begin, `Write`'s 
 steps at the commit), reads the lessor through `Lookup` (3c, at the writer's token), and builds the
 reply. `goSort` is realized by a functional model of Go's `sort.Sort` (a Perennial change: its spec
 today gives a sorted permutation, not which one; `notes/specs-only/batch-3b.md`). `ctxErr` by
-`fmt.Errorf`'s fresh value (3e's context outcome, asked to say it is none of the sentinels),
+3e's `Mvcc.rangeCtxErr` or `executeTxn`'s `fmt.Errorf` wrapping of one,
 `roTxnResp` and `respSkel` by the response trees as `newTxnResp` builds them.
 
-**Not yet provable from the callees as they are** (integration I5, 2026-11-09; recorded in
-`notes/specs-only/integration-I5.md`): `ctxErr_not_errIs` (3e's `rangeResOwn` `.ctxErr` gives only
-`err ≠ nil`: `req/..._storage_mvcc.md`, "from 3b", item 1); `rrOwn`'s `kvFits` on a range's result
-(a record's lease an `int64`: item 2); `errIs_agree` and `errIs_ne_nil` at `.keyNotFound` (each
-owner's initialization law gives its own sentinels distinct, none relates them across packages and
-`etcdserver/errors` has none: wanted, each sentinel's variable holding 2c's `EtcdServer.srvErrVal e`,
-with `srvErrOf_fun`).
+**Owed by callees** (integration I5, 2026-11-09; `notes/specs-only/integration-I5.md`):
+`ctxErr_not_errIs` and `rrOwn`'s `kvFits` are now met by 3e (second pass: `rangeResOwn`'s `.ctxErr`
+gives `Mvcc.rangeCtxErr` with `rangeCtxErr_ne_nil`/`_fresh`; `kvsFit`'s `kvSortOk` bounds the lease
+too); `errIs_agree` and `errIs_ne_nil` at `.keyNotFound` (each
+owner's initialization law gives its own sentinels; across packages they are related through 2c's
+`etcdserver/errors`: each sentinel's global is an `EtcdServer.sentinelAt` (`errors_init` and the
+owners' init laws), its value `v` with `srvErr v e`, and `srvErr_fun` makes values of distinct
+`e`s distinct; second pass: was `srvErrVal`/`srvErrOf_fun`, deprecated).
 
 ## Laws
 
 `goSort_sorted`, `rangeAll_eq`, `rangeOut_answers`, `run_txnRun`, `runEvs_readonly`,
-`attached_evsLs`, `errIs_ne_nil`, `errIs_agree`, `ctxErr_persistent`, `ctxErr_ne_nil`,
-`ctxErr_not_errIs`, `stringerOk_persistent`.
+`attached_evsLs`, `errIs_ne_nil`, `errIs_agree`, `ctxErr_persistent`, `ctxErr_of_range`, `ctxErr_ne_nil`,
+`ctxErr_not_errIs`.
 
 ## Requirement snippets
 
@@ -100,6 +104,7 @@ public import Spec.go_etcd_io.etcd.api.v3.Wire
 public import Spec.context.Api
 public import Spec.go_uber_org.zap.Api
 public import Spec.google_golang_org.protobuf.proto.Api
+public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.Stringer
 public import Spec.go_etcd_io.etcd.server.v3.lease.Api
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.Api
@@ -483,13 +488,16 @@ def errIs (err : GoInterface) : EtcdErr → IProp GF
   | .keyNotFound => iprop(globalAddr go_etcd_io.etcd.server.v3.etcdserver.errors.ErrKeyNotFound ↦□ err)
   | _ => iprop(False)
 
-/-- **`err` is mvcc's range error after its context was done** (`fmt.Errorf("rangeKeys: context
-cancelled: %w", …)`, wrapped again by `executeTxn`): persistent. -/
+/-- **`err` is mvcc's range error after its context was done** (persistent): 3e's
+`Mvcc.rangeCtxErr err` (`fmt.Errorf("rangeKeys: context cancelled: %w", ctx.Err())`: `Range`,
+`executeRange`, a delete's `PrevKv` range; law `ctxErr_of_range`), or `executeTxn`'s wrapping of one
+(`fmt.Errorf("applyTxn: failed Range: %w", err)`, `txn.go:162`: a fresh value, in Perennial's
+`Errorf` model an `*errorString` of that format). Not the context's own error (Go wraps it).
+Intended realization: that disjunction; `ctxErr_ne_nil` and `ctxErr_not_errIs` from 3e's
+`rangeCtxErr_ne_nil`/`_fresh` and, for the wrapping, `Errorf`'s fresh value (the same
+trust-boundary step 3e records for `Errorf` of an error argument). Second pass (mvcc's
+`rangeCtxErr`): was owed by 3e. -/
 opaque ctxErr [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (err : GoInterface) : IProp GF := iprop(True)
-
-/-- (provisional, 3h's) **`s` is a `fmt.Stringer` whose `String()` returns** (persistent): a request
-message (protobuf's `String`), `pb.NewLoggableTxnRequest`'s, `*pb.InternalRaftStringer` of a request. -/
-opaque stringerOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : GoInterface) : IProp GF := iprop(True)
 
 /-- With the packages initialized, the sentinels are non-`nil` and distinct (each an `errors.New`
 pointer with its own message: the owners' `init` laws, 3e's `Mvcc.init`). -/
@@ -501,12 +509,13 @@ def errIs_agree.spec : Prop := ∀ err e e',
   isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ errIs err e ∗
     errIs err e' ⊢ ⌜e = e'⌝
 def ctxErr_persistent.spec : Prop := ∀ err, Persistent (ctxErr (GF := GF) err)
+/-- **A range's context error is one** (`Range`, `executeRange`, `deleteRange` return mvcc's as is). -/
+def ctxErr_of_range.spec : Prop := ∀ err, Mvcc.rangeCtxErr (GF := GF) err ⊢ ctxErr err
 def ctxErr_ne_nil.spec : Prop := ∀ err, ctxErr (GF := GF) err ⊢ ⌜err ≠ GoInterface.nil⌝
 /-- A context's error is none of the sentinels (a fresh value). -/
 def ctxErr_not_errIs.spec : Prop := ∀ err e,
   isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ ctxErr err ∗
     errIs err e ⊢ False
-def stringerOk_persistent.spec : Prop := ∀ s, Persistent (stringerOk (GF := GF) s)
 
 /-- **The response tree `newTxnResp` allocates** for the operations `ops` of a transaction whose
 verdict is `ok` (nested transactions' branches by their verdicts at `s`): a `*TxnResponse` with an

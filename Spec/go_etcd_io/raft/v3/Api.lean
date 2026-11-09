@@ -77,7 +77,12 @@ is the client's: its methods' updates fire on `memStor ms σ` directly.
   snapshot's index, stored snapshot valid); `storSnapLb n j` is `j = 0` or R3's `logSnapLb l j`;
   `appliedLb n i` is `i = 0` or R3's `logFloor l i t` for the committed log's term `t` at `i` (R2's
   commit facts tie the floor's term to `committedLb`, as `stor_createSnapshot` needs; R2's
-  `rawNodeAt_advance` publishes it with `raftLog_publish`); `readyStor n so k es` is R3's
+  `rawNodeAt_advance` publishes it with `raftLog_publish`, at its opening: verify-round A4 P3);
+  `storedLb n i` is `i = 0` or R3's `logStored l i t` for the committed log's term `t` at `i` (R3's
+  `logStor_append` gives it for the batch's committed entries, `raftLog_storedStable` at the hand-out
+  for those already stable, `logFloor_stored` from a floor; R2's commit facts tie `t` to
+  `committedLb`, minted at the hand-out for the delivered entries; `readyStor` keeps them until the
+  append); `readyStor n so k es` is R3's
   `logPending l h so.isSome (es ≠ [])` of the batch `h` handed out (`h.start = k`); the storage laws
   (`readyStor_*`, `stor_*`) are R3's `logStor_*` at mask `⊤` (at index `0`, a compaction is the
   identity, through `logStor_read`; an append of nothing likewise). (Integration I2: checked against
@@ -161,17 +166,29 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 
 /-! ## raft's own Go structs -/
 
-/-- A `Ready`'s `*SoftState`: `nil` for `none`, else read-only (leader, role). -/
-opaque softStateOpt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (o : Option (w64 × w64)) : IProp GF := iprop(True)
+/-- A `Ready`'s `*SoftState`: `nil` for `none`, else read-only (leader, role). (Verify-round, A4 P4 /
+completeness F2: a definition, as `hsOpt` is, so that a client reads `rd.SoftState.Lead` and
+`.RaftState`; was opaque with no law.) -/
+def softStateOpt (p : Loc) : Option (w64 × w64) → IProp GF
+  | none => iprop(⌜p = null⌝)
+  | some o => iprop(p ↦□ (go_etcd_io.raft.v3.SoftState.mk o.1 o.2))
 
-/-- A `Ready`'s `ReadStates`, read-only: each `(RequestCtx, Index)`. -/
-opaque readStatesRO [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (sl : GoSlice) (rs : List (List w8 × w64)) : IProp GF := iprop(True)
+/-- A `Ready`'s `ReadStates`, read-only: each `(RequestCtx, Index)`. (Verify-round, A4 P4: a
+definition; etcd indexes `rd.ReadStates[len-1]` and reads `rs.RequestCtx` and `rs.Index`.) -/
+def readStatesRO (sl : GoSlice) (rs : List (List w8 × w64)) : IProp GF :=
+  iprop(∃ vs : List go_etcd_io.raft.v3.ReadState, sl ↦*□ vs ∗ ⌜vs.length = rs.length⌝ ∗
+    [∗list] p ∈ vs.zip rs, ⌜p.1.Index' = p.2.2⌝ ∗ p.1.RequestCtx' ↦*□ p.2.1)
 
-/-- A `[]Peer` slice (`dq` of it and of the contexts): ids and contexts. -/
-opaque peersPts [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (sl : GoSlice) (dq : DFrac) (ps : List (w64 × List w8)) : IProp GF := iprop(True)
+/-- A `[]Peer` slice (`dq` of it and of the contexts): ids and contexts. (Verify-round, A4 P4: a
+definition, so that `StartNode`'s caller builds it from the slice it made: etcd's
+`bootstrapRaftFromCluster`, `bootstrap.go:546-553`.) -/
+def peersPts (sl : GoSlice) (dq : DFrac) (ps : List (w64 × List w8)) : IProp GF :=
+  iprop(∃ vs : List go_etcd_io.raft.v3.Peer, sl ↦*{dq} vs ∗ ⌜vs.length = ps.length⌝ ∗
+    [∗list] p ∈ vs.zip ps, ⌜p.1.ID' = p.2.1⌝ ∗ p.1.Context' ↦*{dq} p.2.2)
 
 /-- A `Status` value's own memory (its `Progress` map and its configuration's maps, fresh copies:
-`getStatus` clones them). -/
+`getStatus` clones them), and its `RaftState` one of the four roles (below 4: `MarshalJSON` indexes
+`stmap` by it; verify-round A4 S3). -/
 opaque statusOwn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : go_etcd_io.raft.v3.Status) : IProp GF := iprop(True)
 
 /-- A `*HardState` that may be `nil` (the empty hard state), read-only. -/
@@ -297,8 +314,17 @@ opaque deliveredLb [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunc
 /-- Node `n`'s applied index (the delivered log as of its last `Advance`), or the index of a snapshot
 installed in its storage and not yet `Advance`d, is at least `i` (round 2, R3: between
 `readyStor_install` and `Advance` the storage's compaction point is the new snapshot's index while
-raft's applied index is still below it). Persistent. -/
+raft's applied index is still below it; `readyStor_install` gives it, verify-round A4 F5). It permits
+compacting through `i` (`stor_compact`). Persistent. -/
 opaque appliedLb [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (n : Loc) (i : Nat) : IProp GF := iprop(True)
+
+/-- **Node `n`'s storage holds the committed entries through `i`** (delivered to `n`, written by the
+client: each stays, unless a compaction or a later snapshot covers it): what storing a snapshot at
+`i` needs (`stor_createSnapshot`), and less than `appliedLb` (`appliedLb_storedLb`): a snapshot of a
+delivered entry may be stored before `Advance` (kvdurable's and kvreconf's snapshot requested
+mid-batch, verify-round A4 completeness F1), a compaction past raft's applied index may not.
+Persistent. -/
+opaque storedLb [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (n : Loc) (i : Nat) : IProp GF := iprop(True)
 
 /-- Node `n`'s storage presents its contents through `S` (fixed at the start). Persistent. -/
 opaque nodeStorage [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (n : Loc) (γ : Cluster) (S : StorState → IProp GF) : IProp GF := iprop(True)
@@ -413,10 +439,28 @@ def isStorage (st : GoInterface) (S : StorState → IProp GF) (cf : StorState �
             Φ (PairV #sp #err) }>) -∗
       WP (App (Val #(methods i.ty go!"Snapshot" i.v)) (Val #())) {{ Φ }}))
 
-/-- **raft's `Logger` contract** for `lg`: its methods other than `Fatal*`/`Panic*` return (raft
-calls those only where it is about to fail anyway, which a proof rules out). Persistent; etcd's zap
-adapter and the examples' loggers meet it (their batches' laws). -/
-opaque loggerOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (lg : GoInterface) : IProp GF := iprop(True)
+/-- The `Logger` methods raft calls on paths a proof reaches: the formatting ones (`Debugf`,
+`Infof`, `Warningf`, `Errorf`: a format and the variadic arguments) and `Error` (the arguments). -/
+def loggerFmtMethods : List GoString := [go!"Debugf", go!"Infof", go!"Warningf", go!"Errorf"]
+
+/-- **raft's `Logger` contract** for `lg` (a bundle, as `isStorage` is; verify-round, A4 completeness
+F3: was opaque with no introduction, so no client logger could be passed to raft): a non-`nil`
+interface value whose `Debugf`/`Infof`/`Warningf`/`Errorf` (any format, any arguments) and `Error`
+(any arguments) return, from any thread. Nothing of `Fatal*`/`Panic*`: raft calls those only where it
+is about to fail anyway, which a proof rules out; nothing of `Debug`/`Info`/`Warning`, which raft
+does not call. The arguments are raft's, read-only to the logger in Go; the contract gives the logger
+no ownership of them, so a logger that formats them is specified at its own trust boundary (zap's,
+fmt's), as the old proof's `isLogger` was. Persistent. A client's logger (etcd's zap adapter,
+`NewRaftLoggerZap`; the examples' `quietLogger{}`) meets it from its methods' specs; raft's own
+`*DefaultLogger` through `defaultLogger_loggerOk`. -/
+def loggerOk (lg : GoInterface) : IProp GF :=
+  iprop(∃ i : GoInterfaceOk, ⌜lg = interface.ok i⌝ ∗
+    (□ ∀ (meth fmt : GoString) (args : GoSlice) (Φ : val → IProp GF),
+      ⌜meth ∈ loggerFmtMethods⌝ -∗ ▷ Φ #() -∗
+      WP (App (App (Val #(methods i.ty meth i.v)) (Val #fmt)) (Val #args))
+        {{ Φ }}) ∗
+    (□ ∀ (args : GoSlice) (Φ : val → IProp GF), ▷ Φ #() -∗
+      WP (App (Val #(methods i.ty go!"Error" i.v)) (Val #args)) {{ Φ }}))
 
 /-- **A node's error**: `nil`, `ErrStopped` (the node has stopped), or the error of `ctx`, which is
 done. -/
@@ -517,6 +561,7 @@ def persistent.spec : Prop :=
   (∀ n, Persistent (nodeStopped (GF := GF) n)) ∧
   (∀ n γ l, Persistent (deliveredLb (GF := GF) n γ l)) ∧
   (∀ n i, Persistent (appliedLb (GF := GF) n i)) ∧
+  (∀ n i, Persistent (storedLb (GF := GF) n i)) ∧
   (∀ n γ S, Persistent (nodeStorage (GF := GF) n γ S)) ∧
   (∀ n j, Persistent (storSnapLb (GF := GF) n j)) ∧
   (∀ n ch, Persistent (isReadyChan (GF := GF) n ch))
@@ -830,30 +875,46 @@ def appliedLb_mono.spec : Prop :=
 def storSnapLb_mono.spec : Prop :=
   ∀ n (i j : Nat), j ≤ i → storSnapLb (GF := GF) n i ⊢ storSnapLb n j
 
+def storedLb_mono.spec : Prop :=
+  ∀ n (i j : Nat), j ≤ i → storedLb (GF := GF) n i ⊢ storedLb n j
+
+/-- What raft applied is stored (it was written before `Advance`, or is the installed snapshot's
+prefix). -/
+def appliedLb_storedLb.spec : Prop :=
+  ∀ n (i : Nat), appliedLb (GF := GF) n i ⊢ storedLb n i
+
 /-- **A crash during a batch's durable write** (round 3, 2e's request): with no node of `id` running
 (the crashed process gone: `nodeVacant`, which the crash rule of the adequacy theorem gives back)
 and the batch's enter update not fired (the evidence that `b` is the batch raft handed out at the
 durable state `D`), the client may move its `raftState` to any state the crash left:
-`D.crashed b j hs` for a prefix `j` of the batch's entries and a hard state with the old or the
-batch's term and vote and a commit between the old `wcommit` and the batch's commit, within the
-written log -- provided the result has at most one conf-change entry above its commit
-(`confAboveOk`). Raft's safety argument: nothing of the batch was acknowledged (acknowledgements
-and votes are sent only after the enter update, at `Advance`, or by a leader whose term and vote the
-batch does not change: `readyCheck`), so the node may lose any suffix of it; the condition on conf
-entries is what a restart needs (`Durable.confAboveOk`): without it the law is false, by a real
-raft bug (`issues/raft-commit-lost-with-entries-kept.md`, reproduced against the pinned raft: two
-conf changes kept above a lost commit let the restarted node win in its old configuration and
-commit a different entry at an index already committed). Whether etcd may take it as a scope
-restriction or the bug blocks etcd's crash restarts is an open question for the user (R1's
-question 10). Not covered: a batch with a snapshot. -/
+`D.crashed b j hs` for a prefix `j` of the batch's entries and a hard state that is **one record
+whole** (verify-round, A4 P2(a): etcd's WAL and kvdurable's file write the state record whole, after
+the entries): either the old one (`D`'s term and vote, a commit between `D.wcommit` and `D.commit`:
+the last state record synced, or a later commit-only record) or the batch's (its term and vote, a
+commit between `D.wcommit` and the batch's), within the written log -- provided the result has at
+most one conf-change entry above its commit (`confAboveOk`). (Round 3's statement allowed the old
+term with the batch's commit, which no storage writes and which breaks `BatchOk`'s term clause at
+the restart: committed entries of the batch's newer term reported with the old term.)
+Raft's safety argument: nothing of the batch was acknowledged (acknowledgements and votes are sent
+only after the enter update, at `Advance`, or by a leader whose term and vote the batch does not
+change: `readyCheck`), so the node may lose any suffix of it. With the old record kept, the durable
+log may hold entries of a term above the durable term (the batch's, from a newer leader); raft's
+invariant covers this case (`ApiCore.lean`'s realization, item 1: such a node cannot win an election
+before that term). The condition on conf entries is what a restart needs (`Durable.confAboveOk`):
+without it the law is false, by a real raft bug (`issues/raft-commit-lost-with-entries-kept.md`,
+reproduced against the pinned raft: two conf changes kept above a lost commit let the restarted node
+win in its old configuration and commit a different entry at an index already committed). Whether
+etcd may take it as a scope restriction or the bug blocks etcd's crash restarts is an open question
+for the user (R1's question 10). Not covered: a batch with a snapshot. -/
 def raftState_crash.spec : Prop :=
   ∀ (n : Loc) γ (id : w64) (st : Driver) (b : Batch) (dl : List LogEntry) (j : Nat)
     (hs : HardState),
     b.snap = none → j ≤ b.ents.length →
-    (hs.term = st.durable.term ∧ hs.vote = st.durable.vote ∨
-      ∃ h, b.hs = some h ∧ hs.term = h.term ∧ hs.vote = h.vote) →
     uint.nat st.durable.wcommit ≤ uint.nat hs.commit →
-    uint.nat hs.commit ≤ uint.nat (b.hs.getD ⟨st.durable.term, st.durable.vote, st.durable.commit⟩).commit →
+    ((hs.term = st.durable.term ∧ hs.vote = st.durable.vote ∧
+        uint.nat hs.commit ≤ uint.nat st.durable.commit) ∨
+      (∃ h, b.hs = some h ∧ hs.term = h.term ∧ hs.vote = h.vote ∧
+        uint.nat hs.commit ≤ uint.nat h.commit)) →
     uint.nat hs.commit ≤ (st.durable.crashed b j hs).last →
     (st.durable.crashed b j hs).confAboveOk →
     readyEnter (GF := GF) n γ id st b dl ∗ raftState γ id st.durable ∗ nodeVacant γ id ⊢ |==>
@@ -864,7 +925,7 @@ def rawNode_drop.spec : Prop :=
   ∀ rn γ id, rawNode (GF := GF) rn γ id ∗ nodeRunning rn 1 ⊢ |==> nodeVacant γ id
 
 def zero_lbs.spec : Prop :=
-  ∀ n, ⊢ appliedLb (GF := GF) n 0 ∗ storSnapLb (GF := GF) n 0
+  ∀ n, ⊢ appliedLb (GF := GF) n 0 ∗ storSnapLb (GF := GF) n 0 ∗ storedLb (GF := GF) n 0
 
 /-! ### Storage writes (the updates raft hands the client)
 
@@ -873,19 +934,24 @@ own spec (`MemoryStorage.Append.spec`, ...) fires it. The update's precondition 
 guarantees at the moment of the write (its invariant relates the contents to its log). Their mask
 is `⊤`: raft, the update's producer, opens its own invariant (round 1, provability F2). -/
 
-/-- **Install the batch's snapshot**: the storage holds no newer one. -/
+/-- **Install the batch's snapshot**: the storage holds no newer one. The snapshot's index may be
+compacted through at once (R3's `logStor_install` publishes it as a floor; verify-round A4 F5). -/
 def readyStor_install.spec : Prop :=
   ∀ n γ (S : StorState → IProp GF) (s : Snapshot) (k : Nat) (es : List LogEntry),
     readyStor (GF := GF) n (some s) k es ∗ nodeStorage n γ S ⊢
       AU <{ ∃∃ σ, S σ ∗ ⌜σ.applySnapshotErr s = false⌝ }> @ ⊤, ∅
-        <{ S (σ.applySnapshot s), COMM readyStor n none k es ∗ storSnapLb n (uint.nat s.index) }>
+        <{ S (σ.applySnapshot s), COMM readyStor n none k es ∗ storSnapLb n (uint.nat s.index) ∗
+             appliedLb n (uint.nat s.index) }>
 
-/-- **Append the batch's entries** (after its snapshot, if any): no gap. -/
+/-- **Append the batch's entries** (after its snapshot, if any): no gap. Once written, the delivered
+log (as of this batch: `dl` is at most the batch's, whose committed entries lie within the durable
+log after it, `BatchOk`) is stored (verify-round, A4 completeness F1: a snapshot of a delivered entry
+before `Advance`). -/
 def readyStor_append.spec : Prop :=
-  ∀ n γ (S : StorState → IProp GF) (k : Nat) (es : List LogEntry),
-    readyStor (GF := GF) n none k es ∗ nodeStorage n γ S ⊢
+  ∀ n γ (S : StorState → IProp GF) (k : Nat) (es dl : List LogEntry),
+    readyStor (GF := GF) n none k es ∗ nodeStorage n γ S ∗ deliveredLb n γ dl ⊢
       AU <{ ∃∃ σ, S σ ∗ ⌜(σ.append k es).isSome ∧ k + es.length < 2 ^ 64⌝ }> @ ⊤, ∅
-        <{ S ((σ.append k es).getD σ), COMM readyStor n none k [] }>
+        <{ S ((σ.append k es).getD σ), COMM readyStor n none k [] ∗ storedLb n dl.length }>
 
 /-- **Compact** up to the applied index and the stored snapshot. -/
 def stor_compact.spec : Prop :=
@@ -894,10 +960,12 @@ def stor_compact.spec : Prop :=
       AU <{ ∃∃ σ, S σ ∗ ⌜i ≤ σ.last ∧ i ≤ uint.nat σ.snap.index⌝ }> @ ⊤, ∅
         <{ S (σ.compact i), COMM True }>
 
-/-- **Store a snapshot** at an applied index (a valid one: made with `snap_make`). -/
+/-- **Store a snapshot** at a stored, delivered index (a valid one: made with `snap_make`).
+(Verify-round, A4 completeness F1: was at an applied index, `appliedLb`; a delivered entry the client
+has written may be snapshotted before `Advance`, as the old `CreateSnapshot.spec` allowed.) -/
 def stor_createSnapshot.spec : Prop :=
   ∀ n γ (S : StorState → IProp GF) (s : Snapshot),
-    nodeStorage (GF := GF) n γ S ∗ appliedLb n (uint.nat s.index) ∗ snapValid γ s ⊢
+    nodeStorage (GF := GF) n γ S ∗ storedLb n (uint.nat s.index) ∗ snapValid γ s ⊢
       AU <{ ∃∃ σ, S σ ∗ ⌜uint.nat s.index ≤ σ.last ∧ σ.off ≤ uint.nat σ.snap.index ∧
               (σ.off ≤ uint.nat s.index → σ.termAt (uint.nat s.index) = some s.term)⌝ }>
           @ ⊤, ∅

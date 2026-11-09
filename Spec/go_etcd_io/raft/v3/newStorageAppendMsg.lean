@@ -4,7 +4,7 @@
 `readyWithoutAccept`'s asynchronous branch (`rawnode.go:223`), unreachable under `ConfigOk`.
 Mirrors the code: a `MsgStorageAppend` to the local append thread with the batch's entries, hard
 state and snapshot, its responses the queued `msgsAfterAppend` and the append acknowledgement.
-**Changes.** New (round 1). **Margin.** The responses are not stated (R1's `Msg` has none).
+**Changes.** New (round 1). Verify-round (A5 completeness F5): the message is raftpb's `msgOut` (with its `Responses`), not `msgPts`, which cannot hold responses: the old post was false. **Margin.** The responses are not stated (R1's `Msg` has none).
 -/
 module
 
@@ -36,7 +36,7 @@ def newStorageAppendMsg.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftOpen r γ id o ∗ entriesRO rd.Entries' k es ∗ hsOpt rd.HardState' oh ∗
       snapOpt rd.Snapshot' os }}
     (App (App (Val (@! go_etcd_io.raft.v3.newStorageAppendMsg)) (Val #r)) (Val #rd))
-  {{ (p : Loc), RET #p; ∃ mm, raftOpen r γ id o ∗ msgPts p (DFrac.own 1) mm ∗
+  {{ (p : Loc), RET #p; ∃ mm, raftOpen r γ id o ∗ (∃ rs : List Msg, RaftPb.msgOut p (DFrac.own 1) mm rs) ∗
       ⌜mm.type = MsgStorageAppend ∧ mm.to = localAppendThread ∧ mm.src = id ∧ mm.entries = es⌝ }}
 
 end spec

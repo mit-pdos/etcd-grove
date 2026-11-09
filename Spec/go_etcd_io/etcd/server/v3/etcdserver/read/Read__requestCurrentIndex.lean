@@ -16,6 +16,8 @@ an error (`readErr`); the retry timer and a first commit in the term resend unde
 over R1's `readState` and the registered context.
 
 **Margin.** None.
+
+Changes: verify-round: takes and gives back the goroutine's `threadTok` (`GoAttach` gives it one; its environment's `Logger`, `LeaderChanged`, `FirstCommitInTermNotify` take a read lock: A7-provability F6).
 -/
 module
 
@@ -49,12 +51,12 @@ def Read.requestCurrentIndex.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read ∗
       r.[go_etcd_io.etcd.server.v3.etcdserver.read.Read, go!"server"] ↦□ srv ∗
       r.[go_etcd_io.etcd.server.v3.etcdserver.read.Read, go!"raft"] ↦□ rf ∗
-      readEnv srv rf rγ γi A ∗ recvAny lc ∗ Raft.committedLb rγ l }}
+      readEnv srv rf rγ γi A ∗ recvAny lc ∗ Raft.committedLb rγ l ∗ threadTok }}
     (App (Val (r @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.read.Read.ty @!!
       go!"requestCurrentIndex")) (Val #lc))
-  {{ (i : w64) (err : GoInterface), RET (PairV #i #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ c : List w8, Raft.readState rγ c i ∗ Raft.readCtx rγ c (readLbQ l)) ∨
-      readErr err }}
+  {{ (i : w64) (err : GoInterface), RET (PairV #i #err); threadTok ∗
+      ((⌜err = GoInterface.nil⌝ ∗ ∃ c : List w8, Raft.readState rγ c i ∗ Raft.readCtx rγ c (readLbQ l)) ∨
+      readErr err) }}
 
 end spec
 end Read

@@ -24,6 +24,8 @@ builds its range request, `endsDecoded_range_intro`).
 
 **Margin.** As `Range` and `Put` (the depth and `txnChecked` premises are `irrWf`'s). A compare-only transaction is answered from a member's possibly
 stale store (`issues/etcd-txn-empty-serializable.md`: W0's model has it).
+
+Changes: verify-round, second pass (grpc-v3rpc's request): `endsDecoded` is now a share of the request message with the pure `endsOk` fact; 2a's handler gets it by `endsDecoded_of_canon` (`Proto.norm c = c` of a decoded message), a builder by `endsDecoded_range_intro`.
 -/
 module
 

@@ -3,9 +3,9 @@
 
 **Users.** `createPostRequest`, `streamReader.dial`.
 
-**Proof sketch.** `url.URL.String` of each, `strings.Join`, `Header.Set`.
+**Proof sketch.** `url.URL.String` of each, `strings.Join`, `Header.Set`. `urls.Len()` on the addressable `URLs` is 1c's `Types.URLs.Len_ptr.spec`.
 
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour.
+**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour. verify-round (second pass): the sketch cites `Types.URLs.Len_ptr.spec`.
 
 **Margin.** None.
 -/

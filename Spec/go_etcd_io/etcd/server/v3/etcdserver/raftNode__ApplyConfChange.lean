@@ -5,6 +5,8 @@
 **Proof sketch**: R1's `node.ApplyConfChange.spec`, with the node's configuration view the apply
 thread holds (`nodeConf`), the entry delivered (`deliveredLb`) and decided (`confDecided`, the
 cluster's decision, R1's `confDecide`). **Changes**: unchanged (R1's). **Margin**: R1's.
+
+Changes: verify-round (raft-core's request): the returned `ConfState` is raftpb's `confStateFull` (`node.ApplyConfChange` returns it so: its `AutoLeave` set), which the apply thread keeps as `ep.confState` for snapshots.
 -/
 module
 
@@ -46,7 +48,7 @@ def raftNode.ApplyConfChange.spec : Prop :=
   {{ (csp : Loc), RET #csp;
       Raft.confChangePts (interface.mkOk
         (go.GoType.PointerType go_etcd_io.raft.v3.raftpb.ConfChange.ty) #ccp) dq (.v1 c) ∗
-      ((∃ cs, Raft.confStatePts csp (DFrac.own 1) cs ∗ ⌜cs.Is m'⌝ ∗
+      ((∃ cs, RaftPb.confStateFull csp (DFrac.own 1) cs ∗ ⌜cs.Is m'⌝ ∗
           Raft.nodeConf n γ.raft (if v.applied ≤ k then ⟨k + 1, m'⟩ else v)) ∨
        (⌜csp = null⌝ ∗ Raft.nodeStopped n ∗ Raft.nodeConf n γ.raft v)) }}
 

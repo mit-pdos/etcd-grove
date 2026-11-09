@@ -3,6 +3,9 @@
 
 **Users.** raft (through `isStorage`). **Proof sketch.** Under the lock; `limitSize` (at least one
 entry); the full slice expression. Past the last index Go panics (excluded). **Changes.** Atomic.
+**Margin.** (Verify-round, A4 S3.) With `maxSize = 2^64-1` all of `[lo, hi)` is returned: `limitSize`'s
+running sum of entry sizes does not wrap, true in Go (memory bounds it), unbounded in the model; the
+proof states it as the entries' total size below `2^64`, which their being in memory gives.
 -/
 module
 

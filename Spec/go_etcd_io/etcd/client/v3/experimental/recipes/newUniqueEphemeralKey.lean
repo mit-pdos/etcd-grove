@@ -7,6 +7,8 @@
 
 **Changes**: as `newUniqueEphemeralKV`'s.
 
+Changes: verify-round: `ErrKeyExists` is the value its variable holds (`putNewRetAt`), not a Lean constant (A3 F4).
+
 **Margin**: as `newUniqueKV`'s.
 -/
 module
@@ -45,7 +47,7 @@ def newUniqueEphemeralKey.spec : Prop :=
       (Val #pre))
 
   {{ (rk : Loc) (err : GoInterface), RET (PairV #rk #err);
-      (∃ (σ σ' : State) (k : GoString) (res : Resp) (rev : w64), Q σ σ' k res ∗ ⌜putNewRet res rev err⌝ ∗
+      (∃ (σ σ' : State) (k : GoString) (res : Resp) (rev : w64), Q σ σ' k res ∗ putNewRetAt res rev err ∗
         ((⌜err = GoInterface.nil⌝ ∗ ekOwn rk γ who { live := true, key := k, rev := rev, val := [] }) ∨
          ⌜err ≠ GoInterface.nil ∧ rk = null⌝)) ∨
       (⌜rk = null⌝ ∗ indefCall err) }}

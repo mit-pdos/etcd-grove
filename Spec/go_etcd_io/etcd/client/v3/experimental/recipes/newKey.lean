@@ -7,6 +7,8 @@
 
 **Changes**: as `newKV`'s.
 
+Changes: verify-round: `ErrKeyExists` is the value its variable holds (`putNewRetAt`), not a Lean constant (A3 F4).
+
 **Margin**: none.
 -/
 module
@@ -44,7 +46,7 @@ def newKey.spec : Prop :=
       (Val #key)) (Val #lease))
 
   {{ (rk : Loc) (err : GoInterface), RET (PairV #rk #err);
-      (∃ (σ σ' : State) (res : Resp) (rev : w64), Q σ σ' res ∗ ⌜putNewRet res rev err⌝ ∗
+      (∃ (σ σ' : State) (res : Resp) (rev : w64), Q σ σ' res ∗ putNewRetAt res rev err ∗
         ((⌜err = GoInterface.nil⌝ ∗ rkOwn rk γ who { live := true, key := key, rev := rev, val := [] }) ∨
          ⌜err ≠ GoInterface.nil ∧ rk = null⌝)) ∨
       (⌜rk = null⌝ ∗ indefCall err) }}

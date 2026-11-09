@@ -3,7 +3,7 @@
 
 `readyWithoutAccept`'s asynchronous branch (`rawnode.go:372`), unreachable under `ConfigOk`.
 Mirrors the code: a `MsgStorageApply` to the local apply thread with the committed entries, of term
-0, its response `newStorageApplyRespMsg`'s. **Changes.** New (round 1).
+0, its response `newStorageApplyRespMsg`'s. **Changes.** New (round 1). Verify-round (A5 completeness F5): the message is raftpb's `msgOut` (with its `Responses`), not `msgPts`, which cannot hold responses: the old post was false.
 -/
 module
 
@@ -33,7 +33,7 @@ def newStorageApplyMsg.spec : Prop :=
   ∀ (r : Loc) (γ : Cluster) (id : w64) (o : CoreOpen) (rd : go_etcd_io.raft.v3.Ready) (k : Nat) (es : List LogEntry),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftOpen r γ id o ∗ entriesRO rd.CommittedEntries' k es }}
     (App (App (Val (@! go_etcd_io.raft.v3.newStorageApplyMsg)) (Val #r)) (Val #rd))
-  {{ (p : Loc), RET #p; ∃ mm, raftOpen r γ id o ∗ msgPts p (DFrac.own 1) mm ∗
+  {{ (p : Loc), RET #p; ∃ mm, raftOpen r γ id o ∗ (∃ rs : List Msg, RaftPb.msgOut p (DFrac.own 1) mm rs) ∗
       ⌜mm.type = MsgStorageApply ∧ mm.to = localApplyThread ∧ mm.src = id ∧ mm.term = W64 0 ∧
         mm.entries = es⌝ }}
 

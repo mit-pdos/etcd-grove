@@ -13,7 +13,7 @@ import (
 // Users: v3rpc's sendLoop ticker (watch.go:594, RequestProgress for each watcher with progress
 // notification); 1b's watchStep progress case.
 // Assumes: kv is a watchable store this snippet alone writes, never compacted; one reader token.
-// Specs: watchStream.RequestProgress.spec, watchStream.Watch.spec; wsCons_recv.spec (wStep's
+// Specs: watchStream.RequestProgress.spec, watchStream.Watch.spec (+ wsOpen_closed); wsCons_recv.spec (wStep's
 // progStep at posOf).
 func ReqProgressOne(kv mvcc.WatchableKV, k []byte) {
 	ws := kv.NewWatchStream()
@@ -46,7 +46,7 @@ func ReqProgressOne(kv mvcc.WatchableKV, k []byte) {
 // Users: v3rpc's recvLoop (watch.go:400, a progress request: RequestProgressAll under sws.mu);
 // 1b's wireStep id -1 case.
 // Assumes: as ReqProgressOne.
-// Specs: watchStream.RequestProgressAll.spec, watchStream.Watch.spec (the stamp, wsSentLb);
+// Specs: watchStream.RequestProgressAll.spec, watchStream.Watch.spec (+ wsOpen_closed) (the stamp, wsSentLb);
 // wsCons_recv.spec (the -1 case of wsRespOk).
 func ReqProgressAll(kv mvcc.WatchableKV, k1, k2 []byte) {
 	ws := kv.NewWatchStream()
@@ -79,7 +79,7 @@ func ReqProgressAll(kv mvcc.WatchableKV, k1, k2 []byte) {
 // Users: v3rpc's sendLoop (watch.go:536: the drain before sending a Created; the fork's fix of
 // issues/etcd-watch-progress-before-created.md).
 // Assumes: kv is a watchable store this snippet alone writes, never compacted.
-// Specs: watchStream.Watch.spec (wsSentLb of its stamp), wsCons_recv.spec (the non-blocking
+// Specs: watchStream.Watch.spec (+ wsOpen_closed) (wsSentLb of its stamp), wsCons_recv.spec (the non-blocking
 // receive's empty case: the stamp is at most what was received), watchStream.RequestProgressAll.spec.
 func ReqDrainBeforeCreated(kv mvcc.WatchableKV, k []byte) {
 	ws := kv.NewWatchStream()

@@ -8,8 +8,10 @@ got wrong, and this one avoids (`specs-ref/notes/grpc-msg-models.md`, `per-type-
 `pbenc-ok-inconsistent.md`, `reply-size.md`, `invoke-size.md`):
 
 * **No caller-built message model**: a message is `Proto.msgAt t p dq c`, its content `c` a value
-  (`Proto/Api.lean`), and grpc transports contents: the server's decoded request holds the content
-  the client's message held, the client's decoded reply the content the handler's reply held. What
+  (`Proto/Api.lean`), and grpc transports contents' wire views: the server's decoded request holds
+  `norm c` of the content `c` the client's message held, the client's decoded reply `norm` of the
+  handler's reply's (verify-round, A6 F2: a non-`nil` empty `bytes` field arrives `nil`), and every
+  decoded message is canonical (`⌜norm c = c⌝`, in place of the old `Proto.decodedAt`). What
   a content means is the message type's owner's law, which nobody can choose per call.
 * **Handler runs borrow their caller's thread tokens** (round 1, as 2f's net/http: the
   repository's handler-pool decision): `start` takes a pool of `n` of the caller's thread tokens
@@ -37,8 +39,8 @@ got wrong, and this one avoids (`specs-ref/notes/grpc-msg-models.md`, `per-type-
 ## What a call does (the contracts)
 
 * A **unary method** is registered with a contract `S : UnarySpec` (`MD → Content → (Outcome →
-  IProp) → IProp`): the caller hands over `S md c Φ` with its request of content `c` (the server
-  sees the metadata `md`), and gets `Φ o` back with the outcome `o` the handler produced: a reply's
+  IProp) → IProp`): the caller hands over `S md (norm c) Φ` with its request of content `c` (the
+  server sees the metadata `md` and decodes `norm c`), and gets `Φ o` back with the outcome `o` the handler produced: a reply's
   content, or a status (code, message). This is Grove's urpc shape (the caller's resource travels
   with the call). **At most one run per attempt**: grpc-go resends an attempt by itself only when
   the stream never reached the server's handler (transparent retry of an unprocessed stream; no
@@ -92,7 +94,8 @@ Resources (persistent unless said):
 
 ## Laws
 
-`grpc_persistent`, `ownErr_grpcMsg`, `statusErr_sent`, `ownErr_sent`, `statusErr_agree`,
+`grpc_persistent`, `ownErr_grpcMsg`, `statusErr_sent` (with `ownErr_grpcMsg`: an own error is sent
+as itself), `statusErr_agree`, `icChain_nil`, `cliIcPass_call`,
 `decOk_call`, `attemptOk_call`, `streamerOk_call`, the stream halves' `cliSend_send`,
 `cliSend_closeSend`, `cliRecv_recv`, `srvRecv_recv`, `srvSend_send`, `srvStream_context`.
 -/
@@ -265,7 +268,8 @@ def errView (err : GoInterface) (code : w32) (msg : GoString) (ok : Bool) : IPro
         (⌜ok = false ∧ code = cUnknown⌝ ∗ errMsg err msg ∗ plainErr err) ∨
         ⌜err = GoInterface.nil ∧ ok = true ∧ code = cOK ∧ msg = []⌝)
 
-/-- **A `*peer.Peer`** whose `Addr.String()` returns (persistent). -/
+/-- **A `*peer.Peer` grpc made** (persistent; `peer.FromContext`'s): read-only, its fields print,
+its remote address set (`peer/Api.lean`'s `peerOk_fields`: verify round, A6 completeness F3). -/
 opaque peerOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) : IProp GF := iprop(True)
 
 /-- **The status a server sends for a handler's error `err`**. -/
@@ -290,6 +294,30 @@ opaque connAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors}
 /-- **A dial option acting as `f`**. -/
 opaque dialOptAt (v : GoInterface) (f : DialCfg (GF := GF) → DialCfg (GF := GF)) : IProp GF :=
   iprop(True)
+
+/-- **A client unary interceptor that passes the call through** (persistent; verify-round,
+A6-completeness F2 / A2-completeness F2: Kubernetes' `grpc.WithChainUnaryInterceptor`, grpc-
+prometheus's): it calls its invoker exactly once with its own arguments and returns its result
+(`cliIcPass_call`), observing only. -/
+opaque cliIcPass [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (i : val) : IProp GF := iprop(True)
+
+/-- **A client stream interceptor that passes the stream through** (persistent; the same for
+`WithChainStreamInterceptor`): it calls its streamer exactly once with its own arguments and returns
+the stream (possibly wrapped by a value whose `SendMsg`, `RecvMsg`, `CloseSend`, `Context`,
+`Header`, `Trailer` call the wrapped stream's once with the same arguments and return their
+results) or the streamer's error. Its meaning is this docstring: whoever offers such an interceptor
+(grpc-prometheus's, assumed by its user) states it. -/
+opaque cliSicPass [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (i : val) : IProp GF := iprop(True)
+
+/-- **A `stats.Handler` that only observes** (persistent): its `TagRPC`, `HandleRPC`, `TagConn`,
+`HandleConn` return (no panic) from any goroutine, `TagRPC`/`TagConn` returning a context derived
+from theirs by values (otelgrpc's span), writing nothing the program's specs own. -/
+opaque statsOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (h : GoInterface) : IProp GF := iprop(True)
+
+/-- **A context dialer that dials the address it is given** (persistent; `WithContextDialer`'s
+argument, Kubernetes' egress dialer): `f(ctx, addr)` returns a `net.Conn` to `addr`, or an error;
+it never connects elsewhere (the addresses reached stay the resolver's: `DialCfg.A`). -/
+opaque ctxDialerOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (f : val) : IProp GF := iprop(True)
 
 /-- **A call option grpc accepts**. -/
 opaque callOptOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (v : GoInterface) : IProp GF := iprop(True)
@@ -355,15 +383,17 @@ opaque genSrvAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctor
 opaque healthMethods : List (GoString × val)
 opaque healthStreams : List (GoString × val)
 
-/-- **A `*peer.Peer` variable at `p`, owned** (what `grpc.Peer(&p)` lends to the call: grpc writes
-it after the attempt). -/
+/-- **A `peer.Peer` struct variable at `p`, lent to grpc** (persistent; `grpc.Peer(&p)`'s: grpc
+copies the attempt's peer into it, `*o.PeerAddr = *x`, after each attempt): an invariant holds its
+fields, each one that prints (`peer/Api.lean`'s `peerVar_inv`; verify round, A6 completeness F3: was
+a `*peer.Peer` variable, while the caller's `var p peer.Peer` is a struct). -/
 opaque peerVar [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) : IProp GF := iprop(True)
 
 /-- **The right to run `Serve` on `gs` with `lis`** (exclusive; `start`'s). -/
 opaque serveTok [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (gs : Loc) (lis : GoInterface) : IProp GF := iprop(True)
 
 /-- **The run resources `start` lent** (exclusive; integration X): `n` copies of `T`, given back by
-`GracefulStop` once the runs have returned. -/
+`GracefulStop` once the runs have returned, with the pool's `n` thread tokens (verify-round). -/
 opaque drainTok [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (gs : Loc) (T : IProp GF) (n : Nat) : IProp GF := iprop(True)
 
 /-- **A `*grpc.ServiceDesc`** (read-only; the generated `<Svc>_ServiceDesc`, 3h's init facts): the
@@ -465,11 +495,11 @@ opaque srvOptAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctor
 
 /-- What a unary handler returns for its caller's `Φ`: a reply message (any fraction: grpc only
 reads it; nested less than protobuf's decoding limit, so the caller can decode it) with `Φ` of its
-content, or an error with `Φ` of the status sent, or an error grpc made
+content's wire view (what the caller decodes), or an error with `Φ` of the status sent, or an error grpc made
 itself (the dropped decoding of a request, which `decOk` excludes; a codec's). -/
 def unaryOut (repT : go.GoType) (r err : GoInterface) (Φ : Outcome → IProp GF) : IProp GF :=
   iprop((⌜err = GoInterface.nil⌝ ∗ ∃ (p : Loc) (dq : DFrac) (c : Content),
-          ⌜r = msgVal repT p ∧ depth c < depthMax⌝ ∗ msgAt repT p dq c ∗ Φ (.ok c)) ∨
+          ⌜r = msgVal repT p ∧ depth c < depthMax⌝ ∗ msgAt repT p dq c ∗ Φ (.ok (norm c))) ∨
         (⌜err ≠ GoInterface.nil⌝ ∗ ∃ code msg, sentStatus err code msg ∗ Φ (.status code (fixUtf8 msg))))
 
 /-- **The handler `h` of a unary method** (its `MethodDesc.Handler`, called by grpc with the
@@ -511,6 +541,20 @@ def streamOk (h : val) (ss : GoInterface) (sic : Option val) (reqT repT : go.GoT
     WP (streamRun h ss st sic info) {{ Ψ }})
 
 /-! ### Laws -/
+
+/-- **A pass-through unary interceptor's call** (WP form): calling it is calling its invoker with
+the same arguments. -/
+def cliIcPass_call.spec : Prop := ∀ (i : val) (ctx : GoInterface) (method : GoString)
+    (req reply : GoInterface) (cc : Loc) (inv : val) (opts : GoSlice) (Ψ : val → IProp GF),
+  cliIcPass (GF := GF) i ∗
+    WP (App (App (App (App (App (App (Val inv) (Val #ctx)) (Val #method)) (Val #req)) (Val #reply))
+      (Val #cc)) (Val #opts)) {{ Ψ }} ⊢
+  WP (App (App (App (App (App (App (App (Val i) (Val #ctx)) (Val #method)) (Val #req)) (Val #reply))
+      (Val #cc)) (Val inv)) (Val #opts)) {{ Ψ }}
+
+def dialAux_persistent.spec : Prop :=
+  (∀ i, Persistent (cliIcPass (GF := GF) i)) ∧ (∀ i, Persistent (cliSicPass (GF := GF) i)) ∧
+  (∀ h, Persistent (statsOk (GF := GF) h)) ∧ (∀ f, Persistent (ctxDialerOk (GF := GF) f))
 
 /-- `errMsg`'s meaning: `Error()` returns `msg`. -/
 def errMsg_call.spec : Prop := ∀ (err : GoInterface) (msg : GoString),
@@ -562,12 +606,15 @@ def statusErr_agree.spec : Prop := ∀ err c c' m m',
 def rpcCtx_ctxOk.spec : Prop := ∀ ctx md, rpcCtx (GF := GF) ctx md ⊢ Context.ctxOk ctx
 
 /-- **The decoder**: decoding into a fresh (owned) message of the request's type gives the
-request's content (grpc decodes the bytes it received; a request that fits decodes). -/
+request's content, canonical (grpc decodes the bytes it received; a request that fits decodes).
+Closed world (A6 second tier): it never fails because the contents are those of this program's
+clients, which `msgsFit` bounds; a foreign client's too-deep message would be refused by the
+decoder (an error grpc makes, no run). -/
 def decOk_call.spec : Prop := ∀ (dec : val) (reqT : go.GoType) (c c0 : Content) (q : Loc),
   {{ decOk (GF := GF) dec reqT c ∗ msgAt reqT q (DFrac.own 1) c0 }}
     (App (Val dec) (Val #(msgVal reqT q)))
   {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil ∧ depth c < depthMax⌝ ∗
-      msgAt reqT q (DFrac.own 1) c ∗ Proto.decodedAt reqT q }}
+      msgAt reqT q (DFrac.own 1) c ∗ ⌜norm c = c⌝ }}
 
 /-- **One attempt of a unary call** (grpc's invoker of `cc`, which an interceptor calls at most
 once per attempt it wants): the request (read, given back) is delivered to at most one run of the
@@ -583,7 +630,7 @@ def attemptOk_call.spec : Prop := ∀ (cc : Loc) (A : GoString → IProp GF) (R 
       (□ ∀ ep, A ep -∗ serves ep m reqT repT S) ∗
       msgAt reqT pq dq c ∗ msgAt repT pr (DFrac.own 1) r0 ∗
       opts ↦*□ vs ∗ ([∗list] v ∈ vs, callOptOk v) ∗
-      (∀ mdc md, □ R mdc -∗ ⌜mdSeen (md0 ++ mdc) md⌝ -∗ S md c Φ) }}
+      (∀ mdc md, □ R mdc -∗ ⌜mdSeen (mdc ++ md0) md⌝ -∗ S md (norm c) Φ) }}
     (App (App (App (App (App (App (Val inv) (Val #ctx)) (Val #m)) (Val #(msgVal reqT pq)))
       (Val #(msgVal repT pr))) (Val #cc)) (Val #opts))
   {{ (err : GoInterface), RET #err; msgAt reqT pq dq c ∗ ∃ r : Content, msgAt repT pr (DFrac.own 1) r ∗
@@ -602,7 +649,7 @@ def streamerOk_call.spec : Prop := ∀ (cc : Loc) (A : GoString → IProp GF) (R
       opts ↦*□ vs ∗ ([∗list] v ∈ vs, callOptOk v) }}
     (App (App (App (App (App (Val str) (Val #ctx)) (Val #desc)) (Val #cc)) (Val #m)) (Val #opts))
   {{ (cs err : GoInterface), RET (PairV #cs #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ (g : StreamName) (mdc md : MD), □ R mdc ∗ ⌜mdSeen (md0 ++ mdc) md⌝ ∗
+      (⌜err = GoInterface.nil⌝ ∗ ∃ (g : StreamName) (mdc md : MD), □ R mdc ∗ ⌜mdSeen (mdc ++ md0) md⌝ ∗
         streamKey g ∗ (∃ ctx', cliCtxOf cs ctx') ∗ cliSend cs g S md 0 ∗ cliRecv cs g S md 0) ∨
       (⌜cs = GoInterface.nil⌝ ∗ ownErr err) }}
 
@@ -611,7 +658,7 @@ message (read, given back) is the stream's next, with its `up` resource; or an e
 broken, or ended by the server: then every later send fails), the resource lost. -/
 def cliSend_send.spec : Prop := ∀ (cs : GoInterface) (g : StreamName) (S : StreamSpec (GF := GF))
     (md : MD) (i : Nat) (reqT : go.GoType) (p : Loc) (dq : DFrac) (c : Content),
-  {{ cliSend (GF := GF) cs g S md i ∗ msgAt reqT p dq c ∗ S.up g md i c }}
+  {{ cliSend (GF := GF) cs g S md i ∗ msgAt reqT p dq c ∗ S.up g md i (norm c) }}
     (App (Val (cs @!! google_golang_org.grpc.ClientStream.ty @!! go!"SendMsg")) (Val #(msgVal reqT p)))
   {{ (err : GoInterface), RET #err; msgAt reqT p dq c ∗
       ((⌜err = GoInterface.nil⌝ ∗ cliSend cs g S md (i + 1)) ∨
@@ -633,7 +680,7 @@ def cliRecv_recv.spec : Prop := ∀ (cs : GoInterface) (g : StreamName) (S : Str
   {{ cliRecv (GF := GF) cs g S md n ∗ msgAt repT p (DFrac.own 1) c0 }}
     (App (Val (cs @!! google_golang_org.grpc.ClientStream.ty @!! go!"RecvMsg")) (Val #(msgVal repT p)))
   {{ (err : GoInterface), RET #err; ∃ c, msgAt repT p (DFrac.own 1) c ∗
-      ((⌜err = GoInterface.nil⌝ ∗ Proto.decodedAt repT p ∗ S.dn g md n c ∗ cliRecv cs g S md (n + 1)) ∨
+      ((⌜err = GoInterface.nil ∧ norm c = c⌝ ∗ S.dn g md n c ∗ cliRecv cs g S md (n + 1)) ∨
        (globalAddr io.EOF ↦□ err ∗ S.fin g md n none) ∨
        (∃ code msg, statusErr err code msg ∗ ⌜¬ grpcMsg msg⌝ ∗ S.fin g md n (some (code, msg))) ∨
        ownErr err) }}
@@ -646,7 +693,7 @@ def srvRecv_recv.spec : Prop := ∀ (st : GoInterface) (g : StreamName) (S : Str
   {{ srvRecv (GF := GF) st g S md i ∗ msgAt reqT p (DFrac.own 1) c0 }}
     (App (Val (st @!! google_golang_org.grpc.ServerStream.ty @!! go!"RecvMsg")) (Val #(msgVal reqT p)))
   {{ (err : GoInterface), RET #err; ∃ c, msgAt reqT p (DFrac.own 1) c ∗
-      ((⌜err = GoInterface.nil⌝ ∗ Proto.decodedAt reqT p ∗ S.up g md i c ∗ srvRecv st g S md (i + 1)) ∨
+      ((⌜err = GoInterface.nil ∧ norm c = c⌝ ∗ S.up g md i c ∗ srvRecv st g S md (i + 1)) ∨
        (globalAddr io.EOF ↦□ err ∗ srvRecv st g S md i) ∨
        (ownErr err ∗ srvRecv st g S md i)) }}
 
@@ -655,7 +702,7 @@ returning) is the stream's next, its `dn` resource with it; or an error grpc mad
 client gone), the resource lost. -/
 def srvSend_send.spec : Prop := ∀ (st : GoInterface) (g : StreamName) (S : StreamSpec (GF := GF))
     (md : MD) (j : Nat) (repT : go.GoType) (p : Loc) (dq : DFrac) (c : Content),
-  {{ srvSend (GF := GF) st g S md j ∗ msgAt repT p dq c ∗ S.dn g md j c }}
+  {{ srvSend (GF := GF) st g S md j ∗ msgAt repT p dq c ∗ S.dn g md j (norm c) }}
     (App (Val (st @!! google_golang_org.grpc.ServerStream.ty @!! go!"SendMsg")) (Val #(msgVal repT p)))
   {{ (err : GoInterface), RET #err; msgAt repT p dq c ∗
       ((⌜err = GoInterface.nil⌝ ∗ srvSend st g S md (j + 1)) ∨ (ownErr err ∗ srvSend st g S md j)) }}
@@ -798,11 +845,6 @@ handler over 2c's request path and its `srvGate` share, cannot be served this wa
 def startHTTP.spec : Prop := ∀ (gs : Loc) (B : SrvCfg) (C : AddrContract (GF := GF)),
   srvBuild gs B ∗ ⌜msgsFit⌝ ∗ regsOk B C iprop(emp) ⊢ |==> servesHTTP gs C
 
-/-- **A peer variable lent to grpc**: an invariant holds it, `nil` or a `peerOk` peer (grpc's
-writes keep it; the caller reads through it). -/
-def peerVar_inv.spec : Prop := ∀ p : Loc,
-  peerVar (GF := GF) p ⊢ inv (nroot .@ "grpcPeer") iprop(∃ q : Loc, p ↦ q ∗ (⌜q = null⌝ ∨ peerOk q))
-
 def round1_persistent.spec : Prop :=
   (∀ err, Persistent (plainErr (GF := GF) err)) ∧
   (∀ gs C, Persistent (servesHTTP (GF := GF) gs C)) ∧
@@ -843,6 +885,10 @@ def icChain_call.spec : Prop := ∀ (i : GoFunc) (ics : List GoFunc) (ic : val) 
     (∀ k, icHandler ics info k h -∗
       WP (App (App (App (App (Val #i) (Val #ctx)) (Val #req)) (Val #info)) (Val k)) {{ Ψ }}) ⊢
   WP (App (App (App (App (Val ic) (Val #ctx)) (Val #req)) (Val #info)) (Val h)) {{ Ψ }}
+
+/-- **No interceptor**: grpc passes the `nil` function (verify-round, A6 second tier: the
+docstring of `icChain_call` said so, no law did). -/
+def icChain_nil.spec : Prop := ∀ (ic : val), icChain (GF := GF) [] ic ⊢ ⌜ic = #func.nil⌝
 
 /-- **A continuation's call**: the next interceptor with the next continuation, or (none left) the
 handler. -/

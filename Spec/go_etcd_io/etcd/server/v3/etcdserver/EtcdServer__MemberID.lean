@@ -8,6 +8,8 @@
 **Changes** (from `specs-ref`'s `EtcdServer__MemberID.lean` where it existed): over `srvMember`.
 
 **Margin.** Exact.
+
+Changes: verify-round (client-core's request): callers formatting the id (`s.MemberID().String()`, a pointer-receiver call on a copy) cite `types.ID.String_ptr`; URL lists `URLs__StringSlice_ptr`, `URLs__Len_ptr`.
 -/
 module
 

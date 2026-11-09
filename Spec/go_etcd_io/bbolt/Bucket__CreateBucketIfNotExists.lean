@@ -9,6 +9,8 @@
 and opened) is returned with nil.
 
 **Changes.** Over paths; read transactions' error; `ErrIncompatibleValue` on a value's key.
+**Proof sketch, the creating arm in the internal vocabulary** (verify-round, A11 F9): as
+`CreateBucket`'s (`Cursor.node`, `node.put`, `physRep_set` with `newEnt`'s bucket case).
 -/
 module
 

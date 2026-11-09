@@ -3,9 +3,9 @@
 
 **Users.** etcd's `NewServer` (`server.go:436`, the cluster's members), `applySnapshot` (`server.go:1166`, after `RemoveAllPeers`), `applyConfChange` (`server.go:2075`, an added member). Snippet: `transport.go` (`ReqStartTransport`, `ReqMembership`).
 
-**Proof sketch.** `Lock`; stopped (`peers` nil): impossible by `trRunning`; known: return. `types.NewURLs` (1c: `urlsHosts`) succeeds; `LeaderStats.Follower` (2e), `startPeer` (`peerAt`, its stop right into the map invariant), two `addPeerToProber` (trust: the probes only measure), log; `Unlock`.
+**Proof sketch.** `Lock`; stopped (`peers` nil): impossible by `trRunning`; known: return. `types.NewURLs` (1c: `urlsHosts`) succeeds; `LeaderStats.Follower` (2e), `startPeer` (`peerAt`, its stop right into the map invariant), two `addPeerToProber` (trust: the probes only measure), log; `Unlock`. `types.ID`'s `String()` on an addressable `ID` (log fields, headers) is 1c's `Types.ID.String_ptr.spec` (Goose's pointer receiver).
 
-**Changes.** Restated over `peerAddr` (was `trURLsOk`/the network directory `γn.dir`: the URLs had to be the member's own; delivery to another member is now harmless, `Process` checks `To`).
+**Changes.** Restated over `peerAddr` (was `trURLsOk`/the network directory `γn.dir`: the URLs had to be the member's own; delivery to another member is now harmless, `Process` checks `To`). verify-round (second pass): the sketch cites `Types.ID.String_ptr.spec`.
 
 **Margin.** The peer set is not tracked in the statement (no client needs it).
 -/

@@ -25,6 +25,8 @@ comparison (the round-0 post claimed the key present, false at `leaderRev = 0`:
 `nonissues/etcd-v3election-proclaim-rev-zero.md`); the effect a put of the leader key only; the lent
 permission; `σ0`; the principal per call.
 
+Changes: verify-round: the effect excludes the empty key (as `Resign`'s, A3 F2: a resumed election's key may be `""`, refused by etcd); `ErrElectionNotLeader` the value its variable holds, the other errors `notConcErr` (A3 F4).
+
 Margin: after a failed `Proclaim` the leader key is `""` while the leader session stays (a second
 `Proclaim` or `Resign` then sends a transaction on the empty key, which etcd refuses: an error).
 With `leaderRev > 0` (after `Campaign`), the comparison's holding means the key is present with that
@@ -61,7 +63,7 @@ def Election.Proclaim.spec : Prop :=
     (ctx : GoInterface) (val : GoString) (T : State → State → Prop) (P : IProp GF) (σ0 : State),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isElection e s pfx ∗ electionSt e st ∗ isSession s c γ id ∗ isClient c γ dflt ∗
       Context.ctxOk ctx ∗ ctxPrin dflt ctx who ∗
-      etcdLent γ T P ∗ P ∗ etcdLb γ σ0 ∗ ⌜effIn (putEff (fun k => k = st.leaderKey) (fun v => v = val) (sint.Z id)) T⌝ }}
+      etcdLent γ T P ∗ P ∗ etcdLb γ σ0 ∗ ⌜effIn (putEff (fun k => k = st.leaderKey ∧ k ≠ []) (fun v => v = val) (sint.Z id)) T⌝ }}
     (App (App (Val (e @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.concurrency.Election.ty @!! go!"Proclaim")) (Val #ctx)) (Val #val))
   {{ (err : GoInterface), RET #err;
       (⌜err = GoInterface.nil ∧ st.leaderSession = s⌝ ∗ P ∗ ∃ (hd : Loc) (hm : HeaderM) (σ : State),
@@ -69,11 +71,11 @@ def Election.Proclaim.spec : Prop :=
           etcdLb γ (putKey σ st.leaderKey val (sint.Z id)) ∗ respHeaderOwn hd DFrac.discard hm ∗
           ⌜Reach σ0 σ ∧ (ownerCmp st.leaderKey st.leaderRev).holds σ.kv.store ∧
             hm.revision = W64 (σ.kv.rev + 1)⌝) ∨
-      (⌜err = concErrVal .electionNotLeader⌝ ∗ P ∗
+      (globalAddr go_etcd_io.etcd.client.v3.concurrency.ErrElectionNotLeader ↦□ err ∗ P ∗
           ((⌜st.leaderSession = null⌝ ∗ electionSt e st) ∨
            (∃ σ : State, electionSt e { st with leaderKey := [] } ∗ etcdLb γ σ ∗
               ⌜Reach σ0 σ ∧ ¬ (ownerCmp st.leaderKey st.leaderRev).holds σ.kv.store⌝))) ∨
-      (⌜err ≠ GoInterface.nil ∧ ∀ e, err ≠ concErrVal e⌝ ∗ electionSt e st) }}
+      (⌜err ≠ GoInterface.nil⌝ ∗ notConcErr err ∗ electionSt e st) }}
 
 end spec
 

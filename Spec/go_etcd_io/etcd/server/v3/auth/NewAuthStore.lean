@@ -22,6 +22,10 @@ the reader stock `List.replicate actualMaxReaders RD`) restated over 4b's `authB
 state, and the thread tokens of the readers (no reader stock: bounds plan). `tp ≠ nil`
 (`nonissues/etcd-auth-newauthstore-nil-tp.md`) is in `tokenProviderAt`.
 
+**Verify round (A9 3d F4, F7).** The post gives `authBeCur γa be` (the store's backend, which
+`authHook_intro` needs to turn the backend's hook run, `authBeHook be`, into the admin methods'
+`authHook`) and `authGate γa R` (the provider's gate, which `AuthInfoFromCtx` takes with `□ R`).
+
 **Margin.** None.
 -/
 module
@@ -51,14 +55,16 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 /-- **`NewAuthStore(lg, be, tp, cost)`**: a store over the backend's auth state (its revision `1`
 if fresh), which the cluster reached, as the store's state `0`, held by the caller (the writer). -/
 def NewAuthStore.spec : Prop :=
-  ∀ (lg : Loc) (be tp : GoInterface) (cost : w64) (γ : Cluster) (a : AuthState) (rt : Bool),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ (⌜lg = null⌝ ∨ Zap.isLogger lg) ∗ authBackendAt be a ∗ tokenProviderAt tp γ rt ∗
+  ∀ (lg : Loc) (be tp : GoInterface) (cost : w64) (γ : Cluster) (a : AuthState) (R : IProp GF)
+    (rt : Bool),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ (⌜lg = null⌝ ∨ Zap.isLogger lg) ∗ authBackendAt be a ∗ tokenProviderAt tp γ R rt ∗
       authReached γ (normRev a) ∗ ⌜validPerms a ∧ recordsFit (normRev a)⌝ }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.NewAuthStore)) (Val #lg)) (Val #be))
       (Val #tp)) (Val #cost))
   {{ (s : GoInterface), RET #s; ∃ (st : Loc) (γa : AuthNames),
       ⌜s = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty) #st⌝ ∗
-      authStoreAt st γ γa ∗ authCur γa 0 (normRev a) ∗ tokFrom γa 0 ∗
+      authStoreAt st γ γa ∗ authCur γa 0 (normRev a) ∗ tokFrom γa 0 ∗ authGate γa R ∗
+      authBeCur γa be ∗
       (if rt then rootTokOk γa else True) }}
 
 end spec

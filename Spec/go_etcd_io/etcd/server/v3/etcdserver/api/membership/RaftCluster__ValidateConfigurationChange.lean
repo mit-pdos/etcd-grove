@@ -12,6 +12,8 @@ type, the context unmarshalled where read (`json.Unmarshal`, trusted: `decodeCtx
 
 **Changes** (from `specs-ref`'s `RaftCluster__ValidateConfigurationChange.lean`): the outcome as a
 relation (`ccResult`) over the backend's view.
+Changes: verify-round (sentinel errors, A3 provability F4): the error returned is the value its
+package variable holds (`globalAddr e.global ↦□ err`, `init.spec`), not a Lean constant `vErr e`.
 
 **Margin.** Exact, up to the learner limit (`tooManyLearners` or not).
 -/
@@ -49,8 +51,10 @@ def RaftCluster.ValidateConfigurationChange.spec : Prop :=
       Raft.confChangePts (interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.raftpb.ConfChange.ty) #p)
         dq (.v1 cc) ∗
       (⌜apply = false ∧ err = GoInterface.nil⌝ ∨
-       ⌜apply = true ∧ ∃ r, ccResult stb cc r ∧
-          err = (match r with | none => GoInterface.nil | some e => vErr e)⌝) }}
+       ∃ r, ⌜apply = true ∧ ccResult stb cc r⌝ ∗
+          (match r with
+           | none => iprop(⌜err = GoInterface.nil⌝)
+           | some e => iprop(globalAddr e.global ↦□ err))) }}
 
 end spec
 

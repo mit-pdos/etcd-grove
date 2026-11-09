@@ -30,6 +30,13 @@ options (`DefaultOptions`), a custom `OpenFile` (etcd's defrag, the old round-6 
 `MmapFlags` `0`/`MAP_POPULATE`, a pointer-typed logger; the bounds `2 ^ 29` threads and `2 ^ 62`
 receipts (owner's bounds, `notes/bounds-plan.md`).
 
+**Changes (verify-round, A11 F4).** The custom `OpenFile`'s contract is one-shot (`openFileOk`
+was persistent, which etcd's defrag closure, returning the one file it created, cannot meet), and
+carries the caller's `R`, which an error gives back: bbolt's `db.close()` closed the file
+(`db.go:244, 810`), and etcd then closes it again and removes it (`backend.go:536-538`). The
+pre's custom disjunct now says the option is non-nil (with `nil`, `Open` calls `os.OpenFile`, and
+the contract's `R` would have no source).
+
 **Margin.** `Open` also reads `Timeout`, `InitialMmapSize`, `FreelistType`, `NoFreelistSync`,
 `NoGrowSync`, `PreLoadFreelist`, `MaxBatchSize`, ...: they change no outcome the specs state.
 -/
@@ -55,17 +62,18 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- `bolt.Open(γ.path, mode, opts)`: the closed file of `γ` opened as `db`, with `NoSync` as the
-options say, or an error and the file still closed. The options are read and given back. -/
+options say, or an error and the file still closed (and, with a custom `OpenFile`, its `R`
+back). The options are read and given back. -/
 def Open.spec : Prop :=
   ∀ [HasExt osFsExt] [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)]
-    (γ : BoltName) (mode : w32) (opts : Loc) (dq : DFrac) (o : OptsM),
+    (γ : BoltName) (mode : w32) (opts : Loc) (dq : DFrac) (o : OptsM) (R : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv ∗ boltFile γ ∗ boltClosed γ ∗
       optsArg opts dq o ∗ ⌜o.ok⌝ ∗ boltLogger o.logger ∗
-      (⌜o.openFile = func.nil⌝ ∨ openFileOk o.openFile γ.path) }}
+      (⌜o.openFile = func.nil⌝ ∨ (⌜o.openFile ≠ func.nil⌝ ∗ openFileOk o.openFile γ.path R)) }}
     (App (App (App (Val (@! go_etcd_io.bbolt.Open)) (Val #γ.path)) (Val #mode)) (Val #opts))
   {{ (db : Loc) (err : GoInterface), RET (PairV #db #err); optsArg opts dq o ∗
       ((⌜err = GoInterface.nil⌝ ∗ isBolt db γ o.noSync ∗ boltOpened db γ) ∨
-       (⌜err ≠ GoInterface.nil⌝ ∗ boltClosed γ)) }}
+       (⌜err ≠ GoInterface.nil⌝ ∗ boltClosed γ ∗ (⌜o.openFile = func.nil⌝ ∨ R))) }}
 
 end spec
 

@@ -21,6 +21,11 @@ Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/kv__Do.lean`: every kind
 transactions included (the old one covered a range, a put and a delete without lease); the
 invalid-sort path is a linearized refusal.
 
+verify-round: premise `o.emptyEnd = false` (A1-provability F5: under it `Wire.endOf` of the `Op`'s
+`end` is `endReq`, and a member reached over gRPC reads the same range); a transaction's compares
+(read-only, from `cmpAt`) and its fresh `RequestOp`s and `TxnRequest` are put at one `discard`
+fraction by `protoRest_persist` (A1-provability F6).
+
 Margin: as the methods above.
 -/
 module

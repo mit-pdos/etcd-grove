@@ -8,6 +8,7 @@ Why true: allocates a fresh `MD` and, for each pair of `m`, appends the value un
 key (`strings.ToLower`). Reads `m` only.
 
 Changes: new (integration I3, 3d's request).
+verify-round (A6 F3): the result is non-`nil` (a `make`), what `MD.Set` now takes.
 
 Margin: the order of a key's values when two keys of `m` lowercase alike is the map's iteration
 order: the post says only which values a key has.
@@ -40,7 +41,7 @@ def New.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.metadata ∗ ownMap m dq mm }}
     (App (Val (@! google_golang_org.grpc.metadata.New)) (Val #m))
   {{ (r : Loc), RET #r; ownMap m dq mm ∗ ∃ md : MD, mdAt r (DFrac.own 1) md ∗
-      ⌜(∀ k v, mm.lookup k = some v → v ∈ md.get (lowerKey k)) ∧
+      ⌜r ≠ null ∧ (∀ k v, mm.lookup k = some v → v ∈ md.get (lowerKey k)) ∧
        (∀ k' v, v ∈ md.get k' → ∃ k, lowerKey k = k' ∧ mm.lookup k = some v) ∧
        (∀ e ∈ md, e.2 ≠ [])⌝ }}
 

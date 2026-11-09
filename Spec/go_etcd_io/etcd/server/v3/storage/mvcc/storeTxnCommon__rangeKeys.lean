@@ -10,7 +10,9 @@ transaction's view at `ro.Rev` (the current revision `curRev` for `ro.Rev ≤ 0`
 `treeIndex.Range.spec`, then fresh `KeyValue`s sharing the index's key slices (read-only; value
 `nil`, lease `0`: `keysOnlyM`). Full: `treeIndex.Revisions.spec`, `sliceCapWithLimit.spec`, then
 for each revision a `select` on `ctx.Done()` (`Context.doneRecv`/`Done.spec`: closed only once the
-context is done: the `ctxErr` arm, `nil` result) and `tr.tx.UnsafeRange(Key, revBytes, nil, 0)`
+context is done: the `ctxErr` arm, `nil` result and `fmt.Errorf`'s wrap of `ctx.Err()`,
+`rangeCtxErr`: Perennial's `Errorf` model, past its `ArgsWf` (the error argument), a trust-boundary
+step) and `tr.tx.UnsafeRange(Key, revBytes, nil, 0)`
 (`keyBackend`'s `rangeOk` on the snapshot `kbRead`/the batch's `kbLocked`; on a concurrent read
 transaction the single-key row, `KeyData.linger`, exact for a key the snapshot has; the bytes lent
 against a share of the transaction's liveness `kbLive`, which `txnCommon` holds, and given back once
@@ -23,6 +25,8 @@ the put wrote) gives `KeyValueM.ofKV` of the record. Each step steps the trace (
 
 **Changes** from `specs-ref`'s file: over `txnCommon`, `rangeOut` (W0's history) and the context's
 bundle (`Context.ctxOk`); no certificates, revision tokens or bucket maps.
+Changes: verify-round (second pass): the `ctxErr` outcome's error is `rangeCtxErr err` (the wrap),
+no longer `context.isCtxErr err`, which was false of the code (`kvstore_txn.go:121`).
 -/
 module
 

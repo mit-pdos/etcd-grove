@@ -23,7 +23,11 @@ revisions**, not of time. The guarantees are:
   in a state where the mutex holds the lock, and two holders' fenced writes never take effect in
   one state. A read-only transaction of serializable ranges is answered at a member's possibly
   stale view: its fence proves nothing now. This holds even of `Lock`'s known gap
-  (`issues/mutex-lock-recreated.md`): the fence then fails, as it should.
+  (`issues/mutex-lock-recreated.md`): the fence then fails, as it should. A mutex (an election)
+  writes only its session's key (`sessKey pfx lease`, `mutexEff`, `campaignEff`), so with W0's
+  `EnvCfg.leaseExpiry = false` (no key deleted but by its owner) a holder's key stays until its
+  `Unlock`, and a later locker's `lockedSince` excludes it: **time exclusion** between the
+  holders of distinct sessions (snippet `ReqMutexNoTwoHolders`; verify-round A3 completeness F2).
 * **Election**: `Campaign` gives the wait's fact at its create revision (`waitedFor`, without the
   last check: `nonissues/election-campaign-key-check.md`); `Proclaim` and `Resign` are fenced by
   the comparison `CreateRevision(leaderKey) = leaderRev` and say whether it held (as W0's
@@ -84,8 +88,8 @@ Pure (transparent): `noOlder`, `holdsAt`, `firstCreate`, `waitedFor`, `lockedSin
 `ObservedAt`; the effects `putKey`, `delKey`, `putEff`, `delEff`, `mutexEff`, `campaignEff`,
 `grantEff`, `revokeEff`, `readEff`, `effIn`; the options' models (`SessOpts`, `STMOpts`) and the
 STM's attempt (`Attempt`: `ReadM`, `WriteM`, `readOf`, `readsAgree`, `readsSeen`, `applied`,
-`stmCommitted`, `stmEff`, `GetPost`, `RevPost`); the package's errors (`ConcErr`, values
-`concErrVal`); the mutex's and the election's fields (`MutexSt`, `ElectionSt`), `ownerCmp`.
+`stmCommitted`, `stmEff`, `GetPost`, `RevPost`); the package's errors (`ConcErr`, `concErrsOk`); the session's key
+`sessKey`; the mutex's and the election's fields (`MutexSt`, `ElectionSt`), `ownerCmp`.
 
 Resources:
 * `etcdLent γ T P` (transparent): the lent permission above; W0's `etcdPerm`, `etcdPeek`.
@@ -117,9 +121,9 @@ Resources:
 
 ## Laws
 
-`fence` (pure: the fencing guarantee); `concErrVal_ok`, `concErrVal_notCanceled` (with W0's
-`callErr_errorsNew`, no client call's error is one of the package's) and `init.spec` (the package's
-error variables); `handles_persistent`; `isSession_client`; `sessOptAt_call`, `stmOptAt_call`;
+`fence` (pure: the fencing guarantee); `init.spec` (the package's error variables, their values
+existential: `concErrs`, `concErrsOk`; with W0's `callErr_errorsNew`, no client call's error is
+one of them; `notConcErr` a definition); `handles_persistent`; `isSession_client`; `sessOptAt_call`, `stmOptAt_call`;
 `electionSt_session`; `observeAt_recv`, `observeAt_recvAu`; `stmAt_methods`, `stmAt_reads`;
 `applyOk_persistent`.
 
@@ -127,7 +131,8 @@ error variables); `handles_persistent`; `isSession_client`; `sessOptAt_call`, `s
 
 `examples/specreq/concurrency/`: `session.go` (`ReqSessionLease`, `ReqSessionResumeLease`,
 `ReqSessionDone`, `ReqSessionClose`, `ReqSessionTTL`), `mutex.go` (`ReqFencedWrite`: the fence;
-`ReqV3LockPattern`, `ReqTryLock`, `ReqLockUnlock`, `ReqLocker`), `election.go`
+`ReqV3LockPattern`, `ReqTryLock`, `ReqLockUnlock`, `ReqLocker`, `ReqLockAfterUnlock`,
+`ReqMutexNoTwoHolders`: time exclusion with no lease expiry), `election.go`
 (`ReqCampaignProclaim`, `ReqResumedProclaim`, `ReqLeader`, `ReqLeaderFenced`, `ReqObserve`),
 `stm.go` (`ReqSTMTransfer`: serializability keeps an invariant; `ReqSTMLevels`,
 `ReqSTMRepeatable`, `ReqSTMPrefetch`, `ReqSTMAbort`).
@@ -139,6 +144,7 @@ public import Spec.PkgInit.go_etcd_io.etcd.client.v3.concurrency
 public import Spec.go_etcd_io.etcd.client.v3.Api
 public import Spec.go_uber_org.zap.Api
 public import Perennial.Golang.Theory.Chan.Idioms.Broadcast
+public import Perennial.Proof.fmt.Base
 
 @[expose] public section
 
@@ -215,15 +221,24 @@ def putEff (ks : Bytes → Prop) (vs : Bytes → Prop) (lease : Int) (σ σ' : S
 def delEff (ks : Bytes → Prop) (σ σ' : State) : Prop :=
   σ' = σ ∨ ∃ k, ks k ∧ σ' = delKey σ k
 
-/-- **A mutex's writes** (`Lock`, `TryLock`): its key under `pfx` created empty with the session's
-lease, or a key under `pfx` deleted (the cleanup `Unlock`). -/
-def mutexEff (pfx : GoString) (lease : Int) (σ σ' : State) : Prop :=
-  putEff (fun k => pfx <+: k) (fun v => v = []) lease σ σ' ∨ delEff (fun k => pfx <+: k) σ σ'
+/-- **The session's key under `pfx`**: `fmt.Sprintf("%s%x", pfx, lease)` (Perennial's `%x`: the
+lowercase hexadecimal, `-` before a negative one), the key a mutex or a campaign of a session with
+lease `lease` writes (`tryAcquire`, `Campaign`). -/
+def sessKey (pfx : GoString) (lease : Int) : GoString := pfx ++ Perennial.fmt.hexadecimal lease
 
-/-- **A campaign's writes**: its key under `pfx` put to `val` with the session's lease (created, or
-proclaimed), or deleted (the cleanup `Resign`). -/
+/-- **A mutex's writes** (`Lock`, `TryLock`): the session's key under `pfx` created empty with the
+session's lease, or deleted (the cleanup `Unlock`). Only that key (verify-round A3 completeness F2:
+a mutex never touches another session's key, so a caller's invariant that another holder's key
+stays present is stable under it). -/
+def mutexEff (pfx : GoString) (lease : Int) (σ σ' : State) : Prop :=
+  putEff (fun k => k = sessKey pfx lease) (fun v => v = []) lease σ σ' ∨
+    delEff (fun k => k = sessKey pfx lease) σ σ'
+
+/-- **A campaign's writes**: the session's key under `pfx` put to `val` with the session's lease
+(created, or proclaimed), or deleted (the cleanup `Resign`); only that key, as `mutexEff`. -/
 def campaignEff (pfx val : GoString) (lease : Int) (σ σ' : State) : Prop :=
-  putEff (fun k => pfx <+: k) (fun v => v = val) lease σ σ' ∨ delEff (fun k => pfx <+: k) σ σ'
+  putEff (fun k => k = sessKey pfx lease) (fun v => v = val) lease σ σ' ∨
+    delEff (fun k => k = sessKey pfx lease) σ σ'
 
 /-- **A lease granted** (`NewSession`): nothing, or a lease the server chose with at least the TTL
 asked, as W0's `leaseStep .leaseGrant` commits it (the old lease table appended to `leaseHist`;
@@ -450,14 +465,15 @@ def ConcErr.global : ConcErr → GoString
   | .electionNotLeader => go_etcd_io.etcd.client.v3.concurrency.ErrElectionNotLeader
   | .electionNoLeader => go_etcd_io.etcd.client.v3.concurrency.ErrElectionNoLeader
 
-/-- **The value of the package's error `e`** (`errors.New`'s, at the package's initialization). -/
-opaque concErrVal (e : ConcErr) : GoInterface := GoInterface.nil
-
-/-- Not `nil`, distinct from each other and from etcd's errors (`errVal`: another type). -/
-def concErrVal_ok.spec : Prop :=
-  (∀ e, concErrVal e ≠ GoInterface.nil) ∧ (∀ e e', concErrVal e = concErrVal e' → e = e') ∧
-  (∀ e e', concErrVal e ≠ errVal e') ∧
-  (∀ e, ∃ x : Loc, concErrVal e = interface.mkOk (go.GoType.PointerType errors.errorString.ty) #x)
+/-- What `init.spec` says of the error values `ev` (with `context.Canceled`'s value `cv` and `io.EOF`'s `eof`, the two
+`*errorString`s W0's `callErr_errorsNew` admits): not
+`nil`, pairwise distinct, none of etcd's errors (`errVal`: another type), each a fresh
+`*errorString` (so neither `cv` nor `io.EOF`'s value `eof`). The values are not Lean constants: `errors.New` allocates them at
+the package's initialization (verify-round A3 F4). -/
+def concErrsOk (ev : ConcErr → GoInterface) (cv eof : GoInterface) : Prop :=
+  (∀ e e', ev e = ev e' → e = e') ∧
+  ∀ e, ev e ≠ GoInterface.nil ∧ ev e ≠ cv ∧ ev e ≠ eof ∧ (∀ x, ev e ≠ errVal x) ∧
+    ∃ x : Loc, ev e = interface.mkOk (go.GoType.PointerType errors.errorString.ty) #x
 
 end errs
 
@@ -477,6 +493,15 @@ package changes nothing: the caller can rely on its keys' contents and lease ids
 def etcdLent (γ : Cluster) (T : State → State → Prop) (P : IProp GF) : IProp GF :=
   iprop(etcdPeek γ ∗ □ (P -∗ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
     <{ ∀∀ (σ' : State), ⌜T σ σ'⌝ ∗ etcdState γ σ', COMM P ∗ etcdLb γ σ ∗ etcdLb γ σ' }>))
+
+/-- **The package's error variables hold `ev`**, read-only (persistent). A post returning the
+error `e` says `globalAddr e.global ↦□ err`. -/
+def concErrs (ev : ConcErr → GoInterface) : IProp GF :=
+  iprop(□ ∀ e : ConcErr, globalAddr e.global ↦□ ev e)
+
+/-- **`err` is none of the package's errors** (the values their variables hold). -/
+def notConcErr (err : GoInterface) : IProp GF :=
+  iprop(∃ ev : ConcErr → GoInterface, concErrs ev ∗ ⌜∀ e, err ≠ ev e⌝)
 
 /-- **A session** `s` over the client `c` of `γ`, with the lease `id` (persistent). The principal
 of its own requests (the grant, the keep-alive, `Close`'s revoke) is its options' context's, fixed
@@ -649,10 +674,15 @@ def fence.spec : Prop := ∀ (pfx k : GoString) (c : Nat) (σ σ' : State),
   noOlder pfx c σ.kv.store → c ≤ σ.kv.rev → Reach σ σ' → pfx <+: k →
   (∃ r, σ'.kv.store k = some r ∧ r.createRev = c) → holdsAt pfx k c σ'.kv.store
 
-/-- The package's error variables hold their values, read-only. -/
+/-- **The package's error variables** hold some values `ev`, read-only, with `concErrsOk` against
+`context.Canceled`'s and `io.EOF`'s values (verify-round A3 F4: `errors.New`'s fresh allocations, compared while
+still owned; the context package is initialized first). With W0's `callErr_errorsNew`, no client
+call's error is one of them. -/
 def init.spec : Prop :=
   isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ⊢
-    □ ∀ e : ConcErr, globalAddr e.global ↦□ concErrVal e
+    ∃ (ev : ConcErr → GoInterface) (cv eof : GoInterface),
+      concErrs (GF := GF) ev ∗ globalAddr context.Canceled ↦□ cv ∗ globalAddr io.EOF ↦□ eof ∗
+      ⌜concErrsOk ev cv eof⌝
 
 def handles_persistent.spec : Prop :=
   (∀ s c γ id, Persistent (isSession (GF := GF) s c γ id)) ∧
@@ -745,11 +775,6 @@ closure to use during the attempt. -/
 def stmAt_reads.spec : Prop := ∀ (iv : GoInterface) (γ : Cluster) (who : Principal) (iso : w64)
     (a : Attempt),
   stmAt (GF := GF) iv γ who iso a ⊢ stmAt iv γ who iso a ∗ ∃ σ : State, etcdLb γ σ ∗ ⌜a.readsSeen σ.kv⌝
-
-/-- The package's errors are not `context.Canceled` (distinct `errors.New` allocations); with W0's
-`callErr_errorsNew`, no client call returns one of them. -/
-def concErrVal_notCanceled.spec : Prop := ∀ (v : GoInterface),
-  globalAddr context.Canceled ↦□ v ⊢ (⌜∀ e, v ≠ concErrVal e⌝ : IProp GF)
 
 def applyOk_persistent.spec : Prop := ∀ apply γ who F Rel,
   Persistent (applyOk (GF := GF) apply γ who F Rel)

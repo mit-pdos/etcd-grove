@@ -15,6 +15,8 @@ appliedi`; `compactRaftLog.spec` at `appliedi`.
 `srvFrozenRange`/`srvFrozenTerms`, `srvSnapState`): over `applyThread` with R1's facts as
 `nodeAdvanced`/`nodeSnapLb`. **Margin**: the snapshot indices move; the post says only that the
 applied index and term do not.
+
+Changes: verify-round: takes and gives back the thread's `threadTok` (A7-provability F2: `s.Logger()`, `createMergedSnapshotMessage`, `newSnapshotReaderCloser` take one). `run`'s is the fresh token of `start`'s `go s.run()` (Perennial's `wp_fork_tok_body`); the apply jobs' is the scheduler worker's, lent to each job (`Schedule.funcOk`). The `srvMember` that `Logger` takes comes from `srvNode_member`.
 -/
 module
 
@@ -46,10 +48,10 @@ def EtcdServer.snapshotIfNeededAndCompactRaftLog.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvNode s γ id ∗ applyThread s γ ep p ∗
       nodeAdvanced (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"r" s)
-        (uint.nat p.appliedi) }}
+        (uint.nat p.appliedi) ∗ threadTok }}
     (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!!
       go!"snapshotIfNeededAndCompactRaftLog")) (Val #ep))
-  {{ RET #(); ∃ p', applyThread s γ ep p' ∗
+  {{ RET #(); threadTok ∗ ∃ p', applyThread s γ ep p' ∗
       ⌜p'.appliedi = p.appliedi ∧ p'.appliedt = p.appliedt⌝ }}
 
 end spec

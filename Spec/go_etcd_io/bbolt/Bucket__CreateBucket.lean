@@ -12,6 +12,11 @@ with `fresh`: the local is `emptyBkt`; 4d's `encInBucket` of a zero header, then
 **Changes.** New for nested buckets; the root's old spec took a write transaction (now: the read
 transaction's error). Kept: names within `maxKeySize` (Go checks no length,
 `nonissues/bbolt-bucket-name-length-unchecked.md`; the page bound needs it: a scope restriction).
+**Proof sketch, the success arm in the internal vocabulary** (verify-round, A11 F9). `seek`
+(absent), `Bucket.write` of the fresh local (`emptyBktVal`), `Cursor.node` (`repKept`,
+`keyLeaf`), `node.put kb kb emptyBktVal 0 BucketLeafFlag`, `physRep_set` with `newEnt`'s bucket
+case (`kb.length ≤ maxKeySize`: the premise); then `Bucket.Bucket` opens the child from that value
+(`bktH` at the current generations).
 -/
 module
 

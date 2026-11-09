@@ -16,6 +16,8 @@ restated over W0's state at every mode: the snapshot's state follows the store's
 which 2d has from the cluster's history: the snapshot is at a later index).
 
 Round 1 (review S2): `recordsFit a'` (the revision fits the atomic).
+Verify round (A9 3d F4): the store's backend moves (`authBeCur γa be0` to `be`), and the share given
+back is the replaced backend's, `be0` (it was an anonymous backend).
 
 **Margin.** The provider is not disabled when the snapshot's state has auth off (its tokens stay
 valid in it; `AuthInfoFromCtx` reads the flag first).
@@ -46,12 +48,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 /-- **`as.Recover(be)`** by the writer: the snapshot backend's state `a'`, a successor of the
 store's, recorded as its next state; the replaced backend's share given back. -/
 def authStore.Recover.spec : Prop :=
-  ∀ (st : Loc) (be : GoInterface) (γ : Cluster) (γa : AuthNames) (i : Nat) (a a' : AuthState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authStoreAt st γ γa ∗ authCur γa i a ∗ threadTok ∗ authBackendAt be a' ∗
+  ∀ (st : Loc) (be be0 : GoInterface) (γ : Cluster) (γa : AuthNames) (i : Nat) (a a' : AuthState),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authStoreAt st γ γa ∗ authCur γa i a ∗ authBeCur γa be0 ∗ threadTok ∗ authBackendAt be a' ∗
       authReached γ a' ∗ ⌜AuthReach a a' ∧ validPerms a' ∧ recordsFit a'⌝ }}
     (App (Val (st @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty @!! go!"Recover")) (Val #be))
-  {{ RET #(); authCur γa (i + 1) a' ∗ threadTok ∗
-      ∃ (be0 : GoInterface) (a0 : AuthState), authBackendAt be0 a0 }}
+  {{ RET #(); authCur γa (i + 1) a' ∗ authBeCur γa be ∗ threadTok ∗
+      ∃ a0 : AuthState, authBackendAt be0 a0 }}
 
 end spec
 end Auth

@@ -10,12 +10,11 @@ client's unary interceptor: 1c's `uiOk_call` (with `clientReady c`, from `retryK
 over 2a's `AttemptTriple` realization (`Grpc.attemptOk_call`, `V3rpc.etcdUnary`), its outcomes mapped to
 `wireReply`/`wireIndef` by `Rpctypes.callErr_view` (a definite answer whose error rpctypes does not map,
 e.g. `invalidClientAPIVersion`, reaches the client as `.other`: the update fired, `Q` dropped, the
-`wireIndef` disjunct). **Open**: this call's update is over `Step p rq σ σ' res lo` (`authLb γ lo`), 1c's `callAU`
-now takes `lo` (`AttemptTriple`, `uiOk_call` bind it with `authLb γ lo`), while 2a's `etcdUnary` carries
-none (its update is over `Step p rq` at the default `lo = 0`, which a client's `lo`-update does not
-accept): it must carry `lo` and `authLb γ lo` (`notes/specs-only/integration-I1.md`).
+`wireIndef` disjunct). The call's `lo` (`authLb γ lo`) is carried end to end: 1c's `callAU`,
+`AttemptTriple`, `uiOk_call` and 2a's `etcdAU … lo` (`authLb γ lo`).
 
 Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/retryKVClient__Txn.lean`: restated over this branch's vocabulary (the `OpM` model, `opAt`, `optsAt`); otherwise unchanged.
+verify-round: the stale "Open" paragraph on 2a's `lo` dropped (A1-provability F8: 2a carries it).
 
 Margin: none.
 -/

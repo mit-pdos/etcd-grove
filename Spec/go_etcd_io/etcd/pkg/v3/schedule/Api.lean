@@ -45,6 +45,11 @@ previous one's post), `cancel` non-nil iff `schedOpen γ 1` is not in the invari
 only by `Stop`, which holds `□ Pay`), `donec`'s close carrying the last post; `schedTail γ P` a ghost
 variable of the saved name of the last post. `fifoWorker l γ` (internal) is the worker goroutine's
 token: the head job's resources while it runs.
+
+**Verify round** (A7-completeness S4, A7-provability F2): a job runs in the worker goroutine, which
+`NewFIFOScheduler` forks with a fresh thread token (Perennial's `wp_fork_tok_body`; no token from
+the caller); the worker lends it to each job (`funcOk`, `jobOk` take and give back `threadTok`), so
+the apply jobs (`applyAll`) and mvcc's compaction jobs may call specs that take one.
 -/
 module
 
@@ -95,13 +100,13 @@ def schedCtx (ctx : GoInterface) (Pay : IProp GF) : IProp GF :=
 /-- **A `func(context.Context)` closure turning `P` into `Q`** under the scheduler's context. -/
 def funcOk (f : GoFunc) (Pay P Q : IProp GF) : IProp GF :=
   iprop(□ ∀ (ctx : GoInterface) (Φ : val → IProp GF),
-    schedCtx ctx Pay -∗ P -∗ ▷ (Q -∗ Φ #()) -∗ WP (App (Val #f) (Val #ctx)) {{ Φ }})
+    schedCtx ctx Pay -∗ P -∗ threadTok -∗ ▷ (Q -∗ threadTok -∗ Φ #()) -∗ WP (App (Val #f) (Val #ctx)) {{ Φ }})
 
 /-- **A `Job` turning `P` into `Q`** (its `Do`). -/
 def jobOk (j : GoInterface) (Pay P Q : IProp GF) : IProp GF :=
   iprop(∃ ji : GoInterfaceOk, ⌜j = interface.ok ji⌝ ∗
     □ ∀ (ctx : GoInterface) (Φ : val → IProp GF),
-      schedCtx ctx Pay -∗ P -∗ ▷ (Q -∗ Φ #()) -∗
+      schedCtx ctx Pay -∗ P -∗ threadTok -∗ ▷ (Q -∗ threadTok -∗ Φ #()) -∗
         WP (App (Val #(methods ji.ty go!"Do" ji.v)) (Val #ctx)) {{ Φ }})
 
 /-- **A `Scheduler` interface value** (the bundle of `Schedule` and `Stop`). -/

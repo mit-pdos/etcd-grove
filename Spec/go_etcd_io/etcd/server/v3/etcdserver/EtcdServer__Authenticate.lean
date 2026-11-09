@@ -13,7 +13,7 @@ unchanged). The update then fired with `.ok .authenticate` and the call returns 
 that is outcome 3 (`srvIndef`, no `Q`: the caller learns nothing), provided the error is no mapped
 etcd error. The member's provider is the simple one or JWT (2e's `authBootRes`, which `isServer`
 keeps): the simple provider's `assign` does not fail from an `authnCtx`, and JWT's fails only with
-its signer's error, which no `srvErrOf` maps. The no-op provider, whose `assign` always fails with
+its signer's error, which no `srvErr` names. The no-op provider, whose `assign` always fails with
 `ErrAuthFailed` (a definite error, which outcome 3 cannot carry and 2a's contract could not send),
 is excluded by `authBootRes`. **Needed of 3d** (`auth/Api.lean`): a provider fact that says so
 (the flag I5 proposed, e.g. `aok` on `tokenProviderAt` for simple and JWT, under which

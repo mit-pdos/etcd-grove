@@ -53,7 +53,8 @@ func ReqGetThenPlainGet(ctx context.Context, cli *clientv3.Client, lkv clientv3.
 // an error that settles nothing (the code always fails).
 // Users: none (a caller of the KV interface).
 // Assumes: the common assumptions.
-// Specs: leasingKV.GetStream.spec (W0's KV.GetStreamTriple).
+// Specs: leasingKV.GetStream.spec (W0's KV.GetStreamTriple: no thread token; one key, so its
+// scope premise emptyEnd = false holds).
 func ReqGetStreamUnsupported(ctx context.Context, lkv clientv3.KV, k string) {
 	ch, err := lkv.GetStream(ctx, k)
 	if err != nil {

@@ -15,6 +15,8 @@ panic outcome).
 
 Changes: from `specs-ref`'s `lockerMutex__Unlock.lean`: as `Mutex.Unlock`.
 
+Changes: verify-round: returns only on a held mutex (as `Mutex.Unlock.spec`'s `nil`, A3 F1); on a released one it panics with `ErrLockReleased`.
+
 Margin: the panic carries the error; the caller (a `sync.Locker` user) cannot recover it usefully.
 -/
 module
@@ -47,7 +49,7 @@ def lockerMutex.Unlock.spec : Prop :=
       isSession s c γ id ∗ isClient c γ dflt ∗ etcdLent γ T P ∗ P ∗ etcdLb γ σ0 ∗ ⌜effIn (delEff (fun k => k = st.key ∧ pfx <+: k)) T⌝ }}
     (App (Val (lm @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.concurrency.lockerMutex.ty @!! go!"Unlock")) (Val #()))
   {{ (r : val), RET r;
-      (⌜r = #()⌝ ∗ P ∗ ∃ σ : State, etcdLb γ σ ∗ ⌜Reach σ0 σ ∧ σ.kv.store st.key = none⌝ ∗ mutexSt m st.released) ∨
+      (⌜r = #() ∧ ¬ (st.key = [] ∨ sint.Z st.rev ≤ 0 ∨ st.key = [W8 0])⌝ ∗ P ∗ ∃ σ : State, etcdLb γ σ ∗ ⌜Reach σ0 σ ∧ σ.kv.store st.key = none⌝ ∗ mutexSt m st.released) ∨
       (⌜∃ err : GoInterface, err ≠ GoInterface.nil ∧ r = PanicV #err⌝ ∗ mutexSt m st) }}
 
 end spec

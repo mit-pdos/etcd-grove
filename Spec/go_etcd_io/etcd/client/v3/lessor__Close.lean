@@ -9,6 +9,8 @@ otherwise), then receives from `donec` (closed by the receive loop's deferred cl
 the cancellation). Idempotent: a second `Close` finds `donec` closed.
 
 Changes: new (no old spec; the old `Client.Close` spec was `True`).
+verify-round: no `clientReady c` (A2-provability S5: `Close` only cancels and waits, it calls no
+RPC); the bundle (`lessorHandle_leaseAt`) still takes it for the other methods.
 
 Margin: the keep-alive channels are closed by the receive loop's cleanup right after `donec`
 (under `l.mu`), so not necessarily when `Close` returns.
@@ -38,7 +40,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 /-- `l.Close()`: the keep-alive loops stopped; `nil`. -/
 def lessor.Close.spec : Prop :=
   ∀ (l c : Loc) (γ : Cluster) (who : Principal),
-  Lease.CloseTriple (fun s => l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! s) iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorHandle l c γ who ∗ clientReady c)
+  Lease.CloseTriple (fun s => l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! s) iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorHandle l c γ who)
 
 end spec
 

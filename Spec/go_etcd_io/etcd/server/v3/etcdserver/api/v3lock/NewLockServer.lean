@@ -1,7 +1,7 @@
 /-
 ## `NewLockServer(c)` (`lock.go`): translated
 
-**Users.** v3rpc's registration (2a). **Proof sketch.** A struct literal. **Changes**: new.
+**Users.** embed (`embed/serve.go:149-150`: `v3lockpb.RegisterLockServer(gs, v3lock.NewLockServer(v3c))`) and the integration framework (`cluster.go:987-988`), over the in-process client `v3client.New(s)`. **Proof sketch.** A struct literal. **Changes**: new.
 **Margin.** None.
 -/
 module

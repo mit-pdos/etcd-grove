@@ -16,6 +16,8 @@ WithFirstCreate()...)` (a linearizable read, update from `etcdPeek`; `Reach σ0`
 Changes: from `specs-ref`'s `Election__Leader.lean`: over the cluster's states (`holdsAt` at a
 reached state) instead of `leaderKvAt`. Round 1: `σ0`; the principal per call.
 
+Changes: verify-round: `ErrElectionNoLeader` the value its variable holds (A3 F4).
+
 Margin: none.
 -/
 module
@@ -54,7 +56,7 @@ def Election.Leader.spec : Prop :=
           rangeRespOwn resp (DFrac.own 1) m ∗ etcdLb γ σ ∗
           ⌜Reach σ0 σ ∧ m.hdr = some hm ∧ hm.revision = W64 σ.kv.rev ∧ m.kvs = [KeyValueM.ofKV v] ∧
             σ.kv.store v.key = some (recOf v) ∧ holdsAt pfx v.key v.createRev σ.kv.store⌝) ∨
-      (⌜resp = null ∧ err = concErrVal .electionNoLeader⌝ ∗ ∃ σ : State, etcdLb γ σ ∗
+      (⌜resp = null⌝ ∗ globalAddr go_etcd_io.etcd.client.v3.concurrency.ErrElectionNoLeader ↦□ err ∗ ∃ σ : State, etcdLb γ σ ∗
           ⌜Reach σ0 σ ∧ ∀ k, pfx <+: k → σ.kv.store k = none⌝) ∨
       ⌜resp = null ∧ err ≠ GoInterface.nil⌝ }}
 

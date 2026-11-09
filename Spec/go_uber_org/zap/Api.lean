@@ -34,8 +34,16 @@ for concurrent use.
 `NewNop`; `Logger.{Debug,Info,Warn,Error}` (return, no effect), `Logger.Panic` (panics with the
 message), `Logger.Fatal` (never returns), `Logger.Check` (below `DPanicLevel`: `nil` or an entry);
 `zapcore.CheckedEntry.Write`; the field constructors `String`, `Strings`, `ByteString`, `Bool`,
-`Int`, `Int32`, `Int64`, `Uint`, `Uint32`, `Uint64`, `Duration`, `Stringer`, `Stack`, `Error`,
-`NamedError`, `Any` (each returns some field; a field is a plain value the logger only formats).
+`Int`, `Int32`, `Int64`, `Uint`, `Uint32`, `Uint64`, `Duration`, `Float64`, `Time`, `Binary`,
+`Stringer`, `Stack`, `Error`, `NamedError`, `Any` (each returns some field; a field is a plain value
+the logger only formats); `Logger.Named`, `Logger.With` (a logger), `Logger.Sync`. Not specified
+(no specced caller needs them yet): `Logger.Core`/`Core.Enabled` (`api/v3rpc/interceptor.go:94`),
+`WithOptions`, `Sugar`.
+
+**Margin** (verify round, A1-provability N4): the logging methods take the `fields` slice and the
+values a field keeps (`Stringer`, `Any`, `Error`, `Binary`) with no ownership: zap reads them
+during the call. This is true of a caller only if nothing writes them concurrently; every caller in
+scope passes a fresh variadic slice of fresh fields over values it does not write meanwhile.
 A field constructor is total: `Stringer`, `Any`, `Error` keep their argument, which the logger
 formats later (a `Stringer` whose `String` panics is recovered by zap's encoder into the
 field's error key: `zapcore/field.go`, `encodeStringer`).

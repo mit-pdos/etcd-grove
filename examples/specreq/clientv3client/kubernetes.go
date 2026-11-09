@@ -85,3 +85,23 @@ func ReqKubeList(ctx context.Context, kc *kubernetes.Client, prefix string, limi
 		panic("kube-list: a read at the list's revision differs")
 	}
 }
+
+// REQ clientv3client/kube-status: a kubernetes.New client's endpoints each serve the cluster, and
+// Status of each never panics (the endpoints token comes with the client).
+// Users: Kubernetes' feature checker (storage/feature/feature_support_checker.go:142,194: Endpoints,
+// then Status of each), the storage health check (storagebackend/factory/etcd3.go:277).
+// Assumes: ep serves the cluster; auto-sync off (the default).
+// Specs: Kubernetes.New.spec (epsTok), Client.Endpoints.spec, Client.Status.spec
+// (Maint.StatusTriple).
+func ReqKubeStatus(ctx context.Context, ep string, lg *zap.Logger) {
+	kc, err := kubernetes.New(clientv3.Config{Endpoints: []string{ep}, Logger: lg})
+	if err != nil {
+		return
+	}
+	defer kc.Client.Close()
+	for _, e := range kc.Client.Endpoints() {
+		if _, err := kc.Client.Status(ctx, e); err != nil {
+			continue
+		}
+	}
+}

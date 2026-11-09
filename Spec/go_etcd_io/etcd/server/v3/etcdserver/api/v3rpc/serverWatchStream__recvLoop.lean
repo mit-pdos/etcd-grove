@@ -26,7 +26,13 @@ the `default:` branch, stuck in the translation, is unreachable):
   then mvcc's `Watch(ctx, 0, key, end, s, filters...)` (3f, `req/..._storage_mvcc.md`, with the
   thread token: an auto id, fresh on the stream and not `-1`, registered at `s` over the range and
   filters, its responses on the stream's channel as the run's invariant states; or an error with a
-  non-empty message: refused, `-1`). A registration is recorded in the run's ghost map (id ↦ `wq`,
+  non-empty message: refused, `-1`). **Teardown** (verify-round, mvcc's request): the loop holds no
+  share of mvcc's `wsOpen ι` (the handler's `sws.close()` may close the mvcc stream while this loop
+  still runs: `watch.go`'s receive goroutine outlives the send loop), so mvcc's closed-stream refusal
+  of `Watch` (`wsClosed ι`, which `wsOpen_closed` excludes only for a holder of `wsOpen`) is a
+  possible outcome; it is the error branch above: a refused create (`-1`, `Canceled`), whose answer
+  goes on the control channel only if `closec` is not closed (else the loop ends), so no client
+  sees an answer for a create the closed stream refused after the run ended. A registration is recorded in the run's ghost map (id ↦ `wq`,
   `s`, `σa`) and its options under `mu` (`progress`, `prevKV`, `fragment`: from mvcc's `Watch` to
   here the send loop may already have built responses of the id without `PrevKv`, the
   registration's loose window, `issues/etcd-watch-prevkv-before-created.md`); the answer `Created`
@@ -42,7 +48,8 @@ the `default:` branch, stuck in the translation, is unreachable):
 **Changes** from `specs-ref`'s file: the old run record (`swsIs sws r Up Dn st ci cd`), the
 answer pool (`ansPool`), the control channel's producer token and the store's reader tokens
 (`mvccReaders`) and auth reader resource replaced by the run's shares (`swsAt`, `swsRecver`) and
-the thread token (the bounds plan); the post's control producer kept (`swsRecver`), which the
+the thread token (the bounds plan); verify-round: the mvcc reader token from the thread token by 2d's
+`srvReader_mvcc.spec` (given back at the end); the closed-stream refusal handled as a refusal; the post's control producer kept (`swsRecver`), which the
 handler needs to close the control channel.
 
 **Margin.** The error is the `Recv`'s (or `nil`), not modelled.

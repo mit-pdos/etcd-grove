@@ -33,7 +33,8 @@ func ReqEnsure(index uint64) {
 // REQ raftpb/clone-snapshot: a clone of a stored snapshot is a fresh, ensured snapshot with the
 // same metadata and data (MemoryStorage.Snapshot/CreateSnapshot hand out clones; unstable keeps one).
 // Users: storage.go:213/234/262, log_unstable.go:114/196, log.go:295; etcd raft.go:228.
-// Specs: proto's Clone.spec, snapshotPts_msgAt.spec, the getters.
+// Specs: proto's Clone.spec (the copy holds norm c), snapshotPts_msgAt.spec, raftpb_norm.spec,
+// mergeDst_msgAt.spec, the getters.
 func ReqCloneSnapshot(s *pb.Snapshot) *pb.Snapshot {
 	s = pb.EnsureSnapshot(s)
 	c := proto.Clone(s).(*pb.Snapshot)
@@ -51,10 +52,9 @@ func ReqCloneSnapshot(s *pb.Snapshot) *pb.Snapshot {
 // needs equal entries at equal index and term).
 // Users: bootstrap.go:52-56 (RawNode.Bootstrap), etcd's bootstrap through StartNode.
 // Assumes: ctx is non-empty (etcd's member JSON).
-// BLOCKED on: 2a's deterministic Marshal (`Proto.marshalOut`, req/google_golang_org_protobuf_proto.md,
-// "from 3h", item 1); unprovable until it is in the boundary.
-// Specs: bootCC_lit.spec, bootCC_facts.spec, proto's Marshal.spec with 2a's requested determinism
-// (marshalOut).
+// Specs: bootCC_lit.spec, bootCC_facts.spec (the two literals hold the one bootstrap content),
+// proto's Marshal.spec (`noMaps t → bs = marshalOut t c`); laws: noMaps_raftpb.spec,
+// bootEntryData_marshal.spec (both outputs are bootEntryData id ctx).
 func ReqBootstrapBytes(id uint64, ctx []byte) {
 	mk := func() []byte {
 		cc := &pb.ConfChange{Type: pb.ConfChangeAddNode.Enum(), NodeId: new(id), Context: ctx}

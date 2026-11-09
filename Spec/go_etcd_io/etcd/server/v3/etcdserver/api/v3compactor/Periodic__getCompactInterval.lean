@@ -4,6 +4,8 @@
 **Users.** The periodic loop, `newPeriodic`. **Proof sketch.** Arithmetic on the period (capped at
 an hour; the retry interval a tenth of it: non-zero by the period's bound, which `isPeriodic`
 keeps). **Changes**: from `specs-ref`'s `Periodic__getCompactInterval.lean`. **Margin.** The value is not stated.
+Changes: verify-round (A7 completeness F2): the compactor's handles carry the gate `R` of its `Compactable`
+(`compactable c R`: `Compact` is safe once `□ R`, the server's start); `Run` takes `□ R`.
 -/
 module
 
@@ -29,8 +31,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Ass
 
 /-- **`getCompactInterval()`**: some value, without a panic. -/
 def Periodic.getCompactInterval.spec : Prop :=
-  ∀ (p : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor ∗ isPeriodic p }}
+  ∀ (R : IProp GF) (p : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor ∗ isPeriodic p R }}
     (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic.ty @!! go!"getCompactInterval")) (Val #()))
   {{ (d : time.Duration), RET #d; True }}
 

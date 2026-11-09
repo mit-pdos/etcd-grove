@@ -15,7 +15,11 @@ below the budget, at least one (the `len(cur.Events) > 1` guard); `Fragment` unl
 last; persisted and passed to `sendFunc` (the premise, at `fragPrefix wr (ms ++ [cur])`); an error
 returns it; the last fragment ends the loop with `fragmentsOf wr ms`.
 
-**Changes**: new.
+**Changes**: new. verify-round (client-watch's request W1): 1b's `wireStep` now requires every fragment after
+the first, and the completing response, to carry the first fragment's id, header, compaction
+revision and cancel reason (`WireSt.frag`); true here: each fragment is a copy of `wr` with only
+`Events` (and `Fragment`) changed (`watch.go`'s `sendFragments` builds `cur := *wr` per fragment),
+so the id, header, compact revision and cancel reason are `wr`'s in every fragment.
 
 **Margin.** Which cut (the sizes are not modelled): any `fragmentsOf`.
 -/

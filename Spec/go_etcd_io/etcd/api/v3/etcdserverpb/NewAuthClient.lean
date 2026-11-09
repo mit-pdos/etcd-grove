@@ -13,6 +13,7 @@ reply's models by this batch's relations (`reqModels`, `replyModels`: the caller
 etc. through `*_msgAt`, the reply decoded into the stub's `new(T)` holding the member's content).
 
 Changes: from `specs-ref/Spec/go_etcd_io/etcd/api/v3/etcdserverpb/NewAuthClient.lean`: the client-facing statement (the client's contract `remoteAuthAt`, not the stub's struct); the stub's struct is the method specs' (`stubAt`).
+verify-round (client-watch's request W3): the contract is given once the client whose connection it is (`c.conn`) is ready (`□ (clientReady c -∗ …)`): the stub's calls go through the connection's interceptors, whose token refresh reads `c.Auth`, unset when `newClient` builds the stubs (`client.go:460-461`).
 Margin: none.
 -/
 module
@@ -39,11 +40,12 @@ variable [package_sem : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
 /-- `NewAuthClient(conn)` over a client's connection: a stub meeting the client's contract. -/
 def NewAuthClient.spec : Prop :=
-  ∀ (conn : Loc) (γ : Cluster) (who : Principal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ ClientV3.connOk conn γ who }}
+  ∀ (conn c : Loc) (γ : Cluster) (who : Principal),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ ClientV3.connOk conn γ who ∗
+      ClientV3.clientConnOk c γ who ∗ c.[go_etcd_io.etcd.client.v3.Client, go!"conn"] ↦□ conn }}
     (App (Val (@! etcdserverpb.NewAuthClient))
       (Val #(interface.mkOk (go.GoType.PointerType google_golang_org.grpc.ClientConn.ty) #conn)))
-  {{ (v : GoInterface), RET #v; ClientV3.remoteAuthAt v γ who }}
+  {{ (v : GoInterface), RET #v; □ (ClientV3.clientReady c -∗ ClientV3.remoteAuthAt v γ who) }}
 
 end spec
 

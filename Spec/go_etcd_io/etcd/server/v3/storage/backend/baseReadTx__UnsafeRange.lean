@@ -31,7 +31,7 @@ def baseReadTx.UnsafeRange.spec : Prop :=
     (ks es : GoSlice) (dk de : DFrac) (k e : GoString) (limit : w64) (pl : Qp),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ beRd γ (rtLoc γ) F V ∗ beLive γ (rtLoc γ) pl ∗ bkt γ bk bi ∗ ks ↦*{dk} k ∗ es ↦*{de} e ∗
       ⌜covers F bi.name k e⌝ ∗ ⌜bi.safe = true ∨ es = slice.nil ∨ sint.Z limit = 1⌝ ∗
-      (⌜bi.safe = false ∨ e = []⌝ ∨ ∃ Fh, beHookFp γ Fh ∗ ⌜∀ x, ¬ Fh (.key bi.name x)⌝) }}
+      (⌜bi.safe = false ∨ es = slice.nil⌝ ∨ ∃ Fh, beHookFp γ Fh ∗ ⌜∀ x, ¬ Fh (.key bi.name x)⌝) }}
     (App (App (App (App (Val ((structFieldRef go_etcd_io.etcd.server.v3.storage.backend.readTx go!"baseReadTx" (rtLoc γ)) @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.baseReadTx.ty @!!
       go!"UnsafeRange")) (Val #bk)) (Val #ks)) (Val #es)) (Val #limit))
   {{ (kl vl : GoSlice), RET (PairV #kl #vl); ks ↦*{dk} k ∗ es ↦*{de} e ∗

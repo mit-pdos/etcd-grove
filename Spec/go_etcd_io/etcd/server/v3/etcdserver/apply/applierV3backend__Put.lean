@@ -9,7 +9,9 @@
 lessor's `lessorState` (`lessorSt`, `leasesLive`); its answer `putAns pr σ.kv ls.table` is `opStep`'s;
 the lessor's new state `evsLs` is the store's attachment; the reply with the header's revision.
 
-**Changes** from `specs-ref`'s `applierV3backend__Put.lean`: the old triple over the chain's `AEnv`, the mvcc log and the write tokens (`putPre`, `kvPostF`, `mPostW`, ...) restated over the model state (`stAt`, `layersStep`): any auth mode, leases, compaction
+**Changes** from `specs-ref`'s `applierV3backend__Put.lean`: the old triple over the chain's `AEnv`, the mvcc log and the write tokens (`putPre`, `kvPostF`, `mPostW`, ...) restated over the model state (`stAt`, `layersStep`): any auth mode, leases, compaction.
+verify-round (A9 F2): `lessorSt` (inside `stAt`, from `optsSt`) now states `Txn.leasesLive`; the
+statement is unchanged.
 
 **Margin.** The header's other fields (cluster, member, term, leader) any.
 -/

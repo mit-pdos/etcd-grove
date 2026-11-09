@@ -3,9 +3,9 @@
 
 **Users.** `Transport.Send`.
 
-**Proof sketch.** `paused` under `mu` (the fork's flag); a non-blocking send on the pipeline's `msgc`; full: logged.
+**Proof sketch.** `paused` under `mu` (the fork's flag); a non-blocking send on the pipeline's `msgc`; full: logged (`m.GetType().String()` for a log line is raftpb's `MessageType.String` (a trust-boundary spec, requested of raft-conf-pb: verify-round A5 F1)). `types.ID`'s `String()` on an addressable `ID` (log fields, headers) is 1c's `Types.ID.String_ptr.spec` (Goose's pointer receiver).
 
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour.
+**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour. verify-round (A5 F1): the sketch cites raftpb's `MessageType.String` for the log lines. verify-round (second pass): the sketch cites `Types.ID.String_ptr.spec`.
 
 **Margin.** None.
 -/

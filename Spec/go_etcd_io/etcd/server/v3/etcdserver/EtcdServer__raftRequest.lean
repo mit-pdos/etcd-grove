@@ -10,7 +10,7 @@ requesters: the lease checkpoints (`server.go:402`, `.noop`), the alarms (`serve
 
 **Proof sketch.** `processInternalRaftRequestOnce` (its spec); an error: the span's `RecordError`
 (otel's boundary), returned (outcomes 2, 3); `result.Err`: returned (the answer's error: outcome 1
-with `srvErrOf`, or outcome 2 with the update); `ctx.Value(StartTimeKey{})` and the trace's steps
+with `srvErr`, or outcome 2 with the update); `ctx.Value(StartTimeKey{})` and the trace's steps
 (`applyResult`'s owned `traceOpt`, 4b); `result.Resp` (`irrReply`).
 
 **Changes.** The old spec (`specs-ref`'s `EtcdServer__raftRequest.lean`) restated as
@@ -18,6 +18,10 @@ with `srvErrOf`, or outcome 2 with the update); `ctx.Value(StartTimeKey{})` and 
 pair, the errors' shape, `irrBackOk`: the reply of `Authenticate`'s token with its update back).
 
 **Margin.** As `processInternalRaftRequestOnce`.
+
+Changes: verify-round (A7-provability F3, F5): see the verify round's repair: the context needs only its otel span (`reqCtxSpan`, any trace: the outer method's `EnsureTrace` installed one); the request message comes back with whatever header was set (`∃ h, irrOwnH r dq ir h`: the header is written before proposing).
+
+Changes: verify-round (client-core's request): `ctx.Value(StartTimeKey{})` by `Context.Value.spec` (the value at the key, or `nil`; the checked assertion then).
 -/
 module
 
@@ -47,21 +51,21 @@ outcome 2, the update given back; outcome 3). -/
 def EtcdServer.raftRequest.spec : Prop :=
   ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (p tls : Principal) (lo : Nat) (r : Loc)
     (dq : DFrac) (ir : IrrBody) (ao : Option Req) (rep : Bool) (Q : State → State → Resp → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ Context.ctxOk ctx ∗ reqCtxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ irrOwn r dq ir ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ Context.ctxOk ctx ∗ reqCtxSpan ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ irrOwn r dq ir ∗
       ⌜irrWf ir ∧ irrAsks ir ao⌝ ∗ authLb γ lo ∗
       irrUpd γ p tls lo ao rep Q }}
     (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"raftRequest")) (Val #ctx)) (Val #r))
-  {{ (resp : GoInterface) (err : GoInterface), RET (PairV #resp #err); threadTok ∗ irrOwn r dq ir ∗
+  {{ (resp : GoInterface) (err : GoInterface), RET (PairV #resp #err); threadTok ∗ (∃ h, EtcdServerPb.irrOwnH r dq ir h) ∗
       ((∃ σ σ' res, ⌜srvFiredAns res⌝ ∗ irrFired ao Q σ σ' res ∗
           match res with
           | .ok _ => iprop(⌜err = GoInterface.nil⌝ ∗ irrReply γ ir res resp)
-          | .err e => iprop(⌜resp = GoInterface.nil ∧ srvErrOf err e⌝ ∗ srvErrShape err)) ∨
+          | .err e => iprop(⌜resp = GoInterface.nil⌝ ∗ srvErr err e ∗ srvErrShape err)) ∨
        (∃ res, ⌜irrBackOk ir res⌝ ∗
           match res with
           | .ok _ => iprop(⌜err = GoInterface.nil⌝ ∗ irrReply γ ir res resp ∗ irrUpd γ p tls lo ao rep Q)
-          | .err _ => iprop(⌜resp = GoInterface.nil ∧ srvUnfired err⌝ ∗ srvErrShape err ∗ irrUpd γ p tls lo ao rep Q)) ∨
-       (⌜resp = GoInterface.nil ∧ srvUnfired err⌝ ∗ srvErrShape err ∗ irrUpd γ p tls lo ao rep Q) ∨
-       (⌜resp = GoInterface.nil ∧ srvIndef err⌝ ∗ srvErrShape err)) }}
+          | .err _ => iprop(⌜resp = GoInterface.nil⌝ ∗ srvUnfired err ∗ srvErrShape err ∗ irrUpd γ p tls lo ao rep Q)) ∨
+       (⌜resp = GoInterface.nil⌝ ∗ srvUnfired err ∗ srvErrShape err ∗ irrUpd γ p tls lo ao rep Q) ∨
+       (⌜resp = GoInterface.nil⌝ ∗ srvIndef err ∗ srvErrShape err)) }}
 
 end spec
 end EtcdServer

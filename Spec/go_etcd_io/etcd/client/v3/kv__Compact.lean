@@ -16,6 +16,9 @@ has reached `rev`" (`kvRevLb`) is gone: `rev` above the current revision is `Err
 linearized answer; the scope restriction `rev ≠ 0` stays (was `1 ≤ rev`; a negative `rev` is
 `ErrCompacted`, as mvcc says).
 
+verify-round: the request carries the caller's `rev` by `compactOptAt_rev` (the options keep the
+revision; A1-provability F7).
+
 Margin: `physical` makes the server wait for the compaction to reach the backend; the model
 does not distinguish (the compaction revision is set when the request is applied).
 -/

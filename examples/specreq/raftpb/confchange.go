@@ -14,7 +14,8 @@ import (
 // etcd server.go (applyConfChange), raft doc.go:137 (the documented apply loop).
 // Assumes: the change's context is below 2^40 bytes (wireBound).
 // Specs: MarshalConfChange.spec (decodeConfChange of the bytes), proto's Unmarshal.spec,
-// confChangeV1Pts_msgAt.spec, ConfChange.GetNodeId.spec.
+// confChangeV1Pts_msgAt.spec, raftpb_norm.spec (the decoded content is norm of the sender's),
+// ConfChange.GetNodeId.spec.
 func ReqMarshalDecode(id uint64, ctx []byte) {
 	cc := &pb.ConfChange{Type: pb.ConfChangeAddNode.Enum(), NodeId: new(id), Context: ctx}
 	typ, data, err := pb.MarshalConfChange(cc)

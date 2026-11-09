@@ -3,7 +3,8 @@
 `readTx.Lock`). The hooks (`hookOk`); the old read transaction handed to a rollback goroutine (it
 waits for the interval's wait group, then rolls back; a thread from `envOk`'s pool) and the read
 side reset; `batchTx.commit`; `pendingDeleteOperations := 0`; unless stopping, a new read
-transaction. The published updates (the session's second, the hooks') fire at bbolt's commit.
+transaction. The published updates (the session's second, the hooks') fire at bbolt's commit update (the outer update of 4c's nested `commitAU`; the
+settling update follows when the commit ends).
 Changes: over `btPhys`. Margin: none.
 -/
 module

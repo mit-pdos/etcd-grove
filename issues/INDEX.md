@@ -4,7 +4,7 @@
 
 The bugs with a valid failing Go test (format: [README.md](README.md)); the findings without one are in [../nonissues/](../nonissues/INDEX.md).
 
-## Not reported (55)
+## Not reported (56)
 
 | Issue | Blocks proof | Upstream links |
 |---|---|---|
@@ -38,6 +38,7 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [bbolt: a database restored from `Tx.WriteTo` loses both meta pages after two failed commits](bbolt-writeto-meta-parity.md) | no | etcd-io/bbolt#1311 issue open |
 | [server: the alarms gauge counts an alarm activated twice twice, and stays at 1 after it is disarmed](etcd-apply-alarm-gauge-reactivate.md) | no |  |
 | [clientv3: `Maintenance.Status` panics after `SetEndpoints()` with no endpoint, and races `SetEndpoints`](etcd-client-dial-empty-endpoints.md) | no |  |
+| [clientv3: `SetEndpoints` races the client's first RPC (resolver `Build` vs `SetEndpoints`)](etcd-client-resolver-build-race.md) | no | etcd-io/etcd#22710 issue open; etcd-io/etcd#13201 issue closed |
 | [etcdserver: Grant without an ID fails with "lease already exists" when two members' IDs agree in their low 15 bits](etcd-lease-id-mask-member-prefix.md) | no | etcd-io/etcd#20729 pr merged |
 | [etcdserver: `LeaseTimeToLive` with `Keys` returns key names the caller may not read](etcd-lease-timetolive-keys-toctou.md) | no | etcd-io/etcd#15656 pr merged |
 | [v3rpc: a follower's `LeaseTimeToLive` crashes the member when the leader's peer URL replies without a response header](etcd-leasehttp-timetolive-nil-header-panic.md) | no |  |

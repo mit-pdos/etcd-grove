@@ -16,7 +16,7 @@ configuration ahead of the index, `nonissues/etcd-replay-snapshot-confstate-ahea
 the cluster's `snapsMade` with its point (`snapPoint γ sn c`, `c` the consistent index: the backend's
 image at `c`).
 `raftStorage.CreateSnapshot(appliedi, cs, nil)` (R1's `MemoryStorage.CreateSnapshot.spec` through
-`stor_createSnapshot`, with `nodeAdvanced` for `appliedLb`): `ErrSnapOutOfDate` returns (a newer
+`stor_createSnapshot`, with `nodeAdvanced` for `appliedLb` and R1's `appliedLb_storedLb` for the `storedLb` it now takes; `ep.confState` a `confStateFull`): `ErrSnapOutOfDate` returns (a newer
 snapshot is already stored; R1's raft never stores one past its applied index, so this is a stored
 snapshot at `appliedi`: `nodeSnapLb` holds either way); any other error is excluded by the update's
 precondition. `verifyConsistentIndexIsLatest.spec` (`c ≥ appliedi`, the thread's invariant). To
@@ -27,6 +27,8 @@ disk premise; `Release` keeps the records at and above `sn`, which hold the dura
 the WAL's token): over `applyThread`, `nodeAdvanced`, `nodeSnapLb`; any applied index (no
 `σ.b = 0` scope). **Margin**: the snapshot indices move (`memSnap := appliedi`, and `diskSnap` when
 to disk); the post states only `nodeSnapLb`.
+
+Changes: verify-round: takes and gives back the thread's `threadTok` (A7-provability F2: `s.Logger()`, `createMergedSnapshotMessage`, `newSnapshotReaderCloser` take one). `run`'s is the fresh token of `start`'s `go s.run()` (Perennial's `wp_fork_tok_body`); the apply jobs' is the scheduler worker's, lent to each job (`Schedule.funcOk`). The `srvMember` that `Logger` takes comes from `srvNode_member`.
 -/
 module
 
@@ -60,10 +62,10 @@ def EtcdServer.snapshot.spec : Prop :=
       srvNode s γ id ∗ applyThread s γ ep p ∗
       nodeAdvanced (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"r" s)
         (uint.nat p.appliedi) ∗
-      ⌜0 < uint.nat p.appliedi⌝ }}
+      ⌜0 < uint.nat p.appliedi⌝ ∗ threadTok }}
     (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!!
       go!"snapshot")) (Val #ep)) (Val #toDisk))
-  {{ RET #(); ∃ p', applyThread s γ ep p' ∗
+  {{ RET #(); threadTok ∗ ∃ p', applyThread s γ ep p' ∗
       nodeSnapLb (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"r" s)
         (uint.nat p.appliedi) ∗
       ⌜p'.appliedi = p.appliedi ∧ p'.appliedt = p.appliedt⌝ }}

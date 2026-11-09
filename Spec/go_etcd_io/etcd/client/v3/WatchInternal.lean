@@ -18,7 +18,9 @@ of the response's id being `ws`'s), buffering them in `ws.buf` and delivering th
 the channel `watchChAt` is the consumer of.
 
 * `wgsAt s w γ p` (persistent; `p` the principal the member authenticates the stream as, from its
-  context's metadata, `ctxPrin`; the internal specs name it `who`): `s`'s read-only fields (its watcher `w`, the stub, the call
+  context's metadata, `ctxPrin`; the internal specs name it `who`): `s`'s read-only fields (its
+  watcher `w` with `∃ c who', watcherHandle w c γ who'` for the teardown's `closeStream`, the stub
+  (a `remoteWatchAt`: the stream is made only on a ready client, verify-round W3), the call
   options, the context `ctx` (a `WithCancel` over a `valCtx`: never done until `cancel`), `ctxKey`,
   `cancel`, the channels, the logger) and the invariants of its channels: `reqc` (a `Watch`'s
   `*watchRequest`, with its `retc`'s protocol: the channel received on it comes with its
@@ -59,7 +61,14 @@ the channel `watchChAt` is the consumer of.
 * **The tie** between the current stream's registrations and the substreams is a refinement, not
   an equality: a substream's channel position is its registration's, or weaker (`done = none`
   where the registration has one: a `rev = 0` watch resumed from `H`; `prevLoose` kept true, as
-  every re-registration reopens the member's `PrevKv` window); an ended substream (its
+  every re-registration reopens the member's `PrevKv` window). A substream whose channel position
+  is still unknown (`done = none`) while its registration's is known keeps the facts it learned of
+  the history meanwhile: after a resume from `H` and a progress at `P` (which raises `nextRev` to
+  `P + 1`, `watch.go:873-878`), a second resume registers from `P + 1` only, and the first event's
+  `lo ≤ floor + 1` (`watchStep`) needs "no event of the range in `[H, P]`" from the progress's fact,
+  carried in the tie (with the model's facts that `exactFrom` is antitone along `Reach` and
+  `watchEvents` stable on a history prefix: pure lemmas the proof proves; verify-round A2 S1). An
+  ended substream (its
   error buffered or delivered) delivers nothing more, whatever its registration says (a resume
   may re-register it from a later header).
 * **Who writes what of a substream**: `ws.id` is `run`'s (in `wgsRun`'s per-substream part:

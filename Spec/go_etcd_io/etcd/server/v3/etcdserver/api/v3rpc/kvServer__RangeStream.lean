@@ -16,6 +16,9 @@ fired as the model's answer (`kvStep`'s range disjuncts), a custom order or revi
 which `rsSink_out` turns into the run's `streamOut`; the error through `togRPCError`.
 
 Changes: new.
+verify-round (A6 F2): the received request is canonical (`⌜norm c = c⌝`, grpc's `srvRecv_recv`; was
+`Proto.decodedAt`); the proof splits the message (`msgAt_split`) into W0's `rangeReqOwn` (via
+`rangeReqOwn_msgAt`) and 3h's `endsDecoded` (`endsDecoded_of_canon`) for 2c's `RangeStream`.
 
 Margin: none.
 -/
@@ -43,7 +46,7 @@ variable [sem : go.Semantics]
 `up` resource, the stream's send half; returns with `streamOut`. -/
 def kvServer.RangeStream.spec : Prop :=
   ∀ (p s : Loc) (γ : Cluster) (r : Loc) (c : Content) (rs : GoInterface) (g : StreamName) (md : MD) (gq : Qp),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ kvServerAt p s γ ∗ threadTok ∗ srvGate s gq ∗ msgAt go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty r (DFrac.own 1) c ∗ Proto.decodedAt go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty r ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ kvServerAt p s γ ∗ threadTok ∗ srvGate s gq ∗ msgAt go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty r (DFrac.own 1) c ∗ ⌜Proto.norm c = c⌝ ∗
       (rangeStreamSpec γ).up g md 0 c ∗ (∃ ctx, srvCtxOf rs ctx md) ∗ srvRecv rs g (rangeStreamSpec γ) md 1 ∗
       srvSend rs g (rangeStreamSpec γ) md 0 }}
     (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty @!! go!"RangeStream")) (Val #r))

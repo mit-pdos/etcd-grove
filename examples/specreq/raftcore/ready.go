@@ -14,7 +14,8 @@ import (
 // Assumes: between Ready and Advance the client enters the batch and does its storage writes
 // (R1's readyEnter, readyStor), and applies or skips its conf changes.
 // Specs: RawNode.readyWithoutAccept.spec, ready_handout.spec, RawNode.acceptReady.spec,
-// rawNodeAt_advance.spec, ackOk_type.spec, raft.Step.spec (StepSrc.ack).
+// rawNodeAt_advance.spec (the rendezvous: R1's Advance post), rawNodeAdv_open.spec (the
+// acknowledgements), ackOk_type.spec, raft.Step.spec (StepSrc.ack).
 func ReqReadyAdvance(rn *RawNode, write func(Ready)) {
 	rd := rn.readyWithoutAccept()
 	rn.acceptReady(rd)
@@ -34,7 +35,8 @@ func ReqReadyAdvance(rn *RawNode, write func(Ready)) {
 // Ready if HasReady is then false. Such a Ready is empty (no soft or hard state, entries, committed
 // entries, messages, read states or snapshot): the stale send hands nothing out.
 // Users: node.go:353-364 (the loop top), :435 (the send on readyc).
-// Assumes: no acceptReady between the computation and HasReady.
+// Assumes: no acceptReady between the computation and HasReady; m is a message raft may step from
+// outside (stepMsg, and stepIn: received with its msgSent and credit, or local).
 // Specs: RawNode.readyWithoutAccept.spec, readyFresh_forget.spec, rawNodeAt_core.spec,
 // raft.Step.spec, R1's RawNode.HasReady (false: readyFresh and readyEmpty, requested).
 func ReqReadyStale(rn *RawNode, m *pb.Message) {
@@ -90,8 +92,11 @@ func ReqNewRawNode(c *Config, ms *MemoryStorage) *RawNode {
 	return rn
 }
 
-// REQ raftcore/bootstrap: RawNode.Bootstrap on an empty storage: the bootstrap entries appended and
-// committed at term 1 and each AddNode applied; the first Ready hands them out.
+// REQ raftcore/bootstrap: RawNode.Bootstrap on an empty storage succeeds (the bootstrap entries
+// appended and committed at term 1 and each AddNode applied: the cluster's, bootLog), and the first
+// Ready can be taken. (Verify-round, A4 S1: the checks of raft's internal fields and of the number of
+// committed entries handed out were dropped: no caller reads them, and MaxCommittedSizePerReady may
+// split the entries over several Ready structs.)
 // Users: bootstrap.go:32-81 (RawNode.Bootstrap), node.go:258 (setupNode for StartNode); etcd's first
 // start (server/etcdserver/bootstrap.go:599).
 // Assumes: peers non-empty with non-empty contexts (R1's BootLog); the storage empty.
@@ -101,11 +106,5 @@ func ReqBootstrap(rn *RawNode, peers []Peer) {
 	if err := rn.Bootstrap(peers); err != nil {
 		panic("bootstrap: error")
 	}
-	if rn.raft.Term != 1 || rn.raft.raftLog.committed != uint64(len(peers)) {
-		panic("bootstrap: not at term 1 with the peers committed")
-	}
-	rd := rn.Ready()
-	if len(rd.CommittedEntries) != len(peers) {
-		panic("bootstrap: entries not handed out")
-	}
+	_ = rn.Ready()
 }

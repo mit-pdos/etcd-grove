@@ -3,7 +3,7 @@
 
 **Users.** `uberApplier.dispatch` through the chain (promoted methods of the outer layers).
 
-**Proof sketch.** `checkTxnPermission.spec` at the apply thread's own state (`firstErr`), its `endsDecoded` from `reqMsgAt_endsDecoded` (the entry's decoded message); the base's.
+**Proof sketch.** `checkTxnPermission.spec` at the apply thread's own state (`firstErr`), its `endsDecoded` from `reqMsgAt_endsDecoded` (the entry's decoded message, read-only: `□`, so the share it holds is never needed back); the base's.
 
 **Changes** from `specs-ref`'s `authApplierV3__Txn.lean`: the old per-mode chain predicates (`apply.chainRes`, `kvOwnPre`) restated over `applierAt`, `stAt` and `layersStep`
 

@@ -13,8 +13,10 @@ import (
 // server (the service's contract is what the registration carries).
 // Users: server/etcdserver/api/v3rpc/grpc.go:81 (Server), server/embed (through Server).
 // Assumes: s is a started member of a cluster (watchMemberAt, from 2e's NewServer/Start, its
-// configured progress interval within watchIntervalCfgOk).
-// Specs: NewWatchServer.spec; laws: watchServerAt_service, watchServiceAt_methods (2a's
+// configured progress interval within watchIntervalCfgOk); gs is a server being built (grpc's
+// srvBuild gs B, from grpc.NewServer) on which the Watch service is not registered yet (what
+// Server.RegisterService.spec takes; verify-round A6 F10: the Assumes said nothing of gs).
+// Specs: NewWatchServer.spec, RegisterWatchServer.spec, Grpc's Server.RegisterService.spec; laws: watchServerAt_service, watchServiceAt_methods (2a's
 // registration takes watchServiceAt).
 func ReqServeWatch(s *etcdserver.EtcdServer, gs *grpc.Server) {
 	ws := v3rpc.NewWatchServer(s)

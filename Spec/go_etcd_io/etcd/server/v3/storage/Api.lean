@@ -9,17 +9,38 @@ the WAL's model (`storage/wal/Api.lean`) and the snapshotter's (`etcdserver/api/
 
 ## Vocabulary
 
-* `diskOk` (opaque `Prop`): **the environment premise**: the disk operations etcd treats as fatal
-  or panics on succeed (creating, opening, reading, repairing and writing the WAL and fsyncing it,
-  creating the snapshot directory, opening a bbolt file in `OpenBackend`'s goroutine, which panics
-  in `backend.New` otherwise). Not a universal claim about disks: the adequacy theorem of a program
-  carries it as its premise (the memory note "closed theorems: no panics", the user's 2026-11-08:
-  "add an assumption that the backend opening doesn't panic"). Every operation below whose Go code
-  would panic or exit on such a failure takes it; one that returns the error to a caller that
-  handles it does not.
-* `beOpen be path img` (exclusive): **provisional, batch 4a's**: `be` is an open backend of the
-  file at `path`, which held `img` when it was opened; its `Close` gives `Snap.beFile path (some
-  img')` back for the image `img'` of its last commit (4a's closer).
+* `diskOk` (opaque `Prop`, declared in `storage/wal/Api.lean` below the WAL's crash laws that take
+  it): **the environment premise**. Its text is its meaning, and it names every failure it
+  excludes (verify-round, A8 provability F7). The disk operations below succeed:
+  - the WAL's: creating, opening, reading (`ReadAll`), repairing, writing and fsyncing it, cutting a
+    segment, `Sync`, `Close`'s fsync (an error is returned and the raft loop or `bootstrap` exits);
+  - **after a crash**, the WAL's files hold a prefix of the records written, each record whole or
+    torn only at the tail (no record behind a surviving one corrupted, no garbage passing the CRC
+    chain): otherwise `ReadAll` fails with `ErrCRCMismatch` and `bootstrap` exits. The WAL's crash
+    laws (`Wal.walRecs_crash`, `walWriting_crash`) take it;
+  - the snapshot directory's: creating it; `DBFilePath`'s `ReadDir`; `ReleaseSnapDBs`' `os.Open`
+    and `Readdirnames` of it and each `os.Remove` of a db file below the index (a failure other than
+    a missing file is only logged); `SaveDBFrom`'s fsync of the directory after its rename, or when
+    the file is already there (the Go code returns that error to rafthttp's handler; excluded so
+    that a returned error means nothing changed);
+  - the install's `os.Rename` of a db file onto the backend's path (`Snap.dbFile_rename`; a missing
+    source is not a failure here: it is the spec's `none` arm), which `applySnapshot` panics on;
+  - opening the bbolt file in `OpenBackend`'s goroutine: 4a's `Backend.dbOpenOk` of the
+    `BackendConfig` `newBackend` builds (`backend.New` panics otherwise).
+  Not a universal claim about disks: the adequacy theorem of a program carries it as its premise
+  (the memory note "closed theorems: no panics", the user's 2026-11-08: "add an assumption that the
+  backend opening doesn't panic"). Every operation below whose Go code would panic or exit on such
+  a failure takes it; one that returns the error to a caller that handles it does not (but
+  `SaveDBFrom`'s directory fsync, above).
+* The backend: 4a's vocabulary (`Backend.isBackend`, `beFile`, `New.spec`'s allocation step), which
+  `OpenBackend`/`OpenSnapshotBackend` now return (verify-round, A8 provability F5). `beOpen be path
+  img` (exclusive) is **superseded**: no spec here takes or gives it any more; it stays declared
+  only until the server's specs that still mention it (`bootstrap`, `applySnapshot`, the
+  `bootstrapped*.Close` specs: server-core's) move to 4a's names, then goes. `beReadable be`
+  (persistent, `Size`/`SizeInUse` at any time) is still provisional (4a's `backend__Size`'s shape:
+  open); `beTx tx` is superseded by 4a's `hookOk` (`BackendHooks.OnPreCommitUnsafe.spec`, over
+  `hooksPkOk` and `hookFp`).
+* `hooksIface h`: the `backend.Hooks` interface value of the hooks `h`.
 * `isStorage s wd sd` (persistent): `s` is a `*storage` over a WAL writing to `wd` and the
   snapshotter of `sd`. Intended realization: the `RWMutex`'s invariant holding `Wal.walOpen w wd`
   (until `Close`) and `s.w ↦ w`, read-only `lg`, `s.s` (`Snap.isSnapshotter`).
@@ -37,7 +58,7 @@ the WAL's model (`storage/wal/Api.lean`) and the snapshotter's (`etcdserver/api/
 ## Laws
 
 `isStorage_persistent`, `storageOpen_fractional`, `isHooks_persistent`, `isQuota_persistent`,
-`beOpen_excl`.
+`beOpen_excl` (superseded with `beOpen`).
 
 ## Requirement snippets
 
@@ -62,23 +83,23 @@ namespace ServerStorage
 
 open Iris Iris.BI
 
-/-- **The environment premise** (see the header). -/
-opaque diskOk : Prop
+-- `diskOk` (the environment premise, see the header) is declared in `storage/wal/Api.lean`, whose
+-- crash laws take it.
 
 section res
 variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
-/-- **Provisional (batch 4a):** `be` is an open backend of the file at `path`, which held `img`
-when it was opened (exclusive). -/
+/-- **Superseded (verify-round, A8 provability F5)** by 4a's `Backend.isBackend` (what
+`OpenBackend.spec` now returns); kept only until the server's specs that mention it move. -/
 opaque beOpen [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (be : GoInterface) (path : GoString) (img : Snap.BeImage) : IProp GF := iprop(True)
 
 /-- **Provisional (batch 4a):** `be`'s read-only operations (`Size`, `SizeInUse`: atomic reads) may
 be called at any time, also after its close (persistent). -/
 opaque beReadable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (be : GoInterface) : IProp GF := iprop(True)
 
-/-- **Provisional (batch 4a):** `tx` is the backend's batch transaction, locked by the committing
-goroutine, writable (exclusive). -/
+/-- **Superseded (last pass)**: the hooks' spec is now 4a's `hookOk` (`BackendHooks.OnPreCommitUnsafe.spec`);
+no spec uses `beTx`. -/
 opaque beTx [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (tx : GoInterface) : IProp GF := iprop(True)
 
 /-- `s` is a `*storage` over a WAL writing to `wd` and the snapshotter of `sd` (persistent). -/
@@ -90,6 +111,10 @@ opaque storageOpen [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunc
 /-- The `Storage` interface value of `s`. -/
 def storageIface (s : Loc) : GoInterface :=
   interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty) #s
+
+/-- The `backend.Hooks` interface value of the hooks `h`. -/
+def hooksIface (h : Loc) : GoInterface :=
+  interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.BackendHooks.ty) #h
 
 /-- `h` is a `*BackendHooks` over the consistent indexer `ci` (persistent). -/
 opaque isHooks [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (h : Loc) (ci : GoInterface) : IProp GF := iprop(True)

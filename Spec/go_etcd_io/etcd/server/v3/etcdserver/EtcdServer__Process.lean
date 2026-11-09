@@ -18,6 +18,8 @@ for the 403s, `Rafthttp.procErr_nodeErr` for raft's), and the thread token 2f's 
 (`lgMu` and the membership are read under read locks). Callable from `NewServer` on (`srvNode`):
 the transport starts before `start`. **Margin**: which error is not described (rafthttp only
 logs it or answers it).
+
+Changes: verify-round (rafthttp's and raft-conf-pb's request): the message is raftpb's `msgRecv` (a decoded message with its `Entries` slice's capacity: what rafthttp's decoders deliver, `msgRecv_intro`, and raft's `node.Step` takes).
 -/
 module
 
@@ -50,7 +52,7 @@ def EtcdServer.Process.spec : Prop :=
   ∀ (s : Loc) (γ : Names) (id : Nat) (ν : Rafthttp.Net GF) (ctx : GoInterface) (mp : Loc)
     (m : Raft.Msg),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvNode s γ id ∗ srvNet γ.etcd ν ∗ Context.ctxOk ctx ∗ Raft.msgPts mp (DFrac.own 1) m ∗
+      srvNode s γ id ∗ srvNet γ.etcd ν ∗ Context.ctxOk ctx ∗ Raft.msgRecv mp m ∗
       Rafthttp.recvd ν m ∗ threadTok }}
     (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!!
       go!"Process")) (Val #ctx)) (Val #mp))

@@ -16,7 +16,7 @@ invariant at the new configuration (`coreInvConf`: the caller's decision moved t
 **Changes** (from `specs-ref`'s `raft__switchToConfig.lean`): over the opened struct and R4's
 result. (Integration I2: the pre is the struct with its tracker out, `raftTrkOpen` and `trkShell`,
 not `raftOpen`: `applyConfChange`'s `Changer` consumes the tracker's progress map before this runs,
-so `raftOpen` could not be closed in between; the post's `o'.conf = m`.) **Margin.** The view's progress pointers are not named.
+so `raftOpen` could not be closed in between; the post's `o'.conf = m`.) **Margin.** The view's progress pointers are not named. Verify-round (A5 completeness F2, raft-conf-pb's request): `confStateFull` (Go's `ConfState()` sets `AutoLeave`), so the server can store it in a snapshot (`CreateSnapshot`, the merged `MsgSnap`).
 -/
 module
 
@@ -49,7 +49,7 @@ def raft.switchToConfig.spec : Prop :=
       trkShell (structFieldRef go_etcd_io.raft.v3.raft go!"trk" r) o.votes mi mb ∗ trkResult cfg trk m ∗ ⌜m.Valid⌝ ∗
       (⌜o.view.role ≠ StateLeader⌝ ∨ coreInvConf r γ id o m) }}
     (App (App (Val (r @!! go.GoType.PointerType go_etcd_io.raft.v3.raft.ty @!! go!"switchToConfig")) (Val #cfg)) (Val #trk))
-  {{ (csp : Loc), RET #csp; ∃ o' cs, raftOpen r γ id o' ∗ confStatePts csp (DFrac.own 1) cs ∗
+  {{ (csp : Loc), RET #csp; ∃ o' cs, raftOpen r γ id o' ∗ RaftPb.confStateFull csp (DFrac.own 1) cs ∗
       ⌜o'.conf = m ∧ cs.Is m ∧ (∀ x, (o'.view.prs !! x).isSome ↔ x ∈ m.ids)⌝ ∗
       ((⌜o.view.role ≠ StateLeader ∧ o'.view.hs = o.view.hs ∧ o'.view.role = o.view.role ∧
           o'.log = o.log⌝) ∨ coreInv r γ id o') }}

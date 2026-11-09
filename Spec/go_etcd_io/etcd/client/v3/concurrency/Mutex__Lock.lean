@@ -8,7 +8,7 @@ etcdctl's `lock` command (not in the pinned sources), etcd's tests
 (`tests/integration/clientv3/concurrency/mutex_test.go`, `example_mutex_test.go`: `Lock`, `TryLock`
 and `ErrLocked`, `IsOwner` in a `Txn`, `Unlock`, `NewLocker`; `tests/integration/v3lock_grpc_test.go`:
 a second lock's header after the first's). Snippets: `concurrency/mutex.go` (`ReqFencedWrite`, `ReqV3LockPattern`,
-`ReqLockUnlock`, `ReqLockAfterUnlock`).
+`ReqLockUnlock`, `ReqLockAfterUnlock`, `ReqMutexNoTwoHolders`).
 
 Proof sketch: `Mutex.tryAcquire.spec` (the key `k`, its create revision `c`). If the oldest key's
 create revision is `c` (or none: impossible, `k` is there), the transaction's state gives
@@ -32,6 +32,11 @@ least `c`, nothing older than `c`), whose use is the fence (`fence`): a write gu
 (`issues/mutex-lock-recreated.md`). Any context (`ctxOk`), not only a cancelable Perennial one.
 Round 1: the lent permission (`P` back on `nil` and `ErrSessionExpired`), the result after `σ0`, the
 principal per call (`isClient c γ dflt`, `ctxPrin dflt ctx who`).
+
+Changes: verify-round: `cr` was the key's create revision at a state after `σ0` (created after
+`σ0`, or present there with it: from `tryAcquire`'s transaction state, a pure fact of `Reach`), which
+the no-two-holders snippet needs (`ReqMutexNoTwoHolders`: the later locker's `cr` is above the
+earlier's); the key is the session's (`sessKey`; `mutexEff` touches only it: A3 completeness F2, snippet `ReqMutexNoTwoHolders`); `ErrSessionExpired` the value its variable holds (A3 F4).
 
 Margin: with the upstream fix of `issues/mutex-lock-recreated.md` the key's create revision would
 be exactly `c` (`holdsAt` at `σ`). The errors are not classified (any client error, a watch's,
@@ -72,9 +77,11 @@ def Mutex.Lock.spec : Prop :=
       (⌜err = GoInterface.nil⌝ ∗ P ∗ ∃ (k : GoString) (cr : Nat) (hd : Loc) (hm : HeaderM) (σ : State),
           mutexSt m { key := k, rev := W64 cr, hdr := hd } ∗ etcdLb γ σ ∗
           respHeaderOwn hd DFrac.discard hm ∗
-          ⌜Reach σ0 σ ∧ lockedSince pfx k cr σ ∧ hm.revision = W64 σ.kv.rev⌝) ∨
-      (⌜err = concErrVal .sessionExpired⌝ ∗ P ∗ ∃ (st' : MutexSt) (σ : State), mutexSt m st' ∗
-          etcdLb γ σ ∗ ⌜Reach σ0 σ ∧ pfx <+: st'.key ∧ σ.kv.store st'.key = none⌝) ∨
+          ⌜Reach σ0 σ ∧ k = sessKey pfx (sint.Z id) ∧ lockedSince pfx k cr σ ∧ hm.revision = W64 σ.kv.rev ∧
+            (σ0.kv.rev < cr ∨ ∃ r, σ0.kv.store k = some r ∧ r.createRev = cr)⌝) ∨
+      (globalAddr go_etcd_io.etcd.client.v3.concurrency.ErrSessionExpired ↦□ err ∗ P ∗ ∃ (st' : MutexSt) (σ : State),
+          mutexSt m st' ∗ etcdLb γ σ ∗
+          ⌜Reach σ0 σ ∧ st'.key = sessKey pfx (sint.Z id) ∧ σ.kv.store st'.key = none⌝) ∨
       (⌜err ≠ GoInterface.nil⌝ ∗ ∃ st' : MutexSt, mutexSt m st') }}
 
 end spec

@@ -15,6 +15,8 @@ copy, `cmpAt _ m`), `Cmp.GetCompare.spec` (a zero `Cmp` gets a zero `Compare`), 
 
 Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/txn__If.lean`: restated over `txnAt` and the model's requests; otherwise unchanged.
 
+verify-round: `Cmp.GetCompare` of a zero `Cmp` allocates a `Compare`, persisted by `protoRest_persist` (A1-provability F6); `Txn.IfTriple` takes the state predicate as a parameter (`txnAt_intro`, A1-completeness F2).
+
 Margin: none.
 -/
 module

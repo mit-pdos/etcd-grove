@@ -3,9 +3,9 @@
 
 **Users.** `pipeline.post`, `snapshotSender.send`.
 
-**Proof sketch.** `uu.Path = path`, `url.URL.String`, `http.NewRequest` (succeeds on a URL `urlOk`), five `Header.Set`s, `setPeerURLsHeader`.
+**Proof sketch.** `uu.Path = path`, `url.URL.String`, `http.NewRequest` (succeeds on a URL `urlOk`), five `Header.Set`s, `setPeerURLsHeader`. `types.ID`'s `String()` on an addressable `ID` (log fields, headers) is 1c's `Types.ID.String_ptr.spec` (Goose's pointer receiver).
 
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour.
+**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour. verify-round (second pass): the sketch cites `Types.ID.String_ptr.spec`.
 
 **Margin.** The headers are opaque (`postHdrs`): only rafthttp's protocol reads them.
 -/

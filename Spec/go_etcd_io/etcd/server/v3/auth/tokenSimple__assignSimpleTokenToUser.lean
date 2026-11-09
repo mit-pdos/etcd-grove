@@ -34,8 +34,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
 /-- **`t.assignSimpleTokenToUser(name, tok)`** of a fresh token the cluster issued to `name`. -/
 def tokenSimple.assignSimpleTokenToUser.spec : Prop :=
-  ∀ (t : Loc) (γ : Cluster) (name tok : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ simpleAt t γ ∗ simpleFresh t tok ∗ tokenUser γ tok name }}
+  ∀ (t : Loc) (γ : Cluster) (R : IProp GF) (name tok : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ simpleAt t γ R ∗ simpleFresh t tok ∗ tokenUser γ tok name }}
     (App (App (Val (t @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.tokenSimple.ty @!! go!"assignSimpleTokenToUser")) (Val #name)) (Val #tok))
   {{ RET #(); True }}
 

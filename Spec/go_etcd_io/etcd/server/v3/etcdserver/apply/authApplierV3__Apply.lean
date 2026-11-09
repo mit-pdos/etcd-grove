@@ -3,9 +3,17 @@
 
 **Users.** `uberApplier.Apply` (the chain's outer layers' `Apply` are this one, promoted).
 
-**Proof sketch.** The mutex (`applierAt`'s realization: `∃ ai, aa.authInfo ↦ ai`) gives `aiAt`; `needAdminPermission.spec`; 3d's `IsAdminPermitted` at the stores' auth state (`stAt`: `adminErr`); the base's `Apply` (the quota applier's promoted one, then `applierV3backend.Apply.spec`) with the function value's triple.
+**Proof sketch.** The mutex (`applierAt`'s realization: its invariant `aa.authInfo ↦ ("", 0)`, which
+every path restores before unlocking, `auth.go:54-55,60-61`) gives the field at `("", 0)`; with a
+header it is set to the header's user and revision, without one it stays `("", 0)` (`Irr.user`,
+`Irr.revW` of `hdr = none`): either way `aiAt aa ir.user ir.revW`; `needAdminPermission.spec`; 3d's
+`IsAdminPermitted` at the stores' auth state (`stAt`: `adminErr`); the base's `Apply` (the quota
+applier's promoted one, then `applierV3backend.Apply.spec`) with the function value's triple; the
+field reset to `("", 0)` from the `∃ u rv, aiAt aa u rv` it gives back, and the mutex released.
 
 **Changes** from `specs-ref`'s file of the same name: restated over the new vocabulary (`beAt`, `stAt`, `applierAt`, the model state); one spec for every mode.
+verify-round (A9 F5): the mutex invariant pinned to `("", 0)` (it was `∃ ai`, too weak for a
+header-less request); the statement is unchanged.
 
 **Margin.** None.
 -/

@@ -18,6 +18,30 @@ initialization registers exactly those, `schema/bucket.go:64`: `safeRegOk`, whic
 non-blocking defragmentation is configured) and swap. Errors before the swap restore the transactions and are returned; failures
 after it are `lg.Fatal` (never returns); a panic inside is turned into `lg.Fatal`.
 
+**What it rests on in bbolt (4c) and OsFs** (verify-round A11-completeness F1-F3, S4; second pass:
+bbolt's laws now exist):
+* **the copy's `Put`s and `CreateBucketIfNotExists`** (`defragdb` `:827/849`,
+  `defragdbAndTrackLastKeys` `:905/930`, `catchUpDefrag` `:1012-1026`): their size premises hold of
+  entries read from the source transaction by 4c's `Ent.wf` (keys within `maxKeySize`, entries within
+  `bboltEntryMax`, carried by `boltTx_wf`/`boltImage_wf`), so a `Put` error is excluded (and with it
+  the stuck error path: `tx.Rollback()` at `:816` before `tmptx.Rollback()` at `:805-809` while
+  `tmptx` holds `putLoan`s of `tx`'s bytes);
+* **`createDefragTmpDB`** (`:512-546`): `os.CreateTemp`'s empty file, 4c's `boltFresh_alloc`
+  (its name not durable until the swap); `bolt.Open(tdbp, 0o600, &options)` with `OpenFile`
+  returning the one `temp` file: 4c's one-shot `openFileOk`, and on `Open`'s error the lent file
+  back for `temp.Close()` and `os.Remove(temp.Name())` (`:536-538`);
+* **`finishDefrag`'s swap** (`:565-606`: both closed, the copy synced, `os.Rename(tdbp, dbp)`,
+  `bolt.Open(dbp)`) and **`cleanupTmpDB`'s `os.RemoveAll(tdbp)`** (`:553-560`): 4c's `boltRelease`
+  takes each closed database's file out of its `boltFile` (the copy's bytes an image of its data,
+  synced: `dur = some []`); then **OsFs's `rename`** (still absent from Perennial's OsFs: the one
+  remaining gap, `batch-4c.md`, I7 item 6); then `fileHolds_image`/`fileHolds_alloc` for the reopened
+  path. A crash between the rename and a directory sync: `Durable.lean`'s `beRevert` (the old file
+  may come back, also the last commit's image);
+* **`Begin(true)` on the copy after each intermediate commit** (`:839-845`, `:921-927`, `:1004`): its
+  error is excluded by `dbBroken_state` with the commit's success. Were it not, the deferred
+  `tmptx.Rollback()` would dereference the `nil` transaction it was reassigned to:
+  `nonissues/etcd-backend-defrag-rollback-nil-tx.md` (a precondition etcd meets).
+
 **Changes.** New (no old spec): the defragmentation is in scope.
 
 **Margin.** The file's layout (its size) changes; the specs do not state sizes.

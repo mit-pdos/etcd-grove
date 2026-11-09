@@ -4,6 +4,8 @@
 Users: `processInternalRaftRequestOnce` (`v3_server.go:1087`: the metrics' label). Mirrors the code:
 a `switch` on the request's fields (reads only). Changes: unchanged in content. Margin: the label is
 not stated (no caller reads it but the metrics).
+
+Changes: verify-round (A7-provability F3, F5): see the verify round's repair: the context needs only its otel span (`reqCtxSpan`, any trace: the outer method's `EnsureTrace` installed one); the request message comes back with whatever header was set (`∃ h, irrOwnH r dq ir h`: the header is written before proposing).
 -/
 module
 
@@ -30,10 +32,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- A label (unspecified). -/
 def getRequestType.spec : Prop :=
-  ∀ (r : Loc) (dq : DFrac) (ir : IrrBody),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ irrOwn r dq ir }}
+  ∀ (r : Loc) (dq : DFrac) (ir : IrrBody) (h : Option EtcdServerPb.IrrHeader),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ EtcdServerPb.irrOwnH r dq ir h }}
     (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.getRequestType)) (Val #r))
-  {{ (l : GoString), RET #l; irrOwn r dq ir }}
+  {{ (l : GoString), RET #l; EtcdServerPb.irrOwnH r dq ir h }}
 
 end spec
 end EtcdServer

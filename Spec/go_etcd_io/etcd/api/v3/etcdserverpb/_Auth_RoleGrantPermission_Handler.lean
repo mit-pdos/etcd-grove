@@ -10,6 +10,7 @@ premise), the method directly or through the interceptor (with a `*UnaryServerIn
 `func(ctx, req) { return srv.(AuthServer).RoleGrantPermission(ctx, req.(*AuthRoleGrantPermissionRequest)) }`). 2a composes it with
 `icChain_call` and the method's `HandlerTriple` into `Grpc.unaryOk`.
 Changes: from `specs-ref/Spec/go_etcd_io/etcd/api/v3/etcdserverpb/_Auth_RoleGrantPermission_Handler.lean`: WP form over grpc's `decOk` and the request's content (2a), instead of the old `grpcHandlerOkMd` over caller-built `ProtoMsg`s (`specs-ref/notes/grpc-msg-models.md`); the interceptor chain is 2a's (`icChain_call`).
+verify-round (A6 F2): the decoded request is canonical, `⌜Proto.norm c = c⌝` (was `Proto.decodedAt`).
 Margin: none.
 -/
 module
@@ -41,7 +42,7 @@ def _Auth_RoleGrantPermission_Handler.spec : Prop :=
   go.typeSetContains srv.ty etcdserverpb.AuthServer.ty = true →
   isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ Grpc.decOk dec etcdserverpb.AuthRoleGrantPermissionRequest.ty c ∗
     (∀ q : Loc, Proto.msgAt etcdserverpb.AuthRoleGrantPermissionRequest.ty q (DFrac.own 1) c -∗
-      Proto.decodedAt etcdserverpb.AuthRoleGrantPermissionRequest.ty q -∗
+      ⌜Proto.norm c = c⌝ -∗
       handlerBodyWP srv go!"RoleGrantPermission" etcdserverpb.AuthRoleGrantPermissionRequest.ty etcdserverpb.AuthRoleGrantPermissionResponse.ty go!"/etcdserverpb.Auth/RoleGrantPermission"
         ctx q ic Ψ) ⊢
   WP (App (App (App (App (Val (@! etcdserverpb._Auth_RoleGrantPermission_Handler)) (Val #(GoInterface.ok srv)))

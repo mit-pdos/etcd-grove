@@ -32,6 +32,8 @@ range ends `nil` or non-empty, `nonissues/etcd-auth-empty-range-end-point-check.
 builds its range request, `endsDecoded_range_intro`).
 
 **Margin.** The chunk sizes (`adjustChunkLimit`, `--max-request-bytes`) are not stated.
+
+Changes: verify-round, second pass (grpc-v3rpc's request): `rsSink_send`'s new premise, no chunk sent so far has a header, holds: only the last chunk (`done`, or the count-only one, sent alone) sets `Header`, after which `rangeStream` returns. `endsDecoded` is now a share of the request message with the pure `endsOk` fact (2a's handler: `endsDecoded_of_canon` at a decoded message, `Proto.norm c = c`).
 -/
 module
 
@@ -73,8 +75,8 @@ def EtcdServer.RangeStream.spec : Prop :=
       ∃ ms, rsSink rs γ p tls rm ms ∗
       ((⌜err = GoInterface.nil⌝ ∗ ∃ σ σ' rev a, Q σ σ' (.ok (.range rev a)) ∗
           ⌜ClientV3.streamMatches rm ms rev a⌝) ∨
-       (⌜ms = []⌝ ∗ ∃ σ σ' e, Q σ σ' (.err e) ∗ ⌜srvErrOf err e⌝ ∗ srvErrShape err) ∨
-       (⌜srvErrOf err .authOldRevision ∨ srvErrOf err .compacted ∨ srvUnfired err ∨ srvIndef err⌝ ∗
+       (⌜ms = []⌝ ∗ ∃ σ σ' e, Q σ σ' (.err e) ∗ srvErr err e ∗ srvErrShape err) ∨
+       ((srvErr err .authOldRevision ∨ srvErr err .compacted ∨ srvUnfired err ∨ srvIndef err) ∗
           srvErrShape err)) }}
 
 end spec

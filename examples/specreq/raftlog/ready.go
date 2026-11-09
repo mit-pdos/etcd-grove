@@ -17,7 +17,10 @@ import (
 // Assumes: st is the log's attached storage (a MemoryStorage); the previous batch was absorbed
 // (raftLog_absorb, at the previous acknowledgement) and this one is absorbed after the writes,
 // before stableTo; no other Step between the Ready and its acknowledgement, so StableOk follows
-// from Wf's in-progress agreement; the committed range fits in memory (< 2^63 entries).
+// from Wf's in-progress agreement; the committed range fits in memory (< 2^63 entries); the applied
+// index is below the in-progress offset at the hand-out (true in every reachable state: a
+// truncation is above committed, a restore past it; so the last entry's term read is not compacted;
+// verify-round, A5 S2).
 // Specs: raftLog.nextUnstableEnts.spec, raftLog.nextUnstableSnapshot.spec,
 // raftLog.nextCommittedEnts.spec, raftLog.acceptUnstable.spec, raftLog.acceptApplying.spec,
 // raftLog.stableTo.spec, raftLog.stableSnapTo.spec, raftLog.appliedTo.spec, entsSize.spec;
@@ -89,10 +92,17 @@ func ReqCompactApplied(l *raftLog, st *MemoryStorage, i uint64, cs *pb.ConfState
 // Users: node.go:354-394 (run steps recvc while advancec is armed), raft.go:1215-1228,
 // etcd server/etcdserver/server.go (compaction after Advance).
 // Assumes: as ReqReadyCycle, but a step (truncate, or restore of s2 past committed) between the
-// hand-out and the acknowledgement; committed covers the applied entries handed out.
+// hand-out and the acknowledgement; committed covers the applied entries handed out; no snapshot
+// pending at the hand-out (the batch has entries only); the cluster's log matching (an entry of
+// `newer` with the acknowledged index and term is the acknowledged entry, as are those before it:
+// StableOk); cs the configuration at the last applied index and the snapshot valid there (the
+// storage invariant's V). (Verify-round, A5 F6: the snapshot is stored before the compaction,
+// which needs it, logSnapLb; the pending-snapshot and log-matching assumptions were missing.)
 // Specs: raftLog.append.spec, raftLog.restore.spec, raftLog.stableTo.spec, raftLog.appliedTo.spec;
-// laws: raftLog_absorb.spec, raftLog_publish.spec (from frozen), logStor_compact.spec.
-func ReqMoveBeforeAdvance(l *raftLog, st *MemoryStorage, newer []*pb.Entry, s2 *pb.Snapshot) {
+// laws: raftLog_absorb.spec, raftLog_publish.spec (from frozen; at i <= applying), logFloor_stored.spec,
+// logStor_createSnapshot.spec, logStor_compact.spec.
+func ReqMoveBeforeAdvance(l *raftLog, st *MemoryStorage, newer []*pb.Entry, s2 *pb.Snapshot,
+	cs *pb.ConfState) {
 	ents := l.nextUnstableEnts()
 	committed := l.nextCommittedEnts(true)
 	l.acceptUnstable()
@@ -110,6 +120,9 @@ func ReqMoveBeforeAdvance(l *raftLog, st *MemoryStorage, newer []*pb.Entry, s2 *
 	if len(committed) > 0 {
 		i := committed[len(committed)-1].GetIndex()
 		l.appliedTo(i, entsSize(committed))
+		if _, err := st.CreateSnapshot(i, cs, nil); err != nil && err != ErrSnapOutOfDate {
+			panic("move-before-advance: snapshot refused")
+		}
 		if err := st.Compact(i); err != nil && err != ErrCompacted {
 			panic("move-before-advance: compaction refused")
 		}

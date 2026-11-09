@@ -23,7 +23,7 @@ an entry below the view changes nothing (`m' = v.membership`).
 `RawNode.Bootstrap` applies the bootstrap changes before their entries are delivered (the view then
 ahead of the applied index: the realization's V1).
 
-**Margin.** The returned `ConfState` is fresh; nothing is said of the new view `ρ'`.
+**Margin.** The returned `ConfState` is fresh; nothing is said of the new view `ρ'`. Verify-round (A5 completeness F2, raft-conf-pb's request): `confStateFull` (Go's `ConfState()` sets `AutoLeave`), so the server can store it in a snapshot (`CreateSnapshot`, the merged `MsgSnap`).
 -/
 module
 
@@ -60,7 +60,7 @@ def raft.applyConfChange.spec : Prop :=
       (if v.applied ≤ k then confSkipped γ l v.applied k else iprop(⌜m' = v.membership⌝)) }}
     (App (Val (r @!! go.GoType.PointerType go_etcd_io.raft.v3.raft.ty @!! go!"applyConfChange")) (Val #p))
   {{ (csp : Loc), RET #csp; ∃ (ρ' : CoreView) (cs : ConfState), raftCore r γ id ρ' ∗
-      confChangePts (interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.raftpb.ConfChangeV2.ty) #p) dq (.v2 c2) ∗ confStatePts csp (DFrac.own 1) cs ∗ ⌜cs.Is m'⌝ ∗
+      confChangePts (interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.raftpb.ConfChangeV2.ty) #p) dq (.v2 c2) ∗ RaftPb.confStateFull csp (DFrac.own 1) cs ∗ ⌜cs.Is m'⌝ ∗
       nodeConf rn γ (if v.applied ≤ k then ⟨k + 1, m'⟩ else v) }}
 
 end spec

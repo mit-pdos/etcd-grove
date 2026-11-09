@@ -14,6 +14,7 @@ predicates become these. Intended realization: as `etcdserverpb/Api.lean`'s.
 module
 
 public import Spec.google_golang_org.protobuf.proto.Api
+public import Spec.google_golang_org.grpc.Api
 public import Spec.go_etcd_io.etcd.api.v3.Wire
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb
 public import Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb
@@ -122,6 +123,60 @@ def resp_fold.spec : Prop :=
     protoRest (GF := GF) v3electionpb.ResignResponse p (DFrac.own 1) ∗
       p.[v3electionpb.ResignResponse, go!"Header"] ↦ h ∗ optOwn respHeaderOwn h (DFrac.own 1) ho ⊢
     resignResp p)
+
+/-- **The replies' fields** (server-boot's request, verify-round: its `Campaign`/`Leader` posts read
+and fill the replies): the converse of `resp_fold`, the reply's header (owned, or `nil`), its leader
+key or key-value. -/
+def resp_unfold.spec : Prop :=
+  (∀ p lk, campaignResp (GF := GF) p lk ⊢
+    ∃ (h lp : Loc) (ho : Option HeaderM), protoRest v3electionpb.CampaignResponse p (DFrac.own 1) ∗
+      p.[v3electionpb.CampaignResponse, go!"Header"] ↦ h ∗ optOwn respHeaderOwn h (DFrac.own 1) ho ∗
+      p.[v3electionpb.CampaignResponse, go!"Leader"] ↦ lp ∗ leaderKeyRO lp (some lk)) ∧
+  (∀ p v, leaderResp (GF := GF) p v ⊢
+    ∃ (h kp : Loc) (ho : Option HeaderM), protoRest v3electionpb.LeaderResponse p (DFrac.own 1) ∗
+      p.[v3electionpb.LeaderResponse, go!"Header"] ↦ h ∗ optOwn respHeaderOwn h (DFrac.own 1) ho ∗
+      p.[v3electionpb.LeaderResponse, go!"Kv"] ↦ kp ∗ keyValueOwn kp DFrac.discard (KeyValueM.ofKV v)) ∧
+  (∀ p, proclaimResp (GF := GF) p ⊢
+    ∃ (h : Loc) (ho : Option HeaderM), protoRest v3electionpb.ProclaimResponse p (DFrac.own 1) ∗
+      p.[v3electionpb.ProclaimResponse, go!"Header"] ↦ h ∗ optOwn respHeaderOwn h (DFrac.own 1) ho) ∧
+  (∀ p, resignResp (GF := GF) p ⊢
+    ∃ (h : Loc) (ho : Option HeaderM), protoRest v3electionpb.ResignResponse p (DFrac.own 1) ∗
+      p.[v3electionpb.ResignResponse, go!"Header"] ↦ h ∗ optOwn respHeaderOwn h (DFrac.own 1) ho)
+
+/-- **`Observe`'s server stream** (exclusive; server-boot's request, verify-round, for
+`electionServer.Observe`): the `Election_ObserveServer` value `ss` of a run of
+`/v3electionpb.Election/Observe`, its context `ctx`. Intended realization: the generated handler's
+`GenericServerStream` wrapper over grpc's run (`Grpc.genSrvAt`) with the run's send half
+(`Grpc.srvSend`) under the service's trivial contract (`V3rpc.etcdContract`'s `snapSpec`) and
+`srvCtxOf`; `observeStream_send` is `genSrv_send` with `srvSend_send`. -/
+opaque observeStreamAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ss : GoInterface) (ctx : GoInterface) : IProp GF := iprop(True)
+
+/-- **`ss.Send(resp)`**: the reply (read, given back) sent, or an error grpc made itself (the
+client gone); the stream kept either way. -/
+def observeStream_send.spec : Prop := ∀ (ss ctx : GoInterface) (p : Loc) (v : EtcdModel.KV),
+  {{ observeStreamAt (GF := GF) ss ctx ∗ leaderResp p v }}
+    (App (Val (ss @!! v3electionpb.Election_ObserveServer.ty @!! go!"Send")) (Val #p))
+  {{ (err : GoInterface), RET #err; observeStreamAt ss ctx ∗ leaderResp p v ∗
+      (⌜err = GoInterface.nil⌝ ∨ Grpc.ownErr err) }}
+
+/-- **`ss.Context()`**: the run's context (done when the client goes away). -/
+def observeStream_context.spec : Prop := ∀ (ss ctx : GoInterface),
+  {{ observeStreamAt (GF := GF) ss ctx }}
+    (App (Val (ss @!! v3electionpb.Election_ObserveServer.ty @!! go!"Context")) (Val #()))
+  {{ RET #ctx; observeStreamAt ss ctx ∗ Context.ctxOk ctx }}
+
+/-- **The service's descriptor** (`Election_ServiceDesc`, read-only after init; verify-round, A6-completeness F4:
+what `RegisterElectionServer` registers on a member's gRPC server, `embed/serve.go:184-186,
+244-246`). Its initializer is generated code Goose leaves untranslated (`Election_ServiceDesc.init`): a fact about
+it, as `EtcdServerPb`'s descriptors. -/
+def electionDesc_init.spec : Prop :=
+  isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb ⊢
+    Grpc.serviceDescAt (globalAddr v3electionpb.Election_ServiceDesc) go!"v3electionpb.Election"
+      [(go!"Campaign", @! v3electionpb._Election_Campaign_Handler),
+       (go!"Proclaim", @! v3electionpb._Election_Proclaim_Handler),
+       (go!"Leader", @! v3electionpb._Election_Leader_Handler),
+       (go!"Resign", @! v3electionpb._Election_Resign_Handler)]
+      [(go!"Observe", @! v3electionpb._Election_Observe_Handler)]
 
 end res
 

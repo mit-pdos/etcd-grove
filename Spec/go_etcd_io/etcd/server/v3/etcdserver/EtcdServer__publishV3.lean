@@ -13,6 +13,8 @@ member is still a member (else nothing: the update aborted). On `nil`, `close(s.
 step of W0's model (it was invisible to the old KV-only model).
 
 **Margin.** None for safety.
+
+Changes: verify-round (A7-completeness F1): takes and gives back the goroutine's `threadTok` (`GoAttach` gives it one; `Notifier.Receive`, `Logger`, `raftRequest` take one).
 -/
 module
 
@@ -38,9 +40,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **Publishes the member's attributes** until it succeeds or the server stops. -/
 def EtcdServer.publishV3.spec : Prop :=
   ∀ (s : Loc) (γ : Cluster) (tmo : time.Duration),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ srvPublish s }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ srvPublish s ∗ threadTok }}
     (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"publishV3")) (Val #tmo))
-  {{ RET #(); True }}
+  {{ RET #(); threadTok }}
 
 end spec
 

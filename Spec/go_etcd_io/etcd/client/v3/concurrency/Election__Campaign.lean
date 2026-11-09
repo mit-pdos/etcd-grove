@@ -13,7 +13,9 @@ Proof sketch: `isSession_client`; `fmt.Sprintf` (the key `k` under the prefix); 
 `Else(OpGet(k))` (update from the lent permission: `campaignEff`'s put); its reply at `σt`: created, `c` is
 the header's revision and `k` holds `val` there; else `c` is `k`'s create revision and its value
 the get's; if that value is not `val`, `Election.Proclaim.spec` (`k`, `c`, the session: its
-success puts `val` keeping `c`; its failure: `Election.Resign.spec` and the error).
+success puts `val` keeping `c`; its failure: `Election.Resign.spec` and the error; after `ErrElectionNotLeader` the leader key
+is `""`, and `Resign`'s premise over `k = "" ∧ k ≠ ""` is the identity, within any `T`; after another
+error it is `k`, whose delete is `campaignEff`'s).
 `waitDeletes.spec` with `c - 1` (`etcdLb_init`: `c ≥ 2`): at `σ` nothing under the prefix is
 older than `c`. On its error, `ctx.Done()` in a `select` with a default (`Context.Done.spec`,
 `doneRecv`): `Resign(client.Ctx())` (1c's `Client.Ctx.spec`) or the leader session cleared.
@@ -28,6 +30,8 @@ Changes: from `specs-ref`'s `Election__Campaign.lean`: over the cluster's states
 user transactions (`fence`). Any context. Round 1: the lent permission, `σ0`, the principal
 per call; the cleanup `Resign` (as the client's own principal on a done context) has
 `campaignEff`'s delete.
+
+Changes: verify-round: the key is the session's (`sessKey`; `campaignEff` touches only it, A3 completeness F2); the cleanup `Resign` after a failed fence closes through `Resign`'s sharpened premise (A3 F2).
 
 Margin: errors unclassified, the state after one any.
 -/
@@ -67,7 +71,7 @@ def Election.Campaign.spec : Prop :=
       (⌜err = GoInterface.nil⌝ ∗ P ∗ ∃ (k : GoString) (cr : Nat) (hd : Loc) (hm : HeaderM) (σ σv : State),
           electionSt e { leaderKey := k, leaderRev := W64 cr, leaderSession := s, hdr := hd } ∗
           etcdLb γ σ ∗ etcdLb γ σv ∗ respHeaderOwn hd DFrac.discard hm ∗
-          ⌜Reach σ0 σv ∧ Reach σ0 σ ∧ waitedFor pfx k cr σ ∧ (cr : Int) ≤ sint.Z hm.revision ∧
+          ⌜Reach σ0 σv ∧ Reach σ0 σ ∧ k = sessKey pfx (sint.Z id) ∧ waitedFor pfx k cr σ ∧ (cr : Int) ≤ sint.Z hm.revision ∧
             sint.Z hm.revision ≤ σ.kv.rev ∧
             ∃ r, σv.kv.store k = some r ∧ r.createRev = cr ∧ r.value = val⌝) ∨
       (⌜err ≠ GoInterface.nil⌝ ∗ ∃ st' : ElectionSt, electionSt e st') }}

@@ -2,8 +2,10 @@
 ## `(*storage).Sync()` (`storage.go:83-87`): trusted (names only)
 
 **Users.** The raft loop (2d: after a leader's `Save` of a commit-only state, on a heartbeat).
-**Why it is true.** `WAL.Sync`: an fsync; no change to the records (they are the write's).
-**Changes**: new. **Margin.** None (no crash in scope).
+**Why it is true.** `WAL.Sync`: an fsync; no change to the records' replay view. **Changes**: new.
+**Margin.** The synced commit is not raised (`Wal.Recs.syncedCommit` keeps the last write's): a
+crash after a `Sync` is described as if the commit-only state were still unsynced (weaker than the
+code). Verify-round (A8 provability F1.2): the "no crash in scope" note dropped.
 -/
 module
 

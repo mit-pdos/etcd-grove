@@ -6,6 +6,8 @@
 **Proof sketch.** Allocation; `beAt` and `stAt` are the options' slots (`optsOk`, `optsSt`) behind the field.
 
 **Changes** from `specs-ref`'s file of the same name: restated over the new vocabulary (`beAt`, `stAt`, `applierAt`, the model state); one spec for every mode.
+verify-round (A9 F2, F3, F6): the slots now carry the hooks (`hooksOk`) and the lessor's deleter and
+live leases (`lessorSt`); the statement is unchanged.
 
 **Margin.** None.
 -/

@@ -3,9 +3,9 @@
 
 **Users.** `Transport.Handler`'s mux at `/raft/stream/`.
 
-**Proof sketch.** The method; `X-Server-Version` and the cluster id set on the header map (`Http.respW_header.spec`, `Header.Set`: the response headers `raftProto` asks); the compatibility check; `path.Dir` against the two `endpoint`s, `path.Base`, `types.IDFromString` (the requester `B`); `IsIDRemoved(B)` (`raftOk`, the token): `410`; `Transport.Get(B)`: none: `AddRemote` from `X-PeerURLs`, `404`; `X-Raft-To` not the local id: `412`. Then `WriteHeader(200)`, `Flush`, `newCloseNotifier`, the `outgoingConn` (the writer, committed, as `outConn` for `B`'s reader tokens named by `τ` in the registry: `raftProto`'s request knowledge), `attachOutgoingConn`, and a receive on the close notifier, which gives the writer back (`serveDone`). A replayed `GET` (no ticket) only opens a connection whose bytes no client reads.
+**Proof sketch.** The method; `X-Server-Version` and the cluster id set on the header map (`Http.respW_header.spec`, `Header.Set`: the response headers `raftProto` asks); the compatibility check; `path.Dir` against the two `endpoint`s, `path.Base`, `types.IDFromString` (the requester `B`); `IsIDRemoved(B)` (`raftOk`, the token): `410`; `Transport.Get(B)`: none: `AddRemote` from `X-PeerURLs`, `404`; `X-Raft-To` not the local id: `412`. Then `WriteHeader(200)`, `Flush`, `newCloseNotifier`, the `outgoingConn` (the writer, committed, as `outConn` for `B`'s reader tokens named by `τ` in the registry: `raftProto`'s request knowledge), `attachOutgoingConn`, and a receive on the close notifier, which gives the writer back (`serveDone`). A replayed `GET` (no ticket) only opens a connection whose bytes no client reads. `types.ID`'s `String()` on an addressable `ID` (log fields, headers) is 1c's `Types.ID.String_ptr.spec` (Goose's pointer receiver).
 
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour.
+**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour. verify-round (second pass): the sketch cites `Types.ID.String_ptr.spec`.
 
 **Margin.** None.
 -/

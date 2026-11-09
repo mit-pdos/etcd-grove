@@ -3,9 +3,9 @@
 
 **Users.** etcd's `raftNode.start` (`server/etcdserver/raft.go:250`: a leader sends its `Ready`'s messages before the write; `raft.go:329`: a follower after it), on `processMessages`'s output (`MsgSnap`s diverted to `msgSnapC`, at most one `MsgAppResp`, none to removed members). Snippet: `transport.go` (`ReqSendReady`).
 
-**Proof sketch.** For each message: `To` read (`msgPts`); `0`: skipped. `RLock` with the token (a reader slot of the transport's pool), the maps read, `RUnlock`. A peer: `ServerStats.SendAppendReq` for a `MsgApp`, `peer.send` (its spec takes `outMsg`); a remote: `remote.send`; none: dropped (the facts are lost, which only loses a message), logged.
+**Proof sketch.** For each message: `To` read (`msgPts`); `0`: skipped. `RLock` with the token (a reader slot of the transport's pool), the maps read, `RUnlock`. A peer: `ServerStats.SendAppendReq` for a `MsgApp`, `peer.send` (its spec takes `outMsg`); a remote: `remote.send`; none: dropped (the facts are lost, which only loses a message), logged (`m.GetType().String()` for a log line is raftpb's `MessageType.String` (a trust-boundary spec, requested of raft-conf-pb: verify-round A5 F1)). `types.ID`'s `String()` on an addressable `ID` (log fields, headers) is 1c's `Types.ID.String_ptr.spec` (Goose's pointer receiver).
 
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour. The bundle is raft's `msgSent`/`msgCredit` (was `netBundle`'s payload `P`/`O`); `sendable` is the old `MsgMarshals`/`AppShape` premise restated over R1's `Msg`.
+**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour. The bundle is raft's `msgSent`/`msgCredit` (was `netBundle`'s payload `P`/`O`); `sendable` is the old `MsgMarshals`/`AppShape` premise restated over R1's `Msg`. verify-round (A5 F1): the sketch cites raftpb's `MessageType.String`. verify-round (second pass): the sketch cites `Types.ID.String_ptr.spec`.
 
 **Margin.** No delivery is promised (liveness); the at-most-once delivery is what `raftOk`'s `Process` premise and the credit's exclusivity make of it.
 -/

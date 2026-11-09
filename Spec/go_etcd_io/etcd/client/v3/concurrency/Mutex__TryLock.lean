@@ -14,7 +14,7 @@ the oldest's create revision is `c`: the key holds at the transaction's state (`
 header kept (persisted: `replyPersist`); otherwise an older key holds there, and the key is
 deleted (`isClient_KV`, the KV contract's `Delete`, the update from the lent permission:
 `mutexEff`'s delete), `ErrLocked` (`init.spec`). Every other error is a client call's: not one of
-the package's values (`callErr_errorsNew`, `concErrVal_notCanceled`, `concErrVal_ok`). The lent permission (`etcdLent γ T P` with the token `P`): each write's exclusive update
+the package's values (`notConcErr`: `init.spec`'s `concErrsOk` with W0's `callErr_errorsNew`). The lent permission (`etcdLent γ T P` with the token `P`): each write's exclusive update
 is built from it (giving `P` up, back at the commit), each read's from its `etcdPeek`; the first
 firing after the call starts gives `Reach σ0` (`etcdLb_reach`). `P` is returned on every outcome
 whose writes have all been answered; an error after which a write may be pending keeps it.
@@ -22,6 +22,8 @@ whose writes have all been answered; an error after which a write may be pending
 Changes: from `specs-ref`'s `Mutex__TryLock.lean`: over the cluster's states; `ErrLocked` also says
 the key is gone and another key held the lock. Round 1: the lent permission, `σ0`, the other
 errors distinct from the package's.
+
+Changes: verify-round: the key held is the session's (`sessKey`, A3 completeness F2); `ErrLocked` the value its variable holds, the other errors `notConcErr` (A3 F4).
 
 Margin: none.
 -/
@@ -58,13 +60,13 @@ def Mutex.TryLock.spec : Prop :=
       (⌜err = GoInterface.nil⌝ ∗ P ∗ ∃ (k : GoString) (cr : Nat) (hd : Loc) (hm : HeaderM) (σ : State),
           mutexSt m { key := k, rev := W64 cr, hdr := hd } ∗ etcdLb γ σ ∗
           respHeaderOwn hd DFrac.discard hm ∗
-          ⌜Reach σ0 σ ∧ 0 < cr ∧ cr ≤ σ.kv.rev ∧ holdsAt pfx k cr σ.kv.store ∧
+          ⌜Reach σ0 σ ∧ k = sessKey pfx (sint.Z id) ∧ 0 < cr ∧ cr ≤ σ.kv.rev ∧ holdsAt pfx k cr σ.kv.store ∧
             hm.revision = W64 σ.kv.rev⌝) ∨
-      (⌜err = concErrVal .locked⌝ ∗ P ∗ ∃ (k : GoString) (cr : Nat) (σ σ' : State),
+      (globalAddr go_etcd_io.etcd.client.v3.concurrency.ErrLocked ↦□ err ∗ P ∗ ∃ (k : GoString) (cr : Nat) (σ σ' : State),
           mutexSt m { key := [W8 0], rev := W64 (-1), hdr := st.hdr } ∗ etcdLb γ σ ∗ etcdLb γ σ' ∗
           ⌜Reach σ0 σ ∧ Reach σ σ' ∧ pfx <+: k ∧ (∃ r, σ.kv.store k = some r ∧ r.createRev = cr) ∧
             ¬ noOlder pfx cr σ.kv.store ∧ σ'.kv.store k = none⌝) ∨
-      (⌜err ≠ GoInterface.nil ∧ ∀ e, err ≠ concErrVal e⌝ ∗ ∃ st' : MutexSt, mutexSt m st') }}
+      (⌜err ≠ GoInterface.nil⌝ ∗ notConcErr err ∗ ∃ st' : MutexSt, mutexSt m st') }}
 
 end spec
 

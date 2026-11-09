@@ -28,6 +28,8 @@ never to close (the fixed bug); round 1 used a slot of its own; now 1b's `watchC
 **Premise**: `ts ≠ []` (with no type to match, the first event indexes `evs[0]` and panics); a watch
 from a revision `rev > 0`.
 
+**Changes (second pass)**: the returned event is, unconditionally, a real event of some revision that the watch keeps (in its range, of its types): 1b's `watchStep` now states this outside the `exactFrom` gate; the prefix of the history stays gated.
+
 **Margin**: the events of the responses after the match are not reported (the code drops them).
 
 **Integration (I1)**: the prefix claim (`es ++ [e]` a prefix of `watchEvents`) is gated by the compaction condition `exactFrom σ.kv rev` (W0's
@@ -67,7 +69,10 @@ def waitEvents.spec : Prop :=
   {{ (ev : Loc) (err : GoInterface), RET (PairV #ev #err);
       (⌜err = GoInterface.nil⌝ ∗ ∃ (es : List WEv) (e : WEv) (m : EventM) (σ : State),
         eventOwn ev (DFrac.own 1) m ∗ etcdLb γ σ ∗
-        ⌜m.del = e.del ∧ m.kv = e.kv ∧ (EtcdModel.exactFrom σ.kv rev → es ++ [e] <+: watchEvents w σ.kv rev σ.kv.rev) ∧
+        ⌜m.del = e.del ∧ m.kv = e.kv ∧
+          (∃ (r : Nat) (ev0 : Event), ev0 ∈ σ.kv.eventsAt r ∧ (WEv.ofEvent r ev0).del = e.del ∧
+            (WEv.ofEvent r ev0).kv = e.kv ∧ w.keeps (WEv.ofEvent r ev0)) ∧
+          (EtcdModel.exactFrom σ.kv rev → es ++ [e] <+: watchEvents w σ.kv rev σ.kv.rev) ∧
           matchCount ts es < ts.length ∧ matchCount ts (es ++ [e]) = ts.length⌝) ∨
       (⌜err ≠ GoInterface.nil ∧ ev = null⌝ ∗ recipeErrOk err) }}
 

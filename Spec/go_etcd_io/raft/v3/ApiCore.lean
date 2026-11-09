@@ -41,10 +41,14 @@ raft struct can be read, not changed: `readyFresh_ro`); anything stepped forgets
 (`readyFresh_forget`), keeping only the persistent `readyKept rn k rd`, from which R1's
 `HasReady() = false` restores it (then `rd` is empty: `readyEmpty`). `ready_handout` hands a fresh
 `Ready` out at the client's driver state (R1's `readyGot`), leaving `readyHanded`; `acceptReady`
-moves to `rawNodeAt rn γ id (k+1) true`. `Advance` opens the queue with `rawNodeAt_advance`, which
-takes what R1's `Advance` takes (the driver after the batch was entered, the storage writes done, the
-view), releases each queued acknowledgement as an `ackOk` for `raft.Step`, and, given back the
-struct and an `ackDone` for each, gives exactly R1's `Advance` post.
+moves to `rawNodeAt rn γ id (k+1) true`. `Advance`'s rendezvous (`rawNodeAt_advance`) takes what
+R1's `Advance` takes (the driver after the batch was entered, the storage writes done, the view) and
+gives R1's `Advance` post at once, leaving `rawNodeAdv` (`node.Advance` returns at the send, while
+the run goroutine steps the acknowledgements: verify-round, A4 P3); `RawNode.Advance` opens it
+(`rawNodeAdv_open`), releases each queued acknowledgement as an `ackOk` for `raft.Step`, and, given
+back the struct and an `ackDone` for each, closes it to `rawNodeAt`. In between the struct is not
+idle (`coreIdle`: its published floor is ahead of `applied`), so nothing but the acknowledgements
+steps.
 
 **Internal layer** (`raft.go`'s helpers; no client of raft uses it). `raftOpen r γ id o` is the
 struct with its invariant opened, at `o : CoreOpen` (the view, R3's `LogState`, the read-only
@@ -75,7 +79,13 @@ fields the getters read. `coreInv r γ id o` is the node's share of the cluster 
    `leaderOf_agree`); each `MsgApp`/`MsgHeartbeat`/`MsgSnap`/`MsgTimeoutNow` fact is stated against
    the term's log (`msgSent_leaderOf`). The node's commit is a prefix of the committed log; its log
    matches every term log up to where it agrees (log matching), and a leader's log holds every entry
-   committed before its term (leader completeness, by induction on terms). A leader's own `Match`
+   committed before its term (leader completeness, by induction on terms). **After a crash**
+   (R1's `raftState_crash`, the old state record kept with some of the batch's entries) a durable
+   log may hold entries of a term `T'` above the durable term `T`; such a node cannot win an
+   election at a term below `T'` (its candidacy quorums intersect the quorum that elected `T'`, whose
+   members recorded a term at least `T'`, across at most one conf entry above its commit:
+   `confAboveOk`), so `BatchOk`'s term clause stays true at the restart (verify-round, A4 P2(b)).
+   A leader's own `Match`
    (`lastIndex` at `becomeLeader`) is durable-backed: its entries are in batches at or before the one
    carrying its self-vote, acknowledged only at `Advance`.
 2. **Queued messages**: each with its protocol fact (`msgJust`), holding at the node's volatile
@@ -92,7 +102,11 @@ fields the getters read. `coreInv r γ id o` is the node's share of the cluster 
    leader answers at index `i` only when it registered the read at commit `i` with an entry of its
    term committed (`committedEntryInCurrentTerm`) and a quorum of its configuration acknowledged a
    heartbeat sent after the registration (or it is the only voter), so the deposit's commit is at
-   most `i` and `i` at most the current commit: `readState γ c i` holds. A duplicate request (`γ.dup`)
+   most `i` and `i` at most the current commit: `readState γ c i` holds. The ghost commit steps one
+   index at a time, firing the deposited read updates at each length, so "fired when the log was `i`
+   long" exists for the leader's commit `i`; at registration the ghost commit equals the leader's,
+   since the leader committed an entry of its term and the later quorum heartbeat excludes a newer
+   leader (verify-round, A4 S4). A duplicate request (`γ.dup`)
    confirms the later registration (`readOnly.recvAck` keys by position); the commit only grows.
 4. **Configurations** (R1's items 8-10; the provability review's V1-V3):
    - (V1) the view `⟨a, m⟩` (R1's `nodeConf`) is `confAt γ a m`, the tracker holds `m` (`o.conf = m`), and `a` is at
@@ -101,7 +115,9 @@ fields the getters read. `coreInv r γ id o` is the node's share of the cluster 
    - (V2) one pending change: if the node's log holds a conf entry `g` and the log of the leader
      that proposed `g` held a conf entry `f` before it, the node's commit is at least `f` (the leader
      proposed `g` after applying `f`, `pendingConfIndex`, so the `MsgApp` carrying `g` carried a commit
-     of at least `f`; durable with the entries, R1's `wcommit`);
+     of at least `f`; durable with the entries, R1's `wcommit`); in durable terms, every
+     `raftState γ id D` has at most one conf entry above `D.wcommit` (a restart may present a commit
+     as low as `wcommit`, `StorageHolds`; verify-round, A4 P2(b));
    - (V3) by V1, V2 and `hup`'s guard (`CampaignGuard`): when a leader first commits an index its view
      is `C_q` with `q` at least the last conf entry before the last conf entry in its log, and below
      the commit. So a candidate whose view is ahead of its log's end cannot win (every quorum of its
@@ -339,8 +355,20 @@ def stepIn (γ : Cluster) (id : w64) (m : Msg) : IProp GF :=
         m.entries = [e]⌝ ∗ readCtx γ e.data Q) ∨
     ⌜m.term = W64 0 ∧ isReportType m.type = true⌝)
 
+/-- **The raft struct `r` is idle**: no acknowledgement released by `Advance` is being stepped, so
+its published floor (R3's `floor`) is at most its applied index (`coreIdle_floor`). Exclusive. Held
+in `rawNodeAt` (`rawNodeAt_core` lends it with the struct); `rawNodeAt_advance` takes it while the
+acknowledgements step (R3's floor is then published at the delivered log, ahead of `applied`, so a
+`MsgHup`'s scan of `(applied, committed]` could meet a compaction: `hasUnappliedConfChanges` panics
+on it), and its closing gives it back. A step from outside (`stepIn`: a tick, a campaign, any
+received message) and the helpers that may campaign (`hup`, the ticks) take it. (Verify-round, A4
+P3.) -/
+opaque coreIdle [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : Loc) : IProp GF := iprop(True)
+
 /-- **An acknowledgement of `RawNode` `rn`'s queue, released for stepping** (`rawNodeAt_advance`:
-the batch it acknowledges was entered and written). Exclusive: stepped once. -/
+the batch it acknowledges was entered and written). Exclusive: stepped once. The apply
+acknowledgement's carries the struct's idle token (`coreIdle`), which `appliedTo` uses for its
+auto-leave proposal once `applied` reaches the published floor, and its `ackDone` returns. -/
 opaque ackOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (rn : Loc) (γ : Cluster) (m : Msg) : IProp GF := iprop(True)
 
 /-- The receipt that acknowledgement `m` was stepped (`raft.Step`'s post), which
@@ -354,14 +382,15 @@ reports, acknowledgements). (Integration I2, the coordinator's decision on the `
 def stepMsg (ml : Loc) (m : Msg) : IProp GF :=
   iprop(msgRecv ml m ∨ (msgPts ml (DFrac.own 1) m ∗ ⌜m.type ≠ MsgApp⌝))
 
-/-- `raft.Step`'s precondition by source (`r` the raft struct). -/
+/-- `raft.Step`'s precondition by source (`r` the raft struct): from outside, the message's
+provenance and the struct's idle token (no acknowledgement being stepped: `coreIdle`). -/
 def stepPre (r : Loc) (γ : Cluster) (id : w64) (m : Msg) : StepSrc → IProp GF
-  | .outside => stepIn γ id m
+  | .outside => iprop(stepIn γ id m ∗ coreIdle r)
   | .ack rn => iprop(raftOf rn r ∗ ackOk rn γ m)
 
 /-- `raft.Step`'s postcondition by source. -/
-def stepPost (γ : Cluster) (m : Msg) : StepSrc → IProp GF
-  | .outside => iprop(True)
+def stepPost (r : Loc) (γ : Cluster) (m : Msg) : StepSrc → IProp GF
+  | .outside => coreIdle r
   | .ack rn => ackDone rn γ m
 
 /-! ## The `RawNode`'s `Ready` phases (`rawnode.go`'s internals) -/
@@ -383,6 +412,12 @@ opaque readyKept [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFuncto
 /-- **`Ready` `rd` handed out** (`ready_handout`), its `acceptReady` due. Exclusive. -/
 opaque readyHanded [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (rn : Loc) (γ : Cluster) (id : w64) (k : Nat) (rd : go_etcd_io.raft.v3.Ready) :
     IProp GF := iprop(True)
+
+/-- **`RawNode` `rn` between `Advance`'s rendezvous and its acknowledgements**: the client's half
+of `Advance` handed out (`rawNodeAt_advance`), the acknowledgements still to step
+(`rawNodeAdv_open`); what `RawNode.Advance` takes. Exclusive. (Verify-round, A4 P3.) -/
+opaque rawNodeAdv [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (rn : Loc) (γ : Cluster) (id : w64) (k : Nat) (adv : Bool) : IProp GF :=
+  iprop(True)
 
 /-! ## Internal: the opened struct and cluster facts `raft.go`'s helpers use
 
@@ -492,26 +527,31 @@ def raftBoot_bind.spec : Prop :=
 def rawNode_at.spec : Prop :=
   ∀ rn γ id, rawNode (GF := GF) rn γ id ⊣⊢ ∃ k adv, rawNodeAt rn γ id k adv
 
-/-- **The raft struct of a `RawNode`**: open to call its methods; closed again at any view (a step
-does not change the phase). -/
+/-- **The raft struct of a `RawNode`**: open to call its methods (with its idle token: no
+acknowledgement is being stepped); closed again at any view (a step does not change the phase). -/
 def rawNodeAt_core.spec : Prop :=
   ∀ rn γ id k adv, rawNodeAt (GF := GF) rn γ id k adv ⊢
-    ∃ r ρ, raftOf rn r ∗ raftCore r γ id ρ ∗ (∀ ρ', raftCore r γ id ρ' -∗ rawNodeAt rn γ id k adv)
+    ∃ r ρ, raftOf rn r ∗ raftCore r γ id ρ ∗ coreIdle r ∗
+      (∀ ρ', raftCore r γ id ρ' -∗ coreIdle r -∗ rawNodeAt rn γ id k adv)
 
-/-- **`Advance`** (`rawnode.go:477-490`): with what R1's `RawNode.Advance` takes (the driver after
-the batch was entered, the storage writes done, the view, and the conf entries past it decided skip
-when no snapshot came), the raft struct and the queued acknowledgements (each released, `ackOk`;
-none unless `adv`); given back the struct (any view), the field at an emptied slice of the same
-array and an `ackDone` for each, R1's `Advance` post: no acknowledgement queued, the driver's
-snapshot done, the applied index at the delivered log, the view kept or (after a snapshot) any
-committed configuration point at or after the snapshot's index the client chooses.
-Realization against R3's log laws (integration I2): the opening folds the written batch into the
-log (`raftLog_absorb`: R1's `readyStor rn none j []` is R3's `logPending h false false`), so the
-log has `handing = false` when the acknowledgements are stepped (R3's `StableOk` and `SnapAckOk`
-require it); the closing publishes the applied index as a floor (`raftLog_publish`: each delivered
-entry was written in this batch or an earlier one and is committed, so frozen, or is stable with
-nothing pending), which is R1's `appliedLb` (R3's `∃ t, logFloor l i t`, with `logFloor_agree` tying
-its term to the committed log for `stor_createSnapshot`). -/
+/-- **`Advance`'s rendezvous** (`rawnode.go:477-490`; `node.Advance`'s send on `advancec`): with
+what R1's `Advance` takes (the driver after the batch was entered, the storage writes done, the view,
+and the conf entries past it decided skip when no snapshot came), R1's `Advance` post **at once**:
+the driver's snapshot done, the applied index at the delivered log, the view kept or (after a
+snapshot) any committed configuration point at or after the snapshot's index the client chooses;
+the `RawNode` is left with its acknowledgements to step (`rawNodeAdv`). (Verify-round, A4 P3: the
+post was given at the closing, after the steps, which `node.Advance` -- returning at the send,
+while the run goroutine steps them concurrently -- cannot wait for.)
+Realization against R3's log laws: the batch is folded into the log (`raftLog_absorb`: R1's
+`readyStor rn none j []` is R3's `logPending h false false`), and the delivered log is published as
+a floor (`raftLog_publish` at `i ≤ applying`, the batch absorbed: each delivered entry was written
+in this batch or an earlier one and is committed, so frozen), which is R1's `appliedLb`
+(`logFloor_agree` ties its term to the committed log); the struct's idle token is taken
+(`coreIdle`: its floor is ahead of `applied` until the apply acknowledgement is stepped). The view's
+ghost may move to the snapshot's configuration before the tracker does (`appliedSnap`, stepped
+next): the realization's V1 holds the view at the tracker's configuration or, with an unstepped
+snapshot acknowledgement, at a point at or after its index (no `ApplyConfChange` reaches the
+struct before the steps end: `node.run` is sequential). -/
 def rawNodeAt_advance.spec : Prop :=
   ∀ rn γ id k adv (st : Driver) (j : Nat) (v : ConfView),
     rawNodeAt (GF := GF) rn γ id k adv ∗ nodeDriver rn γ st ∗ readyStor rn none j [] ∗
@@ -519,6 +559,19 @@ def rawNodeAt_advance.spec : Prop :=
       (match st.lastSnap with
        | none => confSkipped γ st.delivered v.applied st.delivered.length
        | some _ => iprop(True)) ⊢ |==>
+    rawNodeAdv rn γ id k adv ∗ nodeDriver rn γ { st with lastSnap := none } ∗
+    appliedLb rn st.delivered.length ∗
+    match st.lastSnap with
+    | none => nodeConf rn γ v
+    | some s => (∀ a m, confAt γ a m -∗ ⌜uint.nat s.index ≤ a ∧ s.conf.Is m⌝ -∗
+        |={⊤}=> nodeConf rn γ ⟨a, m⟩)
+
+/-- **The acknowledgements to step** (`RawNode.Advance`'s body): the raft struct and the queued
+acknowledgements (each released, `ackOk`; none unless `adv`); given back the struct (any view), the
+field at an emptied slice of the same array and an `ackDone` for each, the `RawNode` with nothing
+queued (its idle token back: the apply acknowledgement moved `applied` to the published floor). -/
+def rawNodeAdv_open.spec : Prop :=
+  ∀ rn γ id k adv, rawNodeAdv (GF := GF) rn γ id k adv ⊢
     ∃ (r : Loc) (ρ : CoreView) (sl : GoSlice) (ps : List Loc) (ms : List Msg),
       raftOf rn r ∗ raftCore r γ id ρ ∗
       typedPointsto (structFieldRef go_etcd_io.raft.v3.RawNode go!"stepsOnAdvance" rn) sl
@@ -531,12 +584,7 @@ def rawNodeAt_advance.spec : Prop :=
         typedPointsto (structFieldRef go_etcd_io.raft.v3.RawNode go!"stepsOnAdvance" rn) sl'
           (DFrac.own 1) ∗ ownSlice sl' ps' (DFrac.own 1) ∗ ownSliceCap Loc sl' (DFrac.own 1) ∗
           ⌜ps' = []⌝ ∗ ([∗list] m ∈ ms, ackDone rn γ m) ={⊤}=∗
-        rawNodeAt rn γ id k false ∗ nodeDriver rn γ { st with lastSnap := none } ∗
-        appliedLb rn st.delivered.length ∗
-        match st.lastSnap with
-        | none => nodeConf rn γ v
-        | some s => (∀ a m, confAt γ a m -∗ ⌜uint.nat s.index ≤ a ∧ s.conf.Is m⌝ -∗
-            |={⊤}=> nodeConf rn γ ⟨a, m⟩))
+        rawNodeAt rn γ id k false)
 
 /-- The acknowledgements are responses, never proposals. -/
 def ackOk_type.spec : Prop :=
@@ -614,6 +662,12 @@ def raftOpen_trk.spec : Prop :=
     ∃ T : Tracker.TrackerV, Tracker.progressTracker (structFieldRef go_etcd_io.raft.v3.raft go!"trk" r) T ∗
       ⌜T.conf = o.conf ∧ T.prs = o.view.prs ∧ T.votes = o.votes⌝ ∗ raftTrkOpen r γ id o
 
+/-- (internal) **An idle struct's floor is at most its applied index** (what `hup`'s
+`hasUnappliedConfChanges` scan needs: no compaction above `applied`). -/
+def coreIdle_floor.spec : Prop :=
+  ∀ r γ id o, raftOpen (GF := GF) r γ id o ∗ coreInv r γ id o ∗ coreIdle r ⊢
+    raftOpen r γ id o ∗ coreInv r γ id o ∗ coreIdle r ∗ ⌜o.log.floor ≤ o.log.applied⌝
+
 /-- (internal) A read-only share of an opened struct. -/
 def raftOpen_ro.spec : Prop :=
   ∀ r γ id o, raftOpen (GF := GF) r γ id o ⊢
@@ -648,17 +702,41 @@ def defaultLogger_loggerOk.spec : Prop :=
 def defaultLoggerOwn_share.spec : Prop :=
   ∀ l, defaultLoggerOwn (GF := GF) l ⊢ |==> defaultLoggerOk l
 
-/-- **The package's initialized variables** raft's specs read: the two default loggers, the random
-source (`globalRand`); and the logger guarded by `raftLoggerMu` meets `loggerOk` (its lock
-invariant, which `SetLogger`/`getLogger` open). -/
+/-- **The package's initialized variables** raft's specs read (verify-round, A4 P5: the lock
+invariants and the read-only tables were promised but missing): the two default loggers;
+`raftLoggerMu`'s lock invariant (the package logger `raftLogger` meets `loggerOk`: `getLogger`,
+`SetLogger`, `ResetDefaultLogger`, `Config.validate` with a `nil` logger); the random source
+`globalRand` and its mutex (invariant `True`: `lockedRand.Intn`); `emptyState`, the empty hard state
+(`IsEmptyHardState`, `acceptReady`, `RawNode.Bootstrap`); `stmap`, the four role names
+(`StateType.String`); `errBreak`, a non-`nil` error (`hasUnappliedConfChanges` compares the scan's
+error with it: both loads give this value); the `isLocalMsg`/`isResponseMsg` tables
+(`IsLocalMsg`, `IsResponseMsg`: entry `t` is `isLocalMsgType t`, `isResponseMsgType t`). Each is
+read-only after initialization, so the whole is persistent. -/
 def raft_init.spec : Prop :=
   isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ⊢
-    ∃ (l1 l2 lr : Loc),
+    ∃ (l1 l2 lr pe : Loc) (eb : GoInterface) (names : List GoString) (bl br : List Bool),
       typedPointsto (globalAddr go_etcd_io.raft.v3.defaultLogger) l1 DFrac.discard ∗
       defaultLoggerOk l1 ∗
       typedPointsto (globalAddr go_etcd_io.raft.v3.discardLogger) l2 DFrac.discard ∗
       defaultLoggerOk l2 ∗
-      typedPointsto (globalAddr go_etcd_io.raft.v3.globalRand) lr DFrac.discard
+      sync.isMutex (globalAddr go_etcd_io.raft.v3.raftLoggerMu)
+        iprop(∃ lg : GoInterface,
+          typedPointsto (globalAddr go_etcd_io.raft.v3.raftLogger) lg (DFrac.own 1) ∗ loggerOk lg) ∗
+      typedPointsto (globalAddr go_etcd_io.raft.v3.globalRand) lr DFrac.discard ∗
+      sync.isMutex (structFieldRef go_etcd_io.raft.v3.lockedRand go!"mu" lr) iprop(True) ∗
+      typedPointsto (globalAddr go_etcd_io.raft.v3.emptyState) pe DFrac.discard ∗
+      hardStatePts pe DFrac.discard HardState.empty ∗
+      typedPointsto (globalAddr go_etcd_io.raft.v3.stmap) (⟨names⟩ : GoArray GoString 4)
+        DFrac.discard ∗ ⌜names.length = 4⌝ ∗
+      errIs go_etcd_io.raft.v3.errBreak eb ∗ ⌜eb ≠ interface.nil⌝ ∗
+      typedPointsto (globalAddr go_etcd_io.raft.v3.isLocalMsg) (⟨bl⟩ : GoArray Bool 23)
+        DFrac.discard ∗
+      typedPointsto (globalAddr go_etcd_io.raft.v3.isResponseMsg) (⟨br⟩ : GoArray Bool 23)
+        DFrac.discard ∗
+      ⌜bl.length = 23 ∧ br.length = 23 ∧
+        ∀ t : w32, 0 ≤ sint.Z t →
+          (bl[uint.nat t]?).getD false = isLocalMsgType t ∧
+          (br[uint.nat t]?).getD false = isResponseMsgType t⌝
 
 end laws
 

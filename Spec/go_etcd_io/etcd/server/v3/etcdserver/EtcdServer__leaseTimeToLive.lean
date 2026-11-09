@@ -11,6 +11,10 @@ header}-panic.md`). Changes: round 1, the answer is justified at a state `σ₁`
 reflects, at or after the caller's bound `σ₀` (and at every state after `σ₁`: the lease tables and
 the history are kept), not at `σ₀` itself (provability F4). Margin: the TTLs; the key set (W0's
 mismatch: `le.Keys()` may see a transaction's attachments half done, `req/`).
+
+Changes: verify-round (A6-provability F1): the success reply has its header set (`srvHdrReply`, `replyHdrOwn`: the apply's `newHeader()`, `s.newHeader()`, `ResponseHeader{}`, or the leader's through `leasehttp`, whose decoded reply must carry one: requested of lease-auth), so the gRPC handler's `hdr.fill(resp.Header)` cannot panic.
+
+Changes: verify-round, second pass (lease-auth's request): the forwarding path gets the reply from `TimeToLiveHTTP`'s `ltlReply` through `ltlReply_replyHdr` (header set: `srvHdrReply`); its premise `leasePeerURL (url ++ LeaseInternalPrefix)` for each of the leader's peer URLs is the trusted deployment premise, taken here from the membership view's member (every member's peer URL set was reserved by `cluster_alloc`/`urls_reserve`, whose hosts serve etcd's peer handler): requested of lease-auth as a law relating it to the reserved addresses.
 -/
 module
 
@@ -48,8 +52,8 @@ def EtcdServer.leaseTimeToLive.spec : Prop :=
       ClientV3.reqOwn r dq (.leaseTimeToLive id keys) ∗
       ((∃ res σ₁, etcdLb γ σ₁ ∗
           ⌜Reach σ₀ σ₁ ∧ ∀ σ, Reach σ₁ σ → Step p (.leaseTimeToLive id keys) σ σ res⌝ ∗
-          srvReply ClientV3.ansReply res resp err) ∨
-       (⌜resp = null ∧ srvIndef err⌝ ∗ srvErrShape err)) }}
+          srvReply srvHdrReply res resp err) ∨
+       (⌜resp = null⌝ ∗ srvIndef err ∗ srvErrShape err)) }}
 
 end spec
 end EtcdServer

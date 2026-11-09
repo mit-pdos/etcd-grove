@@ -15,6 +15,8 @@ update. `Commit`'s `txnReply`: `Succeeded` and the header's revision (`txnRespOw
 size bounds, and gave `keyCreatedAt`; now any lease (a lease not live is `ErrLeaseNotFound`, a
 linearized answer), any key, the caller's update in W0's shape.
 
+Changes: verify-round: `ErrKeyExists` is the value its variable holds (`putNewRetAt`), not a Lean constant (A3 F4).
+
 **Margin**: none.
 -/
 module
@@ -51,7 +53,7 @@ def putNewKV.spec : Prop :=
     (App (App (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.putNewKV)) (Val #kv))
       (Val #key)) (Val #val)) (Val #lease))
   {{ (rev : w64) (err : GoInterface), RET (PairV #rev #err);
-      (∃ σ σ' res, Q σ σ' res ∗ ⌜putNewRet res rev err⌝) ∨ (⌜rev = W64 0⌝ ∗ indefCall err) }}
+      (∃ σ σ' res, Q σ σ' res ∗ putNewRetAt res rev err) ∨ (⌜rev = W64 0⌝ ∗ indefCall err) }}
 
 end spec
 

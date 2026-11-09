@@ -4,7 +4,13 @@
 Users: `newClient` (`client.Lease = NewLease(client)`).
 
 Proof sketch: `RetryLeaseClient(c)` (its spec: `retryLeaseHandle`, from `clientConnOk`), then
-`NewLeaseFromLeaseClient` with the client and `DialTimeout + 1s`.
+`NewLeaseFromLeaseClient` with the client and `DialTimeout + 1s`, at `cr = c`: the remote's contract
+gated by `clientReady c` (`retryLeaseHandle_remoteLeaseAt`), its per-member form by
+`retryLeaseHandle_remoteVia`; `clientCore`'s `clientBase` (`clientCore_pre`, `clientPre_base`).
+
+verify-round (A2-provability L1): the step closes now: `NewLeaseFromLeaseClient` takes the remote's
+contract gated by readiness and returns the handle over `c` (it took an ungated contract, which
+`newClient` cannot give before `c.Auth` is set, and returned one over `null`).
 
 Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/NewLease.lean`: restated over `clientCore`.
 

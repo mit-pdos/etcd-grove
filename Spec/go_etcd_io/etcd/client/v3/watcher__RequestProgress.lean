@@ -14,7 +14,10 @@ send a `*progressRequest` on `reqc` (`wgsAt`'s protocol: nothing travels with it
 spec, by Löb induction).
 
 **Changes** from `specs-ref/.../watcher__RequestProgress.lean`: over `watcherHandle` and any
-context. **Margin**: the error's value is not modelled (every user only logs or returns it).
+context. verify-round (A2-provability W2, W3): over `watcherHandle w c γ who` and `clientReady c`
+(it may open a stream: `newWatcherGRPCStream.spec` takes it); `streamKeyFromCtx.spec` with the
+caller's `ctxPrin` (a joined stream's principal from `ctxStreamKey_prin`, as in `Watch`).
+**Margin**: the error's value is not modelled (every user only logs or returns it).
 -/
 module
 
@@ -40,9 +43,10 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `watcher.RequestProgress` meets `Watcher.RequestProgressTriple`. -/
 def watcher.RequestProgress.spec : Prop :=
-  ∀ (w : Loc) (γ : Cluster) (who : Principal),
+  ∀ (w c : Loc) (γ : Cluster) (who : Principal),
   Watcher.RequestProgressTriple (w @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watcher.ty @!! go!"RequestProgress")
-    (iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ watcherHandle w γ who)) who
+    (iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ watcherHandle w c γ who ∗
+      clientReady c)) who
 
 end spec
 

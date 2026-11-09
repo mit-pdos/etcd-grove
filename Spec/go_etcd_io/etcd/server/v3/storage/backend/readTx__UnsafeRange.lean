@@ -22,7 +22,10 @@ only). The bytes are lent while the read lasts (4c's `txBytes`): against a share
 
 **Changes** (from `specs-ref`'s): the hidden split stated (`rdRange`: the buffer's part cut first),
 in place of a plain cut range (false with a non-empty buffer and a limit); round 1: the bytes lent
-(T3), no hook cell in a safe-range range (T2). **Margin.** Which entries
+(T3), no hook cell in a safe-range range (T2). verify-round (A10-provability S1): the hook clause is
+waived for a `nil` end (`es = slice.nil`: `limit` is set to 1, so a key in both the buffer and bbolt
+is returned once), not for every empty end (a non-`nil` empty end keeps the caller's limit, and a
+hook's leftover key would be returned twice, `read_tx.go:78-121`). **Margin.** Which entries
 are buffered is not stated.
 -/
 module
@@ -53,7 +56,7 @@ def readTx.UnsafeRange.spec : Prop :=
     (dk de : DFrac) (k e : GoString) (limit : w64) (pl : Qp),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ beRd γ (rtLoc γ) F V ∗ beLive γ (rtLoc γ) pl ∗ bkt γ bk bi ∗ ks ↦*{dk} k ∗ es ↦*{de} e ∗
       ⌜covers F bi.name k e⌝ ∗ ⌜bi.safe = true ∨ es = slice.nil ∨ sint.Z limit = 1⌝ ∗
-      (⌜bi.safe = false ∨ e = []⌝ ∨ ∃ Fh, beHookFp γ Fh ∗ ⌜∀ x, ¬ Fh (.key bi.name x)⌝) }}
+      (⌜bi.safe = false ∨ es = slice.nil⌝ ∨ ∃ Fh, beHookFp γ Fh ∗ ⌜∀ x, ¬ Fh (.key bi.name x)⌝) }}
     (App (App (App (App (Val ((rtLoc γ) @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.readTx.ty @!! go!"UnsafeRange")) (Val #bk)) (Val #ks))
       (Val #es)) (Val #limit))
   {{ (kl vl : GoSlice), RET (PairV #kl #vl); ks ↦*{dk} k ∗ es ↦*{de} e ∗

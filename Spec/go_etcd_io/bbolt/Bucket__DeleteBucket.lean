@@ -15,6 +15,17 @@ The generation of `p.child key` is bumped: its handles, and its descendants', ar
 
 **Changes.** Over paths; the read transaction's error; the empty-name case exactly (was a
 disjunction).
+**Proof sketch, the success arm in the internal vocabulary** (verify-round, A11 F9). `seek`
+(a bucket); `Bucket.Bucket` (the child's handle, cached: `C.bkts child = some (p.child kb)`); the
+recursion, each nested bucket's `DeleteBucket` (its post `T'.dropBkt (p.child kb) k'`; the nested
+handles dropped); then, in the body, `delete(b.buckets, key)`, `child.nodes = nil`,
+`child.rootNode = nil`: a realization step of `wtxCore` (the child and everything below it no
+longer cached: `bktDropped C (p.child kb)`; the cache then represents the view whose child is what
+its parent's stored value holds); `Bucket.free` (its premise `C.bkts child = none`; `repKept`);
+`Cursor.node` (`keyLeaf`); `node.del`; `physRep_delBkt` gives `physRep` of that view's `dropBkt p kb`,
+which is `T.dropBkt p kb` (the child is removed either way, and `dropBkt` resets the generations
+below `p.child kb`, so the recursion's bumps there are forgotten: `TxView.dropBkt`'s
+verify-round change).
 -/
 module
 

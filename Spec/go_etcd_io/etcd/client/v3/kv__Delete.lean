@@ -11,6 +11,8 @@ with `.deleteRange (opDeleteM key gs).deleteReq` (exclusive update); `ContextErr
 
 Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/kv__Delete.lean`: as `kv.Put`'s.
 
+verify-round: premise `(opDeleteM key gs).emptyEnd = false` (A1-provability F5, `Api.lean`'s "Range ends").
+
 Margin: as `kv.Put`.
 -/
 module

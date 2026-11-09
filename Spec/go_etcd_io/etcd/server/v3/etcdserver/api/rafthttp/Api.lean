@@ -190,9 +190,8 @@ abbrev followerStatsOk (s : Loc) : IProp GF := V2stats.isFollowerStats s
 `X-PeerURLs` on `","`: `nonissues/etcd-rafthttp-peerurl-comma-split.md`): a fact `urlsAt` gives. -/
 opaque urlsNoComma [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (sl : GoSlice) : IProp GF := iprop(True)
 
-/-- (snap, 2e/2f) **The bytes `bs` are a stream of image `img`** (pure, opaque; 2e's `dbReader r
-img` is a reader yielding such bytes). -/
-opaque imgBytes (img : Snap.BeImage) (bs : List w8) : Prop := True
+-- (verify-round, A8 second tier) `imgBytes` was provisional here: now 4a's `Backend.imgBytes`
+-- (the bytes of a database file of an image: bbolt's file format, trusted there).
 
 /-- (snap, 2e) **The merged message's fields** (persistent, read-only): its raft message `ml`, its
 reader `rc` (2e's `isMessage` should carry them: `req/..._snap.md`, "from 2f", round 1). -/
@@ -237,13 +236,24 @@ def recvd (ν : Net GF) (m : Msg) : IProp GF :=
       iprop(∃ s : Snapshot, ⌜m.snapshot = some s⌝ ∗ ν.dbIn s.index)
      else iprop(True)))
 
-/-- **The client's save update** for the snapshot directory `sd` (persistent): for any image the
-sender certified for index `i`, an update saving it (2e's `saveAt`: kept if a file of `i` is
-there) whose commit gives `ν.dbIn i`. What `SaveDBFrom` fires. -/
+/-- **The client's save updates** for the snapshot directory `sd` (persistent): for any image the
+sender certified for index `i`, the two updates `SaveDBFrom` fires (2e's): the first at the rename
+(`snapDbs sd F` to `snapSaving sd F i img`), whose commit is the second, at the directory's fsync
+(to `snapDbs sd (saveAt F i img)`: kept if a file of `i` is there), which also takes the revert
+state of an entry `p` of `sd` the client chose (`Backend.beRev p rv`, made `beNoRevert p`: the
+fsync makes a pending rename onto `p` durable; for etcd's server `p` is the backend file
+`<snap dir>/db`, `Config.backendPath_entry`), and whose commit gives `ν.dbIn i`. (Final relay
+round: server-boot moved `beRev` into `SaveDBFrom`'s second update, so the client supplies it at the
+fsync from its invariant; no loan across the call.) -/
 def saveOk (ν : Net GF) (sd : GoString) : IProp GF :=
-  iprop(□ ∀ (i : w64) (img : Snap.BeImage), □ ν.img i img -∗
-    AU <{ ∃∃ (F : Nat → Option Snap.BeImage), Snap.snapDbs sd F }> @ ⊤, ∅
-      <{ Snap.snapDbs sd (Snap.saveAt F (uint.nat i) img), COMM ν.dbIn i }>)
+  iprop(∃ p : GoString, ⌜Snap.inDir sd p⌝ ∗
+    □ ∀ (i : w64) (img : Snap.BeImage), □ ν.img i img -∗
+      AU <{ ∃∃ (F : Nat → Option Snap.BeImage), Snap.snapDbs sd F }> @ ⊤, ∅
+        <{ Snap.snapSaving sd F (uint.nat i) img, COMM
+           AU <{ ∃∃ (rv : Option (Option Snap.BeImage)), Snap.snapSaving sd F (uint.nat i) img ∗
+                   Backend.beRev p rv }> @ ⊤, ∅
+             <{ Snap.snapDbs sd (Snap.saveAt F (uint.nat i) img) ∗ Backend.beNoRevert p,
+                COMM ν.dbIn i }> }>)
 
 /-- **An error `Process` may return** (persistent): `nil`, or an error whose `Error()` returns, on
 which `errors.As` against `writerToResponse` returns, and whose `WriteTo(w)` (if it has one) writes
@@ -253,14 +263,16 @@ Introduced by `procErr_nil`, `procErr_nodeErr` (raft's errors) and the server's 
 opaque procErr [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (err : GoInterface) : IProp GF := iprop(True)
 
 /-- **The receiver's `Raft`** `r` for member `id` of `ν` (persistent; the
-client's, a bundle as `sync.isLocker`): `Process(ctx, m)` of a fresh message (owned) with what a
-received message carries (`recvd`), on a thread with its token: returns an error (`procErr`) and the
+client's, a bundle as `sync.isLocker`): `Process(ctx, m)` of a fresh message (raftpb's `msgRecv`:
+owned, with its `Entries` capacity, what raft's `node.Step` takes; verify-round, A5 F4: was `msgPts`
+at `own 1`, which no `Step` could accept) with what a received message carries (`recvd`), on a
+thread with its token: returns an error (`procErr`) and the
 token; `IsIDRemoved(x)` (with a token: etcd's reads its membership under a lock): some boolean;
 `ReportUnreachable(x)`, `ReportSnapshot(x, st)`: return. -/
 def raftOk (ν : Net GF) (id : w64) (r : GoInterface) : IProp GF :=
   iprop(∃ i : GoInterfaceOk, ⌜r = interface.ok i⌝ ∗
     (□ ∀ (ctx : GoInterface) (ml : Loc) (m : Msg) (Ψ : val → IProp GF),
-      Context.ctxOk ctx -∗ msgPts ml (DFrac.own 1) m -∗ recvd ν m -∗ threadTok -∗
+      Context.ctxOk ctx -∗ msgRecv ml m -∗ recvd ν m -∗ threadTok -∗
       ▷ (∀ err : GoInterface, procErr err -∗ threadTok -∗ Ψ #err) -∗
       WP (App (App (Val #(methods i.ty go!"Process" i.v)) (Val #ctx)) (Val #ml)) {{ Ψ }}) ∗
     (□ ∀ (x : w64) (Ψ : val → IProp GF),
@@ -342,13 +354,13 @@ opaque pipeWorker [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunct
 
 /-- (internal) **A message queue** `ch` of the transport of `lid` to peer `pid` (a stream writer's
 `msgc`, a pipeline's; persistent): every value sent on it is a message with its `outMsg` facts,
-`To = pid`, and `K` (the msgappv2 writer's: a `MsgApp`; round 1, second tier 2). Sends are
+`To = pid`, `pid ≠ 0` (`peer.send`'s premise), and `K` (the msgappv2 writer's: a `MsgApp`; round 1, second tier 2). Sends are
 non-blocking (`select` with `default`). -/
 opaque msgChanAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ch : GoChan) (ν : Net GF) (lid pid : w64) (K : Msg → Prop) : IProp GF :=
   iprop(True)
 
 /-- (internal) **A receive queue** `ch` of member `lid` (a peer's `recvc`/`propc`; persistent):
-every value is a fresh message with what a received message carries (`recvd`). -/
+every value is a fresh message (`msgRecv`) with what a received message carries (`recvd`). -/
 opaque recvChanAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ch : GoChan) (ν : Net GF) : IProp GF := iprop(True)
 
 /-- (internal) A started `*streamWriter` (persistent), its stop right; one attached (pending)
@@ -398,24 +410,67 @@ receiving side reads). Exclusive. -/
 opaque writerAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (w : GoInterface) (Ok : List w8 → IProp GF) (bs : List w8) : IProp GF :=
   iprop(True)
 
-/-- (internal, provisional: raftpb's, 3h) **`e` is a protobuf encoding of `m`** (`proto.Marshal`'s
-output; `proto.Unmarshal` of it gives `m` back, below `2 ^ 63` bytes). -/
-opaque pbEncodes (e : List w8) (m : Msg) : Prop := True
+/-! ### The codecs (pure, transparent; verify-round A8 F8)
 
-/-- (internal) **The message codec's frame** of an encoding `e`: its length, eight bytes
-big-endian, then `e` (`messageEncoder`). -/
-opaque msgFrame (e : List w8) : List w8 := []
+The wire formats of `msg_codec.go` and `msgappv2_codec.go`, spelled out so that a decoder's proof
+can identify the frame it read with the frame a writer deposited (both are self-delimiting, and
+decoding is a function of the bytes: raftpb's `wire_fun`). An encoding of a message is raftpb's
+`msgEncodes` (3h; was the provisional `pbEncodes`), of an entry `entryEncodes`. -/
 
-/-- (internal) **The msgappv2 codec's frame** of `m` from state `st` (the last `(term, index)`)
-on the stream from `lid` to `pid`, and the next state: a heartbeat, an `AppEntries` frame (`m` a
-`MsgApp` at the state's term and index: its entries and commit), or a full frame. -/
-opaque v2Frame (st : w64 × w64) (lid pid : w64) (m : Msg) (fb : List w8) (st' : w64 × w64) :
-    Prop := True
+/-- A `uint64` in eight bytes, big-endian (`binary.BigEndian.PutUint64`, `binary.Write` of a
+`uint64`: Perennial's `(u64Le x).reverse`). -/
+def beU64 (x : w64) : List w8 := (u64Le x).reverse
 
-/-- (internal) **Bytes after a reader's position are a prefix of a chain of msgappv2 frames** from
-state `st` on the stream from `src` to `dst` (what the decoder needs not to panic: its lengths and
-entries are an encoder's). -/
-opaque v2Compat (st : w64 × w64) (src dst : w64) (ys : List w8) : Prop := True
+/-- **The message codec's frame** of an encoding `e`: its length, eight bytes big-endian, then `e`
+(`messageEncoder.encode`; `messageDecoder.decodeLimit` reads it back). -/
+def msgFrame (e : List w8) : List w8 := beU64 (W64 e.length) ++ e
+
+/-- The fields a msgappv2 `AppEntries` frame does not carry, which the decoder rebuilds (from its
+state and the stream's ends) or leaves zero: `m` is a `MsgApp` from `src` to `dst` at term and log
+term `st.1` after index `st.2`, with no vote, snapshot, rejection or context. -/
+def v2Short (st : w64 × w64) (src dst : w64) (m : Msg) : Prop :=
+  m.type = MsgApp ∧ m.src = src ∧ m.to = dst ∧ m.term = st.1 ∧ m.logTerm = st.1 ∧
+  m.index = st.2 ∧ m.vote = W64 0 ∧ m.snapshot = none ∧ m.reject = false ∧
+  m.rejectHint = W64 0 ∧ m.context = []
+
+/-- **The msgappv2 codec's frame** `fb` of `m` from state `st` (the last `(term, index)` the
+stream carried) on the stream from `src` to `dst`, and the next state `st'`
+(`msgAppV2Encoder.encode`, `msgAppV2Decoder.decode`):
+- a link heartbeat: the tag `0`, the state unchanged;
+- an `AppEntries` frame, when `m`'s index, log term and term are the state's (`v2Short`): the tag
+  `1`, the entry count, each entry's encoding (at index `st.2 + 1 + j`) with its length, the
+  commit; the index moves past the entries;
+- otherwise a full frame of a `MsgApp`: the tag `2`, then the message frame of an encoding of `m`;
+  the state is `m`'s term and its last entry's index (`m`'s index without entries).
+The stream carries only link heartbeats and `MsgApp`s (`msgChanAt`'s `K` for the msgappv2 writer).
+-/
+def v2Frame (st : w64 × w64) (src dst : w64) (m : Msg) (fb : List w8) (st' : w64 × w64) :
+    Prop :=
+  (isLinkHeartbeat m ∧ fb = [W8 0] ∧ st' = st) ∨
+  (¬ isLinkHeartbeat m ∧ v2Short st src dst m ∧
+    ∃ ebs : List (List w8), ebs.length = m.entries.length ∧
+      (∀ (j : Nat) (bs : List w8) (e : RaftPb.LogEntry), ebs[j]? = some bs → m.entries[j]? = some e →
+        RaftPb.entryEncodes bs (W64 ((uint.nat st.2 + 1 + j : Nat) : Int)) e) ∧
+      fb = [W8 1] ++ beU64 (W64 m.entries.length) ++
+        (ebs.map (fun bs => beU64 (W64 bs.length) ++ bs)).flatten ++ beU64 m.commit ∧
+      st' = (st.1, W64 ((uint.nat st.2 + m.entries.length : Nat) : Int))) ∨
+  (¬ isLinkHeartbeat m ∧
+    ¬ (m.index = st.2 ∧ m.logTerm = st.1 ∧ m.term = st.1) ∧ m.type = MsgApp ∧
+    ∃ e, RaftPb.msgEncodes e m ∧ fb = [W8 2] ++ msgFrame e ∧
+      st' = (m.term, W64 ((uint.nat m.index + m.entries.length : Nat) : Int)))
+
+/-- **A chain of msgappv2 frames** `ys` from state `st` on the stream from `src` to `dst`: what a
+msgappv2 writer writes on one connection. -/
+inductive v2Chain (src dst : w64) : w64 × w64 → List w8 → Prop where
+  | nil (st : w64 × w64) : v2Chain src dst st []
+  | cons (st st' : w64 × w64) (m : Msg) (fb ys : List w8) :
+      v2Frame st src dst m fb st' → v2Chain src dst st' ys → v2Chain src dst st (fb ++ ys)
+
+/-- **Bytes after a reader's position are a prefix of a chain of msgappv2 frames** from state `st`
+on the stream from `src` to `dst` (what the decoder needs not to panic: its lengths and entries are
+an encoder's). -/
+def v2Compat (st : w64 × w64) (src dst : w64) (ys : List w8) : Prop :=
+  ∃ zs, v2Chain src dst st zs ∧ ys <+: zs
 
 /-- (internal) A `*messageEncoder` writing on `w` (persistent: its one field). -/
 opaque msgEncAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (enc : Loc) (w : GoInterface) : IProp GF := iprop(True)
@@ -526,28 +581,53 @@ def raftCompat_self.spec : Prop := ∀ ν : Net GF, raftCompat ν (raftProto ν)
 def dbReader_readerAt.spec : Prop :=
   ∀ (rc : GoInterface) (img : Snap.BeImage),
     Snap.dbReader (GF := GF) rc img ⊢
-      Http.readerAt rc (fun _ => iprop(True)) (fun bs => iprop(⌜imgBytes img bs⌝)) []
+      Http.readerAt rc (fun _ => iprop(True)) (fun bs => iprop(⌜Backend.imgBytes img bs⌝)) []
 
 /-- **A body read after its envelope, whose complete streams are an image's bytes, is 2e's image
 reader** (what `snapshotHandler` hands `SaveDBFrom`). -/
 def readerAt_dbReader.spec : Prop :=
   ∀ (rd : GoInterface) (Pre Φ : List w8 → IProp GF) (r : List w8) (img : Snap.BeImage),
-    Http.readerAt (GF := GF) rd Pre Φ r ∗ □ (∀ B, Φ (r ++ B) -∗ ⌜imgBytes img B⌝) ⊢
+    Http.readerAt (GF := GF) rd Pre Φ r ∗ □ (∀ B, Φ (r ++ B) -∗ ⌜Backend.imgBytes img B⌝) ⊢
       Snap.dbReader rd img
 
-/-- **The package's variables** (scope: no one writes them after initialization, which etcdmain
-meets by clamping the flags to their defaults; embed's `--raft-read-timeout` below `3ns` does not,
-`nonissues/etcd-embed-raft-read-timeout-ticker-panic.md`): `ConnReadTimeout`, `ConnWriteTimeout`
-are read-only, at least `5s`; the error variables are fixed errors. -/
+/-- **rafthttp's error variables** (`errors.New`/`fmt.Errorf` at initialization: each a fresh
+pointer, so no Lean constant; the values are read from the globals, `errIs g e`). -/
+def errVars : List GoString :=
+  [go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.errIncompatibleVersion,
+   go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.ErrClusterIDMismatch,
+   go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.ErrExceedSizeLimit,
+   go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.errStopped,
+   go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.errUnsupportedStreamType,
+   go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.errMemberRemoved,
+   go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.errMemberNotFound]
+
+/-- **The package's variables**: `ConnReadTimeout`, `ConnWriteTimeout` read-only, at least `5s`;
+each error variable (`errVars`) holds a non-nil error a client may log or test (`Http.errOk`:
+`Error()` returns, `errors.Is` is well-formed), read-only (verify-round, brief item 3: every error
+variable, was `ErrClusterIDMismatch` only).
+
+**Scope** (open-questions 5.9, verify-round A8 S4): no one writes the timeouts after
+initialization. etcdmain and embed do: embed binds both to its flag set (`--raft-read-timeout`,
+`--raft-write-timeout`, `embed/config.go:631-632`), and etcdmain raises them to `5s` when below
+(`etcdmain/config.go:180-186`), both before any server starts; such a program is outside this law
+(the persistent points-to it gives forbids the writes), and embed without etcdmain's clamp (a value
+below `3ns` panics `time.NewTicker` in `streamWriter.run`,
+`nonissues/etcd-embed-raft-read-timeout-ticker-panic.md`) is outside the transport's specs. The
+shape that would cover etcdmain (owned points-to after initialization, frozen with `≥ 5s` before
+the first `Start`) needs a package-initialization resource no package exports yet. -/
 def vars_init.spec : Prop :=
   isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ⊢
     (∃ d : w64, globalAddr go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.ConnReadTimeout ↦□ d ∗
       ⌜5000000000 ≤ sint.Z d⌝) ∗
     (∃ d : w64, globalAddr go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.ConnWriteTimeout ↦□ d ∗
       ⌜5000000000 ≤ sint.Z d⌝) ∗
-    (∃ e : GoInterface,
-      errIs go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.ErrClusterIDMismatch e ∗
-      Http.errOk e ∗ ⌜e ≠ interface.nil⌝)
+    ([∗list] g ∈ errVars, ∃ e : GoInterface, errIs g e ∗ Http.errOk e ∗ ⌜e ≠ interface.nil⌝)
+
+/-- **The error variables hold pairwise distinct values** (each its own allocation). -/
+def errVars_distinct.spec : Prop :=
+  ∀ (g g' : GoString) (e e' : GoInterface), g ∈ errVars → g' ∈ errVars → g ≠ g' →
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
+      errIs g e ∗ errIs g' e' ⊢ ⌜e ≠ e'⌝
 
 /-- `nil` is a `Process` error. -/
 def procErr_nil.spec : Prop := ⊢ procErr (GF := GF) interface.nil

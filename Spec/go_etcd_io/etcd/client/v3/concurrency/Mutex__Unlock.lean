@@ -20,6 +20,8 @@ whose writes have all been answered; an error after which a write may be pending
 Changes: from `specs-ref`'s `Mutex__Unlock.lean`: over the cluster's states. Round 1: the effect
 is the delete of the mutex's key only; the lent permission; `σ0`.
 
+Changes: verify-round: `nil` and the other errors only on a held mutex (A3 F1: the code returns `ErrLockReleased` first, line 134); `ErrLockReleased` is the value its variable holds, not a Lean constant (A3 F4).
+
 Margin: the delete is not fenced: it deletes the key even if it was re-created by another
 `Mutex` of the session (`issues/mutex-lock-recreated.md`'s related upstream discussion).
 -/
@@ -53,11 +55,12 @@ def Mutex.Unlock.spec : Prop :=
       Context.ctxOk ctx ∗ ctxPrin dflt ctx who ∗ etcdLent γ T P ∗ P ∗ etcdLb γ σ0 ∗ ⌜effIn (delEff (fun k => k = st.key ∧ pfx <+: k)) T⌝ }}
     (App (Val (m @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.concurrency.Mutex.ty @!! go!"Unlock")) (Val #ctx))
   {{ (err : GoInterface), RET #err;
-      (⌜err = GoInterface.nil⌝ ∗ P ∗ ∃ σ : State, etcdLb γ σ ∗
+      (⌜err = GoInterface.nil ∧ ¬ (st.key = [] ∨ sint.Z st.rev ≤ 0 ∨ st.key = [W8 0])⌝ ∗ P ∗ ∃ σ : State, etcdLb γ σ ∗
           ⌜Reach σ0 σ ∧ σ.kv.store st.key = none⌝ ∗ mutexSt m st.released) ∨
-      (⌜err = concErrVal .lockReleased ∧ (st.key = [] ∨ sint.Z st.rev ≤ 0 ∨ st.key = [W8 0])⌝ ∗
-          P ∗ mutexSt m st) ∨
-      (⌜err ≠ GoInterface.nil⌝ ∗ mutexSt m st) }}
+      (globalAddr go_etcd_io.etcd.client.v3.concurrency.ErrLockReleased ↦□ err ∗
+          ⌜st.key = [] ∨ sint.Z st.rev ≤ 0 ∨ st.key = [W8 0]⌝ ∗ P ∗ mutexSt m st) ∨
+      (⌜err ≠ GoInterface.nil ∧ ¬ (st.key = [] ∨ sint.Z st.rev ≤ 0 ∨ st.key = [W8 0])⌝ ∗
+          mutexSt m st) }}
 
 end spec
 

@@ -3,9 +3,9 @@
 
 **Users.** `pipeline.start` (forked four times).
 
-**Proof sketch.** Loop: a `select` on `msgc` (a message with `outMsg`) and `stopc`; `pbutil.MustMarshalMessage` (3h: an encoding `e`, `pbEncodes e m`; no panic for a message raft sent), `post` with the facts; the status, follower stats (2e: no-ops), `Raft.ReportUnreachable`/`ReportSnapshot`, metrics. On `stopc`: `wg.Done()` with the worker's share.
+**Proof sketch.** Loop: a `select` on `msgc` (a message with `outMsg`) and `stopc`; `pbutil.MustMarshalMessage` (an encoding `e`, `RaftPb.msgEncodes e m`; no panic for a message raft sent), `post` with the facts; the status, follower stats (2e: no-ops), `Raft.ReportUnreachable`/`ReportSnapshot`, metrics. On `stopc`: `wg.Done()` with the worker's share.
 
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour.
+**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour. verify-round (A8 F8): the sketch over raftpb's `msgEncodes`.
 
 **Margin.** None.
 -/

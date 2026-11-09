@@ -72,7 +72,8 @@ func ReqMsgAppIndexes(m *pb.Message) {
 // REQ raftpb/clone-message: a clone of a message holds the same fields (the examples' in-process
 // transport steps a copy; rafthttp's link heartbeat is cloned).
 // Users: examples' copyMsg, rafthttp stream.go (linkHeartbeatMessage).
-// Specs: proto's Clone.spec, msgPts_msgAt.spec, the getters.
+// Specs: proto's Clone.spec (the copy holds norm c), msgPts_msgAt.spec, raftpb_norm.spec,
+// mergeDst_msgAt.spec, the getters.
 func ReqCloneMessage(m *pb.Message) *pb.Message {
 	c := proto.Clone(m).(*pb.Message)
 	if c.GetType() != m.GetType() || c.GetIndex() != m.GetIndex() || len(c.GetEntries()) != len(m.GetEntries()) {
@@ -85,7 +86,8 @@ func ReqCloneMessage(m *pb.Message) *pb.Message {
 // same fields (rafthttp's pipeline and stream).
 // Users: rafthttp msg_codec.go:40 (encode), http.go:139 (decode).
 // Assumes: m is a message raft sent whose size fits (msgPts, Msg.wireBound < 2^48).
-// Specs: proto's Marshal.spec and Unmarshal.spec, msgPts_msgAt.spec, wire_fun.spec.
+// Specs: proto's Marshal.spec and Unmarshal.spec (a canonical content), msgPts_msgAt.spec,
+// wire_fun.spec, raftpb_norm.spec.
 func ReqWireRoundTrip(m *pb.Message) *pb.Message {
 	bs, err := proto.Marshal(m)
 	if err != nil {

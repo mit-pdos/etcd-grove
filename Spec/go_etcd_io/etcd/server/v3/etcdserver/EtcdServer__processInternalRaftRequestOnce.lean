@@ -43,6 +43,8 @@ given back (`irrBackOk` excludes indefinite errors).
 
 **Integration (I4).** The model of the request is 3h's `IrrBody`; the request the caller's update
 is over is a separate `ao` (`irrAsks`), since the token's password is not in the message.
+
+Changes: verify-round (A7-provability F3, F5): see the verify round's repair: the context needs only its otel span (`reqCtxSpan`, any trace: the outer method's `EnsureTrace` installed one); the request message comes back with whatever header was set (`∃ h, irrOwnH r dq ir h`: the header is written before proposing).
 -/
 module
 
@@ -73,17 +75,17 @@ error before proposing, the update given back; an unsettled error. -/
 def EtcdServer.processInternalRaftRequestOnce.spec : Prop :=
   ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (p tls : Principal) (lo : Nat) (r : Loc)
     (dq : DFrac) (ir : IrrBody) (ao : Option Req) (rep : Bool) (Q : State → State → Resp → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ Context.ctxOk ctx ∗ reqCtxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ irrOwn r dq ir ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ Context.ctxOk ctx ∗ reqCtxSpan ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ irrOwn r dq ir ∗
       ⌜irrWf ir ∧ irrAsks ir ao⌝ ∗ authLb γ lo ∗
       irrUpd γ p tls lo ao rep Q }}
     (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"processInternalRaftRequestOnce")) (Val #ctx)) (Val #r))
-  {{ (x : Loc) (err : GoInterface), RET (PairV #x #err); threadTok ∗ irrOwn r dq ir ∗
+  {{ (x : Loc) (err : GoInterface), RET (PairV #x #err); threadTok ∗ (∃ h, EtcdServerPb.irrOwnH r dq ir h) ∗
       ((⌜err = GoInterface.nil⌝ ∗ ∃ σ σ' res, ⌜srvFiredAns res⌝ ∗ irrFired ao Q σ σ' res ∗
           applyResult γ x ir res) ∨
        (⌜err = GoInterface.nil⌝ ∗ (∃ res, ⌜irrBackOk ir res⌝ ∗ applyResult γ x ir res) ∗
           irrUpd γ p tls lo ao rep Q) ∨
-       (⌜x = null ∧ srvUnfired err⌝ ∗ srvErrShape err ∗ irrUpd γ p tls lo ao rep Q) ∨
-       (⌜x = null ∧ srvIndef err⌝ ∗ srvErrShape err)) }}
+       (⌜x = null⌝ ∗ srvUnfired err ∗ srvErrShape err ∗ irrUpd γ p tls lo ao rep Q) ∨
+       (⌜x = null⌝ ∗ srvIndef err ∗ srvErrShape err)) }}
 
 end spec
 end EtcdServer

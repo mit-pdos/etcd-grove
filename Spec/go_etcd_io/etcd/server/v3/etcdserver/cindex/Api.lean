@@ -51,10 +51,21 @@ Snippets: `examples/specreq/cindex/cindex.go` (`ReqApplyMovesIndex`, `ReqReloadA
 `ciState` its client half); the store of `consistentIndex` (or of `applyingIndex`) is the
 linearization point of a write, its load that of a read; `ciWriter γ` a ghost var's half whose other
 half the invariant holds, required to change `idx`, `be` or `stored`.
+
+**What cindex gives the backend's pre-commit hook** (verify round, server-boot's request, A8-provability
+F5: 4a's `Backend.hookOk γ (hooksIface h) Fh (Pk γ)` at `OpenBackend`): `txStoredCI tx c` is realized
+as the write session's view (4a's `beSess γ q Fp.none S`, the batch image) of the `meta` bucket's
+`consistent_index` and `term` cells (`c` the stored index, `0` when absent), so `UnsafeSave` under
+the hook writes exactly those two cells (`Fh := ciCells`, the cells `schema.UnsafeUpdateConsistentIndex`
+puts: 4a's `hookWrites ciCells S S'`), never lowering the stored index (`c ≤ idx`, the `AU`'s
+guard); the published update is the indexer's `ciState` (the stored index made visible at the
+commit). Server-boot restates `BackendHooks.OnPreCommitUnsafe.spec`/`isHooks` over it.
 -/
 module
 
 public import Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.cindex
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Api
+public import Spec.go_etcd_io.etcd.server.v3.storage.schema.Api
 
 set_option autoImplicit false
 
@@ -86,6 +97,15 @@ structure CIState where
   stored : Option w64
 
 end model
+
+/-- The `meta` bucket's name (schema's `Meta`). -/
+def metaBktName : GoString := Schema.Bkt.name .metaB
+
+/-- **The cells the consistent index's save writes** (`schema.UnsafeUpdateConsistentIndex`: `meta`'s
+`consistent_index` and `term`): the hook footprint `Fh` of 4a's `hookOk` for the server's
+`OnPreCommitUnsafe` (server-boot restates it over this). -/
+def ciCells : Backend.Fp := fun c =>
+  c = .key metaBktName Schema.ciKey ∨ c = .key metaBktName Schema.termKey
 
 section vocab
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
@@ -135,6 +155,22 @@ def beStoredCI_persistent.spec : Prop := ∀ be v, Persistent (beStoredCI (GF :=
 
 def ciState_excl.spec : Prop :=
   ∀ γ (m m' : CIState), ciState (GF := GF) γ m ∗ ciState γ m' ⊢ iprop(False)
+
+/-- **The stored index of a hook's session** (verify round, server-boot's second pass): in a
+pre-commit hook's session over 4a's backend `γb` (`beSess γb q Fp.none S`, the transaction
+`btIface γb`), the transaction's stored index is the session's `meta` bucket's (`Schema.ciOf`), and
+storing `c'` there (`UnsafeSave`) writes only `ciCells`: what 4a's `hookOk` asks of the hook.
+Verify round (backend-schema's check): the save's `UnsafePut`s need the batch image's part on the
+cells, `beCur γb ciCells C`, which the hook holds (the indexer's invariant, as
+`confStateSave_hook`'s `beCur γ confStateCells C`) and gets back updated. -/
+def txStoredCI_sess.spec : Prop := ∀ (γb : Backend.BeNames) (q : Qp) (S : Backend.Sess)
+    (C : Backend.Image),
+  Backend.beSess (GF := GF) γb q Backend.Fp.none S ∗ Backend.beCur γb ciCells C ⊢
+    txStoredCI (Backend.btIface γb) (Schema.ciOf (S.cur.ents metaBktName)).1 ∗
+    ∀ c' : w64, txStoredCI (Backend.btIface γb) c' -∗
+      ∃ (S' : Backend.Sess) (C' : Backend.Image), Backend.beSess γb q ciCells S' ∗
+        Backend.beCur γb ciCells C' ∗
+        ⌜Backend.hookWrites ciCells S S' ∧ (Schema.ciOf (S'.cur.ents metaBktName)).1 = c'⌝
 
 end laws
 

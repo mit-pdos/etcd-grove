@@ -87,6 +87,8 @@ the callers that realize their slots over the backend (3c's lessor, 3d's auth st
   back. `btSectOut` (`wrSect` of `LockOutsideApply`, `CreateMetaBucket`): `LockOutsideApply.spec`
   (`beOpen`, giving `Pk` and an empty session, widened to `F`), then `Unlock.spec`, whose two
   updates the section fires on the caller's tracker `beVis γ F W` (carried in the frame).
+* (verify-round, A10-provability B1: the `Lock*` triples give the session's turn `beTurn γ`, which
+  `Unlock`'s second update takes back; `btSectOut` carries it in the frame.)
 * `beRet`, `btLockIn`, `btLockOut`, `btUnlock`, `beForceCommit`, `rtLock`, `rtUnlock`: the backend
   triples as the schema's `retOk`/`callOk` (`authBackend.ReadTx`/`BatchTx`, `authBatchTx.Lock`/
   `Unlock`, `authReadTx.RLock`/`RUnlock`, both `ForceCommit`s).
@@ -94,6 +96,16 @@ the callers that realize their slots over the backend (3c's lessor, 3d's auth st
   Pk f Pre Q'`) and the caller's `Q' ={⊤}=∗ Pk ∗ Q` (the wrapper's `Unlock` needs `Pk`) give
   `Schema.applyHook (beIface b) Pre (Q ∗ beOpen γ q ∗ beHook γ dq f)`: the two shares come back in
   the wrapper's post.
+* `confStateSave_hook` (second pass, server-core's request for server-boot): the analogue of
+  cindex's `ciCells`/`txStoredCI_sess` for the configuration the apply thread saves under the same
+  pre-commit hook. `confStateCells`: `meta`'s `confState` key (4a cell). The save
+  (`MustUnsafeSaveConfStateToBackend` at the batch transaction) in a hook session `beSess γ q F S`
+  (any footprint: after cindex's write it is `ciCells`) with the cell's batch part writes only that
+  cell: the session comes back at `Fp.union F confStateCells` with `hookWrites confStateCells S S'` (what 4a's `hookOk` asks of a hook), so the
+  server's hook footprint is `Fp.union Cindex.ciCells confStateCells`. Rests on the schema's triple
+  over `txWr` at a hook view (as `btWr`, the session published at `confStateCells` by
+  `beSess_widen`, one `UnsafePut` of the key: `hookWrites` holds, a put of a cell of `Fh` with the
+  base kept); `meta` exists for good (`beMade`).
 * `alarmBkt_intro`/`_elim`, `memberBkts_intro`/`_elim`: the names-only wrappers' resources from the
   opener's part of their buckets (batch and visible images, equal; `Schema.alarmsAt`/`memberBktsAt`
   of the image), a reader slot, an open share; and back for the backend's close (whose `beVis`
@@ -132,6 +144,7 @@ module
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Api
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.MvccStorage
 public import Spec.go_etcd_io.etcd.server.v3.storage.schema.Api
+public import GeneratedProof.go_etcd_io.raft.v3.raftpb
 
 set_option autoImplicit false
 
@@ -184,6 +197,9 @@ def rdView (sc : Schema.Scope) (W : Image) : Schema.View :=
 def viewOkR (sc : Schema.Scope) (W : Image) (V : Schema.View) : Prop :=
   ∀ (b : Schema.Bkt) (m : Schema.BData) (k : GoString), V b = some m → sc.has b k →
     m k = W.ents b.name k
+
+/-- **`meta`'s `confState` key** (the cell `MustUnsafeSaveConfStateToBackend` writes). -/
+def confStateCells : Fp := Fp.key (Schema.Bkt.name .metaB) Schema.confStateKey
 
 /-- The `Alarm` bucket's cells. -/
 def alarmFp : Fp := Fp.bucket (Schema.Bkt.name .alarm)
@@ -301,7 +317,7 @@ def btSectOut.spec : Prop :=
     isBackend γ b p Pk ⊢
   Schema.wrSect (btIface γ) go!"LockOutsideApply"
     iprop(beOpen γ q ∗ beCur γ G C0 ∗ madeIn γ sc V0 ∗ beVis γ F W0 ∗ X)
-    (btView γ q F G sc iprop(Pk ∗ (∃ W : Image, beVis γ F W) ∗ X)) ok
+    (btView γ q F G sc iprop(Pk ∗ beTurn γ ∗ (∃ W : Image, beVis γ F W) ∗ X)) ok
     (fun V => iprop(beOpen γ q ∗ X ∗ ∃ (C W : Image), beCur γ G C ∗ beVis γ F W ∗
       ⌜viewOk sc C V ∧ Image.agree F C W⌝))
 
@@ -320,7 +336,8 @@ def btLockIn.spec : Prop :=
     isBackend γ b p Pk ⊢
   Schema.callOk (btIface γ) go!"LockInsideApply"
     iprop(beOpen γ q ∗ beHook γ dq f ∗ Pre ∗ hookRun γ q Pk f Pre Q)
-    iprop(∃ I : Image, beSess γ q Fp.none (Sess.init I) ∗ beLive γ (btLoc γ) 1 ∗ beHook γ dq f ∗ Q)
+    iprop(∃ I : Image, beSess γ q Fp.none (Sess.init I) ∗ beTurn γ ∗ beLive γ (btLoc γ) 1 ∗
+      beHook γ dq f ∗ Q)
 
 /-- **`LockOutsideApply()`** as a `callOk`. -/
 def btLockOut.spec : Prop :=
@@ -328,7 +345,7 @@ def btLockOut.spec : Prop :=
   isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
     isBackend γ b p Pk ⊢
   Schema.callOk (btIface γ) go!"LockOutsideApply" (beOpen γ q)
-    iprop(∃ I : Image, beSess γ q Fp.none (Sess.init I) ∗ beLive γ (btLoc γ) 1 ∗ Pk)
+    iprop(∃ I : Image, beSess γ q Fp.none (Sess.init I) ∗ beTurn γ ∗ beLive γ (btLoc γ) 1 ∗ Pk)
 
 /-- **`Unlock()`** as a `callOk` (`batchTxBuffered.Unlock.spec`: the two visible-image updates). -/
 def btUnlock.spec : Prop :=
@@ -339,7 +356,7 @@ def btUnlock.spec : Prop :=
   Schema.callOk (btIface γ) go!"Unlock"
     iprop(beSess γ q F S ∗ beLive γ (btLoc γ) 1 ∗ Pk ∗
       (AU <{ ∃∃ (V : Image), beVis γ F V }> @ ⊤, ∅ <{ beVis γ F S.mid, COMM Ψ1 }>) ∗
-      (Ψ1 -∗ AU <{ ∃∃ (V : Image), beVis γ F V }> @ ⊤, ∅ <{ beVis γ F S.fin, COMM Ψ2 }>))
+      (Ψ1 -∗ AU <{ ∃∃ (V : Image), beVis γ F V ∗ beTurn γ }> @ ⊤, ∅ <{ beVis γ F S.fin, COMM Ψ2 }>))
     iprop(beOpen γ q ∗ Ψ2)
 
 /-- **`ForceCommit()`** of the backend as a `callOk` (`backend.ForceCommit.spec`). -/
@@ -417,6 +434,30 @@ def memberBkts_elim.spec : Prop :=
   |={⊤}=> ∃ (γ : BeNames) (p : GoString) (Pk : IProp GF) (q : Qp) (C V : Image),
     isBackend γ b p Pk ∗ beOpen γ q ∗ beRdToks γ 1 ∗ beCur γ memberFp C ∗ beVis γ memberFp V ∗
     ⌜Image.agree memberFp C V ∧ Schema.memberBktsAt (imgView C) cb⌝
+
+/-- **Saving the configuration in a pre-commit hook's session writes only `confStateCells`**
+(second pass; see the header): from a session at any footprint `F` (the hook's, nothing published,
+or already published at `Cindex.ciCells` by the consistent index's write: the two compose, since
+`hookWrites` chains) and the cell's batch part, the save returns the session widened by
+`confStateCells`, changed only at that cell as `hookWrites` allows, holding the saved bytes at the
+key, and the part at them. No liveness: the save is one `UnsafePut`, which needs none (the hook is
+lent only the session, `hookOk`). -/
+def confStateSave_hook.spec : Prop :=
+  ∀ (γ : BeNames) (q : Qp) (F : Fp) (S : Sess) (C : Image) (lg cs : Loc) (dq : DFrac)
+    (c : Proto.Content),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ bktsAre γ ∗
+      beMade γ (Schema.Bkt.name .metaB) ∗ beSess γ q F S ∗ beCur γ confStateCells C ∗
+      Proto.msgAt go_etcd_io.raft.v3.raftpb.ConfState.ty cs dq c ∗
+      ⌜Schema.confStateKey.length + 128 + 21 * Proto.encSize c ≤ Bbolt.bboltEntryMax⌝ }}
+    (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.schema.MustUnsafeSaveConfStateToBackend))
+      (Val #lg)) (Val #(btIface γ))) (Val #cs))
+  {{ RET #(); Proto.msgAt go_etcd_io.raft.v3.raftpb.ConfState.ty cs dq c ∗
+      ∃ (S' : Sess) (C' : Image) (bs : GoString),
+        beSess γ q (Fp.union F confStateCells) S' ∗ beCur γ confStateCells C' ∗
+        ⌜hookWrites confStateCells S S' ∧
+          S'.cur.ents (Schema.Bkt.name .metaB) Schema.confStateKey = some bs ∧
+          C'.ents (Schema.Bkt.name .metaB) Schema.confStateKey = some bs⌝ }}
 
 end laws
 

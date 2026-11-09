@@ -851,6 +851,19 @@ def RequestOp.leasesL : List RequestOp → List Int
   | op :: ops => op.leases ++ RequestOp.leasesL ops
 end
 
+/-- **An administrator check refused, its two views** (`IsAdminPermitted`: the enabled flag read
+at one auth table, the user at another; second pass, grpc-v3rpc's P-F5, the shape of 2a's
+`V3rpc.adminDenied` and 3d's `adminPost`): the flag on at `jf`; no principal, or the empty user
+(`ErrUserEmpty`), a user absent at `jx` (`ErrUserNotFound`), or present and not of the root role
+(`ErrPermissionDenied`). -/
+def State.adminDenied (σ : State) (who : Principal) (e : EtcdErr) : Prop :=
+  ∃ (jf jx : Nat) (af ax : AuthState), σ.authTables[jf]? = some af ∧ σ.authTables[jx]? = some ax ∧
+    af.enabled = true ∧
+    match who with
+    | none => e = .userEmpty
+    | some u => (u = [] ∧ e = .userEmpty) ∨ (u ≠ [] ∧ ax.users u = none ∧ e = .userNotFound) ∨
+        (u ≠ [] ∧ ax.users u ≠ none ∧ ¬ ax.isRoot u ∧ e = .permissionDenied)
+
 /-- An administrator's request (`IsAdminPermitted`): auth off or a user of the root role. -/
 def AuthState.admin (a : AuthState) (who : Principal) : Prop :=
   a.enabled = false ∨ ∃ u, who = some u ∧ a.isRoot u
@@ -883,11 +896,21 @@ def State.permittedSince (σ : State) (lo : Nat) (who : Principal) (ps : List (P
     Prop :=
   ∃ j a, lo ≤ j ∧ σ.authTables[j]? = some a ∧ ({ σ with auth := a } : State).permits who ps []
 
-/-- **A read denied at an auth state since `lo`** (the check fails at the auth state it saw, which
-may be older than the answer's). -/
+/-- **A read denied, its check's three views since `lo`** (`isOpPermitted`, one call per pair:
+it reads the enabled flag, then the user under the backend's read transaction, then the permission
+cache, each at an auth state it saw, which may differ and be older than the answer's: 3d's
+`checkDenied`): for one pair, auth on at one table, and either no principal (`ErrUserEmpty`) or a
+user not of the root role at a second table whose range is not covered (or inverted) at a third.
+Verify round, A9-completeness F1: it was the denial at one auth state, which the code does not give
+(an `AuthDisable` and a `RoleRevokePermission` between the views deny a read permitted at every
+state; `nonissues/etcd-auth-read-denied-across-views.md`). A denial at one state is the case
+`jf = jx = jc`. -/
 def State.deniedSince (σ : State) (lo : Nat) (who : Principal) (ps : List (PermType × KeyRange)) :
     Prop :=
-  ∃ j a, lo ≤ j ∧ σ.authTables[j]? = some a ∧ ¬ ({ σ with auth := a } : State).permits who ps []
+  ∃ p ∈ ps, ∃ (jf jx jc : Nat) (af ax ac : AuthState), lo ≤ jf ∧ lo ≤ jx ∧ lo ≤ jc ∧
+    σ.authTables[jf]? = some af ∧ σ.authTables[jx]? = some ax ∧ σ.authTables[jc]? = some ac ∧
+    af.enabled = true ∧
+    (who = none ∨ ∃ u, who = some u ∧ ¬ ax.isRoot u ∧ (¬ ac.covers u p.1 p.2 ∨ p.2.inverted))
 
 /-- **A denial of an inverted range** (`auth/range_perm_cache.go`: the interval tree's `Contains`
 of an empty interval may refuse it): auth on, a principal not of the root role, and a pair whose
@@ -1017,9 +1040,9 @@ def kvStep (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) (lo : Nat 
            σ' = σ.withKV (σ.kv.commit evs) ∧
            res = .ok (.txn (if evs = [] then v.rev else v.rev + 1) ok rs))
   | .compact rev _ =>
-      -- the gRPC layer's administrator check, at the member's local auth state (a state the
-      -- cluster has had: `kvServer.Compact`)
-      (∃ a ∈ σ.authTables, ¬ a.admin who ∧ σ' = σ ∧ res = .err (a.adminErr who)) ∨
+      -- the gRPC layer's administrator check, at the member's local auth tables (ones the
+      -- cluster has had: `kvServer.Compact`), the flag and the user read at two moments
+      (∃ e, σ.adminDenied who e ∧ σ' = σ ∧ res = .err e) ∨
       rev ≤ (σ.kv.compacted : Int) ∧ σ' = σ ∧ res = .err .compacted ∨
       (σ.kv.rev : Int) < rev ∧ σ' = σ ∧ res = .err .futureRev ∨
       (σ.kv.compacted : Int) < rev ∧ rev ≤ (σ.kv.rev : Int) ∧

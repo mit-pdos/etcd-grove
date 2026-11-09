@@ -128,19 +128,33 @@ in-flight batch**: before each `Save` the loop deposits the batch's `readyEnter`
 through `diskAcc`, and fires it at the write's sync. After a crash, `disk_crash` takes the crash
 rule's `crashGone γ ds` (which carries raft's `nodeVacant`, as R1's `raftState_crash` says the crash
 rule gives) and resolves the in-flight batch: the WAL holds a state `Wal.Recs.crashedMid` /
-`crashed` allows (a prefix of the batch's entries, the old state record, a commit from the synced
-one up: `wal/Api.lean`, true of the WAL's code), and R1's `raftState_crash` moves `raftState` to the
+`crashed` allows (a prefix of the batch's entries with the old state record (its term and vote, a
+commit between `wcommit` and `D.commit`: `raftState_crash`'s first case), or all of them with the
+batch's record (its term and vote, a commit between `wcommit` and the batch's: the second case):
+`wal/Api.lean`, true of the WAL's code), and R1's `raftState_crash` moves `raftState` to the
 matching `Durable.crashed b j hs`; the backend's file is its last commit (bbolt's commits are atomic
 and fsynced: `UnsafeNoFsync` false); a member's files then restart by `memberStart_disk`.
 
-**Scope** (`crashScope`, a premise of `disk_crash`; Q2 of `batch-2e.md`, the user's): (1) R1's
-`Durable.confAboveOk` of the crashed state: at most one conf-change entry above the stored commit
-(`issues/raft-commit-lost-with-entries-kept.md`, a reproduced raft safety bug: otherwise a restarted
-node can win an election counted in an older configuration and commit a conflicting entry; the
-alternative is a raft/etcd fix); (2) no crash during the
-write of a batch that carries a snapshot (R1's law excludes them: the loop's `SaveSnap` is fsynced
-first, but the state record that makes it valid follows). A graceful stop is the instance with no
-crash (`HardStop`'s post).
+**Scope** (`crashOutOfScope γ ds`, a disjunct of `disk_crash`'s conclusion; Q2 of `batch-2e.md`,
+the user's; verify round, A8-provability F1.1: a parameterless `crashScope : Prop` could not say
+which crash it excludes): the crash left the disk outside the covered executions: (1) the crashed
+durable state breaks R1's `Durable.confAboveOk` (more than one conf-change entry above the stored
+commit: `issues/raft-commit-lost-with-entries-kept.md`, a reproduced raft safety bug; the
+alternative is a raft/etcd fix), or (2) the crash interrupted the write of a batch that carries a
+snapshot (R1's law excludes them). The adequacy theorem excludes the disjunct as its environment
+premise. A graceful stop is the instance with no crash (`HardStop`'s post).
+
+**Generations** (verify round, A8-provability F1.2-1.4, F9; server-boot's crash laws): the
+realization of `disk_crash` uses 2e's `Wal.walRecs_crash`/`walWriting_crash` (the in-flight batch is
+`walWriting R (.save hs k es)` with its `readyEnter` unfired; its two record cases are R1's
+`raftState_crash`'s two hard-state cases), `Snap.snapDbs_crash`/`snapSaving_crash` (with
+`snapGone`) and 4a's `Backend.beCrash` (threading `crashRest` over the disk's files,
+`diskFiles ds`). `diskState`'s realization keeps R1's durable invariant that at most one
+conf-change entry is above `wcommit` (raft's `ConfI1` at the cut; `crashOutOfScope`'s first case is its
+failure), and the backend file's revert state (4a's `beNoRevert`, or `beRevert` between
+`applySnapshot`'s rename and the next `SaveDBFrom`).
+`crashGone`'s producer is `crashGone_intro` (the running server's
+`srvRunning`, given up at the crash); an idle disk crosses a crash by `diskIdle_crash`.
 
 ## Slots (the slot convention, `specs-ref/notes/spec-first-plan.md`, "The slot convention")
 
@@ -185,6 +199,7 @@ public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.Api
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Api
 public import Spec.go_etcd_io.etcd.server.v3.lease.Api
 public import Spec.go_etcd_io.etcd.server.v3.auth.Api
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Durable
 
 @[expose] public section
 
@@ -252,15 +267,30 @@ opaque diskState [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFuncto
 /-- **No server runs on `ds`, whose disk is of kind `k`** (exclusive). -/
 opaque diskIdle [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (ds : Config.Dirs) (k : DiskKind) : IProp GF := iprop(True)
 
-/-- **The process that ran a server on `ds` crashed** (exclusive): the adequacy theorem's crash rule
-gives it (W0's), one per disk whose server was running. -/
+/-- **The process that ran a server on `ds` crashed** (exclusive): `crashGone_intro` gives it from
+the server's `srvRunning` at the crash (the crash rule's: one per disk whose server was running). -/
 opaque crashGone [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (ds : Config.Dirs) : IProp GF := iprop(True)
 
-/-- **A server's access to the disk** (persistent): an update over `diskState` the server fires at
-each durable write. -/
+/-- **The crash left `ds` outside the covered executions** (see the header, "Scope"): its crashed
+durable state has more than one conf-change entry above its stored commit, or the crash
+interrupted a snapshot-carrying batch. The adequacy theorem's environment premise excludes it.
+Persistent. -/
+opaque crashOutOfScope [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (ds : Config.Dirs) : IProp GF := iprop(True)
+
+/-- The files of the disk `ds` whose crash-time contents `disk_crash` takes from the OS's crash
+rest (`crashRest`): the backend's file (`member/snap/db`). -/
+def diskFiles (ds : Config.Dirs) : List GoString :=
+  [Config.backendPathOf ds.dataDir]
+
+/-- **A server's access to the disk** (persistent): an invariant-style accessor at `diskN`, opened
+at each durable write (the WAL's two updates, `walWriting` then `walRecs`, each through it; the
+second fires the batch's `readyEnter`). Verify round (A8-provability F2): an atomic update at mask
+`∅` blocked both the raft loop's write (firing `readyEnter` needs `↑γ.raft.ns`) and
+`RestartNode`; with an accessor at `diskN`, raft's namespace (`etcdN .@ "raft"`, disjoint from
+`diskN`) stays open. -/
 def diskAcc (γ : Cluster) (ds : Config.Dirs) : IProp GF :=
-  iprop(□ AU <{ ∃∃ (k : DiskKind), diskState γ ds k }> @ ⊤ \ ↑diskN, ∅
-    <{ ∀∀ (k' : DiskKind), diskState γ ds k', COMM True }>)
+  iprop(□ ∀ E : CoPset, ⌜↑diskN ⊆ E⌝ -∗ |={E, E \ ↑diskN}=> ∃ k : DiskKind, diskState γ ds k ∗
+    (∀ k' : DiskKind, diskState γ ds k' ={E \ ↑diskN, E}=∗ True))
 
 /-- **The directories `ds` hold member `id`'s files and no server runs on them** (a stopped
 member: `HardStop`'s post). -/
@@ -303,6 +333,15 @@ nothing. -/
 opaque readyCh [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (ch : Loc) : IProp GF := iprop(True)
 
 /-! ## Internal (the package's proofs) -/
+
+/-- **The backend `be` at file `p`, closable**: 4a's handle with its whole open token and its
+footprints, what `backend.Close` takes (verify round, server-boot's request: `OpenBackend` returns
+what `backend.New` returns, so the provisional `ServerStorage.beOpen` is gone). Exclusive. -/
+def beClosable (be : GoInterface) (p : GoString) : IProp GF :=
+  iprop(∃ (γb : Backend.BeNames) (b : Loc) (Pk : IProp GF) (F G Fh : Backend.Fp) (V : Backend.Image),
+    ⌜be = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b⌝ ∗
+    Backend.isBackend γb b p Pk ∗ Backend.beOpen γb 1 ∗ Backend.beVis γb F V ∗
+    Backend.beNoVis γb G ∗ ⌜∀ c, F c ∨ G c⌝ ∗ Backend.beHookFp γb Fh ∗ ⌜Backend.Fp.disj F Fh⌝)
 
 /-- `bootstrap`'s result `b` for member `id` of `γ` and configuration `cfg` (exclusive). -/
 opaque bootOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (b : Loc) (γ : Cluster) (id : Nat)
@@ -363,9 +402,12 @@ compaction batch limit (integration I4). -/
 def mvccBootCfg (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : Prop :=
   0 ≤ sint.Z cfg.CompactionBatchLimit'
 
-/-- **Provisional slot (4a):** the backend's configuration and program-start facts. -/
-opaque backendBootRes [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : IProp GF :=
-  iprop(True)
+/-- **Slot (4a):** the backend's program-start facts (4a's `Backend.envOk`: `ETCD_VERIFY` unset)
+and its configuration: a quota of at most 8 GiB (bbolt maps `quota + quota / 10`), no
+`MemoryMlock` (verify round, server-boot's request: `OpenBackend`'s new premises). -/
+def backendBootRes (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : IProp GF :=
+  iprop(Backend.envOk ∗
+    ⌜sint.Z cfg.QuotaBackendBytes' ≤ 8 * 1024 * 1024 * 1024 ∧ cfg.MemoryMlock' = false⌝)
 
 /-- **Slot (3c):** the lessor's configuration against the environment's lease mode: without lease
 expiry in the environment, 3c's trusted deployment premise `Lease.leasesOutliveRun` (W0's K2; "from
@@ -394,10 +436,10 @@ def v3rpcBootCfg_intro.spec : Prop := ∀ cfg : go_etcd_io.etcd.server.v3.config
 def mvccBootCfg_intro.spec : Prop := ∀ cfg : go_etcd_io.etcd.server.v3.config.ServerConfig,
   0 ≤ sint.Z cfg.CompactionBatchLimit' → mvccBootCfg cfg
 
-/-- The backend: `ETCD_VERIFY` unset, and the default quota or one of at most 8 GiB (bbolt maps
-`quota + quota / 10`). -/
+/-- The backend: `ETCD_VERIFY` unset (4a's `envOk_intro`), and the default quota or one of at most
+8 GiB, no `MemoryMlock`. -/
 def backendBootRes_intro.spec : Prop := ∀ cfg : go_etcd_io.etcd.server.v3.config.ServerConfig,
-  sint.Z cfg.QuotaBackendBytes' ≤ 8 * 1024 * 1024 * 1024 →
+  sint.Z cfg.QuotaBackendBytes' ≤ 8 * 1024 * 1024 * 1024 → cfg.MemoryMlock' = false →
   backendEnvOk (GF := GF) ⊢ backendBootRes cfg
 
 /-- The lessor: leases may expire in the environment (the mode without expiry needs 3c's
@@ -484,10 +526,16 @@ def memberJoin_excl.spec : Prop := ∀ γ urls urls', urls.Perm urls' →
 shared apply configuration `mc`: the state, one start token per member, the network, the
 protocols with which the program serves each member's raft handler. The initial URL sets are
 spent (no `urlsRight` for them). (Integration: no shared apply configuration: members may be
-configured differently, 2d's `srvCfg` per member, 3a's TTL-variant histories.) -/
+configured differently, 2d's `srvCfg` per member, 3a's TTL-variant histories.) Verify round
+(A8-provability F4): the members' ids are non-zero and none of raft's local targets
+(`LocalAppendThread`, `LocalApplyThread`: raft's `cluster_alloc` needs it; the program computes the
+ids, `memberIdOf`, and a SHA-1 id equal to one is a 2^-63 chance etcd never checks:
+`nonissues/etcd-member-id-raft-reserved.md`). A runtime `MemberAdd` of such an id (time-salted)
+is the same chance, recorded there, not excluded by the model. -/
 def cluster_alloc.spec : Prop := ∀ (ms : List Member) (hs : Member → List GoString)
     (E : CoPset),
   (∀ m ∈ ms, Types.urlsHosts m.peerURLs = some (hs m)) →
+  (∀ m ∈ ms, m.id ≠ 0 ∧ Raft.isLocalTarget (W64 m.id) = false) →
   ([∗list] m ∈ ms, [∗list] a ∈ hs m, Http.addrFree (GF := GF) a) ⊢
     |={E}=> ∃ (γ : Cluster) (ν : Rafthttp.Net GF), etcdState γ (State.init ms) ∗ srvNet γ ν ∗
       ([∗list] m ∈ ms, memberBoot γ ms m ∗
@@ -510,23 +558,39 @@ def disk_join.spec : Prop := ∀ (γ : Cluster) (urls : List GoString) (ds : Con
   memberJoin (GF := GF) γ urls ∗ dataDirFresh ds ⊢ |==> diskState γ ds (.join urls) ∗
     diskIdle γ ds (.join urls)
 
-/-- **The crash scope** (see the header, "Crashes"; the user's decision, `batch-2e.md` Q2): the
-crash left at most one conf-change entry above the stored commit (R1's `Durable.confAboveOk`) and
-did not interrupt the write of a snapshot-carrying batch. The first conjunct **guards a real raft
-safety bug**, reproduced (`issues/raft-commit-lost-with-entries-kept.md`: a follower that writes two
-conf-change entries of one `Ready` and crashes before the `HardState` committing them restarts in
-its old configuration, wins an election counted in it, and commits a different entry at an index the
-new configuration's leader committed): outside this scope the restart is unsound, not merely
-unproved; a raft/etcd fix (persisting the commit with the entries, or not acknowledging a second
-pending conf change before it) would remove the conjunct. The second is a gap of R1's crash law. -/
-opaque crashScope : Prop
+/-- **The crash rule's evidence** (verify round, A8-provability F1: `crashGone` had no producer):
+at a crash, the running server's stop right of `ds` (which the program keeps where the crash rule
+reaches it: its crash invariant) becomes `crashGone` (raft's `nodeVacant` of the crashed node: the
+process is gone). -/
+def crashGone_intro.spec : Prop := ∀ (s : Loc) (γ : Cluster) (id : Nat) (ds : Config.Dirs),
+  srvRunning (GF := GF) s γ id ds ∗ crashed ⊢ |==> crashGone γ ds
 
-/-- **After a crash**: the disk of the server that ran on `ds` is idle again, of the kind the crash
-left (a fresh directory stays one, or became member `id`'s files once the WAL was created; the
-files' in-flight batch resolved by R1's `raftState_crash`). -/
-def disk_crash.spec : Prop := ∀ (γ : Cluster) (ds : Config.Dirs) (k : DiskKind),
-  crashScope → diskState (GF := GF) γ ds k ∗ crashGone γ ds ⊢
-    |==> ∃ k', diskState γ ds k' ∗ diskIdle γ ds k' ∗ ⌜k' = k ∨ ∃ id, k' = .member id⌝
+def crashOutOfScope_persistent.spec : Prop := ∀ γ ds,
+  Persistent (crashOutOfScope (GF := GF) γ ds)
+
+/-- **An idle disk crosses a crash** (nothing in flight: the next generation `L'` has it at the
+same kind; verify round, server-boot's request: `diskIdle` was lost otherwise). -/
+def diskIdle_crash.spec : Prop := ∀ (L' : GooseLocalGS GF) (γ : Cluster) (ds : Config.Dirs)
+    (k : DiskKind),
+  diskState (GF := GF) γ ds k ∗ diskIdle γ ds k ∗ crashed ⊢
+    |==> @diskState _ _ _ GF ⟨hG.goose_globalGS, L'⟩ γ ds k ∗
+      @diskIdle _ _ _ GF ⟨hG.goose_globalGS, L'⟩ γ ds k
+
+/-- **After a crash** (per generation; verify round, A8-provability F1, F9): the disk of the server
+that ran on `ds` is, in the next generation `L'`, idle again, of the kind the crash left (a fresh
+directory stays one, or became member `id`'s files once the WAL was created; the files' in-flight
+batch resolved by R1's `raftState_crash`, the WAL's `walWriting_crash`, the snapshot files'
+`snapSaving_crash`, the backend's file by 4a's `beCrash`, which takes the disk's files out of the
+OS's crash rest `crashRest`); or the crash left it out of scope (`crashOutOfScope`). -/
+def disk_crash.spec : Prop := ∀ [HasExt osFsExt] (L' : GooseLocalGS GF) (γ : Cluster)
+    (ds : Config.Dirs) (k : DiskKind) (Ps : List GoString),
+  (∀ p ∈ diskFiles ds, p ∉ Ps) →
+  diskState (GF := GF) γ ds k ∗ crashGone γ ds ∗ crashed ∗
+    crashRest (gooseOsGS (L := hG.goose_localGS)) (gooseOsGS (L := L')) Ps ⊢
+    |={⊤}=> ((∃ k', @diskState _ _ _ GF ⟨hG.goose_globalGS, L'⟩ γ ds k' ∗
+          @diskIdle _ _ _ GF ⟨hG.goose_globalGS, L'⟩ γ ds k' ∗ ⌜k' = k ∨ ∃ id, k' = .member id⌝) ∨
+        crashOutOfScope γ ds) ∗
+      crashRest (gooseOsGS (L := hG.goose_localGS)) (gooseOsGS (L := L')) (diskFiles ds ++ Ps)
 
 /-- **The right to start a server on a disk**: its access, its idle token, a configuration of
 its kind. -/

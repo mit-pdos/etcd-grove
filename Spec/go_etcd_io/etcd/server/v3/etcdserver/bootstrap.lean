@@ -47,6 +47,10 @@ a new cluster's first start only, `bootOkR` a restart at `σ.b = 0`: R2d'a); no 
 initial cluster from a discovery service; `bootCfgOk`'s old exclusion, kept: Q4 of the report),
 bootstrap defragmentation (`BootstrapDefragThresholdMegabytes`: the backend's `Defrag` keeps its
 image: 4a's spec) are inside the configurations the premises admit or excluded as said.
+
+Changes: verify-round (server-boot's request): `OpenBackend` returns 4a's `isBackend` through the allocation step, its hook contract `Backend.hookOk` from cindex's `UnsafeSave` (cindex/Api's header), with premises `backendBootRes` (now `Backend.envOk` and the quota, `MemoryMlock = false`), `safeRegOk`, `threadTok`; the snapshot directory's invariant is allocated with `Snap.snapGone sd H` beside `snapDbs` at `(fun _ _ => False)`.
+
+Changes: verify-round, last relay (server-boot's request): the opener gets the backend file's `Backend.beNoRevert` (4a's `beFile_of`/`beFile_none` give it with the file), kept in `diskState`'s realization for `applySnapshot`'s `OpenSnapshotBackend`.
 -/
 module
 

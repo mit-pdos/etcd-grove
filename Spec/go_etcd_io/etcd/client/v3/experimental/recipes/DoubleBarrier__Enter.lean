@@ -21,8 +21,8 @@ again (`σ2`): `count` or more and this key after the `count`-th's creation revi
 `σ2`'s store had `count` waiters), whose commit gives `etcdLb` after it (`readyPutAt` at its revision
 `> R`). Fewer, or before the `count`-th: `WaitEvents.spec` on `key/ready` from `R` for `[PUT]`: a put
 of the `ready` key at a revision `≥ R`. Every error returned is `recipeErrOk` (`enteredClients`,
-`Put`'s `errVal`/`indefCall`, `WaitEvents`'), and not `ErrTooManyClients` (`recipeErr_ne`,
-`recipeErr_fresh`, from W0's `callErr_errorsNew`).
+`Put`'s `errVal`/`indefCall`, `WaitEvents`'), and not `ErrTooManyClients` (`notRecipeErr`:
+`init.spec`'s `recipeErrsOk`, with W0's `callErr_errorsNew` for a `callErr`).
 
 **What it guarantees**: `nil` means this call's waiter key `k` was created at `R` (after `σ0`) by the
 caller's update, the first read saw fewer than `count` waiters (at a revision after `σ0`), and
@@ -36,6 +36,8 @@ them). With lease expiry, the same facts hold of revisions.
 prefix were the recipes' own. Round 1 used a persistent permission for every write; now one-shot
 updates for creating and deleting this process's own key (review 1f-completeness-1, C-1), the
 permission only for the `ready` key; the `ErrTooManyClients` arm says whether a key was created.
+
+**Changes (verify-round)**: `ErrTooManyClients` is the value its variable holds (`globalAddr … ↦□ err`), the other errors `notRecipeErr` (A3 F4).
 
 **Margin**: when this call puts `ready` itself, it also knows the `count` waiters at `σ2` (the guard).
 
@@ -93,10 +95,10 @@ def DoubleBarrier.Enter.spec : Prop :=
         <{ ∀∀ (σ' : State) (res : Resp),
              ⌜Step who (.deleteRange (delReq k)) σ σ' res⌝ ∗ etcdState γ σ',
            COMM Qd k σ σ' res }>) ∗
-         ((⌜err = recipeErr .tooManyClients⌝ ∗ ∃ (σ : State) (r n : Nat), etcdLb γ σ ∗
+         ((globalAddr go_etcd_io.etcd.client.v3.experimental.recipes.ErrTooManyClients ↦□ err ∗ ∃ (σ : State) (r n : Nat), etcdLb γ σ ∗
              ⌜σ0.kv.rev ≤ r ∧ r ≤ σ.kv.rev ∧
               storeCount (σ.kv.storeAt r) (pfxRange (waitersPfx key)) n ∧ sint.Z count ≤ n⌝) ∨
-          (⌜err ≠ GoInterface.nil ∧ err ≠ recipeErr .tooManyClients⌝ ∗ recipeErrOk err))) ∨
+          (⌜err ≠ GoInterface.nil⌝ ∗ notRecipeErr .tooManyClients err ∗ recipeErrOk err))) ∨
        (⌜my' = my⌝ ∗ (∀ k : GoString, AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
         <{ ∀∀ (σ' : State) (res : Resp),
              ⌜Step who (.deleteRange (delReq k)) σ σ' res⌝ ∗ etcdState γ σ',
@@ -115,11 +117,11 @@ def DoubleBarrier.Enter.spec : Prop :=
               (∃ r1 n, σ0.kv.rev ≤ r1 ∧ r1 < σc'.kv.rev ∧
                  storeCount (σ.kv.storeAt r1) (pfxRange (waitersPfx key)) n ∧ (n : Int) < sint.Z count) ∧
               (EtcdModel.exactFrom σ.kv σ0.kv.rev → ∃ r, σc'.kv.rev ≤ r ∧ r ≤ σ.kv.rev ∧ readyPutAt σ.kv key r)⌝) ∨
-          (⌜err = recipeErr .tooManyClients ∧ st.live = false⌝ ∗
+          (⌜st.live = false⌝ ∗ globalAddr go_etcd_io.etcd.client.v3.experimental.recipes.ErrTooManyClients ↦□ err ∗
              ((∃ (σ σ' : State) (res' : Resp), Qd st.key σ σ' res') ∨ ∃ e', indefCall e') ∗ ∃ (σ : State) (r n : Nat), etcdLb γ σ ∗
              ⌜σ0.kv.rev ≤ r ∧ r ≤ σ.kv.rev ∧
               storeCount (σ.kv.storeAt r) (pfxRange (waitersPfx key)) n ∧ sint.Z count ≤ n⌝) ∨
-          (⌜err ≠ GoInterface.nil ∧ err ≠ recipeErr .tooManyClients ∧ st.live = true⌝ ∗
+          (⌜err ≠ GoInterface.nil ∧ st.live = true⌝ ∗ notRecipeErr .tooManyClients err ∗
              recipeErrOk err ∗ (∀ k : GoString, AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
         <{ ∀∀ (σ' : State) (res : Resp),
              ⌜Step who (.deleteRange (delReq k)) σ σ' res⌝ ∗ etcdState γ σ',

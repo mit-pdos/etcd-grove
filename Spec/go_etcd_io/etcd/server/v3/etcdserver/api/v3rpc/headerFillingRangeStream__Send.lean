@@ -3,9 +3,10 @@
 
 Users: 2c's `EtcdServer.RangeStream` (through `rsSink`'s send law, which this spec realizes).
 
-Proof sketch: `header.fillWithoutRevision.spec` on the chunk's header if it has one; the wrapped stream's `Send` (3h's typed wrapper over `Grpc.srvSend_send`), the chunk recorded (`rsChunk_ids`: the ids filled change no recorded field).
+Proof sketch: the chunk's `RangeResponse` read through 3h's `chunk_msgAt` (non-`nil`: W0's `rangeRespOwn`, its header through `rangeRespOwn_unfold`), `header.fillWithoutRevision.spec` on the chunk's header if it has one, folded back (`chunk_msgAt` with the filled header's model, `rsChunk_ids`); the wrapped stream's `Send` (3h's typed wrapper over `Grpc.srvSend_send`), the chunk recorded (`rsChunk_ids`: the ids filled change no recorded field).
 
 Changes: from `specs-ref/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/headerFillingRangeStream__Send.lean`.
+verify-round (A6 F8): the field read and refold rest on 3h's new `chunk_msgAt`.
 
 Margin: none.
 -/

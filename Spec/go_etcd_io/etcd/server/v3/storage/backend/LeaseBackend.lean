@@ -23,9 +23,10 @@ lessor, can give them. Only the server's proofs import this module.
   cells **untracked** (`beNoVis`: no read transaction reads `lease`), so the lessor may write it in a
   session that publishes other cells (mvcc's, `beTxHeld`).
 * `Lease.beTxHeld be := ∃ γ B, ⌜be = GoInterface.ok (Mvcc.storageVal B)⌝ ∗ mvccOn γ B ∗ Mvcc.kbHeld B`:
-  mvcc's lent lock, turned by `mvccOn_held` into mvcc's session (`beSess γ q' mvccFp S`), in which
-  `writable γ mvccFp (leaseFp)` holds by `beNoVis`, given back `Sess.sameOn mvccFp` (the lessor's
-  delete touches only `lease`): 3c's `Revoke` under mvcc's write transaction
+  mvcc's lent lock, turned by `mvccOn_held` into mvcc's session (`beSess γ q' (mvccFpM m) S`, `m`
+  whether `meta` is frozen: verify-round, A10-completeness F2), in which `writable γ (mvccFpM m)
+  leaseFp` holds by `beNoVis`, given back `Sess.sameOn (mvccFpM m)` (the lessor's delete touches only
+  `lease`, disjoint from `mvccFpM m` for either `m`): 3c's `Revoke` under mvcc's write transaction
   (`examples/specreq/backend/parts.go`'s `ReqLentWrite`).
 
 ## Laws

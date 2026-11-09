@@ -80,13 +80,14 @@ range deleter; the lease list; recover; renew and the primary; the expiry channe
   is given, not over 4a's names; 4a's `LeaseBackend.lean` introduces each from the backend's
   resources, integration Y): `beOk be`, `beLeases be B`, `beHook be Pk f`, `beHookRun be Pk f Pre Q`
   (the hook's contract, one use: integration Y, since mvcc's `Mvcc.hookRun` now names mvcc's storage
-  and lends the hook the session), `beTxHeld be`; `clusterOk cl` (2e's
-  membership, `RaftCluster.Version`: no spec of it in `membership/` yet). Their intended
+  and lends the hook the session), `beTxHeld be`. Their intended
   realizations over the owners' current vocabulary are in their docstrings: 4b's lease functions
   (`Schema.MustUnsafePutLease`, `MustUnsafeGetAllLeases`, `UnsafeDeleteLease`,
   `UnsafeCreateLeaseBucket`) are over `Schema.txWr`/`txRd tx S R` and the bucket's encoding
   `Schema.leaseBktIs`; 4a's backend over `Backend.isBackend`, `Backend.beHook`, `Backend.beSess`;
   mvcc identifies `beTxHeld` with its `Mvcc.kbHeld` (`Mvcc.mvccDeleter_rdOk`'s premise).
+* `clusterOk cl` (transparent; verify round, A9 3c F3): the `cluster` interface value's `Version()`
+  triple, which any client proves for its own type (mvccrand's `noCluster`; 2e's `*RaftCluster`).
 * `leasesOutliveRun` (opaque `Prop`): **the trusted deployment premise about time** (W0's
   `EnvCfg.leaseExpiry = false`, `top.md` K2): no run loop of this run's lessors finds a lease
   expired. Taken by `NewLessor` for the expiry mode `false`; nothing proves it.
@@ -112,7 +113,9 @@ lock and `ForceCommit`) and one of the reader tokens. Each `*Lease`'s `mu` invar
 (by a ghost map `γ.keys`, object to set, its authority in an invariant opened by holders of `le.mu`
 and `l.mu` together: `Keys()` reads under `l.mu` alone); `leaseObj γ l id ttl`: `l.ID ↦□ id`,
 `l.ttl ↦□ ttl`, the locks' invariants. `lessorReaders γ n`: `n` reader slots of each `RWMutex`.
-The run loop: holds `isLessor` and its own reader token; it sends live objects on `expiredC` only
+The run loop: holds `isLessor`, its own reader token and the `threadTok` `NewLessor`'s caller lent it
+(what the checkpointer it calls needs; deposited at `doneC`'s close, which `Stop` waits for, and
+given back there); it sends live objects on `expiredC` only
 with `c.expiry = true` (with `false`, an expiry found would contradict `leasesOutliveRun`: the run
 loop's time reasoning is the trusted part, `runLoop` being untranslated).
 
@@ -121,7 +124,8 @@ loop's time reasoning is the trusted part, `runLoop` being untranslated).
 `persistent`, `timeless`, `exclusive`; `isLessor_ne_null`, `isLessor_agree`; `lessorState_at`, `lessorAt_agree`, `lessorState_le`,
 `lessorAt_obj`, `lessorAt_minTTL`, `leaseObj_id`, `leaseObj_live`, `leaseObj_agree`,
 `lessorState_bkt`, `lessorState_beOk`, `lessorState_reader`, `lessorReaders_split`, `lessorCkptTok_gate`,
-`expiredCh_recv`, `init`.
+`expiredCh_recv`, `init` (the package's error variables, existentially: the verify round's sentinel
+encoding; `errIs g v` is the global's value, `errors.newVar` its type and message).
 -/
 module
 
@@ -132,6 +136,7 @@ public import Spec.go_uber_org.zap.Api
 public import Spec.context.Api
 public import Spec.google_golang_org.protobuf.proto.Api
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiStorage
+public import Perennial.Proof.errors.NewVar
 
 set_option autoImplicit false
 
@@ -338,36 +343,49 @@ opaque beHookRun [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFuncto
 transaction is open: `Write()` locked it, `End()` unlocks it), so it may make unsafe writes of the
 lease bucket. Exclusive. Intended realization (integration Y): `∃ γb B, ⌜be = GoInterface.ok
 (Mvcc.storageVal B)⌝ ∗ Backend.mvccOn γb B ∗ Mvcc.kbHeld B`: mvcc's lent lock, which
-`Backend.mvccOn_held` turns into mvcc's session `Backend.beSess γb q' mvccFp S`, given back unchanged
-on mvcc's cells; the lease bucket's cells are untracked (`beLeases`' realization holds
+`Backend.mvccOn_held` turns into mvcc's session `∃ m, Backend.beSess γb q' (Backend.mvccFpM m) S`
+(4a's verify-round repair: the footprint with or without the `meta` bucket, `keyBackend_intro`'s flag
+`m`, the server's `m = true`), given back `Sess.sameOn (Backend.mvccFpM m)`; the lease bucket is
+disjoint from either footprint, and its cells are untracked (`beLeases`' realization holds
 `Backend.beNoVis`), so `Backend.writable` holds in mvcc's session and 4b's `UnsafeDeleteLease` over
 `Schema.txWr` applies. The identification `□ (Mvcc.kbHeld B ∗-∗ beTxHeld _)`
 (`Mvcc.mvccDeleter_rdOk.spec`'s premise) is 4a's `Backend.leaseTxHeld_intro`. -/
 opaque beTxHeld [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (be : GoInterface) : IProp GF := iprop(True)
 
-/-- (provisional, 2e's membership) **`cl` is a lessor's `cluster`**: `Version()` may be called from
-any goroutine and returns `nil` or a readable `*semver.Version`. Persistent. Intended discharge: a
-law of 2e's `Membership.isCluster c γ cid lid ⊢ clusterOk (iface c)` with a spec of
-`RaftCluster.Version` (neither exists yet: `req/..._membership.md`, "from 3c"). -/
-opaque clusterOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (cl : GoInterface) : IProp GF := iprop(True)
+/-- **`cl` is a lessor's `cluster`** (transparent, persistent; verify round, A9 3c F3: it was an
+opaque with no introduction, so no caller could call `NewLessor`): the `cluster` interface's one
+method, `Version()`, may be called from any goroutine and returns `nil` or a readable
+`*semver.Version` (`shouldPersistCheckpoints` dereferences it after its `nil` test). Each client
+proves it for its own dynamic type: mvccrand's and the snippet's `noCluster{}` (`nil`), 2e's
+`*RaftCluster` from a `Version` spec (`req/..._membership.md`, "from 3c"). -/
+def clusterOk (cl : GoInterface) : IProp GF :=
+  iprop(□ {{ True }}
+      (App (Val (cl @!! go_etcd_io.etcd.server.v3.lease.cluster.ty @!! go!"Version")) (Val #()))
+    {{ (v : Loc), RET #v;
+        ⌜v = null⌝ ∨ ∃ sv : github_com.Masterminds.semver.v3.Version, v ↦□ sv }})
 
 /-! ### The callbacks' contracts -/
 
-/-- **The checkpointer's contract** (persistent), gated on `R`: once `R` holds, `cp(ctx, lc)` for
-any context and an owned `*LeaseCheckpointRequest` returns `nil` or `ErrNotPrimary` (the server's
-closure needs the server started, `R := srvStarted`: before `start` it panics; the lessor calls it
-only when primary, after a `Promote` that brought `□ R`). The lessor calls it with
-`context.Background()` from `Renew` (which returns its error) and the run loop (which ignores it).
-The server's closure (`NewServer`, `server.go:395`: `ErrNotPrimary` unless `ensureLeadership()`,
-else `raftRequest` of the checkpoint, a no-op of W0's model, its error dropped, and `nil`) meets it.
-The error set is restricted so that `Renew`'s errors are the lessor's own (2c's need). -/
+/-- **The checkpointer's contract** (persistent), gated on `R`: once `R` holds, `cp(ctx, lc)` with
+`context.Background()` (the only context the lessor passes: `Renew`, `lessor.go:437`, and the run
+loop's `checkpointScheduledLeases`, `:679`) and an owned `*LeaseCheckpointRequest`, called by a
+thread holding a `threadTok`, returns `nil` or `ErrNotPrimary` and gives the token back (the
+server's closure needs the server started, `R := srvStarted`: before `start` it panics; the lessor
+calls it only when primary, after a `Promote` that brought `□ R`). `Renew` returns its error; the
+run loop ignores it. The server's closure (`NewServer`, `server.go:395`: `ErrNotPrimary` unless
+`ensureLeadership()`, else `raftRequest` of the checkpoint, a no-op of W0's model, its error
+dropped, and `nil`) meets it: `raftRequest` takes the `threadTok`, and for the background context
+`reqCtxOk` and `reqPrin` (2c's `ctxNoIncoming_background`, `reqPrin_noIncoming`). The error set is
+restricted so that `Renew`'s errors are the lessor's own (2c's need).
+Verify round (A9 3c F2): it was for any context with `ctxOk` and without a thread token, which the
+server's closure cannot meet (`raftRequest` needs both). -/
 def ckptOk (cp : GoFunc) (R : IProp GF) : IProp GF :=
-  iprop(□ ∀ (ctx : GoInterface) (lc : Loc) (m : Proto.Content),
-    {{ R ∗ Context.ctxOk ctx ∗
+  iprop(□ ∀ (lc : Loc) (m : Proto.Content),
+    {{ R ∗ threadTok ∗
         Proto.msgAt go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest.ty lc (DFrac.own 1) m }}
-      (App (App (Val #cp) (Val #ctx)) (Val #lc))
-    {{ (err : GoInterface), RET #err;
-        ⌜err = interface.nil⌝ ∨ errIs go_etcd_io.etcd.server.v3.lease.ErrNotPrimary err }})
+      (App (App (Val #cp) (Val #(GoInterface.ok context.backgroundCtxVal))) (Val #lc))
+    {{ (err : GoInterface), RET #err; threadTok ∗
+        (⌜err = interface.nil⌝ ∨ errIs go_etcd_io.etcd.server.v3.lease.ErrNotPrimary err) }})
 
 /-- **A range deleter's contract for one revocation** (transparent), from the writer's state `n`,
 `ls` at the call: the caller's resource `P` lets `rd()` open a deletion transaction `td`, whose
@@ -421,7 +439,8 @@ def persistent.spec : Prop :=
   (∀ γ c ch, Persistent (expiredCh (GF := GF) γ c ch)) ∧
   (∀ le R, Persistent (ckptGate (GF := GF) le R)) ∧
   (∀ be Pk f, Persistent (beHook (GF := GF) be Pk f)) ∧
-  (∀ cl, Persistent (clusterOk (GF := GF) cl))
+  (∀ cl, Persistent (clusterOk (GF := GF) cl)) ∧
+  (∀ g e, Persistent (errIs (GF := GF) g e))
 
 def timeless.spec : Prop :=
   (∀ γ n ls, Timeless (lessorState (GF := GF) γ n ls)) ∧
@@ -520,14 +539,21 @@ def expiredCh_recv.spec : Prop :=
         (£ 1 ∗ £ 1 -∗ (▷ ∀ sl, (∃ ids, ⌜c.expiry = true⌝ ∗ expiredSl γ sl ids) -∗ Φ sl true) -∗
           recvAu γc GoSlice Φ)
 
-/-- The package's errors: distinct non-nil values (each its own package variable). -/
+open go_etcd_io.etcd.server.v3.lease in
+/-- **The package's errors** (`lessor.go:60-63`, `errors.New` at init): each global holds a fixed
+value, given existentially (a fresh `*errors.errorString`: no Lean constant can name it), with its
+type and message (Perennial's `errors.newVar`: what `errors.Is` with it as the target, and
+`Error()`, need), the four distinct and non-nil. A spec returning one returns the value read from
+the global (`errIs`). Verify round: `errors.newVar` added (A3 F4's encoding, as the cache's). -/
 def init.spec : Prop :=
   isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ⊢
     ∃ e1 e2 e3 e4 : GoInterface,
-      errIs go_etcd_io.etcd.server.v3.lease.ErrNotPrimary e1 ∗
-      errIs go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound e2 ∗
-      errIs go_etcd_io.etcd.server.v3.lease.ErrLeaseExists e3 ∗
-      errIs go_etcd_io.etcd.server.v3.lease.ErrLeaseTTLTooLarge e4 ∗
+      errIs ErrNotPrimary e1 ∗ errIs ErrLeaseNotFound e2 ∗
+      errIs ErrLeaseExists e3 ∗ errIs ErrLeaseTTLTooLarge e4 ∗
+      errors.newVar ErrNotPrimary go!"not a primary lessor" ∗
+      errors.newVar ErrLeaseNotFound go!"lease not found" ∗
+      errors.newVar ErrLeaseExists go!"lease already exists" ∗
+      errors.newVar ErrLeaseTTLTooLarge go!"too large lease TTL" ∗
       ⌜[e1, e2, e3, e4].Nodup ∧ ∀ e ∈ [e1, e2, e3, e4], e ≠ GoInterface.nil⌝
 
 end laws

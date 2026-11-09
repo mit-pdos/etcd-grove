@@ -8,6 +8,8 @@
 Takes the URL set's single-use right (as `AddMember`).
 
 **Changes**: new. **Margin.** As `AddMember`.
+
+Changes: verify-round (A8-completeness F2, second tier): a refusal (fired with no change, or not fired) gives `urlsRight` back, so a refused add can be retried; the right at the parsed URLs' strings needs W0's normalization law (requested of client-core).
 -/
 module
 
@@ -45,11 +47,11 @@ def EtcdServer.UpdateMember.spec : Prop :=
   {{ (sl : GoSlice) (err : GoInterface), RET (PairV #sl #err); srvGate s q ∗ threadTok ∗
       ((∃ σ σ' res, ⌜srvFiredAns res⌝ ∗ Q σ σ' res ∗ ((∃ l : List Member, ⌜respMembers res = some l ∧ err = GoInterface.nil⌝ ∗
           ∃ ms, Membership.membersOwn sl ms ∗ ⌜ms.Perm l⌝) ∨
-       (∃ e, ⌜res = .err e⌝ ∗ ⌜srvErrOf err e⌝))) ∨
-       (⌜srvUnfired err⌝ ∗ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
+       (∃ e, ⌜res = .err e⌝ ∗ srvErr err e ∗ urlsRight γ urls))) ∨
+       (srvUnfired err ∗ urlsRight γ urls ∗ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
         <{ ∀∀ (σ' : State) (res : Resp), ⌜srvStep pr tls (.memberUpdate (uint.nat memb.ID') urls) σ σ' res lo⌝ ∗ etcdState γ σ',
            COMM Q σ σ' res }>) ∨
-       ⌜srvIndef err⌝) }}
+       srvIndef err) }}
 
 end spec
 

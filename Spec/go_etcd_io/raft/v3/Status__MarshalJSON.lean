@@ -4,7 +4,8 @@
 **Users.** etcd's expvar `raft.status` (`server/etcdserver/raft.go:55-63`, through `encoding/json`),
 `Status.String`. **Proof sketch.** `fmt.Sprintf` of the basic status, the progress map's entries
 (R1's `statusOwn_progress`: read), a closing brace. **Changes.** New (round 1). **Margin.** The
-bytes are not stated.
+bytes are not stated. `%q` of `RaftState.String()` indexes `stmap` (`raft_init`): `statusOwn`
+carries that the role is one of the four (verify-round, A4 S3).
 -/
 module
 

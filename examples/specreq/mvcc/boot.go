@@ -26,6 +26,24 @@ func ReqBootFresh(lg *zap.Logger, be backend.Backend, le lease.Lessor) smvcc.KV 
 	return kv
 }
 
+// REQ mvcc/boot-no-meta: a store over a fresh backend whose Meta bucket nobody created (NewStore
+// creates it itself, under its batch lock, kvstore.go:121-123) starts empty at revision 1, never
+// compacted.
+// Users: examples/mvccrand/mvccrand.go:809-811 (backend.New, lease.NewLessor, mvcc.New; no
+// schema.CreateMetaBucket).
+// Assumes: be is a fresh backend (no Key or Meta bucket); le a lessor over it; a reader token for
+// each Rev/FirstRev.
+// Specs: New.spec (mvccStorageFor of an empty image, Meta's existence conditional: mvccImage_empty),
+// keyBackend_intro (4a: its case with Meta not yet made, requested of backend-schema, A10 F2),
+// watchableStore.Rev.spec, watchableStore.FirstRev.spec.
+func ReqBootNoMeta(lg *zap.Logger, be backend.Backend, le lease.Lessor) smvcc.WatchableKV {
+	kv := smvcc.New(lg, be, le, smvcc.StoreConfig{})
+	if kv.Rev() != 1 || kv.FirstRev() != -1 {
+		panic("boot-no-meta: a fresh store is not at revision 1, uncompacted")
+	}
+	return kv
+}
+
 // REQ mvcc/compactor-rev: a goroutine that outlives the store (the server's compactor) calls Rev()
 // at any time, also after Close and after the backend's close, with a reader token turned for good
 // into a Rev token; the shutdown takes every other token.

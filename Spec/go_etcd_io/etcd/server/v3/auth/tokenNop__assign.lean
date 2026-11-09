@@ -37,7 +37,7 @@ def tokenNop.assign.spec : Prop :=
   ∀ (p : Loc) (ctx : GoInterface) (u : GoString) (rev : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth }}
     (App (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.tokenNop.ty @!! go!"assign")) (Val #ctx)) (Val #u)) (Val #rev))
-  {{ (tok : GoString) (err : GoInterface), RET (PairV #tok #err); ⌜tok = [] ∧ err = errOf .authFailed⌝ }}
+  {{ (tok : GoString) (err : GoInterface), RET (PairV #tok #err); ⌜tok = []⌝ ∗ errIs .authFailed err }}
 
 end spec
 end Auth

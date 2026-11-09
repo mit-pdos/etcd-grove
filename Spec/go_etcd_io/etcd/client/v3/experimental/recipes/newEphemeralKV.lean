@@ -10,6 +10,8 @@ update; wrap the `RemoteKV` (copied into the `EphemeralKV`: `ekOwn`).
 **Changes**: old spec took `concurrency.isSession` and the recipes' client invariant; now 1d's `isSession s c γ id`
 with the client's `isClient c γ who` and the caller's update (integration: was a slot).
 
+Changes: verify-round: `ErrKeyExists` is the value its variable holds (`putNewRetAt`), not a Lean constant (A3 F4).
+
 **Margin**: none.
 -/
 module
@@ -47,7 +49,7 @@ def newEphemeralKV.spec : Prop :=
       (Val #key)) (Val #val))
 
   {{ (rk : Loc) (err : GoInterface), RET (PairV #rk #err);
-      (∃ (σ σ' : State) (res : Resp) (rev : w64), Q σ σ' res ∗ ⌜putNewRet res rev err⌝ ∗
+      (∃ (σ σ' : State) (res : Resp) (rev : w64), Q σ σ' res ∗ putNewRetAt res rev err ∗
         ((⌜err = GoInterface.nil⌝ ∗ ekOwn rk γ who { live := true, key := key, rev := rev, val := val }) ∨
          ⌜err ≠ GoInterface.nil ∧ rk = null⌝)) ∨
       (⌜rk = null⌝ ∗ indefCall err) }}

@@ -3,9 +3,9 @@
 
 **Users.** `streamReader.run`.
 
-**Proof sketch.** The decoder for the type (`newMsgAppV2Decoder` with the stream's `v2Compat` from `streamBody`'s protocol knowledge, or a `messageDecoder`); the closer registered under `mu` (or the context done: close, `io.EOF`); loop: `decode` (a frame: the writer's frame of that index, frames self-delimiting; its message a heartbeat or one to `lid` with `msgSent` and a deposit, withdrawn with the reader's token of that index), `paused`, `isLinkHeartbeatMessage`, a non-blocking send on `recvc`/`propc` (`recvChanAt`: no `MsgSnap` comes by a stream, so `recvd`'s snapshot clause is vacuous).
+**Proof sketch.** The decoder for the type (`newMsgAppV2Decoder` with the stream's `v2Compat` from `streamBody`'s protocol knowledge, or a `messageDecoder`); the closer registered under `mu` (or the context done: close, `io.EOF`); loop: `decode` (a fresh message, `msgRecv`, and its frame: the writer's frame of that index, since `msgFrame` and `v2Frame` are self-delimiting and decoding is a function (raftpb's `wire_fun`; for msgappv2, a link heartbeat decodes as one, else the frame's message is the sent one); its message a heartbeat or one to `lid` with `msgSent` and a deposit, withdrawn with the reader's token of that index), `paused`, `isLinkHeartbeatMessage`, a non-blocking send on `recvc`/`propc` (`recvChanAt`: no `MsgSnap` comes by a stream, so `recvd`'s snapshot clause is vacuous); on a full queue a log line, where `m.GetType().String()` for a log line is raftpb's `MessageType.String` (a trust-boundary spec, requested of raft-conf-pb: verify-round A5 F1). `types.ID`'s `String()` on an addressable `ID` (log fields, headers) is 1c's `Types.ID.String_ptr.spec` (Goose's pointer receiver).
 
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour.
+**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour. verify-round (A5 F4, A8 F8): the messages queued are `msgRecv`; the frames transparent. verify-round (second pass): the sketch cites `Types.ID.String_ptr.spec`.
 
 **Margin.** None.
 -/

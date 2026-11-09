@@ -9,10 +9,17 @@ Why true: `Unmarshal` resets the message (`*m = T{}`: only the top struct is wri
 old submessages or slices, which `msgAt (own 1)` may hold read-only) and decodes into fresh
 allocations, copying every `bytes` field (the default `UnmarshalOptions`, no aliasing); a malformed input or one nested beyond `RecursionLimit`
 (`10000`) is an error, never a panic. A content that `encodes` the bytes and nests less than that
-decodes, to that content (decoding is a function, `encodes_fun`).
+decodes, to that content's wire view (decoding is a function up to `norm`, `encodes_fun`): an
+unset field is left at its zero Go value, `nil` for a `bytes` or repeated field (proto3 never
+encodes an empty one), so the decoded content is canonical (`norm c = c`).
 
 Changes: from `specs-ref/.../proto/{Unmarshal,UnmarshalPb,UnmarshalConfChange*,UnmarshalUser,
 UnmarshalRole}.lean`: one spec over `msgAt` and `encodes`.
+verify-round (raft-conf-pb's request, A5-compl F4): on success the message is `mergeDst` (every
+slice a fresh allocation owned to its capacity: `Unmarshal` resets and decodes into fresh
+allocations; `mergeDst_msgAt` gives the old `msgAt (own 1)`).
+verify-round (A6 F2): the persistent, address-keyed `decodedAt` replaced by the pure `norm c = c`
+(the decoded content is canonical); a content-level fact cannot outlive a rewrite of the field.
 
 Margin: on an error the message holds some partial content (the spec says some content).
 -/
@@ -43,9 +50,10 @@ def Unmarshal.spec : Prop :=
   ∀ (t : go.GoType) (p : Loc) (c0 : Content) (b : GoSlice) (dq : DFrac) (bs : List w8),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗ msgAt t p (DFrac.own 1) c0 ∗ b ↦*{dq} bs }}
     (App (App (Val (@! google_golang_org.protobuf.proto.Unmarshal)) (Val #b)) (Val #(msgVal t p)))
-  {{ (err : GoInterface), RET #err; b ↦*{dq} bs ∗ ∃ c, msgAt t p (DFrac.own 1) c ∗
-      ((⌜err = GoInterface.nil ∧ encodes t c bs⌝ ∗ decodedAt t p) ∨
-       ⌜err ≠ GoInterface.nil ∧ ∀ c', encodes t c' bs → ¬ depth c' < depthMax⌝) }}
+  {{ (err : GoInterface), RET #err; b ↦*{dq} bs ∗ ∃ c,
+      ((⌜err = GoInterface.nil ∧ encodes t c bs ∧ norm c = c⌝ ∗ mergeDst t p c) ∨
+       (⌜err ≠ GoInterface.nil ∧ ∀ c', encodes t c' bs → ¬ depth c' < depthMax⌝ ∗
+         msgAt t p (DFrac.own 1) c)) }}
 
 end spec
 

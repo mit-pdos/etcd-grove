@@ -38,6 +38,8 @@ Every `LeaseRevoke` the apply makes after a snapshot install needs 3c's `rdOk` o
 deleter closure (`func() lease.TxnDelete { return s.kv.Write(traceutil.TODO()) }`): the apply
 thread's invariant keeps it, from 3e's `mvccDeleter_rdOk` at `s.kv`'s `isMvcc`. The quota's
 `ErrNoSpace` (3a's `resMatch`) may come from a write that applied (W0's round 5: indefinite).
+
+Changes: verify-round (A7-provability F1, completeness F1): takes and gives back the thread's `threadTok`; `isServer s γ.etcd` (for `GoAttach`, `LeaseRevoke`, `raftRequest`) from `srvStarted_isServer`; each attached goroutine runs with its own fresh token (`GoAttach.spec`); the internal requests hold no `srvGate` share (`LeaseRevoke.spec` takes none; `raftRequest` never did).
 -/
 module
 
@@ -72,10 +74,10 @@ def EtcdServer.applyEntryNormal.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvNode s γ id ∗ srvStarted s γ id ∗ applyAt s γ ep p (k - 1) c ai ∗ entryAt ptr k e ∗ Raft.committedLb γ.raft l ∗
       ⌜0 < k ∧ l[k - 1]? = some e ∧ e.type = Raft.EntryNormal ∧ v3 = applyV3 c k ∧
-        (v3 = true → ai = k)⌝ }}
+        (v3 = true → ai = k)⌝ ∗ threadTok }}
     (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!!
       go!"applyEntryNormal")) (Val #ptr)) (Val #v3))
-  {{ RET #(); applyAt s γ ep p k (if v3 then k else c) ai }}
+  {{ RET #(); threadTok ∗ applyAt s γ ep p k (if v3 then k else c) ai }}
 
 end spec
 end EtcdServer

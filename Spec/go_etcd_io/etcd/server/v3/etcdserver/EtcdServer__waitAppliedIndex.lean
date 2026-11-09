@@ -35,7 +35,7 @@ def EtcdServer.waitAppliedIndex.spec : Prop :=
   ∀ (s : Loc) (γ : Cluster),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ threadTok }}
     (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"waitAppliedIndex")) (Val #()))
-  {{ (err : GoInterface), RET #err; threadTok ∗ (⌜err = GoInterface.nil⌝ ∨ ⌜srvIndef err⌝ ∗ srvErrShape err) }}
+  {{ (err : GoInterface), RET #err; threadTok ∗ (⌜err = GoInterface.nil⌝ ∨ srvIndef err ∗ srvErrShape err) }}
 
 end spec
 end EtcdServer

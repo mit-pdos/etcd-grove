@@ -83,12 +83,12 @@ Resources:
   `watchServerAt_service` gives it for a `*watchServer`.
 * **Integration I3**: `srvCtxPrin` is 2c's `reqPrin` (a definition); 2a's `watchSpec` is the grpc
   contract these slots realize (`V3rpc.watchRun_open`, `v3rpc/Api.lean`); `Recv`'s error and the
-  handler's returned error have grpc's shapes (`Grpc.ownErr`, `Grpc.sentStatus`). **Open (3f's
-  reader tokens)**: the loops' mvcc reader tokens (`mvccReaders γm 1` each, for their lifetime) are
-  not threaded: the handler run holds one thread token (grpc's pool) and each loop its `Fork` token,
-  and no law of the member converts a thread token into a reader of its store; the stock is the
-  server's (2c/2e: `notes/specs-only/integration-I3.md`), and `swsRecver`/`swsSender` are meant to
-  carry the borrowed reader once it exists.
+  handler's returned error have grpc's shapes (`Grpc.ownErr`, `Grpc.sentStatus`). **The loops' mvcc
+  reader tokens** (verify-round, mvcc's request): each loop holds its `Fork` thread token and
+  converts it, for its lifetime, into a reader of the member's store with 2d's `srvReader_mvcc.spec`
+  (`srvNode s γ id ∗ srvMvcc s γm ∗ threadTok ⊢ |={⊤}=> mvccReaders γm 1 ∗ (mvccReaders γm 1 ={⊤}=∗
+  threadTok)`), from the member's handles `watchMemberAt` carries; the token comes back when the
+  loop returns. (Was "open": no such law existed.)
 * `watchMemberAt s γ` (persistent): **slot of the server batches (2c/2d/2e)**: the `*EtcdServer`
   `s` is a member of `γ` whose watch path is ready. What `NewWatchServer` and the handler read of it:
   its configuration's logger, request budget and progress interval (read-only fields,

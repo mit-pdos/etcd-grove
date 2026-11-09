@@ -11,12 +11,14 @@ A `*ConfChange` (`.v1 c`): `c.AsV1()` (`ConfChange.AsV1.spec`) gives the pointer
 msgAt` gives `msgAt ConfChange.ty p dq ct` with `confChangeV1Is ct c` (plain, `marshalOk`, depth 1,
 `encSize ct ≤ wireBound`), so `ct.fits` by the premise; `proto.Marshal` (2a's `Marshal.spec`) gives
 fresh bytes `bs` with `encodes ConfChange.ty ct bs` and no error (`marshalOk`); `decodeConfChange
-EntryConfChange bs` picks a content `ct'` with `encodes ... ct' bs ∧ confChangeV1Is ct' _`, which is
-`ct` (`Proto.encodes_fun`), so it is `some (.v1 c)`; fold back with the relation law. A
+EntryConfChange bs` picks a content `ct'` with `encodes ... ct' bs ∧ confChangeV1Is ct' _`, with
+`norm ct' = norm ct` (`Proto.encodes_fun`), so both models are `c` (`raftpb_norm`: `confChangeV1Is
+(norm ct) c`, and `confChangeOf` is a function), and it is `some (.v1 c)`; fold back with the relation law. A
 `*ConfChangeV2`: `AsV1` answers `false`, `AsV2` returns the same pointer, and the same argument at
 `ConfChangeV2.ty`.
 
-Changes: from `specs-ref/Spec/go_etcd_io/raft/v3/raftpb/MarshalConfChange.lean`: the result decodes
+Changes: verify-round (second pass): the decode step goes through 2a's `norm` (`raftpb_norm`); the
+triple is unchanged. From `specs-ref/Spec/go_etcd_io/raft/v3/raftpb/MarshalConfChange.lean`: the result decodes
 through raftpb's wire model (`decodeConfChange`, defined from protobuf's `encodes`) instead of the
 old `MarshalsConfChange` over the refuted `pbEnc`; the size premise is explicit (it was hidden in the
 old `proto.MarshalConfChange.spec`, which took no premise: false of protobuf-go above `2 ^ 48`

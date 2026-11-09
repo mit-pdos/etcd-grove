@@ -7,6 +7,7 @@ registered by `v3rpc.Server`); 1c's `Cluster.methods` through grpc (`examples/sp
 Proof sketch: `cs.server.MemberList(ctx, r)` (2e's spec: linearizable or the member's view, `clusterStep`'s `memberList`); errors through `togRPCError`; the reply built from the members (`membersToProtoMembers`) and `cs.header()` (ids, term, leader): its content models the answer's member list (`replyModels`).
 
 Changes: new (no old spec: the cluster service was names only).
+verify-round (server-core's request): the member's list through 2c's `EtcdServer.MemberList.spec`.
 
 Round 1: the contract is the member's at `ep` (`etcdContract γ ep`; the lease requests' `leaseFact`); the first way fires no token or learner refusal (`firedAns`: 2c returns an apply-time `ErrUserEmpty`/`ErrAuthOldRevision`/`ErrInvalidAuthToken` unfired, its outcome 2, which this handler sends by the second way); errors reach `togRPCError` with 2c's `srvErrOk`; a read composes with 2c's `SrvCallTriple` (W0's `lo`, rounds 4-6; integration I3: the Api header's "Composition with 2c").
 

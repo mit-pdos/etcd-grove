@@ -3,9 +3,9 @@
 
 **Users.** `startStreamWriter` (forked).
 
-**Proof sketch.** `time.NewTicker(ConnReadTimeout / 3)` (positive); loop on a five-way `select`: a heartbeat (`encode` of a clone of the link heartbeat: its frame needs no deposit), a message from `msgc` (its credit deposited for its frame's index in the connection's reader tokens, then `encode`: `raftProto`'s stream response allows the frame), a connection from `connc` (`outConn`: the encoder for its type, `closeUnlocked` of the old one, `working`), `stopc` (`close`, `close(done)` with the loop's resources). Failures: `deactivate`, `close`, `ReportUnreachable`.
+**Proof sketch.** `time.NewTicker(ConnReadTimeout / 3)` (positive); loop on a five-way `select`: a heartbeat (`encode` of a clone of the link heartbeat: its frame needs no deposit), a message from `msgc` (its credit deposited for its frame's index in the connection's reader tokens, then `encode`: `raftProto`'s stream response allows the frame), a connection from `connc` (`outConn`: the encoder for its type, `closeUnlocked` of the old one, `working`), `stopc` (`close`, `close(done)` with the loop's resources). Failures: `deactivate`, `close`, `ReportUnreachable`. `types.ID`'s `String()` on an addressable `ID` (log fields, headers) is 1c's `Types.ID.String_ptr.spec` (Goose's pointer receiver).
 
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour.
+**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour. verify-round (second pass): the sketch cites `Types.ID.String_ptr.spec`.
 
 **Margin.** None.
 -/

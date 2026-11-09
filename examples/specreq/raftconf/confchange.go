@@ -7,11 +7,10 @@ import (
 	"go.etcd.io/raft/v3/confchange"
 	pb "go.etcd.io/raft/v3/raftpb"
 	"go.etcd.io/raft/v3/tracker"
-	"google.golang.org/protobuf/proto"
 )
 
 func single(t pb.ConfChangeType, id uint64) *pb.ConfChangeSingle {
-	return &pb.ConfChangeSingle{Type: t.Enum(), NodeId: proto.Uint64(id)}
+	return &pb.ConfChangeSingle{Type: t.Enum(), NodeId: new(id)}
 }
 
 // validConf is examples/raft/kvreconf's pre-check (without its size bound): whether applying cc

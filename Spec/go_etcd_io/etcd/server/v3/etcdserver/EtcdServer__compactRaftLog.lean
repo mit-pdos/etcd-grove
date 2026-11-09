@@ -15,6 +15,8 @@ applied index is in the log), so `lg.Panic` is unreachable. This is the fork's f
 
 **Changes** from `specs-ref`'s spec (the storage's key `nk`, `memStorInv`, `nodeAppliedLb`): over
 `nodeAdvanced`/`nodeSnapLb`; no apply-thread token needed. **Margin**: none.
+
+Changes: verify-round: takes and gives back the thread's `threadTok` (A7-provability F2: `s.Logger()`, `createMergedSnapshotMessage`, `newSnapshotReaderCloser` take one). `run`'s is the fresh token of `start`'s `go s.run()` (Perennial's `wp_fork_tok_body`); the apply jobs' is the scheduler worker's, lent to each job (`Schedule.funcOk`). The `srvMember` that `Logger` takes comes from `srvNode_member`.
 -/
 module
 
@@ -48,10 +50,10 @@ def EtcdServer.compactRaftLog.spec : Prop :=
       nodeAdvanced (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"r" s)
         (uint.nat snapi) ∗
       nodeSnapLb (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"r" s)
-        (uint.nat snapi) }}
+        (uint.nat snapi) ∗ threadTok }}
     (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!!
       go!"compactRaftLog")) (Val #snapi))
-  {{ RET #(); True }}
+  {{ RET #(); threadTok }}
 
 end spec
 end EtcdServer

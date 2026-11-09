@@ -14,6 +14,8 @@ the race with `AuthEnable` is in its callers' `srvStep` (here: the revision is r
 
 **Margin.** None (mirrors the code). `chk` runs on the context's `AuthInfo` (`p`'s or `tls`'s user)
 or on an empty one (`&auth.AuthInfo{}`, made read-only: nothing writes it).
+
+Changes: verify-round (A7-provability F5): takes the context's otel span (`reqCtxSpan`) for `AuthInfoFromCtx`, which no longer asks for a trace-free context (the caller's `EnsureTrace` installed `ctxTrace`'s trace).
 -/
 module
 
@@ -44,7 +46,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 def EtcdServer.doSerialize.spec : Prop :=
   ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (p tls : Principal) (chk get : GoFunc)
     (Pc : IProp GF) (Rc : GoInterface → IProp GF) (Pg Rg : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ Context.ctxOk ctx ∗ ctxTrace ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ Pc ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ Context.ctxOk ctx ∗ reqCtxSpan ctx ∗ ctxTrace ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ Pc ∗
       (∀ (ai : Loc), {{ Pc ∗ threadTok ∗ ctxTrace ctx ∗ ∃ (u : GoString) (rev : w64),
           ai.[go_etcd_io.etcd.server.v3.auth.AuthInfo, go!"Username"] ↦□ u ∗
           ai.[go_etcd_io.etcd.server.v3.auth.AuthInfo, go!"Revision"] ↦□ rev ∗
@@ -54,8 +56,8 @@ def EtcdServer.doSerialize.spec : Prop :=
       (Rc GoInterface.nil -∗ Pg) }}
     (App (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"doSerialize")) (Val #ctx)) (Val #chk)) (Val #get))
   {{ (err : GoInterface), RET #err; threadTok ∗ ctxTrace ctx ∗
-      ((⌜srvErrOf err .invalidAuthToken⌝ ∗ srvErrShape err ∗ Pc) ∨ (⌜err ≠ GoInterface.nil⌝ ∗ Rc err) ∨
-       (Rg ∗ (⌜err = GoInterface.nil⌝ ∨ ⌜srvErrOf err .authOldRevision⌝ ∗ srvErrShape err))) }}
+      ((srvErr err .invalidAuthToken ∗ srvErrShape err ∗ Pc) ∨ (⌜err ≠ GoInterface.nil⌝ ∗ Rc err) ∨
+       (Rg ∗ (⌜err = GoInterface.nil⌝ ∨ srvErr err .authOldRevision ∗ srvErrShape err))) }}
 
 end spec
 end EtcdServer

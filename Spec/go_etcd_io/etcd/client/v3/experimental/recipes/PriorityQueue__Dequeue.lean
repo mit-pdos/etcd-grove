@@ -19,6 +19,12 @@ call may be ahead of it (`nonissues/recipes-pqueue-dequeue-order.md`: the lost-c
 the first put, not the highest priority, so the queue is not linearizable as a priority queue; and
 its "FIFO" comment means "least priority value first").
 
+**Changes (second pass)**: the key's membership, its record and the value unconditional (1b's
+unconditional event facts, as `Queue.Dequeue`'s); only the front stays gated.
+`ReqPQEveryItemOnce` no longer assumes the compaction condition.
+
+**Changes (verify-round)**: none to the triple; the snippets that dequeue from a non-empty queue now assume the compaction condition too (A3 F3).
+
 **Margin**: on the fallback path the claimed item is also the least mod revision (FIFO among the later
 arrivals), which the spec does not say; errors as `Queue.Dequeue`'s.
 
@@ -57,12 +63,13 @@ def PriorityQueue.Dequeue.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ pqueueAt q c γ who key ∗ etcdPeek γ ∗ etcdLb γ σ0 ∗
       AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
         <{ ∀∀ (σ' : State) (k : GoString) (kr : KeyRec) (res : Resp),
-             ⌜(EtcdModel.exactFrom σ.kv σ0.kv.rev → frontByKey (pfxRange (key ++ go!"/")) σ.kv.store σ0.kv.rev k kr) ∧
+             ⌜(pfxRange (key ++ go!"/")).mem k ∧ σ.kv.store k = some kr ∧
+              (EtcdModel.exactFrom σ.kv σ0.kv.rev → frontByKey (pfxRange (key ++ go!"/")) σ.kv.store σ0.kv.rev k kr) ∧
               Step who (deleteRevReq k kr.modRev) σ σ' res ∧ txnSucceeded res⌝ ∗ etcdState γ σ',
            COMM Q σ σ' k kr }> }}
     (App (Val (q @!! go.GoType.PointerType PriorityQueue.ty @!! go!"Dequeue")) (Val #()))
   {{ (v : GoString) (err : GoInterface), RET (PairV #v #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ σ σ' k kr, Q σ σ' k kr ∗ ⌜EtcdModel.exactFrom σ.kv σ0.kv.rev → v = kr.value⌝) ∨
+      (⌜err = GoInterface.nil⌝ ∗ ∃ σ σ' k kr, Q σ σ' k kr ∗ ⌜v = kr.value⌝) ∨
       (⌜err ≠ GoInterface.nil ∧ v = []⌝ ∗ recipeErrOk err) }}
 
 end spec

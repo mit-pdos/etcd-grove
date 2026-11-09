@@ -12,6 +12,10 @@ caller's `threadTok` kept for the TTL keeper goroutine `enable` starts), `jwt`
 never accepts or assigns a token); any other: `ErrInvalidAuthOpts`.
 
 **Changes.** The old spec (per kind, `tokenProviderOk`) restated over W0's `tokenUser`.
+Verify round (A9 3d F7): the waiter gated on `R` (`waiterOk iw R`, carried by `tokenProviderAt`):
+the server's waiter, `srv.applyWait.Wait`, works only after `start()`, so `NewServer` could not give
+the ungated premise; the provider calls it only in `info`, which `AuthInfoFromCtx` reaches with `□ R`
+(`R := srvStarted`). The error is the global's value (`errIs`, the sentinel encoding).
 
 **Margin.** The simple provider's TTL is not stated (an expired token is refused: allowed).
 -/
@@ -43,15 +47,15 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 caller's thread token given back), or a provider of the cluster `γ`'s tokens, able to issue root
 tokens unless it is the simple one. -/
 def NewTokenProvider.spec : Prop :=
-  ∀ (lg : Loc) (opts : GoString) (iw : GoFunc) (ttl : w64) (γ : Cluster),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ (⌜lg = null⌝ ∨ Zap.isLogger lg) ∗ waiterOk iw ∗ threadTok ∗
+  ∀ (lg : Loc) (opts : GoString) (iw : GoFunc) (ttl : w64) (γ : Cluster) (R : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ (⌜lg = null⌝ ∨ Zap.isLogger lg) ∗ waiterOk iw R ∗ threadTok ∗
       □ (⌜optsKind opts = go!"jwt"⌝ -∗ jwtTokOk γ opts) }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.NewTokenProvider)) (Val #lg))
       (Val #opts)) (Val #iw)) (Val #ttl))
   {{ (tp : GoInterface) (err : GoInterface), RET (PairV #tp #err);
-      (⌜err ≠ GoInterface.nil ∧ (err = errOf .invalidAuthOpts ∨ optsKind opts = go!"jwt")⌝ ∗
+      (⌜err ≠ GoInterface.nil⌝ ∗ (errIs .invalidAuthOpts err ∨ ⌜optsKind opts = go!"jwt"⌝) ∗
           threadTok) ∨
-      (⌜err = GoInterface.nil⌝ ∗ tokenProviderAt tp γ (decide (optsKind opts ≠ go!"simple"))) }}
+      (⌜err = GoInterface.nil⌝ ∗ tokenProviderAt tp γ R (decide (optsKind opts ≠ go!"simple"))) }}
 
 end spec
 end Auth

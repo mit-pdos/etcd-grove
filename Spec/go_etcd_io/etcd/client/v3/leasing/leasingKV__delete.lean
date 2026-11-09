@@ -2,6 +2,8 @@
 `(*leasingKV).delete` (`kv.go`): `Delete`'s and `Do`'s delete. Proof sketch: `waitSession`; a range:
 `deleteRange`; one key: as `put` (`tryModifyOp`, else `revoke`), then `leaseCache.Delete` with the
 reply's header (copied). Changes: from `specs-ref`'s `leasingKV__delete.lean`: restated over `isLeasingKV`/`Internal.lean` (was the cache's log states and the history premise); weakened to what the leasing contract's proofs need.
+
+Changes: second pass: premise `o.emptyEnd = false` (W0's KV triples take it: A1-provability F5's scope premise; this call forwards the op to the client's KV).
 -/
 module
 
@@ -29,7 +31,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 def leasingKV.delete.spec : Prop :=
   ∀ (lkv : Loc) (γ : Cluster) (who p : Principal) (lo : Nat) (pfx : Key) (γL : LeasingNames) (ctx : GoInterface) (op : go_etcd_io.etcd.client.v3.Op) (o : OpM)
     (Q : State → State → Resp → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ who pfx γL ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ authLb γ lo ∗ opAt op o ∗ ⌜o.t = tDeleteRange⌝ ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ who pfx γL ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ authLb γ lo ∗ opAt op o ∗ ⌜o.t = tDeleteRange ∧ o.emptyEnd = false⌝ ∗
       lkvMarks γL (reqWrites (.deleteRange o.deleteReq)) ∗ threadTok ∗
       □ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
         <{ ∀∀ (σ' : State) (r : Option Resp), lstep γL pfx p lo (.deleteRange o.deleteReq) σ σ' r ∗ etcdState γ σ',

@@ -14,7 +14,8 @@ import (
 // Users: v3_server.go:1207 (EtcdServer.AuthInfoFromCtx), through it every request's principal.
 // Assumes: ctx is a gRPC run's context whose metadata carries tok, which the cluster issued to
 // user (the client's interceptor attaches the token Authenticate returned).
-// Specs: authStore.AuthInfoFromCtx.spec (ctxToken, tokenUser); W0's tokenUser_agree (requested).
+// Specs: authStore.AuthInfoFromCtx.spec (ctxToken over grpc's ctxInMD, tokKeysOk by
+// Grpc.rpcCtx_vals; authGate γa R with □ R: the server started; tokenUser); W0's tokenUser_agree.
 func ReqTokenUser(ctx context.Context, as etcdauth.AuthStore, user string) {
 	ai, err := as.AuthInfoFromCtx(ctx)
 	if err != nil {

@@ -2059,3 +2059,32 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
   term it is given, it should fail with an error naming the mismatch, never close the goal with an
   admitted proof.
 - **Status.** Recorded only; not reduced to a minimal example.
+
+## `fmt.Errorf`'s spec does not admit an error argument (`%w`) or a `Stringer` (2026-11-09, branch `specs-only`)
+
+- **The gap.** Perennial's `fmt.Errorf.spec` requires `ArgsWf` (basic-typed arguments). Three calls the
+  specs-only branch specifies fall outside it: mvcc's `rangeKeys` (`fmt.Errorf("…: %w", ctx.Err())`,
+  `kvstore_txn.go:121`), raft confchange's `Changer.apply` (a `ConfChangeType`, which has `String`) and
+  raftpb's `ConfState.Equivalent` (four `*ConfState`s).
+- **Local workaround.** raftpb states a local assumed spec, `RaftPb.fmtErrorf.spec`
+  (`Spec/go_etcd_io/raft/v3/raftpb/FmtErrorf.lean`); mvcc's `rangeKeys` proof will rest on the model at
+  that step (`Mvcc.rangeCtxErr`'s laws: non-nil, fresh, none of mvcc's sentinels). Related: the entry
+  above (the model can be unfolded to learn false facts).
+- **Proposed (general; record only, nothing changed in Perennial).** `fmt.Errorf.spec` for a `%w` argument
+  (a fresh wrapping error whose `Unwrap` is the argument) and for arguments with a `String`/`Error`
+  method (the method's spec called with the caller's ownership).
+- **Status.** Recorded only.
+
+## OsFs: no `rename`, and no crash case reverting an unsynced rename (2026-11-09, branch `specs-only`)
+
+- **The gap.** Perennial's OsFs model has no `rename`, and its crash relation cannot bring back the file a
+  rename replaced when the directory was not fsynced afterwards. etcd renames onto live paths: defrag
+  (`os.Rename(tdbp, dbp)`, `backend.go:557`) and the snapshot install (`snap.dbFile_rename`), and fsyncs
+  the directory only in some paths.
+- **Local workaround.** The specs-only branch states `Snap.dbFile_rename` as a trusted triple and gives the
+  backend a `beRevert`/`beNoRevert` token with a revert case in `beCrash`
+  (`Spec/go_etcd_io/etcd/server/v3/storage/backend/`); that case's realization is open until OsFs has it.
+- **Proposed (general; record only, nothing changed in Perennial).** OsFs `rename` with POSIX semantics,
+  its crash case (the old directory entry survives unless the directory was fsynced after the rename),
+  and a directory fsync.
+- **Status.** Recorded only.

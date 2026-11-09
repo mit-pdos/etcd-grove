@@ -11,6 +11,8 @@
 update: the item is a new key under the prefix, created by one transaction (its mod revision, the
 order `Dequeue` follows, is that transaction's revision).
 
+Changes: verify-round: `ErrKeyExists` is the value its variable holds (`putNewRetAt`), not a Lean constant (A3 F4).
+
 **Margin**: none.
 -/
 module
@@ -47,7 +49,7 @@ def Queue.Enqueue.spec : Prop :=
            COMM Q σ σ' k res }> }}
     (App (Val (q @!! go.GoType.PointerType Queue.ty @!! go!"Enqueue")) (Val #val))
   {{ (err : GoInterface), RET #err;
-      (∃ (σ σ' : State) (k : GoString) (res : Resp) (rev : w64), Q σ σ' k res ∗ ⌜putNewRet res rev err⌝) ∨ indefCall err }}
+      (∃ (σ σ' : State) (k : GoString) (res : Resp) (rev : w64), Q σ σ' k res ∗ putNewRetAt res rev err) ∨ indefCall err }}
 
 end spec
 

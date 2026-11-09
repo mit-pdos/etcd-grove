@@ -17,12 +17,18 @@ import (
 var keyBucket = []byte("key")
 
 // REQ bbolt/backend-open: etcd's options open the file; a failure is fatal for etcd.
-// Users: server/storage/backend/backend.go:216-237 (newBackend).
-// Assumes: path is the database's closed file (boltFile, boltClosed); a pointer-typed logger
-// meeting boltLogger (here nil).
-// Specs: Open.spec; laws: fileHolds_alloc, fileHolds_new.
+// Users: server/storage/backend/backend.go:216-237 (newBackend: `&bolt.Options{}`, then
+// `*bopts = *boltOpenOptions`, whose keyed literal is an untranslated package initializer, the
+// backend's assumed fact; then field stores).
+// Assumes: path is the database's closed file (boltFile, boltClosed: from fileHolds_alloc of a
+// file that exists, or boltFresh_alloc of etcd's first boot); a pointer-typed logger meeting
+// boltLogger (here nil).
+// Specs: optsLit.spec, optsAlloc.spec, Open.spec; laws: optsAt_int, optsAt_bool, fileHolds_alloc,
+// boltFresh_alloc.
 func ReqBackendOpen(path string, noSync bool) *bolt.DB {
-	opts := &bolt.Options{MmapFlags: syscall.MAP_POPULATE, NoFreelistSync: true}
+	opts := &bolt.Options{}
+	opts.MmapFlags = syscall.MAP_POPULATE
+	opts.NoFreelistSync = true
 	opts.NoSync = noSync
 	opts.NoGrowSync = noSync
 	db, err := bolt.Open(path, 0o600, opts)
@@ -40,16 +46,18 @@ func ReqBackendOpen(path string, noSync bool) *bolt.DB {
 // UnsafeRange, unsafeRange, UnsafeDelete), :280-305 (commit), backend.go:1101 (unsafeBegin).
 // Assumes: db open; keyBucket holds no nested bucket; k1 < k2 (bytes.Compare), both non-empty and
 // within MaxKeySize; the caller holds boltState γ 1 σ (the backend's batch lock), from which it
-// builds Commit's updates (boltState_commit_au, boltState_settle_au).
-// Specs: DB.Begin.spec (write), Tx.CreateBucketIfNotExists.spec, Tx.Bucket.spec, Bucket.Put.spec,
-// Bucket.Delete.spec, Bucket.Cursor.spec, Cursor.Seek.spec, Cursor.Next.spec, Tx.Commit.spec,
-// Tx.Stats.spec; laws: boltTx_fill, bktH_live, txBytes_acc, boltTx_wf (the order),
-// boltState_commit_au, boltState_settle_au, putLoan_done.
+// builds Commit's updates (boltState_commit_au: both, the settling one given by the commit's).
+// Specs: DB.Begin.spec (write), DB.Stats.spec (the write transaction pays: statSlot_wtx),
+// Tx.CreateBucketIfNotExists.spec, Tx.Bucket.spec, Bucket.Put.spec, Bucket.Delete.spec,
+// Bucket.Cursor.spec, Cursor.Seek.spec, Cursor.Next.spec, Tx.Commit.spec, Tx.Stats.spec; laws:
+// boltTx_fill, bktH_live, txBytes_acc, boltTx_wf (the order), statSlot_wtx, boltState_commit_au,
+// putLoan_done.
 func ReqBackendBatch(db *bolt.DB, k1, k2 []byte) {
 	tx, err := db.Begin(true)
 	if err != nil {
 		return // the database was closed
 	}
+	_ = db.Stats().FreePageN // backend.begin(true)'s metrics, holding only the write transaction
 	if _, err := tx.CreateBucketIfNotExists(keyBucket); err != nil {
 		panic("batch: create bucket failed")
 	}
@@ -104,8 +112,9 @@ func ReqBackendBatch(db *bolt.DB, k1, k2 []byte) {
 // for the metrics; rolled back on its own goroutine.
 // Users: server/storage/backend/read_tx.go:95-120 (UnsafeRange), backend.go:598-606
 // (finishDefrag's size), batch_tx.go:385-400 (the old read transaction's rollback).
-// Assumes: db open; the caller's thread token (and the writer goroutine's); the client keeps
-// boltState in an invariant (the writer's updates come from it); fractions of the read
+// Assumes: db open; the caller's thread token (and the writer goroutine's); k non-empty, within
+// MaxKeySize and with len(k)+5 within bboltEntryMax (the writer's Put); the client keeps
+// boltState in an invariant (the writer's updates, commitAU, come from it); fractions of the read
 // transaction are lent to the reader goroutines (boltTx_frac).
 // Specs: DB.Begin.spec (read), DB.Update.spec, Tx.Bucket.spec, Bucket.Get.spec, Tx.Size.spec, Tx.DB.spec,
 // DB.Stats.spec (statSlot of the transaction), DB.Info.spec, Tx.Rollback.spec.
@@ -226,41 +235,67 @@ func ReqSnapshot(db *bolt.DB, w io.Writer) {
 	}
 }
 
-// REQ bbolt/defrag: a second database opened with a custom OpenFile and NoSync, filled from the
-// first by ForEach/Put across several commits, synced, closed (a second Close does nothing), and
-// the first closed and reopened at its path.
+// REQ bbolt/defrag: etcd's defragmentation, end to end: a temporary file the caller creates is
+// opened as a second database through a custom OpenFile (one call, the one file) with NoSync; on
+// Open's error the file is closed again and removed; the copy is filled from the source by
+// ForEach/Put across several commits (no copy error: every key and entry read from a database is
+// within Put's and CreateBucketIfNotExists' bounds); the source is closed; the copy is synced and
+// closed (a failure cleans up: a second Close does nothing, the file is removed); the copy is
+// renamed over the source's path and reopened there, holding what was copied.
 // Users: server/storage/backend/backend.go:512-546 (createDefragTmpDB), :553-560
-// (cleanupTmpDB), :565-620 (finishDefrag), :796-858 (defragdb).
-// Assumes: tmp is a file the caller created at tmpPath (openFileOk from its osFileOf and fd);
-// odb open, its close right held, γ.path non-empty; the root of odb holds only buckets, which
-// hold no nested bucket; the caller holds tmpdb's boltState whole (it alone writes the copy).
-// Specs: Open.spec (custom OpenFile, NoSync), DB.Path.spec, DB.Begin.spec, Tx.Cursor.spec,
+// (cleanupTmpDB), :565-606 (finishDefrag), :796-858 (defragdb).
+// Assumes: odb open, its close right held, its boltState held whole by the caller (no other
+// writer), γ.path non-empty, in the directory dir; the root of odb holds only buckets, which hold
+// no nested bucket; the caller allocates the copy's names at the temporary file
+// (boltFresh_alloc) and holds its boltState whole (it alone writes the copy).
+// Specs: os.CreateTemp, (*os.File).Name/Close, os.Remove, os.RemoveAll, os.Rename (the os
+// package over OsFs: provisional, req/os.md; OsFs has no rename yet, batch-4c I7 item 6),
+// Options' optsLit/optsAlloc and laws (optsAt_bool, optsAt_openFile), Open.spec (custom
+// OpenFile: openFileOk one-shot, its R on an error), DB.Path.spec, DB.Begin.spec, Tx.Cursor.spec,
 // Cursor.First.spec, Cursor.Next.spec, Tx.Bucket.spec, Tx.CreateBucketIfNotExists.spec,
 // Bucket.ForEach.spec, Bucket.Put.spec (putLoan), Tx.Commit.spec, Tx.Rollback.spec (a finished
-// transaction), DB.Begin.spec (dbBroken excluded by dbBroken_state), DB.Sync.spec, DB.Close.spec;
-// Options' laws (optsAt_bool, optsAt_openFile).
-func ReqDefrag(odb *bolt.DB, tmp *os.File, tmpPath string) {
+// transaction), DB.Begin.spec (dbBroken excluded by dbBroken_state), DB.Sync.spec,
+// DB.Close.spec, DB.View.spec; laws: boltTx_wf (Ent.wf's bounds), boltState_commit_au,
+// boltState_settle_au (the sync's update), putLoan_done, boltFresh_alloc, boltRelease (both
+// files out of their crash invariants, the copy's as fileHolds_image's premise once its name is
+// made durable by the rename's directory sync), fileHolds_image, fileHolds_alloc.
+func ReqDefrag(odb *bolt.DB, dir string) {
 	path := odb.Path()
 	if path == "" {
 		panic("defrag: open database without a path")
 	}
-	opts := &bolt.Options{NoSync: true, NoFreelistSync: true}
-	opts.OpenFile = func(string, int, os.FileMode) (*os.File, error) { return tmp, nil }
-	tmpdb, err := bolt.Open(tmpPath, 0o600, opts)
+	tmp, err := os.CreateTemp(dir, "db.tmp.*")
 	if err != nil {
 		return
 	}
+	opts := &bolt.Options{}
+	opts.NoFreelistSync = true
+	opts.OpenFile = func(string, int, os.FileMode) (*os.File, error) { return tmp, nil }
+	opts.Mlock = false
+	opts.NoSync = true
+	tdbp := tmp.Name()
+	tmpdb, err := bolt.Open(tdbp, 0o600, opts)
+	if err != nil {
+		tmp.Close() // bbolt closed it already: an error, ignored
+		_ = os.Remove(tmp.Name())
+		return
+	}
+	cleanup := func() {
+		tmpdb.Close()
+		_ = os.RemoveAll(tdbp)
+	}
 	tx, err := odb.Begin(false)
 	if err != nil {
-		tmpdb.Close()
+		cleanup()
 		return
 	}
 	tmptx, err := tmpdb.Begin(true)
 	if err != nil {
 		tx.Rollback()
-		tmpdb.Close()
+		cleanup()
 		return
 	}
+	copied := 0
 	c := tx.Cursor()
 	for next, _ := c.First(); next != nil; next, _ = c.Next() {
 		b := tx.Bucket(next)
@@ -272,7 +307,10 @@ func ReqDefrag(odb *bolt.DB, tmp *os.File, tmpPath string) {
 			panic("defrag: create bucket failed")
 		}
 		tmpb.FillPercent = 0.9
-		_ = b.ForEach(func(k, v []byte) error { return tmpb.Put(k, v) })
+		if err := b.ForEach(func(k, v []byte) error { return tmpb.Put(k, v) }); err != nil {
+			panic("defrag: copying an entry failed")
+		}
+		copied++
 	}
 	// etcd's order (backend.go:816, 855): the copy commits while the source transaction still
 	// holds the values it lent, then the source rolls back (deferred in etcd); a deferred
@@ -283,7 +321,7 @@ func ReqDefrag(odb *bolt.DB, tmp *os.File, tmpPath string) {
 		panic("defrag: rollback of a committed transaction succeeded")
 	}
 	if err != nil {
-		tmpdb.Close()
+		cleanup()
 		return
 	}
 	// another batch on the copy: Begin(true) cannot fail on an open database whose commits all
@@ -293,15 +331,74 @@ func ReqDefrag(odb *bolt.DB, tmp *os.File, tmpPath string) {
 		panic("defrag: begin after a successful commit failed")
 	}
 	tmptx.Rollback()
+	// finishDefrag
+	if err := odb.Close(); err != nil {
+		cleanup()
+		return // fatal in etcd
+	}
 	if err := tmpdb.Sync(); err != nil {
 		tmpdb.Close()
-		tmpdb.Close() // cleanupTmpDB closes again
+		cleanup() // closes again: nothing happens
+		return    // fatal in etcd
+	}
+	if err := tmpdb.Close(); err != nil {
+		cleanup()
 		return
 	}
-	tmpdb.Close()
-	odb.Close()
+	if err := os.Rename(tdbp, path); err != nil {
+		cleanup()
+		return // fatal in etcd
+	}
 	db, err := bolt.Open(path, 0o600, nil)
-	if err == nil {
-		db.Close()
+	if err != nil {
+		return // fatal in etcd
+	}
+	defer db.Close()
+	found := 0
+	_ = db.View(func(tx *bolt.Tx) error {
+		c := tx.Cursor()
+		for next, _ := c.First(); next != nil; next, _ = c.Next() {
+			found++
+		}
+		return nil
+	})
+	if found != copied {
+		panic("defrag: the reopened database is not the copy")
+	}
+}
+
+// REQ bbolt/delete-returned: a write transaction deletes the very keys its own range returned,
+// using the returned slices (not copies) as the keys: each key slice still holds its bytes after
+// the deletes before it, and every deleted key is gone.
+// Users: server/storage/mvcc/kvstore_compaction.go:58-71 (scheduleCompaction: UnsafeRange, then
+// UnsafeDelete of each returned key), through server/storage/backend/batch_tx.go:238.
+// Assumes: tx a write transaction; keyBucket holds no nested bucket.
+// Specs: Tx.Bucket.spec, Bucket.Cursor.spec, Cursor.Seek.spec, Cursor.Next.spec,
+// Bucket.Delete.spec, Bucket.Get.spec; laws: txBytes_acc (against txLive, not boltTx),
+// txLive_frac.
+func ReqDeleteReturned(tx *bolt.Tx, from []byte) {
+	b := tx.Bucket(keyBucket)
+	if b == nil {
+		return
+	}
+	var keys [][]byte
+	var saved [][]byte
+	c := b.Cursor()
+	for k, _ := c.Seek(from); k != nil; k, _ = c.Next() {
+		keys = append(keys, k)
+		saved = append(saved, append([]byte(nil), k...))
+	}
+	for i, k := range keys {
+		if !bytes.Equal(k, saved[i]) {
+			panic("delete-returned: a returned key changed under an earlier delete")
+		}
+		if err := b.Delete(k); err != nil {
+			panic("delete-returned: delete failed")
+		}
+	}
+	for _, k := range saved {
+		if b.Get(k) != nil {
+			panic("delete-returned: a deleted key is still there")
+		}
 	}
 }

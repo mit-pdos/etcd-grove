@@ -31,8 +31,8 @@ func ReqNoSpaceCapped(lg *zap.Logger, alarmEnt, putEnt *raftpb.Entry, ua apply.U
 
 // REQ apply/corrupt: under a CORRUPT alarm the KV requests are refused with ErrCorrupt.
 // Users: server/etcdserver/corrupt.go (the corruption checker proposes CORRUPT), applyEntryNormal.
-// Assumes: rangeEnt is a committed Range entry; a CORRUPT alarm is raised in ua's alarm store; this
-// goroutine is the apply thread.
+// Assumes: rangeEnt is a committed entry of a valid Range (a key, a valid sort: reqAdmitted); a
+// CORRUPT alarm is raised in ua's alarm store; this goroutine is the apply thread.
 // Specs: Apply.spec, isUber_apply; laws: irrStep_step.
 func ReqCorrupt(lg *zap.Logger, rangeEnt *raftpb.Entry, ua apply.UberApplier, w wait.Wait) {
 	ar, _ := apply.Apply(lg, rangeEnt, ua, w, true)

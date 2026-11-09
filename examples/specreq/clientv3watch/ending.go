@@ -59,7 +59,8 @@ func ReqWatchEnds(ctx context.Context, cli *clientv3.Client, k string) {
 // Users: grpcproxy's leader probe (leader.go:62: the first response is the creation, any later
 // one is a loss), its health check (health.go:73), the cache (its first response marks it ready).
 // Assumes: none.
-// Specs: Client.Watch.spec, WithCreatedNotify.spec; watchStep (Created only when not started).
+// Specs: Client.Watch.spec, WithCreatedNotify.spec; watchStep (Created only when not started;
+// never in the ended case, verify-round A2 W4: a closed watch's error response is not Created).
 func ReqWatchCreatedFirst(ctx context.Context, cli *clientv3.Client, k string) {
 	first := true
 	for wr := range cli.Watch(ctx, k, clientv3.WithCreatedNotify()) {
@@ -80,7 +81,7 @@ func ReqWatchCreatedFirst(ctx context.Context, cli *clientv3.Client, k string) {
 // Users: Client.Close (client.go:150), the namespace wrapper (namespace/watch.go:79).
 // Assumes: none.
 // Specs: NewWatcher.spec (clientCore, from isClient by 1c's isClient_core), watcher.Close.spec,
-// watcher.Watch.spec (Watcher.CloseTriple, Watcher.WatchTriple).
+// watcher.Watch.spec (Watcher.CloseTriple, Watcher.WatchTriple; clientReady from isClient_ready).
 func ReqWatcherClose(ctx context.Context, cli *clientv3.Client, k string) {
 	w := clientv3.NewWatcher(cli)
 	_ = w.Close()

@@ -56,6 +56,14 @@ On every exit the deferred function stops the ticker and drains mvcc's channel (
 `Close` closes it: `swsAt`'s close protocol) and `pending`, with metrics (`ReportEventReceived`,
 3f).
 
+**verify-round (client-watch's requests).** A fragmented response's fragments agree with the
+first's id, header, compaction revision and cancel reason (`wireStep`'s fragment rule): from
+`sendFragments.spec` (each fragment a copy of `wr`). Each event of a response is an event of the
+history the watch keeps, its key in the watch's range and passing its filters (1b's `watchStep`,
+unconditionally): from mvcc's `wStep`'s unconditional event clause (requested of mvcc by
+client-watch; mvcc adds it in a second pass) and the filters' `filterNoPut.spec`/
+`filterNoDelete.spec`.
+
 **Changes** from `specs-ref`'s file: the old run record, the down position's `watchDn`, mvcc's
 consumer and received-list authority, the `threadBound` premise and the store's reader token
 replaced by the run's shares (`swsAt`, `swsSender`) and the thread token; the facts are 1b's wire

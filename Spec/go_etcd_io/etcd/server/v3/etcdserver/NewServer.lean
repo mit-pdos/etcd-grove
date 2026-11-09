@@ -16,7 +16,7 @@ existing`), each with or without an auto-compactor. Snippets: `etcdserverboot/bo
    the disk premise, `bootOk b γ id cfg` for the member id `id` it found (the boot token's, the
    joined URLs', the WAL's), or an error (returned; nothing to give back: `memberStart` is spent,
    see Margin). From here on the deferred `b.Close()` runs on an error (`bootstrappedServer.Close`:
-   `bootOk`'s backend part, `bootBackendAt`, `ServerStorage.beOpen`).
+   `bootOk`'s backend part, `bootBackendAt`, `beClosable`: 4a's `isBackend` with its whole open token).
 2. `NewServerStats`, `NewLeaderStats` (`V2stats`), the struct literal: `b.raft.newRaftNode(…)`
    (`bootstrappedRaft.newRaftNode.spec`: `bootOk`'s raft record, the snapshotter, the opened WAL,
    the cluster: `raftNodeBuilt rn γ id st` with `st` the WAL's storage), `idutil.NewGenerator`
@@ -44,7 +44,7 @@ existing`), each with or without an auto-compactor. Snippets: `etcdserverboot/bo
 `diskAcc` (the durable state stays the program's, in its crash invariant; the server fires the
 access at each durable write, with the raft loop's in-flight batch deposited before each `Save`) and
 its idle token, at any kind (a new member's, a joiner's, a member's files after a stop or a crash,
-`disk_crash` under `crashScope`); `UnsafeNoFsync` false (`diskCfgOk`).
+`disk_crash` or `crashOutOfScope`); `UnsafeNoFsync` false (`diskCfgOk`).
 
 **Round 1** (provability F3/F4/F7, completeness F1/F5; 2d's request): the start right carries
 the reserved peer addresses (`cluster_alloc`, `urls_reserve`: 2f's `protoAt`/`peerAddr`, so two
@@ -99,7 +99,13 @@ is split into `Backend.leaseShare` and the rest; `Lease.beOk` by `Backend.leaseB
 share (back by `leaseBeOk_elim` before `Close`, at the shutdown); `Lease.beHook` by
 `leaseBeHook_intro`; `Lease.beLeases` by `leaseBeLeases_intro`, from the opener's `beCur γ leaseFp C`
 after `beVis_drop` of the lease part to `beNoVis γ leaseFp`; the deleter's `rdOk` premise
-(`mvccDeleter_rdOk`) by `leaseTxHeld_intro`, with the `mvccOn γ B` that `keyBackend_intro` gives.
+(`mvccDeleter_rdOk`) by `leaseTxHeld_intro`, with the `mvccOn γ B` that `keyBackend_intro` gives (at `m = true`: `meta`'s existence cell in mvcc's footprint, the store creating the bucket; verify round, backend-schema's request).
+
+Changes: verify-round (lease-auth's requests): `lease.NewLessor` takes the caller's `threadTok` (the lessor's `Stop` in `Cleanup` gives it back); the checkpointer closure's `ckptOk cp R` is at `context.Background()` with a `threadTok`, discharged with `reqCtxOk` (4b's and otel's `_background` laws) and `reqPrin` (`ctxNoIncoming_background`, `reqPrin_noIncoming`), `R := srvStarted s γ id` giving `isServer` (`srvStarted_isServer`) for `raftRequest` and `ensureLeadership`; `auth.NewTokenProvider` takes `waiterOk iw R` at `R := srvStarted s γ id`; `auth.NewAuthStore`'s `authGate γa R` and `authBeCur γa be` are kept in the server's state (`srvNode`'s realization: the gate persistent, `authBeCur` in the apply thread's `srvStores`); the lessor's `clusterOk (iface cluster)` from 2e's `RaftCluster.Version` triple (requested of server-boot). The store's `keyBackend_intro` at `m = true` (backend-schema's request).
+
+Changes: verify-round (server-boot's requests): allocates `Membership.clusterVerInv γc` and, with `RaftCluster.Version.spec`, gives 3c's `Lease.clusterOk` at `server.go:344`; builds the compactor's `compactable c R` at `R := srvStarted s γ id` (a resource `start` publishes: `srvStarted_isServer` gives `Compact`'s `isServer`; the compactor's context a child of `Background`, `phys = false`, no `srvGate`), and `start` passes `□ R` to the compactor's `Run`; the backend through `bootstrap`'s `OpenBackend` (4a's `isBackend`, `beClosable` for the error path).
+
+Changes: verify-round (apply-txn's request): `NewUberApplier`'s grown premises: `hooksOk` (the lessor's half from 4a's `leaseBeHook_intro`, the auth half from 4a's `authBeHook` introduction), `authSt`'s `authBeCur` at the auth backend wrapping `s.be` (`NewAuthStore`'s post), `lessorSt`'s `leasesLive` (an empty store), `ls.be = s.be`, `ls.rd ≠ nil` and `kvDelOk` (`srvStores_kv`: `NewStore` sets the deleter), `clusterVerInv`, the backend's version (`beVer`).
 -/
 module
 

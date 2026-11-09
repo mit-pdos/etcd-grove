@@ -12,7 +12,7 @@ that the client's code relies on (PRINCIPLES, "an interface value gets a bundle"
   contract: `Err()` returns `nil`, or `Canceled`'s or `DeadlineExceeded`'s value once the context is
   done, and then the same kind of value on every later call; `Done()` returns a channel closed once
   the context is done, or `nil` for a context never done; `Value(k)` returns what the context chain
-  holds at `k` (whatever: the client's code only passes it on, to grpc's metadata).
+  holds at `k` (`Value.spec`: the value a `WithValue` stored, `ctxValueIs`).
 * `ctxDone ctx` (persistent): `ctx` is done (`Err()` is not `nil`, and never will be again).
 
 Laws (obligations of whoever realizes the bundle, from Perennial's specs and each context's
@@ -29,8 +29,11 @@ the done flag of Perennial's descriptor (`ContextClosed`) or a context-specific 
 realization is per context type, so the predicate is opaque.
 
 Who calls what: the client's `ContextError` calls `Err()` (twice: `ErrDone.spec` is what keeps
-its result non-nil); everything else the client does with a context is to pass it to gRPC
-(`req/google_golang_org_grpc.md`, which takes `ctxOk`).
+its result non-nil); the lessor compares `Value(keepAliveCtxKey{})` of two contexts
+(`client/v3/lease.go:368`), the server asserts `Value(traceutil.StartTimeKey{})`'s type
+(`v3_server.go:1022`): `Value.spec`, `ctxValueIs` (verify round, A1-completeness F5); everything
+else the client does with a context is to pass it to gRPC (`req/google_golang_org_grpc.md`, which
+takes `ctxOk`).
 -/
 module
 
@@ -152,6 +155,13 @@ opaque ctxValueAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunct
 
 def ctxValueAt_persistent.spec : Prop := ∀ ctx ctx' key, Persistent (ctxValueAt (GF := GF) ctx ctx' key)
 
+/-- **`ctx.Value(key)` returns `v`** (persistent): the value stored at `key` by the nearest
+`WithValue` of `ctx`'s chain (`WithValue.spec`), kept by children and by a `WithValue` at a key of
+another type (`ctxValueIs_child`, `ctxValueIs_other`). -/
+opaque ctxValueIs [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ctx key v : GoInterface) : IProp GF := iprop(True)
+
+def ctxValueIs_persistent.spec : Prop := ∀ ctx key v, Persistent (ctxValueIs (GF := GF) ctx key v)
+
 /-- **`WithValue(parent, key, val)`** of any context, for a non-nil key of a comparable type (Go
 panics otherwise): a context carrying the value. -/
 def WithValue.spec : Prop :=
@@ -160,7 +170,33 @@ def WithValue.spec : Prop :=
       ⌜⟦CheckComparable ki.ty, #()⟧ ⤳[under] #()⌝ }}
     (App (App (App (Val (@! context.WithValue)) (Val #parent)) (Val #(GoInterface.ok ki))) (Val #v))
   {{ (ctx : GoInterface), RET #ctx; ctxOk ctx ∗ ctxWithValues parent ctx ∗
-      ctxValueAt parent ctx (GoInterface.ok ki) }}
+      ctxValueAt parent ctx (GoInterface.ok ki) ∗ ctxValueIs ctx (GoInterface.ok ki) v }}
+
+/-- **`ctx.Value(key)`** of any context: some value, the one recorded if any (`ctxValueIs`). Go's
+contexts compare `key` with each stored key, which never panics: a stored key is comparable
+(`WithValue`'s check), so an interface comparison with it is defined. (Verify round,
+A1-completeness F5: the lessor's `keepAliveCtxCloser`, the server's `raftRequest`.) -/
+def Value.spec : Prop :=
+  ∀ (ctx key : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.context ∗ ctxOk ctx }}
+    (App (Val (ctx @!! context.Context.ty @!! go!"Value")) (Val #key))
+  {{ (v : GoInterface), RET #v; □ ∀ v', ctxValueIs ctx key v' -∗ ⌜v = v'⌝ }}
+
+/-- **`ctxValueIs` as a WP** (lease-auth's request: `Auth.ctxValIs`'s shape, so that a transparent
+predicate of that shape follows from `WithValue.spec`): every call of `ctx.Value(key)` returns `v`. -/
+def ctxValueIs_wp.spec : Prop := ∀ ctx key v,
+  ctxValueIs (GF := GF) ctx key v ⊢
+    □ ∀ Φ : val → IProp GF, ▷ Φ #v -∗
+      WP (App (Val (ctx @!! context.Context.ty @!! go!"Value")) (Val #key)) {{ Φ }}
+
+/-- A child (`WithCancel`, `WithTimeout`) carries its parent's values. -/
+def ctxValueIs_child.spec : Prop := ∀ ctx ctx' key v,
+  ctxValueIs (GF := GF) ctx key v ∗ ctxChild ctx ctx' ⊢ ctxValueIs ctx' key v
+
+/-- A `WithValue` at a key of another dynamic type keeps the others. -/
+def ctxValueIs_other.spec : Prop := ∀ (ctx ctx' : GoInterface) (ki ki' : GoInterfaceOk) (v : GoInterface),
+  ctxValueIs (GF := GF) ctx (GoInterface.ok ki') v ∗ ctxValueAt ctx ctx' (GoInterface.ok ki) ∗
+    ⌜ki.ty ≠ ki'.ty⌝ ⊢ ctxValueIs ctx' (GoInterface.ok ki') v
 
 /-- **`ctx` carries no gRPC outgoing metadata** (transparent, so that a batch owning a root context
 can discharge it: net/http's request context, Kubernetes' `wait.ContextForChannel`): its

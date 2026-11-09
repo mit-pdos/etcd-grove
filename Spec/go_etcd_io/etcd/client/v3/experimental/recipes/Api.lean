@@ -45,10 +45,12 @@ recipe needs its caller's updates:
 * **Facts learned from a watch are gated by the compaction condition** (W0's `EtcdModel.exactFrom`,
   1b's `watchStep`: a watch's events are exact only when no compacted revision from its start
   changes a key twice): `WaitEvents`' prefix claim, `Barrier.Wait`'s `goneAt`, `Enter`'s `ready`
-  put, the queues' front condition and dequeued value hold under `exactFrom σ.kv lo` for the
+  put, the queues' front condition hold under `exactFrom σ.kv lo` for the
   revision `lo` the watches start from (or `1`); a program discharges it from its workload (no
   transaction puts and deletes one key) or from a cluster that never compacts. Facts from reads
-  (`rwHeld`, the double barrier's counts and `Leave`) are unconditional.
+  (`rwHeld`, the double barrier's counts and `Leave`) are unconditional, and so is what a watch
+  says of each event it delivers (a real event of its revision in the watched range: 1b's
+  `watchStep`, second pass), hence a Dequeue's claimed key and value.
 
 **Time-free exclusion with no lease expiry.** W0's `EnvCfg.leaseExpiry = false` (a program that
 runs a cluster whose leases outlive the run) removes the environment's lease revocations: a lock
@@ -64,7 +66,8 @@ a sentinel is safe and exact (`errorsIs_recipeErr`).
 
 **Contexts and principals.** Every KV call the recipes make passes `context.TODO()` (or the
 handle's `ctx` field, a `context.TODO()`), which meets W0's `Context.ctxOk` and `ctxPrin who ctx who`
-for the client's own (default) principal `who` (`ctxPrin_todo`); the watches pass
+for the client's own (default) principal `who` (`Context.TODO.spec` names the value `todoCtxVal`,
+then W0's law `ctxPrin_todo`, an entailment since the second pass); the watches pass
 `context.WithCancel(context.Background())` (`Context.WithCancel`, `ctxPrin_background`,
 `ctxPrin_child`). So no recipe spec takes a context, and the principal `who` of every handle and
 every `Step who` is the client's default one (`isClient c γ who`): each call's `p` of W0's
@@ -93,8 +96,12 @@ every `Step who` is the client's default one (`isClient c γ who`): each call's 
 
 ## Resources
 
-* `recipeErr e` (a Go value): the package's error `e`; laws `recipeErr_ne` (not `nil`, distinct
-  from one another and from `errVal`), `init.spec` (the package variables hold them, read-only).
+* The package's errors are the values its error variables hold (`RecipeErr.global e`): `errors.New`
+  allocates a fresh `*errorString` at initialization, so no Lean constant is that value (verify-round
+  A3 F4). `init.spec` gives them existentially (`recipeErrs ev`: each variable holds `ev e`,
+  read-only; non-`nil`, distinct, none of etcd's errors, `*errorString`s distinct from
+  `context.Canceled`'s and `io.EOF`'s), and a post that returns one says `globalAddr ErrX ↦□ err` (as the cache's
+  specs do); `notRecipeErr e err`: `err` is not the value of `e`'s variable.
 * `rkOwn rk γ who st` (exclusive): the `*RemoteKV` `rk` with fields `st` (`kv` a `kvAt` value of
   `γ` as `who` while `st.live`, `nil` once deleted). Intended realization: the struct's points-to,
   `kvAt` of the field. `ekOwn ek` the same of an `*EphemeralKV`'s embedded `RemoteKV`.
@@ -117,8 +124,10 @@ every `Step who` is the client's default one (`isClient c γ who`): each call's 
 
 ## Laws
 
-`handles_persistent`, `recipeErr_ne`, `recipeErr_fresh`, `errorsIs_recipeErr`, `init.spec`;
-`ekOwn`, `dbPerm`, `recipeErrOk` are definitions.
+`handles_persistent`, `errorsIs_recipeErr`, `init.spec`; `ekOwn`, `dbPerm`, `recipeErrOk`,
+`recipeErrs`, `notRecipeErr`, `putNewRetAt` are definitions. (A `callErr` is none of the package's
+errors: W0's `callErr_errorsNew` makes an `*errorString` `callErr` the value of `context.Canceled` or `io.EOF`,
+which `init.spec` says no sentinel is; the old law `recipeErr_fresh` is derived so.)
 
 ## Requirement snippets
 
@@ -309,13 +318,22 @@ structure RKSt where
 section errs
 variable [GooseExts] [go_gctx : GoGlobalContext]
 
-/-- **The Go value of the package's error `e`** (`errors.New(...)`, `ErrKeyExists` for `.keyExists`). -/
-opaque recipeErr (e : RecipeErr) : GoInterface := GoInterface.nil
+/-- The global variable holding each error. -/
+def RecipeErr.global : RecipeErr → GoString
+  | .keyExists => go_etcd_io.etcd.client.v3.experimental.recipes.ErrKeyExists
+  | .waitMismatch => go_etcd_io.etcd.client.v3.experimental.recipes.ErrWaitMismatch
+  | .tooManyClients => go_etcd_io.etcd.client.v3.experimental.recipes.ErrTooManyClients
+  | .noWatcher => go_etcd_io.etcd.client.v3.experimental.recipes.ErrNoWatcher
+  | .watchClosed => go_etcd_io.etcd.client.v3.experimental.recipes.ErrWatchClosed
 
-/-- Not `nil`, distinct from one another, and none of etcd's errors. -/
-def recipeErr_ne.spec : Prop :=
-  (∀ e, recipeErr e ≠ GoInterface.nil) ∧ (∀ e e', recipeErr e = recipeErr e' → e = e') ∧
-  (∀ e e', recipeErr e ≠ errVal e')
+/-- What `init.spec` says of the error values `ev` (with `context.Canceled`'s value `cv` and `io.EOF`'s `eof`, the two
+`*errorString`s W0's `callErr_errorsNew` admits): not
+`nil`, pairwise distinct, none of etcd's errors (`errVal`: another type), each a fresh
+`*errorString` (so neither `cv` nor `io.EOF`'s value `eof`). -/
+def recipeErrsOk (ev : RecipeErr → GoInterface) (cv eof : GoInterface) : Prop :=
+  (∀ e e', ev e = ev e' → e = e') ∧
+  ∀ e, ev e ≠ GoInterface.nil ∧ ev e ≠ cv ∧ ev e ≠ eof ∧ (∀ x, ev e ≠ errVal x) ∧
+    ∃ x : Loc, ev e = interface.mkOk (go.GoType.PointerType errors.errorString.ty) #x
 
 /-- What a single KV call returns for the answer `res`: `nil` for a success, etcd's error for an
 error answer. -/
@@ -323,10 +341,10 @@ def okOrErr (res : Resp) (err : GoInterface) : Prop :=
   (∃ b, res = .ok b ∧ err = GoInterface.nil) ∨ (∃ e, res = .err e ∧ err = errVal e)
 
 /-- What `putNewKV` returns for its transaction's answer `res`: the header's revision on success,
-`ErrKeyExists` when the key existed, etcd's error otherwise (`0` but on success). -/
-def putNewRet (res : Resp) (rev : w64) (err : GoInterface) : Prop :=
+`ErrKeyExists`'s value `ke` when the key existed, etcd's error otherwise (`0` but on success). -/
+def putNewRet (ke : GoInterface) (res : Resp) (rev : w64) (err : GoInterface) : Prop :=
   (∃ R rs, res = .ok (.txn R true rs) ∧ err = GoInterface.nil ∧ rev = W64 R) ∨
-  (txnCmpFailed res ∧ err = recipeErr .keyExists ∧ rev = W64 0) ∨
+  (txnCmpFailed res ∧ err = ke ∧ rev = W64 0) ∨
   (∃ e, res = .err e ∧ err = errVal e ∧ rev = W64 0)
 
 /-- What `deleteRevKey` returns for its transaction's answer `res`. -/
@@ -382,45 +400,54 @@ def dbPerm (γ : Cluster) (who : Principal) (key : GoString) (count : w64) (own 
     IProp GF :=
   etcdPerm γ (fun σ σ' => ∃ rq res, dbWrite key (sint.Z count) own σ rq ∧ Step who rq σ σ' res)
 
+/-- **The package's error variables hold `ev`**, read-only (persistent). -/
+def recipeErrs (ev : RecipeErr → GoInterface) : IProp GF :=
+  iprop(□ ∀ e : RecipeErr, globalAddr e.global ↦□ ev e)
+
+/-- **`err` is not the package's error `e`** (the value its variable holds). -/
+def notRecipeErr (e : RecipeErr) (err : GoInterface) : IProp GF :=
+  iprop(∃ v : GoInterface, globalAddr e.global ↦□ v ∗ ⌜err ≠ v⌝)
+
+/-- `putNewRet` with `ErrKeyExists`'s value read from its variable. -/
+def putNewRetAt (res : Resp) (rev : w64) (err : GoInterface) : IProp GF :=
+  iprop(∃ ke : GoInterface,
+    globalAddr go_etcd_io.etcd.client.v3.experimental.recipes.ErrKeyExists ↦□ ke ∗
+    ⌜putNewRet ke res rev err⌝)
+
 /-- **An error of the package** (persistent): etcd's, a gRPC call's (`callErr`, any kind), one of
-the package's sentinels, or `fmt`'s scanning error. -/
+the package's sentinels (the value its variable holds), or `fmt`'s scanning error. -/
 def recipeErrOk (err : GoInterface) : IProp GF :=
-  iprop(⌜(∃ e, err = errVal e) ∨ (∃ e, err = recipeErr e)⌝ ∨ (∃ k, callErr err k) ∨
-    Fmt.scanErr err)
+  iprop(⌜∃ e, err = errVal e⌝ ∨ (∃ e : RecipeErr, globalAddr e.global ↦□ err) ∨
+    (∃ k, callErr err k) ∨ Fmt.scanErr err)
 
 def handles_persistent.spec : Prop :=
   (∀ b c γ who key, Persistent (barrierAt (GF := GF) b c γ who key)) ∧
   (∀ q c γ who kp, Persistent (queueAt (GF := GF) q c γ who kp)) ∧
   (∀ q c γ who key, Persistent (pqueueAt (GF := GF) q c γ who key))
 
-/-- **The package's errors are fresh**: no error a gRPC call returns (`callErr`, 2a's slot) is one of
-them (they are `errors.New` values the package's initialization allocated). Realized from the
-package's `init` (fresh allocations) and the shapes `callErr` admits (rpctypes', grpc's, the
-context's error values). -/
-def recipeErr_fresh.spec : Prop := ∀ (err : GoInterface) (k : CallErr) (e : RecipeErr),
-  callErr (GF := GF) err k ⊢ ⌜err ≠ recipeErr e⌝
-
-/-- **`errors.Is(err, recipeErr e)`** (the retry loops of `newUniqueKV`, `newUniqueEphemeralKV`;
+/-- **`errors.Is(err, ErrX)`** (the retry loops of `newUniqueKV`, `newUniqueEphemeralKV`;
 `DoubleBarrier`'s callers): on any error of the package (`recipeErrOk`), true exactly for the
 sentinel itself. Realized from Perennial's `errors.Is` (a sentinel's `*errorString` has no `Is` or
 `Unwrap`; W0's `errorsIs_errVal` the same for etcd's; `Fmt.scanErr`'s header for `fmt`'s), and
-`recipeErr_fresh`, `recipeErr_ne`. Its soundness for `callErr`'s `.other` kind rests on 2a's
+`init.spec` with W0's `callErr_errorsNew`. Its soundness for `callErr`'s `.other` kind rests on 2a's
 realization of `callErr` (no wrapped value with an `Is` method reaching a sentinel). -/
 def errorsIs_recipeErr.spec : Prop :=
-  ∀ (err : GoInterface) (e : RecipeErr),
+  ∀ (err : GoInterface) (e : RecipeErr) (v : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.errors ∗
-      recipeErrOk err }}
-    (App (App (Val (@! errors.Is)) (Val #err)) (Val #(recipeErr e)))
-  {{ (b : Bool), RET #b; ⌜b = true ↔ err = recipeErr e⌝ }}
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗
+      recipeErrOk err ∗ globalAddr e.global ↦□ v }}
+    (App (App (Val (@! errors.Is)) (Val #err)) (Val #v))
+  {{ (b : Bool), RET #b; ⌜b = true ↔ err = v⌝ }}
 
-/-- **The package's initial globals**: the error variables hold `recipeErr`, read-only. -/
+/-- **The package's initial globals**: the error variables hold some values `ev`, read-only, with
+`recipeErrsOk` against `context.Canceled`'s and `io.EOF`'s values (verify-round A3 F4: `errors.New`'s fresh
+allocations, still owned when the initializer compares them; the context package is initialized
+first). -/
 def init.spec : Prop :=
   isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ⊢
-    globalAddr go_etcd_io.etcd.client.v3.experimental.recipes.ErrKeyExists ↦□ recipeErr .keyExists ∗
-    globalAddr go_etcd_io.etcd.client.v3.experimental.recipes.ErrWaitMismatch ↦□ recipeErr .waitMismatch ∗
-    globalAddr go_etcd_io.etcd.client.v3.experimental.recipes.ErrTooManyClients ↦□ recipeErr .tooManyClients ∗
-    globalAddr go_etcd_io.etcd.client.v3.experimental.recipes.ErrNoWatcher ↦□ recipeErr .noWatcher ∗
-    globalAddr go_etcd_io.etcd.client.v3.experimental.recipes.ErrWatchClosed ↦□ recipeErr .watchClosed
+    ∃ (ev : RecipeErr → GoInterface) (cv eof : GoInterface),
+      recipeErrs (GF := GF) ev ∗ globalAddr context.Canceled ↦□ cv ∗ globalAddr io.EOF ↦□ eof ∗
+      ⌜recipeErrsOk ev cv eof⌝
 
 end res
 

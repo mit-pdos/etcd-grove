@@ -7,6 +7,8 @@ mark with `db.grow`'s remap). (internal, mirrors the code)
 **Proof sketch.** Every page written fits its extent (`node.size`, `bboltEntryMax`); the parents'
 keys are exact; an `allocate` error (the mapping past `MaxSize`, a remap's `mmap` errno) leaves the
 transaction to roll back.
+**Verify-round (A11 F9).** `node.spill` keeps the abstraction relation (`repKept`) and writes
+each piece into a page `tx.allocate` records in `C.bufs` (`freshPage`, lent by `wtxCore_buf`).
 -/
 module
 

@@ -30,6 +30,8 @@ compaction entries.
 **Margin.** The reply's header revision (the member's store revision after the apply) is not stated
 (W0's `compactReply` does not model it); with `physical`, the call returns only after the compaction
 is done and committed to the backend, not stated either.
+
+Changes: verify-round (A7-completeness F1, F2): a share of `srvGate` only for a physical compaction (`phys = true`: `s.be.ForceCommit()` reads the backend `Cleanup` closes); the auto-compactor's non-physical compactions, which run until `Cleanup` stops the compactor, need none.
 -/
 module
 
@@ -58,9 +60,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 def EtcdServer.Compact.spec : Prop :=
   ∀ (s : Loc) (γ : Cluster) (q : Qp) (ctx : GoInterface) (p tls : Principal) (r : Loc) (dq : DFrac) (rev : w64) (phys : Bool),
   SrvCallTriple (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"Compact")) (Val #ctx)) (Val #r))
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ srvGate s q ∗
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ (if phys then srvGate s q else iprop(True)) ∗
         Context.ctxOk ctx ∗ reqCtxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ compactReqOwn r dq (sint.Z rev) phys ∗ ⌜rev ≠ W64 0⌝)
-    iprop(srvGate s q ∗ threadTok ∗ compactReqOwn r dq (sint.Z rev) phys) γ p tls (.compact (sint.Z rev) phys) false (ClientV3.compactReply)
+    iprop((if phys then srvGate s q else iprop(True)) ∗ threadTok ∗ compactReqOwn r dq (sint.Z rev) phys) γ p tls (.compact (sint.Z rev) phys) false (ClientV3.compactReply)
 
 end spec
 end EtcdServer

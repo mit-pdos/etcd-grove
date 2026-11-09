@@ -31,17 +31,17 @@ WAL's write half, the delivered log `st.delivered`, the ready handler's `readyHa
    program's `diskState`, which holds `raftState γ.raft id D` with the WAL's records: 2e, "from 2e,
    round 2"), and `Save`'s update over `Wal.walRecs` (opened inside `diskAcc`'s, mask `⊤ \ diskN`)
    fires it at the synced write (moving `D` to `D.next b`, R1; a crash in between is `disk_crash`'s,
-   by R1's `raftState_crash` of the deposited batch, within `crashScope`), giving the driver back
+   by R1's `raftState_crash` of the deposited batch, unless `crashOutOfScope`), giving the driver back
    (`nodeDriver n γ.raft (st.after b dl)`), `msgSent` of every message and the read states. No
    error: 2e's disk premise (`lg.Fatal` unreachable). With a snapshot: `Sync`, `notifyc <- {}` (the
    apply thread may now open the snapshot's db and `Release` the WAL below it),
    `raftStorage.ApplySnapshot` (R1's `readyStor_install`). `raftStorage.Append(rd.Entries)` (R1's
-   `readyStor_append`).
+   `readyStor_append`, given the Ready's `deliveredLb`: raft-core's verify-round request).
 7. **Follower, after the write**: `processMessages.spec`, `notifyc <- {}`; with a conf change in the
    batch, a second send that completes once the apply thread received the first, i.e. after it
    applied the batch's conf changes (`notifyc`'s protocol carries the node's `nodeConf` back);
    `transport.Send`. Leader: `notifyc <- {}` and the same wait on a conf change.
-8. `r.Advance()` (R1's `node.Advance.spec`: `readyStor` empty; `nodeConf` the loop's: returned by
+8. `r.Advance()` (R1's `node.Advance.spec`, checked at the verify round: its pre and post are unchanged, `coreIdle` and `rawNodeAdv_open` are internal to the node; `readyStor` empty; `nodeConf` the loop's: returned by
    the apply thread's `notifyc` receive for a batch with conf changes (applied or decided skip),
    else kept, the batch's entries having no conf change, `confSkipped` vacuous) gives `appliedLb n
    |dl|`; with a snapshot, R1's wand is applied by the loop at the snapshot's point
@@ -61,6 +61,8 @@ by its handle); the loop fires R1's `readyEnter` at the WAL's write (was the old
 ghost).
 
 **Margin**: none (a goroutine).
+
+Changes: verify-round (server-boot's request): each `Save`/`SaveSnap` fires two updates through `diskAcc` (now an invariant-style accessor at `diskN`, raft's namespace open): `walWriting` (the write begun) then `walRecs` (synced), the second firing the batch's `readyEnter`; the snapshot file's `snapSaving` then its saved state likewise.
 -/
 module
 

@@ -50,12 +50,18 @@ and the server batches that must produce it (the cluster contract, `notes/specs-
 the adequacy theorem: a counted resource (as Perennial's thread tokens) of which every committed
 entry spends one and each entry writes a bounded number of events (`--max-txn-ops` per level,
 nesting bounded by the request size), held by the cluster's invariant (bounds plan: the bound at
-its owner); no client spec carries a bound.
+its owner); no client spec carries a bound. Since these laws are plain entailments (they cannot
+open the cluster's invariant), the bounds are part of the **half the program holds**: the intended
+realization of `etcdState γ σ` is `ghostVar γ.st ½ σ ∗ ⌜σ.kv.rev + 1 < 2 ^ 63 ∧ (σ.kv.revs.map
+List.length).sum < 2 ^ 63⌝`, the cluster's invariant establishing the pure part at every commit
+(it updates both halves, and spends the step budget there), and `etcdLb γ σ` carries the same pure
+part for each state of the history (verify round, A1-provability F9).
 -/
 module
 
 public import Spec.go_etcd_io.etcd.api.v3.Model
 public import GeneratedProof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes
+public import Spec.go_etcd_io.etcd.client.pkg.v3.types.Api
 
 @[expose] public section
 
@@ -196,6 +202,16 @@ opaque urlsRight [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFuncto
 /-- One right per URL set (up to order). -/
 def urlsRight_excl.spec : Prop := ∀ (γ : Cluster) (urls urls' : List GoString), urls.Perm urls' →
   urlsRight (GF := GF) γ urls ∗ urlsRight γ urls' ⊢ iprop(False)
+
+/-- **The right at the URLs' parsed forms** (verify round, A8-completeness F2, server-boot's
+request): a client holds `urlsRight` at the raw strings it sends; the member compares and stores
+the parsed URLs' `String()` forms (`Types.urlsNorm`, `types.NewURLs`), so the right converts to them
+for a list `NewURLs` accepts. Intended realization: the right is keyed by `urlsNorm` of its strings
+(a ghost token per normalized multiset), so the law is `Types.urlsNorm_idem`; `urlsRight_excl` by
+`Types.urlsNorm_perm`. Still spent when the request is refused (`ApiClient.lean`'s `reqRight`:
+margin). -/
+def urlsRight_norm.spec : Prop := ∀ (γ : Cluster) (urls : List GoString), Types.urlsValid urls →
+  urlsRight (GF := GF) γ urls ⊢ urlsRight γ (Types.urlsNorm urls)
 
 /-- **`tok` is a token the cluster issued to user `u`** (persistent; `Authenticate`'s answer, 1c and
 3d; also the tokens a member issues itself: `WithRoot`'s root tokens, the JWTs its keys sign): a

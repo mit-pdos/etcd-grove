@@ -10,6 +10,7 @@ premise), the method directly or through the interceptor (with a `*UnaryServerIn
 `func(ctx, req) { return srv.(KVServer).Put(ctx, req.(*PutRequest)) }`). 2a composes it with
 `icChain_call` and the method's `HandlerTriple` into `Grpc.unaryOk`.
 Changes: from `specs-ref/Spec/go_etcd_io/etcd/api/v3/etcdserverpb/_KV_Put_Handler.lean`: WP form over grpc's `decOk` and the request's content (2a), instead of the old `grpcHandlerOkMd` over caller-built `ProtoMsg`s (`specs-ref/notes/grpc-msg-models.md`); the interceptor chain is 2a's (`icChain_call`).
+verify-round (A6 F2): the decoded request is canonical, `⌜Proto.norm c = c⌝` (was `Proto.decodedAt`).
 Margin: none.
 -/
 module
@@ -41,7 +42,7 @@ def _KV_Put_Handler.spec : Prop :=
   go.typeSetContains srv.ty etcdserverpb.KVServer.ty = true →
   isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ Grpc.decOk dec etcdserverpb.PutRequest.ty c ∗
     (∀ q : Loc, Proto.msgAt etcdserverpb.PutRequest.ty q (DFrac.own 1) c -∗
-      Proto.decodedAt etcdserverpb.PutRequest.ty q -∗
+      ⌜Proto.norm c = c⌝ -∗
       handlerBodyWP srv go!"Put" etcdserverpb.PutRequest.ty etcdserverpb.PutResponse.ty go!"/etcdserverpb.KV/Put"
         ctx q ic Ψ) ⊢
   WP (App (App (App (App (Val (@! etcdserverpb._KV_Put_Handler)) (Val #(GoInterface.ok srv)))

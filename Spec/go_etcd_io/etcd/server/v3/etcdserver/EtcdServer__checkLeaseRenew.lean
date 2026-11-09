@@ -8,6 +8,8 @@ store's state when it runs. Changes: the old spec (`specs-ref`'s `EtcdServer__ch
 lease-keys plan) restated over `reqPrin` and the error classes. Margin: which keys and which state
 the checks ran at is not stated: the callers fire their update at the return, where W0's step allows a
 denial at any state (`leaseTimeToLive`, `leaseLeases`; `srvStep`'s keep-alive disjunct).
+
+Changes: verify-round (client-core's request): a permission denial is fired at W0's three-view `deniedSince` (the auth table the member checked, at or after the call's `lo`: `srvReadAt_auth`).
 -/
 module
 
@@ -40,7 +42,7 @@ def EtcdServer.checkLeaseRenew.spec : Prop :=
     (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"checkLeaseRenew")) (Val #ctx)) (Val x))
   {{ (err : GoInterface), RET #err; threadTok ∗
       (⌜err = GoInterface.nil⌝ ∨
-       ⌜srvUnfired err ∨ ∃ w, (w = p ∨ w = tls) ∧ srvErrOf err (AuthState.permErr w)⌝ ∗
+       (srvUnfired err ∨ ∃ w, ⌜w = p ∨ w = tls⌝ ∗ srvErr err (AuthState.permErr w)) ∗
          srvErrShape err) }}
 
 end spec

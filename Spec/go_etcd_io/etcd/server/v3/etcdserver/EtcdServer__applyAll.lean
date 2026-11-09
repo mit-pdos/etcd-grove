@@ -31,6 +31,8 @@ snapshot at any applied index is valid).
 
 **Margin**: the batch's snapshot and entries are applied (the post says only where the applied index
 is; the history it reflects is `applyThread`'s).
+
+Changes: verify-round: takes and gives back the thread's `threadTok` (A7-provability F2: `s.Logger()`, `createMergedSnapshotMessage`, `newSnapshotReaderCloser` take one). `run`'s is the fresh token of `start`'s `go s.run()` (Perennial's `wp_fork_tok_body`); the apply jobs' is the scheduler worker's, lent to each job (`Schedule.funcOk`). The `srvMember` that `Logger` takes comes from `srvNode_member`.
 -/
 module
 
@@ -65,10 +67,10 @@ def EtcdServer.applyAll.spec : Prop :=
       srvNode s γ id ∗ srvStarted s γ id ∗ applyThread s γ ep p ∗ ap ↦□ apv ∗
       applyBatch (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"r" s) γ apv B
         false ∗
-      ⌜uint.nat p.appliedi = B.prev⌝ }}
+      ⌜uint.nat p.appliedi = B.prev⌝ ∗ threadTok }}
     (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!!
       go!"applyAll")) (Val #ep)) (Val #ap))
-  {{ RET #(); ∃ p', applyThread s γ ep p' ∗ ⌜uint.nat p'.appliedi = B.last⌝ }}
+  {{ RET #(); threadTok ∗ ∃ p', applyThread s γ ep p' ∗ ⌜uint.nat p'.appliedi = B.last⌝ }}
 
 end spec
 end EtcdServer

@@ -16,7 +16,8 @@ slice it points to are read-only (`↦*□`: a request is built from a client's 
 is never written byte-wise by the clients). The unfold law of each (`<msg>Own_unfold`) is the
 message's struct field by field, so that a client reads (and, at `own 1`, writes) its fields as
 Go does; `protoRest t p dq` is the protobuf bookkeeping (`state`, `sizeCache`, `unknownFields`),
-opaque, which no client touches (its intro law for a freshly allocated message is `protoRest_zero`).
+opaque, which no client touches (its intro law for a freshly allocated message is `protoRest_zero`;
+`protoRest_persist` makes it read-only, so that a message a client built can be shared).
 
 **Models.** Requests are `Model.lean`'s (`RangeReq`, `PutReq`, ...: their `int64` fields as `Int`,
 read through `W64`); replies are modelled at the Go level (`HeaderM`, `KeyValueM`, ... with `w64`
@@ -24,6 +25,15 @@ fields), and `RespM.ofBody` relates a reply to `Model.lean`'s answer.
 
 The predicates are opaque: their only meaning is their unfold laws, which are obligations of their
 realization (3h).
+
+**The wire view** (second pass, grpc-v3rpc's `Proto.norm`): a message crosses gRPC, `proto.Clone`
+or a `Marshal`/`Unmarshal` round trip as `Proto.norm c` of its content `c` (every proto3-unset field
+at its zero Go value). W0 defines no relation over `Proto.Content`: 3h realizes each predicate here
+through its own `*Holds` relation, which survives `norm` (3h's `holds_norm`): the reply and event
+relations always, the request relations (`rangeReqOwn`, `deleteReqOwn`, `compareOwn`,
+`requestOpOwn`, `txnReqOwn`) only under `endsOk c` (no non-`nil` empty range end, which `endOf`
+reads as `[0]` and the wire as `[]`). The client never builds such an end (`ClientV3.OpM.emptyEnd`,
+`Cmp.WithRange`'s `e ≠ []`), so the request a member decodes has the model the client sent.
 
 **Watch messages** (batch 1b's models, moved here at integration so that the client, the gRPC watch
 server (2b) and the messages' realization (3h) share them without the client's vocabulary):
@@ -341,6 +351,14 @@ def msgOwn_discard_persistent.spec : Prop :=
   (∀ p m, Persistent (responseOpOwn (GF := GF) p DFrac.discard m)) ∧
   (∀ p m, Persistent (txnRespOwn (GF := GF) p DFrac.discard m)) ∧
   (∀ p m, Persistent (compactRespOwn (GF := GF) p DFrac.discard m))
+
+/-- **A message's bookkeeping persisted** (verify round, A1-provability F6): `protoRest` is
+fractional in `dq` and may be made read-only. With the unfold laws (each field's points-to persisted
+by Go's own `↦` laws) it persists any message, a request a client built (`Cmp`'s `Compare`,
+`txn.Commit`'s `RequestOp`s and `TxnRequest`, held at one `discard` fraction) as well as a reply.
+Realized by 3h through `Proto.msgAt`, as `msgOwn_discard_persistent`. -/
+def protoRest_persist.spec : Prop := ∀ (t : Type) (p : Loc),
+  protoRest (GF := GF) t p (DFrac.own 1) ⊢ |==> protoRest t p DFrac.discard
 
 /-! ### Requests -/
 

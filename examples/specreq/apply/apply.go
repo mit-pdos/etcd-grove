@@ -19,7 +19,9 @@ import (
 // Users: server/etcdserver/server.go:357 (NewServer), server/etcdserver/server.go:1181
 // (applySnapshot).
 // Assumes: opts holds the member's stores (mvcc, lessor, auth store, alarm store, membership,
-// backend), its raft status, snapshot server and consistent indexer, and a logger.
+// backend), its raft status, snapshot server and consistent indexer, and a logger; the backend's
+// post-lock hook (lessor and auth store) and the lessor's range deleter (opts.KV's) as optsOk/optsSt
+// state them.
 // Specs: NewUberApplier.spec; laws: isUber_apply.
 func ReqNewUber(opts apply.ApplierOptions) apply.UberApplier {
 	ua := apply.NewUberApplier(opts)
@@ -37,7 +39,9 @@ func ReqNewUber(opts apply.ApplierOptions) apply.UberApplier {
 // Assumes: e is a committed normal entry whose data is the marshalled InternalRaftRequest of a valid
 // put with id `id` (the request path's), its lease (if any) live; auth is disabled; no alarm is raised;
 // this goroutine is the apply thread.
-// Specs: Apply.spec, isUber_apply (uberApplier.Apply.spec); laws: irrStep_step, applyStep_fun.
+// Specs: Apply.spec, isUber_apply (uberApplier.Apply.spec); laws: irrStep_step, applyStep_fun, and
+// opStep_step (its `ownStep`: the backend refuses nothing, so a put at auth off with no alarm is
+// kvStep's success; verify-round A9 F4).
 func ReqApplyWrite(lg *zap.Logger, e *raftpb.Entry, ua apply.UberApplier, w wait.Wait, id uint64) {
 	ar, gotID := apply.Apply(lg, e, ua, w, true)
 	if gotID != id {

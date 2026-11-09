@@ -10,6 +10,8 @@ import (
 // went in.
 // Users: T/v3_queue_test.go:44-64 (TestQueueOneReaderOneWriter: five items, dequeued in order).
 // Assumes: every key with the byte prefix kp is the queue's (owned), none at the start.
+// Assumes (compaction): exactFrom from revision 1 (Queue) / the call's start (PriorityQueue): the
+// Dequeue specs give the front (the order) only under it, on every path (verify-round A3 F3).
 // Specs: NewQueue.spec, Queue.Enqueue.spec (a new key per item, at increasing revisions),
 // Queue.Dequeue.spec (frontByRev at the deletion: the least mod revision present); the model's
 // kvStep (.txn).
@@ -42,6 +44,8 @@ func ReqFIFO(c *clientv3.Client, kp string) {
 // Users: T/v3_queue_test.go:186-200 (manyReaders), :202-215 (manyWriters), for Queue and
 // PriorityQueue.
 // Assumes: kp owned, empty at the start.
+// No compaction assumption: the claimed key under the prefix and the value are unconditional
+// (second pass).
 // Specs: Queue.Enqueue.spec, Queue.Dequeue.spec (its update fires at the deletion of a present
 // key, once: the transaction's comparison on its mod revision).
 func ReqEveryItemOnce(c *clientv3.Client, kp string) {
@@ -73,7 +77,8 @@ func ReqEveryItemOnce(c *clientv3.Client, kp string) {
 // Users: T/v3_closed_watch_test.go:63-98, :121-167 (issues/recipes-dequeue-closed-watch.md, fixed
 // in the fork).
 // Assumes: kp owned, empty.
-// Specs: Queue.Dequeue.spec (no panic; nil only with a dequeued item), WaitPrefixEvents.spec.
+// Specs: Queue.Dequeue.spec (no panic; nil only with a claimed key under kp, unconditionally since
+// the second pass), WaitPrefixEvents.spec.
 func ReqDequeueClosed(c *clientv3.Client, kp string) {
 	done := make(chan struct{})
 	go func() {
@@ -93,6 +98,8 @@ func ReqDequeueClosed(c *clientv3.Client, kp string) {
 // Users: T/v3_queue_test.go:45-64 (the reader runs concurrently with the writer and usually finds
 // the queue empty).
 // Assumes: every key with the byte prefix kp is the queue's (owned), none at the start.
+// Assumes (compaction): exactFrom from revision 1 (Queue) / the call's start (PriorityQueue): the
+// Dequeue specs give the front (the order) only under it, on every path (verify-round A3 F3).
 // Specs: Queue.Dequeue.spec (frontByRev at the claim on every path; the value by kvStep's putOnce),
 // Queue.Enqueue.spec, WaitPrefixEvents.spec.
 func ReqDequeueWaitThenFed(c *clientv3.Client, kp string) {

@@ -6,6 +6,9 @@ Users: every handler of this package (after a server call), 2b's watch handler.
 Proof sketch: `errors.Is` against the context's errors (Go's `errors`, Perennial's); the lookup in `toGRPCErrorMap` (the package's initialized map: its keys the server errors `srvErrOf` names, each to `e`'s `ErrGRPC*`, or for `.tooManyRequests`/`.memberNotEnoughStarted` to `errVal e`, `nonissues/etcd-v3rpc-togrpcerror-etcderror-unknown-code.md`; a law of the package's initialization); a miss: `status.Error(codes.Unknown, err.Error())` (`errMsg`).
 
 Changes: from `specs-ref/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/togRPCError.lean`: over 2c's `srvErrOf` and grpc's `sentStatus` (it was the client-facing `srvErrOk`). Round 1 (provability F6): the pre is `srvErrOk` (comparable, a stable message; an unmapped error's message settles nothing), which 2c's error outcomes give. Integration I3: `srvErrOk` is 2c's `srvErrShape` (one predicate); the lookup's comparability and an unmapped message's `indefMsg` are two strengthenings of `srvErrShape` requested of I4 (until then this sketch's lookup and third disjunct rest on them).
+verify-round (server-core's request): over 2c's persistent `srvErr err e` (the sentinel values by `sentinelAt`), replacing the deprecated pure `srvErrOf`.
+verify-round (A6-completeness F7): the code pinned, `errCode e` (`Unknown` only for the two
+`EtcdError`s of `toGRPCErrorMap`, `util.go`), as the raw-gRPC tests' `eqErrGRPC` compares.
 
 Margin: the code is `e`'s gRPC code except for the two errors mapped to `EtcdError`s (sent `Unknown`); the spec says some code. A wrapped context error (`errors.Is` true for a non-context value) is not specified: no caller returns one.
 -/
@@ -37,8 +40,8 @@ def togRPCError.spec : Prop :=
     (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.togRPCError)) (Val #err))
   {{ (err' : GoInterface), RET #err';
       (context.isCtxErr err ∗ ⌜err' = err⌝) ∨
-      (∃ e, ⌜srvErrOf err e⌝ ∗ ∃ c, sentStatus err' c (Rpctypes.desc e)) ∨
-      (∃ m, errMsg err m ∗ ⌜(∀ e, ¬ srvErrOf err e) ∧ indefMsg m⌝ ∗ statusErr err' cUnknown m) }}
+      (∃ e, srvErr err e ∗ sentStatus err' (errCode e) (Rpctypes.desc e)) ∨
+      (∃ m, errMsg err m ∗ □ (∀ e, srvErr err e -∗ False) ∗ ⌜indefMsg m⌝ ∗ statusErr err' cUnknown m) }}
 
 end spec
 

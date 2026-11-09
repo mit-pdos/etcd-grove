@@ -56,30 +56,35 @@ credential base64-encoded (`b64 cred`, `authReqAt`). `CheckPassword` passes for 
 ## Vocabulary
 
 Pure: `AuthErr` (the package's error variables) with `AuthErr.etcd` (`togRPCError`'s table),
+`AuthErr.global` (its package variable), `AuthErr.msg` (its message),
 `rngInverted` (W0's `KeyRange.inverted`), `validPerms` (W0's `KeyRange.validPerm` of every
 permission), `recordsFit` (opaque: bbolt's limits, 4b's `Schema.putFits` of 3h's `authpb` encoding), `admStep rq a a' res` (W0's `authStep` effect of an admin request at an authorized
 caller), `storeNext rq cred a` (the store's next state, a function), `AuthReach`,
-`checkOk`/`checkDenied`, `mdToken`, `trimBearer`, `b64` (opaque, provisional: `encoding/base64`'s
-boundary).
+`checkOk`/`checkDenied`, `mdToken`, `tokKeysOk`, `trimBearer`, `simpleTok`, `b64` (opaque,
+provisional: `encoding/base64`'s boundary).
 
 Resources: `AuthNames` (opaque ghost names); `authStoreAt st γ γa` (persistent: `st` is a member's
 store over cluster `γ`); `authCur γa i a` (exclusive: the writer); `authAt γa i a`, `authLb γa i`
-(persistent); `tokFrom γa n` (exclusive), `rootTokOk γa`, `authnCtx γa ctx name idx` (persistent);
-`tokenProviderAt tp γ rt` (exclusive: a provider not yet given to a store; `rt`: it can issue root
-tokens without a collision); `authBackendAt be a` (exclusive, provisional: 4b's `AuthBackend`
-holding `a`; 3d's own, over 4b's schema specs); `authHook γa Pre Q` (provisional, 4a/2d: the
-backend's post-lock hook, one use; `hookOut`); `authReqAt r rq cred`, `authRespAt rq res p`,
+(persistent); `tokFrom γa n` (exclusive), `rootTokOk γa`; `authnCtx γ ctx name idx` (transparent,
+persistent: an `Authenticate` context, over `ctxValIs`); `tokenProviderAt tp γ R rt` (exclusive: a
+provider not yet given to a store; `R`: its `info` runs once `R` holds; `rt`: it can issue root
+tokens without a collision), `authGate γa R` (persistent: the store's checks run once `R` holds);
+`authBackendAt be a` (exclusive: an `AuthBackend` holding `a`; 3d's own, introduced by 4a/4b),
+`authBeCur γa be` (exclusive: the store's current backend, the writer's), `authBeHook be Pre Q` (the
+backend's post-lock hook run, one use; introduced by 4a), `authHook γa Pre Q` (the store's, by
+`authHook_intro`; `hookOut`); `authReqAt r rq cred`, `authRespAt rq res p`,
 `authnRespAt p tok` (provisional: 3h's messages), `authInfoAt ai dq u rev` (the `AuthInfo`);
-`ctxInMD ctx o`, `ctxCertUser ctx c`, `ctxPeerCN ctx c` (provisional: 2a's grpc boundary;
-`ctxToken` transparent over them); `errOf e` (the error variables' values, 2c's `srvErrVal` for the
-mapped ones). From W0: `pwHash`/`pwMatch`, `tokenUser` (`tokenUser_agree`), `authStep` (its `lo`
-only matters for `authenticate`, which no admin method takes), `State.invertedDeny`,
+`ctxInMD ctx o`, `ctxCertUser ctx c`, `ctxPeerCN ctx c` (grpc's, abbreviations since the verify
+round; `ctxToken` transparent over them); `errIs ae v` (the error variable's value: `init` gives
+them, existentially). From W0: `pwHash`/`pwMatch`, `tokenUser` (`tokenUser_agree`), `authStep` (its
+`lo` only matters for `authenticate`, which no admin method takes), `State.invertedDeny`,
 `State.permittedSince`, `etcdLb_noEmptyUser`.
 
 ## Intended realization
 
 * `AuthNames`: the history's `mono_list` (`γa.hist`), the cluster `γ`, the token map's ghost
-  (`γa.tok`: each assigned simple token's user and index), the provider's kind.
+  (`γa.tok`: each assigned simple token's user and index), the provider's kind, the gate `R`, the
+  current backend's ghost variable (`authBeCur`'s other half, in `beMu`'s invariant).
 * `authStoreAt st γ γa`: `st`'s read-only fields (`lg`, `tokenProvider`, `bcryptCost` in
   `[MinCost, MaxCost]`); `enabledMu`'s invariant (`enabled` at the flag view's state; the writer's
   half), `beMu`'s (the current `AuthBackend` with its contract at the backend view's state),
@@ -90,25 +95,26 @@ only matters for `authenticate`, which no admin method takes), `State.invertedDe
   (each at the last or second-to-last state, `authLb`'s lower bounds); the provider's contract
   (`tokenProviderAt`'s, opened).
 * `authCur γa i a`: the history's last index and state, the writer's half of `enabled`, the right
-  to lock the batch transaction (4b), `bcryptCost`.
+  to lock the batch transaction (4b; a lock gives the session and 4a's `beTurn`, both given back by
+  the same method's `Unlock`, so nothing of them crosses a call), `bcryptCost`.
+* `authBeCur γa be`: the writer's half of a ghost variable holding `be`, whose other half `beMu`'s
+  invariant keeps with `as.be = be`; `authHook γa Pre Q`: `∃ be, ` that half at `be` (a fraction)
+  `∗ authBeHook be Pre Q`.
 * `tokFrom γa n`: the simple provider's map holds no token of an index above `n` (the half of the
   index bound; the other half in the map's lock invariant). JWT and no-op: `True`.
-* `authnCtx γa ctx name idx`: `ctx` carries `AuthenticateParamIndex{} = idx` (a `uint64`, `idx ≠ 0`)
-  and `AuthenticateParamSimpleTokenPrefix{} = p` (a `string` without `.`: the proposer's
-  `GenTokenPrefix`, letters or empty, so `p.idx` determines `idx`), and `tokenUser γ (p ++ "." ++
-  decimal idx) name` (2d: the committed entry `idx` is an `InternalAuthenticateRequest` for `name`
-  with prefix `p`); for JWT, `True` (its tokens' `tokenUser` is their signature, the provider's
-  premise). Introduced by the applier that builds the context (3a, `apply/backend.go`'s
-  `Authenticate`: `context.WithValue` twice), from 2d's entry.
+* `authGate γa R`: `γa`'s recorded gate is `R` (a saved proposition), the provider's.
 
 ## Laws
 
 `authStoreAt_persistent`, `authAt_persistent`, `authLb_persistent`, `authCur_timeless`,
 `authAt_timeless`, `authLb_timeless`, `rootTokOk_persistent`, `authnCtx_persistent`,
-`ctxInMD_persistent`, `ctxCertUser_persistent`, `authReqAt_persistent`; `authCur_excl`,
-`authCur_at`, `authAt_agree`, `authAt_le`, `authLb_le`, `authLb_mono`, `authAt_reach`,
-`authAt_reached`, `authAt_valid`, `tokFrom_excl`, `authStoreAt_agree`; `errOf_ne_nil`, `errOf_inj`, `errOf_srvErrVal`, `init`;
-`storeNext_adm`, `authRespAt_ne_null`, `authnRespAt_ne_null`.
+`errIs_persistent`, `authGate_persistent`, `authBeCur_timeless`, `authReqAt_persistent`;
+`authCur_excl`, `authBeCur_excl`, `authCur_at`, `authAt_agree`, `authAt_le`, `authLb_le`,
+`authLb_mono`, `authAt_reach`, `authAt_reached`, `authAt_valid`, `tokFrom_excl`,
+`authStoreAt_agree`, `authStoreAt_lb`, `authHook_intro`; `init`; `storeNext_adm`,
+`authReach_of_reach`, `authRespAt_ne_null`, `authnRespAt_ne_null`. (Verify round: `errOf_ne_nil`,
+`errOf_inj` gone with `errOf`, whose facts `init` now gives; the tie of the mapped errors to the
+server's sentinels is server-core's `authErr_srv` (`etcdserver/errors`, over `errIs`).)
 
 ## Requirement snippets
 
@@ -123,7 +129,9 @@ module
 
 public import Spec.go_etcd_io.etcd.api.v3.State
 public import Spec.golang_org.x.crypto.bcrypt.Api
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.errors.Api
+public import Spec.google_golang_org.grpc.Api
+public import Spec.context.Api
+public import Perennial.Proof.errors.NewVar
 public import Spec.PkgInit.go_etcd_io.etcd.server.v3.auth
 public import GeneratedProof.go_etcd_io.etcd.server.v3.auth
 
@@ -171,6 +179,56 @@ def AuthErr.etcd : AuthErr → Option EtcdErr
   | .invalidAuthToken => some .invalidAuthToken
   | .invalidAuthOpts => none
   | .invalidAuthMgmt => some .invalidAuthMgmt
+
+section errnames
+variable [GooseExts] [GoGlobalContext]
+open go_etcd_io.etcd.server.v3.auth
+
+/-- **The package variable of each error** (`store.go:46-68`). -/
+def AuthErr.global : AuthErr → GoString
+  | .rootUserNotExist => ErrRootUserNotExist
+  | .rootRoleNotExist => ErrRootRoleNotExist
+  | .userAlreadyExist => ErrUserAlreadyExist
+  | .userEmpty => ErrUserEmpty
+  | .userNotFound => ErrUserNotFound
+  | .roleAlreadyExist => ErrRoleAlreadyExist
+  | .roleNotFound => ErrRoleNotFound
+  | .roleEmpty => ErrRoleEmpty
+  | .permissionNotGiven => ErrPermissionNotGiven
+  | .authFailed => ErrAuthFailed
+  | .noPasswordUser => ErrNoPasswordUser
+  | .permissionDenied => ErrPermissionDenied
+  | .roleNotGranted => ErrRoleNotGranted
+  | .permissionNotGranted => ErrPermissionNotGranted
+  | .authNotEnabled => ErrAuthNotEnabled
+  | .authOldRevision => ErrAuthOldRevision
+  | .invalidAuthToken => ErrInvalidAuthToken
+  | .invalidAuthOpts => ErrInvalidAuthOpts
+  | .invalidAuthMgmt => ErrInvalidAuthMgmt
+
+end errnames
+
+/-- **Each error's message** (its `errors.New` text, `store.go:46-68`). -/
+def AuthErr.msg : AuthErr → GoString
+  | .rootUserNotExist => go!"auth: root user does not exist"
+  | .rootRoleNotExist => go!"auth: root user does not have root role"
+  | .userAlreadyExist => go!"auth: user already exists"
+  | .userEmpty => go!"auth: user name is empty"
+  | .userNotFound => go!"auth: user not found"
+  | .roleAlreadyExist => go!"auth: role already exists"
+  | .roleNotFound => go!"auth: role not found"
+  | .roleEmpty => go!"auth: role name is empty"
+  | .permissionNotGiven => go!"auth: permission not given"
+  | .authFailed => go!"auth: authentication failed, invalid user ID or password"
+  | .noPasswordUser => go!"auth: authentication failed, password was given for no password user"
+  | .permissionDenied => go!"auth: permission denied"
+  | .roleNotGranted => go!"auth: role is not granted to the user"
+  | .permissionNotGranted => go!"auth: permission is not granted to the role"
+  | .authNotEnabled => go!"auth: authentication is not enabled"
+  | .authOldRevision => go!"auth: revision in header is old"
+  | .invalidAuthToken => go!"auth: invalid auth token"
+  | .invalidAuthOpts => go!"auth: invalid auth options"
+  | .invalidAuthMgmt => go!"auth: invalid auth management"
 
 /-! ## Pure: ranges, states, steps -/
 
@@ -281,6 +339,14 @@ inductive AuthReach : AuthState → AuthState → Prop
   | step (a a₁ a' : AuthState) (rq : Req) (res : Resp) :
       admStep rq a a₁ res → AuthReach a₁ a' → AuthReach a a'
 
+/-- **The cluster's reachability moves the auth state by admin steps** (second pass, A9's second
+tier: `authStore.Recover`'s premise `AuthReach a a'` from 2d's `Reach σ σ'` between the store's
+state and the snapshot's). A pure fact of W0's model: a request's `Step` changes `σ.auth` only by
+`authStep` of a permitted admin request (whose effect on the auth state depends on it and the
+request only: `admStep`), refusals, denials, errors, the other kinds' steps and the environment's
+steps leave it. -/
+def authReach_of_reach.spec : Prop := ∀ σ σ' : State, Reach σ σ' → AuthReach σ.auth σ'.auth
+
 /-- **A permission check passed** (`isOpPermitted`) for the user `u` with the auth revision `rev`, on
 an operation of type `t` over `rng`, its views at the states `af` (the flag), `ax` (the backend) and
 `ac` (the cache): auth off at the flag, or a user given and the root role at the backend or the
@@ -301,23 +367,26 @@ def checkDenied (u : GoString) (rev : w64) (t : PermType) (rng : KeyRange) (af a
 def trimBearer (s : GoString) : GoString :=
   if s.take 7 = go!"Bearer " then s.drop 7 else s
 
-/-- Incoming metadata (grpc's `Grpc.MD`, the same shape: lowercase keys, their values). -/
-abbrev MD := List (GoString × List GoString)
-
-/-- The values of key `k` (grpc's `Grpc.MD.get`, the same shape: lowercase keys). -/
-def mdGet (md : MD) (k : GoString) : List GoString :=
-  (md.filter (fun e => decide (e.1 = k))).flatMap (·.2)
-
-/-- **The token `AuthInfoFromCtx` reads from the incoming metadata `md`**: the first value of
-`token` (`rpctypes.TokenFieldNameGRPC`), else of `authorization` (`TokenFieldNameSwagger`), with a
-`Bearer ` prefix removed; none if neither key is there. -/
-def mdToken (md : MD) : Option GoString :=
-  match mdGet md go!"token" with
+/-- **The token `AuthInfoFromCtx` reads from the incoming metadata `md`** (grpc's `Grpc.MD`): the
+first value of `token` (`rpctypes.TokenFieldNameGRPC`), else of `authorization`
+(`TokenFieldNameSwagger`), with a `Bearer ` prefix removed; none if neither key is there. -/
+def mdToken (md : Grpc.MD) : Option GoString :=
+  match md.get go!"token" with
   | t :: _ => some (trimBearer t)
   | [] =>
-    match mdGet md go!"authorization" with
+    match md.get go!"authorization" with
     | t :: _ => some (trimBearer t)
     | [] => none
+
+/-- **The token keys of `md` have values** (`AuthInfoFromCtx` indexes `ts[0]` of a present key:
+`nonissues/etcd-auth-token-md-empty.md`): true of a gRPC run's metadata (`Grpc.rpcCtx_vals`) and of
+`metadata.New`'s (`WithRoot`'s). -/
+def tokKeysOk (md : Grpc.MD) : Prop :=
+  ∀ e ∈ md, (e.1 = go!"token" ∨ e.1 = go!"authorization") → e.2 ≠ []
+
+/-- The simple token of prefix `p` and index `idx`: `fmt.Sprintf("%s.%d", p, idx)` (opaque: the
+decimal rendering; injective in `idx` for a prefix without `.`). -/
+opaque simpleTok (p : GoString) (idx : Nat) : GoString
 
 /-- (provisional, the `encoding/base64` boundary's) `base64.StdEncoding.EncodeToString(h)`: what
 `EtcdServer.UserAdd`/`UserChangePassword` put in `HashedPassword` (2c), and what `selectPassword`
@@ -353,20 +422,60 @@ opaque tokFrom [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors
 providers; not the simple one). -/
 opaque rootTokOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γa : AuthNames) : IProp GF := iprop(True)
 
-/-- **`ctx` is an `Authenticate` context for `name` at the entry index `idx`** (persistent; the
-header's realization). -/
-opaque authnCtx [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γa : AuthNames) (ctx : GoInterface) (name : GoString) (idx : Nat) : IProp GF :=
-  iprop(True)
+/-- **`ctx.Value(key)` returns `v`** (persistent): `context`'s `Context.ctxValueIs` (second pass:
+was a transparent WP of this package's; client-core's predicate is what `WithValue.spec` gives,
+kept by children and other keys' `WithValue`s, and `Context.ctxValueIs_wp` is that WP). -/
+abbrev ctxValIs (ctx key v : GoInterface) : IProp GF := Context.ctxValueIs ctx key v
+
+/-- **`ctx` is an `Authenticate` context for `name` at the entry index `idx`** (transparent,
+persistent; verify round, A9 3d F4: it was opaque with no introduction): `ctx` carries
+`AuthenticateParamIndex{} = uint64(idx)` (`idx ≠ 0`) and `AuthenticateParamSimpleTokenPrefix{} = p`
+(a string without `.`: the proposer's `GenTokenPrefix`, letters), and the cluster issued the simple
+token `p.idx` to `name` (`tokenUser`: 2d's, the committed entry `idx` is an
+`InternalAuthenticateRequest` for `name` with prefix `p`; 3a's `authnIdx`). The applier
+(`apply/backend.go:158`: `context.WithValue` twice over `Background()`) proves it. The JWT and no-op
+providers read neither value; the simple one reads both (`simple_token.go:219,222`). -/
+def authnCtx (γ : Cluster) (ctx : GoInterface) (name : GoString) (idx : Nat) : IProp GF :=
+  iprop(∃ p : GoString,
+    ctxValIs ctx
+      (interface.mkOk go_etcd_io.etcd.server.v3.auth.AuthenticateParamIndex.ty
+        #(zero_val go_etcd_io.etcd.server.v3.auth.AuthenticateParamIndex))
+      (interface.mkOk go.uint64 #(W64 idx)) ∗
+    ctxValIs ctx
+      (interface.mkOk go_etcd_io.etcd.server.v3.auth.AuthenticateParamSimpleTokenPrefix.ty
+        #(zero_val go_etcd_io.etcd.server.v3.auth.AuthenticateParamSimpleTokenPrefix))
+      (interface.mkOk go.string #p) ∗
+    ⌜0 < idx ∧ idx < 2 ^ 64 ∧ (46#8) ∉ p⌝ ∗ tokenUser γ (simpleTok p idx) name)
 
 /-- **`tp` is a token provider for the cluster `γ`** (exclusive: given to one store), able to issue
-root tokens without a collision if `rt`. Its methods' contract (a bundle over the `TokenProvider`
-interface, PRINCIPLES "an interface value gets a bundle"): `info(ctx, tok, rev)` returns `(ai,
-true)` only for a token of a user `u` with `tokenUser γ tok u`, `ai` naming `u`; `assign(ctx, name,
-rev)` from an `authnCtx` returns a token of `name` or an error; `enable`, `disable`,
-`invalidateUser`, `genTokenPrefix` do not panic. Stated in Lean as `Internal.lean`'s laws
-(`tokenProviderAt_open`, `tp_info`, `tp_assign`, `tp_assignRoot`, `tp_enable`, ...), proved from the
-concrete providers' method specs (`simple_provider`, `nop_provider`). -/
-opaque tokenProviderAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (tp : GoInterface) (γ : Cluster) (rt : Bool) : IProp GF := iprop(True)
+root tokens without a collision if `rt`, whose `info` may be called once `R` holds (the simple
+provider's index waiter is the server's `applyWait.Wait`, usable only once the server started:
+`R := srvStarted`; verify round, A9 3d F7). Its methods' contract (a bundle over the
+`TokenProvider` interface, PRINCIPLES "an interface value gets a bundle"): `info(ctx, tok, rev)`
+(with `□ R`) returns `(ai, true)` only for a token of a user `u` with `tokenUser γ tok u`, `ai`
+naming `u`; `assign(ctx, name, rev)` from an `authnCtx` returns a token of `name` or an error;
+`enable`, `disable`, `invalidateUser`, `genTokenPrefix` do not panic. Stated in Lean as
+`Internal.lean`'s laws (`tokenProviderAt_open`, `tp_info`, `tp_assign`, `tp_assignRoot`,
+`tp_enable`, ...), proved from the concrete providers' method specs (`simple_provider`,
+`nop_provider`). -/
+opaque tokenProviderAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (tp : GoInterface) (γ : Cluster) (R : IProp GF) (rt : Bool) : IProp GF := iprop(True)
+
+/-- **The store's token checks may run once `R` holds** (persistent; `NewAuthStore`'s, from its
+provider's `tokenProviderAt tp γ R rt`): `AuthInfoFromCtx` takes it with `□ R`. Verify round (A9
+3d F7). -/
+opaque authGate [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γa : AuthNames) (R : IProp GF) : IProp GF := iprop(True)
+
+/-- **The store's backend is `be`** (exclusive, timeless: the writer's; `NewAuthStore`'s, moved by
+`Recover`): which backend the writer's batch locks run the post-lock hook of (`authHook_intro`).
+Verify round (A9 3d F4). -/
+opaque authBeCur [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γa : AuthNames) (be : GoInterface) : IProp GF := iprop(True)
+
+/-- **The auth backend `be`'s batch lock (`LockInsideApply`) runs its post-lock hook from `Pre` to
+`Q`** (one use; verify round, A9 3d F4). Stated over the `AuthBackend` value the store is given, as
+the lessor's `Lease.beHookRun` over its backend value; introduced by 4a (as its `LeaseBackend.lean`
+does the lessor's: requested), from `be = schema.NewAuthBackend(lg, beIface b)`'s post and 4a's
+`∀ q, Backend.hookRun γb q Pk f Pre Q` with `Backend.beHook γb DFrac.discard f`. -/
+opaque authBeHook [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (be : GoInterface) (Pre Q : IProp GF) : IProp GF := iprop(True)
 
 /-- **`be` is an auth backend whose buckets hold the auth
 state `a`** (3d's own: 4b declined a slot, `req/go_etcd_io_etcd_server_v3_auth.md`, "from 4b";
@@ -374,37 +483,34 @@ intended realization: `be` is `NewAuthBackend`'s wrapper of a backend, with 4a's
 `auth`, `authUsers`, `authRoles` buckets holding `a`'s flag and revision (`Schema.authEnabledOf`,
 `authRevOf`) and its records (`recsWf`, `userName`/`roleName`), and the backend's read and batch
 transactions' contracts (`Schema.retOk`, `rdSect`, `wrSect`, `txRd`, `txRange`, `txWr`)) (exclusive: the store's share of the backend; users' passwords `a`'s credentials, roles' and permissions' lists up to order, users' roles sorted), with the contracts of its
-`BatchTx`, `ReadTx`, `GetUser`, ... . -/
+`BatchTx`, `ReadTx`, `GetUser`, ... . Introduced (verify round, A9 3d F4) by a law of 4a/4b over
+`NewAuthBackend`'s post and the backend's parts of the three auth buckets holding `a` (requested, as
+`LeaseBackend.lean`'s `leaseBeLeases_intro`; the realization above). -/
 opaque authBackendAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (be : GoInterface) (a : AuthState) : IProp GF := iprop(True)
 
-/-- (provisional, 2a's grpc boundary) **`ctx`'s incoming metadata is `o`** (persistent;
-`metadata.FromIncomingContext`'s answer: `none` for a context with none, as `s.ctx` and the internal
-requesters'; every key with at least one value, as grpc's transports and `metadata.New` make them,
-`nonissues/etcd-auth-token-md-empty.md`). 2a's `Grpc.rpcCtx ctx md` should give `some md` (with
-`Grpc.rpcCtx_vals`: non-empty values); 2a's `FromIncomingContext.spec` covers only a run's context,
-and there is no law yet (integration I5: still requested, `req/google_golang_org_grpc.md`, "from
-3d"). -/
-opaque ctxInMD [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ctx : GoInterface) (o : Option MD) : IProp GF := iprop(True)
+/-- **`ctx`'s incoming metadata is `o`** (persistent): grpc's `Grpc.ctxInMD`
+(`metadata.FromIncomingContext`'s answer; `none` for a context with none, as `s.ctx` and the internal
+requesters'). Verify round (A9 3d F5): it was an opaque of this package's with no introduction;
+grpc's has the laws (`rpcCtx_inMD`, `ctxInMD_background`, `_child`, `_value`). -/
+abbrev ctxInMD (ctx : GoInterface) (o : Option Grpc.MD) : IProp GF := Grpc.ctxInMD ctx o
 
-/-- **The token `ctx` carries** (`mdToken` of its incoming metadata). -/
+/-- **The token `ctx` carries** (`mdToken` of its incoming metadata, whose token keys have values,
+`tokKeysOk`: the caller's, a run's context by `Grpc.rpcCtx_vals`; verify round, it was in the
+provisional `ctxInMD`'s meaning, which grpc's does not have). -/
 def ctxToken (ctx : GoInterface) (o : Option GoString) : IProp GF :=
-  iprop((∃ md, ctxInMD ctx (some md) ∗ ⌜o = mdToken md⌝) ∨ (ctxInMD ctx none ∗ ⌜o = none⌝))
+  iprop((∃ md, ctxInMD ctx (some md) ∗ ⌜o = mdToken md ∧ tokKeysOk md⌝) ∨
+    (ctxInMD ctx none ∗ ⌜o = none⌝))
 
-/-- (provisional, 2a's grpc `peer`/`credentials` boundary) **The TLS client identity of `ctx`**
-(persistent): `some cn`, the common name of the first verified chain's leaf of a TLS peer, for a
-request whose incoming metadata is present (`metadata.FromIncomingContext` succeeds) and has no
-`grpcgateway-accept` key; `none` otherwise (no peer, not TLS, no verified chain, no incoming
-metadata, a gateway request). What `AuthInfoFromTLS` reads. -/
-opaque ctxCertUser [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ctx : GoInterface) (c : Option GoString) : IProp GF := iprop(True)
+/-- **The TLS client identity `AuthInfoFromTLS` reads** (persistent): grpc's transparent
+`Grpc.ctxCertUser`, the peer's common name when the incoming metadata is present and has no
+`grpcgateway-accept` key, `none` otherwise. Verify round (A9 3d F5): was an opaque of this
+package's. -/
+abbrev ctxCertUser (ctx : GoInterface) (c : Option GoString) : IProp GF := Grpc.ctxCertUser ctx c
 
-/-- (provisional, 2a's grpc `peer`/`credentials` boundary) **The TLS client identity of `ctx`'s
-peer, whatever its metadata** (persistent): `some cn` for a TLS peer with a non-empty verified chain
-whose leaf's common name is `cn`, `none` otherwise (no peer: `Background()`-derived contexts, the
-server's `s.ctx`). `ctxCertUser` is it when the incoming metadata is present and has no
-`grpcgateway-accept` key. What `WithRoot`'s new context exposes (integration I5: `WithRoot.spec`
-claimed `ctxCertUser ctx none → ctxCertUser ctx' none`, false for a TLS peer without incoming
-metadata, which `NewIncomingContext` adds). -/
-opaque ctxPeerCN [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ctx : GoInterface) (c : Option GoString) : IProp GF := iprop(True)
+/-- **The TLS client identity of `ctx`'s peer, whatever its metadata** (persistent): grpc's
+`Grpc.ctxPeerCN` (none for no peer: `Background()`-derived contexts, the server's `s.ctx`). What
+`WithRoot`'s new context exposes. Verify round (A9 3d F5): was an opaque of this package's. -/
+abbrev ctxPeerCN (ctx : GoInterface) (c : Option GoString) : IProp GF := Grpc.ctxPeerCN ctx c
 
 /-- (provisional, 4a's and 2d's) **The store's backend's post-lock hook takes `Pre` to `Q`** (one
 use): the auth store's batch transaction locks with `LockInsideApply` (4b's `authBatchTx.Lock`:
@@ -414,8 +520,8 @@ backend before `Recover`, `server.go:1098`). Intended realization: for the backe
 (its invariant records 4a's names of it, the hook `f` and the batch lock's invariant `Pk`), 4a's
 `∀ q, Backend.hookRun γb q Pk f Pre Q` (as the lessor's `Lease.beHookRun`; integration Y: mvcc's
 `Mvcc.hookRun` now names mvcc's storage). The writer (3a, from 2d's apply loop) supplies it per call,
-from the server's hook proved once over 4a's contract at every share; its introduction needs the
-store's backend's names, `authBackendAt`'s realization (3d's, recorded). -/
+from the server's hook proved once over 4a's contract at every share: introduced by `authHook_intro`
+from the store's backend's `authBeHook` (verify round, A9 3d F4). -/
 opaque authHook [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γa : AuthNames) (Pre Q : IProp GF) : IProp GF := iprop(True)
 
 /-- (provisional, 3h's) **The request message `r` asks `rq`, with the credential `cred`** (persistent: read-only;
@@ -453,15 +559,33 @@ def authInfoAt (ai : Loc) (dq : DFrac) (u : GoString) (rev : w64) : IProp GF :=
 def authReached (γ : Cluster) (a : AuthState) : IProp GF :=
   iprop(∃ σ : State, etcdLb γ σ ∗ ⌜σ.auth = a⌝)
 
+/-- **`v` is the value of the package's error variable of `ae`** (persistent: read-only for good;
+the sentinel encoding of the verify round, `init`). -/
+def errIs (ae : AuthErr) (v : GoInterface) : IProp GF := iprop(globalAddr ae.global ↦□ v)
+
 /-! ### Laws -/
 
 def authStoreAt_persistent.spec : Prop := ∀ st γ γa, Persistent (authStoreAt (GF := GF) st γ γa)
 def authAt_persistent.spec : Prop := ∀ γa i a, Persistent (authAt (GF := GF) γa i a)
 def authLb_persistent.spec : Prop := ∀ γa i, Persistent (authLb (GF := GF) γa i)
 def rootTokOk_persistent.spec : Prop := ∀ γa, Persistent (rootTokOk (GF := GF) γa)
-def authnCtx_persistent.spec : Prop := ∀ γa ctx name idx, Persistent (authnCtx (GF := GF) γa ctx name idx)
-def ctxInMD_persistent.spec : Prop := ∀ ctx o, Persistent (ctxInMD (GF := GF) ctx o)
-def ctxCertUser_persistent.spec : Prop := ∀ ctx c, Persistent (ctxCertUser (GF := GF) ctx c)
+def authnCtx_persistent.spec : Prop := ∀ γ ctx name idx, Persistent (authnCtx (GF := GF) γ ctx name idx)
+def errIs_persistent.spec : Prop := ∀ ae v, Persistent (errIs (GF := GF) ae v)
+def authGate_persistent.spec : Prop := ∀ γa R, Persistent (authGate (GF := GF) γa R)
+def authBeCur_timeless.spec : Prop := ∀ γa be, Timeless (authBeCur (GF := GF) γa be)
+def authBeCur_excl.spec : Prop := ∀ γa be be',
+  authBeCur (GF := GF) γa be ∗ authBeCur γa be' ⊢ iprop(False)
+
+/-- **The store's backend's hook run is the writer's** (verify round, A9 3d F4): knowing which
+backend the store has (`authBeCur`), a hook run of that backend's batch lock is the one the admin
+methods take. -/
+def authHook_intro.spec : Prop := ∀ γa be (Pre Q : IProp GF),
+  authBeCur γa be ∗ authBeHook be Pre Q ⊢ authBeCur γa be ∗ authHook γa Pre Q
+
+/-- **Any holder of the store may read it from its first state** (every view is at state `0` or
+later; verify round, A9's second tier: the watch server's and v3rpc's checks outside the read
+slot have no other source of a lower bound). -/
+def authStoreAt_lb.spec : Prop := ∀ st γ γa, authStoreAt (GF := GF) st γ γa ⊢ authLb γa 0
 def authReqAt_persistent.spec : Prop := ∀ r rq c, Persistent (authReqAt (GF := GF) r rq c)
 
 /-- A response is a real pointer (the applier sets its `Header`: the field law is 3h's). -/
@@ -510,58 +634,30 @@ def authAt_valid.spec : Prop := ∀ γa j a, authAt (GF := GF) γa j a ⊢ ⌜va
 
 end res
 
-section errs
-variable [GooseExts] [go_gctx : GoGlobalContext]
-
-/-- **The value of the package's error variable `e`** (`auth.ErrPermissionDenied`, ...). -/
-opaque errOf (e : AuthErr) : GoInterface := GoInterface.nil
-
-def errOf_ne_nil.spec : Prop := ∀ e, errOf e ≠ GoInterface.nil
-
-def errOf_inj.spec : Prop := ∀ e e', errOf e = errOf e' → e = e'
-
-/-- **The error variables `togRPCError` maps are the server's sentinels** (2c's `srvErrVal`, its
-round-1 item 3, `req/go_etcd_io_etcd_server_v3_auth.md`): with 2c's `srvErrOf_val`, `srvErrVal_leaf`,
-an auth error the store returns is a mapped leaf. -/
-def errOf_srvErrVal.spec : Prop := ∀ ae e, ae.etcd = some e → errOf ae = EtcdServer.srvErrVal e
-
-end errs
-
 section init
 variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
-open go_etcd_io.etcd.server.v3.auth in
-/-- **The package's error variables hold `errOf`'s values** (read-only; `errors.New` at init), for
-the callers' `errors.Is(err, auth.ErrX)` (2a, 2b, 2c). -/
+/-- **The package's error variables** (`store.go:46-68`, `errors.New` at init; verify round, the
+sentinel encoding of A3 F4: they were the values of an opaque Lean function `errOf`, which no
+realization can prove, `errors.New` allocating a fresh pointer): their values, given
+existentially as a function `ev` of the error, read-only (`errIs`), each `errors.New` of its
+message (Perennial's `errors.newVar`: a `*errors.errorString`, what `errors.Is` with it as the
+target and `Error()` need), pairwise distinct and non-nil. A spec returning one of them returns the
+value the global holds (`errIs ae err`); a caller's `errors.Is(err, auth.ErrX)` reads the global
+and compares (2a, 2b, 2c). -/
 def init.spec : Prop :=
   isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ⊢
-    globalAddr ErrRootUserNotExist ↦□ errOf .rootUserNotExist ∗
-    globalAddr ErrRootRoleNotExist ↦□ errOf .rootRoleNotExist ∗
-    globalAddr ErrUserAlreadyExist ↦□ errOf .userAlreadyExist ∗
-    globalAddr ErrUserEmpty ↦□ errOf .userEmpty ∗
-    globalAddr ErrUserNotFound ↦□ errOf .userNotFound ∗
-    globalAddr ErrRoleAlreadyExist ↦□ errOf .roleAlreadyExist ∗
-    globalAddr ErrRoleNotFound ↦□ errOf .roleNotFound ∗
-    globalAddr ErrRoleEmpty ↦□ errOf .roleEmpty ∗
-    globalAddr ErrPermissionNotGiven ↦□ errOf .permissionNotGiven ∗
-    globalAddr ErrAuthFailed ↦□ errOf .authFailed ∗
-    globalAddr ErrNoPasswordUser ↦□ errOf .noPasswordUser ∗
-    globalAddr ErrPermissionDenied ↦□ errOf .permissionDenied ∗
-    globalAddr ErrRoleNotGranted ↦□ errOf .roleNotGranted ∗
-    globalAddr ErrPermissionNotGranted ↦□ errOf .permissionNotGranted ∗
-    globalAddr ErrAuthNotEnabled ↦□ errOf .authNotEnabled ∗
-    globalAddr ErrAuthOldRevision ↦□ errOf .authOldRevision ∗
-    globalAddr ErrInvalidAuthToken ↦□ errOf .invalidAuthToken ∗
-    globalAddr ErrInvalidAuthOpts ↦□ errOf .invalidAuthOpts ∗
-    globalAddr ErrInvalidAuthMgmt ↦□ errOf .invalidAuthMgmt
+    ∃ ev : AuthErr → GoInterface,
+      (□ ∀ ae, errIs ae (ev ae) ∗ errors.newVar ae.global ae.msg) ∗
+      ⌜(∀ ae ae', ev ae = ev ae' → ae = ae') ∧ ∀ ae, ev ae ≠ GoInterface.nil⌝
 
 /-- **An admin method's return** for the answer `res` of `rq`: the fresh response and `nil`, or `nil`
-and the package's error of the answer's `EtcdErr`. -/
+and the package's error of the answer's `EtcdErr` (the global's value). -/
 def admReply (rq : Req) (res : Resp) (resp : Loc) (err : GoInterface) : IProp GF :=
   match res with
   | .ok _ => iprop(⌜err = GoInterface.nil⌝ ∗ authRespAt rq res resp)
-  | .err e => iprop(⌜resp = null ∧ ∃ ae, ae.etcd = some e ∧ err = errOf ae⌝)
+  | .err e => iprop(⌜resp = null⌝ ∗ ∃ ae, ⌜ae.etcd = some e⌝ ∗ errIs ae err)
 
 /-! ## Shapes shared by the specs -/
 
@@ -600,10 +696,10 @@ def checkPost (γa : AuthNames) (i0 : Nat) (u : GoString) (rev : w64) (t : PermT
     (rng : KeyRange) (err : GoInterface) : IProp GF :=
   iprop(∃ (jf jx jc jr : Nat) (af ax ac ar : AuthState), ⌜i0 ≤ jf ∧ i0 ≤ jx ∧ i0 ≤ jc ∧ i0 ≤ jr⌝ ∗
     authAt γa jf af ∗ authAt γa jx ax ∗ authAt γa jc ac ∗ authAt γa jr ar ∗
-    ⌜(err = GoInterface.nil ∧ checkOk u rev t rng af ax ac ∧ (af.enabled = true → ar.rev ≤ uint.nat rev)) ∨
-     (err = errOf .userEmpty ∧ af.enabled = true ∧ rev = W64 0) ∨
-     (err = errOf .authOldRevision ∧ af.enabled = true ∧ rev ≠ W64 0 ∧ uint.nat rev < ar.rev) ∨
-     (err = errOf .permissionDenied ∧ checkDenied u rev t rng af ax ac)⌝)
+    (⌜err = GoInterface.nil ∧ checkOk u rev t rng af ax ac ∧ (af.enabled = true → ar.rev ≤ uint.nat rev)⌝ ∨
+     (errIs .userEmpty err ∗ ⌜af.enabled = true ∧ rev = W64 0⌝) ∨
+     (errIs .authOldRevision err ∗ ⌜af.enabled = true ∧ rev ≠ W64 0 ∧ uint.nat rev < ar.rev⌝) ∨
+     (errIs .permissionDenied err ∗ ⌜checkDenied u rev t rng af ax ac⌝)))
 
 /-- **What `IsAdminPermitted` returns** for the user `u` (`""` for none), from the lower bound
 `i0`: the flag at `jf` and the backend at `jx`; `nil` (auth off, or `u` of the root role),
@@ -612,11 +708,11 @@ def checkPost (γa : AuthNames) (i0 : Nat) (u : GoString) (rev : w64) (t : PermT
 def adminPost (γa : AuthNames) (i0 : Nat) (u : GoString) (err : GoInterface) : IProp GF :=
   iprop(∃ (jf jx : Nat) (af ax : AuthState), ⌜i0 ≤ jf ∧ i0 ≤ jx⌝ ∗
     authAt γa jf af ∗ authAt γa jx ax ∗
-    ⌜(err = GoInterface.nil ∧ (af.enabled = false ∨ (af.enabled = true ∧ ax.isRoot u))) ∨
-     (err = errOf .userEmpty ∧ af.enabled = true ∧ u = []) ∨
-     (err = errOf .userNotFound ∧ af.enabled = true ∧ u ≠ [] ∧ ax.users u = none) ∨
-     (err = errOf .permissionDenied ∧ af.enabled = true ∧ u ≠ [] ∧ ax.users u ≠ none ∧
-        ¬ ax.isRoot u)⌝)
+    (⌜err = GoInterface.nil ∧ (af.enabled = false ∨ (af.enabled = true ∧ ax.isRoot u))⌝ ∨
+     (errIs .userEmpty err ∗ ⌜af.enabled = true ∧ u = []⌝) ∨
+     (errIs .userNotFound err ∗ ⌜af.enabled = true ∧ u ≠ [] ∧ ax.users u = none⌝) ∨
+     (errIs .permissionDenied err ∗ ⌜af.enabled = true ∧ u ≠ [] ∧ ax.users u ≠ none ∧
+        ¬ ax.isRoot u⌝)))
 
 /-- **A channel any goroutine may receive on** (only ever closed). -/
 def recvOk (ch : Loc) : IProp GF :=
@@ -624,9 +720,13 @@ def recvOk (ch : Loc) : IProp GF :=
     □ ∀ Φ : Unit → Bool → IProp GF, (∀ v ok, Φ v ok) -∗ recvAu γc Unit Φ)
 
 /-- **The simple provider's index waiter** (`func(uint64) <-chan struct{}`: the server's
-`applyWait.Wait`): callable from any goroutine, it returns a channel any goroutine may receive on. -/
-def waiterOk (iw : GoFunc) : IProp GF :=
-  iprop(□ ∀ (i : w64) (Φ : val → IProp GF), (∀ ch : Loc, recvOk ch -∗ Φ #ch) -∗
+`applyWait.Wait`), gated on `R`: once `R` holds, callable from any goroutine, it returns a channel
+any goroutine may receive on. Verify round (A9 3d F7): it was callable from the call of
+`NewTokenProvider` on, false of the server's closure (`srv.applyWait` is set in `start()`,
+`server.go:568`; before, the call is a method call on a nil interface); the gate is the
+checkpointer's (`Lease.ckptOk`): `R := srvStarted`, which every request-path spec holds. -/
+def waiterOk (iw : GoFunc) (R : IProp GF) : IProp GF :=
+  iprop(□ ∀ (i : w64) (Φ : val → IProp GF), R -∗ (∀ ch : Loc, recvOk ch -∗ Φ #ch) -∗
     WP (App (Val #iw) (Val #i)) {{ Φ }})
 
 /-- (provisional, the JWT boundary's and 2d's) **The cluster `γ`'s tokens include the JWTs that

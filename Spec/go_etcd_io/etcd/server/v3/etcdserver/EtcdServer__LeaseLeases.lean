@@ -14,6 +14,8 @@ any granted ids, at any later state).
 the header's ids inside the answer (`lease-grpc.md`'s lesson: no server ids in the statement).
 
 **Margin.** The ids are the member's applied ones, live there; W0's model says only granted.
+
+Changes: verify-round (A6-provability F1): the success reply has its header set (`srvHdrReply`, `replyHdrOwn`: the apply's `newHeader()`, `s.newHeader()`, `ResponseHeader{}`, or the leader's through `leasehttp`, whose decoded reply must carry one: requested of lease-auth), so the gRPC handler's `hdr.fill(resp.Header)` cannot panic.
 -/
 module
 
@@ -44,7 +46,7 @@ def EtcdServer.LeaseLeases.spec : Prop :=
   SrvCallTriple (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"LeaseLeases")) (Val #ctx)) (Val #r))
     iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ srvGate s q ∗
         Context.ctxOk ctx ∗ reqCtxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ ClientV3.reqOwn r dq .leaseLeases)
-    iprop(srvGate s q ∗ threadTok ∗ ClientV3.reqOwn r dq .leaseLeases) γ p tls (.leaseLeases) false (ClientV3.ansReply)
+    iprop(srvGate s q ∗ threadTok ∗ ClientV3.reqOwn r dq .leaseLeases) γ p tls (.leaseLeases) false srvHdrReply
 
 end spec
 end EtcdServer

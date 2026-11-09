@@ -19,6 +19,8 @@ two), as W0's reads' checks (`State.permittedSince`, `deniedSince`, from the low
 **Changes** from `specs-ref`'s `CheckTxnAuth.lean` (two modes through `isAuthStore … on`,
 `authApplyErrIs`, the lessor's view): one spec, over 3d's recorded states (2c's need, item 3); the
 old spec's "`nil` with auth off" is a recorded state with auth off.
+verify-round, second pass (grpc-v3rpc's P-F2): `endsDecoded` is 3h's share-holding `EtcdServerPb.endsDecoded` (no
+longer a persistent opaque), given back in the post.
 
 **Margin.** Each check is reported at its own recorded states from the lower bound `i0` (3d's
 `checkPost`: the flag, the backend, the cache, the revision); one state for all the passing checks is
@@ -75,7 +77,7 @@ def CheckTxnAuth.spec : Prop :=
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.CheckTxnAuth))
       (Val #(interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty) #st)))
       (Val #ai)) (Val #le)) (Val #rt))
-  {{ (err : GoInterface), RET #err; Auth.authInfoAt ai dq u rev ∗ EtcdWire.txnReqOwn rt dq' t ∗
+  {{ (err : GoInterface), RET #err; Auth.authInfoAt ai dq u rev ∗ EtcdWire.txnReqOwn rt dq' t ∗ endsDecoded rt ∗
       threadTok ∗
       ((⌜err = GoInterface.nil⌝ ∗ [∗list] c ∈ cs, chkPost γa i0 u rev c GoInterface.nil) ∨
        (∃ (i : Nat) (c : Check), ⌜cs[i]? = some c ∧ err ≠ GoInterface.nil⌝ ∗

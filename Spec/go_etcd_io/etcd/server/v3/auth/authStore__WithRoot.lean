@@ -28,6 +28,15 @@ there, and `NewIncomingContext` adds metadata without `grpcgateway-accept`); now
 identity, `ctxPeerCN` (2a's boundary). 2c's round-1 item 2 (`reqPrin ctx' (some root) tls` when
 auth is on) is met but for the errors that return `ctx` (a prefix or `assign` error), which the
 code allows.
+Second pass (server-core's request, A7-completeness F5): the token disjunct also gives
+`Context.ctxValueAt ctx ctx' mdIncomingKey{}`: `ctx'` is `metadata.NewIncomingContext(ctx, md)`, a
+`WithValue` of `ctx` itself at grpc's incoming-metadata key (the index and prefix values go only to
+the provider's context), so the values other packages' laws track (4b's trace, otel's span:
+`reqCtxOk`) carry over from `ctx`.
+
+Verify round (A9 3d F5): `ctxToken`, `ctxCertUser`, `ctxPeerCN` are grpc's (`metadata.New`'s
+token key has its one value: `tokKeysOk`).
+
 **Margin.** None.
 -/
 module
@@ -63,7 +72,10 @@ def authStore.WithRoot.spec : Prop :=
   {{ (ctx' : GoInterface), RET #ctx'; threadTok ∗ Context.ctxOk ctx' ∗
       (⌜ctx' = ctx⌝ ∨
        ∃ tok : GoString, ctxToken ctx' (some tok) ∗ tokenUser γ tok rootUser ∗
-         □ (∀ c, ctxPeerCN ctx c -∗ ctxCertUser ctx' c)) }}
+         □ (∀ c, ctxPeerCN ctx c -∗ ctxCertUser ctx' c) ∗
+         Context.ctxValueAt ctx ctx'
+           (interface.mkOk google_golang_org.grpc.metadata.mdIncomingKey.ty
+             #(zero_val google_golang_org.grpc.metadata.mdIncomingKey))) }}
 
 end spec
 end Auth

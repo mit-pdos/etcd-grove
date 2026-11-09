@@ -8,7 +8,7 @@
 **Changes** (from `specs-ref`'s `stepLeader.lean`): over `raftCore` and the message's provenance (was
 `NState`'s role and the per-type transport premises).
 
-**Margin.** As `raft.Step`'s.
+**Margin.** As `raft.Step`'s. Verify-round (A4 P3): a step from outside takes and gives back the struct's idle token (`stepPre`/`stepPost`, `coreIdle`).
 -/
 module
 
@@ -41,7 +41,7 @@ def stepLeader.spec : Prop :=
         (m.term = W64 0 ∨ m.term = ρ.hs.term ∨
         (m.type = MsgPreVoteResp ∧ m.reject = false ∧ uint.nat ρ.hs.term < uint.nat m.term))⌝ }}
     (App (App (Val (@! go_etcd_io.raft.v3.stepLeader)) (Val #r)) (Val #ml))
-  {{ (err : GoInterface), RET #err; ∃ ρ', raftCore r γ id ρ' ∗ stepPost γ m src ∗
+  {{ (err : GoInterface), RET #err; ∃ ρ', raftCore r γ id ρ' ∗ stepPost r γ m src ∗
       (⌜err = interface.nil⌝ ∨
         (⌜m.type = MsgProp⌝ ∗ errIs go_etcd_io.raft.v3.ErrProposalDropped err)) }}
 

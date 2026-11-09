@@ -138,7 +138,10 @@ func ReqStop(tr *rh.Transport, id types.ID) {
 }
 
 // REQ rafthttp/errorc: the transport reports fatal errors (errMemberRemoved) on ErrorC without
-// blocking; the server receives one, logs it and stops, which is always safe.
+// blocking; a receiver gets an error it may log (Http.errOk). What the server does next (run's
+// errorc arm stops the server) is the server's stop protocol, not the transport's: that stop is
+// not always safe while requests hold the server's gate (verify-round A8 F3,
+// issues/etcd-read-after-backend-close-panic.md), and this snippet does not claim it.
 // Users: rafthttp pipeline.go:170, snapshot_sender.go:113, stream.go:624 (reportCriticalError);
 // server/etcdserver/server.go:845-848 (run).
 // Assumes: errorc is the server's (capacity 1; errChanOk).

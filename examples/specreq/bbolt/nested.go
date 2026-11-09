@@ -13,8 +13,10 @@ import (
 // counts up; deleting the parent deletes the child and stales its handle's use (here: a fresh
 // lookup finds nothing); Last and Prev walk backwards in a read transaction.
 // Users: bbolt's documented API (no etcd user; the general client the spec serves).
-// Assumes: db open, its close right held; bucket "p" absent at the start; the caller keeps
-// boltState in an invariant (Update's updates come from it).
+// Assumes: db open, its close right held; bucket "p" absent at the start; no other writer while
+// it runs (the View and the final DeleteBucket rely on what this function's Updates left); the
+// root holds only buckets (Tx.ForEach); the caller keeps boltState in an invariant (Update's
+// updates, commitAU, come from it).
 // Specs: DB.Update.spec, DB.View.spec, Tx.CreateBucket.spec, Bucket.CreateBucket.spec,
 // Bucket.CreateBucketIfNotExists.spec, Bucket.Bucket.spec, Bucket.Put.spec, Bucket.Get.spec,
 // Bucket.NextSequence.spec, Bucket.Sequence.spec, Bucket.ForEach.spec,

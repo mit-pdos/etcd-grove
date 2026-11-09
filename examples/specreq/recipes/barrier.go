@@ -9,11 +9,13 @@
 // EnvCfg.leaseExpiry = false (a trusted deployment premise: every lease outlives the run); the
 // snippets marked "no lease expiry" assume that, and the others hold either way.
 //
-// Every snippet whose check rests on a watch's events (Barrier.Wait, the queues' Dequeue on an
-// empty queue, DoubleBarrier.Enter's wait for "ready", WaitEvents) also assumes the compaction
-// condition (W0's EtcdModel.exactFrom, 1b's watch): the program's invariant keeps that no compacted
+// Every snippet whose check rests on the completeness of a watch's events (Barrier.Wait, the
+// queues' order: a Dequeue cannot tell its caller whether it took the read path or the watch path,
+// so its spec gates the front on both, DoubleBarrier.Enter's wait for "ready", WaitEvents) also
+// assumes the compaction condition (W0's EtcdModel.exactFrom, 1b's watch): the program's invariant keeps that no compacted
 // revision changes a key twice (no transaction puts and deletes one key, or no compaction below the
-// watches). The recipes' specs give those facts under it.
+// watches). The recipes' specs give those facts under it. That a delivered event is a real event
+// in the watched range, and a Dequeue's claimed key and value, need no assumption.
 package recipes
 
 import (
@@ -31,7 +33,7 @@ import (
 // Users: T/v3_barrier_test.go:44-45 (NoError, then Error).
 // Assumes: key owned, absent at the start.
 // Specs: NewBarrier.spec, Barrier.Hold.spec (putNewReq: Version(key) = 0 fails on a present key),
-// the model's kvStep (.txn); laws: init.spec (ErrKeyExists), recipeErr_ne.
+// the model's kvStep (.txn); laws: init.spec (ErrKeyExists's value, recipeErrsOk), putNewRetAt.
 func ReqHoldTwice(c *clientv3.Client, key string) {
 	b := recipe.NewBarrier(c, key)
 	if err := b.Hold(); err != nil {

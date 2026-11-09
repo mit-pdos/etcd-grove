@@ -3,9 +3,13 @@
 
 **Users.** `uberApplier.dispatch` (through the outer layers' promoted methods), in both modes.
 
-**Proof sketch.** 2e's `SetDowngradeInfo` (requested).
+**Proof sketch.** 2e's `RaftCluster.SetDowngradeInfo.spec`: the backend's `Membership.beVer`
+(`stAt`'s `optsSt`) and the view's update fired in `optsOk`'s `Membership.clusterVerInv γc`
+(`dg` changed, `VerSt.ok` kept).
 
 **Changes** from `specs-ref`'s file of the same name: restated over the new vocabulary (`beAt`, `stAt`, `applierAt`, the model state); one spec for every mode.
+verify-round (server-boot's request): 2e's spec cited, `beVer`/`clusterVerInv` from the options'
+slots; the statement is unchanged.
 
 **Margin.** Outside the model.
 -/

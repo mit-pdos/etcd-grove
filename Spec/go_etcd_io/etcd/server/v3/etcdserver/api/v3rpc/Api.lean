@@ -75,7 +75,10 @@ Streams: `rangeStreamSpec γ` (this file), `kaSpec γ` (keep-alives: nothing mod
   `srvErrShape` requested of I4: comparable errors, an unmapped message settling nothing).
 * **The request's right** (I1's `reqRight γ rq`: W0's `urlsRight γ urls` for `MemberAdd`/
   `MemberUpdate`, `True` otherwise) travels with the request in `etcdUnary` to the member op (2e's
-  `AddMember`/`UpdateMember` take it); it is spent whatever the outcome (not given back).
+  `AddMember`/`UpdateMember` take it); it is spent when the member answers or the outcome is
+  unsettled, and **given back with the update on the second way** (verify-round, A6 F7: a token or
+  learner refusal proposes nothing, and 1c's interceptor resends with the same right; 1c's
+  `AttemptTriple` must carry it, requested of client-core).
 * A `Compact` request's revision is not `0` (2c's round-1 item 4: W0's client contract carries it;
   a raw gRPC client must too: the server's `Compact` would otherwise propose a compaction to `0`).
 * `kaSpec`: a response's lease id is one the client sent (`kaReq`, `kaLog`: 1c's `kaSent`).
@@ -117,8 +120,8 @@ Streams: `rangeStreamSpec γ` (this file), `kaSpec γ` (keep-alives: nothing mod
   `reqPrin_of_md` into 2c's `EtcdServer.reqPrin`), `watchSpec γ`, `kaSpec γ` (2a's contracts, stated in
   the client's `ApiWatch`/`ApiLease`), `quotaOk` (2e's slot).
 * Used from 2c (`Spec/go_etcd_io/etcd/server/v3/etcdserver/ApiReq.lean`): `EtcdServer.isServer s γ`
-  (the handle every server object here is over), `srvErrOf` (the server-side errors
-  `togRPCError` maps), `SrvCallTriple` (the shape of the request path's methods), `txnChecked`.
+  (the handle every server object here is over), `srvErr` (persistent; their values 2c's `sentinelAt`, was the pure `srvErrOf`: the server-side
+  errors `togRPCError` maps), `SrvCallTriple` (the shape of the request path's methods), `txnChecked`.
 * Ghost state of a streamed range: `rsReq g who r Q` (persistent, agreeing: the stream `g` carries
   the read `r` of `who` with `Q`; allocated by the client from grpc's `streamKey g`),
   `rsChunk g j m` (persistent: the `j`-th chunk sent is `m`). Intended realization: a ghost map
@@ -143,6 +146,8 @@ public import Spec.go_etcd_io.etcd.client.v3.ApiLease
 public import Spec.go_etcd_io.etcd.client.v3.credentials.Api
 public import Spec.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Api
 public import GeneratedProof.google_golang_org.grpc.health
+public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb
+public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb
 public import GeneratedProof.google_golang_org.grpc.health.grpc_health_v1
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
 public import GeneratedProof.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus
@@ -167,6 +172,19 @@ client maps (`Rpctypes.mapped`). -/
 def indefMsg (msg : GoString) : Prop :=
   ∀ e : EtcdErr, Rpctypes.mapped e = true → msg = Rpctypes.desc e → e.indefinite = true
 
+/-- **The administrator check's denial** (`AuthAdmin.isPermitted`, over 3d's `IsAdminPermitted`'s
+`adminPost`; verify-round, A6 F5): the flag read on at one table the cluster has had (`af`), and
+the user (absent, or not of the root role) at a possibly later one (`ax`); `ErrUserEmpty` without a
+principal. A denial at one table is the case `jf = jx`. W0's `.compact` denial is asked to admit
+this shape (W0's reads already do: `State.deniedSince`). -/
+def adminDenied (σ : State) (who : Principal) (e : EtcdErr) : Prop :=
+  ∃ (jf jx : Nat) (af ax : AuthState), σ.authTables[jf]? = some af ∧ σ.authTables[jx]? = some ax ∧
+    af.enabled = true ∧
+    match who with
+    | none => e = .userEmpty
+    | some u => (u = [] ∧ e = .userEmpty) ∨ (u ≠ [] ∧ ax.users u = none ∧ e = .userNotFound) ∨
+        (u ≠ [] ∧ ax.users u ≠ none ∧ ¬ ax.isRoot u ∧ e = .permissionDenied)
+
 /-- The content `c` of a request of method `m` models `rq` (3h's `EtcdServerPb.reqModels`). -/
 def reqModels (m : GoString) (c : Content) (rq : Req) : Prop := EtcdServerPb.reqModels m c rq
 
@@ -177,6 +195,14 @@ def replyModels (m : GoString) (b : RespBody) (c : Content) : Prop := EtcdServer
 /-- The content `c` of a `RangeStreamResponse` carries the chunk `m` (3h's). -/
 def chunkModels (c : Content) (m : RangeRespM) : Prop := EtcdServerPb.chunkModels c m
 
+open Classical in
+/-- **The status code a member sends for the error `e`** (verify-round, A6-completeness F7): `Unknown`
+for the two `EtcdError`s `togRPCError` passes through unmapped (`toGRPCErrorMap` holds them as
+`EtcdError`s, `ErrMemberNotEnoughStarted`, `ErrTooManyRequests`: grpc sends a non-status error as
+`Unknown`), else `rpctypes`' code (`ErrGRPC*`). -/
+def errCode (e : EtcdErr) : w32 :=
+  if e = .memberNotEnoughStarted ∨ e = .tooManyRequests then Grpc.cUnknown else Rpctypes.code e
+
 /-- **The outcome a member sends for the answer `res`** of a request of method `m`. -/
 def ansOutcome (m : GoString) (rq : Req) (res : Resp) (o : Outcome) : Prop :=
   match rq, res with
@@ -184,8 +210,7 @@ def ansOutcome (m : GoString) (rq : Req) (res : Resp) (o : Outcome) : Prop :=
   | .leaseTimeToLive id _, .err .leaseNotFound =>
       ∃ c, o = .ok c ∧ replyModels m (.leaseTimeToLive id (-1) 0 []) c
   | _, .ok b => ∃ c, o = .ok c ∧ replyModels m b c
-  | _, .err e => ∃ code, o = .status code (Rpctypes.desc e) ∧
-      (code = Rpctypes.code e ∨ code = Grpc.cUnknown)
+  | _, .err e => o = .status (errCode e) (Rpctypes.desc e)
 
 /-! ### The gRPC layer's validations, as the code computes them -/
 
@@ -268,7 +293,7 @@ outgoing metadata `md0`) by a client of default principal `dflt` (credentials ad
 with metadata `md` (grpc's `mdSeen`) authenticated as `p`. -/
 def mdPrin_of.spec : Prop := ∀ (γ : Cluster) (dflt p : Principal) (ctx : GoInterface)
     (md0 mdc md : MD),
-  ctxPrin (GF := GF) dflt ctx p ∗ outMD ctx md0 ∗ Credentials.credMD γ dflt mdc ∗ ⌜mdSeen (md0 ++ mdc) md⌝ ⊢
+  ctxPrin (GF := GF) dflt ctx p ∗ outMD ctx md0 ∗ Credentials.credMD γ dflt mdc ∗ ⌜mdSeen (mdc ++ md0) md⌝ ⊢
     mdPrin γ md p
 
 /-- **The member side of the principal** (2c's request, round 1, item 1): a run's context with
@@ -326,8 +351,8 @@ def etcdUnary (γ : Cluster) (ep : GoString) (m : GoString) : UnarySpec (GF := G
     (match vi with | some i => leaseViewLb γ ep i | none => iprop(True)) ∗
     ((∀ (σ σ' : State) (res : Resp) (o : Outcome), ⌜firedAns res ∧ ansOutcome m rq res o⌝ -∗
         Q σ σ' res -∗ leaseFact γ ep rq vi σ σ' res -∗ Φ o) ∧
-     (etcdAU γ who rq rep lo Q -∗ ∀ (e : EtcdErr) (code : w32),
-        ⌜(errRetryAuth e = true ∨ e = .notSupportedForLearner) ∧ (code = Rpctypes.code e ∨ code = Grpc.cUnknown)⌝ -∗
+     (etcdAU γ who rq rep lo Q -∗ reqRight γ rq -∗ ∀ (e : EtcdErr) (code : w32),
+        ⌜(errRetryAuth e = true ∨ e = .notSupportedForLearner) ∧ code = errCode e⌝ -∗
         Φ (.status code (Rpctypes.desc e))) ∧
      (∀ (code : w32) (msg : GoString), ⌜indefMsg msg⌝ -∗ Φ (.status code msg))))
 
@@ -388,7 +413,11 @@ def watchRun_open.spec : Prop := ∀ (γ : Cluster) (x : Loc) (ctx st : GoInterf
       γ who gw WireSt.init
 
 /-- **etcd's contracts** at a member's client address: every unary method of the KV, Lease,
-Cluster, Maintenance and Auth services, and the four streams. -/
+Cluster, Maintenance and Auth services, and the four streams; and (verify-round, A6-completeness
+F4) the election and lock services embed registers on the same server (`embed/serve.go:184-186,
+244-246`) with the trivial contracts (`etcdLocal`, `snapSpec` for `Observe`): their handlers run
+over the in-process `v3client` (open question 1.5), and no gRPC client of them is in scope, so a
+member promises nothing of them but that a run returns. -/
 def etcdContract (γ : Cluster) (ep : GoString) : AddrContract (GF := GF) where
   unary := fun m =>
     if False then none
@@ -430,6 +459,12 @@ def etcdContract (γ : Cluster) (ep : GoString) : AddrContract (GF := GF) where
   else if m = go!"/etcdserverpb.Auth/RoleDelete" then some (go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty, etcdUnary γ ep m)
   else if m = go!"/etcdserverpb.Auth/RoleGrantPermission" then some (go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty, etcdUnary γ ep m)
   else if m = go!"/etcdserverpb.Auth/RoleRevokePermission" then some (go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty, etcdUnary γ ep m)
+  else if m = go!"/v3electionpb.Election/Campaign" then some (go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest.ty, go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse.ty, etcdLocal)
+  else if m = go!"/v3electionpb.Election/Proclaim" then some (go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest.ty, go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse.ty, etcdLocal)
+  else if m = go!"/v3electionpb.Election/Leader" then some (go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest.ty, go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse.ty, etcdLocal)
+  else if m = go!"/v3electionpb.Election/Resign" then some (go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest.ty, go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse.ty, etcdLocal)
+  else if m = go!"/v3lockpb.Lock/Lock" then some (go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest.ty, go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse.ty, etcdLocal)
+  else if m = go!"/v3lockpb.Lock/Unlock" then some (go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockRequest.ty, go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockResponse.ty, etcdLocal)
     else if (∃ h ∈ healthMethods, h.1 = m) then
       some (google_golang_org.grpc.health.grpc_health_v1.HealthCheckRequest.ty,
         google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse.ty, etcdLocal)
@@ -440,6 +475,7 @@ def etcdContract (γ : Cluster) (ep : GoString) : AddrContract (GF := GF) where
   else if m = go!"/etcdserverpb.Watch/Watch" then some (go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty, watchSpec γ)
   else if m = go!"/etcdserverpb.Lease/LeaseKeepAlive" then some (go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveResponse.ty, kaSpec γ)
   else if m = go!"/etcdserverpb.Maintenance/Snapshot" then some (go_etcd_io.etcd.api.v3.etcdserverpb.SnapshotRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.SnapshotResponse.ty, snapSpec)
+  else if m = go!"/v3electionpb.Election/Observe" then some (go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest.ty, go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse.ty, snapSpec)
     else if (∃ h ∈ healthStreams, h.1 = m) then
       some (google_golang_org.grpc.health.grpc_health_v1.HealthCheckRequest.ty,
         google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse.ty, snapSpec)
@@ -481,22 +517,32 @@ opaque quotaOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors
 their own arguments and return its results; their counters write nothing the specs model). -/
 opaque metricsOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (m : Loc) : IProp GF := iprop(True)
 
+/-- **What a handler gives back of its request** (verify-round, A6 F4): some share of it, with some
+content that nests less than protobuf's limit (a handler may have written it: 2c's `LeaseGrant`
+fills the ID), so that an interceptor can still read it after the handler returned. -/
+def reqBack (reqT : go.GoType) (q : Loc) : IProp GF :=
+  iprop(∃ (dq : DFrac) (c' : Content), msgAt reqT q dq c' ∗ ⌜depth c' < depthMax⌝)
+
 /-- **A unary server interceptor preserving etcd's contracts** (persistent): for each method `m`
 etcd serves, with a continuation meeting the run's triple for `m`'s contract, calling the
 interceptor meets it too (it refuses only with statuses the contract allows: an indefinite one, or
-the learner's refusal with the update given back), the run's resource `T` passed through. -/
+the learner's refusal with the update given back), the run's resource `T` passed through, and a
+share of the request given back at the end (verify-round, A6 F4: the log interceptor reads the
+request after the handler, `logUnaryRequestStats`). -/
 def icEtcdOk (i : GoFunc) (γ : Cluster) : IProp GF :=
   iprop(□ ∀ (T : IProp GF) (ep m : GoString) (reqT repT : go.GoType) (S : UnarySpec (GF := GF)),
     ⌜(etcdContract γ ep).unary m = some (reqT, repT, S)⌝ -∗
     ∀ (ctx : GoInterface) (md : MD) (q : Loc) (c : Content) (Φ : Outcome → IProp GF) (info : Loc)
       (k : val) (Ψ : val → IProp GF),
     (□ ∀ Ψ' : val → IProp GF, threadTok ∗ T ∗ rpcCtx ctx md ∗ msgAt reqT q (DFrac.own 1) c ∗
-        Proto.decodedAt reqT q ∗ ⌜depth c < depthMax⌝ ∗ S md c Φ ∗
-        (∀ (r err : GoInterface), threadTok -∗ T -∗ unaryOut repT r err Φ -∗ Ψ' (PairV #r #err)) -∗
+        ⌜norm c = c ∧ depth c < depthMax⌝ ∗ S md c Φ ∗
+        (∀ (r err : GoInterface), threadTok -∗ T -∗ reqBack reqT q -∗ unaryOut repT r err Φ -∗
+          Ψ' (PairV #r #err)) -∗
       WP (App (App (Val k) (Val #ctx)) (Val #(msgVal reqT q))) {{ Ψ' }}) -∗
-    threadTok ∗ T ∗ rpcCtx ctx md ∗ msgAt reqT q (DFrac.own 1) c ∗ Proto.decodedAt reqT q ∗
-      ⌜depth c < depthMax⌝ ∗ info.[google_golang_org.grpc.UnaryServerInfo, go!"FullMethod"] ↦□ m ∗ S md c Φ ∗
-      (∀ (r err : GoInterface), threadTok -∗ T -∗ unaryOut repT r err Φ -∗ Ψ (PairV #r #err)) -∗
+    threadTok ∗ T ∗ rpcCtx ctx md ∗ msgAt reqT q (DFrac.own 1) c ∗
+      ⌜norm c = c ∧ depth c < depthMax⌝ ∗ info.[google_golang_org.grpc.UnaryServerInfo, go!"FullMethod"] ↦□ m ∗ S md c Φ ∗
+      (∀ (r err : GoInterface), threadTok -∗ T -∗ reqBack reqT q -∗ unaryOut repT r err Φ -∗
+        Ψ (PairV #r #err)) -∗
     WP (App (App (App (App (Val #i) (Val #ctx)) (Val #(msgVal reqT q))) (Val #info)) (Val k)) {{ Ψ }})
 
 /-- **A stream server interceptor preserving etcd's stream contracts** (persistent; the same for
@@ -546,11 +592,14 @@ def rsSink_out.spec : Prop := ∀ (w : GoInterface) (γ : Cluster) (who tls : Pr
 the `KV_RangeStreamServer` value it is given): a chunk message modelled by `m` (owned; the sink fills
 the header's ids, so the content after is some other) is sent and recorded, or the stream fails with
 an error grpc made itself, nothing recorded. No `Q` travels with a chunk. Realized by
-`headerFillingRangeStream.Send.spec` over `rsSink_intro`'s sink. -/
+`headerFillingRangeStream.Send.spec` over `rsSink_intro`'s sink.
+verify-round (A6 F8): premise that no chunk sent so far has a header (2c's `RangeStream` puts the
+header on its last chunk only), which makes `rsChunk_hdr_last` realizable. -/
 def rsSink_send.spec : Prop := ∀ (rs : GoInterface) (γ : Cluster) (p tls : Principal) (r : RangeReq)
     (ms : List RangeRespM) (resp : Loc) (c : Content) (m : RangeRespM),
   {{ rsSink (GF := GF) rs γ p tls r ms ∗
-      msgAt go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse.ty resp (DFrac.own 1) c ∗ ⌜chunkModels c m⌝ }}
+      msgAt go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse.ty resp (DFrac.own 1) c ∗ ⌜chunkModels c m⌝ ∗
+      ⌜∀ m0 ∈ ms, m0.hdr = none⌝ }}
     (App (Val (rs @!! go_etcd_io.etcd.api.v3.etcdserverpb.KV_RangeStreamServer.ty @!! go!"Send")) (Val #resp))
   {{ (err : GoInterface), RET #err;
       (∃ c', msgAt go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse.ty resp (DFrac.own 1) c') ∗
@@ -663,15 +712,17 @@ handler's decoding, 3h). `T` is what the run holds besides its thread's token an
 (integration X): a handler over 2c's request path takes the `srvGate s q` share grpc's `start`
 lends each run (`Grpc.unaryOk`'s run resource; `Server.spec` registers for any share), the others
 nothing (`True`; framed with the run's resource where they are registered). The request is a
-decoded one (`Proto.decodedAt`, grpc's `decOk_call`: its range ends `nil` or non-empty, 3h's
-`EtcdServerPb.endsDecoded`, what 2c's `Range`/`RangeStream`/`Txn` take). -/
+decoded one: canonical (`⌜norm c = c⌝`, grpc's `decOk_call`), so its range ends are `nil` or
+non-empty (3h's `endsOk_canon`), and a share of it is 3h's `EtcdServerPb.endsDecoded`, what 2c's
+`Range`/`RangeStream`/`Txn` take (verify-round, A6 F2: was the persistent `Proto.decodedAt`). A
+share of the request comes back (`reqBack`, A6 F4). -/
 def HandlerTriple (f : val) (P : IProp GF) (S : UnarySpec (GF := GF)) (reqT repT : go.GoType)
     (T : IProp GF := iprop(True)) : Prop :=
   ∀ (ctx : GoInterface) (md : MD) (q : Loc) (c : Content) (Φ : Outcome → IProp GF),
-  {{ P ∗ threadTok ∗ T ∗ rpcCtx ctx md ∗ msgAt reqT q (DFrac.own 1) c ∗ Proto.decodedAt reqT q ∗
-      ⌜depth c < depthMax⌝ ∗ S md c Φ }}
+  {{ P ∗ threadTok ∗ T ∗ rpcCtx ctx md ∗ msgAt reqT q (DFrac.own 1) c ∗
+      ⌜norm c = c ∧ depth c < depthMax⌝ ∗ S md c Φ }}
     (App (App (Val f) (Val #ctx)) (Val #q))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); threadTok ∗ T ∗
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); threadTok ∗ T ∗ reqBack reqT q ∗
       unaryOut repT (msgVal repT resp) err Φ }}
 
 end res

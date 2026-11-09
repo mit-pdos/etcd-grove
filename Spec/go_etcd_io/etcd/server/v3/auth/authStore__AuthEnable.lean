@@ -53,8 +53,8 @@ def authStore.AuthEnable.spec : Prop :=
   {{ (err : GoInterface), RET #err; hookOut γa Pre Q ∗
       ∃ res : Resp, ⌜admStep .authEnable a (storeNext .authEnable [] a) res⌝ ∗
         authCur γa (i + 1) (storeNext .authEnable [] a) ∗
-        ⌜(res = .ok .authEnable ∧ err = GoInterface.nil) ∨
-         (∃ e ae, res = .err e ∧ ae.etcd = some e ∧ err = errOf ae)⌝ }}
+        (⌜res = .ok .authEnable ∧ err = GoInterface.nil⌝ ∨
+         ∃ e ae, ⌜res = .err e ∧ ae.etcd = some e⌝ ∗ errIs ae err) }}
 
 end spec
 end Auth

@@ -15,7 +15,12 @@ a hash of the password (`EtcdModel.pwHash`). No panic.
 **Changes.** New (the old tree had no bcrypt spec: `selectPassword` and `CheckPassword`'s compare
 were axioms of the auth store).
 
-**Margin.** The error's value (`ErrPasswordTooLong`, an `InvalidCostError`) is not stated.
+Verify round (A9 3d F8): the error over 72 bytes is the package variable `ErrPasswordTooLong` (the
+global's value, `errIs`; its shape from `init`): the server returns it to the client
+(`EtcdServer.UserAdd`, outcome 2) and owes its shape. The length test comes first
+(`bcrypt.go:96`), so it is that error whatever the cost.
+
+**Margin.** The cost error's value (an `InvalidCostError`, `checkCost`) is not stated.
 -/
 module
 
@@ -37,15 +42,16 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- A fresh hash of the password, or an error only for a password over 72 bytes or a cost over
-`31`. -/
+/-- A fresh hash of the password; `ErrPasswordTooLong` for a password over 72 bytes; another error
+only for a cost over `31`. -/
 def GenerateFromPassword.spec : Prop :=
   ∀ (pwsl : GoSlice) (dq : DFrac) (pw : List w8) (cost : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.golang_org.x.crypto.bcrypt ∗ pwsl ↦*{dq} pw }}
     (App (App (Val (@! golang_org.x.crypto.bcrypt.GenerateFromPassword)) (Val #pwsl)) (Val #cost))
   {{ (h : GoSlice) (err : GoInterface), RET (PairV #h #err); pwsl ↦*{dq} pw ∗
       ((⌜err = GoInterface.nil⌝ ∗ ∃ hb : List w8, h ↦* hb ∗ ⌜EtcdModel.pwHash pw hb⌝) ∨
-       ⌜err ≠ GoInterface.nil ∧ (72 < pw.length ∨ 31 < sint.Z cost)⌝) }}
+       (⌜72 < pw.length⌝ ∗ errIs golang_org.x.crypto.bcrypt.ErrPasswordTooLong err) ∨
+       ⌜err ≠ GoInterface.nil ∧ pw.length ≤ 72 ∧ 31 < sint.Z cost⌝) }}
 
 end spec
 

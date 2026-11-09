@@ -89,6 +89,10 @@ opaque requestOpHolds (c : Proto.Content) (m : RequestOp) : Prop
 /-- **The content `c` is a `RangeStreamResponse` carrying the chunk `m`.** -/
 opaque chunkHolds (c : Proto.Content) (m : RangeRespM) : Prop
 
+/-- **Every range end of the content is `nil` or non-empty** (opaque, pure): the `RangeEnd` of a
+`RangeRequest`, `DeleteRangeRequest`, `Compare` or `WatchCreateRequest`, nested ones included. -/
+opaque endsOk : Proto.Content → Prop
+
 section types
 variable [GooseExts] [go_gctx : GoGlobalContext]
 
@@ -220,6 +224,26 @@ def mergeRange (m m' : RangeRespM) : RangeRespM :=
     more := m.more || m'.more
     count := mergeW m.count m'.count }
 
+/-! ## A transaction reply's nesting (verify-round, A6 F6) -/
+
+mutual
+/-- The depth of a `ResponseOp` message holding `m`: a range, put or delete response nests two
+levels below it (the response, its header or key-values); a nested transaction's response one
+level more than its own operations' (or its header). -/
+def respOpDepth : ResponseOpM → Nat
+  | .empty => 1
+  | .range _ => 3
+  | .put _ => 3
+  | .deleteRange _ => 3
+  | .txn _ _ rs => 2 + max 1 (respOpsDepth rs)
+def respOpsDepth : List ResponseOpM → Nat
+  | [] => 0
+  | r :: rs => max (respOpDepth r) (respOpsDepth rs)
+end
+
+/-- The depth of a `TxnResponse` holding `m` (its header, or its operations' responses). -/
+def txnRespDepth (m : TxnRespM) : Nat := 1 + max 1 (respOpsDepth m.responses)
+
 /-! ## Laws -/
 
 section laws
@@ -261,6 +285,43 @@ def holds_depth.spec : Prop :=
   (∀ c m, compareHolds c m → Proto.depth c ≤ 1) ∧
   (∀ c m, rangeRespHolds c m → Proto.depth c ≤ 2) ∧
   (∀ c m, chunkHolds c m → Proto.depth c ≤ 3)
+
+/-- **The replies' nesting** (verify-round, A6 F6: `Grpc.unaryOut` needs each reply's depth below
+`Proto.depthMax`): the flat replies are at most two levels deep, a transaction's as its model nests
+(`txnRespDepth`: a reply to a transaction of `txnMsgDepth t` is at most one level deeper, the
+innermost range's key-values; at `--max-txn-ops = 4999` that is `10000`, which decodes). -/
+def holds_depth_resp.spec : Prop :=
+  (∀ c m, putRespHolds c m → Proto.depth c ≤ 2) ∧
+  (∀ c m, deleteRespHolds c m → Proto.depth c ≤ 2) ∧
+  (∀ c m, compactRespHolds c m → Proto.depth c ≤ 2) ∧
+  (∀ c m, respHeaderHolds c m → Proto.depth c ≤ 1) ∧
+  (∀ c m, keyValueHolds c m → Proto.depth c ≤ 1) ∧
+  (∀ c m, responseOpHolds c m → Proto.depth c ≤ respOpDepth m) ∧
+  (∀ c m, txnRespHolds c m → Proto.depth c ≤ txnRespDepth m)
+
+/-- **The wire view keeps the models** (verify-round, A6 F2: gRPC delivers `Proto.norm c` of a sent
+content `c`, `Clone` copies it). A reply's and an event's models do not distinguish a `nil` field
+from an empty one, so `norm` keeps them; a request's range ends do (W0's `endOf`: a non-`nil`
+empty end is `"\x00"`), so a request keeps its model when its ends are `nil` or non-empty
+(`endsOk`); a client whose request has a non-`nil` empty end (`clientv3.WithRange("")`) is answered
+for the key alone, unlike W0's model of it (requested of client-core). -/
+def holds_norm.spec : Prop :=
+  (∀ c rq, reqHolds c rq → endsOk c → reqHolds (Proto.norm c) rq) ∧
+  (∀ c m, compareHolds c m → endsOk c → compareHolds (Proto.norm c) m) ∧
+  (∀ c m, requestOpHolds c m → endsOk c → requestOpHolds (Proto.norm c) m) ∧
+  (∀ c r, watchReqHolds c r → endsOk c → watchReqHolds (Proto.norm c) r) ∧
+  (∀ c b, bodyHolds c b → bodyHolds (Proto.norm c) b) ∧
+  (∀ c m, respHeaderHolds c m → respHeaderHolds (Proto.norm c) m) ∧
+  (∀ c m, keyValueHolds c m → keyValueHolds (Proto.norm c) m) ∧
+  (∀ c m, rangeRespHolds c m → rangeRespHolds (Proto.norm c) m) ∧
+  (∀ c m, putRespHolds c m → putRespHolds (Proto.norm c) m) ∧
+  (∀ c m, deleteRespHolds c m → deleteRespHolds (Proto.norm c) m) ∧
+  (∀ c m, responseOpHolds c m → responseOpHolds (Proto.norm c) m) ∧
+  (∀ c m, txnRespHolds c m → txnRespHolds (Proto.norm c) m) ∧
+  (∀ c m, compactRespHolds c m → compactRespHolds (Proto.norm c) m) ∧
+  (∀ c m, chunkHolds c m → chunkHolds (Proto.norm c) m) ∧
+  (∀ c m, watchRespHolds c m → watchRespHolds (Proto.norm c) m) ∧
+  (∀ c e, eventHolds c e → eventHolds (Proto.norm c) e)
 
 /-- **`proto.Merge` of two range responses** (2a's `Proto.merge`, at this type). -/
 def rangeResp_merge.spec : Prop := ∀ c c' m m',
@@ -314,17 +375,29 @@ def compactRespOwn_msgAt.spec : Prop := ∀ p dq m,
   compactRespOwn (GF := GF) p dq m ⊣⊢
     ∃ c, Proto.msgAt etcdserverpb.CompactionResponse.ty p dq c ∗ ⌜compactRespHolds c m⌝
 
+/-- **A `RangeStreamResponse` carrying a chunk** (verify-round, A6 F8: what
+`headerFillingRangeStream.Send` reads, `key.go:84-89`): its `RangeResponse` is a (non-`nil`)
+`RangeResponse` message holding the chunk, read and written through W0's `rangeRespOwn`. -/
+def chunk_msgAt.spec : Prop := ∀ p dq m,
+  (∃ c, Proto.msgAt (GF := GF) etcdserverpb.RangeStreamResponse.ty p dq c ∗ ⌜chunkHolds c m⌝) ⊣⊢
+    ∃ rr : Loc, protoRest etcdserverpb.RangeStreamResponse p dq ∗
+      p.[etcdserverpb.RangeStreamResponse, go!"RangeResponse"] ↦{dq} rr ∗ rangeRespOwn rr dq m
+
 /-! ### Package initialization: the generated descriptors and enum maps -/
 
-/-- **The KV service's descriptor** (`KV_ServiceDesc`, read-only after init): its unary methods with
-their generated handlers (`RangeStream`'s stream handler is untranslated: `ss` names it). -/
+/-- **The KV service's descriptor** (`KV_ServiceDesc`, read-only after init): its unary methods and
+its stream with their generated handlers, in the descriptor's order (`rpc_grpc.pb.go`; the
+initializer is translated, the handlers' names are those it stores). Verify round (A6
+completeness F1): every handler named (was: `RangeStream`'s an unknown `ss`); the untranslated
+handlers' specs (`_KV_RangeStream_Handler.spec`, ...) are stated, their proofs wait for 7.4. -/
 def kvDesc_init.spec : Prop :=
   isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ⊢
-    ∃ ss, Grpc.serviceDescAt (globalAddr etcdserverpb.KV_ServiceDesc) go!"etcdserverpb.KV"
+    Grpc.serviceDescAt (globalAddr etcdserverpb.KV_ServiceDesc) go!"etcdserverpb.KV"
       [(go!"Range", @! etcdserverpb._KV_Range_Handler), (go!"Put", @! etcdserverpb._KV_Put_Handler),
        (go!"DeleteRange", @! etcdserverpb._KV_DeleteRange_Handler),
        (go!"Txn", @! etcdserverpb._KV_Txn_Handler),
-       (go!"Compact", @! etcdserverpb._KV_Compact_Handler)] ss
+       (go!"Compact", @! etcdserverpb._KV_Compact_Handler)]
+      [(go!"RangeStream", @! etcdserverpb._KV_RangeStream_Handler)]
 
 /-- The Watch service's descriptor: one stream, `Watch`. -/
 def watchDesc_init.spec : Prop :=
@@ -342,25 +415,50 @@ def leaseDesc_init.spec : Prop :=
        (go!"LeaseLeases", @! etcdserverpb._Lease_LeaseLeases_Handler)]
       [(go!"LeaseKeepAlive", @! etcdserverpb._Lease_LeaseKeepAlive_Handler)]
 
-/-- The Auth service's descriptor: the translated handlers (the others' names, untranslated, in
-`ms'`). -/
+/-- The Auth service's descriptor: all seventeen handlers, in the descriptor's order (verify round,
+A6 completeness F1: was six named and the rest an unknown `ms'`; eleven are untranslated, their
+specs stated, `_Auth_UserGet_Handler.spec`, ...). -/
 def authDesc_init.spec : Prop :=
   isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ⊢
-    ∃ ms', Grpc.serviceDescAt (globalAddr etcdserverpb.Auth_ServiceDesc) go!"etcdserverpb.Auth"
-      ([(go!"AuthEnable", @! etcdserverpb._Auth_AuthEnable_Handler),
-        (go!"Authenticate", @! etcdserverpb._Auth_Authenticate_Handler),
-        (go!"UserAdd", @! etcdserverpb._Auth_UserAdd_Handler),
-        (go!"UserGrantRole", @! etcdserverpb._Auth_UserGrantRole_Handler),
-        (go!"RoleAdd", @! etcdserverpb._Auth_RoleAdd_Handler),
-        (go!"RoleGrantPermission", @! etcdserverpb._Auth_RoleGrantPermission_Handler)] ++ ms') []
+    Grpc.serviceDescAt (globalAddr etcdserverpb.Auth_ServiceDesc) go!"etcdserverpb.Auth"
+      [(go!"AuthEnable", @! etcdserverpb._Auth_AuthEnable_Handler),
+       (go!"AuthDisable", @! etcdserverpb._Auth_AuthDisable_Handler),
+       (go!"AuthStatus", @! etcdserverpb._Auth_AuthStatus_Handler),
+       (go!"Authenticate", @! etcdserverpb._Auth_Authenticate_Handler),
+       (go!"UserAdd", @! etcdserverpb._Auth_UserAdd_Handler),
+       (go!"UserGet", @! etcdserverpb._Auth_UserGet_Handler),
+       (go!"UserList", @! etcdserverpb._Auth_UserList_Handler),
+       (go!"UserDelete", @! etcdserverpb._Auth_UserDelete_Handler),
+       (go!"UserChangePassword", @! etcdserverpb._Auth_UserChangePassword_Handler),
+       (go!"UserGrantRole", @! etcdserverpb._Auth_UserGrantRole_Handler),
+       (go!"UserRevokeRole", @! etcdserverpb._Auth_UserRevokeRole_Handler),
+       (go!"RoleAdd", @! etcdserverpb._Auth_RoleAdd_Handler),
+       (go!"RoleGet", @! etcdserverpb._Auth_RoleGet_Handler),
+       (go!"RoleList", @! etcdserverpb._Auth_RoleList_Handler),
+       (go!"RoleDelete", @! etcdserverpb._Auth_RoleDelete_Handler),
+       (go!"RoleGrantPermission", @! etcdserverpb._Auth_RoleGrantPermission_Handler),
+       (go!"RoleRevokePermission", @! etcdserverpb._Auth_RoleRevokePermission_Handler)] []
 
-/-- The Cluster and Maintenance services' descriptors (their handlers untranslated). -/
+/-- The Cluster and Maintenance services' descriptors, every handler named, in the descriptors'
+order (verify round, A6 completeness F1: were unknown lists; the handlers are untranslated, their
+specs stated, `_Cluster_MemberAdd_Handler.spec`, ..., `_Maintenance_Snapshot_Handler.spec`). -/
 def otherDescs_init.spec : Prop :=
   isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ⊢
-    (∃ ms ss, Grpc.serviceDescAt (globalAddr etcdserverpb.Cluster_ServiceDesc)
-      go!"etcdserverpb.Cluster" ms ss) ∗
-    (∃ ms ss, Grpc.serviceDescAt (globalAddr etcdserverpb.Maintenance_ServiceDesc)
-      go!"etcdserverpb.Maintenance" ms ss)
+    Grpc.serviceDescAt (globalAddr etcdserverpb.Cluster_ServiceDesc) go!"etcdserverpb.Cluster"
+      [(go!"MemberAdd", @! etcdserverpb._Cluster_MemberAdd_Handler),
+       (go!"MemberRemove", @! etcdserverpb._Cluster_MemberRemove_Handler),
+       (go!"MemberUpdate", @! etcdserverpb._Cluster_MemberUpdate_Handler),
+       (go!"MemberList", @! etcdserverpb._Cluster_MemberList_Handler),
+       (go!"MemberPromote", @! etcdserverpb._Cluster_MemberPromote_Handler)] [] ∗
+    Grpc.serviceDescAt (globalAddr etcdserverpb.Maintenance_ServiceDesc) go!"etcdserverpb.Maintenance"
+      [(go!"Alarm", @! etcdserverpb._Maintenance_Alarm_Handler),
+       (go!"Status", @! etcdserverpb._Maintenance_Status_Handler),
+       (go!"Defragment", @! etcdserverpb._Maintenance_Defragment_Handler),
+       (go!"Hash", @! etcdserverpb._Maintenance_Hash_Handler),
+       (go!"HashKV", @! etcdserverpb._Maintenance_HashKV_Handler),
+       (go!"MoveLeader", @! etcdserverpb._Maintenance_MoveLeader_Handler),
+       (go!"Downgrade", @! etcdserverpb._Maintenance_Downgrade_Handler)]
+      [(go!"Snapshot", @! etcdserverpb._Maintenance_Snapshot_Handler)]
 
 /-- **The sort enums' name maps** (`RangeRequest_SortOrder_name`, `_SortTarget_name`, read-only
 after init): their keys are exactly `0..2` and `0..4` (W0's `Op.IsSortOptionValid`). Needs the
@@ -380,47 +478,74 @@ def sortNames_init.spec : Prop :=
 
 A `RangeEnd` that is a non-`nil` empty slice is read by the auth checks as the key alone and by mvcc
 as every key from it on (`nonissues/etcd-auth-empty-range-end-point-check.md`); a request decoded
-by protobuf never has one (`Proto.decodedAt`). The request path's checks take `endsDecoded` as a
-scope premise; grpc's decoder gives it (`Grpc.decOk_call`), and so does the apply's `Unmarshal`. -/
+by protobuf never has one (its content is canonical, `Proto.norm c = c`, and `endsOk_canon`). The
+request path's checks take `endsDecoded` as a scope premise; grpc's decoder gives it, and so does
+the apply's `Unmarshal`.
 
-/-- **The range ends of the request message `*t` at `p` are `nil` or non-empty** (persistent; a
-scope fact about the values in its `RangeEnd` fields, nested ones included, while they are not
-rewritten): a decoded message's (`endsDecoded_of_decoded`), or a range request a caller built with
-such an end (`endsDecoded_range_intro`: the health checks'). Read through the laws below. -/
-opaque endsDecoded [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (t : go.GoType) (p : Loc) : IProp GF := iprop(True)
+**verify-round (A6 F2).** `endsDecoded t p` was an opaque persistent fact keyed by the address,
+read against the *current* field (`endsDecoded_range`): a holder could create it from a `nil` end,
+rewrite the end to a non-`nil` empty slice and derive `False` (A6-provability F2's counterexample).
+It is now **tied to a share of the message**: `∃ dq c, msgAt t p dq c ∗ ⌜endsOk c⌝`, a pure fact
+about the content (Go-level since the same round, `Proto/Api.lean`) that the share pins: while it
+is held nobody can write the fields, and the laws give it back. It is no longer persistent; it is
+at `DFrac.discard` (`endsDecoded_ro`: the apply thread's read-only entries). The arity is unchanged,
+so its users' statements (2c's `Range`, `RangeStream`, `Txn`) stand; their proofs hand it back to
+nobody (the share is lost with it, which only the handler's `reqBack` notices: any share will do). -/
 
-def endsDecoded_persistent.spec : Prop := ∀ t p, Persistent (endsDecoded (GF := GF) t p)
+/-- A canonical content (a decoded message's) has its ends `nil` or non-empty: proto3 never encodes
+an empty `bytes` field, and `norm` makes an unset one `nil`. -/
+def endsOk_canon.spec : Prop := ∀ c, Proto.norm c = c → endsOk c
 
-/-- A decoded message's range ends are. -/
-def endsDecoded_of_decoded.spec : Prop := ∀ t p, Proto.decodedAt (GF := GF) t p ⊢ endsDecoded t p
+/-- A range request whose model's end is not `"\x00"` (W0's `endOf` maps a non-`nil` empty end
+to `"\x00"`) has its end `nil` or non-empty: the health checks' requests (a `nil` end). -/
+def endsOk_range_intro.spec : Prop := ∀ c (r : RangeReq),
+  reqHolds c (.range r) → r.rangeEnd ≠ [W8 0] → endsOk c
 
-/-- A range request whose end is `nil` or non-empty (one a caller built: no nested message). -/
-def endsDecoded_range_intro.spec : Prop := ∀ (p : Loc) (dq : DFrac) (es : GoSlice) (ebs : GoString),
-  (p.[etcdserverpb.RangeRequest, go!"RangeEnd"] ↦{dq} es : IProp GF) ∗ es ↦*□ ebs ∗
-    ⌜es = slice.nil ∨ ebs ≠ []⌝ ⊢
-  p.[etcdserverpb.RangeRequest, go!"RangeEnd"] ↦{dq} es ∗ endsDecoded etcdserverpb.RangeRequest.ty p
+/-- **The range ends of the request message `*t` at `p` are `nil` or non-empty**: a share of the
+message whose content has `endsOk`. Exclusive (a share), persistent at `DFrac.discard`
+(`endsDecoded_ro`). Read through the laws below, which give it back. -/
+def endsDecoded (t : go.GoType) (p : Loc) : IProp GF :=
+  iprop(∃ (dq : DFrac) (c : Proto.Content), Proto.msgAt t p dq c ∗ ⌜endsOk c⌝)
 
-/-- **Every operation of the slice `sl` was decoded** (persistent). -/
+/-- A decoded (canonical) message's share is one (grpc's `decOk_call`, `srvRecv_recv`; `Unmarshal`). -/
+def endsDecoded_of_canon.spec : Prop := ∀ t p dq c,
+  Proto.msgAt (GF := GF) t p dq c ∗ ⌜Proto.norm c = c⌝ ⊢ endsDecoded t p
+
+/-- At `DFrac.discard` it is persistent (the apply thread's entries, read-only: apply's provisional
+`endsDecoded rt`, `reqMsgAt_endsDecoded`, is this at `TxnRequest`). -/
+def endsDecoded_ro.spec : Prop := ∀ t p c,
+  Proto.msgAt (GF := GF) t p DFrac.discard c ∗ ⌜endsOk c⌝ ⊢ □ endsDecoded t p
+
+/-- **Every operation of the slice `sl` was decoded** (a share of the slice and of each operation). -/
 def opsDecoded (sl : GoSlice) : IProp GF :=
-  iprop(□ ∀ (dq : DFrac) (ps : List Loc), sl ↦*{dq} ps -∗
+  iprop(∃ (dq : DFrac) (ps : List Loc), sl ↦*{dq} ps ∗
     [∗list] op ∈ ps, endsDecoded etcdserverpb.RequestOp.ty op)
 
-/-- A decoded request's range end is `nil` or non-empty. -/
+/-- **Every comparison of the slice `sl` was decoded.** -/
+def cmpsDecoded (sl : GoSlice) : IProp GF :=
+  iprop(∃ (dq : DFrac) (ps : List Loc), sl ↦*{dq} ps ∗
+    [∗list] cp ∈ ps, endsDecoded etcdserverpb.Compare.ty cp)
+
+/-- A decoded request's range end is `nil` or non-empty (the field read at any share, given back
+with the fact). -/
 def endsDecoded_range.spec : Prop := ∀ (p : Loc) (dq : DFrac) (es : GoSlice) (ebs : GoString),
   endsDecoded (GF := GF) etcdserverpb.RangeRequest.ty p ∗
     p.[etcdserverpb.RangeRequest, go!"RangeEnd"] ↦{dq} es ∗ es ↦*□ ebs ⊢
-  p.[etcdserverpb.RangeRequest, go!"RangeEnd"] ↦{dq} es ∗ ⌜es = slice.nil ∨ ebs ≠ []⌝
+  endsDecoded etcdserverpb.RangeRequest.ty p ∗
+    p.[etcdserverpb.RangeRequest, go!"RangeEnd"] ↦{dq} es ∗ ⌜es = slice.nil ∨ ebs ≠ []⌝
 def endsDecoded_delete.spec : Prop := ∀ (p : Loc) (dq : DFrac) (es : GoSlice) (ebs : GoString),
   endsDecoded (GF := GF) etcdserverpb.DeleteRangeRequest.ty p ∗
     p.[etcdserverpb.DeleteRangeRequest, go!"RangeEnd"] ↦{dq} es ∗ es ↦*□ ebs ⊢
-  p.[etcdserverpb.DeleteRangeRequest, go!"RangeEnd"] ↦{dq} es ∗ ⌜es = slice.nil ∨ ebs ≠ []⌝
+  endsDecoded etcdserverpb.DeleteRangeRequest.ty p ∗
+    p.[etcdserverpb.DeleteRangeRequest, go!"RangeEnd"] ↦{dq} es ∗ ⌜es = slice.nil ∨ ebs ≠ []⌝
 def endsDecoded_compare.spec : Prop := ∀ (p : Loc) (dq : DFrac) (es : GoSlice) (ebs : GoString),
   endsDecoded (GF := GF) etcdserverpb.Compare.ty p ∗
     p.[etcdserverpb.Compare, go!"RangeEnd"] ↦{dq} es ∗ es ↦*□ ebs ⊢
-  p.[etcdserverpb.Compare, go!"RangeEnd"] ↦{dq} es ∗ ⌜es = slice.nil ∨ ebs ≠ []⌝
+  endsDecoded etcdserverpb.Compare.ty p ∗
+    p.[etcdserverpb.Compare, go!"RangeEnd"] ↦{dq} es ∗ ⌜es = slice.nil ∨ ebs ≠ []⌝
 
 /-- **The split laws** (I5's request): a decoded transaction's branches and compares are decoded,
-and a decoded operation's request (range, delete, nested transaction) is. -/
+and a decoded operation's request (range, delete, nested transaction) is; the parts join back. -/
 def endsDecoded_txn.spec : Prop := ∀ (p : Loc) (dq : DFrac) (cs ss fs : GoSlice),
   endsDecoded (GF := GF) etcdserverpb.TxnRequest.ty p ∗
     p.[etcdserverpb.TxnRequest, go!"Compare"] ↦{dq} cs ∗
@@ -429,24 +554,27 @@ def endsDecoded_txn.spec : Prop := ∀ (p : Loc) (dq : DFrac) (cs ss fs : GoSlic
   p.[etcdserverpb.TxnRequest, go!"Compare"] ↦{dq} cs ∗
     p.[etcdserverpb.TxnRequest, go!"Success"] ↦{dq} ss ∗
     p.[etcdserverpb.TxnRequest, go!"Failure"] ↦{dq} fs ∗
-    opsDecoded ss ∗ opsDecoded fs ∗
-    □ (∀ (dq' : DFrac) (ps : List Loc), cs ↦*{dq'} ps -∗
-      [∗list] c ∈ ps, endsDecoded etcdserverpb.Compare.ty c)
+    opsDecoded ss ∗ opsDecoded fs ∗ cmpsDecoded cs ∗
+    (opsDecoded ss -∗ opsDecoded fs -∗ cmpsDecoded cs -∗ endsDecoded etcdserverpb.TxnRequest.ty p)
 def endsDecoded_op.spec : Prop := ∀ (p : Loc) (dq : DFrac) (iv : GoInterface) (w q : Loc),
   endsDecoded (GF := GF) etcdserverpb.RequestOp.ty p ∗ p.[etcdserverpb.RequestOp, go!"Request"] ↦{dq} iv ⊢
   p.[etcdserverpb.RequestOp, go!"Request"] ↦{dq} iv ∗
-    (⌜iv = interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestRange.ty) #w⌝ -∗
+    ((⌜iv = interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestRange.ty) #w⌝ -∗
       w.[etcdserverpb.RequestOp_RequestRange, go!"RequestRange"] ↦{dq} q -∗
       w.[etcdserverpb.RequestOp_RequestRange, go!"RequestRange"] ↦{dq} q ∗
-        endsDecoded etcdserverpb.RangeRequest.ty q) ∧
+        endsDecoded etcdserverpb.RangeRequest.ty q ∗
+        (endsDecoded etcdserverpb.RangeRequest.ty q -∗ endsDecoded etcdserverpb.RequestOp.ty p)) ∧
     (⌜iv = interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestDeleteRange.ty) #w⌝ -∗
       w.[etcdserverpb.RequestOp_RequestDeleteRange, go!"RequestDeleteRange"] ↦{dq} q -∗
       w.[etcdserverpb.RequestOp_RequestDeleteRange, go!"RequestDeleteRange"] ↦{dq} q ∗
-        endsDecoded etcdserverpb.DeleteRangeRequest.ty q) ∧
+        endsDecoded etcdserverpb.DeleteRangeRequest.ty q ∗
+        (endsDecoded etcdserverpb.DeleteRangeRequest.ty q -∗ endsDecoded etcdserverpb.RequestOp.ty p)) ∧
     (⌜iv = interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestTxn.ty) #w⌝ -∗
       w.[etcdserverpb.RequestOp_RequestTxn, go!"RequestTxn"] ↦{dq} q -∗
       w.[etcdserverpb.RequestOp_RequestTxn, go!"RequestTxn"] ↦{dq} q ∗
-        endsDecoded etcdserverpb.TxnRequest.ty q)
+        endsDecoded etcdserverpb.TxnRequest.ty q ∗
+        (endsDecoded etcdserverpb.TxnRequest.ty q -∗ endsDecoded etcdserverpb.RequestOp.ty p)) ∧
+    endsDecoded etcdserverpb.RequestOp.ty p)
 
 end laws
 
@@ -537,7 +665,9 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG 
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
 /-- **The streaming services' stream descriptors are readable** (the stubs pass
-`&Watch_ServiceDesc.Streams[0]`, `&Lease_ServiceDesc.Streams[0]` to `NewStream`). -/
+`&Watch_ServiceDesc.Streams[0]`, `&Lease_ServiceDesc.Streams[0]`, and (verify-round, the new
+`kVClient.RangeStream`, `maintenanceClient.Snapshot` stubs) `&KV_ServiceDesc.Streams[0]`,
+`&Maintenance_ServiceDesc.Streams[0]` to `NewStream`). -/
 def descStreams_init.spec : Prop :=
   isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ⊢
     (∃ (sl : GoSlice) (sds : List google_golang_org.grpc.StreamDesc),
@@ -545,6 +675,12 @@ def descStreams_init.spec : Prop :=
       sl ↦*□ sds ∗ ⌜1 ≤ sds.length⌝) ∗
     (∃ (sl : GoSlice) (sds : List google_golang_org.grpc.StreamDesc),
       (globalAddr etcdserverpb.Lease_ServiceDesc).[google_golang_org.grpc.ServiceDesc, go!"Streams"] ↦□ sl ∗
+      sl ↦*□ sds ∗ ⌜1 ≤ sds.length⌝) ∗
+    (∃ (sl : GoSlice) (sds : List google_golang_org.grpc.StreamDesc),
+      (globalAddr etcdserverpb.KV_ServiceDesc).[google_golang_org.grpc.ServiceDesc, go!"Streams"] ↦□ sl ∗
+      sl ↦*□ sds ∗ ⌜1 ≤ sds.length⌝) ∗
+    (∃ (sl : GoSlice) (sds : List google_golang_org.grpc.StreamDesc),
+      (globalAddr etcdserverpb.Maintenance_ServiceDesc).[google_golang_org.grpc.ServiceDesc, go!"Streams"] ↦□ sl ∗
       sl ↦*□ sds ∗ ⌜1 ≤ sds.length⌝)
 
 end initlaws

@@ -107,11 +107,16 @@ func ReqLeaseTTLUnknown(ctx context.Context, lc pb.LeaseClient, id int64) {
 // REQ v3rpc/range-stream: a streamed range's chunks, read until io.EOF, are the range's answer at
 // one revision; only the last carries a header.
 // Users: the client's kv.GetStream (W0's wireStreamAt_recv), Kubernetes' streamed lists.
-// Assumes: the range uses the default order and no revision filter; no compaction during it.
-// Specs: kvServer.RangeStream.spec, headerFillingRangeStream.Send.spec, rangeStreamSpec (Api.lean),
+// Assumes: prefix is non-empty (its range end is built by incrementing its last byte, verify-round
+// A6 F10); the range uses the default order and no revision filter; no compaction during it.
+// Specs: kVClient.RangeStream.spec (3h's stub: NewStream, the request sent, the half closed),
+// _KV_RangeStream_Handler.spec, kvServer.RangeStream.spec, headerFillingRangeStream.Send.spec, rangeStreamSpec (Api.lean),
 // rsSink_intro, rsSink_out, rsChunk_agree, rsChunk_hdr_last; Grpc's cliRecv_recv. An error before
 // the first chunk (ErrCompacted included) is allowed: the loop returns.
 func ReqRangeStream(ctx context.Context, kc pb.KVClient, prefix string) {
+	if prefix == "" {
+		return // the Assumes: an empty prefix has no last byte to increment
+	}
 	end := []byte(prefix)
 	end[len(end)-1]++
 	sc, err := kc.RangeStream(ctx, &pb.RangeRequest{Key: []byte(prefix), RangeEnd: end})
@@ -134,24 +139,36 @@ func ReqRangeStream(ctx context.Context, kc pb.KVClient, prefix string) {
 	}
 }
 
-// refusalOrIndefinite: a refusal any request may meet, or an error that settles nothing.
+// refusalOrIndefinite: a refusal any request may meet (the model's EtcdErr.refusal, fired with the
+// state unchanged: Step.refuse), or an error that settles nothing (EtcdErr.indefinite, the
+// contract's third way: any status whose message is no definite mapped error's description).
+// Verify-round (A6 F10): was narrower than the contract (it rejected ErrCorrupt, ErrAuthFailed,
+// ErrMemberNotEnoughStarted, ErrUnhealthy, ErrNotLeader, ...), so its panic was reachable.
 func refusalOrIndefinite(err error) bool {
 	switch rpctypes.Error(err) {
-	case rpctypes.ErrNoSpace, rpctypes.ErrTooManyRequests, rpctypes.ErrRequestTooLarge:
+	case rpctypes.ErrNoSpace, rpctypes.ErrTooManyRequests, rpctypes.ErrRequestTooLarge,
+		rpctypes.ErrCorrupt, rpctypes.ErrInvalidAuthToken, rpctypes.ErrAuthOldRevision,
+		rpctypes.ErrUserEmpty, rpctypes.ErrAuthFailed, rpctypes.ErrMemberNotEnoughStarted,
+		rpctypes.ErrMemberLearnerNotReady, rpctypes.ErrUnhealthy:
 		return true
 	}
-	if rpctypes.ErrorDesc(err) == rpctypes.ErrorDesc(rpctypes.ErrGRPCNotSupportedForLearner) {
+	if rpctypes.ErrorDesc(err) == rpctypes.ErrorDesc(rpctypes.ErrGRPCNotSupportedForLearner) ||
+		rpctypes.ErrorDesc(err) == rpctypes.ErrorDesc(rpctypes.ErrGRPCInvalidClientAPIVersion) {
 		return true
 	}
 	return indefinite(err)
 }
 
-// indefinite: an error the client treats as settling nothing (not one of etcd's definite errors).
+// indefinite: an error the client treats as settling nothing: a mapped indefinite etcd error
+// (EtcdErr.indefinite), or not one of etcd's mapped errors at all.
 func indefinite(err error) bool {
 	e := rpctypes.Error(err)
 	switch e {
-	case rpctypes.ErrNoLeader, rpctypes.ErrTimeout, rpctypes.ErrStopped, rpctypes.ErrLeaderChanged,
-		rpctypes.ErrTimeoutDueToLeaderFail, rpctypes.ErrTimeoutDueToConnectionLost, rpctypes.ErrNotCapable:
+	case rpctypes.ErrNoLeader, rpctypes.ErrNotLeader, rpctypes.ErrLeaderChanged, rpctypes.ErrNotCapable,
+		rpctypes.ErrStopped, rpctypes.ErrTimeout, rpctypes.ErrTimeoutDueToLeaderFail,
+		rpctypes.ErrTimeoutDueToConnectionLost, rpctypes.ErrTimeoutWaitAppliedIndex,
+		rpctypes.ErrUnhealthy, rpctypes.ErrClusterIDMismatch, rpctypes.ErrClusterVersionUnavailable,
+		rpctypes.ErrBadLeaderTransferee, rpctypes.ErrNoSpace:
 		return true
 	}
 	_, isEtcd := e.(rpctypes.EtcdError)

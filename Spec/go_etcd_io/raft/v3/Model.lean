@@ -365,7 +365,9 @@ def Driver.start (l : List LogEntry) (hs : HardState) (D : Durable) : Driver :=
 /-- **The facts a `Ready` states of its batch**, given the driver `st` it was handed out from: the
 committed entries follow the delivered ones; the new commit index covers them and lies within the
 durable log after the batch; the entries to store start after the old commit and at most one past
-the durable log; with a snapshot, no committed entries, and the snapshot past the delivered log and
+the durable log, or, with a snapshot, at most one past the snapshot (verify-round, A4 P1: a lagging
+follower restores a snapshot far past its durable log and appends the next leader's entries after it
+before the `Ready` is taken, `unstable.restore` setting `offset = s.index + 1`); with a snapshot, no committed entries, and the snapshot past the delivered log and
 within the commit; `MustSync` as `MustSync` computes it; every entry of one of raft's types; and
 (integration I2, 2d's request) every committed entry and the snapshot of the batch have a term at most
 the batch's hard-state term as the driver knows it after the batch (raft's log terms never exceed its
@@ -376,7 +378,8 @@ def BatchOk (st : Driver) (b : Batch) : Prop :=
   (b.hs = none ∨ b.hs ≠ some st.hs) ∧
   uint.nat st.hs.commit ≤ uint.nat hs'.commit ∧
   uint.nat hs'.commit ≤ (st.durable.next b).last ∧
-  (b.ents ≠ [] → uint.nat st.hs.commit < b.entsFrom ∧ b.entsFrom ≤ st.durable.last + 1) ∧
+  (b.ents ≠ [] → uint.nat st.hs.commit < b.entsFrom ∧
+    b.entsFrom ≤ (match b.snap with | some s => uint.nat s.index | none => st.durable.last) + 1) ∧
   (∀ e ∈ b.ents, uint.nat e.type ≤ 2) ∧
   b.mustSync = (b.ents ≠ [] ∨ hs'.term ≠ st.hs.term ∨ hs'.vote ≠ st.hs.vote) ∧
   (∀ e ∈ b.committed, uint.nat e.term ≤ uint.nat hs'.term) ∧

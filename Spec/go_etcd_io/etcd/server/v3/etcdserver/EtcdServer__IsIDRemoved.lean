@@ -6,6 +6,8 @@ is read under its lock), the driver's `processMessages` (through `isIDRemoved`, 
 **Proof sketch**: 2e's `Membership.RaftCluster.IsIDRemoved` (a read under the cluster's lock: the
 thread token backs the reader slot). **Changes**: new (no old spec). **Margin**: the answer is not
 described (no user relies on it for safety: a message to a removed member is merely dropped).
+
+Changes: verify-round (A7-provability F11): no `threadTok` (the membership's `IsIDRemoved` needs none); 2f's `raftOk` row is met a fortiori.
 -/
 module
 
@@ -35,10 +37,10 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 def EtcdServer.IsIDRemoved.spec : Prop :=
   ∀ (s : Loc) (γ : Names) (id : Nat) (x : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ srvNode s γ id ∗
-      threadTok }}
+      True }}
     (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!!
       go!"IsIDRemoved")) (Val #x))
-  {{ (b : Bool), RET #b; threadTok }}
+  {{ (b : Bool), RET #b; True }}
 
 end spec
 end EtcdServer

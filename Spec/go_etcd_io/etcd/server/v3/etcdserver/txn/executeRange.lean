@@ -9,10 +9,11 @@ with no value and lease `0`, `kvsFit`), `filterRangeResults`, `sortRangeResults`
 from `kvsFit`), `asembleRangeResponse`. Old spec: over the log. Round 1: 3e's API (F4); the
 keys-only path's values (F2). Integration (I5, 2026-11-09): the context's error only for a full
 read (`rm.countOnly = false`: mvcc's `rangeOut`'s `.ctxErr` case asks `CountOnly = false`), which
-`Count` needs. Two steps rest on 3e requests not yet met (`req/..._storage_mvcc.md`, "from 3b",
-items 1-2): `ctxErr err` from `rangeResOwn`'s `.ctxErr` (which gives only `err ≠ nil`, not "none of
-the sentinels", so `ctxErr_not_errIs` is not yet provable), and `rrOwn`'s `kvFits` (the lease an
-`int64`: `kvsFit` bounds the revisions and the version only).
+`Count` needs. Second pass (mvcc met 3b's two requests): `ctxErr err` from `rangeResOwn`'s
+`.ctxErr`, which now gives 3e's `Mvcc.rangeCtxErr err` (`ctxErr_of_range`; its `_ne_nil`, `_fresh`
+give `ctxErr_not_errIs`; the old `context.isCtxErr err` was false: `rangeKeys` wraps `ctx.Err()` with
+`fmt.Errorf`), and `rrOwn`'s `kvFits` from `kvsFit` (`kvSortOk` bounds the revisions, the version and
+the lease).
 -/
 module
 

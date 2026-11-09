@@ -3,7 +3,10 @@
 
 **Users.** 2d's `applyConfChange` (a `RemoveNode` the check accepted).
 **Proof sketch.** Under the lock, at `shouldApplyV3`: deleted from the backend (4b), from the map,
-recorded as removed. **Changes**: from `specs-ref`. **Margin.** Exact.
+recorded as removed. The log lines' `c.cid.String()`, `c.localID.String()` and `id.String()` are
+client-core's `Types.ID.String_ptr.spec` (pointer receivers: the fields read-only in `isCluster`'s
+realization, `id` a local). **Changes**: from `specs-ref`. Second pass: `ID.String_ptr` cited.
+**Margin.** Exact.
 -/
 module
 

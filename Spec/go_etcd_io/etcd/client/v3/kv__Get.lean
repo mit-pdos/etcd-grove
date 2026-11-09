@@ -20,6 +20,8 @@ serializable get is the same spec (the model's range step answers it at a member
 keys-only, count-only, sorted, limited and filtered gets are all covered (the old get model held
 only for gets that are not keys-only: `issues/etcd-range-keys-only-lease.md` is now in the model).
 
+verify-round: premise `(opGetM key gs).emptyEnd = false` (A1-provability F5, `Api.lean`'s "Range ends").
+
 Margin: a serializable get is answered at some member's view with no lower bound (it may be
 older than the caller's own last write): the model says exactly that.
 -/

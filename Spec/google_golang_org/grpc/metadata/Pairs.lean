@@ -6,6 +6,7 @@ Users: the client's `withVersion` (1c), Kubernetes.
 Why true: panics on an odd count (excluded); else a fresh map of the pairs, keys lowercased.
 
 Changes: new.
+verify-round (A6 F3): the result is non-`nil` (a `make`), what `MD.Set` now takes.
 
 Margin: none.
 -/
@@ -35,7 +36,7 @@ def Pairs.spec : Prop :=
   ∀ (sl : GoSlice) (kvs : List GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.metadata ∗ sl ↦*□ kvs ∗ ⌜kvs.length % 2 = 0⌝ }}
     (App (Val (@! google_golang_org.grpc.metadata.Pairs)) (Val #sl))
-  {{ (m : Loc), RET #m; mdAt m (DFrac.own 1) (MD.ofPairs kvs) }}
+  {{ (m : Loc), RET #m; mdAt m (DFrac.own 1) (MD.ofPairs kvs) ∗ ⌜m ≠ null⌝ }}
 
 end spec
 

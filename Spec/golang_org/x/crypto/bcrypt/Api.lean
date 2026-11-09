@@ -16,12 +16,20 @@ the first 72 bytes of a password (a longer password passes when bcrypt's key, `p
 `nonissues/etcd-auth-password-72-byte-prefix.md`), and a hash function has collisions; "a wrong
 password fails" would be a false universal (PRINCIPLES, "An assumption states the physical fact the
 code relies on").
+
+The package's error variables (`init`, verify round, A9 3d F8): `ErrPasswordTooLong`,
+`ErrMismatchedHashAndPassword`, `ErrHashTooShort`, each `errors.New` of its message
+(`errors.newVar`), distinct, given existentially (a fresh pointer: the sentinel encoding). The
+server returns `GenerateFromPassword`'s `ErrPasswordTooLong` to its client as an unmapped error
+(`EtcdServer.UserAdd`), whose shape (a leaf `*errors.errorString` with its message) it has from
+here.
 -/
 module
 
 public import GeneratedProof.golang_org.x.crypto.bcrypt
 public import Spec.PkgInit.golang_org.x.crypto.bcrypt
 public import Spec.go_etcd_io.etcd.api.v3.State
+public import Perennial.Proof.errors.NewVar
 
 @[expose] public section
 
@@ -32,6 +40,32 @@ namespace EtcdGrove
 namespace Bcrypt
 
 open Iris Iris.BI
+
+section init
+variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
+
+/-- **`v` is the value of bcrypt's package variable `g`** (persistent: Go never writes it after
+initialization). -/
+def errIs (g : GoString) (v : GoInterface) : IProp GF := iprop(globalAddr g ↦□ v)
+
+open golang_org.x.crypto.bcrypt in
+/-- **bcrypt's error variables** (`bcrypt.go:29,33,87` at v0.57.0, `errors.New` at init; assumed, as
+the package is translated names only): each holds a fixed `*errors.errorString` of its message,
+the three distinct. -/
+def init.spec : Prop :=
+  isPkgInit (PROP := IProp GF) pkg_id.golang_org.x.crypto.bcrypt ⊢
+    ∃ e1 e2 e3 : GoInterface,
+      errIs ErrPasswordTooLong e1 ∗ errIs ErrMismatchedHashAndPassword e2 ∗
+      errIs ErrHashTooShort e3 ∗
+      errors.newVar ErrPasswordTooLong go!"bcrypt: password length exceeds 72 bytes" ∗
+      errors.newVar ErrMismatchedHashAndPassword
+        go!"crypto/bcrypt: hashedPassword is not the hash of the given password" ∗
+      errors.newVar ErrHashTooShort
+        go!"crypto/bcrypt: hashedSecret too short to be a bcrypted password" ∗
+      ⌜[e1, e2, e3].Nodup⌝
+
+end init
 
 end Bcrypt
 end EtcdGrove

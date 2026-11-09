@@ -18,6 +18,8 @@ Errors are logged.
 
 **Changes** from `specs-ref`'s spec (the revoke-open premise, the reader slots): over `envUpd`;
 the lease mode is the environment's (`γ.cfg.leaseExpiry`). **Margin**: none.
+
+Changes: verify-round (A7-provability F1, completeness F1): takes and gives back the thread's `threadTok`; `isServer s γ.etcd` (for `GoAttach`, `LeaseRevoke`, `raftRequest`) from `srvStarted_isServer`; each attached goroutine runs with its own fresh token (`GoAttach.spec`); the internal requests hold no `srvGate` share (`LeaseRevoke.spec` takes none; `raftRequest` never did).
 -/
 module
 
@@ -48,10 +50,10 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 def EtcdServer.revokeExpiredLeases.spec : Prop :=
   ∀ (s : Loc) (γ : Names) (id : Nat) (γl : Lease.Names) (sl : GoSlice) (ids : List Int),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvNode s γ id ∗ srvStarted s γ id ∗ srvLessor s γl ∗ Lease.expiredSl γl sl ids ∗ ⌜γ.cfg.leaseExpiry = true⌝ }}
+      srvNode s γ id ∗ srvStarted s γ id ∗ srvLessor s γl ∗ Lease.expiredSl γl sl ids ∗ ⌜γ.cfg.leaseExpiry = true⌝ ∗ threadTok }}
     (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!!
       go!"revokeExpiredLeases")) (Val #sl))
-  {{ RET #(); True }}
+  {{ RET #(); threadTok }}
 
 end spec
 end EtcdServer

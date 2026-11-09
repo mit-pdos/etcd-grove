@@ -5,6 +5,8 @@ package lease
 
 import (
 	"context"
+	"errors"
+	"net/http"
 	"sync/atomic"
 
 	"github.com/Masterminds/semver/v3"
@@ -13,6 +15,7 @@ import (
 	pb "go.etcd.io/etcd/api/v3/etcdserverpb"
 	"go.etcd.io/etcd/pkg/v3/traceutil"
 	"go.etcd.io/etcd/server/v3/lease"
+	"go.etcd.io/etcd/server/v3/lease/leasehttp"
 	"go.etcd.io/etcd/server/v3/storage/backend"
 	"go.etcd.io/etcd/server/v3/storage/mvcc"
 )
@@ -275,7 +278,7 @@ func ReqStop(le lease.Lessor, id lease.LeaseID) {
 // server.go:404); examples/mvccrand/mvccrand.go:503-504.
 // Assumes: the caller is the writer; be is the lessor's backend and its hook is the one set here
 // (beHook be Pk f with f this closure); id ≠ 0 not live; ttl ≤ MaxLeaseTTL.
-// Specs: lessor.Grant.spec (Pre: ran = 0; Post: ran = 1), Mvcc.hookRun.
+// Specs: lessor.Grant.spec (Pre: ran = 0; Post: ran = 1), Lease.beHook, Lease.beHookRun.
 func ReqGrantHook(le lease.Lessor, be backend.Backend, id lease.LeaseID, ttl int64) {
 	var ran atomic.Int64
 	be.SetTxPostLockInsideApplyHook(func() { ran.Add(1) })
@@ -296,8 +299,10 @@ func (noCluster) Version() *semver.Version { return nil }
 // Users: server/etcdserver/server.go:344 (NewServer: the server's logger, backend, membership);
 // examples/mvccrand/mvccrand.go:810 (zap.NewNop(), noCluster{}).
 // Assumes: be's lease bucket holds exactly lease id with TTL ttl (beLeases); a real logger.
-// Specs: NewLessor.spec (Zap.isLogger of NewNop's, clusterOk of noCluster, leaseRevokeRate 0),
-// lessor.Lookup.spec, Lease.TTL.spec, Lease.Keys.spec, lessor.Stop.spec; laws: lessorAt_minTTL.
+// Specs: NewLessor.spec (Zap.isLogger of NewNop's, clusterOk of noCluster: the transparent
+// Version() triple, proved from its body; leaseRevokeRate 0; the caller's threadTok, which Stop
+// gives back), lessor.Lookup.spec, Lease.TTL.spec, Lease.Keys.spec, lessor.Stop.spec; laws:
+// lessorAt_minTTL.
 func ReqNewLessor(be backend.Backend, id lease.LeaseID, ttl, minTTL int64) {
 	le := lease.NewLessor(zap.NewNop(), be, noCluster{}, lease.LessorConfig{MinLeaseTTL: minTTL})
 	l := le.Lookup(id)
@@ -313,19 +318,27 @@ func ReqNewLessor(be backend.Backend, id lease.LeaseID, ttl, minTTL int64) {
 
 // REQ lease/promote-checkpointer: the server installs its checkpointer before it starts (the closure
 // may be called only once the server started); the lessor calls it only when primary, after a
-// Promote (on the apply thread, once started); Demote runs concurrently (the raft loop); Renew's
-// errors stay the lessor's.
+// Promote (on the apply thread, once started), with context.Background(), from a thread that may
+// start a goroutine (the server's closure proposes through raftRequest: a thread token); Demote
+// runs concurrently (the raft loop); Renew's errors stay the lessor's.
 // Users: server/etcdserver/server.go:395-404 (SetCheckpointer in NewServer), 1990 (Promote), 769
 // (Demote), v3_server.go:528 (Renew).
 // Assumes: SetCheckpointer is called once (lessorCkptTok); started is set before Promote (the gate
 // R: started's load is true); id was granted and never revoked nor recovered over.
-// Specs: lessor.SetCheckpointer.spec (ckptOk cp R), lessor.Promote.spec (ckptGate le R, □ R),
-// lessor.Demote.spec, lessor.Renew.spec.
+// Specs: lessor.SetCheckpointer.spec (ckptOk cp R: at Background(), with the caller's threadTok),
+// lessor.Promote.spec (ckptGate le R, □ R), lessor.Demote.spec, lessor.Renew.spec (the caller's
+// threadTok lent to the checkpointer).
 func ReqPromoteCheckpointer(le lease.Lessor, started *atomic.Bool, id lease.LeaseID) {
 	le.SetCheckpointer(func(ctx context.Context, cp *pb.LeaseCheckpointRequest) error {
 		if !started.Load() {
 			panic("promote-checkpointer: the checkpointer called before the server started")
 		}
+		if ctx != context.Background() {
+			panic("promote-checkpointer: the checkpointer called with another context")
+		}
+		done := make(chan struct{})
+		go func() { close(done) }()
+		<-done
 		return nil
 	})
 	started.Store(true)
@@ -358,4 +371,23 @@ func ReqRecoverRevoke(le lease.Lessor, be2 backend.Backend, kv mvcc.KV, id lease
 	if le.Lookup(id) != nil || le.GetLease(lease.LeaseItem{Key: k}) != lease.NoLease {
 		panic("recover-revoke: lease or its key still live")
 	}
+}
+
+// REQ lease/renew-forward: a follower forwards a keep-alive to the leader's peer URLs; it returns
+// the TTL, or the lessor's ErrLeaseNotFound (errors.Is on any error RenewHTTP returns is safe), and
+// retries every other error.
+// Users: server/etcdserver/v3_server.go:551-555 (LeaseRenew's forwarding loop).
+// Assumes: rt is the server's peer round tripper (rtOk); the caller holds a thread token.
+// Specs: leasehttp.RenewHTTP.spec (nil, Lease.errIs ErrLeaseNotFound, or errIsNot), Lease.init.
+func ReqRenewForward(ctx context.Context, id lease.LeaseID, urls []string, rt http.RoundTripper) (int64, error) {
+	for _, u := range urls {
+		ttl, err := leasehttp.RenewHTTP(ctx, id, u+leasehttp.LeasePrefix, rt)
+		if err == nil || errors.Is(err, lease.ErrLeaseNotFound) {
+			if err != nil && err != lease.ErrLeaseNotFound {
+				panic("renew-forward: a not-found error that is not the lessor's")
+			}
+			return ttl, err
+		}
+	}
+	return -1, ctx.Err()
 }

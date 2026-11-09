@@ -75,10 +75,17 @@ Pure (transparent):
   a progress of every registration, fragments reassemble to one response.
 
 Resources:
-* `watcherHandle w γ who` (persistent): a `*watcher` of the cluster `γ` as `who`
-  (`NewWatchFromWatchClient`'s). Intended realization: its read-only fields (`remote` a
-  `remoteWatchAt`, `callOpts`, the logger), and its lock `mu` over `streams` (`nil` once closed,
-  else a map of `*watchGRPCStream`s, each `wgsAt`, `WatchInternal.lean`).
+* `watcherHandle w c γ who` (persistent): a `*watcher` of the cluster `γ` as `who`
+  (`NewWatchFromWatchClient`'s), whose stub works once the client `c` is ready (`clientReady c`,
+  1c's readiness; `null` for a caller's stub): `watcherHandle_watcherAt` takes `clientReady c`, as
+  `lessorHandle_leaseAt` and `kvHandle_kvAt` do (verify-round W3). Intended realization: its
+  read-only fields (`remote` with `□ (clientReady c -∗ remoteWatchAt remote γ who)`, `callOpts`,
+  the logger), and its lock `mu` over `streams` (`nil` once closed, else a map from stream keys to
+  `*watchGRPCStream`s: the key `k` to a stream `wgsAt s w γ p` opened with a context `ctx₀`, with
+  `ctxStreamKey ctx₀ k ∗ ctxPrin who ctx₀ p` kept, so that a context of the same key is
+  authenticated as `p` too, `ctxStreamKey_prin`; `WatchInternal.lean`).
+* `ctxStreamKey ctx k` (persistent): `k` is `streamKeyFromCtx(ctx)` (the printed outgoing
+  metadata). Law: `ctxStreamKey_prin` (equal keys, equal principals, verify-round W2).
 * `watchChAt ch γ who w p` (exclusive): **the consumer of a watch's channel** `ch` at the position
   `p`. Laws: `watchChAt_recv` (a receive, alone or in a `for range`), `watchChAt_recvAu` (a
   receive as a `select` case). Intended realization: the consumer half of the channel's protocol
@@ -113,7 +120,22 @@ values; all events of a revision in one response; filters), `progress.go` (progr
 monotone and meaning "nothing missed"; `RequestProgress`), `ending.go` (compaction, errors end the
 watch, `Created` first, a refused watch delivers nothing, `Close`), `consume.go` (a `select` with
 the context, writing the response as `Election.Observe` and the namespace wrapper do, the
-previous key-value Kubernetes reads).
+previous key-value Kubernetes reads, watches sharing one stream by their contexts' metadata).
+
+## Changes (verify-round, 2026-11-09)
+
+* W1: `WireSt.frag` keeps the first fragment, and the later fragments agree with its header,
+  compaction revision and cancel reason (`run` dispatches the first fragment with every
+  fragment's events).
+* W2: `ctxStreamKey` and `ctxStreamKey_prin` (equal stream keys, equal principals), which
+  `streamKeyFromCtx.spec` now gives and `watcher.Watch` needs to join a stream another context
+  opened.
+* W3: `watcherHandle w c γ who` records the client whose readiness its stub needs;
+  `watcherHandle_watcherAt` takes `clientReady c`.
+* W4: `watchStep`'s ended case says `m.created = false`.
+* S2 (and A3's request): `watchStep`'s event case says, unconditionally, that each event is an
+  event of the history the watch keeps (its key in the range, the filters); only exactness is
+  gated on `exactFrom`.
 -/
 module
 
@@ -250,14 +272,20 @@ of the principal `who`: the member's applied one when it registered the watch, s
 cluster reached, a lagging member's included):
 
 * every response's header revision has been reached; the floor never changes;
-* after an error, only `closeErr` responses (header `0`, no compaction, no events);
+* after an error, only `closeErr` responses (header `0`, no compaction, no events, not `Created`:
+  every `closeErr` response is `WatchResponse{Header: &pb.ResponseHeader{}, Canceled: true,
+  closeErr: …}`, `watch.go:366,381,500`);
 * an **error** (`Err() != nil`) ends the watch; a `closeErr` one has header `0` and no compaction;
   a compaction (`CompactRevision` set, then no `closeErr`) says the revision after the watch's last
   event (or its start) is below a compaction of the cluster (not the one after a progress
   notification: after a member restores a snapshot, a watch told "nothing up to `P`" may be
   canceled at a compaction revision at most `P`);
 * a **`Created`** response only first, and only with `WithCreatedNotify`;
-* a response **with events**: its last event's revision reached and past `p`'s; and, under the
+* a response **with events**: its last event's revision reached and past `p`'s; each event, whatever
+  the compaction did, an event of the history that the watch keeps (its key in the range, not
+  filtered out: the namespace wrapper's `Key[len(pfx):]`, the recipes' prefix keys; mvcc reads only
+  records of real revisions and filters by the range, `kvsToEvents`; a compaction affects only
+  exactness, decision A17); and, under the
   compaction condition (`exactFrom` from the first revision it covers), exactly the watch's events
   of the revisions from just after `p`'s (if `p`'s is unknown: from some revision at most the
   floor's + 1) to the last event's; the principal was permitted to read the range;
@@ -273,7 +301,7 @@ def watchStep (who : Principal) (w : WatchReq) (σ σa : State) (p : WatchPos) (
   p'.evDone = (if m.events = [] then p.evDone else p'.done) ∧
   if p.ended = true then
     m.closeErr ≠ none ∧ m.compactRev = W64 0 ∧ m.hdr.revision = W64 0 ∧ m.events = [] ∧
-    m.canceled = true ∧ p'.done = p.done ∧ p'.ended = true
+    m.canceled = true ∧ m.created = false ∧ p'.done = p.done ∧ p'.ended = true
   else if m.isErr then
     m.events = [] ∧ m.canceled = true ∧ m.created = false ∧ p'.done = p.done ∧ p'.ended = true ∧
     (m.closeErr ≠ none → m.compactRev = W64 0 ∧ m.hdr.revision = W64 0) ∧
@@ -291,6 +319,8 @@ def watchStep (who : Principal) (w : WatchReq) (σ σa : State) (p : WatchPos) (
        p'.done = p.done.map (fun _ => P))
   else
     m.canceled = false ∧ p'.ended = false ∧ σa.permits who [(.read, w.range)] [] ∧
+    (∀ e ∈ m.events, ∃ (r : Nat) (ev : Event), ev ∈ σ.kv.eventsAt r ∧ e.kv.modRevision = W64 r ∧
+      (WEv.ofEvent r ev).del = e.del ∧ (WEv.ofEvent r ev).kv = e.kv ∧ w.keeps (WEv.ofEvent r ev)) ∧
     ∃ lo c' : Nat, (∀ c, p.done = some c → lo = c + 1) ∧
       (∀ f, p.done = none → p.floor = some f → lo ≤ f + 1) ∧ lo ≤ c' ∧
       (c' : Int) ≤ sint.Z m.hdr.revision ∧
@@ -308,11 +338,13 @@ def _root_.Perennial.EtcdGrove.EtcdWire.WireWatchRespM.toResp (m : WireWatchResp
     closeErr := none }
 
 /-- **A stream's state** as its responses so far made it: how many creates were answered, the live
-registrations (id, watch, position), the id and events of fragments not yet completed. -/
+registrations (id, watch, position), the first fragment and the events of fragments not yet
+completed (`run` keeps the first fragment as `cur` and appends the later ones' events to it,
+`watch.go:596-603`: the dispatched response is the first's with every fragment's events). -/
 structure WireSt where
   answered : Nat
   regs : List (Int × WatchReq × WatchPos)
-  frag : Option (Int × List EventM)
+  frag : Option (WireWatchRespM × List EventM)
   /-- the ids announced by a `Created` (mvcc's ids only grow: never announced twice) -/
   seen : List Int
   /-- the ids whose cancel response was sent: nothing more is sent for them -/
@@ -336,7 +368,9 @@ made the state `st`; `st'` the state after it. `σ`, `σa` reached states as in 
 * every response has a header;
 * a fragment (`Fragment` set) carries part of a response's events (at least one), for a registered
   watch with `Fragment` set: the next responses up to the first without `Fragment` are of the same
-  id (`WireSt.frag` records it), none a creation or a cancel, and together they are one response;
+  id, with the same header, compaction revision and cancel reason as the first (`WireSt.frag` keeps
+  the first; `sendFragments` copies them into every fragment, `v3rpc/watch.go:634-643`), none a
+  creation or a cancel, and together they are one response;
 * ids: a registration's id was never announced before (`WireSt.seen`); every other response of an
   id is of an announced one, never of one whose cancel response was sent (`WireSt.retired`);
 * `Created` answers the oldest unanswered create: refused (`Canceled`, with a reason: an auth
@@ -357,12 +391,15 @@ def wireStep (who : Principal) (σ σa : State) (ss : List WireWatchReq) (st : W
   let evs := (st.frag.map (·.2)).getD [] ++ m.events
   -- every response has a header
   m.hdr ≠ none ∧
-  -- a pending fragment: the next response is of its id, neither a creation nor a cancel
-  (∀ id fe, st.frag = some (id, fe) → m.watchId = id ∧ m.created = false ∧ m.canceled = false) ∧
+  -- a pending fragment: the next response is of its id, with its header, compaction revision and
+  -- cancel reason, neither a creation nor a cancel
+  (∀ f fe, st.frag = some (f, fe) → m.watchId = f.watchId ∧ m.hdr = f.hdr ∧
+    m.compactRev = f.compactRev ∧ m.cancelReason = f.cancelReason ∧ m.created = false ∧
+    m.canceled = false) ∧
   if m.fragment = true then
     m.created = false ∧ m.canceled = false ∧ m.events ≠ [] ∧
     (∃ w p, st.reg m.watchId = some (w, p) ∧ w.fragment = true) ∧
-    st' = { st with frag := some (m.watchId, evs) }
+    st' = { st with frag := some ((st.frag.map (·.1)).getD m, evs) }
   else if m.created = true then
     ∃ w s, (WireWatchReq.creates ss)[st.answered]? = some (w, s) ∧ evs = [] ∧
       sint.Z (m.hdr.getD HeaderM.zero).revision ≤ (σ.kv.rev : Int) ∧
@@ -402,8 +439,18 @@ section res
 variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
-/-- **A `*watcher`** of the cluster `γ` as `who` (persistent). -/
-opaque watcherHandle [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (w : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+/-- **A `*watcher`** of the cluster `γ` as `who` (persistent), whose stub works once the client `c`
+is ready (`clientReady c`; `null`: a caller's stub, which needs no readiness). -/
+opaque watcherHandle [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (w c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+
+/-- **`k` is a stream key of the context `ctx`** (persistent): what `streamKeyFromCtx(ctx)`
+returns, Go's `fmt.Sprintf("%+v", md)` of the context's gRPC outgoing metadata `md`, or `""` without
+any. Intended realization: `∃ md, Grpc.outMD ctx md ∗ ⌜(k = "" ∧ md = []) ∨ k = streamKeyOf md⌝`
+(the disjunction because grpc's `FromOutgoingContext.spec` does not say whether an empty map was
+attached), with `streamKeyOf` the printing function of `fmt`'s trust-boundary spec of `%+v` on a
+`map[string][]string`. Not stated functional (no law needs it: a stream's `ctxKey` that differed
+from its map key would only make `closeStream` forget another entry, a liveness matter). -/
+opaque ctxStreamKey [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ctx : GoInterface) (k : GoString) : IProp GF := iprop(True)
 
 /-- **The consumer of a watch's channel** `ch` (exclusive): the watch `w` of the principal `who`,
 at the position `p`. -/
@@ -486,8 +533,9 @@ reached before the return; or a channel that ends at once. Any context: when it 
 (liveness, not stated). The options are given back. `OpWatch` must not panic (`watchPanics`: no
 lease, no range-only option). `ctxPrin who ctx p` (W0): the member authenticates a request with
 `ctx` as `p` (the client's `who` without token metadata); the watch stream this watch joins was
-opened with a context of the same metadata (`streamKeyFromCtx`), so the member checks the create as
-`p`'s, and the consumer's facts are `p`'s. (Two contexts whose metadata print alike share a stream,
+opened with a context of the same stream key (`streamKeyFromCtx`, `ctxStreamKey`), which
+`ctxStreamKey_prin` makes authenticated as `p` too, so the member checks the create as `p`'s, and
+the consumer's facts are `p`'s. (Two contexts whose metadata print alike share a stream,
 `nonissues/etcd-watch-stream-key-collision.md`: not with tokens, which hold no spaces.) -/
 def Watcher.WatchTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal) : Prop :=
   ∀ (ctx : GoInterface) (p : Principal) (key : GoString) (opts : GoSlice) (gs : List (OpM → OpM)),
@@ -520,7 +568,8 @@ def Watcher.CloseTriple (f : val) (P : IProp GF) : Prop :=
 /-! ## Laws -/
 
 def watch_persistent.spec : Prop :=
-  (∀ w γ who, Persistent (watcherHandle (GF := GF) w γ who)) ∧
+  (∀ w c γ who, Persistent (watcherHandle (GF := GF) w c γ who)) ∧
+  (∀ ctx k, Persistent (ctxStreamKey (GF := GF) ctx k)) ∧
   (∀ v γ who, Persistent (remoteWatchAt (GF := GF) v γ who)) ∧
   (∀ g ss, Persistent (wireWatchSentLb (GF := GF) g ss)) ∧
   (∀ e k, Persistent (closeErrOk (GF := GF) e k))
@@ -534,10 +583,29 @@ def watcherAt_methods.spec : Prop := ∀ (v : GoInterface) (γ : Cluster) (who :
   Watcher.CloseTriple (v @!! go_etcd_io.etcd.client.v3.Watcher.ty @!! go!"Close")
     (watcherAt (GF := GF) v γ who)
 
-/-- A `*watcher` meets the contract (its methods' specs, `watcher__*.lean`). -/
-def watcherHandle_watcherAt.spec : Prop := ∀ w γ who,
-  watcherHandle (GF := GF) w γ who ⊢
+/-- A `*watcher` meets the contract (its methods' specs, `watcher__*.lean`) once its client is ready
+(`clientReady c`: the stub opens a stream through the client's stream interceptor, whose token
+refresh reads `c.Auth`, which `newClient` sets after `NewWatcher`; verify-round W3).
+`clientReady_null` for a watcher over a caller's stub (the in-process client). -/
+def watcherHandle_watcherAt.spec : Prop := ∀ w c γ who,
+  watcherHandle (GF := GF) w c γ who ∗ clientReady c ⊢
     watcherAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.watcher.ty) #w) γ who
+
+/-- **Contexts with the same stream key are authenticated alike** (verify-round W2): `Watch` and
+`RequestProgress` join the stream another context with the same key opened, whose principal the
+member authenticates it as. True of every context `ctxPrin`'s introductions admit (W0's
+`ctxPrin_of_noMeta`, `_token`, `_tokenSame`, `_value`, `_child`, `WithRequireLeader`'s,
+`withVersion`'s): their outgoing metadata is none (the key `""`, which no map prints as), or maps
+of fixed lower-case keys (`token`, `hasleader`, the version's) to one value with no space, `:`,
+`[` or `]` (a token: simple tokens are letters, JWTs base64url and dots), which `%+v` prints
+injectively; the principal is a function of the metadata (the token's user, else `dflt`). A
+context whose metadata collides (`nonissues/etcd-watch-stream-key-collision.md`: values with
+spaces) has no `ctxPrin`. Realized with the old tree's `streamKeyOf_none`, `streamKeyOf_single`
+(`specs-ref/Proof/go_etcd_io/etcd/client/v3/StreamKey.lean`) over `fmt`'s boundary. -/
+def ctxStreamKey_prin.spec : Prop := ∀ (dflt : Principal) (ctx ctx' : GoInterface) (p p' : Principal)
+    (k : GoString),
+  ctxPrin (GF := GF) dflt ctx p ∗ ctxPrin dflt ctx' p' ∗ ctxStreamKey ctx k ∗ ctxStreamKey ctx' k ⊢
+    ⌜p = p'⌝
 
 /-- **Receiving from a watch's channel** (alone, or each iteration of a `for range`): a response,
 modelled, with what it says (`watchStep`, at reached states), and the consumer at the new

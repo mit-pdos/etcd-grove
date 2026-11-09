@@ -5,7 +5,7 @@
 
 **Proof sketch.** Trust boundary, as `WarnOfExpensiveRequest`: `isNil`, `proto.Size`, `lg.Warn`.
 
-**Changes.** As `WarnOfExpensiveRequest`. **Margin.** None.
+**Changes.** As `WarnOfExpensiveRequest` (second pass: `stringerAt`, given back). **Margin.** None.
 -/
 module
 
@@ -34,9 +34,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 def WarnOfFailedRequest.spec : Prop :=
   ∀ (lg : Loc) (now : time.Time) (req msg : GoInterface) (o : Option (DFrac × Proto.Content))
     (err : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ Zap.isLogger lg ∗ stringerOk req ∗ msgOpt msg o }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ Zap.isLogger lg ∗ EtcdServerPb.stringerAt req ∗ msgOpt msg o }}
     (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.WarnOfFailedRequest)) (Val #lg)) (Val #now)) (Val #req)) (Val #msg)) (Val #err))
-  {{ RET #(); msgOpt msg o }}
+  {{ RET #(); EtcdServerPb.stringerAt req ∗ msgOpt msg o }}
 
 end spec
 end Txn

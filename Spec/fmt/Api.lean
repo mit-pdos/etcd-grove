@@ -14,6 +14,14 @@ its spec (`Sscanf.lean`) is **assumed** (Go's `fmt` is not verified here), state
   `errorsIs_recipeErr` relies on that). Intended realization: a disjunction over those shapes.
 
 Law: `scanErr_persistent`, `scanErr_ne_nil`.
+
+**Printing a gRPC metadata map** (verify round, client-watch's request: `streamKeyFromCtx` is
+`fmt.Sprintf("%+v", md)` of a `metadata.MD`, a `map[string][]string`): `printMD md` (opaque pure
+function of the map's model, a list of keys with their values, as grpc's `Grpc.MD`): Go prints a map
+with its keys sorted, `map[k1:[v11 v12] k2:[v21]]`. Law `printMD_inj`: two maps whose keys and
+values hold no space, `:`, `[` or `]` (and no empty value), keys distinct, print equal only if they
+are equal up to the order of keys. The `Sprintf` triple over the map's heap representation is
+requested of 2a (grpc's `outMD` gives the map): `notes/specs-only/verify/repair-client-core.md`.
 -/
 module
 
@@ -46,6 +54,19 @@ def scanErr_persistent.spec : Prop := ∀ err, Persistent (scanErr (GF := GF) er
 def scanErr_ne_nil.spec : Prop := ∀ err, scanErr (GF := GF) err ⊢ ⌜err ≠ GoInterface.nil⌝
 
 end res
+
+/-- **`fmt.Sprintf("%+v", m)` of a `map[string][]string` modelled by `md`** (assumed: Go's
+printing, keys sorted). -/
+opaque printMD (md : List (GoString × List GoString)) : GoString := []
+
+/-- A metadata map whose printing is unambiguous. -/
+def mdPrintable (md : List (GoString × List GoString)) : Prop :=
+  (md.map (·.1)).Nodup ∧ ∀ kv ∈ md, ∀ s ∈ kv.1 :: kv.2, s ≠ [] ∧
+    ∀ b ∈ s, b ≠ W8 32 ∧ b ≠ W8 58 ∧ b ≠ W8 91 ∧ b ≠ W8 93
+
+/-- **Printing is injective on printable maps** (up to the order of keys: Go sorts them). -/
+def printMD_inj.spec : Prop := ∀ md md' : List (GoString × List GoString),
+  mdPrintable md → mdPrintable md' → printMD md = printMD md' → md.Perm md'
 
 end Fmt
 end EtcdGrove

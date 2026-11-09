@@ -6,10 +6,12 @@ Snippet: `leasing/reads.go` (`ReqGetStreamUnsupported`).
 
 Proof sketch: `status.Error(codes.Unimplemented, msg)` (grpc's boundary, 2a: a non-nil error of
 kind `.other`, `callErr`: `req/google_golang_org_grpc.md`, from 1e); returns `(nil, err)`: the
-second disjunct, `indefCall err` with the thread token given back.
+second disjunct, `indefCall err` (W0's `GetStream` takes and gives no thread token).
 
 Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/leasing/leasingKV__GetStream.lean`: W0's
 contract (was an unconditional error post).
+Second pass: W0's `KV.GetStreamTriple` no longer takes a thread token and takes the scope
+premise `emptyEnd = false`; nothing to change here (the code never uses either).
 
 Margin: the code always errs; the contract allows a stream.
 -/

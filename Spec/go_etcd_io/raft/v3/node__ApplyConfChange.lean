@@ -17,7 +17,7 @@ nothing.
 **Changes.** The second case (an entry below the view, a no-op) is new: it replaces the bootstrap
 log's special configuration and the restart's skip rule.
 
-**Margin.** After a stop, `nil`.
+**Margin.** After a stop, `nil`. Verify-round (A5 completeness F2, raft-conf-pb's request): `confStateFull` (Go's `ConfState()` sets `AutoLeave`), so the server can store it in a snapshot (`CreateSnapshot`, the merged `MsgSnap`).
 -/
 module
 
@@ -55,7 +55,7 @@ def node.ApplyConfChange.spec : Prop :=
       (if v.applied ≤ k then confSkipped γ l v.applied k else iprop(⌜m' = v.membership⌝)) }}
     (App (Val (n @!! go.GoType.PointerType go_etcd_io.raft.v3.node.ty @!! go!"ApplyConfChange")) (Val #cc))
   {{ (csp : Loc), RET #csp; confChangePts cc dq c ∗
-      ((∃ cs, confStatePts csp (DFrac.own 1) cs ∗ ⌜cs.Is m'⌝ ∗
+      ((∃ cs, RaftPb.confStateFull csp (DFrac.own 1) cs ∗ ⌜cs.Is m'⌝ ∗
           nodeConf n γ (if v.applied ≤ k then ⟨k + 1, m'⟩ else v)) ∨ (⌜csp = null⌝ ∗ nodeStopped n ∗ nodeConf n γ v)) }}
 
 end spec
