@@ -302,6 +302,18 @@ nothing needs relaxing; else `WinsOk` and `TermsOk` (not `campOwn`) are relaxed 
 deferred `traceCommit` (the law holds `raftLogInv` open and passes `FxPresU` only `votesTbl`).
 F5 (D6, C5-C7) cosmetic, open.
 
+**Prove phase begun (2026-11-09).** Layer C's `trace.go` merged (41 functions; the checker's package
+fact now holds `Invariants` and the three tables, both proved by `etc/gen-init.py`'s generated
+`Init.lean`, the tables' literals in the initializer's insertion order); its rest (the out-of-scope
+actions' `*IfLogged` branches, `nonReceive`, `Next`, `StepLine`, `NewTrace`, `CheckTrace`) delegated
+(branch `trace-check-layerc-top`). **Q8 staged (decided by the agent):** stage 0, mechanical: raft's
+logger clause becomes `TraceLoggerOkS s.gh.tr tl`, and the hook paths' specs take a pure
+`s.gh.tr = none` premise threaded up to the node invariants, which record the mode (the untraced
+clients' `reTrace = none`), checked against Q6's acceptance test (branch `trace-check-q8`); stage 1
+replaces that premise by the traced capability function by function, from the hooks up, with the
+raft-side ghost changes rounds 5-6 recorded (the win's split, the records in the `Replicate` lines'
+steps).
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its
