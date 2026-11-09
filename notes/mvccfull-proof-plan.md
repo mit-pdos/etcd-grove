@@ -45,7 +45,7 @@ alternatives out *per config* (`config.go`, corrected in this stage), so `Run.sp
 
 ## What exists, what does not
 
-The tester calls about 60 mvcc, lessor and backend functions. Against `lean` (`9fd1f8b6`,
+The tester calls about 60 mvcc, lessor and backend functions. Against `lean` (`037bf21c75`,
 2026-11-09):
 
 | Need | Status |
