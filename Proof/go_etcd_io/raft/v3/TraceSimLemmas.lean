@@ -1306,7 +1306,7 @@ theorem checkLine_single (t : Etcdraft.Trace) (ts ts' : Etcdraft.TState) (hnext 
 theorem commitTo_le (st : Etcdraft.State) (i : Etcdraft.ID) (n : Int) (h : n ≤ (st.s i).commitIndex) :
     st.commitTo i n = st.commitTo i (st.s i).commitIndex := by
   unfold Etcdraft.State.commitTo
-  congr 1; funext v; congr 1; omega
+  apply upd_congr; congr 1; omega
 
 /-- **The leader's commit when `maybeCommit` refuses** (`Committed()`'s quorum index `N`: not past
 the commit index, or not of the leader's term): the specification's `AdvanceCommitIndex(i)` leaves
@@ -1318,9 +1318,13 @@ theorem advanceCommitIndex_noop (st : Etcdraft.State) (i : Etcdraft.ID) (C : Lis
     (hmax : ∀ k : Nat, uint.Z N < k → k ≤ s.log.length → ¬ IsQuorum (GMap.listToSet C) (ackedBy s (W64 k)))
     (hno : ¬ (uint.Z s.commit < uint.Z N ∧ plogTermAt s.base s.log N = some s.term)) :
     st.advanceCommitIndex i = some (st.commitTo i (st.s i).commitIndex) := by
+  have hNn : (uint.nat N : Int) = uint.Z N := by word
+  have hNw : W64 (uint.nat N) = N := by word
   have hR' := hR
   obtain ⟨h1, h2, -, -, h5, h6, h7, -, -, -, -⟩ := hR'
   have hlen : (st.s i).log.length = s.log.length := by rw [h6, logAbs_length]
+  have hlen64 : s.log.length < 2 ^ 64 := by
+    have := lastIndex_plogLast bl s hs; have := uint_Z_lt (plogLast s.base s.log).index'; omega
   unfold Etcdraft.State.advanceCommitIndex
   have hlead : ((st.s i).state != Etcdraft.leader) = false := by rw [h2, hl]; rfl
   simp only [hlead, Bool.false_eq_true, ↓reduceIte]
@@ -1334,36 +1338,55 @@ theorem advanceCommitIndex_noop (st : Etcdraft.State) (i : Etcdraft.ID) (C : Lis
     cases h : Etcdraft.isQuorum _ _
     · rfl
     · exfalso
-      rw [specQuorum_iff C hnd bl s _ hR hl _ (by omega) (by have := uint_Z_lt N; omega)] at h
-      exact hmax k (by word) hk2 h
+      rw [specQuorum_iff C hnd bl s _ hR hl _ (by omega) (by omega)] at h
+      exact hmax k (by omega) hk2 h
   by_cases hN0 : uint.Z N = 0
   · -- no quorum anywhere: `maxAgree` is 0
     obtain ⟨hM, hM2⟩ := maxAgree_spec
       (fun index => Etcdraft.isQuorum ((st.getConfig i).filter
         (fun k => decide ((st.s i).matchIndex k ≥ (index : Int)))) (st.getConfig i)) s.log.length
-    simp only at hM hM2
     have h0 : (List.range s.log.length).foldl (fun acc n =>
         if Etcdraft.isQuorum ((st.getConfig i).filter
           (fun k => decide ((st.s i).matchIndex k ≥ ((n + 1 : Nat) : Int)))) (st.getConfig i) = true
         then n + 1 else acc) 0 = 0 := by
       rcases hM with h | ⟨h1', h2', h3'⟩
       · exact h
-      · exfalso; rw [hfalse _ (by word) h2'] at h3'; cases h3'
+      · exfalso; rw [hfalse _ (by omega) h2'] at h3'; cases h3'
     rw [h0]
     simp
   · have hN1 : 0 < uint.Z N := by have := uint_Z_nonneg N; omega
     have hma := maxAgree_eq
       (fun index => Etcdraft.isQuorum ((st.getConfig i).filter
         (fun k => decide ((st.s i).matchIndex k ≥ (index : Int)))) (st.getConfig i))
-      s.log.length (uint.nat N) (by word) (by word)
+      s.log.length (uint.nat N) (by omega) (by omega)
       (by
         show Etcdraft.isQuorum (List.filter _ (st.s i).config.incoming) (st.s i).config.incoming = true
-        rw [specQuorum_iff C hnd bl s _ hR hl _ (by word) (by word)]
-        have : W64 (uint.nat N) = N := by word
-        rw [this]; exact hq hN1)
+        rw [specQuorum_iff C hnd bl s _ hR hl _ (by omega) (by omega)]
+        rw [hNw]; exact hq hN1)
       (fun k hk1 hk2 => hfalse k hk1 hk2)
     rw [hma]
-    sorry
+    split
+    · rename_i hc
+      simp only [Bool.and_eq_true, decide_eq_true_eq, beq_iff_eq] at hc
+      obtain ⟨-, ht⟩ := hc
+      obtain ⟨hb0, -, hboot⟩ := hs
+      rw [h6, logAbs_getElem?] at ht
+      obtain ⟨e, he⟩ : ∃ e, s.log[uint.nat N - 1]? = some e := by
+        cases hh : s.log[uint.nat N - 1]? with
+        | none => rw [hh] at ht; cases ht
+        | some e => exact ⟨e, rfl⟩
+      rw [he] at ht
+      simp only [Option.map_some, Option.some.injEq] at ht
+      rw [entAbs_term C bl _ e (fun hb => hboot _ e (by omega) he), h1] at ht
+      have hte : e.Term' = s.term := uint_Z_inj.mp ht
+      have hpt : plogTermAt s.base s.log N = some s.term := by
+        rw [hb0, plogTermAt_base0 s.log N hN1, he]; simp [hte]
+      have hle : uint.Z N ≤ uint.Z s.commit :=
+        Int.not_lt.mp (fun hlt => hno ⟨hlt, hpt⟩)
+      congr 1
+      apply commitTo_le
+      rw [h7]; omega
+    · rfl
 
 end TraceSim
 
