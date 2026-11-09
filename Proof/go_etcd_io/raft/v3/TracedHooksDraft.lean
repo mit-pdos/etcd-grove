@@ -211,8 +211,8 @@ whose skip bit only the node's previous line decides, review round 1's F6, so th
 a bootstrap line, `bootFlags_nonBoot`): from every share `(cs, P)` in phase `Φ`,
 each event `E` allows has, for every server `a` the share stands for, an effect into a share in
 phase `Φ'` (review round 1's S2), its pending messages `P'` added. -/
-def PhaseStep (id : w64) (E : TraceEv → Prop) (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) : Prop :=
-  ∀ C cs P, Φ C cs P → ∀ e, E e → Etcdraft.isBootstrapName (gsStr e.name) = false ∧
+def PhaseStep (id : w64) (c : CfgM) (E : TraceEv → Prop) (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) : Prop :=
+  ∀ C cs P, Φ C cs P → (elements c.incoming).Perm C ∧ c.outgoing = ∅ ∧ id ∈ C → ∀ e, E e → Etcdraft.isBootstrapName (gsStr e.name) = false ∧
     ∀ a : Etcdraft.Server, toC (confAbs C) a = cs →
     ∃ (a' : Etcdraft.Server) (P' : List Etcdraft.Msg),
       Φ' C (toC (confAbs C) a') (P ++ P') ∧
@@ -335,8 +335,10 @@ def FxPres (γ : RaftNames) (id : w64) (E : TraceEv → Prop)
       (P' : List Etcdraft.Msg) (σ : Etcdraft.State),
     ⌜Φ C cs P ∧ E e ∧ toC (confAbs C) a = cs ∧ Φ' C (toC (confAbs C) a') (P ++ P') ∧
       LineEffect C false e (idAbs id) a a' none _root_.id (fun b => P'.foldl Etcdraft.Bag.with b) (fun _ => False) ∧
-      σ.server = confAbs C ∧ σ.s (idAbs id) = a⌝ -∗
-    simFx γ C σ -∗ simFx γ C (withNode σ (idAbs id) a' _root_.id (fun b => P'.foldl Etcdraft.Bag.with b)))
+      σ.server = confAbs C ∧ σ.s (idAbs id) = a ∧ σ.preVote = false ∧ σ.checkQuorum = false ∧
+      σ.violated = .ok none⌝ -∗
+    votesTbl γ -∗ simFx γ C σ -∗
+      votesTbl γ ∗ simFx γ C (withNode σ (idAbs id) a' _root_.id (fun b => P'.foldl Etcdraft.Bag.with b)))
 
 /-- **The global step, as one law** (Draft statement; its proof is `simRun_lineEffect` inside the
 logger's update, with the invariants from `simFx` and the bags' uniqueness): a capability in phase
@@ -345,7 +347,7 @@ leaves the capability in phase `Φ'`. -/
 abbrev trCap_fire.statement : Prop :=
   ∀ (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (tl : GoInterface) (E : TraceEv → Prop)
     (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop),
-  PhaseStep id E Φ Φ' →
+  PhaseStep id c E Φ Φ' →
   (trCap (some γd) γ r id c Φ ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗ FxPres γ id E Φ Φ' : IProp GF) ⊢
     TraceFire (some γd) tl E (trCap (some γd) γ r id c Φ')
 
@@ -355,9 +357,9 @@ abbrev trCap_fire.statement : Prop :=
 allows is a line matching `m` (its parse's `recvPred`), not bootstrap-named, with, for every server
 the share stands for, an effect consuming `m` (its replies `P'` pending) into phase `Φ'`, through
 intermediate states of the shape `Mid`. -/
-def PhaseStepR (id : w64) (m : Etcdraft.Msg) (E : TraceEv → Prop) (Mid : Etcdraft.Server → Prop)
+def PhaseStepR (id : w64) (c : CfgM) (m : Etcdraft.Msg) (E : TraceEv → Prop) (Mid : Etcdraft.Server → Prop)
     (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) : Prop :=
-  ∀ C cs P, Φ C cs P → ∀ e, E e → Etcdraft.isBootstrapName (gsStr e.name) = false ∧
+  ∀ C cs P, Φ C cs P → (elements c.incoming).Perm C ∧ c.outgoing = ∅ ∧ id ∈ C → ∀ e, E e → Etcdraft.isBootstrapName (gsStr e.name) = false ∧
     (∀ ln, Etcdraft.parseLine 0 (evConv e) = .ok ln → recvPred ln m = true) ∧
     ∀ a : Etcdraft.Server, toC (confAbs C) a = cs →
     ∃ (a' : Etcdraft.Server) (P' : List Etcdraft.Msg),
@@ -374,9 +376,10 @@ def FxPresR (γ : RaftNames) (id : w64) (m : Etcdraft.Msg) (E : TraceEv → Prop
     ⌜Φ C cs P ∧ E e ∧ toC (confAbs C) a = cs ∧ Φ' C (toC (confAbs C) a') (P ++ P') ∧
       LineEffect C false e (idAbs id) a a' (some m) (fun b => b.without m)
         (fun b => P'.foldl Etcdraft.Bag.with b) Mid ∧
-      σ.server = confAbs C ∧ σ.s (idAbs id) = a⌝ -∗
-    simFx γ C σ -∗
-      simFx γ C (withNode σ (idAbs id) a' (fun b => b.without m) (fun b => P'.foldl Etcdraft.Bag.with b)) ∗
+      σ.server = confAbs C ∧ σ.s (idAbs id) = a ∧ σ.preVote = false ∧ σ.checkQuorum = false ∧
+      σ.violated = .ok none ∧ m ∈ σ.messages.domain⌝ -∗
+    votesTbl γ -∗ simFx γ C σ -∗
+      votesTbl γ ∗ simFx γ C (withNode σ (idAbs id) a' (fun b => b.without m) (fun b => P'.foldl Etcdraft.Bag.with b)) ∗
       (∀ v, ⌜Mid v⌝ -∗ simFx γ C (withNode σ (idAbs id) v _root_.id _root_.id)))
 
 /-- **The global step of a receive line, as one law** (Draft statement): as `trCap_fire`, the line
@@ -385,7 +388,7 @@ abbrev trCap_fire_recv.statement : Prop :=
   ∀ (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (tl : GoInterface) (E : TraceEv → Prop)
     (k : Nat) (m : Etcdraft.Msg) (Mid : Etcdraft.Server → Prop)
     (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop),
-  PhaseStepR id m E Mid Φ Φ' →
+  PhaseStepR id c m E Mid Φ Φ' →
   (trCap (some γd) γ r id c Φ ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗ FxPresR γ id m E Mid Φ Φ' ∗
     (∃ tn, traceDir γd tn ∗ inFlight tn k m) : IProp GF) ⊢
     TraceFire (some γd) tl E (trCap (some γd) γ r id c Φ')
@@ -521,7 +524,7 @@ abbrev raft.send.tracedSpec : Prop :=
   rs = [] →
   (s.gh.tr.isSome → mtypeOf m.Type' ≠ some .snap) →
   (match (mtypeOf m.Type').bind sendEvt with
-   | some evt => ∀ mm ∈ out, PhaseStep id (SendEvOf evt id s c mm) Φ Φ'
+   | some evt => ∀ mm ∈ out, PhaseStep id c (SendEvOf evt id s c mm) Φ Φ'
    | none => ∀ C cs P, Φ C cs P → Φ' C cs P) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗

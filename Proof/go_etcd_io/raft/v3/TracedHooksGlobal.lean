@@ -262,15 +262,16 @@ theorem trCap_fire : trCap_fire.statement (GF := GF) := by
     rw [HAid] at hQ
     simp only [Option.some.injEq, Prod.mk.injEq] at hQ
     obtain ⟨hcs, hQP⟩ := hQ
-    obtain ⟨hname, hall⟩ := hps C cs P HΦ e HE
+    obtain ⟨hname, hall⟩ := hps C cs P HΦ ⟨hperm, hout, hC⟩ e HE
     obtain ⟨a', P', hΦ', hle⟩ := hall (σ.s (idAbs id)) (by rw [hcs, hsrv])
+    icases keep_pure (simFx_violated γ C σ hsrv) $$ [$Htbl $Hfσ] with ⟨⟨Htbl, -⟩, %hv⟩
     have hpre : Φ C cs P ∧ E e ∧ toC (confAbs C) (σ.s (idAbs id)) = cs ∧ Φ' C (toC (confAbs C) a') (P ++ P') ∧
         LineEffect C false e (idAbs id) (σ.s (idAbs id)) a' none _root_.id
           (fun b => List.foldl Etcdraft.Bag.with b P') (fun _ => False) ∧
-        σ.server = confAbs C ∧ σ.s (idAbs id) = σ.s (idAbs id) :=
-      ⟨HΦ, HE, by rw [hcs, hsrv], hΦ', hle, hsrv, rfl⟩
-    ihave #Hfσ' := Hfx $$ %C %cs %P %e %(σ.s (idAbs id)) %a' %P' %σ %hpre Hfσ
-    icases keep_pure (simFx_violated γ C σ hsrv) $$ [$Htbl $Hfσ] with ⟨⟨Htbl, -⟩, %hv⟩
+        σ.server = confAbs C ∧ σ.s (idAbs id) = σ.s (idAbs id) ∧ σ.preVote = false ∧ σ.checkQuorum = false ∧
+        σ.violated = .ok none :=
+      ⟨HΦ, HE, by rw [hcs, hsrv], hΦ', hle, hsrv, rfl, hpv, hcq, hv⟩
+    icases Hfx $$ %C %cs %P %e %(σ.s (idAbs id)) %a' %P' %σ %hpre Htbl Hfσ with ⟨Htbl, #Hfσ'⟩
     have hsrv' : (withNode σ (idAbs id) a' _root_.id (fun b => List.foldl Etcdraft.Bag.with b P')).server =
         confAbs C := hsrv
     icases keep_pure (simFx_violated γ C _ hsrv') $$ [$Htbl $Hfσ'] with ⟨⟨Htbl, -⟩, %hv'⟩
@@ -356,16 +357,22 @@ theorem trCap_fire_recv : trCap_fire_recv.statement (GF := GF) := by
     rw [HAid] at hQ
     simp only [Option.some.injEq, Prod.mk.injEq] at hQ
     obtain ⟨hcs, hQP⟩ := hQ
-    obtain ⟨hname, hmatch, hall⟩ := hps C cs P HΦ e HE
+    obtain ⟨hname, hmatch, hall⟩ := hps C cs P HΦ ⟨hperm, hout, hC⟩ e HE
     obtain ⟨a', P', hΦ', hle⟩ := hall (σ.s (idAbs id)) (by rw [hcs, hsrv])
+    iunfold inFlight at Htok
+    icases ghost_map_lookup $$ HB Htok with %HBk
+    icases keep_pure (simFx_violated γ C σ hsrv) $$ [$Htbl $Hfσ] with ⟨⟨Htbl, -⟩, %hv0⟩
+    have hmd : m ∈ σ.messages.domain := by
+      have hml : m ∈ (GMap.toList B).map Prod.snd ++ phM :=
+        List.mem_append_left _ (List.mem_map.2 ⟨(k, m), (GMap.mem_toList B k m).2 HBk, rfl⟩)
+      exact bag_mem_domain_of_count _ _ (by rw [hMb.2.2 m]; exact List.count_pos_iff.2 hml)
     have hpre : Φ C cs P ∧ E e ∧ toC (confAbs C) (σ.s (idAbs id)) = cs ∧ Φ' C (toC (confAbs C) a') (P ++ P') ∧
         LineEffect C false e (idAbs id) (σ.s (idAbs id)) a' (some m) (fun b => b.without m)
           (fun b => List.foldl Etcdraft.Bag.with b P') Mid ∧
-        σ.server = confAbs C ∧ σ.s (idAbs id) = σ.s (idAbs id) :=
-      ⟨HΦ, HE, by rw [hcs, hsrv], hΦ', hle, hsrv, rfl⟩
-    ihave ⟨#Hfσ', #Hmid⟩ := Hfx $$ %C %cs %P %e %(σ.s (idAbs id)) %a' %P' %σ %hpre Hfσ
-    iunfold inFlight at Htok
-    icases ghost_map_lookup $$ HB Htok with %HBk
+        σ.server = confAbs C ∧ σ.s (idAbs id) = σ.s (idAbs id) ∧ σ.preVote = false ∧ σ.checkQuorum = false ∧
+        σ.violated = .ok none ∧ m ∈ σ.messages.domain :=
+      ⟨HΦ, HE, by rw [hcs, hsrv], hΦ', hle, hsrv, rfl, hpv, hcq, hv0, hmd⟩
+    icases Hfx $$ %C %cs %P %e %(σ.s (idAbs id)) %a' %P' %σ %hpre Htbl Hfσ with ⟨Htbl, #Hfσ', #Hmid⟩
     ihave #Hfσc := Hfσ
     iunfold simFx at Hfσc
     icases Hfσc with ⟨-, %hfx⟩
