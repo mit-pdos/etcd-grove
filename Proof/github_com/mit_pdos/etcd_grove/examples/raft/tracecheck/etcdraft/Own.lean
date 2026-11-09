@@ -35,6 +35,20 @@ theorem uint_nat_W64_of_lt (j : Nat) (h : j < 2 ^ 64) : uint.nat (W64 (Int.ofNat
   simp only [Int.ofNat_eq_natCast]
   omega
 
+/-- Go `==` on signed-read words is `=` on their values (layer C's actions, 2026-11-09). -/
+theorem sint_eq_iff (a b : w64) (x y : Int) (ha : sint.Z a = x) (hb : sint.Z b = y) : a = b ↔ x = y := by
+  subst ha hb
+  constructor
+  · rintro rfl; rfl
+  · intro h; word
+
+/-- Go `==` on unsigned-read words is `=` on their values. -/
+theorem uint_eq_iff (a b : w64) (x y : Nat) (ha : uint.nat a = x) (hb : uint.nat b = y) : a = b ↔ x = y := by
+  subst ha hb
+  constructor
+  · rintro rfl; rfl
+  · intro h; exact word.unsigned_inj (by have := congrArg (fun n : Nat => (n : Int)) h; simpa using this)
+
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
