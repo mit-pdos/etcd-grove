@@ -176,8 +176,8 @@ line, no branching, the invariants), read by `linesTrace` (`simRun_accepts` rela
 trace's `newTraceWith` once every voter's bootstrap lines are in). -/
 def SimRun (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) : Prop :=
   (L = [] ∧ σ = simInit C) ∨
-  ∃ lines, parseLines (L.map evConv) = .ok lines ∧
-    Etcdraft.Trace.RunRel (linesTrace C lines) L.length { s := σ, l := L.length + 1, pl := L.length }
+  ∃ lines ts, parseLines (L.map evConv) = .ok lines ∧
+    Etcdraft.Trace.RunRel (linesTrace C lines) L.length ts ∧ ts.s = σ ∧ ts.l = L.length + 1
 
 /-- Draft (to be proved, with `newTraceWith_len`): `newTraceWith` reads the events' lines, and its
 bootstrap flags are `bootFlags` of its servers. -/
@@ -222,7 +222,7 @@ theorem simRun_accepts (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (
     t.init = simInit C → t.server = confAbs C → t.initSrv = confAbs C →
     Etcdraft.TraceAccepts (L.map evConv) false false := by
   intro hrun hnt hinit hsrv hisrv
-  rcases hrun with ⟨hL, -⟩ | ⟨lines, hl, hr⟩
+  rcases hrun with ⟨hL, -⟩ | ⟨lines, ts, hl, hr, -, -⟩
   · subst hL; exact absurd hnt (Etcdraft.newTraceWith_nil false false t)
   · obtain ⟨hpl, hb⟩ := newTraceWith_lines _ t hnt
     rw [hl] at hpl
