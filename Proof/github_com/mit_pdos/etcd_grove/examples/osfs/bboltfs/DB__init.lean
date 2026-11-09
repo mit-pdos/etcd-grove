@@ -140,7 +140,7 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
       (xs.take 16384) rfl hw0' (by rw [hw00]; omega) (by rw [hw00, hF]; omega) (by rw [hF]; omega)
       (by rw [hF]; omega) he2 (fun _ => rfl) (.inl rfl)
       $$ [Hinv Hf Hfirst Hfd Hm Hw Hc]
-    as %n %err ⟨Hf, Hfirst, Hfd, %j, %ys, %h, %v, %Hres, Hm, Hw, Hc⟩
+    as %n %err ⟨Hf, Hfirst, Hfd, %j, %ys, %h, %v, %r, %Hres, Hm, Hw, Hc⟩
   · rw [hw00]; iframe Hf Hm Hw Hc Hfirst Hfd; iframe #
   (try rw [hw00] at *)
   (try rw [Nat.zero_min] at *)
@@ -167,7 +167,7 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
   wp_apply wp_Fd f fd p dqf $$ [Hf] as Hf
   · iexact Hf
   (try wp_auto)
-  wp_apply wp_Fdatasync fd dq ⟨i, true, true⟩ { m with size := pwSize m.size 0 16384, hi := h, vk := v } 0
+  wp_apply wp_Fdatasync fd dq ⟨i, true, true⟩ { m with size := pwSize m.size 0 16384, hi := h, vk := v, fr := r } 0
       _ $$ [Hinv Hfd Hm Hb] as %e ⟨Hfd, Hs⟩
   · iframe; iframe #
   icases Hs with (⟨%He, Hm, Hb⟩ | ⟨%He, Hm, -⟩)
@@ -185,15 +185,17 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
   (try wp_auto)
   -- the file after the first write and sync: `A`, of size `max m.size 16384`
   have hS : pwSize m.size 0 16384 = max m.size 16384 := by rw [pwSize_full _ _ _ (by decide)]
-  have hm1 : ({ m with size := pwSize m.size 0 16384, hi := h, vk := v } : OsMeta).synced 0
+  have hm1 : ({ m with size := pwSize m.size 0 16384, hi := h, vk := v, fr := r } : OsMeta).synced 0
         (ys ++ xs.drop 16384) =
       { m with size := max m.size 16384, lo := max m.size 16384, hi := max m.size 16384,
-               dur := durOf 0 (ys ++ xs.drop 16384), vk := some [], dz := none } := by
+               dur := durOf 0 (ys ++ xs.drop 16384), vk := some [], dz := none,
+               fr := r.map (max · (pageUp (max m.size 16384))) } := by
     simp only [OsMeta.synced, hS, hok, if_true]
   rw [hm1]
   generalize hm1' :
     ({ m with size := max m.size 16384, lo := max m.size 16384, hi := max m.size 16384,
-               dur := durOf 0 (ys ++ xs.drop 16384), vk := some [], dz := none } : OsMeta) = m1
+               dur := durOf 0 (ys ++ xs.drop 16384), vk := some [], dz := none,
+               fr := r.map (max · (pageUp (max m.size 16384))) } : OsMeta) = m1
   have hm1s : m1.size = max m.size 16384 := by rw [← hm1']
   have hm1m : m1.maps = ∅ := by rw [← hm1']; exact hmaps
   have hm1ok : m1.ok = true := by rw [← hm1']; exact hok
@@ -245,7 +247,7 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
       (DFrac.own 1) (W64 4096) dq ⟨i, true, true⟩ 1 m1 ((A.drop 4096).take 4096) rfl hw4'
       (by rw [hw4, hm1s]; omega) (by rw [hw4, hD1l]; omega) (by rw [hD1l]; omega) (by rw [hD1l]; omega)
       he2 (fun _ => rfl) (.inl rfl) $$ [Hinv Hf Hbuf1 Hfd Hm HbW Hc]
-    as %n2 %err2 ⟨Hf, Hbuf1, Hfd, %j2, %ys2, %h2, %v2, %Hres2, Hm, Hw, Hc⟩
+    as %n2 %err2 ⟨Hf, Hbuf1, Hfd, %j2, %ys2, %h2, %v2, %r2, %Hres2, Hm, Hw, Hc⟩
   · rw [hw4]; iframe Hf Hm HbW Hc Hbuf1 Hfd; iframe #
   obtain ⟨hj2, -, hys2, hh2, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne2⟩⟩ := Hres2
   rotate_left
@@ -277,7 +279,7 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
   · iexact Hf
   (try wp_auto)
   wp_apply wp_Fdatasync fd dq ⟨i, true, true⟩
-      { m1 with size := pwSize m1.size (W64 4096).toNat D1.length, hi := h2, vk := v2 } 0
+      { m1 with size := pwSize m1.size (W64 4096).toNat D1.length, hi := h2, vk := v2, fr := r2 } 0
       _ $$ [Hinv Hfd Hm Hb] as %e ⟨Hfd, Hs⟩
   · iframe; iframe #
   icases Hs with (⟨%He, Hm, Hb⟩ | ⟨%He, Hm, -⟩)
@@ -295,16 +297,18 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
   (try wp_auto)
   have hS2 : pwSize m1.size 4096 D1.length = max m.size 16384 := by
     rw [pwSize_full _ _ _ (by omega), hD1l, hm1s]; omega
-  have hm2 : ({ m1 with size := pwSize m1.size 4096 D1.length, hi := h2, vk := v2 } : OsMeta).synced 0
+  have hm2 : ({ m1 with size := pwSize m1.size 4096 D1.length, hi := h2, vk := v2, fr := r2 } : OsMeta).synced 0
         (A.take 4096 ++ (ys2 ++ A.drop 8192)) =
       { m with size := max m.size 16384, lo := max m.size 16384, hi := max m.size 16384,
-               dur := durOf 0 (A.take 4096 ++ (ys2 ++ A.drop 8192)), vk := some [], dz := none } := by
+               dur := durOf 0 (A.take 4096 ++ (ys2 ++ A.drop 8192)), vk := some [], dz := none,
+               fr := r2.map (max · (pageUp (max m.size 16384))) } := by
     rw [hS2, ← hm1']
     simp only [OsMeta.synced, hok, if_true]
   rw [hm2]
   generalize hm2' :
     ({ m with size := max m.size 16384, lo := max m.size 16384, hi := max m.size 16384,
-               dur := durOf 0 (A.take 4096 ++ (ys2 ++ A.drop 8192)), vk := some [], dz := none } : OsMeta) = m2
+               dur := durOf 0 (A.take 4096 ++ (ys2 ++ A.drop 8192)), vk := some [], dz := none,
+               fr := r2.map (max · (pageUp (max m.size 16384))) } : OsMeta) = m2
   have hm2s : m2.size = max m.size 16384 := by rw [← hm2']
   have hm2m : m2.maps = ∅ := by rw [← hm2']; exact hmaps
   have hm2ok : m2.ok = true := by rw [← hm2']; exact hok
@@ -343,7 +347,7 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
   wp_apply wp_WriteAt f fd p dqf (slice.slice buf w8 (W64 0) (W64 4096)) D0
       (DFrac.own 1) (W64 0) dq ⟨i, true, true⟩ 1 m2 (B.take 4096) rfl hw0z'
       (by rw [hw0z]; omega) (by rw [hw0z, hD0l]; omega) he0 (by omega) he3 (fun _ => rfl) (.inl rfl) $$ [Hinv Hf Hbuf0 Hfd Hm Hb0 Hc]
-    as %n3 %err3 ⟨Hf, Hbuf0, Hfd, %j3, %ys3, %h3, %v3, %Hres3, Hm, Hw, Hc⟩
+    as %n3 %err3 ⟨Hf, Hbuf0, Hfd, %j3, %ys3, %h3, %v3, %r3, %Hres3, Hm, Hw, Hc⟩
   · rw [hw0z]; iframe Hf Hm Hb0 Hc Hbuf0 Hfd; iframe #
   (try rw [hw0z] at *)
   (try rw [Nat.zero_min] at *)
@@ -369,7 +373,7 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
   wp_apply wp_Fd f fd p dqf $$ [Hf] as Hf
   · iexact Hf
   (try wp_auto)
-  wp_apply wp_Fdatasync fd dq ⟨i, true, true⟩ { m2 with size := pwSize m2.size 0 D0.length, hi := h3, vk := v3 } 0
+  wp_apply wp_Fdatasync fd dq ⟨i, true, true⟩ { m2 with size := pwSize m2.size 0 D0.length, hi := h3, vk := v3, fr := r3 } 0
       _ $$ [Hinv Hfd Hm Hb] as %e ⟨Hfd, Hs⟩
   · iframe; iframe #
   icases Hs with (⟨%He, Hm, Hb⟩ | ⟨%He, Hm, -⟩)
@@ -392,10 +396,11 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
         List.take_append_drop, List.map_drop]
     unfold initFile
     rw [hI, ← key, List.map_map]; rfl
-  have hm3 : ({ m2 with size := pwSize m2.size 0 D0.length, hi := h3, vk := v3 } : OsMeta).synced 0
+  have hm3 : ({ m2 with size := pwSize m2.size 0 D0.length, hi := h3, vk := v3, fr := r3 } : OsMeta).synced 0
         (ys3 ++ B.drop 4096) =
       { m with size := max m.size 16384, lo := max m.size 16384, hi := max m.size 16384,
-               dur := durOf 0 (initFile xs), vk := some [], dz := none } := by
+               dur := durOf 0 (initFile xs), vk := some [], dz := none,
+               fr := r3.map (max · (pageUp (max m.size 16384))) } := by
     rw [← hm2']
     simp only [OsMeta.synced, pwSize_full _ _ _ he0, hok, if_true]
     rw [hD0l, show max (max m.size 16384) (0 + 4096) = max m.size 16384 by omega, ← hfin,

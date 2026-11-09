@@ -60,12 +60,16 @@ theorem wp_osOfdLock (fd cmd : w64) (dq : DFrac) (d : OsFd) (hE : ↑osN ⊆ E) 
   iapply wp_value'
   iapply HΦ $$ Hfd
 
+/-- The `OsMeta` after a `fallocate(FALLOC_FL_KEEP_SIZE)`: no fresh sector known. -/
+def OsMeta.keepAlloc (m : OsMeta) : OsMeta := { m with fr := none }
+
 /-- `fallocate(fd, FALLOC_FL_KEEP_SIZE, off, len)`: any errno, no visible change. It may allocate
-blocks past the end (`OsFile.keepAlloc`), so it takes the file's `OsMeta` whole. -/
+blocks past the end (`OsFile.keepAlloc`), so it takes the file's `OsMeta` whole and forgets its
+fresh sectors (`OsMeta.keepAlloc`). -/
 theorem wp_osFallocKeep (fd off len : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (hE : ↑osN ⊆ E)
     (hwr : d.writable = true) (hoff : 0 ≤ off.toInt) (hlen : 0 < len.toInt) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osFd (L := L) fd dq d -∗ osMeta (L := L) d.ino (DFrac.own 1) m -∗
-      (∀ e : w64, osFd (L := L) fd dq d -∗ osMeta (L := L) d.ino (DFrac.own 1) m -∗
+      (∀ e : w64, osFd (L := L) fd dq d -∗ osMeta (L := L) d.ino (DFrac.own 1) m.keepAlloc -∗
         Φ (#e)) -∗
       WP (ExternalOp fsExt.name "FallocKeep" (Val (PairV (#fd) (PairV (#off) (#len))))) @ s; E {{ Φ }} := by
   iintro #Hinv Hfd Hm HΦ
@@ -103,7 +107,7 @@ theorem wp_osFallocKeep (fd off len : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) 
   cases go.intoVal_inj h1
   simp only [FdOpen, hfd, Option.some.injEq] at hfd'; subst hfd'
   rw [hf] at hf'; cases hf'
-  imod gAuth_update _ _ _ _ _ m $$ HAm Hm with ⟨HAm, Hm⟩
+  imod gAuth_update _ _ _ _ _ m.keepAlloc $$ HAm Hm with ⟨HAm, Hm⟩
   imod cells_same hwf hwfK Hr Hfr rfl (cellView_setFile_sameCur hwf hwfK hf hcur rfl)
     $$ [Hσ Hcells] with ⟨Hσ, Hcells⟩
   · iframe
@@ -120,7 +124,7 @@ theorem wp_osFallocKeep (fd off len : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) 
       rfl (fun k hk => absurd hk (by simp)) (fun k hk => absurd hk (by simp)) (fun b hb => hb)
       (fun k hk => absurd hk (by simp)) hnoI⟩
     exact ⟨hmo.size, hmo.lo, hmo.hi, hmo.ok, hmo.maps,
-      fun t c ht hcp => absurd hcp (noTok_of_whole hcoh Hnt t c ht), hmo.dur, hmo.zero, hmo.vk,
+      fun t c ht hcp => absurd hcp (noTok_of_whole hcoh Hnt t c ht), hmo.dur, frOk_none _, hmo.vk,
       hmo.dz⟩
   iapply wp_value'
   iapply HΦ $$ Hfd Hm
@@ -365,7 +369,9 @@ theorem wp_osFallocFinish (t : Nat) (p : Ino) (sz : Nat) (m : OsMeta) (hi : Nat)
       gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γm p (DFrac.own 1) (ftMeta m sz) := by
     rw [hcp, hti_om, show ti.q = 1 by rw [← hti0]]
   ihave Hm := eqm $$ Hm
-  imod meta_replace _ (q := 1) (om := { ftMeta m sz with size := f2.size, vk := none }) (fun h1 => absurd rfl h1)
+  imod meta_replace _ (q := 1)
+    (om := { ftMeta m sz with size := f2.size, vk := none, fr := (ftMeta m sz).fr.map (max · (pageUp sz)) })
+    (fun h1 => absurd rfl h1)
     $$ [HAm Hm] with ⟨HAm, Hm⟩
   · iframe
   -- the bytes
@@ -506,12 +512,14 @@ theorem wp_osFallocFinish (t : Nat) (p : Ino) (sz : Nat) (m : OsMeta) (hi : Nat)
     iexists (f.truncate sz).contents.drop m.size
     generalize hn : (f.truncate sz).size = n at hzl ⊢
     obtain rfl : n = sz := by rw [← hn, truncate_size]
-    rw [show m.grown n = { ftMeta m n with size := n, vk := none } from rfl]
+    rw [show m.grown n =
+        { ftMeta m n with size := n, vk := none, fr := (ftMeta m n).fr.map (max · (pageUp n)) }
+      from rfl]
     iframe
     ipureintro
-    refine ⟨hzl, fun hz => ?_⟩
+    refine ⟨hzl, ?_⟩
     rw [truncate_contents, hmsz]
-    exact resized_drop_zero (hmo.zero (by rw [hti_om]; simpa [ftMeta] using hz)) n
+    exact resized_drop f n
   · iapply HΦ
     iright
     ipureintro; exact he

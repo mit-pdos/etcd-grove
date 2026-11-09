@@ -51,9 +51,12 @@ structure OsMeta where
   sector (the disk's as of the last successful sync) holds `d` there. A write adds versions after
   it, a failed sync keeps them, a successful one collapses them. -/
   dur : List (Option w8)
-  /-- The page cache holds zeros past the size (true for a file created in this generation: every
-  version a change makes is zero past the size it gives; a crash may leave other bytes there, F3). -/
-  zero : Bool
+  /-- Fresh sectors known from an offset: `some p` if the file has no `FALLOC_FL_KEEP_SIZE` blocks
+  (`OsFile.kept`) and every sector from byte `p` on is fresh (`Sector.fresh`: under a crash size
+  that covers it, never its synced version). A new file: `some 0`; a file on disk: its size
+  rounded up to a page; a change rounds it up to its new size's page unless it covers every sector
+  from `p` to there (`frChange`). -/
+  fr : Option Nat
   /-- Versions known per sector: `some ns` if, since the last successful sync, every sector has at
   most one version except those in `ns`, which have at most two (the synced contents and one
   change); `none` if nothing is known. A crash then leaves such a sector whole: its synced version,
@@ -92,7 +95,7 @@ structure TokInfo where
 
 instance OsMeta.countable : Pos.Countable OsMeta :=
   Pos.Countable.ofInjective
-    (fun m => Pos.Countable.encode (m.size, m.lo, m.hi, m.ok, m.maps, m.dur, m.zero, m.vk, m.dz))
+    (fun m => Pos.Countable.encode (m.size, m.lo, m.hi, m.ok, m.maps, m.dur, m.fr, m.vk, m.dz))
     (fun a b h => by
       have h := Pos.encode_inj h
       cases a; cases b; simp only [Prod.mk.injEq] at h
@@ -217,6 +220,11 @@ structure OsWf : Prop where
   /-- Every sector has a version (its page cache's, the last). -/
   vers : ∀ i f n, st.file i = some f → (f.secs n).vers ≠ []
 
+/-- `fr` holds of `f`: if `some p`, `f` has no `FALLOC_FL_KEEP_SIZE` blocks and every sector from
+byte `p` on is fresh (`OsMeta.fr`). -/
+def FrOk (fr : Option Nat) (f : OsFile) : Prop :=
+  ∀ p, fr = some p → f.kept = false ∧ ∀ n, p ≤ 512 * n → (f.secs n).fresh = true
+
 /-- What the ghost `OsMeta` `m` of the file `f` of inode `i` says of it. -/
 structure MetaOk (i : Ino) (m : OsMeta) (f : OsFile) : Prop where
   size : m.size = f.size
@@ -228,7 +236,7 @@ structure MetaOk (i : Ino) (m : OsMeta) (f : OsFile) : Prop where
     m.lo ≤ c.target st ∧ c.target st ≤ m.hi
   dur : ∀ (b : Nat) (d : w8), m.dur[b]? = some (some d) →
     ∀ v, (f.secs (b / 512)).vers.head? = some v → v.toList.getD (b % 512) 0 = d
-  zero : m.zero = true → ∀ b, f.size ≤ b → f.rawAt b = 0
+  fr : FrOk m.fr f
   vk : ∀ ns, m.vk = some ns → ∀ n, (f.secs n).vers.length ≤ if n ∈ ns then 2 else 1
   dz : ∀ z, m.dz = some z → ∀ b, z ≤ b →
     ∀ v, (f.secs (b / 512)).vers.head? = some v → v.toList.getD (b % 512) 0 = 0
@@ -714,9 +722,29 @@ end bytes
 
 /-! ## The start -/
 
+/-- `x` rounded up to a 4096-byte page. -/
+def pageUp (x : Nat) : Nat := 4096 * ((x + 4095) / 4096)
+
+theorem pageIn_pageUp {L n : Nat} (h : pageUp L ≤ 512 * n) : pageIn L n = false := by
+  simp only [pageIn, pageUp, decide_eq_false_iff_not] at *; omega
+
+theorem pageUp_mono {a b : Nat} (h : a ≤ b) : pageUp a ≤ pageUp b := by
+  simp only [pageUp]; omega
+
+/-- The fresh sectors a file on disk is known to have: those past its last page, unless `kept`. -/
+def frOf (f : OsFile) : Option Nat := if f.kept then none else some (pageUp f.size)
+
 /-- The ghost `OsMeta` of a file as on disk: all of it durable. -/
 def initMeta (f : OsFile) : OsMeta :=
-  ⟨f.size, f.size, f.size, true, ∅, f.contents.map some, false, some [], none⟩
+  ⟨f.size, f.size, f.size, true, ∅, f.contents.map some, frOf f, some [], none⟩
+
+/-- A file on disk has the fresh sectors `frOf` says. -/
+theorem ofDisk_fr (vs : Nat → SecBytes) (sz : Nat) (kp : Bool) :
+    ∀ p, frOf (OsFile.ofDisk vs sz kp) = some p → (OsFile.ofDisk vs sz kp).kept = false ∧
+      ∀ n, p ≤ 512 * n → ((OsFile.ofDisk vs sz kp).secs n).fresh = true := by
+  intro p hp
+  cases kp <;> simp [frOf, OsFile.ofDisk] at hp ⊢
+  subst hp; intro n hn; simp [pageIn_pageUp hn]
 
 /-- The bytes of the files of `st`, all clean. -/
 def bytesMap (st : OsState) : GMap (Ino × Nat) (w8 × Bool) :=
@@ -850,7 +878,7 @@ theorem osInit_wf_coh {st : OsState} (h : FsInit st) :
       simp only [hfo, Option.map_some, Option.some.injEq] at hm
       subst hm
       obtain ⟨vs, sz, kp, rfl⟩ := hdisk' i f hfo
-      refine ⟨_, rfl, ⟨rfl, ?_, ?_, ?_, ?_, ?_, ?_, fun h => by simp [initMeta] at h,
+      refine ⟨_, rfl, ⟨rfl, ?_, ?_, ?_, ?_, ?_, ?_, ofDisk_fr vs sz kp,
         fun ns hns n => by simp [initMeta] at hns; subst hns; simp [OsFile.ofDisk],
         fun z hz => by simp [initMeta] at hz⟩⟩
       · simp [initMeta, OsFile.ofDisk]

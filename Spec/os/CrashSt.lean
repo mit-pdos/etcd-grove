@@ -67,7 +67,7 @@ inductive TReach (m : OsMeta) (bs : List (w8 × Bool)) (sz : Nat) :
   | refl : TReach m bs sz m bs
   | ft : TReach m bs sz (ftFail m sz) bs
   | grown (zs : List w8) : zs.length = sz - m.size →
-      (m.zero = true → zs = List.replicate (sz - m.size) 0) →
+      zs = List.replicate (sz - m.size) 0 →
       TReach m bs sz (m.grown sz) (bs ++ zs.map (·, false))
 
 namespace EtcdGrove

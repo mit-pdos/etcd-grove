@@ -187,7 +187,7 @@ theorem MetaOk.transfer {st st' : OsState} {q : Ino} {m : OsMeta} {f : OsFile}
     (hs : ∀ i, st'.size i = st.size i) (hm : st'.proc.maps = st.proc.maps)
     (hin : st'.proc.inflight = st.proc.inflight) (h : MetaOk st q m f) : MetaOk st' q m f :=
   ⟨h.size, h.lo, h.hi, h.ok, by rw [hm]; exact h.maps,
-    by rw [hin]; intro t c ht hc; rw [target_congr hs]; exact h.targets t c ht hc, h.dur, h.zero,
+    by rw [hin]; intro t c ht hc; rw [target_congr hs]; exact h.targets t c ht hc, h.dur, h.fr,
     h.vk, h.dz⟩
 
 theorem file_setFile_ne (st : OsState) {i q : Ino} (f : OsFile) (h : i ≠ q) :
@@ -439,7 +439,7 @@ theorem osCoh_setMaps {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm 
     (hdom : ∀ q, Γm' !! q = none ↔ Γm !! q = none)
     (hsome : ∀ q m', Γm' !! q = some m' → ∃ m, Γm !! q = some m ∧
       m'.size = m.size ∧ m'.lo = m.lo ∧ m'.hi = m.hi ∧ m'.ok = m.ok ∧ m'.dur = m.dur ∧
-      m'.zero = m.zero ∧ m'.vk = m.vk ∧ m'.dz = m.dz ∧
+      m'.fr = m.fr ∧ m'.vk = m.vk ∧ m'.dz = m.dz ∧
       ∀ b len, m'.maps !! b = some len ↔ X !! b = some ⟨q, len⟩) :
     OsCoh { st with proc := { st.proc with maps := X } } Γb Γm' Γf Γt :=
   { hcoh with
@@ -450,16 +450,13 @@ theorem osCoh_setMaps {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm 
       exact ⟨f, hf, ⟨h1 ▸ hmo.size, h2 ▸ hmo.lo, h3 ▸ hmo.hi,
         fun hok => hmo.ok (h5 ▸ hok), h6,
         fun t c ht hc => by rw [h2, h3]; exact hmo.targets t c ht hc, h7 ▸ hmo.dur,
-        fun hz => hmo.zero (h8 ▸ hz), fun ns hns => hmo.vk ns (h9 ▸ hns),
+        by rw [h8]; exact hmo.fr, fun ns hns => hmo.vk ns (h9 ▸ hns),
         fun z hz => hmo.dz z (h10 ▸ hz)⟩⟩ }
 
 end maps
 
 
-/-! ## Zeros past the size (`OsMeta.zero`) -/
-
-/-- The page cache holds zeros past the size. -/
-def ZeroPast (f : OsFile) : Prop := ∀ b, f.size ≤ b → f.rawAt b = 0
+/-! ## Fresh sectors (`OsMeta.fr`) and zeros past the size -/
 
 theorem secHits_of_mem {lo hi b : Nat} (h1 : lo ≤ b) (h2 : b < hi) : secHits lo hi (b / 512) = true := by
   have := Nat.div_add_mod b 512
@@ -467,46 +464,12 @@ theorem secHits_of_mem {lo hi b : Nat} (h1 : lo ≤ b) (h2 : b < hi) : secHits l
   simp only [secHits, Bool.and_eq_true, decide_eq_true_eq]
   constructor <;> omega
 
-/-- A change keeps zeros past the size, if every byte below the old size it cuts off is in its range. -/
-theorem zero_change {f : OsFile} {c : List w8} {lo hi : Nat} (hz : ZeroPast f)
-    (hcov : ∀ b, c.length ≤ b → b < f.size → lo ≤ b ∧ b < hi) : ZeroPast (f.change c lo hi) := by
-  intro b hb
-  have hbc : c.length ≤ b := hb
-  rw [rawAt_def]
-  simp only [OsFile.change]
-  split
-  · rw [last_mk_append, secOf_getD, List.getD_eq_getElem?_getD, List.getElem?_eq_none hbc]; rfl
-  · rename_i hn
-    show (f.secs (b / 512)).last.toList.getD (b % 512) 0 = 0
-    rw [← rawAt_def]
-    by_cases hs : f.size ≤ b
-    · exact hz b hs
-    · obtain ⟨h1, h2⟩ := hcov b hbc (by omega)
-      exact absurd (secHits_of_mem h1 h2) hn
-
 theorem written_length_ge (f : OsFile) (off : Nat) (d : List w8) :
     f.size ≤ (f.written off d).length := by
   unfold OsFile.written
   split
   · simp [OsFile.contents]
   · simp [OsFile.resized]; omega
-
-theorem zero_landWrite {f : OsFile} (off : Nat) (data : List w8) (k : Nat) (hz : ZeroPast f) :
-    ZeroPast (f.landWrite off data k) := by
-  unfold OsFile.landWrite
-  split
-  · exact hz
-  · exact zero_change hz (fun b h1 h2 => by have := written_length_ge f off (data.take k); omega)
-
-theorem zero_truncate {f : OsFile} (sz : Nat) (hz : ZeroPast f) : ZeroPast (f.truncate sz) := by
-  unfold OsFile.truncate
-  exact zero_change hz (fun b h1 h2 => by rw [resized_length] at h1; omega)
-
-theorem zero_synced {f : OsFile} {busy : Nat → Prop} [DecidablePred busy] (hz : ZeroPast f) :
-    ZeroPast (f.synced busy) := fun b hb => by rw [synced_rawAt]; exact hz b hb
-
-theorem zero_syncFailed {f : OsFile} {busy : Nat → Prop} [DecidablePred busy] (hz : ZeroPast f) :
-    ZeroPast (f.syncFailed busy) := fun b hb => by rw [syncFailed_rawAt]; exact hz b hb
 
 /-- **A file grows with zeros.** -/
 theorem resized_drop (f : OsFile) (sz : Nat) :
@@ -518,14 +481,107 @@ theorem resized_drop (f : OsFile) (sz : Nat) :
     simp [OsFile.resized]
     omega
 
-theorem resized_drop_zero {f : OsFile} (_hz : ZeroPast f) (sz : Nat) :
-    (f.resized sz).drop f.size = List.replicate (sz - f.size) 0 := resized_drop f sz
+/-- What `fr` known of a file of size `S` after a change of the bytes `[lo, hi)` to the size `L`: as
+it was if the file does not grow or the change covers every sector from it to `L`'s last page, else
+rounded up to that page. -/
+def frChange (fr : Option Nat) (S lo hi L : Nat) : Option Nat :=
+  fr.map (fun p => if L ≤ S ∨ (lo ≤ p ∧ pageUp L ≤ hi) then p else max p (pageUp L))
 
-theorem zero_newFile : ZeroPast newFile := by
-  intro b _
-  have h := secOf_getD [] b
-  simp only [List.getD_nil] at h
-  simpa [newFile, OsFile.ofBytes, OsFile.ofDisk, rawAt_def, Sector.last] using h
+theorem pageIn_mono {a b n : Nat} (h : a ≤ b) (ha : pageIn a n = true) : pageIn b n = true := by
+  simp only [pageIn, decide_eq_true_eq] at *; omega
+
+/-- A larger offset to know fresh sectors from. -/
+theorem frOk_up {fr : Option Nat} {f : OsFile} (h : FrOk fr f) (q : Nat) :
+    FrOk (fr.map (max · q)) f := by
+  intro p hp
+  cases fr with
+  | none => cases hp
+  | some p0 =>
+    simp only [Option.map_some, Option.some.injEq] at hp; subst hp
+    obtain ⟨hk, hn⟩ := h p0 rfl
+    exact ⟨hk, fun n hpn => hn n (by omega)⟩
+
+theorem frUp_idem (fr : Option Nat) (q : Nat) :
+    (fr.map (max · q)).map (max · q) = fr.map (max · q) := by
+  cases fr <;> simp
+
+theorem frOk_change {fr : Option Nat} {f : OsFile} (h : FrOk fr f) (c : List w8) (lo hi : Nat) :
+    FrOk (frChange fr f.size lo hi c.length) (f.change c lo hi) := by
+  intro p hp
+  cases fr with
+  | none => cases hp
+  | some p0 =>
+    obtain ⟨hk, hn⟩ := h p0 rfl
+    simp only [frChange, Option.map_some, Option.some.injEq] at hp
+    refine ⟨hk, fun n hpn => ?_⟩
+    dsimp only [OsFile.change]
+    split
+    · rename_i hs; exact hn n (by split at hp <;> omega)
+    · rename_i hs
+      have hp0 : p0 ≤ 512 * n := by split at hp <;> omega
+      have hfr := hn n hp0
+      split at hp
+      · rename_i hc
+        rcases hc with hc | hc
+        · cases hL : pageIn c.length n
+          · simp [hfr]
+          · simp [hfr, pageIn_mono hc hL]
+        · have hpg : pageUp c.length ≤ 512 * n := by
+            simp only [secHits, Bool.and_eq_true, decide_eq_true_eq, not_and, Nat.not_lt] at hs
+            have := hs (by omega); omega
+          simp [hfr, pageIn_pageUp hpg]
+      · simp [hfr, pageIn_pageUp (show pageUp c.length ≤ 512 * n by omega)]
+
+/-- After a change to a size at most `B`, the fresh sectors known from `B`'s last page. -/
+theorem frOk_change_up {fr : Option Nat} {f : OsFile} (h : FrOk fr f) (c : List w8) (lo hi B : Nat)
+    (hB : c.length ≤ B) : FrOk (fr.map (max · (pageUp B))) (f.change c lo hi) := by
+  intro p hp
+  cases fr with
+  | none => cases hp
+  | some p0 =>
+    simp only [Option.map_some, Option.some.injEq] at hp; subst hp
+    have h1 := frOk_change h c lo hi
+    have hle := pageUp_mono hB
+    by_cases hc : c.length ≤ f.size ∨ (lo ≤ p0 ∧ pageUp c.length ≤ hi)
+    · obtain ⟨hk, hn⟩ := h1 p0 (by simp [frChange, hc])
+      exact ⟨hk, fun n hpn => hn n (by omega)⟩
+    · obtain ⟨hk, hn⟩ := h1 (max p0 (pageUp c.length)) (by simp [frChange, hc])
+      exact ⟨hk, fun n hpn => hn n (by omega)⟩
+
+theorem frOk_truncate_up {fr : Option Nat} {f : OsFile} (h : FrOk fr f) (n B : Nat) (hB : n ≤ B) :
+    FrOk (fr.map (max · (pageUp B))) (f.truncate n) := by
+  unfold OsFile.truncate
+  exact frOk_change_up h _ _ _ B (by rw [resized_length]; exact hB)
+
+theorem frOk_synced {fr : Option Nat} {f : OsFile} (h : FrOk fr f) (busy : Nat → Prop)
+    [DecidablePred busy] : FrOk (fr.map (max · (pageUp f.size))) (f.synced busy) := by
+  intro p hp
+  cases fr with
+  | none => cases hp
+  | some p0 =>
+    simp only [Option.map_some, Option.some.injEq] at hp; subst hp
+    obtain ⟨hk, hn⟩ := h p0 rfl
+    refine ⟨hk, fun n hpn => ?_⟩
+    dsimp only [OsFile.synced]
+    split
+    · simp [hk, pageIn_pageUp (show pageUp f.size ≤ 512 * n by omega)]
+    · exact hn n (by omega)
+
+theorem frOk_syncFailed {fr : Option Nat} {f : OsFile} (h : FrOk fr f) (busy : Nat → Prop)
+    [DecidablePred busy] : FrOk fr (f.syncFailed busy) := by
+  intro p hp
+  obtain ⟨hk, hn⟩ := h p hp
+  refine ⟨hk, fun n hpn => ?_⟩
+  dsimp only [OsFile.syncFailed]
+  split
+  · exact hn n hpn
+  · exact hn n hpn
+
+theorem frOk_none (f : OsFile) : FrOk none f := fun _ h => by cases h
+
+theorem frOk_newFile : FrOk (some 0) newFile := by
+  intro p hp; cases hp
+  exact ⟨rfl, fun n _ => by simp [newFile, OsFile.ofBytes, OsFile.ofDisk, pageIn]⟩
 
 end Fs
 end Perennial

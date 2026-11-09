@@ -24,26 +24,29 @@ open goose_heap
 def ftMeta (m : OsMeta) (sz : Nat) : OsMeta := { m with hi := max m.hi sz }
 
 /-- The `OsMeta` of a file after a truncate to `sz ≥ m.size`: which sectors have how many versions is
-not known any more (ext4 may grow it in chunks, each a change of the last sector). -/
+not known any more (ext4 may grow it in chunks, each a change of the last sector); the fresh sectors
+known from `sz`'s last page on at most. -/
 def OsMeta.grown (m : OsMeta) (sz : Nat) : OsMeta :=
-  { m with size := sz, hi := max m.hi sz, vk := none }
+  { m with size := sz, hi := max m.hi sz, vk := none, fr := m.fr.map (max · (pageUp sz)) }
 
 /-- The `OsMeta` of a file after a failed truncate to `sz` that may have left it unchanged: the size
 bound widened (`ftMeta`), the versions known forgotten. -/
-def ftFail (m : OsMeta) (sz : Nat) : OsMeta := { ftMeta m sz with vk := none }
+def ftFail (m : OsMeta) (sz : Nat) : OsMeta :=
+  { ftMeta m sz with vk := none, fr := m.fr.map (max · (pageUp sz)) }
 
 theorem ftFail_size (m : OsMeta) (sz : Nat) : (ftFail m sz).size = m.size := rfl
 theorem ftFail_maps (m : OsMeta) (sz : Nat) : (ftFail m sz).maps = m.maps := rfl
 
 theorem ftFail_grown (m : OsMeta) (sz : Nat) : (ftFail m sz).grown sz = m.grown sz := by
-  cases m; simp only [ftFail, ftMeta, OsMeta.grown, OsMeta.mk.injEq, _root_.and_true,
+  cases m; simp only [ftFail, ftMeta, OsMeta.grown, OsMeta.mk.injEq, frUp_idem, _root_.and_true,
     _root_.true_and]; omega
 
 theorem ftFail_ftFail (m : OsMeta) (sz : Nat) : ftFail (ftFail m sz) sz = ftFail m sz := by
-  cases m; simp only [ftFail, ftMeta, OsMeta.mk.injEq, _root_.and_true, _root_.true_and]; omega
+  cases m; simp only [ftFail, ftMeta, OsMeta.mk.injEq, frUp_idem, _root_.and_true, _root_.true_and]
+  omega
 
 theorem ftFail_of_grown (m : OsMeta) (sz : Nat) : ftFail (m.grown sz) sz = m.grown sz := by
-  cases m; simp only [ftFail, ftMeta, OsMeta.grown, OsMeta.mk.injEq, _root_.and_true,
+  cases m; simp only [ftFail, ftMeta, OsMeta.grown, OsMeta.mk.injEq, frUp_idem, _root_.and_true,
     _root_.true_and]; omega
 
 /-- Every mapping of `M` ends at or before `hi`. -/
@@ -131,18 +134,19 @@ structure GrownFile (f f' : OsFile) (sz : Nat) : Prop where
     (f'.secs k).vers = (f.secs k).vers ∧ (f'.secs k).dirty = (f.secs k).dirty
   sizeLo : f'.sizeLo = f.sizeLo
   sizeHi : f'.sizeHi = max f.sizeHi f'.size
-  zero : ZeroPast f → ZeroPast f'
+  fr : ∀ fr, FrOk fr f → FrOk (fr.map (max · (pageUp sz))) f'
 
 theorem grownFile_truncate {f : OsFile} {n sz : Nat} (hsz : f.sizeLo ≤ f.size) (h1 : f.size ≤ n)
     (h2 : n ≤ sz) : GrownFile f (f.truncate n) sz :=
   ⟨by rw [truncate_size]; exact h1, by rw [truncate_size]; exact h2, truncate_old f n h1,
     truncate_clean f n h1 hsz, truncate_vers f n, truncate_head f n, truncate_ok f n,
-    truncate_sizeLo f n hsz h1, by rw [truncate_sizeHi, truncate_size], zero_truncate n⟩
+    truncate_sizeLo f n hsz h1, by rw [truncate_sizeHi, truncate_size],
+    fun _ h => frOk_truncate_up h n sz h2⟩
 
 theorem grownFile_self {f : OsFile} {sz : Nat} (hsz : f.size ≤ f.sizeHi) (h : f.size ≤ sz) :
     GrownFile f f sz :=
   ⟨Nat.le_refl _, h, fun _ _ => rfl, fun _ h => h, fun _ h => h, fun _ _ h => h,
-    fun _ _ => ⟨rfl, rfl⟩, rfl, by omega, id⟩
+    fun _ _ => ⟨rfl, rfl⟩, rfl, by omega, fun _ h => frOk_up h _⟩
 
 /-- The ghost bytes of a grown file `f'` from the old size `lo` on: its bytes there, not clean. -/
 def grownBytes (f' : OsFile) (lo : Nat) : List (w8 × Bool) := (f'.contents.drop lo).map (·, false)
@@ -161,7 +165,8 @@ theorem ftFinish_coh (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt) {t : Nat}
     (∀ i, InflightAt st p i ↔ f.size ≤ i) ∧
     OsWf stn ∧
     OsCoh stn (insertBytes p f.size (grownBytes f' f.size) Γb)
-      (<[p := { ti.om with size := f'.size, vk := none }]> Γm) Γf (GMap.delete t Γt) := by
+      (<[p := { ti.om with size := f'.size, vk := none, fr := ti.om.fr.map (max · (pageUp sz)) }]>
+        Γm) Γf (GMap.delete t Γt) := by
   intro stn
   have hct : st.proc.inflight !! t = some ti.c := by
     have := hcoh.toks t; rw [hti] at this; exact this.symm
@@ -264,7 +269,7 @@ theorem ftFinish_coh (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt) {t : Nat}
           rw [(hg.ok k hd).1]
           exact hmo.ok hok k (by rw [← (hg.ok k hd).2]; exact hd),
         hmo.maps, fun t' c' h1 h2 => ?_, fun b d0 h v hv => ?_,
-        fun hz => hg.zero (hmo.zero hz), (fun _ h => by cases h), fun z hz b hzb v hv => ?_⟩⟩
+        hg.fr _ hmo.fr, (fun _ h => by cases h), fun z hz b hzb v hv => ?_⟩⟩
       · obtain ⟨h1, n1⟩ := hdel t' c' h1
         exact absurd h2 (hother t' c' n1 h1)
       · obtain ⟨w, hw⟩ : ∃ w, (f.secs (b / 512)).vers.head? = some w := by
@@ -282,7 +287,7 @@ theorem ftFinish_coh (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt) {t : Nat}
     · rename_i hpq
       obtain ⟨f1, h1, hm1⟩ := hcoh.meta_some q m' hm
       refine ⟨f1, ?_, ⟨hm1.size, hm1.lo, hm1.hi, hm1.ok, hm1.maps, fun t' c' h1 h2 => ?_,
-        hm1.dur, hm1.zero, hm1.vk, hm1.dz⟩⟩
+        hm1.dur, hm1.fr, hm1.vk, hm1.dz⟩⟩
       · show ((st.setProc { st.proc with inflight := GMap.delete t st.proc.inflight } : OsState).setFile p _).fs.files !! q = _
         rw [files_setFile, if_neg hpq]; exact h1
       · rw [htg' c' ⟨t', h1⟩]; exact hm1.targets t' c' (hdel t' c' h1).1 h2
@@ -375,12 +380,10 @@ def ftTok (t : Nat) (p : Ino) (sz : Nat) (m : OsMeta) : IProp GF :=
 
 /-- The file `p`, of `OsMeta` `m`, grown to `sz ≥ m.size`: the whole `OsMeta` (`m.grown sz`), the
 new bytes `zs`, not clean, whole, and the client's halves of the cells of every mapping over
-`[m.size, sz)`, showing them, and over `[sz, hi)`. The new bytes are what the sectors hold past
-the old size: zeros if the file's `OsMeta` says so (`zero`: a file made in this generation), else
-zeros (`OsFile.resized`). -/
+`[m.size, sz)`, showing them, and over `[sz, hi)`. The new bytes are zeros (`OsFile.resized`). -/
 def osGrown (p : Ino) (m : OsMeta) (sz hi : Nat) : IProp GF :=
   iprop(∃ zs : List w8, ⌜zs.length = sz - m.size ∧
-      (m.zero = true → zs = List.replicate (sz - m.size) 0)⌝ ∗ osMeta (L := L) p (DFrac.own 1) (m.grown sz) ∗
+      zs = List.replicate (sz - m.size) 0⌝ ∗ osMeta (L := L) p (DFrac.own 1) (m.grown sz) ∗
     osBytes (L := L) p m.size (DFrac.own 1) (zs.map (·, false)) ∗
     mcells m.maps m.size sz (fun i => byteCell (zs.getD (i - m.size) 0)) ∗ mcellsAny m.maps sz hi)
 
@@ -664,7 +667,9 @@ theorem wp_osFtruncateFinish (t : Nat) (p : Ino) (sz : Nat) (m : OsMeta) (hi : N
       gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γm p (DFrac.own 1) (ftMeta m sz) := by
     rw [hcp, hti_om, show ti.q = 1 by rw [← hti0]]
   ihave Hm := eqm $$ Hm
-  imod meta_replace _ (q := 1) (om := { ftMeta m sz with size := f2.size, vk := none }) (fun h1 => absurd rfl h1)
+  imod meta_replace _ (q := 1)
+    (om := { ftMeta m sz with size := f2.size, vk := none, fr := (ftMeta m sz).fr.map (max · (pageUp sz)) })
+    (fun h1 => absurd rfl h1)
     $$ [HAm Hm] with ⟨HAm, Hm⟩
   · iframe
   -- the bytes
@@ -806,12 +811,14 @@ theorem wp_osFtruncateFinish (t : Nat) (p : Ino) (sz : Nat) (m : OsMeta) (hi : N
     iexists (f.truncate sz).contents.drop m.size
     generalize hn : (f.truncate sz).size = n at hzl ⊢
     obtain rfl : n = sz := by rw [← hn, truncate_size]
-    rw [show m.grown n = { ftMeta m n with size := n, vk := none } from rfl]
+    rw [show m.grown n =
+        { ftMeta m n with size := n, vk := none, fr := (ftMeta m n).fr.map (max · (pageUp n)) }
+      from rfl]
     iframe
     ipureintro
-    refine ⟨hzl, fun hz => ?_⟩
+    refine ⟨hzl, ?_⟩
     rw [truncate_contents, hmsz]
-    exact resized_drop_zero (hmo.zero (by rw [hti_om]; simpa [ftMeta] using hz)) n
+    exact resized_drop f n
   · iapply HΦ
     iright
     isplitr
@@ -822,18 +829,21 @@ theorem wp_osFtruncateFinish (t : Nat) (p : Ino) (sz : Nat) (m : OsMeta) (hi : N
     iexists (f.truncate sz).contents.drop m.size
     generalize hn : (f.truncate sz).size = n at hzl ⊢
     obtain rfl : n = sz := by rw [← hn, truncate_size]
-    rw [show m.grown n = { ftMeta m n with size := n, vk := none } from rfl]
+    rw [show m.grown n =
+        { ftMeta m n with size := n, vk := none, fr := (ftMeta m n).fr.map (max · (pageUp n)) }
+      from rfl]
     iframe
     ipureintro
-    refine ⟨hzl, fun hz => ?_⟩
+    refine ⟨hzl, ?_⟩
     rw [truncate_contents, hmsz]
-    exact resized_drop_zero (hmo.zero (by rw [hti_om]; simpa [ftMeta] using hz)) n
+    exact resized_drop f n
   · iapply HΦ
     iright
     isplitr
     · ipureintro; exact he
     iright
-    rw [show ftFail m sz = { ftMeta m sz with size := f2.size, vk := none } by
+    rw [show ftFail m sz =
+        { ftMeta m sz with size := f2.size, vk := none, fr := (ftMeta m sz).fr.map (max · (pageUp sz)) } by
       rw [← hmsz]; rfl]
     iframe Hm
     iclear Hbs

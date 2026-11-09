@@ -285,12 +285,12 @@ def OsFile.written (f : OsFile) (off : Nat) (d : List w8) : List w8 :=
 
 /-- `f` with its contents changed to `c` by a change of the bytes `[lo, hi)`: each sector those
 bytes meet gets the new version and becomes dirty (a lost sector written again is dirty again: the
-next sync writes it); any other sector whose page the new size reaches is no longer fresh; the size
-range widens to `c`'s length. -/
+next sync writes it); any other sector whose page the new size reaches and the old one did not is
+no longer fresh; the size range widens to `c`'s length. -/
 def OsFile.change (f : OsFile) (c : List w8) (lo hi : Nat) : OsFile :=
   { secs := fun n => let s := f.secs n
       if secHits lo hi n then ⟨s.vers ++ [secOf c n], true, s.fresh⟩
-      else { s with fresh := s.fresh && !pageIn c.length n },
+      else { s with fresh := s.fresh && !(pageIn c.length n && !pageIn f.size n) },
     size := c.length,
     sizeLo := min f.sizeLo c.length,
     sizeHi := max f.sizeHi c.length,
@@ -317,12 +317,13 @@ def OsFile.synced (f : OsFile) (busy : Nat → Prop) [DecidablePred busy] : OsFi
     sizeLo := f.size, sizeHi := f.size }
 
 /-- `f` after a failed sync: the writeback of each dirty sector not under an in-flight change
-(`busy`) failed and Linux marks it clean: it is lost, its versions kept, and not fresh (the failed
-writeback may have allocated its block). The sizes are unchanged. -/
+(`busy`) failed and Linux marks it clean: it is lost, its versions kept. The sizes are unchanged.
+A fresh sector stays fresh: with no failed writeback (the header), a block the failed sync
+allocated holds a later version than the synced one. -/
 def OsFile.syncFailed (f : OsFile) (busy : Nat → Prop) [DecidablePred busy] : OsFile :=
   { f with
     secs := fun n => let s := f.secs n
-      if s.dirty ∧ ¬ busy n then { s with dirty := false, fresh := false } else s }
+      if s.dirty ∧ ¬ busy n then { s with dirty := false } else s }
 
 /-- `f` after a `fallocate(FALLOC_FL_KEEP_SIZE)`: blocks anywhere may be allocated, now and after
 any later sync or crash. -/

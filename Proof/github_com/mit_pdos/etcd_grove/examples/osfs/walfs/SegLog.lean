@@ -159,7 +159,7 @@ theorem wp_Segment (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
   unfold osGrown
   icases Hg with ⟨%zs, %hzs, Hm, Hb, -, -⟩
   have hz : zs = List.replicate 65536 0 := by
-    have := hzs.2 rfl; rw [this]; rfl
+    rw [hzs.2]; rfl
   subst hz
   simp only [List.length_nil, Nat.zero_add, Nat.zero_max, List.map_replicate]
   rw [show (initMeta newFile).size = 0 from rfl]
@@ -173,7 +173,7 @@ theorem wp_Segment (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
   wp_apply os.File.Write.wp_spec wp_WriteAt f fd (child dir logB) (DFrac.own 1) sl dataC dqs (W64 0)
       (DFrac.own 1) ⟨i, true, true⟩ 1 (newMeta.grown 65536) (List.replicate (min 8 65536) (0, false))
       rfl (by decide) (by decide) (by decide) (by decide) (by decide) (fun _ => rfl) (.inl rfl) (by decide)
-    $$ [Hos Hf Ho Hsl Hfd Hm Hb8 Hmc] as %n %err ⟨Hf, Hsl, Hfd, ⟨%j', %ys, %h, %v, %Hres, Hm, Hys, -⟩, Ho⟩
+    $$ [Hos Hf Ho Hsl Hfd Hm Hb8 Hmc] as %n %err ⟨Hf, Hsl, Hfd, ⟨%j', %ys, %h, %v, %r, %Hres, Hm, Hys, -⟩, Ho⟩
   · iframe; iexact Hos
   cases err with
   | ok ie =>
@@ -258,7 +258,7 @@ theorem wp_Segment (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
   iexists _, _
   iframe Hm Hb
   ipureintro
-  refine ⟨rfl, by simp [OsMeta.synced, pwSize, dataC], by rw [List.length_append, hyl, List.length_replicate]⟩
+  refine ⟨rfl, by simp [OsMeta.synced, OsMeta.keepAlloc, pwSize, dataC], by rw [List.length_append, hyl, List.length_replicate]⟩
 
 /-- `ZeroToEnd(f)`, the offset 8, the file of inode `i` (no mapping, `segSize` bytes) whole: on
 success its first 8 bytes kept and its size at least 8; the offset stays some offset. -/

@@ -515,7 +515,7 @@ its `OsMeta` says so, `osGrown`), and the mapped cells of the new bytes and past
 def csGrownOwn (p : Ino) (γ : GName) (m : OsMeta) (bs : List (w8 × Bool)) (fa fb sz hi : Nat) :
     IProp GF :=
   iprop(∃ zs : List w8, ⌜zs.length = sz - m.size ∧
-      (m.zero = true → zs = List.replicate (sz - m.size) 0)⌝ ∗
+      zs = List.replicate (sz - m.size) 0⌝ ∗
     csOwnF (L := L) γ (some (p, ⟨m.grown sz, bs ++ zs.map (·, false), fa, fb, .idle⟩)) ∗
     mcells (L := L) m.maps m.size sz (fun i => byteCell (zs.getD (i - m.size) 0)) ∗
     mcellsAny (L := L) m.maps sz hi)
@@ -527,7 +527,7 @@ theorem wp_osFtruncateFinish_cs (t : Nat) (p : Ino) (sz : Nat) (N : Namespace) (
     (Ok : CState → Prop) (m : OsMeta) (bs : List (w8 × Bool)) (fa fb hi : Nat)
     (hN : ↑osN ⊆ (⊤ : CoPset) \ ↑N) (hhi : MapsBelow m.maps hi)
     (hokG : ∀ zs : List w8, zs.length = sz - m.size →
-      (m.zero = true → zs = List.replicate (sz - m.size) 0) →
+      zs = List.replicate (sz - m.size) 0 →
       Ok (some (p, ⟨m.grown sz, bs ++ zs.map (·, false), fa, fb, .idle⟩)))
     (hokF : Ok (some (p, ⟨ftFail m sz, bs, fa, fb, .idle⟩))) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ csInv (L := L) N P R γ Good Ok -∗

@@ -172,7 +172,7 @@ theorem crash_lost_after_sync : OsCrash (oneFile fLost) (oneFile (OsFile.ofBytes
       have h0 : 512 * n ≠ 0 := by omega
       rw [secOf_far _ (by simp) n hn]; simp [h0])
     (by simp [fLost, f1, OsFile.synced, OsFile.syncFailed, OsFile.change, OsFile.ofBytes,
-      OsFile.ofDisk, secHits])
+      OsFile.ofDisk, secHits, pageIn])
     (by simp [fLost, f1, OsFile.synced, OsFile.syncFailed, OsFile.change, OsFile.ofBytes,
       OsFile.ofDisk])
 
@@ -284,14 +284,15 @@ theorem freshOk_ofDisk (vs : Nat → SecBytes) (sz : Nat) (kp : Bool) :
 theorem freshOk_change {f : OsFile} (hok : FreshOk f) (c : List w8) (lo hi : Nat) :
     FreshOk (f.change c lo hi) := by
   intro n
-  obtain ⟨hne, -⟩ := hok n
+  obtain ⟨hne, hfr⟩ := hok n
   dsimp only [OsFile.change]
   split
   · refine ⟨by simp, fun _ _ => ?_⟩
     have := List.length_pos_iff.mpr hne
     simp; omega
   · refine ⟨hne, fun h hp => ?_⟩
-    simp [hp] at h
+    simp only [hp, Bool.true_and, Bool.and_eq_true, Bool.not_eq_true', Bool.not_eq_false'] at h
+    exact hfr h.1 h.2
 
 theorem freshOk_synced {f : OsFile} (hok : FreshOk f) (busy : Nat → Prop) [DecidablePred busy] :
     FreshOk (f.synced busy) := by
@@ -309,7 +310,7 @@ theorem freshOk_syncFailed {f : OsFile} (hok : FreshOk f) (busy : Nat → Prop)
   obtain ⟨hne, hfr⟩ := hok n
   dsimp only [OsFile.syncFailed]
   split
-  · exact ⟨hne, fun h => by simp at h⟩
+  · exact ⟨hne, hfr⟩
   · exact ⟨hne, hfr⟩
 
 theorem freshOk_keepAlloc {f : OsFile} (hok : FreshOk f) : FreshOk f.keepAlloc :=

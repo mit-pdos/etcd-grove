@@ -478,7 +478,7 @@ theorem ftMeta_ftMeta (m : OsMeta) (sz : Nat) : ftMeta (ftMeta m sz) sz = ftMeta
 
 omit [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [go.Semantics] [os.Assumptions] in
 theorem grown_grown (m : OsMeta) (sz : Nat) : (m.grown sz).grown sz = m.grown sz := by
-  simp [OsMeta.grown]
+  simp only [OsMeta.grown, frUp_idem]; simp
 
 omit [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [go.Semantics] [os.Assumptions] in
 theorem ftMeta_of_grown (m : OsMeta) (sz : Nat) : ftMeta (m.grown sz) sz = m.grown sz := by
@@ -566,7 +566,7 @@ theorem os.File.Truncate.wp_proof_crashS : os.File.Truncate.specCrashS (GF := GF
   wp_apply wp_osFtruncateStart_cs fd sz dq d N P R γ Good Ok m1 bs1 fa fb hi hN hwr hsz hs1 hhi1
     (hT _ _ hR1).2 $$ Hos Hinv Hosfd Hown Hc as %t Hosfd Hown
   have hokG : ∀ zs : List w8, zs.length = sz.toNat - m1.size →
-      (m1.zero = true → zs = List.replicate (sz.toNat - m1.size) 0) →
+      zs = List.replicate (sz.toNat - m1.size) 0 →
       Ok (some (d.ino, ⟨m1.grown sz.toNat, bs1 ++ zs.map (·, false), fa, fb, .idle⟩)) := by
     intro zs hz h0
     rcases hR1 with _ | _ | ⟨zs0, hz0, h00⟩

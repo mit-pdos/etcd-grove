@@ -1022,7 +1022,7 @@ theorem wp_Create (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
   wp_apply wp_WriteAt f fd (child (child dir wtB) segB) (DFrac.own 1) sl dataC (DFrac.own 1) (W64 0)
       (DFrac.own 1) ⟨i, true, true⟩ 1 newMeta [] rfl (by decide) (by decide) (by decide)
       (by decide) (by decide) (by decide) (fun _ => rfl) (.inl rfl) $$ [Hos Hf Hsl Hfd Hm Hb0 Hmc]
-    as %n %err ⟨Hf, Hsl, Hfd, %j', %ys, %h, %v, %Hres, Hm, Hys, -⟩
+    as %n %err ⟨Hf, Hsl, Hfd, %j', %ys, %h, %v, %r, %Hres, Hm, Hys, -⟩
   · iframe; iexact Hos
   obtain ⟨hj, -, hys, -, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne⟩⟩ := Hres
   rotate_left

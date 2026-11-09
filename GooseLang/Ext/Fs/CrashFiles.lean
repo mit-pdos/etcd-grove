@@ -197,7 +197,7 @@ def metaOf (f : OsFile) : OsMeta :=
     decide (∀ n, (f.secs n).dirty = false → (f.secs n).vers.length ≤ 1), ∅,
     (List.range f.size).map (fun b =>
       some ((((f.secs (b / 512)).vers.head?).getD zeroSec).toList.getD (b % 512) 0)),
-    false, if ∀ n, (f.secs n).vers.length ≤ 1 then some [] else none, none⟩
+    frOf f, if ∀ n, (f.secs n).vers.length ≤ 1 then some [] else none, none⟩
 
 open Classical in
 /-- The bytes of a file of a new generation, each flagged clean if it is. -/
@@ -262,8 +262,17 @@ theorem bytesOf_get (f : OsFile) (b : Nat) :
   · rename_i h; rw [List.getElem?_range h]; rfl
   · rename_i h; rw [List.getElem?_eq_none (by simp; omega)]; rfl
 
-/-- A state with no process state, well formed, is coherent with the ghost maps of its files. -/
-theorem osCohG {st : OsState} (hp : st.proc = ProcState.empty) (hwf : OsWf st) :
+/-- The files of a state a program may start in have the fresh sectors `frOf` says. -/
+theorem fsInit_fr {st : OsState} (h : FsInit st) :
+    ∀ i f, st.fs.files !! i = some f → FrOk (frOf f) f := by
+  intro i f hf
+  obtain ⟨vs, sz, kp, rfl⟩ := (h.2.2.2.2.2.2.1 i f hf).2
+  exact ofDisk_fr vs sz kp
+
+/-- A state with no process state, well formed, whose files have the fresh sectors `frOf` says,
+is coherent with the ghost maps of its files. -/
+theorem osCohG {st : OsState} (hp : st.proc = ProcState.empty) (hwf : OsWf st)
+    (hfr : ∀ i f, st.fs.files !! i = some f → FrOk (frOf f) f) :
     OsCoh st (bytesMapG st) (metaMapG st) ∅ ∅ := by
   classical
   have hnoinfl : ∀ i b, ¬ InflightAt st i b := by
@@ -277,8 +286,7 @@ theorem osCohG {st : OsState} (hp : st.proc = ProcState.empty) (hwf : OsWf st) :
     | some f =>
       simp only [hfo, Option.map_some, Option.some.injEq] at hm
       subst hm
-      refine ⟨f, rfl, ⟨rfl, Nat.le_refl _, Nat.le_refl _, ?_, ?_, ?_, ?_, fun h => by
-        simp [metaOf] at h, (fun ns hns n => by
+      refine ⟨f, rfl, ⟨rfl, Nat.le_refl _, Nat.le_refl _, ?_, ?_, ?_, ?_, hfr i f hfo, (fun ns hns n => by
           simp only [metaOf] at hns
           split at hns
           · rename_i h1; cases hns; simpa using h1 n

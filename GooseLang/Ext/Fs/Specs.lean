@@ -35,7 +35,7 @@ theorem osWf_fds {st : OsState} (hwf : OsWf st) (X : GMap w64 OsFd)
 
 theorem MetaOk.fds {st : OsState} {p : Ino} {m : OsMeta} {f : OsFile} (X : GMap w64 OsFd)
     (h : MetaOk st p m f) : MetaOk (st.setProc { st.proc with fds := X }) p m f :=
-  ⟨h.size, h.lo, h.hi, h.ok, h.maps, h.targets, h.dur, h.zero, h.vk, h.dz⟩
+  ⟨h.size, h.lo, h.hi, h.ok, h.maps, h.targets, h.dur, h.fr, h.vk, h.dz⟩
 
 theorem osCoh_fds {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) (X : GMap w64 OsFd) :
     OsCoh (st.setProc { st.proc with fds := X }) Γb Γm X Γt :=
@@ -529,10 +529,11 @@ theorem durOf_some {lo : Nat} {xs : List (w8 × Bool)} {i : Nat} {d : w8}
 
 /-- The `OsMeta` after a successful sync of the bytes `xs` from `lo`: the size is durable, and the
 durable bytes known are `xs`'s if no byte is lost (`m.ok`; then every byte is durable), none
-otherwise. -/
+otherwise; the fresh sectors known from the size's last page on at most. -/
 def OsMeta.synced (m : OsMeta) (lo : Nat) (xs : List (w8 × Bool)) : OsMeta :=
   { m with lo := m.size, hi := m.size, dur := if m.ok then durOf lo xs else [],
-           vk := if m.ok then some [] else m.vk, dz := none }
+           vk := if m.ok then some [] else m.vk, dz := none,
+           fr := m.fr.map (max · (pageUp m.size)) }
 
 /-- The bytes after a successful sync: clean, unless a failed sync may have lost one. -/
 def syncedBytes (m : OsMeta) (xs : List (w8 × Bool)) : List (w8 × Bool) :=
@@ -695,10 +696,8 @@ theorem wp_osFsync_keep (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Na
               · exact absurd ‹_› hn
               · exact hmo.ok hok n hd),
           hmo.maps, fun t c ht hcp => absurd hcp (noTok_of_whole hcoh Hnt t c ht), ?_,
-          fun hz b hb => by
-            rw [synced_rawAt]
-            exact hmo.zero (by simpa [OsMeta.syncedKeep, OsMeta.synced] using hz) b
-              (by simpa [synced_size] using hb),
+          by simp only [OsMeta.syncedKeep, OsMeta.synced]; rw [hmo.size]
+             exact frOk_synced hmo.fr _,
           fun ns hns n => by
             simp only [OsMeta.syncedKeep, OsMeta.synced] at hns
             simp only [OsFile.synced]
@@ -775,9 +774,7 @@ theorem wp_osFsync_keep (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Na
         hkeep ?_ hnoI⟩
       · refine ⟨hmo.size, hmo.lo, hmo.hi, (fun h => by cases h), hmo.maps,
           fun t c ht hcp => absurd hcp (noTok_of_whole hcoh Hnt t c ht), ?_,
-          fun hz b hb => by
-            rw [syncFailed_rawAt]
-            exact hmo.zero (by simpa using hz) b (by simpa [syncFailed_size] using hb),
+          frOk_syncFailed hmo.fr _,
           fun ns hns n => by
             simp only [OsFile.syncFailed]
             split <;> exact hmo.vk ns (by simpa using hns) n,
