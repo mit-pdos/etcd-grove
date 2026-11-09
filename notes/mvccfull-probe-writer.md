@@ -105,3 +105,58 @@ bounds' window, `Restore`'s update at a live incarnation) are proved.
   the writer's `rbPart` (`bStopView_rbPart_agree`).
 - `backend.rbOwn` (an abbreviation of `rbPart γ ⊤`) with `backend.rbPart_agree` (a backend lemma,
   used as is).
+
+## Round 2 (2026-11-09, 23:06–23:55 UTC, about 50 minutes): `runner.restore` finished
+
+**`runner.restore` is proved** (no `sorry` in `runner__restore.lean`; `lake build ...mvccfull.Link`
+passes). After `inc_open_backend`, in Go's order:
+
+- `lessor.Recover(newbe, closure)`: the closure's `mvccDeleter` proved inline (the captured `kv` cell
+  persisted; `KV.Write`'s contract through `shapes.law`; the `TxnWrite → TxnDelete` conversion is a
+  pure step); `Recover`'s premises from the builder's records (`leaseRecsOk`, `Lr := L'` exactly),
+  `logOk_recover`, the guard `True` (`granted_list`), the `U`-or-fresh request list
+  (`bigSepL_mem_or`), the new backend's `isBackend`, half of its open token (lent), two write-back
+  tokens. `leaseEver` is split on `recs = []` around the call.
+- `KV.Restore` through `restore_au` (proved last round): `MvccReachable` (`logOk_hist`), the items
+  (`logOk_leases`), the hook share `plHook γB nil`, `storageReq` of `True` (`commitReq_true`); the
+  bounds `b2` hold at the builder's state.
+- `SetTxPostLockInsideApplyHook(f.hook)` (one of the kept tokens), the hook frozen (`plHook_persist`).
+- The old backend's census (`bkCensus` with `Restore`'s `storageRest` and the old `bkRT`'s share),
+  `backend.Close` at `dbCloseOk`.
+- The fields; `append(nil, b.leases...)`; `revLo`/`cmpLo` stored at the restored state (`bnd_acc`).
+- The checks: `KV.Rev`, `KV.Read`/`Txn.FirstRev`/`Txn.End` (`read_au`, new: a read's update at a live
+  incarnation).
+- The follower's `memCore` rebuilt on the new backend: `lessorW` with `lessorBackend` derived from
+  `lessorApplyOk` (change 2), `U' = U ++ recs` (or `U`), `grantedAfter_mono`, `leaseRecsOk_insert`;
+  `bkKeep` with `Ops` tokens; `checkLeases`; `restores.Add`; `writerOwn` at `nb + 1`.
+
+New lemmas: `RestoreLemmas.lean` `read_au`, `bigSepL_mem_or`, `granted_list`; `WriterShares.lean`
+`grantedAfter_mono`, `leaseRecsOk_insert`. Hypothesis added: `restore.wp_proof` takes
+`mvccReaders_split.law` (`etc/link-lean-first-mvccfull.txt`, `Link.lean` regenerated).
+
+**`inc_open_backend` is proved** too (`Writer.lean`): `mvccrand.rc_open` at an image, `bkCensus` in
+place of `rcCensus`, `wbStock` (a copy of mvccrand's `rcStock`, whose statement carries mvccrand's
+package assumptions as a section variable: a cleanup for mvccrand). Note: a census over
+`List.replicate rdStockN` must keep `rdStockN` abstract (`n2 + 2`): rewriting with
+`List.replicate_succ'` at the literal makes the kernel recurse.
+
+No new spec or invariant problem in this round. Every law of the restart and restore chains is now
+proved; what remains `sorry` in `Writer.lean` is the five pure model lemmas (`logOk_once`,
+`logOk_hist`, `runM_mono`, `logOk_leases`, `logOk_recover`), and in the shared modules
+`memberN_mask`, `memberInv_live`, `rdStock_split` (`Readers.lean`), plus the bodies of `shut`, `open`
+and the others not in the Probe.
+
+## The unfolds of other packages' definitions, and the law that would replace each
+
+| Unfolded (owner) | Where | Law to add (statement) |
+|---|---|---|
+| `apply.bkRT` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/Contracts.lean`) | `inc_census`, `inc_open_backend`, `restore` (old backend's census) | `apply.bkRT_eq (B) : apply.bkRT B ⊣⊢ backend.rdTok B.γB B.P B.be ∗ backend.bOpen B.γB backend.rdOpen` |
+| `backend.bStopView` (`Proof/go_etcd_io/etcd/server/v3/storage/backend/InvStop.lean`) | `inc_stop_image` | `backend.bStopView_rbPart_agree (γ P W Pk D S r) : bStopView γ P W Pk D ∗ rbPart γ S r ⊢ bStopView γ P W Pk D ∗ rbPart γ S r ∗ ⌜∀ n, S n → r.lookup n = (rbData P D).lookup n⌝` |
+| `backend.rbOwn` (`InvBackend.lean`; with `rbPart_agree`) | `inc_stop_image` | subsumed by the line above |
+| `lease.leaseGranted` (`Proof/go_etcd_io/etcd/server/v3/lease/InvLessor.lean`) | `granted_list` | `lease.leaseGranted_of_guard (γl GA id) : lessorGuard γl GA ∗ □ GA id ⊢ leaseGranted γl id` |
+| `lessorApplyOk` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/SnapRO.lean`) | `restore` (the lessor's contract on the new backend) | `lessorApplyOk_at (lp d W Pk f RW) : lessorApplyOk lp ∗ isBackend d.γB d.P W Pk d.be ∗ plHookRO d.γB f ∗ ⌜f ≠ func.nil⌝ ∗ rwLens RW (lessorBeOn lp d.be) ⊢ lessorBackend lp Pk #f (wbTok d.γB) RW (apply.bkRT d) (rbPart d.γB (· = "lease"))` |
+| `rwLens` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/InvRest.lean`) | `restore` | `rwLens_refl (X) : ⊢ rwLens X X` |
+| `backend.wbTok` (`InvBackend.lean`) | `inc_open_backend`, `restore` | `backend.wbTok_toks (γ) : wbTok γ ⊣⊢ ownToks γ.wb 1` (or make it an `abbrev`) |
+| `backend.newPostK`, `backend.bFresh`, `backend.newPostKP` (`backend`) | `inc_open_backend` (as `mvccrand.rc_open`) | `backend.newPostK_split` stating `newPostK`'s parts as `rc_open` destructs them, and `newPostKP_intro` its converse |
+| `api.hookRun` at `nil` (`Spec/go_etcd_io/etcd/server/v3/storage/mvcc/Api.lean`, exported) | `restore` (`Restore`'s premise) | `api.hookRun_nil (P Pre Q) : hookRun P func.nil Pre Q ⊣⊢ (P ∗ Pre ={⊤}=∗ Q)` |
+| `mvccDeleter` (`Api.lean`, exported) | `restore` (its persistence, its proof) | `instance mvccDeleter_persistent`; `mvccDeleter_intro` (the `⌜rd ≠ nil⌝` and the triple) |
