@@ -15,7 +15,26 @@ Prove" paragraphs) and `questions.md` (the 7e-2 sections). Scratch and logs:
   the driver's `objLabels`, `getAttrs`, `labelSel/fieldSel.Matches` (`Sel.lean`); `PredOk.lean`
   (`predOk_driver`, `mlistMatches`, `mlistPCT`); generic `PrepareContinueToken`; `mlist` rewired.
 
-## Left of the second third, in order
+## Done since (2026-11-09, second session)
+- `rangeStreamOff` (`ListDefs.lean`), `shouldStream` (spec + proof).
+- `getNewItemFunc` (spec + proof; `newItemOk` in `ListDefs`).
+- `growSlice` (spec + proof) over `listContractOk'` (filled one clause per reflect call; the Draft's
+  "Forms proposed at Prove (second third, part 2)").
+- `ListDefs` vocabulary for the rest: `remIs`, `ListSpec` (+ `itemsAt_wf`), `listAtItems`, `listAt`,
+  `listContractOk'`, `listContractOk`, `listIs`, `listErr`, `readErrIs`, `pageKvsL`, `listRespIs`.
+- ETooLarge (#20): `respIs`'s `.tooLarge` case and `validateMinimumResourceVersion`'s post are
+  `tooLargeErrIs`; its proof and `store.Get`'s follow.
+
+## Blocked (decisions asked of etcd-grove-81, 2026-11-09)
+- Item 2 (`interpretListError`, `listReadError`): `err == rpctypes.ErrCompacted` and
+  `errors.Is(err, rpctypes.ErrFutureRev)` need the two globals' dynamic type (`EtcdError`), which
+  `ErrCompacted_init`/`ErrFutureRev_init` and `rpctypesInit` do not state (their docstrings say it):
+  a trust-base change. `errors.Is` also needs `statusErrOk err` (the client branch of `unkErr`).
+- Item 5 (`isStore` #15, R1): `utf8Valid` of `gr` in `isStore` needs a `New.spec` premise; the
+  aggregator factory needs the two factory specs' posts strengthened (`True` today); neither is in
+  the Draft's §9 list of changed statements. R1 waits for it (its call sites discharge from `isStore`).
+
+## Left of the second third, in order (original list)
 1. `rangeStreamOff` (in `ListDefs.lean`, store part: `∃ g, globalAddr
    k8s_io.apiserver.pkg.util.feature.DefaultFeatureGate ↦□ GoInterface.ok g ∗
    k8sfeature.featureOff g go!"EtcdRangeStream"`), then `shouldStream` (Draft §3.1). The gate's
@@ -81,4 +100,5 @@ systemd-run --scope -q -p MemoryMax=64G lake build --packages=/shared/tmp/manife
   Proof.encoding.base64.Init Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__UserAdd
 ```
 Add each new module (its `Proof.*` name) and, for a changed statement, its importers
-(`etc/importers.py --uses NAME FILE --leaves`). Last green: 7691 jobs (`/shared/tmp/k8s-7e-2/build3.log`).
+(`etc/importers.py --uses NAME FILE --leaves`). Last green: 7685 jobs, with `etcd3.shouldStream`, `etcd3.getNewItemFunc`, `etcd3.growSlice` added to the
+list (`/shared/tmp/k8s-7e-2/build4.log`, 2026-11-09).

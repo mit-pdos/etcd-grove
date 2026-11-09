@@ -41,9 +41,9 @@ theorem store.validateMinimumResourceVersion.wp_proof
     subst hn
     wp_auto
     iapply HΦ
-    ipureintro
     have : ¬ uint.nat rev < uint.nat (W64 0) := by simp
     simp only [this, ↓reduceIte]
+    ipureintro; first | rfl | trivial
   · wp_auto
     rw [decide_eq_false hm]
     iunfold isStore at Hs
@@ -64,17 +64,15 @@ theorem store.validateMinimumResourceVersion.wp_proof
     by_cases hlt : uint.nat rev < uint.nat n'
     · rw [decide_eq_true (by word)]
       wp_auto
-      wp_apply wp_TooLarge as %err Herr
-      icases (apierrors.tooLargeErrIs_ptr err) $$ Herr with %herr
+      wp_apply wp_TooLarge as %err #Herr
       iapply HΦ
-      ipureintro
       simp only [hlt, ↓reduceIte]
-      exact herr
+      iexact Herr
     · rw [decide_eq_false (by word)]
       wp_auto
       iapply HΦ
-      ipureintro
       simp only [hlt, ↓reduceIte]
+      ipureintro; first | rfl | trivial
 
 end proof
 

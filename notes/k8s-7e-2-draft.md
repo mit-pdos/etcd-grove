@@ -93,6 +93,21 @@ tokJson rv start` (no `.toBytes`: a `GoString` is bytes); `Value.Kind` returns `
 require the driver's package initialization; `labels.Set.{Get,Has}`, `fields.Set.Get` keep the
 non-`nil` premise, the `nil` maps handled in the selector proofs.
 
+**Forms proposed at Prove (second third, part 2, 2026-11-09; for etcd-grove-81's review):**
+(1) `listContractOk'`'s `…` spots are filled one clause per reflect call: `GetItemsPtr` (as the
+Draft); `MakeSlice(rt, 0, m)` giving `L.itemsAt s' []`; `MakeSlice(rt, n, m)` for `n = |os|` giving
+`w`, `s'` and a one-shot wand for `Copy(w, v)` that moves `L.itemsAt s os` to `L.itemsAt s' os` and
+returns `#(r : w64)`; `Append(v, esl)` with `esl ↦*{dqe} [e]`, `reflElem e S.objTy q` and
+`S.objAt (mkOk *objTy q) o rv`, giving `L.itemsAt s' (os ++ [(o, rv)])` (the composite-WP form of
+the Draft does not fit the translation, which stores `MakeSlice`'s result in a local between the
+calls); (2) `ListSpec` gains the law `itemsAt_wf : itemsAt s os ⊢ ⌜0 ≤ sint.Z s.len ∧ sint.Z s.len ≤
+sint.Z s.cap⌝` (`ownSliceCap_wf` for the driver): `growSlice`'s `MakeSlice(rt, v.Len(), max)` needs
+`len ≤ max` from `max > cap`; (3) `listErr`'s 410 is `∃ st, apiErrAt err (.status st []) ∗
+⌜st.Reason' = "Expired" ∧ st.Code' = 410⌝` (the Draft's `expiredStatus` predates the `.status st cs`
+form; producing it needs `NewResourceExpired.spec`'s post to add `st.Details' = null`, true of its
+literal); (4) `validateMinimumResourceVersion.spec`'s post is `if … then tooLargeErrIs err else
+⌜err = nil⌝` (an Iris `if`, as `tooLargeErrIs` is spatial-persistent).
+
 ## 0. Summary
 
 | # | Item | Status | Producer |

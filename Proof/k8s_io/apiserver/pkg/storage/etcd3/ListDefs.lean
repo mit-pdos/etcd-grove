@@ -19,6 +19,7 @@ module
 
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Store
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.ListModel
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.KList
 
 @[expose] public section
 
@@ -30,7 +31,7 @@ namespace Perennial
 namespace EtcdGrove
 namespace k8s
 
-open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver reflectM
 
 /-! ## The pure part -/
 
@@ -113,6 +114,184 @@ variable {Obj : Type} [DecidableEq Obj]
 values under the prefix decode. -/
 def kvWfHist (c : StoreCfg GF Obj) (σ : KVState) : Prop :=
   ∀ r, r ≤ σ.rev → ∀ v ∈ (σ.at r).kvs, c.pfx <+: v.key → c.S.dec v.value ≠ none
+
+/-- **The default gate has `EtcdRangeStream` off** (Draft §2, #13, persistent): the gate
+`DefaultFeatureGate` holds (read-only, as `features`' fact `featuresInit` says) had
+`Set("EtcdRangeStream=false")` succeed. Producer: the driver's `noStreaming` before `etcd3.New`. -/
+def rangeStreamOff : IProp GF :=
+  iprop(∃ g : GoInterfaceOk,
+    globalAddr k8s_io.apiserver.pkg.util.feature.DefaultFeatureGate ↦□ GoInterface.ok g ∗
+    k8sfeature.featureOff g go!"EtcdRangeStream")
+
+instance rangeStreamOff_persistent : Persistent (rangeStreamOff (GF := GF)) := by
+  unfold rangeStreamOff; infer_instance
+
+/-- **`newItemFunc` makes a fresh zero object** (persistent; Draft §3.2), as `NewFunc()` does
+(`ObjSpec.newObj`). -/
+def newItemOk (S : ObjSpec GF Obj) (f : GoFunc) : IProp GF :=
+  iprop(□ ∀ Φ : val → IProp GF, ▷ (∀ x, S.objAt x S.zero [] -∗ Φ #x) -∗
+    WP (App (Val #f) (Val #())) {{ Φ }})
+
+instance newItemOk_persistent (S : ObjSpec GF Obj) (f : GoFunc) :
+    Persistent (newItemOk S f) := by
+  unfold newItemOk; infer_instance
+
+/-- `rem` holds the remaining count `remV`: `nil` for `none`, a cell holding `n` for `some n`
+(`PrepareContinueToken`'s `*int64`). -/
+def remIs (rem : Loc) : Option w64 → IProp GF
+  | none => iprop(⌜rem = null⌝)
+  | some n => iprop(rem ↦ n)
+
+/-- **The list objects** (Draft §6): a list type, where its items slice is, what the items hold
+(bodies and resource version strings, with the slice's capacity), and the list's metadata. -/
+structure ListSpec (GF : BundledGFunctors) (Obj : Type) where
+  listTy : go.GoType
+  itemsRef : Loc → Loc
+  /-- `itemsAt s os`: the slice `s` holds the items `os`, with its capacity -/
+  itemsAt : GoSlice → List (Obj × GoString) → IProp GF
+  itemsAt_nil : ⊢ itemsAt slice.nil []
+  /-- the slice's length is the item count (revision after the attack, change 4) -/
+  itemsAt_len : ∀ s os, itemsAt s os ⊢ ⌜uint.nat s.len = os.length⌝
+  /-- the slice is well formed, its capacity at least its length (`ownSliceCap_wf`; a form settled
+  at Prove: `growSlice`'s `MakeSlice(rt, v.Len(), max)` needs `len ≤ max` from `max > cap`) -/
+  itemsAt_wf : ∀ s os, itemsAt s os ⊢ ⌜0 ≤ sint.Z s.len ∧ sint.Z s.len ≤ sint.Z s.cap⌝
+  /-- the list's `ListMeta`: resource version, continue token, remaining count -/
+  metaAt : Loc → w64 → GoString → Option w64 → IProp GF
+
+/-- The list at `pl` with its items and metadata. -/
+def ListSpec.listAtItems (L : ListSpec GF Obj) (pl : Loc) (os : List (Obj × GoString)) (rv : w64)
+    (cont : GoString) (rem : Option w64) : IProp GF :=
+  iprop(⌜pl ≠ null⌝ ∗ ∃ s, L.itemsRef pl ↦ s ∗ L.itemsAt s os ∗ L.metaAt pl rv cont rem)
+
+/-- The list object `lx` (a `*listTy`) with its items and metadata. -/
+def ListSpec.listAt (L : ListSpec GF Obj) (lx : GoInterface) (os : List (Obj × GoString))
+    (rv : w64) (cont : GoString) (rem : Option w64) : IProp GF :=
+  iprop(∃ pl, ⌜lx = interface.mkOk (go.GoType.PointerType L.listTy) #pl⌝ ∗
+    L.listAtItems pl os rv cont rem)
+
+/-- **The reflect calls on the items** (Draft §6, #9 at the store's abstract element type; the
+`…` spots filled at Prove, one clause per call): `meta.GetItemsPtr` of a list; `MakeSlice(rt, 0,
+m)`, an empty items slice; `MakeSlice(rt, n, m)` for `n` items, whose `Copy(w, v)` then moves the
+items of `v`'s slice into it (`growSlice`); `Append(v, [e])` of an object, one item more
+(`processListItem`). -/
+def listContractOk' (S : ObjSpec GF Obj) (L : ListSpec GF Obj) : IProp GF :=
+  iprop(
+    (□ ∀ (pl : Loc) (Φ : val → IProp GF), ⌜pl ≠ null⌝ -∗
+      ▷ Φ (PairV #(interface.mkOk (go.GoType.PointerType (go.GoType.SliceType S.objTy))
+          #(L.itemsRef pl) : GoInterface) #GoInterface.nil) -∗
+      WP (App (Val (@! k8s_io.apimachinery.pkg.api.«meta».GetItemsPtr))
+        (Val #(interface.mkOk (go.GoType.PointerType L.listTy) #pl : GoInterface))) {{ Φ }}) ∗
+    (□ ∀ (rt : _root_.Perennial.reflect.Type') (m : w64) (Φ : val → IProp GF),
+      ⌜reflType rt (go.GoType.SliceType S.objTy) ∧ 0 ≤ sint.Z m ∧ sint.Z m ≤ 2 ^ 41⌝ -∗
+      ▷ (∀ (w : _root_.Perennial.reflect.Value) (s' : GoSlice), ⌜reflSliceV w S.objTy s'⌝ -∗
+          L.itemsAt s' [] -∗ Φ #w) -∗
+      WP (App (App (App (Val (@! _root_.Perennial.reflect.MakeSlice)) (Val #rt)) (Val #(W64 0)))
+        (Val #m)) {{ Φ }}) ∗
+    (□ ∀ (rt : _root_.Perennial.reflect.Type') (n m : w64) (os : List (Obj × GoString))
+        (Φ : val → IProp GF),
+      ⌜reflType rt (go.GoType.SliceType S.objTy) ∧ sint.nat n = os.length ∧ 0 ≤ sint.Z n ∧
+        sint.Z n ≤ sint.Z m ∧ sint.Z m ≤ 2 ^ 41⌝ -∗
+      ▷ (∀ (w : _root_.Perennial.reflect.Value) (s' : GoSlice), ⌜reflSliceV w S.objTy s'⌝ -∗
+          (∀ (v : _root_.Perennial.reflect.Value) (p : Loc) (dq : DFrac) (s : GoSlice)
+              (Ψ : val → IProp GF),
+            ⌜reflElem v (go.GoType.SliceType S.objTy) p⌝ -∗ p ↦{dq} s -∗ L.itemsAt s os -∗
+            ▷ (∀ r : w64, p ↦{dq} s -∗ L.itemsAt s' os -∗ Ψ #r) -∗
+            WP (App (App (Val (@! _root_.Perennial.reflect.Copy)) (Val #w)) (Val #v)) {{ Ψ }}) -∗
+          Φ #w) -∗
+      WP (App (App (App (Val (@! _root_.Perennial.reflect.MakeSlice)) (Val #rt)) (Val #n))
+        (Val #m)) {{ Φ }}) ∗
+    (□ ∀ (v : _root_.Perennial.reflect.Value) (p : Loc) (dq : DFrac) (s : GoSlice)
+        (os : List (Obj × GoString)) (e : _root_.Perennial.reflect.Value) (esl : GoSlice)
+        (dqe : DFrac) (q : Loc) (o : Obj) (rv : GoString) (Φ : val → IProp GF),
+      ⌜reflElem v (go.GoType.SliceType S.objTy) p ∧ reflElem e S.objTy q⌝ -∗
+      p ↦{dq} s -∗ L.itemsAt s os -∗ esl ↦*{dqe} [e] -∗
+      S.objAt (interface.mkOk (go.GoType.PointerType S.objTy) #q) o rv -∗
+      ▷ (∀ (w : _root_.Perennial.reflect.Value) (s' : GoSlice), ⌜reflSliceV w S.objTy s'⌝ -∗
+          p ↦{dq} s -∗ L.itemsAt s' (os ++ [(o, rv)]) -∗ esl ↦*{dqe} [e] -∗
+          S.objAt (interface.mkOk (go.GoType.PointerType S.objTy) #q) o rv -∗ Φ #w) -∗
+      WP (App (App (Val (@! _root_.Perennial.reflect.Append)) (Val #v)) (Val #esl)) {{ Φ }}))
+
+instance listContractOk'_persistent (S : ObjSpec GF Obj) (L : ListSpec GF Obj) :
+    Persistent (listContractOk' S L) := by
+  unfold listContractOk'; infer_instance
+
+/-- **The list half of the contract** (Draft §6): the reflect calls, the decoder's
+`DecodeListItem` and the versioner's `UpdateList`, and the list type is not unstructured. -/
+def listContractOk (c : StoreCfg GF Obj) (L : ListSpec GF Obj) : IProp GF :=
+  iprop(listContractOk' c.S L ∗
+    □ (∀ (ctx : GoInterface) (dsl : GoSlice) (d : GoString) (rev : w64) (nf : GoFunc)
+        (Φ : val → IProp GF),
+      dsl ↦*□ d -∗ newItemOk c.S nf -∗
+      ▷ (∀ (x err : GoInterface),
+          (match c.S.decode d with
+            | some o => ⌜err = GoInterface.nil⌝ ∗ c.S.objAt x o (c.S.fmtRV rev)
+            | none => ⌜err ≠ GoInterface.nil⌝ ∗ go_etcd_io.etcd.cache.v3.errStrOk err) -∗
+          Φ (PairV #x #err)) -∗
+      WP (App (App (App (App (Val #(methods c.di.ty go!"DecodeListItem" c.di.v)) (Val #ctx))
+        (Val #dsl)) (Val #rev)) (Val #nf)) {{ Φ }}) ∗
+    □ (∀ (pl : Loc) (os : List (Obj × GoString)) (rv rv' : w64) (cont cont' : GoString)
+        (rem : Loc) (remV rem0 : Option w64) (Φ : val → IProp GF),
+      L.listAtItems pl os rv cont rem0 -∗ remIs rem remV -∗
+      ▷ (∀ err, ⌜err = GoInterface.nil⌝ ∗ L.listAtItems pl os rv' cont' remV -∗ Φ #err) -∗
+      WP (App (App (App (App (Val #(methods c.vi.ty go!"UpdateList" c.vi.v))
+        (Val #(interface.mkOk (go.GoType.PointerType L.listTy) #pl : GoInterface))) (Val #rv'))
+        (Val #cont')) (Val #rem)) {{ Φ }}) ∗
+    ⌜L.listTy ≠ k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.UnstructuredList.ty⌝)
+
+instance listContractOk_persistent (c : StoreCfg GF Obj) (L : ListSpec GF Obj) :
+    Persistent (listContractOk c L) := by
+  unfold listContractOk; infer_instance
+
+/-- **A list's answer** in the list object `lx` (Draft §2): the items (each object at its mod
+revision's string), the list's resource version, the continue token (`encL` of the last match's
+key and `"\x00"`, the prefix and the revision, iff more) and the remaining count (iff more and the
+predicate is empty). -/
+def listIs (c : StoreCfg GF Obj) (L : ListSpec GF Obj) (kp : GoString) (emp : Bool) (lim : w64)
+    (R : w64) (a : k8s_etcd3.ListModel.LState w8 (Obj × Nat)) (lx : GoInterface) : IProp GF :=
+  L.listAt lx (a.items.reverse.map fun x => (x.1, c.S.fmtRV (W64 (x.2 : Int)))) R
+    (if a.more then k8s_etcd3.encL (a.last.getD [] ++ [W8 0]) kp R else [])
+    (if a.more ∧ emp then some (W64 (a.total : Int) - lim) else none)
+
+/-- **A list's error** whose outcome tells nothing (Draft §2, the driver's `EOther`): the
+client's, or the 410 `interpretListError` makes of an `ErrCompacted` (`NewResourceExpired`: reason
+`Expired`, code 410, no details; a form settled at Prove: the Draft's `expiredStatus`). -/
+def listErr (c : StoreCfg GF Obj) (err : GoInterface) : IProp GF :=
+  iprop(unkErr c err ∨ ∃ st : k8s_io.apimachinery.pkg.apis.«meta».v1.Status,
+    apierrors.apiErrAt err (.status st []) ∗
+    ⌜st.Reason' = go!"Expired" ∧ st.Code' = W32 410⌝)
+
+instance listErr_persistent (c : StoreCfg GF Obj) (err : GoInterface) :
+    Persistent (listErr c err) := by
+  unfold listErr; infer_instance
+
+/-- **A failed read's error** (Draft §3.5): the client's error (`unkErr`), and, by its description
+(`errDesc`, D29), a future revision only if the state `Q` fired at is below `rev`
+(`rangeErrSound`'s future half). -/
+def readErrIs (c : StoreCfg GF Obj) (rev : w64) (Q : w64 → KVState → IProp GF)
+    (err : GoInterface) : IProp GF :=
+  iprop(unkErr c err ∗
+    □ (⌜go_etcd_io.etcd.cache.v3.errDesc err = go_etcd_io.etcd.cache.v3.futureRevDesc⌝ -∗
+      ∃ σ : KVState, □ Q (W64 (σ.rev : Int)) σ ∗ ⌜σ.rev < sint.nat rev⌝))
+
+instance readErrIs_persistent (c : StoreCfg GF Obj) rev Q err :
+    Persistent (readErrIs c rev Q err) := by
+  unfold readErrIs; infer_instance
+
+/-- **A page of a list read** (Draft §3.5) in the store `s`, from `start` with limit `l`: the first
+`l` key-values of the scope from `start` (all for `l = 0`), and the count of the scope from
+`start`. -/
+def pageKvsL (s : KVStore) (kp : GoString) (recur : Bool) (start : GoString) (l : Nat) :
+    List EtcdKv × Nat :=
+  let sc := s.kvs.filter fun v => kInScope kp recur v.key && !decide (go.GoStringLt v.key start)
+  (if l = 0 then sc else sc.take l, sc.length)
+
+/-- `getList`'s answer (Draft §3.5): a page of `σ`'s store at `σ.readRev rev`, the response's
+revision `σ`'s. -/
+def listRespIs (resp : go_etcd_io.etcd.client.v3.kubernetes.ListResponse) (σ : KVState)
+    (kp : GoString) (recur : Bool) (rev lim : w64) (start : GoString) : IProp GF :=
+  let pg := pageKvsL (σ.at (σ.readRev rev)) kp recur start (if recur then limN lim else 1)
+  iprop(⌜resp.Revision' = W64 (σ.rev : Int) ∧ resp.Count' = W64 (pg.2 : Int)⌝ ∗
+    ∃ ps, resp.Kvs' ↦* ps ∗ [∗list] q;kv ∈ ps;pg.1, txn.kvIs q kv)
 
 end defs
 

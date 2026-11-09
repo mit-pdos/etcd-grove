@@ -27,6 +27,7 @@ public import GeneratedProof.k8s_io.apimachinery.pkg.runtime.schema
 public import GeneratedProof.k8s_io.apiserver.pkg.storage.etcd3.metrics
 public import GeneratedProof.k8s_io.apiserver.pkg.storage
 public import Proof.k8s_io.apiserver.pkg.storage.Defs
+public import Proof.k8s_io.apimachinery.pkg.api.errors.View
 
 @[expose] public section
 
@@ -175,7 +176,8 @@ theorem unkErr_enc (c : StoreCfg GF Obj) (err : GoInterface) (hn : err ≠ GoInt
 /-- **A model answer, as the method leaves it** (`err` and the object `out`): an object at a
 resource version, the zero object, a key not found or existing (`StorageError`s with codes `1`,
 `2`), a failed precondition (`invalidErrIs`, code `4`), a callback's error (`KUserErr`), a minimum
-resource version above the read's (a `*apierrors.StatusError`, which no other answer is); the other
+resource version above the read's (the error `IsTooLargeResourceVersion` recognizes,
+`apierrors.tooLargeErrIs`: a `*apierrors.StatusError`, which no other answer is; stage 7e-2, #20); the other
 errors (`rvSetOnCreate`, not answered by the unary methods' specs yet) as any error. -/
 def respIs {E : Type} [KUserErr E] (c : StoreCfg GF Obj) (r : KResp Obj E) (err out : GoInterface) : IProp GF :=
   match r with
@@ -189,9 +191,7 @@ def respIs {E : Type} [KUserErr E] (c : StoreCfg GF Obj) (r : KResp Obj E) (err 
     iprop(⌜err ≠ GoInterface.nil ∧ KUserErr.is e err⌝ ∗ ∃ o rv', c.S.objAt out o rv')
   | .err (.invalidObj k) => iprop(invalidErrIs err k ∗ ∃ o rv', c.S.objAt out o rv')
   | .err (.tooLarge _ _) =>
-    iprop(⌜∃ l : Loc, err = interface.mkOk
-        (go.GoType.PointerType k8s_io.apimachinery.pkg.api.errors.StatusError.ty) #l⌝ ∗
-      ∃ o rv', c.S.objAt out o rv')
+    iprop(apierrors.tooLargeErrIs err ∗ ∃ o rv', c.S.objAt out o rv')
   | .err _ => iprop(⌜err ≠ GoInterface.nil⌝ ∗ ∃ o rv', c.S.objAt out o rv')
 
 /-- **etcd's state is the store's** (D30i): sorted by key, and the store's invariant under its
