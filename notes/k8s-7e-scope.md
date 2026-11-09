@@ -262,6 +262,14 @@ revision.
     store's `kvKeysShort σ` (from `Q`, produced by 7e-4) bounds every revision's key count below
     `2 ^ 41`, and a response's `Kvs` are keys of the store at the read revision, so `Client.List`'s
     post need not carry the bound (it may).
+  - **7e-4 (from 7e-2's corrections and 7e-3c; decided by etcd-grove-81, 2026-11-09):** discharge
+    from the driver every new premise: `refine_list`'s `x.Match' ∈ {0,1,2}` and `"/objs/" <+:
+    x.ListKey'` (from `genList`), `KRelH h σ` (its `σ.rev < 2^63` and mod-revision bound included,
+    from `kInv`'s history), `GetList`'s `uint.Z n < 2^63` (from `minRV`) and `0 ≤ Limit'` (from
+    `genList`), and `kvKeysShort`'s count bound (the workload's keys); none may become a premise of a
+    closed theorem (that goes to the user). Adopt 7e-3c's `ItemRelH` (whole object) in `Refine.lean`.
+    `refine_list` is stated with `driverCodec.dec`; `driverSpec_dec` (`ObjSpec.lean`, `rfl`) bridges
+    it to `driverSpec.dec`, which `GetList`'s post uses.
 
 ## 6. The model in Lean and the invariant
 
