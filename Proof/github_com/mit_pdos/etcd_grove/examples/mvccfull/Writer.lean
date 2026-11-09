@@ -87,6 +87,13 @@ namespace mvccfull
 
 open Iris Iris.BI Iris.ProofMode github_com.mit_pdos.etcd_grove.examples.mvccfull mvcc mvcc.api
 
+/- mvccrand's writer stack (imported for `rcP`, `rcKB`, `rc_open`) declares its own `Pos.Countable`
+instances of mvcc's `MvccState` and `Change`, equal in body to `History.lean`'s but distinct
+constants; `Members.lean`'s ghost variables (`memberState`'s `m.σ`) use `History.lean`'s. Prefer them
+here, so that the writer's halves (`incW`, `memberCarry`) are syntactically the same ghost
+variables as the incarnation invariant's (`icombine`, `ghostVar_agree` match syntactically). -/
+attribute [local instance high] mvccfull.mvccState_countable mvccfull.change_api_countable
+
 /-! ## The operation log's model (pure) -/
 
 section model
