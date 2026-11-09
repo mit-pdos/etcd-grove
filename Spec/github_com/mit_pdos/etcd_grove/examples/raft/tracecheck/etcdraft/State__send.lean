@@ -22,8 +22,8 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Assumptions]
 
-/-- `s.send(m)` on a clone being built: `send m`. The pending bag's messages distinct and `m`'s count
-below `2^63 - 1` (`Bag.With`'s premises). -/
+/-- `s.send(m)` on a clone being built: `send m`. The pending bag's messages distinct and `m`'s
+count below `2^63 - 1` (`Bag.With`'s premises). -/
 abbrev State.send.spec : Prop :=
   ∀ (p : Loc) (st : State) (M : List ID) (q : Loc) (m : Msg),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft ∗

@@ -23,7 +23,8 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Assumptions]
 
 /-- `s.replicate(i, val, typ)` on a clone being built, of a server of the state: `replicate i w typ`
-(a new log: the old one is shared, never written in place); server `i` is then a copy being written. -/
+(a new log: the old one is shared, never written in place); server `i` is then a copy being written.
+-/
 abbrev State.replicate.spec : Prop :=
   ∀ (p : Loc) (st : State) (M : List ID) (i : w64) (gv : G.Value) (w : Value) (typ : EntryType),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft ∗

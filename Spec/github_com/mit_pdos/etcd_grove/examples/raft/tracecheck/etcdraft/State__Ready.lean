@@ -22,9 +22,9 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Assumptions]
 
-/-- `s.Ready(i)`, of a server `i` of the state whose pending bag's messages are distinct and whose two
-bags' counts sum below `2^63` (`Bag.Plus`'s and `Bag.Minus`'s premises): `ready i`, a new read-only
-state. -/
+/-- `s.Ready(i)`, of a server `i` of the state whose pending bag's messages are distinct and whose
+two bags' counts sum below `2^63` (`Bag.Plus`'s and `Bag.Minus`'s premises): `ready i`, a new
+read-only state. -/
 abbrev State.Ready.spec : Prop :=
   ∀ (p : Loc) (st : State) (i : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft ∗

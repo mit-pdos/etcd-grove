@@ -23,8 +23,8 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Assumptions]
 
 /-- `nonNil(ss...)`: the non-nil pointers of `ss`, in order, each still holding what the caller's
-predicate `P` says of its state (`P` of a pointer implies it is not nil, as `stateRO` and `stateOwn` do):
-`somes os`. -/
+predicate `P` says of its state (`P` of a pointer implies it is not nil, as `stateRO` and `stateOwn`
+do): `somes os`. -/
 abbrev nonNil.spec : Prop :=
   ∀ (sl : GoSlice) (dq : DFrac) (ps : List Loc) (os : List (Option State)) (P : Loc → State → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft ∗

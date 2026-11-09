@@ -22,7 +22,8 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Assumptions]
 
-/-- `s.Heartbeat(i, j)`: `AppendEntriesInRangeToPeer`'s spec with subtype `"heartbeat"`, range `<<1, 1>>`. -/
+/-- `s.Heartbeat(i, j)`: `AppendEntriesInRangeToPeer`'s spec with subtype `"heartbeat"`, range `<<1,
+1>>`. -/
 abbrev State.Heartbeat.spec : Prop :=
   ∀ (p : Loc) (st : State) (i j : w64) (o : Option State),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft ∗

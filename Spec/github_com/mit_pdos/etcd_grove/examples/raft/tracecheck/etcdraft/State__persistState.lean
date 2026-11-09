@@ -22,8 +22,8 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Assumptions]
 
-/-- `s.persistState(i)` on a clone being built, of a server of the state: `persistState i`; server `i`
-is then a copy being written. -/
+/-- `s.persistState(i)` on a clone being built, of a server of the state: `persistState i`; server
+`i` is then a copy being written. -/
 abbrev State.persistState.spec : Prop :=
   ∀ (p : Loc) (st : State) (M : List ID) (i : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft ∗

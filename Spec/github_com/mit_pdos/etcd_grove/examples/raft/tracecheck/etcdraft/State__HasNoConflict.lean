@@ -23,8 +23,8 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Assumptions]
 
 /-- `s.HasNoConflict(i, index, ents)`, of a server `i` of the state, an index at least 1 (an append
-request's `prevLogIndex + 1`; at `index ≤ 0` the Go reads `log[index-1]`, out of range, where the Lean
-reads `log[0]`), the index and the logs far from overflow: `hasNoConflict i index ents`. -/
+request's `prevLogIndex + 1`; at `index ≤ 0` the Go reads `log[index-1]`, out of range, where the
+Lean reads `log[0]`), the index and the logs far from overflow: `hasNoConflict i index ents`. -/
 abbrev State.HasNoConflict.spec : Prop :=
   ∀ (p : Loc) (st : State) (i index : w64) (el : GoSlice) (ents : List Entry),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft ∗

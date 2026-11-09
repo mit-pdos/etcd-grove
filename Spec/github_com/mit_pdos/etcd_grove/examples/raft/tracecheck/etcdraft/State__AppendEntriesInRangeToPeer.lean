@@ -22,10 +22,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Assumptions]
 
-/-- `s.AppendEntriesInRangeToPeer(subtype, i, j, b, e)`, of a server `i` of the state whose pending bag
-the Go's `Bag` handles (`Bag.Ok`), the range's ends far from overflow, where the Lean action evaluates
-(`.ok o`: TLC's evaluation error is a panic of the Go's `SubSeq`, which a triple cannot state; the
-caller checks the range): `o`'s successor, a new read-only state, or `nil` where it is not enabled. -/
+/-- `s.AppendEntriesInRangeToPeer(subtype, i, j, b, e)`, of a server `i` of the state whose pending
+bag the Go's `Bag` handles (`Bag.Ok`), the range's ends far from overflow, where the Lean action
+evaluates (`.ok o`: TLC's evaluation error is a panic of the Go's `SubSeq`, which a triple cannot
+state; the caller checks the range): `o`'s successor, a new read-only state, or `nil` where it is
+not enabled. -/
 abbrev State.AppendEntriesInRangeToPeer.spec : Prop :=
   ∀ (p : Loc) (st : State) (gsub : GoString) (sub : String) (i j b e : w64) (o : Option State),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft ∗

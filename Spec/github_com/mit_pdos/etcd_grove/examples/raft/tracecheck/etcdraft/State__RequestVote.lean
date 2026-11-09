@@ -23,7 +23,8 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Assumptions]
 
 /-- `s.RequestVote(i, j)`, of a server `i` of the state whose pending bag the Go's `Bag` handles
-(`Bag.Ok`): `requestVote i j`'s successor, a new read-only state, or `nil` where it is not enabled. -/
+(`Bag.Ok`): `requestVote i j`'s successor, a new read-only state, or `nil` where it is not enabled.
+-/
 abbrev State.RequestVote.spec : Prop :=
   ∀ (p : Loc) (st : State) (i j : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft ∗

@@ -22,8 +22,8 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Assumptions]
 
-/-- `s.ClientRequest(i, val)`, of a server `i` of the state: `clientRequest i val`'s successor, a new
-read-only state, or `nil` where it is not enabled. -/
+/-- `s.ClientRequest(i, val)`, of a server `i` of the state: `clientRequest i val`'s successor, a
+new read-only state, or `nil` where it is not enabled. -/
 abbrev State.ClientRequest.spec : Prop :=
   ∀ (p : Loc) (st : State) (i val : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft ∗

@@ -22,8 +22,9 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Assumptions]
 
-/-- `s.BecomeLeader(i)`, of a server `i` of the state (its granted votes fewer than `2^62`, `IsQuorum`'s
-premise): `becomeLeader i`'s successor, a new read-only state, or `nil` where it is not enabled. -/
+/-- `s.BecomeLeader(i)`, of a server `i` of the state (its granted votes fewer than `2^62`,
+`IsQuorum`'s premise): `becomeLeader i`'s successor, a new read-only state, or `nil` where it is not
+enabled. -/
 abbrev State.BecomeLeader.spec : Prop :=
   ∀ (p : Loc) (st : State) (i : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft ∗
