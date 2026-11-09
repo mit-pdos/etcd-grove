@@ -152,6 +152,39 @@ theorem untraced_type {t : w32}
     | exact absurd (uint_Z_inj.1 (by rw [hz]; rfl)) h8
     | exact absurd (uint_Z_inj.1 (by rw [hz]; rfl)) h9
 
+
+/-- (Q8 stage 1, slice 5) **`raft.send`'s hook's events**, by the message's type `ty` and what the
+outbox grows by (`out`, `SendOk`'s): for a traced type (`sendEvt`), a `SendEvOf` event of one of
+`out`'s messages at the sender's state `s` (the state before the message is queued: the event's
+header reads none of what `send` changes); none for another type. -/
+def sendOutGate (id : w64) (s : NState) (c : CfgM) (ty : w32) (out : List Msg) :
+    Option (TraceEv → Prop) :=
+  ((mtypeOf ty).bind sendEvt).map (fun evt e => ∃ mm ∈ out, SendEvOf evt id s c mm e)
+
+/-- (Q8 stage 1, slice 5) **The hook's gate at the queued message is within `send`'s**: the hook
+logs at the state with the message queued (`{ s with outbox := o, gh := g }`), whose event header is
+`s`'s, and the queued message `ms` (stamped) is, as `MsgEvOf` reads it, one of `out`'s. -/
+theorem sendGate_le (id : w64) (s : NState) (o : List Msg) (g : NGhost) (c : CfgM) (ms : MsgSt)
+    (ty : w32) (out : List Msg) (hty : ms.msg.Type' = ty)
+    (hout : ∀ t evt, mtypeOf ty = some t → sendEvt t = some evt →
+      ∃ mm ∈ out, ∀ tm, MsgEvOf (absMsg t ms.msg ms.ents) tm → MsgEvOf mm tm) :
+    (sendOutGate id s c ty out = none ↔ sendGate id { s with outbox := o, gh := g } c ms = none) ∧
+    ∀ E E', sendOutGate id s c ty out = some E → sendGate id { s with outbox := o, gh := g } c ms = some E' →
+      ∀ e, E' e → E e := by
+  unfold sendOutGate sendGate
+  rw [hty]
+  cases ht : mtypeOf ty with
+  | none => simp
+  | some t =>
+    cases hev : sendEvt t with
+    | none => simp [hev]
+    | some evt =>
+      simp only [Option.bind_some, hev, Option.map_some, reduceCtorEq, iff_self, true_and,
+        Option.some.injEq]
+      rintro E E' rfl rfl e ⟨h1, h2, h3, h4, h5, h6, h7, h8, ⟨tm, h9, h10⟩, h11, h12, h13⟩
+      obtain ⟨mm, hmm, hm⟩ := hout t evt ht hev
+      exact ⟨mm, hmm, h1, h2, h3, h4, h5, h6, h7, h8, ⟨tm, h9, hm tm h10⟩, h11, h12, h13⟩
+
 end pure
 
 /-! ## The message argument and the lending form -/
@@ -312,6 +345,18 @@ theorem raftLend_self (c : CfgM) (r : Loc) (id : w64) (s : NState) :
   iintro Hp
   iexact Hp
 
+/-- (Q8 stage 1, slice 5) **A just-queued message, lent out of raft's state** (`NGhost.lq`,
+`ownRaftPhysC_lq_lend`): what `raft.send` gives its hook, the message being queued by then. -/
+theorem msgLend_lq (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (st : MsgSt)
+    (h : (ml, st) ∈ s.gh.lq) :
+    ⊢ MsgLend (ownRaftPhysCV (GF := GF) c c.voters r id s) ml
+        (some ⟨DFrac.own 1, DFrac.discard, false, st⟩) := by
+  unfold MsgLend
+  imodintro
+  iintro HP
+  simp only [msgArg]
+  iapply ownRaftPhysC_lq_lend c r id s ml st h $$ HP
+
 /-- No message (nil). -/
 theorem msgLend_nil (P : IProp GF) : ⊢ MsgLend P null none := by
   unfold MsgLend
@@ -333,6 +378,17 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
+/-- (Q8 stage 1, slice 5) A fact needed only when traced, under the gate. -/
+theorem trOwn_pure (tr : Option GName) (P : IProp GF) (φ : Prop) (h : tr ≠ none → φ) :
+    trOwn tr P ⊢ trOwn tr iprop(P ∗ ⌜φ⌝) := by
+  cases tr with
+  | none => simp only [trOwn]; iintro -; iempintro
+  | some γd =>
+    simp only [trOwn]
+    iintro HP
+    iframe HP
+    ipureintro; exact h (Option.some_ne_none γd)
+
 /-- At a nil logger the optional gate gives `Q` whatever the mode. -/
 theorem traceFireOpt_nil (tr : Option GName) (oE : Option (TraceEv → Prop)) (Q : IProp GF) :
     TraceFireOpt tr interface.nil oE Q ⊢ Q := by
@@ -353,6 +409,34 @@ theorem traceFireOpt_mono_E (tr : Option GName) (tl : GoInterface) (oE oE' : Opt
     cases oE' with
     | none => exact absurd (h.2 rfl) (by simp)
     | some E' => exact traceFire_mono_E tr tl E E' Q (hE E E' rfl rfl)
+
+
+/-- (Q8 stage 1, slice 5) **A message hook's gate, the caller's** (`raft.send` takes it): as
+`HookGate` (an update at `⊤`, run at the hook, giving the logger field and the gate `TraceFireOpt`
+for the events `oE` the hook logs there), with the untraced nil logger (`tr = none → TraceLoggerOk`),
+which `TraceFireOpt none tl none Q` does not say. -/
+def HookGateOpt (tr : Option GName) (r : Loc) (oE : Option (TraceEv → Prop)) (Q : IProp GF) : IProp GF :=
+  iprop(|={⊤}=> ∃ tl, r.[raft, go!"traceLogger"] ↦□ tl ∗ ⌜tr = none → TraceLoggerOk tl⌝ ∗
+    TraceFireOpt tr tl oE Q)
+
+/-- An untraced caller's gate: the struct's nil logger and `Q`. -/
+theorem hookGateOpt_none (r : Loc) (oE : Option (TraceEv → Prop)) (tl : GoInterface) (Q : IProp GF)
+    (hok : TraceLoggerOk tl) :
+    (r.[raft, go!"traceLogger"] ↦□ tl ∗ Q : IProp GF) ⊢ HookGateOpt none r oE Q := by
+  iintro ⟨#Htl, HQ⟩
+  iunfold HookGateOpt
+  imodintro
+  iexists tl
+  isplitr
+  · iexact Htl
+  isplitr
+  · ipureintro; intro _; exact hok
+  cases oE with
+  | none => simp only [TraceFireOpt]; iexact HQ
+  | some E =>
+    simp only [TraceFireOpt, TraceFire]
+    iframe HQ
+    ipureintro; exact hok
 
 end gates
 

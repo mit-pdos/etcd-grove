@@ -1119,6 +1119,15 @@ structure NGhost [GooseExts] where
   `some γd` in a traced one, the simulation's ghost names (`traceDir`). Set when the node is built
   (`newRaft`), never changed, so every step keeps it (`NetFrame`, `LocalFrame`: `s'.gh = s.gh`). -/
   tr : Option GName := none
+  /-- (2026-11-09, trace-check Q8 stage 1 slice 5, `notes/trace-validation-plan.md` Q11) **The messages
+  `send` has just queued**, newest first: each a queued pointer with the state it holds, which
+  `ownRaftPhys` keeps in one of its queues (`LqOk`, `InvRaftPhys.lean`), so that `send`'s trace hook,
+  which runs after the message is queued, can borrow it back out of raft's state
+  (`ownRaftPhysC_lq_lend`). Only `send` moves it: its queue accessor pushes the message, and `send`
+  pops it before returning, so every other function keeps it and `send`'s postcondition is unchanged.
+  `[]` outside `send` (the `RawNode` predicates record it, `%Hglq`), which the queue-draining closures
+  need. A list, not an `Option`, so that `send` pops back to whatever its caller's state held. -/
+  lq : List (Loc × MsgSt) := []
 
 -- (D22 S-d3a) classical: `SnapTrip`'s `entryID` has no decidable equality
 noncomputable instance [GooseExts] : DecidableEq NGhost := fun a b => Classical.propDecidable (a = b)

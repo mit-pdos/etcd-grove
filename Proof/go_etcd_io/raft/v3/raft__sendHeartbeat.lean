@@ -11,6 +11,7 @@ public import Spec.go_etcd_io.raft.v3.raft__send
 public import Spec.go_etcd_io.raft.v3.tracker.Progress__SentCommit
 public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
 public import Proof.go_etcd_io.raft.v3.LemmasSendR
+public import Proof.go_etcd_io.raft.v3.TracedUntraced
 
 @[expose] public section
 
@@ -38,6 +39,8 @@ theorem raft.sendHeartbeat.wp_proof
     (wp_Progress_SentCommit : tracker.Progress.SentCommit.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.sendHeartbeat.spec (GF := GF) (hG := hG) := by
+  -- (Q8 stage 1, slice 5) `send`'s untraced instance (`TracedUntraced.lean`)
+  have wp_raft_send := raft.send.untraced wp_raft_send
   intro c r id s to ctx cl Hto Hcfg Htz Htr
   wp_start as H
   iNamed H

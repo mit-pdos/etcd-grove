@@ -182,7 +182,7 @@ theorem RawNode.Propose.wp_proof
       (Hloan.keep Hfr.2.2.2.2.2.2.2.2.1 Hfr.2.2.2.1 Hfr.2.2.2.2.2.2.2.2.2.2.1 (logStoreRec_stored Hfr.2.2.2.2.2.1) Hfr.2.2.1 Hap' Hc)
       (Hsdt.ofRec Hfr.2.2.2.1 Hfr.2.2.2.2.2.1) Hrole
       (Hphs.keep rfl rfl rfl (HsLe.of_step Href.voteLe Hc) Hfr.2.2.2.1 (.inl Hfr.2.1))
-      (by rw [LocalFrame.ns Hfr]; exact Hgtr) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' [Hdur]
+      (by rw [LocalFrame.ns Hfr]; exact Hgtr) (by rw [LocalFrame.ns Hfr]; exact Hglq) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' [Hdur]
     · -- (durability stage II (i)) the step keeps `durTie`'s fields
       iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) Hfr.2.2.2.1 Hfr.2.2.2.2.1 (logStoreRec_stored Hfr.2.2.2.2.2.1) $$ Hdur
   icases Herr with (%Herr | ⟨-, #Hd⟩)

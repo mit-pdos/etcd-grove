@@ -151,6 +151,8 @@ theorem raft.campaign.wp_proof
     (wp_slices_Sort : slices.«Sort».spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.campaign.spec (GF := GF) (hG := hG) := by
+  -- (Q8 stage 1, slice 5) `send`'s untraced instance (`TracedUntraced.lean`)
+  have wp_raft_send := raft.send.untraced wp_raft_send
   have wp_raft_becomeCandidate := raft.becomeCandidate.untraced wp_raft_becomeCandidate
   intro c r id s t Hrole Hid_cfg Hnowrap Hpv Htr
   -- the voters of either half, named: everything below is about that set

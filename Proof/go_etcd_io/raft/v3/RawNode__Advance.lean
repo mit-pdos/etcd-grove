@@ -1091,6 +1091,7 @@ theorem RawNode.Advance.wp_proof
     have Htcb0 : uint.Z s0.gh.tc < 2 ^ 64 := by word
     have Hs0sn : s0.gh.sn = s.gh.sn := by rw [← Hs0]
     have Hs0tr : s0.gh.tr = none := by rw [← Hs0]; exact HtrS
+    have Hs0lq : s0.gh.lq = [] := by rw [← Hs0]; exact Hglq
     have Hs0dtk : s0.logst.dtk = s.logst.dtk := by rw [← Hs0]; rfl
     have Hs0v : HsLe (hsOf s) (hsOf s0) ∧ uint.Z s.logst.inprogress ≤ uint.Z s0.logst.inprogress := by
       rw [← Hs0]; exact ⟨HsLe.refl _, Int.le_refl _⟩

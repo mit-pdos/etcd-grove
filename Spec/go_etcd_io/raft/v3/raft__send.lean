@@ -43,6 +43,7 @@ uses for a queued `MsgSnap`).
 module
 
 public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import Proof.go_etcd_io.raft.v3.TracedMsg
 
 @[expose] public section
 
@@ -224,11 +225,22 @@ comes back as it went in, because `sendMsgs` changes only the outbox.
 unchanged after (`NState.prvals`), and holds `ents` (read-only) across it.
 
 From 2026-09-21 to 2026-09-22 this was stated on a variant predicate, `own_raft_bare`;
-see notes/decisions.md ("Three layers") and notes/false-statements.md, 2026-09-21. -/
+see notes/decisions.md ("Three layers") and notes/false-statements.md, 2026-09-21.
+
+**One spec for both trace modes** (2026-11-09, trace-check Q8 stage 1 slice 5,
+`notes/decisions.md`, "Q8 stage 1 (slice 5)"): `send`'s hook `traceSendMessage(r, m)` runs after the
+message is queued, so in a traced cluster it reads the message back out of raft's state (the queue
+accessor records it, `NGhost.lq`, `ownRaftPhysC_lq_lend`; `send` forgets it before returning). The
+caller gives the hook's gate `HookGateOpt s.gh.tr r (sendOutGate id s c m.Type' out) Q` (as
+`becomeCandidate`'s `HookGate`, slice 3: run at the hook, the logger field and, traced, the update
+for the `SendEvOf` events of `out`'s message for a traced type) and gets `Q` back; a traced send is
+not of a snapshot (the Draft's P2). Untraced, the gate is the struct's nil logger and any `Q`
+(`raft.send.untraced`, `TracedUntraced.lean`, the statement before slice 5, with its premise
+`s.gh.tr = none`); the Draft's `raft.send.tracedSpec` follows (`TracedHooks.lean`). -/
 abbrev raft.send.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
-    (out : List Msg),
+    (out : List Msg) (Q : IProp GF),
   -- `From` unset, or already the node's own (`RawNode.Propose` stamps `From: r.id`
   -- before `Step`; a follower forwards that proposal as it is). Either way the queued
   -- message has `From = id`.
@@ -243,18 +255,19 @@ abbrev raft.send.spec : Prop :=
   -- (2026-10-22, D38a) no responses (raft sets them only on its local storage messages), for
   -- `SentMsgOk`: a message raft builds has none, a forwarded one none by `raft.Step`'s premise
   rs = [] →
-  -- (2026-11-09, Q8 stage 0 of `notes/trace-validation-plan.md`) an untraced node: its trace
-  -- hooks see a nil logger (`TraceLoggerOkS`); stage 1 replaces this premise by the traced
-  -- capability (`trCapB s.gh.tr …`, `TracedHooksDraft.lean`)
-  s.gh.tr = none →
+  -- (2026-11-09, Q8 stage 1 slice 5; until then, stage 0, the premise `s.gh.tr = none`) a traced
+  -- node sends no snapshot (the Draft's P2: Go traces one, the specification does not)
+  (s.gh.tr ≠ none → mtypeOf m.Type' ≠ some .snap) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hm" ∷ msgOwn ml (DFrac.own 1) ⟨m, ents, sn, ctx, rs⟩ ∗
       -- (D22 S-b′3; U8 v2: valid or received, as the node's storage names pin it, `tsSrc`) a
       -- `MsgSnap`'s snapshot certified (`tsSrc_ne` for any other type)
-      "#Hsrc" ∷ tsSrc s.gh.sn m.Type' sn }}
+      "#Hsrc" ∷ tsSrc s.gh.sn m.Type' sn ∗
+      -- (2026-11-09, Q8 stage 1 slice 5) the hook's gate, the caller's
+      "Hgate" ∷ HookGateOpt s.gh.tr r (sendOutGate id s c m.Type' out) Q }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"send")) (Val #ml))
-  {{ RET #(); ownRaftPhysCV c c.voters r id (sendMsgs s out) }}
+  {{ RET #(); ownRaftPhysCV c c.voters r id (sendMsgs s out) ∗ Q }}
 
 end spec
 

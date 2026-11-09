@@ -20,6 +20,7 @@ public import Spec.go_etcd_io.raft.v3.readOnly__recvAck
 public import Spec.go_etcd_io.raft.v3.readOnly__heartbeatCtx
 public import Spec.go_etcd_io.raft.v3.raft__send
 public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__IsSingleton
+public import Proof.go_etcd_io.raft.v3.TracedUntraced
 
 @[expose] public section
 
@@ -76,6 +77,8 @@ theorem sendMsgReadIndexResponse.wp_proof
     (wp_raft_bcastHeartbeat : raft.bcastHeartbeat.spec (GF := GF) (hG := hG))
     (wp_Message_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hG := hG)) :
     sendMsgReadIndexResponse.spec (GF := GF) (hG := hG) := by
+  -- (Q8 stage 1, slice 5) `send`'s untraced instance (`TracedUntraced.lean`)
+  have wp_raft_send := raft.send.untraced wp_raft_send
   intro c r id s ml m ents sn ctx rs Hlead Htz Hne Htr
   wp_start as ⟨Hphys, #Hm⟩
   wp_auto

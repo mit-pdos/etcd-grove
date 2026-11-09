@@ -310,7 +310,7 @@ theorem RawNode.Step.wp_proof
             (Hloan.step_gxw s'.term Hgx (fun _ => ⟨.inl Hsn, Hfl', logStoreRec_stored Hsd, Hu, Ha, Hc⟩) ⟨Hsn, Hc⟩)
             (Hsdt.ofRec Hsn Hsd) Hrole
             (Hphs.keep rfl rfl rfl (HsLe.of_step Href.voteLe Hc) Hsn (ip_of_step Hip4 Htrc))
-            (by rw [Hgx]; exact Hgtr) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' [Hdur]
+            (by rw [Hgx]; exact Hgtr) (by rw [Hgx]; exact Hglq) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' [Hdur]
         · -- (durability stage II (i)) the step keeps `durTie`'s fields
           iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) Hsn Hpv (logStoreRec_stored Hsd) $$ Hdur
       ipureintro

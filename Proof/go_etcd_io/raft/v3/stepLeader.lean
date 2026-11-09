@@ -7,6 +7,7 @@ module
 public import Proof.go_etcd_io.raft.v3.stepLeader.Rest
 public import Proof.go_etcd_io.raft.v3.stepLeader.MsgProp
 public import Proof.go_etcd_io.raft.v3.stepLeader.CheckQuorum
+public import Proof.go_etcd_io.raft.v3.TracedUntraced
 
 @[expose] public section
 
@@ -84,6 +85,8 @@ theorem stepLeader.wp_proof
     (wp_ProgressTracker_Visit : tracker.ProgressTracker.Visit.spec (GF := GF) (hG := hG))
     (wp_raft_becomeFollower : raft.becomeFollower.spec (GF := GF) (hG := hG)) :
     stepLeader.spec (GF := GF) (hG := hG) := by
+  -- (Q8 stage 1, slice 5) `send`'s untraced instance (`TracedUntraced.lean`)
+  have wp_raft_send := raft.send.untraced wp_raft_send
   have wp_raft_becomeFollower := raft.becomeFollower.untraced wp_raft_becomeFollower
   have wp_raft_maybeCommit := raft.maybeCommit.untraced wp_raft_maybeCommit
   intro c r id s ml m ents sn ctx rs k0 Hty Hlead Htz Hfrom0 Hself Hprop Hrdnz Hri Hhr Hack Htr

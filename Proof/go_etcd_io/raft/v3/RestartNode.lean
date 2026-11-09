@@ -871,6 +871,7 @@ private theorem wp_RestartNode_impl
     · change s.logst.snap = some p at hp; rw [Hsn0] at hp; cases hp
   ihave Hrn : ownRawNode γ.raft rn cv.ID' rs0 $$ [Hrn Hphys Hghost Hsteps Hsteps_cap]
   · iapply ownRawNode_intro γ.raft rn cv.ID' rs0 s1 (stOf m).cfg fp (ds := MA) rnv sv hprev []
+      (Hglq := by show s.gh.lq = []; rw [Hgh])
       Hrel.2 (fun h => by simp only [rs0] at h; rw [Hmd] at h; cases h) Hasync
       (by show ((fp ++ σ.ents).take _).length = _; rw [HDlen, toNat_uZ]; exact Happn.symm)
       Hun.symm (fun _ => Hsn0) trivial Ht.symm ⟨Hsg.symm, Hlsn.symm⟩
