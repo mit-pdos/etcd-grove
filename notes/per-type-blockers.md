@@ -95,3 +95,12 @@ vacuity. It is recorded so that the per-type stage does not carry it over.
   `enc c` gives `c` back exactly) carries it to the receiver. This is the same route as
   `resps = []` (raft-entsize r3 [r3b]).
 - A message from outside the cluster is not covered, as today: peers are trusted.
+- **Corrected at the re-freeze (2026-11-09; the first Freeze package did not fix it).** The
+  content-level fix never reached the decoder's post, which handed back `dec` at the model, i.e.
+  `msgPtsC` with `csPts`' `uf = []`. Now `PbModelC` has `decOk` (`MsgC.csUfNil` for `Message`),
+  `proto.UnmarshalPb`/`ClonePb` give `⌜decOk c⌝ -∗ dec l (modelOf c)`, and the receivers get
+  `decOk` from the sender's frame (`MsgEnc` carries `csUfNil`) through `D2`. The same review found
+  that `Message`'s D1 `wire` claimed `resps = []` (Go decodes `Responses`, field 14): `wire` is now
+  `MsgDecOk` (`msgDecode bs = some (wireOf st)`), and `resps = []` comes from the sender through
+  `D2`. Review: `/shared/tmp/pertype-stageA-freeze-review.md`; checked by the D1 harness
+  (`72 00` decodes with one response; `4a 08 12 06 0a 04 08 01 30 00` has `decOk` false).

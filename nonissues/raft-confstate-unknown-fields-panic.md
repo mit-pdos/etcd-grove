@@ -34,9 +34,13 @@ no: the conf state's ownership predicate requires no unknown fields (`csPts`,
 states; etcd meets it, since no raft version writes one. On the receive path, the absence comes
 from the sending peer (raft builds its `ConfState` with `csPts`), carried to the receiver by the
 decoder's exact round trip (`D2`): the decoded message's content keeps the `ConfState`'s unknown
-fields (`pbMessageC`, `MsgC.csUfNil`). Until the per-type stage, the trusted `UnmarshalPb` at
+fields (`pbMessageC`, `MsgC.csUfNil`), and the trusted `proto.UnmarshalPb.spec` gives the owned
+message (`csPts` included) only under `decOk` (`csUfNil` for `Message`), which the receiver gets
+from the sender's frame (`MsgEnc`) through `D2`. Bytes whose `ConfState` has unknown fields give no
+ownership at all. Until the per-type stage (re-freeze, 2026-11-09), the trusted `UnmarshalPb` at
 `pbMessage` wrongly claimed it of any bytes (`notes/per-type-blockers.md`, "`UnmarshalPb` at
-`pbMessage` claims a decoded `ConfState` has no unknown fields").
+`pbMessage` claims a decoded `ConfState` has no unknown fields"); the stage's first Freeze package
+still did (its `dec` was today's `msgPtsC`), which the review of 2026-11-08 found.
 
 ## Fix
 
