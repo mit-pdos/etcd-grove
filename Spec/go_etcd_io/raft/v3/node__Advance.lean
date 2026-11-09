@@ -14,8 +14,10 @@ configuration takes effect, `appliedSnap`: its `confAt` from `snapValid`). Or `d
 batch is the driver's `lastSnap` (was the driver's `handling`); the conf entries not applied by
 the view must have been decided skip, as before (`issues/raft-advance-before-applyconfchange.md`).
 
-**Margin.** After a stop nothing moves. (Round 1) After a snapshot, the view is at the snapshot's
-configuration point `a ≥` its index (`snap_make.spec`).
+**Margin.** After a stop nothing moves. (Rounds 1-2) After a snapshot, the client names the view's
+point: any committed `a ≥` the snapshot's index whose configuration the snapshot lists (it knows
+which from its own record of the snapshot, `snapsMade`; etcd takes its consistent index); the
+entries below it are not applied again.
 -/
 module
 
@@ -56,7 +58,8 @@ def node.Advance.spec : Prop :=
       ((appliedLb n st.delivered.length ∗
         match st.lastSnap with
         | none => nodeConf n γ v
-        | some s => ∃ a m, nodeConf n γ ⟨a, m⟩ ∗ ⌜uint.nat s.index ≤ a ∧ s.conf.Is m⌝) ∨
+        | some s => (∀ a m, confAt γ a m -∗ ⌜uint.nat s.index ≤ a ∧ s.conf.Is m⌝ -∗
+            |={⊤}=> nodeConf n γ ⟨a, m⟩)) ∨
        (nodeStopped n ∗ nodeConf n γ v)) }}
 
 end spec

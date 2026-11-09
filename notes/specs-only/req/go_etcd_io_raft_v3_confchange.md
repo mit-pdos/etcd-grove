@@ -21,3 +21,13 @@ runs `confchange.Changer` itself before deciding: it needs your `Changer` specs 
 
 Also: `tracker.Config.Clone` and the `Progress` copies `getStatus` makes are fresh memory
 (R1's opaque `statusOwn s` is the ownership of a `Status`'s maps).
+
+## from R2
+
+`raft.applyConfChange.spec` and the `appliedSnap` step (`raft.Step.spec`, `StepSrc.ack`) run
+`Changer.LeaveJoint`/`EnterJoint`/`Simple` and `Restore` on the tracker:
+- `Changer{Tracker, LastIndex}.X(...)` returns no error exactly when R1's
+  `Membership.applyChange (.v2 c2) m` is `some m'`, and then the configuration `m'` with a progress
+  map whose new entries start at `LastIndex + 1`;
+- `Restore(Changer{..}, cs)` succeeds for a `ConfState` listing a valid `Membership` (R1's
+  `confAt_valid`), giving that configuration (`assertConfStatesEquivalent` then passes).

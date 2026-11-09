@@ -24,7 +24,8 @@ second time.
 **Why not an issue:** no test, found by code reading (by the R1 completeness review, 2026-11-09).
 No wrong result was found in etcd's own flow: a leader never sends its storage's snapshot as is (every
 `MsgSnap` is replaced by the merged snapshot message, `createMergedSnapshotMessage`, whose
-configuration is the one at the applied index once the replay is over), and a later restart
+configuration is `ep.confState`: during the replay also `c`'s, consistently with the database it
+ships, which is at `c`), and a later restart
 rebuilds the configuration from the backend again.
 
 ## Proof

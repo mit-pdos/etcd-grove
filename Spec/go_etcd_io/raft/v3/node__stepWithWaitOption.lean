@@ -3,6 +3,10 @@
 
 **Users.** `node.step`, `node.stepWait`. **Proof sketch.** Non-proposals go on `recvc`; proposals on
 `propc` (armed only with a leader), with a result channel when `wait`; `ctx` and `done` end the waits.
+The `ctx` case: `ctx.Done()` by W0's requested `Context.Done.spec` (a channel, or `nil` for a context
+never done, which no `select` case fires on), a receive on it by `Context.doneRecv.spec` (gives
+`Context.ctxDone ctx`), then `ctx.Err()` by `Context.ErrDone.spec` (`notes/specs-only/req/context.md`,
+"from R1"); hence `nodeErr`'s context arm. Every `node.*` spec taking a context rests on these.
 The message and its `stepOk` go to the run goroutine. **Changes.** Mirrors the code.
 -/
 module

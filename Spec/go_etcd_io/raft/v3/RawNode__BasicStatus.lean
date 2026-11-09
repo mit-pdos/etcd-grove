@@ -7,6 +7,7 @@ calls it from its goroutine, holding the token. **Proof sketch.** `getBasicStatu
 module
 
 public import Spec.go_etcd_io.raft.v3.Api
+public import Spec.go_etcd_io.raft.v3.ApiCore
 
 set_option autoImplicit false
 
@@ -31,10 +32,10 @@ variable [ctx_sem : context.Assumptions]
 /-- `RawNode.BasicStatus`: the id; a hard state (fresh). -/
 def RawNode.BasicStatus.spec : Prop :=
 
-  ∀ (rn : Loc) (γ : Cluster) (id : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ rawNode rn γ id }}
+  ∀ (rn : Loc) (γ : Cluster) (id : w64) (k : Nat) (adv : Bool),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ rawNodeAt rn γ id k adv }}
     (App (Val (rn @!! go.GoType.PointerType go_etcd_io.raft.v3.RawNode.ty @!! go!"BasicStatus")) (Val #()))
-  {{ (bs : go_etcd_io.raft.v3.BasicStatus), RET #bs; rawNode rn γ id ∗ ⌜bs.ID' = id⌝ ∗
+  {{ (bs : go_etcd_io.raft.v3.BasicStatus), RET #bs; rawNodeAt rn γ id k adv ∗ ⌜bs.ID' = id⌝ ∗
       ∃ hs, hsPtr bs.HardState' (DFrac.own 1) hs }}
 
 end spec

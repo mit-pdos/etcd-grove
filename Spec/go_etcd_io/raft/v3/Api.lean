@@ -81,7 +81,8 @@ is the client's: its methods' updates fire on `memStor ms σ` directly.
   `snapshot` and `hardState` fields, the snapshot's `Metadata.ConfState` field and that `ConfState`,
   stored ensured: `AutoLeave` present); the lock invariant holds the other share and the `ents`
   slice. A writer opens its update once per store to that footprint (abort where the contents are
-  unchanged, commit at the store that changes them). (Round 1, S1.)
+  unchanged, commit at the store that changes them). (Round 1, S1.) The `callStats` counters, which
+  `InitialState` bumps unlocked, are wholly `memStor`'s (no locked method touches them; round 2).
 
 ## Requirement snippets
 
@@ -288,8 +289,10 @@ opaque nodeConf (n : Loc) (γ : Cluster) (v : ConfView) : IProp GF := iprop(True
 Persistent. -/
 opaque deliveredLb (n : Loc) (γ : Cluster) (l : List LogEntry) : IProp GF := iprop(True)
 
-/-- Node `n`'s applied index (the delivered log as of its last `Advance`) is at least `i`.
-Persistent. -/
+/-- Node `n`'s applied index (the delivered log as of its last `Advance`), or the index of a snapshot
+installed in its storage and not yet `Advance`d, is at least `i` (round 2, R3: between
+`readyStor_install` and `Advance` the storage's compaction point is the new snapshot's index while
+raft's applied index is still below it). Persistent. -/
 opaque appliedLb (n : Loc) (i : Nat) : IProp GF := iprop(True)
 
 /-- Node `n`'s storage presents its contents through `S` (fixed at the start). Persistent. -/
@@ -746,10 +749,15 @@ def msgSent_snap.spec : Prop :=
 delivered log** (etcd's merged snapshot message, `createMergedSnapshotMessage`: the server's applied
 index, its configuration, no data). The prefix must be the sender's: a snapshot committed at a later
 term the sender does not know of would let the sender, still leader at the message's term, count
-the follower's acknowledgement of an entry the follower does not hold (round 1, provability F1). -/
+the follower's acknowledgement of an entry the follower does not hold (round 1, provability F1); and
+its term at most the message's: a sender that stepped down may have delivered entries of later
+terms, and a follower at the message's term installing them breaks raft
+(`issues/etcd-merged-snapshot-stale-term.md`; the fork's guard `m.GetTerm() == apply.raftTerm`,
+round 2, N2). -/
 def msgSent_replaceSnap.spec : Prop :=
   ∀ γ (m : Msg) (s s' : Snapshot) (n : Loc) (l : List LogEntry), m.type = MsgSnap →
     m.snapshot = some s → uint.nat s.index ≤ uint.nat s'.index → uint.nat s'.index ≤ l.length →
+    uint.nat s'.term ≤ uint.nat m.term →
     msgSent (GF := GF) γ m ∗ snapValid γ s' ∗ isNode n γ m.src ∗ deliveredLb n γ l ⊢ |==>
       msgSent γ { m with snapshot := some s' }
 
@@ -863,8 +871,9 @@ snapshot's. -/
 def memStor_isStorage.spec : Prop :=
   ∀ (ms : Loc), ⊢ isStorage (GF := GF) (memStorIface ms) (memStor ms) (fun σ => σ.snap.conf)
 
-/-- A `Status`'s progress map is the caller's (fresh copies; `Inflights` cleared). (Round 1,
-completeness F5: etcd's `isLearnerReady` ranges over it.) -/
+/-- A `Status`'s progress map is the caller's (fresh copies, `Inflights` cloned; `nil` when the node
+does not lead: `ownMap` of the empty map). (Round 1, completeness F5: etcd's `isLearnerReady` ranges
+over it.) -/
 def statusOwn_progress.spec : Prop :=
   ∀ (s : go_etcd_io.raft.v3.Status), statusOwn (GF := GF) s ⊢
     ∃ (pm : GMap w64 go_etcd_io.raft.v3.tracker.Progress),

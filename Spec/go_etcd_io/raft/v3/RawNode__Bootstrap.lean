@@ -15,6 +15,7 @@ excluded by the premises; `proto.Marshal` of a `ConfChange` does not fail.
 module
 
 public import Spec.go_etcd_io.raft.v3.Api
+public import Spec.go_etcd_io.raft.v3.ApiCore
 
 set_option autoImplicit false
 
@@ -39,13 +40,13 @@ variable [ctx_sem : context.Assumptions]
 /-- **Bootstraps a fresh `RawNode`** with the cluster's bootstrap log: its view moves past it. -/
 def RawNode.Bootstrap.spec : Prop :=
 
-  ∀ (rn : Loc) (γ : Cluster) (id : w64) (peers : GoSlice) (dq : DFrac)
+  ∀ (rn : Loc) (γ : Cluster) (id : w64) (k : Nat) (adv : Bool) (peers : GoSlice) (dq : DFrac)
     (ps : List (w64 × List w8)) (boot : List LogEntry),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ rawNode rn γ id ∗ ⌜ps ≠ [] ∧ BootLog ps boot⌝ ∗ peersPts peers dq ps ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ rawNodeAt rn γ id k adv ∗ ⌜ps ≠ [] ∧ BootLog ps boot⌝ ∗ peersPts peers dq ps ∗
       bootLog γ boot ∗ nodeDriver rn γ (Driver.start [] HardState.empty Durable.init) ∗
       nodeConf rn γ ⟨0, Membership.empty⟩ }}
     (App (Val (rn @!! go.GoType.PointerType go_etcd_io.raft.v3.RawNode.ty @!! go!"Bootstrap")) (Val #peers))
-  {{ (err : GoInterface), RET #err; ⌜err = interface.nil⌝ ∗ rawNode rn γ id ∗
+  {{ (err : GoInterface), RET #err; ⌜err = interface.nil⌝ ∗ rawNodeAt rn γ id k adv ∗
       peersPts peers dq ps ∗ nodeDriver rn γ (Driver.start [] HardState.empty Durable.init) ∗
       nodeConf rn γ ⟨boot.length, Membership.simple (listToSet (ps.map (·.1)))⟩ }}
 

@@ -30,7 +30,10 @@ type Durable interface {
 // configuration view starts there too (a = applied in RestartNode.spec; a client restarting with a
 // view ahead skips the entries below it, as etcd does through its consistent index); decide is the
 // client's cluster-wide conf decision (confDecide); n.Stop is called only after stop is closed (the
-// loop holds a nodeRunning share while it runs, so a nil ConfState cannot come back to it).
+// loop holds a nodeRunning share while it runs, so a nil ConfState cannot come back to it); every
+// snapshot of the cluster is made at its own index's configuration (snap_make with a = its index),
+// so that after installing one the loop names its index as the view's point (node.Advance.spec)
+// and applies every later conf entry.
 // Specs: node.Ready.spec, readyChan_recv.spec, node.Advance.spec, node.ApplyConfChange.spec,
 // MemoryStorage.ApplySnapshot.spec, MemoryStorage.Append.spec, MemoryStorage.SetHardState.spec,
 // IsEmptySnap.spec, IsEmptyHardState.spec; laws: readyStor_install.spec, readyStor_append.spec,

@@ -9,6 +9,7 @@ a forwarded proposal. **Changes.** As `node.Step`'s.
 module
 
 public import Spec.go_etcd_io.raft.v3.Api
+public import Spec.go_etcd_io.raft.v3.ApiCore
 
 set_option autoImplicit false
 
@@ -33,11 +34,11 @@ variable [ctx_sem : context.Assumptions]
 /-- `RawNode.Step` of a received message. -/
 def RawNode.Step.spec : Prop :=
 
-  ∀ (rn : Loc) (γ : Cluster) (id : w64) (ml : Loc) (m : Msg),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ rawNode rn γ id ∗ msgPts ml (DFrac.own 1) m ∗ msgSent γ m ∗ msgCredit γ m ∗
+  ∀ (rn : Loc) (γ : Cluster) (id : w64) (k : Nat) (adv : Bool) (ml : Loc) (m : Msg),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ rawNodeAt rn γ id k adv ∗ msgPts ml (DFrac.own 1) m ∗ msgSent γ m ∗ msgCredit γ m ∗
       ⌜m.to = id⌝ }}
     (App (Val (rn @!! go.GoType.PointerType go_etcd_io.raft.v3.RawNode.ty @!! go!"Step")) (Val #ml))
-  {{ (err : GoInterface), RET #err; rawNode rn γ id ∗
+  {{ (err : GoInterface), RET #err; rawNodeAt rn γ id k adv ∗
       (⌜err = interface.nil⌝ ∨ errIs go_etcd_io.raft.v3.ErrStepPeerNotFound err ∨
         errIs go_etcd_io.raft.v3.ErrProposalDropped err) }}
 

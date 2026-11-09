@@ -8,6 +8,7 @@ calls it from its goroutine, holding the token. `node.run` (the matching `node` 
 module
 
 public import Spec.go_etcd_io.raft.v3.Api
+public import Spec.go_etcd_io.raft.v3.ApiCore
 
 set_option autoImplicit false
 
@@ -32,10 +33,10 @@ variable [ctx_sem : context.Assumptions]
 /-- `RawNode.ReportSnapshot`: keeps the token. -/
 def RawNode.ReportSnapshot.spec : Prop :=
 
-  ∀ (rn : Loc) (γ : Cluster) (id : w64) (to status : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ rawNode rn γ id }}
+  ∀ (rn : Loc) (γ : Cluster) (id : w64) (k : Nat) (adv : Bool) (to status : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ rawNodeAt rn γ id k adv }}
     (App (App (Val (rn @!! go.GoType.PointerType go_etcd_io.raft.v3.RawNode.ty @!! go!"ReportSnapshot")) (Val #to)) (Val #status))
-  {{ RET #(); rawNode rn γ id }}
+  {{ RET #(); rawNodeAt rn γ id k adv }}
 
 end spec
 end Raft

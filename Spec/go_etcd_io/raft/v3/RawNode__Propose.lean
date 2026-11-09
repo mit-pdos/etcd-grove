@@ -7,6 +7,7 @@ calls it from its goroutine, holding the token. **Proof sketch.** As `node.Propo
 module
 
 public import Spec.go_etcd_io.raft.v3.Api
+public import Spec.go_etcd_io.raft.v3.ApiCore
 
 set_option autoImplicit false
 
@@ -31,11 +32,11 @@ variable [ctx_sem : context.Assumptions]
 /-- `RawNode.Propose`: the update as `node.Propose`'s; the error `nil` or `ErrProposalDropped`. -/
 def RawNode.Propose.spec : Prop :=
 
-  ∀ (rn : Loc) (γ : Cluster) (id : w64) (data_sl : GoSlice) (data : List w8),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ rawNode rn γ id ∗ ownSlice data_sl data DFrac.discard ∗ (□?γ.dup AU <{ ∃∃ (ops : List LogEntry), committedOps γ ops }> @ ⊤ \ ↑γ.ns, ∅
+  ∀ (rn : Loc) (γ : Cluster) (id : w64) (k : Nat) (adv : Bool) (data_sl : GoSlice) (data : List w8),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ rawNodeAt rn γ id k adv ∗ ownSlice data_sl data DFrac.discard ∗ (□?γ.dup AU <{ ∃∃ (ops : List LogEntry), committedOps γ ops }> @ ⊤ \ ↑γ.ns, ∅
         <{ ∀∀ (t : w64), committedOps γ (ops ++ opsOf [⟨t, EntryNormal, data⟩]), COMM True }>) }}
     (App (Val (rn @!! go.GoType.PointerType go_etcd_io.raft.v3.RawNode.ty @!! go!"Propose")) (Val #data_sl))
-  {{ (err : GoInterface), RET #err; rawNode rn γ id ∗
+  {{ (err : GoInterface), RET #err; rawNodeAt rn γ id k adv ∗
       (⌜err = interface.nil⌝ ∨ errIs go_etcd_io.raft.v3.ErrProposalDropped err) }}
 
 end spec

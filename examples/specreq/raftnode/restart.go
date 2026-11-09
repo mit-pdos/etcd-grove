@@ -35,8 +35,9 @@ func ReqStartFresh(id uint64, peers []raft.Peer) raft.Node {
 // first snapshot too), at Applied 0, on a storage rebuilt from it; RestartNode does not panic.
 // Users: server/etcdserver/bootstrap.go:597 (bootstrapRaftFromWAL), examples/raft/kvdurable/cluster.go:216.
 // Assumes: ms holds id's durable state (StorageHolds: the image the client wrote at its last
-// Ready's commit point) and the configuration at its snapshot; id is vacant (the previous node
-// stopped).
+// Ready's commit point); its stored snapshot is empty or one made by snap_make (snapValid), and its
+// configuration is the cluster's at a committed point a at or above its compaction point (the
+// snapshot's, for a MemoryStorage); id is vacant (the previous node stopped).
 // Specs: RestartNode.spec; laws: memStor_isStorage.spec.
 func ReqRestartDurable(id uint64, ms *raft.MemoryStorage) raft.Node {
 	return raft.RestartNode(config(id, ms, true))

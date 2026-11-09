@@ -208,6 +208,45 @@ range at `maxSize = 2^64 - 1` (kvfile's `Encode`); S3 `hsPtr` takes any fraction
 fact in `Status`), S9 (a decoded-`Id` check): no first-tier need; S8 (rafthttp at most once) is
 2f's.
 
+## Round 2 repairs (2026-11-09)
+
+Review: `reviews/R1-round2.md`; R2's requests in `req/go_etcd_io_raft_v3.md` ("from R2"). Rebuilt:
+`etc/specs-build.sh --dir Spec/go_etcd_io/raft/v3` OK (192 modules, R2/R3's included);
+`go vet ./specreq/raftnode/` and gofmt clean; `etc/issues-status.py --check` clean.
+
+- **N1, the view after a snapshot**: `node.Advance`/`RawNode.Advance`'s snapshot arm now gives
+  the client a one-shot `∀ a m, confAt γ a m -∗ ⌜s.index ≤ a ∧ s.conf.Is m⌝ -∗ |={⊤}=> nodeConf
+  n γ ⟨a, m⟩`: the client names the point (it knows it from its record of the snapshot; etcd takes
+  its consistent index, an example the snapshot's own index). `ReqReadyLoop` assumes every snapshot
+  is made at its own index's configuration and names that index. R2's `ackPost` should give the
+  same wand (req item 8).
+- **N2, `msgSent_replaceSnap`**: adds `s'.term ≤ m.term` (`issues/etcd-merged-snapshot-stale-term.md`,
+  the fork's guard). `ReqSendSnapshot` checks it (skips a snapshot above the message's term) and
+  says so in its Assumes; req item 10 updated (and the fact 2d needs: applied entries' terms at most
+  the node's term).
+- **N3, `ctx.Done()`**: requested from W0 in `req/context.md` ("from R1": `Context.Done.spec`,
+  `Context.doneRecv.spec`), cited by name in `node.stepWithWaitOption.spec`'s sketch, on which every
+  `node.*` spec with a context rests.
+- **req items 2 and 8**: item 2 no longer bounds `a` by the stored commit; item 8 carries the
+  round-2 reviewer's quorum-overlap argument as the safety case R2 must make.
+- **R2's finding (`RawNode.Ready.spec` false)**: adopted R2's phase predicates (`ApiCore.lean`).
+  Every `RawNode` spec now keeps `rawNodeAt rn γ id k adv`; `NewRawNode` gives `... 0 false`;
+  `RawNode.Ready` takes `... k false` and gives `... (k+1) true` with `readyGot`; `RawNode.Advance`
+  gives `... k false`; `RawNode.HasReady`, given a `readyKept rn k rd`, gives `readyFresh ... rd` on
+  `false` (R2's request for `node.run`). The `RawNode` spec files import `ApiCore`. `node.Ready` is
+  unchanged (`run` waits on `advancec`). `rawNode` stays as R1's name for "some phase"
+  (R2's `rawNode_at`).
+- **Second tier**: `appliedLb`'s meaning restated (applied, or an installed snapshot's index not yet
+  `Advance`d: R3); `memStor`'s realization owns `callStats` (R2); `ReqRestartDurable`'s Assumes names
+  the stored snapshot's validity (R4); `proto.Clone` of a `*Message` requested from 3h (R1); the
+  `ReqReadyLoop` assumption (R5). Third tier: `statusOwn_progress`'s docstring (Inflights cloned,
+  `nil` map when not leader), the nonissue's merged-snapshot wording. `BootLog`'s non-empty contexts
+  stay a marked scope restriction.
+
+Open question added: **9. R2's term bound** (R2's req item 5): the execution's step bound below
+`2^64 - 1` must enter at `cluster_alloc.spec` (its owner); R1's statement has no such premise
+today. Left to the user with R2's report.
+
 ## Notes for reviewers
 
 - The protocol model's `Membership.applyChange` and `decodeConfChange` are opaque here (R4's and

@@ -7,6 +7,7 @@ calls it from its goroutine, holding the token. **Proof sketch.** As `node.ReadI
 module
 
 public import Spec.go_etcd_io.raft.v3.Api
+public import Spec.go_etcd_io.raft.v3.ApiCore
 
 set_option autoImplicit false
 
@@ -31,11 +32,11 @@ variable [ctx_sem : context.Assumptions]
 /-- `RawNode.ReadIndex` for registered context `c`. -/
 def RawNode.ReadIndex.spec : Prop :=
 
-  ∀ (rn : Loc) (γ : Cluster) (id : w64) (rctx : GoSlice) (c : List w8)
+  ∀ (rn : Loc) (γ : Cluster) (id : w64) (k : Nat) (adv : Bool) (rctx : GoSlice) (c : List w8)
     (Q : List LogEntry → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ rawNode rn γ id ∗ ownSlice rctx c DFrac.discard ∗ readCtx γ c Q }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ rawNodeAt rn γ id k adv ∗ ownSlice rctx c DFrac.discard ∗ readCtx γ c Q }}
     (App (Val (rn @!! go.GoType.PointerType go_etcd_io.raft.v3.RawNode.ty @!! go!"ReadIndex")) (Val #rctx))
-  {{ RET #(); rawNode rn γ id }}
+  {{ RET #(); rawNodeAt rn γ id k adv }}
 
 end spec
 end Raft

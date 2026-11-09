@@ -15,6 +15,7 @@ restart (was `RNMode`-indexed); over opaque predicates. **Margin.** The error is
 module
 
 public import Spec.go_etcd_io.raft.v3.Api
+public import Spec.go_etcd_io.raft.v3.ApiCore
 
 set_option autoImplicit false
 
@@ -55,7 +56,7 @@ def NewRawNode.spec : Prop :=
     (App (Val (@! go_etcd_io.raft.v3.NewRawNode)) (Val #c))
   {{ (rn : Loc) (err : GoInterface), RET (PairV #rn #err);
       ∃ (D : Durable) (l : List LogEntry) (cv' : go_etcd_io.raft.v3.Config),
-      ⌜err = interface.nil⌝ ∗ c ↦ cv' ∗ rawNode rn γ id ∗ nodeRunning rn 1 ∗ committedLb γ l ∗
+      ⌜err = interface.nil⌝ ∗ c ↦ cv' ∗ rawNodeAt rn γ id 0 false ∗ nodeRunning rn 1 ∗ committedLb γ l ∗
       ⌜l.length = max σ.off (uint.nat cv.Applied') ∧
         ∀ j e, σ.off ≤ j → l[j]? = some e → σ.ents[j - σ.off]? = some e⌝ ∗
       nodeDriver rn γ (Driver.start l σ.hs D) ∗ nodeConf rn γ ⟨a, m⟩ ∗

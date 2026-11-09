@@ -35,11 +35,12 @@ func ReqDeliver(ctx context.Context, src, dst raft.Node, m *pb.Message, ok bool)
 // Assumes: m is a MsgSnap handed out to the leader src; (index, term, cs) is a snapshot made of the
 // committed log at the leader's applied index index ≥ m's snapshot's (snap_make), with term its
 // last entry's and cs its configuration; index is within src's delivered log (deliveredLb: the
-// leader's own log, not a prefix committed at a later term).
+// leader's own log, not a prefix committed at a later term). A snapshot whose term is above the
+// message's is not sent (etcd's guard, server.go:1013: issues/etcd-merged-snapshot-stale-term.md).
 // Specs: node.Step.spec, node.ReportSnapshot.spec; laws: msgSent_snap.spec, msgSent_replaceSnap.spec.
 func ReqSendSnapshot(ctx context.Context, src, dst raft.Node, m *pb.Message, index, term uint64,
 	cs *pb.ConfState, ok bool) {
-	if m.GetType() != pb.MsgSnap {
+	if m.GetType() != pb.MsgSnap || term > m.GetTerm() {
 		return
 	}
 	if m.GetSnapshot().GetMetadata().GetIndex() > index {

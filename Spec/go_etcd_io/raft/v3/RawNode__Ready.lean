@@ -8,12 +8,16 @@ predicates); the batch's facts from raft's log (R3: `nextUnstableEnts`, `nextCom
 recorded (gated by the enter or the check update), the read states from `readStates`.
 
 **Changes** (from `specs-ref`'s `RawNode__Ready.lean`): the same `readyGot` as the node's (was a
-`RawNode`-specific `readyRest` over `ownRawNode`). **Margin.** A second `Ready` before `Advance`
-panics in Go; the spec needs the driver, which only the first batch's enter update gives back.
+`RawNode`-specific `readyRest` over `ownRawNode`). (Round 2, R2's finding) over R2's phase token:
+a `Ready` needs nothing queued (`rawNodeAt ... false`) and leaves the acknowledgements queued
+(`... (k+1) true`) until `Advance`; the driver alone did not exclude a second `Ready` (the enter
+update gives it back before `Advance`), on which `acceptReady` panics. Proof: `readyWithoutAccept`
+(`readyFresh`), R2's `ready_handout.spec`, `acceptReady`.
 -/
 module
 
 public import Spec.go_etcd_io.raft.v3.Api
+public import Spec.go_etcd_io.raft.v3.ApiCore
 
 set_option autoImplicit false
 
@@ -38,10 +42,10 @@ variable [ctx_sem : context.Assumptions]
 /-- `RawNode.Ready`: what a node's `Ready` receive gives. -/
 def RawNode.Ready.spec : Prop :=
 
-  ∀ (rn : Loc) (γ : Cluster) (id : w64) (st : Driver),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ rawNode rn γ id ∗ nodeDriver rn γ st }}
+  ∀ (rn : Loc) (γ : Cluster) (id : w64) (k : Nat) (adv : Bool) (st : Driver),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ rawNodeAt rn γ id k false ∗ nodeDriver rn γ st }}
     (App (Val (rn @!! go.GoType.PointerType go_etcd_io.raft.v3.RawNode.ty @!! go!"Ready")) (Val #()))
-  {{ (rd : go_etcd_io.raft.v3.Ready), RET #rd; rawNode rn γ id ∗ readyGot rn γ id st rd }}
+  {{ (rd : go_etcd_io.raft.v3.Ready), RET #rd; rawNodeAt rn γ id (k + 1) true ∗ readyGot rn γ id st rd }}
 
 end spec
 end Raft

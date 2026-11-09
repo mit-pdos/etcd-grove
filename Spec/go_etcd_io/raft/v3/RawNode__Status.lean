@@ -8,6 +8,7 @@ old spec; `node.Status`'s needs it).
 module
 
 public import Spec.go_etcd_io.raft.v3.Api
+public import Spec.go_etcd_io.raft.v3.ApiCore
 
 set_option autoImplicit false
 
@@ -32,10 +33,10 @@ variable [ctx_sem : context.Assumptions]
 /-- `RawNode.Status`: its own memory, the id. -/
 def RawNode.Status.spec : Prop :=
 
-  ∀ (rn : Loc) (γ : Cluster) (id : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ rawNode rn γ id }}
+  ∀ (rn : Loc) (γ : Cluster) (id : w64) (k : Nat) (adv : Bool),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ rawNodeAt rn γ id k adv }}
     (App (Val (rn @!! go.GoType.PointerType go_etcd_io.raft.v3.RawNode.ty @!! go!"Status")) (Val #()))
-  {{ (s : go_etcd_io.raft.v3.Status), RET #s; rawNode rn γ id ∗ statusOwn s ∗
+  {{ (s : go_etcd_io.raft.v3.Status), RET #s; rawNodeAt rn γ id k adv ∗ statusOwn s ∗
       ⌜s.BasicStatus'.ID' = id⌝ }}
 
 end spec
