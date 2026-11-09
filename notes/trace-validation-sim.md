@@ -622,6 +622,26 @@ then instantiates `t` with the run's trace and needs only the invariants at `mid
 from the per-server facts (the intermediate states' shapes, a term change or a log prefix of
 node `i`, stated in the effect).
 
+**The invariants from the facts (2026-11-09, `TraceSimFacts.lean`).** Proved from `srvFacts`
+(every voter's server: raft's log `es` read by `logAbs`, its records, its committed prefix
+committed, a leader's `isLeader`): `MoreThanOneLeaderInv`, `LogInv`, `LogMatchingInv` (the
+specification's entries are functions of position and term: `logAbs_match`), `CommitOk`. Reduced to
+specification invariants (route (b)), whose preservation by each line is still to prove:
+`ElectionSafetyInv` to `LeaderEntries` (every term-`T` entry anywhere sits where `T`'s leader's log
+has one), `CommittedIsDurableInv` to `DurInv` (a leader's commit index, match indices, handed-out
+requests and successful responses to it within its durable log). Left:
+
+- `LeaderCompletenessInv`, through `lc_core`: each server's facts gain its commit certificate
+  `commitJ γ es c (term)` (a `cq γ t n G` with `c ≤ n`, `t ≤` the server's term, `G` agreeing with
+  `es` at `c`, or the bootstrap arm), a leader's its campaign `isCamp γ l T F0` with its log reaching
+  `F0`'s last entry, and the global step opens raft's commit invariant for `votesTbl`. For a leader
+  `l` of `T_l ≥ term_i` and `t < T_l`: `lc_core` puts term `t` at `n` in `l`'s log, then
+  `plog_match_down` twice (`l`'s log against `G` down to `c`, then against `i`'s below `c`). For
+  `t = T_l`: the certificate is `l`'s own (`isLeader_unique`), and `leadPrefix_agree` relates `G` to
+  `l`'s current log (a leader's facts gain its `leadPrefix`); only the entries of terms below `T_l`
+  are asked, which sit below the term's first index.
+- `QuorumLogInv`: the acknowledgement-history copy of the table above (`histsOk`), as planned.
+
 ## Increment 2 of the hooks' specs (what S4 decides)
 
 **The logger's contract is generic** (round 2's N4; the `spec` skill's "TaDa, not HoCAP"): the
