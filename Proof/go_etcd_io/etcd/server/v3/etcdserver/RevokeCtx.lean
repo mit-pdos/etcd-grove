@@ -34,6 +34,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRunRes
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthGuard
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RevokeLevels
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthDerive
+public import Proof.context.ReqKeys
 
 @[expose] public section
 
@@ -183,7 +184,7 @@ revocation never runs, `srvRevokesLeases`). (Review round 1, NIT 3.3, 2026-11-06
     □ (⌜E.authOn = false⌝ → isServerReq s E ρ ∗ isServerRead s E γr) ∗
     □ (|==> idCred ρ.ids 1) ∗
     (∃ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-      srvCtxAddr s ↦□ GoInterface.ok ctx ∗ context.isContext ctx cd ∗ trace.spanCtxOk ctx))
+      srvCtxAddr s ↦□ GoInterface.ok ctx ∗ context.isContext ctx cd ∗ trace.spanCtxOk ctx ∗ context.startTimeOk ctx))
 
 instance srvRevokeCtx_persistent (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
     (γg : GoNames) : Persistent (srvRevokeCtx (GF := GF) s E ρ γr γg) := by
@@ -196,7 +197,7 @@ theorem srvRevokeCtx_intro (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
       □ (⌜E.authOn = false⌝ → isServerReq s E ρ ∗ isServerRead s E γr) ∗
       □ (|==> idCred ρ.ids 1) ∗
       (∃ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-        srvCtxAddr s ↦□ GoInterface.ok ctx ∗ context.isContext ctx cd ∗ trace.spanCtxOk ctx) ⊢
+        srvCtxAddr s ↦□ GoInterface.ok ctx ∗ context.isContext ctx cd ∗ trace.spanCtxOk ctx ∗ context.startTimeOk ctx) ⊢
     srvRevokeCtx s E ρ γr γg := by
   unfold srvRevokeCtx; exact .rfl
 
@@ -344,7 +345,7 @@ theorem srvRevokeCtx_ctx (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : Re
     (γg : GoNames) :
     srvRevokeCtx (GF := GF) s E ρ γr γg ⊢
       ∃ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-        srvCtxAddr s ↦□ GoInterface.ok ctx ∗ context.isContext ctx cd ∗ trace.spanCtxOk ctx := by
+        srvCtxAddr s ↦□ GoInterface.ok ctx ∗ context.isContext ctx cd ∗ trace.spanCtxOk ctx ∗ context.startTimeOk ctx := by
   iintro #H
   iunfold srvRevokeCtx at H
   icases H with ⟨-, -, -, -, Hc⟩

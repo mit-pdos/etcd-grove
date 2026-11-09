@@ -77,7 +77,7 @@ theorem EtcdServer.Put.wp_proof
   · ipureintro; rfl
   iintro %osl ⟨-, -⟩
   (try wp_auto)
-  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp, #Hspw⟩
+  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp, #Hspw, -⟩
   · iframe #; iunfold mvcc.txnCtx; iright; iexact Hctx
   ihave #Hctx1 := Hctx1w $$ Hctx
   ihave #Hspc1 := Hspw $$ Hspc
@@ -102,9 +102,21 @@ theorem EtcdServer.Put.wp_proof
       ⟨go_etcd_io.etcd.pkg.v3.traceutil.StartTimeKey.ty, k⟩ c2' v hk
     iapply hlem
     iframe Hdel2 Hspc1
+  -- (sweep repairs 1, B2) the start time `WithValue` stored: a `time.Time`
+  ihave #Hst2 : context.startTimeOk ctx2 $$ []
+  · rw [show ctx2 = c2' from GoInterface.ok.inj Hc2e']
+    iunfold context.startTimeOk
+    imodintro
+    iintro %Φ' HΦ'
+    iapply Hdel2 $$ %startTimeKeyAny %startTimeRes
+    · ipureintro; left; rfl
+    · ipureintro; intro _; right; exact ⟨now, rfl⟩
+    · iintro %hne; exact absurd rfl hne
+    · itrivial
+    · iexact HΦ'
   -- (E3zb) the context `raftRequest` sees carries the request's metadata
   have Hinc : metadata.incomingOf (GoInterface.ok ctx2) = metadata.incomingOf (GoInterface.ok ctx) := by
-    have h := GoInterface.ok.inj Hc2e'; subst h; rw [Hinc2, Hinc1]
+    rw [show ctx2 = c2' from GoInterface.ok.inj Hc2e', Hinc2, Hinc1]
   (try wp_auto)
   ihave ⟨Hirr, %Hirrn⟩ := typedPointsto_not_null_dup _ _ _ $$ «$a1»
   iStructNamed Hirr

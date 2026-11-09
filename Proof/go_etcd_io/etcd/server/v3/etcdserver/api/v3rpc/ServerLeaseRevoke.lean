@@ -7,6 +7,7 @@ lease mode, auth off), at a run's resource `S` lending the request path's reader
 -/
 module
 
+public import Proof.context.ReqKeys
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerLeaseGrant
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__LeaseRevoke
 
@@ -50,6 +51,7 @@ theorem lessorRevokeOk_of_server (hLR : EtcdServer.LeaseRevoke.spec (GF := GF) (
   unfold lessorRevokeOk
   iintro %ci %cd %r %id !> %Φ ⟨HSr, #Hctx, #Hrun, #Hreq⟩ HΦ
   ihave #Hspan := spanCtxOk_of_runCtx ci $$ Hrun
+  ihave #Hst := startTimeOk_of_grpcRunCtx ci $$ Hrun
   ihave ⟨Hlt, HRD, Hback⟩ := HS $$ HSr
   wp_apply (hLR s E ρ ci cd r id h) $$ [Hlt HRD] as %resp %err ⟨Hlt, HRD, Hans⟩
   · iframe # Hlt HRD

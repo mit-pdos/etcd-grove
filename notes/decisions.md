@@ -33969,6 +33969,49 @@ claim more, the second assumes more), count unchanged. Go (`examples/sweeprepair
 counterexamples), `TestRealPathOneMember` (every premise held on etcd's path, 960 runs per the Scope's
 20 processes; rerun once 2026-11-08).
 
+## B2: the request context's start time (`startTimeOk`), and `ValueStartTime` proved (2026-11-08 · sweep repairs 1, B2; the Scope (revision 3), B2-F1's law landed in Perennial `ddc0f0acc`, the `Tracer.Start` addition decided by etcd-grove-81 under the user's delegation, `questions.md` Q5 · branch `sweep-repairs-1`)
+
+`context.ValueStartTime`'s trust-boundary axiom claimed that every `isContext` answers
+`Value(traceutil.StartTimeKey{})` with `nil` or a `time.Time`: false of `WithValue(ctx, StartTimeKey{},
+42)` and of a user `Context` whose `Value` panics (`notes/axiom-review/valuestarttime.md`). Now
+`Proof/context/ReqKeys.lean` defines `context.startTimeOk ctx` (that triple at the key, persistent)
+and `ValueStartTime` is a theorem over it (trust base -1).
+
+- **Who needs it.** `raftRequest.spec` (and `specOff`) takes `startTimeOk ctx`; so do `DeleteRange`,
+  `LeaseGrant`, `LeaseRevoke`, `Authenticate` and the admin contract's pre (`adminPreOn`,
+  `authnRaft_on`); `v3rpc.srvCall` carries it. Linked specs narrowed (the Scope's narrowing (d)):
+  an embedder calling these with a hand-made context must show it; no closed theorem changes.
+- **Producers.** A gRPC run's context (`startTimeOk_of_grpcRunCtx`: `grpcRunCtx` answers `nil` at
+  an etcd-named key); the server's `s.ctx = WithCancel(Background())` (`startTimeOk_of_bgFrom`, over
+  Perennial's `ctxValueFrom`), carried in `srvRevokeCtx` for `revokeExpiredLeases` → `WithRoot`
+  (which returns its context) → `LeaseRevoke`; `Put`/`Txn` from `WithValue`'s `Value` wand at the key
+  (`time.Now()`); `Tracer.Start`'s context from its argument's.
+- **`Tracer.Start` (trusted text added).** Its post gains `□ (startTimeOk ctx -∗ startTimeOk ctx')`
+  (otel's `ContextWithSpan` is a `WithValue` at otel's key), the shape of its `ctxTraceIs` clause.
+  Attacked first: `examples/sweeprepairs/tracer` (`TestStartKeepsStartTime`, the noop tracer and the
+  SDK tracer as etcd's server builds it, `ParentBased` over rates 0, 1, 500000, 1000000 per million;
+  parents absent, a `time.Time`, span contexts with and without one; 1250 calls, every answer the
+  argument's; 3 runs).
+- **After the mvcc API merge (lean `752ab6dda0`).** The merge threaded otel's `trace.spanCtxOk`
+  through the same specs; `startTimeOk` sits right after it in each, `Tracer.Start`'s clause after its
+  `spanCtxOk` clause, and `traceutil.wp_WithCancelBackground_noTrace` gives `s.ctx`'s. Trust base:
+  812 entries (-1, `context.ValueStartTime.wp_proof`, from the baseline and 20 collections); no closed
+  `*_safe`/`*_adequate` statement changes.
+
+## B2b: the keep-alive key (`keepAliveOk`), and `ValueKeepAlive` proved (2026-11-08 · sweep repairs 1, B2b; the Scope (revision 3) · branch `sweep-repairs-1`)
+
+`context.ValueKeepAlive`'s trust-boundary axiom claimed that every `isContext` answers
+`Value(keepAliveCtxKey{})` with `nil` or a `*context.Context`: false of a user `Context` whose
+`Value` panics at that key. Now `context.keepAliveOk ctx` (`Proof/context/ReqKeys.lean`, the triple
+at the key) and `ValueKeepAlive` is a theorem over it (trust base -1). `lessor.keepAliveCtxCloser`
+takes `keepAliveOk` of its context and `kaCtxOk` (`ka.ctxs`'s elements) carries it; its producer is
+`lessor.KeepAlive`'s `context.WithValue(ctx, keepAliveCtxKey{}, &ctx)` (`WithValue`'s `Value` wand at
+the key: the stored contexts answer their own key, never asking the user's). No spec outside the
+lessor changes: `KeepAlive.spec` is unchanged, the closer is internal. Go:
+`examples/sweeprepairs/keepalive` (a live one-member server; 60 keep-alives over user contexts that
+panic at a key of that name, each canceled: every channel closed by the closer, the user contexts
+never asked; and the old claim false of such a context).
+
 ## mvccrand's closed theorem: `dbOpenOk`, a fresh database file at program start, start premises item by item (2026-11-08 · the user's decisions · branch `mvccrand-adequacy`)
 
 The user asked for a closed theorem of mvcc's randomized tester (`examples/mvccrand`'s `Main`) like
@@ -34002,4 +34045,3 @@ the other examples', and decided its shape:
   `backend.Close`'s precondition: the backend's whole open token, from the server's census
   (`stop_census_open`) over the store's `mvccClosed` with every reader token (the goroutines give
   theirs back through the wait group) and the open token's shares `rc_open` used to drop.
-

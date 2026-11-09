@@ -105,7 +105,7 @@ local macro "renew_forward" : tactic => `(tactic| (
   wp_apply hReqT (structFieldRef EtcdServer go!"Cfg" s) rv.electionTicks rv.tickMs as %tmo -
   · iframe #
   (try wp_auto)
-  wp_apply context.wp_WithTimeout ctx1 _ tmo $$ [] as %cctx %γc %cancel %dl ⟨#Hcancel, #Hcctx⟩
+  wp_apply context.wp_WithTimeout ctx1 _ tmo $$ [] as %cctx %γc %cancel %dl ⟨#Hcancel, #Hcctx, -⟩
   · iframe #
   (try wp_auto)
   ihave #Hcc := Hcctx

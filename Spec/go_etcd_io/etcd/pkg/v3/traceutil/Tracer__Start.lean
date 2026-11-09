@@ -9,6 +9,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRange
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Defs
 public import Spec.go_opentelemetry_io.otel.trace.SpanFromContext
 public import Proof.google_golang_org.grpc.metadata.Incoming
+public import Proof.context.ReqKeys
 
 @[expose] public section
 
@@ -40,6 +41,9 @@ plan's E3zb: otel's key is not grpc's `mdIncomingKey{}`, so `metadata.FromIncomi
 `Value(currentSpanKey)` is `s`) with the span `s` they return (the SDK's `tracer.Start`, a new SDK
 span; the no-op tracer `noop.Tracer.Start`, its no-op `Span`), or (the no-op tracer, when `ctx`'s
 span is not recording and has a valid span context) `ctx` itself with `ctx`'s span.
+(Sweep repairs 1, B2, 2026-11-08) Its start time (`context.startTimeOk`): otel's key is not
+`traceutil.StartTimeKey`, so either context `Start` returns answers `Value(StartTimeKey{})` as `ctx`
+does (checked against the noop and the SDK tracer, `examples/sweeprepairs/tracer`).
 **Open** (2026-11-06, found with that fix): `isSpan sp` and the run's return are not justified for
 every `txnCtx`: the tracers call `SpanContext()` (and the no-op one `IsRecording()`) on `ctx`'s span,
 and the no-op tracer can return `ctx`'s span itself, so a context of the program's own whose
@@ -58,7 +62,8 @@ abbrev traceutil.Tracer.Start.spec : Prop :=
         (context.isContext ctx cd -∗ context.isContext ctx' { cd with Values := vs })) ∗
       □ (∀ o : Option Loc, traceutil.ctxTraceIs ctx o -∗ traceutil.ctxTraceIs ctx' o) ∗
       ⌜metadata.incomingOf (GoInterface.ok ctx') = metadata.incomingOf (GoInterface.ok ctx)⌝ ∗
-      trace.isSpan sp ∗ □ (trace.spanCtxOk ctx -∗ trace.spanCtxOk ctx') }}
+      trace.isSpan sp ∗ □ (trace.spanCtxOk ctx -∗ trace.spanCtxOk ctx') ∗
+      □ (context.startTimeOk ctx -∗ context.startTimeOk ctx') }}
 
 end spec
 

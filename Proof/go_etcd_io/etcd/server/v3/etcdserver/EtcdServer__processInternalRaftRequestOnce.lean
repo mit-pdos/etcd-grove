@@ -200,7 +200,7 @@ local macro "piro_tail" : tactic => `(tactic| (
     wp_apply hTO (structFieldRef EtcdServer go!"Cfg" s) v.electionTicks v.tickMs $$ [] as %tmo -
     · iframe #
     (try wp_auto)
-    wp_apply context.wp_WithTimeout ctx cd tmo $$ [] as %cctx %γc %cancel %dl ⟨#Hcancel, #Hcctx⟩
+    wp_apply context.wp_WithTimeout ctx cd tmo $$ [] as %cctx %γc %cancel %dl ⟨#Hcancel, #Hcctx, -⟩
     · iframe #
     (try wp_auto)
     wp_apply hSp ctx cd $$ [] as %sp #Hsp
