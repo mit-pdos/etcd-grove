@@ -263,7 +263,7 @@ A9's pending entries a leader's step-down keeps the facts only where it has none
 `invariants.go` complete (`Violated` through the package fact for `Invariants`, `etc/gen-init.py`).
 Open: C5 (pure premises into preconditions, when the traced statements become `X.spec`), C6, C7;
 `trace.go` delegated (branch `trace-check-layerc-trace`); review round 4 under way
-(`notes/trace-validation-reviews/s5-r4.md`).
+(`notes/trace-validation-reviews/s5-r4.md`; D1 done: `SpecInv`'s `CfgFixed`, `hcfg` gone).
 
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)

@@ -347,6 +347,10 @@ def QuorumLogF (σ : Etcdraft.State) : Prop :=
 `quorumLog_appendEntriesAlreadyDone` re-establishes it at a follower's raised commit index). -/
 theorem QuorumLogF_eq : QuorumLogF = TraceSpecInv.QuorumLogS := rfl
 
+/-- `SpecInv`'s `CfgFixed` holds at the bootstrap state: every server's configuration is the voters'
+`confAbs C`, the server set (review round 4's D1). -/
+theorem cfgFixed_simInit (C : List w64) : TraceSpecInv.CfgFixed (simInit C) := fun _ _ => rfl
+
 /-- **The bags' uniqueness** (the notes' `MsgsDet`/`AppSlices`): two messages in flight that a line
 matches are equal, over both bags (so that a `Ready` moving pending messages out keeps it: review
 round 2's A5; a receive line's message is then the one its token names). -/
