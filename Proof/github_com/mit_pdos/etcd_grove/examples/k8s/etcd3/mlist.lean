@@ -9,9 +9,8 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.storeKey
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.keyInScope
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.listOptions
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.encodeItems
-public import Spec.k8s_io.apiserver.pkg.storage.SelectionPredicate__Matches
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.PredOk
 public import Spec.k8s_io.apiserver.pkg.storage.PrepareKey
-public import Spec.k8s_io.apiserver.pkg.storage.PrepareContinueToken
 
 @[expose] public section
 
@@ -43,9 +42,9 @@ theorem mlist.wp_proof
     (wp_keyInScope : keyInScope.spec (GF := GF) (hG := hG))
     (wp_listOptions : listOptions.spec (GF := GF) (hG := hG))
     (wp_encodeItems : encodeItems.spec (GF := GF) (hG := hG))
-    (wp_Matches : storage.SelectionPredicate.Matches.spec (GF := GF) (hG := hG))
+    (wp_Matches : mlistMatches.spec (GF := GF) (hG := hG))
     (wp_PrepareKey : storage.PrepareKey.spec (GF := GF) (hG := hG))
-    (wp_PrepareContinueToken : storage.PrepareContinueToken.spec (GF := GF) (hG := hG)) :
+    (wp_PrepareContinueToken : mlistPCT.spec (GF := GF) (hG := hG)) :
     mlist.spec (GF := GF) (hG := hG) := by
   intro x c g
   wp_start as #Hc
