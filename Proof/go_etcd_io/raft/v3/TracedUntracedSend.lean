@@ -14,6 +14,7 @@ public import Spec.go_etcd_io.raft.v3.raft__sendAppend
 public import Spec.go_etcd_io.raft.v3.raft__bcastAppend
 public import Spec.go_etcd_io.raft.v3.sendMsgReadIndexResponse
 public import Spec.go_etcd_io.raft.v3.releasePendingReadIndexMessages
+public import Spec.go_etcd_io.raft.v3.raft__appendEntry
 
 @[expose] public section
 
@@ -231,6 +232,56 @@ theorem releasePendingReadIndexMessages.untraced
   iapply HΦ $$ %s'
   iframe Hphys
   ipureintro; exact H1
+
+/-- `raft.appendEntry.spec` at an untraced node (the statement before slice 6). -/
+abbrev raft.appendEntry.untracedTriple : Prop :=
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (es : GoSlice)
+    (ents : List EntryM) (dq : DFrac) (m : Nat),
+  (ents.length : Int) < 2^61 →
+  s.term ≠ W64 0 →
+  s.gh.tr = none →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
+      "Hes" ∷ entsPts es dq ents ∗
+      "#Hrc" ∷ ⧖ m }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"appendEntry")) (Val #es))
+  {{ (accepted : Bool), RET #accepted;
+      ⧖ (m + ents.length) ∗
+      ⌜(∀ e ∈ ents, e.Data' = []) → accepted = true⌝ ∗
+      entsPts es dq ents ∗
+      if accepted then
+        ownRaftPhysCV c c.voters r id
+          (sendMsgs
+            { s with logst :=
+                logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }
+            [selfAck id
+              { s with logst :=
+                  logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }])
+      else
+        ownRaftPhysCV c c.voters r id s }}
+
+/-- `raft.appendEntry.spec`'s untraced instance: both gates the struct's nil logger. -/
+theorem raft.appendEntry.untraced (h : raft.appendEntry.spec (GF := GF) (hG := hG)) :
+    raft.appendEntry.untracedTriple (GF := GF) (hG := hG) := by
+  intro c r id s es ents dq m Hsmall Hnz htr
+  iintro %Φ ⟨#Hpkg, Hphys, Hes, #Hrc⟩ HΦ
+  icases ownRaftPhysC_traceLogger c r id s htr $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
+  iapply h c r id s es ents dq m iprop(emp) Hsmall Hnz $$ [Hphys Hes]
+  · iframe Hpkg Hphys Hes Hrc
+    isplitr
+    · iempintro
+    isplitr
+    · iintro -
+      rw [htr]
+      iapply hookGateN_none r _ _ tl iprop(emp) Htlok
+      iframe Htl
+    iintro -
+    rw [htr]
+    iapply hookGateOpt_none r _ tl iprop(emp) Htlok
+    iframe Htl
+  inext
+  iintro %acc ⟨#Hrc', -, Hrest⟩
+  iapply HΦ $$ %acc
+  iframe Hrc' Hrest
 
 end untraced
 

@@ -20,7 +20,7 @@ public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
 public import Spec.google_golang_org.protobuf.proto.CloneEntry
 public import Proof.go_etcd_io.raft.v3.LemmasSendRB
 public import Proof.ReceiptTactics
-public import Proof.go_etcd_io.raft.v3.TracedUntraced
+public import Proof.go_etcd_io.raft.v3.TracedSend
 
 @[expose] public section
 
@@ -116,10 +116,10 @@ theorem raft.appendEntry.wp_proof
     (wp_CloneEntry : proto.CloneEntry.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.appendEntry.spec (GF := GF) (hG := hG) := by
-  -- (Q8 stage 1, slice 5) `send`'s untraced instance (`TracedUntraced.lean`)
-  have wp_raft_send := raft.send.untraced wp_raft_send
-  intro c r id s es ents dq m Hsmall Hnz Htr
-  wp_start as ⟨Hphys, Hes, #Hrc⟩
+  intro c r id s es ents dq m G Hsmall Hnz
+  -- (Q8 stage 1, slice 6) the self-acknowledgement's type as the message literal's
+  rw [show (MsgAppResp : w32) = W32 4 from rfl]
+  wp_start as ⟨Hphys, Hes, #Hrc, HG, Hgrep, Hgack⟩
   wp_auto
   wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
   icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hlogback⟩
@@ -272,12 +272,15 @@ theorem raft.appendEntry.wp_proof
       isplitr
       · iexact Hrc
       ipureintro; exact fun h => absurd (Hacc h) (by decide)
-    icases ownRaftPhysC_traceLogger _ _ _ _ (by tr_none) $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
-    wp_apply wp_traceReplicate c r id s _ _ _ tl iprop(True) $$ [$Hcl $Htl] as ⟨Hcl, -, -⟩
-    · isplitr
-      · iapply trOwn_of_none (by tr_none)
-      iapply traceFireN_of_none (by tr_none) tl _ Htlok
-      itrivial
+    -- (Q8 stage 1, slice 6) the `Replicate` lines, either mode: the caller's gate, raft's state
+    -- under `trOwn`
+    ihave Hg := Hgrep $$ HG
+    iunfold HookGateN at Hg
+    imod Hg with ⟨%tl, #Htl, Hfire⟩
+    icases trOwn_split s.gh.tr _ $$ Hphys with ⟨Hown, Hback⟩
+    rw [← normalCount_stamp s.term li ents] at *
+    wp_apply wp_traceReplicate c r id s _ _ _ tl G $$ [$Hcl $Htl $Hown $Hfire] as ⟨Hcl, Hown, HG⟩
+    ihave Hphys := Hback $$ Hown
     wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
     -- `append`'s premises
     have Hidx2 : LogIndicesOk s.logst.prev
@@ -347,14 +350,19 @@ theorem raft.appendEntry.wp_proof
       · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl⟩
       msg_nulls
     let s' : NState := { s with logst := logAppend s.logst (ents.mapIdx (stamp s.term li)) }
-    wp_apply wp_raft_send c r id s' «$a0_ptr» _ [] none [] [] [selfAck id s'] (Or.inl rfl) ?_
+    -- (Q8 stage 1, slice 6) the self-acknowledgement's gate
+    ihave Hg := Hgack $$ HG
+    wp_apply wp_raft_send c r id s' «$a0_ptr» _ [] none [] [] [selfAck id s'] G (Or.inl rfl) ?_
       (fun h => absurd h (by simp [MsgSnap]))
-      (fun h => absurd h (by simp [MsgApp])) rfl (by tr_none) $$ [$Hphys $Hr] as Hphys
+      (fun h => absurd h (by simp [MsgApp])) rfl (fun _ h => absurd h (by simp only; decide))
+      $$ [$Hphys $Hr Hg] as ⟨Hphys, HG⟩
     · refine Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, Hnz, fun _ => ⟨rfl, rfl, rfl⟩, ?_⟩)))
       unfold selfAck absMsgFrom
       rw [Hlast2]
       rfl
-    · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
+    · isplitr
+      · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
+      iexact Hg
     try wp_auto
     iapply HΦ
     simp only [↓reduceIte]

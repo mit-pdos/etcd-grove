@@ -9,6 +9,9 @@ path's specs above `raft.send` that may fall back to a snapshot (`maybeSendAppen
   `True` untraced (`trNoSnap_none`).
 - `hookGateOpt_congr`: a hook gate at equal arguments (a gate stated at the loop's entry state used
   at a state that reads as it).
+- `HookGateN tr r E n Q`: `traceReplicate`'s gate, the caller's (`appendEntry` takes it), as
+  `HookGate` for `n` events in a row (`TraceFireN`); `hookGateN_none`, the untraced caller's.
+- `normalCount_mapIdx`: stamping keeps the count of normal entries (the events `traceReplicate` logs).
 -/
 module
 
@@ -80,6 +83,24 @@ theorem appGate_send_prvals (id : w64) (s : NState) (ms : List Msg) (pvs : GMap 
   unfold AppOk at h1 ⊢
   exact h1
 
+/-- (Q8 stage 1, slice 6) A batch's normal entries, after a map that keeps every entry's type
+(`appendEntry`'s stamping, `stamp`). -/
+theorem normalCount_mapIdx (ents : List EntryM) (f : Nat → EntryM → EntryM)
+    (hf : ∀ i e, (f i e).Type' = e.Type') : normalCount (ents.mapIdx f) = normalCount ents := by
+  induction ents generalizing f with
+  | nil => rfl
+  | cons e es ih =>
+    rw [List.mapIdx_cons]
+    have h := ih (fun i => f (i + 1)) (fun i => hf (i + 1))
+    unfold normalCount at h ⊢
+    simp only [List.filter_cons, hf]
+    split <;> simp only [List.length_cons, h]
+
+/-- ... `stamp`'s. -/
+theorem normalCount_stamp (tm li : w64) (ents : List EntryM) :
+    normalCount (ents.mapIdx (stamp tm li)) = normalCount ents :=
+  normalCount_mapIdx ents _ (fun _ _ => rfl)
+
 end pure
 
 section gates
@@ -87,6 +108,23 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+
+/-- (Q8 stage 1, slice 6) **`traceReplicate`'s gate, the caller's** (`appendEntry` takes it): as
+`HookGate` (an update at `⊤`, run at the hook, giving the logger field), for the `n` events in a row
+the hook logs (`TraceFireN`, one per normal entry of the batch). -/
+def HookGateN (tr : Option GName) (r : Loc) (E : TraceEv → Prop) (n : Nat) (Q : IProp GF) : IProp GF :=
+  iprop(|={⊤}=> ∃ tl, r.[raft, go!"traceLogger"] ↦□ tl ∗ TraceFireN tr tl E n Q)
+
+/-- An untraced caller's gate: the struct's nil logger and `Q`. -/
+theorem hookGateN_none (r : Loc) (E : TraceEv → Prop) (n : Nat) (tl : GoInterface) (Q : IProp GF)
+    (hok : TraceLoggerOk tl) :
+    (r.[raft, go!"traceLogger"] ↦□ tl ∗ Q : IProp GF) ⊢ HookGateN none r E n Q := by
+  iintro ⟨#Htl, HQ⟩
+  iunfold HookGateN
+  imodintro
+  iexists tl
+  iframe Htl
+  iapply traceFireN_of_none rfl tl E hok Q n $$ HQ
 
 /-- A hook gate at equal arguments (a gate at a state that reads as `s`). -/
 theorem hookGateOpt_congr (tr tr' : Option GName) (r : Loc) (oE oE' : Option (TraceEv → Prop))

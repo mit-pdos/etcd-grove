@@ -329,6 +329,7 @@ theorem wp_stepLeader_prop
          else ⌜err = interface.nil⌝) }} := by
   -- (Q8 stage 1, slice 6) the untraced instance (`TracedUntracedSend.lean`)
   have wp_raft_bcastAppend := raft.bcastAppend.untraced wp_raft_bcastAppend
+  have wp_raft_appendEntry := raft.appendEntry.untraced wp_raft_appendEntry
   wp_start as ⟨Hphys, Hm, #Hcc, #Hrc⟩
   ihave %Hct := ccEntsOk_types ents cs $$ Hcc
   ihave %Hlv := ccEntsOk_leaveOk ents cs $$ Hcc

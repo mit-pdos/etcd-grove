@@ -6,6 +6,7 @@ The Rocq `Forall (λ e, …) ents` premises are `∀ e ∈ ents, …`.
 module
 
 public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import Proof.go_etcd_io.raft.v3.TracedSend
 
 @[expose] public section
 
@@ -164,26 +165,44 @@ A clone holds the same record (`proto.CloneEntry.spec`,
 same bytes, and since D6 the record's `Data'` is the bytes), so the log grows by
 `ents.mapIdx (stamp ...)`, as before the retarget, when the batch itself was stamped in place
 and appended. (Phase 2 of R4 stated copies `ents'` whose `Data` slices differed,
-`EntsDataCopy`, with the bytes a premise `"#Hdata"`; D6 removed both.) -/
+`EntsDataCopy`, with the bytes a premise `"#Hdata"`; D6 removed both.)
+
+### One spec for both trace modes (2026-11-09, trace-check Q8 stage 1 slice 6)
+
+The caller's `G` goes through the two hook gates of the accept path and comes back (untouched on the
+reject path): `traceReplicate`'s (`HookGateN`: one `Replicate` node event per normal entry of the
+batch, of the state before the append, which is when Go traces) and the self-acknowledgement's
+(`send`'s `HookGateOpt`, at the state with the batch appended). A traced caller's `Replicate` gate is
+where the line's `FxPresU` creates the records of the leader's new entries (the plan's round 6, F1):
+it runs before the append, and the records exist by the time the self-acknowledgement and any later
+`MsgApp` are traced. Until slice 6 the premise `s.gh.tr = none` (stage 0), now
+`raft.appendEntry.untraced`'s (`TracedUntracedSend.lean`). -/
 abbrev raft.appendEntry.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (es : GoSlice)
-    (ents : List EntryM) (dq : DFrac) (m : Nat),
+    (ents : List EntryM) (dq : DFrac) (m : Nat) (G : IProp GF),
   -- a batch small enough that `lastIndex()+1+k` does not wrap
   (ents.length : Int) < 2^61 →
   -- a leader's term (2026-10-10): the self-acknowledgement is stamped with it, and
   -- `RawNode.Advance` steps it, which needs a nonzero term (`AAMsgOk`)
   s.term ≠ W64 0 →
-  -- (2026-11-09, Q8 stage 0 of `notes/trace-validation-plan.md`) an untraced node: its trace
-  -- hooks see a nil logger (`TraceLoggerOkS`); stage 1 replaces this premise by the traced
-  -- capability (`trCapB s.gh.tr …`, `TracedHooksDraft.lean`)
-  s.gh.tr = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
       "Hes" ∷ entsPts es dq ents ∗
       -- (2026-10-18, D19b stage 5) a time receipt, raised by one per entry stamped
-      "#Hrc" ∷ ⧖ m }}
+      "#Hrc" ∷ ⧖ m ∗
+      -- (2026-11-09, Q8 stage 1 slice 6; until then, stage 0, the premise `s.gh.tr = none`) the
+      -- caller's resource, through the gates below
+      "HG" ∷ G ∗
+      -- the `Replicate` lines' gate: one event per normal entry, of the state before the append
+      "Hgrep" ∷ (G -∗ HookGateN s.gh.tr r (NodeEvOf (W64 5) id s c) (normalCount ents) G) ∗
+      -- the self-acknowledgement's gate, at the state with the batch appended
+      "Hgack" ∷ (G -∗ HookGateOpt s.gh.tr r (sendOutGate id
+          { s with logst := logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) } c
+          MsgAppResp
+          [selfAck id
+            { s with logst := logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }]) G) }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"appendEntry")) (Val #es))
   {{ (accepted : Bool), RET #accepted;
-      ⧖ (m + ents.length) ∗
+      ⧖ (m + ents.length) ∗ G ∗
       -- an all-empty batch is never dropped -- see above
       ⌜(∀ e ∈ ents, e.Data' = []) → accepted = true⌝ ∗
       -- (stage R4) the caller's batch, untouched
