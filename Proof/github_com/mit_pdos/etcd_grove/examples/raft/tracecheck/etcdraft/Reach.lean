@@ -16,7 +16,9 @@ fields the receivers copy), the bags without duplicates and with positive counts
 or snapshot, every message's source a server (so a server's granted votes, a sorted list of servers,
 are no more than the servers). A step at a line keeps it at `K`, one to the next line at `K + 1`
 (a send, a client request, a timeout, a configuration applied: each adds at most one), so a state at
-line `l` has it at `numBound + l`, far below the actions' bounds (`l ≤ len + 1 < numBound + 1`).
+line `l` has it at `numBound - 2 + l` (`TraceInit`, at line 1, at `numBound - 1`: the events'
+numbers are below `numBound`), below the actions' bounds: `l ≤ len + 1 ≤ numBound`, so the bound is
+at most `2 * numBound - 2 = 2^62 - 2` and a log's `len + 1` below `2^62` (Q12 (a), 2026-11-09).
 -/
 module
 
@@ -1192,7 +1194,7 @@ theorem Trace.readyIfLogged_inv {i : ID} (h : ts.s.Inv K) : State.InvAll K (tr.r
   · exact invAll_single (h.ready i)
 
 theorem Trace.appendEntriesIfLogged_inv {i j : ID} {b e : Int} {l : List State} (h : ts.s.Inv K)
-    (hi : i ∈ ts.s.server) (hev : (tr.line ts.l).ev.Bounded) (hK : numBound ≤ K)
+    (hi : i ∈ ts.s.server) (hev : (tr.line ts.l).ev.Bounded) (hK : numBound - 1 ≤ K)
     (ht : tr.appendEntriesIfLogged ts i j b e = .ok l) : State.InvAll (K + 1) l := by
   unfold Trace.appendEntriesIfLogged at ht
   simp only [bind, Except.bind, pure, Except.pure] at ht
@@ -1298,7 +1300,7 @@ theorem append_step_inv {K : Int} {acc c : List State} {x : EvalM (List State)}
 set_option maxHeartbeats 1000000 in
 theorem Trace.nonReceive_inv {tr : Trace} {ts : TState} {K : Int} {out : List State} (h : ts.s.Inv K)
     (hsrv : ts.s.server = tr.server) (hpv : ts.s.preVote = false) (hsc : (tr.line ts.l).InScope)
-    (hev : (tr.line ts.l).ev.Bounded) (hK : numBound ≤ K) (ht : tr.nonReceive ts = .ok out) :
+    (hev : (tr.line ts.l).ev.Bounded) (hK : numBound - 1 ≤ K) (ht : tr.nonReceive ts = .ok out) :
     State.InvAll (K + 1) out := by
   have hK1 : K ≤ K + 1 := Int.le_add_of_nonneg_right (by decide)
   have hpair : ∀ p ∈ tr.pairs, p.1 ∈ ts.s.server := fun p hp => hsrv ▸ (Trace.mem_pairs hp).1
@@ -1429,10 +1431,10 @@ theorem Trace.next_l_le {tr : Trace} {f : TState} {tss : List TState} {s2 : TSta
     omega
 
 /-- `TraceNext`'s successors keep the invariant, at the bound of their line. -/
-theorem Trace.next_inv {tr : Trace} {f : TState} {tss : List TState} (h : f.s.Inv (numBound + f.l))
+theorem Trace.next_inv {tr : Trace} {f : TState} {tss : List TState} (h : f.s.Inv (numBound - 2 + f.l))
     (hsrv : f.s.server = tr.server) (hpv : f.s.preVote = false) (hsc : tr.LinesInScope)
     (hev : ∀ l, (tr.line l).ev.Bounded) (ht : tr.next f = .ok tss) :
-    ∀ x ∈ tss, x.s.Inv (numBound + x.l) := by
+    ∀ x ∈ tss, x.s.Inv (numBound - 2 + x.l) := by
   intro x hx
   obtain ⟨hl1, hl2⟩ := Trace.next_l_le ht hx
   unfold Trace.next at ht
@@ -1662,7 +1664,7 @@ theorem bconf_bound {xs : List Line} {srv : SetIds} {i : ID} {p : ID × List Set
 theorem tServerOf_inv {xs : List Line} {srv : SetIds} {cfgs : List (ID × SetIds)} {bconfs : List (ID × List SetIds)}
     (hx : ∀ x ∈ xs, x.InitOk) (hcfg : ∀ p ∈ cfgs, (p.2.length : Int) < numBound)
     (hbc : ∀ p ∈ bconfs, ∀ c ∈ p.2, (c.length : Int) < numBound) (S : SetIds) (i : ID) :
-    (tServerOf xs srv cfgs bconfs i).Inv numBound S := by
+    (tServerOf xs srv cfgs bconfs i).Inv (numBound - 1) S := by
   have hlb := (Line.InitOk.getD hx (tLast xs srv i - 1)).1
   have hcf : ((((cfgs.find? (fun p => p.1 == i)).map Prod.snd).getD []).length : Int) < numBound := by
     cases hf : cfgs.find? (fun p => p.1 == i) with
@@ -1695,8 +1697,8 @@ theorem tServerOf_inv {xs : List Line} {srv : SetIds} {cfgs : List (ID × SetIds
   · simp only; omega
   · intro j; simp only; unfold numBound; decide
 
-/-- `TraceInit` has the invariant at `numBound`. -/
-theorem Trace.Valid.init_inv {tr : Trace} (hv : tr.Valid) (hcb : tr.ConfsBounded) : tr.init.Inv numBound := by
+/-- `TraceInit` has the invariant at `numBound - 1` (its numbers the events', below `numBound`). -/
+theorem Trace.Valid.init_inv {tr : Trace} (hv : tr.Valid) (hcb : tr.ConfsBounded) : tr.init.Inv (numBound - 1) := by
   obtain ⟨evs, hb, -, hnt⟩ := hv
   obtain ⟨xs, ad, srv, cfgs, bconfs, hl, -, -, hxs, -, hcf, hbf, hinit⟩ := newTraceWith_inv hnt
   have hx : ∀ x ∈ xs, x.InitOk := by
@@ -1735,7 +1737,7 @@ theorem Trace.Valid.server_length {tr : Trace} (hv : tr.Valid) : tr.server.lengt
 /-- Every reached state has the invariant at the bound of its line, and its line is at most one past
 the trace's last. -/
 theorem Trace.Valid.reach_inv {tr : Trace} (hv : tr.Valid) (hsc : tr.LinesInScope) (hcb : tr.ConfsBounded)
-    {ts : TState} (h : tr.Reach ts) : ts.s.Inv (numBound + ts.l) ∧ ts.l ≤ tr.len + 1 := by
+    {ts : TState} (h : tr.Reach ts) : ts.s.Inv (numBound - 2 + ts.l) ∧ ts.l ≤ tr.len + 1 := by
   induction h with
   | init =>
     refine ⟨(hv.init_inv hcb).mono (by simp only [Trace.initState]; omega), by simp [Trace.initState]⟩
@@ -1754,9 +1756,9 @@ theorem Trace.Valid.reach_searchOk {tr : Trace} (hv : tr.Valid) (hsc : tr.LinesI
   have hlen := hv.len_lt
   have hsl := hv.server_length
   obtain ⟨hsrv, -, -⟩ := hv.reach_frame h
-  have hK : numBound + (ts.l : Int) < 2 ^ 42 := by unfold numBound at *; omega
-  have hS : (ts.s.server.length : Int) < 2 ^ 42 := by rw [hsrv]; unfold numBound at *; omega
-  have hbag : ∀ {b : Bag}, Bag.Inv (numBound + ts.l) ts.s.server b → (Bag.total b : Int) < 2 ^ 42 →
+  have hK : numBound - 2 + (ts.l : Int) ≤ 2 ^ 62 - 2 := by unfold numBound at *; omega
+  have hS : (ts.s.server.length : Int) < 2 ^ 62 := by rw [hsrv]; unfold numBound at *; omega
+  have hbag : ∀ {b : Bag}, Bag.Inv (numBound - 2 + ts.l) ts.s.server b → (Bag.total b : Int) < 2 ^ 62 →
       b.Ok := fun {b} hb ht => ⟨hb.nodup, fun it hit => by have := Bag.le_total hit; omega⟩
   have htot := hinv.total
   refine ⟨⟨hbag hinv.pend (by omega), by simp only [Bag.total] at htot ⊢; omega, by have := hinv.rc; omega, ?_⟩,

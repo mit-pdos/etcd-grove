@@ -748,6 +748,26 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   proof's: the Go's integers are `int64`), so the statement keeps `n < 2^61`; (b) lower the step bound
   to about `2^40`. **Taken by the coordinator, pending the user's veto: (a)**: the closed statement
   keeps the bound the user set, and only proof-internal constants move. Done in S7.
+  **Q12 done (2026-11-09, branch `trace-check-layerb-exp`): `numBound = 2^61`, no action's bound
+  raised, no Go changed.** The margin was the proof's, not the Go's: `TraceInit`'s numbers are the
+  events', below `numBound`, so it has the reachability invariant at `numBound - 1` (not `numBound`),
+  and a state at line `l` at `numBound - 2 + l` (`Trace.Valid.init_inv`, `Trace.Valid.reach_inv`;
+  the sent `AppendEntries`' premise `numBound - 1 ≤ K`); with `l ≤ len + 1 ≤ numBound` the bound is
+  at most `2 * numBound - 2 = 2^62 - 2`, so a log's `len + 1 < 2^62` and the actions' `2^62` stand
+  (`2^61` is the largest `numBound` they allow; raising them would need `0 ≤ b` in place of
+  `-2^62 < b` in `AppendEntriesInRangeToPeer`'s range, whose Go computes `b - 1`, `e - 1` and
+  `SubSeq`'s differences, for no gain). So the statement's `n < 2^61` steps give every term, index
+  and the event count below `numBound` (`mainPure`'s `K ≤ 2^61`). **Found: the allocation.**
+  `numBound` also bounded the one Go allocation sized by a trace number, `NewTraceWith`'s
+  `make([]Entry, lb.ev.Log)` of a node's last bootstrap line (review round 1 of layer C, S2: gc
+  refuses above `maxAlloc = 2^48` bytes, an `Entry` 80 bytes; Goose's `make` does not, so no proof
+  needed it). Kept apart: `bootLogBound = 2^40` and `NewTrace`'s (and `NewTraceWith`'s) new premise
+  conjunct `Event.BootLogsOk evs` (every bootstrap-named event whose node, by its parsed id, has
+  logged only bootstrap-named events before it has `log < 2^40`: a superset of the lines
+  `bootstrapOf` flags), unused by the proofs, there so that the spec claims no `make` Go would
+  refuse. `mainPure` gives it from a new hypothesis on raft's events, `BootLogsOk L` (an event logged
+  while its node is `Unbooted` has `logSize < 2^40`; `bootLogsOk_snoc`, `bootLogsOk_events`), one
+  more fact layer B is to export (raft's bootstrap lines: `logSize ≤ |C|`).
 - **Q11 (2026-11-09, Q8 stage 1 slice 4): a ghost record of the just-queued message.** `raft.send`
   queues the message before its trace hook runs, so at the hook raft's queues own it, and
   `ownRaftPhysCV` keeps the queues existential (the abstract outbox up to permutation, no pointers):
@@ -870,6 +890,38 @@ the line does not log are determined: a heartbeat response's `mmatchIndex` is 0,
 The invariants: from the existing safety results (leader completeness, log matching, election
 safety, `Protocol/Facts`), restated on `σ` through `R`; `MoreUpToDateCorrectInv`,
 `QuorumLogInv`, `CommittedIsDurableInv` may need more.
+
+**Layer B's exports (2026-11-09, branch `trace-check-layerb-exp`): the run exported; the per-event
+facts blocked by the frozen laws.** Done: `simInv_end` (`TraceSimEnd.lean`: `traceAuth tn.tr L ∗
+simInv C tn Fx ⊢ traceAuth tn.tr L ∗ simInv C tn Fx ∗ ⌜∃ σ, SimRun C L σ ∧ σ.server = confAbs C ∧
+∀ x ∈ L, TraceEv.Ascii x⌝`, the trace the simulation ran is the recorder's) and `simRun_runAccepted`
+(`mainPure`'s `RunAccepted L`, unfolded, from `SimRun` and the bootstrap facts `newTrace` succeeding,
+`t.init = simInit C`, `t.server = t.initSrv = confAbs C`, which layer B's bootstrap clause still owes).
+**Not done: `ScopeOk L`, `NumsBelow K`, `ConfsWithin |C|`, `BootLogsOk L` and the event count as
+`simInv` clauses**, because no `trCap_fire*` law can keep them: the laws are generic in the event
+predicate `E` and, frozen (tag `trace-check-frozen`), take of it only what their phase steps say and
+`∀ e, E e → TraceEv.Ascii e`. Per law: `trCap_fire_ready` (`NodeEvOf (W64 8)`, `Ready`) and
+`trCap_fire_bf` (`NodeEvOf (W64 2)`, `BecomeFollower`) give `InScope`; `trCap_fire_boot` gives the
+unbooted disjunct of `EvScopeOk`; but `trCap_fire`, `trCap_fire_any`, `trCap_fire_booted` and
+`trCap_fire_recv` allow a `ChangeConf` line, a `SendAppendEntriesRequest` of a `MsgSnap`, and (the
+last three, past the node's segment: `PhaseStepB` excludes only `BecomeFollower`) an `InitState`, since
+their `LineEffect` only asks for a run of the line (the specification has those actions); P1-P3 hold
+of raft's hooks (their `NodeEvOf`/`SendEvOf`/`CCEvOf` name the events; `sendEvt` of a snapshot is
+`none`), not of the laws. No law bounds an event's numbers, its configuration lists (`trCap_fire_ready`'s
+`NodeEvOf` is at any configuration `cfg`) or a bootstrap line's log size, and nothing counts the
+events. So these facts must reach `simInv` through the laws' premises, a change to the frozen
+statements (the user's): replacing, in the seven laws, `∀ e, E e → TraceEv.Ascii e` by `∀ e, E e →
+TraceEv.Ok e` with `TraceEv.Ok e := Ascii ∧ InScope ∧ NumsBelow K ∧ ConfsWithin 3 ∧ uint.nat e.logSize
+≤ 3` (the boot law: `InScope` replaced by the unbooted disjunct, which it has), `K` a constant of the
+adequacy theorem whose source in the hooks is raft's time receipts (`budgetInv` for terms,
+`isEntryR_receipt` for indices, `notes/trace-validation-sim.md`, "Increment 2": the receipt bound
+then at most `2^61 - 1`, not `2^62 - 2`); the event count needs a ghost counter the laws increment,
+bounded by the adequacy theorem's step bound (one step at least per event), for which raft's laws have
+no resource either. With the premise, each law's re-proof is one more conjunct in its `simInv` update
+(`scopeOk_snoc`, `bootLogsOk_snoc`, and `∀`-snoc for the others, as `ascii_snoc`). The export to `Main`
+also needs `TraceSimGhost` and `TraceSimEnd` importable (`etc/api/raft.txt`), and with them their
+public imports `TraceSimBag` and `TraceSimLemmas`: deferred to `Main`'s proof, the first importer
+(`MainPure` takes `RunAccepted` as a hypothesis).
 
 ### C. The checker (Go, verified against the Lean transcription)
 

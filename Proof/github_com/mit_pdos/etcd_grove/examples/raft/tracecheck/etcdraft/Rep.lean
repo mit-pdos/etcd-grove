@@ -65,10 +65,18 @@ end types
 /-! ## Bounds -/
 
 /-- The bound on the trace's numbers and length: far from the Go `int`'s overflow (`len(log)+1`,
-`b + ev.Entries`), and keeping the Go's `make([]Entry, n)` of a bootstrap log of `n` entries
-within the length a slice may have (as the porcupine example's `ClientIdsOk`, gc's `maxAlloc`; review
-round 1 of layer C, S2). -/
-def numBound : Int := 2 ^ 40
+`b + ev.Entries`; a reached state's numbers stay below `2 * numBound - 1`, `Reach.lean`, within the
+actions' `2^62`), and as high as that allows, so that the closed statement's step bound `n < 2^61`
+gives every term, index and the event count below it (Q12 (a), 2026-11-09; `2^40` before). The
+Go's one allocation sized by a trace number, `make([]Entry, n)` of a bootstrap log, is bounded
+apart (`bootLogBound`, `Event.BootLogsOk`). -/
+def numBound : Int := 2 ^ 61
+
+/-- The bound on a bootstrap line's log size, which `NewTraceWith` allocates (`make([]Entry, n)`, an
+`Entry` 80 bytes): within the length a slice may have (as the porcupine example's `ClientIdsOk`,
+gc's `maxAlloc = 2^48` bytes; review round 1 of layer C, S2). Raft's bootstrap logs have one entry
+per voter. -/
+def bootLogBound : Int := 2 ^ 40
 
 /-- A number of the trace within `numBound`. -/
 def numOk (n : Int) : Prop := 0 ≤ n ∧ n < numBound
@@ -191,6 +199,16 @@ def Event.Bounded (e : Event) : Prop :=
   ∀ m, e.msg = some m →
     numOk m.term ∧ numOk m.entries ∧ numOk m.logTerm ∧ numOk m.index ∧ numOk m.commit ∧
     numOk m.rejectHint
+
+/-- **The bootstrap lines' logs within `bootLogBound`** (`NewTraceWith`'s premise for its
+`make([]Entry, n)`, which Go refuses above `maxAlloc`; Goose's `make` does not, so no proof uses it):
+every bootstrap-named event whose node (by its parsed id) has logged only bootstrap-named events
+before it, a superset of the lines `bootstrapOf` flags (a node's lines from its first
+bootstrap-named one to before its first other one), the last of which is the one allocated. -/
+def Event.BootLogsOk (evs : List Event) : Prop :=
+  ∀ k (hk : k < evs.length), isBootstrapName evs[k].name = true →
+    (∀ j (hj : j < k), parseID evs[j].nid = parseID evs[k].nid → isBootstrapName evs[j].name = true) →
+    evs[k].log < bootLogBound
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
