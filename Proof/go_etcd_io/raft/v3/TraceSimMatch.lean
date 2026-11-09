@@ -266,6 +266,58 @@ theorem simRun_replicate (C : List w64) (L : List TraceEv) (σ : Etcdraft.State)
   · simp only [linesTrace]; rw [mem_confAbs]; exact hC
   · rw [hts]; exact hcr
 
+/-- The server a `Timeout` makes. -/
+def candOf (i : Etcdraft.ID) (v : Etcdraft.Server) : Etcdraft.Server :=
+  { v with state := Etcdraft.candidate, currentTerm := v.currentTerm + 1, votedFor := i, lead := Etcdraft.nil,
+           votesResponded := [], votesGranted := [] }
+
+/-- **The `BecomeCandidate` line's step**: node `id`'s server a follower or candidate of the
+configuration (pre-vote off), the candidate it becomes of the term raft logged. -/
+theorem simRun_becomeCandidate (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (hrun : SimRun C L σ)
+    (hL : L ≠ []) (e : TraceEv) (id : w64) (s : NState) (cfg : CfgM)
+    (hev : NodeEvOf (W64 1) id s cfg e) (hout : cfg.outgoing = ∅)
+    (hC : id ∈ C) (a : Etcdraft.Server) (hσ : σ.s (idAbs id) = a) (hpv : σ.preVote = false)
+    (hrl : a.state = Etcdraft.follower ∨ a.state = Etcdraft.candidate) (hcfg : a.config.incoming = confAbs C)
+    (hrole : s.role = .candidate) (hterm : a.currentTerm + 1 = uint.Z s.term) (bt : uint.Z s.term < 2 ^ 63)
+    (hboot : ∀ lines ln, parseLines (L.map evConv) = .ok lines →
+      (bootFlags (confAbs C) (lines ++ [ln])).getD L.length false = false)
+    (hinv : (σ.upd (idAbs id) (candOf (idAbs id))).violated = .ok none) :
+    SimRun C (L ++ [e]) (σ.upd (idAbs id) (candOf (idAbs id))) := by
+  obtain ⟨hname, hnid, hterm', hvote, -, hrl', -, ⟨xs, ys, -, hys, hconf⟩, hmsg, -, -, -, -⟩ := hev
+  have hys0 : ys = [] := by
+    rw [hout] at hys
+    have : elements (∅ : GSet w64) = [] :=
+      List.eq_nil_of_length_eq_zero (by rw [GMap.length_elements, GMap.size_empty])
+    rw [this] at hys; exact List.Perm.eq_nil hys
+  subst hys0
+  have hname' : gsStr e.name = "BecomeCandidate" := by
+    simp only [evtNames] at hname
+    have : e.name = go!"BecomeCandidate" := by have := hname; simp at this; exact this.symm
+    rw [this]; rfl
+  have hto : σ.timeout (idAbs id) = some (σ.upd (idAbs id) (candOf (idAbs id))) := by
+    unfold Etcdraft.State.timeout Etcdraft.State.timeoutEnabled Etcdraft.Server.timeoutRoleOk
+      Etcdraft.State.getConfig
+    have hcont : (confAbs C).contains (idAbs id) = true := by
+      rw [List.contains_iff_mem, mem_confAbs]; exact hC
+    rw [hσ]
+    rcases hrl with h | h <;> simp only [h, hcfg, hcont, hpv, beq_self_eq_true, Bool.true_or, Bool.or_true,
+      Bool.true_and, Bool.not_false, ↓reduceIte] <;> rfl
+  apply simRun_node C L σ _ hrun hL e id s.vote xs hnid hvote hconf hmsg (by rw [hname']; rfl)
+    (by rw [hname']; rfl) (by rw [hname']; decide) hboot _ hinv
+  intro lines ts hl hts hl'
+  have hlen := parseLines_length _ _ hl
+  simp only [List.length_map] at hlen
+  have hline := linesTrace_line_last C lines (nodeLine e id s.vote xs) ts.l (by omega)
+  apply nonReceive_becomeCandidate _ ts (idAbs id) _ (by simp [linesTrace, Etcdraft.Trace.len]; omega)
+  · rw [hline]; simp [nodeLine, evConv, hname']
+  · rw [hline]; rfl
+  · exact confAbs_nodup C
+  · simp only [linesTrace]; rw [mem_confAbs]; exact hC
+  · rw [hts]; exact hto
+  · rw [hline]; simp only [nodeLine, evConv, hrl', hrole]; rfl
+  · rw [upd_self]; rfl
+  · rw [upd_self, hline, hσ]; simp only [candOf, nodeLine, evConv, hterm']; rw [gInt_of_lt _ bt, hterm]
+
 end TraceSim
 
 end EtcdGrove

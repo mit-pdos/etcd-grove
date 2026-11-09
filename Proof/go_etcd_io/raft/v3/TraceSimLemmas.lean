@@ -2051,6 +2051,27 @@ theorem nonReceive_replicate (t : Etcdraft.Trace) (ts : Etcdraft.TState) (i : Et
   simp [Etcdraft.Trace.skipUnusedLogline, Etcdraft.Trace.isEvent, hname,
     Etcdraft.Trace.isBecomeFollowerInUpdateTermOrReturnToFollower, pure, Except.pure, bind, Except.bind]
 
+/-- A `BecomeCandidate` line's non-receive successors: the specification's `Timeout` at the line's
+node, when it matches the line's role and term. -/
+theorem nonReceive_becomeCandidate (t : Etcdraft.Trace) (ts : Etcdraft.TState) (i : Etcdraft.ID)
+    (s2 : Etcdraft.State) (hl : ts.l ≤ t.len)
+    (hname : (t.line ts.l).ev.name = "BecomeCandidate") (hnid : (t.line ts.l).nid = i)
+    (hnd : t.server.Nodup) (hi : i ∈ t.server) (hto : ts.s.timeout i = some s2)
+    (hrole : (t.line ts.l).ev.role = Etcdraft.candidate) (hcand : (s2.s i).state = Etcdraft.candidate)
+    (hterm : (s2.s i).currentTerm = (t.line ts.l).ev.state.term) :
+    t.nonReceive ts = .ok [s2] := by
+  have hf : t.server.flatMap (t.timeoutIfLogged ts) = [s2] := by
+    apply flatMap_single _ _ i s2 hnd hi
+    · simp [Etcdraft.Trace.timeoutIfLogged, Etcdraft.Trace.isNodeEvent, Etcdraft.Trace.isEvent,
+        hl, hname, hnid, hto, hrole, hcand, hterm]
+    · intro j _ hj
+      simp [Etcdraft.Trace.timeoutIfLogged, Etcdraft.Trace.isNodeEvent, Etcdraft.Trace.isEvent,
+        hnid, Ne.symm hj]
+  unfold Etcdraft.Trace.nonReceive
+  simp only [hname, hf]
+  simp [Etcdraft.Trace.skipUnusedLogline, Etcdraft.Trace.isEvent, hname,
+    Etcdraft.Trace.isBecomeFollowerInUpdateTermOrReturnToFollower, pure, Except.pure, bind, Except.bind]
+
 end TraceSim
 
 end EtcdGrove
