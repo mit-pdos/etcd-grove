@@ -590,6 +590,22 @@ statements below are uniform: one spec per function, whose untraced instance is 
   `AppendEntriesToSelf`, or a reply the receive line already queued, a skipped line; another type
   logs nothing).
 
+**The local effect, in Lean (Draft, 2026-11-09, `TracedHooksDraft.lean`).** `LineEffect C e0 e a P M
+a' P' M'`: the specification's own `next`, iterated over single successors (`NextChain`, the search's
+freshness and invariant checks left to the global step), on a two-line local trace (`locTrace`: the
+node's previous line `e0`, which only a `BecomeFollower` line's skip reads, then `e`; no bootstrap
+flag) from the local state `locSt C a P M` (every server `a`, pending `P`, messages `M`), to node
+`i`'s server `a'`, pending `P'`, messages `M'`. A hook path's phase premise is `PhaseStep E Φ Φ'`:
+from every share in `Φ`, each event `E` allows has a local effect into `Φ'` (any previous line). The
+hooks themselves (`traceSendMessage`, `traceReceiveMessage`, `traceBecome*`, `traceReady`,
+`traceReplicate`) take only the caller's update (`TraceFire`; `TraceFireOpt` for a type the hook does
+not trace; `TraceFireN` for `traceReplicate`'s one event per normal entry), stated on what the code
+reads (`MessageM`, `absMsg`); `raft.send.tracedSpec` is the first caller with a phase step. The
+global theorem (to be stated next): inside the logger's update, `simInv` with node `i`'s share and a
+local effect steps `σ` to `σ'` (uniquely: other servers' actions do not match a line naming `i`; a
+receive line's message is the one `MsgsDet` selects), the share updated, the invariants from the
+per-server facts.
+
 ## Increment 2 of the hooks' specs (what S4 decides)
 
 **The logger's contract is generic** (round 2's N4; the `spec` skill's "TaDa, not HoCAP"): the

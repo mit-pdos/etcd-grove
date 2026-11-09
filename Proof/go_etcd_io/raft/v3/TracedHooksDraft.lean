@@ -143,6 +143,45 @@ def recvEvt : MsgType → Option w64
 /-- The normal entries of a batch (`traceReplicate` logs one `Replicate` per normal entry). -/
 def normalCount (ents : List EntryM) : Nat := (ents.filter (fun e => decide (e.Type' = EntryNormal))).length
 
+/-! ## A line's local effect -/
+
+/-- **The local state of a node's action**: the voters' servers `C`, every server `a` (the actions
+of a line naming node `i` read only server `i`'s variables and its configuration), the pending
+messages `P`, the messages `M` (a receive line's: the one it consumes). -/
+def locSt (C : List w64) (a : Etcdraft.Server) (P M : List Etcdraft.Msg) : Etcdraft.State :=
+  { simInit C with s := fun _ => a, pendingMessages := bagOf P, messages := bagOf M }
+
+/-- **The local trace of a line**: the node's previous line `ln0` (which a `BecomeFollower` line's
+skip reads) and the line `ln`, neither a bootstrap line. -/
+def locTrace (C : List w64) (ln0 ln : Etcdraft.Line) : Etcdraft.Trace :=
+  { lines := [ln0, ln], server := confAbs C, initSrv := confAbs C, bootstrap := [false, false],
+    init := simInit C }
+
+/-- The specification's rounds at line `l0` as single successors, from `f` to `tsF` on the next line
+(`Chain` without the search's bookkeeping: the visited states' freshness and the invariants, which
+are the global step's). -/
+inductive NextChain (t : Etcdraft.Trace) (l0 : Nat) : Etcdraft.TState → Etcdraft.TState → Prop
+  | last (f tsF : Etcdraft.TState) : t.next f = .ok [tsF] → tsF.l = l0 + 1 → NextChain t l0 f tsF
+  | step (f g tsF : Etcdraft.TState) : t.next f = .ok [g] → g.l = l0 → NextChain t l0 g tsF →
+      NextChain t l0 f tsF
+
+/-- **A line's local effect** (`notes/trace-validation-sim.md`, "S5 Draft: the capability", local and
+global): node `i`'s line `e`, after its previous line `e0`, is the specification's own action from
+the local state with server `a`, pending messages `P` and messages `M`, its rounds single successors,
+to server `a'` (node `i`'s, `i` the line's node), pending `P'` and messages `M'`. The global step
+(`simInv`'s `σ` whose node `i` is `(a, P)`) is the global theorem's. -/
+def LineEffect (C : List w64) (e0 e : TraceEv) (a : Etcdraft.Server) (P M : List Etcdraft.Msg)
+    (a' : Etcdraft.Server) (P' M' : List Etcdraft.Msg) : Prop :=
+  ∃ ln0 ln tsF, Etcdraft.parseLine 0 (evConv e0) = .ok ln0 ∧ Etcdraft.parseLine 1 (evConv e) = .ok ln ∧
+    NextChain (locTrace C ln0 ln) 2 ⟨locSt C a P M, 2, 1⟩ tsF ∧ tsF.s.s ln.nid = a' ∧
+    tsF.s.pendingMessages.eq (bagOf P') = true ∧ tsF.s.messages.eq (bagOf M') = true
+
+/-- **A phase step by a line**: from every share `(cs, P)` in phase `Φ`, each event `E` allows has a
+local effect (consuming no message) into a share in phase `Φ'`, whatever the node's previous line. -/
+def PhaseStep (E : TraceEv → Prop) (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) : Prop :=
+  ∀ C cs P, Φ C cs P → ∀ e0 e, E e → ∃ a a' P', toC (confAbs C) a = cs ∧
+    LineEffect C e0 e a P [] a' P' [] ∧ Φ' C (toC (confAbs C) a') P'
+
 end pure
 
 /-! ## The capability -/
@@ -314,6 +353,32 @@ abbrev traceReplicate.tracedSpec : Prop :=
       TraceFireN s.gh.tr tl (NodeEvOf (W64 5) id s c) (normalCount ents) Q }}
     (App (App (Val #(functions traceReplicate [])) (Val #r)) (Val #es))
   {{ RET #(); entsPts es dq ents ∗ ownRaftPhysCV c c.voters r id s ∗ Q }}
+
+/-! ## `send`, traced -/
+
+/-- **`r.send(m)`, traced** (`raft.send.spec` with the capability): the message queued as
+`raft.send.spec` says, then `traceSendMessage`: for a traced type, a line whose local effect takes the
+caller's phase `Φ` to `Φ'` (`PhaseStep`, the message as sent, `out`'s); otherwise `Φ` kept. -/
+abbrev raft.send.tracedSpec : Prop :=
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
+    (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
+    (out : List Msg) (ty : MsgType) (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop),
+  (m.From' = W64 0 ∨ m.From' = id ∨ m.Type' = MsgReadIndex ∨ m.Type' = MsgTransferLeader) →
+  SendOk id s m ents ctx out →
+  SnapOut id s m sn out →
+  (m.Type' = MsgApp → AppShape ⟨m, ents, sn, ctx, rs⟩) →
+  rs = [] →
+  mtypeOf m.Type' = some ty → (s.gh.tr.isSome → ty ≠ .snap) →
+  (match sendEvt ty with
+   | some evt => ∀ mm ∈ out, PhaseStep (SendEvOf evt id s c mm) Φ Φ'
+   | none => ∀ C cs P, Φ C cs P → Φ' C cs P) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+      "Hm" ∷ msgOwn ml (DFrac.own 1) ⟨m, ents, sn, ctx, rs⟩ ∗
+      "#Hsrc" ∷ tsSrc s.gh.sn m.Type' sn ∗
+      trCap s.gh.tr r id Φ }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"send")) (Val #ml))
+  {{ RET #(); ownRaftPhysCV c c.voters r id (sendMsgs s out) ∗ trCap s.gh.tr r id Φ' }}
 
 end ghost
 
