@@ -42,15 +42,17 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- `tx.WriteTo(w)`: streams the database as of the transaction to `w` (`writerOk`): the bytes
-written are a prefix of an image of `T.base`, all of it unless there is an error. -/
+written are a prefix of an image of `T.base` of `Size()` bytes, all of it unless there is an
+error. -/
 def Tx.WriteTo.spec : Prop :=
-  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) (w : GoInterface)
-    (W : List w8 → IProp GF) (bs : List w8),
-  {{ boltTx (GF := GF) tx γ q T ∗ writerOk w W ∗ W bs }}
+  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) (sz : w64)
+    (w : GoInterface) (W : List w8 → IProp GF) (bs : List w8),
+  {{ boltTx (GF := GF) tx γ q T ∗ txSize tx sz ∗ writerOk w W ∗ W bs }}
     (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"WriteTo")) (Val #w))
   {{ (n : w64) (err : GoInterface), RET (PairV #n #err); boltTx tx γ q T ∗
       ∃ (ys img : List w8), W (bs ++ ys) ∗
-        ⌜boltImage img T.base ∧ ys <+: img ∧ uint.nat n = ys.length ∧
+        ⌜boltImage img T.base ∧ img.length = uint.nat sz ∧ ys <+: img ∧
+          uint.nat n = ys.length ∧
           (err = GoInterface.nil → ys = img)⌝ }}
 
 end spec

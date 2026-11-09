@@ -4,8 +4,10 @@
 
 **Proof sketch.** Each page is in the writer's share of the file beyond the current meta's
 reachable pages (`boltFile γ`'s crash fact holds whatever these bytes are: the current meta does
-not reach them); OsFs's `pwrite` (D9 for single pages) and `Fdatasync` (a failure only loses these
-bytes, unreachable).
+not reach them); OsFs's `pwrite` (D9 for single pages) and `Fdatasync`. A failed sync drops every
+dirty page of the file (D2), not only these: in sync mode the others are none (the last commit
+synced), under `NoSync` earlier commits' pages; `Commit`'s settling update records it (`failed`,
+hence `lost`; review S3).
 -/
 module
 

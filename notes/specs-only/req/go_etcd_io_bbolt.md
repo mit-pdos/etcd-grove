@@ -54,3 +54,57 @@ interval's readers. What the proof sketches need, by call site (`server/storage/
     (`made`, `ents`) is `imgOf D` (the root's buckets, their values; sequence counters dropped).
     A law `fileHolds_image`-style that a file reopened after `Close` holds the same `imgOf` is what
     4a's `beFile` round trip (`Close`, then `New`) rests on.
+
+## from 4c (answer)
+
+Item by item (`Spec/go_etcd_io/bbolt/`, namespace `Bbolt`; round 1 of 4c):
+
+1. **When `Open` succeeds.** No file premise makes it succeed: in OsFs every system call `Open` makes
+   (`open`, `flock`, `fstat`, `pread`, `pwrite`, `fdatasync`, `mmap`) may fail with an errno, so
+   `Open.spec` has an error disjunct (`boltClosed γ` back). Keep `dbOpenOk` an environment premise
+   of `New` (the closed-theorem convention for environment failures: an opaque premise, not a new
+   adequacy theorem). An invalid file is excluded by the precondition (`boltFile γ`/`fileHolds`'s
+   well-formedness), not an error. `Open` takes `boltFile γ ∗ boltClosed γ` (named once per
+   generation by `fileHolds_alloc` from `fileHolds path D`; `fileHolds_new` for no file), and
+   `boltState γ 1 (BoltSt.init D)` comes from `fileHolds_alloc`, not from `Open`: the state lives
+   across opens.
+2. **The logger contract** is now transparent (`Bbolt.boltLogger`, the old D20′ restated): nil, or a
+   pointer-typed logger whose `Debugf`/`Errorf`/`Infof`/`Warningf` return for any format and any
+   arguments meeting `logArgOk R` (a `fmt.ArgWf` basic value, an error whose `Error()` returns under
+   `R`, a byte slice readable under `R`), reading only `args` and `R`. A `*zapBoltLogger` meets it
+   from zap's `Sugar` printf methods: prove `boltLogger (newBoltLoggerZap's value)` in 4a.
+3. **The read slot.** `Begin(false)` takes the caller's `threadTok` (D1: `isBolt`'s pool lends one
+   `mmaplock` reader slot per thread token, under `Open`'s `ThreadBoundLe GF (2 ^ 29)`, D3), and
+   `Rollback` gives it back. So 4a's readers each lend a thread's token rather than one of a counted
+   stock: realize `beRdToks` as the reading goroutines' `threadTok`s (notes/bounds-plan.md: a bound
+   is reasoned about where it is owned, here bbolt's pool); the `2 ^ 30 - 2` count is then not
+   needed. `Begin(true)`'s error: `dbClosed db ∨ dbBroken γ`; the close right excludes the first
+   (`boltOpened_closed`), and `dbBroken_state` the second for a client whose commits all succeeded
+   (`σ.broken = false`): `lg.Fatal` on it is unreachable.
+4. **Commit.** Two updates on `boltState γ 1 σ`: the commit update (`∀∀ ok`: `σ.commit T.cur ns` or
+   `σ.attempt T.cur ns`) at the meta write, and the settling update (`σ.settle synced failed brk`) at
+   the end; both fire on every write transaction's `Commit`, error or not. Fire your client's commit
+   step at the first with `ok = true`. A read transaction's `Rollback`: `nil`; a finished one's:
+   `ErrTxClosed` (`Tx.Rollback.spec`'s `none` case).
+5. **Buckets and cursors.** As listed (`Tx.Bucket`, `Tx.CreateBucketIfNotExists` unchanged when the
+   bucket exists, `Tx.DeleteBucket` with `isErr ErrBucketNotFound` and `errIs_distinct` for
+   `errors.Is`, `Bucket.Put` under `bboltEntryMax` with `ErrKeyRequired`/`ErrKeyTooLarge`, `Delete`,
+   `Cursor`/`Seek`/`Next` in key order by `boltTx_wf`, `ForEach`, `boltTx_fill`). **How long the
+   returned slices stay readable**: while the transaction is live (`txBytes`, read through
+   `txBytes_acc` with the transaction): not for good. A `Put`'s value is lent until the writer is
+   done (`putLoan`, `putLoan_done`).
+6. **The read side.** Fractions of the read transaction's `boltTx` for each reader (`boltTx_frac`),
+   a cursor each (`Bucket.Cursor.spec` at any fraction), the handle shared (`bktH` persistent).
+7. **`Size`/`WriteTo`.** `boltTx_size` gives `txSize tx n` with `n < 2 ^ 48`; `Tx.Size` returns `n`;
+   `Tx.WriteTo` writes a prefix of an image `img` of `T.base` with `img.length = n`, all of it
+   unless it fails (`boltImage img D`, opaque; your `imgBytes I bs` is `boltImage bs D` with
+   `imgOf D = I`).
+8. **Close.** `DB.Close.spec` gives `boltClosed γ` (with `dbClosed db`) to the close right's holder,
+   whatever its error, not `fileHolds`: the file stays in `boltFile γ`'s crash invariant and the state
+   `boltState γ 1 σ` with you; a reopen (`Open` with `boltClosed γ`) reads `σ.data`. This suits the
+   `Close`-then-`New` round trip: no law on images is needed. `Path` (with the close right),
+   `Stats` (`statSlot`), `Info` (a live transaction), `Tx.DB`, `Tx.Stats` (live or done): any values.
+9. **Defrag.** `openFileOk f path` is transparent (an `*os.File` over a read-write fd of the path's
+   OsFs file; `osFileOf` provisional, `req/os.md`); `Sync`'s update; `Options`' laws in
+   `Spec/go_etcd_io/bbolt/Options.lean`. OsFs has no rename yet.
+10. **The flat image.** Fine: `Data` is the root bucket; your `imgOf D` drops the sequences.

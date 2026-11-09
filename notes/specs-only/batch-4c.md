@@ -1,7 +1,7 @@
 # Batch 4c: bbolt's public API (DB, Tx, Bucket, Cursor)
 
 Author's report, round 0 (2026-11-09). Namespace `Bbolt` (`Perennial.EtcdGrove.Bbolt`).
-Build: `etc/specs-build.sh --dir Spec/go_etcd_io/bbolt`: OK, 54 modules.
+Build: `etc/specs-build.sh --dir Spec/go_etcd_io/bbolt`: OK, 149 modules (round 1).
 
 ## Files
 
@@ -112,42 +112,47 @@ variables).
   `Tx.MoveBucket`, `Bucket.MoveBucket`, `Bucket.Inspect`, `Bucket.Stats`, `Bucket.Root`, `Compact`,
   `DB.Logger`, `DB.IsReadOnly`, `DB.String`/`GoString`, `Stats.Sub`, `TxStats`'s getters and
   `Sub`, `BucketStats.Add`, the loggers (`DefaultLogger`, the discard logger).
-* **Internal functions with old proved specs** (the old tree's `Proof/go_etcd_io/bbolt/` was
-  complete: its collection rested only on the axiomatized `Options` type), not restated here:
-  `Bucket.{node, openBucket, pageNode, write, free, dereference}`, `Cursor.{first, last, next,
-  prev, seek, search, nsearch, keyValue, node, goToFirstElementOnTheStack}`, `DB.{freepages, grow,
-  hasSyncedFreelist, meta, page, pageInBuffer, beginTx}`, `Tx.{allocate, close, forEachPage,
-  page}`, `fdatasync`, `newFreelist`, `node.{childAt, childIndex, del, free, nextSibling,
-  numChildren, prevSibling, put, read, removeChild, root, size, write}`, `TxStats.Inc*`,
-  `Options.String`. Their specs are over the proof's internal vocabulary (the node cache's
-  abstraction relation, the transaction registry, the file's shares), which the invariant design
-  fixes; specs over a placeholder vocabulary now would be rewritten then. **Question 4c-Q5.**
+* Internal functions: none left out since round 1 (C8: every package-`bbolt` function with a
+  proved spec in the old tree has one).
 
 ## Decisions for the user (in plain terms first)
 
-**4c-D1. What a crash leaves of a page being written (the sector rule).** bbolt keeps two copies
-of its table of contents (the meta page), each 80 bytes at the start of a 4 KiB page, protected by
-a checksum; a commit overwrites the older copy. OsFs's crash model (its D1) says every byte not yet
-synced is *arbitrary* after a crash. Then a crash during a commit's meta write may leave the slot
-holding garbage, and garbage can pass the 64-bit checksum (FNV-64a has collisions): bbolt would
-then open a table of contents pointing anywhere and panic or return wrong data. No true axiom
-excludes that (the bbolt-api example's D22 lesson). The physical fact bbolt relies on is that a disk
-writes each 512-byte sector atomically (already one of OsFs's environment assumptions, "writes each
-sector atomically", but not in its crash relation), so the 80 bytes come back either as they were
-on disk or as some version the page cache held. Options: **(a)** refine OsFs's crash relation:
-each aligned 512-byte sector of a crashed file holds its durable bytes or a version the page cache
-held since the last sync (recommended: the physical fact, every client benefits; the bank test's
-witness file already reasons this way); **(b)** keep the relation and give bbolt's closed theorems a
-crash premise as minibolt's P1 (`CrashP1.lean`'s `osFsSemWith Q`), visible in every statement.
-`boltCrash.spec` is true under (a) or (b), false under OsFs as it is.
+**4c-D1. What a crash leaves of the meta page (round 1: restated).** bbolt keeps two copies of
+its table of contents (the meta page: 80 bytes at the start of a 4 KiB page, with a checksum); each
+commit overwrites the older copy and, in sync mode, syncs before and after. OsFs's crash model
+(`CrashImage`, its D1) says every byte not known to be on disk is *arbitrary* after a crash. Then a
+crash during or after a commit's meta write may leave in that slot any 80 bytes, **including a meta
+with a correctly computed checksum** describing a state that never existed (a higher txid, a root
+at a page of user bytes): no checksum collision is even needed. bbolt would open it and return wrong
+data or panic, so `boltCrash.spec` is false under OsFs as it is. D22 does not help: it makes a
+one-page `pwrite` all or nothing in the page cache (in-process), not in a crash image.
+What bbolt actually relies on is narrower and physical: **a write of a page that is clean and idle
+(not dirty, no writeback in flight) reaches the disk sector-atomically**: after a crash each of
+its 512-byte sectors holds either its old durable bytes or the bytes that write gave it. The meta
+lies in the page's first sector (4d's `BboltCommon.meta_in_sector.spec`: header 16 + meta 64 ≤ 512),
+and in sync mode the meta page is clean and idle when bbolt writes it (it was last written two
+commits ago and synced then, and `tx.write`'s `fdatasync` just waited for every writeback). The
+general rule "each sector holds its durable bytes or some version the page cache held" is **false**
+(Linux copies into a page under writeback without waiting unless the device needs stable pages, so a
+sector can reach the disk half old, half new: reachable under `NoSync`, where bbolt promises nothing
+anyway). Options:
+- **(a)** add the narrow rule to OsFs's crash relation (for a sector changed by at most one `pwrite`
+  since the file's last successful sync, finished or in flight: its durable bytes or that write's),
+  with the kernel argument in `Impl.lean` as D22's is (from `mm/filemap.c`, `folio_wait_stable`;
+  uncertain to that degree): the physical fact, every OsFs client benefits;
+- **(b)** a crash premise visible in every bbolt closed theorem (`CrashP1.lean`'s `osFsSemWith Q`, as
+  minibolt's P1): no kernel argument, but a premise in every statement.
+`boltCrash.spec` is true under (a) or (b). **The user's decision.**
 
-**4c-D2. A prophecy on the meta write.** The commit update must fire when the meta write *starts*
-(a crash during it may already find the new meta), but whether the commit takes effect is decided
-when the write *ends* (it may fail with an errno and write nothing). The proof needs a prophecy of
-the write's outcome: a prophecy patch `etc/proph-patches/bbolt/` adding `NewProph`/`ResolveBool(err
-== nil)` around `writeMeta`'s `writeAt` (allowed by CLAUDE.md; recorded here as a proof need).
-Alternative: two updates (an "attempt" at the start, the commit at the end): one more update every
-`Commit` caller supplies.
+**4c-D2. A prophecy on the meta write (round 1: resolved on "the page was written").** The commit
+update must fire when the meta write *starts* (a crash during it may already find the new meta);
+whether the commit takes effect is known only when it *ends*. The proof needs a prophecy, resolved
+before `metalock.Unlock` on **whether the page was written** (the mapped meta page's txid is the
+new one), **not on `err == nil`**: OsFs's one-page `pwrite` may write the page and report an errno,
+and `File.WriteAt` retries on `EINTR`, so a first attempt can write the page and a retry fail; the
+meta is then current (`rollback` keeps it) with `err ≠ nil`, which the settling update records as
+`failed`. A prophecy patch in `etc/proph-patches/bbolt/` (CLAUDE.md allows it; `etc/prophcheck` must
+admit the read of the mapped meta page's txid, not checked here). Alternative: a third update.
 
 **4c-D3. The durable state in the client's state, three updates.** `BoltSt` carries `dur`, `busy`
 and `lost` so that a crash-safe client learns exactly what it may find after a crash, and a client
@@ -162,11 +167,8 @@ conservative (sound; a client stopping at the first error, as the bank test does
 `Close` without the close right is allowed only on a closed database (`dbClosed`, the defrag's
 second close).
 
-**4c-Q5. The internal specs.** The old internal specs were proved (the old bbolt collection had no
-`sorry`). PRINCIPLES: "a redesigned API keeps a spec for every function that already has a proved
-spec"; its scope note: an internal helper "may simply mirror its code". Recommend: restate them
-with the invariant design (this batch gives the commit path's five as the pattern); the user may
-prefer them now over a placeholder internal vocabulary.
+**4c-Q5. The internal specs (round 1: done).** Every package-`bbolt` function with a proved spec in
+the old tree now has one (review C8's list, 94), mirroring the code over `Internal.lean`'s model.
 
 **Scope restrictions kept** (each a premise the code does not check, filed): read-write open, default
 page size, `Mlock` off, `MmapFlags` (D13); bucket names within `MaxKeySize`
@@ -198,3 +200,46 @@ it; etcd's pipe has none).
 
 `req/go_etcd_io_bbolt_internal_common.md` (new file, "from 4c"), `req/go_etcd_io_bbolt_internal_freelist.md`
 (new file, "from 4c"), `req/go_etcd_io_bbolt_errors.md` ("from 4c (answer)").
+
+## Round 1 repairs (review `reviews/4c-review-1.md`)
+
+* **P1** (a commit after a failed sync): `BoltSt.commit`/`attempt` set `dur := none` once `lost`;
+  filed `nonissues/bbolt-commit-after-failed-sync.md` (blocks-proof: no; etcd exits on a commit
+  error).
+* **P2**: 4c-D1 rewritten (the narrow physical rule, D22 covers the page cache only, the fake meta
+  with a correct checksum; option (b) kept); 4c-D2 resolves the prophecy on "the page was written";
+  `Tx.writeMeta.spec`'s `failed` covers an error reported after the page was written.
+* **C1**: `Bucket.Put` takes `value ↦*{dv} vb` and lends it until the transaction is done
+  (`putLoan`, `putLoan_done`); `ReqDefrag` in etcd's order (commit, then the source's rollback).
+* **C2**: `Ent.wf` (inductive, transparent); laws `boltTx_wf` (views and committed data),
+  `boltImage_wf`.
+* **C3**: `boltLogger` transparent (D20′ restated with `logArgOk`), `openFileOk` transparent (over a
+  provisional `osFileOf`, `req/os.md`), `writerPlain` from the method set; `Options.lean`: the
+  literal, allocation, load, store, `optsAt` laws, per-field reads and stores (tracked and untracked).
+* **C4**: `txSize tx n` (`boltTx_size`, `txSize_agree`); `Tx.Size` returns it, `Tx.WriteTo`'s image
+  has that length.
+* **C5**: `Tx.Rollback.spec` on a finished transaction (`ErrTxClosed`); `Begin`'s error is
+  `dbClosed db ∨ dbBroken γ`, with `boltOpened_closed` and `dbBroken_state` (`BoltSt.broken`, set
+  only by a commit that lost the mapping: the settling update's `brk`). `ReqDefrag` checks it.
+* **C6**: `Commit` on a read transaction needs no update.
+* **C7**: `ReqBackendBatch` checks `k2` is in the range and `k1` is not; Assumes the batch lock's
+  `boltState`.
+* **C8**: 94 internal specs (`node__*`, `Bucket__{node,openBucket,pageNode,write,free,dereference,
+  inlineable,maxInlineBucketSize}`, `Cursor__{first_i,last_i,next_i,prev_i,seek_i,search,nsearch,
+  keyValue,node,goToFirstElementOnTheStack}`, `DB__*` internals, `Tx__{allocate,close,rollback_i,page,
+  forEachPage,check helpers}`, `TxStats__*`, `fdatasync`, `flock`, `mmap`, `munmap`, `newFreelist`,
+  `splitThreshold`, `compareKeys`, `verifyKeyOrder`, `verifyPageReachable`, `Options__String`) over
+  `Internal.lean`'s transparent model (`NodeR`, `TxCore`, `DbM`, `nodeSize`, `NodeR.put`/`del`,
+  `splitIdx`) and opaque internal resources (`wtxCore`, `physRep`, `txPage`, `dbRaw`, `curPath`;
+  `wtxCore_view`). A lowercase method whose name differs from a public one only in case gets the
+  file suffix `_i` (`Tx__rollback_i`, `DB__close_i`, `Cursor__first_i`, ...), for case-insensitive
+  file systems.
+* **C9**: answered 4a (`req/go_etcd_io_bbolt.md`, "from 4c (answer)"): no file premise makes `Open`
+  succeed (`dbOpenOk` stays an environment premise); the logger contract; the reader slot is the
+  reading goroutine's `threadTok` under `Open`'s `2 ^ 29` bound (4a's `2 ^ 30 - 2` count not needed);
+  `Size` = image length; `Close` gives `boltClosed`, not `fileHolds`.
+* **Second tier**: S1 (`Update`'s `True` replaced by `fn`'s contract back on `Begin`'s error), S2/S3
+  (every failed sync recorded by the settling update, which now fires on every error path), S5
+  (snippets: concurrent readers of one read transaction, Assumes name the `boltState` holder,
+  `γ.path` non-empty). Not done: S4 (the custom `OpenFile`'s file after `Open`'s error: `Open.spec`
+  says nothing of it), S6 (the crash law's sketch), S7 (an abbreviation for `Commit`'s updates).

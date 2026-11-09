@@ -10,7 +10,10 @@ required; key too large; value too large: excluded by `bboltEntryMax < maxValueS
 nested bucket's key: `ErrIncompatibleValue`; else materialize the leaf's node path (`Cursor.node`:
 `Bucket.node` reads pages into the node cache, needing all of the transaction) and `node.put` the
 cloned key with the value **by reference** (Go: "the value must remain valid for the life of the
-transaction"; hence `↦*□`). The abstraction relation then maps the nodes to `T.cur` with the key set.
+transaction"): the caller's fraction of the value is kept until the transaction is done
+(`putLoan`, `putLoan_done`; round 1, C1: was a persistent `↦*□`, which defrag cannot give for a
+value it read from another open transaction). The abstraction relation then maps the nodes to
+`T.cur` with the key set.
 
 **Changes.** Over paths; a read transaction's `Put` returns `ErrTxNotWritable` (was a premise
 `T.rw`); `ErrIncompatibleValue` on a bucket's key; the errors named (`isErr`). Kept: the entry bound
@@ -39,22 +42,22 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- `b.Put(key, value)`: on a write transaction (all of it), sets `key` to `value` in the bucket at
 `p`; the errors in Go's order (not writable, empty key, key too large, `key` is a nested
-bucket). The value is kept by reference. -/
+bucket). The value is kept by reference: lent until the transaction is done (`putLoan`). -/
 def Bucket.Put.spec : Prop :=
-  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) (b : Loc) (p : BPath) (gs : List Nat) (key value : GoSlice) (kb vb : GoString) (dk : DFrac),
-  {{ boltTx (GF := GF) tx γ q T ∗ bktH tx γ b p gs ∗ key ↦*{dk} kb ∗ value ↦*□ vb ∗
+  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) (b : Loc) (p : BPath) (gs : List Nat) (key value : GoSlice) (kb vb : GoString) (dk dv : DFrac),
+  {{ boltTx (GF := GF) tx γ q T ∗ bktH tx γ b p gs ∗ key ↦*{dk} kb ∗ value ↦*{dv} vb ∗
       ⌜T.gens p = gs ∧ (T.rw = true → q = 1) ∧ kb.length + vb.length ≤ bboltEntryMax⌝ }}
     (App (App (Val (b @!! go.GoType.PointerType Bucket.ty @!! go!"Put")) (Val #key)) (Val #value))
   {{ (err : GoInterface), RET #err; key ↦*{dk} kb ∗
       (if T.rw = false then
-         iprop(boltTx tx γ q T ∗ isErr go_etcd_io.bbolt.errors.ErrTxNotWritable err)
+         iprop(value ↦*{dv} vb ∗ boltTx tx γ q T ∗ isErr go_etcd_io.bbolt.errors.ErrTxNotWritable err)
        else if kb.length = 0 then
-         iprop(boltTx tx γ q T ∗ isErr go_etcd_io.bbolt.errors.ErrKeyRequired err)
+         iprop(value ↦*{dv} vb ∗ boltTx tx γ q T ∗ isErr go_etcd_io.bbolt.errors.ErrKeyRequired err)
        else if maxKeySize < kb.length then
-         iprop(boltTx tx γ q T ∗ isErr go_etcd_io.bbolt.errors.ErrKeyTooLarge err)
+         iprop(value ↦*{dv} vb ∗ boltTx tx γ q T ∗ isErr go_etcd_io.bbolt.errors.ErrKeyTooLarge err)
        else if (T.cur.atPath (p.child kb)).any Ent.isBkt then
-         iprop(boltTx tx γ q T ∗ isErr go_etcd_io.bbolt.errors.ErrIncompatibleValue err)
-       else iprop(⌜err = GoInterface.nil⌝ ∗
+         iprop(value ↦*{dv} vb ∗ boltTx tx γ q T ∗ isErr go_etcd_io.bbolt.errors.ErrIncompatibleValue err)
+       else iprop(⌜err = GoInterface.nil⌝ ∗ putLoan tx γ value dv vb ∗
          boltTx tx γ q (T.setCur (T.cur.modAt p (fun e => e.setKey kb (some (Ent.val vb))))))) }}
 
 end spec

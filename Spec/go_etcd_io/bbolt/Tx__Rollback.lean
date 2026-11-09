@@ -10,7 +10,11 @@ hence the caller's `threadTok`; the transaction unregistered under `metalock`). 
 `freelist.Rollback(txid)` (the pages this transaction allocated return to free), `close` (`rwlock`
 released). The committed state is unchanged (no update).
 
-**Changes.** Unchanged, but for `managed = false` (a managed transaction's `Rollback` panics).
+A finished transaction (round 1, C5): `tx.managed` and `tx.db` read through `txDone`'s share
+(`close` set `db = nil`): `ErrTxClosed`.
+
+**Changes.** `managed = false` (a managed transaction's `Rollback` panics); a finished transaction
+allowed (defrag's `defer tmptx.Rollback()`, `backend.go:807`, `875`, `975`).
 -/
 module
 
@@ -33,13 +37,18 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- `tx.Rollback()` (not managed): the transaction ends with no effect; a reader's token comes
-back. -/
+/-- `tx.Rollback()`: a live transaction (not managed) ends with no effect and a reader's token
+comes back; a finished one returns `ErrTxClosed` (defrag's deferred `Rollback` after `Commit`). -/
 def Tx.Rollback.spec : Prop :=
-  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (T : TxView),
-  {{ boltTx (GF := GF) tx γ 1 T ∗ ⌜T.managed = false⌝ }}
+  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (o : Option TxView),
+  {{ (match o with
+      | some T => iprop(boltTx (GF := GF) tx γ 1 T ∗ ⌜T.managed = false⌝)
+      | none => txDone tx) }}
     (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"Rollback")) (Val #()))
-  {{ RET #GoInterface.nil; txDone tx ∗ (if T.rw then emp else threadTok) }}
+  {{ (err : GoInterface), RET #err; txDone tx ∗
+      (match o with
+       | some T => iprop(⌜err = GoInterface.nil⌝ ∗ (if T.rw then emp else threadTok))
+       | none => isErr go_etcd_io.bbolt.errors.ErrTxClosed err) }}
 
 end spec
 

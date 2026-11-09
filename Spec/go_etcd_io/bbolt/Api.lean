@@ -34,7 +34,7 @@ updates are `⊤ \ ↑γ.ns`).
   the file's OsFs resources (a half of each byte and of its `OsMeta`, as the old
   `Proof/os/CrashSt.lean`'s `csInv`; the other half is the open database's, or the invariant's
   while closed) and the other half of `σ`, with the fact that **every image a crash may leave**
-  (OsFs's crash relation, with D9's aligned page rule and the sector rule of the report's decision
+  (OsFs's crash relation, with D9's aligned page rule and decision 4c-D1's rule: a write of a clean, idle page reaches the disk sector-atomically; the report's decision
   4c-D1) **is a bbolt file whose data `σ.recovers`**. This is the meta-page rule: a commit writes
   its pages, syncs them, then writes its meta page (one aligned OS page) at page `txid % 2` (the
   page the current meta is not on), then syncs; at every point the newest valid meta of any crash

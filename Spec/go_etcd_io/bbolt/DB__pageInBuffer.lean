@@ -1,0 +1,37 @@
+/-
+`db.pageInBuffer(b, id)` (`db.go`): the page header at `id · pageSize` of a buffer.
+(internal; mirrors the code. Round 1, review C8: a proved function of the old tree.)
+-/
+module
+
+public import Spec.go_etcd_io.bbolt.Internal
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace Bbolt
+
+open Iris Iris.BI go_etcd_io.bbolt
+
+section spec
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.bbolt.Assumptions]
+
+/-- (internal) the address of page `id` in the buffer. -/
+def DB.pageInBuffer.spec : Prop :=
+  ∀ [HasExt osFsExt] (db : Loc) (γ : BoltName) (ns : Bool) (b : GoSlice) (id : w64),
+  {{ isBolt (GF := GF) db γ ns }}
+    (App (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"pageInBuffer")) (Val #b)) (Val #id))
+  {{ (p : Loc), RET #p; True }}
+
+end spec
+
+end Bbolt
+end EtcdGrove
+end Perennial

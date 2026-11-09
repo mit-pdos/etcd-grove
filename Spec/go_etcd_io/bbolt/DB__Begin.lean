@@ -13,8 +13,9 @@ open the client's update, read `σ`, close it with `Q σ.data`), register the tr
 txid incremented, free the pages pending for no reader (4d's `freelist.ReleasePendingPages`; the
 reader txids from the registered transactions), release `metalock`; the view is `TxView.wr D false ns`
 with `D` the committed data (`boltTx_base` thereafter). An error: the database closed (or its mapping
-lost by a failed remap: `nonissues/bbolt-failed-remap-nil-meta-panic.md`), the slot and token given
-back, or `rwlock` released.
+lost by a failed remap in a failed commit, which recorded `brk` in its settling update:
+`nonissues/bbolt-failed-remap-nil-meta-panic.md`), the slot and token given back, or `rwlock`
+released.
 
 **Changes.** Unchanged in shape; `boltState` is over `BoltSt` (the update reads `σ.data`); the view
 records `managed = false` and the database's mode.
@@ -46,7 +47,9 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
   moment for its whole life.
 - **Write**: blocks until no other write transaction is live, then begins at the committed `D`
   (`boltTx_base` relates it to the client's state).
-- **Error** (the database closed): no transaction; the token and the update come back. -/
+- **Error** only if the database was closed (`dbClosed`: excluded by the close right,
+  `boltOpened_closed`) or a failed commit lost its mapping (`dbBroken`: the client's state then
+  says `broken`, `dbBroken_state`); no transaction; the token and the update come back. -/
 def DB.Begin.spec : Prop :=
   ∀ [HasExt osFsExt] (db : Loc) (γ : BoltName) (ns w : Bool) (Q : Data → IProp GF),
   {{ isBolt (GF := GF) db γ ns ∗
@@ -58,7 +61,7 @@ def DB.Begin.spec : Prop :=
       (⌜err = GoInterface.nil⌝ ∗ txDB tx db ∗ ∃ D : Data,
         (if w then boltTx tx γ 1 (TxView.wr D false ns)
          else iprop(boltTx tx γ 1 (TxView.ro D false ns) ∗ Q D))) ∨
-      (⌜err ≠ GoInterface.nil⌝ ∗
+      (⌜err ≠ GoInterface.nil⌝ ∗ (dbClosed db ∨ dbBroken γ) ∗
         (if w then emp else iprop(threadTok ∗
           AU <{ ∃∃ (q : Qp) (σ : BoltSt), boltState γ q σ }> @ ⊤ \ ↑γ.ns, ∅
             <{ boltState γ q σ, COMM Q σ.data }>))) }}

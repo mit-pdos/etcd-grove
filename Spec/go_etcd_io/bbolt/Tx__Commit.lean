@@ -15,23 +15,30 @@ written page within its extent; D17's `splitThreshold` bound) build the new tree
 pages is reachable from the current meta, so `boltFile γ`'s crash fact is untouched. Then
 `writeMeta`: build the meta (txid `+1`, page `txid % 2`, 4d's `Meta.Write`/`Sum64`), take
 `metalock`, and at the `pwrite`'s first step (one aligned OS page: D9, all or nothing) **fire the
-commit update** with `ok` = the write's outcome, known from a prophecy resolved by the `pwrite`'s
-error (a prophecy patch, `etc/proph-patches/bbolt/`): `ok` makes the new meta current for every
+commit update** with `ok` = whether the page was written, known from a prophecy resolved before
+`metalock.Unlock` on the mapped meta page's txid being the new one (a prophecy patch,
+`etc/proph-patches/bbolt/`; not on `err == nil`: OsFs's one-page write may write the page and
+report an errno, and `WriteAt`'s `EINTR` retry may fail after a first attempt wrote it, 4c-D2): `ok` makes the new meta current for every
 later reader (`metalock` keeps readers out until it is written) and every crash image's newest
 valid meta the old or the new one (`BoltSt.commit`); a failing write leaves the page cache unchanged
 but a crash during it may still find the new meta (`BoltSt.attempt`). Release `metalock`;
 `fdatasync` unless `NoSync`; **fire the settling update** (`synced`: the sync ran and succeeded;
-`failed`: it failed); `close` (the stats under `statlock`, `rwlock` released). An error before the
-meta write (`spill`, `grow`, `write`: errnos, an `allocate` past `MaxSize`) rolls back (4d's
-`freelist.Rollback`, `NoSyncReload` of `freepages` on the spare reader slot) with neither update
-fired; after it, `rollback` keeps the commit if its meta is current (the fork's fix of
-etcd-io/bbolt#1311).
+`failed`: it failed, or the write reported an error after writing the page; `brk` false); `close`
+(the stats under `statlock`, `rwlock` released). **On every error path both updates fire**: an
+error before the meta write (`spill`, `grow`, `write`: errnos, an `allocate` past `MaxSize`)
+fires the commit update with `ok = false` (`attempt`: an over-approximation, the pages are
+unreachable) and the settling one with `failed` = whether an `fsync`/`fdatasync` failed (`grow`'s
+`file.Sync`, `write`'s: a failed sync drops every dirty page of the file, D2, so `lost` must be
+recorded: review S2) and `brk` = whether the mapping was lost (a failed remap: `db.data = nil`,
+after which `Begin` fails); then `rollback` (4d's `freelist.Rollback`, `NoSyncReload` of
+`freepages` on the spare reader slot), which after the meta write keeps the commit if its meta is
+current (the fork's fix of etcd-io/bbolt#1311).
 
 **Changes.** The old spec had one update (`D' = T.base` to `T.cur`) and no durability. Now the
 update has two outcomes (committed, or attempted: what a crash may still find) and a second update
-settles the durable state; mutations' views on a read transaction are allowed and its `Commit`
-returns `ErrTxNotWritable`, the transaction still live (was a premise `T.rw`). Managed
-transactions are excluded (`Commit` panics on one).
+settles the durable state; both fire on every error (round 1: the error records a failed sync and a
+lost mapping). A read transaction's `Commit` needs no update and returns `ErrTxNotWritable`, still
+live (was a premise `T.rw`). Managed transactions are excluded (`Commit` panics on one).
 
 **Margin.** `StrictMode` (a client must not set it, `isBolt`); `OnCommit` handlers (left out). The
 error's identity is not described for a write transaction.
@@ -59,41 +66,28 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- `tx.Commit()` (not managed). A write transaction commits `T.cur` by the client's two updates:
 the **commit update** fires at the meta page write with its outcome (`ok`: committed; else attempted,
-the data unchanged), the **settling update** when the commit ends (`synced`: the meta page synced).
-On success both fired with `ok` and, unless `NoSync`, `synced`. On an error: both fired (the commit
-took effect or not, as `ok` says), or neither. A read transaction: `ErrTxNotWritable`, still live. -/
+the data unchanged), the **settling update** when the commit ends (`synced`: the meta page synced;
+`failed`: a sync failed; `brk`: the mapping was lost). On success `ok`, `synced` unless `NoSync`,
+no failure; on an error both fired too, with what they record. A read transaction:
+`ErrTxNotWritable`, no update, still live. -/
 def Tx.Commit.spec : Prop :=
   ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (T : TxView) (Q : Bool → IProp GF)
-    (S : Bool → Bool → IProp GF),
+    (S : Bool → Bool → Bool → IProp GF),
   {{ boltTx (GF := GF) tx γ 1 T ∗ ⌜T.managed = false⌝ ∗
-      AU <{ ∃∃ (σ : BoltSt), boltState γ 1 σ }> @ ⊤ \ ↑γ.ns, ∅
+      (if T.rw then iprop(
+        AU <{ ∃∃ (σ : BoltSt), boltState γ 1 σ }> @ ⊤ \ ↑γ.ns, ∅
         <{ ∀∀ (ok : Bool), ⌜σ.data = T.base⌝ ∗
            boltState γ 1 (if ok then σ.commit T.cur T.noSync else σ.attempt T.cur T.noSync),
            COMM Q ok }> ∗
-      AU <{ ∃∃ (σ : BoltSt), boltState γ 1 σ }> @ ⊤ \ ↑γ.ns, ∅
-        <{ ∀∀ (synced failed : Bool), boltState γ 1 (σ.settle synced failed),
-           COMM S synced failed }> }}
+        AU <{ ∃∃ (σ : BoltSt), boltState γ 1 σ }> @ ⊤ \ ↑γ.ns, ∅
+        <{ ∀∀ (synced failed brk : Bool), boltState γ 1 (σ.settle synced failed brk),
+           COMM S synced failed brk }>) else emp) }}
     (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"Commit")) (Val #()))
   {{ (err : GoInterface), RET #err;
       if T.rw then iprop(txDone tx ∗
-        ((⌜err = GoInterface.nil⌝ ∗ Q true ∗ S (!T.noSync) false) ∨
-         (⌜err ≠ GoInterface.nil⌝ ∗
-           ((∃ ok synced failed : Bool, Q ok ∗ S synced failed) ∨
-            (AU <{ ∃∃ (σ : BoltSt), boltState γ 1 σ }> @ ⊤ \ ↑γ.ns, ∅
-        <{ ∀∀ (ok : Bool), ⌜σ.data = T.base⌝ ∗
-           boltState γ 1 (if ok then σ.commit T.cur T.noSync else σ.attempt T.cur T.noSync),
-           COMM Q ok }> ∗
-             AU <{ ∃∃ (σ : BoltSt), boltState γ 1 σ }> @ ⊤ \ ↑γ.ns, ∅
-        <{ ∀∀ (synced failed : Bool), boltState γ 1 (σ.settle synced failed),
-           COMM S synced failed }>)))))
-      else iprop(boltTx tx γ 1 T ∗ isErr go_etcd_io.bbolt.errors.ErrTxNotWritable err ∗
-        AU <{ ∃∃ (σ : BoltSt), boltState γ 1 σ }> @ ⊤ \ ↑γ.ns, ∅
-        <{ ∀∀ (ok : Bool), ⌜σ.data = T.base⌝ ∗
-           boltState γ 1 (if ok then σ.commit T.cur T.noSync else σ.attempt T.cur T.noSync),
-           COMM Q ok }> ∗
-        AU <{ ∃∃ (σ : BoltSt), boltState γ 1 σ }> @ ⊤ \ ↑γ.ns, ∅
-        <{ ∀∀ (synced failed : Bool), boltState γ 1 (σ.settle synced failed),
-           COMM S synced failed }>) }}
+        ((⌜err = GoInterface.nil⌝ ∗ Q true ∗ S (!T.noSync) false false) ∨
+         (⌜err ≠ GoInterface.nil⌝ ∗ ∃ ok synced failed brk : Bool, Q ok ∗ S synced failed brk)))
+      else iprop(boltTx tx γ 1 T ∗ isErr go_etcd_io.bbolt.errors.ErrTxNotWritable err) }}
 
 end spec
 

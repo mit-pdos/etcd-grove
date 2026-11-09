@@ -14,8 +14,10 @@ return it; else `Tx.Commit.spec` and its post.
 
 **Changes.** New.
 
-**Margin.** On `Begin`'s error (the database closed) `fn` is not called and its contract is
-dropped. `fn` must not panic.
+On `Begin`'s error (`dbClosed` or `dbBroken`) `fn` is not called and its contract comes back
+(round 1, S1: was a vacuous `True`).
+
+**Margin.** `fn` must not panic.
 -/
 module
 
@@ -41,11 +43,11 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 /-- `db.Update(fn)`: `fn` runs on a write transaction begun at the committed `D` and returns it at a
 view `T`; on its error `R err` and nothing committed; on nil the transaction is committed with the
 updates `fn` handed back (`Tx.Commit.spec`'s: `Q ok` at the meta write, `S synced failed` at the
-end). An error of the commit: it took effect or not, as `Q`'s and `S`'s arguments say, or neither
-update fired. -/
+end). An error of the commit: both fired, with what they record; `Begin`'s error: `fn`'s contract
+back. -/
 def DB.Update.spec : Prop :=
   ∀ [HasExt osFsExt] (db : Loc) (γ : BoltName) (ns : Bool) (fn : GoFunc)
-    (Q : Bool → IProp GF) (S : Bool → Bool → IProp GF) (R : GoInterface → IProp GF),
+    (Q : Bool → IProp GF) (S : Bool → Bool → Bool → IProp GF) (R : GoInterface → IProp GF),
   {{ isBolt (GF := GF) db γ ns ∗
       (∀ (tx : Loc) (D : Data) (Φ : val → IProp GF),
         boltTx tx γ 1 (TxView.wr D true ns) -∗
@@ -58,23 +60,29 @@ def DB.Update.spec : Prop :=
                     boltState γ 1 (if ok then σ.commit T.cur ns else σ.attempt T.cur ns),
                     COMM Q ok }> ∗
                AU <{ ∃∃ (σ : BoltSt), boltState γ 1 σ }> @ ⊤ \ ↑γ.ns, ∅
-                 <{ ∀∀ (synced failed : Bool), boltState γ 1 (σ.settle synced failed),
-                    COMM S synced failed }>)) -∗ Φ #err) -∗
+                 <{ ∀∀ (synced failed brk : Bool), boltState γ 1 (σ.settle synced failed brk),
+                    COMM S synced failed brk }>)) -∗ Φ #err) -∗
         WP (App (Val #fn) (Val #tx)) {{ Φ }}) }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"Update")) (Val #fn))
   {{ (err : GoInterface), RET #err;
-      (⌜err = GoInterface.nil⌝ ∗ Q true ∗ S (!ns) false) ∨
+      (⌜err = GoInterface.nil⌝ ∗ Q true ∗ S (!ns) false false) ∨
       (⌜err ≠ GoInterface.nil⌝ ∗
-        (R err ∨ (∃ ok synced failed : Bool, Q ok ∗ S synced failed) ∨
-         (∃ T : TxView,
-           AU <{ ∃∃ (σ : BoltSt), boltState γ 1 σ }> @ ⊤ \ ↑γ.ns, ∅
-             <{ ∀∀ (ok : Bool), ⌜σ.data = T.base⌝ ∗
-                boltState γ 1 (if ok then σ.commit T.cur ns else σ.attempt T.cur ns),
-                COMM Q ok }> ∗
-           AU <{ ∃∃ (σ : BoltSt), boltState γ 1 σ }> @ ⊤ \ ↑γ.ns, ∅
-             <{ ∀∀ (synced failed : Bool), boltState γ 1 (σ.settle synced failed),
-                COMM S synced failed }>) ∨
-         True)) }}
+        (R err ∨ (∃ ok synced failed brk : Bool, Q ok ∗ S synced failed brk) ∨
+         ((dbClosed db ∨ dbBroken γ) ∗
+          (∀ (tx : Loc) (D : Data) (Φ : val → IProp GF),
+        boltTx tx γ 1 (TxView.wr D true ns) -∗
+        ▷ (∀ (err : GoInterface) (T : TxView),
+            ⌜T.rw = true ∧ T.managed = true ∧ T.noSync = ns⌝ -∗ boltTx tx γ 1 T -∗
+            ((⌜err ≠ GoInterface.nil⌝ ∗ R err) ∨
+             (⌜err = GoInterface.nil⌝ ∗
+               AU <{ ∃∃ (σ : BoltSt), boltState γ 1 σ }> @ ⊤ \ ↑γ.ns, ∅
+                 <{ ∀∀ (ok : Bool), ⌜σ.data = T.base⌝ ∗
+                    boltState γ 1 (if ok then σ.commit T.cur ns else σ.attempt T.cur ns),
+                    COMM Q ok }> ∗
+               AU <{ ∃∃ (σ : BoltSt), boltState γ 1 σ }> @ ⊤ \ ↑γ.ns, ∅
+                 <{ ∀∀ (synced failed brk : Bool), boltState γ 1 (σ.settle synced failed brk),
+                    COMM S synced failed brk }>)) -∗ Φ #err) -∗
+        WP (App (Val #fn) (Val #tx)) {{ Φ }})))) }}
 
 end spec
 
