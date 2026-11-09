@@ -1113,3 +1113,100 @@ theorem specInv_advanceCommitIndex {σ σ' : State} {i : ID} (h : SpecInv σ) (h
       have := oneLeader hone hl' hi hll hl ht
       subst this
       exact hb.2
+
+/-- **`BecomeLeader(i)`**, `i` of term `T`. What the specification's state does not record, and the
+simulation supplies from raft's ghost state (raft's leader of a term is unique over time, and only it
+creates entries and append requests of its term):
+
+- `hfreshLog`, `hfreshMsg`: no entry of term `T` exists yet, in any log or any message;
+- `hfreshReq`: no append request of term `T` exists yet;
+- `hcw`: every server of term `T` has its commit index within `i`'s log (raft: leader completeness,
+  the committed entries are in the new leader's log; for `i` itself, `CommitOk`).
+
+The candidate's own facts (it has persisted its log, since a vote was granted; it has no append
+request or successful response of its term) are `CandS`'s. -/
+theorem specInv_becomeLeader {σ σ' : State} {i : ID} (h : SpecInv σ) (hi : i ∈ σ.server)
+    (hfreshLog : ∀ j ∈ σ.server, ∀ e ∈ (σ.s j).log, e.term ≠ (σ.s i).currentTerm)
+    (hfreshMsg : ∀ m ∈ msgs σ, ∀ e ∈ m.entries, e.term ≠ (σ.s i).currentTerm)
+    (hfreshReq : ∀ m ∈ msgs σ, m.type = .appendEntriesRequest → m.term ≠ (σ.s i).currentTerm)
+    (hcw : ∀ k ∈ σ.server, (σ.s k).currentTerm = (σ.s i).currentTerm →
+      (σ.s k).commitIndex ≤ (σ.s i).log.length)
+    (hstep : σ.becomeLeader i = some σ') : SpecInv σ' := by
+  unfold State.becomeLeader at hstep; dsimp only at hstep
+  split at hstep
+  · cases hstep
+    rename_i hc
+    simp only [Bool.and_eq_true, beq_iff_eq] at hc
+    obtain ⟨hcand, hq⟩ := hc
+    obtain ⟨hLE, hD, hTm, hCa, hP, hCW, hRC⟩ := h
+    obtain ⟨c1, c2, c3⟩ := hCa i hi hcand
+    have hpers : ((σ.s i).durable.log.length : Int) = (σ.s i).log.length := by
+      rcases c3 with hp | ⟨hv, -⟩
+      · unfold persisted at hp; rw [hp]
+      · obtain ⟨k, hk⟩ := isQuorum_nonempty hq
+        rw [hv] at hk; cases hk
+    generalize hσ' : σ.upd i _ = σ'
+    have hs : ∀ k, σ'.s k =
+        if k = i then { σ.s i with state := leader, lead := i, matchIndex := fun j => if j = i then ((σ.s i).log.length : Int) else 0 }
+        else σ.s k := by
+      intro k; rw [← hσ']; rfl
+    have hsrv : σ'.server = σ.server := by rw [← hσ']; rfl
+    have hmsg : msgs σ' = msgs σ := by rw [← hσ']; rfl
+    have hm : σ'.messages = σ.messages := by rw [← hσ']; rfl
+    have hpm : σ'.pendingMessages = σ.pendingMessages := by rw [← hσ']; rfl
+    have hT : ∀ k, (σ'.s k).currentTerm = (σ.s k).currentTerm := by
+      intro k; rw [hs]; split <;> subst_vars <;> rfl
+    have hL : ∀ k, (σ'.s k).log = (σ.s k).log := by
+      intro k; rw [hs]; split <;> subst_vars <;> rfl
+    have hC : ∀ k, (σ'.s k).commitIndex = (σ.s k).commitIndex := by
+      intro k; rw [hs]; split <;> subst_vars <;> rfl
+    have hne : ∀ k, k ≠ i → σ'.s k = σ.s k := by
+      intro k hk; rw [hs]; simp [hk]
+    have hsi : (σ'.s i).state = leader := by rw [hs]; simp
+    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+    · intro l hl hll
+      rw [hsrv] at hl
+      by_cases hli : l = i
+      · subst hli
+        rw [hT]
+        refine ⟨fun j hj k e he ht => ?_, fun x hx k e he ht => ?_⟩
+        · rw [hsrv] at hj; rw [hL] at he
+          exact absurd ht (hfreshLog j hj e (List.mem_of_getElem? he))
+        · exact absurd ht (hfreshMsg x (hmsg ▸ hx) e (List.mem_of_getElem? he))
+      · rw [hne l hli] at hll ⊢
+        obtain ⟨h1, h2⟩ := hLE l hl hll
+        refine ⟨fun j hj k e he ht => h1 j (hsrv ▸ hj) k e (by rw [← hL j]; exact he) ht,
+          fun x hx => h2 x (by rw [← hm, ← hpm]; exact hx)⟩
+    · intro l hl hll
+      by_cases hli : l = i
+      · subst hli
+        rw [hm, hpm, hT, hL]
+        have hd : (σ'.s l).durable = (σ.s l).durable := by rw [hs]; simp
+        rw [hd, hC, hpers]
+        refine ⟨Int.le_refl _, hcw l (hsrv ▸ hl) rfl, fun k => ?_, ?_, ?_, ?_, ?_⟩
+        · rw [hs]; simp only [↓reduceIte]; split <;> omega
+        · intro x hx hs' hty ht; have := c1 x (List.mem_append_left _ hx) hs' hty; omega
+        · intro x hx hs' hty ht; have := c1 x (List.mem_append_right _ hx) hs' hty; omega
+        · intro x hx hd' hty ht hsc; have := c2 x (List.mem_append_left _ hx) hd' hty hsc; omega
+        · intro x hx hd' hty ht hsc; have := c2 x (List.mem_append_right _ hx) hd' hty hsc; omega
+      · rw [hne l hli] at hll ⊢
+        rw [hm, hpm]
+        exact hD l (hsrv ▸ hl) hll
+    · intro x hx; unfold MsgTermOk; rw [hT, hT]; exact hTm x (hmsg ▸ hx)
+    · intro l hl hc
+      have hli : l ≠ i := by rintro rfl; rw [hsi] at hc; exact candidate_ne_leader hc.symm
+      rw [hne l hli] at hc ⊢
+      rw [hmsg, hm, hpm]
+      exact hCa l (hsrv ▸ hl) hc
+    · intro x hx; exact hP x (hmsg ▸ hx)
+    · intro k hk l hl hll ht
+      rw [hT, hT] at ht; rw [hC, hL]
+      by_cases hli : l = i
+      · subst hli; exact hcw k (hsrv ▸ hk) ht
+      · rw [hne l hli] at hll; exact hCW k (hsrv ▸ hk) l (hsrv ▸ hl) hll ht
+    · intro l hl hll x hx hty ht
+      rw [hT] at ht; rw [hL]
+      by_cases hli : l = i
+      · subst hli; exact absurd ht (hfreshReq x (hmsg ▸ hx) hty)
+      · rw [hne l hli] at hll; exact hRC l (hsrv ▸ hl) hll x (hmsg ▸ hx) hty ht
+  · cases hstep
