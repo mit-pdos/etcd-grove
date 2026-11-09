@@ -493,9 +493,20 @@ derived (`raft.send.tracedSpec_of_spec`, `TracedHooks.lean`: `trCap_fire`/`trCap
 traced type, `trCapB_mono` otherwise); untraced callers through `raft.send.untraced`
 (`TracedUntraced.lean`, the statement before slice 5; `raft.Step`'s bundle and `stepLeader`'s
 `hbresp`, `handleAppendEntries`' `wp_send_appResp` take the instance). (3) Outward: `sendTimeoutNow`
-(the gate at no event: `MsgTimeoutNow` is not traced) and `sendHeartbeat` (the gate at the heartbeat's
-commit, `∀ cm` with its two bounds), each with its `X.untraced` instance for its callers (`stepLeader`'s
-helpers, `bcastHeartbeatWithCtx`).
+(the gate at no event: `MsgTimeoutNow` is not traced), `sendHeartbeat` (the gate at the heartbeat's
+commit, `∀ cm` with its two bounds), `bcastHeartbeatWithCtx` and `bcastHeartbeat` (a loop of sends: a
+persistent per-heartbeat gate `□ (∀ to cm, … -∗ G -∗ HookGateOpt … G)` and the caller's `G`, threaded
+through the `Visit`; each heartbeat's event read at `s`, which no send changes: `sendOutGate` at
+`{ sendMsgs s ms with prvals := … }` is `sendOutGate` at `s` by `rfl`; `bcastHeartbeat`'s at the
+read-only object's context `hbCtx`), each with its `X.untraced` instance for its callers (`stepLeader`'s
+helpers, `sendMsgReadIndexResponse`). **Not done** (their callers unchanged, on `send`'s untraced
+instance): `maybeSendSnapshot` stays untraced by design (it sends a `MsgSnap`, which a traced node never
+sends, the Draft's P2: its one spec would carry `s.gh.tr = none` anyway); `maybeSendAppend`,
+`sendAppend`, `bcastAppend` (a `MsgApp` or a snapshot, by the progress' state; `bcastAppend`'s loop as
+the heartbeats'), `sendMsgReadIndexResponse` and `releasePendingReadIndexMessages` (their heartbeats at
+the state after `readOnly.addRequest`/`recvAck`, which their gates must name), `appendEntry` (with the
+`Replicate` lines' records created in their `FxPresU`) and `becomeLeader` (the term log in the
+`BecomeLeader` line's `FxPresU`, after `appendEntry`): next slice.
 
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
