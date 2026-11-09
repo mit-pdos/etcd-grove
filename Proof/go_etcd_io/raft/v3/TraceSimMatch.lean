@@ -4289,6 +4289,54 @@ theorem lineEffect_rejectRecv (C : List w64) (e : TraceEv) (s : NState) (cfg : C
       (by rw [hmdst, hσi, hR.1, hmterm, hterm]; rfl) hpv hcq hlok
     rw [this]; rfl
   · rw [← heq]; exact oneLess_of_msgs σ _ mabs (by rfl) hnd hcnt
+
+/-- **A two-round receive line's effect** (a first round to node `i`'s server `u`, fresh by term or
+role, keeping the bags; then one handler round consuming `m`): the intermediate state's shape is
+`(· = u)`. -/
+theorem lineEffect_recv2 (C : List w64) (e : TraceEv) (i : Etcdraft.ID) (a u a' : Etcdraft.Server)
+    (m : Etcdraft.Msg) (fM fP : Etcdraft.Bag → Etcdraft.Bag) (ln : Etcdraft.Line)
+    (hparse : Etcdraft.parseLine 0 (evConv e) = .ok ln) (hnid : ln.nid = i)
+    (hrecv : Etcdraft.isReceiveName ln.ev.name = true) (hmatch : recvPred ln m = true) (hdest : m.dest = i)
+    (hkey : srvKey u ≠ srvKey a)
+    (hrcv : ∀ σ : Etcdraft.State, σ.server = confAbs C → σ.s i = a → σ.preVote = false → σ.checkQuorum = false →
+      σ.messages.domain.Nodup → 0 < Etcdraft.Bag.count σ.messages m →
+      ln.stateMatches σ i = true ∧ σ.receive m = .ok [withNode σ i u _root_.id _root_.id] ∧
+      (withNode σ i u _root_.id _root_.id).receive m = .ok [withNode σ i a' fM fP] ∧
+      Etcdraft.oneLessMessage (withNode σ i u _root_.id _root_.id) (withNode σ i a' fM fP) m = true) :
+    LineEffect C false e i a a' (some m) fM fP (· = u) := by
+  refine ⟨ln, hparse, hnid, ?_⟩
+  intro t l pl σ hline hl0 hl hb hts _ hsrv hσi hpv hcq hrc hmid hfin
+  obtain ⟨hnd, hmem, hcnt, huniq⟩ := hrc
+  obtain ⟨hsm, hr1, hr2, hone2⟩ := hrcv σ hsrv hσi hpv hcq hnd hcnt
+  have hU : (withNode σ i u _root_.id _root_.id).messages = σ.messages := rfl
+  have hUi : (withNode σ i u _root_.id _root_.id).s i = u := by simp [withNode]
+  have hone1 : Etcdraft.oneLessMessage σ (withNode σ i u _root_.id _root_.id) m = false := by
+    unfold Etcdraft.oneLessMessage; rw [hU]; simp; intro h; rw [h]; decide
+  have hdi : i ∈ σ.server := by
+    rw [← hdest]
+    by_cases h : σ.server.contains m.dest = true
+    · exact List.contains_iff_mem.1 h
+    · exfalso
+      have h' : σ.server.contains m.dest = false := by simpa using h
+      unfold Etcdraft.State.receive at hr1
+      simp only [h', Bool.not_false, ↓reduceIte, pure, Except.pure] at hr1
+      cases hr1
+  refine ⟨⟨withNode σ i a' fM fP, l + 1, l⟩, rfl, ?_⟩
+  apply Chain.step _ _ ⟨withNode σ i u _root_.id _root_.id, l, l⟩ _ _ rfl
+    (memEq_false_of_logs_or_term _ _ i (by
+      intro v hv; simp only [List.mem_singleton] at hv; subst hv
+      exact ⟨hdi, Or.inr (by simp only; rw [hσi, hUi]; exact fun h => hkey h.symm)⟩)) (hmid u rfl)
+  · refine Chain.last _ ⟨withNode σ i u _root_.id _root_.id, l, l⟩ ⟨withNode σ i a' fM fP, l + 1, l⟩ ?_ rfl hfin
+    have := next_receive t ⟨withNode σ i u _root_.id _root_.id, l, l⟩ m _ hl0 hl hb (by rw [hline]; exact hrecv)
+      (by rw [hU]; exact hnd) (by rw [hU]; exact hmem) (by rw [hline]; exact hmatch)
+      (validatePre_later _ _ hl0 _ _)
+      (fun m' hm' hne => by rw [hU] at hm'; rw [hline]; simp [huniq m' hm' hne]) hr2
+    rw [this]; simp [recvNext, hone2]
+  · have := next_receive t ⟨σ, l, pl⟩ m _ hl0 hl hb (by rw [hline]; exact hrecv) hnd hmem
+      (by rw [hline]; exact hmatch)
+      (by unfold Etcdraft.Trace.validatePreStates; rw [hline, hdest, hsm]; simp)
+      (fun m' hm' hne => by rw [hline]; simp [huniq m' hm' hne]) hr1
+    rw [this]; simp [recvNext, hone1]
 end TraceSim
 
 end EtcdGrove
