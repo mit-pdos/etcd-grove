@@ -4858,6 +4858,144 @@ theorem lineEffect_appRecvU (C : List w64) (e : TraceEv) (s : NState) (cfg : Cfg
       (fun m' hm' hne => by rw [hline]; simp [huniq m' hm' hne]) hr1
     rw [this]; simp [recvNext, hone1]
 
+
+/-! ### Second rounds as one-round receipts at the first round's server (review round 3's B4) -/
+
+/-- **A one-round receipt of `m` at node `i`'s server `u`**: from any state where node `i` is `u`, the
+handler's one successor consumes `m` into `a'`, the bags changed by `fM`/`fP`. -/
+def RecvAt (C : List w64) (i : Etcdraft.ID) (u a' : Etcdraft.Server) (m : Etcdraft.Msg)
+    (fM fP : Etcdraft.Bag → Etcdraft.Bag) : Prop :=
+  ∀ σ : Etcdraft.State, σ.server = confAbs C → σ.s i = u → σ.preVote = false → σ.checkQuorum = false →
+    σ.messages.domain.Nodup → 0 < Etcdraft.Bag.count σ.messages m →
+    σ.receive m = .ok [withNode σ i a' fM fP] ∧ Etcdraft.oneLessMessage σ (withNode σ i a' fM fP) m = true
+
+/-- **A two-round receive line's effect from its first round and a one-round receipt**
+(`lineEffect_recv2` with its second round a `RecvAt`). -/
+theorem lineEffect_recvU (C : List w64) (e : TraceEv) (i : Etcdraft.ID) (a u a' : Etcdraft.Server)
+    (m : Etcdraft.Msg) (fM fP : Etcdraft.Bag → Etcdraft.Bag) (ln : Etcdraft.Line)
+    (hparse : Etcdraft.parseLine 0 (evConv e) = .ok ln) (hnid : ln.nid = i)
+    (hrecv : Etcdraft.isReceiveName ln.ev.name = true) (hmatch : recvPred ln m = true) (hdest : m.dest = i)
+    (hkey : srvKey u ≠ srvKey a)
+    (h1 : ∀ σ : Etcdraft.State, σ.server = confAbs C → σ.s i = a → σ.preVote = false → σ.checkQuorum = false →
+      ln.stateMatches σ i = true ∧ σ.receive m = .ok [withNode σ i u _root_.id _root_.id])
+    (h2 : RecvAt C i u a' m fM fP) :
+    LineEffect C false e i a a' (some m) fM fP (· = u) := by
+  apply lineEffect_recv2 C e i a u a' m fM fP ln hparse hnid hrecv hmatch hdest hkey
+  intro σ hsrv hσi hpv hcq hnd hcnt
+  obtain ⟨hsm, hr1⟩ := h1 σ hsrv hσi hpv hcq
+  obtain ⟨hr2, hone⟩ := h2 (withNode σ i u _root_.id _root_.id) hsrv (by simp [withNode]) hpv hcq hnd hcnt
+  rw [withNode_withNode] at hr2 hone
+  exact ⟨hsm, hr1, hr2, hone⟩
+
+/-- The server after `UpdateTerm` to term `T` (`BecomeFollowerOfTerm`). -/
+def utSrv (a : Etcdraft.Server) (T : Int) : Etcdraft.Server :=
+  { a with currentTerm := T, state := Etcdraft.follower, lead := Etcdraft.nil, votedFor := (if a.currentTerm != T then Etcdraft.nil else a.votedFor) }
+
+/-- **The first round at a higher term**: `UpdateTerm`, to `utSrv a m.term`. -/
+theorem firstRound_ut (C : List w64) (i : Etcdraft.ID) (a : Etcdraft.Server) (m : Etcdraft.Msg)
+    (hi : m.dest = i) (hC : i ∈ confAbs C)
+    (hty : m.type = .requestVoteRequest ∨ m.type = .requestVoteResponse ∨ m.type = .appendEntriesRequest ∨
+      m.type = .appendEntriesResponse)
+    (hterm : a.currentTerm < m.term) :
+    srvKey (utSrv a m.term) ≠ srvKey a ∧
+    ∀ σ : Etcdraft.State, σ.server = confAbs C → σ.s i = a →
+      σ.receive m = .ok [withNode σ i (utSrv a m.term) _root_.id _root_.id] := by
+  refine ⟨srvKey_ne_of_term _ _ (by simp [utSrv]; omega), ?_⟩
+  intro σ hsrv hσi
+  have hc : σ.server.contains i = true := by rw [hsrv, List.contains_iff_mem]; exact hC
+  have := (firstRound_updateTerm σ m i hi hc hty (by rw [hσi]; exact hterm)).1
+  have hbf : σ.becomeFollowerOfTerm i m.term = withNode σ i (utSrv (σ.s i) m.term) _root_.id _root_.id := rfl
+  rw [this, hbf, hσi]
+
+theorem recvAt_resp (C : List w64) (i : Etcdraft.ID) (u : Etcdraft.Server) (m : Etcdraft.Msg)
+    (hi : m.dest = i) (hC : i ∈ confAbs C)
+    (hty : m.type = .requestVoteResponse ∨ m.type = .appendEntriesResponse)
+    (hterm : m.term = u.currentTerm) (hnp : u.state ≠ Etcdraft.preCandidate) :
+    RecvAt C i u (respSrv u m) m (fun b => b.without m) _root_.id := by
+  intro σ hsrv hσi _ _ hnd hcnt
+  have hc : σ.server.contains m.dest = true := by rw [hsrv, List.contains_iff_mem, hi]; exact hC
+  have heq : respSt σ m = withNode σ i (respSrv u m) (fun b => b.without m) _root_.id := by
+    rw [respSt_eq, hi, hσi]
+  rw [← heq]
+  exact ⟨receive_resp σ m hc hty (by rw [hi, hσi]; exact hterm) (by rw [hi, hσi]; exact hnp),
+    oneLess_resp σ m hnd hcnt⟩
+
+theorem recvAt_voteReq (C : List w64) (i : Etcdraft.ID) (u : Etcdraft.Server) (m : Etcdraft.Msg)
+    (hi : m.dest = i) (hC : i ∈ confAbs C) (hty : m.type = .requestVoteRequest)
+    (hterm : m.term = u.currentTerm) :
+    RecvAt C i u (vrSrv u m.source m) m (fun b => b.without m) (fun b => b.with (vrResp u i m.source m)) := by
+  intro σ hsrv hσi _ _ hnd hcnt
+  have hc : σ.server.contains m.dest = true := by rw [hsrv, List.contains_iff_mem, hi]; exact hC
+  have hcur : m.term = (σ.s m.dest).currentTerm := by rw [hi, hσi]; exact hterm
+  have heq : voteReqResult σ m.dest m.source m =
+      withNode σ i (vrSrv u m.source m) (fun b => b.without m) (fun b => b.with (vrResp u i m.source m)) := by
+    rw [voteReqResult_eq σ _ _ m (by rw [hcur]; exact Int.le_refl _), hi, hσi]
+  rw [← heq]
+  exact ⟨receive_voteReq σ m hc hty hcur, oneLess_voteReq σ _ _ m (by rw [hcur]; exact Int.le_refl _) hnd hcnt⟩
+
+theorem recvAt_heartbeat (C : List w64) (i : Etcdraft.ID) (u : Etcdraft.Server) (m : Etcdraft.Msg)
+    (hi : m.dest = i) (hC : i ∈ confAbs C) (hty : m.type = .appendEntriesRequest)
+    (hf : u.state = Etcdraft.follower) (hterm : m.term = u.currentTerm) (hsub : m.subtype = "heartbeat")
+    (hprev : m.prevLogIndex = 0) (hents : m.entries = []) (hc1 : 1 ≤ u.commitIndex) :
+    RecvAt C i u (hbSrv u m.source m.commitIndex) m (fun b => b.without m)
+      (fun b => b.with (hbResp u i m.source)) := by
+  intro σ hsrv hσi _ _ hnd hcnt
+  have hc : σ.server.contains m.dest = true := by rw [hsrv, List.contains_iff_mem, hi]; exact hC
+  have heq : hbRecvSt σ m = withNode σ i (hbSrv u m.source m.commitIndex)
+      (fun b => b.without m) (fun b => b.with (hbResp u i m.source)) := by
+    unfold hbRecvSt Etcdraft.State.commitTo
+    rw [hi]
+    have := withLead_reply_upd σ i m.source (fun v => { v with commitIndex := max v.commitIndex m.commitIndex })
+      (hbResp u i m.source) m
+    rw [hσi] at this
+    rw [hσi]; exact this
+  have hr := receive_heartbeat σ m hc hty (by rw [hi, hσi]; exact hf) (by rw [hi, hσi]; exact hterm) hsub hprev
+    hents (by rw [hi, hσi]; exact hc1)
+  refine ⟨?_, ?_⟩
+  · rw [← heq, hr]; rfl
+  · rw [← heq]; exact oneLess_of_msgs σ _ m (by rfl) hnd hcnt
+
+theorem recvAt_stale (C : List w64) (i : Etcdraft.ID) (u : Etcdraft.Server) (m : Etcdraft.Msg)
+    (hi : m.dest = i) (hC : i ∈ confAbs C) (hty : m.type = .appendEntriesRequest)
+    (hf : u.state = Etcdraft.follower) (hterm : m.term = u.currentTerm) (hsub : m.subtype = "app")
+    (hidx : m.prevLogIndex + 1 ≤ u.commitIndex) (hlok : LogOkL m u.log = true) :
+    RecvAt C i u { u with lead := m.source } m (fun b => b.without m)
+      (fun b => b.with (stResp u i m.source "app")) := by
+  intro σ hsrv hσi _ _ hnd hcnt
+  have hc : σ.server.contains m.dest = true := by rw [hsrv, List.contains_iff_mem, hi]; exact hC
+  have heq : staleRecvSt σ m = withNode σ i { u with lead := m.source }
+      (fun b => b.without m) (fun b => b.with (stResp u i m.source "app")) := by
+    unfold staleRecvSt
+    rw [hi, hsub, hσi]
+    have := withLead_reply σ i m.source (stResp u i m.source "app") m
+    rw [hσi] at this
+    exact this
+  have hr := receive_appStale σ m hc hty (by rw [hi, hσi]; exact hf) (by rw [hi, hσi]; exact hterm) hsub
+    (by rw [hi, hσi]; exact hidx) (by rw [hi, hσi]; exact hlok)
+  refine ⟨?_, ?_⟩
+  · rw [← heq, hr]; rfl
+  · rw [← heq]; exact oneLess_of_msgs σ _ m (by rfl) hnd hcnt
+
+theorem recvAt_reject (C : List w64) (i : Etcdraft.ID) (u : Etcdraft.Server) (m : Etcdraft.Msg)
+    (hi : m.dest = i) (hC : i ∈ confAbs C) (hty : m.type = .appendEntriesRequest)
+    (hf : u.state = Etcdraft.follower) (hterm : m.term = u.currentTerm) (hlok : LogOkL m u.log = false) :
+    RecvAt C i u { u with lead := m.source } m (fun b => b.without m)
+      (fun b => b.with (rjResp u i m.source)) := by
+  intro σ hsrv hσi hpv hcq hnd hcnt
+  have hc : σ.server.contains m.dest = true := by rw [hsrv, List.contains_iff_mem, hi]; exact hC
+  have heq : rejRecvSt σ m = withNode σ i { u with lead := m.source }
+      (fun b => b.without m) (fun b => b.with (rjResp u i m.source)) := by
+    unfold rejRecvSt
+    rw [hi, hσi]
+    have := withLead_reply σ i m.source (rjResp u i m.source) m
+    rw [hσi] at this
+    exact this
+  have hr := receive_appReject σ m hc hty (by rw [hi, hσi]; exact hf) (by rw [hi, hσi]; exact hterm) hpv hcq
+    (by rw [hi, hσi]; exact hlok)
+  refine ⟨?_, ?_⟩
+  · rw [← heq, hr]; rfl
+  · rw [← heq]; exact oneLess_of_msgs σ _ m (by rfl) hnd hcnt
+
 end TraceSim
 
 end EtcdGrove
