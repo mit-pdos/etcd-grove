@@ -30,6 +30,7 @@ public import Spec.go_etcd_io.raft.v3.raftLog__lastEntryID
 public import Spec.slices.Sort
 public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
 public import Proof.go_etcd_io.raft.v3.LemmasSendR
+public import Proof.go_etcd_io.raft.v3.LemmasCampaign
 public import Proof.go_etcd_io.raft.v3.TracedUntraced
 
 @[expose] public section
@@ -51,18 +52,7 @@ def vrespTy (pre : Bool) : MsgType := if pre then .preVoteResp else .voteResp
 def vreqW32 (pre : Bool) : w32 := if pre then MsgPreVote else MsgVote
 def vrespW32 (pre : Bool) : w32 := if pre then MsgPreVoteResp else MsgVoteResp
 
-/-- The role transition `campaign` makes, by `pre`. -/
-def campRoleState (id : w64) (s : NState) (pre : Bool) : NState :=
-  if pre then becomePrecandidate s else becomeCandidate id s
-
-/-- (Q8 stage 0) The campaign's role change keeps the ghost (the trace mode). -/
-theorem campRoleState_gh (id : w64) (s : NState) (pre : Bool) :
-    (campRoleState id s pre).gh = s.gh := by
-  cases pre <;> rfl
-
-theorem campRoleState_logst (id : w64) (s : NState) (pre : Bool) :
-    (campRoleState id s pre).logst = s.logst := by
-  cases pre <;> rfl
+-- (2026-11-09, Q8 stage 1 slice 5) `campRoleState` and its facts moved to `LemmasCampaign.lean`
 
 
 /-- The request `campaign` sends voter `y`, carrying the entry id `e` that
