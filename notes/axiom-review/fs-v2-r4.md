@@ -675,3 +675,30 @@ func main() {
 	}
 }
 ```
+
+## Dispositions (2026-11-09, fork I1)
+
+The user fixed one target configuration, C (`fs-config/README.md`: Linux 7.0, ext4 with its
+`mkfs`/mount defaults, `RLIMIT_FSIZE` unlimited, no swap), and asked for a semantics with few
+special cases. Against C:
+
+- **U1** fixed by removing ordered growth (`Sector.fresh`, `CovCand`, `covVers`, `OsFile.kept`,
+  `keepAlloc`, the ghost `OsMeta.fr`) for one uniform rule, **durable zeros**: wherever a file's
+  size is durable (a successful sync, a boot, a crash) the pages wholly past it are zeros
+  (`diskSec`, `OsFile.ofDisk`, `OsFile.synced`); a crash picks each sector's version freely.
+  `FALLOC_FL_KEEP_SIZE` changes nothing (unwritten extents read zeros). Measured on C with
+  `fs-config/crash.sh` (append-new, empty-write, keep-size: the covering size with zeros;
+  shrink-grow: zeros past the old size); `Tests.lean` `crash_new_block_zeros`,
+  `crash_past_end_zeros`, `crash_append_old_block`, `crash_current`.
+- **N1**: the premise is kept; its justification now names the assumption (`NoTear.lean`'s
+  header, `examples/osfs/semantics/notear.go`): the source buffer is present while the `pwrite`
+  runs (written by the program, no swap on C, no page migration during the call, the last
+  assumed). Not modelled through source addresses: the model's heap addresses are not the
+  machine's, so a premise on them would be as unchecked and a larger trusted change.
+- **N2** settled by C: `RLIMIT_FSIZE` unlimited, 4 KiB blocks (`s_maxbytes = (2^32-1) << 12`,
+  page-aligned, `ext4_max_size`).
+- **M1** fixed: `File.Write.impl` returns any count (`ArbitraryInt`) with an error; its spec says
+  so (`Proof/os/Off.lean`).
+- **D1** fixed (headers, examples, the walfs docstring's restart caveat is in `Impl.lean`'s
+  "Restarts", which also covers a Go runtime fatal error such as `netpollinit failed`).
+- **O1** unchanged (needs origin/lean's `os` initializer models at the merge).

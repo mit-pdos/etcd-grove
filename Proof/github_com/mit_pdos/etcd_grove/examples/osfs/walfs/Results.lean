@@ -1,7 +1,8 @@
 /-
 The end-to-end result of `examples/osfs/walfs`'s `segdir.go`: the crash adequacy of its boot
 program, which initializes the package and runs `Boot(dir)`, at the start and after every crash
-(of the machine, or of the process alone), over the Linux file extension v2 (`fs_crash_adequacy`).
+(of the machine; a restart of the process alone counts only under the semantics' "Restarts"
+assumption, a `sync(2)` before it), over the Linux file extension v2 (`fs_crash_adequacy`).
 
 The boot program's precondition, over a generation's local ghost state `L` (`bootPre`), is `L`'s
 invariant of the mapped cells, the whole of the tree's history `V`, whose every crash has no
@@ -332,13 +333,13 @@ theorem crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics] [packa
         exact ⟨hgood fo hfc.1, fun h => hfc.2.1 ⟨j, segB, h⟩⟩
 
 /-- **Crash safety of `examples/osfs/walfs`'s `segdir.Boot`.** In every execution with crashes of
-the boot program (`RealCrashNsteps`, the real semantics; a crash of the machine, or of the process
-alone), from a state whose Go context satisfies the Go semantics and the package's assumptions,
+the boot program (`RealCrashNsteps`, the real semantics; a crash of the machine, a restart of the
+process alone being one under the semantics' "Restarts" assumption), from a state whose Go context satisfies the Go semantics and the package's assumptions,
 with no package initialized, the main thread only, the Linux file extension's state as on disk
 (`FsInit`), `dir` one of its roots, in which neither `dir/seg` nor `dir/seg.tmp` is a directory and
 `dir/seg`, if it names a file, names one that is `DataGood` (the 8 bytes of data at 0, clean): the
 boot program's result is `#()`, no thread is stuck and no thread has an unrecovered panic, so
-`check`'s panic never fires, however many times the node crashes or the process restarts, and in
+`check`'s panic never fires, however many times the node crashes or (after a `sync`) the process restarts, and in
 particular whenever one interrupts `commit` (after the create, the write, the `fdatasync`, the
 rename or the directory's sync). It assumes that the package's initializer runs (`Hinit_wp`, the
 module docstring). (`crash_safety_bounded` with the ghost state `fsGF`.) -/
