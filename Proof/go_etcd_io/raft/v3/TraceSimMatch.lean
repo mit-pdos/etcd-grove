@@ -3368,13 +3368,6 @@ theorem lineEffect_heartbeat (C : List w64) (e : TraceEv) (id : w64) (s : NState
       · apply newPending_send
         exact isAER_heartbeat C C.length e m.src s.vote xs m tm hmsg hm hty hents (by rw [hterm]; exact bt) bmc
 
-theorem parseLine_idx (k k' : Nat) (ev : Etcdraft.Event) (ln : Etcdraft.Line)
-    (h : Etcdraft.parseLine k ev = .ok ln) : Etcdraft.parseLine k' ev = .ok ln := by
-  unfold Etcdraft.parseLine at h ⊢
-  simp only [bind, Except.bind, pure, Except.pure, throw, throwThe, MonadExceptOf.throw] at h ⊢
-  repeat' (first | (split at h) | (split) | (cases h; rfl) | (cases h) | rfl)
-  all_goals simp_all
-
 /-- **The global step of a line with an effect** (the pure core of the global theorem): a run
 reaching `σ`, node `i`'s server `a`, extended by a line `e` whose effect (`LineEffect`) holds,
 given the conditions only the whole state knows (the line past the bootstrap, the skip bit, a

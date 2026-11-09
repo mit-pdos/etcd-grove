@@ -227,6 +227,67 @@ theorem simRun_snoc_single_any (C : List w64) (L : List TraceEv) (σ σ' : Etcdr
     exact simRun_first C e ln _ _ hσinv he hc rfl rfl
   · exact simRun_snoc_single C L σ σ' e ln hrun hL he hnext hinv
 
+theorem parseLine_idx (k k' : Nat) (ev : Etcdraft.Event) (ln : Etcdraft.Line)
+    (h : Etcdraft.parseLine k ev = .ok ln) : Etcdraft.parseLine k' ev = .ok ln := by
+  unfold Etcdraft.parseLine at h ⊢
+  simp only [bind, Except.bind, pure, Except.pure, throw, throwThe, MonadExceptOf.throw] at h ⊢
+  repeat' (first | (split at h) | (split) | (cases h; rfl) | (cases h) | rfl)
+  all_goals simp_all
+
+/-- **Node `i` has logged a non-bootstrap line in `L`** (its bootstrap segment is over). -/
+def booted (L : List TraceEv) (i : Etcdraft.ID) : Prop :=
+  ∃ x ∈ L, ∃ ln, Etcdraft.parseLine 0 (evConv x) = .ok ln ∧ ln.nid = i ∧ Etcdraft.isBootstrapName ln.ev.name = false
+
+theorem mapM_ok_get {α β ε : Type} (f : α → Except ε β) :
+    ∀ (l : List α) (r : List β), l.mapM f = .ok r → ∀ k (hk : k < l.length), ∃ y, r[k]? = some y ∧ f l[k] = .ok y := by
+  intro l
+  induction l with
+  | nil => intro r _ k hk; simp at hk
+  | cons a l ih =>
+    intro r h k hk
+    rw [List.mapM_cons] at h
+    simp only [bind, Except.bind] at h
+    cases hf : f a with
+    | error e => rw [hf] at h; cases h
+    | ok b =>
+      rw [hf] at h
+      simp only at h
+      cases hm : l.mapM f with
+      | error e => rw [hm] at h; cases h
+      | ok r' =>
+        rw [hm] at h
+        simp only [pure, Except.pure, Except.ok.injEq] at h
+        subst h
+        cases k with
+        | zero => exact ⟨b, rfl, hf⟩
+        | succ k =>
+          obtain ⟨y, hy, hfy⟩ := ih r' hm k (by simp at hk; omega)
+          exact ⟨y, by simpa using hy, by simpa using hfy⟩
+
+/-- **A booted node's line is no bootstrap line.** -/
+theorem bootFlags_booted (C : List w64) (L : List TraceEv) (lines : List Etcdraft.Line) (ln : Etcdraft.Line)
+    (i : Etcdraft.ID) (hl : parseLines (L.map evConv) = .ok lines) (hb : booted L i) (hnid : ln.nid = i) :
+    (bootFlags (confAbs C) (lines ++ [ln])).getD L.length false = false := by
+  obtain ⟨x, hx, ln0, hp0, hn0, hb0⟩ := hb
+  obtain ⟨k, hk, rfl⟩ := List.mem_iff_getElem.1 hx
+  have hlen := parseLines_length _ _ hl
+  simp only [List.length_map] at hlen
+  unfold parseLines at hl
+  obtain ⟨y, hy, hfy⟩ := mapM_ok_get _ _ _ hl k (by simp; exact hk)
+  simp only [List.getElem_zip, List.getElem_range, List.getElem_map] at hfy
+  have hy0 : y = ln0 := by
+    have := parseLine_idx k 0 _ _ hfy
+    rw [hp0] at this; cases this; rfl
+  subst hy0
+  rw [← hlen]
+  apply bootFlags_past _ _ lines.length k (by simp) (by omega)
+  · simp only [List.getD_eq_getElem?_getD]
+    rw [List.getElem?_append_left (by omega), hy, List.getElem?_append_right (by omega)]
+    simp [hn0, hnid]
+  · simp only [List.getD_eq_getElem?_getD]
+    rw [List.getElem?_append_left (by omega), hy]
+    simpa using hb0
+
 end TraceSim
 
 end EtcdGrove
