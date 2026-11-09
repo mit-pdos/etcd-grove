@@ -9,6 +9,26 @@ set, the message it handles in `messages` with the `Receive` dispatch's facts (i
 source and destination), and, where the specification's state does not record what preservation
 needs, an explicit hypothesis named `h…` and documented in the lemma's docstring: what the
 simulation supplies from raft's ghost state.
+
+`SpecInv` is `LeaderEntries ∧ DurS ∧ TermsLe ∧ CandS ∧ PrevOk ∧ CommitWithinLeader ∧ ReqCommit`:
+`DurS` strengthens `DurInv` (a leader's durable log within its log, the pending requests and
+acknowledgements within its log), `CandS` is a candidate's (no append request or acknowledgement of
+its term; persisted once anything of its term has left it), `TermsLe` and `PrevOk` are the
+messages', `ReqCommit` the append requests' commit indices. It gives `LeaderEntries`,
+`CommitWithinLeader`, `ElectionSafetyInv`, `CommittedIsDurableInv` and `DurInvFixed`, but not `DurInv`,
+which is not an invariant (`durInv_not_preserved`).
+
+The hypotheses the simulation supplies:
+- `MoreThanOneLeaderInv` of the state (`ClientRequest`, `AdvanceCommitIndex`, `AppendEntries`,
+  `Heartbeat`);
+- `BecomeLeader`: no entry and no append request of the new leader's term yet, and every server of
+  its term with its commit index within the new leader's log (leader completeness);
+- `UpdateTerm`, `Timeout`: the server's commit index within the log of any leader of its new term
+  (leader completeness);
+- `AppendEntriesAlreadyDone` (so `AcceptAppendEntriesRequest`, `HandleAppendEntriesRequest`):
+  `CommitInSenderDurable`, a follower acknowledging its commit index acknowledges an index within
+  the leader's durable log (leader completeness, and the candidate's persisting);
+- `AppendEntries`: `b ≤ Len(log[i]) + 1`, as `NextAsync` enumerates.
 -/
 module
 
@@ -1607,3 +1627,48 @@ theorem specInv_handleAppendEntriesRequest {σ : State} {i j : ID} {m : Etcdraft
         obtain ⟨t, ht, rfl⟩ := List.mem_map.mp hσ'
         exact specInv_upd_frame (hout _ t ht) rfl rfl rfl rfl rfl rfl rfl
       · exact hout _
+
+/-! ## `DurInv` itself is not preserved -/
+
+/-- A single leader of term 1 with one entry it has not persisted yet (reachable: `ClientRequest`
+after `BecomeLeader`, before `Ready`). -/
+def cexConfig : Config := { incoming := [1], outgoing := [], learners := [] }
+
+def cexDurable : Durable := { currentTerm := 1, votedFor := 1, log := [], commitIndex := 0, config := cexConfig }
+
+def cexServer : Server :=
+  { currentTerm := 1, state := leader, votedFor := 1, lead := 1, log := [{ term := 1, type := .value, value := .val 0 }], commitIndex := 0, votesResponded := [1], votesGranted := [1], matchIndex := fun _ => 0, pendingConfChangeIndex := 0, config := cexConfig, durable := cexDurable }
+
+def cexState : State :=
+  { server := [1], s := fun _ => cexServer, messages := [], pendingMessages := [], reconfigCount := 0 }
+
+/-- **`DurInv` is not preserved by `AppendEntriesToSelf`**: its acknowledgement of the leader's whole
+log goes to `pendingMessages`, beyond the durable log (only `Ready` hands it out, after persisting);
+`DurInvFixed` leaves the pending self-acknowledgements out. -/
+theorem durInv_not_preserved :
+    DurInv cexState ∧ ∃ σ', cexState.appendEntriesToSelf 1 = some σ' ∧ ¬ DurInv σ' := by
+  refine ⟨?_, _, rfl, ?_⟩
+  · intro i _ _
+    refine ⟨by simp [cexState, cexServer, cexDurable], fun j _ => by simp [cexState, cexServer, cexDurable], fun m hm => by simp [cexState, cexServer, cexDurable, Bag.domain] at hm,
+      fun m hm => by simp [cexState, cexServer, cexDurable, Bag.domain] at hm⟩
+  · intro hD
+    have := (hD 1 (by simp [State.send, cexState]) rfl).2.2.2
+      { type := .appendEntriesResponse, subtype := "app", term := 1, success := true, matchIndex := 1,
+        source := 1, dest := 1 }
+      (by simp [State.send, cexState, cexServer, cexDurable, Bag.with, Bag.add, Bag.domain]) rfl rfl
+      (by simp [State.send, cexState, cexServer, cexDurable]) rfl
+    simp [State.send, cexState, cexServer, cexDurable] at this
+
+/-! ## The initial state -/
+
+/-- **`Init`** satisfies the invariant: no leader, no candidate, no message. -/
+theorem specInv_init (initServer server : SetIds) : SpecInv (init initServer server) := by
+  have hl : ∀ i, ((init initServer server).s i).state ≠ leader := fun _ => follower_ne_leader
+  have hc : ∀ i, ((init initServer server).s i).state ≠ candidate := fun _ => follower_ne_candidate
+  refine ⟨fun i _ h => absurd h (hl i), fun i _ h => absurd h (hl i), fun m hm => ?_,
+    fun i _ h => absurd h (hc i), fun m hm => ?_, fun _ _ l _ h => absurd h (hl l),
+    fun l _ h => absurd h (hl l)⟩ <;> simp [msgs, init, Bag.domain] at hm
+
+end TraceSpecInv
+end EtcdGrove
+end Perennial
