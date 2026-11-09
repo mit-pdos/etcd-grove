@@ -426,8 +426,31 @@ execution: a restart is the member's process restarting, and its requests in fli
 |---|---|---|---|
 | 1 | `mvcc.New`/`NewStore` on any image (B3): `New.specR`/`NewStore.specR` (API) and the internal chain `NewStore`/`newWatchableStore`/`New.specR` | proved spec widened; callers move (mvccrand, `NewServer`, server results) | drafted, typechecks |
 | 2 | `lease.NewLessor` on a lease bucket with records: `NewLessor.specR` | **trusted** (an axiom restated); the `axiom` skill before the Freeze | drafted; its instance lemma's proof to fix |
-| 3 | `errVars.law` gains `ErrWatcherNotExist` (`errors.New("mvcc: watcher does not exist")`): the tester's `Cancel` checks compare with it | API law, proved from mvcc's package initialization as the other three | to draft |
+| 3 | `errVars.law` gains `ErrWatcherNotExist` (`errors.New("mvcc: watcher does not exist")`), which the tester's `Cancel` checks compare with, and **the error variables distinct**: `checkStoreRange` tests `err == ErrCompacted` while `err` may be `ErrFutureRev`, and `errorsNewVar` gives no distinctness. A new conjunct at the end of mvcc's package fact (`etc/gen-init.py`'s `SPECIAL`), so existing patterns are unchanged | API law, proved from mvcc's package initialization (distinct `errors.New` allocations) | to draft |
 | 4 | `pick.specW` (the tester's own: a positive weight's choice) | tester | in progress |
 
 Each changed statement goes through the `spec-reviewer` (Review), and the restated axiom through the
 `axiom` skill, before the user's Freeze.
+
+## Draft: the readers (2026-11-09)
+
+`Readers.lean` and eight specs (`pick.specW`, `genKey`, `genEnd`, `genRange`, `checkStoreRange`,
+`readOne`, `startReaders`, `stopReaders`), each with a `sorry` proof whose header has its outline.
+They typecheck.
+
+**Found:**
+
+1. **A retired incarnation.** A goroutine holding only `isInc` and a reader token cannot rule out
+   `memberInv`'s retired case. So every live goroutine holds a share of the retirement token
+   (`incLive`, `incRdL`), all collected back through the wait groups before the writer retires
+   the incarnation. A reader also holds a share of the member's `kv` field. `Members.lean`'s
+   `incRd` and its header are to be updated to match: one definition, not `incRd` beside
+   `incRdL`.
+2. **The error variables' distinctness**: the Freeze list's item 3.
+3. **`readMixOk`**, the F1 premise: hash weight 0, some positive weight, and the positive weights'
+   sum below `2^63` (otherwise `pick`'s total wraps and it falls through to index 5).
+4. **`readOne` takes both members' parts**, ready for F2's hashes.
+5. **`Run.spec`** must persist the runner's read-only fields and the weight slices before the
+   first `startReaders`.
+6. **The writer supplies `histRds (2·Readers)`**, the history lock's reader slots, returned per
+   epoch.
