@@ -3384,9 +3384,9 @@ theorem simRun_lineEffect (C : List w64) (L : List TraceEv) (σ : Etcdraft.State
     (rcv : Option Etcdraft.Msg) (fM fP : Etcdraft.Bag → Etcdraft.Bag) (Mid : Etcdraft.Server → Prop)
     (hle : LineEffect C bf e i a a' rcv fM fP Mid)
     (hsrv : σ.server = confAbs C) (hσi : σ.s i = a) (hpv : σ.preVote = false) (hcq : σ.checkQuorum = false)
-    (hboot : ∀ lines ln, parseLines (L.map evConv) = .ok lines →
+    (hboot : ∀ lines ln, parseLines (L.map evConv) = .ok lines → Etcdraft.parseLine 0 (evConv e) = .ok ln →
       (bootFlags (confAbs C) (lines ++ [ln])).getD L.length false = false)
-    (hbf : ∀ lines ln pl, parseLines (L.map evConv) = .ok lines →
+    (hbf : ∀ lines ln pl, parseLines (L.map evConv) = .ok lines → Etcdraft.parseLine 0 (evConv e) = .ok ln →
       (linesTrace C (lines ++ [ln])).isBecomeFollowerInUpdateTermOrReturnToFollower ⟨σ, L.length + 1, pl⟩ = bf)
     (hrcv : ∀ ln, Etcdraft.parseLine 0 (evConv e) = .ok ln →
       match rcv with
@@ -3411,8 +3411,8 @@ theorem simRun_lineEffect (C : List w64) (L : List TraceEv) (σ : Etcdraft.State
       simp [parseLines, pure, Except.pure]
     obtain ⟨tsF, hF, hch⟩ := hall (linesTrace C [ln]) 1 0 (simInit C)
       (linesTrace_line_last C [] ln 1 rfl) (by omega) (by simp [linesTrace, Etcdraft.Trace.len])
-      (by simp only [linesTrace]; simpa using hboot [] ln hl0) rfl (by simpa using hbf [] ln 0 hl0) hsrv hσi hpv hcq
-      (hrcv ln hparse) hmids hinv
+      (by simp only [linesTrace]; simpa using hboot [] ln hl0 hparse) rfl (by simpa using hbf [] ln 0 hl0 hparse) hsrv hσi hpv hcq
+      (by have h := hrcv ln hparse; revert h; cases rcv <;> exact id) hmids hinv
     have := simRun_first C e ln tsF _ hσinv (by simpa using parseLine_idx 0 0 _ _ hparse)
       (checkLine_of_chain _ ⟨simInit C, 1, 0⟩ tsF hch) rfl rfl
     rw [hF] at this
@@ -3426,8 +3426,8 @@ theorem simRun_lineEffect (C : List w64) (L : List TraceEv) (σ : Etcdraft.State
   subst hts hl'
   exact hall (linesTrace C (lines ++ [ln])) (L.length + 1) tpl tl
     (linesTrace_line_last C lines ln _ (by omega)) (by omega) (by simp [linesTrace, Etcdraft.Trace.len]; omega)
-    (by simp only [linesTrace]; simpa using hboot lines _ hl) rfl (hbf lines ln tpl hl) hsrv hσi hpv hcq
-    (hrcv ln hparse) hmids hinv
+    (by simp only [linesTrace]; simpa using hboot lines _ hl hparse) rfl (hbf lines ln tpl hl hparse) hsrv hσi hpv hcq
+    (by have h := hrcv ln hparse; revert h; cases rcv <;> exact id) hmids hinv
 
 /-- **A non-receive line's effect from its `nonReceive`**: a line whose `nonReceive` has, in every trace
 and state where it could occur, the one successor `withNode σ i a' id fP` (no message consumed). -/
