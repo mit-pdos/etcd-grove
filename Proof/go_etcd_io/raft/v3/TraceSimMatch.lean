@@ -2010,6 +2010,62 @@ theorem simRun_recvApp (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (
     hments hmprev hmpt (fun h => hlt0 h)
     (by rw [hmdst, hR.2.2.2.2.2.2.1, hidxZ]; omega) (fun k x hk hx => hs.2.2 k x (by omega) hx) hbe hwf (by word) hnw happ hinvT hinvA hinvD
 
+theorem oneLess_of_msgs (σ S : Etcdraft.State) (m : Etcdraft.Msg) (h : S.messages = (σ.discard m).messages)
+    (hnd : σ.messages.domain.Nodup) (hm : 0 < Etcdraft.Bag.count σ.messages m) :
+    Etcdraft.oneLessMessage σ S m = true := by
+  have h2 := oneLess_discard σ σ m rfl hnd hm
+  unfold Etcdraft.oneLessMessage at h2 ⊢
+  rw [h]; exact h2
+
+/-- **A one-round receive line of an append request or heartbeat at a follower** (generic): the
+event of raft's receipt of `m` at its `Step`, the line matching `msgAbs m` (`hpred`), its one
+successor `S` consuming it. -/
+theorem simRun_recvAER1 (C : List w64) (L : List TraceEv) (σ S : Etcdraft.State) (hrun : SimRun C L σ)
+    (hL : L ≠ []) (e : TraceEv) (s : NState) (cfg : CfgM) (m : Msg) (hty : m.ty = .app ∨ m.ty = .heartbeat)
+    (hev : SendEvOf (W64 10) m.dst s cfg m e) (hin : (elements cfg.incoming).Perm C) (hout : cfg.outgoing = ∅)
+    (hC : m.dst ∈ C) (hsrv : σ.server = confAbs C)
+    (hR : SimServerR C C.length (toPState s) (σ.s (idAbs m.dst))) (hs : LogShapeOk C.length (toPState s))
+    (hpre : s.role ≠ .preCandidate)
+    (bt : uint.Z s.term < 2 ^ 63) (bc : uint.Z s.logst.committed < 2 ^ 63)
+    (bl : uint.Z (plastIndex (toPState s)) < 2 ^ 63)
+    (mabs : Etcdraft.Msg) (hmdst : mabs.dest = idAbs m.dst)
+    (hpred : recvPred (msgLine e m.dst s.vote m.src m.dst (elements cfg.incoming)) mabs = true)
+    (hnd : σ.messages.domain.Nodup) (hmem : mabs ∈ σ.messages.domain)
+    (hcnt : 0 < Etcdraft.Bag.count σ.messages mabs)
+    (huniq : ∀ m' ∈ σ.messages.domain, m' ≠ mabs →
+      recvPred (msgLine e m.dst s.vote m.src m.dst (elements cfg.incoming)) m' = false)
+    (hrcv : σ.receive mabs = .ok [S]) (hmsgs : S.messages = (σ.discard mabs).messages)
+    (hboot : ∀ lines ln, parseLines (L.map evConv) = .ok lines →
+      (bootFlags (confAbs C) (lines ++ [ln])).getD L.length false = false)
+    (hinv : S.violated = .ok none) :
+    SimRun C (L ++ [e]) S := by
+  obtain ⟨hname, hnid, hterm', hvote, hcommit', hrl, hlog, ⟨xs, ys, hxs, hys, hconf⟩, ⟨tm, hmsg, hm⟩, -⟩ := hev
+  rw [hout, elements_empty_nil] at hys
+  have hys0 := List.Perm.eq_nil hys
+  subst hys0
+  have hname' : gsStr e.name = "ReceiveAppendEntriesRequest" := by
+    simp only [evtNames] at hname
+    have : e.name = go!"ReceiveAppendEntriesRequest" := by have := hname; simp at this; exact this.symm
+    rw [this]; rfl
+  have hparse : Etcdraft.parseLine L.length (evConv e) =
+      .ok (msgLine e m.dst s.vote m.src m.dst (elements cfg.incoming)) := by
+    rw [← msgLine_perm e m.dst s.vote m.src m.dst xs _ hxs]
+    exact parseLine_msg L.length e m.dst s.vote m.src m.dst xs [] tm hnid hvote hconf hmsg hm.2.2.1 hm.2.2.2.1
+      (by rw [hm.1]; rcases hty with h | h <;> rw [h] <;> rfl) (by rw [hname']; decide)
+  have hcontains : σ.server.contains (idAbs m.dst) = true := by
+    rw [hsrv, List.contains_iff_mem, mem_confAbs]; exact hC
+  apply simRun_recv1 C L σ S hrun hL e _ mabs hparse (by simp [msgLine, evConv, hname']; rfl) hnd hmem hpred
+  · rw [hmdst, ← msgLine_perm e m.dst s.vote m.src m.dst xs _ hxs]
+    have hsm := stateMatches_node C s (σ.s (idAbs m.dst)) e m.dst xs hR hs hpre hterm' hcommit' hrl
+      hlog (hxs.trans hin) bt bc bl σ rfl hcontains
+    unfold Etcdraft.Line.stateMatches at hsm ⊢
+    simpa [msgLine, nodeLine] using hsm
+  · intro lines ts _ m' hm' hne; simp [huniq m' hm' hne]
+  · exact hrcv
+  · exact oneLess_of_msgs σ S mabs hmsgs hnd hcnt
+  · exact hboot
+  · exact hinv
+
 end TraceSim
 
 end EtcdGrove
