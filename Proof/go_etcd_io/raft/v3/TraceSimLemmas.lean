@@ -20,6 +20,94 @@ namespace TraceSim
 
 variable [GooseExts]
 
+/-! ## Sets of servers are canonical -/
+
+theorem insertSorted_mem_iff (id x : Etcdraft.ID) :
+    ∀ s : Etcdraft.SetIds, x ∈ Etcdraft.insertSorted id s ↔ x = id ∨ x ∈ s
+  | [] => by simp [Etcdraft.insertSorted]
+  | y :: ys => by
+    unfold Etcdraft.insertSorted
+    split
+    · simp
+    · split
+      · rename_i h; subst h
+        simp only [List.mem_cons]
+        constructor
+        · intro hx; exact Or.inr hx
+        · rintro (hx | hx)
+          · exact Or.inl hx
+          · exact hx
+      · rw [List.mem_cons, insertSorted_mem_iff id x ys, List.mem_cons]
+        constructor
+        · rintro (hx | hx | hx)
+          · exact Or.inr (Or.inl hx)
+          · exact Or.inl hx
+          · exact Or.inr (Or.inr hx)
+        · rintro (hx | hx | hx)
+          · exact Or.inr (Or.inl hx)
+          · exact Or.inl hx
+          · exact Or.inr (Or.inr hx)
+
+theorem setIds_mk_mem (l : List Etcdraft.ID) (x : Etcdraft.ID) : x ∈ Etcdraft.SetIds.mk l ↔ x ∈ l := by
+  unfold Etcdraft.SetIds.mk
+  suffices ∀ (l : List Etcdraft.ID) (s : Etcdraft.SetIds),
+      x ∈ l.foldl (fun s id => Etcdraft.insertSorted id s) s ↔ x ∈ l ∨ x ∈ s by
+    simpa using this l []
+  intro l
+  induction l with
+  | nil => intro s; simp
+  | cons y ys ih =>
+    intro s
+    rw [List.foldl_cons, ih, insertSorted_mem_iff, List.mem_cons]
+    constructor
+    · rintro (hx | hx | hx)
+      · exact Or.inl (Or.inr hx)
+      · exact Or.inl (Or.inl hx)
+      · exact Or.inr hx
+    · rintro ((hx | hx) | hx)
+      · exact Or.inr (Or.inl hx)
+      · exact Or.inl hx
+      · exact Or.inr (Or.inr hx)
+
+theorem insertSorted_sorted' (id : Etcdraft.ID) : ∀ s : Etcdraft.SetIds, s.Pairwise (· < ·) →
+    (Etcdraft.insertSorted id s).Pairwise (· < ·)
+  | [], _ => by simp [Etcdraft.insertSorted]
+  | y :: ys, h => by
+    unfold Etcdraft.insertSorted
+    rw [List.pairwise_cons] at h
+    split
+    · rename_i hlt
+      exact List.pairwise_cons.2 ⟨fun z hz => by
+        rcases List.mem_cons.1 hz with rfl | hz
+        · exact hlt
+        · exact Nat.lt_trans hlt (h.1 z hz), List.pairwise_cons.2 h⟩
+    · split
+      · exact List.pairwise_cons.2 h
+      · rename_i hge hne
+        refine List.pairwise_cons.2 ⟨fun z hz => ?_, insertSorted_sorted' id ys h.2⟩
+        rcases (insertSorted_mem_iff id z ys).1 hz with rfl | hz
+        · exact Nat.lt_of_le_of_ne (Nat.le_of_not_lt hge) (fun e => hne e.symm)
+        · exact h.1 z hz
+
+theorem setIds_mk_sorted (l : List Etcdraft.ID) : (Etcdraft.SetIds.mk l).Pairwise (· < ·) := by
+  unfold Etcdraft.SetIds.mk
+  suffices ∀ (l : List Etcdraft.ID) (s : Etcdraft.SetIds), s.Pairwise (· < ·) →
+      (l.foldl (fun s id => Etcdraft.insertSorted id s) s).Pairwise (· < ·) from this l [] List.Pairwise.nil
+  intro l
+  induction l with
+  | nil => intro s h; exact h
+  | cons y ys ih => intro s h; exact ih _ (insertSorted_sorted' y s h)
+
+/-- Two lists with the same members make the same set. -/
+theorem setIds_mk_eq (l1 l2 : List Etcdraft.ID) (h : ∀ x, x ∈ l1 ↔ x ∈ l2) :
+    Etcdraft.SetIds.mk l1 = Etcdraft.SetIds.mk l2 := by
+  have hs1 := setIds_mk_sorted l1
+  have hs2 := setIds_mk_sorted l2
+  have hp : (Etcdraft.SetIds.mk l1).Perm (Etcdraft.SetIds.mk l2) :=
+    (List.perm_ext_iff_of_nodup (hs1.imp Nat.ne_of_lt) (hs2.imp Nat.ne_of_lt)).2 (fun x => by
+      rw [setIds_mk_mem, setIds_mk_mem]; exact h x)
+  exact List.Perm.eq_of_pairwise (fun a b _ _ hab hba => absurd (Nat.lt_trans hab hba) (Nat.lt_irrefl a)) hs1 hs2 hp
+
 /-- A node's log in the shape the simulation needs: uncompacted (base `⟨0, 0⟩`), its indices
 contiguous from 1, its bootstrap entries (the first `bl`) of term 1. -/
 def LogShapeOk (bl : Nat) (s : PState) : Prop :=
@@ -160,6 +248,83 @@ theorem sim_campaign (C : List w64) (bl : Nat) (s : PState) (a : Etcdraft.Server
   · simp only [pbecomeCandidate]; rw [h1]; word
   · intro _; simp [pbecomeCandidate, GMap.toList_empty]; rfl
   · intro h; cases h
+
+/-- Membership of the abstract keys of a vote map. -/
+theorem mem_keysAbs (m : GMap w64 Bool) (x : Etcdraft.ID) :
+    x ∈ (GMap.toList m).map (fun p => idAbs p.1) ↔ ∃ k v, m !! k = some v ∧ idAbs k = x := by
+  simp only [List.mem_map]
+  constructor
+  · rintro ⟨⟨k, v⟩, hm, hx⟩; exact ⟨k, v, (GMap.mem_toList m k v).1 hm, hx⟩
+  · rintro ⟨k, v, hm, hx⟩; exact ⟨⟨k, v⟩, (GMap.mem_toList m k v).2 hm, hx⟩
+
+/-- Membership of the abstract granted keys of a vote map. -/
+theorem mem_grantedAbs (m : GMap w64 Bool) (x : Etcdraft.ID) :
+    x ∈ ((GMap.toList m).filter (fun p => p.2)).map (fun p => idAbs p.1) ↔
+      ∃ k, m !! k = some true ∧ idAbs k = x := by
+  simp only [List.mem_map, List.mem_filter]
+  constructor
+  · rintro ⟨⟨k, v⟩, ⟨hm, hv⟩, hx⟩
+    simp only at hv; subst hv
+    exact ⟨k, (GMap.mem_toList m k _).1 hm, hx⟩
+  · rintro ⟨k, hm, hx⟩; exact ⟨⟨k, true⟩, ⟨(GMap.mem_toList m k true).2 hm, rfl⟩, hx⟩
+
+/-- **A vote response at a candidate** (the rule `recordVote`), its sender's first in the term (raft
+records only a first response; the simulation's invariant: one `MsgVote` per campaign, no
+duplication): the specification's `HandleRequestVoteResponse` and raft agree on the tally. -/
+theorem sim_recordVote (C : List w64) (bl : Nat) (s : PState) (a : Etcdraft.Server) (src : w64) (v : Bool)
+    (hR : SimServerR C bl s a) (hc : s.role = .candidate) (hnew : s.votes !! src = none) :
+    SimServerR C bl { s with votes := recordVote s.votes src v }
+      { a with votesResponded := a.votesResponded.add (idAbs src),
+               votesGranted := if v then a.votesGranted.add (idAbs src) else a.votesGranted } := by
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11⟩ := hR
+  obtain ⟨hvr, hvg⟩ := h10 hc
+  have hrv : recordVote s.votes src v = <[src := v]> s.votes := by
+    unfold recordVote; rw [hnew]
+  refine ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, ?_, ?_⟩
+  · intro _
+    simp only [hrv]
+    constructor
+    · rw [hvr]; unfold Etcdraft.SetIds.add Etcdraft.SetIds.union
+      apply setIds_mk_eq; intro x
+      rw [List.mem_append, setIds_mk_mem, mem_keysAbs, mem_keysAbs, List.mem_singleton]
+      constructor
+      · rintro (⟨k, w, hk, rfl⟩ | rfl)
+        · by_cases hks : k = src
+          · subst hks; exact ⟨k, v, GMap.lookup_insert _ _ _, rfl⟩
+          · exact ⟨k, w, by rw [GMap.lookup_insert_ne _ _ (Ne.symm hks)]; exact hk, rfl⟩
+        · exact ⟨src, v, GMap.lookup_insert _ _ _, rfl⟩
+      · rintro ⟨k, w, hk, rfl⟩
+        by_cases hks : k = src
+        · subst hks; exact Or.inr rfl
+        · rw [GMap.lookup_insert_ne _ _ (Ne.symm hks)] at hk; exact Or.inl ⟨k, w, hk, rfl⟩
+    · cases v
+      · simp only [Bool.false_eq_true, ↓reduceIte]
+        rw [hvg]; apply setIds_mk_eq; intro x
+        rw [mem_grantedAbs, mem_grantedAbs]
+        constructor
+        · rintro ⟨k, hk, rfl⟩
+          by_cases hks : k = src
+          · subst hks; rw [hnew] at hk; cases hk
+          · exact ⟨k, by rw [GMap.lookup_insert_ne _ _ (Ne.symm hks)]; exact hk, rfl⟩
+        · rintro ⟨k, hk, rfl⟩
+          by_cases hks : k = src
+          · subst hks; rw [GMap.lookup_insert] at hk; cases hk
+          · exact ⟨k, by rw [GMap.lookup_insert_ne _ _ (Ne.symm hks)] at hk; exact hk, rfl⟩
+      · simp only [↓reduceIte]
+        rw [hvg]; unfold Etcdraft.SetIds.add Etcdraft.SetIds.union
+        apply setIds_mk_eq; intro x
+        rw [List.mem_append, setIds_mk_mem, mem_grantedAbs, mem_grantedAbs, List.mem_singleton]
+        constructor
+        · rintro (⟨k, hk, rfl⟩ | rfl)
+          · by_cases hks : k = src
+            · subst hks; rw [hnew] at hk; cases hk
+            · exact ⟨k, by rw [GMap.lookup_insert_ne _ _ (Ne.symm hks)]; exact hk, rfl⟩
+          · exact ⟨src, GMap.lookup_insert _ _ _, rfl⟩
+        · rintro ⟨k, hk, rfl⟩
+          by_cases hks : k = src
+          · subst hks; exact Or.inr rfl
+          · rw [GMap.lookup_insert_ne _ _ (Ne.symm hks)] at hk; exact Or.inl ⟨k, hk, rfl⟩
+  · intro h; rw [hc] at h; cases h
 
 end TraceSim
 
