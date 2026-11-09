@@ -112,6 +112,16 @@ specification invariant `CommitWithinLeader` (`commit_in_leader`: `restart_ack_o
 three specification invariants' preservation by each action is delegated (worktree branch
 `trace-check-specinv`).
 
+**The global step's law, proved (2026-11-09, `TracedHooksGlobal.lean`, `trCap_fire`):** for a line
+consuming no message and not bootstrap-named, a capability in phase `Φ`, a `PhaseStep id E Φ Φ'` and
+the caller's `FxPres` (its line keeps the state's facts) give the event builder's gate whose update
+leaves the capability in phase `Φ'`: inside the logger's atomic update the simulation's invariant
+(beside raft's commit invariant, `simNS γ`) steps by the line's effect (`simStep_pure`:
+`simRun_lineEffect`, the shares and the pending bag by counts, `BagRep`), the invariants from the facts
+with raft's vote table (`simFx_violated`). Next: the law's variants for receive lines (a token and
+the bags' uniqueness), `BecomeFollower` lines (the skip bit) and `Ready` lines (pending to sent), then
+the hook paths' traced statements and proofs, which supply `PhaseStep` and `FxPres`.
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its
