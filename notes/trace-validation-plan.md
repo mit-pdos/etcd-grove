@@ -96,6 +96,15 @@ global theorem as one Iris law, `trCap Φ ∗ PhaseStep E Φ Φ' ⊢ TraceFire E
 receive's phantom reply and the `Ready` line's movement of pending messages in the shares), S5
 (`traceInitState` at `newRaft`, outside `ownRaftPhys`).
 
+**The invariants from the per-server facts (2026-11-09, `TraceSimFacts.lean`, proved):** `simInv`'s
+per-server facts drafted (`srvFacts γ C j v`: `v`'s log is raft's log `es` read by `logAbs`, `es`'s
+records `logRecs`, its committed prefix `isCommitted`, a leader `isLeader`, the numbers in range;
+`allFacts`: every voter's), and from them `MoreThanOneLeaderInv` (`isLeader_unique`), `LogInv`
+(`isCommitted_agree`), `LogMatchingInv` (`logRecs_agree`, `plog_match_down`: the specification's
+entries are determined by position and term) and `CommitOk`. Left: `ElectionSafetyInv`,
+`QuorumLogInv`, `LeaderCompletenessInv`, `CommittedIsDurableInv` (the notes' table: route (b)
+clauses and the acknowledgement-history copy).
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its
