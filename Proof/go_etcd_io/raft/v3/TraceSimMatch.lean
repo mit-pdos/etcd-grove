@@ -132,6 +132,104 @@ theorem simRun_commit (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (h
   · rw [hline, ← hln]; simp only [nodeLine, evConv, hrl, hrole]; rfl
   · rw [hts, hσ]; exact hlead
 
+/-- The last line of the lines' trace with a line appended. -/
+theorem linesTrace_line_last (C : List w64) (lines : List Etcdraft.Line) (ln : Etcdraft.Line) (l : Nat)
+    (hl : l = lines.length + 1) : (linesTrace C (lines ++ [ln])).line l = ln := by
+  simp only [linesTrace, Etcdraft.Trace.line, hl, List.getD_eq_getElem?_getD]
+  rw [List.getElem?_append_right (by omega)]
+  simp
+
+/-- **A node line's step** (the global part, pure, generic): from a run reaching `σ`, a node event
+of raft whose line (`nodeLine`) has, from the run's end, the one non-receive successor `σ'`, past
+the node's bootstrap lines, with the invariants at `σ'`: the run extends to `σ'`. -/
+theorem simRun_node (C : List w64) (L : List TraceEv) (σ σ' : Etcdraft.State) (hrun : SimRun C L σ)
+    (hL : L ≠ []) (e : TraceEv) (id vote : w64) (xs : List w64)
+    (hnid : e.nid = decStr id) (hvote : e.vote = decStr vote)
+    (hconf : e.conf = (xs.map decStr, ([] : List w64).map decStr)) (hmsg : e.msg = none)
+    (hrecv : Etcdraft.isReceiveName (gsStr e.name) = false)
+    (hmev : Etcdraft.isMessageEvent (gsStr e.name) = false) (hcc : gsStr e.name ≠ "ChangeConf")
+    (hboot : ∀ lines ln, parseLines (L.map evConv) = .ok lines →
+      (bootFlags (confAbs C) (lines ++ [ln])).getD L.length false = false)
+    (hnr : ∀ lines (ts : Etcdraft.TState), parseLines (L.map evConv) = .ok lines → ts.s = σ →
+      ts.l = L.length + 1 →
+      (linesTrace C (lines ++ [nodeLine e id vote xs])).nonReceive ts = .ok [σ'])
+    (hinv : σ'.violated = .ok none) :
+    SimRun C (L ++ [e]) σ' := by
+  have hparse : Etcdraft.parseLine L.length (evConv e) = .ok (nodeLine e id vote xs) :=
+    parseLine_node L.length e id vote xs [] hnid hvote hconf hmsg hmev hcc
+  apply simRun_snoc_single C L σ σ' e _ hrun hL hparse _ hinv
+  intro lines ts hl hts hl'
+  have hlen := parseLines_length _ _ hl
+  simp only [List.length_map] at hlen
+  apply next_of_nonReceive _ ts σ' (by omega)
+  · simp [linesTrace, Etcdraft.Trace.len]; omega
+  · simp only [linesTrace]; rw [hl']; simpa using hboot lines _ hl
+  · rw [linesTrace_line_last C lines _ _ (by omega)]; simpa [nodeLine, evConv] using hrecv
+  · exact hnr lines ts hl hts hl'
+
+theorem upd_self (st : Etcdraft.State) (i : Etcdraft.ID) (f : Etcdraft.Server → Etcdraft.Server) :
+    (st.upd i f).s i = f (st.s i) := by simp [Etcdraft.State.upd]
+
+theorem upd_server (st : Etcdraft.State) (i : Etcdraft.ID) (f : Etcdraft.Server → Etcdraft.Server) :
+    (st.upd i f).server = st.server := rfl
+
+/-- The server a `BecomeLeader` makes of a candidate. -/
+def leaderOf (i : Etcdraft.ID) (v : Etcdraft.Server) : Etcdraft.Server :=
+  { v with state := Etcdraft.leader, lead := i,
+           matchIndex := fun j => if j = i then (v.log.length : Int) else 0 }
+
+/-- **The `BecomeLeader` line's step**: node `id`'s server a candidate with a quorum of granted votes
+(the won tally: the simulation's ghost), the leader it becomes `R`-related to the state raft logged
+(after `reset`). -/
+theorem simRun_becomeLeader (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (hrun : SimRun C L σ)
+    (hL : L ≠ []) (e : TraceEv) (id : w64) (s : NState) (cfg : CfgM)
+    (hev : NodeEvOf (W64 3) id s cfg e) (hin : (elements cfg.incoming).Perm C) (hout : cfg.outgoing = ∅)
+    (hC : id ∈ C) (a : Etcdraft.Server) (hσ : σ.s (idAbs id) = a) (hsrv : σ.server = confAbs C)
+    (hcand : a.state = Etcdraft.candidate) (hcfg : a.config.incoming = confAbs C)
+    (hq : Etcdraft.isQuorum a.votesGranted (confAbs C) = true)
+    (hR : SimServerR C C.length (toPState s) (leaderOf (idAbs id) a))
+    (hs : LogShapeOk C.length (toPState s)) (hrole : s.role = .leader)
+    (bt : uint.Z s.term < 2 ^ 63) (bc : uint.Z s.logst.committed < 2 ^ 63)
+    (bl : uint.Z (plastIndex (toPState s)) < 2 ^ 63)
+    (hboot : ∀ lines ln, parseLines (L.map evConv) = .ok lines →
+      (bootFlags (confAbs C) (lines ++ [ln])).getD L.length false = false)
+    (hinv : (σ.upd (idAbs id) (leaderOf (idAbs id))).violated = .ok none) :
+    SimRun C (L ++ [e]) (σ.upd (idAbs id) (leaderOf (idAbs id))) := by
+  obtain ⟨hname, hnid, hterm, hvote, hcommit, hrl, hlog, ⟨xs, ys, hxs, hys, hconf⟩, hmsg, -, -, -, -⟩ := hev
+  have hys0 : ys = [] := by
+    rw [hout] at hys
+    have : elements (∅ : GSet w64) = [] :=
+      List.eq_nil_of_length_eq_zero (by rw [GMap.length_elements, GMap.size_empty])
+    rw [this] at hys; exact List.Perm.eq_nil hys
+  subst hys0
+  have hname' : gsStr e.name = "BecomeLeader" := by
+    simp only [evtNames] at hname
+    have : e.name = go!"BecomeLeader" := by have := hname; simp at this; exact this.symm
+    rw [this]; rfl
+  have hbl : σ.becomeLeader (idAbs id) = some (σ.upd (idAbs id) (leaderOf (idAbs id))) := by
+    unfold Etcdraft.State.becomeLeader Etcdraft.State.getConfig
+    rw [hσ]; simp only [hcand, hcfg, hq, beq_self_eq_true, Bool.and_self, ↓reduceIte]
+    rfl
+  apply simRun_node C L σ _ hrun hL e id s.vote xs hnid hvote hconf hmsg (by rw [hname']; rfl)
+    (by rw [hname']; rfl) (by rw [hname']; decide) hboot _ hinv
+  intro lines ts hl hts hl'
+  have hlen := parseLines_length _ _ hl
+  simp only [List.length_map] at hlen
+  have hline := linesTrace_line_last C lines (nodeLine e id s.vote xs) ts.l (by omega)
+  apply nonReceive_becomeLeader _ ts (idAbs id) _ (by simp [linesTrace, Etcdraft.Trace.len]; omega)
+  · rw [hline]; simp [nodeLine, evConv, hname']
+  · rw [hline]; rfl
+  · exact confAbs_nodup C
+  · simp only [linesTrace]; rw [mem_confAbs]; exact hC
+  · rw [hts]; exact hbl
+  · rw [hline]
+    apply stateMatches_node C s _ e id xs hR hs (by rw [hrole]; decide) hterm hcommit hrl hlog
+      (hxs.trans hin) bt bc bl
+    · rw [upd_self, hσ]
+    · rw [upd_server, hsrv, List.contains_iff_mem, mem_confAbs]; exact hC
+  · rw [hline]; simp only [nodeLine, evConv, hrl, hrole]; rfl
+  · rw [upd_self]; rfl
+
 end TraceSim
 
 end EtcdGrove
