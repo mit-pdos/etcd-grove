@@ -4,7 +4,7 @@ module
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.osfs.crashlog
 public import Spec.PkgInit.Base
 public import Spec.PkgInit.os
-public import Perennial.Proof.syscall.Base
+public import Spec.PkgInit.syscall
 
 @[expose] public section
 noncomputable section

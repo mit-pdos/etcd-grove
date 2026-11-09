@@ -4,10 +4,10 @@ module
 public import GeneratedProof.os
 public import Spec.PkgInit.Base
 public import Perennial.Proof.io.Base
-public import Perennial.Proof.io.fs.Base
+public import Spec.PkgInit.io.fs
 public import Perennial.Proof.sync.Base
-public import Perennial.Proof.syscall.Base
-public import Perennial.Proof.internal.poll.Base
+public import Spec.PkgInit.syscall
+public import Spec.PkgInit.internal.poll
 public import Perennial.Proof.errors.Base
 
 @[expose] public section

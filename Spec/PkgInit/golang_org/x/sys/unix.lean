@@ -3,7 +3,7 @@ module
 
 public import GeneratedProof.golang_org.x.sys.unix
 public import Spec.PkgInit.Base
-public import Perennial.Proof.syscall.Base
+public import Spec.PkgInit.syscall
 
 @[expose] public section
 noncomputable section

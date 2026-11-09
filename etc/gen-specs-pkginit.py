@@ -57,6 +57,11 @@ def main():
     theirs = scan_pkginfo(os.path.join(PER, "Perennial"), "Code")
     info = dict(theirs); info.update(ours)
     pinst = perennial_instances()
+    # A package this repository translates itself (Code/<pkg>.lean: os, io/fs, net/http, ...) is
+    # not Perennial's: its names clash with Perennial's translation, so its instance is local.
+    for pkg in ours:
+        if os.path.exists(os.path.join(ROOT, "GeneratedProof", pkg.replace(".", "/") + ".lean")):
+            pinst.pop(pkg, None)
     want = {}
     for pkg in sorted(info):
         if pkg in pinst:

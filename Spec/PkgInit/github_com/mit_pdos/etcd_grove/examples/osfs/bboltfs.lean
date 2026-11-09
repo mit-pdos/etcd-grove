@@ -7,7 +7,7 @@ public import Perennial.Proof.errors.Base
 public import Perennial.Proof.io.Base
 public import Spec.PkgInit.os
 public import Perennial.Proof.sync.Base
-public import Perennial.Proof.syscall.Base
+public import Spec.PkgInit.syscall
 public import Spec.PkgInit.«unsafe»
 public import Spec.PkgInit.golang_org.x.sys.unix
 public import Perennial.Proof.time.Base

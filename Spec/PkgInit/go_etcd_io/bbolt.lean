@@ -3,7 +3,7 @@ module
 
 public import GeneratedProof.go_etcd_io.bbolt
 public import Spec.PkgInit.Base
-public import Perennial.Proof.syscall.Base
+public import Spec.PkgInit.syscall
 public import Perennial.Proof.fmt.Base
 public import Perennial.Proof.time.Base
 public import Spec.PkgInit.«unsafe»
