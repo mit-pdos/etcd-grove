@@ -492,6 +492,28 @@ abbrev trCap_fire_boot.statement : Prop :=
   (trCapB (some γd) γ r id c false Φ Λ ∗ r.[raft, go!"traceLogger"] ↦□ tl : IProp GF) ⊢
     TraceFire (some γd) tl E (trCapB (some γd) γ r id c false Φ Λ')
 
+/-! ## The global step of a booted node's bootstrap-named line (Draft, review round 2's A7) -/
+
+/-- **A phase step by a booted node's line** other than `BecomeFollower` (`PhaseStep` without its
+bootstrap-name condition: past the node's segment, a bootstrap-named line, the application's
+`ApplyConfChange` after the first `Ready`, is an ordinary step). -/
+def PhaseStepB (id : w64) (c : CfgM) (E : TraceEv → Prop) (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) : Prop :=
+  ∀ C cs P, Φ C cs P → (elements c.incoming).Perm C ∧ c.outgoing = ∅ ∧ id ∈ C → ∀ e, E e →
+    e.nid = decStr id ∧ gsStr e.name ≠ "BecomeFollower" ∧
+    ∀ a : Etcdraft.Server, toC (confAbs C) a = cs →
+    ∃ (a' : Etcdraft.Server) (P' : List Etcdraft.Msg),
+      Φ' C (toC (confAbs C) a') (P ++ P') ∧ (∀ x ∈ P', x.source = idAbs id) ∧
+      LineEffect C false e (idAbs id) a a' none _root_.id (fun b => P'.foldl Etcdraft.Bag.with b) (fun _ => False)
+
+/-- **The global step of a booted node's line, as one law** (`trCap_fire`'s, any name but
+`BecomeFollower`, the node's segment over). -/
+abbrev trCap_fire_booted.statement : Prop :=
+  ∀ (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (tl : GoInterface) (E : TraceEv → Prop)
+    (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ Λ' : Option TraceEv → Prop),
+  PhaseStepB id c E Φ Φ' → (∀ e, E e → Λ' (some e)) →
+  (trCapB (some γd) γ r id c true Φ Λ ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗ FxPres γ id E Φ Φ' : IProp GF) ⊢
+    TraceFire (some γd) tl E (trCapB (some γd) γ r id c true Φ' Λ')
+
 /-! ## The global step of a `BecomeFollower` line after the node's segment (Draft, review round 2's A7) -/
 
 /-- **A phase step by a `BecomeFollower` line** past the node's bootstrap segment: its skip bit is
