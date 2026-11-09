@@ -2313,6 +2313,31 @@ theorem oneLess_voteReq (st : Etcdraft.State) (i j : Etcdraft.ID) (m : Etcdraft.
   · exact oneLess_reply st _ _ m rfl hnd hm
   · exact oneLess_reply st _ _ m rfl hnd hm
 
+/-- `HandleRequestVoteResponse`'s result at a candidate. -/
+def voteRespResult (st : Etcdraft.State) (i j : Etcdraft.ID) (m : Etcdraft.Msg) : Etcdraft.State :=
+  (st.upd i (fun w => { w with votesResponded := (st.s i).votesResponded.add j, votesGranted := if m.voteGranted then (st.s i).votesGranted.add j else w.votesGranted })).discard m
+
+/-- **A vote response at a candidate of its term** (`HandleRequestVoteResponse`, one round). -/
+theorem receive_voteResp (st : Etcdraft.State) (m : Etcdraft.Msg) (hsrv : st.server.contains m.dest = true)
+    (hty : m.type = .requestVoteResponse) (hterm : m.term = (st.s m.dest).currentTerm)
+    (hcand : (st.s m.dest).state = Etcdraft.candidate) :
+    st.receive m = .ok [voteRespResult st m.dest m.source m] := by
+  unfold Etcdraft.State.receive
+  have hut : st.updateTerm m.dest m.source m = none := by
+    unfold Etcdraft.State.updateTerm; simp [hterm]
+  have hds : st.dropStaleResponse m.dest m.source m = none := by
+    unfold Etcdraft.State.dropStaleResponse; simp [hterm]
+  have hh : st.handleRequestVoteResponse m.dest m.source m = some (voteRespResult st m.dest m.source m) := by
+    unfold Etcdraft.State.handleRequestVoteResponse voteRespResult
+    simp [hterm, hcand, Etcdraft.candidate, Etcdraft.preCandidate]
+  have hsrv' : m.dest ∈ st.server := List.contains_iff_mem.1 hsrv
+  simp [hsrv', hty, hut, hds, hh, Etcdraft.somes, pure, Except.pure]
+
+theorem oneLess_voteResp (st : Etcdraft.State) (i j : Etcdraft.ID) (m : Etcdraft.Msg)
+    (hnd : st.messages.domain.Nodup) (hm : 0 < Etcdraft.Bag.count st.messages m) :
+    Etcdraft.oneLessMessage st (voteRespResult st i j m) m = true :=
+  oneLess_discard st _ m rfl hnd hm
+
 end TraceSim
 
 end EtcdGrove
