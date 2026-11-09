@@ -28,6 +28,7 @@ public import Spec.go_etcd_io.raft.v3.traceReceiveMessage
 public import Spec.go_etcd_io.raft.v3.raft__send
 public import Spec.go_etcd_io.raft.v3.raft__sendTimeoutNow
 public import Spec.go_etcd_io.raft.v3.raft__sendHeartbeat
+public import Spec.go_etcd_io.raft.v3.raft__bcastHeartbeatWithCtx
 
 @[expose] public section
 
@@ -282,6 +283,43 @@ theorem raft.sendHeartbeat.untraced (h : raft.sendHeartbeat.spec (GF := GF) (hG 
   iapply HΦ $$ %cm %pvs
   iframe Hphys
   ipureintro; exact ⟨H1, H2, H3⟩
+
+/-- `raft.bcastHeartbeatWithCtx.spec` at an untraced node (the statement before slice 5). -/
+abbrev raft.bcastHeartbeatWithCtx.untracedTriple : Prop :=
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (ctx : GoSlice) (cl : List w8),
+  s.role = .leader →
+  s.term ≠ W64 0 →
+  s.gh.tr = none →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+      "#Hctx" ∷ ctx ↦*□ cl }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"bcastHeartbeatWithCtx"))
+      (Val #ctx))
+  {{ (ms : List Msg) (pvs : GMap w64 Progress), RET #();
+      ownRaftPhysCV c c.voters r id { sendMsgs s ms with prvals := pvs } ∗
+      ⌜∀ m ∈ ms, HeartbeatOk id (toPState s) m ∧ m.ctx = cl⌝ ∗
+      ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ }}
+
+/-- `raft.bcastHeartbeatWithCtx.spec`'s untraced instance: every gate the struct's nil logger. -/
+theorem raft.bcastHeartbeatWithCtx.untraced (h : raft.bcastHeartbeatWithCtx.spec (GF := GF) (hG := hG)) :
+    raft.bcastHeartbeatWithCtx.untracedTriple (GF := GF) (hG := hG) := by
+  intro c r id s ctx cl Hlead Htz htr
+  iintro %Φ ⟨#Hpkg, Hphys, #Hctx⟩ HΦ
+  icases ownRaftPhysC_traceLogger c r id s htr $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
+  iapply h c r id s ctx cl iprop(emp) Hlead Htz $$ [Hphys]
+  · iframe Hpkg Hphys Hctx
+    isplitr
+    · imodintro
+      iintro %to %cm %_ %_ -
+      rw [htr]
+      iapply hookGateOpt_none r _ tl iprop(emp) Htlok
+      iframe Htl
+    iempintro
+  inext
+  iintro %ms %pvs ⟨Hphys, %H1, %H2, -⟩
+  iapply HΦ $$ %ms %pvs
+  iframe Hphys
+  ipureintro; exact ⟨H1, H2⟩
 
 end untraced
 

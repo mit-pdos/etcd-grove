@@ -8,6 +8,7 @@ module
 public import Spec.go_etcd_io.raft.v3.raft__bcastHeartbeat
 public import Spec.go_etcd_io.raft.v3.readOnly__heartbeatCtx
 public import Spec.go_etcd_io.raft.v3.raft__bcastHeartbeatWithCtx
+public import Proof.go_etcd_io.raft.v3.TracedUntraced
 
 @[expose] public section
 
@@ -32,6 +33,8 @@ theorem raft.bcastHeartbeat.wp_proof
     (wp_readOnly_heartbeatCtx : readOnly.heartbeatCtx.spec (GF := GF) (hG := hG))
     (wp_raft_bcastHeartbeatWithCtx : raft.bcastHeartbeatWithCtx.spec (GF := GF) (hG := hG)) :
     raft.bcastHeartbeat.spec (GF := GF) (hG := hG) := by
+  -- (Q8 stage 1, slice 5) the untraced instance (`TracedUntraced.lean`)
+  have wp_raft_bcastHeartbeatWithCtx := raft.bcastHeartbeatWithCtx.untraced wp_raft_bcastHeartbeatWithCtx
   intro c r id s Hlead Htz Htr
   wp_start as Hphys
   iNamed Hphys
