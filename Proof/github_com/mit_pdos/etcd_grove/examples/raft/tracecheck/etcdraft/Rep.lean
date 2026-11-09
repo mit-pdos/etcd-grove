@@ -156,6 +156,33 @@ theorem strRel_eq_iff {ga gb : GoString} {a b : String} (ha : strRel ga a) (hb :
     ga = gb ↔ a = b :=
   ⟨fun h => strRel_inj (h ▸ ha) hb, fun h => by rw [ha.2, hb.2, h]⟩
 
+/-- A bag the Go's `Bag` methods handle as the Lean's (layer C's actions, 2026-11-09): its messages
+distinct (the Go updates the first item holding a message, the Lean every one: `Bag.add`'s docstring),
+and every count below `2^63 - 1` (`With` adds one). S6's loop invariant carries it of both bags. -/
+def Bag.Ok (b : Bag) : Prop := (b.map Prod.fst).Nodup ∧ ∀ it ∈ b, (it.2 : Int) + 1 < 2 ^ 63
+
+theorem Bag.Ok.count_lt {b : Bag} (h : b.Ok) (m : Msg) : (b.count m : Int) + 1 < 2 ^ 63 := by
+  unfold Bag.count
+  cases hf : b.find? (fun it => it.1 == m) with
+  | none => simp
+  | some it => exact h.2 it (List.mem_of_find?_eq_some hf)
+
+/-- `strRel_eq_iff` as `decide` (layer C's actions, 2026-11-09). -/
+theorem decide_strRel {ga gb : GoString} {a b : String} (ha : strRel ga a) (hb : strRel gb b) :
+    decide (ga = gb) = decide (a = b) :=
+  decide_eq_decide.2 (strRel_eq_iff ha hb)
+
+/-! The Go's roles and subtypes, related to the Lean's (decided once). -/
+theorem strRel_follower : strRel go!"StateFollower" follower := by unfold strRel follower; decide
+theorem strRel_candidate : strRel go!"StateCandidate" candidate := by unfold strRel candidate; decide
+theorem strRel_leader : strRel go!"StateLeader" leader := by unfold strRel leader; decide
+theorem strRel_preCandidate : strRel go!"StatePreCandidate" preCandidate := by
+  unfold strRel preCandidate; decide
+theorem strRel_app : strRel go!"app" "app" := by unfold strRel; decide
+theorem strRel_heartbeat : strRel go!"heartbeat" "heartbeat" := by unfold strRel; decide
+theorem strRel_snapshot : strRel go!"snapshot" "snapshot" := by unfold strRel; decide
+theorem strRel_empty : strRel go!"" "" := by unfold strRel; decide
+
 /-- An event whose numbers are `numOk` (layer B gives it of raft's: its terms and indices are
 bounded by the time receipts, `notes/trace-validation-sim.md`, "Increment 2"). -/
 def Event.Bounded (e : Event) : Prop :=
