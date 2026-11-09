@@ -37,8 +37,8 @@ theorem raft.becomeFollower.wp_proof
     (wp_raft_reset : raft.reset.spec (GF := GF) (hG := hG))
     (wp_traceBecomeFollower : traceBecomeFollower.spec (GF := GF) (hG := hG)) :
     raft.becomeFollower.spec (GF := GF) (hG := hG) := by
-  intro c V r id s term lead Hle Htr
-  wp_start as Hphys
+  intro c V r id s term lead Q Hle HV
+  wp_start as ⟨Hphys, Hgate⟩
   wp_auto
   -- `r.step := stepFollower`
   wp_apply raft.wp_store_stepC $$ Hphys as Hphys
@@ -53,12 +53,26 @@ theorem raft.becomeFollower.wp_proof
   wp_apply raft.wp_load_idC $$ Hphys as Hphys
   wp_apply raft.wp_load_TermC $$ Hphys as Hphys
   wp_raft_logC
-  wp_node_hookC wp_traceBecomeFollower
-  iapply HΦ
+  -- (Q8 stage 1, slice 3) the `BecomeFollower` line, either mode
   -- the stores above, in the order the Go code makes them, give `becomeFollower` up to
   -- the order of the record updates
-  iapply ownRaftPhysC_eq (c := c) r id _ _ ?_ $$ Hphys
-  rfl
+  ihave Hphys : ownRaftPhysCV c V r id { becomeFollower s term lead with prvals := pvs } $$ [Hphys]
+  · iapply ownRaftPhysC_eq (c := c) r id _ _ ?_ $$ Hphys
+    rfl
+  have Hgh : ({ becomeFollower s term lead with prvals := pvs } : NState).gh.tr = s.gh.tr := by
+    first | rfl | (simp [becomeFollower, resetTo, resetTo0]) | (cases s; rfl)
+  icases trOwn_split_V s.gh.tr c V r id _ HV $$ Hphys with ⟨Hown, Hback⟩
+  iunfold HookGate at Hgate
+  imod Hgate with ⟨%tl, #Htl, Hfire⟩
+  wp_apply wp_traceBecomeFollower c r id { becomeFollower s term lead with prvals := pvs } tl Q
+    $$ [Htl Hown Hfire] as ⟨Hown, HQ⟩
+  · rw [Hgh]
+    iframe Htl Hown
+    iapply traceFire_mono_E _ tl _ _ _ (fun e he => by rw [nodeEvOf_prvals] at he; exact he) $$ Hfire
+  rw [Hgh]
+  ihave Hphys := Hback $$ Hown
+  iapply HΦ
+  iframe HQ Hphys
 
 end proof
 

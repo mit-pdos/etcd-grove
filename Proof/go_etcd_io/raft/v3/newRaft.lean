@@ -28,6 +28,7 @@ public import Spec.go_etcd_io.raft.v3.raft__becomeFollower
 public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__VoterNodes
 public import Spec.fmt.Sprintf
 public import Spec.strings.Join
+public import Proof.go_etcd_io.raft.v3.TracedUntraced
 
 @[expose] public section
 
@@ -623,6 +624,7 @@ theorem newRaft.wp_proof
     (wp_fmt_Sprintf : fmt.Sprintf.spec (GF := GF) (hG := hG))
     (wp_strings_Join : strings.Join.spec (GF := GF) (hG := hG)) :
     newRaft.spec (GF := GF) (hG := hG) := by
+  have wp_raft_becomeFollower := raft.becomeFollower.untraced wp_raft_becomeFollower
   intro c cv lok si sn σ hs csm R R' cs' Hvalid Hlok Hsto HmaxInfl Hdpf Hros Hdccv Hmcs Hidx Hpend
     Hfr1 Hfr2 Hfl0 Hsg0 Hdt Hwrap Hrec Hhs Happ Hres Hlen Hcsok Htlk
   obtain ⟨HvID, HvID1, HvID2, Hticks, HvSt, HvInfl, HvIB, HvLog, HvRO⟩ := Hvalid

@@ -30,6 +30,7 @@ public import Spec.go_etcd_io.raft.v3.raftLog__lastEntryID
 public import Spec.slices.Sort
 public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
 public import Proof.go_etcd_io.raft.v3.LemmasSendR
+public import Proof.go_etcd_io.raft.v3.TracedUntraced
 
 @[expose] public section
 
@@ -150,6 +151,7 @@ theorem raft.campaign.wp_proof
     (wp_slices_Sort : slices.«Sort».spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.campaign.spec (GF := GF) (hG := hG) := by
+  have wp_raft_becomeCandidate := raft.becomeCandidate.untraced wp_raft_becomeCandidate
   intro c r id s t Hrole Hid_cfg Hnowrap Hpv Htr
   -- the voters of either half, named: everything below is about that set
   obtain ⟨cfg, hV⟩ : ∃ cfg, c.voters = cfg := ⟨_, rfl⟩

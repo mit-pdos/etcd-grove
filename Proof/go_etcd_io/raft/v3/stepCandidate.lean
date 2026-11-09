@@ -16,6 +16,7 @@ public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetFrom
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetTerm
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetReject
+public import Proof.go_etcd_io.raft.v3.TracedUntraced
 
 @[expose] public section
 
@@ -67,6 +68,7 @@ theorem stepCandidate.wp_proof
     (wp_GetTerm : raftpb.Message.GetTerm.spec (GF := GF) (hG := hG))
     (wp_GetReject : raftpb.Message.GetReject.spec (GF := GF) (hG := hG)) :
     stepCandidate.spec (GF := GF) (hG := hG) := by
+  have wp_raft_becomeFollower := raft.becomeFollower.untraced wp_raft_becomeFollower
   intro c scfg r id s ml m ents sn rs sv cl Hty Hterm Hrole Happ Hhb Hpvnw Hsnap Htr
   wp_start as H
   iNamed H

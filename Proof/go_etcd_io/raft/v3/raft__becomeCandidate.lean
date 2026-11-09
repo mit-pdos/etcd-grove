@@ -27,8 +27,8 @@ theorem raft.becomeCandidate.wp_proof
     (wp_raft_reset : raft.reset.spec (GF := GF) (hG := hG))
     (wp_traceBecomeCandidate : traceBecomeCandidate.spec (GF := GF) (hG := hG)) :
     raft.becomeCandidate.spec (GF := GF) (hG := hG) := by
-  intro c r id s Hrole Hnw Hcfg Htr
-  wp_start as Hphys
+  intro c r id s Q Hrole Hnw Hcfg
+  wp_start as ⟨Hphys, Hgate⟩
   wp_auto
   -- `becomeCandidate` panics on a leader; by assumption we are not one.
   have Hnl : stateW64 s.role ≠ W64 2 := by
@@ -55,11 +55,25 @@ theorem raft.becomeCandidate.wp_proof
   wp_apply raft.wp_load_idC $$ Hphys as Hphys
   wp_apply raft.wp_load_TermC $$ Hphys as Hphys
   wp_raft_logC
-  wp_node_hookC wp_traceBecomeCandidate
-  iapply HΦ $$ %pvs
+  -- (Q8 stage 1, slice 3) the `BecomeCandidate` line, either mode
   -- the stores above give `becomeCandidate` up to the order of the record updates
-  iapply ownRaftPhysC_eq $$ Hphys
-  cases s; rfl
+  ihave Hphys : ownRaftPhysCV c c.voters r id { becomeCandidate id s with prvals := pvs } $$ [Hphys]
+  · iapply ownRaftPhysC_eq $$ Hphys
+    cases s; rfl
+  have Hgh : ({ becomeCandidate id s with prvals := pvs } : NState).gh.tr = s.gh.tr := by
+    first | rfl | (simp [becomeCandidate, resetTo, resetTo0]) | (cases s; rfl)
+  icases trOwn_split s.gh.tr _ $$ Hphys with ⟨Hown, Hback⟩
+  iunfold HookGate at Hgate
+  imod Hgate with ⟨%tl, #Htl, Hfire⟩
+  wp_apply wp_traceBecomeCandidate c r id { becomeCandidate id s with prvals := pvs } tl Q
+    $$ [Htl Hown Hfire] as ⟨Hown, HQ⟩
+  · rw [Hgh]
+    iframe Htl Hown
+    iapply traceFire_mono_E _ tl _ _ _ (fun e he => by rw [nodeEvOf_prvals] at he; exact he) $$ Hfire
+  rw [Hgh]
+  ihave Hphys := Hback $$ Hown
+  iapply HΦ $$ %pvs
+  iframe HQ Hphys
 
 end proof
 

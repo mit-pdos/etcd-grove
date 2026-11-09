@@ -33347,3 +33347,69 @@ their own in `TracedCap.lean`, their text unchanged.
 "returns" a panic value, after which `traceEvent`'s `do:` does not step. The recorder's spec already
 returns `#()`.
 
+
+## Q8 stage 1 (slice 3): the node-event hooks' callers take the hook's gate (2026-11-09 · trace-check, Q8 stage 1 slice 3; decided by the agent under the user's delegation · branch `trace-check-q8s3`; DRAFT until trace-check's Freeze)
+
+**The shape: the caller lends the hook's gate.** A direct caller of a node-event hook
+(`becomeCandidate`, `becomeFollower`, `maybeCommit`) has one spec for both modes: its precondition
+takes, in place of the stage-0 premise `s.gh.tr = none`, the hook's gate from its caller,
+`HookGate s.gh.tr r E Q` (`TracedCap.lean`): an update at `⊤`, run at the hook, giving the logger field
+and the event builder's gate `TraceFire s.gh.tr tl E Q` for the events `E` the hook logs there (the
+`NodeEvOf` events of the state the function logs: `becomeCandidate id s`, `becomeFollower s term lead`);
+its postcondition gives `Q` back. Where the logged state depends on the function's outcome
+(`maybeCommit`: `b`, `N`, `maybeCommitOut`: `Committed()`'s quorum index and `raftLog.maybeCommit`'s test,
+now also in the postcondition) the gate is one per outcome (`∀ b N, ⌜maybeCommitOut c s b N⌝ -∗
+HookGate … (Q b N)`), consumed at the one that happens. `becomeFollower` adds `s.gh.tr ≠ none → V =
+c.voters` (the hook's event reads the configuration's voters; its untraced callers have other `V`s).
+The proof splits the struct under `trOwn` (`trOwn_split`, `trOwn_split_V`), runs the gate and calls the
+hook.
+
+**The capability's statements are corollaries** (`TracedHooks.lean`, at `HasLC.hasLC`): with the
+simulation's capability `trCapB s.gh.tr γ r id c b Φ Λ`, the line's phase step (`PhaseStepB`; for
+`BecomeFollower` the bootstrap line before the node's segment is over, `PhaseStepBF` after it), its
+last event `Λ'` and its facts (`FxPresUT`, with its resource `R'`; `FxPresBF` under `trOwn`), each
+function is the Draft's shape (`trCapB` in, `trCapB … true Φ' Λ'` and `R'` out): `raft.becomeCandidate.traced`,
+`raft.becomeFollower.traced`, `raft.maybeCommit.traced`, by `trCapB_hookGate`/`trCapB_hookGate_bf`
+(`TracedHooksGlobal.lean`: the logger from the capability and the law `trCap_fire_any`,
+`trCap_fire_boot` or `trCap_fire_bf` traced, from the struct's nil logger untraced). The Draft's
+`traceCommit.tracedSpec` is derived the same way (`traceCommit.tracedSpec_of_spec`, with the `Commit`
+line's phase step proved: `phaseStepB_commit`, from `lineEffect_commit`, the share's every server by
+`toC`, `simServerR_toC`, `advancesTo_toC`).
+
+**Why not `trCapB` in the specs themselves** (the first design, tried): the capability holds `inv`
+and raft's commit invariant, defined at `InvGS GF`, i.e. at `HasLC.hasLC`, while these functions and
+their callers (`stepCandidate`, `stepLeader`, `switchToConfig`, `campaign`, `newRaft`, ...) are proved at
+any `HasLC`. Stating the capability in their specs would move each of them and, through
+`etc/gen-link.py`'s propagation, their results to `HasLC.hasLC` (as slice 2 avoided for the hooks); the
+gate is generic (`TraceFire` and the logger's field need nothing of `HasLC.hasLC`), and the capability
+form follows at `HasLC.hasLC`, where a traced caller (`raft.Step`, already there) uses it. **Why the
+phases are the caller's:** a phase step relates the share to raft's state, and the line's facts (that
+`simFx` survives the line) come from the node's raft ghost (term log, records, commit certificate, vote
+table), which `raft.Step` holds and keeps open across the handler (round 6's F2), not these functions.
+Fixing the phases inside (the Draft's `raft.maybeCommit.tracedSpec`: `SimIdle` in and out, no `FxPres`)
+needs the facts proved inside: for the `Commit` line `QuorumLogInv` at the raised commit, the Draft's
+own blocker (A4/C4). So that statement is not derived (its phase step is: `phaseStepB_commit`).
+
+**`maybeCommit`'s `isCommitted` before `traceCommit`** has its place: the gate is an update at `⊤`
+run once the outcome is known and before the hook, so the caller holding raft's ghost can open the
+commit invariant and create the new commit's `isCommitted` there (the law holds the invariant open and
+cannot); `raft.maybeCommit.traced` takes the line's facts through such an update (`∀ b N,
+⌜maybeCommitOut c s b N⌝ ={⊤}=∗ FxPresUT …`). The creation itself is the caller's, with the facts.
+
+**Untraced callers: an instance lemma, not a second spec.** The callers that stay untraced
+(`raft.Step`'s handlers, `stepLeader`, `stepCandidate`, `switchToConfig`, `campaign`, `newRaft`,
+`RawNode.Bootstrap`) use `X.untraced : X.spec → X.untracedTriple` (`TracedUntraced.lean`), the statement
+before slice 3, from the one spec with `Q := emp` and the gate from the struct's nil logger
+(`ownRaftPhysC_traceLogger`, `hookGate_none`); their proofs shadow the hypothesis (`have wp_X :=
+raft.X.untraced wp_X`), and `raft.Step`'s bundle and `stepLeader`'s helpers take the instance's
+statement. Their call sites are unchanged.
+
+**Not done (slice 3).** `becomeLeader` and `appendEntry` keep `s.gh.tr = none`: `appendEntry` calls
+`r.send` (the leader's self-acknowledgement), whose spec keeps the premise until Q9 and `send`'s queue
+accessor (slice 1's (2), (3)); `becomeLeader` calls `appendEntry`. The ghost changes recorded for their
+lines move with them: the term log in the `BecomeLeader` line's `FxPresU`, the records in the
+`Replicate` lines' `FxPresU`. `newRaft` keeps `tr := none`: its `traceInitState` runs before raft's
+predicate holds (round 1's S5), and a traced `newRaft` would create the node's capability (its share
+from the cluster). `RawNode.acceptReady` keeps `γ.reTrace = none`: the struct is open at `traceReady`
+(`ownRaftPhysReady`'s fields, resealed after it), and its RawNode-level spec hides the raft struct,
+configuration and state the gate and capability name.
