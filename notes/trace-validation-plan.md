@@ -73,6 +73,14 @@ line decides). Each step is pure, modulo its premises: `R` before and after, the
 states visited, the line past the bootstrap lines, the matched message unique among those the line
 could match. Next: those premises from raft's ghost state (the hook-path traced specs, Q8).
 
+S5 Draft (2026-11-09, `TracedHooksDraft.lean`, in review round 1): the hooks traced (`TraceFire`,
+`TraceFireOpt`, `TraceFireN`), `raft.send.tracedSpec`, and a line's effect `LineEffect` stated for
+every trace and global state where the line could occur (the per-line lemmas are generic in the
+trace), so the global step is one pure theorem (`simRun_lineEffect`, proved: a run extended by a line
+with an effect, given the bootstrap, skip and uniqueness conditions and the invariants at the
+intermediate and final states); `lineEffect_heartbeat` proved as the first effect. Layer C's
+`types.go` functions delegated (a worktree branch, `trace-check-layerc-types`).
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its
