@@ -1,17 +1,13 @@
 /-
-`(*storage.SelectionPredicate).Matches(obj)` (`k8s.io/apiserver/pkg/storage/selection_predicate.go`),
-**for the k8s etcd3 driver's predicates** (`predV x`, `examples/k8s/etcd3`'s `predicate(in)`) on
-one of its objects (`&o`, an `*Obj`): no error, and whether the driver's selectors select it
-(`selOkL x o`: `labelSel.Matches` and `fieldSel.Matches` on `getAttrs(o)`; no sharding).
-
-A hypothesis of the driver's `mlist` (k8s 7e-3b, Q7e-3b-2): not linked, no axiom; its statement
-is 7e-2's Draft's to review (provable from the translated `Matches`, `MatchesSharding`,
-`labelFieldEmpty` and the driver's selector and `getAttrs` specs). Lean-first (no Rocq
-counterpart).
+`s.Matches(obj)` (`selection_predicate.go:96-111`) of a predicate with no shard selector, on an
+object held as `objAt x o` (any object predicate; the store's `S.objAt _ _ rv`): `true` if both
+selectors are empty (`GetAttrs` not called), else the selectors' answers on `GetAttrs`' sets; no
+error. Replaces 7e-3b's driver-specialized hypothesis (#22). Proved from the translated body (stage 7e-2, `notes/k8s-7e-2-draft.md` §4.3). Lean-first (no
+Rocq counterpart).
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.KList
+public import Proof.k8s_io.apiserver.pkg.storage.SelDefs
 
 @[expose] public section
 
@@ -20,8 +16,7 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI
-open k8s_etcd3
+open Iris Iris.BI k8s
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -32,14 +27,16 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.Assumptions]
 
 /-- See the file header. -/
 abbrev storage.SelectionPredicate.Matches.spec : Prop :=
-  ∀ (pp : Loc) (x : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Input) (op : Loc)
-    (o : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj) (dq : DFrac),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage ∗ pp ↦ predV x ∗
-      op ↦{dq} o }}
-    (App (Val (pp @!! go.GoType.PointerType k8s_io.apiserver.pkg.storage.SelectionPredicate.ty
-      @!! go!"Matches")) (Val #(interface.mkOk
-        (go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.ty) #op)))
-  {{ RET (PairV #(selOkL x o) #GoInterface.nil); pp ↦ predV x ∗ op ↦{dq} o }}
+  ∀ (O : Type) (objAt : GoInterface → O → IProp GF) (pp : Loc) (dq : DFrac) (p : k8s_io.apiserver.pkg.storage.SelectionPredicate)
+    (le fe : Bool) (lm fm : GMap GoString GoString → Bool) (lab fld : O → GMap GoString GoString)
+    (x : GoInterface) (o : O),
+  p.ShardSelector' = GoInterface.nil →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage ∗ pp ↦{dq} p ∗
+      labelSelOk p.Label' le lm ∗ fieldSelOk p.Field' fe fm ∗ getAttrsOk objAt p.GetAttrs' lab fld ∗
+      objAt x o }}
+    (App (Val (pp @!! go.GoType.PointerType k8s_io.apiserver.pkg.storage.SelectionPredicate.ty @!! go!"Matches")) (Val #x))
+  {{ RET (PairV #((le && fe) || (lm (lab o) && fm (fld o))) #GoInterface.nil);
+      pp ↦{dq} p ∗ objAt x o }}
 
 end spec
 
