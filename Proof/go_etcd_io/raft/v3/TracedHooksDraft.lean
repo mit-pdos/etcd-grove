@@ -206,13 +206,29 @@ def LineEffect (C : List w64) (bf : Bool) (e : TraceEv) (i : Etcdraft.ID) (a a' 
     (withNode σ i a' fM fP).violated = .ok none →
     ∃ tsF : Etcdraft.TState, tsF.s = withNode σ i a' fM fP ∧ Chain t l [⟨σ, l, pl⟩] ⟨σ, l, pl⟩ tsF
 
+/-- `IsBecomeFollowerInUpdateTermOrReturnToFollower`'s test on the node's last line before it (`e0`)
+and the line (`e`). -/
+def bfCond (e0 e : Etcdraft.Event) : Bool :=
+  match e0.msg with
+  | none => false
+  | some pm =>
+    or (Etcdraft.isReceiveName e0.name && decide (e0.state.term < pm.term) && pm.term == e.state.term)
+      (e0.name == "ReceiveAppendEntriesRequest" && e0.state.term == pm.term && pm.term == e.state.term &&
+        (or (e0.role == Etcdraft.candidate) (e0.role == Etcdraft.preCandidate)))
+
+/-- **A step-down's server** (`StepDownToFollower`, the specification's `BecomeFollowerOfTerm` at the
+server's own term). -/
+def bfSrv (a : Etcdraft.Server) : Etcdraft.Server :=
+  { a with currentTerm := a.currentTerm, state := Etcdraft.follower, lead := Etcdraft.nil, votedFor := (if a.currentTerm != a.currentTerm then Etcdraft.nil else a.votedFor) }
+
 /-- **A phase step by a line consuming no message** (not a bootstrap-named line: not `BecomeFollower`,
 whose skip bit only the node's previous line decides, review round 1's F6, so that the line is never
 a bootstrap line, `bootFlags_nonBoot`): from every share `(cs, P)` in phase `Φ`,
 each event `E` allows has, for every server `a` the share stands for, an effect into a share in
 phase `Φ'` (review round 1's S2), its pending messages `P'` added. -/
 def PhaseStep (id : w64) (c : CfgM) (E : TraceEv → Prop) (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) : Prop :=
-  ∀ C cs P, Φ C cs P → (elements c.incoming).Perm C ∧ c.outgoing = ∅ ∧ id ∈ C → ∀ e, E e → Etcdraft.isBootstrapName (gsStr e.name) = false ∧
+  ∀ C cs P, Φ C cs P → (elements c.incoming).Perm C ∧ c.outgoing = ∅ ∧ id ∈ C → ∀ e, E e →
+    e.nid = decStr id ∧ Etcdraft.isBootstrapName (gsStr e.name) = false ∧
     ∀ a : Etcdraft.Server, toC (confAbs C) a = cs →
     ∃ (a' : Etcdraft.Server) (P' : List Etcdraft.Msg),
       Φ' C (toC (confAbs C) a') (P ++ P') ∧ (∀ x ∈ P', x.source = idAbs id) ∧
@@ -311,7 +327,8 @@ one, the node's share `(cs, P)` with the function's phase `Φ C cs P` (`C` the v
 configuration `c` their permutation with no outgoing half, the node one of them: review round 1's
 F4), the node's logger and its contract, and the simulation's invariant. -/
 def trCapB (tr : Option GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (b : Bool)
-    (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) : IProp GF :=
+    (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ : Option TraceEv → Prop := fun _ => True) :
+    IProp GF :=
   match tr with
   | none => iprop(emp)
   | some γd => iprop(∃ (tn : TraceNames) (C : List w64) (tl : GoInterface) (cs : ServerC)
@@ -319,15 +336,16 @@ def trCapB (tr : Option GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) 
       traceDir γd tn ∗ ⌜tn.voters = C ∧ (elements c.incoming).Perm C ∧ c.outgoing = ∅ ∧ id ∈ C⌝ ∗
       r.[raft, go!"traceLogger"] ↦□ tl ∗ isTraceLogger tn.tr tl ∗
       ⌜tl ≠ interface.nil⌝ ∗ inv (simNS γ) (simInv C tn (simFx γ C)) ∗ raftLogInv γ ∗ simNode tn id cs P ∗
-      simBoot tn id b ∗ ⌜Φ C cs P⌝)
+      (∃ o, simBoot tn id b o ∗ ⌜Λ o⌝) ∗ ⌜Φ C cs P⌝)
 
 /-- **The capability, whatever the node's `booted` flag** (`trCapB`'s, review round 2's A7: the laws
 of non-bootstrap lines set it; the bootstrap lines' law needs it unset). -/
 def trCap (tr : Option GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM)
-    (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) : IProp GF :=
+    (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ : Option TraceEv → Prop := fun _ => True) :
+    IProp GF :=
   match tr with
   | none => iprop(emp)
-  | some _ => iprop(∃ b, trCapB tr γ r id c b Φ)
+  | some _ => iprop(∃ b, trCapB tr γ r id c b Φ Λ)
 
 /-- **What a hook's caller gives for an event that may or may not be logged**: `some E`, as
 `TraceFire`; `none` (a message type the hook does not trace), `Q` (review round 1's S6). -/
@@ -382,10 +400,10 @@ logger's update, with the invariants from `simFx` and the bags' uniqueness): a c
 leaves the capability in phase `Φ'`. -/
 abbrev trCap_fire.statement : Prop :=
   ∀ (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (tl : GoInterface) (E : TraceEv → Prop)
-    (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop),
-  PhaseStep id c E Φ Φ' →
-  (trCap (some γd) γ r id c Φ ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗ FxPres γ id E Φ Φ' : IProp GF) ⊢
-    TraceFire (some γd) tl E (trCap (some γd) γ r id c Φ')
+    (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ Λ' : Option TraceEv → Prop),
+  PhaseStep id c E Φ Φ' → (∀ e, E e → Λ' (some e)) →
+  (trCap (some γd) γ r id c Φ Λ ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗ FxPres γ id E Φ Φ' : IProp GF) ⊢
+    TraceFire (some γd) tl E (trCapB (some γd) γ r id c true Φ' Λ')
 
 /-! ## The global step of a receive line (Draft statement) -/
 
@@ -396,7 +414,8 @@ node's share, the phantoms `Pph` (the specification's replies raft does not send
 A6) among the phantoms, through intermediate states of the shape `Mid`. -/
 def PhaseStepR (id : w64) (c : CfgM) (m : Etcdraft.Msg) (E : TraceEv → Prop) (Mid : Etcdraft.Server → Prop)
     (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) : Prop :=
-  ∀ C cs P, Φ C cs P → (elements c.incoming).Perm C ∧ c.outgoing = ∅ ∧ id ∈ C → ∀ e, E e → Etcdraft.isBootstrapName (gsStr e.name) = false ∧
+  ∀ C cs P, Φ C cs P → (elements c.incoming).Perm C ∧ c.outgoing = ∅ ∧ id ∈ C → ∀ e, E e →
+    e.nid = decStr id ∧ Etcdraft.isBootstrapName (gsStr e.name) = false ∧
     (∀ ln, Etcdraft.parseLine 0 (evConv e) = .ok ln → recvPred ln m = true) ∧
     ∀ a : Etcdraft.Server, toC (confAbs C) a = cs →
     ∃ (a' : Etcdraft.Server) (P' Pph : List Etcdraft.Msg),
@@ -425,11 +444,11 @@ consuming the message of the caller's token `k`. -/
 abbrev trCap_fire_recv.statement : Prop :=
   ∀ (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (tl : GoInterface) (E : TraceEv → Prop)
     (k : Nat) (m : Etcdraft.Msg) (Mid : Etcdraft.Server → Prop)
-    (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop),
-  PhaseStepR id c m E Mid Φ Φ' →
-  (trCap (some γd) γ r id c Φ ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗ FxPresR γ id m E Mid Φ Φ' ∗
+    (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ Λ' : Option TraceEv → Prop),
+  PhaseStepR id c m E Mid Φ Φ' → (∀ e, E e → Λ' (some e)) →
+  (trCap (some γd) γ r id c Φ Λ ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗ FxPresR γ id m E Mid Φ Φ' ∗
     (∃ tn, traceDir γd tn ∗ inFlight tn k m) : IProp GF) ⊢
-    TraceFire (some γd) tl E (trCap (some γd) γ r id c Φ')
+    TraceFire (some γd) tl E (trCapB (some γd) γ r id c true Φ' Λ')
 
 /-! ## The global step of a `Ready` line (Draft statement, review round 2's A5) -/
 
@@ -454,10 +473,10 @@ def FxPresReady (γ : RaftNames) (id : w64) (E : TraceEv → Prop)
 pending messages to the network, the share empties, and the caller receives their tokens. -/
 abbrev trCap_fire_ready.statement : Prop :=
   ∀ (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (tl : GoInterface) (E : TraceEv → Prop)
-    (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop),
-  PhaseStepReady id c E Φ Φ' →
-  (trCap (some γd) γ r id c Φ ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗ FxPresReady γ id E Φ : IProp GF) ⊢
-    TraceFire (some γd) tl E iprop(trCap (some γd) γ r id c Φ' ∗
+    (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ Λ' : Option TraceEv → Prop),
+  PhaseStepReady id c E Φ Φ' → (∀ e, E e → Λ' (some e)) →
+  (trCap (some γd) γ r id c Φ Λ ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗ FxPresReady γ id E Φ : IProp GF) ⊢
+    TraceFire (some γd) tl E iprop(trCapB (some γd) γ r id c true Φ' Λ' ∗
       ∃ (tn : TraceNames) (P : List Etcdraft.Msg) (Bn : GMap Nat Etcdraft.Msg), traceDir γd tn ∗
         ⌜((GMap.toList Bn).map Prod.snd).Perm P⌝ ∗ [∗map] k ↦ m ∈ Bn, inFlight tn k m)
 
@@ -467,11 +486,54 @@ abbrev trCap_fire_ready.statement : Prop :=
 line is one `TraceNext` steps over, the state and the share unchanged. -/
 abbrev trCap_fire_boot.statement : Prop :=
   ∀ (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (tl : GoInterface) (E : TraceEv → Prop)
-    (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop),
-  (∀ e, E e → ∃ ln, Etcdraft.parseLine 0 (evConv e) = .ok ln ∧ ln.nid = idAbs id ∧
-    Etcdraft.isBootstrapName ln.ev.name = true) →
-  (trCapB (some γd) γ r id c false Φ ∗ r.[raft, go!"traceLogger"] ↦□ tl : IProp GF) ⊢
-    TraceFire (some γd) tl E (trCapB (some γd) γ r id c false Φ)
+    (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ Λ' : Option TraceEv → Prop),
+  (∀ e, E e → e.nid = decStr id ∧ ∃ ln, Etcdraft.parseLine 0 (evConv e) = .ok ln ∧ ln.nid = idAbs id ∧
+    Etcdraft.isBootstrapName ln.ev.name = true) → (∀ e, E e → Λ' (some e)) →
+  (trCapB (some γd) γ r id c false Φ Λ ∗ r.[raft, go!"traceLogger"] ↦□ tl : IProp GF) ⊢
+    TraceFire (some γd) tl E (trCapB (some γd) γ r id c false Φ Λ')
+
+/-! ## The global step of a `BecomeFollower` line after the node's segment (Draft, review round 2's A7) -/
+
+/-- **A phase step by a `BecomeFollower` line** past the node's bootstrap segment: its skip bit is
+the node's last line's (`bfCond`, the specification's `IsBecomeFollowerInUpdateTermOrReturnToFollower`),
+which the capability's last-event predicate `Λ` describes. Skipped (after an `UpdateTerm` or a lost
+election's `ReturnToFollower` by the previous line): the share unchanged, in phase `Φ'`. Not skipped:
+the node steps down (`StepDownToFollower`, from leader or candidate), its server `bfSrv a`, related
+to the event's state `s`, in phase `Φ'`. -/
+def PhaseStepBF (id : w64) (c : CfgM) (s : NState) (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop)
+    (Λ : Option TraceEv → Prop) : Prop :=
+  ∀ C cs P o, Φ C cs P → Λ o → (elements c.incoming).Perm C ∧ c.outgoing = ∅ ∧ id ∈ C →
+    ∀ e e0, NodeEvOf (W64 2) id s c e → o = some e0 →
+      (bfCond (evConv e0) (evConv e) = true → Φ' C cs P) ∧
+      (bfCond (evConv e0) (evConv e) = false → ∀ a : Etcdraft.Server, toC (confAbs C) a = cs →
+        (a.state = Etcdraft.leader ∨ a.state = Etcdraft.candidate) ∧
+        SimServerR C C.length (toPState s) (bfSrv a) ∧ LogShapeOk C.length (toPState s) ∧
+        s.role ≠ .preCandidate ∧ uint.Z s.term < 2 ^ 63 ∧ uint.Z s.logst.committed < 2 ^ 63 ∧
+        uint.Z (plastIndex (toPState s)) < 2 ^ 63 ∧ Φ' C (toC (confAbs C) (bfSrv a)) P)
+
+/-- **The facts kept by a step-down.** -/
+def FxPresBF (γ : RaftNames) (id : w64) (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) : IProp GF :=
+  iprop(□ ∀ (C : List w64) (P : List Etcdraft.Msg) (σ : Etcdraft.State),
+    ⌜Φ C (toC (confAbs C) (σ.s (idAbs id))) P ∧ σ.server = confAbs C ∧ σ.preVote = false ∧
+      σ.checkQuorum = false ∧ σ.violated = .ok none ∧
+      ((σ.s (idAbs id)).state = Etcdraft.leader ∨ (σ.s (idAbs id)).state = Etcdraft.candidate)⌝ -∗
+    votesTbl γ -∗ simFx γ C σ -∗
+      votesTbl γ ∗ simFx γ C (withNode σ (idAbs id) (bfSrv (σ.s (idAbs id))) _root_.id _root_.id))
+
+/-- **A `BecomeFollower` line's law** past the node's segment (`booted` set): skipped or a step-down,
+as the node's last line decides. -/
+abbrev trCap_fire_bf.statement : Prop :=
+  ∀ (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (tl : GoInterface) (s : NState)
+    (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ Λ' : Option TraceEv → Prop),
+  PhaseStepBF id c s Φ Φ' Λ → (∀ e, NodeEvOf (W64 2) id s c e → Λ' (some e)) →
+  (trCapB (some γd) γ r id c true Φ Λ ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗ FxPresBF γ id Φ : IProp GF) ⊢
+    TraceFire (some γd) tl (NodeEvOf (W64 2) id s c) (trCapB (some γd) γ r id c true Φ' Λ')
+
+/-- A capability with its `booted` flag known is one. -/
+theorem trCapB_trCap (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (b : Bool)
+    (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ : Option TraceEv → Prop) :
+    trCapB (GF := GF) (some γd) γ r id c b Φ Λ ⊢ trCap (some γd) γ r id c Φ Λ := by
+  iintro H; iunfold trCap; iexists b; iexact H
 
 /-! ## The `Commit` path, traced -/
 

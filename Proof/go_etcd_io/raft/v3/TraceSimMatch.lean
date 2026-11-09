@@ -148,8 +148,8 @@ theorem simRun_node (C : List w64) (L : List TraceEv) (σ σ' : Etcdraft.State) 
     (hconf : e.conf = (xs.map decStr, ([] : List w64).map decStr)) (hmsg : e.msg = none)
     (hrecv : Etcdraft.isReceiveName (gsStr e.name) = false)
     (hmev : Etcdraft.isMessageEvent (gsStr e.name) = false) (hcc : gsStr e.name ≠ "ChangeConf")
-    (hboot : ∀ lines ln, parseLines (L.map evConv) = .ok lines →
-      (bootFlags (confAbs C) (lines ++ [ln])).getD L.length false = false)
+    (hboot : ∀ lines, parseLines (L.map evConv) = .ok lines →
+      (bootFlags (confAbs C) (lines ++ [nodeLine e id vote xs])).getD L.length false = false)
     (hnr : ∀ lines (ts : Etcdraft.TState), parseLines (L.map evConv) = .ok lines → ts.s = σ →
       ts.l = L.length + 1 →
       (linesTrace C (lines ++ [nodeLine e id vote xs])).nonReceive ts = .ok [σ'])
@@ -163,7 +163,7 @@ theorem simRun_node (C : List w64) (L : List TraceEv) (σ σ' : Etcdraft.State) 
   simp only [List.length_map] at hlen
   apply next_of_nonReceive _ ts σ' (by omega)
   · simp [linesTrace, Etcdraft.Trace.len]; omega
-  · simp only [linesTrace]; rw [hl']; simpa using hboot lines _ hl
+  · simp only [linesTrace]; rw [hl']; simpa using hboot lines hl
   · rw [linesTrace_line_last C lines _ _ (by omega)]; simpa [nodeLine, evConv] using hrecv
   · exact hnr lines ts hl hts hl'
 
@@ -211,7 +211,7 @@ theorem simRun_becomeLeader (C : List w64) (L : List TraceEv) (σ : Etcdraft.Sta
     rw [hσ]; simp only [hcand, hcfg, hq, beq_self_eq_true, Bool.and_self, ↓reduceIte]
     rfl
   apply simRun_node C L σ _ hrun hL e id s.vote xs hnid hvote hconf hmsg (by rw [hname']; rfl)
-    (by rw [hname']; rfl) (by rw [hname']; decide) hboot _ hinv
+    (by rw [hname']; rfl) (by rw [hname']; decide) (fun lines hl => hboot lines _ hl) _ hinv
   intro lines ts hl hts hl'
   have hlen := parseLines_length _ _ hl
   simp only [List.length_map] at hlen
@@ -254,7 +254,7 @@ theorem simRun_replicate (C : List w64) (L : List TraceEv) (σ : Etcdraft.State)
   have hcr : σ.clientRequest (idAbs id) 0 = some (σ.replicate (idAbs id) (.val 0) .value) := by
     unfold Etcdraft.State.clientRequest; simp [hlead]
   apply simRun_node C L σ _ hrun hL e id s.vote xs hnid hvote hconf hmsg (by rw [hname']; rfl)
-    (by rw [hname']; rfl) (by rw [hname']; decide) hboot _ hinv
+    (by rw [hname']; rfl) (by rw [hname']; decide) (fun lines hl => hboot lines _ hl) _ hinv
   intro lines ts hl hts hl'
   have hlen := parseLines_length _ _ hl
   simp only [List.length_map] at hlen
@@ -303,7 +303,7 @@ theorem simRun_becomeCandidate (C : List w64) (L : List TraceEv) (σ : Etcdraft.
     rcases hrl with h | h <;> simp only [h, hcfg, hcont, hpv, beq_self_eq_true, Bool.true_or, Bool.or_true,
       Bool.true_and, Bool.not_false, ↓reduceIte] <;> rfl
   apply simRun_node C L σ _ hrun hL e id s.vote xs hnid hvote hconf hmsg (by rw [hname']; rfl)
-    (by rw [hname']; rfl) (by rw [hname']; decide) hboot _ hinv
+    (by rw [hname']; rfl) (by rw [hname']; decide) (fun lines hl => hboot lines _ hl) _ hinv
   intro lines ts hl hts hl'
   have hlen := parseLines_length _ _ hl
   simp only [List.length_map] at hlen
@@ -338,7 +338,7 @@ theorem simRun_ready (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (hr
     have : e.name = go!"Ready" := by have := hname; simp at this; exact this.symm
     rw [this]; rfl
   apply simRun_node C L σ _ hrun hL e id s.vote xs hnid hvote hconf hmsg (by rw [hname']; rfl)
-    (by rw [hname']; rfl) (by rw [hname']; decide) hboot _ hinv
+    (by rw [hname']; rfl) (by rw [hname']; decide) (fun lines hl => hboot lines _ hl) _ hinv
   intro lines ts hl hts hl'
   have hlen := parseLines_length _ _ hl
   simp only [List.length_map] at hlen
@@ -3138,16 +3138,6 @@ theorem foldl_last (f : Nat → Bool) (j : Nat) (hj : f j = true) :
     · have : j = N := by omega
       subst this; simp [hj]
 
-/-- `IsBecomeFollowerInUpdateTermOrReturnToFollower`'s test on the node's last line before it (`e0`)
-and the line (`e`). -/
-def bfCond (e0 e : Etcdraft.Event) : Bool :=
-  match e0.msg with
-  | none => false
-  | some pm =>
-    or (Etcdraft.isReceiveName e0.name && decide (e0.state.term < pm.term) && pm.term == e.state.term)
-      (e0.name == "ReceiveAppendEntriesRequest" && e0.state.term == pm.term && pm.term == e.state.term &&
-        (or (e0.role == Etcdraft.candidate) (e0.role == Etcdraft.preCandidate)))
-
 /-- **Which `BecomeFollower` line is skipped**: the test on the node's last line (`e0`, the lines
 after it of other nodes). -/
 theorem isBF_eq (C : List w64) (L : List TraceEv) (lines : List Etcdraft.Line) (e : TraceEv) (id vote : w64)
@@ -3214,7 +3204,7 @@ theorem simRun_bfSkip (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (h
     (L1 L2 : List TraceEv) (e0 : TraceEv) (hsplit : L = L1 ++ e0 :: L2)
     (hnid0 : (evConv e0).nid = (evConv e).nid) (hnid2 : ∀ x ∈ L2, (evConv x).nid ≠ (evConv e).nid)
     (hcond : bfCond (evConv e0) (evConv e) = true)
-    (hboot : ∀ lines ln, parseLines (L.map evConv) = .ok lines →
+    (hboot : ∀ lines (ln : Etcdraft.Line), parseLines (L.map evConv) = .ok lines → ln.nid = idAbs id →
       (bootFlags (confAbs C) (lines ++ [ln])).getD L.length false = false)
     (hinv : σ.violated = .ok none) :
     SimRun C (L ++ [e]) σ := by
@@ -3227,7 +3217,7 @@ theorem simRun_bfSkip (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (h
     have : e.name = go!"BecomeFollower" := by have := hname; simp at this; exact this.symm
     rw [this]; rfl
   apply simRun_node C L σ _ hrun hL e id s.vote xs hnid hvote hconf hmsg (by rw [hname']; rfl)
-    (by rw [hname']; rfl) (by rw [hname']; decide) hboot _ hinv
+    (by rw [hname']; rfl) (by rw [hname']; decide) (fun lines hl => hboot lines _ hl rfl) _ hinv
   intro lines ts hl hts hl'
   have hlen := parseLines_length _ _ hl
   simp only [List.length_map] at hlen
@@ -3276,7 +3266,7 @@ theorem simRun_bfStepDown (C : List w64) (L : List TraceEv) (σ : Etcdraft.State
     (hs : LogShapeOk C.length (toPState s)) (hpre : s.role ≠ .preCandidate)
     (bt : uint.Z s.term < 2 ^ 63) (bc : uint.Z s.logst.committed < 2 ^ 63)
     (bl : uint.Z (plastIndex (toPState s)) < 2 ^ 63)
-    (hboot : ∀ lines ln, parseLines (L.map evConv) = .ok lines →
+    (hboot : ∀ lines (ln : Etcdraft.Line), parseLines (L.map evConv) = .ok lines → ln.nid = idAbs id →
       (bootFlags (confAbs C) (lines ++ [ln])).getD L.length false = false)
     (hinv : (σ.becomeFollowerOfTerm (idAbs id) (σ.s (idAbs id)).currentTerm).violated = .ok none) :
     SimRun C (L ++ [e]) (σ.becomeFollowerOfTerm (idAbs id) (σ.s (idAbs id)).currentTerm) := by
@@ -3291,7 +3281,7 @@ theorem simRun_bfStepDown (C : List w64) (L : List TraceEv) (σ : Etcdraft.State
   have hcontains : σ.server.contains (idAbs id) = true := by
     rw [hsrv, List.contains_iff_mem, mem_confAbs]; exact hC
   apply simRun_node C L σ _ hrun hL e id s.vote xs hnid hvote hconf hmsg (by rw [hname']; rfl)
-    (by rw [hname']; rfl) (by rw [hname']; decide) hboot _ hinv
+    (by rw [hname']; rfl) (by rw [hname']; decide) (fun lines hl => hboot lines _ hl rfl) _ hinv
   intro lines ts hl hts hl'
   have hlen := parseLines_length _ _ hl
   simp only [List.length_map] at hlen

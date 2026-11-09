@@ -19,6 +19,7 @@ module
 
 public import Proof.go_etcd_io.raft.v3.TraceSim
 public import Proof.go_etcd_io.raft.v3.TraceSimBag
+public import Proof.strconv.FormatUintDefs
 
 @[expose] public section
 
@@ -203,9 +204,15 @@ def simNode (tn : TraceNames) (i : w64) (c : ServerC) (P : List Etcdraft.Msg) : 
 def booted (L : List TraceEv) (i : Etcdraft.ID) : Prop :=
   ∃ x ∈ L, ∃ ln, Etcdraft.parseLine 0 (evConv x) = .ok ln ∧ ln.nid = i ∧ Etcdraft.isBootstrapName ln.ev.name = false
 
-/-- Node `i`'s `booted` flag (its bootstrap segment over: `booted`). -/
-def simBoot (tn : TraceNames) (i : w64) (b : Bool) : IProp GF :=
-  ghostMapElem tn.bt i (DFrac.own 1) b
+/-- **Node `i`'s last event in `L`** (`none`: none yet), by its id's string. -/
+def LastOf (L : List TraceEv) (n : GoString) (o : Option TraceEv) : Prop :=
+  match o with
+  | none => ∀ x ∈ L, x.nid ≠ n
+  | some e0 => ∃ L1 L2, L = L1 ++ e0 :: L2 ∧ e0.nid = n ∧ ∀ x ∈ L2, x.nid ≠ n
+
+/-- Node `i`'s `booted` flag (its bootstrap segment over: `booted`) and its last event. -/
+def simBoot (tn : TraceNames) (i : w64) (b : Bool) (o : Option TraceEv) : IProp GF :=
+  ghostMapElem tn.bt i (DFrac.own 1) (b, o)
 
 /-- The token of a handed-out message `m`, `k` its key (a multiset: equal messages occur). -/
 def inFlight (tn : TraceNames) (k : Nat) (m : Etcdraft.Msg) : IProp GF :=
@@ -216,7 +223,7 @@ carries (Draft: `TracedHooksDraft`'s `simFx`: the per-server raft facts and the 
 invariants; the relation of the shares to raft's state is the nodes' own, at their hook points). -/
 def simInv (C : List w64) (tn : TraceNames) (Fx : Etcdraft.State → IProp GF) : IProp GF :=
   iprop(∃ (L : List TraceEv) (σ : Etcdraft.State) (A : GMap w64 (ServerC × List Etcdraft.Msg))
-      (B : GMap Nat Etcdraft.Msg) (phP phM : List Etcdraft.Msg) (Bt : GMap w64 Bool),
+      (B : GMap Nat Etcdraft.Msg) (phP phM : List Etcdraft.Msg) (Bt : GMap w64 (Bool × Option TraceEv)),
     traceFrag tn.tr L ∗ ghostMapAuth tn.st 1 A ∗ ghostMapAuth tn.bag 1 B ∗ ghostMapAuth tn.bt 1 Bt ∗ Fx σ ∗
     ⌜SimRun C L σ ∧ σ.server = confAbs C ∧
       (∀ i ∈ C, ∃ P, A !! i = some (toC σ.server (σ.s (idAbs i)), P)) ∧
@@ -224,7 +231,8 @@ def simInv (C : List w64) (tn : TraceNames) (Fx : Etcdraft.State → IProp GF) :
       BagRep σ.pendingMessages ((C.flatMap (fun i => ((A !! i).map Prod.snd).getD [])) ++ phP) ∧
       BagRep σ.messages ((GMap.toList B).map Prod.snd ++ phM) ∧ σ.preVote = false ∧ σ.checkQuorum = false ∧
       (∀ i ∈ C, ∀ x ∈ ((A !! i).map Prod.snd).getD [], x.source = idAbs i) ∧
-      (∀ i ∈ C, ∃ b, Bt !! i = some b ∧ (b = true ↔ booted L (idAbs i)))⌝)
+      (∀ i ∈ C, ∃ b o, Bt !! i = some (b, o) ∧ (b = true ↔ booted L (idAbs i)) ∧ LastOf L (decStr i) o ∧
+        (b = true → o.isSome))⌝)
 
 instance simInv_timeless (C : List w64) (tn : TraceNames) (Fx : Etcdraft.State → IProp GF)
     [hFx : ∀ σ, Timeless (Fx σ)] : Timeless (simInv C tn Fx) := by
