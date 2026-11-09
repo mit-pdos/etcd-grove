@@ -157,6 +157,12 @@ corrected `etcdraft.tla`"). What changes below, the rest standing:
   rules are exact where the trace is: their guards determine raft's choice (`appAccept`/`appStale`/
   `appReject`, `heartbeat`, `recordVote`, `win`, `lose`, `higherTerm`, `campaign`, `propose`), or
   the trace line fixes it (`sendApps`, `beat`: each message sent is a line).
+  **A third (found 2026-11-09, writing `heartbeat_send`):** `beat`'s `HeartbeatOk` only bounds a
+  heartbeat's commit (`≤ committed`, `≤ Match`), while `sendHeartbeat` sends exactly
+  `min(Match, committed)`, which is what `Heartbeat(i, j)` builds; the line logs the commit, but the
+  specification's message must equal it, so `HeartbeatOk` must be exact too (known in
+  `sendHeartbeat`). `sendApps`'s `ReplOk`/`AppCommitEq` already fix a `MsgApp`'s fields
+  (`appendEntries_send`).
 
 ## What the statement needs
 

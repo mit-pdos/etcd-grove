@@ -1107,6 +1107,39 @@ theorem appendEntries_send (st : Etcdraft.State) (C : List w64) (bl : Nat) (s : 
   congr 4
   omega
 
+/-- **A heartbeat a leader sends** (`sendHeartbeat`: `min(Match, committed)`, which `HeartbeatOk`
+only bounds; the simulation needs it exact): the specification's `Heartbeat(i, j)` sends its
+abstraction. -/
+theorem heartbeat_send (st : Etcdraft.State) (C : List w64) (bl : Nat) (s : PState) (id : w64)
+    (m : Msg) (hR : SimServerR C bl s (st.s (idAbs id))) (hl : s.role = .leader)
+    (hty : m.ty = .heartbeat) (hsrc : m.src = id) (hdst : m.dst ≠ id) (hC : m.dst ∈ C)
+    (hterm : m.term = s.term)
+    (hcommit : uint.Z m.commit = min (uint.Z s.commit) (uint.Z (matchOf s m.dst))) :
+    st.heartbeat (idAbs id) (idAbs m.dst) =
+      .ok (some (st.send ((msgAbs C bl m).get (by simp [msgAbs, hty])))) := by
+  obtain ⟨h1, h2, -, -, -, -, h7, h8, -, -, h11⟩ := hR
+  have hne : idAbs id ≠ idAbs m.dst := fun e => hdst (idAbs_inj.1 e).symm
+  unfold Etcdraft.State.heartbeat Etcdraft.State.appendEntriesInRangeToPeer
+  have hcont : ((st.getConfig (idAbs id)).union (st.getLearners (idAbs id))).contains (idAbs m.dst) = true := by
+    unfold Etcdraft.State.getConfig Etcdraft.State.getLearners; rw [h8]; exact peer_contains C _ hC
+  have hlead : ((st.s (idAbs id)).state != Etcdraft.leader) = false := by rw [h2, hl]; rfl
+  have hle : ¬ ((1 : Int) > 1) := by omega
+  simp only [beq_iff_eq, hne, decide_false, hle, hlead, hcont, Bool.not_true, Bool.or_false, ↓reduceIte]
+  have hsub : Etcdraft.subSeqM (st.s (idAbs id)).log 1 (min ((st.s (idAbs id)).log.length : Int) (1 - 1)) =
+      .ok [] := by
+    unfold Etcdraft.subSeqM Etcdraft.subSeq
+    have : (1 : Int) > min ((st.s (idAbs id)).log.length : Int) (1 - 1) := by omega
+    simp only [this, ↓reduceIte]; rfl
+  have hmsg : msgAbs C bl m = some
+      { type := .appendEntriesRequest, subtype := "heartbeat", term := uint.Z m.term,
+        commitIndex := uint.Z m.commit, source := idAbs m.src, dest := idAbs m.dst } := by
+    simp only [msgAbs, hty]
+  rw [hsub]
+  simp only [hmsg, Option.get_some, bind, Except.bind, pure, Except.pure]
+  rw [hsrc, hterm, ← h1, h11 hl _ hC, h7, hcommit]
+  simp only [Etcdraft.State.send]
+  rfl
+
 end TraceSim
 
 end EtcdGrove

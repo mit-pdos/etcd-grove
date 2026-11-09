@@ -40,7 +40,7 @@ the acceptance test; S5's Draft begun: `TraceSim` (`evConv`, `entAbs`, `msgAbs`,
 `Trace.RunRel` with its acceptance lemma (proved), `TracedApiDraft` (`Cluster.trace`, sealed in
 `InvNode`; `StartNode.gatedSpec`). **Decided by the agent:** each gated node-API statement replaces
 its current spec only once proved (a `sorry` in `StartNode`'s proof would reach every closed
-theorem). **Found:** `StepR`'s `rejectVote` and `commit` are looser than raft; S5 makes them exact
+theorem). **Found:** `StepR`'s `rejectVote`, `commit` and `beat` (`HeartbeatOk`) are looser than raft; S5 makes them exact
 (`notes/trace-validation-sim.md`, revision 13).
 
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
