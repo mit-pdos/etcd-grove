@@ -162,13 +162,6 @@ theorem csOptA_nn [package_sem : Assumptions] (p : Loc) (dq : DFrac) (c : ConfSt
 theorem ownSnapM_combine [package_sem : Assumptions] (p : Loc) (dq1 dq2 : DFrac) (sn : SnapshotM) :
     ownSnapM p dq1 sn ∗ ownSnapM p dq2 sn ⊢ ownSnapM p (dq1 • dq2) sn
 
-structure MsgSt : Type where
-  msg : MessageM
-  ents : List EntryM
-  snap : Option SnapshotM
-  ctx : List w8
-  resps : List Loc
-
 theorem csOpt_csOptA [package_sem : Assumptions] (p : Loc) (dq : DFrac) (c : ConfStateM) : csOpt p
     dq c ⊢ csOptA p dq c
 

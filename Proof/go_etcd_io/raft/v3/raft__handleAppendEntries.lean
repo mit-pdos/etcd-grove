@@ -23,6 +23,7 @@ public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetLogTerm
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetFrom
 public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
 public import Proof.go_etcd_io.raft.v3.LemmasSendRB
+public import Proof.go_etcd_io.raft.v3.TracedUntraced
 
 @[expose] public section
 
@@ -44,7 +45,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `r.send(&pb.Message{To: dst, Type: pb.MsgAppResp.Enum(), Index: ..., ...})`, the reply
 built: `SendOk`'s `MsgAppResp` clause (d) with no entries. -/
-private theorem wp_send_appResp (wp_raft_send : raft.send.spec (GF := GF) (hG := hG))
+private theorem wp_send_appResp (wp_raft_send : raft.send.untracedTriple (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (dst idx hintterm hint : w64)
     (rej : Bool) (Hdst : dst ≠ id) (Htz : s.term ≠ W64 0) (Htr : s.gh.tr = none) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
@@ -99,6 +100,8 @@ theorem raft.handleAppendEntries.wp_proof
     (wp_GetFrom : raftpb.Message.GetFrom.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.handleAppendEntries.spec (GF := GF) (hG := hG) := by
+  -- (Q8 stage 1, slice 5) `send`'s untraced instance (`TracedUntraced.lean`)
+  have wp_raft_send := raft.send.untraced wp_raft_send
   intro c r id s ml m ents sn ctx rs Hwf Hnw Hconf Hfid Htyapp Hnl Htz Htr
   wp_start as Hpre
   iNamed Hpre

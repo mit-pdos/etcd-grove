@@ -20,6 +20,7 @@ public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
 public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetTerm
 public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
 public import Proof.go_etcd_io.raft.v3.LemmasSendRB
+public import Proof.go_etcd_io.raft.v3.TracedUntraced
 
 @[expose] public section
 
@@ -61,6 +62,8 @@ theorem raft.handleSnapshot.wp_proof
     (wp_SnapshotMetadata_GetTerm : raftpb.SnapshotMetadata.GetTerm.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.handleSnapshot.spec (GF := GF) (hG := hG) := by
+  -- (Q8 stage 1, slice 5) `send`'s untraced instance (`TracedUntraced.lean`)
+  have wp_raft_send := raft.send.untraced wp_raft_send
   intro c r id s ml m ents sn ctx rs sv cl Hrole Hvotes Hsn Hcl Hscope Hfid Hns Htz Htr
   subst Hsn
   wp_start as H

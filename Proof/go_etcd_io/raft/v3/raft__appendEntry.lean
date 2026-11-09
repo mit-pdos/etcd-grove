@@ -20,6 +20,7 @@ public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
 public import Spec.google_golang_org.protobuf.proto.CloneEntry
 public import Proof.go_etcd_io.raft.v3.LemmasSendRB
 public import Proof.ReceiptTactics
+public import Proof.go_etcd_io.raft.v3.TracedUntraced
 
 @[expose] public section
 
@@ -115,6 +116,8 @@ theorem raft.appendEntry.wp_proof
     (wp_CloneEntry : proto.CloneEntry.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.appendEntry.spec (GF := GF) (hG := hG) := by
+  -- (Q8 stage 1, slice 5) `send`'s untraced instance (`TracedUntraced.lean`)
+  have wp_raft_send := raft.send.untraced wp_raft_send
   intro c r id s es ents dq m Hsmall Hnz Htr
   wp_start as ⟨Hphys, Hes, #Hrc⟩
   wp_auto

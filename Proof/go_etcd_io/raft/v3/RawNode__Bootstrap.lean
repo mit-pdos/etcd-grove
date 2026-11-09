@@ -534,6 +534,7 @@ theorem RawNode.Bootstrap.wp_proof
         -- (2026-11-01, durability stage II (m)) `prevHardSt`'s record the zero hard state
         (PhsOk.zero rfl rfl (by rw [HNls]; simp only [logAppend, Hsn]) Hpcut)
         (by show sk.gh.tr = γ.reTrace; rw [HNgh, HtrG])
+        (by show sk.gh.lq = []; rw [HNgh, Hgh])
         $$ Hrn Hphys Hghost Hsdrf Hsoft Hes' Hsteps Hsteps_cap [] Hcomm0 [] [] [] []
       · iapply pendList_nil
       · iapply ackInv_none; intro _ _ _ _ h; cases h
@@ -606,6 +607,7 @@ theorem RawNode.Bootstrap.wp_proof
         -- (2026-11-01, durability stage II (m)) `prevHardSt`'s record the zero hard state
         (PhsOk.zero rfl rfl (by rw [HNls]; simp only [logAppend, Hsn]) Hpcut)
         (by show sk.gh.tr = γ.reTrace; rw [HNgh, HtrG])
+        (by show sk.gh.lq = []; rw [HNgh, Hgh])
         $$ Hrn Hphys Hghost Hsdrf Hsoft Hes' Hsteps Hsteps_cap [] Hcomm0 [] [] [] []
       · iapply pendList_nil
       · iapply ackInv_none; intro _ _ _ _ h; cases h

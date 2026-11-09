@@ -476,6 +476,124 @@ theorem raft.maybeCommit.traced (h : raft.maybeCommit.spec (GF := GF) (hG := hG)
   · ipureintro; exact Hout
   ipureintro; exact HN
 
+/-! ### (Q8 stage 1, slice 5) `raft.send` on the capability -/
+
+/-- A traced type's send queues exactly one message the model describes (`SendOk`'s clauses (a),
+(b), (d)); the others (a snapshot, a transfer message, a forwarded proposal or read index) are not
+traced (`sendEvt`). -/
+theorem sendOk_traced_single {id : w64} {s : NState} {m : MessageM} {ents : List EntryM}
+    {ctx : List w8} {out : List Msg} {evt : w64} (Hok : SendOk id s m ents ctx out)
+    (hev : (mtypeOf m.Type').bind sendEvt = some evt) : ∃ mm, out = [mm] := by
+  unfold SendOk at Hok
+  rcases Hok with ⟨_, _, _, _, _, _, _, rfl⟩ | ⟨_, _, _, _, _, _, rfl⟩ |
+    (⟨HSnap, _⟩ | ⟨Htt, _⟩) | ⟨_, _, _, _, rfl⟩ | (⟨HProp, _⟩ | ⟨HRI, _⟩)
+  · exact ⟨_, rfl⟩
+  · exact ⟨_, rfl⟩
+  · rw [HSnap, show (mtypeOf MsgSnap).bind sendEvt = none from rfl] at hev; cases hev
+  · rcases Htt with h | h
+    · rw [h, show (mtypeOf MsgTimeoutNow).bind sendEvt = none from rfl] at hev; cases hev
+    · rw [h, show (mtypeOf MsgTransferLeader).bind sendEvt = none from rfl] at hev; cases hev
+  · exact ⟨_, rfl⟩
+  · rw [HProp, show (mtypeOf MsgProp).bind sendEvt = none from rfl] at hev; cases hev
+  · rw [HRI, show (mtypeOf MsgReadIndex).bind sendEvt = none from rfl] at hev; cases hev
+
+/-- **`raft.send.tracedSpec`** (the Draft's, frozen) from `raft.send.spec`: the hook's gate from the
+capability. For a traced type the send line (`out`'s one message), by the laws `trCap_fire` (the node's
+segment not over) and `trCap_fire_booted`, the line's facts (`FxPresT`, no ghost update:
+`fxPres_upd`); for another type the capability with its phase weakened (`trCapB_mono`). Untraced, the
+gate is the struct's nil logger (`trCapB_logger0`). -/
+theorem raft.send.tracedSpec_of_spec (h : raft.send.spec (GF := GF) (hG := hG)) :
+    raft.send.tracedSpec (GF := GF) (hG := hG) := by
+  intro c γ r id s ml m ents sn ctx rs out Φ Φ' b Λ Λ' Hfrom Hok Hsn Hsh Hrs Hsnap Hps HΛ
+  have Hsnap' : s.gh.tr ≠ none → mtypeOf m.Type' ≠ some .snap :=
+    fun h' => Hsnap (Option.isSome_iff_ne_none.2 h')
+  revert Hps HΛ
+  cases hev : (mtypeOf m.Type').bind sendEvt with
+  | none =>
+    intro Hps _
+    simp only [Option.isSome_none, Bool.false_and, Bool.false_eq_true, ↓reduceIte]
+    iintro %Ψ ⟨#Hpkg, Hphys, Hm, #Hsrc, Hcap, -⟩ HΨ
+    icases trCapB_logger0 c c.voters r id s γ b Φ Λ $$ [$Hphys $Hcap]
+      with ⟨%tl0, #Htl0, %Htlok, Hphys, Hcap⟩
+    iapply h c r id s ml m ents sn ctx rs out (trCapB s.gh.tr γ r id c b Φ' Λ) Hfrom Hok Hsn Hsh Hrs
+      Hsnap' $$ [Hphys Hm Hcap]
+    · iframe Hpkg Hphys Hm Hsrc
+      unfold sendOutGate
+      rw [hev]
+      iunfold HookGateOpt
+      imodintro
+      iexists tl0
+      iframe Htl0
+      isplitr
+      · ipureintro; exact Htlok
+      simp only [Option.map_none, TraceFireOpt]
+      iapply trCapB_mono s.gh.tr γ r id c b Φ Φ' Λ Hps $$ Hcap
+    inext
+    iintro ⟨Hphys, HQ⟩
+    iapply HΨ
+    iframe Hphys HQ
+  | some evt =>
+    intro Hps HΛ
+    obtain ⟨mm, rfl⟩ := sendOk_traced_single Hok hev
+    have Hps1 := Hps mm (List.mem_singleton_self _)
+    have HΛ1 := HΛ evt rfl mm (List.mem_singleton_self _)
+    simp only [Option.isSome_some, List.isEmpty_cons, Bool.not_false, Bool.and_self, ↓reduceIte]
+    iintro %Ψ ⟨#Hpkg, Hphys, Hm, #Hsrc, Hcap, Hfx⟩ HΨ
+    ihave Hfx : FxPresT s.gh.tr γ id (SendEvOf evt id s c mm) Φ Φ' $$ [Hfx]
+    · iapply (BigSepL.bigSepL_singleton (Φ := fun _ x => FxPresT (GF := GF) s.gh.tr γ id
+        (SendEvOf evt id s c x) Φ Φ')).1 $$ Hfx
+    icases trCapB_logger0 c c.voters r id s γ b Φ Λ $$ [$Hphys $Hcap]
+      with ⟨%tl0, #Htl0, %Htlok, Hphys, Hcap⟩
+    iapply h c r id s ml m ents sn ctx rs [mm] (trCapB s.gh.tr γ r id c true Φ' Λ') Hfrom Hok Hsn
+      Hsh Hrs Hsnap' $$ [Hphys Hm Hcap Hfx]
+    · iframe Hpkg Hphys Hm Hsrc
+      have hE : (fun e => ∃ x ∈ [mm], SendEvOf evt id s c x e) = SendEvOf evt id s c mm := by
+        funext e; simp
+      unfold sendOutGate
+      rw [hev]
+      simp only [Option.map_some, TraceFireOpt]
+      rw [hE]
+      iunfold HookGateOpt
+      simp only [TraceFireOpt]
+      imodintro
+      iexists tl0
+      iframe Htl0
+      isplitr
+      · ipureintro; exact Htlok
+      revert Htlok
+      cases htr : s.gh.tr with
+      | none =>
+        intro Htlok
+        simp only [TraceFire, trCapB]
+        isplitr
+        · ipureintro; exact Htlok rfl
+        iempintro
+      | some γd =>
+        intro _
+        simp only [FxPresT]
+        ihave Hfx := fxPres_upd γ id _ Φ Φ' $$ Hfx
+        iapply traceFire_mono (some γd) tl0 _ iprop(trCapB (some γd) γ r id c true Φ' Λ' ∗ emp)
+        isplitr
+        · iintro ⟨H, -⟩; iexact H
+        cases b with
+        | false =>
+          iapply trCap_fire γd γ r id c tl0 _ Φ Φ' Λ Λ' iprop(emp) Hps1 HΛ1
+            (fun e he => sendEvOf_ascii _ _ _ _ _ e he)
+          iframe Htl0 Hfx
+          iapply trCapB_trCap
+          iexact Hcap
+        | true =>
+          iapply trCap_fire_booted γd γ r id c tl0 _ Φ Φ' Λ Λ' iprop(emp)
+            (fun C cs P hΦ hc e he => by
+              obtain ⟨h1, h2, h3⟩ := Hps1 C cs P hΦ hc e he
+              exact ⟨h1, isBootstrapName_bf _ h2, h3⟩) HΛ1
+            (fun e he => sendEvOf_ascii _ _ _ _ _ e he)
+          iframe Hcap Htl0 Hfx
+    inext
+    iintro ⟨Hphys, HQ⟩
+    iapply HΨ
+    iframe Hphys HQ
+
 end ghost
 
 end EtcdGrove

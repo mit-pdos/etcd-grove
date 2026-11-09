@@ -11,6 +11,7 @@ module
 public import Spec.go_etcd_io.raft.v3.raft__bcastHeartbeatWithCtx
 public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__Visit
 public import Spec.go_etcd_io.raft.v3.raft__sendHeartbeat
+public import Proof.go_etcd_io.raft.v3.TracedUntraced
 
 @[expose] public section
 
@@ -39,6 +40,13 @@ private theorem heartbeatOk_intro (id : w64) (s : NState) (to c : w64) (cl : Lis
   simp only [Hl, ↓reduceIte]
   exact ⟨trivial, trivial, trivial, Hto, Hc, Hm⟩
 
+/-- (Q8 stage 1, slice 5) A hook gate at equal arguments (the heartbeat's gate at a state that
+reads as `s`). -/
+private theorem hookGateOpt_congr (tr tr' : Option GName) (r : Loc) (oE oE' : Option (TraceEv → Prop))
+    (Q : IProp GF) (h1 : tr = tr') (h2 : oE = oE') :
+    HookGateOpt tr r oE Q ⊢ HookGateOpt tr' r oE' Q := by
+  subst h1 h2; exact .rfl
+
 /-- The same proof as `bcastAppend`'s (`proof_raft__bcastAppend.v`): the caller
 invariant of `Visit` is the raft struct with a tracker-shaped hole (the wand of
 `ownRaftPhysC_tracker_prvals`), quantified over the `Progress` values; `ms`
@@ -50,7 +58,7 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
     (wp_ProgressTracker_Visit : tracker.ProgressTracker.Visit.spec (GF := GF) (hG := hG))
     (wp_raft_sendHeartbeat : raft.sendHeartbeat.spec (GF := GF) (hG := hG)) :
     raft.bcastHeartbeatWithCtx.spec (GF := GF) (hG := hG) := by
-  intro c r id s ctx cl Hlead Htz Htr
+  intro c r id s ctx cl G Hlead Htz
   wp_start as Hphys
   iNamed Hphys
   wp_auto
@@ -61,6 +69,8 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
       (fun _ pvsx => iprop(∃ (ms : List Msg),
         "rp" ∷ r_ptr ↦ r ∗
         "cp" ∷ ctx_ptr ↦ ctx ∗
+        -- (Q8 stage 1, slice 5) the caller's resource, through each heartbeat's gate
+        "HG" ∷ G ∗
         "%Hms" ∷ ⌜∀ m ∈ ms, HeartbeatOk id (toPState s) m ∧ m.ctx = cl⌝ ∗
         "%Hmm" ∷ ⌜prvalsMatch pvsx = prvalsMatch s.prvals⌝ ∗
         "%Hok" ∷ ⌜PrvalsOk { sendMsgs s ms with prvals := pvsx }⌝ ∗
@@ -68,11 +78,11 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
             ownTrackerC c tvx ⟨s.votes, s.progress, pvsx'⟩ -∗
             ⌜PrvalsOk { sendMsgs s ms with prvals := pvsx' }⌝ -∗
             ownRaftPhysCV c c.voters r id { sendMsgs s ms with prvals := pvsx' })))
-    $$ [$Htrkf $Htrk r ctx Hrest]
-  · isplitl [r ctx Hrest]
+    $$ [$Htrkf $Htrk r ctx Hrest HG]
+  · isplitl [r ctx Hrest HG]
     · iexists []
       simp only [named]
-      iframe r ctx
+      iframe r ctx HG
       isplitr
       · ipureintro; simp
       isplitr
@@ -106,7 +116,7 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
       iframe Htrkf Htrk
       iexists ms
       simp only [named]
-      iframe rp cp
+      iframe rp cp HG
       isplitr
       · ipureintro; exact Hms
       isplitr
@@ -121,9 +131,20 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
     · -- a peer: one heartbeat
       rw [decide_eq_false Hii]
       wp_auto
-      wp_apply wp_raft_sendHeartbeat _ _ _ _ i ctx cl Hii (by exact Hicfg) (by exact Htz) (by tr_none) $$ [$Hphys]
-        as %cm %pvs' ⟨Hphys, %Hc1, %Hc2, %Hmm'⟩
-      · iexact Hctx
+      wp_apply wp_raft_sendHeartbeat _ _ _ _ i ctx cl G Hii (by exact Hicfg) (by exact Htz) $$ [$Hphys HG]
+        as %cm %pvs' ⟨Hphys, %Hc1, %Hc2, %Hmm', HG⟩
+      · iframe Hctx
+        -- (Q8 stage 1, slice 5) the caller's gate for this heartbeat, at `s`
+        iintro %cm %Hb
+        have Hb2 := Hb.2
+        simp only at Hb2
+        rw [Hmi] at Hb2
+        iapply hookGateOpt_congr s.gh.tr _ r
+          (sendOutGate id s c MsgHeartbeat
+            [Msg.mkV .heartbeat id i s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl]) _ G ?hg1 ?hg2
+        case hg1 => rfl
+        case hg2 => rfl
+        iapply Hgate $$ %i %cm %(And.intro Hii Hicfg) %(And.intro Hb.1 Hb2) HG
       try wp_auto
       icases ownRaftPhysC_prvals_ok c r id _ $$ Hphys with ⟨%Hok', -, Hphys⟩
       icases ownRaftPhysC_tracker_prvals $$ Hphys with ⟨%tv1, Htrkf, Htrk, Hrest⟩
@@ -134,7 +155,7 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
       iframe Htrkf Htrk
       iexists ms ++ [Msg.mkV .heartbeat id i s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl]
       simp only [named]
-      iframe rp cp
+      iframe rp cp HG
       isplitr
       · ipureintro
         intro m Hm
@@ -162,7 +183,7 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
     rfl
   wp_auto
   iapply HΦ $$ %ms %pvsfin
-  iframe Hphys
+  iframe Hphys HG
   ipureintro
   exact ⟨Hms, Hmm⟩
 

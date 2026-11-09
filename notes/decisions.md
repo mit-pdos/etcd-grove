@@ -33548,3 +33548,70 @@ either (the predicate owns the queue's field, slice and messages at `1`). The wa
 ("Q8 stage 1 (slice 4)"): the state records the message `send` just queued (`NGhost.lq`, with
 `ownRaftPhysCV`'s membership clause), which the read specs preserve since they keep `s`; a raft ghost
 change with a full rebuild and the `RawNode` invariants' `lq = none`, not taken in this slice.
+
+## Q8 stage 1 (slice 5): `send`'s queued message lent back through `NGhost.lq`; `send` one spec for both modes (2026-11-09 · trace-check, Q8 stage 1 slice 5; Q11 (a) taken by the coordinator pending the user's veto, its form decided by the agent · branch `trace-check-q8s5`; DRAFT until trace-check's Freeze)
+
+**The ghost field.** `NGhost.lq : List (Loc × MsgSt)` (`Defs.lean`; `MsgSt` moved from `InvPb.lean`
+to `PbModel.lean`, which `Defs.lean` sees): the messages `send` has just queued, newest first, each
+the queued pointer and the state it holds. `ownRaftPhysCV`'s clause `"%Hlq" ∷ ⌜LqOk s.gh.lq msgs
+msgsAA⌝` (`InvRaftPhys.lean`): every recorded message is one of the two queues' (`QMsg` membership).
+Since `outboxRel` owns every queued message (`msgQ`, at `1`), membership is enough to lend the message
+out of raft's state and back at the same state (`ownRaftPhysC_lq_lend`, through `outboxRel_lend` and
+`msgQs_lend`), which is what `send`'s hook needs: it reads raft's state and the message in turn
+(`RaftLend`/`MsgLend`, slice 4), both out of `ownRaftPhysCV` at the state with the message recorded
+(`raftLend_self`, `msgLend_lq`).
+
+**Who moves it.** Only `send`: its queue accessors (`ownRaftPhysC_msgs`/`_msgsAA`, used by `send`
+alone) close raft's state with the appended message pushed (`lq := (l', st') :: s.gh.lq`), and `send`
+pops it after the hook (`ownRaftPhysC_lq_pop`), so its postcondition keeps today's form
+(`sendMsgs s out`) and every other function keeps `lq` with the rest of `s.gh`. The queue-draining
+closures (`ownRaftPhysC_view`'s `Hclose`, and `ownRaftPhysReady`'s) take `LqOk g.lq ms1' ms2'` (the
+view gives `LqOk s.gh.lq ms1 ms2` for a closure that keeps the queues); the drains
+(`RawNode.acceptReady`, `ownRawNodeReady_abandon`, `node.run`'s) get it from the `RawNode`
+predicates, which record `s.gh.lq = []` (`%Hglq`, in `ownRawNode`, `ownRawNodeIdle`,
+`ownRawNodeReady`; the intro lemmas' `Hglq` defaults to `tr_keep`, as stage 0's `Hgtr`).
+
+**Why a list, not the plan's `Option`.** `send`'s spec is for any `s`, and the Draft's
+`raft.send.tracedSpec` (frozen) has no premise on `lq`, so `send` must give back whatever its caller's
+state recorded. An `Option` overwritten by `send` cannot be restored: after the hook, raft's state is
+an arbitrary resource of `ownRaftPhysCV` at the state with the new record, which says nothing of the
+old one, so the old record's membership is lost. A stack pops back to it (its tail is still queued).
+Outside `send` it is `[]` anyway (the `RawNode` predicates).
+
+**Why membership, not "the last element".** Membership survives later appends and the lending lemma
+needs no more; "the last of its queue" would need re-proving at every append and gains nothing.
+
+**Not a narrower lemma over the existing predicate.** Reconsidered once in the code: the hook's state
+must be lent as `ownRaftPhysCV` itself (`RaftLend`), whose give-back loses the queues' pointers, so any
+lending of the message has to be keyed by something the state `s` records. Reordering is not open
+either: Go queues `m` (`r.msgs = append(r.msgs, m)`) before `traceSendMessage(r, m)`, and the old
+`r.msgs` value is no longer in the heap at the hook.
+
+**`send`'s one spec.** `raft.send.spec` takes, in place of stage 0's `s.gh.tr = none`, the hook's gate
+`HookGateOpt s.gh.tr r (sendOutGate id s c m.Type' out) Q` (`TracedMsg.lean`: as slice 3's `HookGate`,
+an update at `⊤` run at the hook giving the logger field and `TraceFireOpt`, plus the untraced nil
+logger, which `TraceFireOpt none tl none Q` does not carry) and gives `Q` back; `sendOutGate` is the
+`SendEvOf` events of `out`'s messages for a traced type (`sendEvt`), none otherwise; and a traced node
+sends no snapshot (`s.gh.tr ≠ none → mtypeOf m.Type' ≠ some .snap`, the Draft's P2). The proof
+(`raft__send.lean`, `send_hookW`): the queue accessor closes the state with the message recorded, the
+gate runs, `traceSendMessage` gets raft's state and the message under `trOwn s.gh.tr` (`trOwn_split`,
+`trOwn_pure` for the traced-only fact), its events at the queued, stamped message being within the
+gate's (`sendGate_le`: the event's header reads nothing `send` changes, and the stamped message is,
+as `MsgEvOf` reads it, `out`'s), then the pop. Untraced callers: `raft.send.untraced`
+(`TracedUntraced.lean`, the statement before slice 5, the gate from the struct's nil logger,
+`hookGateOpt_none`). The Draft's `raft.send.tracedSpec` is derived (`raft.send.tracedSpec_of_spec`,
+`TracedHooks.lean`): for a traced type the line's law (`trCap_fire` before the node's segment is over,
+`trCap_fire_booted` after), the facts `FxPresT` as `FxPresU` (`fxPres_upd`), `out` a singleton
+(`sendOk_traced_single`); otherwise `trCapB_mono`.
+
+**`send`'s callers.** A caller making one send takes the send's gate at the message it builds
+(`sendTimeoutNow`: at no event, `MsgTimeoutNow` not being traced; `sendHeartbeat`: `∀ cm`, the
+heartbeat's commit, with its two bounds), and gives `Q` back. A loop of sends (`bcastHeartbeatWithCtx`,
+`bcastHeartbeat`) takes a persistent per-send gate turning the caller's `G` into `G` (`□ (∀ to cm, … -∗
+G -∗ HookGateOpt … G)`) and `G`, threaded through the loop's invariant: the traced caller's `G` is the
+capability in a phase each heartbeat line keeps. Each send's event is stated at the loop's entry state
+`s`: the event's header reads nothing a send changes, so the gate at `{ sendMsgs s ms with prvals := … }`
+is the gate at `s` (`rfl`). `maybeSendSnapshot` stays untraced by design (a traced node sends no
+snapshot, P2). Not done in this slice: `maybeSendAppend`, `sendAppend`, `bcastAppend`,
+`sendMsgReadIndexResponse`, `releasePendingReadIndexMessages`, `appendEntry`, `becomeLeader` (plan, "Q8
+stage 1 (slice 5)").

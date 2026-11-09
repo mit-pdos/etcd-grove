@@ -54,6 +54,7 @@ public import Proof.go_etcd_io.raft.v3.raft__Step.MsgStorageApplyResp
 public import Proof.go_etcd_io.raft.v3.raft__Step.MsgReadIndex
 public import Proof.go_etcd_io.raft.v3.raft__Step.MsgReadIndexResp
 public import Proof.go_etcd_io.raft.v3.raft__Step.MsgRest
+public import Proof.go_etcd_io.raft.v3.TracedUntraced
 
 @[expose] public section
 
@@ -678,6 +679,8 @@ theorem raft.Step.wp_proof
     (wp_Entry_GetIndex : raftpb.Entry.GetIndex.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.Step.spec (GF := GF) (hG := hG) := by
+  -- (Q8 stage 1, slice 5) `send`'s untraced instance (`TracedUntraced.lean`)
+  have wp_raft_send := raft.send.untraced wp_raft_send
   have P : raft.Step.Postulates (GF := GF) (hG := hG) :=
     ⟨wp_raft_hup, raft.becomeFollower.untraced wp_raft_becomeFollower, wp_voteRespMsgType, wp_raft_send, wp_stepCandidate,
      wp_stepFollower, wp_stepLeader, traceReceiveMessage.untraced wp_traceReceiveMessage, wp_raftLog_lastEntryID,

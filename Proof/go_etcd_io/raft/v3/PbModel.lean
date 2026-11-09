@@ -131,5 +131,16 @@ structure ReadStateM where
   Index' : w64
   RequestCtx' : List w8
 
+/-- What a `*pb.Message` holds beyond its scalars (D3): its scalar fields as the model reads them
+(`msg`), the entries behind `Entries`, the snapshot behind `Snapshot` (`none`: `nil`), the bytes
+behind `Context`, and the pointers in `Responses` (whose objects the holder owns). (Moved here from
+`InvPb.lean` on 2026-11-09, Q8 stage 1 slice 5, for `NGhost.lq`.) -/
+structure MsgSt [GooseExts] where
+  msg : MessageM
+  ents : List EntryM
+  snap : Option SnapshotM
+  ctx : List w8
+  resps : List Loc
+
 end EtcdGrove
 end Perennial

@@ -121,7 +121,7 @@ theorem ownRaftPhys_lead (c : CfgM) (r : Loc) (id : w64) (s : NState) :
   iintro Hl Ht
   ihave H := Hclose $$ %sl1 %sl2 %ms1 %ms2 %s.outbox %s.logst %s.gh %rss %s.rd Ht Hf_Vote
     Hf_readStates HreadStates HreadStates_cap %(And.intro rfl rfl) Hf_raftLog Hf_state Hl Hf_msgs Hmsgs Hmsgs_cap Hf_msgsAA HmsgsAA HmsgsAA_cap Houtbox
-    %HmsgsAA_ok %Hout_term %Hgh_out %(Hgh_unst.1) %(⟨rfl, Hgh_unst.2.1, fun _ h => h⟩) %(fun _ => Int.le_refl _) %Hxf Hscert %(rfl : s.gh.tr = s.gh.tr) Hlog
+    %HmsgsAA_ok %Hout_term %Hgh_out %(Hgh_unst.1) %(⟨rfl, Hgh_unst.2.1, fun _ h => h⟩) %(fun _ => Int.le_refl _) %Hxf Hscert %(rfl : s.gh.tr = s.gh.tr) %Hlq Hlog
   iapply ownRaftPhysC_eq c r id _ _ (by cases s; rfl) $$ H
 
 /-- The raft struct out of the node (`r` is the node's raft pointer), and back. -/
@@ -244,7 +244,7 @@ theorem ownRawNodeReady_lead (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
     exact ⟨Houtbox, HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, Hxf, Hmslen⟩
   ipureintro
   exact ⟨Hwf, Hin, Hasync, Hdlen, Hunp, Hsnap, Hloan, Htrm, Hstor, Hpvoff, Hrs_out, Hrs_unst,
-    Hrs_clb, Hrnfl, Hceok, Hcepre, Hes, Hrdc, Hprc, Hnsout, Hsdt, Hrole, Hpst, Hphs, Hgtr⟩
+    Hrs_clb, Hrnfl, Hceok, Hcepre, Hes, Hrdc, Hprc, Hnsout, Hsdt, Hrole, Hpst, Hphs, Hgtr, Hglq⟩
 
 /-! ## A `Ready`'s batch and committed entries (raft-final phase 2, for `readyData`) -/
 
@@ -484,7 +484,7 @@ theorem ownRawNodeReady_abandon_keep (γ : RaftNames) (rn : Loc) (id : w64) (rs 
     %(⟨fun h => (of_decide_eq_true h).imp (fun x => x) Hrsn, Hgh_unst.1.2⟩ : GhLogOk g s.logst)
     %(⟨rfl, fun _ => ⟨rfl, rfl, rfl, Int.le_refl _⟩, fun _ h => h⟩ :
       g.ns = s.gh.ns ∧ LogNsKeep s s.logst ∧ ∀ m ∈ s.outbox, m ∈ s.outbox)
-    %(fun _ => Int.le_refl _) %(Hxf.of_fields rfl rfl rfl) Hscert %(rfl : g.tr = s.gh.tr) Hlog
+    %(fun _ => Int.le_refl _) %(Hxf.of_fields rfl rfl rfl) Hscert %(rfl : g.tr = s.gh.tr) %(by show LqOk s.gh.lq _ _; rw [Hglq]; exact LqOk.nil _ _) Hlog
   ihave #Hdeliv : isCommitted γ rs.delivered $$ []
   · iapply isCommitted_mono γ rs.delivered (rs.delivered ++ ce) (List.prefix_append _ _)
       $$ Hcommitted
@@ -857,7 +857,7 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
         (Hloan.step_xw s'.term Hgx (fun _ => ⟨.inl Hsn, Hfl', (logStoreRec_stored Hsd), Hu, Ha, Hc⟩) ⟨Hsn, Hc⟩)
         (Hsdt.ofRec Hsn Hsd) Hrole
         (Hphs.keep rfl rfl rfl (HsLe.of_step Href.voteLe Hc) Hsn (ip_of_step Hip4 Htrc))
-        (by rw [Hgx]; exact Hgtr) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' [Hdur]
+        (by rw [Hgx]; exact Hgtr) (by rw [Hgx]; exact Hglq) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' [Hdur]
     · -- (durability stage II (i)) the step keeps `durTie`'s fields
       iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) Hsn Hpv (logStoreRec_stored Hsd) $$ Hdur
   ipureintro
@@ -1105,7 +1105,7 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
       Hfr'.2.2.1 Hap' Hc)
     (Hsdt.ofRec Hfr'.2.2.2.1 Hfr'.2.2.2.2.2.1) Hrole
     (Hphs.keep rfl rfl rfl (HsLe.of_step Href.voteLe Hc) Hfr'.2.2.2.1 (.inl Hfr'.2.1))
-    (by rw [LocalFrame.ns Hfr']; exact Hgtr) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' [Hdur]
+    (by rw [LocalFrame.ns Hfr']; exact Hgtr) (by rw [LocalFrame.ns Hfr']; exact Hglq) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' [Hdur]
   · -- (durability stage II (i)) the step keeps `durTie`'s fields
     iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) Hfr'.2.2.2.1 Hfr'.2.2.2.2.1 (logStoreRec_stored Hfr'.2.2.2.2.2.1) $$ Hdur
 
@@ -1363,7 +1363,9 @@ theorem wp_applyConf_dyn
     (HDl : ∀ l, rs.slent = some l → D.length ≤ l.dlv.length)
     (HDn : rs.slent = none → D.length ≤ rs.delivered.length)
     -- (2026-11-09, Q8 stage 0) the trace mode the cluster's, and the cluster untraced
-    (Hgtr : s.gh.tr = γ.reTrace) (HtrG : γ.reTrace = none) :
+    (Hgtr : s.gh.tr = γ.reTrace) (HtrG : γ.reTrace = none)
+    -- (2026-11-09, Q8 stage 1 slice 5) no message recorded as just queued (`NGhost.lq`)
+    (Hglq : s.gh.lq = [] := by tr_keep) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         rawNodeOwn rn rnv ∗ ownRaftPhysCV cf cf.voters rnv.raft' id s ∗
         ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds⟩) cf id s ∗
@@ -1525,7 +1527,7 @@ theorem wp_applyConf_dyn
   · iapply ownRawNode_intro γ rn id { rs with cfg := cs', capplied := k + 1 } s' cs'.cfg fp rnv sv
       hprev steps Hwf' (fun h => by simp only at h; rw [hm] at h; cases h) Hasync
       (by rw [Hls']; exact Hdlen) (by rw [Hls']; exact Hunp) (by rw [Hls']; exact Hsnap)
-      (Hgtr := by rw [Hgh']; exact Hgtr)
+      (Hgtr := by rw [Hgh']; exact Hgtr) (Hglq := by rw [Hgh']; exact Hglq)
       (stepsOk_mono s s' _ Ht' ⟨by rw [Hls'], by rw [Hls']⟩ Hc' (by rw [Hls']) (tc_le_of_gh Hgh') Hstok)
       (by rw [Ht']; exact Htrm) (by rw [Hls']; exact Hstor)
       ⟨fun _ _ hp => absurd (Hrl' hp) Hnpc, by rw [Hgh']; exact Hpvoff.2.1,
@@ -1574,7 +1576,9 @@ theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
     (Htrk' : TrackedOk γ (CfgM.simple γ.reCfg (domSet s'.progress \ γ.reCfg)) id)
     (Hnl : NsLink γ s)
     -- (2026-11-09, Q8 stage 0) the trace mode the cluster's
-    (Hgtr : s.gh.tr = γ.reTrace) :
+    (Hgtr : s.gh.tr = γ.reTrace)
+    -- (2026-11-09, Q8 stage 1 slice 5) no message recorded as just queued (`NGhost.lq`)
+    (Hglq : s.gh.lq = [] := by tr_keep) :
     ⊢ rawNodeOwn rn rnv -∗ ownRaftPhys γ.reCfg rnv.raft' id s' -∗ ownRaftGhost (GF := GF) γ id ps -∗
       sdrOk rnv.raft' rs.mode -∗
       rnv.prevSoftSt' ↦□ sv -∗ prevHS γ rnv.prevHardSt' hprev rs.phs -∗ rnv.stepsOnAdvance' ↦* steps -∗
@@ -1629,7 +1633,7 @@ theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
     (by unfold SdtTie; rw [Hls]; exact Hsdt) Hrole
     (Hphs.keep rfl rfl rfl (HsLe.of_step (applyCCOkC_voteLe Hok) Hc) Hsnap'
       (.inl (by rw [Hls]; exact Int.le_refl _)))
-    Htrk' (by unfold NsLink; rw [Hgh]; exact Hnl) (by rw [Hgh]; exact Hgtr)
+    Htrk' (by unfold NsLink; rw [Hgh]; exact Hnl) (by rw [Hgh]; exact Hgtr) (by rw [Hgh]; exact Hglq)
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstr' Hloanc Hcl' Hsloc' Hlw' Hxw' [Hdur]
   iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) (by rw [Hls]) (by rw [Hls])
     (by rw [Hls]) $$ Hdur

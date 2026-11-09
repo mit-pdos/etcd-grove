@@ -474,6 +474,48 @@ in the four functions' proof files only (`makeTracingMessage`, `traceEvent`, `tr
 `traceReceiveMessage`: their specs and callee hypotheses); `etc/api-check.py` 0 errors; `etc/gen-link.py
 --raft` (and `--server`, `--kv*`) up to date.
 
+**Q8 stage 1 (slice 5), 2026-11-09 (branch `trace-check-q8s5`): `send`'s queued message lent through
+`NGhost.lq` (Q11 (a)); `raft.send` one spec for both modes.** Decided by the agent (`notes/decisions.md`,
+"Q8 stage 1 (slice 5)"). Done: (1) **the ghost change**: `NGhost.lq : List (Loc × MsgSt)` (the messages
+`send` has just queued, newest first; `MsgSt` moved from `InvPb.lean` to `PbModel.lean` so `Defs.lean`
+sees it), `ownRaftPhysCV`'s clause `LqOk s.gh.lq msgs msgsAA` (each recorded message is queued), the
+lending lemma `ownRaftPhysC_lq_lend` (the message out of raft's state and back at the same state:
+`outboxRel` owns every queued message), the pop `ownRaftPhysC_lq_pop`; `send`'s queue accessors push the
+message; the queue-draining closures (`ownRaftPhysC_view`'s, `ownRaftPhysReady`'s) take `LqOk g.lq …`,
+from the `RawNode` predicates' new `s.gh.lq = []` (`%Hglq` in `ownRawNode`, `ownRawNodeIdle`,
+`ownRawNodeReady`, as stage 0's `%Hgtr`). A list, not Q11's `Option`: `send` (and the Draft's frozen
+`raft.send.tracedSpec`) is for any `s`, and an overwritten `Option` cannot be restored after the hook.
+(2) **`raft.send`**: one spec for both modes, the hook's gate `HookGateOpt s.gh.tr r (sendOutGate id s c
+m.Type' out) Q` (`TracedMsg.lean`, as slice 3's `HookGate` with the untraced nil logger), `Q` back, a
+traced node sending no snapshot; proved (`send_hookW`: the message recorded, the gate run, the hook given
+raft's state and the message under `trOwn`, `sendGate_le`, the pop); the Draft's `raft.send.tracedSpec`
+derived (`raft.send.tracedSpec_of_spec`, `TracedHooks.lean`: `trCap_fire`/`trCap_fire_booted` for a
+traced type, `trCapB_mono` otherwise); untraced callers through `raft.send.untraced`
+(`TracedUntraced.lean`, the statement before slice 5; `raft.Step`'s bundle and `stepLeader`'s
+`hbresp`, `handleAppendEntries`' `wp_send_appResp` take the instance). (3) Outward: `sendTimeoutNow`
+(the gate at no event: `MsgTimeoutNow` is not traced), `sendHeartbeat` (the gate at the heartbeat's
+commit, `∀ cm` with its two bounds), `bcastHeartbeatWithCtx` and `bcastHeartbeat` (a loop of sends: a
+persistent per-heartbeat gate `□ (∀ to cm, … -∗ G -∗ HookGateOpt … G)` and the caller's `G`, threaded
+through the `Visit`; each heartbeat's event read at `s`, which no send changes: `sendOutGate` at
+`{ sendMsgs s ms with prvals := … }` is `sendOutGate` at `s` by `rfl`; `bcastHeartbeat`'s at the
+read-only object's context `hbCtx`), each with its `X.untraced` instance for its callers (`stepLeader`'s
+helpers, `sendMsgReadIndexResponse`). **Not done** (their callers unchanged, on `send`'s untraced
+instance): `maybeSendSnapshot` stays untraced by design (it sends a `MsgSnap`, which a traced node never
+sends, the Draft's P2: its one spec would carry `s.gh.tr = none` anyway); `maybeSendAppend`,
+`sendAppend`, `bcastAppend` (a `MsgApp` or a snapshot, by the progress' state; `bcastAppend`'s loop as
+the heartbeats'), `sendMsgReadIndexResponse` and `releasePendingReadIndexMessages` (their heartbeats at
+the state after `readOnly.addRequest`/`recvAck`, which their gates must name), `appendEntry` (with the
+`Replicate` lines' records created in their `FxPresU`) and `becomeLeader` (the term log in the
+`BecomeLeader` line's `FxPresU`, after `appendEntry`): next slice. Also: `raft__campaign`'s layout
+violation (`campRoleState_gh`, stage 0) fixed, `campRoleState` and its facts moved to
+`LemmasCampaign.lean`. Checked (after merging `trace-check`, at `dcc3106c4d`): full `lake build` green
+(13778 jobs); `etc/tcb-report.py --check` (806 axioms, 4 `sorry`s, unchanged) and all 53 collections
+`--reuse --check`; `interface/` differs by `NGhost.lq` (`Defs.txt`, the record literals of
+`RawNode__acceptReady.txt` and `raft__Step.txt`), `MsgSt`'s move (`InvPb.txt` → `PbModel.txt`), the five
+gated specs' proof files and `raft__campaign.txt`'s moved helpers; `etc/api-check.py` 0 errors;
+`etc/gen-link.py --raft` unchanged; `--layout`: one new violation not this slice's (`traceEvent`'s
+`wp_makeTracingMessage_arg`, slice 4).
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its
@@ -790,6 +832,10 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   field, as Q8 (a) added `NGhost.tr`; no closed statement changes); (b) keep the queued messages'
   points-to in `ownRaftPhysCV` with their pointers (a larger change to every queue lemma). **Taken by
   the coordinator, pending the user's veto: (a)**, the smaller change of the same kind as Q8 (a).
+  **(a) done (2026-11-09, branch `trace-check-q8s5`)**, as a stack `NGhost.lq : List (Loc × MsgSt)`
+  rather than an `Option` (decided by the agent): `send` must give back its caller's record (its spec,
+  and the Draft's frozen `raft.send.tracedSpec`, are for any `s`), which an overwritten `Option` loses;
+  the `RawNode` predicates record `lq = []` (`notes/decisions.md`, "Q8 stage 1 (slice 5)").
 - **Q10 (2026-11-09, layer C: `CheckTrace`): the premise `CheckTrace.spec` takes.** `CheckTrace.spec`
   (precondition `traceRO t tr` only) could not be proved from its callees' specs, which take the Lean
   evaluation to succeed, the line in scope and the state bounded (layer C, "`trace.go`'s search proved;

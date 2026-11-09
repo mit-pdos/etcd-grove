@@ -14,6 +14,7 @@ public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetFrom
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetEntries
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetIndex
 public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetData
+public import Proof.go_etcd_io.raft.v3.TracedUntraced
 
 @[expose] public section
 
@@ -73,6 +74,8 @@ theorem stepFollower.wp_proof
     (wp_GetIndex : raftpb.Message.GetIndex.spec (GF := GF) (hG := hG))
     (wp_GetData : raftpb.Entry.GetData.spec (GF := GF) (hG := hG)) :
     stepFollower.spec (GF := GF) (hG := hG) := by
+  -- (Q8 stage 1, slice 5) `send`'s untraced instance (`TracedUntraced.lean`)
+  have wp_raft_send := raft.send.untraced wp_raft_send
   intro c scfg r id s ml m ents sn rs sv cl Hty Hri Hstz Hprop Happ Hhb Hrest Hsnap Hnors Htr
   wp_start as H
   iNamed H

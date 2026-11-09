@@ -913,7 +913,7 @@ theorem newRaft.wp_proof
     ⟨fun h => absurd h Bool.false_ne_true,
       SnpOk.of_none rfl rfl rfl rfl, rfl⟩
     (fun h => absurd rfl h) (PrvalsOk.not_leader (by simp only [s2]; decide)) (LogNsOk.off rfl)
-    (XfOk.nil (fun h => absurd h (by simp only [s2]; decide)))
+    (XfOk.nil (fun h => absurd h (by simp only [s2]; decide))) (LqOk.nil _ _)
     $$ Hro Hlg0 Htrk HL Hnil1 Hcap1 Hnil2 Hcap2 Hmisc Hob Hns0 Hsc0
   try wp_auto
   -- `r.becomeFollower(r.Term, None)`

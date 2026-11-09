@@ -952,6 +952,7 @@ def ownRaftPhysReady (c : CfgM) (r : Loc) (id : w64) (s : NState) (msl : GoSlice
         ⌜XfOk id { s with outbox := o, logst := ls', gh := g, rd := rd' } (ms1' ++ ms2')⌝ -∗
         qSrcs g.sn (ms1' ++ ms2') -∗
         ⌜g.tr = s.gh.tr⌝ -∗
+        ⌜LqOk g.lq ms1' ms2'⌝ -∗
         ownRaftLog s.log ls' -∗
         ownRaftPhysCV c c.voters r id { s with outbox := o, logst := ls', gh := g, rd := rd' }))
 
@@ -1362,7 +1363,10 @@ def ownRawNodeReady (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : 
   -- (2026-11-01, durability stage II (m)) as `ownRawNode`'s
   "%Hphs" ∷ ⌜PhsOk rs s⌝ ∗
   -- (2026-11-09, Q8 stage 0) as `ownRawNode`'s: the trace mode the cluster's
-  "%Hgtr" ∷ ⌜s.gh.tr = γ.reTrace⌝)
+  "%Hgtr" ∷ ⌜s.gh.tr = γ.reTrace⌝ ∗
+  -- (2026-11-09, Q8 stage 1 slice 5) no message recorded as just queued (`NGhost.lq`: `send`
+  -- pops what it pushes), which the queue-draining closures need (`ownRaftPhysC_view`'s `LqOk`)
+  "%Hglq" ∷ ⌜s.gh.lq = []⌝)
 
 /-- (D22 S-d3a) `loanCom` with no loan. -/
 theorem loanCom_none (γ : RaftNames) {o : Option SnapLoan} (h : o = none) :
@@ -1485,7 +1489,7 @@ theorem ownRawNodeReady_abandon (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
     %(⟨fun h => .inl (of_decide_eq_true h), Hgh_unst.1.2⟩ : GhLogOk g s.logst)
     %(⟨rfl, fun _ => ⟨rfl, rfl, rfl, Int.le_refl _⟩, fun _ h => h⟩ :
       g.ns = s.gh.ns ∧ LogNsKeep s s.logst ∧ ∀ m ∈ s.outbox, m ∈ s.outbox)
-    %(fun _ => Int.le_refl _) %(Hxf.of_fields rfl rfl rfl) Hscert %(rfl : g.tr = s.gh.tr) Hlog
+    %(fun _ => Int.le_refl _) %(Hxf.of_fields rfl rfl rfl) Hscert %(rfl : g.tr = s.gh.tr) %(by show LqOk s.gh.lq _ _; rw [Hglq]; exact LqOk.nil _ _) Hlog
   ihave #Hdeliv : isCommitted γ rs.delivered $$ []
   · iapply isCommitted_mono γ rs.delivered (rs.delivered ++ ce) (List.prefix_append _ _)
       $$ Hcommitted
@@ -2520,7 +2524,10 @@ def ownRawNodeIdle (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) : IProp
   "%Hphs" ∷ ⌜PhsOk rs s⌝ ∗
   "%Hhsi" ∷ ⌜hsOf s = hsZero ∨ hsOf s = rs.phs⌝ ∗
   -- (2026-11-09, Q8 stage 0) as `ownRawNode`'s: the trace mode the cluster's
-  "%Hgtr" ∷ ⌜s.gh.tr = γ.reTrace⌝)
+  "%Hgtr" ∷ ⌜s.gh.tr = γ.reTrace⌝ ∗
+  -- (2026-11-09, Q8 stage 1 slice 5) no message recorded as just queued (`NGhost.lq`: `send`
+  -- pops what it pushes), which the queue-draining closures need (`ownRaftPhysC_view`'s `LqOk`)
+  "%Hglq" ∷ ⌜s.gh.lq = []⌝)
 
 theorem ownRawNodeIdle_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
     (s : NState) (c : CfgM) (fp : List EntryM) {ds : DecMap} (rnv : RawNode) (sv : SoftState)
@@ -2539,7 +2546,7 @@ theorem ownRawNodeIdle_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
       (s.logst.snap = none ∨ s.logst.sip = true))
     (Hrole : rs.role = sv.RaftState') (Hphs : PhsOk rs s)
     (Hhsi : hsOf s = hsZero ∨ hsOf s = rs.phs)
-    (Hgtr : s.gh.tr = γ.reTrace := by tr_keep) :
+    (Hgtr : s.gh.tr = γ.reTrace := by tr_keep) (Hglq : s.gh.lq = [] := by tr_keep) :
     ⊢ rawNodeOwn rn rnv -∗ ownRaftPhysCV c c.voters rnv.raft' id s -∗
       ownStepGhost (GF := GF) γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds⟩) c id s -∗
       sdrOk rnv.raft' rs.mode -∗
@@ -2559,7 +2566,7 @@ theorem ownRawNodeIdle_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
   iframe Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstrecs Hloanc Hsloc Hdur
   ipureintro
   exact ⟨Hwf, Hin, Hasync, Hdlen, Hunp, Hsnap, Hstok, Htrm, Hstor, Hpvoff, Hrs_out,
-    Hrs_unst, Hrs_clb, Hrnfl, Hloan, Hidle, Hsdt, Hrole, Hphs, Hhsi, Hgtr⟩
+    Hrs_unst, Hrs_clb, Hrnfl, Hloan, Hidle, Hsdt, Hrole, Hphs, Hhsi, Hgtr, Hglq⟩
 
 theorem ownRawNodeIdle_ownRawNode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) :
     ⊢ ownRawNodeIdle (GF := GF) γ rn id rs -∗ ownRawNode γ rn id rs := by
@@ -2721,16 +2728,16 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
     isplitl [Hlog]
     · iExactEq Hlog; rfl
     iintro %sl1' %sl2' %ms1' %ms2' %o %ls' %g %rs' %rd' HfTerm HfVote Hfrs Hrs' Hrsc %Hrd'
-      Hflog Hfst Hfld Hfm Hm Hmc Hfma Hma Hmac Hob' %H1 %H2 %H3 %H4 %H5 %H6 %H7 #Hsc' %H8 Hl
+      Hflog Hfst Hfld Hfm Hm Hmc Hfma Hma Hmac Hob' %H1 %H2 %H3 %H4 %H5 %H6 %H7 #Hsc' %H8 %H9 Hl
     iapply Hclose $$ %sl1' %sl2' %ms1' %ms2' %o %ls' %g %rs' %rd' HfTerm HfVote Hfrs Hrs' Hrsc
-      %Hrd' Hflog Hfst Hfld Hfm Hm Hmc Hfma Hma Hmac Hob' %H1 %H2 %H3 %H4 %H5 %H6 %H7 Hsc' %H8 Hl
+      %Hrd' Hflog Hfst Hfld Hfm Hm Hmc Hfma Hma Hmac Hob' %H1 %H2 %H3 %H4 %H5 %H6 %H7 Hsc' %H8 %H9 Hl
   ipureintro
   refine ⟨Hwf, Hin, Hasync, Hdlen, Hunp0 ▸ Hunp.symm, Hsnap, ⟨Hloan, Hsl⟩, Htrm, Hstor, Hpvoff,
     Hrs_out, Hrs_unst, Hrs_clb,
     ⟨Hrnfl.1, Int.not_lt.1 fun h => by
       obtain ⟨_, _, Hm, -⟩ := Hrnfl.2 h; rw [Hsteps0] at Hm; simp at Hm⟩,
     fun e He => ?_, fun h => absurd rfl h, Hidle.2.1.symm, Nat.zero_le _, List.nil_subperm, Hnsout, Hsdt,
-    Hrole, Hpst, Hphs, Hgtr⟩
+    Hrole, Hpst, Hphs, Hgtr, Hglq⟩
   obtain ⟨H1, H2⟩ := Hce_ok e He
   have Hne : ce ≠ [] := by intro h; subst h; simp at He
   have : 0 < ce.length := List.length_pos_iff.2 Hne

@@ -528,6 +528,8 @@ theorem wp_stepLeader_transfer
     {{ (err : GoInterface) (s' : NState), RET #err;
         ownRaftPhysCV c c.voters r id s' ∗ ⌜err = interface.nil⌝ ∗
         ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ }} := by
+  -- (Q8 stage 1, slice 5) the untraced instance (`TracedUntraced.lean`)
+  have wp_raft_sendTimeoutNow := raft.sendTimeoutNow.untraced wp_raft_sendTimeoutNow
   wp_start as ⟨Hphys, Hm⟩
   have Hty' : m.Type' = MsgForgetLeader ∨ m.Type' = MsgTimeoutNow ∨ m.Type' = MsgUnreachable ∨
       m.Type' = MsgSnapStatus ∨ m.Type' = MsgTransferLeader := by simp [Hty]
@@ -710,6 +712,8 @@ theorem wp_stepLeader_beat
     {{ (err : GoInterface) (s' : NState), RET #err;
         ownRaftPhysCV c c.voters r id s' ∗ ⌜err = interface.nil⌝ ∗
         ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ }} := by
+  -- (Q8 stage 1, slice 5) the untraced instance (`TracedUntraced.lean`)
+  have wp_raft_bcastHeartbeat := raft.bcastHeartbeat.untraced wp_raft_bcastHeartbeat
   wp_start as ⟨Hphys, Hm⟩
   wp_auto
   wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hm] as Hm
@@ -730,7 +734,7 @@ theorem wp_stepLeader_hbresp
     (wp_readOnly_recvAck : readOnly.recvAck.spec (GF := GF) (hG := hG))
     (wp_readOnly_maybeAdvance : readOnly.maybeAdvance.spec (GF := GF) (hG := hG))
     (wp_raft_responseToReadIndexReq : raft.responseToReadIndexReq.spec (GF := GF) (hG := hG))
-    (wp_raft_send : raft.send.spec (GF := GF) (hG := hG))
+    (wp_raft_send : raft.send.untracedTriple (GF := GF) (hG := hG))
         (wp_GetType : raftpb.Message.GetType.spec (GF := GF) (hG := hG))
     (wp_GetFrom : raftpb.Message.GetFrom.spec (GF := GF) (hG := hG))
     (wp_GetContext : raftpb.Message.GetContext.spec (GF := GF) (hG := hG))
@@ -1144,6 +1148,8 @@ theorem wp_stepLeader_appresp
     {{ (err : GoInterface) (s' : NState), RET #err;
         ownRaftPhysCV c c.voters r id s' ∗ ⌜err = interface.nil⌝ ∗
         ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ }} := by
+  -- (Q8 stage 1, slice 5) the untraced instance (`TracedUntraced.lean`)
+  have wp_raft_sendTimeoutNow := raft.sendTimeoutNow.untraced wp_raft_sendTimeoutNow
   wp_start as ⟨Hphys, Hm⟩
   wp_auto
   wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hm] as Hm

@@ -120,7 +120,7 @@ theorem readyNstate.proj_isLearner (s : NState) (L : Option SnapLoan) (ce : List
 theorem readyNstate.proj_gh (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) (dk :
     Nat := s.logst.dtk) : (readyNstate s L ce sz dk).gh = have __src := s.gh; { tc := __src.tc, ns
     := __src.ns, xw := __src.xw, slent := L.isSome, snp := loanTrip L, sn := __src.sn, tr :=
-    __src.tr }
+    __src.tr, lq := __src.lq }
 
 theorem readyNstate.proj_prevote (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64)
     (dk : Nat := s.logst.dtk) : (readyNstate s L ce sz dk).prevote = s.prevote
@@ -136,7 +136,7 @@ def readyNstate (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64)
     gh :=
       have __src := s.gh;
       { tc := __src.tc, ns := __src.ns, xw := __src.xw, slent := L.isSome, snp := loanTrip L, sn := __src.sn,
-        tr := __src.tr },
+        tr := __src.tr, lq := __src.lq },
     rd :=
       have __src := s.rd;
       { ro := __src.ro, pend := __src.pend },

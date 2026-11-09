@@ -28,6 +28,7 @@ public import Spec.go_etcd_io.raft.v3.raft__maybeSendSnapshot
 public import Spec.go_etcd_io.raft.v3.payloadsSize
 public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
 public import Proof.go_etcd_io.raft.v3.LemmasSendR
+public import Proof.go_etcd_io.raft.v3.TracedUntraced
 
 @[expose] public section
 
@@ -302,6 +303,8 @@ theorem raft.maybeSendAppend.wp_proof
     (wp_payloadsSize : payloadsSize.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.maybeSendAppend.spec (GF := GF) (hG := hG) := by
+  -- (Q8 stage 1, slice 5) `send`'s untraced instance (`TracedUntraced.lean`)
+  have wp_raft_send := raft.send.untraced wp_raft_send
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
   intro c r id s to sendIfEmpty Hto Hcfg Hlead Htz Htr
   wp_start as Hpre

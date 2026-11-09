@@ -15,6 +15,7 @@ public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetCommit
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetContext
 public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
 public import Proof.go_etcd_io.raft.v3.LemmasSendRB
+public import Proof.go_etcd_io.raft.v3.TracedUntraced
 
 @[expose] public section
 
@@ -39,6 +40,8 @@ theorem raft.handleHeartbeat.wp_proof
     (wp_GetContext : raftpb.Message.GetContext.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.handleHeartbeat.spec (GF := GF) (hG := hG) := by
+  -- (Q8 stage 1, slice 5) `send`'s untraced instance (`TracedUntraced.lean`)
+  have wp_raft_send := raft.send.untraced wp_raft_send
   intro c r id s ml dq dqe cap m ents sn cl rs Hcommit Hfrom Htz Htr
   wp_start as H
   iNamed H
