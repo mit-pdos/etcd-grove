@@ -94,6 +94,100 @@ theorem simStep_pure (C : List w64) (L : List TraceEv) (σ : Etcdraft.State)
     rw [← List.append_assoc]
     exact List.Perm.append_right phP this.symm
 
+theorem bag_mem_domain_of_count (b : Etcdraft.Bag) (m : Etcdraft.Msg) (h : 0 < Etcdraft.Bag.count b m) :
+    m ∈ b.domain := by
+  unfold Etcdraft.Bag.count at h
+  cases hf : b.find? (fun it => it.1 == m) with
+  | none => rw [hf] at h; simp at h
+  | some it =>
+    have hm := List.mem_of_find?_eq_some hf
+    have he : it.1 = m := by simpa using List.find?_some hf
+    exact List.mem_map.2 ⟨it, hm, he⟩
+
+/-- **The receive line's pure core** (`simStep_pure`'s counterpart, the token `k`'s message `m`
+consumed). -/
+theorem simStepR_pure (C : List w64) (L : List TraceEv) (σ : Etcdraft.State)
+    (A : GMap w64 (ServerC × List Etcdraft.Msg)) (B : GMap Nat Etcdraft.Msg) (phP phM : List Etcdraft.Msg)
+    (id : w64) (hC : id ∈ C)
+    (hnd : C.Nodup) (P : List Etcdraft.Msg) (e : TraceEv) (a' : Etcdraft.Server) (P' : List Etcdraft.Msg)
+    (k : Nat) (m : Etcdraft.Msg) (Mid : Etcdraft.Server → Prop)
+    (hrun : SimRun C L σ) (hsrv : σ.server = confAbs C)
+    (hA : ∀ i ∈ C, ∃ Q, A !! i = some (toC σ.server (σ.s (idAbs i)), Q)) (hAid : A !! id = some (toC σ.server (σ.s (idAbs id)), P))
+    (hAn : ∀ i, i ∉ C → A !! i = none)
+    (hP : BagRep σ.pendingMessages ((C.flatMap (fun i => ((A !! i).map Prod.snd).getD [])) ++ phP))
+    (hM : BagRep σ.messages ((GMap.toList B).map Prod.snd ++ phM)) (hBk : B !! k = some m)
+    (huniq : MsgsUniq σ)
+    (hpv : σ.preVote = false) (hcq : σ.checkQuorum = false)
+    (hname : Etcdraft.isBootstrapName (gsStr e.name) = false)
+    (hmatch : ∀ ln, Etcdraft.parseLine 0 (evConv e) = .ok ln → recvPred ln m = true)
+    (hle : LineEffect C false e (idAbs id) (σ.s (idAbs id)) a' (some m) (fun b => b.without m)
+      (fun b => P'.foldl Etcdraft.Bag.with b) Mid)
+    (hσinv : σ.violated = .ok none)
+    (hmids : ∀ v, Mid v → (withNode σ (idAbs id) v _root_.id _root_.id).violated = .ok none)
+    (hinv : (withNode σ (idAbs id) a' (fun b => b.without m) (fun b => P'.foldl Etcdraft.Bag.with b)).violated = .ok none) :
+    let σ' := withNode σ (idAbs id) a' (fun b => b.without m) (fun b => P'.foldl Etcdraft.Bag.with b)
+    let A' := A.insert id (toC σ.server a', P ++ P')
+    SimRun C (L ++ [e]) σ' ∧ σ'.server = confAbs C ∧
+      (∀ i ∈ C, ∃ Q, A' !! i = some (toC σ'.server (σ'.s (idAbs i)), Q)) ∧ (∀ i, i ∉ C → A' !! i = none) ∧
+      BagRep σ'.pendingMessages ((C.flatMap (fun i => ((A' !! i).map Prod.snd).getD [])) ++ phP) ∧
+      BagRep σ'.messages ((GMap.toList (B.delete k)).map Prod.snd ++ phM) := by
+  intro σ' A'
+  have hsrv' : σ'.server = σ.server := rfl
+  have hs_id : σ'.s (idAbs id) = a' := by simp [σ', withNode]
+  have hs_ne : ∀ j, j ≠ idAbs id → σ'.s j = σ.s j := by intro j hj; simp [σ', withNode, hj]
+  -- the token's message is in flight
+  have hml : m ∈ (GMap.toList B).map Prod.snd ++ phM :=
+    List.mem_append_left _ (List.mem_map.2 ⟨(k, m), (GMap.mem_toList B k m).2 hBk, rfl⟩)
+  have hcnt : 0 < Etcdraft.Bag.count σ.messages m := by rw [hM.2.2 m]; exact List.count_pos_iff.2 hml
+  have hmd := bag_mem_domain_of_count _ _ hcnt
+  refine ⟨?_, by rw [hsrv', hsrv], ?_, ?_, ?_, ?_⟩
+  · apply simRun_lineEffect C L σ hrun hσinv e false (idAbs id) _ a' (some m) _ _ _ hle hsrv rfl hpv hcq
+    · intro lines ln _ hp
+      have := parseLine_ev _ _ _ hp
+      have hb : Etcdraft.isBootstrapName ln.ev.name = false := by rw [this]; exact hname
+      have hlen := parseLines_length _ _ (by assumption)
+      simp only [List.length_map] at hlen
+      rw [← hlen]; exact bootFlags_nonBoot _ _ _ hb
+    · intro lines ln pl hl hp
+      have hlen := parseLines_length _ _ hl
+      simp only [List.length_map] at hlen
+      apply isBF_false
+      rw [linesTrace_line_last C lines ln _ (by simp; omega), parseLine_ev _ _ _ hp]
+      exact isBootstrapName_bf _ hname
+    · intro ln hp
+      refine ⟨hM.1, hmd, hcnt, fun m' hm' hne => ?_⟩
+      cases h : recvPred ln m'
+      · rfl
+      · exact absurd (huniq ln m' m hm' hmd h (hmatch ln hp)) hne
+    · exact hmids
+    · exact hinv
+  · intro i hi
+    by_cases h : i = id
+    · subst h; exact ⟨P ++ P', by simp [A', hs_id, hsrv']⟩
+    · obtain ⟨Q, hQ⟩ := hA i hi
+      refine ⟨Q, ?_⟩
+      rw [show A' !! i = A !! i from GMap.lookup_insert_ne _ _ (Ne.symm h), hQ, hsrv',
+        hs_ne _ (fun e => h (idAbs_inj.1 e))]
+  · intro i hi
+    have : id ≠ i := fun e => hi (e ▸ hC)
+    rw [show A' !! i = A !! i from GMap.lookup_insert_ne _ _ this]; exact hAn i hi
+  · have hfold := bagRep_foldl_with P' _ _ hP
+    apply bagRep_perm _ _ _ hfold
+    have := flatMap_update_perm C (fun i => ((A !! i).map Prod.snd).getD []) (fun i => ((A' !! i).map Prod.snd).getD [])
+      id hnd hC P' (by simp [A', hAid]) (fun j hj => by
+        rw [show A' !! j = A !! j from GMap.lookup_insert_ne _ _ (Ne.symm hj)])
+    simp only [List.append_assoc]
+    refine (List.Perm.append_left _ List.perm_append_comm).trans ?_
+    rw [← List.append_assoc]
+    exact List.Perm.append_right phP this.symm
+  · have hw := bagRep_without _ _ m hM hml
+    apply bagRep_perm _ _ _ hw
+    have hp : ((GMap.toList B).map Prod.snd ++ phM).Perm (m :: ((GMap.toList (B.delete k)).map Prod.snd ++ phM)) := by
+      have := (GMap.mapToList_delete B k m hBk).map Prod.snd
+      simpa using this.append_right phM
+    have := hp.erase m
+    simpa using this
+
 end pure
 
 end EtcdGrove
