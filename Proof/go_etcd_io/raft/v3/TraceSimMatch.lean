@@ -2303,6 +2303,80 @@ theorem simRun_recvMsg1 (C : List w64) (L : List TraceEv) (σ S : Etcdraft.State
   · exact hboot
   · exact hinv
 
+theorem recvPred_aer (ln : Etcdraft.Line) (m : Etcdraft.Msg) (h : ln.ev.name = "ReceiveAppendEntriesRequest") :
+    recvPred ln m = ln.isAppendEntriesRequest m := by unfold recvPred; simp [h]
+
+theorem recvPred_aeresp (ln : Etcdraft.Line) (m : Etcdraft.Msg) (h : ln.ev.name = "ReceiveAppendEntriesResponse") :
+    recvPred ln m = ln.isAppendEntriesResponse m := by unfold recvPred; simp [h]
+
+theorem recvPred_rvreq (ln : Etcdraft.Line) (m : Etcdraft.Msg) (h : ln.ev.name = "ReceiveRequestVoteRequest") :
+    recvPred ln m = ln.isRequestVoteRequest m := by unfold recvPred; simp [h]
+
+theorem recvPred_rvresp (ln : Etcdraft.Line) (m : Etcdraft.Msg) (h : ln.ev.name = "ReceiveRequestVoteResponse") :
+    recvPred ln m = ln.isRequestVoteResponse m := by unfold recvPred; simp [h]
+
+theorem msgLine_name (e : TraceEv) (id vote f d : w64) (xs : List w64) :
+    (msgLine e id vote f d xs).ev.name = gsStr e.name := rfl
+
+/-- The receive event names, from the event constant. -/
+theorem recvName_of (evt : w64) (e : TraceEv) (h : evtNames[uint.nat evt]? = some e.name) :
+    (evt = W64 10 → gsStr e.name = "ReceiveAppendEntriesRequest") ∧
+    (evt = W64 12 → gsStr e.name = "ReceiveAppendEntriesResponse") ∧
+    (evt = W64 14 → gsStr e.name = "ReceiveRequestVoteRequest") ∧
+    (evt = W64 16 → gsStr e.name = "ReceiveRequestVoteResponse") := by
+  refine ⟨?_, ?_, ?_, ?_⟩ <;> intro hev <;> subst hev <;> simp only [evtNames] at h <;>
+    (have := h; simp at this; rw [← this]; rfl)
+
+/-- **A lower-term response's receive line's step** (raft ignores it; the specification drops it). -/
+theorem simRun_recvStaleResp (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (hrun : SimRun C L σ)
+    (hL : L ≠ []) (e : TraceEv) (s : NState) (cfg : CfgM) (m : Msg) (evt : w64)
+    (htyev : (m.ty = .appResp ∧ evt = W64 12) ∨ (m.ty = .voteResp ∧ evt = W64 16))
+    (hev : SendEvOf evt m.dst s cfg m e) (hin : (elements cfg.incoming).Perm C) (hout : cfg.outgoing = ∅)
+    (hC : m.dst ∈ C) (hsrv : σ.server = confAbs C)
+    (hR : SimServerR C C.length (toPState s) (σ.s (idAbs m.dst))) (hs : LogShapeOk C.length (toPState s))
+    (hpre : s.role ≠ .preCandidate) (hlt : uint.Z m.term < uint.Z s.term)
+    (bt : uint.Z s.term < 2 ^ 63) (bc : uint.Z s.logst.committed < 2 ^ 63)
+    (bl : uint.Z (plastIndex (toPState s)) < 2 ^ 63) (bi : uint.Z m.index < 2 ^ 63)
+    (mabs : Etcdraft.Msg) (hmabs : msgAbs C C.length m = some mabs)
+    (hnd : σ.messages.domain.Nodup) (hmem : mabs ∈ σ.messages.domain)
+    (hcnt : 0 < Etcdraft.Bag.count σ.messages mabs)
+    (huniq : ∀ m' ∈ σ.messages.domain, m' ≠ mabs →
+      recvPred (msgLine e m.dst s.vote m.src m.dst (elements cfg.incoming)) m' = false)
+    (hboot : ∀ lines ln, parseLines (L.map evConv) = .ok lines →
+      (bootFlags (confAbs C) (lines ++ [ln])).getD L.length false = false)
+    (hinv : (σ.discard mabs).violated = .ok none) :
+    SimRun C (L ++ [e]) (σ.discard mabs) := by
+  have hev' := hev
+  obtain ⟨hname, -, -, -, -, -, -, ⟨xs, ys, hxs, -, -⟩, ⟨tm, hmsg, hm⟩, -⟩ := hev'
+  have hnames := recvName_of evt e hname
+  have hcontains : σ.server.contains (idAbs m.dst) = true := by
+    rw [hsrv, List.contains_iff_mem, mem_confAbs]; exact hC
+  rcases htyev with ⟨hty, rfl⟩ | ⟨hty, rfl⟩
+  · have hmt : mabs.type = .appendEntriesResponse := by
+      simp [msgAbs, hty] at hmabs; rw [← hmabs]
+    have hmdst : mabs.dest = idAbs m.dst := by simp [msgAbs, hty] at hmabs; rw [← hmabs]
+    have hmterm : mabs.term = uint.Z m.term := by simp [msgAbs, hty] at hmabs; rw [← hmabs]
+    have hname' := hnames.2.1 rfl
+    apply simRun_recvMsg1 C L σ _ hrun hL e s cfg m _ _ hev hname' (by rfl) (by rw [hty]; rfl) hin hout hC hsrv hR hs
+      hpre bt bc bl mabs hmdst _ hnd hmem hcnt huniq _ (by rfl) hboot hinv
+    · rw [recvPred_aeresp _ _ (by rw [msgLine_name, hname'])]
+      have := isAEResp_any C C.length e m.dst s.vote (elements cfg.incoming) m tm hmsg hm hty (by omega) bi
+      simp only [hmabs, Option.get_some] at this; exact this
+    · exact receive_staleResp σ mabs (by rw [hmdst]; exact hcontains) (Or.inl hmt)
+        (by rw [hmdst, hR.1, hmterm]; exact hlt)
+  · have hmt : mabs.type = .requestVoteResponse := by
+      simp [msgAbs, hty] at hmabs; rw [← hmabs]
+    have hmdst : mabs.dest = idAbs m.dst := by simp [msgAbs, hty] at hmabs; rw [← hmabs]
+    have hmterm : mabs.term = uint.Z m.term := by simp [msgAbs, hty] at hmabs; rw [← hmabs]
+    have hname' := hnames.2.2.2 rfl
+    apply simRun_recvMsg1 C L σ _ hrun hL e s cfg m _ _ hev hname' (by rfl) (by rw [hty]; rfl) hin hout hC hsrv hR hs
+      hpre bt bc bl mabs hmdst _ hnd hmem hcnt huniq _ (by rfl) hboot hinv
+    · rw [recvPred_rvresp _ _ (by rw [msgLine_name, hname'])]
+      have := isRVResp_voteResp C C.length e m.dst s.vote (elements cfg.incoming) m tm hmsg hm hty (by omega)
+      simp only [hmabs, Option.get_some] at this; exact this
+    · exact receive_staleResp σ mabs (by rw [hmdst]; exact hcontains) (Or.inr hmt)
+        (by rw [hmdst, hR.1, hmterm]; exact hlt)
+
 end TraceSim
 
 end EtcdGrove
