@@ -1004,6 +1004,20 @@ theorem lines_ev_mem {evs : List Event} {xs : List Line}
   rw [parseLine_ev hpx]
   exact (List.of_mem_zip hp).2
 
+theorem tCfgF_fst (xs : List Line) (srv : SetIds) : ∀ i r, tCfgF xs srv i = .ok r → r.1 = i := by
+  intro i r h
+  simp only [tCfgF, bind, Except.bind] at h
+  split at h
+  · cases h
+  · cases h; rfl
+
+theorem tBconfF_fst (xs : List Line) (srv : SetIds) : ∀ i r, tBconfF xs srv i = .ok r → r.1 = i := by
+  intro i r h
+  simp only [tBconfF, bind, Except.bind] at h
+  split at h
+  · cases h
+  · cases h; rfl
+
 end Etcdraft
 end EtcdGrove
 end Perennial

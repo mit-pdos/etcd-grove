@@ -1358,7 +1358,12 @@ theorem NewTraceWith.wp_proof
   rename_i iv2_ptr
   irename : (iv2_ptr ↦ (zero_val w64) : IProp GF) => ivar
   generalize «$r0_ptr» = sp
-  ipersist «$r0»
+  irename «$r0» => Hsp
+  ipersist Hsp
+  ihave #Hsp0 := Hsp
+  icases typedPointsto_split _ _ _ $$ Hsp0 with Hspf
+  simp only [TypedPointsto.typedPointstoDef]
+  icases Hspf with ⟨#SServer, #SS, #SMsgs, #SPend, #SRc, #SPv, #SCq, -⟩
   ipersist s
   imod ownSlice_persist $$ Hbs with #Hbs
   ihave IHs : iprop(∃ (n iv : w64) (sm : GMap w64 Loc) (cfgsP : List (ID × SetIds))
@@ -1977,6 +1982,23 @@ theorem NewTraceWith.wp_proof
       rw [hV0]
       exact ⟨HefL.2.2.1, HlfL.2.1, HefL.2.2.2.2.1⟩
     try wp_auto
+    ipersist «$r0»
+    ipersist Hmim
+    wp_apply wp_mapInsert $$ [Hsm] as Hsm
+    · iexact Hsm
+    try wp_auto
+    have hcfP' := mapM_take_succ_ok (tCfgF xs srv) srv _ _ cfgsP (uint.nat iw, cfg) Hsi hcfP
+      (by simp [tCfgF, bind, Except.bind, htl, hbc2, Pure.pure, Except.pure])
+    have hbfP' := mapM_take_succ_ok (tBconfF xs srv) srv _ _ bconfsP (uint.nat iw, cfs) Hsi hbfP
+      (by rw [tBconfF_eq xs srv _ himem, hcf]; rfl)
+    have hcfst := mapM_pair_fst _ (tCfgF_fst xs srv) _ _ hcfP
+    have hbfst := mapM_pair_fst _ (tBconfF_fst xs srv) _ _ hbfP
+    have hVf : tServerOf xs srv (cfgsP ++ [(uint.nat iw, cfg)]) (bconfsP ++ [(uint.nat iw, cfs)]) (uint.nat iw) =
+        { V0 with durable := durableOf V0 } := by
+      unfold tServerOf
+      rw [find_append_none _ (by rw [hcfst]; exact hinot), find_append_none _ (by rw [hbfst]; exact hinot)]
+      simp only [htl, hxL, Option.map_some, Option.getD_some]
+      rw [hV0, hLL]
     sorry
   sorry
 
