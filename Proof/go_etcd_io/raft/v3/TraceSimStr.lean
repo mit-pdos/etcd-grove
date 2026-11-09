@@ -146,6 +146,41 @@ theorem parseID_decStr (w : w64) : Etcdraft.parseID (gsStr (decStr w)) = some (u
   · have : decide (ds.length > 1) = false := by simp; omega
     simp only [this, Bool.false_and, Bool.false_eq_true, ↓reduceIte, hall, hfold, hval, hn64]
 
+/-- Raft's formatted voters, as the checker's set. -/
+theorem toSet_decStr (xs : List w64) :
+    Etcdraft.toSet (xs.map (fun x => gsStr (decStr x))) = some (Etcdraft.SetIds.mk (xs.map idAbs)) := by
+  unfold Etcdraft.toSet
+  have : (xs.map (fun x => gsStr (decStr x))).mapM Etcdraft.parseID = some (xs.map idAbs) := by
+    induction xs with
+    | nil => rfl
+    | cons x xs ih =>
+      simp only [List.map_cons, List.mapM_cons, parseID_decStr, ih]
+      rfl
+  rw [this]; rfl
+
+/-- **A node event's line** (no message, no configuration change: the events `traceNodeEvent`
+logs but `ChangeConf`): its node, vote and configuration are raft's. -/
+theorem parseLine_node (k : Nat) (e : TraceEv) (id vote : w64) (xs ys : List w64)
+    (hnid : e.nid = decStr id) (hvote : e.vote = decStr vote)
+    (hconf : e.conf = (xs.map decStr, ys.map decStr)) (hmsg : e.msg = none)
+    (hname : Etcdraft.isMessageEvent (gsStr e.name) = false) (hcc : gsStr e.name ≠ "ChangeConf") :
+    Etcdraft.parseLine k (evConv e) =
+      .ok { ev := evConv e, nid := idAbs id, vote := idAbs vote, role := (evConv e).role,
+            conf := (Etcdraft.SetIds.mk (xs.map idAbs), Etcdraft.SetIds.mk (ys.map idAbs)),
+            «from» := 0, to := 0 } := by
+  unfold Etcdraft.parseLine
+  have h1 : Etcdraft.parseID (evConv e).nid = some (idAbs id) := by
+    simp only [evConv, hnid]; exact parseID_decStr id
+  have h2 : Etcdraft.parseID (evConv e).state.vote = some (idAbs vote) := by
+    simp only [evConv, hvote]; exact parseID_decStr vote
+  have h3 : Etcdraft.toSet (evConv e).conf.1 = some (Etcdraft.SetIds.mk (xs.map idAbs)) := by
+    simp only [evConv, hconf, List.map_map]; exact toSet_decStr xs
+  have h4 : Etcdraft.toSet (evConv e).conf.2 = some (Etcdraft.SetIds.mk (ys.map idAbs)) := by
+    simp only [evConv, hconf, List.map_map]; exact toSet_decStr ys
+  have h5 : (evConv e).msg = none := by simp [evConv, hmsg]
+  have h6 : (evConv e).name = gsStr e.name := rfl
+  simp [h1, h2, h3, h4, h5, h6, hname, hcc, bind, Except.bind, pure, Except.pure]
+
 end TraceSim
 
 end EtcdGrove
