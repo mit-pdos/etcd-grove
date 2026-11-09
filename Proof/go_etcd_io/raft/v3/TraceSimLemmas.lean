@@ -2636,6 +2636,30 @@ theorem logAbs_take_ne (C : List w64) (bl : Nat) (es : List EntryM) (k k' : Nat)
   have := congrArg List.length h
   simp [logAbs_length] at this; omega
 
+/-- An uncompacted log's `matchTerm` at index `p` is its prefix's, the prefix reaching `p`. -/
+theorem plogMatches_prefix (es es2 : List EntryM) (lt : w64) (p : Nat) (hp : p < 2 ^ 64)
+    (h : ∀ k, k < p → es2[k]? = es[k]?) :
+    PlogMatches (entryID.mk (W64 0) (W64 0)) es2 (entryID.mk lt (W64 p)) ↔
+      PlogMatches (entryID.mk (W64 0) (W64 0)) es (entryID.mk lt (W64 p)) := by
+  have hpz : uint.Z (W64 p) = p := by word
+  unfold PlogMatches
+  simp only
+  by_cases h0 : p = 0
+  · subst h0
+    have : (W64 ((0 : Nat) : Int) : w64) = (entryID.mk (W64 0) (W64 0)).index' := rfl
+    rw [this, plogTermAt_base, plogTermAt_base]
+  · rw [plogTermAt_base0 _ _ (by omega), plogTermAt_base0 _ _ (by omega)]
+    have : uint.nat (W64 p) - 1 = p - 1 := by word
+    rw [this, h (p - 1) (by omega)]
+
+/-- `LogOkL` of an abstract log is raft's `matchTerm` of the request's previous entry. -/
+theorem logOkL_abs (C : List w64) (bl : Nat) (m : Etcdraft.Msg) (es : List EntryM) (p : Nat) (lt : w64)
+    (hprev : m.prevLogIndex = p) (hpt : m.prevLogTerm = uint.Z lt)
+    (hbl : BootTerms bl 1 es) (h0 : p = 0 → lt = W64 0) (hp : p < 2 ^ 64) :
+    LogOkL m (logAbs C bl 1 es) =
+      decide (PlogMatches (entryID.mk (W64 0) (W64 0)) es (entryID.mk lt (W64 p))) := by
+  unfold LogOkL; rw [hprev, hpt]; exact appLogOk_abs C bl es p lt hbl h0 hp
+
 end TraceSim
 
 end EtcdGrove
