@@ -739,6 +739,15 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   (`TracedMsgType.lean`) gives `msgTypeStr ty` for the six traced types, for the send and receive
   hooks; the Go test `examples/raft/tracecheck/msgtype_string_test.go`. Trust base: the axiom out,
   the model in, the server's results on `strconv.Itoa`'s axiom (`notes/decisions.md`, "Q9").
+- **Q12 (2026-11-09, `Main`'s pure obligations): the checker's `numBound` against the step bound.**
+  `numBound = 2^40` (`etcdraft/Rep.lean`, a constant of the proof, not of the Go) bounds the trace's
+  numbers (`Event.Bounded`) and its length; raft's terms, indices and event count grow with the steps,
+  and the statement's step bound is `n < 2^61` ("as the kv examples' unless the proof needs another",
+  the user's, 2026-11-08). Options: (a) raise `numBound` (and, if the reached states' margin
+  `numBound + len + 1` then exceeds the actions' internal `2^62` bound, raise that bound, also the
+  proof's: the Go's integers are `int64`), so the statement keeps `n < 2^61`; (b) lower the step bound
+  to about `2^40`. **Taken by the coordinator, pending the user's veto: (a)**: the closed statement
+  keeps the bound the user set, and only proof-internal constants move. Done in S7.
 - **Q11 (2026-11-09, Q8 stage 1 slice 4): a ghost record of the just-queued message.** `raft.send`
   queues the message before its trace hook runs, so at the hook raft's queues own it, and
   `ownRaftPhysCV` keeps the queues existential (the abstract outbox up to permutation, no pointers):
