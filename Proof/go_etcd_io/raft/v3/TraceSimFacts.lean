@@ -10,7 +10,10 @@ the persistent raft facts `σ.s j` stands for) and the specification's invariant
   range.
 - `allFacts γ C σ`: every voter's.
 
-Derived so far: `MoreThanOneLeaderInv` (from `isLeader_unique`).
+Derived from them (with the vote table where it is needed): `MoreThanOneLeaderInv`
+(`allFacts_oneLeader`), `LogInv`, `LogMatchingInv`, `CommitOk` and `LeaderCompletenessInv`. Route
+(b)'s `CommitWithinLeader`, `LeaderEntries` and `DurInv` are here too, but `simFx` does not use them:
+`DurInv` is false as stated, and `SpecInv` (`TraceSimSpecInv.lean`) replaces it.
 -/
 module
 
