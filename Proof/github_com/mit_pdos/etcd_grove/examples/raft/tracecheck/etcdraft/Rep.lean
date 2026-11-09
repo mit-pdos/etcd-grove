@@ -211,6 +211,10 @@ def msgRO (p : Loc) (m : Msg) : IProp GF :=
       uint.nat v.Source' = m.source ∧ uint.nat v.Dest' = m.dest⌝ ∗
     logRO v.Entries' m.entries)
 
+/-- A Go `[]*Msg` holding `ms` (`Bag.Domain`'s result; layer C, 2026-11-09). -/
+def msgsRO (sl : GoSlice) (ms : List Msg) : IProp GF :=
+  iprop(∃ ps : List Loc, sl ↦*□ ps ∗ [∗list] p;m ∈ ps;ms, msgRO p m)
+
 /-- A Go `Bag` holding `b`, item by item. -/
 def bagRO (g : G.Bag) (b : Bag) : IProp GF :=
   iprop(∃ items : List G.bagItem, g.items' ↦*□ items ∗
@@ -364,6 +368,9 @@ instance msgRO_persistent (p : Loc) (m : Msg) : Persistent (msgRO (GF := GF) p m
 
 instance bagRO_persistent (g : G.Bag) (b : Bag) : Persistent (bagRO (GF := GF) g b) := by
   unfold bagRO; infer_instance
+
+instance msgsRO_persistent (sl : GoSlice) (ms : List Msg) : Persistent (msgsRO (GF := GF) sl ms) := by
+  unfold msgsRO; infer_instance
 
 instance configRO_persistent (g : G.Config) (c : Config) : Persistent (configRO (GF := GF) g c) := by
   unfold configRO; infer_instance
