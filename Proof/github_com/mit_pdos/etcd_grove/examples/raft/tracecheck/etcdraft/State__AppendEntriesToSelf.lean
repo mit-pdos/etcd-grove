@@ -29,29 +29,10 @@ theorem State.AppendEntriesToSelf.wp_proof (wp_clone : State.clone.spec (GF := G
     State.AppendEntriesToSelf.spec (GF := GF) (hG := hG) := by
   intro p st i
   wp_start as ⟨#Hst, %Hi, %Hok⟩
-  ihave #Hst0 := Hst
-  iunfold stateRO at Hst0
-  icases Hst0 with ⟨%g, %sm, #Hp, #Hsrv, #Hm, %Hkeys, %Hnd, #Hsrvs, #Hb1, #Hb2, %Hrc⟩
-  obtain ⟨k, hk, hki⟩ := List.mem_iff_getElem.1 Hi
-  icases (BigSepL.bigSepL_lookup (Φ := fun _ j => iprop(∃ q : Loc, ⌜sm !! (W64 (Int.ofNat j)) = some q⌝ ∗
-      serverRO (GF := GF) q (st.s j))) (List.getElem?_eq_some_iff.2 ⟨hk, hki⟩)) $$ Hsrvs with ⟨%q0, %Hq0, #Hsv⟩
-  have Hii : W64 (Int.ofNat (uint.nat i)) = i := by apply BitVec.eq_of_toNat_eq; simp
-  rw [Hii] at Hq0
-  icases typedPointsto_split _ _ _ $$ Hp with Hpf
-  simp only [TypedPointsto.typedPointstoDef]
-  icases Hpf with ⟨#P1, #P2, #P3, #P4, #P5, #P6, #P7, -⟩
+  read_server
   iapply wp_fupd
   wp_auto
-  wp_apply wp_map_lookup1 $$ [Hm] as -
-  · iexact Hm
-  rw [Hq0]
-  simp only [Option.getD_some]
-  iunfold serverRO at Hsv
-  icases Hsv with ⟨%gs, %mm, #Hq', %Hf, #Hlog, #Hvr, #Hvg, #Hmm, %Hmi, #Hcfg, #Hdur⟩
-  icases typedPointsto_split _ _ _ $$ Hq' with Hqf
-  simp only [TypedPointsto.typedPointstoDef]
-  icases Hqf with ⟨#V1, #V2, #V3, #V4, #V5, #V6, #V7, #V8, #V9, #V10, #V11, #V12, -⟩
-  wp_auto
+  lookup_server
   have hL := strRel_eq_iff Hf.2.1 (show strRel go!"StateLeader" leader by unfold strRel leader; decide)
   by_cases hl : (st.s (uint.nat i)).state = leader
   · rw [decide_eq_true (hL.2 hl)]
@@ -59,11 +40,6 @@ theorem State.AppendEntriesToSelf.wp_proof (wp_clone : State.clone.spec (GF := G
     wp_apply wp_clone p st $$ [Hst] as %t Ht
     · iexact Hst
     try wp_auto
-    ihave #Hlog0 := Hlog
-    iunfold logRO at Hlog0
-    icases Hlog0 with ⟨%es, #Hes, #Hel⟩
-    ihave %Hesl := ownSlice_len $$ Hes
-    ihave %Hell := BigSepL2.bigSepL2_length $$ Hel
     ihave #Hnil := logRO_nil (GF := GF)
     irename «$a0» => Hmq
     ipersist Hmq

@@ -263,6 +263,43 @@ macro "close_copy" gv:term "," f:term "," hv:term : tactic => `(tactic| (
     · iframe))
 
 
+
+/-! `read_server`: from `Hst : stateRO p st` and `Hi : uint.nat i ∈ st.server`, the state's struct `g`
+split (`P1`..`P7`), its map `Hm` (`sm`), server `i`'s pointer `q0` (`Hq0 : sm !! i = some q0`), its
+struct `gs` split (`V1`..`V12`), `Hf` its pure facts, its predicates `Hlog Hvr Hvg Hmm Hmi Hcfg Hdur`,
+its log's slice `Hes` (`es`, `Hesl`, `Hell`, `Hel`). `lookup_server` then steps over `s.S[i]`. -/
+set_option hygiene false in
+macro "read_server" : tactic => `(tactic| (
+    ihave #Hst0 := Hst
+    iunfold stateRO at Hst0
+    icases Hst0 with ⟨%g, %sm, #Hp, #Hsrv, #Hm, %Hkeys, %Hnd, #Hsrvs, #Hb1, #Hb2, %Hrc⟩
+    obtain ⟨k, hk, hki⟩ := List.mem_iff_getElem.1 Hi
+    icases (BigSepL.bigSepL_lookup (Φ := fun _ j => iprop(∃ q : Loc, ⌜sm !! (W64 (Int.ofNat j)) = some q⌝ ∗
+        serverRO (GF := GF) q (st.s j))) (List.getElem?_eq_some_iff.2 ⟨hk, hki⟩)) $$ Hsrvs with ⟨%q0, %Hq0, #Hsv⟩
+    have Hii : W64 (Int.ofNat (uint.nat i)) = i := by apply BitVec.eq_of_toNat_eq; simp
+    rw [Hii] at Hq0
+    icases typedPointsto_split _ _ _ $$ Hp with Hpf
+    simp only [TypedPointsto.typedPointstoDef]
+    icases Hpf with ⟨#P1, #P2, #P3, #P4, #P5, #P6, #P7, -⟩
+    iunfold serverRO at Hsv
+    icases Hsv with ⟨%gs, %mm, #Hq', %Hf, #Hlog, #Hvr, #Hvg, #Hmm, %Hmi, #Hcfg, #Hdur⟩
+    icases typedPointsto_split _ _ _ $$ Hq' with Hqf
+    simp only [TypedPointsto.typedPointstoDef]
+    icases Hqf with ⟨#V1, #V2, #V3, #V4, #V5, #V6, #V7, #V8, #V9, #V10, #V11, #V12, -⟩
+    ihave #Hlog0 := Hlog
+    iunfold logRO at Hlog0
+    icases Hlog0 with ⟨%es, #Hes, #Hel⟩
+    ihave %Hesl := ownSlice_len $$ Hes
+    ihave %Hell := BigSepL2.bigSepL2_length $$ Hel))
+
+set_option hygiene false in
+macro "lookup_server" : tactic => `(tactic| (
+    wp_apply wp_map_lookup1 $$ [Hm] as -
+    · iexact Hm
+    rw [Hq0]
+    simp only [Option.getD_some]
+    try wp_auto))
+
 end Etcdraft
 end EtcdGrove
 end Perennial

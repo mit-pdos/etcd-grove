@@ -167,6 +167,22 @@ theorem Bag.Ok.count_lt {b : Bag} (h : b.Ok) (m : Msg) : (b.count m : Int) + 1 <
   | none => simp
   | some it => exact h.2 it (List.mem_of_find?_eq_some hf)
 
+/-- `strRel_eq_iff` as `decide` (layer C's actions, 2026-11-09). -/
+theorem decide_strRel {ga gb : GoString} {a b : String} (ha : strRel ga a) (hb : strRel gb b) :
+    decide (ga = gb) = decide (a = b) :=
+  decide_eq_decide.2 (strRel_eq_iff ha hb)
+
+/-! The Go's roles and subtypes, related to the Lean's (decided once). -/
+theorem strRel_follower : strRel go!"StateFollower" follower := by unfold strRel follower; decide
+theorem strRel_candidate : strRel go!"StateCandidate" candidate := by unfold strRel candidate; decide
+theorem strRel_leader : strRel go!"StateLeader" leader := by unfold strRel leader; decide
+theorem strRel_preCandidate : strRel go!"StatePreCandidate" preCandidate := by
+  unfold strRel preCandidate; decide
+theorem strRel_app : strRel go!"app" "app" := by unfold strRel; decide
+theorem strRel_heartbeat : strRel go!"heartbeat" "heartbeat" := by unfold strRel; decide
+theorem strRel_snapshot : strRel go!"snapshot" "snapshot" := by unfold strRel; decide
+theorem strRel_empty : strRel go!"" "" := by unfold strRel; decide
+
 /-- An event whose numbers are `numOk` (layer B gives it of raft's: its terms and indices are
 bounded by the time receipts, `notes/trace-validation-sim.md`, "Increment 2"). -/
 def Event.Bounded (e : Event) : Prop :=
