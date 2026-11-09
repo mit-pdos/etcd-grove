@@ -2338,6 +2338,39 @@ theorem oneLess_voteResp (st : Etcdraft.State) (i j : Etcdraft.ID) (m : Etcdraft
     Etcdraft.oneLessMessage st (voteRespResult st i j m) m = true :=
   oneLess_discard st _ m rfl hnd hm
 
+/-! ### The append request's rounds -/
+
+/-- The adopted leader of an append request of the server's term (`lead' = j`). -/
+def withLead (st : Etcdraft.State) (i j : Etcdraft.ID) : Etcdraft.State :=
+  st.upd i (fun w => { w with lead := j })
+
+/-- **An append request at a follower of its term whose log matches**: its handling is the one
+enabled accepting action's (`AppendEntriesAlreadyDone`, `Conflict` or `NoConflict`), the leader adopted. -/
+theorem handleAER_accept (st : Etcdraft.State) (i j : Etcdraft.ID) (m : Etcdraft.Msg) (X : Etcdraft.State)
+    (hf : (st.s i).state = Etcdraft.follower) (hterm : m.term = (st.s i).currentTerm)
+    (hlog : (or (m.prevLogIndex == 0) (decide (m.prevLogIndex > 0) && decide (m.prevLogIndex ≤ (st.s i).log.length) &&
+      some m.prevLogTerm == (((st.s i).log[(m.prevLogIndex - 1).toNat]?).map Etcdraft.Entry.term))) = true)
+    (hsub : m.subtype ≠ "snapshot")
+    (c n : Option Etcdraft.State)
+    (hc : st.conflictAppendEntriesRequest i (m.prevLogIndex + 1) m = .ok c)
+    (hn : st.noConflictAppendEntriesRequest i (m.prevLogIndex + 1) m = .ok n)
+    (hone : Etcdraft.somes [st.appendEntriesAlreadyDone i j (m.prevLogIndex + 1) m, c, n] = [X]) :
+    st.handleAppendEntriesRequest i j m = .ok [withLead X i j] := by
+  unfold Etcdraft.State.handleAppendEntriesRequest
+  have hrej : st.rejectAppendEntriesRequest i j m true = none := by
+    unfold Etcdraft.State.rejectAppendEntriesRequest; simp [hterm, hf]
+  have hrtf : st.returnToFollowerState i m = none := by
+    unfold Etcdraft.State.returnToFollowerState; simp [hterm, hf, Etcdraft.follower, Etcdraft.candidate,
+      Etcdraft.preCandidate]
+  have hacc : st.acceptAppendEntriesRequest i j true m = .ok [X] := by
+    unfold Etcdraft.State.acceptAppendEntriesRequest
+    simp only [hterm, bne_self_eq_false, hf, Bool.not_true, Bool.or_false, Bool.false_eq_true, ↓reduceIte]
+    have hs : (m.subtype == "snapshot") = false := by simp [hsub]
+    simp only [hs, Bool.false_eq_true, ↓reduceIte, hc, hn, bind, Except.bind, pure, Except.pure, hone]
+  simp only [hlog, hterm, Int.le_refl, decide_true, Bool.not_true, Bool.false_eq_true, ↓reduceIte]
+  simp only [bind, Except.bind, hacc, hrej, hrtf, Etcdraft.somes, pure, Except.pure, beq_self_eq_true]
+  simp [withLead]
+
 end TraceSim
 
 end EtcdGrove
