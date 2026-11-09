@@ -2246,6 +2246,21 @@ theorem isAEResp_any (C : List w64) (bl : Nat) (e : TraceEv) (id vote : w64) (xs
   rw [htyp, hty, hterm, hidx, hrej', gInt_of_lt _ bt, gInt_of_lt _ bi, gsStr_msgTypeStr_appResp]
   cases m.reject <;> simp [Etcdraft.raftMsgType, Etcdraft.raftMsgSubtype]
 
+theorem gsStr_msgTypeStr_hbResp : gsStr (msgTypeStr .heartbeatResp) = "MsgHeartbeatResp" := by rfl
+
+/-- A heartbeat response's line matches its abstraction (review round 3's B4). -/
+theorem isAEResp_hbResp (C : List w64) (bl : Nat) (e : TraceEv) (id vote : w64) (xs : List w64) (m : Msg)
+    (tm : TraceMsg) (hmsg : e.msg = some tm) (hm : MsgEvOf m tm) (hty : m.ty = .heartbeatResp)
+    (hrej : m.reject = false) (bt : uint.Z m.term < 2 ^ 63) :
+    (msgLine e id vote m.src m.dst xs).isAppendEntriesResponse
+      ((msgAbs C bl m).get (by simp [msgAbs, hty])) = true := by
+  obtain ⟨htyp, hterm, -, -, -, -, -, -, hrej'⟩ := hm
+  simp only [msgAbs, hty, Option.get_some]
+  unfold Etcdraft.Line.isAppendEntriesResponse
+  simp only [msgLine, evConv, hmsg, Option.map_some]
+  rw [htyp, hty, hterm, hrej', hrej, gInt_of_lt _ bt, gsStr_msgTypeStr_hbResp]
+  simp [Etcdraft.raftMsgType, Etcdraft.raftMsgSubtype]
+
 /-- **A one-round receive line's step for any message** (generic): the event of raft's receipt of `m`
 at its `Step` (the receive name `nm`), the line matching `msgAbs m`, its one successor `S` consuming
 it. -/
@@ -2814,7 +2829,8 @@ theorem oneLess_resp (st : Etcdraft.State) (m : Etcdraft.Msg) (hnd : st.messages
 
 /-- The response's line: its name and the line matching the response. -/
 theorem respLine (C : List w64) (e : TraceEv) (s : NState) (cfg : CfgM) (m : Msg) (evt : w64)
-    (htyev : (m.ty = .appResp ∧ evt = W64 12) ∨ (m.ty = .voteResp ∧ evt = W64 16))
+    (htyev : (m.ty = .appResp ∧ evt = W64 12) ∨ (m.ty = .voteResp ∧ evt = W64 16) ∨
+      (m.ty = .heartbeatResp ∧ m.reject = false ∧ evt = W64 12))
     (hname : evtNames[uint.nat evt]? = some e.name) (tm : TraceMsg) (hmsg : e.msg = some tm)
     (hm : MsgEvOf m tm) (bmt : uint.Z m.term < 2 ^ 63) (bi : uint.Z m.index < 2 ^ 63)
     (mabs : Etcdraft.Msg) (hmabs : msgAbs C C.length m = some mabs) :
@@ -2824,7 +2840,7 @@ theorem respLine (C : List w64) (e : TraceEv) (s : NState) (cfg : CfgM) (m : Msg
       mabs.dest = idAbs m.dst ∧ mabs.term = uint.Z m.term ∧
       recvPred (msgLine e m.dst s.vote m.src m.dst (elements cfg.incoming)) mabs = true := by
   have hnames := recvName_of evt e hname
-  rcases htyev with ⟨hty, rfl⟩ | ⟨hty, rfl⟩
+  rcases htyev with ⟨hty, rfl⟩ | ⟨hty, rfl⟩ | ⟨hty, hrej, rfl⟩
   · have hname' := hnames.2.1 rfl
     refine ⟨_, hname', by rfl, by rw [hty]; rfl, ?_, ?_, ?_, ?_⟩
     · right; simp [msgAbs, hty] at hmabs; rw [← hmabs]
@@ -2841,12 +2857,21 @@ theorem respLine (C : List w64) (e : TraceEv) (s : NState) (cfg : CfgM) (m : Msg
     · rw [recvPred_rvresp _ _ (by rw [msgLine_name, hname'])]
       have := isRVResp_voteResp C C.length e m.dst s.vote (elements cfg.incoming) m tm hmsg hm hty bmt
       simp only [hmabs, Option.get_some] at this; exact this
+  · have hname' := hnames.2.1 rfl
+    refine ⟨_, hname', by rfl, by rw [hty]; rfl, ?_, ?_, ?_, ?_⟩
+    · right; simp [msgAbs, hty] at hmabs; rw [← hmabs]
+    · simp [msgAbs, hty] at hmabs; rw [← hmabs]
+    · simp [msgAbs, hty] at hmabs; rw [← hmabs]
+    · rw [recvPred_aeresp _ _ (by rw [msgLine_name, hname'])]
+      have := isAEResp_hbResp C C.length e m.dst s.vote (elements cfg.incoming) m tm hmsg hm hty hrej bmt
+      simp only [hmabs, Option.get_some] at this; exact this
 
 /-- **A response of the node's term's receive line's step** (any role: a candidate's tally, a
 leader's match, a follower's or a stale role's recorded and ignored response). -/
 theorem simRun_recvResp (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (hrun : SimRun C L σ)
     (hL : L ≠ []) (e : TraceEv) (s : NState) (cfg : CfgM) (m : Msg) (evt : w64)
-    (htyev : (m.ty = .appResp ∧ evt = W64 12) ∨ (m.ty = .voteResp ∧ evt = W64 16))
+    (htyev : (m.ty = .appResp ∧ evt = W64 12) ∨ (m.ty = .voteResp ∧ evt = W64 16) ∨
+      (m.ty = .heartbeatResp ∧ m.reject = false ∧ evt = W64 12))
     (hev : SendEvOf evt m.dst s cfg m e) (hin : (elements cfg.incoming).Perm C) (hout : cfg.outgoing = ∅)
     (hC : m.dst ∈ C) (hsrv : σ.server = confAbs C)
     (hR : SimServerR C C.length (toPState s) (σ.s (idAbs m.dst))) (hs : LogShapeOk C.length (toPState s))
@@ -2879,7 +2904,8 @@ theorem simRun_recvResp (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) 
 term (recorded at the new follower). -/
 theorem simRun_recvRespHigher (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (hrun : SimRun C L σ)
     (hL : L ≠ []) (e : TraceEv) (s : NState) (cfg : CfgM) (m : Msg) (evt : w64)
-    (htyev : (m.ty = .appResp ∧ evt = W64 12) ∨ (m.ty = .voteResp ∧ evt = W64 16))
+    (htyev : (m.ty = .appResp ∧ evt = W64 12) ∨ (m.ty = .voteResp ∧ evt = W64 16) ∨
+      (m.ty = .heartbeatResp ∧ m.reject = false ∧ evt = W64 12))
     (hev : SendEvOf evt m.dst s cfg m e) (hin : (elements cfg.incoming).Perm C) (hout : cfg.outgoing = ∅)
     (hC : m.dst ∈ C) (hsrv : σ.server = confAbs C)
     (hR : SimServerR C C.length (toPState s) (σ.s (idAbs m.dst))) (hs : LogShapeOk C.length (toPState s))
@@ -3930,7 +3956,8 @@ theorem respSt_eq (σ : Etcdraft.State) (m : Etcdraft.Msg) :
 /-- **A response of the node's term's effect** (any role but pre-candidate). -/
 theorem lineEffect_resp (C : List w64) (e : TraceEv) (s : NState) (cfg : CfgM) (m : Msg) (evt : w64)
     (a : Etcdraft.Server) (mabs : Etcdraft.Msg) (Mid : Etcdraft.Server → Prop)
-    (htyev : (m.ty = .appResp ∧ evt = W64 12) ∨ (m.ty = .voteResp ∧ evt = W64 16))
+    (htyev : (m.ty = .appResp ∧ evt = W64 12) ∨ (m.ty = .voteResp ∧ evt = W64 16) ∨
+      (m.ty = .heartbeatResp ∧ m.reject = false ∧ evt = W64 12))
     (hev : SendEvOf evt m.dst s cfg m e) (hin : (elements cfg.incoming).Perm C) (hout : cfg.outgoing = ∅)
     (hC : m.dst ∈ C) (hR : SimServerR C C.length (toPState s) a) (hs : LogShapeOk C.length (toPState s))
     (hpre : s.role ≠ .preCandidate) (hterm : m.term = s.term)
@@ -4579,7 +4606,8 @@ theorem lineEffect_appRecv (C : List w64) (e : TraceEv) (s : NState) (cfg : CfgM
 /-- **A lower-term response's effect** (raft ignores it; the specification drops it). -/
 theorem lineEffect_staleResp (C : List w64) (e : TraceEv) (s : NState) (cfg : CfgM) (m : Msg) (evt : w64)
     (a : Etcdraft.Server) (mabs : Etcdraft.Msg) (Mid : Etcdraft.Server → Prop)
-    (htyev : (m.ty = .appResp ∧ evt = W64 12) ∨ (m.ty = .voteResp ∧ evt = W64 16))
+    (htyev : (m.ty = .appResp ∧ evt = W64 12) ∨ (m.ty = .voteResp ∧ evt = W64 16) ∨
+      (m.ty = .heartbeatResp ∧ m.reject = false ∧ evt = W64 12))
     (hev : SendEvOf evt m.dst s cfg m e) (hin : (elements cfg.incoming).Perm C) (hout : cfg.outgoing = ∅)
     (hC : m.dst ∈ C) (hR : SimServerR C C.length (toPState s) a) (hs : LogShapeOk C.length (toPState s))
     (hpre : s.role ≠ .preCandidate) (hlt : uint.Z m.term < uint.Z s.term)
@@ -4631,7 +4659,8 @@ def phantomOf (a : Etcdraft.Server) (mabs : Etcdraft.Msg) : Etcdraft.Msg :=
 specification answers it with a phantom reply, `phantomOf`). -/
 theorem lineEffect_staleReq (C : List w64) (e : TraceEv) (s : NState) (cfg : CfgM) (m : Msg) (evt : w64)
     (a : Etcdraft.Server) (mabs : Etcdraft.Msg) (Mid : Etcdraft.Server → Prop)
-    (htyev : (m.ty = .app ∧ evt = W64 10) ∨ (m.ty = .vote ∧ evt = W64 14))
+    (htyev : (m.ty = .app ∧ evt = W64 10) ∨ (m.ty = .vote ∧ evt = W64 14) ∨
+      (m.ty = .heartbeat ∧ m.entries = [] ∧ evt = W64 10))
     (hev : SendEvOf evt m.dst s cfg m e) (hin : (elements cfg.incoming).Perm C) (hout : cfg.outgoing = ∅)
     (hC : m.dst ∈ C) (hR : SimServerR C C.length (toPState s) a) (hs : LogShapeOk C.length (toPState s))
     (hpre : s.role ≠ .preCandidate) (hlt : uint.Z m.term < uint.Z s.term)
@@ -4648,9 +4677,9 @@ theorem lineEffect_staleReq (C : List w64) (e : TraceEv) (s : NState) (cfg : Cfg
   subst hys0
   have hnames := recvName_of evt e hname
   have hmdst : mabs.dest = idAbs m.dst := by
-    rcases htyev with ⟨hty, -⟩ | ⟨hty, -⟩ <;> (simp [msgAbs, hty] at hmabs; rw [← hmabs])
+    rcases htyev with ⟨hty, -⟩ | ⟨hty, -⟩ | ⟨hty, -⟩ <;> (simp [msgAbs, hty] at hmabs; rw [← hmabs])
   have hmterm : mabs.term = uint.Z m.term := by
-    rcases htyev with ⟨hty, -⟩ | ⟨hty, -⟩ <;> (simp [msgAbs, hty] at hmabs; rw [← hmabs])
+    rcases htyev with ⟨hty, -⟩ | ⟨hty, -⟩ | ⟨hty, -⟩ <;> (simp [msgAbs, hty] at hmabs; rw [← hmabs])
   -- the line's name, its parse and the request's match, by type
   obtain ⟨nm, hname', hrn, htyp, hpred, hrcv⟩ : ∃ nm, gsStr e.name = nm ∧ Etcdraft.isReceiveName nm = true ∧
       (Etcdraft.raftMsgType (gsStr (msgTypeStr m.ty))).isSome = true ∧
@@ -4658,7 +4687,7 @@ theorem lineEffect_staleReq (C : List w64) (e : TraceEv) (s : NState) (cfg : Cfg
       ∀ σ : Etcdraft.State, σ.server.contains mabs.dest = true → mabs.term < (σ.s mabs.dest).currentTerm →
         σ.preVote = false → σ.checkQuorum = false →
         σ.receive mabs = .ok [σ.reply (phantomOf (σ.s mabs.dest) mabs) mabs] := by
-    rcases htyev with ⟨hty, rfl⟩ | ⟨hty, rfl⟩
+    rcases htyev with ⟨hty, rfl⟩ | ⟨hty, rfl⟩ | ⟨hty, hents, rfl⟩
     · have hmt : mabs.type = .appendEntriesRequest := by simp [msgAbs, hty] at hmabs; rw [← hmabs]
       have hname' := hnames.1 rfl
       refine ⟨_, hname', by rfl, by rw [hty]; rfl, ?_, ?_⟩
@@ -4679,6 +4708,16 @@ theorem lineEffect_staleReq (C : List w64) (e : TraceEv) (s : NState) (cfg : Cfg
         have hph : phantomOf (σ.s mabs.dest) mabs = { type := .requestVoteResponse, term := (σ.s mabs.dest).currentTerm, voteGranted := false, source := mabs.dest, dest := mabs.source } := by
           unfold phantomOf; simp [hmt]
         rw [hph]; exact receive_staleVoteReq σ mabs hc hmt hl
+    · have hmt : mabs.type = .appendEntriesRequest := by simp [msgAbs, hty] at hmabs; rw [← hmabs]
+      have hname' := hnames.1 rfl
+      refine ⟨_, hname', by rfl, by rw [hty]; rfl, ?_, ?_⟩
+      · rw [recvPred_aer _ _ (by rw [msgLine_name, hname'])]
+        have := isAER_heartbeat C C.length e m.dst s.vote (elements cfg.incoming) m tm hmsg hm hty hents (by omega) bmc
+        simp only [hmabs, Option.get_some] at this; exact this
+      · intro σ hc hl hpv hcq
+        have hph : phantomOf (σ.s mabs.dest) mabs = { type := .appendEntriesResponse, subtype := "app", term := (σ.s mabs.dest).currentTerm, success := false, matchIndex := 0, source := mabs.dest, dest := mabs.source } := by
+          unfold phantomOf; simp [hmt]
+        rw [hph]; exact receive_staleAER σ mabs hc hmt hl hpv hcq
   have hparse : Etcdraft.parseLine 0 (evConv e) = .ok (msgLine e m.dst s.vote m.src m.dst (elements cfg.incoming)) := by
     rw [← msgLine_perm e m.dst s.vote m.src m.dst xs _ hxs]
     exact parseLine_msg 0 e m.dst s.vote m.src m.dst xs [] tm hnid hvote hconf hmsg hm.2.2.1 hm.2.2.2.1
