@@ -826,4 +826,31 @@ builder → `Restore` handoff (`restore`). Three agents, one worktree; details i
    (`inc_open_backend` needs `receiptBound + k + 4 ≤ 2^40 - 1`).
 Cross-package unfolds (each a missing law, the Freeze needs them gone or justified):
 `apply.bkRT` (`inc_census`), `backend.bStopView`/`rbOwn` (`inc_stop_image`).
-Round 2 (in progress): the rest of `restore` (`Recover`, `KV.Restore`, the old backend's close).
+**The writer, round 2 (about 50 min): `runner.restore` proved**, and `inc_open_backend`: `Recover`
+with the closure's `mvccDeleter`, `KV.Restore` through `restore_au` at the follower's live
+incarnation, the hook, the old backend's census and `Close`, the checks (`read_au`), `writerOwn`
+rebuilt at the new backend (`lessorW` through `lessorApplyOk`). No new spec problem.
+`restore.wp_proof` also takes `mvccReaders_split.law` (link list). Still `sorry` in the writer: the
+pure model lemmas `logOk_once`, `logOk_hist`, `runM_mono`, `logOk_leases`, `logOk_recover`;
+`Readers.lean`'s `memberN_mask`, `memberInv_live`, `rdStock_split`. Cleanups: `wbStock` copies
+mvccrand's `rcStock` (which carries mvccrand's package assumptions).
+
+**The unfold list** (the Freeze needs each replaced by a law of its owning package, or justified):
+
+| Unfolded (owner) | Used in | Law |
+|---|---|---|
+| `apply.bkRT` (`etcdserver/apply/Contracts.lean`) | `inc_census`, `inc_open_backend`, `restore` | `bkRT_eq B : apply.bkRT B ⊣⊢ rdTok B.γB B.P B.be ∗ bOpen B.γB rdOpen` |
+| `backend.bStopView`, `rbOwn` (`backend/InvStop.lean`, `InvBackend.lean`) | `inc_stop_image` | `bStopView_rbPart_agree`: the stopped view and an `rbPart γ S r` agree on `S` |
+| `lease.leaseGranted` (`lease/InvLessor.lean`) | `granted_list` | `leaseGranted_of_guard : lessorGuard γl GA ∗ □ GA id ⊢ leaseGranted γl id` |
+| `lessorApplyOk` (`etcdserver/SnapRO.lean`) | `restore` | `lessorApplyOk_at`: the lessor's backend contract at a new backend with a non-nil hook |
+| `rwLens` (`etcdserver/InvRest.lean`) | `restore` | `rwLens_refl` |
+| `backend.wbTok` | `inc_open_backend`, `restore` | `wbTok_toks : wbTok γ ⊣⊢ ownToks γ.wb 1` (or an `abbrev`) |
+| `backend.newPostK`, `bFresh`, `newPostKP` | `inc_open_backend` (as `mvccrand.rc_open`) | `newPostK_split`, `newPostKP_intro` |
+| `api.hookRun` at `nil` (`mvcc/Api.lean`) | `restore` | `hookRun_nil` |
+| `mvccDeleter` (`mvcc/Api.lean`) | `restore` | `mvccDeleter_persistent`, `mvccDeleter_intro` |
+
+**Probe's verdict.** Every named risk is retired: R1/R2 by an internal restatement (no API or
+backend change), the stamp and the restart/restore handoff over the drafted invariants with four
+local repairs. Next: the unfold laws (additive API laws: `etc/api/*`, interfaces regenerated), the
+pure model lemmas, review round 2 of the changed statements, the `axiom` attack on
+`NewLessor.specR`, then the user's Freeze.
