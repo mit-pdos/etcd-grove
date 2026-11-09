@@ -243,6 +243,17 @@ Review: `reviews/R1-round2.md`; R2's requests in `req/go_etcd_io_raft_v3.md` ("f
   `nil` map when not leader), the nonissue's merged-snapshot wording. `BootLog`'s non-empty contexts
   stay a marked scope restriction.
 
+- **For R3's reviews** (`R3-provability-1.md` F5/F6, `R3-completeness-1.md` F5): `isStorage`'s and
+  `MemoryStorage.Entries`' success case gives `sl.len = sl.cap` (raft's log extends the slice);
+  `stor_read` drops its unused `appliedLb n σ.off` conjunct and has `logStor_read`'s restated shape
+  (a `storSnapLb`/`logSnapLb` lower bound in, `j ≤ σ.snap.index` guaranteed, the new bound at
+  commit), so it is derivable from R3's; `Api.lean`'s header realizes `nodeStorage` as R3's
+  `logStorage` (the log's invariant holds `S σ`), `storSnapLb` as `logSnapLb`, `readyStor` as
+  `logPending`. `IsLocalMsg`/`IsResponseMsg` take `0 ≤ t` (`isMsgInArray` indexes an array by
+  `int(msgt)`: a negative type panics; checked in util.go), with a new law `msgSent_type` (a sent
+  message's type is one of raftpb's) for `Step`'s callers. `RawNode.ApplyConfChange`'s phase binder
+  renamed (it shadowed the entry index).
+
 Open question added: **9. R2's term bound** (R2's req item 5): the execution's step bound below
 `2^64 - 1` must enter at `cluster_alloc.spec` (its owner); R1's statement has no such premise
 today. Left to the user with R2's report.

@@ -1,7 +1,9 @@
 /-
 ## `IsResponseMsg(t)`
 
-**Users.** `node.run`, `RawNode.Step`. **Proof sketch.** `isMsgInArray` over a package array. **Changes.** Unchanged.
+**Users.** `node.run`, `RawNode.Step`. **Proof sketch.** `isMsgInArray` over a package array: `int(msgt)` indexes it,
+so a negative type panics (round 2: the premise; received messages have one by `msgSent_type`).
+**Changes.** The premise `0 ≤ t` (was missing).
 -/
 module
 
@@ -31,7 +33,7 @@ variable [ctx_sem : context.Assumptions]
 def IsResponseMsg.spec : Prop :=
 
   ∀ (t : w32),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ⌜0 ≤ sint.Z t⌝ }}
     (App (Val (@! go_etcd_io.raft.v3.IsResponseMsg)) (Val #t))
   {{ (b : Bool), RET #b; ⌜b = isResponseMsgType t⌝ }}
 

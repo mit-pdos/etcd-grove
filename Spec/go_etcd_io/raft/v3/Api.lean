@@ -70,11 +70,12 @@ is the client's: its methods' updates fire on `memStor ms σ` directly.
 - `isNode`, `nodeRunning`, `nodeDriver`, `nodeConf`, `deliveredLb`, `appliedLb`, `nodeStorage`,
   `storSnapLb`, `readyStor`, `isReadyChan`: the node's invariant over its channels and the
   `RawNode` it owns (the run goroutine holds the `RawNode`'s token), ghost vars for the driver
-  state, the configuration view and the pending storage writes, mono-nat lower bounds for applied
-  and the storage snapshot's index; the attached storage's `S σ` in the node's invariant with the
-  relation raft keeps between `σ` and its log (the stored entries are raft's stable log; the
-  compaction point is at most the applied index and the stored snapshot's; the stored snapshot is
-  valid). `rawNode`: the `RawNode`'s own token (the raft struct, the log, the tracker, the
+  state, the configuration view, mono-nat lower bounds for applied. The attached storage is the
+  log's (R3, `ApiLog.lean`): `nodeStorage n γ S` is R3's `logStorage l S (snapValid γ) N` of the
+  node's raft log `l` (the log's invariant, not the node's, holds `S σ` with the relation between `σ`
+  and the log: stored entries the stable log, compaction point a floor and at most the stored
+  snapshot's index, stored snapshot valid); `storSnapLb n j` is R3's `logSnapLb l j`; `readyStor`
+  is R3's `logPending`; the storage laws (`readyStor_*`, `stor_*`) are R3's `logStor_*` at mask `⊤`. `rawNode`: the `RawNode`'s own token (the raft struct, the log, the tracker, the
   read-only queue: R2's, R3's and R4's predicates).
 - `memStor ms σ`: a ghost var of `σ` whose authority is in `MemoryStorage`'s lock invariant,
   together with a fractional share of the footprint `InitialState` reads without the lock (the
@@ -359,8 +360,9 @@ methods, as raft calls them (from its goroutine only):
 - `InitialState`, on a storage no one else touches (raft calls it only while starting): the stored
   hard state (`nil` for the empty one) and configuration;
 - `Entries(lo, hi, max)`, `lo < hi ≤ last + 1`: `ErrCompacted` exactly at or below the compaction
-  point, else a non-empty prefix of the stored entries `[lo, hi)` (round 1, F7: no
-  `ErrUnavailable`, on which raft panics);
+  point, else a non-empty prefix of the stored entries `[lo, hi)`, in a slice with no spare
+  capacity (raft's log extends it: R3's request) (round 1, F7: no `ErrUnavailable`, on which raft
+  panics);
 - `Term(i)`, `i ≤ last` (raft asks no further): the stored term at `i`, or `ErrCompacted` below the
   compaction point;
 - `LastIndex`, `FirstIndex`;
@@ -377,7 +379,8 @@ def isStorage (st : GoInterface) (S : StorState → IProp GF) (cf : StorState �
       (AU <{ ∃∃ σ, S σ ∗ ⌜uint.nat lo < uint.nat hi ∧ uint.nat hi ≤ σ.last + 1⌝ }> @ ⊤, ∅
         <{ S σ, COMM ∀ (sl : GoSlice) (err : GoInterface),
             ((⌜uint.nat lo ≤ σ.off⌝ ∗ errIs go_etcd_io.raft.v3.ErrCompacted err) ∨
-             (⌜err = interface.nil ∧ σ.off < uint.nat lo⌝ ∗ ∃ es, entriesRO sl (uint.nat lo) es ∗
+             (⌜err = interface.nil ∧ σ.off < uint.nat lo ∧ sl.len = sl.cap⌝ ∗
+                ∃ es, entriesRO sl (uint.nat lo) es ∗
                 ⌜es ≠ [] ∧ es <+: (σ.ents.drop (uint.nat lo - σ.off - 1)).take
                   (uint.nat hi - uint.nat lo)⌝)) -∗
             Φ (PairV #sl #err) }>) -∗
@@ -740,6 +743,11 @@ def msgCredit_intro.spec : Prop :=
 def msgCredit_dup.spec : Prop :=
   ∀ γ (m : Msg), γ.dup = true → msgCredit (GF := GF) γ m ⊢ □ msgCredit γ m
 
+/-- A sent message has one of raftpb's message types (`IsLocalMsg`/`IsResponseMsg` index an array
+by it: a negative one panics). -/
+def msgSent_type.spec : Prop :=
+  ∀ γ (m : Msg), msgSent (GF := GF) γ m ⊢ iprop(⌜0 ≤ sint.Z m.type ∧ sint.Z m.type ≤ 23⌝)
+
 /-- A sent `MsgSnap` carries a valid snapshot. -/
 def msgSent_snap.spec : Prop :=
   ∀ γ (m : Msg), m.type = MsgSnap → msgSent (GF := GF) γ m ⊢
@@ -828,13 +836,15 @@ def stor_createSnapshot.spec : Prop :=
 
 /-- **Read the attached storage** (etcd's `run` reads `Snapshot()` at its start; the examples'
 `FirstIndex()` before a compaction and their status dumps): raft guarantees, at the read, that the
-compaction point is at most the stored snapshot's index and the node's applied index, and that the
-stored snapshot is empty or valid. (Round 1, completeness F4.) -/
+compaction point is at most the stored snapshot's index, that index at least a known lower bound,
+and the stored snapshot empty or valid; it gives the new lower bound back. (Round 1, completeness F4;
+round 2: the applied-index conjunct dropped, unused, and the shape of R3's `logStor_read`, from which
+it is derived.) -/
 def stor_read.spec : Prop :=
   ∀ n γ (S : StorState → IProp GF) (j : Nat),
     nodeStorage (GF := GF) n γ S ∗ storSnapLb n j ⊢
       AU <{ ∃∃ σ, S σ ∗ ⌜σ.off ≤ uint.nat σ.snap.index ∧ j ≤ uint.nat σ.snap.index⌝ ∗
-              appliedLb n σ.off ∗ (⌜σ.snap.isEmpty⌝ ∨ snapValid γ σ.snap) }> @ ⊤, ∅
+              (⌜σ.snap.isEmpty⌝ ∨ snapValid γ σ.snap) }> @ ⊤, ∅
         <{ S σ, COMM storSnapLb n (uint.nat σ.snap.index) }>
 
 /-- **Store a hard state**: raft reads it only at a start. -/

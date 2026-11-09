@@ -41,7 +41,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 def raftLog.append.spec : Prop :=
   ∀ (l : Loc) (ls : LogState) (sl : GoSlice) (k : Nat) (es : List LogEntry),
   (es = [] ∨ (ls.committed < k ∧ k ≤ ls.us.offset + ls.us.ents.length ∧ k + es.length < 2 ^ 64)) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftLog l ls ∗ entriesRO sl k es }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftLog l ls ∗ entriesRO sl k es ∗
+      (⌜sint.Z sl.len = sint.Z sl.cap⌝ ∨ ownSliceCap Loc sl (DFrac.own 1)) }}
     (App (Val (l @!! go.GoType.PointerType go_etcd_io.raft.v3.raftLog.ty @!! go!"append")) (Val #sl))
   {{ (li : w64), RET #li; raftLog l (ls.truncateAppend k es) ∗
       ⌜uint.nat li = (ls.truncateAppend k es).lastIndex⌝ }}

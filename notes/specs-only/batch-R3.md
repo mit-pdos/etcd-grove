@@ -118,16 +118,16 @@ applied, stable index becomes a floor); the client's writes `logStor_install`, `
 
 ## Open questions for the user
 
-1. **A suspected raft bug (code reading, not yet confirmed by a test).** With synchronous storage
-   writes (etcd), a follower whose `Ready` hands out snapshot `s1` and entries after it can, before
-   `Advance`, receive a newer snapshot `s2` (`restore`) and a `MsgApp` after `s2` re-sending entries
-   up to the last handed-out index with the same terms. The `Advance` acknowledgement then matches
-   (`unstable.stableTo` checks only the index and term, not that the storage holds them after `s2`)
-   and marks entries `(s2, id]` stable; the next `Ready` hands out `s2` and the entries after `id`,
-   and the storage's `Append` after `ApplySnapshot(s2)` finds a gap (`MemoryStorage.Append` panics
-   "missing log entry"). The spec does not hide it: `raftLog.stableTo.spec`'s `StableOk` is false
-   there, so R2 cannot step that acknowledgement without a premise. Worth a test in `issues/` (not
-   written: outside this batch's paths).
+1. **The suspected `stableTo` gap (round 0's question 1): not a bug with honest peers.** The
+   scenario (a `Ready` hands out `s1` and entries through `id`; before `Advance` a newer `s2` is
+   restored and a `MsgApp` re-sends `(s2, id]` at the same terms, so the acknowledgement matches and
+   the next `Append` after `ApplySnapshot(s2)` finds a gap) needs `restore(s2)`, which runs only when
+   `matchTerm(s2.index, s2.term)` fails (raft.go:1927-1934, else it fast-forwards). If a leader then
+   re-sends the handed-out `(id, t)`, log matching says the handed-out log agreed with it through
+   `id`, so it held `(s2.index, s2.term)` and `matchTerm` succeeded: no restore. A Go reproduction
+   (the coordinator's scratch test `snapgap_test.go`) triggers the panic only with a forged
+   message. So no `issues/` entry; `StableOk` stays the premise, and its docstring says R2
+   discharges it from log matching.
 2. **The `2^63` bound on read ranges** (`slice`, `entries`, `nextCommittedEnts`, `scan`): `extend`
    computes `len(dst) + len(vals)` as an `int`, which Perennial's slices (no memory bound) do not
    keep below `2^63`. The premise is local, but R2 must discharge it at `maybeSendAppend` and
@@ -154,3 +154,52 @@ applied, stable index becomes a floor); the client's writes `logStor_install`, `
   `stableSnapTo`).
 - `maybeAdvance`: voters non-empty, every voter's acknowledgement at most the queue's position
   (contexts the queue produced, within one term).
+
+## Round 1 repairs
+
+Reviews: `reviews/R3-provability-1.md`, `reviews/R3-completeness-1.md`. Rebuilt
+(`etc/specs-build.sh --dir Spec/go_etcd_io/raft/v3`: OK), snippets gofmt-clean and `go vet` clean in
+a copy of the pinned raft module.
+
+- **Publishing the applied floor (both F1).** `LogState` has a ghost `frozen : Nat → Option w64`
+  (the storage holds a committed entry of that term there): `absorb` freezes each written entry
+  that was committed at the hand-out (`Handout.upto`, new) or is committed now and is the log's, and
+  the installed snapshot's index; `restore` keeps it and freezes the stored committed part
+  (`freezeStable`); nothing resets it. `raftLog_publish` takes `i ≤ applied` and `freezeStable i =
+  some t` (frozen, or stable with nothing pending unstored). So an applied index is a floor after
+  a truncation or a restore between `Ready` and `Advance`. The realization's "floor ≤ stable" became
+  "floor ≤ `σ.last` and ≤ `committed`" (a floor above `stable` is harmless: raft reads the unstable
+  part first). Snippet `ReqMoveBeforeAdvance`.
+- **`StableOk`/`SnapAckOk` take `handing = false`** (provability F2), and so does
+  `raftLog_storageLastIndex`. `Wf` now carries the in-progress agreement (S1: with no batch out,
+  `stored` is the log through `offsetInProgress - 1`), so R2 needs only log matching for a matching
+  acknowledgement. `absorb` drops the entries of a batch handed out before a `restore` (S2).
+- **Slice capacity** (provability F3): `unstable.truncateAndAppend`, `raftLog.append`,
+  `raftLog.maybeAppend` take `⌜len = cap⌝ ∨ ownSliceCap` of the appended slice.
+- **`isMsgInArray`** takes `0 ≤ sint.Z t` (provability F4); `nonissues/raft-ismsginarray-negative-type-panic.md`
+  written, `nonissues/INDEX.md` regenerated (R1's `IsLocalMsg`/`IsResponseMsg` need the same premise).
+- **R1's storage laws** (provability F5/F6, completeness F5): `logStor_read` takes `logSnapLb l j`,
+  gives `j ≤ σ.snap.index`, commits `logSnapLb l σ.snap.index`; `logFloor_agree` added;
+  `logStor_install` commits a floor at the snapshot. `Entries`' capacity is R1's to add (requested).
+- **`maybeAppend`'s indexed entries** (completeness F2): the pre is the weakest the code needs
+  (`entriesRO` at `prev + 1` with no spare capacity); the sources are requested from R1 (`Msg`'s
+  entry indices, `msgSent`), 3h (`msgPts` exposing the slice) and R2 (`logSliceFromMsgApp`):
+  `req/go_etcd_io_raft_v3.md`, "from R3, round 1", item 5.
+- **The `2^63`/`2^64` premises** (completeness F3, provability S3): kept local; requested R2's index
+  bound as `lastIndex < 2^63` (item 4), which discharges all of them; `nextCommittedEnts`' bound is
+  needed only when it slices (not paused, no snapshot pending).
+- **The suspected bug** (completeness F4): refuted (open question 1 above), no entry.
+- Second tier: `raftLog_fields`' wand ends in `==∗` (S4); `nextUnstableSnapshot` takes `logStorage`
+  and returns `V s` (S6); the voter-size bound of `maybeAdvance` requested from R4
+  (`req/go_etcd_io_raft_v3_quorum.md`). One batch in flight (`acceptUnstable`'s `handing = false`)
+  is the cost of `AsyncStorageWrites` off: async writes would need a queue of hand-outs in
+  `LogState` and every acknowledgement spec restated.
+- **Snippets** (F7, S5): `ReqReadyCycle` checks the term after `stableSnapTo` and states its
+  absorb discipline; `ReqCompactApplied` checks the applied index itself, with no other compaction;
+  `ReqConflictHint` assumes `index ≥ committed`; `ReqLimitSize` no longer compares pointers;
+  `ReqPrevTerm` guards `2^64 - 2`; `ReqReadIndexQuorum` assumes a quorum of each half acknowledged
+  and the voter bound; `ReqStart`, `ReqLeaderAppend`, `ReqFollowerAppend` state their missing
+  assumptions; new `ReqVoteUpToDate`, `ReqHeartbeatCommit`, `ReqMoveBeforeAdvance`.
+- Not changed: the uncertain `assertConfStatesEquivalent` vs `proto.Equal` on unknown fields (3h's
+  `confStatePts` should exclude them), and `restore`'s `Infof("%s", l)` (the logger's `String` call
+  on the struct the caller owns: `loggerOk`'s owner).

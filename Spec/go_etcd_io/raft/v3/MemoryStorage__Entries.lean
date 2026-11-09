@@ -39,7 +39,8 @@ def MemoryStorage.Entries.spec : Prop :=
   {{ (sl : GoSlice) (err : GoInterface), RET (PairV #sl #err); ∃ σ, Q σ ∗
       ((⌜uint.nat lo ≤ σ.off⌝ ∗ errIs go_etcd_io.raft.v3.ErrCompacted err) ∨
        (⌜σ.off < uint.nat lo ∧ σ.ents = []⌝ ∗ errIs go_etcd_io.raft.v3.ErrUnavailable err) ∨
-       (⌜err = interface.nil ∧ σ.off < uint.nat lo ∧ σ.ents ≠ []⌝ ∗ ∃ es, entriesRO sl (uint.nat lo) es ∗
+       (⌜err = interface.nil ∧ σ.off < uint.nat lo ∧ σ.ents ≠ [] ∧ sl.len = sl.cap⌝ ∗
+          ∃ es, entriesRO sl (uint.nat lo) es ∗
           ⌜let rng := (σ.ents.drop (uint.nat lo - σ.off - 1)).take (uint.nat hi - uint.nat lo)
            es <+: rng ∧ (rng ≠ [] → es ≠ []) ∧ (mx = W64 (2 ^ 64 - 1) → es = rng)⌝)) }}
 

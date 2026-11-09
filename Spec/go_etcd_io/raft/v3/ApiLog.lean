@@ -78,8 +78,12 @@ below) and computes the joint quorum index `JointIdx`.
   `StorRel` says: unless a snapshot is pending and not stored, `σ`'s entries are `stored`'s from
   `σ.off` on (`σ.ents = stored.drop (σ.off - base)`, `base ≤ σ.off`, `σ.termAt base = baseTerm` if
   `σ.off = base`), plus the effect of the batch handed out and written but not absorbed; `σ.off` is
-  at most the published floor (or the base); the floor is at most the stable index and `σ.last`; the
-  stored snapshot's index is at most `committed` (true at the attach: `StorageHolds`; a restored
+  at most the published floor (or the base); every floor is at most `σ.last` and at most
+  `committed`, and `σ`'s term there (if not compacted) is the floor's (`ls.frozen`'s terms are the
+  storage's: written committed entries, which no later write changes, since a later batch rewrites
+  a committed index only with the same entry); the floor may exceed the stable index (after a
+  truncation or a restore between `Ready` and `Advance`), which is harmless: raft reads the unstable
+  part first, and a read below the floor may answer `ErrCompacted`. The stored snapshot's index is at most `committed` (true at the attach: `StorageHolds`; a restored
   snapshot is past `committed`). The floors are mono-nat authorities (`logFloor`'s index with the
   frozen term map, `logSnapLb`, `logCompactedLb`). `logPending` is the client's half of a ghost
   variable holding the batch handed out (its other half in the invariant, its existence recorded
@@ -218,16 +222,20 @@ end UnstableState
 /-! ## The log (`log.go`) -/
 
 /-- **A batch handed out** by `acceptUnstable` (a `Ready`'s storage writes): the snapshot to
-install (if any), and the entries to append, the first at index `start`. -/
+install (if any), the entries to append, the first at index `start`, and (ghost) the log's
+`committed` at the hand-out (the entries up to it are the committed log's). -/
 structure Handout where
   snap : Option Snapshot
   start : Nat
   ents : List LogEntry
+  upto : Nat
 
 /-- **A `raftLog`'s state**: the `unstable` struct's, `committed`, `applying`, `applied`, the
 applying budget (`applyingEntsSize`, `maxApplyingEntsSize`, `applyingEntsPaused`), and the ghost
 fields (the module header): the base, raft's knowledge of the stored entries, whether the pending
-snapshot is stored, whether a batch is handed out. -/
+snapshot is stored, whether a batch is handed out, and the **frozen terms** (`frozen j = some t`:
+the storage holds a committed entry of term `t` at `j`, unless compacted or replaced by a later
+snapshot; what `raftLog_publish` publishes from when the log moved since the write). -/
 structure LogState where
   us : UnstableState
   committed : Nat
@@ -241,6 +249,7 @@ structure LogState where
   stored : List LogEntry
   snapStored : Bool
   handing : Bool
+  frozen : Nat → Option w64
 
 namespace LogState
 
@@ -294,7 +303,7 @@ def maxAppliable (ls : LogState) (allowUnstable : Bool) : Nat :=
 /-- `newLogWithSize` over a storage at `σ`. -/
 def init (σ : StorState) (maxSize : w64) : LogState :=
   ⟨⟨none, [], σ.last + 1, false, σ.last + 1⟩, σ.off, σ.off, σ.off, W64 0, maxSize, false,
-    σ.off, σ.offTerm, σ.ents, false, false⟩
+    σ.off, σ.offTerm, σ.ents, false, false, fun j => if j = σ.off then some σ.offTerm else none⟩
 
 /-- `append(es)` (`truncateAndAppend`), `es` at `k, k+1, ...`. -/
 def truncateAppend (ls : LogState) (k : Nat) (es : List LogEntry) : LogState :=
@@ -322,32 +331,54 @@ def stableSnapTo (ls : LogState) (i : Nat) : LogState :=
   let us' := ls.us.stableSnapTo i
   { ls with us := us', snapStored := ls.snapStored && us'.snap.isSome }
 
-/-- `restore(s)`: the log restarts at the snapshot, committed at it; nothing stored after it. -/
+/-- The terms of the stored, committed entries `[base, min stable committed]` added to `frozen`
+(when the storage is read for them: no snapshot pending unstored). -/
+def freezeStable (ls : LogState) : Nat → Option w64 := fun j =>
+  match ls.frozen j with
+  | some t => some t
+  | none =>
+    if (ls.us.snap = none ∨ ls.snapStored = true) ∧ ls.base ≤ j ∧ j ≤ ls.stable ∧ j ≤ ls.committed
+    then ls.termOf j else none
+
+/-- `restore(s)`: the log restarts at the snapshot, committed at it; nothing stored after it (the
+terms frozen so far are kept: the storage still holds them until the snapshot is installed). -/
 def restore (ls : LogState) (s : Snapshot) : LogState :=
   { ls with us := ls.us.restore s, committed := uint.nat s.index, base := uint.nat s.index,
-            baseTerm := s.term, stored := [], snapStored := false }
+            baseTerm := s.term, stored := [], snapStored := false, frozen := ls.freezeStable }
 
 /-- **The batch `acceptUnstable` hands out**: the snapshot if not yet in progress, and the unstable
 entries not yet in progress. -/
 def handout (ls : LogState) : Handout :=
-  ⟨ls.us.nextSnapshot, ls.us.offsetInProgress, ls.us.nextEntries⟩
+  ⟨ls.us.nextSnapshot, ls.us.offsetInProgress, ls.us.nextEntries, ls.committed⟩
 
 /-- `acceptUnstable()`. -/
 def acceptUnstable (ls : LogState) : LogState :=
   { ls with us := ls.us.acceptInProgress, handing := true }
 
 /-- **The written batch folded into the log's knowledge** (`raftLog_absorb`): a snapshot of the
-pending one's index makes it stored (and the stored entries empty); the entries replace the stored
-ones from their first index. -/
+pending one's index makes it stored (and the stored entries empty), and its index frozen; the
+entries replace the stored ones from their first index (unless a later `restore` moved the base
+past them: then the storage will be replaced, and they are dropped); each written entry that was
+committed at the hand-out, or is committed now and is the log's, is frozen. -/
 def absorb (ls : LogState) (h : Handout) : LogState :=
   let ls1 := match h.snap with
     | some s =>
-      if ls.us.snap.map (fun s0 : Snapshot => s0.index) = some s.index then { ls with snapStored := true, stored := [] }
+      if ls.us.snap.map (fun s0 : Snapshot => s0.index) = some s.index then
+        { ls with snapStored := true, stored := [],
+                  frozen := fun j => if j = uint.nat s.index then some s.term else ls.frozen j }
       else ls
     | none => ls
+  let fz : Nat → Option w64 := fun j =>
+    match h.ents[j - h.start]? with
+    | some e =>
+      if h.start ≤ j ∧ (j ≤ h.upto ∨
+          (j ≤ ls1.committed ∧ ls1.base < j ∧ ls1.log[j - ls1.base - 1]? = some e))
+      then some e.term else ls1.frozen j
+    | none => ls1.frozen j
   { ls1 with
-    stored := if h.ents = [] then ls1.stored
+    stored := if h.ents = [] ∨ h.start ≤ ls1.base then ls1.stored
               else ls1.stored.take (h.start - ls1.base - 1) ++ h.ents,
+    frozen := fz,
     handing := false }
 
 /-- `appliedTo(i, size)`. -/
@@ -366,7 +397,9 @@ def acceptApplying (ls : LogState) (i : Nat) (size : w64) (allowUnstable : Bool)
 /-- **What holds of every log state** (`raftLog_wf`): the unstable struct's facts, its offset past
 the base and the stored entries reaching the stable index; the pending snapshot is the base;
 `applied ≤ applying ≤ committed`, `base ≤ committed ≤ end`; the storage's end is the stable
-index when nothing is unstable or pending; an unpaused budget has room. -/
+index when nothing is unstable or pending; an unpaused budget has room; with no batch out, the
+storage holds the log's entries through the in-progress offset (the batches written were the
+log's, and a truncation lowers the offset). -/
 def Wf (ls : LogState) : Prop :=
   ls.us.Wf ∧ ls.base < ls.us.offset ∧ ls.stable - ls.base ≤ ls.stored.length ∧
   (∀ s, ls.us.snap = some s → uint.nat s.index = ls.base ∧ s.term = ls.baseTerm) ∧
@@ -374,18 +407,29 @@ def Wf (ls : LogState) : Prop :=
   ls.applied ≤ ls.applying ∧ ls.applying ≤ ls.committed ∧ ls.base ≤ ls.committed ∧
   ls.committed ≤ ls.end ∧ ls.base + ls.stored.length < 2 ^ 64 ∧
   (ls.us.ents = [] → ls.us.snap = none → ls.base + ls.stored.length = ls.stable) ∧
-  (ls.applyingPaused = false → uint.nat ls.applyingSize < uint.nat ls.maxApplyingSize)
+  (ls.applyingPaused = false → uint.nat ls.applyingSize < uint.nat ls.maxApplyingSize) ∧
+  (ls.handing = false →
+    ls.us.offsetInProgress - 1 ≤ ls.base + ls.stored.length ∧
+    ls.stored.take (ls.us.offsetInProgress - 1 - ls.base) =
+      ls.log.take (ls.us.offsetInProgress - 1 - ls.base))
 
-/-- **`stableTo(id)` is safe** (its premise): the log's contents do not change (the entries made
-stable are those stored), and the storage ends where the log does once nothing is unstable. -/
+/-- **`stableTo(id)` is safe** (its premise): no batch is out (the written one was absorbed: the
+storage is what `stored` says), the log's contents do not change (the entries made stable are those
+stored), and the storage ends where the log does once nothing is unstable. For a matching
+acknowledgement the caller (R2) discharges the second from `Wf`'s in-progress agreement and the
+cluster's log matching: an entry of the same index and term as the one written is the same entry,
+and so is every entry before it. (A `restore` between the hand-out and the acknowledgement cannot
+make a stale acknowledgement match with honest peers: `restore` runs only when the snapshot's id is
+not in the log, and by log matching no leader then re-sends the handed-out id; batch-R3.md, round 1,
+on the suspected gap.) -/
 def StableOk (ls : LogState) (index : Nat) (term : w64) : Prop :=
   let ls' := ls.stableTo index term
-  ls'.log = ls.log ∧ (ls'.us.ents = [] → ls'.us.snap = none → ls'.base + ls'.stored.length = ls'.stable)
+  ls.handing = false ∧ ls'.log = ls.log ∧ (ls'.us.ents = [] → ls'.us.snap = none → ls'.base + ls'.stored.length = ls'.stable)
 
 /-- **`stableSnapTo(i)` is safe**: a pending snapshot at `i` is stored, and the storage ends where
 the log does once nothing is unstable. -/
 def SnapAckOk (ls : LogState) (i : Nat) : Prop :=
-  ∀ s, ls.us.snap = some s → uint.nat s.index = i →
+  ls.handing = false ∧ ∀ s, ls.us.snap = some s → uint.nat s.index = i →
     ls.snapStored = true ∧ (ls.us.ents = [] → ls.base + ls.stored.length = ls.stable)
 
 end LogState
@@ -539,13 +583,13 @@ def raftLog_fields.spec : Prop :=
     (∀ c : Nat, l.[go_etcd_io.raft.v3.raftLog, go!"committed"] ↦ W64 c ∗
       l.[go_etcd_io.raft.v3.raftLog, go!"applied"] ↦ W64 ls.applied ∗
       l.[go_etcd_io.raft.v3.raftLog, go!"maxApplyingEntsSize"] ↦ ls.maxApplyingSize ∗
-      ⌜ls.committed ≤ c ∧ c ≤ ls.end⌝ -∗ raftLog l { ls with committed := c })
+      ⌜ls.committed ≤ c ∧ c ≤ ls.end⌝ ==∗ raftLog l { ls with committed := c })
 
 /-- **The storage's `LastIndex`, called through the log's `storage` field** (`Bootstrap`'s check
 that the storage is empty): the storage's last index as the log knows it. -/
 def raftLog_storageLastIndex.spec : Prop :=
   ∀ l ls (st : GoInterface) (i : GoInterfaceOk), st = interface.ok i →
-    (ls.us.snap = none ∨ ls.snapStored = true) →
+    (ls.us.snap = none ∨ ls.snapStored = true) → ls.handing = false →
     {{ raftLog (GF := GF) l ls ∗ l.[go_etcd_io.raft.v3.raftLog, go!"storage"] ↦□ st }}
       (App (Val #(methods i.ty go!"LastIndex" i.v)) (Val #()))
     {{ RET (PairV #(W64 (ls.base + ls.stored.length)) #interface.nil); raftLog l ls }}
@@ -570,11 +614,18 @@ def logFresh_attach.spec : Prop :=
 def raftLog_absorb.spec : Prop :=
   ∀ l ls h, raftLog (GF := GF) l ls ∗ logPending l h false false ⊢ |==> raftLog l (ls.absorb h)
 
-/-- **Publish an applied index** (no snapshot pending, within the stable part). -/
+/-- **Publish an applied index** whose stored term is known: frozen (written and committed, or
+stored and committed when a snapshot was restored), or in the stable part with nothing pending
+unstored. -/
 def raftLog_publish.spec : Prop :=
   ∀ l ls (i : Nat) (t : w64),
-    ls.us.snap = none → i ≤ ls.applied → i ≤ ls.stable → ls.termOf i = some t →
+    i ≤ ls.applied → ls.freezeStable i = some t →
     raftLog (GF := GF) l ls ⊢ |==> raftLog l ls ∗ logFloor l i t
+
+/-- **Floors agree** on the term (every floor is a committed entry's, or the compaction point's,
+which the storage keeps). -/
+def logFloor_agree.spec : Prop :=
+  ∀ l (i : Nat) (t t' : w64), logFloor (GF := GF) l i t ∗ logFloor l i t' ⊢ ⌜t = t'⌝
 
 /-! ### The client's storage writes -/
 
@@ -616,13 +667,13 @@ def logStor_createSnapshot.spec : Prop :=
            COMM logSnapLb l (uint.nat s.index) }>
 
 /-- **Read the storage**: its compaction point is at most its snapshot's index and is a floor, its
-snapshot empty or valid. -/
+snapshot empty or valid and at least any known lower bound (which it raises). -/
 def logStor_read.spec : Prop :=
-  ∀ l S V N (Eo : CoPset), ↑N ⊆ Eo →
-    logStorage (GF := GF) l S V N ⊢
-      AU <{ ∃∃ σ, S σ ∗ ⌜σ.off ≤ uint.nat σ.snap.index⌝ ∗ logFloor l σ.off σ.offTerm ∗
-              (⌜σ.snap.isEmpty⌝ ∨ V σ.snap) }> @ Eo, ∅
-        <{ S σ, COMM True }>
+  ∀ l S V N (j : Nat) (Eo : CoPset), ↑N ⊆ Eo →
+    logStorage (GF := GF) l S V N ∗ logSnapLb l j ⊢
+      AU <{ ∃∃ σ, S σ ∗ ⌜σ.off ≤ uint.nat σ.snap.index ∧ j ≤ uint.nat σ.snap.index⌝ ∗
+              logFloor l σ.off σ.offTerm ∗ (⌜σ.snap.isEmpty⌝ ∨ V σ.snap) }> @ Eo, ∅
+        <{ S σ, COMM logSnapLb l (uint.nat σ.snap.index) }>
 
 /-- **Store a hard state** (the log does not read it). -/
 def logStor_setHardState.spec : Prop :=

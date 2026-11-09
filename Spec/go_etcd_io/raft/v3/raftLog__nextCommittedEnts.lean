@@ -43,7 +43,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 def raftLog.nextCommittedEnts.spec : Prop :=
   ∀ (l : Loc) (ls : LogState) (allow : Bool) (lo hi : Nat),
   (ls.us.snap = none → ls.base ≤ ls.applying) →
-  lo = ls.applying + 1 → hi = ls.maxAppliable allow + 1 → hi - lo < 2 ^ 63 →
+  lo = ls.applying + 1 → hi = ls.maxAppliable allow + 1 →
+  (hi - lo < 2 ^ 63 ∨ ls.applyingPaused = true ∨ ls.us.snap.isSome) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftLog l ls }}
     (App (Val (l @!! go.GoType.PointerType go_etcd_io.raft.v3.raftLog.ty @!! go!"nextCommittedEnts")) (Val #allow))
   {{ (sl : GoSlice), RET #sl; raftLog l ls ∗ ∃ es, entriesRO sl lo es ∗

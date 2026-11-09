@@ -43,6 +43,7 @@ func ReqSendOrSnapshot(l *raftLog, next uint64, maxSize entryEncodingSize) {
 // REQ raftlog/conflict-hint: the probing hint is at most the index probed, and every entry
 // between it and the probe has a larger term.
 // Users: raft.go:1519 (stepLeader's MsgAppResp reject), raft.go:1839 (handleAppendEntries).
+// Assumes: index >= committed (both callers), so no re-read is below the compaction floor.
 // Specs: raftLog.findConflictByTerm.spec, raftLog.term.spec.
 func ReqConflictHint(l *raftLog, index, term uint64) {
 	hint, hintTerm := l.findConflictByTerm(index, term)
@@ -68,7 +69,7 @@ func ReqPrevTerm(l *raftLog) {
 	if t, err := l.term(last.index); err != nil || t != last.term {
 		panic("prev-term: last term unknown")
 	}
-	if last.index < ^uint64(0) {
+	if last.index < ^uint64(0)-1 {
 		if _, err := l.term(last.index + 1); !errors.Is(err, ErrUnavailable) {
 			panic("prev-term: a term past the end")
 		}
@@ -108,4 +109,30 @@ func ReqScanConfChanges(l *raftLog) bool {
 		panic("scan: range not covered")
 	}
 	return found
+}
+
+// REQ raftlog/vote-up-to-date: a voter grants only to a candidate whose last entry is at least as
+// up to date as its own (higher term, or same term and index at least its last index).
+// Users: raft.go:1236-1245 (MsgVote/MsgPreVote: isUpToDate).
+// Specs: raftLog.lastEntryID.spec, raftLog.isUpToDate.spec.
+func ReqVoteUpToDate(l *raftLog, cand entryID) bool {
+	ok := l.isUpToDate(cand)
+	our := l.lastEntryID()
+	if ok && !(cand.term > our.term || cand.term == our.term && cand.index >= our.index) {
+		panic("vote: granted to a log behind ours")
+	}
+	return ok
+}
+
+// REQ raftlog/heartbeat-commit: a follower commits the leader's heartbeat commit index, which is
+// at most what it acknowledged (in its log), and the commit never decreases.
+// Users: raft.go:1851 (handleHeartbeat).
+// Assumes: c <= committed or c <= lastIndex() (the leader sends min(pr.Match, committed)).
+// Specs: raftLog.commitTo.spec.
+func ReqHeartbeatCommit(l *raftLog, c uint64) {
+	old := l.committed
+	l.commitTo(c)
+	if l.committed != max(old, c) {
+		panic("heartbeat-commit: wrong commit")
+	}
 }

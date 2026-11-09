@@ -13,7 +13,8 @@ import (
 // read is returned (in queue order, with its message and commit index), exactly once.
 // Users: raft.go:2159-2166 (stepLeader MsgReadIndex), raft.go:725 (bcastHeartbeat),
 // raft.go:1611-1625 (MsgHeartbeatResp: recvAck, maybeAdvance).
-// Assumes: voters is the leader's non-empty voter configuration, the leader among them; every
+// Assumes: voters is the leader's non-empty voter configuration (at most 2^62 voters per half),
+// the leader among them, and self and others together a quorum of each half; every
 // acknowledgement is a context this queue produced (followers echo heartbeat contexts), so at most
 // the queue's position.
 // Specs: newReadOnly.spec, readOnly.addRequest.spec, readOnly.heartbeatCtx.spec,

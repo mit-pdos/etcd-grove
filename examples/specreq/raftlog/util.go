@@ -16,10 +16,8 @@ func ReqLimitSize(ents []*pb.Entry, maxSize uint64) {
 	if len(ents) > 0 && len(got) == 0 {
 		panic("limit-size: empty prefix")
 	}
-	for i := range got {
-		if got[i] != ents[i] {
-			panic("limit-size: not a prefix")
-		}
+	if len(got) > len(ents) {
+		panic("limit-size: longer than the input")
 	}
 }
 

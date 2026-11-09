@@ -13,8 +13,9 @@ import (
 // compaction point, with every stored entry stable and nothing unstable; its last entry's term
 // is known.
 // Users: raft.go:443 (newRaft: newLogWithSize, then InitialState, lastEntryID, loadState).
-// Assumes: maxSize > 0 (Config.validate makes MaxCommittedSizePerReady non-zero); the storage
-// is attached to nothing else yet.
+// Assumes: maxSize > 0 (ConfigOk: MaxSizePerMsg or MaxCommittedSizePerReady non-zero, and
+// validate copies the former into the latter); the storage is attached to nothing else yet; its
+// last index + 1 < 2^64 and its compaction point at most its snapshot's index (StorageHolds).
 // Specs: newLogWithSize.spec, raftLog_borrowStarting.spec, raftLog.lastEntryID.spec,
 // raftLog.firstIndex.spec, raftLog.lastIndex.spec; laws: raftLog_fields.spec, logFresh_attach.spec.
 func ReqStart(st Storage, lg Logger, maxSize entryEncodingSize) *raftLog {
@@ -41,7 +42,9 @@ func ReqStart(st Storage, lg Logger, maxSize entryEncodingSize) *raftLog {
 // REQ raftlog/leader-append: the leader's proposals are appended after its last index, and the
 // new last index covers them; the leader commits an entry of its term that a quorum matched.
 // Users: raft.go:831-852 (appendEntry), raft.go:796 (maybeCommit).
-// Assumes: ents are the leader's, at indices li+1, ..., of term `term` (non-zero); li+len(ents) < 2^64.
+// Assumes: ents are the leader's, at indices li+1, ..., of term `term` (non-zero), a fresh slice
+// with no spare capacity (appendEntry's clone); li+len(ents) < 2^64; no snapshot pending (a leader
+// is promotable).
 // Specs: raftLog.lastIndex.spec, raftLog.append.spec, raftLog.maybeCommit.spec, raftLog.term.spec.
 func ReqLeaderAppend(l *raftLog, term uint64, ents []*pb.Entry) {
 	li := l.lastIndex()
@@ -64,7 +67,8 @@ func ReqLeaderAppend(l *raftLog, term uint64, ents []*pb.Entry) {
 // commit within them.
 // Users: raft.go:1809-1851 (handleAppendEntries, handleHeartbeat's commitTo).
 // Assumes: a.prev.index >= committed (the early return before it); the cluster's log matching:
-// past a matching prev, the leader's entries agree with the committed prefix.
+// past a matching prev, the leader's entries agree with the committed prefix; a.entries are at
+// indices a.prev.index+1, ... (the MsgApp's), with no spare capacity (a decoded message).
 // Specs: raftLog.maybeAppend.spec, raftLog.matchTerm.spec, raftLog.commitTo.spec,
 // raftLog.findConflictByTerm.spec, raftLog.lastIndex.spec.
 func ReqFollowerAppend(l *raftLog, a logSlice, leaderCommit uint64) {

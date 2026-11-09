@@ -206,3 +206,34 @@ What `raftCore`'s realization and the proof sketches of `raft.Step`, `handle*`, 
   the last pending request's context (or empty).
 - util.go: `voteRespMsgType` of the four vote types, `entsSize`, `payloadsSize`,
   `assertConfStatesEquivalent` (no panic when the `ConfState` lists the tracker's configuration).
+
+### from R3, round 1
+
+4. **To R2: the index bound as `lastIndex < 2^63`.** R3's specs keep their bounds local:
+   `slice`/`entries`/`scan` take `hi - lo < 2^63` (`extend`'s `int` sum), `nextCommittedEnts` the
+   same unless paused or a snapshot is pending; `append` `k + |es| < 2^64`, `maybeAppend`
+   `prev + |es| < 2^64`, `restore` `s.index + 1 < 2^64`. If R2's step-receipt bound on terms and
+   indices (its item 5 to R1) is stated as **every index below `2^63`** (not `2^64 - 1`), one fact
+   discharges all of them (every range of indices is then below `2^63`).
+   Used by: `raft.maybeSendAppend`, `hasUnappliedConfChanges`, `readyWithoutAccept`, `appendEntry`,
+   `handleAppendEntries`, `restore`.
+5. **To R1, R2 and 3h: a `MsgApp`'s entries as an indexed slice.** `raftLog.maybeAppend.spec` needs
+   `entriesRO a.entries' (prev + 1) es` (Go reads each entry's `Index`: `findConflict`'s
+   `pbEntryID`, `append`'s `ents[0].GetIndex()`, `acceptInProgress`'s last index) and the slice
+   with no spare capacity (`⌜len = cap⌝` or its `ownSliceCap`: `unstable` may adopt it and append
+   into it later). That is the weakest the code needs. Sources: R1's `Msg` should index its entries
+   (their first index, `m.index + 1` for a `MsgApp`), `msgSent γ m` of a `MsgApp` state it; 3h's
+   `msgPts` expose `entriesRO entsSlice (m.index + 1) m.entries` with the capacity (a decoded
+   message's slice is exactly allocated); R2's `logSliceFromMsgApp.spec` name `a.entries'` as that
+   slice. Same for `MsgStorageApplyResp`'s entries (`entsSize`, `payloadsSize`, the last
+   `GetIndex()`), and `appendEntry`'s `cloned` (`make(len, len)`: R2's own).
+   ```go
+   a := logSliceFromMsgApp(m)                                   // raft.go:1809
+   if mlastIndex, ok := r.raftLog.maybeAppend(a, m.GetCommit()); ok { ... }
+   ```
+6. **To R1: the storage read law and floors** (round 1, provability F6, completeness F5):
+   `logStor_read` now takes `logSnapLb l j`, gives `j ≤ σ.snap.index` and commits `logSnapLb l
+   σ.snap.index`, as `stor_read`; `logFloor_agree` lets R2 tie a floor's term to the committed log.
+   `raftLog_publish` now publishes from frozen terms (written committed entries), so an applied index
+   is a floor after a truncation or a restore between `Ready` and `Advance`; `logStor_install`'s
+   COMM gives a floor at the snapshot (R1's `readyStor_install` may keep it for the acknowledgement).
