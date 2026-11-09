@@ -416,14 +416,25 @@ theorem oneLeader {σ : State} (h : σ.moreThanOneLeaderInv = true) {i j : ID} (
   have := this j hj
   simpa [ht, hli, hlj] using this
 
-/-- **A server becoming a follower**, of its term or a later one, its log and commit index kept;
-`hcw`: its commit index within the log of any leader of its new term (for its own term, from
-`CommitWithinLeader`). -/
-theorem specInv_upd_follower {σ : State} {i : ID} {f : Server → Server} (h : SpecInv σ)
-    (hS : (f (σ.s i)).state = follower) (hT : (σ.s i).currentTerm ≤ (f (σ.s i)).currentTerm)
+/-- **A server becoming a follower or a candidate**, of its term or a later one, its log and commit
+index kept; `hcw`: its commit index within the log of any leader of its new term (for its own
+term, from `CommitWithinLeader`); `hcand`: a candidate, its messages as `CandS` says. -/
+theorem specInv_upd_nonleader {σ : State} {i : ID} {f : Server → Server} (h : SpecInv σ)
+    (hS : (f (σ.s i)).state ≠ leader) (hT : (σ.s i).currentTerm ≤ (f (σ.s i)).currentTerm)
     (hL : (f (σ.s i)).log = (σ.s i).log) (hC : (f (σ.s i)).commitIndex = (σ.s i).commitIndex)
     (hcw : ∀ l ∈ σ.server, l ≠ i → (σ.s l).state = leader →
-      (σ.s l).currentTerm = (f (σ.s i)).currentTerm → (σ.s i).commitIndex ≤ (σ.s l).log.length) :
+      (σ.s l).currentTerm = (f (σ.s i)).currentTerm → (σ.s i).commitIndex ≤ (σ.s l).log.length)
+    (hcand : (f (σ.s i)).state = candidate →
+      (∀ m ∈ msgs σ, m.source = i → m.type = .appendEntriesRequest → m.term < (f (σ.s i)).currentTerm) ∧
+      (∀ m ∈ msgs σ, m.dest = i → m.type = .appendEntriesResponse → m.success = true →
+        m.term < (f (σ.s i)).currentTerm) ∧
+      (persisted (f (σ.s i)) ∨
+        ((f (σ.s i)).votesGranted = [] ∧
+          (∀ m ∈ σ.messages.domain, m.source = i → m.term < (f (σ.s i)).currentTerm) ∧
+          (∀ m ∈ σ.messages.domain, m.dest = i → m.type = .requestVoteResponse → m.voteGranted = true →
+            m.term < (f (σ.s i)).currentTerm) ∧
+          (∀ m ∈ σ.pendingMessages.domain, m.dest = i → m.type = .requestVoteResponse →
+            m.voteGranted = true → m.term = (f (σ.s i)).currentTerm → m.source = i)))) :
     SpecInv (σ.upd i f) := by
   obtain ⟨hLE, hD, hTm, hCa, hP, hCW, hRC⟩ := h
   have hlog : ∀ j, ((σ.upd i f).s j).log = (σ.s j).log := by
@@ -434,32 +445,34 @@ theorem specInv_upd_follower {σ : State} {i : ID} {f : Server → Server} (h : 
     intro j; by_cases hj : j = i
     · subst hj; rw [upd_s_self]; exact hT
     · rw [upd_s_ne _ _ _ _ hj]; exact Int.le_refl _
-  -- a leader or a candidate of the new state is not `i`
-  have hne : ∀ l, ((σ.upd i f).s l).state = leader ∨ ((σ.upd i f).s l).state = candidate → l ≠ i := by
+  -- a leader of the new state is not `i`
+  have hne : ∀ l, ((σ.upd i f).s l).state = leader → l ≠ i := by
     rintro l hl rfl
-    rw [upd_s_self, hS] at hl
-    rcases hl with hl | hl
-    · exact follower_ne_leader hl
-    · exact follower_ne_candidate hl
+    rw [upd_s_self] at hl
+    exact hS hl
   refine ⟨?_, ?_, ?_, ?_, hP, ?_, ?_⟩
   · intro l hl hll
-    have e := upd_s_ne σ i f l (hne l (Or.inl hll))
+    have e := upd_s_ne σ i f l (hne l hll)
     rw [e] at hll ⊢
     obtain ⟨h1, h2⟩ := hLE l hl hll
     exact ⟨fun j hj k x hx ht => h1 j hj k x (by rw [← hlog j]; exact hx) ht, h2⟩
   · intro l hl hll
-    have e := upd_s_ne σ i f l (hne l (Or.inl hll))
+    have e := upd_s_ne σ i f l (hne l hll)
     rw [e] at hll ⊢
     exact hD l hl hll
   · intro x hx
     obtain ⟨t1, t2⟩ := hTm x hx
     exact ⟨Int.le_trans t1 (hterm _), fun hh => Int.le_trans (t2 hh) (hterm _)⟩
   · intro l hl hll
-    have e := upd_s_ne σ i f l (hne l (Or.inr hll))
-    rw [e] at hll ⊢
-    exact hCa l hl hll
+    by_cases hli : l = i
+    · subst hli
+      rw [upd_s_self] at hll ⊢
+      exact hcand hll
+    · have e := upd_s_ne σ i f l hli
+      rw [e] at hll ⊢
+      exact hCa l hl hll
   · intro k hk l hl hll ht
-    have hli := hne l (Or.inl hll)
+    have hli := hne l hll
     have e := upd_s_ne σ i f l hli
     rw [e] at hll ht ⊢
     by_cases hki : k = i
@@ -469,9 +482,19 @@ theorem specInv_upd_follower {σ : State} {i : ID} {f : Server → Server} (h : 
     · rw [upd_s_ne _ _ _ _ hki] at ht ⊢
       exact hCW k hk l hl hll ht
   · intro l hl hll
-    have e := upd_s_ne σ i f l (hne l (Or.inl hll))
+    have e := upd_s_ne σ i f l (hne l hll)
     rw [e] at hll ⊢
     exact hRC l hl hll
+
+/-- **A server becoming a follower.** -/
+theorem specInv_upd_follower {σ : State} {i : ID} {f : Server → Server} (h : SpecInv σ)
+    (hS : (f (σ.s i)).state = follower) (hT : (σ.s i).currentTerm ≤ (f (σ.s i)).currentTerm)
+    (hL : (f (σ.s i)).log = (σ.s i).log) (hC : (f (σ.s i)).commitIndex = (σ.s i).commitIndex)
+    (hcw : ∀ l ∈ σ.server, l ≠ i → (σ.s l).state = leader →
+      (σ.s l).currentTerm = (f (σ.s i)).currentTerm → (σ.s i).commitIndex ≤ (σ.s l).log.length) :
+    SpecInv (σ.upd i f) :=
+  specInv_upd_nonleader h (by rw [hS]; exact follower_ne_leader) hT hL hC hcw
+    (fun hc => absurd (hS.symm.trans hc) follower_ne_candidate)
 
 /-- **`BecomeFollowerOfTerm(i, t)`** for a term `t` no lower than `i`'s; `hcw`: `i`'s commit index
 within the log of any other leader of term `t` (raft: a leader's log holds the committed entries,
@@ -693,3 +716,201 @@ theorem specInv_handleRequestVoteResponse {σ σ' : State} {i j : ID} {m : Etcdr
             rw [hterm] at this; exact Int.lt_irrefl _ this
         · exact hv
       · exact hv
+
+/-- **States that agree** as in `specInv_congr`, but for the match indices, which may differ when
+a leader's stay within its durable log. -/
+theorem specInv_congr_m {σ σ' : State} (h : SpecInv σ) (hsrv : σ'.server = σ.server)
+    (hm : σ'.messages.domain = σ.messages.domain) (hp : σ'.pendingMessages.domain = σ.pendingMessages.domain)
+    (hT : ∀ j, (σ'.s j).currentTerm = (σ.s j).currentTerm) (hS : ∀ j, (σ'.s j).state = (σ.s j).state)
+    (hL : ∀ j, (σ'.s j).log = (σ.s j).log) (hD : ∀ j, (σ'.s j).durable = (σ.s j).durable)
+    (hV : ∀ j, (σ'.s j).votesGranted = (σ.s j).votesGranted)
+    (hC : ∀ j, (σ'.s j).commitIndex = (σ.s j).commitIndex)
+    (hM : ∀ j ∈ σ.server, (σ.s j).state = leader → ∀ k,
+      (σ'.s j).matchIndex k ≤ (σ.s j).durable.log.length) : SpecInv σ' := by
+  obtain ⟨hLE, hDu, hTm, hCa, hP, hCW, hRC⟩ := h
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · simp only [LeaderEntries, hsrv, hm, hp, hT, hS, hL]; exact hLE
+  · intro l hl hll
+    rw [hsrv] at hl; rw [hS] at hll
+    obtain ⟨a1, a2, -, a4, a5, a6, a7⟩ := hDu l hl hll
+    simp only [hm, hp, hT, hL, hD, hC]
+    exact ⟨a1, a2, hM l hl hll, a4, a5, a6, a7⟩
+  · simp only [TermsLe, MsgTermOk, msgs, hm, hp, hT]; exact hTm
+  · simp only [CandS, msgs, persisted, hsrv, hm, hp, hT, hS, hL, hD, hV]; exact hCa
+  · simp only [PrevOk, msgs, hm, hp]; exact hP
+  · simp only [CommitWithinLeader, hsrv, hS, hT, hC, hL]; exact hCW
+  · simp only [ReqCommit, msgs, hsrv, hm, hp, hS, hT, hL]; exact hRC
+
+/-- **`HandleAppendEntriesResponse(i, j, m)`**, `m` an append response in `messages` to `i`. -/
+theorem specInv_handleAppendEntriesResponse {σ σ' : State} {i j : ID} {m : Etcdraft.Msg}
+    (h : SpecInv σ) (hm : m ∈ σ.messages.domain) (hdst : m.dest = i)
+    (hty : m.type = .appendEntriesResponse) (hstep : σ.handleAppendEntriesResponse i j m = some σ') :
+    SpecInv σ' := by
+  unfold State.handleAppendEntriesResponse at hstep; dsimp only at hstep
+  split at hstep
+  · cases hstep
+  · cases hstep
+    rename_i hterm
+    have hterm : m.term = (σ.s i).currentTerm := by simpa using hterm
+    apply specInv_discard
+    split
+    · rename_i hs
+      refine specInv_congr_m (σ' := σ.upd i _) h rfl rfl rfl ?_ ?_ ?_ ?_ ?_ ?_ ?_
+      all_goals try (intro k; by_cases hk : k = i <;> simp [upd_s, hk]; done)
+      intro l hl hll k
+      by_cases hli : l = i
+      · subst hli
+        obtain ⟨-, -, a3, -, -, a6, -⟩ := h.2.1 l hl hll
+        rw [upd_s_self]
+        dsimp only
+        split
+        · exact Int.max_le.mpr ⟨a3 _, a6 m hm hdst hty hterm hs⟩
+        · exact a3 k
+      · rw [upd_s_ne _ _ _ _ hli]; exact (h.2.1 l hl hll).2.2.1 k
+    · exact h
+
+/-- **`RejectAppendEntriesRequest(i, j, m, logOk)`** (no `PreVote`, no `CheckQuorum`: the rejection
+is unsuccessful). -/
+theorem specInv_rejectAppendEntriesRequest {σ σ' : State} {i j : ID} {m : Etcdraft.Msg} {logOk : Bool}
+    (h : SpecInv σ) (hpv : σ.preVote = false) (hcq : σ.checkQuorum = false)
+    (hstep : σ.rejectAppendEntriesRequest i j m logOk = some σ') : SpecInv σ' := by
+  unfold State.rejectAppendEntriesRequest at hstep; dsimp only at hstep
+  split at hstep
+  · cases hstep
+  · cases hstep
+    exact specInv_reply h (msgOk_plain _ _ rfl (by simp) (fun _ => by simp [hpv, hcq]) (by simp)
+      (Int.le_refl _))
+
+/-- **`Timeout(i)`**; `hcw`: `i`'s commit index within the log of any leader of its new term (raft:
+leader completeness). -/
+theorem specInv_timeout {σ σ' : State} {i : ID} (h : SpecInv σ)
+    (hcw : ∀ l ∈ σ.server, (σ.s l).state = leader → (σ.s l).currentTerm = (σ.s i).currentTerm + 1 →
+      (σ.s i).commitIndex ≤ (σ.s l).log.length)
+    (hstep : σ.timeout i = some σ') : SpecInv σ' := by
+  unfold State.timeout at hstep
+  split at hstep
+  · cases hstep
+    have hTm := h.2.2.1
+    have hsrc : ∀ m ∈ msgs σ, m.source = i → m.term ≤ (σ.s i).currentTerm := by
+      intro m hm hs; have := (hTm m hm).1; rw [hs] at this; exact this
+    have hdst : ∀ m ∈ msgs σ, m.dest = i → ((m.type = .requestVoteResponse ∧ m.voteGranted = true) ∨
+        (m.type = .appendEntriesResponse ∧ m.success = true)) → m.term ≤ (σ.s i).currentTerm := by
+      intro m hm hd hh; have := (hTm m hm).2 hh; rw [hd] at this; exact this
+    apply specInv_upd_nonleader h (by simp only; exact candidate_ne_leader) (by simp only; omega) rfl rfl
+      (fun l hl _ hll ht => hcw l hl hll ht)
+    intro _
+    simp only
+    refine ⟨fun m hm hs _ => by have := hsrc m hm hs; omega,
+      fun m hm hd ht hs => by have := hdst m hm hd (Or.inr ⟨ht, hs⟩); omega, ?_⟩
+    by_cases hp : persisted (σ.s i)
+    · exact Or.inl hp
+    · refine Or.inr ⟨trivial, fun m hm hs => ?_, fun m hm hd ht hg => ?_, fun m hm hd ht hg htm => ?_⟩
+      · have := hsrc m (List.mem_append_left _ hm) hs; omega
+      · have := hdst m (List.mem_append_left _ hm) hd (Or.inl ⟨ht, hg⟩); omega
+      · have := hdst m (List.mem_append_right _ hm) hd (Or.inl ⟨ht, hg⟩); omega
+  · cases hstep
+
+/-- **`Ready(i)`.** -/
+theorem specInv_ready {σ : State} {i : ID} (h : SpecInv σ) : SpecInv (σ.ready i) := by
+  obtain ⟨hLE, hD, hTm, hCa, hP, hCW, hRC⟩ := h
+  have hM : ∀ x ∈ (σ.ready i).messages.domain,
+      x ∈ σ.messages.domain ∨ (x ∈ σ.pendingMessages.domain ∧ x.source = i) := by
+    intro x hx
+    simp only [State.ready] at hx
+    rcases mem_plus _ _ x hx with hx | hx
+    · obtain ⟨h1, h2⟩ := mem_filterMsgs _ _ x hx
+      exact Or.inr ⟨h1, by simpa using h2⟩
+    · exact Or.inl hx
+  have hP' : ∀ x ∈ (σ.ready i).pendingMessages.domain, x ∈ σ.pendingMessages.domain := by
+    intro x hx; simp only [State.ready] at hx; exact mem_minus _ _ x hx
+  have hA : ∀ x ∈ msgs (σ.ready i), x ∈ msgs σ := by
+    intro x hx; unfold msgs at hx ⊢
+    rcases List.mem_append.mp hx with hx | hx
+    · rcases hM x hx with hx | ⟨hx, -⟩
+      · exact List.mem_append_left _ hx
+      · exact List.mem_append_right _ hx
+    · exact List.mem_append_right _ (hP' x hx)
+  have hs : ∀ k, (σ.ready i).s k = if k = i then { σ.s i with durable := durableOf (σ.s i) } else σ.s k :=
+    fun k => rfl
+  have hsrv : (σ.ready i).server = σ.server := rfl
+  -- every field but `i`'s durable state is kept
+  have hT : ∀ k, ((σ.ready i).s k).currentTerm = (σ.s k).currentTerm := by
+    intro k; rw [hs]; split <;> subst_vars <;> rfl
+  have hS : ∀ k, ((σ.ready i).s k).state = (σ.s k).state := by
+    intro k; rw [hs]; split <;> subst_vars <;> rfl
+  have hL : ∀ k, ((σ.ready i).s k).log = (σ.s k).log := by
+    intro k; rw [hs]; split <;> subst_vars <;> rfl
+  have hC : ∀ k, ((σ.ready i).s k).commitIndex = (σ.s k).commitIndex := by
+    intro k; rw [hs]; split <;> subst_vars <;> rfl
+  have hMi : ∀ k, ((σ.ready i).s k).matchIndex = (σ.s k).matchIndex := by
+    intro k; rw [hs]; split <;> subst_vars <;> rfl
+  have hV : ∀ k, ((σ.ready i).s k).votesGranted = (σ.s k).votesGranted := by
+    intro k; rw [hs]; split <;> subst_vars <;> rfl
+  have hDi : ((σ.ready i).s i).durable.log = (σ.s i).log := by rw [hs]; simp [durableOf]
+  have hDk : ∀ k, k ≠ i → ((σ.ready i).s k).durable = (σ.s k).durable := by
+    intro k hk; rw [hs]; simp [hk]
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · intro l hl hll
+    rw [hsrv] at hl; rw [hS] at hll
+    obtain ⟨h1, h2⟩ := hLE l hl hll
+    simp only [hT, hL]
+    exact ⟨fun j hj k e he ht => h1 j hj k e he ht,
+      fun x hx => h2 x (hA x hx)⟩
+  · intro l hl hll
+    rw [hsrv] at hl; rw [hS] at hll
+    obtain ⟨a1, a2, a3, a4, a5, a6, a7⟩ := hD l hl hll
+    simp only [hT, hL, hC, hMi]
+    by_cases hli : l = i
+    · subst hli
+      rw [hDi]
+      refine ⟨Int.le_refl _, Int.le_trans a2 a1, fun k => Int.le_trans (a3 k) a1, ?_, ?_, ?_, ?_⟩
+      · intro x hx hs' hty ht
+        rcases hM x hx with hx | ⟨hx, -⟩
+        · exact Int.le_trans (a4 x hx hs' hty ht) a1
+        · exact a5 x hx hs' hty ht
+      · intro x hx; exact a5 x (hP' x hx)
+      · intro x hx hd hty ht hsc
+        rcases hM x hx with hx | ⟨hx, -⟩
+        · exact Int.le_trans (a6 x hx hd hty ht hsc) a1
+        · exact (a7 x hx hd hty ht hsc).1
+      · intro x hx hd hty ht hsc
+        have := a7 x (hP' x hx) hd hty ht hsc
+        exact ⟨this.1, fun _ => this.1⟩
+    · rw [hDk l hli]
+      refine ⟨a1, a2, a3, ?_, fun x hx => a5 x (hP' x hx), ?_, fun x hx => a7 x (hP' x hx)⟩
+      · intro x hx hs' hty ht
+        rcases hM x hx with hx | ⟨_, hsi⟩
+        · exact a4 x hx hs' hty ht
+        · exact absurd (hsi.symm.trans hs') (Ne.symm hli)
+      · intro x hx hd hty ht hsc
+        rcases hM x hx with hx | ⟨hx, hsi⟩
+        · exact a6 x hx hd hty ht hsc
+        · exact (a7 x hx hd hty ht hsc).2 (by rw [hsi]; exact Ne.symm hli)
+  · intro x hx; unfold MsgTermOk; rw [hT, hT]; exact hTm x (hA x hx)
+  · intro l hl hc
+    rw [hsrv] at hl; rw [hS] at hc
+    obtain ⟨c1, c2, c3⟩ := hCa l hl hc
+    simp only [hT]
+    refine ⟨fun x hx => c1 x (hA x hx), fun x hx => c2 x (hA x hx), ?_⟩
+    by_cases hli : l = i
+    · subst hli
+      left; unfold persisted; rw [hDi, hL]
+    · unfold persisted; rw [hDk l hli, hL, hV]
+      rcases c3 with hp' | ⟨v1, v2, v3, v4⟩
+      · exact Or.inl hp'
+      · refine Or.inr ⟨v1, fun x hx hs' => ?_, fun x hx hd hty hg => ?_, fun x hx => v4 x (hP' x hx)⟩
+        · rcases hM x hx with hx | ⟨_, hsi⟩
+          · exact v2 x hx hs'
+          · exact absurd (hsi.symm.trans hs') (Ne.symm hli)
+        · rcases hM x hx with hx | ⟨hx, hsi⟩
+          · exact v3 x hx hd hty hg
+          · have hle := (hTm x (List.mem_append_right _ hx)).2 (Or.inl ⟨hty, hg⟩)
+            rw [hd] at hle
+            rcases Int.lt_or_eq_of_le hle with hlt | heq
+            · exact hlt
+            · exact absurd ((v4 x hx hd hty hg heq).symm.trans hsi) hli
+  · intro x hx; exact hP x (hA x hx)
+  · intro k hk l hl hll ht
+    rw [hS] at hll; rw [hT, hT] at ht; rw [hC, hL]; exact hCW k hk l hl hll ht
+  · intro l hl hll x hx hty ht
+    rw [hS] at hll; rw [hT] at ht; rw [hL]; exact hRC l hl hll x (hA x hx) hty ht
