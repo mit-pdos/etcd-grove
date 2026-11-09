@@ -382,31 +382,33 @@ abbrev trCap_fire.statement : Prop :=
 
 /-- **A phase step by a receive line consuming `m`**: from every share in phase `Φ`, each event `E`
 allows is a line matching `m` (its parse's `recvPred`), not bootstrap-named, with, for every server
-the share stands for, an effect consuming `m` (its replies `P'` pending) into phase `Φ'`, through
-intermediate states of the shape `Mid`. -/
+the share stands for, an effect consuming `m` into phase `Φ'`, its replies pending: raft's `P'` in the
+node's share, the phantoms `Pph` (the specification's replies raft does not send, review round 2's
+A6) among the phantoms, through intermediate states of the shape `Mid`. -/
 def PhaseStepR (id : w64) (c : CfgM) (m : Etcdraft.Msg) (E : TraceEv → Prop) (Mid : Etcdraft.Server → Prop)
     (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) : Prop :=
   ∀ C cs P, Φ C cs P → (elements c.incoming).Perm C ∧ c.outgoing = ∅ ∧ id ∈ C → ∀ e, E e → Etcdraft.isBootstrapName (gsStr e.name) = false ∧
     (∀ ln, Etcdraft.parseLine 0 (evConv e) = .ok ln → recvPred ln m = true) ∧
     ∀ a : Etcdraft.Server, toC (confAbs C) a = cs →
-    ∃ (a' : Etcdraft.Server) (P' : List Etcdraft.Msg),
+    ∃ (a' : Etcdraft.Server) (P' Pph : List Etcdraft.Msg),
       Φ' C (toC (confAbs C) a') (P ++ P') ∧
       LineEffect C false e (idAbs id) a a' (some m) (fun b => b.without m)
-        (fun b => P'.foldl Etcdraft.Bag.with b) Mid
+        (fun b => (P' ++ Pph).foldl Etcdraft.Bag.with b) Mid
 
 /-- **The facts kept by a receive line** (`FxPres`'s counterpart): at the result, and at every
 intermediate state. -/
 def FxPresR (γ : RaftNames) (id : w64) (m : Etcdraft.Msg) (E : TraceEv → Prop) (Mid : Etcdraft.Server → Prop)
     (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) : IProp GF :=
   iprop(□ ∀ (C : List w64) (cs : ServerC) (P : List Etcdraft.Msg) (e : TraceEv) (a a' : Etcdraft.Server)
-      (P' : List Etcdraft.Msg) (σ : Etcdraft.State),
+      (P' Pph : List Etcdraft.Msg) (σ : Etcdraft.State),
     ⌜Φ C cs P ∧ E e ∧ toC (confAbs C) a = cs ∧ Φ' C (toC (confAbs C) a') (P ++ P') ∧
       LineEffect C false e (idAbs id) a a' (some m) (fun b => b.without m)
-        (fun b => P'.foldl Etcdraft.Bag.with b) Mid ∧
+        (fun b => (P' ++ Pph).foldl Etcdraft.Bag.with b) Mid ∧
       σ.server = confAbs C ∧ σ.s (idAbs id) = a ∧ σ.preVote = false ∧ σ.checkQuorum = false ∧
       σ.violated = .ok none ∧ m ∈ σ.messages.domain⌝ -∗
     votesTbl γ -∗ simFx γ C σ -∗
-      votesTbl γ ∗ simFx γ C (withNode σ (idAbs id) a' (fun b => b.without m) (fun b => P'.foldl Etcdraft.Bag.with b)) ∗
+      votesTbl γ ∗ simFx γ C (withNode σ (idAbs id) a' (fun b => b.without m)
+        (fun b => (P' ++ Pph).foldl Etcdraft.Bag.with b)) ∗
       (∀ v, ⌜Mid v⌝ -∗ simFx γ C (withNode σ (idAbs id) v _root_.id _root_.id)))
 
 /-- **The global step of a receive line, as one law** (Draft statement): as `trCap_fire`, the line
