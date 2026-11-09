@@ -55,6 +55,37 @@ theorem runM_hs_len (ks : List GoString) (ops : List OpM) (n : Nat) :
   unfold runM
   omega
 
+theorem foldl_opStep_prefix (ks : List GoString) (l : List OpM) : ∀ s : MSt,
+    s.hs <+: (l.foldl (opStep ks) s).hs := by
+  induction l with
+  | nil => intro s; exact List.prefix_refl _
+  | cons o l ih =>
+    intro s
+    refine List.IsPrefix.trans ?_ (ih (opStep ks s o))
+    simp only [opStep, histAfter]
+    split
+    · exact List.prefix_refl _
+    · exact List.prefix_append _ _
+
+/-- **The model's history only grows along the log** (a prefix). (Pure; proved.) -/
+theorem runM_hs_prefix (ks : List GoString) (ops : List OpM) (n n' : Nat) (hn : n ≤ n') :
+    histAt ks ops n <+: histAt ks ops n' := by
+  have ht : ops.take n' = ops.take n ++ (ops.take n').drop n := by
+    have := List.take_append_drop n (ops.take n')
+    rw [List.take_take, Nat.min_eq_left hn] at this
+    exact this.symm
+  unfold histAt runM
+  rw [ht, List.foldl_append]
+  exact foldl_opStep_prefix ks _ _
+
+/-- The revision only grows along the log. (Pure; proved.) -/
+theorem revAfter_mono (ks : List GoString) (ops : List OpM) (n n' : Nat) (hn : n ≤ n') :
+    revAfter ks ops n ≤ revAfter ks ops n' := by
+  have := (runM_hs_prefix ks ops n n' hn).length_le
+  unfold revAfter MSt.rev
+  unfold histAt at this
+  omega
+
 end model
 
 section shares
