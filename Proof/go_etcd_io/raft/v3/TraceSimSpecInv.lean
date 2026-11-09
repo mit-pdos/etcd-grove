@@ -1565,3 +1565,45 @@ theorem specInv_acceptAppendEntriesRequest {σ : State} {i j : ID} {logOk : Bool
           · exact specInv_appendEntriesAlreadyDone h hi hm hsrc hty hterm hfol rfl hcd ha
           · subst ha; exact specInv_conflictAppendEntriesRequest h hi hfol hc
           · subst ha; exact specInv_noConflictAppendEntriesRequest h hi hfol hmm rfl hn
+
+theorem mem_somes2 {a b : Option State} {σ' : State} (h : σ' ∈ somes [a, b]) :
+    a = some σ' ∨ b = some σ' := by
+  unfold somes at h
+  rw [List.mem_filterMap] at h
+  obtain ⟨o, ho, he⟩ := h
+  simp only [List.mem_cons, List.not_mem_nil, or_false] at ho
+  simp only [id] at he
+  rcases ho with rfl | rfl
+  · exact Or.inl he
+  · exact Or.inr he
+
+/-- **`HandleAppendEntriesRequest(i, j, m)`**, every successor: `m` an append request in `messages`
+from `j` to `i`, not a snapshot; no `PreVote`, no `CheckQuorum`; `hcd`: `CommitInSenderDurable`. -/
+theorem specInv_handleAppendEntriesRequest {σ : State} {i j : ID} {m : Etcdraft.Msg} {L : List State}
+    (h : SpecInv σ) (hi : i ∈ σ.server) (hm : m ∈ σ.messages.domain) (hsrc : m.source = j)
+    (hty : m.type = .appendEntriesRequest) (hsnap : m.subtype ≠ "snapshot")
+    (hpv : σ.preVote = false) (hcq : σ.checkQuorum = false) (hcd : CommitInSenderDurable σ i m)
+    (hstep : σ.handleAppendEntriesRequest i j m = .ok L) : ∀ σ' ∈ L, SpecInv σ' := by
+  unfold State.handleAppendEntriesRequest at hstep; dsimp only at hstep
+  split at hstep
+  · simp only [pure, Except.pure, Except.ok.injEq] at hstep
+    subst hstep; intro _ h; cases h
+  · simp only [bind, Except.bind] at hstep
+    split at hstep
+    · cases hstep
+    · rename_i acc hacc
+      simp only [pure, Except.pure, Except.ok.injEq] at hstep
+      subst hstep
+      have hout : ∀ lo : Bool, ∀ t ∈ somes [σ.rejectAppendEntriesRequest i j m lo, σ.returnToFollowerState i m] ++ acc,
+          SpecInv t := by
+        intro _ t ht
+        rcases List.mem_append.mp ht with ht | ht
+        · rcases mem_somes2 ht with ht | ht
+          · exact specInv_rejectAppendEntriesRequest h hpv hcq ht
+          · exact specInv_returnToFollowerState h hi ht
+        · exact specInv_acceptAppendEntriesRequest h hi hm hsrc hty hsnap hcd hacc t ht
+      split
+      · intro σ' hσ'
+        obtain ⟨t, ht, rfl⟩ := List.mem_map.mp hσ'
+        exact specInv_upd_frame (hout _ t ht) rfl rfl rfl rfl rfl rfl rfl
+      · exact hout _
