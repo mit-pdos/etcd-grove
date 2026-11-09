@@ -205,12 +205,13 @@ def LineEffect (C : List w64) (bf : Bool) (e : TraceEv) (i : Etcdraft.ID) (a a' 
     (withNode σ i a' fM fP).violated = .ok none →
     ∃ tsF : Etcdraft.TState, tsF.s = withNode σ i a' fM fP ∧ Chain t l [⟨σ, l, pl⟩] ⟨σ, l, pl⟩ tsF
 
-/-- **A phase step by a line consuming no message** (not a `BecomeFollower` line, whose skip bit only
-the node's previous line decides: review round 1's F6): from every share `(cs, P)` in phase `Φ`,
+/-- **A phase step by a line consuming no message** (not a bootstrap-named line: not `BecomeFollower`,
+whose skip bit only the node's previous line decides, review round 1's F6, so that the line is never
+a bootstrap line, `bootFlags_nonBoot`): from every share `(cs, P)` in phase `Φ`,
 each event `E` allows has, for every server `a` the share stands for, an effect into a share in
 phase `Φ'` (review round 1's S2), its pending messages `P'` added. -/
 def PhaseStep (E : TraceEv → Prop) (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) : Prop :=
-  ∀ C cs P, Φ C cs P → ∀ e, E e → gsStr e.name ≠ "BecomeFollower" ∧
+  ∀ C cs P, Φ C cs P → ∀ e, E e → Etcdraft.isBootstrapName (gsStr e.name) = false ∧
     ∀ a : Etcdraft.Server, toC (confAbs C) a = cs →
     ∃ (i : Etcdraft.ID) (a' : Etcdraft.Server) (P' : List Etcdraft.Msg),
       Φ' C (toC (confAbs C) a') (P ++ P') ∧
