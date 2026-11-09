@@ -1278,6 +1278,30 @@ theorem reject_step (st : Etcdraft.State) (i j : Etcdraft.ID) (m : Etcdraft.Msg)
   unfold Etcdraft.State.rejectAppendEntriesRequest
   simp [ht, hf, hpv, hcq]
 
+/-! ### Lines with one successor -/
+
+/-- **A line with one successor** (`TraceNext` from `ts` gives exactly `ts'`, on the next line, and
+it satisfies the invariants): `StepLine` finds `ts'` alone, without branching or a violation. -/
+theorem stepLine_single (t : Etcdraft.Trace) (ts ts' : Etcdraft.TState) (hnext : t.next ts = .ok [ts'])
+    (hl : ts'.l = ts.l + 1) (hinv : ts'.s.violated = .ok none) :
+    t.StepLineRel ts true (.ok ([ts'], {})) := by
+  unfold Etcdraft.Trace.StepLineRel
+  apply Etcdraft.Trace.StepLoop.round [ts] ([], [ts], {}) [ts'] [ts] [] {} _ (by simp)
+  · simp only [Etcdraft.Trace.stepRound, List.foldlM_cons, List.foldlM_nil, hnext]
+    simp [Etcdraft.memEq, bind, Except.bind, pure, Except.pure, hl, hinv]
+  · rfl
+  · exact Etcdraft.Trace.StepLoop.done _
+
+/-- ... so `checkLine` from that one state gives it alone, without branching or a violation. -/
+theorem checkLine_single (t : Etcdraft.Trace) (ts ts' : Etcdraft.TState) (hnext : t.next ts = .ok [ts'])
+    (hl : ts'.l = ts.l + 1) (hinv : ts'.s.violated = .ok none) :
+    t.CheckLineRel true [ts] ([], {}) (.ok ([ts'], { branched := false, violation := none })) := by
+  apply Etcdraft.Trace.CheckLineRel.step ts [] ([], {}) [ts'] {} _ rfl
+    (stepLine_single t ts ts' hnext hl hinv)
+  simp only [List.foldl_cons, List.foldl_nil, Etcdraft.memEq, List.any_nil, Bool.false_eq_true,
+    ↓reduceIte, List.nil_append, Bool.or_self]
+  exact Etcdraft.Trace.CheckLineRel.nil _
+
 end TraceSim
 
 end EtcdGrove
