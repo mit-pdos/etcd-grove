@@ -25,34 +25,34 @@ Prove" paragraphs) and `questions.md` (the 7e-2 sections). Scratch and logs:
 - ETooLarge (#20): `respIs`'s `.tooLarge` case and `validateMinimumResourceVersion`'s post are
   `tooLargeErrIs`; its proof and `store.Get`'s follow.
 
-## D1-D3 (decided by etcd-grove-81, 2026-11-09; `questions.md`), in progress (third session)
-Written, NOT yet built (the `rpctypesInit` change rebuilds most of the tree: build only under
-`systemd-run --scope -q -p MemoryMax=64G lake build ...`, never through `etc/lean-check.py` on a file
-whose imports are stale, whose `lake setup-file` runs uncapped):
-- D1: `etc/gen-init.py` (rpctypes `ErrFutureRev`/`ErrCompacted` posts gain `⌜∃ x : EtcdError,
-  GoInterface.ok e = interface.mkOk EtcdError.ty #x⌝`, pattern `%T@`), `Init.lean` regenerated;
-  `rpctypesInit` (`cache/v3/Base.lean`) the same in its first two conjuncts; the Go test
+## D1-D3, R1, item 2: done (third session, 2026-11-09; decisions in `questions.md`)
+Built green, 8112 jobs (`/shared/tmp/k8s-7e-2/build6.log`; the list below plus every module that
+names `rpctypesInit`). `etc/gen-init.py --check` passes.
+- D1: rpctypes `ErrFutureRev`/`ErrCompacted` are `EtcdError` values (`etc/gen-init.py`, regenerated
+  `rpctypes/Init.lean`, `rpctypesInit` in `cache/v3/Base.lean`); Go test
   `examples/k8s7e2attack/rpctypes_test.go` (`TestRpctypesErrTypes`, passes at the pin). `ListDefs`:
-  `kClientErr` (the client branch of `unkErr`, `kClientErr_unkErr`), `readErrIs` uses it.
-- D2: `AggrDefs.lean` (`freshAggr`, `aggrFactoryOk`); the two factory specs return them (proofs done,
-  checked); `Store.lean`: `rseNilR`, `storePoolN`, `storeListOk`, `isStore` ends with `storeListOk sp
-  c`; the 13 store proofs' `icases` patterns end `#Hcon, -⟩` (`#Hcon, #Hlst⟩` where R1 needs it);
+  `kClientErr` (client branch of `unkErr`; `kClientErr_unkErr`), used by `readErrIs`.
+- D2: `AggrDefs.lean` (`freshAggr`, `aggrFactoryOk`); the factory specs return them (proved;
+  `corruptObjErrAggregatorFactory.wp_proof` takes `wp_default`, `etc/link-lean-first-k8s-etcd3.txt` and
+  `etcd3/Link.lean` regenerated); `isStore` ends with `storeListOk sp c` (`rseNilR`, `storePoolN`);
   `New.spec` gains `utf8Valid gr.Group' → utf8Valid gr.Resource' → threadBound GF ≤ 2 ^ 30 - 1 →`
-  (the last for the reader pool's `init_RWMutex_threadPool`: report it to 81 as part of D2); `New`'s
-  proof splits the store struct, makes the pool, persists the other fields; its end is a `sorry`
-  (build `storeListOk`: `Hpool`, `listErrAggrFactory`, `aggrFactoryOk` from `Hfa` or from `wp_dla`,
-  `hu1 hu2`), and the corrupt factory proof now takes `wp_default` (regenerate `etcd3/Link.lean`).
-- D3: `NewResourceExpired.spec` post adds `st.Details' = null` (proof, daemonset `Server__watch` fixed).
-- R1: `RecordEtcdRequest.spec`/`RecordDecodeError.spec` take the `utf8Valid` premises; call sites
-  (`Create`, `deleteOnce`, `updateOnce`, `GetCurrentResourceVersion`, `getCurrentState`) pass
-  `(by decide)` (or `hverb`) and `Hutf.1 Hutf.2` from `storeListOk`; `getCurrentState.spec` takes
-  `utf8Valid verb` (its callers pass `(by decide)`).
-- `interpretListError` (spec: precondition `kClientErr`, a form to report) and `store.listReadError`
-  (spec: premise `∃ k, prepareKeyM rp rp false = some k ∧ (pathPrefix ++ k).length ≤ opKeyMax`, which
-  `GetCurrentResourceVersion` needs; the Draft's `≠ none` does not suffice; GetList must derive it
-  from its own key premise or take it): specs written, proofs started (`sorry` after the
-  prologue). Plan: `err == ErrCompacted` reduces with `clientErr`'s `AsTypeTyped` (an `EtcdError`
-  value if of that type); `errors.Is` by `errors.IsStatusErr` with the `EtcdError` target.
+  (the last for `init_RWMutex_threadPool`, reported to 81); `New` proved.
+- D3: `NewResourceExpired.spec` post adds `st.Details' = null`.
+- R1: `RecordEtcdRequest.spec`/`RecordDecodeError.spec` take `utf8Valid` premises; call sites discharge
+  from `storeListOk`; `getCurrentState.spec` takes `utf8Valid verb`.
+- `interpretListError` (pre `kClientErr`) and `store.listReadError` (premise `∃ k, prepareKeyM rp rp
+  false = some k ∧ (pathPrefix ++ k).length ≤ opKeyMax`, for `GetCurrentResourceVersion`) proved. Not
+  linked (no new trusted spec is linked yet; the last third links them).
+
+## Notes for the last third
+- `GetList` must pass `listReadError`'s premise (the resource prefix's key): derive it from
+  `prepareKeyM c.resourcePrefix key … = some k` or add it to `GetList.spec` (a form for 81).
+- The list path's metrics take `utf8Valid` of `c.gr` from `storeListOk`; `getList` reads
+  `getResourceSizeEstimator` under `collectorMux.RLock` with the pool in `storeListOk` (borrow with the
+  thread token: `Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvrw/Server__Get.lean`).
+- `finalizeList`/`GetList` call the aggregator factory: `aggrFactoryOk`, `freshAggr`.
+- Never run `etc/lean-check.py` on a file whose imports are stale after a low-level change: its `lake
+  setup-file` rebuilds them without a memory cap. Build first with the capped `lake build`.
 
 ## Left of the second third, in order (original list)
 1. `rangeStreamOff` (in `ListDefs.lean`, store part: `∃ g, globalAddr

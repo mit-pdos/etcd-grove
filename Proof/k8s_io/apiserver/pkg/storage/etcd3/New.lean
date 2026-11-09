@@ -157,8 +157,20 @@ theorem New.wp_proof
       · iunfold rseNilR
         inext
         iexact resourceSizeEstimator
-      ipersist client codec versioner transformer pathPrefix groupResource watcher leaseManager decoder
-        listErrAggrFactory resourcePrefix newListFunc compactor metricsTracker
+      ipersist client
+      ipersist codec
+      ipersist versioner
+      ipersist transformer
+      ipersist pathPrefix
+      ipersist groupResource
+      ipersist watcher
+      ipersist leaseManager
+      ipersist decoder
+      ipersist listErrAggrFactory
+      ipersist resourcePrefix
+      ipersist newListFunc
+      ipersist compactor
+      ipersist metricsTracker
       -- (sweep repairs 1, B5) `CheckClient(c.Ctx(), c, …)`: the constructed client and its context
       wp_apply Chk $$ []
       · icases EtcdGrove.isNewClient_ctxOk _ _ _ $$ Hnc with ⟨⟨%cx', #Hcx', %Hcxn⟩, #HF⟩
@@ -179,7 +191,24 @@ theorem New.wp_proof
       iunfold isStore
       simp only
       iframe #
-      sorry
+      isplitr
+      · ipureintro; exact Hsn
+      isplitr
+      · ipureintro; exact Hlt
+      iunfold storeListOk
+      iexists _, γp
+      isplitr
+      · iexact listErrAggrFactory
+      isplitr
+      · first
+        | iexact Hfa
+        | (iunfold aggrFactoryOk
+           iintro !> %Ψ HΨ
+           wp_apply wp_dla as %ag Hag
+           iapply HΨ $$ Hag)
+      isplitr
+      · iexact Hpool
+      ipureintro; exact ⟨hu1, hu2⟩
 
 end proof
 

@@ -42,7 +42,7 @@ theorem store.listReadError.wp_proof
   wp_start as ⟨#Hst, #Hctx, #Hce, #Herr⟩
   ihave #Prt : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes $$ []
   · iPkgInit
-  ihave #Hri : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []
+  ihave Hri : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Prt
   icases Hri with ⟨⟨%eFR, #HeFR, %HdFR, %HtFR⟩, -⟩
   obtain ⟨x, hx⟩ := HtFR
@@ -54,7 +54,35 @@ theorem store.listReadError.wp_proof
   ihave #Perr : isPkgInit (PROP := IProp GF) pkg_id.errors $$ []
   · iPkgInit
   wp_auto
-  sorry
+  wp_apply (wp_Is err (GoInterface.ok eFR) (Or.inl ⟨x, hx⟩)) $$ [$Hse] as %b %hb
+  cases b
+  · -- not a future revision: `interpretListError`
+    wp_auto
+    wp_apply (wp_interpretListError Obj c err ck kp) $$ [$Hke] as %e #He
+    iapply HΦ
+    iright
+    iexact He
+  · -- a future revision: the state below `withRev`, and the too-large error
+    have hd : go_etcd_io.etcd.cache.v3.errDesc err = go_etcd_io.etcd.cache.v3.futureRevDesc :=
+      (hb rfl).trans HdFR
+    ihave #HQ := Hfut $$ %hd
+    wp_auto
+    wp_apply (wp_GetCRV Obj sp c ci cd k (fun _ _ _ => iprop(True)) hk hkl) $$ [] as %n %e2 -
+    · iframe #
+      iintro %R %m
+      imodintro
+      imodintro
+      refine BigAndL.bigAndL_intro fun _ _ _ => ?_
+      iintro -
+      ileft
+      ipureintro; rfl
+    cases e2
+    all_goals
+      wp_auto
+      wp_apply wp_TooLarge as %e #He
+      iapply HΦ
+      ileft
+      iframe He HQ
 
 end proof
 

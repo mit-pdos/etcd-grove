@@ -382,13 +382,13 @@ theorem compactor.wp_Stop :
     EtcdGrove.k8s.compactor.Stop.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s.compactor.Stop.wp_proof
 
-theorem wp_corruptObjErrAggregatorFactory :
-    EtcdGrove.k8s.corruptObjErrAggregatorFactory.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s.corruptObjErrAggregatorFactory.wp_proof
-
 theorem wp_defaultListErrorAggregatorFactory :
     EtcdGrove.k8s.defaultListErrorAggregatorFactory.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s.defaultListErrorAggregatorFactory.wp_proof
+
+theorem wp_corruptObjErrAggregatorFactory :
+    EtcdGrove.k8s.corruptObjErrAggregatorFactory.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.corruptObjErrAggregatorFactory.wp_proof wp_defaultListErrorAggregatorFactory
 
 theorem wp_newLeaseManager :
     EtcdGrove.k8s.newLeaseManager.spec (GF := GF) (hG := hG) :=

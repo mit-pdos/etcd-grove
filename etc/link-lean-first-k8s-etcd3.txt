@@ -83,7 +83,7 @@ Client__Ctx:
 newLeaseManager:
 newDefaultLeaseManager: newLeaseManager
 defaultListErrorAggregatorFactory:
-corruptObjErrAggregatorFactory:
+corruptObjErrAggregatorFactory: defaultListErrorAggregatorFactory
 newStorageKeyReverseFunc:
 NewDefaultLeaseManagerConfig:
 etcd3_New: newDefaultLeaseManager defaultListErrorAggregatorFactory corruptObjErrAggregatorFactory newStorageKeyReverseFunc NewEtcdMetricsTracker path_Join TrimSuffix Client__Ctx TypeOf
