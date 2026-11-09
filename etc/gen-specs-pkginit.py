@@ -38,18 +38,28 @@ def perennial_instances():
                 continue
             p = os.path.join(dp, f)
             s = open(p, encoding="utf-8").read()
-            for m in re.finditer(r"IsPkgInit \(IProp GF\) pkg_id\.([A-Za-z0-9_.]+)\s*:=", s):
+            for m in re.finditer(r"IsPkgInit \(IProp GF\) pkg_id\.([A-Za-z0-9_.«»]+)\s*:=", s):
                 mod = os.path.relpath(p, PER)[:-5].replace("/", ".")
                 out.setdefault(m.group(1), mod)
     return out
 
+def fpath(pkg):
+    return pkg.replace("«", "").replace("»", "").replace(".", "/")
+
 def genproof_module(pkg, ours):
-    path = pkg.replace(".", "/")
+    path = fpath(pkg)
     if os.path.exists(os.path.join(ROOT, "GeneratedProof", path + ".lean")):
         return "GeneratedProof." + pkg
     if os.path.exists(os.path.join(PER, "Perennial", "GeneratedProof", path + ".lean")):
         return "Perennial.GeneratedProof." + pkg
     return None
+
+
+DUP_LAST = set()
+def inst_name(pkg):
+    if pkg.split(".")[-1] in DUP_LAST:
+        return "pkgInit_" + pkg.replace(".", "_").replace("«", "").replace("»", "") + " "
+    return ""
 
 def main():
     check = "--check" in sys.argv
@@ -60,8 +70,15 @@ def main():
     # A package this repository translates itself (Code/<pkg>.lean: os, io/fs, net/http, ...) is
     # not Perennial's: its names clash with Perennial's translation, so its instance is local.
     for pkg in ours:
-        if os.path.exists(os.path.join(ROOT, "GeneratedProof", pkg.replace(".", "/") + ".lean")):
+        if os.path.exists(os.path.join(ROOT, "GeneratedProof", fpath(pkg) + ".lean")):
             pinst.pop(pkg, None)
+    lasts = {}
+    for pkg in info:
+        if pkg in pinst: continue
+        if genproof_module(pkg, ours) is None: continue
+        l = pkg.split(".")[-1]
+        lasts[l] = lasts.get(l, 0) + 1
+    DUP_LAST.update(l for l, n in lasts.items() if n > 1)
     want = {}
     for pkg in sorted(info):
         if pkg in pinst:
@@ -95,7 +112,7 @@ variable [go_gctx : GoGlobalContext]
 variable {{hlc : HasLC}} {{GF : BundledGFunctors}} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-instance : IsPkgInit (IProp GF) pkg_id.{pkg} :=
+instance {inst_name(pkg)}: IsPkgInit (IProp GF) pkg_id.{pkg} :=
   define_is_pkg_init (pkgInitDef (GF := GF) pkg_id.{pkg})
 end
 
@@ -103,7 +120,7 @@ end PkgInit
 end EtcdGrove
 end Perennial
 """
-        want[os.path.join(ROOT, "Spec", "PkgInit", pkg.replace(".", "/") + ".lean")] = body
+        want[os.path.join(ROOT, "Spec", "PkgInit", fpath(pkg) + ".lean")] = body
     bad = 0
     for p, body in want.items():
         old = open(p, encoding="utf-8").read() if os.path.exists(p) else None
