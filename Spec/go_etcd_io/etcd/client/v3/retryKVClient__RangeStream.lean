@@ -1,0 +1,44 @@
+/-
+`(*clientv3.retryKVClient).RangeStream` (`client/v3/retry.go`).
+
+Users: `kv.GetStream`.
+
+Proof sketch: the stub's `RangeStream` with the same options (a stream is not retried by the unary interceptor; the stream interceptor, 1c, may reopen it before the first message: the update is persistent).
+
+Changes: none (no old spec): added for the users named above.
+
+Margin: none.
+-/
+module
+
+public import Spec.go_etcd_io.etcd.client.v3.Api
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace ClientV3
+
+open Iris Iris.BI EtcdModel EtcdWire
+open Classical
+
+section spec
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
+
+/-- `rkv.RangeStream` meets the wire-level contract's `RangeStream`. -/
+def retryKVClient.RangeStream.spec : Prop :=
+  ∀ (rkv : Loc) (γ : Cluster) (who : Principal),
+  RemoteKV.RangeStreamTriple (rkv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryKVClient.ty @!! go!"RangeStream")
+    (iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryKVHandle rkv γ who)) γ who
+
+end spec
+
+end ClientV3
+end EtcdGrove
+end Perennial
