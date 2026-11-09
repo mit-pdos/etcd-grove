@@ -11,7 +11,7 @@ provider's `enable()`; revision `0` (a fresh backend): `commitRevision` (`normRe
 (4b's `authBatchTx.Lock`, `LockInsideApply`) runs the backend's post-lock hook, which the server sets
 only after this call (`server.go:369` then `409`): `authBackendAt be a` as given here must say the
 hook is not set yet (4a's `beHook … func.nil`: 4a's `hookRun` is then the caller's view shift, with
-`Pre = Q = True`); after `Recover` the hook is the server's (`authHook`, the writer's per call).
+`Pre = Q = True`); after `Recover` the hook is the server's (`authBeHook`, the writer's per call, with `authBeCur`).
 Integration I5: 2e's `NewServer` must hand over the backend before setting its hook. The history allocated with
 `normRev a` at index `0` (`authReached`, `validPerms`), the invariants, the provider's contract
 opened, `tokFrom γa 0` (a fresh simple provider has assigned nothing), `rootTokOk` if the provider
@@ -23,8 +23,7 @@ state, and the thread tokens of the readers (no reader stock: bounds plan). `tp 
 (`nonissues/etcd-auth-newauthstore-nil-tp.md`) is in `tokenProviderAt`.
 
 **Verify round (A9 3d F4, F7).** The post gives `authBeCur γa be` (the store's backend, which
-`authHook_intro` needs to turn the backend's hook run, `authBeHook be`, into the admin methods'
-`authHook`) and `authGate γa R` (the provider's gate, which `AuthInfoFromCtx` takes with `□ R`).
+the admin methods take beside the backend's hook run `authBeHook be`) and `authGate γa R` (the provider's gate, which `AuthInfoFromCtx` takes with `□ R`).
 
 **Margin.** None.
 -/

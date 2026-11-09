@@ -7,6 +7,10 @@ Proof sketch: by the type: `toRangeRequest.spec`, a fresh `PutRequest`/`DeleteRa
 
 Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/Op__toRequestOp.lean`: restated over this branch's vocabulary (the `OpM` model, `opAt`, `optsAt`); otherwise unchanged.
 
+verify-round (re-review NF1): premise `o.emptyEnd = false` (no non-`nil` empty range end at any
+depth): the request message's unfold law now carries `es = slice.nil ∨ ebs ≠ []` (`Wire.lean`), which
+the built message would not meet otherwise; every caller has it (the KV triples' scope premise).
+
 Margin: none.
 -/
 module
@@ -34,7 +38,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 /-- `op.toRequestOp()`: its `RequestOp`, owned (premise: no zero `Op` at any depth). -/
 def Op.toRequestOp.spec : Prop :=
   ∀ (opp : Loc) (op : go_etcd_io.etcd.client.v3.Op) (o : OpM) (dq : DFrac) (r : RequestOp),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ opp ↦{dq} op ∗ opAt op o ∗ ⌜o.toReqOp = some r⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ opp ↦{dq} op ∗ opAt op o ∗ ⌜o.toReqOp = some r ∧ o.emptyEnd = false⌝ }}
     (App (Val (opp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Op.ty @!! go!"toRequestOp")) (Val #()))
   {{ (p : Loc), RET #p; opp ↦{dq} op ∗ requestOpOwn p (DFrac.own 1) r }}
 

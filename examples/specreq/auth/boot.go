@@ -19,7 +19,8 @@ import (
 // state; a restart: the state at the consistent index), its permissions valid and its records
 // fitting; wait is the server's applyWait.Wait, usable only once the server started (the
 // closure below panics before, as the server's, whose applyWait is set in start()); a jwt kind's
-// keys are the cluster's (jwtTokOk); ctx is a request's (ctxToken).
+// keys are the cluster's (jwtTokOk); ctx is a request's (ctxToken); the caller holds a thread
+// token (AuthInfoFromCtx's).
 // Specs: NewTokenProvider.spec (waiterOk iw R, R: started's load is true), NewAuthStore.spec
 // (authGate γa R), authStore.Revision.spec, IsAuthEnabled.spec, AuthInfoFromCtx.spec (authGate,
 // □ R after the start).

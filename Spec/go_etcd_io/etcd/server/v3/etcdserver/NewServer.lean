@@ -106,6 +106,8 @@ Changes: verify-round (lease-auth's requests): `lease.NewLessor` takes the calle
 Changes: verify-round (server-boot's requests): allocates `Membership.clusterVerInv γc` and, with `RaftCluster.Version.spec`, gives 3c's `Lease.clusterOk` at `server.go:344`; builds the compactor's `compactable c R` at `R := srvStarted s γ id` (a resource `start` publishes: `srvStarted_isServer` gives `Compact`'s `isServer`; the compactor's context a child of `Background`, `phys = false`, no `srvGate`), and `start` passes `□ R` to the compactor's `Run`; the backend through `bootstrap`'s `OpenBackend` (4a's `isBackend`, `beClosable` for the error path).
 
 Changes: verify-round (apply-txn's request): `NewUberApplier`'s grown premises: `hooksOk` (the lessor's half from 4a's `leaseBeHook_intro`, the auth half from 4a's `authBeHook` introduction), `authSt`'s `authBeCur` at the auth backend wrapping `s.be` (`NewAuthStore`'s post), `lessorSt`'s `leasesLive` (an empty store), `ls.be = s.be`, `ls.rd ≠ nil` and `kvDelOk` (`srvStores_kv`: `NewStore` sets the deleter), `clusterVerInv`, the backend's version (`beVer`).
+
+Changes: re-review (R-A7 N1): the compactor's `revGetter` (the store's `Rev`) returns a revision `≥ 1` (3e's store starts at `currentRev = 1` and never lowers it: its `Rev` contract), which `compactable`'s contract now asks (`rev ≠ 0`, server-boot's).
 -/
 module
 

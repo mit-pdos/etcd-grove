@@ -189,3 +189,43 @@ rebuilt to check nothing broke: `--dir Spec/go_etcd_io/etcd/server/v3/storage/ba
 Spec/go_etcd_io/etcd/server/v3/storage/schema`: OK (174 modules). Snippets: `go vet
 ./specreq/bbolt/` clean; `gofmt -l` empty for `specreq/bbolt` and `specreq/bboltinternal`.
 `etc/issues-status.py --index` regenerated, `--check` clean.
+
+## Re-review (`R-A11-bbolt.md`, 2026-11-09)
+
+- **N1 (`Open`'s internal freelist commit): fixed (the reviewer's option (a)).** `OptsM` tracks
+  `noFreelistSync` (default `false`; `Options`' bool field laws track `NoFreelistSync`). With it
+  off, `Open.spec` takes `∀ D, commitAU γ D D o.noSync Sf` (bbolt instantiates `D` with the file's
+  data from the crash invariant's half of `σ`) and returns `Sf`'s outcome when the commit ran
+  (`Sf true (!noSync) false false` on success; some outcome on error), or the update back when the
+  file already had a synced freelist. So the commit's `NoSync` crash case (`dur := none`) and a
+  failed sync (`lost`) are in the client's state, and `boltCrash`/`boltRelease` are true again.
+  `Open.lean`'s sketch covers the step (`Begin(true)`, `Tx.Commit`, `Close` on error). etcd
+  (`NoFreelistSync` on) and `ReqDefrag` pass `emp`; the bank (`nil` options) supplies the update from
+  its invariant (Assumes updated).
+- **N2 (`DeleteBucket`'s recursion through `ForEachBucket`): fixed.** New internal spec
+  `Bucket.ForEachBucket.spec_del` (in `Bucket__ForEachBucket.lean`): all of a write transaction;
+  the callback receives and returns the transaction at any view `T.sameAt T' p` (new
+  `TxView.sameAt` in `Internal.lean`: same kind/base/mode, `p` still a bucket with any contents,
+  generations of `p` and above unchanged); it is called on an increasing subsequence of `ks` (Go
+  may skip, etcd-io/bbolt#1305); the post is some such view with the loop state at some index, or
+  the callback's error. `DeleteBucket`'s sketch uses it; `dropBkt` of the final view equals
+  `dropBkt` of `T`. A second (internal) spec of one function, for one caller: the public spec, at
+  any fraction with the view fixed, is not an instance; recorded in the file.
+- **N3 (`commitFreelist`'s rollback before the updates fire): fixed (spec-only option).**
+  `Tx.commitFreelist.spec` takes `commitAU γ T.base T.cur T.noSync S`; success gives it back
+  unfired; on its allocation error it fires both (`ok = false`, `failed = false`, `brk` per the
+  remap) before the `rollback` it runs, and returns `txDone tx ∗ ∃ …, S …`. `Tx.Commit`'s sketch says
+  so.
+- **N4 (`optsAt` field laws at an unrelated `dq'`): fixed**: all five laws give the field at `dq`
+  itself (the binder dropped).
+- **N5 (`ReqDefrag`'s reopen): partly fixed.** The snippet's comment no longer claims a directory
+  sync: neither etcd nor the snippet syncs after the rename, so a crash may bring back the old file
+  or the copy; the rename rule (OsFs, recorded gap) must say so, and bbolt then needs a generation
+  start whose recoverable data is either (recorded need, not stated: it depends on the rename
+  rule's form). Assumes adds "at least one bucket" (an empty copy gives `boltRelease` no image).
+- **N6: fixed**: `DB.Stats.spec`'s pre takes `txDB tx db` in the `some` case.
+- **N7: fixed**: new law `wtxCore_hwm` (`2 ≤ uint.nat C.hwm`).
+- **N8: fixed**: `ReqBackendBatch` Assumes "the root has no plain value at keyBucket".
+
+Re-review build: `etc/specs-build.sh --dir Spec/go_etcd_io/bbolt …/storage/backend …/storage/schema`:
+**OK (324 modules)**; `go vet ./specreq/bbolt/` clean, `gofmt -l` empty.

@@ -12,6 +12,7 @@ the others by protobuf's `String()`), reading the request only. The stringer hol
 share of the request until it gives it back (`stringerAt`'s realization).
 
 Changes: verify-round: restored (A6 completeness F6: dropped from the old tree,
+Re-review (R-A6, second tier): premise `depth c < depthMax` (text marshaling recurses per level).
 `specs-ref/Spec/go_etcd_io/etcd/api/v3/etcdserverpb/NewLoggableTxnRequest.lean`, whose
 `txnRequestIs` is now `msgAt` at any share), returning 3h's `stringerAt` (not persistent: it holds
 the share) in place of txn's provisional persistent `stringerOk`.
@@ -44,7 +45,7 @@ which it gives back. -/
 def NewLoggableTxnRequest.spec : Prop :=
   ∀ (r : Loc) (dq : DFrac) (c : Proto.Content),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
-      Proto.msgAt etcdserverpb.TxnRequest.ty r dq c }}
+      Proto.msgAt etcdserverpb.TxnRequest.ty r dq c ∗ ⌜Proto.depth c < Proto.depthMax⌝ }}
     (App (Val (@! etcdserverpb.NewLoggableTxnRequest)) (Val #r))
   {{ (s : GoInterface), RET #s; stringerAt s ∗
       (stringerAt s -∗ Proto.msgAt etcdserverpb.TxnRequest.ty r dq c) }}

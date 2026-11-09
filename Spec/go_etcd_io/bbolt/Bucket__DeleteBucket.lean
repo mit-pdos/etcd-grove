@@ -18,7 +18,10 @@ disjunction).
 **Proof sketch, the success arm in the internal vocabulary** (verify-round, A11 F9). `seek`
 (a bucket); `Bucket.Bucket` (the child's handle, cached: `C.bkts child = some (p.child kb)`); the
 recursion, each nested bucket's `DeleteBucket` (its post `T'.dropBkt (p.child kb) k'`; the nested
-handles dropped); then, in the body, `delete(b.buckets, key)`, `child.nodes = nil`,
+handles dropped), through `Bucket.ForEachBucket.spec_del` (re-review N2: the loop's view is any
+`T.sameAt T' (p.child kb)`, `I i T'`: the names `ks` from `i` on are still buckets at `T'`, so
+every callback succeeds; Go may skip some, etcd-io/bbolt#1305, which the view does not see: the
+whole child goes at `node.del`, and `dropBkt` of `T'` is `dropBkt` of `T`); then, in the body, `delete(b.buckets, key)`, `child.nodes = nil`,
 `child.rootNode = nil`: a realization step of `wtxCore` (the child and everything below it no
 longer cached: `bktDropped C (p.child kb)`; the cache then represents the view whose child is what
 its parent's stored value holds); `Bucket.free` (its premise `C.bkts child = none`; `repKept`);

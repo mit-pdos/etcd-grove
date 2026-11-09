@@ -18,7 +18,8 @@ import (
 // Assumes: the put's reply was received before the call.
 // Specs: EtcdServer.Put.spec, EtcdServer.LinearizableReadNotify.spec (verify round: a nil return
 // gives a committed log extending the put's, with srvApplied of its length), EtcdServer.KV.spec; 2d's
-// srvApplied_read, srvReadAt_mvcc, histAt; 3e's KV.Rev contract (the store's revision at a history
+// readReg_register/readReg_get (the put's answer fired before the read point), srvApplied_read,
+// srvReadAt_mvcc, srvWatchable_mvcc (the Rev token), histAt; 3e's KV.Rev contract (the store's revision at a history
 // point at or past the read point: assumed of 3e, not checked against its statement here).
 func ReqReadAfterWrite(ctx context.Context, s *etcdserver.EtcdServer, k, v []byte) {
 	presp, err := s.Put(ctx, &pb.PutRequest{Key: k, Value: v})

@@ -162,8 +162,9 @@ func ReqLockAfterUnlock(ctx context.Context, s1, s2 *concurrency.Session, pfx st
 // "lock %d followers did not wait"), :194-284 (TestMutexWaitsOnCurrentHolder: "new owner obtained
 // lock before first owner unlocked"); etcdctl lock (lockUntilSignal runs the command holding it).
 // Assumes: no lease expiry (W0's EnvCfg.leaseExpiry = false); pfx+"/" owned, empty at the start;
-// the two sessions' leases granted here (distinct: the first is live at the second grant).
-// Specs: NewSession.spec (grantEff: a fresh lease id), NewMutex.spec, Mutex.Lock.spec (the key
+// no other client revokes the two sessions' leases.
+// Specs: NewSession.spec (the grant's pre-state sigma_g, after the first session's grant, has no
+// lease id2 while id1 is still live there: id1 != id2), NewMutex.spec, Mutex.Lock.spec (the key
 // k = sessKey pfx id, lockedSince, cr above sigma0's revision for a key created after it),
 // Mutex.Unlock.spec; mutexEff (each mutex writes only its session's key, so "k1 present while
 // released is false" is stable under m2's permission); laws: etcdLb_reach, etcdLb_init.

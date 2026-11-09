@@ -74,9 +74,10 @@ def wireWatchRespOwn_msgAt.spec : Prop := ∀ p dq m,
 def eventOwn_msgAt.spec : Prop := ∀ p dq e,
   eventOwn (GF := GF) p dq e ⊣⊢ ∃ c, Proto.msgAt mvccpb.Event.ty p dq c ∗ ⌜eventHolds c e⌝
 
-/-- **A non-KV request** (1c's `reqOwn`): `msgAt` of its type holding its model. -/
+/-- **A non-KV request** (1c's `reqOwn`): `msgAt` of its type holding its model (no range end:
+`endsOk` vacuously; re-review W0 NF1). -/
 def reqOwn_msgAt.spec : Prop := ∀ p dq rq,
-  reqOwn (GF := GF) p dq rq ⊣⊢ ∃ c, Proto.msgAt (reqType rq) p dq c ∗ ⌜reqHolds c rq⌝
+  reqOwn (GF := GF) p dq rq ⊣⊢ ∃ c, Proto.msgAt (reqType rq) p dq c ∗ ⌜reqHolds c rq ∧ endsOk c⌝
 
 /-- **A reply** (1c's `replyOwn`, owned): `msgAt` of its type holding the body (`replyModels`). -/
 def replyOwn_msgAt.spec : Prop := ∀ p b,

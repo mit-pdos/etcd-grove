@@ -358,6 +358,11 @@ applies, given to the uber-applier's `smAt` while one applies; verify round, A7-
 `EtcdServer.NewUberApplier.spec`). -/
 opaque srvStores [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (σ : EtcdModel.State) : IProp GF := iprop(True)
 
+/-- (internal) **`be` is the member's current backend** (`s.be`, which `bemu` guards): the apply
+thread's half (the other in `bemu`'s invariant, for `Backend()`'s readers); a snapshot install moves
+both halves to the new backend under the write lock. Exclusive. Verify round (re-review N2). -/
+opaque srvCurBe [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (be : GoInterface) : IProp GF := iprop(True)
+
 /-! ### The raft node driver -/
 
 /-- **`r` is member `id`'s raft node driver**, over raft node `n` (a `raftNode`). Persistent. -/
@@ -609,10 +614,13 @@ def srvMember_node.spec : Prop :=
   ∀ (s : Loc) (γ : EtcdModel.Cluster) (id : Nat), srvMember (GF := GF) s γ id ⊢
     ∃ N : Names, ⌜N.etcd = γ⌝ ∗ srvNode s N id
 
-/-- **The converse bridge** (verify round, A7-provability F2): a member of the history is 2e's
-built member (`Logger`, the getters take `srvMember`). -/
+/-- **The converse bridge, for a started member** (verify round, A7-provability F2; re-review R-A7
+N5: `srvNode` holds from the server literal on, before `r.transport` is set at `server.go:438`,
+which `srvMember` includes, so the bridge needs `srvStarted`): a started member of the history is
+2e's built member (`Logger`, the getters take `srvMember`). -/
 def srvNode_member.spec : Prop :=
-  ∀ (s : Loc) (γ : Names) (id : Nat), srvNode (GF := GF) s γ id ⊢ srvMember s γ.etcd id
+  ∀ (s : Loc) (γ : Names) (id : Nat), srvNode (GF := GF) s γ id ∗ srvStarted s γ id ⊢
+    srvMember s γ.etcd id
 
 /-- **A started member serves its cluster** (verify round, A7-provability F1, completeness F1):
 `start` makes `isServer` before `go s.run()` from the fields `srvStarted` names, so the server's own
@@ -634,8 +642,10 @@ under the lent `applyLent s γ` (which holds `forceSnapW s`), a snapshot server 
 applying index), answers `ConsistentIndex()`; and for the `Authenticate` entry being applied (the
 committed entry at the applying index `applyLent` records) the cluster issued its token: the
 history's step of that entry registers `tokenUser γ (tok ++ "." ++ idx) name` (W0's), `idx` above
-every earlier `Authenticate` index. (`authnIdx`'s meaning is read as conditional on the entry being
-applied asking `Authenticate(name, tok)`: requested of 3a.) -/
+every earlier `Authenticate` index, `idx` a non-zero `uint64` (an applied entry's index, `≥ 1`) and
+`tok` free of `.` (3d's `GenTokenPrefix`: letters only; re-review S1: what 3d's `authnCtx` needs).
+(`authnIdx`'s meaning is read as conditional on the entry being applied asking
+`Authenticate(name, tok)`, and as carrying these two facts: requested of 3a.) -/
 def applyLent_opts.spec : Prop :=
   ∀ (s : Loc) (γ : Names) (id : Nat), srvNode (GF := GF) s γ id ⊢
     Apply.statusOk (srvIface s) ∗ Apply.snapSrvOk (srvIface s) (applyLent s γ) ∗
@@ -650,13 +660,20 @@ the member's KV `s.kv` is 3a's `kvOk` under the lent `applyLent s γ` (realized 
 post-lock hook's contract), its range deleter is set as the lessor's (`kvDelOk`: `NewStore`'s
 `mvccDeleter rd γ`, 4a's `leaseTxHeld_intro` relating the store's and the lessor's view of the
 backend `be`, which is `s.be`, after a snapshot `Recover`'s new backend), and the apply thread's
-stores at `σ` hold its `kvSt` at `σ.kv` (lent out and back). -/
+stores at `σ` hold its `kvSt` at `σ.kv` (lent out and back). Re-review N2: the deleter's backend
+and function are the lessor's own (`ls.be`, `ls.rd`), at the member's current backend: the stores
+give 3a's whole `lessorSt` (which carries `kvDelOk kv γl ls.be ls.rd` with `ls.be = be`, `ls.rd ≠
+nil`, `leasesLive`) at `s.be`'s value `be` (`srvCurBe`), so `NewServer`/`applySnapshot` build
+`NewUberApplier`'s `optsSt` from it. -/
 def srvStores_kv.spec : Prop :=
   ∀ (s : Loc) (γ : Names) (id : Nat) (σ : EtcdModel.State), srvNode (GF := GF) s γ id ∗ srvStores s σ ⊢
-    ∃ (kv be : GoInterface) (γl : Lease.Names) (rd : GoFunc),
+    ∃ (kv le be : GoInterface),
       structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"kv" s ↦□ kv ∗
-      srvLessor s γl ∗ Apply.kvOk kv (applyLent s γ) ∗ Apply.kvDelOk kv γl be rd ∗
-      Apply.kvSt kv σ.kv ∗ (Apply.kvSt kv σ.kv -∗ srvStores s σ)
+      structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"lessor" s ↦□ le ∗
+      srvCurBe s be ∗ Apply.kvOk kv (applyLent s γ) ∗
+      Apply.kvSt kv σ.kv ∗ Apply.lessorSt le kv be σ.leases σ.kv.store ∗
+      (srvCurBe s be -∗ Apply.kvSt kv σ.kv -∗ Apply.lessorSt le kv be σ.leases σ.kv.store -∗
+        srvStores s σ)
 
 /-- A member has one apply configuration, which `NewServer` fixed (2e's `srvNode`). -/
 def srvNode_cfg.spec : Prop :=

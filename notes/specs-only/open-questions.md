@@ -45,6 +45,9 @@ A3. **`ErrNoSpace` is indefinite.** An over-quota member applies the write and s
 A4. **Per-member lease reads in scope.** `State.leaseHist`, `leaseViewLb γ ep i`: `Leases`/`TimeToLive`
    answer from a table the member has reached. Alt.: a single-member mode (no model change).
    (`batch-W0.md` open question 6, round 3.)
+   **verify-round (re-review N1, `verify/R-A2-client-watch-lease.md`):** the description above was wrong for
+   `TimeToLive`: a follower forwards it to the leader (`v3_server.go:636-676`), so only `Grant` and `Leases`
+   answer from the member's own table; the per-member clause is dropped for `TimeToLive`.
 A5. **The principal per call** (`ctxPrin dflt ctx p`, W0 round 3): forwarded tokens (proxy,
    `v3client`) authenticate as their user. Alt.: one principal per client handle (excludes the proxy
    and `v3client`). (`batch-W0.md` round 3; `batch-1e.md` "Decisions, updated" (3).)
@@ -879,6 +882,15 @@ C47. **`reqCtxOk` is kept at the entry methods** (fixed differently): `EnsureTra
    internal requesters (`AuthInfoFromCtx`, `raftRequest`, `processInternalRaftRequestOnce`, `doSerialize`)
    take the new `reqCtxSpan ctx` (otel's span only). Files: `server/v3/etcdserver/ApiReq.lean`.
    (`repair-server-core` A7-P F5, "New decisions".)
+
+C48. **A second spec for one function: `Bucket.ForEachBucket.spec_del`** (bbolt re-review N2): an internal
+   spec used only by `DeleteBucket`'s recursion, whose callback may change the transaction's view at and
+   below the bucket and which may visit any increasing subsequence of the nested buckets (Go's skip,
+   etcd-io/bbolt#1305). It departs from "one spec per function" (PRINCIPLES): the public spec is not an
+   instance of it. Alt.: one general spec with the view-changing callback (heavier for every other caller),
+   or restate `DeleteBucket` without going through `ForEachBucket`'s spec (the proof unfolds the loop). Files:
+   `Spec/go_etcd_io/bbolt/Bucket__ForEachBucket*.lean`, `Bucket__DeleteBucket.lean`; source:
+   `verify/repair-bbolt.md` "Re-review", `verify/RR-raftlog-bbolt.md`.
 
 ### Gaps left open by the repairs
 

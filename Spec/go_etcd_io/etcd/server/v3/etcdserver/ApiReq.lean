@@ -360,9 +360,11 @@ opaque srvWatchable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFun
 def srvWatchable_persistent.spec : Prop := ∀ s γ w, Persistent (srvWatchable (GF := GF) s γ w)
 
 /-- The watchable store is mvcc's (3f's `watchableAt`); the bridge of its store names to `γ`'s
-history is 2d's (`req/`). -/
+history is 2d's (`req/`). Re-review (R-A7 N2): with the store's persistent `Rev` token (3e's
+`mvccRevTok`, the server's pool: `NewServer` lends it at `mvccRevTok_of`), so `KV().Rev()` may be called
+(`ReqReadAfterWrite`). -/
 def srvWatchable_mvcc.spec : Prop := ∀ s γ w,
-  srvWatchable (GF := GF) s γ w ⊢ ∃ γs, Mvcc.watchableAt w γs
+  srvWatchable (GF := GF) s γ w ⊢ ∃ γs, Mvcc.watchableAt w γs ∗ Mvcc.mvccRevTok γs
 
 /-- **The watchable store is the member's mvcc store, its history the cluster's** (3f's bridge,
 `req/`, "from 3f", item 3; integration I4): every `mvccLb` of it is a view of a state the cluster

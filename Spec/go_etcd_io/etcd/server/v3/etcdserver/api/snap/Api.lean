@@ -62,10 +62,10 @@ the file is found there already, a rename a crash may not have kept: `db.go:58-6
 and `os.Rename` are atomic on the directory entry, not durable until a directory fsync. The laws
 take the old generation's crash token (`crashed`) and give the next generation's `snapDbs` (at
 `⟨hG.goose_globalGS, L'⟩`, as `Wal.walRecs_crash`). The backend file at the install's
-destination, which an unsynced rename may also revert, is 4a's: `dbFile_rename` gives
-`Backend.beRevert dst o0` (the previous file `o0` may come back, 4a's `beCrash`), and the next
-`SaveDBFrom`'s directory fsync, of the directory holding `dst` (`inDir`), gives `beNoRevert dst`
-back (last pass, backend-schema's request).
+destination, which an unsynced rename may also revert, is 4a's: `dbFile_rename`'s update adds the
+destination's previous file to its revert state (`revertSt dst os`: every file a crash may bring
+back, 4a's `beCrash`), and the next `SaveDBFrom`'s directory fsync, of the directory holding `dst`
+(`inDir`), empties it (last pass, backend-schema's request; re-review N3: the list form).
 
 ## Requirement snippets
 
@@ -204,7 +204,22 @@ section rename
 variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
-/-- **Renaming a db file onto a backend path** (trusted: `os.Rename` at the snapshotter's files,
+/-- **The revert state of `p`, as the list of the files a crash may bring back** (re-review N3: two
+installs with no directory sync between are reachable, `raft.go:284,307`, and a journaling file
+system may then keep either rename or neither: every previous file is a candidate). `[]`: no rename
+pending (4a's `beNoRevert`); `[o]`: one (4a's `beRevert p o`). **Transitional:** longer lists need
+4a's list form `beRevert p (os : List (Option Image))` (requested of backend-schema, the repair
+report's "Re-review"); until it lands they are `False`, so a second install before a directory sync
+is not yet provable (a recorded gap, not a claim). -/
+def revertSt (p : GoString) : List (Option BeImage) → IProp GF
+  | [] => Backend.beNoRevert p
+  | [o] => Backend.beRevert p o
+  | _ => iprop(False)
+
+/-- **Renaming a db file onto a backend path** (re-review N3: the destination's file and revert
+state are taken inside the atomic update, so the install holds nothing across the call, a
+concurrent `SaveDBFrom` can settle the revert state, and a crash in the call finds them in the
+client's invariant) (trusted: `os.Rename` at the snapshotter's files,
 whose meaning is `snapDbs`; the bridge from `os.Rename` to this model that `OpenSnapshotBackend`'s
 proof needs: verify-round, A8 provability F5). At the rename the file at `i` leaves the directory
 (the update reads it: `none` if it is not there, then `ENOENT` and nothing changes) and its image
@@ -213,16 +228,19 @@ the directory is fsynced: the destination's previous file `o` may come back afte
 (`Backend.beRevert dst o`, 4a's `beCrash`), until `SaveDBFrom`'s directory fsync. A failure other
 than a missing file is `ServerStorage.diskOk`'s (`applySnapshot` panics on it, `bootstrap` fails). -/
 def dbFile_rename.spec : Prop :=
-  ∀ (sd : GoString) (i : Nat) (dst : GoString) (o : Option BeImage)
-    (Q : Option BeImage → IProp GF),
-  {{ ⌜ServerStorage.diskOk⌝ ∗ beFile dst o ∗ Backend.beNoRevert dst ∗
-      (AU <{ ∃∃ (F : Nat → Option BeImage) (H : Nat → BeImage → Prop), snapDbs sd F ∗ snapGone sd H }> @ ⊤, ∅
-        <{ snapDbs sd (releaseAt F i) ∗ snapGone sd (goneAdd H F (releaseAt F i)), COMM Q (F i) }>) }}
+  ∀ (sd : GoString) (i : Nat) (dst : GoString) (Q : Option BeImage → IProp GF),
+  {{ ⌜ServerStorage.diskOk⌝ ∗
+      (AU <{ ∃∃ (F : Nat → Option BeImage) (H : Nat → BeImage → Prop) (o : Option BeImage)
+                (os : List (Option BeImage)),
+              snapDbs sd F ∗ snapGone sd H ∗ beFile dst o ∗ revertSt dst os }> @ ⊤, ∅
+        <{ snapDbs sd (releaseAt F i) ∗ snapGone sd (goneAdd H F (releaseAt F i)) ∗
+            (match F i with
+             | some _ => revertSt dst (o :: os)
+             | none => beFile dst o ∗ revertSt dst os), COMM Q (F i) }>) }}
     (App (App (Val (@! os.Rename)) (Val #(dbPathOf sd i))) (Val #dst))
   {{ (err : GoInterface), RET #err;
-      (⌜err = GoInterface.nil⌝ ∗ ∃ img, Q (some img) ∗ beFile dst (some img) ∗
-          Backend.beRevert dst o) ∨
-      (⌜err ≠ GoInterface.nil⌝ ∗ Q none ∗ beFile dst o ∗ Backend.beNoRevert dst) }}
+      (⌜err = GoInterface.nil⌝ ∗ ∃ img, Q (some img) ∗ beFile dst (some img)) ∨
+      (⌜err ≠ GoInterface.nil⌝ ∗ Q none) }}
 
 end rename
 

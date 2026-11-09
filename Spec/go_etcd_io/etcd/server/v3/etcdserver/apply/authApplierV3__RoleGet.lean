@@ -3,7 +3,9 @@
 
 **Users.** `uberApplier.dispatch` through the chain (promoted methods of the outer layers).
 
-**Proof sketch.** 3d's `IsAdminPermitted`, `HasRole`; the base's.
+**Proof sketch.** 3d's `IsAdminPermitted`, `HasRole` (at the writer's `authCur`, with `authSt`'s
+`Auth.authBeCur γa abe` and `hooksOk`'s `Auth.authBeHook abe R Q`, given back as `Q`, which
+`□ (Q ={⊤}=∗ R)` turns into `R`; re-review A9 N1); the base's.
 
 **Changes** from `specs-ref`'s `authApplierV3__RoleGet.lean`: the old per-mode chain predicates (`apply.chainRes`, `kvOwnPre`) restated over `applierAt`, `stAt` and `layersStep`
 

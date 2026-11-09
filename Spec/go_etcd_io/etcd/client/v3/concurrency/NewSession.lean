@@ -35,6 +35,8 @@ gives it by `isClient_rest`): the gRPC proxy's leasing KV makes sessions after o
 `client.KV` (`req/go_etcd_io_etcd_client_v3_concurrency.md`, "from 1e (round 1)"); `NewSession`
 never reads `KV`.
 
+Changes: re-review N1: a granted lease also comes with the grant's pre-state `σg` (after `σ0`, the id absent there: `grantEff`'s `σ.leases id = none`; the server refuses a collision with `ErrLeaseExist`), so two sessions granted one after the other while the first lease lives have distinct leases (`ReqMutexNoTwoHolders`, `ReqElectionNoTwoLeaders`).
+
 Margin: the code also guarantees the lease's TTL is the one granted (at least the options'); not
 stated. Nothing about the lease's liveness after the grant: time is not modelled.
 -/
@@ -74,7 +76,9 @@ def NewSession.spec : Prop :=
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err); sessOptsAt sl gs ∗
       ((⌜err = GoInterface.nil⌝ ∗ ∃ id : w64, isSession s c γ id ∗
           (if (applySessOptsM gs SessOpts.init).leaseID = W64 0 then
-             iprop(∃ σ : State, etcdLb γ σ ∗ ⌜Reach σ0 σ ∧ σ.leases (sint.Z id) ≠ none⌝)
+             iprop(∃ σg σ : State, etcdLb γ σg ∗ etcdLb γ σ ∗
+               ⌜Reach σ0 σg ∧ σg.leases (sint.Z id) = none ∧ Reach σg σ ∧
+                σ.leases (sint.Z id) ≠ none⌝)
            else iprop(⌜id = (applySessOptsM gs SessOpts.init).leaseID⌝))) ∨
        ⌜s = null ∧ err ≠ GoInterface.nil⌝) }}
 

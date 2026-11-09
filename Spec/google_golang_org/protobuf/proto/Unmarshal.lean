@@ -14,6 +14,7 @@ unset field is left at its zero Go value, `nil` for a `bytes` or repeated field 
 encodes an empty one), so the decoded content is canonical (`norm c = c`).
 
 Changes: from `specs-ref/.../proto/{Unmarshal,UnmarshalPb,UnmarshalConfChange*,UnmarshalUser,
+Recheck (RR4): the success case states the decoded depth bound (`depth c < depthMax`: protobuf-go errors past `RecursionLimit`), the source of the stringers' depth premise for decoded requests (the apply's `irrMsgAt`).
 UnmarshalRole}.lean`: one spec over `msgAt` and `encodes`.
 verify-round (raft-conf-pb's request, A5-compl F4): on success the message is `mergeDst` (every
 slice a fresh allocation owned to its capacity: `Unmarshal` resets and decodes into fresh
@@ -51,7 +52,7 @@ def Unmarshal.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗ msgAt t p (DFrac.own 1) c0 ∗ b ↦*{dq} bs }}
     (App (App (Val (@! google_golang_org.protobuf.proto.Unmarshal)) (Val #b)) (Val #(msgVal t p)))
   {{ (err : GoInterface), RET #err; b ↦*{dq} bs ∗ ∃ c,
-      ((⌜err = GoInterface.nil ∧ encodes t c bs ∧ norm c = c⌝ ∗ mergeDst t p c) ∨
+      ((⌜err = GoInterface.nil ∧ encodes t c bs ∧ norm c = c ∧ depth c < depthMax⌝ ∗ mergeDst t p c) ∨
        (⌜err ≠ GoInterface.nil ∧ ∀ c', encodes t c' bs → ¬ depth c' < depthMax⌝ ∗
          msgAt t p (DFrac.own 1) c)) }}
 

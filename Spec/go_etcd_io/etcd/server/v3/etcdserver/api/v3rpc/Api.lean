@@ -173,17 +173,11 @@ def indefMsg (msg : GoString) : Prop :=
   ∀ e : EtcdErr, Rpctypes.mapped e = true → msg = Rpctypes.desc e → e.indefinite = true
 
 /-- **The administrator check's denial** (`AuthAdmin.isPermitted`, over 3d's `IsAdminPermitted`'s
-`adminPost`; verify-round, A6 F5): the flag read on at one table the cluster has had (`af`), and
-the user (absent, or not of the root role) at a possibly later one (`ax`); `ErrUserEmpty` without a
-principal. A denial at one table is the case `jf = jx`. W0's `.compact` denial is asked to admit
-this shape (W0's reads already do: `State.deniedSince`). -/
-def adminDenied (σ : State) (who : Principal) (e : EtcdErr) : Prop :=
-  ∃ (jf jx : Nat) (af ax : AuthState), σ.authTables[jf]? = some af ∧ σ.authTables[jx]? = some ax ∧
-    af.enabled = true ∧
-    match who with
-    | none => e = .userEmpty
-    | some u => (u = [] ∧ e = .userEmpty) ∨ (u ≠ [] ∧ ax.users u = none ∧ e = .userNotFound) ∨
-        (u ≠ [] ∧ ax.users u ≠ none ∧ ¬ ax.isRoot u ∧ e = .permissionDenied)
+`adminPost`; verify-round, A6 F5): **W0's `State.adminDenied`** (re-review R-A6 N3: one definition;
+it now admits the principal the check actually read: the request's `who`, or, when
+`AuthInfoFromCtx` read the flag off, no user or the certificate's, an `AuthEnable` racing the two
+reads, `nonissues/etcd-admin-check-authenable-race.md`). -/
+abbrev adminDenied (σ : State) (who : Principal) (e : EtcdErr) : Prop := σ.adminDenied who e
 
 /-- The content `c` of a request of method `m` models `rq` (3h's `EtcdServerPb.reqModels`). -/
 def reqModels (m : GoString) (c : Content) (rq : Req) : Prop := EtcdServerPb.reqModels m c rq
@@ -329,7 +323,10 @@ def leaseFact (γ : Cluster) (ep : GoString) (rq : Req) (vi : Option Nat) (σ σ
       match res with
       | .ok _ => leaseViewLb γ ep (σ'.leaseTables.length - 1)
       | _ => iprop(True)
-  | .leaseTimeToLive .. | .leaseLeases =>
+  -- re-review (R-A2 N1): no per-member clause for `LeaseTimeToLive`: a follower forwards it to the
+  -- leader (`v3_server.go:636-676`), so the answer is not `ep`'s own lessor view; `Leases`
+  -- answers from the member's own table (`:737-738`)
+  | .leaseLeases =>
       match vi with
       | some i => iprop(∃ j, ⌜i ≤ j ∧ σ.leaseAnsAt j rq res⌝ ∗ leaseViewLb γ ep j)
       | none => iprop(True)

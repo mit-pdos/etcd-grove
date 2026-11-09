@@ -41,12 +41,12 @@ Intended realization (`q0` the share handed over; `B`'s names hold `γ`, `q0` an
 * `kbLocked B q D0 D := ∃ S C, beSess γ (q * q0) Fm S ∗ beCur γ Fm C ∗ lockTok' γB q ∗
   ⌜D0 = keyDataOfM m S.base ∧ D = keyDataCur m S C⌝` (the session widened to `Fm` at the lock,
   `beSess_widen` of `Fp.none`; `keyDataCur m S C`: `C`'s data, the buffer flag `S.base`'s cleared by a put
-  of `key`, as `Sess.mid`'s; so `KeyData.mid D0 D = keyDataOf S.mid` for a session that deleted no
-  `key` it put, the delete row's premise (b), and `D = keyDataOf S.fin`);
+  of `key`, as `Sess.mid`'s; so `KeyData.mid D0 D = keyDataOfM m S.mid` for a session that deleted no
+  `key` it put, the delete row's premise (b), and `D = keyDataOfM m S.fin`);
 * `kbOpen B q := beOpen γ (q * q0) ∗ fracTok γB q` (a bridge-owned fraction, of which `kbLocked`
   holds its `q` with `lockTok'`: the way back's whole `kbOpen B 1` excludes an outstanding
   `kbLocked`, so `kbData` is in its batch case there: A10-provability B1's second part); `kbLive B t p := beLive γ (loc t) p` (`btLoc γ`, `rtLoc γ`, a
-  concurrent one's `l`); `kbRead B rt D := ∃ V, beRd γ (loc rt) mvccFp V ∗ ⌜D = keyDataOf V⌝`;
+  concurrent one's `l`); `kbRead B rt D := ∃ V, beRd γ (loc rt) Fm V ∗ ⌜D = keyDataOfM m V⌝`;
   `kbRdToks B n := beRdToks γ n`; `kbBareSlot B := beRdToks γ 1`, `kbBare B := ∃ V, beRd γ (rtLoc γ)
   Fp.none V ∗ beLive γ (rtLoc γ) 1`; `kbSafe B := beDel γ`; `kbSafeHeld B := beDelHeld γ`;
   `kbMade B b := beMade γ b.name ∨ madeFlag γB b` (`key`, and `meta` when `m = false`: a monotone
@@ -63,19 +63,20 @@ server's `beMade`);
   (so the way back recovers the same share and a session that agrees with `S` on mvcc's cells:
   `heldBack`).
 
-The rows, one by one: `BatchTx`/`ReadTx` (`backend.BatchTx.spec`, `ReadTx.spec`); the lock rows
+(Re-review N1: every realization line and row is at `Fm = mvccFpM m` and `keyDataOfM m`; with
+`m = false`, `kbData`'s and `kbRead`'s `metaMade` is the image's.) The rows, one by one: `BatchTx`/`ReadTx` (`backend.BatchTx.spec`, `ReadTx.spec`); the lock rows
 (`batchTxBuffered.LockInsideApply`/`LockOutsideApply.spec` on `beOpen γ (q * q0)`; mvcc's `hookRun B`
 gives 4a's `hookRun γ (q * q0) Pk f Pre Q` at `H` the session, `kbLent B H` by its realization (the
 identity lend); the observation fired
 after the lock with `beSess_vis`, `beSess_cur`); `Unlock` (`batchTxBuffered.Unlock.spec`, its two
-updates mvcc's nested ones through `kbData`'s realization: `keyDataOf S.mid = KeyData.mid D0 D` needs
+updates mvcc's nested ones through `kbData`'s realization: `keyDataOfM m S.mid = KeyData.mid D0 D` needs
 the delete row's (b), `beOpen` back as `kbOpen B q`); the puts (`UnsafePut`/`UnsafeSeqPut.spec`:
 `Sess.fresh` from the row's freshness over `D0`, `D`; the entry bound `kbEntryMax = bboltEntryMax`;
-`writable` by `mvccFp`); the delete (`UnsafeDelete.spec`, `beDelHeld`); `UnsafeCreateBucket` (`key`:
+`writable` by `Fm`); the delete (`UnsafeDelete.spec`, `beDelHeld`); `UnsafeCreateBucket` (`key`:
 the `some (Fm, C)` case; `meta`: `none`, `beMade`, when `m`, else the `some (Fm, C)` case, setting
 the bridge's `madeFlag`); the batch range (`btRange` is `KeyData.range`;
-the bytes lent against `beLive`, as `kbLive`); `ConcurrentReadTx` (`beHookFp`, `Fp.disj mvccFp Fh`) and
-its single-key range (`lingerSingle` is `KeyData.linger`, `mvccFp` covers the key); the shared
+the bytes lent against `beLive`, as `kbLive`); `ConcurrentReadTx` (`beHookFp`, `Fp.disj Fm Fh`) and
+its single-key range (`lingerSingle` is `KeyData.linger`, `Fm` covers the key); the shared
 `RLock`/`RUnlock`/range (`rdRange` with `key` safe, `Fh` none of `key`'s cells: the plain cut when
 `clean`, `A.take m ++ B.take n` otherwise, which is `KeyData.rtRange`'s `cs.take … ++ bs`; slices'
 lengths below `2^63`); the bare lock rows (`readTx.RLock` with `Fp.none`, no `beOpen`: after the

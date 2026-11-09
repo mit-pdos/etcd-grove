@@ -16,7 +16,7 @@ that the client's code relies on (PRINCIPLES, "an interface value gets a bundle"
 * `ctxDone ctx` (persistent): `ctx` is done (`Err()` is not `nil`, and never will be again).
 
 Laws (obligations of whoever realizes the bundle, from Perennial's specs and each context's
-code): `Err.spec`, `ErrDone.spec`; introduction from Perennial's contexts (`ctxOk_of_isContext`),
+code): `Err.spec`, `ErrDone.spec`; introduction from
 `Background()` and `TODO()` (`ctxOk_background`, `TODO.spec`); the constructors `WithCancel`,
 `WithTimeout` (a child: `ctxChild`, with `cancelOk`) and `WithValue` (`ctxWithValues`), `Done.spec`
 and the Done channel's receive (`ctxDoneChan`, `doneRecv.spec`: a blocking receive or a `select`
@@ -92,10 +92,9 @@ def ErrDone.spec : Prop :=
     (App (Val (ctx @!! context.Context.ty @!! go!"Err")) (Val #()))
   {{ (err : GoInterface), RET #err; ⌜err ≠ GoInterface.nil⌝ ∗ context.isCtxErr err }}
 
-/-- Perennial's contexts are contexts. -/
-def ctxOk_of_isContext.spec : Prop :=
-  ∀ (c : GoInterfaceOk) (s : context.ContextDesc (IProp GF)),
-  context.isContext c s ⊢ ctxOk (GoInterface.ok c)
+-- `ctxOk_of_isContext` (Perennial's `isContext c s ⊢ ctxOk (ok c)`) was dropped at the re-review
+-- (NF3): `isContext` specifies `Value` only at `&cancelCtxKey`, so it contradicted `Value.spec`;
+-- nothing used it. Perennial's contexts get `ctxOk` from this file's constructors' specs.
 
 /-- `Background()` is a context (never done). -/
 def ctxOk_background.spec : Prop :=
@@ -189,8 +188,11 @@ def ctxValueIs_wp.spec : Prop := ∀ ctx key v,
     □ ∀ Φ : val → IProp GF, ▷ Φ #v -∗
       WP (App (Val (ctx @!! context.Context.ty @!! go!"Value")) (Val #key)) {{ Φ }}
 
-/-- A child (`WithCancel`, `WithTimeout`) carries its parent's values. -/
+/-- A child (`WithCancel`, `WithTimeout`) carries its parent's values, at a key that is not an
+`*int` (a cancel context answers `&cancelCtxKey`, an `*int` no Go code outside `context` can name,
+with itself: Perennial's `notIntPtrKey`; re-review second tier). -/
 def ctxValueIs_child.spec : Prop := ∀ ctx ctx' key v,
+  (∀ ki : GoInterfaceOk, key = GoInterface.ok ki → ki.ty ≠ go.GoType.PointerType go.int) →
   ctxValueIs (GF := GF) ctx key v ∗ ctxChild ctx ctx' ⊢ ctxValueIs ctx' key v
 
 /-- A `WithValue` at a key of another dynamic type keeps the others. -/

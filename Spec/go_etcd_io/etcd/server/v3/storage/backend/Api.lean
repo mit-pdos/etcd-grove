@@ -100,9 +100,10 @@ membership, alarms, the schema's version. So the vocabulary is **one image, owne
   file, which a concurrent commit may rewrite: A11-completeness F5).
 * `beFile p o` (exclusive, timeless): the closed database file at `p` holds `o` (`none`: no file,
   or an empty one). Intended realization: 4c's `fileHolds p D` with `imgOf D = I`; for `none`,
-  `boltFresh_alloc`'s premise. `beRevert p o0`/`beNoRevert p` (exclusive; second pass): a rename
-  onto `p` awaits a directory sync (a crash may bring back the previous file `o0`), or none does
-  (`Durable.lean`).
+  `boltFresh_alloc`'s premise. `beRevs p os` (exclusive; second pass, a list at the
+  re-review): the files a crash may bring back at `p`, renamed over and not yet synced (`[]`:
+  `beNoRevert p`; else `beRevertL p os`; `beRevert`, `beRev` transitional one-file forms;
+  `Durable.lean`).
 * `bucketOk bk bi` (transparent, persistent): `bk`'s methods `ID()`, `Name()`,
   `IsSafeRangeBucket()` return `bi` (4b proves it of `Schema.bucketAt`).
 * `envOk` (persistent): **the program-start environment**: `ETCD_VERIFY` unset (the lock checks and
@@ -467,17 +468,26 @@ opaque beSnapN [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors
 /-- **The closed database file at `p` holds `o`** (`none`: no file; exclusive). -/
 opaque beFile [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : GoString) (o : Option Image) : IProp GF := iprop(True)
 
-/-- **A rename onto `p` awaits a directory sync; a crash may bring back the previous file, which
-held `o`** (exclusive; `Durable.lean`'s header). -/
-opaque beRevert [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : GoString) (o : Option Image) : IProp GF := iprop(True)
+/-- **Renames onto `p` await a directory sync; a crash may bring back any of the previous files,
+which held `os`** (exclusive; meaningful for a non-empty `os`; `Durable.lean`'s header). -/
+opaque beRevertL [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : GoString) (os : List (Option Image)) : IProp GF := iprop(True)
 
 /-- **No rename onto `p` awaits a directory sync** (exclusive). -/
 opaque beNoRevert [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : GoString) : IProp GF := iprop(True)
 
-/-- `p`'s revert state: none pending, or a pending rename over a file that held `o`. -/
-def beRev (p : GoString) : Option (Option Image) → IProp GF
-  | none => beNoRevert p
-  | some o => beRevert p o
+/-- **`p`'s revert state as the list of the files a crash may bring back** (re-review N3): `[]`,
+no rename pending (`beNoRevert`); else `beRevertL`. -/
+def beRevs (p : GoString) : List (Option Image) → IProp GF
+  | [] => beNoRevert p
+  | os => beRevertL p os
+
+/-- (transitional: server-boot's `snap/Api.lean` names it) one pending rename over a file that held
+`o`: `beRevs p [o]`. -/
+def beRevert (p : GoString) (o : Option Image) : IProp GF := beRevertL p [o]
+
+/-- (transitional: rafthttp's `saveOk` names it) the revert state of at most one pending rename:
+`beRevs p rv.toList`. -/
+def beRev (p : GoString) (rv : Option (Option Image)) : IProp GF := beRevs p rv.toList
 
 /-- **`bk` is a `Bucket` value with identity `bi`** (transparent, persistent): the bundle of the
 three methods the backend calls (`ID()`, `Name()` (a read-only slice), `IsSafeRangeBucket()`), as an

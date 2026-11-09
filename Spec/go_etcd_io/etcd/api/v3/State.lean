@@ -187,6 +187,14 @@ opaque leaseViewLb [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunc
 
 def leaseViewLb_persistent.spec : Prop := ∀ γ ep i, Persistent (leaseViewLb (GF := GF) γ ep i)
 
+/-- **The cluster `γ` has one member, serving at `ep`, for good** (persistent; open question A4's
+single-member alternative, recheck RR-1): its leader is that member, so a `TimeToLive` answered
+through `ep` is `ep`'s own lessor's (`ClientV3.viaFact`). Introduced by whoever starts a
+single-member cluster and never adds a member (`examples/etcd/leaseexpiry`; a server-boot law). -/
+opaque soleMember [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (ep : GoString) : IProp GF := iprop(True)
+
+def soleMember_persistent.spec : Prop := ∀ γ ep, Persistent (soleMember (GF := GF) γ ep)
+
 /-- A member's lessor is at a table the cluster has had. -/
 def leaseViewLb_le.spec : Prop := ∀ (γ : Cluster) (ep : GoString) (i : Nat) (σ : State),
   leaseViewLb (GF := GF) γ ep i ∗ etcdState γ σ ⊢ ⌜i < σ.leaseTables.length⌝

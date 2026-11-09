@@ -6,7 +6,8 @@
 **Proof sketch.** 3d's `IsRangePermitted` per comparison; `checkTxnReqsPermission.spec` twice.
 
 **Changes** from `specs-ref`'s file of the same name: one spec for both callers, parametric in how each check is reported (`permReads`' `C`); the old two-mode `isAuthStore … on` and `authApplyErrIs` gone
-verify-round, second pass (grpc-v3rpc's P-F2): `endsDecoded` is 3h's share-holding `EtcdServerPb.endsDecoded` (no
+recheck (RR3): the `endsDecoded` premise dropped, `txnReqOwn` carries `endsOk`.
+verify-round, second pass (grpc-v3rpc's P-F2): `endsDecoded` was 3h's share-holding `EtcdServerPb.endsDecoded` (no
 longer a persistent opaque), given back in the post.
 
 **Margin.** None.
@@ -15,10 +16,10 @@ longer a persistent opaque), given back in the post.
 set of states `S` (3d's reader check names three views, not one state), and `L` (lease checks
 allowed: the request path holds no lessor reader token).
 
-**Integration (I5), the empty end.** Premise `endsDecoded rt` (a non-`nil` empty `RangeEnd` is
-checked as the key alone while mvcc reads from the key on:
-`nonissues/etcd-auth-empty-range-end-point-check.md`); the apply thread gets it from `reqMsgAt`
-(`reqMsgAt_endsDecoded`), the request path from gRPC's decoding (2c, `CheckTxnAuth`).
+**Integration (I5), the empty end.** Every range end `nil` or non-empty (a non-`nil` empty
+`RangeEnd` is checked as the key alone while mvcc reads from the key on:
+`nonissues/etcd-auth-empty-range-end-point-check.md`): since the recheck (RR3), `txnReqOwn`'s own
+`endsOk` (3h's `txnReqOwn_msgAt`), no separate premise.
 -/
 module
 
@@ -49,10 +50,10 @@ def checkTxnPermission.spec : Prop :=
     (L : Bool)
     (C : Check → GoInterface → IProp GF) (rt : Loc) (t : TxnReq) (dq' : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ permReads ast le u rev A L C ∗ A ∗ ⌜L = false → ∀ c ∈ (RequestOp.checks (RequestOp.txn t.compare t.success t.failure)), c.isLease = false⌝ ∗  ai.[go_etcd_io.etcd.server.v3.auth.AuthInfo, go!"Username"] ↦{dq} u ∗
-      ai.[go_etcd_io.etcd.server.v3.auth.AuthInfo, go!"Revision"] ↦{dq} rev ∗ EtcdWire.txnReqOwn rt dq' t ∗ endsDecoded rt ∗ threadTok }}
+      ai.[go_etcd_io.etcd.server.v3.auth.AuthInfo, go!"Revision"] ↦{dq} rev ∗ EtcdWire.txnReqOwn rt dq' t ∗ threadTok }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.checkTxnPermission)) (Val #ast)) (Val #ai)) (Val #le)) (Val #rt))
   {{ (err : GoInterface), RET #err; A ∗ ai.[go_etcd_io.etcd.server.v3.auth.AuthInfo, go!"Username"] ↦{dq} u ∗
-      ai.[go_etcd_io.etcd.server.v3.auth.AuthInfo, go!"Revision"] ↦{dq} rev ∗ threadTok ∗ EtcdWire.txnReqOwn rt dq' t ∗ endsDecoded rt ∗
+      ai.[go_etcd_io.etcd.server.v3.auth.AuthInfo, go!"Revision"] ↦{dq} rev ∗ threadTok ∗ EtcdWire.txnReqOwn rt dq' t ∗
       checksOut C (RequestOp.checks (RequestOp.txn t.compare t.success t.failure)) err }}
 
 end spec

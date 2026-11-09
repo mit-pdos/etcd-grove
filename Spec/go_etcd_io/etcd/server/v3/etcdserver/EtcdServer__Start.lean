@@ -21,6 +21,8 @@ predicates in place of the built part's eighteen conjuncts and the auth mode's p
 
 **Margin.** The post says nothing of liveness (the member publishing itself, the read loop
 answering): `servesAt` (2a) and the request path's specs carry what clients see.
+
+Changes: re-review (R-A7 N3/N4): the caller's `threadTok` comes back (the goroutines it starts run with their forks' fresh tokens; `GoAttach` returns the caller's).
 -/
 module
 
@@ -49,7 +51,7 @@ def EtcdServer.Start.spec : Prop :=
   ∀ (s : Loc) (γ : Cluster) (id : Nat) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ srvBuilt s γ id cfg ∗ threadTok }}
     (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"Start")) (Val #()))
-  {{ RET #(); isServer s γ ∗ srvGate s 1 ∗ srvRunning s γ id (Config.dirsOf cfg) }}
+  {{ RET #(); isServer s γ ∗ srvGate s 1 ∗ srvRunning s γ id (Config.dirsOf cfg) ∗ threadTok }}
 
 end spec
 

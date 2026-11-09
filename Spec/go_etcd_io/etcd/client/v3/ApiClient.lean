@@ -412,7 +412,9 @@ def viaPre (γ : Cluster) (V : GoString → IProp GF) : Option (GoString × Nat)
 
 /-- **What an answer by the member at `ep` tells of its lessor** (W0's `leaseViewLb`; the server
 side, 2a's `leaseFact`, is where it comes from): a grant answered `.ok` gives the table it created;
-a lease read's answer (`leaseAnsRes`) is from a table `j ≥ i`, whose bound it gives; nothing else.
+a `Leases` answer (`leaseAnsRes`) is from `ep`'s own table `j ≥ i`, whose bound it gives; nothing
+else (`TimeToLive` is answered by the leader's lessor, which a follower forwards to: the same fact
+only given `soleMember γ ep`).
 -/
 def viaFact (γ : Cluster) (via : Option (GoString × Nat)) (rq : Req) (σ σ' : State) (res : Resp) :
     IProp GF :=
@@ -424,8 +426,13 @@ def viaFact (γ : Cluster) (via : Option (GoString × Nat)) (rq : Req) (σ σ' :
       match res with
       | .ok _ => leaseViewLb γ ep (σ'.leaseTables.length - 1)
       | _ => iprop(True)
-    | .leaseTimeToLive .. | .leaseLeases =>
+    | .leaseLeases =>
       iprop(⌜¬ leaseAnsRes res⌝ ∨ ∃ j, ⌜i ≤ j ∧ σ.leaseAnsAt j rq res⌝ ∗ leaseViewLb γ ep j)
+    -- `TimeToLive` is forwarded to the leader (`v3_server.go:636-676`): its answer is `ep`'s own
+    -- lessor's only when `ep` is the cluster's sole member (re-review N1, recheck RR-1)
+    | .leaseTimeToLive .. =>
+      iprop(⌜¬ leaseAnsRes res⌝ ∨
+        (soleMember γ ep -∗ ∃ j, ⌜i ≤ j ∧ σ.leaseAnsAt j rq res⌝ ∗ leaseViewLb γ ep j))
     | _ => iprop(True)
 
 /-- **The single-use right a request needs** (integration I1, the coordinator's decision): a member

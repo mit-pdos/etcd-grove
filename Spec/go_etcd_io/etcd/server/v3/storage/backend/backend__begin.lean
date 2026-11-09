@@ -11,11 +11,10 @@ mutex is held).
 
 **Proof sketch.** `b.mu.RLock()`; bbolt's `Begin(write)` (4c; an error is `lg.Fatal`: excluded by
 `dbBroken_state`, the last commit having succeeded); `b.mu.RUnlock()`; `tx.Size()`, `tx.DB()`;
-`db.Stats()` with **`statSlot (some (tx, T))`**: for a read transaction, its whole `boltTx`
-(`T.rw = false`, as 4c's `statSlot` is now); for a write transaction, its whole `boltTx` too, which
-4c's `statSlot` must accept (the writer holds `rwlock`, and `isBolt` keeps one spare `statlock`
-reader slot for it, as `freepages` keeps one `mmaplock` slot): **requested of the bbolt group as
-`statSlot_wtx`** (A11-completeness F4; until it lands this step has no source).
+`db.Stats()` with **`statSlot (some (tx, T))`**: the transaction's whole `boltTx`, for a read
+transaction and, by 4c's `statSlot_wtx` (`T.rw = true`: the writer holds `rwlock`, and `isBolt`
+keeps one spare `statlock` reader slot for it), for a write transaction (re-review N2: the law
+exists).
 `db.Info()` (the page size); the atomics stored. A read transaction's own reader slot is the
 caller's `threadTok` (a fresh one: the thread that will roll it back gets the old read
 transaction's, `wp_fork_tok_self`), held by `rtNew`.

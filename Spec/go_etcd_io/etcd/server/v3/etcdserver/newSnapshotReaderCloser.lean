@@ -14,6 +14,8 @@ reader's having closed early); `pw.CloseWithError(err)`; `snapshot.Close()` (4a'
 
 **Changes** from `specs-ref`'s spec (the backend's `Data`, `io.rcCloseOk`, the size bound): over
 `beSnap`/`dbReader` (provisional, 4a's and 2e's). **Margin**: the logger's messages.
+
+Changes: re-review (R-A7 N3/N4): the caller's `threadTok` comes back (the goroutines it starts run with their forks' fresh tokens; `GoAttach` returns the caller's).
 -/
 module
 
@@ -47,7 +49,7 @@ def newSnapshotReaderCloser.spec : Prop :=
       Zap.isLogger lg ∗ beSnap bs γ k ∗ threadTok }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.newSnapshotReaderCloser)) (Val #lg))
       (Val #bs))
-  {{ (rc : GoInterface), RET #rc; dbReader rc γ k }}
+  {{ (rc : GoInterface), RET #rc; dbReader rc γ k ∗ threadTok }}
 
 end spec
 end EtcdServer

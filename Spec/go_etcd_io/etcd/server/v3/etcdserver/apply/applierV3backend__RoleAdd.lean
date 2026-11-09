@@ -7,15 +7,17 @@
 `a = σ.auth`, from `stAt`'s `authSt`; the request `Auth.authReqAt r rq cred` from `reqMsgAt`, with
 `cred` the op's credential): its premises `authReached γ (storeNext rq cred a)` and `recordsFit`
 from `nextOk` (the step's next state, `opStep`'s realization: `σ'.auth = storeNext rq cred a`);
-the backend's post-lock hook `Auth.authHook γa Pre Q` (3d's, provisional for 4a/2d: the
-apply thread's hook under `R`, as the KV writes'); its post `admStep`, the writer at `i + 1`;
+`authSt`'s `Auth.authBeCur γa abe` and the backend's post-lock hook `Auth.authBeHook abe R Q`
+(`hooksOk`'s producer at `authSt`'s wrapper `abe`), passed straight to the triple; its post
+`admStep`, the writer at `i + 1`, `authBeCur` back, and `hookOut abe R Q` (`Q`, or `R` with the
+unused hook), which `hooksOk`'s `□ (Q ={⊤}=∗ R)` turns into `R`;
 `newHeader`.
 
 **Changes** from `specs-ref`'s `applierV3backend__RoleAdd.lean`: the old triple over the chain's `AEnv`, the mvcc log and the write tokens (`putPre`, `kvPostF`, `mPostW`, ...) restated over the model state (`stAt`, `layersStep`): any auth mode, leases, compaction
-verify-round (A9 F3, F6): the auth store's hook `Auth.authHook γa R Q` now has a source, `beAt`'s
-`optsOk`'s `hooksOk` (its `Auth.authBeHook` with `authSt`'s `Auth.authBeCur`, by 3d's `authHook_intro`;
-`Pre := R`; `hookOut`'s `Q`, or `R` with the unused hook, gives `R` back); the
-statement is unchanged.
+verify-round (A9 F3, F6; re-review A9 N1): the auth store's hook has a source, `beAt`'s `optsOk`'s
+`hooksOk` (`Auth.authBeHook abe R Q`) with `authSt`'s `Auth.authBeCur γa abe`, which 3d's
+`AdminTriple` now takes directly (its `authHook`/`authHook_intro` are gone); the statement is
+unchanged.
 
 **Margin.** The header's other fields (cluster, member, term, leader) any.
 

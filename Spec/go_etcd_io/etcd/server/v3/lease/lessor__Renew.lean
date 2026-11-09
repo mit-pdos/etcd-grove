@@ -3,7 +3,9 @@
 
 **Users.** 2c's `EtcdServer.LeaseRenew` on the leader (`v3_server.go:528`: `ErrNotPrimary` makes it
 forward to the leader, other errors are returned), and the lease HTTP handler (`leasehttp`, the
-leader's side of a forwarded keep-alive; untranslated). Any goroutine. Snippet `lessor.go`
+leader's side of a forwarded keep-alive, `http.go:91`; untranslated, and out of scope today: no
+`NewHandler` spec; whoever specifies it gives `net/http`'s handler goroutine the `threadTok` `Renew`
+now takes, re-review S3). Any goroutine. Snippet `lessor.go`
 (`ReqRenew`).
 
 **Why it is true** (the code). `le.mu.RLock()`; not primary: `ErrNotPrimary`. `leaseMap[id]` absent

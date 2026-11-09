@@ -40,7 +40,8 @@ func put8(b *bolt.Bucket, k string, x uint64) error {
 // then gives the first boot's fileHolds, with the name durable); the file was only ever written by
 // this function (its boltFile and the client's boltState in a crash-surviving invariant;
 // fileHolds_alloc at each boot from the crash law's fileHolds); acked is crash-surviving and only
-// raised after a nil Update; default options.
+// raised after a nil Update; default options (NoFreelistSync off: Open's freelist commit takes
+// its updates, commitAU at the file's data, from the same invariant).
 // Specs: Open.spec, DB.View.spec, DB.Update.spec, Tx.Bucket.spec, Tx.CreateBucket.spec,
 // Bucket.Get.spec, Bucket.Put.spec, DB.Close.spec; laws: fileHolds_new, boltCrash,
 // fileHolds_alloc, boltState_frac, BoltSt.commit/settle/recovers (the model; commitAU from the

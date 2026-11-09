@@ -68,6 +68,10 @@ def mdPrintable (md : List (GoString × List GoString)) : Prop :=
 def printMD_inj.spec : Prop := ∀ md md' : List (GoString × List GoString),
   mdPrintable md → mdPrintable md' → printMD md = printMD md' → md.Perm md'
 
+/-- **A printed map is never empty** (`map[` … `]`; re-review S-b: `streamKeyFromCtx` maps "no
+metadata" to `""`, which no printed map equals). -/
+def printMD_ne_nil.spec : Prop := ∀ md : List (GoString × List GoString), printMD md ≠ []
+
 end Fmt
 end EtcdGrove
 end Perennial

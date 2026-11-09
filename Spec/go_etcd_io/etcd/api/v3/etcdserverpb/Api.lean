@@ -329,27 +329,34 @@ def rangeResp_merge.spec : Prop := ∀ c c' m m',
 
 /-! ### Relation laws (W0's predicates) -/
 
+/-! Re-review (W0 NF1): every request predicate of W0's is a message whose range ends are `nil` or
+non-empty (`endsOk`): W0's unfold laws carry `⌜es = slice.nil ∨ ebs ≠ []⌝` for each `RangeEnd`
+(client-core's change in parallel), and a request type without a range end (`Put`, `Compaction`,
+the non-KV ones) satisfies `endsOk` vacuously. So the relation laws below give `endsOk c` with the
+content, which `unaryArgs_msgAt` (`Realize.lean`) takes; a from-key end (`"\x00"`) is non-empty, so
+it is covered too (`endsOk_range_intro` remains for a content known only by its model). -/
+
 def rangeReqOwn_msgAt.spec : Prop := ∀ p dq r,
   rangeReqOwn (GF := GF) p dq r ⊣⊢
-    ∃ c, Proto.msgAt etcdserverpb.RangeRequest.ty p dq c ∗ ⌜reqHolds c (.range r)⌝
+    ∃ c, Proto.msgAt etcdserverpb.RangeRequest.ty p dq c ∗ ⌜reqHolds c (.range r) ∧ endsOk c⌝
 def putReqOwn_msgAt.spec : Prop := ∀ p dq r,
   putReqOwn (GF := GF) p dq r ⊣⊢
-    ∃ c, Proto.msgAt etcdserverpb.PutRequest.ty p dq c ∗ ⌜reqHolds c (.put r)⌝
+    ∃ c, Proto.msgAt etcdserverpb.PutRequest.ty p dq c ∗ ⌜reqHolds c (.put r) ∧ endsOk c⌝
 def deleteReqOwn_msgAt.spec : Prop := ∀ p dq r,
   deleteReqOwn (GF := GF) p dq r ⊣⊢
-    ∃ c, Proto.msgAt etcdserverpb.DeleteRangeRequest.ty p dq c ∗ ⌜reqHolds c (.deleteRange r)⌝
+    ∃ c, Proto.msgAt etcdserverpb.DeleteRangeRequest.ty p dq c ∗ ⌜reqHolds c (.deleteRange r) ∧ endsOk c⌝
 def txnReqOwn_msgAt.spec : Prop := ∀ p dq t,
   txnReqOwn (GF := GF) p dq t ⊣⊢
-    ∃ c, Proto.msgAt etcdserverpb.TxnRequest.ty p dq c ∗ ⌜reqHolds c (.txn t)⌝
+    ∃ c, Proto.msgAt etcdserverpb.TxnRequest.ty p dq c ∗ ⌜reqHolds c (.txn t) ∧ endsOk c⌝
 def compactReqOwn_msgAt.spec : Prop := ∀ p dq rev phys,
   compactReqOwn (GF := GF) p dq rev phys ⊣⊢
-    ∃ c, Proto.msgAt etcdserverpb.CompactionRequest.ty p dq c ∗ ⌜reqHolds c (.compact rev phys)⌝
+    ∃ c, Proto.msgAt etcdserverpb.CompactionRequest.ty p dq c ∗ ⌜reqHolds c (.compact rev phys) ∧ endsOk c⌝
 def compareOwn_msgAt.spec : Prop := ∀ p dq m,
   compareOwn (GF := GF) p dq m ⊣⊢
-    ∃ c, Proto.msgAt etcdserverpb.Compare.ty p dq c ∗ ⌜compareHolds c m⌝
+    ∃ c, Proto.msgAt etcdserverpb.Compare.ty p dq c ∗ ⌜compareHolds c m ∧ endsOk c⌝
 def requestOpOwn_msgAt.spec : Prop := ∀ p dq m,
   requestOpOwn (GF := GF) p dq m ⊣⊢
-    ∃ c, Proto.msgAt etcdserverpb.RequestOp.ty p dq c ∗ ⌜requestOpHolds c m⌝
+    ∃ c, Proto.msgAt etcdserverpb.RequestOp.ty p dq c ∗ ⌜requestOpHolds c m ∧ endsOk c⌝
 def respHeaderOwn_msgAt.spec : Prop := ∀ p dq m,
   respHeaderOwn (GF := GF) p dq m ⊣⊢
     ∃ c, Proto.msgAt etcdserverpb.ResponseHeader.ty p dq c ∗ ⌜respHeaderHolds c m⌝
@@ -726,6 +733,11 @@ end
 /-- The protobuf nesting depth of a `TxnRequest`'s messages (2c's, moved). -/
 def txnMsgDepth (t : TxnReq) : Nat :=
   1 + max (if t.compare = [] then 0 else 1) (max (opsMsgDepth t.success) (opsMsgDepth t.failure))
+
+/-- **A transaction message nests as its model** (recheck RR4: the source of the stringers' depth
+premise for a transaction a caller holds, with `txnMsgDepth t + 1 ≤ 10000` from the gRPC checks,
+`V3rpc.txnCheck_checked`). -/
+def holds_depth_txn.spec : Prop := ∀ c t, reqHolds c (.txn t) → Proto.depth c ≤ txnMsgDepth t
 
 /-- **An internal request every member's apply can decode** (2c's, moved): a transaction at most
 `9999` messages deep below the `InternalRaftRequest`. -/

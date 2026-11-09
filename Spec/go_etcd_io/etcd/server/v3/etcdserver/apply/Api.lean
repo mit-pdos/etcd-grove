@@ -135,8 +135,9 @@ or nothing), `irrStep_quiet` (a checkpoint, a token, a version, a downgrade: not
   `Lease.rdOk` per revocation through 3e's `Mvcc.mvccDeleter_rdOk`).
 * `optsOk` carries the backends' post-lock hook contracts under the lent `R` (`hooksOk`, A9 F3,
   F6): the lessor's (`Lease.beHook`/`beHookRun` at the options' backend) and the auth store's
-  (`Auth.authBeHook` of the options' backend's auth wrapper, which 3d's `authHook_intro` turns
-  into `Auth.authHook` at `authSt`'s `Auth.authBeCur`: lease-auth's request), each giving `R` back.
+  (`Auth.authBeHook` of the options' backend's auth wrapper, which with `authSt`'s `Auth.authBeCur`
+  at that wrapper is exactly what 3d's `AdminTriple` takes: lease-auth's request), each giving `R`
+  back.
 * `opStep_step` concludes `ownStep` (W0's `Step` without its refusal disjunct, A9 F4): the backend
   makes no refusal of its own, so a client learns that a valid write at auth off with no alarm is
   applied (`ReqApplyWrite`).
@@ -165,8 +166,10 @@ or nothing), `irrStep_quiet` (a checkpoint, a token, a version, a downgrade: not
 * The coordinator's decisions (after the batch passes): a token provider's error (no-op provider
   always, JWT on signing) is admitted as the member's result for a token assignment the step
   answered (`IrrOp.isAuthn`, `provErrResult`, `replyAt_result`); a non-`nil` empty range end is out of
-  the permission checks' scope (`endsDecoded`, `opsDecoded`, provisional W0/3h, with
-  `reqMsgAt_endsDecoded`; `nonissues/etcd-auth-empty-range-end-point-check.md`).
+  the permission checks' scope (`nonissues/etcd-auth-empty-range-end-point-check.md`; since the
+  recheck, RR3, carried by the request predicates themselves: W0's `txnReqOwn`/`requestOpOwn` give
+  3h's `endsOk` at any ownership, so the separate `endsDecoded`/`opsDecoded` and
+  `reqMsgAt_endsDecoded` are gone).
 
 ## Requirement snippets
 
@@ -733,8 +736,9 @@ def authOk (ast : GoInterface) (γ : Cluster) : IProp GF :=
 (3d's `Auth.authBeCur` at the `*authBackend` that 4b's `schema.NewAuthBackend(lg, be)` built: the
 options' `Backend`, as the server passes `s.be` to both, `server.go:369,1193`; `Recover` moves it to
 a snapshot's, `server.go:1127`, before the new options are built). Exclusive. With `hooksOk`'s
-`authBeHook` producer, 3d's `authHook_intro` gives each admin method's `Auth.authHook` (verify
-round: lease-auth's request). -/
+`authBeHook` producer at that wrapper, it is what 3d's `AdminTriple` (and `AuthEnable`,
+`AuthDisable`, `HasRole`) take and give back (verify round: lease-auth's request; re-review A9 N1:
+3d's `authHook`/`authHook_intro` are gone). -/
 def authSt (ast be : GoInterface) (a : AuthState) : IProp GF :=
   iprop(∃ (st : Loc) (γ : Cluster) (γa : Auth.AuthNames) (i n : Nat) (abe : Loc) (lg : Loc),
     ⌜ast = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty) #st⌝ ∗
@@ -773,12 +777,16 @@ def Check.isLease : Check → Bool
 
 /-- (2d's: introduced by `EtcdServer.applyLent_opts`, for every `name`, `tok`) **The apply
 thread's token index for `Authenticate`** (persistent): under the lent `R`, `ConsistentIndex()`
-answers the index `idx` of the entry being applied, and **if that entry asks `Authenticate(name,
-tok)`**, the cluster `γ` issued the simple token `tok ++ "." ++ idx` (decimal) to `name`
+answers the index `idx` of the entry being applied, a nonzero `uint64` (`0 < idx < 2 ^ 64`), and
+**if that entry asks `Authenticate(name, tok)`**, the prefix `tok` has no `.` (the proposer's
+`GenTokenPrefix`: letters) and the cluster `γ` issued the simple token `tok ++ "." ++ idx`
+(decimal) to `name`
 (`tokenUser`, 2d's: the committed entry), `idx` above every `Authenticate` index applied before
 (3d's `tokFrom`, held in `authSt`). Conditional (second pass, server-core's request): an
 unconditional reading is false for any other name, and `applyLent_opts` gives it for all; the
-applier uses it at the entry it is applying, whose request is `.authenticate name _ tok`. What 3d's `Auth.authnCtx γ ctx name idx` (transparent: the two `ctxValIs` that
+applier uses it at the entry it is applying, whose request is `.authenticate name _ tok`. The two
+facts on `idx` and `tok` are what 3d's `Auth.authnCtx γ ctx name idx` asks beside the `tokenUser`
+(`0 < idx ∧ idx < 2 ^ 64 ∧ '.' ∉ tok`; re-review A9 S1, as 2d's `applyLent_opts` now states). What 3d's `Auth.authnCtx γ ctx name idx` (transparent: the two `ctxValIs` that
 `context.WithValue` gives, and this `tokenUser`) and `Auth.tokFrom` need at
 `applierV3backend.Authenticate`. -/
 opaque authnIdx [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (R : IProp GF) (γ : Cluster) (name tok : GoString) : IProp GF := iprop(True)
@@ -797,8 +805,8 @@ def nextOk (γ : Cluster) (R : IProp GF) (op : IrrOp) (S : State → Prop) : IPr
 /-- **The backends' post-lock hook contracts, lent `R`** (persistent): the lessor's batch
 transaction (`Grant`, `Checkpoint`: 3c's `Lease.beHook be Pk f ∗ Lease.beHookRun be Pk f Pre Q ∗
 (Q ={⊤}=∗ Pk ∗ Post)`) at the backend `be`, and the auth store's (3d's `Auth.authBeHook abe Pre Q`
-of any auth backend wrapping `be`, `schema.NewAuthBackend`'s `*authBackend`, which 3d's
-`authHook_intro` turns into the admin methods' `Auth.authHook` at the store's `authBeCur`, `authSt`),
+of any auth backend wrapping `be`, `schema.NewAuthBackend`'s `*authBackend`, which the admin
+methods' `AdminTriple` takes directly with the store's `authBeCur`, `authSt`),
 each run from the apply thread's `R` and giving `R` back. The hook is the server's
 `getTxPostLockInsideApplyHook` (`server.go:409,1098`: the consistent index saved under the lock,
 which the lent `R` owns), proved once over 4a's `Backend.hookRun` at every share; the lessor's half
@@ -873,24 +881,6 @@ opaque irrMsgAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctor
 `*membershippb.ClusterVersionSetRequest`), read-only. Persistent. -/
 opaque reqMsgAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (op : IrrOp) : IProp GF := iprop(True)
 
-/-- **Every range end in the transaction message `rt` is as protobuf decodes it** (3h's
-`EtcdServerPb.endsDecoded` at `*TxnRequest`: a share of the message whose content has `endsOk`,
-each `RangeEnd` of its compares and (nested) range and delete operations `nil` or non-empty).
-Excludes a non-`nil` empty end, which the auth check reads as the key alone and mvcc as every key
-from it on (`nonissues/etcd-auth-empty-range-end-point-check.md`): a scope premise of the request
-path's checks, false only for an in-process adapter request. Not persistent (the request path holds
-a share: `CheckTxnAuth` gives it back); persistent at the apply thread's read-only entries (3h's
-`endsDecoded_ro`, `reqMsgAt_endsDecoded`). Second pass (grpc-v3rpc's P-F2): was a provisional
-persistent opaque. -/
-def endsDecoded (rt : Loc) : IProp GF :=
-  EtcdServerPb.endsDecoded go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty rt
-
-/-- **`endsDecoded` of a slice of `*pb.RequestOp`** (3h's `EtcdServerPb.opsDecoded`: a share of the
-slice and of each operation with `endsOk`; given back). The helpers' recursion reads a branch's and
-a nested transaction's through 3h's split laws (`endsDecoded_txn`, `endsDecoded_op`). Second pass:
-was a provisional persistent opaque. -/
-def opsDecoded (sl : GoSlice) : IProp GF := EtcdServerPb.opsDecoded sl
-
 /-- **A wrapper of `ir`** (`*InternalRaftRequestWrapper`), skipping the ranges if `sk`. -/
 def wrapperAt (r : Loc) (ir : Irr) (sk : Bool) : IProp GF :=
   iprop(∃ p : Loc,
@@ -926,13 +916,6 @@ def persistent.spec : Prop :=
   (∀ p op, Persistent (reqMsgAt (GF := GF) p op))
 
 def smAt_timeless.spec : Prop := ∀ ua σ, Timeless (smAt (GF := GF) ua σ)
-
-/-- (provisional with `reqMsgAt`, 3h's) **A decoded transaction message's ends are decoded, for
-good**: the apply thread's requests come from `Unmarshal` of the entry, read-only (`reqMsgAt`'s
-realization: the message at `DFrac.discard`, canonical), so 3h's `endsDecoded_of_canon` and
-`endsDecoded_ro` give it persistently and the empty-end gap does not reach the apply's checks. -/
-def reqMsgAt_endsDecoded.spec : Prop := ∀ p t,
-  reqMsgAt (GF := GF) p (.req (.txn t)) ⊢ □ endsDecoded p
 
 /-- **The stores back out of the state machine** (giving up the applier: `applySnapshot` recovers
 them, then builds a new one with `NewUberApplier`). -/

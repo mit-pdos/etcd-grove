@@ -6,7 +6,8 @@
 **Proof sketch.** per operation: 3d's checks, `checkPutAuth.spec`, `checkTxnPermission.spec` (recursion on the nesting).
 
 **Changes** from `specs-ref`'s file of the same name: one spec for both callers, parametric in how each check is reported (`permReads`' `C`); the old two-mode `isAuthStore … on` and `authApplyErrIs` gone
-verify-round, second pass (grpc-v3rpc's P-F2): `opsDecoded` is 3h's share-holding `EtcdServerPb.opsDecoded` (no
+recheck (RR3): the `opsDecoded` premise dropped, `requestOpOwn` carries `endsOk`.
+verify-round, second pass (grpc-v3rpc's P-F2): `opsDecoded` was 3h's share-holding `EtcdServerPb.opsDecoded` (no
 longer a persistent opaque), given back in the post.
 
 **Margin.** None.
@@ -15,9 +16,8 @@ longer a persistent opaque), given back in the post.
 set of states `S` (3d's reader check names three views, not one state), and `L` (lease checks
 allowed: the request path holds no lessor reader token).
 
-**Integration (I5), the empty end.** Premise `opsDecoded sl` (as `checkTxnPermission`'s
-`endsDecoded`; a nested transaction's `endsDecoded` from it by 3h's split laws, `endsDecoded_op`,
-`endsDecoded_txn`).
+**Integration (I5), the empty end.** Since the recheck (RR3), each operation's `requestOpOwn`
+carries `endsOk` (3h's `requestOpOwn_msgAt`), a nested transaction's included: no separate premise.
 -/
 module
 
@@ -48,10 +48,10 @@ def checkTxnReqsPermission.spec : Prop :=
     (L : Bool)
     (C : Check → GoInterface → IProp GF) (sl : GoSlice) (ops : List RequestOp) (dq' : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ permReads ast le u rev A L C ∗ A ∗ ⌜L = false → ∀ c ∈ (RequestOp.checksL ops), c.isLease = false⌝ ∗  ai.[go_etcd_io.etcd.server.v3.auth.AuthInfo, go!"Username"] ↦{dq} u ∗
-      ai.[go_etcd_io.etcd.server.v3.auth.AuthInfo, go!"Revision"] ↦{dq} rev ∗ EtcdWire.msgsOwn EtcdWire.requestOpOwn sl dq' ops ∗ opsDecoded sl ∗ threadTok }}
+      ai.[go_etcd_io.etcd.server.v3.auth.AuthInfo, go!"Revision"] ↦{dq} rev ∗ EtcdWire.msgsOwn EtcdWire.requestOpOwn sl dq' ops ∗ threadTok }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.checkTxnReqsPermission)) (Val #ast)) (Val #ai)) (Val #le)) (Val #sl))
   {{ (err : GoInterface), RET #err; A ∗ ai.[go_etcd_io.etcd.server.v3.auth.AuthInfo, go!"Username"] ↦{dq} u ∗
-      ai.[go_etcd_io.etcd.server.v3.auth.AuthInfo, go!"Revision"] ↦{dq} rev ∗ threadTok ∗ EtcdWire.msgsOwn EtcdWire.requestOpOwn sl dq' ops ∗ opsDecoded sl ∗
+      ai.[go_etcd_io.etcd.server.v3.auth.AuthInfo, go!"Revision"] ↦{dq} rev ∗ threadTok ∗ EtcdWire.msgsOwn EtcdWire.requestOpOwn sl dq' ops ∗
       checksOut C (RequestOp.checksL ops) err }}
 
 end spec

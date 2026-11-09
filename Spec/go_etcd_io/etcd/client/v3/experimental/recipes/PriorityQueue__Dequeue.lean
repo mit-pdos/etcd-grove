@@ -23,7 +23,7 @@ its "FIFO" comment means "least priority value first").
 unconditional event facts, as `Queue.Dequeue`'s); only the front stays gated.
 `ReqPQEveryItemOnce` no longer assumes the compaction condition.
 
-**Changes (verify-round)**: none to the triple; the snippets that dequeue from a non-empty queue now assume the compaction condition too (A3 F3).
+**Changes (verify-round)**: none to the triple; the snippets that dequeue assumed the compaction condition (A3 F3), since narrowed by the second pass above to the snippets that check the order.
 
 **Margin**: on the fallback path the claimed item is also the least mod revision (FIFO among the later
 arrivals), which the spec does not say; errors as `Queue.Dequeue`'s.

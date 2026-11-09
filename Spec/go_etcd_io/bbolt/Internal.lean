@@ -214,6 +214,17 @@ def curKey (T : TxView) (p : BPath) : Option Nat ⊕ GoString → GoString → P
   | .inl (some i), k' => ∃ v, (T.ents p)[i]? = some (k', v)
   | .inl none, _ => False
 
+/-- (internal) **`T'` differs from `T` only at and below the bucket `q`** (re-review N2:
+`DeleteBucket`'s recursion deletes the nested buckets of the child `q`): the same kind, base and
+mode, the bucket `q` still a bucket (its counter and entries any), the generations of `q` and
+above unchanged. `dropBkt` of the parent's key `q`'s name agrees on both (`physRep_delBkt` then
+gives the same view). -/
+def TxView.sameAt (T T' : TxView) (q : BPath) : Prop :=
+  T'.rw = T.rw ∧ T'.managed = T.managed ∧ T'.base = T.base ∧ T'.noSync = T.noSync ∧
+  T.cur.bktAt q ∧
+  (∃ (s : w64) (es : List (GoString × Ent)), T'.cur = T.cur.modAt q (fun _ => Ent.bkt s es)) ∧
+  (∀ x, (q.isPrefixOf x && !(x == q)) = false → T'.gen x = T.gen x)
+
 /-- (internal) No handle at or below `q` is cached in `C` (`DeleteBucket` dropped the deleted
 bucket's handle from its parent's cache, its nested ones dropped by the recursion). -/
 def bktDropped (C : TxCore) (q : BPath) : Prop :=
@@ -427,6 +438,11 @@ def physRep_meta.spec : Prop :=
   ∀ T C, physRep T C →
     T.rw = true ∧ T.managed = C.managed ∧ T.noSync = C.noSync ∧ T.base = C.base ∧ T.gen = C.gen ∧
     T.cur.wf
+
+/-- (internal) **The writer's high-water mark is at least 2** (the two meta pages; `init` writes
+4): `node.put`'s `pg < C.hwm` at `pg = 0` (`Put`, `CreateBucket*`; re-review N7). -/
+def wtxCore_hwm.spec [HasExt osFsExt] : Prop :=
+  ∀ tx γ C, wtxCore (GF := GF) tx γ C ⊢ ⌜2 ≤ uint.nat C.hwm⌝
 
 /-- (internal) **`node.put` at the key's leaf sets the key** (`Bucket.Put`: a value, flags `0`;
 `CreateBucket*`: a new inline bucket's value, `BucketLeafFlag`; `newEnt`), the key not a nested

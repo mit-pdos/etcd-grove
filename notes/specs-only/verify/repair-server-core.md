@@ -321,3 +321,39 @@ were blocked for a while by other groups' in-progress files (`client/v3/Api.lean
   realization text only: no statement changed.
 - Build: `etc/specs-build.sh --dir` over `etcdserver/{errors,cindex,read}`, the `etcdserver` top
   level and `pkg/v3/{schedule,wait,notify,idutil}`: **OK (218 modules)**.
+
+## Re-review
+
+From `R-A9-apply-txn-lease-auth.md`:
+- **N2** (`srvStores_kv`'s `kvDelOk` at unnamed `be`, `rd`): **fixed**. The law now gives 3a's
+  whole `lessorSt le kv be σ.leases σ.kv.store` (which carries `kvDelOk kv γl ls.be ls.rd` with
+  `ls.be = be`, `ls.rd ≠ nil`, `leasesLive`) at the member's current backend `be`, named by the new
+  internal `srvCurBe s be` (the apply thread's half of `s.be`; `bemu`'s invariant holds the other).
+  The lessor's field `s.lessor ↦□ le` comes with it. So `NewServer`/`applySnapshot` build
+  `NewUberApplier`'s `optsSt` from it.
+- **S1** (`authnIdx`'s facts): `applyLent_opts`' docstring now states that `idx` is a non-zero
+  `uint64` and `tok` contains no `.` (3d's `GenTokenPrefix`); the conditional reading of
+  `authnIdx` carrying these two facts is still requested of 3a.
+
+From `R-A6-grpc-boundary.md`:
+- **N2** (`RangeStream` asked for full ownership plus an `endsDecoded` share): **fixed**, also in
+  `Range` and `Txn`. The separate `endsDecoded` conjunct is dropped: W0's `rangeReqOwn`/`txnReqOwn`
+  already carry `endsOk` of their content (3h's `*ReqOwn_msgAt`), at whatever ownership.
+- Second tier: the sketches' `Proto.decodedAt`, `endsDecoded_of_decoded` and
+  `endsDecoded_range_intro` are replaced by 3h's `endsOk_canon`/`endsOk_range_intro`.
+
+From `R-A7-server-req-apply.md`:
+- **N1** (`revGetter` ≥ 1): `NewServer`'s sketch now cites the store's `Rev` (≥ 1, never lowered),
+  which meets `compactable`'s `rev ≠ 0` (server-boot's).
+- **N2**: `srvWatchable_mvcc` also gives 3e's persistent `mvccRevTok γs`; `ReqReadAfterWrite` cites
+  `readReg_register`/`readReg_get` and the `Rev` token.
+- **N3**: `createMergedSnapshotMessage` and `newSnapshotReaderCloser` give the caller's `threadTok`
+  back. `createMergedSnapshotMessage` now also takes `srvStarted`, for its `Logger` call under the
+  new `srvNode_member`.
+- **N4**: `Start.spec`'s post returns `threadTok`.
+- **N5** (`srvNode_member` unprovable: `r.transport` is set after `srvNode` holds): **fixed** by
+  restating the bridge with `srvStarted`: `srvNode ∗ srvStarted ⊢ srvMember s γ.etcd id`. Its users
+  (the apply side, `ensureLeadership`, the read environment) hold `srvStarted`.
+- `revokeExpiredLeases`' sketch records the open `WithRoot` tracing gap (§6 F2; requested of
+  lease-auth). `togRPCError.lean:6` is grpc-v3rpc's: skipped.
+- Build: `etc/specs-build.sh --dir` over my directories: **OK (218 modules)**; `go vet` clean.

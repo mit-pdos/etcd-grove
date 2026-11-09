@@ -276,3 +276,44 @@ real event of its revision kept by the watch.
 
 `etc/specs-build.sh --dir` on all five owned directories: **OK (331 modules)**. `gofmt -l` prints
 nothing, and `go vet` is clean on concurrency, recipes and leasing.
+
+## Re-review (`R-A3-client-users.md`)
+
+### N1: `ReqMutexNoTwoHolders` needs the two leases to differ — fixed
+
+- **The fix.** `NewSession.spec`'s grant branch now also gives the grant's pre-state:
+  `∃ σg σ, etcdLb γ σg ∗ etcdLb γ σ ∗ ⌜Reach σ0 σg ∧ σg.leases id = none ∧ Reach σg σ ∧ σ.leases id ≠ none⌝`.
+  - This is `grantEff`'s pre-state. The model refuses a collision with `ErrLeaseExist`.
+  - It strengthens the post, so callers are unaffected.
+- **How the snippet gets distinct leases.** It passes the first session's post state as the second
+  call's `σ0`.
+  - The first lease `id1` is still live at the second grant's `σg`. This holds because there is no
+    lease expiry and, as a new `Assumes` line says, no other client revokes the two sessions'
+    leases.
+  - `σg` lacks `id2`, so `id1 ≠ id2`.
+  - Hence the two keys differ: `sessKey` is injective in the lease.
+
+### Stale `Changes` lines — fixed
+
+The verify-round lines in `Queue__Dequeue.lean` and `PriorityQueue__Dequeue.lean` now say that the
+second pass narrowed the compaction assumption to the snippets that check the order. They no longer
+say the in-range fact is still "requested".
+
+### Election time exclusion (optional) — added
+
+- New snippet `ReqElectionNoTwoLeaders` in `concurrency/election.go`. Users: `TestElectionWait` and
+  `TestElectionFailover` in `tests/integration/v3_election_test.go`, and `etcdctl elect`.
+- **Proof idea.**
+  - The leases differ by `NewSession.spec`'s grant pre-state, as in N1. So, by `campaignEff`, each
+    election writes only its own session's key.
+  - `Election.Campaign.spec`'s post gives `k`'s exact create revision `cr` at a state after `σ0`,
+    so e2's `cr` is above e1's key's revision.
+  - e2's `waitedFor` (`noOlder`) then excludes e1's key, which the program's invariant keeps
+    present until `e1.Resign`.
+- No spec changes were needed for this beyond N1's.
+- The Api header lists the new snippet.
+
+### Build
+
+`etc/specs-build.sh --dir` on all five owned directories: **OK (331 modules)**. `gofmt -l` and
+`go vet ./specreq/concurrency/` are clean.

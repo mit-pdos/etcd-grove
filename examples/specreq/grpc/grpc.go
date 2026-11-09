@@ -72,12 +72,17 @@ func ReqStatusClassify() {
 // REQ grpc/metadata-out: a context's outgoing metadata is what NewOutgoingContext attached, with the
 // key lowercased by Set; the caller's map is copied before it is written.
 // Users: the client's WithRequireLeader, withVersion (W0, 1c), Kubernetes' client setup.
-// Assumes: ctx carries no outgoing metadata.
-// Specs: FromOutgoingContext.spec, MD.Copy.spec, MD.Set.spec, NewOutgoingContext.spec; laws:
-// outMD_noMeta.
+// Assumes: ctx carries no outgoing metadata (Context.ctxNoMeta ctx: Value(mdOutgoingKey{}) is nil),
+// which FromOutgoingContext.spec's gated row turns into ok = false (recheck RR1).
+// Specs: FromOutgoingContext.spec (the nil case, mdAtN true), MD.Copy.spec and MD.Get.spec of
+// the nil map, MD.Set.spec, NewOutgoingContext.spec; laws: outMD_noMeta. (Re-review R-A6 N1: the
+// nil case was contradictory, so this snippet was proved vacuously; it now checks ok and nil.)
 func ReqMetadataOut(ctx context.Context) {
-	md, _ := metadata.FromOutgoingContext(ctx)
-	cp := md.Copy()
+	md, ok := metadata.FromOutgoingContext(ctx)
+	if ok || md != nil {
+		panic("metadata: a context with no outgoing metadata has some")
+	}
+	cp := md.Copy() // of the nil map: a fresh empty one
 	cp.Set("HasLeader", "true")
 	ctx2 := metadata.NewOutgoingContext(ctx, cp)
 	got, ok := metadata.FromOutgoingContext(ctx2)

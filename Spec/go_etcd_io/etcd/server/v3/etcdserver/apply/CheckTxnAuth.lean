@@ -19,7 +19,9 @@ two), as W0's reads' checks (`State.permittedSince`, `deniedSince`, from the low
 **Changes** from `specs-ref`'s `CheckTxnAuth.lean` (two modes through `isAuthStore … on`,
 `authApplyErrIs`, the lessor's view): one spec, over 3d's recorded states (2c's need, item 3); the
 old spec's "`nil` with auth off" is a recorded state with auth off.
-verify-round, second pass (grpc-v3rpc's P-F2): `endsDecoded` is 3h's share-holding `EtcdServerPb.endsDecoded` (no
+recheck (RR3): the `endsDecoded` premise is dropped (a share split off `txnReqOwn r dq t` could not be
+rejoined by 2c's read-only `Txn`: its fraction was hidden); `txnReqOwn` carries `endsOk` itself.
+verify-round, second pass (grpc-v3rpc's P-F2): `endsDecoded` was 3h's share-holding `EtcdServerPb.endsDecoded` (no
 longer a persistent opaque), given back in the post.
 
 **Margin.** Each check is reported at its own recorded states from the lower bound `i0` (3d's
@@ -31,9 +33,9 @@ not claimed (`nonissues/etcd-auth-revision-before-visible.md`: W0's `permittedSi
 lessor, which a reader could only call with a reader token of 3c's, `lessorReaders`); the sketch
 goes through `checkTxnPermission.spec` at `permReads_reader` (per-check reports).
 
-**Integration (I5), the empty end** (the coordinator's decision): premise `endsDecoded rt`: every
-range end of the message is `nil` or non-empty, as gRPC's decoding gives (2c discharges it from the
-handler's unmarshalled request). A non-`nil` empty end (the in-process adapter only) is checked as
+**Integration (I5), the empty end** (the coordinator's decision): every range end of the message is
+`nil` or non-empty, as gRPC's decoding gives; since the recheck (RR3) this is `txnReqOwn`'s own
+`endsOk` (3h's `txnReqOwn_msgAt`), at any fraction, so no separate premise. A non-`nil` empty end (the in-process adapter only) is checked as
 the key alone but read from the key on (`nonissues/etcd-auth-empty-range-end-point-check.md`), so
 the post is false there; the premise excludes it.
 
@@ -73,11 +75,11 @@ def CheckTxnAuth.spec : Prop :=
   let cs := RequestOp.checks (RequestOp.txn t.compare t.success t.failure)
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       Auth.authStoreAt st γ γa ∗ Auth.authLb γa i0 ∗ ⌜t.readonly⌝ ∗
-      Auth.authInfoAt ai dq u rev ∗ EtcdWire.txnReqOwn rt dq' t ∗ endsDecoded rt ∗ threadTok }}
+      Auth.authInfoAt ai dq u rev ∗ EtcdWire.txnReqOwn rt dq' t ∗ threadTok }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.CheckTxnAuth))
       (Val #(interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty) #st)))
       (Val #ai)) (Val #le)) (Val #rt))
-  {{ (err : GoInterface), RET #err; Auth.authInfoAt ai dq u rev ∗ EtcdWire.txnReqOwn rt dq' t ∗ endsDecoded rt ∗
+  {{ (err : GoInterface), RET #err; Auth.authInfoAt ai dq u rev ∗ EtcdWire.txnReqOwn rt dq' t ∗
       threadTok ∗
       ((⌜err = GoInterface.nil⌝ ∗ [∗list] c ∈ cs, chkPost γa i0 u rev c GoInterface.nil) ∨
        (∃ (i : Nat) (c : Check), ⌜cs[i]? = some c ∧ err ≠ GoInterface.nil⌝ ∗

@@ -50,10 +50,10 @@ Premises kept: a valid sort (`checkRangeRequest`'s), and an empty key only with 
 disjunct dropped (W0's round 4: a read's permission is checked at an auth table at or after the
 call's `lo`, `State.deniedSince`/`permittedSince` (W0's round 6), which is what `doSerialize` does); the principal
 pair (`reqPrin ctx p tls`).
-Integration X: the scope premise `EtcdServerPb.endsDecoded` (the request decoded by protobuf: its
+Integration X (superseded at the re-review, below): the scope premise `EtcdServerPb.endsDecoded` (its
 range ends `nil` or non-empty, `nonissues/etcd-auth-empty-range-end-point-check.md`; I5's request;
-2a's handler has it from grpc's decoder, `Proto.decodedAt` and `endsDecoded_of_decoded`; a caller that
-builds its range request, `endsDecoded_range_intro`).
+2a's handler has it from grpc's decoder; a caller that
+builds its range request, by 3h's `endsOk_range_intro`).
 
 **Margin.** A linearizable read is answered at a state at or after the read index, which may be
 behind the cluster's latest (the model's linearization point is the moment the cluster was in it,
@@ -62,6 +62,8 @@ inside the call).
 Changes: verify-round (client-core's request): a permission denial is fired at W0's three-view `deniedSince` (the auth table the member checked, at or after the call's `lo`: `srvReadAt_auth`).
 
 Changes: verify-round, second pass (grpc-v3rpc's request): `endsDecoded` is now a share of the request message with the pure `endsOk` fact; 2a's handler gets it by `endsDecoded_of_canon` (`Proto.norm c = c` of a decoded message), a builder by `endsDecoded_range_intro`.
+
+Changes: re-review (R-A6 N2): no separate `endsDecoded` share: the request's owned predicate (W0's `rangeReqOwn`/`txnReqOwn`) already carries `endsOk` of its content (3h's `*ReqOwn_msgAt`), and a share beside full ownership asked for more than the message (`kvServer.RangeStream` writes `r.Limit`, `r.Revision`, `r.Key`). `Proto.decodedAt`, `endsDecoded_of_decoded` and `endsDecoded_range_intro` no longer exist: 3h's `endsOk_canon` and `endsOk_range_intro`.
 -/
 module
 
@@ -92,7 +94,7 @@ def EtcdServer.Range.spec : Prop :=
   SrvCallTriple (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"Range")) (Val #ctx)) (Val #r))
     iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ srvGate s q ∗
         Context.ctxOk ctx ∗ reqCtxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ rangeReqOwn r dq rm ∗
-        EtcdServerPb.endsDecoded go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty r ∗ ⌜rm.validSort ∧ (rm.key = [] → rm.rangeEnd = [])⌝)
+        ⌜rm.validSort ∧ (rm.key = [] → rm.rangeEnd = [])⌝)
     iprop(srvGate s q ∗ threadTok ∗ rangeReqOwn r dq rm) γ p tls (.range rm) true (ClientV3.getReply)
 
 end spec

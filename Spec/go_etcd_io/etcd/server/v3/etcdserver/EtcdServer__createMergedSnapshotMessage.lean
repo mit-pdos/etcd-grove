@@ -26,6 +26,8 @@ in `[0, 2^62)`, 4a's `Size`) gives `mergedSnap`.
 **Margin**: none.
 
 Changes: verify-round: the `ConfState` is raftpb's `confStateFull` (its `AutoLeave` set: what the snapshot carries; raft-conf-pb's request), which `ep.confState` keeps (`applyThread`'s realization).
+
+Changes: re-review (R-A7 N3/N4): the caller's `threadTok` comes back (the goroutines it starts run with their forks' fresh tokens; `GoAttach` returns the caller's).
 -/
 module
 
@@ -58,7 +60,7 @@ def EtcdServer.createMergedSnapshotMessage.spec : Prop :=
   ∀ (s : Loc) (γ : Names) (id : Nat) (ep mp cs : Loc) (p : Progress) (m : Raft.Msg)
     (sn : Raft.Snapshot) (csm : Raft.ConfState) (a : Nat) (mb : Raft.Membership),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvNode s γ id ∗ applyThread s γ ep p ∗ threadTok ∗
+      srvNode s γ id ∗ srvStarted s γ id ∗ applyThread s γ ep p ∗ threadTok ∗
       RaftPb.confStateFull cs DFrac.discard csm ∗ Raft.confAt γ.raft a mb ∗
       ⌜csm.Is mb ∧ uint.nat p.appliedi ≤ a⌝ ∗
       Raft.msgPts mp (DFrac.own 1) m ∗ Raft.msgSent γ.raft m ∗
@@ -66,7 +68,7 @@ def EtcdServer.createMergedSnapshotMessage.spec : Prop :=
         uint.nat sn.index ≤ uint.nat p.appliedi ∧ uint.nat p.appliedt ≤ uint.nat m.term⌝ }}
     (App (App (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!!
       go!"createMergedSnapshotMessage")) (Val #mp)) (Val #p.appliedt)) (Val #p.appliedi)) (Val #cs))
-  {{ (mg : Loc), RET #mg; applyThread s γ ep p ∗
+  {{ (mg : Loc), RET #mg; threadTok ∗ applyThread s γ ep p ∗
       mergedSnap mg γ { m with snapshot := some ⟨p.appliedi, p.appliedt, csm, []⟩ } }}
 
 end spec

@@ -44,7 +44,8 @@ func ReqBackendOpen(path string, noSync bool) *bolt.DB {
 // commit's (an environment failure). The range sees the batch's own writes, in key order.
 // Users: server/storage/backend/batch_tx.go:136-246 (UnsafeCreateBucket, unsafePut,
 // UnsafeRange, unsafeRange, UnsafeDelete), :280-305 (commit), backend.go:1101 (unsafeBegin).
-// Assumes: db open; keyBucket holds no nested bucket; k1 < k2 (bytes.Compare), both non-empty and
+// Assumes: db open; the root has no plain value at keyBucket (no Tx method puts one there);
+// keyBucket holds no nested bucket; k1 < k2 (bytes.Compare), both non-empty and
 // within MaxKeySize; the caller holds boltState γ 1 σ (the backend's batch lock), from which it
 // builds Commit's updates (boltState_commit_au: both, the settling one given by the commit's).
 // Specs: DB.Begin.spec (write), DB.Stats.spec (the write transaction pays: statSlot_wtx),
@@ -245,8 +246,8 @@ func ReqSnapshot(db *bolt.DB, w io.Writer) {
 // Users: server/storage/backend/backend.go:512-546 (createDefragTmpDB), :553-560
 // (cleanupTmpDB), :565-606 (finishDefrag), :796-858 (defragdb).
 // Assumes: odb open, its close right held, its boltState held whole by the caller (no other
-// writer), γ.path non-empty, in the directory dir; the root of odb holds only buckets, which hold
-// no nested bucket; the caller allocates the copy's names at the temporary file
+// writer), γ.path non-empty, in the directory dir; the root of odb holds only buckets, at least
+// one (an empty copy gives boltRelease no image), which hold no nested bucket; the caller allocates the copy's names at the temporary file
 // (boltFresh_alloc) and holds its boltState whole (it alone writes the copy).
 // Specs: os.CreateTemp, (*os.File).Name/Close, os.Remove, os.RemoveAll, os.Rename (the os
 // package over OsFs: provisional, req/os.md; OsFs has no rename yet, batch-4c I7 item 6),
@@ -257,8 +258,12 @@ func ReqSnapshot(db *bolt.DB, w io.Writer) {
 // transaction), DB.Begin.spec (dbBroken excluded by dbBroken_state), DB.Sync.spec,
 // DB.Close.spec, DB.View.spec; laws: boltTx_wf (Ent.wf's bounds), boltState_commit_au,
 // boltState_settle_au (the sync's update), putLoan_done, boltFresh_alloc, boltRelease (both
-// files out of their crash invariants, the copy's as fileHolds_image's premise once its name is
-// made durable by the rename's directory sync), fileHolds_image, fileHolds_alloc.
+// files out of their crash invariants, the copy's bytes clean and an image of its data). The
+// reopen at path has no source yet: OsFs has no rename (batch-4c I7 item 6), and neither etcd nor
+// this snippet syncs the directory after it, so the renamed file's name is not durable and
+// fileHolds_image (which needs it) does not apply: a crash may bring back the old file at path
+// or the copy; the rename rule must say so, and bbolt then needs a generation start whose
+// recoverable data is either (a recorded need: repair-bbolt.md, re-review N5).
 func ReqDefrag(odb *bolt.DB, dir string) {
 	path := odb.Path()
 	if path == "" {

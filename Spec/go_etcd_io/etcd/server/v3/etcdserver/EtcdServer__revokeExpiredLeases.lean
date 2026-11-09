@@ -20,6 +20,8 @@ Errors are logged.
 the lease mode is the environment's (`γ.cfg.leaseExpiry`). **Margin**: none.
 
 Changes: verify-round (A7-provability F1, completeness F1): takes and gives back the thread's `threadTok`; `isServer s γ.etcd` (for `GoAttach`, `LeaseRevoke`, `raftRequest`) from `srvStarted_isServer`; each attached goroutine runs with its own fresh token (`GoAttach.spec`); the internal requests hold no `srvGate` share (`LeaseRevoke.spec` takes none; `raftRequest` never did).
+
+Changes: re-review (R-A7, §6 F2): the root context's tracing (`reqCtxOk` of `WithRoot(s.ctx)`) is still open: 3d's `WithRoot` post does not give it as a value-child of `s.ctx` at the metadata key (requested of lease-auth); its principal is `reqPrin_root`'s.
 -/
 module
 

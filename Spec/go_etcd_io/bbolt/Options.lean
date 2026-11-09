@@ -9,10 +9,12 @@ abstract points-to `optsAt l dq o` (`Api.lean`) and the value relation `optsVal 
 `specs-ref/Proof/go_etcd_io/bbolt/Options.lean`, D13): each is true of Go, the struct's fields and
 their types being `db.go`'s, and `bolt.Options{}` being the zero value; when `Options` is
 translated with `Open`'s proof, they become lemmas of the struct. A field `OptsM` does not track
-(`NoGrowSync`, `NoFreelistSync`, `PreLoadFreelist`, `NoStatistics`, `InitialMmapSize`, `MaxSize`,
+(`NoGrowSync`, `PreLoadFreelist`, `NoStatistics`, `InitialMmapSize`, `MaxSize`,
 `Timeout`, `FreelistType`, ...) is read as some value and stored without changing `o`.
 
-**Field laws (verify-round, A11 F8).** Each `optsAt_<kind>` law gives the field's points-to with
+**Field laws (verify-round, A11 F8; re-review N4).** The field comes at `optsAt`'s own fraction `dq`
+(was an unrelated `dq'`, so a store, which needs the whole field, had no source).
+Each `optsAt_<kind>` law gives the field's points-to with
 **two alternative** ways back, joined by `∧` (was `∗`): restoring the same value, or (with all of
 `optsAt`) storing a new one. With `optsAt` the struct's points-to (the intended realization), each
 wand needs the other fields' points-to, so the two cannot both be had: `∗` was false in the model.
@@ -91,6 +93,8 @@ def optsBoolField (f : GoString) : Option ((OptsM → Bool) × (OptsM → Bool �
   if f = go!"ReadOnly" then some (fun o => o.readOnly, fun o b => { o with readOnly := b })
   else if f = go!"Mlock" then some (fun o => o.mlock, fun o b => { o with mlock := b })
   else if f = go!"NoSync" then some (fun o => o.noSync, fun o b => { o with noSync := b })
+  else if f = go!"NoFreelistSync" then
+    some (fun o => o.noFreelistSync, fun o b => { o with noFreelistSync := b })
   else none
 
 /-- A tracked `int` field (`PageSize`, `MmapFlags`): its value and its setter. -/
@@ -101,7 +105,7 @@ def optsIntField (f : GoString) : Option ((OptsM → w64) × (OptsM → w64 → 
 
 /-- The untracked `bool` fields. -/
 def optsBoolUntracked : List GoString :=
-  [go!"NoGrowSync", go!"NoFreelistSync", go!"PreLoadFreelist", go!"NoStatistics"]
+  [go!"NoGrowSync", go!"PreLoadFreelist", go!"NoStatistics"]
 
 /-- The untracked `int`-like fields (`int`, `time.Duration`). -/
 def optsIntUntracked : List GoString :=
@@ -112,53 +116,53 @@ of it (a tracked field's setter, an untracked one leaves `o`). -/
 def optsAt_bool.spec [HasExt osFsExt] : Prop :=
   ∀ (l : Loc) (dq : DFrac) (o : OptsM) (f : GoString),
     (optsBoolField f).isSome ∨ f ∈ optsBoolUntracked →
-    optsAt (GF := GF) l dq o ⊢ ∃ (dq' : DFrac) (x : Bool),
-      structFieldRef go_etcd_io.bbolt.Options f l ↦{dq'} x ∗
+    optsAt (GF := GF) l dq o ⊢ ∃ x : Bool,
+      structFieldRef go_etcd_io.bbolt.Options f l ↦{dq} x ∗
       ⌜∀ g, optsBoolField f = some g → x = g.1 o⌝ ∗
-      ((structFieldRef go_etcd_io.bbolt.Options f l ↦{dq'} x -∗ optsAt l dq o) ∧
+      ((structFieldRef go_etcd_io.bbolt.Options f l ↦{dq} x -∗ optsAt l dq o) ∧
        (⌜dq = DFrac.own 1⌝ -∗ ∀ y : Bool,
-        structFieldRef go_etcd_io.bbolt.Options f l ↦{dq'} y -∗
+        structFieldRef go_etcd_io.bbolt.Options f l ↦{dq} y -∗
         optsAt l dq (match optsBoolField f with | some g => g.2 o y | none => o)))
 
 /-- **An `int` field** (`int`, `time.Duration`), as `optsAt_bool`. -/
 def optsAt_int.spec [HasExt osFsExt] : Prop :=
   ∀ (l : Loc) (dq : DFrac) (o : OptsM) (f : GoString),
     (optsIntField f).isSome ∨ f ∈ optsIntUntracked →
-    optsAt (GF := GF) l dq o ⊢ ∃ (dq' : DFrac) (x : w64),
-      structFieldRef go_etcd_io.bbolt.Options f l ↦{dq'} x ∗
+    optsAt (GF := GF) l dq o ⊢ ∃ x : w64,
+      structFieldRef go_etcd_io.bbolt.Options f l ↦{dq} x ∗
       ⌜∀ g, optsIntField f = some g → x = g.1 o⌝ ∗
-      ((structFieldRef go_etcd_io.bbolt.Options f l ↦{dq'} x -∗ optsAt l dq o) ∧
+      ((structFieldRef go_etcd_io.bbolt.Options f l ↦{dq} x -∗ optsAt l dq o) ∧
        (⌜dq = DFrac.own 1⌝ -∗ ∀ y : w64,
-        structFieldRef go_etcd_io.bbolt.Options f l ↦{dq'} y -∗
+        structFieldRef go_etcd_io.bbolt.Options f l ↦{dq} y -∗
         optsAt l dq (match optsIntField f with | some g => g.2 o y | none => o)))
 
 /-- **`FreelistType`** (a `string`, untracked). -/
 def optsAt_freelist.spec [HasExt osFsExt] : Prop :=
   ∀ (l : Loc) (dq : DFrac) (o : OptsM),
-    optsAt (GF := GF) l dq o ⊢ ∃ (dq' : DFrac) (x : GoString),
-      structFieldRef go_etcd_io.bbolt.Options go!"FreelistType" l ↦{dq'} x ∗
-      ((structFieldRef go_etcd_io.bbolt.Options go!"FreelistType" l ↦{dq'} x -∗ optsAt l dq o) ∧
+    optsAt (GF := GF) l dq o ⊢ ∃ x : GoString,
+      structFieldRef go_etcd_io.bbolt.Options go!"FreelistType" l ↦{dq} x ∗
+      ((structFieldRef go_etcd_io.bbolt.Options go!"FreelistType" l ↦{dq} x -∗ optsAt l dq o) ∧
        (⌜dq = DFrac.own 1⌝ -∗ ∀ y : GoString,
-        structFieldRef go_etcd_io.bbolt.Options go!"FreelistType" l ↦{dq'} y -∗ optsAt l dq o))
+        structFieldRef go_etcd_io.bbolt.Options go!"FreelistType" l ↦{dq} y -∗ optsAt l dq o))
 
 /-- **`OpenFile`** (tracked). -/
 def optsAt_openFile.spec [HasExt osFsExt] : Prop :=
   ∀ (l : Loc) (dq : DFrac) (o : OptsM),
-    optsAt (GF := GF) l dq o ⊢ ∃ dq' : DFrac,
-      structFieldRef go_etcd_io.bbolt.Options go!"OpenFile" l ↦{dq'} o.openFile ∗
-      ((structFieldRef go_etcd_io.bbolt.Options go!"OpenFile" l ↦{dq'} o.openFile -∗ optsAt l dq o) ∧
+    optsAt (GF := GF) l dq o ⊢
+      structFieldRef go_etcd_io.bbolt.Options go!"OpenFile" l ↦{dq} o.openFile ∗
+      ((structFieldRef go_etcd_io.bbolt.Options go!"OpenFile" l ↦{dq} o.openFile -∗ optsAt l dq o) ∧
        (⌜dq = DFrac.own 1⌝ -∗ ∀ y : GoFunc,
-        structFieldRef go_etcd_io.bbolt.Options go!"OpenFile" l ↦{dq'} y -∗
+        structFieldRef go_etcd_io.bbolt.Options go!"OpenFile" l ↦{dq} y -∗
         optsAt l dq { o with openFile := y }))
 
 /-- **`Logger`** (tracked). -/
 def optsAt_logger.spec [HasExt osFsExt] : Prop :=
   ∀ (l : Loc) (dq : DFrac) (o : OptsM),
-    optsAt (GF := GF) l dq o ⊢ ∃ dq' : DFrac,
-      structFieldRef go_etcd_io.bbolt.Options go!"Logger" l ↦{dq'} o.logger ∗
-      ((structFieldRef go_etcd_io.bbolt.Options go!"Logger" l ↦{dq'} o.logger -∗ optsAt l dq o) ∧
+    optsAt (GF := GF) l dq o ⊢
+      structFieldRef go_etcd_io.bbolt.Options go!"Logger" l ↦{dq} o.logger ∗
+      ((structFieldRef go_etcd_io.bbolt.Options go!"Logger" l ↦{dq} o.logger -∗ optsAt l dq o) ∧
        (⌜dq = DFrac.own 1⌝ -∗ ∀ y : GoInterface,
-        structFieldRef go_etcd_io.bbolt.Options go!"Logger" l ↦{dq'} y -∗
+        structFieldRef go_etcd_io.bbolt.Options go!"Logger" l ↦{dq} y -∗
         optsAt l dq { o with logger := y }))
 
 end spec

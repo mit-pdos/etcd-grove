@@ -7,6 +7,11 @@ Proof sketch: `cloneCompare.spec`.
 
 Changes: none (no old spec): added for the users named above.
 
+re-review NF2: true now that `compareOwn_unfold` carries `RangeEnd = nil ∨ non-empty` (`Wire.lean`):
+the caller's raw `*pb.Compare` must meet it (`FromCompare`: a scope premise through `compareOwn`, as
+the KV triples' `emptyEnd = false`), and `proto.Clone`'s copy (`Proto.norm c`) then holds the same
+model (3h's `holds_norm` under `endsOk`).
+
 Margin: none.
 -/
 module

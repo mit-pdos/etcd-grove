@@ -10,6 +10,7 @@ Why true: it reads the request's fields (the message's internal state, which `Pr
 initializes with an atomic store, is inside `msgAt`, as for `proto.Size`) and returns some string.
 
 Changes: verify-round: restored (A6 completeness F6: dropped from the old tree,
+Re-review (R-A6, second tier): premise `depth c < depthMax` (text marshaling recurses per level).
 `specs-ref/Spec/go_etcd_io/etcd/api/v3/etcdserverpb/RangeRequest__String.lean`), over `msgAt` at any
 share (was txn's `rangeRequestIs`).
 Margin: the string's content is not modelled (its users log it).
@@ -40,7 +41,7 @@ variable [package_sem : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 def RangeRequest.String.spec : Prop :=
   ∀ (r : Loc) (dq : DFrac) (c : Proto.Content),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
-      Proto.msgAt etcdserverpb.RangeRequest.ty r dq c }}
+      Proto.msgAt etcdserverpb.RangeRequest.ty r dq c ∗ ⌜Proto.depth c < Proto.depthMax⌝ }}
     (App (Val (r @!! go.GoType.PointerType etcdserverpb.RangeRequest.ty @!! go!"String")) (Val #()))
   {{ (s : GoString), RET #s; Proto.msgAt etcdserverpb.RangeRequest.ty r dq c }}
 

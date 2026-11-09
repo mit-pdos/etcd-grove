@@ -625,6 +625,16 @@ def raftLog_storedStable.spec : Prop :=
   ∀ l ls, raftLog (GF := GF) l ls ⊢ |==> raftLog l ls ∗
     □ ∀ (j : Nat) (t : w64), ⌜ls.freezeStable j = some t⌝ -∗ logStored l j t
 
+/-- **Stored is downward closed** (re-review S-c): below a stored committed index the storage holds
+the committed entries too, unless a compaction or a snapshot covers them (where a snapshot store
+answers `ErrSnapOutOfDate`, needing no term). What R1's `storedLb_mono` rests on. -/
+def logStored_mono.spec : Prop :=
+  ∀ l (i j : Nat) (t : w64), j ≤ i → logStored (GF := GF) l i t ⊢ ∃ t', logStored l j t'
+
+/-- **Floors are downward closed** in the same sense (R1's `appliedLb_mono`). -/
+def logFloor_mono.spec : Prop :=
+  ∀ l (i j : Nat) (t : w64), j ≤ i → logFloor (GF := GF) l i t ⊢ ∃ t', logFloor l j t'
+
 /-- A floor is stored. -/
 def logFloor_stored.spec : Prop :=
   ∀ l (i : Nat) (t : w64), logFloor (GF := GF) l i t ⊢ logStored l i t

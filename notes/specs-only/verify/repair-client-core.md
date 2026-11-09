@@ -237,3 +237,40 @@ Second-pass build: `etc/specs-build.sh --dir` `api/v3`, `fmt`, `otelgrpc`, `clie
 `credentials`, `kubernetes`, `concurrency`, `leasing`, `recipes`), `etcdserverpb`, `auth`: OK (760
 modules). `api/v3rpc` not checked: it reaches backend-schema's `storage/schema/Api.lean`, which fails
 to parse at line 617 (that group's work in progress). Snippets vet- and gofmt-clean.
+
+## Re-review (`R-A1-client-kv.md`, `R-A2-client-watch-lease.md` N1/S-a..S-e, `R-A6-grpc-boundary.md` N3)
+
+- **NF1** (no source of `endsOk` for the KV requests): fixed. `rangeReqOwn_unfold`,
+  `deleteReqOwn_unfold` and `compareOwn_unfold` (`api/v3/Wire.lean`) state `es = slice.nil ∨ ebs ≠
+  []` of the range end (so `requestOpOwn` and `txnReqOwn` carry it through their unfolds). The
+  builders discharge it: `Op.toRangeRequest`, `Op.toRequestOp`, `Op.toTxnRequest` now take `o.emptyEnd =
+  false` (their callers have it from the KV triples' scope premise); `kv.Do`'s in-place put and delete
+  requests have it from `DoTriple`'s premise; the `Cmp` constructors build `nil` ends or (`WithRange`,
+  `WithPrefix`) non-empty ones. 3h realizes the predicates with `endsOk c` (grpc-v3rpc, in parallel).
+- **NF2** (`cloneCompare`, `FromCompare`, `Cmp.Clone` at a non-`nil` empty end): fixed by NF1's
+  `compareOwn` conjunct. `FromCompare`'s `optOwn compareOwn` pre now excludes such a raw message (a
+  scope premise, as C3), and a clone's `norm c` keeps the model by `holds_norm`. Sketches updated.
+- **NF3** (`Context.Value.spec` vs `ctxOk_of_isContext`): fixed by dropping `ctxOk_of_isContext`
+  (unused anywhere; Perennial's `isContext` specifies `Value` only at `&cancelCtxKey`).
+- **Second tier**: `ctxValueIs_child` takes the "not `*int` key" premise (Perennial's
+  `notIntPtrKey`, stated inline); zap `Logger.Core` (`coreOk`) and `zapcore.Core.Enabled` specs added
+  (`Logger__Core.lean`, `Core__Enabled.lean`, `coreOk` in `zap/Api.lean`).
+- **R-A2 N1** (`TimeToLive`'s per-member clause is false: a follower forwards it to the leader):
+  fixed. `viaFact` gives nothing for `.leaseTimeToLive`, and keeps the clauses for `Grant` and
+  `Leases`. Docs updated in `ApiLease.lean` and `lessor__TimeToLive.lean`. Snippet `ReqGoneNotListed`
+  is rewritten to use `Leases` only: grant through `ep`, and once a `Leases` no longer lists the lease,
+  a later `Leases` does not list it either. `leaseexpiry`'s `TimeToLive` pattern holds there because
+  its one member is the leader.
+- **S-a**: fixed: `New`, `newClient`, `kubernetes.New` give `⌜eps ≠ []⌝` with the endpoints token.
+  **S-b**: fixed: `Fmt.printMD_ne_nil`. **S-c**: recorded in `ctxPrin`'s doc: one cluster per
+  program (`ctxPrin` is not indexed by `γ`). **S-d**: `New.lean`'s stale Changes text corrected.
+  **S-e**: `newClient`'s sketch says where `resolverIdle c` comes from (minted with the resolver,
+  before any connection exists; dropped once the client dials).
+- **R-A6 N3** (the admin check reads the flag twice): fixed. `State.adminDenied` (`Model.lean`) now
+  checks a principal `who'` that is the request's `who`, or anything (no principal, a certificate
+  user) when some auth table had auth off. That covers `AuthInfoFromCtx` reading the flag off and
+  `IsAdminPermitted` reading it on.
+
+Re-review build: `etc/specs-build.sh --dir` `api/v3`, `context`, `fmt`, `zap`, `client/v3` (with
+`credentials`, `kubernetes`, `concurrency`, `leasing`, `recipes`), `etcdserverpb`, `auth`,
+`api/v3rpc`: OK (907 modules). Snippets vet- and gofmt-clean.

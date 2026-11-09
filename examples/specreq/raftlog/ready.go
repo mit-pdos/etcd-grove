@@ -70,7 +70,12 @@ func ReqReadyCycle(l *raftLog, st *MemoryStorage) {
 // Users: etcd server/etcdserver/server.go (snapshot, then raftStorage.Compact),
 // examples/raft/kvdurable (storage compaction).
 // Assumes: i is the log's applied index, published by raft (raftLog_publish), and no other
-// compaction runs; cs and data a valid snapshot's at i; no snapshot pending.
+// compaction runs; no floor published above applied (floor <= applied) and applied >= the log's
+// base (not between a restore's stableSnapTo and its appliedSnap, where term(applied) answers
+// ErrCompacted, log.go:398-400; recheck NR1), so compactFloor is the applied index and
+// term(i) answers; cs a full ConfState (AutoLeave set:
+// confStateFull, which MemoryStorage.CreateSnapshot takes) and data a valid snapshot's at i; no
+// snapshot pending. (Re-review N1.)
 // Specs: MemoryStorage.CreateSnapshot.spec, MemoryStorage.Compact.spec, raftLog.term.spec;
 // laws: logStor_createSnapshot.spec, logStor_compact.spec.
 func ReqCompactApplied(l *raftLog, st *MemoryStorage, i uint64, cs *pb.ConfState, data []byte) {
@@ -95,7 +100,8 @@ func ReqCompactApplied(l *raftLog, st *MemoryStorage, i uint64, cs *pb.ConfState
 // hand-out and the acknowledgement; committed covers the applied entries handed out; no snapshot
 // pending at the hand-out (the batch has entries only); the cluster's log matching (an entry of
 // `newer` with the acknowledged index and term is the acknowledged entry, as are those before it:
-// StableOk); cs the configuration at the last applied index and the snapshot valid there (the
+// StableOk); cs the configuration at the last applied index, full (AutoLeave set: confStateFull,
+// which MemoryStorage.CreateSnapshot takes; re-review N1), and the snapshot valid there (the
 // storage invariant's V). (Verify-round, A5 F6: the snapshot is stored before the compaction,
 // which needs it, logSnapLb; the pending-snapshot and log-matching assumptions were missing.)
 // Specs: raftLog.append.spec, raftLog.restore.spec, raftLog.stableTo.spec, raftLog.appliedTo.spec;

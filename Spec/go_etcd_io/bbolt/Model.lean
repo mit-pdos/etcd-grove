@@ -315,12 +315,15 @@ structure OptsM where
   mlock : Bool
   mmapFlags : w64
   noSync : Bool
+  /-- `NoFreelistSync` (re-review N1: with it off, `Open` commits once to write a freelist page
+  into a file that has none, `db.go:319-334`, a commit the client's state must record) -/
+  noFreelistSync : Bool
 
 /-- `Open(path, mode, nil)`'s options (`DefaultOptions`: no timeout, grow sync, the array
 freelist; every field the model reads at its zero). -/
 def OptsM.dflt : OptsM :=
   { readOnly := false, pageSize := W64 0, openFile := func.nil, logger := GoInterface.nil,
-    mlock := false, mmapFlags := W64 0, noSync := false }
+    mlock := false, mmapFlags := W64 0, noSync := false, noFreelistSync := false }
 
 /-- `syscall.MAP_POPULATE` (Linux). -/
 @[word_unfold] def mapPopulate : Nat := 0x8000
@@ -338,7 +341,8 @@ system calls OsFs models: scope restrictions of the model, not of Go); a pointer
 is a mode of the specs (`TxView.noSync`, `BoltSt.commit`); the other fields change no outcome the
 specs state (`NoGrowSync` only what an un-synced `grow` leaves, which the next commit's sync
 covers; `InitialMmapSize` at worst an `mmap` error; `Timeout` a `flock` that loops or fails;
-`NoFreelistSync` and `FreelistType` only the freelist's representation, batch 4d's). -/
+`FreelistType` only the freelist's representation, batch 4d's). `NoFreelistSync` is tracked: off,
+`Open` may commit (`Open.spec`'s freelist update). -/
 def OptsM.ok (o : OptsM) : Prop :=
   o.readOnly = false ∧ o.pageSize = W64 0 ∧ o.mlock = false ∧
     (o.mmapFlags.toNat = 0 ∨ o.mmapFlags.toNat = mapPopulate) ∧ loggerPtrOk o.logger

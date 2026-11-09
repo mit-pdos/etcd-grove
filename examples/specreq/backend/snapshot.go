@@ -44,14 +44,17 @@ func ReqSnapshotStream(be backend.Backend) []byte {
 // snapi), the receiver's applySnapshot/OpenSnapshotBackend (the image opened as the backend's).
 // Assumes: the caller owns the Alarm bucket's cells and no one deletes k; its commit step records
 // each committed image in its history (commitOk), whose lower bound it takes after ForceCommit
-// (beHist_lb); dbPath names no file (os.WriteFile creates it, durable: Perennial's OsFs, assumed);
-// a reader slot; the writer never fails (a bytes.Buffer, writeOk).
+// (beHist_lb); dbPath names no file in the directory dir; the file is written, fsynced, closed and
+// its directory fsynced, which leaves its bytes durable and its name durable (beFile_bytes'
+// premise: named, every byte clean, lo = hi = size; Perennial's OsFs file and directory sync,
+// assumed: no spec of them here; re-review N3, os.WriteFile alone syncs nothing); a reader slot;
+// the writer never fails (a bytes.Buffer, writeOk).
 // Specs: UnsafePut.spec, Unlock.spec, backend.ForceCommit.spec (beReq: the committed image holds
 // k = v), beHist_lb, backend.Snapshot.spec (beHistLb: an image no older than that commit's),
 // snapshot.WriteTo.spec (some bytes of the image: imgBytes), snapshot.Close.spec, beFile_bytes
-// (Durable.lean: a file of an image's bytes is a backend file of it), New.spec,
-// readTx.RLock.spec, readTx.UnsafeRange.spec.
-func ReqSnapshotFresh(lg *zap.Logger, be backend.Backend, dbPath string, k, v []byte) {
+// (Durable.lean: a file of an image's bytes is a backend file of it), DefaultBackendConfig.spec,
+// New.spec (openBackend), readTx.RLock.spec, readTx.UnsafeRange.spec.
+func ReqSnapshotFresh(lg *zap.Logger, be backend.Backend, dir, dbPath string, k, v []byte) {
 	tx := be.BatchTx()
 	tx.LockOutsideApply()
 	tx.UnsafePut(schema.Alarm, k, v)
@@ -66,11 +69,11 @@ func ReqSnapshotFresh(lg *zap.Logger, be backend.Backend, dbPath string, k, v []
 	if err := snap.Close(); err != nil {
 		panic("snapshot-fresh: Close failed")
 	}
-	if err := os.WriteFile(dbPath, buf.Bytes(), 0o600); err != nil {
+	if !writeDurable(dir, dbPath, buf.Bytes()) {
 		return // the environment's failure, not the backend's
 	}
 
-	be2 := backend.NewDefaultBackend(lg, dbPath)
+	be2 := openBackend(lg, dbPath, nil)
 	rt := be2.ReadTx()
 	rt.RLock()
 	_, vs := rt.UnsafeRange(schema.Alarm, k, nil, 0)
@@ -79,4 +82,30 @@ func ReqSnapshotFresh(lg *zap.Logger, be backend.Backend, dbPath string, k, v []
 		panic("snapshot-fresh: the snapshot lost a write committed before it")
 	}
 	be2.Close()
+}
+
+// writeDurable creates the file at path in dir holding bs, fsyncs it and its directory (what
+// OsFs needs for a durable, named file); false on any error.
+func writeDurable(dir, path string, bs []byte) bool {
+	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0o600)
+	if err != nil {
+		return false
+	}
+	if _, err := f.Write(bs); err != nil {
+		f.Close()
+		return false
+	}
+	if err := f.Sync(); err != nil {
+		f.Close()
+		return false
+	}
+	if err := f.Close(); err != nil {
+		return false
+	}
+	d, err := os.Open(dir)
+	if err != nil {
+		return false
+	}
+	defer d.Close()
+	return d.Sync() == nil
 }

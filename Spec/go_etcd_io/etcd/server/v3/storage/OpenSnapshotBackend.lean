@@ -19,9 +19,12 @@ Verify-round (A8 provability F5): over 4a's `New` (as `OpenBackend`'s); the rena
 `Snap.dbFile_rename` (the round-1 sketch cited a spec of `os.Rename` over OsFs that says nothing of
 `snapDbs`); the removal recorded in `Snap.snapGone` (the rename is not fsynced: F9).
 
-Last pass (backend-schema's request): the rename's revert state, `Backend.beNoRevert` before,
-`Backend.beRevert path o` after (the previous file may come back after a crash, 4a's `beCrash`,
-until the next `SaveDBFrom`'s directory fsync gives `beNoRevert` back).
+Last pass (backend-schema's request): the rename's revert state. Re-review (R-A8 N3): the backend
+file and its revert state are taken inside the rename's update (`Snap.dbFile_rename`): the caller's
+invariant holds them, the update moves the previous file into the revert list
+(`Snap.revertSt path (o :: os)`), and the call holds only the renamed file, which `New` takes. A
+concurrent `SaveDBFrom` can settle the revert state meanwhile; two installs in a row extend the list;
+a crash inside the call finds the file and the revert state in the invariant.
 
 **Margin.** The error's cause is not stated.
 -/
@@ -61,12 +64,18 @@ def OpenSnapshotBackend.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗ Zap.isLogger cfg.Logger' ∗ EtcdServer.backendBootRes cfg ∗
       ⌜diskOk ∧ cfg.MemoryMlock' = false ∧ Backend.bktsOk Bs⌝ ∗ Backend.envOk ∗ Backend.safeRegOk ∗
       threadTok ∗ Snap.isSnapshotter ss (Config.snapDirOf cfg.DataDir') ∗ Raft.snapshotPts p dq sn ∗
-      isHooks h ci ∗ Backend.beFile (Config.backendPathOf cfg.DataDir') o ∗
-      Backend.beNoRevert (Config.backendPathOf cfg.DataDir') ∗
-      (AU <{ ∃∃ (F : Nat → Option Snap.BeImage) (H : Nat → Snap.BeImage → Prop),
-              Snap.snapDbs (Config.snapDirOf cfg.DataDir') F ∗ Snap.snapGone (Config.snapDirOf cfg.DataDir') H }> @ ⊤, ∅
+      isHooks h ci ∗
+      (AU <{ ∃∃ (F : Nat → Option Snap.BeImage) (H : Nat → Snap.BeImage → Prop) (o : Option Snap.BeImage)
+                (os : List (Option Snap.BeImage)),
+              Snap.snapDbs (Config.snapDirOf cfg.DataDir') F ∗ Snap.snapGone (Config.snapDirOf cfg.DataDir') H ∗
+              Backend.beFile (Config.backendPathOf cfg.DataDir') o ∗
+              Snap.revertSt (Config.backendPathOf cfg.DataDir') os }> @ ⊤, ∅
         <{ Snap.snapDbs (Config.snapDirOf cfg.DataDir') (Snap.releaseAt F (uint.nat sn.index)) ∗
-            Snap.snapGone (Config.snapDirOf cfg.DataDir') (Snap.goneAdd H F (Snap.releaseAt F (uint.nat sn.index))),
+            Snap.snapGone (Config.snapDirOf cfg.DataDir') (Snap.goneAdd H F (Snap.releaseAt F (uint.nat sn.index))) ∗
+            (match F (uint.nat sn.index) with
+             | some _ => Snap.revertSt (Config.backendPathOf cfg.DataDir') (o :: os)
+             | none => Backend.beFile (Config.backendPathOf cfg.DataDir') o ∗
+                 Snap.revertSt (Config.backendPathOf cfg.DataDir') os),
             COMM Q (F (uint.nat sn.index)) }>) ∗
       (∀ (img : Snap.BeImage) (γ : Backend.BeNames), Q (some img) -∗ Backend.beNew γ img ={⊤}=∗
         Pk γ ∗ Backend.hookOk γ (hooksIface h) Fh (Pk γ) ∗ Backend.commitOk γ (Pk γ) ∗ K γ) }}
@@ -75,11 +84,8 @@ def OpenSnapshotBackend.spec : Prop :=
       ((⌜err = GoInterface.nil⌝ ∗ ∃ (b : Loc) (γ : Backend.BeNames), ⌜be = Backend.beIface b⌝ ∗
           Backend.isBackend γ b (Config.backendPathOf cfg.DataDir') (Pk γ) ∗ K γ ∗ Backend.beHookFp γ Fh ∗
           (□ ∀ bi, ⌜Bs bi⌝ -∗ Backend.beBkt γ bi) ∗ Backend.beDurInv γ (Config.backendPathOf cfg.DataDir') ∗
-          (if cfg.UnsafeNoFsync' then iprop(True) else Backend.beSynced γ) ∗
-          Backend.beRevert (Config.backendPathOf cfg.DataDir') o) ∨
-       (⌜err ≠ GoInterface.nil⌝ ∗ Q none ∗ threadTok ∗
-          Backend.beFile (Config.backendPathOf cfg.DataDir') o ∗
-          Backend.beNoRevert (Config.backendPathOf cfg.DataDir'))) }}
+          (if cfg.UnsafeNoFsync' then iprop(True) else Backend.beSynced γ)) ∨
+       (⌜err ≠ GoInterface.nil⌝ ∗ Q none ∗ threadTok)) }}
 
 end spec
 

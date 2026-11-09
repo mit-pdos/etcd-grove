@@ -11,7 +11,7 @@ verify-round (A6 F6): the reply's depth (≤ 2) from 3h's `holds_depth_resp`; (A
 
 Round 1: the contract is the member's at `ep` (`etcdContract γ ep`; the lease requests' `leaseFact`); the first way fires no token or learner refusal (`firedAns`: 2c returns an apply-time `ErrUserEmpty`/`ErrAuthOldRevision`/`ErrInvalidAuthToken` unfired, its outcome 2, which this handler sends by the second way); errors reach `togRPCError` with 2c's `srvErrOk`; a read composes with 2c's `SrvCallTriple` (W0's `lo`, rounds 4-6; integration I3: the Api header's "Composition with 2c").
 
-Margin: the code checks the admin role at the member's possibly stale auth state; the spec relies on the model answering `adminErr` at any state.
+Margin: the code checks the admin role at the member's possibly stale auth state, reading the flag twice; the model's compact denial (`State.adminDenied`) admits exactly those readings (re-review R-A6: the Margin predated `adminDenied`).
 -/
 module
 

@@ -227,3 +227,22 @@ the lease-auth and server-boot requests; the importers `etcdserver.ApiApply`, `A
 `etc/specs-build.sh --dir Spec/go_etcd_io/etcd/server/v3/etcdserver/{apply,txn}`: OK (122 modules);
 importers `etcdserver.{ApiApply,ApiReq,EtcdServer__Range,EtcdServer__Txn}` OK; `go vet
 ./specreq/apply/... ./specreq/txn/...` clean.
+
+## Re-review (A9 N1, S2)
+
+- **N1 (fixed by lease-auth: `authHook`/`authHook_intro` gone)**: the eleven admin sketches
+  (`applierV3backend__{AuthEnable,AuthDisable,UserAdd,UserDelete,UserChangePassword,UserGrantRole,
+  UserRevokeRole,RoleAdd,RoleDelete,RoleGrantPermission,RoleRevokePermission}.lean`) now pass
+  `authSt`'s `Auth.authBeCur γa abe` and `hooksOk`'s `Auth.authBeHook abe R Q` straight to 3d's
+  `AdminTriple` (`authBeCur` back; `hookOut abe R Q` turned into `R` by `hooksOk`'s
+  `□ (Q ={⊤}=∗ R)`); `apply/Api.lean`'s header bullet, `authSt` and `hooksOk` docstrings likewise;
+  `authApplierV3__RoleGet.lean`'s sketch for `HasRole` (which now returns `authBeCur` and `Q`). No
+  statement changed: `authSt`/`hooksOk` already carried exactly these.
+- **S2**: `ReqApplyWrite`'s `Assumes:` excludes an IgnoreValue/IgnoreLease put of an absent key
+  (`ErrKeyNotFound`, `kvStep`'s `p.check`), which the snippet's "a valid put refused" panic would
+  otherwise reach.
+- **S1**: `authnIdx`'s stated meaning now carries `0 < idx < 2 ^ 64` and, for the entry asking
+  `Authenticate(name, tok)`, `tok` without `.` (3d's `authnCtx` needs both; 2d's `applyLent_opts`
+  states them).
+- Build: `etc/specs-build.sh --dir Spec/go_etcd_io/etcd/server/v3/etcdserver/{apply,txn}` OK (122
+  modules); `go vet ./specreq/apply/... ./specreq/txn/...` clean.

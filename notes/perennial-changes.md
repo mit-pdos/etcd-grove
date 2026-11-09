@@ -2088,3 +2088,13 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
   its crash case (the old directory entry survives unless the directory was fsynced after the rename),
   and a directory fsync.
 - **Status.** Recorded only.
+
+## No specs of `fmt.Fprintf` / `strings.Builder` (2026-11-09, branch `specs-only`)
+
+- **The gap.** raft's `DescribeConfChange` and raftpb's `ConfChangesToString` build strings with a
+  `strings.Builder` and `fmt.Fprintf`, which Perennial does not specify.
+- **Local workaround.** Both are stated as assumed trust-boundary specs on the specs-only branch
+  (`Spec/go_etcd_io/raft/v3/DescribeConfChange.lean`, `raftpb/ConfChangesToString.lean`).
+- **Proposed (general; record only).** Specs of `strings.Builder` (`WriteString`, `WriteByte`, `String`)
+  and of `fmt.Fprintf` to an `io.Writer` with basic-typed arguments.
+- **Status.** Recorded only.

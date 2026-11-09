@@ -22,7 +22,10 @@ model was a record any caller could fill: `specs-ref/notes/pbenc-ok-inconsistent
   `nil`, and a field **without explicit presence** (proto3 implicit presence) holding its zero
   value (a zero scalar, an empty `bytes`/`string`) becomes unset (its zero Go value, `nil` for
   `bytes`). A field **with explicit presence** (proto2 `optional` scalars and `bytes`, proto3
-  `optional`, every submessage field) keeps its state: set to a zero or empty value it stays set
+  `optional`, every submessage field) keeps its state (and an element of a repeated `bytes` field
+  is never `nil`: decoding gives an empty element as a non-`nil` empty slice, `consumeBytesSlice`,
+  `internal/impl/codec_gen.go:5577`, and `Equal` treats `nil` and empty elements alike, so `norm`
+  makes a `nil` element a non-`nil` empty one; re-review R-A6, second tier): set to a zero or empty value it stays set
   (protobuf-go encodes it, decodes it as set, and `Clone` copies it: `mergeBytes` copies an empty
   set `bytes` as non-`nil`, `internal/impl/merge.go:187`; only implicit-presence `bytes` use
   `mergeBytesNoZero`, `:191`), and a set empty submessage stays a non-`nil` empty message.

@@ -13,7 +13,8 @@ copy the struct; release.
 
 **Changes.** Verify-round (A11-completeness F4): `statSlot (some (tx, T))` accepts a write
 transaction too (`statSlot_wtx`); was a read transaction's only, leaving the backend's
-`begin(true)` with no slot to pay.
+`begin(true)` with no slot to pay. Re-review (N6): a paying transaction is one of this `*DB`
+(`txDB tx db`): a transaction of another `*DB` of the same file holds another `statlock`'s slot.
 
 **Margin.** The statistics' values are not described.
 -/
@@ -41,7 +42,8 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 /-- `db.Stats()`: some statistics; the reader slot (`statSlot`) comes back. -/
 def DB.Stats.spec : Prop :=
   ∀ [HasExt osFsExt] (db : Loc) (γ : BoltName) (ns : Bool) (o : Option (Loc × TxView)),
-  {{ isBolt (GF := GF) db γ ns ∗ statSlot γ o }}
+  {{ isBolt (GF := GF) db γ ns ∗ statSlot γ o ∗
+      (match o with | some (tx, _) => txDB tx db | none => iprop(emp)) }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"Stats")) (Val #()))
   {{ (s : Stats), RET #s; statSlot γ o }}
 

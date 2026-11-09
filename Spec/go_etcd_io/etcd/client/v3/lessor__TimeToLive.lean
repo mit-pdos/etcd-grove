@@ -18,6 +18,9 @@ verify-round (A2-provability L2): the per-member clause (`via`) now has a source
 answer's `viaFact` (from 2a's `AttemptTriple` through `uiOk_call`); a lease read's fact holds for an
 answer of the lessor (`leaseAnsRes`), not for a refusal.
 
+re-review N1, recheck RR-1: the per-member clause holds for `TimeToLive` only given `soleMember γ ep`
+(`viaFact`): a follower forwards it to the leader (`v3_server.go:636-676`).
+
 Margin: none.
 -/
 module

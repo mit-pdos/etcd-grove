@@ -71,8 +71,8 @@ provider not yet given to a store; `R`: its `info` runs once `R` holds; `rt`: it
 tokens without a collision), `authGate γa R` (persistent: the store's checks run once `R` holds);
 `authBackendAt be a` (exclusive: an `AuthBackend` holding `a`; 3d's own, introduced by 4a/4b),
 `authBeCur γa be` (exclusive: the store's current backend, the writer's), `authBeHook be Pre Q` (the
-backend's post-lock hook run, one use; introduced by 4a), `authHook γa Pre Q` (the store's, by
-`authHook_intro`; `hookOut`); `authReqAt r rq cred`, `authRespAt rq res p`,
+backend's post-lock hook run, one use; introduced by 4a; the writer's methods take it with
+`authBeCur`, `hookOut`); `authReqAt r rq cred`, `authRespAt rq res p`,
 `authnRespAt p tok` (provisional: 3h's messages), `authInfoAt ai dq u rev` (the `AuthInfo`);
 `ctxInMD ctx o`, `ctxCertUser ctx c`, `ctxPeerCN ctx c` (grpc's, abbreviations since the verify
 round; `ctxToken` transparent over them); `errIs ae v` (the error variable's value: `init` gives
@@ -98,8 +98,8 @@ them, existentially). From W0: `pwHash`/`pwMatch`, `tokenUser` (`tokenUser_agree
   to lock the batch transaction (4b; a lock gives the session and 4a's `beTurn`, both given back by
   the same method's `Unlock`, so nothing of them crosses a call), `bcryptCost`.
 * `authBeCur γa be`: the writer's half of a ghost variable holding `be`, whose other half `beMu`'s
-  invariant keeps with `as.be = be`; `authHook γa Pre Q`: `∃ be, ` that half at `be` (a fraction)
-  `∗ authBeHook be Pre Q`.
+  invariant keeps with `as.be = be` (an admin method reads `as.be` under `beMu` and agrees; re-review
+  N1: no store-indexed hook, so `Recover`'s move of it leaves no stale hook behind).
 * `tokFrom γa n`: the simple provider's map holds no token of an index above `n` (the half of the
   index bound; the other half in the map's lock invariant). JWT and no-op: `True`.
 * `authGate γa R`: `γa`'s recorded gate is `R` (a saved proposition), the provider's.
@@ -111,7 +111,7 @@ them, existentially). From W0: `pwHash`/`pwMatch`, `tokenUser` (`tokenUser_agree
 `errIs_persistent`, `authGate_persistent`, `authBeCur_timeless`, `authReqAt_persistent`;
 `authCur_excl`, `authBeCur_excl`, `authCur_at`, `authAt_agree`, `authAt_le`, `authLb_le`,
 `authLb_mono`, `authAt_reach`, `authAt_reached`, `authAt_valid`, `tokFrom_excl`,
-`authStoreAt_agree`, `authStoreAt_lb`, `authHook_intro`; `init`; `storeNext_adm`,
+`authStoreAt_agree`, `authStoreAt_lb`; `init`; `storeNext_adm`,
 `authReach_of_reach`, `authRespAt_ne_null`, `authnRespAt_ne_null`. (Verify round: `errOf_ne_nil`,
 `errOf_inj` gone with `errOf`, whose facts `init` now gives; the tie of the mapped errors to the
 server's sentinels is server-core's `authErr_srv` (`etcdserver/errors`, over `errIs`).)
@@ -466,7 +466,8 @@ provider's `tokenProviderAt tp γ R rt`): `AuthInfoFromCtx` takes it with `□ R
 opaque authGate [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γa : AuthNames) (R : IProp GF) : IProp GF := iprop(True)
 
 /-- **The store's backend is `be`** (exclusive, timeless: the writer's; `NewAuthStore`'s, moved by
-`Recover`): which backend the writer's batch locks run the post-lock hook of (`authHook_intro`).
+`Recover`): which backend the writer's batch locks run the post-lock hook of (the admin methods
+take it beside `authBeHook be`).
 Verify round (A9 3d F4). -/
 opaque authBeCur [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γa : AuthNames) (be : GoInterface) : IProp GF := iprop(True)
 
@@ -511,18 +512,6 @@ abbrev ctxCertUser (ctx : GoInterface) (c : Option GoString) : IProp GF := Grpc.
 `Grpc.ctxPeerCN` (none for no peer: `Background()`-derived contexts, the server's `s.ctx`). What
 `WithRoot`'s new context exposes. Verify round (A9 3d F5): was an opaque of this package's. -/
 abbrev ctxPeerCN (ctx : GoInterface) (c : Option GoString) : IProp GF := Grpc.ctxPeerCN ctx c
-
-/-- (provisional, 4a's and 2d's) **The store's backend's post-lock hook takes `Pre` to `Q`** (one
-use): the auth store's batch transaction locks with `LockInsideApply` (4b's `authBatchTx.Lock`:
-`callOk tx "LockInsideApply" P Q`), which runs the backend's post-lock hook (the server's
-`getTxPostLockInsideApplyHook`, set after `NewAuthStore`, `server.go:409`, and on a snapshot's
-backend before `Recover`, `server.go:1098`). Intended realization: for the backend the store holds
-(its invariant records 4a's names of it, the hook `f` and the batch lock's invariant `Pk`), 4a's
-`∀ q, Backend.hookRun γb q Pk f Pre Q` (as the lessor's `Lease.beHookRun`; integration Y: mvcc's
-`Mvcc.hookRun` now names mvcc's storage). The writer (3a, from 2d's apply loop) supplies it per call,
-from the server's hook proved once over 4a's contract at every share: introduced by `authHook_intro`
-from the store's backend's `authBeHook` (verify round, A9 3d F4). -/
-opaque authHook [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γa : AuthNames) (Pre Q : IProp GF) : IProp GF := iprop(True)
 
 /-- (provisional, 3h's) **The request message `r` asks `rq`, with the credential `cred`** (persistent: read-only;
 `*pb.Auth<Kind>Request`). For `userAdd name pw noPw` and `userChangePassword name pw`: `Name = name`,
@@ -575,12 +564,6 @@ def authGate_persistent.spec : Prop := ∀ γa R, Persistent (authGate (GF := GF
 def authBeCur_timeless.spec : Prop := ∀ γa be, Timeless (authBeCur (GF := GF) γa be)
 def authBeCur_excl.spec : Prop := ∀ γa be be',
   authBeCur (GF := GF) γa be ∗ authBeCur γa be' ⊢ iprop(False)
-
-/-- **The store's backend's hook run is the writer's** (verify round, A9 3d F4): knowing which
-backend the store has (`authBeCur`), a hook run of that backend's batch lock is the one the admin
-methods take. -/
-def authHook_intro.spec : Prop := ∀ γa be (Pre Q : IProp GF),
-  authBeCur γa be ∗ authBeHook be Pre Q ⊢ authBeCur γa be ∗ authHook γa Pre Q
 
 /-- **Any holder of the store may read it from its first state** (every view is at state `0` or
 later; verify round, A9's second tier: the watch server's and v3rpc's checks outside the read
@@ -661,26 +644,30 @@ def admReply (rq : Req) (res : Resp) (resp : Loc) (err : GoInterface) : IProp GF
 
 /-! ## Shapes shared by the specs -/
 
-/-- **The post-lock hook's outcome** of a writer call that may lock the batch transaction once:
-`Q` (it locked) or `Pre` back with the unused hook (it did not: an early refusal, or a method
-reading through the read transaction). -/
-def hookOut (γa : AuthNames) (Pre Q : IProp GF) : IProp GF :=
-  iprop(Q ∨ (Pre ∗ authHook γa Pre Q))
+/-- **The post-lock hook's outcome** of a writer call that may lock the batch transaction of the
+backend `be` once: `Q` (it locked) or `Pre` back with the unused hook run of `be` (it did not: an
+early refusal, or a method reading through the read transaction). The hook is the backend's
+(`authBeHook be`), not the store's: re-review N1, a store-indexed hook given back unused would
+survive `Recover` and name a backend the store no longer has. -/
+def hookOut (be : GoInterface) (Pre Q : IProp GF) : IProp GF :=
+  iprop(Q ∨ (Pre ∗ authBeHook be Pre Q))
 
 /-- **An admin method** `e` of the store `st` for the request `rq` with the credential `cred` (its
 message described by `P`): the writer supplies that the one next state, `storeNext rq cred a`, is
 reached and fits bbolt (2d: the committed entry's next state; `recordsFit` is the scope
-restriction of `issues/etcd-auth-useradd-long-name-fatal.md`), and the backend's post-lock hook
-(`authHook`, from `Pre`: the batch transaction's `LockInsideApply` runs it, integration I5); the
-store moves there (recorded as its `(i+1)`-th state) with an answer W0's step allows there, and
-replies. -/
+restriction of `issues/etcd-auth-useradd-long-name-fatal.md`), and the hook run of the store's
+current backend `be` (`authBeCur γa be ∗ authBeHook be Pre Q`, from `Pre`: the batch transaction's
+`LockInsideApply` runs it, integration I5; re-review N1: the store's backend named in the same
+premise, given back); the store moves there (recorded as its `(i+1)`-th state) with an answer W0's
+step allows there, and replies. -/
 def AdminTriple (e : Expr) (P : IProp GF) (st : Loc) (rq : Req) (cred : Bytes) : Prop :=
-  ∀ (γ : Cluster) (γa : AuthNames) (i : Nat) (a : AuthState) (Pre Q : IProp GF),
+  ∀ (γ : Cluster) (γa : AuthNames) (i : Nat) (a : AuthState) (be : GoInterface) (Pre Q : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ P ∗
       authStoreAt st γ γa ∗ authCur γa i a ∗ authReached γ (storeNext rq cred a) ∗
-      ⌜recordsFit (storeNext rq cred a)⌝ ∗ Pre ∗ authHook γa Pre Q }}
+      ⌜recordsFit (storeNext rq cred a)⌝ ∗ authBeCur γa be ∗ Pre ∗ authBeHook be Pre Q }}
     e
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); P ∗ hookOut γa Pre Q ∗
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); P ∗ authBeCur γa be ∗
+      hookOut be Pre Q ∗
       ∃ res : Resp, ⌜admStep rq a (storeNext rq cred a) res⌝ ∗
         authCur γa (i + 1) (storeNext rq cred a) ∗ admReply rq res resp err }}
 

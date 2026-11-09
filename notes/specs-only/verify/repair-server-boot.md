@@ -414,3 +414,49 @@ rerun passed. I own no snippet packages, so there was nothing to vet.
   Two concurrent snapshot handlers can each call it; rafthttp's `saveOk` can go back to two
   updates with no loan.
 - **Build:** `etc/specs-build.sh --dir` over `snap` and `storage`: `specs-build: OK (26 modules)`.
+
+## Re-review
+
+- **R-A7 N1, compaction at revision 0: fixed** (`v3compactor/Api.lean`).
+  - `compactable_intro`'s contract now asks only for `0 < rev`, which 2c's `Compact.spec` needs
+    (`rev ≠ 0`).
+  - `revGetter_intro`'s `Rev()` now returns at least `1`. `Periodic` compacts a revision that
+    `Rev()` returned, so it needs that bound; `Revision` already skips `rev <= 0`
+    (`revision.go:82`).
+  - server-core proves the `≥ 1` bound for the store.
+- **R-A8 N3, the install held the backend file and its revert state across the call: fixed.**
+  - `Snap.dbFile_rename`'s update now takes, inside its atomic precondition, the destination's file
+    `beFile dst o` and its revert state `revertSt dst os`.
+  - If the file was there (`F i = some _`), the update leaves `revertSt dst (o :: os)`, adding the
+    previous file to the files a crash may bring back. The renamed file goes to the caller for
+    `New`. If the file was not there, the update leaves `beFile dst o ∗ revertSt dst os`.
+  - `SaveDBFrom`'s second update takes `revertSt p os` and gives `revertSt p []`.
+  - `OpenSnapshotBackend`'s pre and post no longer carry `beFile`/`beNoRevert`/`beRevert`. The
+    caller's invariant holds them, so the following now hold:
+    - (a) a concurrent handler's `SaveDBFrom` can settle the state;
+    - (b) a second install before a sync extends the list;
+    - (c) a crash inside the call finds the file and the revert state in the invariant.
+  - `revertSt p os` (new, in `snap/Api.lean`) is the list of every file a crash may bring back:
+    `[]` is 4a's `beNoRevert p`, `[o]` is `beRevert p o`.
+- **N3 gap (the list form):** a list of two or more is `False` for now. A second install before a
+  directory sync is therefore not yet provable. This is recorded in `revertSt`'s docstring and
+  the request below.
+- **S3 (msgappv2 full frame; `sendable` must state consecutive entries):** not mine. It is in
+  rafthttp's `rafthttp/Api.lean`.
+- **N1, N2, N4** (the crash story): not done, as instructed; a separate pass handles them.
+
+### Request to backend-schema (re-review N3)
+
+- Generalize the revert state to a list: `beRevert p (os : List (Option Image))`. `os` are the
+  previous files a crash may bring back, oldest last; `beNoRevert p` is the empty list. A single
+  `beRev p (os : List (Option Image))` with `[] ↦ beNoRevert` would also do.
+- Update `beRevert_excl` and `beRevert_noRevert` accordingly.
+- Change `beCrash`'s conclusion's revert case from `rv = some o` to `o ∈ os` (the journaling file
+  system keeps a prefix of the unsynced renames: any of `o0`, then each later one).
+- When it lands, I replace `Snap.revertSt`'s body by `Backend.beRev p os` (or its list
+  `beRevert`). No statement of mine changes.
+
+### Build (re-review)
+
+`etc/specs-build.sh --dir` over `snap`, `storage` and `v3compactor`: **`specs-build: OK (41
+modules)`**; earlier, `v3compactor` alone: OK (15 modules).

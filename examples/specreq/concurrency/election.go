@@ -3,6 +3,7 @@ package concurrency
 import (
 	"context"
 	"strings"
+	"sync/atomic"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/concurrency"
@@ -128,4 +129,50 @@ func ReqObserve(ctx context.Context, s *concurrency.Session, pfx string) {
 			}
 		}
 	}
+}
+
+// REQ concurrency/election-no-two-leaders: with no lease expiry, a second campaigner does not
+// return from Campaign while the first leads (before its Resign).
+// Users: etcdctl elect (the leader runs while elected), etcd's tests
+// (tests/integration/v3_election_test.go:32 (TestElectionWait: one leader at a time, each resigns
+// before the next is elected), :114 (TestElectionFailover), v3election's remote clients.
+// Assumes: no lease expiry (W0's EnvCfg.leaseExpiry = false); pfx+"/" owned, empty at the start;
+// no other client revokes the two sessions' leases.
+// Specs: NewSession.spec (the grant's pre-state: id1 != id2), NewElection.spec,
+// Election.Campaign.spec (k = sessKey pfx id; waitedFor; k present at sigma_v with create revision
+// cr), Election.Resign.spec; campaignEff (each election writes only its session's key).
+// Proof idea: e1's key k1, created at r1 <= sigma1's revision, stays until e1.Resign; e2's key is
+// absent at sigma1, so its cr is above r1; e2's waitedFor (noOlder pfx cr) at its state excludes
+// k1, so resigned was set before it.
+func ReqElectionNoTwoLeaders(ctx context.Context, cli *clientv3.Client, pfx string) {
+	s1, err := concurrency.NewSession(cli)
+	if err != nil {
+		return
+	}
+	defer s1.Close()
+	s2, err := concurrency.NewSession(cli)
+	if err != nil {
+		return
+	}
+	defer s2.Close()
+	e1 := concurrency.NewElection(s1, pfx)
+	if err := e1.Campaign(ctx, "a"); err != nil {
+		return
+	}
+	var resigned atomic.Bool
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		e2 := concurrency.NewElection(s2, pfx)
+		if err := e2.Campaign(ctx, "b"); err != nil {
+			return
+		}
+		if !resigned.Load() {
+			panic("election: two leaders at once")
+		}
+		_ = e2.Resign(ctx)
+	}()
+	resigned.Store(true)
+	_ = e1.Resign(ctx)
+	<-done
 }

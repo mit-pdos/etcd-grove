@@ -287,6 +287,13 @@ read-only). Intended realization: Perennial's `ownMap m dq` of the keys to slice
 server's interceptors make). -/
 opaque mdAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (m : Loc) (dq : DFrac) (md : MD) : IProp GF := iprop(True)
 
+/-- **A metadata map that may be `nil`** (re-review R-A6 N1): `nil` (reads as empty: Go allows
+`Get`, `Copy`, `len` and lookups on a `nil` map) when `isNil`, else `mdAt`. `mdAt` itself is never
+of `nil` (its realization is an `ownMap`, a heap points-to: `heapPointsto_non_null`); the `nil` case
+lives outside it, as `FromIncomingContext` does. -/
+def mdAtN (isNil : Bool) (m : Loc) (dq : DFrac) (md : MD) : IProp GF :=
+  if isNil then iprop(⌜m = null ∧ md = []⌝) else mdAt m dq md
+
 /-- **A client connection** (see the header). -/
 opaque connAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (cc : Loc) (A : GoString → IProp GF) (ui si : Option val) (R : MD → IProp GF) :
   IProp GF := iprop(True)

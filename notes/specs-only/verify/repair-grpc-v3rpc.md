@@ -347,3 +347,75 @@ that this law takes. That follows from its realization. `etcdserverpb` rebuilt: 
 Other groups' new `*_norm` laws, read only (no edits to their files):
 - raftpb's `raftpb_norm` and leasehttp's `ltlReply_norm` are consistent with this reading.
 - W0's `urlsRight_norm` is unrelated: it is about URL normalization, not `Proto.norm`.
+
+## Re-review
+
+### W0 re-review NF1: the client→grpc leg needs `endsOk` of every request
+
+Fixed. 3h's relation laws now carry `endsOk c` on their right side:
+- the KV requests: `rangeReqOwn_msgAt`, `putReqOwn_msgAt`, `deleteReqOwn_msgAt`, `txnReqOwn_msgAt`,
+  `compactReqOwn_msgAt`;
+- `compareOwn_msgAt` and `requestOpOwn_msgAt`;
+- the non-KV requests, `reqOwn_msgAt` in `Realize.lean`.
+
+Two cases cover them:
+- W0's unfold laws now carry `⌜es = slice.nil ∨ ebs ≠ []⌝` for each `RangeEnd` (client-core).
+  That covers a from-key end `"\x00"`: it is non-empty.
+- A request type with no range end (`Put`, `Compaction`, `LeaseGrant`, every non-KV request)
+  satisfies `endsOk` vacuously.
+
+So the request a client owns gives `unaryArgs_msgAt`'s `endsOk c` through the relation law.
+`endsOk_range_intro` stays, for a content known only by its model.
+
+### R-A2 N1: `leaseFact` for `LeaseTimeToLive`
+
+Fixed. The per-member clause is dropped for `LeaseTimeToLive`: a follower forwards it to the leader
+(`v3_server.go:636-676`), so the answer is not the member's own lessor view. It is kept for
+`LeaseGrant` and `LeaseLeases` (`Leases` answers from the member's own table, `:737-738`).
+
+### R-A6 N1 (inconsistent): `FromOutgoingContext` gave `mdAt` of the `nil` map
+
+Fixed. `mdAt_ownMap` makes `mdAt` a heap points-to, which is never `nil`, so the old `ok = false`
+case derived `False`.
+- New `Grpc.mdAtN isNil m dq md`: the `nil` case is `⌜m = null ∧ md = []⌝`, outside `mdAt`.
+- `FromOutgoingContext.spec` gives `mdAtN (!ok) m (own 1) md`.
+- `MD.Copy.spec` and `MD.Get.spec` take either case. `Copy` of `nil` is a fresh empty map; `Get` gives
+  `[]`.
+- The snippet `grpc/metadata-out` now panics unless `ok` is false and `md` is `nil`, then copies and
+  reads the `nil` map. It is no longer vacuous.
+
+### R-A6 N2: `RangeStream` needs the request at `own 1` and an `endsDecoded` share
+
+Fixed by the NF1 change, with no new definition. `msgAt RangeRequest r (own 1) c ∗ ⌜reqHolds c
+(.range rm) ∧ endsOk c⌝` is `rangeReqOwn r (own 1) rm` (`rangeReqOwn_msgAt`, right to left). W0's
+unfold law then gives the field-level end fact `⌜es = slice.nil ∨ ebs ≠ []⌝`: the "unfold law from
+a pure `endsOk`" the re-review asked for.
+
+So 2c's `RangeStream` can take the request at `own 1` with a pure `⌜endsOk c⌝`, as server-core
+intends, or simply `rangeReqOwn` (which now implies it). Every W0-owned request already has its
+ends nil or non-empty, so the `endsDecoded` share is needed only for a message that is not a W0
+predicate.
+
+### R-A6 N3: `isPermitted` reads the auth flag twice
+
+Fixed. `V3rpc.adminDenied` is now an abbreviation of W0's widened `State.adminDenied`, which admits
+the principal the check actually read: the request's, or, when the flag was read off, no user or
+any certificate user. `kvServer.Compact`'s Margin is updated.
+- Filed `nonissues/etcd-admin-check-authenable-race.md` (`blocks-proof: no`); `etc/issues-status.py
+  --index` was run.
+- `authMaintenanceServer.isPermitted`'s post ("one of four errors") already admits the race, and its
+  callers answer locally.
+
+### R-A6 second tier
+
+- `stringerAt_msg`, `stringerAt_discard`, `stringerAt_irr`, `NewLoggableTxnRequest` and
+  `RangeRequest.String` take `⌜depth c < depthMax⌝`.
+- `norm`'s header says that an element of a repeated `bytes` field is never `nil`
+  (`consumeBytesSlice`).
+- Left as recorded: the stale citations in 2c's sketches (server-core's request 3), `sicEtcdOk`,
+  `version.LessThan`, and `LeaseKeepAlive`'s leaked loop.
+
+### Build
+
+`etc/specs-build.sh --dir` over `proto`, `grpc`, `grpc/metadata`, `etcdserverpb` and `v3rpc`: OK
+(311 modules). `go vet` of the four snippet packages is clean.

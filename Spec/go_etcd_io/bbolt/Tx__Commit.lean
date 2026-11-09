@@ -51,6 +51,9 @@ that settling update; an error before the meta write fires the commit update wit
 first). A holder of the whole state builds both from its one copy (`boltState_commit_au`); with
 two independent updates in the pre it could build only one. The rebalance/spill chain's internal
 specs now carry the abstraction relation (`Internal.lean`, `physRep`'s laws, A11 F9).
+Re-review (N3): `commitFreelist` takes the updates and, on its allocation error, fires both before
+the rollback it runs itself (`tx.go:285-293`, which releases `rwlock`); `Commit` then only returns
+its outcome. Every other error path fires them in `Commit`'s body before `rollback`.
 
 **Margin.** `StrictMode` (a client must not set it, `isBolt`); `OnCommit` handlers (left out). The
 error's identity is not described for a write transaction.

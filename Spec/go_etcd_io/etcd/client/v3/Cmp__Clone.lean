@@ -9,6 +9,11 @@ Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/Cmp__Clone.lean`: restat
 
 verify-round: the fresh `*pb.Compare` (its `protoRest` from `protoRest_zero` at `own 1`) is made read-only for `cmpAt` by `protoRest_persist` (A1-provability F6: the sketch had no law for it).
 
+re-review NF2: true now that `compareOwn_unfold` carries `RangeEnd = nil ∨ non-empty` (`Wire.lean`):
+the caller's raw `*pb.Compare` must meet it (`FromCompare`: a scope premise through `compareOwn`, as
+the KV triples' `emptyEnd = false`), and `proto.Clone`'s copy (`Proto.norm c`) then holds the same
+model (3h's `holds_norm` under `endsOk`).
+
 Margin: none.
 -/
 module

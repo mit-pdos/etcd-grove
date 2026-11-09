@@ -37,7 +37,20 @@ carries the caller's `R`, which an error gives back: bbolt's `db.close()` closed
 pre's custom disjunct now says the option is non-nil (with `nil`, `Open` calls `os.OpenFile`, and
 the contract's `R` would have no source).
 
-**Margin.** `Open` also reads `Timeout`, `InitialMmapSize`, `FreelistType`, `NoFreelistSync`,
+**Changes (re-review, N1).** With `NoFreelistSync` off, `Open` ends by committing once, the same
+data, to write a freelist page into a file that has none (`db.go:319-334`: any file last written
+with `NoFreelistSync`, e.g. etcd's, opened by a tool with the default): a real commit (a new meta
+at `txid + 1`, unsynced under `NoSync`; a failed sync marks pages lost), so the client supplies its
+updates (`commitAU γ D D o.noSync Sf`, at whatever data `D` the file holds: bbolt instantiates it
+from the crash invariant's half of `σ`). The post gives the outcome (`Sf …`) when the commit ran,
+or the update back when the file already had a synced freelist (`hasSyncedFreelist`). Without it,
+`boltCrash` (a `NoSync` crash leaving the new meta over a lost freelist page) and `boltRelease`
+(clean bytes after a failed sync) were false. `OptsM` tracks `noFreelistSync`.
+**Proof sketch of that step.** `DB.Begin(true)` on the database just shared (`isBolt`), then
+`Tx.Commit.spec` with the instantiated update; on its error `DB.Close` (under the locks) gives
+`boltClosed γ` back.
+
+**Margin.** `Open` also reads `Timeout`, `InitialMmapSize`, `FreelistType`,
 `NoGrowSync`, `PreLoadFreelist`, `MaxBatchSize`, ...: they change no outcome the specs state.
 -/
 module
@@ -66,14 +79,21 @@ options say, or an error and the file still closed (and, with a custom `OpenFile
 back). The options are read and given back. -/
 def Open.spec : Prop :=
   ∀ [HasExt osFsExt] [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)]
-    (γ : BoltName) (mode : w32) (opts : Loc) (dq : DFrac) (o : OptsM) (R : IProp GF),
+    (γ : BoltName) (mode : w32) (opts : Loc) (dq : DFrac) (o : OptsM) (R : IProp GF)
+    (Sf : Bool → Bool → Bool → Bool → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv ∗ boltFile γ ∗ boltClosed γ ∗
       optsArg opts dq o ∗ ⌜o.ok⌝ ∗ boltLogger o.logger ∗
-      (⌜o.openFile = func.nil⌝ ∨ (⌜o.openFile ≠ func.nil⌝ ∗ openFileOk o.openFile γ.path R)) }}
+      (⌜o.openFile = func.nil⌝ ∨ (⌜o.openFile ≠ func.nil⌝ ∗ openFileOk o.openFile γ.path R)) ∗
+      (if o.noFreelistSync then iprop(emp) else iprop(∀ D : Data, commitAU γ D D o.noSync Sf)) }}
     (App (App (App (Val (@! go_etcd_io.bbolt.Open)) (Val #γ.path)) (Val #mode)) (Val #opts))
   {{ (db : Loc) (err : GoInterface), RET (PairV #db #err); optsArg opts dq o ∗
-      ((⌜err = GoInterface.nil⌝ ∗ isBolt db γ o.noSync ∗ boltOpened db γ) ∨
-       (⌜err ≠ GoInterface.nil⌝ ∗ boltClosed γ ∗ (⌜o.openFile = func.nil⌝ ∨ R))) }}
+      ((⌜err = GoInterface.nil⌝ ∗ isBolt db γ o.noSync ∗ boltOpened db γ ∗
+         (if o.noFreelistSync then iprop(emp) else
+            iprop(Sf true (!o.noSync) false false ∨ ∀ D : Data, commitAU γ D D o.noSync Sf))) ∨
+       (⌜err ≠ GoInterface.nil⌝ ∗ boltClosed γ ∗ (⌜o.openFile = func.nil⌝ ∨ R) ∗
+         (if o.noFreelistSync then iprop(emp) else
+            iprop((∃ ok synced failed brk : Bool, Sf ok synced failed brk) ∨
+              ∀ D : Data, commitAU γ D D o.noSync Sf)))) }}
 
 end spec
 

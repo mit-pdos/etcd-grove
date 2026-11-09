@@ -366,9 +366,12 @@ P3.) -/
 opaque coreIdle [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : Loc) : IProp GF := iprop(True)
 
 /-- **An acknowledgement of `RawNode` `rn`'s queue, released for stepping** (`rawNodeAt_advance`:
-the batch it acknowledges was entered and written). Exclusive: stepped once. The apply
-acknowledgement's carries the struct's idle token (`coreIdle`), which `appliedTo` uses for its
-auto-leave proposal once `applied` reaches the published floor, and its `ackDone` returns. -/
+the batch it acknowledges was entered and written). Exclusive: stepped once. The struct's
+idle token (`coreIdle`) stays in `rawNodeAdv` and comes back at `rawNodeAdv_open`'s closing; when
+the batch has an apply acknowledgement, that acknowledgement's `ackOk` lends it (`appliedTo`'s
+auto-leave proposal, once `applied` reaches the published floor) and its `ackDone` returns it. A
+batch with no committed entries, or with a snapshot (acknowledged by `appliedSnap`, at a
+non-leader), has no apply acknowledgement and does not need it. (Re-review S-b.) -/
 opaque ackOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (rn : Loc) (γ : Cluster) (m : Msg) : IProp GF := iprop(True)
 
 /-- The receipt that acknowledgement `m` was stepped (`raft.Step`'s post), which
@@ -545,7 +548,10 @@ while the run goroutine steps them concurrently -- cannot wait for.)
 Realization against R3's log laws: the batch is folded into the log (`raftLog_absorb`: R1's
 `readyStor rn none j []` is R3's `logPending h false false`), and the delivered log is published as
 a floor (`raftLog_publish` at `i ≤ applying`, the batch absorbed: each delivered entry was written
-in this batch or an earlier one and is committed, so frozen), which is R1's `appliedLb`
+in this batch or an earlier one and is committed, so frozen; for a batch with a snapshot, whose
+delivered log ends at `s.index` while `applying` has not moved, the floor is the one
+`logStor_install` gave, `logFloor l s.index s.term`, which `readyStor rn none j []` keeps for raft's
+side: re-review S-a), which is R1's `appliedLb`
 (`logFloor_agree` ties its term to the committed log); the struct's idle token is taken
 (`coreIdle`: its floor is ahead of `applied` until the apply acknowledgement is stepped). The view's
 ghost may move to the snapshot's configuration before the tracker does (`appliedSnap`, stepped

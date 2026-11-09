@@ -599,7 +599,9 @@ introduction must keep 1b's `ctxStreamKey_prin` (`ApiWatch.lean`: equal stream k
 principals) true: a new one for a context with other outgoing metadata must print injectively
 (lower-case keys, values free of space, `:`, `[`, `]`: `Fmt.printMD_inj`). Intended realization:
 `∃ md, Grpc.outMD ctx md ∗ ⌜the principal md's token names (or dflt without one)⌝`, so that
-`streamKeyFromCtx`'s proof reads the same metadata. -/
+`streamKeyFromCtx`'s proof reads the same metadata. `ctxPrin` is not indexed by a cluster
+(`ctxPrin_token` forgets `tokenUser`'s `γ`): one cluster per program (re-review S-c; tokens of two
+clusters naming different users would break `ctxStreamKey_prin`). -/
 opaque ctxPrin [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (dflt : Principal) (ctx : GoInterface) (p : Principal) : IProp GF := iprop(True)
 
 /-- **Slot (2a)**: `ctx` carries the outgoing metadata `token: tok` (grpc's `metadata`: the gRPC

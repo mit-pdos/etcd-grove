@@ -42,7 +42,7 @@ key is under the prefix and its key-value is the record of its mod revision, whi
 put after the read" needs exact events). `ReqEveryItemOnce`, `ReqDequeueClosed` no longer assume
 the compaction condition.
 
-**Changes (verify-round)**: none to the triple; the snippets that dequeue from a non-empty queue now assume the compaction condition too (A3 F3: the gate covers every path, as the caller cannot tell them apart). Making the read path's facts unconditional needs 1b's unconditional in-range event fact (requested).
+**Changes (verify-round)**: none to the triple; the snippets that dequeue assumed the compaction condition (A3 F3), since narrowed by the second pass above to the snippets that check the order.
 
 **Margin**: on an error the caller's update is not given back, though only an indefinite error of a
 claim may have fired it. The order is by mod revision (`WithFirstRev()`), which is the creation

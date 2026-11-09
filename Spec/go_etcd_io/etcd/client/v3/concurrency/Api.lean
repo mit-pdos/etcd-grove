@@ -27,7 +27,8 @@ revisions**, not of time. The guarantees are:
   writes only its session's key (`sessKey pfx lease`, `mutexEff`, `campaignEff`), so with W0's
   `EnvCfg.leaseExpiry = false` (no key deleted but by its owner) a holder's key stays until its
   `Unlock`, and a later locker's `lockedSince` excludes it: **time exclusion** between the
-  holders of distinct sessions (snippet `ReqMutexNoTwoHolders`; verify-round A3 completeness F2).
+  holders of distinct sessions (snippets `ReqMutexNoTwoHolders`, `ReqElectionNoTwoLeaders`; verify-round
+  A3 completeness F2; the sessions' leases distinct by `NewSession.spec`'s grant pre-state).
 * **Election**: `Campaign` gives the wait's fact at its create revision (`waitedFor`, without the
   last check: `nonissues/election-campaign-key-check.md`); `Proclaim` and `Resign` are fenced by
   the comparison `CreateRevision(leaderKey) = leaderRev` and say whether it held (as W0's
@@ -133,7 +134,8 @@ one of them; `notConcErr` a definition); `handles_persistent`; `isSession_client
 `ReqSessionDone`, `ReqSessionClose`, `ReqSessionTTL`), `mutex.go` (`ReqFencedWrite`: the fence;
 `ReqV3LockPattern`, `ReqTryLock`, `ReqLockUnlock`, `ReqLocker`, `ReqLockAfterUnlock`,
 `ReqMutexNoTwoHolders`: time exclusion with no lease expiry), `election.go`
-(`ReqCampaignProclaim`, `ReqResumedProclaim`, `ReqLeader`, `ReqLeaderFenced`, `ReqObserve`),
+(`ReqCampaignProclaim`, `ReqResumedProclaim`, `ReqLeader`, `ReqLeaderFenced`, `ReqObserve`,
+`ReqElectionNoTwoLeaders`: time exclusion of leaders),
 `stm.go` (`ReqSTMTransfer`: serializability keeps an invariant; `ReqSTMLevels`,
 `ReqSTMRepeatable`, `ReqSTMPrefetch`, `ReqSTMAbort`).
 -/

@@ -891,7 +891,9 @@ durable state `D`), the client may move its `raftState` to any state the crash l
 whole** (verify-round, A4 P2(a): etcd's WAL and kvdurable's file write the state record whole, after
 the entries): either the old one (`D`'s term and vote, a commit between `D.wcommit` and `D.commit`:
 the last state record synced, or a later commit-only record) or the batch's (its term and vote, a
-commit between `D.wcommit` and the batch's), within the written log -- provided the result has at
+commit between `D.wcommit` and the batch's, **with all of the batch's entries written**: the state
+record follows the entries in the write, and with fewer entries the batch's commit may cover an old
+entry the batch replaces; re-review N1), within the written log -- provided the result has at
 most one conf-change entry above its commit (`confAboveOk`). (Round 3's statement allowed the old
 term with the batch's commit, which no storage writes and which breaks `BatchOk`'s term clause at
 the restart: committed entries of the batch's newer term reported with the old term.)
@@ -914,7 +916,7 @@ def raftState_crash.spec : Prop :=
     ((hs.term = st.durable.term ∧ hs.vote = st.durable.vote ∧
         uint.nat hs.commit ≤ uint.nat st.durable.commit) ∨
       (∃ h, b.hs = some h ∧ hs.term = h.term ∧ hs.vote = h.vote ∧
-        uint.nat hs.commit ≤ uint.nat h.commit)) →
+        uint.nat hs.commit ≤ uint.nat h.commit ∧ j = b.ents.length)) →
     uint.nat hs.commit ≤ (st.durable.crashed b j hs).last →
     (st.durable.crashed b j hs).confAboveOk →
     readyEnter (GF := GF) n γ id st b dl ∗ raftState γ id st.durable ∗ nodeVacant γ id ⊢ |==>

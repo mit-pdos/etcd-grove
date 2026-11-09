@@ -13,14 +13,16 @@ configuration's copy.
 Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/New.lean` (plain endpoints, no TLS, no token,
 no dial options, keepalive, auto-sync or version check, `clientCfgOk`; the result `isNewClient` with
 its watch environment): any configuration `cfgOk` admits (TLS, a token or a user name, Kubernetes'
-dial options, auto-sync with verification off, `RejectOldCluster`), the principal `who` the
+dial options, `RejectOldCluster`; auto-sync off since the verify round), the principal `who` the
 configuration names, the result W0's `clientMut` (the `KV` field writable, Kubernetes wraps it).
 
 Round 1: no endpoint: an error and `nil` (the post says so); the endpoints token (with auto-sync
 off the caller owns the endpoint list, `epsTok`); the principal per call (W0's round 3: `who` is the
-default one); `cfgPrincipal_user`'s certificate premise; `cfgOk`'s dial options may replace the
-client's interceptor (the gRPC proxy).
+default one); `cfgPrincipal_user`'s certificate premise; `cfgOk`'s dial options are the neutral
+ones (`dialOptsOk_neutral`; the gRPC proxy's replacing interceptors are not covered).
 
+re-review (S-a, S-d): the success post says the endpoint list is non-empty (what
+`Maint.StatusTriple` needs); stale Changes text corrected.
 verify-round: the no-endpoint error is `ErrNoAvailableEndpoints`'s value, read from the global
 (the sentinel encoding: `init.spec` gives it read-only, non-`nil`, distinct from the package's other
 errors; `errors.New`'s value is a fresh pointer, so no fixed Lean value).
@@ -61,7 +63,7 @@ def New.spec : Prop :=
       (⌜cfg.Endpoints'.len ≠ W64 0⌝ ∨
         ⌜c = null⌝ ∗ globalAddr go_etcd_io.etcd.client.v3.ErrNoAvailableEndpoints ↦□ err) ∗
       ((⌜err = GoInterface.nil⌝ ∗ clientMut c γ who ∗
-         (∃ eps, cfg.Endpoints' ↦*□ eps ∗ epsTok c (DFrac.own 1) eps)) ∨
+         (∃ eps, cfg.Endpoints' ↦*□ eps ∗ ⌜eps ≠ []⌝ ∗ epsTok c (DFrac.own 1) eps)) ∨
        ⌜c = null ∧ err ≠ GoInterface.nil⌝) }}
 
 end spec

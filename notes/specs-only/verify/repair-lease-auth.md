@@ -287,3 +287,29 @@ URLs as an explicit premise (or a premise inside the boot contract), not a sketc
 assumption.
 
 Build: `leasehttp` OK (3 modules).
+
+## Re-review (`R-A9-apply-txn-lease-auth.md`)
+
+- **N1 (first tier, a stale `authHook` survives `Recover`)**: fixed as the reviewer proposed.
+  - The store-indexed `authHook` and `authHook_intro` are removed.
+  - `hookOut` is now over the backend: `hookOut be Pre Q := Q ∨ (Pre ∗ authBeHook be Pre Q)`.
+  - New `AdminTriple` shape: binder `(be : GoInterface)` before `Pre Q`; pre `… ∗ authBeCur γa be
+    ∗ Pre ∗ authBeHook be Pre Q`; post `P ∗ authBeCur γa be ∗ hookOut be Pre Q ∗ ∃ res, …`.
+  - `AuthEnable`, `AuthDisable` and `HasRole` have the same change (`HasRole`'s post
+    `authCur ∗ authBeCur γa be ∗ Q ∗ …`).
+  - An unused hook now comes back as the backend's `authBeHook be`. After `Recover` the store's
+    `authBeCur` names the new backend, so an old backend's hook can no longer be used against it
+    (`authBeCur_excl`).
+- **S3**: `lessor__Renew.lean`'s Users note now says that the leasehttp handler (`http.go:91`) must
+  get a `threadTok` for `Renew` if it is ever specified. It is out of scope today: there is no
+  `NewHandler` spec.
+- **S4**: the `Assumes:` lines of `lease/ReqPromoteCheckpointer` and `auth/ReqBoot` now mention the
+  caller's thread token.
+- **Request to apply-txn:** the eleven admin sketches and `apply/Api.lean:139,736,801` still cite
+  `Auth.authHook`/`authHook_intro`.
+  - Replace them with: `authSt`'s `Auth.authBeCur γa be` plus `hooksOk`'s `Auth.authBeHook be R Q`,
+    passed straight to the `AdminTriple`, with `authBeCur` given back.
+  - `hookOut be R Q` is `Q`, or `R` with the backend's unused hook.
+
+  Only comments refer to it, so nothing breaks the build.
+- Build: `auth`, `lease` OK (123 modules). `go vet` passes.

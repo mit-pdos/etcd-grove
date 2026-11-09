@@ -7,6 +7,7 @@ Why true: it lowercases the key and returns the map's slice for it (shared, read
 convention: the interceptors only read it).
 
 Changes: new.
+Re-review (R-A6 N1): also of a `nil` map (`mdAtN true`: a lookup in a `nil` map gives `nil`, `md.get` of `[]` is `[]`).
 
 Margin: none.
 -/
@@ -33,10 +34,10 @@ variable [package_sem : google_golang_org.grpc.metadata.Assumptions]
 
 /-- `md.Get(k)`: the key's values (a read-only slice). -/
 def MD.Get.spec : Prop :=
-  ∀ (m : Loc) (dq : DFrac) (md : MD) (k : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.metadata ∗ mdAt m dq md }}
+  ∀ (b : Bool) (m : Loc) (dq : DFrac) (md : MD) (k : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.metadata ∗ mdAtN b m dq md }}
     (App (Val (m @!! google_golang_org.grpc.metadata.MD.ty @!! go!"Get")) (Val #k))
-  {{ (sl : GoSlice), RET #sl; mdAt m dq md ∗ sl ↦*□ md.get (lowerKey k) }}
+  {{ (sl : GoSlice), RET #sl; mdAtN b m dq md ∗ sl ↦*□ md.get (lowerKey k) }}
 
 end spec
 

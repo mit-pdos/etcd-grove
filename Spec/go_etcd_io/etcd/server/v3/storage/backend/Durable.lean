@@ -15,13 +15,15 @@ The laws that tie 4a's file vocabulary to 4c's (`Spec/go_etcd_io/bbolt/Api.lean`
 * **Unsynced renames** (second pass, server-boot's request): `OpenSnapshotBackend` renames a
   snapshot file onto the backend's path with no directory fsync (`backend.go:61-70`; the next
   `SaveDBFrom`'s fsync of the same directory makes it durable). A crash before that may bring the
-  destination's previous file back. `beRevert p o0` (exclusive): such a rename onto `p` is pending,
-  and `o0` is what the previous file held (closed, so fixed); `beNoRevert p` (exclusive): none is.
+  destination's previous file back. `beRevs p os` (exclusive; a list since the re-review, A8 N3:
+  two installs before a directory sync are reachable, `raft.go:284,307`, and a journaling file
+  system may keep a prefix of the unsynced renames, so any previous file may come back): the files
+  `os` a crash may bring back at `p` (closed, so fixed), `[]` none (`beNoRevert p`).
   The file laws (`beFile_of`, `beFile_bytes`, `beFile_none`) give `beNoRevert` (4c's `fileHolds` is
   of a durably named file); the rename's bridge (server-boot's trusted `Snap.dbFile_rename`, until
-  OsFs has `rename`) consumes the destination's `beFile p o0 ∗ beNoRevert p` and gives the renamed
-  file's `beFile p (some I) ∗ beRevert p o0`; the directory fsync (server-boot's `SaveDBFrom`) turns
-  `beRevert p o0` into `beNoRevert p`. Realization: OsFs's name state of `p` (`named`) with the
+  OsFs has `rename`) consumes the destination's `beFile p o0 ∗ beRevs p os` and gives the renamed
+  file's `beFile p (some I) ∗ beRevs p (o0 :: os)`; the directory fsync (server-boot's `SaveDBFrom`)
+  turns `beRevs p os` into `beNoRevert p`. Realization: OsFs's name state of `p` (`named`) with the
   previous inode's contents; **needs OsFs's crash relation for an unsynced rename to bring the old
   entry back** (4c's `boltCrash` says only "may be gone" for `named = false`): recorded as a gap.
 * `beCrash`: **a crash leaves the file at one of the committed images** (4c's `boltCrash`, over the
@@ -31,7 +33,7 @@ The laws that tie 4a's file vocabulary to 4c's (`Spec/go_etcd_io/bbolt/Api.lean`
   resources, the next generation gets `beFile p (some I)` for some `I ∈ L`; or, for a file created
   in this generation whose name was not yet durable (4c's `boltCrash`, `named = false`), no file
   (`beFile p none`, with `Image.empty ∈ L`: such a file began empty); or, with a pending rename
-  (`beRevert p o0`), the previous file `o0`. The revert state comes back `beNoRevert`. Serves 2d's item 3 (a
+  (`beRevs p os`), any of the previous files `os`. The revert state comes back `beNoRevert`. Serves 2d's item 3 (a
   restart finds a committed image, whose meaning the server's invariant attached at its commit),
   2e's `memberDisk`, 3c's item 4 (a session's writes land in one commit).
 
@@ -105,26 +107,26 @@ def beFile_none.spec : Prop :=
     ⊢ beFile p none ∗ beNoRevert p
 
 /-- One revert state per path. -/
-def beRevert_excl.spec : Prop := ∀ p o o',
-  beRevert (GF := GF) p o ∗ beRevert p o' ⊢ iprop(False)
+def beRevert_excl.spec : Prop := ∀ p os os',
+  beRevertL (GF := GF) p os ∗ beRevertL p os' ⊢ iprop(False)
 
 def beNoRevert_excl.spec : Prop := ∀ p,
   beNoRevert (GF := GF) p ∗ beNoRevert p ⊢ iprop(False)
 
-def beRevert_noRevert.spec : Prop := ∀ p o,
-  beRevert (GF := GF) p o ∗ beNoRevert p ⊢ iprop(False)
+def beRevert_noRevert.spec : Prop := ∀ p os,
+  beRevertL (GF := GF) p os ∗ beNoRevert p ⊢ iprop(False)
 
 /-- **The crash law** (see the header): the next generation `L'` finds the file at one of the
 committed images; or no file, if the file was created empty in this generation and its name was not
-yet durable; or, with a rename onto `p` pending (`rv = some o0`), the previous file `o0`. -/
+yet durable; or, with renames onto `p` pending (`os`), any of the previous files. -/
 def beCrash.spec : Prop :=
   ∀ [HasExt osFsExt] (L' : GooseLocalGS GF) (γ : BeNames) (p : GoString) (L : List Image)
-    (rv : Option (Option Image)) (Ps : List GoString),
+    (os : List (Option Image)) (Ps : List GoString),
     p ∉ Ps →
-    beDurInv (GF := GF) γ p ∗ beSynced γ ∗ beHist γ L ∗ beRev p rv ∗ crashed ∗
+    beDurInv (GF := GF) γ p ∗ beSynced γ ∗ beHist γ L ∗ beRevs p os ∗ crashed ∗
       crashRest (gooseOsGS (L := hG.goose_localGS)) (gooseOsGS (L := L')) Ps ⊢
     |={⊤}=> ∃ o : Option Image,
-      ⌜(∃ I, o = some I ∧ I ∈ L) ∨ (o = none ∧ Image.empty ∈ L) ∨ rv = some o⌝ ∗
+      ⌜(∃ I, o = some I ∧ I ∈ L) ∨ (o = none ∧ Image.empty ∈ L) ∨ o ∈ os⌝ ∗
       @beFile _ _ _ GF ⟨hG.goose_globalGS, L'⟩ p o ∗
       @beNoRevert _ _ _ GF ⟨hG.goose_globalGS, L'⟩ p ∗
       crashRest (gooseOsGS (L := hG.goose_localGS)) (gooseOsGS (L := L')) (p :: Ps)

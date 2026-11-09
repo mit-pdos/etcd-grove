@@ -12,6 +12,14 @@ verify-round (A6 F3): the map is `nil` when `ok` is `false` (`metadata.go:331-33
 otherwise (a fresh `make`); `MD.Set` now takes a non-`nil` map, so a caller that writes without
 copying first must test `ok` (a write to the `nil` map panics). `mdAt` of the `nil` map is still
 given: it reads as empty (`Get`, `Copy`, a lookup on a `nil` map do not panic).
+Re-review (R-A6 N1): that `mdAt` of the `nil` map was contradictory (`mdAt_ownMap` makes it an
+`ownMap`, a heap points-to, never `nil`), so every caller's `ok = false` branch was vacuous; the
+`nil` case is now outside `mdAt` (`mdAtN true`: `m = null ∧ md = []`), and `MD.Copy`/`MD.Get` take
+either case.
+Recheck (RR1): a gated row, `ctxNoMeta ctx -∗ ⌜ok = false⌝`: a context whose
+`Value(mdOutgoingKey{})` is `nil` has no metadata attached, and grpc returns `nil, false` exactly
+then (`metadata.go:325-328`); `outMD ctx []` alone cannot tell it from an attached empty `MD`, for
+which `ok` is `true`.
 
 Margin: `ok` is `false` exactly when no metadata was attached; the spec says only `md = []` then.
 -/
@@ -41,8 +49,8 @@ def FromOutgoingContext.spec : Prop :=
   ∀ (ctx : GoInterface) (md : MD),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.metadata ∗ Context.ctxOk ctx ∗ outMD ctx md }}
     (App (Val (@! google_golang_org.grpc.metadata.FromOutgoingContext)) (Val #ctx))
-  {{ (m : Loc) (ok : Bool), RET (PairV #m #ok); mdAt m (DFrac.own 1) md ∗
-      ⌜(ok = false → m = null ∧ md = []) ∧ (ok = true → m ≠ null)⌝ }}
+  {{ (m : Loc) (ok : Bool), RET (PairV #m #ok); mdAtN (!ok) m (DFrac.own 1) md ∗
+      ⌜ok = true → m ≠ null⌝ ∗ (Context.ctxNoMeta ctx -∗ ⌜ok = false⌝) }}
 
 end spec
 

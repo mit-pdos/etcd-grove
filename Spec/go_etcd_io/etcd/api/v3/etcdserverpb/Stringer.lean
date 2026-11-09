@@ -6,7 +6,8 @@ etcd's loggers take a request as a `fmt.Stringer` (`txn.WarnOfExpensive*`): a me
 apply's `*InternalRaftStringer`. `String()` reads the message, so a stringer holds what it reads:
 `stringerAt s` (**not persistent**), given back by every call of `String()`. A share of a message is
 one (`stringerAt_msg`, the share given back when the stringer is); a read-only message gives a
-persistent one (`stringerAt_discard`).
+persistent one (`stringerAt_discard`). Re-review (R-A6, second tier): each law takes the depth bound
+`depth c < depthMax` (protobuf's text marshaling recurses per level, as `Marshal` does).
 
 Replaces txn's provisional persistent `Txn.stringerOk` ("3h's", `txn/Api.lean`), which no law could
 introduce soundly: the request path's `Range` logs a request its caller holds only a fraction of and
@@ -49,12 +50,12 @@ def stringerAt_call.spec : Prop := ∀ (s : GoInterface),
 /-- **A share of a message is a stringer** (protobuf's `String()` reads it), the share given back
 with the stringer. -/
 def stringerAt_msg.spec : Prop := ∀ (t : go.GoType) (p : Loc) (dq : DFrac) (c : Proto.Content),
-  Proto.msgAt (GF := GF) t p dq c ⊢
+  Proto.msgAt (GF := GF) t p dq c ∗ ⌜Proto.depth c < Proto.depthMax⌝ ⊢
     stringerAt (Proto.msgVal t p) ∗ (stringerAt (Proto.msgVal t p) -∗ Proto.msgAt t p dq c)
 
 /-- A read-only message is a stringer for good. -/
 def stringerAt_discard.spec : Prop := ∀ (t : go.GoType) (p : Loc) (c : Proto.Content),
-  Proto.msgAt (GF := GF) t p DFrac.discard c ⊢ □ stringerAt (Proto.msgVal t p)
+  Proto.msgAt (GF := GF) t p DFrac.discard c ∗ ⌜Proto.depth c < Proto.depthMax⌝ ⊢ □ stringerAt (Proto.msgVal t p)
 
 /-- **The apply's `&pb.InternalRaftStringer{Request: r}` over a read-only request is a stringer for
 good** (verify-round, apply-txn's request: the dispatch's deferred `WarnOfExpensiveRequest` and
@@ -64,7 +65,7 @@ request message (protobuf's text of it, with the password fields of the auth req
 field is persisted by its allocator (Go's `↦` persist law). -/
 def stringerAt_irr.spec : Prop := ∀ (w r : Loc) (c : Proto.Content),
   (w.[etcdserverpb.InternalRaftStringer, go!"Request"] ↦□ r : IProp GF) ∗
-    Proto.msgAt etcdserverpb.InternalRaftRequest.ty r DFrac.discard c ⊢
+    Proto.msgAt etcdserverpb.InternalRaftRequest.ty r DFrac.discard c ∗ ⌜Proto.depth c < Proto.depthMax⌝ ⊢
   □ stringerAt (interface.mkOk (go.GoType.PointerType etcdserverpb.InternalRaftStringer.ty) #w)
 
 end laws

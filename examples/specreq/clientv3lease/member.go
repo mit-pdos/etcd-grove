@@ -33,16 +33,52 @@ func ReqGrantThenListOneMember(ctx context.Context, cli *clientv3.Client, ttl in
 	panic("grant-then-list-one-member: the granted lease is not listed")
 }
 
-// REQ clientv3lease/gone-not-listed: through a client of one endpoint, once TimeToLive reports a
-// lease unknown, a later Leases does not list it (unless its id is granted again).
-// Users: examples/etcd/leaseexpiry/leaseexpiry.go:79-102 ("Leases listed the lease after TimeToLive
-// found it gone").
+// REQ clientv3lease/gone-not-listed: through a client of one endpoint, once Leases no longer lists a
+// lease it granted, a later Leases does not list it either (the member's lessor only moves
+// forward; unless the id is granted again).
+// Users: examples/etcd/leaseexpiry/leaseexpiry.go:79-102 (there the expiry is seen by TimeToLive,
+// which the leader answers: the same fact holds because its one member is the leader; a TimeToLive
+// through a follower gives no per-member fact, re-review N1).
 // Assumes: as above, and no principal grants the id again (the server chooses ids; the example
 // grants one lease).
-// Specs: lessor.TimeToLive.spec, lessor.Leases.spec (LeaseRead.Triple's view: TimeToLive's answer
-// at table i gives leaseViewLb γ ep i; Leases answers at j ≥ i); model: State.leaseAnsAt (a revoked
-// lease is absent from every later table until granted again).
-func ReqGoneNotListed(ctx context.Context, cli *clientv3.Client, id clientv3.LeaseID) {
+// Specs: lessor.Grant.spec (via: leaseViewLb γ ep of the table after the grant), lessor.Leases.spec
+// (LeaseRead.Triple's view: an answer at ep's table j ≥ i gives leaseViewLb γ ep j); model:
+// State.leaseAnsAt, leaseTables (a lease absent from a table after its grant is absent from every
+// later one until granted again).
+func ReqGoneNotListed(ctx context.Context, cli *clientv3.Client, ttl int64) {
+	g, err := cli.Lease.Grant(ctx, ttl)
+	if err != nil {
+		return
+	}
+	listed := func() (bool, bool) {
+		ls, err := cli.Lease.Leases(ctx)
+		if err != nil {
+			return false, false
+		}
+		for _, l := range ls.Leases {
+			if l.ID == g.ID {
+				return true, true
+			}
+		}
+		return false, true
+	}
+	if in, ok := listed(); !ok || in {
+		return
+	}
+	if in, ok := listed(); ok && in {
+		panic("gone-not-listed: a lease no longer listed is listed again")
+	}
+}
+
+// REQ clientv3lease/ttl-gone-not-listed-sole: in a single-member cluster, once TimeToLive reports a
+// lease unknown, a later Leases does not list it (unless its id is granted again).
+// Users: examples/etcd/leaseexpiry/leaseexpiry.go:79-102 ("Leases listed the lease after TimeToLive
+// found it gone"; one member).
+// Assumes: as above; the cluster has one member, at ep, for good (soleMember γ ep); no principal
+// grants the id again.
+// Specs: lessor.TimeToLive.spec, lessor.Leases.spec (LeaseRead.Triple's viaFact: TimeToLive's answer
+// at ep's table i given soleMember; Leases answers at j ≥ i); model: State.leaseAnsAt.
+func ReqTTLGoneNotListedSole(ctx context.Context, cli *clientv3.Client, id clientv3.LeaseID) {
 	t, err := cli.Lease.TimeToLive(ctx, id)
 	if err != nil || t.GrantedTTL != 0 {
 		return
@@ -53,7 +89,7 @@ func ReqGoneNotListed(ctx context.Context, cli *clientv3.Client, id clientv3.Lea
 	}
 	for _, l := range ls.Leases {
 		if l.ID == id {
-			panic("gone-not-listed: a lease TimeToLive found gone is listed")
+			panic("ttl-gone-not-listed-sole: a lease TimeToLive found gone is listed")
 		}
 	}
 }

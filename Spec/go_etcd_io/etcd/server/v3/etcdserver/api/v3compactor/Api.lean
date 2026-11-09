@@ -24,7 +24,7 @@ environment's update is then aborted).
   `bootCfg_build` (what `NewServer`'s proof hands `New` and the `Compactable`'s construction).
   Kubernetes' deployment (compaction by clients, the compactor off) is `bootCfg_off` at any `ac`.
 * `compactable c R` (persistent): **the interface value `c` (`Compactable`) may be called once `R`
-  holds**: under `□ R`, for a child of `context.Background()` (the compactor's own context,
+  holds**, at a positive revision: under `□ R`, for a child of `context.Background()` (the compactor's own context,
   `WithCancel(Background())`, `periodic.go:61`, `revision.go:58`) and a fresh, non-physical compaction request,
   `Compact` returns (any response, any error). The receiver's need (PRINCIPLES, "A contract between
   packages states the receiver's need"). Verify-round (A7 completeness F2): the gate `R` and the
@@ -32,7 +32,7 @@ environment's update is then aborted).
   `Compact` needs the started server (`s.w` is nil before `start`: a panic) and a context with no
   incoming metadata; `R` is what `start` publishes (2d's choice, as 3c's `ckptGate`), and only
   `Run` (called by `start`) needs `□ R`.
-* `revGetter rg` (persistent): `rg.Rev()` returns (any `int64`), at any time, also after the store
+* `revGetter rg` (persistent): `rg.Rev()` returns (an `int64` of at least `1`), at any time, also after the store
   is closed (3e's obligation: `req/go_etcd_io_etcd_server_v3_storage_mvcc.md`, "from 2e").
 * `isCompactor cp R` (persistent): `cp` is a `Compactor` (`*Periodic` or `*Revision`) over a
   `compactable` gated by `R` and a `revGetter`: `Run` (with `□ R`), `Pause`, `Resume`, `Stop` may be
@@ -125,21 +125,26 @@ pass, server-core's request 2: so the server's `Compact` needs no `srvGate` shar
 holding a thread token. The server proves it from 2c's `EtcdServer.Compact.spec`
 (its `isServer` and gate share from `R`, the context's `ctxNoIncoming` and `reqPrin … none none` from
 2c's `ctxNoIncoming_background`/`_child`) and `envUpd`; a test's fake from its method's WP
-(`R := True`). -/
+(`R := True`). Re-review (R-A7 N1): only at a positive revision (`0 < rev`), which 2c's
+`Compact.spec` needs (`rev ≠ 0`) and the loops guarantee: `Revision`'s skips `rev <= 0`
+(`revision.go:82`), `Periodic`'s compacts a revision `Rev()` returned, at least `1` by
+`revGetter`'s contract. -/
 def compactable_intro.spec : Prop := ∀ (i : GoInterfaceOk) (R : IProp GF),
   (□ (R -∗ ∀ (ctx : GoInterface) (r : Loc) (rev : Int),
       Context.ctxOk ctx ∗ Context.ctxChild (GoInterface.ok context.backgroundCtxVal) ctx ∗
-        EtcdWire.compactReqOwn r (DFrac.own 1) rev false ∗ threadTok -∗
+        EtcdWire.compactReqOwn r (DFrac.own 1) rev false ∗ ⌜0 < rev⌝ ∗ threadTok -∗
       WP (App (App (Val #(methods i.ty go!"Compact" i.v)) (Val #ctx)) (Val #r))
         {{ fun _ => iprop(threadTok) }})) ⊢
   compactable (GF := GF) (interface.ok i) R
 
 /-- **Introduction of `revGetter`**: `Rev` safe at any time on a goroutine holding a thread token,
 given back (3e's store, also after `Close`: its `KV.Rev.contract` at `revRd γ true`, the persistent
-`mvccRevTok γ` that `mvccRevTok_of` lends for good, with the caller's `threadTok`; integration Y/X). -/
+`mvccRevTok γ` that `mvccRevTok_of` lends for good, with the caller's `threadTok`; integration Y/X).
+Re-review (R-A7 N1): the revision returned is at least `1` (the store's revision starts at `1`),
+which `Periodic`'s compaction at a revision `Rev()` returned needs (`compactable`'s `0 < rev`). -/
 def revGetter_intro.spec : Prop := ∀ i : GoInterfaceOk,
   (□ (threadTok -∗ WP (App (Val #(methods i.ty go!"Rev" i.v)) (Val #()))
-        {{ fun _ => iprop(threadTok) }})) ⊢
+        {{ fun v => iprop(threadTok ∗ ⌜∃ n : w64, v = #n ∧ 1 ≤ sint.Z n⌝) }})) ⊢
   revGetter (GF := GF) (interface.ok i)
 
 /-- **Elimination of `isCompactor`** (round 1, provability F7: the calls through the `Compactor`

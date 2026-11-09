@@ -269,3 +269,38 @@ only the unpublished hook session. It no longer takes `beLive`, because the save
 after cindex's `txStoredCI_sess` (`F = ciCells`). `hookWrites` chains, so the hook's whole write is
 `hookWrites (Fp.union ciCells confStateCells) S0 S''`. `hookOk` is unchanged. Build: backend dir
 OK (105 modules).
+
+## Re-review
+
+- **A8 N3 (server-boot's request; revert state as a list): done.**
+  - The opaque is now `beRevertL p (os : List (Option Image))`.
+  - `beRevs p os` is the list form of the state: `[]` is `beNoRevert p`, anything else is
+    `beRevertL p os`.
+  - `beRevert_excl` and `beRevert_noRevert` are now over `beRevertL`.
+  - `beCrash` takes `beRevs p os` and its revert case is `o ∈ os`: any previous file may come back,
+    since a journaling file system keeps a prefix of the unsynced renames.
+  - The header says the rename turns `beRevs p os` into `beRevs p (o0 :: os)`, and the directory
+    fsync gives back `beNoRevert`.
+  - `beRevert p o := beRevertL p [o]` and `beRev p rv := beRevs p rv.toList` stay as transitional
+    defs. They keep server-boot's `snap/Api.lean` (`revertSt`) and rafthttp's `saveOk` building
+    unchanged. Server-boot can now set `revertSt p os := Backend.beRevs p os`, and rafthttp can move
+    to `beRevs`; after that the two defs can be deleted.
+- **A10 re-review N1: fixed.** `MvccStorage.lean`'s realization text is now stated at `Fm`/`keyDataOfM m`:
+  - `kbRead`;
+  - the `KeyData.mid`/`fin` identities;
+  - the `Unlock`, puts' `writable` and `ConcurrentReadTx` rows.
+
+  There is also a one-line note before the rows. The law's statement is unchanged.
+- **N2: fixed.** `backend__begin.lean` now cites 4c's `statSlot_wtx.spec` (it exists) in place of
+  the "requested" text.
+- **N3: fixed.** `ReqSnapshotFresh` now writes the snapshot through `writeDurable`, which does
+  `O_CREATE|O_EXCL`, `Write`, `Sync`, `Close`, then fsyncs the directory; that is what
+  `beFile_bytes`' premise needs (named, clean, `lo = hi = size`). The file and directory syncs
+  over OsFs are assumed, as stated in `Assumes:`. The snippet now reopens through `openBackend`
+  (`DefaultBackendConfig.spec`, `New.spec`) instead of `NewDefaultBackend`, so no new spec is
+  needed. The snippet takes the directory as an extra argument.
+- **N4: fixed.** `confStateSave_hook`'s docstring now has a margin line: the saved bytes are
+  existential, not stated to be `c`'s JSON encoding.
+
+Build: backend dir OK (105 modules). Importers OK (4 modules): `snap/Api`, `rafthttp/Api`,
+`EtcdServer__applySnapshot`, `bootstrap`. `go vet` and `gofmt` are clean on `specreq/backend`.

@@ -23,7 +23,8 @@ Changes: verify-round (A8 provability F7, F9): two updates around the directory'
 Last pass (backend-schema's request): the directory fsync (on success, in both branches) also
 makes durable a pending rename onto any entry `p` of `sd` (`inDir sd p`: the backend file
 `<snap dir>/db` after `OpenSnapshotBackend`): the second update (the directory fsync, the real
-atomic point) takes `Backend.beRev p rv` in its precondition (any `rv`) and gives `beNoRevert p`;
+atomic point) takes the revert state `revertSt p os` in its precondition (any `os`; re-review N3:
+the list of files a crash may bring back) and gives `revertSt p []` (`beNoRevert p`);
 on an error neither update fired has touched it. Final relay round (rafthttp's request): the
 revert state is in the update, not held for the whole call (round "last pass" held it from the
 call's start, which two concurrent snapshot handlers could not both do).
@@ -60,9 +61,9 @@ def Snapshotter.SaveDBFrom.spec : Prop :=
     (p : GoString),
   let au : IProp GF := iprop(AU <{ ∃∃ (F : Nat → Option BeImage), snapDbs sd F }> @ ⊤, ∅
         <{ snapSaving sd F (uint.nat id) img, COMM
-           AU <{ ∃∃ (rv : Option (Option BeImage)), snapSaving sd F (uint.nat id) img ∗
-                   Backend.beRev p rv }> @ ⊤, ∅
-             <{ snapDbs sd (saveAt F (uint.nat id) img) ∗ Backend.beNoRevert p, COMM Q }> }>)
+           AU <{ ∃∃ (os : List (Option BeImage)), snapSaving sd F (uint.nat id) img ∗
+                   revertSt p os }> @ ⊤, ∅
+             <{ snapDbs sd (saveAt F (uint.nat id) img) ∗ revertSt p [], COMM Q }> }>)
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap ∗ isSnapshotter ss sd ∗ dbReader r img ∗ ⌜ServerStorage.diskOk ∧ inDir sd p⌝ ∗ au }}
     (App (App (Val (ss @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter.ty @!! go!"SaveDBFrom")) (Val #r)) (Val #id))
   {{ (n : w64) (err : GoInterface), RET (PairV #n #err);

@@ -440,7 +440,8 @@ def memberBkts_elim.spec : Prop :=
 or already published at `Cindex.ciCells` by the consistent index's write: the two compose, since
 `hookWrites` chains) and the cell's batch part, the save returns the session widened by
 `confStateCells`, changed only at that cell as `hookWrites` allows, holding the saved bytes at the
-key, and the part at them. No liveness: the save is one `UnsafePut`, which needs none (the hook is
+key, and the part at them. **Margin** (re-review N4): the saved bytes `bs` are existential, not
+stated to be the JSON encoding of `c` (no verified user reads `confState` back). No liveness: the save is one `UnsafePut`, which needs none (the hook is
 lent only the session, `hookOk`). -/
 def confStateSave_hook.spec : Prop :=
   ∀ (γ : BeNames) (q : Qp) (F : Fp) (S : Sess) (C : Image) (lg cs : Loc) (dq : DFrac)

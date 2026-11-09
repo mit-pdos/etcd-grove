@@ -9,6 +9,7 @@ Proof sketch: `clientv3.New(cfg)` (its spec); a fresh `*Client` holding it, its 
 to itself.
 
 Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/kubernetes/New.lean`: as `clientv3.New`'s.
+re-review (S-a): the endpoint list is non-empty, as `clientv3.New`'s.
 verify-round: the endpoints token `clientv3.New` gives (auto-sync off) is passed on (A2-completeness
 F1: without it no Kubernetes client could call `Status`, the feature checker's
 `feature_support_checker.go:142,194`, or `Endpoints`). The snippet `ReqKubeStatus`
@@ -50,7 +51,7 @@ def New.spec : Prop :=
                  Kubernetes' := interface.mkOk
                    (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty) #kc } :
                go_etcd_io.etcd.client.v3.kubernetes.Client) ∗ clientMut c γ who ∗
-        (∃ eps, cfg.Endpoints' ↦*□ eps ∗ epsTok c (DFrac.own 1) eps)) ∨
+        (∃ eps, cfg.Endpoints' ↦*□ eps ∗ ⌜eps ≠ []⌝ ∗ epsTok c (DFrac.own 1) eps)) ∨
       ⌜kc = null ∧ err ≠ GoInterface.nil⌝ }}
 
 end spec

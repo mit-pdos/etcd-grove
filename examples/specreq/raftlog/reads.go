@@ -86,7 +86,9 @@ func ReqPrevTerm(l *raftLog) {
 // REQ raftlog/scan-conf-changes: the unapplied committed entries are visited in order, each page
 // once, and a callback's error stops the scan with that error.
 // Users: raft.go:1014-1040 (hasUnappliedConfChanges).
-// Assumes: applied >= the log's base (outside appliedSnap); the range fits in memory.
+// Assumes: applied >= the log's base (outside appliedSnap); no floor published above applied
+// (floor <= applied: the struct idle, coreIdle_floor; else compactFloor exceeds applied and a page
+// may answer ErrCompacted; re-review N1); the range fits in memory.
 // Specs: raftLog.scan.spec.
 func ReqScanConfChanges(l *raftLog) bool {
 	if l.applied >= l.committed {

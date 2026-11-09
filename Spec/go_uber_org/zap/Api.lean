@@ -36,9 +36,9 @@ message), `Logger.Fatal` (never returns), `Logger.Check` (below `DPanicLevel`: `
 `zapcore.CheckedEntry.Write`; the field constructors `String`, `Strings`, `ByteString`, `Bool`,
 `Int`, `Int32`, `Int64`, `Uint`, `Uint32`, `Uint64`, `Duration`, `Float64`, `Time`, `Binary`,
 `Stringer`, `Stack`, `Error`, `NamedError`, `Any` (each returns some field; a field is a plain value
-the logger only formats); `Logger.Named`, `Logger.With` (a logger), `Logger.Sync`. Not specified
-(no specced caller needs them yet): `Logger.Core`/`Core.Enabled` (`api/v3rpc/interceptor.go:94`),
-`WithOptions`, `Sugar`.
+the logger only formats); `Logger.Named`, `Logger.With` (a logger), `Logger.Sync`. `Logger.Core` (a
+`coreOk` core) and `zapcore.Core.Enabled` on it (`api/v3rpc/interceptor.go:94`; re-review). Not
+specified (no specced caller needs them yet): `WithOptions`, `Sugar`.
 
 **Margin** (verify round, A1-provability N4): the logging methods take the `fields` slice and the
 values a field keeps (`Stringer`, `Any`, `Error`, `Binary`) with no ownership: zap reads them
@@ -75,6 +75,12 @@ opaque entryOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors
 def isLogger_persistent.spec : Prop := ∀ l, Persistent (isLogger (GF := GF) l)
 
 def isLogger_ne_null.spec : Prop := ∀ l, isLogger (GF := GF) l ⊢ ⌜l ≠ null⌝
+
+/-- **`core` is a zap logger's core** (persistent: `Logger.Core()` of an `isLogger` logger, one of
+zap's cores; its `Enabled` returns from any goroutine). -/
+opaque coreOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (core : GoInterface) : IProp GF := iprop(True)
+
+def coreOk_persistent.spec : Prop := ∀ c, Persistent (coreOk (GF := GF) c)
 
 end res
 

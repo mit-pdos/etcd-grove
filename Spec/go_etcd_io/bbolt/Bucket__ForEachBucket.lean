@@ -4,10 +4,23 @@ the first error.
 
 **Users.** `DeleteBucket` (its recursion), nested-bucket clients. Snippet: `ReqNested`.
 **Proof sketch.** As `ForEach`, skipping the entries without the bucket flag. **Changes.** New.
+
+**Re-review (N2): `spec_del`, the internal variant `DeleteBucket`'s recursion uses**
+(`bucket.go:305-312`: `child.ForEachBucket(func(k) { return child.DeleteBucket(k) })`). The
+callback changes the view at and below the bucket (`TxView.sameAt`: it deletes nested buckets of
+`p`), which the public spec (the view fixed, any fraction) cannot carry; and Go's cursor may skip a
+nested bucket after a delete in a materialized leaf (`issues/bbolt-deletebucket-nested-leak.md`,
+etcd-io/bbolt#1305), so the callback is called on an increasing subsequence of `ks`, and success
+ends at some loop index. Over all of the transaction (a write transaction's). Its proof is the
+public one's loop with the view existential, the cursor's keys a subsequence of `ks` (deletes
+remove keys at `p` and add none; the deleted inodes' key bytes stay valid). A second spec of one
+function, internal and for one caller: the public spec is not an instance of it (its fraction is
+any `q`), recorded as a margin of the one-spec rule for internals.
 -/
 module
 
 public import Spec.go_etcd_io.bbolt.Api
+public import Spec.go_etcd_io.bbolt.Internal
 
 @[expose] public section
 
@@ -43,6 +56,27 @@ def Bucket.ForEachBucket.spec : Prop :=
   {{ (err : GoInterface), RET #err; boltTx tx γ q T ∗
       ((⌜err = GoInterface.nil⌝ ∗ I ks.length) ∨
        (∃ i : Nat, ⌜err ≠ GoInterface.nil ∧ i < ks.length⌝ ∗ E i err)) }}
+
+/-- (internal) `b.ForEachBucket(fn)` whose `fn` may change the view at and below `p`
+(`DeleteBucket`'s recursion): `fn` is called on an increasing subsequence of the nested buckets'
+names `ks` (index `j ≥` the loop's `i`), with all of the transaction at a view `sameAt` the first;
+the result is such a view and the loop state at some index, or the callback's error. -/
+def Bucket.ForEachBucket.spec_del : Prop :=
+  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (T : TxView) (b : Loc) (p : BPath) (gs : List Nat)
+    (fn : GoFunc) (I : Nat → TxView → IProp GF) (E : GoInterface → TxView → IProp GF)
+    (ks : List GoString),
+  {{ boltTx (GF := GF) tx γ 1 T ∗ bktH tx γ b p gs ∗
+      ⌜T.gens p = gs ∧ ks = ((T.ents p).filter (fun e => e.2.isNone)).map Prod.fst⌝ ∗ I 0 T ∗
+      □ (∀ (i j : Nat) (kb : GoString) (k : GoSlice) (T' : TxView) (Φ : val → IProp GF),
+          ⌜i ≤ j ∧ ks[j]? = some kb ∧ T.sameAt T' p⌝ -∗ I i T' -∗ txBytes tx γ k kb -∗
+          boltTx tx γ 1 T' -∗
+          ▷ (∀ (err : GoInterface) (T'' : TxView), ⌜T.sameAt T'' p⌝ -∗ boltTx tx γ 1 T'' -∗
+              ((⌜err = GoInterface.nil⌝ ∗ I (j + 1) T'') ∨ (⌜err ≠ GoInterface.nil⌝ ∗ E err T'')) -∗
+              Φ #err) -∗
+          WP (App (Val #fn) (Val #k)) {{ Φ }}) }}
+    (App (Val (b @!! go.GoType.PointerType Bucket.ty @!! go!"ForEachBucket")) (Val #fn))
+  {{ (err : GoInterface), RET #err; ∃ T' : TxView, ⌜T.sameAt T' p⌝ ∗ boltTx tx γ 1 T' ∗
+      ((⌜err = GoInterface.nil⌝ ∗ ∃ i : Nat, I i T') ∨ (⌜err ≠ GoInterface.nil⌝ ∗ E err T')) }}
 
 end spec
 

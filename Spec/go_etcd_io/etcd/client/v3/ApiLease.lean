@@ -25,9 +25,12 @@ context carries (`ctxPrin who ctx p`).
   `GrantedTTL = 0`, no keys (`leaseTTLReply`).
 * **Per member** (W0's round 3): for a client frozen at one endpoint `ep` (`clientVia c ep`, its
   `Lease` field calling through `c`: `leaseOf v c`), a grant answered `.ok` gives `leaseViewLb γ ep`
-  of the table after it, and a read holding `leaseViewLb γ ep i` is answered from a table `j ≥ i`
-  and gives `leaseViewLb γ ep j` (`Lease.GrantTriple`'s and `LeaseRead.Triple`'s `via`): what
-  `examples/etcd/{leasegrant,leaseexpiry,leasecatchup}` rely on.
+  of the table after it, and a `Leases` holding `leaseViewLb γ ep i` is answered from `ep`'s table
+  `j ≥ i` and gives `leaseViewLb γ ep j` (`Lease.GrantTriple`'s and `LeaseRead.Triple`'s `via`,
+  `viaFact`): what `examples/etcd/{leasegrant,leaseexpiry,leasecatchup}` rely on. A `TimeToLive`
+  gives the same fact only in a single-member cluster (`soleMember γ ep`: a follower forwards it to
+  the leader, `v3_server.go:636-676`; re-review N1, recheck RR-1): what `leaseexpiry`'s "gone by
+  `TimeToLive`, so not listed" rests on.
 * **`KeepAlive(ctx, id)`**: no update. **A keep-alive tells nothing about the lease's state**: the
   model's keep-alive step changes nothing and its answer is any TTL. What is still observable, and
   what the spec gives: a channel (`kaChan ch id`, persistent) whose every value is a response about
@@ -244,9 +247,10 @@ def Lease.GrantTriple (m : GoString → val) (v : GoInterface) (P : IProp GF) (�
       (⌜resp = null⌝ ∗ indefCall err) }}
 
 /-- **A lease read** (`TimeToLive`, `Leases`) `e` sending `rq`, the update persistent; through a
-member `ep` with `leaseViewLb γ ep i` (`via = some (ep, i)`), an answer from the lessor
-(`leaseAnsRes`: not a refusal) is from a table `j ≥ i`, whose lower bound it gives (`viaFact`;
-verify round: a refusal tells nothing, the post claimed `leaseAnsAt` of it). -/
+member `ep` with `leaseViewLb γ ep i` (`via = some (ep, i)`), a `Leases` answer from the lessor
+(`leaseAnsRes`: not a refusal) is from `ep`'s table `j ≥ i`, whose lower bound it gives (`viaFact`;
+verify round: a refusal tells nothing; re-review N1, recheck RR-1: a `TimeToLive` tells it only
+given `soleMember γ ep`, the leader answers it). -/
 def LeaseRead.Triple (e : Expr) (v : GoInterface) (P B : IProp GF) (γ : Cluster) (p : Principal)
     (rq : Req) (reply : Resp → Loc → GoInterface → IProp GF) : Prop :=
   ∀ (via : Option (GoString × Nat)) (Q : State → State → Resp → IProp GF),

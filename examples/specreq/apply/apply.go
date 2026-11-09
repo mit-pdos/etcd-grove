@@ -37,8 +37,9 @@ func ReqNewUber(opts apply.ApplierOptions) apply.UberApplier {
 // Users: server/etcdserver/server.go:1994 (applyEntryNormal), its waiter v3_server.go:1019
 // (`resp.(*pb.PutResponse)`).
 // Assumes: e is a committed normal entry whose data is the marshalled InternalRaftRequest of a valid
-// put with id `id` (the request path's), its lease (if any) live; auth is disabled; no alarm is raised;
-// this goroutine is the apply thread.
+// put with id `id` (the request path's), its lease (if any) live, and not an IgnoreValue/IgnoreLease
+// put of an absent key (that one is ErrKeyNotFound: kvStep's p.check); auth is disabled; no alarm is
+// raised; this goroutine is the apply thread.
 // Specs: Apply.spec, isUber_apply (uberApplier.Apply.spec); laws: irrStep_step, applyStep_fun, and
 // opStep_step (its `ownStep`: the backend refuses nothing, so a put at auth off with no alarm is
 // kvStep's success; verify-round A9 F4).

@@ -324,7 +324,8 @@ func ReqNewLessor(be backend.Backend, id lease.LeaseID, ttl, minTTL int64) {
 // Users: server/etcdserver/server.go:395-404 (SetCheckpointer in NewServer), 1990 (Promote), 769
 // (Demote), v3_server.go:528 (Renew).
 // Assumes: SetCheckpointer is called once (lessorCkptTok); started is set before Promote (the gate
-// R: started's load is true); id was granted and never revoked nor recovered over.
+// R: started's load is true); id was granted and never revoked nor recovered over; the caller
+// holds a thread token (Renew lends it to the checkpointer).
 // Specs: lessor.SetCheckpointer.spec (ckptOk cp R: at Background(), with the caller's threadTok),
 // lessor.Promote.spec (ckptGate le R, □ R), lessor.Demote.spec, lessor.Renew.spec (the caller's
 // threadTok lent to the checkpointer).

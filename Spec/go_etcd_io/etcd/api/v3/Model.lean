@@ -855,11 +855,16 @@ end
 at one auth table, the user at another; second pass, grpc-v3rpc's P-F5, the shape of 2a's
 `V3rpc.adminDenied` and 3d's `adminPost`): the flag on at `jf`; no principal, or the empty user
 (`ErrUserEmpty`), a user absent at `jx` (`ErrUserNotFound`), or present and not of the root role
-(`ErrPermissionDenied`). -/
+(`ErrPermissionDenied`). The principal checked is the request's `who`, or no principal
+(`AuthInfoFromCtx` reads the flag on its own: with auth off then it gives no user from the token,
+or the client certificate's, which W0's scope makes `who`'s or none (`ctxPrin`, one identity per
+client): an `AuthEnable` racing the two reads; re-review of A6, N3). Recheck RR2: an earlier form
+admitted any principal once some table had auth off, which the initial table always has. -/
 def State.adminDenied (σ : State) (who : Principal) (e : EtcdErr) : Prop :=
-  ∃ (jf jx : Nat) (af ax : AuthState), σ.authTables[jf]? = some af ∧ σ.authTables[jx]? = some ax ∧
-    af.enabled = true ∧
-    match who with
+  ∃ (jf jx : Nat) (af ax : AuthState) (who' : Principal),
+    σ.authTables[jf]? = some af ∧ σ.authTables[jx]? = some ax ∧ af.enabled = true ∧
+    (who' = who ∨ who' = none) ∧
+    match who' with
     | none => e = .userEmpty
     | some u => (u = [] ∧ e = .userEmpty) ∨ (u ≠ [] ∧ ax.users u = none ∧ e = .userNotFound) ∨
         (u ≠ [] ∧ ax.users u ≠ none ∧ ¬ ax.isRoot u ∧ e = .permissionDenied)

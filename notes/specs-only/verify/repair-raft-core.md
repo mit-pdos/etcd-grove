@@ -216,3 +216,38 @@ a commit up to the batch's. It no longer exists. Where the citations differ:
 - `raftNode__start.lean:34` (server-core): this matches; it does not restate the cases. If its
   realization of the crash law (the file server-core reports) restates the round-3 disjunction
   (old or batch term and vote, commit up to the batch's), replace it with the two cases above.
+
+## Re-review (`R-A5-raft-log-conf-pb.md`)
+
+- **N1(a)**: fixed. `ReqScanConfChanges` (`raftlog/reads.go`) and `ReqCompactApplied`
+  (`raftlog/ready.go`) now assume `floor ≤ applied` (the struct is idle, `coreIdle_floor`). With it,
+  `compactFloor` is the applied index or the base, as `scan`'s and `term`'s specs need.
+- **N1(b)**: fixed. `ReqCompactApplied` and `ReqMoveBeforeAdvance` now assume their `cs` is full
+  (`confStateFull`, `AutoLeave` set), which `MemoryStorage.CreateSnapshot.spec` takes.
+- **Second tier, `ReqBootstrapBytes`**: not fixed. The snippet is in `examples/specreq/raftpb/`,
+  which belongs to raft-conf-pb. **Request to raft-conf-pb**: add to its `Assumes` a bound on the
+  context length large enough for `proto.Marshal`'s size premise. etcd's member JSON is small.
+- No code changed, only `Assumes` lines. `gofmt -l specreq/raftlog` finds nothing to change.
+
+### Re-review of A4 (`R-A4-raft-node-core.md`)
+
+- **N1**: fixed in `Api.lean`. `raftState_crash`'s batch-record case now requires
+  `j = b.ents.length`: the state record follows the entries in the write. The docstring explains
+  why. WAL's `crashedMid` and `disk_crash` use only the all-entries case, so no caller changes.
+- **N2**: fixed in `raft__hasUnappliedConfChanges.lean`. The premise is now
+  `compactFloor ≤ applied`, which covers both the published floor and the base, so it excludes a
+  pending restored snapshot. `hup` has it after `promotable` (no pending snapshot) and
+  `coreIdle_floor`.
+- **S-a**: fixed. `rawNodeAt_advance`'s realization now names the install's floor
+  (`logStor_install`'s `logFloor l s.index s.term`, kept by `readyStor rn none j []`) for a batch
+  with a snapshot.
+- **S-b**: fixed. `ackOk`'s docstring now says `coreIdle` stays in `rawNodeAdv` and returns at
+  `rawNodeAdv_open`'s closing. Only an apply acknowledgement lends it, for `appliedTo`'s auto-leave
+  proposal.
+- **S-c**: fixed. `ApiLog.lean` exports `logStored_mono` and `logFloor_mono` (downward closed),
+  which `storedLb_mono` and `appliedLb_mono` rest on.
+- **S-d**: not done here. `notes/perennial-changes.md` is outside my ownership. **Request to the
+  coordinator**: add an entry there for the missing `fmt.Fprintf` / `strings.Builder` specs, which
+  are why `DescribeConfChange` is assumed.
+- Build after these fixes: `etc/specs-build.sh --dir Spec/go_etcd_io/raft/v3` OK (229 modules); `go vet ./specreq/raftnode/...` clean.
+- **Recheck NR1** (`RR-raftlog-bbolt.md`): fixed. `ReqCompactApplied` (`raftlog/ready.go`) now assumes `applied >= base` as well as `floor <= applied` (not between a restore's `stableSnapTo` and its `appliedSnap`). The false comment is corrected: `compactFloor` is then the applied index. `gofmt` is clean.

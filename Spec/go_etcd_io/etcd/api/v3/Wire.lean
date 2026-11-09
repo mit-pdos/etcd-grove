@@ -33,7 +33,11 @@ through its own `*Holds` relation, which survives `norm` (3h's `holds_norm`): th
 relations always, the request relations (`rangeReqOwn`, `deleteReqOwn`, `compareOwn`,
 `requestOpOwn`, `txnReqOwn`) only under `endsOk c` (no non-`nil` empty range end, which `endOf`
 reads as `[0]` and the wire as `[]`). The client never builds such an end (`ClientV3.OpM.emptyEnd`,
-`Cmp.WithRange`'s `e ≠ []`), so the request a member decodes has the model the client sent.
+`Cmp.WithRange`'s `e ≠ []`), so the request a member decodes has the model the client sent. The
+request predicates carry it (re-review NF1/NF2): `rangeReqOwn_unfold`, `deleteReqOwn_unfold` and
+`compareOwn_unfold` (hence `requestOpOwn`, `txnReqOwn`) state `es = slice.nil ∨ ebs ≠ []` of the
+range end, so 3h realizes them as `∃ c, msgAt ∗ ⌜…Holds c m ∧ endsOk c⌝` and grpc's `unaryArgs_msgAt`
+gets `endsOk`; a clone (`norm c`) keeps the model.
 
 **Watch messages** (batch 1b's models, moved here at integration so that the client, the gRPC watch
 server (2b) and the messages' realization (3h) share them without the client's vocabulary):
@@ -367,7 +371,7 @@ def rangeReqOwn_unfold.spec : Prop := ∀ (p : Loc) (dq : DFrac) (r : RangeReq),
     ∃ (ks es : GoSlice) (ebs : GoString), protoRest etcdserverpb.RangeRequest p dq ∗
     p.[etcdserverpb.RangeRequest, go!"Key"] ↦{dq} ks ∗ ks ↦*□ r.key ∗
     p.[etcdserverpb.RangeRequest, go!"RangeEnd"] ↦{dq} es ∗ es ↦*□ ebs ∗
-    ⌜r.rangeEnd = endOf es ebs⌝ ∗
+    ⌜r.rangeEnd = endOf es ebs ∧ (es = slice.nil ∨ ebs ≠ [])⌝ ∗
     p.[etcdserverpb.RangeRequest, go!"Limit"] ↦{dq} (W64 r.limit) ∗
     p.[etcdserverpb.RangeRequest, go!"Revision"] ↦{dq} (W64 r.revision) ∗
     p.[etcdserverpb.RangeRequest, go!"SortOrder"] ↦{dq} (W32 r.sortOrder) ∗
@@ -403,7 +407,7 @@ def deleteReqOwn_unfold.spec : Prop := ∀ (p : Loc) (dq : DFrac) (r : DeleteReq
     ∃ (ks es : GoSlice) (ebs : GoString), protoRest etcdserverpb.DeleteRangeRequest p dq ∗
     p.[etcdserverpb.DeleteRangeRequest, go!"Key"] ↦{dq} ks ∗ ks ↦*□ r.key ∗
     p.[etcdserverpb.DeleteRangeRequest, go!"RangeEnd"] ↦{dq} es ∗ es ↦*□ ebs ∗
-    ⌜r.rangeEnd = endOf es ebs⌝ ∗
+    ⌜r.rangeEnd = endOf es ebs ∧ (es = slice.nil ∨ ebs ≠ [])⌝ ∗
     p.[etcdserverpb.DeleteRangeRequest, go!"PrevKv"] ↦{dq} r.prevKv
 
 /-- The `TargetUnion` oneof of a `Compare` holding `v`. -/
@@ -436,7 +440,7 @@ def compareOwn_unfold.spec : Prop := ∀ (p : Loc) (dq : DFrac) (c : EtcdModel.C
     p.[etcdserverpb.Compare, go!"Target"] ↦{dq} (W32 c.target) ∗
     p.[etcdserverpb.Compare, go!"Key"] ↦{dq} ks ∗ ks ↦*□ c.key ∗
     p.[etcdserverpb.Compare, go!"RangeEnd"] ↦{dq} es ∗ es ↦*□ ebs ∗
-    ⌜c.rangeEnd = endOf es ebs⌝ ∗
+    ⌜c.rangeEnd = endOf es ebs ∧ (es = slice.nil ∨ ebs ≠ [])⌝ ∗
     p.[etcdserverpb.Compare, go!"TargetUnion"] ↦{dq} iv ∗ cmpOneof iv dq c.targetUnion ∗
     ⌜(-2 ^ 31 ≤ c.result ∧ c.result < 2 ^ 31) ∧ (-2 ^ 31 ≤ c.target ∧ c.target < 2 ^ 31)⌝
 
