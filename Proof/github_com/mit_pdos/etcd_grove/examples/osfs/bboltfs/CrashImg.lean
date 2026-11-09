@@ -1005,6 +1005,14 @@ theorem commitMetaIdle_okS {mp : List w8} {N : Meta} {sl : Nat} (hb : s.busy = .
 
 end states
 
+/-- The namespace of the database file's crash invariant. -/
+def dbCrashN : Namespace := nroot .@ "minibolt_crash"
+
+/-- minibolt's obligation on the states of its file: every crash of the state is `Good`. -/
+def dbOk [GooseExts] : CState → Prop
+  | none => True
+  | some (i, s) => FileOkS NoTearCrash Good i s
+
 end osfs_bboltfs
 end EtcdGrove
 end Perennial
