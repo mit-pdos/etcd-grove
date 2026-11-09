@@ -87,6 +87,12 @@ def pbEntryM : PbModelC GF where
     rw [List.mem_singleton] at hp
     subst hp
     exact Hu
+  decC := entRoC
+  decC_dec l c _ := by
+    iintro #H
+    iexists c
+    iframe H
+    ipureintro; rfl
 
 /-- **`raftpb.Entry` at its wire content** (the registered instance): the data and the encoder,
 whose `enc_ok` is the type's one trusted fact `entryEncC_ok`. -/

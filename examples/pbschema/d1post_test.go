@@ -13,7 +13,7 @@ package pbschema
 //     fields (dec). Targeted: `72 00` decodes with one response (D1 says nothing of Responses);
 //     `4a 08 12 06 0a 04 08 01 30 00` decodes with decOk false; the packed ConfState zeros family
 //     (the size bound's extreme, ratio tending to 2); group nesting 10001/10002 in Entry.
-//     Also decC, the planned strengthening (the decoded heap holds exactly the content, unknown
+//     Also decC, in place in the trusted spec (PbModelC.decC: the decoded heap holds exactly the content, unknown
 //     fields included, at every level): on every decoded input the heap, walked directly, is
 //     compared with the reference decoder's content (unknown fields byte for byte, every optional
 //     field's presence and value, nil vs empty bytes) at the Message, each Entry, the Snapshot,

@@ -37,8 +37,8 @@ theorem pbutil.MustUnmarshalMessagePb.wp_proof
   rw [Heq c₀ hm hu hbs]
   iapply HΦ
   iframe
-  iapply Hm
-  ipureintro; exact hdo
+  iapply T.data.decC_dec l c₀ hdo
+  iexact Hm
 
 end proof
 

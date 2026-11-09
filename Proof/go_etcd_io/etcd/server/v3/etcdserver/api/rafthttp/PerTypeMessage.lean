@@ -41,6 +41,7 @@ The schemas are defined, with `pbSchemaOf`, in `proto/PbSchema.lean` (CP2).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.PerTypeEntry
+public import Proof.go_etcd_io.raft.v3.PbContentOwn
 
 @[expose] public section
 
@@ -134,8 +135,9 @@ def msgTree (st : MsgSt) : VTree :=
 /-- **`raftpb.Message` at its wire content: the data** (no axiom: what `Sat` is stated over). `ro`
 is a frozen message at some wire content; `dec` today's (`pbMessage`'s): an owned message with its
 `Entries` capacity, which fixes the snapshot `ConfState`'s unknown fields to none, so it describes
-only a content without (`decOk`, `MsgC.csUfNil`); `wire` is a decoding (`MsgDecOk`), not an encoding
-(Go decodes `responses`). -/
+only a content without (`decOk`, `MsgC.csUfNil`); `decC` the owned message holding exactly a
+content (`msgPtsCC`, `PbContentOwn.lean`), which is `dec` under `csUfNil` (`msgPtsCC_msgPtsC`);
+`wire` is a decoding (`MsgDecOk`), not an encoding (Go decodes `responses`). -/
 def pbMessageM : PbModelC GF where
   ty := raftpb.Message.ty
   M := MsgSt
@@ -156,6 +158,8 @@ def pbMessageM : PbModelC GF where
   decOk := MsgC.csUfNil
   ro_iff _ _ := .rfl
   roC_ufValid := msgRoC_uf
+  decC l c := msgPtsCC l (DFrac.own 1) (DFrac.own 1) true c
+  decC_dec l c h := msgPtsCC_msgPtsC l (DFrac.own 1) (DFrac.own 1) true c h
 
 /-- **`raftpb.Message` at its wire content** (the registered instance): the data and the encoder,
 whose `enc_ok` is the type's one trusted fact `msgEncC_ok`. -/
@@ -488,6 +492,8 @@ variable [sem : go.Semantics]
     (pbMessageC (GF := GF)).data.blank l = iprop(l ↦ (zero_val raftpb.Message)) := rfl
 @[simp] theorem pbMessageC_dec (l : Loc) (st : MsgSt) :
     (pbMessageC (GF := GF)).data.dec l st = msgPtsC l (DFrac.own 1) (DFrac.own 1) true st := rfl
+@[simp] theorem pbMessageC_decC (l : Loc) (c : MsgC) :
+    (pbMessageC (GF := GF)).data.decC l c = msgPtsCC l (DFrac.own 1) (DFrac.own 1) true c := rfl
 @[simp] theorem pbMessageC_eqv (st st' : MsgSt) :
     (pbMessageC (GF := GF)).data.eqv st st' =
       (wireOf st = wireOf st' ∧ (st.resps = [] → st'.resps = [])) := rfl
@@ -505,6 +511,8 @@ variable [sem : go.Semantics]
     (pbEntryC (GF := GF)).data.blank l = iprop(l ↦ (zero_val raftpb.Entry)) := rfl
 @[simp] theorem pbEntryC_dec (l : Loc) (e : EntryM) :
     (pbEntryC (GF := GF)).data.dec l e = iprop(∃ c, entRoC l c ∗ ⌜c.model = e⌝) := rfl
+@[simp] theorem pbEntryC_decC (l : Loc) (c : EntryC) :
+    (pbEntryC (GF := GF)).data.decC l c = entRoC l c := rfl
 
 /-- **A frozen message's encoding** (`msgEncC_ok` with `msgRoC_uf`). -/
 theorem msgRoC_enc (l : Loc) (c : MsgC) :

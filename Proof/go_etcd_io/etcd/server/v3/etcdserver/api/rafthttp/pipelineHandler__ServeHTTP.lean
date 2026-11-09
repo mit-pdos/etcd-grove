@@ -156,7 +156,7 @@ theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
           wp_auto
           -- `proto.Unmarshal(b, &m)`: the body is an encoding, so it decodes
           have hU := hUnmarshal pbMessageC pbMessageC_reg sl R.body (DFrac.own 1) m_ptr
-          simp only [pbMessageC_ty, pbMessageC_blank, pbMessageC_dec, pbMessageC_wire,
+          simp only [pbMessageC_ty, pbMessageC_blank, pbMessageC_decC, pbMessageC_wire,
             pbMessageC_modelOf, pbMessageC_C, pbMessageC_marshals, pbMessageC_ufValid,
             pbMessageC_size, pbEncC_pbMessageC] at hU
           wp_apply hU $$ [$Hsl $m] as %uerr ⟨Hsl, %Hok, Hdec⟩
@@ -165,7 +165,7 @@ theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
           subst Hue
           ihave ⟨%c', Hm', %Hw0'⟩ := Hdec $$ %rfl
           have hcc : c' = c0 := Hw0'.2.2.2 c0 (by rw [hc0m]; exact Hst.1.1) hc0u hc0b
-          ihave Hm' := Hm' $$ %(hcc ▸ hc0cs)
+          ihave Hm' := msgPtsCC_msgPtsC _ _ _ _ _ (hcc ▸ hc0cs) $$ Hm'
           have Hw' : MsgWireOk c'.model R.body := by rw [hcc, hc0m]; exact Hst.1
           clear Hw0' hcc
           generalize c'.model = m' at Hw' ⊢

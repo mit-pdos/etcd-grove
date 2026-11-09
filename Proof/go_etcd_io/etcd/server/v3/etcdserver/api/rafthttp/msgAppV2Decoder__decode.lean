@@ -113,14 +113,14 @@ theorem rafthttp.msgAppV2Decoder.decode.wp_proof
     ihave ⟨%chb, #Hchb, %Hchbm⟩ := msgOwn_msgRoC _ _ rfl $$ Hhb
     have wpC := wp_Clone pbMessageC pbMessageC_reg
       (globalAddr go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.linkHeartbeatMessage) chb
-    simp only [pbMessageC_ty, pbMessageC_roC, pbMessageC_dec, pbMessageC_eqv, pbMessageC_modelOf,
+    simp only [pbMessageC_ty, pbMessageC_roC, pbMessageC_decC, pbMessageC_eqv, pbMessageC_modelOf,
       pbMessageC_C] at wpC
     wp_apply wpC $$ [] as %l' ⟨%c', Hl', %Heqv⟩
     · iexact Hchb
     have hcs : c'.csUfNil := by
       have h := Heqv.2.2 (by first | rfl | (simp only [pbMessageC_marshals, MsgMarshals, Hchbm.1]; rfl) | simp [pbMessageC_marshals, MsgMarshals, Hchbm.1])
       rw [h]; exact Hchbm.2
-    ihave Hl' := Hl' $$ %hcs
+    ihave Hl' := msgPtsCC_msgPtsC _ _ _ _ _ hcs $$ Hl'
     rw [Hchbm.1] at Heqv
     (try wp_auto)
     iapply HΦ
