@@ -3975,6 +3975,37 @@ theorem lineEffect_resp (C : List w64) (e : TraceEv) (s : NState) (cfg : CfgM) (
   · rw [← heq]
     exact receive_resp σ mabs (by rw [hmdst]; exact hcontains) hmt (by rw [hmdst, hσi, hR.1, hmterm, hterm]; rfl) hnp
   · rw [← heq]; exact oneLess_resp σ mabs hnd hcnt
+
+/-- Whether a vote request is granted (`HandleRequestVoteRequest`'s `grant`). -/
+def vrGrant (v : Etcdraft.Server) (j : Etcdraft.ID) (m : Etcdraft.Msg) : Bool :=
+  (m.term == v.currentTerm && (or (decide (m.lastLogTerm > Etcdraft.lastTerm v.log))
+    (m.lastLogTerm == Etcdraft.lastTerm v.log && decide (m.lastLogIndex ≥ v.log.length))) &&
+    (or (v.votedFor == j) (v.votedFor == Etcdraft.nil && v.lead == Etcdraft.nil)))
+
+/-- The server after a vote request. -/
+def vrSrv (v : Etcdraft.Server) (j : Etcdraft.ID) (m : Etcdraft.Msg) : Etcdraft.Server :=
+  if vrGrant v j m then { v with votedFor := j } else v
+
+/-- The response to a vote request. -/
+def vrResp (v : Etcdraft.Server) (i j : Etcdraft.ID) (m : Etcdraft.Msg) : Etcdraft.Msg :=
+  { type := .requestVoteResponse, term := v.currentTerm, voteGranted := vrGrant v j m, source := i, dest := j }
+
+theorem voteReqResult_eq (σ : Etcdraft.State) (i j : Etcdraft.ID) (m : Etcdraft.Msg)
+    (hle : m.term ≤ (σ.s i).currentTerm) :
+    voteReqResult σ i j m =
+      withNode σ i (vrSrv (σ.s i) j m) (fun b => b.without m) (fun b => b.with (vrResp (σ.s i) i j m)) := by
+  unfold voteReqResult Etcdraft.State.handleRequestVoteRequest
+  have hc : (!decide (m.term ≤ (σ.s i).currentTerm)) = false := by simp [hle]
+  simp only [hc, Bool.false_eq_true, ↓reduceIte, Option.getD_some]
+  unfold vrSrv vrResp vrGrant
+  split
+  · rename_i h; simp only [h]; rfl
+  · rename_i h
+    simp only [Bool.not_eq_true] at h
+    simp only [h]
+    unfold withNode Etcdraft.State.reply
+    have : (fun k => if k = i then σ.s i else σ.s k) = σ.s := by funext k; split <;> simp_all
+    rw [this]
 end TraceSim
 
 end EtcdGrove
