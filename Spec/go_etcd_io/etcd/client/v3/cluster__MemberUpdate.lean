@@ -37,7 +37,7 @@ def cluster.MemberUpdate.spec : Prop :=
     (urls : List GoString),
   CheckedCallTriple (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.cluster.ty @!! go!"MemberUpdate")) (Val #ctx)) (Val #id)) (Val #sl))
     iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clusterHandle cl γ who ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ sl ↦*□ urls) iprop(True) γ who (.memberUpdate (uint.nat id) urls) false
-    (urlsValid urls) ansReply
+    (Types.urlsValid urls) ansReply
 
 end spec
 

@@ -49,15 +49,7 @@ def Config.validate.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ (⌜cv.Logger' = interface.nil⌝ ∨ loggerOk cv.Logger') }}
     (App (Val (c @!! go.GoType.PointerType go_etcd_io.raft.v3.Config.ty @!! go!"validate")) (Val #()))
   {{ (err : GoInterface), RET #err; ∃ cv' : go_etcd_io.raft.v3.Config, c ↦ cv' ∗
-      ((⌜err = interface.nil ∧ Config.valid cv ∧
-          cv' = { cv with
-            MaxUncommittedEntriesSize' := if cv.MaxUncommittedEntriesSize' = W64 0
-              then W64 (2 ^ 64 - 1) else cv.MaxUncommittedEntriesSize',
-            MaxCommittedSizePerReady' := if cv.MaxCommittedSizePerReady' = W64 0
-              then cv.MaxSizePerMsg' else cv.MaxCommittedSizePerReady',
-            MaxInflightBytes' := if cv.MaxInflightBytes' = W64 0
-              then W64 (2 ^ 64 - 1) else cv.MaxInflightBytes',
-            Logger' := cv'.Logger' } ∧
+      ((⌜err = interface.nil ∧ Config.valid cv ∧ cv' = Config.defaulted cv cv'.Logger' ∧
           (cv.Logger' ≠ interface.nil → cv'.Logger' = cv.Logger')⌝ ∗ loggerOk cv'.Logger') ∨
        ⌜err ≠ interface.nil ∧ ¬ Config.valid cv⌝) }}
 

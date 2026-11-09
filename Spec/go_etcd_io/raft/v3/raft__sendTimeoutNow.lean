@@ -1,8 +1,7 @@
 /-
 ## `raft.sendTimeoutNow` (internal)
 
-**Users.** `stepLeader`, `becomeLeader`, `switchToConfig`, `tickHeartbeat` (via `MsgBeat`), each
-other. **Proof sketch.** `send` of a `MsgTimeoutNow` (its `msgSent`: from the leader of the term). **Changes** (from `specs-ref`'s `raft__sendTimeoutNow.lean`, if any): over
+**Users.** `stepLeader` (`raft.go:1590`, `:1677`). **Proof sketch.** Opens the struct; `send.spec` of a `MsgTimeoutNow` (its `msgJust`: from the leader of the term); closes. **Changes** (from `specs-ref`'s `raft__sendTimeoutNow.lean`, if any): over
 `raftCore`. **Margin.** The messages are inside the token until a `Ready` hands them out.
 -/
 module

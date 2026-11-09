@@ -1,8 +1,9 @@
 /-
 ## `needStorageAppendRespMsg(r, rd)` (internal)
 
-`acceptReady`. Mirrors the code: unstable entries (in progress or next, R3), or a snapshot in the
-`Ready`. **Changes.** New (no old spec). **Margin.** Only the snapshot's case is stated.
+`acceptReady` (`rawnode.go:420`). Mirrors the code: unstable entries (in progress or next, R3's
+`hasNextOrInProgressUnstableEnts`), or a non-empty snapshot in the `Ready`. **Changes.** New;
+round 1: exact, over the opened struct (`acceptReady` runs with the realization open).
 -/
 module
 
@@ -27,13 +28,13 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) Whether the batch needs a storage-append acknowledgement (always with a snapshot). -/
+/-- (internal) Whether the batch needs a storage-append acknowledgement. -/
 def needStorageAppendRespMsg.spec : Prop :=
-  ∀ (r : Loc) (γ : Cluster) (id : w64) (ρ : CoreView) (rd : go_etcd_io.raft.v3.Ready)
-    (o : Option Snapshot),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftCore r γ id ρ ∗ snapOpt rd.Snapshot' o }}
+  ∀ (r : Loc) (γ : Cluster) (id : w64) (o : CoreOpen) (rd : go_etcd_io.raft.v3.Ready) (os : Option Snapshot),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftOpen r γ id o ∗ snapOpt rd.Snapshot' os }}
     (App (App (Val (@! go_etcd_io.raft.v3.needStorageAppendRespMsg)) (Val #r)) (Val #rd))
-  {{ (b : Bool), RET #b; raftCore r γ id ρ ∗ ⌜o.isSome → b = true⌝ }}
+  {{ (b : Bool), RET #b; raftOpen r γ id o ∗
+      ⌜b = decide (o.log.us.ents ≠ [] ∨ ∃ s, os = some s ∧ s.index ≠ W64 0)⌝ }}
 
 end spec
 end Raft

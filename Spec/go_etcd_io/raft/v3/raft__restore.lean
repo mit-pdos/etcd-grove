@@ -9,7 +9,8 @@ index). The configuration switches only at `appliedSnap` (the fork's fix,
 `issues/raft-snapshot-during-apply-stale-confchange.md`).
 
 **Changes** (from `specs-ref`'s `raft__restore.lean`): over `raftCore` and `snapValid` (was
-`SnapScope` over `NState`). **Margin.** The result says only whether the log was replaced.
+`SnapScope` over `NState`). Round 1: the commit and the result stated. **Margin.** A refusal
+does not say which check refused (stale, not in the configuration, or fast-forwarded).
 -/
 module
 
@@ -40,7 +41,8 @@ def raft.restore.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftCore r γ id ρ ∗ snapshotPts sp DFrac.discard s ∗ snapValid γ s ∗
       ⌜ρ.role = StateFollower⌝ }}
     (App (Val (r @!! go.GoType.PointerType go_etcd_io.raft.v3.raft.ty @!! go!"restore")) (Val #sp))
-  {{ (b : Bool), RET #b; ∃ ρ', raftCore r γ id ρ' ∗ ⌜ρ'.hs.term = ρ.hs.term ∧ ρ'.hs.vote = ρ.hs.vote ∧ ρ'.lead = ρ.lead ∧ ρ'.role = ρ.role⌝ }}
+  {{ (b : Bool), RET #b; ∃ ρ', raftCore r γ id ρ' ∗ ⌜ρ'.hs.term = ρ.hs.term ∧ ρ'.hs.vote = ρ.hs.vote ∧ ρ'.lead = ρ.lead ∧ ρ'.role = ρ.role⌝ ∗
+      ⌜uint.nat ρ.hs.commit ≤ uint.nat ρ'.hs.commit ∧ (b = true → ρ'.hs.commit = s.index)⌝ }}
 
 end spec
 end Raft

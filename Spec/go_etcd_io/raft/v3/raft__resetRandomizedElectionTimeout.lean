@@ -1,8 +1,8 @@
 /-
 ## `raft.resetRandomizedElectionTimeout` (internal)
 
-`reset`. Mirrors the code: `lockedRand.Intn(electionTimeout)` (positive: `ConfigOk`). **Changes.** Over `raftCore` (from `specs-ref`'s `raft__resetRandomizedElectionTimeout.lean`, over `NState`).
-**Margin.** The result is not related to the view.
+`reset`. Mirrors the code: `lockedRand.Intn(electionTimeout)` (positive: `ConfigOk`). **Changes.** Over the opened struct (internal layer, `ApiCore.lean`; from `specs-ref`'s
+`raft__resetRandomizedElectionTimeout.lean`, over `NState`); round 1: the result is stated over the state.
 -/
 module
 
@@ -29,10 +29,10 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (internal) A new randomized timeout. -/
 def raft.resetRandomizedElectionTimeout.spec : Prop :=
-  ∀ (r : Loc) (γ : Cluster) (id : w64) (ρ : CoreView) ,
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftCore r γ id ρ }}
+  ∀ (r : Loc) (γ : Cluster) (id : w64) (o : CoreOpen) ,
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftOpen r γ id o }}
     (App (Val (r @!! go.GoType.PointerType go_etcd_io.raft.v3.raft.ty @!! go!"resetRandomizedElectionTimeout")) (Val #()))
-  {{ RET #(); raftCore r γ id ρ }}
+  {{ RET #(); ∃ t, raftOpen r γ id { o with randomizedElectionTimeout := t } }}
 
 end spec
 end Raft

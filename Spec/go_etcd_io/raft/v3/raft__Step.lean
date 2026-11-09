@@ -2,17 +2,21 @@
 ## `raft.Step(m)`
 
 **Users** (every caller is in the raft package; no client sees the raft struct):
-- `node.run` (`node.go:384`, `:392`): proposals from `propc` (`From` set to the node's id, the
-  client's update riding with them: R1's `node.Propose`/`ProposeConfChange`), and `recvc`: received
+- `node.run` (`node.go:385-393`, `:394-399`): proposals from `propc` (`From` set to the node's id:
+  a local proposal with its client's update, R1's `node.Propose`/`ProposeConfChange`, or a
+  proposal received over the network through `node.Step`, whose sender the rewrite changes:
+  `stepIn`'s received case is up to the sender for a proposal), and `recvc`: received
   messages (`node.Step`: `msgSent`, credit, address), local reads (`node.ReadIndex`: the registered
   context) and reports (`Campaign`, `ReportUnreachable`, `ReportSnapshot`, `TransferLeadership`,
   `ForgetLeader`);
 - `RawNode`'s `Campaign`, `Propose`, `ProposeConfChange`, `Step`, `ReportUnreachable`,
-  `ReportSnapshot`, `TransferLeader`, `ForgetLeader`, `ReadIndex` (`rawnode.go:85`-`:521`), and
-  `Advance` (`rawnode.go:451`: the acknowledgements `acceptReady` queued: `StepSrc.ack`);
+  `ReportSnapshot`, `TransferLeader`, `ForgetLeader`, `ReadIndex` (`rawnode.go:83-557`), and
+  `Advance` (`rawnode.go:477-490`: the acknowledgements `acceptReady` queued, released by
+  `rawNodeAt_advance`: `StepSrc.ack`);
 - raft.go itself: `tickElection` (`MsgHup`), `tickHeartbeat` (`MsgCheckQuorum`, `MsgBeat`),
   `appliedTo` (the auto-leave proposal: an empty `EntryConfChangeV2`, raft's own).
-Snippets: `step.go` (every source; the only error), `ready.go` (`ReqAdvanceAcks`).
+Snippets: `step.go` (every source, a forwarded proposal, a conf-change proposal; the only
+error), `ready.go` (`ReqReadyAdvance`).
 
 **Proof sketch.** `traceReceiveMessage` (a no-op). **The term.** A local message (term 0) goes on. A
 higher term: a vote request inside a leader's lease with `checkQuorum` is ignored; else (but for a
@@ -21,18 +25,21 @@ append, heartbeat or snapshot (`msgSent_leaderOf`: it led that term), none other
 is volatile (persisted with the next batch). A lower term: a `checkQuorum`/`preVote` node answers a
 stale append or heartbeat with an empty `MsgAppResp` of its term, a stale pre-vote with a rejection,
 applies a stale storage acknowledgement's snapshot (committed state, term-independent), and ignores
-the rest. **The handlers.** `MsgHup`: `hup` (its own checks: not leader, promotable, no unapplied
-conf entry, no pending snapshot: the campaign guard the cluster invariant needs for the candidate's
-quorum to be of the configuration in force; the term's increase takes a receipt). `MsgVote`/
+the rest. **The handlers.** `MsgHup`: `hup` (its own checks: not leader, `promotable`, no unapplied
+conf entry, no pending snapshot: `CampaignGuard`, which the cluster invariant needs for the
+candidate's quorums to intersect every committing quorum, realization item 4; the term's increase
+takes a receipt, item 5). `MsgVote`/
 `MsgPreVote`: the vote rule (a repeat, or no vote and no leader, or a future pre-vote; and the
 candidate's log at least as up to date: R3's `isUpToDate`); a granted vote is recorded in `Vote`
 and its response queued after the append (`msgsAfterAppend`): its `msgSent` (the vote's protocol
 fact) is minted only when the batch carrying the vote is entered, at the durable vote. The storage
-acknowledgements (`StepSrc.ack`, R1's `Advance`): `stableTo` the batch's last entry (the storage
-holds it: `readyStor ... none k []`), `appliedSnap` (the snapshot's configuration, R4's `Restore`
-of a valid configuration: `snapValid`; the view moves to it, `ackPost`), `appliedTo` the delivered
-log (its conf entries applied or decided skip: `confSkipped`; at a joint leader with auto-leave the
-leave entry is proposed, raft's own) and `reduceUncommittedSize`. The rest: `r.step`, the role's
+acknowledgements (`StepSrc.ack`: `ackOk`, released by `rawNodeAt_advance` with R1's evidence that the
+batch was entered and written): `stableTo` the batch's last entry (R3's `StableOk`: the storage holds
+it), `appliedSnap.spec` (the snapshot's configuration; the view's move is the client's choice at
+`rawNodeAt_advance`'s closing), `appliedTo.spec` the delivered log (its conf entries applied or
+decided skip; at a joint leader with auto-leave the leave entry is proposed, raft's own) and
+`reduceUncommittedSize`; an `ackDone` for each. Each handler runs on the opened struct
+(`raftCore_open`, the helpers' specs, `raftCore_close`). The rest: `r.step`, the role's
 handler (`stepLeader.spec`, `stepCandidate.spec`, `stepFollower.spec`), whose only error is a
 dropped proposal.
 

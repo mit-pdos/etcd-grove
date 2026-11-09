@@ -8,7 +8,7 @@ import (
 )
 
 // REQ raftcore/status: the status getters give the node's id and fresh memory.
-// Users: rawnode.go:460 (Status), :466 (BasicStatus), node.go:425 (run's status arm).
+// Users: rawnode.go:493-496 (Status), :500-502 (BasicStatus), node.go:447-448 (run's status arm).
 // Assumes: nothing.
 // Specs: getStatus.spec, getBasicStatus.spec.
 func ReqStatus(r *raft) {
@@ -16,7 +16,6 @@ func ReqStatus(r *raft) {
 	if s.ID != r.id {
 		panic("status: wrong id")
 	}
-	s.HardState.Term = new(uint64(0)) // fresh: the caller may write it
 	if getBasicStatus(r).ID != r.id {
 		panic("status: wrong id")
 	}
@@ -24,9 +23,9 @@ func ReqStatus(r *raft) {
 
 // REQ raftcore/fields: node.run's direct reads of the raft struct and its filter of responses
 // from unknown peers.
-// Users: node.go:349-381 (lead, Term, id, logger, hasLeader), :391 (trk.Progress).
+// Users: node.go:349-381 (lead, Term, id, logger, hasLeader), :395 (trk.Progress).
 // Assumes: nothing.
-// Specs: raftCore_peek.spec, raft.hasLeader.spec.
+// Specs: raftRO_peek.spec, raft.hasLeader.spec.
 func ReqFields(r *raft, m *pb.Message) bool {
 	if r.hasLeader() != (r.lead != None) {
 		panic("fields: hasLeader")
@@ -35,10 +34,19 @@ func ReqFields(r *raft, m *pb.Message) bool {
 	return IsResponseMsg(m.GetType()) && r.trk.Progress[m.GetFrom()] == nil
 }
 
+// REQ raftcore/tick-missed: node.Tick, from any goroutine, reads the raft struct's id and logger
+// while run owns the struct, when the tick channel is full.
+// Users: node.go:456-465 (node.Tick's default case).
+// Assumes: nothing (the fields are never written after newRaft).
+// Specs: raftRO_peek.spec (id, logger: persistent shares the node's invariant keeps).
+func ReqTickMissed(r *raft) {
+	r.logger.Warningf("%x A tick missed to fire. Node blocks too long!", r.id)
+}
+
 // REQ raftcore/logger: a logger set for the package is what a Config without one gets.
 // Users: etcd's newRaftNode (raft.SetLogger with its zap adapter); Config.validate.
 // Assumes: l meets raft's Logger contract (loggerOk).
-// Specs: SetLogger.spec, getLogger.spec.
+// Specs: SetLogger.spec, getLogger.spec, loggerOk_nonnil.spec.
 func ReqLogger(l Logger) {
 	SetLogger(l)
 	if getLogger() == nil {

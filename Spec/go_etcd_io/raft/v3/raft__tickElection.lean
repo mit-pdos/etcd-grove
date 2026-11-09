@@ -1,7 +1,7 @@
 /-
 ## `raft.tickElection()`
 
-**Users.** `RawNode.Tick` (`rawnode.go:73`) through `r.tick` (`raftCore_peek`: the field holds this method value at a follower, candidate or pre-candidate); `node.run`'s `tickc` arm. Snippet: `step.go` (`ReqTick`).
+**Users.** `RawNode.Tick` (`rawnode.go:64-66`) through `r.tick` (`raftRO_peek`: the field holds this method value at a follower, candidate or pre-candidate); `node.run`'s `tickc` arm (`node.go:433-434`). Snippet: `step.go` (`ReqTick`).
 
 **Proof sketch.** `electionElapsed++`; promotable and past the randomized timeout: `raft.Step` of a local `MsgHup` (`stepIn`'s report case), whose error is `nil`. Safe at any role (the field's value follows the role, but neither
 method relies on it).

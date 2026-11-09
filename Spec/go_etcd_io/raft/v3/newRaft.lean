@@ -1,7 +1,7 @@
 /-
 ## `newRaft(c)`
 
-**Users.** `NewRawNode` (`rawnode.go:66`), its only caller (and through it `StartNode`,
+**Users.** `NewRawNode` (`rawnode.go:52`), its only caller (and through it `StartNode`,
 `RestartNode`, `node`'s `setupNode`). R1's `NewRawNode.spec` is this spec, then the `RawNode`'s
 allocation and `raftBoot_bind`. Snippet: `ready.go` (`ReqNewRawNode`).
 
@@ -21,6 +21,9 @@ state (R1's `nodeStorage` once bound). The start configuration is `confAt γ a m
 **Changes** (from `specs-ref`'s `newRaft.lean`): over opaque predicates; one spec for a first start
 and every restart (was `RNMode`-indexed, with `restartStorage`'s method triples); the node-level
 start state is a one-shot `raftBoot`, bound to the `RawNode` by a law.
+
+**Changes (round 1).** The configuration after `validate` is stated (`Config.defaulted`):
+`NewRawNode` reads `AsyncStorageWrites` back from it (`rawnode.go:56`).
 
 **Margin.** The view's `prs` is not related to `m` here (R1's `nodeConf` says what the tracker
 holds); the panics of an invalid configuration or storage are excluded by the premises.
@@ -65,7 +68,7 @@ def newRaft.spec : Prop :=
     (App (Val (@! go_etcd_io.raft.v3.newRaft)) (Val #c))
   {{ (r : Loc), RET #r;
       ∃ (D : Durable) (l : List LogEntry) (cv' : go_etcd_io.raft.v3.Config) (ρ : CoreView),
-      c ↦ cv' ∗ raftCore r γ id ρ ∗
+      c ↦ cv' ∗ (∃ lg, ⌜cv' = Config.defaulted cv lg⌝ ∗ loggerOk lg) ∗ raftCore r γ id ρ ∗
       ⌜ρ.hs = σ.hs ∧ ρ.lead = W64 0 ∧ ρ.role = StateFollower⌝ ∗
       raftBoot r γ ρ (Driver.start l σ.hs D) ⟨a, m⟩ S l.length (uint.nat σ.snap.index) ∗
       committedLb γ l ∗

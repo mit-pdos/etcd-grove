@@ -1,8 +1,7 @@
 /-
 ## `raft.bcastAppend` (internal)
 
-**Users.** `stepLeader`, `becomeLeader`, `switchToConfig`, `tickHeartbeat` (via `MsgBeat`), each
-other. **Proof sketch.** `sendAppend` to every peer but itself (R4's `Visit`). **Changes** (from `specs-ref`'s `raft__bcastAppend.lean`, if any): over
+**Users.** `stepLeader` (`raft.go:1370`, `:1569`), `stepCandidate` (`:1720`), `switchToConfig` (`:2018`). **Proof sketch.** `sendAppend` to every peer but itself (R4's `Visit`). **Changes** (from `specs-ref`'s `raft__bcastAppend.lean`, if any): over
 `raftCore`. **Margin.** The messages are inside the token until a `Ready` hands them out.
 -/
 module

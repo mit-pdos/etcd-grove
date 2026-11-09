@@ -2,8 +2,8 @@
 ## `raft.increaseUncommittedSize(ents)` (internal)
 
 `appendEntry`. Mirrors the code: refuses only a non-empty payload over a non-empty tail past the
-limit. **Changes.** Over `raftCore` (was `NState`'s `uncommittedSize`). **Margin.** The refusal's
-condition is not stated.
+limit. **Changes.** Over the opened struct. **Margin.** The refusal's condition is not stated (flow
+control, not safety).
 -/
 module
 
@@ -30,11 +30,10 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (internal) Accounts for entries proposed at a leader, or refuses them. -/
 def raft.increaseUncommittedSize.spec : Prop :=
-  ∀ (r : Loc) (γ : Cluster) (id : w64) (ρ : CoreView) (sl : GoSlice) (dq : DFrac)
-    (es : List LogEntry),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftCore r γ id ρ ∗ entryPtrs sl dq es }}
+  ∀ (r : Loc) (γ : Cluster) (id : w64) (o : CoreOpen) (sl : GoSlice) (dq : DFrac) (es : List LogEntry),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftOpen r γ id o ∗ entryPtrs sl dq es }}
     (App (Val (r @!! go.GoType.PointerType go_etcd_io.raft.v3.raft.ty @!! go!"increaseUncommittedSize")) (Val #sl))
-  {{ (b : Bool), RET #b; raftCore r γ id ρ ∗ entryPtrs sl dq es }}
+  {{ (b : Bool), RET #b; raftOpen r γ id o ∗ entryPtrs sl dq es }}
 
 end spec
 end Raft

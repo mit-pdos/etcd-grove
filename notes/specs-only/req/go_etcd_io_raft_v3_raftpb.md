@@ -113,3 +113,9 @@ report `notes/specs-only/batch-R4.md`) reads raftpb's changes and conf states:
    **panics** on an unknown transition; `ConfChange.AsV2()` is one change with transition `Auto`.
    Used by: R1's `Membership.applyChange` as `changeV2` (`confchange/Model.lean`), the examples'
    pre-check (`examples/specreq/raftconf/confchange.go`, `validConf`).
+
+## from R2 (round 1)
+
+- A field-write law for `msgPts`: `From` (`node.go:388`) and `To` (`raft.go:1743`, `:1762`, `:1784`)
+  of an owned message.
+- `confStatePts p dq cs ⊢ ⌜p ≠ null⌝` (`ReqApplyConf`).

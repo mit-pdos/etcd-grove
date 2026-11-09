@@ -30,10 +30,10 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (internal) A fresh copy of the progress map. -/
 def getProgressCopy.spec : Prop :=
-  ∀ (r : Loc) (γ : Cluster) (id : w64) (ρ : CoreView),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftCore r γ id ρ }}
+  ∀ (r : Loc) (id : w64) (ρ : CoreView),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftRO r id ρ }}
     (App (Val (@! go_etcd_io.raft.v3.getProgressCopy)) (Val #r))
-  {{ (mp : Loc), RET #mp; raftCore r γ id ρ ∗ progressCopyOwn mp }}
+  {{ (mp : Loc), RET #mp; raftRO r id ρ ∗ progressCopyOwn mp }}
 
 end spec
 end Raft

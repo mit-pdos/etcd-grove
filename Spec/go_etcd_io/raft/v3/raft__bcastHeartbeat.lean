@@ -1,8 +1,7 @@
 /-
 ## `raft.bcastHeartbeat` (internal)
 
-**Users.** `stepLeader`, `becomeLeader`, `switchToConfig`, `tickHeartbeat` (via `MsgBeat`), each
-other. **Proof sketch.** `bcastHeartbeatWithCtx(readOnly.heartbeatCtx())` (R3: the last pending read's context, registered): heartbeats with the commit known matched by each peer. **Changes** (from `specs-ref`'s `raft__bcastHeartbeat.lean`, if any): over
+**Users.** `stepLeader` (`MsgBeat`, `raft.go:1297`), `sendMsgReadIndexResponse` (`:2165`). **Proof sketch.** `bcastHeartbeatWithCtx(readOnly.heartbeatCtx())` (R3's position of the last pending read, `hbCtxOf`): opens the struct, `bcastHeartbeatWithCtx.spec`, closes. **Changes** (from `specs-ref`'s `raft__bcastHeartbeat.lean`, if any): over
 `raftCore`. **Margin.** The messages are inside the token until a `Ready` hands them out.
 -/
 module

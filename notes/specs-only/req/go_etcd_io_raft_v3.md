@@ -335,3 +335,39 @@ from `ApiLog.lean`). `Quorum.isAckedIndexer l P acked` is the `AckedIndexer` con
 from `readOnly.AckedIndex.spec`). `JointConfig.CommittedIndex.spec`'s size premise is
 `GMap.size s ≤ Quorum.sortMax` for each half (R3's `(elements s).length ≤ 2^62`);
 `Quorum.jointIdx_mem.spec` gives the reslice bound.
+
+## from R2 (round 1 repairs)
+
+### To R1
+
+7. **The term and index bound** (provability review 1.3; first tier): `cluster_alloc.spec` should
+   carry the execution's step bound, inside the statement (an instance binder, e.g.
+   `∀ [ReceiptBoundLe GF (2^63)]`, or a named constant), so that raft's cluster invariant can hold a
+   time receipt per term increase and per appended entry (`ApiCore.lean`'s realization item 5).
+   `2^63` rather than `2^64 - 2`: R3's log specs take `lastIndex < 2^63` range premises, which the
+   same bound then discharges. Without it, `raft.Step` (a campaign at `Term = 2^64 - 1` wraps the
+   term, `raft.go:926`, then `send` panics, `:532`), `hup`, the ticks and `stepCandidate` are false.
+8. **`RawNode.HasReady.spec`, `false` case**: also give `⌜readyEmpty rd⌝` (`ApiCore.lean`; the
+   monotonicity argument is the realization's item 6). `ReqReadyStale` needs it.
+9. **`RawNode.Advance.spec`'s proof** is now: `rawNodeAt_advance.spec` (it takes your `Advance` pre
+   and its closing gives your post exactly, the snapshot arm with your client-chosen view wand), a
+   `raft.Step` with `StepSrc.ack rn` per queued acknowledgement (`ackOk`, never a proposal:
+   `ackOk_type`), the closing. `ackPre`/`ackPost` are gone.
+10. **`RawNode.Bootstrap.spec`'s proof** is `rawNodeAt_bootstrap.spec` (the window: the struct open at
+    the empty log, `prevHardSt`, `committedLb γ boot`), `becomeFollower.spec`, R3's `raftLog` append
+    and commit write (through `raftOpen_log`), the closing, then `raft.applyConfChange.spec` per
+    peer, which now takes `committedLb γ l` (not `deliveredLb`). It needs each bootstrap entry's
+    decision `confDecided γ k (.apply (.v1 AddNode…))`: `cluster_alloc` gives them to the client,
+    but `Bootstrap`'s pre does not take them. Please add a law `bootLog_decided.spec : bootLog γ boot
+    ∗ ⌜BootLog ps boot⌝ ⊢ [∗list] k, confDecided γ k (...)` (or take them in `Bootstrap`'s pre).
+11. **`loggerOk_nonnil.spec`** (a law about your `loggerOk`) is stated in `ApiCore.lean`; move it to
+    `Api.lean` if you prefer. `defaultLogger_loggerOk.spec` and `raft_init.spec` give the default
+    loggers' contract.
+12. `NewRawNode`: `newRaft.spec`'s post now gives `cv' = Config.defaulted cv lg` (so
+    `AsyncStorageWrites` read back is `cv`'s); `NewRawNode.spec` could state the same.
+13. `node.run`'s reads between computing a `Ready` and sending it: `readyFresh_ro.spec` (a read-only
+    share, `raftRO`, which the getters and `raftRO_peek` take).
+14. `stepIn`'s received case is up to the sender for a `MsgProp`: `node.run`'s `propc` arm
+    (`node.go:388`) rewrites `From` of a proposal `node.Step` received.
+15. Not done (second tier): laws for `TickQuiesced` (`electionElapsed++`) and `WithProgress` (R4's
+    `Visit` read-only); neither has a user in scope.

@@ -1,8 +1,8 @@
 /-
 ## `raft.reduceUncommittedSize` (internal)
 
-`raft.Step` (apply acknowledgements). Mirrors the code. **Changes.** Over `raftCore` (from `specs-ref`'s `raft__reduceUncommittedSize.lean`, over `NState`).
-**Margin.** The result is not related to the view.
+`raft.Step` (apply acknowledgements). Mirrors the code. **Changes.** Over the opened struct (internal layer, `ApiCore.lean`; from `specs-ref`'s
+`raft__reduceUncommittedSize.lean`, over `NState`); round 1: the result is stated over the state.
 -/
 module
 
@@ -29,10 +29,10 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (internal) Shrinks the uncommitted-size estimate (saturating). -/
 def raft.reduceUncommittedSize.spec : Prop :=
-  ∀ (r : Loc) (γ : Cluster) (id : w64) (ρ : CoreView) (s : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftCore r γ id ρ }}
+  ∀ (r : Loc) (γ : Cluster) (id : w64) (o : CoreOpen) (s : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftOpen r γ id o }}
     (App (Val (r @!! go.GoType.PointerType go_etcd_io.raft.v3.raft.ty @!! go!"reduceUncommittedSize")) (Val #s))
-  {{ RET #(); raftCore r γ id ρ }}
+  {{ RET #(); raftOpen r γ id o }}
 
 end spec
 end Raft

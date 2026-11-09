@@ -19,3 +19,8 @@ proof sketches need:
   `Match` (an acknowledged index, from a `msgSent` response or the leader's own durable append).
 - `getProgressCopy`'s fresh copies: R2 states them as a provisional `progressCopyOwn mp`; please
   give the predicate (R1's `statusOwn` is built from it and `Config.Clone`'s).
+
+## from R2 (round 1)
+
+- `trkResult cfg trk m` (R2's provisional, `ApiCore.lean`): the `(tracker.Config, ProgressMap)` a
+  `Changer` method or `Restore` returns for membership `m`; `raft.switchToConfig.spec` takes it.

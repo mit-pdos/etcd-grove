@@ -29,10 +29,10 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- Whether the view has a leader. -/
 def raft.hasLeader.spec : Prop :=
-  ∀ (r : Loc) (γ : Cluster) (id : w64) (ρ : CoreView),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftCore r γ id ρ }}
+  ∀ (r : Loc) (id : w64) (ρ : CoreView),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftRO r id ρ }}
     (App (Val (r @!! go.GoType.PointerType go_etcd_io.raft.v3.raft.ty @!! go!"hasLeader")) (Val #()))
-  {{ (b : Bool), RET #b; raftCore r γ id ρ ∗ ⌜b = decide (ρ.lead ≠ W64 0)⌝ }}
+  {{ (b : Bool), RET #b; raftRO r id ρ ∗ ⌜b = decide (ρ.lead ≠ W64 0)⌝ }}
 
 end spec
 end Raft

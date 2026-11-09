@@ -105,7 +105,8 @@ module
 
 public import Spec.go_etcd_io.etcd.client.v3.Api
 public import Spec.go_uber_org.zap.Api
-public import Spec.PkgInit.go_etcd_io.etcd.client.pkg.v3.verify
+public import Spec.go_etcd_io.etcd.client.pkg.v3.verify.Api
+public import Spec.go_etcd_io.etcd.client.pkg.v3.types.Api
 
 @[expose] public section
 
@@ -234,11 +235,6 @@ def idUpd (γ : Cluster) : IProp GF :=
   iprop(□ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
     <{ etcdState γ σ, COMM True }>)
 
-/-- **`Sync`'s assertion is off** (persistent): the environment variable `ETCD_VERIFY` is neither
-`all` nor `assert`, and the program never sets it (`verify.EnableVerifications`). An environment
-fact the program states at its start. -/
-opaque verifyOff : IProp GF := iprop(True)
-
 /-- **The configuration `New` takes** for a client of `γ` as `who`. `LogConfig` (a zap
 configuration the client would build) is out of scope unless a `Logger` is given. -/
 def cfgOk (cfg : go_etcd_io.etcd.client.v3.Config) (γ : Cluster) (who : Principal) : IProp GF :=
@@ -247,7 +243,7 @@ def cfgOk (cfg : go_etcd_io.etcd.client.v3.Config) (γ : Cluster) (who : Princip
     (⌜cfg.TLS' = null⌝ ∨ tlsCfgOk cfg.TLS') ∗
     (⌜cfg.Logger' = null ∧ cfg.LogConfig' = null⌝ ∨ Zap.isLogger cfg.Logger') ∗
     (⌜cfg.Context' = GoInterface.nil⌝ ∨ Context.ctxOk cfg.Context' ∗ ctxPrin cfg.Context' who) ∗
-    (⌜cfg.AutoSyncInterval' = W64 0⌝ ∨ verifyOff) ∗
+    (⌜cfg.AutoSyncInterval' = W64 0⌝ ∨ Verify.verifyOff) ∗
     idUpd γ)
 
 /-- **What the client's own functions read** (see the header). -/
@@ -489,10 +485,6 @@ def Auth.methods (v : GoInterface) (P : IProp GF) (γ : Cluster) (who : Principa
       [ #role, #key, #rangeEnd] (.roleRevokePermission role key rangeEnd)) ∧
   (∀ name : GoString, Auth.Triple (m go!"RoleDelete") P γ who [ #name] (.roleDelete name))
 
-/-- `types.NewURLs(urls)` accepts the list (slot, `client/pkg/v3/types`: each a URL with a scheme
-`http`, `https`, `unix`, `unixs` and a `host:port`, ...; a pure property of the strings). -/
-opaque urlsValid (urls : List GoString) : Prop
-
 /-- **The `Cluster` interface's triples.** `MemberAdd`/`MemberUpdate` check the URLs first
 (`urlsValid`: else an error, nothing sent); `MemberList`'s options are `OpOption`s of which only
 `WithSerializable` matters (a serializable list is answered from a member's view). -/
@@ -502,14 +494,14 @@ def Cluster.methods (v : GoInterface) (P : IProp GF) (γ : Cluster) (who : Princ
     CheckedCallTriple (App (App (Val (m (if learner then go!"MemberAddAsLearner" else go!"MemberAdd")))
         (Val #ctx)) (Val #sl))
       iprop(P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ sl ↦*□ urls) iprop(True) γ who (.memberAdd urls learner) false
-      (urlsValid urls) ansReply) ∧
+      (Types.urlsValid urls) ansReply) ∧
   (∀ (ctx : GoInterface) (id : w64),
     CallTriple (App (App (Val (m go!"MemberRemove")) (Val #ctx)) (Val #id))
       iprop(P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ ctxPrin ctx who) iprop(True) γ who (.memberRemove (uint.nat id)) false ansReply) ∧
   (∀ (ctx : GoInterface) (id : w64) (sl : GoSlice) (urls : List GoString),
     CheckedCallTriple (App (App (App (Val (m go!"MemberUpdate")) (Val #ctx)) (Val #id)) (Val #sl))
       iprop(P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ sl ↦*□ urls) iprop(True) γ who (.memberUpdate (uint.nat id) urls)
-      false (urlsValid urls) ansReply) ∧
+      false (Types.urlsValid urls) ansReply) ∧
   (∀ (ctx : GoInterface) (opts : GoSlice) (gs : List (OpM → OpM)),
     ¬ prefixAndFromKey gs →
     CallTriple (App (App (Val (m go!"MemberList")) (Val #ctx)) (Val #opts))
@@ -585,7 +577,6 @@ def handles1c_persistent.spec : Prop :=
   (∀ γ tls who, Persistent (tlsPrincipal (GF := GF) γ tls who)) ∧
   (∀ tls, Persistent (tlsCfgOk (GF := GF) tls)) ∧
   (∀ sl, Persistent (dialOptsOk (GF := GF) sl)) ∧
-  Persistent (verifyOff (GF := GF)) ∧
   (∀ c γ who, Persistent (clientCore (GF := GF) c γ who)) ∧
   (∀ b γ who, Persistent (bundleAt (GF := GF) b γ who)) ∧
   (∀ ui c γ who, Persistent (uiOk (GF := GF) ui c γ who)) ∧

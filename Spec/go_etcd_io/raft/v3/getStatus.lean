@@ -1,7 +1,7 @@
 /-
 ## `getStatus(r)`
 
-**Users.** `RawNode.Status` (`rawnode.go:460`), `node.run`'s `status` arm (`node.go:425`: sent back to
+**Users.** `RawNode.Status` (`rawnode.go:493-496`), `node.run`'s `status` arm (`node.go:447-448`: sent back to
 `node.Status`, etcd's `isLearnerReady` and the examples' status dumps). R1's `RawNode.Status.spec`,
 `node.Status.spec` (`statusOwn`, the id). Snippet: `status.go`.
 
@@ -37,10 +37,10 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- A fresh status: the id, the view's hard and soft state, the caller's maps. -/
 def getStatus.spec : Prop :=
-  ∀ (r : Loc) (γ : Cluster) (id : w64) (ρ : CoreView),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftCore r γ id ρ }}
+  ∀ (r : Loc) (id : w64) (ρ : CoreView),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftRO r id ρ }}
     (App (Val (@! go_etcd_io.raft.v3.getStatus)) (Val #r))
-  {{ (s : go_etcd_io.raft.v3.Status), RET #s; raftCore r γ id ρ ∗ statusOwn s ∗
+  {{ (s : go_etcd_io.raft.v3.Status), RET #s; raftRO r id ρ ∗ statusOwn s ∗
       ⌜s.BasicStatus'.ID' = id ∧
         s.BasicStatus'.SoftState' = go_etcd_io.raft.v3.SoftState.mk ρ.lead ρ.role⌝ ∗
       hardStatePts s.BasicStatus'.HardState' (DFrac.own 1) ρ.hs }}

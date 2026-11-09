@@ -1,7 +1,7 @@
 /-
 ## `RawNode.readyWithoutAccept()` (internal)
 
-**Users.** `RawNode.Ready` (`rawnode.go:166`) and `node.run` (`node.go:363`, at each loop with
+**Users.** `RawNode.Ready` (`rawnode.go:132`) and `node.run` (`node.go:363`, at each loop with
 `HasReady()` true and no `Advance` due). Snippet: `ready.go` (`ReqReadyFresh`, `ReqReadyStale`).
 
 **Proof sketch.** Reads the log (R3: `nextUnstableEnts`, `nextCommittedEnts(true)`,

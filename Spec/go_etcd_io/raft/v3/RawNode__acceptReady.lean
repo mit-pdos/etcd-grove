@@ -1,16 +1,17 @@
 /-
 ## `RawNode.acceptReady(rd)` (internal)
 
-**Users.** `RawNode.Ready` (`rawnode.go:167`) and `node.run` (`node.go:419`, right after the send on
+**Users.** `RawNode.Ready` (`rawnode.go:133`) and `node.run` (`node.go:435-436`, right after the send on
 `readyc`, at which `ready_handout` handed `rd` out). Snippet: `ready.go`.
 
 **Proof sketch.** The previous `Ready`'s acknowledgements were stepped (`ready_handout` took a fresh
 `Ready` computed with none queued), so no panic. `prevSoftSt`, `prevHardSt` move to `rd`'s;
 `readStates`, `msgs`, `msgsAfterAppend` cleared (handed out); the acknowledgements queued in
-`stepsOnAdvance` (`ackOk` each): the self-addressed responses of `msgsAfterAppend`,
+`stepsOnAdvance` (released at `Advance` as `ackOk` by `rawNodeAt_advance`): the self-addressed
+responses of `msgsAfterAppend`,
 `newStorageAppendRespMsg` (the batch's last entry and snapshot, if any: `needStorageAppendRespMsg`),
-`newStorageApplyRespMsg` (the committed entries, if any); the log's `acceptUnstable` and
-`acceptApplying` (R3). `traceReady` (a no-op).
+`newStorageApplyRespMsg` (the committed entries, if any), each over the opened struct; the log's
+`acceptUnstable` and `acceptApplying` (R3). `traceReady` (a no-op).
 
 **Changes** (from `specs-ref`'s `RawNode__acceptReady.lean`): over the `RawNode`'s phases (was the
 `Ready`'s record `rof` and the receipt handshake).

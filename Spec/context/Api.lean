@@ -35,6 +35,7 @@ its result non-nil); everything else the client does with a context is to pass i
 module
 
 public import Perennial.Proof.context
+public import GeneratedProof.google_golang_org.grpc.metadata
 
 @[expose] public section
 
@@ -111,14 +112,12 @@ def Background.spec : Prop :=
 
 /-- **`ctx'` is a child of `ctx`** (persistent): made by `WithCancel`, `WithTimeout` or
 `WithDeadline` over `ctx`: it carries exactly `ctx`'s values (a request's metadata among them) and
-is done once `ctx` is. (`WithValue` adds a value: `ctxWithValues`.) -/
+is cancelled after `ctx` is (Go stores the parent's error before cancelling its children, so there
+is a window where the parent is done and the child not yet: no law relates their `ctxDone`).
+(`WithValue` adds a value: `ctxWithValues`, `ctxValueAt`.) -/
 opaque ctxChild (ctx ctx' : GoInterface) : IProp GF := iprop(True)
 
 def ctxChild_persistent.spec : Prop := ∀ ctx ctx', Persistent (ctxChild (GF := GF) ctx ctx')
-
-/-- A child is done once its parent is. -/
-def ctxChild_done.spec : Prop := ∀ ctx ctx',
-  ctxChild (GF := GF) ctx ctx' ⊢ □ (ctxDone ctx -∗ ctxDone ctx')
 
 /-- **A cancel function** (persistent): calling it makes `ctx` done. -/
 def cancelOk (cancel : GoFunc) (ctx : GoInterface) : IProp GF :=
@@ -142,12 +141,42 @@ def WithTimeout.spec : Prop :=
   {{ (ctx : GoInterface) (cancel : GoFunc), RET (PairV #ctx #cancel);
       ctxOk ctx ∗ ctxChild parent ctx ∗ cancelOk cancel ctx }}
 
-/-- **`WithValue(parent, key, val)`** of any context (a comparable key): a child carrying the value. -/
+/-- **`ctx'` is `WithValue(ctx, key, _)`** (persistent): `ctx`'s values and one more, at `key`. -/
+opaque ctxValueAt (ctx ctx' : GoInterface) (key : GoInterface) : IProp GF := iprop(True)
+
+def ctxValueAt_persistent.spec : Prop := ∀ ctx ctx' key, Persistent (ctxValueAt (GF := GF) ctx ctx' key)
+
+/-- **`WithValue(parent, key, val)`** of any context, for a non-nil key of a comparable type (Go
+panics otherwise): a context carrying the value. -/
 def WithValue.spec : Prop :=
-  ∀ (parent key v : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.context ∗ ctxOk parent }}
-    (App (App (App (Val (@! context.WithValue)) (Val #parent)) (Val #key)) (Val #v))
-  {{ (ctx : GoInterface), RET #ctx; ctxOk ctx ∗ ctxWithValues parent ctx }}
+  ∀ (parent v : GoInterface) (ki : GoInterfaceOk),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.context ∗ ctxOk parent ∗
+      ⌜⟦CheckComparable ki.ty, #()⟧ ⤳[under] #()⌝ }}
+    (App (App (App (Val (@! context.WithValue)) (Val #parent)) (Val #(GoInterface.ok ki))) (Val #v))
+  {{ (ctx : GoInterface), RET #ctx; ctxOk ctx ∗ ctxWithValues parent ctx ∗
+      ctxValueAt parent ctx (GoInterface.ok ki) }}
+
+/-- **`ctx` carries no gRPC outgoing metadata** (transparent, so that a batch owning a root context
+can discharge it: net/http's request context, Kubernetes' `wait.ContextForChannel`): its
+`Value(mdOutgoingKey{})` is `nil`, which is what grpc's `metadata.FromOutgoingContext` reads (the
+key's type is unexported: only grpc's `metadata` package sets it). -/
+def ctxNoMeta (ctx : GoInterface) : IProp GF :=
+  iprop(□ ∀ Φ : val → IProp GF, ▷ Φ #GoInterface.nil -∗
+    WP (App (Val (ctx @!! context.Context.ty @!! go!"Value"))
+      (Val #(interface.mkOk google_golang_org.grpc.metadata.mdOutgoingKey.ty
+        #(zero_val google_golang_org.grpc.metadata.mdOutgoingKey)))) {{ Φ }})
+
+/-- `Background()` carries none. -/
+def ctxNoMeta_background.spec : Prop :=
+  ⊢ ctxNoMeta (GF := GF) (GoInterface.ok context.backgroundCtxVal)
+
+/-- A child (`WithCancel`, `WithTimeout`) and a `WithValue` at another key keep it. -/
+def ctxNoMeta_child.spec : Prop := ∀ ctx ctx',
+  ctxNoMeta (GF := GF) ctx ∗ ctxChild ctx ctx' ⊢ ctxNoMeta ctx'
+
+def ctxNoMeta_value.spec : Prop := ∀ (ctx ctx' : GoInterface) (ki : GoInterfaceOk),
+  ctxNoMeta (GF := GF) ctx ∗ ctxValueAt ctx ctx' (GoInterface.ok ki) ∗
+    ⌜ki.ty ≠ google_golang_org.grpc.metadata.mdOutgoingKey.ty⌝ ⊢ ctxNoMeta ctx'
 
 /-- **`ctx`'s Done channel is `ch`** (persistent; `ch` not nil). -/
 opaque ctxDoneChan (ctx : GoInterface) (ch : Loc) : IProp GF := iprop(True)

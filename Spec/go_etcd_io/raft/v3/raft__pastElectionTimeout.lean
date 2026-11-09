@@ -1,8 +1,8 @@
 /-
 ## `raft.pastElectionTimeout` (internal)
 
-`tickElection`. Mirrors the code (counters). **Changes.** Over `raftCore` (from `specs-ref`'s `raft__pastElectionTimeout.lean`, over `NState`).
-**Margin.** The result is not related to the view.
+`tickElection`. Mirrors the code. **Changes.** Over the opened struct (internal layer, `ApiCore.lean`; from `specs-ref`'s
+`raft__pastElectionTimeout.lean`, over `NState`); round 1: the result is stated over the state.
 -/
 module
 
@@ -27,12 +27,12 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) Whether the election timeout passed. -/
+/-- (internal) Whether the randomized election timeout passed. -/
 def raft.pastElectionTimeout.spec : Prop :=
-  ∀ (r : Loc) (γ : Cluster) (id : w64) (ρ : CoreView) ,
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftCore r γ id ρ }}
+  ∀ (r : Loc) (γ : Cluster) (id : w64) (o : CoreOpen) ,
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftOpen r γ id o }}
     (App (Val (r @!! go.GoType.PointerType go_etcd_io.raft.v3.raft.ty @!! go!"pastElectionTimeout")) (Val #()))
-  {{ (b : Bool), RET #b; raftCore r γ id ρ }}
+  {{ (b : Bool), RET #b; raftOpen r γ id o ∗ ⌜b = decide (sint.Z o.randomizedElectionTimeout ≤ sint.Z o.electionElapsed)⌝ }}
 
 end spec
 end Raft

@@ -93,20 +93,11 @@ at some phase), `rawNodeAt_core` (open the raft struct; close at any view), `raw
 
 ## Left out
 
-- **Internal steps whose correctness needs a guard only their caller's check establishes**, so that
-  a spec over `raftCore` with an opaque, state-relative guard would be unsound or would fix the
-  realization prematurely; each is part of its caller's proof sketch: `raft.send` (the queue's
-  justification of the message), `sendHeartbeat`, `bcastHeartbeatWithCtx` (the context a pending
-  read's), `reset`, `loadState` (run with the invariant open, inside `become*`/`newRaft`),
-  `becomeCandidate`, `becomePreCandidate`, `campaign` (the campaign guard `hup` checked),
-  `becomeLeader`, `poll` (the vote quorum), `appliedTo`, `appliedSnap` (the acknowledgement's
-  evidence: inside `raft.Step`'s `ack` case), `switchToConfig` (inside `applyConfChange` and
-  `appliedSnap`), `responseToReadIndexReq`, `sendMsgReadIndexResponse` (a read confirmed at a leader
-  with an entry of its term committed).
-- Asynchronous-writes only (unreachable under `ConfigOk`): `needStorageAppendMsg`,
-  `newStorageAppendMsg`, `newStorageApplyMsg`.
-- `DefaultLogger`'s methods and `header` (their contract is R1's `loggerOk`; its realization for
-  `*DefaultLogger` needs Perennial's `log` model), `Status.MarshalJSON`/`String` (no caller in scope).
+Nothing of `raft.go`, `logger.go`, `status.go` or the `rawnode.go` internals R1 left (round 1 added
+the fifteen internal helpers, the three asynchronous-writes helpers, `DefaultLogger`'s methods,
+`header`, `Status.MarshalJSON` and `Status.String`). Not specified: `RawNode.TickQuiesced` and
+`RawNode.WithProgress` (R1's functions, no user in scope; the laws they would need are noted in
+`req/`).
 
 ## R1's added obligations (`req/go_etcd_io_raft_v3.md`, items 8-10): does raft.go meet them?
 
@@ -123,15 +114,13 @@ Traced through `newRaft`, `restore`, `appliedSnap`, `switchToConfig`, `hup`, `st
   candidate's quorum is of a committed configuration at or after every configuration it could have
   applied. The conf entries in `(commit, a]` are later re-delivered below the view and must be
   no-ops (R1's `ApplyConfChange` else-branch), which R2's `raft.applyConfChange.spec` keeps.
-  **Met**, with one doubt for the reviewers: when `a > σ.last` (the node's log does not hold the
-  entries up to `a`), the node may campaign with the configuration at `a`; it can only win with a
-  log at least as up to date as a quorum of that configuration, so it then holds them. I found no
-  counterexample, but the quorum-intersection argument across more than one configuration step is
-  the place to check.
+  **Met.** Round 1: the doubt (a view past the node's log's end) is closed by the provability
+  reviewer's argument, now the realization's item 4 in `ApiCore.lean` (V1-V3: a candidate whose view
+  is ahead of its log's end cannot win, since every quorum of its view holds an entry past that end).
 - **8b. A snapshot whose `ConfState` is taken at a committed point after its index**, installed at
   `Advance`: `appliedSnap` (after the fork's fix) restores the tracker from the snapshot's
   `ConfState` regardless of its index; no panic for a valid configuration (`confAt_valid`). Same
-  shape as 8a; R2's `ackPost` gives R1's revised post (`∃ a m, nodeConf ⟨a, m⟩`, `s.index ≤ a`).
+  shape as 8a; `rawNodeAt_advance`'s closing gives R1's revised post (the client-chosen view wand).
   `restore` refuses a snapshot whose configuration does not list the node (liveness only). **Met**
   (same caveat).
 - **9. The stored snapshot stays empty or valid**, and `maybeSendSnapshot` sends only valid ones:
@@ -148,20 +137,17 @@ Traced through `newRaft`, `restore`, `appliedSnap`, `switchToConfig`, `hup`, `st
 
 ## Open questions for the user
 
-1. **The term (and index) bound.** `raft.Step` and the ticks take no term budget: each campaign (and
-   each appended entry) takes a time receipt from raft's own steps, and the cluster invariant bounds
-   terms and indices by the receipts. That needs the execution's step bound below `2^64 - 1` where
-   the cluster is allocated (R1's `cluster_alloc.spec`, the bound's owner). Accept the receipt
-   design (the old proof's, `budgetInv`), with the bound's fact entering at allocation?
-2. **The `RawNode` phases** (`rawNodeAt`, `readyFresh`, `readyKept`, `readyHanded`, `ackOk`: five
-   predicates) exist because `node.run` may send a `Ready` computed before other steps and because
-   `acceptReady` panics on a second `Ready` before `Advance`. They are internal to the raft package
-   (no client calls `RawNode`), but R1's `RawNode.Ready`/`HasReady`/`Advance` specs change to use
-   them (request in `req/`). Acceptable, or should `RawNode`'s public specs hide them behind R1's
-   `rawNode` (at the cost of `RawNode.Ready` needing a premise that no acknowledgement is queued)?
-3. **Internal helpers left out** (list above): their specs need a guard only the caller's check
-   establishes; stating them now would fix the realization's ghost state. Keep them out of the
-   specs-only branch (specified with the proof), or state them over an internal, unsealed predicate?
+1. **The term (and index) bound.** `raft.Step` and the ticks take no term budget: each term increase
+   and each appended entry deposits a time receipt from raft's own steps, and the cluster invariant
+   bounds terms and indices by the receipts (realization item 5). That needs the execution's step
+   bound (at most `2^63`, which also covers R3's range premises) where the cluster is allocated:
+   R1's `cluster_alloc.spec`, requested (`req/go_etcd_io_raft_v3.md`, round 1, item 7). Both
+   reviewers judged the design sound. Accept?
+2. **The `RawNode` phases** (R1 has adopted them): no question left.
+3. **The internal layer** (`raftOpen`, `coreInv`, `coreInvConf`, `msgJust`, `voteFrom`,
+   `readConfirmed`, `leaderOf`, `CoreOpen`, `CampaignGuard`): stated now, as both reviewers asked,
+   marked internal. Their realization (what `coreInv` is) is the header's; the specs over them fix
+   the Go-level split and the callers' checks, not the ghost state's layout.
 
 ## Findings for other batches
 
@@ -171,3 +157,75 @@ Traced through `newRaft`, `restore`, `appliedSnap`, `switchToConfig`, `hup`, `st
   behaviour of `RawNode`.
 - `lockedRand.Intn` ignores `crypto/rand.Int`'s error and dereferences the result: it rests on
   `rand.Reader` never failing (Go documents this since 1.24). Not a reachable bug; noted in the spec.
+
+## Round 1 repairs
+
+Reviews: `reviews/R2-provability-1.md`, `reviews/R2-completeness-1.md`. Everything rebuilt
+(`etc/specs-build.sh --dir Spec/go_etcd_io/raft/v3`, R1's and R3's files included); snippets gofmt
+clean and `go vet` clean in a scratch copy of the pinned raft module.
+
+First tier:
+- **The fifteen helpers** (provability 1.1, completeness F7) are specified over the internal layer
+  (`ApiCore.lean`, "Internal"): `raftOpen r γ id o` (the struct opened, at `o : CoreOpen`: the view,
+  R3's `LogState`, R3's `ReadOnlyState`, the scalars), `coreInv r γ id o` (the invariant's
+  condition), `raftCore_open`/`raftCore_close`, `raftOpen_log`, `raftOpen_ro`. Each takes its
+  caller's check, per the completeness table: `send` (`sendShape`, `msgJust`), `sendHeartbeat` and
+  `bcastHeartbeatWithCtx` (leader, the read-only queue's context `hbCtxOf`), `appliedTo` (within the
+  commit; at a leader, the invariant at the new applied index, for the auto-leave step),
+  `appliedSnap` (`snapValid`, R3's `SnapAckOk`, not a leader), `reset`, `loadState` (`committed ≤
+  hs.commit ≤ lastIndex`), `becomeCandidate`/`becomePreCandidate`/`campaign` (not a leader,
+  `CampaignGuard`, or a pre-candidate's won pre-vote), `becomeLeader` (a candidate with a progress,
+  `leaderOf`), `poll` (`voteFrom`; `VoteWon` gives `leaderOf`), `switchToConfig` (R4's result,
+  `trkResult`; at a leader `coreInvConf`), `responseToReadIndexReq` (`readConfirmed`; the local or
+  forwarded answer), `sendMsgReadIndexResponse` (leader, an entry of its term committed). Also
+  specified: the asynchronous helpers (`needStorageAppendMsg`, `newStorageAppendMsg`,
+  `newStorageApplyMsg`), `DefaultLogger`'s methods (`defaultLoggerOk`/`defaultLoggerOwn`, `Fatal*`/
+  `Panic*` with pre `False`), `header`, `Status.MarshalJSON`, `Status.String`.
+- **Results stated** (provability 1.2, completeness F8): `promotable`, `hasUnappliedConfChanges`,
+  `committedEntryInCurrentTerm`, `pastElectionTimeout` are over `raftOpen` with their result exact
+  over `o` (`CampaignGuard` is what `hup`'s checks give); `maybeCommit` says whether the commit moved;
+  `restore` states the commit (and its index when it replaces the log); `newStorageAppendRespMsg`
+  states the acknowledged entry id (provability 2.1).
+- **Forwarded proposals** (completeness F1): `stepIn`'s received case is up to the sender for a
+  `MsgProp` (`node.run` rewrites `From`); snippet `ReqStepForwardedProposal`.
+- **`Advance`** (provability 1.4, 1.7; completeness F2, F3): `rawNodeAt_advance` takes R1's `Advance`
+  pre (driver, storage writes done, view, `confSkipped`), gives the struct with the released
+  acknowledgements (`ackOk`), and its closing (the struct at any view, the emptied field, an `ackDone`
+  per acknowledgement) gives R1's `Advance` post exactly, the snapshot arm with R1's client-chosen
+  view wand. `ackOk_type`: acknowledgements are never proposals. `StepSrc.ack rn` carries no driver
+  any more; `ackPre`/`ackPost` removed.
+- **Reads between computing a `Ready` and sending it** (completeness F4): `raftRO` (a read-only share
+  at a view), `raftCore_ro`, `readyFresh_ro`; the getters and the field reads (`raftRO_peek`) take
+  `raftRO`. Snippet `ReqReadyPeek`.
+- **`RawNode.Bootstrap`** (completeness F5): `rawNodeAt_bootstrap` (the window: the struct open at the
+  empty log with `coreInv`, `prevHardSt`, `committedLb γ boot`; closed after `becomeFollower(1)` and
+  the entries appended and committed; then `applyConfChange` per peer on the closed struct);
+  `raft.applyConfChange.spec` takes `committedLb γ l` (was `deliveredLb rn γ l`; R1's callers derive
+  it); `becomeFollower` is over the opened struct. R1 asked for the bootstrap decisions' law.
+  Snippet `ReqBootstrap`.
+- **`newRaft`'s post** keeps `validate`'s relation (`Config.defaulted`, completeness F6); `ReqNewRawNode`
+  reads `AsyncStorageWrites` back.
+- **`HasReady = false`** (provability 1.5, (d)): `readyEmpty` (`ApiCore.lean`) and the monotonicity
+  fact (realization item 6); R1 asked to add `readyEmpty rd` to `HasReady`'s `false` case.
+  `ReqReadyStale`'s header corrected (the stale `Ready` is empty, soft state included).
+- **`loggerOk ⇒ non-nil`** (provability 1.6): `loggerOk_nonnil.spec`; `raft_init.spec` (default
+  loggers, `globalRand`), `defaultLogger_loggerOk.spec`.
+- **The term bound** (provability 1.3): requested of R1 (`cluster_alloc`, a bound of `2^63`, as R3
+  asked); realization item 5 names the owner's protocol and the bootstrap offset (2.4).
+- **The realization** (provability (a), 2.2, 2.3, 2.5): `ApiCore.lean`'s header now states
+  `raftCore`'s definition over `raftOpen`/`coreInv` and the invariant's items: per-term leader logs
+  and election safety, durable responses and replaced snapshots, reads (deposited at the first step,
+  fired at every commit: the old proof's scheme, not at confirmation), configurations (V1-V3), the
+  term bound, and the `Ready` phases (`readyKept` keeps no memory; the `HasReady` monotonicity).
+
+Second tier: line citations corrected in the specs and snippets; the copied "Users" sentence of the
+send helpers replaced per function; snippets for a conf-change proposal (`ReqStepConfChange`) and a
+transfer with its target (`ReqStepReports`), `ReqTickMissed` (completeness S4); `ReqStatus` no
+longer writes the returned hard state; requests to 3h (a field-write law for `msgPts`,
+`confStatePts`'s non-null law) and R4 (`trkResult`). Not done: `TickQuiesced`/`WithProgress` laws
+(S3; no user), moving `leaderOf`/`msgSent_leaderOf` to a separate internal module (2.8; marked
+internal, for `etc/api`).
+
+R3's revised log vocabulary (`ApiLog.lean`) is what the internal layer is stated over (`LogState`,
+`termOf`, `range`, `lastIndex`, `appliedTo`, `SnapAckOk`, `ReadOnlyState`); `raftOpen_log` exposes
+R3's `raftLog`.

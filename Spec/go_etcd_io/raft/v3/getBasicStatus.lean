@@ -1,7 +1,7 @@
 /-
 ## `getBasicStatus(r)`
 
-**Users.** `RawNode.BasicStatus` (`rawnode.go:466`), `getStatus`. R1's `RawNode.BasicStatus.spec`
+**Users.** `RawNode.BasicStatus` (`rawnode.go:500-502`), `getStatus`. R1's `RawNode.BasicStatus.spec`
 (the id; a hard state). Snippet: `status.go`.
 
 **Proof sketch.** Reads `id`, `leadTransferee`, `raftLog.applied`; `hardState()`, `softState()`.
@@ -33,10 +33,10 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- The id, the view's hard state (fresh) and soft state. -/
 def getBasicStatus.spec : Prop :=
-  ∀ (r : Loc) (γ : Cluster) (id : w64) (ρ : CoreView),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftCore r γ id ρ }}
+  ∀ (r : Loc) (id : w64) (ρ : CoreView),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftRO r id ρ }}
     (App (Val (@! go_etcd_io.raft.v3.getBasicStatus)) (Val #r))
-  {{ (bs : go_etcd_io.raft.v3.BasicStatus), RET #bs; raftCore r γ id ρ ∗
+  {{ (bs : go_etcd_io.raft.v3.BasicStatus), RET #bs; raftRO r id ρ ∗
       ⌜bs.ID' = id ∧ bs.SoftState' = go_etcd_io.raft.v3.SoftState.mk ρ.lead ρ.role⌝ ∗
       hardStatePts bs.HardState' (DFrac.own 1) ρ.hs }}
 

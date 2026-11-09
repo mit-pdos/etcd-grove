@@ -1,8 +1,7 @@
 /-
 ## `raft.maybeSendSnapshot` (internal)
 
-**Users.** `stepLeader`, `becomeLeader`, `switchToConfig`, `tickHeartbeat` (via `MsgBeat`), each
-other. **Proof sketch.** Recently active only; R3's `snapshot` (the storage's: non-empty when compacted, as R1's `stor_compact` keeps the compaction point under the stored snapshot, and valid: R1's node invariant), `BecomeSnapshot` (R4), `MsgSnap`. **Changes** (from `specs-ref`'s `raft__maybeSendSnapshot.lean`, if any): over
+**Users.** `maybeSendAppend` (`raft.go:629`, `:647`). **Proof sketch.** Recently active only; R3's `snapshot` (the storage's: non-empty when compacted, as R1's `stor_compact` keeps the compaction point under the stored snapshot, and valid: R1's node invariant), `BecomeSnapshot` (R4), `MsgSnap`. **Changes** (from `specs-ref`'s `raft__maybeSendSnapshot.lean`, if any): over
 `raftCore`. **Margin.** The messages are inside the token until a `Ready` hands them out.
 -/
 module

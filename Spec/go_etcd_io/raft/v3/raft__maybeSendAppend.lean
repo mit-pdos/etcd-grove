@@ -1,8 +1,7 @@
 /-
 ## `raft.maybeSendAppend` (internal)
 
-**Users.** `stepLeader`, `becomeLeader`, `switchToConfig`, `tickHeartbeat` (via `MsgBeat`), each
-other. **Proof sketch.** Unless paused (R4): the entries after `Next - 1` up to the size limit (R3's `term`, `entries`), or, compacted, `maybeSendSnapshot`; the message's facts are the leader's log at its term and its commit index (`msgSent` once handed out). **Changes** (from `specs-ref`'s `raft__maybeSendAppend.lean`, if any): over
+**Users.** `sendAppend`, `stepLeader` (`raft.go:1584`), `switchToConfig` (`:2027`). **Proof sketch.** Unless paused (R4): the entries after `Next - 1` up to the size limit (R3's `term`, `entries`), or, compacted, `maybeSendSnapshot`; the message's facts are the leader's log at its term and its commit index (`msgSent` once handed out). **Changes** (from `specs-ref`'s `raft__maybeSendAppend.lean`, if any): over
 `raftCore`. **Margin.** The messages are inside the token until a `Ready` hands them out.
 -/
 module

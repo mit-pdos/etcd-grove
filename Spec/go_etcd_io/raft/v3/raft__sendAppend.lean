@@ -1,8 +1,7 @@
 /-
 ## `raft.sendAppend` (internal)
 
-**Users.** `stepLeader`, `becomeLeader`, `switchToConfig`, `tickHeartbeat` (via `MsgBeat`), each
-other. **Proof sketch.** `maybeSendAppend(to, true)`. **Changes** (from `specs-ref`'s `raft__sendAppend.lean`, if any): over
+**Users.** `bcastAppend`, `stepLeader` (`raft.go:1526`, `:1575`, `:1612`, `:1680`). **Proof sketch.** `maybeSendAppend(to, true)`. **Changes** (from `specs-ref`'s `raft__sendAppend.lean`, if any): over
 `raftCore`. **Margin.** The messages are inside the token until a `Ready` hands them out.
 -/
 module
