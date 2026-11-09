@@ -968,6 +968,110 @@ theorem simRun_selfAck (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (
     simp only [msgAbs, pselfAck, Option.get_some, Bool.and_eq_true, beq_self_eq_true, and_true]
     exact this
 
+/-- A monadic fold appending each element's results is the concatenation. -/
+theorem foldlM_concat {α β ε : Type} (F : List β → α → Except ε (List β)) (r : α → List β) :
+    ∀ (l : List α) (acc : List β), (∀ acc, ∀ x ∈ l, F acc x = .ok (acc ++ r x)) →
+      l.foldlM F acc = .ok (acc ++ l.flatMap r) := by
+  intro l
+  induction l with
+  | nil => intro acc _; simp [pure, Except.pure]
+  | cons x l ih =>
+    intro acc h
+    rw [List.foldlM_cons, h acc x (by simp)]
+    simp only [bind, Except.bind]
+    rw [ih _ (fun acc y hy => h acc y (by simp [hy]))]
+    simp
+
+theorem intRange_nodup (lo hi : Int) : (Etcdraft.intRange lo hi).Nodup := by
+  unfold Etcdraft.intRange
+  exact List.nodup_range.map (f := fun (k : Nat) => lo + (k : Int)) (fun _ _ h e => h (by omega))
+
+theorem mem_intRange (lo hi x : Int) (h1 : lo ≤ x) (h2 : x ≤ hi) : x ∈ Etcdraft.intRange lo hi := by
+  unfold Etcdraft.intRange
+  rw [List.mem_map]
+  exact ⟨(x - lo).toNat, by rw [List.mem_range]; omega, by omega⟩
+
+/-- A `MsgApp` line's non-receive successors: the specification's `AppendEntries(i, j, <<b, e>>)`
+of the line's sender, receiver and range (`b` the line's index plus 1, `e` past its entries,
+within the range `TraceNext` tries: past the receiver's `matchIndex`, at most one past the log). -/
+theorem nonReceive_msgApp (t : Etcdraft.Trace) (ts : Etcdraft.TState) (i j : Etcdraft.ID)
+    (s2 : Etcdraft.State) (em : Etcdraft.EventMsg) (hl : ts.l ≤ t.len)
+    (hname : (t.line ts.l).ev.name = "SendAppendEntriesRequest")
+    (hfrom : (t.line ts.l).from = i) (hto : (t.line ts.l).to = j)
+    (hem : (t.line ts.l).ev.msg = some em) (hty : em.type = "MsgApp")
+    (hnd : t.server.Nodup) (hi : i ∈ t.server) (hj : j ∈ t.server)
+    (hlo : (ts.s.s i).matchIndex j + 1 ≤ em.index + 1)
+    (hhi : em.index + 1 + em.entries ≤ ((ts.s.s i).log.length : Int) + 1)
+    (hb0 : (ts.s.s i).matchIndex j + 1 ≤ em.index + 1 + em.entries) (hent0 : 0 ≤ em.entries)
+    (hae : ts.s.appendEntries i j (em.index + 1) (em.index + 1 + em.entries) = .ok (some s2))
+    (hv : t.validateAfterAppendEntries ts s2 i = true) :
+    t.nonReceive ts = .ok [s2] := by
+  -- each `AppendEntriesIfLogged` gives `[s2]` at the line's sender, receiver and range, else nothing
+  have hR : ∀ (p : Etcdraft.ID × Etcdraft.ID) (b e : Int), t.appendEntriesIfLogged ts p.1 p.2 b e =
+      .ok (if p = (i, j) ∧ b = em.index + 1 ∧ e = em.index + 1 + em.entries then [s2] else []) := by
+    rintro ⟨a, c⟩ b e
+    unfold Etcdraft.Trace.appendEntriesIfLogged
+    by_cases hp : a = i ∧ c = j
+    · obtain ⟨rfl, rfl⟩ := hp
+      have hme : t.isMessageEvent ts "SendAppendEntriesRequest" a c = true := by
+        simp [Etcdraft.Trace.isMessageEvent, Etcdraft.Trace.isEvent, hl, hname, hfrom, hto, hem]
+      simp only [hme, Bool.not_true, Bool.false_eq_true, ↓reduceIte, hem]
+      by_cases hbe : b = em.index + 1 ∧ e = em.index + 1 + em.entries
+      · obtain ⟨rfl, rfl⟩ := hbe
+        simp [hty, hae, hv, bind, Except.bind, pure, Except.pure]
+      · have : (em.type == "MsgApp" && b == em.index + 1 && e == b + em.entries) = false := by
+          simp only [hty, beq_self_eq_true, Bool.true_and, Bool.and_eq_false_iff, beq_eq_false_iff_ne]
+          by_cases hb : b = em.index + 1
+          · right; intro he; exact hbe ⟨hb, by rw [he, hb]⟩
+          · left; exact hb
+        simp [this, hbe, pure, Except.pure]
+    · have hme : t.isMessageEvent ts "SendAppendEntriesRequest" a c = false := by
+        simp only [Etcdraft.Trace.isMessageEvent, hfrom, hto]
+        by_cases ha : a = i
+        · have hc : c ≠ j := fun hc => hp ⟨ha, hc⟩
+          simp [ha, Ne.symm hc]
+        · simp [Ne.symm ha]
+      have hne : ¬ ((a, c) = (i, j) ∧ b = em.index + 1 ∧ e = em.index + 1 + em.entries) := by
+        rintro ⟨h, -⟩; simp only [Prod.mk.injEq] at h; exact hp h
+      simp only [hme, Bool.not_false, ↓reduceIte, hne]; rfl
+  have hfold : t.pairs.foldlM (fun acc p => do
+        let lo := (ts.s.s p.1).matchIndex p.2 + 1
+        let hi := ((ts.s.s p.1).log.length : Int) + 1
+        (Etcdraft.intRange lo hi).foldlM (fun acc b =>
+          (Etcdraft.intRange lo hi).foldlM (fun acc e => do
+            return acc ++ (← t.appendEntriesIfLogged ts p.1 p.2 b e)) acc) acc) [] = .ok [s2] := by
+    rw [foldlM_concat _ (fun p => (Etcdraft.intRange ((ts.s.s p.1).matchIndex p.2 + 1)
+        (((ts.s.s p.1).log.length : Int) + 1)).flatMap (fun b =>
+          (Etcdraft.intRange ((ts.s.s p.1).matchIndex p.2 + 1) (((ts.s.s p.1).log.length : Int) + 1)).flatMap
+            (fun e => if p = (i, j) ∧ b = em.index + 1 ∧ e = em.index + 1 + em.entries then [s2] else [])))]
+    · simp only [List.nil_append]
+      congr 1
+      apply flatMap_single _ _ (i, j) s2 (pairs_nodup t hnd) ((mem_pairs t i j).2 ⟨hi, hj⟩)
+      · apply flatMap_single _ _ (em.index + 1) s2 (intRange_nodup _ _) (mem_intRange _ _ _ hlo (by simp only; omega))
+        · apply flatMap_single _ _ (em.index + 1 + em.entries) s2 (intRange_nodup _ _)
+            (mem_intRange _ _ _ hb0 hhi)
+          · simp
+          · intro x _ hx; simp [hx]
+        · intro x _ hx; rw [List.flatMap_eq_nil_iff]; intro y _; simp [hx]
+      · intro x _ hx; rw [List.flatMap_eq_nil_iff]; intro y _; rw [List.flatMap_eq_nil_iff]; intro z _
+        simp [hx]
+    · intro acc p _
+      simp only
+      rw [foldlM_concat _ (fun b => (Etcdraft.intRange ((ts.s.s p.1).matchIndex p.2 + 1)
+          (((ts.s.s p.1).log.length : Int) + 1)).flatMap
+            (fun e => if p = (i, j) ∧ b = em.index + 1 ∧ e = em.index + 1 + em.entries then [s2] else []))]
+      intro acc' b _
+      rw [foldlM_concat _ (fun e => if p = (i, j) ∧ b = em.index + 1 ∧ e = em.index + 1 + em.entries then [s2] else [])]
+      intro acc'' e _
+      simp [hR, bind, Except.bind, pure, Except.pure]
+  unfold Etcdraft.Trace.nonReceive
+  have hmt : (t.line ts.l).ev.msg.map Etcdraft.EventMsg.type = some "MsgApp" := by rw [hem, Option.map_some, hty]
+  simp only [hname, hmt]
+  simp only [bind, Except.bind] at hfold ⊢
+  rw [hfold]
+  simp [Etcdraft.Trace.skipUnusedLogline, Etcdraft.Trace.isEvent, hname,
+    Etcdraft.Trace.isBecomeFollowerInUpdateTermOrReturnToFollower, pure, Except.pure]
+
 end TraceSim
 
 end EtcdGrove
