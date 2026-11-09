@@ -11,7 +11,7 @@ ghost state (`notes/trace-validation-sim.md`, revision 13, "Phases" and "The mes
 - `simNode tn i c P`: node `i`'s share, its server `c` and its pending messages `P`; `inFlight tn
   k m`: the token of a handed-out message (at most once, after its sender's `Ready`: the user's,
   2026-11-08);
-- `simInv C tn`: the trace's simulation half, the specification's state, the shares' and tokens'
+- `simInv C tn Fx`: the trace's simulation half, the specification's state, the shares' and tokens'
   authorities, and the phantom replies (requests of a lower term the specification answers and
   raft, check-quorum and pre-vote off, ignores).
 -/
@@ -200,13 +200,13 @@ def simNode (tn : TraceNames) (i : w64) (c : ServerC) (P : List Etcdraft.Msg) : 
 def inFlight (tn : TraceNames) (k : Nat) (m : Etcdraft.Msg) : IProp GF :=
   ghostMapElem tn.bag k (DFrac.own 1) m
 
-/-- The simulation's invariant, the voters `C` (Draft: the relation of the shares to raft's state is
-the nodes' own, at their hook points; the determinism facts `MsgsDet`, `AppSlices` of the design
-are added with S5's proofs). -/
-def simInv (C : List w64) (tn : TraceNames) : IProp GF :=
+/-- The simulation's invariant, the voters `C`, with the facts `Fx σ` the specification's state
+carries (Draft: `TracedHooksDraft`'s `simFx`: the per-server raft facts and the specification
+invariants; the relation of the shares to raft's state is the nodes' own, at their hook points). -/
+def simInv (C : List w64) (tn : TraceNames) (Fx : Etcdraft.State → IProp GF) : IProp GF :=
   iprop(∃ (L : List TraceEv) (σ : Etcdraft.State) (A : GMap w64 (ServerC × List Etcdraft.Msg))
       (B : GMap Nat Etcdraft.Msg) (phP phM : List Etcdraft.Msg),
-    traceFrag tn.tr L ∗ ghostMapAuth tn.st 1 A ∗ ghostMapAuth tn.bag 1 B ∗
+    traceFrag tn.tr L ∗ ghostMapAuth tn.st 1 A ∗ ghostMapAuth tn.bag 1 B ∗ Fx σ ∗
     ⌜SimRun C L σ ∧ σ.server = confAbs C ∧
       (∀ i ∈ C, ∃ P, A !! i = some (toC σ.server (σ.s (idAbs i)), P)) ∧
       (∀ i, i ∉ C → A !! i = none) ∧

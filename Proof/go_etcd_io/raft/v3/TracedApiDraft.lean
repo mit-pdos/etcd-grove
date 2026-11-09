@@ -47,7 +47,7 @@ def startTrace (γ : Cluster) (N : Namespace) (vs : List w64) (cv : Config) : IP
   match Cluster.trace γ with
   | none => iprop(⌜cv.TraceLogger' = interface.nil⌝)
   | some γd => iprop(∃ tn : TraceNames, traceDir γd tn ∗ ⌜TracedConfigOk cv⌝ ∗
-      isTraceLogger tn.tr cv.TraceLogger' ∗ inv (simN N) (simInv vs tn) ∗
+      isTraceLogger tn.tr cv.TraceLogger' ∗ inv (simN N) (simInv vs tn (fun _ => iprop(True))) ∗
       simNode tn cv.ID' (toC (confAbs vs) ((simInit vs).s (idAbs cv.ID'))) [])
 
 /-- **`StartNode`, gated** (Q6 item 1): `StartNode.spec` with its premise `TraceLoggerOk

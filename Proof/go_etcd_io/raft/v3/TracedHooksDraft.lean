@@ -39,6 +39,7 @@ public import Spec.go_etcd_io.raft.v3.traceReplicate
 public import Spec.go_etcd_io.raft.v3.raft__send
 public import Proof.go_etcd_io.raft.v3.TraceSimLemmas
 public import Proof.go_etcd_io.raft.v3.TraceSimGhost
+public import Proof.go_etcd_io.raft.v3.TraceSimFacts
 public import Proof.strconv.FormatUintDefs
 
 @[expose] public section
@@ -237,11 +238,18 @@ def TraceFire (tr : Option GName) (tl : GoInterface) (E : TraceEv → Prop) (Q :
   | some γd => iprop(∃ tn : TraceNames, traceDir γd tn ∗ isTraceLogger tn.tr tl ∗ ⌜tl ≠ interface.nil⌝ ∗
       ∀ e, ⌜E e⌝ -∗ AU <{ ∃∃ L, traceAuth tn.tr L }> @ ⊤, ∅ <{ traceAuth tn.tr (L ++ [e]), COMM Q }>)
 
+/-- **The specification state's facts in `simInv`** (Draft): every voter's raft facts (`allFacts`:
+`MoreThanOneLeaderInv`, `LogInv`, `LogMatchingInv`, `CommitOk`), and the specification invariants
+`LeaderEntries` (`ElectionSafetyInv`) and `DurInv` (`CommittedIsDurableInv`); `QuorumLogInv`'s and
+`LeaderCompletenessInv`'s facts and the bags' uniqueness (`MsgsDet`) to be added. -/
+def simFx (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) : IProp GF :=
+  iprop(allFacts γ C σ ∗ ⌜LeaderEntries σ ∧ DurInv σ⌝)
+
 /-- **The simulation's capability** on a hook path (Q8): `emp` in an untraced cluster; in a traced
 one, the node's share `(cs, P)` with the function's phase `Φ C cs P` (`C` the voters, raft's
 configuration `c` their permutation with no outgoing half, the node one of them: review round 1's
 F4), the node's logger and its contract, and the simulation's invariant. -/
-def trCap (tr : Option GName) (r : Loc) (id : w64) (c : CfgM)
+def trCap (tr : Option GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM)
     (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) : IProp GF :=
   match tr with
   | none => iprop(emp)
@@ -249,7 +257,7 @@ def trCap (tr : Option GName) (r : Loc) (id : w64) (c : CfgM)
       (P : List Etcdraft.Msg),
       traceDir γd tn ∗ ⌜tn.voters = C ∧ (elements c.incoming).Perm C ∧ c.outgoing = ∅ ∧ id ∈ C⌝ ∗
       r.[raft, go!"traceLogger"] ↦□ tl ∗ isTraceLogger tn.tr tl ∗
-      ⌜tl ≠ interface.nil⌝ ∗ inv simNS (simInv C tn) ∗ simNode tn id cs P ∗ ⌜Φ C cs P⌝)
+      ⌜tl ≠ interface.nil⌝ ∗ inv simNS (simInv C tn (simFx γ C)) ∗ simNode tn id cs P ∗ ⌜Φ C cs P⌝)
 
 /-- **What a hook's caller gives for an event that may or may not be logged**: `some E`, as
 `TraceFire`; `none` (a message type the hook does not trace), `Q` (review round 1's S6). -/
@@ -265,8 +273,9 @@ def TraceFireN (tr : Option GName) (tl : GoInterface) (E : TraceEv → Prop) : N
   | n + 1, Q => TraceFire tr tl E (TraceFireN tr tl E n Q)
 
 /-- In an untraced cluster the capability is nothing. -/
-theorem trCap_none (r : Loc) (id : w64) (c : CfgM) (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) :
-    trCap (GF := GF) none r id c Φ ⊣⊢ iprop(emp) := .rfl
+theorem trCap_none (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM)
+    (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) :
+    trCap (GF := GF) none γ r id c Φ ⊣⊢ iprop(emp) := .rfl
 
 /-- ... and so is the event builder's gate but the nil logger and `Q`. -/
 theorem traceFire_none (tl : GoInterface) (E : TraceEv → Prop) (Q : IProp GF) :
@@ -291,29 +300,29 @@ abbrev traceNodeEvent.tracedSpec : Prop :=
 leader whose `AdvanceCommitIndex` commits exactly to `n`, and the server so committed is idle-related
 to `s` (`SimIdle`): the line's step. After it, the share is idle-related to `s`. -/
 abbrev traceCommit.tracedSpec : Prop :=
-  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState),
+  ∀ (c : CfgM) (γ : RaftNames) (r : Loc) (id : w64) (s : NState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
-      trCap s.gh.tr r id c (fun C cs P => ∃ (a : Etcdraft.Server) (n : Int),
+      trCap s.gh.tr γ r id c (fun C cs P => ∃ (a : Etcdraft.Server) (n : Int),
         toC (confAbs C) a = cs ∧ a.state = Etcdraft.leader ∧ AdvancesTo a n ∧
         SimIdle C s (toC (confAbs C) { a with commitIndex := max a.commitIndex n }) P) }}
     (App (Val #(functions traceCommit [])) (Val #r))
-  {{ RET #(); ownRaftPhysCV c c.voters r id s ∗ trCap s.gh.tr r id c (fun C => SimIdle C s) }}
+  {{ RET #(); ownRaftPhysCV c c.voters r id s ∗ trCap s.gh.tr γ r id c (fun C => SimIdle C s) }}
 
 /-- **`r.maybeCommit()`, traced** (`raft.maybeCommit.spec` with the capability): at a leader whose
 share is idle-related to its state, it commits as `raft.maybeCommit.spec` says and logs `Commit`,
 the specification's `AdvanceCommitIndex` (exact: `Committed()`'s quorum index is `maxAgree`), after
 which the share is idle-related to the new state. -/
 abbrev raft.maybeCommit.tracedSpec : Prop :=
-  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState),
+  ∀ (c : CfgM) (γ : RaftNames) (r : Loc) (id : w64) (s : NState),
   s.role = .leader →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗ trCap s.gh.tr r id c (fun C => SimIdle C s) }}
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗ trCap s.gh.tr γ r id c (fun C => SimIdle C s) }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"maybeCommit")) (Val #()))
   {{ (b : Bool) (N : w64), RET #b;
       ownRaftPhysCV c c.voters r id
         (if b then { s with logst := { s.logst with committed := N } } else s) ∗
       ⌜b = true → CommitOkC c (toPState s) N⌝ ∗
-      trCap s.gh.tr r id c (fun C =>
+      trCap s.gh.tr γ r id c (fun C =>
         SimIdle C (if b then { s with logst := { s.logst with committed := N } } else s)) }}
 
 /-! ## The other hooks, traced -/
@@ -393,7 +402,7 @@ abbrev traceReplicate.tracedSpec : Prop :=
 `raft.send.spec` says, then `traceSendMessage`: for a traced type, a line whose local effect takes the
 caller's phase `Φ` to `Φ'` (`PhaseStep`, the message as sent, `out`'s); otherwise `Φ` kept. -/
 abbrev raft.send.tracedSpec : Prop :=
-  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
+  ∀ (c : CfgM) (γ : RaftNames) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
     (out : List Msg) (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop),
   (m.From' = W64 0 ∨ m.From' = id ∨ m.Type' = MsgReadIndex ∨ m.Type' = MsgTransferLeader) →
@@ -409,9 +418,9 @@ abbrev raft.send.tracedSpec : Prop :=
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hm" ∷ msgOwn ml (DFrac.own 1) ⟨m, ents, sn, ctx, rs⟩ ∗
       "#Hsrc" ∷ tsSrc s.gh.sn m.Type' sn ∗
-      trCap s.gh.tr r id c Φ }}
+      trCap s.gh.tr γ r id c Φ }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"send")) (Val #ml))
-  {{ RET #(); ownRaftPhysCV c c.voters r id (sendMsgs s out) ∗ trCap s.gh.tr r id c Φ' }}
+  {{ RET #(); ownRaftPhysCV c c.voters r id (sendMsgs s out) ∗ trCap s.gh.tr γ r id c Φ' }}
 
 end ghost
 
