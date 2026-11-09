@@ -8,6 +8,7 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccfull.stream__recvOne
 public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccfull.stream__receive
+public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.StreamLemmas
 
 @[expose] public section
 
@@ -37,6 +38,34 @@ theorem stream.recvOne.wp_proof
     (hzero : mvcc.api.wsSentLb_zero.law (GF := GF) (hG := hG))
     (wp_stream_receive : stream.receive.spec (GF := GF) (hG := hG)) :
     stream.recvOne.spec (GF := GF) (hG := hG) := by
+  intro T q rs
+  haveI : ∀ ws γ ι, Persistent (isMvccWatchStream (GF := GF) ws γ ι) := hpers.2.1
+  haveI : ∀ ι n, Persistent (wsSentLb (GF := GF) ι n) := hpers.2.2.1
+  wp_start as ⟨Hctx, Hrcv⟩
+  iunfold streamCtx at Hctx
+  icases Hctx with ⟨Hep, #Fx, #Fm, #Fkv, #Fws, #Fwm, #Hws, #Hinv, #Hmu, Hstop⟩
+  iunfold rcvOwn at Hrcv
+  icases Hrcv with ⟨Hrd, Hhr, Hwr, Hhalf⟩
+  iunfold epCtx at Hep
+  icases Hep with ⟨Hrn, Hinc, Hregs⟩
+  iunfold rnCtx at Hrn
+  icases Hrn with ⟨#Hpkg, #Hmpkg, Hrn⟩
+  ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
+  · iPkgInit
+  wp_auto
+  wp_apply sync.Mutex.wp_Lock _ _ $$ [$Hmu] as ⟨Hlocked, HL⟩
+  iunfold smuInv at HL
+  icases HL with ⟨%rs0, %W, %Hl, %P, HB⟩
+  iunfold smuBody at HB
+  icases HB with ⟨Hwm, ⟨%osl, %ids, Hord, Hids, Hcap, %Hids⟩, Hevl, Hreg, Hrcv0, #Hlb, %Hknown, Hwats⟩
+  ihave %Hrs := ghostVar_agree T.σs.rcv _ _ _ _ $$ Hrcv0 Hhalf
+  subst Hrs
+  icases regs_sentLb hpers hzero Hl rs0 T.σs.ws W $$ Hwats with ⟨Hwats, %n, #Hn, %Hkn⟩
+  ihave %Hsh := hsh.2.2.2 T.ws T.ep.ι.kv T.σs.ws $$ Hws
+  obtain ⟨wsty, wsv, hws, -, hCh, -, -, -, -, -⟩ := Hsh
+  icases hrecv T.ws T.ep.ι.kv T.σs.ws $$ Hws with ⟨#Hch, #Hrecvb, #Hpoll⟩
+  rw [hws]
+  (try wp_auto)
   sorry
 
 end proof
