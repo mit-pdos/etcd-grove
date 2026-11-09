@@ -18,6 +18,7 @@ ghost state (`notes/trace-validation-sim.md`, revision 13, "Phases" and "The mes
 module
 
 public import Proof.go_etcd_io.raft.v3.TraceSim
+public import Proof.go_etcd_io.raft.v3.TraceSimBag
 
 @[expose] public section
 
@@ -210,8 +211,8 @@ def simInv (C : List w64) (tn : TraceNames) (Fx : Etcdraft.State → IProp GF) :
     ⌜SimRun C L σ ∧ σ.server = confAbs C ∧
       (∀ i ∈ C, ∃ P, A !! i = some (toC σ.server (σ.s (idAbs i)), P)) ∧
       (∀ i, i ∉ C → A !! i = none) ∧
-      σ.pendingMessages.eq (bagOf ((C.flatMap (fun i => ((A !! i).map Prod.snd).getD [])) ++ phP)) ∧
-      σ.messages.eq (bagOf ((GMap.toList B).map Prod.snd ++ phM))⌝)
+      BagRep σ.pendingMessages ((C.flatMap (fun i => ((A !! i).map Prod.snd).getD [])) ++ phP) ∧
+      BagRep σ.messages ((GMap.toList B).map Prod.snd ++ phM)⌝)
 
 /-- The exported law (layer D's): a trace the simulation ran through every line is accepted (the
 corollary's `TraceAccepts`), once the whole trace's own initial state and servers are the voters'
