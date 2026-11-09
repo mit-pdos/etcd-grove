@@ -15,7 +15,8 @@ the Lean's `=`: a value that is not a configuration record has empty `NewConf`/`
 that is not a client value has `Val` 0.
 
 Numbers: the Lean's are `Int`, the Go's 64-bit `int`; a relation reads the Go number signed
-(`sint.Z`), and the specs' premises (`Event.Bounded`) keep the trace's numbers far from overflow.
+(`sint.Z`), and the specs' premises keep the trace's numbers far from overflow (`Event.Bounded`, below
+`numBound`; `CheckTrace`'s `Trace.ConfsBounded` bounds its configuration lists by `numBound` too).
 -/
 module
 

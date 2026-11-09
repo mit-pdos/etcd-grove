@@ -33394,6 +33394,21 @@ right end state is a lemma of the checker, `Trace.Valid.reach_searchOk : tr.Vali
 part 2. Until that invariant is proved it stays a premise: a `sorry` in its place is not allowed in a
 committed state. What was provable now moved out of the premise (the servers and the flags).
 
+**Done (2026-11-09, branch `trace-check-reach`): part 2 is a lemma, the lists' bound a trace-level
+conjunct.** `Trace.Valid.reach_searchOk` (`Reach.lean`) proves part 2 from `Trace.Valid`,
+`Trace.LinesInScope` and `Trace.ConfsBounded` (every line's event's `conf` incoming list and
+configuration change's `newconf` shorter than `numBound`), and `CheckTraceOk` replaces part 2 by
+`Trace.ConfsBounded`. Not `Event.Bounded` strengthened, as planned above: `Event.Bounded` is `NewTrace`'s
+premise, which its Go code does not establish (it reads the lists without a bound), so strengthening it
+would have changed `NewTrace.spec` (and `Trace.Valid`) for a bound only `CheckTrace` needs (the review
+found the argument weaker than stated: `Event.Bounded` already bounds the messages' numbers, which only the
+search uses, so the bound would fit there too; kept as the delegating session's instruction, with the law
+`Trace.confsBounded_of_newTrace` for `Main`, the move left to the user); the conjunct
+is stated on the trace's lines' events, the events `Main` passes `NewTrace`, so `Main` discharges it from
+raft's three voters either way. No action needed a bound the invariant could not give (no reachable
+overflow on an in-scope trace): the invariant is at `numBound + l` at line `l`
+(`notes/trace-validation-plan.md`, "Part 2 proved").
+
 ## Q9: `MessageType.String` as trusted code over `MessageType_name` (2026-11-09 · trace-check, Q9; the user's decision, option (b) · branch `trace-check-q9`; DRAFT until trace-check's Freeze)
 
 **What.** protoc-gen-go's `(MessageType).String` (`protoimpl.X.EnumStringOf(x.Descriptor(), ...)`,

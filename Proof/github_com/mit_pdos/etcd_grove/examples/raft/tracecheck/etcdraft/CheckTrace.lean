@@ -52,7 +52,7 @@ theorem CheckTrace.wp_proof
   · ipureintro; rfl
   iintro %fsl ⟨Hfr, -⟩
   wp_auto
-  obtain ⟨Hscope, Hbnd, Hnoerr⟩ := Hok
+  obtain ⟨Hscope, Hcb, Hnoerr⟩ := Hok
   have hFT : ¬ ((#false : val) = #true) := fun h => absurd (GoGlobalContext.intoVal_inj_bool h) (by decide)
   have hTT : ((#true : val) = #true) := rfl
   by_cases hI : invariants = true
@@ -65,7 +65,7 @@ theorem CheckTrace.wp_proof
       have := Hnoerr { evalError := some e, errLine := 0 } (by unfold CheckTraceRel; rw [hI]; simp [h])
       simp at this
     | ok r0 => exact ⟨r0, rfl⟩
-  have hb0 := Trace.CheckTraceOk.actOk (tr := tr) Hv ⟨Hscope, Hbnd, Hnoerr⟩ Trace.Reach.init
+  have hb0 := Trace.CheckTraceOk.actOk (tr := tr) Hv ⟨Hscope, Hcb, Hnoerr⟩ Trace.Reach.init
   ihave #Hg0' := Hg0
   iunfold tstateRO at Hg0'
   icases Hg0' with ⟨#Hs0, %Hg0l⟩
@@ -197,7 +197,7 @@ theorem CheckTrace.wp_proof
         try wp_auto
         wp_apply wp_StepLine t tr gx x invariants $$ [Ht Hgxx] as %ssl %gi Hpost
         · iframe Ht Hgxx; ipureintro
-          exact ⟨Trace.CheckTraceOk.stepLineOk (tr := tr) Hv ⟨Hscope, Hbnd, Hnoerr⟩ hxr, hnoe⟩
+          exact ⟨Trace.CheckTraceOk.stepLineOk (tr := tr) Hv ⟨Hscope, Hcb, Hnoerr⟩ hxr, hnoe⟩
         icases Hpost with ⟨%tss, %info, %Hst, Hss⟩
         obtain ⟨Hrel, Hgb, Hgv⟩ := Hst
         iunfold tstatesOut at Hss
