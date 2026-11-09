@@ -33393,3 +33393,15 @@ right end state is a lemma of the checker, `Trace.Valid.reach_searchOk : tr.Vali
 (raft's have three ids, so `NewTrace`'s premise costs `Main` nothing more); `CheckTraceOk` then loses
 part 2. Until that invariant is proved it stays a premise: a `sorry` in its place is not allowed in a
 committed state. What was provable now moved out of the premise (the servers and the flags).
+
+**Done (2026-11-09, branch `trace-check-reach`): part 2 is a lemma, the lists' bound a trace-level
+conjunct.** `Trace.Valid.reach_searchOk` (`Reach.lean`) proves part 2 from `Trace.Valid`,
+`Trace.LinesInScope` and `Trace.ConfsBounded` (every line's event's `conf` incoming list and
+configuration change's `newconf` shorter than `numBound`), and `CheckTraceOk` replaces part 2 by
+`Trace.ConfsBounded`. Not `Event.Bounded` strengthened, as planned above: `Event.Bounded` is `NewTrace`'s
+premise, which its Go code does not establish (it reads the lists without a bound), so strengthening it
+would have changed `NewTrace.spec` (and `Trace.Valid`) for a bound only `CheckTrace` needs; the conjunct
+is stated on the trace's lines' events, the events `Main` passes `NewTrace`, so `Main` discharges it from
+raft's three voters either way. No action needed a bound the invariant could not give (no reachable
+overflow on an in-scope trace): the invariant is at `numBound + l` at line `l`
+(`notes/trace-validation-plan.md`, "Part 2 proved").

@@ -699,9 +699,9 @@ What the result says about raft rests on one transcription of `etcdraft.tla` and
   transcription's faithfulness, the Go checker being a verified implementation of it.
 
 Layer C proves the two equal on the traces `CheckTrace.spec`'s premise `Trace.CheckTraceOk` admits
-(Q10, 2026-11-09: the lines in scope, the reached states bounded, no evaluation error; raft's traces
-are expected to be in that class: part 2, the reachability invariant, is open and needs `Event.Bounded`
-to bound the configuration lists): there `CheckTrace` accepts exactly when
+(Q10, 2026-11-09: the lines in scope, the events' configuration lists bounded, no evaluation error; the
+reached states' bounds follow, `Trace.Valid.reach_searchOk`; raft's traces are expected to be in that
+class, which `Main` is to show): there `CheckTrace` accepts exactly when
 `TraceAccepts` holds. So the evidence for either is evidence for both on that class: the Go
 transcription's three-way comparison with TLC (the state spaces under four bounds, clean, mutated and
 full-featured traces, verdicts and failing lines) and the independent review
@@ -766,8 +766,8 @@ semantics on in-memory events, `CheckTrace`) in Goose's subset without `fmt`, `s
 keys, sorted slices by `slices.Sort` or insertion); NDJSON reading and the porcupine model in
 packages of their own, not translated. Its spec: `CheckTrace(events)` returns `TLCOK` exactly when
 `TraceAccepts(events)` (sound and complete; the evaluation errors are failures), as planned; as proved
-(Q10, 2026-11-09), on the traces `Trace.CheckTraceOk` admits (lines in scope, reached states bounded,
-no evaluation error), which raft's traces are expected to be (part 2 open). Size: the Go is
+(Q10, 2026-11-09), on the traces `Trace.CheckTraceOk` admits (lines in scope, the events' configuration
+lists bounded, no evaluation error), which raft's traces are expected to be (`Main`'s S7 obligation). Size: the Go is
 about 1,500 lines; the proof is mostly the actions' functional correctness against their Lean
 counterparts, and the search's.
 
@@ -988,7 +988,9 @@ result keeps `r.Branched` as the line's earlier frontier states set it (`Result{
 in the deferred function), where `CheckFromRel.error` keeps the branching at the line's start; both are
 failures (`TLCOK` false), and the premise excludes the case.
 
-**`Main`'s remaining obligation (S7)**, for the trace `tr` that `NewTrace` returns on its events:
+**`Main`'s remaining obligation (S7)**, for the trace `tr` that `NewTrace` returns on its events (item 2
+superseded by "Part 2 proved" below, 2026-11-09: it is now `tr.ConfsBounded`, the events' configuration
+lists below `numBound`):
 1. `tr.LinesInScope`: layer B's P1-P3 (no restart, no configuration change after the bootstrap, no
    snapshot sent: raft sends one only for entries missing from storage, and the harness never compacts);
 2. `∀ ts, tr.Reach ts → ts.s.SearchOk`: an invariant of the trace specification, over every action
@@ -1038,6 +1040,41 @@ events `Main` holds (the bootstrap flags are `bootstrapOf`'s): left to S7, where
 P1-P3 decides the law's shape. Third tier: `Trace.Reach`'s docstring (a superset of what the search
 looks at), `State.MsgsOk`'s (its bag conjunct), `TraceAccepts evs false false`: repaired; part 3
 unnamed: left.
+
+**Part 2 proved: the reached states bounded (2026-11-09, branch `trace-check-reach`).**
+`Trace.Valid.reach_searchOk : tr.Valid → tr.LinesInScope → tr.ConfsBounded → ∀ ts, tr.Reach ts →
+ts.s.SearchOk` (`Reach.lean`, no `sorry`, no axiom), by induction on `Trace.Reach` over every action
+`Trace.next` takes. The invariant `State.Inv K`: every server's log, term, commit index, progress and
+configuration size within `K` (commit and progress also `≥ 0`), its log's configuration entries' sizes
+within `K`, its granted votes a sorted list of servers; both bags without duplicates, counts positive,
+their total count within `K`; every message of either bag of the workload's kinds (no pre-vote message,
+no snapshot), from a server, its copied fields (`term`, `prevLogIndex + len(entries)`, `commitIndex`,
+`matchIndex`, its entries' configurations) within `K`; the reconfiguration count within `K`. A step that
+stays at its line (every successor `receive` gives: a reply moves one message from `messages` to
+`pendingMessages`, the logs and terms a receiver takes come from the message) keeps `K`; one to the
+next line (a send, a client request, a timeout, a configuration applied) needs at most `K + 1`, so a
+state at line `l` has it at `numBound + l` (`Trace.Valid.reach_inv`; `l ≤ len + 1`). The granted votes
+are bounded by the servers (`Nodup.length_le_of_subset`; `tr.server.length ≤ 2 * len`, from
+`newTraceWith`), not by a count of steps, since a vote response is tallied at its line without the
+proof tracking which receive successors step. The lines out of scope are used only where an action
+would break the invariant or needs more state: a `MsgSnap` sent (a snapshot message), a restart (the
+durable state), a `ChangeConf` (`sendSnapshotIfLogged_nil`, `restartIfLogged_nil`,
+`changeConfIfLogged_nil`); the sent `AppendEntries`' `prevLogIndex` is bounded by the line's event
+(`Event.Bounded`). **The one bound the trace did not give, the configurations' sizes** (`IsQuorum`'s
+`len * 2`), comes from the events' configuration lists: a line's `conf` incoming list (the configuration a
+bootstrap line records) and a configuration change's `newconf` (a bootstrap `ApplyConfChange`'s), from
+which `newTraceWith` builds the initial configurations and the bootstrap log's configuration entries,
+the only configurations an in-scope trace ever applies. Route taken (the least invasive sound one):
+`Event.Bounded` is `NewTrace`'s premise, not something its Go code establishes (it reads the lists
+without a bound), so strengthening it would change `NewTrace.spec`; instead the bound is a
+trace-level conjunct of `CheckTraceOk`, `Trace.ConfsBounded` (`∀ ln ∈ tr.lines, ln.ev.ConfsBounded`:
+both lists shorter than `numBound`), stated on the trace's lines' events, which `Main` discharges from
+raft's three voters (the lines' events are the events it passed `NewTrace`). No action's bound is false:
+nothing stays a premise beyond the lists. So `CheckTraceOk` is now `tr.LinesInScope ∧ tr.ConfsBounded ∧
+(no evaluation error)` (weaker: part 2 `∀ ts, tr.Reach ts → ts.s.SearchOk` follows from `Trace.Valid` and
+the first two); `CheckTrace.spec`'s conclusion is unchanged, its proof takes part 2 from the lemma
+(`Trace.CheckTraceOk.nextOk`, `.actOk`), and `Trace.RunRel.checkTraceOk` takes `tr.ConfsBounded` in
+place of the reached states' bounds. `Main`'s S7 obligation 2 is now only `tr.ConfsBounded`.
 
 ### D. The harness and Main (the workload)
 
