@@ -78,6 +78,11 @@ update is persistent (`node.Propose`'s `□?γ.dup`), and so are a `MsgProp`'s c
 (`msgCredits_copy`). -/
 @[no_expose] def Cluster.dup (γ : Cluster) : Bool := γ.raft.dup
 
+/-- **The cluster's traced-ness** (2026-11-09, trace-check's Q6): `some γd`, the directory of the
+simulation's ghost names (`TraceSim.traceDir`), for a traced cluster; `none` for every other, which
+sees none of the node API's traced-only premises (`TracedApiDraft.lean`). Fixed at allocation. -/
+@[no_expose] def Cluster.trace (γ : Cluster) : Option GName := γ.raft.reTrace
+
 /-- **The committed requested entries, the client's** (exclusive): `opsOf` of the committed log.
 Raft changes it only by firing an update the client gave it, when the requested entry commits;
 fillers commit without changing it. -/

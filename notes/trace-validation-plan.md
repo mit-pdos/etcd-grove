@@ -33,6 +33,16 @@ premises a proof needs, gated on a traced cluster, existing proofs kept; shown s
 Lean), the verified raft fork gaining 0001 and 0011's trace logging (raft code), then layer C's
 remaining actions and the checker's loop (S6), the simulation (S5), the harness (S7).
 
+**Progress under the goal (`notes/trace-check-goal.md`, 2026-11-09):** Q6 step 1 (the gate) and
+step 2 (`InvTrace`: the event, the trace ghost, the logger's contract) committed, the first passing
+the acceptance test; S5's Draft begun: `TraceSim` (`evConv`, `entAbs`, `msgAbs`, `SimServerR`),
+`TraceSimGhost` (`simInit`, `SimRun`, `simNode`, `inFlight`, `simInv`, `simRun_accepts`),
+`Trace.RunRel` with its acceptance lemma (proved), `TracedApiDraft` (`Cluster.trace`, sealed in
+`InvNode`; `StartNode.gatedSpec`). **Decided by the agent:** each gated node-API statement replaces
+its current spec only once proved (a `sorry` in `StartNode`'s proof would reach every closed
+theorem). **Found:** `StepR`'s `rejectVote` and `commit` are looser than raft; S5 makes them exact
+(`notes/trace-validation-sim.md`, revision 13).
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its

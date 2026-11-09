@@ -139,6 +139,24 @@ corrected `etcdraft.tla`"). What changes below, the rest standing:
   is 0007's.
 - **Ghost names**: `γ.raft.reTrace = some γd` names a persistent directory of the simulation's
   ghost names (`traceDir`), so they can be added to without changing `RaftNames`.
+- **Found while drafting the per-rule lemmas (2026-11-09): two `StepR` rules are looser than raft**,
+  sound for raft's safety proofs (which over-approximate) but not enough for a simulation, which
+  needs raft's actual, deterministic choice:
+  - `rejectVote` has no guard (any `MsgVote` may be refused), while raft refuses exactly when it
+    cannot grant, `¬(canVote ∧ isUpToDate)`, which is what `HandleRequestVoteRequest` computes; the
+    trace line records the choice (`reject`), so a refusal where the specification grants would make
+    `TraceMatched` fail, and only the code's condition rules it out;
+  - `commit` lets the leader commit any index acknowledged by a quorum and of its term, while raft's
+    `maybeCommit` commits exactly `trk.Committed()` (the largest such), which is what
+    `AdvanceCommitIndex` computes (`maxAgree`, then the term check).
+  S5 makes both exact: `StepC`/`StepCF`/`StepR.rejectVote` gain the code's condition (known in
+  `Step`'s reject branch, `raft__Step/ElectionLemmas.lean`'s reject lemma), `StepR.commit` gains
+  `n = ` the quorum's largest acknowledged index (known in `maybeCommit`); raft-internal relations
+  (not the node API), so the acceptance test's statements are unaffected, but their pattern matches
+  (`StepLemmasR.lean`, `RefinementDyn.lean`, `StepRInv.lean`, ...) gain the hypotheses. The other
+  rules are exact where the trace is: their guards determine raft's choice (`appAccept`/`appStale`/
+  `appReject`, `heartbeat`, `recordVote`, `win`, `lose`, `higherTerm`, `campaign`, `propose`), or
+  the trace line fixes it (`sendApps`, `beat`: each message sent is a line).
 
 ## What the statement needs
 
