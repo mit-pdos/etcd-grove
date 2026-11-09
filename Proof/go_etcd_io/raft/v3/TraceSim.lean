@@ -166,6 +166,11 @@ stated first, 2026-11-09) so that raft's simulation can state them. -/
 section facts
 variable [GooseExts]
 
+/-- **The bound on the events' numbers** (`Etcdraft.numBound`, Q12 (a)): `NewTrace`'s `Event.Bounded`
+asks each number below it. The traced cluster's time receipts must keep raft's terms and indices
+below it (a bound on `receiptBound` the adequacy theorem states, Q13). -/
+def traceNumBound : Nat := 2 ^ 61
+
 /-- An event of a kind the workload logs outside a node's bootstrap (`Line.InScope` of its line):
 not a configuration change (`ChangeConf`, P3), a restart (`InitState`, P1) or a snapshot sent
 (`MsgSnap`, P2). -/
@@ -186,23 +191,20 @@ def TraceEv.ConfsWithin (n : Nat) (e : TraceEv) : Prop :=
   e.conf.1.length ≤ n ∧ ∀ c, e.propCC = some c → c.newconf.length ≤ n
 
 /-- **What a law of the simulation's capability takes of an event it may log** (Q13): ASCII
-(`ConvertEvents`' premise), in scope, its numbers below `K` (`K ≤ 2^61`, the laws' premise), its
-configuration lists within the three voters. -/
-def TraceEv.Ok (K : Nat) (e : TraceEv) : Prop :=
-  e.Ascii ∧ e.InScope ∧ e.NumsBelow K ∧ e.ConfsWithin 3
+(`ConvertEvents`' premise), in scope, its numbers below `traceNumBound`, its configuration lists
+within `n` (the laws': the size of raft's configuration, the cluster's voters). -/
+def TraceEv.Ok (n : Nat) (e : TraceEv) : Prop :=
+  e.Ascii ∧ e.InScope ∧ e.NumsBelow traceNumBound ∧ e.ConfsWithin n
 
 /-- **What the bootstrap lines' law takes of an event** (Q13): as `TraceEv.Ok`, but not in scope
-(raft's `InitState` is a bootstrap line), its log within the three voters' bootstrap entries
-(`NewTrace` allocates a bootstrap line's log: `BootLogsOk`). -/
-def TraceEv.OkBoot (K : Nat) (e : TraceEv) : Prop :=
-  e.Ascii ∧ e.NumsBelow K ∧ e.ConfsWithin 3 ∧ uint.nat e.logSize ≤ 3
+(raft's `InitState` is a bootstrap line), and its log below `2^40` (`Etcdraft.bootLogBound`:
+`NewTrace` allocates a bootstrap line's log, `BootLogsOk`). -/
+def TraceEv.OkBoot (n : Nat) (e : TraceEv) : Prop :=
+  e.Ascii ∧ e.NumsBelow traceNumBound ∧ e.ConfsWithin n ∧ uint.nat e.logSize < 2 ^ 40
 
-theorem TraceEv.numsBelow_mono {K K' : Nat} {e : TraceEv} (hK : K ≤ K') (h : e.NumsBelow K) :
-    e.NumsBelow K' := by
-  obtain ⟨h1, h2, h3, h4⟩ := h
-  refine ⟨by omega, by omega, by omega, fun m hm => ?_⟩
-  obtain ⟨a1, a2, a3, a4, a5, a6⟩ := h4 m hm
-  exact ⟨by omega, by omega, by omega, by omega, by omega, by omega⟩
+theorem TraceEv.confsWithin_mono {n n' : Nat} {e : TraceEv} (hn : n ≤ n') (h : e.ConfsWithin n) :
+    e.ConfsWithin n' :=
+  ⟨Nat.le_trans h.1 hn, fun c hc => Nat.le_trans (h.2 c hc) hn⟩
 
 namespace TraceSim
 
@@ -267,14 +269,14 @@ theorem evBootLogOk_of_name (L1 : List TraceEv) (e : TraceEv)
 
 /-- **The facts `simInv` keeps of its events** (Q13; `Main`'s hypotheses on them, `mainPure`): ASCII
 (`ConvertEvents`' premise), in scope or a node's bootstrap line (`ScopeOk`), the bootstrap lines'
-logs below `2^40` (`BootLogsOk`), their numbers below `2^61` (`Etcdraft.numBound`) and their
-configuration lists within the three voters. (Their count, `L.length`, is not a clause: it is
-bounded by the run's steps, outside the simulation.) -/
-def SimEvents (L : List TraceEv) : Prop :=
-  (∀ x ∈ L, x.Ascii) ∧ ScopeOk L ∧ BootLogsOk L ∧ (∀ x ∈ L, x.NumsBelow (2 ^ 61)) ∧
-  (∀ x ∈ L, x.ConfsWithin 3)
+logs below `2^40` (`BootLogsOk`), their numbers below `traceNumBound` and their configuration
+lists within `n` (`simInv`'s: the number of voters). (Their count, `L.length`, is not a clause: it
+is bounded by the run's steps, outside the simulation.) -/
+def SimEvents (n : Nat) (L : List TraceEv) : Prop :=
+  (∀ x ∈ L, x.Ascii) ∧ ScopeOk L ∧ BootLogsOk L ∧ (∀ x ∈ L, x.NumsBelow traceNumBound) ∧
+  (∀ x ∈ L, x.ConfsWithin n)
 
-theorem simEvents_nil : SimEvents [] :=
+theorem simEvents_nil (n : Nat) : SimEvents n [] :=
   ⟨by simp, scopeOk_nil, bootLogsOk_nil, by simp, by simp⟩
 
 theorem forall_mem_snoc {P : TraceEv → Prop} (L : List TraceEv) (e : TraceEv) (h : ∀ x ∈ L, P x)
@@ -287,23 +289,23 @@ theorem forall_mem_snoc {P : TraceEv → Prop} (L : List TraceEv) (e : TraceEv) 
 /-- **`SimEvents` after a line of a law's events** (`TraceEv.Ok`), given its bootstrap log's
 condition (a line not bootstrap-named: `evBootLogOk_of_name`; of a booted node:
 `evBootLogOk_of_booted`). -/
-theorem simEvents_snoc (K : Nat) (hK : K ≤ 2 ^ 61) (L : List TraceEv) (e : TraceEv) (h : SimEvents L)
-    (he : e.Ok K) (hb : EvBootLogOk L e) : SimEvents (L ++ [e]) := by
+theorem simEvents_snoc (n n' : Nat) (hn : n' ≤ n) (L : List TraceEv) (e : TraceEv) (h : SimEvents n L)
+    (he : e.Ok n') (hb : EvBootLogOk L e) : SimEvents n (L ++ [e]) := by
   obtain ⟨h1, h2, h3, h4, h5⟩ := h
   obtain ⟨e1, e2, e3, e4⟩ := he
   exact ⟨forall_mem_snoc L e h1 e1, scopeOk_snoc L e h2 (Or.inl e2), bootLogsOk_snoc L e h3 hb,
-    forall_mem_snoc L e h4 (TraceEv.numsBelow_mono hK e3), forall_mem_snoc L e h5 e4⟩
+    forall_mem_snoc L e h4 e3, forall_mem_snoc L e h5 (TraceEv.confsWithin_mono hn e4)⟩
 
 /-- **`SimEvents` after a node's bootstrap line** (`TraceEv.OkBoot`): bootstrap-named, its node
 unbooted. -/
-theorem simEvents_snoc_boot (K : Nat) (hK : K ≤ 2 ^ 61) (L : List TraceEv) (e : TraceEv) (h : SimEvents L)
-    (he : e.OkBoot K) (hbn : Etcdraft.isBootstrapName (gsStr e.name) = true)
-    (hun : ∀ i, Etcdraft.parseID (gsStr e.nid) = some i → Unbooted L i) : SimEvents (L ++ [e]) := by
+theorem simEvents_snoc_boot (n n' : Nat) (hn : n' ≤ n) (L : List TraceEv) (e : TraceEv)
+    (h : SimEvents n L) (he : e.OkBoot n') (hbn : Etcdraft.isBootstrapName (gsStr e.name) = true)
+    (hun : ∀ i, Etcdraft.parseID (gsStr e.nid) = some i → Unbooted L i) : SimEvents n (L ++ [e]) := by
   obtain ⟨h1, h2, h3, h4, h5⟩ := h
   obtain ⟨e1, e2, e3, e4⟩ := he
   exact ⟨forall_mem_snoc L e h1 e1, scopeOk_snoc L e h2 (Or.inr ⟨hbn, hun⟩),
-    bootLogsOk_snoc L e h3 (fun _ _ => by omega),
-    forall_mem_snoc L e h4 (TraceEv.numsBelow_mono hK e2), forall_mem_snoc L e h5 e3⟩
+    bootLogsOk_snoc L e h3 (fun _ _ => e4),
+    forall_mem_snoc L e h4 e2, forall_mem_snoc L e h5 (TraceEv.confsWithin_mono hn e3)⟩
 
 end TraceSim
 

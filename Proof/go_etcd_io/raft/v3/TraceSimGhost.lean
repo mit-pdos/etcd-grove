@@ -239,7 +239,7 @@ def simInv (C : List w64) (tn : TraceNames) (Fx : Etcdraft.State → IProp GF) :
         (b = true → o.isSome)) ∧
       -- (Q13) `Main`'s facts of the events: ASCII (`ConvertEvents`'s premise), in scope, the
       -- bootstrap lines' logs, the numbers, the configuration lists
-      SimEvents L⌝)
+      SimEvents C.length L⌝)
 
 instance simInv_timeless (C : List w64) (tn : TraceNames) (Fx : Etcdraft.State → IProp GF)
     [hFx : ∀ σ, Timeless (Fx σ)] : Timeless (simInv C tn Fx) := by

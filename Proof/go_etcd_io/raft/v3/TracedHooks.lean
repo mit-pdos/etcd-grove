@@ -347,13 +347,13 @@ capability by the law `trCap_fire_any` (traced) or from the struct's nil logger 
 update. -/
 theorem traceCommit.tracedSpec_of_spec (h : traceCommit.spec (GF := GF) (hG := hG)) :
     traceCommit.tracedSpec (GF := GF) (hG := hG) := by
-  intro c γ r id s b Λ Λ' K hΛ hOk
+  intro c γ r id s b Λ Λ' hΛ hOk
   iintro %Φ ⟨#Hpkg, Hphys, Hcap, Hfx⟩ HΦ
   icases trCapB_logger0 c c.voters r id s γ b _ Λ $$ [$Hphys $Hcap]
     with ⟨%tl0, #Htl0, %Hok, Hphys, Hcap⟩
   ihave Hfx := fxPresT_upd _ _ _ _ _ _ $$ Hfx
   ihave Hgate := trCapB_hookGate s.gh.tr γ r id c tl0 _ b _ (fun C => SimIdle C s) Λ Λ' iprop(emp)
-    (phaseStepB_commit id c s) (fun _ e he => by rw [nodeEvOf_name_commit he]; rfl) hΛ K hOk Hok
+    (phaseStepB_commit id c s) (fun _ e he => by rw [nodeEvOf_name_commit he]; rfl) hΛ hOk Hok
     $$ [$Htl0 $Hcap $Hfx]
   iunfold HookGate at Hgate
   imod Hgate with ⟨%tl, #Htl, Hfire⟩
@@ -381,8 +381,9 @@ theorem raft.becomeCandidate.traced (h : raft.becomeCandidate.spec (GF := GF) (h
     (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ Λ' : Option TraceEv → Prop) (R' : IProp GF)
     (hrole : s.role ≠ .leader) (hnw : uint.Z s.term + 1 < 2 ^ 64) (hid : id ∈ c.voters)
     (hps : PhaseStepB id c (NodeEvOf (W64 1) id (becomeCandidate id s) c) Φ Φ')
-    (hΛ : ∀ e, NodeEvOf (W64 1) id (becomeCandidate id s) c e → Λ' (some e)) (K : Nat)
-    (hOk : s.gh.tr.isSome → K ≤ 2 ^ 61 ∧ ∀ e, NodeEvOf (W64 1) id (becomeCandidate id s) c e → TraceEv.Ok K e) :
+    (hΛ : ∀ e, NodeEvOf (W64 1) id (becomeCandidate id s) c e → Λ' (some e))
+    (hOk : s.gh.tr.isSome → ∀ e, NodeEvOf (W64 1) id (becomeCandidate id s) c e →
+      TraceEv.Ok (elements c.incoming).length e) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
         trCapB s.gh.tr γ r id c b Φ Λ ∗
         FxPresUT s.gh.tr γ id (NodeEvOf (W64 1) id (becomeCandidate id s) c) Φ Φ' R' }}
@@ -396,7 +397,7 @@ theorem raft.becomeCandidate.traced (h : raft.becomeCandidate.spec (GF := GF) (h
   iapply h c r id s _ hrole hnw hid $$ [Hphys Hcap Hfx]
   · iframe Hpkg Hphys
     iapply trCapB_hookGate s.gh.tr γ r id c tl0 _ b Φ Φ' Λ Λ' R' hps
-      (fun _ e he => by rw [nodeEvOf_name_candidate he]; rfl) hΛ K hOk Hok
+      (fun _ e he => by rw [nodeEvOf_name_candidate he]; rfl) hΛ hOk Hok
     iframe Htl0 Hcap Hfx
   inext
   iintro %pvs ⟨Hphys, HQ⟩
@@ -412,10 +413,10 @@ theorem raft.becomeFollower.traced (h : raft.becomeFollower.spec (GF := GF) (hG 
     (hle : uint.Z s.term ≤ uint.Z term) (hV : s.gh.tr ≠ none → V = c.voters)
     (hbf : b = true → PhaseStepBF id c (becomeFollower s term lead) Φ Φ' Λ)
     (hb0 : b = false → ∀ C cs P, Φ C cs P → Φ' C cs P)
-    (hΛ : ∀ e, NodeEvOf (W64 2) id (becomeFollower s term lead) c e → Λ' (some e)) (K : Nat)
-    (hOk : s.gh.tr.isSome → K ≤ 2 ^ 61 ∧
-      (b = true → ∀ e, NodeEvOf (W64 2) id (becomeFollower s term lead) c e → TraceEv.Ok K e) ∧
-      (b = false → ∀ e, NodeEvOf (W64 2) id (becomeFollower s term lead) c e → TraceEv.OkBoot K e)) :
+    (hΛ : ∀ e, NodeEvOf (W64 2) id (becomeFollower s term lead) c e → Λ' (some e))
+    (hOk : s.gh.tr.isSome →
+      (b = true → ∀ e, NodeEvOf (W64 2) id (becomeFollower s term lead) c e → TraceEv.Ok (elements c.incoming).length e) ∧
+      (b = false → ∀ e, NodeEvOf (W64 2) id (becomeFollower s term lead) c e → TraceEv.OkBoot (elements c.incoming).length e)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c V r id s ∗
         trCapB s.gh.tr γ r id c b Φ Λ ∗ trOwn s.gh.tr (if b then FxPresBF γ id Φ else iprop(emp)) }}
       (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"becomeFollower"))
@@ -428,7 +429,7 @@ theorem raft.becomeFollower.traced (h : raft.becomeFollower.spec (GF := GF) (hG 
     with ⟨%tl0, #Htl0, %Hok, Hphys, Hcap⟩
   iapply h c r id s term lead _ hle hV $$ [Hphys Hcap Hfx]
   · iframe Hpkg Hphys
-    iapply trCapB_hookGate_bf s.gh.tr γ r id c tl0 _ b Φ Φ' Λ Λ' hbf hb0 hΛ K hOk Hok
+    iapply trCapB_hookGate_bf s.gh.tr γ r id c tl0 _ b Φ Φ' Λ Λ' hbf hb0 hΛ hOk Hok
     iframe Htl0 Hcap Hfx
   inext
   iintro %pvs ⟨Hphys, HQ⟩
@@ -448,9 +449,9 @@ theorem raft.maybeCommit.traced (h : raft.maybeCommit.spec (GF := GF) (hG := hG)
       PhaseStepB id c (NodeEvOf rsmCommit id
         (if b then { s with logst := { s.logst with committed := N } } else s) c) Φ (Φ' b N))
     (hΛ : ∀ b N, maybeCommitOut c s b N → ∀ e, NodeEvOf rsmCommit id
-        (if b then { s with logst := { s.logst with committed := N } } else s) c e → Λ' (some e)) (K : Nat)
-    (hOk : s.gh.tr.isSome → K ≤ 2 ^ 61 ∧ ∀ b N, maybeCommitOut c s b N → ∀ e, NodeEvOf rsmCommit id
-        (if b then { s with logst := { s.logst with committed := N } } else s) c e → TraceEv.Ok K e) :
+        (if b then { s with logst := { s.logst with committed := N } } else s) c e → Λ' (some e))
+    (hOk : s.gh.tr.isSome → ∀ b N, maybeCommitOut c s b N → ∀ e, NodeEvOf rsmCommit id
+        (if b then { s with logst := { s.logst with committed := N } } else s) c e → TraceEv.Ok (elements c.incoming).length e) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
         trCapB s.gh.tr γ r id c b0 Φ Λ ∗
         (∀ b N, ⌜maybeCommitOut c s b N⌝ ={⊤}=∗ FxPresUT s.gh.tr γ id (NodeEvOf rsmCommit id
@@ -472,7 +473,7 @@ theorem raft.maybeCommit.traced (h : raft.maybeCommit.spec (GF := GF) (hG := hG)
     imodintro
     iapply trCapB_hookGate s.gh.tr γ r id c tl0 _ b0 Φ (Φ' b N) Λ Λ' (R' b N) (hps b N Hout)
       (fun _ e he => by rw [nodeEvOf_name_commit he]; rfl) (hΛ b N Hout)
-      K (fun h' => ⟨(hOk h').1, (hOk h').2 b N Hout⟩) Hok
+      (fun h' => hOk h' b N Hout) Hok
     iframe Htl0 Hcap Hfx
   inext
   iintro %b %N ⟨%Hout, Hphys, %HN, HQ⟩
@@ -510,7 +511,7 @@ segment not over) and `trCap_fire_booted`, the line's facts (`FxPresT`, no ghost
 gate is the struct's nil logger (`trCapB_logger0`). -/
 theorem raft.send.tracedSpec_of_spec (h : raft.send.spec (GF := GF) (hG := hG)) :
     raft.send.tracedSpec (GF := GF) (hG := hG) := by
-  intro c γ r id s ml m ents sn ctx rs out Φ Φ' b Λ Λ' K Hfrom Hok Hsn Hsh Hrs Hsnap Hps HΛ HOkK
+  intro c γ r id s ml m ents sn ctx rs out Φ Φ' b Λ Λ' Hfrom Hok Hsn Hsh Hrs Hsnap Hps HΛ HOkK
   have Hsnap' : s.gh.tr ≠ none → mtypeOf m.Type' ≠ some .snap :=
     fun h' => Hsnap (Option.isSome_iff_ne_none.2 h')
   revert Hps HΛ
@@ -576,8 +577,7 @@ theorem raft.send.tracedSpec_of_spec (h : raft.send.spec (GF := GF) (hG := hG)) 
         iempintro
       | some γd =>
         intro _
-        obtain ⟨hK, HOk1⟩ := HOkK (by rw [htr]; rfl)
-        have HOk1 := HOk1 evt hev mm (List.mem_singleton_self _)
+        have HOk1 := HOkK (by rw [htr]; rfl) evt hev mm (List.mem_singleton_self _)
         simp only [FxPresT]
         ihave Hfx := fxPres_upd γ id _ Φ Φ' $$ Hfx
         iapply traceFire_mono (some γd) tl0 _ iprop(trCapB (some γd) γ r id c true Φ' Λ' ∗ emp)
@@ -585,15 +585,15 @@ theorem raft.send.tracedSpec_of_spec (h : raft.send.spec (GF := GF) (hG := hG)) 
         · iintro ⟨H, -⟩; iexact H
         cases b with
         | false =>
-          iapply trCap_fire γd γ r id c tl0 K _ Φ Φ' Λ Λ' iprop(emp) Hps1 HΛ1 hK HOk1
+          iapply trCap_fire γd γ r id c tl0 _ Φ Φ' Λ Λ' iprop(emp) Hps1 HΛ1 HOk1
           iframe Htl0 Hfx
           iapply trCapB_trCap
           iexact Hcap
         | true =>
-          iapply trCap_fire_booted γd γ r id c tl0 K _ Φ Φ' Λ Λ' iprop(emp)
+          iapply trCap_fire_booted γd γ r id c tl0 _ Φ Φ' Λ Λ' iprop(emp)
             (fun C cs P hΦ hc e he => by
               obtain ⟨h1, h2, h3⟩ := Hps1 C cs P hΦ hc e he
-              exact ⟨h1, isBootstrapName_bf _ h2, h3⟩) HΛ1 hK HOk1
+              exact ⟨h1, isBootstrapName_bf _ h2, h3⟩) HΛ1 HOk1
           iframe Hcap Htl0 Hfx
     inext
     iintro ⟨Hphys, HQ⟩

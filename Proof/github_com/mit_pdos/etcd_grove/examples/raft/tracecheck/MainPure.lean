@@ -10,7 +10,9 @@ Lean-first (no Rocq counterpart). Trace-check's layer D, S7 (2026-11-09): `Main`
 lines' configuration lists bounded, no evaluation error). `Main` must also know that `newTrace`
 succeeds (else it panics) and that the verdict is `TLCOK`. This file derives all of them
 (`mainPure`) from facts about raft's events `L : List TraceEv`, stated in raft's values, which
-layer B's simulation is to export at the end of the run (`notes/trace-validation-plan.md`, layer C,
+layer B's simulation exports at the end of the run
+(Q13: `simInv` keeps them, `SimEvents`, defined in `TraceSim.lean`; `MainSim.lean` combines;
+`notes/trace-validation-plan.md`, layer C,
 "`Main`'s pure obligations"):
 
 - `RunAccepted L`: the whole trace parses (`newTrace` succeeds) and the run through every line
@@ -19,7 +21,7 @@ layer B's simulation is to export at the end of the run (`notes/trace-validation
 - `ScopeOk L` (P1-P3 of `notes/trace-validation-sim.md`): every event is in scope
   (`TraceEv.InScope`: no `ChangeConf`, no `InitState`, no `MsgSnap` sent), or is bootstrap-named
   and logged while its node had logged only bootstrap-named lines (`Unbooted`, the negation of
-  `TraceSim.booted`); kept event by event (`scopeOk_snoc`), as `simInv`'s ASCII clause is;
+  `TraceSim.booted`); kept event by event (`scopeOk_snoc`), a `simInv` clause;
 - `TraceEv.NumsBelow K` of every event (its numbers below `K ≤ numBound = 2^61`) and fewer than
   `numBound` events, from the time receipts and the adequacy theorem's step bound (`n < 2^61`
   steps; Q12 (a), 2026-11-09);
