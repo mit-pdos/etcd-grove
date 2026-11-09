@@ -299,7 +299,9 @@ structure initIdle (m : OsMeta) (bs : List (w8 × Bool)) : Prop where
   len : bs.length = m.size
   hi : m.hi ≤ 2 ^ 30
   vk : m.vk = some []
-  fr : ∃ p, m.fr = some p ∧ m.size ≤ p ∧ p ≤ pageUp m.size
+  fr : m.size < 4 * 4096 → ∃ p, m.fr = some p ∧ p ≤ pageUp m.size
+  frlo : ∀ p, m.fr = some p → m.size ≤ p
+  lo : m.size < 4 * 4096 ∨ 4 * 4096 ≤ m.lo
   dur : ∀ j < 2, 4096 * j < m.size → durSlot m j (fun _ => False)
 
 /-- A state of `init`'s first write (`F` at 0, zero over the meta pages) from `m0`, `nn` bytes of
@@ -316,10 +318,11 @@ structure initW1St (m0 : OsMeta) (F : List w8) (nn : Nat) (m : OsMeta) (bs : Lis
   vk : ∃ ns, m.vk = some ns ∧ ∀ j < 2, 8 * j ∈ ns → 4096 * j + 512 ≤ nn
   hi : m.hi ≤ max m0.hi 16384
   cut : nn = 16384 ∨ nn % 4096 = 0
+  lo : m.lo = m0.lo
 
 theorem initW1St.notOk {m0 : OsMeta} {F : List w8} {nn : Nat} {m : OsMeta} {bs : List (w8 × Bool)}
     (h : initW1St m0 F nn m bs) : initW1St m0 F nn { m with ok := false } bs :=
-  ⟨h.len, h.nnle, h.size, h.bytes, h.dur, h.dz, h.fr, h.vk, h.hi, h.cut⟩
+  ⟨h.len, h.nnle, h.size, h.bytes, h.dur, h.dz, h.fr, h.vk, h.hi, h.cut, h.lo⟩
 
 /-- The page `pageUp x` is at most a page boundary at or past `x`. -/
 theorem pageUp_le {x q : Nat} (h : x ≤ 4096 * q) : pageUp x ≤ 4096 * q := by
@@ -334,8 +337,6 @@ theorem initW1_dead {m0 : OsMeta} {xs : List (w8 × Bool)} {F : List w8} {nn : N
     (hb : s.busy = .idle ∨ ∃ t, s.busy = .write t nn (F.drop nn)) :
     ∀ j < 2, ∀ sz L, 4096 * j < sz → slotCand s sz j L → ¬ metaValid (decode L : Meta) := by
   intro j hj sz L hs hc
-  obtain ⟨p, hp, hSp, hpS⟩ := h0.fr
-  have hfr : s.m.fr = some p := by rw [h.fr]; exact hp
   obtain ⟨hlen, hc⟩ := hc
   have hz : ∀ b, b < nn → b < 8192 → bsB s b = 0 := by
     intro b hb1 hb2
@@ -353,7 +354,9 @@ theorem initW1_dead {m0 : OsMeta} {xs : List (w8 × Bool)} {F : List w8} {nn : N
     by_cases hS : 4096 * j < m0.size
     · exact fun hv => durSlot_list (h0.dur j hj hS) hlen (fun k hk d hd => hL k hk d (by
         unfold OsMeta.DurAt at hd ⊢; rw [h.dur, h.dz]; exact hd)) hv
-    · exact absurd ⟨by omega, ⟨p, hfr, by have := pageUp_le (q := j) (by omega : m0.size ≤ 4096 * j); omega⟩,
+    · obtain ⟨p, hp, hpS⟩ := h0.fr (by omega)
+      have hfr : s.m.fr = some p := by rw [h.fr]; exact hp
+      exact absurd ⟨by omega, ⟨p, hfr, by have := pageUp_le (q := j) (by omega : m0.size ≤ 4096 * j); omega⟩,
         by omega⟩ hfc
   · -- the page cache's, of a sector the write met: its zeros
     obtain ⟨ns', hns', hbd⟩ := h.vk
@@ -386,7 +389,8 @@ theorem initW1_dead {m0 : OsMeta} {xs : List (w8 × Bool)} {F : List w8} {nn : N
             · omega
             · omega
             · omega
-          · rw [hfr] at hp'; cases hp'
+          · rw [h.fr] at hp'
+            have := h0.frlo _ hp'
             rw [h.size] at hsz
             omega
       · rfl
@@ -396,7 +400,8 @@ theorem initW1_dead {m0 : OsMeta} {xs : List (w8 × Bool)} {F : List w8} {nn : N
 `OsMeta` knows its versions and fresh sectors, is `Good` if every meta slot a crash may leave
 under a size that reaches its page (`slotCand`) is invalid. -/
 theorem fileOkS_slotsDead {i : Ino} (s : CSt) (hwf : s.Wf) (hbz : BusyOk s)
-    (hvk : ∃ ns, s.m.vk = some ns) (hfr : ∃ p, s.m.fr = some p) (hhi : s.vmeta.hi ≤ 2 ^ 30)
+    (hvk : ∃ ns, s.m.vk = some ns) (hfr : (∃ p, s.m.fr = some p) ∨ 4 * 4096 ≤ s.m.lo)
+    (hhi : s.vmeta.hi ≤ 2 ^ 30)
     (hd : ∀ j < 2, ∀ sz L, 4096 * j < sz → slotCand s sz j L → ¬ metaValid (decode L : Meta)) :
     FileOkS NoTearCrash Good i s := by
   refine fileOkS_crashRaw s hwf hbz fun f hI hR => ?_
@@ -405,7 +410,11 @@ theorem fileOkS_slotsDead {i : Ino} (s : CSt) (hwf : s.Wf) (hbz : BusyOk s)
   have hl : f.contents.length ≤ 2 ^ 30 := by have := hI.2.1; omega
   have hl' := hl
   rw [contents_length] at hl'
-  refine ⟨⟨hl, ?_⟩, fun _ => ⟨hR.1 hfr, hraw⟩⟩
+  refine ⟨⟨hl, ?_⟩, fun hs4 => ⟨?_, hraw⟩⟩
+  rotate_left
+  · rcases hfr with hfr | hfr
+    · exact hR.1 hfr
+    · have := hI.1; rw [CSt.vmeta_lo, contents_length] at this; omega
   by_cases h4 : f.size < 4 * 4096
   · exact .inl ⟨by rw [contents_length]; exact h4, fun j hj hs => by
       rw [contents_length] at hs; rw [fileMeta_contents hs]; exact hraw j hj (by omega)⟩
@@ -431,7 +440,7 @@ theorem initW1St_of_wreach {m0 : OsMeta} {xs : List (w8 × Bool)} {F : List w8}
     unfold pwSize; split <;> omega
   refine ⟨hN.len, hnn, by rw [hsz, hps], fun b hb => ?_, hd, hdz,
     hR.fr_keep (by decide) (by rw [hF]) h64, ⟨ns', hns', fun j hj hm => ?_⟩,
-    by have := hN.hi; rw [hF] at this; omega, by omega⟩
+    by have := hN.hi; rw [hF] at this; omega, by omega, hN.lo⟩
   · rw [hby b (Nat.zero_le _) (by rw [hF]; omega) (by rw [hps]; omega), if_pos (by omega)]
     simp
   · apply Classical.byContradiction; intro hlt
@@ -855,10 +864,13 @@ theorem initW1_okS {m0 : OsMeta} {xs : List (w8 × Bool)} {F : List w8} {nn : Na
     (hst : initW1St m0 F nn s.m s.bs) (hfa : s.fa = 0) (hfb : s.fb = 0)
     (hb : s.busy = .idle ∨ ∃ t, s.busy = .write t nn (F.drop nn) ∧ nn < 16384) :
     FileOkS NoTearCrash Good i s := by
-  obtain ⟨p, hp, -, -⟩ := h0.fr
   obtain ⟨ns, hns, -⟩ := hst.vk
   have hsz := hst.size
-  refine fileOkS_slotsDead s hwf ?_ ⟨ns, hns⟩ ⟨p, by rw [hst.fr]; exact hp⟩ ?_
+  have hfr : (∃ p, s.m.fr = some p) ∨ 4 * 4096 ≤ s.m.lo := by
+    rcases h0.lo with h1 | h1
+    · obtain ⟨p, hp, -⟩ := h0.fr h1; exact .inl ⟨p, by rw [hst.fr]; exact hp⟩
+    · exact .inr (by rw [hst.lo]; exact h1)
+  refine fileOkS_slotsDead s hwf ?_ ⟨ns, hns⟩ hfr ?_
     (initW1_dead h0 hF hFz hst (hb.imp_right fun ⟨t, h1, _⟩ => ⟨t, h1⟩))
   · unfold BusyOk
     rcases hb with hb | ⟨t, hb, -⟩ <;> rw [hb]
