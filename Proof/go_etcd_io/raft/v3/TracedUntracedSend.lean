@@ -11,6 +11,7 @@ module
 public import Proof.go_etcd_io.raft.v3.TracedUntraced
 public import Spec.go_etcd_io.raft.v3.raft__maybeSendAppend
 public import Spec.go_etcd_io.raft.v3.raft__sendAppend
+public import Spec.go_etcd_io.raft.v3.raft__bcastAppend
 
 @[expose] public section
 
@@ -94,6 +95,43 @@ theorem raft.sendAppend.untraced (h : raft.sendAppend.spec (GF := GF) (hG := hG)
   · iframe Hpkg Hphys
     isplitr
     · iintro %mm %_ -
+      rw [htr]
+      iapply hookGateOpt_none r _ tl iprop(emp) Htlok
+      iframe Htl
+    isplitr
+    · iempintro
+    rw [htr]
+    iapply trNoSnap_none
+  inext
+  iintro %ms %pvs ⟨Hphys, %H1, %H2, -⟩
+  iapply HΦ $$ %ms %pvs
+  iframe Hphys
+  ipureintro; exact ⟨H1, H2⟩
+
+/-- `raft.bcastAppend.spec` at an untraced node (the statement before slice 6). -/
+abbrev raft.bcastAppend.untracedTriple : Prop :=
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState),
+  s.role = .leader →
+  s.term ≠ W64 0 →
+  s.gh.tr = none →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"bcastAppend")) (Val #()))
+  {{ (ms : List Msg) (pvs : GMap w64 Progress), RET #();
+      ownRaftPhysCV c c.voters r id { sendMsgs s ms with prvals := pvs } ∗
+      ⌜ReplSends id s ms⌝ ∗
+      ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ }}
+
+/-- `raft.bcastAppend.spec`'s untraced instance: every gate the struct's nil logger. -/
+theorem raft.bcastAppend.untraced (h : raft.bcastAppend.spec (GF := GF) (hG := hG)) :
+    raft.bcastAppend.untracedTriple (GF := GF) (hG := hG) := by
+  intro c r id s Hl Htz htr
+  iintro %Φ ⟨#Hpkg, Hphys⟩ HΦ
+  icases ownRaftPhysC_traceLogger c r id s htr $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
+  iapply h c r id s iprop(emp) Hl Htz $$ [Hphys]
+  · iframe Hpkg Hphys
+    isplitr
+    · imodintro
+      iintro %to %mm %_ %_ -
       rw [htr]
       iapply hookGateOpt_none r _ tl iprop(emp) Htlok
       iframe Htl

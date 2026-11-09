@@ -57,7 +57,30 @@ theorem trNoSnap_traced (tr : Option GName) (ls : LogState) (h : tr ≠ none) :
   iunfold TrNoSnap at H
   iapply H $$ %h Hc
 
+/-- At equal arguments (a state that reads as `s`). -/
+theorem trNoSnap_congr (tr tr' : Option GName) (ls ls' : LogState) (h1 : tr = tr') (h2 : ls = ls') :
+    TrNoSnap (GF := GF) tr ls ⊢ TrNoSnap tr' ls' := by
+  subst h1 h2; exact .rfl
+
 end defs
+
+section pure
+variable [GooseExts]
+
+/-- (Q8 stage 1, slice 6) What a `MsgApp`'s gate knows of the message (`raft.maybeSendAppend.spec`)
+reads only the protocol state's term, log and commit, which a send and the `Progress` values leave
+alone. -/
+theorem appGate_send_prvals (id : w64) (s : NState) (ms : List Msg) (pvs : GMap w64 Progress)
+    (to : w64) (mm : Msg)
+    (h : AppOk id (toPState { sendMsgs s ms with prvals := pvs }) mm ∧
+      mm.commit = (toPState { sendMsgs s ms with prvals := pvs }).commit ∧ mm.dst = to) :
+    AppOk id (toPState s) mm ∧ mm.commit = (toPState s).commit ∧ mm.dst = to := by
+  obtain ⟨h1, h2, h3⟩ := h
+  refine ⟨?_, h2, h3⟩
+  unfold AppOk at h1 ⊢
+  exact h1
+
+end pure
 
 section gates
 variable [GooseExts] [GooseSemantics] [GooseInterp]

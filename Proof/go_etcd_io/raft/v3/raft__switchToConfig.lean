@@ -67,6 +67,7 @@ theorem raft.switchToConfig.wp_proof
   have wp_raft_becomeFollower := raft.becomeFollower.untraced wp_raft_becomeFollower
   -- (Q8 stage 1, slice 6) the untraced instance (`TracedUntracedSend.lean`)
   have wp_raft_maybeSendAppend := raft.maybeSendAppend.untraced wp_raft_maybeSendAppend
+  have wp_raft_bcastAppend := raft.bcastAppend.untraced wp_raft_bcastAppend
   intro c r id s tv0 cfgv prsm prs pvs tl Hlead Hltz Hcand Hpok Htr
   wp_start as H
   iNamed H

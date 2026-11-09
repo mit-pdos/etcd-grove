@@ -1157,6 +1157,7 @@ theorem wp_stepLeader_appresp
   have wp_raft_sendTimeoutNow := raft.sendTimeoutNow.untraced wp_raft_sendTimeoutNow
   -- (Q8 stage 1, slice 6) the untraced instance (`TracedUntracedSend.lean`)
   have wp_raft_maybeSendAppend := raft.maybeSendAppend.untraced wp_raft_maybeSendAppend
+  have wp_raft_bcastAppend := raft.bcastAppend.untraced wp_raft_bcastAppend
   -- (Q8 stage 1, slice 6) the untraced instance (`TracedUntracedSend.lean`)
   have wp_raft_sendAppend := raft.sendAppend.untraced wp_raft_sendAppend
   wp_start as ⟨Hphys, Hm⟩
