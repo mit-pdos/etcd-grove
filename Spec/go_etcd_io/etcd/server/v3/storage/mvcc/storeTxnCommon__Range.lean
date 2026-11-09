@@ -29,13 +29,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 /-- A read transaction's range: its outcome over the transaction's state. -/
 def storeTxnCommon.Range.spec : Prop :=
   ∀ (c : Loc) (γ : MvccName) (trace : Loc) (σ : MvccState) (ctx : GoInterface) (key endk : GoSlice)
-    (kk e : Bytes) (ro : RangeOptions),
+    (kk e : Bytes) (dk de : DFrac) (ro : RangeOptions),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      txnCommon c γ trace (.read σ) ∗ traceOwn trace ∗ Context.ctxOk ctx ∗ key ↦*□ kk ∗ endk ↦*□ e }}
+      txnCommon c γ trace (.read σ) ∗ traceOwn trace ∗ Context.ctxOk ctx ∗ key ↦*{dk} kk ∗ endk ↦*{de} e }}
     (App (App (App (App (Val (c @!! go.GoType.PointerType storeTxnCommon.ty @!! go!"Range"))
       (Val #ctx)) (Val #key)) (Val #endk)) (Val #ro))
   {{ (r : Loc) (err : GoInterface), RET (PairV #r #err);
-      txnCommon c γ trace (.read σ) ∗ traceOwn trace ∗
+      txnCommon c γ trace (.read σ) ∗ traceOwn trace ∗ key ↦*{dk} kk ∗ endk ↦*{de} e ∗
       ∃ out : RangeOut, ⌜rangeOut σ.kv σ.crev (mrange kk endk e) ro out⌝ ∗ rangeResOwn ctx r err out }}
 
 end spec

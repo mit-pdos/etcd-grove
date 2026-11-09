@@ -211,3 +211,71 @@ keep-alive's permission error are at any auth state the cluster has had.
   requests carry and give `leaseViewLb γ ep` (`V3rpc.leaseFact`).
 - A definite error's gRPC code is `Rpctypes.code e`, or `Unknown` for `.tooManyRequests` and
   `.memberNotEnoughStarted` (`Rpctypes.callErr_view`, `code_not_ctx`).
+
+## from 3b
+
+1. **An empty range end is `nil`** in the request predicates (`rangeReqOwn`, `deleteReqOwn`,
+   `compareOwn`, and so in `txnReqOwn`'s operations): `r.rangeEnd = [] → es = slice.nil` in their
+   unfold laws (protobuf-go decodes a present empty `bytes` field as `nil`; a client builds none
+   other). mvcc reads a non-`nil` empty end as unbounded (`treeIndex.unsafeVisit`), so without it
+   txn's ranges, deletes and comparisons would not be W0's `KeyRange.mem` (`specs-ref`'s
+   `notes/decisions.md`, "The range end as the check sees it"). Used by: `Range.spec`, `DeleteRange.spec`,
+   `Txn.spec` (`executeRange`, `deleteRange`, `applyCompare`).
+
+
+## from 3a
+
+What the apply layer (3a: `Spec/go_etcd_io/etcd/server/v3/etcdserver/apply/Api.lean`) needs of the
+model, to state the apply of every entry as a `Step` (`irrStep_step`) or an `EnvStep`
+(`irrStep_env`):
+
+1. **`ErrNoSpace` does not settle a request** (`EtcdErr.indefinite .noSpace = true`, keeping it a
+   refusal too): the quota applier applies a put, a write transaction or a grant and answers
+   `ErrNoSpace` when the member's backend is over its quota (`quota.go`;
+   `nonissues/etcd-apply-quota-nospace-after-write.md`). The history moves by the write; the
+   proposer's reply is `ErrNoSpace` (3a's `resMatch`), which 2c can only return as outcome 3 if it
+   is indefinite.
+   ```go
+   ok := a.q.Available(p); resp, trace, err := a.applierV3.Put(p)
+   if err == nil && !ok { err = errors.ErrNoSpace }            // quota.go:36-43
+   ```
+2. **The stored credential, not the password**: the request path hashes the password before
+   proposing (`v3_server.go`, `UserAdd`/`UserChangePassword`: `HashedPassword`, `Password` cleared);
+   the apply stores the hash and never sees the password, so a state that stores `some pw` is not a
+   function of the log. Needed: `UserRec.password` the stored credential, `authenticate` succeeding
+   iff a trusted `pwMatch cred pw` (bcrypt's `CompareHashAndPassword`, 3d's boundary), and `Step`'s
+   `userAdd name pw` storing some `cred` with `pwHash pw cred`. 3a's `opStep_userAdd` states the
+   apply as `authStep` with the hash in the password's place.
+3. **No user with the empty name** in reachable states (an `etcdLb` law: `UserAdd` refuses `""`):
+   the apply's `RoleGet` check for a request with no user asks `HasRole("", r)`; 3a's `irrStep_step`
+   takes it as a premise.
+4. **A grant's TTL** is the asked one raised to the member's minimum (`lessor.Grant`): `leaseStep`
+   allows any `ttl' ≥ ttl` (fine); a member's state differs from the proposer's in the TTLs only
+   (3a's `ttlEq`, `irrStep_ttl`). No change needed unless the user wants the members alike (a
+   decision: `notes/specs-only/batch-3a.md`).
+Used by: `irrStep_step.spec`, `opStep_userAdd.spec`, `resMatch` (3a's `Api.lean`).
+
+## from 2c (round 1)
+
+1. **The doSerialize race and the keep-alive denial**: 2c's `srvStep` now relies on W0's round-4
+   `Step` (a read's permission at an auth table since `lo`; `leaseKeepAlive`'s `permErr`): no
+   disjuncts of its own.
+2. **`Authenticate`**: 2c takes a one-shot update (round 1). The token entry's commit fires it with
+   `.ok .authenticate` when the auth revision is the checked one; the apply's `ErrAuthNotEnabled` and
+   `ErrAuthFailed` are fired at the commit too. But `CheckPassword`'s own errors (`ErrAuthNotEnabled`,
+   `ErrAuthFailed`, `v3_server.go:853-862`) are returned before anything is proposed, decided at the
+   member's applied auth state `kp`, which the cluster may have left: **`authStep`'s `authenticate`
+   should admit those two answers from an auth table at or after `lo`** (as the reads' `deniedSince` /
+   `authOffSince`), so the update can be fired at the return.
+3. **The principal pair** (`nonissues/etcd-write-tls-principal-auth-enable.md`): with a token of `A`
+   and a TLS certificate of `B` (`--client-cert-auth`), a write proposed while auth is disabled and
+   applied after `AuthEnable` is checked as `B`. 2c's specs say so (`srvStep p tls`: `Step tls` for a
+   write). `ctxPrin`'s header says "a context carrying both a token and a certificate is covered by
+   the token's user": not for this write. Either a premise of `ctxPrin` (the certificate's name, if
+   any, is the token's user) or a refusal-only argument (`tls = none`: a principal-less write is
+   refused with auth on).
+4. **`leaseTimeToLive`'s keys**: the lessor's `le.Keys()` may see a write transaction's attachments
+   half done (`storeTxnWrite.put`/`delete` attach or detach one key at a time while the apply runs,
+   `mvcc/kvstore_txn.go:273,285,338`): a key set no revision had, which `leaseTimeToLive`'s
+   `∃ r, … storeAt r …` excludes. A model mismatch (provability F4): admit any key set between two
+   revisions' or record a non-issue.

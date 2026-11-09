@@ -33,3 +33,21 @@ Used by `RaftCluster.*.spec`, `NewAlarmStore.spec`, `AlarmStore.Recover.spec`, `
 2. **`semver`** (the boundary 4b owns): `version.LessThan(first, second)` on two values returns
    (no panic); `version.V3_6` initialized. Used by: `greaterOrEqual.spec`,
    `lessor.shouldPersistCheckpoints.spec`.
+
+## from 3e
+
+mvcc's storage contract (`Spec/go_etcd_io/etcd/server/v3/storage/mvcc/ApiStorage.lean`) names the
+bucket values and key names by pure constants; the schema's initialization must give them:
+
+1. **The buckets**: `globalAddr schema.Key ↦□ Mvcc.bucketVal .keyB` and `globalAddr schema.Meta ↦□
+   Mvcc.bucketVal .metaB` (read-only after init), the two distinct; and **the compaction keys' names**:
+   `globalAddr schema.ScheduledCompactKeyName ↦□ sl ∗ sl ↦*□ Mvcc.metaKey .sched` (`"scheduledCompactRev"`),
+   likewise `FinishedCompactKeyName` (`"finishedCompactRev"`). A law of 4b's init (as the cache's `init`).
+2. **`UnsafeCreateMetaBucket(tx)`** (`schema/cindex.go:25`): on the storage's batch transaction with the
+   lock held (`Mvcc.kbLocked B D`): `tx.UnsafeCreateBucket(Meta)`, so `kbLocked B (D.create .metaB) ∗
+   kbMade B .metaB` (the contract's row). Used by `NewStore.spec`.
+   ```go
+   tx.UnsafeCreateBucket(schema.Key); schema.UnsafeCreateMetaBucket(tx)   // kvstore.go:121-122
+   ```
+3. The `Key` bucket is the backend's safe-range bucket (`safeRangeBucket: true`) and `Meta` is not:
+   4a's `UnsafeDelete` row of the contract takes the safe-range lock for `Key` only.

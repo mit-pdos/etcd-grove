@@ -2,8 +2,9 @@
 `put(ctx, txnWrite, p, prevKV)` (`put.go`), internal (`Put`, `executeTxn`). **Proof sketch.**
 `traceutil.Get(ctx)` (4b); the value and lease from `prevKV.KVs[0]` for an ignore flag (present: the
 premise; else the index panics, `issues/etcd-txn-delete-then-ignore-put.md`); the transaction's `Put`
-(3e: the pending event, the revision `h.rev + 1`; the store's lessor `Attach`es the lease, live at the
-pin: the premise; else mvcc panics). Old spec: over the log, `leaseOk`.
+(3e: the pending event, the revision `h.rev + 1`; the store's lessor `GetLease`, `Detach`es the old
+lease and `Attach`es the new one at the writer's token, live: the premise, else mvcc panics; keeping
+`attached`). Old spec: over the log, `leaseOk`.
 -/
 module
 
@@ -33,17 +34,23 @@ the key's record `cur` in the pending store if the request needs it (`nil` other
 event over `cur`, the reply at revision `h.rev + 1`. -/
 def put.spec : Prop :=
   ∀ (ctx tw : GoInterface) (γ : MvccName) (h : KVHist) (evs : List Event) (p : Loc) (dq : DFrac)
-    (pm : PutReq) (prevKV : Loc) (ls : Int → Option LeaseRec),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ Context.ctxOk ctx ∗ mvccTxn tw γ .write h evs ∗ leasesPin γ ls ∗ putReqOwn p dq pm ∗
+    (pm : PutReq) (prevKV : Loc) (leL : Loc) (γl : Lease.Names) (c : Lease.Cfg) (n : Nat)
+    (ls : Lease.LessorState),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ Context.ctxOk ctx ∗ mvccTxn tw γ .write h evs ∗ Lease.isLessor leL γl c ∗
+      mvccLessor γ γl ∗ Lease.lessorState γl n ls ∗ ⌜attached (h.store.applyEvents evs) ls⌝ ∗
+      putReqOwn p dq pm ∗
       (if needsPrev pm then
          rrOwn prevKV (((h.store.applyEvents evs) pm.key).map (KV.ofRec pm.key)).toList
            (viewRev h evs) ((h.store.applyEvents evs) pm.key).toList.length
        else iprop(⌜prevKV = null⌝)) ∗
       ⌜(ignores pm = true → (h.store.applyEvents evs) pm.key ≠ none) ∧
         ((pm.record (h.rev + 1) ((h.store.applyEvents evs) pm.key)).lease = 0 ∨
-          ls (pm.record (h.rev + 1) ((h.store.applyEvents evs) pm.key)).lease ≠ none)⌝ }}
+          ls.leases (pm.record (h.rev + 1) ((h.store.applyEvents evs) pm.key)).lease ≠ none)⌝ }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.put)) (Val #ctx)) (Val #tw)) (Val #p)) (Val #prevKV))
-  {{ (resp : Loc), RET #resp; leasesPin γ ls ∗ putReqOwn p dq pm ∗
+  {{ (resp : Loc), RET #resp; putReqOwn p dq pm ∗
+      (∃ (n' : Nat) (ls' : Lease.LessorState), Lease.lessorState γl n' ls' ∗
+        ⌜sameLeases ls ls' ∧ attached ((h.store.applyEvents evs).applyEvent
+          (.put pm.key (pm.record (h.rev + 1) ((h.store.applyEvents evs) pm.key)))) ls'⌝) ∗
       mvccTxn tw γ .write h
         (evs ++ [.put pm.key (pm.record (h.rev + 1) ((h.store.applyEvents evs) pm.key))]) ∗
       putOk resp (h.rev + 1)

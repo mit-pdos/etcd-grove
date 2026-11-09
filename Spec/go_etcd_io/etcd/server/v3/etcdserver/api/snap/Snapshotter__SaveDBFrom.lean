@@ -2,7 +2,7 @@
 ## `(*Snapshotter).SaveDBFrom(r, id)` (`db.go:37-96`): trusted (names only)
 
 **Users.** rafthttp's snapshot receiver (2f: the merged `MsgSnap`'s body saved before the message is
-processed). Snippet: `etcdserverboot/snap.go` (`ReqSnapRoundTrip`).
+processed). Go test of this trusted model: `etcdserverboot/snap.go` (`ReqSnapRoundTrip`).
 
 **Why it is true.** A temporary file, `io.Copy` from `r` (`dbReader`: the image's bytes, or an
 error: a cut stream), fsync, then renamed to `<id:016x>.snap.db` unless that file exists (then the

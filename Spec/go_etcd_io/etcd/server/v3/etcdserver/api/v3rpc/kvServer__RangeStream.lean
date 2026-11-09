@@ -10,10 +10,10 @@ Proof sketch: `checkRangeStreamRequest` (`checkRangeStreamRequest.spec`): a vali
 fired as the model's answer (`kvStep`'s range disjuncts), a custom order or revision filter is
 `Unimplemented` (a status that settles nothing: `fin`'s `indefMsg`); then `s.kv.RangeStream(r,
 &headerFillingRangeStream{rs, &s.hdr})` (2c's `EtcdServer.RangeStream.spec` over its send end
-`rsSink w γ who r Q [] false`, which this batch realizes from grpc's `srvSend` of the wrapper:
-`rsSink_of_srvSend` asked by 2c; each chunk recorded `rsChunk g j m`, the last with the update's
-`Q`); its error through `togRPCError`. The end's facts are given with the send half
-(`streamOut`'s first way).
+`rsSink w γ who tls r []`, which this batch realizes from grpc's `srvSend` of the wrapper:
+`rsSink_intro`; each chunk recorded `rsChunk g j m`); at its return the update's `Q` with
+`streamMatches` of the chunks (or a linearized error, `ErrCompacted`, or one settling nothing),
+which `rsSink_out` turns into the run's `streamOut`; the error through `togRPCError`.
 
 Changes: new.
 

@@ -15,7 +15,7 @@ request); the caller's update fires when `currentRev` is set to `σ'.rev`. The o
 (`storageRest B`) back; `mvccBackend γ 1 B' Pk'`.
 
 **Changes** from `specs-ref`'s `store__Restore.lean`: the contract at `*store` over the storage
-contract (no backend or snapshot machinery), the leases' item map (`itemsIn`) in place of a premise
+contract (no backend or snapshot machinery), the lessor's writer token moved by the re-attachment (`RestoreLs`) in place of a premise
 that every key's lease is live.
 
 **Margin**: the metrics reporters are reset (not stated).

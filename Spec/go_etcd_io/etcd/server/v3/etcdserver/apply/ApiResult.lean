@@ -7,7 +7,7 @@ method that `apply.Apply`'s interface call uses (`isUber_apply`, the approved sh
 `.claude/skills/spec/examples/apply-uber-contract.md`). Kept apart from `Api.lean` so that the model
 does not depend on the request path's vocabulary.
 
-* `opBody op` (transparent): 2c's model of the request (`IrrBody`): a client request as itself
+* `opBody op b` (transparent): 2c's model of the request (`IrrBody`): a client request as itself
   (a hashed user change with the hash in the password's place: its reply does not depend on it), a
   token as `.authToken`, an alarm `GET` as `.alarmList`, an activation as `.alarmActivate`, a
   deactivation as `.alarmDisarm`, a publication as `.publish`, the rest as `.noop`.
@@ -35,23 +35,25 @@ namespace Apply
 
 open Iris Iris.BI EtcdModel Classical
 
-/-- 2c's model of the request (see the header). -/
-def opBody : IrrOp → EtcdServer.IrrBody
-  | .req rq => .req rq
-  | .userAdd name h np => .req (.userAdd name h np)
-  | .userChangePassword name h => .req (.userChangePassword name h)
-  | .authenticate name _ => .authToken name
-  | .alarm .get _ _ => .req .alarmList
+/-- 2c's model of the request (see the header); a token's body with any checked revision (the
+proposer's, which the entry does not carry: the reply does not depend on it). -/
+def opBody (op : IrrOp) (b : EtcdServer.IrrBody) : Prop :=
+  match op with
+  | .req rq => b = .req rq
+  | .userAdd name h np => b = .req (.userAdd name h np)
+  | .userChangePassword name h => b = .req (.userChangePassword name h)
+  | .authenticate name pw _ => ∃ rev, b = .authToken name pw rev
+  | .alarm .get _ _ => b = .req .alarmList
   | .alarm .activate mid at' =>
       match V3alarm.kindOf at' with
-      | some k => .alarmActivate ⟨mid, k⟩
-      | none => .noop
+      | some k => b = .alarmActivate ⟨mid, k⟩
+      | none => b = .noop
   | .alarm .deactivate mid at' =>
       match V3alarm.kindOf at' with
-      | some k => .req (.alarmDisarm ⟨mid, k⟩)
-      | none => .noop
-  | .memberAttrSet id name urls => .publish id name urls
-  | _ => .noop
+      | some k => b = .req (.alarmDisarm ⟨mid, k⟩)
+      | none => b = .noop
+  | .memberAttrSet id name urls => b = .publish id name urls
+  | _ => b = .noop
 
 section vocab
 variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors}
@@ -61,17 +63,17 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors}
 `res`. -/
 def resultAt (γ : Cluster) (ar : Loc) (ir : Irr) (sk : Bool) (res : Resp) : IProp GF :=
   iprop(⌜ar = null ∧ res = noAns⌝ ∨
-    ∃ res', ⌜resMatch ir.op sk res res'⌝ ∗ EtcdServer.applyResult γ ar (opBody ir.op) res')
+    ∃ res' b, ⌜resMatch ir.op sk res res' ∧ opBody ir.op b⌝ ∗ EtcdServer.applyResult γ ar b res')
 
 /-- **The outcome of the permission checks `cs`** at the auth info `u`, `rev`, each check answered
 at a state of `S` (`permReads`): `nil` and every check passing, or the error of a failing check
 `cs[i]` after the earlier ones passed. -/
 def checksOut (S : State → IProp GF) (u : GoString) (rev : Nat) (cs : List Check)
     (err : GoInterface) : IProp GF :=
-  iprop((⌜err = GoInterface.nil⌝ ∗ [∗ list] c ∈ cs, ∃ σ', S σ' ∗ ⌜checkErr σ' u rev c = none⌝) ∨
+  iprop((⌜err = GoInterface.nil⌝ ∗ [∗list] c ∈ cs, ∃ σ', S σ' ∗ ⌜checkErr σ' u rev c = none⌝) ∨
     ∃ (i : Nat) (c : Check) (e : EtcdErr), ⌜cs[i]? = some c ∧ EtcdServer.srvErrOf err e⌝ ∗
       (∃ σ', S σ' ∗ ⌜checkErr σ' u rev c = some e⌝) ∗
-      [∗ list] c' ∈ cs.take i, ∃ σ', S σ' ∗ ⌜checkErr σ' u rev c' = none⌝)
+      [∗list] c' ∈ cs.take i, ∃ σ', S σ' ∗ ⌜checkErr σ' u rev c' = none⌝)
 
 end vocab
 
@@ -85,8 +87,8 @@ def replyAt_result.spec : Prop :=
   ∀ (γ : Cluster) (op : IrrOp) (res : Resp) (resp err : GoInterface),
     replyAt (GF := GF) γ op res resp err ⊢
       match res with
-      | .ok _ => iprop(⌜err = GoInterface.nil⌝ ∗ EtcdServer.irrReply γ (opBody op) res resp)
-      | .err e => iprop(⌜EtcdServer.srvErrOf err e⌝)
+      | .ok _ => iprop(⌜err = GoInterface.nil⌝ ∗ ∃ b, ⌜opBody op b⌝ ∗ EtcdServer.irrReply γ b res resp)
+      | .err e => iprop(⌜EtcdServer.srvErrOf err e⌝ ∗ EtcdServer.srvErrShape err)
 
 /-- **The uber-applier's `Apply`, as the interface method** (`isUber`'s bundle; the concrete spec is
 `uberApplier.Apply.spec`): from the state machine at `σ`, with the lent `R` and the membership

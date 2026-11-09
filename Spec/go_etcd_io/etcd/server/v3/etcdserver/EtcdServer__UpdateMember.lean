@@ -34,21 +34,21 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **Changes member `memb.ID`'s peer URLs** to `urls`, as the cluster's `memberUpdate` step. -/
 def EtcdServer.UpdateMember.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (q : Qp) (ctx : GoInterface) (who : Principal)
+  ∀ (s : Loc) (γ : Cluster) (q : Qp) (ctx : GoInterface) (pr tls : Principal) (lo : Nat)
     (memb : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member) (urls : List GoString) (Q : State → State → Resp → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ srvGate s q ∗ reqPrin ctx who ∗ Context.ctxOk ctx ∗ threadTok ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ srvGate s q ∗ reqPrin ctx pr tls ∗ authLb γ lo ∗ Context.ctxOk ctx ∗ threadTok ∗
       memb.RaftAttributes'.PeerURLs' ↦*□ urls ∗ urlsRight γ urls ∗
-      AU <{{ ∃∃ (σ : State), etcdState γ σ }}> @ ⊤ \ ↑etcdN, ∅
-        <{{ ∀∀ (σ' : State) (res : Resp), ⌜srvStep who (.memberUpdate (uint.nat memb.ID') urls) σ σ' res⌝ ∗ etcdState γ σ',
-           COMM Q σ σ' res }}> }}
+      AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
+        <{ ∀∀ (σ' : State) (res : Resp), ⌜srvStep pr tls (.memberUpdate (uint.nat memb.ID') urls) σ σ' res lo⌝ ∗ etcdState γ σ',
+           COMM Q σ σ' res }> }}
     (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"UpdateMember")) (Val #ctx)) (Val #memb))
   {{ (sl : GoSlice) (err : GoInterface), RET (PairV #sl #err); srvGate s q ∗ threadTok ∗
       ((∃ σ σ' res, Q σ σ' res ∗ ((∃ l : List Member, ⌜respMembers res = some l ∧ err = GoInterface.nil⌝ ∗
           ∃ ms, Membership.membersOwn sl ms ∗ ⌜ms.Perm l⌝) ∨
        (∃ e, ⌜res = .err e⌝ ∗ ⌜srvErrOf err e⌝))) ∨
-       (⌜srvUnfired err⌝ ∗ AU <{{ ∃∃ (σ : State), etcdState γ σ }}> @ ⊤ \ ↑etcdN, ∅
-        <{{ ∀∀ (σ' : State) (res : Resp), ⌜srvStep who (.memberUpdate (uint.nat memb.ID') urls) σ σ' res⌝ ∗ etcdState γ σ',
-           COMM Q σ σ' res }}>) ∨
+       (⌜srvUnfired err⌝ ∗ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
+        <{ ∀∀ (σ' : State) (res : Resp), ⌜srvStep pr tls (.memberUpdate (uint.nat memb.ID') urls) σ σ' res lo⌝ ∗ etcdState γ σ',
+           COMM Q σ σ' res }>) ∨
        ⌜srvIndef err⌝) }}
 
 end spec

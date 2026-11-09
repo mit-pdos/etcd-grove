@@ -36,7 +36,8 @@ are over `ApiWatch.lean`'s. Internal helpers' specs mirror their code (PRINCIPLE
 * `wgOwn v dq G` (fractional): the `watcherGroup` value `v` holds the watchers `G` with their ranges
   (its key watchers' map, its interval tree of range watchers' sets, its set of all), at `dq`.
 * `wsIdFree ι id`, `wsMapAt m ι`: the stream's side of a registration (its fresh id, its map).
-* `wsSendable w r` (exclusive): the response `r` of `w` may be sent now (its facts hold).
+* `wsSendable w r`, `wsCmpSendable w cr` (exclusive): the response `r` of `w` (its compaction
+  response at `cr`) may be sent now (its facts hold).
 * `wsReadAt s γ b lg h` (exclusive): `s.mu` and a storage reader held, the storage's image of `h`.
 * `ebOwn eb E`, `wbOwn wb B` (exclusive): an `*eventBatch` holding the batch `E` (`EBatch`: its
   events, owned (`evOwn`), its distinct revisions, the first revision left out); a `watcherBatch`
@@ -163,6 +164,10 @@ its facts (`wsRespOk`, after filtering by the watcher's filters) hold at the sen
 contents give `notify`, `syncWatchers` and `chooseAll` for each response they build, and a victim
 batch carries for `moveVictims`. -/
 opaque wsSendable (w : Loc) (r : WResp) : IProp GF := iprop(True)
+
+/-- **The compaction response at `cr` of the watcher `w` may be sent now** (exclusive): `cr` is the
+store's compaction revision (at most the notified history's) and above `w`'s position + 1. -/
+opaque wsCmpSendable (w : Loc) (cr : w64) : IProp GF := iprop(True)
 
 /-- **The caller holds `s.mu` and a reader of the store's storage `b`**, whose image is of the
 notified history `h` (nothing pending), with the store's logger `lg`. -/

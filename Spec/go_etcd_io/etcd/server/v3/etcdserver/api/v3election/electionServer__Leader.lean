@@ -1,11 +1,18 @@
 /-
 ## `(*electionServer).Leader(ctx, req)` (`election.go:83-92`): translated
 
-**Users.** The `Leader` RPC. **Proof sketch.** `session` (`NewSession` with the request's lease and context, 1d's
-`NewSession.spec`: the permission's read or grant, a `threadTok`; then `Orphan`: the keep-alive
-ends), then 1d's method on a `NewElection`/`ResumeElection` of the request's name and key. (lease `-1`: no grant) `Election.Leader.spec`: the oldest key
-under the name at a reached state (`firstCreate`), or `ErrElectionNoLeader`.
+**Users.** The `Leader` RPC. **Proof sketch.** `session` (1d's `NewSession.spec` with the request's lease and context:
+`etcdPerm γ Ts`'s read or grant; then `Orphan`: the keep-alive ends), then 1d's method on a
+`NewElection`/`ResumeElection` of the request's name and key, with the lent permission
+`etcdLent γ T P ∗ P` 1d's method takes. (lease `-1`: no grant) `Election.Leader.spec` (over `etcdPeek`):
+an oldest key under the name at a reached state (`firstCreate`), or `ErrElectionNoLeader`.
 **Changes**: from `specs-ref`'s `electionServer__Leader.lean`. **Margin.** As 1d's.
+
+**The principal** (round 1, completeness F9): the in-process client (`v3client.New(s)`, default
+principal `dflt`: none) forwards each call's token, so the call's principal is the context's `who`
+(`ClientV3.ctxPrin dflt ctx who`), the effects under it, as 1d's specs state them. `v3client.New`'s
+spec (an `isClient … none` from `isServer`) is requested of 1c (`req/…client_v3.md`, "from 2e,
+round 1").
 -/
 module
 
@@ -30,10 +37,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.Assu
 
 /-- **The current leader of `name`**: an oldest key under it at a reached state. -/
 def electionServer.Leader.spec : Prop :=
-  ∀ (es c : Loc) (γ : Cluster) (dflt who : Principal) (ctx : GoInterface) (req : Loc)
-    (name : GoString) (T : State → State → Prop),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3election ∗ isElectionServer es c ∗ ClientV3.isClient c γ dflt ∗ Context.ctxOk ctx ∗ ClientV3.ctxPrin dflt ctx who ∗ leaderReq req name ∗
-      etcdPerm γ T ∗ ⌜effIn readEff T⌝ ∗ threadTok }}
+  ∀ (es c : Loc) (γ : Cluster) (dflt who : Principal) (ctx : GoInterface) (σ0 : State) (req : Loc) (name : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3election ∗ isElectionServer es c ∗ ClientV3.isClient c γ dflt ∗ Context.ctxOk ctx ∗ ClientV3.ctxPrin dflt ctx who ∗ etcdLb γ σ0 ∗ leaderReq req name ∗ etcdPeek γ }}
     (App (App (Val (es @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer.ty @!! go!"Leader")) (Val #ctx)) (Val #req))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       (⌜err = GoInterface.nil⌝ ∗ ∃ (v : KV) (σ : State), leaderResp resp v ∗ etcdLb γ σ ∗

@@ -3,7 +3,7 @@
 
 **Users.** 2c's `MemberList` (after a linearizable read: the members at the applied state),
 `adjustTicks`, the error classification's quorum count (`isConnectedToQuorumSince`), the
-interceptors. Snippet: `etcdserverboot/members.go` (`ReqMembersAfterAdd`).
+interceptors. Go test of the view's behavior: `etcdserverboot/members.go` (`ReqMembers`).
 
 **Proof sketch.** Under the lock, a clone of each member (`Member.Clone.spec`), sorted by id
 (`sort.Sort(MembersByID)`: Perennial's sort over `Len`/`Less`/`Swap`): the read fires the update

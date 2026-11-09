@@ -11,7 +11,7 @@ update reads `σ` and the pending check), the transaction's `Put` (`Txn.Put.cont
 `σ`).
 
 **Changes** from `specs-ref`'s `writeView__Put.lean`: the contract at `*store`; the lessor's items
-over the provisional `leaseItems` (3c's).
+over 3c's writer token `Lease.lessorState` (`putLs`).
 
 **Margin**: none.
 -/

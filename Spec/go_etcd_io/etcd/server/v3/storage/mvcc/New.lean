@@ -1,27 +1,29 @@
 /-
 `New(lg, b, le, cfg)` (`watchable_store.go`): the watchable store over the storage `b`, its two
-loops started.
+loops started: `NewStore`'s contract (3e's `NewStore.spec`) with the watchable store as the handle.
 
 **Users.** `NewServer` (`etcdserver/server.go:366`, 2e: `mvcc.New(srv.Logger(), srv.be, srv.lessor,
 mvccStoreConfig)`); this repository's mvcc examples. Snippet: `mvccwatch/store.go` `ReqStoreWrites`.
 
-**Proof sketch.** `newWatchableStore` (its spec: `NewStore`'s, 3e's, the store's views and the
-lessor's range deleter set to the watchable store's `Write`, the watch invariant allocated, the
-loops' starting shares, each with a reader of the store kept out of the client's tokens);
-`s.wg.Add(2)` (Perennial's wait group, backed by the two goroutines: their deposits at `Done` are
-the loops' readers, which `Close` takes back after `Wait`); `go s.syncWatchersLoop()`, `go
-s.syncVictimsLoop()` (each with its loop share; a fork needs no token).
+**Proof sketch.** `newWatchableStore` (its spec: `NewStore`'s, the store's views and the lessor's
+range deleter set to the watchable store's `Write` (`mvccDeleter`: `KV.Write.contract` at
+`*watchableStore`), the watch invariant allocated (`mvccLb`'s authority at `h`), the loops' shares,
+each with one of the store's reader slots that `mvccTokN` leaves out of the client's tokens: 3e's
+`NewStore` keeps two parked for them, `req/`); `s.wg.Add(2)` (Perennial's wait group, backed by the
+two goroutines: their deposits at `Done` are the loops' readers, which `Close` takes back after
+`Wait`, into `mvccClosed`); `go s.syncWatchersLoop()`, `go s.syncVictimsLoop()` (each with its share;
+a fork needs no token).
 
-**Changes** from `specs-ref`'s `New.lean`: over 3e's constructor slots (`storeBoot`/`storeBooted`,
-provisional) in place of the backend's and lessor's internal resources and the receipt bound; the
-result is the handle (`watchableAt`, with 3e's `isMvcc`), the client-owned state at the storage's
-history, the open token.
+**Changes** from `specs-ref`'s `New.lean`: 3e's restated `NewStore` contract (any image of a history,
+the leases re-attached, the hook at any share) with `watchableAt` for the handle; the receipt bound
+as `NewStore`'s.
 
-**Margin.** None.
+**Margin.** As `NewStore`'s.
 -/
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiWatch
+public import Spec.go_uber_org.zap.Api
 
 @[expose] public section
 
@@ -40,15 +42,24 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- **`New(lg, b, le, cfg)`**: a watchable store of fresh names `γ`, at the storage's history `h`
-(nothing pending), its loops running; with what 3e's `NewStore` gives. -/
+/-- **`New(lg, b, le, cfg)`**: `NewStore`'s result (3e's `NewStore.spec`) as a watchable store
+(`watchableAt`), its loops running. -/
 def New.spec : Prop :=
-  ∀ (lg : Loc) (b le : GoInterface) (cfg : StoreConfig) (h : KVHist),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ storeBoot lg b le cfg h }}
-    (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.New)) (Val #lg)) (Val #b))
-      (Val #le)) (Val #cfg))
-  {{ (kv : GoInterface), RET #kv; ∃ γ : MvccName,
-      watchableAt kv γ ∗ mvccState γ { kv := h, pending := [] } ∗ mvccOpen γ ∗ storeBooted kv γ le }}
+  ∀ [ReceiptBoundLe GF (2 ^ 48)] (lg : Loc) (le : Loc) (cfg : StoreConfig) (B : MvccStorage)
+    (Pk : IProp GF) (h : EtcdModel.KVHist) (u : Bool) (γl : Lease.Names) (c : Lease.Cfg) (n : Nat)
+    (ls : Lease.LessorState) (dq : DFrac) (f : GoFunc) (Pre Q' Post X Y : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ (⌜lg = null⌝ ∨ Zap.isLogger lg) ∗ ⌜storeCfgOk cfg⌝ ∗
+      mvccStorageFor B Pk h u ∗ ⌜MvccReachable ⟨h, []⟩⌝ ∗
+      storageHook B dq f ∗ ⌜f = func.nil ∨ dq = DFrac.discard⌝ ∗
+      Pre ∗ hookRun Pk f Pre Q' ∗ (Q' ={⊤}=∗ Pk ∗ Post) ∗ X ∗ storageReq B Pk X Y ∗
+      Lease.isLessor le γl c ∗ Lease.lessorState γl n ls }}
+    (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.New)) (Val #lg))
+      (Val #(GoInterface.ok (storageVal B)))) (Val #(Lease.lessorIface le))) (Val #cfg))
+  {{ (kv : GoInterface), RET #kv; ∃ γ : MvccName, watchableAt kv γ ∗ mvccLessorIs γ γl ∗
+      mvccState γ ⟨h, []⟩ ∗ mvccOpen γ ∗ mvccBackend γ 1 B Pk ∗ mvccReaders γ mvccTokN ∗
+      storageHook B dq f ∗ (if u then iprop(Post ∗ Y) else iprop(Pre ∗ X)) ∗
+      (∃ (rd : GoFunc) (n' : Nat) (ls' : Lease.LessorState), mvccDeleter rd γ ∗
+        ⌜RestoreLs { ls with rd := rd } h.store ls'⌝ ∗ Lease.lessorState γl n' ls') }}
 
 end spec
 

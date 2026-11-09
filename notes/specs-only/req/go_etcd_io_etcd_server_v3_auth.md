@@ -84,3 +84,40 @@ Used by: `serverWatchStream.isWatchPermitted.spec`; every handler's principal (2
    `srvReadAt s γ k` (`ApiApply.lean`).
 2. The simple-token waiter (`simple_token.go:240`, the closure `server.go:351-354`) receives
    `srvApplied` only from `start` on (`s.applyWait` is set there).
+
+
+## from 3a
+
+The apply layer (3a) owns the auth store's state on the apply thread (`Apply.authSt ast a`, exclusive;
+`Apply.authOk ast γ`: tokens registered in W0's `γ`), and the request path reads it concurrently
+(`Apply.authRead ast γ`). Its permission checks go through `Apply.permReads ast le A S` (each check
+answered at a state of `S`): the apply thread's instance from `authSt` (`S` its one state, exact),
+the request path's from `authRead` (`S` the reached auth states). Needed:
+1. **`isOpPermitted`** (`IsRangePermitted`, `IsPutPermitted`, `IsDeleteRangePermitted`) is 3a's
+   `opErr a u rev t rng`: `nil` with auth off; `ErrUserEmpty` at revision `0`; `ErrAuthOldRevision`
+   below the store's revision; `ErrPermissionDenied` for a missing user; `nil` for a root user or a
+   covered range (`AuthState.covers`); `ErrPermissionDenied` else. **`IsAdminPermitted`** is
+   `adminErr` (no revision check); **`HasRole(u, r)`**.
+2. **The administration methods** (`UserAdd` with the hash, `UserDelete`, `UserChangePassword`,
+   `UserGrantRole`, `UserRevokeRole`, `UserGet`, `UserList`, `RoleAdd`, `RoleGrantPermission`,
+   `RoleRevokePermission`, `RoleGet`, `RoleList`, `RoleDelete`, `AuthEnable`, `AuthDisable`,
+   `IsAuthEnabled`, `Revision`): W0's `authStep` at the state (the hash in the password's place:
+   W0's item 2 in `req/go_etcd_io_etcd_api_v3.md`), deterministic answers (lists in the store's key
+   order).
+3. **`Authenticate(ctx, name, pw)`** at the apply: `ErrAuthNotEnabled`, `ErrAuthFailed` (no such user,
+   or one without a password), or a token registered in `γ` (`tokenUser γ tok name`); the state
+   unchanged.
+4. **`authRecordFits op`** (3a's provisional premise): the records an administration request
+   writes fit bbolt's limits (`issues/etcd-auth-useradd-long-name-fatal.md`); the request path's
+   size limits should give it, or it is a premise of the request path.
+Used by: `applierV3backend.*` (auth methods), `authApplierV3.*`, the `check*` specs, `CheckTxnAuth.spec`.
+
+## from 2c (round 1)
+
+1. **`reqPrin ctx p tls`** (two principals, `ApiReq.lean`): `AuthInfoFromCtx` gives `p` (the token's
+   user) with auth enabled and a token, else `tls` (`AuthInfoFromTLS` under `--client-cert-auth`) or
+   `nil`; its realization is yours.
+2. **`WithRoot(ctx)`'s spec** (the lessor's expiry, the health checks): from `reqPrin ctx p tls`, the
+   result is `reqPrin ctx' (some root) tls` when auth is enabled at the call, the context itself
+   otherwise (`auth/store.go:1175-1178`).
+3. **The package variables**: `auth`'s error sentinels hold `srvErrVal e` (`errors/Api.lean`).

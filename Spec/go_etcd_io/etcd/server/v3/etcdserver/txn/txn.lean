@@ -34,17 +34,21 @@ or the read-only wrapper), the checks passed: the responses of `execOps` on the 
 header's revision `runRev`; or a read-only transaction's context error. -/
 def txn.spec : Prop :=
   ∀ (ctx : GoInterface) (lg : Loc) (tw : GoInterface) (γ : MvccName) (h : KVHist) (rt : Loc)
-    (dq : DFrac) (t : TxnReq) (isWrite : Bool) (path : GoSlice) (skip : Bool)
-    (ls : Int → Option LeaseRec),
+    (dq : DFrac) (t : TxnReq) (isWrite : Bool) (path : GoSlice) (skip : Bool) (leL : Loc)
+    (γl : Lease.Names) (c : Lease.Cfg) (n : Nat) (ls : Lease.LessorState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ Context.ctxOk ctx ∗ Zap.isLogger lg ∗
       mvccTxn tw γ (if isWrite then .write else .roWrite) h [] ∗ txnReqOwn rt dq t ∗
       path ↦*□ txnPathOf t h.store ∗
-      ⌜txnSafe t ∧ opsCheck h ls (if cmpsHold t.compare h.store then t.success else t.failure) = none ∧ isWrite = !decide t.readonly⌝ ∗
-      (if isWrite then iprop(leasesPin γ ls ∗ ⌜leasesLive h.store ls⌝ ∗ (Context.ctxDone ctx -∗ False))
+      ⌜txnSafe t ∧ opsCheck h ls.table (if cmpsHold t.compare h.store then t.success else t.failure) = none ∧ isWrite = !decide t.readonly⌝ ∗
+      (if isWrite then iprop(Lease.isLessor leL γl c ∗ mvccLessor γ γl ∗ Lease.lessorState γl n ls ∗
+         ⌜attached h.store ls⌝ ∗ (Context.ctxDone ctx -∗ False))
        else iprop(True)) }}
     (App (App (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.txn)) (Val #ctx)) (Val #lg)) (Val #tw)) (Val #rt)) (Val #isWrite)) (Val #path)) (Val #skip))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); txnReqOwn rt dq t ∗
-      (if isWrite then leasesPin γ ls else iprop(True)) ∗
+      (if isWrite then iprop(∃ (n' : Nat) (ls' : Lease.LessorState), Lease.lessorState γl n' ls' ∗
+         ⌜sameLeases ls ls' ∧
+           attached (h.store.applyEvents (execOps h skip (h.store, []) (if cmpsHold t.compare h.store then t.success else t.failure)).1.2) ls'⌝)
+       else iprop(True)) ∗
       mvccTxn tw γ (if isWrite then .write else .roWrite) h
         (execOps h skip (h.store, []) (if cmpsHold t.compare h.store then t.success else t.failure)).1.2 ∗
       ((⌜err = GoInterface.nil⌝ ∗

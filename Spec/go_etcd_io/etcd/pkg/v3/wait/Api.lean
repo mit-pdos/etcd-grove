@@ -119,6 +119,10 @@ def waitWasReg_persistent.spec : Prop := ∀ γw id, Persistent (waitWasReg (GF 
 def waitGone_persistent.spec : Prop := ∀ γw id, Persistent (waitGone (GF := GF) γw id)
 def waitNever_persistent.spec : Prop := ∀ γw id, Persistent (waitNever (GF := GF) γw id)
 
+/-- A registered id was not burnt. -/
+def waitRecv_never.spec : Prop := ∀ (γw : WaitNames) (id : w64) (ch : Loc),
+  waitRecv (GF := GF) γw id ch ∗ waitNever γw id ⊢ iprop(False)
+
 /-- **Burning a fresh id's token**: it will never be registered (an id of another member's entry,
 which the apply thread triggers here). -/
 def waitToks_never.spec : Prop := ∀ (γw : WaitNames) (U : List w64) (id : w64), id ∉ U →

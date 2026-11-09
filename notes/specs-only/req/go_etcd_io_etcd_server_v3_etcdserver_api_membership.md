@@ -27,3 +27,21 @@ What `applyConfChange` (2d) needs of the membership (`RaftCluster`):
    srv.lessor = lease.NewLessor(srv.Logger(), srv.be, srv.cluster, lease.LessorConfig{...}) // server.go:344
    cv := le.cluster.Version()                                                                 // lessor.go:386
    ```
+
+
+## from 3a
+
+The apply layer (3a) calls the membership on the apply thread (`applierV3backend`'s membership
+methods), in both modes:
+1. **`UpdateAttributes`**: as 2e's spec (used with the caller's update, `Apply.memberUpd`).
+2. **`Version()`, `SetVersion(ver, onSet, shouldApplyV3)`**: a spec, with its panic-freedom
+   (`semver.MustParse(r.Ver)` in the applier, `MustDetectDowngrade` in `SetVersion`) as a pure
+   premise on the version: 3a's provisional `Apply.clusterVerOk ver` (the version parses and the
+   member's binary is not older); the cluster's invariant should give it for every committed
+   `ClusterVersionSet` (the leader proposes the minimum of the members' versions) or it is a
+   deployment premise (a decision).
+3. **`SetDowngradeInfo(d, shouldApplyV3)`**: a spec (no panic, the backend written at `shouldApplyV3`).
+4. **`ID()`** (the reply header): read-only.
+5. `beView c st` held inside 3a's `smAt` (the backend's member buckets with `st.members` a permutation
+   of the model's members).
+Used by: `applierV3backend.{ClusterVersionSet,ClusterMemberAttrSet,DowngradeInfoSet,newHeader}.spec`.

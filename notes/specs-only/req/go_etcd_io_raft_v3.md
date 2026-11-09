@@ -477,3 +477,8 @@ conjunct `∀ m ∈ b.msgs, m.type = MsgApp → m.src = id`. Item 3 is withdrawn
 Used by: `applyBatch_terms`, `msgSnapC_recv`, `applyAll.spec`, `createMergedSnapshotMessage.spec`.
 4. **The snapshot's point** (2d's provability F3): the `Ready` loop applies `node.Advance.spec`'s wand
    at the point `a` of the installed snapshot (2d's `snapImage_point`); nothing new for R1.
+
+## from 2c (round 1)
+
+`raft.ErrStopped`'s package variable holds `EtcdServer.raftStoppedErr` (`errors/Api.lean`; the read
+loop's `readErr` names it); `ErrProposalDropped` is unmapped with a message (`srvErrShape`).

@@ -19,8 +19,10 @@ store's invariant of `Api.lean`'s header.
   the batch transaction's `Unlock`.
 * `cacheEntry p a u` (persistent): `p` is a `*unifiedRangePermissions` holding `u`'s merged read and
   write permissions at `a` (3f's interval trees over bytes-affine keys).
-* `cacheOwn st` (exclusive): the right to replace the store's cache map (the writer's, inside
-  `wrRec`; `NewAuthStore`'s before the invariants exist).
+* `cacheOwn st a` (exclusive): the right to replace the store's cache map, now of `a` (the writer's,
+  inside `wrRec`; `NewAuthStore`'s before the invariants exist).
+* `optsMapAt m opts` (exclusive): the fresh `map[string]string` at `m` holds the `key=value` pairs
+  of `opts` after its first comma (`decomposeOpts`'s), what the JWT provider parses.
 * `userRolesAt p roles` (persistent): `p` is a `*authpb.User` whose `Roles` slice holds `roles`,
   read-only.
 * `tpOpen tp γ` (persistent): the provider's contract opened (`tokenProviderAt` given to a store).
@@ -50,7 +52,8 @@ opaque rdTx (γa : AuthNames) (tx : GoInterface) (j : Nat) (a : AuthState) : IPr
 opaque wrStep (γa : AuthNames) (i : Nat) (a a' : AuthState) : IProp GF := iprop(True)
 opaque wrRec (γa : AuthNames) (i : Nat) (a' : AuthState) : IProp GF := iprop(True)
 opaque cacheEntry (p : Loc) (a : AuthState) (u : GoString) : IProp GF := iprop(True)
-opaque cacheOwn (st : Loc) : IProp GF := iprop(True)
+opaque cacheOwn (st : Loc) (a : AuthState) : IProp GF := iprop(True)
+opaque optsMapAt (m : Loc) (opts : GoString) : IProp GF := iprop(True)
 opaque userRolesAt (p : Loc) (roles : List GoString) : IProp GF := iprop(True)
 opaque tpOpen (tp : GoInterface) (γ : Cluster) : IProp GF := iprop(True)
 

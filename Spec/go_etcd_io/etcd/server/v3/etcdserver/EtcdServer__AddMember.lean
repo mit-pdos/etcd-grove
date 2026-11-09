@@ -45,23 +45,23 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **Adds a member** with the peer URLs `urls` (a learner if `learner`), as the cluster's `memberAdd` step. -/
 def EtcdServer.AddMember.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (q : Qp) (ctx : GoInterface) (who : Principal)
+  ∀ (s : Loc) (γ : Cluster) (q : Qp) (ctx : GoInterface) (pr tls : Principal) (lo : Nat)
     (memb : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member) (urls : List GoString)
     (learner : Bool) (Q : State → State → Resp → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ srvGate s q ∗ reqPrin ctx who ∗ Context.ctxOk ctx ∗ threadTok ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ srvGate s q ∗ reqPrin ctx pr tls ∗ authLb γ lo ∗ Context.ctxOk ctx ∗ threadTok ∗
       memb.RaftAttributes'.PeerURLs' ↦*□ urls ∗ ⌜memb.RaftAttributes'.IsLearner' = learner⌝ ∗
       urlsRight γ urls ∗
-      AU <{{ ∃∃ (σ : State), etcdState γ σ }}> @ ⊤ \ ↑etcdN, ∅
-        <{{ ∀∀ (σ' : State) (res : Resp), ⌜srvStep who (.memberAdd urls learner) σ σ' res⌝ ∗ etcdState γ σ',
-           COMM Q σ σ' res }}> }}
+      AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
+        <{ ∀∀ (σ' : State) (res : Resp), ⌜srvStep pr tls (.memberAdd urls learner) σ σ' res lo⌝ ∗ etcdState γ σ',
+           COMM Q σ σ' res }> }}
     (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"AddMember")) (Val #ctx)) (Val #memb))
   {{ (sl : GoSlice) (err : GoInterface), RET (PairV #sl #err); srvGate s q ∗ threadTok ∗
       ((∃ σ σ' res, Q σ σ' res ∗ ((∃ l : List Member, ⌜respMembers res = some l ∧ err = GoInterface.nil⌝ ∗
           ∃ ms, Membership.membersOwn sl ms ∗ ⌜ms.Perm l⌝) ∨
        (∃ e, ⌜res = .err e⌝ ∗ ⌜srvErrOf err e⌝))) ∨
-       (⌜srvUnfired err⌝ ∗ AU <{{ ∃∃ (σ : State), etcdState γ σ }}> @ ⊤ \ ↑etcdN, ∅
-        <{{ ∀∀ (σ' : State) (res : Resp), ⌜srvStep who (.memberAdd urls learner) σ σ' res⌝ ∗ etcdState γ σ',
-           COMM Q σ σ' res }}>) ∨
+       (⌜srvUnfired err⌝ ∗ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
+        <{ ∀∀ (σ' : State) (res : Resp), ⌜srvStep pr tls (.memberAdd urls learner) σ σ' res lo⌝ ∗ etcdState γ σ',
+           COMM Q σ σ' res }>) ∨
        ⌜srvIndef err⌝) }}
 
 end spec

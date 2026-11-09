@@ -37,22 +37,22 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **Proposes the conf change `cc` for the request `rq`** and waits for its answer. -/
 def EtcdServer.configure.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (q : Qp) (ctx : GoInterface) (who : Principal) (p : Loc) (dq : DFrac)
-    (cc : Raft.ConfChangeV1) (rq : Req) (Q : State → State → Resp → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ srvGate s q ∗ reqPrin ctx who ∗ Context.ctxOk ctx ∗ threadTok ∗
-      Raft.confChangePts (interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.raftpb.ConfChange.ty) #p)
+  ∀ (s : Loc) (γ : Cluster) (q : Qp) (ctx : GoInterface) (pr tls : Principal) (lo : Nat) (pc : Loc)
+    (dq : DFrac) (cc : Raft.ConfChangeV1) (rq : Req) (Q : State → State → Resp → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ srvGate s q ∗ reqPrin ctx pr tls ∗ authLb γ lo ∗ Context.ctxOk ctx ∗ threadTok ∗
+      Raft.confChangePts (interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.raftpb.ConfChange.ty) #pc)
         dq (.v1 cc) ∗ ⌜Membership.ccPanicFree cc⌝ ∗
-      AU <{{ ∃∃ (σ : State), etcdState γ σ }}> @ ⊤ \ ↑etcdN, ∅
-        <{{ ∀∀ (σ' : State) (res : Resp), ⌜srvStep who (rq) σ σ' res⌝ ∗ etcdState γ σ',
-           COMM Q σ σ' res }}> }}
-    (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"configure")) (Val #ctx)) (Val #p))
+      AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
+        <{ ∀∀ (σ' : State) (res : Resp), ⌜srvStep pr tls (rq) σ σ' res lo⌝ ∗ etcdState γ σ',
+           COMM Q σ σ' res }> }}
+    (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"configure")) (Val #ctx)) (Val #pc))
   {{ (sl : GoSlice) (err : GoInterface), RET (PairV #sl #err); srvGate s q ∗ threadTok ∗
       ((∃ σ σ' res, Q σ σ' res ∗ ((∃ l : List Member, ⌜respMembers res = some l ∧ err = GoInterface.nil⌝ ∗
           ∃ ms, Membership.membersOwn sl ms ∗ ⌜ms.Perm l⌝) ∨
        (∃ e, ⌜res = .err e⌝ ∗ ⌜srvErrOf err e⌝))) ∨
-       (⌜srvUnfired err⌝ ∗ AU <{{ ∃∃ (σ : State), etcdState γ σ }}> @ ⊤ \ ↑etcdN, ∅
-        <{{ ∀∀ (σ' : State) (res : Resp), ⌜srvStep who (rq) σ σ' res⌝ ∗ etcdState γ σ',
-           COMM Q σ σ' res }}>) ∨
+       (⌜srvUnfired err⌝ ∗ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
+        <{ ∀∀ (σ' : State) (res : Resp), ⌜srvStep pr tls (rq) σ σ' res lo⌝ ∗ etcdState γ σ',
+           COMM Q σ σ' res }>) ∨
        ⌜srvIndef err⌝) }}
 
 end spec

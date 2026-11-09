@@ -31,16 +31,18 @@ open Classical in
 the number of nested transactions on the taken path. -/
 def checkTxn.spec : Prop :=
   ∀ (trace : Loc) (rv le : GoInterface) (γ : MvccName) (k : TxKind) (h : KVHist) (rt : Loc)
-    (dq : DFrac) (t : TxnReq) (path : GoSlice) (rest : List Bool) (ls : Int → Option LeaseRec),
+    (dq : DFrac) (t : TxnReq) (path : GoSlice) (rest : List Bool) (leL : Loc) (γl : Lease.Names)
+    (c : Lease.Cfg) (n : Nat) (ls : Lease.LessorState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ traceAt trace ∗ mvccTxn rv γ k h [] ∗ txnReqOwn rt dq t ∗
       path ↦*□ (txnPathOf t h.store ++ rest) ∗
-      (if t.readonly then iprop(True) else iprop(lessorAt le γ ∗ leasesPin γ ls)) }}
+      (if t.readonly then iprop(True)
+       else iprop(⌜le = Lease.lessorIface leL⌝ ∗ Lease.isLessor leL γl c ∗ Lease.lessorState γl n ls)) }}
     (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.checkTxn)) (Val #trace)) (Val #rv)) (Val #rt)) (Val #le)) (Val #path))
-  {{ (n : w64) (err : GoInterface), RET (PairV #n #err); mvccTxn rv γ k h [] ∗ txnReqOwn rt dq t ∗
-      (if t.readonly then iprop(True) else iprop(leasesPin γ ls)) ∗
-      (match opsCheck h ls (if cmpsHold t.compare h.store then t.success else t.failure) with
-       | none => iprop(⌜err = GoInterface.nil ∧ n = W64 ((txnPathOf t h.store).length - 1)⌝)
-       | some e => iprop(⌜n = W64 0⌝ ∗ errIs err e)) }}
+  {{ (cnt : w64) (err : GoInterface), RET (PairV #cnt #err); mvccTxn rv γ k h [] ∗ txnReqOwn rt dq t ∗
+      (if t.readonly then iprop(True) else iprop(Lease.lessorState γl n ls)) ∗
+      (match opsCheck h ls.table (if cmpsHold t.compare h.store then t.success else t.failure) with
+       | none => iprop(⌜err = GoInterface.nil ∧ cnt = W64 ((txnPathOf t h.store).length - 1)⌝)
+       | some e => iprop(⌜cnt = W64 0⌝ ∗ errIs err e)) }}
 
 end spec
 end Txn

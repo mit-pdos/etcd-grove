@@ -175,3 +175,12 @@ grpc's), C-S3 (Kubernetes `OptimisticDelete`/`Count` snippets).
 clients (req). 3: the per-call principal of an unissued token (req). 4 (from round 0): repeatable
 lease writes stay weaker than at-most-once; the scope premises (`permTypeM`, `alarmKindM`,
 `LogConfig`, auto-sync with `ETCD_VERIFY` off, `Status` only with the endpoints token).
+
+## W0 round 4 (2026-11-09)
+
+`RespBody.authenticate` has no token now: `authReply`'s success gives `∃ tok, authTokenAt resp tok ∗
+tokenUser γ tok name` (`authTokenAt`, new, persistent, 3h's), and `replyOwn_authenticate` takes
+`authTokenAt p tok` to expose the `Token` field. The read contracts' `lo` binder is W0's KV only:
+1c's reads (lease, auth, member lists, Kubernetes' ranges) use `Step`'s default `lo = 0` (the
+weakest, "any auth state"), which is sound and asks nothing of callers. Rebuilt: 1c's directories
+(348 + 31 modules) and `Spec/go_etcd_io/etcd/api/v3/etcdserverpb` (85 modules) pass.

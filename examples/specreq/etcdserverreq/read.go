@@ -17,7 +17,8 @@ import (
 // handler (server.go:688).
 // Assumes: the put's reply was received before the call.
 // Specs: EtcdServer.Put.spec, Read.LinearizableReadNotify.spec (through EtcdServer's
-// LinearizableReadNotify, 2e's interface.go); 2d's srvApplied, histAt; 3e's Rev.
+// LinearizableReadNotify, 2e's interface.go: depends on 2e's spec of it, not yet written); 2d's
+// srvApplied, histAt; 3e's Rev (a law relating it to srvApplied/histAt, not yet written).
 func ReqReadAfterWrite(ctx context.Context, s *etcdserver.EtcdServer, k, v []byte) {
 	presp, err := s.Put(ctx, &pb.PutRequest{Key: k, Value: v})
 	if err != nil {
@@ -36,7 +37,10 @@ func ReqReadAfterWrite(ctx context.Context, s *etcdserver.EtcdServer, k, v []byt
 // end): no definite answer is invented.
 // Users: v3_server.go:141 (Range returns it as is; the handler maps it: ErrStopped, ErrLeaderChanged,
 // ErrTimeout to their rpctypes errors, the context's errors to grpc's codes).
-// Specs: Read.LinearizableReadNotify.spec (readErr), EtcdServer.readErr_indef.
+// Specs: Read.LinearizableReadNotify.spec (readErr, transparent: the server's sentinels srvErrVal
+// .stopped, .leaderChanged, .timeout, raft's raftStoppedErr, or a context's error),
+// EtcdServer.readErr_indef; laws: srvErrVal_leaf (errors.Is is equality on the sentinels), the
+// packages' initialization laws (srverrors' and raft's globals hold those values: req/).
 func ReqReadErrIndef(ctx context.Context, s *etcdserver.EtcdServer) {
 	err := s.LinearizableReadNotify(ctx)
 	if err == nil {

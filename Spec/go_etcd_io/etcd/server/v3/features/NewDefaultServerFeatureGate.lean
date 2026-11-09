@@ -2,7 +2,7 @@
 ## `NewDefaultServerFeatureGate(name, lg)` (`etcd_features.go`): trusted (names only)
 
 **Users.** `examples/lib/etcdstart`'s `newServerMode` (`ServerFeatureGate:`), etcd's `embed`
-configuration. Snippet: `etcdserverboot/config.go`.
+configuration. Snippet: `etcdserverboot/boot.go` (`memberConfig`).
 
 **Why it is true of Go.** `featuregate.New(name, lg)` (a `*featureGate`), then
 `Add(DefaultEtcdServerFeatureGates)` (panics only on a feature registered twice with different

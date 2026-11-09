@@ -155,3 +155,39 @@ The gRPC boundary (`Spec/google_golang_org/grpc/Api.lean`) and protobuf's
   `Grpc.genCli_send`/`_recv`/`_closeSend`/`_context` and `genSrv_*` then reduce them to the stream
   laws.
 - `Proto.mergeDst` of a `RangeResponse` for W0's merge path (see `req/google_golang_org_protobuf_proto.md`).
+
+## from 3b
+
+1. **Stringers** (`Txn.stringerOk s`, provisional in txn's `Api.lean`): a request message as a
+   `fmt.Stringer` (`*pb.RangeRequest`'s `String()`: `v3_server.go:126`), `pb.NewLoggableTxnRequest(r)`
+   (a spec over `txnReqOwn r dq t`, returning a stringer), and `*pb.InternalRaftStringer` of a
+   request (3a's `dispatch`): their `String()` returns. Used by: the `WarnOf*` specs.
+2. **Sizes**: the relation laws give `proto.Size`'s premise (`msgAt`, depth below `depthMax`) for a
+   range reply (`rangeRespOwn`), a read-only transaction's reply (`txnRespOwn` whose responses are
+   ranges, and the partly filled `Txn.roTxnResp`), within the depth bound. Used by:
+   `WarnOfExpensiveReadOnlyRangeRequest.spec`, `WarnOfExpensiveReadOnlyTxnRequest.spec`.
+3. **Getters** txn's code calls: `RequestOp.GetRequestRange` (`IsTxnReadonly`, `IsTxnSerializable`),
+   `ResponseOp.GetResponseRange`, `RangeResponse.GetKvs` (the warning). And `proto.Size` of a
+   `PutRequest` (`Put`'s trace field, `executeTxn`'s): `putReqOwn`'s content, depth 2.
+
+
+## from 3a
+
+1. **`Apply.irrDecodes bs ir`** (3a's provisional): the bytes of a committed normal entry decode to
+   an `InternalRaftRequest` with exactly `ir`'s fields (`Apply.Irr`: `ID`, `Header`'s id, user and
+   auth revision, the one request field: W0's request, the hashed user changes, the authentication,
+   the alarm, the checkpoint, the membership requests); functional (`irrDecodes_fun`); false for bytes
+   protobuf refuses (too deep: `IrrBody.depthOk`) and for a message with no known field.
+2. **`Apply.irrMsgAt p ir`**, **`Apply.reqMsgAt p op`** (read-only messages) with the getters the
+   apply's code uses (`r.Put`, `r.Header.Username`, ...): field reads.
+Used by: `Apply.spec`, `noSideEffect.spec`, `needAdminPermission.spec`, the layer specs.
+
+## from 2c (round 1)
+
+Your `IrrBody` (moved from 2c) and 2c's (still in `ApiReq.lean`) must become one at integration;
+2c's round 1 changed it: `authToken (name pw : GoString) (rev : Nat)` (fires `Authenticate`'s
+one-shot update; 3a's `opBody` already uses this form), `IrrBody.wf` in place of `depthOk` (with the
+gRPC layer's validation: a put's `invalid = none`, a delete's key, a transaction's `txnChecked` and
+depth, a compaction's `rev ≠ 0`), and `irrOwn p dq ir` (the inner request message at fraction `dq`;
+any header): `raftRequest` gives it back, so 3h's laws should wrap a request message into one
+(`&pb.InternalRaftRequest{Put: r}` from `putReqOwn r dq pr`, ...) and take it back out.

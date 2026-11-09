@@ -39,7 +39,7 @@ def applierV3backend.Authenticate.spec : Prop :=
       applierAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend.ty) #p) [Layer.backend] p aa ∗
       beAt p mc γ γc R ∗
       stAt p σ ∗
-      reqMsgAt rq op ∗ ⌜(∃ n t, op = .authenticate n t) ∧ op.ok⌝ ∗
+      reqMsgAt rq op ∗ ⌜(∃ n pw t, op = .authenticate n pw t) ∧ op.ok⌝ ∗
       R ∗
       threadTok }}
     (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend.ty @!! go!"Authenticate")) (Val #rq))

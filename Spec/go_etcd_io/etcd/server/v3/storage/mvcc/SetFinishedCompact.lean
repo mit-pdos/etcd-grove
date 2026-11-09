@@ -1,0 +1,44 @@
+/-
+`SetFinishedCompact(tx, value)` (`store.go:50`). Internal; no caller in the pinned etcd but mvcc's
+tests (kept: an old spec). As `SetScheduledCompact`, of the finished key.
+
+**Changes** from `specs-ref`'s file: over the storage contract.
+-/
+module
+
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.InternalStore
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace Mvcc
+
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
+
+section spec
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+
+/-- `SetFinishedCompact(tx, value)`: the hook, then the finished key written and made visible. -/
+def SetFinishedCompact.spec : Prop :=
+  ∀ (B : MvccStorage) (Pk : IProp GF) (dq : DFrac) (f : GoFunc) (Pre Q' Post R : IProp GF)
+    (value : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ schemaVars ∗
+      keyBackend B Pk ∗ storageHook B dq f ∗ Pre ∗ hookRun Pk f Pre Q' ∗ (Q' ={⊤}=∗ Pk ∗ Post) ∗
+      kbObs B (fun D => iprop(⌜D.metaMade = true⌝ ∗
+        AU <{ ∃∃ (D0 : KeyData), kbData B D0 }> @ ⊤, ∅
+          <{ kbData B (D.putMeta .fin (revBytes ⟨value, W64 0⟩ false)), COMM R }>)) }}
+    (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.SetFinishedCompact))
+      (Val #(GoInterface.ok (kbBatchTx B)))) (Val #value))
+  {{ RET #(); storageHook B dq f ∗ Post ∗ R }}
+
+end spec
+end Mvcc
+end EtcdGrove
+end Perennial

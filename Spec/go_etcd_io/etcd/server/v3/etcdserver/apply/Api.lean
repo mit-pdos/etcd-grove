@@ -185,8 +185,9 @@ inductive IrrOp where
   | userAdd (name : GoString) (hash : Bytes) (noPassword : Bool)
   /-- `AuthUserChangePassword` with the hash -/
   | userChangePassword (name : GoString) (hash : Bytes)
-  /-- `Authenticate` (`InternalAuthenticateRequest`): a token for `name`, its simple-token prefix -/
-  | authenticate (name : GoString) (simpleToken : GoString)
+  /-- `Authenticate` (`InternalAuthenticateRequest`): a token for `name` (the password the request
+  path checked, unused by the apply), its simple-token prefix -/
+  | authenticate (name password : GoString) (simpleToken : GoString)
   /-- `Alarm`: the action, the member, the raw `AlarmType` -/
   | alarm (act : AlarmAct) (memberId : Nat) (at' : w32)
   /-- `LeaseCheckpoint`: each lease's remaining TTL -/
@@ -763,7 +764,7 @@ def opStep_step.spec : Prop :=
 /-- A token assignment changes nothing: the token, or `ErrAuthNotEnabled`, `ErrAuthFailed` (no such
 user, or one without a password). -/
 def opStep_authenticate.spec : Prop :=
-  ∀ mc σ name tok σ' res, opStep mc σ (.authenticate name tok) σ' res →
+  ∀ mc σ name pw tok σ' res, opStep mc σ (.authenticate name pw tok) σ' res →
     σ' = σ ∧ (σ.auth.enabled = false ∧ res = .err .authNotEnabled ∨
       σ.auth.enabled = true ∧ (∀ ur, σ.auth.users name = some ur → ur.password = none) ∧
         res = .err .authFailed ∨
@@ -815,14 +816,15 @@ def irrStep_step.spec : Prop :=
 /-- **An alarm activation or a member's publication is an environment step, or nothing.** -/
 def irrStep_env.spec : Prop :=
   ∀ (cfg : EnvCfg) mc σ (ir : Irr) σ' res,
-    ((∃ m at', ir.op = .alarm .activate m at') ∨ (∃ id n u, ir.op = .memberAttrSet id n u)) →
+    ((∃ m at', ir.op = .alarm .activate m at' ∧ m < 2 ^ 64) ∨
+     (∃ id n u, ir.op = .memberAttrSet id n u)) →
     irrStep mc σ ir true σ' res → σ' = σ ∨ EnvStep cfg σ σ'
 
 /-- **The requests invisible to the model change nothing**: a checkpoint, a token, a cluster
 version, the downgrade info, the test request. -/
 def irrStep_quiet.spec : Prop :=
   ∀ mc σ (ir : Irr) v3 σ' res,
-    ((∃ c, ir.op = .leaseCheckpoint c) ∨ (∃ n t, ir.op = .authenticate n t) ∨
+    ((∃ c, ir.op = .leaseCheckpoint c) ∨ (∃ n pw t, ir.op = .authenticate n pw t) ∨
      (∃ v, ir.op = .clusterVersionSet v) ∨ (∃ b v, ir.op = .downgradeInfoSet b v) ∨
      ir.op = .downgradeVersionTest) →
     irrStep mc σ ir v3 σ' res → σ' = σ

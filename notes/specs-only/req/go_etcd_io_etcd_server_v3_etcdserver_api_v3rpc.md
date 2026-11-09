@@ -191,3 +191,47 @@ resend; K4's stale auth revision), or a `srvIndef` error. What 2c needs of 2a:
    `v3client.New(s)`): their specs take `isClient c γ who`, `ctxPrin ctx who`, 1d's `etcdPerm γ T`
    and a `threadTok` per call (the session's keep-alive goroutine); the registration must supply them
    from the request's metadata.
+
+## from 3b
+
+**The checks give txn's premise**: `txnCheck n t = none → intervalsOk t.success → intervalsOk
+t.failure → Txn.txnSafe t` (txn's `Api.lean`: no empty operation, a known sort target, and no put with
+an ignore flag after a delete that may cover its key, at any depth, both branches; `checkRequestOp`
+refuses the first two, `checkIntervals` with the fork's fix of
+`issues/etcd-txn-delete-then-ignore-put.md` the third). 2c's provisional `txnChecked t` should give it
+too. Used by: `Txn.spec` (its callers: 2c's `EtcdServer.Txn`, 3a's apply).
+
+## from 2c (round 1)
+
+2c's API changed (round 1; your files using it no longer build until updated):
+`reqPrin ctx p tls` (`p` the principal with auth enabled, the token's user else the certificate's
+name; `tls` the certificate's name, used with auth disabled), `SrvCallTriple e P B γ p tls rq rep
+reply` (the caller's `authLb γ lo`, the update over `srvStep p tls rq σ σ' res lo`), `rsSink rs γ p tls
+r ms` (no `Q`, no `fin`), every error with `srvErrShape err` (`errors/Api.lean`: your `togRPCError`'s
+precondition, as you asked: "from 2a" item 3).
+
+1. **`reqPrin_of_md`** in your module (it imports `ApiReq.lean`): from `Grpc.rpcCtx ctx md` and
+   `mdPrin γ md who` (and the connection's certificate), `EtcdServer.reqPrin ctx who tls` with
+   `tls` the certificate's name under `--client-cert-auth` (none otherwise); 2b's `srvCtxPrin` the
+   same fact (one predicate at integration). `reqPrin_child`/`reqPrin_value` keep it for the
+   in-process client's derived contexts.
+2. **`srvStep p tls` vs W0's `Step p`**: equal for reads; a write may be stepped as `tls`
+   (`nonissues/etcd-write-tls-principal-auth-enable.md`). Equal to `Step p` when `tls = p`, or
+   `tls = none` (a principal-less write is refused with auth on): W0's `ctxPrin` premise
+   (`req/go_etcd_io_etcd_api_v3.md`, "from 2c" round 1).
+3. **`rsSink`'s laws** (yours, as you planned `rsSink_intro`/`rsSink_out`): a send appends a chunk
+   (any page; no `Q`); the stream's `Q` comes with `RangeStream`'s `nil` return (`streamMatches` of all
+   chunks): the code sends the last chunk before it knows the permission held
+   (`nonissues/etcd-rangestream-auth-revoked-midstream.md`), so `Q` must reach the client with the
+   end of the stream (status OK), not with the last chunk; `RangeStream` may also end with
+   `ErrAuthOldRevision` after every chunk, or `ErrCompacted` with **no** chunk
+   (`nonissues/etcd-rangestream-count-compacted.md`): `rsSink_out` must admit both.
+4. **Premises you establish**: `Put`'s `pr.invalid = none` (`checkPutRequest`), `DeleteRange`'s
+   `d.key ≠ []` (`checkDeleteRequest`), `Range`'s `validSort ∧ (key = [] → rangeEnd = [])`,
+   `RangeStream`'s `key ≠ [] ∧ validSort ∧ rangeStreamOk` (`checkRangeStreamRequest`), `Compact`'s
+   `rev ≠ 0` (**your contract of `/etcdserverpb.KV/Compact` must carry it** for raw gRPC clients, as
+   W0's client contract does: completeness F6).
+5. **Errors**: `srvErrOf` never names a context's own error (`srvErrOf_notCtx`); a mapped error is a
+   leaf sentinel (`srvErrVal_leaf`, `srvErrOf_inj`), so `errors.Is(err, lease.ErrLeaseNotFound)` is
+   decided by `srvErrOf err .leaseNotFound` once `lease`'s initialization law gives the global's
+   value (3c); an unmapped one has a message and wraps no sentinel (`srvErrNotMapped`).

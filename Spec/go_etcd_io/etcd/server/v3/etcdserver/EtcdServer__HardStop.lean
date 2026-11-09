@@ -3,7 +3,8 @@
 
 **Users.** `examples/etcd/restart`'s `stop` (then the member's peer listener closed, and the
 member started again on its directory); `Stop`; etcd's tests. Snippets: `etcdserverboot/boot.go`
-(`ReqRestart`), `stop.go` (`ReqStopAfterError`: `run` already returned on a transport error).
+(`ReqRestart`, `ReqStopAfterError`: `run` already returned on a transport error; `ReqStopDrained`:
+a request racing the stop, the gate).
 
 **Proof sketch.** `srvRunning` holds the right to send on `s.stop` (unbuffered: `run`'s loop
 receives it) and the escrow of `s.done`. The `select`: either the send succeeds (`run` returns, its

@@ -45,14 +45,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 /-- A range of the transaction's view (`MTxn.readHist`) at `curRev`, its current revision. -/
 def storeTxnCommon.rangeKeys.spec : Prop :=
   ∀ (c : Loc) (γ : MvccName) (trace : Loc) (k : MTxn) (ctx : GoInterface) (key endk : GoSlice)
-    (kk e : Bytes) (curRev : w64) (ro : RangeOptions),
+    (kk e : Bytes) (dk de : DFrac) (curRev : w64) (ro : RangeOptions),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       txnCommon c γ trace k ∗ ⌜curRev = W64 k.readHist.rev⌝ ∗ traceOwn trace ∗ Context.ctxOk ctx ∗
-      key ↦*□ kk ∗ endk ↦*□ e }}
+      key ↦*{dk} kk ∗ endk ↦*{de} e }}
     (App (App (App (App (App (Val (c @!! go.GoType.PointerType storeTxnCommon.ty @!! go!"rangeKeys"))
       (Val #ctx)) (Val #key)) (Val #endk)) (Val #curRev)) (Val #ro))
   {{ (r : Loc) (err : GoInterface), RET (PairV #r #err);
-      txnCommon c γ trace k ∗ traceOwn trace ∗
+      txnCommon c γ trace k ∗ traceOwn trace ∗ key ↦*{dk} kk ∗ endk ↦*{de} e ∗
       ∃ out : RangeOut, ⌜rangeOut k.readHist k.state.crev (mrange kk endk e) ro out⌝ ∗
         rangeResOwn ctx r err out }}
 

@@ -19,10 +19,12 @@ import (
 )
 
 // memberConfig is the configuration this repository's starters build (examples/lib/etcdstart's
-// newServerMode): every field a premise of NewServer.spec reads is set to a value inside its slot
-// (TickMs > 0 and ElectionTicks > 1: raftNodeBootCfg; MaxTxnOps <= 4999 and MaxRequestBytes below
-// the reply bound: v3rpcBootCfg; the compactor off, or on with the environment's permission:
-// V3compactor.bootCfg).
+// newServerMode): every field a premise of NewServer.spec reads is set inside its slot, by the
+// slots' introduction laws (ApiBoot.lean): raftNodeBootCfg_intro (ElectionTicks > 1, a
+// non-negative heartbeat), v3rpcBootCfg_intro (MaxTxnOps <= 4999, MaxRequestBytes <= 10 MiB),
+// mvccBootCfg_intro (CompactionBatchLimit 0), backendBootRes_intro (the default quota; ETCD_VERIFY
+// unset: backendEnvOk), authBootRes_intro (AuthToken "simple": set below), leaseBootRes_intro (leases
+// may expire), V3compactor.bootCfg_off (retention 0); Config.cfgHeap_intro (the URL literals).
 func memberConfig(name string, peer types.URLs, client string, cluster types.URLsMap, token string,
 	newCluster bool, lg *zap.Logger) config.ServerConfig {
 	return config.ServerConfig{
@@ -41,6 +43,7 @@ func memberConfig(name string, peer types.URLs, client string, cluster types.URL
 		MaxRequestBytes:         1536 * 1024,
 		AutoCompactionMode:      "revision",
 		AutoCompactionRetention: 0,
+		AuthToken:               "simple",
 		Logger:                  lg,
 		ServerFeatureGate:       features.NewDefaultServerFeatureGate(name, lg),
 	}
@@ -63,9 +66,11 @@ func get(s *etcdserver.EtcdServer, k string) (*pb.RangeResponse, error) {
 // member id of the cluster it was allocated in (MemberID is its id, never 0).
 // Users: examples/lib/etcdstart.StartServer (putget, txnlin, watch, lease, auth, compacted, ...),
 // embed.StartEtcd.
-// Assumes: the program allocated the cluster (cluster_alloc) with the member computed from this
-// configuration (Membership.initialMembers), and holds the fresh data directory name+".etcd".
-// Specs: NewServer.spec (memberStart_new), EtcdServer.Start.spec, EtcdServer.MemberID.spec.
+// Assumes: the program allocated the cluster (cluster_alloc: the member computed from this
+// configuration, Membership.initialMembers; peerAddr's address reserved) and holds the fresh data
+// directory name+".etcd"; a thread token for Start.
+// Specs: NewServer.spec (memberStart_new; its post's 0 < id < 2^64, srvMember_id),
+// EtcdServer.Start.spec, EtcdServer.MemberID.spec.
 func ReqStartOne(name, peerAddr, clientAddr string, lg *zap.Logger) *etcdserver.EtcdServer {
 	peer := types.URLs{{Scheme: "http", Host: peerAddr}}
 	s, err := etcdserver.NewServer(memberConfig(name, peer, clientAddr, types.URLsMap{name: peer},
@@ -87,7 +92,8 @@ func ReqStartOne(name, peerAddr, clientAddr string, lg *zap.Logger) *etcdserver.
 // examples/etcd/putget3, examples/etcd/partition.
 // Assumes: cluster_alloc of the three members; each name+".etcd" fresh; the peer handlers served
 // by the caller (raftHandler, http.Serve: 2f's).
-// Specs: NewServer.spec, EtcdServer.RaftHandler.spec, EtcdServer.Start.spec.
+// Specs: NewServer.spec, EtcdServer.RaftHandler.spec, EtcdServer.Start.spec; laws:
+// srvBuilt_excl (two servers of one member id cannot be built), srvMember_agree.
 func ReqStartThree(names [3]string, peers [3]types.URLs, clients [3]string, token string,
 	lg *zap.Logger) []*etcdserver.EtcdServer {
 	cluster := types.URLsMap{names[0]: peers[0], names[1]: peers[1], names[2]: peers[2]}
@@ -120,9 +126,10 @@ func ReqStartThree(names [3]string, peers [3]types.URLs, clients [3]string, toke
 // Users: examples/etcd/restart (restart3: a follower stopped, writes made while it is down, the
 // member started again, a Get through it checked), etcd's own restarts (embed: same data dir).
 // Assumes: the member was started by ReqStartOne's path (its start right); no other writer of k;
-// the configuration of the restart is the first one's (only its directories matter).
-// Specs: EtcdServer.HardStop.spec (memberDisk), memberStart_restart, NewServer.spec, Start, and the
-// request path's Put/Range (2c).
+// the configuration of the restart is the first one's (only its directories matter); no request
+// is in flight at the stop (this goroutine made them all, and they returned: the gate, srvGate).
+// Specs: EtcdServer.HardStop.spec (memberDisk; the whole srvGate), memberStart_restart,
+// NewServer.spec, Start, and the request path's Put/Range (2c, each holding a share of srvGate).
 func ReqRestart(name, peerAddr, clientAddr string, lg *zap.Logger) {
 	s := ReqStartOne(name, peerAddr, clientAddr, lg)
 	if s == nil {
@@ -156,9 +163,14 @@ func ReqRestart(name, peerAddr, clientAddr string, lg *zap.Logger) {
 // the cluster has for those URLs.
 // Users: etcd's documented runtime reconfiguration (etcdctl member add; then a start with
 // --initial-cluster-state existing); the integration framework's AddMember.
-// Assumes: the program took memberJoin for peer2 (memberUrls_take) and holds name2+".etcd" fresh;
-// s1 serves the cluster (and its peer handler is reachable at peer1).
-// Specs: EtcdServer.AddMember (2c), memberStart_join, NewServer.spec, Start.
+// Assumes: the program reserved peer2's addresses (urls_reserve: urlsRight, which AddMember takes,
+// and memberJoin, which the start takes) and holds name2+".etcd" fresh. With this repository's
+// starters, s1's peer address serves only the raft handler, which answers bootstrap's GET /members
+// with 404: NewServer then returns an error (the trusted bootstrap's join case; etcd's own peer
+// handler, etcdhttp.NewPeerHandler, has no spec yet: batch-2e.md Q8), so the panic below is checked
+// only on a deployment serving that handler.
+// Specs: EtcdServer.AddMember.spec, membership.NewMember.spec, memberStart_join, NewServer.spec,
+// Start; laws: srvBuilt_excl.
 func ReqJoin(s1 *etcdserver.EtcdServer, name1 string, peer1 types.URLs, name2 string,
 	peer2 types.URLs, client2 string, token string, lg *zap.Logger) {
 	now := time.Now()
@@ -184,7 +196,8 @@ func ReqJoin(s1 *etcdserver.EtcdServer, name1 string, peer1 types.URLs, name2 st
 // time after the build, never panics.
 // Users: examples/lib/cluster3.PeerStep (as etcd's integration tests' InjectPartition).
 // Assumes: s and t are members of one cluster.
-// Specs: EtcdServer.CutPeer.spec, EtcdServer.MendPeer.spec, EtcdServer.MemberID.spec.
+// Specs: EtcdServer.CutPeer.spec, EtcdServer.MendPeer.spec (each with a thread token, given
+// back), EtcdServer.MemberID.spec; law: srvMember_agree (s and t are distinct members).
 func ReqPartition(s, t *etcdserver.EtcdServer) {
 	s.CutPeer(t.MemberID())
 	t.CutPeer(s.MemberID())
@@ -196,7 +209,8 @@ func ReqPartition(s, t *etcdserver.EtcdServer) {
 // (a transport error ends run: errorc), and the directory can then be restarted.
 // Users: embed.Etcd.Close after a server error; examples/etcd/restart's stop.
 // Assumes: s was started (srvRunning).
-// Specs: EtcdServer.HardStop.spec (the done channel's deposit).
+// Specs: EtcdServer.StopNotify.spec (doneCh: a receive gives nothing), EtcdServer.HardStop.spec
+// (the done channel's deposit).
 func ReqStopAfterError(s *etcdserver.EtcdServer) {
 	<-s.StopNotify() // run returned on its own (or never: then the caller does not get here)
 	s.HardStop()
@@ -209,4 +223,23 @@ func ReqStopAfterError(s *etcdserver.EtcdServer) {
 // Specs: EtcdServer.Cleanup.spec, srvBuilt_closers.
 func ReqCleanupBeforeStart(s *etcdserver.EtcdServer) {
 	s.Cleanup()
+}
+
+// REQ etcdserverboot/stop-drained: a request in flight when the member is stopped is answered before
+// the stop (here, the program waits for it), never one reading a closed backend: HardStop takes the
+// whole gate (srvGate s 1), which every request-path call holds a share of.
+// Users: embed.Etcd.Close (it stops the gRPC servers gracefully first; its forced fallback,
+// grpc.Stop, does not drain: issues/etcd-read-after-backend-close-panic.md), examples/etcd/restart
+// (the stopped member serves no gRPC).
+// Assumes: s was started by this program and serves no gRPC server of its own.
+// Specs: srvGate_fractional, the request path's Range (2c: a share held per call),
+// EtcdServer.HardStop.spec.
+func ReqStopDrained(s *etcdserver.EtcdServer) {
+	done := make(chan struct{})
+	go func() {
+		_, _ = get(s, "k") // a share of the gate for the call
+		close(done)
+	}()
+	<-done // the share back: no request in flight
+	s.HardStop()
 }

@@ -17,6 +17,7 @@ one's with the watchable store's invariant (`watchableAt`) for `End`'s notificat
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiWatch
+public import Spec.go_uber_org.zap.Api
 
 @[expose] public section
 

@@ -176,11 +176,11 @@ opaque intervalsOk : List RequestOp → Prop
 
 /-- **The checks' guarantee** to the request path: a transaction both checks accept at a budget of
 at most `maxTxnOpsMax` is one the apply reads sequentially (2c's `txnChecked`) and nests within
-protobuf's decoding limit (`IrrBody.depthOk`: each level of `checkTxnRequest` costs at least one
+protobuf's decoding limit (2c's `IrrBody.wf`: each level of `checkTxnRequest` costs at least one
 operation of the budget, `notes/irr-depth.md`'s `txnCheck_msgDepth`). A law 2a proves. -/
 def txnCheck_checked.spec : Prop := ∀ (n : Int) (t : TxnReq),
   n ≤ maxTxnOpsMax → txnCheck n t = none → intervalsOk t.success → intervalsOk t.failure →
-  txnChecked t ∧ (IrrBody.req (.txn t)).depthOk
+  txnChecked t ∧ txnMsgDepth t + 1 ≤ 10000
 
 section res
 variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
@@ -367,19 +367,6 @@ def srvErrOk (err : GoInterface) : IProp GF :=
     ((context.isCtxErr err -∗ False) ∗ (∀ c m, statusErr err c m -∗ False) ∗ ⌜cmpErr err⌝ ∗
       ∃ m, errMsg err m ∗ ((∃ e, ⌜srvErrOf err e⌝) ∨ ⌜(∀ e, ¬ srvErrOf err e) ∧ indefMsg m⌝)))
 
-/-- **grpc's health handlers meet their contracts** (assumed, grpc's own code: `Check`, `List`
-answer from the health server's map; `Watch` sends statuses; nothing modelled), under any chain of
-interceptors that preserve etcd's contracts. -/
-def healthRegs_ok.spec : Prop := ∀ (γ : Cluster) (ep : GoString) (B : SrvCfg) (hs : Loc),
-  healthAt hs ∗ ([∗list] i ∈ B.ics, icEtcdOk i γ) ∗ ([∗list] i ∈ B.sics, sicEtcdOk i γ) ∗
-    regsOk B (etcdContract γ ep) ⊢
-  regsOk { B with
-    regs := B.regs ++ healthMethods.map (fun h => (h.1, h.2,
-      interface.mkOk (go.GoType.PointerType google_golang_org.grpc.health.Server.ty) #hs)),
-    sregs := B.sregs ++ healthStreams.map (fun h => (h.1, h.2,
-      interface.mkOk (go.GoType.PointerType google_golang_org.grpc.health.Server.ty) #hs)) }
-    (etcdContract γ ep)
-
 /-- **Slot (2e)**: a `storage.Quota` value (its `Available(r)` returns a boolean, no panic). -/
 opaque quotaOk (q : GoInterface) : IProp GF := iprop(True)
 
@@ -414,26 +401,35 @@ opaque sicEtcdOk (i : GoFunc) (γ : Cluster) : IProp GF := iprop(True)
 /-- A `*headerFillingRangeStream` at `w` over the stream `rs` with the header at `hp` (read-only). -/
 opaque hfAt (w : Loc) (rs : GoInterface) (hp : Loc) (s : Loc) (γ : Cluster) : IProp GF := iprop(True)
 
-/-- **2c's send end of a streamed range, realized** (2c's `rsSink`, `ApiReq.lean`): the wrapper `w`
-(a `*headerFillingRangeStream` over the run's stream, `hfAt`) with the send half of the stream `g`
-whose request is `r` of `who` with `Q` (`rsReq`) is the sink with nothing sent. -/
+/-- **A sink of the stream `g`** (persistent; `rsSink_intro`'s): which stream the sink sends on. -/
+opaque rsSinkOf (w : GoInterface) (g : StreamName) : IProp GF := iprop(True)
+
+/-- **2c's send end of a streamed range, realized** (2c's `rsSink rs γ p tls r ms`, `ApiReq.lean`):
+the wrapper `w` (a `*headerFillingRangeStream` over the run's stream, `hfAt`) with the send half of
+the stream `g` whose request is `r` of `who` (`rsReq`) is a sink with nothing sent, for the
+connection's TLS principal. Its send law (2c's request): a chunk sent is recorded
+(`rsChunk g j m`). -/
 def rsSink_intro.spec : Prop := ∀ (w : Loc) (rs : GoInterface) (hp : Loc) (s : Loc) (γ : Cluster)
     (g : StreamName) (md : MD) (who : Principal) (r : RangeReq) (Q : State → State → Resp → IProp GF),
   hfAt w rs hp s γ ∗ srvSend rs g (rangeStreamSpec γ) md 0 ∗ rsReq g who r Q ⊢
+    ∃ tls : Principal,
     rsSink (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.headerFillingRangeStream.ty) #w)
-      γ who r Q [] false
+      γ who tls r [] ∗
+    rsSinkOf (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.headerFillingRangeStream.ty) #w) g
 
-/-- **The sink's end**: a sink after the last chunk (`fin`), or one the request path stopped
-sending to with an error, gives the run's `streamOut` for what the handler returns (the end's facts
-are about the chunks sent, which the sink recorded). -/
-def rsSink_out.spec : Prop := ∀ (w : GoInterface) (γ : Cluster) (who : Principal) (r : RangeReq)
-    (Q : State → State → Resp → IProp GF) (ms : List RangeRespM) (fin : Bool) (err : GoInterface)
+/-- **The sink's end** (what the handler returns, with what 2c's `RangeStream` gives at its
+return: the update's `Q` and `streamMatches` of the chunks sent for `nil`; for an error, a
+linearized error, `ErrCompacted`, or one that settles nothing) is the run's `streamOut`. -/
+def rsSink_out.spec : Prop := ∀ (w : GoInterface) (γ : Cluster) (who tls : Principal) (r : RangeReq)
+    (Q : State → State → Resp → IProp GF) (ms : List RangeRespM) (err : GoInterface)
     (rs : GoInterface) (g : StreamName) (md : MD),
-  rsSink (GF := GF) w γ who r Q ms fin ∗ rsReq g who r Q ∗
-    (if fin then ⌜err = GoInterface.nil⌝
-     else ∃ code msg, sentStatus err code msg ∗
+  rsSink (GF := GF) w γ who tls r ms ∗ rsSinkOf w g ∗ rsReq g who r Q ∗
+    (if decide (err = GoInterface.nil) then
+       iprop(∃ (σ σ' : State) (rev : Nat) (a : RangeAns), Q σ σ' (.ok (.range rev a)) ∗
+         ⌜streamMatches r ms rev a⌝)
+     else iprop(∃ code msg, sentStatus err code msg ∗
        ((∃ σ σ' e, Q σ σ' (.err e) ∗ ⌜msg = Rpctypes.desc e⌝) ∨ ⌜msg = Rpctypes.desc .compacted⌝ ∨
-        ⌜indefMsg msg⌝)) ⊢
+        ⌜indefMsg msg⌝))) ⊢
   streamOut rs g (rangeStreamSpec γ) md err
 
 /-- A streamed range's parameters, fixed by the client with the stream's key. -/
@@ -480,6 +476,19 @@ def metricsOk_stream.spec : Prop := ∀ (m : Loc) (γ : Cluster),
       @!! go!"StreamServerInterceptor")) (Val #()))
   {{ (i : GoFunc), RET #i; sicEtcdOk i γ }}
 
+/-- **grpc's health handlers meet their contracts** (assumed, grpc's own code: `Check`, `List`
+answer from the health server's map; `Watch` sends statuses; nothing modelled), under any chain of
+interceptors that preserve etcd's contracts. -/
+def healthRegs_ok.spec : Prop := ∀ (γ : Cluster) (ep : GoString) (B : SrvCfg) (hs : Loc),
+  healthAt (GF := GF) hs ∗ ([∗list] i ∈ B.ics, icEtcdOk (GF := GF) (sem := sem) i γ) ∗ ([∗list] i ∈ B.sics, sicEtcdOk i γ) ∗
+    regsOk B (etcdContract γ ep) ⊢
+  regsOk { B with
+    regs := B.regs ++ healthMethods.map (fun h => (h.1, h.2,
+      interface.mkOk (go.GoType.PointerType google_golang_org.grpc.health.Server.ty) #hs)),
+    sregs := B.sregs ++ healthStreams.map (fun h => (h.1, h.2,
+      interface.mkOk (go.GoType.PointerType google_golang_org.grpc.health.Server.ty) #hs)) }
+    (etcdContract γ ep)
+
 /-- **`InitializeMetrics(gs)`** (grpc-prometheus, assumed: it reads `gs.GetServiceInfo()` and zeroes
 its counters): the server being built is unchanged. -/
 def metricsOk_init.spec : Prop := ∀ (m gs : Loc) (B : SrvCfg),
@@ -508,7 +517,8 @@ def handles_persistent.spec : Prop :=
   (∀ q, Persistent (quotaOk (GF := GF) q)) ∧
   (∀ γ md who, Persistent (mdPrin (GF := GF) γ md who)) ∧
   (∀ g j m, Persistent (rsChunk (GF := GF) g j m)) ∧
-  (∀ g who r Q, Persistent (rsReq (GF := GF) g who r Q))
+  (∀ g who r Q, Persistent (rsReq (GF := GF) g who r Q)) ∧
+  (∀ w g, Persistent (rsSinkOf (GF := GF) w g))
 
 /-! ### The shape of a unary handler's spec -/
 

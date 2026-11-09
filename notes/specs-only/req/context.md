@@ -48,3 +48,10 @@ post's context arm `Context.ctxDone ctx ∗ isCtxErr err`, `nodeErr`).
    request above is the same need).
    (Update, after W0's round 1: `Context.WithCancel.spec`, `ctxChild`, `cancelOk`, `Done.spec`,
    `doneRecv.spec` cover items 1 and 2; 1b's sketches cite them.)
+
+## from 3b
+
+**`TODO()` and `Background()` are never done**: their result `ctx` has `Context.ctxDone ctx ⊢ False`
+(their `Done()` is `nil`). The apply thread passes `context.TODO()` to `txn.Txn`, whose writing
+transactions panic on a context error (`txn.go:91`): `Txn.spec` takes `Context.ctxDone ctx -∗ False`
+for a write. Used by: `Txn.spec`, `txn.spec` (3a's `applierV3backend.Txn`).

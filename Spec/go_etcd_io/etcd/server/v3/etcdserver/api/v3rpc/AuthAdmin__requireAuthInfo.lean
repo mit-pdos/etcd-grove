@@ -32,8 +32,8 @@ variable [sem : go.Semantics]
 /-- `aa.requireAuthInfo(ctx)`: `nil` (auth is off or the request names a user, at the member's auth state), or a server error of one of
 [.userEmpty, .invalidAuthToken]. -/
 def AuthAdmin.requireAuthInfo.spec : Prop :=
-  ∀ (aa s : Loc) (γ : Cluster) (ctx : GoInterface) (who : Principal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ authAdminAt aa s γ ∗ Context.ctxOk ctx ∗ reqPrin ctx who }}
+  ∀ (aa s : Loc) (γ : Cluster) (ctx : GoInterface) (who tls : Principal),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ authAdminAt aa s γ ∗ Context.ctxOk ctx ∗ reqPrin ctx who tls }}
     (App (Val (aa @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthAdmin.ty @!! go!"requireAuthInfo")) (Val #ctx))
   {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil ∨ ∃ e ∈ ([.userEmpty, .invalidAuthToken] : List EtcdErr), srvErrOf err e⌝ }}
 

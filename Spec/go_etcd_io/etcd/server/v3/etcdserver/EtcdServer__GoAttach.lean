@@ -2,8 +2,7 @@
 ## `(*EtcdServer).GoAttach(f)` (`server.go:2436-2453`)
 
 **Users.** `Start` (ten goroutines), `revokeExpiredLeases` (2d), `sendMergedSnap` (2d), v3rpc's
-`Snapshot` (2a). Snippet: `etcdserverboot/stop.go` (`ReqAttachAfterStop`: a goroutine attached
-after the stop is skipped).
+`Snapshot` (2a). Snippet: none of its own (`Start`'s users).
 
 **Proof sketch.** `isServer`'s realization holds `wgMu` and the wait group (a wait group backed by
 thread tokens: the bounds plan) whose `Wait` is `run`'s stop. Under the read lock: if `stopping` is

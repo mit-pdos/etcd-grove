@@ -685,3 +685,112 @@ id ttl`, `isLessor le γl c` (persistent), `lessorStop le`. What 3c gives and ne
    cmux (`github.com/soheilhy/cmux`) needs its names in the Goose configuration for its specs.
    embed's v3election/v3lock registrations need contracts in `etcdContract` (or an extended `C`)
    before embed can apply `start`.
+
+
+## from 3a
+
+The apply layer (3a, `Spec/go_etcd_io/etcd/server/v3/etcdserver/apply/{Api,ApiResult}.lean`),
+answering 2c's and 2d's items and asking for what its sketches need.
+
+**To 2d** (the replacement of `ApiApply.lean`'s provisional names):
+1. `MemberCfg` is `Apply.MemberCfg` (a structure: `minLeaseTTL`, `MemberCfg.ok`); `applyStep mc σ e σ'
+   res` is `Apply.applyStep` (same signature, transparent: an empty entry changes nothing, else the
+   decoded request's `irrStep … true`); `applyStep_fun` is `Apply.applyStep_fun.spec`; totality
+   `Apply.applyStep_total.spec` (for an entry whose request is `IrrOp.ok`: the request path's
+   validation, the depth bound in `irrDecodes`). **A member's state machine (`smAt ua σ`) is at its
+   own TTL-variant of the history** (`ttlEq`, `irrStep_ttl`): `histAt` records the proposer's answer;
+   `applyAt`'s realization should hold `smAt ua σ_m` with `ttlEq σ_m σ_k`.
+2. The uber-applier's contract: `Apply.isUber ua mc γ γc R` (persistent; `NewUberApplier.spec` gives
+   it with `smAt ua σ`), its method bundle `Apply.isUber_apply.spec` (the approved parametric shape:
+   `apply.Apply.spec` takes it as `P`/`Q`). `R` is 2d's choice, lent at each call and fixed at
+   construction: what the backend's post-lock hook (mvcc's writes, `kvOk … R`), `ConsistentIndex()`
+   (`ciOk … R`) and `ForceSnapshot()` (`snapSrvOk … R`, 2d's item 4) need, e.g. `forceSnapW s ∗` the
+   consistent index's writer at most the applying index.
+3. The membership: a `ClusterMemberAttrSet` entry needs the caller's update of 2e's `clusterSt`
+   (`Apply.memberUpd γc op Q`), fired in both modes (also at the replay); its precondition (the
+   member known: a member or removed) is the cluster's invariant (only a member publishes itself).
+4. Without `shouldApplyV3` the model state does not move (`irrStep_noV3`); the result is `nil`,
+   except an administration request refused (its error) and the membership requests (`&Result{}`).
+5. `NewUberApplier` takes the stores at the model state as slots (`optsOk`, `optsSt`): mvcc's,
+   the lessor's, the auth store's, the alarm store's (`alarmSt γa σ.alarms`: **the request path's
+   concurrent `Alarms()` reads need a split of it**, the apply thread's part in `smAt`: 2d's/2e's
+   protocol), the backend's member buckets (`beView`); `statusOk` (the server's `MemberID`, `Leader`,
+   `Term`), `snapSrvOk`, `ciOk` (2d's, provisional in 3a's `Api.lean`).
+
+**To 2c**:
+6. (2c's item 1) `Apply.resultAt γ ar ir sk res` is the result: `nil` with the placeholder answer,
+   or `applyResult γ ar b res'` for 2c's body `b` (`Apply.opBody ir.op b`; a token's checked
+   revision any) and an answer `res'` with `resMatch ir.op sk res res'`: **`res` itself, except an
+   alarm list in another order (the alarm store's map), a skipped transaction's ranges (`sk`), and
+   `ErrNoSpace` after a write the quota applier applied**. Needed: the waiter's predicate and 2c's
+   outcomes accept these (`irrReply` of an alarm list up to permutation; the `ErrNoSpace` case as
+   outcome 3, W0's item 1 in `req/go_etcd_io_etcd_api_v3.md`).
+7. (2c's item 2) The answer is a function of the state: `irrStep_fun`, `applyStep_fun`; a client
+   request's apply is `Step ir.who rq` (`irrStep_step`) for a header the request path stamps
+   (`Irr.hdrOk`: a user iff a nonzero revision) and an admitted request (`reqAdmitted`: the gRPC
+   validation, a nonzero lease id; `txnAdmitted` from 2a's `txnChecked`). The stale revision:
+   `ErrAuthOldRevision` changes nothing (`irrStep_oldRev`); it arises only for the KV and revoke
+   checks (`isOpPermitted`), **never for an administration request** (`IsAdminPermitted` checks no
+   revision: W0's `mayCall` at the current state).
+8. (2c's item 3) `CheckTxnAuth.spec`: `nil` only if each pair of the transaction's `perms` is
+   permitted at some auth state of a reached state's `authTables` (the checks are not atomic); else
+   `ErrUserEmpty`, `ErrAuthOldRevision` or `ErrPermissionDenied` (`srvErrOf`). It takes 3d's
+   `authRead ast γ` and 3c's `lessorRead le` (provisional in 3a's `Api.lean`).
+9. **`Wait.list.IsRegistered`**: a `false` answer should give a persistent fact that `id` is no
+   longer (and never again) registered, so that `apply.Apply`'s skipped transaction (`sk`) and its
+   `nil` return for an unregistered read are harmless to the waiter (2d's `Trigger` then delivers
+   nothing). Then `Apply.spec`'s post carries `⌜sk = false⌝ ∨ <that fact>`. Used by `Apply.spec`
+   (a margin today).
+   ```go
+   needResult := w.IsRegistered(id)                                     // apply.go:40
+   ```
+10. The `InternalRaftRequest` the request path proposes decodes (`Apply.irrDecodes`, 3h's) to an
+    `Irr` with `hasId` and `IrrOp.ok`; `irrOwn p ir` (2c's provisional) should be stated over
+    `Apply.Irr` (a user change carries the hash, `Authenticate` the password and the token prefix).
+
+## from 2c (round 1)
+
+2c's round-1 repairs change its API (`ApiReq.lean`, `errors/Api.lean`); **the callers in this
+directory must follow** (2e's `EtcdServer__{AddMember,RemoveMember,UpdateMember,PromoteMember,
+configure}.lean` no longer build against it):
+
+- `reqPrin ctx p tls` (two principals: `p` with auth enabled, the certificate's `tls`), and every
+  spec's update over `srvStep p tls rq σ σ' res lo` with the caller's `authLb γ lo`;
+  `SrvCallTriple e P B γ p tls rq rep reply`;
+- every returned error carries `srvErrShape err` (`errors/Api.lean`, which now holds `srvErrOf`,
+  `srvIndef`, `srvUnfired` and the sentinels `srvErrVal`);
+- `irrOwn p dq ir` (the inner request at `dq`, given back by `raftRequest`), `IrrBody.wf` (was
+  `depthOk`; with the gRPC layer's validation), `IrrBody.authToken name pw rev` (fires),
+  `irrStep p tls lo ir`, `IrrBody.backOk`.
+
+Needs (amending "from 2c"):
+
+1. **One-shot proposals need `dup = false`** (item 4's "or fire only an entry's first committed
+   occurrence" is withdrawn: the apply applies every occurrence). 2d's server-level raft cluster is
+   allocated with `dup = false` (2f's rafthttp supports it).
+2. **Raft's namespace inside `etcdN`**: the cluster's invariant fires the callers' updates (mask
+   `⊤ \ ↑etcdN`) inside raft's proposal and read updates (mask `⊤ \ ↑γ.raft.ns`): `↑γ.raft.ns ⊆
+   ↑etcdN`, the history's invariant in a disjoint sub-namespace (a fact of 2d's `Names`).
+3. **The read registry no longer serves `Authenticate`** (a one-shot update now: the token entry's
+   commit fires it iff the auth revision is still the checked one; else the update is given back with
+   the token, `IrrBody.backOk`). 2d's commit rule for `.authToken name pw rev`: fire the caller's
+   update with `.ok .authenticate` when `σ.auth.rev = rev`, with the apply's `ErrAuthNotEnabled` /
+   `ErrAuthFailed` when those are its answers, else keep it (the result's `P id x` carries it back).
+4. **The wait registry's answer predicate covers both kinds of id**: a normal entry's, a non-nil
+   `*apply.Result` (`applyResult`); a conf change's, a non-nil `*confChangeResponse` (`configure`
+   panics on `nil`, `server.go:1793`). For the apply's `IsRegistered` (`apply/apply.go:40`) the
+   invariant supplies `Wait.waitWasReg` for this member's ids and burns the token of another member's
+   (`Wait.waitToks_never`: `waitNever`), so `false` gives `waitDone` and `Trigger` owes nothing.
+5. **The health checks' read permission**: `etcdhttp/health.go`'s `Range` of the empty key needs a
+   persistent update over `etcdState` (`srvStep`'s `emptyRangeStep`); `isServer` (or 2e's health
+   handler's slot) must hold one (W0's `etcdPeek`).
+6. **`publishV3`** (`.publish`, no update): if 1c's `memberServes` (a published member's client URLs
+   serve `γ`) is proved at the publication's commit, the commit needs `servesAt γ u` for each URL;
+   say whether it comes some other way (the bound listener), else `.publish` must carry it
+   (completeness F14).
+7. **2b's bridges**: `isServer s γ ⊢ watchMemberAt s γ` (2e: 2b's handle), and `srvWatchable`'s
+   bridge from mvcc's store names to `γ`'s history (2d with 3f; `srvWatchable_mvcc` gives
+   `Mvcc.watchableAt`).
+8. **The package variables' values**: `etcdserver/errors`' sentinels hold `srvErrVal e` (a law of the
+   package's initialization; `errors/Api.lean`'s `srvErrVal`), as do `membership`'s (2e), for
+   `errors.Is` at the callers.

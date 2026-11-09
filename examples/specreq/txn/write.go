@@ -65,7 +65,7 @@ func ReqApplyPutIgnoreValue(lg *zap.Logger, le lease.Lessor, kv mvcc.KV, k []byt
 // REQ txn/apply-put-lease-check: a put on a lease the lessor does not hold fails with
 // ErrLeaseNotFound, before any write.
 // Users: apply/backend.go:51 (a put WithLease of a revoked or expired lease).
-// Assumes: the sole writer; id is not a live lease of le (leasesPin), id != 0.
+// Assumes: the sole writer; id is not a live lease of le (its Lease.lessorState), id != 0.
 // Specs: Put.spec (putAns: W0's PutReq.check, the lease first); 3c's Lookup, 3e's Rev (req/, "from 3b").
 func ReqApplyPutLeaseCheck(lg *zap.Logger, le lease.Lessor, kv mvcc.KV, k, v []byte, id int64) {
 	if le.Lookup(lease.LeaseID(id)) != nil {

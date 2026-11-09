@@ -245,3 +245,136 @@ All files build (`etc/specs-build.sh`, 153 modules, 2026-11-09). The generators 
   - the error classification;
   - `io.EOF`;
   - `tlsCfgOk`.
+
+## Round 1 repairs (2026-11-09)
+
+Reviews: `reviews/2a-provability-1.md`, `reviews/2a-completeness-1.md`, 3h's `reviews/3h-review-1.md`
+F1, with the coordinator's decisions. Snippets pass `go vet`. `etc/issues-status.py --check` is
+clean. Build: see the end of this section.
+
+### Provability, first tier
+
+- **F1, addresses.** `Grpc.addrFree` and `Grpc.listenerAt` are gone; 2f's vocabulary is used.
+  - `Grpc.addrAt ep C` is now `∃ P, Http.protoAt ep (grpcOver C P)`. `grpcOver` is an opaque
+    `Http.Proto` (gRPC calls answered by `C`, other requests by `P`), with laws `grpcOver_inj` and
+    `grpcOver_other`.
+  - A socket bound for etcd's gRPC contracts cannot also serve another protocol through net/http.
+  - `start.spec` takes `grpcListener` (2f's `Http.listenerAt`, or cmux's HTTP/2 part,
+    `cmuxSubAt`, `cmux_split`, `cmux_http1`).
+  - The TLS path: `startHTTP.spec` (`servesHTTP`) and `Server.ServeHTTP.spec`, a run of 2f's
+    handler contract for `grpcOver C P`.
+  - 2f is asked for `protoAt_agree` (`req/net_http.md`).
+- **F2, thread tokens.** `start.spec` takes 2f's `Http.handlerPool pl n`. Each run draws one token
+  and returns it, under the physical premise in the header. The trusted-fork claim is gone from
+  `Api.lean` and `Server__Serve.lean`.
+- **F3, reads.** The handlers' sketches compose with 2c's `SrvCallTriple` under W0's round 4,
+  where a read's permission is checked at an auth state between the call's start and its answer,
+  so `srvStep = Step`. The read handlers stay blocked until W0's round 4 lands.
+- **F4.** `etcdUnary`'s first way requires `firedAns res`: no token or learner refusal. 2c is asked
+  to return an apply-time `ErrUserEmpty`, `ErrAuthOldRevision` or `ErrInvalidAuthToken` unfired
+  (`req/..._etcdserver.md`, "from 2a, round 1", item 1).
+- **F5.**
+  - `icEtcdOk` gives the interceptor `info.FullMethod ↦□ m` and `depth c < depthMax`.
+  - `decOk_call` gives the depth; `HandlerTriple` carries it.
+  - `icHandler` carries `info`.
+  - `logUnaryRequestStats.spec` admits a nil or typed-nil reply.
+- **F6.** New `V3rpc.srvErrOk err`: a context's error, or a comparable non-status error with a
+  stable message that is `srvErrOf` or unmapped with `indefMsg`. `togRPCError.spec` takes it, and
+  2c is asked to give it with its error outcomes (item 2).
+- **F7.**
+  - The health service is in `etcdContract`: `Check`/`List` are `etcdLocal`, `Watch` a trivial
+    stream.
+  - `RegisterHealthServer.spec` adds the registrations to `B`, and `healthRegs_ok` (assumed: grpc's
+    handlers) meets them.
+  - `metricsOk_init` covers `InitializeMetrics`.
+  - `srvBuild_ne_null`.
+- **F8, snippets.**
+  - `validation-answer` accepts refusals (the quota check runs first).
+  - `compact-admin` assumes a user that never had the root role, and cites W0's round-4 admin
+    check. 2a asked W0 for success requiring an administrator.
+  - `range-stream` uses the new laws `rsChunk_agree` and `rsChunk_hdr_last`.
+  - `serve` uses the new start path.
+- **F9.** A status message arrives as `Grpc.fixUtf8 msg`, with laws `fixUtf8_ascii` and
+  `fixUtf8_ascii_inv`; `Rpctypes.desc_ascii`. `unaryOut`, `streamOut` and the clients see it.
+
+### Completeness, first tier
+
+- **F1, restored specs.**
+  - Call options: `StaticMethod`, `Peer` (takes the owned peer variable and lends it to grpc in an
+    invariant: `peerVar`, `peerVar_inv`).
+  - Client: `ClientConn.Target`, `WithKeepaliveParams`, `credentials/insecure/NewCredentials`.
+  - Server options: `KeepaliveParams`, `KeepaliveEnforcementPolicy`.
+  - `health/grpc_health_v1/RegisterHealthServer`, `status/Code`.
+  - The generic wrappers' methods, as laws: `genCli_send`, `_recv`, `_closeSend`, `_context`, and
+    `genSrv_send`, `_recv`, `_context`, over `genCliAt`/`genSrvAt` (3h introduces these).
+  - `ClientStream.Context()`: `cliStream_context`, with `cliCtxOf` given by `streamerOk_call`.
+- **F2.** A definite error's code is pinned in `callErr_view`, `callErr_status`, `ansOutcome` and
+  `etcdUnary`'s second way: `code e`, or `Unknown` for the two `EtcdError`s. New law
+  `code_not_ctx`.
+- **F3.** The contract is per member: `etcdContract γ ep`, `etcdUnary γ ep m`, with
+  `leaseFact` carrying W0's `leaseViewLb γ ep`. `servesAt_addr` is restated at `ep`.
+- **F4.** cmux and `ServeHTTP` are covered as under F1. embed's v3election/v3lock registrations
+  are asked of 2e (they need contracts).
+- **F5.** `srvStream_context` takes only the persistent `srvCtxOf`, which every run gets.
+- **F6.**
+  - `statusErr_errMsg` (`grpcText`, never empty, `grpcText_ne`) and `statusErr_ty` (a
+    `*status.Error`, comparable).
+  - `plainErr` is in `errView`'s non-status case.
+  - `Rpctypes.callErr_eof`.
+- **F7.** `rangeStreamSpec` and `rsSink_out` admit `ErrCompacted` before the first chunk.
+- **F8.** `mdAt_ownMap` (Perennial's `ownMap`, each key's slice read-only); `rpcCtx_vals`.
+
+### 3h's review, F1, and 3h's requests
+
+- `Proto.Merge.spec` now takes `mergeDst t p c`: the destination owned with its slices' capacity
+  and its submessages writable, because protobuf-go merges in place. Laws: `mergeDst_zero`,
+  `mergeDst_msgAt`.
+- `Clone`, `Unmarshal`, `Size` and `Marshal` were checked: none writes old submessages.
+  `Unmarshal`'s comment says so.
+- Deterministic `Marshal`: `noMaps`, `marshalOut`, `marshalOut_encodes`.
+- `Proto.zero` (`zero_facts`). `Content` is now a nonempty opaque type.
+
+### Nonissues filed
+
+- `nonissues/etcd-v3client-defragment-nil-notifier.md`
+- `nonissues/etcd-compact-admin-check-lagging-member.md`
+
+### Second tier (partly)
+
+`kaSpec.up` drops `mdPrin` (no consumer). Still open:
+- `sicEtcdOk` is opaque, and there is no stream form of `icChain_call`;
+- `kaSpec` does not record a response's `ID`;
+- k8s's non-neutral dial options;
+- the in-process `v3client` pattern (out of scope: the nonissue above);
+- the gateway's `Header`/`Trailer` options (no owner);
+- `msgsFit`'s depth half on the client;
+- `perRPCAt`'s introduction;
+- `resolverAt` excluding a service-config retry policy.
+
+### Requirement sections written (round 1)
+
+`## from 2a, round 1` in:
+- `req/go_etcd_io_etcd_server_v3_etcdserver.md` (2c, 2e);
+- `req/google_golang_org_protobuf_proto.md` (answer to 3h);
+- `req/go_etcd_io_etcd_api_v3_etcdserverpb.md`;
+- `req/go_etcd_io_etcd_api_v3.md` (W0);
+- `req/go_etcd_io_etcd_client_v3.md` (1c);
+- `req/net_http.md` (2f).
+
+### Alignment with 2c's current `ApiReq.lean`
+
+- `txnCheck_checked` now concludes 2c's `txnChecked t ∧ txnMsgDepth t + 1 ≤ 10000`. This is
+  `IrrBody.wf`'s transaction case; `IrrBody.depthOk` no longer exists.
+- `rsSink rs γ p tls r ms` has no `Q` and no `fin`. `rsSink_intro` gives `∃ tls, rsSink … []` and a
+  persistent `rsSinkOf w g` (the stream it sends on). `rsSink_out` takes 2c's return facts (`Q` with
+  `streamMatches` of the chunks, or an error's), together with the sink, and gives the run's
+  `streamOut`.
+- 2c's `reqPrin ctx p tls` now takes the TLS principal: `AuthAdmin.*` and
+  `authMaintenanceServer.*` take it.
+- 2c now gives `srvErrShape` on every returned error (`errors/Api.lean`). 2a's `srvErrOk` is meant
+  to be the same fact; to be identified at integration (or `srvErrOk` derived from it by a law).
+- 2c's calls now carry W0's auth-table bound `lo` (`authLb`). `etcdUnary` still passes 1c's
+  `callAU`; the integration review should align it with W0's round-4 `Step` and `lo`.
+
+Build (end of round 1): `.lake/g2a/build.sh` (all of 2a's 163 modules) OK. `go vet` of
+`examples/specreq/{v3rpc,grpc}` is clean.

@@ -35,20 +35,20 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **Promotes learner `id`**, as the cluster's `memberPromote` step. -/
 def EtcdServer.PromoteMember.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (q : Qp) (ctx : GoInterface) (who : Principal)
+  ∀ (s : Loc) (γ : Cluster) (q : Qp) (ctx : GoInterface) (pr tls : Principal) (lo : Nat)
     (id : w64) (Q : State → State → Resp → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ srvGate s q ∗ reqPrin ctx who ∗ Context.ctxOk ctx ∗ threadTok ∗
-      AU <{{ ∃∃ (σ : State), etcdState γ σ }}> @ ⊤ \ ↑etcdN, ∅
-        <{{ ∀∀ (σ' : State) (res : Resp), ⌜srvStep who (.memberPromote (uint.nat id)) σ σ' res⌝ ∗ etcdState γ σ',
-           COMM Q σ σ' res }}> }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ srvGate s q ∗ reqPrin ctx pr tls ∗ authLb γ lo ∗ Context.ctxOk ctx ∗ threadTok ∗
+      AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
+        <{ ∀∀ (σ' : State) (res : Resp), ⌜srvStep pr tls (.memberPromote (uint.nat id)) σ σ' res lo⌝ ∗ etcdState γ σ',
+           COMM Q σ σ' res }> }}
     (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"PromoteMember")) (Val #ctx)) (Val #id))
   {{ (sl : GoSlice) (err : GoInterface), RET (PairV #sl #err); srvGate s q ∗ threadTok ∗
       ((∃ σ σ' res, Q σ σ' res ∗ ((∃ l : List Member, ⌜respMembers res = some l ∧ err = GoInterface.nil⌝ ∗
           ∃ ms, Membership.membersOwn sl ms ∗ ⌜ms.Perm l⌝) ∨
        (∃ e, ⌜res = .err e⌝ ∗ ⌜srvErrOf err e⌝))) ∨
-       (⌜srvUnfired err⌝ ∗ AU <{{ ∃∃ (σ : State), etcdState γ σ }}> @ ⊤ \ ↑etcdN, ∅
-        <{{ ∀∀ (σ' : State) (res : Resp), ⌜srvStep who (.memberPromote (uint.nat id)) σ σ' res⌝ ∗ etcdState γ σ',
-           COMM Q σ σ' res }}>) ∨
+       (⌜srvUnfired err⌝ ∗ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
+        <{ ∀∀ (σ' : State) (res : Resp), ⌜srvStep pr tls (.memberPromote (uint.nat id)) σ σ' res lo⌝ ∗ etcdState γ σ',
+           COMM Q σ σ' res }>) ∨
        ⌜srvIndef err⌝) }}
 
 end spec

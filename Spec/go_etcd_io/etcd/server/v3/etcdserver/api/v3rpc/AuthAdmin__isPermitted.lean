@@ -32,8 +32,8 @@ variable [sem : go.Semantics]
 /-- `aa.isPermitted(ctx)`: `nil` (the user has the root role (or auth is off), at the member's auth state), or a server error of one of
 [.userEmpty, .userNotFound, .permissionDenied, .invalidAuthToken]. -/
 def AuthAdmin.isPermitted.spec : Prop :=
-  ∀ (aa s : Loc) (γ : Cluster) (ctx : GoInterface) (who : Principal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ authAdminAt aa s γ ∗ Context.ctxOk ctx ∗ reqPrin ctx who }}
+  ∀ (aa s : Loc) (γ : Cluster) (ctx : GoInterface) (who tls : Principal),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ authAdminAt aa s γ ∗ Context.ctxOk ctx ∗ reqPrin ctx who tls }}
     (App (Val (aa @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthAdmin.ty @!! go!"isPermitted")) (Val #ctx))
   {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil ∨ ∃ e ∈ ([.userEmpty, .userNotFound, .permissionDenied, .invalidAuthToken] : List EtcdErr), srvErrOf err e⌝ }}
 

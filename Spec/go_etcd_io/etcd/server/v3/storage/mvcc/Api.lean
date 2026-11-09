@@ -41,11 +41,12 @@ predicate opaque, the pure model W0's history (`Model.lean`), the storage a cont
   transaction of `γ`, begun with `trace`, at `k`** (`MTxn`: read, or write with its events). It
   holds the reader token until its `End`, not the trace (lent per call).
 * `isHashStorage h γ` (persistent): `h` is the store's `HashStorage`.
-* Provisional, **3c's** (the lessor; `req/go_etcd_io_etcd_server_v3_lease.md`, "from 3e"):
-  `LessorName`, `lessorAt le γl` (persistent: `le` is the lessor `γl`, its `GetLease`, `Attach`,
-  `Detach`, `SetRangeDeleter` safe from any goroutine), `leaseItems γl L I` (exclusive: the
-  lessor's live leases are `L`, its item map is `I`, `0` for none; the holder may attach and
-  detach), `rdSlot γl rd` (exclusive: the lessor's range deleter is `rd`).
+* The lessor's (3c, `lease/Api.lean`): the store calls its lessor (`Lease.isLessor`, kept in
+  `isMvcc`) on the writer's token `Lease.lessorState γl n ls`, which a write's spec takes and gives
+  back at the state its `GetLease`/`Attach`/`Detach` made (`putLs`, `delsLs`, `RestoreLs`: the
+  code's steps, as 3c asked, `req/go_etcd_io_etcd_server_v3_storage_mvcc.md`, "from 3c"). **The
+  attachment invariant is the caller's** (the lessor's `items` agreeing with the store's keys'
+  leases, `storeItems`): mvcc's steps keep it, and say so only through these functions.
 * Provisional, **4b's** (traceutil; `req/go_etcd_io_etcd_pkg_v3_traceutil.md`, "from 3e"):
   `traceOwn tr` (exclusive): the trace `tr` is the caller's (its `Step` may be called).
 * Definitions: `rangeResOwn` (a `*RangeResult` and error holding an outcome), `compactChanOk` (a
@@ -78,6 +79,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiStorage
 public import Spec.context.Api
+public import Spec.go_etcd_io.etcd.server.v3.lease.Api
 public import Spec.PkgInit.go_etcd_io.etcd.server.v3.storage.mvcc
 
 @[expose] public section
@@ -94,9 +96,6 @@ open go_etcd_io.etcd.server.v3.storage.mvcc
 /-- A store's ghost names (opaque). -/
 opaque MvccName : Type := Unit
 
-/-- **Provisional (3c):** a lessor's ghost names. -/
-opaque LessorName : Type := Unit
-
 /-- The namespace of the store's invariants (a library with invariants reserves one: a stated
 departure from "no internal namespaces in masks"). -/
 def mvccN : Namespace := nroot .@ "mvcc"
@@ -111,6 +110,44 @@ slot `EtcdServer.mvccBootCfg cfg` is this of `cfg.CompactionBatchLimit`. -/
 def storeCfgOk [GooseExts] (cfg : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig) : Prop :=
   0 ≤ sint.Z cfg.CompactionBatchLimit'
 
+section lessorSteps
+variable [GooseExts]
+
+/-- **The lessor's state after mvcc's put of `k` with lease `l`** (`storeTxnWrite.put`): the key's
+old lease (`GetLease`, read only when the key is present in the transaction's store, `pres`)
+detached if it differs from `l` (and is not `0`), then `l` attached (if not `0`; `Attach` panics
+for a lease not live, so `l` must be live); nothing when they are the same. -/
+def putLs (ls : Lease.LessorState) (pres : Bool) (k : Key) (l : Int) : Lease.LessorState :=
+  let o := if pres then ls.items k else 0
+  if o = l then ls
+  else
+    let ls1 := if o ≠ 0 then ls.detach o [k] else ls
+    if l ≠ 0 then ls1.attach l [k] else ls1
+
+/-- The lessor's state after mvcc's delete of the present key `k` (`storeTxnWrite.delete`: its lease
+`GetLease`, detached unless `0`; a lease not live: nothing, the error logged). -/
+def delLs (ls : Lease.LessorState) (k : Key) : Lease.LessorState :=
+  if ls.items k ≠ 0 then ls.detach (ls.items k) [k] else ls
+
+/-- The keys of `ks` present in `s` when each is deleted in turn (`DeleteRange(k, nil)` of each, as
+`lessor.Revoke` does): those it deletes. -/
+def presentKeys (s : EtcdModel.Store) : List Key → List Key
+  | [] => []
+  | k :: ks => if (s k).isSome then k :: presentKeys (s.applyEvent (.delete k)) ks
+    else presentKeys s ks
+
+/-- After deleting the present keys `ks`, in order. -/
+def delsLs (ls : Lease.LessorState) (ks : List Key) : Lease.LessorState := ks.foldl delLs ls
+
+/-- **`restore`'s re-attachment** (`kvstore.go:390-403`): each key of the store `s` with a lease
+attached to it, in the map's (any) order; a lease not live: nothing (the error logged). -/
+def RestoreLs (ls : Lease.LessorState) (s : EtcdModel.Store) (ls' : Lease.LessorState) : Prop :=
+  ∃ l : List (Key × Int), (l.map Prod.fst).Nodup ∧
+    (∀ k id, (k, id) ∈ l ↔ (id ≠ 0 ∧ storeItems s k = id)) ∧
+    ls' = l.foldl (fun a p => a.attach p.2 [p.1]) ls
+
+end lessorSteps
+
 section vocab
 variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
@@ -121,8 +158,8 @@ opaque mvccState (γ : MvccName) (σ : MvccState) : IProp GF := iprop(True)
 /-- **`kv` serves the store `γ`** (persistent). -/
 opaque isMvcc (kv : GoInterface) (γ : MvccName) : IProp GF := iprop(True)
 
-/-- The store's lessor is `γl` (persistent). -/
-opaque mvccLessorIs (γ : MvccName) (γl : LessorName) : IProp GF := iprop(True)
+/-- The store's lessor is `γl` (persistent; its `Lease.isLessor` is in `isMvcc`). -/
+opaque mvccLessorIs (γ : MvccName) (γl : Lease.Names) : IProp GF := iprop(True)
 
 /-- **The store's open token** (exclusive). -/
 opaque mvccOpen (γ : MvccName) : IProp GF := iprop(True)
@@ -141,15 +178,6 @@ opaque mvccTxn (t : GoInterface) (γ : MvccName) (trace : Loc) (k : MTxn) : IPro
 
 /-- `h` is the store's hash storage (persistent). -/
 opaque isHashStorage (h : GoInterface) (γ : MvccName) : IProp GF := iprop(True)
-
-/-- **Provisional (3c):** `le` is the lessor `γl` (persistent). -/
-opaque lessorAt (le : GoInterface) (γl : LessorName) : IProp GF := iprop(True)
-
-/-- **Provisional (3c):** the lessor's live leases are `L`, its item map `I` (exclusive). -/
-opaque leaseItems (γl : LessorName) (L : List Int) (I : Key → Int) : IProp GF := iprop(True)
-
-/-- **Provisional (3c):** the lessor's range deleter is `rd` (exclusive). -/
-opaque rdSlot (γl : LessorName) (rd : GoFunc) : IProp GF := iprop(True)
 
 /-- **Provisional (4b):** the trace `tr` is the caller's (exclusive). -/
 opaque traceOwn (tr : Loc) : IProp GF := iprop(True)
@@ -248,49 +276,51 @@ abbrev KV.FirstRev.contract (ty : go.GoType) (v : val) : Prop :=
 /-- **`Range(ctx, key, end, ro)`** (a read transaction of one range): its outcome at the state, by
 the caller's update (`rangeOut`: the revision checks, the result, or the context's error). -/
 abbrev KV.Range.contract (ty : go.GoType) (v : val) : Prop :=
-  ∀ (γ : MvccName) (ctx : GoInterface) (key endk : GoSlice) (kk e : Bytes)
+  ∀ (γ : MvccName) (ctx : GoInterface) (key endk : GoSlice) (kk e : Bytes) (dk de : DFrac)
     (ro : go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions) (Q : MvccState → IProp GF),
   {{ pkgInit ∗ isMvcc (interface.mkOk ty v) γ ∗ mvccReaders γ 1 ∗ Context.ctxOk ctx ∗
-      key ↦*□ kk ∗ endk ↦*□ e ∗
+      key ↦*{dk} kk ∗ endk ↦*{de} e ∗
       AU <{ ∃∃ (σ : MvccState), mvccState γ σ }> @ ⊤ \ ↑mvccN, ∅ <{ mvccState γ σ, COMM Q σ }> }}
     (App (App (App (App (Val #(methods ty go!"Range" v)) (Val #ctx)) (Val #key)) (Val #endk))
       (Val #ro))
   {{ (r : Loc) (err : GoInterface), RET (PairV #r #err); mvccReaders γ 1 ∗
-      ∃ (σ : MvccState) (out : RangeOut), Q σ ∗ ⌜rangeOut σ.kv σ.crev (mrange kk endk e) ro out⌝ ∗
+      key ↦*{dk} kk ∗ endk ↦*{de} e ∗ ∃ (σ : MvccState) (out : RangeOut), Q σ ∗ ⌜rangeOut σ.kv σ.crev (mrange kk endk e) ro out⌝ ∗
         rangeResOwn ctx r err out }}
 
 /-- **`Put(key, value, lease)`** (a write transaction of one put): the hook, then the commit's two
-steps at the state the update gives; the lessor's item map that state's, then the new one's (the
-lease live in the lessor, `Attach` panics otherwise). The key and value are kept (read-only). -/
+steps at the state the update gives; the lessor's writer token moved by the put's steps (`putLs`;
+the lease live in the lessor: `Attach` panics otherwise). The key and value are kept
+(read-only). -/
 abbrev KV.Put.contract (ty : go.GoType) (v : val) : Prop :=
-  ∀ (γ : MvccName) (γl : LessorName) (key value : GoSlice) (kk vv : Bytes) (lid : w64) (L : List Int)
-    (I : Key → Int) (q : Qp) (B : MvccStorage) (Pk Pre Q' Post : IProp GF) (f : GoFunc)
+  ∀ (γ : MvccName) (γl : Lease.Names) (key value : GoSlice) (kk vv : Bytes) (lid : w64) (n : Nat)
+    (ls : Lease.LessorState) (q : Qp) (B : MvccStorage) (Pk Pre Q' Post : IProp GF) (f : GoFunc)
     (Q : MvccState → IProp GF),
   let ev (σ : MvccState) := putEv σ [] kk vv (sint.Z lid)
   {{ pkgInit ∗ isMvcc (interface.mkOk ty v) γ ∗ mvccLessorIs γ γl ∗ mvccReaders γ 1 ∗
       key ↦*□ kk ∗ value ↦*□ vv ∗
-      leaseItems γl L I ∗ ⌜sint.Z lid = 0 ∨ sint.Z lid ∈ L⌝ ∗
+      Lease.lessorState γl n ls ∗ ⌜sint.Z lid = 0 ∨ ls.leases (sint.Z lid) ≠ none⌝ ∗
       mvccBackend γ q B Pk ∗ hookIs B f ∗ Pre ∗ hookRun Pk f Pre Q' ∗ (Q' ={⊤}=∗ Pk ∗ Post) ∗
-      AU <{ ∃∃ (σ : MvccState), mvccState γ σ ∗ ⌜storeItems σ.kv.store = I⌝ }> @ ⊤ \ ↑mvccN, ∅
+      AU <{ ∃∃ (σ : MvccState), mvccState γ σ }> @ ⊤ \ ↑mvccN, ∅
         <{ ⌜σ.pending = []⌝ ∗ mvccState γ (σ.notify [ev σ]) ∗ ⧖ (evCount (σ.kv.commit [ev σ])), COMM
             AU <{ ∃∃ (σ' : MvccState), mvccState γ σ' }> @ ⊤ \ ↑mvccN, ∅
               <{ ⌜σ' = σ.notify [ev σ]⌝ ∗ mvccState γ σ'.commitPending, COMM Q σ }> }> }}
     (App (App (App (Val #(methods ty go!"Put" v)) (Val #key)) (Val #value)) (Val #lid))
   {{ (rev : w64), RET #rev; mvccReaders γ 1 ∗ mvccBackend γ q B Pk ∗ Post ∗
-      ∃ σ : MvccState, Q σ ∗ leaseItems γl L (storeItems (txnStore σ [ev σ])) ∗
+      ∃ (σ : MvccState) (n' : Nat), Q σ ∗
+        Lease.lessorState γl n' (putLs ls (σ.kv.store kk).isSome kk (sint.Z lid)) ∗
         ⌜rev = W64 (σ.rev + 1)⌝ }}
 
 /-- **`DeleteRange(key, end)`** (a write transaction of one range delete), as `Put`: the range's
 present keys deleted (`ds`, in key order; the commit of nothing when none), their number, the
 revision written (the current one if nothing was deleted). -/
 abbrev KV.DeleteRange.contract (ty : go.GoType) (v : val) : Prop :=
-  ∀ (γ : MvccName) (γl : LessorName) (key endk : GoSlice) (kk e : Bytes) (L : List Int)
-    (I : Key → Int) (q : Qp) (B : MvccStorage) (Pk Pre Q' Post : IProp GF) (f : GoFunc)
+  ∀ (γ : MvccName) (γl : Lease.Names) (key endk : GoSlice) (kk e : Bytes) (dk de : DFrac) (n : Nat)
+    (ls : Lease.LessorState) (q : Qp) (B : MvccStorage) (Pk Pre Q' Post : IProp GF) (f : GoFunc)
     (Q : MvccState → List Key → IProp GF),
   {{ pkgInit ∗ isMvcc (interface.mkOk ty v) γ ∗ mvccLessorIs γ γl ∗ mvccReaders γ 1 ∗
-      key ↦*□ kk ∗ endk ↦*□ e ∗ leaseItems γl L I ∗
+      key ↦*{dk} kk ∗ endk ↦*{de} e ∗ Lease.lessorState γl n ls ∗
       mvccBackend γ q B Pk ∗ hookIs B f ∗ Pre ∗ hookRun Pk f Pre Q' ∗ (Q' ={⊤}=∗ Pk ∗ Post) ∗
-      AU <{ ∃∃ (σ : MvccState), mvccState γ σ ∗ ⌜storeItems σ.kv.store = I⌝ }> @ ⊤ \ ↑mvccN, ∅
+      AU <{ ∃∃ (σ : MvccState), mvccState γ σ }> @ ⊤ \ ↑mvccN, ∅
         <{ ∀∀ (ds : List Key), ⌜σ.pending = [] ∧ rangeKeys σ.kv.store (mrange kk endk e) ds⌝ ∗
             mvccState γ (σ.notify (ds.map .delete)) ∗
             ⧖ (evCount (σ.kv.commit (ds.map .delete))), COMM
@@ -298,10 +328,10 @@ abbrev KV.DeleteRange.contract (ty : go.GoType) (v : val) : Prop :=
               <{ ⌜σ' = σ.notify (ds.map .delete)⌝ ∗ mvccState γ σ'.commitPending,
                  COMM Q σ ds }> }> }}
     (App (App (Val #(methods ty go!"DeleteRange" v)) (Val #key)) (Val #endk))
-  {{ (n rev : w64), RET (PairV #n #rev); mvccReaders γ 1 ∗ mvccBackend γ q B Pk ∗ Post ∗
-      ∃ (σ : MvccState) (ds : List Key), Q σ ds ∗
-        leaseItems γl L (storeItems (txnStore σ (ds.map .delete))) ∗
-        ⌜n = W64 ds.length ∧ rev = W64 (if ds = [] then σ.rev else σ.rev + 1)⌝ }}
+  {{ (nd rev : w64), RET (PairV #nd #rev); mvccReaders γ 1 ∗ mvccBackend γ q B Pk ∗ Post ∗
+      key ↦*{dk} kk ∗ endk ↦*{de} e ∗
+      ∃ (σ : MvccState) (ds : List Key) (n' : Nat), Q σ ds ∗ Lease.lessorState γl n' (delsLs ls ds) ∗
+        ⌜nd = W64 ds.length ∧ rev = W64 (if ds = [] then σ.rev else σ.rev + 1)⌝ }}
 
 /-- **`Compact(trace, rev)`** (`rev ≥ 1`: a `Compact(0)` mid-job restores to compaction revision
 `-1`, `issues/etcd-restore-scheduled-compact-zero.md`; the user, 2026-11-04), by the caller's
@@ -338,28 +368,29 @@ decision 3, 2026-11-03: at any share of the new storage's post-lock hook): by th
 at a state whose history `σ'`'s extends (its compaction revision not lowered), the state `σ'`
 (its linearization point: `currentRev` set, under `s.revMu`). The store's storage is now `B'`; the
 old one's rest back (`Restore` waits out every transaction, the scheduler and the loops). The
-lessor's item map re-attached: the restored store's, but for keys whose lease the lessor does not
-have (`Attach` fails; the error is logged). When the image records an unfinished compaction (`u`),
+lessor's writer token moved by the re-attachment (`RestoreLs`: each key with a lease attached, a
+lease the lessor does not have skipped, the error logged; after `lessor.Recover`, 2d's order). When the image records an unfinished compaction (`u`),
 it is resumed: the new storage's hook once under its batch lock (`Pre` to `Q'`, `Pk'` back) and one
 commit (`X` to `Y`); otherwise neither. The hook at a share given back: unset (`nil`, at any share:
 etcd sets the new backend's hook after `Restore`, `server.go:1098`) or frozen. -/
 abbrev KV.Restore.contract (ty : go.GoType) (v : val) : Prop :=
-  ∀ (γ : MvccName) (γl : LessorName) (B B' : MvccStorage) (Pk Pk' : IProp GF) (σ' : MvccState)
-    (u : Bool) (L : List Int) (dq : DFrac) (f : GoFunc) (Pre Q' Post X Y : IProp GF)
+  ∀ (γ : MvccName) (γl : Lease.Names) (B B' : MvccStorage) (Pk Pk' : IProp GF) (σ' : MvccState)
+    (u : Bool) (n : Nat) (ls : Lease.LessorState) (dq : DFrac) (f : GoFunc) (Pre Q' Post X Y : IProp GF)
     (Q : MvccState → IProp GF),
   {{ pkgInit ∗ isMvcc (interface.mkOk ty v) γ ∗ mvccLessorIs γ γl ∗ mvccOpen γ ∗
       mvccBackend γ 1 B Pk ∗ mvccStorageFor B' Pk' σ'.kv u ∗
       ⌜MvccReachable σ' ∧ σ'.pending = []⌝ ∗
       storageHook B' dq f ∗ ⌜f = func.nil ∨ dq = DFrac.discard⌝ ∗
       Pre ∗ hookRun Pk' f Pre Q' ∗ (Q' ={⊤}=∗ Pk' ∗ Post) ∗ X ∗ storageReq B' Pk' X Y ∗
-      leaseItems γl L (fun _ => 0) ∗
+      Lease.lessorState γl n ls ∗
       AU <{ ∃∃ (σ : MvccState), mvccState γ σ ∗
               ⌜σ.kv.revs <+: σ'.kv.revs ∧ σ.kv.compacted ≤ σ'.kv.compacted⌝ }> @ ⊤ \ ↑mvccN, ∅
         <{ mvccState γ σ' ∗ ⧖ (evCount σ'.kv), COMM Q σ }> }}
     (App (Val #(methods ty go!"Restore" v)) (Val #(GoInterface.ok (storageVal B'))))
   {{ RET #(GoInterface.nil); mvccOpen γ ∗ mvccBackend γ 1 B' Pk' ∗ storageRest B ∗
       storageHook B' dq f ∗ (if u then iprop(Post ∗ Y) else iprop(Pre ∗ X)) ∗
-      leaseItems γl L (itemsIn L σ'.kv.store) ∗ ∃ σ : MvccState, Q σ }}
+      (∃ (n' : Nat) (ls' : Lease.LessorState), ⌜RestoreLs ls σ'.kv.store ls'⌝ ∗
+        Lease.lessorState γl n' ls') ∗ ∃ σ : MvccState, Q σ }}
 
 /-- **`HashStorage()`**: the store's hash storage. -/
 abbrev KV.HashStorage.contract (ty : go.GoType) (v : val) : Prop :=
@@ -403,44 +434,44 @@ abbrev Txn.FirstRev.contract (ty : go.GoType) (v : val) : Prop :=
 (`MTxn.readHist`: a write transaction's events included). -/
 abbrev Txn.Range.contract (ty : go.GoType) (v : val) : Prop :=
   ∀ (γ : MvccName) (trace : Loc) (k : MTxn) (ctx : GoInterface) (key endk : GoSlice) (kk e : Bytes)
-    (ro : go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions),
+    (dk de : DFrac) (ro : go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions),
   {{ pkgInit ∗ mvccTxn (interface.mkOk ty v) γ trace k ∗ traceOwn trace ∗ Context.ctxOk ctx ∗
-      key ↦*□ kk ∗ endk ↦*□ e }}
+      key ↦*{dk} kk ∗ endk ↦*{de} e }}
     (App (App (App (App (Val #(methods ty go!"Range" v)) (Val #ctx)) (Val #key)) (Val #endk))
       (Val #ro))
   {{ (r : Loc) (err : GoInterface), RET (PairV #r #err);
-      mvccTxn (interface.mkOk ty v) γ trace k ∗ traceOwn trace ∗
+      mvccTxn (interface.mkOk ty v) γ trace k ∗ traceOwn trace ∗ key ↦*{dk} kk ∗ endk ↦*{de} e ∗
       ∃ out : RangeOut, ⌜rangeOut k.readHist k.state.crev (mrange kk endk e) ro out⌝ ∗
         rangeResOwn ctx r err out }}
 
-/-- `Put(key, value, lease)` of a write transaction: the put's event appended; the lessor's item
-map moved with it (the lease live in the lessor). Returns the revision it writes. -/
+/-- `Put(key, value, lease)` of a write transaction: the put's event appended; the lessor's writer
+token moved by its steps (`putLs`; the lease live in the lessor). Returns the revision it writes. -/
 abbrev Txn.Put.contract (ty : go.GoType) (v : val) : Prop :=
-  ∀ (γ : MvccName) (γl : LessorName) (trace : Loc) (σ : MvccState) (pend : List Event)
-    (key value : GoSlice) (kk vv : Bytes) (lid : w64) (L : List Int),
+  ∀ (γ : MvccName) (γl : Lease.Names) (trace : Loc) (σ : MvccState) (pend : List Event)
+    (key value : GoSlice) (kk vv : Bytes) (lid : w64) (n : Nat) (ls : Lease.LessorState),
   let ev := putEv σ pend kk vv (sint.Z lid)
   {{ pkgInit ∗ mvccTxn (interface.mkOk ty v) γ trace (.write σ pend) ∗ mvccLessorIs γ γl ∗
       traceOwn trace ∗ key ↦*□ kk ∗ value ↦*□ vv ∗
-      leaseItems γl L (storeItems (txnStore σ pend)) ∗ ⌜sint.Z lid = 0 ∨ sint.Z lid ∈ L⌝ }}
+      Lease.lessorState γl n ls ∗ ⌜sint.Z lid = 0 ∨ ls.leases (sint.Z lid) ≠ none⌝ }}
     (App (App (App (Val #(methods ty go!"Put" v)) (Val #key)) (Val #value)) (Val #lid))
   {{ RET #(W64 (σ.rev + 1) : w64);
       mvccTxn (interface.mkOk ty v) γ trace (.write σ (pend ++ [ev])) ∗ traceOwn trace ∗
-      leaseItems γl L (storeItems (txnStore σ (pend ++ [ev]))) }}
+      ∃ n' : Nat, Lease.lessorState γl n' (putLs ls (txnStore σ pend kk).isSome kk (sint.Z lid)) }}
 
 /-- `DeleteRange(key, end)` of a write transaction: the deletes of the range's present keys (in
 the store the transaction sees) appended; their number; the revision written (`beginRev + 1` once
 the transaction has a change). -/
 abbrev Txn.DeleteRange.contract (ty : go.GoType) (v : val) : Prop :=
-  ∀ (γ : MvccName) (γl : LessorName) (trace : Loc) (σ : MvccState) (pend : List Event)
-    (key endk : GoSlice) (kk e : Bytes) (L : List Int),
+  ∀ (γ : MvccName) (γl : Lease.Names) (trace : Loc) (σ : MvccState) (pend : List Event)
+    (key endk : GoSlice) (kk e : Bytes) (dk de : DFrac) (n : Nat) (ls : Lease.LessorState),
   {{ pkgInit ∗ mvccTxn (interface.mkOk ty v) γ trace (.write σ pend) ∗ mvccLessorIs γ γl ∗
-      key ↦*□ kk ∗ endk ↦*□ e ∗ leaseItems γl L (storeItems (txnStore σ pend)) }}
+      key ↦*{dk} kk ∗ endk ↦*{de} e ∗ Lease.lessorState γl n ls }}
     (App (App (Val #(methods ty go!"DeleteRange" v)) (Val #key)) (Val #endk))
-  {{ (n rev : w64), RET (PairV #n #rev); ∃ ds : List Key,
-      ⌜rangeKeys (txnStore σ pend) (mrange kk endk e) ds⌝ ∗
+  {{ (nd rev : w64), RET (PairV #nd #rev); key ↦*{dk} kk ∗ endk ↦*{de} e ∗
+      ∃ (ds : List Key) (n' : Nat), ⌜rangeKeys (txnStore σ pend) (mrange kk endk e) ds⌝ ∗
       mvccTxn (interface.mkOk ty v) γ trace (.write σ (pend ++ ds.map .delete)) ∗
-      leaseItems γl L (storeItems (txnStore σ (pend ++ ds.map .delete))) ∗
-      ⌜n = W64 ds.length ∧ rev = W64 (if pend ++ ds.map .delete = [] then σ.rev else σ.rev + 1)⌝ }}
+      Lease.lessorState γl n' (delsLs ls ds) ∗
+      ⌜nd = W64 ds.length ∧ rev = W64 (if pend ++ ds.map .delete = [] then σ.rev else σ.rev + 1)⌝ }}
 
 /-- `Changes()`: as many as the transaction's events (a read transaction's none). -/
 abbrev Txn.Changes.contract (ty : go.GoType) (v : val) : Prop :=
@@ -534,7 +565,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 def persistent.spec : Prop :=
-  (∀ kv γ, Persistent (isMvcc (GF := GF) kv γ)) ∧ (∀ γ γl, Persistent (mvccLessorIs (GF := GF) γ γl)) ∧
+  (∀ kv γ, Persistent (isMvcc (GF := GF) kv γ)) ∧
+  (∀ γ (γl : Lease.Names), Persistent (mvccLessorIs (GF := GF) γ γl)) ∧
   (∀ h γ, Persistent (isHashStorage (GF := GF) h γ)) ∧
   (∀ γ σ, Timeless (mvccState (GF := GF) γ σ)) ∧ (∀ γ n, Timeless (mvccReaders (GF := GF) γ n)) ∧
   (∀ γ B (Pk : IProp GF), Fractional (fun q => mvccBackend γ q B Pk))
@@ -587,16 +619,59 @@ def mvccLessorIs_agree.spec : Prop :=
 def mvccState_reachable.spec : Prop :=
   ∀ kv γ σ, isMvcc (GF := GF) kv γ ∗ mvccState γ σ ⊢ ⌜MvccReachable σ ∧ σ.rev + 1 < 2 ^ 63⌝
 
-/-- **A transaction's state** is reachable, its revision an `int64` with one to spare, and a write
-transaction's events well formed (each put's record over the key's, each delete of a key present):
-what a client relating the transaction's results to its own model needs. -/
+/-- **A transaction's state** is reachable, its revision an `int64` with one to spare; a write
+transaction began with nothing pending and its events are well formed (each put's record over the
+key's, each delete of a key present): what a client relating the transaction's results to its own
+model needs. (A read transaction may begin while a watchable store's commit is notified and not yet
+bumped: its state's `pending` is then that revision's, which it does not read.) -/
 def mvccTxn_state.spec : Prop :=
   ∀ t γ trace k, mvccTxn (GF := GF) t γ trace k ⊢
-    ⌜MvccReachable k.state ∧ k.state.rev + 1 < 2 ^ 63 ∧ k.state.pending = [] ∧
-      EvsWf (k.state.kv.rev + 1) k.state.kv.store k.pend⌝
+    ⌜MvccReachable k.state ∧ k.state.rev + 1 < 2 ^ 63 ∧
+      (∀ σ pend, k = .write σ pend → σ.pending = [] ∧ EvsWf (σ.kv.rev + 1) σ.kv.store pend)⌝
+
+/-- **A read-only transaction (`*txnReadWrite`) is a read transaction** (its `Put`/`DeleteRange`
+panic, `kv.go:97-99`: their contracts hold because no write transaction has this type). -/
+def mvccTxn_readOnly.spec : Prop :=
+  ∀ (p : Loc) γ trace k,
+    mvccTxn (GF := GF) (interface.mkOk (go.GoType.PointerType txnReadWrite.ty) #p) γ trace k ⊢
+      ⌜∃ σ, k = .read σ⌝
+
+/-- **A write transaction holds the storage's batch lock**, and lends "it is held" to the storage's
+other users (the lessor's lease-bucket delete inside `Revoke`'s transaction: 3c's `beTxHeld`). -/
+def mvccTxn_held.spec : Prop :=
+  ∀ t γ trace σ pend q B (Pk : IProp GF),
+    mvccTxn (GF := GF) t γ trace (.write σ pend) ∗ mvccBackend γ q B Pk ⊢
+      kbHeld B ∗ (kbHeld B -∗ mvccTxn t γ trace (.write σ pend) ∗ mvccBackend γ q B Pk)
+
+/-- **The store's range deleter meets the lessor's contract for a revocation** (3c's
+`Lease.rdOk`, `req/..._mvcc.md`, "from 3c", item 3): `rd()` is `KV.Write` (its premises `P`, the
+caller's update `R` at the state `σ` it begins at, which must hold `End`'s two updates for whatever
+keys the revocation deletes, `C σ ks` their result); after `DeleteRange(k, nil)` of the keys `ks`,
+the transaction has deleted those present (`presentKeys`) and the lessor detached them (`delsLs`);
+`End` commits them and gives `C σ ks`. -/
+def mvccDeleter_rdOk.spec : Prop :=
+  ∀ (rd : GoFunc) γ (γl : Lease.Names) (n : Nat) (ls : Lease.LessorState) (q : Qp)
+    (B : MvccStorage) (Pk Pre Q' Post : IProp GF) (f : GoFunc) (C : MvccState → List Key → IProp GF),
+  let dels (σ : MvccState) (ks : List Key) : List Event := (presentKeys σ.kv.store ks).map .delete
+  let endAU (σ : MvccState) (ks : List Key) : IProp GF :=
+    iprop(AU <{ ∃∃ (σ1 : MvccState), mvccState γ σ1 }> @ ⊤ \ ↑mvccN, ∅
+      <{ ⌜σ1 = σ⌝ ∗ mvccState γ (σ1.notify (dels σ ks)) ∗ ⧖ (evCount (σ1.kv.commit (dels σ ks))), COMM
+          AU <{ ∃∃ (σ2 : MvccState), mvccState γ σ2 }> @ ⊤ \ ↑mvccN, ∅
+            <{ ⌜σ2 = σ.notify (dels σ ks)⌝ ∗ mvccState γ σ2.commitPending, COMM C σ ks }> }>)
+  mvccDeleter (GF := GF) rd γ ∗ mvccLessorIs γ γl ∗ ⌜ls.be = GoInterface.ok (storageVal B)⌝ ⊢
+  Lease.rdOk γl rd n ls
+    iprop(mvccReaders γ 1 ∗ mvccBackend γ q B Pk ∗ hookIs B f ∗ Pre ∗ hookRun Pk f Pre Q' ∗
+      (Q' ={⊤}=∗ Pk ∗ Post) ∗
+      AU <{ ∃∃ (σ : MvccState), mvccState γ σ }> @ ⊤ \ ↑mvccN, ∅
+        <{ ⌜σ.pending = []⌝ ∗ mvccState γ σ, COMM ∀ ks, endAU σ ks }>)
+    (fun td ks _ ls' => iprop(∃ (σ : MvccState) (trace : Loc),
+      ⌜ls' = delsLs ls (presentKeys σ.kv.store ks)⌝ ∗ traceOwn trace ∗
+      mvccTxn td γ trace (.write σ (dels σ ks)) ∗ mvccBackend γ q B Pk ∗ Pk ∗ Post ∗
+      ∀ ks', endAU σ ks'))
+    (fun ks _ _ => iprop(mvccReaders γ 1 ∗ mvccBackend γ q B Pk ∗ Post ∗ ∃ σ : MvccState, C σ ks))
 
 /-- **The names are inhabited** (a client builds a stand-in before the store exists). -/
-def names_nonempty.spec : Prop := Nonempty MvccName ∧ Nonempty LessorName
+def names_nonempty.spec : Prop := Nonempty MvccName
 
 /-- **The shapes and the bundles** (proved from the concrete specs, as `sync`'s
 `Mutex_is_Locker`): a store's handle, a transaction, a hash storage are an `interface.mkOk ty v`

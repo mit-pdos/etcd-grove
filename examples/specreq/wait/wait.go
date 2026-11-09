@@ -59,3 +59,21 @@ func ReqWaitTime(applied *atomic.Uint64) {
 	}
 	<-tl.Wait(2) // already passed: closec
 }
+
+// REQ wait/is-registered: IsRegistered of an id registered once (or never to be registered) may be
+// asked at any time; when it is false, a Trigger of the id owes nothing and never panics.
+// Users: apply/apply.go:40 (Apply skips a result nobody waits for), server.go:2007 (the trigger).
+// Assumes: id fresh.
+// Specs: Wait.list.Register.spec (waitWasReg), Wait.list.IsRegistered.spec (waitDone),
+// Wait.list.Trigger.spec (its waitDone case).
+func ReqIsRegistered(id uint64) {
+	w := wait.New()
+	ch := w.Register(id)
+	_ = w.IsRegistered(id)
+	w.Trigger(id, nil)
+	if w.IsRegistered(id) {
+		return // not stated: true says nothing
+	}
+	w.Trigger(id, "junk")
+	_ = ch
+}

@@ -4,11 +4,12 @@
 // thread's writes, apply/backend.go), each reliance an explicit panic.
 //
 // Common assumptions (the proofs' setting): kv is a member's mvcc store and le its lessor (mvccKV,
-// lessorAt); the caller owns the store's state (mvccState) in an invariant of its own and fires
+// Lease.isLessor, mvccLessor); the caller owns the store's state (mvccState) in an invariant of its own and fires
 // the updates; requests are what the gRPC layer passes on (checkRangeRequest: a key, a valid sort;
 // checkTxnRequest and checkIntervals: txnSafe); an empty RangeEnd is nil (as protobuf decodes it).
 // The write snippets (write.go) run on the apply thread: the store's only writer, its lessor's
-// grants and revocations its own (leasesPin), with context.TODO().
+// grants and revocations its own (the writer token Lease.lessorState, with the store and lessor
+// attached), with context.TODO().
 package txn
 
 import (

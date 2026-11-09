@@ -19,6 +19,8 @@ func entry(term, index uint64) *raftpb.Entry {
 	return &raftpb.Entry{Term: u64(term), Index: u64(index), Type: &t, Data: []byte("x")}
 }
 
+// Go test of a trusted model (not a proof obligation: the functions it calls are trusted, or have
+// no spec here); run it to check the model against the code.
 // REQ etcdserverboot/wal-save-order: the raft loop's writes through the Storage interface are what
 // a restart reads back: a snapshot record saved, then entries after it and a hard state, the files
 // below the snapshot released, the WAL closed; opened again at the snapshot, ReadAll returns the

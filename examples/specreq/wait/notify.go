@@ -11,10 +11,10 @@ import (
 // Notify that ran after the Receive.
 // Users: server.go (leaderChanged, firstCommitInTerm), read.go:98,163,195 (the read loop's
 // LeaderChanged and FirstCommitInTermNotify), the lessor's demotion.
-// Assumes: n is this snippet's (no other Notify); notified is written only here (an invariant over
-// the notifier's count: count ≤ notified).
-// Specs: Notify.NewNotifier.spec, Notify.Notifier.Receive.spec, Notify.Notifier.Notify.spec;
-// laws: notifyChan_recv.
+// Assumes: n is this snippet's (no other Notify).
+// Specs: Notify.NewNotifier.spec (notifyCount γ 0, kept in the snippet's invariant with
+// count ≤ notified), Notify.Notifier.Receive.spec, Notify.Notifier.Notify.spec (its update moves the
+// count after notified.Add(1)); laws: notifyChan_recv, notifyLb_count.
 func ReqNotifyAfterReceive(notified *atomic.Int64) {
 	n := notify.NewNotifier()
 	ch := n.Receive()

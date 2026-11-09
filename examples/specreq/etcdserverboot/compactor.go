@@ -26,7 +26,7 @@ func (fakeCompactable) Compact(ctx context.Context, r *pb.CompactionRequest) (*p
 // Users: NewServer (v3compactor.New at a non-zero retention), start (Run), run's ready handler
 // (Pause/Resume), Cleanup (Stop).
 // Assumes: in periodic mode the retention is at least 10ns in absolute value (V3compactor.bootCfg).
-// Specs: v3compactor.New.spec, Periodic.Run/Pause/Resume/Stop.spec, Revision.*.spec; laws:
+// Specs: compactable_intro, revGetter_intro (the fakes' methods), v3compactor.New.spec, Periodic.Run/Pause/Resume/Stop.spec, Revision.*.spec; laws:
 // isCompactor_periodic, isCompactor_revision.
 func ReqCompactorLifecycle(lg *zap.Logger) {
 	if _, err := v3compactor.New(lg, "bogus", time.Hour, fakeRev{}, fakeCompactable{}); err == nil {

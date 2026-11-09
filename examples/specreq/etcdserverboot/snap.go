@@ -9,6 +9,8 @@ import (
 	"go.etcd.io/raft/v3/raftpb"
 )
 
+// Go test of a trusted model (not a proof obligation: the functions it calls are trusted, or have
+// no spec here); run it to check the model against the code.
 // REQ etcdserverboot/snap-round-trip: a received database snapshot saved at its index is found by
 // that index until a later snapshot releases it; a second save at the same index keeps the first.
 // Users: rafthttp's snapshot receiver (SaveDBFrom), the apply thread's applySnapshot

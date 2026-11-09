@@ -45,11 +45,12 @@ present keys `l` deleted at one revision (none if `l` is empty), the reply count
 listing them with `PrevKv`); or, with `PrevKv` and the context done, its error, nothing written and
 the update given back. -/
 def DeleteRange.spec : Prop :=
-  ∀ (ctx : GoInterface) (lg : Loc) (kv : GoInterface) (γ : MvccName) (d : Loc) (dq : DFrac)
+  ∀ (ctx : GoInterface) (lg : Loc) (kv : GoInterface) (γ : MvccName) (leL : Loc)
+    (γl : Lease.Names) (c : Lease.Cfg) (n : Nat) (ls : Lease.LessorState) (d : Loc) (dq : DFrac)
     (dm : DeleteReq) (Q : KVHist → List KV → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ Context.ctxOk ctx ∗ Zap.isLogger lg ∗ mvccKV kv γ ∗ threadTok ∗ mvccWriter γ ∗
-      deleteReqOwn d dq dm ∗
-      AU <{ ∃∃ (h : KVHist), mvccState γ h }> @ ⊤ \ ↑mvccN, ∅
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ Context.ctxOk ctx ∗ Zap.isLogger lg ∗ mvccKV kv γ ∗ Lease.isLessor leL γl c ∗
+      mvccLessor γ γl ∗ threadTok ∗ mvccWriter γ ∗ Lease.lessorState γl n ls ∗ deleteReqOwn d dq dm ∗
+      AU <{ ∃∃ (h : KVHist), ⌜attached h.store ls⌝ ∗ mvccState γ h }> @ ⊤ \ ↑mvccN, ∅
         <{ ∀∀ (l : List KV), ⌜h.store.rangeKVs dm.range l⌝ ∗ mvccState γ (h.commit (delEvents l)),
            COMM Q h l }> }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.DeleteRange)) (Val #ctx)) (Val #lg)) (Val #kv)) (Val #d))
@@ -57,9 +58,12 @@ def DeleteRange.spec : Prop :=
       threadTok ∗ mvccWriter γ ∗ deleteReqOwn d dq dm ∗ traceAt tr ∗
       ((⌜err = GoInterface.nil⌝ ∗ ∃ (h : KVHist) (l : List KV), Q h l ∗
           ⌜h.store.rangeKVs dm.range l⌝ ∗
+          (∃ (n' : Nat) (ls' : Lease.LessorState), Lease.lessorState γl n' ls' ∗
+            ⌜sameLeases ls ls' ∧ attached (h.commit (delEvents l)).store ls'⌝) ∗
           delOk resp (h.commit (delEvents l)).rev l.length (if dm.prevKv then l else [])) ∨
        (⌜resp = null ∧ dm.prevKv = true⌝ ∗ Context.ctxDone ctx ∗ ctxErr err ∗
-          AU <{ ∃∃ (h : KVHist), mvccState γ h }> @ ⊤ \ ↑mvccN, ∅
+          Lease.lessorState γl n ls ∗
+          AU <{ ∃∃ (h : KVHist), ⌜attached h.store ls⌝ ∗ mvccState γ h }> @ ⊤ \ ↑mvccN, ∅
             <{ ∀∀ (l : List KV), ⌜h.store.rangeKVs dm.range l⌝ ∗ mvccState γ (h.commit (delEvents l)),
                COMM Q h l }>)) }}
 

@@ -27,7 +27,7 @@ import (
 // revision at least the put's; the key's mod revision is the put's revision.
 // Users: api/v3rpc/key.go:53,95 (the handlers through RaftKV, as the client's put-then-get
 // reaches them); examples/etcd/putget.
-// Assumes: k is owned.
+// Assumes: k is owned and non-empty.
 // Specs: EtcdServer.Put.spec, EtcdServer.Range.spec (SrvCallTriple); laws: etcdState_lb,
 // etcdLb_reach, putRespOwn_unfold, rangeRespOwn_unfold.
 func ReqPutThenRange(ctx context.Context, s *etcdserver.EtcdServer, k, v []byte) {
@@ -53,8 +53,7 @@ func ReqPutThenRange(ctx context.Context, s *etcdserver.EtcdServer, k, v []byte)
 // REQ etcdserverreq/serializable-range: a serializable range answers from the member's view: never
 // above a revision the cluster reached, its key-values those of that revision.
 // Users: api/v3rpc/key.go:53 (a client's WithSerializable get), the corruption checker's reads.
-// Assumes: k is owned; maxRev is the header revision of a later reply of another call (an
-// etcdLb the caller holds of a later state).
+// Assumes: k is owned and non-empty.
 // Specs: EtcdServer.Range.spec; laws: etcdLb_ord, etcdLb_reach.
 func ReqSerializableRange(ctx context.Context, s *etcdserver.EtcdServer, k []byte) {
 	resp, err := s.Range(ctx, &pb.RangeRequest{Key: k, Serializable: true})
@@ -72,7 +71,7 @@ func ReqSerializableRange(ctx context.Context, s *etcdserver.EtcdServer, k []byt
 // REQ etcdserverreq/delete-then-range: a delete's reply counts the key it removed, and a later
 // range does not see it.
 // Users: api/v3rpc/key.go:104,53.
-// Assumes: k is owned and present (an earlier acknowledged put of this caller).
+// Assumes: k is owned, non-empty and present (an earlier acknowledged put of this caller).
 // Specs: EtcdServer.DeleteRange.spec, EtcdServer.Range.spec.
 func ReqDeleteThenRange(ctx context.Context, s *etcdserver.EtcdServer, k []byte) {
 	dresp, err := s.DeleteRange(ctx, &pb.DeleteRangeRequest{Key: k})
@@ -95,8 +94,10 @@ func ReqDeleteThenRange(ctx context.Context, s *etcdserver.EtcdServer, k []byte)
 // success branch exactly when the key was last written at that revision.
 // Users: api/v3rpc/key.go:130 (Kubernetes' OptimisticPut through the client's Txn,
 // concurrency's Mutex and STM).
-// Assumes: k is owned; rev is the mod revision of k at the caller's last acknowledged write of it.
-// Specs: EtcdServer.Txn.spec (a write: one-shot update); laws: txnRespOwn_unfold.
+// Assumes: k is owned and non-empty; rev is the mod revision of k at the caller's last
+// acknowledged write of it.
+// Specs: EtcdServer.Txn.spec (a write: one-shot update); laws: txnChecked_small (one compare, one
+// put), txnRespOwn_unfold.
 func ReqTxnCAS(ctx context.Context, s *etcdserver.EtcdServer, k, v []byte, rev int64) {
 	resp, err := s.Txn(ctx, &pb.TxnRequest{
 		Compare: []*pb.Compare{{Key: k, Target: pb.Compare_MOD, Result: pb.Compare_EQUAL,
@@ -116,8 +117,8 @@ func ReqTxnCAS(ctx context.Context, s *etcdserver.EtcdServer, k, v []byte, rev i
 
 // REQ etcdserverreq/txn-readonly: a read-only transaction is a read: its answers are a range's.
 // Users: api/v3rpc/key.go:130 (a client's If(...).Then(OpGet...) with no write).
-// Assumes: k is owned and present.
-// Specs: EtcdServer.Txn.spec (a read: persistent update, Range's path).
+// Assumes: k is owned, non-empty and present.
+// Specs: EtcdServer.Txn.spec (a read: persistent update, Range's path); laws: txnChecked_small.
 func ReqTxnReadOnly(ctx context.Context, s *etcdserver.EtcdServer, k []byte) {
 	resp, err := s.Txn(ctx, &pb.TxnRequest{
 		Success: []*pb.RequestOp{{Request: &pb.RequestOp_RequestRange{RequestRange: &pb.RangeRequest{Key: k}}}},
@@ -155,8 +156,10 @@ func ReqCompactorCompact(ctx context.Context, s *etcdserver.EtcdServer, rev int6
 // Users: the client's retry interceptor (client/v3/retry_interceptor.go: it resends after
 // ErrAuthOldRevision and ErrInvalidAuthToken), api/v3rpc/key.go:95.
 // Assumes: k is owned and absent.
-// Specs: EtcdServer.Put.spec (outcome 1 with a refusal, or outcome 2: the update given back),
-// EtcdServer.Range.spec; laws: srvErrOf_fun.
+// Specs: EtcdServer.Put.spec (outcome 1 with a refusal, or outcome 2: the update given back; every
+// error with srvErrShape), EtcdServer.Range.spec; laws: srvErrOf_val, srvErrOf_inj, srvErrVal_leaf
+// (errors.Is against a sentinel is equality: Perennial's errors.wp_Is_leaf), srvErrOf_notCtx, the
+// packages' initialization laws (the sentinels' globals hold srvErrVal e: req/).
 func ReqRefusalNotApplied(ctx context.Context, s *etcdserver.EtcdServer, k, v []byte) {
 	_, err := s.Put(ctx, &pb.PutRequest{Key: k, Value: v})
 	if !errors.Is(err, srverrors.ErrTooManyRequests) && !errors.Is(err, srverrors.ErrRequestTooLarge) &&
@@ -169,5 +172,22 @@ func ReqRefusalNotApplied(ctx context.Context, s *etcdserver.EtcdServer, k, v []
 	}
 	if len(rresp.Kvs) != 0 {
 		panic("refusal: refused put applied")
+	}
+}
+
+// REQ etcdserverreq/health-range: the health checks' range of the empty key never panics and, on
+// success, finds nothing (no key is empty).
+// Users: api/etcdhttp/health.go:224,435 (checkAPI, readCheck: KeysOnly, Limit 1, a WithRoot
+// context; only err is used).
+// Assumes: the caller holds a read permission over the cluster's state (W0's etcdPeek-like
+// persistent update; the server's, 2e's).
+// Specs: EtcdServer.Range.spec (srvStep's emptyRangeStep); laws: etcdLb_keyNonEmpty.
+func ReqHealthRange(ctx context.Context, s *etcdserver.EtcdServer) {
+	resp, err := s.Range(ctx, &pb.RangeRequest{KeysOnly: true, Limit: 1})
+	if err != nil {
+		return
+	}
+	if len(resp.Kvs) != 0 {
+		panic("health-range: an empty key exists")
 	}
 }

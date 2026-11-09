@@ -9,7 +9,7 @@ stopped member again on its directory); the integration framework's members. Pat
 a new cluster of one or of three (each with its fresh directory), a restart on the member's
 directory, a member joining (etcd's `MemberAdd` then a start with `--initial-cluster-state
 existing`), each with or without an auto-compactor. Snippets: `etcdserverboot/boot.go`
-(`ReqStartOne`, `ReqStartThree`, `ReqRestart`, `ReqJoin`), `config.go` (`ReqConfigs`).
+(`ReqStartOne`, `ReqStartThree`, `ReqRestart`, `ReqJoin`; `memberConfig`, the starters' configuration).
 
 **Proof sketch.** Over the slots (`ApiBoot.lean`, "Slots"):
 1. `bootstrap(cfg)` (`bootstrap.spec`, trusted): with `memberStart γ cfg c`, the configuration and

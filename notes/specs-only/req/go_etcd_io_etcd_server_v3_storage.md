@@ -33,3 +33,18 @@ Used by: `raftNode.start.spec`, `raftNode.onStop.spec`, `snapshot.spec`, `applyS
    from the members bucket), so no requirement remains on it.
 7. `OpenSnapshotBackend`'s image is `imgAt γ sn.index` (2d's: the state machine at the snapshot's
    point `a`, stored index `a`): the member's invariant over `snapDbs` gives it (`srvNet`'s `dbIn`).
+
+
+## from 3a
+
+1. **`BackendQuota.Cost(req)`** (the capped applier's `a.q.Cost(r) > 0` on a zero `BackendQuota`):
+   positive iff the transaction puts somewhere (either branch, any nesting: `costTxn`), so that the
+   capped applier's refusal is a function of the request (3a's `IrrOp.cappedRefused`). Today's spec
+   answers any `int`. Also `Cost` on a `*BackendQuota` that `NewBackendQuota` did not build (the
+   capped applier's zero field): `isQuota` of it, or a spec of `Cost` without `isQuota` (it reads no
+   field).
+2. `Available`: any answer (as now): its `false` is 3a's `resMatch` margin.
+Used by: `applierV3Capped.Txn.spec`, `quotaApplierV3.*.spec`.
+```go
+if a.q.Cost(r) > 0 { return nil, nil, errors.ErrNoSpace }                   // capped.go:38
+```

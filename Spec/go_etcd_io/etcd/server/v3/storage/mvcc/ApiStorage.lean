@@ -208,6 +208,11 @@ opaque kbSafe (B : MvccStorage) : IProp GF := iprop(True)
 /-- The right to delete from `Key`, the safe-range lock held. -/
 opaque kbSafeHeld (B : MvccStorage) : IProp GF := iprop(True)
 
+/-- **This thread holds the storage's batch lock** (exclusive): what the storage's other users'
+unsafe writes under the lock take (the lessor's lease-bucket delete inside a store's write
+transaction, `lessor.Revoke`: 3c's provisional `beTxHeld`); `kbLocked_held` lends it. -/
+opaque kbHeld (B : MvccStorage) : IProp GF := iprop(True)
+
 /-- mvcc's bucket `b` exists (persistent). -/
 opaque kbMade (B : MvccStorage) (b : MBucket) : IProp GF := iprop(True)
 
@@ -358,6 +363,10 @@ def kbData_excl.spec : Prop := ∀ B D D', kbData (GF := GF) B D ∗ kbData B D'
 def kbLocked_excl.spec : Prop := ∀ B D D', kbLocked (GF := GF) B D ∗ kbLocked B D' ⊢ iprop(False)
 
 def kbSafe_excl.spec : Prop := ∀ B, kbSafe (GF := GF) B ∗ kbSafeHeld B ⊢ iprop(False)
+
+/-- The batch lock's holder may lend "the lock is held" to the storage's other users. -/
+def kbLocked_held.spec : Prop := ∀ B D,
+  kbLocked (GF := GF) B D ⊢ kbHeld B ∗ (kbHeld B -∗ kbLocked B D)
 
 def kbRdToks_split.spec : Prop := ∀ B n m,
   kbRdToks (GF := GF) B (n + m) ⊣⊢ kbRdToks B n ∗ kbRdToks B m

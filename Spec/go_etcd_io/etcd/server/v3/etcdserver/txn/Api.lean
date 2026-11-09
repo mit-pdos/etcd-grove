@@ -2,85 +2,91 @@
 # etcd's server transactions (batch 3b): `server/v3/etcdserver/txn`, the vocabulary
 
 `Range`, `Count`, `Put`, `DeleteRange` and `Txn` run one request over a member's mvcc store (and,
-for a put, its lessor): the apply thread (3a's `applierV3backend`, every member, for a committed
-write) and the request path (2c: `EtcdServer.Range`, `RangeStream`, a read-only `Txn`) call them.
+for a write, its lessor): the apply thread (3a's `applierV3backend`, every member, for a committed
+request) and the request path (2c: `EtcdServer.Range`, `RangeStream`, a read-only `Txn`) call them.
 This file is the vocabulary their specs share.
 
 ## The shape, in words
 
 **The state a request acts on** is the member store's **history** `h : KVHist` (W0's: the events of
 every revision and the compaction revision), held in mvcc's client-owned `mvccState γ h` (3e's), and
-for a write that puts, the live leases `ls` of the store's lessor (pinned by the caller,
-`leasesPin γ ls`, 3c's).
+for a write the lessor's state `ls` (3c's `Lease.LessorState`, through the apply thread's writer
+token `Lease.lessorState γl n ls`): its live leases (`ls.table`, W0's lease table) decide a put's
+check, and its attachments follow the store (`attached`), which mvcc's put and delete keep.
 
 * **A read** (`Range`, `Count`, a read-only `Txn`) takes the caller's atomic update over
   `mvccState`, the state unchanged, fired once when mvcc's read transaction begins (`kv.Read`: the
   store's revision and compaction are fixed for the transaction); the answer is computed from that
   state. Concurrent writers are allowed (the request path's reads run beside the apply thread).
-* **A write** (`Put`, `DeleteRange`, a `Txn` that is not read-only) is the store's **sole writer**:
-  its update is **pinned** at the history `h` it begins at (`AU <{ mvccState γ h }> …`: the caller
-  asserts the state is `h` whenever the update is opened, which the apply thread can, being the only
-  writer; `Txn` reads the store, checks, then writes in two mvcc transactions and relies on no write
-  in between, `txn.go:60-63`). It fires once, at the write transaction's `End` (or at the check that
-  fails), moving `h` to the model's next history.
+* **A write** (`Put`, `DeleteRange`) is one mvcc write transaction, atomic by mvcc's writer lock:
+  its update fires once, at the transaction's `End` (or at the check that fails), moving `h` to the
+  model's next history. **A writing `Txn`** reads, checks, then writes in two mvcc transactions and
+  relies on no write in between (`txn.go:60-63`): its update is **pinned** at the history `h0` it
+  begins at (`⌜h = h0⌝` in the update's precondition: the caller asserts the state is `h0` whenever
+  the update is opened, which the apply thread can, being the store's only writer).
 
-**The answers are functions of the state** (`putAns`, `rangeOut`, `run`): `Txn.goSort` names the
+**The answers are functions of the state** (`putAns`, `rangeOut`, `run`): `goSort` names the
 permutation Go's `sort.Sort` (pdqsort, deterministic: its pivot "randomness" is seeded by the
 length) produces, so a range's answer is unique although the model's `RangeReq.answers` allows any
 order among ties. This is what 2d's commit-time answers (`applyStep_fun`) and 2c's read registry
-need. The laws `rangeOut_answers`, `run_txnRun` relate each to W0's relations (`RangeReq.answers`,
-`TxnRun`), so 2c/3a reach W0's `kvStep` without unfolding.
+need. The laws `rangeOut_answers`, `run_txnRun` relate them to W0's relations (`RangeReq.answers`,
+`TxnRun`), so 2c and 3a reach W0's `kvStep` without unfolding.
 
 **Errors** are the Go values the package returns: `errIs err e` (mvcc's `ErrCompacted` and
 `ErrFutureRev`, lease's `ErrLeaseNotFound`, etcdserver/errors' `ErrKeyNotFound`, for W0's `e`), and a
-context's error inside mvcc's range (`ctxErr err`, only when the context is done).
+context's error inside mvcc's range (`ctxErr err`, only once the context is done).
 
 ## Vocabulary
 
-Pure (transparent): `targetOk`, `rangeLimitZ`, `sortOut`, `assemble`, `rangeOut`, `rangeAll`,
-`hdrAt`, `putEvents`, `putPrev`, `putAns`, `putHist`, `delEvents`, `cmpsHold`, `opCheck`/`opsCheck`,
-`execOp`/`execOps`, `run`, `runHist`, `runRev`, `opSafe`/`opsSafe`, `txnSafe`, `leasesLive`,
-`kvFits`, `viewRev`, `viewStore`, `viewErr`, `TxKind`. Pure (opaque): `goSort` (Go's sort, law
-`goSort_sorted`).
+Pure (transparent): `targetOk`, `countReq`, `rangeLimitZ`, `sortOut`, `assemble`, `rangeOut`,
+`rangeAll`, `kvFits`, `hdrAt`, `ignores`, `needsPrev`, `putEvents`, `putPrev`, `putAns`, `putHist`,
+`delEvents`, `attached`, `sameLeases`, `cmpsHold`, `opCheck`/`opsCheck`, `execOp`/`execOps`,
+`opPath`/`opsPath`, `txnPathOf`, `run`, `runHist`, `runRev`, `opIgnTaken`/`opsIgnTaken`,
+`opIgnKeys`/`opsIgnKeys`, `opDelRanges`/`opsDelRanges`, `opSafe`/`opsSafe`, `txnSafe`, `TxKind`,
+`viewRev`, `viewStore`, `viewErr`. Pure (opaque): `goSort` (Go's sort; law `goSort_sorted`).
 
-Resources (opaque): `errIs err e`, `ctxErr err` (persistent); `traceAt tr` (persistent, 4b's,
-provisional). The reply predicates `rangeOk`, `putOk`, `delOk`, `txnOk` (transparent, over W0's
-`Wire.lean` ownership) and `rrOwn` (mvcc's `*RangeResult`, owned, transparent).
+Resources: `errIs err e`, `ctxErr err` (opaque, persistent); the reply predicates `rangeOk`, `putOk`,
+`delOk`, `txnOk` (transparent, over W0's `Wire.lean`), `rrOwn` (mvcc's `*RangeResult`, owned,
+transparent), `msgOpt` (a message the warnings may size, transparent); `roTxnResp` (opaque: a
+read-only transaction's partly filled response) and `respSkel` (opaque, internal: the response tree
+`newTxnResp` allocates).
 
 **Provisional, the callees' slots** (to be replaced by their names at integration;
-`notes/specs-only/req/go_etcd_io_etcd_server_v3_storage_mvcc.md`, `..._lease.md`, "from 3b"):
+`notes/specs-only/req/go_etcd_io_etcd_server_v3_storage_mvcc.md`, `..._lease.md`,
+`..._etcdserverpb.md`, `..._traceutil.md`, "from 3b"):
 
 * 3e: `MvccName`, `mvccN`; `mvccKV kv γ` (persistent: `kv` is a store, an `mvcc.KV` interface value:
   `*store` or `*watchableStore`); `mvccState γ h` (the store's history, client-owned, exclusive);
   `mvccWriter γ` (exclusive: what mvcc's `Write` needs of its caller and gives back at `End`: the
   backend's share, the post-lock hook's contract that sets the consistent index); `mvccTxn tx γ k h
-  evs` (exclusive: an open transaction of kind `k` begun at `h`, its pending events `evs`).
-* 3c: `lessorAt le γ` (persistent: `le` is the `lease.Lessor` the store `γ` attaches keys to);
-  `leasesPin γ ls` (exclusive: the lessor's live leases are `ls` while held).
+  evs` (exclusive: an open transaction of kind `k` begun at `h`, its pending events `evs`);
+  `mvccLessor γ γl` (persistent: the store attaches keys to 3c's lessor `γl`).
 * 3h: `stringerOk s` (persistent: a `fmt.Stringer` whose `String()` returns).
+* 4b: `traceAt tr` (persistent; 2c's `EtcdServer.traceAt`).
 
 ## Intended realization
 
 txn allocates no ghost state and keeps no invariant: each entry point passes the caller's update to
 mvcc's transaction contracts (3e: `Read`'s update fired at the begin, `End`'s at the commit), reads
-the lessor through `Lookup` (3c, at the pin), and builds the reply. `goSort` is realized by a
-functional model of Go's `sort.Sort` (a Perennial change: its spec today gives a sorted
-permutation, not which one; `batch-3b.md`). `errIs` by the owners' package initializations (each
-sentinel is an `errors.New` value, a distinct pointer), `ctxErr` by `fmt.Errorf`'s fresh value.
+the lessor through `Lookup` (3c, at the writer's token), and builds the reply. `goSort` is realized
+by a functional model of Go's `sort.Sort` (a Perennial change: its spec today gives a sorted
+permutation, not which one; `notes/specs-only/batch-3b.md`). `errIs` by the owners' package
+initializations (each sentinel an `errors.New` value, a distinct pointer), `ctxErr` by `fmt.Errorf`'s
+fresh value, `roTxnResp` and `respSkel` by the response trees as `newTxnResp` builds them.
 
 ## Laws
 
 `goSort_sorted`, `rangeAll_eq`, `rangeOut_answers`, `run_txnRun`, `runHist_readonly`,
 `errIs_persistent`, `errIs_ne_nil`, `errIs_agree`, `ctxErr_persistent`, `ctxErr_ne_nil`,
-`ctxErr_not_errIs`, `traceAt_persistent`, `mvccKV_persistent`, `lessorAt_persistent`,
-`mvccState_excl`.
+`ctxErr_not_errIs`, `traceAt_persistent`, `stringerOk_persistent`, `mvccKV_persistent`,
+`mvccLessor_persistent`, `mvccState_excl`.
 
 ## Requirement snippets
 
-`examples/specreq/txn/`: `read.go` (a range at the store's revision, a pinned revision and its
-compaction error, a count, the paging of `RangeStream`, a read-only txn), `write.go` (the apply's
-put, delete and write txn as one sole writer: a put then a range sees it, a CAS txn, the
-`IgnoreValue` put, the lease check, the response's header revision), `helpers.go`
+`examples/specreq/txn/`: `read.go` (a limited range's count and `More`, a pinned revision and its
+compaction error, `RangeStream`'s paging with `Count`, a count-only range, a read-only `Txn`),
+`write.go` (the apply thread as the sole writer: a put then a range sees it, `IgnoreValue`, the lease
+check, a range delete, a CAS `Txn`, a `Txn` with `skipRangeExecution`), `helpers.go`
 (`IsTxnReadonly`, `IsTxnSerializable`, `IsDefaultOrdering`, `HasRevisionFilters` as 2a and 2c use
 them).
 -/

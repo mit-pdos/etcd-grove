@@ -29,7 +29,9 @@ func ReqGrantThenRevoke(ctx context.Context, s *etcdserver.EtcdServer, ttl int64
 // context, never panics (it ignores the reply).
 // Users: server.go:882 (revokeExpiredLeases, one goroutine per lease).
 // Assumes: the update is built from envUpd (EnvStep.leaseExpire; the identity aborted).
-// Specs: EtcdServer.LeaseRevoke.spec; reqPrin of WithRoot's context (3d).
+// Specs: EtcdServer.LeaseRevoke.spec; reqPrin_noIncoming of ctx (s.ctx: ctxNoIncoming), and 3d's
+// WithRoot spec: reqPrin rctx (some root) none with auth enabled at the call, the context unchanged
+// otherwise.
 func ReqExpiryRevoke(ctx context.Context, s *etcdserver.EtcdServer, id int64) {
 	rctx := s.AuthStore().WithRoot(ctx)
 	_, _ = s.LeaseRevoke(rctx, &pb.LeaseRevokeRequest{ID: id})

@@ -98,7 +98,7 @@ nothing missed; a stream-wide progress covers every live watcher; the drain befo
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ProvStore
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.Api
 
 @[expose] public section

@@ -11,6 +11,8 @@ import (
 	"go.etcd.io/etcd/server/v3/storage/schema"
 )
 
+// Go test of a trusted model (not a proof obligation: the functions it calls are trusted, or have
+// no spec here); run it to check the model against the code.
 // REQ etcdserverboot/members: the apply thread's writes and the request path's reads of the
 // membership view agree: a member added is listed (once), a member removed is not listed and stays
 // removed, the local member's learner flag is its record's.
