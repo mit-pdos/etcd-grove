@@ -48,6 +48,13 @@ theorem traceRO_of_heap (t : Loc) (tr : Trace) (h : tr.Valid) :
   · ipureintro; exact h
   iexact H
 
+theorem setRO_nil : ⊢ setRO (GF := GF) slice.nil [] := by
+  unfold setRO
+  iexists []
+  isplitl []
+  · iapply ownSlice_nil
+  ipureintro; rfl
+
 end defs
 
 /-! ## Proof tactics (hygiene off: they name the proof's hypotheses) -/
@@ -961,6 +968,41 @@ theorem global_flag (xs : List Line) (srv : SetIds) (i : ID) (hi : i ∈ srv) (k
     rw [hn] at this; subst this; exact hb
   · intro hb
     refine ⟨⟨i, hi, by rw [bootstrapOf_flag xs i k hk]; exact hb⟩, bIsB_nid hb⟩
+
+theorem parseLine_ev {k : Nat} {ev : Event} {ln : Line} (h : parseLine k ev = .ok ln) : ln.ev = ev := by
+  unfold parseLine at h
+  simp only [bind, Except.bind, throw, throwThe, MonadExceptOf.throw, Pure.pure, Except.pure] at h
+  repeat' (first | (split at h) | (cases h; rfl) | (injection h with h; rw [← h]))
+  all_goals first | (cases h) | (injection h with h; rw [← h]) | skip
+
+theorem mapM_ok_mem {α β ε : Type} (f : α → Except ε β) :
+    ∀ (l : List α) (r : List β), l.mapM f = .ok r → ∀ y ∈ r, ∃ x ∈ l, f x = .ok y
+  | [], r, h, y, hy => by simp [Pure.pure, Except.pure] at h; subst h; simp at hy
+  | a :: l, r, h, y, hy => by
+    rw [List.mapM_cons] at h
+    simp only [bind, Except.bind] at h
+    cases hfa : f a with
+    | error e => rw [hfa] at h; cases h
+    | ok b =>
+      rw [hfa] at h
+      simp only at h
+      cases hl : l.mapM f with
+      | error e => rw [hl] at h; cases h
+      | ok r' =>
+        rw [hl] at h
+        simp only [Pure.pure, Except.pure, Except.ok.injEq] at h
+        subst h
+        rcases List.mem_cons.1 hy with rfl | hy
+        · exact ⟨a, List.mem_cons_self, hfa⟩
+        · obtain ⟨x, hx, hfx⟩ := mapM_ok_mem f l r' hl y hy
+          exact ⟨x, List.mem_cons_of_mem _ hx, hfx⟩
+
+theorem lines_ev_mem {evs : List Event} {xs : List Line}
+    (h : ((List.range evs.length).zip evs).mapM (fun p => parseLine p.1 p.2) = .ok xs) {x : Line} (hx : x ∈ xs) :
+    x.ev ∈ evs := by
+  obtain ⟨p, hp, hpx⟩ := mapM_ok_mem _ _ _ h x hx
+  rw [parseLine_ev hpx]
+  exact (List.of_mem_zip hp).2
 
 end Etcdraft
 end EtcdGrove

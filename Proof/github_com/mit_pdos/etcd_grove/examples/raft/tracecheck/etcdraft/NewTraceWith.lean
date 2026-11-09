@@ -1821,6 +1821,69 @@ theorem NewTraceWith.wp_proof
       · ipureintro; rfl
       iexists _
       iframe Hout Hacc
+    iintro ⟨%osl1, %e2, %Hv, Hcf⟩
+    subst Hv
+    try wp_auto
+    cases hcf : (List.range xs.length).filterMapM (tConfH xs (uint.nat iw)) with
+    | error ec =>
+      icases Hcf with %He
+      cases e2 with
+      | nil => exact absurd rfl He
+      | ok ei =>
+      wp_auto
+      wp_for_post
+      try wp_auto
+      iapply HΦ
+      have hfull : srv.mapM (tBconfF xs srv) = .error ec :=
+        mapM_take_succ_err _ _ _ _ _ _ Hsi hbfP (by rw [tBconfF_eq xs srv _ himem, hcf]; rfl)
+      obtain ⟨e', he'⟩ := tail_conf_err pv cq hbnz hx0srv hbc hsub (m := srv.length) (by rw [List.take_length]; exact hfull)
+      rw [htail, he']
+      ipureintro; exact He
+    | ok cfs =>
+    icases Hcf with ⟨%He, %csls, Hcsls, #Hcfs⟩
+    subst He
+    imod ownSlice_persist $$ Hcsls with #Hcsls
+    ihave #HlL0 := HlL
+    iunfold lineRO at HlL0
+    icases HlL0 with ⟨⟨%geL, #HgevL, #HgerL⟩, %HlfL, %laL, %lbL, %HlabL, #HcL0, #HcL1⟩
+    iunfold eventRO at HgerL
+    icases HgerL with ⟨%HefL, -⟩
+    icases typedPointsto_split _ _ _ $$ HgevL with HgevLf
+    simp only [TypedPointsto.typedPointstoDef]
+    icases HgevLf with ⟨#GLName, #GLNID, #GLState, #GLRole, #GLLog, #GLConf, #GLMsg, #GLProp, -⟩
+    icases typedPointsto_split _ _ _ $$ GLState with GLStatef
+    simp only [TypedPointsto.typedPointstoDef]
+    icases GLStatef with ⟨#GLTerm, #GLVote, #GLCommit, -⟩
+    have hxLb : xL.ev.Bounded := Hb.1 _ (lines_ev_mem hacc (List.mem_of_getElem? HxL))
+    have hlog := hxLb.2.2.1
+    unfold numOk numBound at hlog
+    ihave %Hcslsl := ownSlice_len $$ Hcsls
+    ihave %Hcfsl := BigSepL2.bigSepL2_length $$ Hcfs
+    try wp_auto
+    wp_apply wp_slice_make2 (V := G.Entry) geL.Log' $$ [] as %logsl ⟨Hlog, Hlogcap⟩
+    · ipureintro; rw [HefL.2.2.2.2.2.2]; exact hlog.1
+    try wp_auto
+    obtain ⟨LL, hLL⟩ : ∃ LL : List Entry, LL = (List.range xL.ev.log.toNat).map (fun k =>
+        ({ term := 1, type := .config, value := .conf (cfs.getD k cfg) [] } : Entry)) := ⟨_, rfl⟩
+    have hLLl : LL.length = sint.nat geL.Log' := by
+      rw [hLL]; simp; rw [show sint.nat geL.Log' = (sint.Z geL.Log').toNat from rfl, HefL.2.2.2.2.2.2]
+    ihave %Hlogl := ownSlice_len $$ Hlog
+    ihave IHl : iprop(∃ (m kv : w64) (es : List G.Entry),
+        "i" ∷ i_ptr ↦ m ∗ "k" ∷ k_ptr ↦ kv ∗ "Hlog" ∷ logsl ↦* es ∗ "cfg" ∷ cfg_ptr ↦ cs1 ∗
+        "confs" ∷ confs_ptr ↦ osl1 ∗
+        "Hes" ∷ ([∗list] e;x ∈ es.take (sint.nat m);LL.take (sint.nat m), entryRO e x) ∗
+        "%Hm" ∷ ⌜0 ≤ sint.Z m ∧ sint.Z m ≤ sint.Z logsl.len ∧ es.length = LL.length⌝)
+      $$ [i k Hlog cfg confs]
+    · iexists _, _, _
+      iframe
+      isplitl []
+      · rw [show sint.nat (W64 0) = 0 from rfl]; simp; iempintro
+      ipureintro
+      refine ⟨by word, by word, by simp [hLLl]⟩
+    wp_for IHl
+    obtain ⟨hm0, hm1, hesl⟩ := Hm
+    wp_if_destruct
+    · sorry
     sorry
   sorry
 
