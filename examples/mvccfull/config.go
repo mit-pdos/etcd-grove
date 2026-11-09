@@ -8,8 +8,8 @@ import (
 
 // A Config is a run's: its sizes, mvcc's own settings, and the mix of its choices. Every Config
 // is valid (out-of-range values are clamped, normalize), and the tester's checks hold for every
-// one: what a Config changes is how large the executions are and how likely each one is, never
-// what is checked. Engineered Configs (mvccfull_test.go) make the executions behind a class of
+// one: what a Config changes is how large the executions are and which are likely (or, with a
+// weight of 0, possible), never what a check says. Engineered Configs (mvccfull_test.go) make the executions behind a class of
 // bugs likely; Main's reaches past mvcc's internal thresholds.
 //
 //   - Prefix: the files are Prefix-0.db and Prefix-1.db (the members') and Prefix-b<n>.db (the
@@ -41,9 +41,11 @@ type Config struct {
 }
 
 // A Mix weighs the tester's choices. In each field, the i-th entry is the weight of the i-th
-// alternative listed with the field; every alternative is possible whatever the weights (an entry
-// that is missing, zero or negative counts as 0, and a field whose weights are all 0 chooses
-// uniformly), so a Mix only makes some executions more likely than others. Several alternatives
+// alternative listed with the field (an entry that is missing, zero or negative counts as 0). An
+// alternative of positive weight can always be chosen; one of weight 0 is never chosen unless
+// every weight of the field is 0, in which case the choice is uniform. So a Mix can rule an
+// alternative out, but the theorem for every Config covers each one (the all-zero Mix chooses
+// every alternative), and a Mix changes which checks run, never what a check says. Several alternatives
 // pick from a subset of another's values (a revision equal to the compaction revision is also
 // "any revision"): they exist only to be weighed.
 //
