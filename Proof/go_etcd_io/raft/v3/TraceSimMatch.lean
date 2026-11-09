@@ -3910,6 +3910,71 @@ theorem lineEffect_selfAck (C : List w64) (e : TraceEv) (id : w64) (s : NState) 
     simp only [msgAbs, pselfAck, Option.get_some] at this
     simp only [msgAbs, pselfAck, Option.get_some, Bool.and_eq_true, beq_self_eq_true, and_true]
     exact this
+
+/-- The server a response of its term makes (`respSt`'s, as a function of the server). -/
+def respSrv (v : Etcdraft.Server) (m : Etcdraft.Msg) : Etcdraft.Server :=
+  if m.type = .requestVoteResponse then
+    { v with votesResponded := v.votesResponded.add m.source,
+             votesGranted := if m.voteGranted then v.votesGranted.add m.source else v.votesGranted }
+  else if m.success then
+    { v with matchIndex := fun k => if k = m.source then max (v.matchIndex m.source) m.matchIndex else v.matchIndex k }
+  else v
+
+theorem respSt_eq (σ : Etcdraft.State) (m : Etcdraft.Msg) :
+    respSt σ m = withNode σ m.dest (respSrv (σ.s m.dest) m) (fun b => b.without m) _root_.id := by
+  unfold respSt respSrv
+  by_cases h1 : m.type = .requestVoteResponse
+  · simp only [h1, ↓reduceIte]; rfl
+  · simp only [h1, ↓reduceIte]
+    by_cases h2 : m.success = true
+    · simp only [h2, ↓reduceIte]; rfl
+    · simp only [h2, Bool.false_eq_true, ↓reduceIte]
+      unfold withNode Etcdraft.State.discard
+      have : (fun j => if j = m.dest then σ.s m.dest else σ.s j) = σ.s := by
+        funext j; split <;> simp_all
+      rw [this]; rfl
+
+/-- **A response of the node's term's effect** (any role but pre-candidate). -/
+theorem lineEffect_resp (C : List w64) (e : TraceEv) (s : NState) (cfg : CfgM) (m : Msg) (evt : w64)
+    (a : Etcdraft.Server) (mabs : Etcdraft.Msg) (Mid : Etcdraft.Server → Prop)
+    (htyev : (m.ty = .appResp ∧ evt = W64 12) ∨ (m.ty = .voteResp ∧ evt = W64 16))
+    (hev : SendEvOf evt m.dst s cfg m e) (hin : (elements cfg.incoming).Perm C) (hout : cfg.outgoing = ∅)
+    (hC : m.dst ∈ C) (hR : SimServerR C C.length (toPState s) a) (hs : LogShapeOk C.length (toPState s))
+    (hpre : s.role ≠ .preCandidate) (hterm : m.term = s.term)
+    (bt : uint.Z s.term < 2 ^ 63) (bc : uint.Z s.logst.committed < 2 ^ 63)
+    (bl : uint.Z (plastIndex (toPState s)) < 2 ^ 63) (bi : uint.Z m.index < 2 ^ 63)
+    (hmabs : msgAbs C C.length m = some mabs) :
+    LineEffect C false e (idAbs m.dst) a (respSrv a mabs) (some mabs) (fun b => b.without mabs) _root_.id Mid := by
+  have hev' := hev
+  obtain ⟨hname, hnid, hterm', hvote, hcommit', hrl, hlog, ⟨xs, ys, hxs, hys, hconf⟩, ⟨tm, hmsg, hm⟩, -⟩ := hev'
+  rw [hout, elements_empty_nil] at hys
+  have hys0 := List.Perm.eq_nil hys
+  subst hys0
+  obtain ⟨nm, hname', hrn, htyp, hmt, hmdst, hmterm, hpred⟩ :=
+    respLine C e s cfg m evt htyev hname tm hmsg hm (by rw [hterm]; exact bt) bi mabs hmabs
+  have hparse : Etcdraft.parseLine 0 (evConv e) = .ok (msgLine e m.dst s.vote m.src m.dst (elements cfg.incoming)) := by
+    rw [← msgLine_perm e m.dst s.vote m.src m.dst xs _ hxs]
+    exact parseLine_msg 0 e m.dst s.vote m.src m.dst xs [] tm hnid hvote hconf hmsg hm.2.2.1 hm.2.2.2.1
+      (by rw [hm.1]; exact htyp)
+      (by rw [hname']; intro h; rw [h] at hrn; exact absurd hrn (by decide))
+  apply lineEffect_recv1 C false e (idAbs m.dst) a _ mabs _ _ Mid _ hparse rfl
+    (by simp only [msgLine, evConv]; rw [hname']; exact hrn) hpred hmdst
+  intro σ hsrv hσi _ _ hnd hcnt
+  have hcontains : σ.server.contains (idAbs m.dst) = true := by
+    rw [hsrv, List.contains_iff_mem, mem_confAbs]; exact hC
+  have hnp : (σ.s mabs.dest).state ≠ Etcdraft.preCandidate := by
+    rw [hmdst, hσi, hR.2.1]; exact roleAbs_ne_pre _
+  have heq : respSt σ mabs = withNode σ (idAbs m.dst) (respSrv a mabs) (fun b => b.without mabs) _root_.id := by
+    rw [respSt_eq, hmdst, hσi]
+  refine ⟨?_, ?_, ?_⟩
+  · rw [← msgLine_perm e m.dst s.vote m.src m.dst xs _ hxs]
+    have hsm := stateMatches_node C s (σ.s (idAbs m.dst)) e m.dst xs (by rw [hσi]; exact hR) hs hpre hterm'
+      hcommit' hrl hlog (hxs.trans hin) bt bc bl σ rfl hcontains
+    unfold Etcdraft.Line.stateMatches at hsm ⊢
+    simpa [msgLine, nodeLine] using hsm
+  · rw [← heq]
+    exact receive_resp σ mabs (by rw [hmdst]; exact hcontains) hmt (by rw [hmdst, hσi, hR.1, hmterm, hterm]; rfl) hnp
+  · rw [← heq]; exact oneLess_resp σ mabs hnd hcnt
 end TraceSim
 
 end EtcdGrove
