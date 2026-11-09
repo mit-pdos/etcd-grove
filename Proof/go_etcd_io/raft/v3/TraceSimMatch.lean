@@ -4057,6 +4057,103 @@ theorem lineEffect_voteReq (C : List w64) (e : TraceEv) (s : NState) (cfg : CfgM
     exact receive_voteReq σ mabs (by rw [hmdst]; exact hcontains) hmt hcur
   · rw [← heq]
     exact oneLess_voteReq σ _ _ mabs (by rw [hcur]; exact Int.le_refl _) hnd hcnt
+
+theorem withLead_reply_upd (σ : Etcdraft.State) (i j : Etcdraft.ID) (f : Etcdraft.Server → Etcdraft.Server)
+    (r m : Etcdraft.Msg) :
+    withLead ((σ.upd i f).reply r m) i j =
+      withNode σ i { f (σ.s i) with lead := j } (fun b => b.without m) (fun b => b.with r) := by
+  unfold withLead withNode Etcdraft.State.reply Etcdraft.State.upd
+  simp only
+  congr 1
+  funext k; by_cases hk : k = i <;> simp [hk]
+
+theorem withLead_reply (σ : Etcdraft.State) (i j : Etcdraft.ID) (r m : Etcdraft.Msg) :
+    withLead (σ.reply r m) i j =
+      withNode σ i { σ.s i with lead := j } (fun b => b.without m) (fun b => b.with r) := by
+  have := withLead_reply_upd σ i j _root_.id r m
+  have hσ : σ.upd i _root_.id = σ := by
+    unfold Etcdraft.State.upd
+    have : (fun k => if k = i then _root_.id (σ.s i) else σ.s k) = σ.s := by funext k; split <;> simp_all
+    rw [this]
+  rw [hσ] at this; exact this
+
+/-- An append request's line: its name, its parse, and its predicate as `isAppendEntriesRequest`. -/
+theorem aerParse (e : TraceEv) (s : NState) (cfg : CfgM) (m : Msg) (tm : TraceMsg)
+    (hname : evtNames[uint.nat (W64 10)]? = some e.name) (hnid : e.nid = decStr m.dst)
+    (hvote : e.vote = decStr s.vote) (xs : List w64) (hxs : xs.Perm (elements cfg.incoming))
+    (hconf : e.conf = (xs.map decStr, ([] : List w64).map decStr)) (hmsg : e.msg = some tm)
+    (hm : MsgEvOf m tm) (hty : m.ty = .app ∨ m.ty = .heartbeat) :
+    Etcdraft.parseLine 0 (evConv e) = .ok (msgLine e m.dst s.vote m.src m.dst (elements cfg.incoming)) := by
+  obtain ⟨hname', -, -⟩ := aerLine e s cfg m hname
+  rw [← msgLine_perm e m.dst s.vote m.src m.dst xs _ hxs]
+  exact parseLine_msg 0 e m.dst s.vote m.src m.dst xs [] tm hnid hvote hconf hmsg hm.2.2.1 hm.2.2.2.1
+    (by rw [hm.1]; rcases hty with h | h <;> rw [h] <;> rfl) (by rw [hname']; decide)
+
+/-- A heartbeat's receiver after it. -/
+def hbSrv (a : Etcdraft.Server) (j : Etcdraft.ID) (c : Int) : Etcdraft.Server :=
+  { a with commitIndex := max a.commitIndex c, lead := j }
+
+/-- A heartbeat's response. -/
+def hbResp (a : Etcdraft.Server) (i j : Etcdraft.ID) : Etcdraft.Msg :=
+  { type := .appendEntriesResponse, subtype := "heartbeat", term := a.currentTerm, success := true, matchIndex := 0, source := i, dest := j }
+
+/-- **A heartbeat of the node's term at a follower: its effect** (commit, lead, the reply). -/
+theorem lineEffect_heartbeatRecv (C : List w64) (e : TraceEv) (s : NState) (cfg : CfgM) (m : Msg)
+    (a : Etcdraft.Server) (mabs : Etcdraft.Msg) (Mid : Etcdraft.Server → Prop) (hty : m.ty = .heartbeat)
+    (hev : SendEvOf (W64 10) m.dst s cfg m e) (hin : (elements cfg.incoming).Perm C) (hout : cfg.outgoing = ∅)
+    (hC : m.dst ∈ C) (hR : SimServerR C C.length (toPState s) a) (hs : LogShapeOk C.length (toPState s))
+    (hrole : s.role = .follower) (hterm : m.term = s.term) (hents : m.entries = [])
+    (hc1 : 1 ≤ uint.Z (toPState s).commit)
+    (bt : uint.Z s.term < 2 ^ 63) (bc : uint.Z s.logst.committed < 2 ^ 63)
+    (bl : uint.Z (plastIndex (toPState s)) < 2 ^ 63) (bmc : uint.Z m.commit < 2 ^ 63)
+    (hmabs : msgAbs C C.length m = some mabs) :
+    LineEffect C false e (idAbs m.dst) a (hbSrv a (idAbs m.src) mabs.commitIndex)
+      (some mabs) (fun b => b.without mabs) (fun b => b.with (hbResp a (idAbs m.dst) (idAbs m.src))) Mid := by
+  have hev' := hev
+  obtain ⟨hname, hnid, hterm', hvote, hcommit', hrl, hlog, ⟨xs, ys, hxs, hys, hconf⟩, ⟨tm, hmsg, hm⟩, -⟩ := hev'
+  rw [hout, elements_empty_nil] at hys
+  have hys0 := List.Perm.eq_nil hys
+  subst hys0
+  obtain ⟨hname', hrn, hrp⟩ := aerLine e s cfg m hname
+  have hmt : mabs.type = .appendEntriesRequest := by simp [msgAbs, hty] at hmabs; rw [← hmabs]
+  have hmsub : mabs.subtype = "heartbeat" := by simp [msgAbs, hty] at hmabs; rw [← hmabs]
+  have hmterm : mabs.term = uint.Z m.term := by simp [msgAbs, hty] at hmabs; rw [← hmabs]
+  have hmprev : mabs.prevLogIndex = 0 := by simp [msgAbs, hty] at hmabs; rw [← hmabs]
+  have hments : mabs.entries = [] := by simp [msgAbs, hty] at hmabs; rw [← hmabs]
+  have hmdst : mabs.dest = idAbs m.dst := by simp [msgAbs, hty] at hmabs; rw [← hmabs]
+  have hmsrc : mabs.source = idAbs m.src := by simp [msgAbs, hty] at hmabs; rw [← hmabs]
+  have hpred : recvPred (msgLine e m.dst s.vote m.src m.dst (elements cfg.incoming)) mabs = true := by
+    rw [hrp, ← msgLine_perm e m.dst s.vote m.src m.dst xs _ hxs]
+    have := isAER_heartbeat C C.length e m.dst s.vote xs m tm hmsg hm hty hents (by rw [hterm]; exact bt) bmc
+    simp only [hmabs, Option.get_some] at this; exact this
+  apply lineEffect_recv1 C false e (idAbs m.dst) a _ mabs _ _ Mid _
+    (aerParse e s cfg m tm hname hnid hvote xs hxs hconf hmsg hm (Or.inr hty)) rfl
+    (by simp only [msgLine, evConv]; rw [hname']; rfl) hpred hmdst
+  intro σ hsrv hσi _ _ hnd hcnt
+  have hcontains : σ.server.contains (idAbs m.dst) = true := by
+    rw [hsrv, List.contains_iff_mem, mem_confAbs]; exact hC
+  have heq : hbRecvSt σ mabs = withNode σ (idAbs m.dst) (hbSrv a (idAbs m.src) mabs.commitIndex)
+      (fun b => b.without mabs) (fun b => b.with (hbResp a (idAbs m.dst) (idAbs m.src))) := by
+    unfold hbRecvSt Etcdraft.State.commitTo
+    rw [hmdst, hmsrc, hσi]
+    have := withLead_reply_upd σ (idAbs m.dst) (idAbs m.src)
+      (fun v => { v with commitIndex := max v.commitIndex mabs.commitIndex })
+      (hbResp a (idAbs m.dst) (idAbs m.src)) mabs
+    rw [hσi] at this
+    exact this
+  refine ⟨?_, ?_, ?_⟩
+  · rw [← msgLine_perm e m.dst s.vote m.src m.dst xs _ hxs]
+    have hsm := stateMatches_node C s (σ.s (idAbs m.dst)) e m.dst xs (by rw [hσi]; exact hR) hs
+      (by rw [hrole]; decide) hterm' hcommit' hrl hlog (hxs.trans hin) bt bc bl σ rfl hcontains
+    unfold Etcdraft.Line.stateMatches at hsm ⊢
+    simpa [msgLine, nodeLine] using hsm
+  · rw [← heq]
+    have := receive_heartbeat σ mabs (by rw [hmdst]; exact hcontains) hmt
+      (by rw [hmdst, hσi, hR.2.1]; simp [toPState, hrole, proleRole]; rfl)
+      (by rw [hmdst, hσi, hR.1, hmterm, hterm]; rfl) hmsub hmprev hments
+      (by rw [hmdst, hσi, hR.2.2.2.2.2.2.1]; omega)
+    rw [this]; rfl
+  · rw [← heq]; exact oneLess_of_msgs σ _ mabs (by rfl) hnd hcnt
 end TraceSim
 
 end EtcdGrove
