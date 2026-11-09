@@ -1832,6 +1832,12 @@ theorem doneSt_truncSt_same (σ : Etcdraft.State) (mabs : Etcdraft.Msg) (p k : N
   · subst hx; simp [← hL]
   · simp [hx]
 
+/-- The batch `ents` at `p` conflicts (by term) with `es` at or below index `k`: the truncations the
+specification visits for an accepted append request are the lengths `k` past such a conflict
+(review round 3's B2). -/
+def ConflictBy (ents es : List EntryM) (p k : Nat) : Prop :=
+  ∃ q x, p + q ≤ k ∧ ents[q]? = some x ∧ (es[p + q]?).map EntryM.Term' ≠ some x.Term'
+
 /-- **An accepted append request's line, from raft's `maybeAppend`** (the log `es`, uncompacted; the
 batch `ents` after index `p`, of the previous term `lt`; the new log `es'`): the specification's
 rounds as a chain, ending at `AppendEntriesAlreadyDone`'s state over the new log. -/
@@ -1856,7 +1862,7 @@ theorem chain_appAccept (t : Etcdraft.Trace) (l0 pl0 : Nat) (σ : Etcdraft.State
     (hwf : ∀ (k : Nat) (e : EntryM), ents[k]? = some e → uint.Z e.Index' = (p : Int) + k + 1)
     (hp : p < 2 ^ 64) (hnw : (p : Int) + ents.length + 1 < 2 ^ 64)
     (happ : plogMaybeAppend (entryID.mk (W64 0) (W64 0)) es (entryID.mk lt (W64 p)) ents = some (lastnewi, es'))
-    (hinvT : ∀ k, p ≤ k → k < es.length →
+    (hinvT : ∀ k, p ≤ k → k < es.length → ConflictBy ents es p k →
       (truncSt σ mabs.dest mabs.source (logAbs C bl 1 (es.take k))).violated = .ok none)
     (hinvA : (truncSt σ mabs.dest mabs.source (logAbs C bl 1 es')).violated = .ok none)
     (hinvD : (doneSt (truncSt σ mabs.dest mabs.source (logAbs C bl 1 es')) mabs p ents.length).violated = .ok none) :
@@ -1893,7 +1899,9 @@ theorem chain_appAccept (t : Etcdraft.Trace) (l0 pl0 : Nat) (σ : Etcdraft.State
       (fun k hk1 hk2 => hokP _ (hbl.take k) (fun k' hk' => List.getElem?_take_of_lt (by omega)))
       (hokP _ (bootTerms_truncAppend bl p d es ents hpd hbl hbe) (fun k' hk' => by
         rw [List.getElem?_append_left (by simp; omega), List.getElem?_take_of_lt (by omega)]))
-      (fun k hk1 hk2 => hinvT k (by omega) hk2) hinvA hinvD
+      (fun k hk1 hk2 => hinvT k (by omega) hk2 (by
+        obtain ⟨e, he, hne⟩ := hmis (by omega)
+        exact ⟨d, e, by omega, he, hne⟩)) hinvA hinvD
 
 /-- **An accepted append request's receive line's step** (at a follower of its term, raft's
 `maybeAppend` succeeding: the rule `appAccept`): the specification's truncations, append and
@@ -1923,6 +1931,7 @@ theorem simRun_recvApp (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (
     (hboot : ∀ lines ln, parseLines (L.map evConv) = .ok lines →
       (bootFlags (confAbs C) (lines ++ [ln])).getD L.length false = false)
     (hinvT : ∀ k, uint.nat m.index ≤ k → k < (toPState s).log.length →
+      ConflictBy m.entries (toPState s).log (uint.nat m.index) k →
       (truncSt σ (idAbs id) (idAbs m.src) (logAbs C C.length 1 ((toPState s).log.take k))).violated = .ok none)
     (hinvA : (truncSt σ (idAbs id) (idAbs m.src) (logAbs C C.length 1 es')).violated = .ok none)
     (hinvD : (doneSt (truncSt σ (idAbs id) (idAbs m.src) (logAbs C C.length 1 es'))
@@ -2610,6 +2619,7 @@ theorem simRun_recvAppU (C : List w64) (L : List TraceEv) (σ U : Etcdraft.State
       (bootFlags (confAbs C) (lines ++ [ln])).getD L.length false = false)
     (hinvU : U.violated = .ok none)
     (hinvT : ∀ k, uint.nat m.index ≤ k → k < (toPState s).log.length →
+      ConflictBy m.entries (toPState s).log (uint.nat m.index) k →
       (truncSt U (idAbs m.dst) (idAbs m.src)
         (logAbs C C.length 1 ((toPState s).log.take k))).violated = .ok none)
     (hinvA : (truncSt U (idAbs m.dst) (idAbs m.src)
@@ -4478,9 +4488,10 @@ theorem lineEffect_applyCC (C : List w64) (e : TraceEv) (id vote : w64) (xs : Li
 
 /-- The accepted append request's intermediate servers: the log truncated to `k` entries
 (`p ≤ k`), or the new log, the leader adopted. -/
-def appMid (C : List w64) (a : Etcdraft.Server) (src : Etcdraft.ID) (log es' : List EntryM) (p : Nat)
+def appMid (C : List w64) (a : Etcdraft.Server) (src : Etcdraft.ID) (log ents es' : List EntryM) (p : Nat)
     (v : Etcdraft.Server) : Prop :=
-  (∃ k, p ≤ k ∧ k < log.length ∧ v = { a with log := logAbs C C.length 1 (log.take k), lead := src }) ∨
+  (∃ k, p ≤ k ∧ k < log.length ∧ ConflictBy ents log p k ∧
+    v = { a with log := logAbs C C.length 1 (log.take k), lead := src }) ∨
   v = { a with log := logAbs C C.length 1 es', lead := src }
 
 /-- **An accepted append request's effect** (at a follower of its term, raft's `maybeAppend`
@@ -4508,7 +4519,7 @@ theorem lineEffect_appRecv (C : List w64) (e : TraceEv) (s : NState) (cfg : CfgM
           (min mabs.commitIndex ((uint.nat m.index : Int) + m.entries.length)))
       (some mabs) (fun b => b.without mabs)
       (fun b => b.with (doneResp a mabs (uint.nat m.index) m.entries.length))
-      (appMid C a (idAbs m.src) (toPState s).log es' (uint.nat m.index)) := by
+      (appMid C a (idAbs m.src) (toPState s).log m.entries es' (uint.nat m.index)) := by
   have hev' := hev
   obtain ⟨hname, hnid, hterm', hvote, hcommit', hrl, hlog, ⟨xs, ys, hxs, hys, hconf⟩, ⟨tm, hmsg, hm⟩, -⟩ := hev'
   rw [hout, elements_empty_nil] at hys
@@ -4559,8 +4570,8 @@ theorem lineEffect_appRecv (C : List w64) (e : TraceEv) (s : NState) (cfg : CfgM
     (by rw [hmdst, hσR.1, hmterm, hterm]; rfl) hmsub (by rw [hmdst]; exact hσR.2.2.2.2.2.1)
     hments hmprev hmpt (fun h => hlt0 h)
     (by rw [hmdst, hσR.2.2.2.2.2.2.1, hidxZ]; omega) (fun k x hk hx => hs.2.2 k x (by omega) hx) hbe hwf (by word) hnw happ
-  · intro k hk1 hk2
-    rw [hT]; exact hmids _ (Or.inl ⟨k, hk1, hk2, rfl⟩)
+  · intro k hk1 hk2 hk3
+    rw [hT]; exact hmids _ (Or.inl ⟨k, hk1, hk2, hk3, rfl⟩)
   · rw [hT]; exact hmids _ (Or.inr rfl)
   · rw [hmdst, hmsrc, hdone]; exact hfin
 
@@ -4724,7 +4735,7 @@ theorem lineEffect_appRecvU (C : List w64) (e : TraceEv) (s : NState) (cfg : Cfg
           (min mabs.commitIndex ((uint.nat m.index : Int) + m.entries.length)))
       (some mabs) (fun b => b.without mabs)
       (fun b => b.with (doneResp u mabs (uint.nat m.index) m.entries.length))
-      (fun v => v = u ∨ appMid C u (idAbs m.src) (toPState s).log es' (uint.nat m.index) v) := by
+      (fun v => v = u ∨ appMid C u (idAbs m.src) (toPState s).log m.entries es' (uint.nat m.index) v) := by
   have hev' := hev
   obtain ⟨hname, hnid, hterm', hvote, hcommit', hrl, hlog, ⟨xs, ys, hxs, hys, hconf⟩, ⟨tm, hmsg, hm⟩, -⟩ := hev'
   rw [hout, elements_empty_nil] at hys
@@ -4798,7 +4809,7 @@ theorem lineEffect_appRecvU (C : List w64) (e : TraceEv) (s : NState) (cfg : Cfg
       hments hmprev hmpt (fun h => hlt0 h)
       (by rw [hmdst, hUc, hσR.2.2.2.2.2.2.1, hidxZ]; omega) (fun k x hk hx => hs.2.2 k x (by omega) hx)
       hbe hwf (by word) hnw happ
-      (fun k hk1 hk2 => by rw [hT]; exact hmids _ (Or.inr (Or.inl ⟨k, hk1, hk2, rfl⟩)))
+      (fun k hk1 hk2 hk3 => by rw [hT]; exact hmids _ (Or.inr (Or.inl ⟨k, hk1, hk2, hk3, rfl⟩)))
       (by rw [hT]; exact hmids _ (Or.inr (Or.inr rfl)))
       (by rw [hdone]; exact hfin)
     exact this
