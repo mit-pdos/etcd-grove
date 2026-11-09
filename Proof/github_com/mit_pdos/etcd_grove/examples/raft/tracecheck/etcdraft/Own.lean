@@ -56,6 +56,24 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Assumptions]
 
+/-- `s[:len(s):len(s)]` (Go's way to force `append` to copy) holds `s`'s elements, with no spare
+capacity (layer C's `replicate`, 2026-11-09; a general fact about slices, a candidate for
+Perennial's `Slice.lean`). -/
+theorem ownSlice_fullSlice_len {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (s : GoSlice)
+    (vs : List V) (dq : DFrac) :
+    ownSlice (GF := GF) s vs dq ⊢ ownSlice (slice.fullSlice s V (W64 0) s.len s.len) vs dq := by
+  have hz : sint.Z (W64 0) = 0 := rfl
+  have he : slice.fullSlice s V (W64 0) s.len s.len = slice.mk s.ptr s.len s.len := by
+    simp only [slice.fullSlice, sliceIndexRef, hz, go.arrayIndexRef_0]
+    congr 1 <;> simp
+  rw [he, ownSlice_unseal]; unfold ownSliceDef
+  iintro (%H | ⟨H, %Hl⟩)
+  · obtain ⟨rfl, rfl⟩ := H
+    ileft; ipureintro; exact ⟨rfl, rfl⟩
+  · iright
+    iframe H
+    ipureintro; exact Int.le_refl _
+
 /-- A `*Server` copy being written: `serverRO`'s, with the struct and the `MatchIndex` map owned. -/
 def serverOwn (p : Loc) (v : Server) : IProp GF :=
   iprop(∃ (g : G.Server) (mm : GMap w64 w64), p ↦ g ∗
