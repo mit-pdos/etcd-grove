@@ -32,7 +32,7 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- See the file header. -/
 abbrev runner.write.spec : Prop :=
-  ∀ [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)] (x : Loc) (ks : List GoString)
+  ∀ [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 38)] (x : Loc) (ks : List GoString)
     (cfg : Config) (wr : List w64) (h : Loc) (γ : FullNames) (mp0 mp1 : Loc) (f0 f1 : GoFunc)
     (ops : List OpM) (v0 v1 : MemS) (nv nb : Nat) (q qs : Qp),
   ops.length ≤ (sint.Z cfg.Ops').toNat → sint.Z cfg.Ops' < 2 ^ 38 → nv + 3 * (sint.Z cfg.Ops').toNat < 2 ^ 62 →

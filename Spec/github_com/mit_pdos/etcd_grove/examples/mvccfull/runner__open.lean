@@ -39,7 +39,7 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- See the file header. -/
 abbrev runner.open.spec : Prop :=
-  ∀ [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)] (x : Loc) (ks : List GoString)
+  ∀ [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 38)] (x : Loc) (ks : List GoString)
     (cfg : Config) (wr : List w64) (h : Loc) (γh : HistNames) (ops : List OpM) (i : Nat) (mp : Loc)
     (m : MemberNames) (f : GoFunc) (n : Nat) (path : GoString) (D : backend.Data) (u : Bool)
     (b : Bnd) (Hl : List HRev) (obe ole okv : GoInterface),

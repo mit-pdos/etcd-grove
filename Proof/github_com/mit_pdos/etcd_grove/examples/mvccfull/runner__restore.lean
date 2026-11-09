@@ -55,6 +55,7 @@ theorem runner.restore.wp_proof
     (halloc : mvccW_alloc.law (GF := GF))
     (hopen : etcdStorage_open.law (GF := GF))
     (hrest : backendRest_open.law (GF := GF))
+    (hCR : mvcc.api.mvccClosed_rest.law (GF := GF))
     (wp_buildPath : buildPath.spec (GF := GF) (hG := hG))
     (wp_newMember : runner.newMember.spec (GF := GF) (hG := hG))
     (wp_apply : runner.apply.spec (GF := GF) (hG := hG))
@@ -67,7 +68,7 @@ theorem runner.restore.wp_proof
     (wp_bClose : backend.backend.Close.spec (GF := GF) (hG := hG))
     (wp_checkLeases : runner.checkLeases.spec (GF := GF) (hG := hG)) :
     runner.restore.spec (GF := GF) (hG := hG) := by
-  intro _ _ x ks cfg wr h γ mp0 mp1 f0 f1 ops v0 v1 nv nb q qs hlt hlen hOps hdbo hdbc hck hlim hcbl
+  intro _ _ x ks cfg wr h γ mp0 mp1 f0 f1 ops v0 v1 nv nb q qs hlt hlen hOps hOps38 hdbo hdbc hck hlim hcbl
   haveI : Persistent (runnerMs (GF := GF) x mp0 mp1) := by unfold runnerMs; infer_instance
   haveI : ∀ N l, Persistent (ctrInv (GF := GF) N l) := by intro N l; unfold ctrInv; infer_instance
   haveI := isInc_persistent hpers
@@ -292,6 +293,24 @@ theorem runner.restore.wp_proof
     imod Hcls $$ %b2 %hok2 Hrl Hrh Hcl Hch with ⟨Hret1, Hσw1, Hbw1⟩
     imodintro
     (try wp_auto)
+    -- `newbe := x.openBackend(b.path)`: a fresh registration, the builder's file
+    imod halloc with ⟨%gx, Hreg, HW⟩
+    wp_apply (wp_openBackend x ks cfg wr h γ.h vb'.path D (fun _ => mvccW gx) (fun _ => iprop(True))
+        backend.bFresh hdbo hlim) $$ [Hfile Htok HW] as %rnb ⟨Htok, %bnb, %γB, %Hrnb, Hnew, Hbfn⟩
+    · iframe #; iframe
+      iintro %γ ⟨-, Hf⟩
+      imodintro
+      iframe
+    subst Hrnb
+    (try wp_auto)
+    -- the snapshot's backend opened for the store, at the image (`inc_open_backend`)
+    have hRB : receiptBound GF ≤ 2 ^ 38 := ReceiptBoundLe.receiptBound_le
+    have hk : receiptBound GF + ((sint.Z cfg.Ops').toNat + 1) + 4 ≤ backend.wbInit := by
+      unfold backend.wbInit; omega
+    imod inc_open_backend hopen hrest hCR γB bnb gx (limOf cfg) vb'.path D
+        (σOf ks ops vb'.ops).log (σOf ks ops vb'.ops).crev u ((sint.Z cfg.Ops').toNat + 1) hk
+      $$ [Hreg Himg Hbfn Hnew] with ⟨Hsf, Hbkn, Hplh, Hrbn, Hwb1, Hwb2⟩
+    · iframe #; iframe
     sorry
 
 end proof
