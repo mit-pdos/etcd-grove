@@ -103,7 +103,14 @@ records `logRecs`, its committed prefix `isCommitted`, a leader `isLeader`, the 
 (`isCommitted_agree`), `LogMatchingInv` (`logRecs_agree`, `plog_match_down`: the specification's
 entries are determined by position and term) and `CommitOk`. Left: `ElectionSafetyInv`,
 `QuorumLogInv`, `LeaderCompletenessInv`, `CommittedIsDurableInv` (the notes' table: route (b)
-clauses and the acknowledgement-history copy).
+clauses and the acknowledgement-history copy). Then: `ElectionSafetyInv` from the specification
+invariant `LeaderEntries`, `CommittedIsDurableInv` from `DurInv`, `LeaderCompletenessInv` from the facts
+(a server's commit certificate `commitIn`, a leader's full log `leadFull`), raft's vote table and the
+specification invariant `CommitWithinLeader` (`commit_in_leader`: `restart_ack_one`'s three cases,
+`lc_core` for an earlier term); all seven together (`simFx_violated`, `TracedHooksDraft.lean`) with
+`QuorumLogInv`'s fact a clause of `simFx` until the acknowledgement-history copy replaces it. The
+three specification invariants' preservation by each action is delegated (worktree branch
+`trace-check-specinv`).
 
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
