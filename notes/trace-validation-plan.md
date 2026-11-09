@@ -139,6 +139,17 @@ durable log at `appendEntriesAlreadyDone` (`CommitInSenderDurable`), `MoreThanOn
 place where the specification's action is broader than `NextAsync`). `simFx` is to carry `SpecInv`
 in place of `LeaderEntries`/`DurInv`/`CommitWithinLeader`.
 
+**The lines' effects (2026-11-09, `TraceSimMatch.lean`, proved, `LineEffect` form for the callers'
+`PhaseStep`s):** sends (`MsgApp`, heartbeat, vote request, the self vote and self acknowledgement,
+skipped replies), node events (`Commit`, `BecomeLeader`, `Replicate`, `BecomeCandidate`), receives of
+the node's term (responses at any role, `respSt`; vote requests; heartbeats, stale and rejected
+append requests), and the generic converters (`lineEffect_nr`, `lineEffect_recv1`,
+`lineEffect_recv2` for a first round, `UpdateTerm` or `ReturnToFollower`). Left: the accepted append
+request's chains with their intermediate shapes, lower-term messages (a stale response's discard; a
+stale request's phantom reply, which must go to the phantoms, not the node's share: round 1's S3),
+`Ready` (its bags move as a function of the pending bag, outside `withNode`'s shape: its own law),
+`BecomeFollower` (the skip bit) and the bootstrap lines.
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its
