@@ -1114,6 +1114,11 @@ structure NGhost [GooseExts] where
   certificates the node holds are of them (`qSrcs`, `ghostRest`'s `certLink`). Set when the node
   is built (`newRaft`), never changed. -/
   sn : StorNames := {}
+  /-- (2026-11-09, trace-check S5, `notes/trace-validation-plan.md` Q8) **The cluster's trace
+  directory** (`Cluster.trace`): `none` in an untraced cluster, whose nodes' trace logger is nil;
+  `some γd` in a traced one, the simulation's ghost names (`traceDir`). Set when the node is built
+  (`newRaft`), never changed, so every step keeps it (`NetFrame`, `LocalFrame`: `s'.gh = s.gh`). -/
+  tr : Option GName := none
 
 -- (D22 S-d3a) classical: `SnapTrip`'s `entryID` has no decidable equality
 noncomputable instance [GooseExts] : DecidableEq NGhost := fun a b => Classical.propDecidable (a = b)
