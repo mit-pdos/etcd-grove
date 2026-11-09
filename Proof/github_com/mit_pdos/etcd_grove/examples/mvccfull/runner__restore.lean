@@ -193,8 +193,35 @@ theorem runner.restore.wp_proof
     obtain ⟨⟨hpath, -⟩, hv1, hk⟩ := Hv'
     exact ⟨by omega, by omega, by rw [hpath]; exact Hvb'.2.2⟩
   · have hge : ¬ sint.Z (W64 (vb'.ops : Int)) < sint.Z (W64 (v0.ops : Int)) := by word
-    simp only [hge, decide_false, Bool.false_eq_true, ↓reduceIte]
+    simp only [hge, decide_false, intoVal_eq_iff, Bool.false_eq_true, decide_false,
+      ↓reduceIte]
     have hveq : vb'.ops = v0.ops := by omega
+    (try wp_auto)
+    (try simp only [decide_True_any, ↓reduceIte])
+    (try wp_auto)
+    -- the builder retired (no reader or stream ever had a share) and shut: its file the image
+    iunfold memCore at Hbc
+    simp only []
+    icases Hbc with ⟨#Hidb, #Hhookb, -, Hpathb, Hbeb, Hleb, Hkvb, Hrevb, Hcmpb, Hleasesb, %Hvopsb,
+      Hincb, Hopenb, Hbackb, -, Hrdrsb, Hbkb, Hlesb, -⟩
+    iunfold incW at Hincb
+    icases Hincb with ⟨#Hisincb, Hretb, Hσwb, Hbwb⟩
+    imod inc_retire hpers ks γ.h 2 mpb mb vb'.ι vb'.kv $$ [Hretb] with Hmsb
+    · iframe #; iframe
+    icases (memberState_split ks γ.h mpb mb vb'.ι.kv).1 $$ Hmsb with ⟨%σb, %bb, %Hlb', Hσb, Hcarry⟩
+    iunfold memberCarry at Hcarry
+    icases Hcarry with ⟨Hσc, -, -, -, -, -, -, -, -, -, -⟩
+    ihave %Hag := ghostVar_agree mb.σ _ _ _ _ $$ Hσwb Hσc
+    subst Hag
+    iunfold lessorW at Hlesb
+    icases Hlesb with ⟨%rdb, %rb, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, Hrbb, %Hrecsb, Hstopb⟩
+    wp_apply (wp_shut x ks cfg wr h γ.h mpb vb'.path vb'.bk vb'.lp vb'.kv vb'.ι.kv
+        (σOf ks ops vb'.ops) (leasesAfter ks ops vb'.ops) rb kb' hdbc rfl Hrecsb)
+      $$ [Hkvb Hleb Hbeb Hopenb Hrdrsb Hbackb Hσb Hbkb Hstopb Hrbb]
+      as ⟨-, -, -, %D, %u, Hfile, Himg, %HrecD⟩
+    · iframe #; iframe
+      iunfold isInc at Hisincb; icases Hisincb with ⟨-, #H⟩; iexact H
+    (try wp_auto)
     sorry
 
 end proof
