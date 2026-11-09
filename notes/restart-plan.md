@@ -2669,7 +2669,7 @@ decides** (H8; the estimate went from 5-7 weeks for all of R2d' to 10-14 (est.))
 |---|---|---|---|
 | B1 | R2d-6: `memStorRestarted` defined over `walSnapCert`; `newRaftNode`'s `RestartNode` path at `a = i`, `nodeConfig ⟨i, m⟩` | new; trusted `bootOkR` text over it | 1 wk (est.) |
 | B2 | Q15's B1: `mvcc.lateWB`'s unregistered arm `pvckEmpty` → `pvckOwn`; `lateWBR` merged away (H7 (a): the trusted claim weakens; the `axiom` skill before the Freeze) | trusted | 3-5 d (est.) |
-| B3 | `mvcc.New`/`NewStore`'s restoring case | frozen | 1.5-2 wk (est.) |
+| B3 | `mvcc.New`/`NewStore`'s restoring case (**taken by mvccfull's F1**, 2026-11-09, the user: one spec for both clients, `notes/mvccfull-proof-plan.md`, branch `worktree-mvcc-full-tester`) | frozen | 1.5-2 wk (est.) |
 | B4 | HS1 re-applied (`/shared/tmp/r2d-hs1.patch`) | trusted | 0.5 d (est.) |
 | B5 | R2d-7: `NewServer.specG`'s restart branch builds `isServerBuiltC`'s restart form from `bootOkR`; H10's check first | hub | 2-3 wk (est.) |
 | B6 | R2d-8: etcdstart over both boots | frozen | 0.5-1 wk (est.) |

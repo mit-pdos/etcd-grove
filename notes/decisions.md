@@ -34045,3 +34045,16 @@ the other examples', and decided its shape:
   `backend.Close`'s precondition: the backend's whole open token, from the server's census
   (`stop_census_open`) over the store's `mvccClosed` with every reader token (the goroutines give
   theirs back through the wait group) and the open token's shares `rc_open` used to drop.
+
+## mvccfull's proof: two stages, B3 taken here, crc32 as a local axiom (2026-11-09 · the user · branch `worktree-mvcc-full-tester`)
+
+**What it was.** The Scope of proving `examples/mvccfull` adequate (`notes/mvccfull-proof-plan.md`)
+found two missing pieces: hashing (`HashByRev`/`Hashes` untranslated, no crc32 model, no
+`UnsafeForEach` spec, the compaction job's hash "any"; 3-4 weeks est.) and `mvcc.New` on a backend
+with data (the restart plan's B3, R2d'b, not started; every restart and `Run`'s final reopen need
+it). **Decisions (the user, the three recommendations):** (1) two stages: F1 proves `Run.spec` for
+every config whose `Mix.Read` never picks the hash read (a scope premise on `Config`), F2 adds
+hashing and lifts it; (2) B3 is done in mvccfull's F1, one spec of `New`'s restoring case serving the
+tester and the restart plan (`notes/restart-plan.md`'s B3 row says so); (3) crc32 enters F2 as a
+marked local trust-boundary spec (`Sum32` an opaque function of the bytes written), attacked with
+the `axiom` skill, and proposed to Perennial's standard library.

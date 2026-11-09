@@ -136,7 +136,7 @@ stamps. Estimate: 25-30k lines.
   repeat nothing, and a revoke deletes distinct keys. The watch guarantee needs it at every
   compaction revision.
 
-## Decisions for the user
+## Decisions for the user (decided 2026-11-09: each the recommended option; `notes/decisions.md`)
 
 1. **Stages.** *Recommended:* two stages.
    - **F1**: `Run.spec` for every `cfg` whose `Mix.Read` gives the hash read weight 0 and some
