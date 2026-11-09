@@ -2714,6 +2714,66 @@ theorem receive_appReject (st : Etcdraft.State) (m : Etcdraft.Msg) (hsrv : st.se
     pure, Except.pure, beq_self_eq_true]
   simp [withLead]
 
+/-- **A response of a lower term** (`DropStaleResponse`; raft ignores it): discarded. -/
+theorem receive_staleResp (st : Etcdraft.State) (m : Etcdraft.Msg) (hsrv : st.server.contains m.dest = true)
+    (hty : m.type = .appendEntriesResponse ∨ m.type = .requestVoteResponse)
+    (hterm : m.term < (st.s m.dest).currentTerm) :
+    st.receive m = .ok [st.discard m] := by
+  unfold Etcdraft.State.receive
+  have hut : st.updateTerm m.dest m.source m = none := by
+    unfold Etcdraft.State.updateTerm; simp; omega
+  have hds : st.dropStaleResponse m.dest m.source m = some (st.discard m) := by
+    unfold Etcdraft.State.dropStaleResponse; simp [hterm]
+  have hne : m.term ≠ (st.s m.dest).currentTerm := by omega
+  have hsrv' : m.dest ∈ st.server := List.contains_iff_mem.1 hsrv
+  rcases hty with h | h
+  · have hh : st.handleAppendEntriesResponse m.dest m.source m = none := by
+      unfold Etcdraft.State.handleAppendEntriesResponse; simp [hne]
+    simp [hsrv', h, hut, hds, hh, Etcdraft.somes, pure, Except.pure]
+  · have hh : st.handleRequestVoteResponse m.dest m.source m = none := by
+      unfold Etcdraft.State.handleRequestVoteResponse; simp [hne]
+    simp [hsrv', h, hut, hds, hh, Etcdraft.somes, pure, Except.pure]
+
+/-- **A vote request of a lower term** (raft ignores it): the specification refuses it, a reply raft
+never sends (a phantom). -/
+theorem receive_staleVoteReq (st : Etcdraft.State) (m : Etcdraft.Msg) (hsrv : st.server.contains m.dest = true)
+    (hty : m.type = .requestVoteRequest) (hterm : m.term < (st.s m.dest).currentTerm) :
+    st.receive m = .ok [st.reply { type := .requestVoteResponse, term := (st.s m.dest).currentTerm, voteGranted := false, source := m.dest, dest := m.source } m] := by
+  unfold Etcdraft.State.receive
+  have hut : st.updateTerm m.dest m.source m = none := by
+    unfold Etcdraft.State.updateTerm; simp; omega
+  have hne : m.term ≠ (st.s m.dest).currentTerm := by omega
+  have hh : st.handleRequestVoteRequest m.dest m.source m = some (st.reply { type := .requestVoteResponse, term := (st.s m.dest).currentTerm, voteGranted := false, source := m.dest, dest := m.source } m) := by
+    unfold Etcdraft.State.handleRequestVoteRequest
+    have hle : m.term ≤ (st.s m.dest).currentTerm := by omega
+    have hb : (m.term == (st.s m.dest).currentTerm) = false := by simp [hne]
+    simp [hb, hle]
+  have hsrv' : m.dest ∈ st.server := List.contains_iff_mem.1 hsrv
+  simp [hsrv', hty, hut, hh, Etcdraft.somes, pure, Except.pure]
+
+/-- **An append request of a lower term** (raft ignores it; pre-vote and check-quorum off): the
+specification rejects it, a reply raft never sends (a phantom). -/
+theorem receive_staleAER (st : Etcdraft.State) (m : Etcdraft.Msg) (hsrv : st.server.contains m.dest = true)
+    (hty : m.type = .appendEntriesRequest) (hterm : m.term < (st.s m.dest).currentTerm)
+    (hpv : st.preVote = false) (hcq : st.checkQuorum = false) :
+    st.receive m = .ok [st.reply { type := .appendEntriesResponse, subtype := "app", term := (st.s m.dest).currentTerm, success := false, matchIndex := 0, source := m.dest, dest := m.source } m] := by
+  unfold Etcdraft.State.receive
+  have hut : st.updateTerm m.dest m.source m = none := by
+    unfold Etcdraft.State.updateTerm; simp; omega
+  have hne : m.term ≠ (st.s m.dest).currentTerm := by omega
+  have hle : m.term ≤ (st.s m.dest).currentTerm := by omega
+  have hh : st.handleAppendEntriesRequest m.dest m.source m = .ok [st.reply { type := .appendEntriesResponse, subtype := "app", term := (st.s m.dest).currentTerm, success := false, matchIndex := 0, source := m.dest, dest := m.source } m] := by
+    unfold Etcdraft.State.handleAppendEntriesRequest
+    have hacc : ∀ b, st.acceptAppendEntriesRequest m.dest m.source b m = .ok [] := by
+      intro b; unfold Etcdraft.State.acceptAppendEntriesRequest; simp [hne, pure, Except.pure]
+    have hrtf : st.returnToFollowerState m.dest m = none := by
+      unfold Etcdraft.State.returnToFollowerState; simp [hne]
+    have hrej : ∀ b, st.rejectAppendEntriesRequest m.dest m.source m b = some (st.reply { type := .appendEntriesResponse, subtype := "app", term := (st.s m.dest).currentTerm, success := false, matchIndex := 0, source := m.dest, dest := m.source } m) := by
+      intro b; unfold Etcdraft.State.rejectAppendEntriesRequest; simp [hterm, hpv, hcq]
+    simp [hle, hne, bind, Except.bind, hacc, hrtf, hrej, Etcdraft.somes, pure, Except.pure]
+  have hsrv' : m.dest ∈ st.server := List.contains_iff_mem.1 hsrv
+  simp [hsrv', hty, hut, hh, Etcdraft.somes, bind, Except.bind, pure, Except.pure]
+
 end TraceSim
 
 end EtcdGrove
