@@ -28,7 +28,8 @@ store (`mvccOpen`, the whole backend share at the tester's real backend `bk`, th
 the member's closure `f` (`hookIs`), its own `nw` reader tokens), the backend's kept part
 (`bkKeep`: its contract and stop channels, its file, the census for `backend.Close`, the lessor's
 write right and write-back tokens), the lessor (`lessorW`: its invariant, configuration, guard
-`True`, the revocable mode, its write contract, a reader slot, the owner's part at the live leases
+`True`, the revocable mode, its write contract (and `NewLessor`'s on any backend, `lessorApplyOk`, which
+`restore` needs after `Recover` moves the lessor to the snapshot's backend), a reader slot, the owner's part at the live leases
 and the store's items, the revokers, the ids ever granted with their requests (`3600`), the range
 deleter at the store's, the lease bucket's part holding exactly the live leases' records,
 `leaseRecsOk`, the stop right), and the hook's counters (`applying`, `saved`, owned outright, as
@@ -460,7 +461,7 @@ def lessorW (γk : MvccName) (bk : mvcc.KBReal) (f : GoFunc) (lp : Loc) (L U : L
     lease.lessorInv lp (mvccLeases γk) ∗ lease.lessorCfg lp ∗
     lease.lessorGuard (mvccLeases γk) (fun _ => iprop(True)) ∗ lease.lessorRevocable (mvccLeases γk) ∗
     lease.lessorBackend lp iprop(True) #f (backend.wbTok bk.γB) (lease.lessorBeOn lp bk.be)
-      (apply.bkRT bk) (backend.rbPart bk.γB (· = leaseName)) ∗
+      (apply.bkRT bk) (backend.rbPart bk.γB (· = leaseName)) ∗ lessorApplyOk lp ∗
     lease.lessorRd lp (mvccLeases γk) ∗
     lease.leaseOwn (mvccLeases γk) L (pendItems σ.log []) ∗ lease.leaseRevokers (mvccLeases γk) L ∗
     lease.leaseEver (mvccLeases γk) U ∗
