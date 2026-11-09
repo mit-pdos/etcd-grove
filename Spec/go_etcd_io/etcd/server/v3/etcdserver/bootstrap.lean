@@ -6,7 +6,7 @@
 **Why it is true of Go** (each path of `bootstrap.go`): it creates the data, member and snapshot
 directories, opens (or creates) the backend at `BackendPath()` (`OpenBackend`, which panics if bbolt
 cannot open it: `diskOk`), and then by the WAL directory's existence (`wal.Exist`):
-* **no WAL, new cluster** (`memberStart_new`: a fresh directory, `NewCluster`): the members from
+* **no WAL, new cluster** (a disk of kind `.boot ms m`: a fresh directory, `NewCluster`): the members from
   the initial-cluster map (`NewClusterFromURLsMap`: an error on two equal ids or an id `0`, so a
   boot token of an allocation whose ids are not distinct is never used), the member by name; a
   new WAL with the node and cluster ids (`wal.Create`: `Recs.init`, a panic on failure: `diskOk`);
@@ -14,7 +14,7 @@ cannot open it: `diskOk`), and then by the WAL directory's existence (`wal.Exist
   member as its context: the boot token's raft resources). `isMemberBootstrapped` asks the peers
   over HTTP whether this member already started: an error if one says so (trusted: the peers'
   answers are those of `γ`'s members).
-* **no WAL, existing cluster** (`memberStart_join`): the cluster from the peers
+* **no WAL, existing cluster** (a disk of kind `.join urls`): the cluster from the peers
   (`GetClusterFromRemotePeers`, a GET of `/members` at the initial cluster's other peer URLs), the
   member's id assigned by its peer URLs (`ValidateClusterAndAssignIDs`: an error unless the local
   and remote URL sets match one to one), no peers for raft (`RestartNode` from an empty storage);
@@ -26,7 +26,7 @@ cannot open it: `diskOk`), and then by the WAL directory's existence (`wal.Exist
   through them fails (`ReqJoin`'s error branch). etcd's own peer handler (`etcdhttp.NewPeerHandler`,
   untranslated) answers from the member's applied view: a program serving it needs that handler's
   spec (open: `batch-2e.md` Q8).
-* **a WAL** (`memberStart_restart`: `memberDisk`): the newest valid snapshot record
+* **a WAL** (a disk of kind `.member id`, after a stop or a crash: `disk_crash`): the newest valid snapshot record
   (`Wal.Recs.newest`), the backend recovered from the snapshot db if the backend is behind it
   (`RecoverSnapshotBackend`, which renames `<snap>.snap.db` onto the backend's path: the image
   `Snap.snapDbs` held), the WAL opened at that record and read whole (`ReadAll`: `Recs.entsAfter`,
@@ -43,7 +43,7 @@ a new cluster's first start only, `bootOkR` a restart at `σ.b = 0`: R2d'a); no 
 (`N + 7 + bootWB ≤ wbInit`: the backend's bounds are 4a's); the first-start configuration premises
 (`bootCfgFresh`) are the start right's; no `Hclose` (the closers' own specs, R-D1).
 
-**Margin.** `ForceNewCluster` (excluded by `memberStart_restart`), discovery (`ShouldDiscover`: the
+**Margin.** `ForceNewCluster` (excluded by `diskCfgOk`), discovery (`ShouldDiscover`: the
 initial cluster from a discovery service; `bootCfgOk`'s old exclusion, kept: Q4 of the report),
 bootstrap defragmentation (`BootstrapDefragThresholdMegabytes`: the backend's `Defrag` keeps its
 image: 4a's spec) are inside the configurations the premises admit or excluded as said.

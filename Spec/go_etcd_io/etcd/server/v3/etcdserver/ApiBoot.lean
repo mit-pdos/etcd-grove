@@ -22,8 +22,16 @@ raft network `srvNet γ ν` (2f's `Net`) and, for each reserved host, the persis
 **A member's files** are keyed by its directories (`Config.Dirs`). At program start a directory
 is `dataDirFresh ds` (the adequacy theorem's per-directory token: the paths pairwise distinct for
 the whole run, canonical, no other string naming one of them: the axiom sweep's B3-1; to be listed
-in W0's adequacy statement). A stopped member's directories are `memberDisk γ id ds`: its durable
-state, client-owned; nothing else is needed to start the member again on it.
+in W0's adequacy statement). **Round 2 (crash restart): the durable state is client-owned
+throughout**, split as raft's durable node API: `diskState γ ds k` (exclusive, timeless) is what the
+directories hold, of kind `k` (`DiskKind`: a new member's fresh directory, a joiner's, or member
+`id`'s files); the program keeps it in its crash invariant, and a running server reaches it only
+through the persistent access `diskAcc γ ds` (an update it fires at each durable write: the WAL's
+`Save`, `SaveSnapshot`, the backend's commits, the snapshot installs). `diskIdle γ ds k`
+(exclusive, volatile) says no server runs on `ds`: the start takes it, `HardStop`/`Stop` give it back
+(`memberDisk γ id ds` is its name at a member's files), and **after a crash** the adequacy theorem's
+crash rule gives `crashGone γ ds`, from which `disk_crash` recovers `diskIdle` at whatever kind the
+crash left. `disk_new`/`disk_join` turn a fresh directory and a start token into a disk.
 
 **Peer-URL sets are single-use** (round 1, provability F4). `urls_reserve` turns the addresses of a
 new URL set into `urlsRight γ urls` and `memberJoin γ urls`. Every request that gives a member a
@@ -35,12 +43,12 @@ another member onto them. Cost: a removed member's URL set cannot be used again 
 restriction, `batch-2e.md` Q1).
 
 **Starting a member** (`NewServer`, K2) takes `memberStart γ cfg c oid` (`oid`: the member id when
-it is known before the start), introduced in three ways:
-* a member of a new cluster (`memberStart_new`, `oid = some m.id`): its `memberBoot` and a fresh
-  directory, the configuration a new cluster's whose initial members are the allocated ones;
-* a joiner (`memberStart_join`, `oid = none`): `memberJoin γ urls` and a fresh directory, the
-  configuration's peer URLs `urls`, `NewCluster` false;
-* a stopped member (`memberStart_restart`, `oid = some id`): its `memberDisk`.
+it is known before the start), introduced by one law, `memberStart_disk`: the disk's access, its
+idle token at kind `k`, and a configuration `k` admits (`diskCfgOk`): a new member's (`.boot ms m`:
+`NewCluster`, the allocated initial members), a joiner's (`.join urls`: `NewCluster` false, the
+configuration's peer URLs), any for member `id`'s files (`.member id`: a WAL; etcd ignores
+`NewCluster`) but `--force-new-cluster`; in every kind `UnsafeNoFsync` false (the crash rule needs
+fsynced writes).
 It also takes `envUpd γ ecfg` (W0's), `clusterApplyCfg γ mc` with `applyCfgIs cfg mc`, the
 configuration's scope premises (one sealed slot per subsystem, below), the logger, the feature gate,
 the configuration's heap parts and the disk premise. It returns a member id `id`, non-zero and below
@@ -89,8 +97,12 @@ user may choose (`batch-2e.md` Q7).
   listener's close). Only removals are exclusive: `memberDisk` (and the running server) hold the
   deletion right `snapDel` (`ReleaseSnapDBs`, `OpenSnapshotBackend`'s rename), with which the
   restart knows the file at the WAL's newest snapshot index is there when `ci` is below it.
-* `memberStart γ cfg c oid`: the disjunction of the three introductions' left sides at their
-  conditions.
+* `diskState γ ds k`: per kind, the fresh directory with its start token (`memberBoot`, or
+  `memberJoin`'s reserved vacancy), or the member's files as `memberDisk` used to be (above), with
+  the in-flight batch; `diskIdle γ ds k`: the fragment of `k` frozen while no server runs, with
+  raft's `nodeVacant` for a member's files; `crashGone γ ds`: the crash rule's evidence that the
+  process that ran a server on `ds` is gone (the adequacy theorem's, W0's), with `nodeVacant`.
+* `memberStart γ cfg c oid`: `memberStart_disk`'s left side at its conditions.
 * `srvMember s γ id`: read-only fields (`memberID`, `r.transport`: 2f's `isTransport` of `ν` and
   `id`, `cluster`, `lgMu`/`lg`, `Cfg`), 2d's `srvNode` (`srvMember_node`), `⌜0 < id < 2 ^ 64⌝`.
 * `srvBuilt s γ id cfg`: one conjunct per subsystem (the slot convention): the raft node and its
@@ -106,21 +118,26 @@ user may choose (`batch-2e.md` Q7).
   `run`'s stop deposits 2d's `srvStopped`, which with `Cleanup`'s `srvClosed` is `memberDisk`
   (2d's `srvStopped_disk`).
 
-## Crashes (round 1, completeness F8: attempted; a blocker found)
+## Crashes (round 2: crash restart, over R1's `raftState_crash`)
 
-The general version keeps `memberDisk` client-owned throughout the run: the server holds only an
-access (a persistent update over it that the WAL's `Save` fires), and a crash leaves `memberDisk`
-with the records `Wal.Recs.crashed`/`crashedMid` allow (stated in `wal/Api.lean`, true of the WAL's
-code). **Blocker: raft's durable node API (R1).** A crash during a `Save` leaves a prefix of the
-batch's entry records (written, not fsynced) and the old state record: a log that is neither raft's
-durable state `D` before the batch nor after it (`Durable.next`), possibly truncated at the batch's
-first index with only some new entries, and with entries of a term above the stored term. R1's
-`raftState γ id D` moves only at a `Ready`'s update, and `StorageHolds D σ` requires the stored log to
-be `D`'s, so `RestartNode.spec` cannot be applied to such a directory. Lifting it needs a crash
-transition of R1's durable state (`raftState γ id D ⊢ raftState γ id D'` for `D'` a partly applied
-batch, with raft's invariants shown to admit it), requested in `req/go_etcd_io_raft_v3.md`, "from 2e,
-round 1". Until then the specs restart after a graceful stop only (`HardStop`/`Stop`), and the
-`memberDisk` they give back is the one a crash rule will also give.
+`diskState`'s realization holds the WAL's records `R`, raft's `raftState γ.raft id D` with
+`walHolds R D`, the backend's file, the deletion right of the snapshot dbs, **and the raft loop's
+in-flight batch**: before each `Save` the loop deposits the batch's `readyEnter` (R1) in the disk
+through `diskAcc`, and fires it at the write's sync. After a crash, `disk_crash` takes the crash
+rule's `crashGone γ ds` (which carries raft's `nodeVacant`, as R1's `raftState_crash` says the crash
+rule gives) and resolves the in-flight batch: the WAL holds a state `Wal.Recs.crashedMid` /
+`crashed` allows (a prefix of the batch's entries, the old state record, a commit from the synced
+one up: `wal/Api.lean`, true of the WAL's code), and R1's `raftState_crash` moves `raftState` to the
+matching `Durable.crashed b j hs`; the backend's file is its last commit (bbolt's commits are atomic
+and fsynced: `UnsafeNoFsync` false); a member's files then restart by `memberStart_disk`.
+
+**Scope** (`crashScope`, a premise of `disk_crash`; Q2 of `batch-2e.md`, the user's): (1) R1's
+`Durable.confAboveOk` of the crashed state: at most one conf-change entry above the stored commit
+(`nonissues/raft-commit-lost-with-entries-kept.md`: otherwise a restarted node can win an election
+counted in an older configuration; the alternative is a raft/etcd fix); (2) no crash during the
+write of a batch that carries a snapshot (R1's law excludes them: the loop's `SaveSnap` is fsynced
+first, but the state record that makes it valid follows). A graceful stop is the instance with no
+crash (`HardStop`'s post).
 
 ## Slots (the slot convention, `specs-ref/notes/spec-first-plan.md`, "The slot convention")
 
@@ -138,10 +155,11 @@ crash rule will need `UnsafeNoFsync = false`).
 `srvMember_persistent`, `srvMember_agree`, `srvMember_id`, `isServer_persistent`,
 `srvGate_fractional`, `srvBuilt_excl`, `srvRunning_excl`, `srvBuilt_running_excl`,
 `stoppingCh_persistent`, `doneCh_persistent`, `readyCh_persistent`, `srvNet_persistent`,
-`srvNet_agree`, `clusterApplyCfg_persistent`, `clusterApplyCfg_agree`, `memberDisk_timeless`,
-`memberDisk_excl`, `dataDirFresh_timeless`, `dataDirFresh_excl`, `memberBoot_timeless`,
-`memberJoin_excl`, `urlsRight_excl`, `cluster_alloc`, `urls_reserve`, `memberStart_new`,
-`memberStart_join`, `memberStart_restart`, `srvBuilt_closers`, and the slots' introductions
+`srvNet_agree`, `clusterApplyCfg_persistent`, `clusterApplyCfg_agree`, `diskState_timeless`,
+`diskState_excl`, `diskIdle_excl`, `diskIdle_agree`, `memberDisk_excl`, `dataDirFresh_timeless`,
+`dataDirFresh_excl`, `memberBoot_timeless`, `memberJoin_excl`, `urlsRight_excl`, `cluster_alloc`,
+`urls_reserve`, `disk_new`, `disk_join`, `disk_crash`, `memberStart_disk`, `srvBuilt_closers`, and
+the slots' introductions
 `raftNodeBootCfg_intro`, `v3rpcBootCfg_intro`, `mvccBootCfg_intro`, `backendBootRes_intro`,
 `leaseBootRes_intro`, `authBootRes_intro`.
 
@@ -180,6 +198,22 @@ fields, e.g. the lease checkpoint settings and the election timing that fix the 
 opaque applyCfgIs [GooseExts] [GoGlobalContext]
   (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (mc : ApplyCfg) : Prop
 
+/-- **What a member's directories hold** (round 2): a fresh directory with an initial member's
+start token, a fresh one with a joiner's (its peer URLs), or member `id`'s files (a WAL). -/
+inductive DiskKind where
+  | boot (ms : List Member) (m : Member)
+  | join (urls : List GoString)
+  | member (id : Nat)
+
+/-- The member id a disk's kind names, if any. -/
+def DiskKind.id? : DiskKind → Option Nat
+  | .boot _ m => some m.id
+  | .join _ => none
+  | .member id => some id
+
+/-- The namespace of the program's disk invariants (`diskAcc`'s mask). -/
+def diskN : Namespace := nroot .@ "etcdDisk"
+
 /-- The member list a membership answer carries (the members after the change). -/
 def respMembers : Resp → Option (List Member)
   | .ok (.memberAdd _ l) => some l
@@ -214,9 +248,27 @@ opaque urlsRight (γ : Cluster) (urls : List GoString) : IProp GF := iprop(True)
 (exclusive). -/
 opaque memberJoin (γ : Cluster) (urls : List GoString) : IProp GF := iprop(True)
 
-/-- **The directories `ds` hold the durable state of member `id` of `γ`, stopped** (exclusive,
-timeless; client-owned). -/
-opaque memberDisk (γ : Cluster) (id : Nat) (ds : Config.Dirs) : IProp GF := iprop(True)
+/-- **The directories `ds` hold durable state of kind `k`** (exclusive, timeless; client-owned
+for good, kept by the program in its crash invariant). -/
+opaque diskState (γ : Cluster) (ds : Config.Dirs) (k : DiskKind) : IProp GF := iprop(True)
+
+/-- **No server runs on `ds`, whose disk is of kind `k`** (exclusive). -/
+opaque diskIdle (γ : Cluster) (ds : Config.Dirs) (k : DiskKind) : IProp GF := iprop(True)
+
+/-- **The process that ran a server on `ds` crashed** (exclusive): the adequacy theorem's crash rule
+gives it (W0's), one per disk whose server was running. -/
+opaque crashGone (γ : Cluster) (ds : Config.Dirs) : IProp GF := iprop(True)
+
+/-- **A server's access to the disk** (persistent): an update over `diskState` the server fires at
+each durable write. -/
+def diskAcc (γ : Cluster) (ds : Config.Dirs) : IProp GF :=
+  iprop(□ AU <{ ∃∃ (k : DiskKind), diskState γ ds k }> @ ⊤ \ ↑diskN, ∅
+    <{ ∀∀ (k' : DiskKind), diskState γ ds k', COMM True }>)
+
+/-- **The directories `ds` hold member `id`'s files and no server runs on them** (a stopped
+member: `HardStop`'s post). -/
+def memberDisk (γ : Cluster) (id : Nat) (ds : Config.Dirs) : IProp GF :=
+  diskIdle γ ds (.member id)
 
 /-- **The right to start a member of `γ` with configuration `cfg`** (heap parts `c`), member
 `oid` when known: exclusive; introduced by `memberStart_new`, `_join`, `_restart`. -/
@@ -360,6 +412,17 @@ def authBootRes_intro.spec : Prop := ∀ cfg : go_etcd_io.etcd.server.v3.config.
 
 /-! ## Laws -/
 
+/-- **The configurations a disk of kind `k` starts with** (`memberStart_disk`). -/
+def diskCfgOk (k : DiskKind) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (c : Config.Model) :
+    Prop :=
+  cfg.UnsafeNoFsync' = false ∧
+  match k with
+  | .boot ms m => cfg.NewCluster' = true ∧ m ∈ ms ∧ m.name = cfg.Name' ∧
+      (Membership.initialMembers cfg.InitialClusterToken' c.initialCluster).Perm ms
+  | .join urls => cfg.NewCluster' = false ∧ urls.Perm c.peerURLs ∧
+      ∃ u, c.initialURLs cfg.Name' = some u ∧ u.Perm c.peerURLs
+  | .member _ => cfg.ForceNewCluster' = false
+
 def srvMember_persistent.spec : Prop := ∀ s γ id, Persistent (srvMember (GF := GF) s γ id)
 
 def srvMember_agree.spec : Prop := ∀ s γ γ' id id',
@@ -395,9 +458,19 @@ def clusterApplyCfg_persistent.spec : Prop := ∀ γ mc, Persistent (clusterAppl
 def clusterApplyCfg_agree.spec : Prop := ∀ γ mc mc',
   clusterApplyCfg (GF := GF) γ mc ∗ clusterApplyCfg γ mc' ⊢ ⌜mc = mc'⌝
 
-def memberDisk_timeless.spec : Prop := ∀ γ id ds, Timeless (memberDisk (GF := GF) γ id ds)
+def diskState_timeless.spec : Prop := ∀ γ ds k, Timeless (diskState (GF := GF) γ ds k)
 
-/-- One durable state per member id. -/
+def diskState_excl.spec : Prop := ∀ γ ds k k',
+  diskState (GF := GF) γ ds k ∗ diskState γ ds k' ⊢ iprop(False)
+
+def diskIdle_excl.spec : Prop := ∀ γ ds k k',
+  diskIdle (GF := GF) γ ds k ∗ diskIdle γ ds k' ⊢ iprop(False)
+
+/-- While no server runs, the disk's kind is the idle token's. -/
+def diskIdle_agree.spec : Prop := ∀ γ ds k k',
+  diskState (GF := GF) γ ds k ∗ diskIdle γ ds k' ⊢ ⌜k = k'⌝
+
+/-- One stopped member per member id. -/
 def memberDisk_excl.spec : Prop := ∀ γ id ds ds',
   memberDisk (GF := GF) γ id ds ∗ memberDisk γ id ds' ⊢ iprop(False)
 
@@ -435,31 +508,36 @@ def urls_reserve.spec : Prop := ∀ (γ : Cluster) (ν : Rafthttp.Net GF) (urls 
   srvNet γ ν ∗ ([∗list] a ∈ hs, Http.addrFree (GF := GF) a) ⊢
     |==> urlsRight γ urls ∗ memberJoin γ urls ∗ [∗list] a ∈ hs, Http.protoAt a (Rafthttp.raftProto ν)
 
-/-- **Start a member of a new cluster**: its boot token and a fresh directory, under a
-configuration of a new cluster whose initial members are the allocated ones. -/
-def memberStart_new.spec : Prop :=
-  ∀ (γ : Cluster) (ms : List Member) (m : Member)
-    (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (c : Config.Model),
-  cfg.NewCluster' = true → m ∈ ms → m.name = cfg.Name' →
-  (Membership.initialMembers cfg.InitialClusterToken' c.initialCluster).Perm ms →
-  memberBoot (GF := GF) γ ms m ∗ dataDirFresh (Config.dirsOf cfg) ⊢ memberStart γ cfg c (some m.id)
+/-- **A new member's disk**: its boot token and a fresh directory. -/
+def disk_new.spec : Prop := ∀ (γ : Cluster) (ms : List Member) (m : Member) (ds : Config.Dirs),
+  memberBoot (GF := GF) γ ms m ∗ dataDirFresh ds ⊢ |==> diskState γ ds (.boot ms m) ∗
+    diskIdle γ ds (.boot ms m)
 
-/-- **Join as the member added with the configuration's peer URLs** (listed under the
-configuration's own name in the initial-cluster map): its join right and a fresh directory. -/
-def memberStart_join.spec : Prop :=
-  ∀ (γ : Cluster) (urls : List GoString)
-    (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (c : Config.Model),
-  cfg.NewCluster' = false → urls.Perm c.peerURLs →
-  (∃ u, c.initialURLs cfg.Name' = some u ∧ u.Perm c.peerURLs) →
-  memberJoin (GF := GF) γ urls ∗ dataDirFresh (Config.dirsOf cfg) ⊢ memberStart γ cfg c none
+/-- **A joiner's disk**: its join right and a fresh directory. -/
+def disk_join.spec : Prop := ∀ (γ : Cluster) (urls : List GoString) (ds : Config.Dirs),
+  memberJoin (GF := GF) γ urls ∗ dataDirFresh ds ⊢ |==> diskState γ ds (.join urls) ∗
+    diskIdle γ ds (.join urls)
 
-/-- **Restart a stopped member** on its directories (any configuration but
-`--force-new-cluster`: R1's `RestartNode` Margin). -/
-def memberStart_restart.spec : Prop :=
-  ∀ (γ : Cluster) (id : Nat) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
+/-- **The crash scope** (see the header, "Crashes"; the user's decision, `batch-2e.md` Q2): the
+crash left at most one conf-change entry above the stored commit (R1's `Durable.confAboveOk`) and
+did not interrupt the write of a snapshot-carrying batch. -/
+opaque crashScope : Prop
+
+/-- **After a crash**: the disk of the server that ran on `ds` is idle again, of the kind the crash
+left (a fresh directory stays one, or became member `id`'s files once the WAL was created; the
+files' in-flight batch resolved by R1's `raftState_crash`). -/
+def disk_crash.spec : Prop := ∀ (γ : Cluster) (ds : Config.Dirs) (k : DiskKind),
+  crashScope → diskState (GF := GF) γ ds k ∗ crashGone γ ds ⊢
+    |==> ∃ k', diskState γ ds k' ∗ diskIdle γ ds k' ∗ ⌜k' = k ∨ ∃ id, k' = .member id⌝
+
+/-- **The right to start a server on a disk**: its access, its idle token, a configuration of
+its kind. -/
+def memberStart_disk.spec : Prop :=
+  ∀ (γ : Cluster) (k : DiskKind) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
     (c : Config.Model),
-  cfg.ForceNewCluster' = false →
-  memberDisk (GF := GF) γ id (Config.dirsOf cfg) ⊢ memberStart γ cfg c (some id)
+  diskCfgOk k cfg c →
+  diskAcc (GF := GF) γ (Config.dirsOf cfg) ∗ diskIdle γ (Config.dirsOf cfg) k ⊢
+    memberStart γ cfg c k.id?
 
 /-- Split the closers off a built server (embed's error path: `Cleanup` before `Start`). -/
 def srvBuilt_closers.spec : Prop := ∀ s γ id cfg,

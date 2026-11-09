@@ -256,3 +256,42 @@ F14 (requested of 2a/2f), F15, F16 (noted in `RenewHTTP`, `NewServer`).
   serve only the raft handler, with which a join always fails. Specify it, or keep joins out of the
   examples?
 - Q3-Q6 stand as before.
+
+## Round 2 (crash restart) (2026-11-09)
+
+Over R1's `raftState_crash` (`Spec/go_etcd_io/raft/v3/Api.lean`; `Durable.crashed`,
+`Durable.confAboveOk`). Build: all 161 modules of 2e OK, and 2d's `ApiApply` still builds against
+the changed vocabulary. Snippets: `go vet`, `gofmt` clean. This supersedes round 1's "F8" and Q2.
+
+- **The durable state is client-owned throughout** (`ApiBoot.lean`, "Crashes"): `diskState γ ds k`
+  (exclusive, timeless; `DiskKind`: a new member's fresh directory `.boot ms m`, a joiner's
+  `.join urls`, member `id`'s files `.member id`) stays in the program's crash invariant. A running
+  server reaches it only through the persistent access `diskAcc γ ds`, fired at each durable write;
+  the raft loop deposits each batch's `readyEnter` in it before `Save`. `diskIdle γ ds k`
+  (exclusive, volatile): no server runs on `ds`.
+- **One start law**, `memberStart_disk`: the access, the idle token at kind `k`, a configuration
+  `diskCfgOk k` admits (the old `memberStart_new`/`_join`/`_restart` conditions per kind, plus
+  `UnsafeNoFsync` false). `disk_new`, `disk_join` make a disk from a fresh directory and a start
+  token. `memberDisk γ id ds` is now `diskIdle γ ds (.member id)`, so `HardStop`'s text and 2d's
+  `srvStopped_disk` are unchanged.
+- **After a crash**, `disk_crash`: from the crash rule's `crashGone γ ds` (W0's adequacy, carrying
+  raft's `nodeVacant`) and `diskState`, the disk is idle again at the kind the crash left. The WAL's
+  side is `Wal.Recs.crashedMid`/`crashed` (true of its code); raft's is R1's `raftState_crash` on the
+  deposited batch; the backend's is its last atomic commit. A graceful stop is the instance with no
+  crash.
+- **Scope, an explicit premise of `disk_crash`** (`crashScope`, opaque): R1's `confAboveOk` at the
+  crash (at most one conf-change entry above the stored commit), and no crash during the write of a
+  snapshot-carrying batch (R1's law excludes those: the loop's `SaveSnap` is fsynced first, but the
+  state record that makes the record valid follows).
+- Snippet `ReqCrashRecover` (the recovery's body; a crash itself is the adequacy theorem's).
+- `req/` "from 2e, round 2": 2d (deposit `readyEnter` before `Save`; every durable write fires
+  `diskAcc`; `srvStopped` now gives only the idle token), W0 (the crash rule gives `crashGone` and
+  keeps `diskState`; `crashScope` its environment premise).
+
+**Open question Q2 (revised, the user's):** crash restart holds only within `crashScope`. Two crash
+points are outside: (a) a crash leaving two or more conf-change entries above the stored commit (a
+restarted node can win an election counted in an older configuration:
+`nonissues/raft-commit-lost-with-entries-kept.md`), which a raft/etcd fix would remove (e.g. syncing
+the commit before acknowledging a second pending conf change); (b) a crash during a
+snapshot-carrying write, which needs R1's crash law extended to snapshot batches. Accept the scope,
+or ask for a fix?

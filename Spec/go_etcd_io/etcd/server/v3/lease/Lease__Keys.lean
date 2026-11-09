@@ -16,6 +16,8 @@ from a state of the history. **Margin.** A state of the history may be one in th
 applied entry (between two `Detach`es of a revocation's deletes, two `Attach`es of a transaction's
 puts), so a reader may see a key set no revision had:
 `nonissues/etcd-lease-keys-mid-apply.md`; the server's tie of the history to its own (2d) says which.
+**Round 1.** A reader token (`lessorReaders γ 1`: the slot of the `RWMutex` it read-locks; the
+writer borrows one, `lessorState_reader`), the bounds plan's reader slots.
 -/
 module
 
@@ -46,10 +48,10 @@ key once, in some order, in a fresh slice. -/
 def Lease.Keys.spec : Prop :=
   ∀ (γ : Names) (l : Loc) (id ttl : Int) (i : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ leaseObj γ l id ttl ∗
-      lessorLb γ i }}
+      lessorReaders γ 1 ∗ lessorLb γ i }}
     (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.Lease.ty @!!
       go!"Keys")) (Val #()))
-  {{ (sl : GoSlice), RET #sl; ∃ (j : Nat) (ls : LessorState) (ks : List Key),
+  {{ (sl : GoSlice), RET #sl; lessorReaders γ 1 ∗ ∃ (j : Nat) (ls : LessorState) (ks : List Key),
       ⌜i ≤ j⌝ ∗ lessorAt γ j ls ∗ sl ↦* ks ∗ ⌜ks.Nodup ∧ ∀ k, k ∈ ks ↔ ls.keys l k⌝ }}
 
 end spec

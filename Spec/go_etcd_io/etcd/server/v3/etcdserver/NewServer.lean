@@ -40,6 +40,12 @@ existing`), each with or without an auto-compactor. Snippets: `etcdserverboot/bo
 8. The post: `srvMember s γ id` (the read-only fields) and `srvBuilt s γ id cfg`, the slots'
    conjunction (`ApiBoot.lean`, intended realization), with `envUpd γ ecfg` for the apply thread.
 
+**Round 2 (crash restart).** The start right is `memberStart_disk`'s: the disk's persistent access
+`diskAcc` (the durable state stays the program's, in its crash invariant; the server fires the
+access at each durable write, with the raft loop's in-flight batch deposited before each `Save`) and
+its idle token, at any kind (a new member's, a joiner's, a member's files after a stop or a crash,
+`disk_crash` under `crashScope`); `UnsafeNoFsync` false (`diskCfgOk`).
+
 **Round 1** (provability F3/F4/F7, completeness F1/F5; 2d's request): the start right carries
 the reserved peer addresses (`cluster_alloc`, `urls_reserve`: 2f's `protoAt`/`peerAddr`, so two
 allocations cannot alias) and the member id when it is known (`oid`, given back in the post with
@@ -69,7 +75,7 @@ cluster has for its URLs.
 backend file, a WAL with only its metadata, or nothing new, and a raft node started by
 `StartNode` keeps running if the transport failed to start (Go leaks it: no `Stop` on that path).
 A program that wants to retry must keep its own copy of the right (it cannot: one token per start).
-Not covered: `--force-new-cluster` (`memberStart_restart`'s premise), discovery (`bootstrap`'s
+Not covered: `--force-new-cluster` (`diskCfgOk`'s premise at a member's files), discovery (`bootstrap`'s
 contract: no `DiscoveryCfg`; a scope restriction of `bootstrap.spec`).
 -/
 module

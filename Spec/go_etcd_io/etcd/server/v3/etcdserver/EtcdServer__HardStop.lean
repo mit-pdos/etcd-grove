@@ -15,7 +15,7 @@ closed (`run` returned on a server error, `errorc`). Then `<-s.done` takes the d
 escrow's token.
 
 **Changes** (from `specs-ref`'s `EtcdServer__HardStop.lean`: `srvStopRight`, `srvStopReq` to
-`srvDiskImage γ ρ id dd`): the image is `memberDisk`, which every start takes (`memberStart_restart`),
+`srvDiskImage γ ρ id dd`): the image is `memberDisk`, which every start takes (`memberStart_disk`, with the disk's access the program keeps),
 in place of the R2d'a restart contract's premises.
 
 **Round 1 (completeness F2).** The whole gate is a premise: no request in flight. `Cleanup` closes

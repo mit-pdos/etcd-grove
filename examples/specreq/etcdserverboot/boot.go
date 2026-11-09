@@ -67,9 +67,10 @@ func get(s *etcdserver.EtcdServer, k string) (*pb.RangeResponse, error) {
 // Users: examples/lib/etcdstart.StartServer (putget, txnlin, watch, lease, auth, compacted, ...),
 // embed.StartEtcd.
 // Assumes: the program allocated the cluster (cluster_alloc: the member computed from this
-// configuration, Membership.initialMembers; peerAddr's address reserved) and holds the fresh data
-// directory name+".etcd"; a thread token for Start.
-// Specs: NewServer.spec (memberStart_new; its post's 0 < id < 2^64, srvMember_id),
+// configuration, Membership.initialMembers; peerAddr's address reserved), made the disk of the fresh
+// directory name+".etcd" (disk_new) and keeps its diskState in its crash invariant (diskAcc); a
+// thread token for Start.
+// Specs: NewServer.spec (disk_new, memberStart_disk; its post's 0 < id < 2^64, srvMember_id),
 // EtcdServer.Start.spec, EtcdServer.MemberID.spec.
 func ReqStartOne(name, peerAddr, clientAddr string, lg *zap.Logger) *etcdserver.EtcdServer {
 	peer := types.URLs{{Scheme: "http", Host: peerAddr}}
@@ -128,7 +129,7 @@ func ReqStartThree(names [3]string, peers [3]types.URLs, clients [3]string, toke
 // Assumes: the member was started by ReqStartOne's path (its start right); no other writer of k;
 // the configuration of the restart is the first one's (only its directories matter); no request
 // is in flight at the stop (this goroutine made them all, and they returned: the gate, srvGate).
-// Specs: EtcdServer.HardStop.spec (memberDisk; the whole srvGate), memberStart_restart,
+// Specs: EtcdServer.HardStop.spec (memberDisk: the disk idle; the whole srvGate), memberStart_disk,
 // NewServer.spec, Start, and the request path's Put/Range (2c, each holding a share of srvGate).
 func ReqRestart(name, peerAddr, clientAddr string, lg *zap.Logger) {
 	s := ReqStartOne(name, peerAddr, clientAddr, lg)
@@ -169,7 +170,7 @@ func ReqRestart(name, peerAddr, clientAddr string, lg *zap.Logger) {
 // with 404: NewServer then returns an error (the trusted bootstrap's join case; etcd's own peer
 // handler, etcdhttp.NewPeerHandler, has no spec yet: batch-2e.md Q8), so the panic below is checked
 // only on a deployment serving that handler.
-// Specs: EtcdServer.AddMember.spec, membership.NewMember.spec, memberStart_join, NewServer.spec,
+// Specs: EtcdServer.AddMember.spec, membership.NewMember.spec, disk_join, memberStart_disk, NewServer.spec,
 // Start; laws: srvBuilt_excl.
 func ReqJoin(s1 *etcdserver.EtcdServer, name1 string, peer1 types.URLs, name2 string,
 	peer2 types.URLs, client2 string, token string, lg *zap.Logger) {
@@ -242,4 +243,32 @@ func ReqStopDrained(s *etcdserver.EtcdServer) {
 	}()
 	<-done // the share back: no request in flight
 	s.HardStop()
+}
+
+// REQ etcdserverboot/crash-restart: after a crash of the process at any point (outside the scope
+// crashScope excludes), the member restarted on its directory continues the cluster's history: a
+// write acknowledged before the crash is read after the restart. Not runnable in-process (a crash is
+// the adequacy theorem's crash rule: the restart below is the recovery procedure's body).
+// Users: every etcd deployment (systemd restarts after a kill); examples/etcd/restart's crash variant.
+// Assumes: the recovery runs after a crash of the process that ran the member on name+".etcd" (the
+// crash rule's crashGone), within crashScope (R1's confAboveOk at the crash, no crash during a
+// snapshot-carrying write: batch-2e.md Q2), and the program's crash invariant holds diskState; k was
+// put before the crash by a client that got an answer.
+// Specs: disk_crash, diskIdle_agree, memberStart_disk, NewServer.spec, EtcdServer.Start.spec, the
+// request path's Range (2c).
+func ReqCrashRecover(name, peerAddr, clientAddr string, lg *zap.Logger) {
+	peer := types.URLs{{Scheme: "http", Host: peerAddr}}
+	s, err := etcdserver.NewServer(memberConfig(name, peer, clientAddr, types.URLsMap{name: peer},
+		name, true, lg))
+	if err != nil {
+		return
+	}
+	s.Start()
+	resp, err := get(s, "k")
+	if err != nil {
+		return
+	}
+	if len(resp.Kvs) != 1 {
+		panic("crash-restart: an acknowledged write lost across the crash")
+	}
 }

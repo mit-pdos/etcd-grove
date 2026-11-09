@@ -10,6 +10,8 @@ field at some time value); `IsZero`: `MaxInt64`; else `time.Until(l.expiry)` (Pe
 
 **Changes** (from `specs-ref`'s `Lease__Remaining.lean`): over `leaseObj`. **Margin.** The value
 (time is not modelled; W0's time-to-live allows any `TTL`).
+**Round 1.** A reader token (`lessorReaders γ 1`: the slot of the `RWMutex` it read-locks; the
+writer borrows one, `lessorState_reader`), the bounds plan's reader slots.
 -/
 module
 
@@ -38,10 +40,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 /-- **The object's remaining time** (any goroutine): some duration. -/
 def Lease.Remaining.spec : Prop :=
   ∀ (γ : Names) (l : Loc) (id ttl : Int),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ leaseObj γ l id ttl }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ leaseObj γ l id ttl ∗
+      lessorReaders γ 1 }}
     (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.Lease.ty @!!
       go!"Remaining")) (Val #()))
-  {{ (d : time.Duration), RET #d; True }}
+  {{ (d : time.Duration), RET #d; lessorReaders γ 1 }}
 
 end spec
 end Lease

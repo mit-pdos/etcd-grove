@@ -47,6 +47,11 @@ computed in that window is below `H`, so a progress does not fix an unknown posi
 A watch's channel may also end at once (`WatchPos.closed`: a closed watcher, a done context, a
 stream that ended before the watch was registered), with at most one error response.
 
+**The compaction condition** (`exactFrom`): the events and progress facts are exact only when no
+revision from the watch's next one up to the compaction revision changes a key twice (a
+compaction keeps a key's last change of such a revision only); vacuous on a cluster that never
+compacts below the watch. Stated once here; 2b's `srvWireStep` and 3f's `wStep` cite it.
+
 ## Vocabulary
 
 Pure (transparent):
@@ -181,6 +186,23 @@ def WatchReq.prevOk (w : WatchReq) (h : KVHist) (loose : Bool) (e : WEv) (pk : O
     (pk = none ∧ (loose = true ∨ e.kv.createRevision = e.kv.modRevision ∨ e.rev - 1 < h.compacted))
   else pk = none
 
+/-- The key an event changes. -/
+def Event.key : Event → Key
+  | .put k _ => k
+  | .delete k => k
+
+/-- **The compaction condition** (the user's, round 11 of the mvcc API,
+`.claude/skills/spec/examples/watch-compaction.md`; the one statement of it that 1b, 2b and 3f
+cite): every revision from `lo` up to `h`'s compaction revision changes each key at most once
+(vacuous while the compaction revision is below `lo`). A compaction at a revision that changes a
+key twice keeps only the key's last change there, so a watch reading that revision afterwards gets
+it alone (`nonissues/etcd-mvcc-watch-compact-rev-subrev-lost.md`; through gRPC such a revision
+comes from `issues/etcd-txn-check-intervals-sibling.md`). A watch's exactness holds under it; the
+client discharges it from its workload (no transaction puts and deletes one key, the usual case)
+or from a cluster that never compacts. -/
+def exactFrom (h : KVHist) (lo : Nat) : Prop :=
+  ∀ r : Nat, lo ≤ r → r ≤ h.compacted → ((h.eventsAt r).map Event.key).Nodup
+
 /-- **An `mvccpb.Event`**: `Type` (`DELETE` iff `del`), `Kv`, `PrevKv` (`none`: `nil`). -/
 structure EventM where
   del : Bool
@@ -246,11 +268,12 @@ cluster reached, a lagging member's included):
   a compaction (`CompactRevision` set, then no `closeErr`) says the next revision the watch needs
   is below a compaction of the cluster;
 * a **`Created`** response only first, and only with `WithCreatedNotify`;
-* a response **with events**: exactly the watch's events of the revisions from just after `p`'s
-  (if `p`'s is unknown: from some revision at most the floor's + 1) to the last event's, all of
-  them reached, and the principal was permitted to read the range;
-* a **progress notification** (no events, a header revision `P`): nothing of the watch's since `p`'s
-  revision up to `P`, and `P` is not below it (a watch whose position is still unknown learns
+* a response **with events**: its last event's revision reached and past `p`'s; and, under the
+  compaction condition (`exactFrom` from the first revision it covers), exactly the watch's events
+  of the revisions from just after `p`'s (if `p`'s is unknown: from some revision at most the
+  floor's + 1) to the last event's; the principal was permitted to read the range;
+* a **progress notification** (no events, a header revision `P`): `P` is not below `p`'s revision,
+  and (under the compaction condition) nothing of the watch's since `p`'s revision up to `P` (a watch whose position is still unknown learns
   nothing from it: after a reconnect such a watch resumes from its creation's header revision,
   which a progress computed before that header may be below);
 * any other response (no events, header revision `0`): nothing. -/
@@ -273,14 +296,16 @@ def watchStep (who : Principal) (w : WatchReq) (σ σa : State) (p : WatchPos) (
     m.canceled = false ∧ p'.ended = false ∧
     (if m.hdr.revision = W64 0 then p'.done = p.done
      else ∃ P : Nat, sint.Z m.hdr.revision = P ∧
-       (∀ c, p.done = some c → c ≤ P ∧ watchEvents w σ.kv (c + 1) P = []) ∧
+       (∀ c, p.done = some c → c ≤ P ∧
+         (exactFrom σ.kv (c + 1) → watchEvents w σ.kv (c + 1) P = [])) ∧
        p'.done = p.done.map (fun _ => P))
   else
     m.canceled = false ∧ p'.ended = false ∧ σa.permits who [(.read, w.range)] [] ∧
     ∃ lo c' : Nat, (∀ c, p.done = some c → lo = c + 1) ∧
       (∀ f, p.done = none → p.floor = some f → lo ≤ f + 1) ∧ lo ≤ c' ∧
       (c' : Int) ≤ sint.Z m.hdr.revision ∧
-      List.Forall₂ (EventM.isOf w σ.kv p.prevLoose) m.events (watchEvents w σ.kv lo c') ∧
+      (exactFrom σ.kv lo →
+        List.Forall₂ (EventM.isOf w σ.kv p.prevLoose) m.events (watchEvents w σ.kv lo c')) ∧
       m.events.getLast?.map (fun e => e.kv.modRevision) = some (W64 c') ∧ p'.done = some c'
 
 /-! ## The wire protocol of a gRPC watch stream (the contract with 2a and 2b) -/
@@ -396,7 +421,8 @@ def wireStep (who : Principal) (σ σa : State) (ss : List WireWatchReq) (st : W
     evs = [] ∧ m.canceled = false ∧ m.compactRev = W64 0 ∧
     ∃ P : Nat, sint.Z (m.hdr.getD HeaderM.zero).revision = P ∧ (P : Int) ≤ σ.kv.rev ∧
       (∀ r ∈ st.regs, WireWatchReq.cancel r.1 ∉ ss →
-        ∀ c, r.2.2.done = some c → c ≤ P ∧ watchEvents r.2.1 σ.kv (c + 1) P = []) ∧
+        ∀ c, r.2.2.done = some c → c ≤ P ∧
+          (exactFrom σ.kv (c + 1) → watchEvents r.2.1 σ.kv (c + 1) P = [])) ∧
       st' = { st with
         regs := st.regs.map (fun r => if WireWatchReq.cancel r.1 ∈ ss then r
           else (r.1, r.2.1, { r.2.2 with done := r.2.2.done.map (fun _ => P) })),

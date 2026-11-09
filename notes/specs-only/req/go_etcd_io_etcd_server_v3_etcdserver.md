@@ -905,3 +905,20 @@ member-dependent apply, with no premise).
    proposer's step (3a's `Apply.applyStep mc`), and every member's state machine is at a TTL-variant
    (`Apply.ttlEq`) of it. W0's lease reads already allow any TTL, so the read slot `srvReadAt`
    answers stay `Step`'s.
+
+## from 2e, round 2 (crash restart)
+
+**To 2d.** The durable state is now client-owned throughout (`ApiBoot.lean`, "Crashes"):
+`diskState γ ds k` stays in the program's crash invariant; the running server reaches it through the
+persistent access `diskAcc γ ds` (an update over `diskState` with no value change visible to the
+program). So:
+1. The raft loop **deposits the batch's `readyEnter` in the disk** (through `diskAcc`) before the
+   WAL's `Save`, and fires it inside `Save`'s update (`storage.Save.spec`), so that after a crash
+   `disk_crash` can apply R1's `raftState_crash` to the in-flight batch. A snapshot-carrying batch is
+   outside the crash scope (R1's law excludes it).
+2. Every other durable write (the backend's commits through the post-lock hook, `SaveSnap`,
+   `Release`, a snapshot install's rename) fires `diskAcc` too, keeping `diskState`'s realization
+   (`walHolds`, `beHolds`) true at each instant.
+3. `memberDisk γ id ds` is now a definition, `diskIdle γ ds (.member id)` (the volatile idle token):
+   your `srvStopped_disk` still type-checks, but `srvStopped ∗ srvClosed` now gives only the idle
+   token (the files' content is in `diskState`, never moved).

@@ -10,6 +10,8 @@ from inside a revocation's deletes (`rdOk`). Snippet `lessor.go` (`ReqAttachDeta
 
 **Changes** (from `specs-ref`'s `lessor__GetLease.lean`, the owner's item map `I`): the same read,
 over the history (one spec for any caller). **Margin.** None.
+**Round 1.** A reader token (`lessorReaders γ 1`: the slot of the `RWMutex` it read-locks; the
+writer borrows one, `lessorState_reader`), the bounds plan's reader slots.
 -/
 module
 
@@ -38,10 +40,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 def lessor.GetLease.spec : Prop :=
   ∀ (le : Loc) (γ : Names) (c : Cfg) (i : Nat) (k : Key),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ isLessor le γ c ∗
-      lessorLb γ i }}
+      lessorReaders γ 1 ∗ lessorLb γ i }}
     (App (Val (le @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty @!!
       go!"GetLease")) (Val #(go_etcd_io.etcd.server.v3.lease.LeaseItem.mk k)))
-  {{ (r : w64), RET #r; ∃ (j : Nat) (ls : LessorState), ⌜i ≤ j⌝ ∗ lessorAt γ j ls ∗
+  {{ (r : w64), RET #r; lessorReaders γ 1 ∗ ∃ (j : Nat) (ls : LessorState), ⌜i ≤ j⌝ ∗ lessorAt γ j ls ∗
       ⌜r = W64 (ls.items k)⌝ }}
 
 end spec

@@ -204,3 +204,19 @@ Also: W0's `ctxPrin dflt ctx p` (a per-call principal) adopted: `Watcher.WatchTr
 `remoteWatchAt_watch` the same; `valCtx_ctxOk` keeps `ctxPrin`; a stream's internal predicates
 are indexed by its own principal (`newWatcherGRPCStream`, `closeStream`). My 40 modules build; the
 directory's other failures are 1c's in-progress `authClient__*` (`Auth.Triple`).
+
+## Round 3 (compaction exactness) (2026-11-09)
+
+3f showed mvcc's events are exact only under the user's round-11 condition (a compaction keeps a
+key's last change of a revision that changes it twice; through gRPC such a revision comes from
+`issues/etcd-txn-check-intervals-sibling.md`). Chosen form, matching 3f's `wStep` and the approved
+example's single condition (no disjunction): **the guarantee is gated**, not the create.
+`ClientV3.exactFrom h lo` (`ApiWatch.lean`, stated once; 2b and 3f cite it): every revision from
+`lo` up to `h.compacted` changes each key at most once. In `watchStep`, an event response's
+exactness (`Forall₂ … watchEvents`) and a progress's "no events" hold under `exactFrom σ.kv (done + 1)`
+(`lo` for the events); the rest (last revision past the position and reached, `P ≥ done`, the
+compaction case, permission) is unconditional; `wireStep`'s `-1` progress the same. Snippets: the
+package comment adds the condition to the owner's invariant (a workload with no transaction that
+puts and deletes one key, or no compaction); `order`, `filter`, `select`, `rewrite` and the history
+snippets cite it; `compacted`, `ends`, `created-first`, `close`, `share`, `options`,
+`request-progress` need none. 3f may replace its `exactFrom` by this one (same body).

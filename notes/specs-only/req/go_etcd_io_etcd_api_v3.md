@@ -350,3 +350,12 @@ checked against `server/auth/store.go` (W0's item 2 asked for it):
    (round 1, provability F4).
 5. Alarms (second tier F13): a client `AlarmActivate` of an unknown type reaches the alarm store with
    its raw type (`apply/backend.go:116-131`); the model has no client activation; say what it is.
+
+## from 2e, round 2 (crash restart)
+
+1. **The adequacy theorem's crash rule** gives `EtcdServer.crashGone γ ds` for each disk whose
+   server was running at the crash (with raft's `nodeVacant`, as R1's `raftState_crash` assumes), and
+   keeps the program's crash invariant holding `EtcdServer.diskState γ ds k`. With 2e's `disk_crash`
+   (under `crashScope`), K6's "a restart loses no answered step" holds after crashes too.
+2. **`crashScope`** is an environment premise of that crash rule (the user's decision): R1's
+   `Durable.confAboveOk` at the crash, and no crash during a snapshot-carrying write.

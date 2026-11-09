@@ -15,6 +15,8 @@ snapshot; `RUnlock`. A writer passes `lessorAt γ n ls` from its `lessorState γ
 **Changes** (from `specs-ref`'s `lessor__Lookup.lean`, the owner's exact read and the history's
 `leaseLiveFrom`): one spec for readers and the writer, answered from a state of the lessor's history
 at or after the caller's lower bound. **Margin.** None (an object is live or not at the read).
+**Round 1.** A reader token (`lessorReaders γ 1`: the slot of the `RWMutex` it read-locks; the
+writer borrows one, `lessorState_reader`), the bounds plan's reader slots.
 -/
 module
 
@@ -44,10 +46,10 @@ if live, else `nil`. -/
 def lessor.Lookup.spec : Prop :=
   ∀ (le : Loc) (γ : Names) (c : Cfg) (i : Nat) (id : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ isLessor le γ c ∗
-      lessorLb γ i }}
+      lessorReaders γ 1 ∗ lessorLb γ i }}
     (App (Val (le @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty @!!
       go!"Lookup")) (Val #id))
-  {{ (l : Loc), RET #l; ∃ (j : Nat) (ls : LessorState), ⌜i ≤ j⌝ ∗ lessorAt γ j ls ∗
+  {{ (l : Loc), RET #l; lessorReaders γ 1 ∗ ∃ (j : Nat) (ls : LessorState), ⌜i ≤ j⌝ ∗ lessorAt γ j ls ∗
       ⌜ls.leases (sint.Z id) = none ∧ l = null ∨
         ∃ e, ls.leases (sint.Z id) = some e ∧ l = e.obj⌝ }}
 

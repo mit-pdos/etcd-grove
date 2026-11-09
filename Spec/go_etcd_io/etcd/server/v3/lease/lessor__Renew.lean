@@ -19,6 +19,8 @@ channels of the expiry), so assumed.
 answered from the lessor's history. **Margin.** Liveness: a renewal tells nothing of the lease's
 expiry (time is not modelled; W0's keep-alive step allows any TTL). Whether `ErrNotPrimary` is
 answered depends on the primary flag and the clock, not modelled: it may be answered any time.
+**Round 1.** A reader token (`lessorReaders γ 1`: the slot of the `RWMutex` it read-locks; the
+writer borrows one, `lessorState_reader`), the bounds plan's reader slots.
 -/
 module
 
@@ -48,11 +50,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 def lessor.Renew.spec : Prop :=
   ∀ (le : Loc) (γ : Names) (c : Cfg) (i : Nat) (id : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ isLessor le γ c ∗
-      lessorLb γ i }}
+      lessorReaders γ 1 ∗ lessorLb γ i }}
     (App (Val (le @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty @!!
       go!"Renew")) (Val #id))
   {{ (ttl : w64) (err : GoInterface), RET (PairV #ttl #err);
-      (⌜err = interface.nil⌝ ∗ ∃ (j : Nat) (ls : LessorState) (e : LeaseEnt),
+      lessorReaders γ 1 ∗ (⌜err = interface.nil⌝ ∗ ∃ (j : Nat) (ls : LessorState) (e : LeaseEnt),
         ⌜i ≤ j ∧ ls.leases (sint.Z id) = some e ∧ sint.Z ttl = e.ttl⌝ ∗ lessorAt γ j ls) ∨
       (errIs go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound err ∗ ∃ (j : Nat) (ls : LessorState),
         ⌜i ≤ j ∧ ls.leases (sint.Z id) = none⌝ ∗ lessorAt γ j ls) ∨

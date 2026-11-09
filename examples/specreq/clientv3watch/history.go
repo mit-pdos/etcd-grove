@@ -7,7 +7,10 @@
 // Common assumptions (the proofs' setting, as clientv3kv's): cli is a client of a cluster
 // (isClient), the caller owns the cluster's state etcdState in an invariant of its own (the
 // "owner's invariant"), and a prefix or key a snippet names as "owned" is written by no other
-// principal and attached to no lease. Contexts are any contexts that name no other principal in
+// principal and attached to no lease. The watched revisions meet the compaction condition
+// (ApiWatch.lean's exactFrom: no revision up to the compaction revision changes a key twice; the
+// owner's invariant keeps it of its workload, no transaction putting and deleting one key, or the
+// cluster never compacts). Contexts are any contexts that name no other principal in
 // their outgoing metadata (W0's ctxPrin: Background, TODO, Perennial's contexts and their
 // children, WithRequireLeader's). Errors a watch's users handle
 // (an error response, the channel closing) are handled as they do: return.
@@ -127,7 +130,7 @@ func ReqWatchRevisionWhole(ctx context.Context, cli *clientv3.Client, pfx string
 // Kubernetes' etcd3 watcher (resource versions from ModRevision and progress bookmarks),
 // grpcproxy (drops events below nextrev), the examples' Check (examples/lib/etcdstart/watch.go:144:
 // strictly increasing revisions).
-// Assumes: none (any writers, compaction, leases); a start revision (every user passes one).
+// Assumes: any writers, leases; the compaction condition (package comment); a start revision.
 // Specs: Client.Watch.spec, WithProgressNotify.spec, WatchResponse.IsProgressNotify.spec;
 // watchChAt_recv (watchStep: events of the revisions after the position, progress not below it).
 func ReqWatchOrder(ctx context.Context, cli *clientv3.Client, key string, rev int64) {
@@ -163,7 +166,7 @@ func ReqWatchOrder(ctx context.Context, cli *clientv3.Client, key string, rev in
 // REQ clientv3watch/filter: a watch filtering puts out delivers no put.
 // Users: none today (WithFilterPut/WithFilterDelete are verified features: PRINCIPLES, "A smaller
 // API is not a narrower scope"); grpcproxy forwards the filters.
-// Assumes: none.
+// Assumes: the compaction condition (package comment).
 // Specs: Client.Watch.spec, WithFilterPut.spec; watchStep (WatchReq.keeps).
 func ReqWatchFilter(ctx context.Context, cli *clientv3.Client, key string) {
 	for wr := range cli.Watch(ctx, key, clientv3.WithPrefix(), clientv3.WithFilterPut()) {

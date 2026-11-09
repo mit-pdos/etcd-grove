@@ -11,7 +11,7 @@ import (
 // order requirement (events after the position, in order).
 // Users: Kubernetes' etcd3 watcher, the cache (cache.go: select on internalCtx.Done, the watch
 // channel and applyErr), naming/endpoints (select on ctx.Done), grpcproxy's health check.
-// Assumes: none.
+// Assumes: the compaction condition (history.go package comment).
 // Specs: Client.Watch.spec; watchChAt_recvAu (the receive as a select case), Context.ctxOk's Done.
 func ReqWatchSelect(ctx context.Context, cli *clientv3.Client, k string, rev int64) {
 	if rev <= 0 {
@@ -43,7 +43,7 @@ func ReqWatchSelect(ctx context.Context, cli *clientv3.Client, k string, rev int
 // Users: concurrency's Election.Observe (election.go:190: wr.Header.Revision = kv.ModRevision),
 // the namespace wrapper (namespace/watch.go: ev.Kv.Key = ev.Kv.Key[len(pfx):], relying on the
 // prefix: a shorter key would panic on the slice).
-// Assumes: none.
+// Assumes: the compaction condition (history.go package comment).
 // Specs: Client.Watch.spec, WithPrefix.spec; watchRespAt_fields (the header owned in full with
 // events, the events in full), eventOwn_unfold, keyValueOwn_unfold; watchStep (WatchReq.keeps:
 // the key in the range).
@@ -73,7 +73,7 @@ func ReqWatchRewrite(ctx context.Context, cli *clientv3.Client, pfx string) {
 // an error: compaction, or the member's window after a (re)registration) or the key's previous
 // value.
 // Users: Kubernetes' etcd3 watcher (event.go:67: a non-create event with a nil PrevKv is an error).
-// Assumes: k is owned (compaction allowed, reconnects allowed).
+// Assumes: k is owned (compaction allowed under the compaction condition, reconnects allowed).
 // Specs: Client.Put.spec, Client.Watch.spec, WithPrevKV.spec; watchStep (WatchReq.prevOk).
 func ReqWatchPrevKVCompacting(ctx context.Context, cli *clientv3.Client, k string) {
 	if _, err := cli.Put(ctx, k, "v1"); err != nil {
