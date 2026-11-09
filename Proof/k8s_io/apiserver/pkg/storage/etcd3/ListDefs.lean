@@ -97,6 +97,37 @@ def kvKeysShort (σ : KVState) : Prop :=
   ∀ R ≤ σ.rev, (σ.at R).kvs.length < 2 ^ 41 ∧
     ∀ kv ∈ (σ.at R).kvs, kv.key.length < opKeyMax
 
+/-- **A chunk's loop** (Draft §3.4's `ListModel.chunkL`; here to spare the driver a rebuild): 7e-3a's
+`lstep` on the chunk's items, stopping once `more` is set (`appendChunk` returns at the item that
+finds the limit reached). -/
+def chunkL {α O : Type} (sel : O → Bool) (lim : Nat) :
+    k8s_etcd3.ListModel.LState α O → List (List α × O) → k8s_etcd3.ListModel.LState α O
+  | st, [] => st
+  | st, ko :: r => if st.more then st else chunkL sel lim (k8s_etcd3.ListModel.lstep sel lim st ko) r
+
+theorem chunkL_append {α O : Type} (sel : O → Bool) (lim : Nat) :
+    ∀ (st : k8s_etcd3.ListModel.LState α O) (l1 l2 : List (List α × O)),
+      chunkL sel lim st (l1 ++ l2) = chunkL sel lim (chunkL sel lim st l1) l2
+  | st, [], l2 => rfl
+  | st, ko :: l1, l2 => by
+    simp only [List.cons_append, chunkL]
+    split
+    · rename_i h
+      cases l2 with
+      | nil => rfl
+      | cons _ _ => simp [chunkL, h]
+    · exact chunkL_append sel lim _ l1 l2
+
+theorem chunkL_more {α O : Type} (sel : O → Bool) (lim : Nat)
+    (st : k8s_etcd3.ListModel.LState α O) (h : st.more = true) :
+    ∀ l, chunkL sel lim st l = st
+  | [] => rfl
+  | _ :: _ => by simp [chunkL, h]
+
+/-- **A chunk's key-values decoded** (Draft §3.4): each key with its object and mod revision. -/
+def decodedL (dec : Dec Obj) (kvs : List EtcdKv) : List (GoString × (Obj × Nat)) :=
+  kvs.filterMap fun v => (dec v.value).map fun d => (v.key, (d.1, sint.nat v.modRev))
+
 end pure
 
 /-! ## The store's part -/
@@ -252,6 +283,22 @@ def listContractOk (c : StoreCfg GF Obj) (L : ListSpec GF Obj) : IProp GF :=
 instance listContractOk_persistent (c : StoreCfg GF Obj) (L : ListSpec GF Obj) :
     Persistent (listContractOk c L) := by
   unfold listContractOk; infer_instance
+
+/-- **The items of a loop state** (Draft §3.4): in order, each object with its mod revision's
+string. -/
+def itemsOf (c : StoreCfg GF Obj) (st : k8s_etcd3.ListModel.LState w8 (Obj × Nat)) :
+    List (Obj × GoString) :=
+  st.items.reverse.map fun x => (x.1, c.S.fmtRV (W64 (x.2 : Int)))
+
+/-- **`appendChunk`'s last key** (Draft §3.4's `lastKeyIs`, a form settled at Prove): `nil` if no
+key-value was evaluated, else the key of the `n`-th (the last evaluated). -/
+def lastKeyIs (lk : GoSlice) (kvs : List EtcdKv) (n : Nat) : IProp GF :=
+  if n = 0 then iprop(⌜lk = slice.nil⌝)
+  else iprop(∃ kv : EtcdKv, ⌜kvs[n - 1]? = some kv⌝ ∗ lk ↦*□ kv.key)
+
+instance lastKeyIs_persistent (lk : GoSlice) (kvs : List EtcdKv) (n : Nat) :
+    Persistent (lastKeyIs (GF := GF) lk kvs n) := by
+  unfold lastKeyIs; split <;> infer_instance
 
 /-- **A list's answer** in the list object `lx` (Draft §2): the items (each object at its mod
 revision's string), the list's resource version, the continue token (`encL` of the last match's
