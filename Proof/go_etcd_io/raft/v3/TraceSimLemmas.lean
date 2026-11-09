@@ -2404,6 +2404,56 @@ theorem alreadyDone_none_len (st : Etcdraft.State) (i j : Etcdraft.ID) (index : 
   have h1 : ¬ (index ≤ (st.s i).commitIndex) := by omega
   simp [h1, hc, hne, h]
 
+/-- An append request of the receiver's term: the receive is its handling. -/
+theorem receive_aer (st : Etcdraft.State) (m : Etcdraft.Msg) (r : List Etcdraft.State)
+    (hsrv : st.server.contains m.dest = true) (hty : m.type = .appendEntriesRequest)
+    (hterm : m.term = (st.s m.dest).currentTerm)
+    (hh : st.handleAppendEntriesRequest m.dest m.source m = .ok r) :
+    st.receive m = .ok r := by
+  unfold Etcdraft.State.receive
+  have hut : st.updateTerm m.dest m.source m = none := by
+    unfold Etcdraft.State.updateTerm; simp [hterm]
+  have hsrv' : m.dest ∈ st.server := List.contains_iff_mem.1 hsrv
+  simp [hsrv', hty, hut, hh, Etcdraft.somes, bind, Except.bind, pure, Except.pure]
+
+/-- The specification's state with server `i`'s log the abstract log of a prefix, the leader adopted. -/
+def truncSt (st : Etcdraft.State) (i j : Etcdraft.ID) (L : List Etcdraft.Entry) : Etcdraft.State :=
+  withLead (st.upd i (fun v => { v with log := L })) i j
+
+/-- **A truncation round**: at a follower of the request's term whose log, the abstract log of `n`
+entries of `es`, conflicts with the batch past the commit index: one successor, the last entry
+dropped, the leader adopted. -/
+theorem receive_trunc (st : Etcdraft.State) (m : Etcdraft.Msg) (C : List w64) (bl p n : Nat)
+    (es ents : List EntryM) (hsrv : st.server.contains m.dest = true) (hty : m.type = .appendEntriesRequest)
+    (hf : (st.s m.dest).state = Etcdraft.follower) (hterm : m.term = (st.s m.dest).currentTerm)
+    (hsub : m.subtype ≠ "snapshot")
+    (hlog : (st.s m.dest).log = logAbs C bl 1 (es.take n))
+    (hents : m.entries = logAbs C bl (p + 1) ents) (hprev : m.prevLogIndex = p) (hn : n ≤ es.length)
+    (hpn : p ≤ n) (hc : (st.s m.dest).commitIndex < (p : Int) + 1) (hne : ents ≠ [])
+    (hbl : BootTerms bl 1 es) (hbe : BootTerms bl (p + 1) ents)
+    (hlogOk : (or (m.prevLogIndex == 0) (decide (m.prevLogIndex > 0) && decide (m.prevLogIndex ≤ (st.s m.dest).log.length) &&
+      some m.prevLogTerm == (((st.s m.dest).log[(m.prevLogIndex - 1).toNat]?).map Etcdraft.Entry.term))) = true)
+    (hconf : ¬ ∀ k e, ents[k]? = some e → p + k < n → ((es.take n)[p + k]?).map EntryM.Term' = some e.Term') :
+    st.receive m = .ok [truncSt st m.dest m.source (logAbs C bl 1 (es.take (n - 1)))] := by
+  have hlen : (es.take n).length = n := by simp; omega
+  have hnc : st.hasNoConflict m.dest ((p : Int) + 1) m.entries = false := by
+    rw [hents]
+    cases h : st.hasNoConflict m.dest ((p : Int) + 1) (logAbs C bl (p + 1) ents)
+    · rfl
+    · exfalso; apply hconf
+      have := (hasNoConflict_abs st m.dest C bl p (es.take n) ents hlog (by omega) (hbl.take n) hbe).1 h
+      rw [hlen] at this; exact this
+  have hne' : m.entries.isEmpty = false := by
+    rw [hents]; cases ents with
+    | nil => exact absurd rfl hne
+    | cons _ _ => simp [logAbs]
+  apply receive_aer st m _ hsrv hty hterm
+  apply handleAER_accept st m.dest m.source m _ hf hterm hlogOk hsub _ _
+    (by rw [hprev]; exact conflict_step st m.dest m C bl p n es ents hlog hents hn hpn hc hne hbl hbe hconf)
+    (by rw [hprev]; exact noConflict_none_conf st m.dest _ m hnc)
+  rw [hprev]
+  simp [Etcdraft.somes, alreadyDone_none_conf st m.dest m.source _ m (by omega) hne' hnc]
+
 end TraceSim
 
 end EtcdGrove
