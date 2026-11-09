@@ -43,6 +43,38 @@ specs). *trusted*: a trust-boundary axiom (new or restated), with why it is fait
 through the `axiom` skill before the Freeze. *hypothesis-until-X*: a premise or callee spec that X
 produces; until then it is a binder of the proof (no axiom).
 
+## Corrections (2026-11-09; decided by etcd-grove-81 under the user's delegation of 2026-11-07)
+
+Found when 7e-2's Lean started (before any was written); `questions.md`, "k8s 7e-2: corrections".
+They supersede the text of §1, §2 and §8 below where they differ. 7e-4 discharges every new premise
+from the driver; one that would surface as a premise of a closed theorem goes to the user.
+
+- **R1** (§8, the statement was false): `refine_list`'s too-large case is `σ.rev < uint.nat n` for
+  both reads (for a past read `R = n`, so this is `GetList`'s two branches):
+  ```lean
+      (if σ.rev < uint.nat n then tooLargeL = mlistL x h
+       else listOutDriver x (if uint.Z R = 0 then W64 (σ.rev : Int) else R) a = mlistL x h)
+  ```
+- **R2** (§8): premise `x.Match' = W64 0 ∨ x.Match' = W64 1 ∨ x.Match' = W64 2` (`matchOptL` reads
+  any other value as the legacy match, `pastReadL` only `0`). Producer: `genList`.
+- **R3** (§8): premise `go!"/objs/" <+: x.ListKey'` (else the scope may hold `"/registry/objs"`,
+  under the store's prefix but no driver item). Producer: `genList`.
+- **R4** (§8, gaps filled): the selector is `fun o : DObj => selOkL x (o.toObj (W64 0))`;
+  `listOutDriver x R a` is the driver's `listOut` of `listIs`'s list; `KRelH h σ` relates `h.st` to
+  `absK driverSpec.dec c.pfx` of `σ` and `histAtL h.hist r` to that of `σ.at r` for `1 ≤ r ≤ σ.rev`
+  (`KRel`'s form, with `ItemRel` comparing the whole object, `it.obj' = ki.obj.toObj (W64 ki.rv)`),
+  and `(histAtL h.hist r).rv = W64 r`. In a new module (`Refine.lean` waits for 7e-4); 7e-4 adopts
+  this `ItemRel`.
+- **G1** (§2): `store.GetList.spec` takes `uint.Z n < 2 ^ 63` (`ValidateListOptions`' `int64(parsedRV)`
+  would be negative, and etcd reads a revision `≤ 0` as the current one:
+  `nonissues/k8s-etcd3-list-exact-rv-above-int64.md`). Producer: the driver's `minRV`.
+- **G2** (§2): `store.GetList.spec` takes `0 ≤ sint.Z opts.Predicate'.Limit'` (`pagedChunks` and
+  `Client.List` require it). Producer: `genList` (limits 0, 1, 2).
+- **G3** (§2, §3.5): `kvKeysShort σ := ∀ R ≤ σ.rev, (σ.at R).kvs.length < 2 ^ 41 ∧ ∀ kv ∈ (σ.at R).kvs,
+  kv.key.length < opKeyMax` (`hasMore := int64(len(Kvs)) < Count` and the metrics' sums need the
+  key count below `2^63`; "finite with distinct keys" does not bound it). It also gives 7e-1's
+  `len(Kvs) ≤ 2 ^ 41`. Producer: 7e-4 (the driver's workload keys).
+
 ## 0. Summary
 
 | # | Item | Status | Producer |

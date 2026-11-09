@@ -258,6 +258,10 @@ revision.
     2026-11-09):** `Client.List`'s post bounds the response's `Kvs`: `uint.nat resp.Kvs'.len ≤ 2 ^ 41`
     (a response is at most the client's receive limit, < 2^31 bytes, at least one byte per kv), so
     that `growSlice`'s `reflect.MakeSlice` meets its new premise `sint.Z m ≤ 2 ^ 41`.
+    **Discharged by 7e-2 instead (correction G3, decided by etcd-grove-81, 2026-11-09):** the
+    store's `kvKeysShort σ` (from `Q`, produced by 7e-4) bounds every revision's key count below
+    `2 ^ 41`, and a response's `Kvs` are keys of the store at the read revision, so `Client.List`'s
+    post need not carry the bound (it may).
 
 ## 6. The model in Lean and the invariant
 
