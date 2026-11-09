@@ -57,10 +57,10 @@ state `σ` after `σ0` and the leader key was put to `val` with the session's le
 ...` a step the cluster took); or `ErrElectionNotLeader`: no leader session, or the fence failed at
 a state after `σ0` (the leader key cleared); or another error, unchanged. -/
 def Election.Proclaim.spec : Prop :=
-  ∀ (e s c : Loc) (pfx : GoString) (st : ElectionSt) (γ : Cluster) (who : Principal) (id : w64)
+  ∀ (e s c : Loc) (pfx : GoString) (st : ElectionSt) (γ : Cluster) (dflt who : Principal) (id : w64)
     (ctx : GoInterface) (val : GoString) (T : State → State → Prop) (P : IProp GF) (σ0 : State),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isElection e s pfx ∗ electionSt e st ∗ isSession s c γ id ∗ isClient c γ who ∗
-      Context.ctxOk ctx ∗ ctxPrin ctx who ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isElection e s pfx ∗ electionSt e st ∗ isSession s c γ id ∗ isClient c γ dflt ∗
+      Context.ctxOk ctx ∗ ctxPrin dflt ctx who ∗
       etcdLent γ T P ∗ P ∗ etcdLb γ σ0 ∗ ⌜effIn (putEff (fun k => k = st.leaderKey) (fun v => v = val) (sint.Z id)) T⌝ }}
     (App (App (Val (e @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.concurrency.Election.ty @!! go!"Proclaim")) (Val #ctx)) (Val #val))
   {{ (err : GoInterface), RET #err;

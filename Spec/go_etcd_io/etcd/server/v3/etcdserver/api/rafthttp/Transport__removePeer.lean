@@ -35,7 +35,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (internal) Under the lock: stops and removes peer `id` if present. -/
 def Transport.removePeer.spec : Prop :=
-  ∀ (t : Loc) (ν : Net) (lid pid : w64),
+  ∀ (t : Loc) (ν : Net GF) (lid pid : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ isTransport t ν lid ∗ trMaps t ν lid }}
     (App (Val (t @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport.ty @!! go!"removePeer")) (Val #pid))
   {{ RET #(); trMaps t ν lid }}

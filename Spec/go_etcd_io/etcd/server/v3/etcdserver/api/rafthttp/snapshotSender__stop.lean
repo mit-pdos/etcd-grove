@@ -35,7 +35,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (internal) Closes `stopc` (once). -/
 def snapshotSender.stop.spec : Prop :=
-  ∀ (s : Loc) (ν : Net) (lid pid : w64),
+  ∀ (s : Loc) (ν : Net GF) (lid pid : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ ssAt s ν lid pid ∗ ssStopRight s }}
     (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotSender.ty @!! go!"stop")) (Val #()))
   {{ RET #(); True }}

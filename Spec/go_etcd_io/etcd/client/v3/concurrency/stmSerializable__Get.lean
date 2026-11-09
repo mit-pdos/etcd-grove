@@ -33,7 +33,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
 /-- `s.Get(keys...)` (serializable levels): `GetPost`, or the abort; the first read fixes the revision of the attempt's later reads. -/
 def stmSerializable.Get.spec : Prop :=
-  ∀ (p : Loc) (γ : Cluster) (who : Principal) (iso : w64) (a : Attempt) (sl : GoSlice) (ks : List GoString),
+  ∀ (p : Loc) (γ : Cluster) (dflt who : Principal) (iso : w64) (a : Attempt) (sl : GoSlice) (ks : List GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ stmSerAt p γ who iso a ∗ sl ↦*□ ks }}
     (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.concurrency.stmSerializable.ty @!! go!"Get")) (Val #sl))
   {{ (r : val), RET r; stmRet r (fun v : GoString => iprop(∃ a',

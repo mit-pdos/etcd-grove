@@ -33,7 +33,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
 /-- `s.reset()`: a fresh attempt. -/
 def stm.reset.spec : Prop :=
-  ∀ (p : Loc) (γ : Cluster) (who : Principal) (iso : w64) (gs : List (OpM → OpM)),
+  ∀ (p : Loc) (γ : Cluster) (dflt who : Principal) (iso : w64) (gs : List (OpM → OpM)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ stmCoreStale p γ who iso gs }}
     (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.concurrency.stm.ty @!! go!"reset")) (Val #()))
   {{ RET #(); stmCoreAt p γ who iso Attempt.empty gs }}

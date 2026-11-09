@@ -35,10 +35,10 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (internal) **Starts a stream writer** for peer `pid` (its `run` goroutine), not yet working. -/
 def startStreamWriter.spec : Prop :=
-  ∀ (lg : Loc) (ν : Net) (lid pid : w64) (st fs : Loc) (ss : Loc) (r : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ (⌜lg = null⌝ ∨ Zap.isLogger lg) ∗ statusAt st ∗ followerStatsOk fs ∗ raftOk ν lid ss r }}
+  ∀ (lg : Loc) (ν : Net GF) (lid pid : w64) (st fs : Loc) (r : GoInterface) (K : Msg → Prop),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ (⌜lg = null⌝ ∨ Zap.isLogger lg) ∗ statusAt st ∗ followerStatsOk fs ∗ raftOk ν lid r }}
     (App (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.startStreamWriter)) (Val #lg)) (Val #lid)) (Val #pid)) (Val #st)) (Val #fs)) (Val #r))
-  {{ (cw : Loc), RET #cw; swAt cw ν lid pid ∗ swStopRight cw }}
+  {{ (cw : Loc), RET #cw; swAt cw ν lid pid K ∗ swStopRight cw }}
 
 end spec
 end Rafthttp

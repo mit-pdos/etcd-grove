@@ -63,7 +63,8 @@ answered; no token can be given back for them. Alternative (open question in `ba
 persistent permission for everything, simpler to give and weaker to rely on.
 
 **The principal per call**: a session names its client (`isSession s c γ id`); each mutex and
-election method takes `isClient c γ who` and its context's `ctxPrin ctx who` (the in-process client
+election method takes `isClient c γ dflt` (the client's default principal) and its context's
+`ctxPrin dflt ctx who`, the call's principal `who` (W0's round 3; the in-process client
 of v3lock/v3election sends each request as the RPC's principal); cleanups that run on
 `client.Ctx()` run as the client's own principal (`Client.Ctx.spec`, 1c).
 
@@ -504,12 +505,13 @@ opaque stmAt (iv : GoInterface) (γ : Cluster) (who : Principal) (iso : w64) (a 
 opaque stmStale (iv : GoInterface) (γ : Cluster) (who : Principal) (iso : w64) : IProp GF :=
   iprop(True)
 
-/-- An option's context, if set, is a context (`ctxOk`) carrying no other principal's metadata
-(`ctxPrin`, W0); unset, the client's is used. -/
-def optCtxOk (o : Option GoInterface) (who : Principal) : IProp GF :=
+/-- An option's context, if set, is a context (`ctxOk`) whose requests, from a client of default
+principal `dflt`, are authenticated as `who` (W0's `ctxPrin dflt ctx who`); unset, the client's own
+context is used, and its requests are the client's own principal's (`who = dflt`). -/
+def optCtxOk (o : Option GoInterface) (dflt who : Principal) : IProp GF :=
   match o with
-  | some ctx => iprop(Context.ctxOk ctx ∗ ctxPrin ctx who)
-  | none => iprop(True)
+  | some ctx => iprop(Context.ctxOk ctx ∗ ctxPrin dflt ctx who)
+  | none => iprop(⌜who = dflt⌝)
 
 /-- A call's outcome that may be the STM's abort (`panic(stmError{err})`, `err ≠ nil`), which
 `runSTM` recovers: a return `x` with `Q x`, or the abort with `A`. -/

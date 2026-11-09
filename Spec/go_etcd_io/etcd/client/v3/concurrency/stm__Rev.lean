@@ -33,7 +33,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
 /-- `s.Rev(key)`: the key's mod revision as read (`RevPost`), or the abort. -/
 def stm.Rev.spec : Prop :=
-  ∀ (p : Loc) (γ : Cluster) (who : Principal) (iso : w64) (a : Attempt) (gs : List (OpM → OpM)) (k : GoString),
+  ∀ (p : Loc) (γ : Cluster) (dflt who : Principal) (iso : w64) (a : Attempt) (gs : List (OpM → OpM)) (k : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ stmCoreAt p γ who iso a gs }}
     (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.concurrency.stm.ty @!! go!"Rev")) (Val #k))
   {{ (r : val), RET r; stmRet r (fun rev : w64 => iprop(∃ a',

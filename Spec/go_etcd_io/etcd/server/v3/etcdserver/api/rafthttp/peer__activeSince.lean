@@ -35,7 +35,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (internal) The peer's status' `activeSince`. -/
 def peer.activeSince.spec : Prop :=
-  ∀ (p : Loc) (ν : Net) (lid pid : w64),
+  ∀ (p : Loc) (ν : Net GF) (lid pid : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ peerAt p ν lid pid }}
     (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peer.ty @!! go!"activeSince")) (Val #()))
   {{ (tm : _root_.Perennial.time.Time), RET #tm; True }}

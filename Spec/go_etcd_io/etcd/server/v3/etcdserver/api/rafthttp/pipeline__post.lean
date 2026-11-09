@@ -35,7 +35,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (internal) **POSTs one encoded message** to the peer's URL: the request carries the message's facts and its credit (deposited for the request's ticket); `nil` only for a `204`. -/
 def pipeline.post.spec : Prop :=
-  ∀ (pl : Loc) (ν : Net) (lid pid : w64) (data : GoSlice) (bs : List w8) (dq : DFrac) (m : Msg),
+  ∀ (pl : Loc) (ν : Net GF) (lid pid : w64) (data : GoSlice) (bs : List w8) (dq : DFrac) (m : Msg),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ pipeAt pl ν lid pid ∗ data ↦*{dq} bs ∗ ⌜pbEncodes bs m ∧ sendable lid m ∧ m.to ≠ W64 0⌝ ∗ msgSent ν.γ m ∗ msgCredit ν.γ m }}
     (App (Val (pl @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline.ty @!! go!"post")) (Val #data))
   {{ (err : GoInterface), RET #err; Http.errOk err }}

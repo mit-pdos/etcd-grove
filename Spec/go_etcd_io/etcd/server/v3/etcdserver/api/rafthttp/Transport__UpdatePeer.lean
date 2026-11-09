@@ -35,7 +35,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- **`UpdatePeer(id, us)`** with URLs `NewURLs` accepts (it panics otherwise: the documented caller's responsibility), each host a peer address of `ν` (a no-op for an unknown id). -/
 def Transport.UpdatePeer.spec : Prop :=
-  ∀ (t : Loc) (ν : Net) (lid pid : w64) (sl : GoSlice) (us hs : List GoString),
+  ∀ (t : Loc) (ν : Net GF) (lid pid : w64) (sl : GoSlice) (us hs : List GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ isTransport t ν lid ∗ sl ↦*{DFrac.discard} us ∗ ⌜urlsHosts us = some hs⌝ ∗ ⌜hs ≠ []⌝ ∗ ([∗list] a ∈ hs, peerAddr ν a) }}
     (App (App (Val (t @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport.ty @!! go!"UpdatePeer")) (Val #pid)) (Val #sl))
   {{ RET #(); True }}

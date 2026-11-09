@@ -10,6 +10,7 @@ import (
 // REQ raftpb/getters-nil: every getter reads through a nil message (raft's `snap.GetMetadata().
 // GetIndex()` on a message without a snapshot; `IsEmptySnap` of a nil snapshot).
 // Users: raft.go:1859 (handleSnapshot), node.go (IsEmptySnap), rafthttp's snapshot sender.
+// Assumes: m is nil or a message held by msgPts (any fraction).
 // Specs: Message.GetSnapshot.spec, Snapshot.GetMetadata.spec, SnapshotMetadata.GetIndex.spec (their
 // nil conjuncts).
 func ReqGettersNil(m *pb.Message) uint64 {

@@ -48,10 +48,10 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 written by the prefix's oldest key at a revision of a state reached after `σ0`; closed when
 `ctx` is done or a watch fails. -/
 def Election.Observe.spec : Prop :=
-  ∀ (e s c : Loc) (pfx : GoString) (γ : Cluster) (who : Principal) (id : w64)
+  ∀ (e s c : Loc) (pfx : GoString) (γ : Cluster) (dflt who : Principal) (id : w64)
     (ctx : GoInterface) (σ0 : State),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isElection e s pfx ∗ isSession s c γ id ∗ isClient c γ who ∗ Context.ctxOk ctx ∗
-      ctxPrin ctx who ∗ etcdPeek γ ∗ etcdLb γ σ0 }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isElection e s pfx ∗ isSession s c γ id ∗ isClient c γ dflt ∗ Context.ctxOk ctx ∗
+      ctxPrin dflt ctx who ∗ etcdPeek γ ∗ etcdLb γ σ0 }}
     (App (Val (e @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.concurrency.Election.ty @!! go!"Observe")) (Val #ctx))
   {{ (ch : GoChan), RET #ch; observeAt ch γ pfx σ0 }}
 

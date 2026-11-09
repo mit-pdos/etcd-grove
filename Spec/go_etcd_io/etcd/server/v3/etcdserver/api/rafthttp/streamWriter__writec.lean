@@ -35,10 +35,10 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (internal) The writer's queue and whether it works. -/
 def streamWriter.writec.spec : Prop :=
-  ∀ (cw : Loc) (ν : Net) (lid pid : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ swAt cw ν lid pid }}
+  ∀ (cw : Loc) (ν : Net GF) (lid pid : w64) (K : Msg → Prop),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ swAt cw ν lid pid K }}
     (App (Val (cw @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamWriter.ty @!! go!"writec")) (Val #()))
-  {{ (ch : GoChan) (ok : Bool), RET (PairV #ch #ok); msgChanAt ch ν lid }}
+  {{ (ch : GoChan) (ok : Bool), RET (PairV #ch #ok); msgChanAt ch ν lid pid K }}
 
 end spec
 end Rafthttp

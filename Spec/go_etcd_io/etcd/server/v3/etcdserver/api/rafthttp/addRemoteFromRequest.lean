@@ -35,7 +35,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (internal) Adds the sender as a remote from `X-Server-From` and `X-PeerURLs` (a member's request: the URLs parse and are peer addresses). -/
 def addRemoteFromRequest.spec : Prop :=
-  ∀ (t : Loc) (ν : Net) (lid : w64) (r : Loc) (R : Http.HReq) (rd : GoInterface) (τ : GName),
+  ∀ (t : Loc) (ν : Net GF) (lid : w64) (r : Loc) (R : Http.HReq) (rd : GoInterface) (τ : GName),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ isTransport t ν lid ∗ Http.srvReq r R rd ∗ □ (raftProto ν).hreq R τ }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.addRemoteFromRequest)) (Val #(interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport.ty) #t))) (Val #r))
   {{ RET #(); True }}

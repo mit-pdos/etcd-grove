@@ -35,7 +35,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (internal) Pauses the peer: outgoing messages dropped, stream-inbound ones dropped after decoding. -/
 def peer.Pause.spec : Prop :=
-  ∀ (p : Loc) (ν : Net) (lid pid : w64),
+  ∀ (p : Loc) (ν : Net GF) (lid pid : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ peerAt p ν lid pid }}
     (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peer.ty @!! go!"Pause")) (Val #()))
   {{ RET #(); True }}

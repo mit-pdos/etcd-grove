@@ -33,7 +33,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
 /-- `s.Put(key, val, opts...)`: the put in the write set. -/
 def stm.Put.spec : Prop :=
-  ∀ (p : Loc) (γ : Cluster) (who : Principal) (iso : w64) (a : Attempt) (gs : List (OpM → OpM)) (k v : GoString) (opts : GoSlice) (ogs : List (OpM → OpM)),
+  ∀ (p : Loc) (γ : Cluster) (dflt who : Principal) (iso : w64) (a : Attempt) (gs : List (OpM → OpM)) (k v : GoString) (opts : GoSlice) (ogs : List (OpM → OpM)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ stmCoreAt p γ who iso a gs ∗ optsAt opts ogs ∗ ⌜¬ (opPutM k v ogs).putPanics⌝ }}
     (App (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.concurrency.stm.ty @!! go!"Put")) (Val #k)) (Val #v)) (Val #opts))
   {{ RET #(); optsAt opts ogs ∗ stmCoreAt p γ who iso

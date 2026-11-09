@@ -37,8 +37,8 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
 /-- `waitDelete(ctx, c, key, rev)`: returns (some error, or `nil`); it only waits. -/
 def waitDelete.spec : Prop :=
-  ∀ (ctx : GoInterface) (c : Loc) (γ : Cluster) (who : Principal) (key : GoString) (rev : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isClient c γ who ∗ Context.ctxOk ctx ∗ ctxPrin ctx who }}
+  ∀ (ctx : GoInterface) (c : Loc) (γ : Cluster) (dflt who : Principal) (key : GoString) (rev : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isClient c γ dflt ∗ Context.ctxOk ctx ∗ ctxPrin dflt ctx who }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.client.v3.concurrency.waitDelete)) (Val #ctx)) (Val #c)) (Val #key)) (Val #rev))
   {{ (err : GoInterface), RET #err; True }}
 

@@ -35,7 +35,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- **Starts the transport** `t` (a `Transport` literal the caller owns, with `trCfg`'s fields) for member `tv.ID` of network `ν`: an error (the round trippers' TLS configuration refused), or the transport started, with no peer yet. -/
 def Transport.Start.spec : Prop :=
-  ∀ (t : Loc) (tv : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (ν : Net),
+  ∀ (t : Loc) (tv : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (ν : Net GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ t ↦ tv ∗ trCfg tv ν }}
     (App (Val (t @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport.ty @!! go!"Start")) (Val #()))
   {{ (err : GoInterface), RET #err; (⌜err ≠ interface.nil⌝ ∗ Http.errOk err) ∨ (⌜err = interface.nil⌝ ∗ isTransport t ν tv.ID' ∗ trRunning t 1) }}

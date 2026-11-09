@@ -35,8 +35,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (internal) Queues a message on the remote's pipeline (non-blocking; dropped if full or paused). -/
 def remote.send.spec : Prop :=
-  ∀ (g : Loc) (ν : Net) (lid pid : w64) (ml : Loc) (m : Msg),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ remoteAt g ν lid pid ∗ outMsg ν lid ml m ∗ ⌜m.to ≠ W64 0⌝ }}
+  ∀ (g : Loc) (ν : Net GF) (lid pid : w64) (ml : Loc) (m : Msg),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ remoteAt g ν lid pid ∗ outMsg ν lid ml m ∗ ⌜m.to = pid ∧ m.to ≠ W64 0⌝ }}
     (App (Val (g @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote.ty @!! go!"send")) (Val #ml))
   {{ RET #(); True }}
 

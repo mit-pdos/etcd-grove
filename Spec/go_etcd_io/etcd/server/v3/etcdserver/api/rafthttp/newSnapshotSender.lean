@@ -35,7 +35,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (internal) The snapshot sender for peer `pid`. -/
 def newSnapshotSender.spec : Prop :=
-  ∀ (t : Loc) (ν : Net) (lid pid : w64) (pk st : Loc),
+  ∀ (t : Loc) (ν : Net GF) (lid pid : w64) (pk st : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ isTransport t ν lid ∗ pickerAt pk ν ∗ statusAt st }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.newSnapshotSender)) (Val #t)) (Val #pk)) (Val #pid)) (Val #st))
   {{ (s : Loc), RET #s; ssAt s ν lid pid ∗ ssStopRight s }}

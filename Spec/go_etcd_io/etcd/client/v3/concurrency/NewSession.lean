@@ -61,10 +61,10 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 (`WithLease`), or one granted then (live at a state the cluster reached after `σ0`); or `nil` and an
 error. The options' context (the client's if none) must be a context of the principal `who`. -/
 def NewSession.spec : Prop :=
-  ∀ (c : Loc) (γ : Cluster) (who : Principal) (sl : GoSlice) (gs : List (SessOpts → SessOpts))
+  ∀ (c : Loc) (γ : Cluster) (dflt who : Principal) (sl : GoSlice) (gs : List (SessOpts → SessOpts))
     (T : State → State → Prop) (σ0 : State),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isClient c γ who ∗ sessOptsAt sl gs ∗
-      optCtxOk (applySessOptsM gs SessOpts.init).ctx who ∗ etcdLb γ σ0 ∗ etcdPerm γ T ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isClient c γ dflt ∗ sessOptsAt sl gs ∗
+      optCtxOk (applySessOptsM gs SessOpts.init).ctx dflt who ∗ etcdLb γ σ0 ∗ etcdPerm γ T ∗
       ⌜effIn (fun σ σ' => readEff σ σ' ∨ ((applySessOptsM gs SessOpts.init).leaseID = W64 0 ∧
           grantEff (sint.Z (applySessOptsM gs SessOpts.init).ttl) σ σ')) T⌝ }}
     (App (App (Val (@! go_etcd_io.etcd.client.v3.concurrency.NewSession)) (Val #c)) (Val #sl))

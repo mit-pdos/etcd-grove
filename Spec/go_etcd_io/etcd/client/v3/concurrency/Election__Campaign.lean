@@ -58,10 +58,10 @@ the prefix, created at `c`: `k` held `val` with that create revision at a state 
 reached, and at a later one nothing under the prefix was older than `c` (`waitedFor`; with
 `fence`, wherever `k` still has create revision `c`, it is the leader); or an error. -/
 def Election.Campaign.spec : Prop :=
-  ∀ (e s c : Loc) (pfx : GoString) (st : ElectionSt) (γ : Cluster) (who : Principal) (id : w64)
+  ∀ (e s c : Loc) (pfx : GoString) (st : ElectionSt) (γ : Cluster) (dflt who : Principal) (id : w64)
     (ctx : GoInterface) (val : GoString) (T : State → State → Prop) (P : IProp GF) (σ0 : State),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isElection e s pfx ∗ electionSt e st ∗ isSession s c γ id ∗ isClient c γ who ∗
-      Context.ctxOk ctx ∗ ctxPrin ctx who ∗ etcdLent γ T P ∗ P ∗ etcdLb γ σ0 ∗ ⌜effIn (campaignEff pfx val (sint.Z id)) T⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isElection e s pfx ∗ electionSt e st ∗ isSession s c γ id ∗ isClient c γ dflt ∗
+      Context.ctxOk ctx ∗ ctxPrin dflt ctx who ∗ etcdLent γ T P ∗ P ∗ etcdLb γ σ0 ∗ ⌜effIn (campaignEff pfx val (sint.Z id)) T⌝ }}
     (App (App (Val (e @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.concurrency.Election.ty @!! go!"Campaign")) (Val #ctx)) (Val #val))
   {{ (err : GoInterface), RET #err;
       (⌜err = GoInterface.nil⌝ ∗ P ∗ ∃ (k : GoString) (cr : Nat) (hd : Loc) (hm : HeaderM) (σ σv : State),

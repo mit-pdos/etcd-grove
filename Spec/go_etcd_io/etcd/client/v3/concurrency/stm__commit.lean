@@ -40,7 +40,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
 /-- `s.commit()` (`RepeatableReads`, `ReadCommitted`): `nil` if a comparison failed, else the committed attempt's reply; or the abort. -/
 def stm.commit.spec : Prop :=
-  ∀ (p : Loc) (γ : Cluster) (who : Principal) (iso : w64) (a : Attempt) (gs : List (OpM → OpM)) (T : State → State → Prop) (P : IProp GF) (σ0 : State),
+  ∀ (p : Loc) (γ : Cluster) (dflt who : Principal) (iso : w64) (a : Attempt) (gs : List (OpM → OpM)) (T : State → State → Prop) (P : IProp GF) (σ0 : State),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ stmCoreAt p γ who iso a gs ∗ etcdLent γ T P ∗ P ∗ etcdLb γ σ0 ∗
       ⌜effIn (fun σ σ' => σ' = σ ∨ stmCommitted iso a σ σ') T⌝ }}
     (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.concurrency.stm.ty @!! go!"commit")) (Val #()))

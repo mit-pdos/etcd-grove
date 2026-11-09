@@ -41,10 +41,10 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
 /-- `l.Lock()` (`sync.Locker`): `Mutex.Lock` with the client's context; it returns with the lock fact, or panics with the error. -/
 def lockerMutex.Lock.spec : Prop :=
-  ∀ (lm m s c : Loc) (pfx : GoString) (st : MutexSt) (γ : Cluster) (who : Principal) (id : w64)
+  ∀ (lm m s c : Loc) (pfx : GoString) (st : MutexSt) (γ : Cluster) (dflt who : Principal) (id : w64)
     (T : State → State → Prop) (P : IProp GF) (σ0 : State),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ lm.[go_etcd_io.etcd.client.v3.concurrency.lockerMutex, go!"Mutex"] ↦□ m ∗ isMutex m s pfx ∗ mutexSt m st ∗
-      isSession s c γ id ∗ isClient c γ who ∗ etcdLent γ T P ∗ P ∗ etcdLb γ σ0 ∗ ⌜effIn (mutexEff pfx (sint.Z id)) T⌝ }}
+      isSession s c γ id ∗ isClient c γ dflt ∗ etcdLent γ T P ∗ P ∗ etcdLb γ σ0 ∗ ⌜effIn (mutexEff pfx (sint.Z id)) T⌝ }}
     (App (Val (lm @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.concurrency.lockerMutex.ty @!! go!"Lock")) (Val #()))
   {{ (r : val), RET r;
       (⌜r = #()⌝ ∗ P ∗ ∃ (k : GoString) (cr : Nat) (hd : Loc) (hm : HeaderM) (σ : State),

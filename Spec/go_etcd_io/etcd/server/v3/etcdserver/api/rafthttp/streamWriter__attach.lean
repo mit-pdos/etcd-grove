@@ -35,8 +35,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (internal) Hands a connection to the loop, or `false` (stopped: the connection given back). -/
 def streamWriter.attach.spec : Prop :=
-  ∀ (cw : Loc) (ν : Net) (lid pid : w64) (c : Loc) (t : StreamTy),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ swAt cw ν lid pid ∗ outConn c ν lid pid t }}
+  ∀ (cw : Loc) (ν : Net GF) (lid pid : w64) (K : Msg → Prop) (c : Loc) (t : StreamTy),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ swAt cw ν lid pid K ∗ outConn c ν lid pid t ∗ ⌜t = StreamTy.msgAppV2 → ∀ m, K m → m.type = MsgApp⌝ }}
     (App (Val (cw @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamWriter.ty @!! go!"attach")) (Val #c))
   {{ (b : Bool), RET #b; if b then iprop(True) else outConn c ν lid pid t }}
 

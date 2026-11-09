@@ -47,10 +47,10 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
 /-- `m.Unlock(ctx)`: `nil`, the key absent at a state the cluster reached after `σ0`, the mutex released; `ErrLockReleased` if not held; or another error, unchanged. -/
 def Mutex.Unlock.spec : Prop :=
-  ∀ (m s c : Loc) (pfx : GoString) (st : MutexSt) (γ : Cluster) (who : Principal) (id : w64)
+  ∀ (m s c : Loc) (pfx : GoString) (st : MutexSt) (γ : Cluster) (dflt who : Principal) (id : w64)
     (ctx : GoInterface) (T : State → State → Prop) (P : IProp GF) (σ0 : State),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isMutex m s pfx ∗ mutexSt m st ∗ isSession s c γ id ∗ isClient c γ who ∗
-      Context.ctxOk ctx ∗ ctxPrin ctx who ∗ etcdLent γ T P ∗ P ∗ etcdLb γ σ0 ∗ ⌜effIn (delEff (fun k => k = st.key ∧ pfx <+: k)) T⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isMutex m s pfx ∗ mutexSt m st ∗ isSession s c γ id ∗ isClient c γ dflt ∗
+      Context.ctxOk ctx ∗ ctxPrin dflt ctx who ∗ etcdLent γ T P ∗ P ∗ etcdLb γ σ0 ∗ ⌜effIn (delEff (fun k => k = st.key ∧ pfx <+: k)) T⌝ }}
     (App (Val (m @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.concurrency.Mutex.ty @!! go!"Unlock")) (Val #ctx))
   {{ (err : GoInterface), RET #err;
       (⌜err = GoInterface.nil⌝ ∗ P ∗ ∃ σ : State, etcdLb γ σ ∗

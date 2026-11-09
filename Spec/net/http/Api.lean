@@ -13,16 +13,26 @@ said where it is stated.
   The body is a reader the client hands to `NewRequest` (or none).
 * **An address's protocol** (`Proto`): what the program's clients may send to that address and
   what its server may answer. `hreq R τ` (persistent knowledge of a request's line and headers,
-  under the client's chosen ghost name `τ`), `body R τ B` (of its complete body `B`), and
+  under the client's chosen ghost name `τ`), `bodyPre R τ B` (of every prefix `B` of its body
+  read so far), `body R τ B` (of its complete body `B`), and
   `resp R τ st hs w` (of a response with status `st`, committed headers `hs`, after the handler
   wrote the bytes `w`; prefix-closed in `w`, an obligation of whoever defines a protocol). All are
   used under `□`: only **persistent** knowledge crosses the wire.
-* **The closed world** (the user's decision 1, 2026-10-22). An address is reserved once, with its
-  protocol (`reserve`: the environment's `addrFree a`, one per address and run, becomes the
-  persistent `protoAt a P` and the right to serve it, `protoOwn a P`). Every request a server of the
-  program receives at `a` was sent by a client of the program through `RoundTrip` to `a`, with the
-  bytes that client sent; so the handler gets the facts the client proved. (The physical fact: the
-  program's peer addresses are its own, and only its members connect to them.)
+* **The closed world** (the user's decision 1, 2026-10-22; round 1, F3: tied to the bound socket).
+  A listener is the socket a bind made: `net.Listen`/`NewListener` give `listenerAt l a` for the
+  address string `a` the socket is bound at (the given one, or for port `0` the actual one the bind
+  chose, `l.Addr()`). An address string's protocol is fixed once (`reserve`: the environment's
+  `addrFree a` becomes the persistent `protoAt a P`; it may precede the bind, since a member sends
+  to its peers before they listen), and `Serve` on a listener at `a` serves `protoAt a P`'s `P`.
+  Every request a handler on that listener reads was sent by a client of the program through
+  `RoundTrip` to a host string with `protoAt _ P` that reaches the socket; so the handler gets the
+  facts the client proved. A rebind of `a` (a restarted member) serves the same `P` (`protoAt` is
+  persistent and set once). **The environment's physical premise**: `addrFree` is issued for at most
+  one string per socket (the strings the program dials its peers by are the ones their listeners
+  are bound at: no two reserved strings, as `localhost:p` and `127.0.0.1:p`, name one socket),
+  never for a port-`0` string, and no proxy relays peer traffic (rafthttp's round trippers use
+  `ProxyFromEnvironment`: the deployment sets none for peer URLs). Port `0` needs nothing more: only
+  the actual string the bind reports can be reserved and dialed.
 * **Bodies are prefixes** (D42). A body reader yields successive pieces whose concatenation is a
   prefix of what the sender's side produced (the client's body reader; the handler's writes);
   `EOF` only at the end of a complete stream (HTTP/1.1 framing, chunked or with a length, makes a
@@ -30,18 +40,23 @@ said where it is stated.
 * **The response's status and headers are the handler's** (decisions 2 and 4): the status it set,
   and its committed headers but for the keys Go's server sets itself (`srvKeys`).
 * **Tickets** (D38b, corrected here). A request that Go's client never replays (`onceOnly`: a
-  method other than `GET`, `HEAD`, `OPTIONS`, `TRACE` and no `Idempotency-Key` header:
-  `Request.isReplayable`) is handled at most once: `RoundTrip` takes the client's exclusive
+  non-empty method other than `GET`, `HEAD`, `OPTIONS`, `TRACE`, with neither `Idempotency-Key` nor
+  `X-Idempotency-Key` present, whatever their value: `Request.isReplayable` tests presence,
+  `Header.has`, and with no key a non-idempotent method is never replayable, rewindable body or
+  not) is handled at most once: `RoundTrip` takes the client's exclusive
   `reqTicket τ` and its handler receives it. **A replayable request may be handled twice** (a `GET`
   on a reused connection whose response read fails is retried: `persistConn.shouldRetryRequest`,
   `transportReadFromServerError`): its handler receives no ticket. (The old boundary gave every
   handler the ticket, `GET`s included, which a replayed `GET` makes false.) Responses need no
   ticket: `RoundTrip` returns at most one handler run's response, and a body reader is read by its
   one owner.
-* **Handlers run on Serve's goroutines.** `Serve`'s trusted model is an accept loop that forks a
-  goroutine per connection (as Go's `srv.Serve` does: `go c.serve(ctx)`), so each handler run holds
-  that goroutine's thread token, from the thread fuel like any `go` statement's; it never comes from
-  nothing. A handler may panic: `Serve` recovers it and drops the connection (`conn.serve`'s
+* **Handler runs borrow their caller's thread tokens** (round 1, F1; the repository's decision
+  for grpc's handler pool, `specs-ref/notes/STATUS.md`, "Soundness bugs: grpc.serve's handler
+  pool"). `Serve`'s caller gives it a pool of `n` of its own thread tokens (`handlerPool p n`, made
+  from `threadToks n`, `handlerPool_alloc`); each handler run draws one for its life and returns it
+  at its end. The physical premise: net/http runs at most `n` handlers of one `Serve` at once, a
+  bound the adequacy theorem fixes (each handler is a goroutine, so concurrent handlers are live
+  threads, which `threadBound` bounds). No token comes from nothing. A handler may panic: `Serve` recovers it and drops the connection (`conn.serve`'s
   deferred `recover`), so a handler's contract is a WP whose result may be a panic.
 * **Failures.** Any `RoundTrip`, body read, `Write` may fail at any time (a cancelled request
   context makes them fail); `Flush` returns.
@@ -49,8 +64,9 @@ said where it is stated.
 ## Vocabulary
 
 Pure: `HReq`, `Proto`, `hdrGet`, `hdrSet`, `canonKey`, `srvKeys`, `hdrView`, `onceOnly`.
-Resources: `addrFree a` (exclusive, the environment's), `protoAt a P` (persistent), `protoOwn a P`
-(exclusive), `listenerAt l a` (exclusive: a listener bound at `a`), `reqTicket τ` (exclusive),
+Resources: `addrFree a` (exclusive, the environment's), `protoAt a P` (persistent),
+`listenerAt l a` (exclusive: a listener bound at `a`), `listenerCloser l` (persistent),
+`handlerPool p n` (exclusive), `reqTicket τ` (exclusive),
 `reqOwn r R bd` (a client's request being built), `hdrMap hm hs` (an owned header map),
 `readerAt rd Pre Φ r` (a body reader having yielded `r`), `respAt resp st hs rd` (a client's
 response), `srvReq r R` (a received request, persistent), `respW w R τ P c hs bs` (a handler's
@@ -63,11 +79,12 @@ boundary (net/http is not verified here).
 
 ## Specs (this directory)
 
-`Serve`, `NewServeMux`, `ServeMux.Handle`, `NewRequest`, `Request.WithContext`, `Header.Set`,
+`Serve`, `Listen` (`net.Listen`), `Listener.Close`, `NewServeMux`, `ServeMux.Handle`, `NewRequest`, `Request.WithContext`, `Header.Set`,
 `Header.Get`, `Error`, `Transport.CloseIdleConnections`; the bundles' methods (`RoundTrip`, a body's
 `Read`/`Close`, a response writer's `Header`/`WriteHeader`/`Write`/`Flush`) are inside their
-bundles. Laws: `reserve`, `protoAt_agree`, `reqTicket_alloc`, `reqTicket_excl`, `mux_handlerOk`,
-persistence.
+bundles. Laws: `reserve`, `handlerPool_alloc`, `reqTicket_alloc`, `reqTicket_excl`,
+`mux_handlerOk`, `respW_agree`, `handlerOk_agree`, `handlerOk_narrow`, `NewBuffer_reader`,
+`MultiReader_reader`, persistence.
 -/
 module
 
@@ -76,6 +93,7 @@ public import GeneratedProof.net.url
 public import Spec.PkgInit.net.http
 public import Spec.context.Api
 public import Perennial.Code.io
+public import Perennial.Code.bytes
 
 set_option autoImplicit false
 
@@ -139,10 +157,8 @@ def hdrView (hs hc : List (GoString × GoString)) : Prop :=
 /-- **A request Go's client never replays** (`Request.isReplayable` false): not `GET`, `HEAD`,
 `OPTIONS`, `TRACE`, and no idempotency key. -/
 def onceOnly (R : HReq) : Prop :=
-  R.meth ∉ [go!"GET", go!"HEAD", go!"OPTIONS",
-    go!"TRACE"] ∧
-  hdrGet R.hdr go!"Idempotency-Key" = [] ∧
-  hdrGet R.hdr go!"X-Idempotency-Key" = []
+  R.meth ≠ [] ∧ R.meth ∉ [go!"GET", go!"HEAD", go!"OPTIONS", go!"TRACE"] ∧
+  ∀ p ∈ R.hdr, p.1 ≠ canonKey go!"Idempotency-Key" ∧ p.1 ≠ canonKey go!"X-Idempotency-Key"
 
 /-- `p` is a path under the mux pattern `pfx` (a pattern ending in `/` routes its subtree, any
 other only itself; `ServeMux`'s documented rule, the longest pattern winning). -/
@@ -158,6 +174,7 @@ complete body (`body`), and of a response after the handler wrote `w` (`resp`, p
 `w`). Each is used under `□`. -/
 structure Proto (GF : BundledGFunctors) where
   hreq : HReq → GName → IProp GF
+  bodyPre : HReq → GName → List w8 → IProp GF
   body : HReq → GName → List w8 → IProp GF
   resp : HReq → GName → w64 → List (GoString × GoString) → List w8 → IProp GF
 
@@ -165,7 +182,8 @@ structure Proto (GF : BundledGFunctors) where
 protocols: the peer port's protocol is rafthttp's under `/raft`). -/
 def Proto.agreeUnder (pfx : GoString) (P P' : Proto GF) : Prop :=
   ∀ R, pathUnder pfx R.path →
-    P.hreq R = P'.hreq R ∧ P.body R = P'.body R ∧ P.resp R = P'.resp R
+    P.hreq R = P'.hreq R ∧ P.bodyPre R = P'.bodyPre R ∧ P.body R = P'.body R ∧
+      P.resp R = P'.resp R
 
 /-! ## Resources -/
 
@@ -176,12 +194,16 @@ opaque addrFree (a : GoString) : IProp GF := iprop(True)
 /-- **Address `a` serves the protocol `P`** (persistent; set once, `reserve`). -/
 opaque protoAt (a : GoString) (P : Proto GF) : IProp GF := iprop(True)
 
-/-- **The right to serve `a` with `P`** (exclusive; `Serve` takes it with `a`'s listener). -/
-opaque protoOwn (a : GoString) (P : Proto GF) : IProp GF := iprop(True)
-
-/-- **The listener `l` bound at `a`** (exclusive; `net.Listen`'s, through rafthttp's `NewListener`
-or embed's). -/
+/-- **The listener `l`, the socket a bind made, bound at the address string `a`** (exclusive;
+`net.Listen`'s, rafthttp's `NewListener`'s; `Serve` takes it). -/
 opaque listenerAt (l : GoInterface) (a : GoString) : IProp GF := iprop(True)
+
+/-- **The listener `l` may be closed** from any goroutine (persistent: `Listener.Close`). -/
+opaque listenerCloser (l : GoInterface) : IProp GF := iprop(True)
+
+/-- **A pool of `n` of the caller's thread tokens lent to `Serve`'s handler runs** (exclusive; see
+the header). -/
+opaque handlerPool (p : GName) (n : Nat) : IProp GF := iprop(True)
 
 /-- **A request's ticket** (exclusive; a client allocates it, `RoundTrip` of a `onceOnly` request
 takes it, the request's handler receives it). -/
@@ -260,10 +282,11 @@ handler wrote, with the protocol's knowledge). The request is given back read-on
 def roundTripperOk (rt : GoInterface) : IProp GF :=
   iprop(∃ i : GoInterfaceOk, ⌜rt = interface.ok i⌝ ∗
     □ ∀ (r : Loc) (R : HReq) (bd : GoInterface) (τ : GName) (P : Proto GF)
-        (Φb : List w8 → IProp GF) (Ψ : val → IProp GF),
+        (Preb Φb : List w8 → IProp GF) (Ψ : val → IProp GF),
       reqOwn r R bd -∗ protoAt R.host P -∗ □ P.hreq R τ -∗
       (if bd = interface.nil then iprop(□ P.body R τ [])
-       else iprop(readerAt bd (fun _ => iprop(True)) Φb [] ∗ □ (∀ B, Φb B -∗ P.body R τ B))) -∗
+       else iprop(readerAt bd Preb Φb [] ∗ □ (∀ B, Preb B -∗ P.bodyPre R τ B) ∗
+         □ (∀ B, Φb B -∗ P.body R τ B))) -∗
       (if onceOnly R then reqTicket τ else iprop(True)) -∗
       ▷ (∀ (resp : Loc) (err : GoInterface),
           reqRO r R ∗ ((⌜err ≠ interface.nil⌝ ∗ errOk err) ∨
@@ -281,7 +304,7 @@ def servePre (P : Proto GF) (pfx : GoString) (w : GoInterface) (r : Loc) (R : HR
     (rd : GoInterface) : IProp GF :=
   iprop(⌜pathUnder pfx R.path⌝ ∗ srvReq r R rd ∗ □ P.hreq R τ ∗
     (if onceOnly R then reqTicket τ else iprop(True)) ∗
-    readerAt rd (fun _ => iprop(True)) (fun B => iprop(□ P.body R τ B)) [] ∗
+    readerAt rd (fun B => iprop(□ P.bodyPre R τ B)) (fun B => iprop(□ P.body R τ B)) [] ∗
     respW w R τ P none [] [] ∗ threadTok)
 
 /-- **What a handler run gives back**: the token and the writer, committed, or a panic (`Serve`
@@ -298,6 +321,9 @@ def handlerOk (h : GoInterface) (P : Proto GF) (pfx : GoString) : IProp GF :=
       servePre P pfx w r R τ rd -∗
       WP (App (App (Val #(methods i.ty go!"ServeHTTP" i.v)) (Val #w)) (Val #r))
         {{ v, serveDone P w R τ v }})
+
+/-- **An address string with port `0`** (pure, opaque: `net.SplitHostPort`'s port is `0`). -/
+opaque portZero (a : GoString) : Prop := False
 
 /-- **A URL `NewRequest` accepts** with any path (pure, opaque): one `url.Parse` returned (a peer
 URL from `types.NewURLs`), so its `String()` parses again. -/
@@ -320,19 +346,20 @@ def persistent.spec : Prop :=
   (∀ resp st hc rd, Persistent (respAt (GF := GF) resp st hc rd)) ∧
   (∀ r R rd, Persistent (srvReq (GF := GF) r R rd)) ∧
   (∀ m L, Persistent (muxAt (GF := GF) m L)) ∧
+  (∀ l, Persistent (listenerCloser (GF := GF) l)) ∧
   (∀ e, Persistent (errOk (GF := GF) e)) ∧
   (∀ hm hs, Persistent (hdrRO (GF := GF) hm hs)) ∧
   (∀ r R, Persistent (reqRO (GF := GF) r R)) ∧
   (∀ rt, Persistent (roundTripperOk (GF := GF) rt)) ∧
   (∀ h P pfx, Persistent (handlerOk (GF := GF) h P pfx))
 
-/-- **Reserve an address** for a protocol, once. -/
+/-- **Reserve an address** for a protocol, once (before or after its bind). -/
 def reserve.spec : Prop :=
-  ∀ (a : GoString) (P : Proto GF), addrFree (GF := GF) a ⊢ |==> protoAt a P ∗ protoOwn a P
+  ∀ (a : GoString) (P : Proto GF), addrFree (GF := GF) a ⊢ |==> protoAt a P
 
-/-- One reservation per address. -/
-def protoAt_agree.spec : Prop :=
-  ∀ a (P P' : Proto GF), protoAt (GF := GF) a P ∗ protoAt a P' ⊢ iprop(⌜P = P'⌝)
+/-- **A pool of the caller's thread tokens** for a `Serve`'s handler runs (see the header). -/
+def handlerPool_alloc.spec : Prop :=
+  ∀ (n : Nat), threadToks (GF := GF) n ⊢ |==> ∃ p, handlerPool p n
 
 def reqTicket_alloc.spec : Prop := ⊢ |==> ∃ τ, reqTicket (GF := GF) τ
 
@@ -454,6 +481,46 @@ def reqRO_fields.spec : Prop :=
       (∃ u : Loc, structFieldRef _root_.Perennial.net.http.Request go!"URL" r ↦□ u) ∗
       (∃ hm : GoMap, structFieldRef _root_.Perennial.net.http.Request go!"Header" r ↦□ hm ∗
         hdrRO hm R.hdr)
+
+/-- **A response writer depends on its protocol only through the request's responses**. -/
+def respW_agree.spec : Prop :=
+  ∀ (w : GoInterface) (R : HReq) τ (P P' : Proto GF) c hs bs, P.resp R = P'.resp R →
+    respW (GF := GF) w R τ P c hs bs ⊣⊢ respW w R τ P' c hs bs
+
+/-- **A handler serves every protocol agreeing with its own under its pattern** (a mux of the
+peer port composes rafthttp's protocol with the other endpoints'). -/
+def handlerOk_agree.spec : Prop :=
+  ∀ (h : GoInterface) (P P' : Proto GF) (pfx : GoString), Proto.agreeUnder pfx P P' →
+    handlerOk (GF := GF) h P pfx ⊢ handlerOk h P' pfx
+
+/-- **A handler of a pattern serves the narrower patterns under it.** -/
+def handlerOk_narrow.spec : Prop :=
+  ∀ (h : GoInterface) (P : Proto GF) (pfx pfx' : GoString),
+    (∀ p, pathUnder pfx' p → pathUnder pfx p) →
+    handlerOk (GF := GF) h P pfx ⊢ handlerOk h P pfx'
+
+/-- **`bytes.NewBuffer(b)` as a request body**: a reader whose every prefix is one of `ys` and
+whose complete stream is `ys` (it takes the slice). -/
+def NewBuffer_reader.spec : Prop :=
+  ∀ (b : GoSlice) (ys : List w8),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.net.http ∗ b ↦* ys }}
+    (App (Val (@! _root_.Perennial.bytes.NewBuffer)) (Val #b))
+  {{ (bf : Loc), RET #bf;
+      readerAt (interface.mkOk (go.GoType.PointerType _root_.Perennial.bytes.Buffer.ty) #bf)
+        (fun B => iprop(⌜B <+: ys⌝)) (fun B => iprop(⌜B = ys⌝)) [] }}
+
+/-- **`io.MultiReader(r1, r2)`** of two readers read from their start: prefixes of `r1`'s, then
+`r1`'s complete stream followed by `r2`'s prefixes; complete when both are (etcd's
+`ioutil.ReaderAndCloser` over it keeps the contract: its `Read` is the reader's). -/
+def MultiReader_reader.spec : Prop :=
+  ∀ (r1 r2 : GoInterface) (Pre1 Φ1 Pre2 Φ2 : List w8 → IProp GF) (sl : GoSlice),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.net.http ∗ sl ↦* [r1, r2] ∗
+      readerAt r1 Pre1 Φ1 [] ∗ readerAt r2 Pre2 Φ2 [] }}
+    (App (Val (@! _root_.Perennial.io.MultiReader)) (Val #sl))
+  {{ (mr : GoInterface), RET #mr;
+      readerAt mr
+        (fun B => iprop(Pre1 B ∨ ∃ B1 B2, ⌜B = B1 ++ B2⌝ ∗ Φ1 B1 ∗ Pre2 B2))
+        (fun B => iprop(∃ B1 B2, ⌜B = B1 ++ B2⌝ ∗ Φ1 B1 ∗ Φ2 B2)) [] }}
 
 /-- **A built mux serves its patterns' handlers** (`ServeMux.ServeHTTP`): a request under `pfx` is
 routed to the handler of the longest pattern under which its path is, or answered `404`/`301` by

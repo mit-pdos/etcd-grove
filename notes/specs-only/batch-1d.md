@@ -226,3 +226,13 @@ S1–S8); the coordinator's decisions (the permission lent per call; drop the th
 3. **`Session.Done` carries nothing** (`Q := True`): unchanged.
 4. **The in-process client** (C5): 1d's statements are ready for a per-call principal; W0 and 2e
    must model the in-process client (above).
+
+## Round 3 follow-up (W0's per-call principal, 2026-11-09)
+
+W0's round 3 renamed `ctxPrin ctx who` to `ctxPrin dflt ctx p` (`isClient c γ dflt`: the client's
+default principal; the call's principal `p` from its context). 1d follows: every spec that sends
+requests binds `(dflt who : Principal)`, takes `isClient c γ dflt ∗ Context.ctxOk ctx ∗ ctxPrin
+dflt ctx who`, and its requests (and `stmAt iv γ who ...`) are `who`'s; `optCtxOk o dflt who` (the
+options' context's principal, or `who = dflt` for the client's own context). 1c's renames
+(`tokenOf`, `clientBase`, `clientRest_core`) do not occur in 1d. Rebuilt (63 modules OK), snippets
+re-vetted.

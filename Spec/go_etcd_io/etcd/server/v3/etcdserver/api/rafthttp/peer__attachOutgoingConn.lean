@@ -35,7 +35,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (internal) **Hands an outgoing stream connection** to the writer of its type, or closes it (the writer stopped). -/
 def peer.attachOutgoingConn.spec : Prop :=
-  ∀ (p : Loc) (ν : Net) (lid pid : w64) (c : Loc) (t : StreamTy),
+  ∀ (p : Loc) (ν : Net GF) (lid pid : w64) (c : Loc) (t : StreamTy),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ peerAt p ν lid pid ∗ outConn c ν lid pid t }}
     (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peer.ty @!! go!"attachOutgoingConn")) (Val #c))
   {{ RET #(); True }}

@@ -45,10 +45,10 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
 /-- `m.tryAcquire(ctx)`: the mutex's key (under the prefix) created with the session's lease if absent; the reply, the key's create revision `c` (`myRev`), and the oldest key under the prefix after the transaction. -/
 def Mutex.tryAcquire.spec : Prop :=
-  ∀ (m s c : Loc) (pfx : GoString) (st : MutexSt) (γ : Cluster) (who : Principal) (id : w64)
+  ∀ (m s c : Loc) (pfx : GoString) (st : MutexSt) (γ : Cluster) (dflt who : Principal) (id : w64)
     (ctx : GoInterface) (T : State → State → Prop) (P : IProp GF) (σ0 : State),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isMutex m s pfx ∗ mutexSt m st ∗ isSession s c γ id ∗ isClient c γ who ∗
-      Context.ctxOk ctx ∗ ctxPrin ctx who ∗ etcdLent γ T P ∗ P ∗ etcdLb γ σ0 ∗ ⌜effIn (mutexEff pfx (sint.Z id)) T⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isMutex m s pfx ∗ mutexSt m st ∗ isSession s c γ id ∗ isClient c γ dflt ∗
+      Context.ctxOk ctx ∗ ctxPrin dflt ctx who ∗ etcdLent γ T P ∗ P ∗ etcdLb γ σ0 ∗ ⌜effIn (mutexEff pfx (sint.Z id)) T⌝ }}
     (App (Val (m @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.concurrency.Mutex.ty @!! go!"tryAcquire")) (Val #ctx))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ k : GoString, ⌜pfx <+: k⌝ ∗

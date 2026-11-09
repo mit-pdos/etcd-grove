@@ -38,9 +38,9 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
 /-- `mkSTM(c, opts)`: an STM of the options' level (valid: it panics otherwise), between attempts. -/
 def mkSTM.spec : Prop :=
-  ∀ (c : Loc) (γ : Cluster) (who : Principal) (op : Loc)
+  ∀ (c : Loc) (γ : Cluster) (dflt who : Principal) (op : Loc)
     (ov : go_etcd_io.etcd.client.v3.concurrency.stmOptions),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isClient c γ who ∗ op ↦□ ov ∗ ⌜isoValid ov.iso'⌝ ∗ Context.ctxOk ov.ctx' ∗ ctxPrin ov.ctx' who ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isClient c γ dflt ∗ op ↦□ ov ∗ ⌜isoValid ov.iso'⌝ ∗ Context.ctxOk ov.ctx' ∗ ctxPrin dflt ov.ctx' who ∗
       etcdPeek γ }}
     (App (App (Val (@! go_etcd_io.etcd.client.v3.concurrency.mkSTM)) (Val #c)) (Val #op))
   {{ (iv : GoInterface), RET #iv; stmStale iv γ who ov.iso' }}

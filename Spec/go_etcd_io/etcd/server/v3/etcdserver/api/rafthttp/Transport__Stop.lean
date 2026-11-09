@@ -35,7 +35,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- **Stops the transport**: every peer's and remote's goroutines stopped (the writers, readers and pipeline workers joined); later calls are no-ops but `AddPeer`, which the spent token forbids. -/
 def Transport.Stop.spec : Prop :=
-  ∀ (t : Loc) (ν : Net) (lid : w64),
+  ∀ (t : Loc) (ν : Net GF) (lid : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ isTransport t ν lid ∗ trRunning t 1 }}
     (App (Val (t @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport.ty @!! go!"Stop")) (Val #()))
   {{ RET #(); True }}

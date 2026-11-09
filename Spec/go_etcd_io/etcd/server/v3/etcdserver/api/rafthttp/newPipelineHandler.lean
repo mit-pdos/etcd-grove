@@ -35,8 +35,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (internal) The pipeline handler of the transport (its `Raft` the transport's). -/
 def newPipelineHandler.spec : Prop :=
-  ∀ (t : Loc) (ν : Net) (lid : w64) (ss : Loc) (r : GoInterface) (cid : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ isTransport t ν lid ∗ raftOk ν lid ss r }}
+  ∀ (t : Loc) (ν : Net GF) (lid : w64) (r : GoInterface) (cid : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ isTransport t ν lid ∗ raftOk ν lid r }}
     (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.newPipelineHandler)) (Val #t)) (Val #r)) (Val #cid))
   {{ (h : GoInterface), RET #h; ∃ hp : Loc, ⌜h = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler.ty) #hp⌝ ∗ phAt hp ν lid }}
 

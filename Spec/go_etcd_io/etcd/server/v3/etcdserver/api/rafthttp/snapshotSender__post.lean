@@ -35,7 +35,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (internal) **Round-trips the snapshot request** (stopping on `stopc`): `nil` only for a `204`. -/
 def snapshotSender.post.spec : Prop :=
-  ∀ (s : Loc) (ν : Net) (lid pid : w64) (r : Loc),
+  ∀ (s : Loc) (ν : Net GF) (lid pid : w64) (r : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ ssAt s ν lid pid ∗ snapReq r ν lid pid }}
     (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotSender.ty @!! go!"post")) (Val #r))
   {{ (err : GoInterface), RET #err; Http.errOk err }}

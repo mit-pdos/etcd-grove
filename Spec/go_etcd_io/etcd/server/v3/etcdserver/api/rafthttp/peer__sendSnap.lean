@@ -35,7 +35,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (internal) **Sends a merged snapshot** on a new goroutine (`snapshotSender.send`). -/
 def peer.sendSnap.spec : Prop :=
-  ∀ (p : Loc) (ν : Net) (lid pid : w64) (mp : Loc) ,
+  ∀ (p : Loc) (ν : Net GF) (lid pid : w64) (mp : Loc) ,
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ peerAt p ν lid pid ∗ outSnap ν mp }}
     (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peer.ty @!! go!"sendSnap")) (Val #mp))
   {{ RET #(); True }}

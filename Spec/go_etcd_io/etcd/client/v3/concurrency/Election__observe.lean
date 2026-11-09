@@ -47,10 +47,10 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
 /-- `e.observe(ctx, ch)`: sends observed leader values on `ch` (`observeProd`), then closes it. -/
 def Election.observe.spec : Prop :=
-  ∀ (e s c : Loc) (pfx : GoString) (γ : Cluster) (who : Principal) (id : w64)
+  ∀ (e s c : Loc) (pfx : GoString) (γ : Cluster) (dflt who : Principal) (id : w64)
     (ctx : GoInterface) (ch : GoChan) (σ0 : State),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isElection e s pfx ∗ isSession s c γ id ∗ isClient c γ who ∗ Context.ctxOk ctx ∗
-      ctxPrin ctx who ∗ etcdPeek γ ∗ etcdLb γ σ0 ∗ observeProd ch γ pfx σ0 }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isElection e s pfx ∗ isSession s c γ id ∗ isClient c γ dflt ∗ Context.ctxOk ctx ∗
+      ctxPrin dflt ctx who ∗ etcdPeek γ ∗ etcdLb γ σ0 ∗ observeProd ch γ pfx σ0 }}
     (App (App (Val (e @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.concurrency.Election.ty @!! go!"observe")) (Val #ctx)) (Val #ch))
   {{ RET #(); True }}
 

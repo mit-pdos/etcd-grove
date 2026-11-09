@@ -35,7 +35,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (internal) **Starts peer `pid`** of the transport of `lid`: its pipeline, two stream writers, two stream readers, snapshot sender and two `Process` loops. -/
 def startPeer.spec : Prop :=
-  ∀ (t : Loc) (ν : Net) (lid pid : w64) (urls : GoSlice) (hs : List GoString) (fs : Loc),
+  ∀ (t : Loc) (ν : Net GF) (lid pid : w64) (urls : GoSlice) (hs : List GoString) (fs : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ isTransport t ν lid ∗ urlsAt urls hs ∗ ⌜hs ≠ []⌝ ∗ ([∗list] a ∈ hs, peerAddr ν a) ∗ followerStatsOk fs }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.startPeer)) (Val #t)) (Val #urls)) (Val #pid)) (Val #fs))
   {{ (p : Loc), RET #p; peerAt p ν lid pid ∗ peerStopRight p }}

@@ -33,7 +33,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
 /-- `s.gets()`: the read keys and a plain get of each, in the map's order. -/
 def stmSerializable.gets.spec : Prop :=
-  ∀ (p : Loc) (γ : Cluster) (who : Principal) (iso : w64) (a : Attempt),
+  ∀ (p : Loc) (γ : Cluster) (dflt who : Principal) (iso : w64) (a : Attempt),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ stmSerAt p γ who iso a }}
     (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.concurrency.stmSerializable.ty @!! go!"gets")) (Val #()))
   {{ (ksl osl : GoSlice), RET (PairV #ksl #osl); stmSerAt p γ who iso a ∗ ∃ ks : List GoString,

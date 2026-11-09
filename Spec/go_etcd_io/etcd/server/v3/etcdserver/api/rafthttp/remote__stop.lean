@@ -35,7 +35,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (internal) Stops the remote's pipeline. -/
 def remote.stop.spec : Prop :=
-  ∀ (g : Loc) (ν : Net) (lid pid : w64),
+  ∀ (g : Loc) (ν : Net GF) (lid pid : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ remoteAt g ν lid pid ∗ remoteStopRight g }}
     (App (Val (g @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote.ty @!! go!"stop")) (Val #()))
   {{ RET #(); True }}

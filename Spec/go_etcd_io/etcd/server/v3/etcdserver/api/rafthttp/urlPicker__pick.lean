@@ -35,7 +35,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (internal) **The current URL**: its host a peer address, a URL `NewRequest` accepts. -/
 def urlPicker.pick.spec : Prop :=
-  ∀ (ν : Net) (pk : Loc),
+  ∀ (ν : Net GF) (pk : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ pickerAt pk ν }}
     (App (Val (pk @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.urlPicker.ty @!! go!"pick")) (Val #()))
   {{ (u : _root_.Perennial.net.url.URL), RET #u; peerAddr ν u.Host' ∗ ⌜Http.urlOk u⌝ }}

@@ -35,7 +35,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (internal; the stream handler's `peerGetter`) **The peer of `id`**: `nil`, or a started peer. -/
 def Transport.Get.spec : Prop :=
-  ∀ (t : Loc) (ν : Net) (lid pid : w64),
+  ∀ (t : Loc) (ν : Net GF) (lid pid : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ isTransport t ν lid ∗ threadTok }}
     (App (Val (t @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport.ty @!! go!"Get")) (Val #pid))
   {{ (pv : GoInterface), RET #pv; threadTok ∗ (⌜pv = interface.nil⌝ ∨ peerIface pv ν lid pid) }}

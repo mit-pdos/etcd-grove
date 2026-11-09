@@ -35,7 +35,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (internal) **Dials the peer's stream** of type `t`: the `200` response's body (`streamBody`), or an error (a refused or failed dial; `errMemberRemoved` on `410`, reported on `errorc`). -/
 def streamReader.dial.spec : Prop :=
-  ∀ (cr : Loc) (ν : Net) (lid pid : w64) (t : StreamTy),
+  ∀ (cr : Loc) (ν : Net GF) (lid pid : w64) (t : StreamTy),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ srAt cr ν lid pid ∗ srRun cr }}
     (App (Val (cr @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamReader.ty @!! go!"dial")) (Val #(t.str)))
   {{ (rc : GoInterface) (err : GoInterface), RET (PairV #rc #err); srRun cr ∗ ((⌜err = interface.nil⌝ ∗ streamBody rc ν lid pid t) ∨ (⌜err ≠ interface.nil⌝ ∗ Http.errOk err)) }}

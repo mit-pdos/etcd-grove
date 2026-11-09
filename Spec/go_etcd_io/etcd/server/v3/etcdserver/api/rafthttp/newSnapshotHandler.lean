@@ -35,8 +35,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (internal) The snapshot handler of the transport (its `Raft` and snapshotter the transport's). -/
 def newSnapshotHandler.spec : Prop :=
-  ∀ (t : Loc) (ν : Net) (lid : w64) (ss : Loc) (r : GoInterface) (cid : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ isTransport t ν lid ∗ raftOk ν lid ss r ∗ snapshotterOk ss }}
+  ∀ (t : Loc) (ν : Net GF) (lid : w64) (ss : Loc) (sd : GoString) (r : GoInterface) (cid : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ isTransport t ν lid ∗ raftOk ν lid r ∗ Snap.isSnapshotter ss sd ∗ saveOk ν sd }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.newSnapshotHandler)) (Val #t)) (Val #r)) (Val #ss)) (Val #cid))
   {{ (h : GoInterface), RET #h; ∃ hp : Loc, ⌜h = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler.ty) #hp⌝ ∗ shAt hp ν lid }}
 

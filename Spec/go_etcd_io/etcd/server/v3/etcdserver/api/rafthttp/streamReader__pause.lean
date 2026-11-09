@@ -35,7 +35,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (internal) Sets `paused` to true. -/
 def streamReader.pause.spec : Prop :=
-  ∀ (cr : Loc) (ν : Net) (lid pid : w64),
+  ∀ (cr : Loc) (ν : Net GF) (lid pid : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ srAt cr ν lid pid }}
     (App (Val (cr @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamReader.ty @!! go!"pause")) (Val #()))
   {{ RET #(); True }}

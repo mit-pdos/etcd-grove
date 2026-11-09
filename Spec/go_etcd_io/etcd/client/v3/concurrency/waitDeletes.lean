@@ -40,9 +40,9 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
 /-- `waitDeletes(ctx, c, pfx, n)` (`n > 0`): `nil` and, at a state the cluster reached after `σ0`, no key under `pfx` is older than `n + 1`; or an error. -/
 def waitDeletes.spec : Prop :=
-  ∀ (ctx : GoInterface) (c : Loc) (γ : Cluster) (who : Principal) (pfx : GoString) (n : w64)
+  ∀ (ctx : GoInterface) (c : Loc) (γ : Cluster) (dflt who : Principal) (pfx : GoString) (n : w64)
     (σ0 : State),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isClient c γ who ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ etcdPeek γ ∗ etcdLb γ σ0 ∗ ⌜0 < sint.Z n⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isClient c γ dflt ∗ Context.ctxOk ctx ∗ ctxPrin dflt ctx who ∗ etcdPeek γ ∗ etcdLb γ σ0 ∗ ⌜0 < sint.Z n⌝ }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.client.v3.concurrency.waitDeletes)) (Val #ctx)) (Val #c)) (Val #pfx)) (Val #n))
   {{ (err : GoInterface), RET #err;
       (⌜err = GoInterface.nil⌝ ∗ ∃ σ : State, etcdLb γ σ ∗

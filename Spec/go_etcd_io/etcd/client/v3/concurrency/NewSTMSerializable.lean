@@ -38,9 +38,9 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
 /-- `NewSTMSerializable(ctx, c, apply)`: `NewSTM` at `Serializable` with the abort context `ctx`. -/
 def NewSTMSerializable.spec : Prop :=
-  ∀ (ctx : GoInterface) (c : Loc) (γ : Cluster) (who : Principal) (apply : GoFunc)
+  ∀ (ctx : GoInterface) (c : Loc) (γ : Cluster) (dflt who : Principal) (apply : GoFunc)
     (F : Attempt → IProp GF) (Rel : Attempt → Prop) (T : State → State → Prop) (P : IProp GF) (σ0 : State),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isClient c γ who ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ applyOk apply γ who F Rel ∗ (∃ b, F b) ∗ etcdLent γ T P ∗ P ∗ etcdLb γ σ0 ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isClient c γ dflt ∗ Context.ctxOk ctx ∗ ctxPrin dflt ctx who ∗ applyOk apply γ who F Rel ∗ (∃ b, F b) ∗ etcdLent γ T P ∗ P ∗ etcdLb γ σ0 ∗
       ⌜effIn (stmEff isoS Rel) T⌝ }}
     (App (App (App (Val (@! go_etcd_io.etcd.client.v3.concurrency.NewSTMSerializable)) (Val #ctx)) (Val #c)) (Val #apply))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); stmResult γ isoS F Rel P σ0 resp err }}

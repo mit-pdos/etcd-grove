@@ -35,7 +35,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (internal) **Serves a stream GET**: checks it, answers `200`, hands the response writer to the peer's writer of the stream's type and waits until that writer closes it; or refuses (`405`, `412`, `404`, `410`). -/
 def streamHandler.ServeHTTP.spec : Prop :=
-  ∀ (hp : Loc) (ν : Net) (lid : w64) (w : GoInterface) (r : Loc) (R : Http.HReq) (τ : GName) (rd : GoInterface),
+  ∀ (hp : Loc) (ν : Net GF) (lid : w64) (w : GoInterface) (r : Loc) (R : Http.HReq) (τ : GName) (rd : GoInterface),
   ⊢ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ sthAt hp ν lid ∗ Http.servePre (raftProto ν) go!"/raft/stream/" w r R τ rd) -∗
     WP (App (App (Val (hp @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler.ty @!! go!"ServeHTTP")) (Val #w)) (Val #r))
     {{ v, Http.serveDone (raftProto ν) w R τ v }}

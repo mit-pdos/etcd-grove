@@ -54,11 +54,11 @@ cluster reached to the next (`stmCommitted` at the options' level), and the comm
 `nil` and an error (the closure's, or a request's), the frame given back. The options' level must
 be one of the four, their context (the client's if none) a context. -/
 def NewSTM.spec : Prop :=
-  ∀ (c : Loc) (γ : Cluster) (who : Principal) (apply : GoFunc) (F : Attempt → IProp GF)
+  ∀ (c : Loc) (γ : Cluster) (dflt who : Principal) (apply : GoFunc) (F : Attempt → IProp GF)
     (Rel : Attempt → Prop) (sl : GoSlice) (gs : List (STMOpts → STMOpts))
     (T : State → State → Prop) (P : IProp GF) (σ0 : State),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isClient c γ who ∗ stmOptsAt sl gs ∗ ⌜isoValid (applySTMOptsM gs).iso⌝ ∗
-      optCtxOk (applySTMOptsM gs).ctx who ∗ applyOk apply γ who F Rel ∗ (∃ b, F b) ∗ etcdLent γ T P ∗ P ∗ etcdLb γ σ0 ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isClient c γ dflt ∗ stmOptsAt sl gs ∗ ⌜isoValid (applySTMOptsM gs).iso⌝ ∗
+      optCtxOk (applySTMOptsM gs).ctx dflt who ∗ applyOk apply γ who F Rel ∗ (∃ b, F b) ∗ etcdLent γ T P ∗ P ∗ etcdLb γ σ0 ∗
       ⌜effIn (stmEff (applySTMOptsM gs).iso Rel) T⌝ }}
     (App (App (App (Val (@! go_etcd_io.etcd.client.v3.concurrency.NewSTM)) (Val #c)) (Val #apply)) (Val #sl))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); stmOptsAt sl gs ∗

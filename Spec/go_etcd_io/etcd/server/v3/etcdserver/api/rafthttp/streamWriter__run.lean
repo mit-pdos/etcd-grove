@@ -35,8 +35,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (internal; a goroutine) **The writer loop**: encodes queued messages and heartbeats on the attached connection, replaces it on a new one, closes it on a failure (its queue dropped), until stopped (`done` closed). -/
 def streamWriter.run.spec : Prop :=
-  ∀ (cw : Loc) (ν : Net) (lid pid : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ swAt cw ν lid pid ∗ swRun cw }}
+  ∀ (cw : Loc) (ν : Net GF) (lid pid : w64) (K : Msg → Prop),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ swAt cw ν lid pid K ∗ swRun cw }}
     (App (Val (cw @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamWriter.ty @!! go!"run")) (Val #()))
   {{ RET #(); True }}
 

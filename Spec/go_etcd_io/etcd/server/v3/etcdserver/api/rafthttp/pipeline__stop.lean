@@ -35,7 +35,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (internal) **Stops the pipeline**: `stopc` closed, the workers joined. -/
 def pipeline.stop.spec : Prop :=
-  ∀ (pl : Loc) (ν : Net) (lid pid : w64),
+  ∀ (pl : Loc) (ν : Net GF) (lid pid : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ pipeAt pl ν lid pid ∗ pipeStopRight pl }}
     (App (Val (pl @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline.ty @!! go!"stop")) (Val #()))
   {{ RET #(); True }}

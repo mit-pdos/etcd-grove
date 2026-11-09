@@ -35,7 +35,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (internal; a goroutine) **Posts a merged snapshot** and closes the message once with the outcome; reports the snapshot's fate. -/
 def snapshotSender.send.spec : Prop :=
-  ∀ (s : Loc) (ν : Net) (lid pid : w64) (mp : Loc),
+  ∀ (s : Loc) (ν : Net GF) (lid pid : w64) (mp : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ ssAt s ν lid pid ∗ outSnap ν mp }}
     (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotSender.ty @!! go!"send")) (Val #mp))
   {{ RET #(); True }}

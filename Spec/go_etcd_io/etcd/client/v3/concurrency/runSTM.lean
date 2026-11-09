@@ -41,7 +41,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
 /-- `runSTM(s, apply)`: attempts until one commits or fails; the result as `NewSTM`'s. -/
 def runSTM.spec : Prop :=
-  ∀ (iv : GoInterface) (γ : Cluster) (who : Principal) (iso : w64) (apply : GoFunc)
+  ∀ (iv : GoInterface) (γ : Cluster) (dflt who : Principal) (iso : w64) (apply : GoFunc)
     (F : Attempt → IProp GF) (Rel : Attempt → Prop) (T : State → State → Prop) (P : IProp GF) (σ0 : State),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ stmStale iv γ who iso ∗ applyOk apply γ who F Rel ∗ (∃ b, F b) ∗ etcdLent γ T P ∗ P ∗ etcdLb γ σ0 ∗ ⌜effIn (stmEff iso Rel) T⌝ }}
     (App (App (Val (@! go_etcd_io.etcd.client.v3.concurrency.runSTM)) (Val #iv)) (Val #apply))

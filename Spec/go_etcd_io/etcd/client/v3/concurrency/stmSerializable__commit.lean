@@ -40,7 +40,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
 /-- `s.commit()` (serializable levels): `nil` if a comparison failed (the else-branch's reads become the next attempt's prefetched ones), else the committed attempt's reply; or the abort. -/
 def stmSerializable.commit.spec : Prop :=
-  ∀ (p : Loc) (γ : Cluster) (who : Principal) (iso : w64) (a : Attempt) (T : State → State → Prop) (P : IProp GF) (σ0 : State),
+  ∀ (p : Loc) (γ : Cluster) (dflt who : Principal) (iso : w64) (a : Attempt) (T : State → State → Prop) (P : IProp GF) (σ0 : State),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ stmSerAt p γ who iso a ∗ etcdLent γ T P ∗ P ∗ etcdLb γ σ0 ∗
       ⌜effIn (fun σ σ' => σ' = σ ∨ stmCommitted iso a σ σ') T⌝ }}
     (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.concurrency.stmSerializable.ty @!! go!"commit")) (Val #()))

@@ -41,10 +41,10 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
 /-- `l.Unlock()`: `Mutex.Unlock` with the client's context; it returns released, or panics with the error. -/
 def lockerMutex.Unlock.spec : Prop :=
-  ∀ (lm m s c : Loc) (pfx : GoString) (st : MutexSt) (γ : Cluster) (who : Principal) (id : w64)
+  ∀ (lm m s c : Loc) (pfx : GoString) (st : MutexSt) (γ : Cluster) (dflt who : Principal) (id : w64)
     (T : State → State → Prop) (P : IProp GF) (σ0 : State),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ lm.[go_etcd_io.etcd.client.v3.concurrency.lockerMutex, go!"Mutex"] ↦□ m ∗ isMutex m s pfx ∗ mutexSt m st ∗
-      isSession s c γ id ∗ isClient c γ who ∗ etcdLent γ T P ∗ P ∗ etcdLb γ σ0 ∗ ⌜effIn (delEff (fun k => k = st.key ∧ pfx <+: k)) T⌝ }}
+      isSession s c γ id ∗ isClient c γ dflt ∗ etcdLent γ T P ∗ P ∗ etcdLb γ σ0 ∗ ⌜effIn (delEff (fun k => k = st.key ∧ pfx <+: k)) T⌝ }}
     (App (Val (lm @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.concurrency.lockerMutex.ty @!! go!"Unlock")) (Val #()))
   {{ (r : val), RET r;
       (⌜r = #()⌝ ∗ P ∗ ∃ σ : State, etcdLb γ σ ∗ ⌜Reach σ0 σ ∧ σ.kv.store st.key = none⌝ ∗ mutexSt m st.released) ∨

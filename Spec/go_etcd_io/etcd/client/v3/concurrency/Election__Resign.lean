@@ -48,10 +48,10 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 cleared, and `nil` with the key not at its create revision at a state the cluster reached (the
 header kept is that state's), or an error. -/
 def Election.Resign.spec : Prop :=
-  ∀ (e s c : Loc) (pfx : GoString) (st : ElectionSt) (γ : Cluster) (who : Principal) (id : w64)
+  ∀ (e s c : Loc) (pfx : GoString) (st : ElectionSt) (γ : Cluster) (dflt who : Principal) (id : w64)
     (ctx : GoInterface) (T : State → State → Prop) (P : IProp GF) (σ0 : State),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isElection e s pfx ∗ electionSt e st ∗ isSession s c γ id ∗ isClient c γ who ∗
-      Context.ctxOk ctx ∗ ctxPrin ctx who ∗ etcdLent γ T P ∗ P ∗ etcdLb γ σ0 ∗ ⌜effIn (delEff (fun k => k = st.leaderKey)) T⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isElection e s pfx ∗ electionSt e st ∗ isSession s c γ id ∗ isClient c γ dflt ∗
+      Context.ctxOk ctx ∗ ctxPrin dflt ctx who ∗ etcdLent γ T P ∗ P ∗ etcdLb γ σ0 ∗ ⌜effIn (delEff (fun k => k = st.leaderKey)) T⌝ }}
     (App (Val (e @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.concurrency.Election.ty @!! go!"Resign")) (Val #ctx))
   {{ (err : GoInterface), RET #err;
       (⌜st.leaderSession = null ∧ err = GoInterface.nil⌝ ∗ P ∗ electionSt e st) ∨

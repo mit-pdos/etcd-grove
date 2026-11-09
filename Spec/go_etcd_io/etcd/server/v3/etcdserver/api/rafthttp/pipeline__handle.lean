@@ -35,7 +35,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (internal; a worker goroutine) **Posts each queued message** until stopped; reports unreachable on a failure, `ReportSnapshot` for a `MsgSnap` (none: `sendable`). -/
 def pipeline.handle.spec : Prop :=
-  ∀ (pl : Loc) (ν : Net) (lid pid : w64),
+  ∀ (pl : Loc) (ν : Net GF) (lid pid : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ pipeAt pl ν lid pid ∗ pipeWorker pl }}
     (App (Val (pl @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline.ty @!! go!"handle")) (Val #()))
   {{ RET #(); True }}

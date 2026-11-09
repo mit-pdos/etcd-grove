@@ -35,8 +35,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (internal) **Queues a message** on a stream writer or the pipeline (non-blocking: a full queue drops it and reports unreachable), unless paused. -/
 def peer.send.spec : Prop :=
-  ∀ (p : Loc) (ν : Net) (lid pid : w64) (ml : Loc) (m : Msg),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ peerAt p ν lid pid ∗ outMsg ν lid ml m ∗ ⌜m.to ≠ W64 0⌝ }}
+  ∀ (p : Loc) (ν : Net GF) (lid pid : w64) (ml : Loc) (m : Msg),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ peerAt p ν lid pid ∗ outMsg ν lid ml m ∗ ⌜m.to = pid ∧ m.to ≠ W64 0⌝ }}
     (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peer.ty @!! go!"send")) (Val #ml))
   {{ RET #(); True }}
 

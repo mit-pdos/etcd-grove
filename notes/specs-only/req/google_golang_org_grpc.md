@@ -267,3 +267,23 @@ Used by: `watchServer.Watch.spec`, `serverWatchStream.{recvLoop,sendLoop,isWatch
    that invokes once).
 4. **The peer holder** (provability review S2): `grpc.Peer(&p)` writes `p` after the attempt;
    `AttemptTriple` should take and give back `p ↦ _` (or `grpcCallOptsOk`'s realization keep it).
+
+## from 3h
+
+Batch 3h's generated stubs (`kVClient.Put.spec`, ..., WP form: `unaryStubWP`, `streamStubWP` in
+`Spec/go_etcd_io/etcd/api/v3/etcdserverpb/Api.lean`) and handlers (`_KV_Range_Handler.spec`, ...,
+`handlerBodyWP`) are stated over this boundary's vocabulary. What they need of it:
+
+1. **`grpc.StaticMethod()`**: returns a call option with `callOptOk` (no panic; it only marks the
+   method name as static for metrics).
+   ```go
+   cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...) // every generated stub
+   ```
+   Used by: every `*Client.*.spec` of etcdserverpb.
+2. **Interface dispatch of `ClientConnInterface.Invoke`/`NewStream`** to `*grpc.ClientConn`'s (the
+   stubs hold the connection as the interface `grpc.ClientConnInterface`; `ClientConn.Invoke.spec`
+   is at the concrete type): nothing to add if Goose's interface-call rule suffices; noted for the
+   `New*Client.spec` sketches.
+3. **`HandlerTriple`'s home**: 2a's `V3rpc.HandlerTriple` is written in grpc's vocabulary only; if it
+   moves to `Grpc` (`Spec/google_golang_org/grpc/Api.lean`), 3h's handler specs can state their
+   `unaryOk` corollary directly (today they are WP forms 2a composes with `icChain_call`).

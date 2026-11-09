@@ -31,7 +31,7 @@ least `c`, nothing older than `c`), whose use is the fence (`fence`): a write gu
 `IsOwner()` succeeds only where the key holds, whether or not it was re-created
 (`issues/mutex-lock-recreated.md`). Any context (`ctxOk`), not only a cancelable Perennial one.
 Round 1: the lent permission (`P` back on `nil` and `ErrSessionExpired`), the result after `σ0`, the
-principal per call (`isClient c γ who`, `ctxPrin ctx who`).
+principal per call (`isClient c γ dflt`, `ctxPrin dflt ctx who`).
 
 Margin: with the upstream fix of `issues/mutex-lock-recreated.md` the key's create revision would
 be exactly `c` (`holdsAt` at `σ`). The errors are not classified (any client error, a watch's,
@@ -63,10 +63,10 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
 /-- `m.Lock(ctx)`: `nil` and the lock fact at a state the cluster reached after `σ0` (the header kept is that state's), so that writes fenced by `IsOwner()` take effect only while the key holds; `ErrSessionExpired` with the key absent; or another error. -/
 def Mutex.Lock.spec : Prop :=
-  ∀ (m s c : Loc) (pfx : GoString) (st : MutexSt) (γ : Cluster) (who : Principal) (id : w64)
+  ∀ (m s c : Loc) (pfx : GoString) (st : MutexSt) (γ : Cluster) (dflt who : Principal) (id : w64)
     (ctx : GoInterface) (T : State → State → Prop) (P : IProp GF) (σ0 : State),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isMutex m s pfx ∗ mutexSt m st ∗ isSession s c γ id ∗ isClient c γ who ∗
-      Context.ctxOk ctx ∗ ctxPrin ctx who ∗ etcdLent γ T P ∗ P ∗ etcdLb γ σ0 ∗ ⌜effIn (mutexEff pfx (sint.Z id)) T⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isMutex m s pfx ∗ mutexSt m st ∗ isSession s c γ id ∗ isClient c γ dflt ∗
+      Context.ctxOk ctx ∗ ctxPrin dflt ctx who ∗ etcdLent γ T P ∗ P ∗ etcdLb γ σ0 ∗ ⌜effIn (mutexEff pfx (sint.Z id)) T⌝ }}
     (App (Val (m @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.concurrency.Mutex.ty @!! go!"Lock")) (Val #ctx))
   {{ (err : GoInterface), RET #err;
       (⌜err = GoInterface.nil⌝ ∗ P ∗ ∃ (k : GoString) (cr : Nat) (hd : Loc) (hm : HeaderM) (σ : State),

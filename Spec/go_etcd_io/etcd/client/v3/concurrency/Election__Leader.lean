@@ -44,10 +44,10 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 `holdsAt`) at a state the cluster reached, its header that state's; or `ErrElectionNoLeader`, the
 prefix empty at a state the cluster reached; or another error. -/
 def Election.Leader.spec : Prop :=
-  ∀ (e s c : Loc) (pfx : GoString) (γ : Cluster) (who : Principal) (id : w64)
+  ∀ (e s c : Loc) (pfx : GoString) (γ : Cluster) (dflt who : Principal) (id : w64)
     (ctx : GoInterface) (σ0 : State),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isElection e s pfx ∗ isSession s c γ id ∗ isClient c γ who ∗ Context.ctxOk ctx ∗
-      ctxPrin ctx who ∗ etcdPeek γ ∗ etcdLb γ σ0 }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isElection e s pfx ∗ isSession s c γ id ∗ isClient c γ dflt ∗ Context.ctxOk ctx ∗
+      ctxPrin dflt ctx who ∗ etcdPeek γ ∗ etcdLb γ σ0 }}
     (App (Val (e @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.concurrency.Election.ty @!! go!"Leader")) (Val #ctx))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       (⌜err = GoInterface.nil⌝ ∗ ∃ (m : RangeRespM) (hm : HeaderM) (v : KV) (σ : State),

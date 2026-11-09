@@ -35,7 +35,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (internal) **Serves a pipeline POST**: the body's message delivered to `Process` with `recvd` (its credit withdrawn with the request's ticket), answered `204`; or refused (`405`, `412`, `400`); or `Process`'s error written (`writerToResponse`), or `500` and a panic that `Serve` recovers. -/
 def pipelineHandler.ServeHTTP.spec : Prop :=
-  ∀ (hp : Loc) (ν : Net) (lid : w64) (w : GoInterface) (r : Loc) (R : Http.HReq) (τ : GName) (rd : GoInterface),
+  ∀ (hp : Loc) (ν : Net GF) (lid : w64) (w : GoInterface) (r : Loc) (R : Http.HReq) (τ : GName) (rd : GoInterface),
   ⊢ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ phAt hp ν lid ∗ Http.servePre (raftProto ν) go!"/raft" w r R τ rd) -∗
     WP (App (App (Val (hp @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler.ty @!! go!"ServeHTTP")) (Val #w)) (Val #r))
     {{ v, Http.serveDone (raftProto ν) w R τ v }}

@@ -35,7 +35,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- **Sends messages** (each with its `outMsg`: raft's facts, `sendable`), on a thread with its token: each is handed to the peer or remote of its `To` and delivered at most once (to `Process` of the member serving that peer's URLs, with `recvd`), or dropped. -/
 def Transport.Send.spec : Prop :=
-  ∀ (t : Loc) (ν : Net) (lid : w64) (sl : GoSlice) (ps : List Loc) (ms : List Msg) (dq : DFrac),
+  ∀ (t : Loc) (ν : Net GF) (lid : w64) (sl : GoSlice) (ps : List Loc) (ms : List Msg) (dq : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ isTransport t ν lid ∗ threadTok ∗ sl ↦*{dq} ps ∗ ⌜ps.length = ms.length⌝ ∗ ([∗list] pm ∈ ps.zip ms, outMsg ν lid pm.1 pm.2) }}
     (App (Val (t @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport.ty @!! go!"Send")) (Val #sl))
   {{ RET #(); threadTok ∗ sl ↦*{dq} ps }}
