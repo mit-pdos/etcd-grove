@@ -2515,6 +2515,34 @@ theorem receive_done (st : Etcdraft.State) (m : Etcdraft.Msg) (C : List w64) (bl
   rw [hprev, had]
   rfl
 
+/-- States whose server `i` has different logs are not equal (TLC's view). -/
+theorem state_eq_of_log_ne (s t : Etcdraft.State) (i : Etcdraft.ID) (hi : i ∈ s.server)
+    (h : (s.s i).log ≠ (t.s i).log) : s.eq t = false := by
+  unfold Etcdraft.State.eq
+  have : (s.server.all (fun j => (s.s j).eq (t.s j) s.server)) = false := by
+    rw [List.all_eq_false]
+    refine ⟨i, hi, ?_⟩
+    unfold Etcdraft.Server.eq
+    simp [h]
+  simp [this]
+
+theorem tstate_eq_of_log_ne (a b : Etcdraft.TState) (i : Etcdraft.ID) (hi : i ∈ a.s.server)
+    (h : (a.s.s i).log ≠ (b.s.s i).log) : a.eq b = false := by
+  unfold Etcdraft.TState.eq; rw [state_eq_of_log_ne a.s b.s i hi h]; simp
+
+theorem truncSt_truncSt (st : Etcdraft.State) (i j : Etcdraft.ID) (L1 L2 : List Etcdraft.Entry) :
+    truncSt (truncSt st i j L1) i j L2 = truncSt st i j L2 := by
+  unfold truncSt withLead Etcdraft.State.upd
+  congr 1; funext k; split <;> simp_all
+
+theorem truncSt_log (st : Etcdraft.State) (i j : Etcdraft.ID) (L : List Etcdraft.Entry) :
+    ((truncSt st i j L).s i).log = L := by
+  simp [truncSt, withLead, Etcdraft.State.upd]
+
+theorem truncSt_other (st : Etcdraft.State) (i j k : Etcdraft.ID) (L : List Etcdraft.Entry) (hk : k ≠ i) :
+    (truncSt st i j L).s k = st.s k := by
+  simp [truncSt, withLead, Etcdraft.State.upd, hk]
+
 end TraceSim
 
 end EtcdGrove
