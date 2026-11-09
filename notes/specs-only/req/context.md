@@ -27,3 +27,24 @@ They need, beside `Err.spec`/`ErrDone.spec`:
 
 Used by: `node.stepWithWaitOption.spec`'s sketch, hence every `node.*` spec with a context (their
 post's context arm `Context.ctxDone ctx ∗ isCtxErr err`, `nodeErr`).
+
+## from 1b
+
+1. **`context.WithCancel` over any context** (`ctxOk`, not only Perennial's `isContext`): the
+   client's watch stream runs on `context.WithCancel(&valCtx{inctx})` (`newWatcherGRPCStream`), whose
+   parent is the package's own type `valCtx` (never done: `Done` the package's never-closed
+   `valCtxCh`, `Err` `nil`, `Value` the caller's context's: 1b's `valCtx_ctxOk.spec`). Needed: a
+   spec of `WithCancel(parent)` for a `ctxOk` parent giving a `ctxOk` child that is done once
+   `cancel` is called or the parent is done, and `cancel` callable any number of times
+   concurrently (the watcher's `close` and `closeStream` both call it).
+   ```go
+   ctx, cancel := context.WithCancel(&valCtx{inctx})
+   ```
+   Used by: `watcher.newWatcherGRPCStream.spec`, `watchGRPCStream.close.spec`,
+   `watcher.closeStream.spec`; through them `watcher.Watch.spec`.
+2. **`ctx.Done()` in a `select`** on any `ctxOk` context (W0's bundle gives `Err`; `Watch`,
+   `RequestProgress`, `serveSubstream` and `sendCloseSubstream` select on `Done()`, and
+   `ReqWatchSelect` does): the bundle should include `Done`'s channel as a receive case (R1's
+   request above is the same need).
+   (Update, after W0's round 1: `Context.WithCancel.spec`, `ctxChild`, `cancelOk`, `Done.spec`,
+   `doneRecv.spec` cover items 1 and 2; 1b's sketches cite them.)

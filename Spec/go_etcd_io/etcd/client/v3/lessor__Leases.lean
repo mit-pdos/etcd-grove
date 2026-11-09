@@ -37,7 +37,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 def lessor.Leases.spec : Prop :=
   ∀ (l : Loc) (γ : Cluster) (who : Principal) (ctx : GoInterface),
   CallTriple (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"Leases")) (Val #ctx))
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorHandle l γ who ∗ Context.ctxOk ctx) iprop(True) γ who .leaseLeases true leaseLeasesReply
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorHandle l γ who ∗ Context.ctxOk ctx ∗ ctxPrin ctx who) iprop(True) γ who .leaseLeases true leaseLeasesReply
 
 end spec
 

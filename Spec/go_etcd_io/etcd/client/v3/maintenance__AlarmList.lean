@@ -36,7 +36,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 def maintenance.AlarmList.spec : Prop :=
   ∀ (mt : Loc) (γ : Cluster) (who : Principal) (ctx : GoInterface),
   CallTriple (App (App (Val (mt @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.maintenance.ty @!! go!"AlarmList")) (Val #ctx)) (Val #()))
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ maintHandle mt γ who ∗ Context.ctxOk ctx) iprop(True) γ who .alarmList true ansReply
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ maintHandle mt γ who ∗ Context.ctxOk ctx ∗ ctxPrin ctx who) iprop(True) γ who .alarmList true ansReply
 
 end spec
 

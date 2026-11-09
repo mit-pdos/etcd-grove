@@ -30,7 +30,8 @@ generated stubs' `cc.Invoke`) runs it around grpc's own one-attempt invoker. The
   (1) success, the update fired; (2) a definite etcd error, the update fired with it; (3) an error
   after which the request is known **not applied**, the update **given back unfired**: not sent
   (`CallErr.notSent`), a token refusal (`errRetryAuth`: `ErrInvalidAuthToken`,
-  `ErrAuthOldRevision`, `ErrUserEmpty`), or a learner's refusal (`learnerErr`); or (4) an
+  `ErrAuthOldRevision`, `ErrUserEmpty`), or a learner's refusal (`ErrGRPCNotSupportedForLearner`:
+  `.notSupportedForLearner`, a refusal); or (4) an
   indefinite error, the update possibly fired later (lost to the caller).
 * `uiOk ui c γ who` (the interceptor's, proved by `Client.unaryClientInterceptor.spec`): for any
   invoker meeting `AttemptTriple`, the interceptor's call returns (1) or (2), or an indefinite
@@ -38,8 +39,8 @@ generated stubs' `cc.Invoke`) runs it around grpc's own one-attempt invoker. The
   a timeout of the attempt, the update being persistent), refreshing the token first after a token
   refusal; when it gives up after (3) with a token refusal it **fires the update itself** with that
   refusal (`Step.refuse`: every `retryAuth` error is a refusal), and when the refresh fails it
-  fires it with the refresh's error (`ErrAuthFailed`: W0's model must count it a refusal, see
-  `notes/specs-only/batch-1c.md`) or returns an indefinite one.
+  fires it with the refresh's error (`ErrAuthFailed` and the other refusals) or returns an
+  indefinite one.
 
 So a non-repeatable write is applied at most once per call: it is resent only after an attempt
 that applied nothing.
@@ -90,7 +91,7 @@ that applied nothing.
 `handles1c_persistent`; the bundles' triples (`authAt_methods`, `clusterAt_methods`,
 `maintAt_methods`); the realizations (`authHandle_authAt`, `clusterHandle_clusterAt`,
 `maintHandle_maintAt`, `retryAuthHandle_remoteAuthAt`, ...); `remote*At_call`; `isClient_core`,
-`clientMut_core`; `uiOk_call`, `siOk_call`; `learnerErr_indef`; `dialOptsOk_nil`;
+`clientMut_core`; `uiOk_call`, `siOk_call`; `dialOptsOk_nil`;
 `cfgPrincipal_*`; `replyOwn_authenticate`; `callOptsOk_nil`, `callOptsOk_core`.
 
 ## Requirement snippets
@@ -171,6 +172,19 @@ def reqRetryRep : Req → Bool
   | .range _ => true
   | _ => false
 
+/-- **The retry interceptor's options** (`options`): the policy (`rep`: repeatable) and the retry
+limit. -/
+structure RetryOptsM where
+  rep : Bool
+  max : w64
+
+/-- `defaultOptions`: non-repeatable, no retry. -/
+def RetryOptsM.default : RetryOptsM := { rep := false, max := W64 0 }
+
+/-- Options applied in order (`reuseOrNewWithCallOptions`). -/
+def applyRetry (fs : List (RetryOptsM → RetryOptsM)) (o : RetryOptsM) : RetryOptsM :=
+  fs.foldl (fun o f => f o) o
+
 /-- `authpb.Permission_Type`'s values (`PermRead`, `PermWrite`, `PermReadWrite`); another value
 is not modelled (`none`). -/
 def permTypeM (t : w32) : Option PermType :=
@@ -232,7 +246,7 @@ def cfgOk (cfg : go_etcd_io.etcd.client.v3.Config) (γ : Cluster) (who : Princip
     cfgPrincipal γ cfg who ∗ dialOptsOk cfg.DialOptions' ∗
     (⌜cfg.TLS' = null⌝ ∨ tlsCfgOk cfg.TLS') ∗
     (⌜cfg.Logger' = null ∧ cfg.LogConfig' = null⌝ ∨ Zap.isLogger cfg.Logger') ∗
-    (⌜cfg.Context' = GoInterface.nil⌝ ∨ Context.ctxOk cfg.Context') ∗
+    (⌜cfg.Context' = GoInterface.nil⌝ ∨ Context.ctxOk cfg.Context' ∗ ctxPrin cfg.Context' who) ∗
     (⌜cfg.AutoSyncInterval' = W64 0⌝ ∨ verifyOff) ∗
     idUpd γ)
 
@@ -242,12 +256,47 @@ opaque clientCore (c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop
 /-- **The token bundle `b` holds `""` or tokens naming `who`** (`credentials`' bundle). -/
 opaque bundleAt (b : GoInterface) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 
-/-- **`withRepeatablePolicy()`'s option** (persistent): sets the retry policy to repeatable. -/
-opaque repOptAt (v : go_etcd_io.etcd.client.v3.retryOption) : IProp GF := iprop(True)
-/-- **`withMax(n)`'s option** (persistent): sets the retry limit to `n`. -/
-opaque maxOptAt (v : go_etcd_io.etcd.client.v3.retryOption) (n : w64) : IProp GF := iprop(True)
-/-- **`withBackoff(f)`'s option** (persistent): sets the backoff function. -/
-opaque backoffOptAt (v : go_etcd_io.etcd.client.v3.retryOption) : IProp GF := iprop(True)
+/-- **A retry option `v`** (`retryOption`, persistent): applying it changes the interceptor's
+options as `f` does (`withRepeatablePolicy`, `withMax`, `withBackoff`; the backoff function is not
+modelled: every one the package makes returns a duration and never panics). -/
+opaque retryOptAt (v : go_etcd_io.etcd.client.v3.retryOption) (f : RetryOptsM → RetryOptsM) :
+  IProp GF := iprop(True)
+def repOptAt (v : go_etcd_io.etcd.client.v3.retryOption) : IProp GF :=
+  retryOptAt v (fun o => { o with rep := true })
+def maxOptAt (v : go_etcd_io.etcd.client.v3.retryOption) (n : w64) : IProp GF :=
+  retryOptAt v (fun o => { o with max := n })
+def backoffOptAt (v : go_etcd_io.etcd.client.v3.retryOption) : IProp GF := retryOptAt v id
+
+/-- A read-only slice of retry options acting as `fs`, in order. -/
+def retryOptsAt (sl : GoSlice) (fs : List (RetryOptsM → RetryOptsM)) : IProp GF :=
+  iprop(∃ vs : List go_etcd_io.etcd.client.v3.retryOption, sl ↦*□ vs ∗
+    [∗list] v; f ∈ vs; fs, retryOptAt v f)
+
+/-- **The interceptor's `*options` at `p`** (read-only), modelled by `o` (`retryAuth` true, a
+backoff function of the package's). -/
+opaque optionsAt (p : Loc) (o : RetryOptsM) : IProp GF := iprop(True)
+
+/-- **The client under construction** (`newClient` before the dial; persistent): its configuration,
+credentials, token bundle, context, `epMu` with the endpoints (each `servesAt γ`), logger,
+`callOpts`, resolver set (what `clientCore` has but the connection and the members). -/
+opaque clientPre (c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+
+/-- **Dial options naming the target** (persistent; slot, 2a and `internal/resolver`):
+`grpc.WithResolvers(r)` of an `EtcdManualResolver` whose endpoints all serve `γ`. -/
+opaque dialTargetOk (sl : GoSlice) (γ : Cluster) : IProp GF := iprop(True)
+
+/-- **Transport credentials a dial may use** (persistent; slot, 2a): `nil` (insecure),
+`credentials.NewTLS` of a `tlsCfgOk` configuration. -/
+opaque transportCredsOk (creds : GoInterface) : IProp GF := iprop(True)
+
+/-- **The client's dial options** (persistent): the target's, keepalive parameters, the transport
+credentials, the client's unary and stream interceptors (`uiOk`, `siOk`) for `c` (what
+`dialSetupOpts` returns; `dial` adds the token bundle's per-RPC credentials and `cfg.DialOptions`). -/
+opaque clientDialOpts (sl : GoSlice) (c : Loc) (γ : Cluster) (who : Principal) : IProp GF :=
+  iprop(True)
+
+/-- **A `backoffFunc`** (persistent): returns a duration for any attempt, never panics. -/
+opaque backoffOk (f : GoFunc) : IProp GF := iprop(True)
 
 /-- What a non-KV call returns for the answer `res`: the reply message, or `nil` and `errVal e`. -/
 def ansReply (res : Resp) (resp : Loc) (err : GoInterface) : IProp GF :=
@@ -301,7 +350,7 @@ def RemoteCallTriple (m : GoString → val) (P : IProp GF) (γ : Cluster)
   ∀ (ctx : GoInterface) (req : Loc) (dq : DFrac) (opts : GoSlice) (rep : Bool),
   (reqRetryRep rq = false → rep = false) →
   CallTriple (App (App (App (Val (m (reqRpc rq))) (Val #ctx)) (Val #req)) (Val #opts))
-    iprop(P ∗ Context.ctxOk ctx ∗ reqOwn req dq rq ∗ callOptsOk opts rep) (reqOwn req dq rq)
+    iprop(P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ reqOwn req dq rq ∗ callOptsOk opts rep) (reqOwn req dq rq)
     γ who rq (reqRetryRep rq) (wireReply ansReply)
 
 end res
@@ -323,10 +372,6 @@ opaque unaryArgs (method : GoString) (req reply : GoInterface) (rq : Req)
 (`callOptsOk`) without its retry options (`filterCallOptions`), and `grpc.Peer(&p)`. -/
 opaque grpcCallOptsOk (sl : GoSlice) : IProp GF := iprop(True)
 
-/-- **`err` is the learner's refusal** (`rpctypes.ErrGRPCNotSupportedForLearner`, slot 2a): a
-learner member refused the request before processing it. -/
-opaque learnerErr (err : GoInterface) : IProp GF := iprop(True)
-
 /-- The update of a call, persistent if `rep`. -/
 def callAU (γ : Cluster) (who : Principal) (rq : Req) (rep : Bool)
     (Q : State → State → Resp → IProp GF) : IProp GF :=
@@ -340,15 +385,15 @@ given back; or an indefinite error, the update lost. -/
 def AttemptTriple (inv : val) (cc : Loc) (P : IProp GF) (γ : Cluster) (who : Principal) : Prop :=
   ∀ (ctx : GoInterface) (method : GoString) (req reply : GoInterface) (rq : Req)
     (R : Resp → IProp GF) (opts : GoSlice) (rep : Bool) (Q : State → State → Resp → IProp GF),
-  {{ P ∗ Context.ctxOk ctx ∗ unaryArgs method req reply rq R ∗ grpcCallOptsOk opts ∗
+  {{ P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ unaryArgs method req reply rq R ∗ grpcCallOptsOk opts ∗
       callAU γ who rq rep Q }}
     (App (App (App (App (App (App (Val inv) (Val #ctx)) (Val #method)) (Val #req)) (Val #reply))
       (Val #cc)) (Val #opts))
   {{ (err : GoInterface), RET #err;
       (⌜err = GoInterface.nil⌝ ∗ ∃ σ σ' b, Q σ σ' (.ok b) ∗ R (.ok b)) ∨
       (∃ σ σ' e, Q σ σ' (.err e) ∗ callErr err (.etcd e) ∗
-        ⌜e.indefinite = false ∧ errRetryAuth e = false⌝ ∗ unaryArgs method req reply rq R) ∨
-      ((callErr err .notSent ∨ (∃ e, callErr err (.etcd e) ∗ ⌜errRetryAuth e = true⌝) ∨ learnerErr err) ∗
+        ⌜e.indefinite = false ∧ errRetryAuth e = false ∧ e ≠ .notSupportedForLearner⌝ ∗ unaryArgs method req reply rq R) ∨
+      ((callErr err .notSent ∨ (∃ e, callErr err (.etcd e) ∗ ⌜errRetryAuth e = true ∨ e = .notSupportedForLearner⌝)) ∗
         callAU γ who rq rep Q ∗ unaryArgs method req reply rq R) ∨
       (indefCall err ∗ unaryArgs method req reply rq R) }}
 
@@ -366,7 +411,7 @@ def uiOk_call.spec : Prop := ∀ (ui : val) (c : Loc) (γ : Cluster) (who : Prin
     (cc : Loc) (Pinv : IProp GF), AttemptTriple inv cc Pinv γ who →
   ∀ (ctx : GoInterface) (method : GoString) (req reply : GoInterface) (rq : Req)
     (R : Resp → IProp GF) (opts : GoSlice) (rep : Bool) (Q : State → State → Resp → IProp GF),
-  {{ uiOk (GF := GF) ui c γ who ∗ □ Pinv ∗ Context.ctxOk ctx ∗ unaryArgs method req reply rq R ∗
+  {{ uiOk (GF := GF) ui c γ who ∗ □ Pinv ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ unaryArgs method req reply rq R ∗
       callOptsOk opts rep ∗ callAU γ who rq rep Q }}
     (App (App (App (App (App (App (App (Val ui) (Val #ctx)) (Val #method)) (Val #req)) (Val #reply))
       (Val #cc)) (Val inv)) (Val #opts))
@@ -383,11 +428,11 @@ def siOk_call.spec : Prop := ∀ (si : val) (c : Loc) (γ : Cluster) (who : Prin
     (strm : val) (P : IProp GF) (Φ : GoInterface → GoInterface → IProp GF)
     (ctx : GoInterface) (desc cc : Loc) (method : GoString) (opts : GoSlice),
   (∀ (ctx' : GoInterface) (opts' : GoSlice),
-    {{ P ∗ Context.ctxOk ctx' ∗ Context.ctxWithValues ctx ctx' ∗ grpcCallOptsOk opts' }}
+    {{ P ∗ Context.ctxOk ctx' ∗ ctxPrin ctx' who ∗ Context.ctxWithValues ctx ctx' ∗ grpcCallOptsOk opts' }}
       (App (App (App (App (App (Val strm) (Val #ctx')) (Val #desc)) (Val #cc)) (Val #method))
         (Val #opts'))
     {{ (s err : GoInterface), RET (PairV #s #err); Φ s err }}) →
-  {{ siOk (GF := GF) si c γ who ∗ P ∗ Context.ctxOk ctx }}
+  {{ siOk (GF := GF) si c γ who ∗ P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who }}
     (App (App (App (App (App (App (Val si) (Val #ctx)) (Val #desc)) (Val #cc)) (Val #method))
       (Val strm)) (Val #opts))
   {{ (s err : GoInterface), RET (PairV #s #err);
@@ -410,7 +455,7 @@ def Auth.Triple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal) (args 
     (reply : Resp → Loc → GoInterface → IProp GF := ansReply) : Prop :=
   ∀ (ctx : GoInterface),
   CallTriple ((args.foldl (fun e a => App e (Val a)) (App (Val f) (Val #ctx))))
-    iprop(P ∗ Context.ctxOk ctx) iprop(True) γ who rq (reqRetryRep rq) reply
+    iprop(P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ ctxPrin ctx who) iprop(True) γ who rq (reqRetryRep rq) reply
 
 /-- **The `Auth` interface's triples**, one per method: the request each sends (`Model.lean`'s
 auth steps). `RoleGrantPermission`: a permission type of the model (`permTypeM`). -/
@@ -456,23 +501,23 @@ def Cluster.methods (v : GoInterface) (P : IProp GF) (γ : Cluster) (who : Princ
   (∀ (ctx : GoInterface) (sl : GoSlice) (urls : List GoString) (learner : Bool),
     CheckedCallTriple (App (App (Val (m (if learner then go!"MemberAddAsLearner" else go!"MemberAdd")))
         (Val #ctx)) (Val #sl))
-      iprop(P ∗ Context.ctxOk ctx ∗ sl ↦*□ urls) iprop(True) γ who (.memberAdd urls learner) false
+      iprop(P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ sl ↦*□ urls) iprop(True) γ who (.memberAdd urls learner) false
       (urlsValid urls) ansReply) ∧
   (∀ (ctx : GoInterface) (id : w64),
     CallTriple (App (App (Val (m go!"MemberRemove")) (Val #ctx)) (Val #id))
-      iprop(P ∗ Context.ctxOk ctx) iprop(True) γ who (.memberRemove (uint.nat id)) false ansReply) ∧
+      iprop(P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ ctxPrin ctx who) iprop(True) γ who (.memberRemove (uint.nat id)) false ansReply) ∧
   (∀ (ctx : GoInterface) (id : w64) (sl : GoSlice) (urls : List GoString),
     CheckedCallTriple (App (App (App (Val (m go!"MemberUpdate")) (Val #ctx)) (Val #id)) (Val #sl))
-      iprop(P ∗ Context.ctxOk ctx ∗ sl ↦*□ urls) iprop(True) γ who (.memberUpdate (uint.nat id) urls)
+      iprop(P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ sl ↦*□ urls) iprop(True) γ who (.memberUpdate (uint.nat id) urls)
       false (urlsValid urls) ansReply) ∧
   (∀ (ctx : GoInterface) (opts : GoSlice) (gs : List (OpM → OpM)),
     ¬ prefixAndFromKey gs →
     CallTriple (App (App (Val (m go!"MemberList")) (Val #ctx)) (Val #opts))
-      iprop(P ∗ Context.ctxOk ctx ∗ optsAt opts gs) (optsAt opts gs) γ who
+      iprop(P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ optsAt opts gs) (optsAt opts gs) γ who
       (.memberList (!(opGetM [] gs).serializable)) true ansReply) ∧
   (∀ (ctx : GoInterface) (id : w64),
     CallTriple (App (App (Val (m go!"MemberPromote")) (Val #ctx)) (Val #id))
-      iprop(P ∗ Context.ctxOk ctx) iprop(True) γ who (.memberPromote (uint.nat id)) false ansReply)
+      iprop(P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ ctxPrin ctx who) iprop(True) γ who (.memberPromote (uint.nat id)) false ansReply)
 
 /-- **A member's status reply** (`StatusResponse`, owned; member-local, no model: its fields are
 whatever the member reports; slot, 3h). -/
@@ -486,15 +531,15 @@ def Maint.methods (v : GoInterface) (P : IProp GF) (γ : Cluster) (who : Princip
   let m := fun (s : GoString) => v @!! go_etcd_io.etcd.client.v3.Maintenance.ty @!! s
   (∀ ctx : GoInterface,
     CallTriple (App (App (Val (m go!"AlarmList")) (Val #ctx)) (Val #()))
-      iprop(P ∗ Context.ctxOk ctx) iprop(True) γ who .alarmList true ansReply) ∧
+      iprop(P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ ctxPrin ctx who) iprop(True) γ who .alarmList true ansReply) ∧
   (∀ (ctx : GoInterface) (am : Loc) (mid : w64) (t : w32) (k : AlarmKind), alarmKindM t = some k →
     CallTriple (App (App (Val (m go!"AlarmDisarm")) (Val #ctx)) (Val #am))
-      iprop(P ∗ Context.ctxOk ctx ∗
+      iprop(P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗
         am.[go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember, go!"MemberID"] ↦□ mid ∗
         am.[go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember, go!"Alarm"] ↦□ t)
       iprop(True) γ who (.alarmDisarm { memberId := uint.nat mid, kind := k }) true ansReply) ∧
   (∀ (ctx : GoInterface) (ep : GoString),
-    {{ P ∗ Context.ctxOk ctx }}
+    {{ P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who }}
       (App (App (Val (m go!"Status")) (Val #ctx)) (Val #ep))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         (⌜err = GoInterface.nil⌝ ∗ statusRespOwn resp) ∨ (⌜resp = null⌝ ∗ ∃ k, callErr err k) ∨
@@ -546,7 +591,6 @@ def handles1c_persistent.spec : Prop :=
   (∀ ui c γ who, Persistent (uiOk (GF := GF) ui c γ who)) ∧
   (∀ si c γ who, Persistent (siOk (GF := GF) si c γ who)) ∧
   (∀ sl, Persistent (grpcCallOptsOk (GF := GF) sl)) ∧
-  (∀ err, Persistent (learnerErr (GF := GF) err)) ∧
   (∀ p b, Persistent (userAddOptsAt (GF := GF) p b)) ∧
   (∀ a γ who, Persistent (authHandle (GF := GF) a γ who)) ∧
   (∀ a γ who, Persistent (clusterHandle (GF := GF) a γ who)) ∧
@@ -557,8 +601,12 @@ def handles1c_persistent.spec : Prop :=
   (∀ r γ who, Persistent (retryAuthHandle (GF := GF) r γ who)) ∧
   (∀ r γ who, Persistent (retryClusterHandle (GF := GF) r γ who)) ∧
   (∀ r γ who, Persistent (retryMaintHandle (GF := GF) r γ who)) ∧
-  (∀ v, Persistent (repOptAt (GF := GF) v)) ∧ (∀ v n, Persistent (maxOptAt (GF := GF) v n)) ∧
-  (∀ v, Persistent (backoffOptAt (GF := GF) v))
+  (∀ v f, Persistent (retryOptAt (GF := GF) v f)) ∧ (∀ p o, Persistent (optionsAt (GF := GF) p o)) ∧
+  (∀ c γ who, Persistent (clientPre (GF := GF) c γ who)) ∧
+  (∀ sl γ, Persistent (dialTargetOk (GF := GF) sl γ)) ∧
+  (∀ cr, Persistent (transportCredsOk (GF := GF) cr)) ∧
+  (∀ sl c γ who, Persistent (clientDialOpts (GF := GF) sl c γ who)) ∧
+  (∀ f, Persistent (backoffOk (GF := GF) f))
 
 /-- A user name with a password (and no token) names that user. -/
 def cfgPrincipal_user.spec : Prop := ∀ (γ : Cluster) (cfg : go_etcd_io.etcd.client.v3.Config),
@@ -585,9 +633,6 @@ def cfgPrincipal_none.spec : Prop := ∀ (γ : Cluster) (cfg : go_etcd_io.etcd.c
 /-- No dial options. -/
 def dialOptsOk_nil.spec : Prop := ⊢ dialOptsOk (GF := GF) slice.nil
 
-/-- The learner's refusal settles nothing to the caller (it is no etcd error of the model). -/
-def learnerErr_indef.spec : Prop := ∀ err, learnerErr (GF := GF) err ⊢ indefCall err
-
 /-- `Authenticate`'s reply: the token. -/
 def replyOwn_authenticate.spec : Prop := ∀ (p : Loc) (tok : GoString),
   replyOwn (GF := GF) p (.authenticate tok) ⊢
@@ -603,18 +648,20 @@ def callOptsOk_nil.spec : Prop := ⊢ callOptsOk (GF := GF) slice.nil false
 /-- A non-repeatable options slice is full to capacity (`append` allocates). -/
 def callOptsOk_full.spec : Prop := ∀ sl, callOptsOk (GF := GF) sl false ⊢ ⌜sl.len = sl.cap⌝
 
-/-- **Appending a retry option**: the repeatable policy makes the slice repeatable; a limit or a
-backoff keeps it as it was. (`retry.go`'s wrappers, the lessor's `withMax(0)`.) -/
+/-- **Appending a retry option**: the repeatable policy makes the slice repeatable; a limit of `0`
+(no retry: the lessor's stream) or a backoff keeps it as it was (no per-call option ever raises the
+limit, so the stream interceptor never wraps a stream). (`retry.go`'s wrappers, the lessor's `withMax(0)`.) -/
 def callOptsOk_append.spec : Prop := ∀ (sl : GoSlice) (rep : Bool),
   callOptsOk (GF := GF) sl rep ⊢ ∃ os : List GoInterface, sl ↦*□ os ∗
     □ (∀ (sl' : GoSlice) (v : go_etcd_io.etcd.client.v3.retryOption),
         sl' ↦*□ (os ++ [interface.mkOk go_etcd_io.etcd.client.v3.retryOption.ty #v]) -∗
-        ((repOptAt v -∗ callOptsOk sl' true) ∧ (∀ n, maxOptAt v n -∗ callOptsOk sl' rep) ∧
+        ((repOptAt v -∗ callOptsOk sl' true) ∧ (maxOptAt v (W64 0) -∗ callOptsOk sl' rep) ∧
          (backoffOptAt v -∗ callOptsOk sl' rep)))
 
 /-- A client's (or one under construction's) own pieces. -/
 def isClient_core.spec : Prop := ∀ c γ who, isClient (GF := GF) c γ who ⊢ clientCore c γ who
 def clientMut_core.spec : Prop := ∀ c γ who, clientMut (GF := GF) c γ who ⊢ clientCore c γ who
+def clientCore_pre.spec : Prop := ∀ c γ who, clientCore (GF := GF) c γ who ⊢ clientPre c γ who
 def clientConnOk_core.spec : Prop := ∀ c γ who,
   clientCore (GF := GF) c γ who ⊢ clientConnOk c γ who
 

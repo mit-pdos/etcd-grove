@@ -128,10 +128,12 @@ def watchInternal_persistent.spec : Prop :=
 
 /-- **A `valCtx` is a context never done** (its `Done` the package's never-closed `valCtxCh`, its
 `Err` `nil`, its values `inctx`'s): what `newWatcherGRPCStream` wraps `WithCancel` around. -/
-def valCtx_ctxOk.spec : Prop := ∀ (vc : Loc) (inctx : GoInterface),
+def valCtx_ctxOk.spec : Prop := ∀ (vc : Loc) (inctx : GoInterface) (who : Principal),
   isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-    vc ↦□ ({ Context' := inctx } : go_etcd_io.etcd.client.v3.valCtx) ∗ Context.ctxOk inctx ⊢
-  Context.ctxOk (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.valCtx.ty) #vc)
+    vc ↦□ ({ Context' := inctx } : go_etcd_io.etcd.client.v3.valCtx) ∗ Context.ctxOk inctx ∗
+    ctxPrin inctx who ⊢
+  Context.ctxOk (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.valCtx.ty) #vc) ∗
+  ctxPrin (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.valCtx.ty) #vc) who
 
 /-- A response without events (a progress notification, broadcast to every substream) may be
 shared: its header is read-only, it has no events. -/

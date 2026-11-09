@@ -36,7 +36,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 /-- `r.LeaseKeepAlive(ctx, opts...)`: the keep-alive stream's halves, or an error. -/
 def retryLeaseClient.LeaseKeepAlive.spec : Prop :=
   ∀ (r : Loc) (γ : Cluster) (who : Principal) (ctx : GoInterface) (opts : GoSlice) (rep : Bool),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryLeaseHandle r γ who ∗ Context.ctxOk ctx ∗ callOptsOk opts rep }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryLeaseHandle r γ who ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ callOptsOk opts rep }}
     (App (App (Val (r @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryLeaseClient.ty @!!
       go!"LeaseKeepAlive")) (Val #ctx)) (Val #opts))
   {{ (sc err : GoInterface), RET (PairV #sc #err);

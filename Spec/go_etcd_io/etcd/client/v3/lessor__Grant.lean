@@ -48,7 +48,7 @@ lease), or an error that settles nothing. -/
 def lessor.Grant.spec : Prop :=
   ∀ (l : Loc) (γ : Cluster) (who : Principal) (ctx : GoInterface) (ttl : w64),
   CallTriple (App (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"Grant")) (Val #ctx)) (Val #ttl))
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorHandle l γ who ∗ Context.ctxOk ctx) iprop(True) γ who (.leaseGrant 0 (sint.Z ttl)) true leaseGrantReply
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorHandle l γ who ∗ Context.ctxOk ctx ∗ ctxPrin ctx who) iprop(True) γ who (.leaseGrant 0 (sint.Z ttl)) true leaseGrantReply
 
 end spec
 

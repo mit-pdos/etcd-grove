@@ -84,3 +84,32 @@ And these, specified over them:
 - **`proto.Clone` of a `*Message`**: from `msgPts p dq m`, a fresh `msgPts p' (DFrac.own 1) m`
   (`examples/specreq/raftnode/transport.go`'s `ReqDeliver` steps a copy, as the examples'
   `copyMsg` does).
+
+## from R4
+
+Batch R4 (tracker, quorum, confchange: `Spec/go_etcd_io/raft/v3/{tracker,quorum,confchange}/`,
+report `notes/specs-only/batch-R4.md`) reads raftpb's changes and conf states:
+
+1. **`[]*ConfChangeSingle` slices** (provisional in `confchange/Api.lean`: `ConfChange.ccsPts sl dq
+   cs`, `cs : List ConfChange.Single`, each `⟨GetType(), GetNodeId()⟩`, a missing field reading `0`).
+   The `Changer`'s `Simple`/`EnterJoint` take the variadic slice read at `dq`; `toConfChangeSingle`
+   builds fresh ones (`own 1`). Please give the predicate (or a mapping), and a law from your
+   `*ConfChangeV2` ownership to `ccsPts` of its `Changes` field: raft's `applyConfChange` passes
+   `cc.Changes...` (`raft.go:1961`, `1963`).
+   ```go
+   return changer.Simple(cc.Changes...)
+   ```
+   Used by: `Changer.Simple.spec`, `Changer.EnterJoint.spec`, `Changer.apply.spec`,
+   `toConfChangeSingle.spec`.
+   `Restore`'s closures call `chg.Simple(cc)` with one element of `toConfChangeSingle`'s slice
+   (a fresh one-element variadic slice): the predicate must split per element (`ccsPts sl dq cs`
+   from the elements' pointers, each read-only, and back), or be persistent at `DFrac.discard`.
+2. **`confStatePts p dq cs`** (R1's provisional): `ProgressTracker.ConfState` returns a fresh one
+   with sorted lists and `new(AutoLeave)`; `Restore` and `toConfChangeSingle` read one (the four
+   lists, `GetAutoLeave()`). R4 uses R1's `ConfState` model and `confStatePts` by name.
+3. **`ConfChangeV2.LeaveJoint()`/`EnterJoint()`** as R4's model reads them (`ConfChange.changeV2`):
+   `LeaveJoint` iff transition `Auto` and no change; `EnterJoint` gives `(autoLeave, true)` for a
+   non-`Auto` transition or more than one change (auto-leave for `Auto` and `JointImplicit`), and
+   **panics** on an unknown transition; `ConfChange.AsV2()` is one change with transition `Auto`.
+   Used by: R1's `Membership.applyChange` as `changeV2` (`confchange/Model.lean`), the examples'
+   pre-check (`examples/specreq/raftconf/confchange.go`, `validConf`).

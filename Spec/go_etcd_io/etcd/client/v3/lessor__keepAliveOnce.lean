@@ -38,7 +38,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 /-- `l.keepAliveOnce(ctx, id)`: one response about `id` (owned), or an error. -/
 def lessor.keepAliveOnce.spec : Prop :=
   ∀ (l : Loc) (γ : Cluster) (who : Principal) (ctx : GoInterface) (id : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorHandle l γ who ∗ Context.ctxOk ctx }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorHandle l γ who ∗ Context.ctxOk ctx ∗ ctxPrin ctx who }}
     (App (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"keepAliveOnce")) (Val #ctx)) (Val #id))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       (⌜err = GoInterface.nil⌝ ∗ ∃ ttl, kaRespOwn resp id ttl) ∨

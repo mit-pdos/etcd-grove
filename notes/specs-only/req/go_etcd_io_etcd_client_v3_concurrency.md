@@ -19,3 +19,32 @@ Their `Api.lean` names it through a slot, `Recipes.sessionAt s γ who id` (persi
    `RWMutex.waitOnLastRev` (`s.Client()`).
 3. Both persistent, callable from any goroutine (the recipes' tests share one session among ten
    goroutines' barriers).
+
+## from 1e
+
+The leasing KV's session monitor (`client/v3/leasing/kv.go:138`, `monitorSession`) makes a new
+session whenever the last one is done, in a background goroutine, and reads it under its cache's
+lock from any goroutine.
+
+1. **`NewSession(cl, opts...)`** for a client `isClient cl γ who` and the options in 1e's slot
+   `Leasing.sessOptsOk osl cl` (`Spec/go_etcd_io/etcd/client/v3/leasing/Api.lean`; realize it as
+   your session-options bundle and prove `sessOptsOk_nil`: the proxy passes none; the tests pass
+   `WithTTL(1)`): a session (persistent handle) or an error, no panic. Its lease grant and the
+   lessor's keep-alives are steps on `etcdState γ`: take them as updates the caller can build from a
+   **persistent** update covering any `leaseGrant`/`leaseKeepAlive` step of `who` (1e fires them
+   from `Leasing.protoUpd γ who pfx`, whose `ProtoStep` allows exactly those and writes under the
+   prefix); it is called again and again, so nothing once-only per call beyond that.
+   ```go
+   s, err := concurrency.NewSession(lkv.cl, lkv.sessionOpts...)
+   if err != nil { continue }
+   lkv.session = s; close(lkv.sessionc)
+   ```
+   Used by: `leasingKV.monitorSession.spec`.
+2. **`s.Lease()`**: the session's lease id (any `w64`), persistent handle only; **`s.Done()`**: a
+   channel one may receive from (closed when the keep-alive ends, or never), any number of times
+   from any goroutine, non-blocking `select` included.
+   ```go
+   select { case <-lkv.session.Done(): default: return true }
+   return lkv.session.Lease()
+   ```
+   Used by: `leasingKV.readySession.spec`, `leasingKV.leaseID.spec`, `monitorSession`.

@@ -25,3 +25,11 @@ k` (`client/v3/Api.lean`). What W0 needs of rpctypes:
 3. **The laws** `callErr_errVal` (`⊢ callErr (errVal e) (.etcd e)`) and `callErr_ctxErr` (a context's
    error is `.other`), and `errVal_inj`, `errVal_ty`: obligations of this package's realization
    with grpc's (`req/google_golang_org_grpc.md` item 2).
+
+## from 1b
+
+1. **`rpctypes.Error(err)` on a watch's close error**: for an error of a `callErr` kind (a stream's
+   `Recv` error, `errors.New(reason)` of a refused create's reason), an error of a `callErr` kind
+   (`errVal e` when the message is etcd's error `e`): what `closeErrOk e (some k)` is realized
+   from. `rpctypes.ErrCompacted` and `ErrFutureRev` hold `errVal .compacted`, `errVal .futureRev`.
+   Used by: `WatchResponse.Err.spec`, `watchGRPCStream.addSubstream.spec`.

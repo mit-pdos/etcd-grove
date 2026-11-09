@@ -37,7 +37,7 @@ that settles nothing. -/
 def cluster.MemberRemove.spec : Prop :=
   ∀ (cl : Loc) (γ : Cluster) (who : Principal) (ctx : GoInterface) (id : w64),
   CallTriple (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.cluster.ty @!! go!"MemberRemove")) (Val #ctx)) (Val #id))
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clusterHandle cl γ who ∗ Context.ctxOk ctx) iprop(True) γ who (.memberRemove (uint.nat id)) false ansReply
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clusterHandle cl γ who ∗ Context.ctxOk ctx ∗ ctxPrin ctx who) iprop(True) γ who (.memberRemove (uint.nat id)) false ansReply
 
 end spec
 

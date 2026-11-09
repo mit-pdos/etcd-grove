@@ -1,0 +1,88 @@
+package recipes
+
+import (
+	recipe "go.etcd.io/etcd/client/v3/experimental/recipes"
+
+	clientv3 "go.etcd.io/etcd/client/v3"
+)
+
+// REQ recipes/queue-fifo: with one producer and one consumer, items come out in the order they
+// went in.
+// Users: T/v3_queue_test.go:44-64 (TestQueueOneReaderOneWriter: five items, dequeued in order).
+// Assumes: every key with the byte prefix kp is the queue's (owned), none at the start.
+// Specs: NewQueue.spec, Queue.Enqueue.spec (a new key per item, at increasing revisions),
+// Queue.Dequeue.spec (frontByRev at the deletion: the least mod revision present); the model's
+// kvStep (.txn).
+func ReqFIFO(c *clientv3.Client, kp string) {
+	q := recipe.NewQueue(c, kp)
+	if err := q.Enqueue("a"); err != nil {
+		return
+	}
+	if err := q.Enqueue("b"); err != nil {
+		return
+	}
+	v, err := q.Dequeue()
+	if err != nil {
+		return
+	}
+	if v != "a" {
+		panic("queue-fifo: not the oldest item")
+	}
+	v, err = q.Dequeue()
+	if err != nil {
+		return
+	}
+	if v != "b" {
+		panic("queue-fifo: not the oldest item")
+	}
+}
+
+// REQ recipes/queue-once: concurrent consumers never get the same item twice (each item is
+// deleted by exactly one Dequeue).
+// Users: T/v3_queue_test.go:186-200 (manyReaders), :202-215 (manyWriters), for Queue and
+// PriorityQueue.
+// Assumes: kp owned, empty at the start.
+// Specs: Queue.Enqueue.spec, Queue.Dequeue.spec (its update fires at the deletion of a present
+// key, once: the transaction's comparison on its mod revision).
+func ReqEveryItemOnce(c *clientv3.Client, kp string) {
+	q := recipe.NewQueue(c, kp)
+	if err := q.Enqueue("x"); err != nil {
+		return
+	}
+	if err := q.Enqueue("y"); err != nil {
+		return
+	}
+	got := make(chan string, 2)
+	for i := 0; i < 2; i++ {
+		go func() {
+			v, err := recipe.NewQueue(c, kp).Dequeue()
+			if err != nil {
+				v = ""
+			}
+			got <- v
+		}()
+	}
+	v1, v2 := <-got, <-got
+	if v1 != "" && v1 == v2 {
+		panic("queue-once: one item dequeued twice")
+	}
+}
+
+// REQ recipes/dequeue-closed: a Dequeue blocked on an empty queue whose watch closes (the client
+// closed, a compacted start revision) returns an error, it does not panic or return a value.
+// Users: T/v3_closed_watch_test.go:63-98, :121-167 (issues/recipes-dequeue-closed-watch.md, fixed
+// in the fork).
+// Assumes: kp owned, empty.
+// Specs: Queue.Dequeue.spec (no panic; nil only with a dequeued item), WaitPrefixEvents.spec.
+func ReqDequeueClosed(c *clientv3.Client, kp string) {
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		// the queue stays empty (owned, no Enqueue): nil would mean an item was dequeued
+		if _, err := recipe.NewQueue(c, kp).Dequeue(); err == nil {
+			panic("dequeue-closed: a value out of an empty queue")
+		}
+	}()
+	_ = c.Close()
+	<-done
+}

@@ -1,0 +1,50 @@
+/-
+`items.find` (`k8s.io/utils/third_party/forked/golang/btree/btree.go`).
+Users: the package's own methods (internal helper: the spec mirrors the code).
+Proof sketch: as the old proof (`specs-ref/Proof/k8s_io/utils/third_party/forked/golang/btree/items__find.lean`),
+over the realization of the predicates given in `Api.lean`'s and `Internal.lean`'s headers.
+Changes: restated over the opaque vocabulary of `Api.lean` and `Internal.lean` (the model
+functions renamed `mLookup`, `mInsert`, `mDelete`); otherwise unchanged.
+Margin: none known.
+-/
+module
+
+public import Spec.k8s_io.utils.third_party.forked.golang.btree.Internal
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace BTree
+
+open Iris Iris.BI k8s_io.utils.third_party.forked.golang.btree
+
+section spec
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : k8s_io.utils.third_party.forked.golang.btree.Assumptions]
+
+/-- `items[T].find(item, less)` on sorted entries: the number of entries with keys below
+`item`'s (a `sort.Search`), and whether the entry there has `item`'s key. -/
+def items.find.spec : Prop :=
+  ∀ {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] {T : go.GoType}
+    [IntoValTyped (GF := GF) V T] {K : Type} (o : ItemOrder GF V K)
+    (sl : GoSlice) (is : List (V × K)) (dq : DFrac) (item : V) (k : K) (less : GoFunc),
+  Sorted o.lt is →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.utils.third_party.forked.golang.btree ∗
+      sl ↦*{dq} is.map Prod.fst ∗ isLess o less ∗ o.item item k ∗ allItems o is }}
+    (App (App (Val (sl @!! items.ty T @!! go!"find")) (Val #item)) (Val #less))
+  {{ (index : w64) (found : Bool), RET (PairV #index #found);
+      sl ↦*{dq} is.map Prod.fst ∗
+      ⌜sint.nat index = countLt o.lt is k ∧ 0 ≤ sint.Z index ∧
+        (found = true ↔ ∃ e, is[sint.nat index]? = some e ∧ e.2 = k)⌝ }}
+
+end spec
+
+end BTree
+end EtcdGrove
+end Perennial

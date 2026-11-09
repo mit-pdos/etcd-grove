@@ -81,15 +81,34 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 getters (`GetType`, `GetNodeId`) reading `cs`. -/
 opaque ccsPts (sl : GoSlice) (dq : DFrac) (cs : List Single) : IProp GF := iprop(True)
 
+/-- **The `Changer` `chg` works from tracker progress map `B`** (its tracker's map, `LastIndex`,
+ring capacities), whose capacity is one a new peer's ring can have (`NewInflights`' bound). -/
+def BaseOf (chg : go_etcd_io.raft.v3.confchange.Changer) (B : Base) : Prop :=
+  chg.Tracker'.Progress' = B.mp ∧ chg.LastIndex' = B.li ∧ chg.Tracker'.MaxInflight' = B.mi ∧
+    chg.Tracker'.MaxInflightBytes' = B.mb ∧ 0 ≤ sint.Z B.mi ∧ sint.Z B.mi ≤ inflightsMax
+
+/-- **The new configuration and progress map** `(cfg, trk)` at `m'`, carried from `B`. -/
+def resultOk (B : Base) (m' : Membership) (cfg : go_etcd_io.raft.v3.tracker.Config)
+    (trk : GoMap) : IProp GF :=
+  iprop(configOwn cfg (DFrac.own 1) m' ∗
+    ∃ prs' pv', progressMapOwn trk prs' pv' ∗ ⌜Carried B.pv m' B.li B.mi B.mb pv'⌝)
+
 /-- **A `Changer` method's result** (`(cfg, trk, err)`) for the model's answer `r`, from the
-tracker progress map `B`: no error, the new configuration and a fresh progress map carried from
-`B`; or an error, and `B`'s progress map back. -/
+tracker progress map `B`: no error and the new configuration and progress map; or an error, and
+`B`'s progress map back. -/
 def changed (B : Base) (r : Option Membership) (cfg : go_etcd_io.raft.v3.tracker.Config)
     (trk : GoMap) (err : GoInterface) : IProp GF :=
   match r with
-  | some m' => iprop(⌜err = interface.nil⌝ ∗ configOwn cfg (DFrac.own 1) m' ∗
-      ∃ prs' pv', progressMapOwn trk prs' pv' ∗ ⌜Carried B.pv m' B.li B.mi B.mb pv'⌝)
+  | some m' => iprop(⌜err = interface.nil⌝ ∗ resultOk B m' cfg trk)
   | none => iprop(⌜err ≠ interface.nil⌝ ∗ progressMapOwn B.mp B.prs B.pv)
+
+/-- **`Restore`'s and `chain`'s result**: as `changed`, but an error gives nothing back (the ops
+before the failing one consumed the tracker's map). -/
+def result (B : Base) (r : Option Membership) (cfg : go_etcd_io.raft.v3.tracker.Config)
+    (trk : GoMap) (err : GoInterface) : IProp GF :=
+  match r with
+  | some m' => iprop(⌜err = interface.nil⌝ ∗ resultOk B m' cfg trk)
+  | none => iprop(⌜err ≠ interface.nil⌝)
 
 /-- (internal) **The `Changer`'s working copy**: `cfg` and `trk` hold `m`, from the tracker `B`. -/
 opaque ccState (B : Base) (cfg : go_etcd_io.raft.v3.tracker.Config) (trk : GoMap)
@@ -105,9 +124,7 @@ def opSpec (f : GoFunc) (F : Membership → Option Membership) : IProp GF :=
   iprop(□ ∀ (chg : go_etcd_io.raft.v3.confchange.Changer) (dq : DFrac) (m : Membership)
       (B : Base) (Φ : val → IProp GF),
     configOwn chg.Tracker'.Config' dq m ∗ progressMapOwn B.mp B.prs B.pv ∗
-      ⌜chg.Tracker'.Progress' = B.mp ∧ chg.LastIndex' = B.li ∧ chg.Tracker'.MaxInflight' = B.mi ∧
-        chg.Tracker'.MaxInflightBytes' = B.mb ∧ TrackerOk m B.pv ∧
-        0 ≤ sint.Z B.mi ∧ sint.Z B.mi ≤ inflightsMax⌝ -∗
+      ⌜BaseOf chg B ∧ TrackerOk m B.pv ∧ m.Valid⌝ -∗
     ▷ (∀ cfg trk err, configOwn chg.Tracker'.Config' dq m ∗ changed B (F m) cfg trk err -∗
         Φ (PairV (PairV #cfg #trk) #err)) -∗
     WP (App (Val #f) (Val #chg)) {{ Φ }})
@@ -177,9 +194,7 @@ def simple_valid.spec : Prop :=
 /-- A valid working copy is the method's result. -/
 def ccState_done.spec : Prop :=
   ∀ (B : Base) cfg trk (m : Membership), m.Valid →
-    ccState (GF := GF) B cfg trk m ⊢
-      configOwn cfg (DFrac.own 1) m ∗
-      ∃ prs' pv', progressMapOwn trk prs' pv' ∗ ⌜Carried B.pv m B.li B.mi B.mb pv'⌝
+    ccState (GF := GF) B cfg trk m ⊢ resultOk B m cfg trk
 
 /-- An abandoned working copy gives the tracker's progress map back. -/
 def ccState_abort.spec : Prop :=

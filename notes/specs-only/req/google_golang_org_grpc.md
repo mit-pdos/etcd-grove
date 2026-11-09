@@ -121,3 +121,12 @@ and `wireWatchSentLb g ss`. What 1b's sketches (`watchGRPCStream.openWatchClient
    (an error, for `WatchResponse.Err`), `errors.Is(err, context.Canceled)` (any error), and
    `status.FromError` / `Code` for 1c's `isHaltErr`/`isUnavailableErr` on every `callErr`.
    Used by: `streamKeyFromCtx.spec`, `WatchResponse.Err.spec`, `watcher.Close.spec`.
+
+## from 1e
+
+1. **`status.Error(codes.Unimplemented, msg)`** for a message that is not one of etcd's: a non-nil
+   error with `ClientV3.callErr err .other` (so `indefCall err`). `leasingKV.GetStream` returns it:
+   `leasingKV.GetStream.spec` meets W0's `KV.GetStreamTriple` through it.
+2. **`status.FromError(err)`** on any error a client call returned (or a context's error): no panic,
+   a status value whose `Code()` may be read. `leasingKV.acquire` retries on `Unavailable`
+   (`leasingKV.acquire.spec`).

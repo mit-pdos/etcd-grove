@@ -43,7 +43,7 @@ def cluster.MemberList.spec : Prop :=
     (gs : List (OpM → OpM)),
   ¬ prefixAndFromKey gs →
   CallTriple (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.cluster.ty @!! go!"MemberList")) (Val #ctx)) (Val #opts))
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clusterHandle cl γ who ∗ Context.ctxOk ctx ∗ optsAt opts gs) (optsAt opts gs) γ who
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clusterHandle cl γ who ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ optsAt opts gs) (optsAt opts gs) γ who
     (.memberList (!(opGetM [] gs).serializable)) true ansReply
 
 end spec

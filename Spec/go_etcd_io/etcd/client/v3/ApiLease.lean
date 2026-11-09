@@ -178,25 +178,25 @@ def Lease.methods (v : GoInterface) (P : IProp GF) (γ : Cluster) (who : Princip
   let m := fun (s : GoString) => v @!! go_etcd_io.etcd.client.v3.Lease.ty @!! s
   (∀ (ctx : GoInterface) (ttl : w64),
     CallTriple (App (App (Val (m go!"Grant")) (Val #ctx)) (Val #ttl))
-      iprop(P ∗ Context.ctxOk ctx) iprop(True) γ who (.leaseGrant 0 (sint.Z ttl)) true
+      iprop(P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who) iprop(True) γ who (.leaseGrant 0 (sint.Z ttl)) true
       leaseGrantReply) ∧
   (∀ (ctx : GoInterface) (id : w64),
     CallTriple (App (App (Val (m go!"Revoke")) (Val #ctx)) (Val #id))
-      iprop(P ∗ Context.ctxOk ctx) iprop(True) γ who (.leaseRevoke (sint.Z id)) true ansReply) ∧
+      iprop(P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who) iprop(True) γ who (.leaseRevoke (sint.Z id)) true ansReply) ∧
   (∀ (ctx : GoInterface) (id : w64) (opts : GoSlice) (gs : List (Bool → Bool)),
     CallTriple (App (App (App (Val (m go!"TimeToLive")) (Val #ctx)) (Val #id)) (Val #opts))
-      iprop(P ∗ Context.ctxOk ctx ∗ leaseOptsAt opts gs) (leaseOptsAt opts gs) γ who
+      iprop(P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ leaseOptsAt opts gs) (leaseOptsAt opts gs) γ who
       (.leaseTimeToLive (sint.Z id) (gs.foldl (fun b g => g b) false)) true
       (leaseTTLReply (sint.Z id))) ∧
   (∀ (ctx : GoInterface),
     CallTriple (App (Val (m go!"Leases")) (Val #ctx))
-      iprop(P ∗ Context.ctxOk ctx) iprop(True) γ who .leaseLeases true leaseLeasesReply) ∧
+      iprop(P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who) iprop(True) γ who .leaseLeases true leaseLeasesReply) ∧
   (∀ (ctx : GoInterface) (id : w64),
-    {{ P ∗ Context.ctxOk ctx }}
+    {{ P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who }}
       (App (App (Val (m go!"KeepAlive")) (Val #ctx)) (Val #id))
     {{ (ch : Loc) (err : GoInterface), RET (PairV #ch #err); ⌜ch ≠ null⌝ ∗ kaChan ch id }}) ∧
   (∀ (ctx : GoInterface) (id : w64),
-    {{ P ∗ Context.ctxOk ctx }}
+    {{ P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who }}
       (App (App (Val (m go!"KeepAliveOnce")) (Val #ctx)) (Val #id))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         (⌜err = GoInterface.nil⌝ ∗ ∃ ttl, kaRespOwn resp id ttl ∗ ⌜0 < sint.Z ttl⌝) ∨
@@ -241,7 +241,7 @@ def remoteLeaseAt_call.spec : Prop := ∀ (v : GoInterface) (γ : Cluster) (who 
 (the stream interceptor's token fetch, or the open's). -/
 def remoteLeaseAt_keepAlive.spec : Prop := ∀ (v : GoInterface) (γ : Cluster) (who : Principal)
     (ctx : GoInterface) (opts : GoSlice) (rep : Bool),
-  {{ remoteLeaseAt (GF := GF) v γ who ∗ Context.ctxOk ctx ∗ callOptsOk opts rep }}
+  {{ remoteLeaseAt (GF := GF) v γ who ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ callOptsOk opts rep }}
     (App (App (Val (v @!! go_etcd_io.etcd.api.v3.etcdserverpb.LeaseClient.ty @!! go!"LeaseKeepAlive"))
       (Val #ctx)) (Val #opts))
   {{ (sc err : GoInterface), RET (PairV #sc #err);

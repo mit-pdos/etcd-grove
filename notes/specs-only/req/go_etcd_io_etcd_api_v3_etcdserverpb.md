@@ -39,3 +39,16 @@ opaque: 3h realizes them from its own message vocabulary and proves the laws.
    owned (`compareOwn p' (own 1) m` from `compareOwn p dq m`). **`proto.Merge`** of
    `RangeResponse`s (repeated `Kvs` appended, `Header`/`More`/`Count` taken when set).
    Used by: `cloneCompare.spec`, `GetStreamToGetResponse.spec`.
+
+## from 1b
+
+1. **`pb.NewWatchClient(conn)`** for `connOk conn γ who` (W0's slot) gives `remoteWatchAt` of the
+   stub (with grpc's stream, `req/google_golang_org_grpc.md` from 1b). Used by: `NewWatcher.spec`.
+2. **Realize the watch messages' predicates** (`ApiWatch.lean`, possibly moved to `Wire.lean`):
+   `watchReqOwn` (a `WatchRequest` whose oneof is a `WatchCreateRequest` with the watch's key,
+   range end, start revision, filters `NOPUT`/`NODELETE`, `PrevKv`, `ProgressNotify`, `Fragment`;
+   a `WatchCancelRequest`; a `WatchProgressRequest`), `wireWatchRespOwn` (`WatchResponse`),
+   `eventOwn` (`mvccpb.Event`, `eventOwn_unfold`).
+3. **Getters**: `ResponseHeader.GetRevision` on an optional header (`0` for `nil`), used by
+   `WatchResponse.IsProgressNotify.spec`; `mvccpb.Event.IsCreate`/`IsModify` (Kubernetes' watcher
+   reads them) over `eventOwn`.

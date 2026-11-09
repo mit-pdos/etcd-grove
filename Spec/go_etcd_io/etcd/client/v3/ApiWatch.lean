@@ -407,10 +407,12 @@ def WatchRespM.hdrDq (m : WatchRespM) : DFrac :=
 /-- **`Watch(ctx, key, opts...)`**: the watch `OpWatch(key, opts...)` builds, from its start
 revision; its channel's consumer (`watchChAt`). Any context: when it is done, the channel closes
 (liveness, not stated). The options are given back. `OpWatch` must not panic (`watchPanics`: no
-lease, no range-only option). -/
+lease, no range-only option). `ctxPrin ctx who` (W0): the context names no other principal in its
+metadata; the watch stream this watch joins was opened with a context of the same metadata, so the
+member checks the create as `who`'s. -/
 def Watcher.WatchTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal) : Prop :=
   ∀ (ctx : GoInterface) (key : GoString) (opts : GoSlice) (gs : List (OpM → OpM)),
-  {{ P ∗ Context.ctxOk ctx ∗ optsAt opts gs ∗ ⌜¬ (opWatchM key gs).watchPanics⌝ }}
+  {{ P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ optsAt opts gs ∗ ⌜¬ (opWatchM key gs).watchPanics⌝ }}
     (App (App (App (Val f) (Val #ctx)) (Val #key)) (Val #opts))
   {{ (ch : Loc), RET #ch; optsAt opts gs ∗
       watchChAt ch γ who (opWatchM key gs).watchReq (WatchPos.init (opWatchM key gs).watchRev) }}
@@ -419,9 +421,9 @@ def Watcher.WatchTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal
 notification on every watch of that stream (what such a notification means is `watchStep`'s; that
 one comes is liveness). The error (`nil`, the context's, the stream's, "no stream found") is not
 modelled. -/
-def Watcher.RequestProgressTriple (f : val) (P : IProp GF) : Prop :=
+def Watcher.RequestProgressTriple (f : val) (P : IProp GF) (who : Principal) : Prop :=
   ∀ (ctx : GoInterface),
-  {{ P ∗ Context.ctxOk ctx }}
+  {{ P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who }}
     (App (Val f) (Val #ctx))
   {{ (err : GoInterface), RET #err; True }}
 
@@ -446,7 +448,7 @@ def watcherAt_methods.spec : Prop := ∀ (v : GoInterface) (γ : Cluster) (who :
   Watcher.WatchTriple (v @!! go_etcd_io.etcd.client.v3.Watcher.ty @!! go!"Watch")
     (watcherAt (GF := GF) v γ who) γ who ∧
   Watcher.RequestProgressTriple (v @!! go_etcd_io.etcd.client.v3.Watcher.ty @!! go!"RequestProgress")
-    (watcherAt (GF := GF) v γ who) ∧
+    (watcherAt (GF := GF) v γ who) who ∧
   Watcher.CloseTriple (v @!! go_etcd_io.etcd.client.v3.Watcher.ty @!! go!"Close")
     (watcherAt (GF := GF) v γ who)
 
@@ -506,7 +508,7 @@ def closeErrOk_nil.spec : Prop := ⊢ closeErrOk (GF := GF) GoInterface.nil none
 halves, nothing sent nor received; or an error of some kind. -/
 def remoteWatchAt_watch.spec : Prop := ∀ (v : GoInterface) (γ : Cluster) (who : Principal)
     (ctx : GoInterface) (opts : GoSlice) (rep : Bool),
-  {{ remoteWatchAt (GF := GF) v γ who ∗ Context.ctxOk ctx ∗ callOptsOk opts rep }}
+  {{ remoteWatchAt (GF := GF) v γ who ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ callOptsOk opts rep }}
     (App (App (Val (v @!! go_etcd_io.etcd.api.v3.etcdserverpb.WatchClient.ty @!! go!"Watch"))
       (Val #ctx)) (Val #opts))
   {{ (wc : GoInterface) (err : GoInterface), RET (PairV #wc #err);

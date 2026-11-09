@@ -42,7 +42,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 def watcher.RequestProgress.spec : Prop :=
   ∀ (w : Loc) (γ : Cluster) (who : Principal),
   Watcher.RequestProgressTriple (w @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watcher.ty @!! go!"RequestProgress")
-    (iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ watcherHandle w γ who))
+    (iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ watcherHandle w γ who)) who
 
 end spec
 

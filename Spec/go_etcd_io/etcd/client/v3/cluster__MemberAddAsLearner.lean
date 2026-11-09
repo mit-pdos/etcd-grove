@@ -38,7 +38,7 @@ settles nothing. -/
 def cluster.MemberAddAsLearner.spec : Prop :=
   ∀ (cl : Loc) (γ : Cluster) (who : Principal) (ctx : GoInterface) (sl : GoSlice) (urls : List GoString),
   CheckedCallTriple (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.cluster.ty @!! go!"MemberAddAsLearner")) (Val #ctx)) (Val #sl))
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clusterHandle cl γ who ∗ Context.ctxOk ctx ∗ sl ↦*□ urls) iprop(True) γ who (.memberAdd urls true) false
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clusterHandle cl γ who ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ sl ↦*□ urls) iprop(True) γ who (.memberAdd urls true) false
     (urlsValid urls) ansReply
 
 end spec

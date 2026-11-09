@@ -23,3 +23,48 @@
    (`createdAt`), `RWMutex.Lock`/`RLock.spec` (the key's revision).
    (The same holds of 1d's `Mutex` sketches: a client proving a pure fact of the model from an
    `etcdLb` needs the state's provenance.)
+
+## from 1b
+
+1. **The watch messages belong with the KV ones** (`Wire.lean`): 1b defined, in
+   `Spec/go_etcd_io/etcd/client/v3/ApiWatch.lean`, the models `EventM` (`mvccpb.Event`),
+   `WireWatchRespM` (`pb.WatchResponse`), `WireWatchReq` (`pb.WatchRequest`'s create, cancel and
+   progress), with `eventOwn` (and `eventOwn_unfold`), `wireWatchRespOwn`, `watchReqOwn`; 2b builds
+   them, so they would be better in `api/v3/Wire.lean` (or a `WireWatch.lean` next to it). If W0
+   moves them, 1b's files only change their import. 1b did not edit W0's files.
+2. **A compaction retention in the environment's configuration** (`EnvCfg`): `examples/etcd/
+   compactwatch/compactkv.go:142` panics unless `Get.rev ≥ CompactRevision + retention`; the
+   watch's compaction fact (`CompactRevision ≤ σ.kv.compacted`) gives the bound only if the model's
+   auto-compaction step keeps `compacted ≤ rev - retention` (`EnvStep.compact`'s `r ≤ σ.kv.rev`
+   allows any). Not needed by any other watch user; a question for W0's model (and the user).
+3. **A pure fact clients need, theirs to prove** (no request, noted for the reviewers): `Reach σ σ'`
+   keeps the history a prefix (`σ.kv.revs <+: σ'.kv.revs`) and the compaction revision monotone;
+   every watch consumer reads `watchStep`'s facts at `σ` against its own later state through it.
+
+## from 1d
+
+1. **The cluster's states are well formed** (the same request as 1f's item 2): `etcdLb_init :
+   etcdLb γ σ ⊢ ⌜∃ ms, Reach (State.init ms) σ⌝`. 1d's sketches use it for: a present key has a
+   create revision `≥ 2` and a mod revision `≥ 2` (so `CreateRevision(k) = 0` and
+   `ModRevision(k) = 0` mean `k` is absent: the mutex's and election's create-if-absent
+   transaction, the STM's `isKeyCurrent` of an absent key); `Mutex.Lock`'s `myRev - 1 > 0`
+   (`waitDeletes`' filter is off at `0`).
+   ```go
+   cmp := v3.Compare(v3.CreateRevision(m.myKey), "=", 0)
+   werr := waitDeletes(ctx, client, m.pfx, m.myRev-1)
+   ```
+   Used by: `Mutex.tryAcquire.spec`, `Mutex.Lock.spec`, `Election.Campaign.spec`,
+   `stm.commit.spec`, `stmSerializable.commit.spec`.
+
+## from 1g
+
+1. **The read permission `etcdPeek γ`** (1f's definition, `client/v3/experimental/recipes/Api.lean`):
+   the cache defines the same body (`Cache.etcdPeek`) for `New`'s precondition (its background list
+   and the revision a linearizable `Get` waits for are client `Get`s that need a persistent update).
+   Wanted: one definition in `State.lean`, which both batches then cite.
+   ```go
+   resp, err := c.kv.Get(ctx, c.prefix, clientv3.WithPrefix())   // the cache's own read
+   ```
+   Used by: `New.spec`, `Cache.get.spec`, `Cache.serverRevision.spec`.
+2. **Revisions only grow** (`Reach σ σ' → σ.kv.rev ≤ σ'.kv.rev`, a pure lemma the cache proves
+   itself; noted, no request): `Cache.serverRevision.spec`'s `σ0.kv.rev ≤ σ1.kv.rev`.

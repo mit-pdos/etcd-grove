@@ -41,7 +41,7 @@ def maintenance.AlarmDisarm.spec : Prop :=
     (k : AlarmKind),
   alarmKindM t = some k →
   CallTriple (App (App (Val (mt @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.maintenance.ty @!! go!"AlarmDisarm")) (Val #ctx)) (Val #am))
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ maintHandle mt γ who ∗ Context.ctxOk ctx ∗
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ maintHandle mt γ who ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗
       am.[go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember, go!"MemberID"] ↦□ mid ∗
       am.[go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember, go!"Alarm"] ↦□ t)
     iprop(True) γ who (.alarmDisarm { memberId := uint.nat mid, kind := k }) true ansReply

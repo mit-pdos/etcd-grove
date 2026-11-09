@@ -1,0 +1,78 @@
+/-
+`(*Queue).Dequeue()` (`queue.go`): read the item with the least mod revision under the prefix
+(`WithFirstRev()`: prefix, sorted by mod revision, limit 1) and claim it (`claimFirstKey`: delete it at
+its mod revision); if the claim lost and the read had more items, retry; if the queue was empty or its
+one item was claimed by another, watch the prefix from the read's revision for the first put and claim
+that, retrying if it was claimed first.
+
+**Users**: `T/v3_queue_test.go:61` (one reader, one writer: FIFO), `:193` (many readers and writers:
+every item once), `T/v3_closed_watch_test.go:73,136` (a closed client, a compacted watch: an error,
+the fixed `issues/recipes-dequeue-closed-watch.md`). Snippet: `recipes/queue.go`.
+
+**Proof sketch**: the claim is the linearization point. `KV.Get` with an update made of `etcdPeek`
+(as `Barrier.Wait`'s) gives `etcdLb γ σg` and the answer at `σg`: at most one key, the least mod
+revision `m0` under the prefix (`RangeReq.answers` with the sort and the limit), `more` if others.
+`claimFirstKey.spec` with `P σ σ' kv := ∃ kr, frontByRev ... σ.kv.store kv.key kr ∧ kr.modRev =
+kv.modRevision ∧ ...` and the caller's update: its premise holds because a key present at `σ` with
+mod revision `≤ σg.kv.rev` was present at `σg` with the same record (a pure fact of `Reach σg σ`:
+every write gives its keys the new revision as mod revision), so a key below `m0` at `σ` would have
+been at `σg`. Lost with `more`: recurse. Otherwise `WaitPrefixEvents.spec` from `σg.kv.rev` for
+`[PUT]`: the first put `e` under the prefix at a revision `m ≥ σg.kv.rev`; `deleteRevKey.spec` with an
+update built from the caller's (a failed comparison aborts it: recurse): at the claim `σ`, every key
+under the prefix has mod revision `≥ m` (one present at `σg` was at most the one the read returned,
+which another claim changed; any other was written at a revision `≥ σg.kv.rev`, so `≥ m` as `e` is the
+first such put), so `e`'s key is the front. The value is `kv.Value` (the read's, unchanged since:
+same mod revision) or `ev.Kv.Value` (`watchEvOwn_unfold`).
+
+**Changes**: old spec (`dequeuedAt`, `dequeueOrder` at the read's revision, over the recipes' client
+invariant) gave the order at the `Get`; now the caller's update fires at the claim, where the item is
+the front (`frontByRev`): the queue is linearizable as a FIFO queue by mod revision, whoever else
+writes the prefix (the lost-claim path included: `nonissues/recipes-pqueue-dequeue-order.md` left
+`Queue`'s case open; it is FIFO).
+
+**Margin**: on an error the caller's update is not given back, though only an indefinite error of a
+claim may have fired it. The order is by mod revision (`WithFirstRev()`), which is the creation
+order of keys never rewritten (an `Enqueue`'s).
+-/
+module
+
+public import Spec.go_etcd_io.etcd.client.v3.experimental.recipes.Api
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace Recipes
+
+open Iris Iris.BI EtcdModel EtcdWire ClientV3
+open go_etcd_io.etcd.client.v3.experimental.recipes
+
+section spec
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
+
+/-- **`q.Dequeue()`**: the value of the item it deleted, which was the front of the queue (the least mod revision under the prefix) at the deletion, linearized there by the caller's update; or an error. -/
+def Queue.Dequeue.spec : Prop :=
+  ∀ (q c : Loc) (γ : Cluster) (who : Principal) (kp : GoString)
+    (Q : State → State → GoString → KeyRec → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ queueAt q c γ who kp ∗ etcdPeek γ ∗
+      AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
+        <{ ∀∀ (σ' : State) (k : GoString) (kr : KeyRec) (res : Resp),
+             ⌜frontByRev (pfxRange kp) σ.kv.store k kr ∧
+              Step who (deleteRevReq k kr.modRev) σ σ' res ∧ txnSucceeded res⌝ ∗ etcdState γ σ',
+           COMM Q σ σ' k kr }> }}
+    (App (Val (q @!! go.GoType.PointerType Queue.ty @!! go!"Dequeue")) (Val #()))
+  {{ (v : GoString) (err : GoInterface), RET (PairV #v #err);
+      (⌜err = GoInterface.nil⌝ ∗ ∃ σ σ' k kr, Q σ σ' k kr ∗ ⌜v = kr.value⌝) ∨
+      ⌜err ≠ GoInterface.nil ∧ v = []⌝ }}
+
+end spec
+
+end Recipes
+end EtcdGrove
+end Perennial

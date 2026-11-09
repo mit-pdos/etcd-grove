@@ -237,3 +237,101 @@ What `raftCore`'s realization and the proof sketches of `raft.Step`, `handle*`, 
    `raftLog_publish` now publishes from frozen terms (written committed entries), so an applied index
    is a floor after a truncation or a restore between `Ready` and `Advance`; `logStor_install`'s
    COMM gives a floor at the snapshot (R1's `readyStor_install` may keep it for the acknowledgement).
+
+## from R4
+
+Batch R4 (tracker, quorum, confchange: `Spec/go_etcd_io/raft/v3/{tracker,quorum,confchange}/`,
+namespaces `Tracker`, `Quorum`, `ConfChange`; report `notes/specs-only/batch-R4.md`).
+
+### To R1 (the node API's model and laws)
+
+1. **Integration of the configuration model.** R4's `tracker/Model.lean` defines `Tracker.Membership`
+   with R1's five fields and helpers (`simple`, `empty`, `ids`, `isJoint`) and `Membership.Valid`
+   (transparent), and imports nothing of raft's, so that R1's `Model.lean` can import it. Replace
+   R1's `structure Membership` (and its helpers) by `abbrev Membership := Tracker.Membership`, the
+   opaque `Membership.Valid` by `Tracker.Membership.Valid`, and the opaque `Membership.applyChange`
+   by (`confchange/Model.lean`):
+   ```lean
+   def Membership.applyChange : ConfChangeI → Membership → Option Membership
+     | .v1 cc, m => ConfChange.changeV2 ⟨ConfChange.TransitionAuto, [⟨cc.type, cc.nodeId⟩]⟩ m
+     | .v2 c, m => ConfChange.changeV2 ⟨c.transition, c.changes.map (fun s => ⟨s.type, s.nodeId⟩)⟩ m
+   ```
+   (`AsV2()` of a legacy change: one change, transition `Auto`.) R1's `ConfState.Is cs m` is
+   `ConfChange.Lists cs.voters cs.learners cs.votersOutgoing cs.learnersNext cs.autoLeave m`.
+2. **R1's law `Membership.applyChange_v1.spec` is false as stated** (two cases): at the empty
+   configuration a node-`0` or `UpdateNode` change is the error "removed all voters" (`apply` checks
+   the incoming voters after every change list), not `some m`; and a change of an unknown type is
+   the error "unexpected conf type", where the law's last branch removes the node. R4's
+   `ConfChange.changeV2_single.spec` is the corrected statement (premise `m.voters ≠ ∅`; unknown
+   type: `none`); R1's law becomes its instance at `m.voters ≠ ∅` with an unknown-type `none`
+   branch. etcd's uses are unaffected (a configuration with voters, the four known types).
+3. **`Membership.Valid` has no size bound and no local-target condition.** Valid is what
+   `checkInvariants` accepts plus what every reachable configuration has (no id `0`; voters unless
+   empty; no staged learner among the incoming voters), exactly what `Restore` round-trips.
+   `Membership.simple_valid.spec`'s premises `vs ≠ []`, `isLocalTarget id = false`, `vs.length <
+   2^62` are not needed (R4's `ConfChange.simple_valid.spec` takes only `W64 0 ∉ vs`; the empty
+   configuration is valid). The `2^62` of Perennial's `slices.Sort` is a premise of the specs that
+   sort (`Visit`, `VoterNodes`, `ConfState`, `CommittedIndex`), kept local (PRINCIPLES, "Keep a
+   tool's temporary limitation as local as possible"); R2 sources it (below).
+4. **`ConfigOk`'s ring capacity.** `NewInflights` (called by confchange for every new peer and by
+   raft's `reset`) takes `0 ≤ size ≤ 2^62` (`Tracker.inflightsMax`: below it the ring's `int`
+   arithmetic does not wrap; a Go program could not allocate a ring that large, but the model has no
+   memory bound). Please add `sint.Z cv.MaxInflightMsgs' ≤ inflightsMax` to `ConfigOk` (a scope
+   restriction on an option no client sets near it: etcd 4096, the examples 256), or tell R4 to
+   carry it otherwise. Used by: `NewInflights.spec`, `ConfChange.BaseOf` (every `Changer` spec,
+   `Restore.spec`).
+5. `statusOwn`'s `Config` (from `Config.Clone`) has `AutoLeave` false
+   (`issues/raft-config-clone-autoleave.md` in `specs-ref`): `Config.Clone.spec` gives
+   `configOwn cfg' (own 1) {m with autoLeave := false}`. `statusOwn_progress` can be stated over
+   `Tracker.progressValOwn` (each `Progress` value with its own `Inflights` clone).
+
+### To R2 (the raft core)
+
+1. **The tracker inside `raftCore`** is `Tracker.progressTracker (structFieldRef raft "trk" r) T`
+   (`T : Tracker.TrackerV`: configuration, `*Progress` map `T.prs` (R2's `ρ.prs`), progress values
+   `T.pv`, votes, ring capacities; transparent: `∃ tv, r.trk ↦ tv ∗ trackerOwn tv T`, with the
+   opaque `configOwn`, `inflightsOwn`, and `TrackerOk`: the map tracks exactly the configuration's
+   ids, learners marked). `raftCore_peek`'s `ownMap mp _ ρ.prs` is `progressMapOwn`'s map; raft's
+   direct reads `r.trk.Voters[0][id]`, `len(r.trk.Voters[1])`, `r.trk.Config.AutoLeave`,
+   `r.trk.Voters` (to `maybeAdvance`) go through `Tracker.configOwn_open.spec` (quorum's transparent
+   `jointConfigOwn`). Each `*Progress` is `progressOwn pr P` (the struct points-to, transparent;
+   raft writes its fields directly).
+2. **`Visit`'s footprint is only the `Progress` field and map, at a share** (`dq`), not the tracker:
+   its callbacks (`bcastAppend`'s `maybeSendAppend`) read `r.trk.Progress[id]` with another share.
+   The callback's triple is indexed by the sorted prefix visited (`Quorum.sorted`).
+3. **The sort bound.** `Visit`, `QuorumActive`, `VoterNodes`, `Committed`, `ConfState` take
+   `GMap.size … ≤ Quorum.sortMax` (`2^62`) of the sets they sort. Its source on R2's side: the
+   number of ids of a committed configuration is at most the bootstrap peers plus the committed
+   conf entries, below the step bound R2 already relies on for terms and indices (its open
+   question 5: each id a change adds costs the Go steps that decode it), kept in R2's invariant
+   over `confAt`. If R2 cannot source it, the alternative is a bound in `Membership.Valid` (R1's
+   first design), with `changeV2` refusing a change past it: less local, a margin at every client.
+4. **Quorum facts for safety.** `ProgressTracker.Committed.spec`: `Quorum.JointIdx voters
+   outgoing (matchOf T.pv) N`, and `Quorum.jointIdx_quorum.spec` (a joint quorum matched `N`).
+   `TallyVotes.spec`: the result is `Quorum.jointVote` (won iff `JointQ` of the granted votes).
+   Intersection: `Quorum.jointQ_intersect.spec` over `Quorum.Adjacent`, and
+   `ConfChange.changeV2_adjacent.spec` (a change moves the voters one step, from a configuration
+   with voters, both incoming voter sets below `2^63` in all).
+5. **`applyConfChange`/`newRaft`/`appliedSnap`**: `Changer.{Simple,EnterJoint,LeaveJoint}.spec`
+   (`changed B (F m)`: no error iff the model's `F m = some m'`; then `configOwn` at `m'` and a fresh
+   progress map `Carried` from the tracker's: each peer's `Progress` the old one with its learner mark
+   updated, or fresh with `Next = max(LastIndex, 1)` (not `LastIndex + 1`), `Match = 0`, probing,
+   recently active), and `Restore.spec` (from `MakeProgressTracker`'s empty tracker, `result B
+   (restore …)`; `ConfChange.restore_lists.spec`: a `ConfState` listing a valid `m` restores to
+   `m`). `switchToConfig` stores the result in `r.trk.Config`/`r.trk.Progress` (the old map's
+   `Progress` structs are not given back: their rings moved to the copies). `ProgressTracker.ConfState`
+   gives `confStatePts` of the sorted lists (`assertConfStatesEquivalent`).
+6. **`getProgressCopy`'s `progressCopyOwn mp`**: `∃ pm Ps, ownMap mp (own 1) pm ∗ [∗map] _ ↦ p;P ∈
+   pm;Ps, Tracker.progressValOwn p P` (each value's `Inflights` from `Inflights.Clone`).
+7. `Progress.SentEntries.spec` takes `P.state ≠ .snapshot` (Go panics) and, for entries sent to a
+   replicating peer, a ring that is not full (raft sends none then: `raft.go:639`).
+
+### To R3 (the log, `readOnly`)
+
+`jointConfigOwn c dq s0 s1`, `MajorityIdx`, `JointIdx` are now `Quorum.jointConfigOwn`,
+`Quorum.MajorityIdx`, `Quorum.JointIdx` (same signatures and bodies: delete the provisional ones
+from `ApiLog.lean`). `Quorum.isAckedIndexer l P acked` is the `AckedIndexer` contract
+`maybeAdvance`'s sketch needs (`readOnly` with `P = readOnly ro rs`, `acked = (rs.acks !! ·)`,
+from `readOnly.AckedIndex.spec`). `JointConfig.CommittedIndex.spec`'s size premise is
+`GMap.size s ≤ Quorum.sortMax` for each half (R3's `(elements s).length ≤ 2^62`);
+`Quorum.jointIdx_mem.spec` gives the reslice bound.

@@ -40,7 +40,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 /-- `mt.Status(ctx, ep)`: the member's status reply (owned), or an error. -/
 def maintenance.Status.spec : Prop :=
   ∀ (mt : Loc) (γ : Cluster) (who : Principal) (ctx : GoInterface) (ep : GoString),
-  {{ iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ maintHandle mt γ who ∗ Context.ctxOk ctx) }}
+  {{ iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ maintHandle mt γ who ∗ Context.ctxOk ctx ∗ ctxPrin ctx who) }}
     (App (App (Val (mt @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.maintenance.ty @!! go!"Status")) (Val #ctx)) (Val #ep))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       (⌜err = GoInterface.nil⌝ ∗ statusRespOwn resp) ∨ ⌜resp = null ∧ err ≠ GoInterface.nil⌝ }}

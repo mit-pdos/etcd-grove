@@ -39,7 +39,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 def lessor.Revoke.spec : Prop :=
   ∀ (l : Loc) (γ : Cluster) (who : Principal) (ctx : GoInterface) (id : w64),
   CallTriple (App (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"Revoke")) (Val #ctx)) (Val #id))
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorHandle l γ who ∗ Context.ctxOk ctx) iprop(True) γ who (.leaseRevoke (sint.Z id)) true ansReply
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorHandle l γ who ∗ Context.ctxOk ctx ∗ ctxPrin ctx who) iprop(True) γ who (.leaseRevoke (sint.Z id)) true ansReply
 
 end spec
 
