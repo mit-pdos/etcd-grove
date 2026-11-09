@@ -67,6 +67,7 @@ theorem wp_Step_MsgHeartbeat (_P : raft.Step.Postulates (GF := GF) (hG := hG))
      uint.Z m.Commit' ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents)) →
     -- ADDED (not in the brief): a follower's vote tally is empty (see `MsgApp`)
     (s.role = .follower → s.votes = ∅) →
+    s.gh.tr = none →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
@@ -79,15 +80,15 @@ theorem wp_Step_MsgHeartbeat (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hfid Hwf Hcommit Hvotes
+  intro Hty Hto Hterm Hfnz Hfid Hwf Hcommit Hvotes Htr
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
   · exact wp_Step_MsgHeartbeat_gt _P _Q c r id s ml m sn ctx rs ents Hty Hto Hterm Hfnz Hfid Hwf
-      (Hcommit (by omega)) Hgt
+      (Hcommit (by omega)) Hgt Htr
   · by_cases Hlt : uint.Z m.Term' < uint.Z s.term
-    · exact wp_Step_MsgHeartbeat_lt _P _Q c r id s ml m sn ctx rs ents Hty Hto Hterm Hfnz Hfid Hwf Hlt
+    · exact wp_Step_MsgHeartbeat_lt _P _Q c r id s ml m sn ctx rs ents Hty Hto Hterm Hfnz Hfid Hwf Hlt Htr
     · have Hteq : m.Term' = s.term := by word
       exact wp_Step_MsgHeartbeat_eq _P _Q c r id s ml m sn ctx rs ents Hty Hto Hterm Hfnz Hfid Hwf
-        (Hcommit (by omega)) Hteq Hvotes
+        (Hcommit (by omega)) Hteq Hvotes Htr
 
 end StepProof
 

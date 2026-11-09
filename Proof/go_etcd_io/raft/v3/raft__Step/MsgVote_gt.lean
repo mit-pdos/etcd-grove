@@ -66,6 +66,7 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     uint.Z s.term < uint.Z m.Term' →
     -- `r.step` matches the role
     NStateWf s →
+    s.gh.tr = none →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         -- (stage R4) the message, as `Step` received it
@@ -85,7 +86,7 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
   -- `MessageType.Enum()`'s receiver: `int32` is not an interface (as in `toConfChangeSingle`)
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
-  intro Hty Hto Hterm Hfnz Hgt0 Hwf
+  intro Hty Hto Hterm Hfnz Hgt0 Hwf Htr
   wp_start as ⟨Hphys, Hm⟩
   icases msgPtsC_nn _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
   wp_auto
@@ -138,7 +139,7 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   ty_ne 7
   try wp_auto
   wp_gets
-  wp_apply _P.becomeFollower c r id s m.Term' (W64 0) (Int.le_of_lt Hgt0) $$ [$Hphys] as %pvs Hphys
+  wp_apply _P.becomeFollower c r id s m.Term' (W64 0) (Int.le_of_lt Hgt0) (by tr_none) $$ [$Hphys] as %pvs Hphys
   -- the type switch: not MsgHup / MsgStorageAppendResp / MsgStorageApplyResp, not
   -- MsgPreVote, but MsgVote
   wp_gets
@@ -229,7 +230,7 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         .inl (Int.le_refl _), rfl⟩
     wp_apply _P.send c r id s1 «$a0_ptr» resp [] none [] [] _ (.inl rfl) Hok
       (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne))
-      (fun h => absurd h (by show MsgVoteResp ≠ MsgApp; w32_ne)) rfl $$ [$Hphys $Hresp] as Hphys
+      (fun h => absurd h (by show MsgVoteResp ≠ MsgApp; w32_ne)) rfl (by tr_none) $$ [$Hphys $Hresp] as Hphys
     · iapply tsSrc_ne; exact (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne))
     iapply HΦ $$ %interface.nil %_
     iframe Hphys
@@ -274,7 +275,7 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     -- `send` the granted vote response, then record the vote
     wp_apply _P.send c r id s1 «$a0_ptr» resp [] none [] [] _ (.inl rfl) Hok
       (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne))
-      (fun h => absurd h (by show MsgVoteResp ≠ MsgApp; w32_ne)) rfl $$ [$Hphys $Hresp] as Hphys
+      (fun h => absurd h (by show MsgVoteResp ≠ MsgApp; w32_ne)) rfl (by tr_none) $$ [$Hphys $Hresp] as Hphys
     · iapply tsSrc_ne; exact (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne))
     -- `m.Type = MsgVote`, so the vote is recorded: `r.Vote := m.From`
     wp_gets

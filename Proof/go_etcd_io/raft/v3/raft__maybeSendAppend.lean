@@ -113,7 +113,7 @@ local macro "msa_fetch" : tactic => `(tactic| (
       · iright
         iapply storPast_mono _ (uint.Z p.next) 1 (by have := (word.unsigned_range s.logst.prev.index').1; omega)
         iexact Hcut_e
-      wp_apply wp_raft_maybeSendSnapshot c r id s to pr Hto Hlk Htz $$ [Hphys]
+      wp_apply wp_raft_maybeSendSnapshot c r id s to pr Hto Hlk Htz (by tr_none) $$ [Hphys]
         as %b %ms' %pvs' ⟨Hphys, %Hms', %Hmm'⟩
       · iframe
         try iexact Hcompact
@@ -191,7 +191,7 @@ local macro "msa_send" : tactic => `(tactic| (
       [Msg.mk .app id to s.term false (p.next - W64 1) pterm lvc.committed' (W64 0) es_e]
       (Or.inl rfl) (Or.inr (Or.inl ⟨.app, Or.inl rfl, rfl, rfl, Hto, Htz, rfl⟩))
       (fun h => absurd h (by simp [MsgSnap])) (fun _ => ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩)
-      rfl $$ [Hphys Hm] as Hphys
+      rfl (by tr_none) $$ [Hphys Hm] as Hphys
   · iframe
     iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
   wp_apply wp_payloadsSize sl_e es_e DFrac.discard $$ [] as %psz ⟨-, -⟩
@@ -303,7 +303,7 @@ theorem raft.maybeSendAppend.wp_proof
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.maybeSendAppend.spec (GF := GF) (hG := hG) := by
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
-  intro c r id s to sendIfEmpty Hto Hcfg Hlead Htz
+  intro c r id s to sendIfEmpty Hto Hcfg Hlead Htz Htr
   wp_start as Hpre
   iNamed Hpre
   -- `r.trk.Progress` is read through the tracker field
@@ -393,7 +393,7 @@ theorem raft.maybeSendAppend.wp_proof
         iapply storPast_one
         iexact Hc
     wp_auto
-    wp_apply wp_raft_maybeSendSnapshot c r id s to pr Hto Hlk Htz $$ [$Hphys $Hcompact]
+    wp_apply wp_raft_maybeSendSnapshot c r id s to pr Hto Hlk Htz (by tr_none) $$ [$Hphys $Hcompact]
       as %b %ms' %pvs' ⟨Hphys, %Hms', %Hmm'⟩
     iapply HΦ
     iframe

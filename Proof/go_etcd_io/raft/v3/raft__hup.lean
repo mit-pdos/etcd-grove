@@ -54,7 +54,7 @@ theorem raft.hup.wp_proof
     (wp_raft_promotable : raft.promotable.spec (GF := GF) (hG := hG))
     (wp_raft_hasUnappliedConfChanges : raft.hasUnappliedConfChanges.spec (GF := GF) (hG := hG)) :
     raft.hup.spec (GF := GF) (hG := hG) := by
-  intro c r id s t Hnowrap Hpv Hwf Hfla
+  intro c r id s t Hnowrap Hpv Hwf Hfla Htr
   wp_start as Hphys
   wp_auto
   wp_apply raft.wp_load_stateC $$ Hphys as Hphys
@@ -99,7 +99,7 @@ theorem raft.hup.wp_proof
       wp_apply raft.wp_load_idC $$ Hphys as Hphys
       wp_apply raft.wp_load_TermC $$ Hphys as Hphys
       wp_raft_logC
-      wp_apply wp_raft_campaign _ _ _ _ _ Hrl Hin Hnowrap Hpv $$ [$Hphys]
+      wp_apply wp_raft_campaign _ _ _ _ _ Hrl Hin Hnowrap Hpv (by tr_none) $$ [$Hphys]
         as %peers %pvs ⟨%Hpeers, Hphys⟩
       iapply HΦ
       iframe Hphys

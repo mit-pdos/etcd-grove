@@ -63,6 +63,7 @@ theorem wp_Step_MsgApp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     -- this file: the incoming term is higher: `becomeFollower(m.Term, m.From)`, then
     -- `stepFollower`
     uint.Z s.term < uint.Z m.Term' →
+    s.gh.tr = none →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
@@ -77,7 +78,7 @@ theorem wp_Step_MsgApp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
         -- (D22 S-d3b) a truncation's mark (`AppTrunc`)
         "%Htrunc" ∷ ⌜AppTrunc m ents s s'⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hfid Hwf Hpwf Hnw Hconf Hgt
+  intro Hty Hto Hterm Hfnz Hfid Hwf Hpwf Hnw Hconf Hgt Htr
   wp_start as H
   iNamed H
   icases msgPtsC_nn _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
@@ -98,7 +99,7 @@ theorem wp_Step_MsgApp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   wp_raft_logC
   wp_drive _Q
   -- `becomeFollower(m.Term, m.From)`: a leader's message
-  wp_apply _P.becomeFollower _ _ _ _ _ _ (by exact Int.le_of_lt Hgt) $$ [$Hphys] as %pvs Hphys
+  wp_apply _P.becomeFollower _ _ _ _ _ _ (by exact Int.le_of_lt Hgt) (by tr_none) $$ [$Hphys] as %pvs Hphys
   wp_drive _Q
   wp_apply raft.wp_load_stepC $$ Hphys as Hphys
   have Hsf : ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState).stepfn =
@@ -113,7 +114,7 @@ theorem wp_Step_MsgApp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-    (by notfwd_tac) $$ [$Hphys Hm $Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
+    (by notfwd_tac) (by tr_none) $$ [$Hphys Hm $Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
   · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
   obtain ⟨rfl, rfl, Happ⟩ := followerStepResult_app _ _ _ _ _ _ _ _ Hty Hres
   have Hwf1 : NStateWf

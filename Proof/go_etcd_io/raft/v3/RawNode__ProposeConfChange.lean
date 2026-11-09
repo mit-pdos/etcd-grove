@@ -42,7 +42,7 @@ theorem RawNode.ProposeConfChange.wp_proof
     (wp_confChangeToMsg : confChangeToMsg.spec (GF := GF) (hG := hG))
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
     RawNode.ProposeConfChange.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs c o dq
+  intro γ rn id rs c o dq HtrG
   wp_start as H
   iNamed H
   iNamed Hrn
@@ -66,7 +66,7 @@ theorem RawNode.ProposeConfChange.wp_proof
     (fun _ => ⟨rfl, .inl rfl⟩) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
     (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hwf
     (GMode.Pre.of_facts Hpf (by msg_ne) (by msg_ne)) (fun h => absurd h (by msg_ne))
-    $$ [$Hphys $Hghost $Hlc1 Hm Hcr Htk]
+    (by tr_none) $$ [$Hphys $Hghost $Hlc1 Hm Hcr Htk]
   · -- the message: its one-entry batch, owned, with the entry's bytes; `Context` nil
     simp only [propMsgM, MsgProp, ite_true]
     isplitr
@@ -141,7 +141,8 @@ theorem RawNode.ProposeConfChange.wp_proof
       (RNFl.keep Hrnfl Hfr.2.2.2.2.2.2.2.2.2.2.1 Hfr.2.2.2.2.2.2.2.2.2.2.2 Hap')
       (Hloan.keep Hfr.2.2.2.2.2.2.2.2.1 Hfr.2.2.2.1 Hfr.2.2.2.2.2.2.2.2.2.2.1 (logStoreRec_stored Hfr.2.2.2.2.2.1) Hfr.2.2.1 Hap' Hc)
       (Hsdt.ofRec Hfr.2.2.2.1 Hfr.2.2.2.2.2.1) Hrole
-      (Hphs.keep rfl rfl rfl (HsLe.of_step Href.voteLe Hc) Hfr.2.2.2.1 (.inl Hfr.2.1)) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' [Hdur]
+      (Hphs.keep rfl rfl rfl (HsLe.of_step Href.voteLe Hc) Hfr.2.2.2.1 (.inl Hfr.2.1))
+      (by rw [LocalFrame.ns Hfr]; exact Hgtr) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' [Hdur]
     · -- (durability stage II (i)) the step keeps `durTie`'s fields
       iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) Hfr.2.2.2.1 Hfr.2.2.2.2.1 (logStoreRec_stored Hfr.2.2.2.2.2.1) $$ Hdur
   icases Herr with (%Herr | ⟨-, #Hd⟩)

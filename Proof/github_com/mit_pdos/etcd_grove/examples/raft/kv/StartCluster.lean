@@ -293,7 +293,7 @@ theorem StartCluster.wp_proof
   -- receipts), then the store's invariant from the client's share, with the client's half of the
   -- store's state and the sequence-number tokens, and the store's registry of the snapshots made
   imod kvCluster_alloc (GF := GF) ⊤ (constMap clusterIds (W64 0)) (by omega)
-    with ⟨%γr, ⟨-, %Hsl0, %Hbl0⟩, #Hkc, #Hreg, Hval, Hseqs, Hboots⟩
+    with ⟨%γr, ⟨-, %Hsl0, %Hbl0, %Htr0⟩, #Hkc, #Hreg, Hval, Hseqs, Hboots⟩
   -- (2026-11-02) `RestartNode`'s `readyFits`: no bootstrap log, the receipts' bound
   ihave #Hfits : readyFits (GF := GF) γr.cluster kvRaftN $$ []
   · iapply readyFits_intro (GF := GF) γr.cluster kvRaftN (by rw [Hbl0]; omega)
@@ -366,7 +366,7 @@ theorem StartCluster.wp_proof
       (by show sint.Z (W64 256) < 2 ^ 62; decide) rfl rfl rfl
       (by right; show W64 1048576 ≠ W64 0; decide)
       rfl (Or.inl rfl) (by simp [StorContents.b]) (by simp [StorContents.commit])
-      (by rw [Hbl0]; simp [StorContents.commit]) kvConfState_is rfl)
+      (by rw [Hbl0]; simp [StorContents.commit]) kvConfState_is rfl Htr0)
       $$ [$Hraftinit $«$a0» $Hlogger Hboot Hvac Hau]
       as %nd ⟨%n, %S, %l, %K, %Hnd, #HisNode, #Hl, %Hlen, %-, Hdrv, Hcfg, Hrun, ⟨HrS, %HS⟩, #HmsInv⟩
     · have hA : uint.nat (nodeConfig id0 st).Applied' = 0 := rfl

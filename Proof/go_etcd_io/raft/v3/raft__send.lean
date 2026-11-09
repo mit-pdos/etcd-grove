@@ -194,7 +194,7 @@ set_option hygiene false in
 trace (the logger field read before the queue is taken out), and return. What is left is the queue accessor's wand `Hback`, which wants the
 queued message (`Hm`) and its contribution to the abstract outbox (`msgAbs`). -/
 local macro "send_tail " acc:term : tactic => `(tactic| (
-  icases ownRaftPhysC_traceLogger _ _ _ _ $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
+  icases ownRaftPhysC_traceLogger _ _ _ _ (by tr_none) $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
   icases ($acc) $$ Hphys with ⟨%sl, %ls, Hf, Hq, Hq_cap, Hback⟩
   try wp_auto
   wp_apply wp_slice_literal
@@ -221,7 +221,7 @@ theorem raft.send.wp_proof
     (wp_GetTerm : raftpb.Message.GetTerm.spec (GF := GF) (hG := hG))
     (wp_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hG := hG)) :
     raft.send.spec (GF := GF) (hG := hG) := by
-  intro c r id s ml m ents sn ctx rs out Hfrom Hok Hsn Hsh Hrs
+  intro c r id s ml m ents sn ctx rs out Hfrom Hok Hsn Hsh Hrs Htr
   wp_start as H
   iNamed H
   -- (2026-10-19, D21 M2r) the node's id nonzero, and the modes' facts

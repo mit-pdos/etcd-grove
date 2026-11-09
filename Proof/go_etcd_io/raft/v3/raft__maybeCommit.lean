@@ -92,7 +92,7 @@ theorem raft.maybeCommit.wp_proof
     (wp_ProgressTracker_Committed : tracker.ProgressTracker.Committed.spec (GF := GF) (hG := hG))
     (wp_raftLog_maybeCommit : raftLog.maybeCommit.spec (GF := GF) (hG := hG)) :
     raft.maybeCommit.spec (GF := GF) (hG := hG) := by
-  intro c r id s Hlead
+  intro c r id s Hlead Htr
   wp_start as H
   iNamed H
   wp_auto

@@ -314,6 +314,26 @@ replaces that premise by the traced capability function by function, from the ho
 raft-side ghost changes rounds 5-6 recorded (the win's split, the records in the `Replicate` lines'
 steps).
 
+**Q8 stage 0 done (2026-11-09, branch `trace-check-q8`).** Raft's logger clause is
+`TraceLoggerOkS s.gh.tr tl` (`InvLogger.lean`: `TraceLoggerOk` when `none`, `True` when `some`);
+`ownRaftPhysC_traceLogger` takes `s.gh.tr = none`. Premise `s.gh.tr = none` on the hook paths' specs
+(`send` and every caller of a hook up to `raft.Step`, `tickElection`/`tickHeartbeat`,
+`applyConfChange`/`switchToConfig`, `appliedTo`/`appliedSnap`; `Step`'s dispatch lemmas, `stepLeader`'s
+helpers); `γ.reTrace = none` on the `RawNode` specs that reach them (`Advance`, `ApplyConfChange`,
+`Bootstrap`, `Campaign`, `ForgetLeader`, `Propose`, `ProposeConfChange`, `ReadIndex`, `Ready`,
+`ReportSnapshot`, `ReportUnreachable`, `Step`, `Tick`, `TransferLeader`, `acceptReady`,
+`readyWithoutAccept`), `setupNode`, `node.run` (`γ.raft.reTrace = none`); `Cluster.trace γ = none` on
+`StartNode`/`RestartNode`. Invariants: `ownRawNode`, `ownRawNodeIdle`, `ownRawNodeReady` record
+`s.gh.tr = γ.reTrace` (`%Hgtr`); `ownRaftPhysC_view`'s and `ownRaftPhysReady`'s close wands keep
+`g.tr = s.gh.tr`. `cluster_alloc` gives `⌜Cluster.trace γ = none⌝` (from
+`ownRaftGhost_alloc_core_reg`'s `γ.reTrace = none`); kv, kvreconf, kvdurable and the server carry it to
+their `StartNode`/`RestartNode` calls (`kvCluster_alloc`, kvreconf's and kvdurable's `isClusterC`,
+kvdurable's `StartCluster` and `kd_alloc`, the server's `srvClusterOk`, `newRaftNode`'s and
+`NodeStartSpec`'s `%Hraft`). **Decided by the agent:** `newRaft` keeps setting `tr := none`
+(`s.gh = { sn := sn }`), not the cluster's mode: in stage 0 its own `becomeFollower` needs
+`tr = none`, so a mode parameter would only add a premise; stage 1 parameterizes it with the traced
+capability.
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its

@@ -299,7 +299,8 @@ private theorem wp_StartNode_impl
     EtcdGrove.StartNode.spec (GF := GF) (hG := hG) := by
   unfold EtcdGrove.StartNode.spec
   intro γ N vs ctxs c cv lok si csm Q F peers dq pv H1 H2 H3 H4 H5 H6 H7 H8 H9 Happ Hv Hvo Hl Hln
-    Hal Hvs Htlk
+    Hal Hvs Htlk HtrC
+  have HtrG : γ.raft.reTrace = none := HtrC
   wp_start as ⟨Hc, #Hlg, #Hboot, Hvac, HAU, Hrs, Hpeers, #Hctx⟩
   ihave #Hboot0 := Hboot
   iunfold EtcdGrove.nodeBoot at Hboot
@@ -416,7 +417,7 @@ private theorem wp_StartNode_impl
     iprop(Rb ∗ storAuths sn σv) iprop(∃ K, storKeyNames K sn ∗ F K) peers dq pv vs ctxs
     γ.raft.reBoot H1 H2 H3 H4 H5 H6 H7 H8 H9 Happ rfl rfl rfl rfl rfl rfl ⟨rfl, rfl, rfl⟩ Hv Hvo
     Hl Hln Hal rfl rfl Hvs Hne Hnd Hnz (by omega) Hid Hcfg rfl Hbl Hns Htlk
-    $$ [Hc HRb HA Hpeers Hg]
+    HtrG $$ [Hc HRb HA Hpeers Hg]
     as %np ⟨⟨%K, #HKn, HF⟩, %nv, %rn, Hnp, %Hnvrn, Hchans, Hrn, Hpeers⟩
   · iframe Hc Hlg Hpeers Hctx Hmarsh Hcb Hlink
     isplitl [HRb HA]
@@ -599,7 +600,7 @@ private theorem wp_StartNode_impl
   ipersist n
   -- `go n.run()`
   wp_apply wp_fork $$ [Hrn Hdlv1 Hrof1 Hrof2 Hdlm Hcap1 Hcam Hpend Hlive1 Hdur1 Hbw Hfree]
-  · wp_apply wp_node_run γn cv.ID' np $$ [Hrn Hdlv1 Hrof1 Hrof2 Hdlm Hcap1 Hcam Hpend Hlive1 Hdur1
+  · wp_apply wp_node_run γn cv.ID' np HtrG $$ [Hrn Hdlv1 Hrof1 Hrof2 Hdlm Hcap1 Hcam Hpend Hlive1 Hdur1
       Hbw Hfree]
     · iframe Hnode
       unfold runPre

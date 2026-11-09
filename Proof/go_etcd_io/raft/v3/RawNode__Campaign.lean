@@ -40,7 +40,7 @@ theorem RawNode.Campaign.wp_proof
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     RawNode.Campaign.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs Hterm Hflw
+  intro γ rn id rs Hterm Hflw HtrG
   wp_start as H
   iNamed H
   iNamed Hrn
@@ -70,7 +70,7 @@ theorem RawNode.Campaign.wp_proof
     (by msg_ne) (by msg_ne) (by msg_ne)
     (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hwf
     (GMode.Pre.of_facts Hpf (by msg_ne) (by msg_ne)) (fun h => absurd h (by msg_ne))
-    $$ [$Hphys $Hghost $Hlc1 Hcr Hm]
+    (by tr_none) $$ [$Hphys $Hghost $Hlc1 Hcr Hm]
   · -- the message: no entries, no `Context`, no snapshot
     simp only [hP, ↓reduceIte, named]
     isplitr

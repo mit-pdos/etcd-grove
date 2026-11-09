@@ -630,6 +630,10 @@ abbrev raft.Step.spec : Prop :=
   -- (2026-10-19, D21 M3) no snapshot in the no-snapshot mode (`NGhost.ns`; `RawNode.Step` takes
   -- none)
   (m.Type' = MsgSnap → s.gh.ns = false) →
+  -- (2026-11-09, Q8 stage 0 of `notes/trace-validation-plan.md`) an untraced node: its trace
+  -- hooks see a nil logger (`TraceLoggerOkS`); stage 1 replaces this premise by the traced
+  -- capability (`trCapB s.gh.tr …`, `TracedHooksDraft.lean`)
+  s.gh.tr = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hghost" ∷ ownStepGhost γ md c id s ∗

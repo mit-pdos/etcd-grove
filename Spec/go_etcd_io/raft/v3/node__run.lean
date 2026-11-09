@@ -61,6 +61,10 @@ def runPre (γ : NodeNames) (id : w64) (n : Loc) : IProp GF :=
 /-- See the file header. -/
 abbrev node.run.spec : Prop :=
   ∀ (γ : NodeNames) (id : w64) (n : Loc),
+  -- (2026-11-09, Q8 stage 0 of `notes/trace-validation-plan.md`) an untraced node: its trace
+  -- hooks see a nil logger (`TraceLoggerOkS`); stage 1 replaces this premise by the traced
+  -- capability (`trCapB s.gh.tr …`, `TracedHooksDraft.lean`)
+  γ.raft.reTrace = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n ∗
       runPre γ id n }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"run")) (Val #()))

@@ -16,11 +16,12 @@ theorem releasePendingReadIndexMessages.wp_proof [package_sem : Assumptions]
       s.term ≠ W64 0 →
         (s.rd.pend ≠ [] → plogTermAt s.logst.prev (s.logst.sents ++ s.logst.uents) s.logst.committed = some s.term) →
           (∀ (p : MessageM × List EntryM), p ∈ s.rd.pend → p.snd ≠ []) →
-            ⊢
-              ∀ Φ,
-                isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hphys" ∷ ownRaftPhysCV c c.voters r id s -∗
-                  (▷ ∀ s', ownRaftPhysCV c c.voters r id s' ∗ ⌜ReleaseResult c id s s'⌝ -∗ Φ (intoVal ())) -∗
-                    WP ((intoVal (functions releasePendingReadIndexMessages [])) (intoVal r)) {{ Φ }}
+            s.gh.tr = none →
+              ⊢
+                ∀ Φ,
+                  isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hphys" ∷ ownRaftPhysCV c c.voters r id s -∗
+                    (▷ ∀ s', ownRaftPhysCV c c.voters r id s' ∗ ⌜ReleaseResult c id s s'⌝ -∗ Φ (intoVal ())) -∗
+                      WP ((intoVal (functions releasePendingReadIndexMessages [])) (intoVal r)) {{ Φ }}
 
 def relState (id : w64) (s : NState) (k : Nat) : NState :=
   { term := s.term, vote := s.vote, lead := s.lead, role := s.role, votes := s.votes, outbox := s.outbox,

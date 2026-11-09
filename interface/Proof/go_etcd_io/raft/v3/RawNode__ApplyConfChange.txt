@@ -11,47 +11,48 @@ theorem RawNode.ApplyConfChange.wp_proof [package_sem : Assumptions] (wp_ConfCha
     (rs.mode = RNMode.static → CCApplies γ.reCfg id (ccV2Of o).fst (ccV2Of o).snd) →
       (∀ (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0) (h1 : CCGood c0),
           rs.mode = RNMode.dyn dec c0 h0 h1 → DynCCPre dec rs o k e cs') →
-        ⊢
-          ∀ Φ,
-            isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hrn" ∷ ownRawNode γ rn id rs ∗ "Hc" ∷ ownConfChangeI c dq (some o) -∗
-              (▷
-                  ∀ csp cs,
-                    "Hc" ∷ ownConfChangeI c dq (some o) ∗
-                        "Hcs" ∷ csPts csp (DFrac.own 1) cs true ∗
-                          "Hres" ∷
-                            (⌜rs.mode = RNMode.static⌝ ∗
-                                (⌜CCShrink γ.reCfg (ccV2Of o).fst (ccV2Of o).snd⌝ ∗
-                                    ownRawNode γ rn id rs ∗
-                                      ⌜cs.Voters'.Perm (elements γ.reCfg) ∧
-                                          (∀ (k : w64), k ∈ cs.Learners' → ¬k ∈ γ.reCfg) ∧
-                                            cs.VotersOutgoing' = [] ∧ cs.LearnersNext' = [] ∧ cs.AutoLeave' = false⌝ ∨
-                                  ⌜¬CCShrink γ.reCfg (ccV2Of o).fst (ccV2Of o).snd⌝ ∗
-                                    ∃ lrn c' s s',
-                                      ownRawNodeC c'.cfg rn id s' ∗
-                                        ⌜(∀ (k : w64), k ∈ lrn → ¬k ∈ γ.reCfg) ∧
-                                            ccApplyM (ccV2Of o).fst (ccV2Of o).snd (cfgState γ.reCfg lrn) = some c' ∧
-                                              cs.Voters'.Perm (elements c'.cfg.incoming) ∧
-                                                cs.VotersOutgoing'.Perm (elements c'.cfg.outgoing) ∧
-                                                  cs.Learners'.Perm (elements c'.cfg.learners) ∧
-                                                    cs.LearnersNext'.Perm (elements c'.cfg.learnersNext) ∧
-                                                      cs.AutoLeave' = c'.cfg.autoLeave ∧ ApplyCCOkC c'.cfg id s s'⌝) ∨
-                              ⌜rs.mode.isDyn = true⌝ ∗
-                                ownRawNode γ rn id
-                                    { delivered := rs.delivered, unpersisted := rs.unpersisted, steps := rs.steps,
-                                      term := rs.term, storage := rs.storage, sn := rs.sn, outlb := rs.outlb,
-                                      unst := rs.unst, clb := rs.clb, tc := rs.tc, mode := rs.mode, cfg := cs',
-                                      capplied := k + 1, flw := rs.flw, psnap := rs.psnap, slent := rs.slent,
-                                      phs := rs.phs, dur := rs.dur, role := rs.role, bw := rs.bw, hlb := rs.hlb } ∗
-                                  ⌜cs.Voters'.Perm (elements cs'.cfg.incoming) ∧
-                                      cs.VotersOutgoing'.Perm (elements cs'.cfg.outgoing) ∧
-                                        cs.Learners'.Perm (elements cs'.cfg.learners) ∧
-                                          cs.LearnersNext'.Perm (elements cs'.cfg.learnersNext) ∧
-                                            cs.AutoLeave' = cs'.cfg.autoLeave⌝) -∗
-                      Φ (intoVal csp)) -∗
-                WP
-                  ((intoVal
-                      (methods RawNode.ty.PointerType
-                        go!"ApplyConfChange"
-                        (intoVal rn)))
-                    (intoVal c))
-                  {{ Φ }}
+        γ.reTrace = none →
+          ⊢
+            ∀ Φ,
+              isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hrn" ∷ ownRawNode γ rn id rs ∗ "Hc" ∷ ownConfChangeI c dq (some o) -∗
+                (▷
+                    ∀ csp cs,
+                      "Hc" ∷ ownConfChangeI c dq (some o) ∗
+                          "Hcs" ∷ csPts csp (DFrac.own 1) cs true ∗
+                            "Hres" ∷
+                              (⌜rs.mode = RNMode.static⌝ ∗
+                                  (⌜CCShrink γ.reCfg (ccV2Of o).fst (ccV2Of o).snd⌝ ∗
+                                      ownRawNode γ rn id rs ∗
+                                        ⌜cs.Voters'.Perm (elements γ.reCfg) ∧
+                                            (∀ (k : w64), k ∈ cs.Learners' → ¬k ∈ γ.reCfg) ∧
+                                              cs.VotersOutgoing' = [] ∧ cs.LearnersNext' = [] ∧ cs.AutoLeave' = false⌝ ∨
+                                    ⌜¬CCShrink γ.reCfg (ccV2Of o).fst (ccV2Of o).snd⌝ ∗
+                                      ∃ lrn c' s s',
+                                        ownRawNodeC c'.cfg rn id s' ∗
+                                          ⌜(∀ (k : w64), k ∈ lrn → ¬k ∈ γ.reCfg) ∧
+                                              ccApplyM (ccV2Of o).fst (ccV2Of o).snd (cfgState γ.reCfg lrn) = some c' ∧
+                                                cs.Voters'.Perm (elements c'.cfg.incoming) ∧
+                                                  cs.VotersOutgoing'.Perm (elements c'.cfg.outgoing) ∧
+                                                    cs.Learners'.Perm (elements c'.cfg.learners) ∧
+                                                      cs.LearnersNext'.Perm (elements c'.cfg.learnersNext) ∧
+                                                        cs.AutoLeave' = c'.cfg.autoLeave ∧ ApplyCCOkC c'.cfg id s s'⌝) ∨
+                                ⌜rs.mode.isDyn = true⌝ ∗
+                                  ownRawNode γ rn id
+                                      { delivered := rs.delivered, unpersisted := rs.unpersisted, steps := rs.steps,
+                                        term := rs.term, storage := rs.storage, sn := rs.sn, outlb := rs.outlb,
+                                        unst := rs.unst, clb := rs.clb, tc := rs.tc, mode := rs.mode, cfg := cs',
+                                        capplied := k + 1, flw := rs.flw, psnap := rs.psnap, slent := rs.slent,
+                                        phs := rs.phs, dur := rs.dur, role := rs.role, bw := rs.bw, hlb := rs.hlb } ∗
+                                    ⌜cs.Voters'.Perm (elements cs'.cfg.incoming) ∧
+                                        cs.VotersOutgoing'.Perm (elements cs'.cfg.outgoing) ∧
+                                          cs.Learners'.Perm (elements cs'.cfg.learners) ∧
+                                            cs.LearnersNext'.Perm (elements cs'.cfg.learnersNext) ∧
+                                              cs.AutoLeave' = cs'.cfg.autoLeave⌝) -∗
+                        Φ (intoVal csp)) -∗
+                  WP
+                    ((intoVal
+                        (methods RawNode.ty.PointerType
+                          go!"ApplyConfChange"
+                          (intoVal rn)))
+                      (intoVal c))
+                    {{ Φ }}

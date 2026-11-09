@@ -73,6 +73,30 @@ def TraceLoggerOk (tl : GoInterface) : Prop := tl = interface.nil
 
 theorem TraceLoggerOk_nil : TraceLoggerOk interface.nil := rfl
 
+/-- The trace logger's contract at the node's trace mode `tr` (`NGhost.tr`, 2026-11-09, Q8 stage 0
+of `notes/trace-validation-plan.md`): an untraced node's (`tr = none`) is `TraceLoggerOk`, a nil
+logger; a traced node's is unconstrained here (the traced specs' capability, `trCapB` in
+`TracedHooksDraft.lean`, carries its contract). Raft's physical predicate states this one. -/
+def TraceLoggerOkS (tr : Option GName) (tl : GoInterface) : Prop :=
+  match tr with
+  | none => TraceLoggerOk tl
+  | some _ => True
+
+theorem TraceLoggerOkS_none (tl : GoInterface) : TraceLoggerOkS none tl ↔ TraceLoggerOk tl :=
+  Iff.rfl
+
+/-- An untraced node's logger is nil (stage 0: the specs on the hook paths take `s.gh.tr = none`). -/
+theorem TraceLoggerOkS.untraced {tr : Option GName} {tl : GoInterface} (h : tr = none)
+    (H : TraceLoggerOkS tr tl) : TraceLoggerOk tl := by
+  subst h; exact H
+
+/-- A nil logger meets every mode's contract (the constructors' `TraceLoggerOk` premise). -/
+theorem TraceLoggerOkS.of_ok (tr : Option GName) {tl : GoInterface} (H : TraceLoggerOk tl) :
+    TraceLoggerOkS tr tl := by
+  cases tr
+  · exact H
+  · trivial
+
 end logger
 
 end EtcdGrove

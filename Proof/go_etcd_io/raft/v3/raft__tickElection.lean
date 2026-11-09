@@ -40,7 +40,7 @@ theorem raft.tickElection.wp_proof
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.tickElection.spec (GF := GF) (hG := hG) := by
-  intro c md γ r id s Hterm Htc Hwf Hfla Hpc
+  intro c md γ r id s Hterm Htc Hwf Hfla Hpc Htr
   wp_start as H
   iNamed H
   wp_auto_lc 1
@@ -112,7 +112,7 @@ theorem raft.tickElection.wp_proof
       (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hwf
       (GMode.Pre.of_other (by msg_ne) Hpc (by msg_ne) (by msg_ne))
       (fun h => absurd h (by msg_ne))
-    $$ [$Hphys $Hghost $Hlc1 Hcr Hmsg]
+    (by tr_none) $$ [$Hphys $Hghost $Hlc1 Hcr Hmsg]
   · simp only [hP, ↓reduceIte, named]
     ihave Hmsg := msgIn_of_msgPtsC_cap _ _ _ $$ Hmsg
     isplitr

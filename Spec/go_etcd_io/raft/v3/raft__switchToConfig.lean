@@ -127,6 +127,10 @@ abbrev raft.switchToConfig.spec : Prop :=
   -- leader's progress bound `PrvalsOk`, which the struct keeps): a kept peer's is the old one, a
   -- fresh one is at `max(lastIndex, 1)` (`applyConfChange`, `PrKept`)
   (s.role = .leader → ∀ v p, pvs !! v = some p → PrOkN s.gh.ns s.logst p) →
+  -- (2026-11-09, Q8 stage 0 of `notes/trace-validation-plan.md`) an untraced node: its trace
+  -- hooks see a nil logger (`TraceLoggerOkS`); stage 1 replaces this premise by the traced
+  -- capability (`trCapB s.gh.tr …`, `TracedHooksDraft.lean`)
+  s.gh.tr = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Htrkf" ∷ r.[raft, go!"trk"] ↦ tv0 ∗
       "Hback" ∷ (∀ tv' prs' pvs', r.[raft, go!"trk"] ↦ tv' -∗

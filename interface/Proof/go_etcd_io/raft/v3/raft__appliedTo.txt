@@ -30,29 +30,30 @@ theorem raft.appliedTo.wp_proof [package_sem : Assumptions] (wp_raftLog_appliedT
                         s.logst.sip = false →
                           uint.Z s.logst.applying < uint.Z index → uint.Z index < uint.Z s.logst.prev.index') →
                       (s.logst.aps = true → ∀ (k : SnapTrip), s.gh.snp = some k → uint.Z k.sid.index' ≤ uint.Z index) →
-                        ⊢
-                          ∀ Φ,
-                            isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                                "Hphys" ∷ ownRaftPhysCVW c c.voters r id s ∗ "#Hrc" ∷ ⧖k0 -∗
-                              (▷
-                                  ∀ s' B recv,
-                                    "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
-                                        "%Hstep" ∷
-                                            ⌜LeaveStep c id
-                                                { term := s.term, vote := s.vote, lead := s.lead, role := s.role,
-                                                  votes := s.votes, outbox := s.outbox, stepfn := s.stepfn,
-                                                  ticking := s.ticking, progress := s.progress, log := s.log,
-                                                  logst := logAppliedTo s.logst index size, prvals := s.prvals,
-                                                  prevote := s.prevote, gh := s.gh, rd := s.rd, lt := s.lt, pci := s.pci,
-                                                  isLearner := s.isLearner, sdr := s.sdr, cq := s.cq }
-                                                s' B recv⌝ ∗
-                                          "Hrcb" ∷
-                                            (⌜plogLastIndexZ (toPState s).base (toPState s).log < B⌝ -∗ ⧖(k0 + 1)) -∗
-                                      Φ (intoVal ())) -∗
-                                WP
-                                  (((intoVal
-                                        (methods raft.ty.PointerType
-                                          go!"appliedTo" (intoVal r)))
-                                      (intoVal index))
-                                    (intoVal size))
-                                  {{ Φ }}
+                        s.gh.tr = none →
+                          ⊢
+                            ∀ Φ,
+                              isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                                  "Hphys" ∷ ownRaftPhysCVW c c.voters r id s ∗ "#Hrc" ∷ ⧖k0 -∗
+                                (▷
+                                    ∀ s' B recv,
+                                      "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
+                                          "%Hstep" ∷
+                                              ⌜LeaveStep c id
+                                                  { term := s.term, vote := s.vote, lead := s.lead, role := s.role,
+                                                    votes := s.votes, outbox := s.outbox, stepfn := s.stepfn,
+                                                    ticking := s.ticking, progress := s.progress, log := s.log,
+                                                    logst := logAppliedTo s.logst index size, prvals := s.prvals,
+                                                    prevote := s.prevote, gh := s.gh, rd := s.rd, lt := s.lt,
+                                                    pci := s.pci, isLearner := s.isLearner, sdr := s.sdr, cq := s.cq }
+                                                  s' B recv⌝ ∗
+                                            "Hrcb" ∷
+                                              (⌜plogLastIndexZ (toPState s).base (toPState s).log < B⌝ -∗ ⧖(k0 + 1)) -∗
+                                        Φ (intoVal ())) -∗
+                                  WP
+                                    (((intoVal
+                                          (methods raft.ty.PointerType
+                                            go!"appliedTo" (intoVal r)))
+                                        (intoVal index))
+                                      (intoVal size))
+                                    {{ Φ }}

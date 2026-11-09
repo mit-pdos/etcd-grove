@@ -115,7 +115,7 @@ theorem raft.appendEntry.wp_proof
     (wp_CloneEntry : proto.CloneEntry.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.appendEntry.spec (GF := GF) (hG := hG) := by
-  intro c r id s es ents dq m Hsmall Hnz
+  intro c r id s es ents dq m Hsmall Hnz Htr
   wp_start as ⟨Hphys, Hes, #Hrc⟩
   wp_auto
   wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
@@ -269,7 +269,7 @@ theorem raft.appendEntry.wp_proof
       isplitr
       · iexact Hrc
       ipureintro; exact fun h => absurd (Hacc h) (by decide)
-    icases ownRaftPhysC_traceLogger _ _ _ _ $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
+    icases ownRaftPhysC_traceLogger _ _ _ _ (by tr_none) $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
     wp_apply wp_traceReplicate _ _ _ _ tl $$ [$Hcl $Htl] as Hcl
     · ipureintro; exact Htlok
     wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
@@ -343,7 +343,7 @@ theorem raft.appendEntry.wp_proof
     let s' : NState := { s with logst := logAppend s.logst (ents.mapIdx (stamp s.term li)) }
     wp_apply wp_raft_send c r id s' «$a0_ptr» _ [] none [] [] [selfAck id s'] (Or.inl rfl) ?_
       (fun h => absurd h (by simp [MsgSnap]))
-      (fun h => absurd h (by simp [MsgApp])) rfl $$ [$Hphys $Hr] as Hphys
+      (fun h => absurd h (by simp [MsgApp])) rfl (by tr_none) $$ [$Hphys $Hr] as Hphys
     · refine Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, Hnz, fun _ => ⟨rfl, rfl, rfl⟩, ?_⟩)))
       unfold selfAck absMsgFrom
       rw [Hlast2]

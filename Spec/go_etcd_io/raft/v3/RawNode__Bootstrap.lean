@@ -64,6 +64,10 @@ abbrev RawNode.Bootstrap.spec : Prop :=
   -- (raft-final phase 2) outside the cluster's no-snapshot mode (dropped at raft's level: a node's
   -- `NGhost.ns` is off, `NsCap`)
   γ.reNoSnap = false →
+  -- (2026-11-09, Q8 stage 0 of `notes/trace-validation-plan.md`) an untraced node: its trace
+  -- hooks see a nil logger (`TraceLoggerOkS`); stage 1 replaces this premise by the traced
+  -- capability (`trCapB s.gh.tr …`, `TracedHooksDraft.lean`)
+  γ.reTrace = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       -- the node `NewRawNode` built on an empty conf state, open
       rawNodeFresh rn id si ∅ sdr pre s ∗

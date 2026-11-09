@@ -41,6 +41,10 @@ abbrev RawNode.Tick.spec : Prop :=
   uint.Z rs.term + 1 ≤ uint.Z rs.tc →
   -- (D19i part 1) the floor not raised past `applied` (a tick may campaign: `Campaign`'s)
   rs.flw = false →
+  -- (2026-11-09, Q8 stage 0 of `notes/trace-validation-plan.md`) an untraced node: its trace
+  -- hooks see a nil logger (`TraceLoggerOkS`); stage 1 replaces this premise by the traced
+  -- capability (`trCapB s.gh.tr …`, `TracedHooksDraft.lean`)
+  γ.reTrace = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Tick")) (Val #()))

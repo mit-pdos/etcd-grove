@@ -96,7 +96,8 @@ private theorem dispatch_App (P : raft.Step.Postulates (GF := GF) (hG := hG))
     (ml : Loc) (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8)
     (rs : List Loc) (Φ : val → IProp GF)
     (md : GMode) (Hdh : ∀ s', DynHypFor md m s s') (Hwf : NStateWf s) (Hty : m.Type' = MsgApp)
-    (Hm : m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧ m.From' ≠ id) :
+    (Hm : m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧ m.From' ≠ id)
+    (HtrS : s.gh.tr = none) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 -∗
       ownRaftPhysCV c c.voters r id s -∗
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
@@ -134,7 +135,7 @@ private theorem dispatch_App (P : raft.Step.Postulates (GF := GF) (hG := hG))
   ihave %Hfv0 := ownRaftGhost_follower_votes γ id (toPState s) $$ Hghost
   have Hfv : s.role = .follower → s.votes = ∅ := followerVotesOk_phys s Hfv0
   wp_apply (wp_Step_MsgApp P Q c r id s ml m sn ctx rs ents Hty Hto Hterm Hfnz Hfid Hwf Hpwf Hnw
-      Hconf Hfv) $$ [$Hphys $Hmsg] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm, %Htr⟩
+      Hconf Hfv HtrS) $$ [$Hphys $Hmsg] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm, %Htr⟩
   obtain ⟨recv, Hrecv, Hstep⟩ := Hst
   iapply finish_branchT γ md c r id s s' m _ recv err Φ (AppTrunc m ents s) Htr (Hdh s') Hwf'
     Hrecv Hstep (fun _ => Hfr) (fun _ => Htm) (by resp_other) Hfr.nsst $$ Hm Hghost Hrest Hphys
@@ -181,7 +182,8 @@ private theorem dispatch_Heartbeat (P : raft.Step.Postulates (GF := GF) (hG := h
     (rs : List Loc) (Φ : val → IProp GF)
     (md : GMode) (Hdh : ∀ s', DynHypFor md m s s') (Hwf : NStateWf s)
     (Hty : m.Type' = MsgHeartbeat)
-    (Hm : m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧ m.From' ≠ id) :
+    (Hm : m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧ m.From' ≠ id)
+    (HtrS : s.gh.tr = none) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 -∗
       ownRaftPhysCV c c.voters r id s -∗
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
@@ -217,7 +219,7 @@ private theorem dispatch_Heartbeat (P : raft.Step.Postulates (GF := GF) (hG := h
   imod Hcl_lem $$ Hghost Hmc with ⟨Hghost, %Hcl⟩
   ihave %Hfv0 := ownRaftGhost_follower_votes γ id (toPState s) $$ Hghost
   have Hfv : s.role = .follower → s.votes = ∅ := followerVotesOk_phys s Hfv0
-  wp_apply (wp_Step_MsgHeartbeat P Q c r id s ml m sn ctx rs ents Hty Hto Hterm Hfnz Hfid Hwf Hcl Hfv)
+  wp_apply (wp_Step_MsgHeartbeat P Q c r id s ml m sn ctx rs ents Hty Hto Hterm Hfnz Hfid Hwf Hcl Hfv HtrS)
     $$ [$Hphys $Hmsg] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
   obtain ⟨recv, Hrecv, Hstep⟩ := Hst
   iapply finish_branch γ md c r id s s' m _ recv err Φ (Hdh s') Hwf' Hrecv Hstep
@@ -233,7 +235,8 @@ private theorem dispatch_AppResp (P : raft.Step.Postulates (GF := GF) (hG := hG)
     (md : GMode) (Hdh : ∀ s', DynHypFor md m s s') (Hwf : NStateWf s)
     (Hty : m.Type' = MsgAppResp)
     (Hm : m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧ (m.Reject' = true → m.From' ≠ id))
-    (Hnsb : s.gh.ns = true → γ.reBoot ≠ []) :
+    (Hnsb : s.gh.ns = true → γ.reBoot ≠ [])
+    (HtrS : s.gh.tr = none) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 -∗
       ownRaftPhysCV c c.voters r id s -∗
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
@@ -306,7 +309,7 @@ private theorem dispatch_AppResp (P : raft.Step.Postulates (GF := GF) (hG := hG)
     push_cast at H
     omega
   icases Hack_lem $$ Hghost Hm with ⟨%Hack, Hghost⟩
-  wp_apply (wp_Step_MsgAppResp P Q c r id s ml m sn ctx rs ents Hlrd Hack Hty Hto Hterm Hfnz Hrej Hwf)
+  wp_apply (wp_Step_MsgAppResp P Q c r id s ml m sn ctx rs ents Hlrd Hack Hty Hto Hterm Hfnz Hrej Hwf HtrS)
     $$ [$Hphys $Hmsg] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hresp, %Hfr, %Htm⟩
   obtain ⟨recv, Hrecv, Hstep⟩ := Hst
   iapply finish_branch γ md c r id s s' m _ recv err Φ (Hdh s') Hwf' Hrecv Hstep
@@ -321,7 +324,8 @@ private theorem dispatch_HeartbeatResp (P : raft.Step.Postulates (GF := GF) (hG 
     (rs : List Loc) (Φ : val → IProp GF)
     (md : GMode) (Hdh : ∀ s', DynHypFor md m s s') (Hwf : NStateWf s)
     (Hty : m.Type' = MsgHeartbeatResp)
-    (Hm : m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧ m.From' ≠ id) :
+    (Hm : m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧ m.From' ≠ id)
+    (HtrS : s.gh.tr = none) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 -∗
       ownRaftPhysCV c c.voters r id s -∗
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
@@ -353,7 +357,7 @@ private theorem dispatch_HeartbeatResp (P : raft.Step.Postulates (GF := GF) (hG 
       · ipureintro; exact fun _ h => absurd h ht
     · ipureintro; exact fun h => absurd h hl
   ihave %Hlrd := Hlrd_lem $$ Hghost Hm
-  wp_apply (wp_Step_MsgHeartbeatResp P Q c r id s ml m sn ctx rs ents Hlrd Hty Hto Hterm Hfnz Hfid Hwf)
+  wp_apply (wp_Step_MsgHeartbeatResp P Q c r id s ml m sn ctx rs ents Hlrd Hty Hto Hterm Hfnz Hfid Hwf HtrS)
     $$ [$Hphys $Hmsg] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
   obtain ⟨cx, recv, Hc, Hrecv, Hstep⟩ := Hst
   ihave #Hmc : isMessage γ (absMsg .heartbeatResp m ents cx) $$ []
@@ -371,7 +375,8 @@ private theorem dispatch_Beat (P : raft.Step.Postulates (GF := GF) (hG := hG))
     (ml : Loc) (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8)
     (rs : List Loc) (Φ : val → IProp GF)
     (md : GMode) (Hdh : ∀ s', DynHypFor md m s s') (Hwf : NStateWf s)
-    (Hty : m.Type' = MsgBeat) (Hterm : m.Term' = W64 0) :
+    (Hty : m.Type' = MsgBeat) (Hterm : m.Term' = W64 0)
+    (HtrS : s.gh.tr = none) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 -∗
       ownRaftPhysCV c c.voters r id s -∗
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
@@ -390,7 +395,7 @@ private theorem dispatch_Beat (P : raft.Step.Postulates (GF := GF) (hG := hG))
       ipureintro; exact fun _ => H
     · ipureintro; exact fun h => absurd h hl
   ihave %HLT := HLT_lem $$ Hghost
-  wp_apply (wp_Step_MsgBeat P Q c r id s ml m sn ctx rs ents Hty Hterm Hwf HLT)
+  wp_apply (wp_Step_MsgBeat P Q c r id s ml m sn ctx rs ents Hty Hterm Hwf HLT HtrS)
     $$ [$Hphys $Hmsg] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
   iapply finish_branch0 γ md c r id s s' m err Φ (Hdh s') Hwf' Hst (fun _ => Hfr) (fun _ => Htm)
       (by resp_other) Hfr.nsst $$ Hghost Hrest Hphys [] HΦ
@@ -404,7 +409,8 @@ private theorem dispatch_CheckQuorum (P : raft.Step.Postulates (GF := GF) (hG :=
     (ml : Loc) (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8)
     (rs : List Loc) (Φ : val → IProp GF)
     (md : GMode) (Hdh : ∀ s', DynHypFor md m s s') (Hwf : NStateWf s)
-    (Hty : m.Type' = MsgCheckQuorum) (Hterm : m.Term' = W64 0) :
+    (Hty : m.Type' = MsgCheckQuorum) (Hterm : m.Term' = W64 0)
+    (HtrS : s.gh.tr = none) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 -∗
       ownRaftPhysCV c c.voters r id s -∗
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
@@ -413,7 +419,7 @@ private theorem dispatch_CheckQuorum (P : raft.Step.Postulates (GF := GF) (hG :=
       WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
         {{ v, |={⊤}=> Φ v }} := by
   iintro #Hinit Hphys Hghost Hrest Hmsg HΦ
-  wp_apply (wp_Step_MsgCheckQuorum P Q c r id s ml m sn ctx rs ents Hty Hterm Hwf)
+  wp_apply (wp_Step_MsgCheckQuorum P Q c r id s ml m sn ctx rs ents Hty Hterm Hwf HtrS)
     $$ [$Hphys $Hmsg] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
   iapply finish_branch0 γ md c r id s s' m err Φ (Hdh s') Hwf' Hst (fun _ => Hfr) (fun _ => Htm)
       (by resp_other) Hfr.nsst $$ Hghost Hrest Hphys [] HΦ
@@ -436,7 +442,8 @@ private theorem dispatch_Snap (P : raft.Step.Postulates (GF := GF) (hG := hG))
     (Hm : m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧ m.From' ≠ id)
     (Hidx : uint.Z sv.Metadata'.Index' < 2^61)
     (Hsn : sn = some sv) (Hcl : scfg = sv.Metadata'.ConfState'.lists)
-    (Hnsf : s.gh.ns = false) :
+    (Hnsf : s.gh.ns = false)
+    (HtrS : s.gh.tr = none) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 -∗
       ownRaftPhysCV c c.voters r id s -∗
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
@@ -483,7 +490,7 @@ private theorem dispatch_Snap (P : raft.Step.Postulates (GF := GF) (hG := hG))
   have Hfv : s.role = .follower → s.votes = ∅ := followerVotesOk_phys s Hfv0
   wp_apply (wp_Step_MsgSnap (B := plogLastIndexZ (toPState s).base (toPState s).log) P Q c r id s
       ml m sn ctx rs ents scfg sv Hnsf Hty Hto Hterm Hfnz Hfid
-      Hwf Hscope Hsn Hcl Hnl Hfv) $$ [$Hphys $Hmsg $Hcert]
+      Hwf Hscope Hsn Hcl Hnl Hfv HtrS) $$ [$Hphys $Hmsg $Hcert]
     as %err %s' %c1 ⟨Hphys, %Hc1, %Hwf', %Hst, %Herr, %Hng, %Hsf⟩
   obtain ⟨recv, Hrecv, Hstep⟩ := Hst
   -- the received messages, each the snapshot message, none a read-index request
@@ -525,7 +532,8 @@ private theorem dispatch_ReadIndex (P : raft.Step.Postulates (GF := GF) (hG := h
     (rs : List Loc) (Φ : val → IProp GF)
     (md : GMode) (Hdh : ∀ s', DynHypFor md m s s') (Hwf : NStateWf s)
     (Hty : m.Type' = MsgReadIndex)
-    (Hterm : m.Term' = W64 0) (Hnors : rs = []) :
+    (Hterm : m.Term' = W64 0) (Hnors : rs = [])
+    (HtrS : s.gh.tr = none) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 -∗
       ownRaftPhysCV c c.voters r id s -∗
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
@@ -561,7 +569,7 @@ private theorem dispatch_ReadIndex (P : raft.Step.Postulates (GF := GF) (hG := h
       ipureintro; intro _; exact H1
     · ipureintro; exact fun h => absurd h hl
   ihave %Hlrd := Hlrd_lem $$ Hghost
-  wp_apply (wp_Step_MsgReadIndex P Q c r id s ml m sn ctx rs ents Hty Hterm Hne Hlok Hlrd Hwf Hnors)
+  wp_apply (wp_Step_MsgReadIndex P Q c r id s ml m sn ctx rs ents Hty Hterm Hne Hlok Hlrd Hwf Hnors HtrS)
     $$ [$Hphys $Hmsg] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
   obtain ⟨recv, Hrecv, Hlen, Hstep⟩ := Hst
   -- the request's credit goes with it, if it was received
@@ -594,7 +602,8 @@ private theorem dispatch_ReadIndexResp (P : raft.Step.Postulates (GF := GF) (hG 
     (rs : List Loc) (Φ : val → IProp GF)
     (md : GMode) (Hdh : ∀ s', DynHypFor md m s s') (Hwf : NStateWf s)
     (Hty : m.Type' = MsgReadIndexResp)
-    (Hm : m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧ m.From' ≠ id) :
+    (Hm : m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧ m.From' ≠ id)
+    (HtrS : s.gh.tr = none) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 -∗
       ownRaftPhysCV c c.voters r id s -∗
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
@@ -616,7 +625,7 @@ private theorem dispatch_ReadIndexResp (P : raft.Step.Postulates (GF := GF) (hG 
     exact ⟨e, He⟩
   ihave %He := He_lem $$ Hm
   obtain ⟨e, rfl⟩ := He
-  wp_apply (wp_Step_MsgReadIndexResp P Q c r id s ml m sn ctx rs e Hty Hto Hterm Hfid Hwf)
+  wp_apply (wp_Step_MsgReadIndexResp P Q c r id s ml m sn ctx rs e Hty Hto Hterm Hfid Hwf HtrS)
     $$ [$Hphys $Hmsg] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
   obtain ⟨recv, Hrecv, Hstep⟩ := Hst
   iapply finish_branch γ md c r id s s' m _ recv err Φ (Hdh s') Hwf' Hrecv Hstep
@@ -683,7 +692,7 @@ theorem raft.Step.wp_proof
     ⟨wp_Message_GetType, wp_Message_GetTerm, wp_Message_GetFrom, wp_Message_GetLogTerm,
      wp_Message_GetIndex, wp_Message_GetReject, wp_Message_GetContext, wp_MessageType_Enum⟩
   intro c md γ r id s ml m ents ctx sn rs Hsm Hhup Hvote Hvoteresp Hprevote Hprevoteresp
-    Happ Hhb Happresp Hhbresp Hsnapt Hbeat Hprop Hsar Hsapr Hri Hrir Hrest Hwf Hpre Hnsx
+    Happ Hhb Happresp Hhbresp Hsnapt Hbeat Hprop Hsar Hsapr Hri Hrir Hrest Hwf Hpre Hnsx HtrN
   iintro %Φ ⟨#Hinit, Hphys, Hghost, #Hxfer, Hm, Hcred, Hlc, #Hsnap⟩ HΦ
   -- (2026-10-14, stage B7) the ghost state in its mode: `ownRaftGhost` (what the protocol facts
   -- below read) and the rest
@@ -725,7 +734,7 @@ theorem raft.Step.wp_proof
     imod lastRec_receipt γ _ $$ Hlr with #Hrc0
     wp_apply (wp_Step_MsgProp P.traceReceiveMessage P.stepFollower P.stepCandidate P.stepLeader
       Q c r id s ml m sn ctx rs ents cs _ Hty Hterm Hfrom Hne Hlen Hlok
-      Hlnz Hwf HL (Hnors (.inl Hty)))
+      Hlnz Hwf HL (Hnors (.inl Hty)) (by tr_none))
       $$ [$Hphys $Hmi $Hcc $Hrc0] as %err %s' %B ⟨Hphys, %HBb, Hrcb, %Hwf', %Hfr, -, %Hpk, %Hst, Herr⟩
     obtain ⟨recv, Hrecv, Hrl, Hstep⟩ := Hst
     -- the receipt of the bound: the last index's, or the appended batch's
@@ -799,7 +808,7 @@ theorem raft.Step.wp_proof
           StableOk s.logst (entryID.mk m.LogTerm' m.Index') := by
         intro a b; have := Hstok a b; rw [Hsn] at this; exact this
       wp_apply (wp_Step_MsgStorageAppendResp_none P Q c r id s ml m sn ctx rs ents HtyA Hsn Hle
-          Hstok' Hghoff Hwf)
+          Hstok' Hghoff Hwf (by tr_none))
         $$ [$Hphys $Hmi]
         as %err %s' ⟨Hphys, %Hwf', %Hfr, %Happ0, %Hpk, %Hst, %Herr⟩
       imod ghost_step_md0 γ md c id m s s' Hst
@@ -848,7 +857,7 @@ theorem raft.Step.wp_proof
       ihave %Hfv0 := ownRaftGhost_follower_votes γ id (toPState s) $$ Hghost
       have Hvotes : s.votes = ∅ := followerVotesOk_phys s Hfv0 Hrole
       wp_apply (wp_Step_MsgStorageAppendResp_snap P Q c r id s ml m sv ctx rs ents HtyA Hhit Hle'
-          Hrole Hvotes Hscope Hle Hstok Hghoff Hwf Hsxp Hkxp)
+          Hrole Hvotes Hscope Hle Hstok Hghoff Hwf Hsxp Hkxp (by tr_none))
         $$ [$Hphys $Hmi] as %err ⟨Hphys, %Herr⟩
       icases Hphys with ⟨%prs, %pvs, %il, Hphys⟩
       obtain ⟨Hp1, Hp2, Hp3, Hp4, Hp5⟩ := ackSnapLog_proto s.logst m s.term sv
@@ -925,7 +934,7 @@ theorem raft.Step.wp_proof
     ihave ⟨#Hlr, %HL⟩ := ownRaftGhost_lastRec γ id (toPState s) $$ Hghost
     imod lastRec_receipt γ _ $$ Hlr with #Hrc0
     wp_apply (wp_Step_MsgStorageApplyResp P Q c r id s ml m sn ctx rs ents _ HtyB (Hsapr HtyB)
-        (Happly HtyB) Hwf HlnzB HL) $$ [$Hphys $Hmi $Hrc0]
+        (Happly HtyB) Hwf HlnzB HL (by tr_none)) $$ [$Hphys $Hmi $Hrc0]
       as %err %s' %B %recv ⟨Hphys, %Hwf', %Hfr, %Hpk, %Hrecv, %HBb, Hrcb, %Hst, %Happ', %Happ2,
         %Herr⟩
     -- the receipt of the bound: the last index's, or the leave's entry's
@@ -1007,7 +1016,7 @@ theorem raft.Step.wp_proof
     obtain ⟨Hsn, Hcl, Hidx⟩ := Hsc
     have Hnsf : s.gh.ns = false := Hnsx Hns
     iapply dispatch_Snap P Q γ md c r id s ml m ents sn ctx rs sv scfg Φ Hwf Hns (Hsnapt Hns) Hidx Hsn Hcl Hnsf
-      $$ Hinit Hphys Hghost Hrest Hmi Hm' Hdat HΦs
+      (by tr_none) $$ Hinit Hphys Hghost Hrest Hmi Hm' Hdat HΦs
   -- (D22 S-d3b, 2026-10-21) MsgApp: `dispatch_App`, with the truncation's mark (`AppTrunc`), which
   -- `stepPost` does not carry
   by_cases HtyApp : m.Type' = MsgApp
@@ -1029,7 +1038,7 @@ theorem raft.Step.wp_proof
     ihave #Hm' := Hmsg0 $$ %MsgType.app %(by rw [HtyApp]; exact mtypeOf_MsgApp) %(by decide)
     rw [isMessage_absMsg_ctx γ .app m ents ctx (And.intro (by decide) (by decide))]
     iapply dispatch_App P Q γ c r id s ml m ents sn ctx rs Φ md Hdh Hwf HtyApp (Happ HtyApp)
-      $$ Hinit Hphys Hghost Hrest Hmi Hm' HΦa
+      (by tr_none) $$ Hinit Hphys Hghost Hrest Hmi Hm' HΦa
   -- (raft-final phase 2, 2026-10-29) leader transfer: a request. Before the conversion to
   -- `stepPost`: a follower with a leader records it and its term in `NGhost.xw` (the forward's
   -- witness, `ownStepGhost_xw_record`), which `NetFrame` does not allow (`"%Hxwframe"`).
@@ -1104,7 +1113,7 @@ theorem raft.Step.wp_proof
           by rw [hg], fun p hp => by rw [hg]; exact HX p hp⟩,
         Htm', Hresp', fun h => absurd h Hns, fun h => absurd h HtyApp⟩
     wp_apply (wp_Step_MsgTransferLeader P PB c r id { s with gh := { s.gh with xw := X } } ml m ents sn ctx rs HtyX Hent Hctx0 Hxo Htr
-      Hlok Hwf (Hnors (.inr (.inr HtyX))) HLT) $$ [$Hphys $Hmi]
+      Hlok Hwf (Hnors (.inr (.inr HtyX))) HLT (by tr_none)) $$ [$Hphys $Hmi]
       as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
     obtain ⟨recv, Hrecv, Hstep⟩ := Hst
     iapply finish_branch γ md c r id { s with gh := { s.gh with xw := X } } s' m _ recv err Φ (Hdh1 X s') Hwf' Hrecv Hstep
@@ -1144,7 +1153,7 @@ theorem raft.Step.wp_proof
   by_cases Hty : m.Type' = MsgHup
   · -- MsgHup: a local message, handled by `hup`.
     obtain ⟨Hmterm, Hnowrap, Htc, Hfla⟩ := Hhup Hty
-    wp_apply (wp_Step_MsgHup P PB c r id s ml m ents sn ctx rs Hty Hmterm Hnowrap Htc Hwf Hfla) $$ [$Hphys $Hmi]
+    wp_apply (wp_Step_MsgHup P PB c r id s ml m ents sn ctx rs Hty Hmterm Hnowrap Htc Hwf Hfla (by tr_none)) $$ [$Hphys $Hmi]
       as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
     iapply finish_branch0 γ md c r id s s' m err Φ (Hdh s') Hwf' Hst (fun _ => Hfr) (fun _ => Htm)
       (by resp_other) Hfr.nsst $$ Hghost Hrest Hphys [] HΦ
@@ -1153,7 +1162,7 @@ theorem raft.Step.wp_proof
   · -- MsgVote: answer the vote request, stepping down first if needed.
     obtain ⟨Hto, Hterm, Hfnz⟩ := Hvote Hty
     ihave #Hm' := Hmsg $$ %MsgType.vote %(by rw [Hty]; exact mtypeOf_MsgVote) %(And.intro (by decide) (by decide))
-    wp_apply (wp_Step_MsgVote P PB c r id s ml m ents sn ctx rs Hty Hto Hterm Hfnz Hwf) $$ [$Hphys $Hmi]
+    wp_apply (wp_Step_MsgVote P PB c r id s ml m ents sn ctx rs Hty Hto Hterm Hfnz Hwf (by tr_none)) $$ [$Hphys $Hmi]
       as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
     obtain ⟨recv, Hrecv, Hstep⟩ := Hst
     iapply finish_branch γ md c r id s s' m _ recv err Φ (Hdh s') Hwf' Hrecv Hstep
@@ -1167,7 +1176,7 @@ theorem raft.Step.wp_proof
     -- in the step for a win's entry
     ihave ⟨#Hlr, %HL⟩ := ownRaftGhost_lastRec γ id (toPState s) $$ Hghost
     imod lastRec_receipt γ _ $$ Hlr with #Hrc0
-    wp_apply (wp_Step_MsgVoteResp P PB c r id s ml m ents sn ctx rs _ Hty Hto Hterm Hwf HL)
+    wp_apply (wp_Step_MsgVoteResp P PB c r id s ml m ents sn ctx rs _ Hty Hto Hterm Hwf HL (by tr_none))
       $$ [$Hphys $Hmi $Hrc0]
       as %err %s' %B ⟨Hphys, %HBb, #Hrcb, %Hwf', %Hst, %Herr, %Hresp, %Hfr, %Htm⟩
     obtain ⟨recv, Hrecv, Hstep⟩ := Hst
@@ -1184,7 +1193,7 @@ theorem raft.Step.wp_proof
   · -- MsgPreVote (2026-10-04): answered with a free `MsgPreVoteResp`; nothing
     -- received, nothing recorded.
     obtain ⟨Hto, Hterm, Hfnz, Hfid, Hutd0, Hptc⟩ := Hprevote Hty
-    wp_apply (wp_Step_MsgPreVote P PB c r id s ml m ents sn ctx rs Hty Hto Hterm Hfnz Hfid Hwf Hutd0 Hptc)
+    wp_apply (wp_Step_MsgPreVote P PB c r id s ml m ents sn ctx rs Hty Hto Hterm Hfnz Hfid Hwf Hutd0 Hptc (by tr_none))
       $$ [$Hphys $Hmi] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
     iapply finish_branch0 γ md c r id s s' m err Φ (Hdh s') Hwf' Hst (fun _ => Hfr) (fun _ => Htm)
       (by resp_other) Hfr.nsst $$ Hghost Hrest Hphys [] HΦ
@@ -1194,7 +1203,7 @@ theorem raft.Step.wp_proof
     -- rejection of a higher term.
     obtain ⟨Hto, Hterm, -, Hnw⟩ := Hprevoteresp Hty
     ihave #Hm' := Hmsg $$ %MsgType.preVoteResp %(by rw [Hty]; exact mtypeOf_MsgPreVoteResp) %(And.intro (by decide) (by decide))
-    wp_apply (wp_Step_MsgPreVoteResp P PB c r id s ml m ents sn ctx rs Hty Hto Hterm Hnw Hwf)
+    wp_apply (wp_Step_MsgPreVoteResp P PB c r id s ml m ents sn ctx rs Hty Hto Hterm Hnw Hwf (by tr_none))
       $$ [$Hphys $Hmi] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hresp, %Hfr, %Htm⟩
     obtain ⟨recv, Hrecv, Hstep⟩ := Hst
     iapply finish_branch γ md c r id s s' m _ recv err Φ (Hdh s') Hwf' Hrecv Hstep
@@ -1205,38 +1214,38 @@ theorem raft.Step.wp_proof
     ihave #Hm' := Hmsg $$ %MsgType.appResp %(by rw [Hty]; exact mtypeOf_MsgAppResp) %(And.intro (by decide) (by decide))
     icases ghostRest_nsLink γ md c id s $$ Hrest with ⟨%Hnl, Hrest⟩
     iapply dispatch_AppResp P Q γ c r id s ml m ents sn ctx rs Φ md Hdh Hwf Hty (Happresp Hty) Hnl.boot
-      $$ Hinit Hphys Hghost Hrest Hmi Hm' HΦ
+      (by tr_none) $$ Hinit Hphys Hghost Hrest Hmi Hm' HΦ
   by_cases Hty : m.Type' = MsgHeartbeat
   · -- MsgHeartbeat: `dispatch_Heartbeat`.
     ihave #Hm' := Hmsgc $$ %MsgType.heartbeat %(by rw [Hty]; exact mtypeOf_MsgHeartbeat)
     iapply dispatch_Heartbeat P Q γ c r id s ml m ents sn ctx rs Φ md Hdh Hwf Hty (Hhb Hty)
-      $$ Hinit Hphys Hghost Hrest Hmi Hm' HΦ
+      (by tr_none) $$ Hinit Hphys Hghost Hrest Hmi Hm' HΦ
   by_cases Hty : m.Type' = MsgHeartbeatResp
   · -- MsgHeartbeatResp: `dispatch_HeartbeatResp`, with its context (2026-10-13).
     ihave #Hm' := Hmsgc $$ %MsgType.heartbeatResp
       %(by rw [Hty]; exact mtypeOf_MsgHeartbeatResp)
     iapply dispatch_HeartbeatResp P Q γ c r id s ml m ents sn ctx rs Φ md Hdh Hwf Hty (Hhbresp Hty)
-      $$ Hinit Hphys Hghost Hrest Hmi Hm' HΦ
+      (by tr_none) $$ Hinit Hphys Hghost Hrest Hmi Hm' HΦ
   by_cases Hty : m.Type' = MsgBeat
   · -- MsgBeat: `dispatch_Beat`.
     iapply dispatch_Beat P Q γ c r id s ml m ents sn ctx rs Φ md Hdh Hwf Hty (Hbeat (.inl Hty))
-      $$ Hinit Hphys Hghost Hrest Hmi HΦ
+      (by tr_none) $$ Hinit Hphys Hghost Hrest Hmi HΦ
   by_cases Hty : m.Type' = MsgCheckQuorum
   · -- MsgCheckQuorum (2026-10-17): `dispatch_CheckQuorum`.
     iapply dispatch_CheckQuorum P Q γ c r id s ml m ents sn ctx rs Φ md Hdh Hwf Hty (Hbeat (.inr Hty))
-      $$ Hinit Hphys Hghost Hrest Hmi HΦ
+      (by tr_none) $$ Hinit Hphys Hghost Hrest Hmi HΦ
   by_cases Hty : m.Type' = MsgReadIndex
   · -- MsgReadIndex (2026-10-13): `dispatch_ReadIndex`, with the request's credit.
     ihave #Hm' := Hmsgc $$ %MsgType.readIndex %(by rw [Hty]; rfl)
     rw [ite_eq_left Hty]
     iapply dispatch_ReadIndex P Q γ c r id s ml m ents sn ctx rs Φ md Hdh Hwf Hty (Hri Hty)
       (Hnors (.inr (.inl Hty)))
-      $$ Hinit Hphys Hghost Hrest Hmi Hm' Hcred HΦ
+      (by tr_none) $$ Hinit Hphys Hghost Hrest Hmi Hm' Hcred HΦ
   by_cases Hty : m.Type' = MsgReadIndexResp
   · -- MsgReadIndexResp (2026-10-13): `dispatch_ReadIndexResp`.
     ihave #Hm' := Hmsgc $$ %MsgType.readIndexResp %(by rw [Hty]; rfl)
     iapply dispatch_ReadIndexResp P Q γ c r id s ml m ents sn ctx rs Φ md Hdh Hwf Hty (Hrir Hty)
-      $$ Hinit Hphys Hghost Hrest Hmi Hm' HΦ
+      (by tr_none) $$ Hinit Hphys Hghost Hrest Hmi Hm' HΦ
   -- (2026-10-13) the types outside the model: a free message justifies a step-down
   ihave #Hsd := isMessage_stepdown (GF := GF) γ id m
   obtain ⟨Hloc, Htn, Htl⟩ := Hrest
@@ -1244,7 +1253,7 @@ theorem raft.Step.wp_proof
   · -- the local reports and `ForgetLeader`
     ihave %Hfv0 := ownRaftGhost_follower_votes γ id (toPState s) $$ Hghost
     have Hfv : s.role = .follower → s.votes = ∅ := followerVotesOk_phys s Hfv0
-    wp_apply (wp_Step_MsgLocal P PB c r id s ml m ents sn ctx rs HtyL (Hloc HtyL) Hwf Hfv) $$ [$Hphys $Hmi]
+    wp_apply (wp_Step_MsgLocal P PB c r id s ml m ents sn ctx rs HtyL (Hloc HtyL) Hwf Hfv (by tr_none)) $$ [$Hphys $Hmi]
       as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
     obtain ⟨recv, Hrecv, Hstep⟩ := Hst
     have Hn : m.Type' ≠ MsgVoteResp ∧ m.Type' ≠ MsgAppResp ∧ m.Type' ≠ MsgPreVoteResp := by
@@ -1256,7 +1265,7 @@ theorem raft.Step.wp_proof
   by_cases Hty : m.Type' = MsgTimeoutNow
   · -- leader transfer: the transferee campaigns
     obtain ⟨Hnw, Hnwm, Hfla⟩ := Htn Hty
-    wp_apply (wp_Step_MsgTimeoutNow P PB c r id s ml m ents sn ctx rs Hty Hnw Hnwm Hwf Hfla) $$ [$Hphys $Hmi]
+    wp_apply (wp_Step_MsgTimeoutNow P PB c r id s ml m ents sn ctx rs Hty Hnw Hnwm Hwf Hfla (by tr_none)) $$ [$Hphys $Hmi]
       as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
     obtain ⟨recv, Hrecv, Hstep⟩ := Hst
     iapply finish_branch γ md c r id s s' m _ recv err Φ (Hdh s') Hwf' Hrecv Hstep

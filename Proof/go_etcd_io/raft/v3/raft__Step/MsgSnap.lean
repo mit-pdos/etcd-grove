@@ -74,6 +74,7 @@ theorem wp_Step_MsgSnap (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     -- empty (`FollowerVotesOk`)
     (m.Term' = s.term → s.role ≠ .leader) →
     (s.role = .follower → s.votes = ∅) →
+    s.gh.tr = none →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
@@ -92,13 +93,13 @@ theorem wp_Step_MsgSnap (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hng" ∷ ⌜s'.gh = s.gh⌝ ∗
         -- (2026-10-20, D22 S-c) what is kept of the state, and the term
         "%Hsf" ∷ ⌜SnapStep m s s' ∧ SnapLogStep sv m s s'⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hfid Hwf Hscope Hsn Hscl Hnl Hvotes
+  intro Hty Hto Hterm Hfnz Hfid Hwf Hscope Hsn Hscl Hnl Hvotes Htr
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
   · exact wp_Step_MsgSnap_gt _P _Q c r id s ml m sn ctx rs ents scfg sv Hnsf Hty Hto Hterm Hfnz Hfid
-      Hwf Hscope Hsn Hscl Hgt
+      Hwf Hscope Hsn Hscl Hgt Htr
   · by_cases Hlt : uint.Z m.Term' < uint.Z s.term
     · wp_start_folded as ⟨Hphys, Hm, -⟩
-      iapply wp_Step_MsgSnap_lt _P _Q c r id s ml m sn ctx rs ents sv scfg Hty Hto Hterm Hwf Hlt $$ [$Hpkg $Hphys $Hm]
+      iapply wp_Step_MsgSnap_lt _P _Q c r id s ml m sn ctx rs ents sv scfg Hty Hto Hterm Hwf Hlt Htr $$ [$Hpkg $Hphys $Hm]
       inext
       iintro %err %s' ⟨Hphys, %Hwf', %Href, %Herr, %Hng, %Hsf⟩
       iapply HΦ $$ %err %s' %c
@@ -107,7 +108,7 @@ theorem wp_Step_MsgSnap (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       exact ⟨rfl, Hwf', Href, Herr, Hng, Hsf⟩
     · have Hteq : m.Term' = s.term := by word
       exact wp_Step_MsgSnap_eq _P _Q c r id s ml m sn ctx rs ents scfg sv Hnsf Hty Hto Hterm Hfnz Hfid
-        Hwf Hscope Hsn Hscl Hteq (Hnl Hteq) Hvotes
+        Hwf Hscope Hsn Hscl Hteq (Hnl Hteq) Hvotes Htr
 
 end StepProof
 

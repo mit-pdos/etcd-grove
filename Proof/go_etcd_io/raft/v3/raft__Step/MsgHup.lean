@@ -56,6 +56,7 @@ theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     NStateWf s →
     -- (D19i part 1) the floor at most `applied` (`hup`'s)
     uint.Z s.logst.fl ≤ uint.Z s.logst.applied →
+    s.gh.tr = none →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
@@ -67,7 +68,7 @@ theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hterm Hnowrap Htc Hwf Hfla
+  intro Hty Hterm Hnowrap Htc Hwf Hfla Htr
   wp_start as ⟨Hphys, Hm⟩
   icases msgPtsC_nn _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
   wp_auto
@@ -98,7 +99,7 @@ theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   cases Hpv : s.prevote
   all_goals
     wp_auto
-    wp_apply _P.hup c r id s _ Hnowrap ?Hpvt Hwf Hfla $$ [$Hphys]
+    wp_apply _P.hup c r id s _ Hnowrap ?Hpvt Hwf Hfla (by tr_none) $$ [$Hphys]
       as %s' ⟨Hphys, %Hok, -⟩
     case Hpvt =>
       first

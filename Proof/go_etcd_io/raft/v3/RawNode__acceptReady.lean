@@ -219,7 +219,7 @@ theorem RawNode.acceptReady.wp_proof
     (wp_Message_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hlc := HasLC.hasLC))
     (wp_Entry_GetIndex : raftpb.Entry.GetIndex.spec (GF := GF) (hlc := HasLC.hasLC)) :
     RawNode.acceptReady.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs rd ce es ms h L
+  intro γ rn id rs rd ce es ms h L HtrG
   wp_start as H
   iNamed H
   -- (2026-10-28, stage U3c) a lent snapshot's committed log ends at its id
@@ -804,7 +804,7 @@ theorem RawNode.acceptReady.wp_proof
     %rs' %({ s.rd with states := [] } : RdState)
     Hf_Term Hf_Vote Hf_readStates HreadStates' HreadStates_cap' %(And.intro rfl rfl)
     Hf_raftLog Hf_state Hf_lead Hf_msgs [] [] Hf_msgsAA [] []
-    [] [] [] [] [] [] [] [] [] Hlog
+    [] [] [] [] [] [] [] [] [] %rfl Hlog
   · rw [List.map_nil]; iapply ownSlice_nil
   · iapply ownSliceCap_nil
   · rw [List.map_nil]; iapply ownSlice_nil

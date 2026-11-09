@@ -7,19 +7,20 @@ theorem RawNode.ReadIndex.wp_proof [package_sem : Assumptions] (wp_raft_Step : r
   -- `Perennial.EtcdGrove.RawNode.ReadIndex.spec`, unfolded:
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rctx : GoSlice) (c : List w8) (Qr : List EntryM → IProp GF)
     (L0 : List EntryM),
-    ⊢
-      ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-            "Hrn" ∷ ownRawNode γ rn id rs ∗
-              "#Hctx" ∷ ownSlice rctx c DFrac.discard ∗
-                "Hfr" ∷ rdFresh γ c ∗ "#Hau" ∷ readAu γ Qr ∗ "#HL0" ∷ isCommitted γ L0 ∗ "Hcred" ∷ rdCred γ 1 -∗
-          ▷
-              (("Hrn" ∷ ownRawNode γ rn id rs ∗
-                  ∃ Lc, "%HL0c" ∷ ⌜L0 <+: Lc⌝ ∗ "#Hrq" ∷ readReq γ c Lc ∗ "#Hrd" ∷ isRead γ c Qr) -∗
-                Φ (intoVal ())) -∗
-            WP
-              ((intoVal
-                  (methods RawNode.ty.PointerType go!"ReadIndex"
-                    (intoVal rn)))
-                (intoVal rctx))
-              {{ Φ }}
+    γ.reTrace = none →
+      ⊢
+        ∀ Φ,
+          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+              "Hrn" ∷ ownRawNode γ rn id rs ∗
+                "#Hctx" ∷ ownSlice rctx c DFrac.discard ∗
+                  "Hfr" ∷ rdFresh γ c ∗ "#Hau" ∷ readAu γ Qr ∗ "#HL0" ∷ isCommitted γ L0 ∗ "Hcred" ∷ rdCred γ 1 -∗
+            ▷
+                (("Hrn" ∷ ownRawNode γ rn id rs ∗
+                    ∃ Lc, "%HL0c" ∷ ⌜L0 <+: Lc⌝ ∗ "#Hrq" ∷ readReq γ c Lc ∗ "#Hrd" ∷ isRead γ c Qr) -∗
+                  Φ (intoVal ())) -∗
+              WP
+                ((intoVal
+                    (methods RawNode.ty.PointerType go!"ReadIndex"
+                      (intoVal rn)))
+                  (intoVal rctx))
+                {{ Φ }}

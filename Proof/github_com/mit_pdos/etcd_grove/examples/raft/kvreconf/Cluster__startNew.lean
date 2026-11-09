@@ -131,7 +131,7 @@ theorem Cluster.startNew.wp_proof
         memStorInvP ms γs (kvrJ γr.cluster K)))
       HcV HcLg HcSt HcM HcDP HcRO HcDC HcSz HcAS (Or.inl (by rw [HcAp]; rfl))
       (by rw [HcAp]; simp [StorContents.b]) (by simp [StorContents.commit])
-      (by rw [Hbl0]; simp [StorContents.commit]) (bootCS_is vs Hvnd) HcTL)
+      (by rw [Hbl0]; simp [StorContents.commit]) (bootCS_is vs Hvnd) HcTL Htr0)
     $$ [$Hraft $Hcv $Hlogger Hboot Hvac Hau]
     as %nd ⟨%n, %S, %l, %K, %Hnd, #HisNode, #Hl, %Hlen, %-, Hdrv, Hncfg, Hrun, ⟨HrS, %HS⟩, Hmeta, #HmsInv⟩
   · have hA : uint.nat cv.Applied' = 0 := by rw [HcAp]; rfl
