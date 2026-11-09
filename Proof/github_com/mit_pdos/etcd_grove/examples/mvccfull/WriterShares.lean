@@ -24,6 +24,39 @@ namespace mvccfull
 
 open Iris Iris.BI Iris.ProofMode github_com.mit_pdos.etcd_grove.examples.mvccfull mvcc mvcc.api
 
+section model
+variable [GooseExts]
+
+/-- One step keeps or grows the history by one revision. -/
+theorem opStep_len (ks : List GoString) (s : MSt) (o : OpM) :
+    s.hs.length ≤ (opStep ks s o).hs.length ∧ (opStep ks s o).hs.length ≤ s.hs.length + 1 := by
+  simp only [opStep, histAfter]
+  split <;> simp
+
+theorem foldl_opStep_len (ks : List GoString) (l : List OpM) : ∀ s : MSt,
+    s.hs.length ≤ (l.foldl (opStep ks) s).hs.length ∧
+      (l.foldl (opStep ks) s).hs.length ≤ s.hs.length + l.length := by
+  induction l with
+  | nil => intro s; simp
+  | cons o l ih =>
+    intro s
+    have h1 := opStep_len ks s o
+    have h2 := ih (opStep ks s o)
+    simp only [List.foldl_cons, List.length_cons]
+    omega
+
+/-- **The model's history has at least the two empty revisions, and one more per operation at
+most.** (Pure; proved.) -/
+theorem runM_hs_len (ks : List GoString) (ops : List OpM) (n : Nat) :
+    2 ≤ (runM ks ops n).hs.length ∧ (runM ks ops n).hs.length ≤ n + 2 := by
+  have h := foldl_opStep_len ks (ops.take n) mStart
+  have h0 : mStart.hs.length = 2 := rfl
+  have ht : (ops.take n).length ≤ n := by simp only [List.length_take]; exact Nat.min_le_left _ _
+  unfold runM
+  omega
+
+end model
+
 section shares
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -38,6 +71,19 @@ theorem isInc_persistent (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG))
   haveI := hpers.1
   intro ks γh i mp m ι kv
   unfold isInc; infer_instance
+
+/-- The member's incarnation's handles, from the writer's part. -/
+theorem memW_isInc (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG)) (ks : List GoString)
+    (γh : HistNames) (ops : List OpM) (i : Nat) (mp : Loc) (m : MemberNames) (f : GoFunc) (v : MemS)
+    (qw : Qp) (nw k : Nat) :
+    memW (GF := GF) ks γh ops i mp m f v qw nw k ⊢
+      memW ks γh ops i mp m f v qw nw k ∗ isInc ks γh i mp m v.ι v.kv := by
+  haveI := isInc_persistent hpers
+  unfold memW memCore incW
+  dsimp only
+  iintro ⟨Ho, Hh, Hid, Hhk, Hhok, Hp, Hb, Hl, Hk, Hr, Hc, Hls, Hpo, ⟨#Hi, Hrest⟩, Hrest2⟩
+  iframe
+  isplit <;> iexact Hi
 
 /-- The writer's pieces of an incarnation at the share `a`: the retirement token's, the `kv`
 field's, `c` reader tokens. -/
