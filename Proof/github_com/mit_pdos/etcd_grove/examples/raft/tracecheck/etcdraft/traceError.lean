@@ -29,7 +29,7 @@ theorem traceError.wp_proof : traceError.spec (GF := GF) (hG := hG) := by
   wp_alloc_auto
   wp_auto
   iapply HΦ; ipureintro
-  simp [interface.nil]
+  simp
 
 end proof
 
