@@ -8,6 +8,7 @@ module
 public import Proof.go_etcd_io.raft.v3.TraceSimStr
 public import Proof.go_etcd_io.raft.v3.TraceSimLemmas
 public import Proof.go_etcd_io.raft.v3.TracedHooksDraft
+public import Proof.go_etcd_io.raft.v3.TraceSimRun
 
 @[expose] public section
 
@@ -62,6 +63,74 @@ theorem stateMatches_node (C : List w64) (s : NState) (a : Etcdraft.Server) (e :
   · rw [h7]; simp only [evConv, hcommit]; rw [gInt_of_lt _ bc]; rfl
   · rw [h8]; exact (setIds_mk_perm_eq xs C hxs).symm
   · rw [h8]; rfl
+
+/-- A node event's line. -/
+def nodeLine (e : TraceEv) (id vote : w64) (xs : List w64) : Etcdraft.Line :=
+  { ev := evConv e, nid := idAbs id, vote := idAbs vote, role := (evConv e).role,
+    conf := (Etcdraft.SetIds.mk (xs.map idAbs), Etcdraft.SetIds.mk (([] : List w64).map idAbs)),
+    «from» := 0, to := 0 }
+
+theorem confAbs_nodup (C : List w64) : (confAbs C).Nodup :=
+  (setIds_mk_sorted _).imp (fun h => Nat.ne_of_lt h)
+
+/-- **The `Commit` line's step** (the global part, pure): from a run reaching `σ`, raft's `Commit`
+event of node `id` (the state `s` it logged, after its commit), node `id`'s server `a` a leader whose
+`AdvanceCommitIndex` commits to `n`, the committed server `R`-related to `s`, the line past the
+node's bootstrap lines, and the invariants at the result: the run extends to `σ.commitTo id n`. -/
+theorem simRun_commit (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (hrun : SimRun C L σ)
+    (hL : L ≠ []) (e : TraceEv) (id : w64) (s : NState) (cfg : CfgM)
+    (hev : NodeEvOf rsmCommit id s cfg e) (hin : (elements cfg.incoming).Perm C) (hout : cfg.outgoing = ∅)
+    (hC : id ∈ C) (a : Etcdraft.Server) (n : Int) (hσ : σ.s (idAbs id) = a) (hsrv : σ.server = confAbs C)
+    (hlead : a.state = Etcdraft.leader) (hadv : AdvancesTo a n)
+    (hR : SimServerR C C.length (toPState s) { a with commitIndex := max a.commitIndex n })
+    (hs : LogShapeOk C.length (toPState s)) (hrole : s.role = .leader)
+    (bt : uint.Z s.term < 2 ^ 63) (bc : uint.Z s.logst.committed < 2 ^ 63)
+    (bl : uint.Z (plastIndex (toPState s)) < 2 ^ 63)
+    (hboot : ∀ lines ln, parseLines (L.map evConv) = .ok lines →
+      (bootFlags (confAbs C) (lines ++ [ln])).getD L.length false = false)
+    (hinv : (σ.commitTo (idAbs id) n).violated = .ok none) :
+    SimRun C (L ++ [e]) (σ.commitTo (idAbs id) n) := by
+  obtain ⟨hname, hnid, hterm, hvote, hcommit, hrl, hlog, ⟨xs, ys, hxs, hys, hconf⟩, hmsg, -, -, -, -⟩ := hev
+  have hys0 : ys = [] := by
+    rw [hout] at hys
+    have : elements (∅ : GSet w64) = [] :=
+      List.eq_nil_of_length_eq_zero (by rw [GMap.length_elements, GMap.size_empty])
+    rw [this] at hys; exact List.Perm.eq_nil hys
+  subst hys0
+  have hname' : gsStr e.name = "Commit" := by
+    simp only [rsmCommit, evtNames] at hname
+    have : e.name = go!"Commit" := by
+      have := hname; simp at this; exact this.symm
+    rw [this]; rfl
+  have hconf' : e.conf = (xs.map decStr, ([] : List w64).map decStr) := hconf
+  generalize hln : nodeLine e id s.vote xs = ln
+  have hparse : Etcdraft.parseLine L.length (evConv e) = .ok ln :=
+    hln ▸ parseLine_node L.length e id s.vote xs [] hnid hvote hconf' hmsg (by rw [hname']; rfl) (by rw [hname']; decide)
+  have hmatch : ln.stateMatches (σ.commitTo (idAbs id) n) (idAbs id) = true := by
+    rw [← hln]
+    apply stateMatches_node C s _ e id xs hR hs (by rw [hrole]; decide) hterm hcommit hrl hlog
+      (hxs.trans hin) bt bc bl
+    · simp [Etcdraft.State.commitTo, Etcdraft.State.upd, hσ]
+    · simp only [Etcdraft.State.commitTo, Etcdraft.State.upd]; rw [hsrv, List.contains_iff_mem, mem_confAbs]; exact hC
+  apply simRun_snoc_single C L σ _ e ln hrun hL hparse _ hinv
+  intro lines ts hl hts hl'
+  have hlen := parseLines_length _ _ hl
+  simp only [List.length_map] at hlen
+  have hline : (linesTrace C (lines ++ [ln])).line ts.l = ln := by
+    simp only [linesTrace, Etcdraft.Trace.line, hl', List.getD_eq_getElem?_getD]
+    rw [List.getElem?_append_right (by omega)]
+    simp [hlen]
+  apply next_commit _ ts (idAbs id) _ (by omega)
+  · simp [linesTrace, Etcdraft.Trace.len]; omega
+  · simp only [linesTrace]; rw [hl']; simpa using hboot lines ln hl
+  · rw [hline, ← hln]; simp [nodeLine, evConv, hname']
+  · rw [hline, ← hln]; rfl
+  · exact confAbs_nodup C
+  · simp only [linesTrace]; rw [mem_confAbs]; exact hC
+  · rw [hts]; exact hadv σ (idAbs id) hσ
+  · rw [hline]; exact hmatch
+  · rw [hline, ← hln]; simp only [nodeLine, evConv, hrl, hrole]; rfl
+  · rw [hts, hσ]; exact hlead
 
 end TraceSim
 
