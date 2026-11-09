@@ -771,6 +771,113 @@ theorem tail_sub_err {xs : List Line} {srv : SetIds} (pv cq : Bool) (h : ∀ j �
   simp only [tPer_find_none xs srv h, tLast_eq xs srv _ hx, hc, hs, bind, Except.bind, Bool.not_false, ite_true]
   rfl
 
+theorem mapM_take_err {α β ε : Type} (f : α → Except ε β) (l : List α) (m : Nat) (e : ε)
+    (h : (l.take m).mapM f = .error e) : l.mapM f = .error e := by
+  rw [← List.take_append_drop m l, List.mapM_append, h]; rfl
+
+/-- The configuration function of `newTraceTail`'s `cfgs`. -/
+abbrev tCfgF (xs : List Line) (srv : SetIds) : ID → Except TraceError (ID × SetIds) :=
+  fun i => do return (i, ← tBC xs (tLast xs srv i))
+
+theorem tail_cfg_err {xs : List Line} {srv : SetIds} (pv cq : Bool) (h : ∀ j ∈ srv, (bootstrapOf xs j).2 ≠ 0)
+    (hx : (xs.getD 0 default).nid ∈ srv) {c : SetIds}
+    (hc : tBC xs (bootstrapOf xs (xs.getD 0 default).nid).2 = .ok c) (hs : c.subset srv = true)
+    {m : Nat} {e : TraceError} (he : (srv.take m).mapM (tCfgF xs srv) = .error e) :
+    ∃ e, newTraceTail xs srv pv cq = .error e := by
+  refine ⟨e, ?_⟩
+  have := mapM_take_err _ _ _ _ he
+  unfold newTraceTail
+  simp only [tPer_find_none xs srv h, tLast_eq xs srv _ hx, hc, hs, bind, Except.bind, Bool.not_true,
+    Bool.false_eq_true, ite_false]
+  unfold tCfgF at this; simp only [bind, Except.bind] at this
+  rw [this]
+
+theorem tail_conf_err {xs : List Line} {srv : SetIds} (pv cq : Bool) (h : ∀ j ∈ srv, (bootstrapOf xs j).2 ≠ 0)
+    (hx : (xs.getD 0 default).nid ∈ srv) {c : SetIds}
+    (hc : tBC xs (bootstrapOf xs (xs.getD 0 default).nid).2 = .ok c) (hs : c.subset srv = true)
+    {m : Nat} {e : TraceError} (he : (srv.take m).mapM (tBconfF xs srv) = .error e) :
+    ∃ e, newTraceTail xs srv pv cq = .error e := by
+  cases hcf : srv.mapM (tCfgF xs srv) with
+  | error e' =>
+    refine ⟨e', ?_⟩
+    unfold newTraceTail
+    simp only [tPer_find_none xs srv h, tLast_eq xs srv _ hx, hc, hs, bind, Except.bind, Bool.not_true,
+      Bool.false_eq_true, ite_false]
+    unfold tCfgF at hcf; simp only [bind, Except.bind] at hcf
+    rw [hcf]
+  | ok cfgs =>
+    refine ⟨e, ?_⟩
+    have := mapM_take_err _ _ _ _ he
+    unfold newTraceTail
+    simp only [tPer_find_none xs srv h, tLast_eq xs srv _ hx, hc, hs, bind, Except.bind, Bool.not_true,
+      Bool.false_eq_true, ite_false]
+    unfold tCfgF at hcf; simp only [bind, Except.bind] at hcf
+    rw [hcf]; simp only
+    rw [this]
+
+theorem tail_ok {xs : List Line} {srv : SetIds} (pv cq : Bool) (h : ∀ j ∈ srv, (bootstrapOf xs j).2 ≠ 0)
+    (hx : (xs.getD 0 default).nid ∈ srv) {c : SetIds}
+    (hc : tBC xs (bootstrapOf xs (xs.getD 0 default).nid).2 = .ok c) (hs : c.subset srv = true)
+    {cfgs : List (ID × SetIds)} {bconfs : List (ID × List SetIds)}
+    (hcf : srv.mapM (tCfgF xs srv) = .ok cfgs) (hbf : srv.mapM (tBconfF xs srv) = .ok bconfs) :
+    newTraceTail xs srv pv cq = .ok
+      { lines := xs, server := srv, initSrv := c,
+        bootstrap := (List.range xs.length).map (fun k => (tPer xs srv).any (fun p => p.2.1.getD k false)),
+        init :=
+          { server := srv, s := (fun i => tServerOf xs srv cfgs bconfs i), messages := [],
+            pendingMessages := [], reconfigCount := 0, preVote := pv, checkQuorum := cq } } := by
+  unfold newTraceTail
+  simp only [tPer_find_none xs srv h, tLast_eq xs srv _ hx, hc, hs, bind, Except.bind, Bool.not_true,
+    Bool.false_eq_true, ite_false]
+  unfold tCfgF at hcf; simp only [bind, Except.bind] at hcf
+  rw [hcf]; simp only
+  rw [hbf]; rfl
+
+theorem mapM_pair_fst {β ε : Type} (g : ID → Except ε (ID × β)) (hg : ∀ i r, g i = .ok r → r.1 = i) :
+    ∀ (l : List ID) (r : List (ID × β)), l.mapM g = .ok r → r.map Prod.fst = l
+  | [], r, h => by simp [Pure.pure, Except.pure] at h; subst h; rfl
+  | i :: l, r, h => by
+    rw [List.mapM_cons] at h
+    simp only [bind, Except.bind] at h
+    cases hgi : g i with
+    | error e => rw [hgi] at h; cases h
+    | ok x =>
+      rw [hgi] at h
+      simp only at h
+      cases hl : l.mapM g with
+      | error e => rw [hl] at h; cases h
+      | ok r' =>
+        rw [hl] at h
+        simp only [Pure.pure, Except.pure, Except.ok.injEq] at h
+        subst h
+        simp [hg i x hgi, mapM_pair_fst g hg l r' hl]
+
+theorem find_append_some {β : Type} {l r : List (ID × β)} {j : ID} (hj : j ∈ l.map Prod.fst) :
+    (l ++ r).find? (fun p => p.1 == j) = l.find? (fun p => p.1 == j) := by
+  rw [List.find?_append]
+  cases h : l.find? (fun p => p.1 == j) with
+  | none =>
+    rw [List.find?_eq_none] at h
+    obtain ⟨p, hp, rfl⟩ := List.mem_map.1 hj
+    exact absurd (by simp) (h p hp)
+  | some x => rfl
+
+theorem find_append_none {β : Type} {l : List (ID × β)} {j : ID} (x : β) (hj : j ∉ l.map Prod.fst) :
+    (l ++ [(j, x)]).find? (fun p => p.1 == j) = some (j, x) := by
+  rw [List.find?_append]
+  have : l.find? (fun p => p.1 == j) = none := by
+    rw [List.find?_eq_none]
+    intro p hp hpj
+    exact hj (List.mem_map.2 ⟨p, hp, by simpa using hpj⟩)
+  rw [this]; simp
+
+theorem tServerOf_congr (xs : List Line) (srv : SetIds) (cfgs cfgs' : List (ID × SetIds))
+    (bconfs bconfs' : List (ID × List SetIds)) (i : ID)
+    (hc : cfgs.find? (fun p => p.1 == i) = cfgs'.find? (fun p => p.1 == i))
+    (hb : bconfs.find? (fun p => p.1 == i) = bconfs'.find? (fun p => p.1 == i)) :
+    tServerOf xs srv cfgs bconfs i = tServerOf xs srv cfgs' bconfs' i := by
+  unfold tServerOf; rw [hc, hb]
+
 end Etcdraft
 end EtcdGrove
 end Perennial
