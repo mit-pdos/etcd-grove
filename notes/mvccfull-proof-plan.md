@@ -593,3 +593,80 @@ All four are true of the Go code.
 - F4.1: drop the vacuous give-back of `Watch.contractR`'s empty branch.
 
 Noted: the tester's `Watch(k, k)` check assumes a non-empty key (`keysOf` gives none).
+
+## Draft: the glue list (2026-11-09)
+
+By `notes/spec-first-plan.md`'s definition: glue decides nothing over shared state (no lock, no
+invariant opened, no ghost update, no loop over protocol state) and only calls its callees and
+passes their results on; leaves (getters, pure helpers, constructors) are not glue. Linked by
+`etc/gen-link.py --mvccfull` (`etc/link-lean-first-mvccfull.txt`; `api.New.specR` and
+`lease.NewLessor.specR` are `?`, hypotheses of `open` and what reaches it).
+
+**Glue** (4):
+
+- `Main`: `MainConfig` then `Run`. **Blocked by a spec**: `MainConfig.spec`'s `mainMixOwn` still has
+  the read weights `[1, 1, 2, 1, 1, 2]` (hashes `2`), so `Run`'s `runCfgOk` (`readMixOk`) fails; the
+  Go (`config.go`; "Draft: the writer", Go fix 2) now has `[1, 1, 2, 1, 1, 0]`, at which it holds. The proof is
+  written up to that one obligation (`sorry`). `Main.spec`'s header ("not provable in F1") is stale.
+- `runner.writeRange`: `view`, `tw.Range` (through `shapes.law`), `checkRangeAt`. **Blocked by a
+  spec**: `Txn.Range.contract` takes and returns `traceutil.ownTrace trace te`, which
+  `runner.writeRange.spec` does not carry (nor does `runner.writeSub.spec`, for `Put`/`DeleteRange`).
+  Otherwise the chain closes as mvccrand's `writeOp` range arm (`pendOk`, `HistRevs`, `stateAt_pend`).
+- `runner.openBackend`: `DefaultBackendConfig`, the run's batch settings, `backend.New`. **Proved**
+  (with a local copy of `mvccrand.wp_DefaultBackendConfig`, which carries mvccrand's package
+  assumptions).
+- `stream.covered`: `expect`, `check`. **Proved.**
+
+**Not glue** (each with its reason):
+
+- Leaves (pure helpers, getters, constructors): `check`, `choose`, `pick`, `pick.specW`, `itoa`,
+  `normalize`, `walkKeys`, `MainConfig`, `FilePaths` (a loop over `Ops` building paths),
+  `memberPath`, `buildPath`, `copyState`, `inRange`, `checkKV`, `checkRangeAt`, `watcher.matches`,
+  `noCluster.Version` (returns `nil`), `runner.genKey`, `genEnd`, `genRange`, `genLease`, `newVal`,
+  `genSubs`, `gen` (the choices, over the writer's own model), `runner.view` (a getter of the history).
+- The history and the pending model (ghost updates, the history's lock): `history.snapshot`,
+  `appendRev`, `changesAt`, `addComp`, `pending.put`, `pending.del`.
+- Atomics in a member's invariant: `inBounds` (`hi.Load`), `runner.checkHook` (`saved.Load`),
+  `runner.begin` (`revHi.Store`), `runner.end` (history append, `revLo`/`revHi`, the counter),
+  `runner.checkStoreRange` (`cmpHi.Load`), `runner.compact` (`cmpHi`/`cmpLo`, the history).
+- The writer's chain (ghost updates of the incarnation and the census): `runner.open`
+  (`inc_open_backend`, `inc_alloc`), `shut` (`inc_census`, `inc_stop_image`), `newMember`
+  (a constructor: the member, its hook, its atomics), `restart` (`inc_retire`,
+  `memberState_split`, the counter's invariant), `restore`, `apply` (the model step),
+  `txn` and `writeSub` (they keep `pendOk`, the tester's agreement with mvcc's transaction),
+  `checkLeases` and `checkAll` (loops over the model's keys and leases, the revisions),
+  `write` (the writer's loop over the log), `Run` (allocates the run, its invariants).
+- Goroutines, wait groups, locks: `startReaders`, `stopReaders`, `readOne`, `startEpoch`,
+  `endEpoch`, `stream.act`, `watch`, `cancel`, `pick` (under `s.mu`), `recvOne`, `receive`,
+  `complete` (`s.mu`), `expect` (a loop over the history with the reader slot).
+
+## Review round 1: the tester (`notes/review/mvccfull-f1-tester-r1.md`)
+
+Every check in `receive`, `readOne`, `checkStoreRange`, `apply`'s helpers, `act`, `watch`,
+`cancel` and `endEpoch` is provable from the invariants and mvcc's contracts, except two.
+
+**First-tier:**
+
+- **F1.** `receive`'s `resp.Revision ≤ revHi`: a response can be at the pending `σ.rev + 1`, and
+  nothing records that the notified log only grows (`revHi` goes back down). *Repair:* a monotone
+  counter `m.nrev` at `|notifiedLog|` in `memberState`/`memberCarry`, exported through `readQ`, with
+  an `nrevHi_acc` law.
+- **F2.** `memberState` needs `1 ≤ revLo` (`watch`'s `floatLo`) and an absolute ceiling
+  `revHi < 2^62`, kept by the writer from `Ops < 2^38`. `revHi ≤ σ.rev + 1` would not do: `restore`
+  raises it first.
+- **F3.** `MainConfig.spec` is false: its read weights now end in 0, and `Main.spec` is provable
+  in F1.
+- **F4.** `hashing` needs a spec (false under `readMixOk`) and a link entry; `Run`'s header is
+  stale.
+- **F5.** `writerOwn` needs `1 ≤ nw`, the writer's own reader token.
+
+**Second-tier:**
+
+- S1: stale headers.
+- S2: one `pick` spec, `pick.spec` from `pick.specW`.
+- S3, S6: headers giving the reasons.
+- S4: the stream progress check over compacted watchers rests on `onceUpToAll`; keep it stated.
+- S7: noted.
+- **S5, a race in the tester's Go:** `watch` checked the watcher count and then incremented it,
+  so a member's streams could pass 512 watchers. *Fixed:* `regs.Add(1) > Watchers` refuses, so a
+  registration counts before it happens. Tests pass.

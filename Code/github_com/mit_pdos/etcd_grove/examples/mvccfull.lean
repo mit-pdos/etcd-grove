@@ -4537,7 +4537,6 @@ noncomputable def stream.watch.impl [GooseExts] [GoGlobalContext] : val :=
   (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType stream.ty)))) (Var "s"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType runner.ty)))) (App (Val (GoInstruction (StructFieldRef stream.ty go!"x"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stream.ty)))) (Var "s"))))
   (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType runner.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType runner.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -4689,10 +4688,8 @@ noncomputable def stream.watch.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType watcher.ty)))) (Pair (Var "w") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType runner.ty)))) (Pair (Var "x") (Var "$r0")))))))))
-  (App (Val doExecute)
-  (Let "$a0" (Val #(W64 1))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Int64.ty) go!"Add"))) (App (Val (GoInstruction (StructFieldRef member.ty go!"regs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType member.ty)))) (App (Val (GoInstruction (StructFieldRef stream.ty go!"m"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stream.ty)))) (Var "s")))))) (Var "$a0")))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGe go.int64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Int64.ty) go!"Load"))) (App (Val (GoInstruction (StructFieldRef member.ty go!"regs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType member.ty)))) (App (Val (GoInstruction (StructFieldRef stream.ty go!"m"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stream.ty)))) (Var "s")))))) (Val #())) (App (Val (GoInstruction (Convert go.int go.int64))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"Watchers"))) (App (Val (GoInstruction (StructFieldRef runner.ty go!"cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType runner.ty)))) (App (Val (GoInstruction (StructFieldRef stream.ty go!"x"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stream.ty)))) (Var "s")))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int64))) (Pair (Let "$a0" (Val #(W64 1))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Int64.ty) go!"Add"))) (App (Val (GoInstruction (StructFieldRef member.ty go!"regs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType member.ty)))) (App (Val (GoInstruction (StructFieldRef stream.ty go!"m"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stream.ty)))) (Var "s")))))) (Var "$a0"))) (App (Val (GoInstruction (Convert go.int go.int64))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"Watchers"))) (App (Val (GoInstruction (StructFieldRef runner.ty go!"cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType runner.ty)))) (App (Val (GoInstruction (StructFieldRef stream.ty go!"x"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stream.ty)))) (Var "s")))))))))))
   (App (Val doReturn)
   (Val #()))
   (App (Val doExecute)
@@ -4702,7 +4699,7 @@ noncomputable def stream.watch.impl [GooseExts] [GoGlobalContext] : val :=
 /-- cancel cancels a watcher not cancelled (marked first, so that the receiver stops counting on
     the stream's progress responses for it), and cancels it again, which may fail.
 
-    go: mvccfull.go:1328:18 -/
+    go: mvccfull.go:1329:18 -/
 noncomputable def stream.cancel.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -4765,7 +4762,7 @@ noncomputable def stream.cancel.impl [GooseExts] [GoGlobalContext] : val :=
 /-- expect returns w's next expected change at or after its position, up to revision upto (false if
     there is none).
 
-    go: mvccfull.go:1346:18 -/
+    go: mvccfull.go:1347:18 -/
 noncomputable def stream.expect.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "w"
@@ -4849,7 +4846,7 @@ noncomputable def stream.expect.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- covered checks that w has received every change up to P.
 
-    go: mvccfull.go:1363:18 -/
+    go: mvccfull.go:1364:18 -/
 noncomputable def stream.covered.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "w"
@@ -4891,7 +4888,7 @@ noncomputable def stream.covered.impl [GooseExts] [GoGlobalContext] : val :=
     sendLoop drains its channel down to a new watcher's stamp the same way): a stream progress
     response received later was sent after the watcher registered, and covers it.
 
-    go: mvccfull.go:1373:18 -/
+    go: mvccfull.go:1374:18 -/
 noncomputable def stream.recvOne.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -5002,7 +4999,7 @@ noncomputable def stream.recvOne.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- receive checks a response of the stream (s.mu held).
 
-    go: mvccfull.go:1401:18 -/
+    go: mvccfull.go:1402:18 -/
 noncomputable def stream.receive.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "resp"
@@ -5309,7 +5306,7 @@ noncomputable def stream.receive.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- complete says whether every watcher not cancelled or compacted has every change up to upto.
 
-    go: mvccfull.go:1482:18 -/
+    go: mvccfull.go:1483:18 -/
 noncomputable def stream.complete.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "upto"
@@ -5389,7 +5386,7 @@ noncomputable def stream.complete.impl [GooseExts] [GoGlobalContext] : val :=
 /-- write is the writer: the log's operations on the leader, the follower catching up, snapshots
     installed on the follower, restarts; then the follower caught up.
 
-    go: mvccfull.go:1502:18 -/
+    go: mvccfull.go:1503:18 -/
 noncomputable def runner.write.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -5477,7 +5474,7 @@ noncomputable def runner.write.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- checkAll reads every revision of m not compacted, in full.
 
-    go: mvccfull.go:1533:18 -/
+    go: mvccfull.go:1534:18 -/
 noncomputable def runner.checkAll.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -5601,7 +5598,7 @@ noncomputable def runner.checkAll.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Run runs the tester; it panics if a check fails.
 
-    go: mvccfull.go:1554:6 -/
+    go: mvccfull.go:1555:6 -/
 noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc Report.ty))) (App (Val (GoInstruction (GoZeroVal Report.ty))) (Val #())))
@@ -5733,7 +5730,7 @@ noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Main runs the tester with MainConfig (config.go), the members' files mvccfull-0-0.db,
     mvccfull-1-0.db, ... in the current directory (which must not exist).
 
-    go: mvccfull.go:1584:6 -/
+    go: mvccfull.go:1585:6 -/
 noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)

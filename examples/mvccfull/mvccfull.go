@@ -1283,10 +1283,11 @@ func (s *stream) pick() (mvcc.WatchID, bool) {
 // watch registers a watcher (the stream picks its id, as etcd's client asks): from revision 0
 // or any revision up to two past the member's, over any non-empty range, with any filter.
 func (s *stream) watch() {
-	if s.m.regs.Load() >= int64(s.x.cfg.Watchers) {
+	// counted before registering (a member's streams register concurrently): at most Watchers
+	// registrations per member between two restarts
+	if s.m.regs.Add(1) > int64(s.x.cfg.Watchers) {
 		return
 	}
-	s.m.regs.Add(1)
 	x := s.x
 	w := &watcher{key: x.genKey(), end: x.genEnd(), filter: choose(3)}
 	if len(w.end) > 0 && string(w.end) <= string(w.key) {
