@@ -258,6 +258,36 @@ Open question added: **9. R2's term bound** (R2's req item 5): the execution's s
 `2^64 - 1` must enter at `cluster_alloc.spec` (its owner); R1's statement has no such premise
 today. Left to the user with R2's report.
 
+## Round 3 (crash) (2026-11-09)
+
+2e's request (`req/go_etcd_io_raft_v3.md`, "from 2e, round 1"): restarts after a crash during the
+WAL's `Save`. Rebuilt: `etc/specs-build.sh --dir Spec/go_etcd_io/raft/v3` OK (227 modules).
+
+- **`raftState_crash.spec`** (`Api.lean`), over `Durable.crashed D b j hs` and
+  `Durable.confAboveOk` (`Model.lean`). With no node of the id running (`nodeVacant`, from the
+  adequacy theorem's crash rule: open question 8) and the batch's enter update unfired (consumed:
+  it is the evidence that `b` is the batch raft handed out at `D`), the client moves `raftState` to
+  `D` with the first `j` of the batch's entries written, and a hard state with the old or the
+  batch's term and vote and a commit in `[D.wcommit, batch's commit]`, within the written log; the
+  result's `wcommit` is its commit. A batch with a snapshot is not covered (etcd's `SaveSnap` comes
+  first: a crash there needs the snapshot's record as a separate step; not requested yet).
+- **Raft's argument**: nothing of the batch was acknowledged (votes and append acknowledgements
+  are `msgsAfterAppend`, stepped/sent only at `Advance` after the enter update; a leader's early
+  sends, `readyCheck`, are of a batch that changes neither its term nor its vote, and its own
+  acknowledgement counts only at `Advance`), so a suffix of it may be lost, and the old or new
+  term/vote are both safe. **The one condition raft needs is `confAboveOk`**: at most one
+  conf-change entry above the stored commit. Without it, the restarted node has its committed
+  conf changes in its log but a commit too low for the campaign guard, and can win counted in an
+  older configuration (`nonissues/raft-commit-lost-with-entries-kept.md`, a model execution).
+- **For 2e (a finding to carry):** etcd's WAL writes the entry records, then the state record,
+  then one fsync; a crash in between keeps a prefix of entries with the old commit, which can break
+  `confAboveOk` when the batch carries two or more conf changes above the old commit (a lagging
+  follower catching up across several member changes in one `Ready`). So etcd's crash restart is
+  covered only under `confAboveOk` of the state the WAL left; 2e must take it as a premise (scope
+  restriction) or show it. Open question for the user (10): accept the restriction, or treat the
+  nonissue as a blocking etcd/raft issue (a fix: raft's campaign guard scanning the whole stored log
+  above `applied`, or etcd writing the commit with the entries atomically).
+
 ## Notes for reviewers
 
 - The protocol model's `Membership.applyChange` and `decodeConfChange` are opaque here (R4's and
