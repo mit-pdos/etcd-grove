@@ -134,3 +134,18 @@ starters set it).
    all of a request's passing checks, `checkPost`'s pass should also report the store's revision
    against the info's (`isOpPermitted` passes only at `as.Revision() ≤ rev`: with a token's
    revision, every passing check sees the same users and roles).
+
+## from 4b
+
+The schema does **not** provide one `authBackendAt be a` slot: its specs of `NewAuthBackend` and of
+every `authBackend`/`authBatchTx`/`authReadTx` method are stated over the backend's own triples
+(`Schema.retOk`, `callOk`, `rdSect`, `wrSect`) and the transaction contracts (`txRd`, `txRange`,
+`txWr`) at the caller's view family, with the auth buckets' contents as values (`authEnabledOf`,
+`authRevOf`, `recsWf`, `recRes`/`recsRes` of `authpb` contents, `userName`/`roleName`). So
+`authBackendAt be a` is the auth store's realization over 4a's parts of `auth`, `authUsers`,
+`authRoles` (with your encoding of `a` as those three maps); the methods' specs are the composition.
+`UnsafeGetAllRoles` needs `txRange`, which only the batch transaction gives (the read transaction
+panics: `nonissues/etcd-auth-readtx-getallroles-panics.md`); `GetAllRoles` uses the batch
+transaction under `LockInsideApply` (the post-lock hook runs: the auth store's caller supplies its
+pre). `UnsafePutUser`/`UnsafePutRole` take the message read-only for good (`DFrac.discard`: the
+backend keeps its `Name` slice).

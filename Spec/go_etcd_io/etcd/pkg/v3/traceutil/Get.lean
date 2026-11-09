@@ -2,7 +2,7 @@
 ## `traceutil.Get(ctx)`
 
 **Users.** `EtcdServer.doSerialize` (`v3_server.go:1036`), `txn.rangeLocked`/`txn.put`/`txn.txn`
-helpers (`txn/range.go:60`, `put.go:49`, `txn.go:136`), `EnsureTrace`. Snippet: `trace.go`
+helpers (`txn/range.go:60`, `put.go:49`, `txn.go:136`), `EnsureTrace`. Snippet: `examples/specreq/pkgleaves/trace.go`
 (`ReqRequestTrace`: the trace the caller made is found again).
 
 **Proof sketch.** `ctx.Value(TraceKey{})` (`ctxTraceIs`: the trace `o`), the type assertion

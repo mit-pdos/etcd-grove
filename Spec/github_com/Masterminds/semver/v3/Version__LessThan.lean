@@ -2,7 +2,7 @@
 ## `(*Version).LessThan(o)`: assumed
 
 **Users.** rafthttp (`util.go:138,140`), the applier (`apply/backend.go:275`), the downgrade checks,
-`api/version.LessThan` (3h, used by the lessor's `greaterOrEqual`). Snippet: `semver.go`
+`api/version.LessThan` (3h, used by the lessor's `greaterOrEqual`). Snippet: `examples/specreq/pkgleaves/leaves.go`
 (`ReqParseCompare`).
 
 **Assumed** (`version.go:486,525-560`): `Compare(o) < 0`; it reads both (neither nil: `verAt`).

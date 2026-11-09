@@ -32,7 +32,7 @@ peers' `X-Server-Version`/`X-Min-Cluster-Version` headers, a committed `ClusterV
 `LessThan`), the membership (`membership/cluster.go:270,586,610`: `MustParse`, `String`), the
 schema (`schema/membership.go:205,233`: `MustParse`, `NewVersion`), the downgrade checks
 (`etcdserver/version/downgrade.go`: `New`, `Major`, `Minor`, `LessThan`). Snippets:
-`examples/specreq/pkgleaves/semver.go` (`ReqParseCompare`, `ReqMajorMinor`, `ReqRoundTrip`).
+`examples/specreq/pkgleaves/leaves.go` (`ReqParseCompare`, `ReqMajorMinor`, `ReqRoundTrip`).
 -/
 module
 

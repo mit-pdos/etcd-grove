@@ -1,7 +1,7 @@
 /-
 ## `Version.Major()`: assumed
 
-**Users.** rafthttp (`util.go:135`, `stream.go:712`), downgrade checks. Snippet: `semver.go` (`ReqMajorMinor`). **Assumed** (`version.go:360-368`): a
+**Users.** rafthttp (`util.go:135`, `stream.go:712`), downgrade checks. Snippet: `examples/specreq/pkgleaves/leaves.go` (`ReqMajorMinor`). **Assumed** (`version.go:360-368`): a
 field read. **Changes.** From `specs-ref`'s `Version__Major.lean`. **Margin.** None.
 -/
 module

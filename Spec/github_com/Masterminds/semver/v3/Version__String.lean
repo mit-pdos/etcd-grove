@@ -2,7 +2,7 @@
 ## `Version.String()`: assumed
 
 **Users.** The membership (`cluster.go:586`: `MustParse(c.version.String())`, a copy), the schema
-(`schema/membership.go:156`: the stored cluster version), logs. Snippet: `semver.go`
+(`schema/membership.go:156`: the stored cluster version), logs. Snippet: `examples/specreq/pkgleaves/leaves.go`
 (`ReqRoundTrip`). **Assumed** (`version.go:340-352`): `fmt.Fprintf` of the fields.
 **Changes.** From `specs-ref`'s `Version__String.lean`: the rendering. **Margin.** None.
 -/

@@ -1,0 +1,263 @@
+// Package bbolt holds the requirement snippets of bbolt's public API (batch 4c): how etcd's
+// backend (server/storage/backend), this repository's bank test (examples/bbolt/bank) and the
+// other users call it, each aspect they rely on a panic on its violation.
+package bbolt
+
+import (
+	"bytes"
+	"errors"
+	"io"
+	"os"
+	"syscall"
+
+	bolt "go.etcd.io/bbolt"
+	bolterrors "go.etcd.io/bbolt/errors"
+)
+
+var keyBucket = []byte("key")
+
+// REQ bbolt/backend-open: etcd's options open the file; a failure is fatal for etcd.
+// Users: server/storage/backend/backend.go:216-237 (newBackend).
+// Assumes: path is the database's closed file (boltFile, boltClosed); a pointer-typed logger
+// meeting boltLogger (here nil).
+// Specs: Open.spec; laws: fileHolds_alloc, fileHolds_new.
+func ReqBackendOpen(path string, noSync bool) *bolt.DB {
+	opts := &bolt.Options{MmapFlags: syscall.MAP_POPULATE, NoFreelistSync: true}
+	opts.NoSync = noSync
+	opts.NoGrowSync = noSync
+	db, err := bolt.Open(path, 0o600, opts)
+	if err != nil {
+		return nil // the backend logs and panics: an environment failure
+	}
+	return db
+}
+
+// REQ bbolt/backend-batch: the batch write transaction: create the bucket, put (with a
+// FillPercent for sequential keys), delete, range by Seek/Next, commit, then read the
+// transaction's statistics; every bbolt error here is fatal for etcd, so none may occur but a
+// commit's (an environment failure). The range sees the batch's own writes, in key order.
+// Users: server/storage/backend/batch_tx.go:136-246 (UnsafeCreateBucket, unsafePut,
+// UnsafeRange, unsafeRange, UnsafeDelete), :280-305 (commit), backend.go:1101 (unsafeBegin).
+// Assumes: db open; keyBucket holds no nested bucket; k1 < k2 (bytes.Compare), both non-empty and
+// within MaxKeySize.
+// Specs: DB.Begin.spec (write), Tx.CreateBucketIfNotExists.spec, Tx.Bucket.spec, Bucket.Put.spec,
+// Bucket.Delete.spec, Bucket.Cursor.spec, Cursor.Seek.spec, Cursor.Next.spec, Tx.Commit.spec,
+// Tx.Stats.spec; laws: boltTx_fill, bktH_live, txBytes_acc, boltState_commit_au.
+func ReqBackendBatch(db *bolt.DB, k1, k2 []byte) {
+	tx, err := db.Begin(true)
+	if err != nil {
+		return // the database was closed
+	}
+	if _, err := tx.CreateBucketIfNotExists(keyBucket); err != nil {
+		panic("batch: create bucket failed")
+	}
+	b := tx.Bucket(keyBucket)
+	if b == nil {
+		panic("batch: bucket missing after create")
+	}
+	b.FillPercent = 0.9
+	if err := b.Put(k1, []byte("v1")); err != nil {
+		panic("batch: put failed")
+	}
+	if err := b.Put(k2, []byte("v2")); err != nil {
+		panic("batch: put failed")
+	}
+	if err := b.Delete(k1); err != nil {
+		panic("batch: delete failed")
+	}
+	c := b.Cursor()
+	var keys [][]byte
+	for k, _ := c.Seek(k1); k != nil; k, _ = c.Next() {
+		keys = append(keys, k)
+	}
+	if len(keys) == 0 || !bytes.Equal(keys[0], k2) {
+		panic("batch: range does not start at the next key")
+	}
+	for i := 1; i < len(keys); i++ {
+		if bytes.Compare(keys[i-1], keys[i]) >= 0 {
+			panic("batch: range out of order")
+		}
+	}
+	if v := b.Get(k2); !bytes.Equal(v, []byte("v2")) {
+		panic("batch: lost write")
+	}
+	err = tx.Commit()
+	_ = tx.Stats().RebalanceTime // read after the commit
+	if err != nil {
+		return // fatal in etcd: an environment failure
+	}
+}
+
+// REQ bbolt/backend-read: the shared read transaction: a snapshot that later commits do not
+// change, read concurrently through per-goroutine cursors; its size and the database's page size
+// for the metrics; rolled back on its own goroutine.
+// Users: server/storage/backend/read_tx.go:95-120 (UnsafeRange), backend.go:598-606
+// (finishDefrag's size), batch_tx.go:385-400 (the old read transaction's rollback).
+// Assumes: db open; the caller's thread token (and the writer goroutine's); the client keeps
+// boltState in an invariant (the writer's updates come from it).
+// Specs: DB.Begin.spec (read), DB.Update.spec, Tx.Bucket.spec, Bucket.Get.spec, Tx.Size.spec, Tx.DB.spec,
+// DB.Stats.spec (statSlot of the transaction), DB.Info.spec, Tx.Rollback.spec.
+func ReqBackendRead(db *bolt.DB, k []byte) {
+	tx, err := db.Begin(false)
+	if err != nil {
+		return
+	}
+	var before []byte
+	if b := tx.Bucket(keyBucket); b != nil {
+		before = append([]byte(nil), b.Get(k)...)
+	}
+	go func() { // a concurrent writer (not waited for: its commit may need to remap, which waits
+		// for this reader)
+		_ = db.Update(func(wtx *bolt.Tx) error {
+			b, err := wtx.CreateBucketIfNotExists(keyBucket)
+			if err != nil {
+				return err
+			}
+			return b.Put(k, []byte("other"))
+		})
+	}()
+	if b := tx.Bucket(keyBucket); b != nil {
+		if !bytes.Equal(b.Get(k), before) {
+			panic("read: the snapshot changed")
+		}
+	} else if before != nil {
+		panic("read: the bucket vanished from the snapshot")
+	}
+	size := tx.Size()
+	if size < 0 || size >= 1<<62 {
+		panic("read: size out of range")
+	}
+	d := tx.DB()
+	_ = size - int64(d.Stats().FreePageN)*int64(d.Info().PageSize)
+	if err := tx.Rollback(); err != nil {
+		panic("read: rollback failed")
+	}
+}
+
+// REQ bbolt/delete-bucket-not-found: deleting a bucket that is absent returns
+// ErrBucketNotFound, which the backend accepts; any other error is fatal.
+// Users: server/storage/backend/batch_tx.go:147-156 (UnsafeDeleteBucket).
+// Assumes: tx a write transaction; the root holds only buckets; name non-empty.
+// Specs: Tx.DeleteBucket.spec; laws: errIs_distinct.
+func ReqDeleteBucketNotFound(tx *bolt.Tx, name []byte) {
+	err := tx.DeleteBucket(name)
+	if err != nil && !errors.Is(err, bolterrors.ErrBucketNotFound) {
+		panic("delete bucket: unexpected error")
+	}
+	if tx.Bucket(name) != nil {
+		panic("delete bucket: still there")
+	}
+}
+
+// REQ bbolt/hash: View over the root cursor and each bucket's ForEach: every top-level key is a
+// bucket; ForEach visits keys in order.
+// Users: server/storage/backend/backend.go:424-455 (Hash).
+// Assumes: db open; the root holds only buckets (every write goes through the backend);
+// buckets hold no nested bucket.
+// Specs: DB.View.spec, Tx.Cursor.spec, Cursor.First.spec, Cursor.Next.spec, Tx.Bucket.spec,
+// Bucket.ForEach.spec.
+func ReqHash(db *bolt.DB) {
+	_ = db.View(func(tx *bolt.Tx) error {
+		c := tx.Cursor()
+		for next, _ := c.First(); next != nil; next, _ = c.Next() {
+			b := tx.Bucket(next)
+			if b == nil {
+				panic("hash: a top-level key is not a bucket")
+			}
+			var prev []byte
+			_ = b.ForEach(func(k, v []byte) error {
+				if prev != nil && bytes.Compare(prev, k) >= 0 {
+					panic("hash: ForEach out of order")
+				}
+				prev = append([]byte(nil), k...)
+				return nil
+			})
+		}
+		return nil
+	})
+}
+
+// REQ bbolt/snapshot: a read transaction's WriteTo streams an image of its snapshot of Size()
+// bytes, which, written to a file and synced, opens as that data.
+// Users: server/storage/backend/backend.go:381-424 (Snapshot), :1129-1133 (snapshot.Close);
+// etcdserver's snapshot sender and the maintenance service (through a pipe).
+// Assumes: db open; w has no ReadFrom (a pipe writer); the caller's thread token.
+// Specs: DB.Begin.spec (read), Tx.Size.spec, Tx.WriteTo.spec, Tx.Rollback.spec; laws:
+// fileHolds_image.
+func ReqSnapshot(db *bolt.DB, w io.Writer) {
+	tx, err := db.Begin(false)
+	if err != nil {
+		return
+	}
+	size := tx.Size()
+	n, err := tx.WriteTo(w)
+	if err == nil && n != size {
+		panic("snapshot: short image")
+	}
+	if err := tx.Rollback(); err != nil {
+		panic("snapshot: rollback failed")
+	}
+}
+
+// REQ bbolt/defrag: a second database opened with a custom OpenFile and NoSync, filled from the
+// first by ForEach/Put across several commits, synced, closed (a second Close does nothing), and
+// the first closed and reopened at its path.
+// Users: server/storage/backend/backend.go:512-546 (createDefragTmpDB), :553-560
+// (cleanupTmpDB), :565-620 (finishDefrag), :796-858 (defragdb).
+// Assumes: tmp is a file the caller created at tmpPath (openFileOk); odb open, its close right
+// held; the root of odb holds only buckets, which hold no nested bucket.
+// Specs: Open.spec (custom OpenFile, NoSync), DB.Path.spec, DB.Begin.spec, Tx.Cursor.spec,
+// Cursor.First.spec, Cursor.Next.spec, Tx.Bucket.spec, Tx.CreateBucketIfNotExists.spec,
+// Bucket.ForEach.spec, Bucket.Put.spec, Tx.Commit.spec, DB.Sync.spec, DB.Close.spec.
+func ReqDefrag(odb *bolt.DB, tmp *os.File, tmpPath string) {
+	path := odb.Path()
+	if path == "" {
+		panic("defrag: open database without a path")
+	}
+	opts := &bolt.Options{NoSync: true, NoFreelistSync: true}
+	opts.OpenFile = func(string, int, os.FileMode) (*os.File, error) { return tmp, nil }
+	tmpdb, err := bolt.Open(tmpPath, 0o600, opts)
+	if err != nil {
+		return
+	}
+	tx, err := odb.Begin(false)
+	if err != nil {
+		tmpdb.Close()
+		return
+	}
+	tmptx, err := tmpdb.Begin(true)
+	if err != nil {
+		tx.Rollback()
+		tmpdb.Close()
+		return
+	}
+	c := tx.Cursor()
+	for next, _ := c.First(); next != nil; next, _ = c.Next() {
+		b := tx.Bucket(next)
+		if b == nil {
+			panic("defrag: a top-level key is not a bucket")
+		}
+		tmpb, err := tmptx.CreateBucketIfNotExists(next)
+		if err != nil {
+			panic("defrag: create bucket failed")
+		}
+		tmpb.FillPercent = 0.9
+		_ = b.ForEach(func(k, v []byte) error { return tmpb.Put(k, v) })
+	}
+	tx.Rollback()
+	if err := tmptx.Commit(); err != nil {
+		tmpdb.Close()
+		return
+	}
+	if err := tmpdb.Sync(); err != nil {
+		tmpdb.Close()
+		tmpdb.Close() // cleanupTmpDB closes again
+		return
+	}
+	tmpdb.Close()
+	odb.Close()
+	db, err := bolt.Open(path, 0o600, nil)
+	if err == nil {
+		db.Close()
+	}
+}

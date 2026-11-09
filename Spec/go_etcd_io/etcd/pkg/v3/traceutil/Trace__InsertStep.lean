@@ -1,7 +1,7 @@
 /-
 ## `(*Trace).InsertStep(at, time, msg, fields...)`
 
-**Users.** `raftRequest`, `Compact` (`v3_server.go:403,1027`: `at = 0`). Snippet: `trace.go`
+**Users.** `raftRequest`, `Compact` (`v3_server.go:403,1027`: `at = 0`). Snippet: `examples/specreq/pkgleaves/trace.go`
 (`ReqApplyTraceHandoff`).
 
 **Proof sketch.** `at < len(steps)`: `append(steps[:at+1], steps[at:]...)` (in bounds for

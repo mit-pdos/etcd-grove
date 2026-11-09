@@ -7,7 +7,7 @@ stated in the HTTP boundary's reader vocabulary (2f's `Http.readerAt`, `Http.rea
 reader built over a reader keeps its contract. No vocabulary of its own.
 
 Users: `rafthttp/http.go:121` (`pipelineHandler.ServeHTTP`), `rafthttp/snapshot_sender.go:195`
-(`createSnapBody`). Snippets: `examples/specreq/pkgleaves/ioutil.go` (`ReqLimitedRead`,
+(`createSnapBody`). Snippets: `examples/specreq/pkgleaves/leaves.go` (`ReqLimitedRead`,
 `ReqReaderAndCloser`).
 
 Left out: `NewExactReadCloser` (its one user, `snap.NewMessage`, is trusted as a whole, 2e),

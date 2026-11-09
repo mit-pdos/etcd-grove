@@ -59,12 +59,13 @@ The alarm and membership backends are translated names only (assumed specs), eac
 * `alarmBkt be al` (exclusive): **`be`'s `Alarm` bucket holds the alarms `al`** (as a set; `none`:
   no bucket yet), as the
   bucket's only writer sees it (2e's provisional `beAlarms`).
-* `memberBkts be st` (exclusive): **`be`'s `Members` and `MembersRemoved` buckets hold the view
-  `st`** (2e's `ClusterSt`; 2e's provisional `beMembers`).
+* `memberBkts be cb` (exclusive): **`be`'s `Members`, `MembersRemoved` and `Cluster` buckets hold
+  `cb`** (`ClusterBkts`: 2e's view `ClusterSt`, the stored cluster version and downgrade info;
+  `none`: not created yet; 2e's provisional `beMembers`).
 Intended realization: 4a's ownership of those buckets (the batch view, equal to the published one
 outside the writer's sections, since their holder is their only writer) with the records' encodings
 (an alarm: the marshalled `AlarmMember` as the key, an empty value; a member: its id's string ↦ its
-JSON; a removed id ↦ `removed`). Introduced by the backend's opener (2e's `OpenBackend` over 4a).
+JSON; a removed id ↦ `removed`; the cluster version: its `String()`; the downgrade info: its JSON). Introduced by the backend's opener (2e's `OpenBackend` over 4a).
 * The reads of these two (`GetAllAlarms`, `MustReadMembersFromBackend`) go through `be.ReadTx()`:
   each takes the caller's `threadTok` for its reader slot (the bounds plan) and gives it back.
 * `applyHook be Pre Q` (provisional, 4a's): `be`'s batch transaction's `LockInsideApply` runs its
@@ -96,6 +97,8 @@ public import Spec.google_golang_org.protobuf.proto.Api
 public import Spec.go_etcd_io.etcd.api.v3.Model
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Api
 public import Spec.go_uber_org.zap.Api
+public import Spec.github_com.Masterminds.semver.v3.Api
+public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.version
 
 set_option autoImplicit false
 
@@ -281,6 +284,22 @@ open Classical in
 def alarmsIns (al : List EtcdModel.Alarm) (a : EtcdModel.Alarm) : List EtcdModel.Alarm :=
   if a ∈ al then al else al ++ [a]
 
+open Classical in
+/-- An alarm set without `a`. -/
+def alarmsDel (al : List EtcdModel.Alarm) (a : EtcdModel.Alarm) : List EtcdModel.Alarm :=
+  al.filter (fun x => decide (x ≠ a))
+
+/-- **The membership buckets' contents** (`Members`, `MembersRemoved`, `Cluster`): the members and
+removed ids (2e's view), the stored cluster version (`String()` of a version), the stored downgrade
+info (`Enabled`, `TargetVersion`). -/
+structure ClusterBkts where
+  st : Membership.ClusterSt
+  ver : Option Semver.SemVer
+  dg : Option (Bool × GoString)
+
+/-- Fresh buckets: nothing stored. -/
+def ClusterBkts.empty : ClusterBkts := ⟨⟨[], []⟩, none, none⟩
+
 end model
 
 /-! ## Values and resources -/
@@ -428,8 +447,8 @@ def recsRes (t : go.GoType) (sl : GoSlice) (l : List GoString) : IProp GF :=
 /-- **`be`'s `Alarm` bucket holds `al`** (`none`: absent; exclusive; see the header). -/
 opaque alarmBkt (be : GoInterface) (al : Option (List EtcdModel.Alarm)) : IProp GF := iprop(True)
 
-/-- **`be`'s member buckets hold the view `st`** (exclusive; see the header). -/
-opaque memberBkts (be : GoInterface) (st : Membership.ClusterSt) : IProp GF := iprop(True)
+/-- **`be`'s membership buckets hold `cb`** (`none`: not created yet; exclusive; see the header). -/
+opaque memberBkts (be : GoInterface) (cb : Option ClusterBkts) : IProp GF := iprop(True)
 
 /-- (provisional, 4a's) **`be`'s `LockInsideApply` runs its post-lock hook from `Pre` to `Q`**. -/
 opaque applyHook (be : GoInterface) (Pre Q : IProp GF) : IProp GF := iprop(True)

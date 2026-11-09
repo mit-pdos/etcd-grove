@@ -4,7 +4,7 @@
 **Users.** rafthttp (`util.go:154,164,174,175`, `stream.go:613`: a peer's version header, etcd's
 constants), the applier (`apply/backend.go:272`: a committed `ClusterVersionSet`'s `Ver`), the
 membership (`cluster.go:270,586,610`), the schema (`schema/membership.go:205`: the stored cluster
-version). Snippets: `semver.go` (`ReqParseCompare`, `ReqRoundTrip`).
+version). Snippets: `examples/specreq/pkgleaves/leaves.go` (`ReqParseCompare`, `ReqRoundTrip`).
 
 **Assumed** (`version.go:327-333`): `NewVersion(s)`, a panic on its error. The premise is the
 callers': a header the protocol says parses, a constant (`parse_version`, `parse_plain`), a stored

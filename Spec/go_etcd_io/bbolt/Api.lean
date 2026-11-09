@@ -99,7 +99,7 @@ Persistence, timelessness, fractions, agreement, validity, exclusivity of each p
 `boltTx_later`, `boltTx_nonnull`, `boltTx_base`, `bktH_live`, `txBytes_acc`, `boltTx_fill`; the
 updates a holder of `boltState γ 1 σ` can supply (`boltState_read_au`, `boltState_commit_au`,
 `boltState_settle_au`); the file laws (`fileHolds_new`, `fileHolds_image`, `fileHolds_alloc`) and
-**the crash law** (`boltCrash`); the error values (`errIs`, `errIs_distinct`).
+**the crash law** (`boltCrash`); the error values (`errIs_init`, `errIs_distinct`).
 
 ## Requirement snippets (`examples/specreq/bbolt/`)
 
@@ -293,7 +293,9 @@ def bboltErrNames : List GoString :=
    go_etcd_io.bbolt.errors.ErrIncompatibleValue, go_etcd_io.bbolt.errors.ErrTxNotWritable,
    go_etcd_io.bbolt.errors.ErrTxClosed, go_etcd_io.bbolt.errors.ErrDatabaseNotOpen,
    go_etcd_io.bbolt.errors.ErrKeyRequired, go_etcd_io.bbolt.errors.ErrKeyTooLarge,
-   go_etcd_io.bbolt.errors.ErrBucketNameRequired]
+   go_etcd_io.bbolt.errors.ErrBucketNameRequired, go_etcd_io.bbolt.errors.ErrDatabaseReadOnly,
+   go_etcd_io.bbolt.errors.ErrInvalid, go_etcd_io.bbolt.errors.ErrVersionMismatch,
+   go_etcd_io.bbolt.errors.ErrChecksum]
 
 /-- The persistent predicates. -/
 def persistent.spec [HasExt osFsExt] : Prop :=
@@ -432,10 +434,17 @@ def boltCrash.spec [HasExt osFsExt] : Prop :=
 def boltLogger_nil.spec [HasExt osFsExt] : Prop :=
   ⊢ boltLogger (GF := GF) GoInterface.nil
 
-/-- **bbolt's error values are distinct and non-nil** (`errors.New`'s in `bbolt/errors`'
-initializer; batch 4c needs: `ErrBucketNotFound`, `ErrBucketExists`, `ErrIncompatibleValue`,
+/-- **bbolt's error variables hold their values after initialization** (`errors.New`'s in
+`bbolt/errors`' initializer; batch 4c needs: `ErrBucketNotFound`, `ErrBucketExists`, `ErrIncompatibleValue`,
 `ErrTxNotWritable`, `ErrTxClosed`, `ErrDatabaseNotOpen`, `ErrKeyRequired`, `ErrKeyTooLarge`,
-`ErrBucketNameRequired`). A fact of the package's globals after initialization. -/
+`ErrBucketNameRequired`, `ErrDatabaseReadOnly`; batch 4d's `Meta.Validate`: `ErrInvalid`,
+`ErrVersionMismatch`, `ErrChecksum`). A fact of the package's globals after initialization
+(`req/go_etcd_io_bbolt_errors.md`, from 4d). -/
+def errIs_init.spec : Prop :=
+  ∀ (g : GoString), g ∈ bboltErrNames →
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.errors ⊢ ∃ e : GoInterface, errIs g e
+
+/-- The values `errIs_init` gives are non-nil and pairwise distinct. -/
 def errIs_distinct.spec : Prop :=
   ∀ (g g' : GoString) (e e' : GoInterface), g ∈ bboltErrNames → g' ∈ bboltErrNames →
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.errors ∗ errIs g e ∗ errIs g' e' ⊢

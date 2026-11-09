@@ -115,3 +115,15 @@ Used by: `KV.Put`, `KV.DeleteRange`, `KV.Restore`, `Txn.Put`, `Txn.DeleteRange` 
 
 `leaseBootRes_intro` (provisional): at `ecfg.leaseExpiry = true`, with no premise; the no-expiry mode
 needs your deployment premise (`batch-2e.md` Q6).
+
+## from 4b
+
+The schema's lease functions are stated over the transaction contracts (`Schema.txRd`, `txWr` of the
+batch transaction, lock held, at the caller's view family `R` and scope with `lease` whole) and the
+bucket's encoding `Schema.leaseBktIs m L` (`L : w64 → Option LeaseRec`: id ↦ (id, TTL, remaining)):
+`UnsafeCreateLeaseBucket.spec`, `MustUnsafeGetAllLeases.spec` (fresh `leaseAt p r`, in id order),
+`MustUnsafePutLease.spec` (any `leaseEnc` of the struct's fields under `beU64 id`),
+`UnsafeDeleteLease.spec`. Your provisional `beLeases be B` is then your realization: `∃ m L, R V`
+with `V .lease = some m ∧ leaseBktIs m L ∧ B = (TTL of L)` for 4a's part (`req/..._storage_backend.md`,
+"from 4b"). `semver`: `Semver.Version.LessThan.spec` computes `SemVer.ltb` of the two models
+(`api/version.LessThan` of two `Version` values is 3h's, over `Semver.verOf`).

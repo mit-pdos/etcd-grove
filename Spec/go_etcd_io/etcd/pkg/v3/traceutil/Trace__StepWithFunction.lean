@@ -3,7 +3,7 @@
 
 **Users.** `txn.Txn` (`txn/txn.go:45`: the compare-and-check under the write transaction),
 `txn.getPrevKV` (`put.go:106`: a range of the write transaction, which steps the same trace). The
-function may use the trace: it is lent to it. Snippet: `trace.go` (`ReqRequestTrace`).
+function may use the trace: it is lent to it. Snippet: `examples/specreq/pkgleaves/trace.go` (`ReqRequestTrace`).
 
 **Proof sketch.** `disableStep` (a store), `f()` with the trace lent (its `Step`s are no-ops),
 `enableStep`, `Step`.

@@ -165,3 +165,54 @@ Changes to `Mvcc.keyBackend` (`ApiStorage.lean`) after review:
    has `Meta` already).
 5. `mvccImage_obs` takes the store's open token; the shutdown law gives the final image
    (`mvccClosed_rest`), so a reopen of the closed file has its `mvccImage` (item 4 of "from 3e").
+
+## from 4b
+
+The schema (`Spec/go_etcd_io/etcd/server/v3/storage/schema/Api.lean`, namespace `Schema`) is stated
+over **what it needs of a transaction**, not over the backend's predicates (as mvcc's `ApiStorage`):
+every function taking a `tx` takes the caller's bundle `Schema.txRd tx S R` (single-key
+`UnsafeRange`, `UnsafeForEach` in key order), `Schema.txRange tx S R` (interval `UnsafeRange` of a
+whole bucket) and/or `Schema.txWr tx S R` (`UnsafePut`, `UnsafeDelete`, `UnsafeCreateBucket`), where
+`R : Schema.View → IProp` is the **caller's** family (its share of the backend) and `S : Schema.Scope`
+its buckets (whole) and keys (of a shared bucket: `Meta`). The struct methods that lock (`authBackend`,
+`authBatchTx.Lock/Unlock`, `ReadConsistentIndex`, `CreateMetaBucket`) take the triples of the
+backend calls as premises (`Schema.retOk`, `callOk`, `rdSect`, `wrSect`). So 4a owes **laws that
+produce these bundles** for the transactions it hands out, for the parts it hands out:
+
+1. **Per-part ownership** of the backend's data at the granularity the users need: whole buckets
+   (`lease`, `alarm`, `members`, `membersRemoved`, `cluster`, `auth`, `authUsers`, `authRoles`, and
+   mvcc's `key`), single keys of `meta` (`consistent_index`+`term`: 2d; `confState`: 2e;
+   `scheduledCompactRev`+`finishedCompactRev`+`meta`'s existence: 3e). For each part: the batch view
+   (what the batch transaction reads, its own writes included), the published view (what a read
+   transaction begun now reads: equal to the batch view outside a write section of the part's
+   writer, since `Unlock` writes the buffer back), and the durable image (the last commit's: what a
+   crash leaves and the opener finds).
+2. **Batch transaction, lock held** (`LockInsideApply`/`LockOutsideApply` to `Unlock`): `txRd`,
+   `txRange` and `txWr` at the part's batch view (`UnsafeDelete` of `key` with the safe-range lock
+   only, as mvcc's contract says; the schema never deletes from `key`).
+   ```go
+   tx := le.b.BatchTx(); tx.LockInsideApply(); defer tx.Unlock(); schema.MustUnsafePutLease(tx, &lpb) // lease.go:57-60
+   ```
+3. **Read transaction between `RLock` and `RUnlock`**: `txRd` at its snapshot of the part's published
+   view; `txRange` only for `key` (etcd's read transactions panic on an interval range of a
+   non-safe-range bucket: `nonissues/etcd-auth-readtx-getallroles-panics.md`). Also **the shared
+   `ReadTx()` without `RLock` while the caller holds the batch lock** (`cindex.go:107`,
+   `UnsafeConsistentIndex` from the post-lock hook): the batch lock excludes the read buffer's
+   writers (write-back, commit), so `txRd` holds there too.
+4. **The lock calls' triples** for `rdSect`/`wrSect`/`callOk`: `BatchTx()`/`ReadTx()` return fixed
+   values (`retOk`); `RLock` takes a reader slot (the caller's `threadTok`, bounds plan) and gives
+   the snapshot; `RUnlock` gives the slot back; `LockInsideApply` runs the post-lock hook
+   (**`Schema.applyHook be Pre Q`**, provisional in the schema's Api: 3c's `beHook` with
+   `Mvcc.hookRun`; replace by yours); `Unlock` publishes; `Commit` and `ForceCommit` commit (their
+   pre-commit hook's resources are the lock invariant's, as 3e's `storageReq`).
+5. **The two schema-owned parts of the names-only wrappers**, `Schema.alarmBkt be al` (the `Alarm`
+   bucket holds the alarms `al`, `none`: absent) and `Schema.memberBkts be st` (the member buckets
+   hold 2e's `ClusterSt`): realized over your part ownership (their records' encodings are in the
+   schema's header); your opener's post (through 2e's `OpenBackend`/`OpenSnapshotBackend`) should
+   give the parts so that 2e can introduce them for the image it opened.
+6. **Bucket values are not constants**: `schema.Key` etc. hold `bucket` structs whose name slices
+   are allocated at the package's initialization, so a contract over an opaque constant value per
+   bucket (3e's `Mvcc.bucketVal`) cannot be proved of an execution. Quantify over
+   `Schema.bucketAt b bv` (persistent; `bucketVars_init` gives it for the package's variables; the
+   backend only calls `bv.ID()`, `Name()`, `IsSafeRangeBucket()`: `bucket.*.spec`).
+Used by: every spec of `Spec/go_etcd_io/etcd/server/v3/storage/schema/`.

@@ -89,7 +89,8 @@ membership, alarms, the schema's version. So the vocabulary is **one image, owne
 * `dbOpenOk cfg` (opaque `Prop`): **the environment premise**: bbolt's `Open` of `cfg.Path` with
   the backend's options succeeds (the file is a bbolt database or absent, the lock is free or
   `Timeout` is zero, the mmap of `MmapSize` succeeds). `newBackend` panics otherwise.
-* Contracts (transparent): `hookOk γ hk Pk` (the pre-commit hooks' triple), `commitOk γ Pk` (the
+* Contracts (transparent): `hookOk γ hk Pk` (the pre-commit hooks' triple; `hookFnOk` of a
+  `HookFunc`), `commitOk γ Pk` (the
   client's commit step), `beReq γ Pk X Y` (a forced commit's per-call step), `hookRun Pk f Pre Q`
   (the post-lock hook's triple), `visitOk` (a `ForEach` visitor), `writeOk` (an `io.Writer`),
   `ignOk` (`Hash`'s filter); `bytesListAt`, `covers`, `writable`, `beNew` (what `New` hands its
@@ -98,12 +99,13 @@ membership, alarms, the schema's version. So the vocabulary is **one image, owne
 ## Laws
 
 `isBackend_persistent`, `beOpen_fractional`, `beCur_split`, `beCur_excl`, `beCur_agree`,
-`beVis_split`, `beVis_none`, `beVis_timeless`, `beVis_drop`, `beNoVis_persistent`, `beNoVis_mono`,
-`beSess_widen`, `beSess_cur`, `beSess_vis`, `beCurIs_cur`, `beCurIs_vis`, `beHist_timeless`,
+`beVis_split`, `beVis_agree`, `beVis_none`, `beVis_timeless`, `beVis_drop`, `beNoVis_persistent`,
+`beNoVis_mono`, `beNoVis_excl`, `beSess_excl`, `beSess_widen`, `beSess_cur`, `beSess_vis`,
+`beCurIs_cur`, `beCurIs_vis`, `beCurIs_flush`, `beHist_timeless`,
 `beHist_mem`, `beHist_final`, `beCommitted_persistent`, `beFinal_persistent`, `beFinal_cur`,
-`beRdToks_split`, `beReaderN_ge`, `beHook_fractional`, `beHook_agree`, `beHook_persistent`,
+`beRdToks_split`, `beReaderN_ge`, `beHook_fractional`, `beHook_agree`, `beHook_persistent`, `beDel_excl`,
 `beCur_freeze`, `beMade_persistent`, `beMade_cur`, `beFile_timeless`, `beFile_excl`, `bucketOk_persistent`,
-`bucketOk_id`, `envOk_persistent`, `imgBytes_size`, `beReq_true`.
+`bucketOk_id`, `envOk_persistent`, `imgBytes_size`, `beReq_true`, `beReq_persistent`.
 
 ## Requirement snippets
 
@@ -137,13 +139,21 @@ opaque BeNames : Type := Unit
 section model
 variable [GooseExts]
 
-/-- **The database as etcd sees it**: which top-level buckets exist and their entries. -/
+/-- **The database as etcd sees it**: which top-level buckets exist and their entries; and, in a
+visible image only, for each bucket whether **the read buffer surely holds none of its entries**
+(`clean`: a lower bound, kept by commits, which empty the buffer, and cleared by a written-back put;
+meaningless in a batch or committed image). -/
 structure Image where
   made : GoString → Bool
   ents : GoString → GoString → Option GoString
+  clean : GoString → Bool
 
 /-- A fresh database: no bucket (bbolt's `init`). -/
-def Image.empty : Image := ⟨fun _ => false, fun _ _ => none⟩
+def Image.empty : Image := ⟨fun _ => false, fun _ _ => none, fun _ => true⟩
+
+/-- The image with every bucket clean (the visible image of a just-opened backend, or at a
+commit). -/
+def Image.flushed (I : Image) : Image := { I with clean := fun _ => true }
 
 def Image.create (I : Image) (b : GoString) : Image :=
   { I with made := fun b' => if b' = b then true else I.made b' }
@@ -156,12 +166,15 @@ def Image.del (I : Image) (b k : GoString) : Image :=
 
 /-- The bucket `b` deleted with its entries (no-op if absent: `ErrBucketNotFound` is ignored). -/
 def Image.dropBkt (I : Image) (b : GoString) : Image :=
-  ⟨fun b' => if b' = b then false else I.made b', fun b' k' => if b' = b then none else I.ents b' k'⟩
+  { I with made := fun b' => if b' = b then false else I.made b',
+           ents := fun b' k' => if b' = b then none else I.ents b' k' }
 
-/-- A cell of the database: a bucket's existence, or one key of a bucket. -/
+/-- A cell of the database: a bucket's existence, one key of a bucket, or (visible images only)
+whether the read buffer holds none of a bucket's entries. -/
 inductive Cell where
   | bkt (b : GoString)
   | key (b k : GoString)
+  | buf (b : GoString)
 
 /-- A footprint: a set of cells. -/
 abbrev Fp := Cell → Prop
@@ -169,16 +182,20 @@ abbrev Fp := Cell → Prop
 def Fp.all : Fp := fun _ => True
 def Fp.none : Fp := fun _ => False
 def Fp.union (F G : Fp) : Fp := fun c => F c ∨ G c
-/-- A bucket's existence and all its keys. -/
-def Fp.bucket (b : GoString) : Fp := fun c => c = .bkt b ∨ ∃ k, c = .key b k
+/-- A bucket's existence, all its keys and its buffer flag. -/
+def Fp.bucket (b : GoString) : Fp := fun c => c = .bkt b ∨ c = .buf b ∨ ∃ k, c = .key b k
 /-- One key. -/
 def Fp.key (b k : GoString) : Fp := fun c => c = .key b k
 /-- A bucket's existence alone. -/
 def Fp.bkt (b : GoString) : Fp := fun c => c = .bkt b
 
-/-- `I` and `J` agree on `F`. -/
+/-- `I` and `J` agree on `F`'s data cells (existence and entries). -/
 def Image.agree (F : Fp) (I J : Image) : Prop :=
   ∀ b, (F (.bkt b) → I.made b = J.made b) ∧ ∀ k, F (.key b k) → I.ents b k = J.ents b k
+
+/-- Two visible images agree on `F`: its data cells and its buffer flags. -/
+def Image.agreeV (F : Fp) (I J : Image) : Prop :=
+  Image.agree F I J ∧ ∀ b, F (.buf b) → I.clean b = J.clean b
 
 /-- **A batch session** (see the header). -/
 structure Sess where
@@ -189,9 +206,19 @@ structure Sess where
 /-- A session begun at the image `I` (the visible image is the batch's between sessions). -/
 def Sess.init (I : Image) : Sess := ⟨I, I, fun _ _ => none⟩
 
-/-- **What readers see between the session's write-back and its commit**: its puts over `base`. -/
+/-- The session put to bucket `b`. -/
+def Sess.putIn (S : Sess) (b : GoString) : Prop := ∃ k v, S.puts b k = some v
+
+open Classical in
+/-- **What readers see between the session's write-back and its commit**: its puts over `base`;
+a bucket it put to no longer known clean. -/
 def Sess.mid (S : Sess) : Image :=
-  ⟨S.cur.made, fun b k => match S.puts b k with | some v => some v | none => S.base.ents b k⟩
+  ⟨S.cur.made, fun b k => match S.puts b k with | some v => some v | none => S.base.ents b k,
+   fun b => S.base.clean b && !(decide (S.putIn b))⟩
+
+/-- **What readers see after the session**: the batch image, with `mid`'s buffer flags (a commit
+empties the buffer, but `Unlock` commits only when it must: the flags stay a lower bound). -/
+def Sess.fin (S : Sess) : Image := { S.cur with clean := S.mid.clean }
 
 def Sess.put (S : Sess) (b k v : GoString) : Sess :=
   { S with cur := S.cur.put b k v,
@@ -229,14 +256,15 @@ def btRange (L : GoString → Option GoString) (k e : GoString) (limit : Int)
 
 /-- **A read transaction's range** (`baseReadTx.UnsafeRange`): an empty end the key alone (found
 in the buffer or in bbolt); a safe-range bucket's range split, unknown to the reader, into bbolt's
-part `A` and the buffer's `B` (the buffer's keys above bbolt's: the put rows' premise), the buffer's
-cut first (`n`) and returned last; any other bucket's at most one entry of the range, none only if
-the range is empty (`limit` is `1` there: the triple's premise). -/
-def rdRange (L : GoString → Option GoString) (safe : Bool) (k e : GoString) (limit : Int)
+part `A` and the buffer's `B` (the buffer's keys above bbolt's: the put rows' premise; `B` empty if
+the bucket is known clean), the buffer's cut first (`n`) and returned last; any other bucket's at
+most one entry of the range, none only if the range is empty (`limit` is `1` there: the triple's
+premise). -/
+def rdRange (L : GoString → Option GoString) (safe clean : Bool) (k e : GoString) (limit : Int)
     (l : List (GoString × GoString)) : Prop :=
   if e = [] then l = single L k
   else if safe then
-    ∃ all j, sortedEnts L k e all ∧
+    ∃ all j, sortedEnts L k e all ∧ (clean = true → j = all.length) ∧
       let A := all.take j
       let B := all.drop j
       let n := if 0 < limit then min limit.toNat B.length else B.length
@@ -392,9 +420,18 @@ def hookOk (γ : BeNames) (hk : GoInterface) (Pk : IProp GF) : IProp GF :=
     iprop(□ ∀ (q : Qp) (S : Sess) (Φ : val → IProp GF),
       Pk -∗ beSess γ q Fp.none S -∗ ⌜S.base.ents = S.cur.ents⌝ -∗
       ▷ (∀ (F : Fp) (S' : Sess) (Ψ : IProp GF), beSess γ q F S' -∗
-          (AU <{ ∃∃ (V : Image), beVis γ F V }> @ ⊤, ∅ <{ beVis γ F S'.cur, COMM Ψ }>) -∗
+          (AU <{ ∃∃ (V : Image), beVis γ F V }> @ ⊤, ∅ <{ beVis γ F S'.fin, COMM Ψ }>) -∗
           (Ψ -∗ Pk) -∗ Φ #()) -∗
       WP (App (Val #(methods h.ty go!"OnPreCommitUnsafe" h.v)) (Val #(btIface γ))) {{ Φ }})
+
+/-- **A `HookFunc`'s contract** (`NewHooks`'s argument): `hookOk`'s, for the function itself. -/
+def hookFnOk (γ : BeNames) (f : GoFunc) (Pk : IProp GF) : IProp GF :=
+  iprop(□ ∀ (q : Qp) (S : Sess) (Φ : val → IProp GF),
+    Pk -∗ beSess γ q Fp.none S -∗ ⌜S.base.ents = S.cur.ents⌝ -∗
+    ▷ (∀ (F : Fp) (S' : Sess) (Ψ : IProp GF), beSess γ q F S' -∗
+        (AU <{ ∃∃ (V : Image), beVis γ F V }> @ ⊤, ∅ <{ beVis γ F S'.fin, COMM Ψ }>) -∗
+        (Ψ -∗ Pk) -∗ Φ #()) -∗
+    WP (App (Val #f) (Val #(btIface γ))) {{ Φ }})
 
 /-- **A forced commit's per-call step**: at the commit, holding `Pk`, the caller's `X` and the
 committed whole image `I`, give `Pk` back and get `Y` (persistent). -/
@@ -440,7 +477,7 @@ def ignOk (ign : GoFunc) : IProp GF :=
 /-- **What `New` hands its client's allocation step**: the history at the file's image, the whole
 image (batch and visible), the reader slots, the open token, the hook (none), the delete right. -/
 def beNew (γ : BeNames) (I : Image) : IProp GF :=
-  iprop(beHist γ [I] ∗ beCur γ Fp.all I ∗ beVis γ Fp.all I ∗ beRdToks γ beReaderN ∗
+  iprop(beHist γ [I] ∗ beCur γ Fp.all I ∗ beVis γ Fp.all I.flushed ∗ beRdToks γ beReaderN ∗
     beOpen γ 1 ∗ beHook γ (DFrac.own 1) func.nil ∗ beDel γ)
 
 end vocab
@@ -473,7 +510,7 @@ def beCur_agree.spec : Prop := ∀ γ F C C', Image.agree F C C' →
 def beVis_split.spec : Prop := ∀ γ (F G : Fp) V, (∀ c, ¬ (F c ∧ G c)) →
   (beVis (GF := GF) γ (Fp.union F G) V ⊣⊢ beVis γ F V ∗ beVis γ G V)
 
-def beVis_agree.spec : Prop := ∀ γ F V V', Image.agree F V V' →
+def beVis_agree.spec : Prop := ∀ γ F V V', Image.agreeV F V V' →
   (beVis (GF := GF) γ F V ⊢ beVis γ F V')
 
 /-- Tracking nothing is free. -/
@@ -493,6 +530,10 @@ def beNoVis_mono.spec : Prop := ∀ γ (F G : Fp), (∀ c, G c → F c) →
 def beNoVis_excl.spec : Prop := ∀ γ (F G : Fp) V,
   beNoVis (GF := GF) γ F ∗ beVis γ G V ⊢ ⌜∀ c, ¬ (F c ∧ G c)⌝
 
+/-- One session at a time. -/
+def beSess_excl.spec : Prop := ∀ γ q q' F F' S S',
+  beSess (GF := GF) γ q F S ∗ beSess γ q' F' S' ⊢ iprop(False)
+
 /-- A session may promise to publish more cells. -/
 def beSess_widen.spec : Prop := ∀ γ q (F G : Fp) S,
   beSess (GF := GF) γ q F S ⊢ beSess γ q (Fp.union F G) S
@@ -505,13 +546,19 @@ def beSess_cur.spec : Prop := ∀ γ q F S G C,
 does not publish is unchanged. -/
 def beSess_vis.spec : Prop := ∀ γ q F S G V,
   beSess (GF := GF) γ q F S ∗ beVis γ G V ⊢
-    ⌜Image.agree G S.base V ∧ ∀ c, G c → ¬ F c → Image.agree (fun c' => c' = c) S.cur S.base⌝
+    ⌜Image.agreeV G S.base V ∧ ∀ c, G c → ¬ F c → Image.agree (fun c' => c' = c) S.cur S.base⌝
 
 def beCurIs_cur.spec : Prop := ∀ γ I G C,
   beCurIs (GF := GF) γ I ∗ beCur γ G C ⊢ ⌜Image.agree G I C⌝
 
+/-- At a commit point (where `beCurIs` is lent), every tracked cell's entries are the batch
+image's. -/
 def beCurIs_vis.spec : Prop := ∀ γ I G V,
   beCurIs (GF := GF) γ I ∗ beVis γ G V ⊢ ⌜Image.agree G I V⌝
+
+/-- **At a commit point the read buffer is empty**: a tracker may record its buckets clean. -/
+def beCurIs_flush.spec : Prop := ∀ γ I G V,
+  beCurIs (GF := GF) γ I ∗ beVis γ G V ==∗ beCurIs γ I ∗ beVis γ G V.flushed
 
 def beHist_timeless.spec : Prop := ∀ γ L, Timeless (beHist (GF := GF) γ L)
 

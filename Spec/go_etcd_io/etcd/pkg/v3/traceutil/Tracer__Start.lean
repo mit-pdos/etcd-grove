@@ -2,7 +2,7 @@
 ## `traceutil.Tracer.Start(ctx, name, opts...)`: assumed (otel)
 
 **Users.** The server's request entry points (`v3_server.go:108,160,297,312,329,384,441,472,490`,
-`defer span.End()`), the watch stream (`v3rpc/watch.go`). Snippet: `trace.go` (`ReqRequestTrace`).
+`defer span.End()`), the watch stream (`v3rpc/watch.go`). Snippet: `examples/specreq/pkgleaves/trace.go` (`ReqRequestTrace`).
 
 **Assumed** (otel is translated names-only). The package variable `Tracer` holds the tracer
 `noop.NewTracerProvider().Tracer(...)` from the package's initialization (`tracerAt`, a law of the

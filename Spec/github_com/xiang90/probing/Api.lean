@@ -20,7 +20,7 @@ with any knowledge (it does: the probing handler answers anything), which is the
 which `AddHTTP`'s triple is true. That is 2f's to state on its protocol (`req/net_http.md`).
 
 Users: `rafthttp/transport.go:146-147,166,221-222,349-350,385-387`, `probing_status.go:41-57`.
-Snippet: `examples/specreq/pkgleaves/probing.go` (`ReqProberLifecycle`).
+Snippet: `examples/specreq/pkgleaves/leaves.go` (`ReqProberLifecycle`).
 -/
 module
 

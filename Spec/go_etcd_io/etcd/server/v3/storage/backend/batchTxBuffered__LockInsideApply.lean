@@ -1,0 +1,50 @@
+/-
+## `(*batchTxBuffered).LockInsideApply()` (promoted `batchTx.LockInsideApply`, `batch_tx.go:118-128`): translated
+
+**Users.** The apply thread's writers: mvcc's write transactions (`kvstore_txn.go:177`,
+`store.go:38` `SetScheduledCompact`), the lessor (`lease.go:58` `persistTo`), the schema's apply
+writers (`membership.go:58, 77, 152, 166`, `alarm.go:54, 70`, `auth.go:109`). Snippet `parts.go`
+(`ReqWriteThenRead` with a hook).
+
+**Proof sketch.** `t.lock()` (the session, `Pk`); the hook field read under the lock (its
+authority agrees with the caller's share: `f`); if non-nil, `ValidateCalledInsideApply` (a no-op:
+`envOk`) and `f()` by `hookRun Pk f Pre Q` (with `nil`, the caller's view shift).
+
+**Changes** (from `specs-ref`'s `plHookAt`): unchanged in shape (mvcc's contract row's). **Margin.**
+None.
+-/
+module
+
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Api
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace Backend
+
+open Iris Iris.BI
+
+section spec
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
+
+/-- **`t.LockInsideApply()`**: the batch lock, a session at the batch image, and the post-lock
+hook run under it from `Pk ∗ Pre` to `Q`. -/
+def batchTxBuffered.LockInsideApply.spec : Prop :=
+  ∀ (γ : BeNames) (b : Loc) (p : GoString) (Pk : IProp GF) (q : Qp) (dq : DFrac) (f : GoFunc)
+    (Pre Q : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ b p Pk ∗ beOpen γ q ∗ beHook γ dq f ∗ Pre ∗ hookRun Pk f Pre Q }}
+    (App (Val ((btLoc γ) @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty @!! go!"LockInsideApply")) (Val #()))
+  {{ RET #(); ∃ I : Image, beSess γ q Fp.none (Sess.init I) ∗ beHook γ dq f ∗ Q }}
+
+end spec
+
+end Backend
+end EtcdGrove
+end Perennial

@@ -2,7 +2,7 @@
 ## `probing.NewHandler()`: assumed
 
 **Users.** `Transport.Handler` (`rafthttp/transport.go:166`: at `ProbingPrefix`, `/raft/probing`).
-Snippet: `probing.go` (`ReqProberLifecycle`).
+Snippet: `examples/specreq/pkgleaves/leaves.go` (`ReqProberLifecycle`).
 
 **Assumed** (`server.go`): `&httpHealth{}`, whose `ServeHTTP` encodes `Health{OK: true, Now:
 time.Now()}` as JSON into the writer (a `Write`, committing `200` with no header set by it): so it

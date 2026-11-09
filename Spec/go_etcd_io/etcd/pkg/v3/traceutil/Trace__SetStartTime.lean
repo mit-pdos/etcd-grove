@@ -1,7 +1,7 @@
 /-
 ## `(*Trace).SetStartTime`
 
-**Users.** `raftRequest`, `Compact` (`v3_server.go:402,1026`). Snippet: `trace.go` (`ReqApplyTraceHandoff`).
+**Users.** `raftRequest`, `Compact` (`v3_server.go:402,1026`). Snippet: `examples/specreq/pkgleaves/trace.go` (`ReqApplyTraceHandoff`).
 
 **Proof sketch.** A store. **Changes.** From `specs-ref`'s `Trace__SetStartTime.lean` (the emptiness index
 dropped). **Margin.** None.

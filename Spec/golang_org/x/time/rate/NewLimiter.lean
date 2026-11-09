@@ -1,7 +1,7 @@
 /-
 ## `rate.NewLimiter(r, b)`: assumed
 
-**Users.** `startPeer` (`rafthttp/peer.go:216,227`). Snippet: `rate.go` (`ReqDialRetry`).
+**Users.** `startPeer` (`rafthttp/peer.go:216,227`). Snippet: `examples/specreq/pkgleaves/leaves.go` (`ReqDialRetry`).
 **Assumed** (`rate.go:69-75`): a struct literal, any `r` and `b`. **Changes.** From `specs-ref`'s
 `NewLimiter.lean`. **Margin.** None.
 -/

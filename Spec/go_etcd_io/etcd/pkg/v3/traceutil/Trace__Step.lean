@@ -3,7 +3,7 @@
 
 **Users.** The request path (`v3_server.go:140,176,347,414,1048`), `txn` (`range.go:78,81`,
 `txn.go:59`, ...), mvcc's transactions (`kvstore_txn.go:108,...`: the trace they were begun with),
-the read loop (`read.go:126,142`). Snippets: `trace.go` (`ReqRequestTrace`, `ReqMvccTodoTrace`,
+the read loop (`read.go:126,142`). Snippets: `examples/specreq/pkgleaves/trace.go` (`ReqRequestTrace`, `ReqMvccTodoTrace`,
 `ReqReadLoopTrace`).
 
 **Proof sketch.** Unless steps are disabled, `time.Now()` and an append keeping the fields slice.

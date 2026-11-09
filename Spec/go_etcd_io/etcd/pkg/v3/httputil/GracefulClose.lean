@@ -4,7 +4,7 @@
 **Users.** `streamReader.dial` (`rafthttp/stream.go:615,622,631,642,675`: a response it will not
 use, its body unread or read), the snapshot sender's timeout (`snapshot_sender.go:169`, from a
 `time.AfterFunc` goroutine **while the sender's goroutine reads the body**: see Margin). Snippet:
-`ioutil.go` (`ReqGracefulClose`).
+`examples/specreq/pkgleaves/leaves.go` (`ReqGracefulClose`).
 
 **Assumed** (names only). True of the code (`httputil.go:20-28`): `io.Copy(io.Discard, resp.Body)`
 reads the body to its end or an error (`Read`s of the body: 2f's `readerAt_read`), then

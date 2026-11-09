@@ -1061,3 +1061,29 @@ What mvcc's specs (`Spec/go_etcd_io/etcd/server/v3/storage/mvcc/Api.lean`) now a
    takes the open token, which the apply thread holds) or from `mvccClosed_rest` (the previous run's
    shutdown), kept with its durable state. `MvccReachable` is no longer a premise (`mvccImage_reachable`).
    The write updates no longer hand out receipts (nothing used them).
+
+## from 4b
+
+1. **Traces** (2c's provisional `EtcdServer.traceAt tr`, persistent): not offered as stated: a
+   trace's methods write its fields with no lock, so a persistent "methods are safe" is false. Use
+   `TraceUtil.traceOwn t` (exclusive) and `TraceUtil.traceOpt t` (`nil` or owned: the apply results'
+   traces), threaded through `doSerialize` → `txn.Range` (which finds the same trace: `EnsureTrace`
+   returns the context's non-empty trace, `ctxTraceIs ctx (some t)` with `traceEmpty t false`) and
+   handed from the apply thread with the result. `EtcdServer.Range` etc. take the incoming context's
+   `TraceUtil.ctxTraceIs ctx none` and `OtelTrace.ctxSpanOk ctx` (2a's per-call context: requested in
+   `req/google_golang_org_grpc.md`). `traceutil.Tracer.Start` is `TraceUtil.Tracer.Start.spec`, with
+   `tracer_init` (scope: no `traceutil.Init`, i.e. distributed tracing not configured: a decision
+   for the user). `trace.SpanFromContext` is `OtelTrace.SpanFromContext.spec`.
+2. **The consistent index** (2d's provisional `beStoredCI be v`, persistent): a persistent fact about
+   a value commits change is unsound unless it is tied to a window; the schema's specs are
+   `Schema.ReadConsistentIndex.spec` (over the read section's triples `rdSect` and the caller's view
+   family) and `UnsafeUpdateConsistentIndex.spec` (over `txWr`/`txRd` of the batch view, the check's
+   premise `Verify.verifyOff ∨ i = 0 ∨ stored ≤ i`). `beStoredCI`/`txStoredCI` become the cindex's
+   realization of the view family `R` over 4a's `meta` key part (scope `Schema.ciScope`).
+   `cindex.UnsafeConsistentIndex` (`cindex.go:107`) reads `ReadTx()` without `RLock` from the
+   post-lock hook: `txRd` there needs the batch lock held (requested of 4a).
+3. **Bootstrap** (2e): `schema.CreateMetaBucket(be.BatchTx())` is `Schema.CreateMetaBucket.spec`
+   (assumed, over `wrSect`); `NewAuthBackend`, `NewAlarmBackend`, `NewMembershipBackend` return
+   read-only structs over `be` (their specs); what their methods do is over the backend's triples
+   (auth) or the schema's `alarmBkt`/`memberBkts` (alarm, membership), which the backend's opener
+   introduces (4a's).

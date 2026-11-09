@@ -2,7 +2,7 @@
 ## `semver.New(major, minor, patch, pre, metadata)`: assumed
 
 **Users.** rafthttp (`util.go:135-136`, `stream.go:712`: `major.minor.0`), the downgrade checks
-(`version/downgrade.go:44,59,69-70`), `api/version`'s constants (3h). Snippet: `semver.go`
+(`version/downgrade.go:44,59,69-70`), `api/version`'s constants (3h). Snippet: `examples/specreq/pkgleaves/leaves.go`
 (`ReqMajorMinor`).
 
 **Assumed** (`version.go:310-324`): a struct literal (no validation), `original` its `String()`.

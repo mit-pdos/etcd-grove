@@ -1,7 +1,7 @@
 /-
 ## `(*Trace).StartSubTrace(fields...)`
 
-**Users.** `txn.executeTxn` (`txn/txn.go:146`), per request op. Snippet: `trace.go` (`ReqSubTrace`).
+**Users.** `txn.executeTxn` (`txn/txn.go:146`), per request op. Snippet: `examples/specreq/pkgleaves/trace.go` (`ReqSubTrace`).
 
 **Proof sketch.** An append of a step keeping the fields slice. **Changes.** From `specs-ref`'s
 `Trace__StartSubTrace.lean`. **Margin.** None.

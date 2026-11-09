@@ -3,7 +3,7 @@
 
 **Users.** The apply thread (`etcdserver/apply.go:29`: a committed normal entry's
 `InternalRaftRequest`, 3a; `server.go`'s `applyConfChange`: a `ConfChange`, 2d), rafthttp's
-msgappv2 decoder (an `Entry`), the WAL's and snapshotter's decoders (2e). Snippet: `pbutil.go`
+msgappv2 decoder (an `Entry`), the WAL's and snapshotter's decoders (2e). Snippet: `examples/specreq/pkgleaves/leaves.go`
 (`ReqApplyDecode`).
 
 **Proof sketch.** `proto.Unmarshal` (`Proto.Unmarshal.spec`); its error disjunct says no content of

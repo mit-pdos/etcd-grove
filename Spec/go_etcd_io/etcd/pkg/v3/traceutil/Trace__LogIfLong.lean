@@ -1,7 +1,7 @@
 /-
 ## `(*Trace).LogIfLong(d)`
 
-**Users.** The request path's deferred loggers (`v3_server.go:133,360,396,1028`). Snippets: `trace.go` (`ReqRequestTrace`, `ReqReadLoopTrace`).
+**Users.** The request path's deferred loggers (`v3_server.go:133,360,396,1028`). Snippets: `examples/specreq/pkgleaves/trace.go` (`ReqRequestTrace`, `ReqReadLoopTrace`).
 
 **Proof sketch.** If `time.Since(startTime)` exceeds `d`, `LogWithStepThreshold(d / (len(steps)+1))` (the divisor is positive). (`Trace.LogWithStepThreshold.spec`).
 

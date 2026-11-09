@@ -2,7 +2,7 @@
 ## `ioutil.NewLimitedBufferReader(r, n)`
 
 **Users.** `pipelineHandler.ServeHTTP` (`rafthttp/http.go:121`: the request body, `n =
-connReadLimitByte`, 64 KiB), read by `io.ReadAll`. Snippet: `ioutil.go` (`ReqLimitedRead`).
+connReadLimitByte`, 64 KiB), read by `io.ReadAll`. Snippet: `examples/specreq/pkgleaves/leaves.go` (`ReqLimitedRead`).
 
 **Proof sketch.** Allocates `&limitedBufferReader{r, n}`. Its `Read(p)` (translated) slices `p` to
 `n` (in bounds for `0 ≤ n`: `np[:n]` panics at a negative `n`) and calls `r.Read` on the prefix

@@ -1,7 +1,7 @@
 /-
 ## `(*Trace).LogAllStepsIfLong(d)`
 
-**Users.** The read loop (`read/read.go:144`). Snippets: `trace.go` (`ReqRequestTrace`, `ReqReadLoopTrace`).
+**Users.** The read loop (`read/read.go:144`). Snippets: `examples/specreq/pkgleaves/trace.go` (`ReqRequestTrace`, `ReqReadLoopTrace`).
 
 **Proof sketch.** If `time.Since(startTime)` exceeds `d`, `LogWithStepThreshold(0)`. (`Trace.LogWithStepThreshold.spec`).
 

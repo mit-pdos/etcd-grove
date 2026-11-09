@@ -1,7 +1,7 @@
 /-
 ## `(*Limiter).Wait(ctx)`: assumed
 
-**Users.** `streamReader.run` (`rafthttp/stream.go:449`, the reader's context). Snippet: `rate.go`
+**Users.** `streamReader.run` (`rafthttp/stream.go:449`, the reader's context). Snippet: `examples/specreq/pkgleaves/leaves.go`
 (`ReqDialRetry`).
 
 **Assumed** (`rate.go:224-280`, `WaitN(ctx, 1)`): under the limiter's mutex, a reservation; an

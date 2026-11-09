@@ -55,3 +55,11 @@ post's context arm `Context.ctxDone ctx ∗ isCtxErr err`, `nodeErr`).
 (their `Done()` is `nil`). The apply thread passes `context.TODO()` to `txn.Txn`, whose writing
 transactions panic on a context error (`txn.go:91`): `Txn.spec` takes `Context.ctxDone ctx -∗ False`
 for a write. Used by: `Txn.spec`, `txn.spec` (3a's `applierV3backend.Txn`).
+
+## from 4b
+
+`Context.TODO.spec` returns an unnamed `ctxOk ctx`; the apply layer's traces are made at
+`context.TODO()` (`TraceUtil.EnsureTrace(context.TODO(), ...)`), whose `ctxTraceIs_todo` and
+`OtelTrace.ctxSpanOk_todo` are stated at Perennial's `context.todoCtxVal`. Please name the value
+(`ctx = GoInterface.ok context.todoCtxVal`, as `ctxOk_background` names `backgroundCtxVal`), or give a
+law that `TODO()`'s context carries no value at any key.

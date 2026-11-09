@@ -45,3 +45,20 @@ methods), in both modes:
 5. `beView c st` held inside 3a's `smAt` (the backend's member buckets with `st.members` a permutation
    of the model's members).
 Used by: `applierV3backend.{ClusterVersionSet,ClusterMemberAttrSet,DowngradeInfoSet,newHeader}.spec`.
+
+## from 4b
+
+`beMembers mb st` is `∃ lg be cb, mb ↦□ membershipBackend{lg, be} ∗ Schema.memberBkts be (some cb)`
+with `cb.st = st` (`Schema.ClusterBkts`: the view, the stored cluster version as a `Semver.SemVer`,
+the stored downgrade info); `none` is a backend whose membership buckets are not created yet
+(`MustCreateBackendBuckets` creates them). The methods' specs are
+`Schema.membershipBackend.*.spec` (assumed: names only): `MustCreateBackendBuckets`,
+`MustSaveMemberToBackend`, `MustDeleteMemberFromBackend`, `MustReadMembersFromBackend`,
+`MustSaveClusterVersionToBackend`, `MustSaveDowngradeToBackend`, `ClusterVersionFromBackend`,
+`DowngradeInfoFromBackend`. The writers run the backend's post-lock hook (`Schema.applyHook be Pre Q ∗
+Pre` to `Q`: at `shouldApplyV3`, the consistent index's update, 2d); the readers take and give back a
+`threadTok` (their read transaction's reader slot) and return fresh values (`memberPts … (own 1)` in
+fresh maps; a `Semver.verAt`; a `DowngradeInfo` struct). `ClusterVersionFromBackend` needs the stored
+version to parse back (`Semver.parse (render sv) = some sv`: true of what `SetVersion` stores, a
+`MustParse`d version, by `Semver.parse_render`); `DowngradeInfoFromBackend` an enabled target to
+parse. `TrimClusterFromBackend`, `TrimMembershipFromBackend` have no spec (no translated caller).

@@ -329,3 +329,23 @@ on success and `ErrCompacted`; the write updates carry no receipt; `rangeOk` tak
 (`KeyData.range` for the batch, `KeyData.rtRange` for a read transaction; `nil` empty ends). 3f's need 5
 (what an image holds above its compaction, for `rangeEvents`): `Internal.lean`'s
 `mvccImage_above.spec` (with `kvBytes`, `evM`).
+
+## from 4b
+
+1. **`traceOwn`** is `TraceUtil.traceOwn` (`Spec/go_etcd_io/etcd/pkg/v3/traceutil/Api.lean`,
+   exclusive, non-nil); `TraceUtil.TODO.spec` gives `traceOwn t ∗ traceEmpty t true`;
+   `TraceUtil.Trace.Step.spec` takes `traceOwn t ∗ fieldsOwn fields` (a variadic call without fields
+   passes `nil`: `fieldsOwn` of the nil slice holds).
+2. **`Mvcc.bucketVal b` (an opaque constant per bucket) is not provable** of the schema's variables:
+   their values hold name slices allocated at the package's initialization. State the storage
+   contract's bucket arguments as any `bv` with `Schema.bucketAt .key bv` / `Schema.bucketAt .metaB
+   bv` (persistent; `Schema.bucketVars_init.spec` gives the package variable's), or keep `bucketVal`
+   as a parameter of the storage's names fixed at the opener. The compaction key names are
+   `Schema.keyNames_init.spec` (`schedKey`, `finKey`).
+3. `UnsafeCreateMetaBucket(tx)`: `Schema.UnsafeCreateMetaBucket.spec` over `Schema.txWr tx S R` with
+   `S.whole .metaB`: mvcc's storage contract's `UnsafeCreateBucket` row is an instance (4a proves
+   `txWr` of the batch transaction at mvcc's part).
+4. `KeyData.range` of `.metaB` answers every key but the compaction keys with nothing, so the
+   contract claims `UnsafeRange(Meta, "consistent_index")` returns nothing, which etcd's backend does
+   not satisfy; mvcc only asks its own keys: restrict the row to `k ∈ {sched, fin}` (as the schema's
+   `Scope.has`).

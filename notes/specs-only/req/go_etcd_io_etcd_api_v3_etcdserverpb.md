@@ -213,3 +213,19 @@ with `Token = tok`). The appliers (3a) read the decoded `InternalRaftRequest`'s 
 - Laws needed of the realization (review S10): `authRespAt_ne_null`, `authnRespAt_ne_null` (stated in
   3d's `Api.lean`) and the `Header` field of a response (3a's `resp.Header = a.newHeader()`,
   `apply/backend.go:160-162`): a points-to of `Header` (nil) that the applier may write.
+
+## from 4b
+
+The schema states the auth and alarm records over `Proto.Content` and needs three facts of their
+owners (provisional in `Schema`'s Api; replace by yours):
+1. `Schema.userName c`, `Schema.roleName c`: an `authpb.User`/`Role` content's `Name`; and a law
+   reading the message's `Name` field from `Proto.msgAt authpb.User.ty p dq c` (any fraction): the
+   field's slice holds `userName c`, read-only for good at `DFrac.discard`
+   (`authBatchTx.UnsafePutUser.spec` puts the message's own `Name` slice into the backend, which
+   keeps it).
+2. `Schema.alarmMemberIs c a`: an `AlarmMember` content holds the alarm `a` (member id, type), with
+   `noMaps AlarmMember.ty` (the alarm bucket's keys are `Marshal`'s output, and `MustDeleteAlarm`
+   finds a key by marshalling again).
+3. `authpb.User`/`Role` and `AlarmMember` contents marshal (`marshalOk`, `fits`) when built by the
+   auth store / the alarm store (their strings: user and role names, any bytes in proto3 `bytes`
+   fields: `Name` is `bytes`).

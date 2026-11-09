@@ -333,3 +333,10 @@ The auth store reads a request context's incoming metadata and TLS peer (`AuthIn
    certificate user, with client-certificate auth), else `who = some u` with `tokenUser γ tok u` for
    the token `tok`: what `AuthInfoFromCtx.spec` and W0's `tokenUser_agree` turn into the store's
    answer. `togRPCError`'s table for the auth errors is `Auth.AuthErr.etcd` over `Auth.errOf`.
+
+## from 4b
+
+The server's per-call context (the handler's `ctx`, 2a's `srvCall`) reaches `traceutil.EnsureTrace`,
+`traceutil.Tracer.Start` and `trace.SpanFromContext` (2c's `EtcdServer.Range` etc.). Give, for it:
+`TraceUtil.ctxTraceIs ctx none` (grpc never sets etcd's `TraceKey{}`) and `OtelTrace.ctxSpanOk ctx`
+(its value at otel's key, set by the `otelgrpc` stats handler, is an otel span, or there is none).

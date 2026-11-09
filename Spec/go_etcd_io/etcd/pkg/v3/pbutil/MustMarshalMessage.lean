@@ -3,7 +3,7 @@
 
 **Users.** rafthttp's message encoders (`msg_codec.go:40`, `msgappv2_codec.go:91,107`,
 `pipeline.go:99`: a raft message, any fraction of it), the snapshotter (`snapshotter.go`: a
-`raftpb.Snapshot`). Snippet: `pbutil.go` (`ReqMarshalRoundTrip`).
+`raftpb.Snapshot`). Snippet: `examples/specreq/pkgleaves/leaves.go` (`ReqMarshalRoundTrip`).
 
 **Proof sketch.** `proto.Marshal` (`Proto.Marshal.spec`, `fits`); its error disjunct is excluded by
 `marshalOk`; `fmt.Sprintf`/`panic` unreachable.

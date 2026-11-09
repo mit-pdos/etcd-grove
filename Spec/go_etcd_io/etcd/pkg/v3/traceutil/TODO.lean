@@ -2,7 +2,7 @@
 ## `traceutil.TODO()`
 
 **Users.** mvcc's views and range deleter (`kv_view.go:31,40,47`, `kvstore.go:117`), the server's
-lessor recovery (`server.go:1087`), `Get` of a context without a trace. Snippet: `trace.go`
+lessor recovery (`server.go:1087`), `Get` of a context without a trace. Snippet: `examples/specreq/pkgleaves/trace.go`
 (`ReqMvccTodoTrace`).
 
 **Proof sketch.** Allocates `&Trace{isEmpty: true}`: its fields slices are `nil` (`fieldsOwn` of

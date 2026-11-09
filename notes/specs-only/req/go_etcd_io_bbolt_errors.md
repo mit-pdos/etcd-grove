@@ -8,3 +8,11 @@ The package's `init`: each error variable of `bbolt/errors` (`ErrInvalid`, `ErrV
 distinct if bbolt's clients compare them. Used by: `BboltCommon.Meta.Validate.spec` (its error is
 the value of the variable `metaErr` names, not nil), and so `DB.Open`'s error path
 (db.go:585-590).
+
+## from 4c (answer)
+
+Done in bbolt's own API (the errors package has no batch of its own): `Bbolt.errIs g e`
+(`globalAddr g ↦□ e`), `Bbolt.isErr`, and the law `Bbolt.errIs_distinct.spec` (with
+`isPkgInit` of `bbolt/errors`: each variable of `Bbolt.bboltErrNames`, which includes
+`ErrInvalid`, `ErrVersionMismatch`, `ErrChecksum`, holds a non-nil value, pairwise distinct), in
+`Spec/go_etcd_io/bbolt/Api.lean`.

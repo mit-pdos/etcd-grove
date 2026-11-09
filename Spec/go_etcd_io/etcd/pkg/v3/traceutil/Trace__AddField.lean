@@ -2,7 +2,7 @@
 ## `(*Trace).AddField(fields...)`
 
 **Users.** The request path (`v3_server.go:128,430`), `txn` (`put.go:67`, `txn.go:52,74`), the read
-loop (`read.go:128,131`). Snippets: `trace.go` (`ReqRequestTrace`, `ReqReadLoopTrace`).
+loop (`read.go:128,131`). Snippets: `examples/specreq/pkgleaves/trace.go` (`ReqRequestTrace`, `ReqReadLoopTrace`).
 
 **Proof sketch.** For each field, `updateFieldIfExist` (a store into the trace's fields) or an
 append of a copy: the slice is only read.

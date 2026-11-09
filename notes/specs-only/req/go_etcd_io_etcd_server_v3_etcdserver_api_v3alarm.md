@@ -19,3 +19,13 @@ Used by: `applierV3backend.Alarm.spec`, `uberApplier.restoreAlarms.spec`.
 3. W0's `AlarmKind` now has `other n`: `kindOf` should map every type but `NONE` (so `Activate` of an
    unknown type, which an administrator can propose and Go stores, has a spec and 3a's `IrrOp.ok`
    can drop its known-kind premise).
+
+## from 4b
+
+`alarmBe ab al` is `∃ lg be, ab = alarmBackend{lg, be} (read-only) ∗ Schema.alarmBkt be (some al)`;
+the methods' specs are `Schema.alarmBackend.*.spec` (assumed: names only). `MustPutAlarm`/
+`MustDeleteAlarm` run the backend's post-lock hook (`LockInsideApply`): they take
+`Schema.applyHook be Pre Q ∗ Pre` (the apply thread's hook pre, 2d) and give `Q`. `GetAllAlarms`
+takes and gives back the caller's `threadTok` (its read transaction's reader slot); the alarms come
+as fresh `AlarmMember` messages with `Schema.alarmMemberIs`, a permutation of `al`, error `nil`.
+`CreateAlarmBucket` turns `alarmBkt be none` (no bucket) into `alarmBkt be (some [])`.

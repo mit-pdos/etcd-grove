@@ -1,0 +1,41 @@
+/-
+## `schema.unsafeGetAllUsers(...)` (internal)
+
+**Users.** The `authBatchTx`/`authReadTx` methods of the same name (for `UserList`, `RoleDelete`'s user scan (`auth/store.go`)).
+**Proof sketch.** `tx.UnsafeForEach(AuthUsers, f)` (`txRd`, `f` never fails), then `proto.Unmarshal` of each value (`recsWf`). **Changes.** From `specs-ref`'s `unsafeGetAllUsers.lean` (where it had one: the read
+transaction's state): over the contract.
+-/
+module
+
+public import Spec.go_etcd_io.etcd.server.v3.storage.schema.Api
+
+set_option autoImplicit false
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace Schema
+
+open Iris Iris.BI
+
+section spec
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
+
+/-- **Every user**, in name order (`nil` if none). -/
+def unsafeGetAllUsers.spec : Prop :=
+  ∀ (lg : Loc) (tx : GoInterface) (S : Scope) (R : View → IProp GF) (V : View) (m : BData),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ txRd tx S R ∗ R V ∗ ⌜S.whole .authUsers ∧ V .authUsers = some m ∧ recsWf go_etcd_io.etcd.api.v3.authpb.User.ty m⌝ }}
+    (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.schema.unsafeGetAllUsers)) (Val #lg)) (Val #tx))
+  {{ (sl : GoSlice), RET #sl; R V ∗ ∃ l, ⌜entsOf m l⌝ ∗ recsRes go_etcd_io.etcd.api.v3.authpb.User.ty sl (l.map Prod.snd) }}
+
+end spec
+end Schema
+end EtcdGrove
+end Perennial

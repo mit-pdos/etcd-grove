@@ -11,7 +11,7 @@ entry's bytes were marshalled by its proposer: 3h's `irrDecodes`, R1's `committe
 Users: the apply thread (`apply.go:29`, `applyConfChange`: `MustUnmarshalMessage` of an entry's
 data), rafthttp's encoders (`msg_codec.go:40`, `msgappv2_codec.go`, `pipeline.go:99`:
 `MustMarshalMessage` of a raft message) and decoder (`msgappv2_codec.go`: `MustUnmarshalMessage` of
-an entry), the WAL and the snapshotter (2e). Snippets: `examples/specreq/pkgleaves/pbutil.go`
+an entry), the WAL and the snapshotter (2e). Snippets: `examples/specreq/pkgleaves/leaves.go`
 (`ReqMarshalRoundTrip`, `ReqApplyDecode`).
 -/
 module

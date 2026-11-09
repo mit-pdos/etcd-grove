@@ -1,7 +1,7 @@
 /-
 ## `probing.NewProber(rt)`: assumed
 
-**Users.** `Transport.Start` (`rafthttp/transport.go:146-147`). Snippet: `probing.go`
+**Users.** `Transport.Start` (`rafthttp/transport.go:146-147`). Snippet: `examples/specreq/pkgleaves/leaves.go`
 (`ReqProberLifecycle`). **Assumed** (`prober.go`): a struct with a map of targets and the round
 tripper (`http.DefaultTransport` if nil). **Changes.** From `specs-ref`'s `NewProber.lean`, with
 `AddHTTP` in the bundle (rafthttp's `addPeerToProber`). **Margin.** None.
