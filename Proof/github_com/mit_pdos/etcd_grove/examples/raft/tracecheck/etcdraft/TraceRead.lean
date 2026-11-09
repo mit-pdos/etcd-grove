@@ -215,6 +215,11 @@ theorem statesOut_single (out : GoSlice) (q : Loc) (s : State) :
   iapply BigSepL2.bigSepL2_nil.2
   ipureintro; trivial
 
+/-- A fresh `[]TState` holding `tss` (`receive`'s and `Next`'s successors). -/
+def tstatesOut (out : GoSlice) (tss : List TState) : IProp GF :=
+  iprop(∃ gs : List G.TState, out ↦* gs ∗ ownSliceCap G.TState out (DFrac.own 1) ∗
+    [∗list] g;x ∈ gs;tss, tstateRO g x)
+
 instance tstateRO_persistent (g : G.TState) (ts : TState) : Persistent (tstateRO (GF := GF) g ts) := by
   unfold tstateRO; infer_instance
 
