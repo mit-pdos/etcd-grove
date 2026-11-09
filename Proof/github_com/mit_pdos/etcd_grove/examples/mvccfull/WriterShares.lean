@@ -117,6 +117,37 @@ theorem σOf_rev (ks : List GoString) (ops : List OpM) (n : Nat) :
 theorem σOf_notified (ks : List GoString) (ops : List OpM) (n : Nat) :
     (σOf ks ops n).notifiedLog = (σOf ks ops n).log := rfl
 
+theorem foldl_opStep_granted (ks : List GoString) (l : List OpM) : ∀ s : MSt,
+    s.granted <+: (l.foldl (opStep ks) s).granted := by
+  induction l with
+  | nil => intro s; exact List.prefix_refl _
+  | cons o l ih =>
+    intro s
+    refine List.IsPrefix.trans ?_ (ih (opStep ks s o))
+    simp only [opStep]
+    split
+    · exact List.prefix_append _ _
+    · exact List.prefix_refl _
+
+/-- The ids ever granted only grow along the log. (Pure; proved.) -/
+theorem grantedAfter_mono (ks : List GoString) (ops : List OpM) (n n' : Nat) (hn : n ≤ n') :
+    ∀ id ∈ grantedAfter ks ops n, id ∈ grantedAfter ks ops n' := by
+  have ht : ops.take n' = ops.take n ++ (ops.take n').drop n := by
+    have := List.take_append_drop n (ops.take n')
+    rw [List.take_take, Nat.min_eq_left hn] at this
+    exact this.symm
+  intro id hid
+  unfold grantedAfter runM at hid ⊢
+  rw [ht, List.foldl_append]
+  exact (foldl_opStep_granted ks _ _).subset hid
+
+/-- The lease bucket's records survive re-inserting the bucket at itself. (Pure; proved.) -/
+theorem leaseRecsOk_insert (r : GMap GoString backend.BktData) (L : List w64) (h : leaseRecsOk r L) :
+    leaseRecsOk (r.insert leaseName ((r.lookup leaseName).getD ∅)) L := by
+  obtain ⟨recs, h1, h2, h3⟩ := h
+  refine ⟨recs, ?_, h2, h3⟩
+  rw [GMap.lookup_insert]; exact h1
+
 end model
 
 section shares
