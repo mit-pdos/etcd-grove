@@ -246,6 +246,36 @@ macro "open_lineP" : tactic => `(tactic| (
   icases Hlp0 with ⟨%ln, #Hq, #Hln⟩
   open_line))
 
+set_option hygiene false in
+/-- An action's `HΦ'` (`∀ out sts, ⌜sts = <the Lean's>⌝ -∗ statesOut out sts -∗ Φ #out`) applied to
+`nil`, the Lean's `[]` shown by `simp` with the given facts. -/
+macro "ret_nil" "[" xs:ident,* "]" : tactic => `(tactic| (
+  try simp only [Bool.not_false, Bool.not_true]
+  try wp_auto
+  ihave Hn : statesOut (GF := GF) slice.nil [] $$ []
+  · iapply statesOut_nil
+  iapply HΦ' $$ [] Hn
+  ipureintro; simp [$[$xs:ident],*]))
+
+set_option hygiene false in
+/-- `HΦ'` applied to a one-element slice literal of `q`, which holds `s` by `Hs`. -/
+macro "ret_single" q:term "," s:term "," Hs:ident "[" xs:ident,* "]" : tactic => `(tactic| (
+  try simp only [Bool.not_false, Bool.not_true]
+  try wp_auto
+  wp_apply wp_slice_literal
+  isplitr
+  · ipureintro; rfl
+  iintro %sl0 ⟨Hsl0, Hcap0⟩
+  try wp_auto
+  ihave Hout := statesOut_single _ $q $s $$ [Hsl0 Hcap0]
+  · isplitl [Hsl0]
+    · iexact Hsl0
+    isplitl [Hcap0]
+    · iexact Hcap0
+    iexact $Hs:ident
+  iapply HΦ' $$ [] Hout
+  ipureintro; simp [$[$xs:ident],*]))
+
 end Etcdraft
 end EtcdGrove
 end Perennial
