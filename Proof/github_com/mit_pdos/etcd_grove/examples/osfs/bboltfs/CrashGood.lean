@@ -71,19 +71,18 @@ def goodImg (img : List w8) : Prop :=
 def rawSlot (f : OsFile) (i : Nat) : List w8 :=
   (List.range 64).map fun k => (f.secs (8 * i)).last.toList.getD (16 + k) 0
 
-/-- A file shorter than four pages has no `FALLOC_FL_KEEP_SIZE` blocks (`OsFile.kept`), and no
-valid meta in a slot whose page holds a byte of it, as its sectors hold the slot (past the size
-included: a crash that grows the file over the slot may keep those bytes, `CovCand`). -/
+/-- A file shorter than four pages has no valid meta in a slot whose page holds a byte of it, as
+its sectors hold the slot (past the size included: a crash that grows the file over the slot may
+keep those bytes, the end's page being not ordered). -/
 def RawOk (f : OsFile) : Prop :=
-  f.size < 4 * 4096 → f.kept = false ∧
-    ∀ i < 2, 4096 * i < f.size → ¬ metaValid (decode (rawSlot f i) : Meta)
+  f.size < 4 * 4096 → ∀ i < 2, 4096 * i < f.size → ¬ metaValid (decode (rawSlot f i) : Meta)
 
 /-- **minibolt's crash invariant**: the database file is absent, or a `Good` image whose meta slots
 past its end, if it is short, are not valid (`RawOk`: `init` grows the file over them), as a crash
 leaves files (on disk, `OsFile.ofDisk`). -/
 def Good : Option OsFile → Prop
   | none => True
-  | some f => goodImg f.contents ∧ RawOk f ∧ ∃ vs sz kp, f = OsFile.ofDisk vs sz kp
+  | some f => goodImg f.contents ∧ RawOk f ∧ ∃ vs sz, f = OsFile.ofDisk vs sz
 
 theorem goodImg_fileOk (img : List w8) (h : goodImg img) :
     fileOk (img.map (·, true)) := by

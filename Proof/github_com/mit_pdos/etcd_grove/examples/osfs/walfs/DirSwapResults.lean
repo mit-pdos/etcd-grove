@@ -87,7 +87,7 @@ theorem dirswap_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics
       (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
   have hR : RootsOk (extLocal fsExt σ.world).fs.roots := Hinit.2.2.2.1
   have hdisk : ∀ i f, (extLocal fsExt σ.world).fs.files !! i = some f →
-      ∃ vs sz kp, f = OsFile.ofDisk vs sz kp := fun i f hf => (Hinit.2.2.2.2.2.2.1 i f hf).2
+      ∃ vs sz, f = OsFile.ofDisk vs sz := fun i f hf => (Hinit.2.2.2.2.2.2.1 i f hf).2
   obtain ⟨R, hRdef⟩ : ∃ R, (extLocal fsExt σ.world).fs.roots = R := ⟨_, rfl⟩
   rw [hRdef] at hR Hdir
   refine fs_crash_adequacy (GF := GF) N T (bootDS dir) σ g (fun v => v = #())
@@ -109,8 +109,8 @@ theorem dirswap_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics
       unfold startFile; iempintro
     · icases (BigSepM.bigSepM_lookup
         (Φ := fun i f => osFileStart (L := hG.goose_localGS) i f) hf) $$ Hfs with Hf
-      obtain ⟨vs, sz, kp, rfl⟩ := hdisk k f hf
-      ihave Hf := (osFileStartG_ofDisk (L := hG.goose_localGS) k vs sz kp).2 $$ Hf
+      obtain ⟨vs, sz, rfl⟩ := hdisk k f hf
+      ihave Hf := (osFileStartG_ofDisk (L := hG.goose_localGS) k vs sz).2 $$ Hf
       iexists _, (some k)
       iframe Ht
       isplitr

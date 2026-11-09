@@ -62,9 +62,9 @@ theorem writer_okS {i : Ino} {m : OsMeta} {bs : List (w8 × Bool)} (fa fb : Nat)
     (commitClean_meta h rfl rfl)
 
 /-- After `init` (`DB.init.specCrash`'s post), a commit may start: the writer's invariant. -/
-theorem init_commitClean {m : OsMeta} {xs : List (w8 × Bool)} (r : Option Nat)
+theorem init_commitClean {m : OsMeta} {xs : List (w8 × Bool)}
     (hsz : m.size ≤ 2 ^ 30) :
-    commitClean (initDoneMeta m xs r) (initFile xs) := by
+    commitClean (initDoneMeta m xs) (initFile xs) := by
   have hil := initBytes_length
   simp only [pageBytes] at hil
   have hfst : (initFile xs).map Prod.fst = initBytes ++ (xs.map Prod.fst).drop 16384 := by

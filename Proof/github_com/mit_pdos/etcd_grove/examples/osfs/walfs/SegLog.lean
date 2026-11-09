@@ -173,7 +173,7 @@ theorem wp_Segment (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
   wp_apply os.File.Write.wp_spec wp_WriteAt f fd (child dir logB) (DFrac.own 1) sl dataC dqs (W64 0)
       (DFrac.own 1) ⟨i, true, true⟩ 1 (newMeta.grown 65536) (List.replicate (min 8 65536) (0, false))
       rfl (by decide) (by decide) (by decide) (by decide) (by decide) (fun _ => rfl) (.inl rfl) (by decide)
-    $$ [Hos Hf Ho Hsl Hfd Hm Hb8 Hmc] as %n %err ⟨Hf, Hsl, Hfd, ⟨%j', %ys, %h, %v, %r, %Hres, Hm, Hys, -⟩, Ho⟩
+    $$ [Hos Hf Ho Hsl Hfd Hm Hb8 Hmc] as %n %err ⟨Hf, Hsl, Hfd, ⟨%j', %ys, %h, %v, %Hres, Hm, Hys, -⟩, Ho⟩
   · iframe; iexact Hos
   cases err with
   | ok ie =>
@@ -183,7 +183,7 @@ theorem wp_Segment (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
     (try wp_auto)
     iapply hclose _ (by intro h; cases h) $$ HΦ Hh
   | nil =>
-  obtain ⟨hj, -, hys, -, ⟨rfl, -, -⟩ | ⟨-, hne⟩⟩ := Hres
+  obtain ⟨hj, -, hys, -, ⟨rfl, -, -⟩ | hne⟩ := Hres
   rotate_left
   · exact absurd rfl hne
   icases Ho with (⟨-, Ho⟩ | ⟨%hne, -⟩)
@@ -195,7 +195,7 @@ theorem wp_Segment (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
   wp_apply wp_Fd f fd (child dir logB) (DFrac.own 1) $$ Hf as Hf
   (try wp_auto)
   wp_apply golang_org.x.sys.unix.Fallocate.wp_keep fd (W64 0) (W64 65536) (DFrac.own 1)
-      ⟨i, true, true⟩ _ rfl (by decide) (by decide) $$ [Hos Hfd Hm] as %e2 ⟨Hfd, Hm⟩
+      ⟨i, true, true⟩ rfl (by decide) (by decide) $$ [Hos Hfd] as %e2 Hfd
   · iframe; iexact Hos
   by_cases he2 : e2 = 0
   rotate_left
@@ -258,7 +258,7 @@ theorem wp_Segment (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
   iexists _, _
   iframe Hm Hb
   ipureintro
-  refine ⟨rfl, by simp [OsMeta.synced, OsMeta.keepAlloc, pwSize, dataC], by rw [List.length_append, hyl, List.length_replicate]⟩
+  refine ⟨rfl, by simp [OsMeta.synced, pwSize, dataC], by rw [List.length_append, hyl, List.length_replicate]⟩
 
 /-- `ZeroToEnd(f)`, the offset 8, the file of inode `i` (no mapping, `segSize` bytes) whole: on
 success its first 8 bytes kept and its size at least 8; the offset stays some offset. -/

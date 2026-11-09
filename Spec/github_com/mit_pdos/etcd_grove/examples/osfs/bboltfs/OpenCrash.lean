@@ -25,8 +25,8 @@ open Fs
 
 /-- A state the generation starts the database file with: absent, or as on disk and `Good`. -/
 def StartSt [GooseExts] (s : CState) : Prop :=
-  s = none ∨ ∃ i vs sz kp, s = csStart i (OsFile.ofDisk vs sz kp) ∧
-    Good (some (OsFile.ofDisk vs sz kp))
+  s = none ∨ ∃ i vs sz, s = csStart i (OsFile.ofDisk vs sz) ∧
+    Good (some (OsFile.ofDisk vs sz))
 
 /-- The bytes of the file of a state: none if absent. -/
 def startImg : CState → List w8

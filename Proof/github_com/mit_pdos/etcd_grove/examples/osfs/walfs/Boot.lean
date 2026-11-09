@@ -1292,7 +1292,7 @@ theorem wp_commit (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
   wp_apply wp_WriteAt f fd (child d tmpB) (DFrac.own 1) sl dataC (DFrac.own 1) (W64 0) (DFrac.own 1)
       ⟨i, true, true⟩ 1 newMeta [] rfl (by decide) (by decide) (by decide) (by decide) (by decide)
       (by decide) (fun _ => rfl) (.inl rfl) $$ [Hos Hf Hsl Hfd Hm Hb0 Hmc]
-    as %n %err ⟨Hf, Hsl, Hfd, %k, %ys, %h, %v, %r, %Hres, Hm, Hys, -⟩
+    as %n %err ⟨Hf, Hsl, Hfd, %k, %ys, %h, %v, %Hres, Hm, Hys, -⟩
   · iframe; iexact Hos
   obtain ⟨hj, -, hys, -, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne⟩⟩ := Hres
   rotate_left
@@ -1377,7 +1377,7 @@ theorem wp_commit (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
   | true =>
   (try wp_auto)
   wp_apply wp_check wp_ReadAt wp_Close R d j V3 _ hr hd i hk3 _ _
-      (checkOk_synced ({ newMeta with size := pwSize newMeta.size (W64 0).toNat dataC.length, hi := h, fr := r })
+      (checkOk_synced ({ newMeta with size := pwSize newMeta.size (W64 0).toNat dataC.length, hi := h })
         rfl (by rfl) ys hys') $$ [Hos Ht Hm Hys]
   · iframe; iexact Hos
   (try wp_auto)

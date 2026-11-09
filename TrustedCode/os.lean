@@ -377,10 +377,12 @@ noncomputable def File.Seek.impl : val :=
 retried, an error being `&PathError{"write", name, Errno(e)}`; the offset advances by what was
 written. A `write(2)` is a `pwrite(2)` at the offset that then moves it: the model calls `WriteAt`
 (`File.WriteAt.impl`, the same loop of the extension's `PWriteStart`/`PWriteFinish` as Go's
-`Pwrite`, whose result Go's `Write` gives too: `len(b)` and nil, or an error) at `off`, then `off`
-moves past `b`. On an error the model's `WriteAt` does not say how much was written, so the offset
-is unknown (`off` set to -1): a later `Write`, `Read` or `SEEK_CUR` is not modelled (a panic; a
-`SEEK_SET` sets a known offset again). A write reaching `model.offMax` is not modelled. -/
+`Pwrite`) at `off`, then `off` moves past `b`. On success Go returns `len(b)` and nil. On an error
+Go returns the bytes written before it (`poll.FD.Write`'s `nn`, which a short `write(2)` followed
+by a failing one makes positive), which the model's `WriteAt` does not keep: the model returns any
+count (`ArbitraryInt`), and the offset is unknown (`off` set to -1): a later `Write`, `Read` or
+`SEEK_CUR` is not modelled (a panic; a `SEEK_SET` sets a known offset again). A write reaching
+`model.offMax` is not modelled. -/
 noncomputable def File.Write.impl : val :=
   λ: "f" "b",
     let: "inner" := model.inner "f" in
@@ -391,11 +393,13 @@ noncomputable def File.Write.impl : val :=
       Panic "os: Write past 2^62 not modelled"
     else
       let: "r" := (MethodResolve (go.PointerType model.File) go!"WriteAt") "f" "b" "off" in
-      (if: Snd "r" =⟨go.error⟩ #GoInterface.nil then
+      if: Snd "r" =⟨go.error⟩ #GoInterface.nil then
         StructFieldRef model.file go!"off" "inner" <-[go.int64]
-          ("off" +⟨go.int64⟩ Convert go.int go.int64 "len")
-      else StructFieldRef model.file go!"off" "inner" <-[go.int64] #(W64 (-1))) ;;
-      "r"
+          ("off" +⟨go.int64⟩ Convert go.int go.int64 "len") ;;
+        "r"
+      else
+        StructFieldRef model.file go!"off" "inner" <-[go.int64] #(W64 (-1)) ;;
+        (ArbitraryInt, Snd "r")
 
 /-- `(*File).Read(b []byte) (n int, err error)` (`file.go`, `file_posix.go`'s `read`,
 `poll.FD.Read`): for a non-empty `b`, one `read(2)` at the file offset of at most `maxRW` (1 GiB)

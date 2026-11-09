@@ -26,10 +26,10 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode github_com.mit_pdos.
 open Fs
 
 /-- The `OsMeta` after `init` (as `DB.init.spec`'s): the size at least four pages, all of it
-durable and known, one version of each sector, the fresh sectors known `r`. -/
-def initDoneMeta [GooseExts] (m : OsMeta) (xs : List (w8 × Bool)) (r : Option Nat) : OsMeta :=
+durable and known, one version of each sector, durable zeros past its last page. -/
+def initDoneMeta [GooseExts] (m : OsMeta) (xs : List (w8 × Bool)) : OsMeta :=
   { m with size := max m.size 16384, lo := max m.size 16384, hi := max m.size 16384,
-           dur := durOf 0 (initFile xs), vk := some [], dz := none, fr := r }
+           dur := durOf 0 (initFile xs), vk := some [], dz := some (pageUp (max m.size 16384)) }
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
@@ -52,8 +52,8 @@ abbrev DB.init.specCrash : Prop :=
   {{ (err : GoInterface), RET #err;
       os.ownFile (GF := GF) f fd p dqf ∗ osFd (GF := GF) fd dq ⟨i, true, true⟩ ∗
       ((⌜err = interface.nil⌝ ∗
-          db.[DB, go!"filesz"] ↦ W64 (max m.size 16384) ∗ ∃ r : Option Nat,
-          csOwnF (GF := GF) γ (some (i, ⟨initDoneMeta m xs r, initFile xs, 0, 0, .idle⟩))) ∨
+          db.[DB, go!"filesz"] ↦ W64 (max m.size 16384) ∗
+          csOwnF (GF := GF) γ (some (i, ⟨initDoneMeta m xs, initFile xs, 0, 0, .idle⟩))) ∨
        (⌜err ≠ interface.nil⌝ ∗ ∃ (sz : w64) (s' : CSt),
           db.[DB, go!"filesz"] ↦ sz ∗ csOwnF (GF := GF) γ (some (i, s')))) }}
 

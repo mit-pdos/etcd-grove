@@ -166,8 +166,8 @@ theorem os.File.Seek.wp_end (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac)
       iexists inner; iframe; iassumption
 
 /-- `f.Write(b)` at the offset `o` (`0 ≤ o ≤ size`, `o + len(b) < 2^62`), over `WriteAt`'s spec at `o`:
-`WriteAt`'s result and state; the offset moves past `b` on success, and becomes unknown (-1) on
-an error. -/
+`WriteAt`'s state; on success `len(b)` and the offset past `b`; on an error any count (Go's is the
+bytes written before it) and an unknown offset (-1). -/
 theorem os.File.Write.wp_spec (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG := hG))
     (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sl : GoSlice) (data : List w8)
     (dqs : DFrac) (o : w64) (dq : DFrac) (d : OsFd) (q : Qp) (m : OsMeta) (xs : List (w8 × Bool))
@@ -187,7 +187,7 @@ theorem os.File.Write.wp_spec (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG 
           ⌜j ≤ data.length ∧ (m.vk = none → v = none) ∧
             ys.map Prod.fst = (pwBytes m.size o.toNat data j xs).map Prod.fst ∧ m.hi ≤ h ∧
             ((j = data.length ∧ n = W64 data.length ∧ err = interface.nil) ∨
-             (n = W64 0 ∧ err ≠ interface.nil))⌝ ∗
+             err ≠ interface.nil)⌝ ∗
           osMeta d.ino (DFrac.own q) ({ m with size := pwSize m.size o.toNat j, hi := h, vk := v }) ∗
           osBytes d.ino o.toNat (DFrac.own 1) ys ∗
           mcellsAny m.maps o.toNat (o.toNat + data.length)) ∗
@@ -226,19 +226,24 @@ theorem os.File.Write.wp_spec (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG 
     isplitl [Hm Hbs Hmc]
     · iexists j, ys, h, v
       iframe
-      ipureintro; exact Hres
+      ipureintro
+      obtain ⟨h1, h2, h3, h4, h5⟩ := Hres
+      exact ⟨h1, h2, h3, h4, h5.imp_right (fun h => h.2)⟩
     ileft
     isplitr
     · ipureintro; rfl
     iexists inner; iframe; iassumption
   | ok ie =>
     wp_auto
+    wp_apply wp_ArbitraryInt as %x _
     iapply HΦ
     iframe Hf Hsl Hosfd
     isplitl [Hm Hbs Hmc]
     · iexists j, ys, h, v
       iframe
-      ipureintro; exact Hres
+      ipureintro
+      obtain ⟨h1, h2, h3, h4, -⟩ := Hres
+      exact ⟨h1, h2, h3, h4, .inr (fun h => by cases h)⟩
     iright
     isplitr
     · ipureintro; intro h; cases h

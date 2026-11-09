@@ -188,12 +188,12 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
   have hm1 : ({ m with size := pwSize m.size 0 16384, hi := h, vk := v } : OsMeta).synced 0
         (ys ++ xs.drop 16384) =
       { m with size := max m.size 16384, lo := max m.size 16384, hi := max m.size 16384,
-               dur := durOf 0 (ys ++ xs.drop 16384), vk := some [], dz := none } := by
+               dur := durOf 0 (ys ++ xs.drop 16384), vk := some [], dz := some (pageUp (max m.size 16384)) } := by
     simp only [OsMeta.synced, hS, hok, if_true]
   rw [hm1]
   generalize hm1' :
     ({ m with size := max m.size 16384, lo := max m.size 16384, hi := max m.size 16384,
-               dur := durOf 0 (ys ++ xs.drop 16384), vk := some [], dz := none } : OsMeta) = m1
+               dur := durOf 0 (ys ++ xs.drop 16384), vk := some [], dz := some (pageUp (max m.size 16384)) } : OsMeta) = m1
   have hm1s : m1.size = max m.size 16384 := by rw [← hm1']
   have hm1m : m1.maps = ∅ := by rw [← hm1']; exact hmaps
   have hm1ok : m1.ok = true := by rw [← hm1']; exact hok
@@ -298,13 +298,13 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
   have hm2 : ({ m1 with size := pwSize m1.size 4096 D1.length, hi := h2, vk := v2 } : OsMeta).synced 0
         (A.take 4096 ++ (ys2 ++ A.drop 8192)) =
       { m with size := max m.size 16384, lo := max m.size 16384, hi := max m.size 16384,
-               dur := durOf 0 (A.take 4096 ++ (ys2 ++ A.drop 8192)), vk := some [], dz := none } := by
+               dur := durOf 0 (A.take 4096 ++ (ys2 ++ A.drop 8192)), vk := some [], dz := some (pageUp (max m.size 16384)) } := by
     rw [hS2, ← hm1']
     simp only [OsMeta.synced, hok, if_true]
   rw [hm2]
   generalize hm2' :
     ({ m with size := max m.size 16384, lo := max m.size 16384, hi := max m.size 16384,
-               dur := durOf 0 (A.take 4096 ++ (ys2 ++ A.drop 8192)), vk := some [], dz := none } : OsMeta) = m2
+               dur := durOf 0 (A.take 4096 ++ (ys2 ++ A.drop 8192)), vk := some [], dz := some (pageUp (max m.size 16384)) } : OsMeta) = m2
   have hm2s : m2.size = max m.size 16384 := by rw [← hm2']
   have hm2m : m2.maps = ∅ := by rw [← hm2']; exact hmaps
   have hm2ok : m2.ok = true := by rw [← hm2']; exact hok
@@ -395,7 +395,7 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
   have hm3 : ({ m2 with size := pwSize m2.size 0 D0.length, hi := h3, vk := v3 } : OsMeta).synced 0
         (ys3 ++ B.drop 4096) =
       { m with size := max m.size 16384, lo := max m.size 16384, hi := max m.size 16384,
-               dur := durOf 0 (initFile xs), vk := some [], dz := none } := by
+               dur := durOf 0 (initFile xs), vk := some [], dz := some (pageUp (max m.size 16384)) } := by
     rw [← hm2']
     simp only [OsMeta.synced, pwSize_full _ _ _ he0, hok, if_true]
     rw [hD0l, show max (max m.size 16384) (0 + 4096) = max m.size 16384 by omega, ← hfin,

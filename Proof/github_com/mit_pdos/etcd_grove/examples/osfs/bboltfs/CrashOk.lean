@@ -63,32 +63,28 @@ def landB (s : CSt) (off : Nat) (data : List w8) (k b : Nat) : w8 :=
 /-- Byte `b` after a growing truncate landed: the state's below its size, zero past it. -/
 def truncB (s : CSt) (b : Nat) : w8 := if b < s.m.size then bsB s b else 0
 
-/-- Sector `n` is the first of its page, known fresh by `m`, and under the size `sz`. -/
-abbrev FreshCovS (s : CSt) (n sz : Nat) : Prop := FreshCov s.m n sz
-
 /-- What a crash to the size `sz` may leave in meta slot `i` (its bytes `L`, as sector `8 i` holds
-them) of the state `s` whose `OsMeta` knows the versions (`crashSeen_secAny`): the durable version
-unless the sector is known fresh and covered; the page cache's, of a sector with two versions
-(its bytes below the size); the write in flight landed in part; the truncate in flight landed. -/
+them) of the state `s` whose `OsMeta` knows the versions (`crashSeen_secAny`): zeros if its page
+lies past `sz` (durable zeros); the durable version; the page cache's, of a sector with two
+versions (its bytes below the size); the write in flight landed in part; the truncate in flight
+landed. -/
 def slotCand (s : CSt) (sz i : Nat) (L : List w8) : Prop :=
   L.length = 64 ∧
-  ((¬ FreshCovS s (8 * i) sz ∧
-      ∀ k < 64, ∀ d, s.m.DurAt (4096 * i + 16 + k) d → L[k]? = some d) ∨
+  ((pageIn sz (8 * i) = false ∧ ∀ k < 64, L[k]? = some 0) ∨
+   (∀ k < 64, ∀ d, s.m.DurAt (4096 * i + 16 + k) d → L[k]? = some d) ∨
    ((∃ ns, s.m.vk = some ns ∧ 8 * i ∈ ns) ∧
       ∀ k < 64, 4096 * i + 16 + k < s.m.size → L[k]? = some (bsB s (4096 * i + 16 + k))) ∨
    (∃ t off data k', s.busy = .write t off data ∧ 0 < k' ∧ k' ≤ data.length ∧
       secHits (min off s.m.size) (off + k') (8 * i) = true ∧
-      (PageCut off data.length k' ∨ FreshCovS s (8 * i) sz) ∧
+      PageCut off data.length k' ∧
       ∀ k < 64, L[k]? = some (landB s off data k' (4096 * i + 16 + k))) ∨
    ((∃ t sz', s.busy = .trunc t sz') ∧
       ∀ k < 64, L[k]? = some (truncB s (4096 * i + 16 + k))))
 
-/-- What a crash may leave of the database file of the state `s` past `crashImg`: no
-`FALLOC_FL_KEEP_SIZE` blocks if the `OsMeta` knows fresh sectors, and each meta slot as
-`slotCand` says, while the versions are known. -/
+/-- What a crash may leave of the database file of the state `s` past `crashImg`: each meta slot
+as `slotCand` says, while the versions are known. -/
 def crashRaw (s : CSt) (f : OsFile) : Prop :=
-  ((∃ p, s.m.fr = some p) → f.kept = false) ∧
-  ((∃ ns, s.m.vk = some ns) → ∀ i < 2, slotCand s f.size i (rawSlot f i))
+  (∃ ns, s.m.vk = some ns) → ∀ i < 2, slotCand s f.size i (rawSlot f i)
 
 section pure
 variable [GooseExts]
@@ -146,9 +142,6 @@ theorem CSt.vmeta_vk (s : CSt) : s.vmeta.vk = s.m.vk := by
 theorem CSt.vmeta_dur (s : CSt) : s.vmeta.dur = s.m.dur := by
   unfold CSt.vmeta; split <;> rfl
 
-theorem CSt.vmeta_fr (s : CSt) : s.vmeta.fr = s.m.fr := by
-  unfold CSt.vmeta; split <;> rfl
-
 theorem CSt.vmeta_dz (s : CSt) : s.vmeta.dz = s.m.dz := by
   unfold CSt.vmeta; split <;> rfl
 
@@ -157,9 +150,6 @@ theorem CSt.vmeta_lo (s : CSt) : s.vmeta.lo = s.m.lo := by
 
 theorem CSt.vmeta_durAt (s : CSt) (b : Nat) (d : w8) : s.vmeta.DurAt b d ↔ s.m.DurAt b d := by
   unfold OsMeta.DurAt; rw [CSt.vmeta_dur, CSt.vmeta_dz]
-
-theorem CSt.freshCov_vmeta (s : CSt) (n sz : Nat) : FreshCov s.vmeta n sz ↔ FreshCov s.m n sz := by
-  unfold FreshCov; rw [CSt.vmeta_fr]
 
 /-- The change in flight of a state, as `crashSeen_sec` and `crashSeen_secAny` take it. -/
 theorem CSt.toksShape {i : Ino} (s : CSt) (hwf : s.Wf) (hbz : BusyOk s) :
@@ -233,7 +223,8 @@ theorem crashImg_seen {i : Ino} (s : CSt) (hwf : s.Wf) (hbz : BusyOk s) (f : OsF
   -- a meta slot: its sector `8 j`, whole
   have hvk : s.vmeta.vk = some ns := by rw [CSt.vmeta_vk]; exact hns
   have hn : 512 * (8 * j) + 512 ≤ s.vmeta.size := by rw [CSt.vmeta_size]; omega
-  have hsec := crashSeen_sec (fun _ _ h => h) hseen hvk (8 * j) hn (CSt.toksShape s hwf hbz)
+  have hsec := crashSeen_sec (fun _ _ h => h) hseen hvk (8 * j) hn
+    (by have := himg; rw [contents_length] at this; omega) (CSt.toksShape s hwf hbz)
   -- a byte of the slot, from its sector
   have hbyte : ∀ k < 64, f.contents[4096 * j + 16 + k]? =
       some (secByte (f.secs (8 * j)).last (16 + k)) := by
@@ -263,8 +254,7 @@ theorem crashRaw_seen {i : Ino} (s : CSt) (hwf : s.Wf) (hbz : BusyOk s) (f : OsF
     (hseen : CrashSeenR NoTearCrash i s.vmeta s.runs (s.toks i) (some f)) :
     crashRaw s f := by
   have hl : s.bs.length = s.m.size := hwf.1
-  refine ⟨fun ⟨p, hp⟩ => crashSeen_kept hseen (p := p) (by rw [CSt.vmeta_fr]; exact hp),
-    fun ⟨ns, hns⟩ j hj => ?_⟩
+  intro ⟨ns, hns⟩ j hj
   have hvk : s.vmeta.vk = some ns := by rw [CSt.vmeta_vk]; exact hns
   have he : ∀ k, 512 * (8 * j) + (16 + k) = 4096 * j + 16 + k := fun k => by omega
   have hraw : ∀ k < 64, (rawSlot f j)[k]? = some (secByte (f.secs (8 * j)).last (16 + k)) := by
@@ -274,19 +264,20 @@ theorem crashRaw_seen {i : Ino} (s : CSt) (hwf : s.Wf) (hbz : BusyOk s) (f : OsF
     fun b hb => CSt.byteSeen s i hl b hb
   refine ⟨by simp [rawSlot], ?_⟩
   rcases crashSeen_secAny (fun _ _ h => h) hseen hvk (8 * j) (CSt.toksShape s hwf hbz) with
-    ⟨hfc, h1⟩ | ⟨hn, h1⟩ | ⟨t, ti, off, data, k', htk, hkd, hoff, hk0, hkl, hhit, hcut, h1⟩ |
+    ⟨hpg, h1⟩ | h1 | ⟨hn, h1⟩ | ⟨t, ti, off, data, k', htk, hkd, hoff, hk0, hkl, hhit, hcut, h1⟩ |
       ⟨t, ti, sz, htk, hkd, h1⟩
   · left
-    refine ⟨fun h => hfc ((CSt.freshCov_vmeta s _ _).2 h), fun k hk d hd => ?_⟩
-    rw [hraw k hk, h1 (16 + k) (by omega) d (by rw [he, CSt.vmeta_durAt]; exact hd)]
+    exact ⟨hpg, fun k hk => by rw [hraw k hk, h1 (16 + k) (by omega)]⟩
   · right; left
+    intro k hk d hd
+    rw [hraw k hk, h1 (16 + k) (by omega) d (by rw [he, CSt.vmeta_durAt]; exact hd)]
+  · right; right; left
     refine ⟨⟨ns, hns, hn⟩, fun k hk hb => ?_⟩
     rw [hraw k hk, h1 (16 + k) (by omega) (by rw [CSt.vmeta_size, he]; exact hb) _
       (by rw [he]; exact hseenB _ hb)]
-  · right; right; left
+  · right; right; right; left
     rw [CSt.vmeta_size] at hoff hhit
-    refine ⟨t, off, data, k', CSt.toks_write s htk hkd, hk0, hkl, hhit,
-      hcut.imp_right (CSt.freshCov_vmeta s _ _).1, fun k hk => ?_⟩
+    refine ⟨t, off, data, k', CSt.toks_write s htk hkd, hk0, hkl, hhit, hcut, fun k hk => ?_⟩
     rw [hraw k hk]
     obtain ⟨hin, hout, hpast⟩ := h1 (16 + k) (by omega)
     rw [he] at hin hout hpast
@@ -298,7 +289,7 @@ theorem crashRaw_seen {i : Ino} (s : CSt) (hwf : s.Wf) (hbz : BusyOk s) (f : OsF
         rw [hout (by omega) (by rw [CSt.vmeta_size]; exact hb) _ (hseenB _ hb)]
       · rename_i hc hb
         rw [hpast (by omega) (by rw [CSt.vmeta_size]; omega)]
-  · right; right; right
+  · right; right; right; right
     refine ⟨CSt.toks_trunc s htk hkd, fun k hk => ?_⟩
     rw [hraw k hk]
     obtain ⟨hin, hpast⟩ := h1 (16 + k) (by omega)

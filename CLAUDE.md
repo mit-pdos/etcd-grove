@@ -58,7 +58,10 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   package (the Linux file extension `GooseLang/Ext/Fs`: `examples/osfs/semantics/`, indexed in
   its `doc.go`): the decision, the Lean names, the outcome allowed or excluded, and the evidence
   (measured, documented with a citation, or assumed). A change to the semantics adds or updates
-  its example in the same commit;
+  its example in the same commit. An extension of an OS interface claims one target configuration
+  and nothing wider (the Linux file extension: configuration C, Linux 7.0 and ext4 with its
+  defaults, `notes/axiom-review/fs-config/`); every kernel claim is tested on it, with its
+  helper scripts (`mkfs-mount.sh`, `check.sh`);
 - `Spec/<pkg>/<fn>.lean`: the one Hoare triple of a Go function of package `<pkg>`,
   as `def <fn>.spec : Prop` (`Spec/go_etcd_io/raft/v3/raft__Step.lean`,
   `Spec/strings/Join.lean`);

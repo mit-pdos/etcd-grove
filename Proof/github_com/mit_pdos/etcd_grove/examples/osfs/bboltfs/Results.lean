@@ -121,9 +121,9 @@ theorem treeCrashed_nil {m : Tree} {V' : Hist} (h : TreeCrashed (m, []) V') : V'
 
 /-- The start state's crash obligation: `dbOk`. -/
 theorem startSt_okS [GooseExts] {s : CState} (hs : StartSt s) : dbOk s := by
-  rcases hs with rfl | ⟨i, vs, sz, kp, rfl, hg⟩
+  rcases hs with rfl | ⟨i, vs, sz, rfl, hg⟩
   · trivial
-  · have h := start_okS (i := i) (openStart_disk vs sz kp hg)
+  · have h := start_okS (i := i) (openStart_disk vs sz hg)
     simp only [csStart, bytesOf_ofDisk]
     exact h
 
@@ -154,11 +154,11 @@ theorem startAt_startSt [L : GooseLocalGS GF] (p : GoString) (R : Roots) (m : Tr
     | file i =>
       iintro ⟨%f, %hfo, Hf⟩
       subst hfo
-      obtain ⟨vs, sz, kp, rfl⟩ := hg.2.2
-      iexists csStart i (OsFile.ofDisk vs sz kp)
+      obtain ⟨vs, sz, rfl⟩ := hg.2.2
+      iexists csStart i (OsFile.ofDisk vs sz)
       isplitr
       · ipureintro
-        refine ⟨.inr ⟨i, vs, sz, kp, rfl, hg⟩, hl, fun V' h => ?_⟩
+        refine ⟨.inr ⟨i, vs, sz, rfl, hg⟩, hl, fun V' h => ?_⟩
         rw [treeCrashed_nil h]; exact .inr ⟨i, rfl, hl⟩
       · unfold csStartRes
         simp only [csStart, metaOf_ofDisk, bytesOf_ofDisk]
@@ -264,11 +264,11 @@ theorem bootCrashSafety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
     iintro ⟨#Hos, Hgs, %m, %s, Ht, %hso, Hsr⟩ Htok
     obtain ⟨hst, hp, htr⟩ := hso
     have hwf : CsWf s := by
-      rcases hst with rfl | ⟨i, vs, sz, kp, rfl, -⟩
+      rcases hst with rfl | ⟨i, vs, sz, rfl, -⟩
       · trivial
       · exact csStart_wf i _
     have hidle : ∀ i x, s = some (i, x) → x.busy = .idle ∧ x.fb ≤ x.fa := by
-      rcases hst with rfl | ⟨i, vs, sz, kp, rfl, -⟩
+      rcases hst with rfl | ⟨i, vs, sz, rfl, -⟩
       · intro _ _ h; cases h
       · intro _ _ h; simp only [csStart, Option.some.injEq, Prod.mk.injEq] at h
         obtain ⟨-, rfl⟩ := h; exact ⟨rfl, Nat.le_refl _⟩

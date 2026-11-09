@@ -335,7 +335,7 @@ theorem stored_of_init (p : Ino) (m : OsMeta) (xs : List (w8 × Bool)) (hl : xs.
     osBytes (GF := GF) p 0 (DFrac.own 1) (initFile xs) ⊢
       |==> dbStoredAt (GF := GF) p 1 none 4
         { m with size := max m.size 16384, lo := max m.size 16384, hi := max m.size 16384,
-                 dur := durOf 0 (initFile xs), vk := some [], dz := none } := by
+                 dur := durOf 0 (initFile xs), vk := some [], dz := some (pageUp (max m.size 16384)) } := by
   iintro Hb
   generalize durOf 0 (initFile xs) = D
   rw [initFile_clean xs]
@@ -353,7 +353,7 @@ theorem stored_of_init (p : Ino) (m : OsMeta) (xs : List (w8 × Bool)) (hl : xs.
     rw [hc, initMeta_txid]; rfl
   have Hst := stored_of_bytes (GF := GF) p
     { m with size := max m.size 16384, lo := max m.size 16384, hi := max m.size 16384,
-             dur := D, vk := some [], dz := none }
+             dur := D, vk := some [], dz := some (pageUp (max m.size 16384)) }
     ((initFile xs).map Prod.fst) hl' hmp
     (by rw [hpg]; simp only; omega) hok hmaps (by simp only; omega) (by simp only; omega)
   imod Hst $$ Hb with Hs

@@ -82,7 +82,7 @@ theorem synced_eq {m m' : OsMeta} (h2 : m'.ok = m.ok) (h3 : m'.maps = m.maps) (h
     (bs : List (w8 × Bool)) :
     m'.synced 0 bs =
       { m with size := m'.size, lo := m'.size, hi := m'.size, dur := durOf 0 bs,
-               vk := some [], dz := none, fr := m'.fr.map (max · (pageUp m'.size)) } := by
+               vk := some [], dz := some (pageUp m'.size) } := by
   cases m; cases m'; simp_all [OsMeta.synced]
 
 /-- After a successful sync with nothing kept or frozen. -/
@@ -555,7 +555,7 @@ theorem DB.init.wp_proof_crash (wp_initPages : initPages.spec (GF := GF) (hG := 
   unfold errnoErr; rw [if_pos rfl]
   (try wp_auto)
   rw [csSynced_nil m3 bs3 hok3']
-  have hm3 : m3.synced 0 bs3 = initDoneMeta m xs ((m3.synced 0 bs3).fr) := by
+  have hm3 : m3.synced 0 bs3 = initDoneMeta m xs := by
     have hmm : m3.maps = m.maps := by
       rw [hmaps3, hM2m, hmaps]
     rw [synced_eq (hok3'.trans hok.symm) hmm hok]
