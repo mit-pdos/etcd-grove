@@ -766,6 +766,45 @@ theorem inc_stop_image (hstop : mvccImage_stop.law (GF := GF)) (kv : GoInterface
   obtain ⟨recs, h1, h2, h3⟩ := hr
   exact ⟨recs, by rw [← Hag]; exact h1, h2, h3⟩
 
+/-- The write-back stock's namespace (`wbStock`). -/
+def wbStockN : Namespace := (nroot .@ "mvccfull") .@ "wbstock"
+
+/-- **A backend's stock of write-back tokens** (persistent; mvccrand's `rcStock`, without mvccrand's
+package assumptions): `n` tokens and the `a` receipts taken so far, `receiptBound ≤ a + n + 1`. -/
+def wbStock (γB : backend.BNames) : IProp GF :=
+  inv wbStockN iprop(∃ (a n : Nat), ⧗ a ∗ ownToks γB.wb n ∗ ⌜receiptBound GF ≤ a + n + 1⌝)
+
+theorem wbStock_alloc (γB : backend.BNames) (n : Nat) (h : receiptBound GF ≤ n + 1) (E : CoPset) :
+    ownToks (GF := GF) γB.wb n ⊢ |={E}=> wbStock γB := by
+  iintro Hn
+  imod receipt_zero (GF := GF) with H0
+  unfold wbStock
+  iapply inv_alloc wbStockN E
+  inext
+  iexists 0, n
+  iframe H0 Hn
+  ipureintro; omega
+
+theorem wbStock_supply (γB : backend.BNames) :
+    wbStock (GF := GF) γB ⊢ □ (⧗ 1 ={⊤}=∗ backend.wbTok γB) := by
+  haveI : Persistent (wbStock (GF := GF) γB) := by unfold wbStock; infer_instance
+  iintro #Hs
+  iintro !> Hr
+  unfold wbStock
+  iinv Hs with ⟨%a, %n, >Ha, >Hn, >%Hb⟩ Hclose
+  icases receipt_add_one_lt a $$ [Hr Ha] with ⟨%Hlt, Ha⟩
+  · iframe
+  obtain ⟨n', rfl⟩ : ∃ n', n = n' + 1 := ⟨n - 1, by omega⟩
+  icases ownToks_add_1 1 n' γB.wb $$ Hn with ⟨Hn, Ht⟩
+  imod Hclose $$ [Ha Hn] with -
+  · inext
+    iexists a + 1, n'
+    iframe Ha Hn
+    ipureintro; omega
+  imodintro
+  unfold backend.wbTok
+  iexact Ht
+
 /-- **Reopen, the backend** (step 3, after `backend.New` on the file's data `D` at a fresh
 registration `gx` and the limit `lim`; `mvccrand.rc_open` at any image): the store's storage at the
 image's history (`mvccStorageFor`), what the writer keeps (`bkKeep`, `k` write-back tokens), the
@@ -784,7 +823,101 @@ theorem inc_open_backend [ThreadBoundLe GF (2 ^ 28)] (hopen : etcdStorage_open.l
     mvccStorageFor (etcdStorage bk) iprop(True) L c u ∗ bkKeep bk path k ∗
       backend.plHook γB func.nil ∗ backend.rbPart γB (· = leaseName) (backend.rbData bk.P D) ∗
       backend.wbTok γB ∗ backend.wbTok γB := by
-  sorry
+  intro bk
+  have hT : threadBound GF ≤ backend.rdPoolN :=
+    ThreadBoundLe.le_of (2 ^ 28) (Nat.le_of_eq (by unfold backend.rdPoolN; rfl))
+  iintro ⟨#Hks, Hreg, Himg, Hbf, Hnew⟩
+  iunfold backend.newPostK at Hnew
+  icases Hnew with ⟨#Hb, #Hsc, Hk, Hv, Hh, Hrb, Hrd, Hdl, Hfk, Hsr⟩
+  iunfold backend.bFresh at Hk
+  icases Hk with ⟨Hwb, Ho⟩
+  icases (backend.bOpen_one_pool γB).1 $$ Ho with ⟨Hoh, Hpl, Hos⟩
+  imod backend.rdToks_pool hT ⊤ γB (mvccrand.rcP lim) be $$ Hrd with ⟨#Hpool, Hrs⟩
+  obtain ⟨n2, hn2⟩ : ∃ n2, backend.rdStockN = n2 + 2 :=
+    ⟨backend.rdStockN - 2, by have := backend.rdStockN_val; omega⟩
+  have hn2' : backend.rdStockN - 2 = n2 := by omega
+  rw [hn2]
+  icases (backend.bigSepL_replicate_add _ n2 2).1 $$ Hos with ⟨Hos, Ho2⟩
+  rw [List.replicate_succ]
+  icases BigSepL.bigSepL_cons.1 $$ Ho2 with ⟨Hor, Ho2⟩
+  rw [List.replicate_one]
+  ihave Ho2 := (BigSepL.bigSepL_singleton (PROP := IProp GF)).1 $$ Ho2
+  -- the write-back tokens: two for the open, two given back, `k` kept, the stock
+  obtain ⟨N, hN⟩ : ∃ N, backend.wbInit = N + (4 + k) := ⟨backend.wbInit - (4 + k), by omega⟩
+  rw [hN]
+  icases ownToks_add_1 (4 + k) N γB.wb $$ Hwb with ⟨HwN, Hw⟩
+  icases ownToks_add_1 k 4 γB.wb $$ Hw with ⟨Hw4, Hwk⟩
+  icases ownToks_add_1 2 2 γB.wb $$ Hw4 with ⟨Hw2, Hw2'⟩
+  icases ownToks_add_1 1 1 γB.wb $$ Hw2 with ⟨Hw1, Hw1'⟩
+  icases ownToks_add_1 1 1 γB.wb $$ Hw2' with ⟨Hw3, Hw3'⟩
+  haveI : Persistent (wbStock (GF := GF) γB) := by unfold wbStock; infer_instance
+  imod wbStock_alloc γB N (by omega) ⊤ $$ HwN with #Hstock
+  ihave #Hsup := wbStock_supply γB $$ Hstock
+  ihave Hnp : backend.newPostKP (GF := GF) γB (mvccrand.rcP lim) (fun _ => mvccW gx)
+      (fun _ => iprop(True)) (fun _ => iprop(True)) be D $$ [Hv Hh Hrb Hrs Hdl Hfk Hsr]
+  · iunfold backend.newPostKP
+    isplitr; iexact Hb
+    isplitr; iexact Hsc
+    isplitr; itrivial
+    isplitl [Hv]; iexact Hv
+    isplitl [Hh]; iexact Hh
+    isplitl [Hrb]; iexact Hrb
+    isplitr; iexact Hpool
+    icases Hrs with ⟨Hra, Hrst⟩
+    isplitl [Hra]; iexact Hra
+    isplitl [Hrst]; iexact Hrst
+    isplitl [Hdl]; iexact Hdl
+    isplitl [Hfk]; iexact Hfk
+    iexact Hsr
+  ihave Hks' : (□ (∀ (γ : backend.BNames) (b' : Loc), keySized (GF := GF) γ (mvccrand.rcP lim) b'))
+    $$ []
+  · iintro !> %γ %b'; iapply Hks
+  rw [← hn2']
+  imod hopen bk (fun _ => iprop(True)) (fun _ => iprop(True)) D L c u (mvccrand.rcP_bridge lim)
+      (mvccrand.rcP_lease lim) rfl
+      $$ [Hks' Himg Hnp Hreg Hw1 Hw1' Hsup Hos] with ⟨Hsf, Hrest, Hrt, -⟩
+  · rw [mvccrand.rcKB_P, mvccrand.rcKB_γB, mvccrand.rcKB_be, mvccrand.rcKB_gx]
+    isplitl [Hks']; iexact Hks'
+    isplitl [Himg]; iexact Himg
+    isplitl [Hnp]; iexact Hnp
+    isplitl [Hreg]; iexact Hreg
+    isplitl [Hw1]; iunfold backend.wbTok; iexact Hw1
+    isplitl [Hw1']; iunfold backend.wbTok; iexact Hw1'
+    isplitl [Hsup]; iexact Hsup
+    iexact Hos
+  ihave ⟨-, -, Hhk, Hrbo, -⟩ := hrest _ _ _ _ _ $$ Hrest
+  icases (backend.rbOwn_split γB (· = leaseName) _).1 $$ Hrbo with ⟨Hrbl, -⟩
+  imodintro
+  iframe Hsf Hhk Hrbl
+  isplitl [Hbf Hoh Hor Hrt Hwk Ho2 Hpl]
+  · iunfold bkKeep
+    isplitr
+    · ipureintro; exact ⟨mvccrand.rcKB_P γB be gx lim, rfl⟩
+    simp only [bk, mvccrand.rcKB_P, mvccrand.rcKB_γB, mvccrand.rcKB_be, mvccrand.rcKB_gx]
+    iframe #; iframe
+    isplitl [Hrt Hor]
+    · iunfold apply.bkRT
+      simp only [mvccrand.rcKB_P, mvccrand.rcKB_γB, mvccrand.rcKB_be]
+      iframe
+    iunfold bkCensus
+    simp only [mvccrand.rcKB_γB]
+    iintro Ho1 Hhalf Hst
+    rw [etcdStorage_rest]
+    simp only [mvccrand.rcKB_γB]
+    rw [hn2']
+    imodintro
+    iapply (backend.bOpen_one_pool γB).2
+    rw [hn2]
+    iframe Hhalf Hpl
+    iapply (backend.bigSepL_replicate_add _ n2 2).2
+    iframe Hst
+    rw [List.replicate_succ, List.replicate_one]
+    iapply BigSepL.bigSepL_cons.2
+    iframe Ho1
+    iapply (BigSepL.bigSepL_singleton (PROP := IProp GF)).2
+    iexact Ho2
+  iunfold backend.wbTok
+  iframe
 
 /-- **Reopen, the incarnation** (step 3, after `mvcc.New`): a new incarnation's invariant (namespace
 `memberN i`) at the new store `γk`, with the carried parts; the writer gets the whole retirement
