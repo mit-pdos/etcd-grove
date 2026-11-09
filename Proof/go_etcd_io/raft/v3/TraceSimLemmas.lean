@@ -1008,6 +1008,105 @@ theorem advanceCommitIndex_eq (st : Etcdraft.State) (i : Etcdraft.ID) (C : List 
     · simp only; rw [ht]
   simp only [hgt, decide_true, Bool.true_and, hterm, beq_self_eq_true, ↓reduceIte]
 
+/-! ### Sends -/
+
+theorem mem_confAbs (C : List w64) (w : w64) : idAbs w ∈ confAbs C ↔ w ∈ C := by
+  unfold confAbs; rw [setIds_mk_mem, List.mem_map]
+  constructor
+  · rintro ⟨c, hc, e⟩; rw [← idAbs_inj.1 e]; exact hc
+  · intro h; exact ⟨w, h, rfl⟩
+
+/-- A peer of the bootstrap configuration is one the specification's leader sends to. -/
+theorem peer_contains (C : List w64) (w : w64) (h : w ∈ C) :
+    ((confAbs C).union []).contains (idAbs w) = true := by
+  unfold Etcdraft.SetIds.union
+  rw [List.append_nil, List.contains_iff_mem, setIds_mk_mem, mem_confAbs]; exact h
+
+theorem subSeq_logAbs (C : List w64) (bl : Nat) (es : List EntryM) (p k : Nat) (hpk : p + k ≤ es.length) :
+    Etcdraft.subSeqM (logAbs C bl 1 es) ((p : Int) + 1) ((p : Int) + k) =
+      .ok (logAbs C bl (p + 1) ((es.drop p).take k)) := by
+  unfold Etcdraft.subSeqM Etcdraft.subSeq
+  rw [logAbs_length]
+  by_cases hk : k = 0
+  · subst hk
+    have : (p : Int) + 1 > (p : Int) + (0 : Nat) := by omega
+    simp only [this, ↓reduceIte, List.take_zero]; rfl
+  · have h1 : ¬ ((p : Int) + 1 > (p : Int) + k) := by omega
+    have h2 : ¬ ((p : Int) + 1 < 1 ∨ (p : Int) + k > es.length) := by omega
+    simp only [h1, h2, ↓reduceIte]
+    have e1 : ((p : Int) + 1).toNat - 1 = p := by omega
+    have e2 : ((p : Int) + k).toNat - ((p : Int) + 1).toNat + 1 = k := by omega
+    rw [e1, e2]
+    congr 1
+    apply List.ext_getElem?; intro x
+    rw [List.getElem?_take, List.getElem?_drop, logAbs_getElem?, logAbs_getElem?, List.getElem?_take,
+      List.getElem?_drop]
+    split
+    · congr 1; funext e; congr 1; omega
+    · rfl
+
+/-- **An append request a leader sends** (`maybeSendAppend`: the entries after `p`, `p`'s term,
+the leader's commit index; `ReplOk`, `AppCommitEq`): the specification's
+`AppendEntries(i, j, <<p + 1, p + k + 1>>)` sends its abstraction. -/
+theorem appendEntries_send (st : Etcdraft.State) (C : List w64) (bl : Nat) (s : PState) (id : w64)
+    (m : Msg) (k : Nat) (hR : SimServerR C bl s (st.s (idAbs id))) (hl : s.role = .leader)
+    (hs : LogShapeOk bl s) (hty : m.ty = .app) (hsrc : m.src = id) (hdst : m.dst ≠ id) (hC : m.dst ∈ C)
+    (hterm : m.term = s.term) (hpk : uint.nat m.index + k ≤ s.log.length)
+    (hlt : plogTermAt s.base s.log m.index = some m.logterm)
+    (hents : m.entries = (s.log.drop (uint.nat m.index)).take k) (hcommit : m.commit = s.commit) :
+    st.appendEntries (idAbs id) (idAbs m.dst) ((uint.nat m.index : Int) + 1)
+        ((uint.nat m.index : Int) + 1 + k) =
+      .ok (some (st.send ((msgAbs C bl m).get (by simp [msgAbs, hty])))) := by
+  obtain ⟨h1, h2, -, -, -, h6, h7, h8, -, -, -⟩ := hR
+  obtain ⟨hb0, -, hboot⟩ := hs
+  have hne : idAbs id ≠ idAbs m.dst := fun e => hdst (idAbs_inj.1 e).symm
+  have hlen : (st.s (idAbs id)).log.length = s.log.length := by rw [h6, logAbs_length]
+  unfold Etcdraft.State.appendEntries Etcdraft.State.appendEntriesInRangeToPeer
+  have hcont : ((st.getConfig (idAbs id)).union (st.getLearners (idAbs id))).contains (idAbs m.dst) = true := by
+    unfold Etcdraft.State.getConfig Etcdraft.State.getLearners; rw [h8]; exact peer_contains C _ hC
+  have hle : ¬ ((uint.nat m.index : Int) + 1 > (uint.nat m.index : Int) + 1 + k) := by omega
+  have hlead : ((st.s (idAbs id)).state != Etcdraft.leader) = false := by rw [h2, hl]; rfl
+  simp only [beq_iff_eq, hne, decide_false, hle, hlead, hcont, Bool.not_true, Bool.or_false, ↓reduceIte]
+  have hmin : min ((st.s (idAbs id)).log.length : Int) ((uint.nat m.index : Int) + 1 + k - 1) =
+      (uint.nat m.index : Int) + k := by rw [hlen]; omega
+  rw [hmin, h6, subSeq_logAbs C bl s.log _ k hpk]
+  have hmsg : msgAbs C bl m = some
+      { type := .appendEntriesRequest, subtype := "app", term := uint.Z m.term, prevLogIndex := uint.Z m.index,
+        prevLogTerm := uint.Z m.logterm, entries := logAbs C bl (uint.nat m.index + 1) m.entries,
+        commitIndex := uint.Z m.commit, source := idAbs m.src, dest := idAbs m.dst } := by
+    simp only [msgAbs, hty]
+  simp only [hmsg, Option.get_some, bind, Except.bind, pure, Except.pure]
+  have hidx : (uint.nat m.index : Int) = uint.Z m.index := by word
+  have hpt : (if (decide ((uint.nat m.index : Int) + 1 - 1 > 0) &&
+        decide ((uint.nat m.index : Int) + 1 - 1 ≤ ((logAbs C bl 1 s.log).length : Int))) = true then
+      ((logAbs C bl 1 s.log)[((uint.nat m.index : Int) + 1 - 1 - 1).toNat]?.map Etcdraft.Entry.term).getD 0
+      else 0) = uint.Z m.logterm := by
+    rw [hb0] at hlt
+    by_cases h0 : uint.nat m.index = 0
+    · have hz : m.index = W64 0 := by word
+      rw [hz, plogTermAt_base] at hlt
+      simp only [Option.some.injEq] at hlt
+      rw [← hlt]
+      simp [h0]; rfl
+    · have hpos : 0 < uint.Z m.index := by word
+      rw [plogTermAt_base0 s.log _ hpos] at hlt
+      obtain ⟨e, he⟩ : ∃ e, s.log[uint.nat m.index - 1]? = some e := by
+        cases hh : s.log[uint.nat m.index - 1]? with
+        | none => rw [hh] at hlt; cases hlt
+        | some e => exact ⟨e, rfl⟩
+      rw [he] at hlt; simp only [Option.map_some, Option.some.injEq] at hlt
+      have hc1 : (decide ((uint.nat m.index : Int) + 1 - 1 > 0) &&
+          decide ((uint.nat m.index : Int) + 1 - 1 ≤ ((logAbs C bl 1 s.log).length : Int))) = true := by
+        rw [logAbs_length]; simp only [Bool.and_eq_true, decide_eq_true_eq]; omega
+      simp only [hc1, ↓reduceIte]
+      have : ((uint.nat m.index : Int) + 1 - 1 - 1).toNat = uint.nat m.index - 1 := by omega
+      rw [this, logAbs_getElem?, he]
+      simp only [Option.map_some, Option.getD_some]
+      rw [entAbs_term C bl _ e (fun hb => hboot _ e (by omega) he), hlt]
+  rw [hpt, hents, hsrc, hterm, hcommit, ← h1, ← h7]
+  congr 4
+  omega
+
 end TraceSim
 
 end EtcdGrove
