@@ -107,6 +107,32 @@ theorem logAbs_match (C : List w64) (es1 es2 : List EntryM)
     exact entAbs_eq C C.length _ _ _ this
   · rfl
 
+/-- **Entries from terms**: two logs whose raft terms agree below `c` have the same abstract entries
+there. -/
+theorem logAbs_get_of_terms (C : List w64) (es1 es2 : List EntryM) (c idx : Nat)
+    (hc1 : c ≤ es1.length) (hc2 : c ≤ es2.length)
+    (hag : ∀ k, k < c → es1[k]?.map EntryM.Term' = es2[k]?.map EntryM.Term') (hidx : idx < c) :
+    (logAbs C C.length 1 es1)[idx]? = some (((logAbs C C.length 1 es2)[idx]?).getD default) := by
+  have h := hag idx hidx
+  rw [List.getElem?_eq_getElem (by omega : idx < es1.length),
+    List.getElem?_eq_getElem (by omega : idx < es2.length)] at h
+  simp only [Option.map_some, Option.some.injEq] at h
+  simp only [logAbs, List.getElem?_mapIdx, List.getElem?_eq_getElem (by omega : idx < es1.length),
+    List.getElem?_eq_getElem (by omega : idx < es2.length), Option.map_some, Option.getD_some]
+  rw [entAbs_eq C C.length _ _ _ h]
+
+/-- Terms at `W64 (k + 1)` of an uncompacted log are its entries' terms at `k`. -/
+theorem terms_of_plog (es1 es2 : List EntryM) (c : Nat) (hc : c < 2 ^ 63)
+    (h : ∀ j : w64, uint.Z j ≤ (c : Int) →
+      plogTermAt (entryID.mk (W64 0) (W64 0)) es1 j = plogTermAt (entryID.mk (W64 0) (W64 0)) es2 j) :
+    ∀ k, k < c → es1[k]?.map EntryM.Term' = es2[k]?.map EntryM.Term' := by
+  intro k hk
+  have hk1 : 0 < uint.Z (W64 ((k : Int) + 1)) := by word
+  have hkn : uint.nat (W64 ((k : Int) + 1)) - 1 = k := by word
+  have := h (W64 ((k : Int) + 1)) (by word)
+  rw [plogTermAt_base0 _ _ hk1, plogTermAt_base0 _ _ hk1, hkn] at this
+  exact this
+
 /-! ### `ElectionSafetyInv` by a specification invariant (route (b)) -/
 
 /-- **The leaders' term entries** (route (b) of the notes' `ElectionSafetyInv`): for every leader `i`
