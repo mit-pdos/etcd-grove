@@ -2139,6 +2139,60 @@ theorem newPending_send (st : Etcdraft.State) (m : Etcdraft.Msg) (p : Etcdraft.M
   simp only [bag_count_with_self]
   cases st.pendingMessages.count m <;> simp
 
+/-! ### Lines with a chain of single successors (receive lines) -/
+
+/-- A round from one state on the line whose one successor `g` stays on the line, new, satisfying the
+invariants: `g` is the next frontier. -/
+theorem stepRound_stay (t : Etcdraft.Trace) (l0 : Nat) (f g : Etcdraft.TState) (visited : List Etcdraft.TState)
+    (hn : t.next f = .ok [g]) (hgl : g.l = l0) (hnew : Etcdraft.memEq visited g = false)
+    (hinv : g.s.violated = .ok none) :
+    t.stepRound l0 true [f] ([], visited, {}) = .ok ([], visited ++ [g], [g], {}) := by
+  have hne : ¬ g.l = l0 + 1 := by omega
+  have hnew' : ¬ ∃ x, x ∈ visited ∧ x.eq g = true := by
+    intro ⟨x, hx, he⟩
+    unfold Etcdraft.memEq at hnew
+    rw [List.any_eq_false] at hnew
+    exact hnew x hx (by simpa using he)
+  simp only [Etcdraft.Trace.stepRound, List.foldlM_cons, List.foldlM_nil, hn]
+  simp [Etcdraft.memEq, bind, Except.bind, pure, Except.pure, hne, hnew', hinv]
+
+/-- The last round: the one successor moves to the next line. -/
+theorem stepRound_out (t : Etcdraft.Trace) (l0 : Nat) (f g : Etcdraft.TState) (visited : List Etcdraft.TState)
+    (hn : t.next f = .ok [g]) (hgl : g.l = l0 + 1) (hinv : g.s.violated = .ok none) :
+    t.stepRound l0 true [f] ([], visited, {}) = .ok ([g], visited, [], {}) := by
+  simp only [Etcdraft.Trace.stepRound, List.foldlM_cons, List.foldlM_nil, hn]
+  simp [Etcdraft.memEq, bind, Except.bind, pure, Except.pure, hgl, hinv]
+
+/-- **A chain of single successors on a line** (a receive line's rounds: `UpdateTerm`, the
+truncations, the append, the handler), each new and satisfying the invariants, the last on the next
+line. -/
+inductive Chain (t : Etcdraft.Trace) (l0 : Nat) : List Etcdraft.TState → Etcdraft.TState → Etcdraft.TState → Prop
+  | last (visited : List Etcdraft.TState) (f tsF : Etcdraft.TState) :
+      t.next f = .ok [tsF] → tsF.l = l0 + 1 → tsF.s.violated = .ok none → Chain t l0 visited f tsF
+  | step (visited : List Etcdraft.TState) (f g tsF : Etcdraft.TState) :
+      t.next f = .ok [g] → g.l = l0 → Etcdraft.memEq visited g = false → g.s.violated = .ok none →
+      Chain t l0 (visited ++ [g]) g tsF → Chain t l0 visited f tsF
+
+theorem stepLoop_of_chain (t : Etcdraft.Trace) (l0 : Nat) (visited : List Etcdraft.TState)
+    (f tsF : Etcdraft.TState) (h : Chain t l0 visited f tsF) :
+    t.StepLoop l0 true [f] ([], visited, {}) (.ok ([tsF], {})) := by
+  induction h with
+  | last visited f tsF hn hl hinv =>
+    exact .round [f] _ [tsF] visited [] {} _ (by simp) (stepRound_out t l0 f tsF visited hn hl hinv) rfl
+      (.done _)
+  | step visited f g tsF hn hl hnew hinv _ ih =>
+    exact .round [f] _ [] (visited ++ [g]) [g] {} _ (by simp)
+      (stepRound_stay t l0 f g visited hn hl hnew hinv) rfl ih
+
+/-- ... so `checkLine` from the chain's first state gives its last alone. -/
+theorem checkLine_of_chain (t : Etcdraft.Trace) (ts tsF : Etcdraft.TState) (h : Chain t ts.l [ts] ts tsF) :
+    t.CheckLineRel true [ts] ([], {}) (.ok ([tsF], { branched := false, violation := none })) := by
+  apply Etcdraft.Trace.CheckLineRel.step ts [] ([], {}) [tsF] {} _ rfl
+  · unfold Etcdraft.Trace.StepLineRel; exact stepLoop_of_chain t ts.l [ts] ts tsF h
+  · simp only [List.foldl_cons, List.foldl_nil, Etcdraft.memEq, List.any_nil, Bool.false_eq_true,
+      ↓reduceIte, List.nil_append, Bool.or_self]
+    exact Etcdraft.Trace.CheckLineRel.nil _
+
 end TraceSim
 
 end EtcdGrove
