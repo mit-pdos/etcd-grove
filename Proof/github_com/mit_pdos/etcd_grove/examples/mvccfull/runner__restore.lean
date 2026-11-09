@@ -633,7 +633,32 @@ theorem runner.restore.wp_proof
     · iunfold memCore
       dsimp only
       rw [hkveq]
-      sorry
+      iframe #; iframe
+      isplitr
+      · iunfold hookOk; iframe #; ipureintro; exact Hf1
+      isplitl [Hlsln]
+      · simp only [List.nil_append] at *; iexact Hlsln
+      isplitr
+      · ipureintro; omega
+      isplitl [Hret1 Hσw1 Hbw1]
+      · iunfold incW; iframe #; iframe
+      isplitr
+      · rw [etcdStorage_hookIs]; simp only [mvccrand.rcKB_γB]; iexact Hhk1
+      isplitl [Hrdrs1 Hr1]
+      · iapply hR1'.2; iframe
+      isplitl [Hnbf Hnoh HnRT Hntoks Hncen]
+      · iunfold bkKeep
+        isplitr
+        · ipureintro; exact HnP
+        simp only [mvccrand.rcKB_P, mvccrand.rcKB_γB, mvccrand.rcKB_be, mvccrand.rcKB_gx]
+        iframe #; iframe
+      isplitl
+      · iunfold lessorW
+        iexists rd, _
+        iframe #; iframe
+        ipureintro
+        exact leaseRecsOk_insert _ _ ⟨recs, hrecs1, hL', hrecs3⟩
+      · ipureintro; exact hU'g
     sorry
 
 end proof
