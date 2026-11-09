@@ -914,3 +914,202 @@ theorem specInv_ready {σ : State} {i : ID} (h : SpecInv σ) : SpecInv (σ.ready
     rw [hS] at hll; rw [hT, hT] at ht; rw [hC, hL]; exact hCW k hk l hl hll ht
   · intro l hl hll x hx hty ht
     rw [hS] at hll; rw [hT] at ht; rw [hL]; exact hRC l hl hll x (hA x hx) hty ht
+
+/-! ## The leader's actions -/
+
+theorem getElem?_map_append {l r : List Entry} {k : Nat} {t : Int} (h : (l[k]?).map Entry.term = some t) :
+    ((l ++ r)[k]?).map Entry.term = some t := by
+  have hk : k < l.length := by
+    rcases Nat.lt_or_ge k l.length with hk | hk
+    · exact hk
+    · rw [List.getElem?_eq_none hk] at h; cases h
+  rw [List.getElem?_append_left hk]; exact h
+
+/-- **`ClientRequest(i, v)`**: `i`'s new entry is the only one of its term elsewhere than in its log
+(`MoreThanOneLeaderInv`). -/
+theorem specInv_clientRequest {σ σ' : State} {i : ID} {val : Int} (h : SpecInv σ) (hi : i ∈ σ.server)
+    (hone : σ.moreThanOneLeaderInv = true) (hstep : σ.clientRequest i val = some σ') : SpecInv σ' := by
+  unfold State.clientRequest at hstep
+  split at hstep
+  · cases hstep
+  · cases hstep
+    rename_i hl
+    have hil : (σ.s i).state = leader := by simpa using hl
+    obtain ⟨hLE, hD, hTm, hCa, hP, hCW, hRC⟩ := h
+    have hs : ∀ k, (σ.replicate i (.val val) .value).s k = if k = i then
+        { σ.s i with log := (σ.s i).log ++ [{ term := (σ.s i).currentTerm, type := .value, value := .val val }] }
+        else σ.s k := fun k => rfl
+    have hsrv : (σ.replicate i (.val val) .value).server = σ.server := rfl
+    have hT : ∀ k, ((σ.replicate i (.val val) .value).s k).currentTerm = (σ.s k).currentTerm := by
+      intro k; rw [hs]; split <;> subst_vars <;> rfl
+    have hS : ∀ k, ((σ.replicate i (.val val) .value).s k).state = (σ.s k).state := by
+      intro k; rw [hs]; split <;> subst_vars <;> rfl
+    have hC : ∀ k, ((σ.replicate i (.val val) .value).s k).commitIndex = (σ.s k).commitIndex := by
+      intro k; rw [hs]; split <;> subst_vars <;> rfl
+    have hMi : ∀ k, ((σ.replicate i (.val val) .value).s k).matchIndex = (σ.s k).matchIndex := by
+      intro k; rw [hs]; split <;> subst_vars <;> rfl
+    have hDu : ∀ k, ((σ.replicate i (.val val) .value).s k).durable = (σ.s k).durable := by
+      intro k; rw [hs]; split <;> subst_vars <;> rfl
+    have hV : ∀ k, ((σ.replicate i (.val val) .value).s k).votesGranted = (σ.s k).votesGranted := by
+      intro k; rw [hs]; split <;> subst_vars <;> rfl
+    have hext : ∀ (k : ID) (n : Nat) (t : Int), ((σ.s k).log[n]?).map Entry.term = some t →
+        (((σ.replicate i (.val val) .value).s k).log[n]?).map Entry.term = some t := by
+      intro k n t ht; rw [hs]; split
+      · subst_vars; exact getElem?_map_append ht
+      · exact ht
+    have hlen : ∀ k : ID, ((σ.s k).log.length : Int) ≤ ((σ.replicate i (.val val) .value).s k).log.length := by
+      intro k; rw [hs]; split
+      · subst_vars; simp only [List.length_append, List.length_singleton]; omega
+      · exact Int.le_refl _
+    have hcase : ∀ (k : ID) (n : Nat) (e : Entry), ((σ.replicate i (.val val) .value).s k).log[n]? = some e →
+        (σ.s k).log[n]? = some e ∨ (k = i ∧ e.term = (σ.s i).currentTerm) := by
+      intro k n e he; rw [hs] at he; split at he
+      · subst_vars
+        rw [List.getElem?_append] at he
+        split at he
+        · exact Or.inl he
+        · right; refine ⟨rfl, ?_⟩
+          cases hn : n - (σ.s k).log.length with
+          | zero => rw [hn] at he; simp at he; rw [← he]
+          | succ _ => rw [hn] at he; simp at he
+      · exact Or.inl he
+    refine ⟨?_, ?_, ?_, ?_, hP, ?_, ?_⟩
+    · intro l hl hll
+      rw [hS] at hll
+      obtain ⟨h1, h2⟩ := hLE l hl hll
+      rw [hT]
+      refine ⟨fun j hj n e he ht => ?_, fun x hx n e he ht => hext l _ _ (h2 x hx n e he ht)⟩
+      rcases hcase j n e he with he' | ⟨rfl, hte⟩
+      · exact hext l _ _ (h1 j hj n e he' ht)
+      · have := oneLeader hone hl hj hll hil (ht.symm.trans hte)
+        subst this
+        rw [he]; rfl
+    · intro l hl hll
+      rw [hS] at hll
+      obtain ⟨a1, a2, a3, a4, a5, a6, a7⟩ := hD l hl hll
+      simp only [hT, hC, hMi, hDu]
+      have hn := hlen l
+      exact ⟨Int.le_trans a1 hn, a2, a3, a4, fun x hx hs' hty ht => Int.le_trans (a5 x hx hs' hty ht) hn, a6,
+        fun x hx hd hty ht hsc => ⟨Int.le_trans (a7 x hx hd hty ht hsc).1 hn, (a7 x hx hd hty ht hsc).2⟩⟩
+    · intro x hx; unfold MsgTermOk; rw [hT, hT]; exact hTm x hx
+    · intro l hl hc
+      rw [hS] at hc
+      have hli : l ≠ i := by rintro rfl; exact candidate_ne_leader (hc.symm.trans hil)
+      rw [hs]; simp only [hli, ↓reduceIte]
+      exact hCa l hl hc
+    · intro k hk l hl hll ht
+      rw [hS] at hll; rw [hT, hT] at ht; rw [hC]
+      exact Int.le_trans (hCW k hk l hl hll ht) (hlen l)
+    · intro l hl hll x hx hty ht
+      rw [hS] at hll; rw [hT] at ht
+      exact Int.le_trans (hRC l hl hll x hx hty ht) (hlen l)
+
+/-- **A server's new commit index**, every other field kept: within its durable log if a leader, and
+within the log of every leader of its term. -/
+theorem specInv_upd_commit {σ : State} {i : ID} {f : Server → Server} (h : SpecInv σ)
+    (hT : (f (σ.s i)).currentTerm = (σ.s i).currentTerm) (hS : (f (σ.s i)).state = (σ.s i).state)
+    (hL : (f (σ.s i)).log = (σ.s i).log) (hD : (f (σ.s i)).durable = (σ.s i).durable)
+    (hV : (f (σ.s i)).votesGranted = (σ.s i).votesGranted)
+    (hM : (f (σ.s i)).matchIndex = (σ.s i).matchIndex)
+    (hcd : (σ.s i).state = leader → (f (σ.s i)).commitIndex ≤ (σ.s i).durable.log.length)
+    (hcl : ∀ l ∈ σ.server, (σ.s l).state = leader → (σ.s l).currentTerm = (σ.s i).currentTerm →
+      (f (σ.s i)).commitIndex ≤ (σ.s l).log.length) : SpecInv (σ.upd i f) := by
+  obtain ⟨hLE, hDu, hTm, hCa, hP, hCW, hRC⟩ := h
+  have hT' : ∀ k, ((σ.upd i f).s k).currentTerm = (σ.s k).currentTerm := by
+    intro k; rw [upd_s]; split <;> subst_vars <;> first | rfl | exact hT
+  have hS' : ∀ k, ((σ.upd i f).s k).state = (σ.s k).state := by
+    intro k; rw [upd_s]; split <;> subst_vars <;> first | rfl | exact hS
+  have hL' : ∀ k, ((σ.upd i f).s k).log = (σ.s k).log := by
+    intro k; rw [upd_s]; split <;> subst_vars <;> first | rfl | exact hL
+  have hD' : ∀ k, ((σ.upd i f).s k).durable = (σ.s k).durable := by
+    intro k; rw [upd_s]; split <;> subst_vars <;> first | rfl | exact hD
+  have hV' : ∀ k, ((σ.upd i f).s k).votesGranted = (σ.s k).votesGranted := by
+    intro k; rw [upd_s]; split <;> subst_vars <;> first | rfl | exact hV
+  have hM' : ∀ k, ((σ.upd i f).s k).matchIndex = (σ.s k).matchIndex := by
+    intro k; rw [upd_s]; split <;> subst_vars <;> first | rfl | exact hM
+  refine ⟨?_, ?_, ?_, ?_, hP, ?_, ?_⟩
+  · simp only [LeaderEntries, hS', hT', hL']; exact hLE
+  · intro l hl hll
+    rw [hS'] at hll
+    obtain ⟨a1, a2, a3, a4, a5, a6, a7⟩ := hDu l hl hll
+    simp only [hT', hL', hD', hM']
+    refine ⟨a1, ?_, a3, a4, a5, a6, a7⟩
+    by_cases hli : l = i
+    · subst hli; rw [upd_s_self]; exact hcd hll
+    · rw [upd_s_ne _ _ _ _ hli]; exact a2
+  · simp only [TermsLe, MsgTermOk, hT']; exact hTm
+  · simp only [CandS, persisted, hS', hT', hL', hD', hV']; exact hCa
+  · intro k hk l hl hll ht
+    rw [hS'] at hll; rw [hT', hT'] at ht; rw [hL']
+    by_cases hki : k = i
+    · subst hki; rw [upd_s_self]; exact hcl l hl hll ht.symm
+    · rw [upd_s_ne _ _ _ _ hki]; exact hCW k hk l hl hll ht
+  · simp only [ReqCommit, hS', hT', hL']; exact hRC
+
+theorem foldl_last (Q : Nat → Bool) (N : Nat) :
+    (List.range N).foldl (fun (acc : Nat) n => if Q n = true then n + 1 else acc) 0 = 0 ∨
+    ∃ n, (List.range N).foldl (fun (acc : Nat) n => if Q n = true then n + 1 else acc) 0 = n + 1 ∧
+      n < N ∧ Q n = true := by
+  induction N with
+  | zero => left; rfl
+  | succ N ih =>
+    rw [List.range_succ, List.foldl_append, List.foldl_cons, List.foldl_nil]
+    split
+    · rename_i hq; right; exact ⟨N, rfl, Nat.lt_succ_self _, hq⟩
+    · rcases ih with h0 | ⟨n, h1, h2, h3⟩
+      · left; exact h0
+      · right; exact ⟨n, h1, Nat.lt_succ_of_lt h2, h3⟩
+
+theorem isQuorum_nonempty {q c : SetIds} (h : isQuorum q c = true) : ∃ k, k ∈ q := by
+  unfold isQuorum at h
+  simp only [Bool.and_eq_true, decide_eq_true_eq] at h
+  cases q with
+  | nil => simp at h
+  | cons k _ => exact ⟨k, List.mem_cons_self⟩
+
+/-- **`AdvanceCommitIndex(i)`**: the new commit index is agreed by a quorum (so within the match
+indices, within the durable log) and within the log. -/
+theorem specInv_advanceCommitIndex {σ σ' : State} {i : ID} (h : SpecInv σ) (hi : i ∈ σ.server)
+    (hone : σ.moreThanOneLeaderInv = true) (hstep : σ.advanceCommitIndex i = some σ') : SpecInv σ' := by
+  unfold State.advanceCommitIndex at hstep; dsimp only at hstep
+  split at hstep
+  · cases hstep
+  · cases hstep
+    rename_i hl
+    have hl : (σ.s i).state = leader := by simpa using hl
+    obtain ⟨-, a2, a3, -⟩ := h.2.1 i hi hl
+    have hcw := h.2.2.2.2.2.1 i hi i hi hl rfl
+    -- the new commit index: within the durable log and the log
+    have hnew : ∀ c : Int, (c ≤ (σ.s i).durable.log.length ∧ c ≤ (σ.s i).log.length) →
+        max (σ.s i).commitIndex c ≤ (σ.s i).durable.log.length ∧
+        max (σ.s i).commitIndex c ≤ (σ.s i).log.length := fun c hc =>
+      ⟨Int.max_le.mpr ⟨a2, hc.1⟩, Int.max_le.mpr ⟨hcw, hc.2⟩⟩
+    have hb := hnew
+      (if (decide ((List.range (σ.s i).log.length).foldl (fun (acc : Nat) n =>
+            if isQuorum ((σ.getConfig i).filter (fun k => decide ((σ.s i).matchIndex k ≥ ((n + 1 : Nat) : Int))))
+              (σ.getConfig i) = true then n + 1 else acc) 0 > 0) &&
+          (((σ.s i).log[(List.range (σ.s i).log.length).foldl (fun (acc : Nat) n =>
+            if isQuorum ((σ.getConfig i).filter (fun k => decide ((σ.s i).matchIndex k ≥ ((n + 1 : Nat) : Int))))
+              (σ.getConfig i) = true then n + 1 else acc) 0 - 1]?).map Entry.term == some (σ.s i).currentTerm)) = true
+        then (((List.range (σ.s i).log.length).foldl (fun (acc : Nat) n =>
+            if isQuorum ((σ.getConfig i).filter (fun k => decide ((σ.s i).matchIndex k ≥ ((n + 1 : Nat) : Int))))
+              (σ.getConfig i) = true then n + 1 else acc) 0 : Nat) : Int)
+        else (σ.s i).commitIndex) (by
+        split
+        · rcases foldl_last (fun n => isQuorum ((σ.getConfig i).filter
+              (fun k => decide ((σ.s i).matchIndex k ≥ ((n + 1 : Nat) : Int))))
+              (σ.getConfig i)) (σ.s i).log.length with h0 | ⟨n, h1, h2, h3⟩
+          · rw [h0]; constructor <;> omega
+          · rw [h1]
+            obtain ⟨k, hk⟩ := isQuorum_nonempty h3
+            have hk := (List.mem_filter.mp hk).2
+            simp only [decide_eq_true_eq] at hk
+            have := a3 k
+            constructor <;> omega
+        · exact ⟨a2, hcw⟩)
+    apply specInv_upd_commit h rfl rfl rfl rfl rfl rfl
+    · intro _; exact hb.1
+    · intro l hl' hll ht
+      have := oneLeader hone hl' hi hll hl ht
+      subst this
+      exact hb.2
