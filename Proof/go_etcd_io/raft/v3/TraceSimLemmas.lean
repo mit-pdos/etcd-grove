@@ -2072,6 +2072,21 @@ theorem nonReceive_becomeCandidate (t : Etcdraft.Trace) (ts : Etcdraft.TState) (
   simp [Etcdraft.Trace.skipUnusedLogline, Etcdraft.Trace.isEvent, hname,
     Etcdraft.Trace.isBecomeFollowerInUpdateTermOrReturnToFollower, pure, Except.pure, bind, Except.bind]
 
+/-- A `Ready` line's non-receive successors: the specification's `Ready` at the line's node. -/
+theorem nonReceive_ready (t : Etcdraft.Trace) (ts : Etcdraft.TState) (i : Etcdraft.ID) (hl : ts.l ≤ t.len)
+    (hname : (t.line ts.l).ev.name = "Ready") (hnid : (t.line ts.l).nid = i)
+    (hnd : t.server.Nodup) (hi : i ∈ t.server) :
+    t.nonReceive ts = .ok [ts.s.ready i] := by
+  have hf : t.server.flatMap (t.readyIfLogged ts) = [ts.s.ready i] := by
+    apply flatMap_single _ _ i _ hnd hi
+    · simp [Etcdraft.Trace.readyIfLogged, Etcdraft.Trace.isNodeEvent, Etcdraft.Trace.isEvent, hl, hname, hnid]
+    · intro j _ hj
+      simp [Etcdraft.Trace.readyIfLogged, Etcdraft.Trace.isNodeEvent, Etcdraft.Trace.isEvent, hnid, Ne.symm hj]
+  unfold Etcdraft.Trace.nonReceive
+  simp only [hname, hf]
+  simp [Etcdraft.Trace.skipUnusedLogline, Etcdraft.Trace.isEvent, hname,
+    Etcdraft.Trace.isBecomeFollowerInUpdateTermOrReturnToFollower, pure, Except.pure, bind, Except.bind]
+
 end TraceSim
 
 end EtcdGrove

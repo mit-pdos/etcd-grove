@@ -318,6 +318,38 @@ theorem simRun_becomeCandidate (C : List w64) (L : List TraceEv) (σ : Etcdraft.
   · rw [upd_self]; rfl
   · rw [upd_self, hline, hσ]; simp only [candOf, nodeLine, evConv, hterm']; rw [gInt_of_lt _ bt, hterm]
 
+/-- **The `Ready` line's step**: the specification's `Ready(i)` (no state check). -/
+theorem simRun_ready (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (hrun : SimRun C L σ)
+    (hL : L ≠ []) (e : TraceEv) (id : w64) (s : NState) (cfg : CfgM)
+    (hev : NodeEvOf (W64 8) id s cfg e) (hout : cfg.outgoing = ∅) (hC : id ∈ C)
+    (hboot : ∀ lines ln, parseLines (L.map evConv) = .ok lines →
+      (bootFlags (confAbs C) (lines ++ [ln])).getD L.length false = false)
+    (hinv : (σ.ready (idAbs id)).violated = .ok none) :
+    SimRun C (L ++ [e]) (σ.ready (idAbs id)) := by
+  obtain ⟨hname, hnid, -, hvote, -, -, -, ⟨xs, ys, -, hys, hconf⟩, hmsg, -, -, -, -⟩ := hev
+  have hys0 : ys = [] := by
+    rw [hout] at hys
+    have : elements (∅ : GSet w64) = [] :=
+      List.eq_nil_of_length_eq_zero (by rw [GMap.length_elements, GMap.size_empty])
+    rw [this] at hys; exact List.Perm.eq_nil hys
+  subst hys0
+  have hname' : gsStr e.name = "Ready" := by
+    simp only [evtNames] at hname
+    have : e.name = go!"Ready" := by have := hname; simp at this; exact this.symm
+    rw [this]; rfl
+  apply simRun_node C L σ _ hrun hL e id s.vote xs hnid hvote hconf hmsg (by rw [hname']; rfl)
+    (by rw [hname']; rfl) (by rw [hname']; decide) hboot _ hinv
+  intro lines ts hl hts hl'
+  have hlen := parseLines_length _ _ hl
+  simp only [List.length_map] at hlen
+  have hline := linesTrace_line_last C lines (nodeLine e id s.vote xs) ts.l (by omega)
+  rw [← hts]
+  apply nonReceive_ready _ ts (idAbs id) (by simp [linesTrace, Etcdraft.Trace.len]; omega)
+  · rw [hline]; simp [nodeLine, evConv, hname']
+  · rw [hline]; rfl
+  · exact confAbs_nodup C
+  · simp only [linesTrace]; rw [mem_confAbs]; exact hC
+
 end TraceSim
 
 end EtcdGrove
