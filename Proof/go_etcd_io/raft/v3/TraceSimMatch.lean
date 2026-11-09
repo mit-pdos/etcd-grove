@@ -4006,6 +4006,57 @@ theorem voteReqResult_eq (σ : Etcdraft.State) (i j : Etcdraft.ID) (m : Etcdraft
     unfold withNode Etcdraft.State.reply
     have : (fun k => if k = i then σ.s i else σ.s k) = σ.s := by funext k; split <;> simp_all
     rw [this]
+
+/-- **A vote request of the node's term's effect** (`HandleRequestVoteRequest`, one round). -/
+theorem lineEffect_voteReq (C : List w64) (e : TraceEv) (s : NState) (cfg : CfgM) (m : Msg)
+    (a : Etcdraft.Server) (mabs : Etcdraft.Msg) (Mid : Etcdraft.Server → Prop)
+    (hev : SendEvOf (W64 14) m.dst s cfg m e) (hin : (elements cfg.incoming).Perm C) (hout : cfg.outgoing = ∅)
+    (hC : m.dst ∈ C) (hR : SimServerR C C.length (toPState s) a) (hs : LogShapeOk C.length (toPState s))
+    (hpre : s.role ≠ .preCandidate) (hty : m.ty = .vote) (hterm : m.term = s.term)
+    (bt : uint.Z s.term < 2 ^ 63) (bc : uint.Z s.logst.committed < 2 ^ 63)
+    (bl : uint.Z (plastIndex (toPState s)) < 2 ^ 63) (bi : uint.Z m.index < 2 ^ 63)
+    (blt : uint.Z m.logterm < 2 ^ 63) (hmabs : msgAbs C C.length m = some mabs) :
+    LineEffect C false e (idAbs m.dst) a (vrSrv a (idAbs m.src) mabs) (some mabs) (fun b => b.without mabs)
+      (fun b => b.with (vrResp a (idAbs m.dst) (idAbs m.src) mabs)) Mid := by
+  have hev' := hev
+  obtain ⟨hname, hnid, hterm', hvote, hcommit', hrl, hlog, ⟨xs, ys, hxs, hys, hconf⟩, ⟨tm, hmsg, hm⟩, -⟩ := hev'
+  rw [hout, elements_empty_nil] at hys
+  have hys0 := List.Perm.eq_nil hys
+  subst hys0
+  have hname' := (recvName_of _ e hname).2.2.1 rfl
+  have hparse : Etcdraft.parseLine 0 (evConv e) = .ok (msgLine e m.dst s.vote m.src m.dst (elements cfg.incoming)) := by
+    rw [← msgLine_perm e m.dst s.vote m.src m.dst xs _ hxs]
+    exact parseLine_msg 0 e m.dst s.vote m.src m.dst xs [] tm hnid hvote hconf hmsg hm.2.2.1 hm.2.2.2.1
+      (by rw [hm.1, hty]; rfl) (by rw [hname']; decide)
+  have hmt : mabs.type = .requestVoteRequest := by simp [msgAbs, hty] at hmabs; rw [← hmabs]
+  have hmdst : mabs.dest = idAbs m.dst := by simp [msgAbs, hty] at hmabs; rw [← hmabs]
+  have hmsrc : mabs.source = idAbs m.src := by simp [msgAbs, hty] at hmabs; rw [← hmabs]
+  have hmterm : mabs.term = uint.Z m.term := by simp [msgAbs, hty] at hmabs; rw [← hmabs]
+  have hpred : recvPred (msgLine e m.dst s.vote m.src m.dst (elements cfg.incoming)) mabs = true := by
+    rw [recvPred_rvreq _ _ (by rw [msgLine_name, hname'])]
+    have := isRVReq_vote C C.length e m.dst s.vote (elements cfg.incoming) m tm hmsg hm hty
+      (by rw [hterm]; exact bt) bi blt
+    simp only [hmabs, Option.get_some] at this; exact this
+  apply lineEffect_recv1 C false e (idAbs m.dst) a _ mabs _ _ Mid _ hparse rfl
+    (by simp only [msgLine, evConv]; rw [hname']; rfl) hpred hmdst
+  intro σ hsrv hσi _ _ hnd hcnt
+  have hcontains : σ.server.contains (idAbs m.dst) = true := by
+    rw [hsrv, List.contains_iff_mem, mem_confAbs]; exact hC
+  have hcur : mabs.term = (σ.s mabs.dest).currentTerm := by rw [hmdst, hσi, hR.1, hmterm, hterm]; rfl
+  have heq : voteReqResult σ mabs.dest mabs.source mabs =
+      withNode σ (idAbs m.dst) (vrSrv a (idAbs m.src) mabs) (fun b => b.without mabs)
+        (fun b => b.with (vrResp a (idAbs m.dst) (idAbs m.src) mabs)) := by
+    rw [voteReqResult_eq σ _ _ mabs (by rw [hcur]; exact Int.le_refl _), hmdst, hmsrc, hσi]
+  refine ⟨?_, ?_, ?_⟩
+  · rw [← msgLine_perm e m.dst s.vote m.src m.dst xs _ hxs]
+    have hsm := stateMatches_node C s (σ.s (idAbs m.dst)) e m.dst xs (by rw [hσi]; exact hR) hs hpre hterm'
+      hcommit' hrl hlog (hxs.trans hin) bt bc bl σ rfl hcontains
+    unfold Etcdraft.Line.stateMatches at hsm ⊢
+    simpa [msgLine, nodeLine] using hsm
+  · rw [← heq]
+    exact receive_voteReq σ mabs (by rw [hmdst]; exact hcontains) hmt hcur
+  · rw [← heq]
+    exact oneLess_voteReq σ _ _ mabs (by rw [hcur]; exact Int.le_refl _) hnd hcnt
 end TraceSim
 
 end EtcdGrove
