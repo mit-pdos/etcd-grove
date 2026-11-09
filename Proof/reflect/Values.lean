@@ -21,6 +21,7 @@ repository states the reasoning principles as axioms, here and in the specs of
   `conversion.EnforcePtr` of a `*T` gives); `reflPtr w T p`: `w` is the `Value` of the pointer
   `p : *T`; `reflType rt T`: `rt` is the `reflect.Type` of `T`. Opaque: the specs say what they
   give, nothing else;
+- `reflSliceV w T s`: `w` is the (non-addressable) `Value` of the slice `s : []T`;
 - `reflNew T p` (an opaque resource): the zeroed `T` that `reflect.New` allocated at `p`;
   `reflNew_pointsto` turns it into `p ↦ zero_val V` for a Lean type `V` that represents `T`.
 -/
@@ -66,6 +67,10 @@ opaque reflType (rt : _root_.Perennial.reflect.Type') (T : go.GoType) : Prop
 
 /-- `z` is the (non-addressable) zero `reflect.Value` of `T` (what `reflect.Zero` gives). -/
 opaque reflZero (z : _root_.Perennial.reflect.Value) (T : go.GoType) : Prop
+
+/-- `w` is the non-addressable `reflect.Value` of the slice `s : []T` (what `reflect.MakeSlice` and
+`reflect.Append` return; stage 7e-2). -/
+opaque reflSliceV (w : _root_.Perennial.reflect.Value) (T : go.GoType) (s : GoSlice) : Prop
 
 /-- The zeroed `T` that `reflect.New` allocated at `p` (opaque). -/
 opaque reflNew (T : go.GoType) (p : Loc) : IProp GF
