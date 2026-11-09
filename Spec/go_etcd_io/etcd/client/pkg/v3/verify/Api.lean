@@ -28,7 +28,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **`ETCD_VERIFY` is off, for good** (persistent). -/
-opaque verifyOff : IProp GF := iprop(True)
+opaque verifyOff [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] : IProp GF := iprop(True)
 
 def verifyOff_persistent.spec : Prop := Persistent (verifyOff (GF := GF))
 

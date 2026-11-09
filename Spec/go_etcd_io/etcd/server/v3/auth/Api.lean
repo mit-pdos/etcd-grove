@@ -334,28 +334,28 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG 
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
 /-- **`st` is a member's auth store over the cluster `γ`** (persistent; the header). -/
-opaque authStoreAt (st : Loc) (γ : Cluster) (γa : AuthNames) : IProp GF := iprop(True)
+opaque authStoreAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (st : Loc) (γ : Cluster) (γa : AuthNames) : IProp GF := iprop(True)
 
 /-- **The writer: the store's current state is its `i`-th, `a`** (exclusive). -/
-opaque authCur (γa : AuthNames) (i : Nat) (a : AuthState) : IProp GF := iprop(True)
+opaque authCur [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γa : AuthNames) (i : Nat) (a : AuthState) : IProp GF := iprop(True)
 
 /-- **The store's `i`-th state is `a`** (persistent). -/
-opaque authAt (γa : AuthNames) (i : Nat) (a : AuthState) : IProp GF := iprop(True)
+opaque authAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γa : AuthNames) (i : Nat) (a : AuthState) : IProp GF := iprop(True)
 
 /-- **Every view of the store is at its `i`-th state or later, from now on** (persistent). -/
-opaque authLb (γa : AuthNames) (i : Nat) : IProp GF := iprop(True)
+opaque authLb [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γa : AuthNames) (i : Nat) : IProp GF := iprop(True)
 
 /-- **The store's provider has assigned no token of an `Authenticate` index above `n`**
 (exclusive; the simple provider's once-only right, the header). -/
-opaque tokFrom (γa : AuthNames) (n : Nat) : IProp GF := iprop(True)
+opaque tokFrom [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γa : AuthNames) (n : Nat) : IProp GF := iprop(True)
 
 /-- **The store's provider issues root tokens without a collision** (persistent: the no-op and JWT
 providers; not the simple one). -/
-opaque rootTokOk (γa : AuthNames) : IProp GF := iprop(True)
+opaque rootTokOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γa : AuthNames) : IProp GF := iprop(True)
 
 /-- **`ctx` is an `Authenticate` context for `name` at the entry index `idx`** (persistent; the
 header's realization). -/
-opaque authnCtx (γa : AuthNames) (ctx : GoInterface) (name : GoString) (idx : Nat) : IProp GF :=
+opaque authnCtx [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γa : AuthNames) (ctx : GoInterface) (name : GoString) (idx : Nat) : IProp GF :=
   iprop(True)
 
 /-- **`tp` is a token provider for the cluster `γ`** (exclusive: given to one store), able to issue
@@ -366,7 +366,7 @@ rev)` from an `authnCtx` returns a token of `name` or an error; `enable`, `disab
 `invalidateUser`, `genTokenPrefix` do not panic. Stated in Lean as `Internal.lean`'s laws
 (`tokenProviderAt_open`, `tp_info`, `tp_assign`, `tp_assignRoot`, `tp_enable`, ...), proved from the
 concrete providers' method specs (`simple_provider`, `nop_provider`). -/
-opaque tokenProviderAt (tp : GoInterface) (γ : Cluster) (rt : Bool) : IProp GF := iprop(True)
+opaque tokenProviderAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (tp : GoInterface) (γ : Cluster) (rt : Bool) : IProp GF := iprop(True)
 
 /-- **`be` is an auth backend whose buckets hold the auth
 state `a`** (3d's own: 4b declined a slot, `req/go_etcd_io_etcd_server_v3_auth.md`, "from 4b";
@@ -375,7 +375,7 @@ intended realization: `be` is `NewAuthBackend`'s wrapper of a backend, with 4a's
 `authRevOf`) and its records (`recsWf`, `userName`/`roleName`), and the backend's read and batch
 transactions' contracts (`Schema.retOk`, `rdSect`, `wrSect`, `txRd`, `txRange`, `txWr`)) (exclusive: the store's share of the backend; users' passwords `a`'s credentials, roles' and permissions' lists up to order, users' roles sorted), with the contracts of its
 `BatchTx`, `ReadTx`, `GetUser`, ... . -/
-opaque authBackendAt (be : GoInterface) (a : AuthState) : IProp GF := iprop(True)
+opaque authBackendAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (be : GoInterface) (a : AuthState) : IProp GF := iprop(True)
 
 /-- (provisional, 2a's grpc boundary) **`ctx`'s incoming metadata is `o`** (persistent;
 `metadata.FromIncomingContext`'s answer: `none` for a context with none, as `s.ctx` and the internal
@@ -384,7 +384,7 @@ requesters'; every key with at least one value, as grpc's transports and `metada
 `Grpc.rpcCtx_vals`: non-empty values); 2a's `FromIncomingContext.spec` covers only a run's context,
 and there is no law yet (integration I5: still requested, `req/google_golang_org_grpc.md`, "from
 3d"). -/
-opaque ctxInMD (ctx : GoInterface) (o : Option MD) : IProp GF := iprop(True)
+opaque ctxInMD [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ctx : GoInterface) (o : Option MD) : IProp GF := iprop(True)
 
 /-- **The token `ctx` carries** (`mdToken` of its incoming metadata). -/
 def ctxToken (ctx : GoInterface) (o : Option GoString) : IProp GF :=
@@ -395,7 +395,7 @@ def ctxToken (ctx : GoInterface) (o : Option GoString) : IProp GF :=
 request whose incoming metadata is present (`metadata.FromIncomingContext` succeeds) and has no
 `grpcgateway-accept` key; `none` otherwise (no peer, not TLS, no verified chain, no incoming
 metadata, a gateway request). What `AuthInfoFromTLS` reads. -/
-opaque ctxCertUser (ctx : GoInterface) (c : Option GoString) : IProp GF := iprop(True)
+opaque ctxCertUser [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ctx : GoInterface) (c : Option GoString) : IProp GF := iprop(True)
 
 /-- (provisional, 2a's grpc `peer`/`credentials` boundary) **The TLS client identity of `ctx`'s
 peer, whatever its metadata** (persistent): `some cn` for a TLS peer with a non-empty verified chain
@@ -404,7 +404,7 @@ server's `s.ctx`). `ctxCertUser` is it when the incoming metadata is present and
 `grpcgateway-accept` key. What `WithRoot`'s new context exposes (integration I5: `WithRoot.spec`
 claimed `ctxCertUser ctx none → ctxCertUser ctx' none`, false for a TLS peer without incoming
 metadata, which `NewIncomingContext` adds). -/
-opaque ctxPeerCN (ctx : GoInterface) (c : Option GoString) : IProp GF := iprop(True)
+opaque ctxPeerCN [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ctx : GoInterface) (c : Option GoString) : IProp GF := iprop(True)
 
 /-- (provisional, 4a's and 2d's) **The store's backend's post-lock hook takes `Pre` to `Q`** (one
 use): the auth store's batch transaction locks with `LockInsideApply` (4b's `authBatchTx.Lock`:
@@ -416,7 +416,7 @@ backend before `Recover`, `server.go:1098`). Intended realization: for the backe
 `Mvcc.hookRun` now names mvcc's storage). The writer (3a, from 2d's apply loop) supplies it per call,
 from the server's hook proved once over 4a's contract at every share; its introduction needs the
 store's backend's names, `authBackendAt`'s realization (3d's, recorded). -/
-opaque authHook (γa : AuthNames) (Pre Q : IProp GF) : IProp GF := iprop(True)
+opaque authHook [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γa : AuthNames) (Pre Q : IProp GF) : IProp GF := iprop(True)
 
 /-- (provisional, 3h's) **The request message `r` asks `rq`, with the credential `cred`** (persistent: read-only;
 `*pb.Auth<Kind>Request`). For `userAdd name pw noPw` and `userChangePassword name pw`: `Name = name`,
@@ -430,17 +430,17 @@ end (a nil or unknown-typed `Perm` from a client has no `Req`: `req/go_etcd_io_e
 (EtcdServerPb.reqType rq) r DFrac.discard c ∗ ⌜EtcdServerPb.reqHolds c rq⌝` with the
 `HashedPassword` field's content `b64 cred`; 3h's `reqHolds` does not say which hash the field holds
 (W0's `Req.userAdd` carries the password), so this stays opaque (integration I5). -/
-opaque authReqAt (r : Loc) (rq : Req) (cred : Bytes) : IProp GF := iprop(True)
+opaque authReqAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : Loc) (rq : Req) (cred : Bytes) : IProp GF := iprop(True)
 
 /-- (provisional, 3h's) **`p` is a fresh `*pb.<Kind>Response` for the answer `res` to `rq`** (owned;
 its `Header` nil, which the applier sets): `UserGet`'s roles, `RoleGet`'s permissions, the lists, in
 the store's order (a permutation of the model's). Intended realization: `∃ c, Proto.msgAt _ p
 (DFrac.own 1) c ∗ ⌜EtcdServerPb.bodyHolds c b⌝` for `res = .ok b`, with the `Header` field nil. -/
-opaque authRespAt (rq : Req) (res : Resp) (p : Loc) : IProp GF := iprop(True)
+opaque authRespAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (rq : Req) (res : Resp) (p : Loc) : IProp GF := iprop(True)
 
 /-- (provisional, 3h's) **`p` is a fresh `*pb.AuthenticateResponse` carrying the token `tok`**
 (owned; its `Header` nil). -/
-opaque authnRespAt (p : Loc) (tok : GoString) : IProp GF := iprop(True)
+opaque authnRespAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (tok : GoString) : IProp GF := iprop(True)
 
 /-- **The `AuthInfo` at `ai` names `u` at the auth revision `rev`** (its two fields at fraction
 `dq`: `DFrac.discard` for one nobody writes, as `AuthInfoFromCtx`'s; a share for the applier's own
@@ -633,7 +633,7 @@ def waiterOk (iw : GoFunc) : IProp GF :=
 `opts`' keys verify, each naming the user of its claims** (`tokenUser γ tok u` for such a token):
 what makes the JWT provider's `info` meet `tokenProviderAt`. Every member is configured with the
 same keys (`--auth-token`), and 2d realizes W0's `tokenUser` accordingly. -/
-opaque jwtTokOk (γ : Cluster) (opts : GoString) : IProp GF := iprop(True)
+opaque jwtTokOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (opts : GoString) : IProp GF := iprop(True)
 
 end init
 

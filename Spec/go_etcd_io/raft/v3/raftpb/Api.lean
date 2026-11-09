@@ -113,32 +113,32 @@ def optCell {V : Type} [TypedPointsto (GF := GF) V] (fp : Loc) (v d : V) : IProp
 
 /-- **The protobuf bookkeeping of the message of Go type `t` at `p`** (`state`, `sizeCache`, an
 empty `unknownFields`), fraction `dq`. Opaque. -/
-opaque pbRest (t : Type) (p : Loc) (dq : DFrac) : IProp GF := iprop(True)
+opaque pbRest [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (t : Type) (p : Loc) (dq : DFrac) : IProp GF := iprop(True)
 
 /-! ## The ownership predicates (opaque) -/
 
 /-- **An `*Entry` at `p` with index `i`** (its `Index` field's value) and term, type, data `e`. -/
-opaque entryPts (p : Loc) (dq : DFrac) (i : w64) (e : LogEntry) : IProp GF := iprop(True)
+opaque entryPts [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (dq : DFrac) (i : w64) (e : LogEntry) : IProp GF := iprop(True)
 
 /-- **A `*HardState`.** -/
-opaque hardStatePts (p : Loc) (dq : DFrac) (hs : HardState) : IProp GF := iprop(True)
+opaque hardStatePts [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (dq : DFrac) (hs : HardState) : IProp GF := iprop(True)
 
 /-- **A `*ConfState`** (its `AutoLeave` may be unset: read `false`). -/
-opaque confStatePts (p : Loc) (dq : DFrac) (cs : ConfState) : IProp GF := iprop(True)
+opaque confStatePts [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (dq : DFrac) (cs : ConfState) : IProp GF := iprop(True)
 
 /-- **A `*ConfState` with `AutoLeave` set** (`EnsureConfState` writes nothing). -/
-opaque confStateFull (p : Loc) (dq : DFrac) (cs : ConfState) : IProp GF := iprop(True)
+opaque confStateFull [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (dq : DFrac) (cs : ConfState) : IProp GF := iprop(True)
 
 /-- **A full `*Snapshot`**: its metadata, the metadata's `ConfState`, `Index`, `Term` and the conf
 state's `AutoLeave` set (`EnsureSnapshot` writes nothing). raft's and `MemoryStorage`'s. -/
-opaque snapshotPts (p : Loc) (dq : DFrac) (s : Snapshot) : IProp GF := iprop(True)
+opaque snapshotPts [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (dq : DFrac) (s : Snapshot) : IProp GF := iprop(True)
 
 /-- **A `*Snapshot`, any presence** (what `EnsureSnapshot` takes). -/
-opaque snapshotRaw (p : Loc) (dq : DFrac) (s : Snapshot) : IProp GF := iprop(True)
+opaque snapshotRaw [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (dq : DFrac) (s : Snapshot) : IProp GF := iprop(True)
 
 /-- **A well-formed `*Message`** (`msgWf`): no `Responses`, its snapshot (if any) full, a `MsgApp`'s
 entries numbered from `Index + 1`. -/
-opaque msgPts (p : Loc) (dq : DFrac) (m : Msg) : IProp GF := iprop(True)
+opaque msgPts [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (dq : DFrac) (m : Msg) : IProp GF := iprop(True)
 
 /-- **A received `*Message`** (one stepped into raft from outside: what rafthttp's decoders and a
 `proto.Clone` deliver): `msgPts` at `own 1` with the spare capacity of its `Entries` slice owned
@@ -146,16 +146,16 @@ opaque msgPts (p : Loc) (dq : DFrac) (m : Msg) : IProp GF := iprop(True)
 capacity (`raftLog.slice` clips, given the `Storage` contract), but `msgPts`, shared read-only, does
 not record it; an in-process transport must clone it (`nonissues/raft-msgapp-inprocess-aliasing.md`). (Integration I2, the coordinator's
 decision; the old proof's `msgPtsC … cap`.) -/
-opaque msgRecv (p : Loc) (m : Msg) : IProp GF := iprop(True)
+opaque msgRecv [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (m : Msg) : IProp GF := iprop(True)
 
 /-- **A `*ConfChange`.** -/
-opaque confChangeV1Pts (p : Loc) (dq : DFrac) (c : ConfChangeV1) : IProp GF := iprop(True)
+opaque confChangeV1Pts [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (dq : DFrac) (c : ConfChangeV1) : IProp GF := iprop(True)
 
 /-- **A `*ConfChangeV2`.** -/
-opaque confChangeV2Pts (p : Loc) (dq : DFrac) (c : ConfChangeV2) : IProp GF := iprop(True)
+opaque confChangeV2Pts [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (dq : DFrac) (c : ConfChangeV2) : IProp GF := iprop(True)
 
 /-- **A `*ConfChangeSingle`.** -/
-opaque singlePts (p : Loc) (dq : DFrac) (s : ConfChangeSingle) : IProp GF := iprop(True)
+opaque singlePts [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (dq : DFrac) (s : ConfChangeSingle) : IProp GF := iprop(True)
 
 /-! ## Definitions over them -/
 

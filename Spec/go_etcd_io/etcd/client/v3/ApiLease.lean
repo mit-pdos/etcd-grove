@@ -145,30 +145,30 @@ def kaRespOwn (p : Loc) (id ttl : w64) : IProp GF :=
       go_etcd_io.etcd.client.v3.LeaseKeepAliveResponse) ∗ hdrOwn h (DFrac.own 1))
 
 /-- **A keep-alive channel of lease `id`** (persistent; `kaChan_recv`). -/
-opaque kaChan (ch : Loc) (id : w64) : IProp GF := iprop(True)
+opaque kaChan [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ch : Loc) (id : w64) : IProp GF := iprop(True)
 
 /-- A `*lessor` over the client `c` (`null`: over a caller's remote), of `γ` as `who` (persistent). -/
-opaque lessorHandle (l c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+opaque lessorHandle [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (l c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 
 /-- **The `Lease` value `v` calls through the client `c`** (persistent; `null`: a caller's remote). -/
-opaque leaseOf (v : GoInterface) (c : Loc) : IProp GF := iprop(True)
+opaque leaseOf [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (v : GoInterface) (c : Loc) : IProp GF := iprop(True)
 
 /-- **The `LeaseClient` value `v` meets the wire contract** (unary lease RPCs and the keep-alive
 stream). -/
-opaque remoteLeaseAt (v : GoInterface) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+opaque remoteLeaseAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (v : GoInterface) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 
 /-- A `*retryLeaseClient` over the connection of the client `c`. -/
-opaque retryLeaseHandle (r c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+opaque retryLeaseHandle [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 
 /-! ### The keep-alive stream's contract (2a's, here so that the client's halves are defined over it:
 integration X; `V3rpc.kaSpec` was 2a's name, `v3rpc/Api.lean` uses this one) -/
 
 /-- **The `i`-th keep-alive request of the stream `g` asked the lease `id`** (persistent, agreeing;
 minted by the client's sending half from `kaLog`). -/
-opaque kaReq (g : Grpc.StreamName) (i : Nat) (id : Int) : IProp GF := iprop(True)
+opaque kaReq [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (g : Grpc.StreamName) (i : Nat) (id : Int) : IProp GF := iprop(True)
 
 /-- **The keep-alive requests sent on `g` so far** (exclusive; the client's sending half holds it). -/
-opaque kaLog (g : Grpc.StreamName) (ids : List Int) : IProp GF := iprop(True)
+opaque kaLog [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (g : Grpc.StreamName) (ids : List Int) : IProp GF := iprop(True)
 
 /-- **`LeaseKeepAlive`'s contract** (2a's, the server's `etcdContract`): each request recorded
 (`kaReq`); each response about a lease some request asked, with some TTL (W0's model: a keep-alive
@@ -185,22 +185,22 @@ def kaSpec (_γ : Cluster) : Grpc.StreamSpec (GF := GF) where
 /-- **The sending half of the keep-alive stream `sc`, named `g`** (exclusive; slot, 2a: grpc's
 sending half of a `kaSpec` stream under the stub's wrapper, with `kaLog g ids`), the lease ids `ids`
 sent on it so far (every `Send`, failed ones too: grpc's `cliSend_send` counts them). -/
-opaque kaSendAt (sc : GoInterface) (g : Grpc.StreamName) (ids : List Int) : IProp GF := iprop(True)
+opaque kaSendAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (sc : GoInterface) (g : Grpc.StreamName) (ids : List Int) : IProp GF := iprop(True)
 /-- **The lease id `id` was sent on the keep-alive stream `g`** (persistent; integration X: a
 definition over 2a's records): what a response received on it is about (the handler answers each
 request with its `ID`). -/
 def kaSent (g : Grpc.StreamName) (id : Int) : IProp GF := iprop(∃ i : Nat, kaReq g i id)
 /-- **The receiving half of the keep-alive stream `sc`, named `g`** (exclusive; slot, 2a: grpc's
 receiving half of a `kaSpec` stream under the stub's wrapper). -/
-opaque kaRecvAt (sc : GoInterface) (g : Grpc.StreamName) : IProp GF := iprop(True)
+opaque kaRecvAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (sc : GoInterface) (g : Grpc.StreamName) : IProp GF := iprop(True)
 
 /-- **The lessor's entry `ka` of lease `id`** (exclusive; internal to the lessor's proof): its
 `donec` and channels with their close tokens (`keepAlive.close`). -/
-opaque kaEntry (ka : Loc) (id : w64) : IProp GF := iprop(True)
+opaque kaEntry [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ka : Loc) (id : w64) : IProp GF := iprop(True)
 
 /-- **An entry's `donec`** (persistent; internal): receiving from it is safe (closed once, by its
 entry's `close`). -/
-opaque kaDonec (ch : Loc) : IProp GF := iprop(True)
+opaque kaDonec [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ch : Loc) : IProp GF := iprop(True)
 
 /-- The keep-alive stream's Go type (`Lease_LeaseKeepAliveClient`). -/
 def kaStreamTy : go.GoType :=

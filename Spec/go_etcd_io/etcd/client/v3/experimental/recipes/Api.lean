@@ -342,29 +342,29 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG 
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
 /-- **A `*RemoteKV`** with fields `st` (exclusive). -/
-opaque rkOwn (rk : Loc) (γ : Cluster) (who : Principal) (st : RKSt) : IProp GF := iprop(True)
+opaque rkOwn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (rk : Loc) (γ : Cluster) (who : Principal) (st : RKSt) : IProp GF := iprop(True)
 
 /-- An `*EphemeralKV`: its embedded `RemoteKV`. -/
 def ekOwn (ek : Loc) (γ : Cluster) (who : Principal) (st : RKSt) : IProp GF :=
   rkOwn (ek.[go_etcd_io.etcd.client.v3.experimental.recipes.EphemeralKV, go!"RemoteKV"]) γ who st
 
 /-- **A `*Barrier`** on `key`, over the client `c` (persistent). -/
-opaque barrierAt (b c : Loc) (γ : Cluster) (who : Principal) (key : GoString) : IProp GF := iprop(True)
+opaque barrierAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (b c : Loc) (γ : Cluster) (who : Principal) (key : GoString) : IProp GF := iprop(True)
 
 /-- **A `*Queue`** under the prefix `kp` (persistent). -/
-opaque queueAt (q c : Loc) (γ : Cluster) (who : Principal) (kp : GoString) : IProp GF := iprop(True)
+opaque queueAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (q c : Loc) (γ : Cluster) (who : Principal) (kp : GoString) : IProp GF := iprop(True)
 
 /-- **A `*PriorityQueue`** on `key` (its keys under `key/`; persistent). -/
-opaque pqueueAt (q c : Loc) (γ : Cluster) (who : Principal) (key : GoString) : IProp GF := iprop(True)
+opaque pqueueAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (q c : Loc) (γ : Cluster) (who : Principal) (key : GoString) : IProp GF := iprop(True)
 
 /-- **A `*DoubleBarrier`** on `key` for `count` processes, over a session with lease `id`
 (exclusive); `my`: its `myKey` (`none`: `nil`). -/
-opaque dbOwn (b : Loc) (γ : Cluster) (who : Principal) (key : GoString) (count : w64) (id : w64)
+opaque dbOwn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (b : Loc) (γ : Cluster) (who : Principal) (key : GoString) (count : w64) (id : w64)
   (my : Option RKSt) : IProp GF := iprop(True)
 
 /-- **A `*RWMutex`** on the prefix `pfx` (with its `/`), over a session with lease `id` (exclusive);
 `my`: its `myKey`. -/
-opaque rwmOwn (m : Loc) (γ : Cluster) (who : Principal) (id : w64) (pfx : GoString)
+opaque rwmOwn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (m : Loc) (γ : Cluster) (who : Principal) (id : w64) (pfx : GoString)
   (my : Option RKSt) : IProp GF := iprop(True)
 
 /-- **The `ready` key's writes** at the state `σ`: `Enter`'s (`own = none`), its put at a state whose

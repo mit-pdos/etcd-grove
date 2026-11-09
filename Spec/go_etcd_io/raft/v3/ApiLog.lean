@@ -479,41 +479,41 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 
 /-- **The `raftLog` at `l` holds `ls`**, with its storage (in the starting mode, owned; attached,
 in the log's invariant). Exclusive. -/
-opaque raftLog (l : Loc) (ls : LogState) : IProp GF := iprop(True)
+opaque raftLog [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (l : Loc) (ls : LogState) : IProp GF := iprop(True)
 
 /-- **The log at `l` is starting**: its storage `S` is not attached yet and holds `σ` (constant
 while starting: no one else writes it). Exclusive. -/
-opaque logStarting (l : Loc) (S : StorState → IProp GF) (σ : StorState) : IProp GF := iprop(True)
+opaque logStarting [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (l : Loc) (S : StorState → IProp GF) (σ : StorState) : IProp GF := iprop(True)
 
 /-- **The log at `l` reads the attached storage `S`**, whose snapshots are valid by `V`, through
 its invariant in `N`. Persistent. -/
-opaque logStorage (l : Loc) (S : StorState → IProp GF) (V : Snapshot → IProp GF) (N : Namespace) :
+opaque logStorage [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (l : Loc) (S : StorState → IProp GF) (V : Snapshot → IProp GF) (N : Namespace) :
     IProp GF := iprop(True)
 
 /-- **The batch `h` handed out, its writes left**: the snapshot install (`snapLeft`), then the
 append (`entsLeft`). Exclusive; `acceptUnstable` gives it, `raftLog_absorb` takes it back done. -/
-opaque logPending (l : Loc) (h : Handout) (snapLeft entsLeft : Bool) : IProp GF := iprop(True)
+opaque logPending [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (l : Loc) (h : Handout) (snapLeft entsLeft : Bool) : IProp GF := iprop(True)
 
 /-- **The storage may be compacted through `i`, and its term at `i` is `t`** (fixed while `i` is
 not compacted): raft has applied through `i` (`raftLog_publish`), or `i` is the stored snapshot's
 or the compaction point. Persistent. -/
-opaque logFloor (l : Loc) (i : Nat) (t : w64) : IProp GF := iprop(True)
+opaque logFloor [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (l : Loc) (i : Nat) (t : w64) : IProp GF := iprop(True)
 
 /-- **The storage holds a snapshot at `j` or later.** Persistent. -/
-opaque logSnapLb (l : Loc) (j : Nat) : IProp GF := iprop(True)
+opaque logSnapLb [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (l : Loc) (j : Nat) : IProp GF := iprop(True)
 
 /-- **An index below `j` was found compacted**: the snapshot the log would send
 (`raftLog.snapshot()`) is at `j` or later. Persistent. -/
-opaque logCompactedLb (l : Loc) (j : Nat) : IProp GF := iprop(True)
+opaque logCompactedLb [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (l : Loc) (j : Nat) : IProp GF := iprop(True)
 
 /-- **The `unstable` struct at `u` holds `us`** (the embedded field of a `raftLog`; its methods'
 specs mirror the code). Exclusive. -/
-opaque unstable (u : Loc) (us : UnstableState) : IProp GF := iprop(True)
+opaque unstable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (u : Loc) (us : UnstableState) : IProp GF := iprop(True)
 
 /-! ## The read-index queue -/
 
 /-- **The `readOnly` at `ro` holds `rs`.** Exclusive. -/
-opaque readOnly (ro : Loc) (rs : ReadOnlyState) : IProp GF := iprop(True)
+opaque readOnly [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ro : Loc) (rs : ReadOnlyState) : IProp GF := iprop(True)
 
 /-- The confirmed requests a `maybeAdvance` returned (slice `sl`): each `*readIndexRequest`
 read-only, holding its message pointer and commit index. Persistent. -/

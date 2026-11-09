@@ -273,7 +273,7 @@ def readErr_shape.spec : Prop := ∀ err, Read.readErr (GF := GF) err ⊢ srvErr
 
 /-- **The request context `ctx`'s principals** (persistent; see the header): `p` with auth
 enabled, `tls` (the client certificate's name) with auth disabled. -/
-opaque reqPrin (ctx : GoInterface) (p tls : Principal) : IProp GF := iprop(True)
+opaque reqPrin [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ctx : GoInterface) (p tls : Principal) : IProp GF := iprop(True)
 
 /-- **`ctx` carries no incoming gRPC metadata and no peer** (persistent): what the server's internal
 requesters' contexts are (`s.ctx`, `context.Background()`, their children). Integration I3/I4: 2a's
@@ -321,12 +321,12 @@ exclusive): the range `r` of principal `p`, the chunks `ms` sent so far. Sending
 (any: the server sends its pages as it reads them); `rs.Context()` is a context with `reqPrin`
 of `p`. Its laws are 2a's (`req/go_etcd_io_etcd_server_v3_etcdserver_api_v3rpc.md`, "from 2c"). The
 caller's update's `Q` is not sent with a chunk: `RangeStream` gives it with a `nil` return. -/
-opaque rsSink (rs : GoInterface) (γ : Cluster) (p tls : Principal) (r : RangeReq)
+opaque rsSink [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (rs : GoInterface) (γ : Cluster) (p tls : Principal) (r : RangeReq)
   (ms : List RangeRespM) : IProp GF := iprop(True)
 
 /-- (provisional, 3f's and 2d's) **`w` is member `s`'s watchable store** (`mvcc.WatchableKV`), whose
 history is the member's applied prefix of `γ`'s. Persistent. -/
-opaque srvWatchable (s : Loc) (γ : Cluster) (w : GoInterface) : IProp GF := iprop(True)
+opaque srvWatchable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : Cluster) (w : GoInterface) : IProp GF := iprop(True)
 
 def srvWatchable_persistent.spec : Prop := ∀ s γ w, Persistent (srvWatchable (GF := GF) s γ w)
 

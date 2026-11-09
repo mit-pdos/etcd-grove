@@ -157,24 +157,24 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG 
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
 /-- `c` is a `*RaftCluster` of cluster id `cid` and local member `lid`, its view named `γ`. -/
-opaque isCluster (c : Loc) (γ : CNames) (cid lid : w64) : IProp GF := iprop(True)
+opaque isCluster [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c : Loc) (γ : CNames) (cid lid : w64) : IProp GF := iprop(True)
 
 /-- **The view `γ` is `st`** (exclusive). -/
-opaque clusterSt (γ : CNames) (st : ClusterSt) : IProp GF := iprop(True)
+opaque clusterSt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : CNames) (st : ClusterSt) : IProp GF := iprop(True)
 
 /-- A `*Member` at `p` holding `m`. -/
-opaque memberPts (p : Loc) (dq : DFrac) (m : Member) : IProp GF := iprop(True)
+opaque memberPts [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (dq : DFrac) (m : Member) : IProp GF := iprop(True)
 
 /-- **The backend's member buckets, as the cluster `c` writes them, hold `st`** (exclusive; the
 caller's: the apply thread holds it beside its state machine). Each writer at `shouldApplyV3`
 moves it as it moves the view; `ValidateConfigurationChange` and `Recover` read it. Intended
 realization: 4b's `schema.membershipBackend` bucket contents of `c.be`'s current backend
 (provisional: `req/go_etcd_io_etcd_server_v3_storage_schema.md`, "from 2e"). -/
-opaque beView (c : Loc) (st : ClusterSt) : IProp GF := iprop(True)
+opaque beView [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c : Loc) (st : ClusterSt) : IProp GF := iprop(True)
 
 /-- **Provisional (batch 4b):** the member buckets of the `MembershipBackend` `mb` hold `st`
 (exclusive); `SetBackend(mb)` turns it into `beView c st`. -/
-opaque beMembers (mb : GoInterface) (st : ClusterSt) : IProp GF := iprop(True)
+opaque beMembers [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (mb : GoInterface) (st : ClusterSt) : IProp GF := iprop(True)
 
 /-- The Go error value of `ValidateConfigurationChange`'s error `e` (`membership.ErrIDRemoved`,
 ...: package variables, non-nil, distinct). -/

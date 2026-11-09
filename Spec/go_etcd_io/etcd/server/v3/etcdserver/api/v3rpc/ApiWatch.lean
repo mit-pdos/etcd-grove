@@ -209,30 +209,30 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG 
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
 /-- **A `*watchServer` of a member of `γ`** (persistent). -/
-opaque watchServerAt (p : Loc) (γ : Cluster) : IProp GF := iprop(True)
+opaque watchServerAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (γ : Cluster) : IProp GF := iprop(True)
 
 /-- **The `pb.WatchServer` value `v` serves the watch protocol of `γ`** (persistent). -/
-opaque watchServiceAt (v : GoInterface) (γ : Cluster) : IProp GF := iprop(True)
+opaque watchServiceAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (v : GoInterface) (γ : Cluster) : IProp GF := iprop(True)
 
 /-- **Slot (2c/2d/2e)**: the `*EtcdServer` `s` is a member of `γ` whose watch path is ready. -/
-opaque watchMemberAt (s : Loc) (γ : Cluster) : IProp GF := iprop(True)
+opaque watchMemberAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : Cluster) : IProp GF := iprop(True)
 
 /-- **Slot (2a)**: `st` is the server end of the watch stream `g`, opened by a client of `γ` as
 `who` (persistent). -/
-opaque srvWatchStreamAt (st : GoInterface) (γ : Cluster) (who : Principal) (g : WatchStreamNames) :
+opaque srvWatchStreamAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (st : GoInterface) (γ : Cluster) (who : Principal) (g : WatchStreamNames) :
   IProp GF := iprop(True)
 
 /-- **Slot (2a)**: the receiving half of the server end `st` (exclusive), the requests `rs`
 received. -/
-opaque srvWatchRecv (st : GoInterface) (g : WatchStreamNames) (rs : List WireWatchReq) :
+opaque srvWatchRecv [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (st : GoInterface) (g : WatchStreamNames) (rs : List WireWatchReq) :
   IProp GF := iprop(True)
 
 /-- **Slot (2a)**: at least the requests `rs` were received on the stream `g` (persistent). -/
-opaque srvWatchRecvdLb (g : WatchStreamNames) (rs : List WireWatchReq) : IProp GF := iprop(True)
+opaque srvWatchRecvdLb [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (g : WatchStreamNames) (rs : List WireWatchReq) : IProp GF := iprop(True)
 
 /-- **Slot (2a)**: the sending half of the server end `st` (exclusive), the responses sent having
 made the client's state `sst`. -/
-opaque srvWatchSend (st : GoInterface) (γ : Cluster) (who : Principal) (g : WatchStreamNames)
+opaque srvWatchSend [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (st : GoInterface) (γ : Cluster) (who : Principal) (g : WatchStreamNames)
   (sst : WireSt) : IProp GF := iprop(True)
 
 /-- **The server-side context `ctx` is authenticated as `who`** (persistent): 2c's `reqPrin` of

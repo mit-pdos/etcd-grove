@@ -161,13 +161,13 @@ def iterSpec {T' : Type} {V : Type} (iter : GoFunc) (isItem : T' → V → IProp
 /-! ## Items, trees, snapshots -/
 
 /-- `*kvItem` `p` with key `k` and key-value pointer `kv` (persistent). -/
-opaque kvItemAt (p : Loc) (k : GoString) (kv : Loc) : IProp GF := iprop(True)
+opaque kvItemAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (k : GoString) (kv : Loc) : IProp GF := iprop(True)
 
 /-- The store's working tree `t` holds the entries `s` (key, key-value pointer), in key order. -/
-opaque kvTree (t : Loc) (dq : DFrac) (s : List (GoString × Loc)) : IProp GF := iprop(True)
+opaque kvTree [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (t : Loc) (dq : DFrac) (s : List (GoString × Loc)) : IProp GF := iprop(True)
 
 /-- The `*snapshot` `p` has revision `r` and a frozen tree holding `s` (persistent). -/
-opaque snapAt (p : Loc) (r : Nat) (s : List (GoString × Loc)) : IProp GF := iprop(True)
+opaque snapAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (r : Nat) (s : List (GoString × Loc)) : IProp GF := iprop(True)
 
 /-- **A snapshot's content is etcd's store under `pfx` at `r`**: the items, in key order, are the
 present keys of `σ.kv.storeAt r` in the prefix range (under the compaction condition
@@ -181,27 +181,27 @@ def snapCert (γ : Cluster) (pfx : GoString) (r : Nat) (s : List (GoString × Lo
 /-! ## The store -/
 
 /-- **`s` is the cache's store** for `pfx` of the cluster `γ` (persistent). -/
-opaque isStore (s : Loc) (γ : Cluster) (pfx : GoString) : IProp GF := iprop(True)
+opaque isStore [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : Cluster) (pfx : GoString) : IProp GF := iprop(True)
 
 /-- The store's write lock held, its invariant open at the latest revision `lr`. -/
-opaque storeLocked (s : Loc) (γ : Cluster) (pfx : GoString) (lr : Nat) : IProp GF := iprop(True)
+opaque storeLocked [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : Cluster) (pfx : GoString) (lr : Nat) : IProp GF := iprop(True)
 
 /-- The store's latest revision has been at least `r` (persistent). -/
-opaque storeRevLb (s : Loc) (r : Nat) : IProp GF := iprop(True)
+opaque storeRevLb [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (r : Nat) : IProp GF := iprop(True)
 
 /-- **Every event under the prefix of a revision below `a` is in the store's latest snapshot or
 before it** (persistent: the store's latest revision `L` only grows, and no prefix event lies in
 `(L, a)`). What an applied response's successor needs: its events continue from `a`. -/
-opaque storeUpTo (s : Loc) (a : Int) : IProp GF := iprop(True)
+opaque storeUpTo [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (a : Int) : IProp GF := iprop(True)
 
 /-- **The store's ceiling** (exclusive, the watch loop's): the store's latest revision is at most
 `r`, and every response certified for the store is (`storeCeilLb`); raised by its holder before it
 broadcasts a response above it, and `Restore`'s revision is at least it (so the latest revision
 never decreases). -/
-opaque storeCeil (s : Loc) (r : Nat) : IProp GF := iprop(True)
+opaque storeCeil [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (r : Nat) : IProp GF := iprop(True)
 
 /-- The store's ceiling has been raised to at least `r` (persistent). -/
-opaque storeCeilLb (s : Loc) (r : Nat) : IProp GF := iprop(True)
+opaque storeCeilLb [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (r : Nat) : IProp GF := iprop(True)
 
 /-- **The snapshot `p` answers for revision `tgt`**: its frozen tree's items are, in key order, the
 present keys of etcd's store under the prefix at `tgt` (its own revision at most `tgt`, the gap up
@@ -216,32 +216,32 @@ def snapFor (p : Loc) (γ : Cluster) (pfx : GoString) (tgt : Nat) : IProp GF :=
 /-! ## Watchers and the demux -/
 
 /-- A `*watcher` (persistent). -/
-opaque isWatcher (w : Loc) : IProp GF := iprop(True)
+opaque isWatcher [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (w : Loc) : IProp GF := iprop(True)
 
 /-- A new watcher, not yet registered, filtering by `rng` (`none`: no filter, the store's). -/
-opaque watcherNew (w : Loc) (rng : Option KeyRange) : IProp GF := iprop(True)
+opaque watcherNew [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (w : Loc) (rng : Option KeyRange) : IProp GF := iprop(True)
 
 /-- The watcher has been stopped: its channel closed (persistent). -/
-opaque watcherStopped (w : Loc) : IProp GF := iprop(True)
+opaque watcherStopped [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (w : Loc) : IProp GF := iprop(True)
 
 /-- The receiving end of the watcher `w`'s channel, on the range `rng`, at `st`. -/
-opaque watcherConsumer (w : Loc) (γ : Cluster) (rng : KeyRange) (st : WatchSt) : IProp GF :=
+opaque watcherConsumer [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (w : Loc) (γ : Cluster) (rng : KeyRange) (st : WatchSt) : IProp GF :=
   iprop(True)
 
 /-- The sending end of the watcher `w`'s channel (the demux's), at the demux's position `pos`. -/
-opaque watcherProducer (w : Loc) (γ : Cluster) (rng : KeyRange) (pos : Option Int) : IProp GF :=
+opaque watcherProducer [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (w : Loc) (γ : Cluster) (rng : KeyRange) (pos : Option Int) : IProp GF :=
   iprop(True)
 
 /-- **`d` is the cache's demux** for `pfx` of `γ`, feeding the store `s` (persistent). -/
-opaque isDemux (d : Loc) (γ : Cluster) (pfx : GoString) (s : Loc) : IProp GF := iprop(True)
+opaque isDemux [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (d : Loc) (γ : Cluster) (pfx : GoString) (s : Loc) : IProp GF := iprop(True)
 
 /-- The demux's write lock held, its invariant open; `pend`: a response recorded in the history
 (`updateStoreLocked`) but not yet broadcast to the watchers (`broadcastLocked`). -/
-opaque demuxLocked (d : Loc) (γ : Cluster) (pfx : GoString) (s : Loc) (pend : Option WatchRespM) :
+opaque demuxLocked [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (d : Loc) (γ : Cluster) (pfx : GoString) (s : Loc) (pend : Option WatchRespM) :
   IProp GF := iprop(True)
 
 /-- The watch loop's right to feed the demux, the upstream watch at position `pos`. -/
-opaque demuxFeed (d : Loc) (γ : Cluster) (pfx : GoString) (s : Loc) (pos : Option Int) : IProp GF :=
+opaque demuxFeed [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (d : Loc) (γ : Cluster) (pfx : GoString) (s : Loc) (pos : Option Int) : IProp GF :=
   iprop(True)
 
 /-- **An upstream response's fact** for a watch of `rng` at position `pos`, the next position
@@ -258,49 +258,49 @@ def respFact (γ : Cluster) (rng : KeyRange) (pos : Option Int) (m : WatchRespM)
 
 /-! ## Readiness, notifier, progress requestor, clock -/
 
-opaque isReady (r : Loc) : IProp GF := iprop(True)
-opaque readyWasSet (r : Loc) : IProp GF := iprop(True)
-opaque isNotifier (n : Loc) : IProp GF := iprop(True)
-opaque isProgressRequestor (p : Loc) : IProp GF := iprop(True)
-opaque clockOk (clk : GoInterface) : IProp GF := iprop(True)
-opaque timerOk (tm : GoInterface) : IProp GF := iprop(True)
-opaque realTimerAt (r : Loc) : IProp GF := iprop(True)
+opaque isReady [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : Loc) : IProp GF := iprop(True)
+opaque readyWasSet [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : Loc) : IProp GF := iprop(True)
+opaque isNotifier [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (n : Loc) : IProp GF := iprop(True)
+opaque isProgressRequestor [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) : IProp GF := iprop(True)
+opaque clockOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (clk : GoInterface) : IProp GF := iprop(True)
+opaque timerOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (tm : GoInterface) : IProp GF := iprop(True)
+opaque realTimerAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : Loc) : IProp GF := iprop(True)
 /-- `ch` is a timer's channel: receiving from it never panics (persistent). -/
-opaque timerChan (ch : Loc) : IProp GF := iprop(True)
+opaque timerChan [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ch : Loc) : IProp GF := iprop(True)
 /-- `pred` (a `func() bool` closure over the `ready` `r`) returns whether `r.isReady` is `b`, under
 `r.mu`. -/
-opaque readyPredFor (r : Loc) (pred : GoFunc) (b : Bool) : IProp GF := iprop(True)
+opaque readyPredFor [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : Loc) (pred : GoFunc) (b : Bool) : IProp GF := iprop(True)
 /-- The progress requestor's notifier `n` (a `progressNotifier` interface value): its
 `RequestProgress(ctx)` returns some error for any context (1b's `watcherAt`). -/
-opaque progressNotifierOk (n : GoInterface) : IProp GF := iprop(True)
+opaque progressNotifierOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (n : GoInterface) : IProp GF := iprop(True)
 /-- The right to `Add(1)` to the cache's wait group `wg` and run a goroutine that calls `Done`
 (the wait group's protocol: a fraction of `cacheOpen`, the goroutine's thread token). -/
-opaque wgAddOk (wg : Loc) : IProp GF := iprop(True)
+opaque wgAddOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (wg : Loc) : IProp GF := iprop(True)
 
 /-! ## The watch loop -/
 
 /-- The watch loop's role in the cache `c`. -/
-opaque cacheLoop (c : Loc) : IProp GF := iprop(True)
+opaque cacheLoop [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c : Loc) : IProp GF := iprop(True)
 
 /-- The watch loop's role after a restore of the store at `r` (the demux to start at `r + 1`). -/
-opaque cacheLoopAt (c : Loc) (r : Nat) : IProp GF := iprop(True)
+opaque cacheLoopAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c : Loc) (r : Nat) : IProp GF := iprop(True)
 
 /-- The watch loop's role while the upstream watch from `rev` runs (the store watcher registered,
 its applier running): `demuxFeed`, `storeCeil`, the ready's setter. -/
-opaque cacheLoopRun (c : Loc) (rev : Int) : IProp GF := iprop(True)
+opaque cacheLoopRun [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c : Loc) (rev : Int) : IProp GF := iprop(True)
 
 /-- The store watcher `w`'s consumer end, held by `applyStorage`. -/
-opaque storeApplier (c w : Loc) : IProp GF := iprop(True)
+opaque storeApplier [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c w : Loc) : IProp GF := iprop(True)
 
 /-- The receiving end of `watch`'s `applyErr` channel `ch` (the applier sends at most one error,
 then closes it). -/
-opaque applyErrChan (ch : Loc) : IProp GF := iprop(True)
+opaque applyErrChan [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ch : Loc) : IProp GF := iprop(True)
 
 /-- `watch`'s `*sync.Once` `ro`, guarding `c.ready.Set`. -/
-opaque readyOnceAt (c ro : Loc) : IProp GF := iprop(True)
+opaque readyOnceAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c ro : Loc) : IProp GF := iprop(True)
 
 /-- The cache `c`'s store is `s` (persistent: the field, read-only, with `isStore`). -/
-opaque cacheStoreAt (c s : Loc) : IProp GF := iprop(True)
+opaque cacheStoreAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c s : Loc) : IProp GF := iprop(True)
 
 /-! ## Internal laws -/
 

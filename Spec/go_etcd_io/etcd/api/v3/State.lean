@@ -78,10 +78,10 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG 
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
 /-- **The cluster `γ`'s state is `σ`** (exclusive). -/
-opaque etcdState (γ : Cluster) (σ : State) : IProp GF := iprop(True)
+opaque etcdState [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (σ : State) : IProp GF := iprop(True)
 
 /-- **The cluster `γ`'s state has been `σ`** (persistent). -/
-opaque etcdLb (γ : Cluster) (σ : State) : IProp GF := iprop(True)
+opaque etcdLb [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (σ : State) : IProp GF := iprop(True)
 
 def etcdState_timeless.spec : Prop := ∀ (γ : Cluster) (σ : State), Timeless (etcdState (GF := GF) γ σ)
 
@@ -147,7 +147,7 @@ cluster contract, `notes/specs-only/top.md`): gRPC handlers registered at that a
 every request by `Step`, firing the callers' updates as the client's contract says
 (`client/v3/Api.lean`). Produced by the server batches when a member starts serving (2a's handlers,
 2e's `Serve`), consumed by the client's dialer (1c: `connOk`). -/
-opaque servesAt (γ : Cluster) (ep : GoString) : IProp GF := iprop(True)
+opaque servesAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (ep : GoString) : IProp GF := iprop(True)
 
 def servesAt_persistent.spec : Prop := ∀ γ ep, Persistent (servesAt (GF := GF) γ ep)
 
@@ -177,7 +177,7 @@ answered through `ep` gives the table after it; a read answered through `ep` at 
 `j`), consumed by them (a read through `ep` holding `leaseViewLb γ ep i` is answered at a table
 `≥ i`): what `examples/etcd/{leasegrant,leaseexpiry,leasecatchup}` carry. Realized by 2c/2d from
 the member's applied index. -/
-opaque leaseViewLb (γ : Cluster) (ep : GoString) (i : Nat) : IProp GF := iprop(True)
+opaque leaseViewLb [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (ep : GoString) (i : Nat) : IProp GF := iprop(True)
 
 def leaseViewLb_persistent.spec : Prop := ∀ γ ep i, Persistent (leaseViewLb (GF := GF) γ ep i)
 
@@ -191,7 +191,7 @@ it): taken by a client's `MemberAdd`/`MemberAddAsLearner`/`MemberUpdate` (1c's
 `Cluster.MemberAddTriple`, `Cluster.MemberUpdateTriple`, `reqRight`) and by the server's
 `AddMember`/`UpdateMember` (2e); minted, with the joiner's `memberJoin`, by 2e's `urls_reserve`
 (the URLs' hosts reserved for the cluster's network). The initial members' URL sets have none. -/
-opaque urlsRight (γ : Cluster) (urls : List GoString) : IProp GF := iprop(True)
+opaque urlsRight [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (urls : List GoString) : IProp GF := iprop(True)
 
 /-- One right per URL set (up to order). -/
 def urlsRight_excl.spec : Prop := ∀ (γ : Cluster) (urls urls' : List GoString), urls.Perm urls' →
@@ -200,7 +200,7 @@ def urlsRight_excl.spec : Prop := ∀ (γ : Cluster) (urls urls' : List GoString
 /-- **`tok` is a token the cluster issued to user `u`** (persistent; `Authenticate`'s answer, 1c and
 3d; also the tokens a member issues itself: `WithRoot`'s root tokens, the JWTs its keys sign): a
 request carrying it is `u`'s, or refused once it is invalid or stale. -/
-opaque tokenUser (γ : Cluster) (tok : GoString) (u : GoString) : IProp GF := iprop(True)
+opaque tokenUser [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (tok : GoString) (u : GoString) : IProp GF := iprop(True)
 
 def tokenUser_persistent.spec : Prop := ∀ γ tok u, Persistent (tokenUser (GF := GF) γ tok u)
 

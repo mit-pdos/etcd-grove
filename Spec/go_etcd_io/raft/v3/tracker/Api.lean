@@ -112,11 +112,11 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 
 /-- **A `Config` value `cfg` holding configuration `m`** (its maps at `dq`, canonical; `m`
 valid). -/
-opaque configOwn (cfg : go_etcd_io.raft.v3.tracker.Config) (dq : DFrac) (m : Membership) :
+opaque configOwn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (cfg : go_etcd_io.raft.v3.tracker.Config) (dq : DFrac) (m : Membership) :
     IProp GF := iprop(True)
 
 /-- **An `*Inflights` ring at `p` holding `I`**. Exclusive. -/
-opaque inflightsOwn (p : Loc) (I : InflightsV) : IProp GF := iprop(True)
+opaque inflightsOwn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (I : InflightsV) : IProp GF := iprop(True)
 
 /-- A `Progress` value holding `P`, its ring owned. -/
 def progressValOwn (pv : go_etcd_io.raft.v3.tracker.Progress) (P : ProgressV) : IProp GF :=

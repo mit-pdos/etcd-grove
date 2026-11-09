@@ -39,7 +39,7 @@ section res
 variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 
 /-- **`err` is an error `fmt`'s scanning returns** (persistent; see the header). -/
-opaque scanErr (err : GoInterface) : IProp GF := iprop(True)
+opaque scanErr [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (err : GoInterface) : IProp GF := iprop(True)
 
 def scanErr_persistent.spec : Prop := ∀ err, Persistent (scanErr (GF := GF) err)
 

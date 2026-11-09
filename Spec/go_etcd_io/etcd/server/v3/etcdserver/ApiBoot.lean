@@ -229,13 +229,13 @@ variable [go_gctx : GoGlobalContext] [sem : go.Semantics] [rsem : go_etcd_io.raf
 /-! ## The cluster, its addresses, its files -/
 
 /-- **The raft network of cluster `γ` is `ν`** (persistent). -/
-opaque srvNet (γ : Cluster) (ν : Rafthttp.Net GF) : IProp GF := iprop(True)
+opaque srvNet [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (ν : Rafthttp.Net GF) : IProp GF := iprop(True)
 
 /-- **Nothing of etcd's is in the directories `ds`** (exclusive, timeless). -/
-opaque dataDirFresh (ds : Config.Dirs) : IProp GF := iprop(True)
+opaque dataDirFresh [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ds : Config.Dirs) : IProp GF := iprop(True)
 
 /-- **Member `m` of the new cluster `γ` of initial members `ms` may start once** (exclusive). -/
-opaque memberBoot (γ : Cluster) (ms : List Member) (m : Member) : IProp GF := iprop(True)
+opaque memberBoot [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (ms : List Member) (m : Member) : IProp GF := iprop(True)
 
 -- `urlsRight γ urls` (the right to give a member of `γ` the peer URLs `urls`, once) is W0's
 -- `EtcdModel.urlsRight` (moved there at integration I1, so that a client's `MemberAdd`/`MemberUpdate`
@@ -243,18 +243,18 @@ opaque memberBoot (γ : Cluster) (ms : List Member) (m : Member) : IProp GF := i
 
 /-- **The member added with the peer URLs `urls` may join `γ` once, from a fresh directory**
 (exclusive). -/
-opaque memberJoin (γ : Cluster) (urls : List GoString) : IProp GF := iprop(True)
+opaque memberJoin [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (urls : List GoString) : IProp GF := iprop(True)
 
 /-- **The directories `ds` hold durable state of kind `k`** (exclusive, timeless; client-owned
 for good, kept by the program in its crash invariant). -/
-opaque diskState (γ : Cluster) (ds : Config.Dirs) (k : DiskKind) : IProp GF := iprop(True)
+opaque diskState [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (ds : Config.Dirs) (k : DiskKind) : IProp GF := iprop(True)
 
 /-- **No server runs on `ds`, whose disk is of kind `k`** (exclusive). -/
-opaque diskIdle (γ : Cluster) (ds : Config.Dirs) (k : DiskKind) : IProp GF := iprop(True)
+opaque diskIdle [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (ds : Config.Dirs) (k : DiskKind) : IProp GF := iprop(True)
 
 /-- **The process that ran a server on `ds` crashed** (exclusive): the adequacy theorem's crash rule
 gives it (W0's), one per disk whose server was running. -/
-opaque crashGone (γ : Cluster) (ds : Config.Dirs) : IProp GF := iprop(True)
+opaque crashGone [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (ds : Config.Dirs) : IProp GF := iprop(True)
 
 /-- **A server's access to the disk** (persistent): an update over `diskState` the server fires at
 each durable write. -/
@@ -269,81 +269,81 @@ def memberDisk (γ : Cluster) (id : Nat) (ds : Config.Dirs) : IProp GF :=
 
 /-- **The right to start a member of `γ` with configuration `cfg`** (heap parts `c`), member
 `oid` when known: exclusive; introduced by `memberStart_disk` (round 2). -/
-opaque memberStart (γ : Cluster) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
+opaque memberStart [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
     (c : Config.Model) (oid : Option Nat) : IProp GF := iprop(True)
 
 /-! ## The server object -/
 
 /-- **`s` is the server object of member `id` of `γ`** (persistent): built by `NewServer`. -/
-opaque srvMember (s : Loc) (γ : Cluster) (id : Nat) : IProp GF := iprop(True)
+opaque srvMember [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : Cluster) (id : Nat) : IProp GF := iprop(True)
 
 /-- **`s` is built from `cfg` and not started** (exclusive). -/
-opaque srvBuilt (s : Loc) (γ : Cluster) (id : Nat)
+opaque srvBuilt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : Cluster) (id : Nat)
     (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : IProp GF := iprop(True)
 
 /-- **`s` serves `γ`** (persistent): started; the request path's handle. -/
-opaque isServer (s : Loc) (γ : Cluster) : IProp GF := iprop(True)
+opaque isServer [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : Cluster) : IProp GF := iprop(True)
 
 /-- **A share `q` of the right to call `s`'s request path** (fractional): every request-path call
 holds a share for its duration; the stop takes it whole (no request in flight). -/
-opaque srvGate (s : Loc) (q : Qp) : IProp GF := iprop(True)
+opaque srvGate [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (q : Qp) : IProp GF := iprop(True)
 
 /-- **The right to stop `s`, member `id` of `γ` whose files are in `ds`** (exclusive). -/
-opaque srvRunning (s : Loc) (γ : Cluster) (id : Nat) (ds : Config.Dirs) : IProp GF := iprop(True)
+opaque srvRunning [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : Cluster) (id : Nat) (ds : Config.Dirs) : IProp GF := iprop(True)
 
 /-- `ch` is a server's stopping channel (persistent): closed at most once, by the stop. -/
-opaque stoppingCh (ch : Loc) : IProp GF := iprop(True)
+opaque stoppingCh [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ch : Loc) : IProp GF := iprop(True)
 
 /-- `ch` is `s.done` (persistent): closed when `run`'s stop is over; a receive gives nothing (the
 deposit stays for `srvRunning`). -/
-opaque doneCh (s : Loc) (ch : Loc) : IProp GF := iprop(True)
+opaque doneCh [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (ch : Loc) : IProp GF := iprop(True)
 
 /-- `ch` is `s.readych` (persistent): closed once the member published itself; a receive gives
 nothing. -/
-opaque readyCh (s : Loc) (ch : Loc) : IProp GF := iprop(True)
+opaque readyCh [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (ch : Loc) : IProp GF := iprop(True)
 
 /-! ## Internal (the package's proofs) -/
 
 /-- `bootstrap`'s result `b` for member `id` of `γ` and configuration `cfg` (exclusive). -/
-opaque bootOk (b : Loc) (γ : Cluster) (id : Nat)
+opaque bootOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (b : Loc) (γ : Cluster) (id : Nat)
     (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : IProp GF := iprop(True)
 
 /-- `bootstrap`'s raft record `br` (exclusive). -/
-opaque bootRaftOk (br : Loc) (γ : Cluster) (id : Nat)
+opaque bootRaftOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (br : Loc) (γ : Cluster) (id : Nat)
     (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : IProp GF := iprop(True)
 
 /-- The record `b` reaches the backend `be` through read-only fields (persistent). -/
-opaque bootBackendAt (b : Loc) (be : GoInterface) : IProp GF := iprop(True)
+opaque bootBackendAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (b : Loc) (be : GoInterface) : IProp GF := iprop(True)
 
 /-- The right to close `s.readych` once (`publishV3`). -/
-opaque srvPublish (s : Loc) : IProp GF := iprop(True)
+opaque srvPublish [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) : IProp GF := iprop(True)
 
 /-- The WAL purge's handle (persistent): the invariant holding `Wal.walPurgeRight` while no purge
 runs. -/
-opaque srvPurge (s : Loc) : IProp GF := iprop(True)
+opaque srvPurge [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) : IProp GF := iprop(True)
 
 /-- `cc` is `s`'s corruption checker over the hash storage `hs` (persistent). -/
-opaque isCorruptionChecker (cc : Loc) (s : Loc) (hs : GoInterface) : IProp GF := iprop(True)
+opaque isCorruptionChecker [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (cc : Loc) (s : Loc) (hs : GoInterface) : IProp GF := iprop(True)
 
 /-- What `Cleanup` closes (exclusive): the lessor's stop right, the KV store's closer with its
 readers given back, the auth store's closer, the backend's whole open token, the compactor's handle. -/
-opaque srvClosers (s : Loc) (ds : Config.Dirs) : IProp GF := iprop(True)
+opaque srvClosers [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (ds : Config.Dirs) : IProp GF := iprop(True)
 
 /-- What `Cleanup` gives back (exclusive): the backend's file at rest. -/
-opaque srvClosed (ds : Config.Dirs) : IProp GF := iprop(True)
+opaque srvClosed [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ds : Config.Dirs) : IProp GF := iprop(True)
 
 /-! ## Provisional names of other batches' vocabulary (replaced at integration) -/
 
 /-- **Provisional (2d):** `rn` is the raft node `newRaftNode` built for member `id` of `γ` over the
 storage `st`. Exclusive. -/
-opaque raftNodeBuilt (rn : Loc) (γ : Cluster) (id : Nat) (st : Loc) : IProp GF := iprop(True)
+opaque raftNodeBuilt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (rn : Loc) (γ : Cluster) (id : Nat) (st : Loc) : IProp GF := iprop(True)
 
 -- (integration I4) The provisional `transporterOk tp` is 2f's `Rafthttp.transporterOk tp ν id`.
 
 -- (integration I4) `irrIsRevoke r b` is 3h's `EtcdServerPb.irrIsRevoke` (exported below).
 
 /-- **Provisional (W0's metrics boundary):** `gv` is a usable `*prometheus.GaugeVec`. -/
-opaque gaugeVecOk (gv : Loc) : IProp GF := iprop(True)
+opaque gaugeVecOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (gv : Loc) : IProp GF := iprop(True)
 
 /-- **`ETCD_VERIFY` is unset for the whole run** (a program-start fact W0's adequacy lists; the
 backend's verification hooks panic otherwise: the axiom sweep's batch 1): 4a's
@@ -364,7 +364,7 @@ def mvccBootCfg (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : Prop :=
   0 ≤ sint.Z cfg.CompactionBatchLimit'
 
 /-- **Provisional slot (4a):** the backend's configuration and program-start facts. -/
-opaque backendBootRes (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : IProp GF :=
+opaque backendBootRes [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : IProp GF :=
   iprop(True)
 
 /-- **Slot (3c):** the lessor's configuration against the environment's lease mode: without lease

@@ -403,20 +403,20 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG 
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
 /-- **A `*watcher`** of the cluster `γ` as `who` (persistent). -/
-opaque watcherHandle (w : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+opaque watcherHandle [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (w : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 
 /-- **The consumer of a watch's channel** `ch` (exclusive): the watch `w` of the principal `who`,
 at the position `p`. -/
-opaque watchChAt (ch : Loc) (γ : Cluster) (who : Principal) (w : WatchReq) (p : WatchPos) :
+opaque watchChAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ch : Loc) (γ : Cluster) (who : Principal) (w : WatchReq) (p : WatchPos) :
   IProp GF := iprop(True)
 
 /-- **The `WatchResponse` value `v` is modelled by `m`** (exclusive: see the header). -/
-opaque watchRespAt (v : go_etcd_io.etcd.client.v3.WatchResponse) (m : WatchRespM) : IProp GF :=
+opaque watchRespAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (v : go_etcd_io.etcd.client.v3.WatchResponse) (m : WatchRespM) : IProp GF :=
   iprop(True)
 
 /-- **`e` is a watch response's `closeErr`** of kind `k` (persistent): `nil` (`none`), or an error
 `rpctypes.Error` maps to one of kind `k`. -/
-opaque closeErrOk (e : GoInterface) (k : Option CallErr) : IProp GF := iprop(True)
+opaque closeErrOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (e : GoInterface) (k : Option CallErr) : IProp GF := iprop(True)
 
 /-- Ghost names of one gRPC watch stream: grpc's stream name (integration X), which 2a's records
 (`wsReq`, `wsSt`, `wsWho`) are keyed by. -/
@@ -427,19 +427,19 @@ over its records: integration X; `v3rpc/Api.lean` uses it from here) -/
 
 /-- **The `i`-th request of the watch stream `g` is `r`** (persistent, agreeing; minted by the
 client's sending half from `wsLog`). -/
-opaque wsReq (g : Grpc.StreamName) (i : Nat) (r : WireWatchReq) : IProp GF := iprop(True)
+opaque wsReq [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (g : Grpc.StreamName) (i : Nat) (r : WireWatchReq) : IProp GF := iprop(True)
 
 /-- **The requests sent on the watch stream `g` so far** (exclusive; the client's sending half holds
 it: the realization of `wireWatchSend`). -/
-opaque wsLog (g : Grpc.StreamName) (ss : List WireWatchReq) : IProp GF := iprop(True)
+opaque wsLog [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (g : Grpc.StreamName) (ss : List WireWatchReq) : IProp GF := iprop(True)
 
 /-- **After `j` responses the client's state of the watch stream `g` is `sst`** (persistent,
 agreeing; `wsSt g 0 WireSt.init`; minted by the server's sending half, 2b's `srvWatchSend`). -/
-opaque wsSt (g : Grpc.StreamName) (j : Nat) (sst : WireSt) : IProp GF := iprop(True)
+opaque wsSt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (g : Grpc.StreamName) (j : Nat) (sst : WireSt) : IProp GF := iprop(True)
 
 /-- **The watch stream `g` was opened as the principal `who`** (persistent, agreeing; minted by the
 client from `streamKey g`). -/
-opaque wsWho (g : Grpc.StreamName) (who : Principal) : IProp GF := iprop(True)
+opaque wsWho [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (g : Grpc.StreamName) (who : Principal) : IProp GF := iprop(True)
 
 /-- **The `Watch` stream's contract** (2a's; 2b's handler, 1b's client): each request a wire request,
 recorded; each response a `wireStep` of the stream's principal from the state the earlier responses
@@ -453,18 +453,18 @@ def watchSpec (γ : Cluster) : Grpc.StreamSpec (GF := GF) where
   fin := fun _ _ _ _ => iprop(True)
 
 /-- **Slot (2a)**: the `pb.WatchClient` value `v` opens watch streams to members of `γ` as `who`. -/
-opaque remoteWatchAt (v : GoInterface) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+opaque remoteWatchAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (v : GoInterface) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 
 /-- **Slot (2a)**: the sending half of the watch stream `wc` (exclusive), the requests `ss` sent.
 Intended realization: grpc's sending half of a `watchSpec γ` stream `g` under the stub's wrapper,
 with `wsLog g ss` and `wsWho g who`. -/
-opaque wireWatchSend (wc : GoInterface) (γ : Cluster) (who : Principal) (g : WatchStreamNames)
+opaque wireWatchSend [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (wc : GoInterface) (γ : Cluster) (who : Principal) (g : WatchStreamNames)
   (ss : List WireWatchReq) : IProp GF := iprop(True)
 
 /-- **Slot (2a)**: the receiving half of the watch stream `wc` (exclusive), at the state `st`.
 Intended realization: grpc's receiving half of a `watchSpec γ` stream `g` under the stub's wrapper,
 `n` received, with `wsSt g n st` and `wsWho g who`. -/
-opaque wireWatchRecv (wc : GoInterface) (γ : Cluster) (who : Principal) (g : WatchStreamNames)
+opaque wireWatchRecv [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (wc : GoInterface) (γ : Cluster) (who : Principal) (g : WatchStreamNames)
   (st : WireSt) : IProp GF := iprop(True)
 
 /-- **At least the requests `ss` were sent on the stream `g`** (persistent; integration X: 2a's

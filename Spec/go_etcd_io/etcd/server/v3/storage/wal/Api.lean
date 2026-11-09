@@ -162,13 +162,13 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG 
 variable [go_gctx : GoGlobalContext]
 
 /-- **The WAL directory `wd` holds the records `R`** (exclusive; see the header). -/
-opaque walRecs (wd : GoString) (R : Recs) : IProp GF := iprop(True)
+opaque walRecs [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (wd : GoString) (R : Recs) : IProp GF := iprop(True)
 
 /-- **`w` is an open WAL of directory `wd`** (exclusive). -/
-opaque walOpen (w : Loc) (wd : GoString) : IProp GF := iprop(True)
+opaque walOpen [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (w : Loc) (wd : GoString) : IProp GF := iprop(True)
 
 /-- **The right to purge `wd`'s unlocked files** (exclusive). -/
-opaque walPurgeRight (wd : GoString) : IProp GF := iprop(True)
+opaque walPurgeRight [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (wd : GoString) : IProp GF := iprop(True)
 
 def walRecs_timeless.spec : Prop := ∀ wd R, Timeless (walRecs (GF := GF) wd R)
 

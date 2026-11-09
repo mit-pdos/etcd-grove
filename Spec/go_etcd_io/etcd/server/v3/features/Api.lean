@@ -40,7 +40,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG 
 variable [go_gctx : GoGlobalContext]
 
 /-- **`fg` is etcd server's feature gate** (persistent; see the header). -/
-opaque serverGate (fg : GoInterface) : IProp GF := iprop(True)
+opaque serverGate [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (fg : GoInterface) : IProp GF := iprop(True)
 
 def serverGate_persistent.spec : Prop := ∀ fg, Persistent (serverGate (GF := GF) fg)
 

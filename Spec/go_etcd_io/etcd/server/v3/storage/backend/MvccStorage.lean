@@ -144,7 +144,7 @@ variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
 /-- **`B` is mvcc's storage over the backend `γ`** (persistent; `keyBackend_intro` gives it): what the
 lessor's and the server's laws over both names take (`LeaseBackend.lean`). -/
-opaque mvccOn (γ : BeNames) (B : Mvcc.MvccStorage) : IProp GF := iprop(True)
+opaque mvccOn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : BeNames) (B : Mvcc.MvccStorage) : IProp GF := iprop(True)
 
 end vocab
 

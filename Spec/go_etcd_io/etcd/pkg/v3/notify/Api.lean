@@ -66,17 +66,17 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG 
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
 /-- `n` is a notifier with ghost names `γ`. Persistent. -/
-opaque notifierAt (n : Loc) (γ : NotifyNames) : IProp GF := iprop(True)
+opaque notifierAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (n : Loc) (γ : NotifyNames) : IProp GF := iprop(True)
 
 /-- At least `k` notifications have happened. Persistent. -/
-opaque notifyLb (γ : NotifyNames) (k : Nat) : IProp GF := iprop(True)
+opaque notifyLb [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : NotifyNames) (k : Nat) : IProp GF := iprop(True)
 
 /-- **Exactly `k` notifications have happened** (exclusive, the client's). -/
-opaque notifyCount (γ : NotifyNames) (k : Nat) : IProp GF := iprop(True)
+opaque notifyCount [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : NotifyNames) (k : Nat) : IProp GF := iprop(True)
 
 /-- `ch` is the channel of epoch `k` (returned by `Receive` after exactly `k` notifications).
 Persistent. -/
-opaque notifyChan (γ : NotifyNames) (ch : Loc) (k : Nat) : IProp GF := iprop(True)
+opaque notifyChan [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : NotifyNames) (ch : Loc) (k : Nat) : IProp GF := iprop(True)
 
 def notifierAt_persistent.spec : Prop := ∀ n γ, Persistent (notifierAt (GF := GF) n γ)
 def notifyLb_persistent.spec : Prop := ∀ γ k, Persistent (notifyLb (GF := GF) γ k)

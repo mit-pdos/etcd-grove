@@ -212,15 +212,15 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG 
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
 /-- **The reply message `p` of a non-KV call answered `b`** (owned; 3h realizes it). -/
-opaque replyOwn (p : Loc) (b : RespBody) : IProp GF := iprop(True)
+opaque replyOwn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (b : RespBody) : IProp GF := iprop(True)
 
 /-- **The request message `p` of a non-KV call, modelled by `rq`** (fraction `dq`; 3h). -/
-opaque reqOwn (p : Loc) (dq : DFrac) (rq : Req) : IProp GF := iprop(True)
+opaque reqOwn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (dq : DFrac) (rq : Req) : IProp GF := iprop(True)
 
 /-- **The TLS configuration at `tls` makes the cluster see the principal `who`** for a request
 with no token (persistent; slot, 2e: the certificate's common name if the members run with
 `--client-cert-auth`, else none). -/
-opaque tlsPrincipal (γ : Cluster) (tls : Loc) (who : Principal) : IProp GF := iprop(True)
+opaque tlsPrincipal [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (tls : Loc) (who : Principal) : IProp GF := iprop(True)
 
 /-- **A slice of `grpc.DialOption`s that keep the client's calls sound** (persistent; slot, 2a):
 keepalive parameters, context dialers, stats handlers, `WithBlock`, chained interceptors, and
@@ -228,10 +228,10 @@ keepalive parameters, context dialers, stats handlers, `WithBlock`, chained inte
 `nonissues/etcd-client-dialoptions-unary-interceptor.md`; the gRPC proxy's), each interceptor
 calling its invoker or streamer at most once with a context carrying the call's principal; no
 per-RPC credentials. -/
-opaque dialOptsOk (sl : GoSlice) : IProp GF := iprop(True)
+opaque dialOptsOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (sl : GoSlice) : IProp GF := iprop(True)
 
 /-- **The default principal of a client configured by `cfg`** (persistent): see the intro laws. -/
-opaque cfgPrincipal (γ : Cluster) (cfg : go_etcd_io.etcd.client.v3.Config) (who : Principal) :
+opaque cfgPrincipal [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (cfg : go_etcd_io.etcd.client.v3.Config) (who : Principal) :
   IProp GF := iprop(True)
 
 /-- **The program's permission for the client's own read-only calls**: an atomic update that
@@ -254,29 +254,29 @@ def cfgOk (cfg : go_etcd_io.etcd.client.v3.Config) (γ : Cluster) (who : Princip
     idUpd γ ∗ ⌜Grpc.msgsFit⌝)
 
 /-- **A client's context, cancel function and logger** (persistent). -/
-opaque clientBase (c : Loc) (who : Principal) : IProp GF := iprop(True)
+opaque clientBase [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c : Loc) (who : Principal) : IProp GF := iprop(True)
 /-- **The client under construction** (persistent; see the header). -/
-opaque clientPre (c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+opaque clientPre [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 /-- **What the built client's own functions read** (persistent; see the header). -/
-opaque clientCore (c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+opaque clientCore [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 -- `clientReady c` (the client is ready for calls) is declared in W0's `Api.lean` (integration I1:
 -- `kvHandle_kvAt` and `retryKVHandle_remoteKVAt` take it); its laws stay here.
 /-- **The client's endpoints are `eps`** (fraction `dq`; the whole token to change them). -/
-opaque epsTok (c : Loc) (dq : DFrac) (eps : List GoString) : IProp GF := iprop(True)
+opaque epsTok [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c : Loc) (dq : DFrac) (eps : List GoString) : IProp GF := iprop(True)
 /-- **A client frozen at one endpoint**: every call is answered by the member at `ep`. -/
 def clientVia (c : Loc) (ep : GoString) : IProp GF := epsTok c DFrac.discard [ep]
 /-- **A `NewCtxClient`'s client before its fields are set** (exclusive). -/
-opaque clientBare (c : Loc) (who : Principal) : IProp GF := iprop(True)
+opaque clientBare [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c : Loc) (who : Principal) : IProp GF := iprop(True)
 /-- **A `clientv3.Option` closure** (persistent): `WithZapLogger(lg)`'s (stores a logger). -/
-opaque clientOptAt (f : GoFunc) : IProp GF := iprop(True)
+opaque clientOptAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (f : GoFunc) : IProp GF := iprop(True)
 
 /-- **The token bundle `b` holds `""` or tokens of `who`** (`credentials`' bundle). -/
-opaque bundleAt (b : GoInterface) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+opaque bundleAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (b : GoInterface) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 
 /-- **A retry option `v`** (`retryOption`, persistent): applying it changes the interceptor's
 options as `f` does (`withRepeatablePolicy`, `withMax`, `withBackoff`; the backoff function is not
 modelled: every one the package makes returns a duration and never panics). -/
-opaque retryOptAt (v : go_etcd_io.etcd.client.v3.retryOption) (f : RetryOptsM → RetryOptsM) :
+opaque retryOptAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (v : go_etcd_io.etcd.client.v3.retryOption) (f : RetryOptsM → RetryOptsM) :
   IProp GF := iprop(True)
 def repOptAt (v : go_etcd_io.etcd.client.v3.retryOption) : IProp GF :=
   retryOptAt v (fun o => { o with rep := true })
@@ -290,22 +290,22 @@ def retryOptsAt (sl : GoSlice) (fs : List (RetryOptsM → RetryOptsM)) : IProp G
     [∗list] v; f ∈ vs; fs, retryOptAt v f)
 
 /-- **The interceptor's `*options` at `p`** (read-only), modelled by `o`. -/
-opaque optionsAt (p : Loc) (o : RetryOptsM) : IProp GF := iprop(True)
+opaque optionsAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (o : RetryOptsM) : IProp GF := iprop(True)
 
 /-- **Dial options naming the target** (persistent; slot, 2a and `internal/resolver`):
 `grpc.WithResolvers(r)` of an `EtcdManualResolver` whose endpoints all serve `γ`. -/
-opaque dialTargetOk (sl : GoSlice) (γ : Cluster) : IProp GF := iprop(True)
+opaque dialTargetOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (sl : GoSlice) (γ : Cluster) : IProp GF := iprop(True)
 
 /-- **Transport credentials a dial may use** (persistent; slot, 2a). -/
-opaque transportCredsOk (creds : GoInterface) : IProp GF := iprop(True)
+opaque transportCredsOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (creds : GoInterface) : IProp GF := iprop(True)
 
 /-- **The client's dial options** (persistent): the target's, keepalive parameters, the transport
 credentials, the client's unary and stream interceptors (`uiOk`, `siOk`) for `c`. -/
-opaque clientDialOpts (sl : GoSlice) (c : Loc) (γ : Cluster) (who : Principal) : IProp GF :=
+opaque clientDialOpts [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (sl : GoSlice) (c : Loc) (γ : Cluster) (who : Principal) : IProp GF :=
   iprop(True)
 
 /-- **A `backoffFunc`** (persistent): returns a duration for any attempt, never panics. -/
-opaque backoffOk (f : GoFunc) : IProp GF := iprop(True)
+opaque backoffOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (f : GoFunc) : IProp GF := iprop(True)
 
 /-- What a non-KV call returns for the answer `res`: the reply message, or `nil` and `errVal e`. -/
 def ansReply (res : Resp) (resp : Loc) (err : GoInterface) : IProp GF :=
@@ -315,7 +315,7 @@ def ansReply (res : Resp) (resp : Loc) (err : GoInterface) : IProp GF :=
 
 /-- **The token an `AuthenticateResponse` at `p` carries** (persistent; 3h): what
 `replyOwn_authenticate` reads. -/
-opaque authTokenAt (p : Loc) (tok : GoString) : IProp GF := iprop(True)
+opaque authTokenAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (tok : GoString) : IProp GF := iprop(True)
 
 /-- `Authenticate`'s reply: also the token it carries and its user (W0's `tokenUser`; the model's
 answer `.authenticate` carries no token since W0's round 4). -/
@@ -403,15 +403,15 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG 
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
 /-- **A unary call's arguments** (slot, 2a/3h: what a generated stub hands to `cc.Invoke`). -/
-opaque unaryArgs (method : GoString) (req reply : GoInterface) (rq : Req)
+opaque unaryArgs [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (method : GoString) (req reply : GoInterface) (rq : Req)
   (R : Resp → IProp GF) : IProp GF := iprop(True)
 
 /-- **The gRPC call options grpc's invoker accepts** (persistent; slot, 2a). -/
-opaque grpcCallOptsOk (sl : GoSlice) : IProp GF := iprop(True)
+opaque grpcCallOptsOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (sl : GoSlice) : IProp GF := iprop(True)
 
 /-- **A gRPC client connection** (persistent; slot, 2a): `cc.Target()` and grpc's own use of it
 are safe. -/
-opaque grpcConnAt (cc : Loc) : IProp GF := iprop(True)
+opaque grpcConnAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (cc : Loc) : IProp GF := iprop(True)
 
 /-- **One attempt** (grpc's `UnaryInvoker` `inv`, with the connection `cc`; 2a): success or a
 definite error, the update fired (over `Step … lo` for the call's auth index `lo`, `authLb γ lo`;
@@ -437,10 +437,10 @@ def AttemptTriple (inv : val) (cc : Loc) (P : IProp GF) (γ : Cluster) (who : Pr
       ((∃ k, callErr err k ∗ ⌜k.indefinite = true ∧ k ≠ .notSent⌝) ∗ unaryArgs method req reply rq R) }}
 
 /-- **The client's unary interceptor `ui`** (persistent): see `uiOk_call`. -/
-opaque uiOk (ui : val) (c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+opaque uiOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ui : val) (c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 
 /-- **The client's stream interceptor `si`** (persistent): see `siOk_call`. -/
-opaque siOk (si : val) (c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+opaque siOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (si : val) (c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 
 /-- **A call through the unary interceptor** of a ready client, for any invoker meeting
 `AttemptTriple`: the update fired with a success or a definite answer, or an indefinite error. -/
@@ -491,7 +491,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG 
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
 /-- `UserAddWithOptions`' options: `nil` (a password required) or a read-only message (slot, 3h). -/
-opaque userAddOptsAt (p : Loc) (noPw : Bool) : IProp GF := iprop(True)
+opaque userAddOptsAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (noPw : Bool) : IProp GF := iprop(True)
 
 /-- **One non-KV method call** `f(ctx, args...)` of a client of default principal `who`, with a
 context carrying `p`, sending `rq` (the update persistent iff the RPC is repeatable). -/
@@ -565,11 +565,11 @@ def Cluster.methods (m : GoString → val) (P : IProp GF) (γ : Cluster) (who : 
   (∀ id : w64, Call.Triple (m go!"MemberPromote") P γ who [ #id] (.memberPromote (uint.nat id)))
 
 /-- **A member's status reply** (`StatusResponse`, owned; member-local: no model; slot, 3h). -/
-opaque statusRespOwn (p : Loc) : IProp GF := iprop(True)
+opaque statusRespOwn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) : IProp GF := iprop(True)
 
 /-- **The `Maintenance` value `v` dials through the client `c`** (persistent; `null`: over a
 caller's remote, no dial). -/
-opaque maintOf (v : GoInterface) (c : Loc) : IProp GF := iprop(True)
+opaque maintOf [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (v : GoInterface) (c : Loc) : IProp GF := iprop(True)
 
 /-- `AlarmDisarm` of one alarm (not `(0, NONE)`, which disarms every alarm one by one). -/
 def Maint.AlarmDisarmTriple (m : GoString → val) (P : IProp GF) (γ : Cluster) (who : Principal) :
@@ -601,20 +601,20 @@ def Maint.methods (m : GoString → val) (v : GoInterface) (P : IProp GF) (γ : 
   Maint.AlarmDisarmTriple m P γ who ∧ Maint.StatusTriple m v P γ who
 
 /-- A `*authClient` over the client `c` (`null`: over a caller's remote), of `γ` as `who`. -/
-opaque authHandle (a c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+opaque authHandle [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (a c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 /-- A `*cluster`. -/
-opaque clusterHandle (cl c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+opaque clusterHandle [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (cl c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 /-- A `*maintenance`. -/
-opaque maintHandle (mt c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+opaque maintHandle [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (mt c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 /-- **The `AuthClient` value `v` meets the wire contract** for the auth requests. -/
-opaque remoteAuthAt (v : GoInterface) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
-opaque remoteClusterAt (v : GoInterface) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
-opaque remoteMaintAt (v : GoInterface) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+opaque remoteAuthAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (v : GoInterface) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+opaque remoteClusterAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (v : GoInterface) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+opaque remoteMaintAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (v : GoInterface) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 /-- A `*retryAuthClient`, `*retryClusterClient`, `*retryMaintenanceClient` over the connection of
 the client `c`. -/
-opaque retryAuthHandle (r c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
-opaque retryClusterHandle (r c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
-opaque retryMaintHandle (r c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+opaque retryAuthHandle [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+opaque retryClusterHandle [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+opaque retryMaintHandle [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 
 /-- The auth requests (`Model.lean`'s `authStep`). -/
 def reqIsAuth : Req → Prop

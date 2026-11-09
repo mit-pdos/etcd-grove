@@ -69,19 +69,19 @@ section vocab
 variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 
 /-- The prefixes taken so far. Exclusive. -/
-opaque idSpaceAuth (γi : IdSpace) (ps : List w16) : IProp GF := iprop(True)
+opaque idSpaceAuth [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γi : IdSpace) (ps : List w16) : IProp GF := iprop(True)
 
 /-- The stock of generator tokens of prefix `p` (one per run). Exclusive. -/
-opaque idPrefixes (γi : IdSpace) (p : w16) : IProp GF := iprop(True)
+opaque idPrefixes [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γi : IdSpace) (p : w16) : IProp GF := iprop(True)
 
 /-- One run's generator token of prefix `p`. Exclusive. -/
-opaque idPrefix (γi : IdSpace) (p : w16) : IProp GF := iprop(True)
+opaque idPrefix [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γi : IdSpace) (p : w16) : IProp GF := iprop(True)
 
 /-- `g` is a generator of the id space `γi`. Persistent. -/
-opaque idGen (g : Loc) (γi : IdSpace) : IProp GF := iprop(True)
+opaque idGen [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (g : Loc) (γi : IdSpace) : IProp GF := iprop(True)
 
 /-- **`id` was issued once in `γi`** (and is not `0`). Exclusive. -/
-opaque idFresh (γi : IdSpace) (id : w64) : IProp GF := iprop(True)
+opaque idFresh [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γi : IdSpace) (id : w64) : IProp GF := iprop(True)
 
 /-- Allocation of an id space for a cluster whose members own the prefixes `ps` (distinct, non-zero:
 etcd's member ids truncated to 16 bits; see the header). -/

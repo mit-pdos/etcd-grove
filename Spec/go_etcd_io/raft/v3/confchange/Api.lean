@@ -113,7 +113,7 @@ def result (B : Base) (r : Option Membership) (cfg : go_etcd_io.raft.v3.tracker.
   | none => iprop(⌜err ≠ interface.nil⌝)
 
 /-- (internal) **The `Changer`'s working copy**: `cfg` and `trk` hold `m`, from the tracker `B`. -/
-opaque ccState (B : Base) (cfg : go_etcd_io.raft.v3.tracker.Config) (trk : GoMap)
+opaque ccState [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (B : Base) (cfg : go_etcd_io.raft.v3.tracker.Config) (trk : GoMap)
     (m : Membership) : IProp GF := iprop(True)
 
 /-- (internal) The working copy behind a `*Config` (what `apply`'s helpers mutate). -/

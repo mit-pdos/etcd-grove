@@ -54,14 +54,14 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG 
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
 /-- `c` is the common part of a transaction at `k` (exclusive). -/
-opaque txnCommon (c : Loc) (γ : MvccName) (trace : Loc) (k : MTxn) : IProp GF := iprop(True)
+opaque txnCommon [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c : Loc) (γ : MvccName) (trace : Loc) (k : MTxn) : IProp GF := iprop(True)
 
 /-- A `*storeTxnWrite` whose change records were handed out (exclusive). -/
-opaque storeTxnWNC (t : Loc) (γ : MvccName) (trace : Loc) (σ : MvccState) (pend : List Event) :
+opaque storeTxnWNC [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (t : Loc) (γ : MvccName) (trace : Loc) (σ : MvccState) (pend : List Event) :
     IProp GF := iprop(True)
 
 /-- `sl` is `t`'s change slice (persistent). -/
-opaque changesSl (t : Loc) (sl : GoSlice) : IProp GF := iprop(True)
+opaque changesSl [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (t : Loc) (sl : GoSlice) : IProp GF := iprop(True)
 
 end vocab
 

@@ -85,38 +85,38 @@ variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
 /-- A `*bucketBuffer` whose used entries are `l` (exclusive); `w`: writable (a spare slot, as
 `newBucketBuffer`'s and `add`'s keep; a `CopyUsed` copy has none). -/
-opaque bbAt (bb : Loc) (l : List (GoString × GoString)) (w : Bool) : IProp GF := iprop(True)
+opaque bbAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (bb : Loc) (l : List (GoString × GoString)) (w : Bool) : IProp GF := iprop(True)
 
 /-- A `*txBuffer` whose map holds `B` (exclusive). -/
-opaque txbAt (t : Loc) (B : TxB) : IProp GF := iprop(True)
+opaque txbAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (t : Loc) (B : TxB) : IProp GF := iprop(True)
 
 /-- A `*txWriteBuffer` holding `B`, its sequential flags `seq` (exclusive). -/
-opaque twbAt (t : Loc) (B : TxB) (seq : w64 → Option Bool) : IProp GF := iprop(True)
+opaque twbAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (t : Loc) (B : TxB) (seq : w64 → Option Bool) : IProp GF := iprop(True)
 
 /-- A `*txReadBuffer` holding `B` at version `ver` (exclusive). -/
-opaque trbAt (t : Loc) (B : TxB) (ver : w64) : IProp GF := iprop(True)
+opaque trbAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (t : Loc) (B : TxB) (ver : w64) : IProp GF := iprop(True)
 
 /-- The embedded `batchTx` of the backend's batch transaction. -/
 opaque bt0Loc (γ : BeNames) : Loc
 
 /-- The batch mutex held (exclusive). -/
-opaque btHeld (γ : BeNames) : IProp GF := iprop(True)
+opaque btHeld [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : BeNames) : IProp GF := iprop(True)
 
 /-- bbolt's write transaction at `I`, `pending = n`, `pendingDeleteOperations = d` (exclusive). -/
-opaque btPhys (γ : BeNames) (I : Image) (n d : Nat) : IProp GF := iprop(True)
+opaque btPhys [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : BeNames) (I : Image) (n d : Nat) : IProp GF := iprop(True)
 
 /-- No write transaction (after `CommitAndStop`; exclusive). -/
-opaque btStopped (γ : BeNames) : IProp GF := iprop(True)
+opaque btStopped [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : BeNames) : IProp GF := iprop(True)
 
 /-- `readTx.mu` held for writing, with the read buffer and the read transaction (exclusive). -/
-opaque rtHeld (γ : BeNames) : IProp GF := iprop(True)
+opaque rtHeld [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : BeNames) : IProp GF := iprop(True)
 
 /-- (provisional, 4c's cursor) `c` is a bbolt cursor of a bucket whose entries are `L`
 (exclusive). -/
-opaque curOver (c : Loc) (L : GoString → Option GoString) : IProp GF := iprop(True)
+opaque curOver [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c : Loc) (L : GoString → Option GoString) : IProp GF := iprop(True)
 
 /-- The run loop's right to run (`stopc` not yet closed; exclusive). -/
-opaque beRun (γ : BeNames) : IProp GF := iprop(True)
+opaque beRun [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : BeNames) : IProp GF := iprop(True)
 
 end vocab
 

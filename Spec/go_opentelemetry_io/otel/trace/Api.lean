@@ -67,7 +67,7 @@ def spanOk (sp : GoInterface) : IProp GF :=
       WP (App (Val #(methods i.ty go!"IsRecording" i.v)) (Val #())) {{ Φ }}))
 
 /-- **The span `ctx` carries, if any, is an otel span** (persistent; see the header). -/
-opaque ctxSpanOk (ctx : GoInterface) : IProp GF := iprop(True)
+opaque ctxSpanOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ctx : GoInterface) : IProp GF := iprop(True)
 
 end vocab
 

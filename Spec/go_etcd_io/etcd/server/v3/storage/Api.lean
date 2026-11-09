@@ -71,31 +71,31 @@ variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
 /-- **Provisional (batch 4a):** `be` is an open backend of the file at `path`, which held `img`
 when it was opened (exclusive). -/
-opaque beOpen (be : GoInterface) (path : GoString) (img : Snap.BeImage) : IProp GF := iprop(True)
+opaque beOpen [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (be : GoInterface) (path : GoString) (img : Snap.BeImage) : IProp GF := iprop(True)
 
 /-- **Provisional (batch 4a):** `be`'s read-only operations (`Size`, `SizeInUse`: atomic reads) may
 be called at any time, also after its close (persistent). -/
-opaque beReadable (be : GoInterface) : IProp GF := iprop(True)
+opaque beReadable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (be : GoInterface) : IProp GF := iprop(True)
 
 /-- **Provisional (batch 4a):** `tx` is the backend's batch transaction, locked by the committing
 goroutine, writable (exclusive). -/
-opaque beTx (tx : GoInterface) : IProp GF := iprop(True)
+opaque beTx [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (tx : GoInterface) : IProp GF := iprop(True)
 
 /-- `s` is a `*storage` over a WAL writing to `wd` and the snapshotter of `sd` (persistent). -/
-opaque isStorage (s : Loc) (wd sd : GoString) : IProp GF := iprop(True)
+opaque isStorage [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (wd sd : GoString) : IProp GF := iprop(True)
 
 /-- `s` is not closed (fractional). -/
-opaque storageOpen (s : Loc) (q : Qp) : IProp GF := iprop(True)
+opaque storageOpen [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (q : Qp) : IProp GF := iprop(True)
 
 /-- The `Storage` interface value of `s`. -/
 def storageIface (s : Loc) : GoInterface :=
   interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty) #s
 
 /-- `h` is a `*BackendHooks` over the consistent indexer `ci` (persistent). -/
-opaque isHooks (h : Loc) (ci : GoInterface) : IProp GF := iprop(True)
+opaque isHooks [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (h : Loc) (ci : GoInterface) : IProp GF := iprop(True)
 
 /-- `q` is a `Quota` (persistent). -/
-opaque isQuota (q : GoInterface) : IProp GF := iprop(True)
+opaque isQuota [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (q : GoInterface) : IProp GF := iprop(True)
 
 /-- `v` is a request `Cost` accepts: a `*PutRequest` or a `*TxnRequest` readable at `dq`, or a
 `*LeaseGrantRequest`. -/

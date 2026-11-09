@@ -130,7 +130,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG 
 variable [go_gctx : GoGlobalContext]
 
 /-- **The message of Go type `*t` at `p` holds `c`** (fraction `dq` of it and what it reaches). -/
-opaque msgAt (t : go.GoType) (p : Loc) (dq : DFrac) (c : Content) : IProp GF := iprop(True)
+opaque msgAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (t : go.GoType) (p : Loc) (dq : DFrac) (c : Content) : IProp GF := iprop(True)
 
 /-- The `proto.Message` interface value of the message `*t` at `p`. -/
 def msgVal (t : go.GoType) (p : Loc) : GoInterface :=
@@ -154,7 +154,7 @@ field, writing its spare capacity, and merges into a set submessage,
 its submessages read-only and a slice without its capacity (a raft `MsgApp`'s entries, a sub-slice
 of the leader's log). The owners' laws introduce it (3h: a fresh message, `mergeDst_zero`; a
 `RangeResponse` whose `Kvs` were appended by `Merge` itself). -/
-opaque mergeDst (t : go.GoType) (p : Loc) (c : Content) : IProp GF := iprop(True)
+opaque mergeDst [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (t : go.GoType) (p : Loc) (c : Content) : IProp GF := iprop(True)
 
 /-- A fresh message (no field set) may be merged into. -/
 def mergeDst_zero.spec : Prop := ∀ t p, msgAt (GF := GF) t p (DFrac.own 1) zero ⊢ mergeDst t p zero
@@ -169,7 +169,7 @@ submessage reachable from it is decoded too. A scope fact: it speaks of the valu
 wrote, so a holder that rewrites a `bytes` field may not use it for that field (no request path of
 etcd's rewrites a decoded request's range ends). The owners of message types state what it gives
 for their fields (3h: `EtcdServerPb.endsDecoded`). -/
-opaque decodedAt (t : go.GoType) (p : Loc) : IProp GF := iprop(True)
+opaque decodedAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (t : go.GoType) (p : Loc) : IProp GF := iprop(True)
 
 def decodedAt_persistent.spec : Prop := ∀ t p, Persistent (decodedAt (GF := GF) t p)
 

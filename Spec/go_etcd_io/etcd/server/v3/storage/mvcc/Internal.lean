@@ -295,41 +295,41 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG 
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
 /-- `p` is a `*keyIndex` of key `k` at the model `ki` (fraction `dq`; its key slice read-only). -/
-opaque ownKi (p : Loc) (k : GoString) (ki : KeyIndexM) (dq : DFrac) : IProp GF := iprop(True)
+opaque ownKi [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (k : GoString) (ki : KeyIndexM) (dq : DFrac) : IProp GF := iprop(True)
 
 /-- `p` points at a `generation` at `g` (fraction `dq`). -/
-opaque ownGenAt (p : Loc) (g : Gen) (dq : DFrac) : IProp GF := iprop(True)
+opaque ownGenAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (g : Gen) (dq : DFrac) : IProp GF := iprop(True)
 
 /-- `idx` is a tree index (persistent), its lock's invariant holding the tree. -/
-opaque isTreeIndex (idx : GoInterface) (γi : IdxName) : IProp GF := iprop(True)
+opaque isTreeIndex [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (idx : GoInterface) (γi : IdxName) : IProp GF := iprop(True)
 
 /-- A tree index `ti` no other goroutine reaches, its key indexes at the pointers `P` (exclusive). -/
-opaque ownIdxPriv (ti : Loc) (P : GoString → Option (Loc × KeyIndexM)) : IProp GF := iprop(True)
+opaque ownIdxPriv [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ti : Loc) (P : GoString → Option (Loc × KeyIndexM)) : IProp GF := iprop(True)
 
 /-- The tree's content, as its lock holder sees it (fraction `dq`). -/
-opaque treeOwn (ti : Loc) (dq : DFrac) (M : IndexM) : IProp GF := iprop(True)
+opaque treeOwn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ti : Loc) (dq : DFrac) (M : IndexM) : IProp GF := iprop(True)
 
 /-- `s` is the `*store` of `γ` (persistent). -/
-opaque isStore (s : Loc) (γ : MvccName) : IProp GF := iprop(True)
+opaque isStore [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : MvccName) : IProp GF := iprop(True)
 
 /-- `s.mu` held for reading at the state `σ` (exclusive: a transaction's). -/
-opaque storeR (s : Loc) (γ : MvccName) (σ : MvccState) : IProp GF := iprop(True)
+opaque storeR [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : MvccName) (σ : MvccState) : IProp GF := iprop(True)
 
 /-- A `*storeTxnRead` at `t`, at `σ` (exclusive). -/
-opaque storeTxnR (t : Loc) (γ : MvccName) (trace : Loc) (σ : MvccState) : IProp GF := iprop(True)
+opaque storeTxnR [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (t : Loc) (γ : MvccName) (trace : Loc) (σ : MvccState) : IProp GF := iprop(True)
 
 /-- A `*storeTxnWrite` at `t`, begun at `σ`, its events `pend` (exclusive). -/
-opaque storeTxnW (t : Loc) (γ : MvccName) (trace : Loc) (σ : MvccState) (pend : List Event) :
+opaque storeTxnW [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (t : Loc) (γ : MvccName) (trace : Loc) (σ : MvccState) (pend : List Event) :
     IProp GF := iprop(True)
 
 /-- What a compaction job at `c` (the previous compaction `prev`) runs with (exclusive). -/
-opaque compactJobRes (s : Loc) (γ : MvccName) (c prev : w64) : IProp GF := iprop(True)
+opaque compactJobRes [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : MvccName) (c prev : w64) : IProp GF := iprop(True)
 
 /-- A `kvHasher` at `h` hashing the revisions `(c, r]` but the compaction's (`keep`). -/
-opaque isHasher (h : Loc) (c r : w64) : IProp GF := iprop(True)
+opaque isHasher [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (h : Loc) (c r : w64) : IProp GF := iprop(True)
 
 /-- `hs` is the `*hashStorage` of the store `s` (persistent). -/
-opaque isHashStorageAt (hs : Loc) (s : Loc) (γ : MvccName) : IProp GF := iprop(True)
+opaque isHashStorageAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (hs : Loc) (s : Loc) (γ : MvccName) : IProp GF := iprop(True)
 
 /-- A tree index's keys' pointers, read-only (the models of `P`). -/
 def privModel (P : GoString → Option (Loc × KeyIndexM)) : IndexM := fun k => (P k).map Prod.snd

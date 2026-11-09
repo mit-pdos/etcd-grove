@@ -59,10 +59,10 @@ section res
 variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 
 /-- **`l` is a zap logger** (persistent; see the header). -/
-opaque isLogger (l : Loc) : IProp GF := iprop(True)
+opaque isLogger [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (l : Loc) : IProp GF := iprop(True)
 
 /-- **An entry `Check` returned, to write once** (exclusive). -/
-opaque entryOk (ce : Loc) : IProp GF := iprop(True)
+opaque entryOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ce : Loc) : IProp GF := iprop(True)
 
 def isLogger_persistent.spec : Prop := ∀ l, Persistent (isLogger (GF := GF) l)
 

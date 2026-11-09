@@ -36,10 +36,10 @@ section vocab
 variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 
 /-- **`rl` is a rate limiter** (persistent). -/
-opaque limiterOk (rl : Loc) : IProp GF := iprop(True)
+opaque limiterOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (rl : Loc) : IProp GF := iprop(True)
 
 /-- **`r` is a reservation** (persistent). -/
-opaque reservationOk (r : Loc) : IProp GF := iprop(True)
+opaque reservationOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : Loc) : IProp GF := iprop(True)
 
 def limiterOk_persistent.spec : Prop := ∀ rl, Persistent (limiterOk (GF := GF) rl)
 def reservationOk_persistent.spec : Prop := ∀ r, Persistent (reservationOk (GF := GF) r)

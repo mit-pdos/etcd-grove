@@ -216,18 +216,18 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 /-! ### The cluster (shared with 2c, 2e, 3a) -/
 
 /-- **The model state after the committed log's first `k` entries is `σ`.** Persistent. -/
-opaque histAt (γ : Names) (k : Nat) (σ : EtcdModel.State) : IProp GF := iprop(True)
+opaque histAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Names) (k : Nat) (σ : EtcdModel.State) : IProp GF := iprop(True)
 
 /-- **The committed entry at index `k` is request `id`, answered `res` at its commit.**
 Persistent. -/
-opaque answered (γ : Names) (k : Nat) (id : w64) (res : EtcdModel.Resp) : IProp GF := iprop(True)
+opaque answered [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Names) (k : Nat) (id : w64) (res : EtcdModel.Resp) : IProp GF := iprop(True)
 
 /-- **Snapshot `s` was made with its configuration at point `a`** (persistent; recorded at
 `snap_make` by its maker: `snapshot()` at `a = ci`, `createMergedSnapshotMessage` at the sender's
 consistent index): `s.index ≤ a`, the configuration at `a` is `s.conf`'s, and the image sent with
 it holds the state machine at `histAt γ a` (round 1, provability F3/F4: keyed by the snapshot, not by
 its index). -/
-opaque snapPoint (γ : Names) (s : Raft.Snapshot) (a : Nat) : IProp GF := iprop(True)
+opaque snapPoint [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Names) (s : Raft.Snapshot) (a : Nat) : IProp GF := iprop(True)
 
 /-- **The database image installed with snapshot `s`**: the `.snap.db` of `s.index` holds the state
 machine at the snapshot's point (`snapPoint γ s a`, `histAt γ a`), its stored consistent index `a`.
@@ -236,39 +236,39 @@ What the member's invariant over its snapshot directory gives a batch's snapshot
 `nonissues/etcd-merged-snapshot-same-index-image.md`): the file is keyed by the index only, so this
 holds only if a member never saves two merged snapshots of one index with different points before
 installing one: an open question for the user. -/
-opaque snapImage (γ : Names) (s : Raft.Snapshot) : IProp GF := iprop(True)
+opaque snapImage [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Names) (s : Raft.Snapshot) : IProp GF := iprop(True)
 
 /-- (2f's `Img`, the server's choice at `net_alloc`) **`img` is an image for index `i`**: the state
 machine at `histAt γ a` with stored index `a`, for a snapshot `s` of index `i` with `snapPoint γ s a`.
 Persistent. -/
-opaque imgAt (γ : Names) (i : w64) (img : Snap.BeImage) : IProp GF := iprop(True)
+opaque imgAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Names) (i : w64) (img : Snap.BeImage) : IProp GF := iprop(True)
 
 
 /-- (provisional, 2c's read registry, item 5) **A registered read** under ticket `t`: a persistent
 update over `etcdState` with relation `Rel` and result `Q`, registered when the committed log was
 `l0`; the cluster's invariant fires it at every later history point, for each answer `Rel` allows,
 and keeps the results for `readReg_get`. Exclusive (consumed by one `readReg_get`). -/
-opaque readTicket (γ : Names) (t : Nat) (Rel : EtcdModel.State → EtcdModel.Resp → Prop)
+opaque readTicket [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Names) (t : Nat) (Rel : EtcdModel.State → EtcdModel.Resp → Prop)
     (Q : EtcdModel.State → EtcdModel.Resp → IProp GF) (l0 : List Raft.LogEntry) : IProp GF :=
   iprop(True)
 
 /-- **The id space of member `s`'s request ids** (`s.reqIDGen`, 2c's `IdUtil`): its fresh ids are
 fresh cluster-wide (the member id in the prefix, one prefix per run). Persistent. -/
-opaque srvIdSpace (s : Loc) (γi : IdUtil.IdSpace) : IProp GF := iprop(True)
+opaque srvIdSpace [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γi : IdUtil.IdSpace) : IProp GF := iprop(True)
 
 /-- **The member's reads are at or past `k`** (the slot for the read path, round 1 completeness F1):
 a read of member `s`'s mvcc store (3e), lessor (3c) or auth store (3d), begun now, linearizes at a
 history point `k' ≥ k` (`histAt γ k' σ'`) and answers as one of `Step`'s answers at `σ'`. Persistent.
 **Provisional slot**: each subsystem's read spec is to be stated over it (requested in their `req/`
 files); `srvApplied_read` introduces it. -/
-opaque srvReadAt (s : Loc) (γ : Names) (k : Nat) : IProp GF := iprop(True)
+opaque srvReadAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : Names) (k : Nat) : IProp GF := iprop(True)
 
 /-- **Member `s`'s stores' ghost names** (persistent; integration I4): its mvcc store's (3e),
 its lessor's (3c), its auth store's (3d), fixed by `NewServer`. The realization of `srvReadAt` over
 the owners' read vocabulary is the laws `srvReadAt_mvcc`, `srvReadAt_lessor`, `srvReadAt_auth`. -/
-opaque srvMvcc (s : Loc) (γm : Mvcc.MvccName) : IProp GF := iprop(True)
-opaque srvLessor (s : Loc) (γl : Lease.Names) : IProp GF := iprop(True)
-opaque srvAuth (s : Loc) (γa : Auth.AuthNames) : IProp GF := iprop(True)
+opaque srvMvcc [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γm : Mvcc.MvccName) : IProp GF := iprop(True)
+opaque srvLessor [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γl : Lease.Names) : IProp GF := iprop(True)
+opaque srvAuth [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γa : Auth.AuthNames) : IProp GF := iprop(True)
 
 /-! ### A member -/
 
@@ -276,82 +276,82 @@ opaque srvAuth (s : Loc) (γa : Auth.AuthNames) : IProp GF := iprop(True)
 literal on (before `tr.Start()`: `Process` may be called from then on): its raft node driver, the
 membership, the consistent indexer, the stores' handles, the atomics and their invariants, `errorc`
 (2f's `errChanOk`). Persistent. Member ids are `Nat`, as 2e's. -/
-opaque srvNode (s : Loc) (γ : Names) (id : Nat) : IProp GF := iprop(True)
+opaque srvNode [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : Names) (id : Nat) : IProp GF := iprop(True)
 
 /-- **`s` is started** (persistent): the fields `start` sets (`s.w` with the request path's
 registration predicate, 2c's; `s.applyWait` over `srvApplied s γ`; `s.stop`, `s.stopping`,
 `s.done`; `s.ctx`; `s.read`; `s.leaderChanged`; the wait group behind `GoAttach`), read-only. -/
-opaque srvStarted (s : Loc) (γ : Names) (id : Nat) : IProp GF := iprop(True)
+opaque srvStarted [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : Names) (id : Nat) : IProp GF := iprop(True)
 
 /-- (provisional, 2e's `etcdhttp/types`) `err` is the `*httptypes.HTTPError` with status 403 that
 `Process` returns for a refused message. Persistent. -/
-opaque httpForbidden (err : GoInterface) : IProp GF := iprop(True)
+opaque httpForbidden [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (err : GoInterface) : IProp GF := iprop(True)
 
 /-- **Member `s`'s apply configuration is `mc`** (3a's `MemberCfg`: its lessor's minimum TTL).
 Persistent. Members may differ (round 1, the coordinator's update: 3a's resolution, no premise):
 the history records the proposer's step; every member's state machine is at a TTL-variant of the
 history (`Apply.ttlEq`). -/
-opaque srvCfg (s : Loc) (mc : Apply.MemberCfg) : IProp GF := iprop(True)
+opaque srvCfg [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (mc : Apply.MemberCfg) : IProp GF := iprop(True)
 
 /-- **Member `s` has applied the committed log's first `k` entries.** Persistent. -/
-opaque srvApplied (s : Loc) (γ : Names) (k : Nat) : IProp GF := iprop(True)
+opaque srvApplied [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : Names) (k : Nat) : IProp GF := iprop(True)
 
 /-- **What `start` hands `run`** for member `id` with directories `ds` (`srvRunTok_intro`).
 Exclusive. -/
-opaque srvRunTok (s : Loc) (γ : Names) (id : Nat) (ds : Config.Dirs) : IProp GF := iprop(True)
+opaque srvRunTok [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : Names) (id : Nat) (ds : Config.Dirs) : IProp GF := iprop(True)
 
 /-- **What a stopped member's apply side and driver leave** (`run`'s deferred shutdown, before
 `Cleanup`): the release of the disk's access (no server writes `ds` any more: the node stopped, its
 vacancy back in the disk's state), the snapshot directory's deletion right. With 2e's `srvClosed ds`,
 the member's `memberDisk` (`srvStopped_disk`: 2e's idle token; integration I4, after 2e's round 2).
 Exclusive. -/
-opaque srvStopped (s : Loc) (γ : Names) (id : Nat) (ds : Config.Dirs) : IProp GF := iprop(True)
+opaque srvStopped [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : Names) (id : Nat) (ds : Config.Dirs) : IProp GF := iprop(True)
 
 /-- **The apply thread's initial state, without its `etcdProgress`** (`run` allocates `ep`): progress
 `p` (all at the `MemoryStorage` snapshot's index), the state machine at the consistent index `c ≥
 p.appliedi`. Exclusive. -/
-opaque applyInit (s : Loc) (γ : Names) (p : Progress) (c : Nat) : IProp GF := iprop(True)
+opaque applyInit [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : Names) (p : Progress) (c : Nat) : IProp GF := iprop(True)
 
 /-- The writer's token of `s.appliedIndex` at value `a` (the apply thread's). Exclusive. -/
-opaque appliedW (s : Loc) (a : w64) : IProp GF := iprop(True)
+opaque appliedW [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (a : w64) : IProp GF := iprop(True)
 
 /-- The writer's token of `s.committedIndex` at value `c` (the `Ready` loop's, through the ready
 handler). Exclusive. -/
-opaque committedW (s : Loc) (c : w64) : IProp GF := iprop(True)
+opaque committedW [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (c : w64) : IProp GF := iprop(True)
 
 /-- The writer's token of `s.term` and `s.lead` (the apply thread's and the loop's: either may store
 any value). Exclusive per field. -/
-opaque termW (s : Loc) : IProp GF := iprop(True)
-opaque leadW (s : Loc) : IProp GF := iprop(True)
+opaque termW [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) : IProp GF := iprop(True)
+opaque leadW [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) : IProp GF := iprop(True)
 
 /-! ### The apply thread -/
 
 /-- **The apply thread's state**, with `ep` at progress `p`. Exclusive. -/
-opaque applyThread (s : Loc) (γ : Names) (ep : Loc) (p : Progress) : IProp GF := iprop(True)
+opaque applyThread [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : Names) (ep : Loc) (p : Progress) : IProp GF := iprop(True)
 
 /-- (internal) **The apply thread inside `apply`'s loop**: the state machine applied through the
 committed log's first `a` entries (its position `max a c`), the consistent index `c`, the applying
 index `ai`; `ep`'s recorded progress still `p` (`applyEntries` stores the new applied index after
 `apply` returns). `applyThread s γ ep p` is `∃ c ai, applyAt s γ ep p p.appliedi c ai`. Exclusive. -/
-opaque applyAt (s : Loc) (γ : Names) (ep : Loc) (p : Progress) (a c ai : Nat) : IProp GF :=
+opaque applyAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : Names) (ep : Loc) (p : Progress) (a c ai : Nat) : IProp GF :=
   iprop(True)
 
 /-- `s.forceDiskSnapshot`'s owner (the apply thread's; lent to the uber-applier, which calls
 `ForceSnapshot` through its `SnapshotServer`). Exclusive. -/
-opaque forceSnapW (s : Loc) : IProp GF := iprop(True)
+opaque forceSnapW [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) : IProp GF := iprop(True)
 
 /-! ### The raft node driver -/
 
 /-- **`r` is member `id`'s raft node driver**, over raft node `n` (a `raftNode`). Persistent. -/
-opaque isRaftNode (r : Loc) (γ : Names) (id : w64) (n : Loc) : IProp GF := iprop(True)
+opaque isRaftNode [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : Loc) (γ : Names) (id : w64) (n : Loc) : IProp GF := iprop(True)
 
 /-- **The `applyc` cursor** (exclusive): the next batch the apply side receives starts at delivered
 length `k` (round 1, F2). -/
-opaque applycPos (r : Loc) (k : Nat) : IProp GF := iprop(True)
+opaque applycPos [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : Loc) (k : Nat) : IProp GF := iprop(True)
 
 /-- **A `raftNode` value fresh from `newRaftNode`**, for member `id` over node `n`: its channels new,
 its node, storages and transport the configuration's, with their resources. Exclusive. -/
-opaque rnInit (v : go_etcd_io.etcd.server.v3.etcdserver.raftNode) (γ : Names) (id : w64) (n : Loc) :
+opaque rnInit [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (v : go_etcd_io.etcd.server.v3.etcdserver.raftNode) (γ : Names) (id : w64) (n : Loc) :
     IProp GF := iprop(True)
 
 /-- **A driver configuration's resources** (`raftNodeConfig` value `cv`, the slot 2e's bootstrap
@@ -362,55 +362,55 @@ apply side's `nodeConf`), its `raftStorage` that node's attached `MemoryStorage`
 `diskAcc γ.etcd ds` (whose `diskState` holds `raftState γ.raft id D` with `StorageHolds D` of the
 WAL's records: 2e's round 2), its
 `transport` the member's (2f's), its `isIDRemoved` the membership's query, its logger. Exclusive. -/
-opaque rnCfgOk (cv : go_etcd_io.etcd.server.v3.etcdserver.raftNodeConfig) (γ : Names) (id : w64)
+opaque rnCfgOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (cv : go_etcd_io.etcd.server.v3.etcdserver.raftNodeConfig) (γ : Names) (id : w64)
     (n : Loc) : IProp GF := iprop(True)
 
 /-- **The `Ready` loop's token.** Exclusive. -/
-opaque rnLoop (r : Loc) : IProp GF := iprop(True)
+opaque rnLoop [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : Loc) : IProp GF := iprop(True)
 
 /-- **The right to stop the driver** (its `stopped`/`done` channels). Exclusive. -/
-opaque rnStopper (r : Loc) : IProp GF := iprop(True)
+opaque rnStopper [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : Loc) : IProp GF := iprop(True)
 
 /-- **What a stopped driver leaves**: the raft node stopped (R1's `nodeStopped`, the id vacant again
 once the node's run goroutine has exited), the ticker stopped, the transport stopped, the WAL closed
 (its records and `raftState` stay in the program's `diskState`, 2e's round 2). Exclusive. -/
-opaque rnStopped (r : Loc) (γ : Names) (id : w64) : IProp GF := iprop(True)
+opaque rnStopped [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : Loc) (γ : Names) (id : w64) : IProp GF := iprop(True)
 
 /-- **The ready handler `rh` of server `s`** (`raftReadyHandler`: `getLead`, `updateLead`,
 `updateLeadership`, `updateCommittedIndex` over `s`'s atomics). Persistent. -/
-opaque readyHandlerOk (rh s : Loc) (γ : Names) : IProp GF := iprop(True)
+opaque readyHandlerOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (rh s : Loc) (γ : Names) : IProp GF := iprop(True)
 
 /-- The ready handler's writers (`s.committedIndex`'s, `s.lead`'s): the loop's. Exclusive. -/
-opaque readyHandlerTok (rh : Loc) : IProp GF := iprop(True)
+opaque readyHandlerTok [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (rh : Loc) : IProp GF := iprop(True)
 
 /-- **A batch handed to the apply thread** (the `toApply` value `apv`), its snapshot installed
 (`ph`) or not. Exclusive. -/
-opaque applyBatch (r : Loc) (γ : Names) (apv : go_etcd_io.etcd.server.v3.etcdserver.toApply)
+opaque applyBatch [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : Loc) (γ : Names) (apv : go_etcd_io.etcd.server.v3.etcdserver.toApply)
     (B : ApplyBatch) (ph : Bool) : IProp GF := iprop(True)
 
 /-- **Raft has advanced past the delivered log's first `k` entries** at driver `r`'s node (R1's
 `appliedLb n k`; a batch's `raftAdvancedC` closes with it). Persistent. -/
-opaque nodeAdvanced (r : Loc) (k : Nat) : IProp GF := iprop(True)
+opaque nodeAdvanced [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : Loc) (k : Nat) : IProp GF := iprop(True)
 
 /-- **Driver `r`'s `MemoryStorage` holds a snapshot at index `k` or later** (R1's `storSnapLb`).
 Persistent. -/
-opaque nodeSnapLb (r : Loc) (k : Nat) : IProp GF := iprop(True)
+opaque nodeSnapLb [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : Loc) (k : Nat) : IProp GF := iprop(True)
 
 /-- `rac` is a batch's `raftAdvancedC`: closed once raft has advanced past the delivered log's first
 `k` entries; a receive gives `nodeAdvanced r k`. Persistent. -/
-opaque advancedAt (r rac : Loc) (k : Nat) : IProp GF := iprop(True)
+opaque advancedAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r rac : Loc) (k : Nat) : IProp GF := iprop(True)
 
 /-- `ch` is driver `r`'s `applyc`. Persistent. -/
-opaque rnApplyc (r : Loc) (ch : Loc) : IProp GF := iprop(True)
+opaque rnApplyc [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : Loc) (ch : Loc) : IProp GF := iprop(True)
 
 /-- `ch` is driver `r`'s `readStateC`. Persistent. -/
-opaque rnReadStateC (r : Loc) (ch : Loc) : IProp GF := iprop(True)
+opaque rnReadStateC [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : Loc) (ch : Loc) : IProp GF := iprop(True)
 
 /-! ### Values exchanged with other packages (provisional: their batches' vocabulary) -/
 
 /-- (provisional, raftpb's, 3h) **`p` points to entry `e` at index `k`**, read-only for good (an
 element of R1's `entriesRO`). Persistent. -/
-opaque entryAt (p : Loc) (k : Nat) (e : Raft.LogEntry) : IProp GF := iprop(True)
+opaque entryAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (k : Nat) (e : Raft.LogEntry) : IProp GF := iprop(True)
 
 /-- **`bs` is a backend snapshot** (`backend.Snapshot`) of the state machine at a committed point
 `k`, with consistent index `k`. Exclusive (its `Close`). Integration X (Y's (8)): 4a's open
@@ -433,7 +433,7 @@ def dbReader (rc : GoInterface) (γ : Names) (k : Nat) : IProp GF :=
 /-- **`mg` is a merged snapshot message** (a `*snap.Message`): raft message `m` (a `MsgSnap` the
 member may send: `msgSent`, its snapshot with `snapImage`) with the database reader of that image.
 Exclusive (the transport consumes it). -/
-opaque mergedSnap (mg : Loc) (γ : Names) (m : Raft.Msg) : IProp GF := iprop(True)
+opaque mergedSnap [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (mg : Loc) (γ : Names) (m : Raft.Msg) : IProp GF := iprop(True)
 
 /-- `sl` is a `[]*raftpb.Message` of messages `msgs` the member may send (`msgSent` and `msgCredit` of
 each, R1's), the slice and the messages owned (a response read-only: R1's `readyDq`). -/

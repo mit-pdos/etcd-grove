@@ -162,17 +162,17 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 /-! ## raft's own Go structs -/
 
 /-- A `Ready`'s `*SoftState`: `nil` for `none`, else read-only (leader, role). -/
-opaque softStateOpt (p : Loc) (o : Option (w64 × w64)) : IProp GF := iprop(True)
+opaque softStateOpt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (o : Option (w64 × w64)) : IProp GF := iprop(True)
 
 /-- A `Ready`'s `ReadStates`, read-only: each `(RequestCtx, Index)`. -/
-opaque readStatesRO (sl : GoSlice) (rs : List (List w8 × w64)) : IProp GF := iprop(True)
+opaque readStatesRO [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (sl : GoSlice) (rs : List (List w8 × w64)) : IProp GF := iprop(True)
 
 /-- A `[]Peer` slice (`dq` of it and of the contexts): ids and contexts. -/
-opaque peersPts (sl : GoSlice) (dq : DFrac) (ps : List (w64 × List w8)) : IProp GF := iprop(True)
+opaque peersPts [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (sl : GoSlice) (dq : DFrac) (ps : List (w64 × List w8)) : IProp GF := iprop(True)
 
 /-- A `Status` value's own memory (its `Progress` map and its configuration's maps, fresh copies:
 `getStatus` clones them). -/
-opaque statusOwn (s : go_etcd_io.raft.v3.Status) : IProp GF := iprop(True)
+opaque statusOwn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : go_etcd_io.raft.v3.Status) : IProp GF := iprop(True)
 
 /-- A `*HardState` that may be `nil` (the empty hard state), read-only. -/
 def hsPtr (p : Loc) (dq : DFrac) (hs : HardState) : IProp GF :=
@@ -209,21 +209,21 @@ def readyOwn (rd : go_etcd_io.raft.v3.Ready) (dfrom : Nat) (b : Batch) : IProp G
 /-! ## The cluster -/
 
 /-- The committed log extends `l` (from index 1). Persistent. -/
-opaque committedLb (γ : Cluster) (l : List LogEntry) : IProp GF := iprop(True)
+opaque committedLb [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (l : List LogEntry) : IProp GF := iprop(True)
 
 /-- **The client's view of the committed operations** (`opsOf` of the committed log): exclusive,
 client-owned; moved only by the proposals' updates. -/
-opaque committedOps (γ : Cluster) (ops : List LogEntry) : IProp GF := iprop(True)
+opaque committedOps [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (ops : List LogEntry) : IProp GF := iprop(True)
 
 /-- The configuration after the first `k` committed entries is `m`. Persistent. -/
-opaque confAt (γ : Cluster) (k : Nat) (m : Membership) : IProp GF := iprop(True)
+opaque confAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (k : Nat) (m : Membership) : IProp GF := iprop(True)
 
 /-- The decisions taken so far on committed conf-change entries (index `k`, from 0, the entry at
 index `k + 1`): exclusive, client-owned. -/
-opaque confDecisions (γ : Cluster) (D : GMap Nat ConfDecision) : IProp GF := iprop(True)
+opaque confDecisions [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (D : GMap Nat ConfDecision) : IProp GF := iprop(True)
 
 /-- The decision on the conf-change entry at position `k` (index `k + 1`). Persistent. -/
-opaque confDecided (γ : Cluster) (k : Nat) (d : ConfDecision) : IProp GF := iprop(True)
+opaque confDecided [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (k : Nat) (d : ConfDecision) : IProp GF := iprop(True)
 
 /-- The conf-change entries of `l` at positions `[a, b)` are all decided `skip` (a node whose view
 is at `a` and whose delivered log is `b` long has nothing left to apply). -/
@@ -232,113 +232,113 @@ def confSkipped (γ : Cluster) (l : List LogEntry) (a b : Nat) : IProp GF :=
     ∀ e, ⌜l[j]? = some e ∧ e.isConfChange⌝ → confDecided γ j ConfDecision.skip)
 
 /-- The snapshots made so far (with their data): exclusive, client-owned. -/
-opaque snapsMade (γ : Cluster) (S : List Snapshot) : IProp GF := iprop(True)
+opaque snapsMade [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (S : List Snapshot) : IProp GF := iprop(True)
 
 /-- **Snapshot `s` is valid**: made (`snapsMade`), non-empty, at a committed prefix (its index and
 its last entry's term), with the configuration at a committed point at or after its index.
 Persistent. -/
-opaque snapValid (γ : Cluster) (s : Snapshot) : IProp GF := iprop(True)
+opaque snapValid [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (s : Snapshot) : IProp GF := iprop(True)
 
 /-- The read contexts registered so far: exclusive, client-owned. -/
-opaque readCtxs (γ : Cluster) (U : List (List w8)) : IProp GF := iprop(True)
+opaque readCtxs [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (U : List (List w8)) : IProp GF := iprop(True)
 
 /-- Read context `c` is registered with the persistent read update whose result is `Q`. -/
-opaque readCtx (γ : Cluster) (c : List w8) (Q : List LogEntry → IProp GF) : IProp GF := iprop(True)
+opaque readCtx [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (c : List w8) (Q : List LogEntry → IProp GF) : IProp GF := iprop(True)
 
 /-- A read state `(c, i)`: the read under context `c` was confirmed when the committed log was `i`
 long. Persistent. -/
-opaque readState (γ : Cluster) (c : List w8) (i : w64) : IProp GF := iprop(True)
+opaque readState [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (c : List w8) (i : w64) : IProp GF := iprop(True)
 
 /-- Message `m` was sent by a node of `γ` (in a `Ready`, permitted by its update). Persistent. -/
-opaque msgSent (γ : Cluster) (m : Msg) : IProp GF := iprop(True)
+opaque msgSent [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (m : Msg) : IProp GF := iprop(True)
 
 /-- The proposal updates message `m` carries (none unless it is a `MsgProp`). Exclusive, or
 persistent when `γ.dup`. -/
-opaque msgCredit (γ : Cluster) (m : Msg) : IProp GF := iprop(True)
+opaque msgCredit [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (m : Msg) : IProp GF := iprop(True)
 
 /-- The ids handed out so far (the bootstrap voters' and every `freshIds_take`'s): exclusive. -/
-opaque freshIds (γ : Cluster) (U : List w64) : IProp GF := iprop(True)
+opaque freshIds [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (U : List w64) : IProp GF := iprop(True)
 
 /-- **Node `id`'s durable state is `D`**: exclusive, client-owned; moved only by the `Ready`s'
 updates. -/
-opaque raftState (γ : Cluster) (id : w64) (D : Durable) : IProp GF := iprop(True)
+opaque raftState [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (id : w64) (D : Durable) : IProp GF := iprop(True)
 
 /-- No node of `id` runs: exclusive; the starts take it, `Stop` gives it back. -/
-opaque nodeVacant (γ : Cluster) (id : w64) : IProp GF := iprop(True)
+opaque nodeVacant [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (id : w64) : IProp GF := iprop(True)
 
 /-- The cluster's bootstrap log (`[]` for a cluster whose nodes start from a configuration in
 their storage). Persistent. -/
-opaque bootLog (γ : Cluster) (boot : List LogEntry) : IProp GF := iprop(True)
+opaque bootLog [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (boot : List LogEntry) : IProp GF := iprop(True)
 
 /-! ## Nodes -/
 
 /-- `n` is a node of `γ` with id `id` (a `*node`, or a `*RawNode`'s location for the
 `RawNode`-keyed predicates). Persistent. -/
-opaque isNode (n : Loc) (γ : Cluster) (id : w64) : IProp GF := iprop(True)
+opaque isNode [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (n : Loc) (γ : Cluster) (id : w64) : IProp GF := iprop(True)
 
 /-- Node `n` runs (fraction `q`; `Stop` takes it whole). -/
-opaque nodeRunning (n : Loc) (q : Qp) : IProp GF := iprop(True)
+opaque nodeRunning [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (n : Loc) (q : Qp) : IProp GF := iprop(True)
 
 /-- Node `n` has stopped. Persistent. -/
-opaque nodeStopped (n : Loc) : IProp GF := iprop(True)
+opaque nodeStopped [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (n : Loc) : IProp GF := iprop(True)
 
 /-- **The `Ready` loop's token** of node `n`, at driver state `st`: exclusive. The `Ready` receive
 takes it, the batch's `readyEnter` gives it back, `Advance` takes and gives it. -/
-opaque nodeDriver (n : Loc) (γ : Cluster) (st : Driver) : IProp GF := iprop(True)
+opaque nodeDriver [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (n : Loc) (γ : Cluster) (st : Driver) : IProp GF := iprop(True)
 
 /-- **Node `n`'s configuration view**: its tracker holds `v.membership`, the configuration after
 the first `v.applied` committed entries. Exclusive (the thread applying conf changes holds it). -/
-opaque nodeConf (n : Loc) (γ : Cluster) (v : ConfView) : IProp GF := iprop(True)
+opaque nodeConf [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (n : Loc) (γ : Cluster) (v : ConfView) : IProp GF := iprop(True)
 
 /-- The committed log delivered to node `n` (its `Ready`s' committed entries) extends `l`.
 Persistent. -/
-opaque deliveredLb (n : Loc) (γ : Cluster) (l : List LogEntry) : IProp GF := iprop(True)
+opaque deliveredLb [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (n : Loc) (γ : Cluster) (l : List LogEntry) : IProp GF := iprop(True)
 
 /-- Node `n`'s applied index (the delivered log as of its last `Advance`), or the index of a snapshot
 installed in its storage and not yet `Advance`d, is at least `i` (round 2, R3: between
 `readyStor_install` and `Advance` the storage's compaction point is the new snapshot's index while
 raft's applied index is still below it). Persistent. -/
-opaque appliedLb (n : Loc) (i : Nat) : IProp GF := iprop(True)
+opaque appliedLb [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (n : Loc) (i : Nat) : IProp GF := iprop(True)
 
 /-- Node `n`'s storage presents its contents through `S` (fixed at the start). Persistent. -/
-opaque nodeStorage (n : Loc) (γ : Cluster) (S : StorState → IProp GF) : IProp GF := iprop(True)
+opaque nodeStorage [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (n : Loc) (γ : Cluster) (S : StorState → IProp GF) : IProp GF := iprop(True)
 
 /-- Node `n`'s storage holds a snapshot at index `j` or later. Persistent. -/
-opaque storSnapLb (n : Loc) (j : Nat) : IProp GF := iprop(True)
+opaque storSnapLb [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (n : Loc) (j : Nat) : IProp GF := iprop(True)
 
 /-- **The storage writes of the current batch still to do**: install `s` (if `some`), then append
 `es` at index `k`. Exclusive; the `Ready` gives it, `Advance` takes it with nothing left. -/
-opaque readyStor (n : Loc) (s : Option Snapshot) (k : Nat) (es : List LogEntry) : IProp GF :=
+opaque readyStor [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (n : Loc) (s : Option Snapshot) (k : Nat) (es : List LogEntry) : IProp GF :=
   iprop(True)
 
 /-- `ch` is node `n`'s `Ready` channel. Persistent. -/
-opaque isReadyChan (n : Loc) (ch : Loc) : IProp GF := iprop(True)
+opaque isReadyChan [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (n : Loc) (ch : Loc) : IProp GF := iprop(True)
 
 /-- **A `RawNode`'s token** (`rn`, node `id` of `γ`): exclusive (a `RawNode` is not thread-safe;
 every method takes it). It stands for a `node`'s `isNode`; the other node predicates are keyed by
 `rn` (`nodeRunning rn`, `nodeDriver rn`, `nodeConf rn`, ...), as for a `node`. -/
-opaque rawNode (rn : Loc) (γ : Cluster) (id : w64) : IProp GF := iprop(True)
+opaque rawNode [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (rn : Loc) (γ : Cluster) (id : w64) : IProp GF := iprop(True)
 
 /-! ### Internal (node.go's own helpers; no client sees them) -/
 
 /-- (internal) What the run goroutine of node `n` holds: its `RawNode` (and that `RawNode`'s
 token) and the loop's local state. -/
-opaque nodeLoop (n : Loc) : IProp GF := iprop(True)
+opaque nodeLoop [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (n : Loc) : IProp GF := iprop(True)
 
 /-- (internal) A `node` value `nv` fresh from `newNode`: its channels new, its `rn` the `RawNode`
 (whose token it holds) of node `id` of `γ`. -/
-opaque nodeFresh (nv : go_etcd_io.raft.v3.node) (rn : Loc) (γ : Cluster) (id : w64) : IProp GF :=
+opaque nodeFresh [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (nv : go_etcd_io.raft.v3.node) (rn : Loc) (γ : Cluster) (id : w64) : IProp GF :=
   iprop(True)
 
 /-- (internal) What `raft.Step` needs of a message node `n` steps for its client: a received
 message's `msgSent`, credit and address, or a local proposal (`MsgProp`) with its client's update,
 or a local message of the node API (`MsgHup`, `MsgReadIndex` with its registered context, ...). -/
-opaque stepOk (n : Loc) (γ : Cluster) (id : w64) (m : Msg) : IProp GF := iprop(True)
+opaque stepOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (n : Loc) (γ : Cluster) (id : w64) (m : Msg) : IProp GF := iprop(True)
 
 /-! ## Storage -/
 
 /-- **A detached-or-shared `MemoryStorage`'s contents are `σ`**: exclusive. -/
-opaque memStor (ms : Loc) (σ : StorState) : IProp GF := iprop(True)
+opaque memStor [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ms : Loc) (σ : StorState) : IProp GF := iprop(True)
 
 end vocab
 
@@ -416,7 +416,7 @@ def isStorage (st : GoInterface) (S : StorState → IProp GF) (cf : StorState �
 /-- **raft's `Logger` contract** for `lg`: its methods other than `Fatal*`/`Panic*` return (raft
 calls those only where it is about to fail anyway, which a proof rules out). Persistent; etcd's zap
 adapter and the examples' loggers meet it (their batches' laws). -/
-opaque loggerOk (lg : GoInterface) : IProp GF := iprop(True)
+opaque loggerOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (lg : GoInterface) : IProp GF := iprop(True)
 
 /-- **A node's error**: `nil`, `ErrStopped` (the node has stopped), or the error of `ctx`, which is
 done. -/

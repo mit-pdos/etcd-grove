@@ -288,59 +288,59 @@ opaque kbReadTx (B : MvccStorage) : GoInterfaceOk :=
   interface.mk (go.GoType.StructType []) #()
 
 /-- **mvcc's part of the storage, as a read begun now sees it, is `D`** (exclusive). -/
-opaque kbData (B : MvccStorage) (D : KeyData) : IProp GF := iprop(True)
+opaque kbData [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (B : MvccStorage) (D : KeyData) : IProp GF := iprop(True)
 
 /-- **A share `q` of "the storage is not closed"** (fractional). -/
-opaque kbOpen (B : MvccStorage) (q : Qp) : IProp GF := iprop(True)
+opaque kbOpen [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (B : MvccStorage) (q : Qp) : IProp GF := iprop(True)
 
 /-- **The batch lock is held on the open share `q`, its session began at mvcc's data `D0`; mvcc's
 part, as the batch sees it, is `D`** (exclusive). -/
-opaque kbLocked (B : MvccStorage) (q : Qp) (D0 D : KeyData) : IProp GF := iprop(True)
+opaque kbLocked [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (B : MvccStorage) (q : Qp) (D0 D : KeyData) : IProp GF := iprop(True)
 
 /-- **A share `p` of the transaction `t`'s liveness** (fractional): the storage's bytes a range of
 `t` returned are lent against it (see the header). -/
-opaque kbLive (B : MvccStorage) (t : GoInterfaceOk) (p : Qp) : IProp GF := iprop(True)
+opaque kbLive [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (B : MvccStorage) (t : GoInterfaceOk) (p : Qp) : IProp GF := iprop(True)
 
 /-- **`rt` is a begun read transaction seeing `D`** (exclusive). -/
-opaque kbRead (B : MvccStorage) (rt : GoInterfaceOk) (D : KeyData) : IProp GF := iprop(True)
+opaque kbRead [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (B : MvccStorage) (rt : GoInterfaceOk) (D : KeyData) : IProp GF := iprop(True)
 
 /-- **`n` of the storage's reader slots** (exclusive, counted). -/
-opaque kbRdToks (B : MvccStorage) (n : Nat) : IProp GF := iprop(True)
+opaque kbRdToks [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (B : MvccStorage) (n : Nat) : IProp GF := iprop(True)
 
 /-- The right to delete from `Key` (idle). -/
-opaque kbSafe (B : MvccStorage) : IProp GF := iprop(True)
+opaque kbSafe [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (B : MvccStorage) : IProp GF := iprop(True)
 
 /-- The right to delete from `Key`, the safe-range lock held. -/
-opaque kbSafeHeld (B : MvccStorage) : IProp GF := iprop(True)
+opaque kbSafeHeld [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (B : MvccStorage) : IProp GF := iprop(True)
 
 /-- **This thread holds the storage's batch lock** (exclusive): what the storage's other users'
 unsafe writes under the lock take (the lessor's lease-bucket delete inside a store's write
 transaction, `lessor.Revoke`: 3c's provisional `beTxHeld`); `kbLocked_held` lends it. -/
-opaque kbHeld (B : MvccStorage) : IProp GF := iprop(True)
+opaque kbHeld [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (B : MvccStorage) : IProp GF := iprop(True)
 
 /-- **A reader slot kept for lock-only reads** (exclusive): the shared read transaction's
 `RLock`/`RUnlock` with no snapshot, at any time, also after the storage's close (`kbRdToks_bare`
 makes one; the opener's close takes the slots but these). -/
-opaque kbBareSlot (B : MvccStorage) : IProp GF := iprop(True)
+opaque kbBareSlot [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (B : MvccStorage) : IProp GF := iprop(True)
 
 /-- The shared read transaction locked for reading, nothing read (exclusive). -/
-opaque kbBare (B : MvccStorage) : IProp GF := iprop(True)
+opaque kbBare [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (B : MvccStorage) : IProp GF := iprop(True)
 
 /-- mvcc's bucket `b` exists (persistent). -/
-opaque kbMade (B : MvccStorage) (b : MBucket) : IProp GF := iprop(True)
+opaque kbMade [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (B : MvccStorage) (b : MBucket) : IProp GF := iprop(True)
 
 /-- **A share `dq` of the storage's post-lock hook, at `f`** (`nil`: none). -/
-opaque storageHook (B : MvccStorage) (dq : DFrac) (f : GoFunc) : IProp GF := iprop(True)
+opaque storageHook [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (B : MvccStorage) (dq : DFrac) (f : GoFunc) : IProp GF := iprop(True)
 
 /-- **The storage's hook is `f`, for good** (its discarded share). -/
 abbrev hookIs (B : MvccStorage) (f : GoFunc) : IProp GF := storageHook B DFrac.discard f
 
 /-- **A forced commit turns `X` into `Y`** (persistent), the batch lock's invariant `Pk`. -/
-opaque storageReq (B : MvccStorage) (Pk X Y : IProp GF) : IProp GF := iprop(True)
+opaque storageReq [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (B : MvccStorage) (Pk X Y : IProp GF) : IProp GF := iprop(True)
 
 /-- **`H` is the storage's just-begun batch session, lent to its post-lock hook** (persistent; see
 the header): the storage's implementation gives it its meaning. -/
-opaque kbLent (B : MvccStorage) (H : IProp GF) : IProp GF := iprop(True)
+opaque kbLent [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (B : MvccStorage) (H : IProp GF) : IProp GF := iprop(True)
 
 /-- **What the post-lock hook `f` of the storage `B` does** under the batch lock of invariant `Pk`,
 from the caller's `Pre`: `f`'s triple to `Q`, run holding the just-begun session (any `H` with

@@ -155,7 +155,7 @@ def ivAt (c : Cmp) (p : Loc) (dq : DFrac) (z : Entry) : IProp GF :=
     keyAt c DFrac.discard vb z.1.1 ∗ keyAt c DFrac.discard ve z.1.2)
 
 /-- **The tree at `t` holds the entries `L`** over keys of kind `c`, at `dq` (see the header). -/
-opaque ivt (c : Cmp) (t : Loc) (L : List Entry) (dq : DFrac) : IProp GF := iprop(True)
+opaque ivt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c : Cmp) (t : Loc) (L : List Entry) (dq : DFrac) : IProp GF := iprop(True)
 
 /-- **The contract of a `Visit` callback `ivv`** over the visited entries `Q` (the stabbed entries
 in order) with the client's loop state: `I acc` after visiting `acc` and continuing, `J acc` after

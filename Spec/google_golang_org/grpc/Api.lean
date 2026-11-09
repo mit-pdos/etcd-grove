@@ -240,15 +240,15 @@ structure SrvCfg where
   sregs : List (GoString × val × GoInterface)
 
 /-- **`err` is a gRPC status error** with `code` and `msg`. -/
-opaque statusErr (err : GoInterface) (code : w32) (msg : GoString) : IProp GF := iprop(True)
+opaque statusErr [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (err : GoInterface) (code : w32) (msg : GoString) : IProp GF := iprop(True)
 
 /-- **`err`'s `Error()` returns `msg`**, on every call (persistent; `err` not nil): what
 `status.FromError` reads of an error that is not a status. -/
-opaque errMsg (err : GoInterface) (msg : GoString) : IProp GF := iprop(True)
+opaque errMsg [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (err : GoInterface) (msg : GoString) : IProp GF := iprop(True)
 
 /-- **`err` carries no gRPC status** (persistent): neither it nor an error it wraps (`errors.As`)
 has a `GRPCStatus()` method; what `status.FromError` needs to build `Unknown` from `Error()`. -/
-opaque plainErr (err : GoInterface) : IProp GF := iprop(True)
+opaque plainErr [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (err : GoInterface) : IProp GF := iprop(True)
 
 /-- **The dynamic type of `err` is comparable** (`==` and a map lookup keyed by it never panic:
 Perennial's `CheckComparable`). -/
@@ -256,7 +256,7 @@ opaque cmpErr (err : GoInterface) : Prop
 
 /-- **A `*status.Status` with `code` and `msg`** (persistent; read-only: grpc never writes one it
 handed out; `nil` is `OK` with no message). -/
-opaque statusAt (s : Loc) (code : w32) (msg : GoString) : IProp GF := iprop(True)
+opaque statusAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (code : w32) (msg : GoString) : IProp GF := iprop(True)
 
 /-- **What `status.FromError` sees of `err`**: a status error (`ok`), or another error, `Unknown`
 with its message (not `ok`), or `nil` (`OK`, `ok`). -/
@@ -266,25 +266,25 @@ def errView (err : GoInterface) (code : w32) (msg : GoString) (ok : Bool) : IPro
         ⌜err = GoInterface.nil ∧ ok = true ∧ code = cOK ∧ msg = []⌝)
 
 /-- **A `*peer.Peer`** whose `Addr.String()` returns (persistent). -/
-opaque peerOk (p : Loc) : IProp GF := iprop(True)
+opaque peerOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) : IProp GF := iprop(True)
 
 /-- **The status a server sends for a handler's error `err`**. -/
-opaque sentStatus (err : GoInterface) (code : w32) (msg : GoString) : IProp GF := iprop(True)
+opaque sentStatus [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (err : GoInterface) (code : w32) (msg : GoString) : IProp GF := iprop(True)
 
 /-- **An error grpc made itself** (see the header). -/
-opaque ownErr (err : GoInterface) : IProp GF := iprop(True)
+opaque ownErr [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (err : GoInterface) : IProp GF := iprop(True)
 
 /-- **The outgoing metadata of `ctx` is `md`**. -/
-opaque outMD (ctx : GoInterface) (md : MD) : IProp GF := iprop(True)
+opaque outMD [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ctx : GoInterface) (md : MD) : IProp GF := iprop(True)
 
 /-- **A `metadata.MD` map at `m` holding `md`** (fraction `dq` of the map; its value slices
 read-only). Intended realization: Perennial's `ownMap m dq` of the keys to slices, each slice
 `↦*□` its strings (`mdAt_index`, a law of the realization, gives the map lookup `md[k]` the
 server's interceptors make). -/
-opaque mdAt (m : Loc) (dq : DFrac) (md : MD) : IProp GF := iprop(True)
+opaque mdAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (m : Loc) (dq : DFrac) (md : MD) : IProp GF := iprop(True)
 
 /-- **A client connection** (see the header). -/
-opaque connAt (cc : Loc) (A : GoString → IProp GF) (ui si : Option val) (R : MD → IProp GF) :
+opaque connAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (cc : Loc) (A : GoString → IProp GF) (ui si : Option val) (R : MD → IProp GF) :
   IProp GF := iprop(True)
 
 /-- **A dial option acting as `f`**. -/
@@ -292,7 +292,7 @@ opaque dialOptAt (v : GoInterface) (f : DialCfg (GF := GF) → DialCfg (GF := GF
   iprop(True)
 
 /-- **A call option grpc accepts**. -/
-opaque callOptOk (v : GoInterface) : IProp GF := iprop(True)
+opaque callOptOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (v : GoInterface) : IProp GF := iprop(True)
 
 /-- **The contracts an address is bound to**: for each method name, its request and reply types
 and its contract (`none`: not served there). -/
@@ -328,7 +328,7 @@ def servesStream (ep m : GoString) (reqT repT : go.GoType) (S : StreamSpec (GF :
 `embed/serve.go:141-213`). cmux (`github.com/soheilhy/cmux`) is not translated: its functions'
 specs (`New`, `Match`, `HTTP1`, `HTTP2`, `Serve`) wait for its names in the Goose configuration
 (asked of 2e); `cmux_split` is what they give. -/
-opaque cmuxSubAt (lis : GoInterface) (ep : GoString) (http2 : Bool) : IProp GF := iprop(True)
+opaque cmuxSubAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (lis : GoInterface) (ep : GoString) (http2 : Bool) : IProp GF := iprop(True)
 
 /-- **A listener a gRPC server may serve at `ep`**: one `net.Listen` bound (2f's `Listen.spec`), or
 cmux's HTTP/2 part of one. -/
@@ -340,15 +340,15 @@ opaque servesHTTP (gs : Loc) (C : AddrContract (GF := GF)) : IProp GF := iprop(T
 
 /-- **The context of a server stream** (persistent; the run's, given with the halves): what
 `Context()` returns to any goroutine. -/
-opaque srvCtxOf (st : GoInterface) (ctx : GoInterface) (md : MD) : IProp GF := iprop(True)
+opaque srvCtxOf [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (st : GoInterface) (ctx : GoInterface) (md : MD) : IProp GF := iprop(True)
 
 /-- **A client stream's context** (persistent): what `cs.Context()` returns. -/
-opaque cliCtxOf (cs : GoInterface) (ctx : GoInterface) : IProp GF := iprop(True)
+opaque cliCtxOf [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (cs : GoInterface) (ctx : GoInterface) : IProp GF := iprop(True)
 
 /-- **grpc's generic stream wrappers** (`*GenericClientStream[Req, Res]`, `*GenericServerStream[Req,
 Res]`, which the generated stubs and handlers make, 3h): `w`'s embedded stream is `s`. -/
-opaque genCliAt (w : Loc) (cs : GoInterface) (reqT repT : go.GoType) : IProp GF := iprop(True)
-opaque genSrvAt (w : Loc) (st : GoInterface) (reqT repT : go.GoType) : IProp GF := iprop(True)
+opaque genCliAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (w : Loc) (cs : GoInterface) (reqT repT : go.GoType) : IProp GF := iprop(True)
+opaque genSrvAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (w : Loc) (st : GoInterface) (reqT repT : go.GoType) : IProp GF := iprop(True)
 
 /-- grpc's health service's registrations (`grpc_health_v1.Health_ServiceDesc`'s unary `Check`,
 `List` and stream `Watch`, full names with handlers; opaque). -/
@@ -357,56 +357,56 @@ opaque healthStreams : List (GoString × val)
 
 /-- **A `*peer.Peer` variable at `p`, owned** (what `grpc.Peer(&p)` lends to the call: grpc writes
 it after the attempt). -/
-opaque peerVar (p : Loc) : IProp GF := iprop(True)
+opaque peerVar [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) : IProp GF := iprop(True)
 
 /-- **The right to run `Serve` on `gs` with `lis`** (exclusive; `start`'s). -/
-opaque serveTok (gs : Loc) (lis : GoInterface) : IProp GF := iprop(True)
+opaque serveTok [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (gs : Loc) (lis : GoInterface) : IProp GF := iprop(True)
 
 /-- **The run resources `start` lent** (exclusive; integration X): `n` copies of `T`, given back by
 `GracefulStop` once the runs have returned. -/
-opaque drainTok (gs : Loc) (T : IProp GF) (n : Nat) : IProp GF := iprop(True)
+opaque drainTok [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (gs : Loc) (T : IProp GF) (n : Nat) : IProp GF := iprop(True)
 
 /-- **A `*grpc.ServiceDesc`** (read-only; the generated `<Svc>_ServiceDesc`, 3h's init facts): the
 service's full name, its unary methods' (name, `Handler`) and its streams' (name, `Handler`). -/
-opaque serviceDescAt (sd : Loc) (svc : GoString) (ms ss : List (GoString × val)) : IProp GF :=
+opaque serviceDescAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (sd : Loc) (svc : GoString) (ms ss : List (GoString × val)) : IProp GF :=
   iprop(True)
 
 /-- **grpc's `*health.Server`** (persistent: its methods lock internally). -/
-opaque healthAt (hs : Loc) : IProp GF := iprop(True)
+opaque healthAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (hs : Loc) : IProp GF := iprop(True)
 
 /-- **A resolver builder reporting only addresses with `A`** (persistent; the client's resolver,
 1c, over grpc's `resolver/manual`). -/
-opaque resolverAt (r : GoInterface) (A : GoString → IProp GF) : IProp GF := iprop(True)
+opaque resolverAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : GoInterface) (A : GoString → IProp GF) : IProp GF := iprop(True)
 
 /-- **Per-RPC credentials adding metadata with `R`** (persistent; the client's token bundle's,
 1c: grpc calls its `GetRequestMetadata` on every call and stream, and its
 `RequireTransportSecurity`). -/
-opaque perRPCAt (pc : GoInterface) (R : MD → IProp GF) : IProp GF := iprop(True)
+opaque perRPCAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (pc : GoInterface) (R : MD → IProp GF) : IProp GF := iprop(True)
 
 /-- **A codec that round-trips contents** (persistent; `grpc.CustomCodec`'s argument: its
 `Marshal` of a message holding `c` gives bytes `encodes`-ing `c`, its `Unmarshal` of such bytes into
 a fresh message gives `c`; v3rpc's `codec`, over golang/protobuf's `proto`, which calls
 protobuf-go's). -/
-opaque codecOk (cd : GoInterface) : IProp GF := iprop(True)
+opaque codecOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (cd : GoInterface) : IProp GF := iprop(True)
 
 /-- **The chained unary interceptor of `ics`** (persistent): what grpc passes to a handler. -/
-opaque icChain (ics : List GoFunc) (ic : val) : IProp GF := iprop(True)
+opaque icChain [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ics : List GoFunc) (ic : val) : IProp GF := iprop(True)
 
 /-- **A unary server handler continuation** (what an interceptor gets as `handler`): calling it is
 running the rest of the chain `ics` and then `h` (the generated handler's call of the service's
 method). -/
-opaque icHandler (ics : List GoFunc) (info : Loc) (k : val) (h : val) : IProp GF := iprop(True)
+opaque icHandler [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ics : List GoFunc) (info : Loc) (k : val) (h : val) : IProp GF := iprop(True)
 
 /-- **grpc's one-attempt invoker of `cc`** (the `UnaryInvoker` an interceptor gets). -/
-opaque attemptOk (cc : Loc) (A : GoString → IProp GF) (R : MD → IProp GF) (inv : val) : IProp GF :=
+opaque attemptOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (cc : Loc) (A : GoString → IProp GF) (R : MD → IProp GF) (inv : val) : IProp GF :=
   iprop(True)
 
 /-- **grpc's streamer of `cc`** (the `Streamer` a stream interceptor gets). -/
-opaque streamerOk (cc : Loc) (A : GoString → IProp GF) (R : MD → IProp GF) (str : val) : IProp GF :=
+opaque streamerOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (cc : Loc) (A : GoString → IProp GF) (R : MD → IProp GF) (str : val) : IProp GF :=
   iprop(True)
 
 /-- **The context of a handler run**, with the incoming metadata `md`. -/
-opaque rpcCtx (ctx : GoInterface) (md : MD) : IProp GF := iprop(True)
+opaque rpcCtx [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ctx : GoInterface) (md : MD) : IProp GF := iprop(True)
 
 /-! #### Any context's incoming metadata and TLS peer (integration I3)
 
@@ -419,12 +419,12 @@ the owner of `server/v3/auth/Api.lean` should define them as these. -/
 /-- **`ctx`'s incoming metadata is `o`** (persistent): `metadata.FromIncomingContext`'s answer,
 `none` for a context carrying none (`Background()`-derived, the server's `s.ctx`). A run's context
 has `some md` (`rpcCtx_inMD`). -/
-opaque ctxInMD (ctx : GoInterface) (o : Option MD) : IProp GF := iprop(True)
+opaque ctxInMD [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ctx : GoInterface) (o : Option MD) : IProp GF := iprop(True)
 
 /-- **`ctx`'s TLS peer identity** (persistent): `some cn` for a context whose `peer.FromContext`
 peer is a TLS peer (`credentials.TLSInfo`) with a non-empty verified chain whose first chain's leaf
 has common name `cn`; `none` otherwise (no peer, not TLS, no verified chain). -/
-opaque ctxPeerCN (ctx : GoInterface) (c : Option GoString) : IProp GF := iprop(True)
+opaque ctxPeerCN [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ctx : GoInterface) (c : Option GoString) : IProp GF := iprop(True)
 
 /-- **The identity `AuthInfoFromTLS` reads** (transparent): the peer's common name when the
 incoming metadata is present and has no `grpcgateway-accept` key; `none` otherwise. -/
@@ -435,13 +435,13 @@ def ctxCertUser (ctx : GoInterface) (c : Option GoString) : IProp GF :=
       | none => none⌝)
 
 /-- **The request decoder of a unary run** (the request's content `c`). -/
-opaque decOk (dec : val) (reqT : go.GoType) (c : Content) : IProp GF := iprop(True)
+opaque decOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (dec : val) (reqT : go.GoType) (c : Content) : IProp GF := iprop(True)
 
 /-- **The key of the stream `g`** (exclusive; given to the client that opened it, once): what a
 stream's protocol consumes to allocate ghost state keyed by `g` (so that the client's first message
 can fix the parameters the server's later messages are about). Allocating ghost names is free: this
 is no counted resource. -/
-opaque streamKey (g : StreamName) : IProp GF := iprop(True)
+opaque streamKey [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (g : StreamName) : IProp GF := iprop(True)
 
 /-- A client stream's sending half (`i` sent). -/
 opaque cliSend (cs : GoInterface) (g : StreamName) (S : StreamSpec (GF := GF)) (md : MD) (i : Nat) :
@@ -457,11 +457,11 @@ opaque srvSend (st : GoInterface) (g : StreamName) (S : StreamSpec (GF := GF)) (
   IProp GF := iprop(True)
 
 /-- **A server being built**. -/
-opaque srvBuild (gs : Loc) (B : SrvCfg) : IProp GF := iprop(True)
+opaque srvBuild [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (gs : Loc) (B : SrvCfg) : IProp GF := iprop(True)
 
 /-- **A server option acting as `f`** on the interceptors (the codec, credentials, limits and
 stats handlers change nothing the specs model). -/
-opaque srvOptAt (v : GoInterface) (f : SrvCfg → SrvCfg) : IProp GF := iprop(True)
+opaque srvOptAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (v : GoInterface) (f : SrvCfg → SrvCfg) : IProp GF := iprop(True)
 
 /-- What a unary handler returns for its caller's `Φ`: a reply message (any fraction: grpc only
 reads it; nested less than protobuf's decoding limit, so the caller can decode it) with `Φ` of its

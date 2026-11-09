@@ -93,25 +93,25 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
   [package_sem : go_etcd_io.etcd.server.v3.etcdserver.cindex.Assumptions]
 
 /-- `ci` is a `*consistentIndex` with names `γ`. Persistent. -/
-opaque isCI (ci : Loc) (γ : CINames) : IProp GF := iprop(True)
+opaque isCI [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ci : Loc) (γ : CINames) : IProp GF := iprop(True)
 
 /-- **The indexer's state is `m`**: exclusive, client-owned. -/
-opaque ciState (γ : CINames) (m : CIState) : IProp GF := iprop(True)
+opaque ciState [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : CINames) (m : CIState) : IProp GF := iprop(True)
 
 /-- **The single writer's token** (exclusive): every method that writes the in-memory index
 (`ConsistentIndex`/`UnsafeConsistentIndex` when they load it, the setters, `SetBackend`) takes it,
 so that a load and the store after it see no other writer (etcd's apply thread is the only writer). -/
-opaque ciWriter (γ : CINames) : IProp GF := iprop(True)
+opaque ciWriter [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : CINames) : IProp GF := iprop(True)
 
 /-- (provisional, 4a/4b's) **Backend `be`'s stored consistent index is `v`** (`0`: none), as long
 as no commit writes it: reads through `be.ReadTx()` (`schema.ReadConsistentIndex`) return it.
 Persistent: a commit writes the index only from an indexer whose in-memory index is not `0`, and
 the indexer reads the backend only while it is `0`. -/
-opaque beStoredCI (be : GoInterface) (v : w64) : IProp GF := iprop(True)
+opaque beStoredCI [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (be : GoInterface) (v : w64) : IProp GF := iprop(True)
 
 /-- (provisional, 4a/4b's) Write transaction `tx`'s view of the stored consistent index is `v`.
 Exclusive (whoever holds the transaction's lock: the pre-commit hook). -/
-opaque txStoredCI (tx : GoInterface) (v : w64) : IProp GF := iprop(True)
+opaque txStoredCI [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (tx : GoInterface) (v : w64) : IProp GF := iprop(True)
 
 /-- `l` as a `ConsistentIndexer`. -/
 def ciIface (l : Loc) : GoInterface :=

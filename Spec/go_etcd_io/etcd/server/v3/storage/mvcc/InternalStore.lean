@@ -128,52 +128,52 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG 
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
 /-- `s.mu` held for writing; the store's storage is `B`, its batch lock's invariant `Pk`. -/
-opaque storeWB (s : Loc) (γ : MvccName) (B : MvccStorage) (Pk : IProp GF) : IProp GF := iprop(True)
+opaque storeWB [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : MvccName) (B : MvccStorage) (Pk : IProp GF) : IProp GF := iprop(True)
 
 /-- The store's current and compaction revisions (`s.revMu`'s). -/
-opaque revsAt (γ : MvccName) (cur : Nat) (c : Int) : IProp GF := iprop(True)
+opaque revsAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : MvccName) (cur : Nat) (c : Int) : IProp GF := iprop(True)
 
 /-- A share of the store's scheduler. -/
-opaque schedRight (s : Loc) (γ : MvccName) : IProp GF := iprop(True)
+opaque schedRight [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : MvccName) : IProp GF := iprop(True)
 
 /-- The store's current stop channel is closed (persistent). -/
-opaque storeStopped (s : Loc) (γ : MvccName) : IProp GF := iprop(True)
+opaque storeStopped [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : MvccName) : IProp GF := iprop(True)
 
 /-- The right to close a compaction's channel `ch` (once). -/
-opaque compactCh (ch : GoChan) : IProp GF := iprop(True)
+opaque compactCh [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ch : GoChan) : IProp GF := iprop(True)
 
 /-- `restore`'s start (see the header). -/
-opaque storeRestoring (s : Loc) (γ : MvccName) (B : MvccStorage) (Pk : IProp GF) (le : GoInterface) :
+opaque storeRestoring [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : MvccName) (B : MvccStorage) (Pk : IProp GF) (le : GoInterface) :
     IProp GF := iprop(True)
 
 /-- `restore`'s end: the store's fields at the image of `h`. -/
-opaque storeRestored (s : Loc) (γ : MvccName) (B : MvccStorage) (Pk : IProp GF) (h : KVHist) :
+opaque storeRestored [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : MvccName) (B : MvccStorage) (Pk : IProp GF) (h : KVHist) :
     IProp GF := iprop(True)
 
 /-- `n` of `ents`' restored forms sent on `c`, their key bytes `L` lent to the receiver. -/
-opaque rkvProducer (c : Loc) (ents : List KvEnt) (n : Nat) (L : IProp GF) : IProp GF := iprop(True)
+opaque rkvProducer [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c : Loc) (ents : List KvEnt) (n : Nat) (L : IProp GF) : IProp GF := iprop(True)
 
 /-- `c` closed after every entry was sent, the key bytes `L` still lent to the receiver. -/
-opaque rkvClosed (c : Loc) (L : IProp GF) : IProp GF := iprop(True)
+opaque rkvClosed [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c : Loc) (L : IProp GF) : IProp GF := iprop(True)
 
 /-- The index goroutine's result channel `c` (its one value: the last revision, with the index), the
 entries coming on `kc`. -/
-opaque revConsumer (c kc : Loc) (ti : Loc) (ents : List KvEnt) : IProp GF := iprop(True)
+opaque revConsumer [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c kc : Loc) (ti : Loc) (ents : List KvEnt) : IProp GF := iprop(True)
 
 /-- `restore`'s key→lease map. -/
-opaque ktlMap (mp : Loc) (M : GoString → Option w64) : IProp GF := iprop(True)
+opaque ktlMap [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (mp : Loc) (M : GoString → Option w64) : IProp GF := iprop(True)
 
 /-- A `map[Revision]struct{}` holding `K` (fraction `dq`). -/
-opaque keepMap (mp : GoMap) (dq : DFrac) (K : Rev → Prop) : IProp GF := iprop(True)
+opaque keepMap [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (mp : GoMap) (dq : DFrac) (K : Rev → Prop) : IProp GF := iprop(True)
 
 /-- A `kvHasher` at `hp` (compaction revision `c`, revision `r`, keep map `keep`). -/
-opaque hasherAt (hp : Loc) (c r : w64) (keep : GoMap) : IProp GF := iprop(True)
+opaque hasherAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (hp : Loc) (c r : w64) (keep : GoMap) : IProp GF := iprop(True)
 
 /-- The `kvHasher` value `h` (persistent). -/
-opaque hasherVal (h : kvHasher) (c r : w64) (keep : GoMap) : IProp GF := iprop(True)
+opaque hasherVal [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (h : kvHasher) (c r : w64) (keep : GoMap) : IProp GF := iprop(True)
 
 /-- A new `*hashStorage` over `s`. -/
-opaque hashStorageFresh (hs s : Loc) : IProp GF := iprop(True)
+opaque hashStorageFresh [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (hs s : Loc) : IProp GF := iprop(True)
 
 /-- Schema's globals mvcc reads (persistent; schema's initialization, 4b). -/
 def schemaVars : IProp GF :=

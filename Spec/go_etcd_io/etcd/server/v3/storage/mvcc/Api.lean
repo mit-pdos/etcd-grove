@@ -178,22 +178,22 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG 
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
 /-- **The store's state is `σ`** (exclusive; the client's). -/
-opaque mvccState (γ : MvccName) (σ : MvccState) : IProp GF := iprop(True)
+opaque mvccState [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : MvccName) (σ : MvccState) : IProp GF := iprop(True)
 
 /-- **`kv` serves the store `γ`** (persistent). -/
-opaque isMvcc (kv : GoInterface) (γ : MvccName) : IProp GF := iprop(True)
+opaque isMvcc [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (kv : GoInterface) (γ : MvccName) : IProp GF := iprop(True)
 
 /-- The store's lessor is `γl` (persistent; its `Lease.isLessor` is in `isMvcc`). -/
-opaque mvccLessorIs (γ : MvccName) (γl : Lease.Names) : IProp GF := iprop(True)
+opaque mvccLessorIs [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : MvccName) (γl : Lease.Names) : IProp GF := iprop(True)
 
 /-- **The store's open token** (exclusive). -/
-opaque mvccOpen (γ : MvccName) : IProp GF := iprop(True)
+opaque mvccOpen [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : MvccName) : IProp GF := iprop(True)
 
 /-- **`n` reader tokens** (exclusive, counted). -/
-opaque mvccReaders (γ : MvccName) (n : Nat) : IProp GF := iprop(True)
+opaque mvccReaders [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : MvccName) (n : Nat) : IProp GF := iprop(True)
 
 /-- **The store is closed** (`Close`'s result). -/
-opaque mvccClosed (γ : MvccName) : IProp GF := iprop(True)
+opaque mvccClosed [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : MvccName) : IProp GF := iprop(True)
 
 /-- **The right to call `Rev()` and `FirstRev()` with a thread token, for good** (persistent;
 integration Y, 2e's request: the compactor's `RevGetter` is persistent, its `Run` may fork its loop
@@ -203,18 +203,18 @@ outlives the store, `api/v3compactor/revision.go:81`, `server.go:950-961`). Each
 caller's `threadTok` (given back): the realization's pool of `mvccRevN` lock-only slots, one per
 live thread (the bounds plan's thread pool of reader slots), in an invariant the store's `Restore`
 swaps to the new storage under `s.mu` (`kbBareSlot_back`). -/
-opaque mvccRevTok (γ : MvccName) : IProp GF := iprop(True)
+opaque mvccRevTok [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : MvccName) : IProp GF := iprop(True)
 
 /-- **Whether the `Rev` pool was lent** (exclusive; `New`/`NewStore` give `false`, `mvccRevTok_of`
 makes it `true`): what the shutdown law counts (a lent pool's slots stay with its `Rev` callers). -/
-opaque mvccRevLent (γ : MvccName) (lent : Bool) : IProp GF := iprop(True)
+opaque mvccRevLent [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : MvccName) (lent : Bool) : IProp GF := iprop(True)
 
 /-- **A share `q` of the right to `Restore`** (fractional; `NewStore` gives it whole): `Restore` takes
 it whole, `Hash`/`HashByRev` a share, so no hash runs concurrently with a restore (`store.hash` reads
 `s.b` with no lock and `hashByRev` reads the old storage after releasing `s.mu`,
 `kvstore.go:156-192`, `issues/etcd-mvcc-hash-currentrev-race.md`; the server's snapshot install
 excludes hashing: 2d's obligation). -/
-opaque mvccRestoreGate (γ : MvccName) (q : Qp) : IProp GF := iprop(True)
+opaque mvccRestoreGate [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : MvccName) (q : Qp) : IProp GF := iprop(True)
 
 /-- The resource a `Rev()`/`FirstRev()` takes and gives back: a reader token, or the `Rev` right
 with the caller's thread token. -/
@@ -222,21 +222,21 @@ def revRd (γ : MvccName) (rt : Bool) : IProp GF :=
   if rt then iprop(mvccRevTok γ ∗ threadTok) else mvccReaders γ 1
 
 /-- **A share `q` of "the store's storage is `B`, its batch lock's invariant `Pk`"**. -/
-opaque mvccBackend (γ : MvccName) (q : Qp) (B : MvccStorage) (Pk : IProp GF) : IProp GF := iprop(True)
+opaque mvccBackend [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : MvccName) (q : Qp) (B : MvccStorage) (Pk : IProp GF) : IProp GF := iprop(True)
 
 /-- **`t` is a transaction of `γ`, begun with `trace`, at `k`** (exclusive). -/
-opaque mvccTxn (t : GoInterface) (γ : MvccName) (trace : Loc) (k : MTxn) : IProp GF := iprop(True)
+opaque mvccTxn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (t : GoInterface) (γ : MvccName) (trace : Loc) (k : MTxn) : IProp GF := iprop(True)
 
 /-- **A write transaction whose change records were taken** (exclusive; `InternalTxn.lean`'s
 `mvccTxn_changes`, the watchable store's `End`): only `End` may follow. -/
-opaque mvccTxnNC (t : GoInterface) (γ : MvccName) (trace : Loc) (σ : MvccState) (pend : List Event) :
+opaque mvccTxnNC [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (t : GoInterface) (γ : MvccName) (trace : Loc) (σ : MvccState) (pend : List Event) :
     IProp GF := iprop(True)
 
 /-- **`sl` is the transaction `t`'s change slice** (persistent; `Changes()`'s result). -/
-opaque mvccTxnChs (t : GoInterface) (sl : GoSlice) : IProp GF := iprop(True)
+opaque mvccTxnChs [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (t : GoInterface) (sl : GoSlice) : IProp GF := iprop(True)
 
 /-- `h` is the store's hash storage (persistent). -/
-opaque isHashStorage (h : GoInterface) (γ : MvccName) : IProp GF := iprop(True)
+opaque isHashStorage [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (h : GoInterface) (γ : MvccName) : IProp GF := iprop(True)
 
 /-- The trace `tr` is the caller's (exclusive): 4b's `TraceUtil.traceOwn` (`TraceUtil.TODO.spec`
 gives one, `Trace.Step.spec` keeps it). -/

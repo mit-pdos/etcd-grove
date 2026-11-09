@@ -102,13 +102,13 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG 
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
 /-- **The trace `t` is the caller's** (exclusive; see the header). -/
-opaque traceOwn (t : Loc) : IProp GF := iprop(True)
+opaque traceOwn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (t : Loc) : IProp GF := iprop(True)
 
 /-- **`t`'s `isEmpty` flag is `e`**, for good (persistent). -/
-opaque traceEmpty (t : Loc) (e : Bool) : IProp GF := iprop(True)
+opaque traceEmpty [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (t : Loc) (e : Bool) : IProp GF := iprop(True)
 
 /-- **The context `ctx` carries the trace `o`** at `TraceKey{}` (persistent; see the header). -/
-opaque ctxTraceIs (ctx : GoInterface) (o : Option Loc) : IProp GF := iprop(True)
+opaque ctxTraceIs [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ctx : GoInterface) (o : Option Loc) : IProp GF := iprop(True)
 
 /-- **A slice of fields, owned with its capacity, its values formattable.** -/
 def fieldsOwn (sl : GoSlice) : IProp GF :=

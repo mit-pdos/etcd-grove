@@ -43,26 +43,26 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG 
 variable [go_gctx : GoGlobalContext]
 
 /-- `es` is an `*electionServer` over the client `c` (persistent). -/
-opaque isElectionServer (es : Loc) (c : Loc) : IProp GF := iprop(True)
+opaque isElectionServer [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (es : Loc) (c : Loc) : IProp GF := iprop(True)
 
 /-- A read-only `*CampaignRequest` (persistent). -/
-opaque campaignReq (p : Loc) (name : GoString) (lease : w64) (value : GoString) : IProp GF :=
+opaque campaignReq [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (name : GoString) (lease : w64) (value : GoString) : IProp GF :=
   iprop(True)
 /-- A read-only `*ProclaimRequest` (persistent). -/
-opaque proclaimReq (p : Loc) (lk : Option LeaderKeyM) (value : GoString) : IProp GF := iprop(True)
+opaque proclaimReq [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (lk : Option LeaderKeyM) (value : GoString) : IProp GF := iprop(True)
 /-- A read-only `*ResignRequest` (persistent). -/
-opaque resignReq (p : Loc) (lk : Option LeaderKeyM) : IProp GF := iprop(True)
+opaque resignReq [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (lk : Option LeaderKeyM) : IProp GF := iprop(True)
 /-- A read-only `*LeaderRequest` (persistent). -/
-opaque leaderReq (p : Loc) (name : GoString) : IProp GF := iprop(True)
+opaque leaderReq [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (name : GoString) : IProp GF := iprop(True)
 
 /-- A fresh `*CampaignResponse`: its header and leader key. -/
-opaque campaignResp (p : Loc) (lk : LeaderKeyM) : IProp GF := iprop(True)
+opaque campaignResp [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (lk : LeaderKeyM) : IProp GF := iprop(True)
 /-- A fresh `*ProclaimResponse`. -/
-opaque proclaimResp (p : Loc) : IProp GF := iprop(True)
+opaque proclaimResp [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) : IProp GF := iprop(True)
 /-- A fresh `*ResignResponse`. -/
-opaque resignResp (p : Loc) : IProp GF := iprop(True)
+opaque resignResp [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) : IProp GF := iprop(True)
 /-- A fresh `*LeaderResponse` holding the key-value `v`. -/
-opaque leaderResp (p : Loc) (v : EtcdModel.KV) : IProp GF := iprop(True)
+opaque leaderResp [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (v : EtcdModel.KV) : IProp GF := iprop(True)
 
 def isElectionServer_persistent.spec : Prop := ∀ es c, Persistent (isElectionServer (GF := GF) es c)
 

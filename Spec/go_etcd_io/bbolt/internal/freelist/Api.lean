@@ -225,11 +225,11 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext] {GF : Bund
   [hG : HeapGS HasLC.hasLC GF]
 
 /-- **The freelist behind `fl`, but its readers, is in state `F`** (exclusive; see the header). -/
-opaque flOwn (fl : GoInterface) (F : FLState) : IProp GF := iprop(True)
+opaque flOwn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (fl : GoInterface) (F : FLState) : IProp GF := iprop(True)
 
 /-- **The open readers' txids recorded in the freelist behind `fl` are `R`**, as a multiset
 (exclusive; see the header). -/
-opaque flReaders (fl : GoInterface) (R : List Txid) : IProp GF := iprop(True)
+opaque flReaders [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (fl : GoInterface) (R : List Txid) : IProp GF := iprop(True)
 
 /-- The model's invariant holds of every state the freelist is in. -/
 def flOwn_wf.spec : Prop := ∀ fl F, flOwn (GF := GF) fl F ⊢ ⌜F.wf⌝

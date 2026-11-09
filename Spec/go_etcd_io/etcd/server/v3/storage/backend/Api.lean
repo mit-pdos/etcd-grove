@@ -390,61 +390,61 @@ def crtIface (l : Loc) : GoInterface :=
     #l
 
 /-- **`b` is a backend `γ` over the file at `p`, its batch lock protecting `Pk`** (persistent). -/
-opaque isBackend (γ : BeNames) (b : Loc) (p : GoString) (Pk : IProp GF) : IProp GF := iprop(True)
+opaque isBackend [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : BeNames) (b : Loc) (p : GoString) (Pk : IProp GF) : IProp GF := iprop(True)
 
 /-- The backend is not closed (fractional). -/
-opaque beOpen (γ : BeNames) (q : Qp) : IProp GF := iprop(True)
+opaque beOpen [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : BeNames) (q : Qp) : IProp GF := iprop(True)
 
 /-- **The batch image on `F` is `C`** (exclusive per footprint). -/
-opaque beCur (γ : BeNames) (F : Fp) (C : Image) : IProp GF := iprop(True)
+opaque beCur [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : BeNames) (F : Fp) (C : Image) : IProp GF := iprop(True)
 
 /-- **What a read transaction begun now sees on `F` is `V`** (exclusive per footprint). -/
-opaque beVis (γ : BeNames) (F : Fp) (V : Image) : IProp GF := iprop(True)
+opaque beVis [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : BeNames) (F : Fp) (V : Image) : IProp GF := iprop(True)
 
 /-- `F`'s visible image is tracked by no client, for good (persistent). -/
-opaque beNoVis (γ : BeNames) (F : Fp) : IProp GF := iprop(True)
+opaque beNoVis [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : BeNames) (F : Fp) : IProp GF := iprop(True)
 
 /-- **This thread holds the batch lock, in session `S`, publishing `F`** (exclusive). -/
-opaque beSess (γ : BeNames) (q : Qp) (F : Fp) (S : Sess) : IProp GF := iprop(True)
+opaque beSess [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : BeNames) (q : Qp) (F : Fp) (S : Sess) : IProp GF := iprop(True)
 
 /-- The whole batch image is `I` (ephemeral: lent at a commit). -/
-opaque beCurIs (γ : BeNames) (I : Image) : IProp GF := iprop(True)
+opaque beCurIs [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : BeNames) (I : Image) : IProp GF := iprop(True)
 
 /-- **The committed (or attempted) images so far, in order** (client-owned). -/
-opaque beHist (γ : BeNames) (L : List Image) : IProp GF := iprop(True)
+opaque beHist [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : BeNames) (L : List Image) : IProp GF := iprop(True)
 
 /-- `I` was committed (persistent). -/
-opaque beCommitted (γ : BeNames) (I : Image) : IProp GF := iprop(True)
+opaque beCommitted [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : BeNames) (I : Image) : IProp GF := iprop(True)
 
 /-- The backend is closed, `I` its last commit (persistent). -/
-opaque beFinal (γ : BeNames) (I : Image) : IProp GF := iprop(True)
+opaque beFinal [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : BeNames) (I : Image) : IProp GF := iprop(True)
 
 /-- `n` reader slots (counted). -/
-opaque beRdToks (γ : BeNames) (n : Nat) : IProp GF := iprop(True)
+opaque beRdToks [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : BeNames) (n : Nat) : IProp GF := iprop(True)
 
 /-- A begun read transaction `rt` seeing `V` on `F` (exclusive). -/
-opaque beRd (γ : BeNames) (rt : Loc) (F : Fp) (V : Image) : IProp GF := iprop(True)
+opaque beRd [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : BeNames) (rt : Loc) (F : Fp) (V : Image) : IProp GF := iprop(True)
 
 /-- **A share `p` of the transaction `t`'s liveness** (fractional; see the header). -/
-opaque beLive (γ : BeNames) (t : Loc) (p : Qp) : IProp GF := iprop(True)
+opaque beLive [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : BeNames) (t : Loc) (p : Qp) : IProp GF := iprop(True)
 
 /-- A share `dq` of the post-lock hook, at `f` (`nil`: none). -/
-opaque beHook (γ : BeNames) (dq : DFrac) (f : GoFunc) : IProp GF := iprop(True)
+opaque beHook [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : BeNames) (dq : DFrac) (f : GoFunc) : IProp GF := iprop(True)
 
 /-- The right to delete from a safe-range bucket (idle). -/
-opaque beDel (γ : BeNames) : IProp GF := iprop(True)
+opaque beDel [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : BeNames) : IProp GF := iprop(True)
 
 /-- The right to delete from a safe-range bucket, the safe-range lock held. -/
-opaque beDelHeld (γ : BeNames) : IProp GF := iprop(True)
+opaque beDelHeld [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : BeNames) : IProp GF := iprop(True)
 
 /-- Bucket `b` exists for good (persistent). -/
-opaque beMade (γ : BeNames) (b : GoString) : IProp GF := iprop(True)
+opaque beMade [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : BeNames) (b : GoString) : IProp GF := iprop(True)
 
 /-- An open snapshot `s` of the committed image `I`, its bytes `bs` (exclusive). -/
-opaque beSnap (γ : BeNames) (s : Loc) (I : Image) (bs : List w8) : IProp GF := iprop(True)
+opaque beSnap [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : BeNames) (s : Loc) (I : Image) (bs : List w8) : IProp GF := iprop(True)
 
 /-- **The closed database file at `p` holds `o`** (`none`: no file; exclusive). -/
-opaque beFile (p : GoString) (o : Option Image) : IProp GF := iprop(True)
+opaque beFile [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : GoString) (o : Option Image) : IProp GF := iprop(True)
 
 /-- **`bk` is a `Bucket` value with identity `bi`** (transparent, persistent): the bundle of the
 three methods the backend calls (`ID()`, `Name()` (a read-only slice), `IsSafeRangeBucket()`), as an
@@ -462,29 +462,29 @@ def bucketOk (bk : GoInterface) (bi : BktInfo) : IProp GF :=
 
 /-- **`bi` is one of the backend's buckets** (persistent): one of the set `New`'s caller declares,
 whose ids are distinct (the read buffer is keyed by id). -/
-opaque beBkt (γ : BeNames) (bi : BktInfo) : IProp GF := iprop(True)
+opaque beBkt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : BeNames) (bi : BktInfo) : IProp GF := iprop(True)
 
 /-- A bucket value of this backend. -/
 def bkt (γ : BeNames) (bk : GoInterface) (bi : BktInfo) : IProp GF :=
   iprop(bucketOk bk bi ∗ beBkt γ bi)
 
 /-- **The pre-commit hooks write only the cells `Fh`** (persistent; fixed at `New`). -/
-opaque beHookFp (γ : BeNames) (Fh : Fp) : IProp GF := iprop(True)
+opaque beHookFp [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : BeNames) (Fh : Fp) : IProp GF := iprop(True)
 
 /-- **Crash safety is on** (persistent: `New` with `UnsafeNoFsync` off): the history's crash
 meaning holds (`Durable.lean`'s `beCrash`). -/
-opaque beSynced (γ : BeNames) : IProp GF := iprop(True)
+opaque beSynced [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : BeNames) : IProp GF := iprop(True)
 
 /-- **The crash invariant of the backend's file `p`** (persistent; realized by 4c's `boltFile`). -/
-opaque beDurInv (γ : BeNames) (p : GoString) : IProp GF := iprop(True)
+opaque beDurInv [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : BeNames) (p : GoString) : IProp GF := iprop(True)
 
 /-- **The safe-range registry names only safe-range buckets** (persistent; `safeRangeBucketNames`,
 filled by the schema's initialization, `schema/bucket.go:64`): what a non-blocking defragmentation's
 catch-up needs. Introduction: the schema's initialization (4b; a recorded gap). -/
-opaque safeRegOk : IProp GF := iprop(True)
+opaque safeRegOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] : IProp GF := iprop(True)
 
 /-- **The program-start environment** (persistent; see the header). -/
-opaque envOk : IProp GF := iprop(True)
+opaque envOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] : IProp GF := iprop(True)
 
 /-- **Byte slices lent at the fraction `dq`**: the slices `ps` holding `l` (4b's `Schema.lentIn`). -/
 def lentIn (dq : DFrac) (l : List GoString) (ps : List GoSlice) : IProp GF :=

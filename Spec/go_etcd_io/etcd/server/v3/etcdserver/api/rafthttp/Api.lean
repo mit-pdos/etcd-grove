@@ -188,7 +188,7 @@ abbrev followerStatsOk (s : Loc) : IProp GF := V2stats.isFollowerStats s
 
 /-- (types, 1c; round 1) **No URL string of `hs`'s source contains a comma** (the receiver splits
 `X-PeerURLs` on `","`: `nonissues/etcd-rafthttp-peerurl-comma-split.md`): a fact `urlsAt` gives. -/
-opaque urlsNoComma (sl : GoSlice) : IProp GF := iprop(True)
+opaque urlsNoComma [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (sl : GoSlice) : IProp GF := iprop(True)
 
 /-- (snap, 2e/2f) **The bytes `bs` are a stream of image `img`** (pure, opaque; 2e's `dbReader r
 img` is a reader yielding such bytes). -/
@@ -196,11 +196,11 @@ opaque imgBytes (img : Snap.BeImage) (bs : List w8) : Prop := True
 
 /-- (snap, 2e) **The merged message's fields** (persistent, read-only): its raft message `ml`, its
 reader `rc` (2e's `isMessage` should carry them: `req/..._snap.md`, "from 2f", round 1). -/
-opaque snapMsgOwn (mp ml : Loc) (rc : GoInterface) : IProp GF := iprop(True)
+opaque snapMsgOwn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (mp ml : Loc) (rc : GoInterface) : IProp GF := iprop(True)
 
 /-- (server, 2d) **The server's error channel** `ch` (`chan error`, persistent): any goroutine may
 send any error on it without blocking (`select` with `default`: `reportCriticalError`). -/
-opaque errChanOk (ch : GoChan) : IProp GF := iprop(True)
+opaque errChanOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ch : GoChan) : IProp GF := iprop(True)
 
 /-! ## The client-facing vocabulary -/
 
@@ -250,7 +250,7 @@ which `errors.As` against `writerToResponse` returns, and whose `WriteTo(w)` (if
 some response on a writer whose protocol allows any (the pipeline and snapshot handlers' answers).
 Introduced by `procErr_nil`, `procErr_nodeErr` (raft's errors) and the server's `HTTPError`'s law
 (2d's). -/
-opaque procErr (err : GoInterface) : IProp GF := iprop(True)
+opaque procErr [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (err : GoInterface) : IProp GF := iprop(True)
 
 /-- **The receiver's `Raft`** `r` for member `id` of `ν` (persistent; the
 client's, a bundle as `sync.isLocker`): `Process(ctx, m)` of a fresh message (owned) with what a
@@ -290,10 +290,10 @@ def outSnap (ν : Net GF) (mp : Loc) : IProp GF :=
     msgSent ν.γ m ∗ msgCredit ν.γ m ∗ Snap.dbReader rc img ∗ snapImg ν s.index img)
 
 /-- **A started transport** `t` of member `id` of `ν` (persistent). -/
-opaque isTransport (t : Loc) (ν : Net GF) (id : w64) : IProp GF := iprop(True)
+opaque isTransport [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (t : Loc) (ν : Net GF) (id : w64) : IProp GF := iprop(True)
 
 /-- **The transport `t` is not stopped** (fractional; `Stop` takes it whole, `AddPeer` a share). -/
-opaque trRunning (t : Loc) (q : Qp) : IProp GF := iprop(True)
+opaque trRunning [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (t : Loc) (q : Qp) : IProp GF := iprop(True)
 
 /-- **A `Transporter` interface value** holding a started transport (persistent; the server's
 `r.transport`, read by `util.go`'s heuristics through the interface). -/
@@ -318,10 +318,10 @@ def trCfg (tv : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (ν
 /-! ## Internal (rafthttp's own functions; no client sees them) -/
 
 /-- (internal) A started `*peer` `p` of the transport of `lid` for peer `pid` (persistent). -/
-opaque peerAt (p : Loc) (ν : Net GF) (lid pid : w64) : IProp GF := iprop(True)
+opaque peerAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (ν : Net GF) (lid pid : w64) : IProp GF := iprop(True)
 
 /-- (internal) The right to stop peer `p` once (exclusive; in the transport's map invariant). -/
-opaque peerStopRight (p : Loc) : IProp GF := iprop(True)
+opaque peerStopRight [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) : IProp GF := iprop(True)
 
 /-- (internal) A `Peer` interface value holding a started `*peer`. -/
 def peerIface (pv : GoInterface) (ν : Net GF) (lid pid : w64) : IProp GF :=
@@ -330,72 +330,72 @@ def peerIface (pv : GoInterface) (ν : Net GF) (lid pid : w64) : IProp GF :=
     peerAt p ν lid pid)
 
 /-- (internal) A started `*remote` (persistent) and its stop right (exclusive). -/
-opaque remoteAt (g : Loc) (ν : Net GF) (lid pid : w64) : IProp GF := iprop(True)
-opaque remoteStopRight (g : Loc) : IProp GF := iprop(True)
+opaque remoteAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (g : Loc) (ν : Net GF) (lid pid : w64) : IProp GF := iprop(True)
+opaque remoteStopRight [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (g : Loc) : IProp GF := iprop(True)
 
 /-- (internal) A `*pipeline` literal before `start` (exclusive: `startPeer`'s, `startRemote`'s), a
 started one (persistent), its stop right, and one of its four workers' shares (`handle`'s). -/
-opaque pipeFresh (pl : Loc) (ν : Net GF) (lid pid : w64) : IProp GF := iprop(True)
-opaque pipeAt (pl : Loc) (ν : Net GF) (lid pid : w64) : IProp GF := iprop(True)
-opaque pipeStopRight (pl : Loc) : IProp GF := iprop(True)
-opaque pipeWorker (pl : Loc) : IProp GF := iprop(True)
+opaque pipeFresh [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (pl : Loc) (ν : Net GF) (lid pid : w64) : IProp GF := iprop(True)
+opaque pipeAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (pl : Loc) (ν : Net GF) (lid pid : w64) : IProp GF := iprop(True)
+opaque pipeStopRight [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (pl : Loc) : IProp GF := iprop(True)
+opaque pipeWorker [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (pl : Loc) : IProp GF := iprop(True)
 
 /-- (internal) **A message queue** `ch` of the transport of `lid` to peer `pid` (a stream writer's
 `msgc`, a pipeline's; persistent): every value sent on it is a message with its `outMsg` facts,
 `To = pid`, and `K` (the msgappv2 writer's: a `MsgApp`; round 1, second tier 2). Sends are
 non-blocking (`select` with `default`). -/
-opaque msgChanAt (ch : GoChan) (ν : Net GF) (lid pid : w64) (K : Msg → Prop) : IProp GF :=
+opaque msgChanAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ch : GoChan) (ν : Net GF) (lid pid : w64) (K : Msg → Prop) : IProp GF :=
   iprop(True)
 
 /-- (internal) **A receive queue** `ch` of member `lid` (a peer's `recvc`/`propc`; persistent):
 every value is a fresh message with what a received message carries (`recvd`). -/
-opaque recvChanAt (ch : GoChan) (ν : Net GF) : IProp GF := iprop(True)
+opaque recvChanAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ch : GoChan) (ν : Net GF) : IProp GF := iprop(True)
 
 /-- (internal) A started `*streamWriter` (persistent), its stop right; one attached (pending)
 connection's right. -/
-opaque swAt (cw : Loc) (ν : Net GF) (lid pid : w64) (K : Msg → Prop) : IProp GF := iprop(True)
-opaque swStopRight (cw : Loc) : IProp GF := iprop(True)
+opaque swAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (cw : Loc) (ν : Net GF) (lid pid : w64) (K : Msg → Prop) : IProp GF := iprop(True)
+opaque swStopRight [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (cw : Loc) : IProp GF := iprop(True)
 /-- (internal) What `run` owns (the loop's local state: the encoder, the live connection). -/
-opaque swRun (cw : Loc) : IProp GF := iprop(True)
+opaque swRun [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (cw : Loc) : IProp GF := iprop(True)
 
 /-- (internal) **An outgoing connection** `*outgoingConn` at `c` for the stream of type `t` from
 `lid` to `pid` (exclusive): the stream handler's response writer after its `200` (committed, a
 stream response of `raftProto ν` to `pid`'s `GET`), with the right to close it once, which gives
 the writer back to the handler (through its close notifier). -/
-opaque outConn (c : Loc) (ν : Net GF) (lid pid : w64) (t : StreamTy) : IProp GF := iprop(True)
+opaque outConn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c : Loc) (ν : Net GF) (lid pid : w64) (t : StreamTy) : IProp GF := iprop(True)
 
 /-- (internal) A `*streamReader` literal before `start` (exclusive), a started one (persistent),
 its stop right, and what `run`/`decodeLoop` own. -/
-opaque srFresh (cr : Loc) (ν : Net GF) (lid pid : w64) : IProp GF := iprop(True)
-opaque srAt (cr : Loc) (ν : Net GF) (lid pid : w64) : IProp GF := iprop(True)
-opaque srStopRight (cr : Loc) : IProp GF := iprop(True)
-opaque srRun (cr : Loc) : IProp GF := iprop(True)
+opaque srFresh [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (cr : Loc) (ν : Net GF) (lid pid : w64) : IProp GF := iprop(True)
+opaque srAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (cr : Loc) (ν : Net GF) (lid pid : w64) : IProp GF := iprop(True)
+opaque srStopRight [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (cr : Loc) : IProp GF := iprop(True)
+opaque srRun [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (cr : Loc) : IProp GF := iprop(True)
 
 /-- (internal) **A dialed stream's body** `rd` of type `t` from `pid` to `lid` (exclusive): a `200`
 response of `raftProto ν` to the reader's `GET`, read from its start, with the reader's per-frame
 tokens. -/
-opaque streamBody (rd : GoInterface) (ν : Net GF) (lid pid : w64) (t : StreamTy) : IProp GF :=
+opaque streamBody [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (rd : GoInterface) (ν : Net GF) (lid pid : w64) (t : StreamTy) : IProp GF :=
   iprop(True)
 
 /-- (internal) A `*snapshotSender` (persistent) and its stop right. -/
-opaque ssAt (s : Loc) (ν : Net GF) (lid pid : w64) : IProp GF := iprop(True)
-opaque ssStopRight (s : Loc) : IProp GF := iprop(True)
+opaque ssAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (ν : Net GF) (lid pid : w64) : IProp GF := iprop(True)
+opaque ssStopRight [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) : IProp GF := iprop(True)
 
 /-- (internal) A `*urlPicker` (persistent): every URL it picks has a peer address of `ν` as host.
 -/
-opaque pickerAt (pk : Loc) (ν : Net GF) : IProp GF := iprop(True)
+opaque pickerAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (pk : Loc) (ν : Net GF) : IProp GF := iprop(True)
 
 /-- (internal) A `*peerStatus` (persistent). -/
-opaque statusAt (s : Loc) : IProp GF := iprop(True)
+opaque statusAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) : IProp GF := iprop(True)
 
 /-- (internal) A `*closeNotifier` (persistent), and the right to close it once (exclusive). -/
-opaque cnAt (n : Loc) : IProp GF := iprop(True)
-opaque cnCloseRight (n : Loc) : IProp GF := iprop(True)
+opaque cnAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (n : Loc) : IProp GF := iprop(True)
+opaque cnCloseRight [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (n : Loc) : IProp GF := iprop(True)
 
 /-- (internal) **A writer** `w` (an `io.Writer`: a stream's response writer, a `bytes.Buffer`)
 that has written `bs`, and may write bytes `ys` when `Ok (bs ++ ys)` (persistent knowledge the
 receiving side reads). Exclusive. -/
-opaque writerAt (w : GoInterface) (Ok : List w8 → IProp GF) (bs : List w8) : IProp GF :=
+opaque writerAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (w : GoInterface) (Ok : List w8 → IProp GF) (bs : List w8) : IProp GF :=
   iprop(True)
 
 /-- (internal, provisional: raftpb's, 3h) **`e` is a protobuf encoding of `m`** (`proto.Marshal`'s
@@ -418,50 +418,50 @@ entries are an encoder's). -/
 opaque v2Compat (st : w64 × w64) (src dst : w64) (ys : List w8) : Prop := True
 
 /-- (internal) A `*messageEncoder` writing on `w` (persistent: its one field). -/
-opaque msgEncAt (enc : Loc) (w : GoInterface) : IProp GF := iprop(True)
+opaque msgEncAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (enc : Loc) (w : GoInterface) : IProp GF := iprop(True)
 
 /-- (internal) A `*messageDecoder` reading `rd` (persistent: its one field). -/
-opaque msgDecAt (dec : Loc) (rd : GoInterface) : IProp GF := iprop(True)
+opaque msgDecAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (dec : Loc) (rd : GoInterface) : IProp GF := iprop(True)
 
 /-- (internal) A `*msgAppV2Encoder` writing on `w` for the stream from `src` to `dst`, at codec state
 `st` (exclusive: its buffers and state). -/
-opaque v2EncAt (enc : Loc) (w : GoInterface) (src dst : w64) (st : w64 × w64) : IProp GF :=
+opaque v2EncAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (enc : Loc) (w : GoInterface) (src dst : w64) (st : w64 × w64) : IProp GF :=
   iprop(True)
 
 /-- (internal) A `*msgAppV2Decoder` reading `rd` for the stream from `src` to `dst`, at codec state
 `st` (exclusive). -/
-opaque v2DecAt (dec : Loc) (rd : GoInterface) (src dst : w64) (st : w64 × w64) : IProp GF :=
+opaque v2DecAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (dec : Loc) (rd : GoInterface) (src dst : w64) (st : w64 × w64) : IProp GF :=
   iprop(True)
 
 /-- (internal) What a writer of the transport's lock holds (`removePeer`'s caller): the `peers` and
 `remotes` maps with their entries' rights. Exclusive. -/
-opaque trMaps (t : Loc) (ν : Net GF) (id : w64) : IProp GF := iprop(True)
+opaque trMaps [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (t : Loc) (ν : Net GF) (id : w64) : IProp GF := iprop(True)
 
 /-- (internal) A `*pipelineHandler`, `*snapshotHandler`, `*streamHandler` of the transport of `lid`
 (persistent: their fields). -/
-opaque phAt (h : Loc) (ν : Net GF) (lid : w64) : IProp GF := iprop(True)
-opaque shAt (h : Loc) (ν : Net GF) (lid : w64) : IProp GF := iprop(True)
-opaque sthAt (h : Loc) (ν : Net GF) (lid : w64) : IProp GF := iprop(True)
+opaque phAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (h : Loc) (ν : Net GF) (lid : w64) : IProp GF := iprop(True)
+opaque shAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (h : Loc) (ν : Net GF) (lid : w64) : IProp GF := iprop(True)
+opaque sthAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (h : Loc) (ν : Net GF) (lid : w64) : IProp GF := iprop(True)
 
 /-- (internal) What `streamWriter.mu` guards (`closer`, `working`, `msgc`), held under the lock;
 likewise `streamReader.mu`'s (`paused`, `closer`). Exclusive. -/
-opaque swLocked (cw : Loc) : IProp GF := iprop(True)
-opaque srLocked (cr : Loc) : IProp GF := iprop(True)
+opaque swLocked [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (cw : Loc) : IProp GF := iprop(True)
+opaque srLocked [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (cr : Loc) : IProp GF := iprop(True)
 
 /-- (internal) One of the transport's probers (`probing.NewProber`'s; persistent). -/
-opaque proberAt (p : GoInterface) : IProp GF := iprop(True)
+opaque proberAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : GoInterface) : IProp GF := iprop(True)
 
 /-- (internal) **A snapshot request** `r` from `lid` to `pid` (a `POST /raft/snapshot` built by
 `createPostRequest` on a body from `createSnapBody`, with its protocol knowledge and ticket):
 exclusive, what `snapshotSender.post` gives `RoundTrip`. -/
-opaque snapReq (r : Loc) (ν : Net GF) (lid pid : w64) : IProp GF := iprop(True)
+opaque snapReq [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : Loc) (ν : Net GF) (lid pid : w64) : IProp GF := iprop(True)
 
 /-- (internal) **A snapshot request body** `bd` for message `m` (exclusive): a reader whose complete
 streams are the message frame of an encoding of `m` followed by a `snapImg` image of its index. -/
-opaque snapBodyAt (bd : GoInterface) (ν : Net GF) (m : Msg) : IProp GF := iprop(True)
+opaque snapBodyAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (bd : GoInterface) (ν : Net GF) (m : Msg) : IProp GF := iprop(True)
 
 /-- (internal, provisional: semver) A `*semver.Version` (persistent, read-only). -/
-opaque semverAt (v : Loc) : IProp GF := iprop(True)
+opaque semverAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (v : Loc) : IProp GF := iprop(True)
 
 /-- (internal, provisional: semver) `semver.MustParse(s)` does not panic. -/
 opaque semverParses (s : GoString) : Prop := True

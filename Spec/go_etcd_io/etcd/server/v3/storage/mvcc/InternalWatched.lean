@@ -72,10 +72,10 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG 
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
 /-- **`s` is the inner store of a watchable store** (persistent): watched mode (see the header). -/
-opaque storeWatched (s : Loc) (γ : MvccName) : IProp GF := iprop(True)
+opaque storeWatched [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : MvccName) : IProp GF := iprop(True)
 
 /-- **`n` of the store's loop shares** (exclusive, counted; see the header). -/
-opaque storeLoops (s : Loc) (γ : MvccName) (n : Nat) : IProp GF := iprop(True)
+opaque storeLoops [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : MvccName) (n : Nat) : IProp GF := iprop(True)
 
 end vocab
 

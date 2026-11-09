@@ -30,18 +30,18 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG 
 variable [go_gctx : GoGlobalContext]
 
 /-- `p` is a `*ServerStats` (persistent). -/
-opaque isServerStats (p : Loc) : IProp GF := iprop(True)
+opaque isServerStats [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) : IProp GF := iprop(True)
 
 /-- `p` is a `*LeaderStats` (persistent). -/
-opaque isLeaderStats (p : Loc) : IProp GF := iprop(True)
+opaque isLeaderStats [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) : IProp GF := iprop(True)
 
 /-- `p` is a `*FollowerStats` (persistent). -/
-opaque isFollowerStats (p : Loc) : IProp GF := iprop(True)
+opaque isFollowerStats [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) : IProp GF := iprop(True)
 
 /-- `p` is a `*LeaderStats` whose follower map only its holder deletes from (exclusive: the
 transport, 2f's `leaderStatsOwn`; `removePeer` deletes without the stats' lock,
 `nonissues/etcd-rafthttp-leaderstats-followers-race`). Integration I4. -/
-opaque leaderStatsOwn (p : Loc) : IProp GF := iprop(True)
+opaque leaderStatsOwn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) : IProp GF := iprop(True)
 
 /-- The holder may call the lock-taking methods (`Follower`). -/
 def leaderStatsOwn_is.spec : Prop := ∀ p, leaderStatsOwn (GF := GF) p ⊢ isLeaderStats p

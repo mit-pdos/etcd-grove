@@ -73,20 +73,20 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
   [package_sem : go_etcd_io.etcd.pkg.v3.schedule.Assumptions]
 
 /-- The right to schedule (fractional; `Stop` takes it whole). -/
-opaque schedOpen (γ : SchedNames) (q : Qp) : IProp GF := iprop(True)
+opaque schedOpen [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : SchedNames) (q : Qp) : IProp GF := iprop(True)
 
 /-- **The chain's end**: the last job scheduled leaves `P` when it finishes (exclusive). -/
-opaque schedTail (γ : SchedNames) (P : IProp GF) : IProp GF := iprop(True)
+opaque schedTail [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : SchedNames) (P : IProp GF) : IProp GF := iprop(True)
 
 /-- (internal) `l` is a `*fifo` with names `γ`, its context's being done giving `Pay`. -/
-opaque isFifo (l : Loc) (γ : SchedNames) (Pay : IProp GF) : IProp GF := iprop(True)
+opaque isFifo [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (l : Loc) (γ : SchedNames) (Pay : IProp GF) : IProp GF := iprop(True)
 
 /-- (internal) The worker goroutine's token (`run`'s; lent to `executeJob`). -/
-opaque fifoWorker (l : Loc) (γ : SchedNames) : IProp GF := iprop(True)
+opaque fifoWorker [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (l : Loc) (γ : SchedNames) : IProp GF := iprop(True)
 
 /-- (internal) The resources of the job at the head of the queue, handed to the worker: its
 contract, its precondition and where its postcondition goes. -/
-opaque fifoHead (l : Loc) (γ : SchedNames) (j : GoInterface) : IProp GF := iprop(True)
+opaque fifoHead [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (l : Loc) (γ : SchedNames) (j : GoInterface) : IProp GF := iprop(True)
 
 /-- **A job's context**: `ctx` is a context, done only once `Pay` holds. -/
 def schedCtx (ctx : GoInterface) (Pay : IProp GF) : IProp GF :=

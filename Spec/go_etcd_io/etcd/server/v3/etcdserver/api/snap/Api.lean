@@ -76,29 +76,29 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG 
 variable [go_gctx : GoGlobalContext]
 
 /-- **Provisional (batch 4a):** the file at `path` is absent (`none`) or holds the image. -/
-opaque beFile (path : GoString) (o : Option BeImage) : IProp GF := iprop(True)
+opaque beFile [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (path : GoString) (o : Option BeImage) : IProp GF := iprop(True)
 
 /-- `ss` is a snapshotter of directory `sd` (persistent). -/
-opaque isSnapshotter (ss : Loc) (sd : GoString) : IProp GF := iprop(True)
+opaque isSnapshotter [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ss : Loc) (sd : GoString) : IProp GF := iprop(True)
 
 /-- **The database snapshots in `sd` are `F`** (exclusive). -/
-opaque snapDbs (sd : GoString) (F : Nat → Option BeImage) : IProp GF := iprop(True)
+opaque snapDbs [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (sd : GoString) (F : Nat → Option BeImage) : IProp GF := iprop(True)
 
 /-- **Provisional (batch 2f):** the reader `r` yields `img`'s bytes, then `EOF`, or fails. -/
-opaque dbReader (r : GoInterface) (img : BeImage) : IProp GF := iprop(True)
+opaque dbReader [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : GoInterface) (img : BeImage) : IProp GF := iprop(True)
 
 /-- **Provisional (Perennial's `io`):** `rc.Close()` may be called once. -/
-opaque rcClose (rc : GoInterface) : IProp GF := iprop(True)
+opaque rcClose [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (rc : GoInterface) : IProp GF := iprop(True)
 
 /-- `p` is a `*snap.Message` to member `to` of total size `sz` (persistent). -/
-opaque isMessage (p : Loc) (to : w64) (sz : w64) : IProp GF := iprop(True)
+opaque isMessage [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (to : w64) (sz : w64) : IProp GF := iprop(True)
 
 /-- The right to close `p`'s reader once (`CloseWithError`). -/
-opaque msgClose (p : Loc) : IProp GF := iprop(True)
+opaque msgClose [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) : IProp GF := iprop(True)
 
 /-- `ch` is `p`'s close-notification channel (persistent): it receives one `bool`, after
 `CloseWithError` (whether the reader closed without an error). -/
-opaque msgCloseCh (p : Loc) (ch : Loc) : IProp GF := iprop(True)
+opaque msgCloseCh [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (ch : Loc) : IProp GF := iprop(True)
 
 def msgCloseCh_persistent.spec : Prop := ∀ p ch, Persistent (msgCloseCh (GF := GF) p ch)
 

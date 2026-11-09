@@ -29,12 +29,12 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **An error whose `Error()` is safe** (persistent). -/
-opaque errStrOk (err : GoInterface) : IProp GF := iprop(True)
+opaque errStrOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (err : GoInterface) : IProp GF := iprop(True)
 
 def errStrOk_persistent.spec : Prop := ∀ err, Persistent (errStrOk (GF := GF) err)
 
 /-- **A `*tls.Config` the client may use read-only** (persistent). -/
-opaque tlsCfgOk (tls : Loc) : IProp GF := iprop(True)
+opaque tlsCfgOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (tls : Loc) : IProp GF := iprop(True)
 
 def tlsCfgOk_persistent.spec : Prop := ∀ tls, Persistent (tlsCfgOk (GF := GF) tls)
 

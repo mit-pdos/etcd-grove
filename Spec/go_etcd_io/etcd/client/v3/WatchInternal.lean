@@ -110,37 +110,37 @@ section res
 variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
-opaque wgsAt (s w : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
-opaque wgsRun (s : Loc) (γ : Cluster) (who : Principal) (r : RunM) : IProp GF := iprop(True)
-opaque wgsSend (s : Loc) (γ : Cluster) (who : Principal) (wc : GoInterface) : IProp GF := iprop(True)
-opaque wgsRecv (s : Loc) (γ : Cluster) (who : Principal) (wc : GoInterface) : IProp GF := iprop(True)
+opaque wgsAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s w : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+opaque wgsRun [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : Cluster) (who : Principal) (r : RunM) : IProp GF := iprop(True)
+opaque wgsSend [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : Cluster) (who : Principal) (wc : GoInterface) : IProp GF := iprop(True)
+opaque wgsRecv [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : Cluster) (who : Principal) (wc : GoInterface) : IProp GF := iprop(True)
 /-- The right to close `s.donec` (once), held by `run` until its deferred teardown. -/
-opaque wgsDoneTok (s : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
-opaque wsAt (ws s : Loc) (γ : Cluster) (who : Principal) (w : WatchReq) : IProp GF := iprop(True)
-opaque wsOwn (ws s : Loc) (γ : Cluster) (who : Principal) (q : WsM) : IProp GF := iprop(True)
-opaque wsServe (ws s : Loc) (γ : Cluster) (who : Principal) (resumec : Loc) : IProp GF := iprop(True)
-opaque wsClosed (ws s : Loc) (γ : Cluster) (who : Principal) (q : WsM) : IProp GF := iprop(True)
-opaque wsCloser (ws s : Loc) (γ : Cluster) (who : Principal) (m : WatchRespM) : IProp GF :=
+opaque wgsDoneTok [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+opaque wsAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ws s : Loc) (γ : Cluster) (who : Principal) (w : WatchReq) : IProp GF := iprop(True)
+opaque wsOwn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ws s : Loc) (γ : Cluster) (who : Principal) (q : WsM) : IProp GF := iprop(True)
+opaque wsServe [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ws s : Loc) (γ : Cluster) (who : Principal) (resumec : Loc) : IProp GF := iprop(True)
+opaque wsClosed [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ws s : Loc) (γ : Cluster) (who : Principal) (q : WsM) : IProp GF := iprop(True)
+opaque wsCloser [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ws s : Loc) (γ : Cluster) (who : Principal) (m : WatchRespM) : IProp GF :=
   iprop(True)
-opaque deliverOk (s : Loc) (γ : Cluster) (who : Principal) (tgt : Option Int) (m : WatchRespM) :
+opaque deliverOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : Cluster) (who : Principal) (tgt : Option Int) (m : WatchRespM) :
   IProp GF := iprop(True)
-opaque wcsPending (s : Loc) (γ : Cluster) (who : Principal) (r : RunM) (stopc donec : Loc)
+opaque wcsPending [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : Cluster) (who : Principal) (r : RunM) (stopc donec : Loc)
   (cl : Bool) : IProp GF := iprop(True)
 /-- A `watchRequest` struct at `wr`: its read-only fields (all but `rev` and `retc`) are those of
 the watch `w` over the context `ctx`. -/
-opaque initReqAt (wr : Loc) (ctx : GoInterface) (w : WatchReq) : IProp GF := iprop(True)
+opaque initReqAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (wr : Loc) (ctx : GoInterface) (w : WatchReq) : IProp GF := iprop(True)
 /-- `waitCancelSubstreams`' stop channel: one `run` made for the call and alone closes. -/
-opaque wcsStop (s stopc : Loc) : IProp GF := iprop(True)
+opaque wcsStop [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s stopc : Loc) : IProp GF := iprop(True)
 /-- `now` is `time.Now` (the buffer logger's clock; the only caller passes it). -/
-opaque nowFuncOk (now : GoFunc) : IProp GF := iprop(True)
+opaque nowFuncOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (now : GoFunc) : IProp GF := iprop(True)
 /-- The substream's buffer logger `bl` (`block_logger.go`'s `blockLogger`), whose callback
 reads `ws`'s fields (run by `ws`'s goroutine, which owns them). Intended realization:
 `blockLoggerAt bl A` with `A` the substream's fields its callback reads. -/
-opaque bufLoggerAt (bl ws : Loc) : IProp GF := iprop(True)
+opaque bufLoggerAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (bl ws : Loc) : IProp GF := iprop(True)
 /-- **A `*blockLogger`** (`block_logger.go`; persistent) whose `logFunc` keeps `A x` for every `x`:
 its read-only fields (`interval`, `threshold`, `now`, `logFunc`) and its lock `mu` over the
 counters. -/
-opaque blockLoggerAt {α : Type} (bl : Loc) (A : α → IProp GF) : IProp GF := iprop(True)
+opaque blockLoggerAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] {α : Type} (bl : Loc) (A : α → IProp GF) : IProp GF := iprop(True)
 
 def watchInternal_persistent.spec : Prop :=
   (∀ s w γ who, Persistent (wgsAt (GF := GF) s w γ who)) ∧

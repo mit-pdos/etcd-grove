@@ -43,25 +43,25 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG 
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
 /-- The holder of `le.mu` sees its mutable fields at `ls` (see the header). -/
-opaque lessorFields (le : Loc) (c : Cfg) (dq : DFrac) (ls : LessorState) : IProp GF := iprop(True)
+opaque lessorFields [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (le : Loc) (c : Cfg) (dq : DFrac) (ls : LessorState) : IProp GF := iprop(True)
 
 /-- `NewLease`'s fresh object (exclusive). -/
-opaque leaseFresh (l : Loc) (id ttl : Int) : IProp GF := iprop(True)
+opaque leaseFresh [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (l : Loc) (id ttl : Int) : IProp GF := iprop(True)
 
 /-- The object's expiry lock (persistent). -/
-opaque leaseExpiry (l : Loc) : IProp GF := iprop(True)
+opaque leaseExpiry [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (l : Loc) : IProp GF := iprop(True)
 
 /-- A `*LeaseWithTime` cell of lease `id`. -/
-opaque lwtAt (p : Loc) (id : w64) (dq : DFrac) : IProp GF := iprop(True)
+opaque lwtAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (id : w64) (dq : DFrac) : IProp GF := iprop(True)
 
 /-- A `LeaseQueue` slice of the cells `xs`, each at its index. -/
-opaque queueAt (s : GoSlice) (xs : List (Loc × w64)) (dq : DFrac) : IProp GF := iprop(True)
+opaque queueAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : GoSlice) (xs : List (Loc × w64)) (dq : DFrac) : IProp GF := iprop(True)
 
 /-- A well-formed `*LeaseExpiredNotifier`. -/
-opaque notifierAt (np : Loc) (dq : DFrac) : IProp GF := iprop(True)
+opaque notifierAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (np : Loc) (dq : DFrac) : IProp GF := iprop(True)
 
 /-- A `*LeaseExpiredNotifier` whose queue is well-formed, its map any (`Init`'s pre). -/
-opaque notifierQ (np : Loc) : IProp GF := iprop(True)
+opaque notifierQ [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (np : Loc) : IProp GF := iprop(True)
 
 def leaseExpiry_persistent.spec : Prop := ∀ l, Persistent (leaseExpiry (GF := GF) l)
 

@@ -64,17 +64,17 @@ section res
 variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 
 /-- **The run `sws`** of the watch handler on the stream end `st` (persistent). -/
-opaque swsAt (sws : Loc) (γ : Cluster) (who : Principal) (st : GoInterface) (g : WatchStreamNames) :
+opaque swsAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (sws : Loc) (γ : Cluster) (who : Principal) (st : GoInterface) (g : WatchStreamNames) :
   IProp GF := iprop(True)
 
 /-- **The receive loop's share** of the run, after the requests `rs` (exclusive). -/
-opaque swsRecver (sws : Loc) (rs : List WireWatchReq) : IProp GF := iprop(True)
+opaque swsRecver [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (sws : Loc) (rs : List WireWatchReq) : IProp GF := iprop(True)
 
 /-- **The send loop's share** of the run, at its start (exclusive). -/
-opaque swsSender (sws : Loc) : IProp GF := iprop(True)
+opaque swsSender [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (sws : Loc) : IProp GF := iprop(True)
 
 /-- **The handler's share** of the run: the right to close it (exclusive). -/
-opaque swsCloser (sws : Loc) : IProp GF := iprop(True)
+opaque swsCloser [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (sws : Loc) : IProp GF := iprop(True)
 
 def swsAt_persistent.spec : Prop := ∀ sws γ who st g, Persistent (swsAt (GF := GF) sws γ who st g)
 

@@ -80,20 +80,20 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG 
 variable [go_gctx : GoGlobalContext]
 
 /-- `a` is an alarm store whose view is named `γ` (persistent). -/
-opaque isAlarmStore (a : Loc) (γ : AlarmNames) : IProp GF := iprop(True)
+opaque isAlarmStore [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (a : Loc) (γ : AlarmNames) : IProp GF := iprop(True)
 
 /-- **The view is `al`** (exclusive). -/
-opaque alarmSt (γ : AlarmNames) (al : List Alarm) : IProp GF := iprop(True)
+opaque alarmSt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : AlarmNames) (al : List Alarm) : IProp GF := iprop(True)
 
 /-- **Provisional (batch 4b):** the alarm bucket behind `ab` holds `al` (exclusive). -/
-opaque alarmBe (ab : GoInterface) (al : List Alarm) : IProp GF := iprop(True)
+opaque alarmBe [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ab : GoInterface) (al : List Alarm) : IProp GF := iprop(True)
 
 /-- **Provisional (batch 4b):** the alarm bucket of the open backend `be` holds `al`
 (exclusive); `schema.NewAlarmBackend(lg, be)` turns it into `alarmBe ab al` of its result. -/
-opaque beAlarms (be : GoInterface) (al : List Alarm) : IProp GF := iprop(True)
+opaque beAlarms [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (be : GoInterface) (al : List Alarm) : IProp GF := iprop(True)
 
 /-- A read-only `*pb.AlarmMember` holding `a` (persistent). -/
-opaque alarmMemberRO (p : Loc) (a : Alarm) : IProp GF := iprop(True)
+opaque alarmMemberRO [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (a : Alarm) : IProp GF := iprop(True)
 
 def isAlarmStore_persistent.spec : Prop := ∀ a γ, Persistent (isAlarmStore (GF := GF) a γ)
 def alarmSt_timeless.spec : Prop := ∀ γ al, Timeless (alarmSt (GF := GF) γ al)

@@ -30,16 +30,16 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG 
 variable [go_gctx : GoGlobalContext]
 
 /-- `ls` is a `*lockServer` over the client `c` (persistent). -/
-opaque isLockServer (ls : Loc) (c : Loc) : IProp GF := iprop(True)
+opaque isLockServer [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ls : Loc) (c : Loc) : IProp GF := iprop(True)
 
 /-- A read-only `*LockRequest` (persistent). -/
-opaque lockReq (p : Loc) (name : GoString) (lease : w64) : IProp GF := iprop(True)
+opaque lockReq [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (name : GoString) (lease : w64) : IProp GF := iprop(True)
 /-- A read-only `*UnlockRequest` (persistent). -/
-opaque unlockReq (p : Loc) (key : GoString) : IProp GF := iprop(True)
+opaque unlockReq [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (key : GoString) : IProp GF := iprop(True)
 /-- A fresh `*LockResponse` holding the key. -/
-opaque lockResp (p : Loc) (key : GoString) : IProp GF := iprop(True)
+opaque lockResp [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (key : GoString) : IProp GF := iprop(True)
 /-- A fresh `*UnlockResponse`. -/
-opaque unlockResp (p : Loc) : IProp GF := iprop(True)
+opaque unlockResp [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) : IProp GF := iprop(True)
 
 def isLockServer_persistent.spec : Prop := ∀ ls c, Persistent (isLockServer (GF := GF) ls c)
 

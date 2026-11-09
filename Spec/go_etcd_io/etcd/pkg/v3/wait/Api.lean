@@ -81,35 +81,35 @@ variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
 /-- **`l` is a `*list` registry** whose registrations under `id` are answered by values with
 `P id`. Persistent. -/
-opaque listAt (l : Loc) (γw : WaitNames) (P : w64 → GoInterface → IProp GF) : IProp GF := iprop(True)
+opaque listAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (l : Loc) (γw : WaitNames) (P : w64 → GoInterface → IProp GF) : IProp GF := iprop(True)
 
 /-- The ids handed out for registration so far. Exclusive. -/
-opaque waitToks (γw : WaitNames) (U : List w64) : IProp GF := iprop(True)
+opaque waitToks [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γw : WaitNames) (U : List w64) : IProp GF := iprop(True)
 
 /-- The right to register `id` (once). Exclusive. -/
-opaque waitTok (γw : WaitNames) (id : w64) : IProp GF := iprop(True)
+opaque waitTok [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γw : WaitNames) (id : w64) : IProp GF := iprop(True)
 
 /-- `ch` is `id`'s channel and the holder its one receiver. Exclusive. -/
-opaque waitRecv (γw : WaitNames) (id : w64) (ch : Loc) : IProp GF := iprop(True)
+opaque waitRecv [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γw : WaitNames) (id : w64) (ch : Loc) : IProp GF := iprop(True)
 
 /-- **`tl` is a `*timeList`** whose triggers at `d` carry `□ P d`. Persistent. -/
-opaque timeListAt (tl : Loc) (P : w64 → IProp GF) : IProp GF := iprop(True)
+opaque timeListAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (tl : Loc) (P : w64 → IProp GF) : IProp GF := iprop(True)
 
 /-- `id` has been registered (persistent: from `Register`). -/
-opaque waitWasReg (γw : WaitNames) (id : w64) : IProp GF := iprop(True)
+opaque waitWasReg [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γw : WaitNames) (id : w64) : IProp GF := iprop(True)
 
 /-- `id` was registered and its registration removed (triggered): it never comes back (its token was
 one-shot). Persistent. -/
-opaque waitGone (γw : WaitNames) (id : w64) : IProp GF := iprop(True)
+opaque waitGone [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γw : WaitNames) (id : w64) : IProp GF := iprop(True)
 
 /-- `id` will never be registered (its token burnt). Persistent. -/
-opaque waitNever (γw : WaitNames) (id : w64) : IProp GF := iprop(True)
+opaque waitNever [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γw : WaitNames) (id : w64) : IProp GF := iprop(True)
 
 /-- **`id` is not registered and never will be again** (no value owed to anyone). -/
 def waitDone (γw : WaitNames) (id : w64) : IProp GF := iprop(waitGone γw id ∨ waitNever γw id)
 
 /-- `ch` was returned by a `Wait(d)` of a time list over `P`. Persistent. -/
-opaque timeChan (ch : Loc) (P : w64 → IProp GF) (d : w64) : IProp GF := iprop(True)
+opaque timeChan [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ch : Loc) (P : w64 → IProp GF) (d : w64) : IProp GF := iprop(True)
 
 def listAt_persistent.spec : Prop := ∀ l γw P, Persistent (listAt (GF := GF) l γw P)
 def timeListAt_persistent.spec : Prop := ∀ tl P, Persistent (timeListAt (GF := GF) tl P)

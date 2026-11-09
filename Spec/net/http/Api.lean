@@ -190,81 +190,81 @@ def Proto.agreeUnder (pfx : GoString) (P P' : Proto GF) : Prop :=
 
 /-- **Address `a` is the program's and not yet reserved** (exclusive; the environment's, one per
 address and run). -/
-opaque addrFree (a : GoString) : IProp GF := iprop(True)
+opaque addrFree [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (a : GoString) : IProp GF := iprop(True)
 
 /-- **Address `a` serves the protocol `P`** (persistent; set once, `reserve`). -/
-opaque protoAt (a : GoString) (P : Proto GF) : IProp GF := iprop(True)
+opaque protoAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (a : GoString) (P : Proto GF) : IProp GF := iprop(True)
 
 /-- **The listener `l`, the socket a bind made, bound at the address string `a`** (exclusive;
 `net.Listen`'s, rafthttp's `NewListener`'s; `Serve` takes it). -/
-opaque listenerAt (l : GoInterface) (a : GoString) : IProp GF := iprop(True)
+opaque listenerAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (l : GoInterface) (a : GoString) : IProp GF := iprop(True)
 
 /-- **The listener `l` may be closed** from any goroutine (persistent: `Listener.Close`). -/
-opaque listenerCloser (l : GoInterface) : IProp GF := iprop(True)
+opaque listenerCloser [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (l : GoInterface) : IProp GF := iprop(True)
 
 /-- **A pool of `n` of the caller's thread tokens lent to `Serve`'s handler runs** (exclusive; see
 the header). -/
-opaque handlerPool (p : GName) (n : Nat) : IProp GF := iprop(True)
+opaque handlerPool [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : GName) (n : Nat) : IProp GF := iprop(True)
 
 /-- **A request's ticket** (exclusive; a client allocates it, `RoundTrip` of a `onceOnly` request
 takes it, the request's handler receives it). -/
-opaque reqTicket (τ : GName) : IProp GF := iprop(True)
+opaque reqTicket [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (τ : GName) : IProp GF := iprop(True)
 
 /-- **A request the client is building** (`*http.Request` at `r`): its line and headers `R`, its
 header map owned (`Header.Set` on `req.Header`), its body reader `bd` (`nil`: none). Exclusive. -/
-opaque reqOwn (r : Loc) (R : HReq) (bd : GoInterface) : IProp GF := iprop(True)
+opaque reqOwn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : Loc) (R : HReq) (bd : GoInterface) : IProp GF := iprop(True)
 
 /-- **An owned header map** `hm` (an `http.Header`) holding `hs`. Exclusive. -/
-opaque hdrMap (hm : GoMap) (hs : List (GoString × GoString)) : IProp GF := iprop(True)
+opaque hdrMap [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (hm : GoMap) (hs : List (GoString × GoString)) : IProp GF := iprop(True)
 
 /-- **A read-only header map** `hm` holding `hs` (a received request's, a client's response's, a
 sent request's). Persistent. -/
-opaque hdrRO (hm : GoMap) (hs : List (GoString × GoString)) : IProp GF := iprop(True)
+opaque hdrRO [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (hm : GoMap) (hs : List (GoString × GoString)) : IProp GF := iprop(True)
 
 /-- **A sent request** `r` (after `RoundTrip`), read-only: its line and headers `R` (`r.URL`,
 `r.Header` readable for good; Go's `RoundTrip` does not modify it). Persistent. -/
-opaque reqRO (r : Loc) (R : HReq) : IProp GF := iprop(True)
+opaque reqRO [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : Loc) (R : HReq) : IProp GF := iprop(True)
 
 /-- **A body reader** `rd` (an `io.ReadCloser`) that has yielded `r`: every prefix it yields meets
 `Pre` (persistent knowledge), and a complete stream (ended by `EOF`) meets `Φ`. Exclusive. Its
 contract (`Read`, `Close`) is `readerAt_read.spec`, `readerAt_close.spec`. -/
-opaque readerAt (rd : GoInterface) (Pre Φ : List w8 → IProp GF) (r : List w8) : IProp GF :=
+opaque readerAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (rd : GoInterface) (Pre Φ : List w8 → IProp GF) (r : List w8) : IProp GF :=
   iprop(True)
 
 /-- **A body reader may be closed from another goroutine** (persistent; Go's response bodies
 support a `Close` concurrent with a `Read`, which then fails). -/
-opaque readerCloser (rd : GoInterface) : IProp GF := iprop(True)
+opaque readerCloser [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (rd : GoInterface) : IProp GF := iprop(True)
 
 /-- **`w` reads through `rd`** (persistent; integration I3, 4b's request): every `Read(p)` of `w` is
 one `Read` of `rd` on a prefix of `p` (`p[:k]`, `k ≤ len(p)`), returning its result (`n`, `err`).
 Introduced by the wrappers' owners (4b's `IoUtil.NewLimitedBufferReader.spec`,
 `IoUtil.ReaderAndCloser_reader`). -/
-opaque readsThrough (w rd : GoInterface) : IProp GF := iprop(True)
+opaque readsThrough [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (w rd : GoInterface) : IProp GF := iprop(True)
 
 /-- **`w` closes through `rd`** (persistent): `w`'s `Close()` is `rd`'s. -/
-opaque closesThrough (w rd : GoInterface) : IProp GF := iprop(True)
+opaque closesThrough [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (w rd : GoInterface) : IProp GF := iprop(True)
 
 /-- **A client's response** `*http.Response` at `resp`: status `st`, headers `hc` (readable for
 good), body `rd`. Persistent (the fields are never written by the client). -/
-opaque respAt (resp : Loc) (st : w64) (hc : List (GoString × GoString)) (rd : GoInterface) :
+opaque respAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (resp : Loc) (st : w64) (hc : List (GoString × GoString)) (rd : GoInterface) :
     IProp GF := iprop(True)
 
 /-- **A received request** `*http.Request` at `r` (persistent, read-only): line and headers `R`,
 body `rd`, `RemoteAddr` some string. -/
-opaque srvReq (r : Loc) (R : HReq) (rd : GoInterface) : IProp GF := iprop(True)
+opaque srvReq [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : Loc) (R : HReq) (rd : GoInterface) : IProp GF := iprop(True)
 
 /-- **A handler's response writer** `w` for request `R` (ticket name `τ`) of protocol `P`: committed
 (`c = some st`) or not, its header map `hs` (owned until the commit: `w.Header()`), the bytes `bs`
 written. Exclusive; it may be passed to another goroutine (the stream handler's writer goroutine),
 and must be given back before the handler returns. -/
-opaque respW (w : GoInterface) (R : HReq) (τ : GName) (P : Proto GF) (c : Option w64)
+opaque respW [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (w : GoInterface) (R : HReq) (τ : GName) (P : Proto GF) (c : Option w64)
     (hs : List (GoString × GoString)) (bs : List w8) : IProp GF := iprop(True)
 
 /-- **A `ServeMux` being built** (exclusive): its patterns and handlers so far. -/
-opaque muxOwn (m : Loc) (L : List (GoString × GoInterface)) : IProp GF := iprop(True)
+opaque muxOwn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (m : Loc) (L : List (GoString × GoInterface)) : IProp GF := iprop(True)
 
 /-- **A `ServeMux` built** (persistent): its patterns and handlers, fixed. -/
-opaque muxAt (m : Loc) (L : List (GoString × GoInterface)) : IProp GF := iprop(True)
+opaque muxAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (m : Loc) (L : List (GoString × GoInterface)) : IProp GF := iprop(True)
 
 /-- `io.EOF`'s value. -/
 def ioEOF (e : GoInterface) : IProp GF := iprop(globalAddr _root_.Perennial.io.EOF ↦□ e)
@@ -272,7 +272,7 @@ def ioEOF (e : GoInterface) : IProp GF := iprop(globalAddr _root_.Perennial.io.E
 /-- **An error a client may log or wrap**: `nil`, or one whose `Error()` returns and whose
 `Unwrap`/`Is`/`As` chain is well-formed (net/http's and the standard library's errors). Persistent.
 -/
-opaque errOk (e : GoInterface) : IProp GF := iprop(True)
+opaque errOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (e : GoInterface) : IProp GF := iprop(True)
 
 /-! ## Bundles -/
 

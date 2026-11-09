@@ -43,10 +43,10 @@ def tokFor (γ : Cluster) (who : Principal) (tok : GoString) : IProp GF :=
   iprop(⌜tok = []⌝ ∨ ∃ u, ⌜who = some u⌝ ∗ tokenUser γ tok u)
 
 /-- **Per-RPC credentials attaching `who`'s tokens** (persistent). -/
-opaque rpcCredsAt (v : GoInterface) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+opaque rpcCredsAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (v : GoInterface) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 
 /-- **`m` is the metadata `{"token": tok}`** (persistent; slot 2a). -/
-opaque tokenMd (m : Loc) (tok : GoString) : IProp GF := iprop(True)
+opaque tokenMd [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (m : Loc) (tok : GoString) : IProp GF := iprop(True)
 
 /-- **The metadata the credentials add to a request** (integration X; 2a's `mdPrin_of` takes it): none
 (an empty token: `GetRequestMetadata` returns `nil`), or the key `token` with a non-empty token the

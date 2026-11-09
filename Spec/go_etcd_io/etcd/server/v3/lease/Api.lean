@@ -249,38 +249,38 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG 
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
 /-- **`le` is a lessor** with names `γ` and configuration `c` (persistent; see the header). -/
-opaque isLessor (le : Loc) (γ : Names) (c : Cfg) : IProp GF := iprop(True)
+opaque isLessor [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (le : Loc) (γ : Names) (c : Cfg) : IProp GF := iprop(True)
 
 /-- **The writer's token: the lessor's state is `ls`, the `n`-th of its history** (exclusive). -/
-opaque lessorState (γ : Names) (n : Nat) (ls : LessorState) : IProp GF := iprop(True)
+opaque lessorState [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Names) (n : Nat) (ls : LessorState) : IProp GF := iprop(True)
 
 /-- **The lessor's `n`-th state was `ls`** (persistent). -/
-opaque lessorAt (γ : Names) (n : Nat) (ls : LessorState) : IProp GF := iprop(True)
+opaque lessorAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Names) (n : Nat) (ls : LessorState) : IProp GF := iprop(True)
 
 /-- The lessor's history has an `n`-th state (a reader's lower bound). -/
 def lessorLb (γ : Names) (n : Nat) : IProp GF := iprop(∃ ls, lessorAt γ n ls)
 
 /-- **`l` is a `*Lease` object of this lessor**, of lease `id` and granted TTL `ttl` (persistent). -/
-opaque leaseObj (γ : Names) (l : Loc) (id : Int) (ttl : Int) : IProp GF := iprop(True)
+opaque leaseObj [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Names) (l : Loc) (id : Int) (ttl : Int) : IProp GF := iprop(True)
 
 /-- The right to `Stop()` the lessor (exclusive). -/
-opaque lessorStop (le : Loc) : IProp GF := iprop(True)
+opaque lessorStop [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (le : Loc) : IProp GF := iprop(True)
 
 /-- **The number of reader tokens a new lessor gives** (sealed). -/
 opaque lessorTokN : Nat
 
 /-- **`n` reader tokens** of the lessor `γ` (exclusive, counted): reader slots of its `RWMutex`es. -/
-opaque lessorReaders (γ : Names) (n : Nat) : IProp GF := iprop(True)
+opaque lessorReaders [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Names) (n : Nat) : IProp GF := iprop(True)
 
 /-- The right to `SetCheckpointer` once (exclusive). -/
-opaque lessorCkptTok (le : Loc) : IProp GF := iprop(True)
+opaque lessorCkptTok [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (le : Loc) : IProp GF := iprop(True)
 
 /-- **The lessor's checkpointer is callable once `R` holds** (persistent; `SetCheckpointer`'s, or
 `lessorCkptTok_gate`'s with `R = True`). -/
-opaque ckptGate (le : Loc) (R : IProp GF) : IProp GF := iprop(True)
+opaque ckptGate [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (le : Loc) (R : IProp GF) : IProp GF := iprop(True)
 
 /-- `ch` is the expiry channel (`ExpiredLeasesC()`) of the lessor `γ` configured `c` (persistent). -/
-opaque expiredCh (γ : Names) (c : Cfg) (ch : GoChan) : IProp GF := iprop(True)
+opaque expiredCh [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Names) (c : Cfg) (ch : GoChan) : IProp GF := iprop(True)
 
 /-- `le` as a `Lessor` interface value. -/
 def lessorIface (le : Loc) : GoInterface :=
@@ -299,7 +299,7 @@ is held (in the writer's token, `lessorState_beOk`) and handed back before the c
 realization (integration Y): `∃ γb b p Pk, ⌜be = Backend.beIface b⌝ ∗ Backend.isBackend γb b p Pk
 ∗ Backend.beOpen γb Backend.leaseShare` (a fixed share, so that the server gets it back whole:
 4a's `Backend.leaseBeOk_intro`/`_elim`, `LeaseBackend.lean`). -/
-opaque beOk (be : GoInterface) : IProp GF := iprop(True)
+opaque beOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (be : GoInterface) : IProp GF := iprop(True)
 
 /-- **The lease bucket of `be`, as its batch transaction holds it (the
 last commit with the pending writes), decodes to `B`** (id to stored TTL; each record a
@@ -313,7 +313,7 @@ keyed by the id's bytes; the remaining TTL dropped), the scope `S` with `lease` 
 untracked (`Backend.beNoVis`: the lessor reads it only through the batch transaction, so it may write
 it in mvcc's session, `beTxHeld`). Introduced by 4a's `Backend.leaseBeLeases_intro`, given back by
 `_elim` (`LeaseBackend.lean`). -/
-opaque beLeases (be : GoInterface) (B : Int → Option Int) : IProp GF := iprop(True)
+opaque beLeases [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (be : GoInterface) (B : Int → Option Int) : IProp GF := iprop(True)
 
 /-- **`be`'s batch lock has the invariant `Pk` and its post-lock hook is `f`**
 (`nil`: none), for good (persistent): `LockInsideApply` gives `Pk` and runs `f` (`beHookRun be Pk f
@@ -321,7 +321,7 @@ Pre Q`: the caller's `Pre` to `Q`), `Unlock` takes `Pk` back. mvcc's `mvccBacken
 same of its storage; 4a identifies them. Intended realization (4a's API): `∃ γb b p, ⌜be =
 Backend.beIface b⌝ ∗ Backend.isBackend γb b p Pk ∗ Backend.beHook γb DFrac.discard f`; introduced by
 4a's `Backend.leaseBeHook_intro` (`LeaseBackend.lean`). -/
-opaque beHook (be : GoInterface) (Pk : IProp GF) (f : GoFunc) : IProp GF := iprop(True)
+opaque beHook [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (be : GoInterface) (Pk : IProp GF) (f : GoFunc) : IProp GF := iprop(True)
 
 /-- **What `be`'s post-lock hook `f` does under its batch lock of invariant `Pk`, from the caller's
 `Pre`** (one use): `LockInsideApply` runs it to `Q` (with no hook, the caller's view shift).
@@ -331,7 +331,7 @@ Intended realization: `∃ γb b p, ⌜be = Backend.beIface b⌝ ∗ Backend.isB
 Backend.hookRun γb q Pk f Pre Q`; introduced by 4a's `Backend.leaseHookRun_intro` from the server's
 hook proved over the backend's contract at every share (the same proof gives mvcc's, by
 `keyBackend_intro`'s `hookRun` conversion). -/
-opaque beHookRun (be : GoInterface) (Pk : IProp GF) (f : GoFunc) (Pre Q : IProp GF) : IProp GF :=
+opaque beHookRun [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (be : GoInterface) (Pk : IProp GF) (f : GoFunc) (Pre Q : IProp GF) : IProp GF :=
   iprop(True)
 
 /-- **This thread holds `be`'s batch transaction lock** (an mvcc write
@@ -343,13 +343,13 @@ on mvcc's cells; the lease bucket's cells are untracked (`beLeases`' realization
 `Backend.beNoVis`), so `Backend.writable` holds in mvcc's session and 4b's `UnsafeDeleteLease` over
 `Schema.txWr` applies. The identification `□ (Mvcc.kbHeld B ∗-∗ beTxHeld _)`
 (`Mvcc.mvccDeleter_rdOk.spec`'s premise) is 4a's `Backend.leaseTxHeld_intro`. -/
-opaque beTxHeld (be : GoInterface) : IProp GF := iprop(True)
+opaque beTxHeld [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (be : GoInterface) : IProp GF := iprop(True)
 
 /-- (provisional, 2e's membership) **`cl` is a lessor's `cluster`**: `Version()` may be called from
 any goroutine and returns `nil` or a readable `*semver.Version`. Persistent. Intended discharge: a
 law of 2e's `Membership.isCluster c γ cid lid ⊢ clusterOk (iface c)` with a spec of
 `RaftCluster.Version` (neither exists yet: `req/..._membership.md`, "from 3c"). -/
-opaque clusterOk (cl : GoInterface) : IProp GF := iprop(True)
+opaque clusterOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (cl : GoInterface) : IProp GF := iprop(True)
 
 /-! ### The callbacks' contracts -/
 

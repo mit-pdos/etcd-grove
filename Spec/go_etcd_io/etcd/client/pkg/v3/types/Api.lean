@@ -53,11 +53,11 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG 
 
 /-- **The `types.URLs` slice `sl` holds, read-only for good, URLs whose `String()` forms are `us`**
 (persistent). -/
-opaque urlsStrs (sl : GoSlice) (us : List GoString) : IProp GF := iprop(True)
+opaque urlsStrs [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (sl : GoSlice) (us : List GoString) : IProp GF := iprop(True)
 
 /-- **The `types.URLs` slice `sl` holds, read-only for good, URLs whose hosts are `hs`**
 (persistent). -/
-opaque urlsAt (sl : GoSlice) (hs : List GoString) : IProp GF := iprop(True)
+opaque urlsAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (sl : GoSlice) (hs : List GoString) : IProp GF := iprop(True)
 
 def urls_persistent.spec : Prop :=
   (∀ sl us, Persistent (urlsStrs (GF := GF) sl us)) ∧ (∀ sl hs, Persistent (urlsAt (GF := GF) sl hs))

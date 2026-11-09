@@ -112,7 +112,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG 
 variable [go_gctx : GoGlobalContext]
 
 /-- **The heap parts of `cfg` hold `c`**, read-only for good (persistent). -/
-opaque cfgHeap (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (c : Model) : IProp GF :=
+opaque cfgHeap [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (c : Model) : IProp GF :=
   iprop(True)
 
 def cfgHeap_persistent.spec : Prop := ∀ cfg c, Persistent (cfgHeap (GF := GF) cfg c)
@@ -124,7 +124,7 @@ def cfgHeap_agree.spec : Prop := ∀ cfg c c',
 
 /-- **Provisional (1c's `types`):** the `types.URLsMap` `m` holds, read-only for good, each name
 with URLs whose `String()` forms are given. Persistent. -/
-opaque urlsMapStrs (m : GoMap) (cl : List (GoString × List GoString)) : IProp GF := iprop(True)
+opaque urlsMapStrs [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (m : GoMap) (cl : List (GoString × List GoString)) : IProp GF := iprop(True)
 
 /-- **Introduction** (round 1, completeness F1): the read-only URL slices and map, as a starter
 builds them (composite literals of `types.URLs`/`types.URLsMap`, then never written). -/

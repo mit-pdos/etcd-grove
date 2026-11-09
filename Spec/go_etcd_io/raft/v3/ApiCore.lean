@@ -277,11 +277,11 @@ def trkResult (cfg : go_etcd_io.raft.v3.tracker.Config) (trk : GoMap) (m : Membe
 /-! ## The raft struct -/
 
 /-- **The raft struct `r` of node `id` of `γ`**, of which its callers read `ρ`. Exclusive. -/
-opaque raftCore (r : Loc) (γ : Cluster) (id : w64) (ρ : CoreView) : IProp GF := iprop(True)
+opaque raftCore [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : Loc) (γ : Cluster) (id : w64) (ρ : CoreView) : IProp GF := iprop(True)
 
 /-- **A read-only share of the raft struct at view `ρ`**: what the getters and `node.run`'s field
 reads take (`raftCore_ro`, `readyFresh_ro`). -/
-opaque raftRO (r : Loc) (id : w64) (ρ : CoreView) : IProp GF := iprop(True)
+opaque raftRO [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : Loc) (id : w64) (ρ : CoreView) : IProp GF := iprop(True)
 
 /-- `RawNode` `rn`'s raft struct is `r` (its `raft` field, never written after `NewRawNode`).
 Persistent. -/
@@ -291,7 +291,7 @@ def raftOf (rn r : Loc) : IProp GF :=
 /-- **A raft struct fresh from `newRaft`**, at view `ρ`, not yet in a `RawNode`: the node-level
 start state (driver `st`, configuration view `v`, storage `S`, applied index `i`, storage snapshot
 index `j`), one-shot (`raftBoot_bind`). -/
-opaque raftBoot (r : Loc) (γ : Cluster) (ρ : CoreView) (st : Driver) (v : ConfView)
+opaque raftBoot [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : Loc) (γ : Cluster) (ρ : CoreView) (st : Driver) (v : ConfView)
     (S : StorState → IProp GF) (i j : Nat) : IProp GF := iprop(True)
 
 /-- The fields of `r` that `node.run` and `node.Tick` read directly (`r.id`, `r.logger`: persistent;
@@ -341,11 +341,11 @@ def stepIn (γ : Cluster) (id : w64) (m : Msg) : IProp GF :=
 
 /-- **An acknowledgement of `RawNode` `rn`'s queue, released for stepping** (`rawNodeAt_advance`:
 the batch it acknowledges was entered and written). Exclusive: stepped once. -/
-opaque ackOk (rn : Loc) (γ : Cluster) (m : Msg) : IProp GF := iprop(True)
+opaque ackOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (rn : Loc) (γ : Cluster) (m : Msg) : IProp GF := iprop(True)
 
 /-- The receipt that acknowledgement `m` was stepped (`raft.Step`'s post), which
 `rawNodeAt_advance`'s closing takes. -/
-opaque ackDone (rn : Loc) (γ : Cluster) (m : Msg) : IProp GF := iprop(True)
+opaque ackDone [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (rn : Loc) (γ : Cluster) (m : Msg) : IProp GF := iprop(True)
 
 /-- **The message `raft.Step` takes** (`ml`, holding `m`): a received message (`msgRecv`: its
 `Entries` slice's capacity owned, which `handleAppendEntries` hands to the log, whose `unstable`
@@ -368,20 +368,20 @@ def stepPost (γ : Cluster) (m : Msg) : StepSrc → IProp GF
 
 /-- **R1's `rawNode rn γ id` after `k` accepted `Ready`s**, with acknowledgements queued for
 `Advance` iff `adv` (`rawNode_at`). Exclusive. -/
-opaque rawNodeAt (rn : Loc) (γ : Cluster) (id : w64) (k : Nat) (adv : Bool) : IProp GF :=
+opaque rawNodeAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (rn : Loc) (γ : Cluster) (id : w64) (k : Nat) (adv : Bool) : IProp GF :=
   iprop(True)
 
 /-- **`rawNodeAt rn γ id k adv`, with `rd` the `Ready` of its current state** (computed by
 `readyWithoutAccept`, nothing stepped since). Exclusive. -/
-opaque readyFresh (rn : Loc) (γ : Cluster) (id : w64) (k : Nat) (adv : Bool)
+opaque readyFresh [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (rn : Loc) (γ : Cluster) (id : w64) (k : Nat) (adv : Bool)
     (rd : go_etcd_io.raft.v3.Ready) : IProp GF := iprop(True)
 
 /-- `rd` was computed by `readyWithoutAccept` after `k` accepted `Ready`s (no claim on its memory).
 Persistent. -/
-opaque readyKept (rn : Loc) (k : Nat) (rd : go_etcd_io.raft.v3.Ready) : IProp GF := iprop(True)
+opaque readyKept [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (rn : Loc) (k : Nat) (rd : go_etcd_io.raft.v3.Ready) : IProp GF := iprop(True)
 
 /-- **`Ready` `rd` handed out** (`ready_handout`), its `acceptReady` due. Exclusive. -/
-opaque readyHanded (rn : Loc) (γ : Cluster) (id : w64) (k : Nat) (rd : go_etcd_io.raft.v3.Ready) :
+opaque readyHanded [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (rn : Loc) (γ : Cluster) (id : w64) (k : Nat) (rd : go_etcd_io.raft.v3.Ready) :
     IProp GF := iprop(True)
 
 /-! ## Internal: the opened struct and cluster facts `raft.go`'s helpers use
@@ -389,15 +389,15 @@ opaque readyHanded (rn : Loc) (γ : Cluster) (id : w64) (k : Nat) (rd : go_etcd_
 No client of raft sees these (to be listed internal in `etc/api` when raft's API list is made). -/
 
 /-- (internal) **The raft struct with its invariant opened**, at `o`. Exclusive. -/
-opaque raftOpen (r : Loc) (γ : Cluster) (id : w64) (o : CoreOpen) : IProp GF := iprop(True)
+opaque raftOpen [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : Loc) (γ : Cluster) (id : w64) (o : CoreOpen) : IProp GF := iprop(True)
 
 /-- (internal) **The invariant's condition at `o`** (`ApiCore.lean`'s realization, items 1-5), with
 the ghost state it owns. -/
-opaque coreInv (r : Loc) (γ : Cluster) (id : w64) (o : CoreOpen) : IProp GF := iprop(True)
+opaque coreInv [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : Loc) (γ : Cluster) (id : w64) (o : CoreOpen) : IProp GF := iprop(True)
 
 /-- (internal) The invariant's condition at `o` once the tracker is at membership `m`
 (`switchToConfig`'s leader branch). -/
-opaque coreInvConf (r : Loc) (γ : Cluster) (id : w64) (o : CoreOpen) (m : Membership) : IProp GF :=
+opaque coreInvConf [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : Loc) (γ : Cluster) (id : w64) (o : CoreOpen) (m : Membership) : IProp GF :=
   iprop(True)
 
 /-- (internal) **The opened struct with its tracker taken out** (`raftOpen_trk`): put any tracker
@@ -417,29 +417,29 @@ def trkShell (t : Loc) (votes : GMap w64 Bool) (mi mb : w64) : IProp GF :=
 
 /-- (internal) **Message `m`'s protocol fact holds at the node's current state**: what `send` queues
 it with (its `msgSent` minted when the batch carrying it is handed out or entered). Exclusive. -/
-opaque msgJust (r : Loc) (γ : Cluster) (id : w64) (m : Msg) : IProp GF := iprop(True)
+opaque msgJust [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : Loc) (γ : Cluster) (id : w64) (m : Msg) : IProp GF := iprop(True)
 
 /-- (internal) **A vote from `src` of type `t` (granted iff `v`) for node `id` at term `T`**: a
 `msgSent` vote response (`msgSent_voteFrom`), or the node's own acknowledged vote. Persistent. -/
-opaque voteFrom (γ : Cluster) (id : w64) (T : w64) (t : w32) (src : w64) (v : Bool) : IProp GF :=
+opaque voteFrom [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (id : w64) (T : w64) (t : w32) (src : w64) (v : Bool) : IProp GF :=
   iprop(True)
 
 /-- (internal) **A read confirmed at index `i`** (the request message `m`, registered at a leader of
 its term with an entry of the term committed, acknowledged by a quorum): its update fired at `i`.
 Persistent. -/
-opaque readConfirmed (γ : Cluster) (m : Msg) (i : w64) : IProp GF := iprop(True)
+opaque readConfirmed [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (m : Msg) (i : w64) : IProp GF := iprop(True)
 
 /-- (internal) **`l` won the election of term `t`**. Persistent. -/
-opaque leaderOf (γ : Cluster) (t : w64) (l : w64) : IProp GF := iprop(True)
+opaque leaderOf [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (t : w64) (l : w64) : IProp GF := iprop(True)
 
 /-! ## The package's loggers (`logger.go`) -/
 
 /-- **`l` is a `*DefaultLogger`** over a valid `*log.Logger`, its fields frozen. Persistent. -/
-opaque defaultLoggerOk (l : Loc) : IProp GF := iprop(True)
+opaque defaultLoggerOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (l : Loc) : IProp GF := iprop(True)
 
 /-- **A `*DefaultLogger` not yet shared** (its `debug` flag and its `log.Logger`'s flags writable).
 Exclusive. -/
-opaque defaultLoggerOwn (l : Loc) : IProp GF := iprop(True)
+opaque defaultLoggerOwn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (l : Loc) : IProp GF := iprop(True)
 
 end vocab
 

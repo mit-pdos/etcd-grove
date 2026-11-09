@@ -27,7 +27,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **A resolver with the endpoints `eps`** (exclusive). -/
-opaque resolverAt (r : Loc) (eps : List GoString) : IProp GF := iprop(True)
+opaque resolverAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : Loc) (eps : List GoString) : IProp GF := iprop(True)
 
 end res
 

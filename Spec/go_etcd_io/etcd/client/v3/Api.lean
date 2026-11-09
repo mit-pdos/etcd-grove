@@ -463,86 +463,86 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG 
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
 /-- **Slot (1c)**: `conn` is the client's connection to the cluster `γ` as `who`. -/
-opaque connOk (conn : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+opaque connOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (conn : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 /-- **Slot (1c)**: `sl` holds gRPC call options a client may pass (`rep`: with the repeatable
 policy). -/
-opaque callOptsOk (sl : GoSlice) (rep : Bool) : IProp GF := iprop(True)
+opaque callOptsOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (sl : GoSlice) (rep : Bool) : IProp GF := iprop(True)
 /-- **Slot (1c)**: the client `c` under construction has its connection and call options. -/
-opaque clientConnOk (c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+opaque clientConnOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 
 /-- **Slots (1b, 1c)**: the `Watcher`, `Lease`, `Auth`, `Cluster`, `Maintenance` interface values
 of a client of `γ` as `who` meet their contracts (bundles of their methods' triples, written by
 those batches). -/
-opaque watcherAt (v : GoInterface) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
-opaque leaseAt (v : GoInterface) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
-opaque authAt (v : GoInterface) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
-opaque clusterAt (v : GoInterface) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
-opaque maintAt (v : GoInterface) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+opaque watcherAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (v : GoInterface) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+opaque leaseAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (v : GoInterface) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+opaque authAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (v : GoInterface) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+opaque clusterAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (v : GoInterface) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+opaque maintAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (v : GoInterface) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 
 /-- **The `KV` interface value `v` meets the KV contract** (`KV.*Triple`). -/
-opaque kvAt (v : GoInterface) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+opaque kvAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (v : GoInterface) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 /-- A `*kv` of the cluster `γ` as `who`, over the client `c`'s connection (`null`: over a caller's
 remote, `NewKVFromKVClient`). -/
-opaque kvHandle (kv c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+opaque kvHandle [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (kv c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 /-- **The `etcdserverpb.KVClient` value `v` meets the wire-level contract** (`RemoteKV.*Triple`). -/
-opaque remoteKVAt (v : GoInterface) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+opaque remoteKVAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (v : GoInterface) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 /-- A `*retryKVClient` of `γ` as `who`, over the client `c`'s connection. -/
-opaque retryKVHandle (rkv c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+opaque retryKVHandle [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (rkv c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 
 /-- **The client `c` is ready for calls** (persistent; 1c's, declared here so that the KV handles'
 laws can take it): its `Auth` field is set (or it has no token refresh), so a call through its
 connection's interceptor may refresh a token (`ApiClient.lean`, "Readiness"; laws `isClient_ready`,
 `clientRest_ready`, `clientMut_ready`, `clientReady_null` there). -/
-opaque clientReady (c : Loc) : IProp GF := iprop(True)
+opaque clientReady [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c : Loc) : IProp GF := iprop(True)
 
 /-- **The client `c`** of the cluster `γ` as `who` (persistent). -/
-opaque isClient (c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+opaque isClient [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 /-- The client `c` with its interface fields writable (exclusive). -/
-opaque clientMut (c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+opaque clientMut [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 /-- The rest of a `clientMut`: everything but the `KV` field. -/
-opaque clientMutRest (c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+opaque clientMutRest [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 /-- **Everything of the client `c` but its `KV` field, for good** (persistent): its connection, call
 options, context and logger, and its other interface fields (as `isClient_fields`). What a caller
 holds that replaced `c.KV` by a value meeting another contract (leasing's `lkvAt`, 1e: the gRPC
 proxy's `client.KV, _, _ = leasing.NewKV(client, pfx)`), and what `leasing.NewKV` reads while the
 `KV` field is still writable. -/
-opaque clientRest (c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+opaque clientRest [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 
 /-- **A `Txn` under construction** (exclusive). -/
-opaque txnAt (iv : GoInterface) (γ : Cluster) (who : Principal) (ctx : GoInterface) (st : TxnSt) :
+opaque txnAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (iv : GoInterface) (γ : Cluster) (who : Principal) (ctx : GoInterface) (st : TxnSt) :
   IProp GF := iprop(True)
 
 /-- **The `Op` value `op` is modelled by `o`** (persistent). -/
-opaque opAt (op : go_etcd_io.etcd.client.v3.Op) (o : OpM) : IProp GF := iprop(True)
+opaque opAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (op : go_etcd_io.etcd.client.v3.Op) (o : OpM) : IProp GF := iprop(True)
 /-- **The `Cmp` value `c` is the comparison `m`** (persistent; `none`: a zero `Cmp`). -/
-opaque cmpAt (c : go_etcd_io.etcd.client.v3.Cmp) (m : Option EtcdModel.Compare) : IProp GF :=
+opaque cmpAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c : go_etcd_io.etcd.client.v3.Cmp) (m : Option EtcdModel.Compare) : IProp GF :=
   iprop(True)
 /-- **The `OpOption` closure `f` acts as `g`** (exclusive; given back by every call running it). -/
-opaque optAt (f : GoFunc) (g : OpM → OpM) : IProp GF := iprop(True)
+opaque optAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (f : GoFunc) (g : OpM → OpM) : IProp GF := iprop(True)
 /-- The `CompactOption` closure `f` acts as `g`. -/
-opaque compactOptAt (f : GoFunc) (g : CompactOpM → CompactOpM) : IProp GF := iprop(True)
+opaque compactOptAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (f : GoFunc) (g : CompactOpM → CompactOpM) : IProp GF := iprop(True)
 /-- The `LeaseOption` closure `f` sets `attachedKeys` as `g` does. -/
-opaque leaseOptAt (f : GoFunc) (g : Bool → Bool) : IProp GF := iprop(True)
+opaque leaseOptAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (f : GoFunc) (g : Bool → Bool) : IProp GF := iprop(True)
 
 /-- **Slot (2a)**: `err` is what a gRPC call to an etcd member returned, of kind `k`. -/
-opaque callErr (err : GoInterface) (k : CallErr) : IProp GF := iprop(True)
+opaque callErr [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (err : GoInterface) (k : CallErr) : IProp GF := iprop(True)
 
 /-- **The consumer of a streamed range** (`GetStream`'s channel `ch`, exclusive): the chunks `ms`
 received so far, the range `r` linearized by the caller's update with result `Q`; `fin` once the
 terminal error chunk is received. Intended realization: Perennial's single-producer
 single-consumer channel (`isSpsc`, `spscConsumer`) whose producer is `GetStream`'s goroutine. -/
-opaque streamAt (ch : Loc) (γ : Cluster) (who : Principal) (r : RangeReq)
+opaque streamAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ch : Loc) (γ : Cluster) (who : Principal) (r : RangeReq)
   (Q : State → State → Resp → IProp GF) (ms : List RangeRespM) (fin : Bool) : IProp GF := iprop(True)
 
 /-- **The wire-level stream of a range** (`KV_RangeStreamClient` value `sc`, exclusive): the chunks
 `ms` received so far (**slot, 2a**: grpc's client stream, the server's `RangeStream`). -/
-opaque wireStreamAt (sc : GoInterface) (γ : Cluster) (who : Principal) (r : RangeReq)
+opaque wireStreamAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (sc : GoInterface) (γ : Cluster) (who : Principal) (r : RangeReq)
   (Q : State → State → Resp → IProp GF) (ms : List RangeRespM) : IProp GF := iprop(True)
 
 /-- **Slot (2a, 1b, 1c)**: the context `ctx` carries the require-leader metadata
 (`WithRequireLeader`): a member with no leader refuses its requests (`ErrNoLeader`, indefinite)
 and closes its watch streams. -/
-opaque ctxRequireLeader (ctx : GoInterface) : IProp GF := iprop(True)
+opaque ctxRequireLeader [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ctx : GoInterface) : IProp GF := iprop(True)
 
 /-- **The principal of a call** (persistent): a request sent with `ctx` by a client whose own
 credentials name `dflt` (`isClient c γ dflt`: its username, or none) is authenticated by the server
@@ -566,11 +566,11 @@ Introduced for contexts with no gRPC outgoing metadata (`ctxPrin_of_noMeta` from
 `ctxPrin_todo`), kept by children (`ctxPrin_child`), by a `WithValue` at another key
 (`ctxPrin_value`), by `WithRequireLeader` and `withVersion` (their specs); a context a caller builds
 with grpc metadata of its own needs an introduction from grpc's `metadata` (2a). -/
-opaque ctxPrin (dflt : Principal) (ctx : GoInterface) (p : Principal) : IProp GF := iprop(True)
+opaque ctxPrin [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (dflt : Principal) (ctx : GoInterface) (p : Principal) : IProp GF := iprop(True)
 
 /-- **Slot (2a)**: `ctx` carries the outgoing metadata `token: tok` (grpc's `metadata`: the gRPC
 proxy's and the in-process client's forwarded tokens, `examples/etcd/auth`'s contexts). -/
-opaque ctxTokenMd (ctx : GoInterface) (tok : GoString) : IProp GF := iprop(True)
+opaque ctxTokenMd [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ctx : GoInterface) (tok : GoString) : IProp GF := iprop(True)
 
 /-- **An error of a call that settles nothing**: a gRPC error of an indefinite kind (a context's
 error is one, `callErr_ctxErr`). -/

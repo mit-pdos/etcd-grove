@@ -252,35 +252,35 @@ open go_etcd_io.etcd.server.v3.storage.mvcc go_etcd_io.etcd.api.v3
 
 /-- **The store `γ` has notified at least the history `h`** (persistent): `h` is extended by the
 store's notified history (`histLe h σ.notified`, `mvccLb_le`). -/
-opaque mvccLb (γ : MvccName) (h : KVHist) : IProp GF := iprop(True)
+opaque mvccLb [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : MvccName) (h : KVHist) : IProp GF := iprop(True)
 
 /-- **`kv` is a watchable store of `γ`** (persistent). -/
-opaque watchableAt (kv : GoInterface) (γ : MvccName) : IProp GF := iprop(True)
+opaque watchableAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (kv : GoInterface) (γ : MvccName) : IProp GF := iprop(True)
 
 /-- **`w` is a watch stream of `γ`, named `ι`** (persistent). -/
-opaque wsAt (w : Loc) (γ : MvccName) (ι : WsNames) : IProp GF := iprop(True)
+opaque wsAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (w : Loc) (γ : MvccName) (ι : WsNames) : IProp GF := iprop(True)
 
 /-- **The stream's control side**: the stream's next id is `n`; every id registered so far is
 below it (exclusive; `wsReg_ctl`). -/
-opaque wsCtl (ι : WsNames) (n : Int) : IProp GF := iprop(True)
+opaque wsCtl [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ι : WsNames) (n : Int) : IProp GF := iprop(True)
 
 /-- The right to close the stream (exclusive). -/
-opaque wsOpen (ι : WsNames) : IProp GF := iprop(True)
+opaque wsOpen [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ι : WsNames) : IProp GF := iprop(True)
 
 /-- **The consumer has received `rs`**, in order (exclusive). -/
-opaque wsCons (ι : WsNames) (rs : List WResp) : IProp GF := iprop(True)
+opaque wsCons [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ι : WsNames) (rs : List WResp) : IProp GF := iprop(True)
 
 /-- The watcher `id` was registered as `W` (persistent). -/
-opaque wsReg (ι : WsNames) (id : w64) (W : WatcherM) : IProp GF := iprop(True)
+opaque wsReg [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ι : WsNames) (id : w64) (W : WatcherM) : IProp GF := iprop(True)
 
 /-- Every response of the watcher `id` is among the first `c` sent (persistent). -/
-opaque wsCanceled (ι : WsNames) (id : w64) (c : Nat) : IProp GF := iprop(True)
+opaque wsCanceled [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ι : WsNames) (id : w64) (c : Nat) : IProp GF := iprop(True)
 
 /-- The stream was closed (persistent): its watchers cancelled, its channel closed. -/
-opaque wsClosed (ι : WsNames) : IProp GF := iprop(True)
+opaque wsClosed [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ι : WsNames) : IProp GF := iprop(True)
 
 /-- The stream has sent at least `n` responses (persistent). -/
-opaque wsSentLb (ι : WsNames) (n : Nat) : IProp GF := iprop(True)
+opaque wsSentLb [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ι : WsNames) (n : Nat) : IProp GF := iprop(True)
 
 /-- **An event message** at `p` (fresh, owned; its `Kv` read-only, shared by the watchers it was
 sent to; `PrevKv` `nil`). -/

@@ -121,7 +121,7 @@ def kubeAU (γ : Cluster) (who : Principal) (rq : Req) (rep : Bool)
     <{ ∀∀ (σ' : State) (res : Resp), ⌜Step who rq σ σ' res⌝ ∗ etcdState γ σ', COMM Q σ σ' res }>)
 
 /-- **The `Interface` value `v` meets the Kubernetes contract** (persistent). -/
-opaque kubeAt (v : GoInterface) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+opaque kubeAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (v : GoInterface) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 
 /-- `Get` (`m s`: the method `s` of the receiver). -/
 def Kube.GetTriple (m : GoString → val) (P : IProp GF) (γ : Cluster) (who : Principal) : Prop :=

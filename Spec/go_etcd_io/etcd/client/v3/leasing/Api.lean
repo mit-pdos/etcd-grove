@@ -237,11 +237,11 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG 
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
 /-- **The keys `M` may have been written through the leasing KV `γL`** (persistent). -/
-opaque lkvMarks (γL : LeasingNames) (M : Key → Prop) : IProp GF := iprop(True)
+opaque lkvMarks [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γL : LeasingNames) (M : Key → Prop) : IProp GF := iprop(True)
 
 /-- **The keys `K` were never written through the leasing KV `γL`** (exclusive; `NewKV` gives every
 key, `lkvClean_mark` gives up some to write them). -/
-opaque lkvClean (γL : LeasingNames) (K : Key → Prop) : IProp GF := iprop(True)
+opaque lkvClean [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γL : LeasingNames) (K : Key → Prop) : IProp GF := iprop(True)
 
 /-- **A step of the leasing KV for the caller's request** (see `LStep`): with the marks of the keys
 whose cached answers are only shaped. -/
@@ -260,28 +260,28 @@ def protoUpd (γ : Cluster) (pfx : Key) : IProp GF :=
   etcdPerm γ (ProtoStep pfx)
 
 /-- **A `*leasingKV`** over a client of `γ` as `who`, lease prefix `pfx` (persistent). -/
-opaque isLeasingKV (lkv : Loc) (γ : Cluster) (who : Principal) (pfx : Key) (γL : LeasingNames) :
+opaque isLeasingKV [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (lkv : Loc) (γ : Cluster) (who : Principal) (pfx : Key) (γL : LeasingNames) :
   IProp GF := iprop(True)
 
 /-- **The `v3.KV` value `v` meets the leasing contract** (persistent; `lkvAt_methods`). -/
-opaque lkvAt (v : GoInterface) (γ : Cluster) (who : Principal) (pfx : Key) (γL : LeasingNames) :
+opaque lkvAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (v : GoInterface) (γ : Cluster) (who : Principal) (pfx : Key) (γL : LeasingNames) :
   IProp GF := iprop(True)
 
 /-- **A share `q` of the leasing KV's "open" token** (`Get` and `Do` take a share, the close
 function the whole). -/
-opaque lkvOpen (γL : LeasingNames) (q : Qp) : IProp GF := iprop(True)
+opaque lkvOpen [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γL : LeasingNames) (q : Qp) : IProp GF := iprop(True)
 
 /-- **`cf` is the close function of the leasing KV `γL`** (persistent; `closeFnAt_call`). -/
-opaque closeFnAt (cf : GoFunc) (γL : LeasingNames) : IProp GF := iprop(True)
+opaque closeFnAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (cf : GoFunc) (γL : LeasingNames) : IProp GF := iprop(True)
 
 /-- **A leasing transaction under construction** (the `v3.Txn` value `iv`, exclusive), built over
 the context `ctx` (whose principal is `who`, the call's: as W0's `txnAt`), holding `st`. -/
-opaque ltxnAt (iv : GoInterface) (γ : Cluster) (who : Principal) (pfx : Key) (γL : LeasingNames)
+opaque ltxnAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (iv : GoInterface) (γ : Cluster) (who : Principal) (pfx : Key) (γL : LeasingNames)
   (ctx : GoInterface) (st : TxnSt) : IProp GF := iprop(True)
 
 /-- **The `Op` `op`'s nested transactions have branch slices with no spare capacity** (persistent;
 `opCapOk_intro`): what `gatherOps`' `append(thenOps, elseOps...)` needs to write no caller memory. -/
-opaque opCapOk (op : go_etcd_io.etcd.client.v3.Op) : IProp GF := iprop(True)
+opaque opCapOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (op : go_etcd_io.etcd.client.v3.Op) : IProp GF := iprop(True)
 
 /-- A read-only slice of `Op`s each `opCapOk`. -/
 def opsCapOk (sl : GoSlice) : IProp GF :=

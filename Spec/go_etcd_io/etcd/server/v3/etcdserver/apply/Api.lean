@@ -618,15 +618,15 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors}
   [hG : HeapGS HasLC.hasLC GF] [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
 /-- **`ua` is an uber-applier** of a member configured `mc` (see the header). Persistent. -/
-opaque isUber (ua : GoInterface) (mc : MemberCfg) (γ : Cluster) (γc : Membership.CNames)
+opaque isUber [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ua : GoInterface) (mc : MemberCfg) (γ : Cluster) (γc : Membership.CNames)
     (R : IProp GF) : IProp GF := iprop(True)
 
 /-- **The state machine behind `ua` is at `σ`.** Exclusive. -/
-opaque smAt (ua : GoInterface) (σ : State) : IProp GF := iprop(True)
+opaque smAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ua : GoInterface) (σ : State) : IProp GF := iprop(True)
 
 /-- **`ua` was built over the options `o`** (`NewUberApplier`'s; persistent): what gets the
 stores back out of `smAt` (`smAt_optsSt`, `smAt_alarms`). -/
-opaque uberOpts (ua : GoInterface) (o : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) :
+opaque uberOpts [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ua : GoInterface) (o : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) :
     IProp GF := iprop(True)
 
 /-- **The membership update an apply of `op` makes**: for a member's attributes, the caller's
@@ -646,13 +646,13 @@ def memberUpd (γc : Membership.CNames) (op : IrrOp) (Q : IProp GF) : IProp GF :
 /-- (provisional, 3e's and 2d's) **mvcc's `KV` `kv`**, whose write transactions run the backend's
 post-lock hook with the apply thread's lent `R`. Persistent. Intended: `∃ γ γl q B Pk, Mvcc.isMvcc kv
 γ ∗ Mvcc.mvccLessorIs γ γl ∗ Mvcc.mvccBackend γ q B Pk` with `Pk` the hook's contract under `R`. -/
-opaque kvOk (kv : GoInterface) (R : IProp GF) : IProp GF := iprop(True)
+opaque kvOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (kv : GoInterface) (R : IProp GF) : IProp GF := iprop(True)
 
 /-- (provisional, 3e's and 2d's) **`kv`'s store is at the history `h`** (the apply thread's, its
 only writer). Exclusive. Intended: the writer's half of an authority over `Mvcc.mvccState γ σ₀` with
 `σ₀.kv = h ∧ σ₀.pending = []`, whose other half the server's invariant holds while 2c's readers fire
 their updates on `mvccState` (3b's S6: the pinned update txn's writes take); 2d's to define. -/
-opaque kvSt (kv : GoInterface) (h : KVHist) : IProp GF := iprop(True)
+opaque kvSt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (kv : GoInterface) (h : KVHist) : IProp GF := iprop(True)
 
 /-- **The lessor `le`** (3c's `Lease.isLessor`), with minimum TTL `mc.minLeaseTTL`. Persistent. -/
 def lessorOk (le : GoInterface) (mc : MemberCfg) : IProp GF :=
@@ -685,16 +685,16 @@ def authSt (ast : GoInterface) (a : AuthState) : IProp GF :=
 
 /-- (provisional, 2d's) **The raft status getter `rs`** (the `*EtcdServer`): `MemberID`, `Leader`,
 `Term` safe to call (any answer). Persistent. -/
-opaque statusOk (rs : GoInterface) : IProp GF := iprop(True)
+opaque statusOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (rs : GoInterface) : IProp GF := iprop(True)
 
 /-- (provisional, 2d's) **The snapshot server `ss`**: `ForceSnapshot()` with `R`, given back.
 Persistent. Intended: `ss` the `*EtcdServer` `s` and `R ⊢ EtcdServer.forceSnapW s ∗ ...` (2d's
 `EtcdServer.ForceSnapshot.spec`). -/
-opaque snapSrvOk (ss : GoInterface) (R : IProp GF) : IProp GF := iprop(True)
+opaque snapSrvOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ss : GoInterface) (R : IProp GF) : IProp GF := iprop(True)
 
 /-- (provisional, 2d's) **The consistent indexer `ci`**: `ConsistentIndex()` with `R` (any answer).
 Persistent. -/
-opaque ciOk (ci : GoInterface) (R : IProp GF) : IProp GF := iprop(True)
+opaque ciOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ci : GoInterface) (R : IProp GF) : IProp GF := iprop(True)
 
 /-- (internal) **Permission checks of the auth info `u`, `rev` through the auth store `ast` and
 the lessor `le`, with `A` lent, each reported by `C`**: every check (`isOpPermitted` of an operation's range; for a lease, the
@@ -703,7 +703,7 @@ and its answer `err` satisfies `C c err`; a lease's check only if `L`. Persisten
 are laws (`ApiResult.lean`): the apply thread's (`permReads_writer`: `A` the stores at `σ`, `C` the
 exact `checkErr σ`), the request path's (`permReads_reader`: `A` nothing, `C` 3d's `checkPost` from
 a lower bound, no lease checks). -/
-opaque permReads (ast le : GoInterface) (u : GoString) (rev : w64) (A : IProp GF) (L : Bool)
+opaque permReads [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ast le : GoInterface) (u : GoString) (rev : w64) (A : IProp GF) (L : Bool)
     (C : Check → GoInterface → IProp GF) : IProp GF := iprop(True)
 
 /-- A check of a lease's keys. -/
@@ -716,7 +716,7 @@ the lent `R`, `ConsistentIndex()` answers the index `idx` of the entry being app
 cluster `γ` issued the simple token `tok ++ "." ++ idx` (decimal) to `name` (`tokenUser`, 2d's: the
 committed entry), `idx` above every `Authenticate` index applied before (3d's `tokFrom`, held in
 `authSt`). What 3d's `Auth.authnCtx` and `Auth.tokFrom` need at `applierV3backend.Authenticate`. -/
-opaque authnIdx (R : IProp GF) (γ : Cluster) (name tok : GoString) : IProp GF := iprop(True)
+opaque authnIdx [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (R : IProp GF) (γ : Cluster) (name tok : GoString) : IProp GF := iprop(True)
 
 /-- **The apply thread's facts about the next state** of a step `S` (from 2d's committed entry: the
 history point after it): every state `σ'` the step may move to has its auth state reached by the
@@ -750,15 +750,15 @@ def optsSt (o : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (σ :
 /-! ### Internal (the package's own specs) -/
 
 /-- The backend applier at `b`, over its options (internal). Persistent. -/
-opaque beAt (b : Loc) (mc : MemberCfg) (γ : Cluster) (γc : Membership.CNames) (R : IProp GF) :
+opaque beAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (b : Loc) (mc : MemberCfg) (γ : Cluster) (γc : Membership.CNames) (R : IProp GF) :
     IProp GF := iprop(True)
 
 /-- Backend applier `b`'s stores at `σ` (internal; `smAt`'s content). Exclusive. -/
-opaque stAt (b : Loc) (σ : State) : IProp GF := iprop(True)
+opaque stAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (b : Loc) (σ : State) : IProp GF := iprop(True)
 
 /-- **The applier `v` is the layers `ls` over backend applier `b`**, its auth layer `aa`
 (internal). Persistent. -/
-opaque applierAt (v : GoInterface) (ls : List Layer) (b aa : Loc) : IProp GF := iprop(True)
+opaque applierAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (v : GoInterface) (ls : List Layer) (b aa : Loc) : IProp GF := iprop(True)
 
 /-- The backend applier `b`'s options are `o` (its read-only field, internal). -/
 def beOpts (b : Loc) (o : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) : IProp GF :=
@@ -766,21 +766,21 @@ def beOpts (b : Loc) (o : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOpti
 
 /-- **`p` is an `*uberApplier`** over backend applier `b` and auth layer `aa` (internal): its
 read-only fields, its `applyV3base` the base chain. Persistent. -/
-opaque uberAt (p b aa : Loc) (mc : MemberCfg) (γ : Cluster) (γc : Membership.CNames)
+opaque uberAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p b aa : Loc) (mc : MemberCfg) (γ : Cluster) (γc : Membership.CNames)
     (R : IProp GF) : IProp GF := iprop(True)
 
 /-- `p.applyV3` holds the chain of layers `ls` (internal). Exclusive. -/
-opaque uberChain (p : Loc) (ls : List Layer) : IProp GF := iprop(True)
+opaque uberChain [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (ls : List Layer) : IProp GF := iprop(True)
 
 /-- The auth layer `aa`'s `authInfo` is `(u, rev)`, owned (its mutex held; internal). -/
-opaque aiAt (aa : Loc) (u : GoString) (rev : w64) : IProp GF := iprop(True)
+opaque aiAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (aa : Loc) (u : GoString) (rev : w64) : IProp GF := iprop(True)
 
 /-- (provisional, 3h's) **`p` is an `InternalRaftRequest` carrying `ir`**, read-only. Persistent. -/
-opaque irrMsgAt (p : Loc) (ir : Irr) : IProp GF := iprop(True)
+opaque irrMsgAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (ir : Irr) : IProp GF := iprop(True)
 
 /-- (provisional, 3h's) **`p` is the request message of `op`'s kind** (`*pb.PutRequest`, ...,
 `*membershippb.ClusterVersionSetRequest`), read-only. Persistent. -/
-opaque reqMsgAt (p : Loc) (op : IrrOp) : IProp GF := iprop(True)
+opaque reqMsgAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (op : IrrOp) : IProp GF := iprop(True)
 
 /-- (provisional, W0's/3h's) **Every range end in the transaction message `rt` is as protobuf
 decodes it**: each `RangeEnd` slice of its compares and (nested) range and delete operations is
@@ -788,13 +788,13 @@ decodes it**: each `RangeEnd` slice of its compares and (nested) range and delet
 it decodes as `nil`). Excludes a non-`nil` empty end, which the auth check reads as the key alone
 and mvcc as every key from it on (`nonissues/etcd-auth-empty-range-end-point-check.md`): a scope
 premise of the request path's checks, false only for an in-process adapter request. Persistent. -/
-opaque endsDecoded (rt : Loc) : IProp GF := iprop(True)
+opaque endsDecoded [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (rt : Loc) : IProp GF := iprop(True)
 
 /-- (provisional, W0's/3h's) **`endsDecoded` of a slice of `*pb.RequestOp`** (each operation's
 range end, nested transactions included, `nil` or non-empty). Persistent. The helpers' proofs need
 W0's split laws with the realization (`endsDecoded rt` gives `opsDecoded` of its branches; an
 operation's nested transaction is `endsDecoded`): requested, `integration-I5.md`. -/
-opaque opsDecoded (sl : GoSlice) : IProp GF := iprop(True)
+opaque opsDecoded [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (sl : GoSlice) : IProp GF := iprop(True)
 
 /-- **A wrapper of `ir`** (`*InternalRaftRequestWrapper`), skipping the ranges if `sk`. -/
 def wrapperAt (r : Loc) (ir : Irr) (sk : Bool) : IProp GF :=
@@ -805,7 +805,7 @@ def wrapperAt (r : Loc) (ir : Irr) (sk : Bool) : IProp GF :=
 
 /-- **A method's reply** `(resp, err)` for `op` answered `res` (the `*pb.<Kind>Response` with its
 header, or the error of `res`): `ApiResult.lean` relates it to 2c's `applyResult` (internal). -/
-opaque replyAt (γ : Cluster) (op : IrrOp) (res : Resp) (resp : GoInterface) (err : GoInterface) :
+opaque replyAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (op : IrrOp) (res : Resp) (resp : GoInterface) (err : GoInterface) :
     IProp GF := iprop(True)
 
 end vocab

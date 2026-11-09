@@ -220,35 +220,35 @@ def maxAt (c : Cmp) (l : Loc) (dq : DFrac) (m : GoString) : IProp GF :=
   iprop(∃ vm : val, l ↦{dq} interface.mkOk c.ty vm ∗ keyAt c DFrac.discard vm m)
 
 /-- The subtree at `n` (child of `p`) holding `T`. -/
-opaque ownNode (c : Cmp) (s : Loc) (dq : DFrac) (p n : Loc) (T : RbT Entry) : IProp GF := iprop(True)
+opaque ownNode [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c : Cmp) (s : Loc) (dq : DFrac) (p n : Loc) (T : RbT Entry) : IProp GF := iprop(True)
 
 /-- The sentinel's struct. -/
-opaque ownSentinel (s : Loc) (dq : DFrac) : IProp GF := iprop(True)
+opaque ownSentinel [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (dq : DFrac) : IProp GF := iprop(True)
 
 /-- The path from the root to the hole at `n` (child of `p`) in the context `C`. -/
-opaque ownCtx (c : Cmp) (t s : Loc) (C : RbCtx Entry) (n p : Loc) (mh : Option GoString) :
+opaque ownCtx [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c : Cmp) (t s : Loc) (C : RbCtx Entry) (n p : Loc) (mh : Option GoString) :
   IProp GF := iprop(True)
 
 /-- The path from the top of `A` to the hole at `n`, its frames' locations `ls`. -/
-opaque ownPathAt (c : Cmp) (s : Loc) (dq : DFrac) (A : RbCtx Entry) (ls : List (Loc × Loc))
+opaque ownPathAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c : Cmp) (s : Loc) (dq : DFrac) (A : RbCtx Entry) (ls : List (Loc × Loc))
   (n p : Loc) (mh : Option GoString) : IProp GF := iprop(True)
 
 /-- `ownPathAt` from the root (the tree's `root` field at the top, the top's parent the
 sentinel). -/
-opaque ownCtxAt (c : Cmp) (t s : Loc) (C : RbCtx Entry) (ls : List (Loc × Loc)) (n p : Loc)
+opaque ownCtxAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c : Cmp) (t s : Loc) (C : RbCtx Entry) (ls : List (Loc × Loc)) (n p : Loc)
   (mh : Option GoString) : IProp GF := iprop(True)
 
 /-- What `updateMax` reads of a child. -/
-opaque childMax (c : Cmp) (s n : Loc) (mo : Option GoString) : IProp GF := iprop(True)
+opaque childMax [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c : Cmp) (s n : Loc) (mo : Option GoString) : IProp GF := iprop(True)
 
 /-- What `color(sentinel)` reads at `x`. -/
-opaque colorAt (s x : Loc) (k : RbColor) (dq : DFrac) : IProp GF := iprop(True)
+opaque colorAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s x : Loc) (k : RbColor) (dq : DFrac) : IProp GF := iprop(True)
 
 /-- The sentinel, its `parent` field `p` when the hole `x` is the sentinel. -/
-opaque sentAt (s x p : Loc) : IProp GF := iprop(True)
+opaque sentAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s x p : Loc) : IProp GF := iprop(True)
 
 /-- `ownNode` with the nodes `ns` (entries `es`) having lent their `iv` fields out. -/
-opaque ownNodeH (c : Cmp) (s : Loc) (dq : DFrac) (p n : Loc) (T : RbT Entry) (ns : List Loc)
+opaque ownNodeH [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c : Cmp) (s : Loc) (dq : DFrac) (p n : Loc) (T : RbT Entry) (ns : List Loc)
   (es : List Entry) : IProp GF := iprop(True)
 
 /-- **The contract of `visit`'s node visitor** (`Visit`'s closure around the caller's `ivv`): on

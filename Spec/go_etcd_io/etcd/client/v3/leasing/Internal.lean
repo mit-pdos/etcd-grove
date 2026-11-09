@@ -200,22 +200,22 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG 
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
 /-- **The lease cache at `lc`** of the leasing KV `γL` over `γ` (persistent; see the header). -/
-opaque lcAt (lc : Loc) (γ : Cluster) (γL : LeasingNames) : IProp GF := iprop(True)
+opaque lcAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (lc : Loc) (γ : Cluster) (γL : LeasingNames) : IProp GF := iprop(True)
 
 /-- **The lease cache's lock invariant, held** (`q = 1`: the write lock; a share: a read lock). -/
-opaque lcHeld (lc : Loc) (γ : Cluster) (γL : LeasingNames) (q : Qp) : IProp GF := iprop(True)
+opaque lcHeld [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (lc : Loc) (γ : Cluster) (γL : LeasingNames) (q : Qp) : IProp GF := iprop(True)
 
 /-- **A cached response** at `p` (mutable fields at the share `q`), modelled by `m`. -/
-opaque cachedRespAt (p : Loc) (q : Qp) (m : RangeRespM) : IProp GF := iprop(True)
+opaque cachedRespAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (q : Qp) (m : RangeRespM) : IProp GF := iprop(True)
 
 /-- **A session was set** (persistent). -/
-opaque sessionReady (γL : LeasingNames) : IProp GF := iprop(True)
+opaque sessionReady [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γL : LeasingNames) : IProp GF := iprop(True)
 
 /-- The right to close the waiter channel `ch` (exclusive, once). -/
-opaque waitCloser (ch : GoChan) : IProp GF := iprop(True)
+opaque waitCloser [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ch : GoChan) : IProp GF := iprop(True)
 
 /-- One may receive from the waiter channel `ch` (persistent). -/
-opaque waitRecv (ch : GoChan) : IProp GF := iprop(True)
+opaque waitRecv [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ch : GoChan) : IProp GF := iprop(True)
 
 /-- **What the cache keeps of each entry's response** (`m`, with an `etcdLb γ σ`): its shape, and
 `key`'s record at its header's revision unless the key is marked as written through the KV. -/
@@ -223,7 +223,7 @@ def entryOk (γL : LeasingNames) (key : Key) (σ : State) (m : RangeRespM) : IPr
   iprop(⌜cachedRespOk key σ m⌝ ∗ (⌜recAtHdr key σ m⌝ ∨ lkvMarks γL (fun k => k = key)))
 
 /-- **`monitorSession`'s resources** (exclusive). -/
-opaque sessMonitor (lkv : Loc) (γL : LeasingNames) : IProp GF := iprop(True)
+opaque sessMonitor [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (lkv : Loc) (γL : LeasingNames) : IProp GF := iprop(True)
 
 def internal_persistent.spec : Prop :=
   (∀ lc γ γL, Persistent (lcAt (GF := GF) lc γ γL)) ∧

@@ -138,62 +138,62 @@ variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 open go_etcd_io.etcd.server.v3.storage.mvcc
 
 /-- **The watchable store `s` of `γ`** (persistent). -/
-opaque wsInv (s : Loc) (γ : MvccName) : IProp GF := iprop(True)
+opaque wsInv [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : MvccName) : IProp GF := iprop(True)
 
 /-- **The contents of `s.mu`, held** (exclusive). -/
-opaque wsMu (s : Loc) (γ : MvccName) : IProp GF := iprop(True)
+opaque wsMu [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : MvccName) : IProp GF := iprop(True)
 
 /-- The share of `syncWatchersLoop` (exclusive). -/
-opaque wsLoopS (s : Loc) (γ : MvccName) : IProp GF := iprop(True)
+opaque wsLoopS [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : MvccName) : IProp GF := iprop(True)
 
 /-- The share of `syncVictimsLoop` (exclusive). -/
-opaque wsLoopV (s : Loc) (γ : MvccName) : IProp GF := iprop(True)
+opaque wsLoopV [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : MvccName) : IProp GF := iprop(True)
 
 /-- **`w` is a watcher of the stream `ι`, id `id`, registered as `W`** (persistent). -/
-opaque watcherAt (w : Loc) (ι : WsNames) (id : w64) (W : WatcherM) : IProp GF := iprop(True)
+opaque watcherAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (w : Loc) (ι : WsNames) (id : w64) (W : WatcherM) : IProp GF := iprop(True)
 
 /-- **No registration of `id` on the stream `ι` yet** (exclusive; the stream's invariant gives it
 for an id the stream's `Watch` chose, under `ws.mu`). -/
-opaque wsIdFree (ι : WsNames) (id : w64) : IProp GF := iprop(True)
+opaque wsIdFree [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ι : WsNames) (id : w64) : IProp GF := iprop(True)
 
 /-- **The stream's `watchers` map `m`** (held under `ws.mu`): each entry a watcher of the stream
 registered, not removed by its `Cancel`. -/
-opaque wsMapAt (m : GoMap) (ι : WsNames) : IProp GF := iprop(True)
+opaque wsMapAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (m : GoMap) (ι : WsNames) : IProp GF := iprop(True)
 
 /-- **The response `r` of the watcher `w` may be sent now** on its stream's channel (exclusive):
 its facts (`wsRespOk`, after filtering by the watcher's filters) hold at the send; what the lock's
 contents give `notify`, `syncWatchers` and `chooseAll` for each response they build, and a victim
 batch carries for `moveVictims`. -/
-opaque wsSendable (w : Loc) (r : WResp) : IProp GF := iprop(True)
+opaque wsSendable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (w : Loc) (r : WResp) : IProp GF := iprop(True)
 
 /-- **The compaction response at `cr` of the watcher `w` may be sent now** (exclusive): `cr` is the
 store's compaction revision (at most the notified history's) and above `w`'s `minRev`, so above its
 events position + 1. -/
-opaque wsCmpSendable (w : Loc) (cr : w64) : IProp GF := iprop(True)
+opaque wsCmpSendable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (w : Loc) (cr : w64) : IProp GF := iprop(True)
 
 /-- **The caller holds `s.mu` and a reader of the store's storage `b`**, whose image is of the
 notified history `h` (nothing pending), with the store's logger `lg` (a pass's: its loop's share of
 the inner store, `storeLoops`, borrowed from the park, `revMu` read-locked on it). -/
-opaque wsReadAt (s : Loc) (γ : MvccName) (b : GoInterface) (lg : Loc) (h : KVHist) : IProp GF :=
+opaque wsReadAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : MvccName) (b : GoInterface) (lg : Loc) (h : KVHist) : IProp GF :=
   iprop(True)
 
 /-- The watcher's mutable record (exclusive). -/
-opaque wRecAt (w : Loc) (r : WRec) : IProp GF := iprop(True)
+opaque wRecAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (w : Loc) (r : WRec) : IProp GF := iprop(True)
 
 /-- **The `watcherSet` map `m` holds `S`** (exclusive). -/
-opaque wsetOwn (m : GoMap) (dq : DFrac) (S : List Loc) : IProp GF := iprop(True)
+opaque wsetOwn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (m : GoMap) (dq : DFrac) (S : List Loc) : IProp GF := iprop(True)
 
 /-- **The `watcherSetByKey` map `m` holds, per key, the watchers `K` lists** (exclusive). -/
-opaque wskOwn (m : GoMap) (K : Key → List Loc) : IProp GF := iprop(True)
+opaque wskOwn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (m : GoMap) (K : Key → List Loc) : IProp GF := iprop(True)
 
 /-- **The `watcherGroup` value `v` holds the watchers `G`** with their ranges, at `dq`. -/
-opaque wgOwn (v : watcherGroup) (dq : DFrac) (G : List (Loc × MRange)) : IProp GF := iprop(True)
+opaque wgOwn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (v : watcherGroup) (dq : DFrac) (G : List (Loc × MRange)) : IProp GF := iprop(True)
 
 /-- **The `*eventBatch` `eb` holds `E`** (its events owned). -/
-opaque ebOwn (eb : Loc) (E : EBatch) : IProp GF := iprop(True)
+opaque ebOwn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (eb : Loc) (E : EBatch) : IProp GF := iprop(True)
 
 /-- **The `watcherBatch` `wb` holds `B`** (`nil` holds the empty one). -/
-opaque wbOwn (wb : GoMap) (B : WBatch) : IProp GF := iprop(True)
+opaque wbOwn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (wb : GoMap) (B : WBatch) : IProp GF := iprop(True)
 
 /-! ## Laws (internal) -/
 

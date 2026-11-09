@@ -52,14 +52,14 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG 
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
 /-- **`ctx` is a Go context** meeting `context.Context`'s contract (persistent; see the header). -/
-opaque ctxOk (ctx : GoInterface) : IProp GF := iprop(True)
+opaque ctxOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ctx : GoInterface) : IProp GF := iprop(True)
 
 /-- **`ctx` is done** (persistent). -/
-opaque ctxDone (ctx : GoInterface) : IProp GF := iprop(True)
+opaque ctxDone [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ctx : GoInterface) : IProp GF := iprop(True)
 
 /-- **`ctx'` is `ctx` with values added** (persistent): a `WithValue` chain over `ctx` (grpc's
 outgoing metadata, `WithRequireLeader`): done exactly when `ctx` is. -/
-opaque ctxWithValues (ctx ctx' : GoInterface) : IProp GF := iprop(True)
+opaque ctxWithValues [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ctx ctx' : GoInterface) : IProp GF := iprop(True)
 
 def ctxWithValues_persistent.spec : Prop := ∀ ctx ctx', Persistent (ctxWithValues (GF := GF) ctx ctx')
 
@@ -121,7 +121,7 @@ def Background.spec : Prop :=
 is cancelled after `ctx` is (Go stores the parent's error before cancelling its children, so there
 is a window where the parent is done and the child not yet: no law relates their `ctxDone`).
 (`WithValue` adds a value: `ctxWithValues`, `ctxValueAt`.) -/
-opaque ctxChild (ctx ctx' : GoInterface) : IProp GF := iprop(True)
+opaque ctxChild [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ctx ctx' : GoInterface) : IProp GF := iprop(True)
 
 def ctxChild_persistent.spec : Prop := ∀ ctx ctx', Persistent (ctxChild (GF := GF) ctx ctx')
 
@@ -148,7 +148,7 @@ def WithTimeout.spec : Prop :=
       ctxOk ctx ∗ ctxChild parent ctx ∗ cancelOk cancel ctx }}
 
 /-- **`ctx'` is `WithValue(ctx, key, _)`** (persistent): `ctx`'s values and one more, at `key`. -/
-opaque ctxValueAt (ctx ctx' : GoInterface) (key : GoInterface) : IProp GF := iprop(True)
+opaque ctxValueAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ctx ctx' : GoInterface) (key : GoInterface) : IProp GF := iprop(True)
 
 def ctxValueAt_persistent.spec : Prop := ∀ ctx ctx' key, Persistent (ctxValueAt (GF := GF) ctx ctx' key)
 
@@ -185,7 +185,7 @@ def ctxNoMeta_value.spec : Prop := ∀ (ctx ctx' : GoInterface) (ki : GoInterfac
     ⌜ki.ty ≠ google_golang_org.grpc.metadata.mdOutgoingKey.ty⌝ ⊢ ctxNoMeta ctx'
 
 /-- **`ctx`'s Done channel is `ch`** (persistent; `ch` not nil). -/
-opaque ctxDoneChan (ctx : GoInterface) (ch : Loc) : IProp GF := iprop(True)
+opaque ctxDoneChan [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ctx : GoInterface) (ch : Loc) : IProp GF := iprop(True)
 
 def ctxDoneChan_persistent.spec : Prop := ∀ ctx ch, Persistent (ctxDoneChan (GF := GF) ctx ch)
 

@@ -481,40 +481,40 @@ def etcdLent (γ : Cluster) (T : State → State → Prop) (P : IProp GF) : IPro
 /-- **A session** `s` over the client `c` of `γ`, with the lease `id` (persistent). The principal
 of its own requests (the grant, the keep-alive, `Close`'s revoke) is its options' context's, fixed
 at `NewSession`; the mutexes and elections over it send theirs with each call's context. -/
-opaque isSession (s : Loc) (c : Loc) (γ : Cluster) (id : w64) : IProp GF := iprop(True)
+opaque isSession [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (c : Loc) (γ : Cluster) (id : w64) : IProp GF := iprop(True)
 
 /-- The `SessionOption` closure `f` acts as `g` (persistent). -/
-opaque sessOptAt (f : GoFunc) (g : SessOpts → SessOpts) : IProp GF := iprop(True)
+opaque sessOptAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (f : GoFunc) (g : SessOpts → SessOpts) : IProp GF := iprop(True)
 def sessOptsAt (sl : GoSlice) (gs : List (SessOpts → SessOpts)) : IProp GF :=
   iprop(∃ fs : List GoFunc, sl ↦*□ fs ∗ [∗list] f; g ∈ fs; gs, sessOptAt f g)
 
 /-- The `STMOption` closure `f` acts as `g` (persistent). -/
-opaque stmOptAt (f : GoFunc) (g : STMOpts → STMOpts) : IProp GF := iprop(True)
+opaque stmOptAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (f : GoFunc) (g : STMOpts → STMOpts) : IProp GF := iprop(True)
 def stmOptsAt (sl : GoSlice) (gs : List (STMOpts → STMOpts)) : IProp GF :=
   iprop(∃ fs : List GoFunc, sl ↦*□ fs ∗ [∗list] f; g ∈ fs; gs, stmOptAt f g)
 
 /-- **A mutex** `m` of the session `s` on the prefix `pfx` (its fields `s`, `pfx`; persistent). -/
-opaque isMutex (m : Loc) (s : Loc) (pfx : GoString) : IProp GF := iprop(True)
+opaque isMutex [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (m : Loc) (s : Loc) (pfx : GoString) : IProp GF := iprop(True)
 /-- The mutex's other fields (exclusive). -/
-opaque mutexSt (m : Loc) (st : MutexSt) : IProp GF := iprop(True)
+opaque mutexSt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (m : Loc) (st : MutexSt) : IProp GF := iprop(True)
 
 /-- **An election** `e` of the session `s` on the prefix `pfx` (its fields `session`, `keyPrefix`;
 persistent). -/
-opaque isElection (e : Loc) (s : Loc) (pfx : GoString) : IProp GF := iprop(True)
+opaque isElection [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (e : Loc) (s : Loc) (pfx : GoString) : IProp GF := iprop(True)
 /-- The election's other fields (exclusive). -/
-opaque electionSt (e : Loc) (st : ElectionSt) : IProp GF := iprop(True)
+opaque electionSt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (e : Loc) (st : ElectionSt) : IProp GF := iprop(True)
 
 /-- **The consumer of `Observe`'s channel** `ch` on the prefix `pfx` of the cluster `γ`, its values
 read after the state `σ0` (exclusive). -/
-opaque observeAt (ch : GoChan) (γ : Cluster) (pfx : GoString) (σ0 : State) : IProp GF := iprop(True)
+opaque observeAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ch : GoChan) (γ : Cluster) (pfx : GoString) (σ0 : State) : IProp GF := iprop(True)
 
 /-- **An STM** (the interface value `iv`, level `iso`) of the cluster `γ` as `who`, holding the
 attempt `a` (exclusive). -/
-opaque stmAt (iv : GoInterface) (γ : Cluster) (who : Principal) (iso : w64) (a : Attempt) :
+opaque stmAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (iv : GoInterface) (γ : Cluster) (who : Principal) (iso : w64) (a : Attempt) :
   IProp GF := iprop(True)
 
 /-- **An STM between attempts** (after `mkSTM` or a commit; `reset` starts the next attempt). -/
-opaque stmStale (iv : GoInterface) (γ : Cluster) (who : Principal) (iso : w64) : IProp GF :=
+opaque stmStale [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (iv : GoInterface) (γ : Cluster) (who : Principal) (iso : w64) : IProp GF :=
   iprop(True)
 
 /-- An option's context, if set, is a context (`ctxOk`) whose requests, from a client of default
@@ -560,23 +560,23 @@ def stmResult (γ : Cluster) (iso : w64) (F : Attempt → IProp GF) (Rel : Attem
 /-! ### Internal predicates (the package's own proofs) -/
 
 /-- `observe`'s side of `Observe`'s channel, its values read after `σ0`. -/
-opaque observeProd (ch : GoChan) (γ : Cluster) (pfx : GoString) (σ0 : State) : IProp GF := iprop(True)
+opaque observeProd [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ch : GoChan) (γ : Cluster) (pfx : GoString) (σ0 : State) : IProp GF := iprop(True)
 /-- The `stm` struct at `q` (a `*stm`, or a `*stmSerializable`'s embedded one) of `γ` as `who`,
 at level `iso`, holding the attempt `a`, its gets' options `gs`. -/
-opaque stmCoreAt (q : Loc) (γ : Cluster) (who : Principal) (iso : w64) (a : Attempt)
+opaque stmCoreAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (q : Loc) (γ : Cluster) (who : Principal) (iso : w64) (a : Attempt)
     (gs : List (OpM → OpM)) : IProp GF := iprop(True)
 /-- The `stm` struct at `q` between attempts (its maps possibly `nil`). -/
-opaque stmCoreStale (q : Loc) (γ : Cluster) (who : Principal) (iso : w64) (gs : List (OpM → OpM)) :
+opaque stmCoreStale [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (q : Loc) (γ : Cluster) (who : Principal) (iso : w64) (gs : List (OpM → OpM)) :
   IProp GF := iprop(True)
 /-- A `*stmSerializable` at `p` holding the attempt `a` (its core, its prefetched reads). -/
-opaque stmSerAt (p : Loc) (γ : Cluster) (who : Principal) (iso : w64) (a : Attempt) : IProp GF :=
+opaque stmSerAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (γ : Cluster) (who : Principal) (iso : w64) (a : Attempt) : IProp GF :=
   iprop(True)
 /-- A `*stmSerializable` at `p` between attempts. -/
-opaque stmSerStale (p : Loc) (γ : Cluster) (who : Principal) (iso : w64) : IProp GF := iprop(True)
+opaque stmSerStale [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (γ : Cluster) (who : Principal) (iso : w64) : IProp GF := iprop(True)
 /-- A `readSet` map holding the reads `rs` (each a response that is some revision's). -/
-opaque readSetAt (m : GoMap) (γ : Cluster) (rs : Key → Option ReadM) : IProp GF := iprop(True)
+opaque readSetAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (m : GoMap) (γ : Cluster) (rs : Key → Option ReadM) : IProp GF := iprop(True)
 /-- A `writeSet` map holding the writes `ws`. -/
-opaque writeSetAt (m : GoMap) (ws : Key → Option WriteM) : IProp GF := iprop(True)
+opaque writeSetAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (m : GoMap) (ws : Key → Option WriteM) : IProp GF := iprop(True)
 
 /-- A `*GetResponse` of a single-key get, read-only, modelled by the read `e`. -/
 def readRespAt (p : Loc) (e : ReadM) : IProp GF :=

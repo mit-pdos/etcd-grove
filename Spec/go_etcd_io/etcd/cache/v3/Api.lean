@@ -309,16 +309,16 @@ def watchRespAt (v : go_etcd_io.etcd.client.v3.WatchResponse) (m : WatchRespM) :
       v.closeErr' = GoInterface.nil⌝)
 
 /-- **`c` is a cache of the keys under `pfx` of the cluster `γ`** (persistent). -/
-opaque isCache (c : Loc) (γ : Cluster) (who : Principal) (pfx : GoString) : IProp GF := iprop(True)
+opaque isCache [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c : Loc) (γ : Cluster) (who : Principal) (pfx : GoString) : IProp GF := iprop(True)
 
 /-- **The right to call `Watch`** (a fraction) or `Close` (the whole). -/
-opaque cacheOpen (c : Loc) (q : Qp) : IProp GF := iprop(True)
+opaque cacheOpen [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c : Loc) (q : Qp) : IProp GF := iprop(True)
 
 /-- **The cache's latest revision has been at least `r`** (persistent). -/
-opaque cacheRevLb (c : Loc) (r : Nat) : IProp GF := iprop(True)
+opaque cacheRevLb [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c : Loc) (r : Nat) : IProp GF := iprop(True)
 
 /-- **The consumer of a cache watch's channel `ch`**, on the range `rng`, at `st` (exclusive). -/
-opaque cacheWatchAt (ch : Loc) (γ : Cluster) (rng : KeyRange) (st : WatchSt) : IProp GF :=
+opaque cacheWatchAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ch : Loc) (γ : Cluster) (rng : KeyRange) (st : WatchSt) : IProp GF :=
   iprop(True)
 
 /-- **What a successful `Get` returns**: the response (read-only: its key-values are the cache's),
@@ -338,7 +338,7 @@ def getOk (c : Loc) (γ : Cluster) (rng : KeyRange) (o : OpM) (σ0 : State) (r0 
 
 /-- **`errors.Is(err, e)` holds**: `err` is `e`, or wraps it (`fmt.Errorf("%w: ...", e)`)
 (persistent). -/
-opaque wrapsErr (err e : GoInterface) : IProp GF := iprop(True)
+opaque wrapsErr [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (err e : GoInterface) : IProp GF := iprop(True)
 
 open go_etcd_io.etcd.cache.v3 in
 /-- **What a failed `Get` returns**: no response, a non-`nil` error; for a request with an option the

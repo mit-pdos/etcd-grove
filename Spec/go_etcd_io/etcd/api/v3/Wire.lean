@@ -186,24 +186,24 @@ variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
 /-- The protobuf bookkeeping fields of the message of type `t` at `p` (`state`, `sizeCache`,
 `unknownFields`): opaque. -/
-opaque protoRest (t : Type) (p : Loc) (dq : DFrac) : IProp GF := iprop(True)
+opaque protoRest [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (t : Type) (p : Loc) (dq : DFrac) : IProp GF := iprop(True)
 
-opaque respHeaderOwn (p : Loc) (dq : DFrac) (m : HeaderM) : IProp GF := iprop(True)
-opaque keyValueOwn (p : Loc) (dq : DFrac) (m : KeyValueM) : IProp GF := iprop(True)
-opaque rangeRespOwn (p : Loc) (dq : DFrac) (m : RangeRespM) : IProp GF := iprop(True)
-opaque putRespOwn (p : Loc) (dq : DFrac) (m : PutRespM) : IProp GF := iprop(True)
-opaque deleteRespOwn (p : Loc) (dq : DFrac) (m : DeleteRespM) : IProp GF := iprop(True)
-opaque responseOpOwn (p : Loc) (dq : DFrac) (m : ResponseOpM) : IProp GF := iprop(True)
-opaque txnRespOwn (p : Loc) (dq : DFrac) (m : TxnRespM) : IProp GF := iprop(True)
-opaque compactRespOwn (p : Loc) (dq : DFrac) (m : CompactRespM) : IProp GF := iprop(True)
+opaque respHeaderOwn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (dq : DFrac) (m : HeaderM) : IProp GF := iprop(True)
+opaque keyValueOwn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (dq : DFrac) (m : KeyValueM) : IProp GF := iprop(True)
+opaque rangeRespOwn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (dq : DFrac) (m : RangeRespM) : IProp GF := iprop(True)
+opaque putRespOwn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (dq : DFrac) (m : PutRespM) : IProp GF := iprop(True)
+opaque deleteRespOwn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (dq : DFrac) (m : DeleteRespM) : IProp GF := iprop(True)
+opaque responseOpOwn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (dq : DFrac) (m : ResponseOpM) : IProp GF := iprop(True)
+opaque txnRespOwn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (dq : DFrac) (m : TxnRespM) : IProp GF := iprop(True)
+opaque compactRespOwn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (dq : DFrac) (m : CompactRespM) : IProp GF := iprop(True)
 
-opaque rangeReqOwn (p : Loc) (dq : DFrac) (r : RangeReq) : IProp GF := iprop(True)
-opaque putReqOwn (p : Loc) (dq : DFrac) (r : PutReq) : IProp GF := iprop(True)
-opaque deleteReqOwn (p : Loc) (dq : DFrac) (r : DeleteReq) : IProp GF := iprop(True)
-opaque compareOwn (p : Loc) (dq : DFrac) (c : EtcdModel.Compare) : IProp GF := iprop(True)
-opaque requestOpOwn (p : Loc) (dq : DFrac) (op : RequestOp) : IProp GF := iprop(True)
-opaque txnReqOwn (p : Loc) (dq : DFrac) (t : TxnReq) : IProp GF := iprop(True)
-opaque compactReqOwn (p : Loc) (dq : DFrac) (rev : Int) (physical : Bool) : IProp GF := iprop(True)
+opaque rangeReqOwn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (dq : DFrac) (r : RangeReq) : IProp GF := iprop(True)
+opaque putReqOwn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (dq : DFrac) (r : PutReq) : IProp GF := iprop(True)
+opaque deleteReqOwn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (dq : DFrac) (r : DeleteReq) : IProp GF := iprop(True)
+opaque compareOwn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (dq : DFrac) (c : EtcdModel.Compare) : IProp GF := iprop(True)
+opaque requestOpOwn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (dq : DFrac) (op : RequestOp) : IProp GF := iprop(True)
+opaque txnReqOwn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (dq : DFrac) (t : TxnReq) : IProp GF := iprop(True)
+opaque compactReqOwn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (dq : DFrac) (rev : Int) (physical : Bool) : IProp GF := iprop(True)
 
 /-- **A range end as mvcc reads the slice** (`treeIndex`, `index.go`): a `nil` end names one key
 (`[]`), a non-`nil` empty end every key from the key on (`"\x00"`, as `KeyRange.mem` reads it), any
@@ -463,15 +463,15 @@ def compactReqOwn_unfold.spec : Prop := ∀ (p : Loc) (dq : DFrac) (rev : Int) (
 `wireWatchRespOwn_unfold` and the law below) -/
 
 /-- **An `mvccpb.Event` message** at `p`, at the fraction `dq`. -/
-opaque eventOwn (p : Loc) (dq : DFrac) (e : EventM) : IProp GF := iprop(True)
+opaque eventOwn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (dq : DFrac) (e : EventM) : IProp GF := iprop(True)
 
 /-- **Slot (2a, 3h)**: a `pb.WatchRequest` message at `p` modelled by `r`. A create's key is
 `w.range.key`, or `""` when that is `"\x00"` (`toPB` sends the watch's own key, which the member
 normalizes). -/
-opaque watchReqOwn (p : Loc) (dq : DFrac) (r : WireWatchReq) : IProp GF := iprop(True)
+opaque watchReqOwn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (dq : DFrac) (r : WireWatchReq) : IProp GF := iprop(True)
 
 /-- **Slot (2a, 3h)**: a `pb.WatchResponse` message at `p` modelled by `m`. -/
-opaque wireWatchRespOwn (p : Loc) (dq : DFrac) (m : WireWatchRespM) : IProp GF := iprop(True)
+opaque wireWatchRespOwn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (dq : DFrac) (m : WireWatchRespM) : IProp GF := iprop(True)
 
 /-- **What `eventOwn` means**: the `Event` struct's fields (`Type` `0` a put, `1` a delete). -/
 def eventOwn_unfold.spec : Prop := ∀ (p : Loc) (dq : DFrac) (e : EventM),

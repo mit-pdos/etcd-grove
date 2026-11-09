@@ -485,11 +485,11 @@ def errIs (err : GoInterface) : EtcdErr → IProp GF
 
 /-- **`err` is mvcc's range error after its context was done** (`fmt.Errorf("rangeKeys: context
 cancelled: %w", …)`, wrapped again by `executeTxn`): persistent. -/
-opaque ctxErr (err : GoInterface) : IProp GF := iprop(True)
+opaque ctxErr [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (err : GoInterface) : IProp GF := iprop(True)
 
 /-- (provisional, 3h's) **`s` is a `fmt.Stringer` whose `String()` returns** (persistent): a request
 message (protobuf's `String`), `pb.NewLoggableTxnRequest`'s, `*pb.InternalRaftStringer` of a request. -/
-opaque stringerOk (s : GoInterface) : IProp GF := iprop(True)
+opaque stringerOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : GoInterface) : IProp GF := iprop(True)
 
 /-- With the packages initialized, the sentinels are non-`nil` and distinct (each an `errors.New`
 pointer with its own message: the owners' `init` laws, 3e's `Mvcc.init`). -/
@@ -513,13 +513,13 @@ verdict is `ok` (nested transactions' branches by their verdicts at `s`): a `*Tx
 empty header, `Succeeded` `ok`, one `ResponseOp` per operation whose `Response` oneof has the
 operation's kind and an unset (`nil`) message, a nested transaction's its own tree (owned).
 Internal to the package (`newTxnResp` makes it, `executeTxn` fills it). -/
-opaque respSkel (resp : Loc) (s : EtcdModel.Store) (ok : Bool) (ops : List RequestOp) : IProp GF :=
+opaque respSkel [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (resp : Loc) (s : EtcdModel.Store) (ok : Bool) (ops : List RequestOp) : IProp GF :=
   iprop(True)
 
 /-- **A read-only transaction's response, possibly partly filled** (owned): a `*TxnResponse` whose
 `Responses` are range responses, each `nil` or a range reply (`executeTxn` stopped at a context's
 error). What `WarnOfExpensiveReadOnlyTxnRequest` reads. -/
-opaque roTxnResp (resp : Loc) : IProp GF := iprop(True)
+opaque roTxnResp [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (resp : Loc) : IProp GF := iprop(True)
 
 /-- **A `proto.Message` value `msg` the warning functions may size**: `nil` (or a typed `nil`
 pointer), or a message holding `c` at the fraction `dq` (`o = some (dq, c)`), nested less than

@@ -99,14 +99,14 @@ def readLbQ (l : List Raft.LogEntry) : List Raft.LogEntry → IProp GF :=
   fun ops => iprop(⌜Raft.opsOf l <+: ops⌝)
 
 /-- `r` is `NewRead`'s result over `srv` and `rf`, its environment not yet given. Exclusive. -/
-opaque readNew (r : Loc) (srv rf : GoInterface) : IProp GF := iprop(True)
+opaque readNew [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : Loc) (srv rf : GoInterface) : IProp GF := iprop(True)
 
 /-- **`r` serves linearizable reads** for raft cluster `rγ`, applied-index predicate `A`.
 Persistent. -/
-opaque readAt (r : Loc) (rγ : Raft.Cluster) (A : Nat → IProp GF) : IProp GF := iprop(True)
+opaque readAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : Loc) (rγ : Raft.Cluster) (A : Nat → IProp GF) : IProp GF := iprop(True)
 
 /-- The right to run `r`'s loop. Exclusive. -/
-opaque readLoopTok (r : Loc) : IProp GF := iprop(True)
+opaque readLoopTok [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : Loc) : IProp GF := iprop(True)
 
 def readAt_persistent.spec : Prop := ∀ r rγ A, Persistent (readAt (GF := GF) r rγ A)
 

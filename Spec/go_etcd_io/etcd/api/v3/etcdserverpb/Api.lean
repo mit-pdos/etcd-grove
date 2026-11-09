@@ -387,7 +387,7 @@ scope premise; grpc's decoder gives it (`Grpc.decOk_call`), and so does the appl
 scope fact about the values in its `RangeEnd` fields, nested ones included, while they are not
 rewritten): a decoded message's (`endsDecoded_of_decoded`), or a range request a caller built with
 such an end (`endsDecoded_range_intro`: the health checks'). Read through the laws below. -/
-opaque endsDecoded (t : go.GoType) (p : Loc) : IProp GF := iprop(True)
+opaque endsDecoded [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (t : go.GoType) (p : Loc) : IProp GF := iprop(True)
 
 def endsDecoded_persistent.spec : Prop := ∀ t p, Persistent (endsDecoded (GF := GF) t p)
 
@@ -694,16 +694,16 @@ def irrLit : IrrBody → Loc → etcdserverpb.InternalRaftRequest
 request message (`irrInner`) at the fraction `dq` (a writer wraps the request its caller lent it,
 `irrOwn_wrap`, and takes it back, `irrOwn_unwrap`; integration X, I4's `irrOwn p dq ir` made 3h's);
 at `dq = 1` an owned message (`irrOwnH_msgAt`). -/
-opaque irrOwnH (p : Loc) (dq : DFrac) (ir : IrrBody) (h : Option IrrHeader) : IProp GF := iprop(True)
+opaque irrOwnH [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (dq : DFrac) (ir : IrrBody) (h : Option IrrHeader) : IProp GF := iprop(True)
 
 /-- 2c's `irrOwn` (header and `ID` unset). -/
 def irrOwn (p : Loc) (dq : DFrac) (ir : IrrBody) : IProp GF := irrOwnH p dq ir none
 
 /-- **`p`'s inner request is the message at `q`** (persistent; given by `irrOwn_wrap`). -/
-opaque irrInnerAt (p q : Loc) : IProp GF := iprop(True)
+opaque irrInnerAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p q : Loc) : IProp GF := iprop(True)
 
 /-- **An `*AlarmRequest` asking `ir`** (2c's `alarmReqOwn`). -/
-opaque alarmReqOwn (p : Loc) (dq : DFrac) (ir : IrrBody) : IProp GF := iprop(True)
+opaque alarmReqOwn [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (dq : DFrac) (ir : IrrBody) : IProp GF := iprop(True)
 
 /-- **`r` is `nil` (`b = false`) or a read-only `*InternalRaftRequest` whose `LeaseRevoke` is set
 exactly when `b`** (2e's `irrIsRevoke`). Persistent. -/
@@ -796,7 +796,7 @@ shared read-only, or held without capacity: a `MsgApp`'s entries, a snapshot's c
 
 /-- **A `RangeResponse` merge destination** holding `m`: owned, its `Kvs` slice with its capacity,
 its header and key-values owned. -/
-opaque rangeRespDst (p : Loc) (m : RangeRespM) : IProp GF := iprop(True)
+opaque rangeRespDst [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (m : RangeRespM) : IProp GF := iprop(True)
 
 /-- A fresh `&pb.RangeResponse{}` is an (empty) destination. -/
 def rangeRespDst_fresh.spec : Prop := ∀ (p : Loc),

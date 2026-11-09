@@ -248,10 +248,10 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG 
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
 /-- `monitorLeader`'s `*streamsMap` (persistent: its mutex guards the map of streams to cancel). -/
-opaque streamsMapAt (sm : Loc) : IProp GF := iprop(True)
+opaque streamsMapAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (sm : Loc) : IProp GF := iprop(True)
 
 /-- A `*cancellableContext` over `parent` (persistent). -/
-opaque cctxAt (c : Loc) (parent : GoInterface) : IProp GF := iprop(True)
+opaque cctxAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c : Loc) (parent : GoInterface) : IProp GF := iprop(True)
 
 /-- **A request with incoming metadata `md` is authenticated as `who`** (persistent; 2a's, realized
 over 3d's auth store): its `token` (else `authorization`, `Bearer ` trimmed) a token the cluster
@@ -260,7 +260,7 @@ issued to `who` (W0's `tokenUser`), or no token and `who` the principal of the c
 Every connection sending `md` has a client certificate naming `who` or none (W0's round-5 scope:
 one identity per client, `connOk`'s premise): what `reqPrin_of_md`'s `tls` relies on.
 Introduced by the client (`mdPrin_of`); eliminated by the member (`reqPrin_of_md`). -/
-opaque mdPrin (γ : Cluster) (md : MD) (who : Principal) : IProp GF := iprop(True)
+opaque mdPrin [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (md : MD) (who : Principal) : IProp GF := iprop(True)
 
 /-- **The client side of the principal**: a request sent with `ctx` (W0's `ctxPrin dflt ctx p`,
 outgoing metadata `md0`) by a client of default principal `dflt` (credentials adding `mdc`: 1c's
@@ -335,11 +335,11 @@ def etcdUnary (γ : Cluster) (ep : GoString) (m : GoString) : UnarySpec (GF := G
 def etcdLocal : UnarySpec (GF := GF) := fun _ _ Φ => iprop(∀ o : Outcome, Φ o)
 
 /-- **A streamed range's request is `r` of `who`, its update's result `Q`** (persistent). -/
-opaque rsReq (g : StreamName) (who : Principal) (r : RangeReq) (Q : State → State → Resp → IProp GF) :
+opaque rsReq [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (g : StreamName) (who : Principal) (r : RangeReq) (Q : State → State → Resp → IProp GF) :
   IProp GF := iprop(True)
 
 /-- **The `j`-th chunk of the streamed range `g` is `m`** (persistent). -/
-opaque rsChunk (g : StreamName) (j : Nat) (m : RangeRespM) : IProp GF := iprop(True)
+opaque rsChunk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (g : StreamName) (j : Nat) (m : RangeRespM) : IProp GF := iprop(True)
 
 /-- **`RangeStream`'s contract**: the one request with the caller's persistent update (W0's
 `RemoteKV.RangeStreamTriple`); each chunk recorded; the end: the update's `Q` with the answer the
@@ -475,11 +475,11 @@ the `toGRPCErrorMap` lookup), and an unmapped error's message settles nothing (`
 abbrev srvErrOk (err : GoInterface) : IProp GF := srvErrShape err
 
 /-- **Slot (2e)**: a `storage.Quota` value (its `Available(r)` returns a boolean, no panic). -/
-opaque quotaOk (q : GoInterface) : IProp GF := iprop(True)
+opaque quotaOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (q : GoInterface) : IProp GF := iprop(True)
 
 /-- **grpc-prometheus's `*ServerMetrics`** (assumed: its interceptors call the handler once with
 their own arguments and return its results; their counters write nothing the specs model). -/
-opaque metricsOk (m : Loc) : IProp GF := iprop(True)
+opaque metricsOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (m : Loc) : IProp GF := iprop(True)
 
 /-- **A unary server interceptor preserving etcd's contracts** (persistent): for each method `m`
 etcd serves, with a continuation meeting the run's triple for `m`'s contract, calling the
@@ -503,13 +503,13 @@ def icEtcdOk (i : GoFunc) (γ : Cluster) : IProp GF :=
 streams: it calls the handler once with the stream, possibly wrapped with a context canceled when
 the member loses its leader, or refuses with an indefinite status). Intended realization: the
 analogue of `icEtcdOk` over `Grpc.streamOk`'s run. -/
-opaque sicEtcdOk (i : GoFunc) (γ : Cluster) : IProp GF := iprop(True)
+opaque sicEtcdOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (i : GoFunc) (γ : Cluster) : IProp GF := iprop(True)
 
 /-- A `*headerFillingRangeStream` at `w` over the stream `rs` with the header at `hp` (read-only). -/
-opaque hfAt (w : Loc) (rs : GoInterface) (hp : Loc) (s : Loc) (γ : Cluster) : IProp GF := iprop(True)
+opaque hfAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (w : Loc) (rs : GoInterface) (hp : Loc) (s : Loc) (γ : Cluster) : IProp GF := iprop(True)
 
 /-- **A sink of the stream `g`** (persistent; `rsSink_intro`'s): which stream the sink sends on. -/
-opaque rsSinkOf (w : GoInterface) (g : StreamName) : IProp GF := iprop(True)
+opaque rsSinkOf [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (w : GoInterface) (g : StreamName) : IProp GF := iprop(True)
 
 /-- **2c's send end of a streamed range, realized** (2c's `rsSink rs γ p tls r ms`, `ApiReq.lean`):
 the wrapper `w` (a `*headerFillingRangeStream` over the run's stream, `hfAt`) with the send half of
@@ -576,25 +576,25 @@ def rsReq_agree.spec : Prop := ∀ g who who' r r' (Q Q' : State → State → R
 
 /-- A `*kvServer` over the server `s` (`NewKVServer`'s: its header of `s`, `kv` the server, `aa`
 over it, `maxTxnOps` at most `maxTxnOpsMax`). -/
-opaque kvServerAt (p s : Loc) (γ : Cluster) : IProp GF := iprop(True)
+opaque kvServerAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p s : Loc) (γ : Cluster) : IProp GF := iprop(True)
 /-- A `*quotaKVServer` `q` wrapping the `KVServer` value `kv` (a `*kvServer`'s) over `s`. -/
-opaque quotaKVAt (q : Loc) (kv : GoInterface) (s : Loc) (γ : Cluster) : IProp GF := iprop(True)
-opaque leaseServerAt (p s : Loc) (γ : Cluster) : IProp GF := iprop(True)
-opaque quotaLeaseAt (q : Loc) (ls : GoInterface) (s : Loc) (γ : Cluster) : IProp GF := iprop(True)
-opaque authServerAt (p s : Loc) (γ : Cluster) : IProp GF := iprop(True)
-opaque clusterServerAt (p s : Loc) (γ : Cluster) : IProp GF := iprop(True)
+opaque quotaKVAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (q : Loc) (kv : GoInterface) (s : Loc) (γ : Cluster) : IProp GF := iprop(True)
+opaque leaseServerAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p s : Loc) (γ : Cluster) : IProp GF := iprop(True)
+opaque quotaLeaseAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (q : Loc) (ls : GoInterface) (s : Loc) (γ : Cluster) : IProp GF := iprop(True)
+opaque authServerAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p s : Loc) (γ : Cluster) : IProp GF := iprop(True)
+opaque clusterServerAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p s : Loc) (γ : Cluster) : IProp GF := iprop(True)
 /-- A `*maintenanceServer` over `s` (`NewMaintenanceServer`'s inner value). -/
-opaque maintAt (p s : Loc) (γ : Cluster) : IProp GF := iprop(True)
+opaque maintAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p s : Loc) (γ : Cluster) : IProp GF := iprop(True)
 /-- An `*authMaintenanceServer` (the registered maintenance value). -/
-opaque authMaintAt (p s : Loc) (γ : Cluster) : IProp GF := iprop(True)
+opaque authMaintAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p s : Loc) (γ : Cluster) : IProp GF := iprop(True)
 /-- A `header` value of `s` (cluster and member ids, the raft status getter, the revision). -/
-opaque headerAt (h : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.header) (s : Loc) (γ : Cluster) :
+opaque headerAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (h : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.header) (s : Loc) (γ : Cluster) :
   IProp GF := iprop(True)
-opaque authAdminAt (aa : Loc) (s : Loc) (γ : Cluster) : IProp GF := iprop(True)
-opaque quotaAlarmerAt (qa : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer) (s : Loc)
+opaque authAdminAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (aa : Loc) (s : Loc) (γ : Cluster) : IProp GF := iprop(True)
+opaque quotaAlarmerAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (qa : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer) (s : Loc)
   (γ : Cluster) : IProp GF := iprop(True)
 /-- A `notifier` (the health notifier) value. -/
-opaque notifierAt (n : GoInterface) : IProp GF := iprop(True)
+opaque notifierAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (n : GoInterface) : IProp GF := iprop(True)
 
 /-- **grpc-prometheus's interceptors pass through** (assumed; `getServerMetrics`' value). -/
 def metricsOk_unary.spec : Prop := ∀ (m : Loc) (γ : Cluster),

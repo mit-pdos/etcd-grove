@@ -1,5 +1,10 @@
 # Batches and waves
 
+**Status (2026-11-09):** every batch below is drafted, reviewed (provability and completeness, by
+separate agents), repaired, and integrated (`integration-*.md`); the whole branch builds
+(`etc/specs-build-all.sh`) and the snippets pass `go vet`. The decisions left for the user:
+`open-questions.md`.
+
 A batch is a set of interacting functions (an API and the code behind it), specified by one author
 agent and judged by reviewers separate from it and from other batches (README.md, "The review of a
 batch"). Waves go top-down: a wave's batches are the callers of the next wave's, and write their

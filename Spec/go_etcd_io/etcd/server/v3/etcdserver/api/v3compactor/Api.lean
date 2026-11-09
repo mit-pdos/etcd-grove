@@ -87,23 +87,23 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG 
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
 /-- **`c.Compact(ctx, r)` may be called** (persistent). -/
-opaque compactable (c : GoInterface) : IProp GF := iprop(True)
+opaque compactable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (c : GoInterface) : IProp GF := iprop(True)
 
 /-- **`rg.Rev()` may be called** (persistent). -/
-opaque revGetter (rg : GoInterface) : IProp GF := iprop(True)
+opaque revGetter [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (rg : GoInterface) : IProp GF := iprop(True)
 
 /-- **`cp` is a compactor** (persistent). -/
-opaque isCompactor (cp : GoInterface) : IProp GF := iprop(True)
+opaque isCompactor [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (cp : GoInterface) : IProp GF := iprop(True)
 
 /-- **Provisional (the `clockwork` boundary):** `clk` is a `clockwork.Clock` whose `Now`, `After`
 may be called from any goroutine (`NewRealClock()`'s: the real clock). Persistent. -/
-opaque clockOk (clk : GoInterface) : IProp GF := iprop(True)
+opaque clockOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (clk : GoInterface) : IProp GF := iprop(True)
 
 /-- `p` is a `*Periodic` compactor (persistent). -/
-opaque isPeriodic (p : Loc) : IProp GF := iprop(True)
+opaque isPeriodic [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) : IProp GF := iprop(True)
 
 /-- `r` is a `*Revision` compactor (persistent). -/
-opaque isRevision (r : Loc) : IProp GF := iprop(True)
+opaque isRevision [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : Loc) : IProp GF := iprop(True)
 
 def compactable_persistent.spec : Prop := ∀ c, Persistent (compactable (GF := GF) c)
 def revGetter_persistent.spec : Prop := ∀ rg, Persistent (revGetter (GF := GF) rg)

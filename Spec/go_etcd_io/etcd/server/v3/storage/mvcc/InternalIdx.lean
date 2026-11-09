@@ -89,10 +89,10 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG 
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
 /-- **The index is `M`, compacted at the floor `c`** (exclusive; see the header). -/
-opaque idxAt (γi : IdxName) (M : IndexM) (c : Int) : IProp GF := iprop(True)
+opaque idxAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γi : IdxName) (M : IndexM) (c : Int) : IProp GF := iprop(True)
 
 /-- The Go map `m` holds exactly the revisions `A` (exclusive). -/
-opaque availAt (m : Loc) (A : Rev → Prop) : IProp GF := iprop(True)
+opaque availAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (m : Loc) (A : Rev → Prop) : IProp GF := iprop(True)
 
 end vocab
 
