@@ -122,6 +122,17 @@ theorem intRange_getElem? (lo hi : Int) (k : Nat) (hk : k < (hi - lo + 1).toNat)
     (intRange lo hi)[k]? = some (lo + k) := by
   simp [intRange, List.getElem?_map, List.getElem?_range hk]
 
+/-! ## What `NewTrace` establishes of a trace (`Trace.Valid`) -/
+
+theorem Trace.Valid.len_lt {tr : Trace} (h : tr.Valid) : (tr.len : Int) < numBound := by
+  obtain ⟨evs, -, hlt, hnt⟩ := h
+  rw [newTraceWith_len evs false false tr hnt]; exact hlt
+
+theorem Trace.Valid.bootstrap_length {tr : Trace} (h : tr.Valid) : tr.bootstrap.length = tr.len := by
+  obtain ⟨evs, -, -, hnt⟩ := h
+  rw [(newTraceWith_ok evs false false tr hnt).2]
+  simp [Trace.len]
+
 end Etcdraft
 end EtcdGrove
 end Perennial
