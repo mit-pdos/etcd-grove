@@ -349,6 +349,51 @@ theorem simStepReady_pure (C : List w64) (L : List TraceEv) (σ : Etcdraft.State
         List.count_eq_zero.2 (fun hm' => hx (List.mem_filter.1 hm').2)
       simp only [hx, Bool.false_eq_true, ↓reduceIte, h0, h1]; omega
 
+/-- A bound on a map's keys. -/
+noncomputable def keyBound {V : Type} (B : GMap Nat V) : Nat :=
+  (GMap.toList B).foldl (fun a p => max a (p.1 + 1)) 0
+
+theorem keyBound_gt {V : Type} (B : GMap Nat V) (k : Nat) (v : V) (h : B !! k = some v) : k < keyBound B := by
+  unfold keyBound
+  have hm : (k, v) ∈ GMap.toList B := (GMap.mem_toList B k v).2 h
+  suffices ∀ (l : List (Nat × V)) (a : Nat), (k, v) ∈ l ∨ k < a →
+      k < l.foldl (fun a p => max a (p.1 + 1)) a by exact this _ 0 (Or.inl hm)
+  intro l
+  induction l with
+  | nil => intro a h; simp at h; exact h
+  | cons p l ih =>
+    intro a h
+    simp only [List.foldl_cons]
+    apply ih
+    rcases h with h | h
+    · rw [List.mem_cons] at h
+      rcases h with h | h
+      · right; subst h; omega
+      · left; exact h
+    · right; omega
+
+theorem mapSeq_values_perm {V : Type} : ∀ (start : Nat) (l : List V),
+    ((GMap.toList (GMap.mapSeq start l)).map Prod.snd).Perm l := by
+  intro start l
+  induction l generalizing start with
+  | nil => show (((∅ : GMap Nat V).toList).map Prod.snd).Perm []; rw [GMap.toList_empty]; rfl
+  | cons v l ih =>
+    rw [GMap.mapSeq_cons]
+    have hfresh : GMap.mapSeq (start + 1) l !! start = none := by
+      rw [GMap.lookup_map_seq]; simp
+      intro h; omega
+    have := (GMap.mapToList_insert (GMap.mapSeq (start + 1) l) start v hfresh).map Prod.snd
+    simp only [List.map_cons] at this
+    exact this.trans ((ih (start + 1)).cons v)
+
+theorem mapSeq_disjoint {V : Type} (B : GMap Nat V) (l : List V) :
+    GMap.Disjoint (GMap.mapSeq (keyBound B) l) B := by
+  intro k h1 h2
+  obtain ⟨v, hv⟩ := Option.isSome_iff_exists.mp h2
+  have hk := keyBound_gt B k v hv
+  have : GMap.mapSeq (keyBound B) l !! k = none := by rw [GMap.lookup_map_seq]; simp; omega
+  rw [this] at h1; cases h1
+
 end pure
 
 end EtcdGrove
