@@ -10,6 +10,7 @@ module
 public import Proof.go_etcd_io.raft.v3.TracedHooksDraft
 public import Proof.go_etcd_io.raft.v3.TraceSimMatch
 public import Proof.go_etcd_io.raft.v3.TraceSimRun
+public import Proof.go_etcd_io.raft.v3.TraceSimLeader
 
 @[expose] public section
 

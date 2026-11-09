@@ -29,7 +29,9 @@ The hypotheses the simulation supplies:
 - `MoreThanOneLeaderInv` of the state (`ClientRequest`, `AdvanceCommitIndex`, `AppendEntries`,
   `Heartbeat`);
 - `BecomeLeader`: no entry and no append request of the new leader's term yet, and every server of
-  its term with its commit index within the new leader's log (leader completeness);
+  its term with its commit index within the new leader's log (leader completeness); all four from
+  `becomeLeader_hyps` (`TraceSimLeader.lean`), whose premises raft's ghost does not yet hold at once
+  at the hook (`specInv_becomeLeader`'s docstring);
 - `UpdateTerm`, `Timeout`: `LeaderComplete`, the server's committed entries in the log of any leader
   of its new term (leader completeness, `allFacts_leaderCompleteness`, and `CommitOk`,
   `allFacts_commitOk`), which with `LeaderDurPrefix` and `LogTermsLe` puts its commit index within
@@ -1356,12 +1358,28 @@ theorem specInv_advanceCommitIndex {σ σ' : State} {i : ID} (h : SpecInv σ) (h
 
 /-- **`BecomeLeader(i)`**, `i` of term `T`. What the specification's state does not record, and the
 simulation supplies from raft's ghost state (raft's leader of a term is unique over time, and only it
-creates entries and append requests of its term):
+creates entries and append requests of its term). All four are `becomeLeader_hyps`'s conclusion
+(`TraceSimLeader.lean`, review round 4's D2), from the simulation's facts (`allFacts`, `msgFacts`,
+`SpecInv`) and what raft's `becomeLeader` holds at its hook: `isLeader γ i T`, its campaign record
+`isCamp γ i T F0` with `logRecs γ base0 F0` (`F0` as long as `i`'s log), its term map without `T`
+(no term log, so no entry, of `T` yet) and `votesTbl γ`. **Raft's ghost does not hold `isLeader` and
+the term map without `T` at once** (it takes the win, with the term log and the empty entry, in one
+step after `stepCandidate`): the hook needs the win's registration split from its term log. Each
+hypothesis's source:
 
-- `hfreshLog`, `hfreshMsg`: no entry of term `T` exists yet, in any log or any message;
-- `hfreshReq`: no append request of term `T` exists yet;
-- `hcw`: every server of term `T` has its commit index within `i`'s log (raft: leader completeness,
-  the committed entries are in the new leader's log; for `i` itself, `CommitOk`).
+- `hfreshLog`: no entry of term `T` in any log: a recorded entry's record names `T`'s term log
+  (`isEntryR_term_ne`), a leader's pending entry is of its own term, and `T`'s only leader is `i`, a
+  candidate in `σ` (`srvFacts`, `isLeader_unique`);
+- `hfreshMsg`: none in any message: an append request's entries have records (`msgFacts`), and at a
+  bootstrap position are of term `1 < T` (`isLeader_boot`). It needs as well that only an append
+  request carries entries, in range (`becomeLeader_hyps`'s `hents`), which no fact of the simulation
+  says yet;
+- `hfreshReq`: no append request of term `T`: its sender leads `T` (`msgFacts`), so is `i`, which
+  has none out (`CandS`);
+- `hcw`: every server of term `T` has its commit index within `i`'s log: its certificate is of a term
+  below `T` (one of `T` would have an entry of `T`), whose committed log `lc_core` puts in `i`'s
+  campaign log (`commit_le_camp`, the campaign form of `commit_in_leader_cert`; for `i` itself the
+  same, raft's `CommitOk` only bounding it by its own log).
 
 The candidate's own facts (it has persisted its log, since a vote was granted; it has no append
 request or successful response of its term) are `CandS`'s. -/
