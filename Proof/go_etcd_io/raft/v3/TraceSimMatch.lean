@@ -758,6 +758,59 @@ theorem simRun_requestVote (C : List w64) (L : List TraceEv) (σ : Etcdraft.Stat
     rw [hsrc] at this ⊢
     simp [this]
 
+theorem gsStr_msgTypeStr_voteResp : gsStr (msgTypeStr .voteResp) = "MsgVoteResp" := by rfl
+
+/-- **A vote response's line predicate** (`LoglineIsRequestVoteResponse` of its abstraction). -/
+theorem isRVResp_voteResp (C : List w64) (bl : Nat) (e : TraceEv) (id vote : w64) (xs : List w64) (m : Msg)
+    (tm : TraceMsg) (hmsg : e.msg = some tm) (hm : MsgEvOf m tm) (hty : m.ty = .voteResp)
+    (bt : uint.Z m.term < 2 ^ 63) :
+    (msgLine e id vote m.src m.dst xs).isRequestVoteResponse
+      ((msgAbs C bl m).get (by simp [msgAbs, hty])) = true := by
+  obtain ⟨htyp, hterm, -, -, -, -, -, -, hrej⟩ := hm
+  have hmsg' : (msgAbs C bl m) = some
+      { type := .requestVoteResponse, term := uint.Z m.term, source := idAbs m.src, dest := idAbs m.dst,
+        voteGranted := !m.reject } := by
+    simp only [msgAbs, hty]
+  simp only [hmsg', Option.get_some]
+  unfold Etcdraft.Line.isRequestVoteResponse
+  simp only [msgLine, evConv, hmsg, Option.map_some]
+  rw [htyp, hty, hterm, hrej, gInt_of_lt _ bt, gsStr_msgTypeStr_voteResp]
+  simp [Etcdraft.raftMsgType]
+
+/-- A self vote's line's non-receive successors: the specification's `RequestVote(i, i)`. -/
+theorem nonReceive_selfVote (t : Etcdraft.Trace) (ts : Etcdraft.TState) (i : Etcdraft.ID)
+    (s2 : Etcdraft.State) (hl : ts.l ≤ t.len)
+    (hname : (t.line ts.l).ev.name = "SendRequestVoteResponse")
+    (hfrom : (t.line ts.l).from = i) (hto : (t.line ts.l).to = i)
+    (hself : ∃ em, (t.line ts.l).ev.msg = some em ∧ em.from = em.to)
+    (hnd : t.server.Nodup) (hi : i ∈ t.server) (hpv : ts.s.preVote = false)
+    (hrv : ts.s.requestVote i i = some s2) (hpost : (t.line ts.l).stateMatches s2 i = true)
+    (hnew : Etcdraft.newPending ts.s s2 (fun m => (t.line ts.l).isRequestVoteRequest m ||
+      ((t.line ts.l).isRequestVoteResponse m && m.source == m.dest)) = true) :
+    t.nonReceive ts = .ok [s2] := by
+  obtain ⟨em, hem, heq⟩ := hself
+  have hsome : (t.line ts.l).ev.msg.isSome = true := by rw [hem]; rfl
+  have hpre : ts.s.requestPreVote i i = none := by
+    unfold Etcdraft.State.requestPreVote; simp [hpv]
+  have hf : t.pairs.flatMap (fun p => t.requestVoteIfLogged ts p.1 p.2) = [s2] := by
+    apply flatMap_single _ _ (i, i) s2 (pairs_nodup t hnd) ((mem_pairs t i i).2 ⟨hi, hi⟩)
+    · simp [Etcdraft.Trace.requestVoteIfLogged, Etcdraft.Trace.isMessageEvent, Etcdraft.Trace.isEvent,
+        Etcdraft.Trace.validatePostStates, hl, hname, hfrom, hto, hsome, hrv, hpre, hpost, hnew, Etcdraft.somes]
+    · rintro ⟨a, b⟩ _ hne
+      have : ¬ (a = i ∧ b = i) := fun h => hne (by rw [h.1, h.2])
+      simp only [Etcdraft.Trace.requestVoteIfLogged, Etcdraft.Trace.isMessageEvent, Etcdraft.Trace.isEvent,
+        hfrom, hto, hname]
+      by_cases ha : a = i
+      · have hb : b ≠ i := fun hb => this ⟨ha, hb⟩
+        simp [ha, Ne.symm hb]
+      · simp [Ne.symm ha]
+  have hskip : t.skipUnusedLogline ts = false := by
+    unfold Etcdraft.Trace.skipUnusedLogline Etcdraft.Trace.isEvent
+    simp [hname, hem, heq, Etcdraft.Trace.isBecomeFollowerInUpdateTermOrReturnToFollower, Etcdraft.Trace.isEvent]
+  unfold Etcdraft.Trace.nonReceive
+  simp only [hname, hf, hskip]
+  simp [pure, Except.pure, bind, Except.bind]
+
 end TraceSim
 
 end EtcdGrove
