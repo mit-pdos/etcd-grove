@@ -166,3 +166,146 @@ stamps. Estimate: 25-30k lines.
    `Recover`'s premises (records each what `Grant` wrote; no revoked id granted again: true,
    since `nextLease` only grows).
 4. **The two-member hash read** (F2): HashByRev on the other member under both `life` locks.
+
+# Draft (F1): the invariants in full (2026-11-09)
+
+Written before any Lean, per `notes/spec-first-plan.md` ("Invariants written in full"). The file
+names are the Draft's Lean modules under `Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/`.
+Carried over from mvccrand unchanged (copied, renamed `mvccfull`): the pure model (`Model`,
+`Pending`, `WriteModel`, `WatchModel`: `stMatch`, `pendOf`, `expChs`, `posOk`, ...), `History`
+(`histR`, `histRd`, `histW`; the history struct gains `comps`, a writer-owned slice under the same
+lock), `revOk` and `histOkM`.
+
+## G. Ghost names (`FullNames`)
+
+`h : HistNames` (the history: `γ.h.g` its cells, `γ.h.l` the mono list of revisions) and, for each
+member `m ∈ {0, 1}`, `MemberNames`:
+
+| name | type | halves |
+|---|---|---|
+| `inc` | `ghostVar (MvccName × Loc)`: the current incarnation (store name, `kv` value) | the member's invariant ½, the `life` lock's resource (fractional) ½ |
+| `σ` | `ghostVar MvccState` | invariant ½, writer ½ (as mvccrand's `γ.σ`) |
+| `rev` | `monoNat` of `σ.rev` (the store's revision only grows) | auth in the invariant; readers take lower bounds |
+| `crev` | `monoNat` of `σ.crev + 1` | as `rev` |
+| `bnd` | `ghostVar (w64⁴)`: the four atomics' values | invariant ½, writer ½ |
+| `pool` | ghost map `slot ↦ PoolSt` (the reader-token pool, below) | invariant auth; each reader thread its slot's fragment |
+
+The builder needs no ghost state of its own: the writer owns its `mvccState`, `mvccOpen` and
+backend outright (no other thread touches it).
+
+## M. A member's invariant: `memberInv h γ m` (namespace `memberN m`)
+
+```
+∃ (γk : MvccName) (kv : Loc) (σ : MvccState) (rl rh cl ch : w64) (Hl : List HRev),
+  ghostVar m.inc ½ (γk, kv) ∗ mvccState γk σ ∗ ghostVar m.σ ½ σ ∗
+  ownInt64 (revLo m) rl ∗ ownInt64 (revHi m) rh ∗ ownInt64 (cmpLo m) cl ∗ ownInt64 (cmpHi m) ch ∗
+  ghostVar m.bnd ½ (rl, rh, cl, ch) ∗
+  monoNatAuth m.rev σ.rev ∗ monoNatAuth m.crev (σ.crev + 1) ∗ monoListLbOwn γ.h.l Hl ∗
+  ⌜rl ≤ σ.rev ≤ rh ∧ cl ≤ σ.crev ≤ ch ∧ histOkM σ Hl ∧ onceUpToAll σ.notifiedLog⌝
+```
+
+Who changes what:
+- **The writer** alone changes `σ` (every update of a write, `Compact`, `Restore`) and the atomics.
+  It holds the other halves, so it knows them exactly.
+- **Readers'** updates (`Read`, `Rev`, `Watch`, progress) commit `σ` unchanged. They load `revLo`
+  (a floor via `monoNat` lower bounds) and `revHi` after.
+- **`σ.rev` and `σ.crev` never decrease** (a write adds a revision; `Compact` raises `crev`;
+  `Restore`'s premise `σ.log <+: σ'.log ∧ σ.crev ≤ σ'.crev`; a restart keeps both). So a value
+  seen at time `t₁` is bounded by `rh` loaded at `t₂ > t₁`: `rh(t₂) ≥ σ.rev(t₂) ≥ σ.rev(t₁)`.
+  That is why the `hi` atomics may go down (a write that changed nothing).
+- **`onceUpToAll L`** (pure): every revision changes each key at most once. The generator's
+  invariant (txn puts distinct and outside its deletes; a revoke's keys distinct) is kept by each
+  of the writer's `End` updates. It gives the watch guarantee's `onceUpTo` at any compaction
+  revision.
+
+**A restart** swaps the incarnation (`γk`, `kv`) under the `life` lock (L): the closed store's
+`mvccState γk σ` is dropped (ghost), and the reopened one's `mvccState γk' σ'` goes in.
+`σ' = ⟨σ.log, σ.crev, none⟩` comes from B3's `New` over the image `mvccImage_stop` gave.
+
+## L. The `life` lock: `isRWMutexGuard (life m) (lifeR γ m)`, with token pools
+
+`lifeR γ m q` (fractional):
+```
+∃ γk kv, ghostVar m.inc (q/2) (γk, kv) ∗ (m.kv field) ↦{q} kv ∗ isMvcc kv γk ∗ inv (memberN m) …
+```
+(`isMvcc` and the invariant are persistent.) A reader's `RLock` gets `lifeR γ m q` for its slot's
+`q`, so the incarnation is fixed while it reads.
+
+**The reader-token pool** (`poolInv γ m`, namespace `poolN m`): for each reader slot `i` of the
+member (the readers of both members, since a reader locks both members, `lockAll`; the
+receiver's and the registrar's tokens come from the epoch, below):
+```
+PoolSt := in | out (q : Qp)
+∃ γk, ghostVar m.inc ? … ∗ [∗ map] i ↦ s ∈ P,
+   (s = in ∗ mvccReaders γk 1) ∨ (s = out q ∗ lifeR γ m q)
+```
+- A reader holding `lifeR γ m q` and its fragment `i ↦ in` takes the token: it moves its fraction
+  into the entry (`out q`).
+- Before `RUnlock` it must return the token and take the fraction back.
+- The writer holding `lifeR γ m 1` (after `Lock`) shows every entry is `in`: an `out q` entry plus
+  the writer's `1` exceed `1`. So it collects all the tokens; with the epoch's (E) and the
+  writer's own, that is `mvccReaderN` for `mvccClosed_rest.law` and the census.
+- It reopens and refills each entry with a token of the new `γk'`, from `New`'s
+  `mvccReaders γk' mvccReaderN`.
+
+## E. An epoch's streams: `streamInv γ m ι s` (namespace `streamN`) and the stream lock `smuInv`
+
+Per stream, generalizing mvccrand's `worldInv` (stream half) and `cmuInv`.
+
+**`streamInv`:**
+```
+∃ (S : StreamState) (W : GMap w64 (Loc × RegInfo')) ,
+  wsState ι S ∗ ghostVar s.cl ½ S.closed ∗ ghostMapAuth s.reg ½ W ∗ ⌜regOk' S W⌝
+```
+- `RegInfo' = (key, end, endNil, start, filter, k, cancelMarked)`: `k` is the stream's sent count
+  at registration (`Watch`'s `wsSentLb ι k`).
+- `regOk' S W`: each registry entry is a watcher of `S` with its range, `fs` the filter's
+  predicate (`[]`, `[isPut]` or `[isDel]`) and `w.k = k`. **If not cancel-marked, it is live.**
+  Other watchers of `S` have empty ranges.
+
+**`smuInv`** (`s.mu`'s lock):
+```
+∃ rs W Hl P,
+  watchers map ↦$ … ∗ order slice ↦* ids ∗ ghostMapAuth s.reg ½ W ∗ ghostVar s.rcv ½ rs ∗
+  monoListLbOwn γ.h.l Hl ∗ ownInt64-free field eventless ↦ P ∗
+  ⌜rcvKnown rs W ∧ (∀ i y, rs[i] = y → y.evs = [] → y.rev ≤ P …)⌝ ∗
+  [∗map] id ↦ x ∈ W, watcherOwn' Hl rs id x
+```
+`watcherOwn'` extends mvccrand's: the floating window (`floatLo`, `rev`) for a start of 0,
+`stamped → k ≤ |rs|`, `compacted → (the watcher received a compaction response)`, and
+`posOk` after `recvEvs rs id` *filtered*.
+
+**The stamp's argument (`recvOne`):** under `s.mu`, the select's default branch is
+`nonblockingRecvAuAlt`'s `Ψ`. It is called with `wsSentLb ι n` for `n = max k` over the registry,
+a lower bound each registration left. The law gives `n ≤ |rs|`, so every registered watcher may
+be marked stamped. Registration happens only under `s.mu` and records `k ≤` the sent count.
+
+**The epoch's tokens:** the registrar and the receiver each hold `mvccReaders γk 1` of the
+epoch's incarnation, returned through their wait groups (`regDone`, `recvDone`) to the writer at
+`endEpoch`, before any restart.
+
+## W. The writer's resources (`writerOwn`, generalizing mvccrand's)
+
+For each member:
+- the halves `m.σ ½ σ`, `m.bnd ½ …`, `m.inc ½`;
+- `mvccOpen γk`, `mvccBackend γk 1 B Pk`;
+- its own `mvccReaders γk 1`;
+- the lessor's resources (`leaseOwn`, `lessorRdOf`, `rdOwn`, `isLessor`);
+- the backend's stop channels and the census pieces for `backend.Close`;
+- the hook's `applying`/`saved` atomics, owned outright (as mvccrand's).
+
+For the leader only: `histW γ.h Hs` (the history's writer part).
+
+The model: `m.ops ≤ |log|`, `σ.log = histLog (take m.ops)` (the history's revisions up to the
+member's), `σ.crev = cmpAfter m.ops`, `m.leases = leasesAfter m.ops`. These are pure functions of
+the operation log, which the writer owns (`x.log`, a slice of `*op` it alone reads).
+
+## R. Readers
+
+Per read, mvccrand's `reader_au` per member: `revLo` loaded first (a `monoNat` lower bound of
+`σ.rev`), the operation's update at `σ` unchanged, returning `σ.rev`/`σ.crev` and `histOkM`.
+`revHi`/`cmpHi` are loaded after (above `σ.rev(t)` by monotonicity). The checks compare against the
+snapshot, which extends `Hl`.
+
+**Probe targets** (the risks, from the Scope): B3 + L's pool at a restart (the writer's `restart`),
+E's stamp (`recvOne`), and the builder → `Restore` handoff (`restore`).
