@@ -775,6 +775,81 @@ theorem trCap_fire_recv : trCap_fire_recv.statement (GF := GF) := by
     isplitr; · iunfold raftLogInv; iexact Hrinv
     ipureintro; rw [hsrv]; exact hΦ'
 
+/-- **The global step's law for a bootstrap line** (`trCap_fire_boot.statement`). -/
+theorem trCap_fire_boot : trCap_fire_boot.statement (GF := GF) := by
+  intro γd γ r id c tl E Φ hE
+  iintro ⟨Hcap, #Htl⟩
+  iunfold trCapB at Hcap
+  icases Hcap with ⟨%tn, %C, %tl', %cs, %P, #Hdir, %Hpf, #Htl', #Hlg, %Hnn, #Hinv, #Hrinv, Hnode, Hbt, %HΦ⟩
+  icombine Htl Htl' gives %Htleq
+  subst Htleq
+  obtain ⟨hvC, hperm, hout, hC⟩ := Hpf
+  iunfold TraceFire
+  iexists tn
+  iframe Hdir Hlg
+  isplitr; · ipureintro; exact Hnn
+  iintro %e %HE
+  iauintro
+  unfold atomic_acc
+  iinv Hinv with >Hi Hclose
+  iunfold simInv at Hi
+  icases Hi with ⟨%L, %σ, %A, %B, %phP, %phM, %Bt, HL, HA, HB, HBt, #Hfσ, %Hp⟩
+  iunfold raftLogInv at Hrinv
+  have Hsub : (↑(raftLogN γ) : CoPset) ⊆ ⊤ \ ↑(simNS γ) :=
+    mask_ndot_ne' (raftN γ) "log" "tracesim" (by decide)
+  iinv Hrinv with Hr Hrclose
+  iunfold raftLogInvBody at Hr
+  icases Hr with ⟨%lc, Hc, Hj, >Htbl, Hw, Hrest⟩
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
+  iintro Hmask
+  iexists L
+  iunfold traceFrag at HL
+  iunfold traceAuth
+  iframe HL
+  isplit
+  · iintro HL
+    imod Hmask with -
+    imod Hrclose $$ [Hc Hj Htbl Hw Hrest] with -
+    · inext; iunfold raftLogInvBody; iexists lc; iframe
+    imod Hclose $$ [HL HA HB HBt] with -
+    · inext; iunfold simInv; iexists L, σ, A, B, phP, phM, Bt; iunfold traceFrag; iframe HL HA HB HBt Hfσ; ipureintro; exact Hp
+    imodintro
+    iframe Hnode Hbt
+  · iintro HL
+    imod Hmask with -
+    obtain ⟨hrun, hsrv, hA, hAn, hPb, hMb, hpv, hcq, hsrcA, hbtC⟩ := Hp
+    iunfold simBoot at Hbt
+    icases ghost_map_lookup $$ HBt Hbt with %HBtid
+    obtain ⟨b0, hb0, hiff⟩ := hbtC id hC
+    rw [HBtid] at hb0; cases hb0
+    have hnb : ¬ booted L (idAbs id) := fun h => by have := hiff.2 h; cases this
+    obtain ⟨ln, hpl, hnl, hbl⟩ := hE e HE
+    icases keep_pure (simFx_violated γ C σ hsrv) $$ [$Htbl $Hfσ] with ⟨⟨Htbl, -⟩, %hv⟩
+    have hrun' := simRun_boot C L σ hrun hv e ln hpl (fun lines hl =>
+      bootFlags_unbooted C L lines ln (idAbs id) (by rw [mem_confAbs]; exact hC) hl hnb hnl hbl)
+    have hbt' : ∀ i ∈ C, ∃ b, Bt !! i = some b ∧ (b = true ↔ booted (L ++ [e]) (idAbs i)) := by
+      intro i hi
+      obtain ⟨b, hb, hiff'⟩ := hbtC i hi
+      exact ⟨b, hb, by rw [booted_snoc_boot L e ln _ hpl hbl]; exact hiff'⟩
+    imod Hrclose $$ [Hc Hj Htbl Hw Hrest] with -
+    · inext; iunfold raftLogInvBody; iexists lc; iframe
+    imod Hclose $$ [HL HA HB HBt] with -
+    · inext; iunfold simInv
+      iexists L ++ [e], σ, A, B, phP, phM, Bt
+      iunfold traceFrag; iframe HL HA HB HBt Hfσ
+      ipureintro
+      exact ⟨hrun', hsrv, hA, hAn, hPb, hMb, hpv, hcq, hsrcA, hbt'⟩
+    imodintro
+    iunfold trCapB
+    iexists tn, C, tl, cs, P
+    iunfold simBoot
+    iframe Hdir Htl Hlg Hinv Hnode Hbt
+    isplitr; · ipureintro; exact ⟨hvC, hperm, hout, hC⟩
+    isplitr; · ipureintro; exact Hnn
+    isplitr; · iunfold raftLogInv; iexact Hrinv
+    ipureintro; exact HΦ
+
 end ghost
 
 end EtcdGrove

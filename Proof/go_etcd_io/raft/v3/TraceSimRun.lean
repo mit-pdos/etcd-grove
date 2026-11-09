@@ -380,6 +380,18 @@ theorem simRun_boot (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (hru
   simp only [h1, h2, Bool.false_eq_true, ↓reduceIte, pure, Except.pure]
   rw [hts]
 
+theorem booted_snoc_boot (L : List TraceEv) (e : TraceEv) (ln : Etcdraft.Line) (j : Etcdraft.ID)
+    (hp : Etcdraft.parseLine 0 (evConv e) = .ok ln) (hb : Etcdraft.isBootstrapName ln.ev.name = true) :
+    booted (L ++ [e]) j ↔ booted L j := by
+  constructor
+  · rintro ⟨x, hx, ln', hp', hn', hb'⟩
+    rw [List.mem_append, List.mem_singleton] at hx
+    rcases hx with hx | rfl
+    · exact ⟨x, hx, ln', hp', hn', hb'⟩
+    · rw [hp] at hp'; cases hp'; rw [hb] at hb'; cases hb'
+  · rintro ⟨x, hx, ln', hp', hn', hb'⟩
+    exact ⟨x, List.mem_append_left _ hx, ln', hp', hn', hb'⟩
+
 end TraceSim
 
 end EtcdGrove

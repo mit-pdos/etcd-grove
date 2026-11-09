@@ -461,6 +461,18 @@ abbrev trCap_fire_ready.statement : Prop :=
       ∃ (tn : TraceNames) (P : List Etcdraft.Msg) (Bn : GMap Nat Etcdraft.Msg), traceDir γd tn ∗
         ⌜((GMap.toList Bn).map Prod.snd).Perm P⌝ ∗ [∗map] k ↦ m ∈ Bn, inFlight tn k m)
 
+/-! ## The global step of a bootstrap line (Draft statement, review round 2's A7) -/
+
+/-- **A bootstrap line's law**: before its segment is over (`booted` unset), a node's bootstrap-named
+line is one `TraceNext` steps over, the state and the share unchanged. -/
+abbrev trCap_fire_boot.statement : Prop :=
+  ∀ (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (tl : GoInterface) (E : TraceEv → Prop)
+    (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop),
+  (∀ e, E e → ∃ ln, Etcdraft.parseLine 0 (evConv e) = .ok ln ∧ ln.nid = idAbs id ∧
+    Etcdraft.isBootstrapName ln.ev.name = true) →
+  (trCapB (some γd) γ r id c false Φ ∗ r.[raft, go!"traceLogger"] ↦□ tl : IProp GF) ⊢
+    TraceFire (some γd) tl E (trCapB (some γd) γ r id c false Φ)
+
 /-! ## The `Commit` path, traced -/
 
 /-- **`traceNodeEvent(evt, r)`, traced** (`traceNodeEvent.spec` with the gate): reads the logger;
