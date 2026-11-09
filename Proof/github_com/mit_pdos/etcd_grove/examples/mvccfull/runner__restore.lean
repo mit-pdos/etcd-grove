@@ -382,6 +382,43 @@ theorem runner.restore.wp_proof
     · iframe #; iframe
       simp only [mvccrand.rcKB_P, mvccrand.rcKB_γB, mvccrand.rcKB_be, mvccrand.rcKB_gx]
       iexact Hnisb
+    (try wp_auto)
+    -- `check(f.kv.Restore(newbe) == nil)`: the follower's incarnation, at the builder's state
+    iunfold runnerKeys at Hkeys
+    icases Hkeys with ⟨%keys, -, -, %Hsorted, -⟩
+    have hσb := logOk_hist ks Hsorted ops hlogOk v0.ops ops.length (by omega) (by omega)
+    rw [hveq]
+    have hmono := runM_mono ks ops v1.ops v0.ops (by omega)
+    have hbndb : bndOk ks (σOf ks ops v0.ops) b2 (histAt ks ops ops.length) := by
+      obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10⟩ := Hokf2
+      have hrf' : revAfter ks ops v1.ops ≤ revAfter ks ops v0.ops := revAfter_mono ks ops _ _ (by omega)
+      have hcf' := cmpAfter_mono ks ops v1.ops v0.ops (by omega)
+      have hlen0 : (σOf ks ops v0.ops).log.length = revAfter ks ops v0.ops + 1 := by
+        rw [← σOf_rev]; unfold MvccState.rev
+        have := runM_hs_len ks ops v0.ops
+        simp only [σOf, logOfHist, List.length_map]; unfold histAt at this ⊢; omega
+      rw [hveq] at hrbZ hcbZ hcb1
+      refine ⟨h1, ?_, ?_, ?_, ?_, ?_, ?_, hcb1, hσb.2.1, logOk_once ks Hsorted ops hlogOk _⟩
+      · rw [σOf_rev]; have := h2; rw [σOf_rev] at this
+        show sint.Z b1.1 ≤ ((revAfter ks ops v0.ops : Nat) : Int); omega
+      · show ((σOf ks ops v0.ops).rev : Int) ≤ sint.Z (W64 (revAfter ks ops vb'.ops : Int))
+        rw [hveq, hrbZ, σOf_rev]; exact Int.le_refl _
+      · show sint.Z (W64 (revAfter ks ops vb'.ops : Int)) < 2 ^ 62
+        rw [hveq, hrbZ]; have := runM_hs_len ks ops v0.ops; unfold revAfter MSt.rev; omega
+      · show (((σOf ks ops v0.ops).notifiedLog.length : Nat) : Int) ≤
+          sint.Z (W64 (revAfter ks ops vb'.ops : Int)) + 1
+        rw [hveq, hrbZ, σOf_notified, hlen0]; omega
+      · have := h6; show sint.Z b1.2.2.1 ≤ cmpAfter ks ops v0.ops
+        exact Int.le_trans this hcf'
+      · show cmpAfter ks ops v0.ops ≤ sint.Z (W64 (cmpAfter ks ops vb'.ops))
+        rw [hveq, hcbZ]; exact Int.le_refl _
+    have hitems := (logOk_leases ks Hksl ops hlogOk v0.ops).2.2
+    ihave Hau := restore_au hpers ks γ.h 1 mp1 γ.m1 v1.ι v1.kv qw1 (σOf ks ops v1.ops)
+      (σOf ks ops v0.ops) b2 (histAt ks ops ops.length) rfl rfl hbndb ⟨hmono.2.2, hmono.2.1⟩
+      $$ [Hret1 Hσw1 Hbw1]
+    · iframe #; iframe
+    rw [hkveq]
+    (try wp_auto)
     sorry
 
 end proof
