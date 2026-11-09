@@ -251,11 +251,14 @@ PROJECTS = [
         # `goose-lean-noproph2` (on 323320bb8): bc9c3868c reverted (673da07c8), its prophecy now the
         # prophecy patch etc/proph-patches/etcd/01-client-get-revision.patch (notes/decisions.md,
         # "Prophecies as patches of the Go code"); the fork carries no code for verification only.
+        # Then (sweep repairs 1, R1-3, 2026-11-08) a4d2bb172 on `goose-lean`: `purgeFile` no longer
+        # purges `.snap.db` files (`ReleaseSnapDBs` removes the ones below an opened or taken
+        # snapshot; nonissues/etcd-purge-snapdb-unopened.md, the user's option A via etcd-grove-82).
         # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="673da07c8fabc5a544d0017ff0cc241802bcd9b1",
+        rev="a4d2bb1720b9ab0c44919b5c032f3a8cc7511692",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
@@ -810,6 +813,22 @@ PROJECTS = [
                     "google.golang.org=", "net="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "partition")],
+    ),
+    Project(
+        name="mvccrand",
+        # mvcc's randomized tester (notes/mvccrand.md): the watchable store over a real backend and
+        # lessor with a post-lock hook, one writer, concurrent floored readers and a watch stream,
+        # each result checked against the history. A package of the examples' Go module
+        # (examples/go.mod); its imports are the etcd project's translations (names reached through
+        # the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "mvccrand"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "github.com/Masterminds/semver=",
+                    "go.etcd.io/etcd=", "go.etcd.io/raft/v3=", "go.uber.org=", "google.golang.org=",
+                    "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "mvccrand")],
     ),
     Project(
         name="watchkv",

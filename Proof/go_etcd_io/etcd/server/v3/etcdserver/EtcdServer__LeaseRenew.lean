@@ -105,7 +105,7 @@ local macro "renew_forward" : tactic => `(tactic| (
   wp_apply hReqT (structFieldRef EtcdServer go!"Cfg" s) rv.electionTicks rv.tickMs as %tmo -
   · iframe #
   (try wp_auto)
-  wp_apply context.wp_WithTimeout ctx1 _ tmo $$ [] as %cctx %γc %cancel %dl ⟨#Hcancel, #Hcctx⟩
+  wp_apply context.wp_WithTimeout ctx1 _ tmo $$ [] as %cctx %γc %cancel %dl ⟨#Hcancel, #Hcctx, -⟩
   · iframe #
   (try wp_auto)
   ihave #Hcc := Hcctx
@@ -367,7 +367,7 @@ theorem EtcdServer.LeaseRenew.wp_proof
   · ipureintro; rfl
   iintro %osl ⟨-, -⟩
   (try wp_auto)
-  wp_apply hStart tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, -, %Hinc1, #Hsp⟩
+  wp_apply hStart tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, -, %Hinc1, #Hsp, -⟩
   · iframe #; iunfold mvcc.txnCtx; iright; iexact Hctx
   ihave #Hctx1 := Hctx1w $$ Hctx
   iunfold trace.isSpan at Hsp

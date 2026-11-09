@@ -13,7 +13,8 @@ instance's well-formedness needs those of every package it imports.
 
 As in those, the package facts are assumptions about package initialization, not proved from
 `initialize'`; they are `True`, but for bbolt's `errors` (`bboltErrorsInit`: `ErrBucketNotFound`,
-an `errors.New` error) and the backend's (`backendInit`: the commit's prometheus histograms),
+an `errors.New` error) and the backend's (`backendInit`: the commit's prometheus histograms, and
+its defaults),
 2026-10-12, the backend's unit 2.
 -/
 module
@@ -89,13 +90,19 @@ instance histSpec_persistent (h : GoInterfaceOk) : Persistent (histSpec (GF := G
 
 /-- The backend's package facts: the commit's histograms of `metrics.go` (`rebalanceSec`,
 `spillSec`, `writeSec`, `commitSec`), each a fixed interface value whose `Observe` returns; and
-(item 8, 2026-10-17: until then a premise of `New`) `boltOpenOptions` (`boltOpenOptionsOk`). -/
+(item 8, 2026-10-17: until then a premise of `New`) `boltOpenOptions` (`boltOpenOptionsOk`); and
+(2026-11-07, for `DefaultBackendConfig`'s loads) the defaults of `backend.go`, which nothing writes
+after the initializer: `defaultBatchInterval = 100 * time.Millisecond`, `defaultBatchLimit = 10000`,
+`InitialMmapSize = 10 * 1024 * 1024 * 1024`. -/
 abbrev backendInit : IProp GF :=
   iprop((∃ h : GoInterfaceOk, globalAddr rebalanceSec ↦□ GoInterface.ok h ∗ histSpec h) ∗
     (∃ h : GoInterfaceOk, globalAddr spillSec ↦□ GoInterface.ok h ∗ histSpec h) ∗
     (∃ h : GoInterfaceOk, globalAddr writeSec ↦□ GoInterface.ok h ∗ histSpec h) ∗
     (∃ h : GoInterfaceOk, globalAddr commitSec ↦□ GoInterface.ok h ∗ histSpec h) ∗
-    EtcdGrove.backend.boltOpenOptionsOk)
+    EtcdGrove.backend.boltOpenOptionsOk ∗
+    globalAddr defaultBatchInterval ↦□ (W64 100000000) ∗
+    globalAddr defaultBatchLimit ↦□ (W64 10000) ∗
+    globalAddr InitialMmapSize ↦□ (W64 10737418240))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend :=
   define_is_pkg_init backendInit

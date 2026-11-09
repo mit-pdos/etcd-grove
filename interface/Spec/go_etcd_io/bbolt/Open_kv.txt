@@ -13,7 +13,7 @@ def bbolt.Open_kv.spec : Prop :=
           (▷
               ∀ db err,
                 backend.optsAt opts dq o ∗
-                    (⌜err ≠ GoInterface.nil⌝ ∨
+                    (⌜err ≠ GoInterface.nil ∧ ¬backend.dbOpenOk⌝ ∨
                       ⌜err = GoInterface.nil⌝ ∗
                         ∃ γ, backend.ownDB db γ D ∗ backend.wrTok γ ∗ backend.isDB db ∗ backend.dbFile db path) -∗
                   Φ (intoVal db, intoVal err)) -∗

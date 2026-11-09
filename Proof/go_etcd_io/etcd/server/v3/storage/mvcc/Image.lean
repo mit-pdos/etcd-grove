@@ -49,6 +49,11 @@ def noCmpData (D : Data) : Prop :=
   dget D go_etcd_io.etcd.server.v3.storage.schema.metaName schedKeyBytes = none ∧
   dget D go_etcd_io.etcd.server.v3.storage.schema.metaName finKeyBytes = none
 
+/-- Data with no compaction recorded holds none at the compaction keys (`fkVals`). -/
+theorem fkVals_of_noCmp {D : Data} (h : noCmpData D) : fkVals D = (none, none) := by
+  unfold fkVals; rw [show dget D go!"meta" go!"finishedCompactRev" = none from h.2,
+    show dget D go!"meta" go!"scheduledCompactRev" = none from h.1]
+
 /-- Data with no compaction recorded has none of the keys the backend tracks (`fkKey`: the same
 two keys of `Meta`). -/
 theorem fkAbsD_of_noCmp {D : Data} (h : noCmpData D) : fkAbsD D := by
@@ -64,11 +69,11 @@ omit package_sem in
 (`newPostK`'s `fkCl γ P D`) is at `0`. -/
 theorem bkNoCmp_of_fkCl (γ : BNames) (P : BParams) {D : Data} (h : noCmpData D) :
     fkCl (GF := GF) γ P D ⊢ bkNoCmp γ := by
-  iintro H
-  icases fkCl_parts (GF := GF) γ P D $$ H with ⟨H, -⟩
-  rw [fkInit_of_abs (fkAbsD_of_noCmp h)]
-  unfold bkNoCmp
-  iexact H
+  unfold fkCl
+  rw [fkInit_of_abs (fkAbsD_of_noCmp h), fkVals_of_noCmp h]
+  unfold bkNoCmp fkFlag
+  iintro ⟨H1, H2, H3, -⟩
+  iframe H1 H2 H3
 
 omit package_sem in
 /-- The same data's compaction keys are well formed: the bit at `true` (question 4, 2026-10-29). -/
@@ -85,11 +90,13 @@ bit from the same `fkCl`): over data with no compaction recorded, the no-compact
 bit at `true`. -/
 theorem bkNoCmp_fkV_of_fkCl (γ : BNames) (P : BParams) {D : Data} (h : noCmpData D) :
     fkCl (GF := GF) γ P D ⊢ bkNoCmp γ ∗ fkV γ true := by
-  iintro H
-  icases fkCl_parts (GF := GF) γ P D $$ H with ⟨H, Hv⟩
-  rw [fkInit_of_abs (fkAbsD_of_noCmp h), fkWInit_of_wf (fkWfD_of_abs P (fkAbsD_of_noCmp h))]
-  unfold bkNoCmp
-  iframe H Hv
+  unfold fkCl
+  rw [fkInit_of_abs (fkAbsD_of_noCmp h), fkVals_of_noCmp h,
+    fkWInit_of_wf (fkWfD_of_abs P (fkAbsD_of_noCmp h))]
+  unfold bkNoCmp fkFlag fkV fkVR
+  iintro ⟨H1, H2, H3, #Hv⟩
+  iframe H1 H2 H3
+  iexists 0, (none, none); iexact Hv
 
 omit package_sem in
 /-- **The bit over data whose compaction keys are well formed** (R10-1; a restart over a file that

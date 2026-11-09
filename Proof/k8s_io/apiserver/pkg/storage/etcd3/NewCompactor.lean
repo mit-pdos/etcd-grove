@@ -49,11 +49,14 @@ theorem NewCompactor.wp_proof
   wp_start as ⟨#Hcl, Hone, Hregs, #Hko, #Hwo, #Hcas, #Hkr, #Hclose⟩
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
-  ihave #Pft : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.util.feature $$ []
+  ihave #Pft : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.features $$ []
   · iPkgInit
-  ihave #Hft : (k8s_io.apiserver.pkg.storage.etcd3.featureInit : IProp GF) $$ []
+  -- (sweep repairs 1, B5) the default gate's specs, `features`' fact
+  ihave #Hft : (k8s_io.apiserver.pkg.storage.etcd3.featuresInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Pft
-  icases Hft with ⟨%g, #Hg, #Hen⟩
+  icases Hft with ⟨%g, #Hg, #Hgate⟩
+  iunfold EtcdGrove.k8sfeature.featureGateOk at Hgate
+  icases Hgate with ⟨#Hen, -⟩
   wp_auto
   wp_apply chan.wp_make1 (V := Unit) as %sc %γs ⟨#Hsch, %_, Hsoc⟩
   (try wp_auto)
@@ -125,7 +128,8 @@ theorem NewCompactor.wp_proof
   have hnp : k8s_io.apiserver.pkg.features.ListFromCacheSnapshot.isPanic = false := by
     simp [k8s_io.apiserver.pkg.features.ListFromCacheSnapshot]
   (try wp_auto)
-  wp_apply Hen as %b
+  wp_apply Hen as %b -
+  · ipureintro; decide
   (try wp_auto)
   -- the stop machinery, once the wait group's last `Add` is done
   ihave Hfin : (∀ n : w32, sync.join.ownAdder

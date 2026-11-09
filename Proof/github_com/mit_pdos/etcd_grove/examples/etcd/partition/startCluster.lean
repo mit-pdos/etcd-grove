@@ -67,7 +67,7 @@ theorem startCluster.wp_proof
     %mid₃, %R₁, %R₂, %R₃, %s₁, %s₂, %s₃, %br₁, %br₂, %br₃, Hcl⟩
   -- three clients, each of every bridge (failover, 2026-10-21, D27), at the members' watch
   -- environment
-  wp_apply (wp_NewClient clusterCfg lg (cluster3.watchEnv clusterCfg R₁ R₂ R₃ ρ₁.rd pfx)
+  wp_apply (wp_NewClient clusterCfg lg (cluster3.watchEnv clusterCfg R₁ R₂ R₃ (etcdstart.srvWOf E₁ ρ₁.rd false) (etcdstart.srvWOf E₂ ρ₂.rd false) (etcdstart.srvWOf E₃ ρ₃.rd false) ρ₁.rd pfx)
       clusterCfg_ok (by omega)) as %cl₁ %cerr₁ Hcl₁
   · iframe #
   icases Hcl₁ with (Hok₁ | %Hcfail)
@@ -81,7 +81,7 @@ theorem startCluster.wp_proof
   icases Hok₁ with ⟨%Hcerr, #Hnc₁, -⟩
   subst Hcerr
   wp_auto
-  wp_apply (wp_NewClient clusterCfg lg (cluster3.watchEnv clusterCfg R₁ R₂ R₃ ρ₁.rd pfx)
+  wp_apply (wp_NewClient clusterCfg lg (cluster3.watchEnv clusterCfg R₁ R₂ R₃ (etcdstart.srvWOf E₁ ρ₁.rd false) (etcdstart.srvWOf E₂ ρ₂.rd false) (etcdstart.srvWOf E₃ ρ₃.rd false) ρ₁.rd pfx)
       clusterCfg_ok (by omega)) as %cl₂ %cerr₂ Hcl₂
   · iframe #
   icases Hcl₂ with (Hok₂ | %Hcfail)
@@ -95,7 +95,7 @@ theorem startCluster.wp_proof
   icases Hok₂ with ⟨%Hcerr, #Hnc₂, -⟩
   subst Hcerr
   wp_auto
-  wp_apply (wp_NewClient clusterCfg lg (cluster3.watchEnv clusterCfg R₁ R₂ R₃ ρ₁.rd pfx)
+  wp_apply (wp_NewClient clusterCfg lg (cluster3.watchEnv clusterCfg R₁ R₂ R₃ (etcdstart.srvWOf E₁ ρ₁.rd false) (etcdstart.srvWOf E₂ ρ₂.rd false) (etcdstart.srvWOf E₃ ρ₃.rd false) ρ₁.rd pfx)
       clusterCfg_ok (by omega)) as %cl₃ %cerr₃ Hcl₃
   · iframe #
   icases Hcl₃ with (Hok₃ | %Hcfail)

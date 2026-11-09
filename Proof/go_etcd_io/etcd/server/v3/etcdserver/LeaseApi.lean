@@ -15,7 +15,7 @@ reader side and its reader pool). They are now two sealed slots (`etc/import-all
 
 A later change inside the lease subsystem (the expiry stage's Part X: admitting the revocable mode)
 changes their bodies and laws, not the hub's text. No `lease.Names` yet: the mode is the only datum
-the caller chooses (the lessor's ghost name is `NewLessor`'s, in the post's `E.γ.leases`), and
+the caller chooses (the lessor's ghost name is `NewLessor`'s, in the post's `(mvcc.api.mvccLeases E.γ)`), and
 `lg` stays `KVNames.lg` (the plan's C2).
 
 Couplings: `bootCfg`'s `on` is the auth mode; the coupling (auth on grants no lease) is owned by
@@ -121,7 +121,7 @@ theorem lease.bootCfg_of_run {lm : lease.Mode} {m : lease.Mode} {on : Bool}
   exact ⟨hlg, hon, hmono, hrev, hck⟩
 
 /-- **The lease subsystem's part of the built server** (sealed, persistent), of the server `s` at
-the apply environment `E` (whose `E.γ.leases` is the lessor's name), the auth mode `on` and the lease
+the apply environment `E` (whose `(mvcc.api.mvccLeases E.γ)` is the lessor's name), the auth mode `on` and the lease
 mode `m`: with auth on, its lessor finds no lease (`srvLessorNil`, what `start.specOn`'s apply thread
 takes); the peers' round tripper (`srvPeerRt`, `LeaseRenew`'s forwarding); the lessor's reader side
 (`srvLessorRd`) and its reader pool (`lease.lessorRdPool`, the lease checks' `Lookup`s); (the
@@ -131,9 +131,9 @@ lease-expiry plan's X2, 2026-11-04) the lessor's mode, monotone exactly in the m
 starts empty (`lease.lessorAt … 0 (∅, ∅, ∅)`, `lease.srvInv_first`). -/
 @[no_expose] def lease.srvInv (on : Bool) (s : Loc) (E : apply.AEnv GF) (m : lease.Mode) :
     IProp GF :=
-  iprop(□ (⌜on = true⌝ → srvLessorNil s) ∗ srvPeerRt s ∗ srvLessorRd s E.γ.leases ∗
-    lease.lessorRdPool E.γ.leases ∗ lease.lessorModeIs E.γ.leases (decide (m = .mono)) ∗
-    lease.lessorAt E.γ.leases 0 (∅, ∅, ∅))
+  iprop(□ (⌜on = true⌝ → srvLessorNil s) ∗ srvPeerRt s ∗ srvLessorRd s (mvcc.api.mvccLeases E.γ) ∗
+    lease.lessorRdPool (mvcc.api.mvccLeases E.γ) ∗ lease.lessorModeIs (mvcc.api.mvccLeases E.γ) (decide (m = .mono)) ∗
+    lease.lessorAt (mvcc.api.mvccLeases E.γ) 0 (∅, ∅, ∅))
 
 instance lease.srvInv_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) (m : lease.Mode) :
     Persistent (lease.srvInv on s E m) := by
@@ -141,16 +141,16 @@ instance lease.srvInv_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) (m : 
 
 /-- **`lease.srvInv` from `NewServer`'s construction**: its six facts. -/
 theorem lease.srvInv_intro (on : Bool) (s : Loc) (E : apply.AEnv GF) (m : lease.Mode) :
-    □ (⌜on = true⌝ → srvLessorNil s) ∗ srvPeerRt s ∗ srvLessorRd s E.γ.leases ∗
-      lease.lessorRdPool E.γ.leases ∗ lease.lessorModeIs E.γ.leases (decide (m = .mono)) ∗
-      lease.lessorAt E.γ.leases 0 (∅, ∅, ∅) ⊢
+    □ (⌜on = true⌝ → srvLessorNil s) ∗ srvPeerRt s ∗ srvLessorRd s (mvcc.api.mvccLeases E.γ) ∗
+      lease.lessorRdPool (mvcc.api.mvccLeases E.γ) ∗ lease.lessorModeIs (mvcc.api.mvccLeases E.γ) (decide (m = .mono)) ∗
+      lease.lessorAt (mvcc.api.mvccLeases E.γ) 0 (∅, ∅, ∅) ⊢
       lease.srvInv on s E m := by
   unfold lease.srvInv; exact .rfl
 
 /-- **The lessor's history starts empty** (the lease-expiry plan's E3 (c), 2026-11-05): its first
 snapshot has no lease, no item, no TTL. -/
 theorem lease.srvInv_first (on : Bool) (s : Loc) (E : apply.AEnv GF) (m : lease.Mode) :
-    lease.srvInv on s E m ⊢ lease.lessorAt E.γ.leases 0 (∅, ∅, ∅) := by
+    lease.srvInv on s E m ⊢ lease.lessorAt (mvcc.api.mvccLeases E.γ) 0 (∅, ∅, ∅) := by
   unfold lease.srvInv
   iintro ⟨-, -, -, -, -, #H⟩
   iexact H
@@ -174,7 +174,7 @@ theorem lease.srvInv_peerRt (on : Bool) (s : Loc) (E : apply.AEnv GF) (m : lease
 /-- **What the served lease reads take from `lease.srvInv`** (`raftLeaseRead_server`, through
 `etcdstart.srvLeaseRd`): the lessor's reader side and its reader pool. -/
 theorem lease.srvInv_lessorRd (on : Bool) (s : Loc) (E : apply.AEnv GF) (m : lease.Mode) :
-    lease.srvInv on s E m ⊢ srvLessorRd s E.γ.leases ∗ lease.lessorRdPool E.γ.leases := by
+    lease.srvInv on s E m ⊢ srvLessorRd s (mvcc.api.mvccLeases E.γ) ∗ lease.lessorRdPool (mvcc.api.mvccLeases E.γ) := by
   unfold lease.srvInv
   iintro ⟨-, -, #H1, #H2, -⟩
   iframe H1 H2
@@ -185,12 +185,12 @@ granted at an index `j ≥ i` of the monotone history (`leaseGrantedAt`, which e
 lists). What v3rpc's `lessorGrantOkL_of_server` takes. -/
 theorem lease.srvInv_grantedAt (on : Bool) (s : Loc) (E : apply.AEnv GF) (i : Nat) (id : w64)
     (l : Loc) :
-    lease.srvInv on s E .mono ∗ lease.leaseLiveFrom E.γ.leases i id l ⊢
-      ∃ j : Nat, ⌜i ≤ j⌝ ∗ lease.leaseGrantedAt E.γ.leases j id := by
+    lease.srvInv on s E .mono ∗ lease.leaseLiveFrom (mvcc.api.mvccLeases E.γ) i id l ⊢
+      ∃ j : Nat, ⌜i ≤ j⌝ ∗ lease.leaseGrantedAt (mvcc.api.mvccLeases E.γ) j id := by
   unfold lease.srvInv
   rw [show decide (lease.Mode.mono = lease.Mode.mono) = true from rfl]
   iintro ⟨⟨-, -, -, -, #Hm, -⟩, #Hl⟩
-  iapply lease.leaseGrantedAt_of_live E.γ.leases i id l
+  iapply lease.leaseGrantedAt_of_live (mvcc.api.mvccLeases E.γ) i id l
   isplitl
   · iexact Hm
   · iexact Hl

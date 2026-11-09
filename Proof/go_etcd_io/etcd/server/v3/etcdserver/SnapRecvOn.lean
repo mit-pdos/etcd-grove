@@ -164,9 +164,7 @@ theorem restoreLogOk_kvRaftOfOn [GooseExts] (c₀ : w64) (ch : apply.Chain) (st 
   have hsplit : [[], []] ++ (kvRaftOfOn c₀ ch (st, [[], []]) A).2.drop 2 =
       (kvRaftOfOn c₀ ch (st, [[], []]) A).2 := by
     rw [← hT]; simp
-  refine ⟨fun cs hcs => hne cs (by simpa using hcs), by rw [hsplit]; exact hwf, ?_⟩
-  intro cs hcs c hc k v l hcl
-  exact hnl cs (List.mem_of_mem_drop hcs) c hc k v l hcl
+  exact ⟨fun cs hcs => hne cs (by simpa using hcs), by rw [hsplit]; exact hwf⟩
 
 /-- The mode-on model at a prefix is a prefix of the model at the log. -/
 theorem kvModelOn_prefix [GooseExts] (γk : KVNames) (st₀ : auth.AuthState) {A A' : List EntryModel}
@@ -278,21 +276,19 @@ theorem authBucketsAt_rbData [GooseExts] (d : mvcc.KBReal) (D : backend.Data) (s
   rw [e]; exact h
 
 /-- **The facts `specSnapM` takes of a mode-on image** (`SnapImageFacts`', its auth buckets the
-state after the image's log, its KV log the mode-on model's; the image's compaction records `r`). -/
+state after the image's log, its KV log the mode-on model's). (R4, 2026-11-07, as `SnapImageFacts`'
+strict M1 restatement: the store's facts of the image are mvcc's `mvccImage` and the certificate's
+`imageStOk`, beside these; until then the restored log's tail `R`, its key image `keyImageM` at the
+records `r`, `restoreLogOk`, the KV jump's bound, now `imageStOk`'s.) -/
 structure SnapImageFactsOn [GooseExts] (γr : ReadNames) (d : mvcc.KBReal) (D : backend.Data)
-    (cl : Loc) (i : w64) (A A' : List EntryModel) (x : apply.ApplyKV) (R : mvcc.Log)
-    (r : mvcc.CmpRecs) (memI : GMap w64 apply.MemberM) : Prop where
+    (cl : Loc) (i : w64) (A A' : List EntryModel) (memI : GMap w64 apply.MemberM) : Prop where
   pre : A <+: A'
   len : uint.Z i = A'.length
-  log : [[], []] ++ R = kvModelOn γr.kv srvAuthSt0 A'
-  hpre : x.log <+: [[], []] ++ R
-  hkI : mvcc.keyImageM d.cm ([[], []] ++ R) r D
-  /-- the records at the image's committed log's compaction revision -/
-  crev : r.crev = crevOf γr.kv A'
+  /-- the image's state reachable, its history short (the sender's writer's facts) -/
+  hst : imageStOk (kvModelOn γr.kv srvAuthSt0 A') (crevOf γr.kv A')
+  /-- the image's history attaches no lease to a key (`kvRaftOfOn_restorable`) -/
+  nolease : mvcc.LogNoLease (kvModelOn γr.kv srvAuthSt0 A')
   hmetaI : ∃ t : w64, metaIs D (i, t)
-  hRok : mvcc.restoreLogOk R
-  /-- the image's KV model short enough (the KV jump's bound; review round 1's F7) -/
-  hlen : (kvModelOn γr.kv srvAuthSt0 A').length < 2 ^ 63
   /-- (the lease-expiry plan's S2–S4, 2026-11-05: until then the bucket empty) -/
   hlease : imageLeasesAt γr d.P D A'
   halarm : ((backend.rbData d.P D).lookup go!"alarm").getD ∅ = ∅
@@ -375,6 +371,54 @@ theorem kv_log_plainOn (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.Auth
   · intro m _ hd _ h; exact absurd hd h
   · intro m ht _ h0; rw [ht] at h0; exact absurd h0 (by decide)
 
+/-- (Sweep repairs 1, S4) **An entry of a good shape in the mode `on` has cluster requests `Recover`
+accepts** (`rqShape .none`'s, or an admitted admin request, whose kinds are neither). -/
+theorem clusterVerEntryOk_of_entryShapeOn (m : EntryModel) (h : entryShapeOn m) :
+    clusterVerEntryOk m := by
+  intro ht hd rq hdec
+  rcases h.1 ht with h0 | ⟨rq', hd', -, hs⟩
+  · exact absurd h0 hd
+  rw [hdec] at hd'
+  cases hd'
+  rcases hs with hs | ha
+  · exact clusterVer_of_rqShape .none rq hs
+  · constructor
+    · intro v hv
+      have hk : apply.dispatchKind rq = .clusterVersionSet := by simp [apply.dispatchKind, hv]
+      simp only [apply.adminKindOk, hk] at ha
+    · intro hk
+      simp only [apply.adminKindOk, hk] at ha
+
+/-- (Sweep repairs 1, S4) **The committed log's cluster requests are ones `Recover` accepts, in the
+mode `on`** (`kv_log_verOk`'s, of the mode-on KV invariant's `logShapeOn`). -/
+theorem kv_log_verOkOn (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
+    (B : List EntryModel) :
+    ⊢ kvInvOn (GF := GF) γ γk st₀ -∗ srvRaftLogInv γ -∗ srvRLogLb γ B ={⊤}=∗
+      ⌜clusterVerLogOk B⌝ := by
+  iintro #Hinv #Hr #HB
+  iunfold kvInvOn at Hinv
+  iinv Hinv with >Hi Hclose
+  icases Hi with ⟨%L, HL, Hσ, Hh, %Hok, #Hw⟩
+  imod srvRLog_lb γ (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
+    L B $$ Hr HL HB with ⟨HL, %Hp⟩
+  ihave %HBi := srvRLogLb_idx γ B $$ HB
+  ihave %Hsh : iprop(⌜logShapeOn L⌝) $$ []
+  · ihave #Hw' := Hw
+    iunfold kvWorkOn at Hw'; icases Hw' with ⟨%h, -⟩; ipureintro; exact h.1
+  imod Hclose $$ [HL Hσ Hh] with -
+  · inext; iexists L; iframe HL Hσ Hh Hw; ipureintro; exact Hok
+  imodintro
+  ipureintro
+  refine srv_entry_transfer γ.ai0 B L clusterVerEntryOk ?_ ?_ ?_ HBi Hp.2.2
+    (fun m hm => clusterVerEntryOk_of_entryShapeOn m (Hsh m hm))
+  · intro m m' he h ht hd rq hdec
+    have h1 := congrArg LogEntry.type he
+    have h2 := congrArg LogEntry.data he
+    simp only [EntryModel.toLE] at h1 h2
+    exact h (h1 ▸ ht) (h2 ▸ hd) rq (h2 ▸ hdec)
+  · intro m _ hd _ h; exact absurd hd h
+  · intro m ht _ h0; rw [ht] at h0; exact absurd h0 (by decide)
+
 /-- **Every conf change of a committed prefix is one the server's `applyConfChange` takes**
 (`kv_log_ccOk`'s, of the mode-on KV invariant's workload facts). -/
 theorem kv_log_ccOkOn (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
@@ -418,12 +462,14 @@ theorem kv_log_ccOkOn (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
 (`snapRecv_image`'s): for the receiver at the fresh cluster's start with the mode-on start values,
 its applied raft log `A` at the applied index `ai` below the snapshot's `i`, at least the boot
 log's length, and its rest resource on the real backend `d` of the cluster `cl` (`hRO`): a
-committed `A'` with `SnapImageFactsOn` at `memI` the model's members and the image's records `r`,
-`kvAppliedOn` and `srvRest` given back, the restored log's receipt and the two permits (the
-records empty: a mode-on log has no compaction, `crevOf_plainOn`). -/
+committed `A'` with `SnapImageFactsOn` at `memI` the model's members, mvcc's image of the mode-on
+model's history at `A'` and its compaction revision (`dbImageOn`'s) and that revision's permit
+(`E.Cp`: `-1`, a mode-on log compacts nothing, `crevOf_plainOn`), `kvAppliedOn` and `srvRest`
+given back. (R4, 2026-11-07, as `snapRecv_image`'s strict M1 restatement: over the restated
+`dbImageOn`; until then the restored log's receipt `restoreRcptM` and the permits `crevPermAt`.) -/
 theorem snapRecv_imageOn (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i ai : w64)
     (D : backend.Data) (d : mvcc.KBReal) (A : List EntryModel) (x : apply.ApplyKV) (cl : Loc)
-    (H : IProp GF) (sa : auth.AuthState) (_hkb : E.γ.kb = some d)
+    (H : IProp GF) (sa : auth.AuthState) (_hkb : E.BkTie = srvBkTie d)
     (hraft : γr.raft = ⟨γ, [], W64 0⟩) (hc0 : γr.kv.c0 = W64 0)
     (hch : γr.kv.ch0 = apply.alarmChain true false false) (hlog0 : γr.kv.log0 = [[], []])
     (hai : uint.Z ai = uint.Z γr.raft.ai0 + A.length) (hi : uint.Z ai < uint.Z i)
@@ -433,11 +479,11 @@ theorem snapRecv_imageOn (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i
       kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa -∗ srvRest E γr A -∗
       membership.isRaftCluster cl ={⊤}=∗
       kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa ∗ srvRest E γr A ∗
-      ∃ (A' : List EntryModel) (R : mvcc.Log) (r : mvcc.CmpRecs), srvRLogLb γr.raft A' ∗
-        ⌜SnapImageFactsOn γr d D cl i A A' x R r
+      ∃ (A' : List EntryModel) (u : Bool), srvRLogLb γr.raft A' ∗
+        ⌜SnapImageFactsOn γr d D cl i A A'
           (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).mem⌝ ∗
-        mvcc.restoreRcptM d ([[], []] ++ R) ∗ mvcc.crevPermAt E.γ r.finRev ∗
-        mvcc.crevPermAt E.γ r.crev := by
+        mvcc.api.mvccImage D (kvModelOn γr.kv srvAuthSt0 A') (crevOf γr.kv A') u ∗
+        E.Cp (crevOf γr.kv A') := by
   have hpre0 : γr.raft.pre = [] := by rw [hraft]
   have hai0 : γr.raft.ai0 = W64 0 := by rw [hraft]
   have hrr : γr.raft.raft = γ := by rw [hraft]
@@ -445,7 +491,7 @@ theorem snapRecv_imageOn (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i
   rw [srvRest_false E γr A hlg]
   iintro #Hinvs #Himg Hka Hrest #Hrc
   iunfold srvKVInvsOn at Hinvs
-  icases Hinvs with ⟨#HkI, #HcI, #HrI, -, %Hcok, #Hcp, -⟩
+  icases Hinvs with ⟨#HkI, #HcI, #HrI, -, -, %Hw, -⟩
   -- the certificate's KV names agree with the member's on the start values
   iunfold srvImageOn at Himg
   icases Himg with ⟨%γk', %hk', #Hdb⟩
@@ -460,12 +506,13 @@ theorem snapRecv_imageOn (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i
   have hcr : ∀ B, crevOf γk' B = crevOf γr.kv B := by
     intro B; simp only [crevOf, h0', h1', hc0, hch]
   iunfold dbImageOn at Hdb
-  icases Hdb with ⟨%A', #HA'0, %hA', #Hrcp0⟩
+  icases Hdb with ⟨%A', %u, #HA'0, %hA', #Him0⟩
   ihave #HA' : srvRLogLb γr.raft A' $$ []
   · rw [hraft]; iexact HA'0
-  obtain ⟨hlen', himA⟩ := hA'
+  obtain ⟨hlen', himA, hst⟩ := hA'
   simp only at hlen'
   rw [hz] at hlen'
+  rw [hk, hcr] at hst
   iunfold kvAppliedOn at Hka
   icases Hka with ⟨Hal, %Hch'⟩
   iunfold kvAppliedLOn at Hal
@@ -478,6 +525,8 @@ theorem snapRecv_imageOn (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i
     · exact h
     · have := h.length_le; omega
   imod kv_log_ccOkOn γr.raft γr.kv srvAuthSt0 A' $$ HkI HrI HA' with %Hcc
+  -- (sweep repairs 1, S4) the committed log's cluster requests
+  imod kv_log_verOkOn γr.raft γr.kv srvAuthSt0 A' $$ HkI HrI HA' with %Hver
   imod kv_log_plainOn γr.raft γr.kv srvAuthSt0 A' $$ HkI HrI HA' with %Hpl
   -- the cluster's in-memory members, from the rest resource
   rw [hRO]
@@ -495,40 +544,22 @@ theorem snapRecv_imageOn (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i
     intro m hm ht
     exact ccPolOk_static _ _ (Hcc m hm ht)
   ihave Hax := membership.clusterImageOk_restModel.wp_proof cl γr.raft γr.kv.c0
-    (γr.raft.pre ++ A) (γr.raft.pre ++ A') hpre0 hc0 hLL hbl hcc' _ (fun _ => rfl) $$ Hrc HA'' Hmem
+    (γr.raft.pre ++ A) (γr.raft.pre ++ A') hpre0 hc0 hLL hbl hcc'
+    (by rw [hpre0, List.nil_append]; exact Hver) _ (fun _ => rfl) $$ Hrc HA'' Hmem
   icases Hax with ⟨Hmem, %Himg⟩
   -- the image's clauses at the member's names
-  obtain ⟨⟨r, hkI, hr⟩, hci, htm, hrest, hauth, hwf⟩ := himA
-  rw [hk] at hkI hwf
-  rw [hcr] at hr
+  obtain ⟨hci, htm, hrest, hauth⟩ := himA
   rw [hsa] at hauth
   have hrest' : bkRestAtNA γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A') D := by
     intro n hn hna
     rw [hrest n hn hna, hpre0, hrr, hc0, h0']
   have hcrev : crevOf γr.kv A' = -1 := crevOf_plainOn γr.kv A' Hpl
-  have hb : mvcc.LogB (kvModelOn γr.kv srvAuthSt0 A') := ⟨by have := hwf.2.1; omega, hwf.2.2.2⟩
-  have hkI' : mvcc.keyImageM d.cm (kvModelOn γr.kv srvAuthSt0 A') r D :=
-    mvcc.keyImageM_mode _ _ _ r D hb hkI (fun _ _ => by rw [hr, hcrev])
-  have hre : r = mvcc.CmpRecs.empty := by
-    cases hdm : d.cm with
-    | false =>
-      rw [hdm] at hkI'
-      exact ((mvcc.keyImageM_off _ _ D).1 hkI').2
-    | true =>
-      rw [hdm] at hkI'
-      exact mvcc.CmpRecs.empty_of_crev r (mvcc.keyImageM_recsPos _ _ _ hkI') (by rw [hr, hcrev])
-  have hsplit := kvModelOn_split γr.kv srvAuthSt0 A' hlog0
-  have hrok : mvcc.restoreLogOk ((kvModelOn γr.kv srvAuthSt0 A').drop 2) := by
-    unfold kvModelOn at hwf ⊢
-    rw [hlog0] at hwf ⊢
-    exact restoreLogOk_kvRaftOfOn _ _ _ A' Hpl hwf
-  ihave #Hrcp : ⧖ (mvcc.logCh (kvModelOn γr.kv srvAuthSt0 A')) $$ []
-  · rw [← hk]; iexact Hrcp0
-  ihave #Hrcpt : mvcc.restoreRcptM (GF := GF) d (kvModelOn γr.kv srvAuthSt0 A') $$ []
-  · unfold mvcc.restoreRcptM
-    split
-    · iexact Hrcp
-    · itrivial
+  have hnl : mvcc.LogNoLease (kvModelOn γr.kv srvAuthSt0 A') := by
+    have hl0 : mvcc.LogNoLease ([[], []] : mvcc.Log) := by
+      intro cs hcs c hc; simp only [List.mem_cons, List.not_mem_nil, or_false] at hcs
+      rcases hcs with rfl | rfl <;> simp at hc
+    unfold kvModelOn; rw [hlog0]
+    exact (kvRaftOfOn_restorable _ _ (srvAuthSt0, [[], []]) A' Hpl hl0).1
   imodintro
   isplitl [Hhi]
   · iunfold kvAppliedOn
@@ -541,28 +572,17 @@ theorem snapRecv_imageOn (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i
     iunfold srvRestOwn
     iframe Hrb Hrn Hmem
     ipureintro; exact Hmi
-  iexists A', (kvModelOn γr.kv srvAuthSt0 A').drop 2, r
+  iexists A', u
   iframe HA'
-  rw [hsplit]
-  iframe Hrcpt
-  have hxl : x.log = kvModelOn γr.kv srvAuthSt0 A := by
-    unfold kvModelOn; rw [← Hl]
   have hTnil : (appliedTable γr A').ids = [] := by
     unfold appliedTable kvLeases; rw [hpre0, List.nil_append, kvTableOf_plainOn _ _ A' Hpl]; rfl
-  have hfacts : SnapImageFactsOn γr d D cl i A A' x ((kvModelOn γr.kv srvAuthSt0 A').drop 2) r
+  have hfacts : SnapImageFactsOn γr d D cl i A A'
       (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).mem := {
     pre := hAA'
     len := by omega
-    log := hsplit
-    hpre := by rw [hsplit, hxl]; exact kvModelOn_prefix _ _ hAA'
-    hkI := by rw [hsplit]; exact hkI'
-    crev := hr
+    hst := hst
+    nolease := hnl
     hmetaI := by obtain ⟨t, ht⟩ := htm; exact ⟨t, hci, ht⟩
-    hRok := hrok
-    hlen := by
-      rw [← hsplit]
-      have := hrok.2.1.2.1
-      omega
     hlease := imageLeasesAt_of_nil hTnil (image_leaseAlarmNA d hrest').1
     halarm := (image_leaseAlarmNA d hrest').2
     hauthI := authBucketsAt_rbData d D _ hauth
@@ -571,9 +591,14 @@ theorem snapRecv_imageOn (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i
     hA' := ⟨restModel_bk_of_bkRestAtNA d hrest', rfl⟩ }
   isplitr
   · ipureintro; exact hfacts
-  subst hre
-  rw [mvcc.CmpRecs.finRev_empty, mvcc.CmpRecs.crev_empty]
-  isplitr <;> iapply mvcc.crevPermAt_none
+  isplitr
+  · rw [← hk, ← hcr]; iexact Him0
+  -- the compaction revision's permit: `-1`
+  rw [Hw.2, hcrev]
+  iunfold kvCpOk
+  isplitl
+  · ileft; ipureintro; rfl
+  ipureintro; intro _; rfl
 
 /-- **The apply thread's KV ghost state jumps to a longer committed log, in the mode `on`**
 (`kv_cert_jump`'s counterpart): certified, at the mode-on model's state after `A'`. -/
@@ -653,32 +678,27 @@ theorem kv_cert_jumpOn (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.Auth
     ipureintro; exact hq
 
 /-- **The receiver's KV ghost state jumps to the image's log, in the mode `on`**
-(`snapRecv_kv_jump`'s counterpart). -/
+(`snapRecv_kv_jump`'s counterpart; R4, 2026-11-07, as its strict M1 restatement: no store
+certificate `certOk` of the restored log). -/
 theorem snapRecv_kv_jumpOn (E : apply.AEnv GF) (γr : ReadNames) (A A' : List EntryModel)
     (x : apply.ApplyKV) (sa : auth.AuthState) (hA : A <+: A')
     (hlen : (kvModelOn γr.kv srvAuthSt0 A').length < 2 ^ 63) :
     ⊢ srvKVInvsOn (GF := GF) E γr srvAuthSt0 -∗ kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa -∗
       srvRLogLb γr.raft A' ={⊤}=∗
-      ⌜x.chain = γr.kv.ch0⌝ ∗ mvcc.certOk E.γ (kvModelOn γr.kv srvAuthSt0 A') ∗
+      ⌜x.chain = γr.kv.ch0⌝ ∗
       kvAppliedLOn γr.raft γr.kv srvAuthSt0 A'
         (srvAuthAtLog γr.kv srvAuthSt0 A', kvModelOn γr.kv srvAuthSt0 A') := by
   iintro #Hinvs Ha #Hlb
   iunfold srvKVInvsOn at Hinvs
-  icases Hinvs with ⟨-, #HcI, -, -, %Hcok, -⟩
+  icases Hinvs with ⟨-, #HcI, -⟩
   iunfold kvAppliedOn at Ha
   icases Ha with ⟨Ha, %Hch⟩
   imod kv_cert_jumpOn γr.raft γr.kv srvAuthSt0 ⊤ (fun _ _ => CoPset.mem_full) A A' (sa, x.log) hA hlen
     $$ HcI Ha Hlb with Ha
-  iunfold kvAppliedLOn at Ha
-  icases Ha with ⟨#HB, Hhi, #Hc, %Hl⟩
   imodintro
   isplitr
   · ipureintro; exact Hch
-  isplitr
-  · iapply kvCert_certOk γr.kv E.γ Hcok $$ Hc
-  iunfold kvAppliedLOn
-  iframe HB Hhi Hc
-  ipureintro; exact Hl
+  iexact Ha
 
 end lemmas
 

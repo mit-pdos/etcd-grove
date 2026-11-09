@@ -56,7 +56,7 @@ abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specBatch : Prop :=
   γn.node = γr.raft.raft → γr.raft.pre = [] →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerM E.authOn s γ ci TM E ρ γr ∗ srvSnapDisk s γr ∗ appliedAtLeast γr ai ∗
-      (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗ srvSnapStor ms γs γr nk ai at' ∗
+      (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ □ mvcc.api.isMvcc kv E.γ ∗ ⌜kv = E.kv⌝) ∗ srvSnapStor ms γs γr nk ai at' ∗
       isServerApplyAll s γr ∗ srvWTPool E γp ∗ srvWTTaken γp.cnt w ∗ srvSnapState s ep ms γs ai (W64 0) ∗
       srvSnapFrozen γs (uint.nat ai) ∗
       -- (2026-10-31) `ep.confState` the voters' (or nothing applied: no snapshot is due at `0`), the
@@ -67,12 +67,14 @@ abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specBatch : Prop :=
       (letI := srvStor (GF := GF) γr.raft.raft; nodeAppliedLb γr.raft.raft.cl nk (uint.nat ai)) ∗
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKVM E.authOn s E γw x sa ∗
-      rnWalTokA γn (srvRAddr s) q ∗ rnWalHanded γn (uint.nat ai) }}
+      rnWalTokA γn (srvRAddr s) q ∗ rnWalHanded γn (uint.nat ai) ∗
+      -- (strict M1, 2026-11-06) the thread's token (`snapshot`'s, for `KV.Commit.contract`)
+      apply.applyTok E }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"snapshotIfNeededAndCompactRaftLog"))
       (Val #ep))
   {{ RET #(); ∃ st' : ApplyState, srvSnapState s ep ms γs ai (W64 0) ∗ srvSnapFrozen γs (uint.nat ai) ∗
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
-      applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKVM E.authOn s E γw x sa ∗ rnWalTokA γn (srvRAddr s) q ∗ ⌜loopOk γ st' ai ∧ ciEff γ st'.k = ciEff γ st.k⌝ }}
+      applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKVM E.authOn s E γw x sa ∗ rnWalTokA γn (srvRAddr s) q ∗ apply.applyTok E ∗ ⌜loopOk γ st' ai ∧ ciEff γ st'.k = ciEff γ st.k⌝ }}
 
 /-- (2026-11-01, J8a-5) **Nothing due** (after a snapshot's install, `applyAll.specSnapM`): with the
 disk and in-memory snapshot indices at the applied index `ai` (and `ai + memorySnapshotCount` not

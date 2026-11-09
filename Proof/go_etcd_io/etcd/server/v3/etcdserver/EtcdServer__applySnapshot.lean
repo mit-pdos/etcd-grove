@@ -75,25 +75,6 @@ theorem EtcdServer.applySnapshot.wp_proof_snapM
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
     (hSB : consistentIndex.SetBackend.spec (GF := GF) (hG := hG))
     (hLR : lease.lessor.Recover.spec (GF := GF) (hG := hG))
-    (hRst : mvcc.watchableStore.Restore.spec (GF := GF) (hG := hG))
-    (hCRT : backend.backend.ConcurrentReadTx.spec (GF := GF) (hG := hG))
-    (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
-    (hBT : backend.backend.BatchTx.spec (GF := GF) (hG := hG))
-    (hFC : backend.backend.ForceCommit.spec (GF := GF) (hG := hG))
-    (hSz : backend.backend.Size.spec (GF := GF) (hG := hG))
-    (hSzU : backend.backend.SizeInUse.spec (GF := GF) (hG := hG))
-    (hcRL : backend.concurrentReadTx.RLock.spec (GF := GF) (hG := hG))
-    (hcRU : backend.concurrentReadTx.RUnlock.spec (GF := GF) (hG := hG))
-    (hcUR : backend.concurrentReadTx.UnsafeRange.spec (GF := GF) (hG := hG))
-    (hrRL : backend.readTx.RLock.spec (GF := GF) (hG := hG))
-    (hrRU : backend.readTx.RUnlock.spec (GF := GF) (hG := hG))
-    (hrUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG))
-    (hLI : backend.batchTxBuffered.LockInsideApply.spec (GF := GF) (hG := hG))
-    (hLO : backend.batchTxBuffered.LockOutsideApply.spec (GF := GF) (hG := hG))
-    (hSP : backend.batchTxBuffered.UnsafeSeqPut.spec (GF := GF) (hG := hG))
-    (hUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := hG))
-    (hCB : backend.batchTxBuffered.UnsafeCreateBucket.spec (GF := GF) (hG := hG))
-    (hDel : backend.batchTxBuffered.UnsafeDelete.spec (GF := GF) (hG := hG))
     (hGTP : EtcdServer.getTxPostLockInsideApplyHook.spec (GF := GF) (hG := hG))
     (hSTP : backend.backend.SetTxPostLockInsideApplyHook.spec (GF := GF) (hG := hG))
     (hCIg : consistentIndex.ConsistentIndex.spec (GF := GF) (hG := hG))
@@ -122,15 +103,18 @@ theorem EtcdServer.applySnapshot.wp_proof_snapM
     (hTerm : EtcdServer.Term.spec (GF := GF) (hG := hG))
     (hFS : EtcdServer.ForceSnapshot.spec (GF := GF) (hG := hG))
     (hAG : v3alarm.AlarmStore.Get.spec (GF := GF) (hG := hG))
-    (hLSR : backend.backend.LockForSafeRangeDelete.spec (GF := GF) (hG := hG))
-    (hUSR : backend.backend.UnlockForSafeRangeDelete.spec (GF := GF) (hG := hG))
     (hRec : auth.authStore.Recover.spec (GF := GF) (hG := hG))
-    (hWrite : mvcc.watchableStore.Write.spec (GF := GF) (hG := hG))
-    (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG)) :
+    (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG))
+    -- (R4, 2026-11-07) mvcc's laws (the walk's restore and open, `applySnapshot_walk`)
+    [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+    [bkSem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
+    (Hp : mvcc.api.persistent.law (GF := GF)) (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
+    (hWA : mvcc.api.mvccW_alloc.law (GF := GF)) (hOpen : mvcc.api.etcdStorage_open.law (GF := GF))
+    (hRest : mvcc.api.backendRest_open.law (GF := GF)) :
     EtcdServer.applySnapshot.specSnapM (GF := GF) (hG := hG) := by
-  · intro s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi d D lgh hkb hdbo hsop hP hcfgl hmmap tI hmeta st b hle al ast lp cl x A r0 hRO hwq R hpre hRok r hcc hkI hbr hlp γp hrbw stp γd γt img nt hstp hnt halarm halbi hmemb memI himg γn t c rs dir ps idm hdir hdok hps hlid msi cs0 fg quota wad hbuq A' hAA' hA' hleaseI hpre0 hlmk hany hauthI γnc
+  · intro s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi d D lgh hkb hdbo hsop hP hcfgl hmmap tI hmeta st b hle al ast lp cl x A r0 hRO A' u hxA hst hnl hbr hlp γp hrbw stp γd γt img nt hstp hnt halarm halbi hmemb memI himg γn t c rs dir ps idm hdir hdok hps hlid msi cs0 fg quota wad hbuq hAA' hA' hleaseI hpre0 hlmk hany hauthI γnc
     iintro %Φ Hpre HΦ
-    icases Hpre with ⟨#Hpkg, #Hsrv, #Hsn, #Hsnap, #Hnc, #Hncb, Hrcv, Hai, Hat, Hdsi, Hlr, Hbr, Htk, #Hcfg, #Hssf, #Hhkf, #Hiss, Hfile, Hpath, #Hfg, #Hbh, Hst, Hab, HKV, HRS, #HAlb, #Hlinv, #Hlpf, #Hlrev, Hkvc, #Hkvex, #Hcok, #Hrcpt, #Hpf, #Hpc, #HkSz, #HWP, #Hstpf, #Hsdinv, Hγt, #Half, #HisAl, #Haustf, #Hclf, #Hirc, #Htrf, Htlive, #Hmidf, #Hmembers, Hmsi, Hcs0, #Hfgf, #Hfgok, #Hqbf, #Hwadf, #HoSC, HoOh, HauR, #HalA, #HauA, #HleA, #HclA, #Hlcfg, #Hllk, #Hrcn, #HmetaB⟩
+    icases Hpre with ⟨#Hpkg, #Hsrv, #Hsn, #Hsnap, #Hnc, #Hncb, Hrcv, Hai, Hat, Hdsi, Hlr, Hbr, Htk, #Hcfg, #Hssf, #Hhkf, #Hiss, Hfile, Hpath, #Hfg, #Hvoff, #Hbh, Hst, Hab, HKV, HRS, #HAlb, #Hlinv, #Hlpf, #Hlrev, #Hkvf, #Him, HCp, #HkSz, #HWP, #Hstpf, #Hsdinv, Hγt, #Half, #HisAl, #Haustf, #Hclf, #Hirc, #Htrf, Htlive, #Hmidf, #Hmembers, Hmsi, Hcs0, #Hfgf, #Hfgok, #Hqbf, #Hwadf, #HoSC, HoOh, HauR, #HalA, #HauA, #HleA, #HclA, #Hlcfg, #Hllk, #Hrcn, #HmetaB⟩
     -- (the lease-expiry plan's S2–S4, 2026-11-05) a cluster that grants leases restores the image's
     -- records (`Recover` at the lessor's mode, the records `imageLeasesAt_recs`)
     cases hlgE : E.lg
@@ -227,12 +211,12 @@ theorem EtcdServer.applySnapshot.wp_proof_snapM
       -- the walk's lessor premises
       ihave #HRqs : □ (⌜decide (E.lm = .mono) = true → ∀ u ∈ U, u ∈ srvIds E (appliedTable γr A).ids⌝ -∗
           [∗list] x ∈ recs, ⌜x.1 ∉ U⌝ ∨
-            lease.leaseReqIs E.γ.leases x.1 (tableReq (appliedTable γr A') x.1)) $$ []
+            lease.leaseReqIs (mvcc.api.mvccLeases E.γ) x.1 (tableReq (appliedTable γr A') x.1)) $$ []
       · iintro !> %hmU
         have key : □ (∀ p : w64 × w64, ⌜p ∈ appliedTable γr A⌝ -∗
-            lease.leaseReqIs E.γ.leases p.1 p.2) ⊢
+            lease.leaseReqIs (mvcc.api.mvccLeases E.γ) p.1 p.2) ⊢
             [∗list] x ∈ recs, (⌜x.1 ∉ U⌝ ∨
-              lease.leaseReqIs (GF := GF) E.γ.leases x.1 (tableReq (appliedTable γr A') x.1)) := by
+              lease.leaseReqIs (GF := GF) (mvcc.api.mvccLeases E.γ) x.1 (tableReq (appliedTable γr A') x.1)) := by
           apply BigSepL.bigSepL_intro
           intro k x hk
           refine intuitionistically_elim.trans ?_
@@ -245,23 +229,23 @@ theorem EtcdServer.applySnapshot.wp_proof_snapM
           · ileft; ipureintro; exact hxU
         iapply key
         iexact HRq2
-      ihave #HGrs : □ ([∗list] id ∈ recs.map (·.1), lease.leaseGranted E.γ.leases id) $$ []
+      ihave #HGrs : □ ([∗list] id ∈ recs.map (·.1), lease.leaseGranted (mvcc.api.mvccLeases E.γ) id) $$ []
       · iintro !>
-        have key : □ (∀ id : w64, lease.leaseGranted (GF := GF) E.γ.leases id) ⊢
-            [∗list] id ∈ recs.map (·.1), lease.leaseGranted E.γ.leases id := by
+        have key : □ (∀ id : w64, lease.leaseGranted (GF := GF) (mvcc.api.mvccLeases E.γ) id) ⊢
+            [∗list] id ∈ recs.map (·.1), lease.leaseGranted (mvcc.api.mvccLeases E.γ) id := by
           apply BigSepL.bigSepL_intro
           intro k x hk
           refine intuitionistically_elim.trans ?_
           iintro #H; iapply H
         iapply key; iexact HGall
       iapply wp_fupd
-      iapply (applySnapshot_walk hIES hLg hInfo hU64 hGI hGT hOSB hOn hSave hPut hBUR hID hName hSafe s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi d D lgh hkb hdbo hsop hP hcfgl hmmap tI hmeta hSB st b hle hLR al ast lp cl x A hRO hany (fun _ => authRecoverOn_glue hRec) (decide (E.lm = .mono)) recs U
+      iapply (applySnapshot_walk hIES hLg hInfo hU64 hGI hGT hOSB hOn hSave hPut hBUR hID hName hSafe Hp hsh hWA hOpen hRest s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi d D lgh hkb hdbo hsop hP hcfgl hmmap tI hmeta hSB st b hle hLR al ast lp cl x A hRO hany (fun _ => authRecoverOn_glue hRec) (decide (E.lm = .mono)) recs U
         (tableReq (appliedTable γr A')) (srvIds E (appliedTable γr A').ids)
         (srvIds E (appliedTable γr A).ids) hbe hrmono hrUL (fun _ => hlgE) hreq hperm
         (fun h => by rw [hlgE] at h; cases h)
-        (apply.restLeasesWith f0 (srvIds E (appliedTable γr A).ids) r0) hwq hRst hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU hrUR hLI hLO hSP hUL hCB hDel R hpre hRok r hcc hkI hbr hGTP hSTP hCIg γp hrbw hRel stp γd γt img nt hstp hnt hNAB hAR halarm halbi hlp hNAuB A' hauthI hAA' hNMB hCSB hmemb hClose hCRec memI himg hRAP hAP hMID γn t c rs dir ps idm hdir hdok hps hlid hNUA msi cs0 fg quota wad hbuq γnc hAG hLSR hUSR hWrite hTODO) $$ [Hrcv Hai Hat Hdsi Hlr Hbr Hfile Hpath Hst Hab HKV HRO HL0 HEvU Hkvc Hγt Htlive Hmsi Hcs0 HoOh Htk HauR]
+        (apply.restLeasesWith f0 (srvIds E (appliedTable γr A).ids) r0) u hxA hbr hGTP hSTP hCIg γp hrbw hRel stp γd γt img nt hstp hnt hNAB hAR halarm halbi hlp hNAuB A' hauthI hAA' hst hnl hNMB hCSB hmemb hClose hCRec memI himg hRAP hAP hMID γn t c rs dir ps idm hdir hdok hps hlid hNUA msi cs0 fg quota wad hbuq γnc hAG hTODO) $$ [Hrcv Hai Hat Hdsi Hlr Hbr Hfile Hpath Hst Hab HKV HRO HL0 HEvU HCp Hγt Htlive Hmsi Hcs0 HoOh Htk HauR]
       · iframe #
-        iframe Hrcv Hai Hat Hdsi Hlr Hbr Hfile Hpath Hst Hab HKV HRO HL0 HEvU Hkvc Hγt Htlive Hmsi Hcs0 HoOh Htk HauR
+        iframe Hrcv Hai Hat Hdsi Hlr Hbr Hfile Hpath Hst Hab HKV HRO HL0 HEvU HCp Hγt Htlive Hmsi Hcs0 HoOh Htk HauR
       iintro !> ⟨Hw, Hrcv, Htk⟩
       have hUok' : srvEverOk E A' (U ++ recs.map (·.1)) := by
         refine ⟨fun h => (by rw [hlgE] at h; cases h), fun hr u hu => ?_⟩
@@ -275,7 +259,7 @@ theorem EtcdServer.applySnapshot.wp_proof_snapM
         intro _ p hp
         obtain ⟨x, hx, hx1⟩ := List.mem_map.1 (hperm'.mem_iff.2 (List.mem_map.2 ⟨p, hp, rfl⟩))
         exact ⟨x, hx, hx1, by rw [hx1, tableReq_of_mem hnT' hp]⟩
-      ihave Hpost := (srvSnapApplied_of_walk hGL hAt hDt hSRD hLk hGrant hCk hTTL hRv hMID hLead hTerm hFS hCIg s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi d D lgh hkb hdbo hsop hP hcfgl tI hmeta st b hle al ast lp cl x A hRO hwq R hpre hRok r hkI hbr hlp γp hrbw stp γd γt img nt hstp hnt halarm hmemb memI himg γn t c rs dir ps idm hdir hdok hps hlid msi cs0 fg quota wad hbuq A' hA' hany (srvIds E (appliedTable γr A').ids) recs U
+      ihave Hpost := (srvSnapApplied_of_walk hGL hAt hDt hSRD hLk hGrant hCk hTTL hRv hMID hLead hTerm hFS hCIg Hp s ep sv γ ci TM E ρ γr cfg ss hk d D ⟨hP.2.2.1, hP.2.2.2⟩ al ast lp cl x A hlp γp γt memI γn t c rs idm quota wad A' hxA.1 hAA' hnl hA'.2 hany (srvIds E (appliedTable γr A').ids) recs U
         (tableReq (appliedTable γr A')) f rfl hUok' hbkG (fun _ => hfT) hreqT) $$ [Hw]
       · iframe #
         iframe Hw
@@ -283,7 +267,7 @@ theorem EtcdServer.applySnapshot.wp_proof_snapM
       imodintro
       iapply HΦ
       iframe Hrcv Htk
-      iapply (srvSnapAppliedM_of_G s ep sv γ ci E ρ γr d R r A' ss (config.backendPathOf cfg.DataDir') γt γn t c rs idm lp al ast cl hany)
+      iapply (srvSnapAppliedM_of_G s ep sv γ ci E ρ γr d A' ss (config.backendPathOf cfg.DataDir') γt γn t c rs idm lp al ast cl hany)
       iexact Hpost
     -- a cluster that grants none (`specSnapM`'s premise until S2–S4): the image's lease bucket
     -- empty, the lessor revocable
@@ -322,9 +306,9 @@ theorem EtcdServer.applySnapshot.wp_proof_snapM
     imod Hnil with %hTnil
     have hlease : ((backend.rbData d.P D).lookup go!"lease").getD ∅ = ∅ :=
       imageLeasesAt_nil hTnil hleaseI
-    ihave #Hlrev2 : lease.lessorRevocable E.γ.leases $$ []
-    · have heq : lease.lessorModeIs (GF := GF) E.γ.leases (decide (E.lm = .mono)) =
-          lease.lessorRevocable E.γ.leases := by
+    ihave #Hlrev2 : lease.lessorRevocable (mvcc.api.mvccLeases E.γ) $$ []
+    · have heq : lease.lessorModeIs (GF := GF) (mvcc.api.mvccLeases E.γ) (decide (E.lm = .mono)) =
+          lease.lessorRevocable (mvcc.api.mvccLeases E.γ) := by
         rw [apply.AEnv.lm_of_lg_false hlgE]; rfl
       rw [← heq]; iexact Hlrev
     ihave HRS : E.RO r0 $$ [HRS]
@@ -346,11 +330,11 @@ theorem EtcdServer.applySnapshot.wp_proof_snapM
       rw [hids, apply.restLeasesWith_nil, hlease]
       exact snapRestImgM_bk E.authMode γr d.P D A' hany hA'.1 n hn
     iapply wp_fupd
-    iapply (applySnapshot_walk hIES hLg hInfo hU64 hGI hGT hOSB hOn hSave hPut hBUR hID hName hSafe s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi d D lgh hkb hdbo hsop hP hcfgl hmmap tI hmeta hSB st b hle hLR al ast lp cl x A hRO hany (fun _ => authRecoverOn_glue hRec) false [] [] (fun _ => 0) [] []
+    iapply (applySnapshot_walk hIES hLg hInfo hU64 hGI hGT hOSB hOn hSave hPut hBUR hID hName hSafe Hp hsh hWA hOpen hRest s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi d D lgh hkb hdbo hsop hP hcfgl hmmap tI hmeta hSB st b hle hLR al ast lp cl x A hRO hany (fun _ => authRecoverOn_glue hRec) false [] [] (fun _ => 0) [] []
       hbe0 (fun h => by cases h) (by simp) (fun h => by cases h) (by simp) List.Perm.nil
-      (fun _ => ⟨rfl, rfl⟩) r0 hwq hRst hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU hrUR hLI hLO hSP hUL hCB hDel R hpre hRok r hcc hkI hbr hGTP hSTP hCIg γp hrbw hRel stp γd γt img nt hstp hnt hNAB hAR halarm halbi hlp hNAuB A' hauthI hAA' hNMB hCSB hmemb hClose hCRec memI himg hRAP hAP hMID γn t c rs dir ps idm hdir hdok hps hlid hNUA msi cs0 fg quota wad hbuq γnc hAG hLSR hUSR hWrite hTODO) $$ [Hrcv Hai Hat Hdsi Hlr Hbr Hfile Hpath Hst Hab HKV HRS Hkvc Hγt Htlive Hmsi Hcs0 HoOh Htk HauR]
+      (fun _ => ⟨rfl, rfl⟩) r0 u hxA hbr hGTP hSTP hCIg γp hrbw hRel stp γd γt img nt hstp hnt hNAB hAR halarm halbi hlp hNAuB A' hauthI hAA' hst hnl hNMB hCSB hmemb hClose hCRec memI himg hRAP hAP hMID γn t c rs dir ps idm hdir hdok hps hlid hNUA msi cs0 fg quota wad hbuq γnc hAG hTODO) $$ [Hrcv Hai Hat Hdsi Hlr Hbr Hfile Hpath Hst Hab HKV HRS HCp Hγt Htlive Hmsi Hcs0 HoOh Htk HauR]
     · iframe #
-      iframe Hrcv Hai Hat Hdsi Hlr Hbr Hfile Hpath Hst Hab HKV HRS Hkvc Hγt Htlive Hmsi Hcs0 HoOh Htk HauR
+      iframe Hrcv Hai Hat Hdsi Hlr Hbr Hfile Hpath Hst Hab HKV HRS HCp Hγt Htlive Hmsi Hcs0 HoOh Htk HauR
       rw [apply.ltHalf_false E [] hlgE, apply.everOwn_false E [] hlgE]
       simp only [List.map_nil]
       isplitr; · itrivial
@@ -358,7 +342,7 @@ theorem EtcdServer.applySnapshot.wp_proof_snapM
       isplitr; · iintro !> -; iapply BigSepL.bigSepL_nil; iempintro
       iintro !>; iapply BigSepL.bigSepL_nil; iempintro
     iintro !> ⟨Hw, Hrcv, Htk⟩
-    ihave Hpost := (srvSnapApplied_of_walk hGL hAt hDt hSRD hLk hGrant hCk hTTL hRv hMID hLead hTerm hFS hCIg s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi d D lgh hkb hdbo hsop hP hcfgl tI hmeta st b hle al ast lp cl x A hRO hwq R hpre hRok r hkI hbr hlp γp hrbw stp γd γt img nt hstp hnt halarm hmemb memI himg γn t c rs dir ps idm hdir hdok hps hlid msi cs0 fg quota wad hbuq A' hA' hany [] [] [] (fun _ => 0) (fun _ => 0) hLr hUok hbkG
+    ihave Hpost := (srvSnapApplied_of_walk hGL hAt hDt hSRD hLk hGrant hCk hTTL hRv hMID hLead hTerm hFS hCIg Hp s ep sv γ ci TM E ρ γr cfg ss hk d D ⟨hP.2.2.1, hP.2.2.2⟩ al ast lp cl x A hlp γp γt memI γn t c rs idm quota wad A' hxA.1 hAA' hnl hA'.2 hany [] [] [] (fun _ => 0) (fun _ => 0) hLr hUok hbkG
       (fun h => by rw [hlgE] at h; cases h) (fun h => by rw [hlgE] at h; cases h)) $$ [Hw]
     · iframe #
       iframe Hw
@@ -367,7 +351,7 @@ theorem EtcdServer.applySnapshot.wp_proof_snapM
     imodintro
     iapply HΦ
     iframe Hrcv Htk
-    iapply (srvSnapAppliedM_of_G s ep sv γ ci E ρ γr d R r A' ss (config.backendPathOf cfg.DataDir') γt γn t c rs idm lp al ast cl hany)
+    iapply (srvSnapAppliedM_of_G s ep sv γ ci E ρ γr d A' ss (config.backendPathOf cfg.DataDir') γt γn t c rs idm lp al ast cl hany)
     iexact Hpost
 
 /-- **`applySnapshot.spec`** (J8b, 2026-11-01): `wp_proofEmpty` and `wp_proof_snapM` (since
@@ -389,25 +373,6 @@ theorem EtcdServer.applySnapshot.wp_proof
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
     (hSB : consistentIndex.SetBackend.spec (GF := GF) (hG := hG))
     (hLR : lease.lessor.Recover.spec (GF := GF) (hG := hG))
-    (hRst : mvcc.watchableStore.Restore.spec (GF := GF) (hG := hG))
-    (hCRT : backend.backend.ConcurrentReadTx.spec (GF := GF) (hG := hG))
-    (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
-    (hBT : backend.backend.BatchTx.spec (GF := GF) (hG := hG))
-    (hFC : backend.backend.ForceCommit.spec (GF := GF) (hG := hG))
-    (hSz : backend.backend.Size.spec (GF := GF) (hG := hG))
-    (hSzU : backend.backend.SizeInUse.spec (GF := GF) (hG := hG))
-    (hcRL : backend.concurrentReadTx.RLock.spec (GF := GF) (hG := hG))
-    (hcRU : backend.concurrentReadTx.RUnlock.spec (GF := GF) (hG := hG))
-    (hcUR : backend.concurrentReadTx.UnsafeRange.spec (GF := GF) (hG := hG))
-    (hrRL : backend.readTx.RLock.spec (GF := GF) (hG := hG))
-    (hrRU : backend.readTx.RUnlock.spec (GF := GF) (hG := hG))
-    (hrUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG))
-    (hLI : backend.batchTxBuffered.LockInsideApply.spec (GF := GF) (hG := hG))
-    (hLO : backend.batchTxBuffered.LockOutsideApply.spec (GF := GF) (hG := hG))
-    (hSP : backend.batchTxBuffered.UnsafeSeqPut.spec (GF := GF) (hG := hG))
-    (hUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := hG))
-    (hCB : backend.batchTxBuffered.UnsafeCreateBucket.spec (GF := GF) (hG := hG))
-    (hDel : backend.batchTxBuffered.UnsafeDelete.spec (GF := GF) (hG := hG))
     (hGTP : EtcdServer.getTxPostLockInsideApplyHook.spec (GF := GF) (hG := hG))
     (hSTP : backend.backend.SetTxPostLockInsideApplyHook.spec (GF := GF) (hG := hG))
     (hCIg : consistentIndex.ConsistentIndex.spec (GF := GF) (hG := hG))
@@ -436,14 +401,16 @@ theorem EtcdServer.applySnapshot.wp_proof
     (hTerm : EtcdServer.Term.spec (GF := GF) (hG := hG))
     (hFS : EtcdServer.ForceSnapshot.spec (GF := GF) (hG := hG))
     (hAG : v3alarm.AlarmStore.Get.spec (GF := GF) (hG := hG))
-    (hLSR : backend.backend.LockForSafeRangeDelete.spec (GF := GF) (hG := hG))
-    (hUSR : backend.backend.UnlockForSafeRangeDelete.spec (GF := GF) (hG := hG))
     (hRec : auth.authStore.Recover.spec (GF := GF) (hG := hG))
-    (hWrite : mvcc.watchableStore.Write.spec (GF := GF) (hG := hG))
-    (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG)) :
+    (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG))
+    [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+    [bkSem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
+    (Hp : mvcc.api.persistent.law (GF := GF)) (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
+    (hWA : mvcc.api.mvccW_alloc.law (GF := GF)) (hOpen : mvcc.api.etcdStorage_open.law (GF := GF))
+    (hRest : mvcc.api.backendRest_open.law (GF := GF)) :
     EtcdServer.applySnapshot.spec (GF := GF) (hG := hG) :=
   ⟨EtcdServer.applySnapshot.wp_proofEmpty hIES,
-    EtcdServer.applySnapshot.wp_proof_snapM hIES hLg hInfo hU64 hGI hGT hOSB hOn hSave hPut hBUR hID hName hSafe hSB hLR hRst hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU hrUR hLI hLO hSP hUL hCB hDel hGTP hSTP hCIg hRel hNAB hAR hNAuB hNMB hCSB hClose hCRec hRAP hAP hMID hNUA hGL hAt hDt hSRD hLk hGrant hCk hTTL hRv hLead hTerm hFS hAG hLSR hUSR hRec hWrite hTODO⟩
+    EtcdServer.applySnapshot.wp_proof_snapM hIES hLg hInfo hU64 hGI hGT hOSB hOn hSave hPut hBUR hID hName hSafe hSB hLR hGTP hSTP hCIg hRel hNAB hAR hNAuB hNMB hCSB hClose hCRec hRAP hAP hMID hNUA hGL hAt hDt hSRD hLk hGrant hCk hTTL hRv hLead hTerm hFS hAG hRec hTODO Hp hsh hWA hOpen hRest⟩
 
 end proof
 

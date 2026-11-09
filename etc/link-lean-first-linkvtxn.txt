@@ -95,4 +95,4 @@ etcdstart_StartServer: @
 etcdstart_Serve: @
 etcdstart_NewClient: @
 zap_NewNop:
-txnlin_Main: zap_NewNop etcdstart_StartServer etcdstart_Serve etcdstart_NewClient txnlin_Check
+txnlin_Main: zap_NewNop etcdstart_StartServer etcdstart_Serve etcdstart_NewClient txnlin_Check =mvcc.api.mvccApi_names_nonempty_law_holds

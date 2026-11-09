@@ -6,6 +6,7 @@ txn package (unit 3: `txn` and `executeTxn` test `len(txnWrite.Changes())`); see
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRange
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.TxnSteps
 
 @[expose] public section
 
@@ -29,13 +30,14 @@ shares them with the watchers); the transaction keeps its core (`isTxnWrite_join
 transaction back). -/
 abbrev mvcc.metricsTxnWrite.Changes.spec : Prop :=
   ∀ (trace : Loc) (mw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
-    (puts deletes putSize : w64) (crev : Int) (Z : IProp GF) (ld : Bool),
+    (puts deletes putSize : w64) (crev : Int) (Z : IProp GF) (ld : Bool) (Tr : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isTxnWrite mw s γ trace ilog pend puts deletes putSize crev Z ld }}
+      mvcc.isTxnWriteT mw s γ trace ilog pend puts deletes putSize crev Z ld Tr }}
     (App (Val (mw @!! go.GoType.PointerType metricsTxnWrite.ty @!! go!"Changes")) (Val #()))
   {{ (chs : GoSlice) (ps : List Loc), RET #chs;
       chs ↦* ps ∗ mvcc.changesAre ps ilog pend ∗ ⌜ps.length = pend.length⌝ ∗
-      mvcc.isTxnWriteCore mw s γ trace ilog pend puts deletes putSize chs ps false crev Z ld }}
+      mvcc.isTxnWriteCoreY mw s γ trace ilog pend puts deletes putSize chs ps false crev Z ld
+        (mvcc.slotY γ ilog) Tr }}
 
 end spec
 

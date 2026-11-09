@@ -15,6 +15,7 @@ public import Proof.go_uber_org.zap.NewNop
 public import Perennial.Proof.context.Link
 public import Proof.context.Link
 public import Proof.context.WithTimeoutBackground
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 
 @[expose] public section
 
@@ -45,7 +46,7 @@ theorem etcd_putget.wp_Main [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3
     etcd_putget.Main.spec (GF := GF) (hG := hG) :=
   etcd_putget.Main.wp_proof zap.NewNop.wp_proof etcdstart.wp_StartServer etcdstart.wp_Serve
     etcdstart.wp_NewClient context.wp_Background context.WithTimeoutBackground.wp_proof
-    context.wp_ErrAny
+    context.wp_ErrAny mvcc.api.mvccApi_names_nonempty_law_holds
 
 end results
 

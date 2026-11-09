@@ -40,7 +40,7 @@ theorem Session.Close.wp_proof (hO : Session.Orphan.spec (GF := GF) (hG := hG)) 
   rw [hoc]
   iStructNamed Hops
   (try wp_auto)
-  wp_apply context.wp_WithTimeout $$ [$Hoctx] as %tctx %tγ %tcancel %d ⟨#Htc, #Htctx⟩
+  wp_apply context.wp_WithTimeout $$ [$Hoctx] as %tctx %tγ %tcancel %d ⟨#Htc, #Htctx, -⟩
   (try wp_auto)
   unfold isEtcdLeaseClient
   icases Hlease with ⟨%l, #Hlf, #Hl⟩

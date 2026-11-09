@@ -8,7 +8,8 @@ theorem backend.wbSt_ndel (P : backend.BParams) (st : backend.BSess) : (backend.
 def backend.wbSt (P : backend.BParams) (st : backend.BSess) : backend.BSess :=
   { C := st.C, S := st.S, R := backend.writebackR st.W st.R, W := backend.writebackW st.W st.R, pend := st.pend,
     ndel := st.ndel, tx := st.tx,
-    cnt := { k := 0, c := 0, p0 := sint.nat st.pend, e := st.cnt.e + P.hookMax * st.cnt.c, hw := false } }
+    cnt := { k := 0, c := 0, p0 := sint.nat st.pend, e := st.cnt.e + P.hookMax * st.cnt.c, hw := false }, dl := st.dl,
+    win := st.win }
 
 theorem backend.safeSt_writeback {P : backend.BParams} {st : backend.BSess} (hs : backend.safeSt P
     st) : backend.safeSt P (backend.wbSt P st)

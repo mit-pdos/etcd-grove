@@ -256,7 +256,7 @@ axiom Perennial.k8s_io.apimachinery.pkg.watch.opaqueInitsOk
 axiom Perennial.k8s_io.apiserver.pkg.audit.initFuncsOk
 axiom Perennial.k8s_io.apiserver.pkg.audit.opaqueInitsOk
 axiom Perennial.k8s_io.apiserver.pkg.endpoints.request.opaqueInitsOk
-axiom Perennial.k8s_io.apiserver.pkg.features.initFuncsOk
+axiom Perennial.k8s_io.apiserver.pkg.features.init_0_ok
 axiom Perennial.k8s_io.apiserver.pkg.features.opaqueInitsOk
 axiom Perennial.k8s_io.apiserver.pkg.storage.etcd3.klogWrapper_toLoggerV2
 axiom Perennial.k8s_io.apiserver.pkg.storage.etcd3.metrics.ErrTransactionConflict_init
@@ -266,7 +266,7 @@ axiom Perennial.k8s_io.apiserver.pkg.storage.feature.opaqueInitsOk
 axiom Perennial.k8s_io.apiserver.pkg.storage.value.initFuncsOk
 axiom Perennial.k8s_io.apiserver.pkg.storage.value.opaqueInitsOk
 axiom Perennial.k8s_io.apiserver.pkg.util.feature.DefaultFeatureGate_init
-axiom Perennial.k8s_io.apiserver.pkg.util.feature.opaqueInitsOk
+axiom Perennial.k8s_io.apiserver.pkg.util.feature.DefaultMutableFeatureGate_init
 axiom Perennial.k8s_io.apiserver.pkg.util.flowcontrol.opaqueInitsOk
 axiom Perennial.k8s_io.component_base.featuregate.opaqueInitsOk
 axiom Perennial.k8s_io.klog.v2.initFuncsOk
@@ -286,7 +286,7 @@ axiom Perennial.runtime.opaqueInitsOk
 axiom RangeRequest.String.wp_proof
 axiom WithRequireLeader.wp_proof
 axiom addFeatureGateMetrics.wp_proof
-axiom addrsUnclaimed
+axiom addrUnclaimed
 axiom api.IsCapabilityEnabled.wp_proof
 axiom apply.memberEnc_id_learner
 axiom apply.memberKey_inj
@@ -376,17 +376,19 @@ axiom clockwork.stampAt_elim
 axiom clockwork.stampAt_persistent
 axiom config.ServerConfig.BackendPath.wp_proof
 axiom config.ServerConfig.PeerDialTimeout.wp_proof
-axiom context.ValueStartTime.wp_proof
 axiom context.WithCancelBackground.wp_proof
 axiom context.WithCancelTodo.wp_proof
 axiom context.WithCancelValCtx.wp_proof
 axiom context.WithValue.wp_proof
 axiom credentials.perRPCCredential.GetRequestMetadata.wp_proof
 axiom credentials.perRPCCredential.UpdateAuthToken.wp_proof
+axiom dataDirAbsent
 axiom dataDirFresh
-axiom dataDirsAbsent
+axiom dataDirsApart
+axiom dbFileAbsent
 axiom encoding.json.Unmarshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
+axiom envVerifyOffTok
 axiom errors.AsLeaf.wp_proof
 axiom errors.IsCtxErr.wp_proof
 axiom errors.IsDeadlineExceeded.wp_proof
@@ -405,7 +407,7 @@ axiom fmt.SprintfArgs.wp_proof
 axiom fmt.SprintfClientPtr.wp_proof
 axiom fmt.SprintfID.wp_proof
 axiom go_humanize.Bytes.wp_proof
-axiom goose_adequacy_start
+axiom goose_adequacy_start_files
 axiom grpc.ChainStreamInterceptor.wp_proof
 axiom grpc.ChainUnaryInterceptor.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
@@ -563,7 +565,7 @@ axiom prometheus.Register.wp_proof
 axiom prometheus.collectorName
 axiom prometheus.counterOpts
 axiom prometheus.nameFree
-axiom prometheus.namesUnclaimed
+axiom prometheus.nameUnclaimed
 axiom prometheus.wp_counterOptsLit
 axiom proto.Clone.wp_proof
 axiom proto.CloneConfState.wp_proof
@@ -677,6 +679,7 @@ axiom v3rpc.codec_proto
 axiom v3rpc.isClientCtxErr.wp_proof
 axiom v3rpc.logUnaryRequestStats.wp_proof
 axiom verify.Verify.wp_proof
+axiom verifyEnvOff
 axiom version.Cluster.wp_proof
 axiom version.LessThan.wp_proof
 axiom waitRetryBackoff.wp_proof

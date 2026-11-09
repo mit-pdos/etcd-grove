@@ -97,7 +97,7 @@ theorem Run.wp_proof
   · rcases err with ei | _
     · wp_auto
       iapply HΦ; itrivial
-    · exact absurd rfl Herr
+    · exact absurd rfl Herr.1
   subst Herr
   wp_auto
   -- `db.Begin(true)`

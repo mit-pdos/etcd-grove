@@ -12,8 +12,17 @@
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots \bclient\.(client_lessor_isEtcdLease|client_new_isEtcdLeaseClient)$
-axiom context.ValueKeepAlive.wp_proof
+axiom backend.dbFile
+axiom backend.isDB
+axiom backend.ownDB
+axiom backend.ownWTxG
+axiom backend.rBkt
+axiom backend.rtxSnap
+axiom backend.rtxStats
+axiom backend.txDB
+axiom backend.txLive
 axiom context.WithValue.wp_proof
+axiom envVerifyOffTok
 axiom errors.IsStatusErr.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpc.ClientConn.NewStream.wp_proof

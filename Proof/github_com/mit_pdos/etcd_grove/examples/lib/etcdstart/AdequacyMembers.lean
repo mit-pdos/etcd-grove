@@ -45,7 +45,8 @@ theorem progOk_pre [hG : HeapGS .hasLC GF] (R B B' : IProp GF) (init : val) (bod
 addresses and `Bs` are `As` up to order and the members' data directories are `Ds` up to order. -/
 theorem etcd_adequate_members [hPre : GooseGpreS GF] [lctx : GoLocalContext]
     (init : val) (body : Expr) (φ : val → Prop) (hφ : ∀ p, ¬ φ (PanicV p))
-    (As : List GoString) (hAs : As.Nodup) (Ds : List GoString) (hDs : Ds.Nodup)
+    (As : List GoString) (hAs : As.Nodup) (hAsLit : ∀ a ∈ As, netAddrLit a = true)
+    (Ds : List GoString) (hDs : Ds.Nodup)
     (ms : List (GoString × etcdstart.MemberAddrs)) (Bs : List GoString)
     (hA : (ms.flatMap (fun m => m.2.addrs) ++ Bs).Perm As)
     (hD : (ms.map (fun m => etcdstart.memberDataDir m.1)).Perm Ds)
@@ -55,6 +56,7 @@ theorem etcd_adequate_members [hPre : GooseGpreS GF] [lctx : GoLocalContext]
     (HNs : prometheus.namesUnclaimed (init #() ;; body)
       [read.slowReadIndexName, read.readIndexFailedName])
     (HAs : addrsUnclaimed (init #() ;; body) As) (HDs : dataDirsAbsent (init #() ;; body) Ds)
+    (HEnv : verifyEnvOff (init #() ;; body))
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([init #() ;; body], ((σ, g) : CfgState)) κs (t2, σ2))
     (Hprog : ∀ hG : HeapGS .hasLC GF, receiptBound GF = n + 1 →
@@ -64,7 +66,7 @@ theorem etcd_adequate_members [hPre : GooseGpreS GF] [lctx : GoLocalContext]
         init body φ) :
     (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
       (∀ v, Val v ∈ t2 → v.isPanic = false) :=
-  etcd_adequate init body φ hφ As hAs Ds hDs σ g Hinitg Hinitw Hlctx Hinit Hthreads HNs HAs HDs
+  etcd_adequate init body φ hφ As hAs hAsLit Ds hDs σ g Hinitg Hinitw Hlctx Hinit Hthreads HNs HAs HDs HEnv
     n κs t2 σ2 Hsteps fun hG HN HT =>
       progOk_pre (hG := heapWith hG lctx) _ _ _ init body φ
         (etcdstart.memberStartRes_intro ms Bs As Ds hA hD) (Hprog hG HN HT)
@@ -73,7 +75,8 @@ theorem etcd_adequate_members [hPre : GooseGpreS GF] [lctx : GoLocalContext]
 `etcd_adequate_members`, with ghost state allocated first. -/
 theorem etcd_adequate_alloc_members [hPre : GooseGpreS GF] [lctx : GoLocalContext]
     (init : val) (body : Expr) (φ : val → Prop) (hφ : ∀ p, ¬ φ (PanicV p))
-    (As : List GoString) (hAs : As.Nodup) (Ds : List GoString) (hDs : Ds.Nodup)
+    (As : List GoString) (hAs : As.Nodup) (hAsLit : ∀ a ∈ As, netAddrLit a = true)
+    (Ds : List GoString) (hDs : Ds.Nodup)
     (ms : List (GoString × etcdstart.MemberAddrs)) (Bs : List GoString)
     (hA : (ms.flatMap (fun m => m.2.addrs) ++ Bs).Perm As)
     (hD : (ms.map (fun m => etcdstart.memberDataDir m.1)).Perm Ds)
@@ -83,6 +86,7 @@ theorem etcd_adequate_alloc_members [hPre : GooseGpreS GF] [lctx : GoLocalContex
     (HNs : prometheus.namesUnclaimed (init #() ;; body)
       [read.slowReadIndexName, read.readIndexFailedName])
     (HAs : addrsUnclaimed (init #() ;; body) As) (HDs : dataDirsAbsent (init #() ;; body) Ds)
+    (HEnv : verifyEnvOff (init #() ;; body))
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([init #() ;; body], ((σ, g) : CfgState)) κs (t2, σ2))
     (Hprog : ∀ hG : HeapGS .hasLC GF, receiptBound GF = n + 1 →
@@ -94,8 +98,8 @@ theorem etcd_adequate_alloc_members [hPre : GooseGpreS GF] [lctx : GoLocalContex
             [∗list] b ∈ Bs, netAddrFree b) ∗ T x) init body φ) :
     (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
       (∀ v, Val v ∈ t2 → v.isPanic = false) :=
-  etcd_adequate_alloc init body φ hφ As hAs Ds hDs σ g Hinitg Hinitw Hlctx Hinit Hthreads HNs HAs
-    HDs n κs t2 σ2 Hsteps fun hG HN HT => by
+  etcd_adequate_alloc init body φ hφ As hAs hAsLit Ds hDs σ g Hinitg Hinitw Hlctx Hinit Hthreads HNs HAs
+    HDs HEnv n κs t2 σ2 Hsteps fun hG HN HT => by
       obtain ⟨X, T, Halloc, Hp⟩ := Hprog hG HN HT
       exact ⟨X, T, Halloc, fun x => progOk_pre (hG := heapWith hG lctx) _ _ _ init body φ
         (sep_mono_left (etcdstart.memberStartRes_intro ms Bs As Ds hA hD)) (Hp x)⟩

@@ -95,6 +95,8 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'k8s_io.client_go.util.workqueue', 'k8s_io.client_go.util.consistency',
          'k8s_io.client_go.util.retry', 'k8s_io.client_go.listers.apps.v1',
          'k8s_io.client_go.listers.core.v1']
+# (R10, 2026-11-07) mvcc's randomized tester (examples/mvccrand), for its closed theorem
+ROOTS.append('github_com.mit_pdos.etcd_grove.examples.mvccrand')
 # Packages of the closure still without a `wp_initialize'` (their facts are assumed: notes/STATUS.md,
 # "Item 8: package initialization"); see also `ASSUMED`.
 NOT_YET = set()
@@ -652,21 +654,53 @@ the one the fact reads (`compbasemetrics.NewHistogramVec(..., []string{"group", 
 )
 
 SPECIAL['k8s_io.apiserver.pkg.util.feature'] = dict(
-    doc='''Its fact (`featureInit`, `storage/etcd3/Base.lean`): `DefaultFeatureGate` holds a feature
-gate whose `Enabled` answers some `bool` for any feature. Its initializer initializes its import
+    doc='''Its fact (`featureInit`, `storage/etcd3/Base.lean`): `DefaultMutableFeatureGate` and
+`DefaultFeatureGate` hold the same feature gate. Its initializer initializes its import
 (`component-base/featuregate`, names-only) and runs its variables' untranslated initializers
-(`feature_gate.go`); the trust-boundary axiom `DefaultFeatureGate_init` states the one the fact
-reads (`DefaultMutableFeatureGate`, a `featuregate.NewFeatureGate()`, whose `Enabled` looks the
-feature up in its map and returns; which features are on is the deployment's), `opaqueInitsOk`
-the other.''',
-    custom={'DefaultFeatureGate': dict(
-        doc='/-- `DefaultFeatureGate = DefaultMutableFeatureGate` (`feature_gate.go`, a `featuregate.NewFeatureGate()`): a gate whose `Enabled` returns some `bool` for any feature. -/',
-        post=('∃ g : GoInterfaceOk, globalAddr DefaultFeatureGate ↦ GoInterface.ok g ∗\n'
-              '      □ ∀ (f : val) (Φ : val → IProp GF), ▷ (∀ b : Bool, Φ #b) -∗\n'
-              '        WP (App (Val #(methods g.ty go!"Enabled" g.v)) (Val f)) {{ Φ }}'),
-        pat='⟨%g@, H@, #S@⟩')},
+(`feature_gate.go`); the trust-boundary axioms `DefaultMutableFeatureGate_init`
+(`featuregate.NewFeatureGate()`: a gate) and `DefaultFeatureGate_init` (`DefaultFeatureGate =
+DefaultMutableFeatureGate`: the same gate) state them. (Sweep repairs 1, B5, 2026-11-08: until then
+`DefaultFeatureGate_init` gave a gate whose `Enabled` answered any `bool` for any feature, false of an
+unregistered one, and `DefaultMutableFeatureGate` was `opaqueInitsOk`'s, unlinked; the gate's specs
+are now `features`' registration's, `features.init_0_ok`.)''',
+    custom={
+        'DefaultMutableFeatureGate': dict(
+            doc='/-- `DefaultMutableFeatureGate = featuregate.NewFeatureGate()` (`feature_gate.go`): a feature gate, no Kubernetes feature registered yet (`features`\' `init` registers them, `features.init_0_ok`). -/',
+            post='∃ g : GoInterfaceOk, globalAddr DefaultMutableFeatureGate ↦ GoInterface.ok g',
+            pat='⟨%g@, H@⟩'),
+        'DefaultFeatureGate': dict(
+            doc='/-- `DefaultFeatureGate = DefaultMutableFeatureGate` (`feature_gate.go`): the same gate. -/',
+            binder='∀ g : GoInterfaceOk,',
+            pre='globalAddr DefaultMutableFeatureGate ↦□ GoInterface.ok g',
+            post='globalAddr DefaultFeatureGate ↦ GoInterface.ok g',
+            apply=['ipersist HDefaultMutableFeatureGate',
+                   'wp_apply (DefaultFeatureGate_init gDefaultMutableFeatureGate) $$ [] as HDefaultFeatureGate',
+                   '· iframe #'])},
     finish=['ipersist HDefaultFeatureGate'] + FIN_PRE[:6] + [
             'imodintro', 'iexists _', 'iframe #'],
+)
+
+# (sweep repairs 1, B5, 2026-11-08) the default gate's registration: `features`' `init`
+SPECIAL['k8s_io.apiserver.pkg.features'] = dict(
+    doc='''Its fact (`featuresInit`, `storage/etcd3/Base.lean`): `DefaultFeatureGate` holds a gate with
+the specs of `k8sfeature.featureGateOk` (`util/feature/Gate.lean`: `Enabled` of the queried
+features, `Set` of one to `false`). Its initializer initializes its import (`util/feature`, whose
+fact gives the gate) and runs its variable's untranslated initializer (`opaqueInitsOk`) and its
+untranslated `init` (`kube_features.go:347-350`, `DefaultMutableFeatureGate.AddVersioned(...)` and
+`zpagesfeatures.AddFeatureGates(...)` under `runtime.Must`), whose trust-boundary axiom
+`init_0_ok` says it registers the package's features with that gate.''',
+    custom_initfn={'init.«0»': dict(
+        name='init_0_ok',
+        doc='/-- `init.«0»` (`kube_features.go:347-350`): registers the package\'s features (and component-base\'s zpages features) with the default gate `DefaultMutableFeatureGate` holds, under `runtime.Must`; after it the gate has the specs of `featureGateOk` (`util/feature/Gate.lean`). -/',
+        binder='∀ g : GoInterfaceOk,',
+        pre='globalAddr k8s_io.apiserver.pkg.util.feature.DefaultMutableFeatureGate ↦□ GoInterface.ok g',
+        post='EtcdGrove.k8sfeature.featureGateOk g',
+        apply=['ihave #Hfi : (_root_.Perennial.k8s_io.apiserver.pkg.storage.etcd3.featureInit : IProp GF) $$ []',
+               '· iapply isPkgInit_access $$ {Hd:k8s_io.apiserver.pkg.util.feature}',
+               'icases Hfi with ⟨%g0, #Hmg, #Hdg⟩',
+               'wp_apply (init_0_ok g0) $$ [] as #Hgate',
+               '· iframe #'])},
+    finish=FIN_PRE[:6] + ['imodintro', 'iexists _', 'iframe #'],
 )
 
 SPECIAL['k8s_io.apiserver.pkg.storage.feature'] = dict(
@@ -678,7 +712,7 @@ trust-boundary axiom `DefaultFeatureSupportChecker_init` states the one the fact
 (`newDefaultFeatureSupportChecker()`, whose `CheckClient` starts, once per endpoint, a goroutine
 polling the endpoint's `Status`, and returns), `opaqueInitsOk` the others.''',
     custom={'DefaultFeatureSupportChecker': dict(
-        doc='/-- `DefaultFeatureSupportChecker = newDefaultFeatureSupportChecker()` (`feature_support_checker.go`): a checker whose `CheckClient` returns (the variable never changes after). -/',
+        doc='/-- `DefaultFeatureSupportChecker = newDefaultFeatureSupportChecker()` (`feature_support_checker.go`): a checker whose `CheckClient` returns for a constructed client and its context (`checkClientOk`; sweep repairs 1, B5: until then for any arguments) (the variable never changes after). -/',
         post=f'_root_.Perennial.{_K3}.checkerInit (GF := GF)',
         pat='#H@')},
     finish=FIN_PRE[:6],
@@ -975,6 +1009,24 @@ untranslated initializers; the trust-boundary axioms `<X>_init` state the four t
                  'InitialMmapSize': 'w64', 'minSnapshotWarningTimeout': 'w64'},
     finish=['ipersist HcommitSec', 'ipersist HrebalanceSec', 'ipersist HspillSec', 'ipersist HwriteSec']
            + FIN_PRE[:6] + ['imodintro', 'unfold backendInit', 'iframe #'],
+)
+
+# (R10, 2026-11-07) mvcc's randomized tester: its two string-slice literals, persisted
+SPECIAL['github_com.mit_pdos.etcd_grove.examples.mvccrand'] = dict(
+    doc='''Its fact (`mvccrandInit`, `Base.lean`): `keys` and `extraEnds` hold read-only slices of
+`keyList` and `extraEndList`. Its initializer allocates them, initializes its imports and runs their
+translated initializers, two slice literals (`mvccrand.go`), whose slices are made persistent.''',
+    alloc_types={'keys': 'GoSlice', 'extraEnds': 'GoSlice'},
+    before={'keys': ['try wp_auto',
+                     'wp_apply (wp_slice_literal (l := [go!"a", go!"aa", go!"b", go!"ba", go!"c", go!"d"])); isplitr; (· ipureintro; rfl); iintro %pK ⟨SK, -⟩',
+                     'try wp_auto'],
+            'extraEnds': ['try wp_auto',
+                          'wp_apply (wp_slice_literal (l := [go!"bb", go!"z"])); isplitr; (· ipureintro; rfl); iintro %pE ⟨SE, -⟩',
+                          'try wp_auto'],
+            '$end': ['try wp_auto']},
+    finish=['ipersist Hkeys', 'ipersist HextraEnds', 'imod ownSlice_persist $$ SK with #SK',
+            'imod ownSlice_persist $$ SE with #SE'] + FIN_PRE[:6] +
+           ['imodintro', 'unfold mvccrandInit keyList extraEndList', 'iframe #'],
 )
 
 SPECIAL['go_etcd_io.etcd.api.v3.etcdserverpb'] = dict(
@@ -1344,9 +1396,15 @@ _B['custom']['boltOpenOptions'] = dict(
     post='∃ p : Loc, globalAddr boltOpenOptions ↦ p ∗ (⌜p = Loc.null⌝ ∨ ∃ o : EtcdGrove.backend.OptsM, EtcdGrove.backend.optsAt p DFrac.discard o ∗ ⌜o.ok⌝)',
     pat='⟨%p@, H@, #S@⟩')
 _B['doc'] = _B['doc'].replace("hold `Histogram`s whose `Observe` returns.", "hold `Histogram`s whose `Observe` returns, and `boltOpenOptions` (`boltOpenOptionsOk`).")
+# (2026-11-07, R10) the defaults `DefaultBackendConfig` loads (translated stores of constants)
+_B['doc'] = _B['doc'].replace("and `boltOpenOptions` (`boltOpenOptionsOk`).", "and `boltOpenOptions` (`boltOpenOptionsOk`), and `defaultBatchInterval`,\n`defaultBatchLimit`, `InitialMmapSize` their translated initializers' constants.")
 _B['finish'] = (['ipersist HcommitSec', 'ipersist HrebalanceSec', 'ipersist HspillSec', 'ipersist HwriteSec',
-                 'ipersist HboltOpenOptions'] + FIN_PRE[:6] +
-                ['imodintro', 'unfold backendInit EtcdGrove.backend.boltOpenOptionsOk', 'iframe #'])
+                 'ipersist HboltOpenOptions', 'ipersist HdefaultBatchInterval',
+                 'ipersist HdefaultBatchLimit', 'ipersist HInitialMmapSize'] + FIN_PRE[:6] +
+                ['imodintro', 'unfold backendInit EtcdGrove.backend.boltOpenOptionsOk', 'iframe #',
+                 # `defaultBatchInterval`'s store: `100 * time.Millisecond`, unevaluated
+                 'rw [show (W64 100000000 : w64) = W64 100 * W64 1000000 from by decide]',
+                 'iexact HdefaultBatchInterval'])
 
 SPECIAL['go_etcd_io.etcd.pkg.v3.traceutil'] = dict(
     doc="""Its fact (`traceutilInit`, `storage/mvcc/Base.lean`): `Tracer` holds a fixed tracer. Its
@@ -2073,7 +2131,8 @@ def gen(p, cfg=None):
     pk = pkginfo_imports(p)
     items = exec_order(p)
     opq = [x for (kind, x) in items if kind == 'opaque' and x not in newvars and x not in custom]
-    opqf = [x for (kind, x) in items if kind == 'opaqueinitfn']
+    custom_initfn = cfg.get('custom_initfn', {})
+    opqf = [x for (kind, x) in items if kind == 'opaqueinitfn' and x not in custom_initfn]
     trs = [x for (kind, x) in items if kind == 'trusted']
     imps = [x for (kind, x) in items if kind == 'import']
     assert sorted(imps) == sorted(pk), (p, imps, pk)
@@ -2129,7 +2188,7 @@ def gen(p, cfg=None):
     A('')
     A('open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode')
     A('')
-    if opq or opqf or newvars or custom:
+    if opq or opqf or newvars or custom or custom_initfn:
         A('section opaqueInits')
         A(f'namespace {p}')
         A('variable [GooseExts] [GooseSemantics] [GooseInterp]')
@@ -2166,9 +2225,20 @@ def gen(p, cfg=None):
             A('    EtcdGrove.errorsNewVarInitC (GF := GF) init X msg')
             A('')
         for x, c in custom.items():
+            # (sweep repairs 1, B5, 2026-11-08) optional `binder` (`∀ g : T,`) and `pre`: an
+            # initializer that reads another variable's value (`DefaultFeatureGate =
+            # DefaultMutableFeatureGate`)
             A(c['doc'])
-            A(f'axiom {x}_init :')
-            A(f'    {{{{ (True : IProp GF) }}}} (App (Val {x}.init) (Val #()))')
+            A(f'axiom {x}_init :' + (f' {c["binder"]}' if 'binder' in c else ''))
+            A(f'    {{{{ ({c.get("pre", "True")} : IProp GF) }}}} (App (Val {x}.init) (Val #()))')
+            A(f'    {{{{ RET #(); {c["post"]} }}}}')
+            A('')
+        for x, c in custom_initfn.items():
+            # (sweep repairs 1, B5, 2026-11-08) an untranslated `init` function with a spec of its
+            # own (`k8s.io/apiserver/pkg/features`' registration), instead of `initFuncsOk`'s `True`
+            A(c['doc'])
+            A(f'axiom {c["name"]} :' + (f' {c["binder"]}' if 'binder' in c else ''))
+            A(f'    {{{{ ({c.get("pre", "True")} : IProp GF) }}}} (App (Val (@! {x})) (Val #()))')
             A(f'    {{{{ RET #(); {c["post"]} }}}}')
             A('')
         A(f'end {p}')
@@ -2258,8 +2328,14 @@ def gen(p, cfg=None):
                 A(f'    $$ Hown as ⟨Hown, #Hd{idx}⟩')
         elif kind == 'opaque' and x in newvars:
             A(f'  wp_apply (errorsNewVarsInit {x}.init {x} go!{json.dumps(newvars[x])} (by mem_tac))\n    as ⟨%x{x}, H{x}, #M{x}, #C{x}⟩')
+        elif kind == 'opaque' and x in custom and 'apply' in custom[x]:
+            for l in custom[x]['apply']:
+                A('  ' + hdsub(l))
         elif kind == 'opaque' and x in custom:
             A(f'  wp_apply {x}_init as {custom[x]["pat"].replace("@", x)}')
+        elif kind == 'opaqueinitfn' and x in custom_initfn:
+            for l in custom_initfn[x]['apply']:
+                A('  ' + hdsub(l))
         elif kind == 'opaque':
             A(f'  wp_apply (opaqueInitsOk {x}.init (by mem_tac))')
         elif kind == 'trusted' and x in cfg.get('trusted', {}):
@@ -2449,6 +2525,9 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.putget':
             'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.k8s.etcd3':
             'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/PkgTable.lean'}
+# (R10, 2026-11-07) mvcc's randomized tester
+PROGRAMS['github_com.mit_pdos.etcd_grove.examples.mvccrand'] = \
+    'Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/PkgTable.lean'
 
 TABLE_DOC = """/-
 The package table of the program of `{p}`

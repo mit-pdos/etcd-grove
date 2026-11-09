@@ -51,7 +51,7 @@ section model
 variable [GooseExts]
 
 /-- **The table at version `v`**: the replay of the log's changes at or below `v`. -/
-def tableAt (l : List Change) (v : Nat) : GMap Key Obj :=
+def tableAt (l : List Change) (v : Nat) : GMap apimodel.Key Obj :=
   replay (l.filter (fun c => decide (c.rv.toNat ≤ v)))
 
 /-- `c` is the log's first change after version `u`. -/
@@ -66,12 +66,12 @@ def Quiet (l : List Change) (u v : Nat) : Prop :=
 version (`ReplacedAll`), a bookmark's version. -/
 inductive Delta where
   | change (c : Change)
-  | replaced (M : GMap Key Obj) (v : Nat)
+  | replaced (M : GMap apimodel.Key Obj) (v : Nat)
   | bookmark (v : Nat)
 
 /-- **The store's view**: its items and its version (`none`: `""`, nothing listed yet). -/
 structure View where
-  items : GMap Key Obj
+  items : GMap apimodel.Key Obj
   rv : Option Nat
 
 /-- A delta applied to the store (`processDeltas`: an `ADDED`/`MODIFIED` change's `Add`/`Update`,

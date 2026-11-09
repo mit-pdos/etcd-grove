@@ -14,7 +14,9 @@ its trust-boundary specs. Lean-first (no Rocq counterpart).
   and the one-slot `closeC` channel), its fields read-only for good (`NewMessage` writes them
   once; `CloseWithError` reads the reader and sends on `closeC`, `CloseNotify` reads `closeC`). An
   opaque predicate (`msgRO`): `snap.Message` is an axiomatized type, so its fields are not
-  modeled. `NewMessage`'s spec makes it (D22 S-h); the transport's `SendSnapshot` takes it.
+  modeled. `NewMessage`'s spec makes it (D22 S-h), and only it, of a reader whose `Close` returns
+  (`io.rcCloseOk`; sweep repairs 1, S1) and a size in its premise's range (S2); the transport's
+  `SendSnapshot` takes it.
 * `msgCloseC m c` (persistent; D22 S-h): `m`'s `closeC` is the channel `c` (`NewMessage`'s
   `make(chan bool, 1)`, read by `CloseNotify`). An opaque predicate (`msgCloseRO`), as `msgRO`.
 -/

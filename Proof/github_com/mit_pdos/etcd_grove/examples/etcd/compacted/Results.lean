@@ -73,6 +73,8 @@ theorem etcd_compacted_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (HAs : addrsUnclaimed putgetcProgram [go!"127.0.0.1:23791"])
     -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the member's data directory, fresh at start (`dataDirsAbsent`)
     (HDs : dataDirsAbsent putgetcProgram [go!"putgetc.etcd"])
+    -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
+    (HEnv : verifyEnvOff putgetcProgram)
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putgetcGF,
       ⊢ etcd_compacted.premises (GF := putgetcGF) (hG := heapAtC hG lctx) n id ctxs boot)
@@ -84,7 +86,7 @@ theorem etcd_compacted_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
-  etcd_compacted_adequate Hctx Hcec id ctxs boot Hbf Hck Haf Hbuq Hrf Hdbo HNs HAs HDs n Hprem σ g
+  etcd_compacted_adequate Hctx Hcec id ctxs boot Hbf Hck Haf Hbuq Hrf Hdbo HNs HAs HDs HEnv n Hprem σ g
     Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
 end adequacy

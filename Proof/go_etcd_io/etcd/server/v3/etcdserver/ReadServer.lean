@@ -72,7 +72,7 @@ theorem isReadServer_of_serverM (on : Bool)
   iunfold isServerReadM at Hsrd
   icases Hsrd with ⟨%w, #Hw⟩
   iunfold srvReadFieldsAtM at Hw
-  icases Hw with ⟨-, -, -, -, -, -, -, -, -, -, #Hlgf, %Hlgn, -, -, -, -, #Hainv, -, -, #Hawf, #Haw,
+  icases Hw with ⟨-, -, -, -, -, -, -, -, -, #Hlgf, %Hlgn, -, -, -, #Hainv, -, -, #Hawf, #Haw,
     #Hlcf, #Hfcf, #Hstf, #Hst, -⟩
   iunfold isReadServer
   -- `Done()`

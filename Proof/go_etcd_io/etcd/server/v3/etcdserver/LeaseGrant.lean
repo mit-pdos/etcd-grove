@@ -67,12 +67,12 @@ def leaseGrantedResp (E : apply.AEnv GF) (resp : Loc) (reqTTL : w64) : IProp GF 
   iprop(∃ (id ttl : w64) (e : GoString) (i : Nat) (h : Loc) (rv : w64),
     structFieldRef etcdserverpb.LeaseGrantResponse go!"Header" resp ↦□ h ∗
     structFieldRef etcdserverpb.ResponseHeader go!"Revision" h ↦□ rv ∗ ⌜rv ≠ W64 0⌝ ∗
-    srvRevLb E.γ (sint.Z rv) ∗
+    srvRevLb E (sint.Z rv) ∗
     txn.respHdrOwn (structFieldRef etcdserverpb.LeaseGrantResponse go!"Header" resp) ∗
     structFieldRef etcdserverpb.LeaseGrantResponse go!"ID" resp ↦□ id ∗ ⌜id ≠ W64 0⌝ ∗
     structFieldRef etcdserverpb.LeaseGrantResponse go!"TTL" resp ↦□ ttl ∗
     structFieldRef etcdserverpb.LeaseGrantResponse go!"Error" resp ↦□ e ∗
-    ∃ l : Loc, lease.leaseLiveFrom E.γ.leases i id l ∗ lease.leaseReqIs E.γ.leases id reqTTL)
+    ∃ l : Loc, lease.leaseLiveFrom (mvcc.api.mvccLeases E.γ) i id l ∗ lease.leaseReqIs (mvcc.api.mvccLeases E.γ) id reqTTL)
 
 end defs
 

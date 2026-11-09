@@ -47,12 +47,15 @@ abbrev backend.newBackend.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       fileHolds cfg.Path' D ∗ ⌜P.Wf ∧ P.limit = cfg.BatchLimit'⌝ ∗
       hooksOk P W Pk cfg.Hooks' ∗
-      (∀ γ : BNames, hkOwn γ (hkData P D) ∗ pvckInit γ P D ∗ bFresh γ ={⊤}=∗ W γ ∗ Pk γ ∗ K γ) ∗
+      -- (sweep repairs 1, B4) `ETCD_VERIFY` off (the new backend's `isBackend` carries it)
+      envVerifyOff ∗
+      (∀ γ : BNames, hkOwn γ (hkData P D) ∗ bFresh γ ={⊤}=∗ W γ ∗ Pk γ ∗ K γ) ∗
       threadTok }}
     (App (Val (@! newBackend)) (Val #cfg))
   {{ (r : val), RET r; (∃ (b : Loc) (γ : BNames), ⌜r = #b⌝ ∗ newPostK γ P W Pk K b D ∗
         hooksAt b cfg.Hooks' ∗ bFile γ cfg.Path' ∗ threadTok) ∨
-      ⌜∃ p : val, r = PanicV p⌝ }}
+      -- (2026-11-08) a panic only where bbolt's `Open` failed (`dbOpenOk`, `Open_kv`'s)
+      ⌜¬ dbOpenOk ∧ ∃ p : val, r = PanicV p⌝ }}
 
 end spec
 

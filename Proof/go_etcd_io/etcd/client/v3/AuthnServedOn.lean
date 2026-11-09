@@ -19,6 +19,7 @@ they are conditional on it through the token, which their statements do not show
 -/
 module
 
+public import Proof.context.ReqKeys
 public import Proof.go_etcd_io.etcd.client.v3.Results
 public import Proof.go_etcd_io.etcd.client.v3.ClientUser
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Results
@@ -109,7 +110,9 @@ theorem etcd_authenticateHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqName
   icases Hr with ⟨%Hrn, #HN⟩
   iunfold authnSlot at Hslot
   icases Hslot with ⟨Hlt, Hlg, Hrr, Hrd⟩
-  imod (mvcc.idxCert_nil (GF := GF) E.γ.idx) with #HF
+  imod (v3rpc.kvLogLb_nil (GF := GF) E.γs) with #HF
+  ihave #Hspan := spanCtxOk_of_runCtx ci $$ Hrc
+  ihave #Hst := startTimeOk_of_grpcRunCtx ci $$ Hrc
   ihave #Hin : v3rpc.authInnerOk s go!"Authenticate" (GoInterface.ok ci) r
       iprop(structFieldRef etcdserverpb.AuthenticateRequest go!"Password" r ↦ m.2 ∗
         srvLeadTimeReader s ∗ srvLgReader s ∗ srvReadReader s γr ∗ E.RD)
@@ -217,7 +220,7 @@ of the KV handlers' slot and the quota check's. -/
 theorem etcdGrpcSlot_auth (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
     etcdGrpcSlot (GF := GF) s E γr ⊣⊢
       iprop((v3rpc.authSlot s E ∗ [∗list] R ∈ etcdIcRs s, R) ∗
-        (mvcc.storeReader E.s E.γ ∗ srvLgReader s ∗ srvReadReader s γr ∗ v3rpc.quotaRd s)) := by
+        (mvcc.api.mvccReaders E.γ 1 ∗ srvLgReader s ∗ srvReadReader s γr ∗ v3rpc.quotaRd s)) := by
   unfold etcdGrpcSlot etcdRunSlot v3rpc.authSlot
   constructor
   · iintro ⟨⟨⟨Hlt, Hsr, Hlg, Hrd, Hard⟩, Hq⟩, Hics⟩
@@ -231,7 +234,7 @@ of the KV handlers' slot and the quota check's. -/
 theorem etcdGrpcSlot_authn (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
     etcdGrpcSlot (GF := GF) s E γr ⊣⊢
       iprop((authnSlot s E γr ∗ [∗list] R ∈ etcdIcRs s, R) ∗
-        (mvcc.storeReader E.s E.γ ∗ v3rpc.quotaRd s)) := by
+        (mvcc.api.mvccReaders E.γ 1 ∗ v3rpc.quotaRd s)) := by
   unfold etcdGrpcSlot etcdRunSlot authnSlot
   constructor
   · iintro ⟨⟨⟨Hlt, Hsr, Hlg, Hrd, Hard⟩, Hq⟩, Hics⟩

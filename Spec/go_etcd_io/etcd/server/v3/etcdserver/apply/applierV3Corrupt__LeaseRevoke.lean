@@ -32,10 +32,10 @@ abbrev apply.applierV3Corrupt.LeaseRevoke.spec : Prop :=
     (T : List w64) (rs : apply.RestM) (Pre Q Post : IProp GF)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.corruptIs p inner ∗
-      apply.revokePre E (.corrupt c) (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p) info r rq id log T rs Pre Q Post }}
+      apply.applyTok E ∗ apply.revokePre E (.corrupt c) (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p) info r rq id log T rs Pre Q Post }}
     (App (Val (p @!! go.GoType.PointerType applierV3Corrupt.ty @!! go!"LeaseRevoke")) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      apply.kvPost E (.corrupt c) (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p) info rq log
+      apply.applyTok E ∗ apply.kvPost E (.corrupt c) (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p) info rq log
         (fun o => iprop(apply.revokeOutcomeIs resp err o ∗ apply.revokeResAfter E rq T rs resp err o)) Pre Post }}
 
 end spec

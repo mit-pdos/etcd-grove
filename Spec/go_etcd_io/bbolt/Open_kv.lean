@@ -15,6 +15,10 @@ database's data is `fileHolds path D`: for a new member's empty file, `D = ∅` 
 file and writes its meta pages). (2026-11-04, R2b-3c, the user's approval) The success case also
 records which file the database is (`dbFile db path`), which `DB.Close_kv` gives back.
 
+(2026-11-08, mvccrand's closed theorem, the user's decision) The error case also gives `¬ dbOpenOk`
+(`InvBbolt.lean`), as `DB.Close_kv`'s gives `¬ dbCloseOk`: `Open` fails only for the environment's
+reasons, which a closed theorem's premise `dbOpenOk` excludes.
+
 (2026-11-06, branch `begin-tok`, the user's approval: `notes/begin-tok-plan.md`, Q2) Under
 `[ThreadBoundLe GF (2 ^ 29)]`, as the proved `Open.spec` (`notes/bbolt-spec-decisions.md`, D3): the
 read transactions each hold a thread's token (`DB.Begin_kv`): paid readers ≤ tokens < `2 ^ 29`,
@@ -53,7 +57,8 @@ abbrev bbolt.Open_kv.spec : Prop :=
       ⌜o.ok⌝ ∗ (⌜o.logger = GoInterface.nil⌝ ∨ boltLogger o.logger) }}
     (App (App (App (Val (@! go_etcd_io.bbolt.Open)) (Val #path)) (Val #mode)) (Val #opts))
   {{ (db : Loc) (err : GoInterface), RET (PairV #db #err); optsAt opts dq o ∗
-      (⌜err ≠ GoInterface.nil⌝ ∨
+      -- (2026-11-08) an error only where the environment does not cooperate (`dbOpenOk`)
+      (⌜err ≠ GoInterface.nil ∧ ¬ dbOpenOk⌝ ∨
        (⌜err = GoInterface.nil⌝ ∗ ∃ γ : DBNames, ownDB db γ D ∗ wrTok γ ∗ isDB db ∗
           -- (2026-11-04, R2b-3c, the user's approval) which file it is (`DB.Close_kv` gives it back)
           dbFile db path)) }}

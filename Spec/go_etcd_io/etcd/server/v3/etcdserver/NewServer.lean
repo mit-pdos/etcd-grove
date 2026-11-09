@@ -115,6 +115,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseRead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseApi
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRestart
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.BootCfg
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVStoreApi
 
 @[expose] public section
 
@@ -164,7 +165,7 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
   -- (`srvClusterBoot_alloc`'s; what `rnEnvOk` asks of the raft node's environment)
   γ.rule = srvRule (W64 0) γ.boot →
   ρ.rd.kv.c0 = W64 0 → ρ.rd.kv.ch0 = apply.alarmChain on false false →
-  ρ.rd.kv.log0 = [[], []] → ρ.rd.kv.cok = E₀.γ.cok →
+  ρ.rd.kv.log0 = [[], []] →
   -- (M2's apply side, item 14') the KV names' compaction mode the stand-in's
   ρ.rd.kv.cmp = cmp →
   -- the configuration (`mvcc.New`'s premise on the batch limit: unit N1, 2026-10-17;
@@ -190,6 +191,9 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
   (cmp = true → on = false) →
   -- the stand-in's mode the server's (`envAgree`'s `E.γ.cm = E.cmp` reads it off the post)
   E₀.cmp = cmp →
+  -- (R8, 2026-11-07) the stand-in's KV witness the server's at the read names (`srvKVInvsM`'s
+  -- `E.Nx = kvNxM on ρ.rd`, `srvApi.kvNx` per mode, which `envAgree`'s `E.Nx = E₀.Nx` reads off the post)
+  E₀.Nx = srvApi.kvNx ρ.rd on →
   -- the logic's thread bound (D17: the adequacy theorem's `T`, its caller's choice; J8a-6,
   -- 2026-11-01, the user's decision: `2 ^ 28` (until then `2 ^ 31`), the transport's pool of `lgMu`
   -- reader slots, a thread pool, having `2 ^ 28` of them; the backend-auth-split stage, 2026-11-02:
@@ -252,6 +256,9 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
       -- (sweep repairs 1, R1-2, L4) the configured logger a zap logger (what `bootstrap`'s contract
       -- takes; until then `cfg.Logger' ≠ null`, which a zero `&zap.Logger{}` meets)
       "#Hzlg" ∷ zapLoggerOk cfg.Logger' ∗
+      -- (sweep repairs 1, R1-4b, B4) `ETCD_VERIFY` off for the run, from program start (what
+      -- `bootstrap`'s contract and the snapshot path's `OpenSnapshotBackend` take)
+      "#Hvoff" ∷ envVerifyOff ∗
       -- (D19r (B), (F)) what `bootstrap` takes: the configuration's URLs, read-only, and the
       -- storage registry's authority, empty (the caller allocates it)
       "#Hcfgro" ∷ bootCfgRO cfg U ∗ "Hrauth" ∷ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
@@ -270,15 +277,18 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
       -- (R2c, 2026-11-02) by incarnation key: the cluster's claims at the server's facts' family,
       -- the member's key registering its store's index (the claim facts' parameter)
       "#Hidc" ∷ idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts ∗
-      "#Hidk" ∷ idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γ.idx ∗ "#HNZ0" ∷ idNoZero ρ.ids ∗
+      "#Hidk" ∷ idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γs.slog ∗ "#HNZ0" ∷ idNoZero ρ.ids ∗
       "#Hpmint" ∷ srvPropMint ρ.rd.raft ρ.ids ∗ "#Hrdctx" ∷ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
       -- (2026-10-30, the repair: no read credits, raft's `ReadIndex` takes none)
       "Hids" ∷ idShare ρ.ids ∗
       -- (linkv-txn stage B1, 2026-10-20) the member's entry of the registries' map, for `start`
       "Hwtok" ∷ idWaitTok ρ.ids ∗
       -- the names chosen before the call (D13a), fresh
-      "Hidx" ∷ mvcc.idxFresh E₀.γ.idx ∗
-      "Hcok" ∷ ghostMapAuth E₀.γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗
+      -- (strict M1, 2026-11-06, the draft's `newServerStoreFreshA`) the server's names of the
+      -- store's state fresh (until then mvcc's `idxFresh E₀.γ.idx`), and the KV certificates' map
+      -- the read names' (until then the store's, `ρ.rd.kv.cok = E₀.γ.cok`)
+      "Hkvs" ∷ srvApi.newServerStoreFreshA E₀.γs ∗
+      "Hcok" ∷ ghostMapAuth ρ.rd.kv.cok 1 (∅ : GMap w64 mvcc.Log) ∗
       "Hrev" ∷ ghostMapAuth E₀.γrev 1 (∅ : GMap w64 Unit) ∗
       "Hrd" ∷ srvReadNamesFreshNK ρ.rd ∗
       -- the KV invariant at the bootstrap log (D19g (a): allocated with raft's ghost state,
@@ -344,7 +354,8 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
           srvNetMember γn srv id τ ∗ srvTrTok γn τ ∗
           ([∗list] _x ∈ List.replicate http.httpProcSlots (), srvServeRes γn τ) ∗
           -- (2026-10-20, watchkv) 64 reader slots of the watchable store, for the watch
-          -- service's run slots (`v3rpc.watchRunSlot`)
+          -- service's run slots (`v3rpc.watchRunSlot`); (the reader tokens of mvcc's API,
+          -- 2026-11-06) 64 of the store's reader tokens (`srvWatchReaders`)
           srvWatchReaders srv E 64 ∗
           -- (2026-11-04, the lease-expiry plan's Part C; the slot convention) the lease
           -- subsystem's part (`lease.srvInv`, `LeaseApi.lean`): with auth on its lessor finding no

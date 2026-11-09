@@ -52,7 +52,7 @@ theorem lessor.resetRecv.wp_proof
   wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
-  wp_apply context.wp_WithCancel_any sc scd $$ [] as %sctx %γs %cancel ⟨#Hcancel, #Hsctx⟩
+  wp_apply context.wp_WithCancel_any sc scd $$ [] as %sctx %γs %cancel ⟨#Hcancel, #Hsctx, -⟩
   · iframe #
   (try wp_auto)
   wp_apply wp_withMax as %ro #Hro

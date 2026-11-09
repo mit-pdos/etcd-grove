@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-11-07
+checked: 2026-11-08
 links:
   - etcd-io/etcd#18055 issue open: related, not this: the raft loop's Release deletes a received snapshot's .snap.db before the apply loop opens it (issues/etcd-release-snapdb-before-open.md); the purge is a second remover of the same files
 blocks-proof: yes
@@ -42,7 +42,20 @@ change (the purge skips, or no longer runs on, `.snap.db` files above the last o
 since `applySnapshot`'s own `Release` removes those below it) or a proved bound on the files above a
 pending snapshot, which the proof does not have.
 
+**Fixed on the fork** (sweep repairs 1, R1-3, 2026-11-08; the user's option A via etcd-grove-82):
+upamanyus/etcd@a4d2bb172 (`goose-lean`, the pin of `etc/goose.py`'s `etcd` project) no longer
+purges `.snap.db` files in `purgeFile`; `Snapshotter.ReleaseSnapDBs`, which `storage.Release` calls
+after a received snapshot is opened and after a snapshot is taken, removes the ones below it. So
+`purgeFile` no longer touches the snapshot directory, and `snapDirInv` is again true next to it. The
+bug still blocks the proof in this file's sense: the proof needs the fork's fix.
+
 ## Notes
+
+Regression tests (the fork's, `server/etcdserver/purge_snapdb_test.go` at a4d2bb172, copied as
+[`purge_snapdb_regression_test.go`](etcd-purge-snapdb-unopened/purge_snapdb_regression_test.go)):
+`TestPurgeFileKeepsSnapDBs` and `TestPurgeSnapDBBeforeApply` fail at 673da07c8 and pass at a4d2bb172
+(5 of 5 runs each, `go test ./etcdserver -run ... -count=5`, 2026-11-08).
+
 
 Tests: [`nonissues/etcd-purge-snapdb-unopened/purge_snapdb_test.go`](etcd-purge-snapdb-unopened/purge_snapdb_test.go),
 copied (as `zz_purge_snapdb_test.go`) into `server/etcdserver` at the verified fork's pin

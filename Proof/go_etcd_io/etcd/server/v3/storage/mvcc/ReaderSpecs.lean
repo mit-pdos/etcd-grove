@@ -11,6 +11,7 @@ compaction revision are the frozen ones, unchanged.
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchStore
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Read
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Write
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Rev
@@ -65,13 +66,15 @@ theorem mvcc.store.Read.spec_R (h : mvcc.store.Read.spec (GF := GF) (hG := hG)) 
   iintro %Φ ⟨#Hpkg, #Hs, Hrd, Hm, #Hc0, %Ht, Htrc⟩ HΦ
   ihave Hrd := mvcc.storeReader_toC s γ $$ Hrd
   imod mvcc.crevLb_neg γ.idx with #Hlb
-  iapply (h s γ mode trace m log₀ te (-1) iprop(True) none) $$ %Φ [Hrd Hm Htrc]
-  · iframe Hrd Hm Htrc; iframe #
+  ihave Hcb := mvcc.readCbC_true (GF := GF) γ
+  iapply (h s γ mode trace m log₀ te (-1) iprop(True) none) $$ %Φ [Hrd Hm Htrc Hcb]
+  · iframe Hrd Hm Htrc Hcb; iframe #
     isplitr; · imodintro; itrivial
     isplitr; · ipureintro; exact Ht
     unfold mvcc.logLent; itrivial
   inext
-  iintro %mw ⟨%log, %rev, %crev, Htx, Hm, #Hlb', -, #Hrok, %Hp, -, -⟩
+  iintro %mw ⟨%log, %rev, %crev, Htx, Htrc, Hm, #Hlb', -, #Hrok, %Hp, -, -, -⟩
+  ihave Htx := mvcc.isTxnRead_ofT _ _ _ _ _ _ _ _ _ _ $$ [$Htx $Htrc]
   iapply HΦ
   iexists log, rev, crev
   iframe Htx Hm Hrok Hlb'
@@ -79,38 +82,58 @@ theorem mvcc.store.Read.spec_R (h : mvcc.store.Read.spec (GF := GF) (hG := hG)) 
 
 /-! ### `store__Write` -/
 
-/-- The readers' statement: the write transaction at the compaction revision it observed. -/
+/-- The readers' statement: the write transaction at the compaction revision it observed. The
+caller's resource `G` excludes the frozen state (2026-11-06: the API's backend share; until then the
+placeholder `slotF_excl_M1`), given back. -/
 abbrev mvcc.store.Write.specR : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (P Pre Q : IProp GF) (f : val) (te : Bool)
-    (log : mvcc.Log),
+    (G : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isStore s γ ∗ mvcc.storeReader s γ ∗ mvcc.revToken γ ∗ mvcc.storeWT γ ∗ ⌜trace ≠ null⌝ ∗
-      mvcc.hookIs γ P f ∗ mvcc.writerPin γ log ∗ Pre ∗ □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) ∗
-      traceutil.ownTrace trace te }}
+      mvcc.isStore s γ ∗ mvcc.storeReader s γ ∗ mvcc.storeWT γ ∗ ⌜trace ≠ null⌝ ∗
+      mvcc.hookIs γ P f ∗ Pre ∗ □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) ∗
+      traceutil.ownTrace trace te ∗ G ∗ □ (mvcc.slotF γ ∗ G -∗ False) }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Write")) (Val #trace))
   {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw);
       (∃ (ilog : mvcc.Log) (crev : Int),
         mvcc.isTxnWrite mw s γ trace ilog [] (W64 0) (W64 0) (W64 0) crev ∗ mvcc.crevLb γ.idx crev) ∗
-      Q ∗ mvcc.hookIs γ P f }}
+      Q ∗ mvcc.hookIs γ P f ∗ G }}
 
 open Iris.ProofMode in
 /-- **The readers' statement is a corollary** (the tag `True`, the lower bound `-1`). -/
 theorem mvcc.store.Write.spec_R (h : mvcc.store.Write.spec (GF := GF) (hG := hG)) :
     mvcc.store.Write.specR (GF := GF) (hG := hG) := by
-  intro s γ trace P Pre Q f te log
-  iintro %Φ ⟨#Hpkg, #Hs, Hrd, Htok, Hwt, %Ht, Hh, Hpin, Hpre, #Htr, Htrc⟩ HΦ
+  intro s γ trace P Pre Q f te G
+  iintro %Φ ⟨#Hpkg, #Hs, Hrd, Hwt, %Ht, Hh, Hpre, #Htr, Htrc, HG, #Hx⟩ HΦ
   ihave Hrd := mvcc.storeReader_toC s γ $$ Hrd
   imod mvcc.crevLb_neg γ.idx with #Hlb
-  iapply (h s γ trace P Pre Q f te (-1) iprop(True) log) $$ %Φ [Hrd Htok Hwt Hpre Htrc Hh Hpin]
-  · iframe Hrd Htok Hwt Hpre Htrc Hh Hpin; iframe #
+  -- (M4, track B) the hook set (`writeCtxM`'s `some`), the names pinned by the writer's fragment;
+  -- the frozen state's excluder is the caller's `G`
+  icases (mvcc.hookIs_split γ P f).1 $$ Hh with ⟨#Hh, Hfrag⟩
+  iunfold mvcc.writerFrag at Hfrag
+  icases Hfrag with ⟨%ow, Hfrag⟩
+  ihave Hwt : (mvcc.storeWT (GF := GF) γ ∨ □ (⧗ 1 ={⊤}=∗ mvcc.storeWT γ)) $$ [Hwt]
+  · ileft; iexact Hwt
+  ihave Hcb : mvcc.writeCb (GF := GF) γ (fun _ _ => iprop(True)) $$ []
+  · iapply mvcc.writeCb_true
+  iapply (h s γ trace P Pre Q (some f) DFrac.discard te (-1) iprop(True) _ ow G
+      (fun _ _ => iprop(True))) $$ %Φ [Hrd Hwt Hpre Htrc Hfrag Hcb HG]
+  · rw [mvcc.writeCtxM_some]
+    iframe Hrd Hwt Hpre Htrc Hfrag Hcb Hh Htr Hx HG; iframe #
     isplitr; · imodintro; itrivial
     ipureintro; exact Ht
   inext
-  iintro %mw ⟨⟨%ilog, %crev, Htx, #Hlb', -⟩, HQ, Hh⟩
+  iintro %mw ⟨⟨%ilog, %crev, Htx, #Hlb', -⟩, Htrc, HQ, Hh', Hfrag, HG⟩
+  rw [mvcc.lockBackM_some]
+  -- the trace back into the transaction (today's callers' `isTxnWrite`)
+  icases mvcc.isTxnWriteT_tr _ _ _ _ _ _ _ _ _ _ _ _ _ $$ Htx with ⟨-, Htx⟩
+  ihave Htx := Htx $$ %(iprop(∃ te : Bool, traceutil.ownTrace trace te)) [Htrc]
+  · iexists te; iexact Htrc
+  ihave Htx := mvcc.isTxnWrite_ofT _ _ _ _ _ _ _ _ _ _ _ _ $$ Htx
   iapply HΦ
-  iframe HQ Hh
-  iexists ilog, crev
-  iframe Htx Hlb'
+  iframe HQ HG
+  isplitr [Hfrag Hh']
+  · iexists ilog, crev; iframe Htx Hlb'
+  iunfold mvcc.hookIs; iframe Hh'; iunfold mvcc.writerFrag; iexists ow; iexact Hfrag
 
 /-! ### `store__Rev` -/
 
@@ -229,27 +252,33 @@ theorem mvcc.storeTxnWrite.Range.spec_R
 /-- The readers' statement. -/
 abbrev mvcc.storeTxnWrite.End.specR : Prop :=
   ∀ (trace : Loc) (tw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
-    (chs : GoSlice) (ps : List Loc) (sealed : Bool) (P : IProp GF) (f : val) (crev : Int),
+    (chs : GoSlice) (ps : List Loc) (sealed : Bool) (P : IProp GF) (f : val) (crev : Int)
+    (Y G R : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.storeTxnWriteCore tw s γ trace ilog pend chs ps sealed crev ∗ mvcc.hookIs γ P f ∗ P ∗
-      mvcc.certOkNext γ ilog pend ∗ mvcc.logQPre γ ilog pend }}
+      mvcc.storeTxnWriteCoreY tw s γ trace ilog pend chs ps sealed crev iprop(True) false Y ∗
+      mvcc.hookIs γ P f ∗ P ∗ mvcc.certOkNext γ ilog pend ∗ mvcc.logQPre γ ilog pend ∗
+      G ∗ □ (mvcc.slotF γ ∗ G -∗ False) ∗ mvcc.endCb γ ilog pend crev Y R }}
     (App (Val (tw @!! go.GoType.PointerType storeTxnWrite.ty @!! go!"End")) (Val #()))
   {{ RET #(); mvcc.storeReader s γ ∗ mvcc.idxCert γ.idx (mvcc.commitLog ilog pend) ∗
-      (if pend = [] then mvcc.revToken γ else iprop(True)) ∗ mvcc.logQPost γ ilog pend ∗
-      mvcc.writerFrag γ ∗ mvcc.writerPin γ (mvcc.commitLog ilog pend) }}
+      mvcc.logQPost γ ilog pend ∗ mvcc.writerFrag γ ∗ G ∗ R }}
 
 open Iris.ProofMode in
 /-- **The readers' statement is a corollary** (`storeReader_of`). -/
 theorem mvcc.storeTxnWrite.End.spec_R (h : mvcc.storeTxnWrite.End.spec (GF := GF) (hG := hG)) :
     mvcc.storeTxnWrite.End.specR (GF := GF) (hG := hG) := by
-  intro trace tw s γ ilog pend chs ps sealed P f crev
-  iintro %Φ H HΦ
-  iapply (h trace tw s γ ilog pend chs ps sealed P f crev iprop(True) false) $$ %Φ [H]
-  · iexact H
+  intro trace tw s γ ilog pend chs ps sealed P f crev Y G R
+  iintro %Φ ⟨#Hpkg, Htw, Hhk, HP, Hok, Hq, HG, #HFG, Hcb⟩ HΦ
+  -- (M4, track B) the internal `End` takes the invariant's name alone; the fragment kept here
+  icases (mvcc.hookIs_split γ P f).1 $$ Hhk with ⟨#Hhk, Hfrag⟩
+  iunfold mvcc.hookOk at Hhk
+  icases Hhk with ⟨#HhP, -⟩
+  iapply (h trace tw s γ ilog pend chs ps sealed P crev iprop(True) false Y G R) $$ %Φ
+    [Htw HP Hok Hq HG Hcb]
+  · iframe Hpkg Htw HhP HP Hok Hq HG HFG Hcb
   inext
-  iintro ⟨Hr, -, Hrest⟩
+  iintro ⟨Hr, -, Hc, Hq, HG, HR⟩
   iapply HΦ
-  iframe Hrest
+  iframe Hc Hq Hfrag HG HR
   iapply mvcc.storeReader_of $$ Hr
 
 /-! ### `metricsTxnWrite__Range` -/
@@ -278,26 +307,33 @@ theorem mvcc.metricsTxnWrite.Range.spec_R
 
 /-- The readers' statement. -/
 abbrev mvcc.metricsTxnWrite.End.specR : Prop :=
-  ∀ (trace : Loc) (mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind) (crev : Int),
+  ∀ (trace : Loc) (mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind) (crev : Int)
+    (Y G R : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isTxnEnd mw s γ trace kind crev ∗ mvcc.txnEndPre γ kind }}
+      mvcc.isTxnEndY mw s γ trace kind crev iprop(True) Y ∗ mvcc.txnEndPre γ kind ∗
+      mvcc.txnEndX γ kind crev Y G R }}
     (App (Val (mw @!! go.GoType.PointerType metricsTxnWrite.ty @!! go!"End")) (Val #()))
-  {{ RET #(); mvcc.storeReader s γ ∗ mvcc.txnEndPost γ kind ∗ (∃ te : Bool, traceutil.ownTrace trace te) }}
+  {{ RET #(); mvcc.storeReader s γ ∗ mvcc.txnEndPost γ kind ∗ (∃ te : Bool, traceutil.ownTrace trace te) ∗
+      mvcc.txnEndXPost kind G R }}
 
 open Iris.ProofMode in
 /-- **The readers' statement is a corollary** (`storeReader_of`). -/
 theorem mvcc.metricsTxnWrite.End.spec_R
     (h : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG)) :
     mvcc.metricsTxnWrite.End.specR (GF := GF) (hG := hG) := by
-  intro trace mw s γ kind crev
-  iintro %Φ H HΦ
-  iapply (h trace mw s γ kind crev iprop(True)) $$ %Φ [H]
-  · iexact H
+  intro trace mw s γ kind crev Y G R
+  iintro %Φ ⟨#Hpkg, Htx, Hpre, Hx⟩ HΦ
+  -- (M4, track B) the internal `End` takes the invariant's name alone; the fragment kept here
+  icases mvcc.txnEndPre_H γ kind $$ Hpre with ⟨Hpre, Hfrag⟩
+  iapply (h trace mw s γ kind crev iprop(True) Y G R) $$ %Φ [Htx Hpre Hx]
+  · iframe Hpkg Htx Hpre Hx
   inext
-  iintro ⟨Hr, -, Hpost⟩
+  iintro ⟨Hr, -, Hpost, Htrc, Hxp⟩
   iapply HΦ
-  iframe Hpost
-  iapply mvcc.storeReader_of $$ Hr
+  iframe Htrc Hxp
+  isplitl [Hr]
+  · iapply mvcc.storeReader_of $$ Hr
+  iapply mvcc.txnEndPost_H γ kind $$ [$Hpost $Hfrag]
 
 /-! ### `txnReadWrite__Range` -/
 
@@ -446,23 +482,24 @@ theorem mvcc.readView.FirstRev.spec_R (h : mvcc.readView.FirstRev.spec (GF := GF
 
 /-- The readers' statement (the frozen one: it does not mention the compaction revision). -/
 abbrev mvcc.watchableStore.rev.specR : Prop :=
-  ∀ (s st : Loc) (γ : mvcc.WsNames) (oa : Option (Qp × mvcc.Log)),
+  ∀ (s st : Loc) (γ : mvcc.WsNames) (oa : Option (Qp × mvcc.Log)) (F : mvcc.Log → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isWatchableStore s st γ ∗ mvcc.storeReader st γ.st ∗ mvcc.logLent γ.st.idx oa }}
+      mvcc.isWatchableStore s st γ ∗ mvcc.storeReader st γ.st ∗ mvcc.logLent γ.st.idx oa ∗
+      mvcc.readCb γ.st F }}
     (App (Val (s @!! go.GoType.PointerType watchableStore.ty @!! go!"rev")) (Val #()))
   {{ (r : w64), RET #r; mvcc.storeReader st γ.st ∗ mvcc.logLent γ.st.idx oa ∗
       ∃ log : mvcc.Log, mvcc.idxCert γ.st.idx log ∗ ⌜log ≠ [] ∧ r = W64 ((log.length : Int) - 1) ∧
-        2 ≤ log.length ∧ log.length < 2 ^ 63 ∧ ∀ q L, oa = some (q, L) → log = L⌝ }}
+        2 ≤ log.length ∧ log.length < 2 ^ 63 ∧ ∀ q L, oa = some (q, L) → log = L⌝ ∗ F log }}
 
 open Iris.ProofMode in
 /-- **The readers' statement is a corollary.** -/
 theorem mvcc.watchableStore.rev.spec_R (h : mvcc.watchableStore.rev.spec (GF := GF) (hG := hG)) :
     mvcc.watchableStore.rev.specR (GF := GF) (hG := hG) := by
-  intro s st γ oa
-  iintro %Φ ⟨#Hpkg, #Hws, Hrd, HoA⟩ HΦ
+  intro s st γ oa F
+  iintro %Φ ⟨#Hpkg, #Hws, Hrd, HoA, Hcb⟩ HΦ
   ihave Hrd := mvcc.storeReader_toC st γ.st $$ Hrd
-  iapply (h s st γ oa) $$ %Φ [Hrd HoA]
-  · iframe Hrd HoA; iframe #
+  iapply (h s st γ oa F) $$ %Φ [Hrd HoA Hcb]
+  · iframe Hrd HoA Hcb; iframe #
   inext
   iintro %v ⟨Hrd, Hpost⟩
   iapply HΦ

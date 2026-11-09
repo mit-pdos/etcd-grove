@@ -79,15 +79,18 @@ header): for a plain KV request of the entry `m` above `c₀`, at the start chai
 no alarm, determinate at the model's state `s` (whose auth part is the latest state of `hs`),
 without `"\x00"` range ends (a transaction's verdict on its own permissions by
 `txnVerdictOwn_of`, E3e), every outcome the verdict at the latest
-state admits leaves the model's log after `m`, which `kvCert` certifies. -/
-theorem kv_certPreW_on (E : apply.AEnv GF) (γk : KVNames) (hγ : E.γ.cok = γk.cok) (c₀ : w64)
+state admits leaves the model's log after `m`, which has the mode's raft witness (strict M1,
+2026-11-06: `kvNxOn`, which `srvKVInvsOn` ties `E.Nx` to, in place of the KV certificate `kvCert`
+and mvcc's `certOk`, as `kv_certPre`). -/
+theorem kv_certPreW_on (E : apply.AEnv GF) (γ : ServerRaftNames) (γk : KVNames)
+    (st₀ : auth.AuthState) (hNx : E.Nx = kvNxOn γ γk st₀) (c₀ : w64)
     (s : auth.AuthState × mvcc.Log) (m : EntryModel) (rq : apply.IRRModel)
     (ht : m.typ = W32 0) (hd : m.data ≠ []) (hdec : apply.irrDecode m.data = some rq)
     (hv : uint.Z c₀ < uint.Z m.index) (hna : apply.needAdminPermission rq = false)
     (hk : apply.isKVKind (apply.dispatchKind rq) = true) (hp : plainCover rq)
     (γa : auth.AuthNames) (hs : List auth.AuthState) (hl : hs.getLast? = some s.1)
     (hz : noZeroEnds rq) (hdet : entryDetOn c₀ s m) :
-    kvCert (GF := GF) γk (kvEntryOn c₀ (apply.alarmChain true false false) s m).2 ⊢
+    kvNxOn (GF := GF) γ γk st₀ (kvEntryOn c₀ (apply.alarmChain true false false) s m).2 ⊢
       apply.certPreW E (apply.alarmChain true false false) rq s.2
         (apply.kvOutL (.on γa) hs (auth.authInfoM (apply.principalOf rq)) (.quota .backend) rq
           s.2) := by
@@ -98,23 +101,24 @@ theorem kv_certPreW_on (E : apply.AEnv GF) (γk : KVNames) (hγ : E.γ.cok = γk
   have he := outcomeOn_eq c₀ _ s _ m hdet ho
   have hlog : oc.logAfter s.2 = (kvEntryOn c₀ (apply.alarmChain true false false) s m).2 := by
     rw [← he]
-  rw [hlog]
-  iapply kvCert_certOk γk E.γ hγ $$ Hc
+  rw [hlog, hNx]
+  iexact Hc
 
 /-- `kv_certPreW_on` with `v3` (`certPreVW`), the form `apply.Apply.kvSpecL` takes. -/
-theorem kv_certPreVW_on (E : apply.AEnv GF) (γk : KVNames) (hγ : E.γ.cok = γk.cok) (c₀ : w64)
+theorem kv_certPreVW_on (E : apply.AEnv GF) (γ : ServerRaftNames) (γk : KVNames)
+    (st₀ : auth.AuthState) (hNx : E.Nx = kvNxOn γ γk st₀) (c₀ : w64)
     (s : auth.AuthState × mvcc.Log) (m : EntryModel) (rq : apply.IRRModel)
     (ht : m.typ = W32 0) (hd : m.data ≠ []) (hdec : apply.irrDecode m.data = some rq)
     (hv : uint.Z c₀ < uint.Z m.index) (hna : apply.needAdminPermission rq = false)
     (hk : apply.isKVKind (apply.dispatchKind rq) = true) (hp : plainCover rq)
     (γa : auth.AuthNames) (hs : List auth.AuthState) (hl : hs.getLast? = some s.1)
     (hz : noZeroEnds rq) (hdet : entryDetOn c₀ s m) :
-    kvCert (GF := GF) γk (kvEntryOn c₀ (apply.alarmChain true false false) s m).2 ⊢
+    kvNxOn (GF := GF) γ γk st₀ (kvEntryOn c₀ (apply.alarmChain true false false) s m).2 ⊢
       apply.certPreVW true E (apply.alarmChain true false false) rq s.2
         (apply.kvOutL (.on γa) hs (auth.authInfoM (apply.principalOf rq)) (.quota .backend) rq
           s.2) := by
   simp only [apply.certPreVW, ↓reduceIte]
-  exact kv_certPreW_on E γk hγ c₀ s m rq ht hd hdec hv hna hk hp γa hs hl hz hdet
+  exact kv_certPreW_on E γ γk st₀ hNx c₀ s m rq ht hd hdec hv hna hk hp γa hs hl hz hdet
 
 /-- **Before `apply.Apply` on a KV entry, in the mode `on`** (the apply thread's ghost step ahead of
 the call, `kv_applied_step_on`): the next committed entry `m`, a KV request, is plain
@@ -141,7 +145,7 @@ theorem kv_entry_pre_on (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.Auth
   iintro #Hinvs Ha #Hlb
   ihave #Hinvs' := Hinvs
   iunfold srvKVInvsOn at Hinvs'
-  icases Hinvs' with ⟨-, -, -, -, %Hcok, -⟩
+  icases Hinvs' with ⟨-, -, -, -, -, -, %HNx, -⟩
   imod kv_applied_step_on E γr st₀ A m x st hlen $$ Hinvs Ha Hlb with ⟨%Hp, Ha⟩
   obtain ⟨Hpl, hdet, -, hch⟩ := Hp
   have hpz : plainCover rq ∧ noZeroEnds rq ∧ kvShapeAll rq := by
@@ -156,17 +160,22 @@ theorem kv_entry_pre_on (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.Auth
     have h := hp
     unfold plainCover at h
     split at h <;> simp_all [apply.isKVKind]
-  ihave #Hc : iprop(kvCert γr.kv (kvEntryOn γr.kv.c0 x.chain (st, x.log) m).2) $$ [Ha]
-  · iunfold kvAppliedLOn at Ha; icases Ha with ⟨-, -, #Hc, -⟩; iexact Hc
+  ihave #Hinvs'' := Hinvs
+  iunfold srvKVInvsOn at Hinvs''
+  icases Hinvs'' with ⟨#HkI, -, #HrI, -⟩
+  imod (kvInvOn_keysA γr st₀ (A ++ [m])) $$ HkI HrI Hlb with %Hkeys
+  ihave #Hc : iprop(kvNxOn γr.raft γr.kv st₀ (kvEntryOn γr.kv.c0 x.chain (st, x.log) m).2) $$ [Ha]
+  · iunfold kvAppliedLOn at Ha; icases Ha with ⟨#HA, -, -, %HAs⟩
+    iunfold kvNxOn; iexists A ++ [m]; iframe HA; ipureintro; rw [HAs]; exact ⟨rfl, Hkeys⟩
   imodintro
   iframe Ha
   isplitr
   · ipureintro; exact ⟨hp, hna, hdet, hch, hz, hsa⟩
-  ihave #Hc' : iprop(kvCert γr.kv
+  ihave #Hc' : iprop(kvNxOn γr.raft γr.kv st₀
       (kvEntryOn γr.kv.c0 (apply.alarmChain true false false) (st, x.log) m).2) $$ []
   · rw [← hch]; iexact Hc
   rw [hch]
-  iapply kv_certPreVW_on E γr.kv Hcok γr.kv.c0 (st, x.log) m rq ht hd hdec hv hna hk hp γa hs hl
+  iapply kv_certPreVW_on E γr.raft γr.kv st₀ HNx γr.kv.c0 (st, x.log) m rq ht hd hdec hv hna hk hp γa hs hl
     hz hdet $$ Hc'
 
 /-- **After `apply.Apply` on a KV entry, in the mode `on`** (`kvOn_after_kv` on the apply thread's

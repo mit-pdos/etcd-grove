@@ -3,18 +3,21 @@
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Write
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.ApiVocab
 
 @[expose] public section
 
 set_option linter.unusedSectionVars false
+set_option linter.unusedVariables false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3.storage.mvcc
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3.etcdserver.txn
+  go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.storage.mvcc
+open mvcc.api (MvccState MTxn MvccReachable MvccName MvccStorage mvccN mvccLeases)
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -23,20 +26,23 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-/-- `getPrevKV(trace, txnWrite, p)` of a transaction (the interface value `txnWrite` over the
-`*metricsTxnWrite` `mw`, `twWrap`: the store's or a watchable store's, unit N4; a read or a write one: `checkPut` reads at
-`Txn`'s read transaction, `Put` at its write transaction): if the put reads the previous
-key-value (`IgnoreValue`, `IgnoreLease` or `PrevKv`), the transaction's range read of the key at
-`context.TODO()`, which does not fail: the key's key-value at the state the transaction reads,
-if it has one (`prevKvIs`); else `nil`. -/
+local notation "pkgInit" => isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn
+
+/-- `getPrevKV(trace, txnWrite, p)` at a transaction of either kind (its state `mstate k`).
+
+(Strict M1, 2026-11-05: restated over mvcc's API as `notes/mvcc-api-clients/TxnSpecs.lean`
+drafts it, frozen; `notes/mvcc-api-clients/clients-txn.md`.)
+
+(The trace kept at `te`: `Trace.StepWithFunction` keeps the flag, decided by the coordinator,
+2026-11-05, superseding gap E.) -/
 abbrev txn.getPrevKV.spec : Prop :=
-  ∀ (trace mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind) (p : Loc) (o : OpFull)
-    (tyX : go.GoType) (vX : val) (crev : Int),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ ⌜trace ≠ null⌝ ∗ mvcc.isTxn mw s γ trace kind crev ∗
-      mvcc.twWrap tyX vX mw ∗ txn.putRequestIs p o }}
-    (App (App (App (Val (@! txn.getPrevKV)) (Val #trace)) (Val #(interface.mkOk tyX vX : GoInterface))) (Val #p))
-  {{ (r : Loc), RET (PairV #r #(GoInterface.nil)); mvcc.isTxn mw s γ trace kind crev ∗
-      if txn.readsPrev o then txn.prevKvIs r (txn.kindState kind) o.key else ⌜r = null⌝ }}
+  ∀ (t : GoInterface) (γ : MvccName) (trace : Loc) (te : Bool) (k : MTxn) (p : Loc) (o : OpFull),
+  {{ pkgInit ∗ ⌜trace ≠ null⌝ ∗ mvcc.api.mvccTxn t γ trace k ∗ traceutil.ownTrace trace te ∗
+      ⌜txn.Reach k.state⌝ ∗ txn.putRequestIs p o }}
+    (App (App (App (Val (@! txn.getPrevKV)) (Val #trace)) (Val #t)) (Val #p))
+  {{ (r : Loc), RET (PairV #r #(GoInterface.nil)); mvcc.api.mvccTxn t γ trace k ∗
+      traceutil.ownTrace trace te ∗
+      if txn.readsPrev o then txn.prevKvIs r (txn.mstate k) o.key else ⌜r = null⌝ }}
 
 end spec
 

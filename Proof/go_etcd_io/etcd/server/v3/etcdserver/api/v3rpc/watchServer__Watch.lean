@@ -1,6 +1,8 @@
 /-
 Proof of the spec of the same name (the watch slice's unit W-S): the run of a watch stream, its two
-goroutines and the shutdown. Lean-first (no Rocq counterpart).
+goroutines and the shutdown. Lean-first (no Rocq counterpart). Over mvcc's API (2026-11-05):
+`NewWatchStream`'s contract at the watchable store (`shapes.law`), the run's invariant allocated
+from its `wsState ι wsStart` (`WatchApi.wsInvG_alloc`).
 -/
 module
 
@@ -9,7 +11,6 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.serverWatchStr
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.serverWatchStream__sendLoop
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.serverWatchStream__close
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.isClientCtxErr
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__NewWatchStream
 public import Spec.errors.IsCtxErr
 public import Spec.go_uber_org.zap.Logger__Debug
 public import Spec.go_uber_org.zap.Logger__Warn
@@ -33,10 +34,11 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.api
 set_option hygiene false in
 /-- `Watch`'s end, after the `select`: `sws.close()`, then `return err`. -/
 local macro "watch_tail" : tactic => `(tactic| (
-  wp_apply hClose sws_ptr r (W32 0 + W32 1) iprop(True ∗ True) $$ [Hopen Hcc Hadd]
+  wp_apply hClose sws_ptr r Up Dn _ ci cd (W32 0 + W32 1) iprop(True ∗ True)
+    $$ [Hcl Hcc Hadd]
   · iframe #; iframe
   iapply HΦ
-  iexact Hspec))
+  iframe Hspec))
 
 set_option hygiene false in
 /-- `errors.Is(err, context.Canceled)` on a typed `err`, then the assignment of
@@ -54,10 +56,13 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 set_option maxHeartbeats 0 in
 theorem v3rpc.watchServer.Watch.wp_proof
-    (hNWS : mvcc.watchableStore.NewWatchStream.spec (GF := GF) (hG := hG))
+    (hShapes : mvcc.api.shapes.law (GF := GF) (hG := hG))
+    (hP : mvcc.api.persistent.law (GF := GF) (hG := hG))
+    (hRS : mvcc.api.mvccReaders_split.law (GF := GF) (hG := hG))
     (hRecv : v3rpc.serverWatchStream.recvLoop.spec (GF := GF) (hG := hG))
     (hSend : v3rpc.serverWatchStream.sendLoop.spec (GF := GF) (hG := hG))
     (hClose : v3rpc.serverWatchStream.close.spec (GF := GF) (hG := hG))
@@ -68,25 +73,37 @@ theorem v3rpc.watchServer.Watch.wp_proof
     (hZE : zap.Error.spec (GF := GF) (hG := hG))
     (hCV : prometheus.CounterVec.WithLabelValues.spec (GF := GF) (hG := hG)) :
     v3rpc.watchServer.Watch.spec (GF := GF) (hG := hG) := by
-  intro p R st γs Up Dn ci cd
-  wp_start as ⟨#HWS, #Hstream, #Hspec, #Hup, Hrt, Hst, HAux, Hslot⟩
+  intro p R W st γs Up Dn ci cd
+  have : ∀ ws γ ι, Persistent (mvcc.api.isMvccWatchStream (GF := GF) ws γ ι) := hP.2.1
+  have : ∀ kv γ, Persistent (mvcc.api.isMvcc (GF := GF) kv γ) := hP.1
+  have := v3rpc.srvWOk_persistent hP W R.wsl v3rpc.wsN
+  have := v3rpc.swsIs_persistent (GF := GF) hP
+  wp_start as ⟨#HWS, #HW, #Hstream, #Hspec, #Hup, Hrt, Hst, HAux, HRD, %Htb, Hrdr⟩
+  ihave ⟨HrdS, HrdR⟩ : mvcc.api.mvccReaders W.γm 1 ∗ mvcc.api.mvccReaders W.γm 1 $$ [Hrdr]
+  · iapply (hRS W.γm 1 1).1; iexact Hrdr
   ihave #HWS' := HWS
   iunfold v3rpc.isWatchServer at HWS'
   icases HWS' with ⟨%Hnn, #Plg, #Pcid, #Pmid, #Pmrb, #Psg, #Pwa, #Pag, #Hsrv⟩
   ihave #Hsrv' := Hsrv
   iunfold v3rpc.watchSrvOk at Hsrv'
-  icases Hsrv' with ⟨#Hwsto, %Hγst, #Hrso, #Hauth, #Hvars, -⟩
+  icases Hsrv' with ⟨-, -, #Hvars, -⟩
+  ihave #HW' := HW
+  iunfold v3rpc.srvWOk at HW'
+  icases HW' with ⟨%Hkv, #Hmv, -⟩
+  rw [Hkv]
+  have hNWS := (hShapes.2.1 R.wsl).2
   ihave #Pmvcc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   wp_auto
-  wp_apply hNWS R.wsl R.E.s R.γ (v3rpc.progQ γs) (v3rpc.cancelQ γs) $$ [] as %wsp
-    ⟨%γo, %ch, %γc, #Hwstream, #Hwch, #Hch, #Hchinv, Hopen, Hcons, %Hγoc5, #Hsp, #Hcq⟩
+  wp_apply (hNWS W.γm) $$ [] as %ws ⟨%ι, #Hwstream, HS, Hrcv⟩
   · iframe #
-  -- the run's answer tokens, and the stream's auxiliary name (the watch slice's unit W-C)
+  -- the run's invariant, its received list, its answer tokens, and the stream's auxiliary name
+  imod v3rpc.wsInvG_alloc (v3rpc.cancelQ γs) ι $$ HS with ⟨%γreg, %γtok, %γcl, #Hinv, Hcl⟩
+  imod mono_list_own_alloc (GF := GF) ([] : List mvcc.api.WResp) with ⟨%γr, HA, -⟩
   imod v3rpc.ansPool_alloc (GF := GF) with ⟨%γa, HPool⟩
-  imod v3rpc.streamAux_set γs (v3rpc.auxOf γo γa) $$ HAux with #HauxIs
+  imod v3rpc.streamAux_set γs [γreg, γtok, γr, γa] $$ HAux with #HauxIs
   wp_apply chan.wp_make2 (V := Loc) (W64 16) as %ctrl %γch ⟨#Hctrl, %Hcap, Hoc⟩
   · ipureintro; decide
   wp_apply (wp_map_make1 (K := w64) (V := Bool) go_etcd_io.etcd.server.v3.storage.mvcc.WatchID.ty go.bool)
@@ -112,10 +129,11 @@ theorem v3rpc.watchServer.Watch.wp_proof
   ipersist prevKV
   ipersist fragment
   ipersist closec
-  -- the control stream: an SPSC channel of control responses
-  let P' : Int → Loc → IProp GF := fun _ l => iprop(∃ m : v3rpc.WatchRespM, v3rpc.watchRespMsg l m ∗
-    ⌜m.hdr.clusterId = R.cid ∧ m.hdr.memberId = R.mid ∧ m.src = none⌝ ∗
-    v3rpc.ctrlOk γs R.γ R.s (auth.ctxTokenOf (GoInterface.ok ci)) m)
+  -- the control stream: an SPSC channel of control responses (its predicate reads none of the
+  -- run's control-stream names, so a stand-in for them states it before they exist)
+  let r0 : v3rpc.WRun GF := ⟨R, W, γs, ws, ι, γreg, γtok, γr, γcl, γa, ctrl, ⟨γch, γa, γa⟩, pm, vm,
+    fm, cc, γch⟩
+  let P' : Int → Loc → IProp GF := v3rpc.ctrlP r0 ci
   imod start_spsc ctrl P' (fun _ => iprop(True)) γch $$ Hctrl [Hoc] with ⟨%γctrl, #Hspsc, Hprod, Hcons'⟩
   · iright; iexact Hoc
   -- `closec`: a broadcast channel
@@ -139,31 +157,25 @@ theorem v3rpc.watchServer.Watch.wp_proof
   imod sync.init_WaitGroup (sync.join.wgjN.@"wg") (v3rpc.swsF sws_ptr go!"wg") $$ wg
     with ⟨%γwg, #HisWg, Hctr, Hwaiters⟩
   imod sync.join.init (v3rpc.swsF sws_ptr go!"wg") γwg $$ [$HisWg $Hctr $Hwaiters] with Hadd
-  have Hγoc : γo.ids = γc.ids ∧ γo.prog = γc.prog ∧ γo.sentl = γc.sentl ∧
-      0 < sint.Z γc.ch.chanCap := ⟨Hγoc5.1, Hγoc5.2.1, Hγoc5.2.2.1, Hγoc5.2.2.2.2.2⟩
-  let r : v3rpc.WRun GF := ⟨R, st, γs, Up, Dn, ci, cd, wsp, γo, γa, ch, γc, ctrl, γctrl, pm, vm, fm, cc, γcc⟩
-  ihave #Hsws : v3rpc.swsIs sws_ptr r $$ []
+  let r : v3rpc.WRun GF := ⟨R, W, γs, ws, ι, γreg, γtok, γr, γcl, γa, ctrl, γctrl, pm, vm, fm, cc, γcc⟩
+  have hP : v3rpc.ctrlP r ci = P' := by funext k l; rfl
+  ihave #Hsws : v3rpc.swsIs sws_ptr r Up Dn st ci cd $$ []
   · iunfold v3rpc.swsIs
+    rw [hP]
     iframe #
     isplitr
     · ipureintro; exact ⟨Hswsn, Hnn.2⟩
-    have hP : v3rpc.ctrlP r = P' := by funext k l; rfl
-    rw [hP]
-    iframe Hspsc
-    isplitr
-    · ipureintro; exact Hγoc
-    ipureintro; exact ⟨Hγoc5.2.2.2.2.1, Hγoc5.2.2.2.1⟩
-  iunfold v3rpc.watchRunSlot at Hslot
-  icases Hslot with ⟨Hrres, Hsres⟩
+    simp only [r, v3rpc.auxOf]; iexact HauxIs
   wp_apply sync.join.WaitGroup.wp_Add iprop(True) (v3rpc.swsF sws_ptr go!"wg") iprop(True) (W32 0)
     $$ [$Hadd] as ⟨Hadd, Hdone⟩
   · iframe #; ipureintro; decide
   -- (2026-10-20, watchkv) the send loop's goroutine with its thread token, which
   -- `GetProgressReportInterval` lends to the interval's pool
-  wp_apply wp_fork_tok_body $$ [Hst Hcons' Hcons Hsres Hmutok Hdone]
+  wp_apply wp_fork_tok_body $$ [Hst Hcons' Hrcv HA Hmutok Hdone HrdS]
   · iintro Htt
-    wp_apply hSend sws_ptr r $$ [$Hst $Hcons' $Hcons $Hsres $Hmutok $Htt] as Htt
-    · iframe #
+    wp_apply hSend sws_ptr r Up Dn st ci cd $$ [$Hst $Hcons' $Hrcv $HA $Hmutok $Htt $HrdS]
+      as ⟨Htt, -⟩
+    · iframe #; ipureintro; exact Htb
     wp_apply sync.join.WaitGroup.wp_Done iprop(True) (v3rpc.swsF sws_ptr go!"wg") $$ [$Hdone]
     · iframe #; itrivial
   -- the stream's methods and its context
@@ -196,8 +208,10 @@ theorem v3rpc.watchServer.Watch.wp_proof
     with ⟨%γerr, #HspscE, HprodE, HconsE⟩
   · iright; iexact Hoe
   ipersist errc
-  wp_apply wp_fork $$ [Hrt Hprod HPool Hrres HprodE]
-  · wp_apply hRecv sws_ptr r [] [] $$ [$Hrt $Hprod $HPool $Hrres] as %rerr ⟨%Hrerr, %sent', Hprod⟩
+  wp_apply wp_fork_tok_body $$ [Hrt Hprod HPool HRD HprodE HrdR]
+  · iintro Htt
+    wp_apply hRecv sws_ptr r Up Dn st ci cd [] [] $$ [$Hrt $Hprod $HPool $HRD $Htt $HrdR]
+      as %rerr ⟨%Hrerr, Htt, -, %sent', Hprod⟩
     · iframe #
     rcases rerr with ei | _
     · have Hty : context.isTypedErr (GoInterface.ok ei) := by
@@ -242,7 +256,7 @@ theorem v3rpc.watchServer.Watch.wp_proof
           isplitr
           · ipureintro; exact Hty
           iexists _; iexact Hprod
-        itrivial
+        iframe Htt; try (ipureintro; rfl)
       · wp_apply hZE as %f -
         wp_apply wp_slice_literal (l := [f])
         isplitr
@@ -257,14 +271,13 @@ theorem v3rpc.watchServer.Watch.wp_proof
           isplitr
           · ipureintro; exact Hty
           iexists _; iexact Hprod
-        itrivial
+        iframe Htt; try (ipureintro; rfl)
     · wp_auto
-      itrivial
+      iframe Htt; try (ipureintro; rfl)
   iunfold v3rpc.ctxCanceledPtr at Hcanc
   icases Hcanc with ⟨%eC, #HeC, %HeCp⟩
   iunfold v3rpc.msgErrVar at HmWC
   icases HmWC with ⟨%eWC, #HeWC, #HeWCm⟩
-  have Hctrlc : ∀ (k : Int) (l : Loc), v3rpc.ctrlP r k l = P' k l := fun _ _ => rfl
   rw [Hsi]
   wp_auto
   wp_bind (App (Val #(methods si.ty go!"Context" si.v)) (Val #()))

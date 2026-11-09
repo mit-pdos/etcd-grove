@@ -47,12 +47,14 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Model2
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.FkLemmas
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.DlLemmas
 public import Perennial.Ghost.GhostVar
 public import Perennial.Ghost.GhostMap
 public import Perennial.Ghost.DGhostVar
 public import Perennial.Ghost.MonoNat
 public import Perennial.Proof.TokSet
 public import Perennial.Proof.sync
+public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Env
 
 @[expose] public section
 
@@ -118,13 +120,6 @@ structure BNames where
   and (M2 storage plan, items 27/29, 2026-10-30) the flag's value and the keys' values at the open
   (`fkInit`, `fkVals`) -/
   fkv : GName
-  /-- `ghostVar VData`: **the physical view of the non-hook buckets** (`sData` of the writer's
-  contents: the buckets with `P.HB n = false`; F2's stage 1, `notes/image-cmp-f2-plan.md`), half the
-  batch lock's (`trkHalf`), half the client's (`pvHalf`) -/
-  pv : GName
-  /-- `ghostVar FkVals`: **the compaction keys' values** (`fkVals` of the writer's contents; F2's
-  stage 1), half the batch lock's (`trkHalf`), half the client's (`ckHalf`) -/
-  ck : GName
   /-- `dghostVar (Loc × GoString)`, discarded at allocation (2026-11-04, R2b-3c): bbolt's database
   and the file it is (`bDB`, `bFile`), so that the stop's escrow and `Close` agree on it -/
   dbf : GName
@@ -137,6 +132,15 @@ structure BNames where
   bucket a session can write), the keys of the ghost map `γ.rbk` (decision 3 of
   `notes/backend-auth-split-plan.md`): pure, fixed by the constructor -/
   rbD : GMap GoString Unit
+  /-- `ghostVar FkVals`: the compaction keys' values in the writer's contents (`fkVals`; the
+  user's decision, 2026-11-04, round 16's F1: a snapshot's observation sees them), half the batch
+  lock's (`fkHalf`), half the client's (inside `fkOwn`), as the hook's own keys' `hkd` -/
+  fkd : GName
+  /-- `ghostVar` of the safe-range buckets' deleted entries (`dlR` of the session's `dl`; the
+  user's decision, 2026-11-04, probe M2: a snapshot's observation knows the safe-range bucket
+  exactly), half the batch lock's (`fkHalf`), half the client's (inside `fkOwn`): a delete from a
+  safe-range bucket updates both -/
+  dls : GName
 
 section phys
 variable [GooseExts]
@@ -244,6 +248,81 @@ theorem relog_congr (P : BParams) (L : GMap (GoString × GoString) GoString) {st
     (hS : sData P st.S = sData P st'.S) (hC : st.C = st'.C) (hR : st.R = st'.R) :
     relog P L st = relog P L st' := by
   unfold relog; rw [hS, hC, hR]
+
+/-- **The session deleted no safe-range entry the readers see** (the user's decision, 2026-11-04,
+probe M2: a put session's `Unlock`, which drops such an entry from the logical view, so that the
+deleted entries stay the logical view's). -/
+def sbKept (P : BParams) (st : BSess) : Prop :=
+  ∀ nk, P.SB nk.1 = true → (vData P (st.C, st.R)).lookup nk ≠ none → (sData P st.S).lookup nk ≠ none
+
+/-- **A put session's `Unlock` keeps the deleted entries' agreement**, the session having deleted
+no safe-range entry the readers see. -/
+theorem dlsOk_relog {P : BParams} {st : BSess} {L : GMap (GoString × GoString) GoString}
+    (hk : sbKept P st) (h : dlsOk P st L) : dlsOk P st (relog P L st) := by
+  refine ⟨fun nk h1 h2 hL hs => ?_, fun nk h1 h2 hx => ?_⟩
+  · rw [relog_lookup, hs, Option.none_or] at hL
+    split at hL
+    · exact h.1 nk h1 h2 hL hs
+    · exact absurd rfl hL
+  · have hb := h.2 nk h1 h2 hx
+    refine ⟨hb.1, ?_⟩
+    rw [relog_lookup, hb.1, Option.none_or]
+    have hp : (vData P (st.C, st.R)).lookup nk = none := by
+      cases hq : (vData P (st.C, st.R)).lookup nk with
+      | none => rfl
+      | some w => exact absurd hb.1 (hk nk h1 (by rw [hq]; simp))
+    simp only [hp, ↓reduceIte]
+    exact hb.2
+
+/-- A session with no delete pending deleted nothing the readers see (its writer's contents are the
+readers' view under its write buffer, `sessWf`). -/
+theorem sbKept_of_ndel0 {P : BParams} {st : BSess} (hwf : sessWf P st) (h0 : st.ndel = W64 0) :
+    sbKept P st := by
+  intro nk _ hp
+  have hag := hwf.2.2.2.2.2.2.2.2.2.1 h0
+  have hv : (vData P (st.C, st.R)).lookup nk =
+      if P.HB nk.1 then none else vOf P (st.C, st.R) nk.1 nk.2 := rfl
+  rw [hv] at hp
+  rw [sData_lookupD]
+  cases hb : P.HB nk.1
+  · simp only [hb, Bool.false_eq_true, ↓reduceIte] at hp ⊢
+    rw [hag nk.1 hb nk.2]
+    unfold ovB
+    intro hc
+    have := Option.or_eq_none_iff.1 hc
+    exact hp this.2
+  · simp [hb] at hp
+
+/-- A delete in a hook's bucket keeps the readers' view's safe-range entries in the writer's
+contents. -/
+theorem sbKept_del_hook {P : BParams} {st : BSess} {bi : BucketInfo} {k : GoString}
+    (hb : P.HB bi.name = true) (h : sbKept P st) : sbKept P (st.del bi k) := by
+  intro nk h1 hp
+  have hp' : (vData P (st.C, st.R)).lookup nk ≠ none := hp
+  rw [sData_del_lookup]
+  split
+  · rename_i he
+    have hv : (vData P (st.C, st.R)).lookup nk =
+        if P.HB nk.1 then none else vOf P (st.C, st.R) nk.1 nk.2 := rfl
+    rw [hv, he] at hp'
+    simp [hb] at hp'
+  · exact h nk h1 hp'
+
+/-- **A session's put is not of a deleted safe-range entry** when it is above every key of a
+client's view (out of the hook's window: the deleted entries are the logical view's). -/
+theorem dl_not_of_above {P : BParams} {st : BSess} {vd : GMap (GoString × GoString) GoString}
+    {n k : GoString}
+    (hdl : ∀ nk, P.SB nk.1 = true → P.HB nk.1 = false → st.dl.lookup nk ≠ none → vd.lookup nk ≠ none)
+    (h1 : P.SB n = true) (h2 : P.HB n = false)
+    (habove : ∀ k' v', vd.lookup (n, k') = some v' → go.GoStringLt k' k) :
+    st.dl.lookup (n, k) = none := by
+  cases hx : st.dl.lookup (n, k) with
+  | none => rfl
+  | some w =>
+    have := hdl (n, k) h1 h2 (by rw [hx]; simp)
+    cases hv : vd.lookup (n, k) with
+    | none => exact absurd hv this
+    | some v' => exact absurd (habove k v' hv) (go.goStringLt_irrefl k)
 
 /-- **A session that changed nothing the readers see keeps the logical view**: if the writer's
 contents are the physical view and the physical view is included in `L`, `relog` is `L`. -/
@@ -379,11 +458,6 @@ contents being `S`: the client's half if `k` is a hook's own key, else nothing. 
 def hkPut (γ : BNames) (P : BParams) (n k : GoString) (S : Data) : IProp GF :=
   if P.hk n k then hkOwn γ (hkData P S) else iprop(True)
 
-/-- A put of a key that is not a hook's own key needs nothing of them. -/
-theorem hkPut_other (γ : BNames) (P : BParams) (n k : GoString) (S : Data) (h : P.hk n k = false) :
-    ⊢ hkPut (GF := GF) γ P n k S := by
-  unfold hkPut; rw [h]; simp only [Bool.false_eq_true, ↓reduceIte]; iintro; itrivial
-
 /-- One tracked bucket's ghost element (`γ.rbk`, a ghost map over the tracked buckets' names
 `γ.rbD`), at fraction `q`: the bucket's contents in the writer's contents (absent if absent) and
 whether a write of a session to it is pending since the last `Unlock` that was handed its part
@@ -480,14 +554,55 @@ theorem rbPutAll_other (γ : BNames) (P : BParams) (n : GoString) (S : Data) (h 
     ⊢ rbPutAll (GF := GF) γ P n S := by
   unfold rbPutAll; rw [h]; simp only [Bool.false_eq_true, ↓reduceIte]; iintro; itrivial
 
+/-- **A half of the compaction keys' values** (`γ.fkd`; the user's decision, 2026-11-04, round
+16's F1): the values `v` the writer's contents hold at the compaction keys (`fkVals`). One half is
+the client's (inside `fkOwn`), the other the batch lock's (`fkHalf`), handed to a snapshot's
+observation at a commit, where the writer's contents are the committed data
+(`backend.Snapshot`). -/
+def fkdOwn (γ : BNames) (v : FkVals) : IProp GF := ghostVar γ.fkd (1 : Qp).half v
+
+instance fkdOwn_timeless (γ : BNames) (v : FkVals) : Timeless (fkdOwn (GF := GF) γ v) := by
+  unfold fkdOwn; infer_instance
+
+/-- **A half of the safe-range buckets' deleted entries** (`γ.dls`; the user's decision,
+2026-11-04, probe M2): the entries `X` deleted from the safe-range buckets since the open (`dlR` of
+the session's `dl`). One half is the client's (inside `fkOwn`: the compacting store's), the other
+the batch lock's (`fkHalf`), handed to a snapshot's observation at a commit, where the logical
+view but `X` is the committed data's safe-range part (`dlVd`, `backend.Snapshot`). -/
+def dlsOwn (γ : BNames) (X : GMap (GoString × GoString) GoString) : IProp GF :=
+  ghostVar γ.dls (1 : Qp).half X
+
+instance dlsOwn_timeless (γ : BNames) (X : GMap (GoString × GoString) GoString) :
+    Timeless (dlsOwn (GF := GF) γ X) := by
+  unfold dlsOwn; infer_instance
+
 /-- **The client's half of the compaction keys' flag** (`γ.fk`, the backend-compaction stage,
 2026-10-29): at `0`, no state of the backend has a compaction key (`fkKey`), not the batch
 lock's (`fkHalf`) and not any reader's (`fkRd`, `rtHeldF_fk`); a put of a compaction key needs it
-and gives it back raised (`fkPut`). The constructor gives it (`fkInit`). -/
-def fkOwn (γ : BNames) (n : Nat) : IProp GF := monoNatAuthOwn γ.fk (1 : Qp).half n
+and gives it back raised (`fkPut`). The constructor gives it (`fkInit`). With it (2026-11-04,
+the user's decision on round 16's F1), the client's half of the compaction keys' values in the
+writer's contents (`fkdOwn`; the batch lock holds the other, `fkHalf`): a put of a compaction key
+updates both, and a snapshot's observation is handed the lock's at the committed values. -/
+def fkOwn (γ : BNames) (n : Nat) : IProp GF :=
+  iprop(monoNatAuthOwn γ.fk (1 : Qp).half n ∗ (∃ v : FkVals, fkdOwn γ v) ∗
+    ∃ X : GMap (GoString × GoString) GoString, dlsOwn γ X)
 
 instance fkOwn_timeless (γ : BNames) (n : Nat) : Timeless (fkOwn (GF := GF) γ n) := by
-  unfold fkOwn; infer_instance
+  unfold fkOwn fkdOwn dlsOwn; infer_instance
+
+/-- **The client's half of the compaction keys' flag alone** (mvcc's M3, 2026-11-06): what a reader
+of the compaction keys needs (`fkRd_absF`, `fkRd_openF`), without the values' halves `fkOwn` also
+holds, which a store keeps elsewhere (its tracked compaction). -/
+def fkFlag (γ : BNames) (n : Nat) : IProp GF := monoNatAuthOwn γ.fk (1 : Qp).half n
+
+instance fkFlag_timeless (γ : BNames) (n : Nat) : Timeless (fkFlag (GF := GF) γ n) := by
+  unfold fkFlag; infer_instance
+
+/-- `fkOwn` is the flag and the values' halves, at some values. -/
+theorem fkOwn_flag (γ : BNames) (n : Nat) :
+    fkOwn (GF := GF) γ n ⊣⊢ fkFlag γ n ∗ (∃ v : FkVals, fkdOwn γ v) ∗
+      ∃ X : GMap (GoString × GoString) GoString, dlsOwn γ X := by
+  unfold fkOwn fkFlag; exact .rfl
 
 /-- **The compaction keys' well-formedness bit** (persistent; question 4, 2026-10-29): at `true`,
 every state of the backend holds only well-formed values (`P.FV`) at the compaction keys. The
@@ -522,14 +637,21 @@ instance fkOpen_persistent (γ : BNames) (n : Nat) (v : FkVals) :
 /-- **What the constructor gives the client of the compaction keys** over bbolt's data `D`: the
 client's half of their flag, at `0` if `D` has none (`fkInit`), and the ghost value: the bit,
 `true` if `D`'s are well formed (`fkWInit`), with (items 27/29, 2026-10-30) the flag's value and
-`D`'s compaction-key values at the open (`fkVals`): `fkV` and `fkOpen` (`fkCl_parts`, `fkCl_open`). -/
+`D`'s compaction-key values at the open (`fkVals`): `fkV` and `fkOpen` (`fkCl_parts`, `fkCl_open`).
+(M3, the exact open, 2026-11-06) The client's halves of the compaction keys' values and of the
+deleted entries at what they are at the open, `D`'s values and none deleted (`fkCl_exact`): until
+then `fkOwn`'s, at some values, which left a store over the backend unable to pin its tracked
+compaction (`mvcc.cmpTrack`) at the image. -/
 def fkCl (γ : BNames) (P : BParams) (D : Data) : IProp GF :=
-  iprop(fkOwn γ (fkInit D) ∗ fkVR γ (fkWInit P D, fkInit D, fkVals D))
+  iprop(monoNatAuthOwn γ.fk (1 : Qp).half (fkInit D) ∗ fkdOwn γ (fkVals D) ∗
+    dlsOwn γ (∅ : GMap (GoString × GoString) GoString) ∗
+    fkVR γ (fkWInit P D, fkInit D, fkVals D))
 
 /-- The batch lock's half of the flag, with what it and the ghost value say of its state
-(`fkOkG`). -/
+(`fkOkG`), and (2026-11-04) its half of the compaction keys' values at the writer's contents'. -/
 def fkHalf (γ : BNames) (P : BParams) (st : BSess) : IProp GF :=
-  iprop(∃ (f : Nat) (g : FkG), monoNatAuthOwn γ.fk (1 : Qp).half f ∗ fkVR γ g ∗ ⌜fkOkG P f g st⌝)
+  iprop((∃ (f : Nat) (g : FkG), monoNatAuthOwn γ.fk (1 : Qp).half f ∗ fkVR γ g ∗ ⌜fkOkG P f g st⌝) ∗
+    fkdOwn γ (fkVals st.S) ∗ dlsOwn γ (dlR P st.dl))
 
 /-- A reader's lower bound of the flag, taken when its state `rv` was set, with the ghost value
 (persistent). -/
@@ -546,6 +668,31 @@ the post does not say so, no caller needing it.) -/
 def fkPut (γ : BNames) (n k : GoString) : IProp GF :=
   if fkKey n k then iprop(∃ f : Nat, fkOwn γ f) else iprop(True)
 
+/-- **What a delete from bucket `n` needs and gives back of the safe-range deleted entries**
+(the user's decision, 2026-11-04, probe M2): in a safe-range bucket, the client's half of them,
+inside the compaction-key flag's (`fkOwn`, at some value: the compacting store holds it); else
+nothing. -/
+def dlPut (γ : BNames) (P : BParams) (n : GoString) : IProp GF :=
+  if P.SB n then iprop(∃ f : Nat, fkOwn γ f) else iprop(True)
+
+/-- A delete from a safe-range bucket needs the client's half (inside the flag's). -/
+theorem dlPut_sb (γ : BNames) (P : BParams) (n : GoString) (h : P.SB n = true) :
+    dlPut (GF := GF) γ P n = iprop(∃ f : Nat, fkOwn γ f) := by
+  unfold dlPut; rw [h]; rfl
+
+theorem dlPut_sb_elim (γ : BNames) (P : BParams) (n : GoString) (h : P.SB n = true) :
+    dlPut (GF := GF) γ P n ⊢ ∃ f : Nat, fkOwn γ f := by
+  rw [dlPut_sb γ P n h]
+
+theorem dlPut_sb_intro (γ : BNames) (P : BParams) (n : GoString) (h : P.SB n = true) :
+    (∃ f : Nat, fkOwn (GF := GF) γ f) ⊢ dlPut γ P n := by
+  rw [dlPut_sb γ P n h]
+
+/-- A delete off the safe-range buckets needs nothing of the deleted entries. -/
+theorem dlPut_other (γ : BNames) (P : BParams) (n : GoString) (h : P.SB n = false) :
+    ⊢ dlPut (GF := GF) γ P n := by
+  unfold dlPut; rw [h]; simp only [Bool.false_eq_true, ↓reduceIte]; iintro; itrivial
+
 /-- A put of a key that is not a compaction key needs nothing of the flag. -/
 theorem fkPut_other (γ : BNames) (n k : GoString) (h : ¬ fkKey n k) : ⊢ fkPut (GF := GF) γ n k := by
   unfold fkPut; rw [if_neg h]; iintro; itrivial
@@ -554,96 +701,6 @@ theorem fkPut_other (γ : BNames) (n k : GoString) (h : ¬ fkKey n k) : ⊢ fkPu
 theorem fkPut_eq (γ : BNames) (n k : GoString) (h : ¬ fkKey n k) :
     fkPut (GF := GF) γ n k = iprop(True) := by
   unfold fkPut; exact if_neg h
-
-/-! ### The physical view and the compaction keys' values, exact (F2's stage 1, 2026-11-02)
-
-`notes/image-cmp-f2-plan.md`: two backend ghosts whose halves the batch lock holds at the writer's
-contents (`trkHalf`), so that a holder of the client's halves knows the writer's contents there; a
-write that can change them takes and gives back the client's half (`pvPut`, `ckPut`). -/
-
-/-- **The client's half of the physical view** of the non-hook buckets (exclusive): the writer's
-contents' `sData` (the buckets with `P.HB n = false`, `Model2.lean`'s `vData`), the batch lock
-holding the other half. For the server's backend, the `Key` bucket alone. Every write to a non-hook
-bucket (`UnsafePut`, `UnsafeSeqPut`, `UnsafeDelete`, `UnsafeDeleteBucket`) takes and updates it
-(`pvPut`). -/
-def pvHalf (γ : BNames) (vd : VData) : IProp GF :=
-  ghostVar γ.pv (1 : Qp).half vd
-
-/-- **The client's half of the compaction keys' values** (exclusive): `fkVals` of the writer's
-contents, the batch lock holding the other half; a put of a compaction key moves both (`ckPut`). -/
-def ckHalf (γ : BNames) (v : FkVals) : IProp GF :=
-  ghostVar γ.ck (1 : Qp).half v
-
-instance pvHalf_timeless (γ : BNames) (vd : VData) : Timeless (pvHalf (GF := GF) γ vd) := by
-  unfold pvHalf; infer_instance
-
-instance ckHalf_timeless (γ : BNames) (v : FkVals) : Timeless (ckHalf (GF := GF) γ v) := by
-  unfold ckHalf; infer_instance
-
-/-- **The client's halves at the open** of bbolt's data `D` (what the constructor gives the creator,
-beside `hkOwn`): the physical view at `sData P D` and the compaction keys' values at `fkVals D`. -/
-def pvckInit (γ : BNames) (P : BParams) (D : Data) : IProp GF :=
-  iprop(pvHalf γ (sData P D) ∗ ckHalf γ (fkVals D))
-
-/-- **The client's two halves, at some values** (F2's stage 1: what a client threads through the
-batch lock's resource without tracking the values; agreement with a held lock gives them,
-`batchLocked_pv`, `batchLocked_ck`). -/
-def pvckOwn (γ : BNames) : IProp GF :=
-  iprop(∃ (vd : VData) (v : FkVals), pvHalf γ vd ∗ ckHalf γ v)
-
-instance pvckInit_timeless (γ : BNames) (P : BParams) (D : Data) :
-    Timeless (pvckInit (GF := GF) γ P D) := by
-  unfold pvckInit; infer_instance
-
-instance pvckOwn_timeless (γ : BNames) : Timeless (pvckOwn (GF := GF) γ) := by
-  unfold pvckOwn; infer_instance
-
-theorem pvckOwn_of_init (γ : BNames) (P : BParams) (D : Data) :
-    pvckInit (GF := GF) γ P D ⊢ pvckOwn γ := by
-  unfold pvckInit pvckOwn
-  iintro ⟨Hp, Hc⟩
-  iexists sData P D, fkVals D
-  iframe Hp Hc
-
-/-- What a write to bucket `n` needs and gives of the physical view, the writer's contents being
-`S`: the client's half if `n` is not a hook's bucket, else nothing. -/
-def pvPut (γ : BNames) (P : BParams) (n : GoString) (S : Data) : IProp GF :=
-  if P.HB n then iprop(True) else pvHalf γ (sData P S)
-
-/-- What a put of key `k` in bucket `n` needs and gives of the compaction keys' values, the writer's
-contents being `S`: the client's half if `k` is a compaction key, else nothing. -/
-def ckPut (γ : BNames) (n k : GoString) (S : Data) : IProp GF :=
-  if fkKey n k then ckHalf γ (fkVals S) else iprop(True)
-
-/-- A write to a hook's bucket needs nothing of the physical view. -/
-theorem pvPut_hook (γ : BNames) (P : BParams) (n : GoString) (S : Data) (h : P.HB n = true) :
-    ⊢ pvPut (GF := GF) γ P n S := by
-  unfold pvPut; rw [h]; simp only [↓reduceIte]; iintro; itrivial
-
-/-- The same, as an equation. -/
-theorem pvPut_hook_eq (γ : BNames) (P : BParams) (n : GoString) (S : Data) (h : P.HB n = true) :
-    pvPut (GF := GF) γ P n S = iprop(True) := by
-  unfold pvPut; rw [h]; rfl
-
-/-- A write to a non-hook bucket needs the client's half of the physical view. -/
-theorem pvPut_other_eq (γ : BNames) (P : BParams) (n : GoString) (S : Data) (h : P.HB n = false) :
-    pvPut (GF := GF) γ P n S = pvHalf γ (sData P S) := by
-  unfold pvPut; rw [h]; rfl
-
-/-- A put of a key that is not a compaction key needs nothing of their values. -/
-theorem ckPut_other (γ : BNames) (n k : GoString) (S : Data) (h : ¬ fkKey n k) :
-    ⊢ ckPut (GF := GF) γ n k S := by
-  unfold ckPut; rw [if_neg h]; iintro; itrivial
-
-/-- The same, as an equation. -/
-theorem ckPut_other_eq (γ : BNames) (n k : GoString) (S : Data) (h : ¬ fkKey n k) :
-    ckPut (GF := GF) γ n k S = iprop(True) := by
-  unfold ckPut; exact if_neg h
-
-/-- A put of a compaction key needs the client's half of their values. -/
-theorem ckPut_fk_eq (γ : BNames) (n k : GoString) (S : Data) (h : fkKey n k) :
-    ckPut (GF := GF) γ n k S = ckHalf γ (fkVals S) := by
-  unfold ckPut; exact if_pos h
 
 /-- **The batch lock's side of the tracked buckets** at contents `r`: the ghost map's authority,
 the other halves of its elements (the shape of the client's `rbOwn`, so that a snapshot's
@@ -657,18 +714,14 @@ only `Unlock`'s proof may do (`rbSide_idle`, private to `TrackedLemmas.lean`, wh
     ⌜∀ n i, P.BT.lookup n = some i → P.RB n = true → γ.rbD.lookup n ≠ none⌝)
 
 /-- The batch lock's halves of what it tracks of the writer's contents `S`: the hook's own keys
-(`γ.hkd`), the tracked buckets (`rbSide`), and (F2's stage 1, 2026-11-02) the physical view of the
-non-hook buckets (`γ.pv` at `sData P S`) and the compaction keys' values (`γ.ck` at `fkVals S`),
-whose other halves are the client's `pvHalf`/`ckHalf`. -/
+(`γ.hkd`) and the tracked buckets (`rbSide`). -/
 def trkHalf (γ : BNames) (P : BParams) (S : Data) : IProp GF :=
-  iprop(ghostVar γ.hkd (1 : Qp).half (hkData P S) ∗ rbSide γ P (rbData P S) ∗
-    ghostVar γ.pv (1 : Qp).half (sData P S) ∗ ghostVar γ.ck (1 : Qp).half (fkVals S))
+  iprop(ghostVar γ.hkd (1 : Qp).half (hkData P S) ∗ rbSide γ P (rbData P S))
 
 /-- Two contents with the same tracked data have the same halves. -/
 theorem trkHalf_eq (γ : BNames) (P : BParams) {S S' : Data} (h1 : hkData P S' = hkData P S)
-    (h2 : rbData P S' = rbData P S) (h3 : sData P S' = sData P S) (h4 : fkVals S' = fkVals S) :
-    trkHalf (GF := GF) γ P S = trkHalf γ P S' := by
-  unfold trkHalf; rw [h1, h2, h3, h4]
+    (h2 : rbData P S' = rbData P S) : trkHalf (GF := GF) γ P S = trkHalf γ P S' := by
+  unfold trkHalf; rw [h1, h2]
 
 /-! ## The history of the read side, and the cache's marks -/
 
@@ -987,9 +1040,15 @@ def cacheRes (γ : BNames) (P : BParams) (b : Loc) : IProp GF :=
 /-- (2026-11-04, R2b-3c part 2) **What the stop's commit leaves of the batch lock's ghost shares**, at
 its committed data `C`: the readers' view quarter at `C`'s physical view (over some logical view, as
 `batchViewQ` after a commit) and the lock's halves of what it tracks (`trkHalf`). The stopped lock
-holds none of it (`batchFree`'s `bStopped` case): `Close` hands it to its caller (`bStopView`). -/
+holds none of it (`batchFree`'s `bStopped` case): `Close` hands it to its caller (`bStopView`).
+(2026-11-07, the stop image: the deleted entries `X` with the quarter's agreement `dlVd`, as a
+commit's `viewAtD`, so that a client's observation of the stopped data is the snapshot's.) -/
 def bStopG (γ : BNames) (P : BParams) (C : Data) : IProp GF :=
-  iprop((∃ L : VData, viewQ γ (1 : Qp).half.half (sData P C) L) ∗ trkHalf γ P C ∗
+  iprop((∃ L X : VData, viewQ γ (1 : Qp).half.half (sData P C) L ∗ ⌜dlVd P (sData P C) L X⌝ ∗
+      dlsOwn γ X) ∗ trkHalf γ P C ∗
+    -- (the `lean` merge, 2026-11-06: in place of F2's `ckHalf`) the lock's half of the compaction
+    -- keys' values at `C` (`fkHalf`'s; its half of the deleted entries is with the quarter above)
+    fkdOwn γ (fkVals C) ∗
     -- (2026-11-04, the restart plan's R2b-3d stage 3) a reader's lower bound of the compaction
     -- keys' flag at `C` (what the stop's commit gives its readers, `fkHalf_rd`)
     ∃ R : RBuf, fkRd γ P (C, R))
@@ -1025,7 +1084,13 @@ def batchPhys (γ : BNames) (b t db : Loc) (st : BSess) : IProp GF :=
 view `L`, the physical view thin of it (`viewQ`). Exact is the instance `L = vData P (st.C, st.R)`
 (`batchViewQ_of_exact`). -/
 def batchViewQ (γ : BNames) (P : BParams) (st : BSess) : IProp GF :=
-  iprop(∃ L : VData, viewQ γ (1 : Qp).half.half (vData P (st.C, st.R)) L)
+  iprop(∃ L : VData, viewQ γ (1 : Qp).half.half (vData P (st.C, st.R)) L ∗ ⌜dlsW P st L⌝)
+
+/-- **The batch lock's quarter in an `Unlock`'s commit window** (`batchGhostW`): the deleted
+entries missing from the writer's contents only (the quarter is at the exact new physical view,
+of which they are not; the commit's close moves it to the session's logical view). -/
+def batchViewQ0 (γ : BNames) (P : BParams) (st : BSess) : IProp GF :=
+  iprop(∃ L : VData, viewQ γ (1 : Qp).half.half (vData P (st.C, st.R)) L ∗ ⌜dlsS P st⌝)
 
 /-- The batch lock's share of the ghost state for `st`: the view's quarter over the logical view,
 the physical view `(C, R)` thin of it (`batchViewQ`), half of
@@ -1112,12 +1177,15 @@ theorem thinV_relog (γ : BNames) (P : BParams) (L : VData) (st : BSess) :
     · simp only [hc, ↓reduceIte] at h1; exact absurd rfl h1
 
 /-- Today's exact quarter is an instance of the batch lock's logical quarter. -/
-theorem batchViewQ_of_exact (γ : BNames) (P : BParams) (st : BSess) :
+theorem batchViewQ_of_exact (γ : BNames) (P : BParams) (st : BSess)
+    (hd : dlsW P st (vData P (st.C, st.R))) :
     ghostVar (GF := GF) γ.view (1 : Qp).half.half (vData P (st.C, st.R)) ⊢ batchViewQ γ P st := by
   unfold batchViewQ
   iintro H
   iexists vData P (st.C, st.R)
-  iapply viewQ_exact $$ H
+  isplitl
+  · iapply viewQ_exact $$ H
+  · ipureintro; exact hd
 
 /-- **The clients' view is the logical one** (agreement of the shares of `γ.view`): the batch
 lock's physical view is thin of what a client holds. -/
@@ -1125,11 +1193,44 @@ theorem batchViewQ_bView (γ : BNames) (P : BParams) (st : BSess) (q : Qp) (vd :
     batchViewQ (GF := GF) γ P st ∗ bView γ q vd ⊢
       batchViewQ γ P st ∗ bView γ q vd ∗ thinV γ (vData P (st.C, st.R)) vd := by
   unfold batchViewQ bView bViewC viewQ
-  iintro ⟨⟨%L, Hq, #Ht⟩, ⟨%c, Hv, Hc, Hl⟩⟩
+  iintro ⟨⟨%L, ⟨Hq, #Ht⟩, %Hd⟩, ⟨%c, Hv, Hc, Hl⟩⟩
   icombine Hq Hv gives %Heq
   obtain ⟨-, rfl⟩ := Heq
-  iframe Hc Hl Hq Hv
+  iframe Hc Hl Hv
+  isplitl [Hq]
+  · iexists _; iframe Hq; iframe #; ipureintro; exact Hd
   iframe #
+
+/-- **The deleted entries agree with a client's view** (the logical view is the clients'). -/
+theorem batchViewQ_bView_dl (γ : BNames) (P : BParams) (st : BSess) (q : Qp) (vd : VData) :
+    batchViewQ (GF := GF) γ P st ∗ bView γ q vd ⊢
+      batchViewQ γ P st ∗ bView γ q vd ∗ ⌜dlsW P st vd⌝ := by
+  unfold batchViewQ bView bViewC viewQ
+  iintro ⟨⟨%L, ⟨Hq, #Ht⟩, %Hd⟩, ⟨%c, Hv, Hc, Hl⟩⟩
+  icombine Hq Hv gives %Heq
+  obtain ⟨-, rfl⟩ := Heq
+  iframe Hc Hl Hv
+  isplitl [Hq]
+  · iexists _; iframe Hq; iframe #; ipureintro; exact Hd
+  ipureintro; exact Hd
+
+/-- **The deleted safe-range entries are the clients' view's** (the user's decision, 2026-11-04,
+probe M2): a key a session may put above every key of a client's view is not a deleted one. -/
+theorem batchViewQ_dl (γ : BNames) (P : BParams) (st : BSess) (q : Qp) (vd : VData) :
+    batchViewQ (GF := GF) γ P st ∗ bView γ q vd ⊢
+      batchViewQ γ P st ∗ bView γ q vd ∗
+        ⌜st.cnt.hw = false → ∀ nk, P.SB nk.1 = true → P.HB nk.1 = false → st.dl.lookup nk ≠ none →
+          vd.lookup nk ≠ none⌝ := by
+  unfold batchViewQ bView bViewC viewQ
+  iintro ⟨⟨%L, ⟨Hq, #Ht⟩, %Hd⟩, ⟨%c, Hv, Hc, Hl⟩⟩
+  icombine Hq Hv gives %Heq
+  obtain ⟨-, rfl⟩ := Heq
+  iframe Hc Hl Hv
+  isplitl [Hq]
+  · iexists _; iframe Hq; iframe #; ipureintro; exact Hd
+  ipureintro
+  intro hh nk h1 h2 hx
+  exact ((Hd.2.1 (Hd.2.2 hh)).2 nk h1 h2 hx).2
 
 /-- **What a client reads of the batch lock: the physical view is thin of the clients' view.** -/
 theorem batchLocked_thin (γ : BNames) (P : BParams) (b : Loc) (st : BSess) (q : Qp) (vd : VData) :
@@ -1250,7 +1351,9 @@ instance metricsInv_persistent (b : Loc) : Persistent (metricsInv (GF := GF) b) 
   unfold metricsInv; infer_instance
 
 /-- `b` is a backend with parameters `P`, ghost names `γ`, the client's batch-lock resources
-`W` (the lock holder's) and `Pk` (the hooks') (persistent). -/
+`W` (the lock holder's) and `Pk` (the hooks') (persistent). (Sweep repairs 1, B4, 2026-11-07) With
+`ETCD_VERIFY` off (`envVerifyOff`): what its batch transaction's lock checks
+(`ValidateCalledInsideApply` and the others) take; from the opener's precondition. -/
 def isBackend (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) : IProp GF :=
   iprop(□ ∃ (t rt tm db lg : Loc) (h : GoInterface),
     bF go!"batchTx" b ↦□ t ∗ bF go!"readTx" b ↦□ rt ∗ bF go!"batchLimit" b ↦□ P.limit ∗
@@ -1263,11 +1366,23 @@ def isBackend (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) : IProp GF
     sync.isRWMutexGuard (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db) ∗
     isDB db ∗ ⌜P.Wf⌝ ∗
     -- (2026-11-04, R2b-3c) the database and its file
-    (∃ path : GoString, bDBAt γ db path ∗ dbFile db path))
+    (∃ path : GoString, bDBAt γ db path ∗ dbFile db path) ∗
+    -- (sweep repairs 1, B4) `ETCD_VERIFY` off
+    envVerifyOff)
 
 instance isBackend_persistent (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) :
     Persistent (isBackend γ P W Pk b) := by
   unfold isBackend; infer_instance
+
+/-- (Sweep repairs 1, B4) **A backend's `ETCD_VERIFY` off** (what the lock checks and
+`VerifyBackendConsistency` take). -/
+theorem isBackend_envVerifyOff (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) :
+    isBackend γ P W Pk b ⊢ envVerifyOff := by
+  iintro #Hb
+  unfold isBackend
+  icases Hb with ⟨%t, %rt, %tm, %db, %lg, %h, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -,
+    -, -, -, #Hv⟩
+  iexact Hv
 
 /-! ## Readers -/
 

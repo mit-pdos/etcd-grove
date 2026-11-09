@@ -55,7 +55,7 @@ theorem newServerMode.wp_proof
   iunfold memberBoot at Hmb
   icases Hmb with ⟨%Hρ, Hnboot, #Hsrl, #Hidc, #Hidk, #HNZ0, #Hpmint, #Hrdctx,
     Hids, Hwtok, Hidx, Hcok, Hrev, Hnk, #Hkvinv, Hreg, %γd, %Hsloc, Hsdir⟩
-  obtain ⟨hraft, hc0, hch, hlog, hcok, hpfx, hΦs, hcmp0, hkcmp, hslg⟩ := Hρ
+  obtain ⟨hraft, hc0, hch, hlog, hpfx, hΦs, hcmp0, hkcmp, hNx, hslg⟩ := Hρ
   -- the imports' package facts
   ihave #Pfeat : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.features $$ []
   · iPkgInit
@@ -77,13 +77,15 @@ theorem newServerMode.wp_proof
   have hblen' : γ.boot.length ≤ 2 ^ 60 := by rw [hboot]; exact hblen
   -- (step 6 of the hubs, 2026-11-03) `NewServer.specG` at auth off, in the member's mode `cmp`; its
   -- mode-indexed rows at `false` are today's (by definition)
+  -- (sweep repairs 1, B4) `ETCD_VERIFY` off, from the member's fresh bundle
+  icases memberFreshRes_verify _ _ _ $$ Hfresh with ⟨#Hvoff, Hfresh⟩
   have wpNS : NewServer.specG (GF := GF) (hG := hG) false cmp := wp_NewServer cmp
   simp only [NewServer.specG, kvInvM_false, srvErM_false, srvBuiltG_false, bootKVOf_false] at wpNS
   wp_apply (wpNS _ ⟨[httpURL peerAddr], [httpURL client], M, iu⟩
-      γ id ctxs ρ E₀ N Φs γn dir γd lm hraft (by rw [hboot]; exact hrule) hc0 hch hlog hcok hkcmp
+      γ id ctxs ρ E₀ N Φs γn dir γd lm hraft (by rw [hboot]; exact hrule) hc0 hch hlog hkcmp
       ⟨by simp, by simp [mvcc.rangeLimitMax]⟩
       (by simp [v3rpc.etcdMaxRequestBytesOk, v3rpc.etcdMaxRecvMsgSize, v3rpc.grpcOverheadBytes])
-      v3rpc.maxTxnOpsOk_default Hmode (fun _ => trivial) hcmp0 Htb Hrb48 HrbN
+      v3rpc.maxTxnOpsOk_default Hmode (fun _ => trivial) hcmp0 hNx Htb Hrb48 HrbN
       hblen' hpfx hΦs ⟨fgp, Hfgp, rfl⟩ Hdirok (peerURLsDir_httpURL dir id peerAddr Hdirok Hdir)
       -- (2026-11-03, the final whole-`bootOk` review) the raft node's and the transport's slots: the
       -- literal's clock, the directory of the peers

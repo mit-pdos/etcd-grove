@@ -133,6 +133,8 @@ theorem etcd_compacted_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (HAs : addrsUnclaimed putgetcProgram [go!"127.0.0.1:23791"])
     -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the member's data directory, fresh at start (`dataDirsAbsent`)
     (HDs : dataDirsAbsent putgetcProgram [go!"putgetc.etcd"])
+    -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
+    (HEnv : verifyEnvOff putgetcProgram)
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putgetcGF,
       ⊢ etcd_compacted.premises (GF := putgetcGF) (hG := heapAtC hG lctx) n id ctxs boot)
@@ -144,7 +146,7 @@ theorem etcd_compacted_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
-  refine etcd_adequate_members (GF := putgetcGF) github_com.mit_pdos.etcd_grove.examples.etcd.compacted.initialize'
+  refine etcd_adequate_members (GF := putgetcGF) (hAsLit := by decide) (HEnv := HEnv) github_com.mit_pdos.etcd_grove.examples.etcd.compacted.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.etcd.compacted.Main) #())
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) [go!"127.0.0.1:23791"] (by decide) [go!"putgetc.etcd"] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩)
     -- (hub step 7) the one member's start bundle: its client address, its data directory

@@ -86,6 +86,8 @@ theorem etcd_partition_watch_adequate [lctx : GoLocalContext] [sem : go.Semantic
     -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the members' data directories,
     -- fresh at start (`dataDirsAbsent`; their distinctness is now `decide`d, no longer a hypothesis)
     (HDs : dataDirsAbsent (linkv3pWatchProgram nw nops steps) [(etcd_partition.name₁ ++ go!".etcd"), (etcd_partition.name₂ ++ go!".etcd"), (etcd_partition.name₃ ++ go!".etcd")])
+    -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
+    (HEnv : verifyEnvOff (linkv3pWatchProgram nw nops steps))
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC linkvGF,
       ⊢ etcd_partition.premises (GF := linkvGF) (hG := linkvHeapAt hG lctx) n id₁ id₂ id₃ ps ctxs boot)
@@ -97,7 +99,7 @@ theorem etcd_partition_watch_adequate [lctx : GoLocalContext] [sem : go.Semantic
     (∀ v t2', t2 = Val v :: t2' → v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2)) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
-  refine etcd_adequate_members (GF := linkvGF) github_com.mit_pdos.etcd_grove.examples.etcd.partition.initialize'
+  refine etcd_adequate_members (GF := linkvGF) (hAsLit := by decide) (HEnv := HEnv) github_com.mit_pdos.etcd_grove.examples.etcd.partition.initialize'
     (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.partition.MainWatch)) (Val #nw))
       (Val #nops)) (schedLit steps))
     (fun v => v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2)) (fun p h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)

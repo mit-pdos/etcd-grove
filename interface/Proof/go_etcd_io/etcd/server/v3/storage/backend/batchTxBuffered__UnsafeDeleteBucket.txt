@@ -18,12 +18,9 @@ theorem backend.batchTxBuffered.UnsafeDeleteBucket.wp_proof [go_etcd_io.bbolt.As
                   isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
                       backend.isBackend γ P W Pk b ∗
                         typedPointsto (backend.bF go!"batchTx" b) t DFrac.discard ∗
-                          backend.batchLocked γ P b st ∗
-                            backend.isBucket bk bi ∗ backend.rbPut γ P bi.name st.S ∗ backend.pvPut γ P bi.name st.S -∗
+                          backend.batchLocked γ P b st ∗ backend.isBucket bk bi ∗ backend.rbPut γ P bi.name st.S -∗
                     ▷
-                        (backend.batchLocked γ P b (st.delBucket bi) ∗
-                            backend.rbPut γ P bi.name (st.delBucket bi).S ∗
-                              backend.pvPut γ P bi.name (st.delBucket bi).S -∗
+                        (backend.batchLocked γ P b (st.delBucket bi) ∗ backend.rbPut γ P bi.name (st.delBucket bi).S -∗
                           Φ (intoVal ())) -∗
                       WP
                         ((intoVal

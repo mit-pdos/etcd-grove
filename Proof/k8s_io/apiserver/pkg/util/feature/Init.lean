@@ -2,13 +2,15 @@
 Package initialization of `k8s_io.apiserver.pkg.util.feature`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact (`featureInit`, `storage/etcd3/Base.lean`): `DefaultFeatureGate` holds a feature
-gate whose `Enabled` answers some `bool` for any feature. Its initializer initializes its import
+Its fact (`featureInit`, `storage/etcd3/Base.lean`): `DefaultMutableFeatureGate` and
+`DefaultFeatureGate` hold the same feature gate. Its initializer initializes its import
 (`component-base/featuregate`, names-only) and runs its variables' untranslated initializers
-(`feature_gate.go`); the trust-boundary axiom `DefaultFeatureGate_init` states the one the fact
-reads (`DefaultMutableFeatureGate`, a `featuregate.NewFeatureGate()`, whose `Enabled` looks the
-feature up in its map and returns; which features are on is the deployment's), `opaqueInitsOk`
-the other.
+(`feature_gate.go`); the trust-boundary axioms `DefaultMutableFeatureGate_init`
+(`featuregate.NewFeatureGate()`: a gate) and `DefaultFeatureGate_init` (`DefaultFeatureGate =
+DefaultMutableFeatureGate`: the same gate) state them. (Sweep repairs 1, B5, 2026-11-08: until then
+`DefaultFeatureGate_init` gave a gate whose `Enabled` answered any `bool` for any feature, false of an
+unregistered one, and `DefaultMutableFeatureGate` was `opaqueInitsOk`'s, unlinked; the gate's specs
+are now `features`' registration's, `features.init_0_ok`.)
 -/
 module
 
@@ -39,20 +41,15 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- **The trust boundary: `k8s_io.apiserver.pkg.util.feature`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([DefaultMutableFeatureGate.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
+/-- `DefaultMutableFeatureGate = featuregate.NewFeatureGate()` (`feature_gate.go`): a feature gate, no Kubernetes feature registered yet (`features`' `init` registers them, `features.init_0_ok`). -/
+axiom DefaultMutableFeatureGate_init :
+    {{ (True : IProp GF) }} (App (Val DefaultMutableFeatureGate.init) (Val #()))
+    {{ RET #(); ∃ g : GoInterfaceOk, globalAddr DefaultMutableFeatureGate ↦ GoInterface.ok g }}
 
-/-- `DefaultFeatureGate = DefaultMutableFeatureGate` (`feature_gate.go`, a `featuregate.NewFeatureGate()`): a gate whose `Enabled` returns some `bool` for any feature. -/
-axiom DefaultFeatureGate_init :
-    {{ (True : IProp GF) }} (App (Val DefaultFeatureGate.init) (Val #()))
-    {{ RET #(); ∃ g : GoInterfaceOk, globalAddr DefaultFeatureGate ↦ GoInterface.ok g ∗
-      □ ∀ (f : val) (Φ : val → IProp GF), ▷ (∀ b : Bool, Φ #b) -∗
-        WP (App (Val #(methods g.ty go!"Enabled" g.v)) (Val f)) {{ Φ }} }}
+/-- `DefaultFeatureGate = DefaultMutableFeatureGate` (`feature_gate.go`): the same gate. -/
+axiom DefaultFeatureGate_init : ∀ g : GoInterfaceOk,
+    {{ (globalAddr DefaultMutableFeatureGate ↦□ GoInterface.ok g : IProp GF) }} (App (Val DefaultFeatureGate.init) (Val #()))
+    {{ RET #(); globalAddr DefaultFeatureGate ↦ GoInterface.ok g }}
 
 end k8s_io.apiserver.pkg.util.feature
 end opaqueInits
@@ -79,8 +76,10 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_auto
   iapply wp_fupd
   wp_apply (_root_.Perennial.k8s_io.component_base.featuregate.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  wp_apply (opaqueInitsOk DefaultMutableFeatureGate.init (by mem_tac))
-  wp_apply DefaultFeatureGate_init as ⟨%gDefaultFeatureGate, HDefaultFeatureGate, #SDefaultFeatureGate⟩
+  wp_apply DefaultMutableFeatureGate_init as ⟨%gDefaultMutableFeatureGate, HDefaultMutableFeatureGate⟩
+  ipersist HDefaultMutableFeatureGate
+  wp_apply (DefaultFeatureGate_init gDefaultMutableFeatureGate) $$ [] as HDefaultFeatureGate
+  · iframe #
   ipersist HDefaultFeatureGate
   iframe Hown
   imodintro

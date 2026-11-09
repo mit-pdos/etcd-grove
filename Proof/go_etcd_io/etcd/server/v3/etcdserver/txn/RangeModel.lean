@@ -31,8 +31,9 @@ the adjusted one (`cutEarly`): the response is not the first `limit` of the sort
 
 **The sort's premises**: `sort.Sort`'s axiom wants at most `2 ^ 62` elements and a strict weak
 order; the comparators `(a - b) < 0` on versions and revisions are the signed order only for
-values less than `2 ^ 63` apart. A log with at most `2 ^ 62` changes (`LogSmall`) gives both:
-at most that many keys (`stateAt_small`), revisions and versions in `[0, 2 ^ 62]` (`kvOk`).
+values less than `2 ^ 63` apart. Both come from the API's `Txn.Range` contract (strict M1,
+2026-11-05): every state a range can read is `stateOk` (at most `2 ^ 62` key-values, each
+`kvSortOk`, positive values).
 -/
 module
 
@@ -159,7 +160,7 @@ def validSortTarget (o : OpFull) : Prop := 0 ≤ sint.Z o.sortTarget ∧ sint.Z 
 
 /-- **The sorters' `Less`** (`kvSortBy*`), by target (`1` version, `2` create revision, `3` mod
 revision, `4` value, else the key), on values whose revisions and versions are non-negative
-(`kvOk`): Go's `(a - b) < 0` is then the signed order. -/
+(`kvSortOk_nonneg`): Go's `(a - b) < 0` is then the signed order. -/
 def kvLtBy (target : w64) (a b : EtcdKv) : Bool :=
   if target = W64 1 then decide (sint.Z a.version < sint.Z b.version)
   else if target = W64 2 then decide (sint.Z a.createRev < sint.Z b.createRev)
@@ -186,8 +187,11 @@ theorem kvLtBy_value (a b : EtcdKv) :
     kvLtBy (W64 4) a b = decide (go.GoStringLt a.value b.value) := by
   unfold kvLtBy; rw [ite_eq_right (by decide), ite_eq_right (by decide), ite_eq_right (by decide), ite_eq_left rfl]
 
-/-- A key-value whose version and revisions are non-negative. -/
-def kvOk (v : EtcdKv) : Prop := 0 ≤ sint.Z v.version ∧ 0 ≤ sint.Z v.createRev ∧ 0 ≤ sint.Z v.modRev
+/-- A key-value safe to sort (the API's `kvSortOk`, positive values) has non-negative version and
+revisions: what the comparators need (strict M1, 2026-11-05: `txn.kvOk` unified with it). -/
+theorem kvSortOk_nonneg (v : EtcdKv) (h : mvcc.api.kvSortOk v) :
+    0 ≤ sint.Z v.version ∧ 0 ≤ sint.Z v.createRev ∧ 0 ≤ sint.Z v.modRev := by
+  unfold mvcc.api.kvSortOk at h; omega
 
 /-- Go's `(a - b) < 0` on non-negative 64-bit integers is `a < b` (no overflow: the difference
 of two values in `[0, 2 ^ 63)` is in `(-2 ^ 63, 2 ^ 63)`). -/
@@ -299,11 +303,6 @@ def logChanges (log : Log) : Nat := (log.map List.length).sum
 
 /-- A log with at most `2 ^ 62` changes (every store that ever ran). -/
 def LogSmall (log : Log) : Prop := logChanges log ≤ 2 ^ 62
-
-/-- **The sort's premise**: a request that sorts (`effSortOrder` `1` or `2`) reads a small log
-(`LogSmall`: `sort.Sort`'s at most `2 ^ 62` elements, the comparators' non-negative values). -/
-def sortOk (o : OpFull) (log : Log) : Prop :=
-  (o.effSortOrder = W64 1 ∨ o.effSortOrder = W64 2) → LogSmall log
 
 /-- What a state of the first `n` revisions after `P` changes satisfies: at most `P` keys, mod
 and create revisions in `[0, n)`, versions in `[1, P]`. -/
@@ -423,17 +422,6 @@ theorem logChanges_take (log : Log) (n : Nat) : logChanges (log.take n) ≤ logC
     cases n with
     | zero => simp [logChanges]
     | succ n => have := ih n; simp [logChanges] at *; omega
-
-/-- **A small log's states**: at most `2 ^ 62` keys, each with non-negative revisions and
-version. -/
-theorem stateAt_small (log : Log) (hlen : log.length < 2 ^ 63) (h : LogSmall log) (r : Nat) :
-    (stateAt log r).length ≤ 2 ^ 62 ∧ ∀ v ∈ stateAt log r, kvOk v := by
-  have hc := logChanges_take log (r + 1)
-  have hb := stateBound_stateAfter (log.take (r + 1)) (by simp; omega) (by unfold LogSmall at h; omega)
-  unfold stateAt
-  refine ⟨by have := hb.1; unfold LogSmall at h; omega, fun v hv => ?_⟩
-  have := hb.2 v hv
-  exact ⟨by omega, by omega, by omega⟩
 
 /-! ## The server's range against the client's -/
 

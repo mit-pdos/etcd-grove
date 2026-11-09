@@ -246,7 +246,7 @@ def memberDone (γ : WsNames) (σ : WsState) (N : Nat) (w : Loc) (st : WatcherSt
     (evsw ext : List EvM) : IProp GF :=
   iprop(∃ (γw : WatcherNames) (r : WatchRange) (fcs : GoSlice),
     ⌜σ.M !! w = some γw⌝ ∗ watcherMeta γ w γw ∗ watcherFixed w r fcs ∗
-    watcherChan γ w γw st.ch ∗ filtersOk fcs ∗ ⌜sint.Z r.startRev ≤ (γw.lo : Int)⌝ ∗
+    watcherChan γ w γw st.ch ∗ watcherFilters γw fcs ∗ ⌜sint.Z r.startRev ≤ (γw.lo : Int)⌝ ∗
     monoListAuthOwn γw.evs (1 : Qp).half evsw ∗
     dghostVar γw.live (DFrac.own (1 : Qp).half) true ∗
     ⌜(γw.lo : Int) ≤ sint.Z st.minRev ∧ sint.Z st.minRev = N + 1⌝ ∗
@@ -265,7 +265,7 @@ theorem memberRes_synced (γ : WsNames) (q : Qp) (σ : WsState) (w : Loc) (st : 
     memberRes γ q σ w st ⊢ ∃ (γw : WatcherNames) (r : WatchRange) (fcs : GoSlice)
       (evsw : List EvM) (d : Nat),
       ⌜σ.M !! w = some γw⌝ ∗ watcherMeta γ w γw ∗ watcherFixed w r fcs ∗
-      watcherChan γ w γw st.ch ∗ filtersOk fcs ∗ ⌜sint.Z r.startRev ≤ (γw.lo : Int)⌝ ∗
+      watcherChan γ w γw st.ch ∗ watcherFilters γw fcs ∗ ⌜sint.Z r.startRev ≤ (γw.lo : Int)⌝ ∗
       ⌜σ.E !! w = some (evsw, d)⌝ ∗ monoListAuthOwn γw.evs q.half evsw ∗
       dghostVar γw.live (DFrac.own q.half) true ∗
       ⌜(γw.lo : Int) ≤ sint.Z st.minRev ∧ sint.Z st.minRev ≤ d⌝ ∗ evsWf γ r γw.lo evsw d := by
@@ -762,14 +762,11 @@ theorem memberRes_final (γ : WsNames) (σ : WsState) (ilog : Log) (pend : List 
         Option.getD_some]
       iintro ⟨-, ⟨%γw, %r, %fcs, %hM, #Hm, #Hf, #Hc, #Hfo, %Hsr, Ha, Hl, %Hmin, #Hwf⟩⟩
       ihave %Hlo : ⌜B.evs ≠ [] → γw.lo ≤ N⌝ $$ []
-      · iunfold evsWf at Hwf
-        icases Hwf with ⟨%L, -, -, %HL⟩
+      · ihave %Hne := evsWf_ne_lo γ r γw.lo _ _ $$ Hwf
         ipureintro
         intro hne'
-        refine Classical.byContradiction (fun hc => ?_)
-        have h0 : watchEvents L r γw.lo (N + 1) = [] := watchEvents_empty L r (by omega)
-        rw [← HL.1] at h0
-        exact hne' (List.append_eq_nil_iff.1 h0).2
+        have := Hne (fun h0 => hne' (List.append_eq_nil_iff.1 h0).2)
+        omega
       iexists γw, r, fcs
       iframe Hm Hf Hc Hfo Ha Hl Hwf
       ipureintro
@@ -878,17 +875,20 @@ theorem memberRes_final (γ : WsNames) (σ : WsState) (ilog : Log) (pend : List 
           · rw [if_neg h] at hnb'; cases hnb'
         iunfold evsWf at Hwf
         iunfold evsWf
-        icases Hwf with ⟨%L, #HlbL, -, %HL⟩
+        icases Hwf with ⟨%L, #HlbL, -, %HLb, #HLe⟩
         ihave %hcmp := evLog_cmp _ _ _ $$ Hlb HlbL
-        rw [hdN] at HL
+        rw [hdN] at HLb
         iexists ilog ++ [pend]
         iframe Hlb Hrlb
-        ipureintro
-        refine ⟨?_, Or.inl (by simp; omega)⟩
-        rw [HL.1, show max γw.lo (N + 1) = N + 1 by omega,
-          watchEvents_cmp hcmp.symm r HL.2 (Or.inl (by simp; omega)),
-          watchEvents_append (ilog ++ [pend]) r (show γw.lo ≤ N by omega) (show N ≤ N + 1 by omega),
-          hwE, List.append_nil]
+        isplitr
+        · ipureintro; exact Or.inl (by simp; omega)
+        rw [show max γw.lo (N + 1) = N + 1 by omega]
+        iapply evsExactOr_mono γ γw.lo (fun h => by
+          rw [hdN] at h
+          rw [h, watchEvents_cmp hcmp.symm r HLb (Or.inl (by simp; omega)),
+            watchEvents_append (ilog ++ [pend]) r (show γw.lo ≤ N by omega)
+              (show N ≤ N + 1 by omega), hwE, List.append_nil])
+          (fun hn => ⟨fun hne => by have := hn.1 hne; omega, hn.2⟩) $$ HLe
       · have hd : d = γw.lo := by omega
         rw [show max γw.lo (N + 1) = γw.lo by omega, ← hd]
         iexact Hwf
@@ -1055,20 +1055,27 @@ theorem mvcc.watchableStore.notify.wp_proof
     rw [hN] at hbm
     obtain ⟨hminN, hloN, hdN, hwEne, hB⟩ := hbm
     iunfold mvcc.evsWf at Hwf
-    icases Hwf with ⟨%L, #HlbL, -, %HL⟩
-    rw [hdN] at HL
+    icases Hwf with ⟨%L, #HlbL, -, %HLb, #HLe⟩
+    rw [hdN] at HLb
     ihave %hcmp := mvcc.evLog_cmp _ _ _ $$ Hlb HlbL
-    have hevsw : evsw = mvcc.watchEvents (ilog ++ [pend]) r' γw.lo N := by
-      rw [HL.1]
-      exact mvcc.watchEvents_cmp hcmp.symm r' HL.2 (Or.inl (by simp; omega))
-    have hnew : evsw ++ B.evs = mvcc.watchEvents (ilog ++ [pend]) r' γw.lo (N + 1) := by
-      rw [hB, hevsw, ← hN]
-      exact (mvcc.watchEvents_append _ _ (by omega) (by omega)).symm
+    ihave %HposN := mvcc.evLog_pos _ _ $$ Hlb
     ihave #Hwf' : mvcc.evsWf γ r' γw.lo (evsw ++ B.evs) (N + 1) $$ []
     · iunfold mvcc.evsWf
       iexists ilog ++ [pend]
       iframe Hlb Hrlb
-      ipureintro; exact ⟨hnew, Or.inl (by simp; omega)⟩
+      isplitr
+      · ipureintro; exact Or.inl (by simp; omega)
+      iapply mvcc.evsExactOr_mono γ γw.lo (fun h => by
+          rw [hdN] at h
+          have hevsw : evsw = mvcc.watchEvents (ilog ++ [pend]) r' γw.lo N := by
+            rw [h]
+            exact mvcc.watchEvents_cmp hcmp.symm r' HLb (Or.inl (by simp; omega))
+          rw [hB, hevsw, ← hN]
+          exact (mvcc.watchEvents_append _ _ (by omega) (by omega)).symm)
+        (fun hn => ⟨fun _ => by omega, fun ev hev => by
+          rcases List.mem_append.1 hev with h | h
+          · exact hn.2 ev h
+          · rw [hB] at h; exact HposN r' _ _ ev h⟩) $$ HLe
     subst hB
     iunfold mvcc.ownEventBatch at HB
     icases HB with ⟨%sl, %ps, Heb, Hsl, Hcap, %Hlen, #HevB⟩
@@ -1081,6 +1088,7 @@ theorem mvcc.watchableStore.notify.wp_proof
     wp_auto
     have hmod : ∀ ev ∈ mvcc.watchEvents (ilog ++ [pend]) r' N (N + 1), ev.kv.modRev = W64 N := by
       rw [← hN]; exact mvcc.watchEvents_next_modRev ilog pend hne r'
+    ihave #HnlN := mvcc.evLog_nlLb γ.st _ $$ Hlb
     wp_apply (hSend γ key γw r' fcs stw.ch 1 (Qp.half 1) evsw (N + 1) _ ps
         (mvcc.watchEvents (ilog ++ [pend]) r' N (N + 1)) (DFrac.own 1) [] 1 none iprop(True))
       $$ [Hchf Hl Ha Hsl] as %b ⟨Hchf, Hl, Hsl, Ha, -, -, -⟩
@@ -1093,6 +1101,11 @@ theorem mvcc.watchableStore.notify.wp_proof
       · iapply mvcc.covAuth_nil
       isplitr
       · iapply mvcc.notifiedLent_none
+      isplitr
+      · iunfold mvcc.revApi; iexists ilog ++ [pend]; iframe HnlN; ipureintro
+        show (sint.Z (W64 (N : Int))).toNat < _
+        have : sint.Z (W64 (N : Int) : w64) = N := by word
+        rw [this, List.length_append, List.length_singleton, hN]; omega
       isplitr
       · ipureintro; intro h; exact absurd h hwEne
       isplitr

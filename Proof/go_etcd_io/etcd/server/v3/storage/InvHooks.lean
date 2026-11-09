@@ -57,12 +57,13 @@ def hookSaveStep (P : BParams) (st st' : BSess) : Prop :=
   st'.C = st.C ∧ st'.R = st.R ∧ sData P st'.S = sData P st.S ∧ rbData P st'.S = rbData P st.S ∧
   (∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st'.W.bks i = bkOf st.W.bks i) ∧
   sint.Z st.pend ≤ sint.Z st'.pend ∧ sint.Z st'.pend + 1 ≤ sint.Z st.pend + P.hookMax ∧
-  sint.Z st.ndel ≤ sint.Z st'.ndel ∧ st'.tx = st.tx ∧ st'.cnt = st.cnt
+  sint.Z st.ndel ≤ sint.Z st'.ndel ∧ st'.tx = st.tx ∧
+  (st'.cnt = st.cnt ∧ st'.dl = st.dl ∧ st'.win = st.win)
 
 theorem hookStep_of_save {P : BParams} {st st' : BSess} (h : hookSaveStep P st st') :
     hookStep P st st' := by
   obtain ⟨hC, hR, hS, hB, hW, hp1, hp2, hn, htx, hc⟩ := h
-  exact ⟨hC, hR, hS, hB, hW, hp1, by omega, hn, htx, hc⟩
+  exact ⟨hC, hR, hS, hB, hW, hp1, by omega, hn, htx, hc.1, by rw [hc.2.1], hc.2.2⟩
 
 /-- A put in a hook's bucket leaves the writer's contents off the hook's buckets. -/
 theorem sData_put_HB {P : BParams} {S : Data} {n k v : GoString} (h : P.HB n = true) :
@@ -82,7 +83,8 @@ theorem hookStep_save_put {P : BParams} (hPw : P.Wf) (hP : hooksParams P) {st st
   obtain ⟨hC, hR, hS, hB, hW, hp1, hp2, hn, htx, hc⟩ := h
   have h58 := hpre.2.1
   have hpz' : sint.Z (st'.pend + W64 1) = sint.Z st'.pend + 1 := by word
-  refine ⟨hC, hR, ?_, ?_, ?_, ?_, ?_, hn, htx, hc⟩
+  refine ⟨hC, hR, ?_, ?_, ?_, ?_, ?_, hn, htx, hc.1, by
+    show dlR P st'.dl = dlR P st.dl; rw [hc.2.1], hc.2.2⟩
   · show sData P (st'.S.insert mvcc.metaBI.name
       ((bktOf st'.S mvcc.metaBI.name).insert schema.confStateKeyBytes vb)) = _
     rw [sData_put_HB hP.2.1]; exact hS

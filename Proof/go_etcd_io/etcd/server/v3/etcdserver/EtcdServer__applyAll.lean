@@ -66,7 +66,11 @@ theorem EtcdServer.applyAll.wp_proofBatch
     (hGI : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG))
     (hCM : EtcdServer.createMergedSnapshotMessage.spec (GF := GF) (hG := hG))
     (hSMS : EtcdServer.sendMergedSnap.spec (GF := GF) (hG := hG))
-    (hC : mvcc.store.Commit.spec (GF := GF) (hG := hG))
+    [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+    (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
+    (hPers : mvcc.api.persistent.law (GF := GF) (hG := hG))
+    (hReach : mvcc.api.mvccState_reachable.law (GF := GF) (hG := hG))
+    (hImg : mvcc.api.mvccImage_snapshot.law (GF := GF) (hG := hG))
     (hSnap : backend.backend.Snapshot.spec (GF := GF) (hG := hG))
     (hOn : storage.BackendHooks.OnPreCommitUnsafe.spec (GF := GF) (hG := hG))
     (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG := hG))
@@ -81,7 +85,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
     q γn rt n rp g T
   simp only [srvRunH_applyAll_specBatch]
   wp_start as ⟨%hP, #HsrvC, #Hlnil, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, #Hesl, #Hentsat, Hai, Hat, Hcs, #Hcv,
-    Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hka, HRS, #Hkb, #Hwin, HT, #Hbagn, Hdv, #Hdvr, HAR, Hrun, #Hsd, #Hkv, #Hmsi, HwalT, #Hrtf, #Hrt, Hso, HtokR⟩
+    Hss, Hst, Hbe, Happ, Hlr, Hgr, Hmr, Hbr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hka, HRS, #Hkb, #Hwin, HT, #Hbagn, Hdv, #Hdvr, HAR, Hrun, #Hsd, #Hkv, #Hmsi, HwalT, #Hrtf, #Hrt, Hso, HtokR⟩
   obtain ⟨hM, hRB, Hms, Hai1, Hok, hEok, hdv, hAL, hAT, Hdisk, hciA, hcia, hg0, hγn, hpre, hnA⟩ := hP
   have hon : E.authOn = C.isOn := by rw [apply.AEnv.authOn_eq, hM, AuthC.mode_isOn]
   -- (the auth component's stage 2c) the slot's rows at the mode's
@@ -128,13 +132,13 @@ theorem EtcdServer.applyAll.wp_proofBatch
   · iunfold srvFS; iexists _; iexact Hsf0
   have hAE1 := hAE s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr rp A γp dv w g sa
     (by rw [hM]; cases C <;> simp [AuthC.mode])
-    (fun h => by rw [hon] at h; cases C <;> simp_all [AuthC.isOn, acReceiptOk]) Hms Hai1 Hok
+    hRB Hms Hai1 Hok
     (by rw [hon]; exact hEok) hdv hg0
   rw [hon] at hAE1
   simp only [srvRunH_applyEntries_spec] at hAE1
   wp_apply hAE1
-    $$ [Hai Hat Hcs Hcv Hst Hbe Happ Hlr Hgr HKV Hao Hfs Hka HRS Hdv Hrun HAR HtokR]
-    as ⟨Hfs, Hdv, Hrun, HAR, %st', %ai', %at', %a', %t', %cs', %g', Hai, Hat, Hcs, #Hcv', Hst, HtokR, Hbe, Happ, Hlr, Hgr, Hao, #HWA',
+    $$ [Hai Hat Hcs Hcv Hst Hbe Happ Hlr Hgr Hmr HKV Hao Hfs Hka HRS Hdv Hrun HAR HtokR]
+    as ⟨Hfs, Hdv, Hrun, HAR, %st', %ai', %at', %a', %t', %cs', %g', Hai, Hat, Hcs, #Hcv', Hst, HtokR, Hbe, Happ, Hlr, Hgr, Hmr, Hao, #HWA',
       ⟨%x', %sa', HKV, %Hx', #Hlog', Hka, HRS⟩, %Hpost⟩
   · iframe #; iframe
   iunfold srvFS at Hfs
@@ -166,12 +170,15 @@ theorem EtcdServer.applyAll.wp_proofBatch
     ipureintro; exact ⟨by have := Hdm0.1; omega, by have := Hdm0.2; omega⟩
   (try wp_auto)
   -- `backend.VerifyBackendConsistency(s.Backend(), s.Logger(), true, schema.AllBuckets...)`
-  wp_apply hBk s E.γbe $$ [Hbr] as %be ⟨Hbr, -⟩
+  wp_apply hBk s E.γbe $$ [Hbr] as %be ⟨Hbr, %dB, -, #HbRO⟩
   · iframe #; iframe Hbr
+  -- (sweep repairs 1, B4) `ETCD_VERIFY` off, the backend's
+  ihave #Hvoff := srvBeRO_envVerifyOff dB $$ HbRO
   wp_apply hLg s sv.lg $$ [Hlr] as ⟨-, Hlr⟩
   · iframe #; iframe Hlr; ipureintro; exact Hlgnn
   (try wp_auto)
-  wp_apply hV be sv.lg true bsl
+  wp_apply hV be sv.lg true bsl $$ []
+  · iframe #
   (try wp_auto)
   -- `proposalsApplied.Set(float64(ep.appliedi))`
   iunfold gaugeSetSpec at Hgs
@@ -222,7 +229,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
       iframe HsrvC Hlnil
       isplitr
       · ipureintro; exact beSucc_refl γ E
-      iframe HT Hai Hat Hcs Hcv' Hss Hst HtokR Hbe Happ Hlr Hgr Hbr HAR Hrun
+      iframe HT Hai Hat Hcs Hcv' Hss Hst HtokR Hbe Happ Hlr Hgr Hmr Hbr HAR Hrun
       isplitl [Hao]
       · iexact Hao
       isplitr
@@ -295,11 +302,16 @@ theorem EtcdServer.applyAll.wp_proofBatch
   have hS1 := hSINC.1 s E ρ.wait γ ci b γr ep st' ai' at' cs' a' t' x' mst γs nk γp
     (w + (unapplied ai ms).length) TM ρ sa' q γn
   rw [hon] at hS1
+  -- the apply thread's tokens (`apply.applyTok`: its reader token of the store)
+  ihave Htt : apply.applyTok (GF := GF) E $$ [Hmr]
+  · iunfold apply.applyTok; iexact Hmr
   wp_apply hS1 hok'
       hciL0 Hdisk.2.1.2.2.1 hsz Hdisk.2.2.1 hγn hpre
-    $$ [Hss Hai Hat Hcs Hst Hbe Happ Hlr HKV HwalT Hstor]
-    as ⟨%st'', Hss, -, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, HwalT, %Hst''⟩
+    $$ [Hss Hai Hat Hcs Hst Hbe Happ Hlr HKV HwalT Hstor Htt]
+    as ⟨%st'', Hss, -, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, HwalT, Htt, %Hst''⟩
   · iframe #; iframe
+  iunfold apply.applyTok at Htt
+  irename Htt => Hmr
   (try wp_auto)
   ihave HKV := (srvApplyKVM_C C s E ρ.wait x' sa').1 $$ HKV
   iunfold epConfState at Hcs
@@ -309,10 +321,10 @@ theorem EtcdServer.applyAll.wp_proofBatch
   ihave Hfin : iprop(∀ stF : ApplyState, ⌜loopOk γ stF ai' ∧ ciEff γ stF.k = ciEff γ st'.k⌝ -∗
       epAppliedIAddr ep ↦ ai' -∗ epAppliedTAddr ep ↦ at' -∗ epConfStateAddr ep ↦ cs' -∗
       applyThread γ stF -∗ applyBackend γ ci b -∗ ciApplying ci a' t' -∗ srvLgReader s -∗
-      srvGoRes s -∗ srvApplyKVC C s E ρ.wait x' sa' -∗
+      srvGoRes s -∗ mvcc.api.mvccReaders E.γ 1 -∗ srvApplyKVC C s E ρ.wait x' sa' -∗
       kvAppliedM C.isOn γr.raft γr.kv srvAuthSt0 (ghostOf rp (A ++ unapplied ai ms)) x' sa' -∗
       srvRestR E γr rp (A ++ unapplied ai ms) -∗ T -∗ Φ #()) $$ [HΦ Hss Hbr HAR Hrun Hao HwalT HtokR Hso]
-  · iintro %stF %HF Hai Hat Hcs Hst Hbe Happ Hlr Hgr HKV Hka HRS HT
+  · iintro %stF %HF Hai Hat Hcs Hst Hbe Happ Hlr Hgr Hmr HKV Hka HRS HT
     ihave Hcs : epConfState ep cs' $$ [Hcs]
     · iunfold epConfState; iframe Hcs Hcsok
     ihave HtokR : acTok C (ciEff γ stF.k) $$ [HtokR]
@@ -322,7 +334,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
     iframe HsrvC Hlnil
     isplitr
     · ipureintro; exact beSucc_refl γ E
-    iframe HT Hai Hat Hcs Hcv' Hss Hst HtokR Hbe Happ Hlr Hgr Hbr HAR Hrun
+    iframe HT Hai Hat Hcs Hcv' Hss Hst HtokR Hbe Happ Hlr Hgr Hmr Hbr HAR Hrun
     isplitl [Hao]
     · iexact Hao
     isplitr
@@ -462,31 +474,36 @@ theorem EtcdServer.applyAll.wp_proofBatch
               have := uint_nat_eq ai'; omega
             have hpos : 0 < uint.Z ai' := by word
             (try wp_auto)
+            -- (with auth on) the apply thread's compaction revision `-1`, for the image's certificate
+            imod srvApplyKVC_crev C s γ ci TM E ρ γr ρ.wait x' sa' $$ Hsrv HKV with ⟨HKV, %Hcr⟩
             -- (S2's `mergedCreate_window`) the commit's and the snapshot's contracts
             icases srvApplyKVC_coreA C s E ρ.wait x' sa' $$ HKV with ⟨%ua, HKVc, HAr, HKVk⟩
             -- the component lends its buckets to the window (none off)
             ihave HL := acRes_lend C s E ua sa' hM $$ HAr
-            icases Hkv with ⟨%kv, #Hkvf, #Hkvi⟩
-            imod mergedCreate_window hC hSnap hOn hSave hPut hUR hID hName hSafe C.isOn s γ ci TM E ρ
-                γr b st'' ai' a' t' (A ++ unapplied ai ms) x' ρ.wait γp ua kv Hst''.1 hciE hpos hlenZ
+            icases Hkv with ⟨%kv, #Hkvf, #Hkvi, -⟩
+            -- the apply goroutine's tokens (`apply.applyTok`), lent to the commit
+            ihave HthT : apply.applyTok (GF := GF) E $$ [Hmr]
+            · iunfold apply.applyTok; iexact Hmr
+            imod mergedCreate_window hsh hPers hReach hImg hSnap hOn hSave hPut hUR hID hName hSafe C.isOn
+                s γ ci TM E ρ γr b st'' ai' a' t' (A ++ unapplied ai ms) x' ρ.wait γp ua kv Hst''.1 hciE
                 (acBkts C) (acImg C sa') (acRes C s E ua sa') (acBkts_rest C)
-              $$ [Hst Hbe Happ HKVc HRS Hr1 Hl1 Hr2 Hl2 HL]
-              with ⟨%be, %dq, %RC, %RC', %RS, %RS', Hkc, HRC, Hbeo, Hbs, HRCS, Hback⟩
-            · iframe Hpkg Hsrv Hkvf Hkvi HW Hlog'' HlbB Hr1 Hl1 Hr2 Hl2 Hst Hbe Happ HKVc HRS HL
+              $$ [Hst Hbe Happ HKVc HRS Hr1 Hl1 HthT HL]
+              with ⟨%be, %dq, %RC, %RC', %RS, %RS', %Qd, Hkc, HRC, Hbeo, Hbs, HRCS, Hback⟩
+            · iframe Hpkg Hsrv Hkvf Hkvi HW Hr1 Hl1 HthT Hst Hbe Happ HKVc HRS HL
             -- (2026-11-06, `notes/begin-tok-plan.md`) the apply thread's token (`srvGoRes`'s) pays for
             -- the snapshot's reader slot; the reader goroutine's fork token comes back
             iunfold srvGoRes at Hgr
-            icases Hgr with ⟨HgrW, HthT⟩
-            wp_apply (hCM s m sm at' ai' cs' sv.lg kv be dq RC RC' RS RS' _)
-              $$ [Hlr Hkc HRC Hbeo Hbs HRCS Hm HthT]
-              as %mg ⟨Hlr, HRS', Hbeo, HthT, %rc, %D, %c, #Hmg, #Hml, #Hcso, Hrs, %HQd⟩
-            · iframe #; iframe Hlr Hkc HRC Hbeo Hbs HRCS Hm HthT; ipureintro; exact Hlgnn
-            ihave Hgr : srvGoRes s $$ [HgrW HthT]
-            · iunfold srvGoRes; iframe HgrW HthT
-            imod Hback $$ HRS' Hbeo with ⟨%st3, Hst, Hbe, Happ, HKVc, HRS, HAr, %Hst3⟩
+            icases Hgr with ⟨HgrW, HgT⟩
+            wp_apply (hCM s m sm at' ai' cs' sv.lg kv be dq RC RC' RS RS' Qd)
+              $$ [Hlr Hkc HRC Hbeo Hbs HRCS Hm HgT]
+              as %mg ⟨Hlr, HRS', Hbeo, HgT, %rc, %D, %c, #Hmg, #Hml, #Hcso, Hrs, HQd⟩
+            · iframe #; iframe Hlr Hkc HRC Hbeo Hbs HRCS Hm HgT; ipureintro; exact Hlgnn
+            ihave Hgr : srvGoRes s $$ [HgrW HgT]
+            · iunfold srvGoRes; iframe HgrW HgT
+            imod Hback $$ %D HRS' HQd Hbeo with ⟨%st3, HthT, Hst, Hbe, Happ, HKVc, HRS, #Hmimg, HAr, %Hst3⟩
             ihave HKV := HKVk $$ HKVc HAr
-            icases srvApplyKVC_idxCert C s E ρ.wait x' sa' $$ HKV with ⟨HKV, #Hicx⟩
-            ihave #Hrcx := mvcc.idxCert_rcpt E.γ.idx x'.log $$ Hicx
+            iunfold apply.applyTok at HthT
+            irename HthT => Hmr
             -- the merged message sent: of a term committed through the applied index (the batch's
             -- term, `rnRtOk`; not `0`, a `MsgSnap`'s term), certified at the voters' conf state
             iunfold rnRtOk at Hrt
@@ -514,8 +531,9 @@ theorem EtcdServer.applyAll.wp_proofBatch
             ihave Hmi : |={⊤}=> kvAppliedM C.isOn γr.raft γr.kv srvAuthSt0 (A ++ unapplied ai ms) x' sa' ∗
                 □ (srvNet (GF := GF) γr.raft.raft).img ai' D $$ [Hka]
             · iapply (merged_imageC C s γ ci TM E ρ γr ai' (A ++ unapplied ai ms) x' sa' D hM hlenZ
-                Hkv0)
-              iframe Hsrv Hka Hrcx; ipureintro; exact HQd
+                Hkv0 Hcr)
+              iframe Hsrv Hka Hmimg
+              ipureintro; exact Hst3.1
             imod Hmi with ⟨Hka, #Himg⟩
             imod srvMerged_bundle γr.raft.raft m rc sm γn.id c ai' at' D Hty
               $$ [Hml Hsm' Hrs Himg] with Hbun
@@ -526,18 +544,18 @@ theorem EtcdServer.applyAll.wp_proofBatch
             · iframe #; iframe Hgr Hlr; rw [HγN]; iframe Hbun; ipureintro; exact Hlgnn
             (try wp_auto)
             have hF3 : loopOk γ st3 ai' ∧ ciEff γ st3.k = ciEff γ st'.k :=
-              ⟨Hst3.1, by rw [Hst3.2]; exact Hst''.2⟩
-            iapply Hfin $$ %st3 %hF3 Hai Hat Hcs Hst Hbe Happ Hlr Hgr HKV Hka HRS HT
+              ⟨Hst3.2.1, by rw [Hst3.2.2]; exact Hst''.2⟩
+            iapply Hfin $$ %st3 %hF3 Hai Hat Hcs Hst Hbe Happ Hlr Hgr Hmr HKV Hka HRS HT
           · (try wp_auto)
-            iapply Hfin $$ %st'' %Hst'' Hai Hat Hcs Hst Hbe Happ Hlr Hgr HKV Hka HRS HT
+            iapply Hfin $$ %st'' %Hst'' Hai Hat Hcs Hst Hbe Happ Hlr Hgr Hmr HKV Hka HRS HT
         · (try wp_auto)
-          iapply Hfin $$ %st'' %Hst'' Hai Hat Hcs Hst Hbe Happ Hlr Hgr HKV Hka HRS HT
+          iapply Hfin $$ %st'' %Hst'' Hai Hat Hcs Hst Hbe Happ Hlr Hgr Hmr HKV Hka HRS HT
       · itrivial
     iapply BigAndL.bigAndL_nil.2
     itrivial
   · -- `default`
     (try wp_auto)
-    iapply Hfin $$ %st'' %Hst'' Hai Hat Hcs Hst Hbe Happ Hlr Hgr HKV Hka HRS HT
+    iapply Hfin $$ %st'' %Hst'' Hai Hat Hcs Hst Hbe Happ Hlr Hgr Hmr HKV Hka HRS HT
 
 set_option maxRecDepth 100000 in
 /-- **`applyAll.spec`** (the auth component's stage 2, 2026-11-04: in both auth modes): the batch
@@ -556,7 +574,11 @@ theorem EtcdServer.applyAll.wp_proof
     (hGI : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG))
     (hCM : EtcdServer.createMergedSnapshotMessage.spec (GF := GF) (hG := hG))
     (hSMS : EtcdServer.sendMergedSnap.spec (GF := GF) (hG := hG))
-    (hC : mvcc.store.Commit.spec (GF := GF) (hG := hG))
+    [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+    (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
+    (hPers : mvcc.api.persistent.law (GF := GF) (hG := hG))
+    (hReach : mvcc.api.mvccState_reachable.law (GF := GF) (hG := hG))
+    (hImg : mvcc.api.mvccImage_snapshot.law (GF := GF) (hG := hG))
     (hSnap : backend.backend.Snapshot.spec (GF := GF) (hG := hG))
     (hOn : storage.BackendHooks.OnPreCommitUnsafe.spec (GF := GF) (hG := hG))
     (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG := hG))
@@ -566,9 +588,9 @@ theorem EtcdServer.applyAll.wp_proof
     (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyAll.spec (GF := GF) (hG := hG) :=
-  ⟨EtcdServer.applyAll.wp_proofBatch hASnap hAE hBk hLg hV hSINC hGT hGS hGM hGI hCM hSMS hC hSnap hOn hSave
+  ⟨EtcdServer.applyAll.wp_proofBatch hASnap hAE hBk hLg hV hSINC hGT hGS hGM hGI hCM hSMS hsh hPers hReach hImg hSnap hOn hSave
       hPut hUR hID hName hSafe,
-    EtcdServer.applyAll.wp_proofSnapM hASnap.2 hAE.2 hBk hLg hV hSINC.2 hGT hGS hGM hGI hCM hSMS hC hSnap hOn hSave hPut hUR hID hName
+    EtcdServer.applyAll.wp_proofSnapM hASnap.2 hAE.2 hBk hLg hV hSINC.2 hGT hGS hGM hGI hCM hSMS hsh hPers hReach hImg hSnap hOn hSave hPut hUR hID hName
       hSafe⟩
 
 end proof

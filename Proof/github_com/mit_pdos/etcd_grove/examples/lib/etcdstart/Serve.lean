@@ -61,11 +61,10 @@ theorem Serve.wp_proof
   -- KV answers in the server's mode
   ihave #Hkv := v3rpc.raftKV_serverM s E ρ γr (W64 0) [] .none 0 none $$ []
   · iframe #; ipureintro; exact Hany
-  ihave ⟨%C, #Hgc, %HC, HWRs⟩ : ∃ C : v3rpc.GrpcCfg GF, v3rpc.grpcCfgOk s C ∗
-      ⌜C.A = v3rpc.srvKVAnsM E.authOn s E ρ γr (W64 0) [] .none 0 none ∧ C.E = E⌝ ∗
-      [∗list] _x ∈ List.replicate 64 (), mvcc.watchReader C.wsl E.s C.γ $$ [HWR]
-  · iapply (client.grpcCfgOk_of_startedM s E ρ γr cfg [] Hlg 64 E.authOn _)
-    iframe; iframe #
+  imod (client.grpcCfgOk_of_startedM s E ρ γr cfg [] Hlg 64 E.authOn
+      (v3rpc.srvKVAnsM E.authOn s E ρ γr (W64 0) [] .none 0 none)) $$ [HWR]
+    with ⟨%C, #Hgc, %HC, HWRs⟩
+  · iframe; iframe #
     rw [Htos]
     iapply ownSlice_nil
   -- the server option: the keepalive policy, neutral (D28; D-T5)

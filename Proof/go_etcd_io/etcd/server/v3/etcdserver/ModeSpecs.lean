@@ -18,6 +18,7 @@ proofs that use it (`Compact`, the off tails of `Put`/`DeleteRange`/`Range`). Th
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__snapshotIfNeededAndCompactRaftLog
+public import Proof.go_opentelemetry_io.otel.trace.Defs
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__parseProposeCtxErr
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__processInternalRaftRequestOnce
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__raftRequest
@@ -69,7 +70,7 @@ id, neither a compaction nor empty, satisfying the txn package's premises at `x.
 names `ρ`); the entry is normal (`m.typ = 0`) and its id was claimed for its data
 (`entryWaitOk`), so the result handed to `Trigger(id, ar)` is the registered proposer's
 expectation (`resultΨ`: this request's `applyStep`, `applyResultIs`, and the certificate of the
-log after). It spends one write token of the store (`mvcc.storeWT E.γ`, `apply.Apply`'s;
+log after). It spends one write token of the store (`srvWT E`, `apply.Apply`'s;
 2026-10-13, unit 6). **The delivery** (the request path's unit 4d): to a caller that knows the
 entry's id was registered (`entryRegd ρ.wait m (some t)`), the entry is applied in full (its
 outcome not waived for want of a waiter) unless that registration is gone (`entryDelivered`:
@@ -92,7 +93,7 @@ abbrev EtcdServer.applyEntryNormal.specOff : Prop :=
       (if v3 then iprop(
         isServer s γ ci TM E ρ γr ∗ entryWaitOk ρ E m ∗ entryRegd ρ.wait ρ.ids m ot ∗ entryAt e m ∗
         applyThread γ st ∗ applyBackend γ ci b ∗
-        srvLgReader s ∗ srvGoRes s ∗ srvApplyKV s E ρ.wait x ∗ mvcc.storeWT E.γ ∗ srvFS s ∗
+        srvLgReader s ∗ srvGoRes s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvApplyKV s E ρ.wait x ∗ srvWT E ∗ srvFS s ∗
         srvAppliedOwn γr v ∗ appliedLogAt γr v x.log ∗ committedAtLeast γr m.index ∗
         kvApplied γr.raft γr.kv A x ∗ srvRest E γr A ∗
         ⌜srvMemCover γr.raft γr.kv.c0 A⌝ ∗ srvRLogLb γr.raft (A ++ [m]) ∗
@@ -104,15 +105,15 @@ abbrev EtcdServer.applyEntryNormal.specOff : Prop :=
             uint.Z (ciEff γ st.k) < uint.Z m.index ∧ stLoaded γ st = st⌝))
       else iprop(
         isServer s γ ci TM E ρ γr ∗ entryWaitOk ρ E m ∗ entryAt e m ∗ applyThread γ st ∗
-        applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗ srvApplyKV s E ρ.wait x ∗
-        mvcc.storeWT E.γ ∗ srvFS s ∗ committedAtLeast γr m.index ∗ srvRestRp E γr A₀ r ∗
+        applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvApplyKV s E ρ.wait x ∗
+        srvWT E ∗ srvFS s ∗ committedAtLeast γr m.index ∗ srvRestRp E γr A₀ r ∗
         srvRLogLb γr.raft A₀ ∗ ⌜m ∈ A₀⌝ ∗
         ⌜st.pending = false ∧ entryOk E.lm x m ∧ m.typ = W32 0 ∧
           uint.Z m.index ≤ uint.Z (ciEff γ st.k) ∧
           ∀ k, k ∈ γr.raft.raft.cfg → (r.mem !! k).isSome = true⌝)) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyEntryNormal"))
       (Val #e)) (Val #v3))
-  {{ RET #(); applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗ srvFS s ∗
+  {{ RET #(); applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvFS s ∗
       (if v3 then iprop(
         (∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), srvApplyKV s E ρ.wait x' ∗
           ⌜entryStep m true x x' out⌝ ∗ entryDelivered ρ.wait m ot out ∗
@@ -146,7 +147,7 @@ abbrev EtcdServer.applyEntryNormal.specOn : Prop :=
       (if v3 then iprop(
         isServerM true s γ ci TM E ρ γr ∗ srvLessorNil s ∗ entryWaitOk ρ E m ∗
         entryRegd ρ.wait ρ.ids m ot ∗ entryAt e m ∗ applyThread γ st ∗ applyBackend γ ci b ∗
-        srvLgReader s ∗ srvGoRes s ∗ srvApplyKVOn s E ρ.wait x sa ∗ mvcc.storeWT E.γ ∗ srvFS s ∗
+        srvLgReader s ∗ srvGoRes s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvApplyKVOn s E ρ.wait x sa ∗ srvWT E ∗ srvFS s ∗
         ⧗ 1 ∗ srvAppliedOwn γr v ∗ appliedLogAt γr v x.log ∗ committedAtLeast γr m.index ∗
         kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa ∗ srvRest E γr A ∗
         ⌜srvMemCover γr.raft γr.kv.c0 A⌝ ∗ srvRLogLb γr.raft (A ++ [m]) ∗
@@ -160,15 +161,15 @@ abbrev EtcdServer.applyEntryNormal.specOn : Prop :=
         srvTokRights E (ciEff γ st.k))
       else iprop(
         isServerM true s γ ci TM E ρ γr ∗ entryWaitOk ρ E m ∗ entryAt e m ∗ applyThread γ st ∗
-        applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗ srvApplyKVOn s E ρ.wait x sa ∗
-        mvcc.storeWT E.γ ∗ srvFS s ∗ ⧗ 1 ∗ committedAtLeast γr m.index ∗ srvRestRp E γr A₀ r ∗
+        applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvApplyKVOn s E ρ.wait x sa ∗
+        srvWT E ∗ srvFS s ∗ ⧗ 1 ∗ committedAtLeast γr m.index ∗ srvRestRp E γr A₀ r ∗
         srvRLogLb γr.raft A₀ ∗ ⌜m ∈ A₀⌝ ∗
         ⌜st.pending = false ∧ entryOkOn x m ∧ m.typ = W32 0 ∧
           uint.Z m.index ≤ uint.Z (ciEff γ st.k) ∧ receiptBound GF ≤ 2 ^ 48 ∧ x.chain = γr.kv.ch0 ∧
           ∀ k, k ∈ γr.raft.raft.cfg → (r.mem !! k).isSome = true⌝)) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyEntryNormal"))
       (Val #e)) (Val #v3))
-  {{ RET #(); applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗ srvFS s ∗
+  {{ RET #(); applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvFS s ∗
       (if v3 then iprop(
         (∃ (x' : apply.ApplyKV) (out : apply.ApplyOut) (sa' : auth.AuthState),
           srvApplyKVOn s E ρ.wait x' sa' ∗ ⌜entryStep m true x x' out⌝ ∗
@@ -197,25 +198,25 @@ theorem EtcdServer.applyEntryNormal.spec_off
   cases v3
   · simp only [isServerM_false, srvApplyKVM_false, entryOkM_false, Bool.false_eq_true,
       ↓reduceIte] at this ⊢
-    iintro %Φ ⟨#Hpkg, #Hsrv, #Hew, He, Hst, Hbe, Hlr, Hgr, HKV, Hwt, Hfs, #Hcm, HRS, #HA0, %HmA,
+    iintro %Φ ⟨#Hpkg, #Hsrv, #Hew, He, Hst, Hbe, Hlr, Hgr, Hmr, HKV, Hwt, Hfs, #Hcm, HRS, #HA0, %HmA,
       %Hpo⟩ HΦ
-    iapply this $$ [He Hst Hbe Hlr Hgr HKV Hwt Hfs HRS] HΦ
-    iframe Hpkg Hsrv Hew He Hst Hbe Hlr Hgr HKV Hwt Hfs Hcm HRS HA0
+    iapply this $$ [He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs HRS] HΦ
+    iframe Hpkg Hsrv Hew He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hcm HRS HA0
     isplitr; · itrivial
     ipureintro
     exact ⟨HmA, Hpo.1, Hpo.2.1, Hpo.2.2.1, Hpo.2.2.2.1, fun h => absurd h (by simp), Hpo.2.2.2.2⟩
   · simp only [isServerM_false, srvLessorNilM_false, srvApplyKVM_false, kvAppliedM_false,
       entryOkM_false, hT, Bool.false_eq_true, ↓reduceIte] at this ⊢
-    iintro %Φ ⟨#Hpkg, #Hsrv, #Hew, Hrg, He, Hst, Hbe, Hlr, Hgr, HKV, Hwt, Hfs, Hao, Hlog,
+    iintro %Φ ⟨#Hpkg, #Hsrv, #Hew, Hrg, He, Hst, Hbe, Hlr, Hgr, Hmr, HKV, Hwt, Hfs, Hao, Hlog,
       #Hcm, Hka, HRS, %Hmc, #Hrl, %Hv, %Hidx, %Hpre, Hv3⟩ HΦ
-    iapply this $$ [Hrg He Hst Hbe Hlr Hgr HKV Hwt Hfs Hao Hlog Hka HRS Hv3]
-    · iframe Hpkg Hsrv Hew Hrg He Hst Hbe Hlr Hgr HKV Hwt Hfs Hao Hlog Hcm Hka HRS Hrl Hv3
+    iapply this $$ [Hrg He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hao Hlog Hka HRS Hv3]
+    · iframe Hpkg Hsrv Hew Hrg He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hao Hlog Hcm Hka HRS Hrl Hv3
       isplitr; · itrivial
       ipureintro; exact ⟨Hmc, Hv, Hidx, Hpre.1, Hpre.2.1, Hpre.2.2⟩
     inext
-    iintro ⟨Hbe, Hlr, Hgr, Hfs, ⟨%x', %out, %sa', HKV, %Hstep, Hdel, Hap, Hka, HRS⟩, Hst, -⟩
+    iintro ⟨Hbe, Hlr, Hgr, Hmr, Hfs, ⟨%x', %out, %sa', HKV, %Hstep, Hdel, Hap, Hka, HRS⟩, Hst, -⟩
     iapply HΦ
-    iframe Hbe Hlr Hgr Hfs Hst
+    iframe Hbe Hlr Hgr Hmr Hfs Hst
     iexists x', out; iframe HKV Hdel Hap Hka HRS; ipureintro; exact Hstep
 
 /-- **`specOn`**, `spec` in the mode `on` (the auth-mode merge's corollary). -/
@@ -228,20 +229,20 @@ theorem EtcdServer.applyEntryNormal.spec_on
   rw [hon] at this
   cases v3
   · simp only [srvApplyKVM_true, entryOkM_true, Bool.false_eq_true, ↓reduceIte] at this ⊢
-    iintro %Φ ⟨#Hpkg, #Hsrv, #Hew, He, Hst, Hbe, Hlr, Hgr, HKV, Hwt, Hfs, Hr, #Hcm, HRS, #HA0,
+    iintro %Φ ⟨#Hpkg, #Hsrv, #Hew, He, Hst, Hbe, Hlr, Hgr, Hmr, HKV, Hwt, Hfs, Hr, #Hcm, HRS, #HA0,
       %HmA, %Hpo⟩ HΦ
-    iapply this $$ [He Hst Hbe Hlr Hgr HKV Hwt Hfs Hr HRS] HΦ
-    iframe Hpkg Hsrv Hew He Hst Hbe Hlr Hgr HKV Hwt Hfs Hr Hcm HRS HA0
+    iapply this $$ [He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hr HRS] HΦ
+    iframe Hpkg Hsrv Hew He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hr Hcm HRS HA0
     isplitr; · ipureintro; exact fun _ => Hpo.2.2.2.2.1
     ipureintro
     exact ⟨HmA, Hpo.1, Hpo.2.1, Hpo.2.2.1, Hpo.2.2.2.1,
       fun _ => Hpo.2.2.2.2.2.1, Hpo.2.2.2.2.2.2⟩
   · simp only [srvLessorNilM_true, srvApplyKVM_true, kvAppliedM_true, entryOkM_true,
       ↓reduceIte] at this ⊢
-    iintro %Φ ⟨#Hpkg, #Hsrv, #Hln, #Hew, Hrg, He, Hst, Hbe, Hlr, Hgr, HKV, Hwt, Hfs, Hr, Hao, Hlog,
+    iintro %Φ ⟨#Hpkg, #Hsrv, #Hln, #Hew, Hrg, He, Hst, Hbe, Hlr, Hgr, Hmr, HKV, Hwt, Hfs, Hr, Hao, Hlog,
       #Hcm, Hka, HRS, %Hmc, #Hrl, %Hv, %Hidx, %Hpre, Hv3, Htok⟩ HΦ
-    iapply this $$ [Hrg He Hst Hbe Hlr Hgr HKV Hwt Hfs Hr Hao Hlog Hka HRS Hv3 Htok] HΦ
-    iframe Hpkg Hsrv Hln Hew Hrg He Hst Hbe Hlr Hgr HKV Hwt Hfs Hr Hao Hlog Hcm Hka HRS Hrl Hv3 Htok
+    iapply this $$ [Hrg He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hr Hao Hlog Hka HRS Hv3 Htok] HΦ
+    iframe Hpkg Hsrv Hln Hew Hrg He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hr Hao Hlog Hcm Hka HRS Hrl Hv3 Htok
     isplitr; · ipureintro; exact fun _ => Hpre.2.2.2
     ipureintro; exact ⟨Hmc, Hv, Hidx, Hpre.1, Hpre.2.1, Hpre.2.2.1⟩
 
@@ -337,9 +338,9 @@ abbrev EtcdServer.processInternalRaftRequestOnce.specOff : Prop :=
   apply.dispatchKind rq ≠ .clusterMemberAttrSet →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReq s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗ context.isContext ctx cd ∗
-      irrNoHdrIs p rq ∗ reqPropOk ρ.kv rq Qr ∗
+      trace.spanCtxOk ctx ∗ irrNoHdrIs p rq ∗ reqPropOk ρ.kv rq Qr ∗
       (∃ h0 : Loc, structFieldRef etcdserverpb.InternalRaftRequest go!"Header" p ↦ h0) ∗
-      mvcc.idxCert E.γ.idx F }}
+      srvApi.kvLogLb E.γs F }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"processInternalRaftRequestOnce"))
       (Val #(GoInterface.ok ctx))) (Val #p))
   {{ (res : Loc) (err : GoInterface), RET (PairV #res #err); srvLeadTimeReader s ∗ E.RD ∗
@@ -369,9 +370,9 @@ abbrev EtcdServer.raftRequest.specOff : Prop :=
   apply.dispatchKind rq ≠ .clusterMemberAttrSet →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReq s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗ context.isContext ctx cd ∗
-      irrNoHdrIs p rq ∗ reqPropOk ρ.kv rq Qr ∗
+      trace.spanCtxOk ctx ∗ context.startTimeOk ctx ∗ irrNoHdrIs p rq ∗ reqPropOk ρ.kv rq Qr ∗
       (∃ h0 : Loc, structFieldRef etcdserverpb.InternalRaftRequest go!"Header" p ↦ h0) ∗
-      mvcc.idxCert E.γ.idx F }}
+      srvApi.kvLogLb E.γs F }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"raftRequest"))
       (Val #(GoInterface.ok ctx))) (Val #p))
   {{ (resp err : GoInterface), RET (PairV #resp #err); srvLeadTimeReader s ∗ E.RD ∗
@@ -430,14 +431,14 @@ theorem EtcdServer.processInternalRaftRequestOnce.spec_off
     EtcdServer.processInternalRaftRequestOnce.specOff (GF := GF) (hG := hG) := by
   intro s E ρ ctx cd p rq Qr F Hid0 Hdpt Hka
   iintro %Φ Hpre HΦ
-  icases Hpre with ⟨Ha, #Hb, Hc, Hd, He, Hf, Hg, Hok, Hi, Hj⟩
+  icases Hpre with ⟨Ha, #Hb, Hc, Hd, He, Hf, Hsp, Hg, Hok, Hi, Hj⟩
   ihave %hon := isServerReq_authOn s E ρ $$ Hb
   have hM := h s E ρ ctx cd p rq (fun _ => Qr) F Hid0 Hdpt
   rw [hon] at hM
-  iapply hM $$ [Ha Hc Hd He Hf Hg Hok Hi Hj] [HΦ]
+  iapply hM $$ [Ha Hc Hd He Hf Hsp Hg Hok Hi Hj] [HΦ]
   · ihave Hok' := reqPropOkM_of_false ρ.raft ρ.kv _ rq Qr (attrIdOk_of_kind _ _ Hka) $$ Hok
     rw [isServerReqM_false]
-    iframe Ha Hb Hc Hd He Hf Hg Hok' Hi Hj
+    iframe Ha Hb Hc Hd He Hf Hsp Hg Hok' Hi Hj
   · iintro !> %res %err ⟨Hrd, Hard, Hpost⟩
     iapply HΦ
     iframe Hrd Hard
@@ -450,15 +451,17 @@ theorem EtcdServer.processInternalRaftRequestOnce.spec_off
       isplitr
       · ipureintro; exact Hw
       iunfold resPostM at Hp
-      icases Hp with ⟨%Hnn, %y, %y', %out, %Hst, Hr1, Hr2, Hr3, Hr4, Hr5, -, -, Hr6⟩
+      icases Hp with ⟨%Hnn, %y, %y', %out, %Hst, Hr1, Hr2, Hr3, Hr4, Hr5, -, -, #Hr8, %Hr9, Hr6⟩
       iexists y.log
       iunfold resultIsW
       isplitl [Hr1 Hr2 Hr3 Hr4 Hr5 Hr6]
       · isplitr
         · ipureintro; exact Hnn
         iexists y, y', out
-        iframe Hr1 Hr2 Hr3 Hr4 Hr5 Hr6
-        ipureintro; exact ⟨Hst.1, Hst.2.1, rfl, Hst.2.2.1⟩
+        iframe Hr1 Hr2 Hr3 Hr4 Hr5 Hr8 Hr6
+        isplitr
+        · ipureintro; exact ⟨Hst.1, Hst.2.1, rfl, Hst.2.2.1⟩
+        ipureintro; exact Hr9
       iexists L
       iframe HL HQ
       ipureintro; exact Hst.2.2.2
@@ -470,14 +473,14 @@ theorem EtcdServer.raftRequest.spec_off
     EtcdServer.raftRequest.specOff (GF := GF) (hG := hG) := by
   intro s E ρ ctx cd p rq Qr F Hid0 Hdpt Hka
   iintro %Φ Hpre HΦ
-  icases Hpre with ⟨Ha, #Hb, Hc, Hd, He, Hf, Hg, Hok, Hi, Hj⟩
+  icases Hpre with ⟨Ha, #Hb, Hc, Hd, He, Hf, Hsp, #Hst, Hg, Hok, Hi, Hj⟩
   ihave %hon := isServerReq_authOn s E ρ $$ Hb
   have hM := h s E ρ ctx cd p rq (fun _ => Qr) F Hid0 Hdpt
   rw [hon] at hM
   ihave Hok' := reqPropOkM_of_false ρ.raft ρ.kv _ rq Qr (attrIdOk_of_kind _ _ Hka) $$ Hok
   rw [← isServerReqM_false]
-  iapply hM $$ [Ha Hc Hd He Hf Hg Hok' Hi Hj] [HΦ]
-  · iframe Ha Hb Hc Hd He Hf Hg Hok' Hi Hj
+  iapply hM $$ [Ha Hc Hd He Hf Hsp Hg Hok' Hi Hj] [HΦ]
+  · iframe Ha Hb Hc Hd He Hf Hsp Hst Hg Hok' Hi Hj
   iintro !> %resp %err ⟨Hrd, Hard, Hpost⟩
   iapply HΦ
   iframe Hrd Hard
@@ -486,15 +489,17 @@ theorem EtcdServer.raftRequest.spec_off
     isplitr
     · ipureintro; exact He
     iunfold appliedOkM at Hok
-    icases Hok with ⟨%x, %x', %o, %skip, %Hst, Ha1, Ha2, Ha3, Ha4, Ha5, -⟩
+    icases Hok with ⟨%x, %x', %o, %skip, %Hst, Ha1, Ha2, Ha3, Ha4, Ha5, -, #Ha7, %Ha8, -⟩
     iexists hm, rq', x.log
     isplitr
     · ipureintro; exact Hw
     isplitl [Ha1 Ha2 Ha3 Ha4 Ha5]
     · iunfold appliedOk
       iexists x, x', o, skip
-      iframe Ha1 Ha2 Ha3 Ha4 Ha5
-      ipureintro; exact ⟨Hst.1, Hst.2.1, rfl, Hst.2.2.1⟩
+      iframe Ha1 Ha2 Ha3 Ha4 Ha5 Ha7
+      isplitr
+      · ipureintro; exact ⟨Hst.1, Hst.2.1, rfl, Hst.2.2.1⟩
+      ipureintro; exact Ha8
     iexists L
     iframe HL HQ
     ipureintro; exact Hst.2.2.2.1
@@ -568,7 +573,7 @@ theorem isServerBuilt_off (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
   iunfold isServerBuilt at H
   icases H with ⟨#Hci, #Hfb, #Hreqb, #Hrdb, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci', #Hrn, #HEr, Hwpend, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hρrd, #Hmid, #Hmidc, #HmetaSnap, Hsnap, Hloop, Hsend, Happly, Hrdone, #HNR, #Hcv, #Hcci, #Hwci, #Hbound, #Hrvkb, Hw, Haw, Hdone, Hstop, Hstopping, Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr, HWB, Hwtok, Hsnapb⟩
   iunfold applyBuilt at Happ
-  icases Happ with ⟨%st₀, %a, %t, %f, Hth, %Hlo, Hbe, Hca, Halg, Hbm, Hbo, ⟨%ua, Hua, #Hfor, Hkv⟩, HRA, HAR, Hrdat, Hao,
+  icases Happ with ⟨%st₀, %a, %t, %f, Hth, %Hlo, Hbe, Hca, Halg, Hbm, Hrdk, Hbo, ⟨%ua, Hua, #Hfor, Hkv⟩, HRA, HAR, Hrdat, Hao,
     #Hlog, Hkr, Hfs⟩
   imod authOn_false_of_run E γr ua x₀ ai₀ c₀ [] $$ [$Hkvi $Hkv $Hkr] with ⟨%hoff, Hkv, Hkr⟩
   imodintro
@@ -578,7 +583,7 @@ theorem isServerBuilt_off (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
   iframe Hci Hfb Hreqb Hrdb Hrunb Hcrun Hsab Hai Hkvi Hti Hci' Hrn HEr Hwpend Hrunh Hwth Hwtl Hdisk Hslg Hρrd Hmid Hmidc HmetaSnap Hsnap Hloop Hsend Happly Hrdone HNR Hcv Hcci Hwci Hbound Hrvkb Hw Haw Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hwtok Hsnapb
   iunfold applyBuilt
   iexists st₀, a, t, f
-  iframe Hth Hbe Hca Halg Hbm Hbo HRA HAR Hrdat Hao Hlog Hkr Hfs
+  iframe Hth Hbe Hca Halg Hbm Hrdk Hbo HRA HAR Hrdat Hao Hlog Hkr Hfs
   isplitr
   · ipureintro; exact Hlo
   iexists ua

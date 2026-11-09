@@ -433,7 +433,7 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
       rw [hw]
       unfold client.txnReplied
       simp only [hro, hser, Bool.false_eq_true, ↓reduceIte]
-      icases Hr with ⟨%log, -, -, %Hlk, %Hp, -, #HQ⟩
+      icases Hr with ⟨%log, -, %Hlk, %Hp, -, #HQ⟩
       obtain ⟨hlen, hb3, -, hrev, -, -, hok, hrel⟩ := Hp
       have hr : ((kvStateOf log).rev + 1 : Nat) = log.length := client.kvStateOf_rev_succ _ hlen
       have hs : (kvStateOf log).kvs = mvcc.stateAfter log := kvStateOf_kvs _
@@ -484,7 +484,7 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
       rw [hw]
       unfold client.txnReplied
       simp only [hro, Bool.false_eq_true, ↓reduceIte]
-      icases Hr with ⟨%tw, %hm, %rq', %t', %y, %y', %l, %skip, %Hp, -, -, -, -, %Hlk, HQ⟩
+      icases Hr with ⟨%tw, %hm, %rq', %t', %y, %y', %l, %skip, %Hp, -, -, -, %Hlk, HQ⟩
       obtain ⟨Htw, -, -, Hz, hap, hrev, -, -, -, hlen, hb4, hok, hrel, hsk⟩ := Hp
       have ht : t' = linkv.txnOf cs t e := Hz (irrNoZeroEnd_txnOf cs t e tw Htw)
       subst ht hsk

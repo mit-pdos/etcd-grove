@@ -39,8 +39,8 @@ processed-through index are both `i`. **The KV**: the apply thread's applier sta
 (`entryOkM`: with auth on, an admitted admin request too), goes to `x'` by `entryStep m true x x'
 out`. **The wait**: the server's wait is the registry, in the mode (`isServerM E.authOn`: with auth
 on the results carry the auth layer's verdict, `resultΨOn`), the entry normal (`m.typ = 0`) and its
-id claimed for its data (`entryWaitOk`). It spends one write token of the store (`mvcc.storeWT
-E.γ`). **The delivery**: to a caller that knows the entry's id registered (`entryRegd ρ.wait m (some
+id claimed for its data (`entryWaitOk`). It spends one write-back token of the backend (`srvWT E`; strict
+M1: until then mvcc's `storeWT`). **The delivery**: to a caller that knows the entry's id registered (`entryRegd ρ.wait m (some
 t)`), the entry is applied in full unless that registration is gone (`entryDelivered`). **The
 applied log**: at the applied index `v = m.index - 1` with its log the KV's and the entry committed,
 the KV log after the entry is deposited as the log applied through `m.index` before the result goes
@@ -65,7 +65,7 @@ the state `st` is unchanged, and the rest buckets at the backend's log `A₀` (`
 (`entryWaitOk`'s `attrEntryOk`), which the image's members include (Go's `UpdateAttributes` panics
 on an unknown, unremoved member, `membership/cluster.go:467-496`). The backend's log committed with
 the entry in it (the KV invariant's shape of a committed entry, `kv_log_plain`, is what makes a
-skipped or rejected request leave the members, as `restEntryV2` says); the store's write token spent
+skipped or rejected request leave the members, as `restEntryV2` says); the backend's write-back token spent (`srvWT E`)
 (`apply.Apply`'s). With auth on, it **spends one time receipt (`⧗ 1`) per replayed entry**, not
 given back (Go runs the auth applier's `IsAdminPermitted` on an admin entry at `v3 = false` too), so
 each restart's replay of `A₀` consumes `|A₀|` receipts again against the fixed `receiptBound`; the
@@ -84,7 +84,7 @@ abbrev EtcdServer.applyEntryNormal.spec : Prop :=
       (if v3 then iprop(
         isServerM E.authOn s γ ci TM E ρ γr ∗ srvLessorNilM E.authOn s ∗ entryWaitOk ρ E m ∗
         entryRegd ρ.wait ρ.ids m ot ∗ entryAt e m ∗ applyThread γ st ∗ applyBackend γ ci b ∗
-        srvLgReader s ∗ srvGoRes s ∗ srvApplyKVM E.authOn s E ρ.wait x sa ∗ mvcc.storeWT E.γ ∗
+        srvLgReader s ∗ srvGoRes s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvApplyKVM E.authOn s E ρ.wait x sa ∗ srvWT E ∗
         srvFS s ∗ srvAppliedOwn γr v ∗
         appliedLogAt γr v x.log ∗ committedAtLeast γr m.index ∗
         kvAppliedM E.authOn γr.raft γr.kv srvAuthSt0 A x sa ∗ srvRest E γr A ∗
@@ -99,8 +99,8 @@ abbrev EtcdServer.applyEntryNormal.spec : Prop :=
         srvTokRights E (ciEff γ st.k))
       else iprop(
         isServerM E.authOn s γ ci TM E ρ γr ∗ entryWaitOk ρ E m ∗ entryAt e m ∗ applyThread γ st ∗
-        applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗ srvApplyKVM E.authOn s E ρ.wait x sa ∗
-        mvcc.storeWT E.γ ∗ srvFS s ∗
+        applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvApplyKVM E.authOn s E ρ.wait x sa ∗
+        srvWT E ∗ srvFS s ∗
         committedAtLeast γr m.index ∗ srvRestRp E γr A₀ r ∗ srvRLogLb γr.raft A₀ ∗ ⌜m ∈ A₀⌝ ∗
         ⌜st.pending = false ∧ entryOkM E.authOn E.lm x m ∧ m.typ = W32 0 ∧
           uint.Z m.index ≤ uint.Z (ciEff γ st.k) ∧
@@ -108,7 +108,7 @@ abbrev EtcdServer.applyEntryNormal.spec : Prop :=
           ∀ k, k ∈ γr.raft.raft.cfg → (r.mem !! k).isSome = true⌝)) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyEntryNormal"))
       (Val #e)) (Val #v3))
-  {{ RET #(); applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗ srvFS s ∗
+  {{ RET #(); applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvFS s ∗
       (if v3 then iprop(
         (∃ (x' : apply.ApplyKV) (out : apply.ApplyOut) (sa' : auth.AuthState),
           srvApplyKVM E.authOn s E ρ.wait x' sa' ∗ ⌜entryStep m true x x' out⌝ ∗

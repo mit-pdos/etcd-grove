@@ -66,6 +66,7 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --k8sinformers > Proof/k8s_io/client_go/informers/Link.lean
        etc/gen-link.py --apimodel > Proof/github_com/mit_pdos/etcd_grove/examples/k8s/daemonset/apimodel/Link.lean
        etc/gen-link.py --bboltfs > Proof/github_com/mit_pdos/etcd_grove/examples/osfs/bboltfs/Link.lean
+       etc/gen-link.py --mvccrand > Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/Link.lean
        etc/gen-link.py --bbolt > Proof/go_etcd_io/bbolt/Link.lean
        etc/gen-link.py --bbolt --results > Proof/go_etcd_io/bbolt/Results.lean
 
@@ -572,7 +573,16 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                  # Perennial's linked results the model's proofs take as terms (`=` callees)
                  "--apimodel": ["Perennial.Proof.sync.Link", "Perennial.Proof.errors.Link",
                                 "Perennial.Proof.time.Link"],
-                 "--v3rpc": ["Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Base", "Perennial.Proof.errors.Link"],
+                 # (the `origin/lean` merge, 2026-11-07) mvcc's API laws the watch proofs take
+                 # as terms (`=mvcc.api.*` callees)
+                 "--v3rpc": ["Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Base", "Perennial.Proof.errors.Link",
+                             "Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults"],
+                 # mvcc's API results the txn proofs take as terms (`=mvcc.api.*` callees: the
+                 # API's laws, `NewReadOnlyTxnWrite`'s API spec; the `origin/lean` merge, 2026-11-06)
+                 "--txn": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults"],
+                 # the same for the apply proofs (`newHeader`'s and `Compaction`'s `shapes.law`;
+                 # the reader tokens, 2026-11-06)
+                 "--apply": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults"],
                  # Perennial's `time` and `sync/atomic` results minibolt's proofs take as terms (`=` callees)
                  "--bboltfs": ["Perennial.Proof.time.Link", "Perennial.Proof.sync.atomic.Link"],
                  # (2026-10-28, stage U4a) raft's `unifiedSpec` variants (`=RaftLink.*` callees)
@@ -600,7 +610,14 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                               "Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeApiLink",
                               # (the lease-read plan, 2026-10-31) `sort.Sort` for any `Less`, the
                               # axiom `lessor.Leases` takes (`=EtcdGrove.sort.«Sort».wp_anyLess`)
-                              "Proof.sort.SortAnyLess"]}
+                              "Proof.sort.SortAnyLess",
+                              # (the `lean` merge, R6/R8, 2026-11-07) mvcc's API laws the server's
+                              # proofs take as terms (`=mvcc.api.*` callees)
+                              "Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults"]}
+# (R9, the `lean` merge, 2026-11-07) the examples' allocations take mvcc's `names_nonempty.law`
+# (`=mvcc.api.*`: the stand-in apply environment's store name)
+for _m in ["--cachekv", "--watchkv", "--linkvtxn", "--k8setcd3", "--cluster3", "--authkv"]:
+    EXTRA_IMPORTS.setdefault(_m, []).append("Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults")
 # The modes whose specs are stated over the clients' model of etcd (the class `EtcdModel`,
 # `cache/v3/EtcdModel.lean`, the vertical slice's unit V1): their sections take it as a variable.
 EM_MODES = {"--cache", "--concurrency", "--leasing", "--recipes", "--v3lock", "--v3election"}
@@ -613,6 +630,11 @@ if sys.argv[1:2] == ["--bbolt"]:
     link_bbolt.main(os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")),
                     proof_roots.PERENNIAL, sys.argv[0], results_file="--results" in sys.argv[2:])
     sys.exit(0)
+# mvcc's randomized tester (examples/mvccrand; its other tables below, R10)
+LEAN_FIRST["--mvccrand"] = ("link-lean-first-mvccrand.txt",
+                            "github_com.mit_pdos.etcd_grove.examples.mvccrand",
+                            "github_com.mit_pdos.etcd_grove.examples.mvccrand.Assumptions",
+                            "mvcc's randomized tester's proofs (`examples/mvccrand`)", [""])
 mode = LEAN_FIRST.get(sys.argv[1]) if len(sys.argv) > 1 else None
 if mode is None:
     sys.exit(f"usage: etc/gen-link.py MODE [--skip-unproved] (modes: {' '.join(LEAN_FIRST)})")
@@ -636,6 +658,15 @@ EXTRA_VARS = {"--kvdurable": "variable [HasExt durableExt] [go.IntoValInj GoStri
               # (Q1 (c), 2026-11-05) `etcd3`'s package fact is the compactor registry, at its name
               "--k8s-etcd3": "variable [reg : EtcdGrove.k8s.CompactorRegistry]\n",
               "--k8setcd3": "variable [reg : EtcdGrove.k8s.CompactorRegistry]\n"}
+# mvcc's randomized tester (examples/mvccrand, R10, 2026-11-07): its functions over mvcc's API
+# (`=mvcc.api.*` callees, from mvcc's `ApiResults`), the lessor's (as the server's Link links them)
+# and the backend's (`@`); its `runChecks` and the lessor's specs take the server's assumptions
+# (`lessorApplyOk`, `etcdserver/SnapRO.lean`), a section variable (its `LEAN_FIRST` entry above)
+NAMESPACED["--mvccrand"] = "mvccrand"
+EXTRA_IMPORTS["--mvccrand"] = ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults",
+                               "Perennial.Proof.sort.Link"]
+EXTRA_VARS["--mvccrand"] = ("variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]\n"
+                            "variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]\n")
 # The section variables a mode's specs take at `HasLC.hasLC` only (the sections after the first,
 # whose heap is at `HasLC.hasLC`): k8s etcd3's, the context errors' descriptions, which the
 # compactor's channel context needs (`chanCtx_ok`; k8s etcd3 7c-2 part 2, S7)
@@ -1056,6 +1087,19 @@ variable [sem : go.Semantics]
         return (f"theorem {result(fn)}{allg} :\n    {specref(fn)}.spec{sfx(fn)} (GF := GF) (hG := hG) :=\n"
                 f"  {body}\n")
 
+    # an `=` callee declared in one of the mode's extra imports under the cache's assumptions (a
+    # section variable there: mvcc's `ApiResults.lean`, whose API results the txn proofs take)
+    extra_srcs = [open(link_file(m)).read() for m in EXTRA_IMPORTS.get(sys.argv[1], [])
+                  if os.path.exists(link_file(m))]
+
+    def eq_needs_cache(c):
+        if not c.startswith("="):
+            return False
+        last = c[1:].split(".")[-1]
+        return any("variable [go_etcd_io.etcd.cache.v3.Assumptions]" in src
+                   and re.search(r"^theorem " + re.escape(last) + r"\b", src, re.M)
+                   for src in extra_srcs)
+
     cache_assumptions = set()
     for fn in order:
         if fn in reused:
@@ -1082,7 +1126,7 @@ variable [sem : go.Semantics]
                 cache_assumptions.add(fn)
             continue
         if ("variable [go_etcd_io.etcd.cache.v3.Assumptions]" in open(spec_file(fn)).read()
-                or any(c in cache_assumptions for c in callees[fn])):
+                or any(c in cache_assumptions or eq_needs_cache(c) for c in callees[fn])):
             cache_assumptions.add(fn)
 
     # the semantic premises each result takes (`SEM_PREMISES`): its proof's, or a callee's

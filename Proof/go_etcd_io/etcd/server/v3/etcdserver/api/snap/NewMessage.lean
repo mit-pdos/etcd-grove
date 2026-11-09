@@ -27,7 +27,12 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 `Message{Message: rs, ReadCloser: ioutil.NewExactReadCloser(rc, rcSize), TotalSize:
 int64(proto.Size(rs)) + rcSize, closeC: make(chan bool, 1)}`: `proto.Size` only reads `rs`
 (read-only for good), the exact-size wrapper only records `rc` and the size, and the fields are
-written once here; `closeC` is fresh, sent on only by the message's `CloseWithError` (the
+written once here; `rc`'s `Close` returns (`io.rcCloseOk`, the premise; sweep repairs 1, S1), so the
+wrapper's `Close` and `CloseWithError` return; (S2) `TotalSize = int64(proto.Size(rs)) + rcSize`
+does not overflow, so it is not negative (what `fields` states): `rcSize < 2^62` (the premise) and
+`proto.Size(rs) < 2^62` (an assumption of this axiom: the wire size of a raft message held in memory;
+etcd's merged message is a `MsgSnap` with an empty snapshot `Data`, 16-67 bytes measured,
+`notes/axiom-review/snap-stream.md`); `closeC` is fresh, sent on only by the message's `CloseWithError` (the
 transport's, once a send ends) and received from by `CloseNotify`'s callers, the values carrying
 nothing the proof reads. `msgIs` records that `m` is this message of `rs` and `rc` (the transport
 streams `rc` through the wrapper). What would discharge it: translating `snap/message.go` (with
