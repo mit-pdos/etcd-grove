@@ -572,6 +572,41 @@ theorem simRun_heartbeat (C : List w64) (L : List TraceEv) (σ : Etcdraft.State)
       rw [hsrc] at this ⊢
       exact this
 
+/-- **A reply's send line is skipped** (`SendAppendEntriesResponse`/`SendRequestVoteResponse` to
+another node: the receive line queued the reply): its one non-receive successor is the state itself. -/
+theorem nonReceive_skipResp (t : Etcdraft.Trace) (ts : Etcdraft.TState) (hl : ts.l ≤ t.len)
+    (hname : (t.line ts.l).ev.name = "SendAppendEntriesResponse" ∨
+      (t.line ts.l).ev.name = "SendRequestVoteResponse")
+    (hft : (t.line ts.l).from ≠ (t.line ts.l).to)
+    (hmsg : ∃ em, (t.line ts.l).ev.msg = some em ∧ em.from ≠ em.to) :
+    t.nonReceive ts = .ok [ts.s] := by
+  obtain ⟨em, hem, hne⟩ := hmsg
+  have hskip : t.skipUnusedLogline ts = true := by
+    unfold Etcdraft.Trace.skipUnusedLogline Etcdraft.Trace.isEvent
+    rcases hname with h | h <;> simp [h, hl, hem, hne]
+  unfold Etcdraft.Trace.nonReceive
+  rcases hname with h | h
+  · have hf : t.server.flatMap (t.appendEntriesToSelfIfLogged ts) = [] := by
+      rw [List.flatMap_eq_nil_iff]; intro i _
+      simp only [Etcdraft.Trace.appendEntriesToSelfIfLogged, Etcdraft.Trace.isMessageEvent, Etcdraft.Trace.isEvent]
+      by_cases hi : (t.line ts.l).from = i
+      · have : (t.line ts.l).to ≠ i := fun h' => hft (hi.trans h'.symm)
+        simp [hi]; intros; simp_all
+      · simp; intros; simp_all
+    simp only [h, hf, hskip]
+    simp [pure, Except.pure, bind, Except.bind]
+  · have hf : t.pairs.flatMap (fun p => t.requestVoteIfLogged ts p.1 p.2) = [] := by
+      rw [List.flatMap_eq_nil_iff]; rintro ⟨i, j⟩ _
+      simp only [Etcdraft.Trace.requestVoteIfLogged, Etcdraft.Trace.isMessageEvent, Etcdraft.Trace.isEvent, h]
+      by_cases hi : (t.line ts.l).from = i
+      · by_cases hj : (t.line ts.l).to = j
+        · have : i ≠ j := fun hij => hft (by rw [hi, hj, hij])
+          simp [this]
+        · simp; intros; simp_all
+      · simp; intros; simp_all
+    simp only [h, hf, hskip]
+    simp [pure, Except.pure, bind, Except.bind]
+
 end TraceSim
 
 end EtcdGrove
