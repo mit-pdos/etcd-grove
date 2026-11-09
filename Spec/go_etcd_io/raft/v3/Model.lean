@@ -465,13 +465,21 @@ structure ConfView where
   applied : Nat
   membership : Membership
 
+/-- **The bytes of a bootstrap entry** for peer `id` with context `ctx`: what `proto.Marshal`
+gives the `ConfChange{Type: AddNode, NodeId: id, Context: ctx}` that `RawNode.Bootstrap` builds
+(a function of the message, presence included). Opaque: raftpb's wire model (3h), with the law
+`decodeConfChange EntryConfChange (bootEntryData id ctx) = some (.v1 ⟨AddNode, id, ctx, 0⟩)` for a
+non-empty `ctx` (`Api.lean`, `bootEntryData_decode`). -/
+opaque bootEntryData (id : w64) (ctx : List w8) : List w8
+
 /-- **The bootstrap log of peers `ps`** (`StartNode`'s, `RawNode.Bootstrap`'s): a legacy `AddNode`
-of each peer, with its context, at term 1. -/
+of each peer, with its context (non-empty: a `nil` and an empty context marshal differently; etcd's
+are JSON), at term 1, the bytes Go's marshalling gives. -/
 def BootLog (ps : List (w64 × List w8)) (boot : List LogEntry) : Prop :=
   boot.length = ps.length ∧
-  ∀ (k : Nat) (e : LogEntry), boot[k]? = some e → ∃ p : w64 × List w8, ps[k]? = some p ∧ e.term = W64 1 ∧ e.type = EntryConfChange ∧
-    decodeConfChange EntryConfChange e.data =
-      some (.v1 ⟨ConfChangeAddNode, p.1, p.2, W64 0⟩)
+  (∀ p ∈ ps, p.2 ≠ []) ∧
+  ∀ (k : Nat) (e : LogEntry), boot[k]? = some e → ∃ p : w64 × List w8, ps[k]? = some p ∧
+    e = ⟨W64 1, EntryConfChange, bootEntryData p.1 p.2⟩
 
 end Raft
 end EtcdGrove

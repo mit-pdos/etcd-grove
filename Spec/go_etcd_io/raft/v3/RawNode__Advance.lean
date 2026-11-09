@@ -43,7 +43,7 @@ def RawNode.Advance.spec : Prop :=
       appliedLb rn st.delivered.length ∗
       match st.lastSnap with
       | none => nodeConf rn γ v
-      | some s => ∃ m, nodeConf rn γ ⟨uint.nat s.index, m⟩ ∗ ⌜s.conf.Is m⌝ }}
+      | some s => ∃ a m, nodeConf rn γ ⟨a, m⟩ ∗ ⌜uint.nat s.index ≤ a ∧ s.conf.Is m⌝ }}
 
 end spec
 end Raft

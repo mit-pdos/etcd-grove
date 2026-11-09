@@ -41,9 +41,11 @@ func ReqProposeV2Joint(ctx context.Context, n raft.Node, add, remove uint64) {
 // with NodeId 0 (etcd: a no-op) or by not calling ApplyConfChange (raft's documentation) -- the
 // same way at every node; ApplyConfChange then returns the new configuration.
 // Users: server/etcdserver/server.go:2032-2053 (applyConfChange), examples/raft/kvdurable/kv.go:700.
-// Assumes: e is a committed conf-change entry at position k, delivered to n, whose decision
-// valid (the client's, cluster-wide: confDecide) was taken before; refuseByZero is etcd's mode.
-// Specs: node.ApplyConfChange.spec; laws: confDecide.spec, confAt_decided.spec,
+// Assumes: e is a committed conf-change entry at position k, delivered to n, at or past n's view,
+// whose decision valid (the client's, cluster-wide: confDecide) was taken before; refuseByZero is
+// etcd's mode, used only at configurations that are not joint (etcd proposes v1 only); the caller
+// holds a nodeRunning share of n (it runs the Ready loop).
+// Specs: node.ApplyConfChange.spec; laws: confDecide.spec, confAt_decided.spec, confAt_valid.spec,
 // committedLb_confDecodes.spec, Membership.applyChange_v1.spec.
 func ReqApplyOrRefuse(n raft.Node, e *pb.Entry, valid, refuseByZero bool) *pb.ConfState {
 	if e.GetType() != pb.EntryConfChange {
@@ -64,4 +66,23 @@ func ReqApplyOrRefuse(n raft.Node, e *pb.Entry, valid, refuseByZero bool) *pb.Co
 		panic("ApplyConfChange: nil from a running node")
 	}
 	return cs
+}
+
+// REQ raftnode/entry-types: a client that never proposes a v2 change and never enters a joint
+// configuration sees only EntryNormal and EntryConfChange entries committed (etcd's apply panics on
+// any other type).
+// Users: server/etcdserver/server.go:1958-1962 (EtcdServer.apply), apply/apply.go:29-36.
+// Assumes: no client of the cluster proposes a ConfChangeV2; every configuration of the cluster
+// is not joint (confAt facts the client keeps: v1 changes from a non-joint configuration give a
+// non-joint one, Membership.applyChange_v1); ents are committed entries delivered to a node.
+// Specs: readyChan_recv.spec (committedLb); laws: committedLb_emptyV2.spec, committedOps_lb.spec,
+// committedLb_confDecodes.spec.
+func ReqEntryTypes(ents []*pb.Entry) {
+	for _, e := range ents {
+		switch e.GetType() {
+		case pb.EntryNormal, pb.EntryConfChange:
+		default:
+			panic("an entry type no client proposed")
+		}
+	}
 }

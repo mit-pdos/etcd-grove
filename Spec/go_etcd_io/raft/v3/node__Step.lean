@@ -45,12 +45,12 @@ variable [ctx_sem : context.Assumptions]
 /-- **Steps a received message** `m` addressed to node `id`, sent by a node of `γ`, with its credit. -/
 def node.Step.spec : Prop :=
 
-  ∀ (n : Loc) (γ : Cluster) (id : w64) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+  ∀ (n : Loc) (γ : Cluster) (id : w64) (ctx : GoInterface)
     (ml : Loc) (m : Msg),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ id ∗ context.isContext ctx cd ∗ msgPts ml (DFrac.own 1) m ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ id ∗ Context.ctxOk ctx ∗ msgPts ml (DFrac.own 1) m ∗
       msgSent γ m ∗ msgCredit γ m ∗ ⌜m.to = id⌝ }}
-    (App (App (Val (n @!! go.GoType.PointerType go_etcd_io.raft.v3.node.ty @!! go!"Step")) (Val #(interface.ok ctx))) (Val #ml))
-  {{ (err : GoInterface), RET #err; nodeErr n err }}
+    (App (App (Val (n @!! go.GoType.PointerType go_etcd_io.raft.v3.node.ty @!! go!"Step")) (Val #ctx)) (Val #ml))
+  {{ (err : GoInterface), RET #err; nodeErr n ctx err }}
 
 end spec
 end Raft

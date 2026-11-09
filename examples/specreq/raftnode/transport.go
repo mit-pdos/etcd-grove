@@ -22,7 +22,9 @@ func ReqDeliver(ctx context.Context, src, dst raft.Node, m *pb.Message, ok bool)
 		src.ReportUnreachable(m.GetTo())
 		return
 	}
-	if err := dst.Step(ctx, m); err != nil && err != raft.ErrStopped && ctx.Err() == nil {
+	// Step keeps and writes the message: give it a copy (a response is read-only to the sender,
+	// raft reads it after the hand-out; rafthttp gives the receiver a fresh decode).
+	if err := dst.Step(ctx, proto.Clone(m).(*pb.Message)); err != nil && err != raft.ErrStopped && ctx.Err() == nil {
 		panic("step: unexpected error")
 	}
 }
@@ -32,7 +34,8 @@ func ReqDeliver(ctx context.Context, src, dst raft.Node, m *pb.Message, ok bool)
 // Users: server/etcdserver/snapshot_merge.go:32-53, server/etcdserver/api/rafthttp/snapshot_sender.go:118-128.
 // Assumes: m is a MsgSnap handed out to the leader src; (index, term, cs) is a snapshot made of the
 // committed log at the leader's applied index index ≥ m's snapshot's (snap_make), with term its
-// last entry's and cs its configuration.
+// last entry's and cs its configuration; index is within src's delivered log (deliveredLb: the
+// leader's own log, not a prefix committed at a later term).
 // Specs: node.Step.spec, node.ReportSnapshot.spec; laws: msgSent_snap.spec, msgSent_replaceSnap.spec.
 func ReqSendSnapshot(ctx context.Context, src, dst raft.Node, m *pb.Message, index, term uint64,
 	cs *pb.ConfState, ok bool) {

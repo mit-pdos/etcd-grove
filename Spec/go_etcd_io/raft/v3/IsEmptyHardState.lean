@@ -32,10 +32,10 @@ variable [ctx_sem : context.Assumptions]
 /-- `true` iff the hard state is empty (or `nil`). -/
 def IsEmptyHardState.spec : Prop :=
 
-  ∀ (st : Loc) (hs : HardState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ hsPtr st hs }}
+  ∀ (st : Loc) (dq : DFrac) (hs : HardState),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ hsPtr st dq hs }}
     (App (Val (@! go_etcd_io.raft.v3.IsEmptyHardState)) (Val #st))
-  {{ (b : Bool), RET #b; ⌜b = decide (hs = HardState.empty)⌝ }}
+  {{ (b : Bool), RET #b; hsPtr st dq hs ∗ ⌜b = decide (hs = HardState.empty)⌝ }}
 
 end spec
 end Raft

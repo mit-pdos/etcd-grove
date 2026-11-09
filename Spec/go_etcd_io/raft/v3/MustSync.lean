@@ -32,10 +32,10 @@ variable [ctx_sem : context.Assumptions]
 /-- `true` iff there are entries or the term or vote changed. -/
 def MustSync.spec : Prop :=
 
-  ∀ (st prevst : Loc) (hs hs' : HardState) (n : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ hsPtr st hs ∗ hsPtr prevst hs' }}
+  ∀ (st prevst : Loc) (dq dq' : DFrac) (hs hs' : HardState) (n : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ hsPtr st dq hs ∗ hsPtr prevst dq' hs' }}
     (App (App (App (Val (@! go_etcd_io.raft.v3.MustSync)) (Val #st)) (Val #prevst)) (Val #n))
-  {{ (b : Bool), RET #b;
+  {{ (b : Bool), RET #b; hsPtr st dq hs ∗ hsPtr prevst dq' hs' ∗
       ⌜b = decide (sint.Z n ≠ 0 ∨ hs.vote ≠ hs'.vote ∨ hs.term ≠ hs'.term)⌝ }}
 
 end spec

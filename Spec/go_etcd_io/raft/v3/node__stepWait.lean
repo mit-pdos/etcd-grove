@@ -30,12 +30,12 @@ variable [ctx_sem : context.Assumptions]
 /-- (internal) `stepWithWaitOption` with `wait = true`. -/
 def node.stepWait.spec : Prop :=
 
-  ∀ (n : Loc) (γ : Cluster) (id : w64) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+  ∀ (n : Loc) (γ : Cluster) (id : w64) (ctx : GoInterface)
     (ml : Loc) (m : Msg),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ id ∗ context.isContext ctx cd ∗ msgPts ml (DFrac.own 1) m ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ id ∗ Context.ctxOk ctx ∗ msgPts ml (DFrac.own 1) m ∗
       stepOk n γ id m }}
-    (App (App (Val (n @!! go.GoType.PointerType go_etcd_io.raft.v3.node.ty @!! go!"stepWait")) (Val #(interface.ok ctx))) (Val #ml))
-  {{ (err : GoInterface), RET #err; propErr n err }}
+    (App (App (Val (n @!! go.GoType.PointerType go_etcd_io.raft.v3.node.ty @!! go!"stepWait")) (Val #ctx)) (Val #ml))
+  {{ (err : GoInterface), RET #err; propErr n ctx err }}
 
 end spec
 end Raft

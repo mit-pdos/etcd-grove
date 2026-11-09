@@ -40,7 +40,7 @@ def MemoryStorage.Append.spec : Prop :=
 
   ∀ (ms : Loc) (sl : GoSlice) (k : Nat) (es : List LogEntry) (Q : StorState → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ entriesRO sl k es ∗
-      (AU <{ ∃∃ (σ : StorState), memStor ms σ ∗ ⌜(σ.append k es).isSome⌝ }> @ ⊤, ∅
+      (AU <{ ∃∃ (σ : StorState), memStor ms σ ∗ ⌜(σ.append k es).isSome ∧ k + es.length < 2 ^ 64⌝ }> @ ⊤, ∅
         <{ memStor ms ((σ.append k es).getD σ), COMM Q σ }>) }}
     (App (Val (ms @!! go.GoType.PointerType go_etcd_io.raft.v3.MemoryStorage.ty @!! go!"Append")) (Val #sl))
   {{ (err : GoInterface), RET #err; ⌜err = interface.nil⌝ ∗ ∃ σ, Q σ }}

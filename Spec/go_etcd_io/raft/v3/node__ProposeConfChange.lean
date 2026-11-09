@@ -44,14 +44,14 @@ variable [ctx_sem : context.Assumptions]
 decoding to `c`) commits. -/
 def node.ProposeConfChange.spec : Prop :=
 
-  ∀ (n : Loc) (γ : Cluster) (id : w64) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+  ∀ (n : Loc) (γ : Cluster) (id : w64) (ctx : GoInterface)
     (cc : GoInterface) (dq : DFrac) (c : ConfChangeI),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ id ∗ context.isContext ctx cd ∗ confChangePts cc dq c ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ id ∗ Context.ctxOk ctx ∗ confChangePts cc dq c ∗
       (□?γ.dup AU <{ ∃∃ (ops : List LogEntry), committedOps γ ops }> @ ⊤ \ ↑γ.ns, ∅
         <{ ∀∀ (t : w64) (bs : List w8), ⌜decodeConfChange c.entryType bs = some c⌝ ∗
             committedOps γ (ops ++ opsOf [⟨t, c.entryType, bs⟩]), COMM True }>) }}
-    (App (App (Val (n @!! go.GoType.PointerType go_etcd_io.raft.v3.node.ty @!! go!"ProposeConfChange")) (Val #(interface.ok ctx))) (Val #cc))
-  {{ (err : GoInterface), RET #err; confChangePts cc dq c ∗ nodeErr n err }}
+    (App (App (Val (n @!! go.GoType.PointerType go_etcd_io.raft.v3.node.ty @!! go!"ProposeConfChange")) (Val #ctx)) (Val #cc))
+  {{ (err : GoInterface), RET #err; confChangePts cc dq c ∗ nodeErr n ctx err }}
 
 end spec
 end Raft

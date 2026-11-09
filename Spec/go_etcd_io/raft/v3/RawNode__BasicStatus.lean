@@ -35,7 +35,7 @@ def RawNode.BasicStatus.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ rawNode rn γ id }}
     (App (Val (rn @!! go.GoType.PointerType go_etcd_io.raft.v3.RawNode.ty @!! go!"BasicStatus")) (Val #()))
   {{ (bs : go_etcd_io.raft.v3.BasicStatus), RET #bs; rawNode rn γ id ∗ ⌜bs.ID' = id⌝ ∗
-      ∃ hs, hsPtr bs.HardState' hs }}
+      ∃ hs, hsPtr bs.HardState' (DFrac.own 1) hs }}
 
 end spec
 end Raft

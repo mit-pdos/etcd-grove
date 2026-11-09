@@ -46,7 +46,8 @@ def NewRawNode.spec : Prop :=
       ⌜ConfigOk cv ∧ cv.ID' = id⌝ ∗
       ⌜uint.nat cv.Applied' = 0 ∨
         (σ.off ≤ uint.nat cv.Applied' ∧ uint.nat cv.Applied' ≤ uint.nat σ.hs.commit)⌝ ∗
-      ⌜max σ.off (uint.nat cv.Applied') ≤ a ∧ a ≤ uint.nat σ.hs.commit ∧ (cf σ).Is m⌝ ∗
+      ⌜max σ.off (uint.nat cv.Applied') ≤ a ∧ (cf σ).Is m⌝ ∗
+      (⌜σ.snap.isEmpty⌝ ∨ snapValid γ σ.snap) ∗
       (⌜cv.Logger' = interface.nil⌝ ∨ loggerOk cv.Logger') ∗
       isStorage cv.Storage' S cf ∗ S σ ∗ confAt γ a m ∗ nodeVacant γ id ∗
       (AU <{ ∃∃ (D : Durable), raftState γ id D ∗ ⌜StorageHolds D σ⌝ }> @ ⊤ \ ↑γ.ns, ∅

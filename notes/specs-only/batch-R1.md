@@ -128,12 +128,85 @@ Per node (`n` a `*node` or a `*RawNode`):
    return the storage contents instead (costs gating every storage update by `nodeRunning`)?
 3. **`StartNode` on a non-empty storage** (Go logs a warning and runs it as a restart) is excluded by
    the premise `S StorState.empty`; etcd calls it only without a WAL.
-4. **`msgSent_replaceSnap`** (etcd's merged snapshot message) drops the old law's premise that the
-   new snapshot's index was known committed at the message's term: I believe the follower's restore
-   of any committed snapshot is safe at any term (argued in the law's comment); the provability
-   review should check it against R2's invariants.
+4. (Answered by the round-1 review: the term-free `msgSent_replaceSnap` was unsound; fixed, below.)
 5. **The `Ready` updates stay gated by `nodeRunning`**, read states included, as in the approved
    candidate 11.
+
+6. **(Round 1) A restart's configuration ahead of the WAL's commit** (completeness F1). etcd
+   restarts raft at the backend's membership, at its consistent index `c`, which can be above the
+   WAL's `HardState.Commit` (a commit-only hard state is not fsynced; the apply thread gets entries
+   before the WAL save: `bootstrap.go:632-636` says so). Adopted: `RestartNode`/`NewRawNode` take
+   the configuration at any committed point `a ≥ max σ.off Applied` (`confAt γ a m`, no bound by the
+   stored commit); the entries in `(applied, a]` are below the view (etcd does not re-apply them).
+   This puts on raft's proof (R2) that a tracker at a committed configuration ahead of the node's
+   commit is safe. **Alternative** if R2 cannot carry it: keep `a ≤ σ.hs.commit` as a filed scope
+   restriction, under which etcd's restart after such a crash is not covered (and etcd would need to
+   sync the commit with the backend, or record the WAL commit's configuration).
+7. **(Round 1) A snapshot whose configuration is ahead of its index** (completeness F3). etcd's
+   snapshots taken during the WAL replay record the configuration at `c` with the log at
+   `appliedi < c` (`nonissues/etcd-replay-snapshot-confstate-ahead.md`). Adopted: `snap_make`
+   takes the configuration at any committed point `a ≥` the snapshot's index; a node installing it
+   gets its view at `a` (`node.Advance`), re-applying nothing below. Same R2 obligation as 6.
+   **Alternative**: snapshots only at their own configuration, with 2d excluding snapshots during
+   the replay (a premise filed as a scope restriction), or etcd fixed to track the replayed
+   changes.
+8. **(Round 1) A crash's vacancy** (completeness S6): `nodeVacant` comes back only from `Stop`; a
+   process crash must re-create it through the adequacy/crash rule. Is that the adequacy theorem's
+   (I assume so), or should raft export a crash law?
+
+## Round 1 repairs (2026-11-09)
+
+Reviews: `reviews/R1-provability-1.md`, `reviews/R1-completeness-1.md`. Rebuilt:
+`etc/specs-build.sh --dir Spec/go_etcd_io/raft/v3` OK (131 modules, R2/R3's files included);
+`go vet ./specreq/raftnode/` and gofmt clean; `etc/issues-status.py --check` clean.
+
+Provability, first tier:
+- F1 `msgSent_replaceSnap`: now requires the new snapshot within the sender's delivered log
+  (`isNode n γ m.src ∗ deliveredLb n γ l ∗ ⌜s'.index ≤ |l|⌝`); `ReqSendSnapshot`'s Assumes says so.
+- F2 the storage laws' masks: `⊤` (raft opens its own invariant), for the five write laws and the
+  new read law.
+- F3 the stored snapshot: `RestartNode`/`NewRawNode` take `σ.snap.isEmpty ∨ snapValid γ σ.snap`
+  (with the generalized `snapValid`, open question 7, etcd's restored snapshot meets it).
+- F4 `BootLog` fixes the bytes: `e = ⟨1, EntryConfChange, bootEntryData p.1 p.2⟩` with
+  `bootEntryData` opaque (3h's wire model, requested in `req/go_etcd_io_raft_v3_raftpb.md`) and
+  the law `bootEntryData_decode`; contexts non-empty (etcd's are JSON).
+- F5 contexts: every `node.*` spec takes W0's `Context.ctxOk ctx` (any context: rafthttp's
+  `TODO()`), and `nodeErr n ctx err`/`propErr n ctx err`'s context arm is
+  `Context.ctxDone ctx ∗ isCtxErr err`.
+- F6 `node.Stop.spec`: one spec over `running : Bool` (`nodeRunning n 1` or `nodeStopped n`),
+  vacancy back only when it was running.
+- F7 the storage contract: `Entries` without the `ErrUnavailable` arm (`ErrCompacted` exactly at or
+  below the compaction point); `Term` with `j ≤ last` provided by raft and no `ErrUnavailable` arm;
+  `MemoryStorage.Term.spec` requires `i < off + 2^63` (Go's signed conversion);
+  `MemoryStorage.Append.spec` and `readyStor_append` require `k + |es| < 2^64` (Go's index
+  arithmetic), in the update's precondition.
+
+Provability, second tier: S1 `memStor`'s realization restated (a fractional share of the
+unlocked footprint), presence requested from 3h; S2 = completeness F4; S3 = completeness F1; S4
+`confAt_valid` (and `confAt_committed`); S5 `cluster_alloc` excludes local-target ids; S6/S7 the
+snippets' Assumes (stop order, the view at the applied index, the `nodeRunning` share, non-joint
+refusal, `applied > 0`, owned snapshots) and `ReqDeliver` steps a copy (`proto.Clone`).
+
+Completeness, first tier:
+- F1 (open question 6) and F3 (open question 7, `nonissues/etcd-replay-snapshot-confstate-ahead.md`)
+  as above: `a` unbounded by the stored commit, snapshot configurations at a committed point at or
+  after the index (`snap_make`, `snapValid_committed`, `node.Advance`/`RawNode.Advance`'s snapshot
+  case `∃ a m, nodeConf ⟨a, m⟩ ∗ ⌜s.index ≤ a ∧ s.conf.Is m⌝`).
+- F2 `committedLb_emptyV2`: an empty `EntryConfChangeV2` is committed only at a joint
+  configuration; snippet `ReqEntryTypes`.
+- F4 `stor_read`: an update reading the attached storage, guaranteeing `off ≤ snap.index`, the
+  snapshot at least a known lower bound, `appliedLb n off`, the snapshot empty or valid, and giving
+  `storSnapLb` back; snippet `ReqReadAttached`. (kvfile's `InitialState` on an attached storage
+  stays excluded: it is the known race.)
+- F5 `statusOwn_progress`: the `Progress` map's `ownMap`; snippet `ReqStatusProgress`.
+- F6 `ReqStopRestart`'s double `Stop`: now provable (provability F6's spec).
+
+Completeness, second tier: S2 `MemoryStorage.Entries.spec` takes `lo ≤ hi` and gives the whole
+range at `maxSize = 2^64 - 1` (kvfile's `Encode`); S3 `hsPtr` takes any fraction (`MustSync`,
+`IsEmptyHardState`, `isHardStateEqual` give it back); S4 `--force-new-cluster` named out of scope in
+`RestartNode`'s Margin. Not done: S1 (a two-goroutine Ready/apply snippet), S7 (a "led term `t`"
+fact in `Status`), S9 (a decoded-`Id` check): no first-tier need; S8 (rafthttp at most once) is
+2f's.
 
 ## Notes for reviewers
 

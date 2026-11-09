@@ -32,13 +32,13 @@ variable [ctx_sem : context.Assumptions]
 /-- (internal) Hands `m` to the run goroutine. -/
 def node.stepWithWaitOption.spec : Prop :=
 
-  ∀ (n : Loc) (γ : Cluster) (id : w64) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+  ∀ (n : Loc) (γ : Cluster) (id : w64) (ctx : GoInterface)
     (ml : Loc) (m : Msg) (wait : Bool),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ id ∗ context.isContext ctx cd ∗ msgPts ml (DFrac.own 1) m ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ id ∗ Context.ctxOk ctx ∗ msgPts ml (DFrac.own 1) m ∗
       stepOk n γ id m }}
-    (App (App (App (Val (n @!! go.GoType.PointerType go_etcd_io.raft.v3.node.ty @!! go!"stepWithWaitOption")) (Val #(interface.ok ctx))) (Val #ml))
+    (App (App (App (Val (n @!! go.GoType.PointerType go_etcd_io.raft.v3.node.ty @!! go!"stepWithWaitOption")) (Val #ctx)) (Val #ml))
       (Val #wait))
-  {{ (err : GoInterface), RET #err; propErr n err }}
+  {{ (err : GoInterface), RET #err; propErr n ctx err }}
 
 end spec
 end Raft

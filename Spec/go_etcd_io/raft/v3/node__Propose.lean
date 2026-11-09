@@ -48,13 +48,13 @@ variable [ctx_sem : context.Assumptions]
 the entry commits (at some term `t`). Errors: the node's, or `ErrProposalDropped`. -/
 def node.Propose.spec : Prop :=
 
-  ∀ (n : Loc) (γ : Cluster) (id : w64) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+  ∀ (n : Loc) (γ : Cluster) (id : w64) (ctx : GoInterface)
     (data_sl : GoSlice) (data : List w8),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ id ∗ context.isContext ctx cd ∗ ownSlice data_sl data DFrac.discard ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ id ∗ Context.ctxOk ctx ∗ ownSlice data_sl data DFrac.discard ∗
       (□?γ.dup AU <{ ∃∃ (ops : List LogEntry), committedOps γ ops }> @ ⊤ \ ↑γ.ns, ∅
         <{ ∀∀ (t : w64), committedOps γ (ops ++ opsOf [⟨t, EntryNormal, data⟩]), COMM True }>) }}
-    (App (App (Val (n @!! go.GoType.PointerType go_etcd_io.raft.v3.node.ty @!! go!"Propose")) (Val #(interface.ok ctx))) (Val #data_sl))
-  {{ (err : GoInterface), RET #err; propErr n err }}
+    (App (App (Val (n @!! go.GoType.PointerType go_etcd_io.raft.v3.node.ty @!! go!"Propose")) (Val #ctx)) (Val #data_sl))
+  {{ (err : GoInterface), RET #err; propErr n ctx err }}
 
 end spec
 end Raft

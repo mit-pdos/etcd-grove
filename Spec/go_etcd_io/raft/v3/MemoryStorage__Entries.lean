@@ -33,15 +33,15 @@ variable [ctx_sem : context.Assumptions]
 def MemoryStorage.Entries.spec : Prop :=
 
   ∀ (ms : Loc) (lo hi mx : w64) (Q : StorState → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ (AU <{ ∃∃ (σ : StorState), memStor ms σ ∗ ⌜uint.nat lo < uint.nat hi ∧ uint.nat hi ≤ σ.last + 1⌝ }> @ ⊤, ∅
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ (AU <{ ∃∃ (σ : StorState), memStor ms σ ∗ ⌜uint.nat lo ≤ uint.nat hi ∧ uint.nat hi ≤ σ.last + 1⌝ }> @ ⊤, ∅
         <{ memStor ms σ, COMM Q σ }>) }}
     (App (App (App (Val (ms @!! go.GoType.PointerType go_etcd_io.raft.v3.MemoryStorage.ty @!! go!"Entries")) (Val #lo)) (Val #hi)) (Val #mx))
   {{ (sl : GoSlice) (err : GoInterface), RET (PairV #sl #err); ∃ σ, Q σ ∗
       ((⌜uint.nat lo ≤ σ.off⌝ ∗ errIs go_etcd_io.raft.v3.ErrCompacted err) ∨
-       (⌜σ.ents = []⌝ ∗ errIs go_etcd_io.raft.v3.ErrUnavailable err) ∨
-       (⌜err = interface.nil⌝ ∗ ∃ es, entriesRO sl (uint.nat lo) es ∗
-          ⌜es ≠ [] ∧ es <+: (σ.ents.drop (uint.nat lo - σ.off - 1)).take
-            (uint.nat hi - uint.nat lo)⌝)) }}
+       (⌜σ.off < uint.nat lo ∧ σ.ents = []⌝ ∗ errIs go_etcd_io.raft.v3.ErrUnavailable err) ∨
+       (⌜err = interface.nil ∧ σ.off < uint.nat lo ∧ σ.ents ≠ []⌝ ∗ ∃ es, entriesRO sl (uint.nat lo) es ∗
+          ⌜let rng := (σ.ents.drop (uint.nat lo - σ.off - 1)).take (uint.nat hi - uint.nat lo)
+           es <+: rng ∧ (rng ≠ [] → es ≠ []) ∧ (mx = W64 (2 ^ 64 - 1) → es = rng)⌝)) }}
 
 end spec
 end Raft

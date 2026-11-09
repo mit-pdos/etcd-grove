@@ -37,10 +37,10 @@ variable [ctx_sem : context.Assumptions]
 /-- **Asks for a leader transfer** (any ids). -/
 def node.TransferLeadership.spec : Prop :=
 
-  ∀ (n : Loc) (γ : Cluster) (id : w64) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+  ∀ (n : Loc) (γ : Cluster) (id : w64) (ctx : GoInterface)
     (lead transferee : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ id ∗ context.isContext ctx cd }}
-    (App (App (App (Val (n @!! go.GoType.PointerType go_etcd_io.raft.v3.node.ty @!! go!"TransferLeadership")) (Val #(interface.ok ctx))) (Val #lead))
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ id ∗ Context.ctxOk ctx }}
+    (App (App (App (Val (n @!! go.GoType.PointerType go_etcd_io.raft.v3.node.ty @!! go!"TransferLeadership")) (Val #ctx)) (Val #lead))
       (Val #transferee))
   {{ RET #(); True }}
 

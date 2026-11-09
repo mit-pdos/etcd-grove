@@ -41,12 +41,12 @@ variable [ctx_sem : context.Assumptions]
 /-- **Requests a read index** for registered context `c`. -/
 def node.ReadIndex.spec : Prop :=
 
-  ∀ (n : Loc) (γ : Cluster) (id : w64) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+  ∀ (n : Loc) (γ : Cluster) (id : w64) (ctx : GoInterface)
     (rctx : GoSlice) (c : List w8) (Q : List LogEntry → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ id ∗ context.isContext ctx cd ∗ ownSlice rctx c DFrac.discard ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ id ∗ Context.ctxOk ctx ∗ ownSlice rctx c DFrac.discard ∗
       readCtx γ c Q }}
-    (App (App (Val (n @!! go.GoType.PointerType go_etcd_io.raft.v3.node.ty @!! go!"ReadIndex")) (Val #(interface.ok ctx))) (Val #rctx))
-  {{ (err : GoInterface), RET #err; nodeErr n err }}
+    (App (App (Val (n @!! go.GoType.PointerType go_etcd_io.raft.v3.node.ty @!! go!"ReadIndex")) (Val #ctx)) (Val #rctx))
+  {{ (err : GoInterface), RET #err; nodeErr n ctx err }}
 
 end spec
 end Raft

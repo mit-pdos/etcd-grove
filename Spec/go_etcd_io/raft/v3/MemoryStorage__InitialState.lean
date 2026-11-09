@@ -39,7 +39,7 @@ def MemoryStorage.InitialState.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ memStor ms σ }}
     (App (Val (ms @!! go.GoType.PointerType go_etcd_io.raft.v3.MemoryStorage.ty @!! go!"InitialState")) (Val #()))
   {{ (hp csp : Loc) (err : GoInterface), RET (PairV (PairV #hp #csp) #err);
-      ⌜err = interface.nil⌝ ∗ memStor ms σ ∗ hsPtr hp σ.hs ∗
+      ⌜err = interface.nil⌝ ∗ memStor ms σ ∗ hsPtr hp DFrac.discard σ.hs ∗
       confStatePts csp DFrac.discard σ.snap.conf }}
 
 end spec

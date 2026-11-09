@@ -26,8 +26,11 @@ type Durable interface {
 //
 // Users: server/etcdserver/raft.go:176-354 (raftNode.start), examples/raft/kvdurable/kv.go:437,
 // examples/raft/kvreconf, examples/raft/kv.
-// Assumes: ms is the storage n was started on; applied is the index the node started at;
-// decide is the client's cluster-wide conf decision (confDecide); stop is closed only after n.Stop.
+// Assumes: ms is the storage n was started on; applied is the index the node started at, and its
+// configuration view starts there too (a = applied in RestartNode.spec; a client restarting with a
+// view ahead skips the entries below it, as etcd does through its consistent index); decide is the
+// client's cluster-wide conf decision (confDecide); n.Stop is called only after stop is closed (the
+// loop holds a nodeRunning share while it runs, so a nil ConfState cannot come back to it).
 // Specs: node.Ready.spec, readyChan_recv.spec, node.Advance.spec, node.ApplyConfChange.spec,
 // MemoryStorage.ApplySnapshot.spec, MemoryStorage.Append.spec, MemoryStorage.SetHardState.spec,
 // IsEmptySnap.spec, IsEmptyHardState.spec; laws: readyStor_install.spec, readyStor_append.spec,
@@ -79,11 +82,7 @@ func ReqReadyLoop(n raft.Node, ms *raft.MemoryStorage, d Durable, applied uint64
 			case pb.EntryConfChange, pb.EntryConfChangeV2:
 				if cc := decide(e); cc != nil {
 					if n.ApplyConfChange(cc) == nil {
-						select {
-						case <-stop: // the node stopped
-						default:
-							panic("ready: no ConfState from a running node")
-						}
+						panic("ready: no ConfState from a running node")
 					}
 				}
 			default:

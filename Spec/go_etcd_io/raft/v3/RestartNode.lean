@@ -23,8 +23,18 @@ partial configuration, which `confAt γ a m` with `(cf σ).Is m` must still name
 one at index 0, `cluster_alloc`); `Applied`'s premise as before (`appliedTo` panics outside it); the
 configuration point `a` as before (`nonissues/raft-applied-above-snapshot-confstate.md`).
 
+**Round 1.** The configuration point `a` is no longer bounded by the stored commit (completeness F1,
+provability S3: etcd restarts at the backend's configuration, at its consistent index, which a crash
+can leave above the WAL's commit: `bootstrap.go:107-116`, `632-636`); `confAt γ a m` alone says the
+first `a` entries are committed cluster-wide, and raft's restored tracker is that committed
+configuration (an obligation on raft's invariant, R2: `req/go_etcd_io_raft_v3.md`). The stored
+snapshot is empty or valid (provability F3: raft sends it in `MsgSnap`s).
+
 **Margin.** The node starts a follower at the stored term; the delivered log is the committed log up
-to the applied index, whose stored part the post states.
+to the applied index, whose stored part the post states. Out of scope: `--force-new-cluster`
+(`bootstrap.go:628-648`: etcd raises the WAL's commit and manufactures conf entries outside raft,
+which no cluster history admits); a crash's vacancy (`nodeVacant` comes back from `Stop`; a crash
+rule is the adequacy theorem's).
 -/
 module
 
@@ -63,7 +73,8 @@ def RestartNode.spec : Prop :=
       ⌜ConfigOk cv ∧ cv.ID' = id⌝ ∗
       ⌜uint.nat cv.Applied' = 0 ∨
         (σ.off ≤ uint.nat cv.Applied' ∧ uint.nat cv.Applied' ≤ uint.nat σ.hs.commit)⌝ ∗
-      ⌜max σ.off (uint.nat cv.Applied') ≤ a ∧ a ≤ uint.nat σ.hs.commit ∧ (cf σ).Is m⌝ ∗
+      ⌜max σ.off (uint.nat cv.Applied') ≤ a ∧ (cf σ).Is m⌝ ∗
+      (⌜σ.snap.isEmpty⌝ ∨ snapValid γ σ.snap) ∗
       (⌜cv.Logger' = interface.nil⌝ ∨ loggerOk cv.Logger') ∗
       isStorage cv.Storage' S cf ∗ S σ ∗ confAt γ a m ∗ nodeVacant γ id ∗
       (AU <{ ∃∃ (D : Durable), raftState γ id D ∗ ⌜StorageHolds D σ⌝ }> @ ⊤ \ ↑γ.ns, ∅

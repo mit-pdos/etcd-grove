@@ -9,11 +9,11 @@
 `done`. With `nodeRunning n 1` the node's invariant gives the vacancy back (no `Ready` update can fire
 any more: each takes a `nodeRunning` fraction).
 
-**Changes.** Unchanged (over opaque predicates). The storage stays attached (a storage is attached
-once: a restart uses a new one).
+**Changes.** Over opaque predicates; (round 1) a call on a stopped node is covered (it finds `done`
+closed and returns), the vacancy given back only by the call that stopped it. The storage stays
+attached (a storage is attached once: a restart uses a new one).
 
-**Margin.** A second `Stop` returns at once; the spec takes the whole running token, which only the
-first caller has.
+**Margin.** Concurrent first calls are not covered (each needs the whole running token).
 -/
 module
 
@@ -39,13 +39,14 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 variable [ctx_sem : context.Assumptions]
 
-/-- **Stops node `n`**: afterwards it has stopped and its id is vacant. -/
+/-- **Stops node `n`** (running, or already stopped): afterwards it has stopped; its id is vacant
+again if this call stopped it. -/
 def node.Stop.spec : Prop :=
 
-  ∀ (n : Loc) (γ : Cluster) (id : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ id ∗ nodeRunning n 1 }}
+  ∀ (n : Loc) (γ : Cluster) (id : w64) (running : Bool),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ id ∗ (if running then nodeRunning n 1 else nodeStopped n) }}
     (App (Val (n @!! go.GoType.PointerType go_etcd_io.raft.v3.node.ty @!! go!"Stop")) (Val #()))
-  {{ RET #(); nodeStopped n ∗ nodeVacant γ id }}
+  {{ RET #(); nodeStopped n ∗ (if running then nodeVacant γ id else iprop(True)) }}
 
 end spec
 end Raft

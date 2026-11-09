@@ -38,7 +38,7 @@ variable [ctx_sem : context.Assumptions]
 def MemoryStorage.SetHardState.spec : Prop :=
 
   ∀ (ms : Loc) (p : Loc) (hs : HardState) (Q : StorState → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ hsPtr p hs ∗ (AU <{ ∃∃ (σ : StorState), memStor ms σ }> @ ⊤, ∅
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ hsPtr p DFrac.discard hs ∗ (AU <{ ∃∃ (σ : StorState), memStor ms σ }> @ ⊤, ∅
         <{ memStor ms (σ.setHardState hs), COMM Q σ }>) }}
     (App (Val (ms @!! go.GoType.PointerType go_etcd_io.raft.v3.MemoryStorage.ty @!! go!"SetHardState")) (Val #p))
   {{ (err : GoInterface), RET #err; ⌜err = interface.nil⌝ ∗ ∃ σ, Q σ }}

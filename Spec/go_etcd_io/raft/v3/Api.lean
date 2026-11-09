@@ -76,8 +76,12 @@ is the client's: its methods' updates fire on `memStor ms σ` directly.
   compaction point is at most the applied index and the stored snapshot's; the stored snapshot is
   valid). `rawNode`: the `RawNode`'s own token (the raft struct, the log, the tracker, the
   read-only queue: R2's, R3's and R4's predicates).
-- `memStor ms σ`: a ghost var of `σ` whose authority is in `MemoryStorage`'s lock invariant with the
-  physical fields.
+- `memStor ms σ`: a ghost var of `σ` whose authority is in `MemoryStorage`'s lock invariant,
+  together with a fractional share of the footprint `InitialState` reads without the lock (the
+  `snapshot` and `hardState` fields, the snapshot's `Metadata.ConfState` field and that `ConfState`,
+  stored ensured: `AutoLeave` present); the lock invariant holds the other share and the `ents`
+  slice. A writer opens its update once per store to that footprint (abort where the contents are
+  unchanged, commit at the store that changes them). (Round 1, S1.)
 
 ## Requirement snippets
 
@@ -92,6 +96,7 @@ module
 
 public import Spec.go_etcd_io.raft.v3.Model
 public import Spec.PkgInit.go_etcd_io.raft.v3
+public import Spec.context.Api
 
 set_option autoImplicit false
 
@@ -164,8 +169,8 @@ opaque peersPts (sl : GoSlice) (dq : DFrac) (ps : List (w64 × List w8)) : IProp
 opaque statusOwn (s : go_etcd_io.raft.v3.Status) : IProp GF := iprop(True)
 
 /-- A `*HardState` that may be `nil` (the empty hard state), read-only. -/
-def hsPtr (p : Loc) (hs : HardState) : IProp GF :=
-  iprop(⌜p = null ∧ hs = HardState.empty⌝ ∨ hardStatePts p DFrac.discard hs)
+def hsPtr (p : Loc) (dq : DFrac) (hs : HardState) : IProp GF :=
+  iprop(⌜p = null ∧ hs = HardState.empty⌝ ∨ hardStatePts p dq hs)
 
 /-- An optional `*HardState` (a `Ready`'s: `nil` when unchanged). -/
 def hsOpt (p : Loc) : Option HardState → IProp GF
@@ -224,7 +229,8 @@ def confSkipped (γ : Cluster) (l : List LogEntry) (a b : Nat) : IProp GF :=
 opaque snapsMade (γ : Cluster) (S : List Snapshot) : IProp GF := iprop(True)
 
 /-- **Snapshot `s` is valid**: made (`snapsMade`), non-empty, at a committed prefix (its index and
-its last entry's term), with that prefix's configuration. Persistent. -/
+its last entry's term), with the configuration at a committed point at or after its index.
+Persistent. -/
 opaque snapValid (γ : Cluster) (s : Snapshot) : IProp GF := iprop(True)
 
 /-- The read contexts registered so far: exclusive, client-owned. -/
@@ -349,10 +355,11 @@ def nodeIface (n : Loc) : GoInterface :=
 methods, as raft calls them (from its goroutine only):
 - `InitialState`, on a storage no one else touches (raft calls it only while starting): the stored
   hard state (`nil` for the empty one) and configuration;
-- `Entries(lo, hi, max)`, `lo < hi ≤ last + 1`: `ErrCompacted` at or below the compaction point,
-  else a non-empty prefix of the stored entries `[lo, hi)` (`ErrUnavailable` if none is stored);
-- `Term(i)`: the stored term at `i`, `ErrCompacted` below the compaction point, `ErrUnavailable`
-  past the last index;
+- `Entries(lo, hi, max)`, `lo < hi ≤ last + 1`: `ErrCompacted` exactly at or below the compaction
+  point, else a non-empty prefix of the stored entries `[lo, hi)` (round 1, F7: no
+  `ErrUnavailable`, on which raft panics);
+- `Term(i)`, `i ≤ last` (raft asks no further): the stored term at `i`, or `ErrCompacted` below the
+  compaction point;
 - `LastIndex`, `FirstIndex`;
 - `Snapshot`: the stored snapshot (a fresh copy), or `ErrSnapshotTemporarilyUnavailable`.
 Each but `InitialState` is atomic (raft holds `S` in its invariant while the client writes). -/
@@ -360,26 +367,24 @@ def isStorage (st : GoInterface) (S : StorState → IProp GF) (cf : StorState �
     IProp GF :=
   iprop(∃ i : GoInterfaceOk, ⌜st = interface.ok i⌝ ∗
     (□ ∀ (σ : StorState) (Φ : val → IProp GF), S σ -∗
-      ▷ (∀ hp csp, S σ ∗ hsPtr hp σ.hs ∗ confStatePts csp DFrac.discard (cf σ) -∗
+      ▷ (∀ hp csp, S σ ∗ hsPtr hp DFrac.discard σ.hs ∗ confStatePts csp DFrac.discard (cf σ) -∗
           Φ (PairV (PairV #hp #csp) #interface.nil)) -∗
       WP (App (Val #(methods i.ty go!"InitialState" i.v)) (Val #())) {{ Φ }}) ∗
     (□ ∀ (lo hi mx : w64) (Φ : val → IProp GF),
       (AU <{ ∃∃ σ, S σ ∗ ⌜uint.nat lo < uint.nat hi ∧ uint.nat hi ≤ σ.last + 1⌝ }> @ ⊤, ∅
         <{ S σ, COMM ∀ (sl : GoSlice) (err : GoInterface),
             ((⌜uint.nat lo ≤ σ.off⌝ ∗ errIs go_etcd_io.raft.v3.ErrCompacted err) ∨
-             (⌜σ.ents = []⌝ ∗ errIs go_etcd_io.raft.v3.ErrUnavailable err) ∨
-             (⌜err = interface.nil⌝ ∗ ∃ es, entriesRO sl (uint.nat lo) es ∗
+             (⌜err = interface.nil ∧ σ.off < uint.nat lo⌝ ∗ ∃ es, entriesRO sl (uint.nat lo) es ∗
                 ⌜es ≠ [] ∧ es <+: (σ.ents.drop (uint.nat lo - σ.off - 1)).take
                   (uint.nat hi - uint.nat lo)⌝)) -∗
             Φ (PairV #sl #err) }>) -∗
       WP (App (App (App (Val #(methods i.ty go!"Entries" i.v)) (Val #lo)) (Val #hi)) (Val #mx))
         {{ Φ }}) ∗
     (□ ∀ (j : w64) (Φ : val → IProp GF),
-      (AU <{ ∃∃ σ, S σ }> @ ⊤, ∅
+      (AU <{ ∃∃ σ, S σ ∗ ⌜uint.nat j ≤ σ.last⌝ }> @ ⊤, ∅
         <{ S σ, COMM ∀ (t : w64) (err : GoInterface),
             ((⌜err = interface.nil ∧ σ.termAt (uint.nat j) = some t⌝) ∨
-             (⌜uint.nat j < σ.off⌝ ∗ errIs go_etcd_io.raft.v3.ErrCompacted err) ∨
-             (⌜σ.last < uint.nat j⌝ ∗ errIs go_etcd_io.raft.v3.ErrUnavailable err)) -∗
+             (⌜uint.nat j < σ.off⌝ ∗ errIs go_etcd_io.raft.v3.ErrCompacted err)) -∗
             Φ (PairV #t #err) }>) -∗
       WP (App (Val #(methods i.ty go!"Term" i.v)) (Val #j)) {{ Φ }}) ∗
     (□ ∀ (Φ : val → IProp GF),
@@ -403,15 +408,16 @@ calls those only where it is about to fail anyway, which a proof rules out). Per
 adapter and the examples' loggers meet it (their batches' laws). -/
 opaque loggerOk (lg : GoInterface) : IProp GF := iprop(True)
 
-/-- **A node's error**: `nil`, `ErrStopped` (the node has stopped), or the context's error. -/
-def nodeErr (n : Loc) (err : GoInterface) : IProp GF :=
+/-- **A node's error**: `nil`, `ErrStopped` (the node has stopped), or the error of `ctx`, which is
+done. -/
+def nodeErr (n : Loc) (ctx : GoInterface) (err : GoInterface) : IProp GF :=
   iprop(⌜err = interface.nil⌝ ∨ (errIs go_etcd_io.raft.v3.ErrStopped err ∗ nodeStopped n) ∨
-    context.isCtxErr err)
+    (Context.ctxDone ctx ∗ context.isCtxErr err))
 
 /-- **A proposal's error**: a node's, or `ErrProposalDropped` (no leader, a leader transfer, a
 conf change while one is pending, ...: the proposal may still have been forwarded and commit). -/
-def propErr (n : Loc) (err : GoInterface) : IProp GF :=
-  iprop(nodeErr n err ∨ errIs go_etcd_io.raft.v3.ErrProposalDropped err)
+def propErr (n : Loc) (ctx : GoInterface) (err : GoInterface) : IProp GF :=
+  iprop(nodeErr n ctx err ∨ errIs go_etcd_io.raft.v3.ErrProposalDropped err)
 
 /-- **The update a `Ready` hands out to enter its batch** `b` (from driver state `st`, delivered log
 after it `dl`): fired once, when the client makes the batch durable (or at once), at node `n`'s
@@ -541,7 +547,8 @@ bootstrap entry decided to apply its `AddNode`, and the voters' after the bootst
 def cluster_alloc.spec : Prop :=
   ∀ (N : Namespace) (dup : Bool) (ps : List (w64 × List w8)) (boot : List LogEntry) (E : CoPset),
     let vs := ps.map (·.1)
-    ps ≠ [] → vs.Nodup → W64 0 ∉ vs → (Membership.simple (listToSet vs)).Valid →
+    ps ≠ [] → vs.Nodup → W64 0 ∉ vs → (∀ id ∈ vs, isLocalTarget id = false) →
+    (Membership.simple (listToSet vs)).Valid →
     (boot = [] ∨ BootLog ps boot) →
     ⊢ |={E}=> ∃ γ : Cluster, ⌜γ.ns = N ∧ γ.dup = dup⌝ ∗
       committedOps (GF := GF) γ (opsOf boot) ∗ committedLb γ boot ∗ bootLog γ boot ∗
@@ -592,6 +599,21 @@ def committedLb_confDecodes.spec : Prop :=
 
 def confAt_agree.spec : Prop :=
   ∀ γ k (m1 m2 : Membership), confAt (GF := GF) γ k m1 ∗ confAt γ k m2 ⊢ iprop(⌜m1 = m2⌝)
+
+/-- Every configuration of the cluster is valid (the empty one at index 0 included). (Round 1, S4.) -/
+def confAt_valid.spec : Prop := ∀ γ k (m : Membership), confAt (GF := GF) γ k m ⊢ iprop(⌜m.Valid⌝)
+
+/-- A configuration point is within the committed log. -/
+def confAt_committed.spec : Prop :=
+  ∀ γ k (m : Membership), confAt (GF := GF) γ k m ⊢ ∃ l, committedLb γ l ∗ ⌜k ≤ l.length⌝
+
+/-- **An empty `EntryConfChangeV2` (leave joint) is committed only at a joint configuration**: raft
+appends one itself only when joint with auto-leave, and the leader refuses a client's leave
+proposal at a configuration that is not joint (validation on: `ConfigOk`). (Round 1, completeness
+F2: etcd's apply panics on any entry type but `EntryNormal`/`EntryConfChange`.) -/
+def committedLb_emptyV2.spec : Prop :=
+  ∀ γ (l : List LogEntry) k e (m : Membership), l[k]? = some e → e.isEmptyV2 →
+    committedLb (GF := GF) γ l ∗ confAt γ k m ⊢ iprop(⌜m.isJoint⌝)
 
 /-- An entry that is no conf change keeps the configuration. -/
 def confAt_normal.spec : Prop :=
@@ -659,13 +681,17 @@ def Membership.applyChange_v1.spec : Prop :=
 
 /-! ### Snapshots -/
 
-/-- **Make a snapshot** of a committed prefix `l` at its configuration, with any data: the client
-records it (and may keep any invariant of its data). -/
+/-- **Make a snapshot** of a committed prefix `l`, with the configuration at a committed point `a`
+at or after it (its own index, or later: etcd records the backend's configuration, which may be
+ahead of the snapshot's index during a replay, `nonissues/etcd-replay-snapshot-confstate-ahead.md`),
+with any data: the client records it (and may keep any invariant of its data). A node installing
+it takes the configuration at `a` (`node.Advance.spec`) and re-applies nothing below `a`.
+(Round 1, completeness F3: generalized from `a = |l|`.) -/
 def snap_make.spec : Prop :=
-  ∀ γ (S : List Snapshot) (l : List LogEntry) (m : Membership) (s : Snapshot),
+  ∀ γ (S : List Snapshot) (l : List LogEntry) (a : Nat) (m : Membership) (s : Snapshot),
     0 < l.length → uint.nat s.index = l.length → termAt l l.length = some s.term →
-    s.conf.Is m →
-    snapsMade (GF := GF) γ S ∗ committedLb γ l ∗ confAt γ l.length m ⊢ |==>
+    l.length ≤ a → s.conf.Is m →
+    snapsMade (GF := GF) γ S ∗ committedLb γ l ∗ confAt γ a m ⊢ |==>
       snapsMade γ (s :: S) ∗ snapValid γ s
 
 def snapValid_made.spec : Prop :=
@@ -673,9 +699,9 @@ def snapValid_made.spec : Prop :=
 
 def snapValid_committed.spec : Prop :=
   ∀ γ (s : Snapshot), snapValid (GF := GF) γ s ⊢
-    ∃ (l : List LogEntry) (m : Membership), committedLb γ l ∗ confAt γ l.length m ∗
+    ∃ (l : List LogEntry) (a : Nat) (m : Membership), committedLb γ l ∗ confAt γ a m ∗
       ⌜0 < l.length ∧ uint.nat s.index = l.length ∧ termAt l l.length = some s.term ∧
-        s.conf.Is m⌝
+        l.length ≤ a ∧ s.conf.Is m⌝
 
 /-! ### Reads -/
 
@@ -716,12 +742,16 @@ def msgSent_snap.spec : Prop :=
   ∀ γ (m : Msg), m.type = MsgSnap → msgSent (GF := GF) γ m ⊢
     ∃ s, ⌜m.snapshot = some s⌝ ∗ snapValid γ s
 
-/-- **A sent `MsgSnap` may carry a newer valid snapshot instead** (etcd's merged snapshot message,
-`createMergedSnapshotMessage`: the server's applied index, its configuration, no data). -/
+/-- **A sent `MsgSnap` may carry a newer valid snapshot instead, of a prefix of the sender's
+delivered log** (etcd's merged snapshot message, `createMergedSnapshotMessage`: the server's applied
+index, its configuration, no data). The prefix must be the sender's: a snapshot committed at a later
+term the sender does not know of would let the sender, still leader at the message's term, count
+the follower's acknowledgement of an entry the follower does not hold (round 1, provability F1). -/
 def msgSent_replaceSnap.spec : Prop :=
-  ∀ γ (m : Msg) (s s' : Snapshot), m.type = MsgSnap → m.snapshot = some s →
-    uint.nat s.index ≤ uint.nat s'.index →
-    msgSent (GF := GF) γ m ∗ snapValid γ s' ⊢ |==> msgSent γ { m with snapshot := some s' }
+  ∀ γ (m : Msg) (s s' : Snapshot) (n : Loc) (l : List LogEntry), m.type = MsgSnap →
+    m.snapshot = some s → uint.nat s.index ≤ uint.nat s'.index → uint.nat s'.index ≤ l.length →
+    msgSent (GF := GF) γ m ∗ snapValid γ s' ∗ isNode n γ m.src ∗ deliveredLb n γ l ⊢ |==>
+      msgSent γ { m with snapshot := some s' }
 
 /-! ### Nodes -/
 
@@ -754,27 +784,28 @@ def zero_lbs.spec : Prop :=
 
 Each gives an update over the node's storage contents `S`, which raft holds; a storage method's
 own spec (`MemoryStorage.Append.spec`, ...) fires it. The update's precondition is what raft
-guarantees at the moment of the write (its invariant relates the contents to its log). -/
+guarantees at the moment of the write (its invariant relates the contents to its log). Their mask
+is `⊤`: raft, the update's producer, opens its own invariant (round 1, provability F2). -/
 
 /-- **Install the batch's snapshot**: the storage holds no newer one. -/
 def readyStor_install.spec : Prop :=
   ∀ n γ (S : StorState → IProp GF) (s : Snapshot) (k : Nat) (es : List LogEntry),
     readyStor (GF := GF) n (some s) k es ∗ nodeStorage n γ S ⊢
-      AU <{ ∃∃ σ, S σ ∗ ⌜σ.applySnapshotErr s = false⌝ }> @ ⊤ \ ↑γ.ns, ∅
+      AU <{ ∃∃ σ, S σ ∗ ⌜σ.applySnapshotErr s = false⌝ }> @ ⊤, ∅
         <{ S (σ.applySnapshot s), COMM readyStor n none k es ∗ storSnapLb n (uint.nat s.index) }>
 
 /-- **Append the batch's entries** (after its snapshot, if any): no gap. -/
 def readyStor_append.spec : Prop :=
   ∀ n γ (S : StorState → IProp GF) (k : Nat) (es : List LogEntry),
     readyStor (GF := GF) n none k es ∗ nodeStorage n γ S ⊢
-      AU <{ ∃∃ σ, S σ ∗ ⌜(σ.append k es).isSome⌝ }> @ ⊤ \ ↑γ.ns, ∅
+      AU <{ ∃∃ σ, S σ ∗ ⌜(σ.append k es).isSome ∧ k + es.length < 2 ^ 64⌝ }> @ ⊤, ∅
         <{ S ((σ.append k es).getD σ), COMM readyStor n none k [] }>
 
 /-- **Compact** up to the applied index and the stored snapshot. -/
 def stor_compact.spec : Prop :=
   ∀ n γ (S : StorState → IProp GF) (i : Nat),
     nodeStorage (GF := GF) n γ S ∗ appliedLb n i ∗ storSnapLb n i ⊢
-      AU <{ ∃∃ σ, S σ ∗ ⌜i ≤ σ.last ∧ i ≤ uint.nat σ.snap.index⌝ }> @ ⊤ \ ↑γ.ns, ∅
+      AU <{ ∃∃ σ, S σ ∗ ⌜i ≤ σ.last ∧ i ≤ uint.nat σ.snap.index⌝ }> @ ⊤, ∅
         <{ S (σ.compact i), COMM True }>
 
 /-- **Store a snapshot** at an applied index (a valid one: made with `snap_make`). -/
@@ -783,15 +814,26 @@ def stor_createSnapshot.spec : Prop :=
     nodeStorage (GF := GF) n γ S ∗ appliedLb n (uint.nat s.index) ∗ snapValid γ s ⊢
       AU <{ ∃∃ σ, S σ ∗ ⌜uint.nat s.index ≤ σ.last ∧ σ.off ≤ uint.nat σ.snap.index ∧
               (σ.off ≤ uint.nat s.index → σ.termAt (uint.nat s.index) = some s.term)⌝ }>
-          @ ⊤ \ ↑γ.ns, ∅
+          @ ⊤, ∅
         <{ S (σ.createSnapshot (uint.nat s.index) (some s.conf) s.data),
            COMM storSnapLb n (uint.nat s.index) }>
+
+/-- **Read the attached storage** (etcd's `run` reads `Snapshot()` at its start; the examples'
+`FirstIndex()` before a compaction and their status dumps): raft guarantees, at the read, that the
+compaction point is at most the stored snapshot's index and the node's applied index, and that the
+stored snapshot is empty or valid. (Round 1, completeness F4.) -/
+def stor_read.spec : Prop :=
+  ∀ n γ (S : StorState → IProp GF) (j : Nat),
+    nodeStorage (GF := GF) n γ S ∗ storSnapLb n j ⊢
+      AU <{ ∃∃ σ, S σ ∗ ⌜σ.off ≤ uint.nat σ.snap.index ∧ j ≤ uint.nat σ.snap.index⌝ ∗
+              appliedLb n σ.off ∗ (⌜σ.snap.isEmpty⌝ ∨ snapValid γ σ.snap) }> @ ⊤, ∅
+        <{ S σ, COMM storSnapLb n (uint.nat σ.snap.index) }>
 
 /-- **Store a hard state**: raft reads it only at a start. -/
 def stor_setHardState.spec : Prop :=
   ∀ n γ (S : StorState → IProp GF) (hs : HardState),
     nodeStorage (GF := GF) n γ S ⊢
-      AU <{ ∃∃ σ, S σ }> @ ⊤ \ ↑γ.ns, ∅ <{ S (σ.setHardState hs), COMM True }>
+      AU <{ ∃∃ σ, S σ }> @ ⊤, ∅ <{ S (σ.setHardState hs), COMM True }>
 
 end laws
 
@@ -820,6 +862,19 @@ def errIs_agree.spec : Prop :=
 snapshot's. -/
 def memStor_isStorage.spec : Prop :=
   ∀ (ms : Loc), ⊢ isStorage (GF := GF) (memStorIface ms) (memStor ms) (fun σ => σ.snap.conf)
+
+/-- A `Status`'s progress map is the caller's (fresh copies; `Inflights` cleared). (Round 1,
+completeness F5: etcd's `isLearnerReady` ranges over it.) -/
+def statusOwn_progress.spec : Prop :=
+  ∀ (s : go_etcd_io.raft.v3.Status), statusOwn (GF := GF) s ⊢
+    ∃ (pm : GMap w64 go_etcd_io.raft.v3.tracker.Progress),
+      ownMap s.Progress' (DFrac.own 1) pm
+
+/-- The bootstrap entries decode to their changes (raftpb's, 3h). -/
+def bootEntryData_decode.spec : Prop :=
+  ∀ (id : w64) (ctx : List w8), ctx ≠ [] →
+    decodeConfChange EntryConfChange (bootEntryData id ctx) =
+      some (.v1 ⟨ConfChangeAddNode, id, ctx, W64 0⟩)
 
 def isStorage_persistent.spec : Prop := ∀ st S cf, Persistent (isStorage (GF := GF) st S cf)
 

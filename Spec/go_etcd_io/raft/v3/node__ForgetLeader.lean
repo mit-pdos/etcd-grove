@@ -36,10 +36,10 @@ variable [ctx_sem : context.Assumptions]
 /-- **Asks node `n` to forget its leader** (a `MsgForgetLeader`); the error is the hand-off's. -/
 def node.ForgetLeader.spec : Prop :=
 
-  ∀ (n : Loc) (γ : Cluster) (id : w64) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ id ∗ context.isContext ctx cd }}
-    (App (Val (n @!! go.GoType.PointerType go_etcd_io.raft.v3.node.ty @!! go!"ForgetLeader")) (Val #(interface.ok ctx)))
-  {{ (err : GoInterface), RET #err; nodeErr n err }}
+  ∀ (n : Loc) (γ : Cluster) (id : w64) (ctx : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ id ∗ Context.ctxOk ctx }}
+    (App (Val (n @!! go.GoType.PointerType go_etcd_io.raft.v3.node.ty @!! go!"ForgetLeader")) (Val #ctx))
+  {{ (err : GoInterface), RET #err; nodeErr n ctx err }}
 
 end spec
 end Raft

@@ -31,7 +31,7 @@ variable [ctx_sem : context.Assumptions]
 def MemoryStorage.Term.spec : Prop :=
 
   ∀ (ms : Loc) (i : w64) (Q : StorState → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ (AU <{ ∃∃ (σ : StorState), memStor ms σ }> @ ⊤, ∅
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ (AU <{ ∃∃ (σ : StorState), memStor ms σ ∗ ⌜uint.nat i < σ.off + 2 ^ 63⌝ }> @ ⊤, ∅
         <{ memStor ms σ, COMM Q σ }>) }}
     (App (Val (ms @!! go.GoType.PointerType go_etcd_io.raft.v3.MemoryStorage.ty @!! go!"Term")) (Val #i))
   {{ (t : w64) (err : GoInterface), RET (PairV #t #err); ∃ σ, Q σ ∗
