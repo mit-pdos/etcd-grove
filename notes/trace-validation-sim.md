@@ -548,6 +548,32 @@ some path, whose specs carry the simulation's capability (Q8 of the plan: `trCap
 Every other function of the package owns the physical predicate without touching the logger, so its
 spec is unchanged under Q8's option (a).
 
+## S5 Draft: the capability (2026-11-09)
+
+`Proof/go_etcd_io/raft/v3/TracedHooksDraft.lean`. The mode is the node's (`NGhost.tr`, Q8), so the
+statements below are uniform: one spec per function, whose untraced instance is the current spec.
+
+- **`TraceFire tr tl E Q`**, the event builder's gate (`traceEvent`/`traceNodeEvent`): untraced, a
+  nil logger and `Q`; traced, the logger's contract and, for every event `e` the builder may log
+  (`E e`: `NodeEvOf evt id s c` for a node event, the fields read from the state, the voters a
+  permutation of each half's, as `Slice()`'s spec gives and `toSet` ignores), the atomic update
+  appending `e` and giving `Q`. The builder needs the state's reads (`ownRaftPhysCV`, given back):
+  the opened sites of "Increment 2" either hold it whole there or lend the read fields.
+- **`trCap tr r id Φ`**, a hook path's capability: `emp` untraced; traced, the node's share
+  `simNode tn id c P` with the phase `Φ C c P`, the logger's field and contract, the simulation's
+  invariant (`inv simNS (simInv C tn)`), the directory (`traceDir γd tn`, its voters `C`).
+- **The phases are relations, per function**, between the node's state and its share: the idle
+  relation `SimIdle C s c P` (`SimServerR` with the bootstrap log `|C|` configuration entries, the
+  log uncompacted, `P` the outbox's traced messages) at most entries and exits; a hook's own
+  precondition is what its line's step needs, stated with the specification's action (for
+  `traceCommit`: the server is a leader whose `AdvanceCommitIndex` commits exactly to `n`,
+  `AdvancesTo a n`, and the server so committed is idle-related to the state, which raft has already
+  moved). `maybeCommit`: idle to idle; its proof supplies `AdvancesTo` from `Committed()`'s quorum
+  index (`advanceCommitIndex_eq`; for `false`, the same lemma's no-change case, to be proved).
+- **Handling phases** (inside `Step`, after the receive line: the specification ahead of raft by
+  the handling of `m`) are stated the same way, with the specification's handling of `m` at the
+  share's server (next slice: `stepLeader`'s `MsgAppResp`, the first that reaches a hook inside).
+
 ## Increment 2 of the hooks' specs (what S4 decides)
 
 **The logger's contract is generic** (round 2's N4; the `spec` skill's "TaDa, not HoCAP"): the
