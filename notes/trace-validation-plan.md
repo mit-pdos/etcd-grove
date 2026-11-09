@@ -163,7 +163,14 @@ the pending bag, phantoms included), A6 (a receipt answered by a phantom: the re
 share and the phantoms), A7 (laws for bootstrap-named lines after a node's segment, with a per-node
 "segment over" witness, for the bootstrap lines themselves, and for the self-addressed messages'
 tokens at `Advance`), A9 (whether the leader's facts at a `Replicate` line can have the new entry's
-records: raft creates them after the hook), A10-A12 (monotonicity of `TraceFire`, cosmetics).
+records: raft creates them after the hook), A10-A12 (monotonicity of `TraceFire`, cosmetics). Since repaired: A6 (a receive line's replies split into the share's and the phantoms',
+`PhaseStepR`'s `P'`/`Pph`), A5's second half (`trCap_fire_ready`, proved: a `Ready` line moves the node's
+pending messages, its share's and its phantoms', to the network, its share empties, and the caller
+receives the tokens of its share's messages under fresh keys, `mapSeq (keyBound B)`; `simInv` records
+that a node's share holds only its own messages, which `PhaseStep(R)` guarantee for what they add;
+the bags by counts, `BagCnt`, with `filter`/`plus`/`minus`). Next: A7 (bootstrap lines and
+bootstrap-named lines after a node's segment: a per-node "segment over" record; the self-addressed
+messages' tokens at `Advance`).
 
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
