@@ -20,7 +20,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-instance : IsPkgInit (IProp GF) pkg_id.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus :=
+instance pkgInit_github_com_grpc_ecosystem_go_grpc_middleware_providers_prometheus : IsPkgInit (IProp GF) pkg_id.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus :=
   define_is_pkg_init (pkgInitDef (GF := GF) pkg_id.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus)
 end
 

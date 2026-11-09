@@ -47,9 +47,22 @@ the channel `watchChAt` is the consumer of.
   set, and what `closeSubstream` needs to end its consumer's channel).
 * `wsCloser ws s γ who m`: the right to send the final error response `m` on `ws.outc` and close it
   (`sendCloseSubstream`'s).
-* `deliverOk s γ who id m` (persistent): the response `m` may be delivered to the substream
-  registered as `id` at its current position (`id = -1`: to every registered substream), as a
-  `watchStep` (the ghost tie gives the positions).
+* `deliverOk s γ who tgt m` (persistent): what the substream(s) `m` goes to may do with it:
+  `tgt = none` (a broadcast progress): for every registered substream, a `watchStep` at its
+  position; `tgt = some id`: if no substream is registered as `id` (a refused create's `-1`, a
+  canceled or stale id), nothing; else, for that substream, a `Created` (forwarded to the
+  consumer only while `retc` is pending and with `createdNotify`, else dropped: a watch without
+  `createdNotify`, a resumed substream) or a `watchStep` at its position (the ghost tie).
+* **The tie** between the current stream's registrations and the substreams is a refinement, not
+  an equality: a substream's channel position is its registration's, or weaker (`done = none`
+  where the registration has one: a `rev = 0` watch resumed from `H`); an ended substream (its
+  error buffered or delivered) delivers nothing more, whatever its registration says (a resume
+  may re-register it from a later header).
+* **Who writes what of a substream**: `ws.id` is `run`'s (in `wgsRun`'s per-substream part:
+  `addSubstream`, the `Canceled` branch and `newWatchClient` write it while the goroutine runs);
+  `ws.initReq.rev` is split by fraction: `run` holds a half while the substream is unregistered
+  (it sends `toPB` of it), and gives it to the goroutine with the `Created` on `recvc` (after
+  which `run` reads it only once the goroutine is joined).
 * `wcsPending s γ who r stopc donec cl`: `waitCancelSubstreams`' goroutines over `r.resuming` are
   running (`cl`: `stopc` closed); `wcsPending_close`, `wcsPending_join`.
 -/
@@ -105,8 +118,8 @@ opaque wsServe (ws s : Loc) (γ : Cluster) (who : Principal) (resumec : Loc) : I
 opaque wsClosed (ws s : Loc) (γ : Cluster) (who : Principal) (q : WsM) : IProp GF := iprop(True)
 opaque wsCloser (ws s : Loc) (γ : Cluster) (who : Principal) (m : WatchRespM) : IProp GF :=
   iprop(True)
-opaque deliverOk (s : Loc) (γ : Cluster) (who : Principal) (id : Int) (m : WatchRespM) : IProp GF :=
-  iprop(True)
+opaque deliverOk (s : Loc) (γ : Cluster) (who : Principal) (tgt : Option Int) (m : WatchRespM) :
+  IProp GF := iprop(True)
 opaque wcsPending (s : Loc) (γ : Cluster) (who : Principal) (r : RunM) (stopc donec : Loc)
   (cl : Bool) : IProp GF := iprop(True)
 /-- A `watchRequest` struct at `wr`: its read-only fields (all but `rev` and `retc`) are those of

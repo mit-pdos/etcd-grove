@@ -5,7 +5,7 @@ public import Perennial.GeneratedProof.github_com.mit_pdos.perennial.goose.testd
 public import Spec.PkgInit.Base
 public import Perennial.Proof.io.Base
 public import Perennial.Proof.sync.atomic.Base
-public import Spec.PkgInit.«unsafe»
+public import Perennial.Proof.unsafe.Base
 
 @[expose] public section
 noncomputable section

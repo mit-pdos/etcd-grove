@@ -18,7 +18,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-instance : IsPkgInit (IProp GF) pkg_id.go_opentelemetry_io.otel.codes :=
+instance pkgInit_go_opentelemetry_io_otel_codes : IsPkgInit (IProp GF) pkg_id.go_opentelemetry_io.otel.codes :=
   define_is_pkg_init (pkgInitDef (GF := GF) pkg_id.go_opentelemetry_io.otel.codes)
 end
 

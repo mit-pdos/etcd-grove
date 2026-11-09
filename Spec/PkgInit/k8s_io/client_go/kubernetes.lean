@@ -75,7 +75,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-instance : IsPkgInit (IProp GF) pkg_id.k8s_io.client_go.kubernetes :=
+instance pkgInit_k8s_io_client_go_kubernetes : IsPkgInit (IProp GF) pkg_id.k8s_io.client_go.kubernetes :=
   define_is_pkg_init (pkgInitDef (GF := GF) pkg_id.k8s_io.client_go.kubernetes)
 end
 

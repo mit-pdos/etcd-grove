@@ -19,7 +19,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-instance : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.types :=
+instance pkgInit_go_etcd_io_etcd_client_pkg_v3_types : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.types :=
   define_is_pkg_init (pkgInitDef (GF := GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.types)
 end
 

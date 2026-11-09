@@ -30,7 +30,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 def watchGRPCStream.unicastResponse.spec : Prop :=
   ∀ (s : Loc) (γ : Cluster) (who : Principal) (r : RunM) (wr : Loc)
     (v : go_etcd_io.etcd.client.v3.WatchResponse) (mw : WatchRespM) (id : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ wgsRun s γ who r ∗ wr ↦□ v ∗ watchRespAt v mw ∗ deliverOk s γ who (sint.Z id) mw }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ wgsRun s γ who r ∗ wr ↦□ v ∗ watchRespAt v mw ∗ deliverOk s γ who (some (sint.Z id)) mw }}
     (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchGRPCStream.ty @!! go!"unicastResponse")) (Val #wr)) (Val #id))
   {{ (ok : Bool), RET #ok; wgsRun s γ who r ∗
       ⌜ok = true → (sint.Z id) ∈ r.subs.map Prod.fst⌝ }}

@@ -34,6 +34,7 @@ K8.
 
 ## Notes
 
-Fix, if wanted: record whether auth was enabled at the check and fail the read with
-`ErrAuthOldRevision` when `s.authStore.Revision()` changed during it, whether or not the request
-carried credentials.
+Fix, if wanted: re-check the permission after the read whenever auth is enabled by then (with the
+request's credentials as they are, failing with the permission error or `ErrUserEmpty`). Comparing
+the auth revision does not catch it: `AuthEnable` keeps the auth revision (`auth/store.go`,
+`AuthEnable`: `setRevision` of the stored one) and a key write does not touch it.

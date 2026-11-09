@@ -110,7 +110,10 @@ vocabulary; the names are suggestions):
 durable state (a restart: the program's durable half, raft's durable node API: a restart is a
 fresh volatile half over it), or `etcdLb γ σ` with the member in `σ.members` (a member a
 `MemberAdd` answered: joining); and `envUpd γ cfg` (persistent), with `cfg.autoCompact` iff its
-configuration runs an auto-compactor; and the configuration's scope premises (K8). Nothing else:
+configuration runs an auto-compactor; `cfg.leaseExpiry = false` (no lease expires during the run)
+is a **trusted deployment premise about time** (a timeless proof cannot show the lessor never
+revokes), taken by the program, not proved by the server; and the configuration's scope premises
+(K8). Nothing else:
 no restriction to a first start, one member, auth off, no leases or no compaction.
 
 **K3 — serving** (`Serve`, 2e over 2a's `grpc.start`): `servesAt γ ep` for the member's client

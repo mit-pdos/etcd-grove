@@ -718,6 +718,36 @@ inductive TxnRun (h : KVHist) (s0 : Store) (leases : Int → Option LeaseRec) (R
       TxnRun h s0 leases R (.txn cmps succ fail :: rest) st
         (res.map (fun x => (x.1, x.2.1, .txn (decide (∀ c ∈ cmps, c.holds s0)) rs :: x.2.2)))
 
+-- **A transaction the gRPC layer accepts** (`checkTxnRequest`, `checkRequestOp`): every comparison
+-- has a key, every operation of both branches, nested ones included, is valid (a range: a key and a
+-- valid sort; a put: `checkPutRequest`; a delete: a key; no empty operation). Otherwise the
+-- transaction is refused (`ErrEmptyKey`, `ErrValueProvided`, `ErrLeaseProvided`,
+-- `ErrInvalidSortOption`, `ErrKeyNotFound`), never applied.
+mutual
+def RequestOp.valid : RequestOp → Prop
+  | .empty => False
+  | .range r => r.key ≠ [] ∧ r.validSort
+  | .put p => p.invalid = none
+  | .deleteRange d => d.key ≠ []
+  | .txn cmps succ fail => (∀ c ∈ cmps, c.key ≠ []) ∧ RequestOp.validL succ ∧ RequestOp.validL fail
+def RequestOp.validL : List RequestOp → Prop
+  | [] => True
+  | op :: ops => op.valid ∧ RequestOp.validL ops
+end
+
+def TxnReq.valid (t : TxnReq) : Prop := (RequestOp.txn t.compare t.success t.failure).valid
+
+/-- **Each key put at most once in a transaction's events** (`putOnce`): the gRPC layer's
+duplicate-key check (`api/v3rpc/key.go`, `checkIntervals`) refuses a transaction that puts one
+key twice on a path (at any nesting level; a `Then` and an `Else` putting the same key are
+alternatives) or puts a key a delete of its level or an enclosing one covers. A delete after a put
+of the key in a later sibling nested transaction is accepted
+(`issues/etcd-txn-check-intervals-sibling.md`), so the events may delete a key put earlier. -/
+def putOnce (evs : List Event) : Prop :=
+  ∀ k, (evs.filter (fun e => match e with
+    | .put k' _ => decide (k' = k)
+    | .delete _ => false)).length ≤ 1
+
 /-- `IsTxnReadonly`: only ranges, in both branches (a nested transaction is a write). -/
 def TxnReq.readonly (t : TxnReq) : Prop :=
   (∀ op ∈ t.success, ∃ r, op = .range r) ∧ (∀ op ∈ t.failure, ∃ r, op = .range r)
@@ -823,7 +853,9 @@ def kvStep (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) : Prop :=
        r.key ≠ [] ∧ r.validSort ∧
        -- a linearizable read is answered at the current history, a serializable one at the view
        -- of a member that may be behind (its permission check too, at an auth state not kept:
-       -- a refusal it may make is `permErr`)
+       -- a refusal it may make is `permErr`). A linearizable read's permission is checked at the
+       -- state it answers from: `nonissues/etcd-doserialize-auth-enable-race.md` (a race with
+       -- `AuthEnable` breaks it; a fix or a premise, open)
        ∃ v, (if r.serializable then σ.kv.IsView v else v = σ.kv) ∧
          ((¬ σ.permits who [(.read, r.range)] [] ∨ r.serializable = true) ∧
             res = .err (AuthState.permErr who) ∨
@@ -863,6 +895,7 @@ def kvStep (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) : Prop :=
       ((¬ σ.permits who (RequestOp.txn t.compare t.success t.failure).perms
           (RequestOp.txn t.compare t.success t.failure).leases ∨ (t.readonly ∧ t.serializable)) ∧
           σ' = σ ∧ res = .err (AuthState.permErr who)) ∨
+      t.valid ∧
       (σ.permits who (RequestOp.txn t.compare t.success t.failure).perms
           (RequestOp.txn t.compare t.success t.failure).leases ∨ (t.readonly ∧ t.serializable)) ∧
       -- a read-only serializable transaction (the empty one included) is answered at the view
@@ -873,6 +906,7 @@ def kvStep (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) : Prop :=
         let ops := if ok then t.success else t.failure
         ((∃ e, TxnRun v s0 σ.leases (v.rev + 1) ops (s0, []) (.error e) ∧ σ' = σ ∧ res = .err e) ∨
          ∃ s' evs rs, TxnRun v s0 σ.leases (v.rev + 1) ops (s0, []) (.ok (s', evs, rs)) ∧
+           putOnce evs ∧
            σ' = σ.withKV (σ.kv.commit evs) ∧
            res = .ok (.txn (if evs = [] then v.rev else v.rev + 1) ok rs))
   | .compact rev _ =>
@@ -890,7 +924,9 @@ already (`ErrLeaseExist`, `issues/etcd-lease-id-mask-member-prefix.md`); the TTL
 least the one asked (each member raises it to its own minimum). A keep-alive changes nothing and
 is answered by the leader's lessor, which may be a deposed leader's: it tells nothing of the
 lease's liveness. `TimeToLive` and `Leases` are answered from a lessor that may be behind or
-deposed: a lease granted at some point, and keys attached to it at some revision. -/
+deposed: a lease granted at some point, and keys attached to it at some revision. Their permission
+errors are allowed at any state, auth off included (etcd checks them only with auth on, at the
+answering member's possibly stale auth state, which the model does not keep). -/
 def leaseStep (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) : Prop :=
   match rq with
   | .leaseGrant id ttl =>
@@ -943,7 +979,7 @@ administrator; a user may also read its own record and the roles it has. -/
 def AuthState.mayCall (a : AuthState) (who : Principal) (rq : Req) : Prop :=
   a.admin who ∨
   match rq with
-  | .userGet n => who = some n
+  | .userGet n => who = some n ∨ (who = none ∧ n = [])  -- `""` matches no user's name
   | .roleGet r => ∃ u ur, who = some u ∧ a.users u = some ur ∧ r ∈ ur.roles
   | _ => False
 

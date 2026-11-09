@@ -70,20 +70,11 @@ func ReqWatchCreatedFirst(ctx context.Context, cli *clientv3.Client, k string) {
 	}
 }
 
-// REQ clientv3watch/refused: a watch of a range the client's user may not read delivers no
-// event (the member refuses its creation).
-// Users: examples/etcd/auth/authkv.go:272 (panics on any event of a refused watch), Kubernetes
-// (an RBAC-less etcd user is a configuration error, reported).
-// Assumes: auth is enabled, and the client's principal was never permitted to read the range at
-// any state the cluster reached (an invariant of the owner: no grant of it was ever made).
-// Specs: Client.Watch.spec; watchStep's event case (σa.permits who: the admitting auth state).
-func ReqWatchRefused(ctx context.Context, cli *clientv3.Client, pfx string) {
-	for wr := range cli.Watch(ctx, pfx, clientv3.WithPrefix(), clientv3.WithRev(1)) {
-		if len(wr.Events) > 0 {
-			panic("refused: events of a range the user may not read")
-		}
-	}
-}
+// (No snippet for a refused watch: examples/etcd/auth/authkv.go:272 panics on any event of a
+// watch its user may not read, which holds of an up-to-date member only: a lagging member admits a
+// watch at its applied auth state, any state the cluster reached, auth off at the start included.
+// The spec states that (watchStep's σa); the example's check rests on its single member. An open
+// question of batch 1b.)
 
 // REQ clientv3watch/close: closing a watcher, twice, and watching after it never panics.
 // Users: Client.Close (client.go:150), the namespace wrapper (namespace/watch.go:79).

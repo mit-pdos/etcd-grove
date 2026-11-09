@@ -18,7 +18,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-instance : IsPkgInit (IProp GF) pkg_id.github_com.Masterminds.semver.v3 :=
+instance pkgInit_github_com_Masterminds_semver_v3 : IsPkgInit (IProp GF) pkg_id.github_com.Masterminds.semver.v3 :=
   define_is_pkg_init (pkgInitDef (GF := GF) pkg_id.github_com.Masterminds.semver.v3)
 end
 

@@ -243,3 +243,45 @@ clients), C-S5 (more zap: `Named`, `Sugar`, `Time`, `Float64`, `Binary`), C-S6, 
 7. **Contexts a caller builds with its own metadata** (`ctxPrin`): Kubernetes' request contexts
    (`WithValue` chains) need `ctxPrin` from their batch: `Context.WithValue.spec` gives no
    `ctxChild` because a value may be grpc's outgoing metadata.
+
+## Round 2 repairs (2026-11-09)
+
+Review: `reviews/W0-round2.md` (F1–F7, S1–S8), the coordinator's cross-batch requests (`req/
+go_etcd_io_etcd_api_v3.md`: 1b, 1d, 1f, 1g) and 1f's review (duplicate keys). Every first-tier
+finding is fixed.
+
+**Changed or new names (wave 1: follow these).**
+
+| name | change |
+|---|---|
+| `streamAt_recv`, `wireStreamAt_recv` | the `ErrCompacted` disjunct no longer requires `ms ≠ []` (F1: before any chunk too) |
+| `KV.GetStreamTriple`, `RemoteKV.RangeStreamTriple` | an open error is `indefCall err` **or a refusal** (`∃ e, e.refusal ∧ err = errVal e`, resp. `callErr err (.etcd e)`) (F2); **new premise** `0 ≤ revision` (F7) |
+| `Context.ctxChild_done` | **removed** (false: F3) |
+| `Context.WithValue.spec` | **new premise**: the key non-nil (its binder is now `ki : GoInterfaceOk`) and of a comparable type (F4); post adds `ctxValueAt parent ctx key` |
+| `Context.ctxValueAt`, `Context.ctxNoMeta` (transparent: `Value(mdOutgoingKey{})` is nil, dischargeable by a root context's owner), `ctxNoMeta_background`, `ctxNoMeta_child`, `ctxNoMeta_value` | **new** (F6) |
+| `ClientV3.ctxPrin_of_isContext` | **removed** (false: F5) |
+| `ClientV3.ctxPrin_of_noMeta`, `ctxPrin_value` | **new** (F6): Kubernetes' contexts get `ctxPrin` from `ctxNoMeta` at their root and `WithValue` at non-metadata keys |
+| `ClientV3.callErr_errorsNew` | **new law** (1d's request): of the `*errors.errorString` errors, a call returns only `context.Canceled`'s, so a package's own `errors.New` sentinel is never a call's error |
+| `EtcdModel.etcdState_revFits` | **strengthened**: `σ.kv.rev + 1 < 2 ^ 63` (1f) |
+| `EtcdModel.etcdLb_revFits` | **new law** (1b): the same for any state an `etcdLb` names |
+| `EtcdModel.etcdLb_init` | **new law** (1d, 1f): `etcdLb γ σ ⊢ ⌜∃ ms, Reach (State.init ms) σ⌝` |
+| `EtcdModel.etcdPerm γ T`, `EtcdModel.etcdPeek γ` | **new** (State.lean; 1d, 1f, 1g): 1d's `etcdPerm` body (a persistent update performing any `T`, committing `etcdLb` of both states), and `etcdPeek γ := etcdPerm γ (σ' = σ)`; 1d's `Concurrency.etcdPerm`, 1f's `etcdPeek`/`dbPerm`, 1g's `Cache.etcdPeek` can be replaced by them |
+| `EtcdModel.putOnce` | **new**, and a conjunct of `kvStep .txn`'s success (1f): the gRPC layer's duplicate-key check refuses a transaction that puts a key twice on a path; the events may still delete a key put earlier (sibling put-then-delete, `issues/etcd-txn-check-intervals-sibling.md`). Cite it as "`kvStep`'s `putOnce evs`" (it is the model's restriction, not a law) |
+| `AuthState.mayCall` | `.userGet n` also `who = none ∧ n = []` (S1) |
+| `EtcdModel.RequestOp.valid`, `RequestOp.validL`, `TxnReq.valid` | **new** (1e's review): the gRPC layer's validation of every comparison and operation of a transaction (both branches, nested); `kvStep .txn`'s applied branch now requires `t.valid` (an invalid one is only refused: `ErrEmptyKey`, `ErrValueProvided`, `ErrLeaseProvided`, `ErrInvalidSortOption`, `ErrKeyNotFound`). Cite as "`kvStep`'s `t.valid`" |
+| `ClientV3.clientRest` | **new** (persistent; 1d, 1e): everything of a client but its `KV` field; laws `clientMut_split`, `clientRest_persistent`, `isClient_rest`, `clientRest_conn`, `clientRest_fields`; the proxy that overwrites `client.KV` with a leasing KV keeps the field and `clientRest` (`req/go_etcd_io_etcd_client_v3.md`, "from W0 (round 2)") |
+
+**Other fixes.** `ReqAuthRefusal`'s Assumes (not root, `pfx < end`, a half-open range, `outside`
+outside it); `ReqGetStream` assumes `rev ≥ 0`; `ReqGetStreamCompacted`'s comment (S6). The
+`doSerialize` nonissue's fix (re-check the permission after the read; the auth revision does not
+move at `AuthEnable`) (S4); the leak nonissue's window (three chunks) and the `streamAt_recv`
+docstring (S5); new `nonissues/etcd-rangestream-negative-revision-unpinned.md` (F7);
+`streamMatches`' wording (S7); the lease reads' permission errors documented (S8); K2 says
+`EnvCfg.leaseExpiry = false` is a trusted deployment premise (S3); the stream interceptor's open
+error in 1c's req item 2; `ctxNoMeta` in the grpc req.
+
+**Not done.** S2 (`ctxOk`'s intended realization should list `Deadline`, the `&cancelCtxKey` value
+and `AfterFunc`: a realization note, no statement changes); 1b's `EnvCfg` compaction retention
+(a model question for the user: the compactor's retention is time- or revision-based); moving 1b's
+watch messages into `Wire.lean` (1b's files would only change their import: left to the
+coordinator to schedule).

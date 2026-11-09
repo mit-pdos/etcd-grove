@@ -18,7 +18,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-instance : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types :=
+instance pkgInit_go_etcd_io_etcd_server_v3_etcdserver_api_etcdhttp_types : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types :=
   define_is_pkg_init (pkgInitDef (GF := GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types)
 end
 

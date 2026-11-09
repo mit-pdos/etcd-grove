@@ -8,7 +8,7 @@ public import Perennial.Proof.sort.Base
 public import Spec.PkgInit.go_etcd_io.bbolt.internal.common
 public import Spec.PkgInit.reflect
 public import Perennial.Proof.math.Base
-public import Spec.PkgInit.«unsafe»
+public import Perennial.Proof.unsafe.Base
 
 @[expose] public section
 noncomputable section

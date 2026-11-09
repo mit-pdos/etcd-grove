@@ -183,11 +183,24 @@ def delKey (σ : State) (k : Bytes) : State :=
 /-- A read: no change. -/
 def readEff (σ σ' : State) : Prop := σ' = σ
 
-/-- **The keys the package writes**: nothing, or a key satisfying `ks` put with the lease `lease`
-(any value), or deleted. A mutex's and an election's keys (`ks`: under the prefix; a resumed
-election's leader key). -/
-def keysEff (ks : Bytes → Prop) (lease : Int) (σ σ' : State) : Prop :=
-  σ' = σ ∨ ∃ k v, ks k ∧ (σ' = putKey σ k v lease ∨ σ' = delKey σ k)
+/-- **Puts the package makes**: nothing, or a key satisfying `ks` put to a value satisfying `vs`
+with the lease `lease` (a plain put: a present key keeps its create revision). -/
+def putEff (ks : Bytes → Prop) (vs : Bytes → Prop) (lease : Int) (σ σ' : State) : Prop :=
+  σ' = σ ∨ ∃ k v, ks k ∧ vs v ∧ σ' = putKey σ k v lease
+
+/-- **Deletes the package makes**: nothing, or a key satisfying `ks` deleted. -/
+def delEff (ks : Bytes → Prop) (σ σ' : State) : Prop :=
+  σ' = σ ∨ ∃ k, ks k ∧ σ' = delKey σ k
+
+/-- **A mutex's writes** (`Lock`, `TryLock`): its key under `pfx` created empty with the session's
+lease, or a key under `pfx` deleted (the cleanup `Unlock`). -/
+def mutexEff (pfx : GoString) (lease : Int) (σ σ' : State) : Prop :=
+  putEff (fun k => pfx <+: k) (fun v => v = []) lease σ σ' ∨ delEff (fun k => pfx <+: k) σ σ'
+
+/-- **A campaign's writes**: its key under `pfx` put to `val` with the session's lease (created, or
+proclaimed), or deleted (the cleanup `Resign`). -/
+def campaignEff (pfx val : GoString) (lease : Int) (σ σ' : State) : Prop :=
+  putEff (fun k => pfx <+: k) (fun v => v = val) lease σ σ' ∨ delEff (fun k => pfx <+: k) σ σ'
 
 /-- **A lease granted** (`NewSession`): nothing, or a lease the server chose with at least the TTL
 asked. -/
@@ -429,14 +442,21 @@ section res
 variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
-/-- **The permission to change the cluster `γ`'s state by `T`** (persistent; the header): fired at
-each of the package's requests, its commit gives `etcdLb` of the states before and after. -/
-def etcdPerm (γ : Cluster) (T : State → State → Prop) : IProp GF :=
-  iprop(□ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-    <{ ∀∀ (σ' : State), ⌜T σ σ'⌝ ∗ etcdState γ σ', COMM etcdLb γ σ ∗ etcdLb γ σ' }>)
+/-- **A permission lent for one call** (W0's `etcdPerm`, guarded by the caller's token `P`): the
+reads' persistent permission (`etcdPeek`), and an update performing any transition `T σ σ'` that
+can be fired only by whoever holds `P`, and gives `P` back at its commit. A call takes
+`etcdLent γ T P ∗ P` and gives `P` back on its definite outcomes; on an outcome that may leave a
+write pending (an indefinite error) `P` stays with that write. So while the caller holds `P`, the
+package changes nothing: the caller can rely on its keys' contents and lease ids between calls.
+`P := True` is the persistent permission of round 0. -/
+def etcdLent (γ : Cluster) (T : State → State → Prop) (P : IProp GF) : IProp GF :=
+  iprop(etcdPeek γ ∗ □ (P -∗ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
+    <{ ∀∀ (σ' : State), ⌜T σ σ'⌝ ∗ etcdState γ σ', COMM P ∗ etcdLb γ σ ∗ etcdLb γ σ' }>))
 
-/-- **A session** `s` over a client of `γ` as `who`, with the lease `id` (persistent). -/
-opaque isSession (s : Loc) (γ : Cluster) (who : Principal) (id : w64) : IProp GF := iprop(True)
+/-- **A session** `s` over the client `c` of `γ`, with the lease `id` (persistent). The principal
+of its own requests (the grant, the keep-alive, `Close`'s revoke) is its options' context's, fixed
+at `NewSession`; the mutexes and elections over it send theirs with each call's context. -/
+opaque isSession (s : Loc) (c : Loc) (γ : Cluster) (id : w64) : IProp GF := iprop(True)
 
 /-- The `SessionOption` closure `f` acts as `g` (persistent). -/
 opaque sessOptAt (f : GoFunc) (g : SessOpts → SessOpts) : IProp GF := iprop(True)
@@ -459,9 +479,9 @@ opaque isElection (e : Loc) (s : Loc) (pfx : GoString) : IProp GF := iprop(True)
 /-- The election's other fields (exclusive). -/
 opaque electionSt (e : Loc) (st : ElectionSt) : IProp GF := iprop(True)
 
-/-- **The consumer of `Observe`'s channel** `ch` on the prefix `pfx` of the cluster `γ`, the
-last header revision received `R` (exclusive). -/
-opaque observeAt (ch : GoChan) (γ : Cluster) (pfx : GoString) (R : Nat) : IProp GF := iprop(True)
+/-- **The consumer of `Observe`'s channel** `ch` on the prefix `pfx` of the cluster `γ`, its values
+read after the state `σ0` (exclusive). -/
+opaque observeAt (ch : GoChan) (γ : Cluster) (pfx : GoString) (σ0 : State) : IProp GF := iprop(True)
 
 /-- **An STM** (the interface value `iv`, level `iso`) of the cluster `γ` as `who`, holding the
 attempt `a` (exclusive). -/
@@ -488,31 +508,33 @@ def stmRet {V : Type} (r : val) (Q : V → IProp GF) (A : IProp GF) : IProp GF :
           #(go_etcd_io.etcd.client.v3.concurrency.stmError.mk err))⌝ ∗ A))
 
 /-- **The user's closure** `apply` (`func(STM) error`; persistent: run once per attempt): from any
-attempt, on any STM, holding the caller's frame `F` (at some attempt), it returns an error, or
+attempt with no writes yet (a fresh one, or one with prefetched reads), on any STM, holding the caller's frame `F` (at some attempt), it returns an error, or
 `nil` with an attempt satisfying `Rel`, `F` at the attempt it leaves; or it aborts through a
 method's abort, `F` kept. It uses the STM only through `Get`, `Put`, `Rev`, `Del`. -/
 def applyOk (apply : GoFunc) (γ : Cluster) (who : Principal) (F : Attempt → IProp GF)
     (Rel : Attempt → Prop) : IProp GF :=
-  iprop(□ ∀ (iv : GoInterface) (iso : w64) (a : Attempt),
+  iprop(□ ∀ (iv : GoInterface) (iso : w64) (a : Attempt), ⌜∀ k, a.writes k = none⌝ →
     {{ stmAt iv γ who iso a ∗ ∃ b, F b }}
       (App (Val #apply) (Val #iv))
     {{ (r : val), RET r; stmRet r (fun err : GoInterface => iprop(∃ a',
         stmAt iv γ who iso a' ∗ F a' ∗ ⌜err = GoInterface.nil → Rel a'⌝)) (∃ b, F b) }})
 
-/-- **What `NewSTM` returns** at the level `iso`, for a closure with frame `F` and relation `Rel`:
-`nil`, a committed attempt `a` (`Rel a`, `F a`) applied from `σ` to `σ'` (`stmCommitted`), and the
-commit's reply (succeeded); or `nil` and an error, the frame given back. -/
+/-- **What `NewSTM` returns** at the level `iso`, for a closure with frame `F` and relation `Rel`,
+after the state `σ0` the caller knew, with the lent permission's token `P`: `nil`, a committed
+attempt `a` (`Rel a`, `F a`) applied from `σ` (after `σ0`) to `σ'` (`stmCommitted`), the commit's
+reply (succeeded), `P` back; or `nil` and an error, the frame given back (`P` not: a commit may be
+pending). -/
 def stmResult (γ : Cluster) (iso : w64) (F : Attempt → IProp GF) (Rel : Attempt → Prop)
-    (resp : Loc) (err : GoInterface) : IProp GF :=
+    (P : IProp GF) (σ0 : State) (resp : Loc) (err : GoInterface) : IProp GF :=
   iprop((⌜err = GoInterface.nil⌝ ∗ ∃ (a : Attempt) (σ σ' : State) (m : TxnRespM),
-      F a ∗ etcdLb γ σ ∗ etcdLb γ σ' ∗ txnRespOwn resp (DFrac.own 1) m ∗
-      ⌜Rel a ∧ stmCommitted iso a σ σ' ∧ m.succeeded = true⌝) ∨
+      F a ∗ P ∗ etcdLb γ σ ∗ etcdLb γ σ' ∗ txnRespOwn resp (DFrac.own 1) m ∗
+      ⌜Reach σ0 σ ∧ Rel a ∧ stmCommitted iso a σ σ' ∧ m.succeeded = true⌝) ∨
     (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ b, F b))
 
 /-! ### Internal predicates (the package's own proofs) -/
 
-/-- `observe`'s side of `Observe`'s channel: the last header revision sent `R`. -/
-opaque observeProd (ch : GoChan) (γ : Cluster) (pfx : GoString) (R : Nat) : IProp GF := iprop(True)
+/-- `observe`'s side of `Observe`'s channel, its values read after `σ0`. -/
+opaque observeProd (ch : GoChan) (γ : Cluster) (pfx : GoString) (σ0 : State) : IProp GF := iprop(True)
 /-- The `stm` struct at `q` (a `*stm`, or a `*stmSerializable`'s embedded one) of `γ` as `who`,
 at level `iso`, holding the attempt `a`, its gets' options `gs`. -/
 opaque stmCoreAt (q : Loc) (γ : Cluster) (who : Principal) (iso : w64) (a : Attempt)
@@ -572,16 +594,17 @@ def STM.DelTriple (f : val) (iv : GoInterface) (γ : Cluster) (who : Principal) 
 
 /-- **`commit()`** (the package's): the attempt's transaction; `nil` if a comparison failed (the
 state unchanged), else the response of a committed attempt (`stmCommitted`); or the abort. The
-STM is left between attempts (`stmStale`). -/
+STM is left between attempts (`stmStale`); the lent permission's token `P` back unless it aborts. -/
 def STM.CommitTriple (f : val) (iv : GoInterface) (γ : Cluster) (who : Principal) (iso : w64) :
     Prop :=
-  ∀ (a : Attempt) (T : State → State → Prop),
-  {{ stmAt (GF := GF) iv γ who iso a ∗ etcdPerm γ T ∗
+  ∀ (a : Attempt) (T : State → State → Prop) (P : IProp GF) (σ0 : State),
+  {{ stmAt (GF := GF) iv γ who iso a ∗ etcdLent γ T P ∗ P ∗ etcdLb γ σ0 ∗
       ⌜effIn (fun σ σ' => σ' = σ ∨ stmCommitted iso a σ σ') T⌝ }}
     (App (Val f) (Val #()))
-  {{ (r : val), RET r; stmRet r (fun resp : Loc => iprop(stmStale iv γ who iso ∗
+  {{ (r : val), RET r; stmRet r (fun resp : Loc => iprop(stmStale iv γ who iso ∗ P ∗
       (⌜resp = null⌝ ∨ ∃ (σ σ' : State) (m : TxnRespM), etcdLb γ σ ∗ etcdLb γ σ' ∗
-        ⌜stmCommitted iso a σ σ' ∧ m.succeeded = true⌝ ∗ txnRespOwn resp (DFrac.own 1) m))) iprop(True) }}
+        ⌜Reach σ0 σ ∧ stmCommitted iso a σ σ' ∧ m.succeeded = true⌝ ∗
+        txnRespOwn resp (DFrac.own 1) m))) iprop(True) }}
 
 /-- **`reset()`** (the package's): a fresh attempt. -/
 def STM.ResetTriple (f : val) (iv : GoInterface) (γ : Cluster) (who : Principal) (iso : w64) :
@@ -606,17 +629,16 @@ def init.spec : Prop :=
     □ ∀ e : ConcErr, globalAddr e.global ↦□ concErrVal e
 
 def handles_persistent.spec : Prop :=
-  (∀ s γ who id, Persistent (isSession (GF := GF) s γ who id)) ∧
+  (∀ s c γ id, Persistent (isSession (GF := GF) s c γ id)) ∧
   (∀ f g, Persistent (sessOptAt (GF := GF) f g)) ∧
   (∀ f g, Persistent (stmOptAt (GF := GF) f g)) ∧
   (∀ m s pfx, Persistent (isMutex (GF := GF) m s pfx)) ∧
   (∀ e s pfx, Persistent (isElection (GF := GF) e s pfx))
 
-/-- A session's client: the `client` field, read-only, a client of `γ` as `who`. -/
-def isSession_client.spec : Prop := ∀ s γ who id,
-  isSession (GF := GF) s γ who id ⊢
-    ⌜s ≠ null⌝ ∗ ∃ c : Loc, s.[go_etcd_io.etcd.client.v3.concurrency.Session, go!"client"] ↦□ c ∗
-      isClient c γ who ∗
+/-- A session's client and lease: its fields, read-only. -/
+def isSession_client.spec : Prop := ∀ s c γ id,
+  isSession (GF := GF) s c γ id ⊢
+    ⌜s ≠ null⌝ ∗ s.[go_etcd_io.etcd.client.v3.concurrency.Session, go!"client"] ↦□ c ∗
       s.[go_etcd_io.etcd.client.v3.concurrency.Session, go!"id"] ↦□ id
 
 /-- Running a `SessionOption`: on the options at `p` (modelled by `o`, the context aside: its
@@ -646,20 +668,37 @@ def electionSt_session.spec : Prop := ∀ e s pfx st,
     ⌜st.leaderSession = null ∨ st.leaderSession = s⌝
 
 /-- **Receiving from `Observe`'s channel**: closed (nothing more), or a `*GetResponse` with one
-key-value `v`, read-only, its header's revision `R'` (at least the last one received, at least
-`v`'s mod revision): `v` was the prefix's oldest key's write at a revision the cluster reached
-(`ObservedAt`). -/
-def observeAt_recv.spec : Prop := ∀ (ch : GoChan) (γ : Cluster) (pfx : GoString) (R : Nat),
-  {{ observeAt (GF := GF) ch γ pfx R }}
+key-value `v`, read-only, its header's revision at least `v`'s mod revision: `v` was the prefix's
+oldest key's write at a revision of a state `σ` reached after `σ0` (`ObservedAt`). (No order between
+headers: after a reconnect, a lagging member's header may be lower: 1b's review.) -/
+def observeAt_recv.spec : Prop := ∀ (ch : GoChan) (γ : Cluster) (pfx : GoString) (σ0 : State),
+  {{ observeAt (GF := GF) ch γ pfx σ0 }}
     (App (Val (chan.receive (go.GoType.PointerType go_etcd_io.etcd.client.v3.GetResponse.ty)))
       (Val #ch))
   {{ (p : Loc) (ok : Bool), RET (PairV #p #ok);
       if ok then ∃ (m : RangeRespM) (hm : HeaderM) (v : KV) (σ : State),
         rangeRespOwn p DFrac.discard m ∗ etcdLb γ σ ∗
-        ⌜m.hdr = some hm ∧ m.kvs = [KeyValueM.ofKV v] ∧ R ≤ sint.Z hm.revision ∧
-          v.modRev ≤ sint.Z hm.revision ∧ sint.Z hm.revision ≤ σ.kv.rev ∧ ObservedAt pfx v σ.kv⌝ ∗
-        observeAt ch γ pfx (sint.Z hm.revision).toNat
+        ⌜m.hdr = some hm ∧ m.kvs = [KeyValueM.ofKV v] ∧ Reach σ0 σ ∧
+          (v.modRev : Int) ≤ sint.Z hm.revision ∧ sint.Z hm.revision ≤ σ.kv.rev ∧
+          ObservedAt pfx v σ.kv⌝ ∗
+        observeAt ch γ pfx σ0
       else ⌜p = null⌝ }}
+
+/-- **Receiving from `Observe`'s channel in a `select`** (v3election's handler): the channel's
+receive update (Perennial's `recvAu`), with `observeAt_recv`'s outcomes. -/
+def observeAt_recvAu.spec : Prop := ∀ (ch : GoChan) (γ : Cluster) (pfx : GoString) (σ0 : State)
+    (Φ : Loc → Bool → IProp GF),
+  observeAt (GF := GF) ch γ pfx σ0 ⊢
+    ∃ γc : ChanNames, isChan ch γc Loc ∗
+      (£ 1 ∗ £ 1 -∗
+        (▷ ∀ (p : Loc) (ok : Bool), (if ok then ∃ (m : RangeRespM) (hm : HeaderM) (v : KV) (σ : State),
+            rangeRespOwn p DFrac.discard m ∗ etcdLb γ σ ∗
+            ⌜m.hdr = some hm ∧ m.kvs = [KeyValueM.ofKV v] ∧ Reach σ0 σ ∧
+              (v.modRev : Int) ≤ sint.Z hm.revision ∧ sint.Z hm.revision ≤ σ.kv.rev ∧
+              ObservedAt pfx v σ.kv⌝ ∗
+            observeAt ch γ pfx σ0
+          else ⌜p = null⌝) -∗ Φ p ok) -∗
+        recvAu γc Loc Φ)
 
 /-- The STM's methods: the user's view (`Get`, `Put`, `Rev`, `Del`) and the package's (`commit`,
 `reset`), on the interface value. -/
@@ -670,6 +709,12 @@ def stmAt_methods.spec : Prop := ∀ (iv : GoInterface) (γ : Cluster) (who : Pr
   STM.DelTriple (GF := GF) (iv @!! go_etcd_io.etcd.client.v3.concurrency.STM.ty @!! go!"Del") iv γ who iso ∧
   STM.CommitTriple (GF := GF) (iv @!! go_etcd_io.etcd.client.v3.concurrency.STM.ty @!! go!"commit") iv γ who iso ∧
   STM.ResetTriple (GF := GF) (iv @!! go_etcd_io.etcd.client.v3.concurrency.STM.ty @!! go!"reset") iv γ who iso
+
+/-- **The attempt's reads are the cluster's** (each some revision's of a reached state), for the
+closure to use during the attempt. -/
+def stmAt_reads.spec : Prop := ∀ (iv : GoInterface) (γ : Cluster) (who : Principal) (iso : w64)
+    (a : Attempt),
+  stmAt (GF := GF) iv γ who iso a ⊢ stmAt iv γ who iso a ∗ ∃ σ : State, etcdLb γ σ ∗ ⌜a.readsSeen σ.kv⌝
 
 def applyOk_persistent.spec : Prop := ∀ apply γ who F Rel,
   Persistent (applyOk (GF := GF) apply γ who F Rel)

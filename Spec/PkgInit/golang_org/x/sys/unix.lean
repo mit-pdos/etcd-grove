@@ -19,7 +19,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-instance : IsPkgInit (IProp GF) pkg_id.golang_org.x.sys.unix :=
+instance pkgInit_golang_org_x_sys_unix : IsPkgInit (IProp GF) pkg_id.golang_org.x.sys.unix :=
   define_is_pkg_init (pkgInitDef (GF := GF) pkg_id.golang_org.x.sys.unix)
 end
 

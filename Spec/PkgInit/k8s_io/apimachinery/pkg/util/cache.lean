@@ -18,7 +18,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-instance : IsPkgInit (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.cache :=
+instance pkgInit_k8s_io_apimachinery_pkg_util_cache : IsPkgInit (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.cache :=
   define_is_pkg_init (pkgInitDef (GF := GF) pkg_id.k8s_io.apimachinery.pkg.util.cache)
 end
 

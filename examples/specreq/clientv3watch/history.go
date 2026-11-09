@@ -55,10 +55,12 @@ func ReqWatchFromGet(ctx context.Context, cli *clientv3.Client, pfx string) {
 	}
 }
 
-// REQ clientv3watch/wait-delete: a watch from a key's revision + 1 sees its deletion, at the
-// deletion's revision, as the first event if nothing else wrote the key.
-// Users: concurrency/key.go:30 waitDelete (Mutex.Lock, Election.Campaign), leasing/kv.go:210
-// waitRescind, experimental/recipes/watch.go:28,38 WaitEvents.
+// REQ clientv3watch/wait-delete: a watch from a revision at or after the key's last write (a Get's
+// header revision, or the write's + 1) sees its deletion, at the deletion's revision, as the first
+// event if nothing else wrote the key.
+// Users: concurrency/key.go:30,61 waitDelete/waitDeletes (WithRev(the Get's revision): Mutex.Lock,
+// Election.Campaign; election.go:189 the same), leasing/kv.go:210 waitRescind (rev + 1),
+// experimental/recipes/watch.go:28,38 WaitEvents.
 // Assumes: k is owned.
 // Specs: Client.Put.spec, Client.Delete.spec, Client.Watch.spec, WithRev.spec; watchChAt_recv.
 func ReqWatchWaitDelete(ctx context.Context, cli *clientv3.Client, k string) {
@@ -202,6 +204,80 @@ func ReqWatchHistory(ctx context.Context, cli *clientv3.Client, pfx string) {
 				return
 			}
 			panic("history: an event no one wrote")
+		}
+	}
+}
+
+// REQ clientv3watch/from-now: a watch from the current revision delivers every write committed
+// after Watch returned (its floor: a revision reached before the return).
+// Users: grpcproxy's coalescing (watch_broadcast.go:68, a broadcast from revision 0 whose later
+// receivers rely on every event above its creation), the Kubernetes compactor test
+// (examples/k8s/compactor/compactor_test.go:104: every put after the watch appears),
+// Watcher.Watch's own doc ("events that happen after the server receives the watch request").
+// Assumes: k is owned and was never written before.
+// Specs: Client.Watch.spec (WatchPos.init 0 r0, etcdLb γ σ0), Client.Put.spec; watchStep's event
+// case at an unknown position (lo ≤ floor + 1); etcdLb_reach (r0 < the put's revision).
+func ReqWatchFromNow(ctx context.Context, cli *clientv3.Client, k string) {
+	wch := cli.Watch(ctx, k)
+	p, err := cli.Put(ctx, k, "after")
+	if err != nil {
+		return
+	}
+	for wr := range wch {
+		if wr.Err() != nil {
+			return
+		}
+		for _, ev := range wr.Events {
+			if ev.Kv.ModRevision != p.Header.Revision || string(ev.Kv.Value) != "after" {
+				panic("from-now: the write after Watch returned, first")
+			}
+			return
+		}
+	}
+}
+
+// REQ clientv3watch/chained: a watch resumed from the last revision another watch reported (an
+// event's or a progress bookmark's) + 1 continues it: no gap, no repeat.
+// Users: Kubernetes' reflector re-watching from the last resource version (etcd3/store.go:1151 ->
+// watcher.go:481 WithRev(rv+1)), the cache's demux continuing its history (demux.go:137).
+// Assumes: pfx is owned.
+// Specs: Client.Get.spec, Client.Put.spec, Client.Watch.spec (twice); watchStep's facts of both
+// watches, combined by etcdLb_ord and the history's prefix order.
+func ReqWatchChained(ctx context.Context, cli *clientv3.Client, pfx string) {
+	g, err := cli.Get(ctx, pfx, clientv3.WithPrefix())
+	if err != nil {
+		return
+	}
+	actx, cancel := context.WithCancel(ctx)
+	last := g.Header.Revision
+	for wr := range cli.Watch(actx, pfx, clientv3.WithPrefix(), clientv3.WithRev(last+1),
+		clientv3.WithProgressNotify()) {
+		if wr.Err() != nil {
+			break
+		}
+		if wr.IsProgressNotify() {
+			last = wr.Header.Revision
+			break
+		}
+		if n := len(wr.Events); n > 0 {
+			last = wr.Events[n-1].Kv.ModRevision
+			break
+		}
+	}
+	cancel()
+	p, err := cli.Put(ctx, pfx+"b", "2")
+	if err != nil {
+		return
+	}
+	for wr := range cli.Watch(ctx, pfx, clientv3.WithPrefix(), clientv3.WithRev(last+1)) {
+		if wr.Err() != nil {
+			return
+		}
+		for _, ev := range wr.Events {
+			if ev.Kv.ModRevision != p.Header.Revision || string(ev.Kv.Key) != pfx+"b" {
+				panic("chained: the next write after the first watch's last revision")
+			}
+			return
 		}
 	}
 }

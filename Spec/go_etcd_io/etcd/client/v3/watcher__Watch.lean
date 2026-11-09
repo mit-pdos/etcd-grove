@@ -19,23 +19,28 @@ every one through `Client.Watch` or a `Watcher` value, `watcherAt`), by pattern:
 * compaction and errors end the watch (every user; `X compactwatch/compactkv.go:142` reads
   `CompactRevision`), a refused watch delivers nothing (`X etcd/auth/authkv.go:272`), `Created`
   first (`server/proxy/grpcproxy/leader.go:62`, the cache's readiness): `ending.go`;
+* a watch from the current revision whose later writes must all appear (grpcproxy's coalescing,
+  `server/proxy/grpcproxy/watch_broadcast.go:68`, `watcher.go:62-64`; `X k8s/compactor/
+  compactor_test.go:104`): the floor; `history.go` `ReqWatchFromNow`; a watch chained from a
+  bookmark (`K etcd3/store.go:1151` → `watcher.go:481`, the cache's `demux.go:137`):
+  `ReqWatchChained`; the health probe (`grpcproxy/health.go:73`);
 * `select` with the context, writing the response (`concurrency/election.go:190,223`,
   `namespace/watch.go:49`), Kubernetes' previous key-value (`K etcd3/event.go:67`):
   `consume.go`.
 
 **Proof sketch.** `OpWatch.spec` (W0) gives the `Op` (`watchPanics` excluded); the filters are
 built from it. The loop: `w.mu.Lock()` (the watcher's lock invariant: `streams` is `nil` after
-`Close`, else a map of `wgsAt` streams); `nil` → a fresh channel, closed: its consumer
-`watchChAt` at the initial position (a closed channel delivers nothing: the realization's
-`R`). Else `newWatcherGRPCStream.spec` for a missing key, then `select` on `reqc` (`wgsAt`'s
-protocol: the `*watchRequest` goes with the `retc` protocol, whose receiver gets the channel `ch`
-with `watchChAt ch γ who (watchReq) (WatchPos.init rev)`: established by `run` when it makes the
-substream, the producer side going to `serveSubstream`), `ctx.Done()` (`Context.ctxOk`'s `Done`)
-or `donec` (closed: `closeErr` published; a closed-channel result with at most one error response
-`Canceled` with `closeErr`, whose `closeErrOk` is the published one: `watchStep`'s error case at
-the initial position). Then `select` on `retc` (the result) or again `ctx.Done()`/`donec`. Every
-path returns a channel whose consumer is `watchChAt` at `WatchPos.init`. No thread token: the
-goroutines `newWatcherGRPCStream` and `run` fork come with theirs (`wp_fork_tok`).
+`Close`, else a map of `wgsAt` streams); `nil` → a fresh channel, closed: `WatchPos.closed`. Else
+`newWatcherGRPCStream.spec` for a missing key, then `select` on `reqc` (`wgsAt`'s protocol: the
+`*watchRequest` goes with the `retc` protocol, whose receiver gets the channel `ch` with its
+consumer: `watchChAt` at `WatchPos.init rev r0` with `etcdLb γ σ0`, `r0 = σ0.kv.rev`, the state of
+the registration's `Created` response, whose header `H ≤ r0` the substream made its resume
+revision before sending `ch` on `retc` (`wireStep`'s registration from `0` has floor `H`); or, for a
+substream closed before it was registered, `WatchPos.closed`), `ctx.Done()` (W0's `Context.Done`,
+`doneRecv`) or `donec` (closed: `closeErr` published; a closed channel with at most one error
+response `Canceled` with `closeErr`: `WatchPos.closed`). Then `select` on `retc` or again
+`ctx.Done()`/`donec`. Every channel is `make`'s (never `nil`). No thread token: the goroutines
+`newWatcherGRPCStream` and `run` fork come with theirs (`wp_fork_tok`).
 
 **Changes** from `specs-ref/.../watcher__Watch.lean`: the responses are persistent facts about the
 history (`etcdLb` and `watchStep`), not firings of a persistent read update (D47); any range (from
@@ -48,10 +53,14 @@ stream, `req/google_golang_org_grpc.md`), no `noDupKeys` server premise (a key w
 one revision gives both events, as the model's history has them).
 
 **Margin.** Liveness (that the channel closes when `ctx` is done or after an error, that a
-`Created` or progress response comes) is not stated. A watch from the current revision states its
-completeness only from its first event or progress (`WatchPos.init`); the code also never delivers
-an event below the member's revision at the creation minus one. The error responses' errors are
-classified only by kind (`closeErrOk`).
+`Created` or progress response comes) is not stated. A watch from the current revision is complete
+from its first event, which is at most the floor + 1 (every event above the floor is delivered);
+the code delivers nothing below `min(R + 1, H)` (`R` the member's registration revision, `H` the
+creation's header), and may deliver revision `H`'s events, which precede the watch
+(`issues/etcd-watch-current-resume-past-event.md`). The error responses' errors are classified
+only by kind (`closeErrOk`). The admitting auth state `σa` is any state the cluster reached: a
+lagging member checks its applied auth state, so a watch may be admitted after a revocation (an
+up-to-date single member checks the current one; not stated).
 -/
 module
 

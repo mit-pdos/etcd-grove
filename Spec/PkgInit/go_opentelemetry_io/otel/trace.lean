@@ -22,7 +22,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-instance : IsPkgInit (IProp GF) pkg_id.go_opentelemetry_io.otel.trace :=
+instance pkgInit_go_opentelemetry_io_otel_trace : IsPkgInit (IProp GF) pkg_id.go_opentelemetry_io.otel.trace :=
   define_is_pkg_init (pkgInitDef (GF := GF) pkg_id.go_opentelemetry_io.otel.trace)
 end
 

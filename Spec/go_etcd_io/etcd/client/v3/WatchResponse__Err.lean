@@ -3,7 +3,7 @@
 
 **Users**: every watch user (`ending.go`); also on responses a caller builds (the cache's own
 `WatchResponse`s: `closeErrOk_nil`). **Proof sketch**: the `switch`: `closeErr` (`closeErrOk`:
-`rpctypes.Error` of it, 2a's spec, gives an error of its kind), `CompactRevision`
+`rpctypes.Error` of it, 2a's spec, gives a non-nil error of its kind), `CompactRevision`
 (`rpctypes.ErrCompacted`: `errVal .compacted`, 2a's variable law), `Canceled` with a reason
 (`status.Error(FailedPrecondition, ...)` then `rpctypes.Error`: some error) or without
 (`errVal .futureRev`). **Changes** from `specs-ref/.../WatchResponse__Err.lean`: over the struct
@@ -41,7 +41,7 @@ def WatchResponse.Err.spec : Prop :=
       (Val #()))
   {{ (err : GoInterface), RET #err; p ↦{dq} v ∗
       (match k with
-       | some ck => callErr err ck
+       | some ck => iprop(⌜err ≠ GoInterface.nil⌝ ∗ callErr err ck)
        | none =>
          if v.CompactRevision' ≠ W64 0 then iprop(⌜err = errVal .compacted⌝)
          else if v.Canceled' = true then

@@ -15,7 +15,9 @@ import (
 // Users: Kubernetes' store (etcd3/store.go:951 GetList: GetStream(ctx, startKey, WithRange,
 // WithRev, WithLimit...), then `for r := range stream { if r.Err() != nil ...; r.Kvs ... }`) and
 // watcher (etcd3/watcher.go:391, the initial list).
-// Assumes: to is neither empty nor "\x00" (a half-open range); the caller has a thread token for the client's reading goroutine.
+// Assumes: rev >= 0 (a negative revision is not pinned: nonissues/etcd-rangestream-negative-
+// revision-unpinned.md); to is neither empty nor "\x00" (a half-open range); the caller has a
+// thread token for the client's reading goroutine.
 // Specs: Client.GetStream.spec (KV.GetStreamTriple), streamAt_recv, RangeStreamResponse.Err.spec;
 // the model's streamMatches (default ordering: the chunks are the range's answer).
 func ReqGetStream(ctx context.Context, cli *clientv3.Client, from, to string, rev int64) {
@@ -59,9 +61,10 @@ func ReqGetStream(ctx context.Context, cli *clientv3.Client, from, to string, re
 	}
 }
 
-// REQ clientv3kv/get-stream-compacted: an unpinned stream may end with ErrCompacted after some
-// chunks (the server pins the first chunk's revision, a compaction then overtakes it): the caller
-// relists; it is the only definite error mid-stream.
+// REQ clientv3kv/get-stream-compacted: an unpinned stream may end with ErrCompacted, after some
+// chunks or before any (the server pins the first page's revision, a compaction then overtakes
+// it before a later page or the count of the rest): the caller relists. An unpinned stream never
+// ends with ErrFutureRev.
 // Users: Kubernetes' watcher (etcd3/watcher.go:410-415: "a compaction mid-stream can't be resumed
 // ... surface it as ResourceExpired") and store (store.go:978-980, listReadError).
 // Assumes: the caller holds no permission problem (auth off), so no read refusal of its range.

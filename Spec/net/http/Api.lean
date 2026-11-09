@@ -19,7 +19,7 @@ said where it is stated.
   used under `□`: only **persistent** knowledge crosses the wire.
 * **The closed world** (the user's decision 1, 2026-10-22). An address is reserved once, with its
   protocol (`reserve`: the environment's `addrFree a`, one per address and run, becomes the
-  persistent `protoAt a Π` and the right to serve it, `protoOwn a Π`). Every request a server of the
+  persistent `protoAt a P` and the right to serve it, `protoOwn a P`). Every request a server of the
   program receives at `a` was sent by a client of the program through `RoundTrip` to `a`, with the
   bytes that client sent; so the handler gets the facts the client proved. (The physical fact: the
   program's peer addresses are its own, and only its members connect to them.)
@@ -49,13 +49,13 @@ said where it is stated.
 ## Vocabulary
 
 Pure: `HReq`, `Proto`, `hdrGet`, `hdrSet`, `canonKey`, `srvKeys`, `hdrView`, `onceOnly`.
-Resources: `addrFree a` (exclusive, the environment's), `protoAt a Π` (persistent), `protoOwn a Π`
+Resources: `addrFree a` (exclusive, the environment's), `protoAt a P` (persistent), `protoOwn a P`
 (exclusive), `listenerAt l a` (exclusive: a listener bound at `a`), `reqTicket τ` (exclusive),
 `reqOwn r R bd` (a client's request being built), `hdrMap hm hs` (an owned header map),
 `readerAt rd Pre Φ r` (a body reader having yielded `r`), `respAt resp st hs rd` (a client's
-response), `srvReq r R` (a received request, persistent), `respW w R τ Π c hs bs` (a handler's
+response), `srvReq r R` (a received request, persistent), `respW w R τ P c hs bs` (a handler's
 response writer), `muxOwn m L` (a `ServeMux` being built). Bundles (an interface's contract, as
-`sync.isLocker`): `roundTripperOk rt`, `handlerOk h Π pfx`.
+`sync.isLocker`): `roundTripperOk rt`, `handlerOk h P pfx`.
 
 Intended realization: a trusted model of the network (a global ghost map from addresses to saved
 protocols, set once; per connection, ghost byte streams), with these as its facts; it stays a
@@ -75,6 +75,7 @@ public import GeneratedProof.net.http
 public import GeneratedProof.net.url
 public import Spec.PkgInit.net.http
 public import Spec.context.Api
+public import Perennial.Code.io
 
 set_option autoImplicit false
 
@@ -87,6 +88,7 @@ namespace EtcdGrove
 namespace Http
 
 open Iris Iris.BI
+open Classical
 
 /-! ## Pure model -/
 
@@ -159,11 +161,11 @@ structure Proto (GF : BundledGFunctors) where
   body : HReq → GName → List w8 → IProp GF
   resp : HReq → GName → w64 → List (GoString × GoString) → List w8 → IProp GF
 
-/-- **`Π` and `Π'` agree on the requests under the mux pattern `pfx`** (a server composing
+/-- **`P` and `P'` agree on the requests under the mux pattern `pfx`** (a server composing
 protocols: the peer port's protocol is rafthttp's under `/raft`). -/
-def Proto.agreeUnder (pfx : GoString) (Π Π' : Proto GF) : Prop :=
+def Proto.agreeUnder (pfx : GoString) (P P' : Proto GF) : Prop :=
   ∀ R, pathUnder pfx R.path →
-    Π.hreq R = Π'.hreq R ∧ Π.body R = Π'.body R ∧ Π.resp R = Π'.resp R
+    P.hreq R = P'.hreq R ∧ P.body R = P'.body R ∧ P.resp R = P'.resp R
 
 /-! ## Resources -/
 
@@ -171,11 +173,11 @@ def Proto.agreeUnder (pfx : GoString) (Π Π' : Proto GF) : Prop :=
 address and run). -/
 opaque addrFree (a : GoString) : IProp GF := iprop(True)
 
-/-- **Address `a` serves the protocol `Π`** (persistent; set once, `reserve`). -/
-opaque protoAt (a : GoString) (Π : Proto GF) : IProp GF := iprop(True)
+/-- **Address `a` serves the protocol `P`** (persistent; set once, `reserve`). -/
+opaque protoAt (a : GoString) (P : Proto GF) : IProp GF := iprop(True)
 
-/-- **The right to serve `a` with `Π`** (exclusive; `Serve` takes it with `a`'s listener). -/
-opaque protoOwn (a : GoString) (Π : Proto GF) : IProp GF := iprop(True)
+/-- **The right to serve `a` with `P`** (exclusive; `Serve` takes it with `a`'s listener). -/
+opaque protoOwn (a : GoString) (P : Proto GF) : IProp GF := iprop(True)
 
 /-- **The listener `l` bound at `a`** (exclusive; `net.Listen`'s, through rafthttp's `NewListener`
 or embed's). -/
@@ -211,11 +213,11 @@ opaque respAt (resp : Loc) (st : w64) (hc : List (GoString × GoString)) (rd : G
 body `rd`, `RemoteAddr` some string. -/
 opaque srvReq (r : Loc) (R : HReq) (rd : GoInterface) : IProp GF := iprop(True)
 
-/-- **A handler's response writer** `w` for request `R` (ticket name `τ`) of protocol `Π`: committed
+/-- **A handler's response writer** `w` for request `R` (ticket name `τ`) of protocol `P`: committed
 (`c = some st`) or not, its header map `hs` (owned until the commit: `w.Header()`), the bytes `bs`
 written. Exclusive; it may be passed to another goroutine (the stream handler's writer goroutine),
 and must be given back before the handler returns. -/
-opaque respW (w : GoInterface) (R : HReq) (τ : GName) (Π : Proto GF) (c : Option w64)
+opaque respW (w : GoInterface) (R : HReq) (τ : GName) (P : Proto GF) (c : Option w64)
     (hs : List (GoString × GoString)) (bs : List w8) : IProp GF := iprop(True)
 
 /-- **A `ServeMux` being built** (exclusive): its patterns and handlers so far. -/
@@ -236,13 +238,13 @@ opaque errOk (e : GoInterface) : IProp GF := iprop(True)
 
 /-- **A body's prefix knowledge for a response**: the bytes read so far are a prefix of bytes the
 handler wrote with the protocol's knowledge. -/
-def respPre (Π : Proto GF) (R : HReq) (τ : GName) (st : w64) (hs : List (GoString × GoString))
+def respPre (P : Proto GF) (R : HReq) (τ : GName) (st : w64) (hs : List (GoString × GoString))
     (r : List w8) : IProp GF :=
-  iprop(∃ w, ⌜r <+: w⌝ ∗ □ Π.resp R τ st hs w)
+  iprop(∃ w, ⌜r <+: w⌝ ∗ □ P.resp R τ st hs w)
 
 /-- **A `RoundTripper`** (`rt`, persistent; rafthttp's from `transport.NewTimeoutTransport`).
 `RoundTrip(r)` of a request built for `R` (body `bd` with its reader contract, or none) to an
-address `R.host` serving `Π`, with the client's knowledge under its name `τ`, and the ticket if the
+address `R.host` serving `P`, with the client's knowledge under its name `τ`, and the ticket if the
 request is `onceOnly`: an error (the ticket lost), or the response of one handler run of the
 request: the status it set, the headers it committed (`hdrView`), its body (prefixes of what that
 handler wrote, with the protocol's knowledge). The request's memory is the transport's for good
@@ -250,36 +252,36 @@ handler wrote, with the protocol's knowledge). The request's memory is the trans
 closed). -/
 def roundTripperOk (rt : GoInterface) : IProp GF :=
   iprop(∃ i : GoInterfaceOk, ⌜rt = interface.ok i⌝ ∗
-    □ ∀ (r : Loc) (R : HReq) (bd : GoInterface) (τ : GName) (Π : Proto GF)
+    □ ∀ (r : Loc) (R : HReq) (bd : GoInterface) (τ : GName) (P : Proto GF)
         (Φb : List w8 → IProp GF) (Ψ : val → IProp GF),
-      reqOwn r R bd -∗ protoAt R.host Π -∗ □ Π.hreq R τ -∗
-      (if bd = interface.nil then □ Π.body R τ []
-       else iprop(readerAt bd (fun _ => True) Φb [] ∗ □ (∀ B, Φb B -∗ Π.body R τ B))) -∗
-      (if decide (onceOnly R) then reqTicket τ else iprop(True)) -∗
+      reqOwn r R bd -∗ protoAt R.host P -∗ □ P.hreq R τ -∗
+      (if bd = interface.nil then iprop(□ P.body R τ [])
+       else iprop(readerAt bd (fun _ => iprop(True)) Φb [] ∗ □ (∀ B, Φb B -∗ P.body R τ B))) -∗
+      (if onceOnly R then reqTicket τ else iprop(True)) -∗
       ▷ (∀ (resp : Loc) (err : GoInterface),
           ((⌜err ≠ interface.nil⌝ ∗ errOk err) ∨
            (⌜err = interface.nil⌝ ∗ ∃ (st : w64) (hs hc : List (GoString × GoString))
               (rd : GoInterface),
               ⌜hdrView hs hc⌝ ∗ respAt resp st hc rd ∗ readerCloser rd ∗
-              readerAt rd (respPre Π R τ st hs) (fun _ => True) [])) -∗
+              readerAt rd (respPre P R τ st hs) (fun _ => iprop(True)) [])) -∗
           Ψ (PairV #resp #err)) -∗
       WP (App (Val #(methods i.ty go!"RoundTrip" i.v)) (Val #r)) {{ Ψ }})
 
-/-- **A handler serving the requests under the mux pattern `pfx` with protocol `Π`** (persistent).
+/-- **A handler serving the requests under the mux pattern `pfx` with protocol `P`** (persistent).
 `ServeHTTP(w, r)` of a received request under `pfx` (with the client's knowledge, its ticket if
 `onceOnly`, its body reader carrying the body knowledge at `EOF`) and a fresh response writer (an
 `http.Flusher`: Go's are), on a goroutine holding its thread token: it returns the token and the
 writer, committed, or panics (`Serve` recovers it and drops the connection). -/
-def handlerOk (h : GoInterface) (Π : Proto GF) (pfx : GoString) : IProp GF :=
+def handlerOk (h : GoInterface) (P : Proto GF) (pfx : GoString) : IProp GF :=
   iprop(∃ i : GoInterfaceOk, ⌜h = interface.ok i⌝ ∗
     □ ∀ (w : GoInterface) (r : Loc) (R : HReq) (τ : GName) (rd : GoInterface),
-      ⌜pathUnder pfx R.path⌝ -∗ srvReq r R rd -∗ □ Π.hreq R τ -∗
-      (if decide (onceOnly R) then reqTicket τ else iprop(True)) -∗
-      readerAt rd (fun _ => True) (fun B => □ Π.body R τ B) [] -∗
-      respW w R τ Π none [] [] -∗ threadTok -∗
+      ⌜pathUnder pfx R.path⌝ -∗ srvReq r R rd -∗ □ P.hreq R τ -∗
+      (if onceOnly R then reqTicket τ else iprop(True)) -∗
+      readerAt rd (fun _ => iprop(True)) (fun B => iprop(□ P.body R τ B)) [] -∗
+      respW w R τ P none [] [] -∗ threadTok -∗
       WP (App (App (Val #(methods i.ty go!"ServeHTTP" i.v)) (Val #w)) (Val #r))
-        {{ v, threadTok ∗ ((∃ st hs bs, respW w R τ Π (some st) hs bs) ∨
-            (⌜v.isPanic = true⌝ ∗ ∃ c hs bs, respW w R τ Π c hs bs)) }})
+        {{ v, threadTok ∗ ((∃ st hs bs, respW w R τ P (some st) hs bs) ∨
+            (⌜v.isPanic = true⌝ ∗ ∃ c hs bs, respW w R τ P c hs bs)) }})
 
 end vocab
 
@@ -290,22 +292,22 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
   {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
 
 def persistent.spec : Prop :=
-  (∀ a Π, Persistent (protoAt (GF := GF) a Π)) ∧
+  (∀ a P, Persistent (protoAt (GF := GF) a P)) ∧
   (∀ rd, Persistent (readerCloser (GF := GF) rd)) ∧
   (∀ resp st hc rd, Persistent (respAt (GF := GF) resp st hc rd)) ∧
   (∀ r R rd, Persistent (srvReq (GF := GF) r R rd)) ∧
   (∀ m L, Persistent (muxAt (GF := GF) m L)) ∧
   (∀ e, Persistent (errOk (GF := GF) e)) ∧
   (∀ rt, Persistent (roundTripperOk (GF := GF) rt)) ∧
-  (∀ h Π pfx, Persistent (handlerOk (GF := GF) h Π pfx))
+  (∀ h P pfx, Persistent (handlerOk (GF := GF) h P pfx))
 
 /-- **Reserve an address** for a protocol, once. -/
 def reserve.spec : Prop :=
-  ∀ (a : GoString) (Π : Proto GF), addrFree (GF := GF) a ⊢ |==> protoAt a Π ∗ protoOwn a Π
+  ∀ (a : GoString) (P : Proto GF), addrFree (GF := GF) a ⊢ |==> protoAt a P ∗ protoOwn a P
 
 /-- One reservation per address. -/
 def protoAt_agree.spec : Prop :=
-  ∀ a (Π Π' : Proto GF), protoAt (GF := GF) a Π ∗ protoAt a Π' ⊢ iprop(⌜Π = Π'⌝)
+  ∀ a (P P' : Proto GF), protoAt (GF := GF) a P ∗ protoAt a P' ⊢ iprop(⌜P = P'⌝)
 
 def reqTicket_alloc.spec : Prop := ⊢ |==> ∃ τ, reqTicket (GF := GF) τ
 
@@ -338,65 +340,65 @@ def readerAt_close.spec : Prop :=
 /-- **A response writer's `Header()`** before the commit: the header map, lent until the commit
 (`hdrMap` given back by `respW_hdr_return`); after it, a map whose writes are ignored. -/
 def respW_header.spec : Prop :=
-  ∀ (w : GoInterface) (i : GoInterfaceOk) R τ (Π : Proto GF) c hs bs,
+  ∀ (w : GoInterface) (i : GoInterfaceOk) R τ (P : Proto GF) c hs bs,
   w = interface.ok i →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.net.http ∗ respW w R τ Π c hs bs }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.net.http ∗ respW w R τ P c hs bs }}
     (App (Val #(methods i.ty go!"Header" i.v)) (Val #()))
   {{ (hm : GoInterface), RET #hm;
       (⌜c = none⌝ ∗ hdrMap hm hs ∗
-        (∀ hs', hdrMap hm hs' -∗ respW w R τ Π none hs' bs)) ∨
-      (⌜c ≠ none⌝ ∗ respW w R τ Π c hs bs ∗ ∃ hs', hdrMap hm hs') }}
+        (∀ hs', hdrMap hm hs' -∗ respW w R τ P none hs' bs)) ∨
+      (⌜c ≠ none⌝ ∗ respW w R τ P c hs bs ∗ ∃ hs', hdrMap hm hs') }}
 
 /-- **`WriteHeader(st)`** (`200 ≤ st ≤ 999`: Go panics outside `100`-`999` and does not commit a
 `1xx`): commits `st` with the headers set, if the protocol allows it; a second call is ignored. -/
 def respW_writeHeader.spec : Prop :=
-  ∀ (w : GoInterface) (i : GoInterfaceOk) R τ (Π : Proto GF) c hs bs (st : w64),
+  ∀ (w : GoInterface) (i : GoInterfaceOk) R τ (P : Proto GF) c hs bs (st : w64),
   w = interface.ok i → 200 ≤ uint.nat st → uint.nat st ≤ 999 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.net.http ∗ respW w R τ Π c hs bs ∗
-      (⌜c = none⌝ -∗ □ Π.resp R τ st hs []) }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.net.http ∗ respW w R τ P c hs bs ∗
+      (⌜c = none⌝ -∗ □ P.resp R τ st hs []) }}
     (App (Val #(methods i.ty go!"WriteHeader" i.v)) (Val #st))
-  {{ RET #(); respW w R τ Π (some (c.getD st)) hs bs }}
+  {{ RET #(); respW w R τ P (some (c.getD st)) hs bs }}
 
 /-- **`Write(b)`** (committing `200` first if uncommitted): the protocol must allow the bytes;
 writes a prefix `n` of `b`, all unless it fails. -/
 def respW_write.spec : Prop :=
-  ∀ (w : GoInterface) (i : GoInterfaceOk) R τ (Π : Proto GF) c hs bs (b : GoSlice) (ys : List w8)
+  ∀ (w : GoInterface) (i : GoInterfaceOk) R τ (P : Proto GF) c hs bs (b : GoSlice) (ys : List w8)
     (dq : DFrac),
   w = interface.ok i →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.net.http ∗ respW w R τ Π c hs bs ∗ b ↦*{dq} ys ∗
-      □ Π.resp R τ (c.getD (W64 200)) hs (bs ++ ys) }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.net.http ∗ respW w R τ P c hs bs ∗ b ↦*{dq} ys ∗
+      □ P.resp R τ (c.getD (W64 200)) hs (bs ++ ys) }}
     (App (Val #(methods i.ty go!"Write" i.v)) (Val #b))
   {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
       b ↦*{dq} ys ∗ ⌜uint.nat n ≤ ys.length ∧ (err = interface.nil → uint.nat n = ys.length)⌝ ∗
-      respW w R τ Π (some (c.getD (W64 200))) hs (bs ++ ys.take (uint.nat n)) ∗ errOk err }}
+      respW w R τ P (some (c.getD (W64 200))) hs (bs ++ ys.take (uint.nat n)) ∗ errOk err }}
 
 /-- **`w.(http.Flusher).Flush()`** on a handler's writer: returns (commits `200` if uncommitted,
 which the protocol must allow). -/
 def respW_flush.spec : Prop :=
-  ∀ (w : GoInterface) (i : GoInterfaceOk) R τ (Π : Proto GF) c hs bs,
+  ∀ (w : GoInterface) (i : GoInterfaceOk) R τ (P : Proto GF) c hs bs,
   w = interface.ok i →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.net.http ∗ respW w R τ Π c hs bs ∗
-      (⌜c = none⌝ -∗ □ Π.resp R τ (W64 200) hs []) }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.net.http ∗ respW w R τ P c hs bs ∗
+      (⌜c = none⌝ -∗ □ P.resp R τ (W64 200) hs []) }}
     (App (Val #(methods i.ty go!"Flush" i.v)) (Val #()))
-  {{ RET #(); respW w R τ Π (some (c.getD (W64 200))) hs bs }}
+  {{ RET #(); respW w R τ P (some (c.getD (W64 200))) hs bs }}
 
 /-- A handler's writer is an `http.Flusher` (Go's `*response` is: the type assertion in rafthttp's
 handlers succeeds). -/
 def respW_flusher.spec : Prop :=
-  ∀ (w : GoInterface) R τ (Π : Proto GF) c hs bs,
-  respW (GF := GF) w R τ Π c hs bs ⊢ ∃ i : GoInterfaceOk, ⌜w = interface.ok i ∧
+  ∀ (w : GoInterface) R τ (P : Proto GF) c hs bs,
+  respW (GF := GF) w R τ P c hs bs ⊢ ∃ i : GoInterfaceOk, ⌜w = interface.ok i ∧
     go.typeSetContains i.ty _root_.Perennial.net.http.Flusher.ty = true⌝
 
 /-- **A built mux serves its patterns' handlers** (`ServeMux.ServeHTTP`): a request under `pfx` is
 routed to the handler of the longest pattern under which its path is, or answered `404`/`301` by
 the mux, which the protocol must allow for a path no pattern routes. -/
 def mux_handlerOk.spec : Prop :=
-  ∀ (m : Loc) (L : List (GoString × GoInterface)) (Π : Proto GF) (pfx : GoString),
+  ∀ (m : Loc) (L : List (GoString × GoInterface)) (P : Proto GF) (pfx : GoString),
     (∀ (R : HReq) τ, pathUnder pfx R.path → (∀ pat h, (pat, h) ∈ L → ¬ pathUnder pat R.path) →
-      ⊢ □ Π.resp R τ (W64 404) [] [] ∧ ⊢ □ Π.resp R τ (W64 301) [] []) →
-    muxAt (GF := GF) m L ∗ ([∗list] ph ∈ L, handlerOk ph.2 Π ph.1) ⊢
+      (⊢ □ P.resp R τ (W64 404) [] []) ∧ (⊢ □ P.resp R τ (W64 301) [] [])) →
+    muxAt (GF := GF) m L ∗ ([∗list] ph ∈ L, handlerOk ph.2 P ph.1) ⊢
       handlerOk (interface.mkOk (go.GoType.PointerType _root_.Perennial.net.http.ServeMux.ty) #m)
-        Π pfx
+        P pfx
 
 end laws
 

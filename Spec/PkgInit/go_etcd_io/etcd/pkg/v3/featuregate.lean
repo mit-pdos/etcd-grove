@@ -18,7 +18,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-instance : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.featuregate :=
+instance pkgInit_go_etcd_io_etcd_pkg_v3_featuregate : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.featuregate :=
   define_is_pkg_init (pkgInitDef (GF := GF) pkg_id.go_etcd_io.etcd.pkg.v3.featuregate)
 end
 

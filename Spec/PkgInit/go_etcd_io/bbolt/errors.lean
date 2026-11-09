@@ -19,7 +19,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-instance : IsPkgInit (IProp GF) pkg_id.go_etcd_io.bbolt.errors :=
+instance pkgInit_go_etcd_io_bbolt_errors : IsPkgInit (IProp GF) pkg_id.go_etcd_io.bbolt.errors :=
   define_is_pkg_init (pkgInitDef (GF := GF) pkg_id.go_etcd_io.bbolt.errors)
 end
 

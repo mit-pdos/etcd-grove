@@ -19,7 +19,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-instance : IsPkgInit (IProp GF) pkg_id.math.rand :=
+instance pkgInit_math_rand : IsPkgInit (IProp GF) pkg_id.math.rand :=
   define_is_pkg_init (pkgInitDef (GF := GF) pkg_id.math.rand)
 end
 

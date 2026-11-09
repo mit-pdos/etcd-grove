@@ -8,7 +8,7 @@ public import Perennial.Proof.io.Base
 public import Spec.PkgInit.os
 public import Perennial.Proof.sync.Base
 public import Spec.PkgInit.syscall
-public import Spec.PkgInit.«unsafe»
+public import Perennial.Proof.unsafe.Base
 public import Spec.PkgInit.golang_org.x.sys.unix
 public import Perennial.Proof.time.Base
 public import Perennial.Proof.sync.atomic.Base

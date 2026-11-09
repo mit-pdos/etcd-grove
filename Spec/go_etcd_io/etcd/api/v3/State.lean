@@ -41,7 +41,8 @@ and the server batches that must produce it (the cluster contract, `notes/specs-
 ## Laws (obligations of the cluster's implementation)
 
 `etcdState_timeless`, `etcdState_excl`, `etcdLb_persistent`, `etcdLb_timeless`, `etcdState_lb`,
-`etcdLb_reach`, `etcdLb_ord`, `etcdState_revFits`, `etcdState_sizeFits`, `errVal_inj`, `errVal_ty`.
+`etcdLb_reach`, `etcdLb_ord`, `etcdLb_init`, `etcdState_revFits` (with one to spare),
+`etcdState_sizeFits`, `errVal_inj`, `errVal_ty`. Shared shapes: `etcdPerm γ T`, `etcdPeek γ`.
 
 `etcdState_revFits`, `etcdState_sizeFits`: the current revision and the number of events fit an
 `int64` (a reply's header, `Count`, `Version`, `Deleted` carry them). etcd itself never refuses at
@@ -103,9 +104,21 @@ def etcdLb_reach.spec : Prop := ∀ (γ : Cluster) (σ₀ σ : State),
 def etcdLb_ord.spec : Prop := ∀ (γ : Cluster) (σ₁ σ₂ : State),
   etcdLb (GF := GF) γ σ₁ ∗ etcdLb γ σ₂ ⊢ ⌜Reach σ₁ σ₂ ∨ Reach σ₂ σ₁⌝
 
-/-- The current revision fits a reply's `int64`. -/
+/-- The current revision fits a reply's `int64`, with one to spare (a client computes
+`Header.Revision + 1`: the recipes' watch starts). -/
 def etcdState_revFits.spec : Prop := ∀ (γ : Cluster) (σ : State),
-  etcdState (GF := GF) γ σ ⊢ ⌜σ.kv.rev < 2 ^ 63⌝
+  etcdState (GF := GF) γ σ ⊢ ⌜σ.kv.rev + 1 < 2 ^ 63⌝
+
+/-- Every state the cluster has been in has a revision that fits, with one to spare (for clients
+that hold only an `etcdLb`, not the state). -/
+def etcdLb_revFits.spec : Prop := ∀ (γ : Cluster) (σ : State),
+  etcdLb (GF := GF) γ σ ⊢ ⌜σ.kv.rev + 1 < 2 ^ 63⌝
+
+/-- **Every state the cluster has been in comes from an initial one** (its provenance: a present
+key's create revision is at least 2, its mod revision the revision of the event that wrote it, its
+version at least 1; pure consequences of `Reach`). -/
+def etcdLb_init.spec : Prop := ∀ (γ : Cluster) (σ : State),
+  etcdLb (GF := GF) γ σ ⊢ ⌜∃ ms : List Member, Reach (State.init ms) σ⌝
 
 /-- The number of events in the history fits an `int64` (so does every count of keys, every
 version, every `Deleted`: each needs an event). -/
@@ -120,6 +133,18 @@ every request by `Step`, firing the callers' updates as the client's contract sa
 opaque servesAt (γ : Cluster) (ep : GoString) : IProp GF := iprop(True)
 
 def servesAt_persistent.spec : Prop := ∀ γ ep, Persistent (servesAt (GF := GF) γ ep)
+
+/-- **A permission to change the cluster's state by `T`** (transparent, persistent): a persistent
+atomic update performing any transition `T σ σ'`, whose commit gives `etcdLb` of both states.
+The one shape the client libraries take from their callers (1d's sessions, mutexes, STMs; 1f's
+recipes; 1g's cache): a library builds each request's update from it. -/
+def etcdPerm (γ : Cluster) (T : State → State → Prop) : IProp GF :=
+  iprop(□ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
+    <{ ∀∀ (σ' : State), ⌜T σ σ'⌝ ∗ etcdState γ σ', COMM etcdLb γ σ ∗ etcdLb γ σ' }>)
+
+/-- **A permission to look** (persistent): `etcdPerm` of the transitions that change nothing (the
+reads of 1f's recipes and 1g's cache). -/
+def etcdPeek (γ : Cluster) : IProp GF := etcdPerm γ (fun σ σ' => σ' = σ)
 
 /-- **The environment's permission** (see the header): any environment step of a cluster
 configured as `cfg`, at any time. -/

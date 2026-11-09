@@ -4,7 +4,7 @@ module
 public import GeneratedProof.go_etcd_io.bbolt.internal.common
 public import Spec.PkgInit.Base
 public import Perennial.Proof.fmt.Base
-public import Spec.PkgInit.«unsafe»
+public import Perennial.Proof.unsafe.Base
 public import Spec.PkgInit.hash.fnv
 public import Perennial.Proof.io.Base
 public import Spec.PkgInit.go_etcd_io.bbolt.errors

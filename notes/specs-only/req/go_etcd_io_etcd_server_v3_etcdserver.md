@@ -68,3 +68,16 @@ terms, what the server batches must give (statements in `top.md`, "The cluster c
    `clusterStep`) are W0's reading of `server/lease`, `server/auth`, `api/membership`: 3c, 3d and 2e
    check them against the code and report a mismatch to W0 (`req/` to W0) rather than proving a
    different model.
+
+## from 1c
+
+1. **Published members serve** (`memberServes`): `etcdLb γ σ ∗ ⌜m ∈ σ.members ∧ m.name ≠ [] ∧
+   ¬ m.isLearner ∧ u ∈ m.clientURLs⌝ ⊢ servesAt γ u`: the client's auto-sync sets its endpoints to
+   the published voters' client URLs. Used by: `Client.Sync.spec` (`autoSync`).
+2. **`tlsPrincipal γ tls who`** (slot in `client/v3/ApiClient.lean`): with `--client-cert-auth`, a
+   client certificate's common name is its principal (no token); without it, none. Introduced from
+   the server's configuration and the certificate. Used by: `cfgPrincipal_tls`, `New.spec`
+   (Kubernetes' TLS clients).
+3. **`tokenOf γ tok u`** (3d's token providers through 2a's `Authenticate`): a token the server
+   issued names the user it authenticated, for as long as the server accepts it (an expired token is
+   `ErrInvalidAuthToken`, never another user). Used by: `cfgPrincipal_token`, `authReply`.

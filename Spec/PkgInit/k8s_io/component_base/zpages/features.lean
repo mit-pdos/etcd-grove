@@ -18,7 +18,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-instance : IsPkgInit (IProp GF) pkg_id.k8s_io.component_base.zpages.features :=
+instance pkgInit_k8s_io_component_base_zpages_features : IsPkgInit (IProp GF) pkg_id.k8s_io.component_base.zpages.features :=
   define_is_pkg_init (pkgInitDef (GF := GF) pkg_id.k8s_io.component_base.zpages.features)
 end
 

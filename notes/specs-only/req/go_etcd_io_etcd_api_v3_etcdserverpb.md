@@ -52,3 +52,22 @@ opaque: 3h realizes them from its own message vocabulary and proves the laws.
 3. **Getters**: `ResponseHeader.GetRevision` on an optional header (`0` for `nil`), used by
    `WatchResponse.IsProgressNotify.spec`; `mvccpb.Event.IsCreate`/`IsModify` (Kubernetes' watcher
    reads them) over `eventOwn`.
+
+## from 1c
+
+1. **Realize `replyOwn p b` and `reqOwn p dq rq`** (`client/v3/ApiClient.lean`) for the non-KV
+   messages, with unfold laws for the fields clients read: `AuthenticateResponse.Token`
+   (`replyOwn_authenticate`, stated); `MemberAddResponse.Member`, `MemberListResponse.Members` (each
+   `Member`'s `ID`, `Name`, `ClientURLs`, `IsLearner`: **translate `Member`, `MemberAddResponse`,
+   `MemberListResponse`, `StatusResponse` as structs**, today names only); `AlarmResponse.Alarms`;
+   the lease replies' fields the lessor copies (`LeaseGrantResponse`, `LeaseTimeToLiveResponse`,
+   `LeaseLeasesResponse`); `statusRespOwn` (`Version`, `DbSize`); `userAddOptsAt` (`UserAddOptions`).
+   Used by: `lessor.{Grant,TimeToLive,Leases}.spec`, `Client.Sync.spec`, snippets
+   `clientv3client/{cluster,maint}.go`.
+2. **The stubs** `NewLeaseClient`, `NewAuthClient`, `NewClusterClient`, `NewMaintenanceClient`
+   over a `connOk` connection meet `RemoteCallTriple` for their requests (with 2a), and
+   `LeaseClient.LeaseKeepAlive` opens a stream with `kaSendAt`/`kaRecvAt`. Used by: the
+   `Retry*Client.spec`s and `retry*Client.*.spec`s.
+4. (1b, round 1) **A create's key in `watchReqOwn`**: `toPB` sends the watch's own key, which is
+   `""` when `w.range.key` is `"\x00"` (the member normalizes it): realize `watchReqOwn p dq
+   (.create w s)` as a message whose key is `w.range.key`, or `""` when that is `"\x00"`.

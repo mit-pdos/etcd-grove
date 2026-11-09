@@ -6,7 +6,7 @@ public import Spec.PkgInit.Base
 public import Spec.PkgInit.syscall
 public import Perennial.Proof.fmt.Base
 public import Perennial.Proof.time.Base
-public import Spec.PkgInit.«unsafe»
+public import Perennial.Proof.unsafe.Base
 public import Spec.PkgInit.golang_org.x.sys.unix
 public import Spec.PkgInit.go_etcd_io.bbolt.errors
 public import Spec.PkgInit.go_etcd_io.bbolt.internal.common

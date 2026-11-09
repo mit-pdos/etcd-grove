@@ -11,8 +11,11 @@ a channel of capacity 1 (Perennial's `isSpsc`, the producer side to the goroutin
 thread token: `wp_fork`), whose loop receives from the wire stream (`wireStreamAt_recv`): a chunk
 is sent with its message (`streamAt`'s per-chunk resource), `io.EOF` (`errors.Is`, Perennial)
 closes the channel with the caller's `Q` (the spsc's final resource), another error is sent as
-the terminal chunk (`ContextError.spec`: `.etcd e` as `errVal e` with its `Q`, else indefinite)
-and the channel closed.
+the terminal chunk (`ContextError.spec`: `.etcd e` as `errVal e` with its `Q`; `ErrCompacted`
+without `Q` when the server's pinned revision was compacted before a later read, before any chunk
+too; else indefinite) and the channel closed. An open error (the stream interceptor
+re-authenticates at every open) is a refusal that fired nothing or indefinite. The revision asked
+is not negative (premise: such a stream is not pinned).
 
 Changes: none (no old spec): Kubernetes' store now lists with it.
 

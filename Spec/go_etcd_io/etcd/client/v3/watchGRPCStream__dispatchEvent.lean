@@ -31,7 +31,8 @@ def watchGRPCStream.dispatchEvent.spec : Prop :=
   ∀ (s : Loc) (γ : Cluster) (who : Principal) (r : RunM) (p : Loc) (mr : WireWatchRespM),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ wgsRun s γ who r ∗ wireWatchRespOwn p (DFrac.own 1) mr ∗
       deliverOk s γ who
-        (if (mr.toResp mr.events).isProgressNotify = true ∧ mr.watchId = -1 then -1 else mr.watchId)
+        (if (mr.toResp mr.events).isProgressNotify = true ∧ mr.watchId = -1 then none
+         else some mr.watchId)
         (mr.toResp mr.events) }}
     (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchGRPCStream.ty @!! go!"dispatchEvent")) (Val #p))
   {{ (ok : Bool), RET #ok; wgsRun s γ who r ∗

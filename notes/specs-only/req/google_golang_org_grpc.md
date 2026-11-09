@@ -79,8 +79,11 @@ complete it (`req/go_etcd_io_etcd_server_v3_etcdserver_api_v3rpc.md`,
    ```
    Used by: `WithRequireLeader.spec`, `withVersion.spec` (they keep `ctxPrin`: the keys they set are
    not `token`/`authorization`). `metadata.AppendToOutgoingContext` and `NewOutgoingContext` with a
-   caller's `token` (`examples/etcd/auth/authkv.go`) need an introduction of `ctxPrin` (a token
-   issued to the client's own user, or to no one: refused) from 2a.
+   caller's `token` (`examples/etcd/auth/authkv.go`) need an introduction of `ctxPrin` (a token of
+   the client's own user, or a malformed one: refused) from 2a; metadata without a `token` or
+   `authorization` key (Kubernetes' tracing `traceparent`) keeps it. A root context with no gRPC
+   metadata is `Context.ctxNoMeta` (a transparent definition its owner discharges: net/http's
+   request context, Kubernetes' `wait.ContextForChannel`), which gives `ctxPrin`.
 
 ## from 1b
 
@@ -130,3 +133,53 @@ and `wireWatchSentLb g ss`. What 1b's sketches (`watchGRPCStream.openWatchClient
 2. **`status.FromError(err)`** on any error a client call returned (or a context's error): no panic,
    a status value whose `Code()` may be read. `leasingKV.acquire` retries on `Unavailable`
    (`leasingKV.acquire.spec`).
+
+## from 1c
+
+Batch 1c (`Spec/go_etcd_io/etcd/client/v3/ApiClient.lean`, `ApiLease.lean`) realizes W0's `connOk`
+from grpc's connection and the client's interceptors. What its sketches assume of grpc (slots named
+in `ApiClient.lean`, to be stated as 2a's specs or laws):
+
+1. **One attempt** (`AttemptTriple`, `ApiClient.lean`): grpc's `UnaryInvoker` for a connection
+   whose resolver's endpoints all serve `γ` (`dialTargetOk`) and whose per-RPC credentials attach
+   only tokens of `who` (`Credentials.rpcCredsAt`), called with the request (`unaryArgs`: method,
+   request message, reply holder), a context (`ctxOk`, `ctxPrin _ who`), gRPC options
+   (`grpcCallOptsOk`) and the caller's update (`callAU`, persistent or exclusive), returns one of:
+   success with the update fired and the reply filled; a definite etcd error (not a token or learner
+   refusal) with the update fired; **a not-sent error, a token refusal (`ErrInvalidAuthToken`,
+   `ErrAuthOldRevision`, `ErrUserEmpty`) or the learner's refusal, with the update given back
+   unfired** (the server's handlers: `req/..._api_v3rpc.md`, from 1c); an indefinite error.
+   ```go
+   lastErr = invoker(ctx, method, req, reply, cc, grpcOpts...)   // retry_interceptor.go
+   ```
+   Used by: `Client.unaryClientInterceptor.spec` (`uiOk_call`), hence W0's `RemoteKV.*Triple`
+   and 1c's `RemoteCallTriple`.
+2. **The dial** (`grpc.NewClient(target, opts...)`): with `clientDialOpts` (the client's
+   `WithUnaryInterceptor(ui)` with `uiOk`, `WithStreamInterceptor(si)` with `siOk`, transport
+   credentials `transportCredsOk`, keepalive), `WithPerRPCCredentials` of `rpcCredsAt`, and the
+   caller's `cfg.DialOptions` (`dialOptsOk`), a connection whose `Invoke` runs the client's
+   interceptor first, then the caller's chained ones, then one `AttemptTriple` invoker per call of
+   the chain's invoker; `NewStream` runs `si`; or an error. Introductions of `dialOptsOk` for
+   Kubernetes' options: `WithChainUnaryInterceptor`/`WithChainStreamInterceptor` of interceptors
+   that call the invoker once with their arguments (grpc-prometheus's), `WithStatsHandler`
+   (otelgrpc's), `WithContextDialer`, `WithKeepaliveParams`, `WithBlock`; `dialOptsOk_nil` is 1c's.
+   Used by: `Client.dial.spec`, `New.spec`.
+3. **Status classification** (beyond W0's item 2): no definite etcd error's status has code
+   `Canceled` or `DeadlineExceeded` (`isContextError.spec`); `status.Error` of `Canceled`,
+   `DeadlineExceeded`, `Unknown` and `status.Errorf(Unimplemented, ...)` are indefinite
+   (`contextErrToGRPCErr.spec`, `siOk_call`); `errors.Is(err, rpctypes.ErrGRPCNotSupportedForLearner)`
+   true exactly for `callErr err (.etcd .notSupportedForLearner)` (`isSafeRetry.spec`).
+4. **The lease keep-alive stream** (`ApiLease.lean`'s slots `kaSendAt`, `kaRecvAt`, laws
+   `kaSendAt_send`, `kaSendAt_closeSend`, `kaSendAt_context`, `kaRecvAt_recv`): one sender and one
+   receiver at a time; `Recv` returns a fresh message or a classified error; `Context()` a context
+   (`ctxOk`). Used by: `lessor.keepAliveOnce.spec`, `lessor.resetRecv.spec`,
+   `lessor.sendKeepAliveLoop.spec`, `lessor.recvKeepAliveLoop.spec`.
+5. **Credentials and resolvers**: `credentials.NewTLS(cfg)` of a `tlsCfgOk` configuration
+   (`transportCredsOk`); `insecure.NewCredentials()`; `manual.NewBuilderWithScheme`,
+   `Resolver.UpdateState`, `Resolver.CC` (its panic before `Build` is recovered by etcd's
+   `getCC`), `Resolver.Close`; `metadata.FromOutgoingContext` for `closeRequireLeader`.
+   Used by: `credentials.*.spec`, `resolver.*.spec`, `lessor.closeRequireLeader.spec`.
+6. **A stream's open may fail with the token fetch's error** (`streamClientInterceptor` calls
+   `getToken` first): a definite refusal (`ErrAuthFailed`, ...) can be returned when opening a
+   stream (`siOk_call`'s error disjunct). W0's `RemoteKV.RangeStreamTriple` (open error:
+   `indefCall`) and 1b's watch open must admit it (`req/go_etcd_io_etcd_client_v3.md`, from 1c).

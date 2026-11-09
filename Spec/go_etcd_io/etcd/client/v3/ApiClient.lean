@@ -656,6 +656,18 @@ def clientCore_pre.spec : Prop := ∀ c γ who, clientCore (GF := GF) c γ who �
 def clientConnOk_core.spec : Prop := ∀ c γ who,
   clientCore (GF := GF) c γ who ⊢ clientConnOk c γ who
 
+/-- **A writable client's other fields are frozen** (1c realizes `clientMut` with only the `KV` field
+writable: the interceptor, `Close` and the auto-sync read the others concurrently), so a caller
+holding `clientMut` (leasing's proxy, Kubernetes before it wraps `KV`) reads them as `isClient`'s. -/
+def clientMut_fields.spec : Prop := ∀ c γ who,
+  clientMut (GF := GF) c γ who ⊢
+    (∃ v : GoInterface, c.[go_etcd_io.etcd.client.v3.Client, go!"Watcher"] ↦□ v ∗ watcherAt v γ who) ∗
+    (∃ v : GoInterface, c.[go_etcd_io.etcd.client.v3.Client, go!"Lease"] ↦□ v ∗ leaseAt v γ who) ∗
+    (∃ v : GoInterface, c.[go_etcd_io.etcd.client.v3.Client, go!"Auth"] ↦□ v ∗ authAt v γ who) ∗
+    (∃ v : GoInterface, c.[go_etcd_io.etcd.client.v3.Client, go!"Cluster"] ↦□ v ∗ clusterAt v γ who) ∗
+    (∃ v : GoInterface, c.[go_etcd_io.etcd.client.v3.Client, go!"Maintenance"] ↦□ v ∗ maintAt v γ who) ∗
+    clientMut c γ who
+
 /-- **The bundles' triples.** -/
 def authAt_methods.spec : Prop := ∀ (v : GoInterface) (γ : Cluster) (who : Principal),
   Auth.methods v (authAt (GF := GF) v γ who) γ who

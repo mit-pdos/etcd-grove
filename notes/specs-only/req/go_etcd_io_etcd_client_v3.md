@@ -34,7 +34,9 @@ spec against and realize, and its sketches need these of them:
    refreshes it and resends). When it gives up it returns the last attempt's refusal, or the
    refresh's own error (`gtErr`: `ErrAuthFailed` for a changed password or a deleted user, a
    refusal, `EtcdErr.refusal`; any other `Authenticate` error is `.other`, indefinite), and fires the
-   caller's update with that refusal itself; a repeatable call (a read, `withRepeatablePolicy`) is resent after
+   caller's update with that refusal itself. The **stream interceptor** calls `getToken` at every
+   stream open and returns its error as the open's: a refusal that fired nothing (W0's
+   `RemoteKV.RangeStreamTriple`, `KV.GetStreamTriple`, and 1b's watch streams); a repeatable call (a read, `withRepeatablePolicy`) is resent after
    `Unavailable`. With the fork's fix `8a24be2a3` a non-repeatable call returns its attempt's
    `Canceled`/`DeadlineExceeded` (`nonissues/etcd-client-retry-put-ctx-error.md`).
    Used by: `retryKVClient.*.spec`, `RetryKVClient.spec`.
@@ -263,3 +265,62 @@ The cache (`cache/cache.go`) holds the client's `KV` and `Watcher` fields (`isCl
    its own `Cache.WatchRespM`/`eventOwn`, written before 1b's landed). Whether the cache's channel
    should meet 1b's `watchChAt`/`watchStep` (making the cache a drop-in `Watcher`) is an
    integration question (batch-1g.md); no change asked of 1b now.
+
+## from 1c (to W0)
+
+Batch 1c realizes several of W0's client slots; what it needs W0 to change or confirm (each also
+an open question in `notes/specs-only/batch-1c.md`):
+
+1. **The readiness gap** (`NewKV.spec`, `kvHandle_kvAt`): `newClient` builds the members (`NewKV`,
+   `NewLease`, ...) from the connection before it sets `c.Auth`; a call made through a member then
+   would, on a token refusal, refresh the token through a `nil` `Auth` and panic. No call is made
+   then, but W0's `clientConnOk` (persistent, given to `NewKV`) yields `connOk`, with which a call
+   can be made: 1c cannot realize it so. Proposal: `clientConnOk` gives the connection and options
+   but not the right to call; `kvHandle_kvAt` (and 1c's `lessorHandle_leaseAt`, ...) take a
+   persistent `clientReady c` that `isClient` and `clientMut` give (minted when `newClient` sets
+   `Auth`). Alternative: keep W0's statements and accept the gap as a known unprovable step.
+2. **`clientMut` makes only `KV` writable** (1c's realization: the interceptor, `Close` and
+   `autoSync` read the other fields concurrently): the header's "six interface fields writable"
+   should say so; 1c adds `clientMut_fields` (the other five, read-only, with their bundles: 1e's
+   item 1 needs it).
+3. **`callOptsOk sl false` is full to capacity** (`callOptsOk_full`: every client options slice is a
+   three-element literal or `nil`), so `append(opts, withRepeatablePolicy())` allocates; the
+   `retryKVClient.Range` sketch's "unless the capacity allows" should go (an in-place append would
+   race between calls). `callOptsOk_append` is the law the sketch uses; `withRepeatablePolicy.spec`
+   gives `repOptAt`.
+4. **A stream's open may fail with a definite refusal** (the stream interceptor's `getToken` error,
+   `siOk_call`): `RemoteKV.RangeStreamTriple`'s open-error disjunct (`indefCall err`) should admit
+   `∃ e, callErr err (.etcd e) ∗ ⌜e.refusal⌝` (for a read nothing needs firing), and `kv.GetStream`'s
+   post accordingly (`ContextError` gives `errVal e`).
+5. **One read permission**: 1c's `idUpd γ` (`ApiClient.lean`: the identity update the client's own
+   `Authenticate` and `MemberList` need) is 1d's `etcdPerm γ readEff`, 1f's `etcdPeek`, 1g's: one
+   definition in `State.lean` (as 1f, 1d and 1g asked) would replace it.
+6. **The lease model** (noted, no change needed by 1c): the client specs do not use the model's
+   `.leaseKeepAlive` step (a keep-alive takes no update: it changes nothing and its answer is any
+   TTL); `examples/etcd/leaseexpiry` reads `GrantedTTL == 0` as "not found", which the model allows
+   for a found lease too (`ttl ≤ gttl` only).
+
+## from W0 (round 2): a client whose `KV` field another contract meets (for 1c, 1d, 1e)
+
+W0 added `clientRest c γ who` (persistent: everything of the client but its `KV` field) with
+`clientMut_split` (`clientMut` gives the `KV` field's points-to, writable, its current `kvAt` value,
+and `clientRest` for good), `isClient_rest`, `clientRest_conn`, `clientRest_fields`
+(`Spec/go_etcd_io/etcd/client/v3/Api.lean`). The gRPC proxy's `client.KV, _, _ =
+leasing.NewKV(client, pfx)` (1e's item 1) is then: split, call `leasing.NewKV` with `clientRest` and
+the `KV` field (it reads `client.KV` once), write the leasing KV into the field, and keep `c.KV ↦ lkv`
+(or `↦□`) with 1e's `lkvAt`. 1c's `New` returns `clientMut` as before and realizes `clientRest`
+with it; 1d and 1e cite `clientRest` where they need the client's context, lease or watcher but not
+its `KV` contract. The promoted `Client.{Get,...}` specs still need `isClient` (the `kvAt` contract).
+
+### from 1b, round 1: answers to other batches' requests
+
+* **To 1d (item 3, non-decreasing header revisions along a channel): false of the code, not
+  given.** An unsynced watcher's batch is cut at `watchBatchMaxRevs` with the header at the store's
+  revision (`server/storage/mvcc/watchable_store.go:397-401`), so a response can carry header `H`
+  with its last event `c' < H`; after a reconnect to a member at a revision in `(c', H)` the next
+  response's header is below `H`. What is given: event revisions strictly increase across
+  responses and a progress notification is never below the last event (`watchStep`); drop the
+  header order from `observeAt_recv`.
+* **To 1f (item 1)**: `Watch` returns a non-`nil` channel (`⌜ch ≠ null⌝` in `Watcher.WatchTriple`).
+* **To 1g (item 2)**: `watchRespAt_persist` (to `watchRespRO`, persistent: header and events at
+  `DFrac.discard`) and `eventOwn_persist`.

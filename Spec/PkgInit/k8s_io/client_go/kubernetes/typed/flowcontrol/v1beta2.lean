@@ -18,7 +18,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-instance : IsPkgInit (IProp GF) pkg_id.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta2 :=
+instance pkgInit_k8s_io_client_go_kubernetes_typed_flowcontrol_v1beta2 : IsPkgInit (IProp GF) pkg_id.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta2 :=
   define_is_pkg_init (pkgInitDef (GF := GF) pkg_id.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta2)
 end
 

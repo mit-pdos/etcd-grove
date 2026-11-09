@@ -20,7 +20,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-instance : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.credentials :=
+instance pkgInit_google_golang_org_grpc_credentials : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.credentials :=
   define_is_pkg_init (pkgInitDef (GF := GF) pkg_id.google_golang_org.grpc.credentials)
 end
 

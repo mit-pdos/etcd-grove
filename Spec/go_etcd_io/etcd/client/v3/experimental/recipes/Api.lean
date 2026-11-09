@@ -20,22 +20,34 @@ recipe needs its caller's updates:
   and retrying. These are `Barrier.Hold` and `Release`, `Queue.Enqueue` and `Dequeue`,
   `PriorityQueue.Enqueue` and `Dequeue`, the creation of the `RWMutex`'s key in `Lock`/`RLock`
   and its deletion in `Unlock`/`RUnlock`, `RemoteKV.Put`/`Delete` and the key helpers.
-* **Reads go through `etcdPeek γ`** (persistent): the caller's permission to look at the state
-  without changing it. From it a recipe makes the persistent update of each `Get` (a read's step
-  leaves the state unchanged, `Model.lean`'s `kvStep`) and learns `etcdLb γ σ` of the state it read.
-  Every caller can give it (its invariant holds `etcdState`; the update closes it unchanged).
-* **The double barrier's writes are a guarded permission** (`dbPerm`, persistent), not one update
-  per call: `Enter` and `Leave` send up to three writes each (a waiter key, the `ready` key, their
-  own key's deletion), none of which is the barrier's linearization; the permission lists them, one
-  for `Enter` and one for `Leave`, the `ready` key's put guarded by a revision where `count` waiters
-  were present, its delete by one where exactly one was. The caller's invariant must be stable
-  under the steps of the permissions it gives.
+* **Reads go through W0's `etcdPeek γ`** (`api/v3/State.lean`: `etcdPerm` of the transitions that
+  change nothing): from it a recipe makes the persistent update of each `Get` (a read's step leaves
+  the state unchanged, `Model.lean`'s `kvStep`) and learns `etcdLb γ σ` of the state it read.
+* **The double barrier's own keys go through one-shot updates** like the mutex's: `Enter` takes
+  one for creating this process's waiter key and one for deleting that same key (the too-many
+  path), `Leave` one for deleting it; so a caller's invariant counts the entrants and knows that a
+  waiter's key is deleted only by its own process (or its lease's expiry). **Only the `ready`
+  key's writes are a guarded permission** (`dbPerm`, W0's `etcdPerm` over `dbWrite`): its put after
+  a revision where `count` waiters were present (`Enter`'s), its delete after one where this
+  process's key was the only waiter (`Leave`'s); neither is the barrier's linearization.
 * **What a waiting call learns is a fact of the cluster's history**: `etcdLb γ σ` with a pure
   condition on `σ.kv` (the whole history is kept, `Model.lean`), anchored at a state `σ0` the caller
   passes (`etcdLb γ σ0`: "after the call started"). Combined with the caller's invariant through
   `etcdLb_reach` (the history only grows), such a fact says what happened between the call's start
   and its return: the barrier key deleted (`goneAt`), the `ready` key put, every earlier lock key
   gone (`rwHeld`).
+
+**Time-free exclusion with no lease expiry.** W0's `EnvCfg.leaseExpiry = false` (a program that
+runs a cluster whose leases outlive the run) removes the environment's lease revocations: a lock
+or waiter key then stays until its owner's call deletes it, so the revision facts above become the
+tests' exclusion: two holders of the `RWMutex` never hold at once (the later one's `rwHeld` needs
+the earlier key gone, deleted only by its `Unlock`), no `Enter` returns before `count` keys were
+created, an `Enter` on `count` held keys never returns `nil` (snippets `rwmutex.go`,
+`doublebarrier.go`). With lease expiry the same facts are revision fencing.
+
+**Errors.** Every error a recipe returns satisfies `recipeErrOk` (etcd's, a gRPC call's
+`callErr`, one of the package's sentinels, or `fmt`'s scanning error), on which `errors.Is` against
+a sentinel is safe and exact (`errorsIs_recipeErr`).
 
 **Contexts.** Every KV call the recipes make passes `context.TODO()` (or the handle's `ctx` field,
 a `context.TODO()`), which meets W0's `Context.ctxOk` and `ctxPrin ctx who` for any principal
@@ -56,15 +68,15 @@ hold `ctxOk` and `ctxPrin` of their `ctx` field for the client's principal.
   least mod revision), `frontByKey` (the priority queue's front: every key before it arrived after a
   given revision), `goneAt` (a key absent, or deleted, at a revision), `rwHeld` (no key of a range
   below a revision: the mutex's acquisition), `storeCount`, `readyPutAt`, `createdAt`.
-* The watch's events: `WatchEv` (a revision and an `Event`), `watchHist h rg rev` (every event of
-  the range `rg` in the history `h` from revision `rev` on, in order), `WatchEv.typ`, `WatchEv.kvM`
-  (the `mvccpb.Event` a watch delivers for it), `matchCount` (`waitEvents`' greedy match).
+* `lastField`, `lastKeyIn`, `seqNext s p n` (`newSequentialKV`'s next number: one past the last
+  key's number under `p` in the store `s`, by `fmt.Sscanf`'s `%d`; `0` for none); `waitersExactly`.
+* The watch's events are 1b's (`ClientV3.WEv`, `watchEvents`, `OpM.watchReq`,
+  `client/v3/ApiWatch.lean`); `WEv.typ`, `matchCount` (`waitEvents`' greedy match) are here.
 * `RecipeErr`: the package's error variables (`ErrKeyExists`, ...); `RKSt`: a `RemoteKV`'s fields;
   `okOrErr`, `putNewRet`, `deleteRevRet`: what a call returns for its request's answer.
 
 ## Resources
 
-* `etcdPeek γ` (def, persistent): see above.
 * `recipeErr e` (a Go value): the package's error `e`; laws `recipeErr_ne` (not `nil`, distinct
   from one another and from `errVal`), `init.spec` (the package variables hold them, read-only).
 * `rkOwn rk γ who st` (exclusive): the `*RemoteKV` `rk` with fields `st` (`kv` a `kvAt` value of
@@ -76,39 +88,42 @@ hold `ctxOk` and `ctxPrin` of their `ctx` field for the client's principal.
 * `dbOwn b γ who key count id my`, `rwmOwn m γ who id pfx my` (exclusive: `Enter`/`Lock` write
   `myKey`): the session's client and lease `id`, the key and count or prefix, and `myKey`'s
   `ekOwn` (`my`: `none` while `nil`).
-* `dbPerm γ who key count id leave` (def, persistent): the double barrier's writes (`dbWrite`),
-  `Enter`'s or `Leave`'s: a program that never leaves never permits the `ready` key's delete.
+* `dbPerm γ who key count own` (def, persistent): `etcdPerm` of the `ready` key's writes
+  (`dbWrite`): `Enter`'s (`own = none`, the put) or `Leave`'s (`own = some k`, the delete, `k` the
+  process's key): a program that never leaves never permits the delete.
+* `recipeErrOk err` (def, persistent): the errors the package returns.
 * **Slots of other batches** (defined here so that the statements type-check; the owner's own
   predicate replaces each at integration, `notes/specs-only/req/`):
   * `sessionAt s γ who id` (**1d**, persistent): the `*concurrency.Session` `s` of a client of `γ`
     as `who` with lease `id` (`s.Client()` returns a client `c` with `isClient c γ who`, `s.Lease()`
     returns `id`). Nothing about the lease's liveness: it may expire at any time (`Model.lean`).
-  * `watchChanAt wc γ rg rev seen` (**1b**, exclusive): the consumer of a `WatchChan` watching the
-    range `rg` from revision `rev`, having received the events `seen`; `watchChanAt_recv` is what a
-    receive gives (an error response, or events extending `seen` within the cluster's history from
-    `rev`, or the channel closed: any time). `watchEvOwn p e` (**1b/3h**, persistent): the
-    `*mvccpb.Event` `p` delivered for `e` (`watchEvOwn_unfold`).
+  The watch is 1b's own vocabulary (`watchChAt`, `watchChAt_recv`, `watchRespAt`, `eventOwn`,
+  `WatchResponse.Err.spec`), used as is.
 
 ## Laws
 
-`handles_persistent`, `recipeErr_ne`, `recipeErr_fresh`, `errorsIs_recipeErr`, `init.spec`, `ekOwn` (def), `watchChanAt_recv` (slot, 1b),
-`watchEvOwn_unfold` (slot, 1b/3h).
+`handles_persistent`, `recipeErr_ne`, `recipeErr_fresh`, `errorsIs_recipeErr`, `init.spec`;
+`ekOwn`, `dbPerm`, `recipeErrOk` are definitions.
 
 ## Requirement snippets
 
 `examples/specreq/recipes/`: `barrier.go` (hold, double hold refused, a waiter released only after
-a release, a waiter on an absent key), `queue.go` (FIFO with one producer and one consumer, every
-item dequeued once, a dequeue whose watch closes errs), `pqueue.go` (priority order with the items
-enqueued before the dequeues), `rwmutex.go` (a writer, or a reader, acquires only once the older
-writer's key is gone), `doublebarrier.go` (`Enter` returns once the `ready` key was put; `nil` only
-with fewer than `count` waiters at its first read; `Leave` after `Enter`), `watch.go` (`WaitEvents`
-returns the first delete after a revision).
+a release, a waiter on an absent key), `queue.go` (FIFO with one producer and one consumer, also a
+consumer waiting on an empty queue, every item dequeued once, a dequeue whose watch closes errs),
+`pqueue.go` (priority order with the items enqueued before the dequeues, equal priorities in
+order, every item once), `rwmutex.go` (a lock acquired only once the older writer's key is gone;
+with no lease expiry, never two holders at once), `doublebarrier.go` (`Enter` returns once the
+`ready` key was put; with no lease expiry, never before `count` entrants and never `nil` past
+`count`; `Leave` after `Enter`), `watch.go` (`WaitEvents` returns the first delete after a
+revision).
 -/
 module
 
 public import Spec.go_etcd_io.etcd.client.v3.Api
 public import Spec.PkgInit.go_etcd_io.etcd.client.v3.experimental.recipes
 public import GeneratedProof.go_etcd_io.etcd.client.v3.experimental.recipes
+public import Spec.go_etcd_io.etcd.client.v3.ApiWatch
+public import Spec.fmt.Api
 
 @[expose] public section
 
@@ -229,45 +244,36 @@ def createdAt (h : KVHist) (k v : GoString) (lease : Int) (R : Nat) : Prop :=
 def readyPutAt (h : KVHist) (key : GoString) (r : Nat) : Prop :=
   ∃ kr, Event.put (readyKey key) kr ∈ h.eventsAt r
 
-/-! ## Watch events -/
+/-- `waiters` at the store `s` are exactly the key `k`. -/
+def waitersExactly (s : EtcdModel.Store) (key k : GoString) : Prop :=
+  ∀ k', (pfxRange (waitersPfx key)).mem k' → (s k' ≠ none ↔ k' = k)
 
-/-- An event's key. -/
-def eventKey : Event → Key
-  | .put k _ => k
-  | .delete k => k
+/-- The last `/`-separated field of `k` (`strings.Split(k, "/")`'s last element). -/
+def lastField (k : GoString) : GoString := (k.reverse.takeWhile (fun b => b ≠ W8 47)).reverse
 
-/-- **An event as a watch delivers it**: the revision and the change. -/
-structure WatchEv where
-  rev : Nat
-  ev : Event
+/-- `k` is the last key of the range `rng` in `s`, in key order (`WithLastKey()`). -/
+def lastKeyIn (rng : KeyRange) (s : EtcdModel.Store) (k : Key) : Prop :=
+  rng.mem k ∧ s k ≠ none ∧ ∀ k', rng.mem k' → s k' ≠ none → keyLe k' k
+
+/-- **`newSequentialKV`'s next number under `p` at the store `s`**: `0` if no key has the prefix;
+else one past the last key's last field when that field is a decimal number below `2^63 - 1`
+(`fmt.Sscanf`'s `%d`; another field gives some number, or an error before any write). -/
+def seqNext (s : EtcdModel.Store) (p : GoString) (n : Int) : Prop :=
+  ((∀ k, (pfxRange p).mem k → s k = none) ∧ n = 0) ∨
+  ∃ k, lastKeyIn (pfxRange p) s k ∧
+    ∀ v, Fmt.decValue (lastField k) = some v → v + 1 < 2 ^ 63 → n = v + 1
+
+/-! ## Watch events (1b's `WEv`) -/
 
 /-- `mvccpb.Event_EventType`: `PUT` (0), `DELETE` (1). -/
 def evPut : w32 := W32 0
 def evDelete : w32 := W32 1
 
-def WatchEv.typ (e : WatchEv) : w32 :=
-  match e.ev with
-  | .put _ _ => evPut
-  | .delete _ => evDelete
-
-def WatchEv.key (e : WatchEv) : Key := eventKey e.ev
-
-/-- The `Kv` of the `mvccpb.Event` delivered for `e`: a put's new record; a delete's key with its
-revision as mod revision, the rest zero. -/
-def WatchEv.kvM (e : WatchEv) : KeyValueM :=
-  match e.ev with
-  | .put k kr => KeyValueM.ofKV (KV.ofRec k kr)
-  | .delete k => { key := k, createRevision := W64 0, modRevision := W64 e.rev, version := W64 0,
-                   value := [], lease := W64 0 }
-
-/-- **Every event of the range `rg` in the history `h` from revision `rev` on**, in order. -/
-def watchHist (h : KVHist) (rg : KeyRange) (rev : Nat) : List WatchEv :=
-  ((List.range (h.rev + 1)).filter (fun r => decide (rev ≤ r))).flatMap
-    (fun r => ((h.eventsAt r).filter (fun e => decide (rg.mem (eventKey e)))).map
-      (fun e => ({ rev := r, ev := e } : WatchEv)))
+/-- A delivered event's type. -/
+def WEv.typ (e : WEv) : w32 := if e.del then evDelete else evPut
 
 /-- `waitEvents`' greedy match of the types `ts` over the events `es`: how many it matched. -/
-def matchCount (ts : List w32) (es : List WatchEv) : Nat :=
+def matchCount (ts : List w32) (es : List WEv) : Nat :=
   es.foldl (fun i e => if ts[i]? = some e.typ then i + 1 else i) 0
 
 /-! ## Errors and objects -/
@@ -319,12 +325,6 @@ section res
 variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
-/-- **The caller's permission to look at the cluster's state** (persistent): an atomic update that
-leaves it unchanged. Each recipe's reads are made of it. -/
-def etcdPeek (γ : Cluster) : IProp GF :=
-  iprop(□ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-    <{ ∀∀ (σ' : State), ⌜σ' = σ⌝ ∗ etcdState γ σ', COMM True }>)
-
 /-- **A `*RemoteKV`** with fields `st` (exclusive). -/
 opaque rkOwn (rk : Loc) (γ : Cluster) (who : Principal) (st : RKSt) : IProp GF := iprop(True)
 
@@ -355,68 +355,32 @@ opaque rwmOwn (m : Loc) (γ : Cluster) (who : Principal) (id : w64) (pfx : GoStr
 (persistent). -/
 opaque sessionAt (s : Loc) (γ : Cluster) (who : Principal) (id : w64) : IProp GF := iprop(True)
 
-/-- **Slot (1b)**: the consumer of a `WatchChan` on the range `rg` from revision `rev`, having
-received the events `seen` (exclusive). -/
-opaque watchChanAt (wc : Loc) (γ : Cluster) (rg : KeyRange) (rev : Nat) (seen : List WatchEv) :
-  IProp GF := iprop(True)
-
-/-- **Slot (1b, 3h)**: the `*mvccpb.Event` `p` delivered for `e` (persistent, read-only). -/
-opaque watchEvOwn (p : Loc) (e : WatchEv) : IProp GF := iprop(True)
-
-/-- **The double barrier's writes** at the state `σ`, `Enter`'s (`leave = false`): a waiter key under
-`key/waiters` with the session's lease, created if absent; the delete of a waiter key (its own, past
-the `count`-th); the put of `key/ready` at a state whose history had `count` waiters at some
-revision. `Leave`'s (`leave = true`): the delete of a waiter key (its own); the delete of `key/ready`
-at a state whose history had exactly one waiter at some revision. The guards are what the code
-knows when it writes; they constrain a program that uses a key for one round (its history has no
-waiter before the round), not one that reuses it. -/
-def dbWrite (key : GoString) (count : Int) (id : Int) (leave : Bool) (σ : State) (rq : Req) : Prop :=
-  (∃ k, (pfxRange (waitersPfx key)).mem k ∧ rq = .deleteRange (delReq k)) ∨
-  (leave = false ∧ ∃ k, uniqueKeyIn (waitersPfx key) k ∧ rq = putNewReq k [] id) ∨
-  (leave = false ∧ rq = .put (putReq0 (readyKey key) [] 0) ∧
+/-- **The `ready` key's writes** at the state `σ`: `Enter`'s (`own = none`), its put at a state whose
+history had `count` waiters at some revision; `Leave`'s (`own = some k`, `k` the process's key), its
+delete at a state whose history had `k` as the only waiter at some revision. The guards are what
+the code knows when it writes; they constrain a program that uses a key for one round. -/
+def dbWrite (key : GoString) (count : Int) (own : Option GoString) (σ : State) (rq : Req) : Prop :=
+  (own = none ∧ rq = .put (putReq0 (readyKey key) [] 0) ∧
     ∃ r n, r ≤ σ.kv.rev ∧ storeCount (σ.kv.storeAt r) (pfxRange (waitersPfx key)) n ∧ count ≤ n) ∨
-  (leave = true ∧ rq = .deleteRange (delReq (readyKey key)) ∧
-    ∃ r, r ≤ σ.kv.rev ∧ storeCount (σ.kv.storeAt r) (pfxRange (waitersPfx key)) 1)
+  (∃ k, own = some k ∧ rq = .deleteRange (delReq (readyKey key)) ∧
+    ∃ r, r ≤ σ.kv.rev ∧ waitersExactly (σ.kv.storeAt r) key k)
 
-/-- **The caller's permission for the double barrier's writes** (persistent; see the header):
-`Enter`'s (`leave = false`) or `Leave`'s (`leave = true`). -/
-def dbPerm (γ : Cluster) (who : Principal) (key : GoString) (count : w64) (id : w64) (leave : Bool) :
+/-- **The caller's permission for the `ready` key's writes** (W0's `etcdPerm`; see the header). -/
+def dbPerm (γ : Cluster) (who : Principal) (key : GoString) (count : w64) (own : Option GoString) :
     IProp GF :=
-  iprop(□ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-    <{ ∀∀ (rq : Req) (σ' : State) (res : Resp),
-         ⌜dbWrite key (sint.Z count) (sint.Z id) leave σ rq ∧ Step who rq σ σ' res⌝ ∗ etcdState γ σ',
-       COMM True }>)
+  etcdPerm γ (fun σ σ' => ∃ rq res, dbWrite key (sint.Z count) own σ rq ∧ Step who rq σ σ' res)
+
+/-- **An error of the package** (persistent): etcd's, a gRPC call's (`callErr`, any kind), one of
+the package's sentinels, or `fmt`'s scanning error. -/
+def recipeErrOk (err : GoInterface) : IProp GF :=
+  iprop(⌜(∃ e, err = errVal e) ∨ (∃ e, err = recipeErr e)⌝ ∨ (∃ k, callErr err k) ∨
+    Fmt.scanErr err)
 
 def handles_persistent.spec : Prop :=
   (∀ b c γ who key, Persistent (barrierAt (GF := GF) b c γ who key)) ∧
   (∀ q c γ who kp, Persistent (queueAt (GF := GF) q c γ who kp)) ∧
   (∀ q c γ who key, Persistent (pqueueAt (GF := GF) q c γ who key)) ∧
-  (∀ s γ who id, Persistent (sessionAt (GF := GF) s γ who id)) ∧
-  (∀ p e, Persistent (watchEvOwn (GF := GF) p e))
-
-/-- **Slot (1b, 3h)**: what a delivered event holds: its type and its `Kv`, read-only. -/
-def watchEvOwn_unfold.spec : Prop := ∀ (p : Loc) (e : WatchEv),
-  watchEvOwn (GF := GF) p e ⊢
-    ∃ kvp : Loc, p.[go_etcd_io.etcd.api.v3.mvccpb.Event, go!"Type"] ↦□ e.typ ∗
-      p.[go_etcd_io.etcd.api.v3.mvccpb.Event, go!"Kv"] ↦□ kvp ∗ keyValueOwn kvp DFrac.discard e.kvM
-
-/-- **Slot (1b): receiving from a watch channel.** The channel closed (at any time: the context
-canceled, the client closed); or a response whose `Err()` is not `nil` (`closeErr`, a compaction,
-a cancelation); or a response with no error whose events `es` extend `seen` within the cluster's
-history of the range from `rev` (every event, in order, none skipped: a prefix of `watchHist`). -/
-def watchChanAt_recv.spec : Prop := ∀ (wc : Loc) (γ : Cluster) (rg : KeyRange) (rev : Nat)
-    (seen : List WatchEv),
-  {{ watchChanAt (GF := GF) wc γ rg rev seen }}
-    (App (Val (chan.receive go_etcd_io.etcd.client.v3.WatchResponse.ty)) (Val #wc))
-  {{ (v : go_etcd_io.etcd.client.v3.WatchResponse) (ok : Bool), RET (PairV #v #ok);
-      ⌜ok = false⌝ ∨
-      (⌜ok = true⌝ ∗ watchChanAt wc γ rg rev seen ∗
-        ⌜v.closeErr' ≠ GoInterface.nil ∨ v.CompactRevision' ≠ W64 0 ∨ v.Canceled' = true⌝) ∨
-      (⌜ok = true ∧ v.closeErr' = GoInterface.nil ∧ v.CompactRevision' = W64 0 ∧
-          v.Canceled' = false⌝ ∗
-        ∃ (es : List WatchEv) (ps : List Loc) (σ : State),
-          v.Events' ↦*□ ps ∗ ([∗list] p; e ∈ ps; es, watchEvOwn p e) ∗ etcdLb γ σ ∗
-          ⌜seen ++ es <+: watchHist σ.kv rg rev⌝ ∗ watchChanAt wc γ rg rev (seen ++ es)) }}
+  (∀ s γ who id, Persistent (sessionAt (GF := GF) s γ who id))
 
 /-- **The package's errors are fresh**: no error a gRPC call returns (`callErr`, 2a's slot) is one of
 them (they are `errors.New` values the package's initialization allocated). Realized from the
@@ -426,14 +390,15 @@ def recipeErr_fresh.spec : Prop := ∀ (err : GoInterface) (k : CallErr) (e : Re
   callErr (GF := GF) err k ⊢ ⌜err ≠ recipeErr e⌝
 
 /-- **`errors.Is(err, recipeErr e)`** (the retry loops of `newUniqueKV`, `newUniqueEphemeralKV`;
-`DoubleBarrier`'s callers): true exactly for the sentinel itself, for an error a KV call returns
-(etcd's, or an indefinite one) and for the sentinels. Realized from Perennial's `errors.Is` (a
-sentinel's `*errorString` has no `Is` or `Unwrap`; W0's `errorsIs_errVal` the same for etcd's) and
-`recipeErr_fresh`, `recipeErr_ne`. -/
+`DoubleBarrier`'s callers): on any error of the package (`recipeErrOk`), true exactly for the
+sentinel itself. Realized from Perennial's `errors.Is` (a sentinel's `*errorString` has no `Is` or
+`Unwrap`; W0's `errorsIs_errVal` the same for etcd's; `Fmt.scanErr`'s header for `fmt`'s), and
+`recipeErr_fresh`, `recipeErr_ne`. Its soundness for `callErr`'s `.other` kind rests on 2a's
+realization of `callErr` (no wrapped value with an `Is` method reaching a sentinel). -/
 def errorsIs_recipeErr.spec : Prop :=
   ∀ (err : GoInterface) (e : RecipeErr),
   {{ isPkgInit (PROP := IProp GF) pkg_id.errors ∗
-      (⌜(∃ e', err = errVal e') ∨ (∃ e', err = recipeErr e')⌝ ∨ indefCall err) }}
+      recipeErrOk err }}
     (App (App (Val (@! errors.Is)) (Val #err)) (Val #(recipeErr e)))
   {{ (b : Bool), RET #b; ⌜b = true ↔ err = recipeErr e⌝ }}
 

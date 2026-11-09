@@ -111,3 +111,34 @@ Used by: `watchGRPCStream.run.spec` (through `deliverOk`), hence every fact of `
 (`watcher.Watch.spec`, `Client.Watch.spec`) and the snippets `examples/specreq/clientv3watch/`.
 `WithRequireLeader` (`ctxRequireLeader`, W0's slot) needs nothing of safety: closing a stream whose
 member lost its leader is liveness; the client ends its watches with that error (`closeErr`).
+
+## from 1c
+
+The lease, auth, cluster and maintenance services, as 1c's wire contract (`RemoteCallTriple`,
+`ApiClient.lean`) and the interceptor (`AttemptTriple`) need them:
+
+1. **Every answer is a `Step`** of the request's model (`Model.lean`'s `leaseStep`, `authStep`,
+   `clusterStep`), as W0's item 2 for KV; a **repeatable** RPC (`reqRetryRep`: lease grant, revoke,
+   time-to-live, leases, user/role get and list, member list, alarm) takes a persistent update and
+   may fire it on every attempt the client resends (a resent grant grants again).
+2. **Unfired refusals**: a request refused for its token (`ErrInvalidAuthToken`,
+   `ErrAuthOldRevision`, `ErrUserEmpty`) or by a learner (`ErrGRPCNotSupportedForLearner`, the
+   interceptor before the handler) returns the caller's update unfired (the client resends or fires
+   the refusal itself). Used by: `AttemptTriple`, `uiOk_call`.
+3. **`LeaseTimeToLive` of an unknown lease** is the reply `TTL = -1`, `GrantedTTL = 0`, the
+   request's `ID` (the handler's mapping of `ErrLeaseNotFound`), fired as the model's
+   `.err .leaseNotFound` answer (`leaseTTLReply`). `LeaseLeases`' `ErrLeaseNotFound`: an empty list.
+4. **`LeaseKeepAlive`'s responses** carry the request's `ID` (`resp.ID = req.ID`) and the renewed
+   TTL, `0` for an unknown lease. Used by: `lessor.keepAliveOnce.spec`, `kaChan`'s values.
+5. **`Authenticate`'s reply** gives `tokenOf γ tok name` (the token issued names the user that
+   authenticated; 3d's token providers). Used by: `authReply`, `Client.getToken.spec`.
+
+### from 1b, round 1 (changes to the above)
+
+* Item 6 (fragments) is now formal: `WireSt.frag` records the pending fragment's **id**; while a
+  fragment is pending, the next response is of that id and neither a creation nor a cancel.
+* Item 1: a registration from start `0` is at `WatchPos.init 0 H` with `H` the `Created` header's
+  revision: **every event of the range above `H` is sent** (the member registers at `R ≤ H`, so
+  its events start at `R + 1 ≤ H + 1`).
+* Progress and compaction revisions are the header's / `CompactRevision`'s `sint.Z` value (no
+  wrap-around).

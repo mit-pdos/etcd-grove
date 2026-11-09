@@ -18,7 +18,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-instance : IsPkgInit (IProp GF) pkg_id.github_com.prometheus.client_golang.prometheus :=
+instance pkgInit_github_com_prometheus_client_golang_prometheus : IsPkgInit (IProp GF) pkg_id.github_com.prometheus.client_golang.prometheus :=
   define_is_pkg_init (pkgInitDef (GF := GF) pkg_id.github_com.prometheus.client_golang.prometheus)
 end
 

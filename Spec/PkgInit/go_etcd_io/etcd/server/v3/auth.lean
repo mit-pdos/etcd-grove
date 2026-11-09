@@ -35,7 +35,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-instance : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth :=
+instance pkgInit_go_etcd_io_etcd_server_v3_auth : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth :=
   define_is_pkg_init (pkgInitDef (GF := GF) pkg_id.go_etcd_io.etcd.server.v3.auth)
 end
 

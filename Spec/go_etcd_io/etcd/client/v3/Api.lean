@@ -431,8 +431,9 @@ def CallErr.indefinite : CallErr → Bool
 pages read at one pinned revision): only the last chunk carries a header (the answer's revision),
 `More` and `Count`; every earlier chunk has key-values; at the default ordering and with no
 revision filter the chunks' key-values, in order, are the answer's, and the last chunk's `More` and
-`Count` are its (the server adds the count of the keys not streamed). A sorted stream is sorted
-page by page (`issues/etcd-rangestream-sort-none.md`): its contents are not modelled. -/
+`Count` are its (the server adds the count of the keys not streamed). The server refuses a custom
+order or a revision filter (`Unimplemented`, an `.other` error), except a non-key target with no
+order (`issues/etcd-rangestream-sort-none.md`): those contents are not modelled. -/
 def streamMatches (r : RangeReq) (ms : List RangeRespM) (rev : Nat) (a : RangeAns) : Prop :=
   ∃ last, ms.getLast? = some last ∧ last.hdr.map (·.revision) = some (W64 rev) ∧
     (∀ m ∈ ms.dropLast, m.hdr = none ∧ m.more = false ∧ m.count = W64 0 ∧ m.kvs ≠ []) ∧
@@ -478,6 +479,12 @@ opaque isClient (c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(T
 opaque clientMut (c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 /-- The rest of a `clientMut`: everything but the `KV` field. -/
 opaque clientMutRest (c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+/-- **Everything of the client `c` but its `KV` field, for good** (persistent): its connection, call
+options, context and logger, and its other interface fields (as `isClient_fields`). What a caller
+holds that replaced `c.KV` by a value meeting another contract (leasing's `lkvAt`, 1e: the gRPC
+proxy's `client.KV, _, _ = leasing.NewKV(client, pfx)`), and what `leasing.NewKV` reads while the
+`KV` field is still writable. -/
+opaque clientRest (c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 
 /-- **A `Txn` under construction** (exclusive). -/
 opaque txnAt (iv : GoInterface) (γ : Cluster) (who : Principal) (ctx : GoInterface) (st : TxnSt) :
@@ -519,10 +526,11 @@ opaque ctxRequireLeader (ctx : GoInterface) : IProp GF := iprop(True)
 authenticates them as `who` (the client's own credentials), or refuses them (an invalid token):
 `ctx` carries no `token`/`authorization` outgoing metadata of its own naming another user (the
 server takes the principal from the request's metadata, `auth/store.go`, `AuthInfoFromCtx`).
-Introduced for contexts with no metadata (`ctxPrin_of_isContext`, `ctxPrin_background`,
-`ctxPrin_todo`), kept by children (`ctxPrin_child`), by `WithRequireLeader` and `withVersion`
-(their specs); a context a caller builds with its own metadata needs an introduction of its own
-(grpc's `metadata`, 2a). -/
+Introduced for contexts with no gRPC outgoing metadata (`ctxPrin_of_noMeta` from
+`Context.ctxNoMeta`, which a root context's owner discharges; `ctxPrin_background`,
+`ctxPrin_todo`), kept by children (`ctxPrin_child`), by a `WithValue` at another key
+(`ctxPrin_value`), by `WithRequireLeader` and `withVersion` (their specs); a context a caller builds
+with grpc metadata of its own needs an introduction from grpc's `metadata` (2a). -/
 opaque ctxPrin (ctx : GoInterface) (who : Principal) : IProp GF := iprop(True)
 
 /-- **An error of a call that settles nothing**: a gRPC error of an indefinite kind (a context's
@@ -693,11 +701,15 @@ def KV.DoTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal) : Prop
 
 /-- **`GetStream(ctx, key, opts...)`**: the range `OpGet(key, opts...)` builds, answered in chunks
 on a channel (`streamAt`), read by a goroutine (the caller's thread token); the caller's update
-persistent. An error opening the stream settles nothing. -/
+persistent. An error opening the stream is indefinite, or a refusal that fired nothing (the stream
+interceptor re-authenticates at every open: `ErrAuthFailed`, ...). The revision asked is not
+negative (`nonissues/etcd-rangestream-negative-revision-unpinned.md`: such a stream is read at a
+new revision on every page). -/
 def KV.GetStreamTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal) : Prop :=
   ∀ (ctx : GoInterface) (key : GoString) (opts : GoSlice) (gs : List (OpM → OpM))
     (Q : State → State → Resp → IProp GF),
   {{ P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ optsAt opts gs ∗ ⌜¬ prefixAndFromKey gs⌝ ∗ threadTok ∗
+      ⌜0 ≤ sint.Z (opGetM key gs).rev⌝ ∗
       □ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
         <{ ∀∀ (σ' : State) (res : Resp),
              ⌜Step who (.range (opGetM key gs).rangeReq) σ σ' res⌝ ∗ etcdState γ σ',
@@ -705,7 +717,8 @@ def KV.GetStreamTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal)
     (App (App (App (Val f) (Val #ctx)) (Val #key)) (Val #opts))
   {{ (ch : Loc) (err : GoInterface), RET (PairV #ch #err); optsAt opts gs ∗
       ((⌜err = GoInterface.nil⌝ ∗ streamAt ch γ who (opGetM key gs).rangeReq Q [] false) ∨
-       (⌜ch = null⌝ ∗ indefCall err ∗ threadTok)) }}
+       (⌜ch = null⌝ ∗ threadTok ∗
+         (indefCall err ∨ ⌜∃ e : EtcdErr, e.refusal = true ∧ err = errVal e⌝))) }}
 
 /-- **`Txn(ctx)`**: a new transaction over `ctx`, nothing set. -/
 def KV.TxnTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal) : Prop :=
@@ -775,13 +788,15 @@ def RemoteKV.RangeStreamTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Pr
   ∀ (ctx : GoInterface) (req : Loc) (dq : DFrac) (r : RangeReq) (opts : GoSlice) (rep : Bool)
     (Q : State → State → Resp → IProp GF),
   {{ P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ rangeReqOwn req dq r ∗ callOptsOk opts rep ∗
+      ⌜0 ≤ r.revision⌝ ∗
       □ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
         <{ ∀∀ (σ' : State) (res : Resp), ⌜Step who (.range r) σ σ' res⌝ ∗ etcdState γ σ',
            COMM Q σ σ' res }> }}
     (App (App (App (Val f) (Val #ctx)) (Val #req)) (Val #opts))
   {{ (sc : GoInterface) (err : GoInterface), RET (PairV #sc #err); rangeReqOwn req dq r ∗
       ((⌜err = GoInterface.nil⌝ ∗ wireStreamAt sc γ who r Q []) ∨
-       (⌜sc = GoInterface.nil⌝ ∗ indefCall err)) }}
+       (⌜sc = GoInterface.nil⌝ ∗
+         (indefCall err ∨ ∃ e : EtcdErr, ⌜e.refusal = true⌝ ∗ callErr err (.etcd e)))) }}
 
 def RemoteKV.PutTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal) : Prop :=
   ∀ (ctx : GoInterface) (req : Loc) (dq : DFrac) (r : PutReq) (opts : GoSlice)
@@ -846,7 +861,8 @@ def handles_persistent.spec : Prop :=
   (∀ op o, Persistent (opAt (GF := GF) op o)) ∧
   (∀ c m, Persistent (cmpAt (GF := GF) c m)) ∧
   (∀ err k, Persistent (callErr (GF := GF) err k)) ∧
-  (∀ ctx who, Persistent (ctxPrin (GF := GF) ctx who))
+  (∀ ctx who, Persistent (ctxPrin (GF := GF) ctx who)) ∧
+  (∀ c γ who, Persistent (clientRest (GF := GF) c γ who))
 
 /-- **What `opAt` means**: the `Op` struct's fields (its byte slices, sort option, comparisons
 and nested operations read-only; `end` `nil` exactly when no range end is set). -/
@@ -933,6 +949,26 @@ def clientMut_conn.spec : Prop := ∀ c γ who, clientMut (GF := GF) c γ who �
 
 def clientMut_freeze.spec : Prop := ∀ c γ who, clientMut (GF := GF) c γ who ⊢ |==> isClient c γ who
 
+/-- **Freeze all but the `KV` field**: the field stays the caller's (writable, any value), the rest
+for good. -/
+def clientMut_split.spec : Prop := ∀ c γ who,
+  clientMut (GF := GF) c γ who ⊢ |==> ∃ v : GoInterface,
+    c.[go_etcd_io.etcd.client.v3.Client, go!"KV"] ↦ v ∗ kvAt v γ who ∗ clientRest c γ who
+
+def clientRest_persistent.spec : Prop := ∀ c γ who, Persistent (clientRest (GF := GF) c γ who)
+
+def isClient_rest.spec : Prop := ∀ c γ who, isClient (GF := GF) c γ who ⊢ clientRest c γ who
+
+def clientRest_conn.spec : Prop := ∀ c γ who, clientRest (GF := GF) c γ who ⊢ clientConnOk c γ who
+
+def clientRest_fields.spec : Prop := ∀ c γ who,
+  clientRest (GF := GF) c γ who ⊢
+    (∃ v : GoInterface, c.[go_etcd_io.etcd.client.v3.Client, go!"Watcher"] ↦□ v ∗ watcherAt v γ who) ∗
+    (∃ v : GoInterface, c.[go_etcd_io.etcd.client.v3.Client, go!"Lease"] ↦□ v ∗ leaseAt v γ who) ∗
+    (∃ v : GoInterface, c.[go_etcd_io.etcd.client.v3.Client, go!"Auth"] ↦□ v ∗ authAt v γ who) ∗
+    (∃ v : GoInterface, c.[go_etcd_io.etcd.client.v3.Client, go!"Cluster"] ↦□ v ∗ clusterAt v γ who) ∗
+    (∃ v : GoInterface, c.[go_etcd_io.etcd.client.v3.Client, go!"Maintenance"] ↦□ v ∗ maintAt v γ who)
+
 /-- The bundle's triples. -/
 def kvAt_methods.spec : Prop := ∀ (v : GoInterface) (γ : Cluster) (who : Principal),
   KV.PutTriple (v @!! go_etcd_io.etcd.client.v3.KV.ty @!! go!"Put") (kvAt (GF := GF) v γ who) γ who ∧
@@ -978,11 +1014,12 @@ def retryKVHandle_remoteKVAt.spec : Prop := ∀ rkv γ who,
       γ who
 
 /-- **Receiving from `GetStream`'s channel**: a chunk (its message owned), or the terminal error
-chunk (a linearized error; `ErrCompacted` after a chunk, when the revision the server pinned at the
-first chunk was compacted before a later one, with no `Q`: the caller relists; or one that settles
-nothing), or, the channel closed after the last chunk, the caller's `Q` with the answer the chunks
+chunk (a linearized error; `ErrCompacted` with no `Q`, when the revision the server pinned at the
+first page was compacted before a later read, possibly before any chunk: the caller relists; or
+one that settles nothing), or, the channel closed after the last chunk, the caller's `Q` with the answer the chunks
 make (`streamMatches`). After the terminal error the channel is closed: nothing more. If the
-consumer stops receiving, the reading goroutine blocks for good and keeps its thread token
+consumer stops receiving with two or more chunks still to come (the channel holds one), the
+reading goroutine blocks for good and keeps its thread token
 (`nonissues/etcd-client-getstream-abandoned-leak.md`). -/
 def streamAt_recv.spec : Prop := ∀ (ch : Loc) (γ : Cluster) (who : Principal) (r : RangeReq)
     (Q : State → State → Resp → IProp GF) (ms : List RangeRespM) (fin : Bool),
@@ -995,8 +1032,9 @@ def streamAt_recv.spec : Prop := ∀ (ch : Loc) (γ : Cluster) (who : Principal)
             rangeRespOwn v.RangeResponse' (DFrac.own 1) m ∗ streamAt ch γ who r Q (ms ++ [m]) false) ∨
         (⌜v.RangeResponse' = null⌝ ∗ streamAt ch γ who r Q ms true ∗
           ((∃ (σ σ' : State) (e : EtcdErr), Q σ σ' (.err e) ∗ ⌜v.closeErr' = errVal e⌝) ∨
-           -- the revision the server pinned at the first chunk was compacted before a later one
-           ⌜ms ≠ [] ∧ v.closeErr' = errVal .compacted⌝ ∨
+           -- the revision the server pinned at the first page was compacted before a later read
+           -- (a later page, or the count of the rest before the first chunk is sent)
+           ⌜v.closeErr' = errVal .compacted⌝ ∨
            indefCall v.closeErr'))
       else ∃ (σ σ' : State) (rev : Nat) (a : RangeAns),
         Q σ σ' (.ok (.range rev a)) ∗ ⌜streamMatches r ms rev a⌝ }}
@@ -1017,15 +1055,29 @@ def wireStreamAt_recv.spec : Prop := ∀ (sc : GoInterface) (γ : Cluster) (who 
          ∃ (σ σ' : State) (rev : Nat) (a : RangeAns),
            Q σ σ' (.ok (.range rev a)) ∗ ⌜streamMatches r ms rev a⌝) ∨
       (⌜p = null⌝ ∗ ((∃ (σ σ' : State) (e : EtcdErr), Q σ σ' (.err e) ∗ callErr err (.etcd e)) ∨
-         (⌜ms ≠ []⌝ ∗ callErr err (.etcd .compacted)) ∨
+         callErr err (.etcd .compacted) ∨
          indefCall err)) }}
 
 def ctxPrin_persistent.spec : Prop := ∀ ctx who, Persistent (ctxPrin (GF := GF) ctx who)
 
-/-- Perennial's contexts carry no metadata. -/
-def ctxPrin_of_isContext.spec : Prop :=
-  ∀ (c : GoInterfaceOk) (s : context.ContextDesc (IProp GF)) (who : Principal),
-  context.isContext c s ⊢ ctxPrin (GoInterface.ok c) who
+/-- A context with no gRPC outgoing metadata (`Context.ctxNoMeta`, dischargeable by whoever owns
+a root context) carries no token: its requests are the client's. -/
+def ctxPrin_of_noMeta.spec : Prop := ∀ ctx who,
+  Context.ctxNoMeta (GF := GF) ctx ⊢ ctxPrin ctx who
+
+/-- A `WithValue` at a key that is not grpc's outgoing-metadata key keeps it. -/
+def ctxPrin_value.spec : Prop := ∀ (ctx ctx' : GoInterface) (ki : GoInterfaceOk) (who : Principal),
+  ctxPrin (GF := GF) ctx who ∗ Context.ctxValueAt ctx ctx' (GoInterface.ok ki) ∗
+    ⌜ki.ty ≠ google_golang_org.grpc.metadata.mdOutgoingKey.ty⌝ ⊢ ctxPrin ctx' who
+
+/-- **A client call's error is no package's own `errors.New` value** (1d's `ErrLocked`, the
+recipes' sentinels): of the `*errors.errorString` errors, a call returns only `context.Canceled`'s
+(2a: gRPC's errors are statuses, etcd's `EtcdError`s, a deadline `deadlineExceededError`). A
+caller tells its sentinel `x.[errorString, "s"] ↦□ msg` apart by its message. -/
+def callErr_errorsNew.spec : Prop := ∀ (err : GoInterface) (k : CallErr) (x : Loc),
+  callErr (GF := GF) err k ∗
+    ⌜err = interface.mkOk (go.GoType.PointerType errors.errorString.ty) #x⌝ ⊢
+  globalAddr context.Canceled ↦□ err
 
 def ctxPrin_background.spec : Prop := ∀ who,
   ⊢ ctxPrin (GF := GF) (GoInterface.ok context.backgroundCtxVal) who

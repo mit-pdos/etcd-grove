@@ -68,3 +68,6 @@
    Used by: `New.spec`, `Cache.get.spec`, `Cache.serverRevision.spec`.
 2. **Revisions only grow** (`Reach σ σ' → σ.kv.rev ≤ σ'.kv.rev`, a pure lemma the cache proves
    itself; noted, no request): `Cache.serverRevision.spec`'s `σ0.kv.rev ≤ σ1.kv.rev`.
+4. (1b, round 1) **A bound law on reached states**: `etcdLb γ σ ⊢ ⌜σ.kv.rev < 2^63 ∧
+   σ.kv.compacted ≤ σ.kv.rev⌝`, so that a watch consumer without the owner's invariant (Kubernetes'
+   watcher) can compare revisions it reads (`etcdState_revFits` gives it only at the current state).

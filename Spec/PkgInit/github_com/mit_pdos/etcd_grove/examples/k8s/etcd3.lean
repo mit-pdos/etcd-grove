@@ -38,7 +38,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-instance : IsPkgInit (IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 :=
+instance pkgInit_github_com_mit_pdos_etcd_grove_examples_k8s_etcd3 : IsPkgInit (IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 :=
   define_is_pkg_init (pkgInitDef (GF := GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3)
 end
 

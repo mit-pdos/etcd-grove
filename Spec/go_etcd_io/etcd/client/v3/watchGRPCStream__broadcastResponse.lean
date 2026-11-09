@@ -30,7 +30,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 def watchGRPCStream.broadcastResponse.spec : Prop :=
   ∀ (s : Loc) (γ : Cluster) (who : Principal) (r : RunM) (wr : Loc)
     (v : go_etcd_io.etcd.client.v3.WatchResponse) (mw : WatchRespM),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ wgsRun s γ who r ∗ wr ↦□ v ∗ watchRespAt v mw ∗ deliverOk s γ who (-1) mw ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ wgsRun s γ who r ∗ wr ↦□ v ∗ watchRespAt v mw ∗ deliverOk s γ who none mw ∗
       ⌜mw.events = []⌝ }}
     (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchGRPCStream.ty @!! go!"broadcastResponse")) (Val #wr))
   {{ (ok : Bool), RET #ok; ⌜ok = true⌝ ∗ wgsRun s γ who r }}

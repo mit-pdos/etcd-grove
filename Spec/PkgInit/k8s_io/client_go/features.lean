@@ -28,7 +28,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-instance : IsPkgInit (IProp GF) pkg_id.k8s_io.client_go.features :=
+instance pkgInit_k8s_io_client_go_features : IsPkgInit (IProp GF) pkg_id.k8s_io.client_go.features :=
   define_is_pkg_init (pkgInitDef (GF := GF) pkg_id.k8s_io.client_go.features)
 end
 

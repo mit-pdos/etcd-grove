@@ -24,23 +24,28 @@ through every response.
 
 The facts are stated by **`watchStep who w σ σa p m p'`** (pure): the response `m` received at the
 watch position `p` leaves it at `p'`, read against the reached states `σ` (the history) and `σa`
-(the auth state that admitted the watch). The **position** `WatchPos` records how far the watch
-is known complete (`done`: every event of the range up to that revision has been delivered;
-`none` for a watch from the current revision before its first event or progress), whether a
-response arrived (`started`: a `Created` response comes first or never) and whether the watch
-ended (`ended`: after an error response only error responses, then the channel closes).
+(an auth state that admitted the watch). The **position** `WatchPos` records how far the watch is
+known complete (`done`: every event of the range up to that revision has been delivered; `none`
+for a watch from the current revision before its first event), its **floor** (a watch from the
+current revision: every event above it is delivered), whether a response arrived (`started`: a
+`Created` response comes first or never) and whether the watch ended (`ended`: after an error
+response only `closeErr` responses, then the channel closes).
 
-The positions start at `WatchPos.init rev`: a watch from `rev > 0` is complete up to `rev - 1`
-(its events start at `rev`: the fork's fix of `issues/etcd-watch-resume-below-start-revision.md`
-keeps a resumed watch at or above it); a watch from the current revision (`rev = 0`) starts
-unknown (`none`), and its first event fixes it (not a progress notification). Why not "the
-member's revision at creation": after a reconnect before any event the client resumes such a
-watch from the creation's header revision `H`, not `H + 1` (`serveSubstream`: `nextRev =
-wr.Header.Revision`), so it may deliver revision `H`'s events, which precede the watch; a revision
-between the member's registration and its header read may be skipped then; and a progress
-notification computed in that window is below `H`, so the resume may skip events it claimed were
-still to come. None of these breaks "complete from its first event on" (findings of 1b, in its
-report).
+The positions start at `WatchPos.init rev r0` (`Watch`'s post): a watch from `rev > 0` is complete
+up to `rev - 1` (its events start at `rev`: the fork's fix of
+`issues/etcd-watch-resume-below-start-revision.md` keeps a resumed watch at or above it); a watch
+from the current revision (`rev = 0`) has an unknown position and the floor `r0`, a revision the
+cluster had reached when `Watch` returned (`Watch` returns only once the member's `Created`
+response, at header `H ≤ r0`, has set the resume revision to `H`): its first event is at most
+`r0 + 1`, and from there on it is complete. Not "complete from the member's revision at
+creation": after a reconnect before any event the client resumes from `H`, not `H + 1`
+(`serveSubstream`: `nextRev = wr.Header.Revision`), so it may deliver revision `H`'s events, which
+precede the watch (`issues/etcd-watch-current-resume-past-event.md`); a revision between the
+member's registration and its header read may be skipped then; and a progress notification
+computed in that window is below `H`, so a progress does not fix an unknown position.
+
+A watch's channel may also end at once (`WatchPos.closed`: a closed watcher, a done context, a
+stream that ended before the watch was registered), with at most one error response.
 
 ## Vocabulary
 
@@ -74,7 +79,8 @@ Resources:
   in full when the response has events; read-only otherwise: a progress notification's header is
   shared by every substream it was broadcast to), its events owned in full (Kubernetes' etcd3
   watcher and the namespace wrapper rewrite them; `concurrency.Election.Observe` writes the
-  header's revision). Law: `watchRespAt_fields`.
+  header's revision). Laws: `watchRespAt_fields`; `watchRespAt_persist` (to the read-only
+  `watchRespRO`, persistent), `eventOwn_persist`.
 * `eventOwn p dq e`: an `mvccpb.Event` message (`eventOwn_unfold`; with W0's `keyValueOwn`).
   Offered to `api/v3/Wire.lean` (W0/3h): 2b builds these.
 * `closeErrOk e k` (persistent): `e` is `nil` (`k = none`) or an error that `rpctypes.Error` maps
@@ -203,25 +209,35 @@ delivered (`none`: not yet known, a watch from the current revision); `started`,
 received; `ended`, an error response was received. -/
 structure WatchPos where
   done : Option Nat
+  floor : Option Nat
   started : Bool
   ended : Bool
 
-/-- A new watch from the revision `rev`. -/
-def WatchPos.init (rev : Int) : WatchPos :=
-  { done := if 0 < rev then some (rev.toNat - 1) else none, started := false, ended := false }
+/-- A new watch from the revision `rev`; `r0` a revision the cluster had reached when `Watch`
+returned (the floor of a watch from the current revision: every event above it is delivered). -/
+def WatchPos.init (rev : Int) (r0 : Nat) : WatchPos :=
+  { done := if 0 < rev then some (rev.toNat - 1) else none,
+    floor := if 0 < rev then none else some r0, started := false, ended := false }
+
+/-- A watch whose channel delivers at most one error response, then closes (`Watch` on a closed
+watcher, a done context, a stream that ended). -/
+def WatchPos.closed (rev : Int) : WatchPos :=
+  { WatchPos.init rev 0 with ended := true }
 
 /-- **What a response of the watch `w` says**, received at the position `p` and leaving it at `p'`,
-read against the reached states `σ` (the history) and `σa` (the auth state that admitted the watch
-of the principal `who`):
+read against the reached states `σ` (the history) and `σa` (an auth state that admitted the watch
+of the principal `who`: the member's applied one when it registered the watch, so any state the
+cluster reached, a lagging member's included):
 
-* every response's header revision has been reached;
-* after an error, only errors (no events);
-* an **error** (`Err() != nil`) ends the watch; a compaction (`CompactRevision` set, no `closeErr`)
-  says the next revision the watch needs is below a compaction of the cluster;
+* every response's header revision has been reached; the floor never changes;
+* after an error, only `closeErr` responses (header `0`, no compaction, no events);
+* an **error** (`Err() != nil`) ends the watch; a `closeErr` one has header `0` and no compaction;
+  a compaction (`CompactRevision` set, then no `closeErr`) says the next revision the watch needs
+  is below a compaction of the cluster;
 * a **`Created`** response only first, and only with `WithCreatedNotify`;
 * a response **with events**: exactly the watch's events of the revisions from just after `p`'s
-  (from some revision, if `p`'s is unknown) to the last event's, all of them reached, and the
-  principal was permitted to read the range;
+  (if `p`'s is unknown: from some revision at most the floor's + 1) to the last event's, all of
+  them reached, and the principal was permitted to read the range;
 * a **progress notification** (no events, a header revision `P`): nothing of the watch's since `p`'s
   revision up to `P`, and `P` is not below it (a watch whose position is still unknown learns
   nothing from it: after a reconnect such a watch resumes from its creation's header revision,
@@ -229,25 +245,28 @@ of the principal `who`):
 * any other response (no events, header revision `0`): nothing. -/
 def watchStep (who : Principal) (w : WatchReq) (σ σa : State) (p : WatchPos) (m : WatchRespM)
     (p' : WatchPos) : Prop :=
-  sint.Z m.hdr.revision ≤ (σ.kv.rev : Int) ∧ p'.started = true ∧
+  sint.Z m.hdr.revision ≤ (σ.kv.rev : Int) ∧ p'.started = true ∧ p'.floor = p.floor ∧
   if p.ended = true then
-    m.isErr ∧ m.events = [] ∧ m.canceled = true ∧ p'.done = p.done ∧ p'.ended = true
+    m.closeErr ≠ none ∧ m.compactRev = W64 0 ∧ m.hdr.revision = W64 0 ∧ m.events = [] ∧
+    m.canceled = true ∧ p'.done = p.done ∧ p'.ended = true
   else if m.isErr then
     m.events = [] ∧ m.canceled = true ∧ m.created = false ∧ p'.done = p.done ∧ p'.ended = true ∧
-    (m.closeErr = none → ∃ cr : Nat, m.compactRev = W64 cr ∧ cr ≤ σ.kv.compacted ∧
-      ∀ c, p.done = some c → c + 1 < cr)
+    (m.closeErr ≠ none → m.compactRev = W64 0 ∧ m.hdr.revision = W64 0) ∧
+    (m.compactRev ≠ W64 0 → m.closeErr = none ∧ ∃ cr : Nat, sint.Z m.compactRev = cr ∧
+      cr ≤ σ.kv.compacted ∧ ∀ c, p.done = some c → c + 1 < cr)
   else if m.created = true then
     p.started = false ∧ w.createdNotify = true ∧ m.events = [] ∧ m.canceled = false ∧
     p'.done = p.done ∧ p'.ended = false
   else if m.events = [] then
     m.canceled = false ∧ p'.ended = false ∧
     (if m.hdr.revision = W64 0 then p'.done = p.done
-     else ∃ P : Nat, m.hdr.revision = W64 P ∧
+     else ∃ P : Nat, sint.Z m.hdr.revision = P ∧
        (∀ c, p.done = some c → c ≤ P ∧ watchEvents w σ.kv (c + 1) P = []) ∧
        p'.done = p.done.map (fun _ => P))
   else
     m.canceled = false ∧ p'.ended = false ∧ σa.permits who [(.read, w.range)] [] ∧
-    ∃ lo c' : Nat, (∀ c, p.done = some c → lo = c + 1) ∧ lo ≤ c' ∧
+    ∃ lo c' : Nat, (∀ c, p.done = some c → lo = c + 1) ∧
+      (∀ f, p.done = none → p.floor = some f → lo ≤ f + 1) ∧ lo ≤ c' ∧
       (c' : Int) ≤ sint.Z m.hdr.revision ∧
       List.Forall₂ (EventM.isOf w σ.kv) m.events (watchEvents w σ.kv lo c') ∧
       m.events.getLast?.map (fun e => e.kv.modRevision) = some (W64 c') ∧ p'.done = some c'
@@ -290,13 +309,13 @@ def WireWatchRespM.toResp (m : WireWatchRespM) (evs : List EventM) : WatchRespM 
     closeErr := none }
 
 /-- **A stream's state** as its responses so far made it: how many creates were answered, the live
-registrations (id, watch, position), the events of fragments not yet completed. -/
+registrations (id, watch, position), the id and events of fragments not yet completed. -/
 structure WireSt where
   answered : Nat
   regs : List (Int × WatchReq × WatchPos)
-  frag : List EventM
+  frag : Option (Int × List EventM)
 
-def WireSt.init : WireSt := { answered := 0, regs := [], frag := [] }
+def WireSt.init : WireSt := { answered := 0, regs := [], frag := none }
 
 /-- The registration of an id. -/
 def WireSt.reg (st : WireSt) (id : Int) : Option (WatchReq × WatchPos) :=
@@ -312,10 +331,12 @@ what was sent, containing every request the member read before answering) and th
 made the state `st`; `st'` the state after it. `σ`, `σa` reached states as in `watchStep`.
 
 * a fragment (`Fragment` set) carries part of a response's events: the next responses up to the
-  first without `Fragment` are of the same id, and together they are one response;
+  first without `Fragment` are of the same id (`WireSt.frag` records it), none a creation or a
+  cancel, and together they are one response;
 * `Created` answers the oldest unanswered create: refused (`Canceled`, with a reason: an auth
   check, a negative start revision, an empty range), or registered under a fresh id, the principal
-  permitted to read the range, at the position the start revision gives;
+  permitted to read the range, at the position the start revision gives (from `0`: the floor is the
+  creation's header revision: every event above it is sent);
 * `Canceled` without compaction ends the id's registration (a cancel's answer);
 * the id `-1` (no events, not created, canceled or compacted): a progress notification for every
   registration (each `watchStep`'s progress case at the same header);
@@ -323,31 +344,37 @@ made the state `st`; `st'` the state after it. `σ`, `σa` reached states as in 
 * an id with none (canceled, or a stale one): nothing. -/
 def wireStep (who : Principal) (σ σa : State) (ss : List WireWatchReq) (st : WireSt)
     (m : WireWatchRespM) (st' : WireSt) : Prop :=
-  let evs := st.frag ++ m.events
+  let evs := (st.frag.map (·.2)).getD [] ++ m.events
+  -- a pending fragment: the next response is of its id, neither a creation nor a cancel
+  (∀ id fe, st.frag = some (id, fe) → m.watchId = id ∧ m.created = false ∧ m.canceled = false) ∧
   if m.fragment = true then
-    m.created = false ∧ m.canceled = false ∧ (st.frag ≠ [] → ∃ id w p, st.reg id = some (w, p)) ∧
-    st' = { st with frag := evs }
+    m.created = false ∧ m.canceled = false ∧ st' = { st with frag := some (m.watchId, evs) }
   else if m.created = true then
     ∃ w s, (WireWatchReq.creates ss)[st.answered]? = some (w, s) ∧ evs = [] ∧
       sint.Z (m.hdr.getD HeaderM.zero).revision ≤ (σ.kv.rev : Int) ∧
       (if m.canceled = true then
-         m.watchId = -1 ∧ m.cancelReason ≠ [] ∧ st' = { st with answered := st.answered + 1, frag := [] }
+         m.watchId = -1 ∧ m.cancelReason ≠ [] ∧
+         st' = { st with answered := st.answered + 1, frag := none }
        else σa.permits who [(.read, w.range)] [] ∧ st.reg m.watchId = none ∧ m.watchId ≠ -1 ∧
-         st' = { answered := st.answered + 1, regs := st.regs ++ [(m.watchId, w, WatchPos.init s)],
-                 frag := [] })
+         st' = { answered := st.answered + 1,
+                 regs := st.regs ++ [(m.watchId, w,
+                   WatchPos.init s (sint.Z (m.hdr.getD HeaderM.zero).revision).toNat)],
+                 frag := none })
   else if m.canceled = true ∧ m.compactRev = W64 0 then
-    evs = [] ∧ st' = { st with regs := st.regs.filter (fun r => decide (r.1 ≠ m.watchId)), frag := [] }
+    evs = [] ∧
+    st' = { st with regs := st.regs.filter (fun r => decide (r.1 ≠ m.watchId)), frag := none }
   else if m.watchId = -1 then
     evs = [] ∧ m.canceled = false ∧ m.compactRev = W64 0 ∧
-    ∃ P : Nat, (m.hdr.getD HeaderM.zero).revision = W64 P ∧ (P : Int) ≤ σ.kv.rev ∧
+    ∃ P : Nat, sint.Z (m.hdr.getD HeaderM.zero).revision = P ∧ (P : Int) ≤ σ.kv.rev ∧
       (∀ r ∈ st.regs, ∀ c, r.2.2.done = some c → c ≤ P ∧ watchEvents r.2.1 σ.kv (c + 1) P = []) ∧
-      st' = { st with regs := st.regs.map (fun r => (r.1, r.2.1, { r.2.2 with done := r.2.2.done.map (fun _ => P) })),
-                      frag := [] }
+      st' = { st with
+        regs := st.regs.map (fun r => (r.1, r.2.1, { r.2.2 with done := r.2.2.done.map (fun _ => P) })),
+        frag := none }
   else
     match st.reg m.watchId with
-    | none => st' = { st with frag := [] }
-    | some (w, p) => ∃ p', watchStep who w σ σa p (m.toResp evs) p' ∧ m.created = false ∧
-        st' = { st with regs := st.setReg m.watchId p', frag := [] }
+    | none => st' = { st with frag := none }
+    | some (w, p) => ∃ p', watchStep who w σ σa p (m.toResp evs) p' ∧
+        st' = { st with regs := st.setReg m.watchId p', frag := none }
 
 /-! ## Resources -/
 
@@ -391,7 +418,9 @@ opaque wireWatchRecv (wc : GoInterface) (γ : Cluster) (who : Principal) (g : Wa
 /-- **Slot (2a)**: at least the requests `ss` were sent on the stream `g` (persistent). -/
 opaque wireWatchSentLb (g : WatchStreamNames) (ss : List WireWatchReq) : IProp GF := iprop(True)
 
-/-- **Slot (2a, 3h)**: a `pb.WatchRequest` message at `p` modelled by `r`. -/
+/-- **Slot (2a, 3h)**: a `pb.WatchRequest` message at `p` modelled by `r`. A create's key is
+`w.range.key`, or `""` when that is `"\x00"` (`toPB` sends the watch's own key, which the member
+normalizes). -/
 opaque watchReqOwn (p : Loc) (dq : DFrac) (r : WireWatchReq) : IProp GF := iprop(True)
 
 /-- **Slot (2a, 3h)**: a `pb.WatchResponse` message at `p` modelled by `m`. -/
@@ -405,7 +434,9 @@ def WatchRespM.hdrDq (m : WatchRespM) : DFrac :=
 /-! ## The `Watcher` contract (`Watcher.*Triple`), filling W0's `watcherAt` -/
 
 /-- **`Watch(ctx, key, opts...)`**: the watch `OpWatch(key, opts...)` builds, from its start
-revision; its channel's consumer (`watchChAt`). Any context: when it is done, the channel closes
+revision; its channel (never `nil`), and the channel's consumer (`watchChAt`) at the initial
+position, whose floor (a watch from the current revision) is the revision of a state the cluster
+reached before the return; or a channel that ends at once. Any context: when it is done, the channel closes
 (liveness, not stated). The options are given back. `OpWatch` must not panic (`watchPanics`: no
 lease, no range-only option). `ctxPrin ctx who` (W0): the context names no other principal in its
 metadata; the watch stream this watch joins was opened with a context of the same metadata, so the
@@ -414,8 +445,11 @@ def Watcher.WatchTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal
   ∀ (ctx : GoInterface) (key : GoString) (opts : GoSlice) (gs : List (OpM → OpM)),
   {{ P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ optsAt opts gs ∗ ⌜¬ (opWatchM key gs).watchPanics⌝ }}
     (App (App (App (Val f) (Val #ctx)) (Val #key)) (Val #opts))
-  {{ (ch : Loc), RET #ch; optsAt opts gs ∗
-      watchChAt ch γ who (opWatchM key gs).watchReq (WatchPos.init (opWatchM key gs).watchRev) }}
+  {{ (ch : Loc), RET #ch; ⌜ch ≠ null⌝ ∗ optsAt opts gs ∗
+      ((∃ σ0 : State, etcdLb γ σ0 ∗
+          watchChAt ch γ who (opWatchM key gs).watchReq
+            (WatchPos.init (opWatchM key gs).watchRev σ0.kv.rev)) ∨
+       watchChAt ch γ who (opWatchM key gs).watchReq (WatchPos.closed (opWatchM key gs).watchRev)) }}
 
 /-- **`RequestProgress(ctx)`**: asks the member of the stream `ctx`'s metadata names for a progress
 notification on every watch of that stream (what such a notification means is `watchStep`'s; that
@@ -500,6 +534,23 @@ def eventOwn_unfold.spec : Prop := ∀ (p : Loc) (dq : DFrac) (e : EventM),
     p.[go_etcd_io.etcd.api.v3.mvccpb.Event, go!"Type"] ↦{dq} (if e.del then W32 1 else W32 0) ∗
     p.[go_etcd_io.etcd.api.v3.mvccpb.Event, go!"Kv"] ↦{dq} kv ∗ keyValueOwn kv dq e.kv ∗
     p.[go_etcd_io.etcd.api.v3.mvccpb.Event, go!"PrevKv"] ↦{dq} pk ∗ optOwn keyValueOwn pk dq e.prevKv
+
+/-- **A received response made read-only** (shared by many readers: the cache's demux and
+history, `Election.Observe`'s forwarded header): its header and events at `DFrac.discard`. -/
+def watchRespRO (v : go_etcd_io.etcd.client.v3.WatchResponse) (m : WatchRespM) : IProp GF :=
+  iprop(respHeaderOwn v.Header' DFrac.discard m.hdr ∗ msgsOwn eventOwn v.Events' DFrac.discard m.events ∗
+    ⌜v.CompactRevision' = m.compactRev ∧ v.Canceled' = m.canceled ∧ v.Created' = m.created ∧
+      v.CancelReason' = m.cancelReason⌝ ∗ closeErrOk v.closeErr' m.closeErr)
+
+def watchRespAt_persist.spec : Prop := ∀ (v : go_etcd_io.etcd.client.v3.WatchResponse) (m : WatchRespM),
+  watchRespAt (GF := GF) v m ⊢ |==> watchRespRO v m
+
+/-- The read-only form is persistent. -/
+def watchRespRO_persistent.spec : Prop := ∀ v m, Persistent (watchRespRO (GF := GF) v m)
+
+/-- An event message made read-only. -/
+def eventOwn_persist.spec : Prop := ∀ (p : Loc) (dq : DFrac) (e : EventM),
+  eventOwn (GF := GF) p dq e ⊢ |==> eventOwn p DFrac.discard e
 
 /-- A `nil` `closeErr` (every `WatchResponse` a caller builds itself: the cache's). -/
 def closeErrOk_nil.spec : Prop := ⊢ closeErrOk (GF := GF) GoInterface.nil none
