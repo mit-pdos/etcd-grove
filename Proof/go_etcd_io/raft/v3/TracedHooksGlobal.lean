@@ -216,6 +216,32 @@ theorem simStepR_pure (C : List w64) (L : List TraceEv) (σ : Etcdraft.State)
     have := hp.erase m
     simpa using this
 
+theorem toList_union_perm {V : Type} (m1 m2 : GMap Nat V) (hd : GMap.Disjoint m1 m2) :
+    (GMap.toList (m1 ∪ m2)).Perm (GMap.toList m1 ++ GMap.toList m2) := by
+  rw [List.perm_ext_iff_of_nodup (GMap.NoDup_map_to_list _)]
+  · rintro ⟨k, v⟩
+    rw [List.mem_append, GMap.mem_toList, GMap.mem_toList, GMap.mem_toList, GMap.lookup_union_Some_raw]
+    constructor
+    · rintro (h | ⟨-, h⟩)
+      · exact Or.inl h
+      · exact Or.inr h
+    · rintro (h | h)
+      · exact Or.inl h
+      · right; refine ⟨?_, h⟩
+        cases h1 : m1 !! k with
+        | none => rfl
+        | some _ =>
+          exfalso
+          have e1 : (m1 !! k).isSome = true := by rw [h1]; rfl
+          have e2 : (m2 !! k).isSome = true := by rw [h]; rfl
+          exact hd k e1 e2
+  · rw [List.nodup_append]
+    refine ⟨GMap.NoDup_map_to_list _, GMap.NoDup_map_to_list _, ?_⟩
+    rintro ⟨k, v⟩ h1 ⟨k', v'⟩ h2 e
+    simp only [Prod.mk.injEq] at e; obtain ⟨rfl, rfl⟩ := e
+    rw [GMap.mem_toList] at h1 h2
+    exact hd k (by simp [h1]) (by simp [h2])
+
 end pure
 
 end EtcdGrove
