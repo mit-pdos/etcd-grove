@@ -1160,6 +1160,8 @@ theorem wp_stepLeader_appresp
   -- (Q8 stage 1, slice 6) the untraced instance (`TracedUntracedSend.lean`)
   have wp_raft_maybeSendAppend := raft.maybeSendAppend.untraced wp_raft_maybeSendAppend
   have wp_raft_bcastAppend := raft.bcastAppend.untraced wp_raft_bcastAppend
+  have wp_releasePendingReadIndexMessages :=
+    releasePendingReadIndexMessages.untraced wp_releasePendingReadIndexMessages
   -- (Q8 stage 1, slice 6) the untraced instance (`TracedUntracedSend.lean`)
   have wp_raft_sendAppend := raft.sendAppend.untraced wp_raft_sendAppend
   wp_start as ⟨Hphys, Hm⟩

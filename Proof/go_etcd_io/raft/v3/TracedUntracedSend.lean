@@ -13,6 +13,7 @@ public import Spec.go_etcd_io.raft.v3.raft__maybeSendAppend
 public import Spec.go_etcd_io.raft.v3.raft__sendAppend
 public import Spec.go_etcd_io.raft.v3.raft__bcastAppend
 public import Spec.go_etcd_io.raft.v3.sendMsgReadIndexResponse
+public import Spec.go_etcd_io.raft.v3.releasePendingReadIndexMessages
 
 @[expose] public section
 
@@ -178,6 +179,50 @@ theorem sendMsgReadIndexResponse.untraced (h : sendMsgReadIndexResponse.spec (GF
       iframe Htl
     imodintro
     iintro %_ %to %cm %_ %_ -
+    rw [htr]
+    iapply hookGateOpt_none r _ tl iprop(emp) Htlok
+    iframe Htl
+  inext
+  iintro %s' ⟨Hphys, %H1, -⟩
+  iapply HΦ $$ %s'
+  iframe Hphys
+  ipureintro; exact H1
+
+/-- `releasePendingReadIndexMessages.spec` at an untraced node (the statement before slice 6). -/
+abbrev releasePendingReadIndexMessages.untracedTriple : Prop :=
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState),
+  s.role = .leader →
+  s.term ≠ W64 0 →
+  (s.rd.pend ≠ [] →
+     plogTermAt s.logst.prev (s.logst.sents ++ s.logst.uents) s.logst.committed
+       = some s.term) →
+  (∀ p ∈ s.rd.pend, p.2 ≠ []) →
+  s.gh.tr = none →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s }}
+    (App (Val #(functions releasePendingReadIndexMessages [])) (Val #r))
+  {{ (s' : NState), RET #();
+      ownRaftPhysCV c c.voters r id s' ∗ ⌜ReleaseResult c id s s'⌝ }}
+
+/-- `releasePendingReadIndexMessages.spec`'s untraced instance: every gate the struct's nil logger. -/
+theorem releasePendingReadIndexMessages.untraced
+    (h : releasePendingReadIndexMessages.spec (GF := GF) (hG := hG)) :
+    releasePendingReadIndexMessages.untracedTriple (GF := GF) (hG := hG) := by
+  intro c r id s Hl Htz Hcit Hpne htr
+  iintro %Φ ⟨#Hpkg, Hphys⟩ HΦ
+  icases ownRaftPhysC_traceLogger c r id s htr $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
+  iapply h c r id s iprop(emp) Hl Htz Hcit Hpne $$ [Hphys]
+  · iframe Hpkg Hphys
+    isplitr
+    · iempintro
+    isplitr
+    · imodintro
+      iintro %_ -
+      rw [htr]
+      iapply hookGateOpt_none r _ tl iprop(emp) Htlok
+      iframe Htl
+    imodintro
+    iintro %_ %k %to %cm %_ %_ %_ -
     rw [htr]
     iapply hookGateOpt_none r _ tl iprop(emp) Htlok
     iframe Htl
