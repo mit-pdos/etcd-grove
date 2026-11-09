@@ -49,6 +49,16 @@ theorem uint_eq_iff (a b : w64) (x y : Nat) (ha : uint.nat a = x) (hb : uint.nat
   · rintro rfl; rfl
   · intro h; exact word.unsigned_inj (by have := congrArg (fun n : Nat => (n : Int)) h; simpa using this)
 
+/-- The Go's message types are distinct. -/
+theorem msgTypeW_inj {t t' : MsgType} (h : msgTypeW t = msgTypeW t') : t = t' := by
+  cases t <;> cases t' <;> first | rfl | exact absurd h (by decide)
+
+/-- Go `==` on a message's type, as the Lean's. -/
+theorem msgTypeW_decide {w : w8} {t : MsgType} (h : w = msgTypeW t) (t' : MsgType) :
+    decide (w = msgTypeW t') = decide (t = t') := by
+  subst h
+  exact decide_eq_decide.2 ⟨msgTypeW_inj, fun e => e ▸ rfl⟩
+
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -299,6 +309,17 @@ macro "lookup_server" : tactic => `(tactic| (
     rw [Hq0]
     simp only [Option.getD_some]
     try wp_auto))
+
+/-! `read_msg`: from `Hmsg : msgRO q m`, the message's struct `gm` split (`M1`..`M14`), `Hv` its pure
+facts, `Hve` its entries. -/
+set_option hygiene false in
+macro "read_msg" : tactic => `(tactic| (
+    ihave #Hm0 := Hmsg
+    iunfold msgRO at Hm0
+    icases Hm0 with ⟨%gm, #Hq, %Hv, #Hve⟩
+    icases typedPointsto_split _ _ _ $$ Hq with Hqmf
+    simp only [TypedPointsto.typedPointstoDef]
+    icases Hqmf with ⟨#M1, #M2, #M3, #M4, #M5, #M6, #M7, #M8, #M9, #M10, #M11, #M12, #M13, #M14, -⟩))
 
 end Etcdraft
 end EtcdGrove
