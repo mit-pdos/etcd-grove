@@ -517,3 +517,179 @@ theorem specInv_returnToFollowerState {σ σ' : State} {i : ID} {m : Etcdraft.Ms
   · cases hstep
     exact specInv_upd_follower h rfl (Int.le_refl _) rfl rfl
       (fun l hl _ hll ht => h.2.2.2.2.2.1 i hi l hl hll ht.symm)
+
+/-- **States that agree** as in `specInv_congr`, but for the votes granted, which may differ except
+at an unpersisted candidate with none. -/
+theorem specInv_congr_v {σ σ' : State} (h : SpecInv σ) (hsrv : σ'.server = σ.server)
+    (hm : σ'.messages.domain = σ.messages.domain) (hp : σ'.pendingMessages.domain = σ.pendingMessages.domain)
+    (hT : ∀ j, (σ'.s j).currentTerm = (σ.s j).currentTerm) (hS : ∀ j, (σ'.s j).state = (σ.s j).state)
+    (hL : ∀ j, (σ'.s j).log = (σ.s j).log) (hD : ∀ j, (σ'.s j).durable = (σ.s j).durable)
+    (hC : ∀ j, (σ'.s j).commitIndex = (σ.s j).commitIndex)
+    (hM : ∀ j, (σ'.s j).matchIndex = (σ.s j).matchIndex)
+    (hV : ∀ j, (σ.s j).state = candidate → ¬ persisted (σ.s j) → (σ.s j).votesGranted = [] →
+      (σ'.s j).votesGranted = []) : SpecInv σ' := by
+  obtain ⟨hLE, hDu, hTm, hCa, hP, hCW, hRC⟩ := h
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · simp only [LeaderEntries, hsrv, hm, hp, hT, hS, hL]; exact hLE
+  · simp only [DurS, hsrv, hm, hp, hT, hS, hL, hD, hC, hM]; exact hDu
+  · simp only [TermsLe, MsgTermOk, msgs, hm, hp, hT]; exact hTm
+  · intro l hl hc
+    rw [hsrv] at hl; rw [hS] at hc
+    obtain ⟨c1, c2, c3⟩ := hCa l hl hc
+    simp only [msgs, persisted, hm, hp, hT, hL, hD]
+    refine ⟨c1, c2, ?_⟩
+    rcases c3 with hp' | ⟨v1, v2⟩
+    · exact Or.inl hp'
+    · by_cases hpp : persisted (σ.s l)
+      · exact Or.inl hpp
+      · exact Or.inr ⟨hV l hc hpp v1, v2⟩
+  · simp only [PrevOk, msgs, hm, hp]; exact hP
+  · simp only [CommitWithinLeader, hsrv, hS, hT, hC, hL]; exact hCW
+  · simp only [ReqCommit, msgs, hsrv, hm, hp, hS, hT, hL]; exact hRC
+
+/-- `MsgOk` reads only the servers' terms, roles, logs and durable states. -/
+theorem msgOk_congr {σ σ' : State} {m : Etcdraft.Msg} (h : MsgOk σ m) (hsrv : σ'.server = σ.server)
+    (hT : ∀ j, (σ'.s j).currentTerm = (σ.s j).currentTerm) (hS : ∀ j, (σ'.s j).state = (σ.s j).state)
+    (hL : ∀ j, (σ'.s j).log = (σ.s j).log) (hD : ∀ j, (σ'.s j).durable = (σ.s j).durable) :
+    MsgOk σ' m := by
+  simp only [MsgOk, MsgTermOk, persisted, hsrv, hT, hS, hL, hD]
+  exact h
+
+/-- A vote response is fine to send when it is of its source's term, a granted one also of its
+destination's, and a granted one of an unpersisted candidate's term is the candidate's own. -/
+theorem msgOk_vote (σ : State) (r : Etcdraft.Msg) (he : r.entries = [])
+    (hty : r.type = .requestVoteResponse) (ht : r.term ≤ (σ.s r.source).currentTerm)
+    (hg : r.voteGranted = true → r.term ≤ (σ.s r.dest).currentTerm)
+    (hc : ∀ l ∈ σ.server, (σ.s l).state = candidate → ¬ persisted (σ.s l) → r.dest = l →
+      r.voteGranted = true → r.term = (σ.s l).currentTerm → r.source = l) : MsgOk σ r := by
+  refine ⟨?_, ?_, ⟨ht, ?_⟩, ?_, ?_⟩
+  · intro i _ _ k e hk; rw [he] at hk; simp at hk
+  · intro i _ _
+    refine ⟨fun _ h => ?_, fun _ h => ?_, fun h => ?_⟩ <;> rw [hty] at h <;> cases h
+  · rintro (⟨_, h2⟩ | ⟨h1, _⟩)
+    · exact hg h2
+    · rw [hty] at h1; cases h1
+  · intro i hi hc'
+    refine ⟨fun _ h => ?_, fun _ h => ?_, fun hp hd _ hg' ht' => hc i hi hc' hp hd hg' ht'⟩ <;>
+      rw [hty] at h <;> cases h
+  · intro h; exact absurd he h
+
+/-- **`RequestVote(i, j)`.** -/
+theorem specInv_requestVote {σ σ' : State} {i j : ID} (h : SpecInv σ)
+    (hstep : σ.requestVote i j = some σ') : SpecInv σ' := by
+  unfold State.requestVote at hstep; dsimp only at hstep
+  split at hstep
+  · split at hstep
+    · cases hstep
+      exact specInv_send h (msgOk_plain _ _ rfl (by simp) (by simp) (by simp) (Int.le_refl _))
+    · cases hstep
+      exact specInv_send h (msgOk_vote _ _ rfl rfl (Int.le_refl _) (fun _ => Int.le_refl _)
+        (fun _ _ _ _ hd _ _ => hd))
+  · cases hstep
+
+/-- **`AppendEntriesToSelf(i)`.** -/
+theorem specInv_appendEntriesToSelf {σ σ' : State} {i : ID} (h : SpecInv σ)
+    (hstep : σ.appendEntriesToSelf i = some σ') : SpecInv σ' := by
+  unfold State.appendEntriesToSelf at hstep; dsimp only at hstep
+  split at hstep
+  · cases hstep
+  · cases hstep
+    rename_i hl
+    have hl : (σ.s i).state = leader := by simpa using hl
+    apply specInv_send h
+    refine ⟨?_, ?_, ⟨Int.le_refl _, fun _ => Int.le_refl _⟩, ?_, ?_⟩
+    · intro l _ _ k e hk; simp at hk
+    · intro l _ _
+      refine ⟨fun _ h _ => absurd h (by simp), fun hd _ _ _ => ?_, fun h _ => absurd h (by simp)⟩
+      dsimp only at hd; subst hd
+      exact ⟨Int.le_refl _, fun hne => absurd rfl hne⟩
+    · intro l _ hc
+      refine ⟨fun _ h => absurd h (by simp), fun hd _ _ => ?_, fun _ _ h => absurd h (by simp)⟩
+      dsimp only at hd; subst hd
+      exact absurd (hc.symm.trans hl) candidate_ne_leader
+    · intro h; exact absurd rfl h
+
+/-- **`DropStaleResponse(i, j, m)`.** -/
+theorem specInv_dropStaleResponse {σ σ' : State} {i j : ID} {m : Etcdraft.Msg} (h : SpecInv σ)
+    (hstep : σ.dropStaleResponse i j m = some σ') : SpecInv σ' := by
+  unfold State.dropStaleResponse at hstep
+  split at hstep
+  · cases hstep
+  · cases hstep; exact specInv_discard m h
+
+/-- **`HandleRequestVoteRequest(i, j, m)`**, `m` a request in `messages` from `j`. -/
+theorem specInv_handleRequestVoteRequest {σ σ' : State} {i j : ID} {m : Etcdraft.Msg} (h : SpecInv σ)
+    (hm : m ∈ σ.messages.domain) (hsrc : m.source = j)
+    (hstep : σ.handleRequestVoteRequest i j m = some σ') : SpecInv σ' := by
+  subst hsrc
+  unfold State.handleRequestVoteRequest at hstep; dsimp only at hstep
+  split at hstep
+  · cases hstep
+  · cases hstep
+    -- the response, fine to send in `σ`
+    have hok : ∀ g : Bool, (g = true → m.term = (σ.s i).currentTerm) →
+        MsgOk σ
+          { type := .requestVoteResponse, term := (σ.s i).currentTerm, voteGranted := g, source := i, dest := m.source } := by
+      intro g hg
+      apply msgOk_vote _ _ rfl rfl (Int.le_refl _)
+      · intro hg'
+        have := (h.2.2.1 m (List.mem_append_left _ hm)).1
+        show (σ.s i).currentTerm ≤ (σ.s m.source).currentTerm
+        rw [← hg hg']; exact this
+      · intro l hl hc hp hd hg' ht
+        change m.source = l at hd
+        change (σ.s i).currentTerm = (σ.s l).currentTerm at ht
+        change i = l
+        subst hd
+        by_cases hil : i = m.source
+        · exact hil
+        · exfalso
+          rcases (h.2.2.2.1 m.source hl hc).2.2 with hp' | ⟨_, v2, -⟩
+          · exact hp hp'
+          · have := v2 m hm rfl
+            rw [← ht, ← hg hg'] at this; exact Int.lt_irrefl _ this
+    split
+    · rename_i hg
+      have hgt : m.term = (σ.s i).currentTerm := by
+        simp only [Bool.and_eq_true, beq_iff_eq] at hg; exact hg.1.1
+      apply specInv_reply
+      · exact specInv_upd_frame h rfl rfl rfl rfl rfl rfl rfl
+      · exact msgOk_congr (hok _ (fun _ => hgt)) rfl
+          (fun k => by by_cases hk : k = i <;> simp [State.discard, upd_s, hk])
+          (fun k => by by_cases hk : k = i <;> simp [State.discard, upd_s, hk])
+          (fun k => by by_cases hk : k = i <;> simp [State.discard, upd_s, hk])
+          (fun k => by by_cases hk : k = i <;> simp [State.discard, upd_s, hk])
+    · rename_i hg
+      apply specInv_reply h
+      exact msgOk_congr (hok _ (fun h' => absurd h' hg)) rfl (fun _ => rfl) (fun _ => rfl)
+        (fun _ => rfl) (fun _ => rfl)
+
+/-- **`HandleRequestVoteResponse(i, j, m)`**, `m` a vote response in `messages` to `i`. -/
+theorem specInv_handleRequestVoteResponse {σ σ' : State} {i j : ID} {m : Etcdraft.Msg} (h : SpecInv σ)
+    (hi : i ∈ σ.server) (hm : m ∈ σ.messages.domain) (hdst : m.dest = i)
+    (hty : m.type = .requestVoteResponse) (hstep : σ.handleRequestVoteResponse i j m = some σ') :
+    SpecInv σ' := by
+  unfold State.handleRequestVoteResponse at hstep; dsimp only at hstep
+  split at hstep
+  · cases hstep
+  · cases hstep
+    rename_i hterm
+    have hterm : m.term = (σ.s i).currentTerm := by simpa using hterm
+    apply specInv_discard
+    split
+    · exact h
+    · refine specInv_congr_v (σ' := σ.upd i _) h rfl rfl rfl ?_ ?_ ?_ ?_ ?_ ?_ ?_
+      all_goals try (intro k; simp only [upd_s]; split <;> subst_vars <;> rfl)
+      intro k hc hp hv
+      simp only [upd_s]
+      split
+      · rename_i hki; subst hki
+        split
+        · rename_i hg
+          exfalso
+          rcases (h.2.2.2.1 _ hi hc).2.2 with hp' | ⟨_, _, v3, _⟩
+          · exact hp hp'
+          · have := v3 m hm hdst hty hg
+            rw [hterm] at this; exact Int.lt_irrefl _ this
+        · exact hv
+      · exact hv
