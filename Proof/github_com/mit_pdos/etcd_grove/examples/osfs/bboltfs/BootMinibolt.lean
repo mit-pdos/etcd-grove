@@ -1,6 +1,6 @@
 /- Lean-first (no Rocq counterpart). One generation of `BootMinibolt(dir)` (`minibolt.go`): from
-the database file as the generation starts with it (`csOwn (dir ++ "/db") γc (csStart fo)`, a
-`Good` file, in its crash invariant), `BootMinibolt` reaches no panic. It is proved over the
+the database file as the generation starts with it (`csOwn (dir ++ "/db") R γc s V`, `StartSt`: absent or
+a file as on disk and `Good`, in its crash invariant), `BootMinibolt` reaches no panic. It is proved over the
 crash-aware specs of `Open`, `Get`, `Commit` and `Close` (hypotheses, as the other proofs take
 their callees' specs).
 

@@ -7,14 +7,15 @@ a torn meta, `old/osfs-v1/.../BootP1.lean`).
 premises (`fsExtsSemanticsWithS NoTearStep NoTearCrash`: a `pwrite` that lands only partly stops
 at a page boundary, at its return and at a crash, which leaves each sector a write in flight
 touches as one of its versions or as such a prefix of the write left it): in every execution with crashes from a state as on disk (`FsInit`) in which
-`dir` names a directory and `dir/db` nothing, no thread is stuck and none has an unrecovered panic,
+`dir` is one of the roots and `dir/db` names nothing, no thread is stuck and none has an unrecovered panic,
 for executions along which fewer than `2 ^ 30` threads are live (`RealCrashThreadsBelow`: `Open`
 builds the reader pool of `mmaplock` for at most `2 ^ 30` live threads, Go's `rwmutexMaxReaders`).
 
 What replaces P1 is not an assumption: minibolt writes each meta page at most once between two
 successful `fdatasync`s, so the file's `OsMeta` knows each meta sector has at most two versions
 (`OsMeta.vk`), and a crash leaves the sector whole (`crashSeen_sec`); the write in flight over it
-is the no-tear premise (a page-aligned prefix of a write covers a sector whole or misses it). Its proof is not done (`notes/STATUS.md`).
+is the no-tear premise (a page-aligned prefix of a write covers a sector whole or misses it). Proved in
+`Results.lean` (`bootCrashSafety`).
 -/
 module
 
@@ -48,7 +49,7 @@ def BootCrashSafety [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
   ∀ (σ : state) (g : GlobalState),
     σ.goState.goLctx = lctx → σ.goState.packageState = ∅ →
     FsInit (extLocal fsExt σ.world) →
-    (∃ j, (extLocal fsExt σ.world).lookup dir = some (.dir j)) →
+    (∃ j, (dir, j) ∈ (extLocal fsExt σ.world).fs.roots) →
     (extLocal fsExt σ.world).lookup (dir ++ go!"/db") = none →
     σ.threads = 1 →
     ∀ (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState) (b : Bool),

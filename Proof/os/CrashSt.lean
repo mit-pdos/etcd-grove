@@ -576,7 +576,7 @@ theorem csInv_crash_keep (Q : OsState → OsState → Prop) (L L' : GooseLocalGS
     (hok : ∀ i x, s = some (i, x) → FileOkS Q Good i x) :
     ⊢ crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D false V' -∗ invResS (L := L) s -∗
       osTree (L := L) (DFrac.own (1 : Qp).half) R V -∗
-      ∃ fo, ⌜Good fo⌝ ∗ osTree (L := L') (DFrac.own 1) R V' ∗ startAt L' p R V' fo ∗
+      ∃ fo, ⌜Good fo ∧ TreeCrashed V V'⌝ ∗ osTree (L := L') (DFrac.own 1) R V' ∗ startAt L' p R V' fo ∗
         (∃ D', crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D' true V') ∗
         invResS (L := L) s ∗ osTree (L := L) (DFrac.own (1 : Qp).half) R V := by
   iintro Hr Hs Ht
@@ -588,7 +588,7 @@ theorem csInv_crash_keep (Q : OsState → OsState → Prop) (L L' : GooseLocalGS
     · iexists none
       iframe Ht' Hs Ht
       isplitr
-      · ipureintro; exact hg
+      · ipureintro; exact ⟨hg, htc⟩
       isplitr
       · unfold startAt; rw [hn]; ipureintro; rfl
       iexists D; iexact Hr
@@ -603,7 +603,7 @@ theorem csInv_crash_keep (Q : OsState → OsState → Prop) (L L' : GooseLocalGS
   · iexists none
     iframe Ht' Ht Hm Hb
     isplitr
-    · ipureintro; exact hg
+    · ipureintro; exact ⟨hg, htc⟩
     isplitr
     · unfold startAt; rw [hn]; ipureintro; rfl
     iexists (i :: D); iexact Hr
@@ -612,7 +612,7 @@ theorem csInv_crash_keep (Q : OsState → OsState → Prop) (L L' : GooseLocalGS
     iexists (some f)
     iframe Ht' Ht Hm Hb
     isplitr
-    · ipureintro; exact hok i x rfl f hfc hseen
+    · ipureintro; exact ⟨hok i x rfl f hfc hseen, htc⟩
     isplitl [Hf]
     · unfold startAt; rw [hl]; iexists f; isplitr
       · ipureintro; rfl

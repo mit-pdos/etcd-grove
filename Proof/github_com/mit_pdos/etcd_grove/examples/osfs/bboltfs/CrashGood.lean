@@ -1,5 +1,5 @@
 /- Lean-first (no Rocq counterpart). minibolt's crash invariant: `Good`, the database files a
-crash may leave (`BootMinibolt`'s crash safety, `BootP1.lean`), and why `Open` and `BootMinibolt`'s
+crash may leave (`BootMinibolt`'s crash safety, `BootNoTear.lean`), and why `Open` and `BootMinibolt`'s
 checks accept them.
 
 A crash image `img` of the database file is `Good` (`goodImg`) if it is at most 1 GiB and:

@@ -6,7 +6,7 @@ operation is its crash-aware spec, whose obligations are, for the states it may 
   pages and the current root page untouched, `commitClean_of_prefix`);
 - the meta page's `WriteAt` and a failed `Fdatasync` of it: `commitMetaSt` (`commitMetaSt_of`
   after the data page's sync, which keeps the clean meta pages among the durable bytes known, and
-  `commitMetaSt_wreach`), with `cacheOk` of the slot written (`cacheOk_wreach`);
+  `commitMetaSt_wreach`), with `cacheSlot` of the slot written (`metaW_reach`);
 - a successful `Fdatasync` of the meta page: `commitClean` at the new meta pages, whose root page
   is the data page (`bootOk` of it is the spec's premise).
 Then `cs_freeze` freezes the data page (its `pageIs` and its cells' agreement come from its
