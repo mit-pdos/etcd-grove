@@ -34,9 +34,9 @@ variable [sem : go.Semantics]
 
 /-- `kvServer.Put(ctx, r)` meets the contract of `/etcdserverpb.KV/Put`. -/
 def kvServer.Put.spec : Prop :=
-  ∀ (p s : Loc) (γ : Cluster) (ep : GoString),
+  ∀ (p s : Loc) (γ : Cluster) (ep : GoString) (gq : Qp),
   HandlerTriple (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty @!! go!"Put")
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ kvServerAt p s γ) (etcdUnary γ ep go!"/etcdserverpb.KV/Put") go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ kvServerAt p s γ) (etcdUnary γ ep go!"/etcdserverpb.KV/Put") go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty (srvGate s gq)
 
 end spec
 

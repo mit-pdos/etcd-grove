@@ -59,11 +59,14 @@ says nothing of them.
 * `kbMade B b` (persistent): mvcc's bucket `b` exists (reads and writes of a missing bucket are
   fatal in etcd's backend); `UnsafeCreateBucket` gives it.
 * `storageHook B dq f` (fractional; persistent at `discard`, `hookIs B f`): a share of the storage's
-  post-lock hook, at `f` (`nil`: none). `LockInsideApply` runs it under the batch lock (`hookRun`).
-  (4a's request (g), that the hook be lent the just-begun session so that the server's hook can read
-  `ReadTx()` without `RLock`, `cindex.go:102-110`, is not taken: it needs `hookRun` to name the
-  storage, an arity change in the lease, auth and txn specs that cite it; recorded in
-  `notes/specs-only/integration-I6.md`.)
+  post-lock hook, at `f` (`nil`: none). `LockInsideApply` runs it under the batch lock (`hookRun B
+  Pk f Pre Q`), **lending it the just-begun session** (4a's request (g), integration Y): the hook's
+  triple holds for any `H` with `kbLent B H`, which it gets with `Pk ∗ Pre` and gives back with `Q`.
+* `kbLent B H` (persistent): **`H` is the storage's batch session, just begun, lent to its post-lock
+  hook**: what the hook may read through (the server's hook reads the shared `ReadTx()` without
+  `RLock`, `cindex.go:102-110`). mvcc never opens it; the storage's implementation gives it its
+  meaning (etcd's backend: `H` turns into a session `Backend.beSess γ q Fp.none S` and back,
+  `MvccStorage.lean`; whose `beSess_rd` lends the read).
 * `storageReq B Pk X Y` (persistent): **a forced commit turns `X` into `Y`** (the storage's commit
   runs its pre-commit hooks under the batch lock, whose invariant is `Pk`: etcd's server saves its
   consistent index there, 2d). `storageReq_true`: a commit asking nothing is always allowed.
@@ -103,8 +106,8 @@ says nothing of them.
 
 `kbData_timeless`, `kbData_excl`, `kbLocked_excl`, `kbRdToks_split`, `kbMade_persistent`,
 `storageReq_persistent`, `storageReq_true`, `storageHook_fractional`, `hookIs_persistent`,
-`kbSafe_excl`, `kbOpen_fractional`, `kbLive_fractional`, `kbRdToks_bare`, `mvccImage_empty`,
-`mvccImage_reachable`.
+`kbLent_persistent`, `kbSafe_excl`, `kbOpen_fractional`, `kbLive_fractional`, `kbRdToks_bare`,
+`kbBareSlot_back`, `mvccImage_empty`, `mvccImage_reachable`.
 -/
 module
 
@@ -335,11 +338,18 @@ abbrev hookIs (B : MvccStorage) (f : GoFunc) : IProp GF := storageHook B DFrac.d
 /-- **A forced commit turns `X` into `Y`** (persistent), the batch lock's invariant `Pk`. -/
 opaque storageReq (B : MvccStorage) (Pk X Y : IProp GF) : IProp GF := iprop(True)
 
-/-- **What the post-lock hook `f` does** under the batch lock of invariant `Pk`, from the caller's
-`Pre`: `f`'s triple to `Q`, or with no hook, the caller's view shift. -/
-def hookRun (Pk : IProp GF) (f : GoFunc) (Pre Q : IProp GF) : IProp GF :=
+/-- **`H` is the storage's just-begun batch session, lent to its post-lock hook** (persistent; see
+the header): the storage's implementation gives it its meaning. -/
+opaque kbLent (B : MvccStorage) (H : IProp GF) : IProp GF := iprop(True)
+
+/-- **What the post-lock hook `f` of the storage `B` does** under the batch lock of invariant `Pk`,
+from the caller's `Pre`: `f`'s triple to `Q`, run holding the just-begun session (any `H` with
+`kbLent B H`, given back unchanged: the hook may read through it, 4a's (g)); or with no hook, the
+caller's view shift. -/
+def hookRun (B : MvccStorage) (Pk : IProp GF) (f : GoFunc) (Pre Q : IProp GF) : IProp GF :=
   if f = func.nil then iprop(Pk ∗ Pre ={⊤}=∗ Q)
-  else iprop(□ ∀ Φ : val → IProp GF, Pk ∗ Pre -∗ ▷ (Q -∗ Φ #()) -∗ WP (App (Val #f) (Val #())) {{ Φ }})
+  else iprop(□ ∀ (H : IProp GF) (Φ : val → IProp GF), kbLent B H -∗ H ∗ Pk ∗ Pre -∗
+    ▷ (H ∗ Q -∗ Φ #()) -∗ WP (App (Val #f) (Val #())) {{ Φ }})
 
 /-- A slice of byte slices, read-only, holding `l`. -/
 def bytesListAt (sl : GoSlice) (l : List GoString) : IProp GF :=
@@ -423,7 +433,7 @@ def keyBackend (B : MvccStorage) (Pk : IProp GF) : IProp GF :=
     -- BatchTx.LockInsideApply(): the batch lock (on an open share), the hook run under it
     (□ ∀ (q : Qp) (dq : DFrac) (f : GoFunc) (Pre Q : IProp GF) (Ψ : KeyData → IProp GF)
         (Φ : val → IProp GF),
-      kbOpen B q -∗ storageHook B dq f -∗ Pre -∗ hookRun Pk f Pre Q -∗ kbObs B Ψ -∗
+      kbOpen B q -∗ storageHook B dq f -∗ Pre -∗ hookRun B Pk f Pre Q -∗ kbObs B Ψ -∗
       ▷ (∀ D : KeyData, storageHook B dq f -∗ Q -∗ kbLocked B q D D -∗ kbLive B tx 1 -∗ Ψ D -∗
           Φ #()) -∗
       WP (App (Val #(methods tx.ty go!"LockInsideApply" tx.v)) (Val #())) {{ Φ }}) ∗
@@ -533,9 +543,12 @@ def kbOpen_fractional.spec : Prop := ∀ B, Fractional (fun q => kbOpen (GF := G
 def kbLive_fractional.spec : Prop := ∀ B t, Fractional (fun p => kbLive (GF := GF) B t p)
 
 /-- The batch lock's holder may lend "the lock is held" to the storage's other users (their writes
-under it leave mvcc's part alone: 4a's `writable` over cells no one tracks). -/
+under it leave mvcc's part alone: 4a's `writable` over cells no one tracks), with the session's
+liveness (no range's bytes out then: the schema's write bundle's view holds it, 4a's `btView`;
+integration Y). -/
 def kbLocked_held.spec : Prop := ∀ B q D0 D,
-  kbLocked (GF := GF) B q D0 D ⊢ kbHeld B ∗ (kbHeld B -∗ kbLocked B q D0 D)
+  kbLocked (GF := GF) B q D0 D ∗ kbLive B (kbBatchTx B) 1 ⊢
+    kbHeld B ∗ (kbHeld B -∗ kbLocked B q D0 D ∗ kbLive B (kbBatchTx B) 1)
 
 def kbRdToks_split.spec : Prop := ∀ B n m,
   kbRdToks (GF := GF) B (n + m) ⊣⊢ kbRdToks B n ∗ kbRdToks B m
@@ -544,6 +557,13 @@ def kbMade_persistent.spec : Prop := ∀ B b, Persistent (kbMade (GF := GF) B b)
 
 /-- A reader slot kept for lock-only reads (the opener's close then waits only for its mutex). -/
 def kbRdToks_bare.spec : Prop := ∀ B, kbRdToks (GF := GF) B 1 ={⊤}=∗ kbBareSlot B
+
+/-- **An idle lock-only slot is a reader slot again** (the store's `Restore` hands the `Rev` pool's
+slots of the old storage back with the rest, `storageRest B mvccReaderN`: no `Rev` runs then, it
+holds `s.mu`). -/
+def kbBareSlot_back.spec : Prop := ∀ B, kbBareSlot (GF := GF) B ={⊤}=∗ kbRdToks B 1
+
+def kbLent_persistent.spec : Prop := ∀ B (H : IProp GF), Persistent (kbLent B H)
 
 def storageReq_persistent.spec : Prop := ∀ B (Pk X Y : IProp GF), Persistent (storageReq B Pk X Y)
 

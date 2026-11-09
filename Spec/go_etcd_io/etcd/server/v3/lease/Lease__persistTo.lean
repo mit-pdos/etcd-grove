@@ -1,7 +1,7 @@
 /-
 `(*Lease).persistTo(b)` (`lease.go:55`), an internal helper's spec (mirrors the code). **Users**:
 `Grant`, `Checkpoint`, under `le.mu`, on the apply thread. **Proof sketch**: `b.BatchTx()` (the open share `beOk b`, from the writer's token: integration I5),
-`LockInsideApply` (4a's `beHook b Pk f`: `Pk`, the hook run, `Mvcc.hookRun`), 4b's `MustUnsafePutLease` of `{ID, TTL, RemainingTTL}`
+`LockInsideApply` (4a's `beHook b Pk f`: `Pk`, the hook run, `beHookRun`), 4b's `MustUnsafePutLease` of `{ID, TTL, RemainingTTL}`
 (the local struct made a message by `Schema.leaseMsg_of_struct`; `Schema.MustUnsafePutLease.spec`
 over `Schema.txWr` of the batch transaction and the view `R V` that `beLeases b B` realizes: the
 view's lease bucket gets a `leaseEnc` of `(id, t, r)` under `beU64 id`, so `leaseBktIs` holds of `B`
@@ -38,7 +38,7 @@ def Lease.persistTo.spec : Prop :=
   ∀ (l : Loc) (b : GoInterface) (B : Int → Option Int) (id t r : w64) (dq1 dq2 dq3 : DFrac)
     (Pk Pre Q Post : IProp GF) (f : GoFunc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ beOk b ∗ beHook b Pk f ∗ Pre ∗
-      Mvcc.hookRun Pk f Pre Q ∗ (Q ={⊤}=∗ Pk ∗ Post) ∗
+      beHookRun b Pk f Pre Q ∗ (Q ={⊤}=∗ Pk ∗ Post) ∗
       beLeases b B ∗
       l.[go_etcd_io.etcd.server.v3.lease.Lease, go!"ID"] ↦{dq1} id ∗
       l.[go_etcd_io.etcd.server.v3.lease.Lease, go!"ttl"] ↦{dq2} t ∗

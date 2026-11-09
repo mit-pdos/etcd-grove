@@ -42,13 +42,13 @@ variable [sem : go.Semantics]
 /-- `p.RangeStream(r, rs)` of a run of `/etcdserverpb.KV/RangeStream`: the received request with its
 `up` resource, the stream's send half; returns with `streamOut`. -/
 def kvServer.RangeStream.spec : Prop :=
-  ∀ (p s : Loc) (γ : Cluster) (r : Loc) (c : Content) (rs : GoInterface) (g : StreamName) (md : MD),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ kvServerAt p s γ ∗ threadTok ∗ msgAt go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty r (DFrac.own 1) c ∗
+  ∀ (p s : Loc) (γ : Cluster) (r : Loc) (c : Content) (rs : GoInterface) (g : StreamName) (md : MD) (gq : Qp),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ kvServerAt p s γ ∗ threadTok ∗ srvGate s gq ∗ msgAt go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty r (DFrac.own 1) c ∗ Proto.decodedAt go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty r ∗
       (rangeStreamSpec γ).up g md 0 c ∗ (∃ ctx, srvCtxOf rs ctx md) ∗ srvRecv rs g (rangeStreamSpec γ) md 1 ∗
       srvSend rs g (rangeStreamSpec γ) md 0 }}
     (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty @!! go!"RangeStream")) (Val #r))
       (Val #rs))
-  {{ (err : GoInterface), RET #err; threadTok ∗ streamOut rs g (rangeStreamSpec γ) md err }}
+  {{ (err : GoInterface), RET #err; threadTok ∗ srvGate s gq ∗ streamOut rs g (rangeStreamSpec γ) md err }}
 
 end spec
 

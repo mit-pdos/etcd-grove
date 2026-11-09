@@ -34,9 +34,9 @@ variable [sem : go.Semantics]
 
 /-- `ClusterServer.MemberUpdate(ctx, r)` meets the contract of `/etcdserverpb.Cluster/MemberUpdate`. -/
 def ClusterServer.MemberUpdate.spec : Prop :=
-  ∀ (p s : Loc) (γ : Cluster) (ep : GoString),
+  ∀ (p s : Loc) (γ : Cluster) (ep : GoString) (gq : Qp),
   HandlerTriple (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ClusterServer.ty @!! go!"MemberUpdate")
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ clusterServerAt p s γ) (etcdUnary γ ep go!"/etcdserverpb.Cluster/MemberUpdate") go_etcd_io.etcd.api.v3.etcdserverpb.MemberUpdateRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.MemberUpdateResponse.ty
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ clusterServerAt p s γ) (etcdUnary γ ep go!"/etcdserverpb.Cluster/MemberUpdate") go_etcd_io.etcd.api.v3.etcdserverpb.MemberUpdateRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.MemberUpdateResponse.ty (srvGate s gq)
 
 end spec
 

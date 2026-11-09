@@ -54,7 +54,8 @@ context carries (`ctxPrin who ctx p`).
 * `kaRespAt p id` (def): a `*LeaseKeepAliveResponse` read-only, about lease `id`, positive TTL.
 * `remoteLeaseAt v γ who` (**the gRPC boundary**): the `etcdserverpb.LeaseClient` value `v` meets the
   wire contract (`remoteLeaseAt_call`, `remoteLeaseAt_keepAlive`: the stream's halves `kaSendAt`,
-  `kaRecvAt`, slots of 2a; `kaSent`, `kaSent_sent`: a response is about a lease id sent on the
+  `kaRecvAt`, slots of 2a, over the stream's name `g`; `kaSent g id` (integration X: `∃ i, kaReq g
+  i id`, 2a's record of the `i`-th request, `kaSpec`), `kaSent_sent`: a response is about a lease id sent on the
   stream). Realized for `*retryLeaseClient` (`retryLeaseHandle_remoteLeaseAt`).
 
 ## Requirement snippets
@@ -66,6 +67,7 @@ reply, `Leases`, `KeepAliveOnce`), `member.go` (the per-member lease reads).
 module
 
 public import Spec.go_etcd_io.etcd.client.v3.ApiClient
+public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.Api
 
 @[expose] public section
 
@@ -158,14 +160,39 @@ opaque remoteLeaseAt (v : GoInterface) (γ : Cluster) (who : Principal) : IProp 
 /-- A `*retryLeaseClient` over the connection of the client `c`. -/
 opaque retryLeaseHandle (r c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 
-/-- **The sending half of a keep-alive stream** (exclusive; slot, 2a), the lease ids `ids` sent
-on it so far (every `Send`, failed ones too). -/
-opaque kaSendAt (sc : GoInterface) (ids : List Int) : IProp GF := iprop(True)
-/-- **The lease id `id` was sent on the keep-alive stream `sc`** (persistent; slot, 2a): what a
-response received on it is about (the handler answers each request with its `ID`). -/
-opaque kaSent (sc : GoInterface) (id : Int) : IProp GF := iprop(True)
-/-- **The receiving half of a keep-alive stream** (exclusive; slot, 2a). -/
-opaque kaRecvAt (sc : GoInterface) : IProp GF := iprop(True)
+/-! ### The keep-alive stream's contract (2a's, here so that the client's halves are defined over it:
+integration X; `V3rpc.kaSpec` was 2a's name, `v3rpc/Api.lean` uses this one) -/
+
+/-- **The `i`-th keep-alive request of the stream `g` asked the lease `id`** (persistent, agreeing;
+minted by the client's sending half from `kaLog`). -/
+opaque kaReq (g : Grpc.StreamName) (i : Nat) (id : Int) : IProp GF := iprop(True)
+
+/-- **The keep-alive requests sent on `g` so far** (exclusive; the client's sending half holds it). -/
+opaque kaLog (g : Grpc.StreamName) (ids : List Int) : IProp GF := iprop(True)
+
+/-- **`LeaseKeepAlive`'s contract** (2a's, the server's `etcdContract`): each request recorded
+(`kaReq`); each response about a lease some request asked, with some TTL (W0's model: a keep-alive
+says nothing else); nothing at the end. -/
+def kaSpec (_γ : Cluster) : Grpc.StreamSpec (GF := GF) where
+  up := fun g _ i c => iprop(∃ (id : Int),
+    ⌜EtcdServerPb.reqModels go!"/etcdserverpb.Lease/LeaseKeepAlive" c (.leaseKeepAlive id)⌝ ∗
+      kaReq g i id)
+  dn := fun g _ _ c => iprop(∃ (id ttl : Int) (i : Nat),
+    ⌜EtcdServerPb.replyModels go!"/etcdserverpb.Lease/LeaseKeepAlive" (.leaseKeepAlive id ttl) c⌝ ∗
+      kaReq g i id)
+  fin := fun _ _ _ _ => iprop(True)
+
+/-- **The sending half of the keep-alive stream `sc`, named `g`** (exclusive; slot, 2a: grpc's
+sending half of a `kaSpec` stream under the stub's wrapper, with `kaLog g ids`), the lease ids `ids`
+sent on it so far (every `Send`, failed ones too: grpc's `cliSend_send` counts them). -/
+opaque kaSendAt (sc : GoInterface) (g : Grpc.StreamName) (ids : List Int) : IProp GF := iprop(True)
+/-- **The lease id `id` was sent on the keep-alive stream `g`** (persistent; integration X: a
+definition over 2a's records): what a response received on it is about (the handler answers each
+request with its `ID`). -/
+def kaSent (g : Grpc.StreamName) (id : Int) : IProp GF := iprop(∃ i : Nat, kaReq g i id)
+/-- **The receiving half of the keep-alive stream `sc`, named `g`** (exclusive; slot, 2a: grpc's
+receiving half of a `kaSpec` stream under the stub's wrapper). -/
+opaque kaRecvAt (sc : GoInterface) (g : Grpc.StreamName) : IProp GF := iprop(True)
 
 /-- **The lessor's entry `ka` of lease `id`** (exclusive; internal to the lessor's proof): its
 `donec` and channels with their close tokens (`keepAlive.close`). -/
@@ -281,7 +308,7 @@ def handles1cLease_persistent.spec : Prop :=
   (∀ v γ who, Persistent (remoteLeaseAt (GF := GF) v γ who)) ∧
   (∀ r c γ who, Persistent (retryLeaseHandle (GF := GF) r c γ who)) ∧
   (∀ ch, Persistent (kaDonec (GF := GF) ch)) ∧
-  (∀ sc id, Persistent (kaSent (GF := GF) sc id))
+  (∀ g id, Persistent (kaSent (GF := GF) g id))
 
 /-- **Receiving from a keep-alive channel**: a response about the lease with a positive TTL, or the
 channel closed (and then closed for good). -/
@@ -319,48 +346,58 @@ def remoteLeaseAt_keepAlive.spec : Prop := ∀ (v : GoInterface) (γ : Cluster) 
     (App (App (Val (v @!! go_etcd_io.etcd.api.v3.etcdserverpb.LeaseClient.ty @!! go!"LeaseKeepAlive"))
       (Val #ctx)) (Val #opts))
   {{ (sc err : GoInterface), RET (PairV #sc #err);
-      (⌜err = GoInterface.nil⌝ ∗ kaSendAt sc [] ∗ kaRecvAt sc) ∨
+      (⌜err = GoInterface.nil⌝ ∗ ∃ g, kaSendAt sc g [] ∗ kaRecvAt sc g) ∨
       (⌜sc = GoInterface.nil⌝ ∗ ∃ k, callErr err k) }}
 
 /-- **Sending a keep-alive** (slot, 2a): the request message read (any fraction), given back; its id
 recorded as sent (whether or not the send succeeded). -/
-def kaSendAt_send.spec : Prop := ∀ (sc : GoInterface) (ids : List Int) (req : Loc) (dq : DFrac)
+def kaSendAt_send.spec : Prop := ∀ (sc : GoInterface) (g : Grpc.StreamName) (ids : List Int) (req : Loc) (dq : DFrac)
     (id : w64),
-  {{ kaSendAt (GF := GF) sc ids ∗ reqOwn req dq (.leaseKeepAlive (sint.Z id)) }}
+  {{ kaSendAt (GF := GF) sc g ids ∗ reqOwn req dq (.leaseKeepAlive (sint.Z id)) }}
     (App (Val (sc @!! kaStreamTy @!! go!"Send")) (Val #req))
-  {{ (err : GoInterface), RET #err; kaSendAt sc (ids ++ [sint.Z id]) ∗
+  {{ (err : GoInterface), RET #err; kaSendAt sc g (ids ++ [sint.Z id]) ∗
       reqOwn req dq (.leaseKeepAlive (sint.Z id)) ∗
       (⌜err = GoInterface.nil⌝ ∨ ∃ k, callErr err k) }}
 
 /-- **Closing the sending half** (slot, 2a). -/
-def kaSendAt_closeSend.spec : Prop := ∀ (sc : GoInterface) (ids : List Int),
-  {{ kaSendAt (GF := GF) sc ids }}
+def kaSendAt_closeSend.spec : Prop := ∀ (sc : GoInterface) (g : Grpc.StreamName) (ids : List Int),
+  {{ kaSendAt (GF := GF) sc g ids }}
     (App (Val (sc @!! kaStreamTy @!! go!"CloseSend")) (Val #()))
   {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∨ ∃ k, callErr err k }}
 
 /-- **The stream's context** (slot, 2a). -/
-def kaSendAt_context.spec : Prop := ∀ (sc : GoInterface) (ids : List Int),
-  {{ kaSendAt (GF := GF) sc ids }}
+def kaSendAt_context.spec : Prop := ∀ (sc : GoInterface) (g : Grpc.StreamName) (ids : List Int),
+  {{ kaSendAt (GF := GF) sc g ids }}
     (App (Val (sc @!! kaStreamTy @!! go!"Context")) (Val #()))
-  {{ (ctx : GoInterface), RET #ctx; kaSendAt sc ids ∗ Context.ctxOk ctx }}
+  {{ (ctx : GoInterface), RET #ctx; kaSendAt sc g ids ∗ Context.ctxOk ctx }}
 
 /-- **Receiving a keep-alive response** (slot, 2a): a fresh message about a lease id sent on the
 stream (`kaSent`), or an error. -/
-def kaRecvAt_recv.spec : Prop := ∀ (sc : GoInterface),
-  {{ kaRecvAt (GF := GF) sc }}
+def kaRecvAt_recv.spec : Prop := ∀ (sc : GoInterface) (g : Grpc.StreamName),
+  {{ kaRecvAt (GF := GF) sc g }}
     (App (Val (sc @!! kaStreamTy @!! go!"Recv")) (Val #()))
-  {{ (p : Loc) (err : GoInterface), RET (PairV #p #err); kaRecvAt sc ∗
+  {{ (p : Loc) (err : GoInterface), RET (PairV #p #err); kaRecvAt sc g ∗
       ((⌜err = GoInterface.nil⌝ ∗ ∃ (h : Loc) (id ttl : w64),
           protoRest go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveResponse p (DFrac.own 1) ∗
           p.[go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveResponse, go!"Header"] ↦ h ∗
           p.[go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveResponse, go!"ID"] ↦ id ∗
           p.[go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveResponse, go!"TTL"] ↦ ttl ∗
-          hdrOwn h (DFrac.own 1) ∗ kaSent sc (sint.Z id)) ∨
+          hdrOwn h (DFrac.own 1) ∗ kaSent g (sint.Z id)) ∨
        (⌜p = null⌝ ∗ ∃ k, callErr err k)) }}
 
-/-- A response's lease id is one the sender sent (slot, 2a). -/
-def kaSent_sent.spec : Prop := ∀ (sc : GoInterface) (ids : List Int) (id : Int),
-  kaSendAt (GF := GF) sc ids ∗ kaSent sc id ⊢ ⌜id ∈ ids⌝
+/-- The keep-alive records' laws (2a's; the log's realization a ghost list keyed by `g`, allocated
+from grpc's `streamKey g`). -/
+def kaLog_alloc.spec : Prop := ∀ g, Grpc.streamKey (GF := GF) g ⊢ |==> kaLog g []
+def kaLog_add.spec : Prop := ∀ g ids id,
+  kaLog (GF := GF) g ids ⊢ |==> kaLog g (ids ++ [id]) ∗ kaReq g ids.length id
+def kaReq_lookup.spec : Prop := ∀ g ids i id,
+  kaLog (GF := GF) g ids ∗ kaReq g i id ⊢ ⌜ids[i]? = some id⌝
+def kaReq_persistent.spec : Prop := ∀ g i id, Persistent (kaReq (GF := GF) g i id)
+
+/-- A response's lease id is one the sender sent (slot, 2a: `kaSendAt`'s `kaLog g ids` and
+`kaReq_lookup`). -/
+def kaSent_sent.spec : Prop := ∀ (sc : GoInterface) (g : Grpc.StreamName) (ids : List Int) (id : Int),
+  kaSendAt (GF := GF) sc g ids ∗ kaSent g id ⊢ ⌜id ∈ ids⌝
 
 /-- A `*retryLeaseClient` over a ready client meets the wire contract. -/
 def retryLeaseHandle_remoteLeaseAt.spec : Prop := ∀ r c γ who,

@@ -55,8 +55,9 @@ defined from the fields. The laws below are the obligations of that realization.
 **No raftpb message is a `proto.Merge` destination** (round 1, F1): `Merge` writes in place (it
 merges into set submessages and appends into repeated fields' spare capacity), and these predicates
 hold submessages read-only for good and slices without their capacity (a `MsgApp`'s entries are a
-sub-slice of the leader's log). No law here gives 2a's merge-destination premise (`mergeDstOk`,
-`etcdserverpb/Api.lean`) for a raftpb type; raft and etcd never merge raft messages.
+sub-slice of the leader's log). No law here gives protobuf's merge-destination premise (2a's
+`Proto.mergeDst`, which replaced 3h's `mergeDstOk` at integration I3) for a raftpb type; raft and
+etcd never merge raft messages.
 
 **A homogeneous cluster** (round 1, second tier 8): `msgPts` requires a set snapshot to be full.
 The Go comment on `Message.Snapshot` allows peers running older binaries to send a non-nil, empty

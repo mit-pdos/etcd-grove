@@ -34,9 +34,9 @@ variable [sem : go.Semantics]
 
 /-- `AuthServer.AuthStatus(ctx, r)` meets the contract of `/etcdserverpb.Auth/AuthStatus`. -/
 def AuthServer.AuthStatus.spec : Prop :=
-  ∀ (p s : Loc) (γ : Cluster) (ep : GoString),
+  ∀ (p s : Loc) (γ : Cluster) (ep : GoString) (gq : Qp),
   HandlerTriple (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty @!! go!"AuthStatus")
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ authServerAt p s γ) (etcdUnary γ ep go!"/etcdserverpb.Auth/AuthStatus") go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusResponse.ty
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ authServerAt p s γ) (etcdUnary γ ep go!"/etcdserverpb.Auth/AuthStatus") go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusResponse.ty (srvGate s gq)
 
 end spec
 

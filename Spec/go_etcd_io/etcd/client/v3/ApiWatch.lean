@@ -100,8 +100,11 @@ Resources:
   `wireWatchSend wc γ who g ss` (the sends so far, `wireWatchSend_send`) and `wireWatchRecv wc γ who
   g st` (the stream's state, `wireWatchRecv_recv`), `wireWatchSentLb g ss` (persistent: at least
   `ss` was sent); the messages `watchReqOwn p dq r` (a `pb.WatchRequest`), `wireWatchRespOwn p dq m`
-  (a `pb.WatchResponse`) are in `api/v3/Wire.lean`. `WatchStreamNames`: opaque ghost names of one
-  stream.
+  (a `pb.WatchResponse`) are in `api/v3/Wire.lean`. `WatchStreamNames`: grpc's stream name.
+  Integration X: the stream's contract `watchSpec γ` (2a's) is stated here over its records `wsReq`,
+  `wsLog`, `wsSt`, `wsWho` (laws `watchSpec_records`, `wsLog_alloc`, `wsLog_add`, `wsLog_lb`), and
+  `wireWatchSentLb g ss` is a definition over `wsReq`; the halves stay 2a's slots (their realization
+  goes through 3h's stub wrapper).
 
 ## Requirement snippets
 
@@ -115,6 +118,8 @@ previous key-value Kubernetes reads).
 module
 
 public import Spec.go_etcd_io.etcd.client.v3.Api
+public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.Api
+public import Spec.google_golang_org.grpc.Api
 
 @[expose] public section
 
@@ -413,22 +418,59 @@ opaque watchRespAt (v : go_etcd_io.etcd.client.v3.WatchResponse) (m : WatchRespM
 `rpctypes.Error` maps to one of kind `k`. -/
 opaque closeErrOk (e : GoInterface) (k : Option CallErr) : IProp GF := iprop(True)
 
+/-- Ghost names of one gRPC watch stream: grpc's stream name (integration X), which 2a's records
+(`wsReq`, `wsSt`, `wsWho`) are keyed by. -/
+abbrev WatchStreamNames : Type := Grpc.StreamName
+
+/-! ### The watch stream's contract (2a's `watchSpec`, here so that the client's names are defined
+over its records: integration X; `v3rpc/Api.lean` uses it from here) -/
+
+/-- **The `i`-th request of the watch stream `g` is `r`** (persistent, agreeing; minted by the
+client's sending half from `wsLog`). -/
+opaque wsReq (g : Grpc.StreamName) (i : Nat) (r : WireWatchReq) : IProp GF := iprop(True)
+
+/-- **The requests sent on the watch stream `g` so far** (exclusive; the client's sending half holds
+it: the realization of `wireWatchSend`). -/
+opaque wsLog (g : Grpc.StreamName) (ss : List WireWatchReq) : IProp GF := iprop(True)
+
+/-- **After `j` responses the client's state of the watch stream `g` is `sst`** (persistent,
+agreeing; `wsSt g 0 WireSt.init`; minted by the server's sending half, 2b's `srvWatchSend`). -/
+opaque wsSt (g : Grpc.StreamName) (j : Nat) (sst : WireSt) : IProp GF := iprop(True)
+
+/-- **The watch stream `g` was opened as the principal `who`** (persistent, agreeing; minted by the
+client from `streamKey g`). -/
+opaque wsWho (g : Grpc.StreamName) (who : Principal) : IProp GF := iprop(True)
+
+/-- **The `Watch` stream's contract** (2a's; 2b's handler, 1b's client): each request a wire request,
+recorded; each response a `wireStep` of the stream's principal from the state the earlier responses
+made, after requests that were sent, against reached states; nothing at the end. -/
+def watchSpec (γ : Cluster) : Grpc.StreamSpec (GF := GF) where
+  up := fun g _ i c => iprop(∃ r : WireWatchReq, ⌜EtcdServerPb.watchReqHolds c r⌝ ∗ wsReq g i r)
+  dn := fun g _ j c => iprop(∃ (who : Principal) (m : WireWatchRespM) (σ σa : State)
+      (rs : List WireWatchReq) (sst sst' : WireSt),
+    ⌜EtcdServerPb.watchRespHolds c m ∧ wireStep who σ σa rs sst m sst'⌝ ∗ wsWho g who ∗
+    etcdLb γ σ ∗ etcdLb γ σa ∗ ([∗list] i ↦ r ∈ rs, wsReq g i r) ∗ wsSt g j sst ∗ wsSt g (j + 1) sst')
+  fin := fun _ _ _ _ => iprop(True)
+
 /-- **Slot (2a)**: the `pb.WatchClient` value `v` opens watch streams to members of `γ` as `who`. -/
 opaque remoteWatchAt (v : GoInterface) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 
-/-- Ghost names of one gRPC watch stream. -/
-opaque WatchStreamNames : Type := Unit
-
-/-- **Slot (2a)**: the sending half of the watch stream `wc` (exclusive), the requests `ss` sent. -/
+/-- **Slot (2a)**: the sending half of the watch stream `wc` (exclusive), the requests `ss` sent.
+Intended realization: grpc's sending half of a `watchSpec γ` stream `g` under the stub's wrapper,
+with `wsLog g ss` and `wsWho g who`. -/
 opaque wireWatchSend (wc : GoInterface) (γ : Cluster) (who : Principal) (g : WatchStreamNames)
   (ss : List WireWatchReq) : IProp GF := iprop(True)
 
-/-- **Slot (2a)**: the receiving half of the watch stream `wc` (exclusive), at the state `st`. -/
+/-- **Slot (2a)**: the receiving half of the watch stream `wc` (exclusive), at the state `st`.
+Intended realization: grpc's receiving half of a `watchSpec γ` stream `g` under the stub's wrapper,
+`n` received, with `wsSt g n st` and `wsWho g who`. -/
 opaque wireWatchRecv (wc : GoInterface) (γ : Cluster) (who : Principal) (g : WatchStreamNames)
   (st : WireSt) : IProp GF := iprop(True)
 
-/-- **Slot (2a)**: at least the requests `ss` were sent on the stream `g` (persistent). -/
-opaque wireWatchSentLb (g : WatchStreamNames) (ss : List WireWatchReq) : IProp GF := iprop(True)
+/-- **At least the requests `ss` were sent on the stream `g`** (persistent; integration X: 2a's
+records). -/
+def wireWatchSentLb (g : WatchStreamNames) (ss : List WireWatchReq) : IProp GF :=
+  iprop([∗list] i ↦ r ∈ ss, wsReq g i r)
 
 /-- The fraction a response's header is owned at: in full with events (unicast), read-only
 without (a broadcast progress notification shares its header). -/
@@ -594,6 +636,25 @@ def wireWatchRecv_recv.spec : Prop := ∀ (wc : GoInterface) (γ : Cluster) (who
          wireWatchRespOwn p (DFrac.own 1) m ∗ wireWatchSentLb g ss ∗ etcdLb γ σ ∗ etcdLb γ σa ∗
          ⌜wireStep who σ σa ss st m st'⌝ ∗ wireWatchRecv wc γ who g st') ∨
       (⌜p = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ k, callErr err k) }}
+
+/-- **The watch records' laws** (2a's; realization: ghost lists and agreeing maps keyed by `g`, the
+request log and the principal allocated from grpc's `streamKey g`, the states by the server's
+sending half: `watchRun_open`, `v3rpc/Api.lean`). -/
+def watchSpec_records.spec : Prop :=
+  (∀ g i r, Persistent (wsReq (GF := GF) g i r)) ∧ (∀ g j s, Persistent (wsSt (GF := GF) g j s)) ∧
+  (∀ g w, Persistent (wsWho (GF := GF) g w)) ∧
+  (∀ g i r r', wsReq (GF := GF) g i r ∗ wsReq g i r' ⊢ ⌜r = r'⌝) ∧
+  (∀ g j s s', wsSt (GF := GF) g j s ∗ wsSt g j s' ⊢ ⌜s = s'⌝) ∧
+  (∀ g w w', wsWho (GF := GF) g w ∗ wsWho g w' ⊢ ⌜w = w'⌝) ∧
+  (∀ g, ⊢ wsSt (GF := GF) g 0 WireSt.init)
+
+/-- The request log: allocated with the principal from the stream's key; a send appends. -/
+def wsLog_alloc.spec : Prop := ∀ g who,
+  Grpc.streamKey (GF := GF) g ⊢ |==> wsLog g [] ∗ wsWho g who
+def wsLog_add.spec : Prop := ∀ g ss r,
+  wsLog (GF := GF) g ss ⊢ |==> wsLog g (ss ++ [r]) ∗ wsReq g ss.length r
+def wsLog_lb.spec : Prop := ∀ g ss,
+  wsLog (GF := GF) g ss ⊢ wsLog g ss ∗ wireWatchSentLb g ss
 
 end res
 

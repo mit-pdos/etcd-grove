@@ -41,6 +41,7 @@ def _KV_Txn_Handler.spec : Prop :=
   go.typeSetContains srv.ty etcdserverpb.KVServer.ty = true →
   isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ Grpc.decOk dec etcdserverpb.TxnRequest.ty c ∗
     (∀ q : Loc, Proto.msgAt etcdserverpb.TxnRequest.ty q (DFrac.own 1) c -∗
+      Proto.decodedAt etcdserverpb.TxnRequest.ty q -∗
       handlerBodyWP srv go!"Txn" etcdserverpb.TxnRequest.ty etcdserverpb.TxnResponse.ty go!"/etcdserverpb.KV/Txn"
         ctx q ic Ψ) ⊢
   WP (App (App (App (App (Val (@! etcdserverpb._KV_Txn_Handler)) (Val #(GoInterface.ok srv)))

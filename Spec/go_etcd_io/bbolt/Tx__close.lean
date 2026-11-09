@@ -31,7 +31,7 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 /-- (internal) the transaction done; a reader's token back. -/
 def Tx.close.spec : Prop :=
   ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (T : TxView),
-  {{ boltTx (GF := GF) tx γ 1 T }}
+  {{ boltTx (GF := GF) tx γ 1 T ∗ txLive tx 1 }}
     (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"close")) (Val #()))
   {{ RET #(); txDone tx ∗ (if T.rw then emp else threadTok) }}
 

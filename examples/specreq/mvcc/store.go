@@ -194,3 +194,25 @@ func ReqViews(kv smvcc.KV, key, val []byte) {
 func ReqCommit(kv smvcc.KV) {
 	kv.Commit()
 }
+
+// REQ mvcc/rev-getter: the store's Rev as the compactor's RevGetter, for good: called from several
+// goroutines at once (a compactor whose Run is called twice forks two loops), and after the store's
+// Close (the compactor's loop outlives the store).
+// Users: api/v3compactor/revision.go:81 (rg.Rev() in the loop), server.go:950-961 (the compactor
+// stopped after the store's close).
+// Assumes: the Rev pool lent once (mvccRevTok_of: a persistent right, each call with its
+// goroutine's thread token).
+// Specs: store.Rev.spec at revRd γ true (integration Y), store.Close.spec.
+func ReqRevGetter(kv smvcc.KV) {
+	done := make(chan struct{})
+	for i := 0; i < 2; i++ {
+		go func() {
+			_ = kv.Rev()
+			done <- struct{}{}
+		}()
+	}
+	kv.Close()
+	<-done
+	<-done
+	_ = kv.Rev()
+}

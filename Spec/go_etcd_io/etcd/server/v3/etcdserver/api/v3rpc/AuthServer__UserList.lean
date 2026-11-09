@@ -34,9 +34,9 @@ variable [sem : go.Semantics]
 
 /-- `AuthServer.UserList(ctx, r)` meets the contract of `/etcdserverpb.Auth/UserList`. -/
 def AuthServer.UserList.spec : Prop :=
-  ∀ (p s : Loc) (γ : Cluster) (ep : GoString),
+  ∀ (p s : Loc) (γ : Cluster) (ep : GoString) (gq : Qp),
   HandlerTriple (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty @!! go!"UserList")
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ authServerAt p s γ) (etcdUnary γ ep go!"/etcdserverpb.Auth/UserList") go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ authServerAt p s γ) (etcdUnary γ ep go!"/etcdserverpb.Auth/UserList") go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty (srvGate s gq)
 
 end spec
 

@@ -110,7 +110,8 @@ membership, alarms, the schema's version. So the vocabulary is **one image, owne
 * Contracts (transparent): `hookOk γ hk Fh Pk` (the pre-commit hooks' triple, puts of `Fh` only, `hookWrites`; `hookFnOk` of a
   `HookFunc`), `commitOk γ Pk` (the
   client's commit step), `beReq γ Pk X Y` (a forced commit's per-call step), `hookRun γ q Pk f Pre Q`
-  (the post-lock hook's triple), `visitOk` (a `ForEach` visitor), `writeOk` (an `io.Writer`),
+  (the post-lock hook's triple), `visitOk` (a `ForEach` visitor, keeping the bytes `lentAll` it is
+  lent until the caller gives them back for the transaction's liveness), `writeOk` (an `io.Writer`),
   `ignOk` (`Hash`'s filter); `lentIn`/`rangeRes` (a range's bytes, lent against a share of
   the transaction's liveness `beLive`), `lingerSingle`/`rdOrderL` (a concurrent read's), `covers`, `writable`, `beNew` (what `New` hands its
   client's allocation step).
@@ -344,6 +345,17 @@ opaque imgBytes (I : Image) (bs : List w8) : Prop
 /-- **The backend's reader slots** (sealed constant): how many `New` gives. -/
 opaque beReaderN : Nat
 
+/-- **An entry lent to a `ForEach` visitor**: its key and value, the slices holding them and the
+fraction (bbolt's memory, or the read buffer's; 4b's `Schema.LentKV`). -/
+structure Lent where
+  k : GoString
+  v : GoString
+  ks : GoSlice
+  vs : GoSlice
+  dq : DFrac
+
+def Lent.ent (x : Lent) : GoString × GoString := (x.k, x.v)
+
 end model
 
 /-! ## The resources -/
@@ -550,16 +562,22 @@ def hookRun (γ : BeNames) (q : Qp) (Pk : IProp GF) (f : GoFunc) (Pre Q : IProp 
   else iprop(□ ∀ (S : Sess) (Φ : val → IProp GF), beSess γ q Fp.none S ∗ Pk ∗ Pre -∗
     ▷ (beSess γ q Fp.none S ∗ Q -∗ Φ #()) -∗ WP (App (Val #f) (Val #())) {{ Φ }})
 
-/-- **A `ForEach` visitor's contract** over the caller's state `P done` (the entries visited so
-far): a call on key and value bytes lent for the call (bbolt's, or the buffer's) extends it, or
-fails leaving it. -/
-def visitOk (vis : GoFunc) (P : List (GoString × GoString) → IProp GF) : IProp GF :=
-  iprop(□ ∀ (done : List (GoString × GoString)) (ks vs : GoSlice) (k v : GoString)
-      (Φ : val → IProp GF),
-    ∀ (dq : DFrac), P done -∗ ks ↦*{dq} k -∗ vs ↦*{dq} v -∗
-    ▷ (∀ err : GoInterface, ks ↦*{dq} k -∗ vs ↦*{dq} v -∗
-        ((⌜err = interface.nil⌝ ∗ P (done ++ [(k, v)])) ∨
-        (⌜err ≠ interface.nil⌝ ∗ P done)) -∗ Φ #err) -∗
+/-- **The bytes lent to a visitor so far** (`Lent`s). -/
+def lentAll (l : List Lent) : IProp GF :=
+  iprop([∗list] x ∈ l, x.ks ↦*{x.dq} x.k ∗ x.vs ↦*{x.dq} x.v)
+
+/-- **A `ForEach` visitor's contract** over the caller's state `P done` (the entries visited so far,
+with the slices lent to it: integration Y, I6's finding): a call on key and value bytes (bbolt's, or
+the buffer's) either succeeds, **keeping them** in `P` (`unsafeGetAllUsers` appends the value slices
+and unmarshals them after the loop: 4b's `Schema.txRd`), or fails with its own error `err`, giving
+them back, its state `E done err` (the `ForEach` returns that very error). -/
+def visitOk (vis : GoFunc) (P : List Lent → IProp GF) (E : List Lent → GoInterface → IProp GF) :
+    IProp GF :=
+  iprop(□ ∀ (done : List Lent) (ks vs : GoSlice) (k v : GoString) (dq : DFrac) (Φ : val → IProp GF),
+    P done -∗ ks ↦*{dq} k -∗ vs ↦*{dq} v -∗
+    ▷ (∀ err : GoInterface,
+        ((⌜err = interface.nil⌝ ∗ P (done ++ [⟨k, v, ks, vs, dq⟩])) ∨
+         (⌜err ≠ interface.nil⌝ ∗ ks ↦*{dq} k ∗ vs ↦*{dq} v ∗ E done err)) -∗ Φ #err) -∗
     WP (App (App (Val #vis) (Val #ks)) (Val #vs)) {{ Φ }})
 
 /-- **An `io.Writer`'s contract** over the caller's record `W` of the bytes written so far. -/

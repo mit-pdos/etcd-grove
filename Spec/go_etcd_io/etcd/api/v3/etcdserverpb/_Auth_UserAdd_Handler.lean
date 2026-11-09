@@ -41,6 +41,7 @@ def _Auth_UserAdd_Handler.spec : Prop :=
   go.typeSetContains srv.ty etcdserverpb.AuthServer.ty = true →
   isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ Grpc.decOk dec etcdserverpb.AuthUserAddRequest.ty c ∗
     (∀ q : Loc, Proto.msgAt etcdserverpb.AuthUserAddRequest.ty q (DFrac.own 1) c -∗
+      Proto.decodedAt etcdserverpb.AuthUserAddRequest.ty q -∗
       handlerBodyWP srv go!"UserAdd" etcdserverpb.AuthUserAddRequest.ty etcdserverpb.AuthUserAddResponse.ty go!"/etcdserverpb.Auth/UserAdd"
         ctx q ic Ψ) ⊢
   WP (App (App (App (App (Val (@! etcdserverpb._Auth_UserAdd_Handler)) (Val #(GoInterface.ok srv)))

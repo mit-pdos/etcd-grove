@@ -99,10 +99,11 @@ def keysOnlyM (kv : KV) : KeyValueM :=
     version := W64 kv.version, value := [], lease := W64 0 }
 
 /-- **A key-value safe to sort**: positive create and mod revisions and version, each an `int64`
-(etcd's comparators subtract them, `txn/range.go`). -/
+(etcd's comparators subtract them, `txn/range.go`), and its lease an `int64` (a put's lease is the
+`int64` it was given: 3b's `rrOwn`/`kvFits`, integration I5's request). -/
 def kvSortOk (kv : KV) : Prop :=
   0 < kv.createRev ∧ kv.createRev < 2 ^ 63 ∧ 0 < kv.modRev ∧ kv.modRev < 2 ^ 63 ∧
-  0 < kv.version ∧ kv.version < 2 ^ 63
+  0 < kv.version ∧ kv.version < 2 ^ 63 ∧ -2 ^ 63 ≤ kv.lease ∧ kv.lease < 2 ^ 63
 
 /-- **The key-values a range found are safe to sort** (each `kvSortOk`, at most `2 ^ 62` of them:
 the premise of Perennial's `sort` spec, its heapsort fallback's arithmetic). The size bound is a

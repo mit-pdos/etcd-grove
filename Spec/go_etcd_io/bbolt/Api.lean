@@ -69,7 +69,15 @@ updates are `⊤ \ ↑γ.ns`).
   the transaction still at `T`; `First`/`Last`/`Seek` reposition it at the current view (Go:
   "reposition your cursor after mutating data").
 * **`txBytes tx γ s b`** (persistent): the slice `s` holds `b` while `tx` is live (a key or value
-  bbolt returned: in the mapping or the transaction's nodes); read through `txBytes_acc`.
+  bbolt returned: in the mapping or the transaction's nodes); read through `txBytes_acc`, **against a
+  share of the transaction's liveness `txLive tx p`**, not of `boltTx`.
+* **`txLive tx p`** (fractional; integration Y, I6's request for the backend's compaction): **a
+  share of "`tx` is not closed"**: the bytes it returned stay valid (the mapping is not remapped
+  before the commit; a node's bytes are never written in place). `Begin` gives the whole with
+  `boltTx`; `Commit`, `Rollback` (and `DB.Update`/`View`'s callbacks' return) take it back whole.
+  Separate from `boltTx` so that a write transaction's `Put`/`Delete` (all of `boltTx`) may run while
+  bytes it returned are read (the backend's compaction deletes the very keys its range returned,
+  holding them: `kvstore_compaction.go:58-71`).
 * **`fileHolds path D`** (exclusive, timeless): **the file at `path` holds a database with the
   data `D`, all of it durable**, in the generation's OsFs terms (`osMeta`, `osBytes`, every byte
   clean; or no file, or an empty one, or one `init` redoes: then `D = Data.empty`), well-formed
@@ -109,7 +117,7 @@ updates are `⊤ \ ↑γ.ns`).
 
 Persistence, timelessness, fractions, agreement, validity, exclusivity of each predicate
 (`boltOpened_closed`); `boltTx_later`, `boltTx_nonnull`, `boltTx_base`, `bktH_live`,
-`txBytes_acc`, `boltTx_fill`; well-formedness (`boltTx_wf`, for views and the committed data; `boltImage_wf`); the
+`txBytes_acc`, `txLive_frac`, `boltTx_fill`; well-formedness (`boltTx_wf`, for views and the committed data; `boltImage_wf`); the
 size (`boltTx_size`, with `txSize`'s agreement); `putLoan_done`; `dbBroken_state`; the
 updates a holder of `boltState γ 1 σ` can supply (`boltState_read_au`, `boltState_commit_au`,
 `boltState_settle_au`); the file laws (`fileHolds_new`, `fileHolds_image`, `fileHolds_alloc`) and
@@ -201,6 +209,10 @@ opaque boltTx [HasExt osFsExt] [hG : HeapGS HasLC.hasLC GF] (tx : Loc) (γ : Bol
 
 /-- `tx` is a transaction of the `*DB` `db` (persistent; what `Tx.DB` returns). -/
 opaque txDB [HasExt osFsExt] [hG : HeapGS HasLC.hasLC GF] (tx db : Loc) : IProp GF := iprop(True)
+
+/-- **A share `p` of `tx`'s liveness** (fractional; see the header). -/
+opaque txLive [HasExt osFsExt] [hG : HeapGS HasLC.hasLC GF] (tx : Loc) (p : Qp) : IProp GF :=
+  iprop(True)
 
 /-- `tx` was committed or rolled back (persistent). -/
 opaque txDone [HasExt osFsExt] [hG : HeapGS HasLC.hasLC GF] (tx : Loc) : IProp GF := iprop(True)
@@ -435,10 +447,15 @@ def bktH_live.spec [HasExt osFsExt] : Prop :=
   ∀ tx γ q T b p gs, boltTx (GF := GF) tx γ q T ∗ bktH tx γ b p gs ∗ ⌜T.gens p = gs⌝ ⊢
     ⌜T.cur.bktAt p⌝
 
-/-- A slice the transaction returned is read while the transaction is live (any fraction). -/
+/-- A slice the transaction returned is read while the transaction is live (any share of its
+liveness: the transaction's view, `boltTx`, is not needed, so it may be written meanwhile). -/
 def txBytes_acc.spec [HasExt osFsExt] : Prop :=
-  ∀ tx γ q T s b, txBytes (GF := GF) tx γ s b ∗ boltTx tx γ q T ⊢
-    ∃ dq : DFrac, s ↦*{dq} b ∗ (s ↦*{dq} b -∗ boltTx tx γ q T)
+  ∀ tx γ p s b, txBytes (GF := GF) tx γ s b ∗ txLive tx p ⊢
+    ∃ dq : DFrac, s ↦*{dq} b ∗ (s ↦*{dq} b -∗ txLive tx p)
+
+/-- The liveness is fractional (several reads' bytes out at once). -/
+def txLive_frac.spec [HasExt osFsExt] : Prop :=
+  ∀ tx, Fractional (fun p => txLive (GF := GF) tx p)
 
 /-- **A bucket handle's `FillPercent` field** (exported; the backend writes `0.9`), of any handle
 of a write transaction, with all of it: read, and written back with any value but a NaN (a NaN

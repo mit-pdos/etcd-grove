@@ -34,9 +34,9 @@ variable [sem : go.Semantics]
 
 /-- `LeaseServer.LeaseLeases(ctx, r)` meets the contract of `/etcdserverpb.Lease/LeaseLeases`. -/
 def LeaseServer.LeaseLeases.spec : Prop :=
-  ∀ (p s : Loc) (γ : Cluster) (ep : GoString),
+  ∀ (p s : Loc) (γ : Cluster) (ep : GoString) (gq : Qp),
   HandlerTriple (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty @!! go!"LeaseLeases")
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ leaseServerAt p s γ) (etcdUnary γ ep go!"/etcdserverpb.Lease/LeaseLeases") go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesResponse.ty
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ leaseServerAt p s γ) (etcdUnary γ ep go!"/etcdserverpb.Lease/LeaseLeases") go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesResponse.ty (srvGate s gq)
 
 end spec
 

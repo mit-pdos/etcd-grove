@@ -33,7 +33,7 @@ def DB.beginTx.spec : Prop :=
   ∀ [HasExt osFsExt] (db : Loc) (γ : BoltName) (ns : Bool) (Q : Data → IProp GF),
   {{ isBolt (GF := GF) db γ ns ∗ threadTok ∗ AU <{ ∃∃ (q : Qp) (σ : BoltSt), boltState γ q σ }> @ ⊤ \ ↑γ.ns, ∅ <{ boltState γ q σ, COMM Q σ.data }> }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"beginTx")) (Val #()))
-  {{ (tx : Loc) (err : GoInterface), RET (PairV #tx #err); (⌜err = GoInterface.nil⌝ ∗ txDB tx db ∗ ∃ D, boltTx tx γ 1 (TxView.ro D false ns) ∗ Q D) ∨ (⌜err ≠ GoInterface.nil⌝ ∗ threadTok ∗ AU <{ ∃∃ (q : Qp) (σ : BoltSt), boltState γ q σ }> @ ⊤ \ ↑γ.ns, ∅ <{ boltState γ q σ, COMM Q σ.data }>) }}
+  {{ (tx : Loc) (err : GoInterface), RET (PairV #tx #err); (⌜err = GoInterface.nil⌝ ∗ txDB tx db ∗ txLive tx 1 ∗ ∃ D, boltTx tx γ 1 (TxView.ro D false ns) ∗ Q D) ∨ (⌜err ≠ GoInterface.nil⌝ ∗ threadTok ∗ AU <{ ∃∃ (q : Qp) (σ : BoltSt), boltState γ q σ }> @ ⊤ \ ↑γ.ns, ∅ <{ boltState γ q σ, COMM Q σ.data }>) }}
 
 end spec
 

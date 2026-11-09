@@ -46,8 +46,9 @@ def DB.View.spec : Prop :=
       AU <{ ∃∃ (q : Qp) (σ : BoltSt), boltState γ q σ }> @ ⊤ \ ↑γ.ns, ∅
         <{ boltState γ q σ, COMM P σ.data }> ∗
       (∀ (tx : Loc) (D : Data) (Φ : val → IProp GF),
-        P D -∗ boltTx tx γ 1 (TxView.ro D true ns) -∗
-        ▷ (∀ err : GoInterface, boltTx tx γ 1 (TxView.ro D true ns) -∗ Q D err -∗ Φ #err) -∗
+        P D -∗ boltTx tx γ 1 (TxView.ro D true ns) -∗ txLive tx 1 -∗
+        ▷ (∀ err : GoInterface, boltTx tx γ 1 (TxView.ro D true ns) -∗ txLive tx 1 -∗ Q D err -∗
+          Φ #err) -∗
         WP (App (Val #fn) (Val #tx)) {{ Φ }}) }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"View")) (Val #fn))
   {{ (err : GoInterface), RET #err; threadTok ∗

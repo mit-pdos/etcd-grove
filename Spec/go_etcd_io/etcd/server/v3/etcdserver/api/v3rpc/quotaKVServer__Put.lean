@@ -34,9 +34,9 @@ variable [sem : go.Semantics]
 
 /-- `quotaKVServer.Put(ctx, r)` meets the contract of `/etcdserverpb.KV/Put`. -/
 def quotaKVServer.Put.spec : Prop :=
-  ∀ (p : Loc) (kv : GoInterface) (s : Loc) (γ : Cluster) (ep : GoString),
+  ∀ (p : Loc) (kv : GoInterface) (s : Loc) (γ : Cluster) (ep : GoString) (gq : Qp),
   HandlerTriple (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty @!! go!"Put")
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ quotaKVAt p kv s γ) (etcdUnary γ ep go!"/etcdserverpb.KV/Put") go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ quotaKVAt p kv s γ) (etcdUnary γ ep go!"/etcdserverpb.KV/Put") go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty (srvGate s gq)
 
 end spec
 

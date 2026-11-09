@@ -37,7 +37,7 @@ def store.compactLockfree.spec : Prop :=
   let ok (cur : Nat) (c : Int) : Prop := c < sint.Z rev ∧ sint.Z rev ≤ (cur : Int)
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ isStore s γ ∗
       storeWB s γ B Pk ∗ schedRight s γ ∗ kbRdToks B 1 ∗ ⌜1 ≤ sint.Z rev⌝ ∗ storageHook B dq f ∗
-      Pre ∗ hookRun Pk f Pre Q' ∗ (Q' ={⊤}=∗ Pk ∗ Post) ∗ X ∗ storageReq B Pk X Y ∗ schemaVars ∗
+      Pre ∗ hookRun B Pk f Pre Q' ∗ (Q' ={⊤}=∗ Pk ∗ Post) ∗ X ∗ storageReq B Pk X Y ∗ schemaVars ∗
       AU <{ ∃∃ (cur : Nat) (c : Int), revsAt γ cur c }> @ ⊤ \ ↑mvccN, ∅
         <{ revsAt γ cur (if ok cur c then sint.Z rev else c), COMM Φ cur c }> }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"compactLockfree")) (Val #rev))

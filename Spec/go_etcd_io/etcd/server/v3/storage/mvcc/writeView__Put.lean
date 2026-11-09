@@ -38,7 +38,7 @@ def writeView.Put.spec : Prop :=
       wv.[writeView, go!"kv"] ↦□ kv ∗ isMvcc kv γ ∗ mvccLessorIs γ γl ∗ mvccReaders γ 1 ∗
       key ↦*□ kk ∗ value ↦*□ vv ∗
       Lease.lessorState γl n ls ∗ ⌜sint.Z lid = 0 ∨ ls.leases (sint.Z lid) ≠ none⌝ ∗
-      mvccBackend γ q B Pk ∗ hookIs B f ∗ Pre ∗ hookRun Pk f Pre Q' ∗ (Q' ={⊤}=∗ Pk ∗ Post) ∗
+      mvccBackend γ q B Pk ∗ hookIs B f ∗ Pre ∗ hookRun B Pk f Pre Q' ∗ (Q' ={⊤}=∗ Pk ∗ Post) ∗
       AU <{ ∃∃ (σ : MvccState), mvccState γ σ }> @ ⊤ \ ↑mvccN, ∅
         <{ ⌜σ.pending = []⌝ ∗ mvccState γ (σ.notify [ev σ]) ∗ ⧖ (evCount (σ.kv.commit [ev σ])), COMM
             AU <{ ∃∃ (σ' : MvccState), mvccState γ σ' }> @ ⊤ \ ↑mvccN, ∅

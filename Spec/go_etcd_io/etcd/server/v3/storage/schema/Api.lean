@@ -434,8 +434,9 @@ non-`nil` empty end makes etcd's read transaction range the bucket, which panics
 transaction: bolt's entries, then its buffer's; not sorted as a whole), until `f` returns an error,
 which it returns; the bytes are lent to the visitor, which may keep them (`unsafeGetAllUsers`
 appends the value slices and unmarshals them after the loop) until it gives them back for `R V`
-(`lentKVs`; also after an error, `J` over the entries visited). The bytes are bbolt's: lent against `R V`, never
-readable after it (4c's `txBytes`). -/
+(`lentKVs`; also after an error, `J` over the entries visited before it: a failing call gives its
+own entry's bytes back, integration Y). The bytes are bbolt's: lent against `R V`, never readable
+after it (4c's `txBytes`, read against a share of the transaction's liveness `Bbolt.txLive`). -/
 def txRd (tx : GoInterface) (S : Scope) (R : View → IProp GF) : IProp GF :=
   iprop(∃ i : GoInterfaceOk, ⌜tx = GoInterface.ok i⌝ ∗
     (□ ∀ (b : Bkt) (bv : GoInterface) (V : View) (m : BData) (ks : GoSlice) (k : GoString)
@@ -452,7 +453,7 @@ def txRd (tx : GoInterface) (S : Scope) (R : View → IProp GF) : IProp GF :=
         I pre -∗ ks ↦*{dq} k -∗ vs ↦*{dq} v -∗
         WP (App (App (Val #f) (Val #ks)) (Val #vs)) {{ r, ∃ err : GoInterface, ⌜r = #err⌝ ∗
           ((⌜err = GoInterface.nil⌝ ∗ I (pre ++ [⟨k, v, ks, vs, dq⟩])) ∨
-           (⌜err ≠ GoInterface.nil⌝ ∗ J pre err)) }}) -∗
+           (⌜err ≠ GoInterface.nil⌝ ∗ ks ↦*{dq} k ∗ vs ↦*{dq} v ∗ J pre err)) }}) -∗
       ▷ (∀ err : GoInterface,
           ((⌜err = GoInterface.nil⌝ ∗ ∃ l, ⌜entsAny m (l.map LentKV.ent)⌝ ∗ I l ∗
               (lentKVs l -∗ R V)) ∨

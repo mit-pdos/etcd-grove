@@ -411,9 +411,11 @@ use): the auth store's batch transaction locks with `LockInsideApply` (4b's `aut
 `callOk tx "LockInsideApply" P Q`), which runs the backend's post-lock hook (the server's
 `getTxPostLockInsideApplyHook`, set after `NewAuthStore`, `server.go:409`, and on a snapshot's
 backend before `Recover`, `server.go:1098`). Intended realization: for the backend the store holds
-(its invariant records 4a's names of it, the hook `f` and the batch lock's invariant `Pk`), mvcc's
-`Mvcc.hookRun Pk f Pre Q` (3c's `beHook`/`Mvcc.hookRun` shape). The writer (3a, from 2d's apply
-loop) supplies it per call; an intro law from the server's hook is 4a's/2d's to state. -/
+(its invariant records 4a's names of it, the hook `f` and the batch lock's invariant `Pk`), 4a's
+`∀ q, Backend.hookRun γb q Pk f Pre Q` (as the lessor's `Lease.beHookRun`; integration Y: mvcc's
+`Mvcc.hookRun` now names mvcc's storage). The writer (3a, from 2d's apply loop) supplies it per call,
+from the server's hook proved once over 4a's contract at every share; its introduction needs the
+store's backend's names, `authBackendAt`'s realization (3d's, recorded). -/
 opaque authHook (γa : AuthNames) (Pre Q : IProp GF) : IProp GF := iprop(True)
 
 /-- (provisional, 3h's) **The request message `r` asks `rq`, with the credential `cred`** (persistent: read-only;

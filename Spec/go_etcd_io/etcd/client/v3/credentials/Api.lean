@@ -8,6 +8,9 @@
   through `GetRequestMetadata`). Intended realization: an `RWMutex` whose invariant holds
   `authToken` with `tokFor`.
 * `tokenMd m tok` (persistent; slot 2a): the `map[string]string` `m` is `{"token": tok}`.
+* `credMD γ who mdc` (def; integration X, was 2a's slot `V3rpc.credMD`): the metadata the
+  credentials add to a request: none, or `token: tok` with a non-empty `tokFor` token. What the
+  dial passes as grpc's `R` (`rpcCredsAt_perRPC`: grpc's `perRPCAt`), and what 2a's `mdPrin_of` reads.
 
 `ClientV3.bundleAt b γ who` (the bundle interface value) is realized from `rpcCredsAt` of its `rc`.
 -/
@@ -45,6 +48,12 @@ opaque rpcCredsAt (v : GoInterface) (γ : Cluster) (who : Principal) : IProp GF 
 /-- **`m` is the metadata `{"token": tok}`** (persistent; slot 2a). -/
 opaque tokenMd (m : Loc) (tok : GoString) : IProp GF := iprop(True)
 
+/-- **The metadata the credentials add to a request** (integration X; 2a's `mdPrin_of` takes it): none
+(an empty token: `GetRequestMetadata` returns `nil`), or the key `token` with a non-empty token the
+bundle may hold. -/
+def credMD (γ : Cluster) (who : Principal) (mdc : Grpc.MD) : IProp GF :=
+  iprop(⌜mdc = []⌝ ∨ ∃ tok, ⌜tok ≠ [] ∧ mdc = [(go!"token", [tok])]⌝ ∗ tokFor γ who tok)
+
 def rpcCredsAt_persistent.spec : Prop := ∀ v γ who, Persistent (rpcCredsAt (GF := GF) v γ who)
 
 /-- The bundle's credentials. -/
@@ -56,6 +65,12 @@ def bundleAt_unfold.spec : Prop := ∀ (b : Loc) (γ : Cluster) (who : Principal
     b ↦□ ({ rc' := rc } : go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle) ∗
     rpcCredsAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.credentials.perRPCCredential.ty) #rc)
       γ who
+
+/-- **The credentials are grpc's per-RPC credentials adding `credMD`** (what the dial's
+`grpc.WithPerRPCCredentials` hands grpc: `GetRequestMetadata`'s spec, the map's keys already
+lowercase). -/
+def rpcCredsAt_perRPC.spec : Prop := ∀ (v : GoInterface) (γ : Cluster) (who : Principal),
+  rpcCredsAt (GF := GF) v γ who ⊢ Grpc.perRPCAt v (credMD γ who)
 
 end res
 

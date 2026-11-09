@@ -41,6 +41,7 @@ def _Auth_Authenticate_Handler.spec : Prop :=
   go.typeSetContains srv.ty etcdserverpb.AuthServer.ty = true →
   isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ Grpc.decOk dec etcdserverpb.AuthenticateRequest.ty c ∗
     (∀ q : Loc, Proto.msgAt etcdserverpb.AuthenticateRequest.ty q (DFrac.own 1) c -∗
+      Proto.decodedAt etcdserverpb.AuthenticateRequest.ty q -∗
       handlerBodyWP srv go!"Authenticate" etcdserverpb.AuthenticateRequest.ty etcdserverpb.AuthenticateResponse.ty go!"/etcdserverpb.Auth/Authenticate"
         ctx q ic Ψ) ⊢
   WP (App (App (App (App (Val (@! etcdserverpb._Auth_Authenticate_Handler)) (Val #(GoInterface.ok srv)))

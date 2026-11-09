@@ -34,9 +34,9 @@ variable [sem : go.Semantics]
 
 /-- `ClusterServer.MemberAdd(ctx, r)` meets the contract of `/etcdserverpb.Cluster/MemberAdd`. -/
 def ClusterServer.MemberAdd.spec : Prop :=
-  ∀ (p s : Loc) (γ : Cluster) (ep : GoString),
+  ∀ (p s : Loc) (γ : Cluster) (ep : GoString) (gq : Qp),
   HandlerTriple (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ClusterServer.ty @!! go!"MemberAdd")
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ clusterServerAt p s γ) (etcdUnary γ ep go!"/etcdserverpb.Cluster/MemberAdd") go_etcd_io.etcd.api.v3.etcdserverpb.MemberAddRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.MemberAddResponse.ty
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ clusterServerAt p s γ) (etcdUnary γ ep go!"/etcdserverpb.Cluster/MemberAdd") go_etcd_io.etcd.api.v3.etcdserverpb.MemberAddRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.MemberAddResponse.ty (srvGate s gq)
 
 end spec
 

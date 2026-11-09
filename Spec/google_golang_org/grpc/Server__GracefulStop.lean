@@ -7,8 +7,10 @@ Why true: `GracefulStop` stops accepting and waits for the runs in flight to ret
 
 Changes: new.
 
-Margin: nothing is given back: the runs' resources are their own (each returns its thread's
-token to the fuel when it exits).
+Margin: the thread tokens are not given back (each run returns its thread's token to the pool, which
+stays grpc's); the run resources are (integration X: `drainTok`, what 2e's stop needs to recover the
+`srvGate` shares the member's handlers held). `ServeHTTP`'s runs are not waited for (`startHTTP`
+lends none).
 -/
 module
 
@@ -30,12 +32,13 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- `gs.GracefulStop()`: returns. -/
+/-- `gs.GracefulStop()`: returns once the runs in flight have; the run resources each `start` lent
+come back (integration X: `drainTok`). -/
 def Server.GracefulStop.spec : Prop :=
-  ∀ (gs : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc }}
+  ∀ (gs : Loc) (ds : List (IProp GF × Nat)),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ [∗list] d ∈ ds, drainTok gs d.1 d.2 }}
     (App (Val (gs @!! go.GoType.PointerType google_golang_org.grpc.Server.ty @!! go!"GracefulStop")) (Val #()))
-  {{ RET #(); True }}
+  {{ RET #(); [∗list] d ∈ ds, [∗list] _u ∈ List.replicate d.2 (), d.1 }}
 
 end spec
 

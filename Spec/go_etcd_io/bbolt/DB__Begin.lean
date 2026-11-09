@@ -58,7 +58,7 @@ def DB.Begin.spec : Prop :=
           <{ boltState γ q σ, COMM Q σ.data }>)) }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"Begin")) (Val #w))
   {{ (tx : Loc) (err : GoInterface), RET (PairV #tx #err);
-      (⌜err = GoInterface.nil⌝ ∗ txDB tx db ∗ ∃ D : Data,
+      (⌜err = GoInterface.nil⌝ ∗ txDB tx db ∗ txLive tx 1 ∗ ∃ D : Data,
         (if w then boltTx tx γ 1 (TxView.wr D false ns)
          else iprop(boltTx tx γ 1 (TxView.ro D false ns) ∗ Q D))) ∨
       (⌜err ≠ GoInterface.nil⌝ ∗ (dbClosed db ∨ dbBroken γ) ∗

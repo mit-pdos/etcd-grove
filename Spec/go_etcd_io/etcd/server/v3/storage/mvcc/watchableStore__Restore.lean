@@ -6,12 +6,14 @@ watcher made unsynced: the `KV` interface's `Restore` contract (3e's) at the wat
 Snippet: `mvccwatch/store.go` `ReqRestore`.
 
 **Proof sketch.** Under `s.mu` (no write is between its two steps: `End` holds `s.mu`, so nothing is
-pending and `σ.notified = σ.kv`; no loop pass is running, so neither loop has borrowed a reader slot
-of the old storage): 3e's `store.Restore(b)` (the contract at `*store`: `mvccRestoreGate γ 1` passed
-through, the old storage's `storageRest B mvccReaderN` back, the loops' slots among them; the
+pending and `σ.notified = σ.kv`; no loop pass is running, so both loop shares are parked, and `wsMu`
+gives them, `storeLoops st γ mvccLoopN`): 3e's `store.Restore(b)` (its watched instance,
+`store.Restore.watched.spec`, `InternalWatched.lean`: `mvccRestoreGate γ 1` passed through, the
+loop shares swapped to the new storage and parked again, the old storage's `storageRest B
+mvccReaderN` back, the loops' slots among them; the
 client's update fires at a state whose history the new one extends: `histLe σ.notified σ'.kv`, so
 `mvccLb`'s authority, part of `mvccState`'s realization, grows and every fact sent before stays a
-fact of the new history; the loops then borrow slots of `B'`, 3e's hand-off law, requested); each synced watcher marked `restore` and moved to the
+fact of the new history; the loops' next passes borrow slots of `B'`); each synced watcher marked `restore` and moved to the
 unsynced group (its position stays; the resync reads the new storage from it; `restore` exempts a
 `minRev` above the new revision from `chooseAll`'s check).
 
@@ -23,6 +25,7 @@ carries the extension the watchers need).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiWatch
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.InternalWatched
 public import Spec.go_uber_org.zap.Api
 
 @[expose] public section

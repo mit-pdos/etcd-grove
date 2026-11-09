@@ -41,6 +41,7 @@ def _Lease_LeaseGrant_Handler.spec : Prop :=
   go.typeSetContains srv.ty etcdserverpb.LeaseServer.ty = true →
   isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ Grpc.decOk dec etcdserverpb.LeaseGrantRequest.ty c ∗
     (∀ q : Loc, Proto.msgAt etcdserverpb.LeaseGrantRequest.ty q (DFrac.own 1) c -∗
+      Proto.decodedAt etcdserverpb.LeaseGrantRequest.ty q -∗
       handlerBodyWP srv go!"LeaseGrant" etcdserverpb.LeaseGrantRequest.ty etcdserverpb.LeaseGrantResponse.ty go!"/etcdserverpb.Lease/LeaseGrant"
         ctx q ic Ψ) ⊢
   WP (App (App (App (App (Val (@! etcdserverpb._Lease_LeaseGrant_Handler)) (Val #(GoInterface.ok srv)))

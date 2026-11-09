@@ -34,9 +34,9 @@ variable [sem : go.Semantics]
 
 /-- `kvServer.Txn(ctx, r)` meets the contract of `/etcdserverpb.KV/Txn`. -/
 def kvServer.Txn.spec : Prop :=
-  ∀ (p s : Loc) (γ : Cluster) (ep : GoString),
+  ∀ (p s : Loc) (γ : Cluster) (ep : GoString) (gq : Qp),
   HandlerTriple (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty @!! go!"Txn")
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ kvServerAt p s γ) (etcdUnary γ ep go!"/etcdserverpb.KV/Txn") go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ kvServerAt p s γ) (etcdUnary γ ep go!"/etcdserverpb.KV/Txn") go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty (srvGate s gq)
 
 end spec
 

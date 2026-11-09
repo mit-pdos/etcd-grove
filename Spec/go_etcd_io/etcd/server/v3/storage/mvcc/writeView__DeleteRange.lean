@@ -35,7 +35,7 @@ def writeView.DeleteRange.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       wv.[writeView, go!"kv"] ↦□ kv ∗ isMvcc kv γ ∗ mvccLessorIs γ γl ∗ mvccReaders γ 1 ∗
       key ↦*{dk} kk ∗ endk ↦*{de} e ∗ Lease.lessorState γl n ls ∗
-      mvccBackend γ q B Pk ∗ hookIs B f ∗ Pre ∗ hookRun Pk f Pre Q' ∗ (Q' ={⊤}=∗ Pk ∗ Post) ∗
+      mvccBackend γ q B Pk ∗ hookIs B f ∗ Pre ∗ hookRun B Pk f Pre Q' ∗ (Q' ={⊤}=∗ Pk ∗ Post) ∗
       AU <{ ∃∃ (σ : MvccState), mvccState γ σ }> @ ⊤ \ ↑mvccN, ∅
         <{ ∀∀ (ds : List Key), ⌜σ.pending = [] ∧ rangeKeys σ.kv.store (mrange kk endk e) ds⌝ ∗
             mvccState γ (σ.notify (ds.map .delete)) ∗

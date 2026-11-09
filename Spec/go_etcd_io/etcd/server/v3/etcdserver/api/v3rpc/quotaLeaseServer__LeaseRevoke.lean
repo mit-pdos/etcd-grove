@@ -34,9 +34,9 @@ variable [sem : go.Semantics]
 
 /-- `quotaLeaseServer.LeaseRevoke(ctx, r)` meets the contract of `/etcdserverpb.Lease/LeaseRevoke`. -/
 def quotaLeaseServer.LeaseRevoke.spec : Prop :=
-  ∀ (p : Loc) (ls : GoInterface) (s : Loc) (γ : Cluster) (ep : GoString),
+  ∀ (p : Loc) (ls : GoInterface) (s : Loc) (γ : Cluster) (ep : GoString) (gq : Qp),
   HandlerTriple (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty @!! go!"LeaseRevoke")
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ quotaLeaseAt p ls s γ) (etcdUnary γ ep go!"/etcdserverpb.Lease/LeaseRevoke") go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ quotaLeaseAt p ls s γ) (etcdUnary γ ep go!"/etcdserverpb.Lease/LeaseRevoke") go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty (srvGate s gq)
 
 end spec
 

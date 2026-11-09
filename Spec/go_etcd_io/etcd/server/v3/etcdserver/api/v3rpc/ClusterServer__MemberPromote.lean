@@ -34,9 +34,9 @@ variable [sem : go.Semantics]
 
 /-- `ClusterServer.MemberPromote(ctx, r)` meets the contract of `/etcdserverpb.Cluster/MemberPromote`. -/
 def ClusterServer.MemberPromote.spec : Prop :=
-  ∀ (p s : Loc) (γ : Cluster) (ep : GoString),
+  ∀ (p s : Loc) (γ : Cluster) (ep : GoString) (gq : Qp),
   HandlerTriple (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ClusterServer.ty @!! go!"MemberPromote")
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ clusterServerAt p s γ) (etcdUnary γ ep go!"/etcdserverpb.Cluster/MemberPromote") go_etcd_io.etcd.api.v3.etcdserverpb.MemberPromoteRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.MemberPromoteResponse.ty
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ clusterServerAt p s γ) (etcdUnary γ ep go!"/etcdserverpb.Cluster/MemberPromote") go_etcd_io.etcd.api.v3.etcdserverpb.MemberPromoteRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.MemberPromoteResponse.ty (srvGate s gq)
 
 end spec
 

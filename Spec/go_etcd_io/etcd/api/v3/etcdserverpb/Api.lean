@@ -168,6 +168,16 @@ def bodyType : RespBody → go.GoType
 
 end types
 
+/-! ## The watch messages' relations (integration X: from `Realize.lean`, so that the watch
+stream's contract, `ClientV3.watchSpec`, can be stated where the client's watch is) -/
+
+/-- **The content `c` is a `WatchRequest` modelled by `r`** (a create's raw key `""` for `"\x00"`). -/
+opaque watchReqHolds (c : Proto.Content) (r : WireWatchReq) : Prop
+/-- **The content `c` is a `WatchResponse` modelled by `m`.** -/
+opaque watchRespHolds (c : Proto.Content) (m : WireWatchRespM) : Prop
+/-- **The content `c` is an `mvccpb.Event` modelled by `e`.** -/
+opaque eventHolds (c : Proto.Content) (e : EventM) : Prop
+
 /-! ## 2a's slots -/
 
 /-- (2a's `V3rpc.reqModels`) The content `c` of a request of method `m` models `rq`. -/
@@ -215,6 +225,17 @@ def mergeRange (m m' : RangeRespM) : RangeRespM :=
 section laws
 variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
+
+def watch_holds_fun.spec : Prop :=
+  (∀ c r r', watchReqHolds c r → watchReqHolds c r' → r = r') ∧
+  (∀ c m m', watchRespHolds c m → watchRespHolds c m' → m = m') ∧
+  (∀ c e e', eventHolds c e → eventHolds c e' → e = e')
+
+/-- The watch messages are at most three levels deep (a response, its events, their key-values). -/
+def watch_holds_depth.spec : Prop :=
+  (∀ c r, watchReqHolds c r → Proto.depth c ≤ 2) ∧
+  (∀ c m, watchRespHolds c m → Proto.depth c ≤ 3) ∧
+  (∀ c e, eventHolds c e → Proto.depth c ≤ 2)
 
 /-- **Each relation is functional in the content.** -/
 def holds_fun.spec : Prop :=
@@ -354,6 +375,78 @@ def sortNames_init.spec : Prop :=
       typedPointsto (globalAddr go!"go.etcd.io/etcd/api/v3/etcdserverpb.RangeRequest_SortTarget_name")
         mp DFrac.discard ∗ ownMap mp DFrac.discard m ∗
       ⌜∀ k : w32, (m !! k).isSome ↔ 0 ≤ sint.Z k ∧ sint.Z k ≤ 4⌝)
+
+/-! ### Decoded range ends (integration X; I5's `endsDecoded`/`opsDecoded`, 3h's to give)
+
+A `RangeEnd` that is a non-`nil` empty slice is read by the auth checks as the key alone and by mvcc
+as every key from it on (`nonissues/etcd-auth-empty-range-end-point-check.md`); a request decoded
+by protobuf never has one (`Proto.decodedAt`). The request path's checks take `endsDecoded` as a
+scope premise; grpc's decoder gives it (`Grpc.decOk_call`), and so does the apply's `Unmarshal`. -/
+
+/-- **The range ends of the request message `*t` at `p` are `nil` or non-empty** (persistent; a
+scope fact about the values in its `RangeEnd` fields, nested ones included, while they are not
+rewritten): a decoded message's (`endsDecoded_of_decoded`), or a range request a caller built with
+such an end (`endsDecoded_range_intro`: the health checks'). Read through the laws below. -/
+opaque endsDecoded (t : go.GoType) (p : Loc) : IProp GF := iprop(True)
+
+def endsDecoded_persistent.spec : Prop := ∀ t p, Persistent (endsDecoded (GF := GF) t p)
+
+/-- A decoded message's range ends are. -/
+def endsDecoded_of_decoded.spec : Prop := ∀ t p, Proto.decodedAt (GF := GF) t p ⊢ endsDecoded t p
+
+/-- A range request whose end is `nil` or non-empty (one a caller built: no nested message). -/
+def endsDecoded_range_intro.spec : Prop := ∀ (p : Loc) (dq : DFrac) (es : GoSlice) (ebs : GoString),
+  (p.[etcdserverpb.RangeRequest, go!"RangeEnd"] ↦{dq} es : IProp GF) ∗ es ↦*□ ebs ∗
+    ⌜es = slice.nil ∨ ebs ≠ []⌝ ⊢
+  p.[etcdserverpb.RangeRequest, go!"RangeEnd"] ↦{dq} es ∗ endsDecoded etcdserverpb.RangeRequest.ty p
+
+/-- **Every operation of the slice `sl` was decoded** (persistent). -/
+def opsDecoded (sl : GoSlice) : IProp GF :=
+  iprop(□ ∀ (dq : DFrac) (ps : List Loc), sl ↦*{dq} ps -∗
+    [∗list] op ∈ ps, endsDecoded etcdserverpb.RequestOp.ty op)
+
+/-- A decoded request's range end is `nil` or non-empty. -/
+def endsDecoded_range.spec : Prop := ∀ (p : Loc) (dq : DFrac) (es : GoSlice) (ebs : GoString),
+  endsDecoded (GF := GF) etcdserverpb.RangeRequest.ty p ∗
+    p.[etcdserverpb.RangeRequest, go!"RangeEnd"] ↦{dq} es ∗ es ↦*□ ebs ⊢
+  p.[etcdserverpb.RangeRequest, go!"RangeEnd"] ↦{dq} es ∗ ⌜es = slice.nil ∨ ebs ≠ []⌝
+def endsDecoded_delete.spec : Prop := ∀ (p : Loc) (dq : DFrac) (es : GoSlice) (ebs : GoString),
+  endsDecoded (GF := GF) etcdserverpb.DeleteRangeRequest.ty p ∗
+    p.[etcdserverpb.DeleteRangeRequest, go!"RangeEnd"] ↦{dq} es ∗ es ↦*□ ebs ⊢
+  p.[etcdserverpb.DeleteRangeRequest, go!"RangeEnd"] ↦{dq} es ∗ ⌜es = slice.nil ∨ ebs ≠ []⌝
+def endsDecoded_compare.spec : Prop := ∀ (p : Loc) (dq : DFrac) (es : GoSlice) (ebs : GoString),
+  endsDecoded (GF := GF) etcdserverpb.Compare.ty p ∗
+    p.[etcdserverpb.Compare, go!"RangeEnd"] ↦{dq} es ∗ es ↦*□ ebs ⊢
+  p.[etcdserverpb.Compare, go!"RangeEnd"] ↦{dq} es ∗ ⌜es = slice.nil ∨ ebs ≠ []⌝
+
+/-- **The split laws** (I5's request): a decoded transaction's branches and compares are decoded,
+and a decoded operation's request (range, delete, nested transaction) is. -/
+def endsDecoded_txn.spec : Prop := ∀ (p : Loc) (dq : DFrac) (cs ss fs : GoSlice),
+  endsDecoded (GF := GF) etcdserverpb.TxnRequest.ty p ∗
+    p.[etcdserverpb.TxnRequest, go!"Compare"] ↦{dq} cs ∗
+    p.[etcdserverpb.TxnRequest, go!"Success"] ↦{dq} ss ∗
+    p.[etcdserverpb.TxnRequest, go!"Failure"] ↦{dq} fs ⊢
+  p.[etcdserverpb.TxnRequest, go!"Compare"] ↦{dq} cs ∗
+    p.[etcdserverpb.TxnRequest, go!"Success"] ↦{dq} ss ∗
+    p.[etcdserverpb.TxnRequest, go!"Failure"] ↦{dq} fs ∗
+    opsDecoded ss ∗ opsDecoded fs ∗
+    □ (∀ (dq' : DFrac) (ps : List Loc), cs ↦*{dq'} ps -∗
+      [∗list] c ∈ ps, endsDecoded etcdserverpb.Compare.ty c)
+def endsDecoded_op.spec : Prop := ∀ (p : Loc) (dq : DFrac) (iv : GoInterface) (w q : Loc),
+  endsDecoded (GF := GF) etcdserverpb.RequestOp.ty p ∗ p.[etcdserverpb.RequestOp, go!"Request"] ↦{dq} iv ⊢
+  p.[etcdserverpb.RequestOp, go!"Request"] ↦{dq} iv ∗
+    (⌜iv = interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestRange.ty) #w⌝ -∗
+      w.[etcdserverpb.RequestOp_RequestRange, go!"RequestRange"] ↦{dq} q -∗
+      w.[etcdserverpb.RequestOp_RequestRange, go!"RequestRange"] ↦{dq} q ∗
+        endsDecoded etcdserverpb.RangeRequest.ty q) ∧
+    (⌜iv = interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestDeleteRange.ty) #w⌝ -∗
+      w.[etcdserverpb.RequestOp_RequestDeleteRange, go!"RequestDeleteRange"] ↦{dq} q -∗
+      w.[etcdserverpb.RequestOp_RequestDeleteRange, go!"RequestDeleteRange"] ↦{dq} q ∗
+        endsDecoded etcdserverpb.DeleteRangeRequest.ty q) ∧
+    (⌜iv = interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestTxn.ty) #w⌝ -∗
+      w.[etcdserverpb.RequestOp_RequestTxn, go!"RequestTxn"] ↦{dq} q -∗
+      w.[etcdserverpb.RequestOp_RequestTxn, go!"RequestTxn"] ↦{dq} q ∗
+        endsDecoded etcdserverpb.TxnRequest.ty q)
 
 end laws
 
@@ -526,12 +619,88 @@ section irr
 variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
-/-- **An owned `*InternalRaftRequest` asking `ir`, with header `h`** (2c's `irrOwn p ir` is
-`irrOwnH p ir none`). -/
-opaque irrOwnH (p : Loc) (ir : IrrBody) (h : Option IrrHeader) : IProp GF := iprop(True)
+/-- **The client request a writer lends into an `InternalRaftRequest`** (integration X, for 2c's
+writers: `&pb.InternalRaftRequest{Put: r}`): the requests a client proposes through a field of their
+own (not `Range`, `Authenticate`, the member and lease-read requests: those are not proposed this
+way). -/
+def irrCarries : Req → Bool
+  | .put _ => true
+  | .deleteRange _ => true
+  | .txn _ => true
+  | .compact _ _ => true
+  | .leaseGrant _ _ => true
+  | .leaseRevoke _ => true
+  | .authEnable => true
+  | .authDisable => true
+  | .authStatus => true
+  | .userAdd _ _ _ => true
+  | .userDelete _ => true
+  | .userGet _ => true
+  | .userChangePassword _ _ => true
+  | .userGrantRole _ _ => true
+  | .userRevokeRole _ _ => true
+  | .userList => true
+  | .roleList => true
+  | .roleAdd _ => true
+  | .roleDelete _ => true
+  | .roleGet _ => true
+  | .roleGrantPermission _ _ => true
+  | .roleRevokePermission _ _ _ => true
+  | _ => false
+
+/-- **The message type and content relation of the inner request of `ir`**: a carried client
+request's (`reqType`, `reqHolds`), an alarm's (`AlarmRequest`, `alarmReqHolds`); `none` for the
+server's own (`publish`, `authToken`, `noop`: built owned). -/
+def irrInner : IrrBody → Option (go.GoType × (Proto.Content → Prop))
+  | .req .alarmList => some (etcdserverpb.AlarmRequest.ty, fun c => alarmReqHolds c (.req .alarmList))
+  | .req (.alarmDisarm al) =>
+      some (etcdserverpb.AlarmRequest.ty, fun c => alarmReqHolds c (.req (.alarmDisarm al)))
+  | .req rq => if irrCarries rq then some (reqType rq, fun c => reqHolds c rq) else none
+  | .alarmActivate al =>
+      some (etcdserverpb.AlarmRequest.ty, fun c => alarmReqHolds c (.alarmActivate al))
+  | _ => none
+
+/-- **The struct a writer builds around the inner request at `q`** (`&pb.InternalRaftRequest{F: q}`,
+the field `F` of `ir`'s kind; every other field zero). -/
+def irrLit : IrrBody → Loc → etcdserverpb.InternalRaftRequest
+  | .req (.put _), q => { zero_val etcdserverpb.InternalRaftRequest with Put' := q }
+  | .req (.deleteRange _), q => { zero_val etcdserverpb.InternalRaftRequest with DeleteRange' := q }
+  | .req (.txn _), q => { zero_val etcdserverpb.InternalRaftRequest with Txn' := q }
+  | .req (.compact _ _), q => { zero_val etcdserverpb.InternalRaftRequest with Compaction' := q }
+  | .req (.leaseGrant _ _), q => { zero_val etcdserverpb.InternalRaftRequest with LeaseGrant' := q }
+  | .req (.leaseRevoke _), q => { zero_val etcdserverpb.InternalRaftRequest with LeaseRevoke' := q }
+  | .req (.authEnable), q => { zero_val etcdserverpb.InternalRaftRequest with AuthEnable' := q }
+  | .req (.authDisable), q => { zero_val etcdserverpb.InternalRaftRequest with AuthDisable' := q }
+  | .req (.authStatus), q => { zero_val etcdserverpb.InternalRaftRequest with AuthStatus' := q }
+  | .req (.userAdd _ _ _), q => { zero_val etcdserverpb.InternalRaftRequest with AuthUserAdd' := q }
+  | .req (.userDelete _), q => { zero_val etcdserverpb.InternalRaftRequest with AuthUserDelete' := q }
+  | .req (.userGet _), q => { zero_val etcdserverpb.InternalRaftRequest with AuthUserGet' := q }
+  | .req (.userChangePassword _ _), q => { zero_val etcdserverpb.InternalRaftRequest with AuthUserChangePassword' := q }
+  | .req (.userGrantRole _ _), q => { zero_val etcdserverpb.InternalRaftRequest with AuthUserGrantRole' := q }
+  | .req (.userRevokeRole _ _), q => { zero_val etcdserverpb.InternalRaftRequest with AuthUserRevokeRole' := q }
+  | .req (.userList), q => { zero_val etcdserverpb.InternalRaftRequest with AuthUserList' := q }
+  | .req (.roleList), q => { zero_val etcdserverpb.InternalRaftRequest with AuthRoleList' := q }
+  | .req (.roleAdd _), q => { zero_val etcdserverpb.InternalRaftRequest with AuthRoleAdd' := q }
+  | .req (.roleDelete _), q => { zero_val etcdserverpb.InternalRaftRequest with AuthRoleDelete' := q }
+  | .req (.roleGet _), q => { zero_val etcdserverpb.InternalRaftRequest with AuthRoleGet' := q }
+  | .req (.roleGrantPermission _ _), q => { zero_val etcdserverpb.InternalRaftRequest with AuthRoleGrantPermission' := q }
+  | .req (.roleRevokePermission _ _ _), q => { zero_val etcdserverpb.InternalRaftRequest with AuthRoleRevokePermission' := q }
+  | .req (.alarmList), q => { zero_val etcdserverpb.InternalRaftRequest with Alarm' := q }
+  | .req (.alarmDisarm _), q => { zero_val etcdserverpb.InternalRaftRequest with Alarm' := q }
+  | .alarmActivate _, q => { zero_val etcdserverpb.InternalRaftRequest with Alarm' := q }
+  | _, _ => zero_val etcdserverpb.InternalRaftRequest
+
+/-- **An `*InternalRaftRequest` asking `ir`, with header `h`**: the outer struct owned, the inner
+request message (`irrInner`) at the fraction `dq` (a writer wraps the request its caller lent it,
+`irrOwn_wrap`, and takes it back, `irrOwn_unwrap`; integration X, I4's `irrOwn p dq ir` made 3h's);
+at `dq = 1` an owned message (`irrOwnH_msgAt`). -/
+opaque irrOwnH (p : Loc) (dq : DFrac) (ir : IrrBody) (h : Option IrrHeader) : IProp GF := iprop(True)
 
 /-- 2c's `irrOwn` (header and `ID` unset). -/
-def irrOwn (p : Loc) (ir : IrrBody) : IProp GF := irrOwnH p ir none
+def irrOwn (p : Loc) (dq : DFrac) (ir : IrrBody) : IProp GF := irrOwnH p dq ir none
+
+/-- **`p`'s inner request is the message at `q`** (persistent; given by `irrOwn_wrap`). -/
+opaque irrInnerAt (p q : Loc) : IProp GF := iprop(True)
 
 /-- **An `*AlarmRequest` asking `ir`** (2c's `alarmReqOwn`). -/
 opaque alarmReqOwn (p : Loc) (dq : DFrac) (ir : IrrBody) : IProp GF := iprop(True)
@@ -550,9 +719,31 @@ def reqHeaderAt (hp : Loc) (h : IrrHeader) : IProp GF :=
     hp.[etcdserverpb.RequestHeader, go!"AuthRevision"] ↦ h.authRevision)
 
 def irrOwnH_msgAt.spec : Prop := ∀ p ir h,
-  irrOwnH (GF := GF) p ir h ⊣⊢
+  irrOwnH (GF := GF) p (DFrac.own 1) ir h ⊣⊢
     ∃ c, Proto.msgAt etcdserverpb.InternalRaftRequest.ty p (DFrac.own 1) c ∗
       ⌜irrHolds c ir ∧ irrHeaderHolds c h⌝
+
+/-- **Reading the whole message** (`Marshal`) at a lent fraction: a fraction of it holds a content
+asking `ir`. -/
+def irrOwnH_read.spec : Prop := ∀ p dq ir h,
+  irrOwnH (GF := GF) p dq ir h ⊢
+    ∃ (dq' : DFrac) (c : Proto.Content), Proto.msgAt etcdserverpb.InternalRaftRequest.ty p dq' c ∗
+      ⌜irrHolds c ir ∧ irrHeaderHolds c h⌝ ∗
+      (Proto.msgAt etcdserverpb.InternalRaftRequest.ty p dq' c -∗ irrOwnH p dq ir h)
+
+/-- **Wrapping a lent request** (`&pb.InternalRaftRequest{F: q}`, integration X). -/
+def irrOwn_wrap.spec : Prop := ∀ (p q : Loc) (dq : DFrac) (ir : IrrBody) (t : go.GoType)
+    (H : Proto.Content → Prop) (c : Proto.Content),
+  irrInner ir = some (t, H) →
+  p ↦ irrLit ir q ∗ Proto.msgAt t q dq c ∗ ⌜H c⌝ ⊢ |==> irrOwn (GF := GF) p dq ir ∗ irrInnerAt p q
+
+/-- **Taking the lent request back** (the outer struct dropped, whatever its header). -/
+def irrOwn_unwrap.spec : Prop := ∀ (p q : Loc) (dq : DFrac) (ir : IrrBody) (h : Option IrrHeader)
+    (t : go.GoType) (H : Proto.Content → Prop),
+  irrInner ir = some (t, H) →
+  irrOwnH (GF := GF) p dq ir h ∗ irrInnerAt p q ⊢ ∃ c, Proto.msgAt t q dq c ∗ ⌜H c⌝
+
+def irrInnerAt_persistent.spec : Prop := ∀ p q, Persistent (irrInnerAt (GF := GF) p q)
 
 def alarmReqOwn_msgAt.spec : Prop := ∀ p dq ir,
   alarmReqOwn (GF := GF) p dq ir ⊣⊢
@@ -560,18 +751,18 @@ def alarmReqOwn_msgAt.spec : Prop := ∀ p dq ir,
 
 /-- **Setting the header** (`processInternalRaftRequestOnce`: `r.Header = &pb.RequestHeader{...}`,
 then `r.Header.Username`/`AuthRevision` written in place). -/
-def irrOwn_setHeader.spec : Prop := ∀ (p : Loc) (ir : IrrBody),
-  irrOwnH (GF := GF) p ir none ⊢
+def irrOwn_setHeader.spec : Prop := ∀ (p : Loc) (dq : DFrac) (ir : IrrBody),
+  irrOwnH (GF := GF) p dq ir none ⊢
     p.[etcdserverpb.InternalRaftRequest, go!"Header"] ↦ (null : Loc) ∗
     ∀ (hp : Loc) (h : IrrHeader), p.[etcdserverpb.InternalRaftRequest, go!"Header"] ↦ hp -∗
-      reqHeaderAt hp h -∗ irrOwnH p ir (some h)
+      reqHeaderAt hp h -∗ irrOwnH p dq ir (some h)
 
 /-- **Reading the header back** (`r.Header.ID` after marshaling). -/
-def irrOwnH_header.spec : Prop := ∀ (p : Loc) (ir : IrrBody) (h : IrrHeader),
-  irrOwnH (GF := GF) p ir (some h) ⊢
+def irrOwnH_header.spec : Prop := ∀ (p : Loc) (dq : DFrac) (ir : IrrBody) (h : IrrHeader),
+  irrOwnH (GF := GF) p dq ir (some h) ⊢
     ∃ hp : Loc, p.[etcdserverpb.InternalRaftRequest, go!"Header"] ↦ hp ∗ reqHeaderAt hp h ∗
       (p.[etcdserverpb.InternalRaftRequest, go!"Header"] ↦ hp -∗ reqHeaderAt hp h -∗
-        irrOwnH p ir (some h))
+        irrOwnH p dq ir (some h))
 
 /-- **What `proto.Marshal` needs of a raft request**: the depth (`depthOk`), and `marshalOk` exactly
 for valid UTF-8 strings. (The encoded size is the server's bound: `--max-request-bytes` is checked

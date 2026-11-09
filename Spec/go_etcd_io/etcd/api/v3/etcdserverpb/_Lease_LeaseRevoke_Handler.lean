@@ -41,6 +41,7 @@ def _Lease_LeaseRevoke_Handler.spec : Prop :=
   go.typeSetContains srv.ty etcdserverpb.LeaseServer.ty = true →
   isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ Grpc.decOk dec etcdserverpb.LeaseRevokeRequest.ty c ∗
     (∀ q : Loc, Proto.msgAt etcdserverpb.LeaseRevokeRequest.ty q (DFrac.own 1) c -∗
+      Proto.decodedAt etcdserverpb.LeaseRevokeRequest.ty q -∗
       handlerBodyWP srv go!"LeaseRevoke" etcdserverpb.LeaseRevokeRequest.ty etcdserverpb.LeaseRevokeResponse.ty go!"/etcdserverpb.Lease/LeaseRevoke"
         ctx q ic Ψ) ⊢
   WP (App (App (App (App (Val (@! etcdserverpb._Lease_LeaseRevoke_Handler)) (Val #(GoInterface.ok srv)))

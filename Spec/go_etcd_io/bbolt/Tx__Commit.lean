@@ -78,7 +78,7 @@ no failure; on an error both fired too, with what they record. A read transactio
 def Tx.Commit.spec : Prop :=
   ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (T : TxView) (Q : Bool → IProp GF)
     (S : Bool → Bool → Bool → IProp GF),
-  {{ boltTx (GF := GF) tx γ 1 T ∗ ⌜T.managed = false⌝ ∗
+  {{ boltTx (GF := GF) tx γ 1 T ∗ txLive tx 1 ∗ ⌜T.managed = false⌝ ∗
       (if T.rw then iprop(
         AU <{ ∃∃ (σ : BoltSt), boltState γ 1 σ }> @ ⊤ \ ↑γ.ns, ∅
         <{ ∀∀ (ok : Bool), ⌜σ.data = T.base⌝ ∗
@@ -92,7 +92,7 @@ def Tx.Commit.spec : Prop :=
       if T.rw then iprop(txDone tx ∗
         ((⌜err = GoInterface.nil⌝ ∗ Q true ∗ S (!T.noSync) false false) ∨
          (⌜err ≠ GoInterface.nil⌝ ∗ ∃ ok synced failed brk : Bool, Q ok ∗ S synced failed brk)))
-      else iprop(boltTx tx γ 1 T ∗ isErr go_etcd_io.bbolt.errors.ErrTxNotWritable err) }}
+      else iprop(boltTx tx γ 1 T ∗ txLive tx 1 ∗ isErr go_etcd_io.bbolt.errors.ErrTxNotWritable err) }}
 
 end spec
 

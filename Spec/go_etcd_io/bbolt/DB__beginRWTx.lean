@@ -37,7 +37,7 @@ def DB.beginRWTx.spec : Prop :=
   ∀ [HasExt osFsExt] (db : Loc) (γ : BoltName) (ns : Bool),
   {{ isBolt (GF := GF) db γ ns }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"beginRWTx")) (Val #()))
-  {{ (tx : Loc) (err : GoInterface), RET (PairV #tx #err); (⌜err = GoInterface.nil⌝ ∗ txDB tx db ∗ ∃ D, boltTx tx γ 1 (TxView.wr D false ns)) ∨ (⌜err ≠ GoInterface.nil⌝ ∗ (dbClosed db ∨ dbBroken γ)) }}
+  {{ (tx : Loc) (err : GoInterface), RET (PairV #tx #err); (⌜err = GoInterface.nil⌝ ∗ txDB tx db ∗ txLive tx 1 ∗ ∃ D, boltTx tx γ 1 (TxView.wr D false ns)) ∨ (⌜err ≠ GoInterface.nil⌝ ∗ (dbClosed db ∨ dbBroken γ)) }}
 
 end spec
 

@@ -41,6 +41,7 @@ def _Auth_RoleAdd_Handler.spec : Prop :=
   go.typeSetContains srv.ty etcdserverpb.AuthServer.ty = true →
   isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ Grpc.decOk dec etcdserverpb.AuthRoleAddRequest.ty c ∗
     (∀ q : Loc, Proto.msgAt etcdserverpb.AuthRoleAddRequest.ty q (DFrac.own 1) c -∗
+      Proto.decodedAt etcdserverpb.AuthRoleAddRequest.ty q -∗
       handlerBodyWP srv go!"RoleAdd" etcdserverpb.AuthRoleAddRequest.ty etcdserverpb.AuthRoleAddResponse.ty go!"/etcdserverpb.Auth/RoleAdd"
         ctx q ic Ψ) ⊢
   WP (App (App (App (App (Val (@! etcdserverpb._Auth_RoleAdd_Handler)) (Val #(GoInterface.ok srv)))

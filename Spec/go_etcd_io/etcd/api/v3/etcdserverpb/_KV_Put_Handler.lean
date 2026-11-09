@@ -41,6 +41,7 @@ def _KV_Put_Handler.spec : Prop :=
   go.typeSetContains srv.ty etcdserverpb.KVServer.ty = true →
   isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ Grpc.decOk dec etcdserverpb.PutRequest.ty c ∗
     (∀ q : Loc, Proto.msgAt etcdserverpb.PutRequest.ty q (DFrac.own 1) c -∗
+      Proto.decodedAt etcdserverpb.PutRequest.ty q -∗
       handlerBodyWP srv go!"Put" etcdserverpb.PutRequest.ty etcdserverpb.PutResponse.ty go!"/etcdserverpb.KV/Put"
         ctx q ic Ψ) ⊢
   WP (App (App (App (App (Val (@! etcdserverpb._KV_Put_Handler)) (Val #(GoInterface.ok srv)))

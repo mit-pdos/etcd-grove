@@ -39,13 +39,20 @@ Intended realization (`q0` the share handed over; `B`'s names hold `γ`, `q0` an
   Fp.none V ∗ beLive γ (rtLoc γ) 1`; `kbSafe B := beDel γ`; `kbSafeHeld B := beDelHeld γ`;
   `kbMade B b := beMade γ b.name` (`key`: by `beCur_freeze` once created; `meta`: the server's);
   `storageHook B dq f := beHook γ dq f`; `storageReq B Pk X Y := beReq γ Pk X Y`;
-* `kbHeld B := ∃ q S, beSess γ q mvccFp S ∗ ⌜…⌝`, lent from `kbLocked` with `lockTok'`'s other half
+  `kbLent B H := □ (H -∗ ∃ q S, beSess γ q Fp.none S ∗ (beSess γ q Fp.none S -∗ H))` (the hook's
+  session, 4a's (g), integration Y: so mvcc's `hookRun B Pk f Pre Q` gives 4a's `hookRun γ q Pk f Pre
+  Q` at `H := beSess γ (q * q0) Fp.none S`, and a hook proved over 4a's `hookRun` at every share gives
+  mvcc's, `hookRun_mvcc` below); `mvccOn γ B` (persistent): a ghost record of the pair, in a global
+  map from the backend's names (one storage per backend: `keyBackend_intro` takes `beDel γ`);
+* `kbHeld B := ∃ q S, beSess γ q mvccFp S ∗ beLive γ (btLoc γ) 1 ∗ ⌜…⌝`, lent from `kbLocked` (with
+  the session's liveness, `kbLocked_held`: the schema's `btView` holds it) with `lockTok'`'s other half
   (so the way back recovers the same share and a session that agrees with `S` on mvcc's cells:
   `heldBack`).
 
 The rows, one by one: `BatchTx`/`ReadTx` (`backend.BatchTx.spec`, `ReadTx.spec`); the lock rows
-(`batchTxBuffered.LockInsideApply`/`LockOutsideApply.spec` on `beOpen γ (q * q0)`; mvcc's `hookRun`
-gives 4a's `hookRun γ q Pk f Pre Q` by framing the session around the hook; the observation fired
+(`batchTxBuffered.LockInsideApply`/`LockOutsideApply.spec` on `beOpen γ (q * q0)`; mvcc's `hookRun B`
+gives 4a's `hookRun γ (q * q0) Pk f Pre Q` at `H` the session, `kbLent B H` by its realization (the
+identity lend); the observation fired
 after the lock with `beSess_vis`, `beSess_cur`); `Unlock` (`batchTxBuffered.Unlock.spec`, its two
 updates mvcc's nested ones through `kbData`'s realization: `keyDataOf S.mid = KeyData.mid D0 D` needs
 the delete row's (b), `beOpen` back as `kbOpen B q`); the puts (`UnsafePut`/`UnsafeSeqPut.spec`:
@@ -60,10 +67,14 @@ lengths below `2^63`); the bare lock rows (`readTx.RLock` with `Fp.none`, no `be
 close too); `ForceCommit` (`backend.ForceCommit.spec`); the safe-range lock; `Size`/`SizeInUse`/
 `OpenReadTxN`.
 
-Not taken from 4a's round-1 list: (g), lending the hook the session (`hookRun` would need the
-storage as an argument; recorded in `notes/specs-only/integration-I6.md`). The rows rest on 4a's
-backend specs as they now are; their own realization over 4c needs bbolt to read a key it returned
-while deleting it (4c's `Bucket.Delete` takes `boltTx … 1` and a plain points-to: recorded).
+4a's round-1 (g), lending the hook the session, is taken (integration Y): mvcc's `hookRun B` names
+the storage and lends `kbLent B H`. The server proves its hook once, over 4a's `hookRun γ q Pk f Pre Q`
+at every share (its `UnsafeConsistentIndex` reads through `beSess_rd`), and turns it into mvcc's by
+`hookRun_mvcc` (this law's post), into the lessor's by `LeaseBackend.lean`'s `beHookRun_intro`, into
+the schema's by `SchemaTx.lean`'s `applyHook_intro`. The rows rest on 4a's backend specs as they now
+are; their own realization over 4c reads the bytes a range returned while the session writes (the
+compaction deletes the keys its range returned): 4c's liveness token `Bbolt.txLive` (integration Y),
+against whose share `txBytes_acc` lends, so `Bucket.Delete` keeps its `boltTx … 1`.
 -/
 module
 
@@ -122,13 +133,44 @@ def schemaBkts_ok.spec [GooseExts] : Prop := bktsOk schemaBkts
 
 /-- **The backend's reader slots cover mvcc's and leave room for its other clients** (auth, the
 server's): an obligation on the two sealed constants (`beReaderN ≤ 2^30 - 2`, Go's `RWMutex`
-reader bound, in the backend's realization; mvcc's `mvccReaderN = mvccTokN + mvccOwnN` with
-`mvccTokN ≥ 2^28`, so mvcc's must stay below `2^30 - 2^28`). -/
+reader bound, in the backend's realization; mvcc's `mvccReaderN = mvccTokN + mvccOwnN + mvccRevN`
+with `mvccTokN ≥ 2^28` and the `Rev` pool's `mvccRevN = 2^28` (integration Y), so mvcc's sealed
+`mvccTokN` must stay below `2^30 - 2^28 - 2^27 - 6`: `2^28` fits). -/
 def beReaderN_mvcc.spec : Prop := Mvcc.mvccReaderN + 2 ^ 27 ≤ beReaderN
+
+section vocab
+variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
+
+/-- **`B` is mvcc's storage over the backend `γ`** (persistent; `keyBackend_intro` gives it): what the
+lessor's and the server's laws over both names take (`LeaseBackend.lean`). -/
+opaque mvccOn (γ : BeNames) (B : Mvcc.MvccStorage) : IProp GF := iprop(True)
+
+end vocab
 
 section laws
 variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
+
+def mvccOn_persistent.spec : Prop := ∀ γ B, Persistent (mvccOn (GF := GF) γ B)
+
+/-- One storage per backend, one backend per storage, one storage per backend value. -/
+def mvccOn_agree.spec : Prop := ∀ γ γ' B B',
+  mvccOn (GF := GF) γ B ∗ mvccOn γ' B' ⊢
+    ⌜(γ = γ' ↔ B = B') ∧ (Mvcc.storageVal B = Mvcc.storageVal B' → B = B')⌝
+
+/-- **mvcc's storage value is the backend's** (with its batch lock's names). -/
+def mvccOn_val.spec : Prop := ∀ γ B,
+  mvccOn (GF := GF) γ B ⊢ ∃ b, ⌜GoInterface.ok (Mvcc.storageVal B) = beIface b⌝
+
+/-- **The lent lock is mvcc's session** (as `keyBackend_intro`'s post; restated over `mvccOn` for the
+lessor's `beTxHeld`, `LeaseBackend.lean`): lent to a writer of cells mvcc does not track, and given
+back unchanged on mvcc's cells. -/
+def mvccOn_held.spec : Prop := ∀ γ B,
+  mvccOn (GF := GF) γ B ⊢ □ (Mvcc.kbHeld B -∗ ∃ (q' : Qp) (S : Sess), beSess γ q' mvccFp S ∗
+    beLive γ (btLoc γ) 1 ∗
+    ∀ S' : Sess, ⌜Sess.sameOn mvccFp S S'⌝ -∗ beSess γ q' mvccFp S' -∗ beLive γ (btLoc γ) 1 -∗
+      Mvcc.kbHeld B)
 
 /-- **etcd's backend is a storage for mvcc** (see the header). -/
 def keyBackend_intro.spec : Prop :=
@@ -142,15 +184,18 @@ def keyBackend_intro.spec : Prop :=
   ⊢ |={⊤}=> ∃ B : Mvcc.MvccStorage,
     ⌜GoInterface.ok (Mvcc.storageVal B) = beIface b⌝ ∗ Mvcc.keyBackend B Pk ∗
     Mvcc.kbData B (keyDataOf V) ∗ Mvcc.kbSafe B ∗ Mvcc.kbRdToks B Mvcc.mvccReaderN ∗
-    Mvcc.kbOpen B 1 ∗
+    Mvcc.kbOpen B 1 ∗ mvccOn γ B ∗
     Mvcc.kbMade B .metaB ∗ (⌜C.made keyBkt = true⌝ -∗ Mvcc.kbMade B .keyB) ∗
     -- the hook and the commit request are the backend's
     □ (∀ dq f, Mvcc.storageHook B dq f ∗-∗ beHook γ dq f) ∗
+    -- a hook proved over the backend's contract at every share is one over mvcc's (`hookRun_mvcc`)
+    □ (∀ (f : GoFunc) (Pre Q : IProp GF), (∀ q, hookRun γ q Pk f Pre Q) -∗ Mvcc.hookRun B Pk f Pre Q) ∗
     □ (∀ (X : IProp GF) (Y : IProp GF), beReq γ Pk X Y -∗ Mvcc.storageReq B Pk X Y) ∗
     -- the lent lock is mvcc's session, lent to a writer of cells mvcc does not track (the
     -- lessor's lease delete under mvcc's transaction) and given back unchanged on mvcc's cells
-    □ (Mvcc.kbHeld B -∗ ∃ (q' : Qp) (S : Sess), beSess γ q' mvccFp S ∗
-        ∀ S' : Sess, ⌜Sess.sameOn mvccFp S S'⌝ -∗ beSess γ q' mvccFp S' -∗ Mvcc.kbHeld B) ∗
+    □ (Mvcc.kbHeld B -∗ ∃ (q' : Qp) (S : Sess), beSess γ q' mvccFp S ∗ beLive γ (btLoc γ) 1 ∗
+        ∀ S' : Sess, ⌜Sess.sameOn mvccFp S S'⌝ -∗ beSess γ q' mvccFp S' -∗ beLive γ (btLoc γ) 1 -∗
+          Mvcc.kbHeld B) ∗
     -- the way back, for the backend's close: the trackers at mvcc's last data
     □ (∀ (n : Nat), Mvcc.storageRest B n ={⊤}=∗ ∃ (V' C' : Image),
         beVis γ mvccFp V' ∗ beCur γ mvccFp C' ∗ ⌜Image.agree mvccFp C' V'⌝ ∗

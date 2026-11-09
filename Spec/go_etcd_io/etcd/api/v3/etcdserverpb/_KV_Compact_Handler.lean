@@ -41,6 +41,7 @@ def _KV_Compact_Handler.spec : Prop :=
   go.typeSetContains srv.ty etcdserverpb.KVServer.ty = true →
   isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ Grpc.decOk dec etcdserverpb.CompactionRequest.ty c ∗
     (∀ q : Loc, Proto.msgAt etcdserverpb.CompactionRequest.ty q (DFrac.own 1) c -∗
+      Proto.decodedAt etcdserverpb.CompactionRequest.ty q -∗
       handlerBodyWP srv go!"Compact" etcdserverpb.CompactionRequest.ty etcdserverpb.CompactionResponse.ty go!"/etcdserverpb.KV/Compact"
         ctx q ic Ψ) ⊢
   WP (App (App (App (App (Val (@! etcdserverpb._KV_Compact_Handler)) (Val #(GoInterface.ok srv)))

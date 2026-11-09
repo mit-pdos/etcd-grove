@@ -52,13 +52,12 @@ the callers that realize their slots over the backend (3c's lessor, 3d's auth st
   - interval `UnsafeRange` of a whole bucket (`txRange`): the same triple; `btRange` with `e ≠ []`
     is `sortedEnts … ` cut at a positive limit, which is `rangeOf` (the same three clauses) on the
     whole bucket (every key cell in `G`).
-  - `UnsafeForEach` of a whole bucket: `batchTxBuffered.UnsafeForEach.spec` with `visitOk vis P`,
-    `P done := I done`; `btOrder` gives `entsAny` (sorted keys are distinct). **Not provable from
-    4a's current triple** in two ways: its error case returns some `err ≠ nil` with a prefix's `P`,
-    not the visitor's error (and may return an error the visitor never gave), where the schema's
-    row returns the visitor's `J l err` (`MustUnsafeGetAllLeases`, `unsafeGetAllUsers` panic on any
-    error); and its visitor must return the bytes after each call, where the schema's keeps them
-    until it gives `R V` back (`lentKVs`). Below, "Needed of 4a" (1).
+  - `UnsafeForEach` of a whole bucket: `batchTxBuffered.UnsafeForEach.spec` (integration Y: the
+    visitor's own error, the bytes kept until given back) with `visitOk vis P E`, `P done := I
+    (done.map toLentKV)`, `E done err := J (done.map toLentKV) err` (the two `LentKV`/`Lent` records
+    field for field), the liveness `beLive γ (btLoc γ) 1` of the view, given back by the post's
+    `lentAll l -∗ beLive …` for the row's `lentKVs l -∗ R V`; `btOrder` gives `entsAny` (sorted keys
+    are distinct).
 * `btWr` (`txWr` of `btIface γ` at `btView`; the scope must leave `key` alone, `scopeNoKey`, and be
   writable in the session, `writable γ F (scopeFp sc)`):
   - `UnsafePut`: `batchTxBuffered.UnsafePut.spec`: `beCur γ G C` with the key cell in `G`,
@@ -76,8 +75,9 @@ the callers that realize their slots over the backend (3c's lessor, 3d's auth st
     `writable`).
 * `rtRd` (`txRd` of `rtIface γ` at `rtView`): `readTx.UnsafeRange.spec` with `covers G b k []`
   (the key in `G`), `es = slice.nil`, `e = []` (no hook premise); `rdRange` with an empty end is
-  `single`. `readTx.UnsafeForEach.spec` (the whole bucket in `G`): `rdOrder` gives `entsAny` (its
-  keys `Nodup`); the same visitor-error gap. **No `txRange` for read transactions**: `rdRange` of a
+  `single`. `readTx.UnsafeForEach.spec` (the whole bucket in `G`; the view's `beLive γ (rtLoc γ)
+  1`): `rdOrder` gives `entsAny` (its keys `Nodup`); the visitor's error and the lent bytes as
+  `btRd`'s. **No `txRange` for read transactions**: `rdRange` of a
   safe-range bucket hides the split between bbolt's part and the buffer's (`A.take m ++ B.take n`),
   which is `rangeOf` only when the bucket is clean, and of any other bucket reads at most one
   entry; the schema never ranges a read transaction (`unsafeGetAllRoles` is called on a batch
@@ -105,7 +105,7 @@ the callers that realize their slots over the backend (3c's lessor, 3d's auth st
 
 ## Needed of 4a (`backend/Api.lean` and its triples; not this module's to change)
 
-1. **`UnsafeForEach` returns the visitor's error and lends the bytes until the transaction resource
+1. **Met (integration Y).** **`UnsafeForEach` returns the visitor's error and lends the bytes until the transaction resource
    is given back** (`batchTxBuffered`, `readTx`, `concurrentReadTx`, `baseReadTx`): `visitOk vis P
    E` whose visitor keeps `ks ↦*{dq} k`, `vs ↦*{dq} v` (no return in its post: `unsafeGetAllUsers`
    appends the value slices and unmarshals after the loop), its error case giving `E done err`, and
@@ -246,7 +246,7 @@ def safeRegOk_init.spec : Prop :=
   isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ⊢ safeRegOk
 
 /-- **Reading the batch transaction** (its lock held): `txRd` and `txRange` at `btView`. The
-`UnsafeForEach` row rests on 4a's needed change (1). -/
+`UnsafeForEach` row rests on 4a's change (1), made at integration Y. -/
 def btRd.spec : Prop :=
   ∀ (γ : BeNames) (q : Qp) (F G : Fp) (sc : Schema.Scope) (X : IProp GF),
   ⌜∀ c, scopeFp sc c → G c⌝ ∗
@@ -265,7 +265,7 @@ def btWr.spec : Prop :=
 
 /-- **Reading the shared read transaction** (begun by `RLock`, or by `beSess_rd` under the batch
 lock): `txRd` at `rtView`. No `txRange` (see the header). The `UnsafeForEach` row rests on 4a's
-needed change (1). -/
+change (1), made at integration Y. -/
 def rtRd.spec : Prop :=
   ∀ (γ : BeNames) (G : Fp) (sc : Schema.Scope) (X : Image → IProp GF),
   ⌜∀ c, scopeFp sc c → G c⌝ ∗

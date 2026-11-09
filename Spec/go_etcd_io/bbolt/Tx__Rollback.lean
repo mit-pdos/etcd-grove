@@ -47,7 +47,7 @@ comes back; a finished one returns `ErrTxClosed` (defrag's deferred `Rollback` a
 def Tx.Rollback.spec : Prop :=
   ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (o : Option TxView),
   {{ (match o with
-      | some T => iprop(boltTx (GF := GF) tx γ 1 T ∗ ⌜T.managed = false⌝)
+      | some T => iprop(boltTx (GF := GF) tx γ 1 T ∗ txLive tx 1 ∗ ⌜T.managed = false⌝)
       | none => txDone tx) }}
     (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"Rollback")) (Val #()))
   {{ (err : GoInterface), RET #err; txDone tx ∗

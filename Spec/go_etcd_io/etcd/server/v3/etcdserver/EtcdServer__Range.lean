@@ -50,6 +50,10 @@ Premises kept: a valid sort (`checkRangeRequest`'s), and an empty key only with 
 disjunct dropped (W0's round 4: a read's permission is checked at an auth table at or after the
 call's `lo`, `State.deniedSince`/`permittedSince` (W0's round 6), which is what `doSerialize` does); the principal
 pair (`reqPrin ctx p tls`).
+Integration X: the scope premise `EtcdServerPb.endsDecoded` (the request decoded by protobuf: its
+range ends `nil` or non-empty, `nonissues/etcd-auth-empty-range-end-point-check.md`; I5's request;
+2a's handler has it from grpc's decoder, `Proto.decodedAt` and `endsDecoded_of_decoded`; a caller that
+builds its range request, `endsDecoded_range_intro`).
 
 **Margin.** A linearizable read is answered at a state at or after the read index, which may be
 behind the cluster's latest (the model's linearization point is the moment the cluster was in it,
@@ -83,7 +87,8 @@ def EtcdServer.Range.spec : Prop :=
   ∀ (s : Loc) (γ : Cluster) (q : Qp) (ctx : GoInterface) (p tls : Principal) (r : Loc) (dq : DFrac) (rm : RangeReq),
   SrvCallTriple (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"Range")) (Val #ctx)) (Val #r))
     iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ srvGate s q ∗
-        Context.ctxOk ctx ∗ reqCtxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ rangeReqOwn r dq rm ∗ ⌜rm.validSort ∧ (rm.key = [] → rm.rangeEnd = [])⌝)
+        Context.ctxOk ctx ∗ reqCtxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ rangeReqOwn r dq rm ∗
+        EtcdServerPb.endsDecoded go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty r ∗ ⌜rm.validSort ∧ (rm.key = [] → rm.rangeEnd = [])⌝)
     iprop(srvGate s q ∗ threadTok ∗ rangeReqOwn r dq rm) γ p tls (.range rm) true (ClientV3.getReply)
 
 end spec

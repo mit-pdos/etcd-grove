@@ -19,8 +19,10 @@ there as before (`*_msgAt` below). W0's new laws `eventOwn_persist`, `eventOwn_d
 and `msgOwn_discard_persistent` (integration I1) are this batch's obligations too: each message
 predicate is `∃ c, Proto.msgAt T p dq c ∗ ⌜holds c m⌝` (the relation laws), and `Proto.msgAt`'s
 `persist` and its persistence at `DFrac.discard` (`Proto/Api.lean`) give them (`protoRest` likewise:
-the bookkeeping fields under `msgAt`). 2a's `watchSpec` (`v3rpc/Api.lean`) is stated over
-`watchReqHolds`/`watchRespHolds`.
+the bookkeeping fields under `msgAt`). The watch contract (`ClientV3.watchSpec`, 2a's, now in
+the client's `ApiWatch.lean`) is stated over `watchReqHolds`/`watchRespHolds`, which integration X
+moved to `Api.lean` with `eventHolds`, `watch_holds_fun`, `watch_holds_depth` (the client's
+`ApiWatch` cannot import this module, which imports it).
 
 **Intended realization**: as `Api.lean`'s (each predicate the field-level predicate of its unfold
 law; `msgAt` of each type the same; each relation "the content's fields are the model's").
@@ -51,27 +53,9 @@ namespace EtcdServerPb
 open Iris Iris.BI EtcdModel EtcdWire ClientV3
 open go_etcd_io.etcd.api.v3
 
-/-- **The content `c` is a `WatchRequest` modelled by `r`** (a create's raw key `""` for `"\x00"`). -/
-opaque watchReqHolds (c : Proto.Content) (r : WireWatchReq) : Prop
-/-- **The content `c` is a `WatchResponse` modelled by `m`.** -/
-opaque watchRespHolds (c : Proto.Content) (m : WireWatchRespM) : Prop
-/-- **The content `c` is an `mvccpb.Event` modelled by `e`.** -/
-opaque eventHolds (c : Proto.Content) (e : EventM) : Prop
-
 section laws
 variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
-
-def watch_holds_fun.spec : Prop :=
-  (∀ c r r', watchReqHolds c r → watchReqHolds c r' → r = r') ∧
-  (∀ c m m', watchRespHolds c m → watchRespHolds c m' → m = m') ∧
-  (∀ c e e', eventHolds c e → eventHolds c e' → e = e')
-
-/-- The watch messages are at most three levels deep (a response, its events, their key-values). -/
-def watch_holds_depth.spec : Prop :=
-  (∀ c r, watchReqHolds c r → Proto.depth c ≤ 2) ∧
-  (∀ c m, watchRespHolds c m → Proto.depth c ≤ 3) ∧
-  (∀ c e, eventHolds c e → Proto.depth c ≤ 2)
 
 def watchReqOwn_msgAt.spec : Prop := ∀ p dq r,
   watchReqOwn (GF := GF) p dq r ⊣⊢

@@ -27,7 +27,7 @@ of both buckets; a fresh `D` gets them, an existing one has them),
 `h.rev` by `mvccImage D h u`, `currentRev` raised to the compaction keys'); each key's lease
 `Attach`ed (`lessor.Attach.spec` on the writer token: `RestoreLs`; an `Attach` of a lease not live
 fails and is logged); when `u`, `compactLockfree(scheduled)`: `updateCompactRev`'s
-`SetScheduledCompact` runs the hook once (`LockInsideApply`, `hookRun Pk f Pre Q'`, then
+`SetScheduledCompact` runs the hook once (`LockInsideApply`, `hookRun B Pk f Pre Q'`, then
 `Q' ={⊤}=∗ Pk ∗ Post` for `Unlock`) and `ForceCommit` once (`X` to `Y`), and the job is scheduled
 (`compactJobRes`, from `kbSafe B`, a reader slot and the job's receipts `⧖ (evCount h)` bound).
 `idxShareC` publishes the index (`idxAt` at floor `0`); the invariants are allocated at `σ = ⟨h, []⟩` with the receipt;
@@ -77,14 +77,14 @@ def NewStore.spec : Prop :=
       (⌜lg = null⌝ ∨ Zap.isLogger lg) ∗ ⌜storeCfgOk cfg⌝ ∗
       mvccStorageFor B Pk h u ∗
       storageHook B dq f ∗ ⌜f = func.nil ∨ dq = DFrac.discard⌝ ∗
-      Pre ∗ hookRun Pk f Pre Q' ∗ (Q' ={⊤}=∗ Pk ∗ Post) ∗ X ∗ storageReq B Pk X Y ∗
+      Pre ∗ hookRun B Pk f Pre Q' ∗ (Q' ={⊤}=∗ Pk ∗ Post) ∗ X ∗ storageReq B Pk X Y ∗
       Lease.isLessor le γl c ∗ Lease.lessorState γl n ls }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.NewStore)) (Val #lg))
       (Val #(GoInterface.ok (storageVal B)))) (Val #(Lease.lessorIface le))) (Val #cfg))
   {{ (s : Loc), RET #s; ∃ γ : MvccName,
       isMvcc (interface.mkOk (go.GoType.PointerType store.ty) #s) γ ∗ mvccLessorIs γ γl ∗
       mvccState γ ⟨h, []⟩ ∗ mvccOpen γ ∗ mvccBackend γ 1 B Pk ∗ mvccReaders γ mvccTokN ∗
-      mvccRevLent γ 0 ∗ mvccRestoreGate γ 1 ∗
+      mvccRevLent γ false ∗ mvccRestoreGate γ 1 ∗
       storageHook B dq f ∗ (if u then iprop(Post ∗ Y) else iprop(Pre ∗ X)) ∗
       ∃ (rd : GoFunc) (n' : Nat) (ls' : Lease.LessorState), mvccDeleter rd γ ∗
         ⌜RestoreLs { ls with rd := rd } h.store ls'⌝ ∗ Lease.lessorState γl n' ls' }}

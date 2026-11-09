@@ -44,7 +44,7 @@ def Unmarshal.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗ msgAt t p (DFrac.own 1) c0 ∗ b ↦*{dq} bs }}
     (App (App (Val (@! google_golang_org.protobuf.proto.Unmarshal)) (Val #b)) (Val #(msgVal t p)))
   {{ (err : GoInterface), RET #err; b ↦*{dq} bs ∗ ∃ c, msgAt t p (DFrac.own 1) c ∗
-      ((⌜err = GoInterface.nil ∧ encodes t c bs⌝) ∨
+      ((⌜err = GoInterface.nil ∧ encodes t c bs⌝ ∗ decodedAt t p) ∨
        ⌜err ≠ GoInterface.nil ∧ ∀ c', encodes t c' bs → ¬ depth c' < depthMax⌝) }}
 
 end spec

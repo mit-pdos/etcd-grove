@@ -76,10 +76,11 @@ range deleter; the lease list; recover; renew and the primary; the expiry channe
   receive.
 * `rdOk`, `ckptOk` (transparent): the contracts of the two callbacks the lessor calls (the range
   deleter for `Revoke`, the checkpointer for `Renew` and the run loop).
-* Provisional, other batches' (still provisional after the integration, I5: their owners have no
-  such predicate yet): `beOk be`, `beLeases be B`, `beHook be Pk f`, `beTxHeld be` (4a/4b,
-  `req/go_etcd_io_etcd_server_v3_storage_backend.md` and `..._schema.md`, "from 3c"; the hook's
-  contract is mvcc's `Mvcc.hookRun`, as mvcc's write path takes it); `clusterOk cl` (2e's
+* The backend, as the lessor sees it (opaque: the lessor's API is over the `backend.Backend` value it
+  is given, not over 4a's names; 4a's `LeaseBackend.lean` introduces each from the backend's
+  resources, integration Y): `beOk be`, `beLeases be B`, `beHook be Pk f`, `beHookRun be Pk f Pre Q`
+  (the hook's contract, one use: integration Y, since mvcc's `Mvcc.hookRun` now names mvcc's storage
+  and lends the hook the session), `beTxHeld be`; `clusterOk cl` (2e's
   membership, `RaftCluster.Version`: no spec of it in `membership/` yet). Their intended
   realizations over the owners' current vocabulary are in their docstrings: 4b's lease functions
   (`Schema.MustUnsafePutLease`, `MustUnsafeGetAllLeases`, `UnsafeDeleteLease`,
@@ -290,18 +291,17 @@ def errIs (g : GoString) (e : GoInterface) : IProp GF := iprop(globalAddr g ↦�
 
 /-! ### Provisional: other batches' vocabulary -/
 
-/-- (provisional, 4a's) **An open share of the backend `be`**: its batch transaction may be fetched
+/-- **An open share of the backend `be`**: its batch transaction may be fetched
 (`BatchTx()`), locked outside an apply (`LockOutsideApply`, no hook) or inside one (with `beHook`),
 unlocked, and force-committed (`ForceCommit()`). **Not persistent** (integration I5, 4a's request,
 `req/..._lease.md`, "from 4a"): after the backend's `Close` these panic or are fatal, so the share
 is held (in the writer's token, `lessorState_beOk`) and handed back before the close. Intended
-realization (4a's current API): `∃ γb b p Pk q, ⌜be = Backend.beIface b⌝ ∗ Backend.isBackend γb b p
-Pk ∗ Backend.beOpen γb q` (the lease bucket written under the lock's session, `Backend.beSess`, as
-`Schema.txWr`; `ForceCommit`'s commit request `Backend.beReq` is still to be matched: 4a is
-repairing). -/
+realization (integration Y): `∃ γb b p Pk, ⌜be = Backend.beIface b⌝ ∗ Backend.isBackend γb b p Pk
+∗ Backend.beOpen γb Backend.leaseShare` (a fixed share, so that the server gets it back whole:
+4a's `Backend.leaseBeOk_intro`/`_elim`, `LeaseBackend.lean`). -/
 opaque beOk (be : GoInterface) : IProp GF := iprop(True)
 
-/-- (provisional, 4b's over 4a's) **The lease bucket of `be`, as its batch transaction holds it (the
+/-- **The lease bucket of `be`, as its batch transaction holds it (the
 last commit with the pending writes), decodes to `B`** (id to stored TTL; each record a
 `leasepb.Lease` that unmarshals, so `MustUnsafeGetAllLeases` does not panic; its `RemainingTTL` not
 modelled). Exclusive: its holder is the bucket's only writer (`MustUnsafePutLease`,
@@ -309,23 +309,40 @@ modelled). Exclusive: its holder is the bucket's only writer (`MustUnsafePutLeas
 answer, `req/..._lease.md`, "from 4b"): the caller's share `R V` of 4a's batch view, with `V .lease
 = some m ∧ Schema.leaseBktIs m L ∧ ∀ i, B i = (L (W64 i)).map (fun r => sint.Z r.2.1)` (the records
 keyed by the id's bytes; the remaining TTL dropped), the scope `S` with `lease` whole, for the
-`Schema.txRd`/`txWr` bundles of `be.BatchTx()` that 4a gives the lock's holder. -/
+`Schema.txRd`/`txWr` bundles of `be.BatchTx()` that 4a gives the lock's holder; the bucket's cells
+untracked (`Backend.beNoVis`: the lessor reads it only through the batch transaction, so it may write
+it in mvcc's session, `beTxHeld`). Introduced by 4a's `Backend.leaseBeLeases_intro`, given back by
+`_elim` (`LeaseBackend.lean`). -/
 opaque beLeases (be : GoInterface) (B : Int → Option Int) : IProp GF := iprop(True)
 
-/-- (provisional, 4a's) **`be`'s batch lock has the invariant `Pk` and its post-lock hook is `f`**
-(`nil`: none), for good (persistent): `LockInsideApply` gives `Pk` and runs `f` (`Mvcc.hookRun Pk f
+/-- **`be`'s batch lock has the invariant `Pk` and its post-lock hook is `f`**
+(`nil`: none), for good (persistent): `LockInsideApply` gives `Pk` and runs `f` (`beHookRun be Pk f
 Pre Q`: the caller's `Pre` to `Q`), `Unlock` takes `Pk` back. mvcc's `mvccBackend`/`hookIs` say the
-same of its storage; 4a identifies them. Intended realization (4a's current API): `∃ γb b p, ⌜be =
-Backend.beIface b⌝ ∗ Backend.isBackend γb b p Pk ∗ Backend.beHook γb DFrac.discard f` (4a's
-`keyBackend_intro` identifies `Mvcc.storageHook B dq f` with `Backend.beHook γb dq f` the same
-way). -/
+same of its storage; 4a identifies them. Intended realization (4a's API): `∃ γb b p, ⌜be =
+Backend.beIface b⌝ ∗ Backend.isBackend γb b p Pk ∗ Backend.beHook γb DFrac.discard f`; introduced by
+4a's `Backend.leaseBeHook_intro` (`LeaseBackend.lean`). -/
 opaque beHook (be : GoInterface) (Pk : IProp GF) (f : GoFunc) : IProp GF := iprop(True)
 
-/-- (provisional, 4a's) **This thread holds `be`'s batch transaction lock** (an mvcc write
-transaction is open: `Write()` locked it, `End()` unlocks it), so it may make unsafe writes.
-Exclusive. mvcc's `Mvcc.kbHeld B` for `be = GoInterface.ok (Mvcc.storageVal B)` (the identification
-is `Mvcc.mvccDeleter_rdOk.spec`'s premise `□ (kbHeld B ∗-∗ beTxHeld _)`; 4a's `keyBackend_intro`
-realizes `kbHeld` as the lent session, `Backend.beSess`). -/
+/-- **What `be`'s post-lock hook `f` does under its batch lock of invariant `Pk`, from the caller's
+`Pre`** (one use): `LockInsideApply` runs it to `Q` (with no hook, the caller's view shift).
+Integration Y: was mvcc's `Mvcc.hookRun Pk f Pre Q`, which now names mvcc's storage (it lends the
+hook mvcc's session, 4a's (g)); the lessor's own name for the same contract over its backend value.
+Intended realization: `∃ γb b p, ⌜be = Backend.beIface b⌝ ∗ Backend.isBackend γb b p Pk ∗ ∀ q,
+Backend.hookRun γb q Pk f Pre Q`; introduced by 4a's `Backend.leaseHookRun_intro` from the server's
+hook proved over the backend's contract at every share (the same proof gives mvcc's, by
+`keyBackend_intro`'s `hookRun` conversion). -/
+opaque beHookRun (be : GoInterface) (Pk : IProp GF) (f : GoFunc) (Pre Q : IProp GF) : IProp GF :=
+  iprop(True)
+
+/-- **This thread holds `be`'s batch transaction lock** (an mvcc write
+transaction is open: `Write()` locked it, `End()` unlocks it), so it may make unsafe writes of the
+lease bucket. Exclusive. Intended realization (integration Y): `∃ γb B, ⌜be = GoInterface.ok
+(Mvcc.storageVal B)⌝ ∗ Backend.mvccOn γb B ∗ Mvcc.kbHeld B`: mvcc's lent lock, which
+`Backend.mvccOn_held` turns into mvcc's session `Backend.beSess γb q' mvccFp S`, given back unchanged
+on mvcc's cells; the lease bucket's cells are untracked (`beLeases`' realization holds
+`Backend.beNoVis`), so `Backend.writable` holds in mvcc's session and 4b's `UnsafeDeleteLease` over
+`Schema.txWr` applies. The identification `□ (Mvcc.kbHeld B ∗-∗ beTxHeld _)`
+(`Mvcc.mvccDeleter_rdOk.spec`'s premise) is 4a's `Backend.leaseTxHeld_intro`. -/
 opaque beTxHeld (be : GoInterface) : IProp GF := iprop(True)
 
 /-- (provisional, 2e's membership) **`cl` is a lessor's `cluster`**: `Version()` may be called from

@@ -56,7 +56,7 @@ def store.restore.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ isStore s γ ∗
       storeRestoring s γ B Pk (Lease.lessorIface le) ∗ mvccStorageFor B Pk h u ∗ schemaVars ∗
       Lease.isLessor le γl c ∗ Lease.lessorState γl n ls ∗
-      storageHook B dq f ∗ Pre ∗ hookRun Pk f Pre Q' ∗ (Q' ={⊤}=∗ Pk ∗ Post) ∗
+      storageHook B dq f ∗ Pre ∗ hookRun B Pk f Pre Q' ∗ (Q' ={⊤}=∗ Pk ∗ Post) ∗
       X ∗ storageReq B Pk X Y }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"restore")) (Val #()))
   {{ RET #(GoInterface.nil); storeRestored s γ B Pk h ∗ storageHook B dq f ∗

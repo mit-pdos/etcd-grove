@@ -12,7 +12,7 @@ pins to `ls`); `leaseMap[id]` present: `ErrLeaseExists`, unlock, the state uncha
 `l.ttl` to `minLeaseTTL` (`c.minTTL`, `isLessor`'s read-only field); `isPrimary()`: `refresh(0)` or
 `forever()` (the object's expiry, under its `expiryMu`: not modelled); `leaseMap[id] = l`;
 `persistTo(le.b)` (`Lease.persistTo.spec`, with the token's open share `beOk ls.be`: `b.BatchTx()`, `LockInsideApply` (`beHook ls.be Pk f`:
-`Pk` and the hook run, `Mvcc.hookRun Pk f Pre Q`, the caller's `Pre` to `Q`), 4b's
+`Pk` and the hook run, `beHookRun ls.be Pk f Pre Q`, the caller's `Pre` to `Q`), 4b's
 `MustUnsafePutLease` moving `beLeases ls.be` (in the token) to `bkt[id := ttl']`, `Unlock` with
 `Pk` back from `Q ={⊤}=∗ Pk ∗ Post`); the metrics (prometheus: no effect); if primary, the notifier's `RegisterOrUpdate` and
 `scheduleCheckpointIfNeeded` (the logger: `isLessor`'s `isLogger`). The ghost step: the object's
@@ -23,7 +23,7 @@ pins to `ls`); `leaseMap[id]` present: `ErrLeaseExists`, unlock, the state uncha
 (`lessorState`, `LessorState.grant`) in place of the owner's live list, item map, revokers, the
 grant guard (`leaseGranted`), the history `leaseEver`/`leaseLiveFrom`/`leaseReqIs` and the
 critical-section contract over mvcc's hook (`csContractA`); the backend write is 4b's
-`beLeases`, the hook's contract mvcc's write path's (`beHook`, `Mvcc.hookRun`: round 1, the hook's
+`beLeases`, the hook's contract mvcc's write path's (`beHook`, `beHookRun`, was `Mvcc.hookRun` until integration Y: round 1, the hook's
 effect is the caller's, as `examples/mvccrand`'s grant check and 2d's consistent index need). **Dropped premises**: the grant guard and the "new id
 unless monotone" (`id ∉ U`): the code accepts any id; a re-grant of a revoked id is a new object
 (the old one's item set kept, `LessorState.keys`). The new lease's object facts come from the law
@@ -64,7 +64,7 @@ def lessor.Grant.spec : Prop :=
   ∀ (le : Loc) (γ : Names) (c : Cfg) (n : Nat) (ls : LessorState) (id ttl : w64)
     (Pk Pre Q Post : IProp GF) (f : GoFunc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ isLessor le γ c ∗
-      lessorState γ n ls ∗ beHook ls.be Pk f ∗ Pre ∗ Mvcc.hookRun Pk f Pre Q ∗
+      lessorState γ n ls ∗ beHook ls.be Pk f ∗ Pre ∗ beHookRun ls.be Pk f Pre Q ∗
       (Q ={⊤}=∗ Pk ∗ Post) }}
     (App (App (Val (le @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty @!!
       go!"Grant")) (Val #id)) (Val #ttl))

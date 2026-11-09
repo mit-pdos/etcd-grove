@@ -41,6 +41,7 @@ def _Lease_LeaseTimeToLive_Handler.spec : Prop :=
   go.typeSetContains srv.ty etcdserverpb.LeaseServer.ty = true →
   isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ Grpc.decOk dec etcdserverpb.LeaseTimeToLiveRequest.ty c ∗
     (∀ q : Loc, Proto.msgAt etcdserverpb.LeaseTimeToLiveRequest.ty q (DFrac.own 1) c -∗
+      Proto.decodedAt etcdserverpb.LeaseTimeToLiveRequest.ty q -∗
       handlerBodyWP srv go!"LeaseTimeToLive" etcdserverpb.LeaseTimeToLiveRequest.ty etcdserverpb.LeaseTimeToLiveResponse.ty go!"/etcdserverpb.Lease/LeaseTimeToLive"
         ctx q ic Ψ) ⊢
   WP (App (App (App (App (Val (@! etcdserverpb._Lease_LeaseTimeToLive_Handler)) (Val #(GoInterface.ok srv)))

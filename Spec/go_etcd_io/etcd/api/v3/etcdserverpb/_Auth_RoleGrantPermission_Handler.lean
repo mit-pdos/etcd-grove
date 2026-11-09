@@ -41,6 +41,7 @@ def _Auth_RoleGrantPermission_Handler.spec : Prop :=
   go.typeSetContains srv.ty etcdserverpb.AuthServer.ty = true →
   isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ Grpc.decOk dec etcdserverpb.AuthRoleGrantPermissionRequest.ty c ∗
     (∀ q : Loc, Proto.msgAt etcdserverpb.AuthRoleGrantPermissionRequest.ty q (DFrac.own 1) c -∗
+      Proto.decodedAt etcdserverpb.AuthRoleGrantPermissionRequest.ty q -∗
       handlerBodyWP srv go!"RoleGrantPermission" etcdserverpb.AuthRoleGrantPermissionRequest.ty etcdserverpb.AuthRoleGrantPermissionResponse.ty go!"/etcdserverpb.Auth/RoleGrantPermission"
         ctx q ic Ψ) ⊢
   WP (App (App (App (App (Val (@! etcdserverpb._Auth_RoleGrantPermission_Handler)) (Val #(GoInterface.ok srv)))

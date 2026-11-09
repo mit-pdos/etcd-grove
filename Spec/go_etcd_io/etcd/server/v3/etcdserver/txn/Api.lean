@@ -537,7 +537,7 @@ batch lock from `Pre` to `Q'`, and the caller's way from `Q'` back to the lock's
 its own `Post`. The caller gets `Post` once the write transaction ended; this, unused, when the
 request failed before opening one. -/
 def txnWriter (B : Mvcc.MvccStorage) (Pk Post : IProp GF) : IProp GF :=
-  iprop(∃ (Pre Q' : IProp GF) (f : GoFunc), Mvcc.hookIs B f ∗ Pre ∗ Mvcc.hookRun Pk f Pre Q' ∗
+  iprop(∃ (Pre Q' : IProp GF) (f : GoFunc), Mvcc.hookIs B f ∗ Pre ∗ Mvcc.hookRun B Pk f Pre Q' ∗
     (Q' ={⊤}=∗ Pk ∗ Post))
 
 /-- **The caller's part of its context's trace** (4b's `ctxTraceIs ctx o`): with a non-empty trace

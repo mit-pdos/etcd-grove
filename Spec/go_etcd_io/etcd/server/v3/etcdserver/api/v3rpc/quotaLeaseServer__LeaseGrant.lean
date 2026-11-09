@@ -34,9 +34,9 @@ variable [sem : go.Semantics]
 
 /-- `quotaLeaseServer.LeaseGrant(ctx, r)` meets the contract of `/etcdserverpb.Lease/LeaseGrant`. -/
 def quotaLeaseServer.LeaseGrant.spec : Prop :=
-  ∀ (p : Loc) (ls : GoInterface) (s : Loc) (γ : Cluster) (ep : GoString),
+  ∀ (p : Loc) (ls : GoInterface) (s : Loc) (γ : Cluster) (ep : GoString) (gq : Qp),
   HandlerTriple (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty @!! go!"LeaseGrant")
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ quotaLeaseAt p ls s γ) (etcdUnary γ ep go!"/etcdserverpb.Lease/LeaseGrant") go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ quotaLeaseAt p ls s γ) (etcdUnary γ ep go!"/etcdserverpb.Lease/LeaseGrant") go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty (srvGate s gq)
 
 end spec
 

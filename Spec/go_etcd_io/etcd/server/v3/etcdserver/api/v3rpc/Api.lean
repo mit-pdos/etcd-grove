@@ -33,7 +33,8 @@ fires it only from the entry's apply (2c/2d), grpc runs a call's handler at most
 The maintenance RPCs that answer from the member and change no modelled state (`Status`, `Hash`,
 `HashKV`, `Defragment`, `MoveLeader`, `Downgrade`) have `etcdLocal`: no update, any outcome.
 Streams: `rangeStreamSpec γ` (this file), `kaSpec γ` (keep-alives: nothing modelled), `snapSpec`
-(the backend's bytes: nothing modelled), `watchSpec γ` (**slot, 2b**).
+(the backend's bytes: nothing modelled), `watchSpec γ` (1b's wire protocol; in the client's
+`ApiWatch.lean` since integration X).
 
 ## Round 1 repairs (in brief)
 
@@ -58,17 +59,18 @@ Streams: `rangeStreamSpec γ` (this file), `kaSpec γ` (keep-alives: nothing mod
   `callAU` is its `lo = 0` instance, so 1c's `AttemptTriple` composes with `lo := 0`, `authLb γ 0`
   holding by its definition).
 * **The principal**: `mdPrin γ md who` is introduced by the client (`mdPrin_of`, from W0's `ctxPrin`,
-  the outgoing metadata and the credentials' `credMD`, 1c's slot) and eliminated by the member
+  the outgoing metadata and the credentials' `Credentials.credMD`, 1c's) and eliminated by the member
   (`reqPrin_of_md`: 2c's `reqPrin ctx who tls`, the certificate's name `tls` none or `who`, W0's
   one-identity-per-client scope, round 5). 2b's `srvCtxPrin` is `∃ tls, reqPrin ctx who tls`.
 * **Composition with 2c's `SrvCallTriple`** (every handler over a server method): the handler holds
   `etcdAU γ who rq rep lo Q` and `authLb γ lo`, and hands 2c the update over `srvStep who tls rq σ σ'
   res lo`, built from its own: 2c fires it with `srvStep`, which is `Step who` here (the handler's
-  check excludes `emptyRangeStep`'s empty key; for a write `tls` is `none` or `who` and a
-  principal-less write is only refused: 2c's `srvStep_step`, requested of I4); 2c's outcome 1 must
-  fire only `firedAns` answers (requested of I4: an apply-time token refusal is given back, outcome
-  2); outcome 2's update is the handler's again (the second way for a token refusal, else fired
-  as a refusal or the third way); outcome 3 the third way.
+  check excludes `emptyRangeStep`'s empty key; `tls` is `none` or `who`, `reqPrin_of_md`; the answer
+  fired: 2c's `srvStep_step`, I4); 2c's outcome 1 fires only `firedAns` answers (`firedAns` is 2c's
+  `srvFiredAns`, I4/X: an apply-time token refusal is given back, outcome 2); outcome 2's update is
+  the handler's again (the second way for a token refusal, else fired as a refusal or the third
+  way); outcome 3 the third way. A transaction's checks give 2c's `txnChecked` (`txnCheck_checked`),
+  hence 3b's `Txn.txnSafe` (2c's `txnChecked_safe`).
 * `srvErrOk` **is 2c's `srvErrShape`** (`togRPCError`'s premise; two strengthenings of
   `srvErrShape` requested of I4: comparable errors, an unmapped message settling nothing).
 * **The request's right** (I1's `reqRight γ rq`: W0's `urlsRight γ urls` for `MemberAdd`/
@@ -80,6 +82,28 @@ Streams: `rangeStreamSpec γ` (this file), `kaSpec γ` (keep-alives: nothing mod
 * `watchSpec` is a contract: the requests recorded (`wsReq`), each response a `wireStep` (1b) from
   the state the earlier ones made (`wsSt`), the stream's principal fixed (`wsWho`); 2b's server
   slots are opened from a run (`watchRun_open`).
+
+## Integration X (2026-11-09)
+
+* The two streams' contracts and their records moved to the client, which defines its names over
+  them and cannot import this module (it imports the client): `kaSpec`, `kaReq`, `kaLog` (and
+  `kaLog_alloc`, `kaLog_add`, `kaReq_lookup`, `kaReq_persistent`) to `client/v3/ApiLease.lean`, where
+  1c's `kaSent g id` is `∃ i, kaReq g i id` and the halves take the stream's name `g`; `watchSpec`,
+  `wsReq`, `wsSt`, `wsWho` (`watchSpec_records`) and the new request log `wsLog` (`wsLog_alloc`,
+  `wsLog_add`, `wsLog_lb`) to `client/v3/ApiWatch.lean`, where 1b's `WatchStreamNames` is grpc's
+  `StreamName` and `wireWatchSentLb g ss` is `[∗list] i ↦ r ∈ ss, wsReq g i r`. Still 2a's
+  obligations (this file's names, `open ClientV3`).
+* `credMD` is 1c's `Credentials.credMD` (a definition: no metadata, or a non-empty `tokFor` token),
+  and the dial's `R` (`Credentials.rpcCredsAt_perRPC`).
+* **2e's `srvGate`** (every request-path call of 2c's holds a share; `HardStop` takes the whole
+  gate): grpc's runs now carry a run resource `T` (`Grpc.unaryOk`/`streamOk`/`regsOk`; `start` lends
+  `n` copies with the thread tokens, `GracefulStop` gives them back, `drainTok`). `HandlerTriple`'s
+  optional last argument is the run resource: every handler over a 2c method takes `srvGate s gq`
+  (and returns it), the others `True`; `Server.spec` registers for any share; `icEtcdOk` passes `T`
+  through. Open: `LeaseKeepAlive`'s loop outlives its run (its sketch), and the TLS path
+  (`Grpc.startHTTP`) lends no run resource.
+* `firedAns` is 2c's `srvFiredAns` (an abbreviation); 2c's `rsSink` has its send and context laws here
+  (`rsSink_send`, `rsSink_context`), and `rsSink_intro` takes the run's context and `mdPrin`.
 * Any context's incoming metadata and TLS peer (`Grpc.ctxInMD`, `ctxPeerCN`, `ctxCertUser`: 3d's
   provisional `Auth.*` names), with `rpcCtx_reqCtxOk` (4b) and `ctxNoIncoming_inMD` (2c's contexts).
 
@@ -87,13 +111,11 @@ Streams: `rangeStreamSpec γ` (this file), `kaSpec γ` (keep-alives: nothing mod
 
 * Pure: `etcdMethods`/`etcdStreams` (the method table: full names and message types),
   `ansOutcome`, `indefMsg`, `maxTxnOpsMax` (`4999`: `issues/etcd-txn-nested-depth-apply-panic.md`).
-* **Slots of other batches**, named here so the contracts can be written (each to be identified
-  with its owner's predicate at integration):
-  `reqModels m c rq`, `replyModels m b c`, `chunkModels c m` (3h: what a request's or a reply's
-  content models; functional in the content), `mdPrin γ md who` (2c/3d: a request with incoming
-  metadata `md` is authenticated as `who`, or refused with a refusal; introduced from a token
-  (`tokenOf`) or no token; 2c's `EtcdServer.reqPrin` of the run's context follows, a law asked of
-  2c/3d), `watchSpec γ` (2b: its `watchServiceAt`, `ApiWatch.lean`), `quotaOk` (2e).
+* **Names of other batches** (identified at integration): `reqModels m c rq`, `replyModels m b c`,
+  `chunkModels c m` (3h's, definitions here), `mdPrin γ md who` (2a's own, opaque: a request with
+  incoming metadata `md` is authenticated as `who`; introduced by `mdPrin_of`, eliminated by
+  `reqPrin_of_md` into 2c's `EtcdServer.reqPrin`), `watchSpec γ`, `kaSpec γ` (2a's contracts, stated in
+  the client's `ApiWatch`/`ApiLease`), `quotaOk` (2e's slot).
 * Used from 2c (`Spec/go_etcd_io/etcd/server/v3/etcdserver/ApiReq.lean`): `EtcdServer.isServer s γ`
   (the handle every server object here is over), `srvErrOf` (the server-side errors
   `togRPCError` maps), `SrvCallTriple` (the shape of the request path's methods), `txnChecked`.
@@ -118,6 +140,7 @@ public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.Api
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.Realize
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ApiWatch
 public import Spec.go_etcd_io.etcd.client.v3.ApiLease
+public import Spec.go_etcd_io.etcd.client.v3.credentials.Api
 public import Spec.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Api
 public import GeneratedProof.google_golang_org.grpc.health
 public import GeneratedProof.google_golang_org.grpc.health.grpc_health_v1
@@ -239,17 +262,13 @@ one identity per client, `connOk`'s premise): what `reqPrin_of_md`'s `tls` relie
 Introduced by the client (`mdPrin_of`); eliminated by the member (`reqPrin_of_md`). -/
 opaque mdPrin (γ : Cluster) (md : MD) (who : Principal) : IProp GF := iprop(True)
 
-/-- **Slot (1c)**: the metadata `mdc` a client of default principal `dflt` adds through its per-RPC
-credentials (its token bundle: `token: tok` with 1c's `tokFor γ dflt tok`, or nothing). What 1c's
-dial passes as grpc's `R` (`connAt`'s, `perRPCAt`'s), persistent. -/
-opaque credMD (γ : Cluster) (dflt : Principal) (mdc : MD) : IProp GF := iprop(True)
-
 /-- **The client side of the principal**: a request sent with `ctx` (W0's `ctxPrin dflt ctx p`,
-outgoing metadata `md0`) by a client of default principal `dflt` (credentials adding `mdc`) arrives
+outgoing metadata `md0`) by a client of default principal `dflt` (credentials adding `mdc`: 1c's
+`Credentials.credMD`, the connection's `R`) arrives
 with metadata `md` (grpc's `mdSeen`) authenticated as `p`. -/
 def mdPrin_of.spec : Prop := ∀ (γ : Cluster) (dflt p : Principal) (ctx : GoInterface)
     (md0 mdc md : MD),
-  ctxPrin (GF := GF) dflt ctx p ∗ outMD ctx md0 ∗ credMD γ dflt mdc ∗ ⌜mdSeen (md0 ++ mdc) md⌝ ⊢
+  ctxPrin (GF := GF) dflt ctx p ∗ outMD ctx md0 ∗ Credentials.credMD γ dflt mdc ∗ ⌜mdSeen (md0 ++ mdc) md⌝ ⊢
     mdPrin γ md p
 
 /-- **The member side of the principal** (2c's request, round 1, item 1): a run's context with
@@ -292,9 +311,9 @@ def leaseFact (γ : Cluster) (ep : GoString) (rq : Req) (vi : Option Nat) (σ σ
   | _ => iprop(True)
 
 /-- The answers a member sends fired (the first way): not a token refusal nor the learner's (which
-1c's `AttemptTriple` needs back unfired, the second way). -/
-def firedAns (res : Resp) : Prop :=
-  ∀ e, res = .err e → errRetryAuth e = false ∧ e ≠ .notSupportedForLearner
+1c's `AttemptTriple` needs back unfired, the second way). 2c's `srvFiredAns` (integration X: the same
+body, identified), what 2c's outcome 1 gives. -/
+abbrev firedAns (res : Resp) : Prop := srvFiredAns res
 
 /-- **The contract of etcd's unary method `m` at the member serving `ep`** (see the header). The
 lease requests carry the member's lease view (`leaseFact`, W0's `leaseViewLb γ ep`). -/
@@ -340,67 +359,11 @@ def rangeStreamSpec (γ : Cluster) : StreamSpec (GF := GF) where
     | some (_, msg) => (∃ (σ σ' : State) (e : EtcdErr), Q σ σ' (.err e) ∗ ⌜msg = Rpctypes.desc e⌝) ∨
         ⌜msg = Rpctypes.desc .compacted⌝ ∨ ⌜indefMsg msg⌝)
 
-/-- **The `i`-th keep-alive request of the stream `g` asked the lease `id`** (persistent, agreeing;
-minted by the client's sending half from `kaLog`). -/
-opaque kaReq (g : StreamName) (i : Nat) (id : Int) : IProp GF := iprop(True)
-
-/-- **The keep-alive requests sent on `g` so far** (exclusive; the client's sending half holds it). -/
-opaque kaLog (g : StreamName) (ids : List Int) : IProp GF := iprop(True)
-
-/-- **`LeaseKeepAlive`'s contract**: each request recorded (`kaReq`); each response about a lease
-some request asked, with some TTL (W0's model: a keep-alive says nothing else; 1c's `kaSent`, round
-1's item 4); nothing at the end (1c's `kaSendAt`/`kaRecvAt`). -/
-def kaSpec (γ : Cluster) : StreamSpec (GF := GF) where
-  up := fun g _ i c => iprop(∃ (id : Int),
-    ⌜reqModels go!"/etcdserverpb.Lease/LeaseKeepAlive" c (.leaseKeepAlive id)⌝ ∗ kaReq g i id)
-  dn := fun g _ _ c => iprop(∃ (id ttl : Int) (i : Nat),
-    ⌜replyModels go!"/etcdserverpb.Lease/LeaseKeepAlive" (.leaseKeepAlive id ttl) c⌝ ∗ kaReq g i id)
-  fin := fun _ _ _ _ => iprop(True)
-
-def kaLog_alloc.spec : Prop := ∀ g, streamKey (GF := GF) g ⊢ |==> kaLog g []
-def kaLog_add.spec : Prop := ∀ g ids id,
-  kaLog (GF := GF) g ids ⊢ |==> kaLog g (ids ++ [id]) ∗ kaReq g ids.length id
-def kaReq_lookup.spec : Prop := ∀ g ids i id,
-  kaLog (GF := GF) g ids ∗ kaReq g i id ⊢ ⌜ids[i]? = some id⌝
-def kaReq_persistent.spec : Prop := ∀ g i id, Persistent (kaReq (GF := GF) g i id)
-
 /-- **`Snapshot`'s contract**: the backend's bytes, nothing modelled. -/
 def snapSpec : StreamSpec (GF := GF) where
   up := fun _ _ _ _ => iprop(True)
   dn := fun _ _ _ _ => iprop(True)
   fin := fun _ _ _ _ => iprop(True)
-
-/-- **The `i`-th request of the watch stream `g` is `r`** (persistent, agreeing; minted by the
-client's sending half, 1b's `wireWatchSend`). -/
-opaque wsReq (g : StreamName) (i : Nat) (r : WireWatchReq) : IProp GF := iprop(True)
-
-/-- **After `j` responses the client's state of the watch stream `g` is `sst`** (persistent,
-agreeing; `wsSt g 0 WireSt.init`; minted by the server's sending half, 2b's `srvWatchSend`). -/
-opaque wsSt (g : StreamName) (j : Nat) (sst : WireSt) : IProp GF := iprop(True)
-
-/-- **The watch stream `g` was opened as the principal `who`** (persistent, agreeing; minted by the
-client from `streamKey g`). -/
-opaque wsWho (g : StreamName) (who : Principal) : IProp GF := iprop(True)
-
-/-- **The `Watch` stream's contract** (2b's handler, 1b's client: 1b's wire protocol `wireStep`,
-`Spec/go_etcd_io/etcd/client/v3/ApiWatch.lean`): each request a wire request, recorded; each
-response a `wireStep` of the stream's principal from the state the earlier responses made, after
-requests that were sent, against reached states; nothing at the end. -/
-def watchSpec (γ : Cluster) : StreamSpec (GF := GF) where
-  up := fun g _ i c => iprop(∃ r : WireWatchReq, ⌜EtcdServerPb.watchReqHolds c r⌝ ∗ wsReq g i r)
-  dn := fun g _ j c => iprop(∃ (who : Principal) (m : WireWatchRespM) (σ σa : State)
-      (rs : List WireWatchReq) (sst sst' : WireSt),
-    ⌜EtcdServerPb.watchRespHolds c m ∧ wireStep who σ σa rs sst m sst'⌝ ∗ wsWho g who ∗
-    etcdLb γ σ ∗ etcdLb γ σa ∗ ([∗list] i ↦ r ∈ rs, wsReq g i r) ∗ wsSt g j sst ∗ wsSt g (j + 1) sst')
-  fin := fun _ _ _ _ => iprop(True)
-
-def watchSpec_records.spec : Prop :=
-  (∀ g i r, Persistent (wsReq (GF := GF) g i r)) ∧ (∀ g j s, Persistent (wsSt (GF := GF) g j s)) ∧
-  (∀ g w, Persistent (wsWho (GF := GF) g w)) ∧
-  (∀ g i r r', wsReq (GF := GF) g i r ∗ wsReq g i r' ⊢ ⌜r = r'⌝) ∧
-  (∀ g j s s', wsSt (GF := GF) g j s ∗ wsSt g j s' ⊢ ⌜s = s'⌝) ∧
-  (∀ g w w', wsWho (GF := GF) g w ∗ wsWho g w' ⊢ ⌜w = w'⌝) ∧
-  (∀ g, ⊢ wsSt (GF := GF) g 0 WireSt.init)
 
 /-- **A watch run opens 2b's server end** (2a's obligation, with 3h's `_Watch_Watch_Handler`'s
 wrapper `x`, its points-to `GenericServerStream.mk st` held as grpc's `genSrvAt`): grpc's halves of a run of `watchSpec γ` are 2b's slots on the wrapper, for the
@@ -521,19 +484,19 @@ opaque metricsOk (m : Loc) : IProp GF := iprop(True)
 /-- **A unary server interceptor preserving etcd's contracts** (persistent): for each method `m`
 etcd serves, with a continuation meeting the run's triple for `m`'s contract, calling the
 interceptor meets it too (it refuses only with statuses the contract allows: an indefinite one, or
-the learner's refusal with the update given back). -/
+the learner's refusal with the update given back), the run's resource `T` passed through. -/
 def icEtcdOk (i : GoFunc) (γ : Cluster) : IProp GF :=
-  iprop(□ ∀ (ep m : GoString) (reqT repT : go.GoType) (S : UnarySpec (GF := GF)),
+  iprop(□ ∀ (T : IProp GF) (ep m : GoString) (reqT repT : go.GoType) (S : UnarySpec (GF := GF)),
     ⌜(etcdContract γ ep).unary m = some (reqT, repT, S)⌝ -∗
     ∀ (ctx : GoInterface) (md : MD) (q : Loc) (c : Content) (Φ : Outcome → IProp GF) (info : Loc)
       (k : val) (Ψ : val → IProp GF),
-    (□ ∀ Ψ' : val → IProp GF, threadTok ∗ rpcCtx ctx md ∗ msgAt reqT q (DFrac.own 1) c ∗
-        ⌜depth c < depthMax⌝ ∗ S md c Φ ∗
-        (∀ (r err : GoInterface), threadTok -∗ unaryOut repT r err Φ -∗ Ψ' (PairV #r #err)) -∗
+    (□ ∀ Ψ' : val → IProp GF, threadTok ∗ T ∗ rpcCtx ctx md ∗ msgAt reqT q (DFrac.own 1) c ∗
+        Proto.decodedAt reqT q ∗ ⌜depth c < depthMax⌝ ∗ S md c Φ ∗
+        (∀ (r err : GoInterface), threadTok -∗ T -∗ unaryOut repT r err Φ -∗ Ψ' (PairV #r #err)) -∗
       WP (App (App (Val k) (Val #ctx)) (Val #(msgVal reqT q))) {{ Ψ' }}) -∗
-    threadTok ∗ rpcCtx ctx md ∗ msgAt reqT q (DFrac.own 1) c ∗ ⌜depth c < depthMax⌝ ∗
-      info.[google_golang_org.grpc.UnaryServerInfo, go!"FullMethod"] ↦□ m ∗ S md c Φ ∗
-      (∀ (r err : GoInterface), threadTok -∗ unaryOut repT r err Φ -∗ Ψ (PairV #r #err)) -∗
+    threadTok ∗ T ∗ rpcCtx ctx md ∗ msgAt reqT q (DFrac.own 1) c ∗ Proto.decodedAt reqT q ∗
+      ⌜depth c < depthMax⌝ ∗ info.[google_golang_org.grpc.UnaryServerInfo, go!"FullMethod"] ↦□ m ∗ S md c Φ ∗
+      (∀ (r err : GoInterface), threadTok -∗ T -∗ unaryOut repT r err Φ -∗ Ψ (PairV #r #err)) -∗
     WP (App (App (App (App (Val #i) (Val #ctx)) (Val #(msgVal reqT q))) (Val #info)) (Val k)) {{ Ψ }})
 
 /-- **A stream server interceptor preserving etcd's stream contracts** (persistent; the same for
@@ -551,11 +514,14 @@ opaque rsSinkOf (w : GoInterface) (g : StreamName) : IProp GF := iprop(True)
 /-- **2c's send end of a streamed range, realized** (2c's `rsSink rs γ p tls r ms`, `ApiReq.lean`):
 the wrapper `w` (a `*headerFillingRangeStream` over the run's stream, `hfAt`) with the send half of
 the stream `g` whose request is `r` of `who` (`rsReq`) is a sink with nothing sent, for the
-connection's TLS principal. Its send law (2c's request): a chunk sent is recorded
-(`rsChunk g j m`). -/
+connection's TLS principal (the run's context with `reqPrin` of `who`, `reqPrin_of_md`: integration X,
+for `rsSink_context`). Its send law (2c's request): a chunk sent is recorded (`rsChunk g j m`,
+`rsSink_send`). -/
 def rsSink_intro.spec : Prop := ∀ (w : Loc) (rs : GoInterface) (hp : Loc) (s : Loc) (γ : Cluster)
-    (g : StreamName) (md : MD) (who : Principal) (r : RangeReq) (Q : State → State → Resp → IProp GF),
-  hfAt w rs hp s γ ∗ srvSend rs g (rangeStreamSpec γ) md 0 ∗ rsReq g who r Q ⊢
+    (g : StreamName) (md : MD) (who : Principal) (r : RangeReq) (Q : State → State → Resp → IProp GF)
+    (ctx : GoInterface),
+  hfAt w rs hp s γ ∗ srvSend rs g (rangeStreamSpec γ) md 0 ∗ rsReq g who r Q ∗ srvCtxOf rs ctx md ∗
+    mdPrin γ md who ⊢
     ∃ tls : Principal,
     rsSink (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.headerFillingRangeStream.ty) #w)
       γ who tls r [] ∗
@@ -575,6 +541,29 @@ def rsSink_out.spec : Prop := ∀ (w : GoInterface) (γ : Cluster) (who tls : Pr
        ((∃ σ σ' e, Q σ σ' (.err e) ∗ ⌜msg = Rpctypes.desc e⌝) ∨ ⌜msg = Rpctypes.desc .compacted⌝ ∨
         ⌜indefMsg msg⌝))) ⊢
   streamOut rs g (rangeStreamSpec γ) md err
+
+/-- **The sink's send** (2c's request, round 1 item 3; integration X: what 2c's `RangeStream` calls on
+the `KV_RangeStreamServer` value it is given): a chunk message modelled by `m` (owned; the sink fills
+the header's ids, so the content after is some other) is sent and recorded, or the stream fails with
+an error grpc made itself, nothing recorded. No `Q` travels with a chunk. Realized by
+`headerFillingRangeStream.Send.spec` over `rsSink_intro`'s sink. -/
+def rsSink_send.spec : Prop := ∀ (rs : GoInterface) (γ : Cluster) (p tls : Principal) (r : RangeReq)
+    (ms : List RangeRespM) (resp : Loc) (c : Content) (m : RangeRespM),
+  {{ rsSink (GF := GF) rs γ p tls r ms ∗
+      msgAt go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse.ty resp (DFrac.own 1) c ∗ ⌜chunkModels c m⌝ }}
+    (App (Val (rs @!! go_etcd_io.etcd.api.v3.etcdserverpb.KV_RangeStreamServer.ty @!! go!"Send")) (Val #resp))
+  {{ (err : GoInterface), RET #err;
+      (∃ c', msgAt go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse.ty resp (DFrac.own 1) c') ∗
+      ((⌜err = GoInterface.nil⌝ ∗ rsSink rs γ p tls r (ms ++ [m])) ∨ (ownErr err ∗ rsSink rs γ p tls r ms)) }}
+
+/-- **The sink's context** (integration X): the run's context, a request context of 2c's
+(`rpcCtx_reqCtxOk`) whose principal pair is the sink's (`reqPrin_of_md` at `rsSink_intro`). -/
+def rsSink_context.spec : Prop := ∀ (rs : GoInterface) (γ : Cluster) (p tls : Principal) (r : RangeReq)
+    (ms : List RangeRespM),
+  {{ rsSink (GF := GF) rs γ p tls r ms }}
+    (App (Val (rs @!! go_etcd_io.etcd.api.v3.etcdserverpb.KV_RangeStreamServer.ty @!! go!"Context")) (Val #()))
+  {{ (ctx : GoInterface), RET #ctx; rsSink rs γ p tls r ms ∗ Context.ctxOk ctx ∗ reqCtxOk ctx ∗
+      reqPrin ctx p tls }}
 
 /-- A streamed range's parameters, fixed by the client with the stream's key. -/
 def rsReq_alloc.spec : Prop := ∀ g who r (Q : State → State → Resp → IProp GF),
@@ -623,15 +612,15 @@ def metricsOk_stream.spec : Prop := ∀ (m : Loc) (γ : Cluster),
 /-- **grpc's health handlers meet their contracts** (assumed, grpc's own code: `Check`, `List`
 answer from the health server's map; `Watch` sends statuses; nothing modelled), under any chain of
 interceptors that preserve etcd's contracts. -/
-def healthRegs_ok.spec : Prop := ∀ (γ : Cluster) (ep : GoString) (B : SrvCfg) (hs : Loc),
+def healthRegs_ok.spec : Prop := ∀ (γ : Cluster) (ep : GoString) (B : SrvCfg) (hs : Loc) (T : IProp GF),
   healthAt (GF := GF) hs ∗ ([∗list] i ∈ B.ics, icEtcdOk (GF := GF) (sem := sem) i γ) ∗ ([∗list] i ∈ B.sics, sicEtcdOk i γ) ∗
-    regsOk B (etcdContract γ ep) ⊢
+    regsOk B (etcdContract γ ep) T ⊢
   regsOk { B with
     regs := B.regs ++ healthMethods.map (fun h => (h.1, h.2,
       interface.mkOk (go.GoType.PointerType google_golang_org.grpc.health.Server.ty) #hs)),
     sregs := B.sregs ++ healthStreams.map (fun h => (h.1, h.2,
       interface.mkOk (go.GoType.PointerType google_golang_org.grpc.health.Server.ty) #hs)) }
-    (etcdContract γ ep)
+    (etcdContract γ ep) T
 
 /-- **`InitializeMetrics(gs)`** (grpc-prometheus, assumed: it reads `gs.GetServiceInfo()` and zeroes
 its counters): the server being built is unchanged. -/
@@ -670,12 +659,19 @@ def handles_persistent.spec : Prop :=
 receiver's handle): a run with the thread's token, the run's context, the request (owned: grpc
 decoded it for this run) and the method's contract returns the token and `unaryOut`. Its instance at
 the registered service value is what `Grpc.start` needs of each registration (with the generated
-handler's decoding, 3h). -/
-def HandlerTriple (f : val) (P : IProp GF) (S : UnarySpec (GF := GF)) (reqT repT : go.GoType) : Prop :=
+handler's decoding, 3h). `T` is what the run holds besides its thread's token and gives back
+(integration X): a handler over 2c's request path takes the `srvGate s q` share grpc's `start`
+lends each run (`Grpc.unaryOk`'s run resource; `Server.spec` registers for any share), the others
+nothing (`True`; framed with the run's resource where they are registered). The request is a
+decoded one (`Proto.decodedAt`, grpc's `decOk_call`: its range ends `nil` or non-empty, 3h's
+`EtcdServerPb.endsDecoded`, what 2c's `Range`/`RangeStream`/`Txn` take). -/
+def HandlerTriple (f : val) (P : IProp GF) (S : UnarySpec (GF := GF)) (reqT repT : go.GoType)
+    (T : IProp GF := iprop(True)) : Prop :=
   ∀ (ctx : GoInterface) (md : MD) (q : Loc) (c : Content) (Φ : Outcome → IProp GF),
-  {{ P ∗ threadTok ∗ rpcCtx ctx md ∗ msgAt reqT q (DFrac.own 1) c ∗ ⌜depth c < depthMax⌝ ∗ S md c Φ }}
+  {{ P ∗ threadTok ∗ T ∗ rpcCtx ctx md ∗ msgAt reqT q (DFrac.own 1) c ∗ Proto.decodedAt reqT q ∗
+      ⌜depth c < depthMax⌝ ∗ S md c Φ }}
     (App (App (Val f) (Val #ctx)) (Val #q))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); threadTok ∗
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); threadTok ∗ T ∗
       unaryOut repT (msgVal repT resp) err Φ }}
 
 end res

@@ -5,8 +5,8 @@ Users: `KeepAliveOnce`.
 
 Proof sketch: a cancellable child context (Perennial's `WithCancel`; `ctxOk`), `l.remote.LeaseKeepAlive`
 (`remoteLeaseAt_keepAlive`: the two halves, or an error), `Send` of one request
-(`kaSendAt_send`: `kaSendAt sc [id]`), `Recv` (`kaRecvAt_recv`: a fresh message with `kaSent sc
-id'`; `kaSent_sent` against `kaSendAt sc [id]` gives `id' = id`: the stream carries one request), the
+(`kaSendAt_send`: `kaSendAt sc g [id]`), `Recv` (`kaRecvAt_recv`: a fresh message with `kaSent g
+id'`; `kaSent_sent` against `kaSendAt sc g [id]` gives `id' = id`: the stream carries one request), the
 deferred `CloseSend` (an error replaces a `nil` result with `ContextError`'s), the deferred cancel.
 
 Changes: new (no old spec).

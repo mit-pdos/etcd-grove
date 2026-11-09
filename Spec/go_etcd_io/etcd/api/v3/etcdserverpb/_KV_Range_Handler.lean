@@ -41,6 +41,7 @@ def _KV_Range_Handler.spec : Prop :=
   go.typeSetContains srv.ty etcdserverpb.KVServer.ty = true →
   isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ Grpc.decOk dec etcdserverpb.RangeRequest.ty c ∗
     (∀ q : Loc, Proto.msgAt etcdserverpb.RangeRequest.ty q (DFrac.own 1) c -∗
+      Proto.decodedAt etcdserverpb.RangeRequest.ty q -∗
       handlerBodyWP srv go!"Range" etcdserverpb.RangeRequest.ty etcdserverpb.RangeResponse.ty go!"/etcdserverpb.KV/Range"
         ctx q ic Ψ) ⊢
   WP (App (App (App (App (Val (@! etcdserverpb._KV_Range_Handler)) (Val #(GoInterface.ok srv)))

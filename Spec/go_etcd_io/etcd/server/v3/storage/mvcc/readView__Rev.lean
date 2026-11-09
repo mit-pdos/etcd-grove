@@ -1,9 +1,13 @@
 /-
 `(*readView).Rev()` (`kv_view.go:32`): `rv.kv.Read(SharedBufReadTxMode, traceutil.TODO())`, its
 `Rev()`, its `End()`. Internal: the body of the store's promoted `Rev` (`KV.Rev.contract`); no client
-holds a view. Proof sketch: `KV.Read.contract` at `kv` (the update fires at the read; 4b's `TODO()`
-gives a fresh trace), `Txn.Rev.contract`, `Txn.End.contract` (`.read`: the token back), through
-`shapes`.
+holds a view. Proof sketch: with a reader token, `KV.Read.contract` at `kv` (the update fires at the
+read; 4b's `TODO()` gives a fresh trace), `Txn.Rev.contract`, `Txn.End.contract` (`.read`: the token
+back), through `shapes`. With the `Rev` right (`revRd γ true`: integration Y, persistent, with the
+caller's `threadTok`): the same code over the store's realization (`isMvcc kv γ` gives `isStore`):
+the thread token buys one of the `Rev` pool's lock-only slots for the call (`s.mu`, `revMu`, the
+shared `ReadTx`'s bare `RLock`/`RUnlock` rows, `kbBareSlot`), the revisions read under `revMu` (the
+update fires there), the slot back at `End`.
 
 **Changes** from `specs-ref`'s file: `KV.Rev.contract`'s statement at the view's store.
 -/

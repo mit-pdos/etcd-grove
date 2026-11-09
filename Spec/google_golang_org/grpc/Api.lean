@@ -362,6 +362,10 @@ opaque peerVar (p : Loc) : IProp GF := iprop(True)
 /-- **The right to run `Serve` on `gs` with `lis`** (exclusive; `start`'s). -/
 opaque serveTok (gs : Loc) (lis : GoInterface) : IProp GF := iprop(True)
 
+/-- **The run resources `start` lent** (exclusive; integration X): `n` copies of `T`, given back by
+`GracefulStop` once the runs have returned. -/
+opaque drainTok (gs : Loc) (T : IProp GF) (n : Nat) : IProp GF := iprop(True)
+
 /-- **A `*grpc.ServiceDesc`** (read-only; the generated `<Svc>_ServiceDesc`, 3h's init facts): the
 service's full name, its unary methods' (name, `Handler`) and its streams' (name, `Handler`). -/
 opaque serviceDescAt (sd : Loc) (svc : GoString) (ms ss : List (GoString × val)) : IProp GF :=
@@ -470,13 +474,14 @@ def unaryOut (repT : go.GoType) (r err : GoInterface) (Φ : Outcome → IProp GF
 
 /-- **The handler `h` of a unary method** (its `MethodDesc.Handler`, called by grpc with the
 service value `ss`, the run's context, the decoder and the chained interceptor `ic`) **meets the
-contract `S`**: a run with the thread's token returns it and `unaryOut`. -/
+contract `S`**: a run with the thread's token and the server's run resource `T` (integration X: what
+`start` lends each run, given back by `GracefulStop`) returns both and `unaryOut`. -/
 def unaryOk (h : val) (ss : GoInterface) (ic : val) (reqT repT : go.GoType)
-    (S : UnarySpec (GF := GF)) : IProp GF :=
+    (S : UnarySpec (GF := GF)) (T : IProp GF) : IProp GF :=
   iprop(□ ∀ (ctx : GoInterface) (md : MD) (dec : val) (c : Content) (Φ : Outcome → IProp GF),
     ∀ Ψ : val → IProp GF,
-    threadTok ∗ rpcCtx ctx md ∗ decOk dec reqT c ∗ S md c Φ ∗
-      (∀ (r : GoInterface) (err : GoInterface), threadTok -∗ unaryOut repT r err Φ -∗ Ψ (PairV #r #err)) -∗
+    threadTok ∗ T ∗ rpcCtx ctx md ∗ decOk dec reqT c ∗ S md c Φ ∗
+      (∀ (r : GoInterface) (err : GoInterface), threadTok -∗ T -∗ unaryOut repT r err Φ -∗ Ψ (PairV #r #err)) -∗
     WP (App (App (App (App (Val h) (Val #ss)) (Val #ctx)) (Val dec)) (Val ic)) {{ Ψ }})
 
 /-- What a stream handler returns: the end's facts for the messages it sent, given with the send
@@ -497,12 +502,12 @@ def streamRun (h : val) (ss st : GoInterface) (sic : Option val) (info : Loc) : 
 
 /-- **The handler `h` of a streaming method** (its `StreamDesc.Handler`, called with the service
 value and the run's server stream, under the chained stream interceptor `sic`) **meets `S`**: a run
-with both halves of a fresh stream returns `streamOut`. -/
+with both halves of a fresh stream (and the run resource `T`, as `unaryOk`) returns `streamOut`. -/
 def streamOk (h : val) (ss : GoInterface) (sic : Option val) (reqT repT : go.GoType)
-    (S : StreamSpec (GF := GF)) : IProp GF :=
+    (S : StreamSpec (GF := GF)) (T : IProp GF) : IProp GF :=
   iprop(□ ∀ (ctx st : GoInterface) (info : Loc) (md : MD) (g : StreamName) (Ψ : val → IProp GF),
-    threadTok ∗ rpcCtx ctx md ∗ srvCtxOf st ctx md ∗ srvRecv st g S md 0 ∗ srvSend st g S md 0 ∗
-      (∀ (err : GoInterface), threadTok -∗ streamOut st g S md err -∗ Ψ #err) -∗
+    threadTok ∗ T ∗ rpcCtx ctx md ∗ srvCtxOf st ctx md ∗ srvRecv st g S md 0 ∗ srvSend st g S md 0 ∗
+      (∀ (err : GoInterface), threadTok -∗ T -∗ streamOut st g S md err -∗ Ψ #err) -∗
     WP (streamRun h ss st sic info) {{ Ψ }})
 
 /-! ### Laws -/
@@ -562,7 +567,7 @@ def decOk_call.spec : Prop := ∀ (dec : val) (reqT : go.GoType) (c c0 : Content
   {{ decOk (GF := GF) dec reqT c ∗ msgAt reqT q (DFrac.own 1) c0 }}
     (App (Val dec) (Val #(msgVal reqT q)))
   {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil ∧ depth c < depthMax⌝ ∗
-      msgAt reqT q (DFrac.own 1) c }}
+      msgAt reqT q (DFrac.own 1) c ∗ Proto.decodedAt reqT q }}
 
 /-- **One attempt of a unary call** (grpc's invoker of `cc`, which an interceptor calls at most
 once per attempt it wants): the request (read, given back) is delivered to at most one run of the
@@ -628,7 +633,7 @@ def cliRecv_recv.spec : Prop := ∀ (cs : GoInterface) (g : StreamName) (S : Str
   {{ cliRecv (GF := GF) cs g S md n ∗ msgAt repT p (DFrac.own 1) c0 }}
     (App (Val (cs @!! google_golang_org.grpc.ClientStream.ty @!! go!"RecvMsg")) (Val #(msgVal repT p)))
   {{ (err : GoInterface), RET #err; ∃ c, msgAt repT p (DFrac.own 1) c ∗
-      ((⌜err = GoInterface.nil⌝ ∗ S.dn g md n c ∗ cliRecv cs g S md (n + 1)) ∨
+      ((⌜err = GoInterface.nil⌝ ∗ Proto.decodedAt repT p ∗ S.dn g md n c ∗ cliRecv cs g S md (n + 1)) ∨
        (globalAddr io.EOF ↦□ err ∗ S.fin g md n none) ∨
        (∃ code msg, statusErr err code msg ∗ ⌜¬ grpcMsg msg⌝ ∗ S.fin g md n (some (code, msg))) ∨
        ownErr err) }}
@@ -641,7 +646,7 @@ def srvRecv_recv.spec : Prop := ∀ (st : GoInterface) (g : StreamName) (S : Str
   {{ srvRecv (GF := GF) st g S md i ∗ msgAt reqT p (DFrac.own 1) c0 }}
     (App (Val (st @!! google_golang_org.grpc.ServerStream.ty @!! go!"RecvMsg")) (Val #(msgVal reqT p)))
   {{ (err : GoInterface), RET #err; ∃ c, msgAt reqT p (DFrac.own 1) c ∗
-      ((⌜err = GoInterface.nil⌝ ∗ S.up g md i c ∗ srvRecv st g S md (i + 1)) ∨
+      ((⌜err = GoInterface.nil⌝ ∗ Proto.decodedAt reqT p ∗ S.up g md i c ∗ srvRecv st g S md (i + 1)) ∨
        (globalAddr io.EOF ↦□ err ∗ srvRecv st g S md i) ∨
        (ownErr err ∗ srvRecv st g S md i)) }}
 
@@ -735,13 +740,14 @@ def mdAt_persist.spec : Prop := ∀ m md, mdAt (GF := GF) m (DFrac.own 1) md ⊢
 def mdAt_discard_persistent.spec : Prop := ∀ m md, Persistent (mdAt (GF := GF) m DFrac.discard md)
 
 /-- **A server's registrations meet the contracts `C`**: each registered handler meets the
-contract `C` gives its method, under the server's interceptor chain (persistent). -/
-def regsOk (B : SrvCfg) (C : AddrContract (GF := GF)) : IProp GF :=
+contract `C` gives its method, under the server's interceptor chain, each run with the run
+resource `T` (persistent). -/
+def regsOk (B : SrvCfg) (C : AddrContract (GF := GF)) (T : IProp GF) : IProp GF :=
   iprop(([∗list] r ∈ B.regs, ∃ (reqT repT : go.GoType) (S : UnarySpec (GF := GF)),
-      ⌜C.unary r.1 = some (reqT, repT, S)⌝ ∗ □ ∀ ic, icChain B.ics ic -∗ unaryOk r.2.1 r.2.2 ic reqT repT S) ∗
+      ⌜C.unary r.1 = some (reqT, repT, S)⌝ ∗ □ ∀ ic, icChain B.ics ic -∗ unaryOk r.2.1 r.2.2 ic reqT repT S T) ∗
     ([∗list] r ∈ B.sregs, ∃ (reqT repT : go.GoType) (S : StreamSpec (GF := GF)),
       ⌜C.stream r.1 = some (reqT, repT, S)⌝ ∗ □ ∀ sic, icChain B.sics sic -∗
-        streamOk r.2.1 r.2.2 (if B.sics = [] then none else some sic) reqT repT S))
+        streamOk r.2.1 r.2.2 (if B.sics = [] then none else some sic) reqT repT S T))
 
 /-- `grpcOver` fixes its contracts. (Integration I3: 2a's round-1 request of 2f's
 `protoAt_agree : protoAt a P ∗ protoAt a P' ⊢ ⌜P = P'⌝` is withdrawn: a protocol holds `IProp`s, so
@@ -775,16 +781,22 @@ address is bound to `C`, each registration's handler meeting the contract `C` gi
 (under the server's interceptor chain), a pool of the caller's thread tokens for the runs (2f's
 `Http.handlerPool`, from `threadToks n`: each run draws one for its life and returns it; the
 physical premise: grpc runs at most `n` handlers of this server at once, a bound the adequacy
-theorem fixes), and the workload premise. Gives the right to run `Serve`. -/
+theorem fixes), and the workload premise. Gives the right to run `Serve`. **The run resource**
+(integration X): `n` copies of the caller's `T`, one lent to each run with its thread token and given
+back when it returns; `GracefulStop` (which waits for the runs) gives them back (`drainTok`). An
+etcd member lends each run a share of 2e's `srvGate` (`v3rpc/Api.lean`'s `HandlerTriple`). -/
 def start.spec : Prop := ∀ (gs : Loc) (B : SrvCfg) (lis : GoInterface) (ep : GoString)
-    (C : AddrContract (GF := GF)) (pl : GName) (n : Nat),
-  srvBuild gs B ∗ grpcListener lis ep ∗ addrAt ep C ∗ Http.handlerPool pl n ∗ ⌜msgsFit⌝ ∗ regsOk B C ⊢
-  |==> serveTok gs lis
+    (C : AddrContract (GF := GF)) (pl : GName) (n : Nat) (T : IProp GF),
+  srvBuild gs B ∗ grpcListener lis ep ∗ addrAt ep C ∗ Http.handlerPool pl n ∗ ⌜msgsFit⌝ ∗
+    ([∗list] _u ∈ List.replicate n (), T) ∗ regsOk B C T ⊢
+  |==> serveTok gs lis ∗ drainTok gs T n
 
 /-- **Starting to serve through net/http** (etcd's TLS path): no listener and no pool (the runs are
-net/http's handler runs, with their tokens). -/
+net/http's handler runs, with their tokens); no run resource (`emp`: net/http's pool lends none, and
+`GracefulStop` does not wait for `ServeHTTP`'s runs; integration X: a handler that needs one, an etcd
+handler over 2c's request path and its `srvGate` share, cannot be served this way: recorded). -/
 def startHTTP.spec : Prop := ∀ (gs : Loc) (B : SrvCfg) (C : AddrContract (GF := GF)),
-  srvBuild gs B ∗ ⌜msgsFit⌝ ∗ regsOk B C ⊢ |==> servesHTTP gs C
+  srvBuild gs B ∗ ⌜msgsFit⌝ ∗ regsOk B C iprop(emp) ⊢ |==> servesHTTP gs C
 
 /-- **A peer variable lent to grpc**: an invariant holds it, `nil` or a `peerOk` peer (grpc's
 writes keep it; the caller reads through it). -/

@@ -41,7 +41,7 @@ def lessor.resetRecv.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorHandle l c γ who ∗ clientReady c }}
     (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"resetRecv")) (Val #()))
   {{ (sc err : GoInterface), RET (PairV #sc #err);
-      (⌜err = GoInterface.nil⌝ ∗ kaRecvAt sc) ∨ (⌜sc = GoInterface.nil⌝ ∗ ∃ k, callErr err k) }}
+      (⌜err = GoInterface.nil⌝ ∗ ∃ g, kaRecvAt sc g) ∨ (⌜sc = GoInterface.nil⌝ ∗ ∃ k, callErr err k) }}
 
 end spec
 

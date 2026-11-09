@@ -50,9 +50,9 @@ def DB.Update.spec : Prop :=
     (Q : Bool → IProp GF) (S : Bool → Bool → Bool → IProp GF) (R : GoInterface → IProp GF),
   {{ isBolt (GF := GF) db γ ns ∗
       (∀ (tx : Loc) (D : Data) (Φ : val → IProp GF),
-        boltTx tx γ 1 (TxView.wr D true ns) -∗
+        boltTx tx γ 1 (TxView.wr D true ns) -∗ txLive tx 1 -∗
         ▷ (∀ (err : GoInterface) (T : TxView),
-            ⌜T.rw = true ∧ T.managed = true ∧ T.noSync = ns⌝ -∗ boltTx tx γ 1 T -∗
+            ⌜T.rw = true ∧ T.managed = true ∧ T.noSync = ns⌝ -∗ boltTx tx γ 1 T -∗ txLive tx 1 -∗
             ((⌜err ≠ GoInterface.nil⌝ ∗ R err) ∨
              (⌜err = GoInterface.nil⌝ ∗
                AU <{ ∃∃ (σ : BoltSt), boltState γ 1 σ }> @ ⊤ \ ↑γ.ns, ∅
@@ -70,9 +70,9 @@ def DB.Update.spec : Prop :=
         (R err ∨ (∃ ok synced failed brk : Bool, Q ok ∗ S synced failed brk) ∨
          ((dbClosed db ∨ dbBroken γ) ∗
           (∀ (tx : Loc) (D : Data) (Φ : val → IProp GF),
-        boltTx tx γ 1 (TxView.wr D true ns) -∗
+        boltTx tx γ 1 (TxView.wr D true ns) -∗ txLive tx 1 -∗
         ▷ (∀ (err : GoInterface) (T : TxView),
-            ⌜T.rw = true ∧ T.managed = true ∧ T.noSync = ns⌝ -∗ boltTx tx γ 1 T -∗
+            ⌜T.rw = true ∧ T.managed = true ∧ T.noSync = ns⌝ -∗ boltTx tx γ 1 T -∗ txLive tx 1 -∗
             ((⌜err ≠ GoInterface.nil⌝ ∗ R err) ∨
              (⌜err = GoInterface.nil⌝ ∗
                AU <{ ∃∃ (σ : BoltSt), boltState γ 1 σ }> @ ⊤ \ ↑γ.ns, ∅

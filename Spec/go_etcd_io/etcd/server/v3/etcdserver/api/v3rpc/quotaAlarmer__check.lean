@@ -33,11 +33,11 @@ variable [sem : go.Semantics]
 requested). -/
 def quotaAlarmer.check.spec : Prop :=
   ∀ (qp : Loc) (qa : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer) (s : Loc) (γ : Cluster) (ctx : GoInterface) (t : go.GoType)
-    (q : Loc) (dq : DFrac) (c : Content),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ qp ↦□ qa ∗ quotaAlarmerAt qa s γ ∗ Context.ctxOk ctx ∗ msgAt t q dq c ∗ ⌜depth c < depthMax⌝ }}
+    (q : Loc) (dq : DFrac) (c : Content) (gq : Qp),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ qp ↦□ qa ∗ quotaAlarmerAt qa s γ ∗ srvGate s gq ∗ Context.ctxOk ctx ∗ msgAt t q dq c ∗ ⌜depth c < depthMax⌝ }}
     (App (App (Val (qp @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer.ty @!! go!"check")) (Val #ctx))
       (Val #(msgVal t q)))
-  {{ (err : GoInterface), RET #err; msgAt t q dq c ∗
+  {{ (err : GoInterface), RET #err; msgAt t q dq c ∗ srvGate s gq ∗
       (⌜err = GoInterface.nil⌝ ∨ statusErr err (Rpctypes.code .noSpace) (Rpctypes.desc .noSpace)) }}
 
 end spec

@@ -4,8 +4,10 @@
 **Users.** `uberApplier.dispatch` through the chain (promoted methods of the outer layers).
 
 **Proof sketch.** 3c's `lessor.Grant` at the writer's `Lease.lessorState γl n ls` (`stAt`'s
-`lessorSt`) with the backend's hook (`Lease.beHook ls.be Pk f ∗ Pre ∗ Mvcc.hookRun Pk f Pre Q ∗ (Q ={⊤}=∗
-Pk ∗ Post)`, from `R`: provisional, 4a's): `ErrLeaseNotFound` (id `0`), `ErrLeaseTTLTooLarge`,
+`lessorSt`) with the backend's hook (`Lease.beHook ls.be Pk f ∗ Pre ∗ Lease.beHookRun ls.be Pk f Pre Q ∗
+(Q ={⊤}=∗ Pk ∗ Post)`, from `R`: integration Y, the server's hook proved once over 4a's
+`Backend.hookRun γ q Pk f Pre Q` at every share, made the lessor's by `Backend.leaseHookRun_intro`,
+mvcc's by `keyBackend_intro`'s conversion, the schema's by `applyHook_intro`): `ErrLeaseNotFound` (id `0`), `ErrLeaseTTLTooLarge`,
 `ErrLeaseExists`, or the state `ls.grant id l (grantTTL c ttl)` at `n + 1` (`grantTTL c ttl = max ttl
 mc.minLeaseTTL`, `lessorOk`'s `c.minTTL`); `l.ID`, `l.TTL()` (`lessorAt_obj`, `Lease.TTL.spec`);
 `newHeader`.

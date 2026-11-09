@@ -10,7 +10,7 @@ provider's `enable()`; revision `0` (a fresh backend): `commitRevision` (`normRe
 `setupMetricsReporter`; `refreshRangePermCache`; `Unlock`, `ForceCommit`. The batch lock
 (4b's `authBatchTx.Lock`, `LockInsideApply`) runs the backend's post-lock hook, which the server sets
 only after this call (`server.go:369` then `409`): `authBackendAt be a` as given here must say the
-hook is not set yet (4a's `beHook … func.nil`: `hookRun` is then the caller's view shift, with
+hook is not set yet (4a's `beHook … func.nil`: 4a's `hookRun` is then the caller's view shift, with
 `Pre = Q = True`); after `Recover` the hook is the server's (`authHook`, the writer's per call).
 Integration I5: 2e's `NewServer` must hand over the backend before setting its hook. The history allocated with
 `normRev a` at index `0` (`authReached`, `validPerms`), the invariants, the provider's contract

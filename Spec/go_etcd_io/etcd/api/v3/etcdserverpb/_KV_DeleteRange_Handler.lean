@@ -41,6 +41,7 @@ def _KV_DeleteRange_Handler.spec : Prop :=
   go.typeSetContains srv.ty etcdserverpb.KVServer.ty = true →
   isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ Grpc.decOk dec etcdserverpb.DeleteRangeRequest.ty c ∗
     (∀ q : Loc, Proto.msgAt etcdserverpb.DeleteRangeRequest.ty q (DFrac.own 1) c -∗
+      Proto.decodedAt etcdserverpb.DeleteRangeRequest.ty q -∗
       handlerBodyWP srv go!"DeleteRange" etcdserverpb.DeleteRangeRequest.ty etcdserverpb.DeleteRangeResponse.ty go!"/etcdserverpb.KV/DeleteRange"
         ctx q ic Ψ) ⊢
   WP (App (App (App (App (Val (@! etcdserverpb._KV_DeleteRange_Handler)) (Val #(GoInterface.ok srv)))

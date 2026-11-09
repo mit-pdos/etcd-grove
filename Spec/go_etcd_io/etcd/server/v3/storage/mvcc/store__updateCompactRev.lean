@@ -43,7 +43,7 @@ def store.updateCompactRev.spec : Prop :=
     (f : GoFunc) (Pre Q' Post X Y : IProp GF) (Φ : Nat → Int → IProp GF),
   let ok (cur : Nat) (c : Int) : Prop := c < sint.Z rev ∧ sint.Z rev ≤ (cur : Int)
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ isStore s γ ∗
-      storeWB s γ B Pk ∗ ⌜1 ≤ sint.Z rev⌝ ∗ storageHook B dq f ∗ Pre ∗ hookRun Pk f Pre Q' ∗
+      storeWB s γ B Pk ∗ ⌜1 ≤ sint.Z rev⌝ ∗ storageHook B dq f ∗ Pre ∗ hookRun B Pk f Pre Q' ∗
       (Q' ={⊤}=∗ Pk ∗ Post) ∗ X ∗ storageReq B Pk X Y ∗ schemaVars ∗
       AU <{ ∃∃ (cur : Nat) (c : Int), revsAt γ cur c }> @ ⊤ \ ↑mvccN, ∅
         <{ revsAt γ cur (if ok cur c then sint.Z rev else c), COMM Φ cur c }> }}

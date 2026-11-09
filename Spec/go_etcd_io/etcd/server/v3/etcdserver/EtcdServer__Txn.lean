@@ -17,6 +17,10 @@ member's store; a read-only run commits nothing). A write: as `Put.spec` (`raftR
 writing transaction) restated as `Put` and `Range`: one spec for both modes, the update persistent
 exactly for a read (`□?`), the depth premise kept (`irr-depth.md`: the receiver's need, not v3rpc's
 budget), `txnChecked` the gRPC layer's validation (2a's).
+Integration X: the scope premise `EtcdServerPb.endsDecoded` (the request decoded by protobuf: its
+range ends `nil` or non-empty, `nonissues/etcd-auth-empty-range-end-point-check.md`; I5's request;
+2a's handler has it from grpc's decoder, `Proto.decodedAt` and `endsDecoded_of_decoded`; a caller that
+builds its range request, `endsDecoded_range_intro`).
 
 **Margin.** As `Range` and `Put` (the depth and `txnChecked` premises are `irrWf`'s). A compare-only transaction is answered from a member's possibly
 stale store (`issues/etcd-txn-empty-serializable.md`: W0's model has it).
@@ -49,7 +53,8 @@ def EtcdServer.Txn.spec : Prop :=
   ∀ (s : Loc) (γ : Cluster) (q : Qp) (ctx : GoInterface) (p tls : Principal) (r : Loc) (dq : DFrac) (t : TxnReq),
   SrvCallTriple (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"Txn")) (Val #ctx)) (Val #r))
     iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ srvGate s q ∗
-        Context.ctxOk ctx ∗ reqCtxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ txnReqOwn r dq t ∗ ⌜txnChecked t⌝ ∗ ⌜(Req.txn t).isRead = false → txnMsgDepth t + 1 ≤ 10000⌝)
+        Context.ctxOk ctx ∗ reqCtxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ txnReqOwn r dq t ∗
+        EtcdServerPb.endsDecoded go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty r ∗ ⌜txnChecked t⌝ ∗ ⌜(Req.txn t).isRead = false → txnMsgDepth t + 1 ≤ 10000⌝)
     iprop(srvGate s q ∗ threadTok ∗ txnReqOwn r dq t) γ p tls (.txn t) (Req.txn t).isRead (ClientV3.txnReply)
 
 end spec

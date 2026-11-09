@@ -41,6 +41,7 @@ def _Auth_AuthEnable_Handler.spec : Prop :=
   go.typeSetContains srv.ty etcdserverpb.AuthServer.ty = true →
   isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ Grpc.decOk dec etcdserverpb.AuthEnableRequest.ty c ∗
     (∀ q : Loc, Proto.msgAt etcdserverpb.AuthEnableRequest.ty q (DFrac.own 1) c -∗
+      Proto.decodedAt etcdserverpb.AuthEnableRequest.ty q -∗
       handlerBodyWP srv go!"AuthEnable" etcdserverpb.AuthEnableRequest.ty etcdserverpb.AuthEnableResponse.ty go!"/etcdserverpb.Auth/AuthEnable"
         ctx q ic Ψ) ⊢
   WP (App (App (App (App (Val (@! etcdserverpb._Auth_AuthEnable_Handler)) (Val #(GoInterface.ok srv)))

@@ -20,14 +20,16 @@ are over `ApiWatch.lean`'s. Internal helpers' specs mirror their code (PRINCIPLE
   below its `minRev`, a victim's are sent but its batch's, which `moveVictims` resends;
   every sent response carries `wsRespOk`.
 * `wsMu s γ` (exclusive): **the lock's contents, held** (`s.mu.Lock` gives it, `Unlock` takes it):
-  what `notify`, `addVictim`, `chooseAll`/`choose` and the loops' locked sections read and write.
+  what `notify`, `addVictim`, `chooseAll`/`choose` and the loops' locked sections read and write;
+  and the key to the park of the inner store's loop shares (3e's `storeLoops st γ mvccLoopN`,
+  `InternalWatched.lean`, integration Y: G1): a pass borrows its loop's share there, `Restore` takes
+  them all for `store.Restore.watched`.
 * `wsLoopS s γ`, `wsLoopV s γ` (exclusive): the loops' shares: the stop channel's receive, the wait
-  group's `Done` (its deposit: the share itself, given back at `Close`), the loop's reader of the
-  store (the right to borrow, per pass and under `s.mu`, one of the store's own reader slots of its
-  **current** storage, 3e's `mvccOwnN`: not held for the loop's life, since a `Restore` (under
-  `s.mu`, between passes) gives the old storage's slots back, `storageRest B mvccReaderN`; the
-  borrowing law is 3e's internal one, requested at integration), and for `syncVictimsLoop` the
-  victim channel's receive.
+  group's `Done` (its deposit: the share itself, given back at `Close`), the right to borrow, per
+  pass and under `s.mu`, the loop's share of the inner store (`storeLoops st γ 1`: a reader slot of
+  its **current** storage and of `revMu`, which `Restore` swaps while it holds `s.mu`), and for
+  `syncVictimsLoop` the victim channel's receive. Once both are deposited (`Close` after
+  `wg.Wait`), no pass can run: `Close` takes the parked shares for `store.Close.watched`.
 
 ## Data structures (models mirror the code)
 
@@ -170,7 +172,8 @@ events position + 1. -/
 opaque wsCmpSendable (w : Loc) (cr : w64) : IProp GF := iprop(True)
 
 /-- **The caller holds `s.mu` and a reader of the store's storage `b`**, whose image is of the
-notified history `h` (nothing pending), with the store's logger `lg`. -/
+notified history `h` (nothing pending), with the store's logger `lg` (a pass's: its loop's share of
+the inner store, `storeLoops`, borrowed from the park, `revMu` read-locked on it). -/
 opaque wsReadAt (s : Loc) (γ : MvccName) (b : GoInterface) (lg : Loc) (h : KVHist) : IProp GF :=
   iprop(True)
 

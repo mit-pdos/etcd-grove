@@ -2,19 +2,22 @@
 `newWatchableStore(lg, b, le, cfg)` (internal): `NewStore` (3e) wrapped as a watchable store, its
 views and the lessor's range deleter set to it; the loops not started.
 
-**Proof sketch.** `zap.NewNop()` for a `nil` logger; `NewStore` (3e's `NewStore.spec`); the struct
+**Proof sketch.** `zap.NewNop()` for a `nil` logger; `NewStore` (3e's watched instance, `NewStore.watched.spec`, `InternalWatched.lean`: the inner store
+in watched mode, `storeWatched st γ` and its loop shares `storeLoops st γ mvccLoopN`, parked under
+the new `s.mu`, integration Y's answer to I6's G1); the struct
 (`victimc` buffered 1, the two groups `newWatcherGroup`, `stopc`); the views (`readView`,
 `writeView`: 3e's); `le.SetRangeDeleter(func() { return s.Write(TODO) })` when `le` is not `nil`
 (3c's; the deleter's contract `KV.Write.contract` at `*watchableStore`, `mvccDeleter`); the watch
 invariant allocated (`wsInv`: empty groups, no victim, `mvccLb`'s authority at `h`, part of
 `mvccState`'s realization) and the loops' shares (each the right to borrow, per pass and under
-`s.mu`, one of the store's own reader slots of its current storage: 3e's `mvccOwnN`, through an
-internal hand-off law of 3e's, requested at integration (I6); their wait-group deposits due once
-`New` ran `wg.Add(2)`). `NewStore`'s `mvccRevLent γ 0 ∗ mvccRestoreGate γ 1` passed through.
+`s.mu`, its share of the inner store, `storeLoops st γ 1`, from the park; their wait-group deposits
+due once `New` ran `wg.Add(2)`). `NewStore`'s `mvccRevLent γ false ∗ mvccRestoreGate γ 1` passed
+through.
 -/
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.WatchInternal
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.InternalWatched
 public import Spec.go_uber_org.zap.Api
 
 @[expose] public section
@@ -41,13 +44,13 @@ def newWatchableStore.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ (⌜lg = null⌝ ∨ Zap.isLogger lg) ∗ ⌜storeCfgOk cfg⌝ ∗
       mvccStorageFor B Pk h u ∗
       storageHook B dq f ∗ ⌜f = func.nil ∨ dq = DFrac.discard⌝ ∗
-      Pre ∗ hookRun Pk f Pre Q' ∗ (Q' ={⊤}=∗ Pk ∗ Post) ∗ X ∗ storageReq B Pk X Y ∗
+      Pre ∗ hookRun B Pk f Pre Q' ∗ (Q' ={⊤}=∗ Pk ∗ Post) ∗ X ∗ storageReq B Pk X Y ∗
       Lease.isLessor le γl c ∗ Lease.lessorState γl n ls }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.newWatchableStore)) (Val #lg))
       (Val #(GoInterface.ok (storageVal B)))) (Val #(Lease.lessorIface le))) (Val #cfg))
   {{ (s : Loc), RET #s; ∃ γ : MvccName, wsInv s γ ∗ mvccLessorIs γ γl ∗
       mvccState γ ⟨h, []⟩ ∗ mvccOpen γ ∗ mvccBackend γ 1 B Pk ∗ mvccReaders γ mvccTokN ∗
-      mvccRevLent γ 0 ∗ mvccRestoreGate γ 1 ∗
+      mvccRevLent γ false ∗ mvccRestoreGate γ 1 ∗
       storageHook B dq f ∗ (if u then iprop(Post ∗ Y) else iprop(Pre ∗ X)) ∗
       (∃ (rd : GoFunc) (n' : Nat) (ls' : Lease.LessorState), mvccDeleter rd γ ∗
         ⌜RestoreLs { ls with rd := rd } h.store ls'⌝ ∗ Lease.lessorState γl n' ls') ∗

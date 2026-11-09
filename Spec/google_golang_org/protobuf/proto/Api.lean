@@ -162,6 +162,17 @@ def mergeDst_zero.spec : Prop := ∀ t p, msgAt (GF := GF) t p (DFrac.own 1) zer
 /-- A merge destination is an owned message. -/
 def mergeDst_msgAt.spec : Prop := ∀ t p c, mergeDst (GF := GF) t p c ⊢ msgAt t p (DFrac.own 1) c
 
+/-- **The message at `p` is as `Unmarshal` left it** (persistent; integration X, for the empty
+range end, `nonissues/etcd-auth-empty-range-end-point-check.md`): every `bytes` field reachable from
+it is `nil` or non-empty (proto3 omits an empty `bytes` field, so it decodes as `nil`), and every
+submessage reachable from it is decoded too. A scope fact: it speaks of the values `Unmarshal`
+wrote, so a holder that rewrites a `bytes` field may not use it for that field (no request path of
+etcd's rewrites a decoded request's range ends). The owners of message types state what it gives
+for their fields (3h: `EtcdServerPb.endsDecoded`). -/
+opaque decodedAt (t : go.GoType) (p : Loc) : IProp GF := iprop(True)
+
+def decodedAt_persistent.spec : Prop := ∀ t p, Persistent (decodedAt (GF := GF) t p)
+
 /-- An owned message may be made read-only for good. -/
 def msgAt_persist.spec : Prop := ∀ t p c,
   msgAt (GF := GF) t p (DFrac.own 1) c ⊢ |==> msgAt t p DFrac.discard c

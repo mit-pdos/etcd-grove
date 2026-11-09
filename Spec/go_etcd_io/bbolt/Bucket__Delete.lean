@@ -1,7 +1,10 @@
 /-
 `b.Delete(key)` (`bucket.go`).
 
-**Users.** The backend's `UnsafeDelete` (`batch_tx.go:238`; a failure is fatal). Snippets:
+**Users.** The backend's `UnsafeDelete` (`batch_tx.go:238`; a failure is fatal), also of a key
+this very transaction returned (mvcc's compaction deletes the keys its range returned,
+`kvstore_compaction.go:58-71`: the key's points-to is then read against a share of `txLive`, not
+of `boltTx`, so all of `boltTx` is still the caller's: integration Y, I6's request). Snippets:
 `ReqBackendBatch`, `ReqReadOnlyPut`.
 
 **Proof sketch.** Not writable: `ErrTxNotWritable`; `seek`; absent: nil, no change; a nested

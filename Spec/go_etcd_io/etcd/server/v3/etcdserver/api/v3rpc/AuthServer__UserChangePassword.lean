@@ -34,9 +34,9 @@ variable [sem : go.Semantics]
 
 /-- `AuthServer.UserChangePassword(ctx, r)` meets the contract of `/etcdserverpb.Auth/UserChangePassword`. -/
 def AuthServer.UserChangePassword.spec : Prop :=
-  ∀ (p s : Loc) (γ : Cluster) (ep : GoString),
+  ∀ (p s : Loc) (γ : Cluster) (ep : GoString) (gq : Qp),
   HandlerTriple (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty @!! go!"UserChangePassword")
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ authServerAt p s γ) (etcdUnary γ ep go!"/etcdserverpb.Auth/UserChangePassword") go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ authServerAt p s γ) (etcdUnary γ ep go!"/etcdserverpb.Auth/UserChangePassword") go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty (srvGate s gq)
 
 end spec
 

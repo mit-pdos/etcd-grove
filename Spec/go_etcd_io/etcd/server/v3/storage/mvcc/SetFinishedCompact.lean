@@ -31,7 +31,7 @@ def SetFinishedCompact.spec : Prop :=
     (value : w64),
   let D' (D : KeyData) := D.putMeta .fin (revBytes ⟨value, W64 0⟩ false)
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ schemaVars ∗
-      keyBackend B Pk ∗ kbOpen B q ∗ storageHook B dq f ∗ Pre ∗ hookRun Pk f Pre Q' ∗
+      keyBackend B Pk ∗ kbOpen B q ∗ storageHook B dq f ∗ Pre ∗ hookRun B Pk f Pre Q' ∗
       (Q' ={⊤}=∗ Pk ∗ Post) ∗
       kbObs B (fun D => iprop(⌜D.metaMade = true⌝ ∗
         AU <{ ∃∃ (D1 : KeyData), kbData B D1 }> @ ⊤, ∅ <{ kbData B (D' D), COMM

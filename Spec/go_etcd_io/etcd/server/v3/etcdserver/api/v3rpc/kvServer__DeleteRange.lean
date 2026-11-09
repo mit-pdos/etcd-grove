@@ -34,9 +34,9 @@ variable [sem : go.Semantics]
 
 /-- `kvServer.DeleteRange(ctx, r)` meets the contract of `/etcdserverpb.KV/DeleteRange`. -/
 def kvServer.DeleteRange.spec : Prop :=
-  ∀ (p s : Loc) (γ : Cluster) (ep : GoString),
+  ∀ (p s : Loc) (γ : Cluster) (ep : GoString) (gq : Qp),
   HandlerTriple (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty @!! go!"DeleteRange")
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ kvServerAt p s γ) (etcdUnary γ ep go!"/etcdserverpb.KV/DeleteRange") go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ kvServerAt p s γ) (etcdUnary γ ep go!"/etcdserverpb.KV/DeleteRange") go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty (srvGate s gq)
 
 end spec
 

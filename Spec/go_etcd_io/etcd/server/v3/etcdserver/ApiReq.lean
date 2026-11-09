@@ -67,7 +67,7 @@ holds.
 * `reqReply γ rq`, `srvReply`: the replies (W0's and 1c's reply predicates), the server's return.
 * `IrrBody` (3h's), `irrAsks`, `irrUpd`, `irrWf` (the validation the gRPC layer does, and the
   depth bound: `issues/etcd-txn-nested-depth-apply-panic.md`), `irrBackOk`, `respTy`,
-  `irrReply`, `irrOwn p dq ir` (3h's `irrOwn` at a fraction: `irrOwn_own`), `applyResult` (its trace
+  `irrReply`, `irrOwn p dq ir` (3h's, integration X), `applyResult` (its trace
   4b's `traceOpt`).
 * `reqCtxOk ctx` (4b's `ctxTraceIs ctx none`, otel's `ctxSpanOk`): the request context's tracing,
   in every spec's pre; `ctxTrace ctx` (the context's trace, owned: `doSerialize`).
@@ -310,16 +310,11 @@ def ctxNoIncoming_value.spec : Prop := ∀ (ctx ctx' : GoInterface) (ki : GoInte
 
 /-! ### Messages and slots -/
 
-/-- (provisional, 3h's at a fraction) **`p` is an `InternalRaftRequest` asking `ir`** (the outer
-struct owned, its `Header` any, `ID` `0`; the inner request messages at fraction `dq`: a writer wraps
-the request message its caller lent it, `&pb.InternalRaftRequest{Put: r}`, and takes it back out).
-At `dq = 1` it is 3h's `EtcdServerPb.irrOwn` (`irrOwn_own`); 3h's wrap and unwrap laws at a fraction
-are requested (`req/go_etcd_io_etcd_api_v3_etcdserverpb.md`, "from I4"). -/
-opaque irrOwn (p : Loc) (dq : DFrac) (ir : IrrBody) : IProp GF := iprop(True)
-
-/-- At the whole fraction, `irrOwn` is 3h's. -/
-def irrOwn_own.spec : Prop := ∀ p ir,
-  irrOwn (GF := GF) p (DFrac.own 1) ir ⊣⊢ EtcdServerPb.irrOwn p ir
+/-- **`p` is an `InternalRaftRequest` asking `ir`** (the outer struct owned, its `Header` unset,
+`ID` `0`; the inner request message at fraction `dq`): 3h's `EtcdServerPb.irrOwn` (integration X: a
+writer wraps the request message its caller lent it, `&pb.InternalRaftRequest{Put: r}`, by
+`irrOwn_wrap`, and takes it back by `irrOwn_unwrap`). -/
+abbrev irrOwn (p : Loc) (dq : DFrac) (ir : IrrBody) : IProp GF := EtcdServerPb.irrOwn p dq ir
 
 /-- (provisional, 2a's) **The send end of a range stream** (`KV_RangeStreamServer` value `rs`,
 exclusive): the range `r` of principal `p`, the chunks `ms` sent so far. Sending appends a chunk

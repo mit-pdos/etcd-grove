@@ -34,9 +34,9 @@ variable [sem : go.Semantics]
 
 /-- `quotaKVServer.Range(ctx, r)` meets the contract of `/etcdserverpb.KV/Range`. -/
 def quotaKVServer.Range.spec : Prop :=
-  ∀ (p : Loc) (kv : GoInterface) (s : Loc) (γ : Cluster) (ep : GoString),
+  ∀ (p : Loc) (kv : GoInterface) (s : Loc) (γ : Cluster) (ep : GoString) (gq : Qp),
   HandlerTriple (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty @!! go!"Range")
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ quotaKVAt p kv s γ) (etcdUnary γ ep go!"/etcdserverpb.KV/Range") go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ quotaKVAt p kv s γ) (etcdUnary γ ep go!"/etcdserverpb.KV/Range") go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty (srvGate s gq)
 
 end spec
 

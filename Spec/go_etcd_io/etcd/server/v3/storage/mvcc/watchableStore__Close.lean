@@ -6,12 +6,12 @@ interface's `Close` contract (3e's) at the watchable store.
 close). Snippet: `mvccwatch/store.go` `ReqClose`.
 
 **Proof sketch.** `close(s.stopc)` (the open token: a second `Close` panics); `s.wg.Wait()` (each
-loop exits at `stopc`, between passes, so with no borrowed slot, depositing its share at `Done`:
-Perennial's wait group backed by the two goroutines); `s.store.Close()` (3e's `store.Close.spec`, the
-contract at `*store`: `mvccClosed`); the loops' shares dropped (their slots never left the store's
-invariant: `oneshot-close.md`, a closer gives back what the goroutines it waits for held; 3e's
-`mvccClosed_rest` then gives the storage's rest, `kbRdToks B (mvccReaderN - m)`, the loops' slots
-among `mvccOwnN`'s).
+loop exits at `stopc`, between passes, so with its store share parked, depositing its loop share at
+`Done`: Perennial's wait group backed by the two goroutines); with both deposits no pass can run, so
+the parked shares `storeLoops st γ mvccLoopN` are taken (`oneshot-close.md`: a closer gives back
+what the goroutines it waits for held); `s.store.Close()` (3e's watched instance,
+`store.Close.watched.spec`, `InternalWatched.lean`: the shares back into the store, `mvccClosed`;
+3e's `mvccClosed_rest` then gives the storage's rest, the loops' slots among `mvccOwnN`'s).
 
 **Changes** from `specs-ref`'s file: the canonical instance of 3e's restated contract.
 
@@ -20,6 +20,7 @@ among `mvccOwnN`'s).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiWatch
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.InternalWatched
 public import Spec.go_uber_org.zap.Api
 
 @[expose] public section

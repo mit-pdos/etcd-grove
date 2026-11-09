@@ -34,9 +34,9 @@ variable [sem : go.Semantics]
 
 /-- `authMaintenanceServer.Alarm(ctx, r)` meets the contract of `/etcdserverpb.Maintenance/Alarm`. -/
 def authMaintenanceServer.Alarm.spec : Prop :=
-  ∀ (p s : Loc) (γ : Cluster) (ep : GoString),
+  ∀ (p s : Loc) (γ : Cluster) (ep : GoString) (gq : Qp),
   HandlerTriple (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.authMaintenanceServer.ty @!! go!"Alarm")
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ authMaintAt p s γ) (etcdUnary γ ep go!"/etcdserverpb.Maintenance/Alarm") go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ authMaintAt p s γ) (etcdUnary γ ep go!"/etcdserverpb.Maintenance/Alarm") go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty (srvGate s gq)
 
 end spec
 

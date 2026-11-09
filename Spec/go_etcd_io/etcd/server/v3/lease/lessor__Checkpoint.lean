@@ -45,7 +45,7 @@ def lessor.Checkpoint.spec : Prop :=
   ∀ (le : Loc) (γ : Names) (c : Cfg) (n : Nat) (ls : LessorState) (id rem : w64)
     (Pk Pre Q Post : IProp GF) (f : GoFunc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ isLessor le γ c ∗
-      lessorState γ n ls ∗ beHook ls.be Pk f ∗ Pre ∗ Mvcc.hookRun Pk f Pre Q ∗
+      lessorState γ n ls ∗ beHook ls.be Pk f ∗ Pre ∗ beHookRun ls.be Pk f Pre Q ∗
       (Q ={⊤}=∗ Pk ∗ Post) }}
     (App (App (Val (le @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty @!!
       go!"Checkpoint")) (Val #id)) (Val #rem))
