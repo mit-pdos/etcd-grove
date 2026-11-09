@@ -13,6 +13,12 @@ package pbschema
 //     fields (dec). Targeted: `72 00` decodes with one response (D1 says nothing of Responses);
 //     `4a 08 12 06 0a 04 08 01 30 00` decodes with decOk false; the packed ConfState zeros family
 //     (the size bound's extreme, ratio tending to 2); group nesting 10001/10002 in Entry.
+//     Also decC, the planned strengthening (the decoded heap holds exactly the content, unknown
+//     fields included, at every level): on every decoded input the heap, walked directly, is
+//     compared with the reference decoder's content (unknown fields byte for byte, every optional
+//     field's presence and value, nil vs empty bytes) at the Message, each Entry, the Snapshot,
+//     its Metadata, its ConfState and every level of each Response (decCDiff, below), with
+//     targeted cases on empty sub-messages and bytes and on unknown fields split and merged.
 //   - D2, the round trip, and the encoder axioms `entryEncC_ok` and `msgEncC_ok`
 //     (TestD2P2EntryEncoder, TestD2P2MessageEncoder): for a random content (every optional scalar
 //     present or not, Data/Context nil, empty or not, unknown fields satisfying `ufWire` at every
@@ -792,10 +798,13 @@ type d1Stats struct {
 	maxRatioIn                                  []byte
 	fails                                       map[string]int
 	example                                     map[string][]byte
+	decCChecked, decCLevels                     int               // decoded inputs / levels compared exactly (decC)
+	decCDetail                                  map[string]string // the first decC failure's differences, per key
+	decCUf                                      map[string]int    // levels with non-empty unknown fields, per message type
 }
 
 func newStats() *d1Stats {
-	return &d1Stats{fails: map[string]int{}, example: map[string][]byte{}}
+	return &d1Stats{fails: map[string]int{}, example: map[string][]byte{}, decCDetail: map[string]string{}, decCUf: map[string]int{}}
 }
 
 func (s *d1Stats) fail(k string, bs []byte) {
@@ -808,6 +817,8 @@ func (s *d1Stats) fail(k string, bs []byte) {
 func (s *d1Stats) report(t *testing.T, name string) {
 	t.Logf("%s: %d inputs, %d decoded (%d with Responses, decOk %d / not decOk %d), max proto.Size/|bs| %.6f (in=%x)",
 		name, s.inputs, s.decoded, s.withResps, s.decOk, s.notDecOk, s.maxRatio, trunc(s.maxRatioIn))
+	t.Logf("%s: decC (heap = reference content, uf + presence at every level): %d decoded inputs, %d levels compared; levels with non-empty uf: Message %d, Entry %d, Snapshot %d, SnapshotMetadata %d, ConfState %d",
+		name, s.decCChecked, s.decCLevels, s.decCUf["Message"], s.decCUf["Entry"], s.decCUf["Snapshot"], s.decCUf["SnapshotMetadata"], s.decCUf["ConfState"])
 	if s.refRejectsGoAccepts > 0 {
 		t.Logf("%s: reference decoder rejects %d inputs protobuf-go accepts", name, s.refRejectsGoAccepts)
 	}
@@ -815,6 +826,10 @@ func (s *d1Stats) report(t *testing.T, name string) {
 		t.Logf("%s PASS", name)
 	}
 	for k, n := range s.fails {
+		if d, ok := s.decCDetail[k]; ok {
+			t.Errorf("%s FAIL %s: %d (first input, exact: %s; differences: %s)", name, k, n, fullHex(s.example[k]), d)
+			continue
+		}
 		t.Errorf("%s FAIL %s: %d (first: %x)", name, k, n, trunc(s.example[k]))
 	}
 }
@@ -857,8 +872,23 @@ func checkMsgD1(s *d1Stats, bs []byte) (msgC, bool) {
 	if !refDecodeMsg(bs, &rc) {
 		s.refRejectsGoAccepts++
 		s.fail("wire: reference decoder rejects", bs)
-	} else if rc.show() != c.show() {
-		s.fail("wire: reference content differs", bs)
+	} else {
+		if rc.show() != c.show() {
+			s.fail("wire: reference content differs", bs)
+		}
+		// decC: the heap itself (walked directly) holds exactly the reference content.
+		var d decCDiff
+		d.msg("Message", &m, &rc)
+		s.decCChecked++
+		s.decCLevels += decCLevels(&rc)
+		for _, lv := range levelsC(rc) {
+			if len(lv.uf) > 0 {
+				s.decCUf[lv.name]++
+			}
+		}
+		if len(d.diffs) > 0 {
+			s.decCFail(d.diffs, bs)
+		}
 	}
 	if wireModel(c) != msgGetters(&m) {
 		s.fail("wire: MsgC.model differs from the getters", bs)
@@ -907,8 +937,20 @@ func checkEntD1(s *d1Stats, bs []byte) (entC, bool) {
 	if !refDecodeEnt(bs, &rc) {
 		s.refRejectsGoAccepts++
 		s.fail("wire: reference decoder rejects", bs)
-	} else if rc.show() != c.show() {
-		s.fail("wire: reference content differs", bs)
+	} else {
+		if rc.show() != c.show() {
+			s.fail("wire: reference content differs", bs)
+		}
+		var d decCDiff
+		d.ent("Entry", &e, &rc)
+		s.decCChecked++
+		s.decCLevels++
+		if len(rc.uf) > 0 {
+			s.decCUf["Entry"]++
+		}
+		if len(d.diffs) > 0 {
+			s.decCFail(d.diffs, bs)
+		}
 	}
 	if entModel(c) != entGetters(&e) {
 		s.fail("wire: EntryC.model differs from the getters", bs)
@@ -1016,6 +1058,19 @@ func TestD1PostMessage(t *testing.T) {
 		{"context empty (present)", []byte{0x62, 0x00}},
 		{"nested responses with uf", []byte{0x72, 0x05, 0x72, 0x03, 0xf8, 0x06, 0x01}},
 		{"uf with non-minimal outer tag (re-encoded)", []byte{0xf8, 0x86, 0x00, 0x01}},
+		// decC targets: presence of empty sub-messages and bytes, uf order and merging at every level.
+		{"decC: snapshot present, empty", []byte{0x4a, 0x00}},
+		{"decC: metadata present, empty", []byte{0x4a, 0x02, 0x12, 0x00}},
+		{"decC: ConfState present, empty", []byte{0x4a, 0x04, 0x12, 0x02, 0x0a, 0x00}},
+		{"decC: ConfState uf split by known fields (order kept)", []byte{0x4a, 0x0e, 0x12, 0x0c, 0x0a, 0x0a, 0x08, 0x01, 0xf8, 0x06, 0x01, 0x10, 0x02, 0xf8, 0x06, 0x02}},
+		{"decC: metadata uf merged over two snapshots", []byte{0x4a, 0x05, 0x12, 0x03, 0xf8, 0x06, 0x01, 0x4a, 0x05, 0x12, 0x03, 0xf8, 0x06, 0x02}},
+		{"decC: ConfState uf merged over two snapshots", []byte{0x4a, 0x07, 0x12, 0x05, 0x0a, 0x03, 0xf8, 0x06, 0x01, 0x4a, 0x07, 0x12, 0x05, 0x0a, 0x03, 0xf8, 0x06, 0x02}},
+		{"decC: known numbers, wrong wire types, every level", []byte{0x12, 0x01, 0x07, 0x38, 0x05, 0x4a, 0x0b, 0x08, 0x03, 0x12, 0x07, 0x12, 0x00, 0x0a, 0x03, 0x2a, 0x01, 0x01}},
+		{"decC: snapshot Data set then empty (present, empty)", []byte{0x4a, 0x06, 0x0a, 0x02, 0x01, 0x02, 0x0a, 0x00}},
+		{"decC: Context set then empty (present, empty)", []byte{0x62, 0x01, 0x05, 0x62, 0x00}},
+		{"decC: response with ConfState uf", []byte{0x72, 0x10, 0x4a, 0x0e, 0x12, 0x0c, 0x0a, 0x0a, 0x08, 0x01, 0xf8, 0x06, 0x01, 0x10, 0x02, 0xf8, 0x06, 0x02}},
+		{"decC: group in ConfState uf", []byte{0x4a, 0x0a, 0x12, 0x08, 0x0a, 0x06, 0xa3, 0x06, 0x08, 0x01, 0xa4, 0x06}},
+		{"decC: entry with uf and empty Data, twice", []byte{0x3a, 0x05, 0x22, 0x00, 0xf8, 0x06, 0x01, 0x3a, 0x03, 0xf8, 0x06, 0x02}},
 	}
 	for _, mc := range more {
 		before := len(t5.fails)
@@ -1037,7 +1092,7 @@ func TestD1PostMessage(t *testing.T) {
 			}
 		}
 	}
-	t5.report(t, "D1 Message targeted (12 cases + 28 packed ConfState inputs)")
+	t5.report(t, fmt.Sprintf("D1 Message targeted (%d cases + 28 packed ConfState inputs)", 2+len(more)))
 }
 
 func TestD1PostEntry(t *testing.T) {
@@ -1064,10 +1119,12 @@ func TestD1PostEntry(t *testing.T) {
 		checkEntD1(s, mutate(r, pool[r.Intn(len(pool))]))
 	}
 	forShortInputs(r, func(bs []byte) { checkEntD1(s, bs) })
-	for _, bs := range [][]byte{nil, {0x22, 0x00}, {0x08, 0xff, 0xff, 0xff, 0xff, 0x0f}, {0x08, 0x07}, deepGroup(100, 10001, true), deepGroup(100, 10002, false)} {
+	for _, bs := range [][]byte{nil, {0x22, 0x00}, {0x08, 0xff, 0xff, 0xff, 0xff, 0x0f}, {0x08, 0x07}, deepGroup(100, 10001, true), deepGroup(100, 10002, false),
+		// decC targets: Data set then empty (present, empty), known numbers with wrong wire types, uf split by known fields
+		{0x22, 0x03, 1, 2, 3, 0x22, 0x00}, {0x20, 0x05}, {0x12, 0x00}, {0x08, 0x01, 0xf8, 0x06, 0x01, 0x10, 0x02, 0xf8, 0x06, 0x02}} {
 		checkEntD1(s, bs)
 	}
-	s.report(t, fmt.Sprintf("D1 Entry (random encodeWithUF %d + genAdv %d + mutations %d + exhaustive len<=2 + %d random len 3 + 6 targeted)", nRand, nRand, nRand, nLen3))
+	s.report(t, fmt.Sprintf("D1 Entry (random encodeWithUF %d + genAdv %d + mutations %d + exhaustive len<=2 + %d random len 3 + 10 targeted)", nRand, nRand, nRand, nLen3))
 }
 
 // ---------------- D2 + P2: random contents, the encoder ----------------
@@ -1308,5 +1365,220 @@ func TestD2P2MessageEncoder(t *testing.T) {
 		if !okRT || len(enc) != msgSizeC(c) {
 			t.Errorf("P2 deep group %d failed", d)
 		}
+	}
+}
+
+// ---------------- decC: the decoded heap holds exactly the reference content ----------------
+//
+// The planned strengthening of D1 ("decC"): the decoded heap holds exactly the content c the bytes
+// encode, unknown fields included, at every level. Checked by walking the protobuf-go heap
+// directly (not through contentOfMsg/show) against the reference decoder's content (refDecodeMsg /
+// refDecodeEnt, which share no code with protobuf-go): at the Message, each Entry, the Snapshot,
+// its Metadata, its ConfState, and every level of each Response, the unknown fields
+// (ProtoReflect().GetUnknown(), byte for byte, nil = empty) and every optional field's presence
+// (nil pointer vs set; for Data/Context nil vs empty bytes) and value. Repeated fields compare
+// element-wise (nil = empty: a list in Lean). A failure names the first differing path.
+
+type decCDiff struct{ diffs []string }
+
+func (d *decCDiff) add(path, f string, args ...any) {
+	if len(d.diffs) < 8 {
+		d.diffs = append(d.diffs, path+": "+fmt.Sprintf(f, args...))
+	}
+}
+
+func (d *decCDiff) u64(path string, h, c *uint64) {
+	switch {
+	case (h == nil) != (c == nil):
+		d.add(path, "presence heap %v ref %v", h != nil, c != nil)
+	case h != nil && *h != *c:
+		d.add(path, "value heap %d ref %d", *h, *c)
+	}
+}
+
+func (d *decCDiff) boolp(path string, h, c *bool) {
+	switch {
+	case (h == nil) != (c == nil):
+		d.add(path, "presence heap %v ref %v", h != nil, c != nil)
+	case h != nil && *h != *c:
+		d.add(path, "value heap %v ref %v", *h, *c)
+	}
+}
+
+func (d *decCDiff) enum(path string, h *int32, c *int32) {
+	switch {
+	case (h == nil) != (c == nil):
+		d.add(path, "presence heap %v ref %v", h != nil, c != nil)
+	case h != nil && *h != *c:
+		d.add(path, "value heap %d ref %d", *h, *c)
+	}
+}
+
+// bytesp: a proto2 optional bytes field: nil = absent, non-nil (possibly empty) = present.
+func (d *decCDiff) bytesp(path string, h []byte, c *[]byte) {
+	switch {
+	case (h == nil) != (c == nil):
+		d.add(path, "presence heap %v (%x) ref %v", h != nil, h, c != nil)
+	case h != nil && string(h) != string(*c):
+		d.add(path, "value heap %x ref %x", h, *c)
+	}
+}
+
+func (d *decCDiff) uf(path string, m proto.Message, c []byte) {
+	if h := m.ProtoReflect().GetUnknown(); string(h) != string(c) {
+		d.add(path+".uf", "heap %x ref %x", h, c)
+	}
+}
+
+func (d *decCDiff) rep(path string, h, c []uint64) {
+	if len(h) != len(c) {
+		d.add(path, "length heap %d ref %d", len(h), len(c))
+		return
+	}
+	for i := range h {
+		if h[i] != c[i] {
+			d.add(fmt.Sprintf("%s[%d]", path, i), "heap %d ref %d", h[i], c[i])
+			return
+		}
+	}
+}
+
+func enumPtr[T ~int32](p *T) *int32 {
+	if p == nil {
+		return nil
+	}
+	v := int32(*p)
+	return &v
+}
+
+func (d *decCDiff) ent(path string, e *pb.Entry, c *entC) {
+	if e == nil {
+		d.add(path, "nil Entry in the heap")
+		return
+	}
+	d.enum(path+".Type", enumPtr(e.Type), c.typ)
+	d.u64(path+".Term", e.Term, c.term)
+	d.u64(path+".Index", e.Index, c.index)
+	d.bytesp(path+".Data", e.Data, c.data)
+	d.uf(path, e, c.uf)
+}
+
+func (d *decCDiff) cs(path string, h *pb.ConfState, c *csC) {
+	if (h == nil) != (c == nil) {
+		d.add(path, "presence heap %v ref %v", h != nil, c != nil)
+		return
+	}
+	if h == nil {
+		return
+	}
+	d.rep(path+".Voters", h.Voters, c.voters)
+	d.rep(path+".Learners", h.Learners, c.learners)
+	d.rep(path+".VotersOutgoing", h.VotersOutgoing, c.vout)
+	d.rep(path+".LearnersNext", h.LearnersNext, c.lnext)
+	d.boolp(path+".AutoLeave", h.AutoLeave, c.autoLeave)
+	d.uf(path, h, c.uf)
+}
+
+func (d *decCDiff) meta(path string, h *pb.SnapshotMetadata, c *metaC) {
+	if (h == nil) != (c == nil) {
+		d.add(path, "presence heap %v ref %v", h != nil, c != nil)
+		return
+	}
+	if h == nil {
+		return
+	}
+	d.cs(path+".ConfState", h.ConfState, c.cs)
+	d.u64(path+".Index", h.Index, c.index)
+	d.u64(path+".Term", h.Term, c.term)
+	d.uf(path, h, c.uf)
+}
+
+func (d *decCDiff) snap(path string, h *pb.Snapshot, c *snapC) {
+	if (h == nil) != (c == nil) {
+		d.add(path, "presence heap %v ref %v", h != nil, c != nil)
+		return
+	}
+	if h == nil {
+		return
+	}
+	d.bytesp(path+".Data", h.Data, c.data)
+	d.meta(path+".Metadata", h.Metadata, c.meta)
+	d.uf(path, h, c.uf)
+}
+
+func (d *decCDiff) msg(path string, m *pb.Message, c *msgC) {
+	if m == nil {
+		d.add(path, "nil Message in the heap")
+		return
+	}
+	d.enum(path+".Type", enumPtr(m.Type), c.typ)
+	d.u64(path+".To", m.To, c.to)
+	d.u64(path+".From", m.From, c.from)
+	d.u64(path+".Term", m.Term, c.term)
+	d.u64(path+".LogTerm", m.LogTerm, c.logTerm)
+	d.u64(path+".Index", m.Index, c.index)
+	if len(m.Entries) != len(c.entries) {
+		d.add(path+".Entries", "length heap %d ref %d", len(m.Entries), len(c.entries))
+	} else {
+		for i := range m.Entries {
+			d.ent(fmt.Sprintf("%s.Entries[%d]", path, i), m.Entries[i], &c.entries[i])
+		}
+	}
+	d.u64(path+".Commit", m.Commit, c.commit)
+	d.u64(path+".Vote", m.Vote, c.vote)
+	d.snap(path+".Snapshot", m.Snapshot, c.snap)
+	d.boolp(path+".Reject", m.Reject, c.reject)
+	d.u64(path+".RejectHint", m.RejectHint, c.rejectHint)
+	d.bytesp(path+".Context", m.Context, c.context)
+	d.uf(path, m, c.uf)
+	if len(m.Responses) != len(c.resps) {
+		d.add(path+".Responses", "length heap %d ref %d", len(m.Responses), len(c.resps))
+	} else {
+		for i := range m.Responses {
+			d.msg(fmt.Sprintf("%s.Responses[%d]", path, i), m.Responses[i], &c.resps[i])
+		}
+	}
+}
+
+// decCLevels counts the levels compared (for the report): own, entries, snapshot, metadata,
+// ConfState, then each response's.
+func decCLevels(c *msgC) int {
+	n := 1 + len(c.entries)
+	if s := c.snap; s != nil {
+		n++
+		if m := s.meta; m != nil {
+			n++
+			if m.cs != nil {
+				n++
+			}
+		}
+	}
+	for i := range c.resps {
+		n += decCLevels(&c.resps[i])
+	}
+	return n
+}
+
+// fullHex: the exact input bytes for a failure report (truncated only past 8 KiB, with the length).
+func fullHex(b []byte) string {
+	if len(b) > 8192 {
+		return fmt.Sprintf("%x... (%d bytes)", b[:8192], len(b))
+	}
+	return fmt.Sprintf("%x", b)
+}
+
+// decC failures are recorded with the exact input in the failure key's example (s.example keeps the
+// whole input); report prints it in full through decCReport.
+func (s *d1Stats) decCFail(diffs []string, bs []byte) {
+	// the key is the first differing field path without values (so like failures group)
+	k := diffs[0]
+	if i := strings.Index(k, ": "); i >= 0 {
+		k = k[:i]
+	}
+	k = "decC: " + k
+	s.fails[k]++
+	if _, ok := s.example[k]; !ok {
+		s.example[k] = append([]byte(nil), bs...)
+		s.decCDetail[k] = strings.Join(diffs, "; ")
 	}
 }
