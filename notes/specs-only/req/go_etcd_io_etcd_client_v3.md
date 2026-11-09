@@ -484,3 +484,20 @@ grpc/Api.lean`, `Spec/go_etcd_io/etcd/api/v3/v3rpc/rpctypes/Api.lean`,
    write is fired at most once *unless repeatable*: `LeaseGrant`, `LeaseRevoke`, `Alarm` (disarm)
    are sent with `withRepeatablePolicy()` and take persistent updates (1c's `CallTriple`,
    `reqRetryRep`). (W0's round 3 second part did this for `top.md`; the `Api.lean` header too.)
+
+## from 2a, round 1
+
+- `grpc.Peer(&p)` (`Grpc.Peer.spec`) takes the owned peer variable and lends it to grpc for good,
+  in an invariant (`peerVar`, `peerVar_inv`). The retry interceptor reads it through the
+  invariant.
+- `ClientStream.Context()` (`Grpc.cliStream_context`, `genCli_context`) takes only the persistent
+  `cliCtxOf`, which `streamerOk_call` gives.
+- `status.Code` (`Grpc.Code.spec`), `StaticMethod`, `ClientConn.Target`, `WithKeepaliveParams`,
+  `insecure.NewCredentials`.
+- Status errors' text and type (`statusErr_errMsg`, `statusErr_ty`); `Rpctypes.callErr_eof`.
+- The lease contract per member (`V3rpc.etcdUnary γ ep`'s `leaseFact`) gives 1c's
+  `Lease.GrantTriple`/`LeaseRead.Triple` their `leaseViewLb γ ep` facts.
+- `LeaseTimeToLive`'s not-found reply is sent with `err = nil` for an update fired with
+  `.err .leaseNotFound` (`ansOutcome`). `AttemptTriple`'s `nil` branch (`Q σ σ' (.ok b)`) does not
+  admit it; 1c's `leaseTTLReply` path needs `AttemptTriple` to allow `R (.err .leaseNotFound)` with
+  `err = nil` for that request.

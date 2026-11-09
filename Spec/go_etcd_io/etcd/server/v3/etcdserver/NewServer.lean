@@ -35,10 +35,18 @@ existing`), each with or without an auto-compactor. Snippets: `etcdserverboot/bo
    compactor or an error (an unknown mode: returned).
 6. `restoreAlarms` (`V3alarm`: the store over the backend's alarm bucket), `NewUberApplier` (3a),
    the lease checkpointer (3c), the backend's post-lock hook (4a, 2d).
-7. The transport (2f, at `rafthttpBootCfg`): `Start`, then `AddRemote`/`AddPeer` for the members
+7. The transport (2f, at the reserved peer addresses `memberStart` carries): `Start`, then `AddRemote`/`AddPeer` for the members
    `bootOk` names. An error from `Start` is returned (both deferred closers run).
 8. The post: `srvMember s γ id` (the read-only fields) and `srvBuilt s γ id cfg`, the slots'
    conjunction (`ApiBoot.lean`, intended realization), with `envUpd γ ecfg` for the apply thread.
+
+**Round 1** (provability F3/F4/F7, completeness F1/F5; 2d's request): the start right carries
+the reserved peer addresses (`cluster_alloc`, `urls_reserve`: 2f's `protoAt`/`peerAddr`, so two
+allocations cannot alias) and the member id when it is known (`oid`, given back in the post with
+`0 < id < 2 ^ 64`); the members' shared apply configuration (`clusterApplyCfg`, 2d's `MemberCfg`);
+`rafthttpBootCfg` dropped (2f's needs are the addresses); every provisional slot has its
+introduction law (`ApiBoot.lean`). Not covered: embed's `InitialCheck` between `NewServer` and
+`Start` (untranslated callers only).
 
 **Changes** (from `specs-ref`'s `NewServer.lean`, the 391-line hub: 46 revisions). One triple for
 every mode (`NewServer.specG`'s `on`/`cmp` parameters, its `NewServer.spec`/`specM` instances gone:
@@ -94,17 +102,19 @@ right), with the environment's permission and the subsystems' boot premises: eit
 nil server, or the server `s` of some member `id`, built and not started. -/
 def NewServer.spec : Prop :=
   ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (c : Config.Model) (γ : Cluster)
-    (ecfg : EnvCfg),
+    (ecfg : EnvCfg) (mc : ApplyCfg) (oid : Option Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ Config.cfgHeap cfg c ∗ Zap.isLogger cfg.Logger' ∗
       Features.serverGate cfg.ServerFeatureGate' ∗ ⌜ServerStorage.diskOk⌝ ∗
       ⌜V3compactor.bootCfg cfg.AutoCompactionMode' cfg.AutoCompactionRetention' ecfg.autoCompact⌝ ∗
-      ⌜raftNodeBootCfg cfg ∧ v3rpcBootCfg cfg ∧ mvccBootCfg cfg ∧ rafthttpBootCfg cfg⌝ ∗
+      ⌜raftNodeBootCfg cfg ∧ v3rpcBootCfg cfg ∧ mvccBootCfg cfg⌝ ∗
       backendBootRes cfg ∗ leaseBootRes cfg ecfg ∗ authBootRes cfg ∗
-      envUpd γ ecfg ∗ memberStart γ cfg c }}
+      clusterApplyCfg γ mc ∗ ⌜applyCfgIs cfg mc⌝ ∗
+      envUpd γ ecfg ∗ memberStart γ cfg c oid }}
     (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.NewServer)) (Val #cfg))
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
       ⌜s = null ∧ err ≠ GoInterface.nil⌝ ∨
-      ⌜err = GoInterface.nil⌝ ∗ ∃ id : Nat, srvMember s γ id ∗ srvBuilt s γ id cfg }}
+      ⌜err = GoInterface.nil⌝ ∗ ∃ id : Nat, ⌜0 < id ∧ id < 2 ^ 64 ∧ ∀ i, oid = some i → id = i⌝ ∗
+        srvMember s γ id ∗ srvBuilt s γ id cfg }}
 
 end spec
 

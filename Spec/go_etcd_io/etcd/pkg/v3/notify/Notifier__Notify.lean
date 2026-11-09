@@ -11,7 +11,9 @@ the mono-nat bumped); `Unlock`; close the old channel with its receivers' fact `
 (the old channel's ownership was the invariant's, handed to this caller by the swap: no double
 close).
 
-**Changes.** Restated over the epoch counter.
+**Changes.** Restated over the epoch counter; round 1: the count is the client's, moved by its
+atomic update at the swap (provability F8). The membership package's notifier
+(`membership/cluster.go:620`) keeps it in its own invariant.
 
 **Margin.** None: the notification is counted when the channel is swapped, before it is closed.
 -/
@@ -38,15 +40,16 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.notify.Assumptions]
 
-/-- **A notification**: one more counted (`notifyLb γ (k + 1)` for some `k` at least the caller's
-`k₀`), the current channel closed. -/
+/-- **A notification**: the caller's update moves the count at the swap (`k` to `k + 1`), the
+current channel is then closed. -/
 def Notifier.Notify.spec : Prop :=
-  ∀ (n : Loc) (γ : NotifyNames) (k₀ : Nat),
+  ∀ (n : Loc) (γ : NotifyNames) (Q : Nat → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.notify ∗ notifierAt n γ ∗
-      notifyLb γ k₀ }}
+      AU <{ ∃∃ (k : Nat), notifyCount γ k }> @ ⊤ \ ↑notifyN, ∅
+        <{ notifyCount γ (k + 1), COMM Q k }> }}
     (App (Val (n @!! go.GoType.PointerType go_etcd_io.etcd.pkg.v3.notify.Notifier.ty @!! go!"Notify"))
       (Val #()))
-  {{ RET #(); ∃ k, ⌜k₀ ≤ k⌝ ∗ notifyLb γ (k + 1) }}
+  {{ RET #(); ∃ k, Q k ∗ notifyLb γ (k + 1) }}
 
 end spec
 end Notify

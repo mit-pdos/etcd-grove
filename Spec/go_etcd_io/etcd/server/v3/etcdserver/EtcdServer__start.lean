@@ -42,7 +42,8 @@ def EtcdServer.start.spec : Prop :=
   ∀ (s : Loc) (γ : Cluster) (id : Nat) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ srvBuilt s γ id cfg }}
     (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"start")) (Val #()))
-  {{ RET #(); isServer s γ ∗ srvRunning s γ id (Config.dirsOf cfg) ∗ srvPublish s ∗ srvPurge s }}
+  {{ RET #(); isServer s γ ∗ srvGate s 1 ∗ srvRunning s γ id (Config.dirsOf cfg) ∗ srvPublish s ∗
+      srvPurge s }}
 
 end spec
 

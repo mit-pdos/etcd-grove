@@ -34,9 +34,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.Assu
 
 /-- **Proclaims `value`** as the leader `lk`: the key holds it at a reached state. -/
 def electionServer.Proclaim.spec : Prop :=
-  ∀ (es c : Loc) (γ : Cluster) (who : Principal) (ctx : GoInterface) (req : Loc)
+  ∀ (es c : Loc) (γ : Cluster) (dflt who : Principal) (ctx : GoInterface) (req : Loc)
     (lk : Option LeaderKeyM) (value : GoString) (T : State → State → Prop),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3election ∗ isElectionServer es c ∗ ClientV3.isClient c γ who ∗ Context.ctxOk ctx ∗ ClientV3.ctxPrin ctx who ∗ proclaimReq req lk value ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3election ∗ isElectionServer es c ∗ ClientV3.isClient c γ dflt ∗ Context.ctxOk ctx ∗ ClientV3.ctxPrin dflt ctx who ∗ proclaimReq req lk value ∗
       etcdPerm γ T ∗ ⌜∀ x, lk = some x → effIn (fun σ σ' => readEff σ σ' ∨ (x.lease = W64 0 ∧ grantEff 60 σ σ')) T ∧
         ∀ l : Int, effIn (keysEff (fun k => x.name <+: k) l) T⌝ ∗ threadTok }}
     (App (App (Val (es @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer.ty @!! go!"Proclaim")) (Val #ctx)) (Val #req))

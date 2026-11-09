@@ -134,7 +134,7 @@ v` (excl). Laws: `isCI_persistent`, `ciState_timeless`, `ciState_excl`, `ciWrite
    W0's `Cluster` becomes a structure with the raft names and the configuration (then `Names` goes).
    A W0 change; until then the bridge law.
 2. **The apply's configuration** (decided by the coordinator in round 1): every member shares the
-   apply-relevant configuration (`Names.mc`, fixed at allocation; a `NewServer` premise, 2e's).
+   apply-relevant configuration (`Names.mc`, 2e's `ApplyCfg` and `clusterApplyCfg`, fixed at allocation; a `NewServer` premise).
    **Open alternative**: per-member views (each member's own lease minimum TTL,
    `nonissues/etcd-lease-ttl-differs-across-members.md`): the history would record the proposer's
    answer and the other members' replicas relate to it loosely; it needs a member-state relation 3a
@@ -179,7 +179,7 @@ Reviews: `reviews/2d-provability-1.md`, `reviews/2d-completeness-1.md`. Build: 6
 snippets vetted and gofmt-clean; `etc/issues-status.py --check` clean.
 
 Provability:
-- **F1** (the coordinator's decision): `Names.mc : MemberCfg`, shared by every member, fixed at
+- **F1** (the coordinator's decision): `Names.mc : ApplyCfg` (2e's type, was 2d's `MemberCfg`), shared by every member, fixed at
   allocation; `histPropose` steps at `γ.mc` (no quantified `mc`); new `applyStep_reach` (the history
   is a `Reach` sequence). Requests to 2e (`NewServer` premise, allocation) and 3a. Per-member views
   recorded as the open alternative.
@@ -192,7 +192,7 @@ Provability:
   Sketches of `raftNode.start`, `applySnapshot`, `applyConfChange`, the header's realization.
 - **F4**: `snapImage` is keyed by the snapshot through `snapPoint` (+ `snapPoint_agree`); its source
   is the member's invariant over its snapshot directory, fed by 2f's `recvd`/`dbIn` at `Process`
-  (`srvNet`, `imgAt`). Two images per index cannot be ruled out: Go names the file by index only;
+  (2e's `srvNet`, 2d's `imgAt`). Two images per index cannot be ruled out: Go names the file by index only;
   recorded as `nonissues/etcd-merged-snapshot-same-index-image.md` and an open scope question.
 - **F5**: precise request to R1 (`req/go_etcd_io_raft_v3.md`, "from 2d (round 1)": a batch's term
   bound, the start's terms, a sent `MsgSnap`'s non-zero term); `applyBatch_terms`, `msgSnapC_recv`
@@ -223,7 +223,7 @@ Completeness:
   `srvStopped` take the directories `ds`; member ids are `Nat` as 2e's (raft's node id `W64 id`).
 - **F5**: `srvNode_errorc` (2f's `errChanOk`); `run` returns on `errorc`; `applyEntries`' sketch
   fixed; `stopWithDelay`'s trusted spec requested from 2e; snippet `ReqRemovedSelfStops`.
-- **F6**: `Process.spec` takes `srvNet γ ν ∗ Rafthttp.recvd ν m` (the received database's `dbIn`);
+- **F6**: `Process.spec` takes 2e's `srvNet γ.etcd ν ∗ Rafthttp.recvd ν m` (the received database's `dbIn`);
   `applySnapshot`'s sketch names the source.
 - 2f's and 2e's needs: `srvNode` holds from the server literal on (before `tr.Start()`), `procErr` via
   `procErr_forbidden`, `IsIDRemoved` with a thread token (round 0). S1: snippet `ReqReports`. S2: the

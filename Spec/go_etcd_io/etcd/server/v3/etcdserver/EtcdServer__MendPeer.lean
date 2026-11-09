@@ -33,9 +33,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **`MendPeer(id)`**: deliver messages to and from member `id` again. -/
 def EtcdServer.MendPeer.spec : Prop :=
   ∀ (s : Loc) (γ : Cluster) (id : Nat) (p : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ srvMember s γ id }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ srvMember s γ id ∗ threadTok }}
     (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"MendPeer")) (Val #p))
-  {{ RET #(); True }}
+  {{ RET #(); threadTok }}
 
 end spec
 

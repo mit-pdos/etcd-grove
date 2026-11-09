@@ -197,3 +197,17 @@ keep-alive's permission error are at any auth state the cluster has had.
 3. **A member's granted TTL** is `max ttl minTTL` of that member's lessor (`Lease.grantTTL`): W0's
    one `LeaseRec.ttl` per lease cannot be every member's; W0's `leaseTimeToLive` already allows any
    positive granted TTL, so nothing to change unless a client needs the TTL.
+
+## from 2a, round 1
+
+- The read handlers compose with 2c only when a read's permission is checked at an auth state
+  reached between the call's start and its answer (the coordinator's decision, W0's round 4).
+  2a's specs assume that 2c's `srvStep` is then `Step`.
+- The compaction (`kvStep`'s `.compact`) needs the admin check on both sides: a refusal answer
+  `adminErr` at a state the call saw, and **success only for an administrator at a state the call
+  saw**. This makes `examples/specreq/v3rpc/kv.go`'s `ReqCompactAdmin` provable. The member's check
+  is local and the apply does not repeat it (`nonissues/etcd-compact-admin-check-lagging-member.md`).
+- The contract is per member: `servesAt γ ep ⊣⊢ Grpc.addrAt ep (V3rpc.etcdContract γ ep)`. The lease
+  requests carry and give `leaseViewLb γ ep` (`V3rpc.leaseFact`).
+- A definite error's gRPC code is `Rpctypes.code e`, or `Unknown` for `.tooManyRequests` and
+  `.memberNotEnoughStarted` (`Rpctypes.callErr_view`, `code_not_ctx`).

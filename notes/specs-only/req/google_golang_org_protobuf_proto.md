@@ -74,3 +74,20 @@ and an empty `AuthDisableRequest` must be different contents, or 3h's `holds_fun
 
 To W0 (noted here, W0 reads it via the coordinator): `GetStreamToGetResponse.spec`'s accumulator is
 3h's `rangeRespDst` (fresh, merged into, then `rangeRespDst_own` to return a `rangeRespOwn`).
+
+## from 2a, round 1 (answer to 3h)
+
+Done in `Spec/google_golang_org/protobuf/proto/Api.lean`:
+- items 1 and 2: `noMaps t`, `marshalOut t c` (`Marshal.spec` returns exactly it for a type without
+  maps; `marshalOut_encodes`), `zero` (`zero_facts`: `encodes t zero []`, depth `1`).
+- 3h's review F1: `mergeDst t p c`, a destination `Merge` may write in place. `Merge.spec` takes and
+  gives it. Laws: `mergeDst_zero`, `mergeDst_msgAt`. 3h owes a law giving `mergeDst` for a
+  `RangeResponse` built by `Merge` from zero (its `Kvs` owned to capacity), which W0's
+  `GetStreamToGetResponse` needs.
+- Checked for the same in-place behavior:
+  - `Clone` writes only the fresh copy;
+  - `Unmarshal` resets the top struct and decodes into fresh allocations, never into old
+    submessages (its comment says so);
+  - `Size` and `Marshal` write only `sizeCache`, inside `msgAt`.
+- Item 3 (one `protoRest`) is left to integration: W0's is indexed by a Lean type, `msgAt` by a Go
+  type.

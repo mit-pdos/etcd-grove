@@ -90,6 +90,7 @@ public import Spec.go_etcd_io.etcd.api.v3.Wire
 public import Spec.context.Api
 public import Spec.go_uber_org.zap.Api
 public import Spec.google_golang_org.protobuf.proto.Api
+public import Spec.go_etcd_io.etcd.server.v3.lease.Api
 public import Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.txn
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.txn
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.mvcc
@@ -221,11 +222,26 @@ def putHist (p : PutReq) (h : KVHist) (ls : Int → Option LeaseRec) : KVHist :=
 /-- A range delete's events: the present keys `l` deleted, in key order. -/
 def delEvents (l : List KV) : List Event := l.map (fun kv => .delete kv.key)
 
-/-- **Every key of the store holds a live lease, or none** (`0`): what a put with `IgnoreLease`
-needs (mvcc's `Attach` of a dead lease panics). True of every reached state (a revocation deletes
-the lease's keys, a put checks its lease). -/
-def leasesLive (s : EtcdModel.Store) (ls : Int → Option LeaseRec) : Prop :=
-  ∀ (k : Key) (r : KeyRec), s k = some r → r.lease = 0 ∨ ls r.lease ≠ none
+section lessor
+variable [GooseExts]
+
+/-- **The store `s` and the lessor's state `ls` agree** (3c's attachment invariant,
+`req/go_etcd_io_etcd_server_v3_storage_mvcc.md`, "from 3c"): every key's lease is live (or `0`) and
+is its `itemMap` entry, and each live lease's item set is exactly its keys (`0` never live). What a
+put with `IgnoreLease` needs (mvcc's `Attach` of a dead lease panics), and what mvcc's put and
+delete keep (detaching the old lease, attaching the new). True of every reached state. -/
+def attached (s : EtcdModel.Store) (ls : Lease.LessorState) : Prop :=
+  (∀ k, ls.items k = ((s k).map (·.lease)).getD 0) ∧
+  (∀ (k : Key) (r : KeyRec), s k = some r → r.lease = 0 ∨ ls.leases r.lease ≠ none) ∧
+  (∀ (id : Int) (e : Lease.LeaseEnt), ls.leases id = some e →
+    id ≠ 0 ∧ ∀ k, (ls.keys e.obj k ↔ ls.items k = id))
+
+/-- **The lessor's writes by a KV request**: only the attachments change (the live leases, the
+bucket, the backend and the range deleter are kept). -/
+def sameLeases (ls ls' : Lease.LessorState) : Prop :=
+  ls'.leases = ls.leases ∧ ls'.bkt = ls.bkt ∧ ls'.be = ls.be ∧ ls'.rd = ls.rd
+
+end lessor
 
 /-! ## Transactions -/
 
@@ -494,16 +510,12 @@ with the pending events `evs` (`[]` but for a write). Exclusive; `End` consumes 
 opaque mvccTxn (tx : GoInterface) (γ : MvccName) (k : TxKind) (h : KVHist) (evs : List Event) :
   IProp GF := iprop(True)
 
-/-- (provisional, 3c's) **`le` is the lessor the store `γ` attaches keys to** (a `lease.Lessor`
-interface value; persistent). -/
-opaque lessorAt (le : GoInterface) (γ : MvccName) : IProp GF := iprop(True)
-
-/-- (provisional, 3c's) **The live leases of `γ`'s lessor are `ls`**, and stay so while this is held
-(exclusive: the apply thread's pin; grants and revocations are its own). -/
-opaque leasesPin (γ : MvccName) (ls : Int → Option LeaseRec) : IProp GF := iprop(True)
+/-- (provisional, 3e's) **The store `γ` attaches keys to the lessor `γl`** (persistent: its `le`
+field, fixed by `NewStore`). -/
+opaque mvccLessor (γ : MvccName) (γl : Lease.Names) : IProp GF := iprop(True)
 
 def mvccKV_persistent.spec : Prop := ∀ kv γ, Persistent (mvccKV (GF := GF) kv γ)
-def lessorAt_persistent.spec : Prop := ∀ le γ, Persistent (lessorAt (GF := GF) le γ)
+def mvccLessor_persistent.spec : Prop := ∀ γ γl, Persistent (mvccLessor (GF := GF) γ γl)
 def mvccState_excl.spec : Prop := ∀ γ h h', mvccState (GF := GF) γ h ∗ mvccState γ h' ⊢ False
 
 /-! ## The replies (over W0's `Wire.lean`) -/

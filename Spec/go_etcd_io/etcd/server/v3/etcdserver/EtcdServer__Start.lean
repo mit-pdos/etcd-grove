@@ -6,8 +6,10 @@
 `restart.startMember`. Once per built server, before serving its gRPC API (`v3rpc.Server`, 2a,
 takes `isServer`). Snippets: `etcdserverboot/boot.go`.
 
-**Proof sketch.** `start()` (`EtcdServer.start.spec`: `isServer`, `srvRunning`, the publication's
-and the purge's rights), then ten `GoAttach`es (`EtcdServer.GoAttach.spec`, each at `isServer`):
+**Proof sketch.** `start()` (`EtcdServer.start.spec`: `isServer`, the gate, `srvRunning`, the
+publication's and the purge's rights), then ten `GoAttach`es (`EtcdServer.GoAttach.spec`, each at
+`isServer` with a `threadTok`: the caller's one token for the read loop, the others from the pool of
+the server's own goroutines that `srvBuilt`'s realization keeps, the bounds plan; round 1, F6):
 `adjustTicks`, `publishV3` (with `srvPublish`), `purgeFile` (`srvPurge`), `monitorFileDescriptor`
 (the stopping channel: `StoppingNotify`'s), `monitorClusterVersions`, `monitorStorageVersion`, the
 read loop (2c's `Read.LinearizableReadLoop`, with the loop's token from `isServer`'s realization),
@@ -45,9 +47,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 stop it (`srvRunning`). -/
 def EtcdServer.Start.spec : Prop :=
   ∀ (s : Loc) (γ : Cluster) (id : Nat) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ srvBuilt s γ id cfg }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ srvBuilt s γ id cfg ∗ threadTok }}
     (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"Start")) (Val #()))
-  {{ RET #(); isServer s γ ∗ srvRunning s γ id (Config.dirsOf cfg) }}
+  {{ RET #(); isServer s γ ∗ srvGate s 1 ∗ srvRunning s γ id (Config.dirsOf cfg) }}
 
 end spec
 

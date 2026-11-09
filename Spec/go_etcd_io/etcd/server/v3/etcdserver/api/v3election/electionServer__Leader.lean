@@ -30,9 +30,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.Assu
 
 /-- **The current leader of `name`**: an oldest key under it at a reached state. -/
 def electionServer.Leader.spec : Prop :=
-  ∀ (es c : Loc) (γ : Cluster) (who : Principal) (ctx : GoInterface) (req : Loc)
+  ∀ (es c : Loc) (γ : Cluster) (dflt who : Principal) (ctx : GoInterface) (req : Loc)
     (name : GoString) (T : State → State → Prop),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3election ∗ isElectionServer es c ∗ ClientV3.isClient c γ who ∗ Context.ctxOk ctx ∗ ClientV3.ctxPrin ctx who ∗ leaderReq req name ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3election ∗ isElectionServer es c ∗ ClientV3.isClient c γ dflt ∗ Context.ctxOk ctx ∗ ClientV3.ctxPrin dflt ctx who ∗ leaderReq req name ∗
       etcdPerm γ T ∗ ⌜effIn readEff T⌝ ∗ threadTok }}
     (App (App (Val (es @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer.ty @!! go!"Leader")) (Val #ctx)) (Val #req))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);

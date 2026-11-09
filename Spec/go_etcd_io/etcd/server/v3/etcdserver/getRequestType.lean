@@ -30,10 +30,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- A label (unspecified). -/
 def getRequestType.spec : Prop :=
-  ∀ (r : Loc) (ir : IrrBody),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ irrOwn r ir }}
+  ∀ (r : Loc) (dq : DFrac) (ir : IrrBody),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ irrOwn r dq ir }}
     (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.getRequestType)) (Val #r))
-  {{ (l : GoString), RET #l; irrOwn r ir }}
+  {{ (l : GoString), RET #l; irrOwn r dq ir }}
 
 end spec
 end EtcdServer

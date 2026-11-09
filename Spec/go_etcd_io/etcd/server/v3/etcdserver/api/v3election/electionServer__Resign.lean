@@ -30,9 +30,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.Assu
 
 /-- **Resigns** the leader `lk`. -/
 def electionServer.Resign.spec : Prop :=
-  ∀ (es c : Loc) (γ : Cluster) (who : Principal) (ctx : GoInterface) (req : Loc)
+  ∀ (es c : Loc) (γ : Cluster) (dflt who : Principal) (ctx : GoInterface) (req : Loc)
     (lk : Option LeaderKeyM) (T : State → State → Prop),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3election ∗ isElectionServer es c ∗ ClientV3.isClient c γ who ∗ Context.ctxOk ctx ∗ ClientV3.ctxPrin ctx who ∗ resignReq req lk ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3election ∗ isElectionServer es c ∗ ClientV3.isClient c γ dflt ∗ Context.ctxOk ctx ∗ ClientV3.ctxPrin dflt ctx who ∗ resignReq req lk ∗
       etcdPerm γ T ∗ ⌜∀ x, lk = some x → effIn (fun σ σ' => readEff σ σ' ∨ (x.lease = W64 0 ∧ grantEff 60 σ σ')) T ∧
         effIn (delEff (fun k => x.name <+: k)) T⌝ ∗ threadTok }}
     (App (App (Val (es @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer.ty @!! go!"Resign")) (Val #ctx)) (Val #req))

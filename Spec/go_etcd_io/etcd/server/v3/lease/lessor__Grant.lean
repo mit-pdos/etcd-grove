@@ -66,11 +66,11 @@ def lessor.Grant.spec : Prop :=
   {{ (l : Loc) (err : GoInterface), RET (PairV #l #err); beApplyTok ls.be ∗
       ((⌜l = null⌝ ∗ lessorState γ n ls ∗
         (⌜sint.Z id = 0⌝ ∗ errIs go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound err ∨
-         ⌜sint.Z id ≠ 0 ∧ maxLeaseTTLGo < sint.Z ttl⌝ ∗
+         ⌜sint.Z id ≠ 0 ∧ maxLeaseTTL < sint.Z ttl⌝ ∗
            errIs go_etcd_io.etcd.server.v3.lease.ErrLeaseTTLTooLarge err ∨
-         ⌜sint.Z id ≠ 0 ∧ sint.Z ttl ≤ maxLeaseTTLGo ∧ ls.leases (sint.Z id) ≠ none⌝ ∗
+         ⌜sint.Z id ≠ 0 ∧ sint.Z ttl ≤ maxLeaseTTL ∧ ls.leases (sint.Z id) ≠ none⌝ ∗
            errIs go_etcd_io.etcd.server.v3.lease.ErrLeaseExists err)) ∨
-       (⌜err = interface.nil ∧ sint.Z id ≠ 0 ∧ sint.Z ttl ≤ maxLeaseTTLGo ∧
+       (⌜err = interface.nil ∧ sint.Z id ≠ 0 ∧ sint.Z ttl ≤ maxLeaseTTL ∧
           ls.leases (sint.Z id) = none⌝ ∗
         lessorState γ (n + 1) (ls.grant (sint.Z id) l (grantTTL c (sint.Z ttl))))) }}
 

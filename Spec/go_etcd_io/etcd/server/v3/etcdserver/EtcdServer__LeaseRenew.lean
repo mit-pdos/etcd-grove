@@ -13,7 +13,8 @@ put permission of the lease's keys, fired: `srvStep`'s keep-alive denial), `less
 a TTL, `ErrLeaseNotFound`, `ErrNotPrimary`). Else (or on `ErrNotPrimary`) the forwarding loop:
 `context.WithTimeout`, `waitLeader` (`waitLeader.spec`), `checkLeaseRenew`, `leasehttp.RenewHTTP`
 to each of the leader's peer URLs (3c's boundary: a TTL, `ErrLeaseNotFound`, other errors retried),
-`time.Sleep`; the context's end: `ErrTimeout` or `ErrCanceled` (outcome 3). Every answer the code
+`time.Sleep`; the context's end: `ErrTimeout` or `ErrCanceled` (outcome 3). The permission
+denial is W0's `leaseKeepAlive` step's (round 1: no `srvStep` disjunct of its own). Every answer the code
 returns is fired at the return (W0's `leaseKeepAlive`: any TTL or `ErrLeaseNotFound`, at any state:
 a keep-alive tells nothing of the lease's liveness).
 
@@ -48,24 +49,24 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **A keep-alive of lease `id`**: its TTL, or an error; the update fired at the return
 (outcome 1), given back (outcome 2) or lost (outcome 3). -/
 def EtcdServer.LeaseRenew.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (who : Principal) (id : w64)
+  ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (p tls : Principal) (lo : Nat) (id : w64)
     (Q : State → State → Resp → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ Context.ctxOk ctx ∗ reqPrin ctx who ∗ threadTok ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ Context.ctxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ authLb γ lo ∗
       AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-        <{ ∀∀ (σ' : State) (res : Resp), ⌜srvStep who (.leaseKeepAlive (sint.Z id)) σ σ' res⌝ ∗
+        <{ ∀∀ (σ' : State) (res : Resp), ⌜srvStep p tls (.leaseKeepAlive (sint.Z id)) σ σ' res lo⌝ ∗
              etcdState γ σ', COMM Q σ σ' res }> }}
     (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"LeaseRenew")) (Val #ctx)) (Val #id))
   {{ (ttl : w64) (err : GoInterface), RET (PairV #ttl #err); threadTok ∗
       ((∃ σ σ' res, Q σ σ' res ∗
           match res with
           | .ok (.leaseKeepAlive _ t) => iprop(⌜err = GoInterface.nil ∧ ttl = W64 t⌝)
-          | .err e => iprop(⌜srvErrOf err e⌝)
+          | .err e => iprop(⌜srvErrOf err e⌝ ∗ srvErrShape err)
           | _ => iprop(False)) ∨
-       (⌜srvUnfired err⌝ ∗
+       (⌜srvUnfired err⌝ ∗ srvErrShape err ∗
           AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-            <{ ∀∀ (σ' : State) (res : Resp), ⌜srvStep who (.leaseKeepAlive (sint.Z id)) σ σ' res⌝ ∗
+            <{ ∀∀ (σ' : State) (res : Resp), ⌜srvStep p tls (.leaseKeepAlive (sint.Z id)) σ σ' res lo⌝ ∗
                  etcdState γ σ', COMM Q σ σ' res }>) ∨
-       ⌜srvIndef err⌝) }}
+       (⌜srvIndef err⌝ ∗ srvErrShape err)) }}
 
 end spec
 end EtcdServer

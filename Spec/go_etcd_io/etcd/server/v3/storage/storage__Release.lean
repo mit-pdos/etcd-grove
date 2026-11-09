@@ -7,8 +7,10 @@
 **Why it is true.** `WAL.ReleaseLockTo(index)` unlocks the files wholly below the record's file,
 which the purge may then delete (`Wal.Recs.release`: what is below `index` may be gone), then
 `Snapshotter.ReleaseSnapDBs` removes the db files of lower indices (`Snap.releaseBelow`). Sound
-only if a snapshot record at `index` was saved (else a restart would open at a purged record: the
-WAL API's critique 2, `walBaseLb`): the update's premise.
+only if a **valid** snapshot record at `index` was saved, at or below the commit of the last state
+record (else a restart would open at a purged or invalid record: the WAL API's critique 2,
+`walBaseLb`; round 1, provability F2): the update's premise. Both callers can prove it: the apply
+thread after the notifyc handshake (`server.go:990`), `applySnapshot` after the loop's `Save`.
 
 **Changes** (from `specs-ref`'s `storage__Release.lean`, which lacked `walBaseLb`: the sweep's
 "latent gap"): the saved record is the premise. **Margin.** One update for both effects.
@@ -42,7 +44,7 @@ def storage.Release.spec : Prop :=
     (Q : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗ isStorage s wd sd ∗ storageOpen s q ∗ Raft.snapshotPts p dq sn ∗ ⌜diskOk⌝ ∗
       (AU <{ ∃∃ (R : Wal.Recs) (F : Nat → Option Snap.BeImage),
-              Wal.walRecs wd R ∗ Snap.snapDbs sd F ∗ ⌜∃ w ∈ R.snaps, w.index = sn.index⌝ }> @ ⊤, ∅
+              Wal.walRecs wd R ∗ Snap.snapDbs sd F ∗ ⌜∃ w ∈ R.validSnaps, w.index = sn.index⌝ }> @ ⊤, ∅
         <{ Wal.walRecs wd (R.release (uint.nat sn.index)) ∗
             Snap.snapDbs sd (Snap.releaseBelow F (uint.nat sn.index)), COMM Q }>) }}
     (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty @!! go!"Release")) (Val #p))

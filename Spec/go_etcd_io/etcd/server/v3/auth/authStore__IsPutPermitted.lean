@@ -5,10 +5,9 @@
 
 **Proof sketch.** `isOpPermitted(authInfo.Username, authInfo.Revision, key, nil, WRITE)` (its spec): the
 `AuthInfo`'s two fields read (fraction `dq`), then the flag (`IsAuthEnabled`, at `jf`), the revision
-(`Revision`), the user under `lockedReadTx` (the backend view, at `jx ≥ jf`: the flag moves after the
-backend in `AuthEnable`, `AuthDisable`, `Recover`), its root role (`hasRootRole`), the cache
-(`isRangeOpPermitted`, at `jc ≥ jf`: the cache is refreshed before the backend is published, and in
-`Recover` before the flag).
+(`Revision`), the user under `lockedReadTx` (the backend view, at `jx`), its root role
+(`hasRootRole`), the cache (`isRangeOpPermitted`, at `jc`); each view at or after the caller's
+`authLb γa i0`.
 
 **Changes.** The old spec (`permVerdict M info k e`: one recorded state in mode `on`, nothing in
 mode `off`) restated over W0's state, one statement for every mode: the three views' states are
@@ -20,7 +19,10 @@ header of `Api.lean`). The key-length premise is the old one (`adt.NewBytesAffin
 `len + 1`).
 
 **Margin.** An inverted range may be refused although the model's `covers` holds of it vacuously
-(`rngInverted`); `ErrAuthOldRevision`'s state (the revision read) is not named.
+(`rngInverted`); `ErrAuthOldRevision`'s state (the revision read) is not named; the order of the
+views (the backend and the cache are at or after the flag: the flag moves last in `AuthEnable`,
+`AuthDisable` and `Recover`, the cache before the backend's publication) is not stated, as no
+caller uses it.
 -/
 module
 

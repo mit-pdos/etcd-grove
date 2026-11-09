@@ -33,9 +33,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- A context's error becomes an unsettled server error. -/
 def EtcdServer.parseProposeCtxErr.spec : Prop :=
   ∀ (s : Loc) (γ : Cluster) (err : GoInterface) (start : time.Time),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ threadTok ∗ ⌜srvIndef err⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ threadTok ∗ ⌜srvIndef err⌝ ∗ srvErrShape err }}
     (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"parseProposeCtxErr")) (Val #err)) (Val #start))
-  {{ (err' : GoInterface), RET #err'; threadTok ∗ ⌜srvIndef err'⌝ }}
+  {{ (err' : GoInterface), RET #err'; threadTok ∗ ⌜srvIndef err'⌝ ∗ srvErrShape err' }}
 
 end spec
 end EtcdServer

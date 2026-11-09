@@ -13,6 +13,9 @@ with its WP, `Done` after.
 
 **Changes** (from `specs-ref`'s `EtcdServer__GoAttach.lean`): over `isServer`.
 
+**Round 1 (provability F6).** The goroutine's `threadTok` is the caller's (the bounds plan: the
+wait group is backed by thread tokens); a skipped `f` drops it.
+
 **Margin.** The post does not say whether `f` ran.
 -/
 module
@@ -39,7 +42,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **Runs `f` on a goroutine the server's stop waits for**, unless the server is stopping. -/
 def EtcdServer.GoAttach.spec : Prop :=
   ∀ (s : Loc) (γ : Cluster) (f : GoFunc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ WP (App (Val #f) (Val #())) {{ fun _ => iprop(True) }} }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ threadTok ∗
+      (threadTok -∗ WP (App (Val #f) (Val #())) {{ fun _ => iprop(True) }}) }}
     (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"GoAttach")) (Val #f))
   {{ RET #(); True }}
 

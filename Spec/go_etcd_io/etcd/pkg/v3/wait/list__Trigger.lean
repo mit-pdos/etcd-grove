@@ -13,6 +13,8 @@ invariant: the channel's send half and the saved `P id`); `Unlock`; if a channel
 give-up: its receive half is consumed, so no one receives), then `close` (the one close: the entry
 was deleted under the lock). If none was found, `P id x` is dropped.
 
+With `waitDone` nothing is found (the registration is gone or never was), so nothing is owed.
+
 **Changes.** The old spec's three cases (a gone registration, a handoff consumer, `waitTrig`) are
 two: the answer's `P id x`, or the receiver's own `waitRecv` for a give-up.
 
@@ -43,11 +45,12 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.wait.Assumptions]
 
 /-- **Delivers `x` to `id`'s receiver, if registered** (with `P id x`), or gives up the caller's own
-registration (its `waitRecv`). Never blocks, never panics. -/
+registration (its `waitRecv`), or triggers an id no one waits for (`waitDone`: nothing found).
+Never blocks, never panics. -/
 def list.Trigger.spec : Prop :=
   ∀ (l : Loc) (γw : WaitNames) (P : w64 → GoInterface → IProp GF) (id : w64) (x : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.wait ∗ listAt l γw P ∗
-      (P id x ∨ ∃ ch, waitRecv γw id ch) }}
+      (P id x ∨ (∃ ch, waitRecv γw id ch) ∨ waitDone γw id) }}
     (App (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.pkg.v3.wait.list'.ty @!! go!"Trigger"))
       (Val #id)) (Val #x))
   {{ RET #(); True }}

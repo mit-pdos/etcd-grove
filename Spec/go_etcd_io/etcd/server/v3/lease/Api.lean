@@ -204,9 +204,6 @@ def LessorState.loaded (c : Cfg) (be : GoInterface) (rd : GoFunc) (B : Int → O
 
 end model
 
-/-- `MaxLeaseTTL`. -/
-def maxLeaseTTLGo : Int := 9000000000
-
 /-- **Trusted deployment premise about time** (W0's `EnvCfg.leaseExpiry = false`, `top.md` K2): no
 lease this run's lessors hold expires during the run (every lease's TTL outlasts the run from its
 last refresh). Opaque: nothing proves it; the program that starts the cluster takes it. -/

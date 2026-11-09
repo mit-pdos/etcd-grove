@@ -46,7 +46,7 @@ def list.Register.spec : Prop :=
       waitTok γw id }}
     (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.pkg.v3.wait.list'.ty @!! go!"Register"))
       (Val #id))
-  {{ (ch : Loc), RET #ch; waitRecv γw id ch }}
+  {{ (ch : Loc), RET #ch; waitRecv γw id ch ∗ waitWasReg γw id }}
 
 end spec
 end Wait

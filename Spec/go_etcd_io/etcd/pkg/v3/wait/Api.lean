@@ -26,6 +26,11 @@ Two primitives (`wait.go`, `wait_time.go`):
 * `waitRecv γw id ch` (exclusive): `ch` is `id`'s channel, and the holder is its one receiver: a
   receive on it yields a value with `P id x` (`waitRecv_recv`, with `listAt`). The holder may instead
   give it up to `Trigger(id, nil)` (the requester's "GC wait").
+* `waitWasReg γw id`, `waitGone γw id`, `waitNever γw id` (persistent): `id` has been registered;
+  was registered and removed (it never comes back); will never be registered (its token burnt,
+  `waitToks_never`). `waitDone` is the last two: no value is owed; `IsRegistered`'s `false` gives it
+  for an id the caller knows registered or never-registered; `Trigger` accepts it (round 1,
+  completeness F7: the apply thread skips a result nobody waits for, `apply/apply.go:40`).
 * `timeListAt tl P` (persistent): `tl` is a `*timeList` whose triggers at `d` carry `□ P d`; `P` is
   downward closed (a premise of `NewTimeList`).
 * `timeChan ch P d` (persistent): a channel `Wait(d)` returned; a receive completes only with
@@ -90,6 +95,19 @@ opaque waitRecv (γw : WaitNames) (id : w64) (ch : Loc) : IProp GF := iprop(True
 /-- **`tl` is a `*timeList`** whose triggers at `d` carry `□ P d`. Persistent. -/
 opaque timeListAt (tl : Loc) (P : w64 → IProp GF) : IProp GF := iprop(True)
 
+/-- `id` has been registered (persistent: from `Register`). -/
+opaque waitWasReg (γw : WaitNames) (id : w64) : IProp GF := iprop(True)
+
+/-- `id` was registered and its registration removed (triggered): it never comes back (its token was
+one-shot). Persistent. -/
+opaque waitGone (γw : WaitNames) (id : w64) : IProp GF := iprop(True)
+
+/-- `id` will never be registered (its token burnt). Persistent. -/
+opaque waitNever (γw : WaitNames) (id : w64) : IProp GF := iprop(True)
+
+/-- **`id` is not registered and never will be again** (no value owed to anyone). -/
+def waitDone (γw : WaitNames) (id : w64) : IProp GF := iprop(waitGone γw id ∨ waitNever γw id)
+
 /-- `ch` was returned by a `Wait(d)` of a time list over `P`. Persistent. -/
 opaque timeChan (ch : Loc) (P : w64 → IProp GF) (d : w64) : IProp GF := iprop(True)
 
@@ -97,6 +115,14 @@ def listAt_persistent.spec : Prop := ∀ l γw P, Persistent (listAt (GF := GF) 
 def timeListAt_persistent.spec : Prop := ∀ tl P, Persistent (timeListAt (GF := GF) tl P)
 def timeChan_persistent.spec : Prop := ∀ ch P d, Persistent (timeChan (GF := GF) ch P d)
 def waitToks_timeless.spec : Prop := ∀ γw U, Timeless (waitToks (GF := GF) γw U)
+def waitWasReg_persistent.spec : Prop := ∀ γw id, Persistent (waitWasReg (GF := GF) γw id)
+def waitGone_persistent.spec : Prop := ∀ γw id, Persistent (waitGone (GF := GF) γw id)
+def waitNever_persistent.spec : Prop := ∀ γw id, Persistent (waitNever (GF := GF) γw id)
+
+/-- **Burning a fresh id's token**: it will never be registered (an id of another member's entry,
+which the apply thread triggers here). -/
+def waitToks_never.spec : Prop := ∀ (γw : WaitNames) (U : List w64) (id : w64), id ∉ U →
+  waitToks (GF := GF) γw U ⊢ |==> waitToks γw (id :: U) ∗ waitNever γw id
 
 /-- **A fresh id's registration right.** -/
 def waitToks_take.spec : Prop := ∀ (γw : WaitNames) (U : List w64) (id : w64), id ∉ U →

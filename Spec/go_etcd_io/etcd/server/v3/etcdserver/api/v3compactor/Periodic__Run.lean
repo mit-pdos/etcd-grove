@@ -31,7 +31,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Ass
 /-- **`Run`**: starts the compaction loop on a goroutine. -/
 def Periodic.Run.spec : Prop :=
   ∀ (p : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor ∗ isPeriodic p }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor ∗ isPeriodic p ∗ threadTok }}
     (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic.ty @!! go!"Run")) (Val #()))
   {{ RET #(); True }}
 

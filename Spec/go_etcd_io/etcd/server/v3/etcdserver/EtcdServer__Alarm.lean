@@ -43,13 +43,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **An alarm request** (`ir`: `.req .alarmList`, `.req (.alarmDisarm al)`, with the caller's
 update; or `.alarmActivate al`, with none), through raft. -/
 def EtcdServer.Alarm.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (who : Principal) (r : Loc) (dq : DFrac)
+  ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (p tls : Principal) (lo : Nat) (r : Loc) (dq : DFrac)
     (ir : IrrBody) (Q : State → State → Resp → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗
-      Context.ctxOk ctx ∗ reqPrin ctx who ∗ threadTok ∗ alarmReqOwn r dq ir ∗
+      Context.ctxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ alarmReqOwn r dq ir ∗ authLb γ lo ∗
       (if ir.fires then
         AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-          <{ ∀∀ (σ' : State) (res : Resp), ⌜irrStep who ir σ σ' res⌝ ∗ etcdState γ σ',
+          <{ ∀∀ (σ' : State) (res : Resp), ⌜irrStep p tls lo ir σ σ' res⌝ ∗ etcdState γ σ',
              COMM Q σ σ' res }>
       else True) }}
     (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"Alarm")) (Val #ctx)) (Val #r))
@@ -57,14 +57,14 @@ def EtcdServer.Alarm.spec : Prop :=
       ((∃ σ σ' res, (if ir.fires then Q σ σ' res else True) ∗
           match ir with
           | .req rq => srvReply (reqReply γ rq) res resp err
-          | _ => iprop(⌜err = GoInterface.nil⌝ ∨ ∃ e, ⌜resp = null ∧ srvErrOf err e⌝)) ∨
-       (⌜resp = null ∧ srvUnfired err⌝ ∗
+          | _ => iprop(⌜err = GoInterface.nil⌝ ∨ ∃ e, ⌜resp = null ∧ srvErrOf err e⌝ ∗ srvErrShape err)) ∨
+       (⌜resp = null ∧ srvUnfired err⌝ ∗ srvErrShape err ∗
           (if ir.fires then
             AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-              <{ ∀∀ (σ' : State) (res : Resp), ⌜irrStep who ir σ σ' res⌝ ∗ etcdState γ σ',
+              <{ ∀∀ (σ' : State) (res : Resp), ⌜irrStep p tls lo ir σ σ' res⌝ ∗ etcdState γ σ',
                  COMM Q σ σ' res }>
           else True)) ∨
-       ⌜resp = null ∧ srvIndef err⌝) }}
+       (⌜resp = null ∧ srvIndef err⌝ ∗ srvErrShape err)) }}
 
 end spec
 end EtcdServer

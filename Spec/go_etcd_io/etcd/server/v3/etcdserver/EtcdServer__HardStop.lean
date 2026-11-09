@@ -17,6 +17,12 @@ escrow's token.
 `srvDiskImage γ ρ id dd`): the image is `memberDisk`, which every start takes (`memberStart_restart`),
 in place of the R2d'a restart contract's premises.
 
+**Round 1 (completeness F2).** The whole gate is a premise: no request in flight. `Cleanup` closes
+the backend while a serializable `Range` may still read it
+(`issues/etcd-read-after-backend-close-panic.md`); the gate's shares are the request path's (2c's
+specs hold one per call), so a program stops a member only after draining its gRPC server (or
+serving none). The alternative, a gate in the Go code, is open (`batch-2e.md` Q7).
+
 **Margin.** A second `HardStop` returns at once in Go; the spec takes the one stop right.
 -/
 module
@@ -44,7 +50,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 durable state. -/
 def EtcdServer.HardStop.spec : Prop :=
   ∀ (s : Loc) (γ : Cluster) (id : Nat) (ds : Config.Dirs),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ srvRunning s γ id ds }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ srvRunning s γ id ds ∗ srvGate s 1 }}
     (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"HardStop")) (Val #()))
   {{ RET #(); memberDisk γ id ds }}
 

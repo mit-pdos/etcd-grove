@@ -5,7 +5,7 @@
 `examples/specreq/auth/admin.go` (`ReqUserAddThenCheck`).
 
 **Proof sketch.** The flag (`IsAuthEnabled`, at `jf`; off: `0`, `ErrAuthNotEnabled`); under
-`lockedReadTx` (at `jx ≥ jf`): the user (absent: `ErrAuthFailed`), password-less
+`lockedReadTx` (at `jx`): the user (absent: `ErrAuthFailed`), password-less
 (`Options.NoPassword`: `ErrNoPasswordUser`), the stored revision `ax.rev` (the backend's, the same
 view as the user: what makes 2c's "checked revision equals `Revision()` later" mean "the user's
 record has not changed since"); `RUnlock`; then `Bcrypt.CompareHashAndPassword` of the stored hash
@@ -51,7 +51,7 @@ def authStore.CheckPassword.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authStoreAt st γ γa ∗ authLb γa i0 ∗ threadTok }}
     (App (App (Val (st @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty @!! go!"CheckPassword")) (Val #name)) (Val #pw))
   {{ (r : w64) (err : GoInterface), RET (PairV #r #err); threadTok ∗
-      ∃ (jf jx : Nat) (af ax : AuthState), ⌜i0 ≤ jf ∧ jf ≤ jx⌝ ∗ authAt γa jf af ∗ authAt γa jx ax ∗
+      ∃ (jf jx : Nat) (af ax : AuthState), ⌜i0 ≤ jf ∧ i0 ≤ jx⌝ ∗ authAt γa jf af ∗ authAt γa jx ax ∗
       ⌜(af.enabled = false ∧ r = W64 0 ∧ err = errOf .authNotEnabled) ∨
        (af.enabled = true ∧ r = W64 0 ∧ err = errOf .authFailed ∧
           (ax.users name = none ∨ ∃ ur p, ax.users name = some ur ∧ ur.password = some p ∧ p ≠ pw)) ∨

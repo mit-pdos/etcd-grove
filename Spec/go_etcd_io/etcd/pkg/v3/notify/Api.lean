@@ -14,6 +14,11 @@ commit in a term resends the read index), the lessor's and the watch's leader mo
 * `NotifyNames` (opaque ghost names).
 * `notifierAt n γ` (persistent): `n` is a notifier with ghost names `γ`.
 * `notifyLb γ k` (persistent): at least `k` notifications have happened.
+* `notifyCount γ k` (exclusive, the client's): exactly `k` notifications have happened. `Notify`
+  moves it by an atomic update the caller supplies (at the swap), so a client can tie its own state
+  to the count (`ReqNotifyAfterReceive`); one that does not care keeps it in an invariant. Laws:
+  `notifyCount_lb`, `notifyLb_count`.
+* `notifyN`: the notifier's invariants' namespace.
 * `notifyChan γ ch k` (persistent): `ch` is the channel `Receive` returned after exactly `k`
   notifications; receiving on it completes only once the `k + 1`-th has happened (`notifyChan_recv`).
 
@@ -53,6 +58,9 @@ open Iris Iris.BI
 /-- A notifier's ghost names (opaque). -/
 opaque NotifyNames : Type := Unit
 
+/-- The notifiers' invariants' namespace. -/
+def notifyN : Namespace := nroot .@ "notify"
+
 section vocab
 variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
@@ -63,6 +71,9 @@ opaque notifierAt (n : Loc) (γ : NotifyNames) : IProp GF := iprop(True)
 /-- At least `k` notifications have happened. Persistent. -/
 opaque notifyLb (γ : NotifyNames) (k : Nat) : IProp GF := iprop(True)
 
+/-- **Exactly `k` notifications have happened** (exclusive, the client's). -/
+opaque notifyCount (γ : NotifyNames) (k : Nat) : IProp GF := iprop(True)
+
 /-- `ch` is the channel of epoch `k` (returned by `Receive` after exactly `k` notifications).
 Persistent. -/
 opaque notifyChan (γ : NotifyNames) (ch : Loc) (k : Nat) : IProp GF := iprop(True)
@@ -70,6 +81,12 @@ opaque notifyChan (γ : NotifyNames) (ch : Loc) (k : Nat) : IProp GF := iprop(Tr
 def notifierAt_persistent.spec : Prop := ∀ n γ, Persistent (notifierAt (GF := GF) n γ)
 def notifyLb_persistent.spec : Prop := ∀ γ k, Persistent (notifyLb (GF := GF) γ k)
 def notifyChan_persistent.spec : Prop := ∀ γ ch k, Persistent (notifyChan (GF := GF) γ ch k)
+
+def notifyCount_timeless.spec : Prop := ∀ γ k, Timeless (notifyCount (GF := GF) γ k)
+
+def notifyCount_lb.spec : Prop := ∀ γ k, notifyCount (GF := GF) γ k ⊢ notifyCount γ k ∗ notifyLb γ k
+
+def notifyLb_count.spec : Prop := ∀ γ (j k : Nat), notifyCount (GF := GF) γ k ∗ notifyLb γ j ⊢ ⌜j ≤ k⌝
 
 def notifyLb_mono.spec : Prop := ∀ γ (k k' : Nat), k' ≤ k → notifyLb (GF := GF) γ k ⊢ notifyLb γ k'
 

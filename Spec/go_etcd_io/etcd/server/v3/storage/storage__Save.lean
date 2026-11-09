@@ -13,9 +13,10 @@ not fsynced is still read back after the stop's `Close`, which fsyncs). An I/O e
 and the raft loop exits (`Fatal`): `diskOk` excludes it.
 
 **Changes** (from the WAL API's `walSave_spec`, `wal-api.md`): over the records model; the entries
-with their first index (`Raft.entriesRO`).
+with their first index (`Raft.entriesRO`). Round 1 (provability F2): the update's premise places
+the entries (above the floor, no gap), where the model is the replay's.
 
-**Margin.** The update fires once, at the write.
+**Margin.** The update fires once, at the write (a crash before it: `Wal.Recs.crashedMid`).
 -/
 module
 
@@ -46,7 +47,8 @@ def storage.Save.spec : Prop :=
     (sl : GoSlice) (k : Nat) (es : List Raft.LogEntry) (Q : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗ isStorage s wd sd ∗ storageOpen s q ∗ Raft.hsPtr hp dq hs ∗
       Raft.entriesRO sl k es ∗ ⌜diskOk⌝ ∗
-      (AU <{ ∃∃ (R : Wal.Recs), Wal.walRecs wd R }> @ ⊤, ∅
+      (AU <{ ∃∃ (R : Wal.Recs), Wal.walRecs wd R ∗
+              ⌜es = [] ∨ (R.floor < k ∧ k ≤ R.floor + R.log.length + 1)⌝ }> @ ⊤, ∅
         <{ Wal.walRecs wd (R.save hs k es), COMM Q }>) }}
     (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty @!! go!"Save")) (Val #hp)) (Val #sl))
   {{ RET #GoInterface.nil; storageOpen s q ∗ Raft.hsPtr hp dq hs ∗ Q }}

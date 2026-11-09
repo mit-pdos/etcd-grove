@@ -33,13 +33,15 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- `nil`; a refusal (an invalid token, `ErrUserEmpty`, a stale auth revision); or a denial
-(`permErr who`). -/
+(`permErr` of `p` or `tls`). -/
 def EtcdServer.checkLeaseTimeToLive.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (who : Principal) (x : val),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ Context.ctxOk ctx ∗ reqPrin ctx who ∗ threadTok }}
+  ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (p tls : Principal) (x : val),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ Context.ctxOk ctx ∗ reqPrin ctx p tls ∗ threadTok }}
     (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"checkLeaseTimeToLive")) (Val #ctx)) (Val x))
   {{ (rev : w64) (err : GoInterface), RET (PairV #rev #err); threadTok ∗
-      ⌜err = GoInterface.nil ∨ srvUnfired err ∨ srvErrOf err (AuthState.permErr who)⌝ }}
+      (⌜err = GoInterface.nil⌝ ∨
+       ⌜srvUnfired err ∨ ∃ w, (w = p ∨ w = tls) ∧ srvErrOf err (AuthState.permErr w)⌝ ∗
+         srvErrShape err) }}
 
 end spec
 end EtcdServer

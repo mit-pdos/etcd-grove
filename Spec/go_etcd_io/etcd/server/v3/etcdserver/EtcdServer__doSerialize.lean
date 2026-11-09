@@ -3,7 +3,7 @@
 
 **Users.** `Range`, a read-only `Txn`, `RangeStream` (`v3_server.go:150,190,368`).
 
-**Proof sketch.** `traceutil.Get(ctx)` (4b), `AuthInfoFromCtx(ctx)` (its spec: `who`'s `AuthInfo`
+**Proof sketch.** `traceutil.Get(ctx)` (4b), `AuthInfoFromCtx(ctx)` (its spec: `p`'s or `tls`'s `AuthInfo`
 at a revision, `nil`, or an invalid token, returned), `&auth.AuthInfo{}` for `nil`, `chk(ai)` (the
 caller's closure: its triple `Chk`), `get()` (the caller's: `Get`), the revision re-check
 (`authStore.Revision()`, 3d). Mirrors the code: the closures' specs are the caller's.
@@ -12,8 +12,8 @@ caller's closure: its triple `Chk`), `get()` (the caller's: `Get`), the revision
 the race with `AuthEnable` is in its callers' `srvStep` (here: the revision is re-checked only for an
 `AuthInfo` with a revision, `ai.Revision != 0`).
 
-**Margin.** None (mirrors the code). `chk` runs on the context's `AuthInfo` (`who`'s user) or on an
-empty one (`&auth.AuthInfo{}`, made read-only: nothing writes it).
+**Margin.** None (mirrors the code). `chk` runs on the context's `AuthInfo` (`p`'s or `tls`'s user)
+or on an empty one (`&auth.AuthInfo{}`, made read-only: nothing writes it).
 -/
 module
 
@@ -42,20 +42,20 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 (with its post), then `nil` or `ErrAuthOldRevision` (a refusal) if the token's auth revision changed.
 `Chk`, `Get`: the closures' contracts, given by the caller. -/
 def EtcdServer.doSerialize.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (who : Principal) (chk get : GoFunc)
+  ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (p tls : Principal) (chk get : GoFunc)
     (Pc : IProp GF) (Rc : GoInterface → IProp GF) (Pg Rg : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ Context.ctxOk ctx ∗ reqPrin ctx who ∗ threadTok ∗ Pc ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ Context.ctxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ Pc ∗
       (∀ (ai : Loc), {{ Pc ∗ threadTok ∗ ∃ (u : GoString) (rev : w64),
           ai.[go_etcd_io.etcd.server.v3.auth.AuthInfo, go!"Username"] ↦□ u ∗
           ai.[go_etcd_io.etcd.server.v3.auth.AuthInfo, go!"Revision"] ↦□ rev ∗
-          ⌜who = some u ∨ (u = [] ∧ rev = W64 0)⌝ }} (App (Val #chk) (Val #ai))
+          ⌜p = some u ∨ tls = some u ∨ (u = [] ∧ rev = W64 0)⌝ }} (App (Val #chk) (Val #ai))
         {{ (e : GoInterface), RET #e; threadTok ∗ Rc e }}) ∗
       ({{ Pg ∗ threadTok }} (App (Val #get) (Val #())) {{ RET #(); threadTok ∗ Rg }}) ∗
       (Rc GoInterface.nil -∗ Pg) }}
     (App (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"doSerialize")) (Val #ctx)) (Val #chk)) (Val #get))
   {{ (err : GoInterface), RET #err; threadTok ∗
-      ((⌜srvUnfired err⌝ ∗ Pc) ∨ (⌜err ≠ GoInterface.nil⌝ ∗ Rc err) ∨
-       (Rg ∗ ⌜err = GoInterface.nil ∨ srvErrOf err .authOldRevision⌝)) }}
+      ((⌜srvErrOf err .invalidAuthToken⌝ ∗ srvErrShape err ∗ Pc) ∨ (⌜err ≠ GoInterface.nil⌝ ∗ Rc err) ∨
+       (Rg ∗ (⌜err = GoInterface.nil⌝ ∨ ⌜srvErrOf err .authOldRevision⌝ ∗ srvErrShape err))) }}
 
 end spec
 end EtcdServer

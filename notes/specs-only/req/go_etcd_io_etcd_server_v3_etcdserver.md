@@ -651,3 +651,37 @@ id ttl`, `isLessor le γl c` (persistent), `lessorStop le`. What 3c gives and ne
    writer's token by `lessorState_bkt` (for the backend's whole open token at close).
 9. **`leasehttp`**: `RenewHTTP`'s spec and `Leasehttp.rtOk` are yours (`lease/leasehttp/`); 3c adds
    nothing: `TimeToLiveHTTP` has no translated caller (2c's `leaseTimeToLive` is untranslated).
+
+## from 2a, round 1
+
+1. **(2c) Apply-time token refusals go back unfired.** The handlers send a token or learner
+   refusal (`ErrUserEmpty`, `ErrAuthOldRevision`, `ErrInvalidAuthToken`,
+   `ErrGRPCNotSupportedForLearner`) only by the contract's second way: the caller's update is given
+   back unfired, as 1c's `AttemptTriple` needs. The case arises when the apply's `isOpPermitted`
+   returns `ErrUserEmpty`, because auth was enabled after a proposal without a user. 2c's
+   `SrvCallTriple` must classify that as outcome 2 (`srvUnfired`, the update returned), never fire
+   it. This is sound because the entry is a no-op. Used by every `*.spec` handler of v3rpc
+   (`V3rpc.firedAns`).
+2. **(2c) Error outcomes carry `V3rpc.srvErrOk err`.** Outcomes 2 and 3 of `SrvCallTriple`, and the
+   error of outcome 1, need more than the pure `srvUnfired`/`srvIndef`. Each must carry one of:
+   - a context's error (`context.isCtxErr`);
+   - a comparable (`Grpc.cmpErr`), non-status, non-context error with a stable message
+     (`Grpc.errMsg err m`) that is either `srvErrOf err e`, or unmapped with `V3rpc.indefMsg m`.
+
+   This is what `togRPCError.spec` takes: its map lookup panics on a non-comparable key, and its
+   fallback sends the message. 2c's errors are package variables (`errors.New`) and context
+   errors, all comparable.
+3. **(2e) The member's address.** `servesAt γ ep` is `Grpc.addrAt ep (V3rpc.etcdContract γ ep)`,
+   2f's `Http.protoAt ep (grpcOver _ P)`. To serve it, 2e:
+   - reserves the advertised client URL string `ep` (`Http.reserve` from the environment's
+     `addrFree ep`; the environment premise is one string per socket, so the listen and advertise
+     strings must be the same string);
+   - listens (2f's `net.Listen`);
+   - serves either with `Grpc.start.spec` (a `Http.handlerPool` of the caller's tokens; plain or
+     cmux's HTTP/2 part, `Grpc.cmuxSubAt`, `cmux_split`), or through net/http with
+     `Grpc.startHTTP.spec` and `Server.ServeHTTP.spec` (the TLS path's `grpcHandlerFunc`, whose
+     other requests follow the protocol `P`).
+
+   cmux (`github.com/soheilhy/cmux`) needs its names in the Goose configuration for its specs.
+   embed's v3election/v3lock registrations need contracts in `etcdContract` (or an extended `C`)
+   before embed can apply `start`.

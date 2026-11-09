@@ -13,9 +13,12 @@ fresh in the whole raft cluster) and the ids of leases granted with `ID = 0` (`L
 
 * `IdSpace` (opaque ghost names): one cluster's id space, shared by the generators of all its
   members and all their runs.
+* `idSpaceAuth γi ps` (exclusive): the prefixes taken so far (the initial members' and each added
+  member's: `idSpaceAuth_add` takes a fresh, non-zero prefix for a member a `MemberAdd` added; 2e
+  holds it).
 * `idPrefixes γi p` (exclusive): the stock of generator tokens of the 16-bit prefix `p`, one per run
-  of the member owning `p` (`idPrefixes_take`). Allocated once for the cluster's prefixes, which must
-  be distinct and non-zero (`idSpace_alloc`).
+  of the member owning `p` (`idPrefixes_take`). Allocated for the cluster's initial prefixes, which
+  must be distinct and non-zero (`idSpace_alloc`), and one per added member.
 * `idPrefix γi p` (exclusive): one run's generator token of prefix `p`, consumed by `NewGenerator`.
 * `idGen g γi` (persistent): `g` is a generator of `γi`.
 * `idFresh γi id` (exclusive): **`id` was issued once in the whole id space**, and is not `0`. The
@@ -30,7 +33,8 @@ generator's invariant holds its prefix's issued count; distinct prefixes give di
 time receipts (one per `atomic.AddUint64`, the receipt bound `≤ 2 ^ 48` fixed by the adequacy
 theorem: the bound at its owner). **Across the runs of one member** (`idPrefixes_take` gives a fresh
 token per run) freshness is a trust-boundary assumption of `Next`'s model (the `IdIssue`
-extension, as before this branch): a run restarted within the millisecond of its predecessor's
+extension, as before this branch): **`Generator.Next.spec` is an assumed contract, false across runs
+in general**: a run whose predecessor issued more than `256` ids per millisecond on average since its
 start, or with the clock gone back, can reissue an id
 (`nonissues/etcd-request-id-restart-reuse.md`). Across members it rests on the allocation's
 distinct prefixes, a premise etcd does not ensure (`nonissues/etcd-request-id-member-prefix.md`);
@@ -64,6 +68,9 @@ opaque IdSpace : Type := Unit
 section vocab
 variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 
+/-- The prefixes taken so far. Exclusive. -/
+opaque idSpaceAuth (γi : IdSpace) (ps : List w16) : IProp GF := iprop(True)
+
 /-- The stock of generator tokens of prefix `p` (one per run). Exclusive. -/
 opaque idPrefixes (γi : IdSpace) (p : w16) : IProp GF := iprop(True)
 
@@ -79,7 +86,11 @@ opaque idFresh (γi : IdSpace) (id : w64) : IProp GF := iprop(True)
 /-- Allocation of an id space for a cluster whose members own the prefixes `ps` (distinct, non-zero:
 etcd's member ids truncated to 16 bits; see the header). -/
 def idSpace_alloc.spec : Prop := ∀ (ps : List w16), ps.Nodup → (∀ p ∈ ps, p ≠ W16 0) →
-  ⊢ |==> ∃ γi : IdSpace, [∗list] p ∈ ps, idPrefixes (GF := GF) γi p
+  ⊢ |==> ∃ γi : IdSpace, idSpaceAuth (GF := GF) γi ps ∗ [∗list] p ∈ ps, idPrefixes γi p
+
+/-- A prefix for a member added later (fresh, non-zero). -/
+def idSpaceAuth_add.spec : Prop := ∀ (γi : IdSpace) (ps : List w16) (p : w16), p ∉ ps → p ≠ W16 0 →
+  idSpaceAuth (GF := GF) γi ps ⊢ |==> idSpaceAuth γi (p :: ps) ∗ idPrefixes γi p
 
 /-- A run's token, the stock kept (for the member's later runs). -/
 def idPrefixes_take.spec : Prop := ∀ (γi : IdSpace) (p : w16),

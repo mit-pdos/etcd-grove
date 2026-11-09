@@ -146,3 +146,12 @@ The gRPC boundary (`Spec/google_golang_org/grpc/Api.lean`) and protobuf's
    `LeaseRevoke` is set exactly when `b` (`isPriorityRequest`, `exceedsRequestLimit`).
 2. The `v3electionpb` and `v3lockpb` messages' ownership (provisional in `V3election`/`V3lock`
    `Api.lean`: `campaignReq`, `leaderResp`, `lockReq`, ...).
+
+## from 2a, round 1
+
+- The generic stream wrappers: the stubs and the generated handlers build
+  `&grpc.GenericClientStream[Req, Res]{ClientStream: s}` / `GenericServerStream`. A law per
+  allocation giving 2a's `Grpc.genCliAt w s reqT repT` / `genSrvAt` (persistent).
+  `Grpc.genCli_send`/`_recv`/`_closeSend`/`_context` and `genSrv_*` then reduce them to the stream
+  laws.
+- `Proto.mergeDst` of a `RangeResponse` for W0's merge path (see `req/google_golang_org_protobuf_proto.md`).

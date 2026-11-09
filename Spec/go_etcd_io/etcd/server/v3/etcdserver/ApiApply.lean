@@ -147,20 +147,17 @@ open Iris Iris.BI
 /-- The server's own ghost names (the history's, the answers'): opaque. -/
 opaque HistNames : Type := Unit
 
-/-- (provisional, 3a's) **The apply-relevant configuration** of the cluster's members (the leases'
-minimum TTL, `nonissues/etcd-lease-ttl-differs-across-members.md`): fixed at the cluster's
-allocation and **shared by every member** (round 1, the coordinator's decision on provability F1:
-2e's `NewServer` takes it as a premise against the member's configuration). -/
-opaque MemberCfg : Type := Unit
 
 /-- **An etcd cluster's server-level names**: the client-observable cluster (W0's names), the raft
 cluster under it (R1's names), the environment's configuration (every member configured alike, the
-cluster contract), the members' shared apply configuration, and the history's own names. -/
+cluster contract), the members' shared apply configuration (2e's `ApplyCfg`, fixed at the
+cluster's allocation: `clusterApplyCfg γ.etcd γ.mc`; the coordinator's decision on round 1's F1),
+and the history's own names. -/
 structure Names where
   etcd : EtcdModel.Cluster
   raft : Raft.Cluster
   cfg : EtcdModel.EnvCfg
-  mc : MemberCfg
+  mc : ApplyCfg
   hist : HistNames
 
 /-! ## Pure models -/
@@ -196,7 +193,7 @@ def ApplyBatch.last (B : ApplyBatch) : Nat := B.base + B.ents.length
 committed entry `e` to the model state `σ` under the cluster's shared configuration `mc` gives `σ'`
 and the answer `res` (a function of `mc`, `σ` and `e`: `applyStep_fun`). For an entry no request waits on
 (an empty entry, a checkpoint, a cluster version) `σ' = σ`. -/
-opaque applyStep (mc : MemberCfg) (σ : EtcdModel.State) (e : Raft.LogEntry) (σ' : EtcdModel.State)
+opaque applyStep (mc : ApplyCfg) (σ : EtcdModel.State) (e : Raft.LogEntry) (σ' : EtcdModel.State)
     (res : EtcdModel.Resp) : Prop
 
 /-- The `ShouldApplyV3` of an entry at index `i` for a consistent index `ci`: whether its effects go
@@ -241,10 +238,6 @@ machine at `histAt γ a` with stored index `a`, for a snapshot `s` of index `i` 
 Persistent. -/
 opaque imgAt (γ : Names) (i : w64) (img : Snap.BeImage) : IProp GF := iprop(True)
 
-/-- **`ν` is the cluster's network** (2f's `Net`) with the server's meanings: `ν.γ = γ.raft`,
-`ν.img = imgAt γ`, and `ν.dbIn i` the member invariant's record that its snapshot directory keeps
-an image `imgAt γ i` (2e's `snapDbs`). Persistent. -/
-opaque srvNet (γ : Names) (ν : Rafthttp.Net GF) : IProp GF := iprop(True)
 
 /-- (provisional, 2c's read registry, item 5) **A registered read** under ticket `t`: a persistent
 update over `etcdState` with relation `Rel` and result `Q`, registered when the committed log was
@@ -439,7 +432,6 @@ def persistent.spec : Prop :=
   (∀ γ s, Persistent (snapImage (GF := GF) γ s)) ∧
   (∀ γ s a, Persistent (snapPoint (GF := GF) γ s a)) ∧
   (∀ γ i img, Persistent (imgAt (GF := GF) γ i img)) ∧
-  (∀ γ ν, Persistent (srvNet (GF := GF) γ ν)) ∧
   (∀ s γi, Persistent (srvIdSpace (GF := GF) s γi)) ∧
   (∀ s γ k, Persistent (srvReadAt (GF := GF) s γ k)) ∧
   (∀ s γ id, Persistent (srvNode (GF := GF) s γ id)) ∧

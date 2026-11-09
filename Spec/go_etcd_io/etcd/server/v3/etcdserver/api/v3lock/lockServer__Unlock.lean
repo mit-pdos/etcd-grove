@@ -29,9 +29,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.Assumpti
 
 /-- **Releases the lock**: deletes its key. -/
 def lockServer.Unlock.spec : Prop :=
-  ∀ (ls c : Loc) (γ : Cluster) (who : Principal) (ctx : GoInterface) (req : Loc) (key : GoString)
+  ∀ (ls c : Loc) (γ : Cluster) (dflt who : Principal) (ctx : GoInterface) (req : Loc) (key : GoString)
     (T : State → State → Prop),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock ∗ isLockServer ls c ∗ ClientV3.isClient c γ who ∗ Context.ctxOk ctx ∗ ClientV3.ctxPrin ctx who ∗ unlockReq req key ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock ∗ isLockServer ls c ∗ ClientV3.isClient c γ dflt ∗ Context.ctxOk ctx ∗ ClientV3.ctxPrin dflt ctx who ∗ unlockReq req key ∗
       etcdPerm γ T ∗ ⌜effIn (delEff (fun k => k = key)) T⌝ }}
     (App (App (Val (ls @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.lockServer.ty @!! go!"Unlock")) (Val #ctx)) (Val #req))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);

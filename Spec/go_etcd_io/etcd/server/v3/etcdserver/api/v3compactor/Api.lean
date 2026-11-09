@@ -49,6 +49,7 @@ resumed by leadership changes, stopped at the cleanup, its `Compact` calls after
 module
 
 public import Spec.context.Api
+public import Spec.go_etcd_io.etcd.api.v3.Wire
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor
 public import Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor
 
@@ -83,7 +84,7 @@ end laws
 
 section res
 variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [go_gctx : GoGlobalContext]
+variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
 /-- **`c.Compact(ctx, r)` may be called** (persistent). -/
 opaque compactable (c : GoInterface) : IProp GF := iprop(True)
@@ -109,6 +110,34 @@ def revGetter_persistent.spec : Prop := ∀ rg, Persistent (revGetter (GF := GF)
 def isCompactor_persistent.spec : Prop := ∀ cp, Persistent (isCompactor (GF := GF) cp)
 def isPeriodic_persistent.spec : Prop := ∀ p, Persistent (isPeriodic (GF := GF) p)
 def isRevision_persistent.spec : Prop := ∀ r, Persistent (isRevision (GF := GF) r)
+
+/-- **Introduction of `compactable`** (round 1, completeness F7): `Compact` at the interface's
+dynamic type is safe for any context, with a fresh compaction request (what the loop builds), on a
+goroutine holding a thread token. The server proves it from 2c's `EtcdServer.Compact.spec` and
+`envUpd`; a test's fake from its method's WP. -/
+def compactable_intro.spec : Prop := ∀ i : GoInterfaceOk,
+  (□ ∀ (ctx : GoInterface) (r : Loc) (rev : Int) (phys : Bool),
+      Context.ctxOk ctx ∗ EtcdWire.compactReqOwn r (DFrac.own 1) rev phys ∗ threadTok -∗
+      WP (App (App (Val #(methods i.ty go!"Compact" i.v)) (Val #ctx)) (Val #r))
+        {{ fun _ => iprop(threadTok) }}) ⊢
+  compactable (GF := GF) (interface.ok i)
+
+/-- **Introduction of `revGetter`**: `Rev` safe at any time on a goroutine holding a thread token
+(3e proves it for its store, also after `Close`). -/
+def revGetter_intro.spec : Prop := ∀ i : GoInterfaceOk,
+  (□ (threadTok -∗ WP (App (Val #(methods i.ty go!"Rev" i.v)) (Val #()))
+        {{ fun _ => iprop(threadTok) }})) ⊢
+  revGetter (GF := GF) (interface.ok i)
+
+/-- **Elimination of `isCompactor`** (round 1, provability F7: the calls through the `Compactor`
+interface, `start`'s `Run`, the ready handler's `Pause`/`Resume`, `Cleanup`'s `Stop`): each method
+safe at any time (`Run` with the caller's thread token, which the loop keeps). -/
+def isCompactor_methods.spec : Prop := ∀ i : GoInterfaceOk,
+  isCompactor (GF := GF) (interface.ok i) ⊢
+    □ ((threadTok -∗ WP (App (Val #(methods i.ty go!"Run" i.v)) (Val #())) {{ fun _ => iprop(True) }}) ∗
+       WP (App (Val #(methods i.ty go!"Stop" i.v)) (Val #())) {{ fun _ => iprop(True) }} ∗
+       WP (App (Val #(methods i.ty go!"Pause" i.v)) (Val #())) {{ fun _ => iprop(True) }} ∗
+       WP (App (Val #(methods i.ty go!"Resume" i.v)) (Val #())) {{ fun _ => iprop(True) }})
 
 def isCompactor_periodic.spec : Prop := ∀ p, isPeriodic (GF := GF) p ⊢
   isCompactor (interface.mkOk

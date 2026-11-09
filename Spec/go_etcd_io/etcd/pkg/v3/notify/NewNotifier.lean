@@ -10,6 +10,8 @@ demotion notifier. Snippet: `examples/specreq/wait/notify.go`.
 **Changes.** The old spec (`specs-ref`'s `NewNotifier.lean`) fixed a client predicate the closes
 carried; restated over the epoch counter (no client predicate: TaDa, not HoCAP).
 
+Round 1: the count `notifyCount γ 0` handed to the caller (provability F8).
+
 **Margin.** None.
 -/
 module
@@ -39,7 +41,7 @@ variable [package_sem : go_etcd_io.etcd.pkg.v3.notify.Assumptions]
 def NewNotifier.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.notify }}
     (App (Val (@! go_etcd_io.etcd.pkg.v3.notify.NewNotifier)) (Val #()))
-  {{ (n : Loc), RET #n; ∃ γ : NotifyNames, notifierAt n γ ∗ notifyLb γ 0 }}
+  {{ (n : Loc), RET #n; ∃ γ : NotifyNames, notifierAt n γ ∗ notifyCount γ 0 ∗ notifyLb γ 0 }}
 
 end spec
 end Notify

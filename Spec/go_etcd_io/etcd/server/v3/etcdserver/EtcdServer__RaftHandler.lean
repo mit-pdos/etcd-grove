@@ -5,7 +5,9 @@
 member's peer listener, before `Start`); `embed`'s peer handler. Snippet: `etcdserverboot/boot.go`.
 
 **Proof sketch.** `s.r.transport` (read-only since `NewServer`, `srvMember`), 2f's
-`Transport.Handler.spec`: `raftHandler h γ id`.
+`Transport.Handler.spec` (round 1: its post at `/` for every protocol compatible with the network's;
+the network is the cluster's, `srvNet`), which `Http.Serve` serves at the protocol `cluster_alloc` or
+`urls_reserve` gave the member's peer address.
 
 **Changes** (from `specs-ref`'s `EtcdServer__RaftHandler.lean`, over `srvNetMember γn srv id τ`):
 over `srvMember`.
@@ -38,7 +40,8 @@ def EtcdServer.RaftHandler.spec : Prop :=
   ∀ (s : Loc) (γ : Cluster) (id : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ srvMember s γ id }}
     (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"RaftHandler")) (Val #()))
-  {{ (h : GoInterface), RET #h; raftHandler h γ id }}
+  {{ (h : GoInterface), RET #h; ∃ ν : Rafthttp.Net GF, srvNet γ ν ∗
+      □ ∀ P : Http.Proto GF, ⌜Rafthttp.raftCompat ν P⌝ → Http.handlerOk h P go!"/" }}
 
 end spec
 

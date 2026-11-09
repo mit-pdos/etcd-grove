@@ -35,7 +35,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **Stops `s` gracefully** (leadership moved first if it leads), as `HardStop`. -/
 def EtcdServer.Stop.spec : Prop :=
   ∀ (s : Loc) (γ : Cluster) (id : Nat) (ds : Config.Dirs),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ srvRunning s γ id ds }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ srvRunning s γ id ds ∗ srvGate s 1 }}
     (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"Stop")) (Val #()))
   {{ RET #(); memberDisk γ id ds }}
 

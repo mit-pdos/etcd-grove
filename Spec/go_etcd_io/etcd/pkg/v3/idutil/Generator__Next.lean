@@ -16,7 +16,9 @@ model's (see `Api.lean`).
 initial suffix, count): the shape went (no user reads it), the credit is the receipts' bound, at
 its owner (the bounds plan), so no caller threads it.
 
-**Margin.** The ids of one run are increasing modulo `2 ^ 48`: not exposed.
+**Margin.** The ids of one run are increasing modulo `2 ^ 48`: not exposed. **An assumed contract
+across runs** (see `Api.lean`): false when a previous run of the prefix issued more than `256` ids
+per millisecond on average since its start, or the clock went back.
 -/
 module
 

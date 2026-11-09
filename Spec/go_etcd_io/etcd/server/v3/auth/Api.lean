@@ -28,7 +28,7 @@ the atomic, `refreshRangePermCache` rebuilds the cache, the batch transaction's 
 the users and roles, the flag last), so a reader may see two consecutive states at once. Each
 reader's spec says **at which recorded state each view it read was**, from a lower bound `authLb
 γa i0` it holds (every view is at or after `i0`): `checkOk`/`checkDenied` for the permission
-checks (the flag at `jf`, the backend at `jx ≥ jf`, the cache at `jc ≥ jf`). A pass is justified at
+checks (the flag at `jf`, the backend at `jx`, the cache at `jc`). A pass is justified at
 one recorded state (the flag's, the backend's or the cache's); a denial in general is not (the
 views may straddle an `AuthDisable` and a role revocation: the guarantee is exactly the three
 views). **This is the timing of `nonissues/etcd-doserialize-auth-enable-race.md` and of
@@ -457,11 +457,11 @@ def AdminTriple (e : Expr) (P : IProp GF) (st : Loc) (rq : Req) : Prop :=
 
 /-- **What a permission check of `u` (revision `rev`) on `t` over `rng` returns**, from the lower
 bound `i0`: its three views' recorded states (the flag at `jf`, the backend at `jx`, the cache at
-`jc`, both at or after the flag's), and `nil` (`checkOk`), `ErrUserEmpty` (no user: revision `0`),
+`jc`, each at or after `i0`), and `nil` (`checkOk`), `ErrUserEmpty` (no user: revision `0`),
 `ErrAuthOldRevision` (a revision below the store's), or `ErrPermissionDenied` (`checkDenied`). -/
 def checkPost (γa : AuthNames) (i0 : Nat) (u : GoString) (rev : w64) (t : PermType)
     (rng : KeyRange) (err : GoInterface) : IProp GF :=
-  iprop(∃ (jf jx jc : Nat) (af ax ac : AuthState), ⌜i0 ≤ jf ∧ jf ≤ jx ∧ jf ≤ jc⌝ ∗
+  iprop(∃ (jf jx jc : Nat) (af ax ac : AuthState), ⌜i0 ≤ jf ∧ i0 ≤ jx ∧ i0 ≤ jc⌝ ∗
     authAt γa jf af ∗ authAt γa jx ax ∗ authAt γa jc ac ∗
     ⌜(err = GoInterface.nil ∧ checkOk u rev t rng af ax ac) ∨
      (err = errOf .userEmpty ∧ af.enabled = true ∧ rev = W64 0) ∨
@@ -469,11 +469,11 @@ def checkPost (γa : AuthNames) (i0 : Nat) (u : GoString) (rev : w64) (t : PermT
      (err = errOf .permissionDenied ∧ checkDenied u rev t rng af ax ac)⌝)
 
 /-- **What `IsAdminPermitted` returns** for the user `u` (`""` for none), from the lower bound
-`i0`: the flag at `jf` and the backend at `jx ≥ jf`; `nil` (auth off, or `u` of the root role),
+`i0`: the flag at `jf` and the backend at `jx`; `nil` (auth off, or `u` of the root role),
 `ErrUserEmpty`, `ErrUserNotFound`, `ErrPermissionDenied` (W0's `adminErr` at one state when
 `jf = jx`). -/
 def adminPost (γa : AuthNames) (i0 : Nat) (u : GoString) (err : GoInterface) : IProp GF :=
-  iprop(∃ (jf jx : Nat) (af ax : AuthState), ⌜i0 ≤ jf ∧ jf ≤ jx⌝ ∗
+  iprop(∃ (jf jx : Nat) (af ax : AuthState), ⌜i0 ≤ jf ∧ i0 ≤ jx⌝ ∗
     authAt γa jf af ∗ authAt γa jx ax ∗
     ⌜(err = GoInterface.nil ∧ (af.enabled = false ∨ (af.enabled = true ∧ ax.isRoot u))) ∨
      (err = errOf .userEmpty ∧ af.enabled = true ∧ u = []) ∨

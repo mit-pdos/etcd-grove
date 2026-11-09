@@ -29,9 +29,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.Assu
 
 /-- **A session over `lease`** (granted at `0`), its keep-alive ended. -/
 def electionServer.session.spec : Prop :=
-  ∀ (es c : Loc) (γ : Cluster) (who : Principal) (ctx : GoInterface) (lease : w64)
+  ∀ (es c : Loc) (γ : Cluster) (dflt who : Principal) (ctx : GoInterface) (lease : w64)
     (T : State → State → Prop),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3election ∗ isElectionServer es c ∗ ClientV3.isClient c γ who ∗ Context.ctxOk ctx ∗ ClientV3.ctxPrin ctx who ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3election ∗ isElectionServer es c ∗ ClientV3.isClient c γ dflt ∗ Context.ctxOk ctx ∗ ClientV3.ctxPrin dflt ctx who ∗
       etcdPerm γ T ∗ ⌜effIn (fun σ σ' => readEff σ σ' ∨ (lease = W64 0 ∧ grantEff 60 σ σ')) T⌝ ∗
       threadTok }}
     (App (App (Val (es @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer.ty @!! go!"session")) (Val #ctx)) (Val #lease))

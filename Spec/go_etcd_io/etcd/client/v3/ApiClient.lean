@@ -304,12 +304,17 @@ def ansReply (res : Resp) (resp : Loc) (err : GoInterface) : IProp GF :=
   | .ok b => iprop(⌜err = GoInterface.nil⌝ ∗ replyOwn resp b)
   | .err e => iprop(⌜err = errVal e ∧ resp = null⌝)
 
-/-- `Authenticate`'s reply: also the token's user (W0's `tokenUser`). -/
+/-- **The token an `AuthenticateResponse` at `p` carries** (persistent; 3h): what
+`replyOwn_authenticate` reads. -/
+opaque authTokenAt (p : Loc) (tok : GoString) : IProp GF := iprop(True)
+
+/-- `Authenticate`'s reply: also the token it carries and its user (W0's `tokenUser`; the model's
+answer `.authenticate` carries no token since W0's round 4). -/
 def authReply (γ : Cluster) (name : GoString) (res : Resp) (resp : Loc) (err : GoInterface) :
     IProp GF :=
   iprop(ansReply res resp err ∗
     match res with
-    | .ok (.authenticate tok) => tokenUser γ tok name
+    | .ok .authenticate => ∃ tok, authTokenAt resp tok ∗ tokenUser γ tok name
     | _ => True)
 
 /-! ### The call shapes -/
@@ -605,6 +610,7 @@ def handles1c_persistent.spec : Prop :=
   (∀ sl, Persistent (grpcCallOptsOk (GF := GF) sl)) ∧
   (∀ cc, Persistent (grpcConnAt (GF := GF) cc)) ∧
   (∀ p b, Persistent (userAddOptsAt (GF := GF) p b)) ∧
+  (∀ p tok, Persistent (authTokenAt (GF := GF) p tok)) ∧
   (∀ v c, Persistent (maintOf (GF := GF) v c)) ∧
   (∀ a c γ who, Persistent (authHandle (GF := GF) a c γ who)) ∧
   (∀ a c γ who, Persistent (clusterHandle (GF := GF) a c γ who)) ∧
@@ -651,10 +657,10 @@ def dialOptsOk_nil.spec : Prop := ⊢ dialOptsOk (GF := GF) slice.nil
 
 /-- `Authenticate`'s reply: the token. -/
 def replyOwn_authenticate.spec : Prop := ∀ (p : Loc) (tok : GoString),
-  replyOwn (GF := GF) p (.authenticate tok) ⊢
+  replyOwn (GF := GF) p .authenticate ∗ authTokenAt p tok ⊢
     p.[go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse, go!"Token"] ↦ tok ∗
     (p.[go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse, go!"Token"] ↦ tok -∗
-      replyOwn p (.authenticate tok))
+      replyOwn p .authenticate)
 
 /-- **`callOptsOk`'s introductions** (W0's slot, realized here: a read-only slice of the client's
 gRPC call options and retry options, full to its capacity when not repeatable): the nil slice. -/

@@ -30,11 +30,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- `nil`, or a refusal (an invalid token, `ErrUserEmpty`). -/
 def EtcdServer.requireAuthInfo.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (who : Principal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ Context.ctxOk ctx ∗ reqPrin ctx who ∗ threadTok }}
+  ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (p tls : Principal),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ Context.ctxOk ctx ∗ reqPrin ctx p tls ∗ threadTok }}
     (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"requireAuthInfo")) (Val #ctx))
   {{ (err : GoInterface), RET #err; threadTok ∗
-      ⌜err = GoInterface.nil ∨ srvErrOf err .invalidAuthToken ∨ srvErrOf err .userEmpty⌝ }}
+      (⌜err = GoInterface.nil⌝ ∨
+       ⌜srvErrOf err .invalidAuthToken ∨ srvErrOf err .userEmpty⌝ ∗ srvErrShape err) }}
 
 end spec
 end EtcdServer

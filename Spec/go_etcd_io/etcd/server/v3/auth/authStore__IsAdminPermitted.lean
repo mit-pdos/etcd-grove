@@ -8,7 +8,7 @@
 Snippet: `examples/specreq/auth/check.go` (`ReqAdminCheck`).
 
 **Proof sketch.** The flag (`IsAuthEnabled`, at `jf`); a nil `AuthInfo` or an empty user:
-`ErrUserEmpty`; `lockedReadTx` (at `jx ≥ jf`): the user (absent: `ErrUserNotFound`), its root role
+`ErrUserEmpty`; `lockedReadTx` (at `jx`): the user (absent: `ErrUserNotFound`), its root role
 (`hasRootRole`; without: `ErrPermissionDenied`); `RUnlock`.
 
 **Changes.** The old `adminVerdict M` restated over two recorded states (`adminPost`), one statement

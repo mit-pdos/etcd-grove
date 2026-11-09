@@ -36,9 +36,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **`Logger()`**: the server's zap logger. -/
 def EtcdServer.Logger.spec : Prop :=
   ∀ (s : Loc) (γ : Cluster) (id : Nat),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ srvMember s γ id }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ srvMember s γ id ∗ threadTok }}
     (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"Logger")) (Val #()))
-  {{ (lg : Loc), RET #lg; Zap.isLogger lg }}
+  {{ (lg : Loc), RET #lg; Zap.isLogger lg ∗ threadTok }}
 
 end spec
 

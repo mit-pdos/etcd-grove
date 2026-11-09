@@ -15,10 +15,17 @@ cannot open it: `diskOk`), and then by the WAL directory's existence (`wal.Exist
   over HTTP whether this member already started: an error if one says so (trusted: the peers'
   answers are those of `γ`'s members).
 * **no WAL, existing cluster** (`memberStart_join`): the cluster from the peers
-  (`GetClusterFromRemotePeers`: trusted as above, the members' committed view), the member's id
-  assigned by its peer URLs (`ValidateClusterAndAssignIDs`: an error if they are not a member's),
-  no peers for raft (`RestartNode` from an empty storage); the join token's reserved vacancy of
-  that id.
+  (`GetClusterFromRemotePeers`, a GET of `/members` at the initial cluster's other peer URLs), the
+  member's id assigned by its peer URLs (`ValidateClusterAndAssignIDs`: an error unless the local
+  and remote URL sets match one to one), no peers for raft (`RestartNode` from an empty storage);
+  the join right's reserved vacancy of the id added under its URLs (single-use URL sets: no other
+  member can hold them). **Trusted, and where the trust lies**: a `2xx` answer to `/members` at a
+  reserved peer address of `γ` is a list of `γ`'s members at a state the cluster reached. True of
+  every protocol a program can serve there today: `raftCompat` protocols (this repository's
+  starters, `Rafthttp.raftProto`) answer `/members` with `404`, so `bootstrap` errors and a join
+  through them fails (`ReqJoin`'s error branch). etcd's own peer handler (`etcdhttp.NewPeerHandler`,
+  untranslated) answers from the member's applied view: a program serving it needs that handler's
+  spec (open: `batch-2e.md` Q8).
 * **a WAL** (`memberStart_restart`: `memberDisk`): the newest valid snapshot record
   (`Wal.Recs.newest`), the backend recovered from the snapshot db if the backend is behind it
   (`RecoverSnapshotBackend`, which renames `<snap>.snap.db` onto the backend's path: the image
@@ -68,14 +75,16 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **`bootstrap(cfg)`** (trusted): the opened storage, cluster view and raft record of the member
 the start right names, or an error. -/
 def bootstrap.spec : Prop :=
-  ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (c : Config.Model) (γ : Cluster),
+  ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (c : Config.Model) (γ : Cluster)
+    (oid : Option Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ Config.cfgHeap cfg c ∗ Zap.isLogger cfg.Logger' ∗
       Features.serverGate cfg.ServerFeatureGate' ∗ ⌜ServerStorage.diskOk⌝ ∗
-      ⌜raftNodeBootCfg cfg⌝ ∗ backendBootRes cfg ∗ memberStart γ cfg c }}
+      ⌜raftNodeBootCfg cfg⌝ ∗ backendBootRes cfg ∗ memberStart γ cfg c oid }}
     (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.bootstrap)) (Val #cfg))
   {{ (b : Loc) (err : GoInterface), RET (PairV #b #err);
       ⌜b = null ∧ err ≠ GoInterface.nil⌝ ∨
-      ⌜err = GoInterface.nil⌝ ∗ ∃ id : Nat, bootOk b γ id cfg }}
+      ⌜err = GoInterface.nil⌝ ∗ ∃ id : Nat, ⌜0 < id ∧ id < 2 ^ 64 ∧ ∀ i, oid = some i → id = i⌝ ∗
+        bootOk b γ id cfg }}
 
 end spec
 

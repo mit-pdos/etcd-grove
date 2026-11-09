@@ -14,7 +14,7 @@ whose `Api.lean` modules import this one: `isServer`/`srvGate` below are what th
 members it will start (`cluster_alloc`, K1). It hands in **the peer addresses** of every initial
 member (`Http.addrFree a` for each host of their peer URLs: 2f's closed world, so two allocations
 cannot share an address: round 1, provability F3) and **the members' shared apply configuration**
-(`ApplyCfg`, 2d's `MemberCfg`: every member's `applyCfgOf cfg` must be it). It gets
+(`ApplyCfg`, 2d's `MemberCfg`: every member's configuration must have it, `applyCfgIs cfg mc`). It gets
 `etcdState γ (State.init ms)` in full, one `memberBoot γ ms m` per initial member, the cluster's
 raft network `srvNet γ ν` (2f's `Net`) and, for each reserved host, the persistent
 `Http.protoAt a (Rafthttp.raftProto ν)` with which the program serves the member's raft handler.
@@ -41,7 +41,7 @@ it is known before the start), introduced in three ways:
 * a joiner (`memberStart_join`, `oid = none`): `memberJoin γ urls` and a fresh directory, the
   configuration's peer URLs `urls`, `NewCluster` false;
 * a stopped member (`memberStart_restart`, `oid = some id`): its `memberDisk`.
-It also takes `envUpd γ ecfg` (W0's), `clusterApplyCfg γ mc` with `applyCfgOf cfg = mc`, the
+It also takes `envUpd γ ecfg` (W0's), `clusterApplyCfg γ mc` with `applyCfgIs cfg mc`, the
 configuration's scope premises (one sealed slot per subsystem, below), the logger, the feature gate,
 the configuration's heap parts and the disk premise. It returns a member id `id`, non-zero and below
 `2 ^ 64`, `oid`'s if given, with `srvMember s γ id` (persistent) and `srvBuilt s γ id cfg`.
@@ -175,9 +175,10 @@ open Iris Iris.BI EtcdModel
 minimum TTL, ...): the part of a member's configuration the apply's model depends on. -/
 opaque ApplyCfg : Type := Unit
 
-/-- The apply configuration of `cfg` (provisional, 2d's/3a's). -/
-opaque applyCfgOf [GooseExts] [GoGlobalContext]
-  (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : ApplyCfg
+/-- `cfg`'s apply configuration is `mc` (provisional, 2d's/3a's: a function of the configuration's
+fields, e.g. the lease checkpoint settings and the election timing that fix the minimum TTL). -/
+opaque applyCfgIs [GooseExts] [GoGlobalContext]
+  (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (mc : ApplyCfg) : Prop
 
 /-- The member list a membership answer carries (the members after the change). -/
 def respMembers : Resp → Option (List Member)
