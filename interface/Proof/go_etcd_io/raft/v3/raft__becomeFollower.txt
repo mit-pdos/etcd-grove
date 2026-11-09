@@ -5,21 +5,23 @@
 theorem raft.becomeFollower.wp_proof [package_sem : Assumptions] (wp_raft_reset : raft.reset.spec)
     (wp_traceBecomeFollower : traceBecomeFollower.spec) : raft.becomeFollower.spec
   -- `Perennial.EtcdGrove.raft.becomeFollower.spec`, unfolded:
-  ∀ (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) (term lead : w64),
+  ∀ (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) (term lead : w64) (Q : IProp GF),
     uint.Z s.term ≤ uint.Z term →
-      s.gh.tr = none →
+      (s.gh.tr ≠ none → V = c.voters) →
         ⊢
           ∀ Φ,
-            isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c V r id s -∗
+            isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                ownRaftPhysCV c V r id s ∗ HookGate s.gh.tr r (NodeEvOf (W64 2) id (becomeFollower s term lead) c) Q -∗
               (▷
                   ∀ pvs,
                     ownRaftPhysCV c V r id
-                        (have __src := becomeFollower s term lead;
-                        { term := __src.term, vote := __src.vote, lead := __src.lead, role := __src.role,
-                          votes := __src.votes, outbox := __src.outbox, stepfn := __src.stepfn, ticking := __src.ticking,
-                          progress := __src.progress, log := __src.log, logst := __src.logst, prvals := pvs,
-                          prevote := __src.prevote, gh := __src.gh, rd := __src.rd, lt := __src.lt, pci := __src.pci,
-                          isLearner := __src.isLearner, sdr := __src.sdr, cq := __src.cq }) -∗
+                          (have __src := becomeFollower s term lead;
+                          { term := __src.term, vote := __src.vote, lead := __src.lead, role := __src.role,
+                            votes := __src.votes, outbox := __src.outbox, stepfn := __src.stepfn,
+                            ticking := __src.ticking, progress := __src.progress, log := __src.log, logst := __src.logst,
+                            prvals := pvs, prevote := __src.prevote, gh := __src.gh, rd := __src.rd, lt := __src.lt,
+                            pci := __src.pci, isLearner := __src.isLearner, sdr := __src.sdr, cq := __src.cq }) ∗
+                        Q -∗
                       Φ (intoVal ())) -∗
                 WP
                   (((intoVal

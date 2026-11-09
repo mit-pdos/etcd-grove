@@ -4,7 +4,7 @@ Lean notes: Rocq's `commit_ok` (a Prop-valued definition) is `CommitOkC` (at a c
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import Proof.go_etcd_io.raft.v3.TracedCap
 
 @[expose] public section
 
@@ -47,7 +47,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 `Committed()` is the quorum index of the voters' `Match` values
 (`Spec/ProgressTracker__Committed.lean`); `raftLog.maybeCommit` moves `committed` there
 when it is ahead, the term is non-zero and the log has `r.Term` at that index
-(`Spec/raftLog__maybeCommit.lean`). The deferred `traceCommit` is a no-op.
+(`Spec/raftLog__maybeCommit.lean`). The deferred `traceCommit` logs the `Commit` line (below).
 
 On `true` the new commit index `N` satisfies `CommitOk` at the protocol reading of `s`:
 that is `Step.commit`. The quorum is stated over `toPState s`'s `matched`, which is the
@@ -59,21 +59,33 @@ it is `MaxUint64`). On `false` nothing changes.
 At any configuration since 2026-10-13 (reconfiguration stage A2): `CommitOkC`, a joint quorum
 of the two voter halves, with no premise on the voters (an empty half has committed
 everything, `MajQ`). The old statement (`id ∈ cfg`, `CommitOk cfg`) was
-`raft.maybeCommit.specS`; it had no caller and is gone (2026-10-17). -/
+`raft.maybeCommit.specS`; it had no caller and is gone (2026-10-17).
+
+One spec for both modes (Q8 stage 1, slice 3, 2026-11-09; `notes/decisions.md`, "Q8 stage 1 (slice
+3)"): the deferred `traceCommit` logs the `Commit` line of the state after the commit, which depends
+on the outcome `b`, `N` (`maybeCommitOut`: `Committed()`'s quorum index and `raftLog.maybeCommit`'s
+test, also in the postcondition). So the caller's gate is one per outcome (`HookGate s.gh.tr r (E b N)
+(Q b N)`, run at the hook once the outcome is known: an update at `⊤`, where a traced caller can create
+the new commit's `isCommitted` before the law opens raft's commit invariant), given back as `Q b N`. A
+traced caller gives it from the simulation's capability (`raft.maybeCommit.traced`, `TracedHooks.lean`);
+an untraced one (`s.gh.tr = none`) from the struct's nil logger (`raft.maybeCommit.untraced`). The
+Draft's `raft.maybeCommit.tracedSpec` (the `Commit` line's facts proved inside) is not derived: those
+facts need `QuorumLogInv` at the raised commit (the Draft's blocker). Until slice 3 the premise
+`s.gh.tr = none`. -/
 abbrev raft.maybeCommit.spec : Prop :=
-  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState),
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (Q : Bool → w64 → IProp GF),
   s.role = .leader →
-  -- (2026-11-09, Q8 stage 0 of `notes/trace-validation-plan.md`) an untraced node: its trace
-  -- hooks see a nil logger (`TraceLoggerOkS`); stage 1 replaces this premise by the traced
-  -- capability (`trCapB s.gh.tr …`, `TracedHooksDraft.lean`)
-  s.gh.tr = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hphys" ∷ ownRaftPhysCV c c.voters r id s }}
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+      -- (Q8 stage 1, slice 3) the `Commit` line's gate at each outcome, the caller's
+      "Hgate" ∷ (∀ b N, ⌜maybeCommitOut c s b N⌝ -∗ HookGate s.gh.tr r (NodeEvOf rsmCommit id
+        (if b then { s with logst := { s.logst with committed := N } } else s) c) (Q b N)) }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"maybeCommit")) (Val #()))
   {{ (b : Bool) (N : w64), RET #b;
+      ⌜maybeCommitOut c s b N⌝ ∗
       ownRaftPhysCV c c.voters r id
         (if b then { s with logst := { s.logst with committed := N } } else s) ∗
-      ⌜b = true → CommitOkC c (toPState s) N⌝ }}
+      ⌜b = true → CommitOkC c (toPState s) N⌝ ∗ Q b N }}
 
 end spec
 

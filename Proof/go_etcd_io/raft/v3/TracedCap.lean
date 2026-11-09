@@ -66,6 +66,10 @@ def NodeEvOf (evt : w64) (id : w64) (s : NState) (c : CfgM) (e : TraceEv) : Prop
     e.conf = (xs.map decStr, ys.map decStr)) ∧
   e.msg = none ∧ e.cc = none ∧ e.propCC = none ∧ e.propMatch = none ∧ e.propNext = none
 
+/-- (Q8 stage 1, slice 3) A node event reads no `Progress`. -/
+theorem nodeEvOf_prvals (evt id : w64) (s : NState) (p : GMap w64 Progress) (c : CfgM) :
+    NodeEvOf evt id { s with prvals := p } c = NodeEvOf evt id s c := rfl
+
 /-- Raft's traced messages of an outbox, as the specification's. -/
 def pendAbs (C : List w64) (ob : List Msg) : List Etcdraft.Msg := ob.filterMap (TraceSim.msgAbs C C.length)
 
@@ -84,6 +88,15 @@ rest of the state: it reads only the server's own variables). -/
 def AdvancesTo (a : Etcdraft.Server) (n : Int) : Prop :=
   ∀ (st : Etcdraft.State) (i : Etcdraft.ID), st.s i = a →
     st.advanceCommitIndex i = some (st.commitTo i n)
+
+/-- (Q8 stage 1, slice 3) **`r.maybeCommit()`'s outcome** (`b`, `N`): `N` is `r.trk.Committed()`, the
+joint quorum index of the voters' `Match` values, and `b` is `raftLog.maybeCommit`'s test at
+`(r.Term, N)` (a non-zero term, past the commit index, the log's term there `r.Term`). The traced
+premises of `raft.maybeCommit.spec` quantify over it: the `Commit` line is of the state it gives. -/
+def maybeCommitOut (c : CfgM) (s : NState) (b : Bool) (N : w64) : Prop :=
+  JCommittedIdx c.incoming c.outgoing (pvsMatchAt s.prvals) N ∧
+  (b = true ↔ (s.term ≠ W64 0 ∧ uint.Z s.logst.committed < uint.Z N ∧
+    plogTermAt s.logst.prev (s.logst.sents ++ s.logst.uents) N = some s.term))
 
 /-- `MessageType.String()` of the traced types. -/
 def msgTypeStr : MsgType → GoString
@@ -472,6 +485,54 @@ theorem trOwn_split (tr : Option GName) (P : IProp GF) : P ⊢ trOwn tr P ∗ (t
   | none => simp only [trOwn]; iintro HP; isplitr; · iempintro
             iintro -; iexact HP
   | some _ => simp only [trOwn]; iintro HP; iframe HP; iintro H; iexact H
+
+/-- (Q8 stage 1, slice 3) The gate on the caller's struct at another voter set `V`, which a traced
+node's is not (`tr ≠ none → V = c.voters`: the hook's event reads the configuration's voters). -/
+theorem trOwn_split_V [StorageModel GF] [go_etcd_io.raft.v3.Assumptions]
+    (tr : Option GName) (c : CfgM) (V : GSet w64) (r : Loc) (id : w64) (s : NState)
+    (hV : tr ≠ none → V = c.voters) :
+    ownRaftPhysCV (GF := GF) c V r id s ⊢
+      trOwn tr (ownRaftPhysCV c c.voters r id s) ∗
+        (trOwn tr (ownRaftPhysCV c c.voters r id s) -∗ ownRaftPhysCV c V r id s) := by
+  cases tr with
+  | none => simp only [trOwn]; iintro HP; isplitr; · iempintro
+            iintro -; iexact HP
+  | some γd =>
+    have hV' : V = c.voters := hV (Option.some_ne_none γd)
+    subst hV'
+    simp only [trOwn]; iintro HP; iframe HP; iintro H; iexact H
+
+/-- (Q8 stage 1, slice 3) **A node-event hook's gate, the caller's** (the node-event hooks' direct
+callers take it: `notes/decisions.md`, "Q8 stage 1 (slice 3)"): an update at `⊤`, run at the hook,
+giving the logger field and the event builder's gate `TraceFire tr tl E Q` for the events `E` the
+hook logs there. In a traced cluster the simulation's capability gives it, by the law of the line
+(`trCapB_hookGate`, `TracedHooksGlobal.lean`), with `Q` the capability in its next phase; in an
+untraced one the struct's nil logger does, with `Q` any resource the caller holds (`hookGate_none`). -/
+def HookGate (tr : Option GName) (r : Loc) (E : TraceEv → Prop) (Q : IProp GF) : IProp GF :=
+  iprop(|={⊤}=> ∃ tl, r.[raft, go!"traceLogger"] ↦□ tl ∗ TraceFire tr tl E Q)
+
+/-- The gate after an update at `⊤`. -/
+theorem hookGate_fupd (tr : Option GName) (r : Loc) (E : TraceEv → Prop) (Q : IProp GF) :
+    iprop(|={⊤}=> HookGate tr r E Q) ⊢ HookGate tr r E Q := by
+  iintro H
+  iunfold HookGate at H
+  iunfold HookGate
+  imod H with H
+  iexact H
+
+/-- An untraced caller's gate: the struct's nil logger and `Q`. -/
+theorem hookGate_none (r : Loc) (E : TraceEv → Prop) (tl : GoInterface) (Q : IProp GF)
+    (hok : TraceLoggerOk tl) :
+    (r.[raft, go!"traceLogger"] ↦□ tl ∗ Q : IProp GF) ⊢ HookGate none r E Q := by
+  iintro ⟨#Htl, HQ⟩
+  iunfold HookGate
+  imodintro
+  iexists tl
+  isplitr
+  · iexact Htl
+  simp only [TraceFire]
+  iframe HQ
+  ipureintro; exact hok
 
 end gate
 
