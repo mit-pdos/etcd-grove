@@ -610,10 +610,73 @@ theorem trCap_fire : trCap_fire.statement (GF := GF) := by
     isplitl [Hbt]; · iexists some e; iunfold simBoot; iframe Hbt; ipureintro; exact hΛ e HE
     ipureintro; rw [hsrv]; exact hΦ'
 
+/-! ## `FxPresReady` holds of every `Ready` line (review round 3's C1) -/
+
+theorem quorumLogF_congr (σ σ' : Etcdraft.State) (hsrv : σ'.server = σ.server)
+    (hL : ∀ k, (σ'.s k).log = (σ.s k).log) (hC : ∀ k, (σ'.s k).commitIndex = (σ.s k).commitIndex)
+    (hK : ∀ k, (σ'.s k).config = (σ.s k).config) (h : QuorumLogF σ) : QuorumLogF σ' := by
+  intro i hi
+  rw [hsrv] at hi
+  have := h i hi
+  simp only [Etcdraft.State.getConfig, committedL, hL, hC, hK, hsrv] at this ⊢
+  exact this
+
+theorem ready_msgs_sub (σ : Etcdraft.State) (i : Etcdraft.ID) :
+    ∀ x ∈ (σ.ready i).messages.domain ++ (σ.ready i).pendingMessages.domain,
+      x ∈ σ.messages.domain ++ σ.pendingMessages.domain := by
+  intro x hx
+  rcases List.mem_append.mp hx with hx | hx
+  · simp only [Etcdraft.State.ready] at hx
+    rcases TraceSpecInv.mem_plus _ _ x hx with hx | hx
+    · exact List.mem_append_right _ (TraceSpecInv.mem_filterMsgs _ _ x hx).1
+    · exact List.mem_append_left _ hx
+  · simp only [Etcdraft.State.ready] at hx
+    exact List.mem_append_right _ (TraceSpecInv.mem_minus _ _ x hx)
+
+theorem ready_s (σ : Etcdraft.State) (i k : Etcdraft.ID) :
+    (σ.ready i).s k = if k = i then { σ.s i with durable := Etcdraft.durableOf (σ.s i) } else σ.s k := rfl
+
+/-- `Ready` keeps every server's facts (`srvFacts` reads no durable state). -/
+theorem srvFacts_durable (γ : RaftNames) (C : List w64) (j : w64) (v : Etcdraft.Server) (d : Etcdraft.Durable) :
+    srvFacts (GF := GF) γ C j { v with durable := d } ⊣⊢ srvFacts γ C j v := .rfl
+
+theorem fxPresReady (γ : RaftNames) (id : w64) (E : TraceEv → Prop)
+    (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) : ⊢ FxPresReady (GF := GF) γ id E Φ := by
+  iunfold FxPresReady
+  iintro !> %C %cs %P %e %σ %hpre Htbl #Hfx
+  iframe Htbl
+  iunfold simFx at Hfx
+  icases Hfx with ⟨#Hall, #Hm, %hp⟩
+  obtain ⟨hsi, hq, hu⟩ := hp
+  iunfold simFx
+  isplitl []
+  · iunfold allFacts at Hall
+    iunfold allFacts
+    iintro !> %j %hj
+    ispecialize Hall $$ %j %hj
+    rw [ready_s]
+    by_cases hji : idAbs j = idAbs id
+    · rw [ite_eq_left_of_eq_true _ _ (eq_true hji), ← hji]
+      iapply (srvFacts_durable γ C j (σ.s (idAbs j)) _).2
+      iexact Hall
+    · rw [ite_eq_right_of_eq_false _ _ (eq_false hji)]; iexact Hall
+  isplitl []
+  · iintro !> %m %hm
+    iapply Hm $$ %m %(ready_msgs_sub σ (idAbs id) m hm)
+  ipureintro
+  refine ⟨TraceSpecInv.specInv_ready hsi, ?_, ?_⟩
+  · exact quorumLogF_congr σ _ rfl
+      (fun k => by rw [ready_s]; split <;> subst_vars <;> rfl)
+      (fun k => by rw [ready_s]; split <;> subst_vars <;> rfl)
+      (fun k => by rw [ready_s]; split <;> subst_vars <;> rfl) hq
+  · intro ln m1 m2 h1 h2 hp1 hp2
+    exact hu ln m1 m2 (ready_msgs_sub σ _ m1 h1) (ready_msgs_sub σ _ m2 h2) hp1 hp2
+
 /-- **The global step's law for a `Ready` line** (`trCap_fire_ready.statement`). -/
 theorem trCap_fire_ready : trCap_fire_ready.statement (GF := GF) := by
   intro γd γ r id c tl E Φ Φ' Λ Λ' hps hΛ hAsc
-  iintro ⟨Hcap, #Htl, Hfx⟩
+  iintro ⟨Hcap, #Htl⟩
+  ihave Hfx := fxPresReady (GF := GF) γ id E Φ
   iunfold FxPresReady at Hfx
   icases Hfx with #Hfx
   iunfold trCap at Hcap
@@ -1215,6 +1278,7 @@ theorem trCap_fire_any : trCap_fire_any.statement (GF := GF) := by
     iframe Hl Hfx
     iapply trCapB_trCap
     iexact H
+
 
 end ghost
 

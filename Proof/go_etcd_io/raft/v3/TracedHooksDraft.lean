@@ -613,7 +613,8 @@ abbrev trCap_fire_ready.statement : Prop :=
   ∀ (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (tl : GoInterface) (E : TraceEv → Prop)
     (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ Λ' : Option TraceEv → Prop),
   PhaseStepReady id c E Φ Φ' → (∀ e, E e → Λ' (some e)) → (∀ e, E e → TraceEv.Ascii e) →
-  (trCap (some γd) γ r id c Φ Λ ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗ FxPresReady γ id E Φ : IProp GF) ⊢
+  -- (review round 3's C1) the facts a `Ready` line keeps are a lemma (`fxPresReady`), not a premise
+  (trCap (some γd) γ r id c Φ Λ ∗ r.[raft, go!"traceLogger"] ↦□ tl : IProp GF) ⊢
     TraceFire (some γd) tl E iprop(trCapB (some γd) γ r id c true Φ' Λ' ∗
       ∃ (tn : TraceNames) (P : List Etcdraft.Msg) (Bn : GMap Nat Etcdraft.Msg), traceDir γd tn ∗
         -- (review round 3's B1) the list the tokens are for: the share's pending messages before the
@@ -685,7 +686,9 @@ def PhaseStepBF (id : w64) (c : CfgM) (s : NState) (Φ Φ' : List w64 → Server
         s.role ≠ .preCandidate ∧ uint.Z s.term < 2 ^ 63 ∧ uint.Z s.logst.committed < 2 ^ 63 ∧
         uint.Z (plastIndex (toPState s)) < 2 ^ 63 ∧ Φ' C (toC (confAbs C) (bfSrv a)) P)
 
-/-- **The facts kept by a step-down.** -/
+/-- **The facts kept by a step-down.** The caller's (review round 3's C1 asked for a lemma): a
+leader's `srvFacts` may have pending entries (A9), which a non-leader's may not, so the step-down
+keeps the facts only where the leader has none, which its caller knows from raft's log. -/
 def FxPresBF (γ : RaftNames) (id : w64) (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) : IProp GF :=
   iprop(□ ∀ (C : List w64) (P : List Etcdraft.Msg) (σ : Etcdraft.State),
     ⌜Φ C (toC (confAbs C) (σ.s (idAbs id))) P ∧ σ.server = confAbs C ∧ σ.preVote = false ∧
