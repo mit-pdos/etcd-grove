@@ -154,9 +154,10 @@ plan's rule: the bound at its owner).
 exit (`issues/etcd-auth-useradd-long-name-fatal.md`): zap's `Fatal` diverges, so it is liveness
 only, no premise.
 
-**The principal of a request** is the client's (`who`), as long as the request's context carries
-no auth token metadata of its own (`ClientV3.ctxPrin ctx who`, a premise of every client call:
-the server takes the principal from the request's metadata).
+**The principal of a request** is per call: `ClientV3.ctxPrin dflt ctx p` (a premise of every
+client call, `Step p ...`): the client's own (`dflt`, its credentials) for a context with no token
+metadata, a forwarded token's user for a client without credentials (the gRPC proxy, the in-process
+`v3client` of `v3lock`/`v3election`), the server taking the principal from the request's metadata.
 
 **What the model already contains of etcd's known quirks** (no premise needed, the client sees
 them): the limit pushed down before a sort with no order (`issues/etcd-range-sort-none-limit.md`),

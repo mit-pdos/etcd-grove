@@ -32,10 +32,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`isConnectedSince`**: some answer. -/
 def isConnectedSince.spec : Prop :=
-  ∀ (tp : GoInterface) (since : time.Time.t) (remote : w64),
+  ∀ (tp : GoInterface) (since : time.Time) (remote : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ transporterOk tp }}
     (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.isConnectedSince)) (Val #tp)) (Val #since)) (Val #remote))
-  {{ (b : bool), RET #b; True }}
+  {{ (b : Bool), RET #b; True }}
 
 end spec
 

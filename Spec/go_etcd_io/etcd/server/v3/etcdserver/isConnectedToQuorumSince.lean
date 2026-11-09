@@ -30,10 +30,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`isConnectedToQuorumSince`**: some answer. -/
 def isConnectedToQuorumSince.spec : Prop :=
-  ∀ (tp : GoInterface) (since : time.Time.t) (self : w64) (sl : GoSlice) (ms : List Member),
+  ∀ (tp : GoInterface) (since : time.Time) (self : w64) (sl : GoSlice) (ms : List Member),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ transporterOk tp ∗ Membership.membersOwn sl ms }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.isConnectedToQuorumSince)) (Val #tp)) (Val #since)) (Val #self)) (Val #sl))
-  {{ (b : bool), RET #b; Membership.membersOwn sl ms }}
+  {{ (b : Bool), RET #b; Membership.membersOwn sl ms }}
 
 end spec
 

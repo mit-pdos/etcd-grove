@@ -35,7 +35,7 @@ def exceedsRequestLimit.spec : Prop :=
   ∀ (ai ci : w64) (r : Loc) (b prio : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ irrIsRevoke r b }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.exceedsRequestLimit)) (Val #ai)) (Val #ci)) (Val #r)) (Val #prio))
-  {{ (x : bool), RET #x; True }}
+  {{ (x : Bool), RET #x; True }}
 
 end spec
 

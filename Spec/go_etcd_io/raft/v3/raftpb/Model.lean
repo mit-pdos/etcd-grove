@@ -55,12 +55,13 @@ per-type-blockers.md` (b)); no statement is quantified over a caller-built wire 
   `Proto.encodes` (classical choice of the unique content).
 * `msgEncodes bs m`, `entryEncodes bs i e`: `bs` is a wire encoding of a well-formed message
   modelled by `m` (an entry at index `i`): what a transport (rafthttp, 2f) carries with `msgSent`.
-* `bootCC id ctx` (opaque content) and `bootEntryData id ctx` (opaque bytes): the content of the
-  `ConfChange{Type: AddNode, NodeId: id, Context: ctx}` that `RawNode.Bootstrap` builds, and the
-  bytes `proto.Marshal` gives it. Determinism (every founder appends the same bytes) is protobuf-go's:
+* `bootCC id ctx c` (opaque: `c` is the content and `bootEntryData id ctx` (opaque bytes): the content of the
+  `ConfChange{Type: AddNode, NodeId: id, Context: ctx}` that `RawNode.Bootstrap` builds; a relation
+  because protobuf's `Content` type has no element this package could name) and the bytes
+  `proto.Marshal` gives it. Determinism (every founder appends the same bytes) is protobuf-go's:
   a message without map fields marshals to a function of its content; requested of 2a's boundary
   (`req/google_golang_org_protobuf_proto.md`, "from 3h"): once it has `Proto.marshalOut`,
-  `bootEntryData id ctx := Proto.marshalOut ConfChange.ty (bootCC id ctx)`.
+  `bootEntryData id ctx` is `Proto.marshalOut ConfChange.ty c` for the `c` with `bootCC id ctx c`.
 
 ## Sizes
 
@@ -137,14 +138,14 @@ structure LogEntry where
   term : w64
   type : w32
   data : List w8
-deriving DecidableEq
+deriving DecidableEq, Inhabited
 
 /-- `HardState`. -/
 structure HardState where
   term : w64
   vote : w64
   commit : w64
-deriving DecidableEq
+deriving DecidableEq, Inhabited
 
 def HardState.empty : HardState := ⟨W64 0, W64 0, W64 0⟩
 
@@ -155,6 +156,7 @@ structure ConfState where
   votersOutgoing : List w64
   learnersNext : List w64
   autoLeave : Bool
+deriving Inhabited
 
 def ConfState.empty : ConfState := ⟨[], [], [], [], false⟩
 
@@ -170,6 +172,7 @@ structure SnapMeta where
   index : w64
   term : w64
   conf : ConfState
+deriving Inhabited
 
 /-- `Snapshot` with its metadata (R1's flat record). -/
 structure Snapshot where
@@ -177,6 +180,7 @@ structure Snapshot where
   term : w64
   conf : ConfState
   data : List w8
+deriving Inhabited
 
 def Snapshot.empty : Snapshot := ⟨W64 0, W64 0, ConfState.empty, []⟩
 
@@ -188,22 +192,26 @@ structure ConfChangeV1 where
   nodeId : w64
   context : List w8
   id : w64
+deriving Inhabited
 
 /-- `ConfChangeSingle`. -/
 structure ConfChangeSingle where
   type : w32
   nodeId : w64
+deriving Inhabited
 
 /-- `ConfChangeV2`. -/
 structure ConfChangeV2 where
   transition : w32
   changes : List ConfChangeSingle
   context : List w8
+deriving Inhabited
 
 /-- `ConfChangeI`: either kind. -/
 inductive ConfChangeI where
   | v1 (c : ConfChangeV1)
   | v2 (c : ConfChangeV2)
+deriving Inhabited
 
 /-- The entry type `MarshalConfChange` gives a change. -/
 def ConfChangeI.entryType : ConfChangeI → w32
@@ -256,13 +264,14 @@ structure Msg where
   reject : Bool
   rejectHint : w64
   context : List w8
+deriving Inhabited
 
 /-- The `Index` fields of a well-formed message's entries: a `MsgApp`'s follow its `Index` (the
 entry before them); any other type's are unconstrained (`none`: a proposal's entries are numbered
 only when the leader appends copies of them). -/
 def Msg.entryIndexes (m : Msg) : Option (List w64) :=
   if m.type = MsgApp then
-    some ((List.range m.entries.length).map (fun j => W64 (uint.nat m.index + 1 + j)))
+    some ((List.range m.entries.length).map (fun (j : Nat) => W64 ((uint.nat m.index + 1 + j : Nat) : Int)))
   else none
 
 /-! ## Sizes -/
@@ -332,7 +341,7 @@ def msgWf (c : Proto.Content) : Prop :=
 
 /-! ## The wire model -/
 
-open go_etcd_io.raft.v3 in
+open go_etcd_io.raft.v3 Classical in
 /-- **What the bytes of a conf-change entry of type `t` decode to** (see the header). -/
 def decodeConfChange (t : w32) (bs : List w8) : Option ConfChangeI :=
   if t = EntryConfChange then
@@ -354,11 +363,12 @@ def entryEncodes (bs : List w8) (i : w64) (e : LogEntry) : Prop :=
   ∃ c, Proto.encodes raftpb.Entry.ty c bs ∧ plain c ∧ entryIndexOf c = i ∧ entryOf c = e ∧
     Proto.depth c < Proto.depthMax
 
-/-- **The content of the bootstrap `ConfChange`** for peer `id` with context `ctx` (`AddNode`, the
-node, the context set; `Id` unset; plain). -/
-opaque bootCC (id : w64) (ctx : List w8) : Proto.Content
+/-- **`c` is the content of the bootstrap `ConfChange`** for peer `id` with context `ctx`
+(`AddNode`, the node, the context set; `Id` unset; plain): at most one (`bootCC_fun`). -/
+opaque bootCC (id : w64) (ctx : List w8) (c : Proto.Content) : Prop
 
-/-- **The bytes of a bootstrap entry** (see the header): `proto.Marshal` of `bootCC id ctx`. -/
+/-- **The bytes of a bootstrap entry** (see the header): `proto.Marshal` of the `bootCC id ctx`
+content. -/
 opaque bootEntryData (id : w64) (ctx : List w8) : List w8
 
 end content

@@ -166,6 +166,13 @@ end
 def txnMsgDepth (t : TxnReq) : Nat :=
   1 + max (if t.compare = [] then 0 else 1) (max (opsMsgDepth t.success) (opsMsgDepth t.failure))
 
+/-- (provisional, 2a's) **`t` passes the gRPC layer's validation** (`checkTxnRequest` and
+`checkRequestOp` at the server's `--max-txn-ops`: the operations' own checks at every level, no key
+written twice, `checkIntervals`). The apply's sequential reading of a transaction (W0's `TxnRun`)
+is true of the transactions it admits (`issues/etcd-txn-delete-then-ignore-put.md`); 2a's law
+`checkTxnRequest`'s `nil` gives it. -/
+opaque txnChecked (t : TxnReq) : Prop
+
 /-- **An internal request every member's apply can decode**: a write transaction at most `9999`
 messages deep below the `InternalRaftRequest` (protobuf-go's limit is `10000`;
 `issues/etcd-txn-nested-depth-apply-panic.md`). -/

@@ -1,0 +1,62 @@
+/-
+## `(*EtcdServer).Compact(ctx, r)`
+
+**Users.** The gRPC KV handler (`api/v3rpc/key.go:144`), the auto-compactors (`api/v3compactor/
+periodic.go:142`, `revision.go:92`: `Compactable.Compact` with an update built from W0's `envUpd`
+(an `EnvStep.compact`, the identity aborted), the caller's context `s.ctx`), Kubernetes' compactor
+through the client. Snippets: `examples/specreq/etcdserverreq/kv.go` (`ReqCompactorCompact`,
+`ReqCompactPhysical`).
+
+**Proof sketch.** The span, `EnsureTrace`, `processInternalRaftRequestOnce(ctx, {Compaction: r})`
+(`processInternalRaftRequestOnce.spec` at `.req (.compact rev phys)`): on a result, its trace's
+steps (`traceAt`), then, if `physical`, a receive on `result.Physc` (`applyResult`'s `recvAny`:
+closed once mvcc's compaction finished, 3e) and `s.be.ForceCommit()` under `s.bemu`'s read lock
+(the reader slot from the caller's `threadTok`; 4a's `ForceCommit`); `result.Err` (the answer's
+error, fired; or a refusal given back); else the response (a `*pb.CompactionResponse`, made if
+`nil`), its header made if `nil`, `Header.Revision = s.kv.Rev()` (3e's `Rev`).
+
+**Changes.** The old spec (`specs-ref`'s `EtcdServer__Compact.lean`, the pilot's: `kvRevLb γ rev`
+excluding `ErrFutureRev`, `compact-client.md`) restated: `ErrFutureRev` and `ErrCompacted` are
+fired answers of W0's `Step`, so no revision certificate is needed; `rev ≠ 0` is W0's scope
+restriction (`issues/etcd-restore-scheduled-compact-zero.md`: a member crashing during a compaction
+at `0` restores a different compaction revision), taken here because this is the only proposer of
+compaction entries.
+
+**Margin.** The reply's header revision (the member's store revision after the apply) is not stated
+(W0's `compactReply` does not model it).
+-/
+module
+
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiReq
+
+set_option autoImplicit false
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace EtcdServer
+
+open Iris Iris.BI EtcdModel EtcdWire
+
+section spec
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+/-- **`s.Compact(ctx, r)`**: the compaction at `rev` (not `0`), as `Put`; with `physical`, it returns only after the compaction is done and committed to the backend. -/
+def EtcdServer.Compact.spec : Prop :=
+  ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (who : Principal) (r : Loc) (dq : DFrac) (rev : w64) (phys : Bool),
+  SrvCallTriple (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"Compact")) (Val #ctx)) (Val #r))
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗
+        Context.ctxOk ctx ∗ reqPrin ctx who ∗ threadTok ∗ compactReqOwn r dq (sint.Z rev) phys ∗ ⌜rev ≠ W64 0⌝)
+    iprop(threadTok ∗ compactReqOwn r dq (sint.Z rev) phys) γ who (.compact (sint.Z rev) phys) false (ClientV3.compactReply)
+
+end spec
+end EtcdServer
+end EtcdGrove
+end Perennial

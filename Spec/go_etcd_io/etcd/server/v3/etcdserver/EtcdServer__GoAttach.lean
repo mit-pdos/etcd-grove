@@ -39,7 +39,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **Runs `f` on a goroutine the server's stop waits for**, unless the server is stopping. -/
 def EtcdServer.GoAttach.spec : Prop :=
   ∀ (s : Loc) (γ : Cluster) (f : GoFunc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ WP (App (Val #f) (Val #())) {{ _, True }} }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ WP (App (Val #f) (Val #())) {{ fun _ => iprop(True) }} }}
     (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"GoAttach")) (Val #f))
   {{ RET #(); True }}
 

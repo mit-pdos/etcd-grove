@@ -407,3 +407,17 @@ no longer orders headers: false after a reconnect to a lagging member); item 5 i
    principal taken per call (`ctxPrin ctx who'` for any `who'`), the handle not naming one. Until
    then 1e's snippets model the proxy with auth disabled. Related finding:
    `nonissues/grpcproxy-leasing-auth-cached-read.md`. Used by: every `LKV.*Triple`.
+
+## from W0 (round 3): lease reads per member, the principal per call (for 1c; 1d, 1e, 1f, 1g follow)
+
+1. **Lease reads** (`lessor.Leases`, `TimeToLive`): the model answers them from a lease table of the
+   answering member's lessor (`State.leaseAnsAt σ i`, `State.leaseTables`); 1c's specs state, for a
+   client of one endpoint `ep`, that a `Grant` through `ep` gives `leaseViewLb γ ep i` of the table
+   after it, and a `Leases` through `ep` holding `leaseViewLb γ ep i` is answered at a table `≥ i`
+   and gives its own (`TimeToLive` likewise for the leader's lessor). What
+   `examples/etcd/{leasegrant,leaseexpiry,leasecatchup}` need (`batch-W0.md`, Round 3).
+2. **The principal is per call**: every client call takes `ctxPrin who ctx p` (`who` the client's
+   own credentials, `p` the call's principal) and its update is `Step p ...`. 1c's `Authenticate`
+   gives `tokenUser γ tok u` for the token it returns (from 3d's token provider); `Client.Ctx()`
+   gives `ctxPrin who ctx who`; 1c's lease, auth, cluster and maintenance contracts follow the KV
+   triples' shape.

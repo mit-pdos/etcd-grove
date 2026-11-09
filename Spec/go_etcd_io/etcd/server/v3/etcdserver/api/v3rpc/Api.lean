@@ -98,10 +98,13 @@ opaque replyModels (m : GoString) (b : RespBody) (c : Content) : Prop
 opaque chunkModels (c : Content) (m : RangeRespM) : Prop
 
 /-- **The outcome a member sends for the answer `res`** of a request of method `m`. -/
-def ansOutcome (m : GoString) (res : Resp) (o : Outcome) : Prop :=
-  match res with
-  | .ok b => ∃ c, o = .ok c ∧ replyModels m b c
-  | .err e => ∃ code, o = .status code (Rpctypes.desc e)
+def ansOutcome (m : GoString) (rq : Req) (res : Resp) (o : Outcome) : Prop :=
+  match rq, res with
+  -- `LeaseTimeToLive` of a lease the lessor does not know is a reply (`lease.go:66-73`)
+  | .leaseTimeToLive id _, .err .leaseNotFound =>
+      ∃ c, o = .ok c ∧ replyModels m (.leaseTimeToLive id (-1) 0 []) c
+  | _, .ok b => ∃ c, o = .ok c ∧ replyModels m b c
+  | _, .err e => ∃ code, o = .status code (Rpctypes.desc e)
 
 section res
 variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
@@ -118,7 +121,7 @@ opaque srvOk (s : Loc) (γ : Cluster) : IProp GF := iprop(True)
 def etcdUnary (γ : Cluster) (m : GoString) : UnarySpec (GF := GF) :=
   fun md c Φ => iprop(∃ (who : Principal) (rq : Req) (rep : Bool) (Q : State → State → Resp → IProp GF),
     ⌜reqModels m c rq ∧ (rq.isRead = true → rep = true)⌝ ∗ mdPrin γ md who ∗ callAU γ who rq rep Q ∗
-    ((∀ (σ σ' : State) (res : Resp) (o : Outcome), ⌜ansOutcome m res o⌝ -∗ Q σ σ' res -∗ Φ o) ∧
+    ((∀ (σ σ' : State) (res : Resp) (o : Outcome), ⌜ansOutcome m rq res o⌝ -∗ Q σ σ' res -∗ Φ o) ∧
      (callAU γ who rq rep Q -∗ ∀ (e : EtcdErr) (code : w32),
         ⌜errRetryAuth e = true ∨ e = .notSupportedForLearner⌝ -∗ Φ (.status code (Rpctypes.desc e))) ∧
      (∀ (code : w32) (msg : GoString), ⌜indefMsg msg⌝ -∗ Φ (.status code msg))))
@@ -226,6 +229,47 @@ def etcdContract (γ : Cluster) : AddrContract (GF := GF) where
 /-- **W0's `servesAt`, realized**: `ep` is bound to etcd's contracts. -/
 def servesAt_addr.spec : Prop := ∀ (γ : Cluster) (ep : GoString),
   servesAt (GF := GF) γ ep ⊣⊢ addrAt ep (etcdContract γ)
+
+/-- A chunk is recorded up to its header's ids (`headerFillingRangeStream.Send` fills them after the
+server's request path recorded it). -/
+def rsChunk_ids.spec : Prop := ∀ g j (m m' : RangeRespM),
+  m.kvs = m'.kvs → m.more = m'.more → m.count = m'.count →
+  m.hdr.map (·.revision) = m'.hdr.map (·.revision) → (m.hdr = none ↔ m'.hdr = none) →
+  rsChunk (GF := GF) g j m ⊢ rsChunk g j m'
+
+/-- **Slot (2c)**: `err` is the server-side error of etcd's error `e` (the key of `toGRPCErrorMap`
+whose value is `e`'s `ErrGRPC*`: `mvcc.ErrCompacted` for `.compacted`, `errors.ErrTimeout` for
+`.timeout`, `auth.ErrPermissionDenied`, ...). -/
+opaque srvErrIs (err : GoInterface) (e : EtcdErr) : IProp GF := iprop(True)
+
+/-- **Slot (2e)**: a `storage.Quota` value (its `Available(r)` returns a boolean, no panic). -/
+opaque quotaOk (q : GoInterface) : IProp GF := iprop(True)
+
+/-- **grpc-prometheus's `*ServerMetrics`** (assumed: its interceptors call the handler once with
+their own arguments and return its results; their counters write nothing the specs model). -/
+opaque metricsOk (m : Loc) : IProp GF := iprop(True)
+
+/-- **A unary server interceptor preserving etcd's contracts** (persistent): for each method `m`
+etcd serves, with a continuation meeting the run's triple for `m`'s contract, calling the
+interceptor meets it too (it refuses only with statuses the contract allows: an indefinite one, or
+the learner's refusal with the update given back). -/
+def icEtcdOk (i : GoFunc) (γ : Cluster) : IProp GF :=
+  iprop(□ ∀ (m : GoString) (reqT repT : go.GoType) (S : UnarySpec (GF := GF)),
+    ⌜(etcdContract γ).unary m = some (reqT, repT, S)⌝ -∗
+    ∀ (ctx : GoInterface) (md : MD) (q : Loc) (c : Content) (Φ : Outcome → IProp GF) (info : Loc)
+      (k : val) (Ψ : val → IProp GF),
+    (□ ∀ Ψ' : val → IProp GF, threadTok ∗ rpcCtx ctx md ∗ msgAt reqT q (DFrac.own 1) c ∗ S md c Φ ∗
+        (∀ (r err : GoInterface), threadTok -∗ unaryOut repT r err Φ -∗ Ψ' (PairV #r #err)) -∗
+      WP (App (App (Val k) (Val #ctx)) (Val #(msgVal reqT q))) {{ Ψ' }}) -∗
+    threadTok ∗ rpcCtx ctx md ∗ msgAt reqT q (DFrac.own 1) c ∗ S md c Φ ∗
+      (∀ (r err : GoInterface), threadTok -∗ unaryOut repT r err Φ -∗ Ψ (PairV #r #err)) -∗
+    WP (App (App (App (App (Val #i) (Val #ctx)) (Val #(msgVal reqT q))) (Val #info)) (Val k)) {{ Ψ }})
+
+/-- **A stream server interceptor preserving etcd's stream contracts** (persistent; the same for
+streams: it calls the handler once with the stream, possibly wrapped with a context canceled when
+the member loses its leader, or refuses with an indefinite status). Intended realization: the
+analogue of `icEtcdOk` over `Grpc.streamOk`'s run. -/
+opaque sicEtcdOk (i : GoFunc) (γ : Cluster) : IProp GF := iprop(True)
 
 /-- A streamed range's parameters, fixed by the client with the stream's key. -/
 def rsReq_alloc.spec : Prop := ∀ g who r (Q : State → State → Resp → IProp GF),

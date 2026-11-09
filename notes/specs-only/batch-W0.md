@@ -286,3 +286,34 @@ and `AfterFunc`: a realization note, no statement changes); 1b's `EnvCfg` compac
 (a model question for the user: the compactor's retention is time- or revision-based); moving 1b's
 watch messages into `Wire.lean` (1b's files would only change their import: left to the
 coordinator to schedule).
+
+## Round 3 repairs (2026-11-09)
+
+The coordinator's two changes: per-member lease reads (open question 6, now in scope: the lease
+examples were verified at `037bf21c75`) and the principal per call.
+
+| name | change |
+|---|---|
+| `EtcdModel.State` | **new field** `leaseHist : List (Int → Option LeaseRec)` (the lease tables before the current one; `State.init` empty; every grant and revocation, client's or the environment's, appends the old table) |
+| `EtcdModel.State.leaseTables`, `State.leaseAnsAt σ i rq res` | **new**: every lease table, the current last; a lease read answered from table `i` |
+| `leaseStep .leaseLeases` | now `∃ i ids, σ.leaseAnsAt i .leaseLeases res ∧ ...` (was: any granted ids) |
+| `leaseStep .leaseTimeToLive` | the answer (found, or `ErrLeaseNotFound`) is `leaseAnsAt` of some table `i`; the permission error unchanged |
+| `EtcdModel.leaseViewLb γ ep i` (State.lean) | **new** (persistent): the member serving `ep` has reached lease table `i` and answers its lease reads from tables `≥ i`; laws `leaseViewLb_persistent`, `leaseViewLb_le`. 1c's lease specs produce and consume it (a grant through `ep` gives the table after it; a read through `ep` holding `leaseViewLb γ ep i` answers at a table `≥ i` and gives its own) |
+| `EtcdModel.tokenUser γ tok u` (State.lean) | **new** (persistent): the cluster issued `tok` to `u` (`Authenticate`'s answer: 1c, 3d) |
+| `ClientV3.ctxPrin` | **arity**: `ctxPrin dflt ctx p` (was `ctxPrin ctx who`): a request sent with `ctx` by a client whose credentials name `dflt` is authenticated as `p` |
+| every `KV.*Triple`, `RemoteKV.*Triple` | **new binder** `(p : Principal)` per call; premise `ctxPrin who ctx p` (`who` is now the client's default principal); the update's step is `Step p ...` (was `Step who`) |
+| `KV.TxnTriple`, `KV.GetStreamTriple`, `RemoteKV.RangeStreamTriple` | their results are `txnAt iv γ p ctx _`, `streamAt ch γ p ...`, `wireStreamAt sc γ p ...` (the call's principal) |
+| `isClient c γ who`, `clientMut`, `kvAt v γ who`, `clientConnOk`, `connOk`, ... | **same arity**; `who` now means the client's default principal (its credentials), not the principal of every call |
+| `ClientV3.ctxTokenMd ctx tok` | **new** (slot 2a): `ctx` carries outgoing metadata `token: tok` |
+| `ctxPrin_token`, `ctxPrin_tokenSame` | **new laws**: a forwarded token's user for a client without credentials (the proxy, `v3client`); a token of the client's own user |
+| `ctxPrin_of_noMeta`, `ctxPrin_background`, `ctxPrin_todo` | now give `ctxPrin dflt ctx dflt` (the client's own principal) |
+| `ctxPrin_child`, `ctxPrin_value`, `WithRequireLeader.spec`, `withVersion.spec` | carry `ctxPrin dflt ctx p` for every `dflt`, `p` |
+
+What the lease examples need, from these: `leasegrant` (one member: the grant through `ep` gives
+`leaseViewLb` of the table after it; `Leases` through `ep` answers at a later table, which still has
+the lease: no revocation, `EnvCfg.leaseExpiry = false`); `leaseexpiry` (`TimeToLive` answers
+`ErrLeaseNotFound` at table `i`, so `leaseViewLb γ ep i`; `Leases` answers at `j ≥ i`; once revoked
+a lease is not live in any later table unless its id is granted again, which the example's
+workload excludes); `leasecatchup` (member 3's listing of the last filler is at a table after the
+filler's grant, which is after the lease's grant through member 3, and nothing revokes). 1c states
+the per-endpoint guarantees in its lease specs.

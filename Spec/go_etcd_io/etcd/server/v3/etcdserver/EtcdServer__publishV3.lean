@@ -37,9 +37,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **Publishes the member's attributes** until it succeeds or the server stops. -/
 def EtcdServer.publishV3.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (timeout : time.Duration),
+  ∀ (s : Loc) (γ : Cluster) (tmo : time.Duration),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ srvPublish s }}
-    (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"publishV3")) (Val #timeout))
+    (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"publishV3")) (Val #tmo))
   {{ RET #(); True }}
 
 end spec

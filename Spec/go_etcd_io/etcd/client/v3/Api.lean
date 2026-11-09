@@ -14,7 +14,7 @@ the principal is per call), sending the request `rq` (`Model.lean`'s `Req`), tak
 atomic update (with `Step p rq ...`)
 
     AU <{ ∃∃ σ, etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-       <{ ∀∀ σ' res, ⌜Step who rq σ σ' res⌝ ∗ etcdState γ σ', COMM Q σ σ' res }>
+       <{ ∀∀ σ' res, ⌜Step p rq σ σ' res⌝ ∗ etcdState γ σ', COMM Q σ σ' res }>
 
 **persistent** (`□`) for a read (`Req.isRead`: a range, a read-only transaction: the cluster may
 fire it at every committed state from the read's registration on, and answers with the `Q` of the

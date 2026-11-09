@@ -573,6 +573,15 @@ def outMD_value.spec : Prop := ∀ (ctx ctx' : GoInterface) (ki : GoInterfaceOk)
 def mdAt_persist.spec : Prop := ∀ m md, mdAt (GF := GF) m (DFrac.own 1) md ⊢ |==> mdAt m DFrac.discard md
 def mdAt_discard_persistent.spec : Prop := ∀ m md, Persistent (mdAt (GF := GF) m DFrac.discard md)
 
+/-- **A server's registrations meet the contracts `C`**: each registered handler meets the
+contract `C` gives its method, under the server's interceptor chain (persistent). -/
+def regsOk (B : SrvCfg) (C : AddrContract (GF := GF)) : IProp GF :=
+  iprop(([∗list] r ∈ B.regs, ∃ (reqT repT : go.GoType) (S : UnarySpec (GF := GF)),
+      ⌜C.unary r.1 = some (reqT, repT, S)⌝ ∗ □ ∀ ic, icChain B.ics ic -∗ unaryOk r.2.1 r.2.2 ic reqT repT S) ∗
+    ([∗list] r ∈ B.sregs, ∃ (reqT repT : go.GoType) (S : StreamSpec (GF := GF)),
+      ⌜C.stream r.1 = some (reqT, repT, S)⌝ ∗ □ ∀ sic, icChain B.sics sic -∗
+        streamOk r.2.1 r.2.2 (if B.sics = [] then none else some sic) reqT repT S))
+
 /-- **Binding an address**, once: the program chooses the contracts. -/
 def addrFree_bind.spec : Prop := ∀ ep (C : AddrContract (GF := GF)),
   addrFree ep ⊢ |==> addrAt ep C
@@ -588,12 +597,7 @@ def addrAt_agree.spec : Prop := ∀ ep (C C' : AddrContract (GF := GF)),
 to run `Serve`. Registrations of grpc's own services (health, reflection) are not in `B.regs`. -/
 def start.spec : Prop := ∀ (gs : Loc) (B : SrvCfg) (lis : GoInterface) (ep : GoString)
     (C : AddrContract (GF := GF)),
-  srvBuild gs B ∗ listenerAt lis ep ∗ addrAt ep C ∗ ⌜msgsFit⌝ ∗
-    ([∗list] r ∈ B.regs, ∃ (reqT repT : go.GoType) (S : UnarySpec (GF := GF)),
-      ⌜C.unary r.1 = some (reqT, repT, S)⌝ ∗ ∀ ic, icChain B.ics ic -∗ unaryOk r.2.1 r.2.2 ic reqT repT S) ∗
-    ([∗list] r ∈ B.sregs, ∃ (reqT repT : go.GoType) (S : StreamSpec (GF := GF)),
-      ⌜C.stream r.1 = some (reqT, repT, S)⌝ ∗ ∀ sic, icChain B.sics sic -∗
-        streamOk r.2.1 r.2.2 (if B.sics = [] then none else some sic) reqT repT S) ⊢
+  srvBuild gs B ∗ listenerAt lis ep ∗ addrAt ep C ∗ ⌜msgsFit⌝ ∗ regsOk B C ⊢
   |==> serveTok gs lis
 
 /-- **The chain's call** (WP form): the chained interceptor runs the first interceptor with a
