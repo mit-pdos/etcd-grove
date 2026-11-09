@@ -612,7 +612,7 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   `MessageType_name` (fallback: the decimal, as `EnumStringOf`), raftpb's package fact holding the
   table, the spec proved over the model, the axiom removed, and a Go test that the descriptor's
   names are the table's. (Before the decision: the agent's recommendation (b), else (a); the node
-  events do not depend on it.
+  events do not depend on it.)
 - **Q2 (2026-11-08, S3): raft's results rest on `strconv.FormatUint`'s axiom.**
   `traceChangeConfEvent` formats the change's ids (`strconv.FormatUint`) before its nil check, so
   the translated raft calls it even without a logger, and raft's linked results now rest on
