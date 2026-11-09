@@ -2560,7 +2560,7 @@ theorem chain_down (t : Etcdraft.Trace) (l0 : Nat) (i : Etcdraft.ID) (S : Nat �
     (F : Nat → List Etcdraft.Entry) (q N : Nat) (tsF : Etcdraft.TState)
     (hstep : ∀ k, q < k → k ≤ N → t.next ⟨S k, l0, l0⟩ = .ok [⟨S (k - 1), l0, l0⟩])
     (hsrv : ∀ k, i ∈ (S k).server) (hlog : ∀ k, ((S k).s i).log = F k)
-    (hF : ∀ k k', k ≠ k' → F k ≠ F k')
+    (hF : ∀ k k', k ≤ N → k' ≤ N → k ≠ k' → F k ≠ F k')
     (hinv : ∀ k, q ≤ k → k < N → (S k).violated = .ok none)
     (hbase : ∀ visited, (∀ v ∈ visited, i ∈ v.s.server ∧ ∃ k', q ≤ k' ∧ k' ≤ N ∧ (v.s.s i).log = F k') →
       Chain t l0 visited ⟨S q, l0, l0⟩ tsF) :
@@ -2580,7 +2580,7 @@ theorem chain_down (t : Etcdraft.Trace) (l0 : Nat) (i : Etcdraft.ID) (S : Nat �
       intro v hvm
       obtain ⟨hvs, k', hk1, hk2, hk⟩ := hv v hvm
       refine ⟨hvs, ?_⟩
-      rw [hk]; simp only; rw [hlog]; exact hF k' (q + d) (by omega)
+      rw [hk]; simp only; rw [hlog]; exact hF k' (q + d) hk2 (by omega) (by omega)
     · exact hinv (q + d) (by omega) (by omega)
     · apply ih _ (by omega)
       intro v hvm
@@ -2589,6 +2589,31 @@ theorem chain_down (t : Etcdraft.Trace) (l0 : Nat) (i : Etcdraft.ID) (S : Nat �
       · obtain ⟨hvs, k', hk1, hk2, hk⟩ := hv v hvm
         exact ⟨hvs, k', by omega, hk2, hk⟩
       · exact ⟨hsrv _, q + d, Nat.le_refl _, by omega, hlog _⟩
+
+/-- An append request's `logOk` on a log. -/
+def LogOkL (m : Etcdraft.Msg) (Lg : List Etcdraft.Entry) : Bool :=
+  or (m.prevLogIndex == 0) (decide (m.prevLogIndex > 0) && decide (m.prevLogIndex ≤ Lg.length) &&
+    some m.prevLogTerm == ((Lg[(m.prevLogIndex - 1).toNat]?).map Etcdraft.Entry.term))
+
+theorem bootTerms_truncAppend (bl p d : Nat) (es ents : List EntryM) (hpd : p + d ≤ es.length)
+    (hbl : BootTerms bl 1 es) (hbe : BootTerms bl (p + 1) ents) :
+    BootTerms bl 1 (es.take (p + d) ++ ents.drop d) := by
+  intro k e hk he
+  rw [List.getElem?_append] at he
+  simp only [List.length_take, Nat.min_eq_left hpd] at he
+  split at he
+  · rename_i hlt
+    rw [List.getElem?_take_of_lt hlt] at he
+    exact hbl k e hk he
+  · rename_i hge
+    rw [List.getElem?_drop] at he
+    exact hbe (d + (k - (p + d))) e (by omega) he
+
+theorem logAbs_take_ne (C : List w64) (bl : Nat) (es : List EntryM) (k k' : Nat) (hk : k ≤ es.length)
+    (hk' : k' ≤ es.length) (hne : k ≠ k') : logAbs C bl 1 (es.take k) ≠ logAbs C bl 1 (es.take k') := by
+  intro h
+  have := congrArg List.length h
+  simp [logAbs_length] at this; omega
 
 end TraceSim
 
