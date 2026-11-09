@@ -187,7 +187,7 @@ theorem State.Violated.wp_proof (wp_LogInv : State.LogInv.spec (GF := GF) (hG :=
     isPkgInit_access (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft
   ihave #HI := Hacc $$ Hpkg
   iunfold github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.etcdraftInit at HI
-  icases HI with ⟨%sl, #Hinv, #Hsl⟩
+  icases HI with ⟨⟨%sl, #Hinv, #Hsl⟩, -⟩
   ihave %Hsllen := ownSlice_len $$ Hsl
   wp_auto
   have hlen7 : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.invariantsV.length = 7 := rfl

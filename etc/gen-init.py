@@ -2604,7 +2604,8 @@ TC_CLOSURES = [(f'{n[0].lower()}{n[1:]}V', 'Invariants', f'$v{2 * k + 1}', f'`{n
                                       'QuorumLogInv', 'LeaderCompletenessInv', 'CommittedIsDurableInv'])]
 SPECIAL[TC_PKG] = dict(
     doc="""Its fact (`etcdraftInit`, `Base.lean`): `Invariants` holds the seven named invariants of
-`Traceetcdraft.cfg`, in order, each with its closure of `Closures.lean` (read-only). Its initializer
+`Traceetcdraft.cfg`, in order, each with its closure of `Closures.lean` (read-only), and the three
+tables their literals (read-only maps). Its initializer
 runs its variables' translated initializers (`Invariants`' slice literal of func literals, the
 tables' map literals, `EmptyBag`'s struct literal).""",
     alloc_types={'Invariants': 'GoSlice', 'RaftMsgType': 'Loc', 'RaftMsgSubtype': 'Loc',
@@ -2629,9 +2630,16 @@ tables' map literals, `EmptyBag`'s struct literal).""",
             'try wp_auto',
             'repeat (wp_apply (wp_mapInsert (K := GoString) (V := Bool) go.string) $$ Hm3 as Hm3; try wp_auto)'],
         'EmptyBag': ['try wp_auto']},
-    finish=['ipersist HInvariants', 'ipersist Hsl', 'iframe Hown', 'imodintro', 'isplitr', '· ipureintro',
+    finish=['ipersist HInvariants', 'ipersist Hsl', 'ipersist HRaftMsgType', 'ipersist HRaftMsgSubtype',
+            'ipersist HReceiveMessageTraceNames',
+            'imod ownMap_persist _ _ _ $$ Hm1 with #Hm1', 'imod ownMap_persist _ _ _ $$ Hm2 with #Hm2',
+            'imod ownMap_persist _ _ _ $$ Hm3 with #Hm3',
+            'iframe Hown', 'imodintro', 'isplitr', '· ipureintro',
             '  exact isPanic_intoVal _', 'is_pkg_init_finish', 'imodintro', 'unfold etcdraftInit',
-            'iexists _', 'iframe HInvariants', 'iexact Hsl'],
+            'isplitr', '· iexists _; iframe HInvariants; iexact Hsl',
+            'isplitr', '· iexists m1; iframe HRaftMsgType; iExactEq Hm1; rfl',
+            'isplitr', '· iexists m2; iframe HRaftMsgSubtype; iExactEq Hm2; rfl',
+            'iexists m3; iframe HReceiveMessageTraceNames; iExactEq Hm3; rfl'],
 )
 
 def sexp_end(s, i):

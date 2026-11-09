@@ -1592,7 +1592,8 @@ Three of the watch client's local workarounds (D25, `notes/decisions.md`, "S1c's
   `MethodResolve` on a named type over `uint64` (`types.ID`'s `String`) does not step.
 - **Workaround here.** Local instances (`InvStart.lean`, `apply/BackendLemmas2.lean`,
   `EtcdServer__sendMergedSnap.lean`, `SnapTakeProof.lean` (D22 J4b)), each `⟨by unfold go.uint64;
-  trivial⟩`.
+  trivial⟩`; and `go.NotInterface go.string` in the trace checker's `TraceRead.lean` (layer C,
+  2026-11-09: `Role.String()` on the constant `Leader`).
 - **Proposed change.** Instances for the basic types (`uint64`, `int64`, `string`, `bool`, ...) in
   `PostLifting.lean`, beside the composite ones.
 

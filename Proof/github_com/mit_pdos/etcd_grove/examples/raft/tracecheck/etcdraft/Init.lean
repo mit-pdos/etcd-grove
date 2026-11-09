@@ -3,7 +3,8 @@ Package initialization of `github_com.mit_pdos.etcd_grove.examples.raft.traceche
 (item 8, 2026-10-17): its `wp_initialize'`.
 
 Its fact (`etcdraftInit`, `Base.lean`): `Invariants` holds the seven named invariants of
-`Traceetcdraft.cfg`, in order, each with its closure of `Closures.lean` (read-only). Its initializer
+`Traceetcdraft.cfg`, in order, each with its closure of `Closures.lean` (read-only), and the three
+tables their literals (read-only maps). Its initializer
 runs its variables' translated initializers (`Invariants`' slice literal of func literals, the
 tables' map literals, `EmptyBag`'s struct literal).
 -/
@@ -88,6 +89,12 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   ipersist HInvariants
   ipersist Hsl
+  ipersist HRaftMsgType
+  ipersist HRaftMsgSubtype
+  ipersist HReceiveMessageTraceNames
+  imod ownMap_persist _ _ _ $$ Hm1 with #Hm1
+  imod ownMap_persist _ _ _ $$ Hm2 with #Hm2
+  imod ownMap_persist _ _ _ $$ Hm3 with #Hm3
   iframe Hown
   imodintro
   isplitr
@@ -96,9 +103,13 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   is_pkg_init_finish
   imodintro
   unfold etcdraftInit
-  iexists _
-  iframe HInvariants
-  iexact Hsl
+  isplitr
+  · iexists _; iframe HInvariants; iexact Hsl
+  isplitr
+  · iexists m1; iframe HRaftMsgType; iExactEq Hm1; rfl
+  isplitr
+  · iexists m2; iframe HRaftMsgSubtype; iExactEq Hm2; rfl
+  iexists m3; iframe HReceiveMessageTraceNames; iExactEq Hm3; rfl
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
