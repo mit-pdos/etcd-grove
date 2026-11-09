@@ -332,11 +332,13 @@ theorem rnSnapTermOk_cons {γ : RNNames} {q : QMsg} {ms : List QMsg} (h : rnSnap
   h.imp_right fun h' q' hq' => h' q' (List.mem_cons_of_mem _ hq')
 
 /-- (2026-11-03, R2b-3: *enter* at the `Save`) **A `Ready`'s messages `ms`, not yet sent**: each
-owned as the node API hands it out, with its credits, and at role leader (`r' = StateLeader`, the
+owned as the node API hands it out (raft-entsize §2: at the content it pinned, `msgOut`), with its
+credits, and at role leader (`r' = StateLeader`, the
 role after the `Ready`) their sends (raft's `readyLeaderMsgs`: a leader may send before the batch is
 durable). Otherwise *enter* gives the sends (`readyMsgs`), after the WAL `Save`. -/
 def rnRawMsgs (γ : RNNames) (ms : List QMsg) (r' : StateType) : IProp GF :=
-  iprop(([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ msgCredits γ.node.cl srvClusterN q.st) ∗
+  iprop(([∗list] q ∈ ms, msgOut γ.node.cl q.loc (readyDq q.st) q.st ∗
+      msgCredits γ.node.cl srvClusterN q.st) ∗
     (⌜r' = StateLeader⌝ -∗ readyMsgs γ.node.cl srvClusterN γ.id ms) ∗
     -- (R2d'a A10 item 5, Q29 (d)) a first start (`t0 = 0`), or every `MsgSnap` above `t0`
     -- (`rnSnapTermAbove`, at the receive)
@@ -1215,8 +1217,9 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
       with ⟨Hrest, %Hfit61⟩
     · iframe Hfits Hrest
     simp only [readyRest, readySnap]
-    icases Hrest with ⟨#Hes, Hmsgs, Hmo, #Hhs, #Hss, -, ⟨%Hsp, Hown, #Hcom2, #Hcert, Hold,
+    icases Hrest with ⟨#HesO, Hmsgs, Hmo, #Hhs, #Hss, -, ⟨%Hsp, Hown, #Hcom2, #Hcert, Hold,
       Hgiv⟩, %Hrrf⟩
+    ihave #Hes := readyEnts_entsRO _ _ _ $$ HesO
     obtain ⟨Hdlv, Hptr, Hce0, Hpfx, Hlt, Hdl, Hpos, H61, Hfl, Hli⟩ := Hsp
     subst Hce0
     obtain ⟨A', HA'⟩ : ∃ A', A' = (l.dlv.drop γ.pre.length).map EntryModel.ofM := ⟨_, rfl⟩
@@ -1396,7 +1399,8 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
     with ⟨Hrest, %Hfit61⟩
   · iframe Hfits Hrest
   simp only [readyRest, readySnap]
-  icases Hrest with ⟨#Hes, Hmsgs, Hmo, #Hhs, #Hss, %Hbnd, ⟨%Hsnap, Happ, #Hcf, %Hidx⟩, %Hrrf⟩
+  icases Hrest with ⟨#HesO, Hmsgs, Hmo, #Hhs, #Hss, %Hbnd, ⟨%Hsnap, Happ, #Hcf, %Hidx⟩, %Hrrf⟩
+  ihave #Hes := readyEnts_entsRO _ _ _ $$ HesO
   obtain ⟨Lx, HLx, Hes0, Hdl, -⟩ := Hbnd
   obtain ⟨ce', Hce'def⟩ : ∃ ce', ce' = rnCe (srvLE γ.srv L).length ce := ⟨_, rfl⟩
   have Hce'LE : ce'.map EntryModel.toLE = ce := by rw [Hce'def]; exact rnCe_toLE _ ce

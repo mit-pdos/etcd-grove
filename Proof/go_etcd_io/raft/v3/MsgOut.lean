@@ -101,7 +101,19 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- **A `MsgSnap`'s top-level unknown fields are none** (persistent; `emp`-like for any other type):
-the `pbMsg` of the literal `maybeSendSnapshot` builds. -/
+the `pbMsg` of the literal `maybeSendSnapshot` builds.
+
+**The condition (etcd-grove-82, 2026-11-09).** The right disjunct is *the object's own* hidden-field
+invariant, the one allocated at `maybeSendSnapshot`'s literal (`msgOwn_of_struct_uf`, through
+`pbMsg_alloc` with `uf = []` from the fresh struct `l ↦ v`), never a second fact about an object
+whose invariant could hold other unknown fields: `pbMsg T l uf` is an invariant owning `l`'s hidden
+fields whole (`state`, `sizeCache`, `unknownFields ↦ us ∗ us ↦* uf`), and `pbMsg_alloc` is its only
+producer, consuming that whole ownership, which exists only for a fresh struct; so an object has at
+most one, and its `uf` is the object's. A received object (`stepIn`, `RawNode.Step`) already has its
+invariant, at bytes no proof knows, inside `msgPtsC`'s existential: it can get only the left disjunct,
+and `raft.send` takes the right one only for a `MsgSnap`, which raft builds only at that literal
+(a received `MsgSnap` is restored, never re-sent). The content a `Ready` pins takes its `uf` from
+this invariant (`msgOwn_snapUf_CC`, `msgPtsC_msgPtsCC_uf`), not from the message's `msgOwn`. -/
 def snapUfT (l : Loc) (ty : w32) : IProp GF :=
   iprop(⌜ty ≠ MsgSnap⌝ ∨ pbMsg raftpb.Message l [])
 

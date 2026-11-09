@@ -1872,6 +1872,8 @@ def freshOk (γ : NodeNames) (rd : Ready) (rs : RNState) (ce es : List EntryM)
     entsRO rd.Entries' es ∗ rd.Messages' ↦* ms.map QMsg.loc ∗
     ownSliceCap Loc rd.Messages' (DFrac.own 1) ∗
     ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) ∗
+    -- (raft-entsize §2) their `snapUf`s
+    ([∗list] q ∈ ms, snapUf q.loc q.st) ∗
     -- (2026-11-01, durability stage II (n)) the messages' `isRaftMsg` no longer here: they come
     -- with the cut, at the send (`ownRawNodeReady_handout`, `readyCut`)
     (∃ sts : List ReadStateM, readStatesPts rd.ReadStates' sts ∗
@@ -2124,7 +2126,7 @@ theorem runMid_head (γ : NodeNames) (id : w64) (nv : node) (ac rc : GoChan) (rd
     · ipureintro; exact ⟨Hac, Hsteps, Hunp, Hsl⟩
     ileft; ipureintro; exact Hrc
   · unfold freshOk
-    icases Hf with ⟨#Hce, #Hcommitted, #Hents, Hmsgs, Hmsgs_cap, Hown, #Hrsts,
+    icases Hf with ⟨#Hce, #Hcommitted, #Hents, Hmsgs, Hmsgs_cap, Hown, -, #Hrsts,
       ⟨%hrd0, #Hrdh0, #Hhsw⟩, Hsnz, %Hfacts⟩
     -- (D22 S-d4) no snapshot unless one is handed out (`rdSnapOut`)
     -- (2026-10-31) and the witness's committed log at least the one before it

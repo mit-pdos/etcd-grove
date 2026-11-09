@@ -419,6 +419,11 @@ def entPtsCC (l : Loc) (dq : DFrac) (c : EntryC) : IProp GF :=
     l.[raftpb.Entry, go!"Data"] ↦{dq} ds ∗ bytesC ds c.data ∗
     pbMsg raftpb.Entry l c.uf)
 
+/-- A read-only entry at its content is persistent (a `Ready`'s entries, raft-entsize §2). -/
+instance entPtsCC_discard_persistent (l : Loc) (c : EntryC) :
+    Persistent (entPtsCC (GF := GF) l DFrac.discard c) := by
+  unfold entPtsCC; infer_instance
+
 /-- **Today's entry and its content form agree.** -/
 theorem entPts_iff_CC (l : Loc) (dq : DFrac) (e : EntryM) :
     entPts (GF := GF) l dq e ⊣⊢ ∃ c : EntryC, entPtsCC l dq c ∗ ⌜c.model = e⌝ := by

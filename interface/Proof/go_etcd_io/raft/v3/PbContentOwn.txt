@@ -153,6 +153,8 @@ theorem smPts_smPtsCC (p : Loc) (dq : DFrac) (md : SnapshotMetadataM) : smPts p 
 theorem smPtsCC_smPts (p : Loc) (dq : DFrac) (m : SnapMetaC) (h : ∀ (cs : CSC), cs ∈ m.confState →
     cs.uf = []) : smPtsCC p dq m ⊢ smPts p dq m.model
 
+theorem entPtsCC_discard_persistent (l : Loc) (c : EntryC) : Persistent (entPtsCC l DFrac.discard c)
+
 def bytesCC (ds : GoSlice) (dq : DFrac) : Option (List w8) → IProp GF :=
   match x✝ with
   | none => iprop(⌜ds = slice.nil⌝)

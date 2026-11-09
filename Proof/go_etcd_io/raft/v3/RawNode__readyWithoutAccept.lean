@@ -753,6 +753,8 @@ theorem RawNode.readyWithoutAccept.wp_proof
   isplitl [H1r H2r]
   · iapply BigSepL.bigSepL_append.2; iframe H1r H2r
   isplitr
+  · iapply snapUfs_ready id ms1 ms2 $$ [Hsuf1 Hsuf2]; iframe Hsuf1 Hsuf2
+  isplitr
   · ipureintro; exact Hmsgs_term
   isplitr
   · iintro H1 H2 H3 H4

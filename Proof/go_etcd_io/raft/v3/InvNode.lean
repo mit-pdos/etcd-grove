@@ -46,6 +46,7 @@ public import Proof.go_etcd_io.raft.v3.InvNodeCtx
 public import Perennial.Proof.context
 public import Proof.go_etcd_io.raft.v3.InvMemstorage
 public import Proof.go_etcd_io.raft.v3.NodeApiVocab
+public import Proof.go_etcd_io.raft.v3.MsgOut
 -- the implementation (`InvApi.lean`, `InvApiDyn.lean`), not exported
 import Proof.go_etcd_io.raft.v3.InvApi
 import Proof.go_etcd_io.raft.v3.InvApiView
@@ -620,6 +621,62 @@ def readySnap (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeD
       -- above the commit index, which starts at the bootstrap log's length
       ⌜(γ.bootLen : Int) < uint.Z l.snap.Metadata'.Index'⌝)
 
+/-! ## The objects a `Ready` hands out (raft-entsize §2, 2026-11-09) -/
+
+/-- **The message `m` was handed out at the content `c`** (persistent, sealed): an element of the
+cluster's monotone set of the objects its `Ready`s handed out, at the content they were handed out
+with. The size law of the handed-out objects (raft-entsize, a later step) reads it. -/
+@[no_expose] def Cluster.outObj (γ : Cluster) (m : Loc) (c : MsgC) : IProp GF := outObjR γ.raft m c
+
+/-- **The entry `e` was handed out at the content `c`** (persistent, sealed). -/
+@[no_expose] def Cluster.outEnt (γ : Cluster) (e : Loc) (c : EntryC) : IProp GF := outEntR γ.raft e c
+
+instance Cluster.outObj_persistent (γ : Cluster) (m : Loc) (c : MsgC) :
+    Persistent (γ.outObj (GF := GF) m c) := by
+  unfold Cluster.outObj; infer_instance
+
+instance Cluster.outEnt_persistent (γ : Cluster) (e : Loc) (c : EntryC) :
+    Persistent (γ.outEnt (GF := GF) e c) := by
+  unfold Cluster.outEnt; infer_instance
+
+/-- **A message a `Ready` hands out**: owned at `dq` (its entries and `Context` frozen, no capacity:
+as `msgOwn`) holding `st`, at a content `c` raft pinned (`MsgC.sentOk`: its snapshot's conf state
+without unknown fields, and a `MsgSnap` without top-level unknown fields, the literal's), handed out
+at that content (`Cluster.outObj`). -/
+def msgOut (γ : Cluster) (l : Loc) (dq : DFrac) (st : MsgSt) : IProp GF :=
+  iprop(∃ c : MsgC, msgPtsCC l dq DFrac.discard false c ∗ ⌜c.model = st ∧ c.sentOk⌝ ∗ γ.outObj l c)
+
+/-- **A `Ready`'s entries** (persistent): the read-only slice `s` of entry objects, each at a
+content handed out (`Cluster.outEnt`), holding `es`. -/
+def readyEnts (γ : Cluster) (s : GoSlice) (es : List EntryM) : IProp GF :=
+  iprop(∃ (els : List Loc) (cs : List EntryC), s ↦*□ els ∗
+    ([∗list] p;c ∈ els;cs, entPtsCC p DFrac.discard c ∗ γ.outEnt p c) ∗
+    ⌜cs.map EntryC.model = es⌝)
+
+instance readyEnts_persistent (γ : Cluster) (s : GoSlice) (es : List EntryM) :
+    Persistent (readyEnts (GF := GF) γ s es) := by
+  unfold readyEnts; infer_instance
+
+/-- A message handed out is owned as today's `msgOwn`. -/
+theorem msgOut_msgOwn (γ : Cluster) (l : Loc) (dq : DFrac) (st : MsgSt) :
+    msgOut (GF := GF) γ l dq st ⊢ msgOwn l dq st := by
+  unfold msgOut Cluster.outObj
+  exact msgOutR_msgOwn γ.raft l dq st
+
+/-- **The `MsgSnap` law**: a handed-out `MsgSnap` has no top-level unknown fields. -/
+theorem msgOut_snap (γ : Cluster) (l : Loc) (dq : DFrac) (st : MsgSt) :
+    msgOut (GF := GF) γ l dq st ⊢
+      ∃ c : MsgC, msgPtsCC l dq DFrac.discard false c ∗ γ.outObj l c ∗
+        ⌜c.model = st ∧ c.csUfNil ∧ (st.msg.Type' = MsgSnap → c.f.uf = [])⌝ := by
+  unfold msgOut Cluster.outObj
+  exact msgOutR_snap γ.raft l dq st
+
+/-- A `Ready`'s entries are today's read-only entries. -/
+theorem readyEnts_entsRO (γ : Cluster) (s : GoSlice) (es : List EntryM) :
+    readyEnts (GF := GF) γ s es ⊢ entsRO s es := by
+  unfold readyEnts Cluster.outEnt
+  exact ApiImpl.readyEntsU_entsRO γ s es
+
 /-- (open) **The rest of a `Ready`** after its committed entries `ce` and read states, at the loop's
 state `st` (today's `readyDataL` without them; the storage's part in the storage contract's
 vocabulary, `appendRight`, `readyOut`): the entries `es` to persist, the messages `ms` (each owned
@@ -631,9 +688,9 @@ state `h` (`nil` or not: `hsOpt`) and the soft state `ss` (`softStateIs`; until 
 def readyRest (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeDriverState)
     (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan)
     (ms : List QMsg) (ss : Option (w64 × StateType)) : IProp GF :=
-  iprop(entsRO rd.Entries' es ∗
+  iprop(readyEnts γ rd.Entries' es ∗
     rd.Messages' ↦* ms.map QMsg.loc ∗
-    ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st) ∗
+    ([∗list] q ∈ ms, msgOut γ q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st) ∗
     hsOpt rd.HardState' h ∗ softStateIs rd.SoftState' ss ∗
     ⌜∃ Lx : Int, Lx < 2 ^ 64 ∧
       (∀ e0, es.head? = some e0 → uint.Z e0.Index' + (es.length : Int) ≤ Lx + 1) ∧
@@ -664,9 +721,21 @@ instance readyMsgs_persistent (γ : Cluster) (N : Namespace) (id : w64) (ms : Li
 messages as `readyRest` owns them, with the sends *enter* gave (`readyMsgs`), are what a transport
 takes. -/
 theorem readyMsgs_sent (γ : Cluster) (N : Namespace) (id : w64) (ms : List QMsg) :
-    ([∗list] q ∈ ms, msgOwn (GF := GF) q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st) ∗
+    ([∗list] q ∈ ms, msgOut (GF := GF) γ q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st) ∗
       readyMsgs γ N id ms ⊢
     [∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ sentMsg γ N id q.st ∗ msgCredits γ N q.st := by
+  unfold readyMsgs
+  refine BigSepL.bigSepL_sep_eqv_symm.1.trans (BigSepL.bigSepL_mono_of_forall ?_)
+  intro _ _
+  iintro ⟨⟨Ho, Hc⟩, Hs⟩
+  iframe Hc Hs
+  iapply msgOut_msgOwn $$ Ho
+
+/-- (raft-entsize §2) `readyMsgs_sent` keeping each message's content as handed out (`msgOut`). -/
+theorem readyMsgs_sentC (γ : Cluster) (N : Namespace) (id : w64) (ms : List QMsg) :
+    ([∗list] q ∈ ms, msgOut (GF := GF) γ q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st) ∗
+      readyMsgs γ N id ms ⊢
+    [∗list] q ∈ ms, msgOut γ q.loc (readyDq q.st) q.st ∗ sentMsg γ N id q.st ∗ msgCredits γ N q.st := by
   unfold readyMsgs
   refine BigSepL.bigSepL_sep_eqv_symm.1.trans (BigSepL.bigSepL_mono_of_forall ?_)
   intro _ _
