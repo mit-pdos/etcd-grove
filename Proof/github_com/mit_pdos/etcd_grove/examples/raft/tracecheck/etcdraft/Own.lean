@@ -236,21 +236,47 @@ theorem stateOwnHole_close_upd (p : Loc) (st : State) (M : List ID) (i : ID) (c 
     stateOwnHole (GF := GF) p st M i c ∗ serverOwn c (f (st.s i)) ⊢ stateOwn p (st.upd i f) (i :: M) :=
   stateOwnHole_close p st M i c (f (st.s i)) hi
 
+/-- The builtin `max` on `int` (layer C's actions, 2026-11-09). -/
+theorem wp_max_int (x y : w64) :
+    {{ (True : IProp GF) }}
+      (App (App (Val #(functions go.max [go.int, go.int])) (Val #x)) (Val #y))
+    {{ RET #(if sint.Z y < sint.Z x then x else y); True }} := by
+  wp_start
+  by_cases h : sint.Z y < sint.Z x
+  · rw [decide_eq_true h, ite_eq_left_of_eq_true _ _ (eq_true h)]; wp_auto; iapply HΦ; itrivial
+  · rw [decide_eq_false h, ite_eq_right_of_eq_false _ _ (eq_false h)]; wp_auto; iapply HΦ; itrivial
+
+/-- The builtin `min` on `int`. -/
+theorem wp_min_int (x y : w64) :
+    {{ (True : IProp GF) }}
+      (App (App (Val #(functions go.min [go.int, go.int])) (Val #x)) (Val #y))
+    {{ RET #(if sint.Z x < sint.Z y then x else y); True }} := by
+  wp_start
+  by_cases h : sint.Z x < sint.Z y
+  · rw [decide_eq_true h, ite_eq_left_of_eq_true _ _ (eq_true h)]; wp_auto; iapply HΦ; itrivial
+  · rw [decide_eq_false h, ite_eq_right_of_eq_false _ _ (eq_false h)]; wp_auto; iapply HΦ; itrivial
+
+theorem sint_max (x y : w64) : sint.Z (if sint.Z y < sint.Z x then x else y) = max (sint.Z x) (sint.Z y) := by
+  split <;> omega
+
+theorem sint_min (x y : w64) : sint.Z (if sint.Z x < sint.Z y then x else y) = min (sint.Z x) (sint.Z y) := by
+  split <;> omega
+
 end defs
 
 /-! ## Tactics for the actions' proofs (layer C, 2026-11-09)
 
-Hygiene off: they name the proof's hypotheses. `mut_open p, st, M, i` calls `p.mut(i)` (the callee's spec
-`wp_mut` in scope, `stateOwn p st M` as `Hst`, `Hi : uint.nat i ∈ st.server`), leaving the hole `Hh` and
+Hygiene off: they name the proof's hypotheses. `mut_open p, st, M, i, H` calls `p.mut(i)` (the callee's spec
+`wp_mut` in scope, `stateOwn p st M` as `H`, `Hi : uint.nat i ∈ st.server`), leaving the hole `Hh` and
 the copy at `cp`, its struct `gc` split into its named fields, its map `Hcm` (`mc`, `Hcmi`), its other
 predicates `Hcl Hcr Hcg Hcc Hcd`, `Hcf` its pure facts. `close_copy gv, f, hv` puts the fields back as
 the struct `gv`, holding `f (st.s (uint.nat i))` (`hv` its pure facts, as `serverOwn_intro`'s), and
 closes the hole: `Hs : stateOwn p (st.upd (uint.nat i) f) (uint.nat i :: M)`. -/
 
 set_option hygiene false in
-macro "mut_open" p:term "," st:term "," M:term "," i:term : tactic => `(tactic| (
-    wp_apply wp_mut $p $st $M $i $$ [Hst] as %cp ⟨Hh, Hc⟩
-    · iframe Hst; ipureintro; exact Hi
+macro "mut_open" p:term "," st:term "," M:term "," i:term "," H:ident : tactic => `(tactic| (
+    wp_apply wp_mut $p $st $M $i $$ [$H:ident] as %cp ⟨Hh, Hc⟩
+    · iframe $H:ident; ipureintro; exact Hi
     try wp_auto
     iunfold serverOwn at Hc
     icases Hc with ⟨%gc, %mc, Hcp, %Hcf, #Hcl, #Hcr, #Hcg, Hcm, %Hcmi, #Hcc, #Hcd⟩
