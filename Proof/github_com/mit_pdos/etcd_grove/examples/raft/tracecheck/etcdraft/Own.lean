@@ -262,6 +262,29 @@ theorem sint_max (x y : w64) : sint.Z (if sint.Z y < sint.Z x then x else y) = m
 theorem sint_min (x y : w64) : sint.Z (if sint.Z x < sint.Z y then x else y) = min (sint.Z x) (sint.Z y) := by
   split <;> omega
 
+/-- An action's optional successor, owned: nil, or a clone the caller owns (`nonNil`'s elements). -/
+def optOwn (r : Loc) : Option State → IProp GF
+  | none => iprop(⌜r = null⌝)
+  | some s => iprop(∃ M, stateOwn r s M)
+
+/-- A clone is at a non-nil pointer (`nonNil`'s premise, layer C, 2026-11-09). -/
+theorem stateOwn_not_null (p : Loc) (st : State) (M : List ID) :
+    stateOwn (GF := GF) p st M ⊢ ⌜p ≠ null⌝ := by
+  iintro H
+  iunfold stateOwn at H
+  icases H with ⟨%g, %sm, Hp, -⟩
+  icases typedPointsto_not_null_dup _ _ _ $$ Hp with ⟨-, %Hnn⟩
+  ipureintro; exact Hnn
+
+/-- A read-only state is at a non-nil pointer. -/
+theorem stateRO_not_null (p : Loc) (st : State) :
+    stateRO (GF := GF) p st ⊢ ⌜p ≠ null⌝ := by
+  iintro H
+  iunfold stateRO at H
+  icases H with ⟨%g, %sm, Hp, -⟩
+  icases typedPointsto_not_null_dup _ _ _ $$ Hp with ⟨-, %Hnn⟩
+  ipureintro; exact Hnn
+
 end defs
 
 /-! ## Tactics for the actions' proofs (layer C, 2026-11-09)
