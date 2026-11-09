@@ -172,6 +172,31 @@ theorem stateOwn_persist (p : Loc) (st : State) (M : List ID) :
   iframe Hp Hsrv Hm Hb1 Hb2 Hsrvs
   ipureintro; exact ⟨Hkeys, Hnd, Hrc⟩
 
+/-- Built clones, frozen (a list of successors returned read-only). -/
+theorem statesOwn_persist : ∀ (qs : List Loc) (L : List State),
+    ([∗list] r;s ∈ qs;L, ∃ M, stateOwn (GF := GF) r s M) ⊢ |==> [∗list] r;s ∈ qs;L, stateRO r s
+  | [], [] => by
+    iintro -
+    imodintro
+    iapply BigSepL2.bigSepL2_nil.2; ipureintro; trivial
+  | [], _ :: _ => by
+    iintro H
+    ihave %Hl := BigSepL2.bigSepL2_length $$ H
+    simp at Hl
+  | _ :: _, [] => by
+    iintro H
+    ihave %Hl := BigSepL2.bigSepL2_length $$ H
+    simp at Hl
+  | q :: qs, s :: L => by
+    iintro H
+    icases BigSepL2.bigSepL2_cons.1 $$ H with ⟨⟨%M, H1⟩, H2⟩
+    imod stateOwn_persist $$ H1 with #H1
+    imod statesOwn_persist qs L $$ H2 with H2
+    imodintro
+    iapply BigSepL2.bigSepL2_cons.2
+    iframe H2
+    iexact H1
+
 /-- A clone whose server `i` is a copy at `c` held apart (`mut`'s result, being written): `stateOwn`
 without server `i`'s resource. -/
 def stateOwnHole (p : Loc) (st : State) (M : List ID) (i : ID) (c : Loc) : IProp GF :=
@@ -266,6 +291,11 @@ theorem sint_min (x y : w64) : sint.Z (if sint.Z x < sint.Z y then x else y) = m
 def optOwn (r : Loc) : Option State → IProp GF
   | none => iprop(⌜r = null⌝)
   | some s => iprop(∃ M, stateOwn r s M)
+
+/-- `optOwn`, the successor's servers `srv` (what a caller that `mut`s it needs). -/
+def optOwnS (srv : SetIds) (r : Loc) : Option State → IProp GF
+  | none => iprop(⌜r = null⌝)
+  | some s => iprop((∃ M, stateOwn r s M) ∗ ⌜s.server = srv⌝)
 
 /-- A clone is at a non-nil pointer (`nonNil`'s premise, layer C, 2026-11-09). -/
 theorem stateOwn_not_null (p : Loc) (st : State) (M : List ID) :
