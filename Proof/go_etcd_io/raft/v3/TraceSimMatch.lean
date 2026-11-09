@@ -3603,6 +3603,51 @@ theorem lineEffect_recv1 (C : List w64) (bf : Bool) (e : TraceEv) (i : Etcdraft.
     (by unfold Etcdraft.Trace.validatePreStates; rw [hline, hdest, hsm]; simp)
     (fun m' hm' hne => by rw [hline]; simp [huniq m' hm' hne]) hr
   rw [this]; simp [recvNext, hone]
+
+/-- **A reply's send effect**: none (the receive line queued it; the line is skipped). -/
+theorem lineEffect_skipResp (C : List w64) (e : TraceEv) (id : w64) (s : NState) (cfg : CfgM) (m : Msg)
+    (evt : w64) (a : Etcdraft.Server) (Mid : Etcdraft.Server → Prop)
+    (hevt : evt = W64 11 ∨ evt = W64 15)
+    (hev : SendEvOf evt id s cfg m e) (hout : cfg.outgoing = ∅) (hne : m.src ≠ m.dst)
+    (htr : m.ty = .appResp ∨ m.ty = .heartbeatResp ∨ m.ty = .voteResp) :
+    LineEffect C false e (idAbs id) a a none _root_.id _root_.id Mid := by
+  obtain ⟨hname, hnid, -, hvote, -, -, -, ⟨xs, ys, -, hys, hconf⟩, ⟨tm, hmsg, hm⟩, -⟩ := hev
+  rw [hout, elements_empty_nil] at hys
+  have hys0 := List.Perm.eq_nil hys
+  subst hys0
+  have hname' : gsStr e.name = "SendAppendEntriesResponse" ∨ gsStr e.name = "SendRequestVoteResponse" := by
+    simp only [evtNames] at hname
+    rcases hevt with rfl | rfl
+    · left
+      have : e.name = go!"SendAppendEntriesResponse" := by have := hname; simp at this; exact this.symm
+      rw [this]; rfl
+    · right
+      have : e.name = go!"SendRequestVoteResponse" := by have := hname; simp at this; exact this.symm
+      rw [this]; rfl
+  have hne' : idAbs m.src ≠ idAbs m.dst := fun h => hne (idAbs_inj.1 h)
+  have htyp : (Etcdraft.raftMsgType (gsStr tm.typ)).isSome = true := by
+    rw [hm.1]; rcases htr with h | h | h <;> rw [h] <;> rfl
+  apply lineEffect_nr C false e (idAbs id) a a _ Mid (msgLine e id s.vote m.src m.dst xs)
+    (parseLine_msg 0 e id s.vote m.src m.dst xs [] tm hnid hvote hconf hmsg hm.2.2.1 hm.2.2.2.1
+      htyp (by rcases hname' with h | h <;> rw [h] <;> decide)) rfl
+    (by simp only [msgLine, evConv]; rcases hname' with h | h <;> rw [h] <;> rfl)
+  intro t l pl σ hline hl _ _ _ hσi _ _
+  have hσ : withNode σ (idAbs id) a _root_.id _root_.id = σ := by
+    rw [← hσi]; unfold withNode
+    have : (fun j => if j = idAbs id then σ.s (idAbs id) else σ.s j) = σ.s := by
+      funext j; split <;> simp_all
+    rw [this]; rfl
+  rw [hσ]
+  apply nonReceive_skipResp _ _ hl
+  · rw [hline]; simpa [msgLine, evConv] using hname'
+  · rw [hline]; exact hne'
+  · rw [hline]
+    refine ⟨_, by simp [msgLine, evConv, hmsg]; rfl, ?_⟩
+    simp only [hm.2.2.1, hm.2.2.2.1]
+    intro h
+    exact hne' (by
+      have h1 := parseID_decStr m.src; have h2 := parseID_decStr m.dst
+      rw [h] at h1; rw [h1] at h2; exact Option.some.inj h2)
 end TraceSim
 
 end EtcdGrove
