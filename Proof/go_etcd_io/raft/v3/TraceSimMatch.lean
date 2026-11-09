@@ -420,6 +420,27 @@ theorem product_nodup (l s : List Etcdraft.ID) (hl : l.Nodup) (hs : s.Nodup) :
 theorem pairs_nodup (t : Etcdraft.Trace) (h : t.server.Nodup) : t.pairs.Nodup := by
   unfold Etcdraft.Trace.pairs; exact product_nodup _ _ h h
 
+theorem gsStr_msgTypeStr_hb : gsStr (msgTypeStr .heartbeat) = "MsgHeartbeat" := by rfl
+
+/-- **A heartbeat's line predicate** (`LoglineIsAppendEntriesRequest` of the heartbeat's
+abstraction): the logged message is raft's heartbeat (its term and commit below `2^63`). -/
+theorem isAER_heartbeat (C : List w64) (bl : Nat) (e : TraceEv) (id vote : w64) (xs : List w64) (m : Msg)
+    (tm : TraceMsg) (hmsg : e.msg = some tm) (hm : MsgEvOf m tm) (hty : m.ty = .heartbeat)
+    (hents : m.entries = []) (bt : uint.Z m.term < 2 ^ 63) (bc : uint.Z m.commit < 2 ^ 63) :
+    (msgLine e id vote m.src m.dst xs).isAppendEntriesRequest
+      ((msgAbs C bl m).get (by simp [msgAbs, hty])) = true := by
+  obtain ⟨htyp, hterm, -, -, hent, -, -, hcommit, -⟩ := hm
+  have hmsg' : (msgAbs C bl m) = some
+      { type := .appendEntriesRequest, subtype := "heartbeat", term := uint.Z m.term,
+        commitIndex := uint.Z m.commit, source := idAbs m.src, dest := idAbs m.dst } := by
+    simp only [msgAbs, hty]
+  simp only [hmsg', Option.get_some]
+  unfold Etcdraft.Line.isAppendEntriesRequest
+  simp only [msgLine, evConv, hmsg, Option.map_some]
+  rw [htyp, hty, hterm, hcommit, hent, hents, gInt_of_lt _ bt, gInt_of_lt _ bc, gsStr_msgTypeStr_hb]
+  simp [Etcdraft.raftMsgType, Etcdraft.raftMsgSubtype]
+  rfl
+
 end TraceSim
 
 end EtcdGrove
