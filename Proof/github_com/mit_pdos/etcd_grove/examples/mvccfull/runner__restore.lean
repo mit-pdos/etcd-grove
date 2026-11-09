@@ -48,6 +48,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccfull.Assumpt
 variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
+set_option maxHeartbeats 1600000 in
 theorem runner.restore.wp_proof
     (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
     (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG))
@@ -441,6 +442,7 @@ theorem runner.restore.wp_proof
       isplitr
       · iintro _; itrivial
       ipureintro; exact hitems
+    clear hRst
     iintro ⟨Hopen1, Hback1, Hrest0, Hplh, -, HlOwn, %σq, Hret1, Hσw1, Hbw1⟩
     (try wp_auto)
     wp_apply wp_check
@@ -453,6 +455,26 @@ theorem runner.restore.wp_proof
         func.nil f1) $$ [Hnoh Hplh Hw1] as ⟨Hnoh, Hplh⟩
     · iframe #; iframe; iunfold backend.wbTok; iexact Hw1
     imod backend.plHook_persist γB f1 $$ Hplh with #Hhk1
+    (try wp_auto)
+    -- the old backend: its census (`Restore` gave the store's rest back), `Close`
+    iunfold bkKeep at Hbk1
+    icases Hbk1 with ⟨%HoP, #Hoisb, #Hosc, -, Hooh, HoRT, -, Hocen⟩
+    iunfold apply.bkRT at HoRT
+    icases HoRT with ⟨-, Hoor⟩
+    iunfold bkCensus at Hocen
+    imod Hocen $$ Hoor Hooh Hrest0 with Hone
+    ihave #Horeq : backend.commitReq v1.bk.γB v1.bk.P iprop(True) v1.bk.be iprop(True) iprop(True) $$ []
+    · iapply backend.commitReq_true
+    wp_apply (wp_bClose v1.bk.γB v1.bk.P (mvccW v1.bk.gx) iprop(True) v1.bk.be iprop(True)
+        iprop(True)) $$ [Hone] as %oerr ⟨-, %Do, -, Hocl⟩
+    · iframe #; iframe
+    icases Hocl with (⟨%Herr, -⟩ | %Hbad)
+    rotate_left
+    · exact absurd hdbc Hbad
+    subst Herr
+    (try wp_auto)
+    wp_apply (wp_check true go!"the old backend's close failed") $$ []
+    · iframe #; ipureintro; rfl
     (try wp_auto)
     sorry
 
