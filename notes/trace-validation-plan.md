@@ -54,8 +54,11 @@ successor (`simRun_snoc_single`), through the trace congruences (`next_congr`, `
 `checkLine_congr`, `runRel_congr`, `bootstrapOf_snoc`); raft's formatted ids parse back
 (`parseID_decStr`); a node line matches the `R`-related server (`stateMatches_node`); the `Commit`,
 `BecomeLeader` and `Replicate` lines' steps (`simRun_commit`, `simRun_becomeLeader`,
-`simRun_replicate`, `TraceSimMatch.lean`), each modulo the invariants at the result
-(`violated = none`, layer B's invariant mapping) and the line past the node's bootstrap lines.
+`simRun_replicate`, `simRun_becomeCandidate`, `simRun_ready`, `TraceSimMatch.lean`) and every send
+line's (`simRun_heartbeat`, `simRun_msgApp`, `simRun_requestVote`, `simRun_selfVote`, `simRun_selfAck`;
+replies to others skipped, `simRun_skipResp`), each modulo the invariants at the result
+(`violated = none`; the pure half proved: `InvFacts` gives it, `TraceSimInv.lean`) and the line
+past the node's bootstrap lines. Next: the `BecomeFollower` lines and the receive lines.
 
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
