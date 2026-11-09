@@ -10,8 +10,8 @@ leader's side of a forwarded keep-alive; untranslated). Any goroutine. Snippet `
 (at the current state `j ≥ i`): `ErrLeaseNotFound`. Else `RUnlock`; `l.expired()` (time): wait on
 `l.revokec` (closed by `Revoke` after the lease left the map: `ErrLeaseNotFound`, at that later
 state), `demotec` or `stopC` (`ErrNotPrimary`). A checkpointer and a checkpointed remaining TTL: `cp(
-context.Background(), &LeaseCheckpointRequest{...})` (`ckptOk`: `nil` or `ErrNotPrimary`, returned
-as is; `Context.ctxOk_background`); `le.mu.Lock()`; `leaseMap[id]` absent: `ErrLeaseNotFound`; else
+context.Background(), &LeaseCheckpointRequest{...})` (`ckptOk cp R`, its gate `□ R` in the invariant
+since the `Promote` that made the lessor primary: `nil` or `ErrNotPrimary`, returned as is; `Context.ctxOk_background`); `le.mu.Lock()`; `leaseMap[id]` absent: `ErrLeaseNotFound`; else
 `refresh(0)` and the notifier (time), unlock, `l.ttl` of the live object. Untranslated (time,
 channels of the expiry), so assumed.
 

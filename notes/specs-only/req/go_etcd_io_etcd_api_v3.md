@@ -359,3 +359,11 @@ checked against `server/auth/store.go` (W0's item 2 asked for it):
    (under `crashScope`), K6's "a restart loses no answered step" holds after crashes too.
 2. **`crashScope`** is an environment premise of that crash rule (the user's decision): R1's
    `Durable.confAboveOk` at the crash, and no crash during a snapshot-carrying write.
+
+## from 3c (round 1)
+
+1. **The restore window** (adds to "from 3c" item 1): after a snapshot's `Recover`, mvcc's `Restore`
+   re-attaches the snapshot's keys one at a time, so a leader's `TimeToLive` with keys may answer any
+   subset of the keys attached at the snapshot's revision (`Demoted()` does not always catch it: a
+   `Renew` refreshes a loaded object). The relaxation should admit it too
+   (`nonissues/etcd-lease-keys-mid-apply.md`).

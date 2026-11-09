@@ -148,3 +148,57 @@ checkpoint, `checkLeasePuts`), `..._etcdserver_txn.md` (`checkLease`), `..._etcd
 reads and the mid-entry keys; 2d's expiry channel, the history tie, `Recover`; 2e's `NewLessor`,
 `leaseBootRes`, `SetCheckpointer`, `Cleanup`, leasehttp), `go_etcd_io_etcd_api_v3.md` (W0: the
 keys, no time model, per-member TTL).
+
+## Round 1 repairs (2026-11-09)
+
+Reviews: `reviews/3c-provability-1.md`, `reviews/3c-completeness-1.md`. Rebuilt: `etc/specs-build.sh
+--dir Spec/sort Spec/go_etcd_io/etcd/server/v3/lease` OK (48 modules); mvcc's and txn's `Api.lean`
+(importers of `lease/Api.lean`) OK; `go vet ./specreq/lease/`, `gofmt -l` clean.
+
+First tier:
+- **P1** (`rdOk` admitted a nested `Revoke`/`Recover`): `rdOk`'s `DeleteRange` post keeps `leases`,
+  `bkt`, `be`, `rd` (only `items`/`keys` move; mvcc's `delsLs` meets it); `Revoke`'s sketch takes the
+  `revokec` close right at the second lock; `End` "may only block".
+- **P2** (`SetCheckpointer` twice or `nil` races/panics): a once token `lessorCkptTok le` from
+  `NewLessor`; new `nonissues/etcd-lease-setcheckpointer-once.md`.
+- **P3**: `NewLessor` premise `0 ≤ sint.Z cfg.leaseRevokeRate'`.
+- **C-F1** (the server's closure panics before `start`): `ckptOk cp R` gated on `R`;
+  `SetCheckpointer` gives `ckptGate le R`; `Promote` takes `ckptGate le R ∗ □ R` (server: `R :=
+  srvStarted`); `lessorCkptTok_gate` for no checkpointer.
+- **C-F2** (the post-lock hook's effect): `beApplyTok` replaced by `beHook be Pk f` (provisional, 4a's)
+  with mvcc's `Mvcc.hookRun Pk f Pre Q` and `(Q ={⊤}=∗ Pk ∗ Post)` on `Grant`, `Checkpoint`,
+  `persistTo` (`Pre` back when the lock is not taken); snippet `ReqGrantHook`. `lease/Api.lean` now
+  imports `storage/mvcc/ApiStorage.lean` (no cycle: it does not import the lessor).
+- **C-F3** (who owes `rdOk` after `Recover`): 2d, for the server's closure
+  (`req/..._etcdserver.md`, "from 3c (round 1)", item 1; 3a's and mvcc's req corrected); snippet
+  `ReqRecoverRevoke`.
+
+Second tier:
+- Sort specs restored as trust-boundary specs, `Spec/sort/SortAnyLess.lean` (`GoSort.sorterAny`,
+  `GoSort.Sort.anyLessSpec`: any `Less`, a permutation, no order) and
+  `Spec/sort/StringSlice__Sort.lean`; cited by `Leases`, `Revoke`. Their `2^62` bound: open (below).
+- Law `lessorAt_minTTL` (every state's TTLs `≥ c.minTTL`), for `0 < GrantedTTL` with 2e's
+  `0 < c.minTTL`.
+- Realization header: the bucket and one reader token in the writer's token (not the lock); the
+  notifier owned by the write-lock holder or the run loop's reader section; `le.cp` frozen once set.
+- Restore window: `Demoted` left without content (a primary lessor's `Renew` refreshes a loaded
+  object during `Restore`, so content would not close it); the window added to
+  `nonissues/etcd-lease-keys-mid-apply.md` and asked of W0.
+- Snippets: `Assumes` (distinct ids; no `Recover` meanwhile; reader tokens); new `ReqNewLessor`
+  (`zap.NewNop()`), `ReqPromoteCheckpointer` (SetCheckpointer once, `Promote`, concurrent `Demote`,
+  `Renew`), `ReqGrantHook`, `ReqRecoverRevoke`.
+- `leasesOutliveRun`'s docstring: what the run loop tests. `init`'s docstring no longer claims
+  distinctness from rpctypes'.
+- **Reader tokens** (the 2026-11-07 decision, as mvcc's): `lessorReaders γ n` (counted, splits),
+  `lessorTokN` (sealed) from `NewLessor`; `Lookup`, `Leases`, `GetLease`, `Renew`, `Keys`,
+  `Remaining`, `Demoted` take one and give it back; the writer borrows one (`lessorState_reader`).
+
+New vocabulary: `lessorReaders`, `lessorTokN`, `lessorCkptTok`, `ckptGate`, `beHook` (replacing
+`beApplyTok`); laws `lessorAt_minTTL`, `lessorState_reader`, `lessorReaders_split`,
+`lessorCkptTok_gate`; `LessorState.persist` (round 0's late fix: `Checkpoint` may rewrite a recovered
+lease's raised TTL into the bucket).
+
+Open after round 1: the `2^62` bound of Perennial's sort at `Revoke` and `Leases` (a Go slice of
+pointers or strings cannot exceed it in a 64-bit address space, but Perennial's slice model does not
+say so; no premise added); 4a's identification of `beHook`/`beTxHeld` with mvcc's
+`mvccBackend`/`hookIs`/`kbHeld`; `nonissues/INDEX.md` needs regenerating.

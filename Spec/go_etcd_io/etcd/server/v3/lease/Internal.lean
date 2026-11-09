@@ -8,7 +8,8 @@ What the internal helpers' specs (the lessor's own proofs: `Grant`, `Revoke`, `L
   writing: `own 1`; a reader's share otherwise) sees the lessor's mutable fields at the state `ls`:
   `leaseMap` (the live objects, each object's `remainingTTL` field), `itemMap` at `ls.items`, `b =
   ls.be`, `rd = ls.rd`, `demotec`, the notifier (`notifierAt`) and the checkpoint heap (`queueAt`),
-  and (at `own 1`) the lease bucket `beLeases ls.be ls.bkt`; with the read-only fields of `c`
+  and (at `own 1`, with the writer's token: the token's part) the lease bucket `beLeases ls.be
+  ls.bkt`; with the read-only fields of `c`
   (`minLeaseTTL = c.minTTL`). Realization: what `le.mu`'s invariant (in `isLessor`) holds, the
   ghost state aside.
 * `leaseFresh l id ttl` (exclusive): `NewLease`'s object: every field owned (`ID`, `ttl`,

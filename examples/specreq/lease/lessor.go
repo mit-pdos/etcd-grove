@@ -4,8 +4,17 @@
 package lease
 
 import (
+	"context"
+	"sync/atomic"
+
+	"github.com/Masterminds/semver/v3"
+	"go.uber.org/zap"
+
+	pb "go.etcd.io/etcd/api/v3/etcdserverpb"
+	"go.etcd.io/etcd/pkg/v3/traceutil"
 	"go.etcd.io/etcd/server/v3/lease"
 	"go.etcd.io/etcd/server/v3/storage/backend"
+	"go.etcd.io/etcd/server/v3/storage/mvcc"
 )
 
 // REQ lease/grant-lookup: a grant of a non-zero id that is not live, with a TTL at most
@@ -14,8 +23,8 @@ import (
 // MaxLeaseTTL ErrLeaseTTLTooLarge.
 // Users: server/etcdserver/apply/backend.go:84 (LeaseGrant: l.ID, l.TTL()), txn/put.go:83 and
 // apply/auth.go:199 (Lookup at the writer), v3_server.go:652 (TTL()).
-// Assumes: the caller is the lessor's writer (lessorState) inside an apply (beApplyTok); id ≠ 0 is
-// not live; ttl ≤ MaxLeaseTTL; the lessor was made with MinLeaseTTL minTTL.
+// Assumes: the caller is the lessor's writer (lessorState) inside an apply (the backend's hook
+// contract, beHook); id ≠ 0 is not live; ttl ≤ MaxLeaseTTL; the lessor was made with MinLeaseTTL minTTL.
 // Specs: lessor.Grant.spec, lessor.Lookup.spec, Lease.TTL.spec; laws: lessorState_at,
 // lessorState_le, lessorAt_agree, lessorAt_obj, leaseObj_id, init.
 func ReqGrantLookup(le lease.Lessor, id lease.LeaseID, ttl, minTTL int64) {
@@ -138,7 +147,8 @@ func ReqRevokeDeletes(le lease.Lessor, be backend.Backend, id lease.LeaseID, a, 
 
 // REQ lease/leases-list: Leases lists every live lease once (LeaseLeases' ids).
 // Users: server/etcdserver/v3_server.go:738 (LeaseLeases).
-// Assumes: the leases live are exactly ids (distinct), and nothing grants or revokes meanwhile.
+// Assumes: the leases live are exactly ids (distinct), and nothing grants, revokes or recovers
+// meanwhile; the caller has a reader token.
 // Specs: lessor.Leases.spec; laws: lessorAt_obj, leaseObj_id.
 func ReqLeasesList(le lease.Lessor, ids []lease.LeaseID) {
 	ls := le.Leases()
@@ -164,7 +174,8 @@ func ReqLeasesList(le lease.Lessor, ids []lease.LeaseID) {
 // meanwhile), never an older state.
 // Users: server/etcdserver/v3_server.go:512, 592, 624, 645 (the request path's Lookup after
 // waitAppliedIndex), 738 (Leases).
-// Assumes: the lease is never revoked; done carries the grant's happening (lessorLb).
+// Assumes: the lease is never revoked nor recovered over (every later state has it live); done
+// carries the grant's happening (lessorLb); the caller has a reader token (lessorReaders).
 // Specs: lessor.Lookup.spec, Lease.Keys.spec (any goroutine, lessorLb).
 func ReqReaderLowerBound(le lease.Lessor, id lease.LeaseID, done <-chan struct{}) {
 	<-done
@@ -214,8 +225,8 @@ func ReqCheckpointNoop(le lease.Lessor, id lease.LeaseID, rem int64) {
 // REQ lease/recover: after Recover over a backend whose lease bucket holds ids, exactly those
 // leases are live, with no key attached (mvcc's Restore re-attaches them next).
 // Users: server/etcdserver/server.go:1087 (applySnapshot), before kv.Restore.
-// Assumes: the caller is the writer; be2 is a new backend whose lease bucket holds exactly ids;
-// rd is the KV store's deleter.
+// Assumes: the caller is the writer; be2 is a new backend whose lease bucket holds exactly ids, which
+// are distinct; rd is a deleter the caller has rdOk for (ReqRecoverRevoke: the server's closure).
 // Specs: lessor.Recover.spec, lessor.Lookup.spec, lessor.Leases.spec, Lease.Keys.spec.
 func ReqRecover(le lease.Lessor, be2 backend.Backend, rd lease.RangeDeleter, ids []lease.LeaseID) {
 	le.Recover(be2, rd)
@@ -255,4 +266,96 @@ func ReqExpiredChannel(le lease.Lessor, granted map[lease.LeaseID]bool, expiry b
 func ReqStop(le lease.Lessor, id lease.LeaseID) {
 	le.Stop()
 	_ = le.Lookup(id)
+}
+
+// REQ lease/grant-hook: a grant writes its bucket record under the batch lock with the backend's
+// post-lock hook run (the apply thread's hook saves the consistent index with the record, 2d;
+// examples/mvccrand checks it the same way).
+// Users: server/etcdserver/apply/backend.go:84 (LeaseGrant on the apply thread, the hook of
+// server.go:404); examples/mvccrand/mvccrand.go:503-504.
+// Assumes: the caller is the writer; be is the lessor's backend and its hook is the one set here
+// (beHook be Pk f with f this closure); id ≠ 0 not live; ttl ≤ MaxLeaseTTL.
+// Specs: lessor.Grant.spec (Pre: ran = 0; Post: ran = 1), Mvcc.hookRun.
+func ReqGrantHook(le lease.Lessor, be backend.Backend, id lease.LeaseID, ttl int64) {
+	var ran atomic.Int64
+	be.SetTxPostLockInsideApplyHook(func() { ran.Add(1) })
+	if _, err := le.Grant(id, ttl); err != nil {
+		panic("grant-hook: grant refused")
+	}
+	if ran.Load() != 1 {
+		panic("grant-hook: the post-lock hook did not run in the grant's lock")
+	}
+}
+
+type noCluster struct{}
+
+func (noCluster) Version() *semver.Version { return nil }
+
+// REQ lease/new-lessor: a lessor over a backend whose bucket holds a lease (a restart) has it live,
+// its TTL raised to the minimum, no key attached; it answers, and stops once.
+// Users: server/etcdserver/server.go:344 (NewServer: the server's logger, backend, membership);
+// examples/mvccrand/mvccrand.go:810 (zap.NewNop(), noCluster{}).
+// Assumes: be's lease bucket holds exactly lease id with TTL ttl (beLeases); a real logger.
+// Specs: NewLessor.spec (Zap.isLogger of NewNop's, clusterOk of noCluster, leaseRevokeRate 0),
+// lessor.Lookup.spec, Lease.TTL.spec, Lease.Keys.spec, lessor.Stop.spec; laws: lessorAt_minTTL.
+func ReqNewLessor(be backend.Backend, id lease.LeaseID, ttl, minTTL int64) {
+	le := lease.NewLessor(zap.NewNop(), be, noCluster{}, lease.LessorConfig{MinLeaseTTL: minTTL})
+	l := le.Lookup(id)
+	want := ttl
+	if want < minTTL {
+		want = minTTL
+	}
+	if l == nil || l.TTL() != want || len(l.Keys()) != 0 {
+		panic("new-lessor: the bucket's lease not loaded")
+	}
+	le.Stop()
+}
+
+// REQ lease/promote-checkpointer: the server installs its checkpointer before it starts (the closure
+// may be called only once the server started); the lessor calls it only when primary, after a
+// Promote (on the apply thread, once started); Demote runs concurrently (the raft loop); Renew's
+// errors stay the lessor's.
+// Users: server/etcdserver/server.go:395-404 (SetCheckpointer in NewServer), 1990 (Promote), 769
+// (Demote), v3_server.go:528 (Renew).
+// Assumes: SetCheckpointer is called once (lessorCkptTok); started is set before Promote (the gate
+// R: started's load is true); id was granted and never revoked nor recovered over.
+// Specs: lessor.SetCheckpointer.spec (ckptOk cp R), lessor.Promote.spec (ckptGate le R, □ R),
+// lessor.Demote.spec, lessor.Renew.spec.
+func ReqPromoteCheckpointer(le lease.Lessor, started *atomic.Bool, id lease.LeaseID) {
+	le.SetCheckpointer(func(ctx context.Context, cp *pb.LeaseCheckpointRequest) error {
+		if !started.Load() {
+			panic("promote-checkpointer: the checkpointer called before the server started")
+		}
+		return nil
+	})
+	started.Store(true)
+	le.Promote(0)
+	done := make(chan struct{})
+	go func() { le.Demote(); close(done) }()
+	if _, err := le.Renew(id); err != nil && err != lease.ErrNotPrimary {
+		panic("promote-checkpointer: an unexpected renewal error")
+	}
+	<-done
+}
+
+// REQ lease/recover-revoke: after a snapshot's Recover, the deleter is the server's closure over its
+// KV store; a revocation then deletes the lease's keys through it as before.
+// Users: server/etcdserver/server.go:1087 (applySnapshot's Recover), then apply/backend.go:95
+// (LeaseRevoke).
+// Assumes: the caller is the writer inside an apply; be2's bucket holds exactly id; kv is the
+// server's KV store over be2 (its Restore done, key k carrying lease id, re-attached here); the
+// server owes rdOk for its closure (2d: req/go_etcd_io_etcd_server_v3_etcdserver.md, "from 3c").
+// Specs: lessor.Recover.spec, lessor.Attach.spec, lessor.Revoke.spec (rdOk of the closure),
+// lessor.Lookup.spec, lessor.GetLease.spec.
+func ReqRecoverRevoke(le lease.Lessor, be2 backend.Backend, kv mvcc.KV, id lease.LeaseID, k string) {
+	le.Recover(be2, func() lease.TxnDelete { return kv.Write(traceutil.TODO()) })
+	if err := le.Attach(id, []lease.LeaseItem{{Key: k}}); err != nil {
+		panic("recover-revoke: the snapshot's lease not loaded")
+	}
+	if err := le.Revoke(id); err != nil {
+		panic("recover-revoke: revoke refused")
+	}
+	if le.Lookup(id) != nil || le.GetLease(lease.LeaseItem{Key: k}) != lease.NoLease {
+		panic("recover-revoke: lease or its key still live")
+	}
 }

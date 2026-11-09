@@ -16,7 +16,7 @@ Used by `RaftCluster.*.spec`, `NewAlarmStore.spec`, `AlarmStore.Recover.spec`, `
    of `be`, as its batch transaction holds it (the last commit with the pending writes), decodes to
    `B : Int → Option Int` (id to stored `TTL`; each record a `leasepb.Lease` that unmarshals, its
    `RemainingTTL` not modelled). Its holder is the bucket's only writer. The schema's functions, on a
-   batch transaction of `be` whose lock is held (`beApplyTok`'s `LockInsideApply`, `beTxHeld`, or
+   batch transaction of `be` whose lock is held (`beHook`'s `LockInsideApply`, `beTxHeld`, or
    `LockOutsideApply`):
    * `UnsafeCreateLeaseBucket(tx)`: `B` unchanged (the bucket exists or is created empty);
    * `MustUnsafeGetAllLeases(tx)`: no panic (the records decode), a fresh slice of fresh

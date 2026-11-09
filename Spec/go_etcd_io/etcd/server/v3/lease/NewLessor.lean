@@ -4,8 +4,8 @@
 **Users.** `NewServer` (`server.go:344`, 2e): the server's logger, its backend (fresh, or a
 restart's: the lease bucket of the last commit), its membership (`*RaftCluster`, for `Version()`),
 `LessorConfig{MinLeaseTTL: ⌈3·ElectionTimeout⌉ s, CheckpointInterval, ExpiredLeasesRetryInterval,
-CheckpointPersist}` from the server's configuration. Snippet `lessor.go` (every `Req*` starts from
-it).
+CheckpointPersist}` from the server's configuration (its unexported `leaseRevokeRate` is `0` from any
+client outside the package). Snippet `lessor.go` (`ReqNewLessor`).
 
 **Why it is true** (the code). `newLessor`: the intervals defaulted when `0`, `leaseRevokeRate`
 (unexported, so `0` from any client) defaulted to 1000; the struct with fresh maps, notifier and
@@ -27,6 +27,11 @@ repair); the backend through 4a/4b's `beOk`, `beLeases` (any bucket: a restart's
 not only an empty bucket); the checkpointer's contract moved to `SetCheckpointer`; the grant guard
 and the monotone mode gone (the lessor accepts any id; the expiry mode replaces the old
 `leasesNoExpiry` gating).
+
+**Round 1.** Premise `0 ≤ leaseRevokeRate` (a negative rate skips `Promote`'s early return on an
+empty map and indexes `leases[0]`: a panic; only `0` is defaulted). The post adds the
+checkpointer's once token (`lessorCkptTok`) and the reader tokens (`lessorReaders γ lessorTokN`; one
+more stays with the run loop).
 
 **Margin.** `MinLeaseTTL`, the intervals and `CheckpointPersist` are any values (no premise: the
 code accepts them); only the minimum is visible to the specs (`c.minTTL`).
@@ -61,7 +66,8 @@ def NewLessor.spec : Prop :=
   ∀ (lg : Loc) (b cl : GoInterface) (cfg : go_etcd_io.etcd.server.v3.lease.LessorConfig)
     (B : Int → Option Int) (exp : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ Zap.isLogger lg ∗
-      beOk b ∗ beLeases b B ∗ clusterOk cl ∗ ⌜exp = false → leasesOutliveRun⌝ }}
+      beOk b ∗ beLeases b B ∗ clusterOk cl ∗ ⌜0 ≤ sint.Z cfg.leaseRevokeRate'⌝ ∗
+      ⌜exp = false → leasesOutliveRun⌝ }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.lease.NewLessor)) (Val #lg)) (Val #b))
       (Val #cl)) (Val #cfg))
   {{ (li : GoInterface), RET #li; ∃ (le : Loc) (γ : Names) (objs : Int → Loc),
@@ -69,7 +75,7 @@ def NewLessor.spec : Prop :=
       isLessor le γ { minTTL := sint.Z cfg.MinLeaseTTL', expiry := exp } ∗
       lessorState γ 0 (LessorState.loaded { minTTL := sint.Z cfg.MinLeaseTTL', expiry := exp } b
         func.nil B objs (fun _ _ => False)) ∗
-      lessorStop le }}
+      lessorStop le ∗ lessorCkptTok le ∗ lessorReaders γ lessorTokN }}
 
 end spec
 end Lease

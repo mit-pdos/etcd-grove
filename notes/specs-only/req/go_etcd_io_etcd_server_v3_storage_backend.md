@@ -54,19 +54,27 @@ integration:
    tx := le.b.BatchTx(); tx.LockOutsideApply(); /* create, read all */ tx.Unlock()   // lessor.go:809-814
    le.b.ForceCommit()                                                                  // :834
    ```
-2. **`Lease.beApplyTok be`** (exclusive, given back): the right to `LockInsideApply()` the batch
-   transaction (running the post-lock hook: the apply thread's) and `Unlock()` it. Used by:
-   `lessor.Grant.spec`, `lessor.Checkpoint.spec`, `Lease.persistTo.spec`.
+2. **`Lease.beHook be Pk f`** (persistent; round 1, replacing `beApplyTok`): `be`'s batch lock has
+   the invariant `Pk` and its post-lock hook is `f`: `LockInsideApply()` gives `Pk` and runs `f`
+   (the caller's contract `Mvcc.hookRun Pk f Pre Q`, mvcc's), `Unlock()` takes `Pk` back. The same
+   fact as mvcc's `mvccBackend γ q B Pk ∗ hookIs B f` for the storage `B` whose `storageVal` is `be`:
+   identify them. Used by: `lessor.Grant.spec`, `lessor.Checkpoint.spec`, `Lease.persistTo.spec`
+   (the grant's record committed with its entry's consistent index: 2d; `examples/mvccrand`'s
+   check).
    ```go
    tx := b.BatchTx(); tx.LockInsideApply(); defer tx.Unlock()   // lease.go:57-59 (persistTo)
    ```
 3. **`Lease.beTxHeld be`** (exclusive): this thread holds the batch transaction's lock (mvcc's
-   write transaction holds it from `Write()` to `End()`), so it may make unsafe writes. Used by:
+   write transaction holds it from `Write()` to `End()`), so it may make unsafe writes. mvcc's
+   `kbHeld B` is the same for `storageVal B = be`: identify them. Used by:
    `lessor.Revoke.spec` (its `UnsafeDeleteLease` under the deleter's transaction, `lessor.go:359`),
    through `Lease.rdOk`.
 4. **The lease bucket and the commit**: a commit (and a crash) keeps the bucket as written by then
    (`beLeases`, see the schema's file); `lessorState_bkt` lends the bucket back for the backend's
-   close.
+   close. **Writes under one lock hold land in one commit** (round 1): `Revoke`'s bucket delete is
+   made under mvcc's write transaction's lock, with the keys' deletes; the crash image must keep them
+   together (a restart finding a key whose record names a revoked lease would leave it forever:
+   `restore`'s `Attach` fails and only logs, `kvstore.go:398-403`).
 
 ## from 3e
 

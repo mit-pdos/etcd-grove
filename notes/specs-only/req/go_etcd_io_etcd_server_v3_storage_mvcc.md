@@ -328,3 +328,16 @@ revision that put and deleted a key (`issues/etcd-txn-check-intervals-sibling.md
 restriction: 2b's `watchReqOwn_unfold` gives `WatchId = 0`). The filters' contract is `filterOk f d`
 over `evOwn` (the event struct owned: `filterNoPut.spec`'s field-level triple implies it); the events
 are `evOwn` (struct owned, `Kv` read-only at `DFrac.discard`, `PrevKv` `nil`).
+
+## from 3c (round 1)
+
+1. **`rdOk`'s delete is constrained** (`lease/Api.lean`): `DeleteRange`'s post gives the token back at
+   a state with the same `leases`, `bkt`, `be` and `rd` (only `items` and `keys` move): `delsLs`
+   meets it. Please give `rdOk` itself (or a law turning `mvccDeleter rd γ` with your `D`/`Q` into
+   it), with `beTxHeld (storageVal B)` lent from the open write transaction (your `kbHeld B`,
+   which 4a identifies with `beTxHeld`).
+2. **For any closure calling `Write`**: the server's `func() lease.TxnDelete { return
+   s.kv.Write(traceutil.TODO()) }` (`server.go:1087`, installed by `Recover`) needs the same
+   `rdOk` (2d's to state, from your contract): a law of yours over `isMvcc` handles would serve both.
+3. **Reader tokens**: `GetLease` (and `Lookup`, `Keys`) take `Lease.lessorReaders γl 1`; your write
+   path holds `lessorState`, which lends one (`Lease.lessorState_reader`).

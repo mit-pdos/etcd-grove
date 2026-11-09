@@ -137,3 +137,15 @@ the answer the commit fixed, 2d needs, beyond `irrStep_ttl` (different configura
 2. **`applyStep_reach`**: `applyStep mc σ e σ' res → Reach σ σ'` (the history is one `Reach`
    sequence: W0's `etcdLb_reach`/`etcdLb_ord`), if `irrStep_step` does not already give it.
 3. (2c's needs, unchanged) answers are W0's `Step`'s at the history state.
+
+## from 3c (round 1)
+
+1. **Correction to "from 3c" item 2**: `ls.rd` is mvcc's closure only until the first snapshot;
+   after `applySnapshot` it is the server's closure (`server.go:1087`), whose `rdOk` 2d owes
+   (`req/go_etcd_io_etcd_server_v3_etcdserver.md`, "from 3c (round 1)", item 1). The applier takes
+   `rdOk` for whatever `ls.rd` is from the apply thread's invariant.
+2. **`Grant`/`Checkpoint` take the backend's hook contract** instead of `beApplyTok`: `Lease.beHook
+   ls.be Pk f ∗ Pre ∗ Mvcc.hookRun Pk f Pre Q ∗ (Q ={⊤}=∗ Pk ∗ Post)`, giving `Post` when they wrote
+   the bucket (a grant; a persisted checkpoint) and `Pre` otherwise, as mvcc's `Put`.
+3. **`Revoke`'s keys fit Perennial's sort bound** (`2^62`, `GoSort.StringSlice.Sort.spec`): a proof
+   matter, open (batch-3c.md); no premise added.

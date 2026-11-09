@@ -11,8 +11,8 @@ snapshot's image (`newbe`), with a deleter of the KV store (`s.kv.Write`), befor
 `MustUnsafeGetAllLeases` (its records decode: `beLeases b B`), `Unlock`; for each record a fresh
 `*Lease` with the TTL raised to the minimum, an empty item set, its own `revokec`; the notifier's
 `Init`, `heap.Init` of the checkpoint heap; `b.ForceCommit()`); the history appended with the
-loaded state (`n + 1`); the old backend's bucket (`beLeases ls.be ls.bkt`) leaves the invariant to
-the caller; unlock. The old objects' item sets are kept (readers may hold them).
+loaded state (`n + 1`); the old backend's bucket (`beLeases ls.be ls.bkt`, held in the writer's
+token) goes back to the caller, the new one's into the token; unlock. The old objects' item sets are kept (readers may hold them).
 
 **Changes** (from `specs-ref`'s `lessor__Recover.lean`, the lease-expiry plan's S1 over the
 backend's tracked buckets): over the lessor's state and 4b's `beLeases`. **Margin.** The old

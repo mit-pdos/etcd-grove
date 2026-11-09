@@ -922,3 +922,42 @@ program). So:
 3. `memberDisk γ id ds` is now a definition, `diskIdle γ ds (.member id)` (the volatile idle token):
    your `srvStopped_disk` still type-checks, but `srvStopped ∗ srvClosed` now gives only the idle
    token (the files' content is in `diskState`, never moved).
+
+## from 3c (round 1)
+
+Changes to the lessor's API since "from 3c" above, and what they ask of 2c, 2d, 2e:
+
+1. **The deleter `Recover` installs is the server's** (`server.go:1087`: `func() lease.TxnDelete {
+   return s.kv.Write(traceutil.TODO()) }`; mvcc's `Restore` does not reset it). From then on every
+   `LeaseRevoke` (3a, `apply/backend.go:95`) needs `Lease.rdOk γl ls.rd n ls P D Q` for **that
+   closure**: **2d owes it**, from `s.kv`'s `KV.Write.contract` (3e; best as one law of 3e's,
+   `mvccDeleter`-like, for any closure calling `Write` on an `isMvcc` handle), and keeps "`rdOk`
+   holds of the current `ls.rd`" in the apply thread's invariant (mvcc's `NewStore`/`New` give it for
+   the store's own closure at boot). `rdOk`'s delete must leave the lessor's leases, bucket, backend
+   and deleter as they were (only `items`/`keys` move: mvcc's `delsLs`). Snippet:
+   `examples/specreq/lease/lessor.go`, `ReqRecoverRevoke`.
+   ```go
+   s.lessor.Recover(newbe, func() lease.TxnDelete { return s.kv.Write(traceutil.TODO()) }) // server.go:1087
+   ```
+2. **The checkpointer is gated** (2e, 2d): `NewLessor` gives `Lease.lessorCkptTok le` (once);
+   `SetCheckpointer(cp)` takes it with `Lease.ckptOk cp R` (the closure's contract once `R` holds:
+   `R := srvStarted s γ id`, since the closure's `ensureLeadership` reads `s.ctx`/`s.read`, set by
+   `start`) and gives `ckptGate le R`; **`Promote` takes `ckptGate le R ∗ □ R`** (2d's
+   `applyEntryNormal` has `srvStarted`). Without the feature, `lessorCkptTok_gate` gives
+   `ckptGate le True`. Snippet `ReqPromoteCheckpointer`.
+3. **`NewLessor`** (2e) also takes `0 ≤ cfg.leaseRevokeRate` (the server's `LessorConfig` leaves it `0`)
+   and gives `lessorReaders γl lessorTokN` (reader tokens) with `lessorCkptTok le`.
+4. **Reader tokens** (2c): `Lookup`, `Leases`, `Renew`, `Keys`, `Remaining`, `Demoted` (and
+   `GetLease`) take `Lease.lessorReaders γl 1` and give it back (each read-locks one of the lessor's
+   `RWMutex`es: the bounds plan's reader slots). The server's invariant keeps the pool `NewLessor`
+   gave; the writer borrows one from its token (`lessorState_reader`).
+5. **Grant and Checkpoint take the backend's hook contract** (2d, 3a): `Lease.beHook ls.be Pk f ∗
+   Pre ∗ Mvcc.hookRun Pk f Pre Q ∗ (Q ={⊤}=∗ Pk ∗ Post)`, as mvcc's write path: the apply thread's
+   hook (`server.go:404`) saves the entry's consistent index with the grant's record.
+6. **`0 < GrantedTTL`** (2c, W0's `leaseTimeToLive`; 3a's grant step `0 < ttl' ≤ maxLeaseTTL`): from
+   the law `Lease.lessorAt_minTTL` (every state's TTLs `≥ c.minTTL`) and 2e's configuration fact
+   `0 < c.minTTL ≤ maxLeaseTTL` (`MinLeaseTTL = ⌈3·ElectionTimeout⌉ s`).
+7. **The restore window** (2c): after `Recover`, while mvcc's `Restore` re-attaches the snapshot's keys,
+   `Keys` may answer a strict subset of the keys at the snapshot's revision, and `Demoted()` may be
+   `false` (a primary lessor's `Renew` refreshes a loaded object): `nonissues/etcd-lease-keys-mid-apply.md`,
+   asked of W0.
