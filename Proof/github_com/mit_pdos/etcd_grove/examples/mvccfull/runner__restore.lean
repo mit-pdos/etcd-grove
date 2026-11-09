@@ -362,6 +362,26 @@ theorem runner.restore.wp_proof
       (try wp_auto)
       iapply HΦ
       iframe
+    have hL' : recs.map (·.1) = leasesAfter ks ops v0.ops := by rw [hrecs2, hveq]
+    have hUL : ∀ id ∈ recs.map (·.1), id ∈ v1.U → id ∈ leasesAfter ks ops v1.ops := by
+      intro id hid hU
+      exact logOk_recover ks ops hlogOk v1.ops v0.ops (by omega) id (by rw [← hL']; exact hid)
+        (HU1 id hU)
+    have hreq : ∀ x ∈ recs, sint.Z ((fun _ : w64 => W64 3600) x.1) ≤ sint.Z x.2.1 := by
+      intro x hx; have := hrecs3 x hx
+      have h36 : sint.Z (W64 3600) = 3600 := by decide
+      simp only []; rw [h36]; exact this
+    wp_apply (wp_Recover v1.lp (mvccLeases v1.ι.kv) v1.bk.be (mvccrand.rcKB γB bnb gx (limOf cfg))
+        (mvccW gx) iprop(True) (1 : Qp).half (· = leaseName)
+        (backend.rbData (mvccrand.rcP (limOf cfg)) D) rd rd0 (leasesAfter ks ops v1.ops)
+        (pendItems (σOf ks ops v1.ops).log []) false recs v1.U (fun _ => W64 3600)
+        (leasesAfter ks ops v0.ops) rfl (mvccrand.rcP_lease _) hrecs1 (fun h => absurd h (by decide))
+        hUL hreq (by rw [hL']))
+      $$ [HEv HbeOn HlOwn HlRevk HrdOwn Hnoh Hwb2' Hrbn]
+      as ⟨HbeOn, HlOwn, HEv, #HreqN, HlRevk, HrdOwn, Hnoh, Hrbn, -⟩
+    · iframe #; iframe
+      simp only [mvccrand.rcKB_P, mvccrand.rcKB_γB, mvccrand.rcKB_be, mvccrand.rcKB_gx]
+      iexact Hnisb
     sorry
 
 end proof
