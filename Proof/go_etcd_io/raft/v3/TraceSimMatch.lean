@@ -4398,27 +4398,34 @@ theorem simRun_ready_any (C : List w64) (L : List TraceEv) (σ : Etcdraft.State)
     · exact confAbs_nodup C
     · simp only [linesTrace]; rw [mem_confAbs]; exact hC
 
-/-- **A server the application's `ApplyConfChange` leaves as it is** (`ApplySimpleConfChange`): not
-joint, its commit index within its log, not a leader, the last configuration entry it has committed
-(`k`, the specification's `SelectLastInSubSeq`) its configuration, and no progress outside it. -/
-def AccIdle (a : Etcdraft.Server) : Prop :=
-  a.config.outgoing.isEmpty = true ∧ a.commitIndex ≤ a.log.length ∧ a.state ≠ Etcdraft.leader ∧
-  ∃ (k : Nat) (nc lr : Etcdraft.SetIds),
+/-- The server after the application's `ApplyConfChange` of configuration `(nc, lr)`
+(`ApplySimpleConfChange`): the progress of the servers outside it zeroed (review round 3's B3). -/
+def accSrv (a : Etcdraft.Server) (nc lr : Etcdraft.SetIds) : Etcdraft.Server :=
+  { a with matchIndex := fun j => if (nc.union lr).contains j then a.matchIndex j else 0 }
+
+/-- **A server at which the application's `ApplyConfChange` reapplies its configuration**
+(`ApplySimpleConfChange`): not joint, its commit index within its log, no configuration change
+pending (`R` gives it), and the last configuration entry it has committed (`k`, the specification's
+`SelectLastInSubSeq`) its configuration `(nc, lr)`. -/
+def AccIdle (a : Etcdraft.Server) (nc lr : Etcdraft.SetIds) : Prop :=
+  a.config.outgoing.isEmpty = true ∧ a.commitIndex ≤ a.log.length ∧ a.pendingConfChangeIndex = 0 ∧
+  ∃ (k : Nat),
     (List.range a.commitIndex.toNat).foldl
       (fun (acc : Nat) n => if ((a.log[n]?).map Etcdraft.Entry.type) == some .config then n + 1 else acc) 0 = k ∧
     0 < k ∧ (k : Int) ≤ a.commitIndex ∧ (a.log[k - 1]?).map Etcdraft.Entry.value = some (.conf nc lr) ∧
-    a.config = Etcdraft.Config.mk nc [] lr ∧
-    ∀ j, (nc.union lr).contains j = false → a.matchIndex j = 0
+    a.config = Etcdraft.Config.mk nc [] lr
 
-theorem applySimpleConfChange_idle (σ : Etcdraft.State) (i : Etcdraft.ID) (h : AccIdle (σ.s i)) :
-    σ.applySimpleConfChange i = .ok (some σ) := by
-  obtain ⟨hj, hci, hnl, k, nc, lr, hk, hk0, hkc, hkv, hcfg, hmi⟩ := h
+theorem applySimpleConfChange_idle (σ : Etcdraft.State) (i : Etcdraft.ID) (nc lr : Etcdraft.SetIds)
+    (h : AccIdle (σ.s i) nc lr) :
+    σ.applySimpleConfChange i = .ok (some (σ.upd i (fun _ => accSrv (σ.s i) nc lr))) := by
+  obtain ⟨hj, hci, hpc, k, hk, hk0, hkc, hkv, hcfg⟩ := h
   unfold Etcdraft.State.applySimpleConfChange Etcdraft.State.isJointConfig
   simp only [hj, Bool.not_true, Bool.false_eq_true, ↓reduceIte]
   rw [hk]
   have hnot : ¬ ((σ.s i).commitIndex > ((σ.s i).log.length : Int)) := by omega
-  have hnl' : ((σ.s i).state == Etcdraft.leader) = false := by simpa using hnl
-  simp only [hnot, ↓reduceIte, hk0, hkc, decide_true, Bool.true_and, Bool.not_true, hnl', Bool.false_and,
+  have hge : decide ((σ.s i).pendingConfChangeIndex ≥ (k : Int)) = false := by
+    rw [hpc]; simp; omega
+  simp only [hnot, ↓reduceIte, hk0, hkc, decide_true, Bool.true_and, Bool.not_true, hge, Bool.and_false,
     hkv, Bool.false_eq_true]
   simp only [pure, Except.pure, Except.ok.injEq, Option.some.injEq]
   have hupd : ∀ (τ : Etcdraft.State) (f : Etcdraft.Server → Etcdraft.Server), f (τ.s i) = τ.s i → τ.upd i f = τ := by
@@ -4435,27 +4442,18 @@ theorem applySimpleConfChange_idle (σ : Etcdraft.State) (i : Etcdraft.ID) (h : 
     apply hupd
     rw [← hcfg]
   rw [happ]
-  apply hupd
-  generalize σ.s i = v at hmi
-  cases v with
-  | mk ct st vf ld lg ci vr vg mi pc cf du =>
-    simp only [Etcdraft.Server.mk.injEq, true_and, and_true]
-    funext x
-    by_cases hx : (nc.union lr).contains x = true
-    · simp only [hx, ↓reduceIte]
-    · simp only [hx, Bool.false_eq_true, ↓reduceIte]; exact (hmi x (by simpa using hx)).symm
-
+  rfl
 
 /-- An `ApplyConfChange` line's non-receive successor, at a server it leaves as it is: the state. -/
 theorem nonReceive_applyCC (t : Etcdraft.Trace) (ts : Etcdraft.TState) (i : Etcdraft.ID) (hl : ts.l ≤ t.len)
     (hname : (t.line ts.l).ev.name = "ApplyConfChange") (hnid : (t.line ts.l).nid = i)
-    (hnd : t.server.Nodup) (hi : i ∈ t.server) (hacc : AccIdle (ts.s.s i)) :
-    t.nonReceive ts = .ok [ts.s] := by
+    (hnd : t.server.Nodup) (hi : i ∈ t.server) (nc lr : Etcdraft.SetIds) (hacc : AccIdle (ts.s.s i) nc lr) :
+    t.nonReceive ts = .ok [ts.s.upd i (fun _ => accSrv (ts.s.s i) nc lr)] := by
   have hf : t.server.foldlM (fun acc j => do return acc ++ (← t.applySimpleConfChangeIfLogged ts j)) [] =
-      .ok [ts.s] := by
+      .ok [ts.s.upd i (fun _ => accSrv (ts.s.s i) nc lr)] := by
     apply foldlM_append_single _ _ i _ hnd hi
     · simp [Etcdraft.Trace.applySimpleConfChangeIfLogged, Etcdraft.Trace.isNodeEvent, Etcdraft.Trace.isEvent,
-        hl, hname, hnid, applySimpleConfChange_idle _ _ hacc, Etcdraft.somes, bind, Except.bind, pure, Except.pure]
+        hl, hname, hnid, applySimpleConfChange_idle _ _ _ _ hacc, Etcdraft.somes, bind, Except.bind, pure, Except.pure]
     · intro j _ hj
       simp [Etcdraft.Trace.applySimpleConfChangeIfLogged, Etcdraft.Trace.isNodeEvent, Etcdraft.Trace.isEvent,
         hnid, Ne.symm hj, pure, Except.pure]
@@ -4464,19 +4462,21 @@ theorem nonReceive_applyCC (t : Etcdraft.Trace) (ts : Etcdraft.TState) (i : Etcd
   simp [Etcdraft.Trace.skipUnusedLogline, Etcdraft.Trace.isEvent, hname,
     Etcdraft.Trace.isBecomeFollowerInUpdateTermOrReturnToFollower, pure, Except.pure, bind, Except.bind]
 
-/-- **The application's `ApplyConfChange` line's effect** (past the node's segment): none, at a
-server it leaves as it is (`AccIdle`). -/
+/-- **The application's `ApplyConfChange` line's effect** (past the node's segment): the server's
+configuration reapplied (`AccIdle`), its progress outside it zeroed (`accSrv`; `toC` keeps only the
+voters', so the share is unchanged). -/
 theorem lineEffect_applyCC (C : List w64) (e : TraceEv) (id vote : w64) (xs : List w64)
     (a : Etcdraft.Server) (Mid : Etcdraft.Server → Prop)
     (hnid : e.nid = decStr id) (hvote : e.vote = decStr vote)
     (hconf : e.conf = (xs.map decStr, ([] : List w64).map decStr)) (hmsg : e.msg = none)
-    (hname : gsStr e.name = "ApplyConfChange") (hC : id ∈ C) (hacc : AccIdle a) :
-    LineEffect C false e (idAbs id) a a none _root_.id _root_.id Mid := by
-  apply lineEffect_nr C false e (idAbs id) a a _root_.id Mid (nodeLine e id vote xs)
+    (hname : gsStr e.name = "ApplyConfChange") (hC : id ∈ C) (nc lr : Etcdraft.SetIds) (hacc : AccIdle a nc lr) :
+    LineEffect C false e (idAbs id) a (accSrv a nc lr) none _root_.id _root_.id Mid := by
+  apply lineEffect_nr C false e (idAbs id) a _ _root_.id Mid (nodeLine e id vote xs)
     (parseLine_node 0 e id vote xs [] hnid hvote hconf hmsg (by rw [hname]; rfl) (by rw [hname]; decide)) rfl
     (by simp [nodeLine, evConv, hname]; rfl)
   intro t l pl σ hline hl hts _ hsrv hσi _ _
-  have hF : withNode σ (idAbs id) a _root_.id _root_.id = σ := by rw [← hσi, withNode_same]; rfl
+  have hF : withNode σ (idAbs id) (accSrv a nc lr) _root_.id _root_.id =
+      σ.upd (idAbs id) (fun _ => accSrv (σ.s (idAbs id)) nc lr) := by rw [upd_eq_withNode, hσi]
   rw [hF]
   apply nonReceive_applyCC _ _ (idAbs id) hl
   · rw [hline]; simp [nodeLine, evConv, hname]
