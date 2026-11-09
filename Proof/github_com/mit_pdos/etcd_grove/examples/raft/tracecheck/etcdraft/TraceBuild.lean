@@ -116,6 +116,22 @@ macro "isbn_eval" H:term "," name:term : tactic => `(tactic| (
     | (rw [decide_eq_true hb1]; wp_auto
        have hb : isBootstrapName $name = true := by simp [isBootstrapName, hb1])))
 
+set_option hygiene false in
+/-- In `NewTraceWith`'s closure `bootstrappedConfig` (a join on its result, its map `Hlm`): an error
+returned, `tBC` failing by `simp` with the given facts. -/
+macro "bc_fail" "[" xs:Lean.Parser.Tactic.simpLemma,* "]" : tactic => `(tactic| (
+  try (wp_apply wp_map_lookup1 $$ [Hlm] as Hlm
+       · iexact Hlm)
+  try wp_auto
+  wp_apply wp_traceError as %e %He
+  try wp_auto
+  iexists _, _
+  iframe Hlm
+  isplitl []
+  · ipureintro; rfl
+  simp [throw, throwThe, MonadExceptOf.throw, $xs,*]
+  ipureintro; exact He))
+
 /-- `parseLine` fails, by `simp` with the given facts. -/
 macro "parse_fails" "[" xs:Lean.Parser.Tactic.simpLemma,* "]" : tactic => `(tactic| (
   simp [parseLine, bind, Except.bind, throw, throwThe, MonadExceptOf.throw, $xs,*]))
@@ -632,6 +648,104 @@ theorem boot_err {evs : List Event} (pv cq : Bool) (hne : evs ≠ []) {xs : List
   unfold newTraceWith
   simp only [hne', hlines, hadd, bind, Except.bind, hp]
   rfl
+
+/-! ## `newTraceWith` past its lines and servers -/
+
+def tPer (xs : List Line) (srv : SetIds) : List (ID × List Bool × Nat) := srv.map (fun i => (i, bootstrapOf xs i))
+
+def tLast (xs : List Line) (srv : SetIds) (i : ID) : Nat :=
+  (((tPer xs srv).find? (fun p => p.1 == i)).map (fun p => p.2.2)).getD 0
+
+/-- `BootstrappedConfig(i)` for the server whose last bootstrap line is `last`. -/
+def tBC (xs : List Line) (last : Nat) : Except TraceError SetIds :=
+  let ln := xs.getD (last - 1) default
+  if ln.ev.name == "ApplyConfChange" then
+    match (ln.ev.prop.bind EventProps.cc).bind EventConfChange.newconf with
+    | none => throw { what := "a last bootstrap ApplyConfChange without newconf", line := last, n := 0 }
+    | some nc => match toSet nc with
+      | some c => pure c
+      | none => throw { what := "newconf not a list of ids", line := last, n := 0 }
+  else pure ln.conf.1
+
+/-- `BootstrapEntryConf`'s configurations of server `i`. -/
+def tBconfF (xs : List Line) (srv : SetIds) (i : ID) : Except TraceError (ID × List SetIds) := do
+  let flags := (((tPer xs srv).find? (fun p => p.1 == i)).map (fun p => p.2.1)).getD []
+  let cs ← ((List.range xs.length).filter (fun k => flags.getD k false)).filterMapM (fun k => do
+    let ln := xs.getD k default
+    if ln.ev.name != "ApplyConfChange" then return none
+    match (ln.ev.prop.bind EventProps.cc).bind EventConfChange.newconf with
+    | none => return none
+    | some nc => match toSet nc with
+      | some c => return some c
+      | none => throw { what := "newconf not a list of ids", line := k + 1, n := 0 })
+  return (i, cs)
+
+def tServerOf (xs : List Line) (srv : SetIds) (cfgs : List (ID × SetIds)) (bconfs : List (ID × List SetIds))
+    (i : ID) : Server :=
+  let lb := xs.getD (tLast xs srv i - 1) default
+  let cfg := ((cfgs.find? (fun p => p.1 == i)).map Prod.snd).getD []
+  let v : Server :=
+    { currentTerm := lb.ev.state.term, state := lb.role, votedFor := lb.vote, lead := nil,
+      log := (List.range lb.ev.log.toNat).map (fun k =>
+        { term := 1, type := .config, value := .conf ((((bconfs.find? (fun p => p.1 == i)).map Prod.snd).getD []).getD k cfg) [] }),
+      commitIndex := lb.ev.state.commit, votesResponded := [], votesGranted := [],
+      matchIndex := fun _ => 0, pendingConfChangeIndex := 0,
+      config := { incoming := cfg, outgoing := [], learners := [] }, durable := default }
+  { v with durable := durableOf v }
+
+def newTraceTail (xs : List Line) (srv : SetIds) (pv cq : Bool) : Except TraceError Trace := do
+  if let some p := (tPer xs srv).find? (fun p => p.2.2 == 0) then
+    throw { what := "a server without a bootstrap line", line := 0, n := p.1 }
+  let initSrv ← tBC xs (tLast xs srv (xs.getD 0 default).nid)
+  if !initSrv.subset srv then throw { what := "TraceInitServer not a subset of TraceServer", line := 0, n := 0 }
+  let cfgs ← srv.mapM (fun i => do return (i, ← tBC xs (tLast xs srv i)))
+  let bconfs ← srv.mapM (tBconfF xs srv)
+  let bootstrap := (List.range xs.length).map (fun k => (tPer xs srv).any (fun p => p.2.1.getD k false))
+  let st : State :=
+    { server := srv, s := (fun i => tServerOf xs srv cfgs bconfs i), messages := [], pendingMessages := [],
+      reconfigCount := 0, preVote := pv, checkQuorum := cq }
+  return { lines := xs, server := srv, initSrv := initSrv, bootstrap := bootstrap, init := st }
+
+theorem newTraceWith_tail {evs : List Event} (pv cq : Bool) (hne : evs ≠ []) {xs : List Line}
+    (hlines : ((List.range evs.length).zip evs).mapM (fun p => parseLine p.1 p.2) = .ok xs)
+    {ad : List (Option ID)} (hadd : xs.mapM addedServer = .ok ad) :
+    newTraceWith evs pv cq = newTraceTail xs (SetIds.mk (xs.map Line.nid ++ ad.filterMap id)) pv cq := by
+  have hne' : evs.isEmpty = false := by simpa using hne
+  unfold newTraceWith
+  simp only [hne', hlines, hadd, bind, Except.bind, Bool.false_eq_true, ite_false]
+  rfl
+
+theorem foldl_bLastF_le (xs : List Line) (i : ID) (N : Nat) :
+    ∀ (l : List (Nat × Line)) (acc : Nat), (∀ p ∈ l, p.1 ≤ N) → acc ≤ N → l.foldl (bLastF xs i) acc ≤ N
+  | [], _, _, h => h
+  | p :: l, acc, hl, h => by
+    rw [List.foldl_cons]
+    apply foldl_bLastF_le xs i N l _ (fun q hq => hl q (List.mem_cons_of_mem _ hq))
+    unfold bLastF; split
+    · exact hl p List.mem_cons_self
+    · exact h
+
+theorem bootstrapOf_snd_le (xs : List Line) (i : ID) : (bootstrapOf xs i).2 ≤ xs.length := by
+  rw [bootstrapOf_eq]
+  apply foldl_bLastF_le _ _ _ _ _ _ (Nat.zero_le _)
+  intro p hp
+  have := bIdx_take_fst_le (j := xs.length) (lines := xs) (p := p)
+    (by rw [List.take_of_length_le (by rw [bIdx_length]; exact Nat.le_refl _)]; exact hp)
+  exact this
+
+theorem find_map_pair {β : Type} (f : ID → β) : ∀ (l : List ID) (i : ID), i ∈ l →
+    (l.map (fun j => (j, f j))).find? (fun p => p.1 == i) = some (i, f i)
+  | [], _, h => by simp at h
+  | j :: l, i, h => by
+    rw [List.map_cons, List.find?_cons]
+    by_cases hj : j = i
+    · subst hj; simp
+    · have : (j == i) = false := by simpa using hj
+      simp only [this]
+      exact find_map_pair f l i (by rcases List.mem_cons.1 h with h | h; exact absurd h.symm hj; exact h)
+
+theorem tLast_eq (xs : List Line) (srv : SetIds) (i : ID) (hi : i ∈ srv) : tLast xs srv i = (bootstrapOf xs i).2 := by
+  unfold tLast tPer; rw [find_map_pair _ srv i hi]; rfl
 
 end Etcdraft
 end EtcdGrove
