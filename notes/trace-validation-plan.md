@@ -466,8 +466,13 @@ then need `lq = none`, which the `RawNode` predicates would record as stage 0 re
 (`%Hgtr`). Not attempted here: it changes `Defs.lean`'s `NGhost` (a full rebuild) and the `RawNode`
 invariants. Trust base: raft's results now reach `strconv.Itoa`'s trust-boundary axiom (Q9's model's
 fallback, through `MessageType.String`, which `makeTracingMessage` calls; the server's already did), and
-Perennial's `time.Sleep` (proved, no axiom); no axiom or `sorry` added. Checked: see the acceptance
-below.
+Perennial's `time.Sleep` (proved, no axiom); no axiom or `sorry` added (the four collections `raft`, `kv`, `kvdurable`, `kvreconf`
+updated with `strconv.Itoa.wp_proof`, as Q2's `FormatUint`). Checked (after merging `trace-check`, at
+`452d95929b`): full `lake build` green (13774 jobs); `etc/tcb-report.py --check` (806 axioms, 4
+`sorry`s, unchanged) and every collection `--reuse --check` (after the four updates); `interface/` differs
+in the four functions' proof files only (`makeTracingMessage`, `traceEvent`, `traceSendMessage`,
+`traceReceiveMessage`: their specs and callee hypotheses); `etc/api-check.py` 0 errors; `etc/gen-link.py
+--raft` (and `--server`, `--kv*`) up to date.
 
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)

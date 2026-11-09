@@ -2,9 +2,24 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem makeTracingMessage.wp_proof [package_sem : Assumptions] : makeTracingMessage.spec
+theorem makeTracingMessage.wp_proof [package_sem : Assumptions] (wp_GetLogTerm :
+    raftpb.Message.GetLogTerm.spec) (wp_GetEntries : raftpb.Message.GetEntries.spec) (wp_GetIndex :
+    raftpb.Message.GetIndex.spec) (wp_GetType : raftpb.Message.GetType.spec) (wp_GetSnapshot :
+    raftpb.Message.GetSnapshot.spec) (wp_GetMetadata : raftpb.Snapshot.GetMetadata.spec)
+    (wp_MdGetIndex : raftpb.SnapshotMetadata.GetIndex.spec) (wp_TypeString :
+    raftpb.MessageType.String.spec) (wp_GetTerm : raftpb.Message.GetTerm.spec) (wp_GetFrom :
+    raftpb.Message.GetFrom.spec) (wp_GetTo : raftpb.Message.GetTo.spec) (wp_GetCommit :
+    raftpb.Message.GetCommit.spec) (wp_GetVote : raftpb.Message.GetVote.spec) (wp_GetReject :
+    raftpb.Message.GetReject.spec) (wp_GetRejectHint : raftpb.Message.GetRejectHint.spec)
+    (wp_FormatUint : strconv.FormatUint.spec) : makeTracingMessage.spec
   -- `Perennial.EtcdGrove.makeTracingMessage.spec`, unfolded:
-  ⊢
-    ∀ Φ,
-      isPkgInit pkg_id.go_etcd_io.raft.v3 -∗
-        ▷ (True -∗ Φ (intoVal null)) -∗ WP ((intoVal (functions makeTracingMessage [])) (intoVal null)) {{ Φ }}
+  (⊢
+      ∀ Φ,
+        isPkgInit pkg_id.go_etcd_io.raft.v3 -∗
+          ▷ (True -∗ Φ (intoVal null)) -∗ WP ((intoVal (functions makeTracingMessage [])) (intoVal null)) {{ Φ }}) ∧
+    ∀ (l : Loc) (dq dqe : DFrac) (cap : Bool) (ms : MsgSt),
+      ⊢
+        ∀ Φ,
+          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ msgPtsC l dq dqe cap ms -∗
+            (▷ ∀ p, msgPtsC l dq dqe cap ms ∗ tracingMsgRep p (some (traceMsgOf ms)) -∗ Φ (intoVal p)) -∗
+              WP ((intoVal (functions makeTracingMessage [])) (intoVal l)) {{ Φ }}

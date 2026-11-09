@@ -16,12 +16,24 @@ theorem traceEvent.wp_proof [package_sem : Assumptions] (wp_evtString :
                 (structFieldRef raft go!"traceLogger" r) tl
                 DFrac.discard ∗
               trOwn tr
-                  iprop(∃ c id s,
-                      ownRaftPhysCV c c.voters r id s ∗
-                        ⌜m = null ∧
-                              prop = null ∧
-                                uint.nat evt < evtNames.length ∧ ∀ (e : TraceEv), NodeEvOf evt id s c e → E e⌝ ∗
-                          (ownRaftPhysCV c c.voters r id s -∗ R)) ∗
+                  iprop(∃ c id s P om e0,
+                      P ∗
+                        RaftLend P c r id s ∗
+                          MsgLend P m om ∗
+                            tracingPropsRep prop e0 ∗
+                              ⌜uint.nat evt < evtNames.length ∧
+                                    ∀ (e : TraceEv),
+                                      EvHdrOf evt id s c e →
+                                        e.msg = msgArgTrace om →
+                                          e.cc = none →
+                                            e.propCC = e0.propCC →
+                                              e.propMatch = e0.propMatch → e.propNext = e0.propNext → E e⌝ ∗
+                                (P -∗ R)) ∗
                 TraceFire tr tl E Q -∗
           ▷ (trOwn tr R ∗ Q -∗ Φ (intoVal ())) -∗
             WP (((((intoVal (functions traceEvent [])) (intoVal evt)) (intoVal r)) (intoVal m)) (intoVal prop)) {{ Φ }}
+
+theorem wp_makeTracingMessage_arg [package_sem : Assumptions] (h : makeTracingMessage.spec) (m :
+    Loc) (om : Option MsgArg) : ⊢ ∀ Φ, isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ msgArg m om -∗ (▷ ∀ p,
+    msgArg m om ∗ tracingMsgRep p (msgArgTrace om) -∗ Φ (intoVal p)) -∗ WP ((intoVal (functions
+    makeTracingMessage [])) (intoVal m)) {{ Φ }}

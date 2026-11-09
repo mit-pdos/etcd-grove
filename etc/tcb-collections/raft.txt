@@ -32,3 +32,4 @@ axiom proto.UnmarshalConfChange.wp_proof
 axiom proto.UnmarshalConfChangeV2.wp_proof
 axiom raftpb.ConfChangeType.String.wp_proof
 axiom strconv.FormatUint.wp_proof
+axiom strconv.Itoa.wp_proof
