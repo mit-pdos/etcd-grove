@@ -508,10 +508,9 @@ theorem keep_pure {P : IProp GF} {φ : Prop} (h : P ⊢ ⌜φ⌝) : P ⊢ P ∗ 
 
 /-- **The global step's law** (`trCap_fire.statement`). -/
 theorem trCap_fire : trCap_fire.statement (GF := GF) := by
-  intro γd γ r id c tl E Φ Φ' Λ Λ' hps hΛ hAsc
+  intro γd γ r id c tl E Φ Φ' Λ Λ' R' hps hΛ hAsc
   iintro ⟨Hcap, #Htl, Hfx⟩
-  iunfold FxPres at Hfx
-  icases Hfx with #Hfx
+  iunfold FxPresU at Hfx
   iunfold trCap at Hcap
   icases Hcap with ⟨%bt0, Hcap⟩
   iunfold trCapB at Hcap
@@ -551,7 +550,7 @@ theorem trCap_fire : trCap_fire.statement (GF := GF) := by
     imod Hclose $$ [HL HA HB HBt] with -
     · inext; iunfold simInv; iexists L, σ, A, B, phP, phM, Bt; iunfold traceFrag; iframe HL HA HB HBt Hfσ; ipureintro; exact Hp
     imodintro
-    iframe Hnode Hbt
+    iframe Hnode Hbt Hfx
   · iintro HL
     imod Hmask with -
     iunfold simNode at Hnode
@@ -570,7 +569,7 @@ theorem trCap_fire : trCap_fire.statement (GF := GF) := by
         σ.server = confAbs C ∧ σ.s (idAbs id) = σ.s (idAbs id) ∧ σ.preVote = false ∧ σ.checkQuorum = false ∧
         σ.violated = .ok none :=
       ⟨HΦ, HE, by rw [hcs, hsrv], hΦ', hle, hsrv, rfl, hpv, hcq, hv⟩
-    icases Hfx $$ %C %cs %P %e %(σ.s (idAbs id)) %a' %P' %σ %hpre Htbl Hfσ with ⟨Htbl, #Hfσ'⟩
+    imod Hfx $$ %C %cs %P %e %(σ.s (idAbs id)) %a' %P' %σ %hpre Htbl Hfσ with ⟨Htbl, #Hfσ', HR⟩
     have hsrv' : (withNode σ (idAbs id) a' _root_.id (fun b => List.foldl Etcdraft.Bag.with b P')).server =
         confAbs C := hsrv
     icases keep_pure (simFx_violated γ C _ hsrv') $$ [$Htbl $Hfσ'] with ⟨⟨Htbl, -⟩, %hv'⟩
@@ -601,6 +600,9 @@ theorem trCap_fire : trCap_fire.statement (GF := GF) := by
       exact ⟨hrun', hsrvN, hA', hAn', hPb', by rw [hM']; exact hMb, hpv, hcq, hsrc',
         bootClause_step C L e ln id Bt hpl hnl hnid (booted_snoc_self L e ln _ hpl hnl hbl) hbtC, ascii_snoc L e hasc (hAsc e HE)⟩
     imodintro
+    isplitr [HR]
+    rotate_left
+    · iexact HR
     iunfold trCapB
     iexists tn, C, tl, toC σ.server a', P ++ P'
     iunfold simNode
@@ -1158,10 +1160,9 @@ theorem trCap_fire_bf : trCap_fire_bf.statement (GF := GF) := by
 
 /-- **The law of a booted node's line** (`trCap_fire_booted.statement`). -/
 theorem trCap_fire_booted : trCap_fire_booted.statement (GF := GF) := by
-  intro γd γ r id c tl E Φ Φ' Λ Λ' hps hΛ hAsc
+  intro γd γ r id c tl E Φ Φ' Λ Λ' R' hps hΛ hAsc
   iintro ⟨Hcap, #Htl, Hfx⟩
-  iunfold FxPres at Hfx
-  icases Hfx with #Hfx
+  iunfold FxPresU at Hfx
   iunfold trCapB at Hcap
   icases Hcap with ⟨%tn, %C, %tl', %cs, %P, #Hdir, %Hpf, #Htl', #Hlg, %Hnn, #Hinv, #Hrinv, Hnode, Hbt, %HΦ⟩
   icombine Htl Htl' gives %Htleq
@@ -1199,7 +1200,7 @@ theorem trCap_fire_booted : trCap_fire_booted.statement (GF := GF) := by
     imod Hclose $$ [HL HA HB HBt] with -
     · inext; iunfold simInv; iexists L, σ, A, B, phP, phM, Bt; iunfold traceFrag; iframe HL HA HB HBt Hfσ; ipureintro; exact Hp
     imodintro
-    iframe Hnode Hbt
+    iframe Hnode Hbt Hfx
   · iintro HL
     imod Hmask with -
     iunfold simNode at Hnode
@@ -1226,7 +1227,7 @@ theorem trCap_fire_booted : trCap_fire_booted.statement (GF := GF) := by
         σ.server = confAbs C ∧ σ.s (idAbs id) = σ.s (idAbs id) ∧ σ.preVote = false ∧ σ.checkQuorum = false ∧
         σ.violated = .ok none :=
       ⟨HΦ, HE, by rw [hcs, hsrv], hΦ', hle, hsrv, rfl, hpv, hcq, hv⟩
-    icases Hfx $$ %C %cs %P %e %(σ.s (idAbs id)) %a' %P' %σ %hpre Htbl Hfσ with ⟨Htbl, #Hfσ'⟩
+    imod Hfx $$ %C %cs %P %e %(σ.s (idAbs id)) %a' %P' %σ %hpre Htbl Hfσ with ⟨Htbl, #Hfσ', HR⟩
     have hsrv' : (withNode σ (idAbs id) a' _root_.id (fun b => List.foldl Etcdraft.Bag.with b P')).server =
         confAbs C := hsrv
     icases keep_pure (simFx_violated γ C _ hsrv') $$ [$Htbl $Hfσ'] with ⟨⟨Htbl, -⟩, %hv'⟩
@@ -1253,6 +1254,9 @@ theorem trCap_fire_booted : trCap_fire_booted.statement (GF := GF) := by
       exact ⟨hrun', hsrvN, hA', hAn', hPb', by rw [hM']; exact hMb, hpv, hcq, hsrc',
         bootClause_step C L e ln id Bt hpl hnl hnid (booted_snoc_mono L e _ hbooted) hbtC, ascii_snoc L e hasc (hAsc e HE)⟩
     imodintro
+    isplitr [HR]
+    rotate_left
+    · iexact HR
     iunfold trCapB
     iexists tn, C, tl, toC σ.server a', P ++ P'
     iunfold simNode
@@ -1266,15 +1270,15 @@ theorem trCap_fire_booted : trCap_fire_booted.statement (GF := GF) := by
 
 /-- **The unified law** (`trCap_fire_any.statement`): by the flag, `trCap_fire` or `trCap_fire_booted`. -/
 theorem trCap_fire_any : trCap_fire_any.statement (GF := GF) := by
-  intro γd γ r id c tl E b Φ Φ' Λ Λ' hps hnb hΛ hAsc
+  intro γd γ r id c tl E b Φ Φ' Λ Λ' R' hps hnb hΛ hAsc
   cases b with
-  | true => exact trCap_fire_booted γd γ r id c tl E Φ Φ' Λ Λ' hps hΛ hAsc
+  | true => exact trCap_fire_booted γd γ r id c tl E Φ Φ' Λ Λ' R' hps hΛ hAsc
   | false =>
     have hps' : PhaseStep id c E Φ Φ' := by
       intro C cs P hΦ hc e he
       obtain ⟨hnid, -, hall⟩ := hps C cs P hΦ hc e he
       exact ⟨hnid, hnb rfl e he, hall⟩
-    refine Entails.trans ?_ (trCap_fire γd γ r id c tl E Φ Φ' Λ Λ' hps' hΛ hAsc)
+    refine Entails.trans ?_ (trCap_fire γd γ r id c tl E Φ Φ' Λ Λ' R' hps' hΛ hAsc)
     iintro ⟨H, #Hl, Hfx⟩
     iframe Hl Hfx
     iapply trCapB_trCap

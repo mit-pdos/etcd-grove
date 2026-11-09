@@ -1364,16 +1364,19 @@ creates entries and append requests of its term). All four are `becomeLeader_hyp
 `isCamp γ i T F0` with `logRecs γ base0 F0` (`F0` as long as `i`'s log), its term map without `T`
 (no term log, so no entry, of `T` yet) and `votesTbl γ`. **Raft's ghost does not hold `isLeader` and
 the term map without `T` at once** (it takes the win, with the term log and the empty entry, in one
-step after `stepCandidate`): the hook needs the win's registration split from its term log. Each
-hypothesis's source:
+step after `stepCandidate`): the hook needs the win's registration split from its term log, which
+the line's step itself creates (`FxPresU`, review round 5's E1), the empty entry following at its
+append; `campOwn`'s leader clause (a log longer than the campaign log) relaxed until that append
+(round 5's E4).
+
+Each hypothesis's source:
 
 - `hfreshLog`: no entry of term `T` in any log: a recorded entry's record names `T`'s term log
   (`isEntryR_term_ne`), a leader's pending entry is of its own term, and `T`'s only leader is `i`, a
   candidate in `σ` (`srvFacts`, `isLeader_unique`);
 - `hfreshMsg`: none in any message: an append request's entries have records (`msgFacts`), and at a
-  bootstrap position are of term `1 < T` (`isLeader_boot`). It needs as well that only an append
-  request carries entries, in range (`becomeLeader_hyps`'s `hents`), which no fact of the simulation
-  says yet;
+  bootstrap position are of term `1 < T` (`isLeader_boot`); only an append request carries entries, in
+  range (`msgFacts`, as of review round 4's D2);
 - `hfreshReq`: no append request of term `T`: its sender leads `T` (`msgFacts`), so is `i`, which
   has none out (`CandS`);
 - `hcw`: every server of term `T` has its commit index within `i`'s log: its certificate is of a term
@@ -2002,8 +2005,8 @@ within its sender's (`ReqCommitC`). What the simulation supplies: `hco`, `Commit
 (`allFacts_commitOk`); `hcmp`, the committed prefixes of `i` and `m`'s sender in the new state
 comparable (`allFacts_logInv` of the new state; review round 4's D4: the receipt's facts are due at
 `Step`'s entry, before any handler, so the follower's raised commit index's `isCommitted`/`commitIn`
-come from the message's commit certificate, `msgFacts`' committed log `L`, not from raft's later
-update). -/
+come from raft's own message facts, which `raft.Step` receives with the message (`#Hmsg`, carried
+over with `commitIn_move`; review round 5's E2), not from raft's later update). -/
 theorem quorumLog_appendEntriesAlreadyDone {σ σ' : State} {i j : ID} {index : Int} {m : Etcdraft.Msg}
     (h : SpecInv σ) (hq : QuorumLogS σ) (hm : m ∈ σ.messages.domain)
     (hty : m.type = .appendEntriesRequest) (hco : TraceSim.CommitOk σ)

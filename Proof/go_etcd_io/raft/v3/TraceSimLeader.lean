@@ -274,7 +274,7 @@ theorem becomeLeader_hyps (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) 
     ihave Hm := Hmf $$ %m %hm
     iunfold msgFacts at Hm
     simp only [hty, ↓reduceIte]
-    icases Hm with ⟨%src, %es, %hpm, -, #Hr, -⟩
+    icases Hm with ⟨%src, %es, %hpm, -, #Hr⟩
     have hme := hpm.2.1
     obtain ⟨k, hk⟩ := List.getElem?_of_mem he
     have hkm : k < m.entries.length := (List.getElem?_eq_some_iff.mp hk).1

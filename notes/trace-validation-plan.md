@@ -277,6 +277,17 @@ every message), and carries an append request's commit certificate (D4). **Open 
 `WinsOk` relaxed for a registered win. D3, D4, D6 done; D5 (`FxPresBF` a lemma for `VoteLost`) left as
 the caller's; C5-C7 open (second tier).
 
+**Round 5 (`notes/trace-validation-reviews/s5-r5.md`, 2026-11-09): one first-tier finding, repaired.**
+E1: the `BecomeLeader` line's facts need the new leader's term log absent before the step and present
+after, so a persistent `FxPres` cannot carry them; the plain-line laws now take `FxPresU` (consumed
+once, with a ghost update `==∗` and a resource `R'` returned with the capability; `FxPres` is its
+case `R' = emp`, `fxPres_upd`), so the term log is created inside the line's step. The split of
+raft's win step is then: the registration before `becomeLeader`'s hook, the term log in the line's
+step, the empty entry at the append, with `WinsOk` and (E4) `campOwn`'s leader clause relaxed until
+that append. E2: `msgFacts`' commit certificate dropped (raft's `Step` has the real source, its
+message facts `#Hmsg`, `commitIn_move`); E3 docstrings. Open (second tier): D6 (`send` with
+`PhaseStepB`), C5-C7. Next: round 6.
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its
