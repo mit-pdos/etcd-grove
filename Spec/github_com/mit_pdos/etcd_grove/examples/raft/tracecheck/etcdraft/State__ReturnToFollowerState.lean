@@ -23,7 +23,8 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Assumptions]
 
 /-- `s.ReturnToFollowerState(i, m)`, of a server `i` of the state: `returnToFollowerState i m`'s
-successor, a new read-only state, or `nil` where it is not enabled. -/
+successor, a new state (a clone the caller owns, `HandleAppendEntriesRequest` writes it), or `nil`
+where it is not enabled. -/
 abbrev State.ReturnToFollowerState.spec : Prop :=
   ∀ (p : Loc) (st : State) (i : w64) (q : Loc) (m : Msg),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft ∗
@@ -33,7 +34,7 @@ abbrev State.ReturnToFollowerState.spec : Prop :=
   {{ (r : Loc), RET #r;
       match st.returnToFollowerState (uint.nat i) m with
       | none => ⌜r = null⌝
-      | some st' => stateRO r st' }}
+      | some st' => ∃ M, stateOwn r st' M }}
 
 end spec
 

@@ -22,11 +22,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Assumptions]
 
-/-- `s.NoConflictAppendEntriesRequest(i, index, m)`, of a server `i` of the state, an index at least 1,
-the message's `prevLogIndex` and the logs far from overflow (`HasNoConflict`'s premises):
-`noConflictAppendEntriesRequest i index m`'s successor (it never fails where enabled: `HasNoConflict`
-gives `index ≤ Len(log) + 1`, so the suffix's `SubSeq` is defined), a new read-only state, or `nil` where
-it is not enabled. -/
+/-- `s.NoConflictAppendEntriesRequest(i, index, m)`, of a server `i` of the state, an index at least
+1, the message's `prevLogIndex` and the logs far from overflow (`HasNoConflict`'s premises):
+`noConflictAppendEntriesRequest i index m`'s successor (it never fails where enabled:
+`HasNoConflict` gives `index ≤ Len(log) + 1`, so the suffix's `SubSeq` is defined), a new state (a
+clone the caller owns, `HandleAppendEntriesRequest` writes it), or `nil` where it is not enabled. -/
 abbrev State.NoConflictAppendEntriesRequest.spec : Prop :=
   ∀ (p : Loc) (st : State) (i index : w64) (q : Loc) (m : Msg),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft ∗
@@ -39,7 +39,7 @@ abbrev State.NoConflictAppendEntriesRequest.spec : Prop :=
   {{ (r : Loc), RET #r;
       match st.noConflictAppendEntriesRequest (uint.nat i) (sint.Z index) m with
       | .ok none => ⌜r = null⌝
-      | .ok (some st') => stateRO r st'
+      | .ok (some st') => ∃ M, stateOwn r st' M
       | .error _ => False }}
 
 end spec

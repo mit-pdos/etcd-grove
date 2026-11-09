@@ -23,9 +23,9 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Assumptions]
 
 /-- `s.ConflictAppendEntriesRequest(i, index, m)`, of a server `i` of the state, an index at least 1
-and the logs far from overflow (`HasNoConflict`'s premises): `conflictAppendEntriesRequest i index m`'s
-successor (it never fails: `SubSeq(log, 1, Len(log) - 1)` is defined), a new read-only state, or `nil`
-where it is not enabled. -/
+and the logs far from overflow (`HasNoConflict`'s premises): `conflictAppendEntriesRequest i index
+m`'s successor (it never fails: `SubSeq(log, 1, Len(log) - 1)` is defined), a new state (a clone the
+caller owns, `HandleAppendEntriesRequest` writes it), or `nil` where it is not enabled. -/
 abbrev State.ConflictAppendEntriesRequest.spec : Prop :=
   ∀ (p : Loc) (st : State) (i index : w64) (q : Loc) (m : Msg),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft ∗
@@ -37,7 +37,7 @@ abbrev State.ConflictAppendEntriesRequest.spec : Prop :=
   {{ (r : Loc), RET #r;
       match st.conflictAppendEntriesRequest (uint.nat i) (sint.Z index) m with
       | .ok none => ⌜r = null⌝
-      | .ok (some st') => stateRO r st'
+      | .ok (some st') => ∃ M, stateOwn r st' M
       | .error _ => False }}
 
 end spec

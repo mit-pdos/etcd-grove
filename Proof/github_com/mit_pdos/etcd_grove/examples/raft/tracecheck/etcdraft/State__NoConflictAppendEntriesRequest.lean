@@ -132,13 +132,13 @@ theorem State.NoConflictAppendEntriesRequest.wp_proof (wp_clone : State.clone.sp
     iapply (BigSepL2.bigSepL2_append (Or.inl Hell)).2
     iframe Hel Hul
   close_copy' { gc with Log' := s2 }, (fun (v : Server) => { v with log := (st.s (uint.nat i)).log ++ r }), Hcf with Hnl Hcr Hcg Hcc Hcd
-  imod stateOwn_persist $$ Hs with #Hs
   imodintro
   iapply HΦ
   have : st.noConflictAppendEntriesRequest (uint.nat i) (sint.Z index) m = .ok (some (st.upd (uint.nat i) (fun (v : Server) => { v with log := (st.s (uint.nat i)).log ++ r }))) := by
     unfold State.noConflictAppendEntriesRequest subSeqM; simp [hne, hA, hnc, hgt, hs]; rfl
   rw [this]
-  iexact Hs
+  dsimp only
+  iexists _; iexact Hs
 
 end proof
 

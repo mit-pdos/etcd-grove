@@ -23,8 +23,8 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Assumptions]
 
 /-- `s.RejectAppendEntriesRequest(i, j, m, logOk)`, of a server `i` of the state whose bags the Go's
-`Bag` handles (`Bag.Ok`): `rejectAppendEntriesRequest i j m logOk`'s successor, a new read-only state,
-or `nil` where it is not enabled. -/
+`Bag` handles (`Bag.Ok`): `rejectAppendEntriesRequest i j m logOk`'s successor, a new state (a clone
+the caller owns, `HandleAppendEntriesRequest` writes it), or `nil` where it is not enabled. -/
 abbrev State.RejectAppendEntriesRequest.spec : Prop :=
   ∀ (p : Loc) (st : State) (i j : w64) (q : Loc) (m : Msg) (logOk : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft ∗
@@ -35,7 +35,7 @@ abbrev State.RejectAppendEntriesRequest.spec : Prop :=
   {{ (r : Loc), RET #r;
       match st.rejectAppendEntriesRequest (uint.nat i) (uint.nat j) m logOk with
       | none => ⌜r = null⌝
-      | some st' => stateRO r st' }}
+      | some st' => ∃ M, stateOwn r st' M }}
 
 end spec
 

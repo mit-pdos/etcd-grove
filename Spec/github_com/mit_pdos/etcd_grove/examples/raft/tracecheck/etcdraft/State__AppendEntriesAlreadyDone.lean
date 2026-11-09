@@ -23,9 +23,10 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Assumptions]
 
 /-- `s.AppendEntriesAlreadyDone(i, j, index, m)`, of a server `i` of the state whose bags the Go's
-`Bag` handles (`Bag.Ok`), an index at least 1 and the message's numbers and the logs far from overflow
-(`HasNoConflict`'s premises): `appendEntriesAlreadyDone i j index m`'s successor, a new read-only state,
-or `nil` where it is not enabled. -/
+`Bag` handles (`Bag.Ok`), an index at least 1 and the message's numbers and the logs far from
+overflow (`HasNoConflict`'s premises): `appendEntriesAlreadyDone i j index m`'s successor, a new
+state (a clone the caller owns, `HandleAppendEntriesRequest` writes it), or `nil` where it is not
+enabled. -/
 abbrev State.AppendEntriesAlreadyDone.spec : Prop :=
   ∀ (p : Loc) (st : State) (i j index : w64) (q : Loc) (m : Msg),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft ∗
@@ -38,7 +39,7 @@ abbrev State.AppendEntriesAlreadyDone.spec : Prop :=
   {{ (r : Loc), RET #r;
       match st.appendEntriesAlreadyDone (uint.nat i) (uint.nat j) (sint.Z index) m with
       | none => ⌜r = null⌝
-      | some st' => stateRO r st' }}
+      | some st' => ∃ M, stateOwn r st' M }}
 
 end spec
 

@@ -98,13 +98,13 @@ theorem State.ConflictAppendEntriesRequest.wp_proof (wp_clone : State.clone.spec
     exact hs
   try wp_auto
   close_copy' { gc with Log' := u }, (fun (v : Server) => { v with log := r }), Hcf with Hu Hcr Hcg Hcc Hcd
-  imod stateOwn_persist $$ Hs with #Hs
   imodintro
   iapply HΦ
   have : st.conflictAppendEntriesRequest (uint.nat i) (sint.Z index) m = .ok (some (st.upd (uint.nat i) (fun (v : Server) => { v with log := r }))) := by
     unfold State.conflictAppendEntriesRequest subSeqM; simp [hne, hA, hnc, hs]; rfl
   rw [this]
-  iexact Hs
+  dsimp only
+  iexists _; iexact Hs
 
 end proof
 

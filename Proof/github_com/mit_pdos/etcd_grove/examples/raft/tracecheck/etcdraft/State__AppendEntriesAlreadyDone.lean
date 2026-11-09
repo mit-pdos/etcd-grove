@@ -42,11 +42,10 @@ local macro "ad_send" stt:term : tactic => `(tactic| (
     wp_apply wp_reply t $stt _ _ _ q m $$ [Ht Hresp Hmsg] as Ht
     · iframe Ht Hresp Hmsg; ipureintro; exact ⟨Hpok.1, Hpok.count_lt _, Hmok.1⟩
     try wp_auto
-    imod stateOwn_persist $$ Ht with #Ht
     imodintro
     iapply HΦ
     rw [hst]
-    iexact Ht))
+    iexists _; iexact Ht))
 
 -- After the commit: the match index, the response sent, the request discarded (hygiene off).
 set_option hygiene false in

@@ -51,14 +51,13 @@ local macro "rj_fin" lo:term : tactic => `(tactic| (
     wp_apply wp_reply t st [] _ _ q m $$ [Ht Hresp Hmsg] as Ht
     · iframe Ht Hresp Hmsg; ipureintro; exact ⟨Hpok.1, Hpok.count_lt _, Hmok.1⟩
     try wp_auto
-    imod stateOwn_persist $$ Ht with #Ht
     imodintro
     iapply HΦ
     have : st.rejectAppendEntriesRequest (uint.nat i) (uint.nat j) m $lo =
         some (st.reply { type := .appendEntriesResponse, subtype := "app", term := (st.s (uint.nat i)).currentTerm, success := (st.preVote || st.checkQuorum) && decide (m.term < (st.s (uint.nat i)).currentTerm), matchIndex := 0, source := uint.nat i, dest := uint.nat j } m) := by
       unfold State.rejectAppendEntriesRequest; simp_all
     rw [this]
-    iexact Ht))
+    iexists _; iexact Ht))
 
 -- Enabled: the clone, `success` by the configuration's cases (hygiene off).
 set_option hygiene false in

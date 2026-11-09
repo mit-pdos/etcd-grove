@@ -52,11 +52,10 @@ local macro "rf_some" : tactic => `(tactic| (
     close_copy { gc with State' := go!"StateFollower" }, (fun v => { v with state := follower }),
       ⟨Hcf.1, strRel_follower, Hcf.2.2.1, Hcf.2.2.2.1, Hcf.2.2.2.2.1, Hcf.2.2.2.2.2⟩
     try wp_auto
-    imod stateOwn_persist $$ Hs with #Hs
     imodintro
     iapply HΦ
     rw [hrf]
-    iexact Hs))
+    iexists _; iexact Hs))
 
 theorem State.ReturnToFollowerState.wp_proof (wp_clone : State.clone.spec (GF := GF) (hG := hG))
     (wp_mut : State.mut.spec (GF := GF) (hG := hG)) :
