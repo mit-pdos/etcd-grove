@@ -84,7 +84,7 @@ def entAbs (C : List w64) (bl : Nat) (k : Nat) (e : EntryM) : Etcdraft.Entry :=
 
 /-- A log as the specification's, from its first index `first` (1 for an uncompacted log). -/
 def logAbs (C : List w64) (bl : Nat) (first : Nat) (l : List EntryM) : List Etcdraft.Entry :=
-  (List.range l.length).zipWith (fun k e => entAbs C bl (first + k) e) l
+  l.mapIdx (fun k e => entAbs C bl (first + k) e)
 
 /-- A traced message as the specification's (`none` for an untraced type). The traced types are
 `traceSendMessage`'s: votes, appends, heartbeats, snapshots, their responses (and, with 0011,
