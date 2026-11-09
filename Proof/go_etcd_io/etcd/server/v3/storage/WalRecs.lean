@@ -119,14 +119,19 @@ its snapshot record of the highest index at or below the saved commit: the snaps
 `σ.base`, the last hard state `σ.hs`, the entries above `σ.base`. With the authority over its base's
 lower bounds (`walBaseLb`): the base only grows.
 
-(raft-entsize §5, [r3g], 2026-11-09) **`sized`** (default `false`, today's meaning): when `true`,
-every entry record in the WAL is `pbutil.MustMarshalMessage(e)` of an entry object `e` that held a
-content `c` with `entSizeOk c` when it was saved (the `Save` law at `sized = true` takes those
-objects; `saveEntry` marshals the saved object, `wal.go:~979-988`, called per entry from `Save`'s
-loop, `:1005-1014`). `wal.Create` starts with no entry records, so `bootstrap`'s first start gives
-`true` (`wal.bootOk`). `false` claims nothing of the records' contents, so `true` weakens to it
-(`walRecs_unsize`). The flag is in the records' ghost variable, so every `Save` and `Close` of the
-WAL sees the same flag (whichever storage over `w` they go through). -/
+(raft-entsize §5, [r3g], 2026-11-09; the axiom review's W2/W3) **`sized`** (default `false`, today's
+meaning): when `true`, every entry record written by a *successful* `Save` (one whose law commits,
+`storage.walSaveOk`) is `pbutil.MustMarshalMessage(e)` of an entry object `e` that held a content
+`c` with `entSizeOk c` when it was saved (the `Save` law at `sized = true` takes those objects;
+`saveEntry` marshals the saved object, `wal.go:1011-1020` at the goose pin `a4d2bb172`, called per
+entry from `Save`'s loop, `:1050-1052`). A failed `Save` (`¬ storage.walSaveOk`: its law commits no
+update, at either flag) may have written some records and leaves the flag as it was, so a failed
+`Save` at `false` into a sized WAL may leave unbounded records under `true`: a future `ReadAll` law
+that gives the bound must take `walSaveOk` (`diskOk`). `wal.Create` starts with no entry records,
+so `bootstrap`'s first start gives `true` (`wal.bootOk`). `SaveSnap` only drops entries, so it keeps
+the flag. `false` claims nothing of the records' contents, so `true` weakens to it
+(`walRecs_unsize`). The flag is in the records' ghost variable, so every `Save`, `SaveSnap` and
+`Close` of the WAL sees the same flag (whichever storage over `w` they go through). -/
 @[no_expose] def walRecs (w : Loc) (σ : StorContents) (sized : Bool := false) : IProp GF :=
   iprop(ghostVar (walRecGName w) 1 (σ, sized) ∗ monoNatAuthOwn (walBaseGName w) 1 σ.b)
 
@@ -161,8 +166,8 @@ theorem walRecs_excl (w : Loc) (σ σ' : StorContents) (s : Bool := false) (s' :
   iapply monoNatAuthOwn_exclusive (walBaseGName w) σ.b σ'.b $$ A1 A2
 
 /-- The records' base is a lower bound of itself. -/
-theorem walRecs_baseLb (w : Loc) (σ : StorContents) :
-    walRecs (GF := GF) w σ ⊢ walRecs w σ ∗ walBaseLb w σ.b := by
+theorem walRecs_baseLb (w : Loc) (σ : StorContents) (sized : Bool := false) :
+    walRecs (GF := GF) w σ sized ⊢ walRecs w σ sized ∗ walBaseLb w σ.b := by
   unfold walRecs walBaseLb
   iintro ⟨Hv, Ha⟩
   ihave #Hl := monoNatLbOwn_get (walBaseGName w) 1 σ.b $$ Ha
@@ -179,19 +184,20 @@ theorem walBaseLb_mono (w : Loc) (i j : Nat) (h : j ≤ i) :
 
 /-- (Sweep repairs 1, W2) **After `SaveSnap(m)`, the records start at or above `m`'s index**: a lower
 bound of the base at `m`'s index (what `storage.Release` at `m` takes). -/
-theorem walRecs_saveSnap_baseLb (w : Loc) (σ : StorContents) (m : SnapshotMetadataM) :
-    walRecs (GF := GF) w (walSaveSnap σ m) ⊢
-      walRecs w (walSaveSnap σ m) ∗ walBaseLb w (uint.nat m.Index') := by
+theorem walRecs_saveSnap_baseLb (w : Loc) (σ : StorContents) (m : SnapshotMetadataM)
+    (sized : Bool := false) :
+    walRecs (GF := GF) w (walSaveSnap σ m) sized ⊢
+      walRecs w (walSaveSnap σ m) sized ∗ walBaseLb w (uint.nat m.Index') := by
   iintro Hr
-  icases walRecs_baseLb w _ $$ Hr with ⟨Hr, #Hl⟩
+  icases walRecs_baseLb w _ sized $$ Hr with ⟨Hr, #Hl⟩
   iframe Hr
   iapply walBaseLb_mono w _ _ ?_ $$ Hl
   obtain ⟨h1, h2⟩ := walSaveSnap_base_ge σ m
   omega
 
 /-- A lower bound of the base is below the records' base. -/
-theorem walRecs_baseLb_le (w : Loc) (σ : StorContents) (i : Nat) :
-    walRecs (GF := GF) w σ ∗ walBaseLb w i ⊢ walRecs w σ ∗ ⌜i ≤ σ.b⌝ := by
+theorem walRecs_baseLb_le (w : Loc) (σ : StorContents) (i : Nat) (sized : Bool := false) :
+    walRecs (GF := GF) w σ sized ∗ walBaseLb w i ⊢ walRecs w σ sized ∗ ⌜i ≤ σ.b⌝ := by
   unfold walRecs walBaseLb
   iintro ⟨⟨Hv, Ha⟩, #Hl⟩
   icases monoNatLbOwn_valid (walBaseGName w) 1 σ.b i $$ Ha Hl with %H
@@ -208,14 +214,18 @@ member `id` of the cluster `cid`** (axiomatized, timeless; a trust-boundary toke
 Made by `Close`; consumed by a restart's `bootstrap` (its contract). A graceful stop in one
 process. No axiom says it is exclusive: read as `True`, every axiom about it holds.
 
-(raft-entsize §5, [r3g], 2026-11-09) **`sized`** (default `false`, today's meaning): when `true`,
-every entry record in the files is `pbutil.MustMarshalMessage(e)` of a saved entry object whose
-content `c` had `entSizeOk c` (`walRecs`'s `sized`, which `Close` carries into the files: `Close`
-syncs and closes, it writes no record). `ReadAll` decodes each entry record with `Unmarshal`, whose
-exact round trip (stage A's `D2`, `proto/UnmarshalPb.lean`) gives back the saved content, unknown
-fields included, so the replayed entries are `entSizeOk`: that fact is to be stated by the restart
-contract's `ReadAll` (deferred to the restart contract's work; no statement gives it yet). A WAL
-written by another program is at `false`: today's facts only. -/
+(raft-entsize §5, [r3g], 2026-11-09; the axiom review's W2/W3) **`sized`** (default `false`, today's
+meaning): when `true`, every entry record in the files written by a *successful* `Save`
+(`storage.walSaveOk`) is `pbutil.MustMarshalMessage(e)` of a saved entry object whose content `c`
+had `entSizeOk c` (`walRecs`'s `sized`, which `Close` carries into the files: `Close` syncs and
+closes, it writes no record; `saveEntry`, `wal.go:1011-1020` at the goose pin `a4d2bb172`, from
+`Save`'s loop, `:1050-1052`). A failed `Save` leaves the flag as it was, possibly with records it
+wrote (a failed `Save` at `false` into a sized WAL may leave unbounded records under `true`).
+`ReadAll` decodes each entry record with `Unmarshal`, whose exact round trip (stage A's `D2`,
+`proto/UnmarshalPb.lean`) gives back the saved content, unknown fields included, so the replayed
+entries are `entSizeOk`: that fact is to be stated by the restart contract's `ReadAll` (deferred to
+the restart contract's work; no statement gives it yet), which must take `walSaveOk` (`diskOk`: no
+`Save` failed). A WAL written by another program is at `false`: today's facts only. -/
 axiom walFiles {GF : BundledGFunctors} [GooseExts] (dir : GoString) (id cid : w64)
     (σ : StorContents) (sized : Bool := false) : IProp GF
 

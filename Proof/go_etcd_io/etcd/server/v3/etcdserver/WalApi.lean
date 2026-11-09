@@ -54,7 +54,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 `sized`** (raft-entsize §5, [r3g], 2026-11-09): unsized, today's `entriesAt esL es`; sized, each
 object frozen at a wire content (`entRoC`) whose model is the saved entry's and whose size is
 bounded (`entSizeOk`), which `saveEntry` writes as `MustMarshalMessage(e)` of that object
-(`wal.go:~979-988`). -/
+(`wal.go:1011-1020` at the goose pin `a4d2bb172`). -/
 def walSaveEnts (sized : Bool) (esL : List Loc) (es : List EntryM) : IProp GF :=
   if sized then
     iprop(∃ cs : List EntryC, ([∗list] l; c ∈ esL; cs, entRoC l c) ∗
@@ -68,10 +68,13 @@ below.
 (raft-entsize §5, [r3g], 2026-11-09) The `Save` and `Close` laws are over the records' flag
 `sized` (`walRecs`'s). `Save` at `sized = true` takes the entries as objects frozen at contents
 of bounded size (`walSaveEnts`): `serverstorage`'s `Save` calls `wal.Save(st, ents)`, which writes
-each entry record as `pbutil.MustMarshalMessage(ents[i])` (`saveEntry`, `wal.go:~979-988`, from
-`Save`'s loop, `:1005-1014`), so the record's bytes are the encoding of the saved object's content,
-and the flag stays `true`. At `sized = false`, today's premise (`entriesAt`). `Close` writes no
-record: the files keep the flag (`walFiles … sized`). -/
+each entry record as `pbutil.MustMarshalMessage(ents[i])` (`saveEntry`, `wal.go:1011-1020` at the
+goose pin `a4d2bb172`, from `Save`'s loop, `:1050-1052`), so the record's bytes are the encoding of
+the saved object's content, and the flag stays `true`. At `sized = false`, today's premise
+(`entriesAt`). A failed `Save` commits no update and leaves the flag as it was (`walRecs`'s
+docstring: the flag speaks of successful saves only). `SaveSnap` (the axiom review's W1) only drops
+entries (`walSaveSnap`), so it keeps the flag. `Close` writes no record: the files keep the flag
+(`walFiles … sized`). -/
 @[no_expose] def isWalStorage (st : GoInterface) : IProp GF :=
   letI w := storage.walOf st
   iprop(∃ si : GoInterfaceOk, ⌜st = GoInterface.ok si⌝ ∗
@@ -83,12 +86,13 @@ record: the files keep the flag (`walFiles … sized`). -/
         (App (App (Val #(methods si.ty go!"Save" si.v)) (Val #hp)) (Val #sl))
       {{ (err : GoInterface), RET #err; storage.walOpen w q ∗
           ((⌜err = GoInterface.nil⌝ ∗ Q) ∨ ⌜¬ storage.walSaveOk⌝) }}) ∗
-    □ (∀ (q : Qp) (sn mp : Loc) (dq dq' : DFrac) (md : SnapshotMetadataM) (Q : IProp GF),
+    □ (∀ (sized : Bool) (q : Qp) (sn mp : Loc) (dq dq' : DFrac) (md : SnapshotMetadataM)
+        (Q : IProp GF),
       {{ storage.walOpen w q ∗ sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗
           smPtsV mp dq' md ∗
-          AU <{ ∃∃ (σ : StorContents), walRecs w σ ∗
+          AU <{ ∃∃ (σ : StorContents), walRecs w σ sized ∗
                 ⌜uint.nat md.Index' = σ.b → md.Term' = σ.base.term'⌝ }>
-            @ ⊤, ∅ <{ walRecs w (walSaveSnap σ md), COMM Q }> }}
+            @ ⊤, ∅ <{ walRecs w (walSaveSnap σ md) sized, COMM Q }> }}
         (App (Val #(methods si.ty go!"SaveSnap" si.v)) (Val #sn))
       {{ (err : GoInterface), RET #err; storage.walOpen w q ∗
           sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smPtsV mp dq' md ∗
@@ -187,7 +191,7 @@ theorem walSaveSnap_spec (st : GoInterface) (si : GoInterfaceOk) (hst : st = GoI
   unfold isWalStorage
   iintro ⟨%si', %Heq, -, #HS, -, -⟩
   rw [hst] at Heq; cases Heq
-  ispecialize HS $$ %q %sn %mp %dq %dq' %md %Q
+  ispecialize HS $$ %false %q %sn %mp %dq %dq' %md %Q
   iexact HS
 
 /-- `Sync`. -/
