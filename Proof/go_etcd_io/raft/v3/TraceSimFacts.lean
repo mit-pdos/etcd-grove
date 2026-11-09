@@ -249,6 +249,26 @@ theorem allFacts_logMatching (γ : RaftNames) (C : List w64) (σ : Etcdraft.Stat
   · rw [logAbs_match C esi esj hbi hbj hwi hwj hlni hlnj Hra n (by omega) (by omega) ht]; simp
   · simp [ht]
 
+/-- **`CommitOk` from the facts.** -/
+theorem allFacts_commitOk (γ : RaftNames) (C : List w64) (σ : Etcdraft.State)
+    (hsrv : σ.server = confAbs C) :
+    allFacts (GF := GF) γ C σ ⊢ ⌜CommitOk σ⌝ := by
+  iintro #H
+  iunfold allFacts at H
+  by_cases hc : CommitOk σ
+  · ipureintro; exact hc
+  unfold CommitOk at hc
+  simp only [Classical.not_forall] at hc
+  obtain ⟨x, hx, hc⟩ := hc
+  rw [hsrv] at hx
+  obtain ⟨i, hi, rfl⟩ := mem_confAbs_inv C x hx
+  ihave Hfi := H $$ %i %hi
+  iunfold srvFacts at Hfi
+  icases Hfi with ⟨%esi, %Hpi, -, -, -⟩
+  exfalso; apply hc
+  obtain ⟨hl, -, -, -, h0, h1, -⟩ := Hpi
+  rw [hl, logAbs_length]; exact ⟨h0, h1⟩
+
 end ghost
 
 end EtcdGrove
