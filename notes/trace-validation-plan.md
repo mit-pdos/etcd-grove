@@ -847,6 +847,11 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   `Rep`), unnamed event indices, the pure premises outside the triples, the repeated outcome state in the
   `maybeCommit` statements, `SimIdle`'s `2^63` beside `traceNumBound`, and the API widening (a sealed module
   exposing only `simInv_end` would be smaller).
+  Review round 4 (`q13-r4.md`): no new first-tier finding; A (the blocker) and C (predating Q13) open as
+  above. Repaired: the Draft `raft.maybeCommit.tracedSpec` gives `⌜maybeCommitOut c s b N⌝` (N1), the
+  headers list the new lemmas and the blocker (N2). Note for F4: once `MsgEvOf` pins `rejectHint`, a
+  receive line's premise also needs the received message's `rejectHint` bounded (its source, raft's
+  message facts or a `simInv` clause on the bags, unchecked).
 - **Q12 (2026-11-09, `Main`'s pure obligations): the checker's `numBound` against the step bound.**
   `numBound = 2^40` (`etcdraft/Rep.lean`, a constant of the proof, not of the Go) bounds the trace's
   numbers (`Event.Bounded`) and its length; raft's terms, indices and event count grow with the steps,

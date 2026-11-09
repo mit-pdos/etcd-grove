@@ -22,7 +22,8 @@ on raft's hook paths, the global step's laws, and the hooks' traced statements
 
 (Q13, 2026-11-09: the traced statements on the capability, `traceCommit`, `raft.maybeCommit` and
 `raft.send`, take, traced, `TraceEv.Ok` of the events their line may log, the laws' amended premise;
-`TracedCap.lean`'s header.)
+`TracedCap.lean`'s header. `raft.maybeCommit.tracedSpec`'s last-event premise moved to the state at
+the outcome, where Go logs the line, and its postcondition gives the outcome `maybeCommitOut`.)
 
 (Q8 stage 1, 2026-11-09: everything above but the traced statements moved, verbatim, to
 `TracedCap.lean`, which this file imports, so that the hook-path specs can state their traced case.)
@@ -126,6 +127,8 @@ abbrev raft.maybeCommit.tracedSpec : Prop :=
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗ trCapB s.gh.tr γ r id c b0 (fun C => SimIdle C s) Λ }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"maybeCommit")) (Val #()))
   {{ (b : Bool) (N : w64), RET #b;
+      -- (Q13 review round 4's N1) the outcome the premises quantify over
+      ⌜maybeCommitOut c s b N⌝ ∗
       ownRaftPhysCV c c.voters r id
         (if b then { s with logst := { s.logst with committed := N } } else s) ∗
       ⌜b = true → CommitOkC c (toPState s) N⌝ ∗

@@ -15,9 +15,13 @@ paths can state their traced case with it (the Draft imports those specs: `notes
 **Amended (Q13, 2026-11-09; to be re-frozen by the coordinator):** the seven laws' event premise
 `∀ e, E e → TraceEv.Ascii e` became `∀ e, E e → TraceEv.Ok (elements c.incoming).length e`
 (`TraceEv.OkBoot` for `trCap_fire_boot`; `trCap_fire_bf`, which had none, gained it), so that
-`simInv` keeps `Main`'s facts of the events (`SimEvents`, `TraceSim.lean`); `nodeEvOf_ok` and
-`nodeEvOf_okBoot` give them of a node event from its state's numbers. The Draft's traced statements
-on the capability (`TracedHooksDraft.lean`) take the same premise; nothing else here changed.
+`simInv` keeps `Main`'s facts of the events (`SimEvents`, `TraceSim.lean`); new lemmas
+`nodeEvOf_ok`, `nodeEvOf_okBoot`, `ccEvOf_ok`, `ccEvOf_okBoot` (and `evtNames_inScope`) give them of
+a node or configuration-change event from its state's numbers. The Draft's traced statements on the
+capability (`TracedHooksDraft.lean`) take the same premise; no other statement here changed.
+**Open (the re-freeze's blocker):** `MsgEvOf` does not pin the traced message's `rejectHint`, which
+`TraceEv.Ok` bounds, so no `SendEvOf` event can be shown `Ok` yet (`notes/trace-validation-plan.md`,
+"Q13 (a) done").
 -/
 module
 
