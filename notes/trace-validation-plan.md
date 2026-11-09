@@ -58,7 +58,12 @@ successor (`simRun_snoc_single`), through the trace congruences (`next_congr`, `
 line's (`simRun_heartbeat`, `simRun_msgApp`, `simRun_requestVote`, `simRun_selfVote`, `simRun_selfAck`;
 replies to others skipped, `simRun_skipResp`), each modulo the invariants at the result
 (`violated = none`; the pure half proved: `InvFacts` gives it, `TraceSimInv.lean`) and the line
-past the node's bootstrap lines. Next: the `BecomeFollower` lines and the receive lines.
+past the node's bootstrap lines. Receive lines: a line's rounds as a chain of single successors
+(`Chain`, `simRun_snoc_chain`), a receive's successors from the one matching message
+(`next_receive`), the first receive line's step (`simRun_recvAppResp`, a successful append response at
+the leader), modulo the network's message uniqueness (`MsgsDet`/`AppSlices`, layer B's invariants).
+Next: the other receive lines (vote requests and responses; append requests with their truncation
+chains; `UpdateTerm` first) and the `BecomeFollower` lines.
 
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
