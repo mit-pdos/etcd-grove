@@ -1522,3 +1522,46 @@ theorem specInv_appendEntriesAlreadyDone {σ σ' : State} {i j : ID} {index : In
           · rename_i hc
             simp at hc
             exact hmi2 l hl hll hd ht hc.1 (by have := hc.2; omega)))
+
+theorem mem_somes3 {a b c : Option State} {σ' : State} (h : σ' ∈ somes [a, b, c]) :
+    a = some σ' ∨ b = some σ' ∨ c = some σ' := by
+  unfold somes at h
+  rw [List.mem_filterMap] at h
+  obtain ⟨o, ho, he⟩ := h
+  simp only [List.mem_cons, List.not_mem_nil, or_false] at ho
+  simp only [id] at he
+  rcases ho with rfl | rfl | rfl
+  · exact Or.inl he
+  · exact Or.inr (Or.inl he)
+  · exact Or.inr (Or.inr he)
+
+/-- **`AcceptAppendEntriesRequest(i, j, logOk, m)`**, `m` an append request in `messages` from `j`,
+not a snapshot; `hcd`: `CommitInSenderDurable`. -/
+theorem specInv_acceptAppendEntriesRequest {σ : State} {i j : ID} {logOk : Bool} {m : Etcdraft.Msg}
+    {L : List State} (h : SpecInv σ) (hi : i ∈ σ.server) (hm : m ∈ σ.messages.domain)
+    (hsrc : m.source = j) (hty : m.type = .appendEntriesRequest) (hsnap : m.subtype ≠ "snapshot")
+    (hcd : CommitInSenderDurable σ i m)
+    (hstep : σ.acceptAppendEntriesRequest i j logOk m = .ok L) : ∀ σ' ∈ L, SpecInv σ' := by
+  unfold State.acceptAppendEntriesRequest at hstep; dsimp only at hstep
+  split at hstep
+  · simp only [pure, Except.pure, Except.ok.injEq] at hstep
+    subst hstep; intro _ h; cases h
+  · rename_i hg
+    have hterm : m.term = (σ.s i).currentTerm := Classical.byContradiction fun hn => hg (by simp [hn])
+    have hfol : (σ.s i).state = follower := Classical.byContradiction fun hn => hg (by simp [hn])
+    split at hstep
+    · rename_i hs; simp at hs; exact absurd hs hsnap
+    · cases hc : σ.conflictAppendEntriesRequest i (m.prevLogIndex + 1) m with
+      | error e => simp [hc, bind, Except.bind] at hstep
+      | ok c =>
+        cases hn : σ.noConflictAppendEntriesRequest i (m.prevLogIndex + 1) m with
+        | error e => simp [hc, hn, bind, Except.bind] at hstep
+        | ok n =>
+          simp [hc, hn, bind, Except.bind, pure, Except.pure] at hstep
+          subst hstep
+          intro σ' hσ'
+          have hmm : m ∈ msgs σ := List.mem_append_left _ hm
+          rcases mem_somes3 hσ' with ha | ha | ha
+          · exact specInv_appendEntriesAlreadyDone h hi hm hsrc hty hterm hfol rfl hcd ha
+          · subst ha; exact specInv_conflictAppendEntriesRequest h hi hfol hc
+          · subst ha; exact specInv_noConflictAppendEntriesRequest h hi hfol hmm rfl hn
