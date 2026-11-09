@@ -185,6 +185,22 @@ trace's two halves; found: `ConvertEvents` needs the events ASCII (`TraceEv.Asci
 relates strings by `strRel`), which the simulation must supply (a `simInv` clause: raft's names,
 roles and types are ASCII constants, its ids `FormatUint`'s).
 
+**A7 finished, A10 (2026-11-09, proved).** The flag map now also records each node's last event
+(`simBoot tn i b o`, `LastOf`; `simInv`: a booted node has one), and the capability carries a
+predicate `Λ` on it (`trCap … Φ Λ`, default `True`), which the laws set from their events (premise
+`∀ e, E e → Λ' (some e)`) and the laws' posts are `trCapB … true` (the node's segment over). With
+them: `trCap_fire_bf`, a `BecomeFollower` line past the node's segment, skipped or a step-down as
+`bfCond` of the recorded last event decides (`PhaseStepBF`, `FxPresBF`, `bfSrv`; the caller's
+`Λ` says what its previous line was: a higher-term receipt, a lost election's response);
+`trCap_fire_booted`, any other line of a booted node, bootstrap-named or not (`PhaseStepB`), whose
+effect for the application's `ApplyConfChange` is the identity at a server it leaves as it is
+(`lineEffect_applyCC`, `AccIdle`: not joint, not a leader, its last committed configuration entry
+its configuration, no progress outside it). The self-addressed messages' tokens need nothing more of
+the laws: `trCap_fire_ready` hands out the tokens of all of the share's messages, the self-addressed
+ones included; keeping them until `Advance` is the `RawNode`'s spec. A10: `traceFire_mono`,
+`traceFireOpt_mono` (Iris-Lean lacks `atomic_update_wand`: a local `aupd_wand_post`,
+`notes/perennial-changes.md`). Open of round 2: A9 (`Replicate`'s records), A11, A12; then round 3.
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its
