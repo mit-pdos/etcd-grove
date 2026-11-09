@@ -19,6 +19,7 @@ public import Spec.go_etcd_io.raft.v3.quorum.JointConfig__IDs
 public import Spec.go_etcd_io.raft.v3.raft__abortLeaderTransfer
 public import Spec.go_etcd_io.raft.v3.raft__becomeFollower
 public import Proof.go_etcd_io.raft.v3.TracedUntraced
+public import Proof.go_etcd_io.raft.v3.TracedUntracedSend
 
 @[expose] public section
 
@@ -64,6 +65,8 @@ theorem raft.switchToConfig.wp_proof
     raft.switchToConfig.spec (GF := GF) (hG := hG) := by
   have wp_raft_maybeCommit := raft.maybeCommit.untraced wp_raft_maybeCommit
   have wp_raft_becomeFollower := raft.becomeFollower.untraced wp_raft_becomeFollower
+  -- (Q8 stage 1, slice 6) the untraced instance (`TracedUntracedSend.lean`)
+  have wp_raft_maybeSendAppend := raft.maybeSendAppend.untraced wp_raft_maybeSendAppend
   intro c r id s tv0 cfgv prsm prs pvs tl Hlead Hltz Hcand Hpok Htr
   wp_start as H
   iNamed H

@@ -32,6 +32,7 @@ public import Spec.go_etcd_io.raft.v3.raft__bcastAppend
 public import Spec.go_etcd_io.raft.v3.raft__appendEntry
 public import Spec.go_etcd_io.raft.v3.raft__maybeCommit
 public import Proof.go_etcd_io.raft.v3.TracedUntraced
+public import Proof.go_etcd_io.raft.v3.TracedUntracedSend
 public import Spec.go_etcd_io.raft.v3.releasePendingReadIndexMessages
 public import Spec.go_etcd_io.raft.v3.tracker.Progress__MaybeUpdate
 public import Spec.go_etcd_io.raft.v3.tracker.Progress__MaybeDecrTo
@@ -1150,6 +1151,8 @@ theorem wp_stepLeader_appresp
         ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ }} := by
   -- (Q8 stage 1, slice 5) the untraced instance (`TracedUntraced.lean`)
   have wp_raft_sendTimeoutNow := raft.sendTimeoutNow.untraced wp_raft_sendTimeoutNow
+  -- (Q8 stage 1, slice 6) the untraced instance (`TracedUntracedSend.lean`)
+  have wp_raft_maybeSendAppend := raft.maybeSendAppend.untraced wp_raft_maybeSendAppend
   wp_start as ⟨Hphys, Hm⟩
   wp_auto
   wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hm] as Hm
