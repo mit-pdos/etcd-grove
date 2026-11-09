@@ -159,3 +159,100 @@ Requirements on 2e from others, checked: 2d's on `storage` (my `Save` is an upda
 in which 2d fires `readyEnter`; `Close` keeps `walRecs` with its owner), on `membership` (the views
 are TaDa; validation reads the backend's view), on `snap` (2d's `NewMessage` met; 2f's persistent
 `dbSaved` answered by the update over `snapDbs`, F3). No `req/..._storage_wal.md` existed.
+
+## Round 1 repairs (2026-11-09)
+
+Reviews: `reviews/2e-provability-1.md`, `reviews/2e-completeness-1.md`, with the coordinator's
+decisions. **Build: all 161 modules of 2e OK** (by name; the election/lock modules too, now that 1d
+settled, restated over 1d's current `etcdLent`/`etcdPeek`/`isSession s c γ id`). Snippets: `go vet`
+and `gofmt` clean. Earlier statements of this report are superseded where this section says so
+(`memberUrls`, `memberUrls_take`, `raftHandler`, `rafthttpBootCfg` are gone).
+
+### Provability, first tier
+- **F1 (the WAL model vs the fork's `ReadAll`).** `Recs.saveSnap` drops the entries above a snapshot
+  recorded above the last state's commit (`wal.go:539-550`); the header says why the model is the
+  replay's whether or not a restart opens at that record.
+- **F2.** `storage.Save`'s update carries `es = [] ∨ floor < k ≤ floor + |log| + 1`; `Release`
+  requires a **valid** snapshot record (`R.validSnaps`).
+- **F3 (addresses).** `cluster_alloc` takes `Http.addrFree` of every initial member's peer hosts and
+  gives the cluster's network (`srvNet γ ν`, 2f's `Net`) and the `protoAt` facts the program serves
+  the raft handlers with; `urls_reserve` does the same for a new URL set. Two allocations cannot
+  share an address.
+- **F4 (join keying).** Peer-URL sets are single-use: `urls_reserve` gives `urlsRight γ urls` (taken
+  by `EtcdServer.AddMember`/`UpdateMember`) and `memberJoin γ urls`; the initial sets are spent at
+  allocation. So no `MemberUpdate` can move another member onto a pending joiner's URLs. The trust in
+  etcdhttp's `/members` is written into `bootstrap.spec`: `raftCompat` protocols (this repository's
+  starters) answer `404`, so a join through them fails (`ReqJoin`'s error branch); etcd's peer handler
+  needs a spec (Q8).
+- **F5 (snapshot dbs vs a handler outliving the stop).** Chosen: the share, not a listener premise
+  (`http.Serve` has no drain and a handler outlives its listener's close, so "listener closed" would
+  be false). `Snap.snapDbs` lives in a per-directory invariant for good; any handler adds through it
+  (`saveAt` keeps existing files); `memberDisk`/the running server hold only the deletion right
+  (`ApiBoot.lean`, realization of `memberDisk`).
+- **F6 (thread tokens).** `GoAttach` (the goroutine's token), `Logger`, `CutPeer`, `MendPeer`,
+  `adjustTicks`, `isConnectedSince` and kin, the member operations, `IsLearner`, `IsMemberExist`,
+  `Alarms`, `RenewHTTP`, the compactor's `Run`; `transporterOk` restated as the token-taking bundle.
+- **F7 (snippets).** `srvMember_id` (`0 < id < 2 ^ 64`, also in `NewServer`'s post), `srvBuilt_excl`,
+  `srvRunning_excl`, `srvBuilt_running_excl`, `memberStart`'s `oid` (the post's id is the boot
+  token's or the disk's); `StopNotify`, `ReadyNotify`; `NewMember`, `NewMemberAsLearner`,
+  `NewClusterFromURLsMap`; `compactable_intro`, `revGetter_intro`, `isCompactor_methods`;
+  `storage.go`, `snap.go`, `members.go` reclassified as **Go tests of the trusted models** (headers
+  say so); citations of `stop.go`/`config.go` removed.
+
+### Completeness, first tier
+- **F1.** Introduction laws for every provisional slot (`raftNodeBootCfg_intro`,
+  `v3rpcBootCfg_intro`, `mvccBootCfg_intro`, `backendBootRes_intro` from the program-start
+  `backendEnvOk`, `leaseBootRes_intro`, `authBootRes_intro`) and `Config.cfgHeap_intro` (over
+  provisional `urlsStrs`/`urlsMapStrs`, 1c's). `rafthttpBootCfg` dropped. The owners' requests are in
+  their `req/` files ("from 2e, round 1").
+- **F2 (stop with requests in flight).** The coordinator's decision: `HardStop`/`Stop` take the whole
+  **gate** `srvGate s 1` (fractional; `Start` gives it; every request-path call holds a share). The
+  fork fix (a gate in Go) is open (Q7). The hand-off to 2c that claimed indefinite errors after the
+  stop is withdrawn. Snippet `ReqStopDrained`.
+- **F3.** `StopNotify`, `ReadyNotify`, the membership constructors; `ReqSaveOrder` as a Go test.
+- **F4.** `EtcdServer.{AddMember, UpdateMember, RemoveMember, PromoteMember, configure}` (over 2c's
+  `srvStep`, `reqPrin`, `authLb`; answers `respMembers`), the getters `Cluster`, `KV`, `IsLearner`,
+  `IsMemberExist`, `Alarms`.
+- **F5.** See provability F7.
+- **F6 (compactwatch's retention).** Requested of W0 (`req/go_etcd_io_etcd_api_v3.md`, round 1,
+  item 1: a lag in `EnvCfg`, `EnvStep.compact` respecting it); 2e's slot follows once it exists.
+- **F7.** `compactable_intro`, `revGetter_intro`.
+- **F8 (crash restart: attempted; blocker).** The WAL's half is stated, true of the code
+  (`Wal.Recs.syncedCommit`, `Recs.crashed`, `Recs.crashedMid`: what a crash may lose). **Blocker,
+  R1's durable node API**: a crash during a `Save` leaves a prefix of the batch's entries and the old
+  state, a durable state that is neither `D` nor `D.next b`; `raftState` has no such transition and
+  `StorageHolds` rejects the directory, so `RestartNode.spec` cannot be applied. Requested of R1
+  (`req/go_etcd_io_raft_v3.md`, "from 2e, round 1"); the specs keep the graceful-stop version, and
+  W0 is asked to say "graceful stop only" in K6 meanwhile.
+- **F9.** `isClient c γ dflt ∗ ctxPrin dflt ctx who`, effects under `who`; `v3client.New` requested of
+  1c; snippet `lock.go` (`ReqLockOverInProc`).
+
+### 2d's changes
+The hand-off laws are 2d's (`isServer_names`, `srvMember_node`, `srvRunTok_intro`,
+`srvStopped_disk`), over `Nat` ids. The members' shared apply configuration: `ApplyCfg`,
+`applyCfgIs cfg mc`, `clusterApplyCfg γ mc` (provisional in `ApiBoot`, which `ApiApply` imports),
+taken by `cluster_alloc` and `NewServer`; to be identified with 2d's `MemberCfg`.
+
+### Second tier
+Done: F17 (the membership header's false claim). Deferred, recorded: F10 (more snippets: a restart
+with frequent snapshots and WAL purges, periodic compactor on a real server, alarms, `Stop`, serving
+with a client), F11 (done through `oid`), F12 (single-use URL sets now make the "replace a failed
+member at the same address" procedure out of scope: Q1), F13 (`Deactivate` of an unknown type),
+F14 (requested of 2a/2f), F15, F16 (noted in `RenewHTTP`, `NewServer`).
+
+### Open questions for the user (round 1)
+- **Q1 (revised).** Join and membership changes use **single-use peer-URL sets**: a removed member's
+  URLs can never be given to a member again, and every `MemberAdd`/`MemberUpdate` the program makes
+  takes the set's right (a workload premise on the program's own reconfigurations). The alternative
+  (W0's original K2: a per-id right minted at the add's commit, plus a premise that no `MemberUpdate`
+  moves URLs onto or off a pending joiner) is the same kind of premise with more bookkeeping.
+- **Q2 (crashes).** Blocked on R1 as above; graceful stop only until then.
+- **Q7 (new): stopping a member with requests in flight.** Go closes the backend under in-flight
+  reads (`issues/etcd-read-after-backend-close-panic.md`). The specs take a drain premise (the
+  gate). The alternative is a fork fix (a gate in Go: `Cleanup` waits for readers, later reads fail
+  with `ErrStopped`), after which a program could stop a member while still serving it.
+- **Q8 (new): etcd's peer handler.** A join through etcd's own `etcdhttp.NewPeerHandler` (embed's)
+  needs that handler's spec (`/members` from the member's applied view); this repository's starters
+  serve only the raft handler, with which a join always fails. Specify it, or keep joins out of the
+  examples?
+- Q3-Q6 stand as before.

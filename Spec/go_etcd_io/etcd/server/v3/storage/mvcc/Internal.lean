@@ -26,13 +26,14 @@ may); the pure models are transparent, the resources opaque.
 * `ownKi p k ki dq`: `p` is a `*keyIndex` of key `k` (its key slice read-only) at the model `ki`.
   `ownGenAt p g dq`: `p` points at a `generation` at `g`.
 * `IdxName`; `isTreeIndex idx γi` (persistent): `idx` (the `index` value, a `*treeIndex`) with names
-  `γi`, its lock's invariant holding the tree; `idxModel γi M` (exclusive, the store's invariant
-  holds it): the index is `M`. `ownIdxPriv ti M` (exclusive): a tree index no other goroutine can
-  reach (`restore` rebuilds a fresh one), its keys' pointers `M`'s; `idxShare` publishes it.
+  `γi`, its lock's invariant holding the tree; its logical state is `InternalIdx.lean`'s
+  `idxAt γi M c` (a compaction floor `c`: `Compact` works key by key, so a reader at or above the
+  floor sees one index). `ownIdxPriv ti M` (exclusive): a tree index no other goroutine can reach
+  (`restore` rebuilds a fresh one), its keys' pointers `M`'s; `InternalIdx.lean`'s `idxShareC`
+  publishes it.
   `treeOwn ti dq M`: the tree's content, as the lock holder sees it (the unsafe helpers').
 * `isStore s γ` (persistent): `s` is the `*store` of `γ` (the internal handle under `isMvcc`).
-  `storeW s γ` (exclusive): `s.mu` held for writing (`Compact`, `Restore`, `Commit`, the barrier),
-  with what it protects. `storeR s γ σ` (exclusive): `s.mu` held for reading at the state `σ` (a
+  `s.mu` held for writing is `InternalStore.lean`'s `storeWB`. `storeR s γ σ` (exclusive): `s.mu` held for reading at the state `σ` (a
   transaction).
 * `storeTxnR t γ trace σ`, `storeTxnW t γ trace σ pend` (exclusive): `*storeTxnRead`/`*storeTxnWrite`
   at `t` (`storeTxnCommon` embedded); `mvccTxn` of their `metricsTxnWrite` wrappers is built from
@@ -298,9 +299,6 @@ opaque ownGenAt (p : Loc) (g : Gen) (dq : DFrac) : IProp GF := iprop(True)
 /-- `idx` is a tree index (persistent), its lock's invariant holding the tree. -/
 opaque isTreeIndex (idx : GoInterface) (γi : IdxName) : IProp GF := iprop(True)
 
-/-- **The index is `M`** (exclusive; the store's invariant holds it). -/
-opaque idxModel (γi : IdxName) (M : IndexM) : IProp GF := iprop(True)
-
 /-- A tree index `ti` no other goroutine reaches, its key indexes at the pointers `P` (exclusive). -/
 opaque ownIdxPriv (ti : Loc) (P : GoString → Option (Loc × KeyIndexM)) : IProp GF := iprop(True)
 
@@ -309,9 +307,6 @@ opaque treeOwn (ti : Loc) (dq : DFrac) (M : IndexM) : IProp GF := iprop(True)
 
 /-- `s` is the `*store` of `γ` (persistent). -/
 opaque isStore (s : Loc) (γ : MvccName) : IProp GF := iprop(True)
-
-/-- `s.mu` held for writing, with what it protects (exclusive). -/
-opaque storeW (s : Loc) (γ : MvccName) : IProp GF := iprop(True)
 
 /-- `s.mu` held for reading at the state `σ` (exclusive: a transaction's). -/
 opaque storeR (s : Loc) (γ : MvccName) (σ : MvccState) : IProp GF := iprop(True)
@@ -345,11 +340,6 @@ def internal_persistent.spec : Prop :=
   (∀ idx γi, Persistent (isTreeIndex (GF := GF) idx γi)) ∧ (∀ s γ, Persistent (isStore (GF := GF) s γ)) ∧
   (∀ hs s γ, Persistent (isHashStorageAt (GF := GF) hs s γ)) ∧
   (∀ p k ki, Persistent (ownKi (GF := GF) p k ki DFrac.discard))
-
-/-- **Publish a private index**: its lock is free, so its invariant can be allocated. -/
-def idxShare.spec : Prop :=
-  ∀ (ti : Loc) P, ownIdxPriv (GF := GF) ti P ={⊤}=∗ ∃ γi,
-    isTreeIndex (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti) γi ∗ idxModel γi (privModel P)
 
 /-- A private index's key index, lent to its owner (`restoreIntoIndex` mutates it in place). -/
 def ownIdxPriv_lookup.spec : Prop :=

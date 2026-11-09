@@ -25,7 +25,7 @@ fails and is logged); when `u`, `compactLockfree(scheduled)`: `updateCompactRev`
 `SetScheduledCompact` runs the hook once (`LockInsideApply`, `hookRun Pk f Pre Q'`, then
 `Q' ={⊤}=∗ Pk ∗ Post` for `Unlock`) and `ForceCommit` once (`X` to `Y`), and the job is scheduled
 (`compactJobRes`, from `kbSafe B`, a reader slot and the job's receipts `⧖ (evCount h)` bound).
-`idxShare` publishes the index; the invariants are allocated at `σ = ⟨h, []⟩` with the receipt;
+`idxShareC` publishes the index (`idxAt` at floor `0`); the invariants are allocated at `σ = ⟨h, []⟩` with the receipt;
 the client gets `mvccState γ σ`, the open token, the whole backend share and the reader tokens
 (`mvccTokN`: the store's slots but its own goroutines').
 

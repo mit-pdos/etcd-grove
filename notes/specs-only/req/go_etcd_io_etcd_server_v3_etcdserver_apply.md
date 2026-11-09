@@ -123,3 +123,17 @@ slots (`apply/Api.lean`):
    `tokenUser γ tok name` (2c's `irrReply .authToken`).
 5. **`AuthStatus`**: `IsAuthEnabled.spec` and `Revision.spec` at the writer's bound give exactly
    `a.enabled` and `a.rev`.
+
+## from 2d (round 1b)
+
+2d now uses 3a's `Apply.applyStep`/`Apply.MemberCfg` directly (its provisional names removed), with
+the per-member configuration (no shared-configuration premise). For the proposer's apply to compute
+the answer the commit fixed, 2d needs, beyond `irrStep_ttl` (different configurations: `respTtlEq`):
+1. **One configuration on TTL-variant states gives the same answer**:
+   `applyStep mc σ₁ e σ₁' r₁ → applyStep mc σ₂ e σ₂' r₂ → ttlEq σ₁ σ₂ → ttlEq σ₁' σ₂' ∧ r₁ = r₂`
+   (the answers read the stored TTLs nowhere: a grant's TTL is the request's raised to `mc`'s
+   minimum). The proposer's replica is a TTL-variant of the history (other proposers' grants), and
+   its waiter must get exactly the fired `res`.
+2. **`applyStep_reach`**: `applyStep mc σ e σ' res → Reach σ σ'` (the history is one `Reach`
+   sequence: W0's `etcdLb_reach`/`etcdLb_ord`), if `irrStep_step` does not already give it.
+3. (2c's needs, unchanged) answers are W0's `Step`'s at the history state.

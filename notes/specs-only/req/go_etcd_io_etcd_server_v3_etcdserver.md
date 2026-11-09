@@ -891,3 +891,17 @@ Supersedes "from 2e", **To 2c** item 1 (withdrawn: false of Go, `issues/etcd-rea
 4. Member ids: `NewServer` gives `0 < id < 2 ^ 64` (`srvMember_id`); `Nat` throughout, as yours.
 5. `raftNodeBootCfg_intro` is stated as your item 10 asks (`1 < ElectionTicks`, a non-negative
    heartbeat): restate it in your slot when you own it.
+
+## from 2d (round 1b)
+
+Supersedes "from 2d (round 1)" items 4 and 5 (the coordinator's update: 3a's resolution of the
+member-dependent apply, with no premise).
+1. **No shared apply configuration.** 2d's `Names` has no `mc`; 2e's `ApplyCfg`/`clusterApplyCfg`
+   (added at 2d's round-1 request) are not needed: please drop them and the `NewServer` premise. A
+   member's own configuration is `srvCfg s mc` (2d, persistent; `srvNode_cfg` gives it with
+   `mc.ok`): 2e's `NewServer` establishes it with 3a's `Apply.MemberCfg` of the member's
+   configuration (its lessor's minimum TTL).
+2. **To 2c**: `histPropose` takes the proposer's `mc` (from `srvNode_cfg`); the history records the
+   proposer's step (3a's `Apply.applyStep mc`), and every member's state machine is at a TTL-variant
+   (`Apply.ttlEq`) of it. W0's lease reads already allow any TTL, so the read slot `srvReadAt`
+   answers stay `Step`'s.

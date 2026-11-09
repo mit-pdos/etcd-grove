@@ -44,7 +44,8 @@ value, total count); `rangeOut h crev rg ro out` adds the revision checks (`ErrF
 ## Leases
 
 `storeItems s`: the store's key→lease map (`0`: none): what the lessor's item map must be while the
-store's writers attach and detach keys (`Api.lean`, `leaseItems`).
+store's writers attach and detach keys (the caller's attachment invariant over 3c's
+`Lease.lessorState`, `Api.lean`).
 -/
 module
 
@@ -253,11 +254,6 @@ def storeItems (s : EtcdModel.Store) (k : Key) : Int :=
   match s k with
   | some r => r.lease
   | none => 0
-
-/-- The key→lease map a `Restore` leaves in the lessor: the store's, but the keys whose lease the
-lessor does not have (`L`), which `restore`'s `Attach` fails for (the error is logged). -/
-def itemsIn (L : List Int) (s : EtcdModel.Store) (k : Key) : Int :=
-  if storeItems s k ∈ L then storeItems s k else 0
 
 end model
 

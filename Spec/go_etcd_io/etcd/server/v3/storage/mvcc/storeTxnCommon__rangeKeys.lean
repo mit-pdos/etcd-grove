@@ -6,7 +6,7 @@ transaction's view at `ro.Rev` (the current revision `curRev` for `ro.Rev ≤ 0`
 **Proof sketch**: `ro.Rev > curRev`: `ErrFutureRev` (`{nil, curRev, -1}`); `rev < s.compactMainRev`
 (fixed: the transaction holds `s.mu` for reading; `txnCommon` ties it to `k.state.crev`):
 `ErrCompacted` (`{nil, 0, -1}`). Count only: `treeIndex.CountRevisions.spec` (atomic over
-`idxModel`, which the store's invariant keeps at the index of `k.readHist`'s events). Keys only:
+`idxAt` (`InternalIdx.lean`), which the store's invariant keeps at the index of `k.readHist`'s events). Keys only:
 `treeIndex.Range.spec`, then fresh `KeyValue`s sharing the index's key slices (read-only; value
 `nil`, lease `0`: `keysOnlyM`). Full: `treeIndex.Revisions.spec`, `sliceCapWithLimit.spec`, then
 for each revision a `select` on `ctx.Done()` (`Context.doneRecv`/`Done.spec`: closed only once the

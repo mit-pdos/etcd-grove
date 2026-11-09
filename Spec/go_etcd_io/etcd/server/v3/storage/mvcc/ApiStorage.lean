@@ -48,11 +48,13 @@ says nothing of them.
   value's contracts (PRINCIPLES, "an interface value gets a bundle"), as `Schedule.isSched`.
 * `mvccImage D h u` (opaque `Prop`, mvcc's own meaning): **`D` is a storage image of the history
   `h`** (its compaction revision `h.compacted`), recording an unfinished compaction iff `u` (the
-  scheduled compaction key above the finished one: `restore` resumes it). Intended realization: the
-  `Key` bucket holds, for each event of `h`, its revision's bytes (`BucketKeyToBytes`) ↦ the
-  encoding of the key-value it wrote (a tombstone's: the key alone), but the entries a compaction at
-  `h.compacted` removes (all of them when `u = false`, any subset of them when `u = true`); the
-  finished compaction key is `h.compacted` (absent at `0`), the scheduled one at least it; every key
+  scheduled compaction key above the finished one: `restore` resumes it, so `h.compacted` is then the
+  scheduled key's revision). Intended realization: the `Key` bucket holds, for each event of `h`,
+  its revision's bytes (`BucketKeyToBytes`) ↦ the encoding of the key-value it wrote (a tombstone's:
+  the key alone), but the entries compaction removes: with `u = false`, all those a compaction at
+  `h.compacted` removes, the finished key `h.compacted` (absent at `0`), the scheduled one at most
+  it; with `u = true`, all those the finished key's compaction removes and any subset of those the
+  scheduled one's (`h.compacted`, above the finished) removes; every key
   of the bucket is well formed (`BytesToRev` does not panic: `hashByRev` and `restore` parse each).
 * `mvccStorageFor B Pk h u` (transparent): **the storage `B`, its batch lock's invariant `Pk`, holds
   an image of `h`, ready for a store**: what `NewStore`, `New` (3f) and `Restore` take. The contract,

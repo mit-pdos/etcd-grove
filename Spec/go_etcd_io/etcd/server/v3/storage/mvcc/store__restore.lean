@@ -8,7 +8,7 @@ fresh index, scheduler and stop channel), over a storage holding an image of any
 (`RestoreEntsOk`: the image's keys parse, its values decode); `UnsafeRange` chunks of
 `restoreChunkKeys`, `restoreChunk` each (`kvDecodes`: no `lg.Fatal`), the next chunk's start after
 the last key (`BytesToRev` parses it); `close(rkvc)`; `<-revc` (`revRecv`: the index rebuilt,
-`idxRestore`, published, `idxShare`); `currentRev` at least the compaction revisions (so `h.rev`:
+`idxRestore`, published, `idxShareC`); `currentRev` at least the compaction revisions (so `h.rev`:
 an image's last revision is its history's, a compacted tail or a deleted tombstone at the scheduled
 compaction being why the Go code raises it); the leases re-attached through `le.Attach` (the store's lessor a real `*lessor`, `Lease.isLessor`:
 the `panic("no lessor to attach lease")` unreachable; each `Attach` steps the writer's token,

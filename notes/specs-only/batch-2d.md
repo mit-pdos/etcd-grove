@@ -133,12 +133,13 @@ v` (excl). Laws: `isCI_persistent`, `ciState_timeless`, `ciState_excl`, `ciWrite
    2d's vocabulary over `Names` (`.etcd`, `.raft`, `.cfg`), bridged by `isServer_names`. Simpler:
    W0's `Cluster` becomes a structure with the raft names and the configuration (then `Names` goes).
    A W0 change; until then the bridge law.
-2. **The apply's configuration** (decided by the coordinator in round 1): every member shares the
-   apply-relevant configuration (`Names.mc`, 2e's `ApplyCfg` and `clusterApplyCfg`, fixed at allocation; a `NewServer` premise).
-   **Open alternative**: per-member views (each member's own lease minimum TTL,
-   `nonissues/etcd-lease-ttl-differs-across-members.md`): the history would record the proposer's
-   answer and the other members' replicas relate to it loosely; it needs a member-state relation 3a
-   would state, and the proposer's own `mc` in `srvNode`.
+2. **The apply's configuration** (round 1b, the coordinator's update): members may be configured
+   differently (no premise). 3a's resolution: the history records the proposer's step
+   (`Apply.applyStep mc` at the proposer's `srvCfg`), every member's state machine is at a TTL-variant
+   of it (`Apply.ttlEq`, `irrStep_ttl`). It composes for every answer 2d delivers (a waiter is at the
+   proposer, whose answer reads no stored TTL: requested from 3a as a law), and for the reads (W0's
+   lease reads allow any TTL). **Alternative** (recorded, not taken): a `NewServer` premise that
+   every member has the same minimum TTL (exact histories per member).
 3. **Two scope restrictions found in round 1**, each a nonissue with `blocks-proof: yes`:
    `nonissues/etcd-merged-snapshot-same-index-image.md` (a member never saves two merged snapshots of
    one index with different points before installing one: `snapImage`'s source) and
@@ -179,10 +180,11 @@ Reviews: `reviews/2d-provability-1.md`, `reviews/2d-completeness-1.md`. Build: 6
 snippets vetted and gofmt-clean; `etc/issues-status.py --check` clean.
 
 Provability:
-- **F1** (the coordinator's decision): `Names.mc : ApplyCfg` (2e's type, was 2d's `MemberCfg`), shared by every member, fixed at
-  allocation; `histPropose` steps at `γ.mc` (no quantified `mc`); new `applyStep_reach` (the history
-  is a `Reach` sequence). Requests to 2e (`NewServer` premise, allocation) and 3a. Per-member views
-  recorded as the open alternative.
+- **F1** (round 1b, superseding round 1's shared-configuration premise): 2d uses 3a's
+  `Apply.applyStep`/`Apply.MemberCfg` (its provisional names removed); `srvCfg s mc` (a member's own
+  configuration, `srvNode_cfg`, `srvCfg_agree`); `histPropose` takes the proposer's `mc`; the apply
+  thread's state machine is at a TTL-variant of the history. No `Names.mc`; 2e asked to drop
+  `ApplyCfg`/`clusterApplyCfg`; 3a asked for the same-configuration TTL law and `applyStep_reach`.
 - **F2**: the cursor `applycPos r k` (exclusive); `applyc_recv` takes it and gives `B.prev = k` and
   `applycPos r B.last`; `srvRunTok_intro` carries it at `p₀.appliedi`; `run`'s chain end tracks it.
 - **F3**: R1's `nodeConf` is the `Ready` loop's, lent to the apply thread through a batch with conf
