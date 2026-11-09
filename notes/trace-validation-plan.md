@@ -253,6 +253,18 @@ es` is a lower bound (a full log the leader once had), so another server's recor
 derivations re-proved with their statements unchanged (`pend_match`, `commit_in_leader_pend`). Open: C1 (`FxPresReady`/`FxPresBF` proved once, after B6), C5, C6
 (`MsgsDet`), C7; then round 4.
 
+**Round 3 closed, round 4 started (2026-11-09).** Merged: A9 (with a campaign clause the derivation
+needs: a leader with pending entries has its campaign log a prefix of its recorded one, which ends in
+its term or is that log; raft's `campOwn` holds it), B6 (`SpecInv` gains `ReqCommitC`,
+`LeaderDurPrefix`, `LogTermsLe`, `CommitInDurable`; `CommitInSenderDurable` gone; `UpdateTerm`/`Timeout`
+take `LeaderComplete`, which `simFx` gives; `QuorumLogF` at a raised commit, `quorumLog_commitTo`),
+C1 for `Ready` (`fxPresReady`, the law's premise dropped; `FxPresBF` stays the caller's: with
+A9's pending entries a leader's step-down keeps the facts only where it has none), and layer C's
+`invariants.go` complete (`Violated` through the package fact for `Invariants`, `etc/gen-init.py`).
+Open: C5 (pure premises into preconditions, when the traced statements become `X.spec`), C6, C7;
+`trace.go` delegated (branch `trace-check-layerc-trace`); review round 4 under way
+(`notes/trace-validation-reviews/s5-r4.md`).
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its
