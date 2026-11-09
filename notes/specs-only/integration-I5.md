@@ -38,11 +38,9 @@ uncommitted in the worktree.
     - What a sound exact form would need: a per-index opaque `cacheInvRefused γa jc u t rng`,
       threaded through `isRangeOpPermitted`, `checkKeyInterval` and `cacheEntry`.
     - Until then, use `invRefused` only as "the cache's answer at the writer's state".
-  - **(c)** 3d's spec does not exclude a token-provider error from `Authenticate`.
-    - Such errors happen: the no-op provider always fails, and JWT fails when signing fails.
-    - 3a's `opStep_authenticate` assumes success.
-    - **Decision for the coordinator:** either add a provider flag on `tokenProviderAt` that only
-      the simple provider gives, or have `opStep_authenticate` admit the error.
+  - **(c)** 3d's spec does not exclude a token-provider error from `Authenticate` (the no-op
+    provider always fails; JWT fails when signing fails). **Coordinator's decision: 3a admits it, no
+    provider flag.** Done (see "Coordinator's decisions" below).
 - **3a and 3c.** `lessorOk`/`lessorSt` are defined over `Lease.isLessor`/`lessorState`, and
   `lessorRead` is removed.
   - New law **`Lease.isLessor_agree`**: I5 added it after 3c's pass, at 3a's request. Lease builds.
@@ -53,7 +51,49 @@ uncommitted in the worktree.
 - **Trace.** 3a's 17 uses of `EtcdServer.traceAt` are now `TraceUtil.traceOpt`. **2c can drop the
   `traceAt` alias in `etcdserver/ApiReq.lean`.**
 
-## New finding (outside I5's directories; the coordinator should file it as a nonissue)
+## Coordinator's decisions, applied (I5, after the batch passes)
+
+1. **A token provider's error in `Authenticate`'s apply** is admitted, with no provider flag.
+   - The step stays the model's: `opStep_authenticate` still answers `.ok .authenticate` for a user
+     with a password, and its docstring now says the provider's failure is not a step answer.
+   - The failure shows up in the member's result instead:
+     - `Api.lean`: new `IrrOp.isAuthn`.
+     - `ApiResult.lean`: new `provErrResult ar`. It has 2c's `applyResult` fields, a non-`nil`
+       `Err` that need not be an etcd error, the state unchanged, and no token.
+     - `resultAt` gains a third disjunct: `ir.op.isAuthn ∧ res = .ok .authenticate` with
+       `provErrResult ar`.
+     - `replyAt_result`'s `.ok` case gains the matching disjunct: `op.isAuthn`, `.ok .authenticate`,
+       `err ≠ nil`.
+   - `applierV3backend__Authenticate.lean`: the sketch maps 3d's fourth outcome to this case, and
+     the Margin says so.
+   - **For 2c/2d:** consumers of `resultAt` must handle the new disjunct.
+     - 2c's `EtcdServer.Authenticate`: the update fired at the commit with the step's
+       `.ok .authenticate` (the state is unchanged), but the call returns the provider's error.
+     - Its post must therefore admit an error after the update fired. For a non-etcd error this is
+       already W0's indefinite class; for the no-op provider's `ErrAuthFailed` it is not.
+2. **The empty-`RangeEnd` gap is filed:** `nonissues/etcd-auth-empty-range-end-point-check.md`
+   (blocks-proof: yes; upstream: none, searched). `etc/issues-status.py --index` was rerun, and
+   `--check` is clean.
+   - How the specs handle it now: a scope premise. Two new opaque predicates in `apply/Api.lean`,
+     both persistent and provisional for W0/3h:
+     - `endsDecoded rt`: every range end of the transaction message is `nil` or non-empty, as
+       gRPC's decoding gives.
+     - `opsDecoded sl`: the same for a slice of operations.
+   - Where the premise is taken: `CheckTxnAuth.spec` and `checkTxnPermission.spec` take
+     `endsDecoded rt`, and `checkTxnReqsPermission.spec` takes `opsDecoded sl`.
+   - The apply thread gets the premise from the decoded entry, through a new law
+     `reqMsgAt_endsDecoded.spec` (3h's). `authApplierV3__Txn`'s sketch cites it.
+   - Snippet `ReqCheckTxnAuth`'s `Assumes:` line says the request is decoded from gRPC.
+   - **Still needed:**
+     - From W0: the split laws (`endsDecoded rt` gives `opsDecoded` of its branches, and an
+       operation's nested transaction is `endsDecoded`) and the realization.
+     - From 2c: the same premise on `EtcdServer.Range`/`RangeStream`'s `rangeReqOwn` (or its gRPC
+       caller's decoding fact), and on `EtcdServer.Txn`, which calls `CheckTxnAuth`.
+
+Build after these changes: all six directories, **OK (250 modules)**. `go vet ./specreq/apply/...`
+passes and `gofmt` is clean.
+
+## New finding (filed by I5 at the coordinator's request: `nonissues/etcd-auth-empty-range-end-point-check.md`)
 
 3d found the following mismatch.
 - **The mismatch:** take a `Range`/`DeleteRange` whose `RangeEnd` is a non-`nil` empty slice. The auth
@@ -112,7 +152,6 @@ Details are in the 3d section.
   - `context.TODO.spec` returns `GoInterface.ok context.todoCtxVal`, so that 4b's `ctxTraceIs_todo`
     applies to the `TODO()` that 3a passes to txn.
 - **Coordinator**:
-  - The `Authenticate` provider-error decision above.
   - Where lease's law "the errors are `srvErrVal`" lives. Putting it in lease would make lease import
     `etcdserver/errors`.
   - The open user decisions are unchanged: 3a's (members' TTLs, `ErrNoSpace`) and 3d's (`WithRoot`
@@ -123,7 +162,9 @@ Details are in the 3d section.
 
 `lease/Api.lean` has a new law `isLessor_agree.spec`, listed in the header's laws. 3a asked 3c for it
 after 3c's pass, so 3a's section below, which lists it as needed, is now out of date: it is **met**.
-So is 3a's request (b) to 3d (`authStoreAt_agree`). Requests (a) and (c) are answered above.
+So is 3a's request (b) to 3d (`authStoreAt_agree`). Requests (a) and (c) are answered above. Where
+the per-batch sections below differ from "Coordinator's decisions, applied" (3a's `Authenticate` gap,
+3d's empty-end finding "to be filed"), that section is the current state.
 ## Batch 3a (`Spec/go_etcd_io/etcd/server/v3/etcdserver/apply/`, `examples/specreq/apply/`)
 
 ### Changes, by file
