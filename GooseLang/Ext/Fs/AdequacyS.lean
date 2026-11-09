@@ -57,7 +57,7 @@ theorem fs_startS (SQ : StepPrem) (Q : OsState → OsState → Prop) (hk : StepK
       osStart (gooseOsGS (L := hG.goose_localGS)) (extLocal fsExt σ.world) :=
     sep_elim_left
   have hdisk : ∀ i f, (extLocal fsExt σ.world).fs.files !! i = some f →
-      ∃ vs sz, f = OsFile.ofDisk vs sz := fun i f hf => (h.2.2.2.2.2.2.1 i f hf).2
+      ∃ vs sz kp, f = OsFile.ofDisk vs sz kp := fun i f hf => (h.2.2.2.2.2.2.1 i f hf).2
   iintro Hs
   icases Hl $$ Hs with Hs
   unfold osStart osStartF treeStart
@@ -70,8 +70,8 @@ theorem fs_startS (SQ : StepPrem) (Q : OsState → OsState → Prop) (hk : StepK
   iframe Hinv
   isplitl [Hfs]
   · iapply BigSepM.bigSepM_mono (fun {i f} hf => by
-      obtain ⟨vs, sz, rfl⟩ := hdisk i f hf
-      exact (osFileStartG_ofDisk (L := hG.goose_localGS) i vs sz).1) $$ Hfs
+      obtain ⟨vs, sz, kp, rfl⟩ := hdisk i f hf
+      exact (osFileStartG_ofDisk (L := hG.goose_localGS) i vs sz kp).1) $$ Hfs
   · unfold osTree; iexact Hd
 
 

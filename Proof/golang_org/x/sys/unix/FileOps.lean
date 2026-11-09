@@ -46,15 +46,17 @@ theorem golang_org.x.sys.unix.Fallocate.wp_grow (fd off len : w64) (dq : DFrac) 
   iapply HΦ
   iframe
 
-/-- `unix.Fallocate(fd, FALLOC_FL_KEEP_SIZE, off, len)`: no visible change, any errno. -/
+/-- `unix.Fallocate(fd, FALLOC_FL_KEEP_SIZE, off, len)`: no visible change, any errno; it takes the
+file's `OsMeta` whole (it may allocate blocks past the end, `wp_osFallocKeep`). -/
 theorem golang_org.x.sys.unix.Fallocate.wp_keep (fd off len : w64) (dq : DFrac) (d : OsFd)
-    (hwr : d.writable = true) (hoff : 0 ≤ off.toInt) (hlen : 0 < len.toInt) :
-    {{ osInv (GF := GF) ∗ osFd (GF := GF) fd dq d }}
+    (m : OsMeta) (hwr : d.writable = true) (hoff : 0 ≤ off.toInt) (hlen : 0 < len.toInt) :
+    {{ osInv (GF := GF) ∗ osFd (GF := GF) fd dq d ∗ osMeta (GF := GF) d.ino (DFrac.own 1) m }}
       (App (App (App (App (Val (@! golang_org.x.sys.unix.Fallocate)) (Val #fd)) (Val #(W32 1)))
         (Val #off)) (Val #len))
-    {{ (e : w64), RET #(errnoErr e); osFd fd dq d }} := by
-  wp_start as ⟨#Hinv, Hfd⟩
-  wp_apply wp_osFallocKeep fd off len dq d CoPset.subseteq_top hwr hoff hlen $$ Hinv Hfd as %e Hfd
+    {{ (e : w64), RET #(errnoErr e); osFd fd dq d ∗ osMeta d.ino (DFrac.own 1) m }} := by
+  wp_start as ⟨#Hinv, Hfd, Hm⟩
+  wp_apply wp_osFallocKeep fd off len dq d m CoPset.subseteq_top hwr hoff hlen $$ Hinv Hfd Hm
+    as %e Hfd Hm
   iapply wp_errno
   iapply HΦ
   iframe

@@ -60,41 +60,70 @@ theorem wp_osOfdLock (fd cmd : w64) (dq : DFrac) (d : OsFd) (hE : ↑osN ⊆ E) 
   iapply wp_value'
   iapply HΦ $$ Hfd
 
-/-- `fallocate(fd, FALLOC_FL_KEEP_SIZE, off, len)`: any errno, no visible change. -/
-theorem wp_osFallocKeep (fd off len : w64) (dq : DFrac) (d : OsFd) (hE : ↑osN ⊆ E)
+/-- `fallocate(fd, FALLOC_FL_KEEP_SIZE, off, len)`: any errno, no visible change. It may allocate
+blocks past the end (`OsFile.keepAlloc`), so it takes the file's `OsMeta` whole. -/
+theorem wp_osFallocKeep (fd off len : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (hE : ↑osN ⊆ E)
     (hwr : d.writable = true) (hoff : 0 ≤ off.toInt) (hlen : 0 < len.toInt) (Φ : val → IProp GF) :
-    ⊢ osInv (L := L) -∗ osFd (L := L) fd dq d -∗
-      (∀ e : w64, osFd (L := L) fd dq d -∗ Φ (#e)) -∗
+    ⊢ osInv (L := L) -∗ osFd (L := L) fd dq d -∗ osMeta (L := L) d.ino (DFrac.own 1) m -∗
+      (∀ e : w64, osFd (L := L) fd dq d -∗ osMeta (L := L) d.ino (DFrac.own 1) m -∗
+        Φ (#e)) -∗
       WP (ExternalOp fsExt.name "FallocKeep" (Val (PairV (#fd) (PairV (#off) (#len))))) @ s; E {{ Φ }} := by
-  iintro #Hinv Hfd HΦ
+  iintro #Hinv Hfd Hm HΦ
   iapply wp_os_step "FallocKeep" _ Φ (by simp [val.isPanic]) hE (by simp [DataOp]) $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %h Hw
   unfold osWorld
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
   obtain ⟨hwf, hcoh⟩ := Hwc
-  unfold osFd
+  unfold osFd osMeta
   icases gAuth_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
+  icases gAuth_lookup _ _ _ _ _ _ $$ HAm Hm with %Hml
+  icases tokRes_meta_whole _ $$ Htok Hm with %Hnt
   icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
   have hfd : st.proc.fds !! fd = some d := hcoh.fds ▸ Hfdl
+  obtain ⟨f, hf, hmo⟩ := coh_meta hcoh Hml
+  have hnoI : ∀ i, ¬ InflightAt st d.ino i := by
+    rintro i ⟨t, c, ht, hcp, -⟩; exact noTok_of_whole hcoh Hnt t c ht hcp
+  have hszf := hwf.sizes d.ino f hf
+  have hvf : ∀ n, (f.secs n).vers ≠ [] := fun n => hwf.vers d.ino f n hf
+  have hwfK : OsWf (st.setFile d.ino f.keepAlloc) :=
+    osWf_setFile_sameCur hwf hf rfl hszf (fun n => hvf n)
+  have hcur : f.keepAlloc.contents = f.contents := rfl
   imodintro
   isplitr
   · ipureintro
-    exact ⟨_, h, st, ⟨fd, off, len, 0, d, rfl, hfd, hwr, hoff, hlen, rfl, rfl⟩, mapsFresh_same rfl,
-      heapRendered_same hwf rfl rfl Hag⟩
+    exact ⟨_, h, _, ⟨fd, off, len, 0, d, f, rfl, hfd, hwr, hoff, hlen, hf, rfl, rfl⟩,
+      mapsFresh_same rfl, heapRendered_same hwfK rfl (cellView_setFile_sameCur hwf hwfK hf hcur rfl)
+        Hag⟩
   inext
   iintro %e' %h' %st' %Hst
   obtain ⟨Hst, Hfr, Hr⟩ := Hst
   simp only [IsFsStep] at Hst
-  obtain ⟨fd', off', len', e, d', hv, -, -, -, -, rfl, rfl⟩ := Hst
-  imod cells_same hwf hwf Hr Hfr rfl rfl $$ [Hσ Hcells] with ⟨Hσ, Hcells⟩
+  obtain ⟨fd', off', len', e, d', f', hv, hfd', -, -, -, hf', rfl, rfl⟩ := Hst
+  injection hv with h1 h2
+  cases go.intoVal_inj h1
+  simp only [FdOpen, hfd, Option.some.injEq] at hfd'; subst hfd'
+  rw [hf] at hf'; cases hf'
+  imod gAuth_update _ _ _ _ _ m $$ HAm Hm with ⟨HAm, Hm⟩
+  imod cells_same hwf hwfK Hr Hfr rfl (cellView_setFile_sameCur hwf hwfK hf hcur rfl)
+    $$ [Hσ Hcells] with ⟨Hσ, Hcells⟩
   · iframe
   imodintro
-  iexists Γb, Γm, Γf, Γt
+  iexists Γb, _, Γf, Γt
+  have hs := sizes_setFile_sameCur (f' := f.keepAlloc) hf rfl
+  have htr : tokRes gooseOsGS (st.setFile d.ino f.keepAlloc) Γt = tokRes (gooseOsGS (L := L)) st Γt := by
+    unfold tokRes; simp only [affLo_congr hs]
+  rw [htr]
   iframe
   isplitr
-  · ipureintro; exact ⟨hwf, hcoh⟩
+  · ipureintro
+    refine ⟨hwfK, osCoh_setFile_sameCur (f' := f.keepAlloc) hcoh hf hcur rfl ?_ 0 [] []
+      rfl (fun k hk => absurd hk (by simp)) (fun k hk => absurd hk (by simp)) (fun b hb => hb)
+      (fun k hk => absurd hk (by simp)) hnoI⟩
+    exact ⟨hmo.size, hmo.lo, hmo.hi, hmo.ok, hmo.maps,
+      fun t c ht hcp => absurd hcp (noTok_of_whole hcoh Hnt t c ht), hmo.dur, hmo.zero, hmo.vk,
+      hmo.dz⟩
   iapply wp_value'
-  iapply HΦ $$ Hfd
+  iapply HΦ $$ Hfd Hm
 
 /-- The first step of `fallocate(fd, 0, off, len)`, a truncate to `max size (off + len)` in
 flight, as `wp_osFtruncateStart`. -/

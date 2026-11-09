@@ -144,8 +144,32 @@ Every extension zero-fills from the old size (as POSIX requires), so the analysi
 extend paths was wrong for this kernel (current ext4 zeroes the partial block on extension). The
 model change F3 led to (`CrashFile` keeping whole sectors, `resized` filling from `rawAt`) was
 reverted: an extension fills with zeros. What the experiment does show is that a crash recovers
-the old size with the new data on disk; with `data=ordered` the converse (a larger size with data
-older than it) cannot happen, which the crash rule now requires (`Impl.lean`, `CrashFile`).
+the old size with the new data on disk.
+
+**The converse, a larger size with older data (2026-11-08)**, which the crash rule allowed for
+every sector, was measured too (`fs-v2-f3/ordered.sh WORKDIR CHANGE [FS]`, `STALE=1` to start from
+the stale tail above: periodic writeback off, `commit=1`, the image copied after 3 s;
+`fs-v2-f3/delay.sh`: an external journal, the data device behind `dm-delay`, writes delayed 10 s):
+
+| change (ext4, from a synced one-byte file `00`) | crash image |
+|---|---|
+| `pwrite 05` at 1 (the block holding the end) | size 2, block `00 00`: the size without the data |
+| the same, `STALE=1` (`00 07` on disk) | size 2, reads `00 07`: the stale byte under the new size |
+| `pwrite 09` at 3, `STALE=1` (a gap past the end) | size 4, `00 00 00 09`: the gap's zeroing and the data ordered |
+| `pwrite 07` at 4096 (a new block) | size 1 |
+| the same, its write delayed (`delay.sh`; live: block 1 allocated, unwritten) | size 1, no extent: allocation and size not committed before the data |
+| `ftruncate(4096)`, `STALE=1` | size 4096, block `00 00`: the zeroing ordered |
+| `fallocate(0, 8192)` | size 8192, zeros |
+
+xfs (`ordered.sh … xfs`, the log forced by `shutdown -f`): a write's size never without its data
+(size 1 in all three write cases); `ftruncate` comes back zeroed.
+
+So ext4 orders a new block (and the zeroing of the old last block) before the size that covers it,
+and does not order an append into the block that already holds the end. The crash rule now says
+exactly that (`Impl.lean`, header "Ordered growth", `Sector.fresh`, `CovCand`): a sector whose
+page had no block at the last sync (no `FALLOC_FL_KEEP_SIZE` either, `OsFile.kept`) is never its
+synced version under a crash size that covers it. The simpler rule "a byte below the size comes
+from a version whose size covered it, or is zero" would remove the stale-byte outcome above.
 
 The original finding, kept for the record:
 

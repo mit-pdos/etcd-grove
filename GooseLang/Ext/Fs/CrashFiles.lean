@@ -76,7 +76,7 @@ theorem clean_landWrite {f : OsFile} {b : Nat} (off : Nat) (data : List w8) (k :
 theorem clean_truncate {f : OsFile} {b : Nat} (sz' : Nat) (hbs : b < f.size) (hb : b < sz')
     (hcp : CleanPhys f b) : CleanPhys (f.truncate sz') b := by
   unfold OsFile.truncate
-  exact clean_change (by omega) (resized_getD _ _ _ hb) (by rw [resized_length]; exact hb) hcp
+  exact clean_change (by omega) (resized_getD _ _ _ hb hbs) (by rw [resized_length]; exact hb) hcp
 
 theorem written_length (f : OsFile) (off : Nat) (d : List w8) (hd : d ≠ []) :
     (f.written off d).length = max f.size (off + d.length) := by
@@ -146,7 +146,7 @@ theorem crashFile_rel (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt) {i : Ino
   obtain ⟨f0, hf0, hok⟩ := hcoh.meta_some i m hm
   rw [hf] at hf0; cases hf0
   have hcopy := hc
-  obtain ⟨sz, vs, ⟨hlo, hhi⟩, -, rfl⟩ := hc
+  obtain ⟨sz, vs, ⟨hlo, hhi⟩, -, -, rfl⟩ := hc
   have hsizes := hwf.sizes i f (by simp [OsState.file, hf])
   refine ⟨?_, ?_, fun b x hb => ?_⟩
   · show m.lo ≤ sz
@@ -207,15 +207,15 @@ def bytesOf (f : OsFile) : List (w8 × Bool) :=
 theorem bytesOf_length (f : OsFile) : (bytesOf f).length = f.size := by simp [bytesOf]
 
 /-- A file on disk: one version per sector, the size range a point. -/
-theorem ofDisk_clean (vs : Nat → SecBytes) (sz b : Nat) (hb : b < sz) :
-    CleanPhys (OsFile.ofDisk vs sz) b := by
+theorem ofDisk_clean (vs : Nat → SecBytes) (sz b : Nat) {kp : Bool} (hb : b < sz) :
+    CleanPhys (OsFile.ofDisk vs sz kp) b := by
   refine ⟨by simp [OsFile.ofDisk]; exact hb, fun v hv => ?_⟩
   simp only [OsFile.ofDisk, List.mem_singleton] at hv; subst hv
   simp [OsFile.rawAt, OsFile.ofDisk, Sector.last]
 
 /-- **After a machine crash, a file's ghost values say it is on disk.** -/
-theorem metaOf_ofDisk (vs : Nat → SecBytes) (sz : Nat) :
-    metaOf (OsFile.ofDisk vs sz) = initMeta (OsFile.ofDisk vs sz) := by
+theorem metaOf_ofDisk (vs : Nat → SecBytes) (sz : Nat) (kp : Bool) :
+    metaOf (OsFile.ofDisk vs sz kp) = initMeta (OsFile.ofDisk vs sz kp) := by
   unfold metaOf initMeta
   congr 1
   · simp [OsFile.ofDisk]
@@ -226,8 +226,8 @@ theorem metaOf_ofDisk (vs : Nat → SecBytes) (sz : Nat) :
   · rw [if_pos (fun n => by simp [OsFile.ofDisk])]
 
 open Classical in
-theorem bytesOf_ofDisk (vs : Nat → SecBytes) (sz : Nat) :
-    bytesOf (OsFile.ofDisk vs sz) = (OsFile.ofDisk vs sz).contents.map (·, true) := by
+theorem bytesOf_ofDisk (vs : Nat → SecBytes) (sz : Nat) (kp : Bool) :
+    bytesOf (OsFile.ofDisk vs sz kp) = (OsFile.ofDisk vs sz kp).contents.map (·, true) := by
   simp only [bytesOf, OsFile.contents, List.map_map]
   apply List.map_congr_left
   intro b hb
@@ -367,8 +367,8 @@ theorem machineCrash_init (htw : FsTreeWf st) (htc : TreeCoh st V Γdf Γc)
   · intro i f hf
     by_cases hi : Named st'.fs.treeDur i
     · refine ⟨hi, ?_⟩
-      obtain ⟨f0, f', -, ⟨sz, vs, -, -, rfl⟩, hf'⟩ := (hfiles i).1 hi
-      rw [hf] at hf'; cases hf'; exact ⟨vs, sz, rfl⟩
+      obtain ⟨f0, f', -, ⟨sz, vs, -, -, -, rfl⟩, hf'⟩ := (hfiles i).1 hi
+      rw [hf] at hf'; cases hf'; exact ⟨vs, sz, _, rfl⟩
     · rw [(hfiles i).2 hi] at hf; cases hf
   · intro i hi
     rw [hino]

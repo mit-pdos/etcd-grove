@@ -64,7 +64,7 @@ theorem secHits_mono {lo hi hi' n : Nat} (h : hi' ≤ hi) (hn : secHits lo hi n 
 
 theorem landed_keepsSec {s0 n : Nat} (hn : 512 * (n + 1) ≤ s0) :
     ∀ {ks : List OsChangeKind} {f g : OsFile}, Landed ks f g → s0 ≤ f.size →
-      (∀ k ∈ ks, KeepsSec s0 n k) → g.secs n = f.secs n ∧ s0 ≤ g.size := by
+      (∀ k ∈ ks, KeepsSec s0 n k) → (g.secs n).last = (f.secs n).last ∧ s0 ≤ g.size := by
   intro ks f g hl
   induction hl with
   | nil f => intro hs _; exact ⟨rfl, hs⟩
@@ -74,7 +74,7 @@ theorem landed_keepsSec {s0 n : Nat} (hn : 512 * (n + 1) ≤ s0) :
     have hrest := fun k' hk' => hK k' (List.mem_cons_of_mem _ hk')
     have hsz : s0 ≤ (f.landWrite off data k).size := by
       rw [landWrite_size f off data k hk]; split <;> omega
-    have hsec : (f.landWrite off data k).secs n = f.secs n := by
+    have hsec : ((f.landWrite off data k).secs n).last = (f.secs n).last := by
       unfold OsFile.landWrite
       split
       · rfl
@@ -93,7 +93,7 @@ theorem landed_keepsSec {s0 n : Nat} (hn : 512 * (n + 1) ≤ s0) :
     have hrest := fun k' hk' => hK k' (List.mem_cons_of_mem _ hk')
     have hsz : s0 ≤ (f.truncate sz').size := by
       simp only [OsFile.truncate, OsFile.change, resized_length]; omega
-    have hsec : (f.truncate sz').secs n = f.secs n := by
+    have hsec : ((f.truncate sz').secs n).last = (f.secs n).last := by
       simp only [OsFile.truncate, OsFile.change]
       rw [show secHits (min f.size sz') (max f.size sz') n = false by
         simp only [secHits, Bool.and_eq_false_iff, decide_eq_false_iff_not, Nat.not_lt]; omega]
@@ -126,9 +126,7 @@ theorem landWrite_last (f : OsFile) (off : Nat) (data : List w8) (hd : data ≠ 
   unfold OsFile.landWrite
   rw [if_neg hk, List.take_length]
   simp only [OsFile.change, Nat.min_eq_left hoff, hn, if_true]
-  have hl : ({ vers := (f.secs n).vers ++ [secOf (f.written off data) n], dirty := true } :
-      Sector).last = secOf (f.written off data) n := by simp [Sector.last]
-  rw [hl]
+  rw [last_mk_append]
   have h1 := secOf_getD (f.written off data) (512 * n + j)
   rw [(divmod_sec n j hj).1, (divmod_sec n j hj).2] at h1
   simp only [secByte]; rw [h1]
@@ -178,6 +176,7 @@ theorem landWrite_cut_last (f : OsFile) (off : Nat) (data : List w8) (k : Nat)
     rw [if_neg hk0]
     simp only [OsFile.change, Nat.min_eq_left hoff]
     rw [if_neg hh]
+    rfl
 
 /-! ## The crash lemma -/
 
@@ -263,8 +262,9 @@ theorem crashSeen_sec (hQ : ∀ st st', Q st st' → NoTearCrash st st') {i : In
   have hcur : ∀ j < 512, ∀ y, ByteSeen m rs ts (512 * n + j) y →
       secByte (f.secs n).last j = y := fun j hj y hy =>
     last_byte f n j hj (by omega) y (hseen j hj y hy)
-  obtain ⟨sz, vs, -, hcand, rfl⟩ := hcf
-  have hV : ((OsFile.ofDisk vs sz).secs n).last = vs n := by simp [OsFile.ofDisk, Sector.last]
+  obtain ⟨sz, vs, -, hcand, -, rfl⟩ := hcf
+  have hV : ((OsFile.ofDisk vs sz f.kept).secs n).last = vs n := by
+    simp [OsFile.ofDisk, Sector.last]
   rw [hV]
   -- a version of the sector: the durable one or the page cache's
   have hver : vs n ∈ (f.secs n).vers →
@@ -335,7 +335,7 @@ theorem crashSeen_sec (hQ : ∀ st st', Q st st' → NoTearCrash st st') {i : In
           rw [hct, show ti.c = ⟨i, .write off data⟩ by rw [← hino, ← hkd]]
         obtain ⟨k, hk, hcut⟩ := hQ st st' hQst t i off data hci f _ hf hfo
         rcases hcut n (by rw [Nat.min_eq_left (by omega : off ≤ f.size)]; exact hhit) with h1 | h1
-        · have hV' : ((OsFile.ofDisk vs sz).secs n).last ∈ (f.secs n).vers := h1
+        · have hV' : ((OsFile.ofDisk vs sz f.kept).secs n).last ∈ (f.secs n).vers := h1
           rw [hV] at hV'
           rcases hver hV' with h2 | h2
           · exact .inl h2

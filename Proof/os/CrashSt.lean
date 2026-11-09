@@ -616,10 +616,10 @@ theorem csInv_crash_keep (Q : OsState → OsState → Prop) (L L' : GooseLocalGS
     isplitl [Hf]
     · unfold startAt; rw [hl]; iexists f; isplitr
       · ipureintro; rfl
-      obtain ⟨vs, sz, rfl⟩ := crashSeen_ofDisk hseen
-      iapply (osFileStartG_ofDisk (L := L') _ vs sz).1
-      iapply (show osFileStartO (L := L') _ (some (OsFile.ofDisk vs sz)) ⊢
-          osFileStartG (L := L') _ (OsFile.ofDisk vs sz) from BIBase.Entails.rfl) $$ Hf
+      obtain ⟨vs, sz, kp, rfl⟩ := crashSeen_ofDisk hseen
+      iapply (osFileStartG_ofDisk (L := L') _ vs sz kp).1
+      iapply (show osFileStartO (L := L') _ (some (OsFile.ofDisk vs sz kp)) ⊢
+          osFileStartG (L := L') _ (OsFile.ofDisk vs sz kp) from BIBase.Entails.rfl) $$ Hf
     iexists (i :: D); iexact Hr
 
 end crash

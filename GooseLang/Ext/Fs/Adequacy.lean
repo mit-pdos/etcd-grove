@@ -76,7 +76,7 @@ noncomputable instance fsGpreS : GooseGpreS fsGF where
 /-! ## The first generation's start -/
 
 theorem bytesMap_init {st : OsState} (h : FsInit st) : bytesMap st = bytesMapF st.fs.files := by
-  have hdisk : ∀ i f, st.fs.files !! i = some f → ∃ vs sz, f = OsFile.ofDisk vs sz :=
+  have hdisk : ∀ i f, st.fs.files !! i = some f → ∃ vs sz kp, f = OsFile.ofDisk vs sz kp :=
     fun i f hf => (h.2.2.2.2.2.2.1 i f hf).2
   refine GMap.ext (fun k => ?_)
   obtain ⟨i, b⟩ := k
@@ -84,20 +84,20 @@ theorem bytesMap_init {st : OsState} (h : FsInit st) : bytesMap st = bytesMapF s
   cases hf : st.fs.files !! i with
   | none => rfl
   | some f =>
-    obtain ⟨vs, sz, rfl⟩ := hdisk i f hf
+    obtain ⟨vs, sz, kp, rfl⟩ := hdisk i f hf
     simp only [Option.bind_some]
     rw [bytesOf_ofDisk, List.getElem?_map]
 
 theorem metaMap_init {st : OsState} (h : FsInit st) :
     metaMap st = GMap.fmap metaOf st.fs.files := by
-  have hdisk : ∀ i f, st.fs.files !! i = some f → ∃ vs sz, f = OsFile.ofDisk vs sz :=
+  have hdisk : ∀ i f, st.fs.files !! i = some f → ∃ vs sz kp, f = OsFile.ofDisk vs sz kp :=
     fun i f hf => (h.2.2.2.2.2.2.1 i f hf).2
   refine GMap.ext (fun i => ?_)
   simp only [metaMap, GMap.lookup_fmap]
   cases hf : st.fs.files !! i with
   | none => rfl
   | some f =>
-    obtain ⟨vs, sz, rfl⟩ := hdisk i f hf
+    obtain ⟨vs, sz, kp, rfl⟩ := hdisk i f hf
     simp only [Option.map_some, metaOf_ofDisk]
 
 section adequacy
@@ -115,7 +115,7 @@ theorem fs_start [hG : HeapGS .hasLC GF] (σ : state) (h : FsInit (extLocal fsEx
       osStart (gooseOsGS (L := hG.goose_localGS)) (extLocal fsExt σ.world) :=
     sep_elim_left
   have hdisk : ∀ i f, (extLocal fsExt σ.world).fs.files !! i = some f →
-      ∃ vs sz, f = OsFile.ofDisk vs sz := fun i f hf => (h.2.2.2.2.2.2.1 i f hf).2
+      ∃ vs sz kp, f = OsFile.ofDisk vs sz kp := fun i f hf => (h.2.2.2.2.2.2.1 i f hf).2
   iintro Hs
   icases Hl $$ Hs with Hs
   unfold osStart osStartF treeStart
@@ -128,8 +128,8 @@ theorem fs_start [hG : HeapGS .hasLC GF] (σ : state) (h : FsInit (extLocal fsEx
   iframe Hinv
   isplitl [Hfs]
   · iapply BigSepM.bigSepM_mono (fun {i f} hf => by
-      obtain ⟨vs, sz, rfl⟩ := hdisk i f hf
-      exact (osFileStartG_ofDisk (L := hG.goose_localGS) i vs sz).1) $$ Hfs
+      obtain ⟨vs, sz, kp, rfl⟩ := hdisk i f hf
+      exact (osFileStartG_ofDisk (L := hG.goose_localGS) i vs sz kp).1) $$ Hfs
   · unfold osTree; iexact Hd
 
 /-- **Adequacy for a program with Linux files** (`goose_adequacy` for `[fsExt]`), from an initial

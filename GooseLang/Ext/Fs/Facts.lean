@@ -475,10 +475,9 @@ theorem zero_change {f : OsFile} {c : List w8} {lo hi : Nat} (hz : ZeroPast f)
   rw [rawAt_def]
   simp only [OsFile.change]
   split
-  · have hl : ({ vers := (f.secs (b / 512)).vers ++ [secOf c (b / 512)], dirty := true } :
-        Sector).last = secOf c (b / 512) := by simp [Sector.last]
-    rw [hl, secOf_getD, List.getD_eq_getElem?_getD, List.getElem?_eq_none hbc]; rfl
+  · rw [last_mk_append, secOf_getD, List.getD_eq_getElem?_getD, List.getElem?_eq_none hbc]; rfl
   · rename_i hn
+    show (f.secs (b / 512)).last.toList.getD (b % 512) 0 = 0
     rw [← rawAt_def]
     by_cases hs : f.size ≤ b
     · exact hz b hs
@@ -509,15 +508,18 @@ theorem zero_synced {f : OsFile} {busy : Nat → Prop} [DecidablePred busy] (hz 
 theorem zero_syncFailed {f : OsFile} {busy : Nat → Prop} [DecidablePred busy] (hz : ZeroPast f) :
     ZeroPast (f.syncFailed busy) := fun b hb => by rw [syncFailed_rawAt]; exact hz b hb
 
-/-- **A file that holds zeros past its size grows with zeros.** -/
-theorem resized_drop_zero {f : OsFile} (hz : ZeroPast f) (sz : Nat) :
+/-- **A file grows with zeros.** -/
+theorem resized_drop (f : OsFile) (sz : Nat) :
     (f.resized sz).drop f.size = List.replicate (sz - f.size) 0 := by
   apply List.ext_getElem
   · simp [OsFile.resized]
   · intro n h1 h2
     simp only [List.getElem_drop, List.getElem_replicate]
-    simp only [OsFile.resized, List.getElem_map, List.getElem_range]
-    exact hz _ (by omega)
+    simp [OsFile.resized]
+    omega
+
+theorem resized_drop_zero {f : OsFile} (_hz : ZeroPast f) (sz : Nat) :
+    (f.resized sz).drop f.size = List.replicate (sz - f.size) 0 := resized_drop f sz
 
 theorem zero_newFile : ZeroPast newFile := by
   intro b _

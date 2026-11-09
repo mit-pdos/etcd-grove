@@ -195,7 +195,7 @@ theorem wp_Segment (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
   wp_apply wp_Fd f fd (child dir logB) (DFrac.own 1) $$ Hf as Hf
   (try wp_auto)
   wp_apply golang_org.x.sys.unix.Fallocate.wp_keep fd (W64 0) (W64 65536) (DFrac.own 1)
-      ⟨i, true, true⟩ rfl (by decide) (by decide) $$ [Hos Hfd] as %e2 Hfd
+      ⟨i, true, true⟩ _ rfl (by decide) (by decide) $$ [Hos Hfd Hm] as %e2 ⟨Hfd, Hm⟩
   · iframe; iexact Hos
   by_cases he2 : e2 = 0
   rotate_left

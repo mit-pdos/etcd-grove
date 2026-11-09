@@ -820,14 +820,14 @@ theorem contents_getElem? (f : OsFile) (b : Nat) :
   · rename_i h; simp [List.getElem?_range h]
   · rename_i h; simp [List.getElem?_range', h]
 
-theorem ofDisk_rawAt (vs : Nat → SecBytes) (sz b : Nat) :
-    (OsFile.ofDisk vs sz).rawAt b = (vs (b / 512)).toList.getD (b % 512) 0 := by
+theorem ofDisk_rawAt (vs : Nat → SecBytes) (sz b : Nat) (kp : Bool) :
+    (OsFile.ofDisk vs sz kp).rawAt b = (vs (b / 512)).toList.getD (b % 512) 0 := by
   simp [OsFile.rawAt, OsFile.ofDisk, Sector.last]
 
 theorem osInit_wf_coh {st : OsState} (h : FsInit st) :
     OsWf st ∧ OsCoh st (bytesMap st) (metaMap st) ∅ ∅ := by
   obtain ⟨hproc, -, -, -, -, -, hdisk, -, -⟩ := h
-  have hdisk' : ∀ i f, st.file i = some f → ∃ vs sz, f = OsFile.ofDisk vs sz :=
+  have hdisk' : ∀ i f, st.file i = some f → ∃ vs sz kp, f = OsFile.ofDisk vs sz kp :=
     fun i f hf => (hdisk i f hf).2
   have hnoinfl : ∀ i b, ¬ InflightAt st i b := by
     rintro i b ⟨t, c, ht, -⟩; simp [hproc, ProcState.empty] at ht
@@ -838,9 +838,9 @@ theorem osInit_wf_coh {st : OsState} (h : FsInit st) :
   · intro t c h; simp [hproc, ProcState.empty] at h
   · intro t1 c1 _ _ _ h; simp [hproc, ProcState.empty] at h
   · intro i f hf
-    obtain ⟨vs, sz, rfl⟩ := hdisk' i f hf; simp [OsFile.ofDisk]
+    obtain ⟨vs, sz, kp, rfl⟩ := hdisk' i f hf; simp [OsFile.ofDisk]
   · intro i f n hf
-    obtain ⟨vs, sz, rfl⟩ := hdisk' i f hf; simp [OsFile.ofDisk]
+    obtain ⟨vs, sz, kp, rfl⟩ := hdisk' i f hf; simp [OsFile.ofDisk]
   · intro i; simp [metaMap]
   · intro i m hm
     simp only [metaMap, GMap.lookup_fmap] at hm
@@ -849,7 +849,7 @@ theorem osInit_wf_coh {st : OsState} (h : FsInit st) :
     | some f =>
       simp only [hfo, Option.map_some, Option.some.injEq] at hm
       subst hm
-      obtain ⟨vs, sz, rfl⟩ := hdisk' i f hfo
+      obtain ⟨vs, sz, kp, rfl⟩ := hdisk' i f hfo
       refine ⟨_, rfl, ⟨rfl, ?_, ?_, ?_, ?_, ?_, ?_, fun h => by simp [initMeta] at h,
         fun ns hns n => by simp [initMeta] at hns; subst hns; simp [OsFile.ofDisk],
         fun z hz => by simp [initMeta] at hz⟩⟩
@@ -875,11 +875,11 @@ theorem osInit_wf_coh {st : OsState} (h : FsInit st) :
       simp only [hf, Option.bind_some, Option.map_eq_some_iff] at hx
       obtain ⟨y, hy, rfl⟩ := hx
       refine ⟨f, rfl, hy, fun _ => ⟨⟨?_, ?_⟩, hnoinfl i b⟩⟩
-      · obtain ⟨vs, sz, rfl⟩ := hdisk' i f hf
+      · obtain ⟨vs, sz, kp, rfl⟩ := hdisk' i f hf
         rw [contents_getElem?] at hy; split at hy
         · simpa [OsFile.ofDisk]
         · cases hy
-      · obtain ⟨vs, sz, rfl⟩ := hdisk' i f hf
+      · obtain ⟨vs, sz, kp, rfl⟩ := hdisk' i f hf
         intro v hv
         simp only [OsFile.ofDisk, List.mem_singleton] at hv
         subst hv; rw [ofDisk_rawAt]

@@ -35,22 +35,31 @@ theorem secOf_getD (c : List w8) (b : Nat) :
   simp only [secOf, List.getD_eq_getElem?_getD, Vector.toList_ofFn, List.getElem?_ofFn]
   simp [hb, he]
 
+theorem last_mk_append (vs : List SecBytes) (v : SecBytes) (d fr : Bool) :
+    (⟨vs ++ [v], d, fr⟩ : Sector).last = v := by simp [Sector.last]
+
 /-- A change leaves a byte outside its bytes as it was, if the new contents keep it. -/
 theorem rawAt_change (f : OsFile) (c : List w8) (lo hi b : Nat) (hb : ¬ (lo ≤ b ∧ b < hi))
     (hc : c.getD b 0 = f.rawAt b) : (f.change c lo hi).rawAt b = f.rawAt b := by
   rw [rawAt_def, rawAt_def]
   simp only [OsFile.change]
   split
-  · have hl : ({ vers := (f.secs (b / 512)).vers ++ [secOf c (b / 512)], dirty := true } :
-        Sector).last = secOf c (b / 512) := by simp [Sector.last]
-    rw [hl, secOf_getD, hc, rawAt_def]
+  · rw [last_mk_append, secOf_getD, hc, rawAt_def]
   · rfl
 
 /-- `P`: byte `b` is below the size, and the page cache's versions hold `x` there. -/
 def HoldsAt (f : OsFile) (b : Nat) (x : w8) : Prop := b < f.size ∧ f.rawAt b = x
 
-theorem resized_getD (f : OsFile) (sz b : Nat) (hb : b < sz) : (f.resized sz).getD b 0 = f.rawAt b := by
-  simp [OsFile.resized, List.getD_eq_getElem?_getD, hb]
+theorem resized_getD (f : OsFile) (sz b : Nat) (hb : b < sz) (hbs : b < f.size) :
+    (f.resized sz).getD b 0 = f.rawAt b := by
+  simp [OsFile.resized, List.getD_eq_getElem?_getD, hb, hbs]
+
+/-- An extension reads zeros past the old size. -/
+theorem resized_getD_past (f : OsFile) (sz b : Nat) (hbs : f.size ≤ b) :
+    (f.resized sz).getD b 0 = 0 := by
+  by_cases hb : b < sz
+  · simp [OsFile.resized, List.getD_eq_getElem?_getD, hb, Nat.not_lt.2 hbs]
+  · simp [OsFile.resized, List.getD_eq_getElem?_getD, hb]
 
 theorem resized_length (f : OsFile) (sz : Nat) : (f.resized sz).length = sz := by
   simp [OsFile.resized]
@@ -77,11 +86,11 @@ theorem written_out (f : OsFile) (off : Nat) (d : List w8) (b : Nat) (hd : d ≠
   rw [List.getD_eq_getElem?_getD]
   rcases hb with hlt | hge
   · rw [List.getElem?_append_left (by rw [hAd]; omega), List.getElem?_append_left (by rw [hA]; exact hlt),
-      List.getElem?_take_of_lt hlt, ← List.getD_eq_getElem?_getD, resized_getD _ _ _ (by omega)]
+      List.getElem?_take_of_lt hlt, ← List.getD_eq_getElem?_getD, resized_getD _ _ _ (by omega) hbs]
   · rw [List.getElem?_append_right (by rw [hAd]; exact hge), hAd, List.getElem?_drop,
       ← List.getD_eq_getElem?_getD]
     have : off + d.length + (b - (off + d.length)) = b := by omega
-    rw [this, resized_getD _ _ _ (by omega)]
+    rw [this, resized_getD _ _ _ (by omega) hbs]
 
 theorem holds_landWrite {f : OsFile} {b : Nat} {x : w8} (off : Nat) (data : List w8) (k : Nat)
     (hk : k ≤ data.length) (hp : HoldsAt f b x) (hn : ¬ KAff f.size (.write off data) b ∨
@@ -122,7 +131,7 @@ theorem holds_landWrite {f : OsFile} {b : Nat} {x : w8} (off : Nat) (data : List
 theorem holds_truncate {f : OsFile} {b : Nat} {x : w8} (sz' : Nat) (hp : HoldsAt f b x)
     (hb : b < sz') : HoldsAt (f.truncate sz') b x := by
   unfold OsFile.truncate
-  have hc : (f.resized sz').getD b 0 = f.rawAt b := resized_getD _ _ _ hb
+  have hc : (f.resized sz').getD b 0 = f.rawAt b := resized_getD _ _ _ hb hp.1
   refine ⟨by simp [OsFile.change, OsFile.resized]; exact hb, ?_⟩
   rw [rawAt_change _ _ _ _ _ (by have := hp.1; omega) hc, hp.2]
 
@@ -157,7 +166,7 @@ theorem crash_keeps_clean {st : OsState} {i : Ino} {f f' : OsFile} {b : Nat} {x 
     (hv : ∀ v ∈ (f.secs (b / 512)).vers, v.toList.getD (b % 512) 0 = x)
     (hn : ¬ InflightAt st i b) (hsz : b < f'.size) :
     f'.contents[b]? = some x := by
-  obtain ⟨sz, vs, -, hcand, rfl⟩ := hc
+  obtain ⟨sz, vs, -, hcand, -, rfl⟩ := hc
   have hb : b < sz := hsz
   simp only [OsFile.contents, OsFile.ofDisk, List.getElem?_map, List.getElem?_range hb,
     Option.map_some, OsFile.rawAt, Sector.last, List.getLast?_singleton, Option.getD_some]

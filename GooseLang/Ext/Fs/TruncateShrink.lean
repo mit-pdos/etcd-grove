@@ -43,14 +43,14 @@ variable (f : OsFile) (n : Nat)
 
 theorem truncate_old_le (i : Nat) (hi : i < n) (hn : n ≤ f.size) :
     (f.truncate n).contents[i]? = f.contents[i]? := by
-  rw [truncate_getElem?, contents_getElem?, if_pos hi, if_pos (by omega)]
+  rw [truncate_getElem?, contents_getElem?, if_pos hi, if_pos (by omega), if_pos (by omega)]
 
 /-- Shrinking a file keeps clean the clean bytes it keeps. -/
 theorem truncate_clean_le (hn : n ≤ f.size) (i : Nat) (hi : i < n) (h : CleanPhys f i) :
     CleanPhys (f.truncate n) i := by
   unfold OsFile.truncate
   apply change_clean f _ _ _ i (by omega) (by rw [resized_length]; omega) _ h
-  rw [List.getD_eq_getElem?_getD, resized_getElem?, if_pos hi]; rfl
+  rw [List.getD_eq_getElem?_getD, resized_getElem?, if_pos hi, if_pos (by omega)]; rfl
 
 theorem truncate_sizeLo_le (hn : n ≤ f.size) : (f.truncate n).sizeLo = min f.sizeLo n := by
   simp only [OsFile.truncate, OsFile.change, resized_length]
@@ -71,7 +71,8 @@ structure ShrunkFile (f f' : OsFile) (sz : Nat) : Prop where
   clean : ∀ i, i < f'.size → CleanPhys f i → CleanPhys f' i
   vers : ∀ k, (f.secs k).vers ≠ [] → (f'.secs k).vers ≠ []
   head : ∀ k v, (f.secs k).vers.head? = some v → (f'.secs k).vers.head? = some v
-  ok : ∀ k, (f'.secs k).dirty = false → f'.secs k = f.secs k
+  ok : ∀ k, (f'.secs k).dirty = false →
+    (f'.secs k).vers = (f.secs k).vers ∧ (f'.secs k).dirty = (f.secs k).dirty
   sizeLo : f'.sizeLo = min f.sizeLo f'.size
   sizeHi : f'.sizeHi = f.sizeHi
 
@@ -86,7 +87,7 @@ theorem shrunkFile_truncate {f : OsFile} {sz : Nat} (hsz : f.size ≤ f.sizeHi) 
 theorem shrunkFile_self {f : OsFile} {sz : Nat} (hsz : f.sizeLo ≤ f.size) (h : sz ≤ f.size) :
     ShrunkFile f f sz :=
   ⟨.inr rfl, h, Nat.le_refl _, fun _ _ => rfl, fun _ _ h => h, fun _ h => h, fun _ _ h => h,
-    fun _ _ => rfl, by omega, rfl⟩
+    fun _ _ => ⟨rfl, rfl⟩, by omega, rfl⟩
 
 /-! ## The view of the mapped cells, unchanged by a change to an unmapped file -/
 
@@ -235,8 +236,8 @@ theorem shFinish_coh (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt) {t : Nat}
         by show ti.om.lo ≤ _; rw [hg.sizeLo]; have := hmo.lo; have := htg.1; omega,
         by show _ ≤ ti.om.hi; rw [hg.sizeHi]; exact hmo.hi,
         fun hok k hd => by
-          rw [hg.ok k hd]
-          exact hmo.ok hok k (by rw [← hg.ok k hd]; exact hd),
+          rw [(hg.ok k hd).1]
+          exact hmo.ok hok k (by rw [← (hg.ok k hd).2]; exact hd),
         hmo.maps, fun t' c' h1 h2 => ?_, fun b d0 h v hv => ?_, fun hz => by
           rcases hg.either with rfl | rfl
           · exact zero_truncate _ (hmo.zero hz)

@@ -25,7 +25,7 @@ local macro "lst_tac" : tactic => `(tactic| (repeat' split) <;>
     (simp_all; done) | (congr 1; omega))
 
 theorem resized_getElem? (f : OsFile) (sz b : Nat) :
-    (f.resized sz)[b]? = if b < sz then some (f.rawAt b) else none := by
+    (f.resized sz)[b]? = if b < sz then some (if b < f.size then f.rawAt b else 0) else none := by
   simp only [OsFile.resized, List.getElem?_map]
   split
   · rename_i h; simp [List.getElem?_range h]
@@ -75,7 +75,7 @@ theorem change_contents (f : OsFile) (c : List w8) (lo hi : Nat)
         have := Nat.mod_lt b (show 512 > 0 by decide)
         constructor <;> omega
       have : (f.change c lo hi).rawAt b = f.rawAt b := by
-        simp [OsFile.rawAt, OsFile.change, hs]
+        simp [OsFile.rawAt, OsFile.change, hs, Sector.last]
       rw [this, ← hc b hb hout, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hb]; rfl
   · rw [if_neg hb, List.getElem?_eq_none (by omega)]
 
@@ -990,9 +990,10 @@ theorem pwFile_vk (hgap : off ≤ f.size) {vk : Option (List Nat)}
     exact vk_le_mono hm n _ (h ns0 h0 n)
   · exact change_vk f _ _ _ h ns h' n
 
-/-- A write leaves every sector it does not make dirty as it was. -/
+/-- A write leaves the versions and dirty bit of every sector it does not make dirty. -/
 theorem pwFile_ok (n : Nat) (h : ((pwFile f off data k).secs n).dirty = false) :
-    (pwFile f off data k).secs n = f.secs n := by
+    ((pwFile f off data k).secs n).vers = (f.secs n).vers ∧
+      ((pwFile f off data k).secs n).dirty = (f.secs n).dirty := by
   unfold pwFile OsFile.landWrite at h ⊢
   by_cases h0 : k = 0
   · simp [h0]
@@ -1169,8 +1170,8 @@ theorem pwFinish_coh (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt) (hti : Γ
     · rename_i hpq; subst hpq; cases hm
       refine ⟨pwFile f off data k, hfk, ⟨by rw [hlen],
         by rw [pwFile_sizeLo _ _ _ _ hk hszf.1]; exact hmo.lo, ?_, fun hok n hd => by
-          rw [pwFile_ok f off data k n hd]
-          exact hmo.ok hok n (by rw [← pwFile_ok f off data k n hd]; exact hd),
+          rw [(pwFile_ok f off data k n hd).1]
+          exact hmo.ok hok n (by rw [← (pwFile_ok f off data k n hd).2]; exact hd),
           hmo.maps, fun t' c' h1 h2 => ?_, fun b d0 h v hv => ?_,
           fun hz => zero_landWrite off data k (hmo.zero hz),
           pwFile_vk f off data k hgap hmo.vk, fun z hz b hzb v hv => ?_⟩⟩

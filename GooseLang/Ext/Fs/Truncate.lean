@@ -1,8 +1,7 @@
 /-
 WP specs of the Linux file extension's `ftruncate` (`FtruncateStart`, `FtruncateFinish`), for a
 truncate that grows the file (or keeps its size): it takes no byte of the file, and gives it the
-new bytes, whatever the sectors hold past the old size (zeros, unless a crash left other bytes
-there: F3, `OsFile.resized`). The client holds the file's `OsMeta` whole, so no other change is in flight.
+new bytes, zeros (`OsFile.resized`). The client holds the file's `OsMeta` whole, so no other change is in flight.
 While it is in flight, a truncate affects every byte from the size on, so its first step takes
 the client's halves of every mapped cell past the size (up to `hi`, where every mapping ends),
 and its second step gives them back.
@@ -63,18 +62,20 @@ theorem truncate_size : (f.truncate n).size = n := by
 
 theorem truncate_contents : (f.truncate n).contents = f.resized n := by
   apply change_contents
-  intro b hb _
+  intro b hb hout
   rw [resized_length] at hb
-  rw [List.getD_eq_getElem?_getD, resized_getElem?, if_pos hb]; rfl
+  have hbs : b < f.size := by omega
+  rw [List.getD_eq_getElem?_getD, resized_getElem?, if_pos hb, if_pos hbs]; rfl
 
 theorem truncate_getElem? (i : Nat) :
-    (f.truncate n).contents[i]? = if i < n then some (f.rawAt i) else none := by
+    (f.truncate n).contents[i]? =
+      if i < n then some (if i < f.size then f.rawAt i else 0) else none := by
   rw [truncate_contents, resized_getElem?]
 
 /-- A grown file keeps its old bytes. -/
 theorem truncate_old (hn : f.size ≤ n) (i : Nat) (hi : i < f.size) :
     (f.truncate n).contents[i]? = f.contents[i]? := by
-  rw [truncate_getElem?, contents_getElem?, if_pos (by omega), if_pos hi]
+  rw [truncate_getElem?, contents_getElem?, if_pos (by omega), if_pos hi, if_pos hi]
 
 theorem truncate_sizeLo (hsz : f.sizeLo ≤ f.size) (hn : f.size ≤ n) :
     (f.truncate n).sizeLo = f.sizeLo := by
@@ -89,7 +90,7 @@ theorem truncate_clean (hn : f.size ≤ n) (hsz : f.sizeLo ≤ f.size) (i : Nat)
   have hi : i < f.size := by have := h.1; omega
   unfold OsFile.truncate
   apply change_clean f _ _ _ i (by omega) (by rw [resized_length]; omega) _ h
-  rw [List.getD_eq_getElem?_getD, resized_getElem?, if_pos (by omega)]; rfl
+  rw [List.getD_eq_getElem?_getD, resized_getElem?, if_pos (by omega), if_pos hi]; rfl
 
 theorem truncate_vers (k : Nat) (h : (f.secs k).vers ≠ []) : ((f.truncate n).secs k).vers ≠ [] :=
   change_vers _ _ _ _ k h
@@ -101,13 +102,14 @@ theorem truncate_head (k : Nat) (v : SecBytes) (h : (f.secs k).vers.head? = some
   · rw [List.head?_append, h]; rfl
   · exact h
 
-/-- A truncate leaves every sector it does not make dirty as it was. -/
+/-- A truncate leaves the versions and dirty bit of every sector it does not make dirty. -/
 theorem truncate_ok (k : Nat) (h : ((f.truncate n).secs k).dirty = false) :
-    (f.truncate n).secs k = f.secs k := by
+    ((f.truncate n).secs k).vers = (f.secs k).vers ∧
+      ((f.truncate n).secs k).dirty = (f.secs k).dirty := by
   simp only [OsFile.truncate, OsFile.change] at h ⊢
   by_cases hs : secHits (min f.size n) (max f.size n) k = true
   · rw [if_pos hs] at h; cases h
-  · rw [if_neg hs]
+  · rw [if_neg hs]; exact ⟨rfl, rfl⟩
 
 end ftFile
 
@@ -125,7 +127,8 @@ structure GrownFile (f f' : OsFile) (sz : Nat) : Prop where
   clean : ∀ i, CleanPhys f i → CleanPhys f' i
   vers : ∀ k, (f.secs k).vers ≠ [] → (f'.secs k).vers ≠ []
   head : ∀ k v, (f.secs k).vers.head? = some v → (f'.secs k).vers.head? = some v
-  ok : ∀ k, (f'.secs k).dirty = false → f'.secs k = f.secs k
+  ok : ∀ k, (f'.secs k).dirty = false →
+    (f'.secs k).vers = (f.secs k).vers ∧ (f'.secs k).dirty = (f.secs k).dirty
   sizeLo : f'.sizeLo = f.sizeLo
   sizeHi : f'.sizeHi = max f.sizeHi f'.size
   zero : ZeroPast f → ZeroPast f'
@@ -138,8 +141,8 @@ theorem grownFile_truncate {f : OsFile} {n sz : Nat} (hsz : f.sizeLo ≤ f.size)
 
 theorem grownFile_self {f : OsFile} {sz : Nat} (hsz : f.size ≤ f.sizeHi) (h : f.size ≤ sz) :
     GrownFile f f sz :=
-  ⟨Nat.le_refl _, h, fun _ _ => rfl, fun _ h => h, fun _ h => h, fun _ _ h => h, fun _ _ => rfl,
-    rfl, by omega, id⟩
+  ⟨Nat.le_refl _, h, fun _ _ => rfl, fun _ h => h, fun _ h => h, fun _ _ h => h,
+    fun _ _ => ⟨rfl, rfl⟩, rfl, by omega, id⟩
 
 /-- The ghost bytes of a grown file `f'` from the old size `lo` on: its bytes there, not clean. -/
 def grownBytes (f' : OsFile) (lo : Nat) : List (w8 × Bool) := (f'.contents.drop lo).map (·, false)
@@ -258,8 +261,8 @@ theorem ftFinish_coh (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt) {t : Nat}
       refine ⟨f', hfk, ⟨rfl, by rw [hg.sizeLo]; exact hmo.lo,
         by rw [hg.sizeHi]; have := hmo.hi; have := hg.size_le; dsimp only; omega,
         fun hok k hd => by
-          rw [hg.ok k hd]
-          exact hmo.ok hok k (by rw [← hg.ok k hd]; exact hd),
+          rw [(hg.ok k hd).1]
+          exact hmo.ok hok k (by rw [← (hg.ok k hd).2]; exact hd),
         hmo.maps, fun t' c' h1 h2 => ?_, fun b d0 h v hv => ?_,
         fun hz => hg.zero (hmo.zero hz), (fun _ h => by cases h), fun z hz b hzb v hv => ?_⟩⟩
       · obtain ⟨h1, n1⟩ := hdel t' c' h1
@@ -374,7 +377,7 @@ def ftTok (t : Nat) (p : Ino) (sz : Nat) (m : OsMeta) : IProp GF :=
 new bytes `zs`, not clean, whole, and the client's halves of the cells of every mapping over
 `[m.size, sz)`, showing them, and over `[sz, hi)`. The new bytes are what the sectors hold past
 the old size: zeros if the file's `OsMeta` says so (`zero`: a file made in this generation), else
-whatever a crash left there (F3, `OsFile.resized`). -/
+zeros (`OsFile.resized`). -/
 def osGrown (p : Ino) (m : OsMeta) (sz hi : Nat) : IProp GF :=
   iprop(∃ zs : List w8, ⌜zs.length = sz - m.size ∧
       (m.zero = true → zs = List.replicate (sz - m.size) 0)⌝ ∗ osMeta (L := L) p (DFrac.own 1) (m.grown sz) ∗

@@ -537,8 +537,10 @@ def osFileStart [L : GooseLocalGS GF] (i : Ino) (f : OsFile) : IProp GF :=
     osBytes (L := L) i 0 (DFrac.own 1) (f.contents.map (·, true)))
 
 /-- After a machine crash a file is on disk: its start is the first generation's. -/
-theorem osFileStartG_ofDisk [L : GooseLocalGS GF] (i : Ino) (vs : Nat → SecBytes) (sz : Nat) :
-    osFileStartG (L := L) i (OsFile.ofDisk vs sz) ⊣⊢ osFileStart (L := L) i (OsFile.ofDisk vs sz) := by
+theorem osFileStartG_ofDisk [L : GooseLocalGS GF] (i : Ino) (vs : Nat → SecBytes) (sz : Nat)
+    (kp : Bool) :
+    osFileStartG (L := L) i (OsFile.ofDisk vs sz kp) ⊣⊢
+      osFileStart (L := L) i (OsFile.ofDisk vs sz kp) := by
   unfold osFileStartG osFileStart
   rw [metaOf_ofDisk, bytesOf_ofDisk]
   exact .rfl
