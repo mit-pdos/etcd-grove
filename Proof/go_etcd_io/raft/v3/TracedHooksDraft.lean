@@ -343,6 +343,10 @@ def QuorumLogF (σ : Etcdraft.State) : Prop :=
   ∀ i ∈ σ.server, Etcdraft.isQuorum ((σ.getConfig i).filter (fun j =>
     or (!σ.server.contains j) (!Etcdraft.isPrefix (committedL σ i) (σ.s j).log))) (σ.getConfig i) = false
 
+/-- `QuorumLogF` is `TraceSimSpecInv`'s `QuorumLogS` (its restatement there, where
+`quorumLog_appendEntriesAlreadyDone` re-establishes it at a follower's raised commit index). -/
+theorem QuorumLogF_eq : QuorumLogF = TraceSpecInv.QuorumLogS := rfl
+
 /-- **The bags' uniqueness** (the notes' `MsgsDet`/`AppSlices`): two messages in flight that a line
 matches are equal, over both bags (so that a `Ready` moving pending messages out keeps it: review
 round 2's A5; a receive line's message is then the one its token names). -/

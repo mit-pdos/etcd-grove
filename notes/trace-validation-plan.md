@@ -128,13 +128,13 @@ functions and actions delegated (`trace-check-layerc-spec`). S5 Draft review rou
 **The specification invariants' preservation (merged, `TraceSimSpecInv.lean`, proved):** `DurInv` as
 stated is **false** (`durInv_not_preserved`: a leader's self-acknowledgement of its whole log sits in
 `pendingMessages` past its durable log until its `Ready`); the strengthened `SpecInv` (`LeaderEntries`,
-`DurS`, `TermsLe`, `CandS`, `PrevOk`, `CommitWithinLeader`, `ReqCommit`) holds at `Init` and is preserved
+`DurS`, `TermsLe`, `CandS`, `PrevOk`, `CommitInDurable`, `ReqCommit`, `ReqCommitC`, `LeaderDurPrefix`,
+`LogTermsLe`; since review round 3's B6) holds at `Init` and is preserved
 by every action the lines take, giving `ElectionSafetyInv`, `CommittedIsDurableInv` (through the
 corrected `DurInvFixed`) and `CommitWithinLeader`. What raft must supply, as named hypotheses:
 `becomeLeader`'s freshness (no entry, message or request of the new term yet: a term's leader is
 unique over time and the only creator of its entries), leader completeness where a server joins a
-term (`updateTerm`, `timeout`, `becomeLeader`'s `hcw`), a follower's commit index within the sender's
-durable log at `appendEntriesAlreadyDone` (`CommitInSenderDurable`), `MoreThanOneLeaderInv`, and
+term (`updateTerm`, `timeout`: `LeaderComplete`; `becomeLeader`'s `hcw`), `MoreThanOneLeaderInv`, and
 `AppendEntries`' range `b ≤ Len(log) + 1` (an arbitrary `b` breaks `CommittedIsDurableInv`: a second
 place where the specification's action is broader than `NextAsync`). `simFx` is to carry `SpecInv`
 in place of `LeaderEntries`/`DurInv`/`CommitWithinLeader`.
@@ -225,9 +225,19 @@ receipts, `RecvAt`/`lineEffect_recvU`/`recvAt_*`), B5 (`CCEvOf`, `traceInitState
 `traceConfChangeEvent.tracedSpec`, `trCapB_cfg`; open: `newRaft` and `switchToConfig` must hold
 `ownRaftPhysCV` closed at the hook), C2-C4 (the hook paths' capability keeps the flag and the last
 event; `trCap_fire_any` unifies the plain laws; docstrings), and the reviewer's Go finding filed
-(`nonissues/raft-trace-sendmessage-sender-progress.md`). Delegated: B6 (`SpecInv` gains the
-append requests' commit bound and loses `CommitInSenderDurable`; `QuorumLogF` kept by a follower's
-raised commit; branch `trace-check-specinv-b6`). **A9 decided by the agent (2026-11-09):** `srvFacts`
+(`nonissues/raft-trace-sendmessage-sender-progress.md`). B6 repaired (branch
+`trace-check-specinv-b6`): `SpecInv` gains `ReqCommitC` (an append request's sender a server, its
+commit index within the sender's), `LeaderDurPrefix` (a leader's entries of earlier terms durable)
+and `LogTermsLe` (entries' terms within their server's, their message's); `CommitWithinLeader`
+becomes `CommitInDurable` (within the leader's durable log; `CommitWithinLeader` derived) and
+`ReqCommit` bounds by the durable log. `CommitInSenderDurable` is gone: `CommitInDurable` gives it.
+In exchange `UpdateTerm`/`Timeout` take `LeaderComplete` (`allFacts_commitOk` and
+`allFacts_leaderCompleteness`'s entry-level statement, not the commit index within the leader's log
+length, which cannot give the durable bound). `QuorumLogS` (= `QuorumLogF`, `QuorumLogF_eq`) is kept
+by `AppendEntriesAlreadyDone` (`quorumLog_appendEntriesAlreadyDone`, both of its `CommitTo`s, the
+heartbeat's included), given `CommitOk` (`allFacts_commitOk`), `i` and the sender of one
+configuration (`SimServerR`), and the two committed prefixes comparable in the new state
+(`allFacts_logInv` of the post-state). **A9 decided by the agent (2026-11-09):** `srvFacts`
 allows a leader's pending entries (its `Replicate` lines' entries, which raft appends, and so
 records, only after the hook): the abstract log is `es ++ pend`, records and `leadFull` over `es`,
 `pend` the leader's own term's (branch `trace-check-a9`). The alternative, the leader minting the
