@@ -2454,6 +2454,67 @@ theorem receive_trunc (st : Etcdraft.State) (m : Etcdraft.Msg) (C : List w64) (b
   rw [hprev]
   simp [Etcdraft.somes, alreadyDone_none_conf st m.dest m.source _ m (by omega) hne' hnc]
 
+/-- **The append round**: at a follower of the request's term whose log `L` does not conflict with
+the batch and is shorter than its end: one successor, the batch's entries past `L` appended. -/
+theorem receive_append (st : Etcdraft.State) (m : Etcdraft.Msg) (C : List w64) (bl p : Nat)
+    (L ents : List EntryM) (hsrv : st.server.contains m.dest = true) (hty : m.type = .appendEntriesRequest)
+    (hf : (st.s m.dest).state = Etcdraft.follower) (hterm : m.term = (st.s m.dest).currentTerm)
+    (hsub : m.subtype ≠ "snapshot")
+    (hlog : (st.s m.dest).log = logAbs C bl 1 L)
+    (hents : m.entries = logAbs C bl (p + 1) ents) (hprev : m.prevLogIndex = p) (hpq : p ≤ L.length)
+    (hq : L.length < p + ents.length) (hc : (st.s m.dest).commitIndex < (p : Int) + 1)
+    (hbl : BootTerms bl 1 L) (hbe : BootTerms bl (p + 1) ents)
+    (hlogOk : (or (m.prevLogIndex == 0) (decide (m.prevLogIndex > 0) && decide (m.prevLogIndex ≤ (st.s m.dest).log.length) &&
+      some m.prevLogTerm == (((st.s m.dest).log[(m.prevLogIndex - 1).toNat]?).map Etcdraft.Entry.term))) = true)
+    (hnc : ∀ k e, ents[k]? = some e → p + k < L.length → (L[p + k]?).map EntryM.Term' = some e.Term') :
+    st.receive m = .ok [truncSt st m.dest m.source
+      (logAbs C bl 1 L ++ (logAbs C bl (p + 1) ents).drop (L.length - p))] := by
+  have hnc' : st.hasNoConflict m.dest ((p : Int) + 1) m.entries = true := by
+    rw [hents]; exact (hasNoConflict_abs st m.dest C bl p L ents hlog hpq hbl hbe).2 hnc
+  have hne' : m.entries.isEmpty = false := by
+    rw [hents]; cases ents with
+    | nil => simp at hq; omega
+    | cons _ _ => simp [logAbs]
+  have hlen : ¬ (m.prevLogIndex + (m.entries.length : Int) ≤ (st.s m.dest).log.length) := by
+    rw [hprev, hents, hlog, logAbs_length, logAbs_length]; omega
+  apply receive_aer st m _ hsrv hty hterm
+  apply handleAER_accept st m.dest m.source m _ hf hterm hlogOk hsub _ _
+    (by rw [hprev]; exact conflict_none st m.dest _ m hnc')
+    (by rw [hprev]; exact noConflict_step st m.dest m C bl p L ents hlog hents hprev hpq hq hc hbl hbe hnc)
+  rw [hprev]
+  rw [hprev] at hlen
+  simp [Etcdraft.somes, alreadyDone_none_len st m.dest m.source _ m (by omega) hne' (by rw [hprev]; exact hlen)]
+
+/-- **The last round**: the batch all in the log `L`: `AppendEntriesAlreadyDone`'s commit and success
+reply, the request consumed, the leader adopted. -/
+theorem receive_done (st : Etcdraft.State) (m : Etcdraft.Msg) (C : List w64) (bl p : Nat)
+    (L ents : List EntryM) (hsrv : st.server.contains m.dest = true) (hty : m.type = .appendEntriesRequest)
+    (hf : (st.s m.dest).state = Etcdraft.follower) (hterm : m.term = (st.s m.dest).currentTerm)
+    (hsub : m.subtype = "app")
+    (hlog : (st.s m.dest).log = logAbs C bl 1 L)
+    (hents : m.entries = logAbs C bl (p + 1) ents) (hprev : m.prevLogIndex = p)
+    (hq : p + ents.length ≤ L.length) (hc : (st.s m.dest).commitIndex < (p : Int) + 1) (hne : ents ≠ [])
+    (hbl : BootTerms bl 1 L) (hbe : BootTerms bl (p + 1) ents)
+    (hlogOk : (or (m.prevLogIndex == 0) (decide (m.prevLogIndex > 0) && decide (m.prevLogIndex ≤ (st.s m.dest).log.length) &&
+      some m.prevLogTerm == (((st.s m.dest).log[(m.prevLogIndex - 1).toNat]?).map Etcdraft.Entry.term))) = true)
+    (hnc : ∀ k e, ents[k]? = some e → p + k < L.length → (L[p + k]?).map EntryM.Term' = some e.Term') :
+    st.receive m = .ok [withLead ((st.commitTo m.dest (min m.commitIndex ((p : Int) + ents.length))).reply
+      { type := .appendEntriesResponse, subtype := m.subtype, term := (st.s m.dest).currentTerm,
+        success := true, matchIndex := (p : Int) + ents.length, source := m.dest, dest := m.source } m)
+      m.dest m.source] := by
+  have hnc' : st.hasNoConflict m.dest ((p : Int) + 1) m.entries = true := by
+    rw [hents]; exact (hasNoConflict_abs st m.dest C bl p L ents hlog (by omega) hbl hbe).2 hnc
+  have hle : m.prevLogIndex + (m.entries.length : Int) ≤ (st.s m.dest).log.length := by
+    rw [hprev, hents, hlog, logAbs_length, logAbs_length]; omega
+  have had := alreadyDone_accept st m.dest m.source m C bl p L ents hlog hents hprev hq hc hne
+    (by rw [hsub]; decide) hbl hbe hnc
+  apply receive_aer st m _ hsrv hty hterm
+  apply handleAER_accept st m.dest m.source m _ hf hterm hlogOk (by rw [hsub]; decide) _ _
+    (by rw [hprev]; exact conflict_none st m.dest _ m hnc')
+    (noConflict_none_len st m.dest _ m hle)
+  rw [hprev, had]
+  rfl
+
 end TraceSim
 
 end EtcdGrove
