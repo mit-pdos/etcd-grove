@@ -359,6 +359,13 @@ def FxPres (γ : RaftNames) (id : w64) (E : TraceEv → Prop)
     votesTbl γ -∗ simFx γ C σ -∗
       votesTbl γ ∗ simFx γ C (withNode σ (idAbs id) a' _root_.id (fun b => P'.foldl Etcdraft.Bag.with b)))
 
+/-- `FxPres`, in a traced cluster only. -/
+def FxPresT (tr : Option GName) (γ : RaftNames) (id : w64) (E : TraceEv → Prop)
+    (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) : IProp GF :=
+  match tr with
+  | none => iprop(True)
+  | some _ => FxPres γ id E Φ Φ'
+
 /-- **The global step, as one law** (Draft statement; its proof is `simRun_lineEffect` inside the
 logger's update, with the invariants from `simFx` and the bags' uniqueness): a capability in phase
 `Φ`, a phase step by the events `E` and the facts kept give the event builder's gate whose update
@@ -435,7 +442,13 @@ abbrev traceCommit.tracedSpec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
       trCap s.gh.tr γ r id c (fun C cs P => ∃ (a : Etcdraft.Server) (n : Int),
         toC (confAbs C) a = cs ∧ a.state = Etcdraft.leader ∧ AdvancesTo a n ∧
-        SimIdle C s (toC (confAbs C) { a with commitIndex := max a.commitIndex n }) P) }}
+        SimIdle C s (toC (confAbs C) { a with commitIndex := max a.commitIndex n }) P) ∗
+      -- (review round 2's A4) the facts the line keeps, the caller's (from its node's ghost)
+      FxPresT s.gh.tr γ id (NodeEvOf rsmCommit id s c)
+        (fun C cs P => ∃ (a : Etcdraft.Server) (n : Int),
+          toC (confAbs C) a = cs ∧ a.state = Etcdraft.leader ∧ AdvancesTo a n ∧
+          SimIdle C s (toC (confAbs C) { a with commitIndex := max a.commitIndex n }) P)
+        (fun C => SimIdle C s) }}
     (App (Val #(functions traceCommit [])) (Val #r))
   {{ RET #(); ownRaftPhysCV c c.voters r id s ∗ trCap s.gh.tr γ r id c (fun C => SimIdle C s) }}
 
@@ -549,7 +562,11 @@ abbrev raft.send.tracedSpec : Prop :=
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hm" ∷ msgOwn ml (DFrac.own 1) ⟨m, ents, sn, ctx, rs⟩ ∗
       "#Hsrc" ∷ tsSrc s.gh.sn m.Type' sn ∗
-      trCap s.gh.tr γ r id c Φ }}
+      trCap s.gh.tr γ r id c Φ ∗
+      -- (review round 2's A4) the facts the send line keeps, the caller's
+      (match (mtypeOf m.Type').bind sendEvt with
+       | some evt => [∗list] mm ∈ out, FxPresT s.gh.tr γ id (SendEvOf evt id s c mm) Φ Φ'
+       | none => iprop(True)) }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"send")) (Val #ml))
   {{ RET #(); ownRaftPhysCV c c.voters r id (sendMsgs s out) ∗ trCap s.gh.tr γ r id c Φ' }}
 
