@@ -1528,6 +1528,200 @@ theorem NewTraceWith.wp_proof
       isplitl []
       · ipureintro; trivial
       iexact HcL0
+    iintro ⟨%cs1, %e1, %Hv, Hlm, Hbc⟩
+    subst Hv
+    have htl : tLast xs srv (uint.nat iw) = L := by rw [tLast_eq xs srv _ himem, hLd]
+    try wp_auto
+    cases hbc2 : tBC xs L with
+    | error eb =>
+      icases Hbc with %He
+      cases e1 with
+      | nil => exact absurd rfl He
+      | ok ei =>
+      wp_auto
+      wp_for_post
+      try wp_auto
+      iapply HΦ
+      have hfull : srv.mapM (tCfgF xs srv) = .error eb :=
+        mapM_take_succ_err _ _ _ _ _ _ Hsi hcfP (by simp [tCfgF, bind, Except.bind, htl, hbc2])
+      obtain ⟨e', he'⟩ := tail_cfg_err pv cq hbnz hx0srv hbc hsub (m := srv.length) (by rw [List.take_length]; exact hfull)
+      rw [htail, he']
+      ipureintro; exact He
+    | ok cfg =>
+    icases Hbc with ⟨%He, #Hcfg⟩
+    subst He
+    try wp_auto
+    wp_join (Q := fun v => iprop(∃ (osl : GoSlice) (e : GoInterface), ⌜v = PairV #osl #e⌝ ∗
+        match (List.range xs.length).filterMapM (tConfH xs (uint.nat iw)) with
+        | .ok cfs => ⌜e = interface.nil⌝ ∗ ∃ sls : List GoSlice, osl ↦*□ sls ∗ ([∗list] sl;c ∈ sls;cfs, setRO sl c)
+        | .error _ => ⌜e ≠ interface.nil⌝))
+      at (Seq (App (Val exceptionDo) _) _) with [«$res0» «$res1» i out l]
+    · ihave Hnil : (zero_val GoSlice : GoSlice) ↦* ([] : List GoSlice) $$ []
+      · iapply ownSlice_nil
+      ihave Hcap0 : ownSliceCap GoSlice (zero_val GoSlice : GoSlice) (DFrac.own 1) $$ []
+      · iapply ownSliceCap_nil
+      ihave IHc : iprop(∃ (lv : w64) (osl : GoSlice) (sls : List GoSlice) (acc : List SetIds),
+          "l" ∷ l_ptr ↦ lv ∗ "out" ∷ out_ptr ↦ osl ∗ "Hout" ∷ osl ↦* sls ∗
+          "Hocap" ∷ ownSliceCap GoSlice osl (DFrac.own 1) ∗ "i" ∷ i_ptr ↦ iw ∗
+          "Hacc" ∷ ([∗list] sl;c ∈ sls;acc, setRO sl c) ∗
+          "%Hl" ∷ ⌜1 ≤ sint.Z lv ∧ sint.Z lv ≤ (xs.length : Int) + 1 ∧
+            ((List.range xs.length).take (sint.nat lv - 1)).filterMapM (tConfH xs (uint.nat iw)) = .ok acc⌝)
+          $$ [l out i Hnil Hcap0]
+      · iexists _, _, [], []
+        iframe
+        isplitl []
+        · iapply BigSepL2.bigSepL2_nil.2; ipureintro; trivial
+        ipureintro
+        refine ⟨by word, by word, ?_⟩
+        rw [show sint.nat (W64 1) - 1 = 0 from rfl]; rfl
+      wp_for IHc
+      obtain ⟨hl1, hl2, hlacc⟩ := Hl
+      wp_if_destruct
+      · have hlle : sint.Z lv ≤ sint.Z lsl.len := Hif
+        have hj : sint.nat lv - 1 < xs.length := by rw [← Hlnl, Hlsl.1]; clear hlacc; word
+        have hidx : sint.Z (lv - W64 1) = ((sint.nat lv - 1 : Nat) : Int) := by clear hlacc; word
+        have hlv1 : sint.nat (lv + W64 1) = sint.nat lv + 1 := by clear hlacc; word
+        have hjs : sint.nat (lv + W64 1) - 1 = (sint.nat lv - 1) + 1 := by
+          have : 1 ≤ sint.nat lv := by clear hlacc; word
+          omega
+        obtain ⟨lg, Hlg⟩ : ∃ v, lns[sint.nat lv - 1]? = some v :=
+          ⟨_, List.getElem?_eq_getElem (by rw [Hlnl]; exact hj)⟩
+        obtain ⟨xl, Hxl⟩ : ∃ v, xs[sint.nat lv - 1]? = some v := ⟨_, List.getElem?_eq_getElem hj⟩
+        have hxlg : xs.getD (sint.nat lv - 1) default = xl := by rw [List.getD_eq_getElem?_getD, Hxl]; rfl
+        have hrk : (List.range xs.length)[sint.nat lv - 1]? = some (sint.nat lv - 1) := by simp [hj]
+        ihave #Hlgx := BigSepL2.bigSepL2_lookup (Φ := fun _ a b => lineRO (GF := GF) a b) Hlg Hxl $$ Hlr
+        ihave #Hlgx0 := Hlgx
+        iunfold lineRO at Hlgx0
+        icases Hlgx0 with ⟨⟨%ge, #Hgev, #Hger⟩, %Hlf, -⟩
+        iunfold eventRO at Hger
+        icases Hger with ⟨%Hef2, -, -, #Heprop2⟩
+        icases typedPointsto_split _ _ _ $$ Hgev with Hgevf
+        simp only [TypedPointsto.typedPointstoDef]
+        icases Hgevf with ⟨#GName, -, -, -, -, -, -, #GProp, -⟩
+        rw [ite_eq_left_of_eq_true _ _ (eq_true (show 0 ≤ sint.Z (lv - W64 1) ∧ sint.Z (lv - W64 1) < sint.Z lsl.len by
+          rw [hidx, hxlen]; omega))]
+        wp_apply wp_load_slice_index _ (sint.Z (lv - W64 1)) lns _ lg (by rw [hidx]; omega) $$ [] as -
+        · iframe Hl; ipureintro; rw [hidx, Int.toNat_natCast]; exact Hlg
+        try wp_auto
+        wp_join (Q := fun v => iprop("ln" ∷ ln_ptr ↦ lg ∗ "i" ∷ i_ptr ↦ iw ∗
+            ((⌜v = continueVal ∧ tConfH xs (uint.nat iw) (sint.nat lv - 1) = .ok none⌝) ∨
+             (⌜v = executeVal ∧ (bootstrapOf xs (uint.nat iw)).1.getD (sint.nat lv - 1) false = true ∧
+               xl.ev.name = "ApplyConfChange" ∧
+               ∃ nc, (xl.ev.prop.bind EventProps.cc).bind EventConfChange.newconf = some nc⌝))))
+          at next with [ln i]
+        · ihave %Hbsl := ownSlice_len $$ Hbs
+          have hbsl : bs.length = xs.length := by rw [hbs]; simp
+          have hbk : bs[sint.nat lv - 1]? = some (srv.any (fun j => (bootstrapOf xs j).1.getD (sint.nat lv - 1) false)) := by
+            rw [hbs]; simp [hj]
+          rw [ite_eq_left_of_eq_true _ _ (eq_true (show 0 ≤ sint.Z (lv - W64 1) ∧ sint.Z (lv - W64 1) < sint.Z bsl.len by
+            rw [hidx]; have := Hbsl.1; rw [hbsl] at this; clear hlacc; word))]
+          have hown := global_flag xs srv (uint.nat iw) himem (sint.nat lv - 1) hj
+          rw [hxlg] at hown
+          generalize srv.any (fun j => (bootstrapOf xs j).1.getD (sint.nat lv - 1) false) = gflag at hbk hown
+          wp_apply wp_load_slice_index _ (sint.Z (lv - W64 1)) bs _ _ (by rw [hidx]; omega) $$ [] as -
+          · iframe Hbs; ipureintro; rw [hidx, Int.toNat_natCast]; exact hbk
+          try wp_auto
+          cases hg : gflag
+          · wp_auto
+            iframe
+            ileft
+            ipureintro
+            refine ⟨rfl, ?_⟩
+            have : (bootstrapOf xs (uint.nat iw)).1.getD (sint.nat lv - 1) false = false := by
+              rw [← hown, hg]
+            unfold tConfH; rw [this]; rfl
+          rw [hg, Bool.true_and] at hown
+          wp_auto
+          have hid : (lg.nid' = iw) ↔ xl.nid = uint.nat iw := by rw [id_eq_iff, Hlf.1]
+          by_cases hni : ¬ xl.nid = uint.nat iw
+          · rw [decide_eq_false (fun h => hni (hid.1 h))]
+            wp_auto
+            iframe
+            ileft
+            ipureintro
+            refine ⟨rfl, ?_⟩
+            have : (bootstrapOf xs (uint.nat iw)).1.getD (sint.nat lv - 1) false = false := by
+              rw [← hown]; simpa using hni
+            unfold tConfH; rw [this]; rfl
+          replace hni : xl.nid = uint.nat iw := Classical.not_not.mp hni
+          have hown' : (bootstrapOf xs (uint.nat iw)).1.getD (sint.nat lv - 1) false = true := by
+            rw [← hown]; simpa using hni
+          rw [decide_eq_true (hid.2 hni)]
+          wp_auto
+          rw [decide_strRel Hef2.1 (show strRel go!"ApplyConfChange" "ApplyConfChange" by strRel_lit)]
+          by_cases hac : ¬ xl.ev.name = "ApplyConfChange"
+          · rw [decide_eq_false hac]
+            wp_auto
+            iframe
+            ileft
+            ipureintro
+            refine ⟨rfl, ?_⟩
+            unfold tConfH; rw [hown']; simp only [ite_true, hxlg]; simp [hac, Pure.pure, Except.pure]
+          replace hac : xl.ev.name = "ApplyConfChange" := Classical.not_not.mp hac
+          rw [decide_eq_true hac]
+          wp_auto
+          cases hp : xl.ev.prop with
+          | none =>
+            iunfold propsRO at Heprop2
+            icases Heprop2 with %Hpnull
+            rw [Hpnull]
+            wp_auto
+            iframe
+            ileft
+            ipureintro
+            refine ⟨rfl, ?_⟩
+            unfold tConfH; rw [hown']; simp only [ite_true, hxlg]; simp [hac, hp, Pure.pure, Except.pure]
+          | some pr =>
+          iunfold propsRO at Heprop2
+          icases Heprop2 with ⟨%gp, #Hgp, #Hccp⟩
+          ihave %Hgpnn := typedPointsto_not_null _ _ _ $$ Hgp
+          icases typedPointsto_split _ _ _ $$ Hgp with Hgpf
+          simp only [TypedPointsto.typedPointstoDef]
+          icases Hgpf with ⟨#PCC, -⟩
+          rw [decide_eq_false Hgpnn]
+          wp_auto
+          cases hcc : pr.cc with
+          | none =>
+            icases Hccp with %Hccnull
+            rw [Hccnull]
+            wp_auto
+            iframe
+            ileft
+            ipureintro
+            refine ⟨rfl, ?_⟩
+            unfold tConfH; rw [hown']; simp only [ite_true, hxlg]; simp [hac, hp, hcc, Pure.pure, Except.pure]
+          | some cc =>
+          iunfold confChangeRO at Hccp
+          icases Hccp with ⟨%gcc, #Hgcc, -, #Hnc⟩
+          ihave %Hgccnn := typedPointsto_not_null _ _ _ $$ Hgcc
+          icases typedPointsto_split _ _ _ $$ Hgcc with Hgccf
+          simp only [TypedPointsto.typedPointstoDef]
+          icases Hgccf with ⟨-, #CNewConf, -⟩
+          rw [decide_eq_false Hgccnn]
+          wp_auto
+          cases hnc : cc.newconf with
+          | none =>
+            iunfold optSliceRO at Hnc
+            icases Hnc with %Hncnull
+            rw [Hncnull]
+            wp_auto
+            iframe
+            ileft
+            ipureintro
+            refine ⟨rfl, ?_⟩
+            unfold tConfH; rw [hown']; simp only [ite_true, hxlg]; simp [hac, hp, hcc, hnc, Pure.pure, Except.pure]
+          | some nc =>
+          iunfold optSliceRO at Hnc
+          icases Hnc with ⟨%ncsl, %ncvs, #Hncp, #Hncs, %Hncr⟩
+          ihave %Hncnn := typedPointsto_not_null _ _ _ $$ Hncp
+          rw [decide_eq_false Hncnn]
+          wp_auto
+          iframe
+          iright
+          ipureintro
+          exact ⟨rfl, hown', hac, nc, by simp [hp, hcc, hnc]⟩
+        sorry
+      sorry
     sorry
   sorry
 

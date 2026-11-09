@@ -878,6 +878,90 @@ theorem tServerOf_congr (xs : List Line) (srv : SetIds) (cfgs cfgs' : List (ID �
     tServerOf xs srv cfgs bconfs i = tServerOf xs srv cfgs' bconfs' i := by
   unfold tServerOf; rw [hc, hb]
 
+/-! ## `filterMapM` a step at a time (`bootstrapConfs`) -/
+
+theorem filterMapM_append_ex {α β ε : Type} (f : α → Except ε (Option β)) :
+    ∀ (l1 l2 : List α), (l1 ++ l2).filterMapM f =
+      (do let a ← l1.filterMapM f; let b ← l2.filterMapM f; pure (a ++ b))
+  | [], l2 => by
+    simp only [List.nil_append, List.filterMapM_nil]
+    cases l2.filterMapM f <;> rfl
+  | a :: l1, l2 => by
+    rw [List.cons_append, List.filterMapM_cons, List.filterMapM_cons, filterMapM_append_ex f l1 l2]
+    cases f a with
+    | error e => rfl
+    | ok o =>
+      cases o with
+      | none => rfl
+      | some b =>
+        simp only [bind, Except.bind]
+        cases l1.filterMapM f with
+        | error e => rfl
+        | ok a1 =>
+          simp only
+          cases l2.filterMapM f <;> rfl
+
+theorem filterMapM_take_succ_ok {α β ε : Type} (f : α → Except ε (Option β)) (l : List α) (m : Nat) (a : α)
+    (acc : List β) (o : Option β) (hl : l[m]? = some a) (h : (l.take m).filterMapM f = .ok acc)
+    (hf : f a = .ok o) : (l.take (m + 1)).filterMapM f = .ok (acc ++ o.toList) := by
+  rw [List.take_add_one, hl, Option.toList_some, filterMapM_append_ex, h, List.filterMapM_cons, hf]
+  cases o <;> rfl
+
+theorem filterMapM_take_succ_err {α β ε : Type} (f : α → Except ε (Option β)) (l : List α) (m : Nat) (a : α)
+    (acc : List β) (e : ε) (hl : l[m]? = some a) (h : (l.take m).filterMapM f = .ok acc)
+    (hf : f a = .error e) : l.filterMapM f = .error e := by
+  rw [← List.take_append_drop (m + 1) l, filterMapM_append_ex, List.take_add_one, hl, Option.toList_some,
+    filterMapM_append_ex, h, List.filterMapM_cons, hf]
+  rfl
+
+theorem filter_filterMapM {α β ε : Type} (F : α → Bool) (G : α → Except ε (Option β)) :
+    ∀ l : List α, (l.filter F).filterMapM G = l.filterMapM (fun k => if F k then G k else pure none)
+  | [] => rfl
+  | a :: l => by
+    rw [List.filter_cons, List.filterMapM_cons]
+    by_cases h : F a = true
+    · simp only [h, ite_true, List.filterMapM_cons, filter_filterMapM F G l]
+    · simp only [h, Bool.false_eq_true, ite_false, filter_filterMapM F G l]
+      rfl
+
+/-- One line of `BootstrapEntryConf(i, _)`'s configurations. -/
+def tConfH (xs : List Line) (i : ID) (k : Nat) : Except TraceError (Option SetIds) :=
+  if (bootstrapOf xs i).1.getD k false then (do
+    let ln := xs.getD k default
+    if ln.ev.name != "ApplyConfChange" then return none
+    match (ln.ev.prop.bind EventProps.cc).bind EventConfChange.newconf with
+    | none => return none
+    | some nc => match toSet nc with
+      | some c => return some c
+      | none => throw { what := "newconf not a list of ids", line := k + 1, n := 0 })
+  else pure none
+
+theorem tBconfF_eq (xs : List Line) (srv : SetIds) (i : ID) (hi : i ∈ srv) :
+    tBconfF xs srv i = (do return (i, ← (List.range xs.length).filterMapM (tConfH xs i))) := by
+  unfold tBconfF tConfH
+  rw [show (((tPer xs srv).find? (fun p => p.1 == i)).map (fun p => p.2.1)).getD [] = (bootstrapOf xs i).1 by
+    unfold tPer; rw [find_map_pair _ srv i hi]; rfl]
+  simp only [filter_filterMapM]
+
+theorem bIsB_nid {xs : List Line} {i : ID} {p : Nat × Line} (h : bIsB xs i p = true) : p.2.nid = i := by
+  simp [bIsB] at h; exact h.2
+
+/-- The Go's global flag of a line, with its node `i`: server `i`'s own flag. -/
+theorem global_flag (xs : List Line) (srv : SetIds) (i : ID) (hi : i ∈ srv) (k : Nat) (hk : k < xs.length) :
+    (srv.any (fun j => (bootstrapOf xs j).1.getD k false) && ((xs.getD k default).nid == i)) =
+      (bootstrapOf xs i).1.getD k false := by
+  rw [bootstrapOf_flag xs i k hk]
+  apply Bool.eq_iff_iff.2
+  simp only [Bool.and_eq_true, List.any_eq_true, beq_iff_eq]
+  constructor
+  · rintro ⟨⟨j, hj, hb⟩, hn⟩
+    rw [bootstrapOf_flag xs j k hk] at hb
+    have := bIsB_nid hb
+    simp only at this
+    rw [hn] at this; subst this; exact hb
+  · intro hb
+    refine ⟨⟨i, hi, by rw [bootstrapOf_flag xs i k hk]; exact hb⟩, bIsB_nid hb⟩
+
 end Etcdraft
 end EtcdGrove
 end Perennial
