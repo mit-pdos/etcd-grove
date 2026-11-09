@@ -2506,6 +2506,49 @@ theorem simRun_recv2 (C : List w64) (L : List TraceEv) (σ U S : Etcdraft.State)
       (fun m' hm' hne => by rw [hline]; simp [huniq m' hm' hne]) hrcv1
     rw [this]; simp [recvNext, hone1]
 
+/-- **A receive line's first round** at server `i` (`UpdateTerm`, or a candidate's
+`ReturnToFollower`): its one successor `U`, fresh (its term or role differs), keeping the servers,
+the messages, the commit index and the log, `i` a follower of the message's term. -/
+def FirstRound (σ U : Etcdraft.State) (mabs : Etcdraft.Msg) (i : Etcdraft.ID) : Prop :=
+  σ.receive mabs = .ok [U] ∧ srvKey (U.s i) ≠ srvKey (σ.s i) ∧
+  U.server = σ.server ∧ U.messages = σ.messages ∧ (U.s i).state = Etcdraft.follower ∧
+  (U.s i).currentTerm = mabs.term ∧ (U.s i).commitIndex = (σ.s i).commitIndex ∧ (U.s i).log = (σ.s i).log
+
+theorem firstRound_updateTerm (σ : Etcdraft.State) (mabs : Etcdraft.Msg) (i : Etcdraft.ID) (hi : mabs.dest = i)
+    (hsrv : σ.server.contains i = true)
+    (hty : mabs.type = .requestVoteRequest ∨ mabs.type = .requestVoteResponse ∨ mabs.type = .appendEntriesRequest ∨
+      mabs.type = .appendEntriesResponse)
+    (hterm : (σ.s i).currentTerm < mabs.term) :
+    FirstRound σ (σ.becomeFollowerOfTerm i mabs.term) mabs i := by
+  subst hi
+  have hUf := becomeFollowerOfTerm_facts σ mabs.dest mabs.term
+  exact ⟨receive_updateTerm σ mabs hsrv hty hterm, srvKey_ne_of_term _ _ (by rw [hUf.2.2.2.1]; omega), hUf⟩
+
+/-- `ReturnToFollowerState` at a candidate, with the append request's `lead' = j`. -/
+def rtfSt (σ : Etcdraft.State) (i j : Etcdraft.ID) : Etcdraft.State :=
+  withLead (σ.upd i (fun v => { v with state := Etcdraft.follower })) i j
+
+theorem firstRound_rtf (σ : Etcdraft.State) (mabs : Etcdraft.Msg) (i : Etcdraft.ID) (hi : mabs.dest = i)
+    (hsrv : σ.server.contains i = true) (hty : mabs.type = .appendEntriesRequest)
+    (hterm : mabs.term = (σ.s i).currentTerm) (hc : (σ.s i).state = Etcdraft.candidate) :
+    FirstRound σ (rtfSt σ i mabs.source) mabs i := by
+  subst hi
+  have hsrv' : mabs.dest ∈ σ.server := List.contains_iff_mem.1 hsrv
+  have hfc : Etcdraft.follower ≠ Etcdraft.candidate := by decide
+  refine ⟨?_, srvKey_ne_of_state _ _ (by simp [rtfSt, withLead, Etcdraft.State.upd, hc]; exact hfc),
+    by simp [rtfSt, withLead, Etcdraft.State.upd], by simp [rtfSt, withLead, Etcdraft.State.upd],
+    by simp [rtfSt, withLead, Etcdraft.State.upd], by simp [rtfSt, withLead, Etcdraft.State.upd, hterm],
+    by simp [rtfSt, withLead, Etcdraft.State.upd], by simp [rtfSt, withLead, Etcdraft.State.upd]⟩
+  unfold Etcdraft.State.receive
+  have hut : σ.updateTerm mabs.dest mabs.source mabs = none := by
+    unfold Etcdraft.State.updateTerm; simp [hterm]
+  have hh : σ.handleAppendEntriesRequest mabs.dest mabs.source mabs = .ok [rtfSt σ mabs.dest mabs.source] := by
+    unfold Etcdraft.State.handleAppendEntriesRequest Etcdraft.State.acceptAppendEntriesRequest
+      Etcdraft.State.rejectAppendEntriesRequest Etcdraft.State.returnToFollowerState
+    have hcf : ¬ Etcdraft.candidate = Etcdraft.follower := by decide
+    simp [hterm, hc, hcf, Etcdraft.somes, pure, Except.pure, bind, Except.bind, rtfSt, withLead]
+  simp [hsrv', hty, hut, hh, Etcdraft.somes, pure, Except.pure, bind, Except.bind]
+
 /-- **A higher-term vote request's receive line's step**: `UpdateTerm`, then
 `HandleRequestVoteRequest` at the request's term. -/
 theorem simRun_recvVoteReqHigher (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (hrun : SimRun C L σ)
@@ -2573,12 +2616,12 @@ theorem simRun_recvVoteReqHigher (C : List w64) (L : List TraceEv) (σ : Etcdraf
 /-- **A higher-term append request's receive line's step** (raft's `becomeFollower` then
 `maybeAppend` succeeding): `UpdateTerm`, then the specification's truncations, append and
 `AppendEntriesAlreadyDone` over the new log, at the request's term. -/
-theorem simRun_recvAppHigher (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (hrun : SimRun C L σ)
+theorem simRun_recvAppU (C : List w64) (L : List TraceEv) (σ U : Etcdraft.State) (hrun : SimRun C L σ)
     (hL : L ≠ []) (e : TraceEv) (s : NState) (cfg : CfgM) (m : Msg)
     (hev : SendEvOf (W64 10) m.dst s cfg m e) (hin : (elements cfg.incoming).Perm C) (hout : cfg.outgoing = ∅)
     (hC : m.dst ∈ C) (hsrv : σ.server = confAbs C)
     (hR : SimServerR C C.length (toPState s) (σ.s (idAbs m.dst))) (hs : LogShapeOk C.length (toPState s))
-    (hpre : s.role ≠ .preCandidate) (hty : m.ty = .app) (hgt : uint.Z s.term < uint.Z m.term)
+    (hpre : s.role ≠ .preCandidate) (hty : m.ty = .app)
     (hcom : uint.Z (toPState s).commit ≤ uint.Z m.index)
     (lastnewi : w64) (es' : List EntryM)
     (happ : plogMaybeAppend (entryID.mk (W64 0) (W64 0)) (toPState s).log
@@ -2592,21 +2635,22 @@ theorem simRun_recvAppHigher (C : List w64) (L : List TraceEv) (σ : Etcdraft.St
     (bmt : uint.Z m.term < 2 ^ 63)
     (hnw : (uint.nat m.index : Int) + m.entries.length + 1 < 2 ^ 64)
     (mabs : Etcdraft.Msg) (hmabs : msgAbs C C.length m = some mabs)
+    (hFR : FirstRound σ U mabs (idAbs m.dst))
     (hnd : σ.messages.domain.Nodup) (hmem : mabs ∈ σ.messages.domain)
     (hcnt : 0 < Etcdraft.Bag.count σ.messages mabs)
     (huniq : ∀ m' ∈ σ.messages.domain, m' ≠ mabs →
       recvPred (msgLine e m.dst s.vote m.src m.dst (elements cfg.incoming)) m' = false)
     (hboot : ∀ lines ln, parseLines (L.map evConv) = .ok lines →
       (bootFlags (confAbs C) (lines ++ [ln])).getD L.length false = false)
-    (hinvU : (σ.becomeFollowerOfTerm (idAbs m.dst) mabs.term).violated = .ok none)
+    (hinvU : U.violated = .ok none)
     (hinvT : ∀ k, uint.nat m.index ≤ k → k < (toPState s).log.length →
-      (truncSt (σ.becomeFollowerOfTerm (idAbs m.dst) mabs.term) (idAbs m.dst) (idAbs m.src)
+      (truncSt U (idAbs m.dst) (idAbs m.src)
         (logAbs C C.length 1 ((toPState s).log.take k))).violated = .ok none)
-    (hinvA : (truncSt (σ.becomeFollowerOfTerm (idAbs m.dst) mabs.term) (idAbs m.dst) (idAbs m.src)
+    (hinvA : (truncSt U (idAbs m.dst) (idAbs m.src)
       (logAbs C C.length 1 es')).violated = .ok none)
-    (hinvD : (doneSt (truncSt (σ.becomeFollowerOfTerm (idAbs m.dst) mabs.term) (idAbs m.dst) (idAbs m.src)
+    (hinvD : (doneSt (truncSt U (idAbs m.dst) (idAbs m.src)
       (logAbs C C.length 1 es')) mabs (uint.nat m.index) m.entries.length).violated = .ok none) :
-    SimRun C (L ++ [e]) (doneSt (truncSt (σ.becomeFollowerOfTerm (idAbs m.dst) mabs.term) (idAbs m.dst)
+    SimRun C (L ++ [e]) (doneSt (truncSt U (idAbs m.dst)
       (idAbs m.src) (logAbs C C.length 1 es')) mabs (uint.nat m.index) m.entries.length) := by
   obtain ⟨hname, hnid, hterm', hvote, hcommit', hrl, hlog, ⟨xs, ys, hxs, hys, hconf⟩, ⟨tm, hmsg, hm⟩, -⟩ := hev
   rw [hout, elements_empty_nil] at hys
@@ -2622,7 +2666,6 @@ theorem simRun_recvAppHigher (C : List w64) (L : List TraceEv) (σ : Etcdraft.St
     exact parseLine_msg L.length e m.dst s.vote m.src m.dst xs [] tm hnid hvote hconf hmsg hm.2.2.1 hm.2.2.2.1
       (by rw [htyp]; rfl) (by rw [hname']; decide)
   have hidxZ : ((uint.nat m.index : Nat) : Int) = uint.Z m.index := by word
-  have hgt' : uint.Z (toPState s).term < uint.Z m.term := hgt
   have hpred : recvPred (msgLine e m.dst s.vote m.src m.dst (elements cfg.incoming)) mabs = true := by
     unfold recvPred
     have hn1 : (or ((msgLine e m.dst s.vote m.src m.dst (elements cfg.incoming)).ev.name == "ReceiveAppendEntriesRequest")
@@ -2650,11 +2693,7 @@ theorem simRun_recvAppHigher (C : List w64) (L : List TraceEv) (σ : Etcdraft.St
     simp [msgAbs, hty] at hmabs; rw [← hmabs]
   have hmsrc : mabs.source = idAbs m.src := by simp [msgAbs, hty] at hmabs; rw [← hmabs]
   have hmdst : mabs.dest = idAbs m.dst := by simp [msgAbs, hty] at hmabs; rw [← hmabs]
-  have hcur : (σ.s mabs.dest).currentTerm < mabs.term := by rw [hmdst, hR.1, hmterm]; exact hgt
-  have hrcv1 : σ.receive mabs = .ok [σ.becomeFollowerOfTerm (idAbs m.dst) mabs.term] := by
-    have := receive_updateTerm σ mabs (by rw [hmdst]; exact hcontains) (Or.inr (Or.inr (Or.inl hmt))) hcur
-    rw [hmdst] at this; exact this
-  have hUf := becomeFollowerOfTerm_facts σ (idAbs m.dst) mabs.term
+  have hUf := hFR.2.2
   apply simRun_snoc_chain C L σ _ e _ hrun hL hparse
   intro lines ts hl hts hl'
   have hlen := parseLines_length _ _ hl
@@ -2663,7 +2702,7 @@ theorem simRun_recvAppHigher (C : List w64) (L : List TraceEv) (σ : Etcdraft.St
   obtain ⟨tl, tsl, tpl⟩ := ts
   simp only at hts hl'
   subst hts hl'
-  refine ⟨⟨doneSt (truncSt (tl.becomeFollowerOfTerm (idAbs m.dst) mabs.term) (idAbs m.dst) (idAbs m.src)
+  refine ⟨⟨doneSt (truncSt U (idAbs m.dst) (idAbs m.src)
     (logAbs C C.length 1 es')) mabs (uint.nat m.index) m.entries.length, L.length + 1 + 1, L.length + 1⟩, rfl, ?_⟩
   have hb : (linesTrace C (lines ++ [msgLine e m.dst s.vote m.src m.dst (elements cfg.incoming)])).bootstrap.getD
       (L.length + 1 - 1) false = false := by
@@ -2671,23 +2710,22 @@ theorem simRun_recvAppHigher (C : List w64) (L : List TraceEv) (σ : Etcdraft.St
   have hrecvN : Etcdraft.isReceiveName (((linesTrace C (lines ++ [msgLine e m.dst s.vote m.src m.dst
       (elements cfg.incoming)])).line (L.length + 1)).ev.name) = true := by
     rw [hline]; simp [msgLine, evConv, hname']; rfl
-  have hone1 : Etcdraft.oneLessMessage tl (tl.becomeFollowerOfTerm (idAbs m.dst) mabs.term) mabs = false := by
+  have hone1 : Etcdraft.oneLessMessage tl U mabs = false := by
     unfold Etcdraft.oneLessMessage; rw [hUf.2.1]; simp; intro h; rw [h]; decide
-  apply Chain.step _ _ ⟨tl.becomeFollowerOfTerm (idAbs m.dst) mabs.term, L.length + 1, L.length + 1⟩ _ _ rfl
+  apply Chain.step _ _ ⟨U, L.length + 1, L.length + 1⟩ _ _ rfl
     (memEq_false_of_logs_or_term _ _ (idAbs m.dst) (by
       intro v hv; simp only [List.mem_singleton] at hv; subst hv
-      refine ⟨List.contains_iff_mem.1 hcontains, Or.inr (srvKey_ne_of_term _ _ ?_)⟩
-      simp only; rw [hUf.2.2.2.1, hR.1, hmterm]; exact Int.ne_of_lt hgt')) hinvU
+      exact ⟨List.contains_iff_mem.1 hcontains, Or.inr (fun h => hFR.2.1 h.symm)⟩)) hinvU
   · rw [← hmsrc, ← hmdst]
     rw [← hmsrc, ← hmdst] at hinvT hinvA hinvD
     rw [← hmdst] at hUf
     have := chain_appAccept (linesTrace C (lines ++ [msgLine e m.dst s.vote m.src m.dst (elements cfg.incoming)]))
-      (L.length + 1) (L.length + 1) (tl.becomeFollowerOfTerm mabs.dest mabs.term) mabs C C.length (uint.nat m.index)
+      (L.length + 1) (L.length + 1) U mabs C C.length (uint.nat m.index)
       m.logterm lastnewi (toPState s).log m.entries es' [⟨tl, L.length + 1, tpl⟩]
       (by
         intro v hv; simp only [List.mem_singleton] at hv; subst hv
-        refine ⟨by rw [hmdst]; exact List.contains_iff_mem.1 hcontains, srvKey_ne_of_term _ _ ?_⟩
-        simp only; rw [hUf.2.2.2.1, hmdst, hR.1, hmterm]; exact Int.ne_of_lt hgt')
+        refine ⟨by rw [hmdst]; exact List.contains_iff_mem.1 hcontains, ?_⟩
+        simp only; rw [hmdst]; exact fun h => hFR.2.1 h.symm)
       (by simp) (by simp [linesTrace, Etcdraft.Trace.len]; omega) hb hrecvN
       (by rw [hUf.2.1]; exact hnd) (by rw [hUf.2.1]; exact hmem) (by rw [hUf.2.1]; exact hcnt)
       (by rw [hline]; exact hpred) (validatePre_later _ _ (by omega) _ _)
@@ -2703,13 +2741,13 @@ theorem simRun_recvAppHigher (C : List w64) (L : List TraceEv) (σ : Etcdraft.St
       (by simp [linesTrace, Etcdraft.Trace.len]; omega) hb hrecvN hnd hmem
       (by rw [hline]; exact hpred)
       (by unfold Etcdraft.Trace.validatePreStates; rw [hline, hmdst, hsm]; simp)
-      (fun m' hm' hne => by rw [hline]; simp [huniq m' hm' hne]) hrcv1
+      (fun m' hm' hne => by rw [hline]; simp [huniq m' hm' hne]) hFR.1
     rw [this]; simp [recvNext, hone1]
 
-/-- **A higher-term message's receive line, generically** (`simRun_recvMsg1`'s two-round
-counterpart): `UpdateTerm` to the message's term, then one handler round `U.receive mabs = [S]`
-consuming the message. -/
-theorem simRun_recvMsg2 (C : List w64) (L : List TraceEv) (σ S : Etcdraft.State) (hrun : SimRun C L σ)
+/-- **A two-round receive line, generically** (`simRun_recvMsg1`'s two-round counterpart): a first
+round (`FirstRound`: `UpdateTerm`, or a candidate's `ReturnToFollower`) to `U`, then one handler
+round `U.receive mabs = [S]` consuming the message. -/
+theorem simRun_recvMsgU (C : List w64) (L : List TraceEv) (σ U S : Etcdraft.State) (hrun : SimRun C L σ)
     (hL : L ≠ []) (e : TraceEv) (s : NState) (cfg : CfgM) (m : Msg) (evt : w64) (nm : String)
     (hev : SendEvOf evt m.dst s cfg m e) (hname' : gsStr e.name = nm)
     (hrecvnm : Etcdraft.isReceiveName nm = true)
@@ -2721,19 +2759,16 @@ theorem simRun_recvMsg2 (C : List w64) (L : List TraceEv) (σ S : Etcdraft.State
     (bt : uint.Z s.term < 2 ^ 63) (bc : uint.Z s.logst.committed < 2 ^ 63)
     (bl : uint.Z (plastIndex (toPState s)) < 2 ^ 63)
     (mabs : Etcdraft.Msg) (hmdst : mabs.dest = idAbs m.dst)
-    (hmty : mabs.type = .requestVoteRequest ∨ mabs.type = .requestVoteResponse ∨
-      mabs.type = .appendEntriesRequest ∨ mabs.type = .appendEntriesResponse)
-    (hgt : uint.Z s.term < mabs.term)
+    (hFR : FirstRound σ U mabs (idAbs m.dst))
     (hpred : recvPred (msgLine e m.dst s.vote m.src m.dst (elements cfg.incoming)) mabs = true)
     (hnd : σ.messages.domain.Nodup) (hmem : mabs ∈ σ.messages.domain)
     (hcnt : 0 < Etcdraft.Bag.count σ.messages mabs)
     (huniq : ∀ m' ∈ σ.messages.domain, m' ≠ mabs →
       recvPred (msgLine e m.dst s.vote m.src m.dst (elements cfg.incoming)) m' = false)
-    (hrcv2 : (σ.becomeFollowerOfTerm (idAbs m.dst) mabs.term).receive mabs = .ok [S])
-    (hone2 : Etcdraft.oneLessMessage (σ.becomeFollowerOfTerm (idAbs m.dst) mabs.term) S mabs = true)
+    (hrcv2 : U.receive mabs = .ok [S]) (hone2 : Etcdraft.oneLessMessage U S mabs = true)
     (hboot : ∀ lines ln, parseLines (L.map evConv) = .ok lines →
       (bootFlags (confAbs C) (lines ++ [ln])).getD L.length false = false)
-    (hinvU : (σ.becomeFollowerOfTerm (idAbs m.dst) mabs.term).violated = .ok none)
+    (hinvU : U.violated = .ok none)
     (hinv : S.violated = .ok none) :
     SimRun C (L ++ [e]) S := by
   obtain ⟨-, hnid, hterm', hvote, hcommit', hrl, hlog, ⟨xs, ys, hxs, hys, hconf⟩, ⟨tm, hmsg, hm⟩, -⟩ := hev
@@ -2748,13 +2783,10 @@ theorem simRun_recvMsg2 (C : List w64) (L : List TraceEv) (σ S : Etcdraft.State
       (by rw [hname']; intro h; rw [h] at hrecvnm; exact absurd hrecvnm (by decide))
   have hcontains : σ.server.contains (idAbs m.dst) = true := by
     rw [hsrv, List.contains_iff_mem, mem_confAbs]; exact hC
-  have hcur : (σ.s mabs.dest).currentTerm < mabs.term := by rw [hmdst, hR.1]; exact hgt
-  have hUf := becomeFollowerOfTerm_facts σ (idAbs m.dst) mabs.term
+  have hUf := hFR.2.2
   apply simRun_recv2 C L σ _ S hrun hL e _ mabs hparse (by simp only [msgLine, evConv]; rw [hname']; exact hrecvnm)
     hnd hmem hcnt hpred _ huniq (by rw [hmdst]; exact List.contains_iff_mem.1 hcontains)
-    (by have := receive_updateTerm σ mabs (by rw [hmdst]; exact hcontains) hmty hcur
-        rw [hmdst] at this; exact this)
-    hUf.2.1 hUf.1 (srvKey_ne_of_term _ _ (by rw [hmdst, hUf.2.2.2.1, ← hmdst]; exact Int.ne_of_gt hcur))
+    hFR.1 hUf.2.1 hUf.1 (by rw [hmdst]; exact hFR.2.1)
     hrcv2 hone2 hboot hinvU hinv
   rw [hmdst, ← msgLine_perm e m.dst s.vote m.src m.dst xs _ hxs]
   have hsm := stateMatches_node C s (σ.s (idAbs m.dst)) e m.dst xs hR hs hpre hterm' hcommit' hrl
@@ -2895,9 +2927,11 @@ theorem simRun_recvRespHigher (C : List w64) (L : List TraceEv) (σ : Etcdraft.S
     respLine C e s cfg m evt htyev hname tm hmsg hm bmt bi mabs hmabs
   have hcontains : σ.server.contains (idAbs m.dst) = true := by
     rw [hsrv, List.contains_iff_mem, mem_confAbs]; exact hC
-  have hUf := becomeFollowerOfTerm_facts σ (idAbs m.dst) mabs.term
-  exact simRun_recvMsg2 C L σ _ hrun hL e s cfg m evt nm hev hname' hrn htyp hin hout hC hsrv hR hs hpre bt bc bl
-    mabs hmdst (by rcases hmt with h | h <;> simp [h]) (by rw [hmterm]; exact hgt) hpred hnd hmem hcnt huniq
+  have hFR := firstRound_updateTerm σ mabs (idAbs m.dst) hmdst hcontains (by rcases hmt with h | h <;> simp [h])
+    (by rw [hR.1, hmterm]; exact hgt)
+  have hUf := hFR.2.2
+  exact simRun_recvMsgU C L σ _ _ hrun hL e s cfg m evt nm hev hname' hrn htyp hin hout hC hsrv hR hs hpre bt bc bl
+    mabs hmdst hFR hpred hnd hmem hcnt huniq
     (receive_resp _ mabs (by rw [hmdst, hUf.1]; exact hcontains) hmt (by rw [hmdst, hUf.2.2.2.1])
       (by rw [hmdst, hUf.2.2.1]; decide))
     (oneLess_resp _ mabs (by rw [hUf.2.1]; exact hnd) (by rw [hUf.2.1]; exact hcnt)) hboot hinvU hinv
@@ -2916,25 +2950,26 @@ theorem aerLine (e : TraceEv) (s : NState) (cfg : CfgM) (m : Msg)
 
 /-- **A higher-term heartbeat's receive line's step**: `UpdateTerm`, then the heartbeat at the new
 follower. -/
-theorem simRun_recvHeartbeatHigher (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (hrun : SimRun C L σ)
+theorem simRun_recvHeartbeatU (C : List w64) (L : List TraceEv) (σ U : Etcdraft.State) (hrun : SimRun C L σ)
     (hL : L ≠ []) (e : TraceEv) (s : NState) (cfg : CfgM) (m : Msg) (hty : m.ty = .heartbeat)
     (hev : SendEvOf (W64 10) m.dst s cfg m e) (hin : (elements cfg.incoming).Perm C) (hout : cfg.outgoing = ∅)
     (hC : m.dst ∈ C) (hsrv : σ.server = confAbs C)
     (hR : SimServerR C C.length (toPState s) (σ.s (idAbs m.dst))) (hs : LogShapeOk C.length (toPState s))
-    (hpre : s.role ≠ .preCandidate) (hgt : uint.Z s.term < uint.Z m.term) (hents : m.entries = [])
+    (hpre : s.role ≠ .preCandidate) (hents : m.entries = [])
     (hc1 : 1 ≤ uint.Z (toPState s).commit)
     (bt : uint.Z s.term < 2 ^ 63) (bc : uint.Z s.logst.committed < 2 ^ 63)
     (bl : uint.Z (plastIndex (toPState s)) < 2 ^ 63) (bmc : uint.Z m.commit < 2 ^ 63) (bmt : uint.Z m.term < 2 ^ 63)
     (mabs : Etcdraft.Msg) (hmabs : msgAbs C C.length m = some mabs)
+    (hFR : FirstRound σ U mabs (idAbs m.dst))
     (hnd : σ.messages.domain.Nodup) (hmem : mabs ∈ σ.messages.domain)
     (hcnt : 0 < Etcdraft.Bag.count σ.messages mabs)
     (huniq : ∀ m' ∈ σ.messages.domain, m' ≠ mabs →
       recvPred (msgLine e m.dst s.vote m.src m.dst (elements cfg.incoming)) m' = false)
     (hboot : ∀ lines ln, parseLines (L.map evConv) = .ok lines →
       (bootFlags (confAbs C) (lines ++ [ln])).getD L.length false = false)
-    (hinvU : (σ.becomeFollowerOfTerm (idAbs m.dst) mabs.term).violated = .ok none)
-    (hinv : (hbRecvSt (σ.becomeFollowerOfTerm (idAbs m.dst) mabs.term) mabs).violated = .ok none) :
-    SimRun C (L ++ [e]) (hbRecvSt (σ.becomeFollowerOfTerm (idAbs m.dst) mabs.term) mabs) := by
+    (hinvU : U.violated = .ok none)
+    (hinv : (hbRecvSt U mabs).violated = .ok none) :
+    SimRun C (L ++ [e]) (hbRecvSt U mabs) := by
   have hev' := hev
   obtain ⟨hname, -, -, -, -, -, -, ⟨xs, ys, hxs, hys, -⟩, ⟨tm, hmsg, hm⟩, -⟩ := hev'
   obtain ⟨hname', hrn, hrp⟩ := aerLine e s cfg m hname
@@ -2946,27 +2981,27 @@ theorem simRun_recvHeartbeatHigher (C : List w64) (L : List TraceEv) (σ : Etcdr
   have hmdst : mabs.dest = idAbs m.dst := by simp [msgAbs, hty] at hmabs; rw [← hmabs]
   have hcontains : σ.server.contains (idAbs m.dst) = true := by
     rw [hsrv, List.contains_iff_mem, mem_confAbs]; exact hC
-  have hUf := becomeFollowerOfTerm_facts σ (idAbs m.dst) mabs.term
+  have hUf := hFR.2.2
   have hpred : recvPred (msgLine e m.dst s.vote m.src m.dst (elements cfg.incoming)) mabs = true := by
     rw [hrp, ← msgLine_perm e m.dst s.vote m.src m.dst xs _ hxs]
     have := isAER_heartbeat C C.length e m.dst s.vote xs m tm hmsg hm hty hents bmt bmc
     simp only [hmabs, Option.get_some] at this; exact this
-  refine simRun_recvMsg2 C L σ _ hrun hL e s cfg m _ _ hev hname' hrn (by rw [hty]; rfl) hin hout hC hsrv hR hs
-    hpre bt bc bl mabs hmdst (Or.inr (Or.inr (Or.inl hmt))) (by rw [hmterm]; exact hgt) hpred hnd hmem hcnt huniq
+  refine simRun_recvMsgU C L σ U _ hrun hL e s cfg m _ _ hev hname' hrn (by rw [hty]; rfl) hin hout hC hsrv hR hs
+    hpre bt bc bl mabs hmdst hFR hpred hnd hmem hcnt huniq
     ?_ (oneLess_of_msgs _ _ mabs (by rfl) (by rw [hUf.2.1]; exact hnd) (by rw [hUf.2.1]; exact hcnt)) hboot hinvU hinv
-  have := receive_heartbeat (σ.becomeFollowerOfTerm (idAbs m.dst) mabs.term) mabs
+  have := receive_heartbeat U mabs
     (by rw [hmdst, hUf.1]; exact hcontains) hmt (by rw [hmdst, hUf.2.2.1]) (by rw [hmdst, hUf.2.2.2.1]) hmsub hmprev
     hments (by rw [hmdst, hUf.2.2.2.2.1, hR.2.2.2.2.2.2.1]; exact hc1)
   rw [this]; rfl
 
 /-- **A higher-term stale append request's receive line's step**: `UpdateTerm`, then the request
 answered with the commit index at the new follower (raft's `appStale` after `becomeFollower`). -/
-theorem simRun_recvStaleHigher (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (hrun : SimRun C L σ)
+theorem simRun_recvStaleU (C : List w64) (L : List TraceEv) (σ U : Etcdraft.State) (hrun : SimRun C L σ)
     (hL : L ≠ []) (e : TraceEv) (s : NState) (cfg : CfgM) (m : Msg) (hty : m.ty = .app)
     (hev : SendEvOf (W64 10) m.dst s cfg m e) (hin : (elements cfg.incoming).Perm C) (hout : cfg.outgoing = ∅)
     (hC : m.dst ∈ C) (hsrv : σ.server = confAbs C)
     (hR : SimServerR C C.length (toPState s) (σ.s (idAbs m.dst))) (hs : LogShapeOk C.length (toPState s))
-    (hpre : s.role ≠ .preCandidate) (hgt : uint.Z s.term < uint.Z m.term)
+    (hpre : s.role ≠ .preCandidate)
     (hst : uint.Z m.index < uint.Z (toPState s).commit)
     (hmt0 : PlogMatches (entryID.mk (W64 0) (W64 0)) (toPState s).log (entryID.mk m.logterm (W64 (uint.nat m.index))))
     (hlt0 : uint.nat m.index = 0 → m.logterm = W64 0)
@@ -2975,15 +3010,16 @@ theorem simRun_recvStaleHigher (C : List w64) (L : List TraceEv) (σ : Etcdraft.
     (bi : uint.Z m.index < 2 ^ 63) (blt : uint.Z m.logterm < 2 ^ 63) (bk : m.entries.length < 2 ^ 63)
     (bmt : uint.Z m.term < 2 ^ 63)
     (mabs : Etcdraft.Msg) (hmabs : msgAbs C C.length m = some mabs)
+    (hFR : FirstRound σ U mabs (idAbs m.dst))
     (hnd : σ.messages.domain.Nodup) (hmem : mabs ∈ σ.messages.domain)
     (hcnt : 0 < Etcdraft.Bag.count σ.messages mabs)
     (huniq : ∀ m' ∈ σ.messages.domain, m' ≠ mabs →
       recvPred (msgLine e m.dst s.vote m.src m.dst (elements cfg.incoming)) m' = false)
     (hboot : ∀ lines ln, parseLines (L.map evConv) = .ok lines →
       (bootFlags (confAbs C) (lines ++ [ln])).getD L.length false = false)
-    (hinvU : (σ.becomeFollowerOfTerm (idAbs m.dst) mabs.term).violated = .ok none)
-    (hinv : (staleRecvSt (σ.becomeFollowerOfTerm (idAbs m.dst) mabs.term) mabs).violated = .ok none) :
-    SimRun C (L ++ [e]) (staleRecvSt (σ.becomeFollowerOfTerm (idAbs m.dst) mabs.term) mabs) := by
+    (hinvU : U.violated = .ok none)
+    (hinv : (staleRecvSt U mabs).violated = .ok none) :
+    SimRun C (L ++ [e]) (staleRecvSt U mabs) := by
   have hev' := hev
   obtain ⟨hname, -, -, -, -, -, -, ⟨xs, ys, hxs, hys, -⟩, ⟨tm, hmsg, hm⟩, -⟩ := hev'
   obtain ⟨hname', hrn, hrp⟩ := aerLine e s cfg m hname
@@ -2997,31 +3033,31 @@ theorem simRun_recvStaleHigher (C : List w64) (L : List TraceEv) (σ : Etcdraft.
   have hmdst : mabs.dest = idAbs m.dst := by simp [msgAbs, hty] at hmabs; rw [← hmabs]
   have hcontains : σ.server.contains (idAbs m.dst) = true := by
     rw [hsrv, List.contains_iff_mem, mem_confAbs]; exact hC
-  have hUf := becomeFollowerOfTerm_facts σ (idAbs m.dst) mabs.term
+  have hUf := hFR.2.2
   have hpred : recvPred (msgLine e m.dst s.vote m.src m.dst (elements cfg.incoming)) mabs = true := by
     rw [hrp, ← msgLine_perm e m.dst s.vote m.src m.dst xs _ hxs]
     have := isAER_app C C.length e m.dst s.vote xs m tm hmsg hm hty bmt bmc bi blt bk
     simp only [hmabs, Option.get_some] at this; exact this
-  refine simRun_recvMsg2 C L σ _ hrun hL e s cfg m _ _ hev hname' hrn (by rw [hty]; rfl) hin hout hC hsrv hR hs
-    hpre bt bc bl mabs hmdst (Or.inr (Or.inr (Or.inl hmt))) (by rw [hmterm]; exact hgt) hpred hnd hmem hcnt huniq
+  refine simRun_recvMsgU C L σ U _ hrun hL e s cfg m _ _ hev hname' hrn (by rw [hty]; rfl) hin hout hC hsrv hR hs
+    hpre bt bc bl mabs hmdst hFR hpred hnd hmem hcnt huniq
     ?_ (oneLess_of_msgs _ _ mabs (by rfl) (by rw [hUf.2.1]; exact hnd) (by rw [hUf.2.1]; exact hcnt)) hboot hinvU hinv
-  have hlok : LogOkL mabs ((σ.becomeFollowerOfTerm (idAbs m.dst) mabs.term).s mabs.dest).log = true := by
+  have hlok : LogOkL mabs (U.s mabs.dest).log = true := by
     rw [hmdst, hUf.2.2.2.2.2, hR.2.2.2.2.2.1, logOkL_abs C C.length mabs _ (uint.nat m.index) m.logterm hmprev hmpt
       (fun k x hk hx => hs.2.2 k x (by omega) hx) hlt0 (by word), decide_eq_true_iff]
     exact hmt0
-  have := receive_appStale (σ.becomeFollowerOfTerm (idAbs m.dst) mabs.term) mabs
+  have := receive_appStale U mabs
     (by rw [hmdst, hUf.1]; exact hcontains) hmt (by rw [hmdst, hUf.2.2.1]) (by rw [hmdst, hUf.2.2.2.1]) hmsub
     (by rw [hmdst, hUf.2.2.2.2.1, hR.2.2.2.2.2.2.1, hmprev, hidxZ]; omega) hlok
   rw [this]; rfl
 
 /-- **A higher-term rejected append request's receive line's step**: `UpdateTerm`, then the
 rejection at the new follower (pre-vote and check-quorum off). -/
-theorem simRun_recvRejectHigher (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (hrun : SimRun C L σ)
+theorem simRun_recvRejectU (C : List w64) (L : List TraceEv) (σ U : Etcdraft.State) (hrun : SimRun C L σ)
     (hL : L ≠ []) (e : TraceEv) (s : NState) (cfg : CfgM) (m : Msg) (hty : m.ty = .app)
     (hev : SendEvOf (W64 10) m.dst s cfg m e) (hin : (elements cfg.incoming).Perm C) (hout : cfg.outgoing = ∅)
-    (hC : m.dst ∈ C) (hsrv : σ.server = confAbs C) (hpv : σ.preVote = false) (hcq : σ.checkQuorum = false)
+    (hC : m.dst ∈ C) (hsrv : σ.server = confAbs C) (hpv : U.preVote = false) (hcq : U.checkQuorum = false)
     (hR : SimServerR C C.length (toPState s) (σ.s (idAbs m.dst))) (hs : LogShapeOk C.length (toPState s))
-    (hpre : s.role ≠ .preCandidate) (hgt : uint.Z s.term < uint.Z m.term)
+    (hpre : s.role ≠ .preCandidate)
     (hmt0 : ¬ PlogMatches (entryID.mk (W64 0) (W64 0)) (toPState s).log (entryID.mk m.logterm (W64 (uint.nat m.index))))
     (hlt0 : uint.nat m.index = 0 → m.logterm = W64 0)
     (bt : uint.Z s.term < 2 ^ 63) (bc : uint.Z s.logst.committed < 2 ^ 63)
@@ -3029,15 +3065,16 @@ theorem simRun_recvRejectHigher (C : List w64) (L : List TraceEv) (σ : Etcdraft
     (bi : uint.Z m.index < 2 ^ 63) (blt : uint.Z m.logterm < 2 ^ 63) (bk : m.entries.length < 2 ^ 63)
     (bmt : uint.Z m.term < 2 ^ 63)
     (mabs : Etcdraft.Msg) (hmabs : msgAbs C C.length m = some mabs)
+    (hFR : FirstRound σ U mabs (idAbs m.dst))
     (hnd : σ.messages.domain.Nodup) (hmem : mabs ∈ σ.messages.domain)
     (hcnt : 0 < Etcdraft.Bag.count σ.messages mabs)
     (huniq : ∀ m' ∈ σ.messages.domain, m' ≠ mabs →
       recvPred (msgLine e m.dst s.vote m.src m.dst (elements cfg.incoming)) m' = false)
     (hboot : ∀ lines ln, parseLines (L.map evConv) = .ok lines →
       (bootFlags (confAbs C) (lines ++ [ln])).getD L.length false = false)
-    (hinvU : (σ.becomeFollowerOfTerm (idAbs m.dst) mabs.term).violated = .ok none)
-    (hinv : (rejRecvSt (σ.becomeFollowerOfTerm (idAbs m.dst) mabs.term) mabs).violated = .ok none) :
-    SimRun C (L ++ [e]) (rejRecvSt (σ.becomeFollowerOfTerm (idAbs m.dst) mabs.term) mabs) := by
+    (hinvU : U.violated = .ok none)
+    (hinv : (rejRecvSt U mabs).violated = .ok none) :
+    SimRun C (L ++ [e]) (rejRecvSt U mabs) := by
   have hev' := hev
   obtain ⟨hname, -, -, -, -, -, -, ⟨xs, ys, hxs, hys, -⟩, ⟨tm, hmsg, hm⟩, -⟩ := hev'
   obtain ⟨hname', hrn, hrp⟩ := aerLine e s cfg m hname
@@ -3050,22 +3087,21 @@ theorem simRun_recvRejectHigher (C : List w64) (L : List TraceEv) (σ : Etcdraft
   have hmdst : mabs.dest = idAbs m.dst := by simp [msgAbs, hty] at hmabs; rw [← hmabs]
   have hcontains : σ.server.contains (idAbs m.dst) = true := by
     rw [hsrv, List.contains_iff_mem, mem_confAbs]; exact hC
-  have hUf := becomeFollowerOfTerm_facts σ (idAbs m.dst) mabs.term
+  have hUf := hFR.2.2
   have hpred : recvPred (msgLine e m.dst s.vote m.src m.dst (elements cfg.incoming)) mabs = true := by
     rw [hrp, ← msgLine_perm e m.dst s.vote m.src m.dst xs _ hxs]
     have := isAER_app C C.length e m.dst s.vote xs m tm hmsg hm hty bmt bmc bi blt bk
     simp only [hmabs, Option.get_some] at this; exact this
-  refine simRun_recvMsg2 C L σ _ hrun hL e s cfg m _ _ hev hname' hrn (by rw [hty]; rfl) hin hout hC hsrv hR hs
-    hpre bt bc bl mabs hmdst (Or.inr (Or.inr (Or.inl hmt))) (by rw [hmterm]; exact hgt) hpred hnd hmem hcnt huniq
+  refine simRun_recvMsgU C L σ U _ hrun hL e s cfg m _ _ hev hname' hrn (by rw [hty]; rfl) hin hout hC hsrv hR hs
+    hpre bt bc bl mabs hmdst hFR hpred hnd hmem hcnt huniq
     ?_ (oneLess_of_msgs _ _ mabs (by rfl) (by rw [hUf.2.1]; exact hnd) (by rw [hUf.2.1]; exact hcnt)) hboot hinvU hinv
-  have hlok : LogOkL mabs ((σ.becomeFollowerOfTerm (idAbs m.dst) mabs.term).s mabs.dest).log = false := by
+  have hlok : LogOkL mabs (U.s mabs.dest).log = false := by
     rw [hmdst, hUf.2.2.2.2.2, hR.2.2.2.2.2.1, logOkL_abs C C.length mabs _ (uint.nat m.index) m.logterm hmprev hmpt
       (fun k x hk hx => hs.2.2 k x (by omega) hx) hlt0 (by word)]
     exact decide_eq_false hmt0
-  have := receive_appReject (σ.becomeFollowerOfTerm (idAbs m.dst) mabs.term) mabs
+  have := receive_appReject U mabs
     (by rw [hmdst, hUf.1]; exact hcontains) hmt (by rw [hmdst, hUf.2.2.1]) (by rw [hmdst, hUf.2.2.2.1])
-    (by simp [Etcdraft.State.becomeFollowerOfTerm, Etcdraft.State.upd, hpv])
-    (by simp [Etcdraft.State.becomeFollowerOfTerm, Etcdraft.State.upd, hcq]) hlok
+    hpv hcq hlok
   rw [this]; rfl
 
 end TraceSim
