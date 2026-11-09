@@ -86,6 +86,37 @@ theorem revAfter_mono (ks : List GoString) (ops : List OpM) (n n' : Nat) (hn : n
   unfold histAt at this
   omega
 
+theorem foldl_opStep_crev (ks : List GoString) (l : List OpM) : ∀ s : MSt,
+    s.crev ≤ (l.foldl (opStep ks) s).crev := by
+  induction l with
+  | nil => intro s; exact Int.le_refl _
+  | cons o l ih =>
+    intro s
+    refine Int.le_trans ?_ (ih (opStep ks s o))
+    simp only [opStep]
+    split
+    · rename_i h; simp only [decide_eq_true_eq] at h; omega
+    · exact Int.le_refl _
+
+/-- The compaction revision only grows along the log. (Pure; proved.) -/
+theorem cmpAfter_mono (ks : List GoString) (ops : List OpM) (n n' : Nat) (hn : n ≤ n') :
+    cmpAfter ks ops n ≤ cmpAfter ks ops n' := by
+  have ht : ops.take n' = ops.take n ++ (ops.take n').drop n := by
+    have := List.take_append_drop n (ops.take n')
+    rw [List.take_take, Nat.min_eq_left hn] at this
+    exact this.symm
+  unfold cmpAfter runM
+  rw [ht, List.foldl_append]
+  exact foldl_opStep_crev ks _ _
+
+/-- A member's store revision is the model's. (Pure; proved.) -/
+theorem σOf_rev (ks : List GoString) (ops : List OpM) (n : Nat) :
+    (σOf ks ops n).rev = revAfter ks ops n := by
+  simp [σOf, MvccState.rev, logOfHist, revAfter, MSt.rev, histAt]
+
+theorem σOf_notified (ks : List GoString) (ops : List OpM) (n : Nat) :
+    (σOf ks ops n).notifiedLog = (σOf ks ops n).log := rfl
+
 end model
 
 section shares

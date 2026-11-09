@@ -127,6 +127,57 @@ theorem restore_au (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG)) (ks :
     imodintro
     iframe
 
+/-- **The bounds' atomics, opened by the writer** (its live share and halves, at the state `σf` and
+the bounds `b`): the four atomics, given back at any bounds `b'` that hold at `σf` (the invariant's
+history lower bound `Hl` unchanged), the writer's half of `m.bnd` at `b'`. -/
+theorem bnd_acc (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG)) (ks : List GoString)
+    (γh : HistNames) (i : Nat) (mp : Loc) (m : MemberNames) (ι : IncNames) (kv : GoInterface)
+    (qw : Qp) (σf : MvccState) (b : Bnd) :
+    isInc (GF := GF) ks γh i mp m ι kv ∗ ghostVar ι.ret qw () ∗ ghostVar m.σ (1 : Qp).half σf ∗
+        ghostVar m.bnd (1 : Qp).half b ⊢
+      |={⊤, ⊤ \ ↑(memberN i)}=> ∃ Hl : List HRev, ⌜bndOk ks σf b Hl⌝ ∗
+        sync.atomic.ownInt64 (mF go!"revLo" mp) (DFrac.own 1) b.1 ∗
+        sync.atomic.ownInt64 (mF go!"revHi" mp) (DFrac.own 1) b.2.1 ∗
+        sync.atomic.ownInt64 (mF go!"cmpLo" mp) (DFrac.own 1) b.2.2.1 ∗
+        sync.atomic.ownInt64 (mF go!"cmpHi" mp) (DFrac.own 1) b.2.2.2 ∗
+        (∀ b' : Bnd, ⌜bndOk ks σf b' Hl⌝ -∗
+          sync.atomic.ownInt64 (mF go!"revLo" mp) (DFrac.own 1) b'.1 -∗
+          sync.atomic.ownInt64 (mF go!"revHi" mp) (DFrac.own 1) b'.2.1 -∗
+          sync.atomic.ownInt64 (mF go!"cmpLo" mp) (DFrac.own 1) b'.2.2.1 -∗
+          sync.atomic.ownInt64 (mF go!"cmpHi" mp) (DFrac.own 1) b'.2.2.2 ={⊤ \ ↑(memberN i), ⊤}=∗
+          ghostVar ι.ret qw () ∗ ghostVar m.σ (1 : Qp).half σf ∗ ghostVar m.bnd (1 : Qp).half b') := by
+  haveI := memberInv_timeless hpers ks γh mp m ι
+  unfold isInc
+  iintro ⟨⟨#Hinv, -⟩, Hret, Hσw, Hbw⟩
+  iinv Hinv with >Hi Hclose
+  iunfold memberInv at Hi
+  icases Hi with (Hs | Hr)
+  rotate_left
+  · icombine Hret Hr gives %Hq0
+    obtain ⟨Hq, -⟩ := Hq0
+    exfalso
+    have h := Qp.le_iff.mp Hq
+    simp only [Qp.val_add, Qp.val_one] at h
+    have := qw.2
+    grind
+  iunfold memberState at Hs
+  icases Hs with ⟨%σ, %b0, %Hl, Hs, Hσi, Hrl, Hrh, Hcl, Hch, Hbi, Hrev, Hcrev, Hnrev, #Hlb, %Hp⟩
+  ihave %Hag := ghostVar_agree m.σ _ _ _ _ $$ Hσi Hσw
+  ihave %Hagb := ghostVar_agree m.bnd _ _ _ _ $$ Hbi Hbw
+  subst Hag Hagb
+  imodintro
+  iexists Hl
+  isplitr
+  · ipureintro; exact Hp
+  iframe Hrl Hrh Hcl Hch
+  iintro %b' %Hok' Hrl Hrh Hcl Hch
+  imod ghostVar_update_halves b' m.bnd _ _ $$ Hbi Hbw with ⟨Hbi, Hbw⟩
+  imod Hclose $$ [Hs Hσi Hrl Hrh Hcl Hch Hbi Hrev Hcrev Hnrev] with -
+  · inext; iunfold memberInv; ileft; iunfold memberState; iexists σ, b', Hl; iframe
+    iframe #; ipureintro; exact Hok'
+  imodintro
+  iframe
+
 end lemmas
 
 end mvccfull
