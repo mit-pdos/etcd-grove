@@ -163,7 +163,9 @@ theorem kd_alloc (o : KOptions) (dir : GoString) (γf : GName) (E : CoPset)
       ([∗list] i ∈ raft_kvreconf.allIds, dfile γf (kdFileName dir i) none) ={E}=∗
       ∃ γ : KdNames,
         ⌜γ.files = γf ∧ γ.r.cluster.dup = true ∧ γ.r.cluster.snapLoc = (fun _ => none) ∧
-          γ.r.cluster.bootLen = 0⌝ ∗ kdCluster γ (raft_kvreconf.bootVoters (uint.nat o.Voters')) ∗
+          γ.r.cluster.bootLen = 0 ∧
+          -- (2026-11-09, Q8 stage 0) an untraced cluster (`cluster_alloc`'s)
+          Cluster.trace γ.r.cluster = none⌝ ∗ kdCluster γ (raft_kvreconf.bootVoters (uint.nat o.Voters')) ∗
         ([∗list] id ∈ raft_kvreconf.bootVoters (uint.nat o.Voters'), raftState γ.r.cluster id RaftState.init ∗ nodeVacant γ.r.cluster id ∗
           dfile γ.files (kdFileName dir id) none ∗
           ∃ g : RaftState × Option GoString, ghostVar (γ.wr id) (1 : Qp) g) ∗
@@ -182,7 +184,7 @@ theorem kd_alloc (o : KOptions) (dir : GoString) (γf : GName) (E : CoPset)
     Hrb (by intro h; rw [h] at Hlen; simp at Hlen; word)
     (raft_kvreconf.bootVoters_nodup _ (by omega)) (raft_kvreconf.bootVoters_zero _ (by omega))
     (by rw [Hlen]; word) (fun h => absurd rfl h) $$ [] with
-    ⟨%γc, %Hd, Hops, HU, #Hcl, Hdec, #Hca, Hsm, Hrs, Hja⟩
+    ⟨%γc, %Hd, %Htr, Hops, HU, #Hcl, Hdec, #Hca, Hsm, Hrs, Hja⟩
   · simp only [↓reduceIte]; iempintro
   simp only [↓reduceIte] at Hd ⊢
   imod confPolicy_alloc γc kdConfN raft_kvreconf.kvrRule E $$ Hdec with #Hpol
@@ -205,7 +207,7 @@ theorem kd_alloc (o : KOptions) (dir : GoString) (γf : GName) (E : CoPset)
   rw [Hlen]
   iframe Hja Hopn Hn Hrseq Hcur Hval
   isplitr
-  · ipureintro; exact ⟨rfl, Hd.1, Hd.2.1, Hd.2.2⟩
+  · ipureintro; exact ⟨rfl, Hd.1, Hd.2.1, Hd.2.2, Htr⟩
   isplitl [Hsnap Hinv]
   · unfold kdCluster
     rw [Hγc, Hγf]

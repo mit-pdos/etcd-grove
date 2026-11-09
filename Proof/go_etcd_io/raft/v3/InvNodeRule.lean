@@ -209,7 +209,9 @@ theorem cluster_alloc (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (b
     receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → W64 0 ∉ vs → (vs.length : Int) < 2 ^ 62 →
     (boot ≠ [] → BootLog vs ctxs boot) →
     ⊢ (if boot = [] then emp else bootMarshal (GF := GF) vs ctxs (LogEntry.toEntries boot 0)) ={E}=∗
-      ∃ γ, ⌜γ.dup = dup ∧ γ.snapLoc = sl ∧ γ.bootLen = boot.length⌝ ∗ ownCommittedOps (GF := GF) γ boot ∗
+      ∃ γ, ⌜γ.dup = dup ∧ γ.snapLoc = sl ∧ γ.bootLen = boot.length⌝ ∗
+        -- (2026-11-09, Q8 stage 0, `notes/trace-validation-q6.md` item 9) an untraced cluster
+        ⌜Cluster.trace γ = none⌝ ∗ ownCommittedOps (GF := GF) γ boot ∗
         ownReadCtxs γ ∅ ∗ isCluster γ N ∗ ownConfDecisions γ ∅ ∗
         confAt γ 0 (Membership.simple (GMap.listToSet vs)) ∗ ownSnapsMade γ [] ∗
         ([∗list] id ∈ vs, raftState γ id RaftState.init ∗ nodeVacant γ id) ∗
@@ -217,7 +219,7 @@ theorem cluster_alloc (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (b
         else isCommittedLogLb γ boot ∗ [∗list] id ∈ vs, nodeBoot γ N vs ctxs id := by
   intro Hrb Hne Hnd Hnz Hlen HB
   unfold ownCommittedOps ownReadCtxs isCluster ownConfDecisions confAt ownSnapsMade
-    joinAuth nodeBoot Cluster.dup Cluster.snapLoc Cluster.bootLen isCommittedLogLb raftState
+    joinAuth nodeBoot Cluster.dup Cluster.snapLoc Cluster.bootLen Cluster.trace isCommittedLogLb raftState
     nodeVacant
   by_cases hb : boot = []
   · subst hb
@@ -229,7 +231,9 @@ theorem cluster_alloc (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (b
     iexists γ
     rw [if_pos rfl]
     iframe Hops Hctx Hcl Hdec Hca Hsm Hja Hfs
-    ipureintro; exact Hd
+    isplitr
+    · ipureintro; exact ⟨Hd.1, Hd.2.1, Hd.2.2.1⟩
+    ipureintro; exact Hd.2.2.2
   · simp only [hb, ↓reduceIte]
     iintro Hm
     imod ApiImpl.cluster_alloc_boot_impl (GF := GF) N vs ctxs boot dup sl E Hrb Hne Hnd Hnz Hlen (HB hb)
@@ -240,7 +244,9 @@ theorem cluster_alloc (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (b
     imodintro
     iexists γ
     iframe Hops Hctx Hcl Hdec Hca Hsm Hlb Hbs Hrs
-    ipureintro; exact Hd
+    isplitr
+    · ipureintro; exact ⟨Hd.1, Hd.2.1, Hd.2.2.1⟩
+    ipureintro; exact Hd.2.2.2
 
 /-! ## Joining -/
 

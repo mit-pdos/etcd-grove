@@ -677,6 +677,8 @@ def isClusterC (γ : KdNames) (vs : List w64) (dir : GoString) (c : Loc) : IProp
     -- (2026-11-01, the start functions) the cluster has no bootstrap log (`cluster_alloc` at the
     -- empty one): `RestartNode`'s `γ.bootLen ≤ σ.commit` (kvreconf's `%Hbl0`)
     "%Hbl0" ∷ ⌜γ.r.cluster.bootLen = 0⌝ ∗
+    -- (2026-11-09, Q8 stage 0) an untraced cluster (`cluster_alloc`'s): `RestartNode`'s premise
+    "%Htr0" ∷ ⌜Cluster.trace γ.r.cluster = none⌝ ∗
     -- (2026-11-02, `lean`'s J8a) no snapshot directories (kvreconf's `%Hsl`)
     "%Hsl" ∷ ⌜γ.r.cluster.snapLoc = fun _ => none⌝ ∗
     -- (2026-11-02, stage II (t)) the receipts' bound within `2^61` (`readyFits`): `RestartNode`'s
