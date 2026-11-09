@@ -2066,6 +2066,59 @@ theorem simRun_recvAER1 (C : List w64) (L : List TraceEv) (σ S : Etcdraft.State
   · exact hboot
   · exact hinv
 
+/-- The specification's state after a heartbeat's receive line. -/
+def hbRecvSt (σ : Etcdraft.State) (mabs : Etcdraft.Msg) : Etcdraft.State :=
+  withLead ((σ.commitTo mabs.dest mabs.commitIndex).reply { type := .appendEntriesResponse, subtype := "heartbeat", term := (σ.s mabs.dest).currentTerm, success := true, matchIndex := 0, source := mabs.dest, dest := mabs.source } mabs) mabs.dest mabs.source
+
+/-- **A heartbeat's receive line's step** (at a follower of its term, raft's `heartbeat`). -/
+theorem simRun_recvHeartbeat (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (hrun : SimRun C L σ)
+    (hL : L ≠ []) (e : TraceEv) (s : NState) (cfg : CfgM) (m : Msg) (hty : m.ty = .heartbeat)
+    (hev : SendEvOf (W64 10) m.dst s cfg m e) (hin : (elements cfg.incoming).Perm C) (hout : cfg.outgoing = ∅)
+    (hC : m.dst ∈ C) (hsrv : σ.server = confAbs C)
+    (hR : SimServerR C C.length (toPState s) (σ.s (idAbs m.dst))) (hs : LogShapeOk C.length (toPState s))
+    (hrole : s.role = .follower) (hterm : m.term = s.term) (hents : m.entries = [])
+    (hc1 : 1 ≤ uint.Z (toPState s).commit)
+    (bt : uint.Z s.term < 2 ^ 63) (bc : uint.Z s.logst.committed < 2 ^ 63)
+    (bl : uint.Z (plastIndex (toPState s)) < 2 ^ 63) (bmc : uint.Z m.commit < 2 ^ 63)
+    (hnd : σ.messages.domain.Nodup)
+    (hmem : (msgAbs C C.length m).get (by simp [msgAbs, hty]) ∈ σ.messages.domain)
+    (hcnt : 0 < Etcdraft.Bag.count σ.messages ((msgAbs C C.length m).get (by simp [msgAbs, hty])))
+    (huniq : ∀ m' ∈ σ.messages.domain, m' ≠ (msgAbs C C.length m).get (by simp [msgAbs, hty]) →
+      recvPred (msgLine e m.dst s.vote m.src m.dst (elements cfg.incoming)) m' = false)
+    (hboot : ∀ lines ln, parseLines (L.map evConv) = .ok lines →
+      (bootFlags (confAbs C) (lines ++ [ln])).getD L.length false = false)
+    (hinv : (hbRecvSt σ ((msgAbs C C.length m).get (by simp [msgAbs, hty]))).violated = .ok none) :
+    SimRun C (L ++ [e]) (hbRecvSt σ ((msgAbs C C.length m).get (by simp [msgAbs, hty]))) := by
+  have hev' := hev
+  obtain ⟨-, -, -, -, -, -, -, ⟨xs, ys, hxs, hys, -⟩, ⟨tm, hmsg, hm⟩, -⟩ := hev'
+  generalize hmabs : (msgAbs C C.length m).get (by simp [msgAbs, hty]) = mabs at *
+  have hmt : mabs.type = .appendEntriesRequest := by rw [← hmabs]; simp [msgAbs, hty]
+  have hmsub : mabs.subtype = "heartbeat" := by rw [← hmabs]; simp [msgAbs, hty]
+  have hmterm : mabs.term = uint.Z m.term := by rw [← hmabs]; simp [msgAbs, hty]
+  have hmprev : mabs.prevLogIndex = 0 := by rw [← hmabs]; simp [msgAbs, hty]
+  have hments : mabs.entries = [] := by rw [← hmabs]; simp [msgAbs, hty]
+  have hmdst : mabs.dest = idAbs m.dst := by rw [← hmabs]; simp [msgAbs, hty]
+  have hcontains : σ.server.contains (idAbs m.dst) = true := by
+    rw [hsrv, List.contains_iff_mem, mem_confAbs]; exact hC
+  apply simRun_recvAER1 C L σ (hbRecvSt σ mabs) hrun hL e s cfg m (Or.inr hty) hev hin hout hC hsrv hR hs
+    (by rw [hrole]; decide) bt bc bl mabs hmdst _ hnd hmem hcnt huniq _ (by rfl) hboot hinv
+  · unfold recvPred
+    have hn1 : (or ((msgLine e m.dst s.vote m.src m.dst (elements cfg.incoming)).ev.name == "ReceiveAppendEntriesRequest")
+        ((msgLine e m.dst s.vote m.src m.dst (elements cfg.incoming)).ev.name == "ReceiveSnapshot")) = true := by
+      have hname := hev.1
+      simp only [evtNames] at hname
+      have : e.name = go!"ReceiveAppendEntriesRequest" := by have := hname; simp at this; exact this.symm
+      have hg : gsStr (go!"ReceiveAppendEntriesRequest") = "ReceiveAppendEntriesRequest" := rfl
+      simp [msgLine, evConv, this, hg]
+    simp only [hn1, ↓reduceIte]
+    rw [← hmabs, ← msgLine_perm e m.dst s.vote m.src m.dst xs _ hxs]
+    exact isAER_heartbeat C C.length e m.dst s.vote xs m tm hmsg hm hty hents (by rw [hterm]; exact bt) bmc
+  · have := receive_heartbeat σ mabs (by rw [hmdst]; exact hcontains) hmt
+      (by rw [hmdst, hR.2.1]; simp [toPState, hrole, proleRole]; rfl)
+      (by rw [hmdst, hR.1, hmterm, hterm]; rfl) hmsub hmprev hments
+      (by rw [hmdst, hR.2.2.2.2.2.2.1]; omega)
+    rw [this]; rfl
+
 end TraceSim
 
 end EtcdGrove
