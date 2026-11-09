@@ -505,6 +505,105 @@ theorem trCap_fire : trCap_fire.statement (GF := GF) := by
     isplitr; · iunfold raftLogInv; iexact Hrinv
     ipureintro; rw [hsrv]; exact hΦ'
 
+/-- **The global step's law for a `Ready` line** (`trCap_fire_ready.statement`). -/
+theorem trCap_fire_ready : trCap_fire_ready.statement (GF := GF) := by
+  intro γd γ r id c tl E Φ Φ' hps
+  iintro ⟨Hcap, #Htl, Hfx⟩
+  iunfold FxPresReady at Hfx
+  icases Hfx with #Hfx
+  iunfold trCap at Hcap
+  icases Hcap with ⟨%tn, %C, %tl', %cs, %P, #Hdir, %Hpf, #Htl', #Hlg, %Hnn, #Hinv, #Hrinv, Hnode, %HΦ⟩
+  icombine Htl Htl' gives %Htleq
+  subst Htleq
+  obtain ⟨hvC, hperm, hout, hC⟩ := Hpf
+  have hnd : C.Nodup := hperm.nodup_iff.1 (NoDup_elements _)
+  iunfold TraceFire
+  iexists tn
+  iframe Hdir Hlg
+  isplitr; · ipureintro; exact Hnn
+  iintro %e %HE
+  iauintro
+  unfold atomic_acc
+  iinv Hinv with >Hi Hclose
+  iunfold simInv at Hi
+  icases Hi with ⟨%L, %σ, %A, %B, %phP, %phM, HL, HA, HB, #Hfσ, %Hp⟩
+  iunfold raftLogInv at Hrinv
+  have Hsub : (↑(raftLogN γ) : CoPset) ⊆ ⊤ \ ↑(simNS γ) :=
+    mask_ndot_ne' (raftN γ) "log" "tracesim" (by decide)
+  iinv Hrinv with Hr Hrclose
+  iunfold raftLogInvBody at Hr
+  icases Hr with ⟨%lc, Hc, Hj, >Htbl, Hw, Hrest⟩
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
+  iintro Hmask
+  iexists L
+  iunfold traceFrag at HL
+  iunfold traceAuth
+  iframe HL
+  isplit
+  · iintro HL
+    imod Hmask with -
+    imod Hrclose $$ [Hc Hj Htbl Hw Hrest] with -
+    · inext; iunfold raftLogInvBody; iexists lc; iframe
+    imod Hclose $$ [HL HA HB] with -
+    · inext; iunfold simInv; iexists L, σ, A, B, phP, phM; iunfold traceFrag; iframe HL HA HB Hfσ; ipureintro; exact Hp
+    imodintro
+    iframe Hnode
+  · iintro HL
+    imod Hmask with -
+    iunfold simNode at Hnode
+    icases ghost_map_lookup $$ HA Hnode with %HAid
+    obtain ⟨hrun, hsrv, hA, hAn, hPb, hMb, hpv, hcq, hsrcA⟩ := Hp
+    obtain ⟨Q, hQ⟩ := hA id hC
+    rw [HAid] at hQ
+    simp only [Option.some.injEq, Prod.mk.injEq] at hQ
+    obtain ⟨hcs, hQP⟩ := hQ
+    obtain ⟨⟨s0, cfg0, hev0, hout0⟩, hall⟩ := hps C cs P HΦ ⟨hperm, hout, hC⟩ e HE
+    have hΦ' := hall (σ.s (idAbs id)) (by rw [hcs, hsrv])
+    icases keep_pure (simFx_violated γ C σ hsrv) $$ [$Htbl $Hfσ] with ⟨⟨Htbl, -⟩, %hv⟩
+    have hpre : Φ C cs P ∧ E e ∧ σ.server = confAbs C ∧ toC (confAbs C) (σ.s (idAbs id)) = cs ∧
+        σ.preVote = false ∧ σ.checkQuorum = false ∧ σ.violated = .ok none :=
+      ⟨HΦ, HE, hsrv, by rw [hcs, hsrv], hpv, hcq, hv⟩
+    icases Hfx $$ %C %cs %P %e %σ %hpre Htbl Hfσ with ⟨Htbl, #Hfσ'⟩
+    have hsrv' : (σ.ready (idAbs id)).server = confAbs C := hsrv
+    icases keep_pure (simFx_violated γ C _ hsrv') $$ [$Htbl $Hfσ'] with ⟨⟨Htbl, -⟩, %hv'⟩
+    have hAid : A !! id = some (toC σ.server (σ.s (idAbs id)), P) := by rw [HAid, hcs]
+    obtain ⟨hrun', hsrvN, hA', hAn', hsrc', hPb', hM'⟩ :=
+      simStepReady_pure C L σ A B (GMap.mapSeq (keyBound B) P) phP phM id hC hnd P e s0 cfg0 hev0 hout0
+        hrun hsrv hA hAid hAn hsrcA hPb hMb (mapSeq_values_perm _ P) (mapSeq_disjoint B P) hv hv'
+    imod ghost_map_update (toC σ.server ((σ.ready (idAbs id)).s (idAbs id)), ([] : List Etcdraft.Msg)) $$ HA Hnode
+      with ⟨HA, Hnode⟩
+    imod ghost_map_insert_big (GMap.mapSeq (keyBound B) P) (mapSeq_disjoint B P) $$ HB with ⟨HB, Htoks⟩
+    imod Hrclose $$ [Hc Hj Htbl Hw Hrest] with -
+    · inext; iunfold raftLogInvBody; iexists lc; iframe
+    imod Hclose $$ [HL HA HB] with -
+    · inext; iunfold simInv
+      iexists L ++ [e], σ.ready (idAbs id),
+        A.insert id (toC σ.server ((σ.ready (idAbs id)).s (idAbs id)), ([] : List Etcdraft.Msg)),
+        GMap.mapSeq (keyBound B) P ∪ B, phP.filter (fun x => !(x.source == idAbs id)),
+        phM ++ phP.filter (fun x => x.source == idAbs id)
+      iunfold traceFrag; iframe HL HA HB Hfσ'
+      ipureintro
+      exact ⟨hrun', hsrvN, hA', hAn', hPb', hM', hpv, hcq, hsrc'⟩
+    imodintro
+    isplitl [Hnode]
+    · iunfold trCap
+      iexists tn, C, tl, toC σ.server ((σ.ready (idAbs id)).s (idAbs id)), []
+      iunfold simNode
+      iframe Hdir Htl Hlg Hinv Hnode
+      isplitr; · ipureintro; exact ⟨hvC, hperm, hout, hC⟩
+      isplitr; · ipureintro; exact Hnn
+      isplitr; · iunfold raftLogInv; iexact Hrinv
+      ipureintro
+      have : (σ.ready (idAbs id)).s (idAbs id) = { σ.s (idAbs id) with durable := Etcdraft.durableOf (σ.s (idAbs id)) } := by
+        simp [Etcdraft.State.ready, Etcdraft.State.persistState, Etcdraft.State.upd]
+      rw [this, hsrv]; exact hΦ'
+    · iexists tn, P, GMap.mapSeq (keyBound B) P
+      iframe Hdir
+      isplitr; · ipureintro; exact mapSeq_values_perm _ P
+      iunfold inFlight
+      iexact Htoks
+
 /-- **The global step's law for a receive line** (`trCap_fire_recv.statement`). -/
 theorem trCap_fire_recv : trCap_fire_recv.statement (GF := GF) := by
   intro γd γ r id c tl E k m Mid Φ Φ' hps

@@ -422,6 +422,36 @@ abbrev trCap_fire_recv.statement : Prop :=
     (∃ tn, traceDir γd tn ∗ inFlight tn k m) : IProp GF) ⊢
     TraceFire (some γd) tl E (trCap (some γd) γ r id c Φ')
 
+/-! ## The global step of a `Ready` line (Draft statement, review round 2's A5) -/
+
+/-- **A phase step by a `Ready` line**: its events are node `id`'s `Ready` events, and the phase moves
+to `Φ'` with the share's server persisted and its pending messages handed out. -/
+def PhaseStepReady (id : w64) (c : CfgM) (E : TraceEv → Prop)
+    (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) : Prop :=
+  ∀ C cs P, Φ C cs P → (elements c.incoming).Perm C ∧ c.outgoing = ∅ ∧ id ∈ C → ∀ e, E e →
+    (∃ (s : NState) (cfg : CfgM), NodeEvOf (W64 8) id s cfg e ∧ cfg.outgoing = ∅) ∧
+    ∀ a : Etcdraft.Server, toC (confAbs C) a = cs →
+      Φ' C (toC (confAbs C) { a with durable := Etcdraft.durableOf a }) []
+
+/-- **The facts kept by a `Ready` line.** -/
+def FxPresReady (γ : RaftNames) (id : w64) (E : TraceEv → Prop)
+    (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) : IProp GF :=
+  iprop(□ ∀ (C : List w64) (cs : ServerC) (P : List Etcdraft.Msg) (e : TraceEv) (σ : Etcdraft.State),
+    ⌜Φ C cs P ∧ E e ∧ σ.server = confAbs C ∧ toC (confAbs C) (σ.s (idAbs id)) = cs ∧
+      σ.preVote = false ∧ σ.checkQuorum = false ∧ σ.violated = .ok none⌝ -∗
+    votesTbl γ -∗ simFx γ C σ -∗ votesTbl γ ∗ simFx γ C (σ.ready (idAbs id)))
+
+/-- **The global step of a `Ready` line, as one law** (Draft statement): the line moves node `id`'s
+pending messages to the network, the share empties, and the caller receives their tokens. -/
+abbrev trCap_fire_ready.statement : Prop :=
+  ∀ (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (tl : GoInterface) (E : TraceEv → Prop)
+    (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop),
+  PhaseStepReady id c E Φ Φ' →
+  (trCap (some γd) γ r id c Φ ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗ FxPresReady γ id E Φ : IProp GF) ⊢
+    TraceFire (some γd) tl E iprop(trCap (some γd) γ r id c Φ' ∗
+      ∃ (tn : TraceNames) (P : List Etcdraft.Msg) (Bn : GMap Nat Etcdraft.Msg), traceDir γd tn ∗
+        ⌜((GMap.toList Bn).map Prod.snd).Perm P⌝ ∗ [∗map] k ↦ m ∈ Bn, inFlight tn k m)
+
 /-! ## The `Commit` path, traced -/
 
 /-- **`traceNodeEvent(evt, r)`, traced** (`traceNodeEvent.spec` with the gate): reads the logger;
