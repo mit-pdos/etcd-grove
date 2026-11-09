@@ -121,10 +121,12 @@ structure TraceNames where
   st : GName
   bag : GName
   voters : List w64
+  /-- the nodes' `booted` flags (review round 2's A7) -/
+  bt : GName
 
 instance traceNames_countable : Pos.Countable TraceNames :=
-  countableOfLeftInverse (fun n : TraceNames => (n.tr, n.st, n.bag, n.voters))
-    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2⟩) (fun _ => rfl)
+  countableOfLeftInverse (fun n : TraceNames => (n.tr, n.st, n.bag, n.voters, n.bt))
+    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2⟩) (fun _ => rfl)
 
 section ghost
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -197,6 +199,14 @@ in a `Ready`). -/
 def simNode (tn : TraceNames) (i : w64) (c : ServerC) (P : List Etcdraft.Msg) : IProp GF :=
   ghostMapElem tn.st i (DFrac.own 1) (c, P)
 
+/-- **Node `i` has logged a non-bootstrap line in `L`** (its bootstrap segment is over). -/
+def booted (L : List TraceEv) (i : Etcdraft.ID) : Prop :=
+  ∃ x ∈ L, ∃ ln, Etcdraft.parseLine 0 (evConv x) = .ok ln ∧ ln.nid = i ∧ Etcdraft.isBootstrapName ln.ev.name = false
+
+/-- Node `i`'s `booted` flag (its bootstrap segment over: `booted`). -/
+def simBoot (tn : TraceNames) (i : w64) (b : Bool) : IProp GF :=
+  ghostMapElem tn.bt i (DFrac.own 1) b
+
 /-- The token of a handed-out message `m`, `k` its key (a multiset: equal messages occur). -/
 def inFlight (tn : TraceNames) (k : Nat) (m : Etcdraft.Msg) : IProp GF :=
   ghostMapElem tn.bag k (DFrac.own 1) m
@@ -206,14 +216,15 @@ carries (Draft: `TracedHooksDraft`'s `simFx`: the per-server raft facts and the 
 invariants; the relation of the shares to raft's state is the nodes' own, at their hook points). -/
 def simInv (C : List w64) (tn : TraceNames) (Fx : Etcdraft.State → IProp GF) : IProp GF :=
   iprop(∃ (L : List TraceEv) (σ : Etcdraft.State) (A : GMap w64 (ServerC × List Etcdraft.Msg))
-      (B : GMap Nat Etcdraft.Msg) (phP phM : List Etcdraft.Msg),
-    traceFrag tn.tr L ∗ ghostMapAuth tn.st 1 A ∗ ghostMapAuth tn.bag 1 B ∗ Fx σ ∗
+      (B : GMap Nat Etcdraft.Msg) (phP phM : List Etcdraft.Msg) (Bt : GMap w64 Bool),
+    traceFrag tn.tr L ∗ ghostMapAuth tn.st 1 A ∗ ghostMapAuth tn.bag 1 B ∗ ghostMapAuth tn.bt 1 Bt ∗ Fx σ ∗
     ⌜SimRun C L σ ∧ σ.server = confAbs C ∧
       (∀ i ∈ C, ∃ P, A !! i = some (toC σ.server (σ.s (idAbs i)), P)) ∧
       (∀ i, i ∉ C → A !! i = none) ∧
       BagRep σ.pendingMessages ((C.flatMap (fun i => ((A !! i).map Prod.snd).getD [])) ++ phP) ∧
       BagRep σ.messages ((GMap.toList B).map Prod.snd ++ phM) ∧ σ.preVote = false ∧ σ.checkQuorum = false ∧
-      (∀ i ∈ C, ∀ x ∈ ((A !! i).map Prod.snd).getD [], x.source = idAbs i)⌝)
+      (∀ i ∈ C, ∀ x ∈ ((A !! i).map Prod.snd).getD [], x.source = idAbs i) ∧
+      (∀ i ∈ C, ∃ b, Bt !! i = some b ∧ (b = true ↔ booted L (idAbs i)))⌝)
 
 instance simInv_timeless (C : List w64) (tn : TraceNames) (Fx : Etcdraft.State → IProp GF)
     [hFx : ∀ σ, Timeless (Fx σ)] : Timeless (simInv C tn Fx) := by

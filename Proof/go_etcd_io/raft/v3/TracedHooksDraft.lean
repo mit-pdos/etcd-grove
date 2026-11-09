@@ -310,7 +310,7 @@ theorem simFx_violated (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (hs
 one, the node's share `(cs, P)` with the function's phase `Φ C cs P` (`C` the voters, raft's
 configuration `c` their permutation with no outgoing half, the node one of them: review round 1's
 F4), the node's logger and its contract, and the simulation's invariant. -/
-def trCap (tr : Option GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM)
+def trCapB (tr : Option GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (b : Bool)
     (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) : IProp GF :=
   match tr with
   | none => iprop(emp)
@@ -318,7 +318,16 @@ def trCap (tr : Option GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM)
       (P : List Etcdraft.Msg),
       traceDir γd tn ∗ ⌜tn.voters = C ∧ (elements c.incoming).Perm C ∧ c.outgoing = ∅ ∧ id ∈ C⌝ ∗
       r.[raft, go!"traceLogger"] ↦□ tl ∗ isTraceLogger tn.tr tl ∗
-      ⌜tl ≠ interface.nil⌝ ∗ inv (simNS γ) (simInv C tn (simFx γ C)) ∗ raftLogInv γ ∗ simNode tn id cs P ∗ ⌜Φ C cs P⌝)
+      ⌜tl ≠ interface.nil⌝ ∗ inv (simNS γ) (simInv C tn (simFx γ C)) ∗ raftLogInv γ ∗ simNode tn id cs P ∗
+      simBoot tn id b ∗ ⌜Φ C cs P⌝)
+
+/-- **The capability, whatever the node's `booted` flag** (`trCapB`'s, review round 2's A7: the laws
+of non-bootstrap lines set it; the bootstrap lines' law needs it unset). -/
+def trCap (tr : Option GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM)
+    (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) : IProp GF :=
+  match tr with
+  | none => iprop(emp)
+  | some _ => iprop(∃ b, trCapB tr γ r id c b Φ)
 
 /-- **What a hook's caller gives for an event that may or may not be logged**: `some E`, as
 `TraceFire`; `none` (a message type the hook does not trace), `Q` (review round 1's S6). -/

@@ -234,10 +234,6 @@ theorem parseLine_idx (k k' : Nat) (ev : Etcdraft.Event) (ln : Etcdraft.Line)
   repeat' (first | (split at h) | (split) | (cases h; rfl) | (cases h) | rfl)
   all_goals simp_all
 
-/-- **Node `i` has logged a non-bootstrap line in `L`** (its bootstrap segment is over). -/
-def booted (L : List TraceEv) (i : Etcdraft.ID) : Prop :=
-  ∃ x ∈ L, ∃ ln, Etcdraft.parseLine 0 (evConv x) = .ok ln ∧ ln.nid = i ∧ Etcdraft.isBootstrapName ln.ev.name = false
-
 theorem mapM_ok_get {α β ε : Type} (f : α → Except ε β) :
     ∀ (l : List α) (r : List β), l.mapM f = .ok r → ∀ k (hk : k < l.length), ∃ y, r[k]? = some y ∧ f l[k] = .ok y := by
   intro l
@@ -346,6 +342,23 @@ theorem bootFlags_unbooted (C : List w64) (L : List TraceEv) (lines : List Etcdr
     Bool.and_eq_true, decide_eq_true_eq, beq_iff_eq, hnid, and_true]
   refine ⟨?_, Nat.le_refl _⟩
   omega
+
+theorem booted_snoc_self (L : List TraceEv) (e : TraceEv) (ln : Etcdraft.Line) (j : Etcdraft.ID)
+    (hp : Etcdraft.parseLine 0 (evConv e) = .ok ln) (hn : ln.nid = j) (hb : Etcdraft.isBootstrapName ln.ev.name = false) :
+    booted (L ++ [e]) j :=
+  ⟨e, by simp, ln, hp, hn, hb⟩
+
+theorem booted_snoc_other (L : List TraceEv) (e : TraceEv) (ln : Etcdraft.Line) (j : Etcdraft.ID)
+    (hp : Etcdraft.parseLine 0 (evConv e) = .ok ln) (hn : ln.nid ≠ j) :
+    booted (L ++ [e]) j ↔ booted L j := by
+  constructor
+  · rintro ⟨x, hx, ln', hp', hn', hb'⟩
+    rw [List.mem_append, List.mem_singleton] at hx
+    rcases hx with hx | rfl
+    · exact ⟨x, hx, ln', hp', hn', hb'⟩
+    · rw [hp] at hp'; cases hp'; exact absurd hn' hn
+  · rintro ⟨x, hx, ln', hp', hn', hb'⟩
+    exact ⟨x, List.mem_append_left _ hx, ln', hp', hn', hb'⟩
 
 end TraceSim
 

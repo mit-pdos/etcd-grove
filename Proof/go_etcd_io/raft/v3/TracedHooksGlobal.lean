@@ -394,6 +394,21 @@ theorem mapSeq_disjoint {V : Type} (B : GMap Nat V) (l : List V) :
   have : GMap.mapSeq (keyBound B) l !! k = none := by rw [GMap.lookup_map_seq]; simp; omega
   rw [this] at h1; cases h1
 
+/-- **The flags after a node's non-bootstrap line.** -/
+theorem bootClause_step (C : List w64) (L : List TraceEv) (e : TraceEv) (ln : Etcdraft.Line) (id : w64)
+    (Bt : GMap w64 Bool) (hp : Etcdraft.parseLine 0 (evConv e) = .ok ln) (hn : ln.nid = idAbs id)
+    (hb : Etcdraft.isBootstrapName ln.ev.name = false)
+    (h : ∀ i ∈ C, ∃ b, Bt !! i = some b ∧ (b = true ↔ booted L (idAbs i))) :
+    ∀ i ∈ C, ∃ b, (Bt.insert id true) !! i = some b ∧ (b = true ↔ booted (L ++ [e]) (idAbs i)) := by
+  intro i hi
+  by_cases hii : i = id
+  · subst hii
+    exact ⟨true, GMap.lookup_insert _ _ _, by simp; exact booted_snoc_self L e ln _ hp hn hb⟩
+  · obtain ⟨b, hb', hiff⟩ := h i hi
+    refine ⟨b, by rw [GMap.lookup_insert_ne _ _ (Ne.symm hii)]; exact hb', ?_⟩
+    rw [booted_snoc_other L e ln _ hp (by rw [hn]; exact fun e => hii (idAbs_inj.1 e).symm)]
+    exact hiff
+
 end pure
 
 end EtcdGrove
@@ -422,7 +437,9 @@ theorem trCap_fire : trCap_fire.statement (GF := GF) := by
   iunfold FxPres at Hfx
   icases Hfx with #Hfx
   iunfold trCap at Hcap
-  icases Hcap with ⟨%tn, %C, %tl', %cs, %P, #Hdir, %Hpf, #Htl', #Hlg, %Hnn, #Hinv, #Hrinv, Hnode, %HΦ⟩
+  icases Hcap with ⟨%bt0, Hcap⟩
+  iunfold trCapB at Hcap
+  icases Hcap with ⟨%tn, %C, %tl', %cs, %P, #Hdir, %Hpf, #Htl', #Hlg, %Hnn, #Hinv, #Hrinv, Hnode, Hbt, %HΦ⟩
   icombine Htl Htl' gives %Htleq
   subst Htleq
   obtain ⟨hvC, hperm, hout, hC⟩ := Hpf
@@ -436,7 +453,7 @@ theorem trCap_fire : trCap_fire.statement (GF := GF) := by
   unfold atomic_acc
   iinv Hinv with >Hi Hclose
   iunfold simInv at Hi
-  icases Hi with ⟨%L, %σ, %A, %B, %phP, %phM, HL, HA, HB, #Hfσ, %Hp⟩
+  icases Hi with ⟨%L, %σ, %A, %B, %phP, %phM, %Bt, HL, HA, HB, HBt, #Hfσ, %Hp⟩
   iunfold raftLogInv at Hrinv
   have Hsub : (↑(raftLogN γ) : CoPset) ⊆ ⊤ \ ↑(simNS γ) :=
     mask_ndot_ne' (raftN γ) "log" "tracesim" (by decide)
@@ -455,15 +472,15 @@ theorem trCap_fire : trCap_fire.statement (GF := GF) := by
     imod Hmask with -
     imod Hrclose $$ [Hc Hj Htbl Hw Hrest] with -
     · inext; iunfold raftLogInvBody; iexists lc; iframe
-    imod Hclose $$ [HL HA HB] with -
-    · inext; iunfold simInv; iexists L, σ, A, B, phP, phM; iunfold traceFrag; iframe HL HA HB Hfσ; ipureintro; exact Hp
+    imod Hclose $$ [HL HA HB HBt] with -
+    · inext; iunfold simInv; iexists L, σ, A, B, phP, phM, Bt; iunfold traceFrag; iframe HL HA HB HBt Hfσ; ipureintro; exact Hp
     imodintro
-    iframe Hnode
+    iframe Hnode Hbt
   · iintro HL
     imod Hmask with -
     iunfold simNode at Hnode
     icases ghost_map_lookup $$ HA Hnode with %HAid
-    obtain ⟨hrun, hsrv, hA, hAn, hPb, hMb, hpv, hcq, hsrcA⟩ := Hp
+    obtain ⟨hrun, hsrv, hA, hAn, hPb, hMb, hpv, hcq, hsrcA, hbtC⟩ := Hp
     obtain ⟨Q, hQ⟩ := hA id hC
     rw [HAid] at hQ
     simp only [Option.some.injEq, Prod.mk.injEq] at hQ
@@ -486,20 +503,29 @@ theorem trCap_fire : trCap_fire.statement (GF := GF) := by
       simStep_pure C L σ A phP id hC hnd P e a' P' hrun hsrv hA hAid hAn hsrcA hsrcP hPb hpv hcq hname
         hle hv hv'
     imod ghost_map_update (toC σ.server a', P ++ P') $$ HA Hnode with ⟨HA, Hnode⟩
+    iunfold simBoot at Hbt
+    imod ghost_map_update true $$ HBt Hbt with ⟨HBt, Hbt⟩
+    have hle0 := hle
+    obtain ⟨ln, hpl, hnl, -⟩ := hle0
+    have hbl : Etcdraft.isBootstrapName ln.ev.name = false := by rw [parseLine_ev _ _ _ hpl]; exact hname
     imod Hrclose $$ [Hc Hj Htbl Hw Hrest] with -
     · inext; iunfold raftLogInvBody; iexists lc; iframe
-    imod Hclose $$ [HL HA HB] with -
+    imod Hclose $$ [HL HA HB HBt] with -
     · inext; iunfold simInv
       iexists L ++ [e], withNode σ (idAbs id) a' _root_.id (fun b => List.foldl Etcdraft.Bag.with b P'),
-        A.insert id (toC σ.server a', P ++ P'), B, phP, phM
-      iunfold traceFrag; iframe HL HA HB Hfσ'
+        A.insert id (toC σ.server a', P ++ P'), B, phP, phM, Bt.insert id true
+      iunfold traceFrag; iframe HL HA HB HBt Hfσ'
       ipureintro
-      exact ⟨hrun', hsrvN, hA', hAn', hPb', by rw [hM']; exact hMb, hpv, hcq, hsrc'⟩
+      exact ⟨hrun', hsrvN, hA', hAn', hPb', by rw [hM']; exact hMb, hpv, hcq, hsrc',
+        bootClause_step C L e ln id Bt hpl hnl hbl hbtC⟩
     imodintro
     iunfold trCap
+    iexists true
+    iunfold trCapB
     iexists tn, C, tl, toC σ.server a', P ++ P'
     iunfold simNode
-    iframe Hdir Htl Hlg Hinv Hnode
+    iunfold simBoot
+    iframe Hdir Htl Hlg Hinv Hnode Hbt
     isplitr; · ipureintro; exact ⟨hvC, hperm, hout, hC⟩
     isplitr; · ipureintro; exact Hnn
     isplitr; · iunfold raftLogInv; iexact Hrinv
@@ -512,7 +538,9 @@ theorem trCap_fire_ready : trCap_fire_ready.statement (GF := GF) := by
   iunfold FxPresReady at Hfx
   icases Hfx with #Hfx
   iunfold trCap at Hcap
-  icases Hcap with ⟨%tn, %C, %tl', %cs, %P, #Hdir, %Hpf, #Htl', #Hlg, %Hnn, #Hinv, #Hrinv, Hnode, %HΦ⟩
+  icases Hcap with ⟨%bt0, Hcap⟩
+  iunfold trCapB at Hcap
+  icases Hcap with ⟨%tn, %C, %tl', %cs, %P, #Hdir, %Hpf, #Htl', #Hlg, %Hnn, #Hinv, #Hrinv, Hnode, Hbt, %HΦ⟩
   icombine Htl Htl' gives %Htleq
   subst Htleq
   obtain ⟨hvC, hperm, hout, hC⟩ := Hpf
@@ -526,7 +554,7 @@ theorem trCap_fire_ready : trCap_fire_ready.statement (GF := GF) := by
   unfold atomic_acc
   iinv Hinv with >Hi Hclose
   iunfold simInv at Hi
-  icases Hi with ⟨%L, %σ, %A, %B, %phP, %phM, HL, HA, HB, #Hfσ, %Hp⟩
+  icases Hi with ⟨%L, %σ, %A, %B, %phP, %phM, %Bt, HL, HA, HB, HBt, #Hfσ, %Hp⟩
   iunfold raftLogInv at Hrinv
   have Hsub : (↑(raftLogN γ) : CoPset) ⊆ ⊤ \ ↑(simNS γ) :=
     mask_ndot_ne' (raftN γ) "log" "tracesim" (by decide)
@@ -545,15 +573,15 @@ theorem trCap_fire_ready : trCap_fire_ready.statement (GF := GF) := by
     imod Hmask with -
     imod Hrclose $$ [Hc Hj Htbl Hw Hrest] with -
     · inext; iunfold raftLogInvBody; iexists lc; iframe
-    imod Hclose $$ [HL HA HB] with -
-    · inext; iunfold simInv; iexists L, σ, A, B, phP, phM; iunfold traceFrag; iframe HL HA HB Hfσ; ipureintro; exact Hp
+    imod Hclose $$ [HL HA HB HBt] with -
+    · inext; iunfold simInv; iexists L, σ, A, B, phP, phM, Bt; iunfold traceFrag; iframe HL HA HB HBt Hfσ; ipureintro; exact Hp
     imodintro
-    iframe Hnode
+    iframe Hnode Hbt
   · iintro HL
     imod Hmask with -
     iunfold simNode at Hnode
     icases ghost_map_lookup $$ HA Hnode with %HAid
-    obtain ⟨hrun, hsrv, hA, hAn, hPb, hMb, hpv, hcq, hsrcA⟩ := Hp
+    obtain ⟨hrun, hsrv, hA, hAn, hPb, hMb, hpv, hcq, hsrcA, hbtC⟩ := Hp
     obtain ⟨Q, hQ⟩ := hA id hC
     rw [HAid] at hQ
     simp only [Option.some.injEq, Prod.mk.injEq] at hQ
@@ -574,23 +602,40 @@ theorem trCap_fire_ready : trCap_fire_ready.statement (GF := GF) := by
     imod ghost_map_update (toC σ.server ((σ.ready (idAbs id)).s (idAbs id)), ([] : List Etcdraft.Msg)) $$ HA Hnode
       with ⟨HA, Hnode⟩
     imod ghost_map_insert_big (GMap.mapSeq (keyBound B) P) (mapSeq_disjoint B P) $$ HB with ⟨HB, Htoks⟩
+    iunfold simBoot at Hbt
+    imod ghost_map_update true $$ HBt Hbt with ⟨HBt, Hbt⟩
+    have hev1 := hev0
+    obtain ⟨hname1, hnid1, -, hvote1, -, -, -, ⟨xs1, ys1, -, hys1, hconf1⟩, hmsg1, -, -, -, -⟩ := hev1
+    rw [hout0, elements_empty_nil] at hys1
+    have hys10 := List.Perm.eq_nil hys1
+    subst hys10
+    have hname1' : gsStr e.name = "Ready" := by
+      simp only [evtNames] at hname1
+      have : e.name = go!"Ready" := by have := hname1; simp at this; exact this.symm
+      rw [this]; rfl
+    have hpl := parseLine_node 0 e id s0.vote xs1 [] hnid1 hvote1 hconf1 hmsg1 (by rw [hname1']; rfl)
+      (by rw [hname1']; decide)
     imod Hrclose $$ [Hc Hj Htbl Hw Hrest] with -
     · inext; iunfold raftLogInvBody; iexists lc; iframe
-    imod Hclose $$ [HL HA HB] with -
+    imod Hclose $$ [HL HA HB HBt] with -
     · inext; iunfold simInv
       iexists L ++ [e], σ.ready (idAbs id),
         A.insert id (toC σ.server ((σ.ready (idAbs id)).s (idAbs id)), ([] : List Etcdraft.Msg)),
         GMap.mapSeq (keyBound B) P ∪ B, phP.filter (fun x => !(x.source == idAbs id)),
-        phM ++ phP.filter (fun x => x.source == idAbs id)
-      iunfold traceFrag; iframe HL HA HB Hfσ'
+        phM ++ phP.filter (fun x => x.source == idAbs id), Bt.insert id true
+      iunfold traceFrag; iframe HL HA HB HBt Hfσ'
       ipureintro
-      exact ⟨hrun', hsrvN, hA', hAn', hPb', hM', hpv, hcq, hsrc'⟩
+      exact ⟨hrun', hsrvN, hA', hAn', hPb', hM', hpv, hcq, hsrc',
+        bootClause_step C L e _ id Bt hpl rfl (by simp [evConv, hname1']; rfl) hbtC⟩
     imodintro
-    isplitl [Hnode]
+    isplitl [Hnode Hbt]
     · iunfold trCap
+      iexists true
+      iunfold trCapB
       iexists tn, C, tl, toC σ.server ((σ.ready (idAbs id)).s (idAbs id)), []
       iunfold simNode
-      iframe Hdir Htl Hlg Hinv Hnode
+      iunfold simBoot
+      iframe Hdir Htl Hlg Hinv Hnode Hbt
       isplitr; · ipureintro; exact ⟨hvC, hperm, hout, hC⟩
       isplitr; · ipureintro; exact Hnn
       isplitr; · iunfold raftLogInv; iexact Hrinv
@@ -611,7 +656,9 @@ theorem trCap_fire_recv : trCap_fire_recv.statement (GF := GF) := by
   iunfold FxPresR at Hfx
   icases Hfx with #Hfx
   iunfold trCap at Hcap
-  icases Hcap with ⟨%tn, %C, %tl', %cs, %P, #Hdir, %Hpf, #Htl', #Hlg, %Hnn, #Hinv, #Hrinv, Hnode, %HΦ⟩
+  icases Hcap with ⟨%bt0, Hcap⟩
+  iunfold trCapB at Hcap
+  icases Hcap with ⟨%tn, %C, %tl', %cs, %P, #Hdir, %Hpf, #Htl', #Hlg, %Hnn, #Hinv, #Hrinv, Hnode, Hbt, %HΦ⟩
   icombine Htl Htl' gives %Htleq
   subst Htleq
   iunfold traceDir at Hdir Hdir0
@@ -630,7 +677,7 @@ theorem trCap_fire_recv : trCap_fire_recv.statement (GF := GF) := by
   unfold atomic_acc
   iinv Hinv with >Hi Hclose
   iunfold simInv at Hi
-  icases Hi with ⟨%L, %σ, %A, %B, %phP, %phM, HL, HA, HB, #Hfσ, %Hp⟩
+  icases Hi with ⟨%L, %σ, %A, %B, %phP, %phM, %Bt, HL, HA, HB, HBt, #Hfσ, %Hp⟩
   iunfold raftLogInv at Hrinv
   have Hsub : (↑(raftLogN γ) : CoPset) ⊆ ⊤ \ ↑(simNS γ) :=
     mask_ndot_ne' (raftN γ) "log" "tracesim" (by decide)
@@ -649,15 +696,15 @@ theorem trCap_fire_recv : trCap_fire_recv.statement (GF := GF) := by
     imod Hmask with -
     imod Hrclose $$ [Hc Hj Htbl Hw Hrest] with -
     · inext; iunfold raftLogInvBody; iexists lc; iframe
-    imod Hclose $$ [HL HA HB] with -
-    · inext; iunfold simInv; iexists L, σ, A, B, phP, phM; iunfold traceFrag; iframe HL HA HB Hfσ; ipureintro; exact Hp
+    imod Hclose $$ [HL HA HB HBt] with -
+    · inext; iunfold simInv; iexists L, σ, A, B, phP, phM, Bt; iunfold traceFrag; iframe HL HA HB HBt Hfσ; ipureintro; exact Hp
     imodintro
-    iframe Hnode Htok
+    iframe Hnode Hbt Htok
   · iintro HL
     imod Hmask with -
     iunfold simNode at Hnode
     icases ghost_map_lookup $$ HA Hnode with %HAid
-    obtain ⟨hrun, hsrv, hA, hAn, hPb, hMb, hpv, hcq, hsrcA⟩ := Hp
+    obtain ⟨hrun, hsrv, hA, hAn, hPb, hMb, hpv, hcq, hsrcA, hbtC⟩ := Hp
     obtain ⟨Q, hQ⟩ := hA id hC
     rw [HAid] at hQ
     simp only [Option.some.injEq, Prod.mk.injEq] at hQ
@@ -701,20 +748,28 @@ theorem trCap_fire_recv : trCap_fire_recv.statement (GF := GF) := by
         hname hmatch hle hv hmids hv'
     imod ghost_map_update (toC σ.server a', P ++ P') $$ HA Hnode with ⟨HA, Hnode⟩
     imod ghost_map_delete $$ HB Htok with HB
+    iunfold simBoot at Hbt
+    imod ghost_map_update true $$ HBt Hbt with ⟨HBt, Hbt⟩
+    have hle0 := hle
+    obtain ⟨ln, hpl, hnl, -⟩ := hle0
+    have hbl : Etcdraft.isBootstrapName ln.ev.name = false := by rw [parseLine_ev _ _ _ hpl]; exact hname
     imod Hrclose $$ [Hc Hj Htbl Hw Hrest] with -
     · inext; iunfold raftLogInvBody; iexists lc; iframe
-    imod Hclose $$ [HL HA HB] with -
+    imod Hclose $$ [HL HA HB HBt] with -
     · inext; iunfold simInv
       iexists L ++ [e], withNode σ (idAbs id) a' (fun b => b.without m) (fun b => List.foldl Etcdraft.Bag.with b (P' ++ Pph)),
-        A.insert id (toC σ.server a', P ++ P'), B.delete k, phP ++ Pph, phM
-      iunfold traceFrag; iframe HL HA HB Hfσ'
+        A.insert id (toC σ.server a', P ++ P'), B.delete k, phP ++ Pph, phM, Bt.insert id true
+      iunfold traceFrag; iframe HL HA HB HBt Hfσ'
       ipureintro
-      exact ⟨hrun', hsrvN, hA', hAn', hPb', hM', hpv, hcq, hsrc'⟩
+      exact ⟨hrun', hsrvN, hA', hAn', hPb', hM', hpv, hcq, hsrc', bootClause_step C L e ln id Bt hpl hnl hbl hbtC⟩
     imodintro
     iunfold trCap
+    iexists true
+    iunfold trCapB
     iexists tn, C, tl, toC σ.server a', P ++ P'
     iunfold simNode
-    iframe Hdir Htl Hlg Hinv Hnode
+    iunfold simBoot
+    iframe Hdir Htl Hlg Hinv Hnode Hbt
     isplitr; · ipureintro; exact ⟨hvC, hperm, hout, hC⟩
     isplitr; · ipureintro; exact Hnn
     isplitr; · iunfold raftLogInv; iexact Hrinv
