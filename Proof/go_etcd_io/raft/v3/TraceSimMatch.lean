@@ -1836,6 +1836,81 @@ theorem chain_appNoConflict (t : Etcdraft.Trace) (l0 pl0 : Nat) (σ : Etcdraft.S
       hsub hlog hents hprev hq hc hbl hbe (by have := hok; unfold LogOkL at this; rw [hlog]; exact this) hnc)
     rfl hinvD
 
+/-- The last round's state does not depend on the leader having been adopted before (a log set to
+itself). -/
+theorem doneSt_truncSt_same (σ : Etcdraft.State) (mabs : Etcdraft.Msg) (p k : Nat)
+    (L : List Etcdraft.Entry) (hL : (σ.s mabs.dest).log = L) :
+    doneSt (truncSt σ mabs.dest mabs.source L) mabs p k = doneSt σ mabs p k := by
+  unfold doneSt truncSt withLead
+  simp only [Etcdraft.State.commitTo, Etcdraft.State.reply, Etcdraft.State.upd]
+  congr 1
+  funext x
+  by_cases hx : x = mabs.dest
+  · subst hx; simp [← hL]
+  · simp [hx]
+
+/-- **An accepted append request's line, from raft's `maybeAppend`** (the log `es`, uncompacted; the
+batch `ents` after index `p`, of the previous term `lt`; the new log `es'`): the specification's
+rounds as a chain, ending at `AppendEntriesAlreadyDone`'s state over the new log. -/
+theorem chain_appAccept (t : Etcdraft.Trace) (l0 pl0 : Nat) (σ : Etcdraft.State) (mabs : Etcdraft.Msg)
+    (C : List w64) (bl p : Nat) (lt lastnewi : w64) (es ents es' : List EntryM)
+    (hl0 : l0 ≠ 0) (hl : l0 ≤ t.len) (hb : t.bootstrap.getD (l0 - 1) false = false)
+    (hrecv : Etcdraft.isReceiveName (t.line l0).ev.name = true)
+    (hnd : σ.messages.domain.Nodup) (hm : mabs ∈ σ.messages.domain)
+    (hcnt : 0 < Etcdraft.Bag.count σ.messages mabs)
+    (hmatch : recvPred (t.line l0) mabs = true)
+    (hpre0 : t.validatePreStates ⟨σ, l0, pl0⟩ mabs.dest = true)
+    (huniq : ∀ m' ∈ σ.messages.domain, m' ≠ mabs → recvPred (t.line l0) m' = false)
+    (hsrv : σ.server.contains mabs.dest = true) (hty : mabs.type = .appendEntriesRequest)
+    (hf : (σ.s mabs.dest).state = Etcdraft.follower) (hterm : mabs.term = (σ.s mabs.dest).currentTerm)
+    (hsub : mabs.subtype = "app")
+    (hlog : (σ.s mabs.dest).log = logAbs C bl 1 es)
+    (hents : mabs.entries = logAbs C bl (p + 1) ents) (hprev : mabs.prevLogIndex = p)
+    (hpt : mabs.prevLogTerm = uint.Z lt) (hlt0 : p = 0 → lt = W64 0)
+    (hc : (σ.s mabs.dest).commitIndex < (p : Int) + 1)
+    (hbl : BootTerms bl 1 es) (hbe : BootTerms bl (p + 1) ents)
+    (hwf : ∀ (k : Nat) (e : EntryM), ents[k]? = some e → uint.Z e.Index' = (p : Int) + k + 1)
+    (hp : p < 2 ^ 64) (hnw : (p : Int) + ents.length + 1 < 2 ^ 64)
+    (happ : plogMaybeAppend (entryID.mk (W64 0) (W64 0)) es (entryID.mk lt (W64 p)) ents = some (lastnewi, es'))
+    (hinvT : ∀ k, p ≤ k → k < es.length →
+      (truncSt σ mabs.dest mabs.source (logAbs C bl 1 (es.take k))).violated = .ok none)
+    (hinvA : (truncSt σ mabs.dest mabs.source (logAbs C bl 1 es')).violated = .ok none)
+    (hinvD : (doneSt (truncSt σ mabs.dest mabs.source (logAbs C bl 1 es')) mabs p ents.length).violated = .ok none) :
+    Chain t l0 [⟨σ, l0, pl0⟩] ⟨σ, l0, pl0⟩
+      ⟨doneSt (truncSt σ mabs.dest mabs.source (logAbs C bl 1 es')) mabs p ents.length, l0 + 1, l0⟩ := by
+  have hpz : uint.Z (W64 p) = p := by word
+  have hwf' : PlogWf (entryID.mk lt (W64 p)) ents := by
+    intro k e he; have := hwf k e he; simp only [hpz]; push_cast; omega
+  obtain ⟨hmatchP, -, -⟩ := plogMaybeAppend_inv _ _ _ _ _ _ hwf' (by simp only [hpz]; exact hnw) happ
+  obtain ⟨hpl, -, hcase⟩ := maybeAppend_spec es ents es' p lt lastnewi hwf hp hnw happ
+  have hokP : ∀ es2 : List EntryM, BootTerms bl 1 es2 → (∀ k, k < p → es2[k]? = es[k]?) →
+      LogOkL mabs (logAbs C bl 1 es2) = true := by
+    intro es2 hb2 hpre
+    rw [logOkL_abs C bl mabs es2 p lt hprev hpt hb2 hlt0 hp, decide_eq_true_iff]
+    exact (plogMatches_prefix es es2 lt p hp hpre).2 hmatchP
+  rcases hcase with ⟨rfl, hq, hnc⟩ | ⟨d, hd, hpd, rfl, -, -, hbef, hconf⟩
+  · rw [doneSt_truncSt_same σ mabs p ents.length _ hlog]
+    exact chain_appNoConflict t l0 pl0 σ mabs C bl p es' ents hl0 hl hb hrecv hnd hm hcnt hmatch hpre0 huniq hsrv
+      hty hf hterm hsub hlog hents hprev hq hc hbl hbe (hokP es' hbl (fun _ _ => rfl)) hnc
+      (by rw [← doneSt_truncSt_same σ mabs p ents.length _ hlog]; exact hinvD)
+  · have hmis : p + d < es.length → ∃ e, ents[d]? = some e ∧ (es[p + d]?).map EntryM.Term' ≠ some e.Term' := by
+      intro hlt
+      obtain ⟨e, he⟩ : ∃ e, ents[d]? = some e := ⟨ents[d], List.getElem?_eq_getElem hd⟩
+      refine ⟨e, he, fun hmt => hconf (p + d + 1) (by omega) (by omega) ?_⟩
+      intro k e' hk hlk
+      rw [List.getElem?_take_of_lt hlk]
+      rcases Nat.lt_or_ge k d with hkd | hkd
+      · have := hbef k e' hk (by omega)
+        rwa [List.getElem?_take_of_lt (by omega)] at this
+      · have : k = d := by omega
+        subst this; rw [he] at hk; cases hk; exact hmt
+    exact chain_appConflict t l0 pl0 σ mabs C bl p d es ents hl0 hl hb hrecv hnd hm hcnt hmatch hpre0 huniq hsrv
+      hty hf hterm hsub hlog hents hprev hc hbl hbe hd hpd hbef hconf hmis
+      (fun k hk1 hk2 => hokP _ (hbl.take k) (fun k' hk' => List.getElem?_take_of_lt (by omega)))
+      (hokP _ (bootTerms_truncAppend bl p d es ents hpd hbl hbe) (fun k' hk' => by
+        rw [List.getElem?_append_left (by simp; omega), List.getElem?_take_of_lt (by omega)]))
+      (fun k hk1 hk2 => hinvT k (by omega) hk2) hinvA hinvD
+
 end TraceSim
 
 end EtcdGrove
