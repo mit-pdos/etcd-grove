@@ -255,6 +255,18 @@ def newTraceWith (events : List Event) (preVote checkQuorum : Bool) : Except Tra
       preVote := preVote, checkQuorum := checkQuorum }
   return { lines := lines, server := server, initSrv := initSrv, bootstrap := bootstrap, init := st }
 
+/-- A trace of `events` has a line per event (Draft: proved with layer B's lemmas on `newTraceWith`
+of a trace extended by a line). -/
+theorem newTraceWith_len (events : List Event) (pv cq : Bool) (t : Trace) :
+    newTraceWith events pv cq = .ok t → t.len = events.length := by
+  sorry
+
+/-- The empty trace is refused. -/
+theorem newTraceWith_nil (pv cq : Bool) : ∀ t, newTraceWith [] pv cq ≠ .ok t := by
+  intro t h
+  unfold newTraceWith at h
+  simp [bind, Except.bind, throw, throwThe, MonadExceptOf.throw] at h
+
 /-- The trace specification of `events`, `PreVote` and `CheckQuorum` off (Go: `NewTrace`). -/
 def newTrace (events : List Event) : Except TraceError Trace := newTraceWith events false false
 

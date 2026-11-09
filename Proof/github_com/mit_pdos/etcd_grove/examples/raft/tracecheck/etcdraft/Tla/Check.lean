@@ -181,6 +181,51 @@ accept, for raft's `PreVote` and `CheckQuorum` (the corollary's statement; what 
 def TraceAccepts (events : List Event) (preVote checkQuorum : Bool) : Prop :=
   ∃ t, newTraceWith events preVote checkQuorum = .ok t ∧ ∃ res, CheckTraceRel t true res ∧ res.tlcOK = true
 
+/-! ## A run of the search, line by line (what the simulation carries) -/
+
+/-- The search on the trace's first `n` lines as TLC's verdict needs it: from the initial state,
+its invariants holding, each line steps to exactly one state, without branching or an invariant
+violated on the way (layer B's simulation carries it, one line at a time). -/
+inductive Trace.RunRel (t : Trace) : Nat → TState → Prop
+  | init : t.initState.s.violated = .ok none → Trace.RunRel t 0 t.initState
+  | step (n : Nat) (ts ts' : TState) (info : StepInfo) :
+      Trace.RunRel t n ts → n < t.len →
+      t.CheckLineRel true [ts] ([], {}) (.ok ([ts'], info)) →
+      info.violation = none → info.branched = false →
+      Trace.RunRel t (n + 1) ts'
+
+theorem Trace.RunRel.from_init {t : Trace} {n : Nat} {ts : TState} (h : t.RunRel n ts) :
+    n ≤ t.len ∧ ∀ r', t.CheckFromRel true (t.len - n) (n + 1) [ts] {} r' →
+      t.CheckFromRel true t.len 1 [t.initState] {} r' := by
+  induction h with
+  | init _ => exact ⟨Nat.zero_le _, fun r' h => by simpa using h⟩
+  | step n ts ts' info _ hn hl hv hb ih =>
+    refine ⟨hn, fun r' h' => ih.2 r' ?_⟩
+    have hk : t.len - n = (t.len - (n + 1)) + 1 := by omega
+    rw [hk]
+    refine Trace.CheckFromRel.step _ _ _ _ [ts'] info r' hl hv (by simp) ?_
+    simpa [hb] using h'
+
+/-- A run starts from an initial state whose invariants hold. -/
+theorem Trace.RunRel.init_ok {t : Trace} {n : Nat} {ts : TState} (h : t.RunRel n ts) :
+    t.initState.s.violated = .ok none := by
+  induction h with
+  | init h0 => exact h0
+  | step _ _ _ _ _ _ _ _ _ ih => exact ih
+
+/-- A run through every line is TLC's accepting verdict. -/
+theorem Trace.RunRel.accepts {t : Trace} {ts : TState} (h : t.RunRel t.len ts) :
+    ∃ res, CheckTraceRel t true res ∧ res.tlcOK = true := by
+  refine ⟨{ ok := true }, ?_, rfl⟩
+  have hinit : t.initState.s.violated = .ok none := h.init_ok
+  have hrun := (h.from_init).2 { ok := true } (by
+    rw [Nat.sub_self]
+    exact Trace.CheckFromRel.stop _ _ _)
+  unfold CheckTraceRel
+  simp only [↓reduceIte]
+  rw [hinit]
+  exact hrun
+
 end Etcdraft
 end EtcdGrove
 end Perennial
