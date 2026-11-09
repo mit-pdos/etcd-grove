@@ -39,8 +39,8 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 /-- `l.keepAliveCtxCloser(ctx, id, donec)`: closes this call's channel once `ctx` is done (unless
 the entry or the lessor is done first). -/
 def lessor.keepAliveCtxCloser.spec : Prop :=
-  ∀ (l : Loc) (γ : Cluster) (who : Principal) (ctx : GoInterface) (id : w64) (donec : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorHandle l γ who ∗ Context.ctxOk ctx ∗ kaDonec donec }}
+  ∀ (l c : Loc) (γ : Cluster) (who : Principal) (ctx : GoInterface) (id : w64) (donec : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorHandle l c γ who ∗ Context.ctxOk ctx ∗ kaDonec donec }}
     (App (App (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"keepAliveCtxCloser")) (Val #ctx)) (Val #id)) (Val #donec))
   {{ RET #(); True }}
 

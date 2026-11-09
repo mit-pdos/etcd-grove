@@ -33,7 +33,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.credentials.Assumptions]
 /-- `NewTransportCredential(cfg)`: transport credentials. -/
 def NewTransportCredential.spec : Prop :=
   ∀ (cfg : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.credentials ∗ (⌜cfg = null⌝ ∨ tlsCfgOk cfg) }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.credentials ∗ (⌜cfg = null⌝ ∨ Transport.tlsCfgOk cfg) }}
     (App (Val (@! go_etcd_io.etcd.client.v3.credentials.NewTransportCredential)) (Val #cfg))
   {{ (creds : GoInterface), RET #creds; transportCredsOk creds }}
 

@@ -35,9 +35,9 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `r.UserList`: the wire contract at its request. -/
 def retryAuthClient.UserList.spec : Prop :=
-  ∀ (r : Loc) (γ : Cluster) (who : Principal) ,
+  ∀ (r c : Loc) (γ : Cluster) (who : Principal) ,
   RemoteCallTriple (fun s => r @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryAuthClient.ty @!! s)
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryAuthHandle r γ who) γ who .userList
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryAuthHandle r c γ who ∗ clientReady c) γ who .userList
 
 end spec
 

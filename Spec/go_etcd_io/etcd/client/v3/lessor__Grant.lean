@@ -15,8 +15,9 @@ on an error `ContextError` (W0).
 
 Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/lessor__Grant.lean` (a grant on one server's
 lessor, an exclusive update, no auth): restated over the model (`Step who (.leaseGrant 0 ttl)`), the
-update persistent (the retry policy: the old spec's exclusive update was unsound against a resent
-grant), any principal, the answer's id and TTL in the reply.
+update persistent (the retry policy; the old spec's `□ ▷ Spec` registration was per server, not a
+client's update), the principal per call, the answer's id and TTL in the reply, and through one
+member the lease table it created (`leaseViewLb`, W0's round 3).
 
 Margin: the reply's header and `Error` field are not modelled.
 -/
@@ -46,9 +47,8 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 by the caller's **persistent** update (the RPC is resent: an earlier attempt may have granted another
 lease), or an error that settles nothing. -/
 def lessor.Grant.spec : Prop :=
-  ∀ (l : Loc) (γ : Cluster) (who : Principal) (ctx : GoInterface) (ttl : w64),
-  CallTriple (App (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"Grant")) (Val #ctx)) (Val #ttl))
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorHandle l γ who ∗ Context.ctxOk ctx ∗ ctxPrin ctx who) iprop(True) γ who (.leaseGrant 0 (sint.Z ttl)) true leaseGrantReply
+  ∀ (l c : Loc) (γ : Cluster) (who : Principal),
+  Lease.GrantTriple (fun s => l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! s) (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty) #l) iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorHandle l c γ who ∗ clientReady c) γ who
 
 end spec
 

@@ -37,7 +37,7 @@ def RetryAuthClient.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientConnOk c γ who }}
     (App (Val (@! go_etcd_io.etcd.client.v3.RetryAuthClient)) (Val #c))
   {{ (v : GoInterface), RET #v; ∃ r : Loc,
-      ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.retryAuthClient.ty) #r⌝ ∗ retryAuthHandle r γ who }}
+      ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.retryAuthClient.ty) #r⌝ ∗ retryAuthHandle r c γ who }}
 
 end spec
 

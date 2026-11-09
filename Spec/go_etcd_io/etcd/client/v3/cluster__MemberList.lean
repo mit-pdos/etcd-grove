@@ -2,7 +2,7 @@
 `(*clientv3.cluster).MemberList` (`client/v3/cluster.go`).
 
 Users: `Client.Sync` (the auto-sync: the members' client URLs, `idUpd`'s update), snippet
-`clientv3client/cluster.go` (`ReqMemberListLinearizable`); etcdctl.
+`clientv3client/cluster.go` (`ReqMemberAddThenList`); etcdctl.
 
 Proof sketch: `OpGet("", opts...)` (W0's `OpGet.spec`: the `Op` `opGetM [] gs`; it panics on
 `WithPrefix` with `WithFromKey`: the premise, as W0's `Get`), reads its `serializable`; the request
@@ -12,6 +12,9 @@ persistent), `ContextError` on an error.
 Changes: new (no old spec).
 
 Margin: none.
+
+Round 1: the call's principal per call (W0's `ctxPrin who ctx p`); the handle records its client,
+ready (`clientReady`).
 -/
 module
 
@@ -35,16 +38,11 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `cl.MemberList(ctx, opts...)`: the request `.memberList lin` (`lin`: not
-`WithSerializable`), linearized by the caller's persistent update (a serializable list is answered from
-a member's view, any list: `clusterStep`), or an error that settles nothing. -/
+/-- `cl.MemberList(ctx, opts...)`: `.memberList lin` (`lin`: not `WithSerializable`),
+linearized by the caller's persistent update, or an error that settles nothing. -/
 def cluster.MemberList.spec : Prop :=
-  ∀ (cl : Loc) (γ : Cluster) (who : Principal) (ctx : GoInterface) (opts : GoSlice)
-    (gs : List (OpM → OpM)),
-  ¬ prefixAndFromKey gs →
-  CallTriple (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.cluster.ty @!! go!"MemberList")) (Val #ctx)) (Val #opts))
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clusterHandle cl γ who ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ optsAt opts gs) (optsAt opts gs) γ who
-    (.memberList (!(opGetM [] gs).serializable)) true ansReply
+  ∀ (cl c : Loc) (γ : Cluster) (who : Principal),
+  Cluster.MemberListTriple (fun s => cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.cluster.ty @!! s) iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clusterHandle cl c γ who ∗ clientReady c) γ who
 
 end spec
 

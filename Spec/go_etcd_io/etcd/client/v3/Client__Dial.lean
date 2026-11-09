@@ -34,11 +34,11 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `c.Dial(ep)`: a connection to the member at `ep`, or an error. -/
 def Client.Dial.spec : Prop :=
-  ∀ (c : Loc) (γ : Cluster) (who : Principal) (ep : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientPre c γ who ∗ servesAt γ ep }}
+  ∀ (c : Loc) (γ : Cluster) (who : Principal) (ep : GoString) (dq : DFrac) (eps : List GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientPre c γ who ∗ servesAt γ ep ∗ epsTok c dq eps ∗ ⌜eps ≠ []⌝ }}
     (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"Dial")) (Val #ep))
-  {{ (conn : Loc) (err : GoInterface), RET (PairV #conn #err);
-      (⌜err = GoInterface.nil⌝ ∗ connOk conn γ who) ∨ ⌜conn = null ∧ err ≠ GoInterface.nil⌝ }}
+  {{ (conn : Loc) (err : GoInterface), RET (PairV #conn #err); epsTok c dq eps ∗
+      ((⌜err = GoInterface.nil⌝ ∗ connOk conn γ who) ∨ ⌜conn = null ∧ err ≠ GoInterface.nil⌝) }}
 
 end spec
 

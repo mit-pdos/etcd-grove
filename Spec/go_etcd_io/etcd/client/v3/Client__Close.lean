@@ -3,7 +3,7 @@
 
 Users: every client program's teardown (`examples/lib/*`, Kubernetes' `etcd3.go` destroy func,
 `compactor.client.Close()`), `newClient`'s error paths; snippet `clientv3client/lifecycle.go`
-(`ReqCloseThenCalls`: calls after `Close` fail, never panic).
+(`ReqNewWrapClose`: calls after `Close` fail, never panic).
 
 Proof sketch: `c.cancel()` (the client's context: its loops and every call made with a child of
 `c.Ctx()` see it done); `c.Watcher.Close()` (1b's `watcherAt` bundle), `c.Lease.Close()` (`leaseAt`:
@@ -12,7 +12,7 @@ an error) through `ContextError`. Every handle stays valid (persistent): a call 
 call whose attempts fail (`indefCall`).
 
 Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/Client__Close.lean` (`True` over the old
-client): over `isClient`; concurrent and repeated `Close`s are allowed (each piece is idempotent).
+client): over W0's `clientRest` (round 1: a client whose `KV` another holds closes too); concurrent and repeated `Close`s are allowed (each piece is idempotent).
 
 Margin: outstanding calls are not waited for: they return an indefinite error (`Canceled`, the
 connection closing) whenever they notice. The goroutines it stops hold no resource a caller gave
@@ -43,7 +43,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 /-- `c.Close()`: the client stopped; any error. -/
 def Client.Close.spec : Prop :=
   ∀ (c : Loc) (γ : Cluster) (who : Principal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isClient c γ who }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientRest c γ who }}
     (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"Close")) (Val #()))
   {{ (err : GoInterface), RET #err; True }}
 

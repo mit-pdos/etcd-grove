@@ -38,7 +38,7 @@ def RetryMaintenanceClient.spec : Prop :=
     (App (App (Val (@! go_etcd_io.etcd.client.v3.RetryMaintenanceClient)) (Val #c)) (Val #conn))
   {{ (v : GoInterface), RET #v; ∃ r : Loc,
       ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.retryMaintenanceClient.ty) #r⌝ ∗
-      retryMaintHandle r γ who }}
+      retryMaintHandle r c γ who }}
 
 end spec
 

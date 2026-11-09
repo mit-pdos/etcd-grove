@@ -64,7 +64,7 @@ nothing is the identity, which an update built from `envUpd` answers by aborting
 * `IrrBody`, `irrStep`, `irrOwn p ir` (opaque; provisional, 3h's: the `InternalRaftRequest` message
   at `p` with exactly `ir`'s field set, its `Header` and `ID` unset), `respTy`, `irrReply`: the
   internal request's model and its reply; `IrrBody.fires` (whether the commit fires the proposer's
-  update: not for `.authToken`, `.noop`); `IrrBody.depthOk`.
+  update: only a client request's; an alarm or a publication is the invariant's `envUpd` step); `IrrBody.depthOk`.
 * `txnChecked t` (pure, opaque; provisional, 2a's): `t` passed the gRPC layer's validation.
 * `alarmReqOwn p dq ir` (provisional, 3h's), `rsSink rs γ who r Q ms fin` (provisional, 2a's: a range
   stream's send end), `srvWatchable s γ w` (provisional, 2d's and 3f's), `traceAt tr` (4b's).

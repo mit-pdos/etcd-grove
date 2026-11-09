@@ -35,10 +35,11 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `c.SetEndpoints(eps...)`: the client's endpoints replaced by `eps`, each serving `γ`. -/
 def Client.SetEndpoints.spec : Prop :=
-  ∀ (c : Loc) (γ : Cluster) (who : Principal) (sl : GoSlice) (eps : List GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientPre c γ who ∗ sl ↦*□ eps ∗ [∗list] ep ∈ eps, servesAt γ ep }}
+  ∀ (c : Loc) (γ : Cluster) (who : Principal) (sl : GoSlice) (eps0 eps : List GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientPre c γ who ∗ epsTok c (DFrac.own 1) eps0 ∗ sl ↦*□ eps ∗
+      [∗list] ep ∈ eps, servesAt γ ep }}
     (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"SetEndpoints")) (Val #sl))
-  {{ RET #(); True }}
+  {{ RET #(); epsTok c (DFrac.own 1) eps }}
 
 end spec
 

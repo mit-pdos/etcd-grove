@@ -3,11 +3,9 @@
 
 * `errStrOk err` (persistent; slot of the error's package): `err` is a non-`nil` error whose
   `Error()` returns a string without panicking.
-* `tlsCfgOk tls` (persistent; slot, 2a and `crypto/tls`): a `*tls.Config` the client may use
-  read-only (grpc's `credentials.NewTLS` clones it). `TLSInfo.ClientConfig` produces it.
-* `tlsInfoAt ti` (persistent): a `TLSInfo` value whose files (`CertFile`, `KeyFile`,
-  `TrustedCAFile`, ...) name readable files or are empty (an environment fact; otherwise
-  `ClientConfig` returns an error, which the spec allows anyway).
+* `tlsCfgOk tls` (persistent; slot of `crypto/tls` and grpc's credentials, 2a): a `*tls.Config`
+  the client may use read-only (grpc's `credentials.NewTLS` clones it). `TLSInfo.ClientConfig`
+  produces it.
 -/
 module
 

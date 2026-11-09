@@ -3,7 +3,9 @@
 
 Users: `dialWithBalancer`, `Dial`.
 
-Proof sketch: `dialSetupOpts` (its spec); the token bundle's per-RPC credentials if any
+Proof sketch: `dialSetupOpts` (its spec); the target from `authority(c.endpoints[0])`, read without
+`epMu` and without an emptiness check (`issues/etcd-client-dial-empty-endpoints.md`): the endpoints
+token's fraction (no concurrent `SetEndpoints`) at a non-empty list; the token bundle's per-RPC credentials if any
 (`bundleAt _ γ who`: every token names `who`); `cfg.DialOptions` (`dialOptsOk`); the target string
 (`fmt.Sprintf`, `authority`); `grpc.NewClient(target, opts...)` (2a: a connection whose unary calls
 go through `uiOk`'s interceptor over invokers meeting `AttemptTriple` for `γ` and `who`, its streams
@@ -37,11 +39,13 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `c.dial(creds, dopts...)`: a connection to the cluster as `who`, or an error. -/
 def Client.dial.spec : Prop :=
-  ∀ (c : Loc) (γ : Cluster) (who : Principal) (creds : GoInterface) (sl : GoSlice),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientPre c γ who ∗ transportCredsOk creds ∗ dialTargetOk sl γ }}
+  ∀ (c : Loc) (γ : Cluster) (who : Principal) (creds : GoInterface) (sl : GoSlice) (dq : DFrac)
+    (eps : List GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientPre c γ who ∗ transportCredsOk creds ∗ dialTargetOk sl γ ∗ epsTok c dq eps ∗
+      ⌜eps ≠ []⌝ }}
     (App (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"dial")) (Val #creds)) (Val #sl))
-  {{ (conn : Loc) (err : GoInterface), RET (PairV #conn #err);
-      (⌜err = GoInterface.nil⌝ ∗ connOk conn γ who) ∨ ⌜conn = null ∧ err ≠ GoInterface.nil⌝ }}
+  {{ (conn : Loc) (err : GoInterface), RET (PairV #conn #err); epsTok c dq eps ∗
+      ((⌜err = GoInterface.nil⌝ ∗ connOk conn γ who) ∨ ⌜conn = null ∧ err ≠ GoInterface.nil⌝) }}
 
 end spec
 

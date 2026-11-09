@@ -1,7 +1,7 @@
 /-
 `(*clientv3.lessor).Close` (`client/v3/lease.go`).
 
-Users: `Client.Close` (`client.go`); snippet `clientv3client/lifecycle.go` (`ReqCloseThenCalls`).
+Users: `Client.Close` (`client.go`); snippet `clientv3client/lifecycle.go` (`ReqNewWrapClose`).
 
 Proof sketch: `l.stopCancel()` (cancels `stopCtx`: the loops see it), `firstKeepAliveOnce.Do(close
 donec)` (if the loops never started: `donec`'s close token is the `Once`'s, the receive loop's
@@ -37,10 +37,8 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `l.Close()`: the keep-alive loops stopped; `nil`. -/
 def lessor.Close.spec : Prop :=
-  ∀ (l : Loc) (γ : Cluster) (who : Principal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorHandle l γ who }}
-    (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"Close")) (Val #()))
-  {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ }}
+  ∀ (l c : Loc) (γ : Cluster) (who : Principal),
+  Lease.CloseTriple (fun s => l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! s) iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorHandle l c γ who ∗ clientReady c)
 
 end spec
 

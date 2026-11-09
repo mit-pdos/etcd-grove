@@ -36,10 +36,10 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `c.Ctx()`: the client's context, carrying `who`'s requests. -/
 def Client.Ctx.spec : Prop :=
-  ∀ (c : Loc) (γ : Cluster) (who : Principal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientPre c γ who }}
+  ∀ (c : Loc) (who : Principal),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientBase c who }}
     (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"Ctx")) (Val #()))
-  {{ (ctx : GoInterface), RET #ctx; Context.ctxOk ctx ∗ ctxPrin ctx who }}
+  {{ (ctx : GoInterface), RET #ctx; Context.ctxOk ctx ∗ ctxPrin who ctx who }}
 
 end spec
 

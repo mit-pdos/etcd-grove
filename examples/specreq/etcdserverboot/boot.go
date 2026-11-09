@@ -1,0 +1,212 @@
+// Package etcdserverboot holds the requirement snippets of batch 2e (a member's lifecycle:
+// NewServer, Start, Stop/HardStop, restart, join; the WAL, the snapshotter, the membership view,
+// the alarms, the compactor): one function per usage pattern, each panicking where a caller
+// relies on the specs (notes/specs-only/README.md, "Requirement snippets").
+package etcdserverboot
+
+import (
+	"context"
+	"time"
+
+	"go.uber.org/zap"
+
+	pb "go.etcd.io/etcd/api/v3/etcdserverpb"
+	"go.etcd.io/etcd/client/pkg/v3/types"
+	"go.etcd.io/etcd/server/v3/config"
+	"go.etcd.io/etcd/server/v3/etcdserver"
+	"go.etcd.io/etcd/server/v3/etcdserver/api/membership"
+	"go.etcd.io/etcd/server/v3/features"
+)
+
+// memberConfig is the configuration this repository's starters build (examples/lib/etcdstart's
+// newServerMode): every field a premise of NewServer.spec reads is set to a value inside its slot
+// (TickMs > 0 and ElectionTicks > 1: raftNodeBootCfg; MaxTxnOps <= 4999 and MaxRequestBytes below
+// the reply bound: v3rpcBootCfg; the compactor off, or on with the environment's permission:
+// V3compactor.bootCfg).
+func memberConfig(name string, peer types.URLs, client string, cluster types.URLsMap, token string,
+	newCluster bool, lg *zap.Logger) config.ServerConfig {
+	return config.ServerConfig{
+		Name:                    name,
+		DataDir:                 name + ".etcd",
+		InitialPeerURLsMap:      cluster,
+		PeerURLs:                peer,
+		ClientURLs:              types.URLs{{Scheme: "http", Host: client}},
+		InitialClusterToken:     token,
+		NewCluster:              newCluster,
+		TickMs:                  100,
+		ElectionTicks:           10,
+		SnapshotCount:           etcdserver.DefaultSnapshotCount,
+		SnapshotCatchUpEntries:  etcdserver.DefaultSnapshotCatchUpEntries,
+		MaxTxnOps:               128,
+		MaxRequestBytes:         1536 * 1024,
+		AutoCompactionMode:      "revision",
+		AutoCompactionRetention: 0,
+		Logger:                  lg,
+		ServerFeatureGate:       features.NewDefaultServerFeatureGate(name, lg),
+	}
+}
+
+func put(s *etcdserver.EtcdServer, k, v string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_, err := s.Put(ctx, &pb.PutRequest{Key: []byte(k), Value: []byte(v)})
+	return err
+}
+
+func get(s *etcdserver.EtcdServer, k string) (*pb.RangeResponse, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	return s.Range(ctx, &pb.RangeRequest{Key: []byte(k)})
+}
+
+// REQ etcdserverboot/start-one: a member of a new one-member cluster is built, started, and is
+// member id of the cluster it was allocated in (MemberID is its id, never 0).
+// Users: examples/lib/etcdstart.StartServer (putget, txnlin, watch, lease, auth, compacted, ...),
+// embed.StartEtcd.
+// Assumes: the program allocated the cluster (cluster_alloc) with the member computed from this
+// configuration (Membership.initialMembers), and holds the fresh data directory name+".etcd".
+// Specs: NewServer.spec (memberStart_new), EtcdServer.Start.spec, EtcdServer.MemberID.spec.
+func ReqStartOne(name, peerAddr, clientAddr string, lg *zap.Logger) *etcdserver.EtcdServer {
+	peer := types.URLs{{Scheme: "http", Host: peerAddr}}
+	s, err := etcdserver.NewServer(memberConfig(name, peer, clientAddr, types.URLsMap{name: peer},
+		name, true, lg))
+	if err != nil {
+		return nil
+	}
+	s.Start()
+	if s.MemberID() == 0 {
+		panic("start-one: member id 0")
+	}
+	return s
+}
+
+// REQ etcdserverboot/start-three: three members of one new cluster, each from its own fresh
+// directory and the same initial-cluster map and token; each member's raft handler is served
+// before the member starts (a peer may dial it at once).
+// Users: examples/lib/etcdstart.NewMember/StartMember, examples/lib/cluster3.StartCluster,
+// examples/etcd/putget3, examples/etcd/partition.
+// Assumes: cluster_alloc of the three members; each name+".etcd" fresh; the peer handlers served
+// by the caller (raftHandler, http.Serve: 2f's).
+// Specs: NewServer.spec, EtcdServer.RaftHandler.spec, EtcdServer.Start.spec.
+func ReqStartThree(names [3]string, peers [3]types.URLs, clients [3]string, token string,
+	lg *zap.Logger) []*etcdserver.EtcdServer {
+	cluster := types.URLsMap{names[0]: peers[0], names[1]: peers[1], names[2]: peers[2]}
+	var srvs []*etcdserver.EtcdServer
+	for i := 0; i < 3; i++ {
+		s, err := etcdserver.NewServer(memberConfig(names[i], peers[i], clients[i], cluster, token,
+			true, lg))
+		if err != nil {
+			return nil
+		}
+		_ = s.RaftHandler() // served on the member's peer listener by the caller
+		srvs = append(srvs, s)
+	}
+	for _, s := range srvs {
+		s.Start()
+	}
+	ids := map[types.ID]bool{}
+	for _, s := range srvs {
+		if ids[s.MemberID()] {
+			panic("start-three: two members with one id")
+		}
+		ids[s.MemberID()] = true
+	}
+	return srvs
+}
+
+// REQ etcdserverboot/restart: a member stopped and started again on its data directory continues
+// the cluster's history: a write acknowledged before the stop is read after the restart (here, a
+// one-member cluster: the restarted member's own linearizable read).
+// Users: examples/etcd/restart (restart3: a follower stopped, writes made while it is down, the
+// member started again, a Get through it checked), etcd's own restarts (embed: same data dir).
+// Assumes: the member was started by ReqStartOne's path (its start right); no other writer of k;
+// the configuration of the restart is the first one's (only its directories matter).
+// Specs: EtcdServer.HardStop.spec (memberDisk), memberStart_restart, NewServer.spec, Start, and the
+// request path's Put/Range (2c).
+func ReqRestart(name, peerAddr, clientAddr string, lg *zap.Logger) {
+	s := ReqStartOne(name, peerAddr, clientAddr, lg)
+	if s == nil {
+		return
+	}
+	if err := put(s, "k", "v1"); err != nil {
+		s.HardStop()
+		return
+	}
+	s.HardStop()
+
+	peer := types.URLs{{Scheme: "http", Host: peerAddr}}
+	s2, err := etcdserver.NewServer(memberConfig(name, peer, clientAddr, types.URLsMap{name: peer},
+		name, true, lg))
+	if err != nil {
+		return
+	}
+	s2.Start()
+	defer s2.HardStop()
+	resp, err := get(s2, "k")
+	if err != nil {
+		return
+	}
+	if len(resp.Kvs) != 1 || string(resp.Kvs[0].Value) != "v1" {
+		panic("restart: an acknowledged write lost across the restart")
+	}
+}
+
+// REQ etcdserverboot/join: a member added by MemberAdd joins from a fresh directory, with
+// NewCluster false and the initial-cluster map listing it under its peer URLs: it runs as the id
+// the cluster has for those URLs.
+// Users: etcd's documented runtime reconfiguration (etcdctl member add; then a start with
+// --initial-cluster-state existing); the integration framework's AddMember.
+// Assumes: the program took memberJoin for peer2 (memberUrls_take) and holds name2+".etcd" fresh;
+// s1 serves the cluster (and its peer handler is reachable at peer1).
+// Specs: EtcdServer.AddMember (2c), memberStart_join, NewServer.spec, Start.
+func ReqJoin(s1 *etcdserver.EtcdServer, name1 string, peer1 types.URLs, name2 string,
+	peer2 types.URLs, client2 string, token string, lg *zap.Logger) {
+	now := time.Now()
+	m := membership.NewMember(name2, peer2, token, &now)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	_, err := s1.AddMember(ctx, *m)
+	cancel()
+	if err != nil {
+		return
+	}
+	cluster := types.URLsMap{name1: peer1, name2: peer2}
+	s2, err := etcdserver.NewServer(memberConfig(name2, peer2, client2, cluster, token, false, lg))
+	if err != nil {
+		return
+	}
+	s2.Start()
+	if s2.MemberID() == s1.MemberID() {
+		panic("join: the joiner runs as an existing member")
+	}
+}
+
+// REQ etcdserverboot/partition: cutting and mending the link to a peer, from any goroutine, at any
+// time after the build, never panics.
+// Users: examples/lib/cluster3.PeerStep (as etcd's integration tests' InjectPartition).
+// Assumes: s and t are members of one cluster.
+// Specs: EtcdServer.CutPeer.spec, EtcdServer.MendPeer.spec, EtcdServer.MemberID.spec.
+func ReqPartition(s, t *etcdserver.EtcdServer) {
+	s.CutPeer(t.MemberID())
+	t.CutPeer(s.MemberID())
+	s.MendPeer(t.MemberID())
+	t.MendPeer(s.MemberID())
+}
+
+// REQ etcdserverboot/stop-after-error: HardStop returns when the server already stopped on its own
+// (a transport error ends run: errorc), and the directory can then be restarted.
+// Users: embed.Etcd.Close after a server error; examples/etcd/restart's stop.
+// Assumes: s was started (srvRunning).
+// Specs: EtcdServer.HardStop.spec (the done channel's deposit).
+func ReqStopAfterError(s *etcdserver.EtcdServer) {
+	<-s.StopNotify() // run returned on its own (or never: then the caller does not get here)
+	s.HardStop()
+}
+
+// REQ etcdserverboot/cleanup-before-start: a built server that is never started is cleaned up
+// (embed's error path between NewServer and Start) without a panic.
+// Users: embed.StartEtcd (embed/etcd.go:277).
+// Assumes: s was built and not started; Cleanup is called once.
+// Specs: EtcdServer.Cleanup.spec, srvBuilt_closers.
+func ReqCleanupBeforeStart(s *etcdserver.EtcdServer) {
+	s.Cleanup()
+}

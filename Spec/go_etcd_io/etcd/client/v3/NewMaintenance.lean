@@ -38,7 +38,7 @@ def NewMaintenance.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientCore c γ who }}
     (App (Val (@! go_etcd_io.etcd.client.v3.NewMaintenance)) (Val #c))
   {{ (v : GoInterface), RET #v; ∃ a : Loc,
-      ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.maintenance.ty) #a⌝ ∗ maintHandle a γ who }}
+      ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.maintenance.ty) #a⌝ ∗ maintHandle a c γ who }}
 
 end spec
 

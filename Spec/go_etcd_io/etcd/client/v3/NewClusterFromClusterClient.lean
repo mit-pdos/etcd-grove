@@ -1,9 +1,10 @@
 /-
 `clientv3.NewClusterFromClusterClient` (`client/v3`).
 
-Users: no user in scope (the gRPC proxy, tests).
+Users: `v3client.New` (the in-process client of v3lock and v3election: over an adapter, with a
+`NewCtxClient` client), the gRPC proxy; snippet `clientv3client/inproc.go`.
 
-Proof sketch: the given remote; a client's `callOpts` (or none: `callOptsOk_nil`).
+Proof sketch: the given remote; a client's `callOpts` (or none: `callOptsOk_nil`), its logger.
 
 Changes: new (no old spec).
 
@@ -34,10 +35,11 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 /-- `NewClusterFromClusterClient(remote, c)`: a `*cluster` over `remote`. -/
 def NewClusterFromClusterClient.spec : Prop :=
   ∀ (remote : GoInterface) (c : Loc) (γ : Cluster) (who : Principal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ remoteClusterAt remote γ who ∗ (⌜c = null⌝ ∨ clientCore c γ who) }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ remoteClusterAt remote γ who ∗ (⌜c = null⌝ ∨ clientBase c who) }}
     (App (App (Val (@! go_etcd_io.etcd.client.v3.NewClusterFromClusterClient)) (Val #remote)) (Val #c))
   {{ (v : GoInterface), RET #v; ∃ a : Loc,
-      ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.cluster.ty) #a⌝ ∗ clusterHandle a γ who }}
+      ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.cluster.ty) #a⌝ ∗
+      clusterHandle a null γ who }}
 
 end spec
 

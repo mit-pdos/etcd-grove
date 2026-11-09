@@ -35,9 +35,9 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `r.LeaseGrant`: the wire contract at its request. -/
 def retryLeaseClient.LeaseGrant.spec : Prop :=
-  ∀ (r : Loc) (γ : Cluster) (who : Principal) (id ttl : Int),
+  ∀ (r c : Loc) (γ : Cluster) (who : Principal) (id ttl : Int),
   RemoteCallTriple (fun s => r @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryLeaseClient.ty @!! s)
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryLeaseHandle r γ who) γ who (.leaseGrant id ttl)
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryLeaseHandle r c γ who ∗ clientReady c) γ who (.leaseGrant id ttl)
 
 end spec
 

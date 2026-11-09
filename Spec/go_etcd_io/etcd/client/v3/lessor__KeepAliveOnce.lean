@@ -1,7 +1,7 @@
 /-
 `(*clientv3.lessor).KeepAliveOnce` (`client/v3/lease.go`).
 
-Users: no user in scope (etcdctl's `lease keep-alive --once`); snippet `clientv3lease/once.go`
+Users: no user in scope (etcdctl's `lease keep-alive --once`); snippet `clientv3lease/reads.go`
 (`ReqKeepAliveOnce`).
 
 Proof sketch: a loop over `keepAliveOnce` (its spec): on success, `TTL <= 0` gives
@@ -39,13 +39,8 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 /-- `l.KeepAliveOnce(ctx, id)`: one keep-alive answered: a positive TTL, or a TTL `≤ 0` with
 `ErrLeaseNotFound`, or an error. -/
 def lessor.KeepAliveOnce.spec : Prop :=
-  ∀ (l : Loc) (γ : Cluster) (who : Principal) (ctx : GoInterface) (id : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorHandle l γ who ∗ Context.ctxOk ctx ∗ ctxPrin ctx who }}
-    (App (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"KeepAliveOnce")) (Val #ctx)) (Val #id))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ ttl, kaRespOwn resp id ttl ∗ ⌜0 < sint.Z ttl⌝) ∨
-      (⌜err = errVal .leaseNotFound⌝ ∗ ∃ ttl, kaRespOwn resp id ttl ∗ ⌜sint.Z ttl ≤ 0⌝) ∨
-      (⌜resp = null⌝ ∗ ∃ k, callErr err k) }}
+  ∀ (l c : Loc) (γ : Cluster) (who : Principal),
+  Lease.KeepAliveOnceTriple (fun s => l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! s) iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorHandle l c γ who ∗ clientReady c) who
 
 end spec
 

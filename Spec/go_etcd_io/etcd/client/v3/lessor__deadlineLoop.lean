@@ -34,8 +34,8 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `l.deadlineLoop()`: the deadline loop: closes the entries whose deadline passed, until `donec` closes. -/
 def lessor.deadlineLoop.spec : Prop :=
-  ∀ (l : Loc) (γ : Cluster) (who : Principal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorHandle l γ who }}
+  ∀ (l c : Loc) (γ : Cluster) (who : Principal),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorHandle l c γ who ∗ clientReady c }}
     (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"deadlineLoop")) (Val #()))
   {{ (v : val), RET v; True }}
 

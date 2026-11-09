@@ -37,10 +37,10 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `c.checkVersion()`: `nil` or an error. -/
 def Client.checkVersion.spec : Prop :=
-  ∀ (c : Loc) (γ : Cluster) (who : Principal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientCore c γ who }}
+  ∀ (c : Loc) (γ : Cluster) (who : Principal) (dq : DFrac) (eps : List GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientCore c γ who ∗ clientReady c ∗ epsTok c dq eps ∗ ⌜eps ≠ []⌝ }}
     (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"checkVersion")) (Val #()))
-  {{ (err : GoInterface), RET #err; True }}
+  {{ (err : GoInterface), RET #err; epsTok c dq eps }}
 
 end spec
 

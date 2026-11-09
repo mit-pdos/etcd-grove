@@ -40,11 +40,8 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 linearized by the caller's persistent update; a lease the lessor does not know is the reply
 `TTL = -1`. -/
 def lessor.TimeToLive.spec : Prop :=
-  ∀ (l : Loc) (γ : Cluster) (who : Principal) (ctx : GoInterface) (id : w64) (opts : GoSlice)
-    (gs : List (Bool → Bool)),
-  CallTriple (App (App (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"TimeToLive")) (Val #ctx)) (Val #id)) (Val #opts))
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorHandle l γ who ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ leaseOptsAt opts gs) (leaseOptsAt opts gs) γ who
-    (.leaseTimeToLive (sint.Z id) (gs.foldl (fun b g => g b) false)) true (leaseTTLReply (sint.Z id))
+  ∀ (l c : Loc) (γ : Cluster) (who : Principal),
+  Lease.TimeToLiveTriple (fun s => l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! s) (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty) #l) iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorHandle l c γ who ∗ clientReady c) γ who
 
 end spec
 

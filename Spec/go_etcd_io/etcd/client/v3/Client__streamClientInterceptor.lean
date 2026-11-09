@@ -40,7 +40,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 def Client.streamClientInterceptor.spec : Prop :=
   ∀ (c : Loc) (γ : Cluster) (who : Principal) (sl : GoSlice) (fs : List (RetryOptsM → RetryOptsM)),
   (applyRetry fs RetryOptsM.default).max = W64 0 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientCore c γ who ∗ retryOptsAt sl fs }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientPre c γ who ∗ retryOptsAt sl fs }}
     (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"streamClientInterceptor")) (Val #sl))
   {{ (si : val), RET si; siOk si c γ who }}
 

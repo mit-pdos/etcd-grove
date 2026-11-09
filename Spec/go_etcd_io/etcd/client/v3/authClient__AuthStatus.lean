@@ -1,10 +1,10 @@
 /-
 `(*clientv3.authClient).AuthStatus` (`client/v3/auth.go`).
 
-Users: no user in scope (etcdctl); through the `Auth` bundle (`authAt_methods`, `authHandle_authAt`).
+Users: no user in scope (etcdctl); through the `Auth` bundle (and the promoted `Client.AuthStatus`) (`authAt_methods`, `authHandle_authAt`).
 
 Proof sketch: allocates the request message (`reqOwn`, 3h's `protoRest_zero` and field writes), calls
-`auth.remote.AuthStatus(ctx, req, auth.callOpts...)` (`authHandle`: `remote` a `remoteAuthAt` value,
+`auth.remote.AuthStatus(ctx, req, auth.callOpts...)` (`authHandle` over a ready client: `remote` a `remoteAuthAt` value,
 `callOpts` with `callOptsOk _ false`; `remoteAuthAt_call` at the request: the caller's update,
 exclusive (sent at most once: the wrapper does not mark it repeatable), handed over), then `ContextError(ctx, err)` (W0's spec: a definite `.etcd e` becomes
 `errVal e`, the reply's `wireReply ansReply` becomes `ansReply`; an indefinite error stays
@@ -13,6 +13,9 @@ exclusive (sent at most once: the wrapper does not mark it repeatable), handed o
 Changes: new (no old spec): the `Auth` bundle needs every method.
 
 Margin: none.
+
+Round 1: the call's principal per call (W0's `ctxPrin who ctx p`); the handle records its client,
+ready (`clientReady`: the token refresh reads `c.Auth`).
 -/
 module
 
@@ -37,11 +40,11 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `a.AuthStatus(ctx, ...)`: the request `.authStatus` linearized by the caller's update, or an
-error that settles nothing. -/
+error that settles nothing; the call's principal is its context's (`ctxPrin who ctx p`). -/
 def authClient.AuthStatus.spec : Prop :=
-  ∀ (a : Loc) (γ : Cluster) (who : Principal) ,
-  Auth.Triple (a @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.authClient.ty @!! go!"AuthStatus")
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ authHandle a γ who) γ who []
+  ∀ (a c : Loc) (γ : Cluster) (who : Principal) ,
+  Call.Triple (a @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.authClient.ty @!! go!"AuthStatus")
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ authHandle a c γ who ∗ clientReady c) γ who []
     .authStatus
 
 end spec

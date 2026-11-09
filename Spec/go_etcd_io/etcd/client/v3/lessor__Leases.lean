@@ -1,8 +1,9 @@
 /-
 `(*clientv3.lessor).Leases` (`client/v3/lease.go`).
 
-Users: `examples/etcd/{lease,leasegrant,leaseexpiry,leasecatchup}` (an id listed once; a granted id
-listed), snippet `clientv3lease/reads.go` (`ReqLeasesGranted`).
+Users: `examples/etcd/{lease,leasegrant,leaseexpiry,leasecatchup}` (an id listed once; through one
+member, a granted id listed: `LeaseRead.Triple`'s per-member view), snippets `clientv3lease/reads.go`
+(`ReqLeasesNoDup`), `clientv3lease/member.go` (`ReqGrantThenListOneMember`, `ReqGoneNotListed`).
 
 Proof sketch: `l.remote.LeaseLeases` (repeatable: persistent), a fresh `[]LeaseStatus` of the reply's
 ids in order (a loop over `resp.Leases`: 3h's unfold of `replyOwn _ (.leaseLeases ids)`); `ContextError`.
@@ -35,9 +36,8 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `l.Leases(ctx)`: the ids a lessor lists, linearized by the caller's persistent update. -/
 def lessor.Leases.spec : Prop :=
-  ∀ (l : Loc) (γ : Cluster) (who : Principal) (ctx : GoInterface),
-  CallTriple (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"Leases")) (Val #ctx))
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorHandle l γ who ∗ Context.ctxOk ctx ∗ ctxPrin ctx who) iprop(True) γ who .leaseLeases true leaseLeasesReply
+  ∀ (l c : Loc) (γ : Cluster) (who : Principal),
+  Lease.LeasesTriple (fun s => l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! s) (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty) #l) iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorHandle l c γ who ∗ clientReady c) γ who
 
 end spec
 

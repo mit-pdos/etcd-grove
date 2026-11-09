@@ -35,8 +35,8 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `c.refreshToken(ctx)`: as `getToken`. -/
 def Client.refreshToken.spec : Prop :=
-  ∀ (c : Loc) (γ : Cluster) (who : Principal) (ctx : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientCore c γ who ∗ Context.ctxOk ctx ∗ ctxPrin ctx who }}
+  ∀ (c : Loc) (γ : Cluster) (who : Principal) (ctx : GoInterface) (p : Principal),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientCore c γ who ∗ clientReady c ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p }}
     (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"refreshToken")) (Val #ctx))
   {{ (err : GoInterface), RET #err;
       ⌜err = GoInterface.nil⌝ ∨ indefCall err ∨

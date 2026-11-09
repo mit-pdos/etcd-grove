@@ -39,10 +39,11 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `c.Sync(ctx)`: the endpoints replaced by the cluster's members' client URLs, or an error. -/
 def Client.Sync.spec : Prop :=
-  ∀ (c : Loc) (γ : Cluster) (who : Principal) (ctx : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientCore c γ who ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ Verify.verifyOff }}
+  ∀ (c : Loc) (γ : Cluster) (who : Principal) (ctx : GoInterface) (p : Principal) (eps0 : List GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientCore c γ who ∗ clientReady c ∗ epsTok c (DFrac.own 1) eps0 ∗ Context.ctxOk ctx ∗
+      ctxPrin who ctx p ∗ Verify.verifyOff }}
     (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"Sync")) (Val #ctx))
-  {{ (err : GoInterface), RET #err; True }}
+  {{ (err : GoInterface), RET #err; ∃ eps, epsTok c (DFrac.own 1) eps }}
 
 end spec
 

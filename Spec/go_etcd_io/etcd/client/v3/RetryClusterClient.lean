@@ -37,7 +37,7 @@ def RetryClusterClient.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientConnOk c γ who }}
     (App (Val (@! go_etcd_io.etcd.client.v3.RetryClusterClient)) (Val #c))
   {{ (v : GoInterface), RET #v; ∃ r : Loc,
-      ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.retryClusterClient.ty) #r⌝ ∗ retryClusterHandle r γ who }}
+      ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.retryClusterClient.ty) #r⌝ ∗ retryClusterHandle r c γ who }}
 
 end spec
 

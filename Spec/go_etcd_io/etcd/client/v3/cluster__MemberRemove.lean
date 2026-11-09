@@ -9,6 +9,9 @@ Proof sketch: builds the request, `c.remote.MemberRemove` (`remoteClusterAt_call
 Changes: new (no old spec).
 
 Margin: none.
+
+Round 1: the call's principal per call (W0's `ctxPrin who ctx p`); the handle records its client,
+ready (`clientReady`).
 -/
 module
 
@@ -35,9 +38,9 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 /-- `cl.MemberRemove(ctx, id)`: the request linearized by the caller's update (exclusive), or an error
 that settles nothing. -/
 def cluster.MemberRemove.spec : Prop :=
-  ∀ (cl : Loc) (γ : Cluster) (who : Principal) (ctx : GoInterface) (id : w64),
-  CallTriple (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.cluster.ty @!! go!"MemberRemove")) (Val #ctx)) (Val #id))
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clusterHandle cl γ who ∗ Context.ctxOk ctx ∗ ctxPrin ctx who) iprop(True) γ who (.memberRemove (uint.nat id)) false ansReply
+  ∀ (cl c : Loc) (γ : Cluster) (who : Principal) (id : w64),
+  Call.Triple (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.cluster.ty @!! go!"MemberRemove")
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clusterHandle cl c γ who ∗ clientReady c) γ who [ #id] (.memberRemove (uint.nat id))
 
 end spec
 

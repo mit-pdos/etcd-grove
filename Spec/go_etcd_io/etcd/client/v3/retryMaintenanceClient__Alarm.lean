@@ -34,9 +34,9 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `r.Alarm`: the wire contract at an alarm request (list or disarm). -/
 def retryMaintenanceClient.Alarm.spec : Prop :=
-  ∀ (r : Loc) (γ : Cluster) (who : Principal) (rq : Req), reqIsMaint rq →
+  ∀ (r c : Loc) (γ : Cluster) (who : Principal) (rq : Req), reqIsMaint rq →
   RemoteCallTriple (fun s => r @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryMaintenanceClient.ty @!! s)
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryMaintHandle r γ who) γ who rq
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryMaintHandle r c γ who ∗ clientReady c) γ who rq
 
 end spec
 

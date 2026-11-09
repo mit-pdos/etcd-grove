@@ -2,7 +2,7 @@
 # `client/v3/credentials` (batch 1c): the token bundle
 
 * `tokFor γ who tok` (def): a token the bundle may hold for a client of principal `who`: `""`, or
-  one naming `who`'s user (`tokenOf`).
+  one naming `who`'s user (W0's `tokenUser`).
 * `rpcCredsAt v γ who` (persistent): the `grpccredentials.PerRPCCredentials` value `v` (the bundle's
   `*perRPCCredential`) attaches, to each request, no token or a `tokFor` one (2a's dial reads it
   through `GetRequestMetadata`). Intended realization: an `RWMutex` whose invariant holds
@@ -37,7 +37,7 @@ variable [sem : go.Semantics]
 
 /-- A token a client of principal `who` may send. -/
 def tokFor (γ : Cluster) (who : Principal) (tok : GoString) : IProp GF :=
-  iprop(⌜tok = []⌝ ∨ ∃ u, ⌜who = some u⌝ ∗ tokenOf γ tok u)
+  iprop(⌜tok = []⌝ ∨ ∃ u, ⌜who = some u⌝ ∗ tokenUser γ tok u)
 
 /-- **Per-RPC credentials attaching `who`'s tokens** (persistent). -/
 opaque rpcCredsAt (v : GoInterface) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)

@@ -16,6 +16,11 @@ its watch environment): any configuration `cfgOk` admits (TLS, a token or a user
 dial options, auto-sync with verification off, `RejectOldCluster`), the principal `who` the
 configuration names, the result W0's `clientMut` (the `KV` field writable, Kubernetes wraps it).
 
+Round 1: no endpoint: an error and `nil` (the post says so); the endpoints token (with auto-sync
+off the caller owns the endpoint list, `epsTok`); the principal per call (W0's round 3: `who` is the
+default one); `cfgPrincipal_user`'s certificate premise; `cfgOk`'s dial options may replace the
+client's interceptor (the gRPC proxy).
+
 Margin: a zap `LogConfig` without a `Logger` is out of scope (`cfgOk`); with both a token and a
 user name (`ErrMutuallyExclusiveCfg`) `cfgPrincipal` has no introduction, so no caller can call
 `New` so (the error is the only outcome).
@@ -49,7 +54,11 @@ def New.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ cfgOk cfg γ who }}
     (App (Val (@! go_etcd_io.etcd.client.v3.New)) (Val #cfg))
   {{ (c : Loc) (err : GoInterface), RET (PairV #c #err);
-      (⌜err = GoInterface.nil⌝ ∗ clientMut c γ who) ∨ ⌜c = null ∧ err ≠ GoInterface.nil⌝ }}
+      ⌜cfg.Endpoints'.len = W64 0 → c = null ∧ err ≠ GoInterface.nil⌝ ∗
+      ((⌜err = GoInterface.nil⌝ ∗ clientMut c γ who ∗
+         (⌜cfg.AutoSyncInterval' ≠ W64 0⌝ ∨
+          ∃ eps, cfg.Endpoints' ↦*□ eps ∗ epsTok c (DFrac.own 1) eps)) ∨
+       ⌜c = null ∧ err ≠ GoInterface.nil⌝) }}
 
 end spec
 

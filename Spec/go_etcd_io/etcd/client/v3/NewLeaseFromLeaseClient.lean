@@ -43,12 +43,12 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 options. -/
 def NewLeaseFromLeaseClient.spec : Prop :=
   ∀ (remote : GoInterface) (c : Loc) (γ : Cluster) (who : Principal) (t : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ remoteLeaseAt remote γ who ∗ clientCore c γ who }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ remoteLeaseAt remote γ who ∗ clientBase c who }}
     (App (App (App (Val (@! go_etcd_io.etcd.client.v3.NewLeaseFromLeaseClient)) (Val #remote))
       (Val #c)) (Val #t))
   {{ (v : GoInterface), RET #v; ∃ l : Loc,
       ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty) #l⌝ ∗
-      lessorHandle l γ who }}
+      lessorHandle l null γ who }}
 
 end spec
 

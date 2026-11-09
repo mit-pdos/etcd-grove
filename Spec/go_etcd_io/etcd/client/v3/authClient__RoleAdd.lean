@@ -1,10 +1,10 @@
 /-
 `(*clientv3.authClient).RoleAdd` (`client/v3/auth.go`).
 
-Users: `examples/etcd/auth/authkv.go` (`SetUp`), snippet `clientv3client/auth.go`; through the `Auth` bundle (`authAt_methods`, `authHandle_authAt`).
+Users: `examples/etcd/auth/authkv.go` (`SetUp`), snippet `clientv3client/auth.go`; through the `Auth` bundle (and the promoted `Client.RoleAdd`) (`authAt_methods`, `authHandle_authAt`).
 
 Proof sketch: allocates the request message (`reqOwn`, 3h's `protoRest_zero` and field writes), calls
-`auth.remote.RoleAdd(ctx, req, auth.callOpts...)` (`authHandle`: `remote` a `remoteAuthAt` value,
+`auth.remote.RoleAdd(ctx, req, auth.callOpts...)` (`authHandle` over a ready client: `remote` a `remoteAuthAt` value,
 `callOpts` with `callOptsOk _ false`; `remoteAuthAt_call` at the request: the caller's update,
 exclusive (sent at most once: the wrapper does not mark it repeatable), handed over), then `ContextError(ctx, err)` (W0's spec: a definite `.etcd e` becomes
 `errVal e`, the reply's `wireReply ansReply` becomes `ansReply`; an indefinite error stays
@@ -13,6 +13,9 @@ exclusive (sent at most once: the wrapper does not mark it repeatable), handed o
 Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/authClient__RoleAdd.lean`: restated over the model (`Step who` of the auth request, any principal, auth on or off, any answer: the old spec was for the admin's set-up only, auth off, with the reply's error only).
 
 Margin: none.
+
+Round 1: the call's principal per call (W0's `ctxPrin who ctx p`); the handle records its client,
+ready (`clientReady`: the token refresh reads `c.Auth`).
 -/
 module
 
@@ -37,11 +40,11 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `a.RoleAdd(ctx, ...)`: the request `.roleAdd name` linearized by the caller's update, or an
-error that settles nothing. -/
+error that settles nothing; the call's principal is its context's (`ctxPrin who ctx p`). -/
 def authClient.RoleAdd.spec : Prop :=
-  ∀ (a : Loc) (γ : Cluster) (who : Principal) (name : GoString),
-  Auth.Triple (a @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.authClient.ty @!! go!"RoleAdd")
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ authHandle a γ who) γ who [ #name]
+  ∀ (a c : Loc) (γ : Cluster) (who : Principal) (name : GoString),
+  Call.Triple (a @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.authClient.ty @!! go!"RoleAdd")
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ authHandle a c γ who ∗ clientReady c) γ who [ #name]
     (.roleAdd name)
 
 end spec

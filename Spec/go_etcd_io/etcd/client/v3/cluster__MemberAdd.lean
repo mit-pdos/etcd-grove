@@ -2,13 +2,16 @@
 `(*clientv3.cluster).MemberAdd` (`client/v3/cluster.go`).
 
 Users: no user in scope (etcdctl, the e2e tests); snippet `clientv3client/cluster.go`
-(`ReqMemberAddAnswer`); the `Cluster` bundle (`clusterAt_methods`).
+(`ReqMemberAddThenList`); the `Cluster` bundle (`clusterAt_methods`).
 
 Proof sketch: `c.memberAdd(ctx, peerAddrs, false)` (its spec).
 
 Changes: new (no old spec).
 
 Margin: none.
+
+Round 1: the call's principal per call (W0's `ctxPrin who ctx p`); the handle records its client,
+ready (`clientReady`).
 -/
 module
 
@@ -33,13 +36,12 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `cl.MemberAdd(ctx, urls)`: the URLs checked (`types.NewURLs`: else an error, nothing sent), then
-the request `.memberAdd urls false` linearized by the caller's update (exclusive), or an error that
-settles nothing. -/
+`.memberAdd urls false` linearized by the caller's update (exclusive), or an error that settles
+nothing. -/
 def cluster.MemberAdd.spec : Prop :=
-  ∀ (cl : Loc) (γ : Cluster) (who : Principal) (ctx : GoInterface) (sl : GoSlice) (urls : List GoString),
-  CheckedCallTriple (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.cluster.ty @!! go!"MemberAdd")) (Val #ctx)) (Val #sl))
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clusterHandle cl γ who ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ sl ↦*□ urls) iprop(True) γ who (.memberAdd urls false) false
-    (Types.urlsValid urls) ansReply
+  ∀ (cl c : Loc) (γ : Cluster) (who : Principal),
+  Cluster.MemberAddTriple (fun s => cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.cluster.ty @!! s)
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clusterHandle cl c γ who ∗ clientReady c) γ who false
 
 end spec
 

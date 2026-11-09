@@ -125,9 +125,9 @@ opaque kubeAt (v : GoInterface) (γ : Cluster) (who : Principal) : IProp GF := i
 
 /-- `Get` (`m s`: the method `s` of the receiver). -/
 def Kube.GetTriple (m : GoString → val) (P : IProp GF) (γ : Cluster) (who : Principal) : Prop :=
-  ∀ (ctx : GoInterface) (key : GoString) (o : go_etcd_io.etcd.client.v3.kubernetes.GetOptions)
+  ∀ (ctx : GoInterface) (p : Principal) (key : GoString) (o : go_etcd_io.etcd.client.v3.kubernetes.GetOptions)
      (Q : State → State → Resp → IProp GF),
-    {{ P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ kubeAU γ who (.range (getReqM key o.Revision')) true Q }}
+    {{ P ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ kubeAU γ p (.range (getReqM key o.Revision')) true Q }}
       (App (App (App (Val (m go!"Get")) (Val #ctx)) (Val #key)) (Val #o))
     {{ (r : go_etcd_io.etcd.client.v3.kubernetes.GetResponse) (err : GoInterface), RET (PairV #r #err);
         (∃ σ σ' res, Q σ σ' res ∗ getReply res r err) ∨ indefCall err }}
@@ -136,8 +136,8 @@ def Kube.GetTriple (m : GoString → val) (P : IProp GF) (γ : Cluster) (who : P
 def Kube.ListTriple (m : GoString → val) (P : IProp GF) (γ : Cluster) (who : Principal) : Prop :=
   ∀(ctx : GoInterface) (pfx : GoString) (o : go_etcd_io.etcd.client.v3.kubernetes.ListOptions)
      (Q : State → State → Resp → IProp GF),
-    {{ P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗
-        kubeAU γ who (.range (listReqM pfx o.Continue' o.Limit' o.Revision')) true Q }}
+    {{ P ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗
+        kubeAU γ p (.range (listReqM pfx o.Continue' o.Limit' o.Revision')) true Q }}
       (App (App (App (Val (m go!"List")) (Val #ctx)) (Val #pfx)) (Val #o))
     {{ (r : go_etcd_io.etcd.client.v3.kubernetes.ListResponse) (err : GoInterface), RET (PairV #r #err);
         (∃ σ σ' res, Q σ σ' res ∗ listReply res r err) ∨ indefCall err }}
@@ -146,7 +146,7 @@ def Kube.ListTriple (m : GoString → val) (P : IProp GF) (γ : Cluster) (who : 
 def Kube.CountTriple (m : GoString → val) (P : IProp GF) (γ : Cluster) (who : Principal) : Prop :=
   ∀(ctx : GoInterface) (pfx : GoString) (o : go_etcd_io.etcd.client.v3.kubernetes.CountOptions)
      (Q : State → State → Resp → IProp GF),
-    {{ P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ kubeAU γ who (.range (countReqM pfx)) true Q }}
+    {{ P ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ kubeAU γ p (.range (countReqM pfx)) true Q }}
       (App (App (App (Val (m go!"Count")) (Val #ctx)) (Val #pfx)) (Val #o))
     {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
         (∃ σ σ' res, Q σ σ' res ∗ countReply res n err) ∨ (⌜n = W64 0⌝ ∗ indefCall err) }}
@@ -155,8 +155,8 @@ def Kube.CountTriple (m : GoString → val) (P : IProp GF) (γ : Cluster) (who :
 def Kube.OptimisticPutTriple (m : GoString → val) (P : IProp GF) (γ : Cluster) (who : Principal) : Prop :=
   ∀(ctx : GoInterface) (key : GoString) (vsl : GoSlice) (v : GoString) (rev : w64)
      (o : go_etcd_io.etcd.client.v3.kubernetes.PutOptions) (Q : State → State → Resp → IProp GF),
-    {{ P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ vsl ↦*□ v ∗
-        kubeAU γ who (.txn (optPutTxnM key v rev o.LeaseID' o.GetOnFailure')) false Q }}
+    {{ P ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ vsl ↦*□ v ∗
+        kubeAU γ p (.txn (optPutTxnM key v rev o.LeaseID' o.GetOnFailure')) false Q }}
       (App (App (App (App (App (Val (m go!"OptimisticPut")) (Val #ctx)) (Val #key)) (Val #vsl))
         (Val #rev)) (Val #o))
     {{ (r : go_etcd_io.etcd.client.v3.kubernetes.PutResponse) (err : GoInterface), RET (PairV #r #err);
@@ -167,8 +167,8 @@ def Kube.OptimisticPutTriple (m : GoString → val) (P : IProp GF) (γ : Cluster
 def Kube.OptimisticDeleteTriple (m : GoString → val) (P : IProp GF) (γ : Cluster) (who : Principal) : Prop :=
   ∀(ctx : GoInterface) (key : GoString) (rev : w64)
      (o : go_etcd_io.etcd.client.v3.kubernetes.DeleteOptions) (Q : State → State → Resp → IProp GF),
-    {{ P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗
-        kubeAU γ who (.txn (optDeleteTxnM key rev o.GetOnFailure')) false Q }}
+    {{ P ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗
+        kubeAU γ p (.txn (optDeleteTxnM key rev o.GetOnFailure')) false Q }}
       (App (App (App (App (Val (m go!"OptimisticDelete")) (Val #ctx)) (Val #key)) (Val #rev)) (Val #o))
     {{ (r : go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse) (err : GoInterface), RET (PairV #r #err);
         (∃ σ σ' res, Q σ σ' res ∗ txnReply o.GetOnFailure' res r.KV' r.Succeeded' r.Revision' err) ∨

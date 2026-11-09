@@ -12,6 +12,9 @@ Changes: new (no old spec).
 Margin: the "disarm every alarm" call (`MemberID = 0`, `Alarm = NONE`) is a list then one disarm per
 alarm, several requests: not specified (no user in scope); a `NONE` alarm with a member is not a
 model alarm (`alarmKindM`): a scope restriction.
+
+Round 1: the call's principal per call (W0's `ctxPrin who ctx p`); the handle records its client,
+ready (`clientReady`).
 -/
 module
 
@@ -37,14 +40,8 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `mt.AlarmDisarm(ctx, am)`: one alarm disarmed, linearized by the caller's persistent update. -/
 def maintenance.AlarmDisarm.spec : Prop :=
-  ∀ (mt : Loc) (γ : Cluster) (who : Principal) (ctx : GoInterface) (am : Loc) (mid : w64) (t : w32)
-    (k : AlarmKind),
-  alarmKindM t = some k →
-  CallTriple (App (App (Val (mt @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.maintenance.ty @!! go!"AlarmDisarm")) (Val #ctx)) (Val #am))
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ maintHandle mt γ who ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗
-      am.[go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember, go!"MemberID"] ↦□ mid ∗
-      am.[go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember, go!"Alarm"] ↦□ t)
-    iprop(True) γ who (.alarmDisarm { memberId := uint.nat mid, kind := k }) true ansReply
+  ∀ (mt c : Loc) (γ : Cluster) (who : Principal),
+  Maint.AlarmDisarmTriple (fun s => mt @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.maintenance.ty @!! s) iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ maintHandle mt c γ who ∗ clientReady c) γ who
 
 end spec
 

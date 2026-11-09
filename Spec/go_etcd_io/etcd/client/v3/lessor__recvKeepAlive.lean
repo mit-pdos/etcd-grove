@@ -39,8 +39,8 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 /-- `l.recvKeepAlive(resp)`: the response delivered to the lease's channels (or its entry closed
 on a non-positive TTL). -/
 def lessor.recvKeepAlive.spec : Prop :=
-  ∀ (l : Loc) (γ : Cluster) (who : Principal) (p h : Loc) (id ttl : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorHandle l γ who ∗
+  ∀ (l c : Loc) (γ : Cluster) (who : Principal) (p h : Loc) (id ttl : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorHandle l c γ who ∗
       protoRest go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveResponse p (DFrac.own 1) ∗
       p.[go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveResponse, go!"Header"] ↦ h ∗
       p.[go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveResponse, go!"ID"] ↦ id ∗

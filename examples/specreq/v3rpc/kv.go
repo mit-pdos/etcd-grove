@@ -12,6 +12,8 @@ package v3rpc
 
 import (
 	"context"
+	"errors"
+	"io"
 
 	pb "go.etcd.io/etcd/api/v3/etcdserverpb"
 	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
@@ -114,7 +116,7 @@ func ReqRangeStream(ctx context.Context, kc pb.KVClient, prefix string) {
 	for {
 		m, err := sc.Recv()
 		if err != nil {
-			if last != nil && last.Header == nil && err.Error() == "EOF" {
+			if last != nil && last.Header == nil && errors.Is(err, io.EOF) {
 				panic("range-stream: the last chunk has no header")
 			}
 			return

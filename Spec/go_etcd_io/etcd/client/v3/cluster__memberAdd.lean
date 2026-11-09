@@ -10,6 +10,9 @@ Proof sketch: `types.NewURLs(peerAddrs)` (`Types.NewURLs.spec`: an error exactly
 Changes: new (no old spec).
 
 Margin: none.
+
+Round 1: the call's principal per call (W0's `ctxPrin who ctx p`); the handle records its client,
+ready (`clientReady`).
 -/
 module
 
@@ -35,11 +38,12 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `cl.memberAdd(ctx, urls, learner)`. -/
 def cluster.memberAdd.spec : Prop :=
-  ∀ (cl : Loc) (γ : Cluster) (who : Principal) (ctx : GoInterface) (sl : GoSlice) (urls : List GoString)
-    (learner : Bool),
-  CheckedCallTriple (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.cluster.ty @!! go!"memberAdd")) (Val #ctx)) (Val #sl)) (Val #learner))
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clusterHandle cl γ who ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ sl ↦*□ urls) iprop(True) γ who (.memberAdd urls learner) false
-    (Types.urlsValid urls) ansReply
+  ∀ (cl c : Loc) (γ : Cluster) (who : Principal) (ctx : GoInterface) (p : Principal) (sl : GoSlice)
+    (urls : List GoString) (learner : Bool),
+  CheckedCallTriple (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.cluster.ty @!!
+      go!"memberAdd")) (Val #ctx)) (Val #sl)) (Val #learner))
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clusterHandle cl c γ who ∗ clientReady c ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗
+      sl ↦*□ urls) iprop(True) γ p (.memberAdd urls learner) false (Types.urlsValid urls) ansReply
 
 end spec
 

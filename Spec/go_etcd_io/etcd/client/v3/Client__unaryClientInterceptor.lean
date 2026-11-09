@@ -24,8 +24,14 @@ attempt that applied nothing).
 Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/Client__unaryClientInterceptor.lean` (over a
 fixed set of servers' registrations): over the attempt contract, any principal, auth on.
 
-Margin: the refresh needs the `Auth` field (`clientCore`); the interceptor is built before it is
-set (open question 1 of the report).
+Round 1: an attempt's not-sent error always comes with the update back (`AttemptTriple`'s fourth
+case excludes `.notSent`); the connection `grpcConnAt cc` (`cc.Target()` in the log calls); the
+principal per call; the refresh's `Auth` field through `clientReady c` (`uiOk_call`'s premise: the
+interceptor is built before `c.Auth` is set and no call goes through it until then). With no token
+bundle (TLS or no credentials) a token refusal is resent as is until the limit, then fired as a
+refusal (the auth example's foreign token).
+
+Margin: none.
 -/
 module
 

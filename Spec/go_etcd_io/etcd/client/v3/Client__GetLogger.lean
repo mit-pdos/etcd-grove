@@ -35,8 +35,8 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `c.GetLogger()`: a logger. -/
 def Client.GetLogger.spec : Prop :=
-  ∀ (c : Loc) (γ : Cluster) (who : Principal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientPre c γ who }}
+  ∀ (c : Loc) (who : Principal),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientBase c who }}
     (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"GetLogger")) (Val #()))
   {{ (lg : Loc), RET #lg; Zap.isLogger lg }}
 

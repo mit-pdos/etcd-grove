@@ -38,8 +38,8 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `l.recvKeepAliveLoop()`: the receive loop: runs until the lessor is stopped, then closes every channel. -/
 def lessor.recvKeepAliveLoop.spec : Prop :=
-  ∀ (l : Loc) (γ : Cluster) (who : Principal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorHandle l γ who }}
+  ∀ (l c : Loc) (γ : Cluster) (who : Principal),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorHandle l c γ who ∗ clientReady c }}
     (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"recvKeepAliveLoop")) (Val #()))
   {{ (v : val), RET v; True }}
 

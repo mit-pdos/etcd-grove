@@ -37,7 +37,9 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 /-- `c.autoSync()`: syncs the endpoints until the client is closed. -/
 def Client.autoSync.spec : Prop :=
   ∀ (c : Loc) (γ : Cluster) (who : Principal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientCore c γ who }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientCore c γ who ∗ clientReady c ∗
+      ∃ cfg : go_etcd_io.etcd.client.v3.Config, c.[go_etcd_io.etcd.client.v3.Client, go!"cfg"] ↦□ cfg ∗
+        (⌜cfg.AutoSyncInterval' = W64 0⌝ ∨ ∃ eps, epsTok c (DFrac.own 1) eps) }}
     (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"autoSync")) (Val #()))
   {{ RET #(); True }}
 

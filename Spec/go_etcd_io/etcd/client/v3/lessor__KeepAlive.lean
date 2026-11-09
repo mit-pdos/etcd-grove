@@ -46,10 +46,8 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 /-- `l.KeepAlive(ctx, id)`: a keep-alive channel of lease `id` (`kaChan`), and `nil` or a halted
 error (the channel then closed). -/
 def lessor.KeepAlive.spec : Prop :=
-  ∀ (l : Loc) (γ : Cluster) (who : Principal) (ctx : GoInterface) (id : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorHandle l γ who ∗ Context.ctxOk ctx ∗ ctxPrin ctx who }}
-    (App (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"KeepAlive")) (Val #ctx)) (Val #id))
-  {{ (ch : Loc) (err : GoInterface), RET (PairV #ch #err); ⌜ch ≠ null⌝ ∗ kaChan ch id }}
+  ∀ (l c : Loc) (γ : Cluster) (who : Principal),
+  Lease.KeepAliveTriple (fun s => l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! s) iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorHandle l c γ who ∗ clientReady c) who
 
 end spec
 

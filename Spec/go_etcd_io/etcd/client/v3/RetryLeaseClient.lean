@@ -38,7 +38,7 @@ def RetryLeaseClient.spec : Prop :=
     (App (Val (@! go_etcd_io.etcd.client.v3.RetryLeaseClient)) (Val #c))
   {{ (v : GoInterface), RET #v; ∃ r : Loc,
       ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.retryLeaseClient.ty) #r⌝ ∗
-      retryLeaseHandle r γ who }}
+      retryLeaseHandle r c γ who }}
 
 end spec
 

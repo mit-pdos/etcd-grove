@@ -19,11 +19,11 @@ returned). `checkVersion` if asked (an error: `Close`, returned). `go autoSync()
 
 Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/newClient.lean`: as `New`'s.
 
-Margin: **the members are built before `c.Auth` is set**, and W0's `NewKV` (and the other
-constructors) receive `clientConnOk` then: a call through it before `NewAuth` would, on a token
-refusal, refresh the token through a `nil` `Auth` and panic. `newClient` makes no call before then,
-but a persistent `clientConnOk` cannot say so: the realization needs a readiness witness (see
-`notes/specs-only/batch-1c.md`, open question 1).
+Readiness (round 1): the members are built before `c.Auth` is set; their handles record `c` and
+meet their bundles only with `clientReady c`, which `newClient` mints once `c.Auth` is set (before
+`getToken`, its first call), so `clientMut`/`isClient` carry it (`clientMut_ready`).
+
+Margin: none.
 -/
 module
 
@@ -53,7 +53,11 @@ def newClient.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ p ↦ cfg ∗ cfgOk cfg γ who }}
     (App (Val (@! go_etcd_io.etcd.client.v3.newClient)) (Val #p))
   {{ (c : Loc) (err : GoInterface), RET (PairV #c #err); p ↦ cfg ∗
-      ((⌜err = GoInterface.nil⌝ ∗ clientMut c γ who) ∨ ⌜c = null ∧ err ≠ GoInterface.nil⌝) }}
+      ⌜cfg.Endpoints'.len = W64 0 → c = null ∧ err ≠ GoInterface.nil⌝ ∗
+      ((⌜err = GoInterface.nil⌝ ∗ clientMut c γ who ∗
+         (⌜cfg.AutoSyncInterval' ≠ W64 0⌝ ∨
+          ∃ eps, cfg.Endpoints' ↦*□ eps ∗ epsTok c (DFrac.own 1) eps)) ∨
+       ⌜c = null ∧ err ≠ GoInterface.nil⌝) }}
 
 end spec
 

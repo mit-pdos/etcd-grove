@@ -39,7 +39,7 @@ def NewLease.spec : Prop :=
     (App (Val (@! go_etcd_io.etcd.client.v3.NewLease)) (Val #c))
   {{ (v : GoInterface), RET #v; ∃ l : Loc,
       ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty) #l⌝ ∗
-      lessorHandle l γ who }}
+      lessorHandle l c γ who }}
 
 end spec
 

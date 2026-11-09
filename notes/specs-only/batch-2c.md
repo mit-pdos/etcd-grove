@@ -220,8 +220,30 @@ them to `Code/.../etcdserver.toml`.
 - `go_etcd_io_raft_v3.md`: R1's read API used as stated; `dup = false` for one-shot proposals.
 - `go_etcd_io_etcd_pkg_v3_traceutil.md` (new): 4b: `traceAt`.
 
-2a's `## from 2a` in `req/go_etcd_io_etcd_server_v3_etcdserver.md` did not exist when I finished.
-2a's `v3rpc/Api.lean` already uses `isServer`, `srvErrOf`, `SrvCallTriple`, `txnChecked` and
-`rsSink`.
+## Answers to 2a's `## from 2a` (`req/go_etcd_io_etcd_server_v3_etcdserver.md`)
+
+2a's section appeared at the end of my run; I re-read it. 2a's `v3rpc/Api.lean` already uses
+`isServer`, `srvErrOf`, `SrvCallTriple`, `txnChecked` and `rsSink`.
+
+1. **`srvStep` vs `Step`.** This is the user's decision (decisions 1 and 3 above); 2a cannot close it.
+2. **`reqPrin_of_md`.** The law belongs in 2a's module (or 3d's). It mentions 2a's `Grpc.rpcCtx` and
+   `V3rpc.mdPrin`, and `v3rpc/Api.lean` imports `ApiReq.lean`, so stating it in `ApiReq` would make
+   an import cycle. I asked 3d for `AuthInfoFromCtx`'s realization of `reqPrin`.
+3. **Context errors.** Done: `srvErrOf` never names a context's own `Canceled` or
+   `DeadlineExceeded` (header corrected). Such errors are `srvIndef` vacuously, which is what
+   `readErr_indef` needs. The condition on unmapped errors' messages is 2a's `togRPCError`
+   boundary: it is stated over 2a's `Grpc.errMsg`.
+4. **`MaxTxnOps ≤ 4999` in `isServer`.** That is 2e's handle.
+5. **`Alarm`'s `ACTIVATE` takes no update.** Done:
+   - `IrrBody.fires` is now true only for `.req`;
+   - an alarm or a publication commits by the `envUpd` that the cluster's invariant holds;
+   - `Alarm.spec`, `raftRequest.spec` and `processInternalRaftRequestOnce.spec` require and give
+     back the update only for `.req`;
+   - my `req/` item 8 asks 2d/2e for the `envUpd` in the invariant.
+6. **`rsSink`'s chunks.** `rsSink`'s `ms` is the list of chunks sent, which matches 2a's `rsChunk g
+   j m`. The sink is 2a's provisional slot, so its send laws (each chunk appended; the last with `Q`
+   and `streamMatches`) are 2a's to state in `rsSink_intro`/`rsSink_out`; they should move the
+   predicate into their module.
+7. That item is 2e's.
 
 New package namespaces: `Read`, `Wait`, `IdUtil`, `Notify` (as in the README's table).
