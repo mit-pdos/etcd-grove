@@ -74,10 +74,10 @@ theorem Bag.Domain.wp_proof : Bag.Domain.spec (GF := GF) (hG := hG) := by
     intro j hj
     rw [show (sint.Z n).toNat = sint.nat n from rfl, List.getElem?_set]
     rcases Nat.lt_succ_iff_lt_or_eq.1 hj with hj | hj
-    · rw [if_neg (Nat.ne_of_gt hj)]; exact hnj j hj
+    · rw [ite_eq_right (Nat.ne_of_gt hj)]; exact hnj j hj
     · subst hj
       have : sint.nat n < L.length := by rw [hnL]; exact Hlt
-      rw [if_pos rfl, Hy]; simp [this]
+      rw [ite_eq_left rfl, Hy]; simp [this]
   · have hnx : sint.nat n = items.length := by rw [Hil.1]; word
     have hLe : L = items.map (fun it => it.msg') := by
       apply List.ext_getElem?

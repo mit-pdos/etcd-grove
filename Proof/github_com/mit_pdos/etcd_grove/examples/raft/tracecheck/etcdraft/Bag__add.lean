@@ -27,13 +27,13 @@ theorem Bag.add_found (b : Bag) (m : Msg) (n k : Nat) (x : Msg × Nat) (hnd : (b
   have hxk : b[k] = x := by rw [List.getElem?_eq_some_iff] at hx; exact hx.2
   have hxm : x.1 = m := by rw [← hxk]; simpa using hkm
   unfold Bag.add
-  rw [if_pos (List.any_eq_true.2 ⟨x, List.mem_of_getElem? hx, by simp [hxm]⟩)]
+  rw [ite_eq_left (List.any_eq_true.2 ⟨x, List.mem_of_getElem? hx, by simp [hxm]⟩)]
   apply List.ext_getElem?
   intro j
   rw [List.getElem?_map, List.getElem?_set]
   by_cases hj : k = j
-  · subst hj; rw [if_pos rfl, hx]; simp [hxm, hkl]
-  · rw [if_neg hj]
+  · subst hj; rw [ite_eq_left rfl, hx]; simp [hxm, hkl]
+  · rw [ite_eq_right hj]
     cases hbj : b[j]? with
     | none => rfl
     | some y =>
