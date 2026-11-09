@@ -33323,3 +33323,27 @@ translation of protobuf's enum `String` (a question for the user: the plan's Q9)
 traced proof needs the message after `Hback` has queued it (the outbox owns it, `msgQ`, at 1): an
 accessor lending the last queued message of `ownRaftPhysCV (sendMsgs s out)` read-only (B5's
 "opened sites").
+
+## Q8 stage 1 (slice 2): the hooks' specs in two forms (2026-11-09 · trace-check, Q8 stage 1 slice 2; decided by the agent under the user's delegation · branch `trace-check-q8s2`; DRAFT until trace-check's Freeze)
+
+**The node-event hooks** (`traceNodeEvent`, `traceBecome*`, `traceReady`, `traceCommit`, `traceReplicate`)
+are stated at the node's mode, as slice 1 decided: `trOwn s.gh.tr (ownRaftPhysCV c c.voters r id s) ∗
+TraceFire s.gh.tr tl (NodeEvOf evt id s c) Q`, given back as `trOwn … ∗ Q`. An untraced caller instantiates
+it at its own `c r id s` (any state of its mode will do: the gate is `emp`).
+
+**`traceEvent` and `traceInitState` take the mode `tr` and lend the state** (`trOwn tr (∃ c id s,
+ownRaftPhysCV … ∗ ⌜…⌝ ∗ (ownRaftPhysCV … -∗ R))`, giving `trOwn tr R`): their untraced callers have no node
+state at hand (`traceChangeConfEvent`'s, `traceSendMessage`'s, `newRaft` before raft's predicate holds),
+and `NState` has no default to instantiate. Rejected: a default `NState` (a dummy record of a dozen
+fields, for nothing the spec says). The traced statements follow by instantiating `tr := s.gh.tr`.
+
+**The gates at any `HasLC`**: `TraceFire`, `TraceFireOpt`, `TraceFireN`, `trOwn` and their lemmas need
+nothing of `HasLC.hasLC` (the logger's contract, `traceDir` and the atomic update are generic), and the
+hooks' callers are proved at any `HasLC`; stating the hooks at `HasLC.hasLC` would have moved every caller's
+proof (and, through `etc/gen-link.py`'s propagation, its result) there. The definitions moved to a section of
+their own in `TracedCap.lean`, their text unchanged.
+
+**`isTraceLogger` returns `#()`** (it returned any value): the weaker contract admits a logger that
+"returns" a panic value, after which `traceEvent`'s `do:` does not step. The recorder's spec already
+returns `#()`.
+
