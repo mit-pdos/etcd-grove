@@ -16,7 +16,8 @@ import (
 //     n-th snapshot's), FilePaths(cfg), absent at the start.
 //   - Ops: the operations in the log. Depth: the keys are the strings over a, b, c of length 1 to
 //     Depth. MaxVal: values have up to MaxVal bytes (beyond the counter that makes them unique).
-//   - Readers, Reads: readers on each member, and reads each. Streams: watch streams on each
+//   - Readers, Reads: readers on each member, and reads each between two restarts (a restart
+//     stops them: its member's process restarting). Streams: watch streams on each
 //     member at a time; Watchers: watchers registered on a member's streams between two
 //     restarts (fewer than 512: a restriction, mvccfull.go).
 //   - BatchLimit, BatchInterval: the backend's (0: etcd's defaults). CompactionBatchLimit,
@@ -49,10 +50,10 @@ type Config struct {
 // pick from a subset of another's values (a revision equal to the compaction revision is also
 // "any revision"): they exist only to be weighed.
 //
-// Pause and RecvPause are sleeps (in the proof's model, steps that do nothing): the registering
+// Pause, RecvPause and ReadPause are sleeps (in the proof's model, steps that do nothing): the registering
 // goroutine's after each action (with no pause, it registers its watchers at once and then spins
 // on progress requests), and the receiving goroutine's after each response (a slow receiver fills
-// the stream's channel, making watchers victims).
+// the stream's channel, making watchers victims), and each reader's after each read.
 type Mix struct {
 	// the writer's steps: the leader applies a new operation, the follower applies some of the
 	// log, the follower installs a snapshot of the leader's, the leader restarts, the follower
@@ -79,6 +80,7 @@ type Mix struct {
 
 	Pause     time.Duration
 	RecvPause time.Duration
+	ReadPause time.Duration
 }
 
 // MainConfig is Main's Config, with the files' prefix prefix: sizes

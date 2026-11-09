@@ -390,3 +390,32 @@ the API glue `mvcc.api.New.specR_of_internal`, a `sorry` with its outline). They
 - To confirm: the server's restart supplies the certificate map's `M`.
 
 R1 and R2 are the Probe's first targets for B3.
+
+## Draft revision: readers per epoch; no `life` lock (2026-11-09)
+
+**Replaces L.** Writing L in Lean showed that it needs agreement on store names. The pool's token
+and the reader's `isMvcc` must be of the same incarnation. A store name (`MvccName`, which is
+`StoreNames`, with the backend's parameters, functions on bucket names) is not countable, so no
+Perennial ghost variable, map or saved predicate can hold it. No API law gives `isMvcc kv γ ∗
+isMvcc kv γ' ⊢ ⌜γ = γ'⌝` either.
+
+The `life` lock existed because a reader could stay alive across a restart. That is not an etcd
+execution: a restart is the member's process restarting, and its requests in flight end with it.
+
+**The Go change** (tests pass):
+
+- Readers run per epoch, like the streams. `startReaders` starts them (up to `Reads` each, until
+  stopped; a `ReadPause` sleep in `Mix`); `stopReaders` stops them and waits.
+- A restart stops every reader (both members', since a reader may hash the other member in F2)
+  and the restarting member's streams, closes, reopens, and starts them again.
+- `life`, `lockAll` and `unlockAll` are gone.
+
+**The vocabulary** (`Members.lean`, typechecked):
+
+- **One cancelable invariant per incarnation**, `memberInv … ι`. It holds `memberState`, or the
+  incarnation's retirement token, which the writer swaps in at a restart, when no reader or stream
+  of the incarnation is left. The store name `γk = ι.kv` is a parameter.
+- **Each goroutine is handed its incarnation's handles at its start** (`isInc`, persistent) and a
+  reader token (`incRd`), returned through its wait group.
+- **Across incarnations**, `m.σ`'s half, the monotone counters and the atomics leave one
+  incarnation's invariant for the next.

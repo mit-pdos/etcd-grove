@@ -190,7 +190,7 @@ noncomputable def Main [GooseExts] [GoGlobalContext] : GoString :=
     past mvcc's internal thresholds (mvccfull.go, "Auditing"), batch limits small enough that
     commits and compactions go by count, and a mix weighed toward the log's operations.
 
-    go: config.go:85:6 -/
+    go: config.go:89:6 -/
 noncomputable def MainConfig.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "prefix"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc Config.ty))) (App (Val (GoInstruction (GoZeroVal Config.ty))) (Val #())))
@@ -263,7 +263,7 @@ noncomputable def MainConfig.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- normalize clamps cfg into the range the tester runs in.
 
-    go: config.go:102:6 -/
+    go: config.go:106:6 -/
 noncomputable def normalize.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc Config.ty))) (App (Val (GoInstruction (GoZeroVal Config.ty))) (Val #())))
@@ -300,7 +300,7 @@ noncomputable def normalize.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- choose returns any number in [0, n) (0 if n ≤ 0).
 
-    go: config.go:116:6 -/
+    go: config.go:120:6 -/
 noncomputable def choose.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
@@ -326,7 +326,7 @@ noncomputable def choose.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- pick returns any alternative in [0, n), weighed by w (above).
 
-    go: config.go:124:6 -/
+    go: config.go:128:6 -/
 noncomputable def pick.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "n"
@@ -1144,7 +1144,7 @@ noncomputable def checkKV.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (FuncResolve check []))) (Val #())) (Var "$a0")) (Var "$a1")))))))))))
   (Val #()))))))
 
-/-- go: mvccfull.go:399:18 -/
+/-- go: mvccfull.go:398:18 -/
 noncomputable def noCluster.Version.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
@@ -1161,7 +1161,7 @@ noncomputable def noCluster.Version.impl [GooseExts] [GoGlobalContext] : val :=
 /-- memberPath is the file of member id (0 the leader, 1 the follower), buildPath the file of the
     n-th snapshot builder (restore): FilePaths lists them.
 
-    go: mvccfull.go:459:6 -/
+    go: mvccfull.go:460:6 -/
 noncomputable def memberPath.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "prefix"
   (Lam "id"
@@ -1178,7 +1178,7 @@ noncomputable def memberPath.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
 
-/-- go: mvccfull.go:461:6 -/
+/-- go: mvccfull.go:462:6 -/
 noncomputable def buildPath.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "prefix"
   (Lam "n"
@@ -1198,7 +1198,7 @@ noncomputable def buildPath.impl [GooseExts] [GoGlobalContext] : val :=
 /-- FilePaths is every file a run of cfg may create (absent at its start): the two members' and one
     per snapshot install, at most one per writer step.
 
-    go: mvccfull.go:465:6 -/
+    go: mvccfull.go:466:6 -/
 noncomputable def FilePaths.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
@@ -1244,7 +1244,7 @@ noncomputable def FilePaths.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- openBackend opens a backend on path, with the configuration's batch settings.
 
-    go: mvccfull.go:474:18 -/
+    go: mvccfull.go:475:18 -/
 noncomputable def runner.openBackend.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "path"
@@ -1288,7 +1288,7 @@ noncomputable def runner.openBackend.impl [GooseExts] [GoGlobalContext] : val :=
 /-- open opens m's backend, lessor and store on its file, as the server does, and checks the store
     against the model.
 
-    go: mvccfull.go:488:18 -/
+    go: mvccfull.go:489:18 -/
 noncomputable def runner.«open».impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -1361,7 +1361,7 @@ noncomputable def runner.«open».impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- shut closes m's store, lessor and backend.
 
-    go: mvccfull.go:505:18 -/
+    go: mvccfull.go:506:18 -/
 noncomputable def runner.shut.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -1384,7 +1384,7 @@ noncomputable def runner.shut.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- newMember opens a member over a fresh file.
 
-    go: mvccfull.go:512:18 -/
+    go: mvccfull.go:513:18 -/
 noncomputable def runner.newMember.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "id"
@@ -1448,9 +1448,11 @@ noncomputable def runner.newMember.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType member.ty)))) (Pair (Var "m") (Var "$r0")))))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType member.ty)))) (Var "$res0")))))))
 
-/-- restart drains and closes m's watch streams, closes m and opens it again on its file.
+/-- restart stops the readers and drains and closes m's watch streams (a restart is the member's
+    process restarting: its requests in flight end with it), closes m and opens it again on its
+    file, and starts them again.
 
-    go: mvccfull.go:528:18 -/
+    go: mvccfull.go:531:18 -/
 noncomputable def runner.restart.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -1464,13 +1466,13 @@ noncomputable def runner.restart.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType runner.ty) go!"startReaders"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType runner.ty)))) (Var "x"))) (Val #())))))
+  (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType member.ty)))) (Var "m"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType runner.ty) go!"startEpoch"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType runner.ty)))) (Var "x"))) (Var "$a0"))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType runner.ty) go!"startEpoch"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType runner.ty)))) (Var "x"))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (Val #(W64 1))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Int64.ty) go!"Add"))) (App (Val (GoInstruction (StructFieldRef runner.ty go!"restarts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType runner.ty)))) (Var "x")))) (Var "$a0")))))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef member.ty go!"life"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType member.ty)))) (Var "m")))) (Val #()))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType member.ty)))) (Var "m"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType runner.ty) go!"open"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType runner.ty)))) (Var "x"))) (Var "$a0")))))))
@@ -1478,10 +1480,10 @@ noncomputable def runner.restart.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType member.ty)))) (Var "m"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType runner.ty) go!"shut"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType runner.ty)))) (Var "x"))) (Var "$a0")))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef member.ty go!"life"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType member.ty)))) (Var "m")))) (Val #()))))))
-  (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType member.ty)))) (Var "m"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType runner.ty) go!"endEpoch"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType runner.ty)))) (Var "x"))) (Var "$a0"))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType runner.ty) go!"endEpoch"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType runner.ty)))) (Var "x"))) (Var "$a0")))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType runner.ty) go!"stopReaders"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType runner.ty)))) (Var "x"))) (Val #())))))))
   (Val #()))))
 
 /-- restore installs a snapshot on the follower f at the leader l's point of the log, as the
@@ -1491,7 +1493,7 @@ noncomputable def runner.restart.impl [GooseExts] [GoGlobalContext] : val :=
     then closed (the file then holds an image of that history, as a leader's backend snapshot
     does; Restore takes any image of a history extending the store's).
 
-    go: mvccfull.go:544:18 -/
+    go: mvccfull.go:547:18 -/
 noncomputable def runner.restore.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "l"
@@ -1644,7 +1646,7 @@ noncomputable def runner.restore.impl [GooseExts] [GoGlobalContext] : val :=
 /-- checkLeases checks m's lessor against the model: each key's lease, each live lease's keys, and
     no other lease.
 
-    go: mvccfull.go:577:18 -/
+    go: mvccfull.go:580:18 -/
 noncomputable def runner.checkLeases.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -1789,7 +1791,7 @@ noncomputable def runner.checkLeases.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string kvRec.ty)))) (Pair (Var "st") (Var "$r0"))))))))))
   (Val #()))))
 
-/-- go: mvccfull.go:608:18 -/
+/-- go: mvccfull.go:611:18 -/
 noncomputable def runner.genKey.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1808,7 +1810,7 @@ noncomputable def runner.genKey.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- genEnd returns a range end: nil (one key), empty (from the key on), past every key, or a key.
 
-    go: mvccfull.go:611:18 -/
+    go: mvccfull.go:614:18 -/
 noncomputable def runner.genEnd.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1851,7 +1853,7 @@ noncomputable def runner.genEnd.impl [GooseExts] [GoGlobalContext] : val :=
     (compacted, past, current, future), any limit up to past the number of keys (0: none), any
     count-only, keys-only and total-count options.
 
-    go: mvccfull.go:628:18 -/
+    go: mvccfull.go:631:18 -/
 noncomputable def runner.genRange.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "cur"
@@ -1919,7 +1921,7 @@ noncomputable def runner.genRange.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- newVal returns a new value, of any length up to MaxVal.
 
-    go: mvccfull.go:648:18 -/
+    go: mvccfull.go:651:18 -/
 noncomputable def runner.newVal.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1958,7 +1960,7 @@ noncomputable def runner.newVal.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- genLease returns no lease half the time, else a live lease of m, if any.
 
-    go: mvccfull.go:658:18 -/
+    go: mvccfull.go:661:18 -/
 noncomputable def runner.genLease.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -1991,7 +1993,7 @@ noncomputable def runner.genLease.impl [GooseExts] [GoGlobalContext] : val :=
 /-- genSubs returns a write transaction's operations, as etcd's checkIntervals allows them: the
     puts' keys distinct, and none in a delete's range.
 
-    go: mvccfull.go:667:18 -/
+    go: mvccfull.go:670:18 -/
 noncomputable def runner.genSubs.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -2163,7 +2165,7 @@ noncomputable def runner.genSubs.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- gen returns the next operation of the log, made for the leader l.
 
-    go: mvccfull.go:711:18 -/
+    go: mvccfull.go:714:18 -/
 noncomputable def runner.gen.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "l"
@@ -2354,7 +2356,7 @@ noncomputable def runner.gen.impl [GooseExts] [GoGlobalContext] : val :=
 /-- apply applies the operation o to m (lead: m is the leader, which appends o's revision to the
     history; the follower finds it there), checking every result.
 
-    go: mvccfull.go:762:18 -/
+    go: mvccfull.go:765:18 -/
 noncomputable def runner.apply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -2695,7 +2697,7 @@ noncomputable def runner.apply.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- begin returns the model of a write transaction on m, and raises m's revision bound.
 
-    go: mvccfull.go:832:18 -/
+    go: mvccfull.go:835:18 -/
 noncomputable def runner.begin.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -2726,7 +2728,7 @@ noncomputable def runner.begin.impl [GooseExts] [GoGlobalContext] : val :=
 /-- end appends the pending revision to the history (the leader, if it changed anything), runs
     the store's End, checks the store's revision and publishes it.
 
-    go: mvccfull.go:840:18 -/
+    go: mvccfull.go:843:18 -/
 noncomputable def runner.«end».impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -2795,7 +2797,7 @@ noncomputable def runner.«end».impl [GooseExts] [GoGlobalContext] : val :=
 /-- view returns the states as a read in the write transaction sees them (the pending revision
     appended once it has a change) and the revision it is at.
 
-    go: mvccfull.go:859:18 -/
+    go: mvccfull.go:862:18 -/
 noncomputable def runner.view.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "p"
@@ -2841,7 +2843,7 @@ noncomputable def runner.view.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.MapType go.string kvRec.ty))))) (Pair (Var "st") (Var "$r0"))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.MapType go.string kvRec.ty))))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.int64))) (Var "$res1"))))))))
 
-/-- go: mvccfull.go:867:18 -/
+/-- go: mvccfull.go:870:18 -/
 noncomputable def runner.writeRange.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -2898,7 +2900,7 @@ noncomputable def runner.writeRange.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- writeSub runs one operation of a write transaction, checked.
 
-    go: mvccfull.go:874:18 -/
+    go: mvccfull.go:877:18 -/
 noncomputable def runner.writeSub.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -2979,7 +2981,7 @@ noncomputable def runner.writeSub.impl [GooseExts] [GoGlobalContext] : val :=
     in a concurrent read transaction made a read-only write transaction. Then the branch's
     operations.
 
-    go: mvccfull.go:898:18 -/
+    go: mvccfull.go:901:18 -/
 noncomputable def runner.txn.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -3214,7 +3216,7 @@ noncomputable def runner.txn.impl [GooseExts] [GoGlobalContext] : val :=
     closed once the compactions before are done), ErrFutureRev past its revision; waits for the
     compaction if o.wait.
 
-    go: mvccfull.go:939:18 -/
+    go: mvccfull.go:942:18 -/
 noncomputable def runner.compact.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -3340,7 +3342,7 @@ noncomputable def runner.compact.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- checkHook checks that the post-lock hook ran with the index being applied.
 
-    go: mvccfull.go:969:18 -/
+    go: mvccfull.go:972:18 -/
 noncomputable def runner.checkHook.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -3355,51 +3357,7 @@ noncomputable def runner.checkHook.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (FuncResolve check []))) (Val #())) (Var "$a0")) (Var "$a1")))))))))
   (Val #())))))
 
-/-- lockAll and unlockAll hold both members' life locks shared (in member order).
-
-    go: mvccfull.go:977:18 -/
-noncomputable def runner.lockAll.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "x"
-  (Lam BAnon
-  (Seq (App (Val exceptionDo)
-  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType runner.ty)))) (Var "x"))
-  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType member.ty))))) (App (Val (GoInstruction (StructFieldRef runner.ty go!"ms"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType runner.ty)))) (Var "x"))))
-  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType member.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType member.ty)))) (Val #())))
-  (App (App (Val (slice.forRange (go.GoType.PointerType member.ty))) (Var "$range"))
-  (Lam "$key"
-  (Lam "$value"
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef member.ty go!"life"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType member.ty)))) (Var "m")))) (Val #())))))
-  (App (Val doExecute)
-  (Var "$key")))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType member.ty)))) (Pair (Var "m") (Var "$value"))))))))))))
-  (Val #()))))
-
-/-- go: mvccfull.go:983:18 -/
-noncomputable def runner.unlockAll.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "x"
-  (Lam BAnon
-  (Seq (App (Val exceptionDo)
-  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType runner.ty)))) (Var "x"))
-  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType member.ty))))) (App (Val (GoInstruction (StructFieldRef runner.ty go!"ms"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType runner.ty)))) (Var "x"))))
-  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType member.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType member.ty)))) (Val #())))
-  (App (App (Val (slice.forRange (go.GoType.PointerType member.ty))) (Var "$range"))
-  (Lam "$key"
-  (Lam "$value"
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RUnlock"))) (App (Val (GoInstruction (StructFieldRef member.ty go!"life"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType member.ty)))) (Var "m")))) (Val #())))))
-  (App (Val doExecute)
-  (Var "$key")))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType member.ty)))) (Pair (Var "m") (Var "$value"))))))))))))
-  (Val #()))))
-
-/-- go: mvccfull.go:989:6 -/
+/-- go: mvccfull.go:979:6 -/
 noncomputable def inBounds.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lo"
   (Lam "v"
@@ -3421,43 +3379,90 @@ noncomputable def inBounds.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (FuncResolve check []))) (Val #())) (Var "$a0")) (Var "$a1")))))))))))
   (Val #()))))))
 
-/-- reader runs reads on m.
+/-- startReaders starts cfg.Readers readers on each member, each running up to cfg.Reads reads
+    until stopReaders (between two restarts: a reader belongs to the members' current incarnations).
 
-    go: mvccfull.go:995:18 -/
-noncomputable def runner.reader.impl [GooseExts] [GoGlobalContext] : val :=
+    go: mvccfull.go:986:18 -/
+noncomputable def runner.startReaders.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
-  (Lam "m"
-  (Lam "reads"
+  (Lam BAnon
   (Seq (App (Val exceptionDo)
   (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType runner.ty)))) (Var "x"))
-  (Let "reads" (App (Val (GoInstruction (GoAlloc go.int))) (Var "reads"))
-  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType member.ty)))) (Var "m"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType member.ty))))) (App (Val (GoInstruction (StructFieldRef runner.ty go!"ms"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType runner.ty)))) (Var "x"))))
+  (App (App (Val (slice.forRange (go.GoType.PointerType member.ty))) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType member.ty)))) (Var "$value"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 0))
+  (Let "j" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "j")) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"Readers"))) (App (Val (GoInstruction (StructFieldRef runner.ty go!"cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType runner.ty)))) (Var "x"))))))))) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$go" (Lam BAnon
+  (Seq (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Done"))) (App (Val (GoInstruction (StructFieldRef runner.ty go!"readWg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType runner.ty)))) (Var "x")))) (Val #())))))
   (Let "$r0" (Val #(W64 0))
   (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (App (Val doFor) (Lam BAnon
-  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "n")) (App (Val (GoInstruction (GoLoad go.int))) (Var "reads")))))) (Lam BAnon
+  (If (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "n")) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"Reads"))) (App (Val (GoInstruction (StructFieldRef runner.ty go!"cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType runner.ty)))) (Var "x"))))))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Int64.ty) go!"Load"))) (App (Val (GoInstruction (StructFieldRef runner.ty go!"readStop"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType runner.ty)))) (Var "x")))) (Val #())) (Val #(W64 0)))) (Val #false)))) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef Mix.ty go!"ReadPause"))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"Mix"))) (App (Val (GoInstruction (StructFieldRef runner.ty go!"cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType runner.ty)))) (Var "x"))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Sleep []))) (Val #())) (Var "$a0"))))))
   (App (Val doExecute)
   (Let "$a0" (Val #(W64 1))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Int64.ty) go!"Add"))) (App (Val (GoInstruction (StructFieldRef runner.ty go!"reads"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType runner.ty)))) (Var "x")))) (Var "$a0"))))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType runner.ty) go!"unlockAll"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType runner.ty)))) (Var "x"))) (Val #()))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Int64.ty) go!"Add"))) (App (Val (GoInstruction (StructFieldRef runner.ty go!"reads"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType runner.ty)))) (Var "x")))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType member.ty)))) (Var "m"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType runner.ty) go!"readOne"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType runner.ty)))) (Var "x"))) (Var "$a0")))))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType runner.ty) go!"lockAll"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType runner.ty)))) (Var "x"))) (Val #()))))))
   (Lam BAnon
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "n") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "n")) (Val #(W64 1)))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "n") (Var "$r0")))))))))))
-  (Val #())))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "n") (Var "$r0")))))))))
+  (Val #())))
+  (App (Val doExecute)
+  (Fork
+  (App (Var "$go") (Val #())))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(W64 1))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Add"))) (App (Val (GoInstruction (StructFieldRef runner.ty go!"readWg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType runner.ty)))) (Var "x")))) (Var "$a0")))))))
+  (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "j") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "j")) (Val #(W64 1)))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "j") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (Var "$key"))))))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(W64 0))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Int64.ty) go!"Store"))) (App (Val (GoInstruction (StructFieldRef runner.ty go!"readStop"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType runner.ty)))) (Var "x")))) (Var "$a0")))))))
+  (Val #()))))
 
-/-- go: mvccfull.go:1004:18 -/
+/-- stopReaders stops the readers and waits for them.
+
+    go: mvccfull.go:1004:18 -/
+noncomputable def runner.stopReaders.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "x"
+  (Lam BAnon
+  (Seq (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType runner.ty)))) (Var "x"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Wait"))) (App (Val (GoInstruction (StructFieldRef runner.ty go!"readWg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType runner.ty)))) (Var "x")))) (Val #())))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(W64 1))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Int64.ty) go!"Store"))) (App (Val (GoInstruction (StructFieldRef runner.ty go!"readStop"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType runner.ty)))) (Var "x")))) (Var "$a0")))))))
+  (Val #()))))
+
+/-- go: mvccfull.go:1009:18 -/
 noncomputable def runner.readOne.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -3705,7 +3710,7 @@ noncomputable def runner.readOne.impl [GooseExts] [GoGlobalContext] : val :=
 /-- checkStoreRange checks the store's own Range (its own read transaction: a revision in
     [lo, revHi], a compaction revision in [clo, cmpHi]).
 
-    go: mvccfull.go:1048:18 -/
+    go: mvccfull.go:1053:18 -/
 noncomputable def runner.checkStoreRange.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -3766,7 +3771,7 @@ noncomputable def runner.checkStoreRange.impl [GooseExts] [GoGlobalContext] : va
     and equal when they are of the same revision and compaction revision; and the members'
     compaction hashes, equal when of the same revisions.
 
-    go: mvccfull.go:1063:18 -/
+    go: mvccfull.go:1068:18 -/
 noncomputable def runner.hashes.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -3940,7 +3945,7 @@ noncomputable def runner.hashes.impl [GooseExts] [GoGlobalContext] : val :=
     equal, unless the state at that revision is empty (the restriction:
     issues/etcd-mvcc-compact-hash-empty-keyspace.md).
 
-    go: mvccfull.go:1098:18 -/
+    go: mvccfull.go:1103:18 -/
 noncomputable def runner.sameHash.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "a"
@@ -3976,7 +3981,7 @@ noncomputable def runner.sameHash.impl [GooseExts] [GoGlobalContext] : val :=
     below the compaction revision, else the hash of r (0: the current revision) at the compaction
     revision; or the hash a compaction at r stored, at the compaction revision before it.
 
-    go: mvccfull.go:1112:18 -/
+    go: mvccfull.go:1117:18 -/
 noncomputable def runner.checkHash.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -4086,7 +4091,7 @@ noncomputable def runner.checkHash.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))))))))
   (Val #()))))))))))
 
-/-- go: mvccfull.go:1159:19 -/
+/-- go: mvccfull.go:1164:19 -/
 noncomputable def watcher.«matches».impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "ch"
@@ -4128,7 +4133,7 @@ noncomputable def watcher.«matches».impl [GooseExts] [GoGlobalContext] : val :
 /-- startEpoch opens m's watch streams, each with its receiving goroutine and its registering one,
     which acts until the writer stops it.
 
-    go: mvccfull.go:1187:18 -/
+    go: mvccfull.go:1192:18 -/
 noncomputable def runner.startEpoch.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -4215,7 +4220,7 @@ noncomputable def runner.startEpoch.impl [GooseExts] [GoGlobalContext] : val :=
 /-- endEpoch stops registering on m's streams, waits until every watcher has every event up to m's
     revision (or was cancelled or compacted), and closes the streams.
 
-    go: mvccfull.go:1213:18 -/
+    go: mvccfull.go:1218:18 -/
 noncomputable def runner.endEpoch.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -4326,7 +4331,7 @@ noncomputable def runner.endEpoch.impl [GooseExts] [GoGlobalContext] : val :=
     progress or the stream's, check the stream's revision, or watch an empty range (which must
     fail).
 
-    go: mvccfull.go:1238:18 -/
+    go: mvccfull.go:1243:18 -/
 noncomputable def stream.act.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -4414,7 +4419,7 @@ noncomputable def stream.act.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- pick returns a watcher not cancelled, if any (s.mu held).
 
-    go: mvccfull.go:1264:18 -/
+    go: mvccfull.go:1269:18 -/
 noncomputable def stream.pick.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -4476,7 +4481,7 @@ noncomputable def stream.pick.impl [GooseExts] [GoGlobalContext] : val :=
 /-- watch registers a watcher (the stream picks its id, as etcd's client asks): from revision 0
     or any revision up to two past the member's, over any non-empty range, with any filter.
 
-    go: mvccfull.go:1279:18 -/
+    go: mvccfull.go:1284:18 -/
 noncomputable def stream.watch.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -4648,7 +4653,7 @@ noncomputable def stream.watch.impl [GooseExts] [GoGlobalContext] : val :=
 /-- cancel cancels a watcher not cancelled (marked first, so that the receiver stops counting on
     the stream's progress responses for it), and cancels it again, which may fail.
 
-    go: mvccfull.go:1322:18 -/
+    go: mvccfull.go:1327:18 -/
 noncomputable def stream.cancel.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -4711,7 +4716,7 @@ noncomputable def stream.cancel.impl [GooseExts] [GoGlobalContext] : val :=
 /-- expect returns w's next expected change at or after its position, up to revision upto (false if
     there is none).
 
-    go: mvccfull.go:1340:18 -/
+    go: mvccfull.go:1345:18 -/
 noncomputable def stream.expect.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "w"
@@ -4795,7 +4800,7 @@ noncomputable def stream.expect.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- covered checks that w has received every change up to P.
 
-    go: mvccfull.go:1357:18 -/
+    go: mvccfull.go:1362:18 -/
 noncomputable def stream.covered.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "w"
@@ -4837,7 +4842,7 @@ noncomputable def stream.covered.impl [GooseExts] [GoGlobalContext] : val :=
     sendLoop drains its channel down to a new watcher's stamp the same way): a stream progress
     response received later was sent after the watcher registered, and covers it.
 
-    go: mvccfull.go:1367:18 -/
+    go: mvccfull.go:1372:18 -/
 noncomputable def stream.recvOne.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -4948,7 +4953,7 @@ noncomputable def stream.recvOne.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- receive checks a response of the stream (s.mu held).
 
-    go: mvccfull.go:1395:18 -/
+    go: mvccfull.go:1400:18 -/
 noncomputable def stream.receive.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "resp"
@@ -5255,7 +5260,7 @@ noncomputable def stream.receive.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- complete says whether every watcher not cancelled or compacted has every change up to upto.
 
-    go: mvccfull.go:1476:18 -/
+    go: mvccfull.go:1481:18 -/
 noncomputable def stream.complete.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "upto"
@@ -5335,7 +5340,7 @@ noncomputable def stream.complete.impl [GooseExts] [GoGlobalContext] : val :=
 /-- write is the writer: the log's operations on the leader, the follower catching up, snapshots
     installed on the follower, restarts; then the follower caught up.
 
-    go: mvccfull.go:1496:18 -/
+    go: mvccfull.go:1501:18 -/
 noncomputable def runner.write.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -5423,7 +5428,7 @@ noncomputable def runner.write.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- checkAll reads every revision of m not compacted, in full.
 
-    go: mvccfull.go:1527:18 -/
+    go: mvccfull.go:1532:18 -/
 noncomputable def runner.checkAll.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -5547,7 +5552,7 @@ noncomputable def runner.checkAll.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Run runs the tester; it panics if a check fails.
 
-    go: mvccfull.go:1548:6 -/
+    go: mvccfull.go:1553:6 -/
 noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc Report.ty))) (App (Val (GoInstruction (GoZeroVal Report.ty))) (Val #())))
@@ -5587,9 +5592,6 @@ noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType runner.ty) go!"newMember"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType runner.ty)))) (Var "x"))) (Var "$a0")) (Var "$a1"))))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.PointerType member.ty))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.PointerType member.ty) (Var "$sl0")))])))
   (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType (go.GoType.PointerType member.ty))]))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "wg" (App (Val (GoInstruction (GoAlloc _root_.Perennial.sync.WaitGroup.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.sync.WaitGroup.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -5644,50 +5646,13 @@ noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType member.ty)))) (Pair (Var "m") (Var "$value")))))))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType runner.ty) go!"unlockAll"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType runner.ty)))) (Var "x"))) (Val #()))))))
-  (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType runner.ty) go!"hashes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType runner.ty)))) (Var "x"))) (Val #()))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType runner.ty) go!"lockAll"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType runner.ty)))) (Var "x"))) (Val #()))))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Wait"))) (Var "wg")) (Val #()))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType runner.ty) go!"stopReaders"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType runner.ty)))) (Var "x"))) (Val #()))))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType runner.ty) go!"write"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType runner.ty)))) (Var "x"))) (Val #()))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType member.ty))))) (App (Val (GoInstruction (StructFieldRef runner.ty go!"ms"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType runner.ty)))) (Var "x"))))
-  (App (App (Val (slice.forRange (go.GoType.PointerType member.ty))) (Var "$range"))
-  (Lam "$key"
-  (Lam "$value"
-  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType member.ty)))) (Var "$value"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Val #(W64 0))
-  (Let "j" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (App (Val doFor) (Lam BAnon
-  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "j")) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"Readers"))) (Var "cfg"))))))) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$go" (Lam BAnon
-  (Seq (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Done"))) (Var "wg")) (Val #())))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType member.ty)))) (Var "m"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"Reads"))) (Var "cfg")))
-  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType runner.ty) go!"reader"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType runner.ty)))) (Var "x"))) (Var "$a0")) (Var "$a1")))))))
-  (Val #())))
-  (App (Val doExecute)
-  (Fork
-  (App (Var "$go") (Val #())))))))
-  (App (Val doExecute)
-  (Let "$a0" (Val #(W64 1))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Add"))) (Var "wg")) (Var "$a0")))))))
-  (Lam BAnon
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "j") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "j")) (Val #(W64 1)))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "j") (Var "$r0")))))))))
-  (App (Val doExecute)
-  (Var "$key"))))))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType runner.ty) go!"startReaders"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType runner.ty)))) (Var "x"))) (Val #()))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType member.ty))))) (App (Val (GoInstruction (StructFieldRef runner.ty go!"ms"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType runner.ty)))) (Var "x"))))
   (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType member.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType member.ty)))) (Val #())))
   (App (App (Val (slice.forRange (go.GoType.PointerType member.ty))) (Var "$range"))
@@ -5715,7 +5680,7 @@ noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Main runs the tester with MainConfig (config.go), the members' files mvccfull-0-0.db,
     mvccfull-1-0.db, ... in the current directory (which must not exist).
 
-    go: mvccfull.go:1587:6 -/
+    go: mvccfull.go:1581:6 -/
 noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
@@ -5782,9 +5747,10 @@ structure Mix [GooseExts] where
   Start' : GoSlice
   Pause' : _root_.Perennial.time.Duration
   RecvPause' : _root_.Perennial.time.Duration
+  ReadPause' : _root_.Perennial.time.Duration
 
 noncomputable instance Mix.zero_val [GooseExts] : ZeroVal Mix :=
-  ⟨Mix.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+  ⟨Mix.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
 @[reducible] noncomputable def Mix.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Step" (go.GoType.SliceType go.int)),
@@ -5795,7 +5761,8 @@ noncomputable instance Mix.zero_val [GooseExts] : ZeroVal Mix :=
 (go.field_decl.FieldDecl go!"Act" (go.GoType.SliceType go.int)),
 (go.field_decl.FieldDecl go!"Start" (go.GoType.SliceType go.int)),
 (go.field_decl.FieldDecl go!"Pause" _root_.Perennial.time.Duration.ty),
-(go.field_decl.FieldDecl go!"RecvPause" _root_.Perennial.time.Duration.ty)]
+(go.field_decl.FieldDecl go!"RecvPause" _root_.Perennial.time.Duration.ty),
+(go.field_decl.FieldDecl go!"ReadPause" _root_.Perennial.time.Duration.ty)]
 
 @[irreducible] noncomputable def Mix.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Mix.fieldsUnsealed
@@ -5828,6 +5795,8 @@ class Mix.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSema
   set_Pause : ∀ (x : Mix) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Mix.underlying go!"Pause") (PairV #x #y) (Val #(({ x with Pause' := y } : Mix)))
   get_RecvPause : ∀ (x : Mix), go.IsGoStepPureDetTagged under (StructFieldGet Mix.underlying go!"RecvPause") #x (Val #(x.RecvPause'))
   set_RecvPause : ∀ (x : Mix) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Mix.underlying go!"RecvPause") (PairV #x #y) (Val #(({ x with RecvPause' := y } : Mix)))
+  get_ReadPause : ∀ (x : Mix), go.IsGoStepPureDetTagged under (StructFieldGet Mix.underlying go!"ReadPause") #x (Val #(x.ReadPause'))
+  set_ReadPause : ∀ (x : Mix) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Mix.underlying go!"ReadPause") (PairV #x #y) (Val #(({ x with ReadPause' := y } : Mix)))
   method_set : go.MethodSetIs Mix.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Mix.ty) []
 
@@ -5851,6 +5820,8 @@ attribute [instance] Mix.TypeAssumptions.type_repr
   Mix.TypeAssumptions.set_Pause
   Mix.TypeAssumptions.get_RecvPause
   Mix.TypeAssumptions.set_RecvPause
+  Mix.TypeAssumptions.get_ReadPause
+  Mix.TypeAssumptions.set_ReadPause
   Mix.TypeAssumptions.method_set
   Mix.TypeAssumptions.ptr_method_set
 
@@ -6321,7 +6292,6 @@ structure member [GooseExts] where
   mk ::
   id' : w64
   path' : GoString
-  life' : _root_.Perennial.sync.RWMutex
   be' : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend
   le' : _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor
   kv' : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV
@@ -6340,12 +6310,11 @@ structure member [GooseExts] where
   leases' : GoSlice
 
 noncomputable instance member.zero_val [GooseExts] : ZeroVal member :=
-  ⟨member.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+  ⟨member.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
 @[reducible] noncomputable def member.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"id" go.int),
 (go.field_decl.FieldDecl go!"path" go.string),
-(go.field_decl.FieldDecl go!"life" _root_.Perennial.sync.RWMutex.ty),
 (go.field_decl.FieldDecl go!"be" _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty),
 (go.field_decl.FieldDecl go!"le" _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor.ty),
 (go.field_decl.FieldDecl go!"kv" _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty),
@@ -6380,8 +6349,6 @@ class member.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   set_id : ∀ (x : member) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet member.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : member)))
   get_path : ∀ (x : member), go.IsGoStepPureDetTagged under (StructFieldGet member.underlying go!"path") #x (Val #(x.path'))
   set_path : ∀ (x : member) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet member.underlying go!"path") (PairV #x #y) (Val #(({ x with path' := y } : member)))
-  get_life : ∀ (x : member), go.IsGoStepPureDetTagged under (StructFieldGet member.underlying go!"life") #x (Val #(x.life'))
-  set_life : ∀ (x : member) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet member.underlying go!"life") (PairV #x #y) (Val #(({ x with life' := y } : member)))
   get_be : ∀ (x : member), go.IsGoStepPureDetTagged under (StructFieldGet member.underlying go!"be") #x (Val #(x.be'))
   set_be : ∀ (x : member) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend), go.IsGoStepPureDetTagged under (StructFieldSet member.underlying go!"be") (PairV #x #y) (Val #(({ x with be' := y } : member)))
   get_le : ∀ (x : member), go.IsGoStepPureDetTagged under (StructFieldGet member.underlying go!"le") #x (Val #(x.le'))
@@ -6423,8 +6390,6 @@ attribute [instance] member.TypeAssumptions.type_repr
   member.TypeAssumptions.set_id
   member.TypeAssumptions.get_path
   member.TypeAssumptions.set_path
-  member.TypeAssumptions.get_life
-  member.TypeAssumptions.set_life
   member.TypeAssumptions.get_be
   member.TypeAssumptions.set_be
   member.TypeAssumptions.get_le
@@ -6672,6 +6637,8 @@ structure runner [GooseExts] where
   nextLease' : w64
   vals' : w64
   builds' : w64
+  readStop' : _root_.Perennial.sync.atomic.Int64
+  readWg' : _root_.Perennial.sync.WaitGroup
   revisions' : _root_.Perennial.sync.atomic.Int64
   events' : _root_.Perennial.sync.atomic.Int64
   progress' : _root_.Perennial.sync.atomic.Int64
@@ -6684,7 +6651,7 @@ structure runner [GooseExts] where
   restarts' : _root_.Perennial.sync.atomic.Int64
 
 noncomputable instance runner.zero_val [GooseExts] : ZeroVal runner :=
-  ⟨runner.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+  ⟨runner.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
 @[reducible] noncomputable def runner.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"cfg" Config.ty),
@@ -6696,6 +6663,8 @@ noncomputable instance runner.zero_val [GooseExts] : ZeroVal runner :=
 (go.field_decl.FieldDecl go!"nextLease" go.int64),
 (go.field_decl.FieldDecl go!"vals" go.int),
 (go.field_decl.FieldDecl go!"builds" go.int),
+(go.field_decl.FieldDecl go!"readStop" _root_.Perennial.sync.atomic.Int64.ty),
+(go.field_decl.FieldDecl go!"readWg" _root_.Perennial.sync.WaitGroup.ty),
 (go.field_decl.FieldDecl go!"revisions" _root_.Perennial.sync.atomic.Int64.ty),
 (go.field_decl.FieldDecl go!"events" _root_.Perennial.sync.atomic.Int64.ty),
 (go.field_decl.FieldDecl go!"progress" _root_.Perennial.sync.atomic.Int64.ty),
@@ -6738,6 +6707,10 @@ class runner.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   set_vals : ∀ (x : runner) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet runner.underlying go!"vals") (PairV #x #y) (Val #(({ x with vals' := y } : runner)))
   get_builds : ∀ (x : runner), go.IsGoStepPureDetTagged under (StructFieldGet runner.underlying go!"builds") #x (Val #(x.builds'))
   set_builds : ∀ (x : runner) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet runner.underlying go!"builds") (PairV #x #y) (Val #(({ x with builds' := y } : runner)))
+  get_readStop : ∀ (x : runner), go.IsGoStepPureDetTagged under (StructFieldGet runner.underlying go!"readStop") #x (Val #(x.readStop'))
+  set_readStop : ∀ (x : runner) (y : _root_.Perennial.sync.atomic.Int64), go.IsGoStepPureDetTagged under (StructFieldSet runner.underlying go!"readStop") (PairV #x #y) (Val #(({ x with readStop' := y } : runner)))
+  get_readWg : ∀ (x : runner), go.IsGoStepPureDetTagged under (StructFieldGet runner.underlying go!"readWg") #x (Val #(x.readWg'))
+  set_readWg : ∀ (x : runner) (y : _root_.Perennial.sync.WaitGroup), go.IsGoStepPureDetTagged under (StructFieldSet runner.underlying go!"readWg") (PairV #x #y) (Val #(({ x with readWg' := y } : runner)))
   get_revisions : ∀ (x : runner), go.IsGoStepPureDetTagged under (StructFieldGet runner.underlying go!"revisions") #x (Val #(x.revisions'))
   set_revisions : ∀ (x : runner) (y : _root_.Perennial.sync.atomic.Int64), go.IsGoStepPureDetTagged under (StructFieldSet runner.underlying go!"revisions") (PairV #x #y) (Val #(({ x with revisions' := y } : runner)))
   get_events : ∀ (x : runner), go.IsGoStepPureDetTagged under (StructFieldGet runner.underlying go!"events") #x (Val #(x.events'))
@@ -6759,7 +6732,7 @@ class runner.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   get_restarts : ∀ (x : runner), go.IsGoStepPureDetTagged under (StructFieldGet runner.underlying go!"restarts") #x (Val #(x.restarts'))
   set_restarts : ∀ (x : runner) (y : _root_.Perennial.sync.atomic.Int64), go.IsGoStepPureDetTagged under (StructFieldSet runner.underlying go!"restarts") (PairV #x #y) (Val #(({ x with restarts' := y } : runner)))
   method_set : go.MethodSetIs runner.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType runner.ty) [(go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.apply", (some (go.signature.Signature [(go.GoType.PointerType member.ty), (go.GoType.PointerType op.ty), go.bool] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.begin", (some (go.signature.Signature [(go.GoType.PointerType member.ty)] false [(go.GoType.PointerType pending.ty)]))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.checkAll", (some (go.signature.Signature [(go.GoType.PointerType member.ty)] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.checkHash", (some (go.signature.Signature [(go.GoType.PointerType member.ty), go.int64, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KeyValueHash.ty, go.int64, go.error, go.int64, go.int64] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.checkHook", (some (go.signature.Signature [(go.GoType.PointerType member.ty), go.int64] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.checkLeases", (some (go.signature.Signature [(go.GoType.PointerType member.ty)] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.checkStoreRange", (some (go.signature.Signature [(go.GoType.PointerType member.ty), go.int64, go.int64, rangeReq.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.RangeResult.ty), go.error] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.compact", (some (go.signature.Signature [(go.GoType.PointerType member.ty), (go.GoType.PointerType op.ty), go.bool] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.end", (some (go.signature.Signature [(go.GoType.PointerType member.ty), (go.GoType.PointerType pending.ty), go.bool, (go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.endEpoch", (some (go.signature.Signature [(go.GoType.PointerType member.ty)] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.gen", (some (go.signature.Signature [(go.GoType.PointerType member.ty)] false [(go.GoType.PointerType op.ty)]))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.genEnd", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.genKey", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.genLease", (some (go.signature.Signature [(go.GoType.PointerType member.ty)] false [go.int64]))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.genRange", (some (go.signature.Signature [go.int64, go.int64] false [rangeReq.ty]))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.genSubs", (some (go.signature.Signature [(go.GoType.PointerType member.ty)] false [(go.GoType.SliceType subOp.ty)]))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.hashes", (some (go.signature.Signature [] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.lockAll", (some (go.signature.Signature [] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.newMember", (some (go.signature.Signature [go.int, go.string] false [(go.GoType.PointerType member.ty)]))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.newVal", (some (go.signature.Signature [] false [go.string]))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.open", (some (go.signature.Signature [(go.GoType.PointerType member.ty)] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.openBackend", (some (go.signature.Signature [go.string] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty]))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.readOne", (some (go.signature.Signature [(go.GoType.PointerType member.ty)] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.reader", (some (go.signature.Signature [(go.GoType.PointerType member.ty), go.int] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.restart", (some (go.signature.Signature [(go.GoType.PointerType member.ty)] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.restore", (some (go.signature.Signature [(go.GoType.PointerType member.ty), (go.GoType.PointerType member.ty)] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.sameHash", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KeyValueHash.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KeyValueHash.ty] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.shut", (some (go.signature.Signature [(go.GoType.PointerType member.ty)] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.startEpoch", (some (go.signature.Signature [(go.GoType.PointerType member.ty)] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.txn", (some (go.signature.Signature [(go.GoType.PointerType member.ty), (go.GoType.PointerType op.ty), go.bool, go.int64] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.unlockAll", (some (go.signature.Signature [] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.view", (some (go.signature.Signature [(go.GoType.PointerType pending.ty)] false [(go.GoType.SliceType (go.GoType.MapType go.string kvRec.ty)), go.int64]))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.write", (some (go.signature.Signature [] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.writeRange", (some (go.signature.Signature [(go.GoType.PointerType member.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.TxnWrite.ty, (go.GoType.PointerType pending.ty), rangeReq.ty] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.writeSub", (some (go.signature.Signature [(go.GoType.PointerType member.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.TxnWrite.ty, (go.GoType.PointerType pending.ty), subOp.ty] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType runner.ty) [(go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.apply", (some (go.signature.Signature [(go.GoType.PointerType member.ty), (go.GoType.PointerType op.ty), go.bool] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.begin", (some (go.signature.Signature [(go.GoType.PointerType member.ty)] false [(go.GoType.PointerType pending.ty)]))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.checkAll", (some (go.signature.Signature [(go.GoType.PointerType member.ty)] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.checkHash", (some (go.signature.Signature [(go.GoType.PointerType member.ty), go.int64, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KeyValueHash.ty, go.int64, go.error, go.int64, go.int64] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.checkHook", (some (go.signature.Signature [(go.GoType.PointerType member.ty), go.int64] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.checkLeases", (some (go.signature.Signature [(go.GoType.PointerType member.ty)] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.checkStoreRange", (some (go.signature.Signature [(go.GoType.PointerType member.ty), go.int64, go.int64, rangeReq.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.RangeResult.ty), go.error] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.compact", (some (go.signature.Signature [(go.GoType.PointerType member.ty), (go.GoType.PointerType op.ty), go.bool] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.end", (some (go.signature.Signature [(go.GoType.PointerType member.ty), (go.GoType.PointerType pending.ty), go.bool, (go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.endEpoch", (some (go.signature.Signature [(go.GoType.PointerType member.ty)] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.gen", (some (go.signature.Signature [(go.GoType.PointerType member.ty)] false [(go.GoType.PointerType op.ty)]))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.genEnd", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.genKey", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.genLease", (some (go.signature.Signature [(go.GoType.PointerType member.ty)] false [go.int64]))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.genRange", (some (go.signature.Signature [go.int64, go.int64] false [rangeReq.ty]))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.genSubs", (some (go.signature.Signature [(go.GoType.PointerType member.ty)] false [(go.GoType.SliceType subOp.ty)]))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.hashes", (some (go.signature.Signature [] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.newMember", (some (go.signature.Signature [go.int, go.string] false [(go.GoType.PointerType member.ty)]))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.newVal", (some (go.signature.Signature [] false [go.string]))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.open", (some (go.signature.Signature [(go.GoType.PointerType member.ty)] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.openBackend", (some (go.signature.Signature [go.string] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty]))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.readOne", (some (go.signature.Signature [(go.GoType.PointerType member.ty)] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.restart", (some (go.signature.Signature [(go.GoType.PointerType member.ty)] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.restore", (some (go.signature.Signature [(go.GoType.PointerType member.ty), (go.GoType.PointerType member.ty)] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.sameHash", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KeyValueHash.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KeyValueHash.ty] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.shut", (some (go.signature.Signature [(go.GoType.PointerType member.ty)] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.startEpoch", (some (go.signature.Signature [(go.GoType.PointerType member.ty)] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.startReaders", (some (go.signature.Signature [] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.stopReaders", (some (go.signature.Signature [] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.txn", (some (go.signature.Signature [(go.GoType.PointerType member.ty), (go.GoType.PointerType op.ty), go.bool, go.int64] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.view", (some (go.signature.Signature [(go.GoType.PointerType pending.ty)] false [(go.GoType.SliceType (go.GoType.MapType go.string kvRec.ty)), go.int64]))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.write", (some (go.signature.Signature [] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.writeRange", (some (go.signature.Signature [(go.GoType.PointerType member.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.TxnWrite.ty, (go.GoType.PointerType pending.ty), rangeReq.ty] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.writeSub", (some (go.signature.Signature [(go.GoType.PointerType member.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.TxnWrite.ty, (go.GoType.PointerType pending.ty), subOp.ty] false [])))]
   ptr_apply_unfold : MethodUnfold (go.GoType.PointerType runner.ty) go!"apply" runner.apply.impl
   ptr_begin_unfold : MethodUnfold (go.GoType.PointerType runner.ty) go!"begin" runner.begin.impl
   ptr_checkAll_unfold : MethodUnfold (go.GoType.PointerType runner.ty) go!"checkAll" runner.checkAll.impl
@@ -6777,20 +6750,19 @@ class runner.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   ptr_genRange_unfold : MethodUnfold (go.GoType.PointerType runner.ty) go!"genRange" runner.genRange.impl
   ptr_genSubs_unfold : MethodUnfold (go.GoType.PointerType runner.ty) go!"genSubs" runner.genSubs.impl
   ptr_hashes_unfold : MethodUnfold (go.GoType.PointerType runner.ty) go!"hashes" runner.hashes.impl
-  ptr_lockAll_unfold : MethodUnfold (go.GoType.PointerType runner.ty) go!"lockAll" runner.lockAll.impl
   ptr_newMember_unfold : MethodUnfold (go.GoType.PointerType runner.ty) go!"newMember" runner.newMember.impl
   ptr_newVal_unfold : MethodUnfold (go.GoType.PointerType runner.ty) go!"newVal" runner.newVal.impl
   ptr_open_unfold : MethodUnfold (go.GoType.PointerType runner.ty) go!"open" runner.«open».impl
   ptr_openBackend_unfold : MethodUnfold (go.GoType.PointerType runner.ty) go!"openBackend" runner.openBackend.impl
   ptr_readOne_unfold : MethodUnfold (go.GoType.PointerType runner.ty) go!"readOne" runner.readOne.impl
-  ptr_reader_unfold : MethodUnfold (go.GoType.PointerType runner.ty) go!"reader" runner.reader.impl
   ptr_restart_unfold : MethodUnfold (go.GoType.PointerType runner.ty) go!"restart" runner.restart.impl
   ptr_restore_unfold : MethodUnfold (go.GoType.PointerType runner.ty) go!"restore" runner.restore.impl
   ptr_sameHash_unfold : MethodUnfold (go.GoType.PointerType runner.ty) go!"sameHash" runner.sameHash.impl
   ptr_shut_unfold : MethodUnfold (go.GoType.PointerType runner.ty) go!"shut" runner.shut.impl
   ptr_startEpoch_unfold : MethodUnfold (go.GoType.PointerType runner.ty) go!"startEpoch" runner.startEpoch.impl
+  ptr_startReaders_unfold : MethodUnfold (go.GoType.PointerType runner.ty) go!"startReaders" runner.startReaders.impl
+  ptr_stopReaders_unfold : MethodUnfold (go.GoType.PointerType runner.ty) go!"stopReaders" runner.stopReaders.impl
   ptr_txn_unfold : MethodUnfold (go.GoType.PointerType runner.ty) go!"txn" runner.txn.impl
-  ptr_unlockAll_unfold : MethodUnfold (go.GoType.PointerType runner.ty) go!"unlockAll" runner.unlockAll.impl
   ptr_view_unfold : MethodUnfold (go.GoType.PointerType runner.ty) go!"view" runner.view.impl
   ptr_write_unfold : MethodUnfold (go.GoType.PointerType runner.ty) go!"write" runner.write.impl
   ptr_writeRange_unfold : MethodUnfold (go.GoType.PointerType runner.ty) go!"writeRange" runner.writeRange.impl
@@ -6816,6 +6788,10 @@ attribute [instance] runner.TypeAssumptions.type_repr
   runner.TypeAssumptions.set_vals
   runner.TypeAssumptions.get_builds
   runner.TypeAssumptions.set_builds
+  runner.TypeAssumptions.get_readStop
+  runner.TypeAssumptions.set_readStop
+  runner.TypeAssumptions.get_readWg
+  runner.TypeAssumptions.set_readWg
   runner.TypeAssumptions.get_revisions
   runner.TypeAssumptions.set_revisions
   runner.TypeAssumptions.get_events
@@ -6855,20 +6831,19 @@ attribute [instance] runner.TypeAssumptions.type_repr
   runner.TypeAssumptions.ptr_genRange_unfold
   runner.TypeAssumptions.ptr_genSubs_unfold
   runner.TypeAssumptions.ptr_hashes_unfold
-  runner.TypeAssumptions.ptr_lockAll_unfold
   runner.TypeAssumptions.ptr_newMember_unfold
   runner.TypeAssumptions.ptr_newVal_unfold
   runner.TypeAssumptions.ptr_open_unfold
   runner.TypeAssumptions.ptr_openBackend_unfold
   runner.TypeAssumptions.ptr_readOne_unfold
-  runner.TypeAssumptions.ptr_reader_unfold
   runner.TypeAssumptions.ptr_restart_unfold
   runner.TypeAssumptions.ptr_restore_unfold
   runner.TypeAssumptions.ptr_sameHash_unfold
   runner.TypeAssumptions.ptr_shut_unfold
   runner.TypeAssumptions.ptr_startEpoch_unfold
+  runner.TypeAssumptions.ptr_startReaders_unfold
+  runner.TypeAssumptions.ptr_stopReaders_unfold
   runner.TypeAssumptions.ptr_txn_unfold
-  runner.TypeAssumptions.ptr_unlockAll_unfold
   runner.TypeAssumptions.ptr_view_unfold
   runner.TypeAssumptions.ptr_write_unfold
   runner.TypeAssumptions.ptr_writeRange_unfold

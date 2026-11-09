@@ -370,11 +370,10 @@ func checkKV(kv *mvccpb.KeyValue, k string, e kvRec, keysOnly bool) {
 // The writer's model of it: the log operations it has applied, its revision, compaction revision
 // and live leases (in increasing order). For the other goroutines, bounds: the member's store
 // shows a revision in [revLo, revHi] and a compaction revision in [cmpLo, cmpHi] (each lo stored
-// after a step, each hi before). life is held shared by the readers and exclusively by a restart.
+// after a step, each hi before).
 type member struct {
 	id       int
 	path     string
-	life     sync.RWMutex
 	be       backend.Backend
 	le       lease.Lessor
 	kv       mvcc.WatchableKV
@@ -449,6 +448,8 @@ type runner struct {
 	nextLease int64
 	vals      int
 	builds    int
+	readStop  atomic.Int64
+	readWg    sync.WaitGroup
 
 	revisions, events, progress, compacted, cancels, reads, hashPairs, compactions,
 	restores, restarts atomic.Int64
@@ -524,15 +525,17 @@ func (x *runner) newMember(id int, path string) *member {
 	return m
 }
 
-// restart drains and closes m's watch streams, closes m and opens it again on its file.
+// restart stops the readers and drains and closes m's watch streams (a restart is the member's
+// process restarting: its requests in flight end with it), closes m and opens it again on its
+// file, and starts them again.
 func (x *runner) restart(m *member) {
+	x.stopReaders()
 	x.endEpoch(m)
-	m.life.Lock()
 	x.shut(m)
 	x.open(m)
-	m.life.Unlock()
 	x.restarts.Add(1)
 	x.startEpoch(m)
+	x.startReaders()
 }
 
 // restore installs a snapshot on the follower f at the leader l's point of the log, as the
@@ -973,32 +976,34 @@ func (x *runner) checkHook(m *member, i int64) {
 // ---------------------------------------------------------------------------------------------
 // The readers
 
-// lockAll and unlockAll hold both members' life locks shared (in member order).
-func (x *runner) lockAll() {
-	for _, m := range x.ms {
-		m.life.RLock()
-	}
-}
-
-func (x *runner) unlockAll() {
-	for _, m := range x.ms {
-		m.life.RUnlock()
-	}
-}
-
 func inBounds(lo, v int64, hi *atomic.Int64, what string) {
 	check(lo <= v, what+" is below its floor")
 	check(v <= hi.Load(), what+" is above what was written")
 }
 
-// reader runs reads on m.
-func (x *runner) reader(m *member, reads int) {
-	for n := 0; n < reads; n++ {
-		x.lockAll()
-		x.readOne(m)
-		x.unlockAll()
-		x.reads.Add(1)
+// startReaders starts cfg.Readers readers on each member, each running up to cfg.Reads reads
+// until stopReaders (between two restarts: a reader belongs to the members' current incarnations).
+func (x *runner) startReaders() {
+	x.readStop.Store(0)
+	for _, m := range x.ms {
+		for j := 0; j < x.cfg.Readers; j++ {
+			x.readWg.Add(1)
+			go func() {
+				for n := 0; n < x.cfg.Reads && x.readStop.Load() == 0; n++ {
+					x.readOne(m)
+					x.reads.Add(1)
+					time.Sleep(x.cfg.Mix.ReadPause)
+				}
+				x.readWg.Done()
+			}()
+		}
 	}
+}
+
+// stopReaders stops the readers and waits for them.
+func (x *runner) stopReaders() {
+	x.readStop.Store(1)
+	x.readWg.Wait()
 }
 
 func (x *runner) readOne(m *member) {
@@ -1554,21 +1559,10 @@ func Run(cfg Config) Report {
 	for _, m := range x.ms {
 		x.startEpoch(m)
 	}
-	var wg sync.WaitGroup
-	for _, m := range x.ms {
-		for j := 0; j < cfg.Readers; j++ {
-			wg.Add(1)
-			go func() {
-				x.reader(m, cfg.Reads)
-				wg.Done()
-			}()
-		}
-	}
+	x.startReaders()
 	x.write()
-	wg.Wait()
-	x.lockAll()
+	x.stopReaders()
 	x.hashes()
-	x.unlockAll()
 	for _, m := range x.ms {
 		x.endEpoch(m)
 		x.shut(m)

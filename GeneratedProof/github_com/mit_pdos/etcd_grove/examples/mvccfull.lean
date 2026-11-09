@@ -49,6 +49,7 @@ noncomputable instance Mix_typed_pointsto :
     "Start" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccfull.Mix go!"Start" l) v.Start' dq ∗
     "Pause" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccfull.Mix go!"Pause" l) v.Pause' dq ∗
     "RecvPause" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccfull.Mix go!"RecvPause" l) v.RecvPause' dq ∗
+    "ReadPause" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccfull.Mix go!"ReadPause" l) v.ReadPause' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -199,6 +200,22 @@ noncomputable instance Mix_access_store_RecvPause (l : Loc) (v : github_com.mit_
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccfull.Mix go!"RecvPause" l) v.RecvPause' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccfull.Mix go!"RecvPause" l) RecvPause' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RecvPause' := RecvPause' } : github_com.mit_pdos.etcd_grove.examples.mvccfull.Mix) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Mix_access_load_ReadPause (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.mvccfull.Mix) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccfull.Mix go!"ReadPause" l) v.ReadPause' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccfull.Mix go!"ReadPause" l) v.ReadPause' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Mix_access_store_ReadPause (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.mvccfull.Mix) (ReadPause' : time.Duration) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccfull.Mix go!"ReadPause" l) v.ReadPause' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccfull.Mix go!"ReadPause" l) ReadPause' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ReadPause' := ReadPause' } : github_com.mit_pdos.etcd_grove.examples.mvccfull.Mix) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1076,7 +1093,6 @@ noncomputable instance member_typed_pointsto :
   typedPointstoDef l v dq := iprop(
     "id" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccfull.member go!"id" l) v.id' dq ∗
     "path" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccfull.member go!"path" l) v.path' dq ∗
-    "life" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccfull.member go!"life" l) v.life' dq ∗
     "be" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccfull.member go!"be" l) v.be' dq ∗
     "le" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccfull.member go!"le" l) v.le' dq ∗
     "kv" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccfull.member go!"kv" l) v.kv' dq ∗
@@ -1131,22 +1147,6 @@ noncomputable instance member_access_store_path (l : Loc) (v : github_com.mit_pd
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccfull.member go!"path" l) v.path' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccfull.member go!"path" l) path' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with path' := path' } : github_com.mit_pdos.etcd_grove.examples.mvccfull.member) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance member_access_load_life (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.mvccfull.member) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccfull.member go!"life" l) v.life' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccfull.member go!"life" l) v.life' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance member_access_store_life (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.mvccfull.member) (life' : sync.RWMutex) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccfull.member go!"life" l) v.life' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccfull.member go!"life" l) life' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with life' := life' } : github_com.mit_pdos.etcd_grove.examples.mvccfull.member) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1804,6 +1804,8 @@ noncomputable instance runner_typed_pointsto :
     "nextLease" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccfull.runner go!"nextLease" l) v.nextLease' dq ∗
     "vals" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccfull.runner go!"vals" l) v.vals' dq ∗
     "builds" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccfull.runner go!"builds" l) v.builds' dq ∗
+    "readStop" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccfull.runner go!"readStop" l) v.readStop' dq ∗
+    "readWg" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccfull.runner go!"readWg" l) v.readWg' dq ∗
     "revisions" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccfull.runner go!"revisions" l) v.revisions' dq ∗
     "events" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccfull.runner go!"events" l) v.events' dq ∗
     "progress" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccfull.runner go!"progress" l) v.progress' dq ∗
@@ -1964,6 +1966,38 @@ noncomputable instance runner_access_store_builds (l : Loc) (v : github_com.mit_
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccfull.runner go!"builds" l) v.builds' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccfull.runner go!"builds" l) builds' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with builds' := builds' } : github_com.mit_pdos.etcd_grove.examples.mvccfull.runner) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance runner_access_load_readStop (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.mvccfull.runner) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccfull.runner go!"readStop" l) v.readStop' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccfull.runner go!"readStop" l) v.readStop' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance runner_access_store_readStop (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.mvccfull.runner) (readStop' : sync.atomic.Int64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccfull.runner go!"readStop" l) v.readStop' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccfull.runner go!"readStop" l) readStop' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with readStop' := readStop' } : github_com.mit_pdos.etcd_grove.examples.mvccfull.runner) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance runner_access_load_readWg (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.mvccfull.runner) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccfull.runner go!"readWg" l) v.readWg' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccfull.runner go!"readWg" l) v.readWg' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance runner_access_store_readWg (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.mvccfull.runner) (readWg' : sync.WaitGroup) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccfull.runner go!"readWg" l) v.readWg' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccfull.runner go!"readWg" l) readWg' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with readWg' := readWg' } : github_com.mit_pdos.etcd_grove.examples.mvccfull.runner) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
