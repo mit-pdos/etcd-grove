@@ -330,6 +330,17 @@ theorem kClientErr_unkErr (c : StoreCfg GF Obj) (err : GoInterface) :
   iintro ⟨%h, #Hs, #Hc⟩
   iapply (unkErr_client c err h.1 h.2) $$ Hc Hs
 
+/-- **A range error's future-revision soundness** (B4, decided by etcd-grove-81: the future half
+only): an error whose description is `ErrFutureRev`'s (`errDesc`, D29) means the state the read's
+update fired at is below the revision `o` asked. What `Client.List`/`Client.GetAt` (hypotheses
+until 7e-1/7c-3) give. -/
+def rangeErrSound (o : w64) (Q : w64 → KVState → IProp GF) (err : GoInterface) : IProp GF :=
+  iprop(□ (⌜go_etcd_io.etcd.cache.v3.errDesc err = go_etcd_io.etcd.cache.v3.futureRevDesc⌝ -∗
+      ∃ σ : KVState, □ Q (W64 (σ.rev : Int)) σ ∗ ⌜σ.rev < sint.nat o⌝))
+
+instance rangeErrSound_persistent o Q err : Persistent (rangeErrSound (GF := GF) o Q err) := by
+  unfold rangeErrSound; infer_instance
+
 /-- **A failed read's error** (Draft §3.5): the client's error (`kClientErr`, so `unkErr`; D1), and,
 by its description (`errDesc`, D29), a future revision only if the state `Q` fired at is below `rev`
 (`rangeErrSound`'s future half). -/

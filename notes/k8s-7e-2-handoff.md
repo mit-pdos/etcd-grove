@@ -44,6 +44,22 @@ names `rpctypesInit`). `etc/gen-init.py --check` passes.
   false = some k ∧ (pathPrefix ++ k).length ≤ opKeyMax`, for `GetCurrentResourceVersion`) proved. Not
   linked (no new trusted spec is linked yet; the last third links them).
 
+## Last third, after 81's decisions on B1-B4 (2026-11-09, same session)
+Done: B2's Go test (`examples/k8s7e2attack/tracing_test.go`, passes: noop and SDK tracer); B2's
+restatement (`ctxNeverDone` moved to `Proof/k8s_io/component_base/tracing/Defs.lean`;
+`tracing.Start.spec` post gains `□ (ctxNeverDone (ok ci) -∗ ctxNeverDone (ok ci'))`; the three
+callers' patterns gain `, -`); B1 (`storeListOk` ends with `⌜prepareKeyM rp rp false = some rp⌝`;
+`New.spec` premise `prepareKeyM rp rp false = some rp`; the five `icases Hlst` patterns gain `, -`);
+B3 (`kvWfHist`'s body is now a conjunction: decode, and `0 < uint.nat modRev ≤ r`). Built green
+(`b12.log`, 7966 jobs; the driver's `Main*`/`Results` not built: they still pass New's old premises,
+known broken until 7e-4 — add `hu1 hu2 htb` and `(by decide)` for the new premise there).
+B4: `rangeErrSound` in `ListDefs`; hypothesis specs `Spec/go_etcd_io/etcd/client/v3/kubernetes/
+Client__List.lean`, `Client__GetAt.lean` (no proof files: premises of `getList`'s proof only).
+In progress: `store.getList` (spec written as Draft §3.5; proof started). Then `pagedChunks`,
+`GetList` (premises: Draft §2 plus `ctxNeverDone (ok ci)`), driver side, links, interfaces.
+Pure lemma needed for `getList`'s non-recursive branch: on a key-sorted list (`KVStore.kvs_sorted`),
+`filter (key = kp)` is `(findKey kp kvs).toList`.
+
 ## Last third, fourth session (2026-11-09): stopped at blockers B1-B4
 Read the Draft's "Forms proposed at Prove (last third)" and "Blockers found in the last third".
 Proved (lean-check, then built of record capped: `/shared/tmp/k8s-7e-2/b9.log`, `b10.log`, green):
