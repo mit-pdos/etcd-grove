@@ -739,6 +739,18 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   (`TracedMsgType.lean`) gives `msgTypeStr ty` for the six traced types, for the send and receive
   hooks; the Go test `examples/raft/tracecheck/msgtype_string_test.go`. Trust base: the axiom out,
   the model in, the server's results on `strconv.Itoa`'s axiom (`notes/decisions.md`, "Q9").
+- **Q13 (2026-11-09, layer B's exports): amending the frozen laws' event premise.** `mainPure` needs
+  per-event facts (`ScopeOk`, `NumsBelow K`, `ConfsWithin 3`, `BootLogsOk`, an event count) that `simInv`
+  cannot keep: the frozen `trCap_fire*` laws are generic in their events, four of them admit a
+  `ChangeConf`/`MsgSnap`/`InitState` line, none bounds numbers or counts ("Layer B's exports"). Options:
+  (a) amend the Draft: in the seven laws, `∀ e, E e → TraceEv.Ascii e` becomes `∀ e, E e → TraceEv.Ok K e`
+  (ASCII, in scope, numbers below `K`, three-voter configurations, a bootstrap log of at most three
+  entries), a ghost event counter the laws increment, and `simInv` keeping each; the hooks' traced
+  specs then take `Ok` of their events, discharged at the call sites from raft's ghost (the time receipts
+  for `K`); a review round on the amendment, then a re-freeze (tag `trace-check-frozen-a1`); (b) keep the
+  laws and prove the facts at the end from raft's run some other way (no such source in layer B).
+  **Taken by the coordinator (the freeze being delegated to it), pending the user's veto: (a)**, after
+  slice 5 lands (it edits the same files).
 - **Q12 (2026-11-09, `Main`'s pure obligations): the checker's `numBound` against the step bound.**
   `numBound = 2^40` (`etcdraft/Rep.lean`, a constant of the proof, not of the Go) bounds the trace's
   numbers (`Event.Bounded`) and its length; raft's terms, indices and event count grow with the steps,
