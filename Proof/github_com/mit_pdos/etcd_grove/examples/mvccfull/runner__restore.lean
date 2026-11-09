@@ -659,6 +659,29 @@ theorem runner.restore.wp_proof
         ipureintro
         exact leaseRecsOk_insert _ _ ⟨recs, hrecs1, hL', hrecs3⟩
       · ipureintro; exact hU'g
+    -- `x.checkLeases(f)`; `x.restores.Add(1)`
+    wp_apply (wp_checkLeases x ks cfg wr h γ.h ops 1 mp1 γ.m1 f1
+        ⟨vb'.path, v1.lp, v1.kv, v0.ops, mvccrand.rcKB γB bnb gx (limOf cfg), v1.ι, U', b4⟩ qw1 nw1
+        (sint.Z cfg.Ops').toNat hlogOk) $$ [Hrd Hc1n] as ⟨Hrd, Hc1n⟩
+    · iframe #; iframe
+      dsimp only; rw [Hops.1]; iexact Hlb
+    (try wp_auto)
+    wp_apply_core sync.atomic.Int64.wp_Add (rF go!"restores" x) (W64 1) $$ [] [-]
+    · iPkgInit
+    iunfold ctrInv at Hcres
+    iinv Hcres with ⟨%a, >Ha⟩ Hclose
+    iapply fupd_mask_intro (show (∅ : CoPset) ⊆ ⊤ \ ↑(readersN .@ "restores") from
+      Std.LawfulSet.empty_subset)
+    iintro Hcl
+    inext
+    iexists a
+    iframe
+    iintro Ha
+    imod Hcl with -
+    imod Hclose $$ [Ha] with -
+    · inext; iexists _; iframe
+    imodintro
+    (try wp_auto)
     sorry
 
 end proof
