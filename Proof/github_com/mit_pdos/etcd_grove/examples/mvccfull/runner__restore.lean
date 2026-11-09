@@ -210,7 +210,7 @@ theorem runner.restore.wp_proof
     · iframe #; iframe
     icases (memberState_split ks γ.h mpb mb vb'.ι.kv).1 $$ Hmsb with ⟨%σb, %bb, %Hlb', Hσb, Hcarry⟩
     iunfold memberCarry at Hcarry
-    icases Hcarry with ⟨Hσc, -, -, -, -, -, -, -, -, -, -⟩
+    icases Hcarry with ⟨Hσc, -, -, -, -, -, -, -, -, -, %Hcpb⟩
     ihave %Hag := ghostVar_agree mb.σ _ _ _ _ $$ Hσwb Hσc
     subst Hag
     iunfold lessorW at Hlesb
@@ -221,6 +221,76 @@ theorem runner.restore.wp_proof
       as ⟨-, -, -, %D, %u, Hfile, Himg, %HrecD⟩
     · iframe #; iframe
       iunfold isInc at Hisincb; icases Hisincb with ⟨-, #H⟩; iexact H
+    (try wp_auto)
+    -- the follower's bounds raised to the builder's (`revHi`, `cmpHi`), in its incarnation
+    iunfold memW at Hm1
+    icases Hm1 with ⟨Hops1, Hhk1, Hc1⟩
+    iunfold memCore at Hc1
+    simp only []
+    icases Hc1 with ⟨#Hid1, #Hhook1, HhookOk1, Hpath1, Hbe1, Hle1, Hkv1, Hrev1, Hcmp1, Hleases1,
+      %Hvops1, Hinc1, Hopen1, Hback1, HhookIs1, Hrdrs1, Hbk1, Hles1, %HU1⟩
+    iunfold incW at Hinc1
+    icases Hinc1 with ⟨#Hisinc1, Hret1, Hσw1, Hbw1⟩
+    have hrb : revAfter ks ops vb'.ops < 2 ^ 39 := by
+      have := runM_hs_len ks ops vb'.ops; unfold revAfter MSt.rev; omega
+    have hrbZ : sint.Z (W64 (revAfter ks ops vb'.ops : Int)) = revAfter ks ops vb'.ops := by word
+    have hrf := revAfter_mono ks ops v1.ops vb'.ops (by omega)
+    have hlenf : (σOf ks ops v1.ops).log.length = revAfter ks ops v1.ops + 1 := by
+      rw [← σOf_rev]; unfold MvccState.rev
+      have := runM_hs_len ks ops v1.ops
+      simp only [σOf, logOfHist, List.length_map]; unfold histAt at this ⊢; omega
+    wp_apply_core sync.atomic.Int64.wp_Store (mF go!"revHi" mp1)
+      (W64 (revAfter ks ops vb'.ops : Int)) $$ [] [-]
+    · iPkgInit
+    imod bnd_acc hpers ks γ.h 1 mp1 γ.m1 v1.ι v1.kv qw1 (σOf ks ops v1.ops) v1.b
+      $$ [Hret1 Hσw1 Hbw1] with ⟨%Hlf, %Hokf, Hrl, Hrh, Hcl, Hch, Hcls⟩
+    · iframe #; iframe
+    iapply fupd_mask_intro (show (∅ : CoPset) ⊆ ⊤ \ ↑(memberN 1) from Std.LawfulSet.empty_subset)
+    iintro Hcl2
+    inext
+    iexists _
+    iframe Hrh
+    iintro Hrh
+    imod Hcl2 with -
+    let b1 : Bnd := (v1.b.1, W64 (revAfter ks ops vb'.ops : Int), v1.b.2.2.1, v1.b.2.2.2)
+    have hok1 : bndOk ks (σOf ks ops v1.ops) b1 Hlf := by
+      obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10⟩ := Hokf
+      refine ⟨h1, h2, ?_, ?_, ?_, h6, h7, h8, h9, h10⟩
+      · show ((σOf ks ops v1.ops).rev : Int) ≤ sint.Z (W64 (revAfter ks ops vb'.ops : Int))
+        rw [hrbZ, σOf_rev]; omega
+      · show sint.Z (W64 (revAfter ks ops vb'.ops : Int)) < 2 ^ 62
+        rw [hrbZ]; omega
+      · show (((σOf ks ops v1.ops).notifiedLog.length : Nat) : Int) ≤
+          sint.Z (W64 (revAfter ks ops vb'.ops : Int)) + 1
+        rw [hrbZ, σOf_notified, hlenf]; omega
+    imod Hcls $$ %b1 %hok1 Hrl Hrh Hcl Hch with ⟨Hret1, Hσw1, Hbw1⟩
+    imodintro
+    (try wp_auto)
+    have hcb1 : -1 ≤ cmpAfter ks ops vb'.ops := Hcpb.2.2.2.2.2.2.2.1
+    have hcb2 : cmpAfter ks ops vb'.ops ≤ sint.Z bb.2.2.2 := Hcpb.2.2.2.2.2.2.1
+    have hcbZ : sint.Z (W64 (cmpAfter ks ops vb'.ops)) = cmpAfter ks ops vb'.ops := by word
+    have hcf := cmpAfter_mono ks ops v1.ops vb'.ops (by omega)
+    wp_apply_core sync.atomic.Int64.wp_Store (mF go!"cmpHi" mp1)
+      (W64 (cmpAfter ks ops vb'.ops)) $$ [] [-]
+    · iPkgInit
+    imod bnd_acc hpers ks γ.h 1 mp1 γ.m1 v1.ι v1.kv qw1 (σOf ks ops v1.ops) b1
+      $$ [Hret1 Hσw1 Hbw1] with ⟨%Hlf2, %Hokf2, Hrl, Hrh, Hcl, Hch, Hcls⟩
+    · iframe #; iframe
+    iapply fupd_mask_intro (show (∅ : CoPset) ⊆ ⊤ \ ↑(memberN 1) from Std.LawfulSet.empty_subset)
+    iintro Hcl2
+    inext
+    iexists _
+    iframe Hch
+    iintro Hch
+    imod Hcl2 with -
+    let b2 : Bnd := (b1.1, b1.2.1, b1.2.2.1, W64 (cmpAfter ks ops vb'.ops))
+    have hok2 : bndOk ks (σOf ks ops v1.ops) b2 Hlf2 := by
+      obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10⟩ := Hokf2
+      refine ⟨h1, h2, h3, h4, h5, h6, ?_, h8, h9, h10⟩
+      show (σOf ks ops v1.ops).crev ≤ sint.Z (W64 (cmpAfter ks ops vb'.ops))
+      rw [hcbZ]; exact hcf
+    imod Hcls $$ %b2 %hok2 Hrl Hrh Hcl Hch with ⟨Hret1, Hσw1, Hbw1⟩
+    imodintro
     (try wp_auto)
     sorry
 
