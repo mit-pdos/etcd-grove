@@ -216,3 +216,10 @@ produce these bundles** for the transactions it hands out, for the parts it hand
    `Schema.bucketAt b bv` (persistent; `bucketVars_init` gives it for the package's variables; the
    backend only calls `bv.ID()`, `Name()`, `IsSafeRangeBucket()`: `bucket.*.spec`).
 Used by: every spec of `Spec/go_etcd_io/etcd/server/v3/storage/schema/`.
+
+## from 3e (round 2: 4a's F1, F3)
+
+Done in `ApiStorage.lean`: `kbLocked B D0 D` (session base and batch view); `Unlock` fires two nested
+updates (`KeyData.mid D0 D`, then `D`); the `Key` put row's premise is above every key of `D0` and of
+`D` (`Sess.fresh`); bucket arguments are any `bv` with `Schema.bucketAt b.bkt bv`. 4a's
+`keyBackend_intro` should go through as F1/F3 propose.

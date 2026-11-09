@@ -11,7 +11,7 @@ requesters: the lease checkpoints (`server.go:402`, `.noop`), the alarms (`serve
 **Proof sketch.** `processInternalRaftRequestOnce` (its spec); an error: the span's `RecordError`
 (otel's boundary), returned (outcomes 2, 3); `result.Err`: returned (the answer's error: outcome 1
 with `srvErrOf`, or outcome 2 with the update); `ctx.Value(StartTimeKey{})` and the trace's steps
-(`traceAt`); `result.Resp` (`irrReply`).
+(`applyResult`'s owned `traceOpt`, 4b); `result.Resp` (`irrReply`).
 
 **Changes.** The old spec (`specs-ref`'s `EtcdServer__raftRequest.lean`) restated as
 `processInternalRaftRequestOnce`'s (round 1 likewise: the message given back, `wf`, the principal
@@ -47,7 +47,7 @@ outcome 2, the update given back; outcome 3). -/
 def EtcdServer.raftRequest.spec : Prop :=
   ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (p tls : Principal) (lo : Nat) (r : Loc)
     (dq : DFrac) (ir : IrrBody) (rep : Bool) (Q : State → State → Resp → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ Context.ctxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ irrOwn r dq ir ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ Context.ctxOk ctx ∗ reqCtxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ irrOwn r dq ir ∗
       ⌜ir.wf⌝ ∗ authLb γ lo ∗
       (if ir.fires then
           □?rep AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅

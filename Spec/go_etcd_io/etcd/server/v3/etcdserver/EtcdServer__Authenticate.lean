@@ -41,7 +41,7 @@ def EtcdServer.Authenticate.spec : Prop :=
   ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (p tls : Principal) (r : Loc) (name pw : GoString),
   SrvCallTriple (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"Authenticate")) (Val #ctx)) (Val #r))
     iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗
-        Context.ctxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ ClientV3.reqOwn r (DFrac.own 1) (.authenticate name pw))
+        Context.ctxOk ctx ∗ reqCtxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ ClientV3.reqOwn r (DFrac.own 1) (.authenticate name pw))
     iprop(threadTok ∗ ClientV3.reqOwn r (DFrac.own 1) (.authenticate name [])) γ p tls (.authenticate name pw) false (reqReply γ (.authenticate name pw))
 
 end spec

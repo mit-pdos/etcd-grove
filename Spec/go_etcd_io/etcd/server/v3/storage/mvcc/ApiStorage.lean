@@ -20,14 +20,18 @@ says nothing of them.
 
 * `MvccStorage` (opaque type): a storage's names; `storageVal B` its `backend.Backend` value;
   `kbBatchTx B` its batch transaction (the value `BatchTx()` returns, fixed), `kbReadTx B` its shared
-  read transaction (`ReadTx()`'s, fixed); `bucketVal b` the `backend.Bucket` values of `schema.Key`
-  and `schema.Meta`, `metaKey m` the bytes of the compaction keys' names (schema's, 4b's init law).
+  read transaction (`ReadTx()`'s, fixed); a bucket argument is any value `bv` with 4b's
+  `Schema.bucketAt b.bkt bv` (schema's variables hold such values, `Schema.bucketVars_init`),
+  `metaKey m` the compaction keys' names (4b's `schedKey`, `finKey`).
 * `kbData B D` (exclusive, timeless): **mvcc's part of the storage, as a read begun now sees it, is
   `D`**. The store's invariant holds it; it changes only at a batch transaction's `Unlock` (the
   write-back: what the batch wrote becomes visible).
-* `kbLocked B D` (exclusive): **the batch transaction's lock is held, and mvcc's part as the batch
-  sees it (its own writes included) is `D`**. `LockInsideApply`/`LockOutsideApply` give it at the
-  visible data; `Unlock` makes `D` visible.
+* `kbLocked B D0 D` (exclusive): **the batch transaction's lock is held, its session began at
+  `D0`, and mvcc's part as the batch sees it (its own writes included) is `D`**.
+  `LockInsideApply`/`LockOutsideApply` give it at the visible data (`D0 = D`); `Unlock` makes it
+  visible in two steps, the session's puts at the write-back (`KeyData.mid D0 D`), then its deletes
+  at the commit (4a's finding F1: a reader between them sees a compaction batch's
+  `finishedCompactRev` with the batch's deleted entries still there).
 * `kbRead B rt D` (exclusive): **`rt` is a read transaction, begun, seeing `D`** (a snapshot of the
   visible data: `ConcurrentReadTx()` at its creation, the shared `ReadTx()` at its `RLock`).
 * `kbRdToks B n` (exclusive, counted, splits): `n` of the storage's reader slots (each begun read
@@ -51,12 +55,13 @@ says nothing of them.
   scheduled compaction key above the finished one: `restore` resumes it, so `h.compacted` is then the
   scheduled key's revision). Intended realization: the `Key` bucket holds, for each event of `h`,
   its revision's bytes (`BucketKeyToBytes`) ↦ the encoding of the key-value it wrote (a tombstone's:
-  the key alone), but the entries compaction removes: with `u = false`, all those a compaction at
-  `h.compacted` removes, the finished key `h.compacted` (absent at `0`), the scheduled one at most
-  it; with `u = true`, all those the finished key's compaction removes and any subset of those the
-  scheduled one's (`h.compacted`, above the finished) removes **that is, per key, a prefix of the
-  revisions it removes** (the job deletes in revision order, `kvstore_compaction.go:58-92`; two jobs'
-  prefixes are a prefix: `restoreIntoIndex` counts versions from the first surviving entry); every key
+  the key alone), but entries compaction removed: per key, a prefix (in revision order) of the
+  revisions a compaction at `h.compacted` removes (the job deletes in revision order,
+  `kvstore_compaction.go:58-92`; two jobs' prefixes are a prefix; `restoreIntoIndex` counts versions
+  from the first surviving entry). With `u = false` the finished key is `h.compacted` (absent at
+  `0`) and the scheduled one at most it; the removal may still be incomplete for the last batch (its
+  write-back makes `finishedCompactRev` visible before its deletes, 4a's F1); with `u = true` the
+  finished key is below `h.compacted`, the scheduled one; every key
   of the bucket is well formed (`BytesToRev` does not panic: `hashByRev` and `restore` parse each).
 * `mvccStorageFor B Pk h u` (transparent): **the storage `B`, its batch lock's invariant `Pk`, holds
   an image of `h`, ready for a store**: what `NewStore`, `New` (3f) and `Restore` take. The contract,
@@ -77,6 +82,7 @@ says nothing of them.
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Model
+public import Spec.go_etcd_io.etcd.server.v3.storage.schema.Api
 public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
@@ -149,10 +155,23 @@ def KeyData.putMeta (D : KeyData) (m : MetaKey) (v : GoString) : KeyData :=
   | .fin => { D with fin := some v }
 
 /-- The bytes of a compaction key's name (`schema.ScheduledCompactKeyName`,
-`FinishedCompactKeyName`). -/
+`FinishedCompactKeyName`: 4b's `Schema.schedKey`, `finKey`, `Schema.keyNames_init`). -/
 def metaKey : MetaKey → GoString
-  | .sched => go!"scheduledCompactRev"
-  | .fin => go!"finishedCompactRev"
+  | .sched => Schema.schedKey
+  | .fin => Schema.finKey
+
+/-- The schema's bucket of mvcc's bucket (4b's `Schema.Bkt`). -/
+def MBucket.bkt : MBucket → Schema.Bkt
+  | .keyB => .key
+  | .metaB => .metaB
+
+/-- **A session's data at its write-back** (`batchTxBuffered.Unlock`, `batch_tx.go:330-357`): the
+puts of the session over its base `D0` (its buckets, `Meta`'s keys, `Key`'s entries it has), its
+deletes not yet (they become visible at the commit that follows). 4a's `Sess.mid`. -/
+def KeyData.mid (D0 D : KeyData) : KeyData :=
+  { D with keys := fun k => match D.keys k with
+      | some v => some v
+      | none => D0.keys k }
 
 open Classical in
 /-- **A backend range of a bucket's map `m`** (`UnsafeRange(bucket, k, e, limit)`): an empty `e` the
@@ -226,14 +245,12 @@ opaque kbBatchTx (B : MvccStorage) : GoInterfaceOk :=
 opaque kbReadTx (B : MvccStorage) : GoInterfaceOk :=
   interface.mk (go.GoType.StructType []) #()
 
-/-- The `backend.Bucket` values of `schema.Key` and `schema.Meta`. -/
-opaque bucketVal (b : MBucket) : GoInterface := GoInterface.nil
-
 /-- **mvcc's part of the storage, as a read begun now sees it, is `D`** (exclusive). -/
 opaque kbData (B : MvccStorage) (D : KeyData) : IProp GF := iprop(True)
 
-/-- **The batch lock is held; mvcc's part, as the batch sees it, is `D`** (exclusive). -/
-opaque kbLocked (B : MvccStorage) (D : KeyData) : IProp GF := iprop(True)
+/-- **The batch lock is held, its session began at mvcc's data `D0`; mvcc's part, as the batch sees
+it, is `D`** (exclusive). -/
+opaque kbLocked (B : MvccStorage) (D0 D : KeyData) : IProp GF := iprop(True)
 
 /-- **`rt` is a begun read transaction seeing `D`** (exclusive). -/
 opaque kbRead (B : MvccStorage) (rt : GoInterfaceOk) (D : KeyData) : IProp GF := iprop(True)
@@ -293,15 +310,16 @@ and may return a `Key` entry twice, `read_tx.go:79-88`); a range of `Meta` is of
 def rangeOk (t : GoInterfaceOk) (R : IProp GF) (D : KeyData)
     (rg : KeyData → MBucket → GoString → GoString → Int → List (GoString × GoString) → Prop) :
     IProp GF :=
-  iprop(□ ∀ (b : MBucket) (ks es : GoSlice) (k e : GoString) (dk de : DFrac) (limit : w64)
-      (Φ : val → IProp GF),
-    R -∗ ks ↦*{dk} k -∗ es ↦*{de} e -∗ ⌜D.made b = true⌝ -∗
-    ⌜(e = [] → es = slice.nil) ∧ (b = .metaB → es = slice.nil)⌝ -∗
+  iprop(□ ∀ (b : MBucket) (bv : GoInterface) (ks es : GoSlice) (k e : GoString) (dk de : DFrac)
+      (limit : w64) (Φ : val → IProp GF),
+    Schema.bucketAt b.bkt bv -∗ R -∗ ks ↦*{dk} k -∗ es ↦*{de} e -∗ ⌜D.made b = true⌝ -∗
+    ⌜(e = [] → es = slice.nil) ∧
+      (b = .metaB → es = slice.nil ∧ (k = metaKey .sched ∨ k = metaKey .fin))⌝ -∗
     ▷ (∀ (kl vl : GoSlice) (l : List (GoString × GoString)),
         R -∗ ks ↦*{dk} k -∗ es ↦*{de} e -∗ ⌜rg D b k e (sint.Z limit) l⌝ -∗
         bytesListAt kl (l.map Prod.fst) -∗ bytesListAt vl (l.map Prod.snd) -∗
         Φ (PairV #kl #vl)) -∗
-    WP (App (App (App (App (Val #(methods t.ty go!"UnsafeRange" t.v)) (Val #(bucketVal b)))
+    WP (App (App (App (App (Val #(methods t.ty go!"UnsafeRange" t.v)) (Val #bv))
       (Val #ks)) (Val #es)) (Val #limit)) {{ Φ }})
 
 /-- **The storage contract** (see the header): the triples of the methods mvcc calls. -/
@@ -344,44 +362,55 @@ def keyBackend (B : MvccStorage) (Pk : IProp GF) : IProp GF :=
     (□ ∀ (dq : DFrac) (f : GoFunc) (Pre Q : IProp GF) (Ψ : KeyData → IProp GF)
         (Φ : val → IProp GF),
       storageHook B dq f -∗ Pre -∗ hookRun Pk f Pre Q -∗ kbObs B Ψ -∗
-      ▷ (∀ D : KeyData, storageHook B dq f -∗ Q -∗ kbLocked B D -∗ Ψ D -∗ Φ #()) -∗
+      ▷ (∀ D : KeyData, storageHook B dq f -∗ Q -∗ kbLocked B D D -∗ Ψ D -∗ Φ #()) -∗
       WP (App (Val #(methods tx.ty go!"LockInsideApply" tx.v)) (Val #())) {{ Φ }}) ∗
     -- BatchTx.LockOutsideApply(): the batch lock, no hook
     (□ ∀ (Ψ : KeyData → IProp GF) (Φ : val → IProp GF),
-      kbObs B Ψ -∗ ▷ (∀ D : KeyData, Pk -∗ kbLocked B D -∗ Ψ D -∗ Φ #()) -∗
+      kbObs B Ψ -∗ ▷ (∀ D : KeyData, Pk -∗ kbLocked B D D -∗ Ψ D -∗ Φ #()) -∗
       WP (App (Val #(methods tx.ty go!"LockOutsideApply" tx.v)) (Val #())) {{ Φ }}) ∗
-    -- BatchTx.Unlock(): the batch's data made visible (it may commit, under `Pk`)
-    (□ ∀ (D : KeyData) (Ψ : IProp GF) (Φ : val → IProp GF),
-      kbLocked B D -∗ Pk -∗
-      (AU <{ ∃∃ (D0 : KeyData), kbData B D0 }> @ ⊤, ∅ <{ kbData B D, COMM Ψ }>) -∗
+    -- BatchTx.Unlock(): the batch's data made visible in two steps (it may commit, under `Pk`):
+    -- its puts at the write-back (`KeyData.mid`), then its deletes at the commit that follows
+    -- (`batch_tx.go:330-357`; a session without deletes: the second changes nothing)
+    (□ ∀ (D0 D : KeyData) (Ψ : IProp GF) (Φ : val → IProp GF),
+      kbLocked B D0 D -∗ Pk -∗
+      (AU <{ ∃∃ (D1 : KeyData), kbData B D1 }> @ ⊤, ∅ <{ kbData B (KeyData.mid D0 D), COMM
+        AU <{ ∃∃ (D2 : KeyData), kbData B D2 }> @ ⊤, ∅ <{ kbData B D, COMM Ψ }> }>) -∗
       ▷ (Ψ -∗ Φ #()) -∗
       WP (App (Val #(methods tx.ty go!"Unlock" tx.v)) (Val #())) {{ Φ }}) ∗
     -- BatchTx.UnsafeCreateBucket(b)
-    (□ ∀ (b : MBucket) (D : KeyData) (Φ : val → IProp GF),
-      kbLocked B D -∗ ▷ (kbLocked B (D.create b) -∗ kbMade B b -∗ Φ #()) -∗
-      WP (App (Val #(methods tx.ty go!"UnsafeCreateBucket" tx.v)) (Val #(bucketVal b))) {{ Φ }}) ∗
+    (□ ∀ (b : MBucket) (bv : GoInterface) (D0 D : KeyData) (Φ : val → IProp GF),
+      Schema.bucketAt b.bkt bv -∗ kbLocked B D0 D -∗
+      ▷ (kbLocked B D0 (D.create b) -∗ kbMade B b -∗ Φ #()) -∗
+      WP (App (Val #(methods tx.ty go!"UnsafeCreateBucket" tx.v)) (Val #bv)) {{ Φ }}) ∗
     -- BatchTx.UnsafePut / UnsafeSeqPut of `Key` (read-only bytes: the storage may keep them)
-    (□ ∀ (m : GoString) (D : KeyData) (ks vs : GoSlice) (k v : GoString) (Φ : val → IProp GF),
-      ⌜m = go!"UnsafePut" ∨ m = go!"UnsafeSeqPut"⌝ -∗
-      kbLocked B D -∗ ⌜D.keyMade = true ∧ ∀ k' v', D.keys k' = some v' → go.GoStringLt k' k⌝ -∗
+    -- (the key above every key the session began with or has: 4a's `Sess.fresh`)
+    (□ ∀ (m : GoString) (bv : GoInterface) (D0 D : KeyData) (ks vs : GoSlice) (k v : GoString)
+        (Φ : val → IProp GF),
+      ⌜m = go!"UnsafePut" ∨ m = go!"UnsafeSeqPut"⌝ -∗ Schema.bucketAt .key bv -∗
+      kbLocked B D0 D -∗
+      ⌜D.keyMade = true ∧ ∀ k' v', (D0.keys k' = some v' ∨ D.keys k' = some v') → go.GoStringLt k' k⌝ -∗
       ks ↦*□ k -∗ vs ↦*□ v -∗
-      ▷ (kbLocked B (D.putKey k v) -∗ Φ #()) -∗
-      WP (App (App (App (Val #(methods tx.ty m tx.v)) (Val #(bucketVal .keyB))) (Val #ks)) (Val #vs))
+      ▷ (kbLocked B D0 (D.putKey k v) -∗ Φ #()) -∗
+      WP (App (App (App (Val #(methods tx.ty m tx.v)) (Val #bv)) (Val #ks)) (Val #vs))
         {{ Φ }}) ∗
     -- BatchTx.UnsafePut of a compaction key of `Meta`
-    (□ ∀ (mk : MetaKey) (D : KeyData) (ks vs : GoSlice) (v : GoString) (Φ : val → IProp GF),
-      kbLocked B D -∗ ⌜D.metaMade = true⌝ -∗ ks ↦*□ metaKey mk -∗ vs ↦*□ v -∗
-      ▷ (kbLocked B (D.putMeta mk v) -∗ Φ #()) -∗
-      WP (App (App (App (Val #(methods tx.ty go!"UnsafePut" tx.v)) (Val #(bucketVal .metaB)))
+    (□ ∀ (mk : MetaKey) (bv : GoInterface) (D0 D : KeyData) (ks vs : GoSlice) (v : GoString)
+        (Φ : val → IProp GF),
+      Schema.bucketAt .metaB bv -∗
+      kbLocked B D0 D -∗ ⌜D.metaMade = true⌝ -∗ ks ↦*□ metaKey mk -∗ vs ↦*□ v -∗
+      ▷ (kbLocked B D0 (D.putMeta mk v) -∗ Φ #()) -∗
+      WP (App (App (App (Val #(methods tx.ty go!"UnsafePut" tx.v)) (Val #bv))
         (Val #ks)) (Val #vs)) {{ Φ }}) ∗
     -- BatchTx.UnsafeDelete of `Key`: the safe-range lock held
-    (□ ∀ (D : KeyData) (ks : GoSlice) (k : GoString) (dk : DFrac) (Φ : val → IProp GF),
-      kbLocked B D -∗ kbSafeHeld B -∗ ⌜D.keyMade = true⌝ -∗ ks ↦*{dk} k -∗
-      ▷ (kbLocked B (D.delKey k) -∗ kbSafeHeld B -∗ ks ↦*{dk} k -∗ Φ #()) -∗
-      WP (App (App (Val #(methods tx.ty go!"UnsafeDelete" tx.v)) (Val #(bucketVal .keyB))) (Val #ks))
+    (□ ∀ (bv : GoInterface) (D0 D : KeyData) (ks : GoSlice) (k : GoString) (dk : DFrac)
+        (Φ : val → IProp GF),
+      Schema.bucketAt .key bv -∗
+      kbLocked B D0 D -∗ kbSafeHeld B -∗ ⌜D.keyMade = true⌝ -∗ ks ↦*{dk} k -∗
+      ▷ (kbLocked B D0 (D.delKey k) -∗ kbSafeHeld B -∗ ks ↦*{dk} k -∗ Φ #()) -∗
+      WP (App (App (Val #(methods tx.ty go!"UnsafeDelete" tx.v)) (Val #bv)) (Val #ks))
         {{ Φ }}) ∗
     -- BatchTx.UnsafeRange: of the batch's data
-    (□ ∀ D : KeyData, rangeOk tx (kbLocked B D) D KeyData.range) ∗
+    (□ ∀ (D0 D : KeyData), rangeOk tx (kbLocked B D0 D) D KeyData.range) ∗
     -- Backend.ForceCommit(): the client's commit request
     (□ ∀ (X Y : IProp GF) (Φ : val → IProp GF),
       X -∗ storageReq B Pk X Y -∗ ▷ (Y -∗ Φ #()) -∗
@@ -422,13 +451,14 @@ def kbData_timeless.spec : Prop := ∀ B D, Timeless (kbData (GF := GF) B D)
 
 def kbData_excl.spec : Prop := ∀ B D D', kbData (GF := GF) B D ∗ kbData B D' ⊢ iprop(False)
 
-def kbLocked_excl.spec : Prop := ∀ B D D', kbLocked (GF := GF) B D ∗ kbLocked B D' ⊢ iprop(False)
+def kbLocked_excl.spec : Prop := ∀ B D0 D D0' D',
+  kbLocked (GF := GF) B D0 D ∗ kbLocked B D0' D' ⊢ iprop(False)
 
 def kbSafe_excl.spec : Prop := ∀ B, kbSafe (GF := GF) B ∗ kbSafeHeld B ⊢ iprop(False)
 
 /-- The batch lock's holder may lend "the lock is held" to the storage's other users. -/
-def kbLocked_held.spec : Prop := ∀ B D,
-  kbLocked (GF := GF) B D ⊢ kbHeld B ∗ (kbHeld B -∗ kbLocked B D)
+def kbLocked_held.spec : Prop := ∀ B D0 D,
+  kbLocked (GF := GF) B D0 D ⊢ kbHeld B ∗ (kbHeld B -∗ kbLocked B D0 D)
 
 def kbRdToks_split.spec : Prop := ∀ B n m,
   kbRdToks (GF := GF) B (n + m) ⊣⊢ kbRdToks B n ∗ kbRdToks B m

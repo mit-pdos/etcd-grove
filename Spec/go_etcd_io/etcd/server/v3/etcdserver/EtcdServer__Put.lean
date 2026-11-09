@@ -55,7 +55,7 @@ def EtcdServer.Put.spec : Prop :=
   ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (p tls : Principal) (r : Loc) (dq : DFrac) (pr : PutReq),
   SrvCallTriple (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"Put")) (Val #ctx)) (Val #r))
     iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗
-        Context.ctxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ putReqOwn r dq pr ∗ ⌜pr.invalid = none⌝)
+        Context.ctxOk ctx ∗ reqCtxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ putReqOwn r dq pr ∗ ⌜pr.invalid = none⌝)
     iprop(threadTok ∗ putReqOwn r dq pr) γ p tls (.put pr) false (ClientV3.putReply)
 
 end spec

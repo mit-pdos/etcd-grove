@@ -49,7 +49,7 @@ def EtcdServer.Txn.spec : Prop :=
   ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (p tls : Principal) (r : Loc) (dq : DFrac) (t : TxnReq),
   SrvCallTriple (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"Txn")) (Val #ctx)) (Val #r))
     iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗
-        Context.ctxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ txnReqOwn r dq t ∗ ⌜txnChecked t⌝ ∗ ⌜(Req.txn t).isRead = false → txnMsgDepth t + 1 ≤ 10000⌝)
+        Context.ctxOk ctx ∗ reqCtxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ txnReqOwn r dq t ∗ ⌜txnChecked t⌝ ∗ ⌜(Req.txn t).isRead = false → txnMsgDepth t + 1 ≤ 10000⌝)
     iprop(threadTok ∗ txnReqOwn r dq t) γ p tls (.txn t) (Req.txn t).isRead (ClientV3.txnReply)
 
 end spec

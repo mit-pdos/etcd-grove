@@ -80,6 +80,7 @@ module
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiStorage
 public import Spec.context.Api
 public import Spec.go_etcd_io.etcd.server.v3.lease.Api
+public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.Api
 public import Spec.PkgInit.go_etcd_io.etcd.server.v3.storage.mvcc
 
 @[expose] public section
@@ -211,8 +212,9 @@ opaque mvccTxn (t : GoInterface) (γ : MvccName) (trace : Loc) (k : MTxn) : IPro
 /-- `h` is the store's hash storage (persistent). -/
 opaque isHashStorage (h : GoInterface) (γ : MvccName) : IProp GF := iprop(True)
 
-/-- **Provisional (4b):** the trace `tr` is the caller's (exclusive). -/
-opaque traceOwn (tr : Loc) : IProp GF := iprop(True)
+/-- The trace `tr` is the caller's (exclusive): 4b's `TraceUtil.traceOwn` (`TraceUtil.TODO.spec`
+gives one, `Trace.Step.spec` keeps it). -/
+abbrev traceOwn (tr : Loc) : IProp GF := TraceUtil.traceOwn tr
 
 /-- **A `*RangeResult` `r` and an error `err` holding the outcome `out`** of a range under the
 context `ctx` (the key-values fresh, the caller's; their key and value bytes read-only: a keys-only

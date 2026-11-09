@@ -184,3 +184,15 @@ tokenUser γ tok name` (`authTokenAt`, new, persistent, 3h's), and `replyOwn_aut
 1c's reads (lease, auth, member lists, Kubernetes' ranges) use `Step`'s default `lo = 0` (the
 weakest, "any auth state"), which is sound and asks nothing of callers. Rebuilt: 1c's directories
 (348 + 31 modules) and `Spec/go_etcd_io/etcd/api/v3/etcdserverpb` (85 modules) pass.
+
+## W0 rounds 5–6 (2026-11-09)
+
+`Req.alarmActivate` covered: `reqRpc` (`"Alarm"`), `reqRetryRep` (repeatable: the wrapper's `Alarm`),
+`reqIsMaint` (so `remoteMaintAt_call` and `retryMaintenanceClient.Alarm.spec` cover a stub's
+`Alarm(ACTIVATE)`; the `Maintenance` interface has no method for it). `AlarmKind.other`:
+`alarmKindM` replaced by the total `alarmKindOf` (`NONE` and unknown types as `other`), so
+`AlarmDisarm`'s scope premise is only "not `(0, NONE)`" (the disarm-all loop). Compact's `lo`
+and `endReq` touch no 1c statement (1c issues no compaction; the Kubernetes ranges' requests are
+`OpM.rangeReq`). Rebuilt: 1c's directories (348 + 31) pass. `--dir .../etcdserver/apply` and
+`--dir .../etcdserver` both FAIL on another batch's file (2c's): `ApiReq.lean:235: Missing cases:
+Req.alarmActivate` (its match over `Req` lacks the new constructor).

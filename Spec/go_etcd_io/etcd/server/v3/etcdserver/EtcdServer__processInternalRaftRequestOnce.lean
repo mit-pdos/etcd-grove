@@ -34,8 +34,10 @@ the marshalled bytes are proposed); `IrrBody.wf` (the gRPC layer's validation an
 principal pair; every error with `srvErrShape`; `backOk` (an apply refusal, or `Authenticate`'s token
 issued at a moved auth revision: the update back).
 
-**Margin.** A result of outcome 1 for an apply refusal other than a stale auth revision (the quota's
-`ErrNoSpace`, `ErrCorrupt`) is fired (a refusal is a `Step`); the code would allow giving it back.
+**Margin.** A result of outcome 1 for an apply refusal other than a stale auth revision (`ErrCorrupt`)
+is fired (a refusal is a `Step`); the code would allow giving it back. `ErrNoSpace` is indefinite
+(W0's round 5: an over-quota member applies a write and answers it), so it is outcome 1 or 3, never
+given back (`backOk` excludes indefinite errors).
 -/
 module
 
@@ -66,7 +68,7 @@ error before proposing, the update given back; an unsettled error. -/
 def EtcdServer.processInternalRaftRequestOnce.spec : Prop :=
   ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (p tls : Principal) (lo : Nat) (r : Loc)
     (dq : DFrac) (ir : IrrBody) (rep : Bool) (Q : State → State → Resp → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ Context.ctxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ irrOwn r dq ir ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ Context.ctxOk ctx ∗ reqCtxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ irrOwn r dq ir ∗
       ⌜ir.wf⌝ ∗ authLb γ lo ∗
       (if ir.fires then
           □?rep AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅

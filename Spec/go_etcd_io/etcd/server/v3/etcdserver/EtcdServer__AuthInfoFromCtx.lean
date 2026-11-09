@@ -45,7 +45,7 @@ revision), `nil` (no token with auth enabled, or auth disabled, and no certifica
 invalid token's error (a refusal). -/
 def EtcdServer.AuthInfoFromCtx.spec : Prop :=
   ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (p tls : Principal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ Context.ctxOk ctx ∗ reqPrin ctx p tls ∗ threadTok }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ Context.ctxOk ctx ∗ reqCtxOk ctx ∗ reqPrin ctx p tls ∗ threadTok }}
     (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"AuthInfoFromCtx")) (Val #ctx))
   {{ (ai : Loc) (err : GoInterface), RET (PairV #ai #err); threadTok ∗
       ((⌜err = GoInterface.nil ∧ ai = null⌝) ∨

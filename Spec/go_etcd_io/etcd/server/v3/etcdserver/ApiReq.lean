@@ -65,14 +65,16 @@ invariant takes by the `envUpd` the server holds.
 * `reqReply γ rq`, `srvReply`: the replies (W0's and 1c's reply predicates), the server's return.
 * `IrrBody`, `irrStep`, `IrrBody.fires`, `IrrBody.wf` (the validation the gRPC layer does, and the
   depth bound: `issues/etcd-txn-nested-depth-apply-panic.md`), `IrrBody.backOk`, `respTy`,
-  `irrReply`, `irrOwn p dq ir` (provisional, 3h's), `applyResult`.
+  `irrReply`, `irrOwn p dq ir` (provisional, 3h's), `applyResult` (its trace 4b's `traceOpt`).
+* `reqCtxOk ctx` (4b's `ctxTraceIs ctx none`, otel's `ctxSpanOk`): the request context's tracing,
+  in every spec's pre; `ctxTrace ctx` (the context's trace, owned: `doSerialize`).
 * `txnChecked t` (pure, opaque; provisional, 2a's: `checkTxnRequest`'s `nil`) with the
   introduction `txnChecked_small` (a flat transaction of at most one comparison and one operation per
   branch, each valid).
 * `rangeStreamOk r` (pure): the default order and no revision filters (`checkRangeStreamRequest`).
 * `alarmReqOwn p dq ir` (provisional, 3h's), `rsSink rs γ p r ms` (provisional, 2a's: a range stream's
   send end), `srvWatchable s γ w` (provisional, 2d's and 3f's) with `srvWatchable_persistent`,
-  `srvWatchable_mvcc`, `traceAt tr` (4b's).
+  `srvWatchable_mvcc`.
 * `SrvCallTriple e P B γ p tls rq rep reply`: the three-outcome call shape.
 * `txnMsgDepth`.
 
@@ -101,6 +103,8 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiWatch
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.apply
 public import GeneratedProof.google_golang_org.grpc.peer
+public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.Api
+public import Spec.go_opentelemetry_io.otel.trace.Api
 
 set_option autoImplicit false
 
@@ -172,7 +176,7 @@ def irrStep (p tls : Principal) (lo : Nat) : IrrBody → State → State → Res
 apply refusal (`ErrAuthOldRevision`), or a token issued after the auth revision moved since the
 password check (`Authenticate` retries with the update). -/
 def IrrBody.backOk (ir : IrrBody) (res : Resp) : Prop :=
-  (∃ e, res = .err e ∧ e.refusal = true) ∨ ((∃ n pw r, ir = .authToken n pw r) ∧ ∃ b, res = .ok b)
+  (∃ e, res = .err e ∧ e.refusal = true ∧ e.indefinite = false) ∨ ((∃ n pw r, ir = .authToken n pw r) ∧ ∃ b, res = .ok b)
 
 -- The protobuf nesting depth of a `RequestOp` (itself `1`, its request `2`, a nested transaction's
 -- `TxnRequest` `2` plus what it holds: a `Compare` one level below it, its operations theirs).
@@ -266,6 +270,7 @@ def respTy : Req → go.GoType
   | .memberList _ => MemberListResponse.ty
   | .alarmList => AlarmResponse.ty
   | .alarmDisarm _ => AlarmResponse.ty
+  | .alarmActivate _ => AlarmResponse.ty
 
 end types
 
@@ -325,7 +330,8 @@ message into one (`&pb.InternalRaftRequest{Put: r}`) and take it back out. -/
 opaque irrOwn (p : Loc) (dq : DFrac) (ir : IrrBody) : IProp GF := iprop(True)
 
 /-- (provisional, 3h's) **`p` is an `AlarmRequest` asking `ir`** (`.req .alarmList` for `GET`,
-`.req (.alarmDisarm al)` for `DEACTIVATE`, `.alarmActivate al` for `ACTIVATE`; fraction `dq`). -/
+`.req (.alarmDisarm al)` for `DEACTIVATE`, `.req (.alarmActivate al)` for a client's `ACTIVATE`,
+`.alarmActivate al` for the server's own (the quota's, no update); fraction `dq`). -/
 opaque alarmReqOwn (p : Loc) (dq : DFrac) (ir : IrrBody) : IProp GF := iprop(True)
 
 /-- (provisional, 2a's) **The send end of a range stream** (`KV_RangeStreamServer` value `rs`,
@@ -347,9 +353,20 @@ history is 2d's (`req/`). -/
 def srvWatchable_mvcc.spec : Prop := ∀ s γ w,
   srvWatchable (GF := GF) s γ w ⊢ ∃ γs, Mvcc.watchableAt w γs
 
-/-- (provisional, 4b's) **`tr` is a trace** (`*traceutil.Trace`, possibly `nil`): its methods are
-safe to call. -/
-opaque traceAt (tr : Loc) : IProp GF := iprop(True)
+/-- **The request context's tracing** (4b's, otel's): no `traceutil` trace in it (each method
+installs its own: `EnsureTrace`), and its otel span usable (`Tracer.Start`, `SpanFromContext`).
+Persistent; the incoming gRPC context's (2a), the internal requesters' (`ctxTraceIs_background`,
+`ctxSpanOk_background`, their children). -/
+def reqCtxOk (ctx : GoInterface) : IProp GF :=
+  iprop(TraceUtil.ctxTraceIs ctx none ∗ OtelTrace.ctxSpanOk ctx)
+
+/-- **The trace a context carries, owned** (`doSerialize`'s `traceutil.Get`: the trace the caller's
+`EnsureTrace` installed). -/
+def ctxTrace (ctx : GoInterface) : IProp GF :=
+  iprop(∃ o, TraceUtil.ctxTraceIs ctx o ∗
+    match o with
+    | none => iprop(True)
+    | some t => TraceUtil.traceOwn t)
 
 /-! ### Replies -/
 
@@ -384,14 +401,15 @@ def irrReply (γ : Cluster) (ir : IrrBody) (res : Resp) (resp : GoInterface) : I
       ClientV3.authReply γ name res p GoInterface.nil)
   | _ => iprop(True)
 
-/-- **The apply's result `x` for `ir` answered `res`** (`*apply.Result`, non-nil, read-only). -/
+/-- **The apply's result `x` for `ir` answered `res`** (`*apply.Result`, non-nil, its fields
+read-only; its trace owned: 4b's `traceOpt`, exclusive, handed from the apply thread). -/
 def applyResult (γ : Cluster) (x : Loc) (ir : IrrBody) (res : Resp) : IProp GF :=
   iprop(⌜x ≠ null⌝ ∗ ∃ (resp : GoInterface) (err : GoInterface) (ph : Loc) (tr : Loc),
     x.[go_etcd_io.etcd.server.v3.etcdserver.apply.Result, go!"Resp"] ↦□ resp ∗
     x.[go_etcd_io.etcd.server.v3.etcdserver.apply.Result, go!"Err"] ↦□ err ∗
     x.[go_etcd_io.etcd.server.v3.etcdserver.apply.Result, go!"Physc"] ↦□ ph ∗
     x.[go_etcd_io.etcd.server.v3.etcdserver.apply.Result, go!"Trace"] ↦□ tr ∗
-    traceAt tr ∗ (⌜ph = null⌝ ∨ Read.recvAny ph) ∗
+    TraceUtil.traceOpt tr ∗ (⌜ph = null⌝ ∨ Read.recvAny ph) ∗
     match res with
     | .ok _ => iprop(⌜err = GoInterface.nil⌝ ∗ irrReply γ ir res resp)
     | .err e => iprop(⌜srvErrOf err e⌝ ∗ srvErrShape err))

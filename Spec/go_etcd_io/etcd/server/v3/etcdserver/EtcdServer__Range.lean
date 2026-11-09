@@ -27,7 +27,9 @@ s.KV(), r, true)` (3b's `Range` over the member's store, at an applied point `kr
 `revErr`), the auth revision's re-check (a change: `ErrAuthOldRevision`, a refusal, the answer
 dropped). The registry's ticket at `(kr, res)` gives `Q σ σ res` (2d's `readReg_get`). The
 permission: checked at the auth table of `kp`, at or after the call's `lo` (the registration's
-`authLb`): W0's `deniedSince`/`authOffSince` (auth off at `kp`: any answer). A serializable read skips the read index and is answered at
+`authLb`): W0's `deniedSince`/`permittedSince` (round 6: the check at a recorded auth state at
+or after the call's bound; 3d's `checkPost`, with 2d's store-index to cluster-index link,
+`req/`), not the revision re-check (an auth change bumps the revision before readers see it). A serializable read skips the read index and is answered at
 the member's view (`KVHist.IsView`), fired at the cluster's current state.
 
 **Changes.** The old spec (`specs-ref`'s `EtcdServer__Range.lean`; the approved candidate of
@@ -73,7 +75,7 @@ def EtcdServer.Range.spec : Prop :=
   ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (p tls : Principal) (r : Loc) (dq : DFrac) (rm : RangeReq),
   SrvCallTriple (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"Range")) (Val #ctx)) (Val #r))
     iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗
-        Context.ctxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ rangeReqOwn r dq rm ∗ ⌜rm.validSort ∧ (rm.key = [] → rm.rangeEnd = [])⌝)
+        Context.ctxOk ctx ∗ reqCtxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ rangeReqOwn r dq rm ∗ ⌜rm.validSort ∧ (rm.key = [] → rm.rangeEnd = [])⌝)
     iprop(threadTok ∗ rangeReqOwn r dq rm) γ p tls (.range rm) true (ClientV3.getReply)
 
 end spec

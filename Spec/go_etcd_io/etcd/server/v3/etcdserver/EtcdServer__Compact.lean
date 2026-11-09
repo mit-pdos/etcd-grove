@@ -14,7 +14,7 @@ succeeds where W0's model answers `ErrCompacted`
 
 **Proof sketch.** The span, `EnsureTrace`, `processInternalRaftRequestOnce(ctx, {Compaction: r})`
 (`processInternalRaftRequestOnce.spec` at `.req (.compact rev phys)`): on a result, its trace's
-steps (`traceAt`), then, if `physical`, a receive on `result.Physc` (`applyResult`'s `recvAny`:
+steps (`applyResult`'s owned `traceOpt`, 4b), then, if `physical`, a receive on `result.Physc` (`applyResult`'s `recvAny`:
 closed once mvcc's compaction finished, 3e) and `s.be.ForceCommit()` under `s.bemu`'s read lock
 (the reader slot from the caller's `threadTok`; 4a's `ForceCommit`); `result.Err` (the answer's
 error, fired; or a refusal given back); else the response (a `*pb.CompactionResponse`, made if
@@ -59,7 +59,7 @@ def EtcdServer.Compact.spec : Prop :=
   ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (p tls : Principal) (r : Loc) (dq : DFrac) (rev : w64) (phys : Bool),
   SrvCallTriple (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"Compact")) (Val #ctx)) (Val #r))
     iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗
-        Context.ctxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ compactReqOwn r dq (sint.Z rev) phys ∗ ⌜rev ≠ W64 0⌝)
+        Context.ctxOk ctx ∗ reqCtxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ compactReqOwn r dq (sint.Z rev) phys ∗ ⌜rev ≠ W64 0⌝)
     iprop(threadTok ∗ compactReqOwn r dq (sint.Z rev) phys) γ p tls (.compact (sint.Z rev) phys) false (ClientV3.compactReply)
 
 end spec

@@ -41,7 +41,7 @@ def EtcdServer.RoleRevokePermission.spec : Prop :=
   ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (p tls : Principal) (r : Loc) (dq : DFrac) (role : GoString) (key rangeEnd : Bytes),
   SrvCallTriple (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"RoleRevokePermission")) (Val #ctx)) (Val #r))
     iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗
-        Context.ctxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ ClientV3.reqOwn r dq (.roleRevokePermission role key rangeEnd))
+        Context.ctxOk ctx ∗ reqCtxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ ClientV3.reqOwn r dq (.roleRevokePermission role key rangeEnd))
     iprop(threadTok ∗ ClientV3.reqOwn r dq (.roleRevokePermission role key rangeEnd)) γ p tls (.roleRevokePermission role key rangeEnd) false (ClientV3.ansReply)
 
 end spec

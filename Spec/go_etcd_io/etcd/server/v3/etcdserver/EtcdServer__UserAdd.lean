@@ -41,7 +41,7 @@ def EtcdServer.UserAdd.spec : Prop :=
   ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (p tls : Principal) (r : Loc) (name pw : GoString) (noPw : Bool),
   SrvCallTriple (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"UserAdd")) (Val #ctx)) (Val #r))
     iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗
-        Context.ctxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ ClientV3.reqOwn r (DFrac.own 1) (.userAdd name pw noPw))
+        Context.ctxOk ctx ∗ reqCtxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ ClientV3.reqOwn r (DFrac.own 1) (.userAdd name pw noPw))
     iprop(threadTok ∗ ∃ rq', ClientV3.reqOwn r (DFrac.own 1) rq') γ p tls (.userAdd name pw noPw) false (ClientV3.ansReply)
 
 end spec

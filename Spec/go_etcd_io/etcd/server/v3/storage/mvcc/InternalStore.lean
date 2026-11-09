@@ -38,7 +38,7 @@ Imported by mvcc's own spec files only. Pure models transparent, resources opaqu
   or the value `h`) of compaction revision `c`, revision `r`, keep map `keep`.
 * `hashStorageFresh hs s` (exclusive): a new `*hashStorage` over `s`, nothing stored.
 * `schemaVars` (persistent): schema's globals mvcc reads (`schema.Key`, `schema.Meta`: their
-  `bucketVal`s; the compaction keys' names: `metaKey`): schema's initialization law (4b's).
+  values (`Schema.bucketAt`, 4b's `bucketVars_init`); the compaction keys' names: `metaKey`): schema's initialization law (4b's).
 -/
 module
 
@@ -170,8 +170,9 @@ opaque hashStorageFresh (hs s : Loc) : IProp GF := iprop(True)
 
 /-- Schema's globals mvcc reads (persistent; schema's initialization, 4b). -/
 def schemaVars : IProp GF :=
-  iprop(globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key ↦□ bucketVal .keyB ∗
-    globalAddr go_etcd_io.etcd.server.v3.storage.schema.Meta ↦□ bucketVal .metaB ∗
+  iprop((∃ bv, globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key ↦□ bv ∗ Schema.bucketAt .key bv) ∗
+    (∃ bv, globalAddr go_etcd_io.etcd.server.v3.storage.schema.Meta ↦□ bv ∗
+      Schema.bucketAt .metaB bv) ∗
     (∃ sl : GoSlice, globalAddr go_etcd_io.etcd.server.v3.storage.schema.ScheduledCompactKeyName ↦□ sl ∗
       sl ↦*□ metaKey .sched) ∗
     (∃ sl : GoSlice, globalAddr go_etcd_io.etcd.server.v3.storage.schema.FinishedCompactKeyName ↦□ sl ∗

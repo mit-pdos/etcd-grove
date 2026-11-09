@@ -250,3 +250,29 @@ Coordinator's decisions applied: `Rev()` without a token by option (a); hashing 
   own storage: tests only), P-S6 (the receipt bound's provenance is the invariant's, as before).
 
 Open questions 1 and 3 above are settled by these decisions; 2 (key/value size for `Marshal`) stays.
+
+## Round 2 (4a bridge, 4b schema)
+
+- **4a F1, `Unlock` publishes in two steps** (coordinator's decision: two updates). `kbLocked B D0 D`
+  carries the session's base `D0`; `Unlock` takes `kbObs`-style nested updates `kbData → KeyData.mid
+  D0 D` (the session's puts, at the write-back) then `→ D` (its deletes, at the commit), 4a's
+  `Sess.mid`/`Sess.fin`. Sketches re-checked: a read racing a compaction batch may see
+  `finishedCompactRev = c` with the batch's deleted entries still there; reads by revision never ask
+  for a revision below the compaction (`rangeKeys` reads `revBytes` the index names at
+  `≥ compactMainRev`), `checkPrevCompactionCompleted` may answer "completed" before the batch's
+  deletes commit (they commit right after, before the job stores the hash), `hashByRev` skips entries
+  below its compaction not in `keep`. So `mvccImage`'s realization now admits, for any `u`, removal per
+  key a prefix of what the compaction removes (also with the finished key already set): what the
+  store's invariant keeps visible, and what `restoreIntoIndex` handles (versions from the first
+  surviving entry; a stale entry below the compaction is never read and the next compaction removes
+  it).
+- **4a F3, the put row's freshness**: the key above every key the session began with (`D0`) or has
+  (`D`): 4a's `Sess.fresh`; mvcc's sessions never put and delete `Key` together, so its code meets it.
+- **4b, buckets**: `bucketVal` removed; every row takes any `bv` with `Schema.bucketAt b.bkt bv`
+  (`MBucket.bkt`); `metaKey` is `Schema.schedKey`/`finKey`; `InternalStore.schemaVars` restated over
+  `bucketAt`.
+- **4b, `Meta` ranges**: `rangeOk` asks a range of `Meta` only of a compaction key (no claim about
+  `Meta`'s other keys).
+- **4b, trace**: `Mvcc.traceOwn` is now `TraceUtil.traceOwn` (an abbreviation).
+- 4a's items 3, 5, 6 need no change here (`kbHeld` is 4a's session; the snapshot's meaning is attached
+  at each commit by the server's invariant through `mvccImage_obs`; `kbBareSlot` is a plain slot).

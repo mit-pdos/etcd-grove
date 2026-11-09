@@ -3,7 +3,7 @@
 
 **Users.** `Range`, a read-only `Txn`, `RangeStream` (`v3_server.go:150,190,368`).
 
-**Proof sketch.** `traceutil.Get(ctx)` (4b), `AuthInfoFromCtx(ctx)` (its spec: `p`'s or `tls`'s `AuthInfo`
+**Proof sketch.** `traceutil.Get(ctx)` (4b: the trace the caller installed, `ctxTrace`, owned and given back), `AuthInfoFromCtx(ctx)` (its spec: `p`'s or `tls`'s `AuthInfo`
 at a revision, `nil`, or an invalid token, returned), `&auth.AuthInfo{}` for `nil`, `chk(ai)` (the
 caller's closure: its triple `Chk`), `get()` (the caller's: `Get`), the revision re-check
 (`authStore.Revision()`, 3d). Mirrors the code: the closures' specs are the caller's.
@@ -44,16 +44,16 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 def EtcdServer.doSerialize.spec : Prop :=
   ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (p tls : Principal) (chk get : GoFunc)
     (Pc : IProp GF) (Rc : GoInterface → IProp GF) (Pg Rg : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ Context.ctxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ Pc ∗
-      (∀ (ai : Loc), {{ Pc ∗ threadTok ∗ ∃ (u : GoString) (rev : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ Context.ctxOk ctx ∗ ctxTrace ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ Pc ∗
+      (∀ (ai : Loc), {{ Pc ∗ threadTok ∗ ctxTrace ctx ∗ ∃ (u : GoString) (rev : w64),
           ai.[go_etcd_io.etcd.server.v3.auth.AuthInfo, go!"Username"] ↦□ u ∗
           ai.[go_etcd_io.etcd.server.v3.auth.AuthInfo, go!"Revision"] ↦□ rev ∗
           ⌜p = some u ∨ tls = some u ∨ (u = [] ∧ rev = W64 0)⌝ }} (App (Val #chk) (Val #ai))
-        {{ (e : GoInterface), RET #e; threadTok ∗ Rc e }}) ∗
-      ({{ Pg ∗ threadTok }} (App (Val #get) (Val #())) {{ RET #(); threadTok ∗ Rg }}) ∗
+        {{ (e : GoInterface), RET #e; threadTok ∗ ctxTrace ctx ∗ Rc e }}) ∗
+      ({{ Pg ∗ threadTok ∗ ctxTrace ctx }} (App (Val #get) (Val #())) {{ RET #(); threadTok ∗ ctxTrace ctx ∗ Rg }}) ∗
       (Rc GoInterface.nil -∗ Pg) }}
     (App (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"doSerialize")) (Val #ctx)) (Val #chk)) (Val #get))
-  {{ (err : GoInterface), RET #err; threadTok ∗
+  {{ (err : GoInterface), RET #err; threadTok ∗ ctxTrace ctx ∗
       ((⌜srvErrOf err .invalidAuthToken⌝ ∗ srvErrShape err ∗ Pc) ∨ (⌜err ≠ GoInterface.nil⌝ ∗ Rc err) ∨
        (Rg ∗ (⌜err = GoInterface.nil⌝ ∨ ⌜srvErrOf err .authOldRevision⌝ ∗ srvErrShape err))) }}
 
