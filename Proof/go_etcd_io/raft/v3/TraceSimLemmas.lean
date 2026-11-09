@@ -1813,6 +1813,25 @@ theorem checkLine_congr (t t' : Etcdraft.Trace) (l0 : Nat) (inv : Bool) (ha : Ag
     obtain ⟨ih1, ih2⟩ := ih (fun x hx => hts x (by simp [hx])) hacc'
     exact ⟨.step ts rest acc succ i2 r hv (by unfold Etcdraft.Trace.StepLineRel; rw [hl]; exact h1) ih1, ih2⟩
 
+/-- **A run is one of every trace that agrees with its trace up to its lines** (and starts at the
+same state); its state after `n` lines is on line `n + 1`. -/
+theorem runRel_congr (t t' : Etcdraft.Trace) (hinit : t'.init = t.init) :
+    ∀ n ts, t.RunRel n ts → (∀ l, 1 ≤ l → l ≤ n → AgreeTo t t' l) →
+      t'.RunRel n ts ∧ ts.l = n + 1 := by
+  intro n ts h
+  induction h with
+  | init hv =>
+    intro _
+    have : t'.initState = t.initState := by unfold Etcdraft.Trace.initState; rw [hinit]
+    exact ⟨this ▸ .init (this ▸ hv), rfl⟩
+  | step n ts ts' info _ hn hcl hv hb ih =>
+    intro ha
+    obtain ⟨ih1, hl⟩ := ih (fun l h1 h2 => ha l h1 (by omega))
+    have ha' := ha (n + 1) (by omega) (Nat.le_refl _)
+    obtain ⟨c1, c2⟩ := checkLine_congr t t' (n + 1) true ha' [ts] ([], {}) _ hcl
+      (by simpa using hl) (by simp)
+    exact ⟨.step n ts ts' info ih1 (by have := ha'.2.2.2.2; omega) c1 hv hb, c2 [ts'] info rfl ts' (by simp)⟩
+
 end TraceSim
 
 end EtcdGrove
