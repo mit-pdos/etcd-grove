@@ -3104,6 +3104,240 @@ theorem simRun_recvRejectU (C : List w64) (L : List TraceEv) (σ U : Etcdraft.St
     hpv hcq hlok
   rw [this]; rfl
 
+/-! ### `BecomeFollower` lines -/
+
+/-- A skipped `BecomeFollower` line's non-receive successor: the state itself. -/
+theorem nonReceive_bfSkip (t : Etcdraft.Trace) (ts : Etcdraft.TState)
+    (hname : (t.line ts.l).ev.name = "BecomeFollower")
+    (hskip : t.isBecomeFollowerInUpdateTermOrReturnToFollower ts = true) :
+    t.nonReceive ts = .ok [ts.s] := by
+  have hf : t.server.flatMap (t.stepDownToFollowerIfLogged ts) = [] := by
+    rw [List.flatMap_eq_nil_iff]; intro i _
+    simp [Etcdraft.Trace.stepDownToFollowerIfLogged, hskip]
+  unfold Etcdraft.Trace.nonReceive
+  simp only [hname, hf]
+  simp [Etcdraft.Trace.skipUnusedLogline, hskip, pure, Except.pure, bind, Except.bind]
+
+theorem parseLine_ev (k : Nat) (ev : Etcdraft.Event) (ln : Etcdraft.Line) (h : Etcdraft.parseLine k ev = .ok ln) :
+    ln.ev = ev := by
+  unfold Etcdraft.parseLine at h
+  simp only [bind, Except.bind, pure, Except.pure, throw, throwThe, MonadExceptOf.throw] at h
+  repeat' (first | (split at h) | (cases h; rfl) | (cases h))
+
+
+theorem mapM_ok_map {α β γ ε : Type} (f : α → Except ε β) (g : β → γ) (h : α → γ)
+    (hfg : ∀ a b, f a = .ok b → g b = h a) :
+    ∀ (l : List α) (r : List β), l.mapM f = .ok r → r.map g = l.map h := by
+  intro l
+  induction l with
+  | nil => intro r hr; simp [List.mapM_nil, pure, Except.pure] at hr; subst hr; rfl
+  | cons a l ih =>
+    intro r hr
+    rw [List.mapM_cons] at hr
+    simp only [bind, Except.bind] at hr
+    cases hf : f a with
+    | error e => rw [hf] at hr; cases hr
+    | ok b =>
+      rw [hf] at hr
+      simp only at hr
+      cases hm : l.mapM f with
+      | error e => rw [hm] at hr; cases hr
+      | ok r' =>
+        rw [hm] at hr
+        simp only [pure, Except.pure, Except.ok.injEq] at hr
+        subst hr
+        simp [hfg a b hf, ih r' hm]
+
+/-- The parsed lines' events are the events. -/
+theorem parseLines_ev (evs : List Etcdraft.Event) (lines : List Etcdraft.Line) (h : parseLines evs = .ok lines) :
+    lines.map Etcdraft.Line.ev = evs := by
+  unfold parseLines at h
+  have := mapM_ok_map _ Etcdraft.Line.ev Prod.snd (fun p ln hp => parseLine_ev p.1 p.2 ln hp) _ _ h
+  rw [this]
+  apply List.ext_getElem (by simp)
+  intro n h1 h2; simp
+
+/-- `SelectLastInSubSeq`'s fold: the last index (from 1) where `f` holds. -/
+theorem foldl_last (f : Nat → Bool) (j : Nat) (hj : f j = true) :
+    ∀ N, j < N → (∀ n, j < n → n < N → f n = false) →
+      (List.range N).foldl (fun (acc : Nat) n => if f n then n + 1 else acc) 0 = j + 1 := by
+  intro N
+  induction N with
+  | zero => intro h; omega
+  | succ N ih =>
+    intro hjN hrest
+    rw [List.range_succ, List.foldl_append, List.foldl_cons, List.foldl_nil]
+    rcases Nat.lt_or_ge j N with hlt | hge
+    · rw [ih hlt (fun n h1 h2 => hrest n h1 (by omega)), hrest N hlt (by omega)]; rfl
+    · have : j = N := by omega
+      subst this; simp [hj]
+
+/-- `IsBecomeFollowerInUpdateTermOrReturnToFollower`'s test on the node's last line before it (`e0`)
+and the line (`e`). -/
+def bfCond (e0 e : Etcdraft.Event) : Bool :=
+  match e0.msg with
+  | none => false
+  | some pm =>
+    or (Etcdraft.isReceiveName e0.name && decide (e0.state.term < pm.term) && pm.term == e.state.term)
+      (e0.name == "ReceiveAppendEntriesRequest" && e0.state.term == pm.term && pm.term == e.state.term &&
+        (or (e0.role == Etcdraft.candidate) (e0.role == Etcdraft.preCandidate)))
+
+/-- **Which `BecomeFollower` line is skipped**: the test on the node's last line (`e0`, the lines
+after it of other nodes). -/
+theorem isBF_eq (C : List w64) (L : List TraceEv) (lines : List Etcdraft.Line) (e : TraceEv) (id vote : w64)
+    (xs : List w64) (ts : Etcdraft.TState) (hl : parseLines (L.map evConv) = .ok lines) (hl' : ts.l = L.length + 1)
+    (hname' : gsStr e.name = "BecomeFollower")
+    (L1 L2 : List TraceEv) (e0 : TraceEv) (hsplit : L = L1 ++ e0 :: L2)
+    (hnid0 : (evConv e0).nid = (evConv e).nid) (hnid2 : ∀ x ∈ L2, (evConv x).nid ≠ (evConv e).nid) :
+    (linesTrace C (lines ++ [nodeLine e id vote xs])).isBecomeFollowerInUpdateTermOrReturnToFollower ts =
+      bfCond (evConv e0) (evConv e) := by
+  have hlen := parseLines_length _ _ hl
+  simp only [List.length_map] at hlen
+  have hev := parseLines_ev _ _ hl
+  have hline := linesTrace_line_last C lines (nodeLine e id vote xs) ts.l (by omega)
+  have hlineN : ∀ n (hn : n < L.length),
+      ((linesTrace C (lines ++ [nodeLine e id vote xs])).line (n + 1)).ev = evConv L[n] := by
+    intro n hn
+    simp only [linesTrace, Etcdraft.Trace.line, List.getD_eq_getElem?_getD, Nat.add_sub_cancel]
+    rw [List.getElem?_append_left (by omega)]
+    have := congrArg (fun l => l[n]?) hev
+    simp only [List.getElem?_map] at this
+    rw [List.getElem?_eq_getElem (by omega)] at this ⊢
+    rw [List.getElem?_eq_getElem hn] at this
+    simp only [Option.map_some, Option.getD_some, Option.some.injEq] at this ⊢
+    exact this
+  have hL1 : L1.length < L.length := by rw [hsplit]; simp
+  have he0 : L[L1.length] = e0 := by simp [hsplit]
+  unfold Etcdraft.Trace.isBecomeFollowerInUpdateTermOrReturnToFollower
+  have hev1 : Etcdraft.Trace.isEvent (linesTrace C (lines ++ [nodeLine e id vote xs])) ts "BecomeFollower" = true := by
+    unfold Etcdraft.Trace.isEvent; rw [hline]
+    simp [nodeLine, evConv, hname', linesTrace, Etcdraft.Trace.len, hl', hlen]
+  simp only [hev1, Bool.not_true, Bool.false_eq_true, ↓reduceIte]
+  have hk : (List.range (ts.l - 1)).foldl (fun (acc : Nat) n =>
+      if ((linesTrace C (lines ++ [nodeLine e id vote xs])).line (n + 1)).ev.nid ==
+        ((linesTrace C (lines ++ [nodeLine e id vote xs])).line ts.l).ev.nid then n + 1 else acc) 0 =
+      L1.length + 1 := by
+    apply foldl_last _ L1.length _ _ (by omega)
+    · intro n h1 h2
+      have hn : n < L.length := by omega
+      rw [hlineN n hn, hline]
+      have hx : L[n] ∈ L2 := by
+        have h3 : n - L1.length - 1 < L2.length := by
+          have := hn; rw [hsplit] at this; simp at this; omega
+        have : L[n] = L2[n - L1.length - 1] := by
+          simp only [hsplit]; rw [List.getElem_append_right (by omega)]
+          rw [List.getElem_cons (by simp; omega)]
+          simp [show n - L1.length ≠ 0 by omega]
+        rw [this]; exact List.getElem_mem h3
+      simp only [nodeLine]
+      simpa using hnid2 _ hx
+    · rw [hlineN _ hL1, hline, he0]; simp only [nodeLine]; simpa using hnid0
+  rw [hk]
+  simp only [Nat.add_eq_zero_iff, Nat.one_ne_zero, and_false, beq_iff_eq, ↓reduceIte]
+  rw [hlineN _ hL1, he0, hline]
+  unfold bfCond
+  cases (evConv e0).msg <;> simp [nodeLine]
+
+/-- **A skipped `BecomeFollower` line's step** (raft's `becomeFollower` inside a receipt's handling:
+`UpdateTerm` or `ReturnToFollower`, done at the receive line): the node's last line before it is that
+receive line (`e0`, of a higher-term message, or a candidate's append request of its term), the state
+unchanged. -/
+theorem simRun_bfSkip (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (hrun : SimRun C L σ)
+    (hL : L ≠ []) (e : TraceEv) (id : w64) (s : NState) (cfg : CfgM)
+    (hev : NodeEvOf (W64 2) id s cfg e) (hout : cfg.outgoing = ∅)
+    (L1 L2 : List TraceEv) (e0 : TraceEv) (hsplit : L = L1 ++ e0 :: L2)
+    (hnid0 : (evConv e0).nid = (evConv e).nid) (hnid2 : ∀ x ∈ L2, (evConv x).nid ≠ (evConv e).nid)
+    (hcond : bfCond (evConv e0) (evConv e) = true)
+    (hboot : ∀ lines ln, parseLines (L.map evConv) = .ok lines →
+      (bootFlags (confAbs C) (lines ++ [ln])).getD L.length false = false)
+    (hinv : σ.violated = .ok none) :
+    SimRun C (L ++ [e]) σ := by
+  obtain ⟨hname, hnid, -, hvote, -, -, -, ⟨xs, ys, -, hys, hconf⟩, hmsg, -, -, -, -⟩ := hev
+  rw [hout, elements_empty_nil] at hys
+  have hys0 := List.Perm.eq_nil hys
+  subst hys0
+  have hname' : gsStr e.name = "BecomeFollower" := by
+    simp only [evtNames] at hname
+    have : e.name = go!"BecomeFollower" := by have := hname; simp at this; exact this.symm
+    rw [this]; rfl
+  apply simRun_node C L σ _ hrun hL e id s.vote xs hnid hvote hconf hmsg (by rw [hname']; rfl)
+    (by rw [hname']; rfl) (by rw [hname']; decide) hboot _ hinv
+  intro lines ts hl hts hl'
+  have hlen := parseLines_length _ _ hl
+  simp only [List.length_map] at hlen
+  have hline := linesTrace_line_last C lines (nodeLine e id s.vote xs) ts.l (by omega)
+  rw [← hts]
+  apply nonReceive_bfSkip _ ts (by rw [hline]; simp [nodeLine, evConv, hname'])
+  rw [isBF_eq C L lines e id s.vote xs ts hl hl' hname' L1 L2 e0 hsplit hnid0 hnid2, hcond]
+
+/-- A step-down `BecomeFollower` line's non-receive successor: `StepDownToFollower` at its node. -/
+theorem nonReceive_stepDown (t : Etcdraft.Trace) (ts : Etcdraft.TState) (i : Etcdraft.ID) (hl : ts.l ≤ t.len)
+    (hname : (t.line ts.l).ev.name = "BecomeFollower") (hnid : (t.line ts.l).nid = i)
+    (hnd : t.server.Nodup) (hi : i ∈ t.server)
+    (hskip : t.isBecomeFollowerInUpdateTermOrReturnToFollower ts = false)
+    (hst : (ts.s.s i).state = Etcdraft.leader ∨ (ts.s.s i).state = Etcdraft.candidate)
+    (hpost : (t.line ts.l).stateMatches (ts.s.becomeFollowerOfTerm i (ts.s.s i).currentTerm) i = true) :
+    t.nonReceive ts = .ok [ts.s.becomeFollowerOfTerm i (ts.s.s i).currentTerm] := by
+  have hsd : ts.s.stepDownToFollower i = some (ts.s.becomeFollowerOfTerm i (ts.s.s i).currentTerm) := by
+    unfold Etcdraft.State.stepDownToFollower
+    rcases hst with h | h <;> simp [h]
+  have hf : t.server.flatMap (t.stepDownToFollowerIfLogged ts) =
+      [ts.s.becomeFollowerOfTerm i (ts.s.s i).currentTerm] := by
+    apply flatMap_single _ _ i _ hnd hi
+    · simp [Etcdraft.Trace.stepDownToFollowerIfLogged, Etcdraft.Trace.isNodeEvent, Etcdraft.Trace.isEvent,
+        hl, hname, hnid, hskip, hsd, Etcdraft.Trace.validatePostStates, hpost]
+    · intro j _ hj
+      simp [Etcdraft.Trace.stepDownToFollowerIfLogged, Etcdraft.Trace.isNodeEvent, Etcdraft.Trace.isEvent,
+        hnid, Ne.symm hj]
+  unfold Etcdraft.Trace.nonReceive
+  simp only [hname, hf]
+  simp [Etcdraft.Trace.skipUnusedLogline, Etcdraft.Trace.isEvent, hname, hskip, pure, Except.pure, bind,
+    Except.bind]
+
+/-- **A step-down `BecomeFollower` line's step** (raft's `becomeFollower(r.Term, None)` outside a
+receipt's first round: a candidate losing its election): `StepDownToFollower`, the line's state
+(raft's after it, `s`) related to the server stepped down. -/
+theorem simRun_bfStepDown (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (hrun : SimRun C L σ)
+    (hL : L ≠ []) (e : TraceEv) (id : w64) (s : NState) (cfg : CfgM)
+    (hev : NodeEvOf (W64 2) id s cfg e) (hin : (elements cfg.incoming).Perm C) (hout : cfg.outgoing = ∅)
+    (hC : id ∈ C) (hsrv : σ.server = confAbs C)
+    (L1 L2 : List TraceEv) (e0 : TraceEv) (hsplit : L = L1 ++ e0 :: L2)
+    (hnid0 : (evConv e0).nid = (evConv e).nid) (hnid2 : ∀ x ∈ L2, (evConv x).nid ≠ (evConv e).nid)
+    (hcond : bfCond (evConv e0) (evConv e) = false)
+    (hst : (σ.s (idAbs id)).state = Etcdraft.leader ∨ (σ.s (idAbs id)).state = Etcdraft.candidate)
+    (hR : SimServerR C C.length (toPState s)
+      ((σ.becomeFollowerOfTerm (idAbs id) (σ.s (idAbs id)).currentTerm).s (idAbs id)))
+    (hs : LogShapeOk C.length (toPState s)) (hpre : s.role ≠ .preCandidate)
+    (bt : uint.Z s.term < 2 ^ 63) (bc : uint.Z s.logst.committed < 2 ^ 63)
+    (bl : uint.Z (plastIndex (toPState s)) < 2 ^ 63)
+    (hboot : ∀ lines ln, parseLines (L.map evConv) = .ok lines →
+      (bootFlags (confAbs C) (lines ++ [ln])).getD L.length false = false)
+    (hinv : (σ.becomeFollowerOfTerm (idAbs id) (σ.s (idAbs id)).currentTerm).violated = .ok none) :
+    SimRun C (L ++ [e]) (σ.becomeFollowerOfTerm (idAbs id) (σ.s (idAbs id)).currentTerm) := by
+  obtain ⟨hname, hnid, hterm', hvote, hcommit', hrl, hlog, ⟨xs, ys, hxs, hys, hconf⟩, hmsg, -, -, -, -⟩ := hev
+  rw [hout, elements_empty_nil] at hys
+  have hys0 := List.Perm.eq_nil hys
+  subst hys0
+  have hname' : gsStr e.name = "BecomeFollower" := by
+    simp only [evtNames] at hname
+    have : e.name = go!"BecomeFollower" := by have := hname; simp at this; exact this.symm
+    rw [this]; rfl
+  have hcontains : σ.server.contains (idAbs id) = true := by
+    rw [hsrv, List.contains_iff_mem, mem_confAbs]; exact hC
+  apply simRun_node C L σ _ hrun hL e id s.vote xs hnid hvote hconf hmsg (by rw [hname']; rfl)
+    (by rw [hname']; rfl) (by rw [hname']; decide) hboot _ hinv
+  intro lines ts hl hts hl'
+  have hlen := parseLines_length _ _ hl
+  simp only [List.length_map] at hlen
+  have hline := linesTrace_line_last C lines (nodeLine e id s.vote xs) ts.l (by omega)
+  subst hts
+  apply nonReceive_stepDown _ ts (idAbs id) (by simp [linesTrace, Etcdraft.Trace.len]; omega)
+    (by rw [hline]; simp [nodeLine, evConv, hname']) (by rw [hline]; rfl) (confAbs_nodup C)
+    (by simp only [linesTrace]; rw [mem_confAbs]; exact hC)
+    (by rw [isBF_eq C L lines e id s.vote xs ts hl hl' hname' L1 L2 e0 hsplit hnid0 hnid2, hcond]) hst
+  rw [hline]
+  exact stateMatches_node C s _ e id xs hR hs hpre hterm' hcommit' hrl hlog (hxs.trans hin) bt bc bl _ rfl
+    (by simp [Etcdraft.State.becomeFollowerOfTerm, Etcdraft.State.upd]; exact List.contains_iff_mem.1 hcontains)
 end TraceSim
 
 end EtcdGrove
