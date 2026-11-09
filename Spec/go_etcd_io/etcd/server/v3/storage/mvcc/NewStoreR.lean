@@ -8,6 +8,34 @@ at compaction records `r`, in the vocabulary of `store.Restore`'s internal spec
 runs the same `s.restore()` as `store.Restore` (`kvstore.go:127-132`), after its own batch session
 (`BatchTx`, `UnsafeCreateBucket`, `Unlock`, `ForceCommit`). Scratch: not imported, not linked,
 not proved (`sorry`).
+
+**NOT TO FREEZE BEFORE R1's LEMMA** (review round 1's F2.1). As written, the pre takes `RC` on its
+own, the clean read lending `storeRT γ ∗ RC`, and the whole `restoreImageM d γb L' r`; but the only
+`RC` its caller (`NewR.lean`'s glue, step 4) can supply is the evidence that nothing was deleted
+since the open, the client's half `backend.dlsOwn d.γB ∅`, which is *inside* `restoreImageM` (on:
+its `kbVals … ∅`). The caller cannot give both. What the bridge lemma must say (stated in
+`NewR.lean` as `mvcc.NewStore.cleanRead_of_image`, `sorry`, Probe's target):
+
+```
+theorem mvcc.NewStore.cleanRead_of_image (hRT hrRL hrRU hrUR hID hName hSafe : backend's specs)
+    (d : KBReal) (hP : bridgeParams d.P) (hcm : d.cm = true) (Pk) (γb) (γi) (r) (hpos : recsSign r) :
+    isPkgInit backend ∗ isPkgInit schema ∗ isBackend d.γB d.P (lateW d.gx) Pk d.be ∗
+      keySized d.γB d.P d.be ∗ storeDlReg d.γB γi ⊢
+      ∀ γ : StoreNames, ⌜γ.bucket = γb ∧ γ.kb = some d ∧ γ.idx = γi⌝ →
+        keyCleanReadR (iface d.be) (bucketViewC γ) iprop(storeRT γ ∗ backend.dlsOwn d.γB ∅)
+          (kbRecs γ.kb γ.bucket r) r
+```
+
+i.e. `keyCleanRead_of_backendC` with the registration already fixed (`storeDlReg`, which
+`NewStore`'s batch session needs before `restore()`) and the client's deleted-entries half at `∅`
+lent in place of the unfixed `dlInit`. Once it is proved, the restatement (the review's option (a)):
+`RC` is no longer a parameter: the clean read's lent token is `storeRT γ ∗ (if d.cm then
+backend.dlsOwn d.γB ∅ else True)`, the separate `RC ∗` leaves the pre and the post, and the proof
+of `NewStore` splits the `dlsOwn` half off `restoreImageM` to lend it to `restore()`'s reads and
+puts it back (the post's `storeCloserM`, on, takes the image's parts back as today). Off, nothing
+changes (`keyCleanRead_of_backend` with `dlNoDel`, `r = empty`). If the lemma fails, the review's
+option (b): the text is fixed to what Probe finds. `newWatchableStoreR.lean` and `NewR.lean` follow.
+The API candidate (`ApiNewRestoring.lean`) is unaffected.
 -/
 module
 
@@ -76,8 +104,8 @@ abbrev mvcc.NewStore.specR : Prop :=
     (γi : mvcc.IdxNames) (γok : GName) (M : GMap w64 mvcc.Log) (Perm : Int → IProp GF)
     (R : mvcc.Log) (r : mvcc.CmpRecs) (RC : IProp GF) (Ls : List w64)
     (hk : Option val) (Pre Q Post X Y : IProp GF) (dq : DFrac),
-  mvcc.batchLimitOk cfg.CompactionBatchLimit' → mvcc.restoreLogOk R →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+  {{ ⌜mvcc.batchLimitOk cfg.CompactionBatchLimit' ∧ mvcc.restoreLogOk R⌝ ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = some d ∧ γ.idx = γi⌝ →
         ∃ Dep : IProp GF, mvcc.isKeyBackendGR b (mvcc.bucketView γ) (mvcc.storeRT γ)
           (mvcc.storeWT γ) (mvcc.kbRecs γ.kb γ.bucket r) r (mvcc.storePutOk γ) (mvcc.delKey γ)

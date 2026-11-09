@@ -5,7 +5,8 @@ the store state `σ` (nothing pending; its revisions `Hs`, a lower bound of the 
 revision, a copy of the last revision's state, no change. It raises `m.revHi` to the next revision
 first (opening the incarnation's invariant with the writer's part, `incW`: the bound above the
 revision any write in flight can show, and `|σ.notifiedLog| ≤ revHi + 1` for the pending revision's
-responses).
+responses). The new `revHi` stays below `2 ^ 62` (`memberState`'s ceiling): `σ.rev + 2 < 2 ^ 62`,
+which the writer has from `Ops < 2 ^ 38` (a revision per operation at most).
 -/
 module
 
@@ -35,7 +36,7 @@ abbrev runner.begin.spec : Prop :=
   ∀ (x : Loc) (ks : List GoString) (h : Loc) (γh : HistNames) (i : Nat) (mp : Loc)
     (m : MemberNames) (ι : IncNames) (kv : GoInterface) (qw : Qp) (σ : MvccState) (b : Bnd)
     (Hs : List HRev),
-  Hs.length = σ.log.length → σ.pending = none → σ.rev + 2 < 2 ^ 63 →
+  Hs.length = σ.log.length → σ.pending = none → σ.rev + 2 < 2 ^ 62 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccfull ∗ runnerH x h ∗ histRd h γh ∗ monoListLbOwn γh.l Hs ∗
       mF go!"rev" mp ↦ (W64 (σ.rev : Int)) ∗ incW ks γh i mp m ι kv qw σ b }}
     (App (x @!! go.GoType.PointerType runner.ty @!! go!"begin") (Val #mp))

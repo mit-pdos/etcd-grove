@@ -33,12 +33,12 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 abbrev runner.checkLeases.spec : Prop :=
   ∀ (x : Loc) (ks : List GoString) (cfg : Config) (wr : List w64) (h : Loc) (γh : HistNames)
     (ops : List OpM) (i : Nat) (mp : Loc) (m : MemberNames) (f : GoFunc) (v : MemS)
-    (qw qk : Qp) (nw k : Nat),
+    (qw : Qp) (nw k : Nat),
   logOk ks ops →
   {{ writerCtx (GF := GF) x ks cfg wr h γh ∗ histRd h γh ∗ monoListLbOwn γh.l (histAt ks ops v.ops) ∗
-      memCore ks γh ops i mp m f v qw qk nw k }}
+      memCore ks γh ops i mp m f v qw nw k }}
     (App (x @!! go.GoType.PointerType runner.ty @!! go!"checkLeases") (Val #mp))
-  {{ RET #(); histRd h γh ∗ memCore ks γh ops i mp m f v qw qk nw k }}
+  {{ RET #(); histRd h γh ∗ memCore ks γh ops i mp m f v qw nw k }}
 
 end spec
 

@@ -4,7 +4,9 @@
 receiver's check of the response `r` it just received (`wsRecv` at `rs ++ [r]`, `wrespIs`), with its
 half of `σs.rcv` at `rs`. By `recv_facts` (`Streams.lean`: `wsRecvOk` at the incarnation's state,
 the registry, `onceUpTo` everywhere), each check of `receive` is a clause of the watch guarantee: a
-revision written (clause 1, against `revHi` loaded after); eventless revisions non-decreasing
+revision written (clause 1, `r.rev < |σ.notifiedLog|`, against `revHi` loaded after: `readQ`'s
+lower bound of the monotone notified length, `nrevHi_acc`, since a response may be at the revision
+still pending, `revHi`'s own lower bound being only the committed revision's); eventless revisions non-decreasing
 (clause 5, `eventlessOk`); a stream progress response covers every stamped, unmarked watcher
 (clause 3 with `w.k ≤ j` from the stamp, `w.live` from the mark); a watcher's (clause 1: a
 registered one, `regOk'`); a compaction response's revision compacted (clause 1, against `cmpHi`
@@ -15,6 +17,12 @@ revision, with its fields; now and then the event's previous key-value read (`ch
 the receiver's reader token). Every check passes; the lock's body and the receiver's half at
 `rs ++ [r]` (the registry unchanged, the history's bound and the eventless revision possibly
 grown).
+
+The progress response's coverage of compacted watchers (`mvccfull.go`, `stamped && !cancelled`,
+compacted or not) rests on `wsRecvOk`'s clause 3 of a live compacted watcher, vacuous only because
+`memberState` keeps `onceUpToAll` (through `recv_facts`' `onceUpTo`): weakening `onceUpToAll` would
+make that check unprovable. `covered`'s and `expect`'s `changesAt` panic (not a `check`) is ruled
+out by `histOkM`: the position is below `|σ.notifiedLog| ≤ |Hl|`.
 -/
 module
 

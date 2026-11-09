@@ -5,9 +5,13 @@ Lean-first (no Rocq counterpart).
 **A member's incarnation invariant** (`memberInv`, one per incarnation of a member: its store
 between two restarts; namespace `memberN i`): until the writer retires it at a restart, the store's
 state `σ` (`mvccState γk σ`; the writer, the only thread whose updates change `σ`, holds the other
-half of `m.σ`), the four bound atomics (`revLo ≤ σ.rev ≤ revHi`, `cmpLo ≤ σ.crev ≤ cmpHi`, the writer
-holding the other half of their values `m.bnd`), the monotone revision and compaction revision (a
-value read at `t₁` is at most an upper bound loaded at `t₂ > t₁`), and a lower bound of the shared
+half of `m.σ`), the four bound atomics (`1 ≤ revLo ≤ σ.rev ≤ revHi < 2 ^ 62`, `cmpLo ≤ σ.crev ≤
+cmpHi`, the writer holding the other half of their values `m.bnd`; `revLo ≥ 1` for `watch`'s floating
+window, the ceiling for a watcher's start and revision, kept by the writer from `Ops < 2 ^ 38`), the
+monotone revision, compaction revision and notified log's length (a value read at `t₁` is at most
+an upper bound loaded at `t₂ > t₁`: the notified length, `|σ.notifiedLog| ≤ revHi + 1`, bounds a
+response at the pending revision, which `revHi` alone cannot since it goes back down after a
+transaction without changes), and a lower bound of the shared
 history covering the notified history (`histOkM`); the global history changes each key at most once
 per revision (`onceUpToAll`), which the watch guarantee needs.
 
@@ -64,6 +68,10 @@ structure MemberNames where
   rev : GName
   /-- the store's compaction revision plus one, monotone (auth in the incarnation's invariant) -/
   crev : GName
+  /-- the length of the store's notified log, monotone (auth in the incarnation's invariant): a
+  notify adds one, a commit, a compaction or a `Restore` (a longer log, nothing pending) keeps or
+  grows it, a restart keeps it (the reopened store has the closed one's log) -/
+  nrev : GName
   /-- the bound atomics' values `(revLo, revHi, cmpLo, cmpHi)` (the invariant's half, the writer's) -/
   bnd : GName
 
@@ -113,8 +121,9 @@ def memberState (ks : List GoString) (γh : HistNames) (mp : Loc) (m : MemberNam
     sync.atomic.ownInt64 (mF go!"cmpHi" mp) (DFrac.own 1) b.2.2.2 ∗
     ghostVar m.bnd (1 : Qp).half b ∗
     monoNatAuthOwn m.rev 1 σ.rev ∗ monoNatAuthOwn m.crev 1 (Int.toNat (σ.crev + 1)) ∗
+    monoNatAuthOwn m.nrev 1 σ.notifiedLog.length ∗
     monoListLbOwn γh.l Hl ∗
-    ⌜sint.Z b.1 ≤ σ.rev ∧ (σ.rev : Int) ≤ sint.Z b.2.1 ∧
+    ⌜1 ≤ sint.Z b.1 ∧ sint.Z b.1 ≤ σ.rev ∧ (σ.rev : Int) ≤ sint.Z b.2.1 ∧ sint.Z b.2.1 < 2 ^ 62 ∧
       (σ.notifiedLog.length : Int) ≤ sint.Z b.2.1 + 1 ∧
       sint.Z b.2.2.1 ≤ σ.crev ∧ σ.crev ≤ sint.Z b.2.2.2 ∧ -1 ≤ σ.crev ∧
       histOkM ks σ Hl ∧ onceUpToAll σ.notifiedLog⌝)

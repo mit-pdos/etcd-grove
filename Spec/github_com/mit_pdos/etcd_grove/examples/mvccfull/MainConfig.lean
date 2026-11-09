@@ -1,7 +1,8 @@
 /- Lean-first (no Rocq counterpart).
 
 `MainConfig(prefix)` (`examples/mvccfull/config.go`): `Main`'s configuration
-(`mainConfigM`), its `Mix`'s seven weight slices fresh (owned, `mainMixOwn`).
+(`mainConfigM`), its `Mix`'s seven weight slices fresh (owned, `mainMixOwn`), at the code's weights
+(the read weights `[1, 1, 2, 1, 1, 0]`: no hash reads until F2).
 -/
 module
 
@@ -43,7 +44,7 @@ def mainMixOwn (mx : Mix) : IProp GF :=
     mx.Op' ↦* [W64 25, W64 12, W64 25, W64 5, W64 5, W64 10, W64 4, W64 10, W64 4] ∗
     mx.CompactAt' ↦* [W64 1, W64 1, W64 0] ∗
     mx.RangeRev' ↦* [W64 1, W64 1, W64 2, W64 0] ∗
-    mx.Read' ↦* [W64 1, W64 1, W64 2, W64 1, W64 1, W64 2] ∗
+    mx.Read' ↦* [W64 1, W64 1, W64 2, W64 1, W64 1, W64 0] ∗
     mx.Act' ↦* [W64 4, W64 1, W64 1, W64 1, W64 1, W64 1] ∗
     mx.Start' ↦* [W64 1, W64 3, W64 0])
 

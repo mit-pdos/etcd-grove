@@ -4,7 +4,8 @@ The outline: `normalize`; `walkKeys` (`keysOf`, sorted, not empty); `zap.NewNop`
 (`hist0`, its names); the runner's fields persisted (`writerCtx`: `rnCtx`, `runnerCfg`, the weights,
 the counters' invariants, `rdShared`); `memberPath`, `newMember` twice (the files `filePathsM`'s
 first two); `startEpoch` of each (the members' shares split, `lentOk`); `startReaders`; `write`;
-`stopReaders`; **`x.hashes()`: no spec (F2; see the file header)**; for each member `endEpoch`,
+`stopReaders`; `hashing(cfg.Mix.Read)`, false under `runCfgOk`'s `readMixOk`
+(`hashingM_of_readMixOk`), so `x.hashes()` is skipped; for each member `endEpoch`,
 `inc_retire`, `shut`, `open`, `checkAll`, `inc_retire`, `shut`; the counters' `Load`s.
 -/
 module
@@ -19,6 +20,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccfull.runner__star
 public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccfull.runner__startReaders
 public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccfull.runner__write
 public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccfull.runner__stopReaders
+public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccfull.hashing
 public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccfull.runner__endEpoch
 public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccfull.runner__shut
 public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccfull.runner__open
@@ -58,6 +60,7 @@ theorem Run.wp_proof
     (wp_startReaders : runner.startReaders.spec (GF := GF) (hG := hG))
     (wp_write : runner.write.spec (GF := GF) (hG := hG))
     (wp_stopReaders : runner.stopReaders.spec (GF := GF) (hG := hG))
+    (wp_hashing : hashing.spec (GF := GF) (hG := hG))
     (wp_endEpoch : runner.endEpoch.spec (GF := GF) (hG := hG))
     (wp_shut : runner.shut.spec (GF := GF) (hG := hG))
     (wp_open : runner.open.spec (GF := GF) (hG := hG))

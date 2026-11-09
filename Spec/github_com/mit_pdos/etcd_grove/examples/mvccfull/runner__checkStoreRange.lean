@@ -18,7 +18,8 @@ and the request's key and end (at any fractions). Then every check passes:
 - otherwise the result is not `nil`, its revision `σ.rev` is in `[lo, m.revHi]`, and
   `checkRangeAt` at `(σ.rev, clo)` passes: the outcome at `σ.crev`'s live case is the one at
   `clo ≤ σ.crev` (`rangeOutcomeC_lower`), and the snapshot taken has the store's states up to
-  `σ.rev` (`hist_match`).
+  `σ.rev` (`hist_match`). Checking at the floor `clo` does not weaken the check: the store did not
+  return `ErrCompacted`, so the revision read is not below `σ.crev ≥ clo`.
 
 Everything is given back but the result. Callers: `readOne` (the store's `Range`) and the watch
 receiver (`stream.receive`, the watch server's previous key-value read).

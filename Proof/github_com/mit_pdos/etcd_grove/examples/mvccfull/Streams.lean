@@ -36,15 +36,18 @@ the lock), so every registered watcher may be marked stamped (`stamp_ok`). Regis
 under `s.mu`, so a watcher registered later is not stamped.
 
 **The epoch's resources** (`epochTok`, one per stream, the writer's at `startEpoch`, back at
-`endEpoch`): a history reader slot (the receiver's), two of the incarnation's reader tokens (the
-registrar's and the receiver's) and a fraction of the incarnation's live token (`incLive`; see
-below). Each goroutine returns its part through its wait group (`regDone`, `recvDone`; Perennial's
-join idiom, one goroutine each).
+`endEpoch`): a history reader slot (the receiver's) and two goroutines' parts of the incarnation
+(`epRd`, `Members.lean`'s `incRd`, as a reader's: the handles, a reader token, a share of the
+retirement token and of the member's `kv` field), the registrar's and the receiver's. Each goroutine
+returns its part through its wait group (`regDone`, `recvDone`; Perennial's join idiom, one
+goroutine each). The stream goroutines do not read the member's `kv` field (a stream reads its own
+`s.kv`), but holding the same share of it as of the retirement token makes every goroutine's part
+the readers' shape, so the writer keeps one share `qw` of both (`Writer.lean`'s `lentOk`).
 
 **The incarnation's live share** (`epLive`, `Readers.lean`'s `incLive`: the incarnation's handles
-and a share of its retirement token): what a goroutine needs to open `memberInv` (the share rules
-out the retired branch). The readers' vocabulary (`runnerKeys`, `runnerH`, `ctrInv`, `readQ`) is
-shared.
+and a share of its retirement token, a part of `epRd`, `epRd_split`): what a goroutine needs to open
+`memberInv` (the share rules out the retired branch). The readers' vocabulary (`runnerKeys`,
+`runnerH`, `ctrInv`, `readQ`) is shared.
 -/
 module
 
@@ -241,6 +244,22 @@ def rnCtx (x : Loc) (ks : List GoString) (cfg : Config) (h : Loc) (γh : HistNam
 share of its retirement token, what a goroutine needs to open `memberInv`). -/
 abbrev epLive (E : Ep) (q : Qp) : IProp GF := incLive E.ks E.γh E.i E.mp E.m E.ι E.kv q
 
+/-- **A goroutine's part of the epoch's incarnation**, at the share `q` (`Members.lean`'s `incRd`:
+its handles, one reader token, the share `q` of the retirement token and of the member's `kv`
+field). -/
+abbrev epRd (E : Ep) (q : Qp) : IProp GF := incRd E.ks E.γh E.i E.mp E.m E.ι E.kv q
+
+/-- `epRd` is a reader token, the live share (`epLive`) and the `kv` field's share. -/
+theorem epRd_split (E : Ep) (q : Qp) :
+    epRd (GF := GF) E q ⊣⊢
+      mvccReaders E.ι.kv 1 ∗ epLive E q ∗ mF go!"kv" E.mp ↦{DFrac.own q} E.kv := by
+  unfold epRd epLive incRd incLive
+  constructor
+  · iintro ⟨Hi, Hr, Hg, Hk⟩
+    iframe
+  · iintro ⟨Hr, ⟨Hi, Hg⟩, Hk⟩
+    iframe
+
 /-- **An epoch's handles** (persistent): the runner's, the incarnation's, the member's `regs`. -/
 def epCtx (E : Ep) : IProp GF :=
   iprop(rnCtx E.x E.ks E.cfg E.h E.γh ∗ isInc E.ks E.γh E.i E.mp E.m E.ι E.kv ∗
@@ -286,18 +305,18 @@ def streamCtx (T : Strm) : IProp GF :=
 
 /-- **The registrar's resources** (exclusive), its cancel record at `C`. -/
 def regOwn (T : Strm) (q : Qp) (C : List w64) : IProp GF :=
-  iprop(mvccReaders T.ep.ι.kv 1 ∗ epLive T.ep q ∗ ghostVar T.σs.cl (1 : Qp).half false ∗
-    ghostVar T.σs.cn (1 : Qp).half C)
+  iprop(epRd T.ep q ∗ ghostVar T.σs.cl (1 : Qp).half false ∗ ghostVar T.σs.cn (1 : Qp).half C)
 
 /-- **The receiver's resources** (exclusive), after the responses `rs`. -/
 def rcvOwn (T : Strm) (q : Qp) (rs : List WResp) : IProp GF :=
-  iprop(mvccReaders T.ep.ι.kv 1 ∗ epLive T.ep q ∗ histRd T.ep.h T.ep.γh ∗
-    wsRecv T.σs.ws rs ∗ ghostVar T.σs.rcv (1 : Qp).half rs)
+  iprop(epRd T.ep q ∗ histRd T.ep.h T.ep.γh ∗ wsRecv T.σs.ws rs ∗
+    ghostVar T.σs.rcv (1 : Qp).half rs)
 
-/-- **One stream's share of the epoch's resources** (`startEpoch` takes one per stream,
-`endEpoch` gives it back). -/
+/-- **One stream's share `q` of the epoch's resources** (`startEpoch` takes one per stream,
+`endEpoch` gives it back): the receiver's history slot and the two goroutines' parts, each at
+`q / 2`. -/
 def epochTok (E : Ep) (q : Qp) : IProp GF :=
-  iprop(histRd E.h E.γh ∗ mvccReaders E.ι.kv 2 ∗ epLive E q)
+  iprop(histRd E.h E.γh ∗ epRd E q.half ∗ epRd E q.half)
 
 /-- **The writer's part of an open stream** (between `startEpoch` and `endEpoch`): its handles,
 and its two wait groups, each giving back its goroutine's resources (a goroutine stops only when

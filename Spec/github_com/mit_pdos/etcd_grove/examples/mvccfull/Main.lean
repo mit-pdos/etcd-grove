@@ -3,10 +3,9 @@
 `Main()` (`examples/mvccfull/mvccfull.go`): `Run` with `MainConfig("mvccfull")`. **It returns** (every
 check passes). The premises are `Run`'s at that configuration: its files fresh (`filePathsM` of
 `mainConfigM`: they depend only on the prefix and `Ops`), the thread and receipt bounds,
-`ckptEffectsOk`, `keySized`, `dbOpenOk`, `dbCloseOk`, `ETCD_VERIFY` off.
-
-**Not provable in F1** (reported): `MainConfig`'s read weights `[1, 1, 2, 1, 1, 2]` give the hashes
-`2`, so `readMixOk` fails; the closed theorem moves to F2 (the plan's decision 1).
+`ckptEffectsOk`, `keySized`, `dbOpenOk`, `dbCloseOk`, `ETCD_VERIFY` off. `MainConfig`'s configuration
+is in `Run`'s scope (`runCfgOk`): its read weights `[1, 1, 2, 1, 1, 0]` give the hashes none
+(`readMixOk`), `Ops = 12000`, 15 threads, the batch limits `3` and `2`, the 120 keys of depth `4`.
 -/
 module
 

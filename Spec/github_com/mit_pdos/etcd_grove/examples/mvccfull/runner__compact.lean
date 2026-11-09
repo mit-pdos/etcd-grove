@@ -34,15 +34,15 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 abbrev runner.compact.spec : Prop :=
   ∀ (x : Loc) (ks : List GoString) (cfg : Config) (wr : List w64) (h : Loc) (γh : HistNames)
     (ops : List OpM) (i : Nat) (mp : Loc) (m : MemberNames) (f : GoFunc) (v : MemS)
-    (qw qk : Qp) (nw k : Nat) (p : Loc) (o : OpM) (lead : Bool) (a s : w64),
+    (qw : Qp) (nw k : Nat) (p : Loc) (o : OpM) (lead : Bool) (a s : w64),
   ops[v.ops]? = some o → o.kind = kCompact → logOk ks ops → ops.length < 2 ^ 38 →
   a = W64 (v.ops + 1 : Int) → sint.Z s < sint.Z a →
   {{ writerCtx (GF := GF) x ks cfg wr h γh ∗ opIs p o ∗
-      memCore ks γh ops i mp m f v qw qk nw k ∗ hookPre mp a s ∗ leadPre γh ks ops v.ops lead }}
+      memCore ks γh ops i mp m f v qw nw k ∗ hookPre mp a s ∗ leadPre γh ks ops v.ops lead }}
     (App (App (App (x @!! go.GoType.PointerType runner.ty @!! go!"compact") (Val #mp)) (Val #p)) (Val #lead))
   {{ RET #(); leadPost γh ks ops v.ops lead ∗ (hookPost mp a ∨ hookPre mp a s) ∗
       ∃ v' : MemS, ⌜MemS.sameInc v v' ∧ v'.ops = v.ops + 1⌝ ∗
-        memCore ks γh ops i mp m f v' qw qk nw k }}
+        memCore ks γh ops i mp m f v' qw nw k }}
 
 end spec
 

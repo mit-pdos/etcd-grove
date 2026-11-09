@@ -73,11 +73,12 @@ lease_lessor__Leases: lease_lessor__unsafeLeases =EtcdGrove.sort.«Sort».wp_any
 lease_lessor__initAndRecover: backend__BatchTx batchTxBuffered__LockOutsideApply batchTxBuffered__UnsafeCreateBucket schema_UnsafeCreateLeaseBucket schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket schema_MustUnsafeGetAllLeases batchTxBuffered__Unlock lease_LeaseQueue__Len lease_LeaseQueue__Less lease_LeaseQueue__Swap lease_LeaseQueue__Push heap_Init_ lease_LeaseExpiredNotifier__Init backend__ForceCommit
 lease_lessor__Recover: lease_lessor__initAndRecover
 #
-# the tester's functions (`examples/mvccfull/{mvccfull,config}.go`; F2's hash checks not yet)
+# the tester's functions (`examples/mvccfull/{mvccfull,config}.go`; F2's hash checks not yet: `hashing`
+# is, `Run`'s test that skips them)
 FilePaths: memberPath buildPath
 Main: MainConfig Run
 MainConfig: 
-Run: =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccReaders_split_law_holds normalize walkKeys zap_NewNop memberPath runner__newMember runner__startEpoch runner__startReaders runner__write runner__stopReaders runner__endEpoch runner__shut runner__open runner__checkAll
+Run: =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccReaders_split_law_holds normalize walkKeys zap_NewNop memberPath runner__newMember runner__startEpoch runner__startReaders runner__write runner__stopReaders hashing runner__endEpoch runner__shut runner__open runner__checkAll
 buildPath: itoa
 check: 
 checkKV: check
@@ -88,6 +89,7 @@ history__addComp:
 history__appendRev: 
 history__changesAt: check
 history__snapshot: 
+hashing: 
 inBounds: check
 inRange: 
 itoa: 

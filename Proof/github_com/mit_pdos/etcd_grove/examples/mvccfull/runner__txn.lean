@@ -4,7 +4,9 @@ The outline: as mvccrand's `writer.txn`, at the incarnation's invariant (`reader
 updates with the writer's `m.σ` half pinning the state): `KV.Read` (either mode), `Txn.Rev`,
 `Txn.FirstRev`, `history.snapshot`, `NewReadOnlyTxnWrite`, `Txn.Range` and `checkRangeAt`, `Txn.End`;
 or `begin`, `KV.Write` (the hook, `hookOk`), `checkHook`, `Txn.Rev`, `writeRange`, `writeSub` per
-sub-operation (`subsOk` gives each `subFresh`), `Txn.Changes`, `end`.
+sub-operation (`subsOk` gives each `subFresh`), `Txn.Changes`, `end`. The trace `traceutil.TODO()`
+makes (`ownTrace t true`) is lent to `KV.Write` and threaded through `writeRange` and each
+`writeSub` (their specs take and give back `ownTrace`), as mvccrand's `writeOp` threads it.
 -/
 module
 

@@ -5,7 +5,7 @@ snapshot at the leader's point, as the server's `applySnapshot` does. A builder 
 next builder's file, `buildPathM`, fresh) applies the log up to the leader's count (`apply`, not
 leading) and is shut (`inc_retire`, `shut`: its file's data the image of the leader's history there,
 its lease bucket the live leases'). The follower's bounds are raised to the builder's (`revHi`,
-`cmpHi`); a backend is opened on the builder's file (`openBackend`, `etcdStorage_open.law` at the
+`cmpHi`; the new `revHi`, the builder's revision, below `2 ^ 62` from `Ops < 2 ^ 38`); a backend is opened on the builder's file (`openBackend`, `etcdStorage_open.law` at the
 image); the follower's lessor recovers from it (`lessor.Recover`: its owner part at the builder's
 live leases, the ids ever granted extended, `logOk_recover`); the store restores onto it
 (`KV.Restore.contract`, the follower's history a prefix of the builder's and its compaction revision
@@ -13,10 +13,8 @@ not above: `runM_mono`); the hook set on it; the old backend closed (its census 
 `storageRest`). The model fields, `revLo`, `cmpLo` follow; the checks (`Rev`, `FirstRev`,
 `checkLeases`) pass; the `restores` counter. The readers and streams run throughout (the follower's
 incarnation is the same store). Afterwards the follower is at the leader's count, one more build.
-
-**A Go change this needs** (reported, not made): the closure passed to `Recover` reads `f.kv` when
-`lessor.Revoke` calls it, so its `mvccDeleter` triple needs the field, which the writer rewrites at a
-restart; capturing the store (`kv := f.kv`) before the closure makes it a constant.
+The closure passed to `Recover` captures the store (`kv := f.kv`, `a4c071c7dd`), so its
+`mvccDeleter` triple is about a constant, not the field the writer rewrites at a restart.
 -/
 module
 

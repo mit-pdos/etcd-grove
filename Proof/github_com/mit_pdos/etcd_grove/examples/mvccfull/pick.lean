@@ -1,8 +1,9 @@
-/- Lean-first (no Rocq counterpart). The proof of `pick` (the weights summed, then the chosen one found): Draft, to come. -/
+/- Lean-first (no Rocq counterpart). The proof of `pick`: `pick.specW`'s (`pickW.lean`, the one
+proof of `pick`), through `pick.spec_of_specW`. -/
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccfull.pick
-public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccfull.choose
+public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.pickW
 
 @[expose] public section
 
@@ -26,8 +27,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccfull.Assumpt
 
 theorem pick.wp_proof
     (wp_choose : choose.spec (GF := GF) (hG := hG)) :
-    pick.spec (GF := GF) (hG := hG) := by
-  sorry
+    pick.spec (GF := GF) (hG := hG) :=
+  pick.spec_of_specW (pick.wp_proofW wp_choose)
 
 end proof
 

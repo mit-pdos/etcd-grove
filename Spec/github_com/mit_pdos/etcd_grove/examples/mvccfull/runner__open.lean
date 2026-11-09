@@ -6,7 +6,8 @@ The file holds the data `D`, the image (`mvccImage`) of the model's history afte
 its compaction revision and an unfinished compaction iff `u` (a fresh file's, `mvccImage_fresh.law`,
 or a closed store's, `runner.shut`), its lease bucket the live leases' records (`leaseRecsOk`).
 `m.rev`, `m.cmp`, `m.leases` are the model's. With what is carried across incarnations
-(`memberCarry`, the writer's halves of `m.σ` and `m.bnd`) and the member's hook, the chain's step 3
+(`memberCarry`, which holds the invariant's halves of `m.σ` and `m.bnd`, and the writer's halves of
+both) and the member's hook, the chain's step 3
 (`Writer.lean`'s header): `openBackend`, `NewLessor` on the records (`lease.NewLessor.specR`),
 `mvcc.New` on the image (`mvcc.api.New.specR`), the hook set; the checks (`Rev`, a read
 transaction's `Rev` and `FirstRev`, `checkLeases`) pass. Afterwards the member is `memCore` at a new
@@ -59,7 +60,7 @@ abbrev runner.open.spec : Prop :=
     (App (x @!! go.GoType.PointerType runner.ty @!! go!"open") (Val #mp))
   {{ RET #(); threadTok ∗ histRd h γh ∗
       ∃ (v : MemS) (k : Nat), ⌜v.ops = n ∧ v.path = path ∧ v.b = b ∧ (sint.Z cfg.Ops').toNat ≤ k⌝ ∗
-        memCore ks γh ops i mp m f v 1 1 mvccReaderN k }}
+        memCore ks γh ops i mp m f v 1 mvccReaderN k }}
 
 end spec
 

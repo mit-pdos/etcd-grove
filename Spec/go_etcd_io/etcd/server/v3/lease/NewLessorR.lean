@@ -2,8 +2,33 @@
 `lease.NewLessor(lg, b, cluster, cfg)` (`lessor.go:208`) on a backend whose `Lease` bucket holds
 records: a restart (a member's backend reopened on its file). DRAFT (mvccfull F1, 2026-11-09), a
 candidate restatement of `lease.NewLessor.spec` (`NewLessor.lean`), which it generalizes from the
-empty bucket (`NewLessor.spec_of_specR`); for etcd's server restart (`notes/restart-plan.md`,
-R2d'b) and the tester `examples/mvccfull` (`runner.open` after `shut`). Not yet an axiom.
+empty bucket (`NewLessor.spec_of_specR`, proved); for etcd's server restart
+(`notes/restart-plan.md`, R2d'b) and the tester `examples/mvccfull` (`runner.open` after `shut`).
+Not yet an axiom: at the Freeze switch it replaces the axiom `lease.NewLessor.wp_proof` (one axiom,
+`specR`; the original a theorem from it), which also settles the bounds gate (review round 1's F2:
+the copied `replicate … actualMaxReaders`).
+
+**Open for the user (review round 1's F1): the receipt `⧖ |recs|`.** The post's `lessorInv` holds
+`lessorMu`'s `⧖ (size M)` (`InvLessor.lean`), so at the recovered map (`M = recMap (recs.zip ls)`)
+this axiom gives out the receipt `⧖ recs.length`, which the original (at `M = ∅`, `⧖ 0`) never did.
+Two options:
+* **(a) Keep it**, the docstring arguing that `initAndRecover`'s loop (`lessor.go:815-830`) runs one
+  iteration per record, and that its translation, proved as `lessor.initAndRecover.spec`, earns
+  `⧖ recs.length` that way (its post's receipt): the axiom claims those counted steps of a
+  names-only call. The per-lease allocations (`make(chan struct{})` for `revokec`, the zero
+  `RWMutex` of `&Lease{}`, inside `leaseOwn`'s closers) named as allocations.
+* **(b) Take it in the pre**: `⧖ recs.length` (persistent) added to the precondition, beside
+  `□ ([∗list] id ∈ recs.map (·.1), GA id)`; the post's `lessorInv` then holds the caller's receipt.
+  Who could supply it: **the tester's writer** (`runner.open`) — the records are its live leases
+  (`Writer.lean`'s `leaseRecsOk`: `recs.map (·.1) = L`), each granted by one `Grant` operation of
+  its log, so `recs.length` is at most the operations it ran; it would hold a receipt of that count
+  (earned one per operation of its loop, as the store's `⧖ (logCh …)` per revision) and carry it
+  across `shut`/`open`; **the server's restart** (R2d'b) — the records are the image's lease
+  bucket, each lease granted by an entry applied at a revision of the image's history `L`, so
+  `recs.length ≤ logCh L` would follow from the image's receipt `⧖ (logCh L)` (`mvccStorageFor`'s,
+  `dbImageR`'s) given that law of the image (`ImageLeases.lean`: the records are the snapshot
+  table's), or from the apply loop's receipt of the entries applied before the snapshot.
+  (b) makes the axiom claim no step count; its cost is that law at the server.
 -/
 module
 
@@ -32,21 +57,31 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 `lease.NewLessor.spec` says (its docstring is this one's, clause by clause), except that the
 bucket, a part of any bucket set `S` containing it (`rbPart d.γB S r`), holds in key order the
 records `recs`, each what `Grant` writes (`backend.bktEnts … = recs.map leaseRecEnc`, `Recover`'s
-premise; empty or absent: `recs = []`, the original), and what the lessor makes of them is what
+premise; empty or absent: `recs = []`, the original; a scope restriction, as `Recover`'s: only
+buckets whose every value is exactly `leaseRecEnc` of a record, `proto.Marshal` of the three fields;
+a bucket written by another tool, or a record with unknown fields, which Go would decode, is
+outside it), and what the lessor makes of them is what
 `Recover` makes (`lessor.Recover.spec`), at a lessor that had nothing before (`L = []`, `U = []`).
 The new clauses, and why each is true of the Go code (`newLessor` `lessor.go:212-249`,
 `initAndRecover` `:808-835`):
 * **The records are read and decoded** (pre: the entries' equation, replacing `getD ∅ = ∅`):
   `initAndRecover` takes the batch lock (`:811`), creates the bucket (absent: none; present: a
   no-op, `UnsafeCreateLeaseBucket`), and `MustUnsafeGetAllLeases` (`:813`) decodes every record
-  (a panic on an undecodable one; each record here is an encoding, `leaseRecEnc`, so none). Its
-  `Unlock` (`:814`) is the one write-back the original counts (`wbTok`; the records change neither
-  the lock nor the commit: the loop writes no bucket, `ForceCommit` finds nothing pending as
-  before). So the part comes back idle with the bucket as it was
+  (a panic on an undecodable one; each record here is an encoding, `leaseRecEnc`, so none). One
+  write-back (`wbTok`), with records as without: `UnsafeCreateBucket` always counts a pending
+  operation (`pending++`, `batch_tx.go:144`), so the first `Unlock` (`:814`) writes back
+  (`batch_tx.go:328-333`) and may commit (`pending >= batchLimit`, `:355`); `ForceCommit`
+  (`backend.go:377`) is `lock`, `commit`, `Unlock` (`batch_tx.go:362-366`), and `commit` resets
+  `pending = 0` (`:300`), so its `Unlock` writes nothing back (a hook the commit runs may write;
+  `commit` still resets `pending`). The records change neither `pending` nor the commits (the loop
+  writes no bucket). One token is stronger than what the proved `lessor.initAndRecover.spec` gives
+  (`ownToks γB.wb 2`): the original's known margin, unchanged by records. So the part comes back idle with the bucket as it was
   (`rbOwnIn d.γB S (r.insert "lease" ((r.lookup "lease").getD ∅))`, `Recover`'s post; the
   original's `r.insert "lease" ∅` when it was empty or absent).
 * **One fresh lease per record** (`:815-830`): `ID` the record's, `ttl` the record's raised to
-  `le.minLeaseTTL`, which `newLessor` set to `cfg.MinLeaseTTL` (`:233`), no item, `expiry` forever,
+  `le.minLeaseTTL`, which `newLessor` set to `cfg.MinLeaseTTL` (`:231`, never written again: the
+  post's `lF "minLeaseTTL" lp ↦□ cfg.MinLeaseTTL'`, review round 1's S2, which ties `lessorCfg`'s
+  minimum, the one a later `Grant` raises to, to the recovered TTLs'), no item, `expiry` forever,
   a fresh `revokec`, `remainingTTL` the record's, put into the fresh `leaseMap` (no registration
   with the expiry notifier, `Init` of an empty one; the heap empty). So the live set is the
   records' ids in the caller's order `Lr` with no item (`leaseOwn γl Lr ∅`, the original's
@@ -75,7 +110,7 @@ The new clauses, and why each is true of the Go code (`newLessor` `lessor.go:212
 * **The mode** `mono`: as the original; a single snapshot is monotone (`histMono`), so either mode
   holds with records too (`Recover`'s mode premise, live ids among the records', is vacuous at
   `L = []`).
-Everything else, the `runLoop` goroutine (`:246`) and what the post says of it (`lessorExpiredC`,
+Everything else, the `runLoop` goroutine (`:245`) and what the post says of it (`lessorExpiredC`,
 `lessorGuard`, the `Lookup` clause, `lessorCkptOk`), the configuration, the reader slots, `rd`
 unset, `lessorBeOn`/`lessorApplyOk`, the stop right, is the original's, word for word: the loop
 does not read the bucket, and every lease it sends or `Lookup` returns is the map's, with `GA` of
@@ -100,7 +135,7 @@ abbrev lease.NewLessor.specR : Prop :=
       backend.rbOwnIn d.γB S (r.insert go!"lease" ((r.lookup go!"lease").getD ∅)) ∗
       ∃ (lp : Loc) (γl : GName),
       ⌜l = lease.lessorIface lp⌝ ∗ lease.lessorInv lp γl ∗ lease.lessorModeIs γl mono ∗
-      lease.lessorCfg lp ∗
+      lease.lessorCfg lp ∗ lease.lF go!"minLeaseTTL" lp ↦□ cfg.MinLeaseTTL' ∗
       lease.lessorExpiredC lp GA ∗ lease.lessorGuard γl GA ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), lease.lessorRdOf γl) ∗
       lease.leaseOwn γl Lr ∅ ∗ lease.leaseEver γl (recs.map (·.1)) ∗ lease.leaseRevokers γl Lr ∗
@@ -128,9 +163,26 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 the entries' equation, and the extra post (the empty requests, the first snapshot) is dropped. -/
 theorem lease.NewLessor.spec_of_specR (h : lease.NewLessor.specR (GF := GF) (hG := hG)) :
     lease.NewLessor.spec (GF := GF) (hG := hG) := by
-  -- Draft: the instance at `recs = []` (an outline: `getD ∅ = ∅` gives the entries' equation,
-  -- the extra post dropped); its Iris steps to fix in Probe.
-  sorry
+  intro lg cl cfg d W Pk qo GA S r mono hS hP
+  iintro %Φ ⟨#Hpkg, %Hlg, %Hck, %Hrr, #Hcl, #Hb, Ho, Hwb, Hrb, %Hempty⟩ HΦ
+  have hrecs : backend.bktEnts ((r.lookup go!"lease").getD ∅) =
+      ([] : List (w64 × w64 × w64)).map lease.leaseRecEnc := by
+    rw [Hempty]; simp [backend.bktEnts]
+  iapply (h lg cl cfg d W Pk qo GA S r mono [] (fun _ => W64 0) [] hS hP hrecs
+    (by simp) (List.Perm.refl _)) $$ [Ho Hwb Hrb]
+  · iframe; iframe #
+    isplitr; · ipureintro; exact Hlg
+    isplitr; · ipureintro; exact Hck
+    isplitr; · ipureintro; exact Hrr
+    imodintro; rw [List.map_nil]; iapply BigSepL.bigSepL_nil.2; itrivial
+  rw [Hempty]
+  iintro !> %l ⟨Ho, Hrb, %lp, %γl, %Hl, Hinv, Hmode, Hcfg, -, Hexp, Hguard, Hrds, Hown, Hever,
+    Hrev, Hrd, Hck', Hbe, Hap, Hstop, -, -, Hlook⟩
+  iapply HΦ
+  iframe Ho Hrb
+  iexists lp, γl
+  iframe
+  ipureintro; exact Hl
 
 end derive
 

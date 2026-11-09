@@ -8,8 +8,9 @@ registers nothing and hands `au` back unused. A client whose invariant excludes 
 watchers cannot build such an `au` (mvccfull's `Watch(k, k)` check; mvccrand builds one only through
 `register_au_empty`, a vacuous update). `contractR` asks `⌜empty⌝ ∨ au`: a case split on the input
 (the principles' "a case split on the input is not one" disjunction of alternative specs). The empty
-branch of the post gives back what it was given (`⌜empty⌝ ∨ au`; equivalent to `True` there, since
-its pure fact holds: a caller who held `au` frames it, `contract_of_contractR`).
+branch of the post gives nothing back (review round 1's F4.1: a give-back `⌜empty⌝ ∨ au` there was
+vacuous, its left disjunct holding; a caller who held `au` frames it around the call,
+`contract_of_contractR`).
 
 **True of the code** (`server/v3/storage/mvcc/watcher.go`, `watchStream.Watch`, l.115-147): the
 range check `if len(end) != 0 && bytes.Compare(key, end) != -1 { return -1, ErrEmptyWatcherRange }`
@@ -21,10 +22,11 @@ cases, `watchStream__Watch.lean` l.75-96). The other paths (closed, registered) 
 exactly as today, and there the range is non-empty, so `au` is the disjunct given.
 
 **The proof's change** (`Proof/.../mvcc/watchStream__Watch.lean`, 345 lines): the `key ≥ end`
-branch (l.84-93) frames the disjunction where it framed `Hau`, unchanged otherwise; the two other
-branches (`len(end) = 0`, `key < end`) have `hne : e = [] ∨ GoStringLt kk e` already in hand
-(l.66-81, l.95), so one `icases Hau with (%Hemp | Hau)` and an `exfalso` from `hne` at the top of
-the shared `all_goals` block (l.96) reduce them to today's proof: about 5 lines.
+branch (l.84-93) drops the disjunction where it framed `Hau` (nothing is given back there),
+unchanged otherwise; the two other branches (`len(end) = 0`, `key < end`) have
+`hne : e = [] ∨ GoStringLt kk e` already in hand (l.66-81, l.95), so one
+`icases Hau with (%Hemp | Hau)` and an `exfalso` from `hne` at the top of the shared `all_goals`
+block (l.96) reduce them to today's proof: about 5 lines.
 -/
 module
 
@@ -79,8 +81,7 @@ abbrev WatchStream.Watch.contractR (ty : go.GoType) (v : val) : Prop :=
     (App (App (App (App (App (App (Val #(methods ty go!"Watch" v)) (Val #(GoInterface.ok ctx)))
       (Val #(W64 0))) (Val #key)) (Val #endk)) (Val #startRev)) (Val #fcs))
   {{ (id : w64) (err : GoInterface), RET (PairV #id #err); mvccReaders γ 1 ∗
-      ((⌜e ≠ [] ∧ ¬ go.GoStringLt kk e ∧ id = W64 (-1)⌝ ∗ globalAddr ErrEmptyWatcherRange ↦□ err ∗
-          (⌜e ≠ [] ∧ ¬ go.GoStringLt kk e⌝ ∨ au)) ∨
+      ((⌜e ≠ [] ∧ ¬ go.GoStringLt kk e ∧ id = W64 (-1)⌝ ∗ globalAddr ErrEmptyWatcherRange ↦□ err) ∨
        (⌜e = [] ∨ go.GoStringLt kk e⌝ ∗ ∃ (σ : MvccState) (S : StreamState), Q σ S id ∗
           (if S.closed then globalAddr ErrEmptyWatcherRange ↦□ err
            else ⌜err = GoInterface.nil⌝))) }}
@@ -103,7 +104,7 @@ theorem WatchStream.Watch.contract_of_contractR (ty : go.GoType) (v : val)
     iintro !> %id %err ⟨Hrd, Hres⟩
     iapply HΦ
     iframe Hrd
-    icases Hres with (⟨%Hi, #Herr, -⟩ | ⟨%Hne, -⟩)
+    icases Hres with (⟨%Hi, #Herr⟩ | ⟨%Hne, -⟩)
     · ileft
       iframe Herr Hau
       ipureintro; exact Hi
@@ -117,7 +118,7 @@ theorem WatchStream.Watch.contract_of_contractR (ty : go.GoType) (v : val)
     iintro !> %id %err ⟨Hrd, Hres⟩
     iapply HΦ
     iframe Hrd
-    icases Hres with (⟨%Hi, -, -⟩ | Hres)
+    icases Hres with (⟨%Hi, -⟩ | Hres)
     · iexfalso; ipureintro; exact hemp ⟨Hi.1, Hi.2.1⟩
     · iright; iexact Hres
 

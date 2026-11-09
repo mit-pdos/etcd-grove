@@ -43,7 +43,7 @@ abbrev runner.newMember.spec : Prop :=
   {{ (mp : Loc), RET #mp; threadTok ∗ histRd h γh ∗
       ∃ (m : MemberNames) (f : GoFunc) (v : MemS) (k : Nat),
         ⌜v.ops = 0 ∧ v.path = path ∧ (sint.Z cfg.Ops').toNat ≤ k⌝ ∗
-        (∀ ops : List OpM, memW ks γh ops (sint.nat id) mp m f v 1 1 mvccReaderN k) ∗
+        (∀ ops : List OpM, memW ks γh ops (sint.nat id) mp m f v 1 mvccReaderN k) ∗
         mF go!"streams" mp ↦ (slice.nil : GoSlice) ∗ ctrInv (sCtrN .@ "regs") (mF go!"regs" mp) }}
 
 end spec

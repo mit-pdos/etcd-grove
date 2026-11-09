@@ -670,3 +670,115 @@ Every check in `receive`, `readOne`, `checkStoreRange`, `apply`'s helpers, `act`
 - **S5, a race in the tester's Go:** `watch` checked the watcher count and then incremented it,
   so a member's streams could pass 512 watchers. *Fixed:* `regs.Add(1) > Watchers` refuses, so a
   registration counts before it happens. Tests pass.
+
+## Repair round 1: the candidates (2026-11-09)
+
+Of "Review round 1: the mvcc API candidates" and "Review round 1: `NewLessor.specR`". Every file
+touched builds (`lake build` of the seven modules; the tester's importers not rebuilt here: its
+`Streams.lean` is mid-edit). Names kept.
+
+**mvcc API (`ApiNewRestoring.lean`).**
+- **F1.1:** `New.spec_of_specR`, `NewStore.spec_of_specR` **proved**: today's `New.spec`/`NewStore.spec`
+  with `lease.leaseOwn γl [] ∅` added to pre and post (instance `σ = mvccStart`, `u = false`,
+  `Ls = []`; `pendItems_mvccStart`). The docstring says why the part is lent (the restore loop
+  re-attaches through it) and who holds it (server's `Hlown`, mvccrand, the tester). **Exported
+  statements that change** (in the file's header, for the Freeze list): etcdserver `Results.lean`'s
+  `server_kv_backend`, `server_kv_watchable`, `server_kv_backend_hooks` (gain `leaseOwn γl [] ∅` in
+  pre and post); mvcc `ApiResults.lean`'s `mvccApi_New_wp_proof`, `mvccApi_NewStore_wp_proof`
+  (re-stated); call lines `NewServer.lean` l.845, mvccrand `runChecks.lean` l.172. The
+  conditional-lease alternative was not taken (the reviewer's recommendation; for the user at the
+  Freeze).
+- **F1.2:** `⌜batchLimitOk … ∧ MvccReachable σ ∧ σ.pending = none⌝` inside both pres.
+- **F1.3:** `newResumePre`/`newResumePost` removed, inlined as `Restore`'s `if u then … else True`.
+- **F1.4:** both posts give `⧖ (logCh σ.log)`; provable (`mvccStorageFor` holds it, persistent;
+  step 8 of `NewR.lean`'s glue outline).
+
+**Internal chain (`NewStoreR`, `newWatchableStoreR`, `NewR`).**
+- **F2.1:** not restated (R1 unsettled). `NewStoreR.lean`'s header marks the internal statement
+  "NOT TO FREEZE BEFORE R1's LEMMA", explains the conflict (`RC = dlsOwn d.γB ∅` lives inside
+  `restoreImageM`), and gives the restatement once the lemma holds (option (a): `RC` gone, the read
+  lending `storeRT γ ∗ (if d.cm then dlsOwn d.γB ∅ else True)`, the proof splitting it off the
+  image). **The bridge lemma**, Probe's target, in `NewR.lean`: `mvcc.NewStore.cleanRead_of_image`
+  (`sorry`): from the backend's read specs, `bridgeParams d.P`, `d.cm = true`, `recsSign r`:
+  `isPkgInit backend ∗ isPkgInit schema ∗ isBackend d.γB d.P (lateW d.gx) Pk d.be ∗ keySized … ∗
+  storeDlReg d.γB γi ⊢ ∀ γ, ⌜γ.bucket = γb ∧ γ.kb = some d ∧ γ.idx = γi⌝ → keyCleanReadR (iface
+  d.be) (bucketViewC γ) iprop(storeRT γ ∗ backend.dlsOwn d.γB ∅) (kbRecs γ.kb γ.bucket r) r`
+  (`keyCleanRead_of_backendC` with the registration fixed and the deleted-entries half at `∅` lent
+  in place of `dlInit`). The glue outline's step 4 cites it.
+- **F2.3:** `⌜batchLimitOk … ∧ restoreLogOk R⌝` inside the three pres.
+- **F2.2:** not done (Freeze list wording; the internal corollaries stay `sorry` until R1).
+
+**`errVars2.law` (`ApiErrVars2.lean`).** **F3.1:** apartness over the variables:
+`□ ∀ X Y, ⌜X ∈ errVarNames ∧ Y ∈ errVarNames ∧ X ≠ Y⌝ -∗ errVarApart X Y` (`errVarNames` the four
+names); `errVarMsgs` gone (the messages are the proof's). A client discharges `X ≠ Y` by
+`simp [ErrCompacted, ErrFutureRev]` (`decide` fails: the names take section instances).
+`law_of_ext`, `errVars_of_errVars2`, `compacted_ne_future` proved. **F3.2:** not done (it edits
+`Api.lean` and callers; at the Freeze).
+
+**`Watch.contractR` (`ApiWatchR.lean`).** **F4.1:** the empty branch's give-back dropped;
+`contract_of_contractR` proved.
+
+**`NewLessor.specR` (`NewLessorR.lean`).**
+- **S1:** citations fixed (`:231`, `:245`); the one write-back argued from `UnsafeCreateBucket`'s
+  `pending++` (`batch_tx.go:144`), `Unlock`'s write-back/commit (`:328-333`, `:355`),
+  `ForceCommit` = `lock`, `commit`, `Unlock` with `commit`'s reset (`:300`, `:362-366`); one token
+  said to be stronger than `initAndRecover.spec`'s two.
+- **S2:** post gains `lease.lF "minLeaseTTL" lp ↦□ cfg.MinLeaseTTL'` (true: set at `:231`, never
+  written again).
+- **S5:** `spec_of_specR` **proved** (the instance at `recs = []`, `Lr = []`).
+- **S7:** docstring: only buckets whose every value is exactly `leaseRecEnc` (a scope restriction).
+- **F1 (the receipt `⧖ |recs|`):** for the user; the file's header states (a) and (b) precisely:
+  (b) adds `⧖ recs.length` to the pre; suppliers: the tester's writer (a per-operation receipt
+  carried across `shut`/`open`, its live leases each one `Grant`), the server's restart (the image's
+  `⧖ (logCh L)` with a law that each record is a grant applied at a revision of `L`).
+- **F2** (one axiom, the bounds gate): not done, at the Freeze switch. S3, S4, S6, S8: not done.
+
+## Repair round 1: the tester (2026-11-09)
+
+Every finding of `notes/review/mvccfull-f1-tester-r1.md` repaired but S5 (fixed earlier, in the Go)
+and S7 (a header line). `buildall` builds every mvccfull module and the candidates;
+`etc/gen-link.py --mvccfull` regenerates `Link.lean` (it now links `hashing`), which builds.
+
+- **F1** (the notified length): `MemberNames.nrev`, a monotone counter at `|σ.notifiedLog|`, its
+  auth in `memberState` and `memberCarry`; `readQ` exports `monoNatLbOwn m.nrev |σ.notifiedLog|`;
+  new law `nrevHi_acc` (`Readers.lean`: `incLive ∗ monoNatLbOwn m.nrev n` gives `n ≤ revHi + 1` at
+  the load; `sorry`). `stream.receive`'s header and proof outline use it for `resp.Revision ≤
+  revHi` (the spec statement unchanged: `recv_facts` already gives `readQ`).
+- **F2** (the bounds): `memberState`/`memberCarry` gain `1 ≤ revLo` and `revHi < 2 ^ 62`;
+  `revLo_acc` returns `1 ≤ v`, `revHi_acc` (and `nrevHi_acc`) `v < 2 ^ 62`. The writer: `begin`'s
+  premise is now `σ.rev + 2 < 2 ^ 62` (was `2 ^ 63`; its callers have `Ops < 2 ^ 38`); `end` keeps
+  both from the invariant (the new revision is between `σ`'s and `begin`'s `revHi`); `restore`'s
+  header says the builder's revision is below `2 ^ 62`. `cmpHi` needs no ceiling (no check uses one).
+  `watch`'s header names both.
+- **F3**: `mainMixOwn`'s read weights are the code's `[1, 1, 2, 1, 1, 0]`; `Main.spec`'s header
+  rewritten; **`Main.wp_proof` proved** (`mainConfig_ok`: `runCfgOk` at `mainConfigM`, by `decide`
+  after the fields; the keys of depth 4 are 120).
+- **F4**: `Spec/.../mvccfull/hashing.lean` (`hashing.spec`: the result is `hashingM` of the weights;
+  `hashingM_of_readMixOk`, proved: `false` under `readMixOk`), `Proof/.../hashing.lean` (`sorry`, a
+  leaf), `hashing:` in `etc/link-lean-first-mvccfull.txt` and in `Run:`'s callees, `Run.wp_proof`
+  takes `wp_hashing`; `Run.spec`'s header and `Run`'s outline rewritten (`hashes` skipped).
+- **F5**: `writerOwn`'s member conjuncts gain `1 ≤ nw` (the header: `Run` has it from `runCfgOk`'s
+  `2·Readers + 4·Streams + 3 ≤ 2 ^ 28` against `mvccReaderN = rdStockN - 7 = 536870776`,
+  `RdPool.lean`'s `rdStockN_val`).
+- **The glue gap (the trace)**: `runner.writeRange.spec` and `runner.writeSub.spec` take and give
+  back `traceutil.ownTrace trace te` (a new `te`); `txn`'s and `apply`'s outlines say they thread
+  the trace their `traceutil.TODO()` makes (their specs do not mention it: the trace is local).
+  **`runner.writeRange.wp_proof` proved** (as mvccrand's `writeOp` range arm: `view`, `Range`,
+  `checkRangeAt` at `m.cmp = σ.crev`, with local `viewRev_writeRev`, `viewSt_match`).
+- **S1**: `restore`'s stale "Go change needed" replaced (the capture is in, `a4c071c7dd`); `Run`
+  and `Main` (F3, F4).
+- **S2**: `pick.spec_of_specW` (`pickW.lean`, proved); `pick.wp_proof` is
+  `pick.spec_of_specW (pick.wp_proofW wp_choose)`, so `pick` has one proof (`pickW.lean`'s, `sorry`).
+  Callers keep whichever spec they use.
+- **S3**: `checkStoreRange`'s header says why checking at `clo` loses nothing. **S6**: `receive`'s
+  header says `histOkM` rules out `changesAt`'s panic. **S4**: `receive`'s header states the
+  dependency on `onceUpToAll`. **S7**: `open`'s header says which halves `memberCarry` holds.
+- **`incRd` for the streams** (done: it drops `qk`): `Streams.lean`'s `epRd E q` is `incRd` of the
+  epoch's incarnation; `regOwn`/`rcvOwn` hold one `epRd` each, `epochTok E q` the receiver's history
+  slot and two `epRd E (q/2)`; `epRd_split` (proved) splits it into a reader token, `epLive` and the
+  `kv` share (what `receive`'s and `endEpoch`'s unchanged specs take). The streams do not read
+  `m.kv`, but with every goroutine's part one shape, the writer's shares of the retirement token and
+  of `kv` are equal: `lentOk` loses `qk` and its second equation, `memCore`/`memW` their `qk`
+  parameter (`apply`, `txn`, `compact`, `checkLeases`, `checkAll`, `end`, `open`, `newMember`'s
+  specs lose it), and `startEpoch` takes the `kv` field at the writer's share `qw` (it had the whole
+  field, which the streams' shares now exclude).

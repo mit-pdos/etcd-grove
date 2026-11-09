@@ -7,13 +7,14 @@ chosen alternative has a positive weight: `r = choose(total)` is below `total`, 
 returns at an alternative `i` with `r < w[i]`, `w[i] > 0`, before falling through to `n - 1`. (When
 `total` wraps, the fall-through can return `n - 1` at any weight: the premise is needed.)
 
-It is stronger than `pick.spec` (its first conjunct), which becomes its corollary (one proof per
-function: `pick.spec` to be derived from `pick.wp_proofW`). The readers' F1 scope premise
+It is stronger than `pick.spec` (its first conjunct), which is its corollary (`pick.spec_of_specW`;
+one proof per function: `pick.wp_proof` is `pick.wp_proofW` through it; callers take whichever
+they need). The readers' F1 scope premise
 (`readMixOk`, `Readers.lean`) is this premise at `n = 6` with the hashes' weight not positive.
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.Base
+public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccfull.pick
 
 @[expose] public section
 
@@ -23,7 +24,7 @@ namespace Perennial
 namespace EtcdGrove
 namespace mvccfull
 
-open Iris Iris.BI github_com.mit_pdos.etcd_grove.examples.mvccfull
+open Iris Iris.BI Iris.ProofMode github_com.mit_pdos.etcd_grove.examples.mvccfull
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -42,6 +43,18 @@ abbrev pick.specW : Prop :=
       ⌜(∃ i : Nat, (i : Int) < sint.Z n ∧ 0 < ((ws.map sint.Z).getD i 0)) →
         (((ws.map sint.Z).take (sint.nat n)).map (fun z => max 0 z)).sum < 2 ^ 63 →
         0 < (ws.map sint.Z).getD (sint.nat x) 0⌝ }}
+
+/-- **`pick.spec` is a corollary**: the weights' conjunct dropped. -/
+theorem pick.spec_of_specW (h : pick.specW (GF := GF) (hG := hG)) : pick.spec (GF := GF) (hG := hG) := by
+  intro w ws dq n
+  iintro %Φ Hpre HΦ
+  iapply (h w ws dq n) $$ Hpre
+  inext
+  iintro %x ⟨Hw, %Hx, -⟩
+  iapply HΦ
+  iframe
+  ipureintro
+  exact Hx
 
 end spec
 

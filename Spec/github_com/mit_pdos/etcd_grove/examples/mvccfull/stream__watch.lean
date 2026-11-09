@@ -9,7 +9,8 @@ and the stream's invariants: the stream is open (the registrar's half of the clo
 watcher is registered under a fresh id, which enters both halves of the registry with its
 registration (`Reg`: `lo = watchLo σ start`, the sent count `k` with its `wsSentLb`), and the
 watcher's struct enters the lock's map and order (a watcher from `0` floats in
-`[revLo + 1, revHi + 1]`, `wPosOk'`). Every check passes (no error; a fresh id: the registry is the
+`[revLo + 1, revHi + 1]`, `wPosOk'`: positive by `revLo_acc`'s `1 ≤ revLo`; its start and revision
+below `2 ^ 63 - 1` by `revHi_acc`'s `revHi < 2 ^ 62`). Every check passes (no error; a fresh id: the registry is the
 stream's watchers, `regOk'`); the registrar's resources back.
 -/
 module

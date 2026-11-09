@@ -1,7 +1,10 @@
 /- Lean-first (no Rocq counterpart). The proof of `stream.receive`: Draft, to come (`sorry`).
 
 The callees in call order: `check`, `stream.covered`, `stream.expect`, `checkKV`, `choose`,
-`context.TODO`, `Range` (through `shapes.law`), `checkStoreRange`; the facts from `recv_facts` (`persistent`, `mvccState_reachable`, `wsRecv_ok`).
+`context.TODO`, `Range` (through `shapes.law`), `checkStoreRange`; the facts from `recv_facts`
+(`persistent`, `mvccState_reachable`, `wsRecv_ok`). The first check, `resp.Revision ≤ m.revHi`:
+`readQ`'s `monoNatLbOwn m.nrev |σ.notifiedLog|` and `nrevHi_acc` at the load (`Int64.Load`) give
+`|σ.notifiedLog| ≤ revHi + 1`, with clause 1's `r.rev < |σ.notifiedLog|`.
 -/
 module
 

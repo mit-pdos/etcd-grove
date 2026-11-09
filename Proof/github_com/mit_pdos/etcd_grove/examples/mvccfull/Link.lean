@@ -19,6 +19,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.checkRangeA
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.choose
 public import Proof.context.TODO
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.copyState
+public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.hashing
 public import Proof.container.heap.Fix
 public import Proof.container.heap.Init_
 public import Proof.container.heap.Push
@@ -373,6 +374,10 @@ theorem schema.wp_MustUnsafeGetAllLeases :
     EtcdGrove.schema.MustUnsafeGetAllLeases.spec (GF := GF) (hG := hG) :=
   EtcdGrove.schema.MustUnsafeGetAllLeases.wp_proof
 
+theorem wp_hashing :
+    EtcdGrove.mvccfull.hashing.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.mvccfull.hashing.wp_proof
+
 end links
 
 /-! The specs stated at `HeapGS HasLC.hasLC GF`: those using channels, `sync.Once` or
@@ -608,7 +613,7 @@ theorem runner.wp_write [go_etcd_io.etcd.cache.v3.Assumptions] :
 
 theorem wp_Run [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.mvccfull.Run.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.mvccfull.Run.wp_proof mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccReaders_split_law_holds wp_normalize wp_walkKeys zap.wp_NewNop wp_memberPath (runner.wp_newMember h_ApiNewRestoring_R h_lease_NewLessor_R) runner.wp_startEpoch runner.wp_startReaders (runner.wp_write h_ApiNewRestoring_R h_lease_NewLessor_R) runner.wp_stopReaders runner.wp_endEpoch runner.wp_shut (runner.wp_open h_ApiNewRestoring_R h_lease_NewLessor_R) runner.wp_checkAll
+  EtcdGrove.mvccfull.Run.wp_proof mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccReaders_split_law_holds wp_normalize wp_walkKeys zap.wp_NewNop wp_memberPath (runner.wp_newMember h_ApiNewRestoring_R h_lease_NewLessor_R) runner.wp_startEpoch runner.wp_startReaders (runner.wp_write h_ApiNewRestoring_R h_lease_NewLessor_R) runner.wp_stopReaders wp_hashing runner.wp_endEpoch runner.wp_shut (runner.wp_open h_ApiNewRestoring_R h_lease_NewLessor_R) runner.wp_checkAll
 
 theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.mvccfull.Main.spec (GF := GF) (hG := hG) :=

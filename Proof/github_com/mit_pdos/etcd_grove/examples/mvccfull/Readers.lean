@@ -7,11 +7,13 @@ commits the store's state `σ` unchanged (`reader_au`, mvccrand's pattern per in
 the incarnation's invariant (`memberInv`, `Members.lean`), which it may since it holds a share of
 the incarnation's retirement token (`ghostVar ι.ret q ()`: the retired invariant holds the whole
 token, so a live share rules that case out, `memberInv_live`), and records then: lower bounds of
-the monotone revision and compaction revision at `σ`'s, a lower bound of the history covering `σ`'s
-notified log (`histOkM`), and `σ`'s reachability. The floors loaded before the read (`revLo`,
-`cmpLo`) are below `σ`'s values (`revLo_acc`, `cmpLo_acc`: a load gives a monotone lower bound above
-the value loaded); the ceilings loaded after (`revHi`, `cmpHi`) are above them (`revHi_acc`,
-`cmpHi_acc`: an upper bound of the current value, which is above any value it had before).
+the monotone revision, compaction revision and notified log's length at `σ`'s, a lower bound of the
+history covering `σ`'s notified log (`histOkM`), and `σ`'s reachability. The floors loaded before
+the read (`revLo`, `cmpLo`) are below `σ`'s values (`revLo_acc`, `cmpLo_acc`: a load gives a
+monotone lower bound above the value loaded; `revLo` is at least `1`); the ceilings loaded after
+(`revHi`, `cmpHi`) are above them (`revHi_acc`, `cmpHi_acc`: an upper bound of the current value,
+which is above any value it had before; `revHi` below `2 ^ 62`), and `revHi + 1` is above the
+notified length seen (`nrevHi_acc`: a response at the pending revision, `receive`'s first check).
 
 **An epoch's readers** (`startReaders` to `stopReaders`, between two restarts): each reader
 goroutine holds, for each member, the member's current incarnation's handles, one reader token of
@@ -208,12 +210,14 @@ def rdStock (h : Loc) (γ : FullNames) (mp0 mp1 : Loc) (e0 e1 : IncNames × GoIn
   iprop(histRds h γ.h n ∗ rdLent mp0 e0.1 e0.2 n q ∗ rdLent mp1 e1.1 e1.2 n q)
 
 /-- **What a read learns of the state `σ` it reads** (persistent): lower bounds of the member's
-monotone revision and compaction revision at `σ`'s, a lower bound `Hl` of the history covering
+monotone revision, compaction revision and notified log's length at `σ`'s (`nrevHi_acc`: a
+response at `σ`'s pending revision is at most `revHi` loaded after), a lower bound `Hl` of the
+history covering
 `σ`'s notified log, and `σ` reachable (so `2 ≤ |σ.log|` and `-1 ≤ σ.crev ≤ σ.rev`,
 `reach_bounds`) with its log's bound. -/
 def readQ (ks : List GoString) (γh : HistNames) (m : MemberNames) (σ : MvccState) : IProp GF :=
   iprop(∃ Hl : List HRev, monoListLbOwn γh.l Hl ∗ monoNatLbOwn m.rev σ.rev ∗
-    monoNatLbOwn m.crev (Int.toNat (σ.crev + 1)) ∗
+    monoNatLbOwn m.crev (Int.toNat (σ.crev + 1)) ∗ monoNatLbOwn m.nrev σ.notifiedLog.length ∗
     ⌜histOkM ks σ Hl ∧ MvccReachable σ ∧ σ.log.length + 3 ≤ 2 ^ 63⌝)
 
 instance readQ_persistent (ks : List GoString) (γh : HistNames) (m : MemberNames) (σ : MvccState) :
@@ -245,14 +249,15 @@ theorem memberInv_live (ks : List GoString) (γh : HistNames) (mp : Loc) (m : Me
   sorry
 
 /-- **The revision's floor**: `revLo`'s load gives a lower bound `n` of the member's monotone
-revision with the value loaded at most `n`. In the shape of `Int64.Load`'s premise. (Proof to
+revision with the value loaded at most `n`, and at least `1` (`watch`'s floating window). In the shape of `Int64.Load`'s premise. (Proof to
 come: `sorry`; `memberInv_live`, `monoNatLbOwn_get`.) -/
 theorem revLo_acc (ks : List GoString) (γh : HistNames) (i : Nat) (mp : Loc) (m : MemberNames)
     (ι : IncNames) (kv : GoInterface) (q : Qp) :
     incLive (GF := GF) ks γh i mp m ι kv q ⊢
       |={⊤,∅}=> ∃ v : w64, sync.atomic.ownInt64 (mF go!"revLo" mp) (DFrac.own 1) v ∗
         (sync.atomic.ownInt64 (mF go!"revLo" mp) (DFrac.own 1) v ={∅,⊤}=∗
-          incLive ks γh i mp m ι kv q ∗ ∃ n : Nat, monoNatLbOwn m.rev n ∗ ⌜sint.Z v ≤ n⌝) := by
+          incLive ks γh i mp m ι kv q ∗ ∃ n : Nat, monoNatLbOwn m.rev n ∗
+            ⌜1 ≤ sint.Z v ∧ sint.Z v ≤ n⌝) := by
   sorry
 
 /-- **The compaction revision's floor**: `cmpLo`'s load gives a lower bound `c` of the member's
@@ -267,13 +272,29 @@ theorem cmpLo_acc (ks : List GoString) (γh : HistNames) (i : Nat) (mp : Loc) (m
   sorry
 
 /-- **The revision's ceiling**: `revHi` holds at least any lower bound `n` of the monotone
-revision (the revision now, at most `revHi`, is at least the one seen). In the shape of
-`Int64.Load`'s premise (and `inBounds`'). (Proof to come: `sorry`.) -/
+revision (the revision now, at most `revHi`, is at least the one seen), and below `2 ^ 62` (a
+watcher's start and revision, `watcherOk`). In the shape of `Int64.Load`'s premise (and
+`inBounds`'). (Proof to come: `sorry`.) -/
 theorem revHi_acc (ks : List GoString) (γh : HistNames) (i : Nat) (mp : Loc) (m : MemberNames)
     (ι : IncNames) (kv : GoInterface) (q : Qp) (n : Nat) :
     incLive (GF := GF) ks γh i mp m ι kv q ∗ monoNatLbOwn m.rev n ⊢
       |={⊤,∅}=> ∃ v : w64, sync.atomic.ownInt64 (mF go!"revHi" mp) (DFrac.own 1) v ∗
-        ⌜(n : Int) ≤ sint.Z v⌝ ∗
+        ⌜(n : Int) ≤ sint.Z v ∧ sint.Z v < 2 ^ 62⌝ ∗
+        (sync.atomic.ownInt64 (mF go!"revHi" mp) (DFrac.own 1) v ={∅,⊤}=∗
+          incLive ks γh i mp m ι kv q) := by
+  sorry
+
+/-- **The revision's ceiling against the notified length** (F1 of review round 1): `revHi` plus one
+holds at least any lower bound `n` of the monotone notified log's length (`memberState`'s
+`|σ.notifiedLog| ≤ revHi + 1` now, the length now at least the one seen): a response at the
+revision pending when it was notified is at most `revHi` loaded after (`receive`'s first check).
+In the shape of `Int64.Load`'s premise. (Proof to come: `sorry`; as `revHi_acc`, with
+`monoNatLbOwn_valid` at `m.nrev`.) -/
+theorem nrevHi_acc (ks : List GoString) (γh : HistNames) (i : Nat) (mp : Loc) (m : MemberNames)
+    (ι : IncNames) (kv : GoInterface) (q : Qp) (n : Nat) :
+    incLive (GF := GF) ks γh i mp m ι kv q ∗ monoNatLbOwn m.nrev n ⊢
+      |={⊤,∅}=> ∃ v : w64, sync.atomic.ownInt64 (mF go!"revHi" mp) (DFrac.own 1) v ∗
+        ⌜(n : Int) ≤ sint.Z v + 1 ∧ sint.Z v < 2 ^ 62⌝ ∗
         (sync.atomic.ownInt64 (mF go!"revHi" mp) (DFrac.own 1) v ={∅,⊤}=∗
           incLive ks γh i mp m ι kv q) := by
   sorry

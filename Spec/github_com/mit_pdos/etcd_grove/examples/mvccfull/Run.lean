@@ -17,9 +17,9 @@ backend's batch limit at most `2 ^ 57` (`backend.New`'s `P.Wf`); the store's com
 in mvcc's range (`batchLimitOk`, `New`'s); the keys within mvcc's state bound (`stateOk`: at most
 `2 ^ 62`, `3 ^ Depth`-ish keys).
 
-**Not provable in F1 as the Go stands** (reported): `Run` calls the corruption checker
-(`x.hashes()`) once, unconditionally, after `stopReaders`, whatever `Mix.Read` says; `HashByRev` and
-`Hashes` have no spec (F2). F1's scope premise excludes only the readers' hash reads.
+After `stopReaders`, `Run` calls the corruption checker (`x.hashes()`) only if `hashing(Mix.Read)`,
+which `readMixOk` makes false (`hashingM_of_readMixOk`): F1's scope excludes the hashes, the readers'
+and `Run`'s (`HashByRev` and `Hashes` have no spec until F2).
 -/
 module
 

@@ -23,7 +23,7 @@ are as `genSubs` makes them (puts' keys distinct, none in a delete's range: etcd
 **A member, as the writer holds it** (`memW`, for the leader, the follower and the builder alike;
 `MemS` its record): its Go fields (`path`, `be`, `le`, the writer's share of `kv`, `ops`, `rev`,
 `cmp`, `leases`; `hook` and `id` read-only), its current incarnation `ι` (`isInc`, the writer's
-share `qw` of the retirement token, its halves of `m.σ` at `σOf ks ops n` and of `m.bnd`), the
+share `qw` of the retirement token and of `kv`, its halves of `m.σ` at `σOf ks ops n` and of `m.bnd`), the
 store (`mvccOpen`, the whole backend share at the tester's real backend `bk`, the hook frozen at
 the member's closure `f` (`hookIs`), its own `nw` reader tokens), the backend's kept part
 (`bkKeep`: its contract and stop channels, its file, the census for `backend.Close`, the lessor's
@@ -33,7 +33,11 @@ and the store's items, the revokers, the ids ever granted with their requests (`
 deleter at the store's, the lease bucket's part holding exactly the live leases' records,
 `leaseRecsOk`, the stop right), and the hook's counters (`applying`, `saved`, owned outright, as
 mvccrand's). The shares `qw`, `nw` are the writer's after what it lent to the epoch's readers
-(`rdStock`) and streams (`epochTok`); a restart needs them whole (`qw = 1`, `nw = mvccReaderN`).
+(`rdStock`) and streams (`epochTok`), each of which holds the same share of the retirement token and
+of the `kv` field (`incRd`), so one share `qw` is the writer's of both; a restart needs them whole
+(`qw = 1`, `nw = mvccReaderN`). While an epoch runs the writer keeps at least one reader token
+(`1 ≤ nw`: `apply`'s transactions, `restart`'s `endEpoch`), which `Run` gets from `runCfgOk`'s thread
+bound (`2·Readers + 4·Streams + 3 ≤ 2 ^ 28`, below `mvccReaderN = rdStockN - 7`, about `2 ^ 29`).
 
 **The builder** (`restore`'s third store) is a member like the others, with an incarnation of its
 own (namespace `memberN 2`): no reader or stream ever holds a share, so the writer retires it at
@@ -479,18 +483,18 @@ def endCb (e : GoFunc) (ks : List GoString) (γh : HistNames) (i : Nat) (mp : Lo
 /-- **A member's store, backend and lessor, as the writer holds them** (all of `memW` but the
 `ops` field and the hook's counters, which `apply` moves first): the `i`-th member (`0` the leader,
 `1` the follower, `2` a builder), struct `mp`, names `m`, hook `f`, record `v`, at the model after
-`v.ops` operations of the log `ops` (`σOf`, `revAfter`, ...), the writer's shares `qw` (the
-retirement token's), `qk` (the `kv` field's: the readers hold the rest, the streams none) and `nw`
-(reader tokens), `k` write-back tokens left. -/
+`v.ops` operations of the log `ops` (`σOf`, `revAfter`, ...), the writer's shares `qw` (of the
+retirement token and of the `kv` field: the readers and streams hold the rest) and `nw` (reader
+tokens), `k` write-back tokens left. -/
 def memCore (ks : List GoString) (γh : HistNames) (ops : List OpM) (i : Nat) (mp : Loc)
-    (m : MemberNames) (f : GoFunc) (v : MemS) (qw qk : Qp) (nw k : Nat) : IProp GF :=
+    (m : MemberNames) (f : GoFunc) (v : MemS) (qw : Qp) (nw k : Nat) : IProp GF :=
   let σ := σOf ks ops v.ops
   iprop(mF go!"id" mp ↦□ (W64 (i : Int)) ∗ mF go!"hook" mp ↦□ f ∗ hookOk mp f ∗
     mF go!"path" mp ↦ v.path ∗
     mF go!"be" mp ↦ (interface.mkOk
       (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #v.bk.be :
         GoInterface) ∗
-    mF go!"le" mp ↦ lease.lessorIface v.lp ∗ mF go!"kv" mp ↦{DFrac.own qk} v.kv ∗
+    mF go!"le" mp ↦ lease.lessorIface v.lp ∗ mF go!"kv" mp ↦{DFrac.own qw} v.kv ∗
     mF go!"rev" mp ↦ (W64 (revAfter ks ops v.ops : Int)) ∗
     mF go!"cmp" mp ↦ (W64 (cmpAfter ks ops v.ops)) ∗
     (∃ sl : GoSlice, mF go!"leases" mp ↦ sl ∗ sl ↦* leasesAfter ks ops v.ops ∗
@@ -506,10 +510,10 @@ def memCore (ks : List GoString) (γh : HistNames) (ops : List OpM) (i : Nat) (m
 `ops` field, and the hook's counters (`applying` at most the operations applied: a restore moves
 `ops` forward and leaves it). -/
 def memW (ks : List GoString) (γh : HistNames) (ops : List OpM) (i : Nat) (mp : Loc)
-    (m : MemberNames) (f : GoFunc) (v : MemS) (qw qk : Qp) (nw k : Nat) : IProp GF :=
+    (m : MemberNames) (f : GoFunc) (v : MemS) (qw : Qp) (nw k : Nat) : IProp GF :=
   iprop(mF go!"ops" mp ↦ (W64 (v.ops : Int)) ∗
     (∃ a s : w64, hookPre mp a s ∗ ⌜0 ≤ sint.Z a ∧ sint.Z a ≤ v.ops⌝) ∗
-    memCore ks γh ops i mp m f v qw qk nw k)
+    memCore ks γh ops i mp m f v qw nw k)
 
 /-- **The history part of a member's operation** (`apply`'s `lead`): the leader appends the
 revision, so it holds the history's writer part at the model's history and compactions after `n`
@@ -557,10 +561,10 @@ def writerCtrs (x : Loc) (ks : List GoString) (ops : List OpM) (nv nb : Nat) : I
 
 /-- **What the writer lent of a running member's incarnation** (to `n = 2·Readers` readers at the
 share `q`, `rdStock`, and to `Streams` streams at `qs` each, `epochTok`), against what it keeps
-(`qw` of the retirement token, `qk` of the `kv` field, `nw` reader tokens): together, the whole of
+(`qw` of the retirement token and of the `kv` field, `nw` reader tokens): together, the whole of
 each (the readers' and the streams' tokens: one per reader, two per stream). -/
-def lentOk [GooseExts] (cfg : Config) (q qs qw qk : Qp) (nw : Nat) : Prop :=
-  qw.val + q.val + ((sint.Z cfg.Streams').toNat : Rat) * qs.val = 1 ∧ qk.val + q.val = 1 ∧
+def lentOk [GooseExts] (cfg : Config) (q qs qw : Qp) (nw : Nat) : Prop :=
+  qw.val + q.val + ((sint.Z cfg.Streams').toNat : Rat) * qs.val = 1 ∧
   nw + 2 * (sint.Z cfg.Readers').toNat + 2 * (sint.Z cfg.Streams').toNat = mvccReaderN
 
 /-- **The writer between steps, both members running an epoch** (`write`'s loop; `ms` the members'
@@ -568,7 +572,7 @@ records, `q` the shares lent to the readers, `qs` to each member's streams): the
 the leader's part of the history at the model's history and compactions (`histW`), a reader slot
 of the history, the builders' files not yet used (`nb` builds so far: at most one per leader
 operation, since a restore needs the follower behind and leaves it caught up), both members
-(`memW`) with their epoch's streams (`epochStream`, `m.streams`) and the readers' join (`startReaders`' post: the lent stock). The leader is at the log's
+(`memW`, each keeping a reader token of its own, `1 ≤ nw`) with their epoch's streams (`epochStream`, `m.streams`) and the readers' join (`startReaders`' post: the lent stock). The leader is at the log's
 end, the follower behind. -/
 def writerOwn (x : Loc) (ks : List GoString) (cfg : Config) (h : Loc) (γ : FullNames)
     (mp0 mp1 : Loc) (f0 f1 : GoFunc) (ops : List OpM) (v0 v1 : MemS)
@@ -584,10 +588,10 @@ def writerOwn (x : Loc) (ks : List GoString) (cfg : Config) (h : Loc) (γ : Full
     ⌜nb ≤ v0.ops ∧ (nb = v0.ops → v1.ops = v0.ops)⌝ ∗
     ([∗list] j ∈ List.range' (nb + 1) ((sint.Z cfg.Ops').toNat - nb),
       backend.fileHolds (buildPathM cfg.Prefix' j) ∅) ∗
-    (∃ (qw qk : Qp) (nw k : Nat), memW ks γ.h ops 0 mp0 γ.m0 f0 v0 qw qk nw k ∗
-      ⌜lentOk cfg q qs qw qk nw ∧ (sint.Z cfg.Ops').toNat ≤ k + v0.ops⌝) ∗
-    (∃ (qw qk : Qp) (nw k : Nat), memW ks γ.h ops 1 mp1 γ.m1 f1 v1 qw qk nw k ∗
-      ⌜lentOk cfg q qs qw qk nw ∧ (sint.Z cfg.Ops').toNat ≤ k + v1.ops⌝) ∗
+    (∃ (qw : Qp) (nw k : Nat), memW ks γ.h ops 0 mp0 γ.m0 f0 v0 qw nw k ∗
+      ⌜lentOk cfg q qs qw nw ∧ 1 ≤ nw ∧ (sint.Z cfg.Ops').toNat ≤ k + v0.ops⌝) ∗
+    (∃ (qw : Qp) (nw k : Nat), memW ks γ.h ops 1 mp1 γ.m1 f1 v1 qw nw k ∗
+      ⌜lentOk cfg q qs qw nw ∧ 1 ≤ nw ∧ (sint.Z cfg.Ops').toNat ≤ k + v1.ops⌝) ∗
     (∃ (sl : GoSlice) (ss : List Loc), mF go!"streams" mp0 ↦ sl ∗ sl ↦* ss ∗
       ownSliceCap Loc sl (DFrac.own 1) ∗ ⌜ss.length = ns⌝ ∗ [∗list] s ∈ ss, epochStream E0 qs s) ∗
     (∃ (sl : GoSlice) (ss : List Loc), mF go!"streams" mp1 ↦ sl ∗ sl ↦* ss ∗
@@ -609,7 +613,8 @@ def subFresh [GooseExts] (chs : List change) (x : SubM) : Prop :=
 
 /-- **What is carried across a member's incarnations** (the incarnation's contents but the store's
 state, `memberState_split`): `m.σ`'s half at `σ`, the four atomics at `b`, `m.bnd`'s half, the
-monotone counters at `σ`'s revisions, the history's lower bound `Hl`, the bounds' facts. -/
+monotone counters at `σ`'s revisions and notified log's length, the history's lower bound `Hl`, the
+bounds' facts. -/
 def memberCarry (ks : List GoString) (γh : HistNames) (mp : Loc) (m : MemberNames) (σ : MvccState)
     (b : Bnd) (Hl : List HRev) : IProp GF :=
   iprop(ghostVar m.σ (1 : Qp).half σ ∗
@@ -619,8 +624,9 @@ def memberCarry (ks : List GoString) (γh : HistNames) (mp : Loc) (m : MemberNam
     sync.atomic.ownInt64 (mF go!"cmpHi" mp) (DFrac.own 1) b.2.2.2 ∗
     ghostVar m.bnd (1 : Qp).half b ∗
     monoNatAuthOwn m.rev 1 σ.rev ∗ monoNatAuthOwn m.crev 1 (Int.toNat (σ.crev + 1)) ∗
+    monoNatAuthOwn m.nrev 1 σ.notifiedLog.length ∗
     monoListLbOwn γh.l Hl ∗
-    ⌜sint.Z b.1 ≤ σ.rev ∧ (σ.rev : Int) ≤ sint.Z b.2.1 ∧
+    ⌜1 ≤ sint.Z b.1 ∧ sint.Z b.1 ≤ σ.rev ∧ (σ.rev : Int) ≤ sint.Z b.2.1 ∧ sint.Z b.2.1 < 2 ^ 62 ∧
       (σ.notifiedLog.length : Int) ≤ sint.Z b.2.1 + 1 ∧
       sint.Z b.2.2.1 ≤ σ.crev ∧ σ.crev ≤ sint.Z b.2.2.2 ∧ -1 ≤ σ.crev ∧
       histOkM ks σ Hl ∧ onceUpToAll σ.notifiedLog⌝)

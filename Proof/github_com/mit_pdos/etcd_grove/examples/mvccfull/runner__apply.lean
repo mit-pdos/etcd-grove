@@ -11,7 +11,9 @@ closure calling `lessor.Revoke` (its update through the range deleter, `mvccDele
 the slice filtered, `Lookup` nil; `compact`; `Commit` (`KV.Commit.contract`); a read (`KV.Read`,
 `Txn.Rev`, `Txn.FirstRev`, `Txn.Range`, `history.snapshot`, `checkRangeAt`, `Txn.End`);
 `checkLeases`. The model's step is `runM_succ`; the lease bucket's records (`leaseRecsOk`) follow
-`Grant`'s `rbSet` and `Revoke`'s `rbDel`.
+`Grant`'s `rbSet` and `Revoke`'s `rbDel`. The put's and the delete's trace (`traceutil.TODO()`,
+`ownTrace t true`) is threaded through `writeRange`, `Txn.Put` and `writeSub`, whose specs take
+and give it back.
 -/
 module
 

@@ -2,8 +2,9 @@
 **DRAFT (B3, mvccfull's F1): the internal `New` on a backend that already holds data**, and the
 glue to the API's candidate `api.New.specR` (`ApiNewRestoring.lean`). Candidate restatement of
 `mvcc.New.spec` (`New.lean`), over `NewStore.specR`'s premises (`NewStoreR.lean`). Scratch: not
-imported, not linked, not proved (`sorry`). It imports `ApiNewRestoring`, which no build target
-reaches: typecheck with that module compiled to a scratch `LEAN_PATH` entry.
+imported, not linked, not proved (`sorry`). Also R1's bridge lemma
+(`mvcc.NewStore.cleanRead_of_image`, `sorry`: Probe's target). The internal statement is NOT to
+freeze before R1's lemma is proved (`NewStoreR.lean`'s header).
 -/
 module
 
@@ -46,8 +47,8 @@ abbrev mvcc.New.specR : Prop :=
     (γi : mvcc.IdxNames) (γok γtag : GName) (M : GMap w64 mvcc.Log) (Perm : Int → IProp GF)
     (R : mvcc.Log) (r : mvcc.CmpRecs) (RC : IProp GF) (Ls : List w64)
     (hk : Option val) (Pre Q Post X Y : IProp GF) (dq : DFrac),
-  mvcc.batchLimitOk cfg.CompactionBatchLimit' → mvcc.restoreLogOk R →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+  {{ ⌜mvcc.batchLimitOk cfg.CompactionBatchLimit' ∧ mvcc.restoreLogOk R⌝ ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = some d ∧ γ.idx = γi⌝ →
         ∃ Dep : IProp GF, mvcc.isKeyBackendGR b (mvcc.bucketView γ) (mvcc.storeRT γ)
           (mvcc.storeWT γ) (mvcc.kbRecs γ.kb γ.bucket r) r (mvcc.storePutOk γ) (mvcc.delKey γ)
@@ -142,6 +143,43 @@ variable [go_etcd_io.etcd.cache.v3.Assumptions]
 variable [backend_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 variable [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 
+/-- **R1's bridge lemma** (review round 1's F2.1; to prove in Probe, `sorry` until then): the
+records' clean read of a compacting real backend (`cm` on) **after** the store's deletable keys are
+fixed (`storeDlReg d.γB γi`, which `NewStore`'s batch session needs before `restore()`), lent with a
+reader's token the client's half of the deleted entries at none (`backend.dlsOwn d.γB ∅`, the part of
+`restoreImageM`'s `kbVals … ∅` that pins "nothing deleted since the open"), in place of
+`keyCleanRead_of_backendC`'s unfixed `dlInit` (consumed by the fix). Its premises are what the glue
+holds when it calls `NewStore` (`mvccStorageFor` opened: `isBackend`, `keySized`, `bridgeParams`,
+`recsSign r` from the image; the registration fixed at step 2). Off (`cm` false) nothing new is
+needed: `keyCleanRead_of_backend` with `dlNoDel` (`kbNoDelOff`), `r = empty`.
+
+Why it should hold: the clean read's argument (`bridge_rt_cleanR`, `rt_lockedR`) uses `dlInit`'s flag
+at `false` only to know that the read buffer and the committed data have no deleted safe-range
+entry the view lacks; with the registration fixed, a delete is possible in principle, but every
+delete updates the deleted entries' ghost (`γ.dls`, both halves: `dlsOwn`'s other half is the batch
+lock's), so the client's half at `∅`, lent to the read, pins it at none for the read's duration.
+If this fails, the fallback is R1's other branch (`notes/mvccfull-proof-plan.md`, B3's risk R1). -/
+theorem mvcc.NewStore.cleanRead_of_image
+    (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
+    (hrRL : backend.readTx.RLock.spec (GF := GF) (hG := hG))
+    (hrRU : backend.readTx.RUnlock.spec (GF := GF) (hG := hG))
+    (hrUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG))
+    (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
+    (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
+    (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
+    (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (hcm : d.cm = true) (Pk : IProp GF)
+    (γb : GName) (γi : mvcc.IdxNames) (r : mvcc.CmpRecs) (hpos : mvcc.recsSign r) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+      backend.isBackend d.γB d.P (mvcc.lateW d.gx) Pk d.be ∗ mvcc.keySized d.γB d.P d.be ∗
+      mvcc.storeDlReg d.γB γi ⊢
+      ∀ γ : mvcc.StoreNames, ⌜γ.bucket = γb ∧ γ.kb = some d ∧ γ.idx = γi⌝ →
+        mvcc.keyCleanReadR
+          (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
+            #d.be) (mvcc.bucketViewC γ) iprop(mvcc.storeRT γ ∗ backend.dlsOwn d.γB ∅)
+          (mvcc.kbRecs γ.kb γ.bucket r) r := by
+  sorry
+
 /-- **The API's candidate from the internal one** (the bridge `Restore`'s API proof uses). Outline,
 in the order of `NewApi.lean`'s `New.wp_proof`, with `RestoreApi.lean`'s bridge in place of
 `imageOk_start`:
@@ -157,16 +195,17 @@ in the order of `NewApi.lean`'s `New.wp_proof`, with `RestoreApi.lean`'s bridge 
    (`storeBackendTR_of_backendC … γi r hsign`, needing `fkV … true`, from `fkV_of_fkCl` with
    `fkWfD_of_keyImageM`) gives the first conjunct (`Dep := True`).
 3. The image `restoreImageM bk γb σ.log r` from `restoreImageM_of_openOn` (`bView` and `fkCl`).
-4. The clean read: NOT `keyCleanRead_of_backendC` (it lends `dlInit`, consumed in 2). Needs a new
-   bridge lemma, `keyCleanRead_of_backendC` over the fixed registration with the lent `RC` the
-   evidence that nothing was deleted since the open (the client's half of the deleted entries at
-   `∅`, `dlsOwn`, which `restoreImageM`'s `kbVals … ∅` carries: so `RC` would be lent out of the
-   image, the proof of `NewStore` splitting it off before `restore()`), or `RC := dlInit` with
-   step 2 postponed (impossible: `NewStore`'s batch session needs the contract). Risk R1.
+4. The clean read: NOT `keyCleanRead_of_backendC` (it lends `dlInit`, consumed in 2): R1's bridge
+   lemma `mvcc.NewStore.cleanRead_of_image` above, over the fixed registration, lent
+   `backend.dlsOwn bk.γB ∅`, which `restoreImageM`'s `kbVals … ∅` carries. So `RC` cannot be both
+   lent to the read and inside the whole `restoreImageM` the pre also takes (review round 1's
+   F2.1): the internal `NewStore.specR` is restated once the lemma is proved (`NewStoreR.lean`'s
+   header, "R1"). (`RC := dlInit` with step 2 postponed is impossible: `NewStore`'s batch session
+   needs the contract.)
 5. The certificate map: `ghost_map_alloc_empty`, then `ghost_map_insert_persist 0 []` before the
    call (`M = {0 ↦ []}`, the third disjunct; the API's `certFree` is that element).
 6. The permit: `Perm := fun _ => True` (both disjuncts' right side); the lessor: `leaseOwn γl Ls ∅`
-   and the items' premise are the API's verbatim; the resumed compaction: `newResumePre` to
+   and the items' premise are the API's verbatim; the resumed compaction: the API's `if u then …` to
    `resumeCtxM bk r Pk (some #f | none) …` exactly as `watchableStore.Restore.wp_api` builds it
    from `storageHook`/`hookRun`/`storageReq` (with `kbWTSupplyM` from `mvccStorageFor`'s supply).
 7. The readers, the safe-range slot, `kbRegRight`, the two write tokens, `kbNoDelOff` (`True` on):
@@ -175,8 +214,9 @@ in the order of `NewApi.lean`'s `New.wp_proof`, with `RestoreApi.lean`'s bridge 
    `mvccOpen`'s right at `σ.crev` (today made from `compactRightR_of_closer` at `-1`); `newClient
    … σ.log σ.crev` gives `mvccState γ σ` (`MvccReachable σ`, `σ.pending = none` from the premises;
    `idxCert`'s receipt for `mvccStateI`'s `⧖`); `storeReader_retire2`, `rdkPool_init`,
-   `watchTokPool_alloc` as today; `resumeBackM` to `newResumePost` (`resumeBackM_of`'s inverse
-   reading, as `Restore`'s API proof); `mvccBackend γ 1 B Pk` as today, with `hookP`. -/
+   `watchTokPool_alloc` as today; `resumeBackM` to the API's `if u then storageHook … ∗ Post ∗ Y`
+   (`resumeBackM_of`'s inverse reading, as `Restore`'s API proof); `mvccBackend γ 1 B Pk` as today,
+   with `hookP`; the receipt `⧖ (logCh σ.log)` from step 1's (persistent). -/
 theorem mvcc.api.New.specR_of_internal
     (hNew : mvcc.New.specR (GF := GF) (hG := hG))
     (hCRT : backend.backend.ConcurrentReadTx.spec (GF := GF) (hG := hG))
