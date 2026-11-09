@@ -12,7 +12,7 @@ paths can state their traced case with it (the Draft imports those specs: `notes
 - (Q8 stage 1) `trOwn`, the gate on what a hook reads only when traced, and the untraced
   instances (`trCapB_none`, `fxPresT_none`, `phaseBot`).
 
-**Amended (Q13, 2026-11-09, the re-freeze `trace-check-frozen-a1`):** the seven laws' event premise
+**Amended (Q13, 2026-11-09; to be re-frozen by the coordinator):** the seven laws' event premise
 `∀ e, E e → TraceEv.Ascii e` became `∀ e, E e → TraceEv.Ok (elements c.incoming).length e`
 (`TraceEv.OkBoot` for `trCap_fire_boot`; `trCap_fire_bf`, which had none, gained it), so that
 `simInv` keeps `Main`'s facts of the events (`SimEvents`, `TraceSim.lean`); `nodeEvOf_ok` and
@@ -311,15 +311,16 @@ theorem nodeEvOf_confsWithin (evt id : w64) (s : NState) (c : CfgM) (e : TraceEv
   refine ⟨by rw [hconf]; simp only [List.length_map]; rw [hxs.length_eq]; exact hC, ?_⟩
   intro c' hc'; rw [hpcc] at hc'; cases hc'
 
-/-- **A node event of an in-scope kind, as the laws take it** (`TraceEv.Ok` at its configuration's
-size): from its state's numbers below `traceNumBound` (the caller's, from the time receipts). -/
-theorem nodeEvOf_ok (evt id : w64) (s : NState) (c : CfgM) (e : TraceEv)
+/-- **A node event of an in-scope kind (not `InitState`, 0, nor `ChangeConf`, 6), as the laws take
+it** (`TraceEv.Ok n`, `n` at least its configuration's size): from its state's numbers below
+`traceNumBound` (the caller's, from the time receipts). -/
+theorem nodeEvOf_ok (evt id : w64) (s : NState) (c : CfgM) (e : TraceEv) (n : Nat)
     (h : NodeEvOf evt id s c e) (hevt : uint.nat evt ≠ 0 ∧ uint.nat evt ≠ 6)
     (ht : uint.nat s.term < traceNumBound) (hc : uint.nat s.logst.committed < traceNumBound)
-    (hl : uint.nat (plastIndex (toPState s)) < traceNumBound) :
-    e.Ok (elements c.incoming).length := by
+    (hl : uint.nat (plastIndex (toPState s)) < traceNumBound) (hn : (elements c.incoming).length ≤ n) :
+    e.Ok n := by
   refine ⟨nodeEvOf_ascii evt id s c e h, ?_, nodeEvOf_numsBelow evt id s c e _ h ht hc hl,
-    nodeEvOf_confsWithin evt id s c e _ h (Nat.le_refl _)⟩
+    nodeEvOf_confsWithin evt id s c e _ h hn⟩
   have hname := h.1
   have hmsg := h.2.2.2.2.2.2.2.2.1
   have hk : uint.nat evt < evtNames.length := (List.getElem?_eq_some_iff.1 hname).1
@@ -329,17 +330,36 @@ theorem nodeEvOf_ok (evt id : w64) (s : NState) (c : CfgM) (e : TraceEv)
   rw [hk2] at hn
   exact ⟨hn.1, hn.2, fun _ m hm => by rw [hmsg] at hm; cases hm⟩
 
-/-- **A node's bootstrap event, as the bootstrap law takes it** (`TraceEv.OkBoot` at its
-configuration's size): its numbers, and its log below `2^40` (raft's bootstrap log: the voters'
-configuration entries). -/
-theorem nodeEvOf_okBoot (evt id : w64) (s : NState) (c : CfgM) (e : TraceEv)
+/-- **A node's bootstrap event, as the bootstrap law takes it** (`TraceEv.OkBoot n`, `n` at least its
+configuration's size: during the bootstrap raft's configuration grows to the voters'): its numbers,
+and its log below `2^40` (`Etcdraft.bootLogBound`; raft's bootstrap log is the voters' configuration
+entries). -/
+theorem nodeEvOf_okBoot (evt id : w64) (s : NState) (c : CfgM) (e : TraceEv) (n : Nat)
     (h : NodeEvOf evt id s c e) (ht : uint.nat s.term < traceNumBound)
     (hc : uint.nat s.logst.committed < traceNumBound)
     (hl : uint.nat (plastIndex (toPState s)) < traceNumBound)
-    (hlb : uint.nat (plastIndex (toPState s)) < 2 ^ 40) : e.OkBoot (elements c.incoming).length := by
+    (hlb : uint.nat (plastIndex (toPState s)) < 2 ^ 40) (hn : (elements c.incoming).length ≤ n) :
+    e.OkBoot n := by
   refine ⟨nodeEvOf_ascii evt id s c e h, nodeEvOf_numsBelow evt id s c e _ h ht hc hl,
-    nodeEvOf_confsWithin evt id s c e _ h (Nat.le_refl _), ?_⟩
+    nodeEvOf_confsWithin evt id s c e _ h hn, ?_⟩
   rw [h.2.2.2.2.2.2.1]; exact hlb
+
+/-- **A bootstrap `ApplyConfChange` event, as the bootstrap law takes it** (`TraceEv.OkBoot n`): its
+numbers, its log below `2^40`, its old and new configurations within `n`. -/
+theorem ccEvOf_okBoot (id : w64) (s : NState) (c cn : CfgM) (e : TraceEv) (n : Nat)
+    (h : CCEvOf id s c cn e) (ht : uint.nat s.term < traceNumBound)
+    (hc : uint.nat s.logst.committed < traceNumBound)
+    (hl : uint.nat (plastIndex (toPState s)) < traceNumBound)
+    (hlb : uint.nat (plastIndex (toPState s)) < 2 ^ 40) (hn : (elements c.incoming).length ≤ n)
+    (hn' : (elements cn.incoming).length ≤ n) : e.OkBoot n := by
+  have ha := ccEvOf_ascii id s c cn e h
+  obtain ⟨-, -, hterm, -, hcommit, -, hlog, ⟨xs, ys, hxs, -, hconf⟩, hmsg, -, ⟨ns, hns, hcc⟩, -, -⟩ := h
+  refine ⟨ha, ⟨by rw [hterm]; exact ht, by rw [hcommit]; exact hc, by rw [hlog]; exact hl, ?_⟩, ⟨?_, ?_⟩,
+    by rw [hlog]; exact hlb⟩
+  · intro m hm; rw [hmsg] at hm; cases hm
+  · rw [hconf]; simp only [List.length_map]; rw [hxs.length_eq]; exact hn
+  · intro c' hc'; rw [hcc] at hc'; cases hc'
+    simp only [List.length_map]; rw [hns.length_eq]; exact hn'
 
 /-- **A step-down's server** (`StepDownToFollower`, the specification's `BecomeFollowerOfTerm` at the
 server's own term). -/

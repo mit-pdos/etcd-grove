@@ -828,6 +828,14 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   replacing `notes/trace-validation-sim.md`'s `2^62 − 2`); (F4) a received message's numbers (a
   receive line's event is of the message), from raft's message facts or from a `simInv` clause on
   the bags (every message in them was logged by a send line already bounded).
+  Review round 2 (`q13-r2.md`): F1 still open (as above); F2, the bootstrap lines' capability: `trCapB`
+  takes the cluster's configuration while raft's grows from empty during `Bootstrap`, and
+  `raft.becomeFollower.traced`/`trCapB_hookGate_bf` use one `c` for both (a gap of the frozen Draft,
+  predating Q13: its `b = false` precondition is unsatisfiable at `Bootstrap`'s `becomeFollower`); the
+  amendment's part is repaired (`nodeEvOf_ok`/`nodeEvOf_okBoot` at a free bound `n`, `ccEvOf_okBoot`,
+  `TraceEv.ok_mono`/`okBoot_mono`), the routing (the capability's configuration apart from the
+  struct's) left to the bootstrap clause's work; F3 (`simInv_main` restated `newTrace`'s success)
+  repaired: the success is a hypothesis, listed as owed; F4 the interfaces, regenerated.
 - **Q12 (2026-11-09, `Main`'s pure obligations): the checker's `numBound` against the step bound.**
   `numBound = 2^40` (`etcdraft/Rep.lean`, a constant of the proof, not of the Go) bounds the trace's
   numbers (`Event.Bounded`) and its length; raft's terms, indices and event count grow with the steps,
