@@ -303,7 +303,6 @@ axiom rafthttp.netErrNotRemoved_ok
 axiom rafthttp.newStreamRoundTripper.wp_proof
 axiom rafthttp.waitSchedule.wp_proof
 axiom raftpb.ConfChangeType.String.wp_proof
-axiom raftpb.MessageType.String.wp_proof
 axiom rand.Int63n.wp_proof
 axiom rate.Every.wp_proof
 axiom rate.Limiter.Wait.wp_proof
@@ -344,6 +343,7 @@ axiom storage.OpenBackend.wp_proof
 axiom storage.storage.Release.wp_proof
 axiom strconv.FormatBool.wp_proof
 axiom strconv.FormatUint.wp_proof
+axiom strconv.Itoa.wp_proof
 axiom streamKeyFromCtx.wp_proof
 axiom streamKeyOf_none
 axiom streamKeyOf_single

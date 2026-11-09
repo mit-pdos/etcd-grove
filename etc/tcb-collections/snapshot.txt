@@ -144,7 +144,6 @@ axiom proto.UnmarshalPb.wp_proof
 axiom rafthttp.addPeerToProber.wp_proof
 axiom rafthttp.waitSchedule.wp_proof
 axiom raftpb.ConfChangeType.String.wp_proof
-axiom raftpb.MessageType.String.wp_proof
 axiom rate.Limiter.Wait.wp_proof
 axiom rate.NewLimiter.wp_proof
 axiom schema.MustUnsafeGetAllLeases.wp_proof
@@ -169,6 +168,7 @@ axiom storage.NewBackendQuota.wp_proof
 axiom storage.OpenBackend.wp_proof
 axiom storage.storage.Release.wp_proof
 axiom strconv.FormatUint.wp_proof
+axiom strconv.Itoa.wp_proof
 axiom strings.TrimSuffix.wp_proof
 axiom time.Duration.Seconds.wp_proof
 axiom time.Time.Unix.wp_proof
