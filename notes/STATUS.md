@@ -45,7 +45,13 @@ found: the exactness the simulation needs (refusals, commit, heartbeats) comes f
 the hooks, not from `StepR` (which cannot state a refusal's: `toPState` hides a pre-candidate's
 leader); S5's Draft begun: the hook paths (the call graph), the trace mode in the node's ghost state
 (`NGhost.tr`; Q8, taken pending the user's veto), the capability `trCap` and the traced statements
-of the `Commit` path (`TracedHooksDraft.lean`).
+of the `Commit` path (`TracedHooksDraft.lean`). Then the global steps (pure, proved): a run over the prefix's
+parsed lines extends by a line with one successor or a chain of single successors (trace
+congruences, bootstrap flags stable under appending, formatted ids parsed back); every node line's,
+every send line's and the vote and append-response receive lines' steps; the append request's rounds
+(truncation, append, last); the invariants as facts giving `violated = none` (`TraceSim*.lean`).
+Open: the append request's chain assembled, `UpdateTerm` rounds, `BecomeFollower` lines, the
+invariants and message uniqueness from raft's ghost state, the traced Iris specs (Draft), S6, S7.
 
 ## Soundness bugs: `grpc.serve`'s handler pool and `pbEnc` across heaps (found 2026-11-07; fixed by the per-type stage, not started)
 
