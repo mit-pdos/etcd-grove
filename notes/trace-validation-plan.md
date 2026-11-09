@@ -541,7 +541,11 @@ the lines' phase steps and `FxPresUT`; the self-acknowledgement needs the send l
 `trCap_fire_any`, `appendEntry` an induction over `TraceFireN`) and their traced caller (`raft.Step`'s
 win and `MsgProp` arms); the `MsgApp` gate's facts lack P5's "the whole suffix from `Next`"
 (`simRun_msgApp`'s `hents`, `hmatch`), to add with that lemma. Callers above stay on the untraced
-instances (`stepLeader`'s helpers, `stepCandidate`, `switchToConfig`).
+instances (`stepLeader`'s helpers, `stepCandidate`, `switchToConfig`). Checked (`trace-check` at
+`86bb19e789`, merged): full `lake build` green (13781 jobs); `etc/tcb-report.py --check` (806 axioms, 4
+`sorry`s, unchanged) and all 53 collections `--reuse --check`, none updated; `interface/` differs in the
+seven gated specs' proof files and `traceEvent.txt` (the helper moved out); `etc/api-check.py` 0 errors;
+`--layout` 0 new (`traceEvent`'s fixed); `etc/gen-link.py --raft` unchanged.
 
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
