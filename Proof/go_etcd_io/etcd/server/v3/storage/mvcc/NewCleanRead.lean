@@ -10,6 +10,13 @@ there is the triple's postcondition, not a WP), and nothing of the backend relat
 state to the deleted entries `dlsOwn` (whose other half is only the batch lock's, `fkHalf`). The
 missing backend fact is `rtHeldDlsLaw` below; over it the lemma is proved
 (`keyCleanRead_of_backendD`), with no use of the registration.
+
+**Probe's verdict (2026-11-09, `notes/mvccfull-probe-r1.md`):** `rtHeldDlsLaw` is true of the Go code
+but not provable over today's backend (nothing ties a reader's missing entries to `γ.dls`, whose two
+halves are the client's and the batch lock's); a strengthening is prototyped in
+`backend/RtHeldDls.lean` (`rtHeldDlsLawM_of`). Recommended instead: no backend change, the
+registration fixed after `restore()`'s read (`store.Restore`'s pattern, the session over
+`isKeyBackendG_of_backendC`'s registration-free contract), with `keyCleanRead_of_backendC` as is.
 -/
 module
 
