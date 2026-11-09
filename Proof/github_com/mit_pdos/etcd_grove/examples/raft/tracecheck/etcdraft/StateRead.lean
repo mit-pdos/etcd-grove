@@ -111,10 +111,6 @@ theorem id_eq_iff (x y : w64) : x = y ↔ uint.nat x = uint.nat y :=
 theorem int_eq_iff (a b : w64) : a = b ↔ sint.Z a = sint.Z b :=
   ⟨fun h => h ▸ rfl, fun h => BitVec.toInt_inj.1 h⟩
 
-/-- The role constant `Leader`. -/
-theorem strRel_leader [GooseExts] : strRel (go!"StateLeader") leader := by
-  unfold strRel leader; decide
-
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
