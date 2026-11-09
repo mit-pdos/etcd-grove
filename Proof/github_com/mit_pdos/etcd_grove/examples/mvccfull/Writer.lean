@@ -708,7 +708,18 @@ theorem inc_census (hCR : mvcc.api.mvccClosed_rest.law (GF := GF)) (γk : MvccNa
     mvccBackend γk 1 (etcdStorage bk) iprop(True) ∗ backend.bOpen bk.γB 1 ∗
       □ backend.isBackend bk.γB bk.P (mvccW bk.gx) iprop(True) bk.be ∗
       □ backend.isStopChans bk.γB bk.P (mvccW bk.gx) iprop(True) bk.be ∗ backend.bFile bk.γB path := by
-  sorry
+  iintro ⟨Hcl, Hrd, Hmb, Hbk⟩
+  iunfold bkKeep at Hbk
+  icases Hbk with ⟨%HP, #Hisb, #Hsc, Hbf, Hoh, HRT, -, Hcen⟩
+  imod hCR γk 1 _ _ $$ [Hcl Hrd Hmb] with ⟨Hrest, Hmb⟩
+  · iframe
+  iunfold apply.bkRT at HRT
+  icases HRT with ⟨-, Hor⟩
+  iunfold bkCensus at Hcen
+  imod Hcen $$ Hor Hoh Hrest with Hone
+  imodintro
+  iframe
+  iframe #
 
 /-- **Close, the image** (step 2, after `backend.Close` at the data `D`): the retired store's state
 `σ` (nothing pending) is what `D` holds (`mvccImage_stop.law`), and `D`'s lease bucket is the
@@ -722,7 +733,37 @@ theorem inc_stop_image (hstop : mvccImage_stop.law (GF := GF)) (kv : GoInterface
       backend.bStopView bk.γB bk.P (mvccW bk.gx) iprop(True) D ∗ mvccState γk σ ∗
       backend.rbPart bk.γB (· = leaseName) r ={⊤}=∗
     ∃ u : Bool, mvccImage D σ.log σ.crev u ∗ ⌜leaseRecsOk (backend.rbData bk.P D) L⌝ := by
-  sorry
+  iintro ⟨Hkv, Hmb, Hsv, Hσ, Hrb⟩
+  -- the lease bucket: the writer's part against the stopped lock's `rbOwn`
+  ihave %Hag : ⌜(r.lookup leaseName) = (backend.rbData bk.P D).lookup leaseName⌝ $$ [Hsv Hrb]
+  · iunfold backend.bStopView at Hsv
+    icases Hsv with ⟨-, -, -, -, Hown, -⟩
+    iunfold backend.rbOwn at Hown
+    icases backend.rbPart_agree bk.γB (· = leaseName) (fun _ => True) r _ $$ [$Hrb $Hown]
+      with ⟨-, -, %Ha⟩
+    ipureintro; exact Ha leaseName rfl trivial
+  imod hstop kv γk bk iprop(True) D (fun σ' => iprop(⌜σ' = σ⌝)) $$ [Hkv Hmb Hsv Hσ]
+    with ⟨-, -, %σ', %u, %Hσ', Himg⟩
+  · iframe Hmb Hsv Hkv
+    iauintro
+    unfold atomic_acc
+    iapply fupd_mask_intro (show (∅ : CoPset) ⊆ ⊤ \ ↑mvccN from Std.LawfulSet.empty_subset)
+    iintro Hclose
+    isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+    iexists σ
+    iframe Hσ
+    isplitr
+    · ipureintro; exact hσ
+    isplit
+    · iintro ⟨Hσ, -⟩; imod Hclose with -; imodintro; iexact Hσ
+    · iintro -; imod Hclose with -; imodintro; ipureintro; rfl
+  subst Hσ'
+  imodintro
+  iexists u
+  iframe Himg
+  ipureintro
+  obtain ⟨recs, h1, h2, h3⟩ := hr
+  exact ⟨recs, by rw [← Hag]; exact h1, h2, h3⟩
 
 /-- **Reopen, the backend** (step 3, after `backend.New` on the file's data `D` at a fresh
 registration `gx` and the limit `lim`; `mvccrand.rc_open` at any image): the store's storage at the
@@ -751,7 +792,18 @@ theorem inc_alloc (ks : List GoString) (γh : HistNames) (i : Nat) (mp : Loc) (m
     (γk : MvccName) (kv : GoInterface) (σ : MvccState) (b : Bnd) (Hl : List HRev) :
     isMvcc (GF := GF) kv γk ∗ mvccState γk σ ∗ memberCarry ks γh mp m σ b Hl ={⊤}=∗
     ∃ ι : IncNames, ⌜ι.kv = γk⌝ ∗ isInc ks γh i mp m ι kv ∗ ghostVar ι.ret 1 () := by
-  sorry
+  iintro ⟨Hkv, Hσ, Hcarry⟩
+  imod ghostVar_alloc (GF := GF) () with ⟨%γr, Hret⟩
+  imod inv_alloc (memberN i) ⊤ (memberInv (GF := GF) ks γh mp m ⟨γk, γr⟩) $$ [Hσ Hcarry] with #Hinv
+  · inext; iunfold memberInv; ileft
+    iapply (memberState_split ks γh mp m γk).2
+    iexists σ, b, Hl; iframe
+  imodintro
+  iexists ⟨γk, γr⟩
+  iframe Hret
+  isplitr
+  · ipureintro; rfl
+  iunfold isInc; iframe; iframe #
 
 end chain
 
