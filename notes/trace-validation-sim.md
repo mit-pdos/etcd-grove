@@ -163,6 +163,15 @@ corrected `etcdraft.tla`"). What changes below, the rest standing:
   specification's message must equal it, so `HeartbeatOk` must be exact too (known in
   `sendHeartbeat`). `sendApps`'s `ReplOk`/`AppCommitEq` already fix a `MsgApp`'s fields
   (`appendEntries_send`).
+  **`rejectVote` cannot be made exact on `StepR` (found 2026-11-09, trying it):** `toPState`
+  abstracts a pre-candidate's leader to 0 (`Defs.lean`, `toPState`), while raft's `canVote` reads
+  the real `r.lead`; a pre-candidate with a leader and no vote refuses a vote request that
+  `PCanVote (toPState s)` allows, so the premise `¬(PCanVote ∧ isUpToDate)` would be false there and
+  the branch proof (`MsgVote_eq_novote`'s `lead ≠ None` case) could not supply it. The exactness is
+  the traced proofs' instead: pre-vote is off in a traced cluster (`TracedConfigOk`), so no node is
+  a pre-candidate and the vote branches' code facts (`canVote`, `isUpToDate`) give it where the
+  simulation's obligation is discharged. `commit` and `beat` have no such abstraction gap (leader
+  only, `matched` exact): they are made exact on `StepC`/`StepCF`/`StepR`.
 
 ## What the statement needs
 
