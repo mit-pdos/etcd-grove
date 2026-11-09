@@ -252,6 +252,167 @@ theorem goodImg_init {img : List w8} (h16 : 4 * 4096 ≤ img.length) (hl : img.l
       · omega
 
 
+/-! ## init, before its first sync -/
+
+/-- Meta slot `i` of the image of a file that holds the slot whole is its raw slot. -/
+theorem fileMeta_contents {f : OsFile} {i : Nat} (h : 4096 * i + 80 ≤ f.size) :
+    fileMeta f.contents i = decode (rawSlot f i) := by
+  rw [fileMeta_slot]; congr 1
+  apply List.ext_getElem?; intro k
+  by_cases hk : k < 64
+  · rw [metaSlot_getElem? _ _ _ hk, contents_getElem?, if_pos (by omega), rawAt_def]
+    simp only [rawSlot, List.getElem?_map, List.getElem?_range hk, Option.map_some]
+    rw [show (4096 * i + 16 + k) / 512 = 8 * i by omega,
+      show (4096 * i + 16 + k) % 512 = 16 + k by omega]
+  · rw [List.getElem?_eq_none (by rw [metaSlot_length, contents_length]; omega),
+      List.getElem?_eq_none (by simp [rawSlot]; omega)]
+
+/-- Sixty-four zero bytes are no valid meta. -/
+theorem zeros_invalid {L : List w8} (hl : L.length = 64) (h : ∀ k < 64, L[k]? = some 0) :
+    ¬ metaValid (decode L : Meta) := by
+  have : L = List.replicate 64 0 := List.ext_getElem? fun k => by
+    by_cases hk : k < 64
+    · rw [h k hk, List.getElem?_replicate, if_pos hk]
+    · rw [List.getElem?_eq_none (by omega), List.getElem?_eq_none (by simp; omega)]
+  rw [this]; exact zeroSlot_invalid
+
+/-- A slot of the bytes `durSlot` knows satisfies its predicate, if valid. -/
+theorem durSlot_list {m : OsMeta} {i : Nat} {P : Meta → Prop} (hd : durSlot m i P) {L : List w8}
+    (hl : L.length = 64) (hL : ∀ k < 64, ∀ d, m.DurAt (4096 * i + 16 + k) d → L[k]? = some d) :
+    metaValid (decode L : Meta) → P (decode L) := by
+  obtain ⟨B, hB, hP⟩ := hd
+  have e : decode L = fileMeta B i := by
+    rw [fileMeta_slot]; congr 1
+    apply List.ext_getElem?; intro k
+    by_cases hk : k < 64
+    · obtain ⟨b, h1, h2⟩ := hB k hk
+      rw [hL k hk b (.inl h2), metaSlot_getElem? _ _ _ hk, h1]
+    · rw [List.getElem?_eq_none (by omega),
+        List.getElem?_eq_none (by rw [metaSlot_length]; omega)]
+  rw [e]; exact hP
+
+/-- The file as `Open` hands it to `init`: its size and crash bounds at most 1 GiB, one version of
+each sector known, fresh sectors known from at most its last page on (and from at least its end),
+and the meta slot of every page that holds a byte of it invalid on disk, as `m.dur` knows it. -/
+structure initIdle (m : OsMeta) (bs : List (w8 × Bool)) : Prop where
+  len : bs.length = m.size
+  hi : m.hi ≤ 2 ^ 30
+  vk : m.vk = some []
+  fr : ∃ p, m.fr = some p ∧ m.size ≤ p ∧ p ≤ pageUp m.size
+  dur : ∀ j < 2, 4096 * j < m.size → durSlot m j (fun _ => False)
+
+/-- A state of `init`'s first write (`F` at 0, zero over the meta pages) from `m0`, `nn` bytes of
+it written: what a crash of it needs. -/
+structure initW1St (m0 : OsMeta) (F : List w8) (nn : Nat) (m : OsMeta) (bs : List (w8 × Bool)) :
+    Prop where
+  len : bs.length = m.size
+  nnle : nn ≤ 16384
+  size : m.size = max m0.size nn
+  bytes : ∀ b < nn, (bs[b]?).map Prod.fst = some (F.getD b 0)
+  dur : m.dur = m0.dur
+  dz : m.dz = m0.dz
+  fr : m.fr = m0.fr
+  vk : ∃ ns, m.vk = some ns ∧ ∀ j < 2, 8 * j ∈ ns → 4096 * j + 512 ≤ nn
+  hi : m.hi ≤ max m0.hi 16384
+  cut : nn = 16384 ∨ nn % 4096 = 0
+
+theorem initW1St.notOk {m0 : OsMeta} {F : List w8} {nn : Nat} {m : OsMeta} {bs : List (w8 × Bool)}
+    (h : initW1St m0 F nn m bs) : initW1St m0 F nn { m with ok := false } bs :=
+  ⟨h.len, h.nnle, h.size, h.bytes, h.dur, h.dz, h.fr, h.vk, h.hi, h.cut⟩
+
+/-- The page `pageUp x` is at most a page boundary at or past `x`. -/
+theorem pageUp_le {x q : Nat} (h : x ≤ 4096 * q) : pageUp x ≤ 4096 * q := by
+  unfold pageUp; omega
+
+/-- **Every meta slot a crash of a state of `init`'s first write may leave is invalid** (under a
+size that reaches its page): on disk, as `initIdle` knows it, unless the page is fresh; else
+the write's zeros. -/
+theorem initW1_dead {m0 : OsMeta} {xs : List (w8 × Bool)} {F : List w8} {nn : Nat} {s : CSt}
+    (h0 : initIdle m0 xs) (hF : F.length = 16384) (hFz : ∀ k < 8192, F.getD k 0 = 0)
+    (h : initW1St m0 F nn s.m s.bs)
+    (hb : s.busy = .idle ∨ ∃ t, s.busy = .write t nn (F.drop nn)) :
+    ∀ j < 2, ∀ sz L, 4096 * j < sz → slotCand s sz j L → ¬ metaValid (decode L : Meta) := by
+  intro j hj sz L hs hc
+  obtain ⟨p, hp, hSp, hpS⟩ := h0.fr
+  have hfr : s.m.fr = some p := by rw [h.fr]; exact hp
+  obtain ⟨hlen, hc⟩ := hc
+  have hz : ∀ b, b < nn → b < 8192 → bsB s b = 0 := by
+    intro b hb1 hb2
+    have := h.bytes b hb1
+    unfold bsB
+    cases hx : s.bs[b]? with
+    | none => rw [hx] at this; cases this
+    | some x =>
+      rw [hx] at this; simp only [Option.map_some, Option.some.injEq] at this
+      rw [List.getD_eq_getElem?_getD, hx]; simp only [Option.getD_some]
+      rw [this, hFz b hb2]
+  rcases hc with ⟨hfc, hL⟩ | ⟨⟨ns, hns, hmem⟩, hL⟩ |
+      ⟨t, off, data, k', hbz, hk0, hkl, hhit, hcut, hL⟩ | ⟨⟨t, sz', hbz⟩, hL⟩
+  · -- the durable copy: the page holds a byte of the file, else it is fresh and covered
+    by_cases hS : 4096 * j < m0.size
+    · exact fun hv => durSlot_list (h0.dur j hj hS) hlen (fun k hk d hd => hL k hk d (by
+        unfold OsMeta.DurAt at hd ⊢; rw [h.dur, h.dz]; exact hd)) hv
+    · exact absurd ⟨by omega, ⟨p, hfr, by have := pageUp_le (q := j) (by omega : m0.size ≤ 4096 * j); omega⟩,
+        by omega⟩ hfc
+  · -- the page cache's, of a sector the write met: its zeros
+    obtain ⟨ns', hns', hbd⟩ := h.vk
+    rw [hns'] at hns; cases hns
+    have hb := hbd j hj hmem
+    refine zeros_invalid hlen fun k hk => ?_
+    rw [hL k hk (by rw [h.size]; omega), hz _ (by omega) (by omega)]
+  · -- the write in flight, landed in part: its zeros, or the page cache's
+    rcases hb with hb | ⟨t', hb⟩
+    · rw [hb] at hbz; cases hbz
+    rw [hb] at hbz; cases hbz
+    refine zeros_invalid hlen fun k hk => ?_
+    rw [hL k hk]
+    unfold landB
+    split
+    · rename_i hin
+      rw [List.getD_eq_getElem?_getD, List.getElem?_drop, ← List.getD_eq_getElem?_getD,
+        show nn + (4096 * j + 16 + k - nn) = 4096 * j + 16 + k by omega, hFz _ (by omega)]
+    · rename_i hout
+      split
+      · rename_i hsz
+        by_cases hlt : 4096 * j + 16 + k < nn
+        · rw [hz _ hlt (by omega)]
+        · exfalso
+          rcases hcut with ⟨-, hpc⟩ | ⟨-, ⟨p', hp', hp'j⟩, -⟩
+          · simp only [secHits, Bool.and_eq_true, decide_eq_true_eq] at hhit
+            simp only [List.length_drop] at hpc hkl
+            have := h.nnle
+            rcases hpc with h1 | h1 | h1
+            · omega
+            · omega
+            · omega
+          · rw [hfr] at hp'; cases hp'
+            rw [h.size] at hsz
+            omega
+      · rfl
+  · rcases hb with hb | ⟨t', hb⟩ <;> rw [hb] at hbz <;> cases hbz
+
+/-- **Good from dead slots**: every crash of a state at most 1 GiB since the last sync, whose
+`OsMeta` knows its versions and fresh sectors, is `Good` if every meta slot a crash may leave
+under a size that reaches its page (`slotCand`) is invalid. -/
+theorem fileOkS_slotsDead {i : Ino} (s : CSt) (hwf : s.Wf) (hbz : BusyOk s)
+    (hvk : ∃ ns, s.m.vk = some ns) (hfr : ∃ p, s.m.fr = some p) (hhi : s.vmeta.hi ≤ 2 ^ 30)
+    (hd : ∀ j < 2, ∀ sz L, 4096 * j < sz → slotCand s sz j L → ¬ metaValid (decode L : Meta)) :
+    FileOkS NoTearCrash Good i s := by
+  refine fileOkS_crashRaw s hwf hbz fun f hI hR => ?_
+  have hraw : ∀ j < 2, 4096 * j < f.size → ¬ metaValid (decode (rawSlot f j) : Meta) :=
+    fun j hj hs => hd j hj _ _ hs (hR.2 hvk j hj)
+  have hl : f.contents.length ≤ 2 ^ 30 := by have := hI.2.1; omega
+  have hl' := hl
+  rw [contents_length] at hl'
+  refine ⟨⟨hl, ?_⟩, fun _ => ⟨hR.1 hfr, hraw⟩⟩
+  by_cases h4 : f.size < 4 * 4096
+  · exact .inl ⟨by rw [contents_length]; exact h4, fun j hj hs => by
+      rw [contents_length] at hs; rw [fileMeta_contents hs]; exact hraw j hj (by omega)⟩
+  · refine .inr (.inl ⟨by rw [contents_length]; omega, ?_, ?_⟩) <;> simp only [imgMetas] <;>
+      rw [fileMeta_take _ _ _ (by omega), fileMeta_contents (by omega)]
+    · exact hraw 0 (by omega) (by omega)
+    · exact hraw 1 (by omega) (by omega)
+
 /-! ## commit -/
 
 /-- What a commit's crash images need of the state while the metas and the current root page are
@@ -456,7 +617,7 @@ include hwf
 /-- A commit's idle states before the meta write. -/
 theorem commitClean_okS (hb : s.busy = .idle) (h : commitClean s.m s.bs) :
     FileOkS NoTearCrash Good i s :=
-  fileOkS_crashImg s hwf (by unfold BusyOk; rw [hb]; trivial) fun img hI =>
+  fileOkS_crashImg s hwf (by unfold BusyOk; rw [hb]; trivial) h.lo fun img hI =>
     commit_clean_img h (crashImg_lo hI)
       (by have h1 := hI.2.1; have h2 := h.hi; unfold CSt.vmeta at h1; rw [hb] at h1; dsimp only at h1; omega)
       (fun k b hb' _ => crashImg_clean hI hb' (CSt.taken_out _ _ fun _ _ _ h => by rw [hb] at h; cases h))
@@ -469,7 +630,7 @@ theorem commitClean_write_okS {t off : Nat} {data : List w8} (hb : s.busy = .wri
         k < 4096 * curRoot ((s.bs.map Prod.fst).take 8192) + 4096)) →
       k < cfLo s.m off ∨ cfHi s.m off data.length ≤ k) :
     FileOkS NoTearCrash Good i s :=
-  fileOkS_crashImg s hwf (by unfold BusyOk; rw [hb]; exact hoff) fun img hI =>
+  fileOkS_crashImg s hwf (by unfold BusyOk; rw [hb]; exact hoff) h.lo fun img hI =>
     commit_clean_img h (crashImg_lo hI)
       (by have h1 := hI.2.1; have h2 := h.hi; unfold CSt.vmeta at h1; rw [hb] at h1
           simp only [pwMeta] at h1; omega)
@@ -479,7 +640,7 @@ theorem commitClean_write_okS {t off : Nat} {data : List w8} (hb : s.busy = .wri
 /-- A commit's growing truncate in flight. -/
 theorem commitClean_trunc_okS {t sz : Nat} (hb : s.busy = .trunc t sz) (h : commitClean s.m s.bs)
     (hsz : sz ≤ 2 ^ 30) : FileOkS NoTearCrash Good i s :=
-  fileOkS_crashImg s hwf (by unfold BusyOk; rw [hb]; trivial) fun img hI =>
+  fileOkS_crashImg s hwf (by unfold BusyOk; rw [hb]; trivial) h.lo fun img hI =>
     commit_clean_img h (crashImg_lo hI)
       (by have h1 := hI.2.1; have h2 := h.hi; unfold CSt.vmeta at h1; rw [hb] at h1
           simp only [ftMeta] at h1; omega)
@@ -499,7 +660,7 @@ theorem commitMetaW_okS {t sl : Nat} {data : List w8} {mp : List w8} {N : Meta}
     FileOkS NoTearCrash Good i s := by
   have hs2 := h.s2
   have hNR := h.nRoot
-  refine fileOkS_crashImg s hwf (by unfold BusyOk; rw [hb]; omega) fun img hI => ?_
+  refine fileOkS_crashImg s hwf (by unfold BusyOk; rw [hb]; omega) h.lo fun img hI => ?_
   have hlo := crashImg_lo hI
   have hlo4 := h.lo
   refine commitMeta_good h hlo
@@ -521,7 +682,7 @@ theorem commitMetaIdle_okS {mp : List w8} {N : Meta} {sl : Nat} (hb : s.busy = .
     (hc : cacheSlot s.bs (1 - sl) (fun X => X = fileMeta mp (1 - sl) ∨ X = N)) :
     FileOkS NoTearCrash Good i s := by
   have hs2 := h.s2
-  refine fileOkS_crashImg s hwf (by unfold BusyOk; rw [hb]; trivial) fun img hI => ?_
+  refine fileOkS_crashImg s hwf (by unfold BusyOk; rw [hb]; trivial) h.lo fun img hI => ?_
   have hlo := crashImg_lo hI
   have hlo4 := h.lo
   refine commitMeta_good h hlo

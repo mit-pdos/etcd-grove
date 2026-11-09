@@ -190,12 +190,12 @@ end rel
 
 open Classical in
 /-- The ghost `OsMeta` of a file of a new generation: its sizes and crash bounds, whether no sector
-is lost, its known durable bytes (those of the oldest version of each sector), no mapping, and no
-claim of zeros past the size. -/
+is lost, its known durable bytes (those of the oldest version of each sector, through the end of
+the last page), no mapping, and no claim of zeros past the size. -/
 def metaOf (f : OsFile) : OsMeta :=
   ⟨f.size, f.sizeLo, f.sizeHi,
     decide (∀ n, (f.secs n).dirty = false → (f.secs n).vers.length ≤ 1), ∅,
-    (List.range f.size).map (fun b =>
+    (List.range (pageUp f.size)).map (fun b =>
       some ((((f.secs (b / 512)).vers.head?).getD zeroSec).toList.getD (b % 512) 0)),
     frOf f, if ∀ n, (f.secs n).vers.length ≤ 1 then some [] else none, none⟩
 
@@ -219,10 +219,6 @@ theorem metaOf_ofDisk (vs : Nat → SecBytes) (sz : Nat) (kp : Bool) :
   unfold metaOf initMeta
   congr 1
   · simp [OsFile.ofDisk]
-  · simp only [OsFile.contents, List.map_map]
-    apply List.map_congr_left
-    intro b _
-    simp [OsFile.rawAt, OsFile.ofDisk, Sector.last]
   · rw [if_pos (fun n => by simp [OsFile.ofDisk])]
 
 open Classical in
@@ -296,7 +292,7 @@ theorem osCohG {st : OsState} (hp : st.proc = ProcState.empty) (hwf : OsWf st)
       · intro t c ht; simp [hp, ProcState.empty] at ht
       · intro b d hb v hv
         simp only [metaOf, List.getElem?_map] at hb
-        by_cases hbs : b < f.size
+        by_cases hbs : b < pageUp f.size
         · rw [List.getElem?_range hbs] at hb
           simp only [Option.map_some, Option.some.injEq] at hb
           rw [hv] at hb; simpa using hb

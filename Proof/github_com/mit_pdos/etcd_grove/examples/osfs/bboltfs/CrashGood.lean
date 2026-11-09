@@ -5,7 +5,10 @@ checks accept them.
 A crash image `img` of the database file is `Good` (`goodImg`) if it is at most 1 GiB and:
 * **short** (fewer than four pages), with no valid meta in a slot it holds whole: `Open` redoes
   `init`. The slot condition makes the property inductive: `init` writes over a short file, and
-  a valid slot it left in place would survive its writes;
+  a valid slot it left in place would survive its writes. A slot past the end counts too, as the
+  sectors hold it (`RawOk`): a crash during `init` may grow the file over a sector of the page that
+  held its end without the sector's new bytes (ext4 orders only new blocks, `Impl.lean`, "Ordered
+  growth"), and no meta may then appear there;
 * **uninitialized** (four pages or more, neither meta valid): `Open` redoes `init`;
 * **committed**: the meta pages are an open database's (`metaPagesOk`), the high water mark is
   inside the file, and the current meta's root page holds what `BootMinibolt` checks of it
@@ -64,10 +67,22 @@ def goodImg (img : List w8) : Prop :=
         (pageVal ((img.drop (4096 * curRoot (imgMetas img))).take 4096)) ∧
       curInSlot (imgMetas img) ∧ txOk (imgMetas img)))
 
-/-- **minibolt's crash invariant**: the database file is absent, or a `Good` image. -/
+/-- The 64 bytes of meta slot `i` as sector `8 i` of `f` holds them, past the size included. -/
+def rawSlot (f : OsFile) (i : Nat) : List w8 :=
+  (List.range 64).map fun k => (f.secs (8 * i)).last.toList.getD (16 + k) 0
+
+/-- A file shorter than four pages has no `FALLOC_FL_KEEP_SIZE` blocks (`OsFile.kept`), and no
+valid meta in a slot whose page holds a byte of it, as its sectors hold the slot (past the size
+included: a crash that grows the file over the slot may keep those bytes, `CovCand`). -/
+def RawOk (f : OsFile) : Prop :=
+  f.size < 4 * 4096 → f.kept = false ∧
+    ∀ i < 2, 4096 * i < f.size → ¬ metaValid (decode (rawSlot f i) : Meta)
+
+/-- **minibolt's crash invariant**: the database file is absent, or a `Good` image whose meta slots
+past its end, if it is short, are not valid (`RawOk`: `init` grows the file over them). -/
 def Good : Option OsFile → Prop
   | none => True
-  | some f => goodImg f.contents
+  | some f => goodImg f.contents ∧ RawOk f
 
 theorem goodImg_fileOk (img : List w8) (h : goodImg img) :
     fileOk (img.map (·, true)) := by

@@ -141,4 +141,50 @@ theorem WReach.noTear_vk {m : OsMeta} {bs : List (w8 × Bool)} {off : Nat} {data
       simp only [Bool.and_eq_true, decide_eq_true_eq] at hm hn
       omega
 
+/-- A retried write keeps what the `OsMeta` knows of the durable bytes, `ok`, the mappings and the
+lower size bound. -/
+theorem WReach.meta_keep {C : Nat → Nat → Nat → w64 → Prop} {m : OsMeta} {bs : List (w8 × Bool)}
+    {off : Nat} {data : List w8} {nn : Nat} {m' : OsMeta} {bs' : List (w8 × Bool)}
+    (h : WReach C m bs off data nn m' bs') :
+    m'.dur = m.dur ∧ m'.dz = m.dz ∧ m'.ok = m.ok ∧ m'.maps = m.maps ∧ m'.lo = m.lo := by
+  induction h with
+  | refl => exact ⟨rfl, rfl, rfl, rfl, rfl⟩
+  | step k nn' e _ _ _ _ _ ih => simpa [finMeta, pwPost, pwMeta] using ih
+
+/-- **A page-aligned write of whole pages keeps the fresh sectors known**: each attempt ends on a
+page boundary, or inside the file. -/
+theorem WReach.fr_keep {m : OsMeta} {bs : List (w8 × Bool)} {off : Nat} {data : List w8}
+    {nn : Nat} {m' : OsMeta} {bs' : List (w8 × Bool)}
+    (h : WReach NoTearCut m bs off data nn m' bs')
+    (ha : off % 4096 = 0) (hd : data.length % 4096 = 0) (h64 : data.length < 2 ^ 64) :
+    m'.fr = m.fr := by
+  induction h with
+  | refl => rfl
+  | @step nn m1 bs1 k nn' e hR hnn hk hck hnn' ih =>
+    have hdl : (data.drop nn).length = data.length - nn := List.length_drop
+    obtain ⟨⟨-, hpc⟩, -⟩ := hck (by rw [hdl]; omega)
+    show (pwPost m1 (off + nn) (data.drop nn).length k).fr = m.fr
+    rw [← ih]
+    simp only [pwPost, pwFr]
+    split
+    · rfl
+    · rename_i hk0
+      unfold frChange
+      cases hf : m1.fr with
+      | none => rfl
+      | some p =>
+        simp only [Option.map_some, Option.some.injEq]
+        rw [if_pos]
+        rw [hdl] at hpc
+        by_cases hL : off + nn + k ≤ m1.size
+        · left; omega
+        · right
+          refine ⟨.inr (by omega), ?_⟩
+          have hal : (off + nn + k) % 4096 = 0 := by
+            rcases hpc with h0 | h0 | h0
+            · omega
+            · rw [h0]; omega
+            · omega
+          unfold pageUp; omega
+
 end Perennial

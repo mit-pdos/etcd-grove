@@ -152,7 +152,7 @@ theorem osCoh_create {Γb Γm Γf Γt} (hwf : OsWf st) (hcoh : OsCoh st Γb Γm 
       refine ⟨newFile, by rw [files_setFile, if_pos rfl], ⟨rfl, Nat.le_refl _, Nat.le_refl _,
         fun _ k _ => by simp [newFile, OsFile.ofBytes, OsFile.ofDisk], fun b len => ?_,
         fun t c ht hc => absurd hc (hnt t c ht), fun i d h => by
-          simp [newMeta, initMeta, newFile, OsFile.ofBytes, OsFile.ofDisk, OsFile.contents] at h,
+          simp [newMeta, initMeta, newFile, OsFile.ofBytes, OsFile.ofDisk, OsFile.contents, pageUp] at h,
         by rw [newMeta_fr]; exact frOk_newFile, fun ns hns k => by
           simp only [newMeta, initMeta, Option.some.injEq] at hns; subst hns
           simp [newFile, OsFile.ofBytes, OsFile.ofDisk], newMeta_dz⟩⟩

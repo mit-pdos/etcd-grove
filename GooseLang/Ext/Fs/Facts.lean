@@ -482,10 +482,11 @@ theorem resized_drop (f : OsFile) (sz : Nat) :
     omega
 
 /-- What `fr` known of a file of size `S` after a change of the bytes `[lo, hi)` to the size `L`: as
-it was if the file does not grow or the change covers every sector from it to `L`'s last page, else
-rounded up to that page. -/
+it was if the file does not grow or the change, starting at `p` or inside the file, covers every
+sector from there to `L`'s last page (a sector it misses then lies in a page the old size reached,
+or is not reached), else rounded up to that page. -/
 def frChange (fr : Option Nat) (S lo hi L : Nat) : Option Nat :=
-  fr.map (fun p => if L ≤ S ∨ (lo ≤ p ∧ pageUp L ≤ hi) then p else max p (pageUp L))
+  fr.map (fun p => if L ≤ S ∨ ((lo ≤ p ∨ lo ≤ S) ∧ pageUp L ≤ hi) then p else max p (pageUp L))
 
 theorem pageIn_mono {a b n : Nat} (h : a ≤ b) (ha : pageIn a n = true) : pageIn b n = true := by
   simp only [pageIn, decide_eq_true_eq] at *; omega
@@ -526,10 +527,17 @@ theorem frOk_change {fr : Option Nat} {f : OsFile} (h : FrOk fr f) (c : List w8)
         · cases hL : pageIn c.length n
           · simp [hfr]
           · simp [hfr, pageIn_mono hc hL]
-        · have hpg : pageUp c.length ≤ 512 * n := by
-            simp only [secHits, Bool.and_eq_true, decide_eq_true_eq, not_and, Nat.not_lt] at hs
-            have := hs (by omega); omega
-          simp [hfr, pageIn_pageUp hpg]
+        · obtain ⟨hlo, hpu⟩ := hc
+          cases hS : pageIn f.size n
+          · have hlo' : lo ≤ 512 * n := by
+              rcases hlo with h1 | h1
+              · omega
+              · simp only [pageIn, decide_eq_false_iff_not, Nat.not_lt] at hS; omega
+            have hpg : pageUp c.length ≤ 512 * n := by
+              simp only [secHits, Bool.and_eq_true, decide_eq_true_eq, not_and, Nat.not_lt] at hs
+              have := hs (by omega); omega
+            simp [hfr, pageIn_pageUp hpg]
+          · simp [hfr]
       · simp [hfr, pageIn_pageUp (show pageUp c.length ≤ 512 * n by omega)]
 
 /-- After a change to a size at most `B`, the fresh sectors known from `B`'s last page. -/
@@ -542,7 +550,7 @@ theorem frOk_change_up {fr : Option Nat} {f : OsFile} (h : FrOk fr f) (c : List 
     simp only [Option.map_some, Option.some.injEq] at hp; subst hp
     have h1 := frOk_change h c lo hi
     have hle := pageUp_mono hB
-    by_cases hc : c.length ≤ f.size ∨ (lo ≤ p0 ∧ pageUp c.length ≤ hi)
+    by_cases hc : c.length ≤ f.size ∨ ((lo ≤ p0 ∨ lo ≤ f.size) ∧ pageUp c.length ≤ hi)
     · obtain ⟨hk, hn⟩ := h1 p0 (by simp [frChange, hc])
       exact ⟨hk, fun n hpn => hn n (by omega)⟩
     · obtain ⟨hk, hn⟩ := h1 (max p0 (pageUp c.length)) (by simp [frChange, hc])

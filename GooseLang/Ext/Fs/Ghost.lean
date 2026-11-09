@@ -734,9 +734,12 @@ theorem pageUp_mono {a b : Nat} (h : a ≤ b) : pageUp a ≤ pageUp b := by
 /-- The fresh sectors a file on disk is known to have: those past its last page, unless `kept`. -/
 def frOf (f : OsFile) : Option Nat := if f.kept then none else some (pageUp f.size)
 
-/-- The ghost `OsMeta` of a file as on disk: all of it durable. -/
+/-- The ghost `OsMeta` of a file as on disk: all of it durable, the bytes known through the end of
+its last page (those past the size are the sectors' bytes there, which a crash that grows the file
+over them may keep: `OsFile.rawAt`). -/
 def initMeta (f : OsFile) : OsMeta :=
-  ⟨f.size, f.size, f.size, true, ∅, f.contents.map some, frOf f, some [], none⟩
+  ⟨f.size, f.size, f.size, true, ∅, (List.range (pageUp f.size)).map (fun b => some (f.rawAt b)),
+    frOf f, some [], none⟩
 
 /-- A file on disk has the fresh sectors `frOf` says. -/
 theorem ofDisk_fr (vs : Nat → SecBytes) (sz : Nat) (kp : Bool) :
@@ -891,10 +894,8 @@ theorem osInit_wf_coh {st : OsState} (h : FsInit st) :
         obtain ⟨x, hx, rfl⟩ := hb
         simp only [OsFile.ofDisk, List.head?_cons, Option.some.injEq] at hv
         subst hv
-        rw [contents_getElem?] at hx
-        split at hx
-        · cases hx; rw [ofDisk_rawAt]
-        · cases hx
+        obtain ⟨-, rfl⟩ := List.getElem?_eq_some_iff.1 hx
+        rw [List.getElem_range, ofDisk_rawAt]
   · intro i b x hx
     simp only [bytesMap, GMap.lookup_mk] at hx
     cases hf : st.file i with
