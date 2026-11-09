@@ -15,6 +15,7 @@ module
 
 public import Spec.go_etcd_io.raft.v3.releasePendingReadIndexMessages
 public import Spec.go_etcd_io.raft.v3.raft__committedEntryInCurrentTerm
+public import Proof.go_etcd_io.raft.v3.TracedUntracedSend
 
 @[expose] public section
 
@@ -94,6 +95,8 @@ theorem releasePendingReadIndexMessages.wp_proof
       raft.committedEntryInCurrentTerm.spec (GF := GF) (hG := hG))
     (wp_sendMsgReadIndexResponse : sendMsgReadIndexResponse.spec (GF := GF) (hG := hG)) :
     releasePendingReadIndexMessages.spec (GF := GF) (hG := hG) := by
+  -- (Q8 stage 1, slice 6) the untraced instance (`TracedUntracedSend.lean`)
+  have wp_sendMsgReadIndexResponse := sendMsgReadIndexResponse.untraced wp_sendMsgReadIndexResponse
   intro c r id s Hlead Hterm Hcit Hpne Htr
   wp_start as Hpre
   iNamed Hpre

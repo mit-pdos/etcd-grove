@@ -12,6 +12,7 @@ public import Proof.go_etcd_io.raft.v3.TracedUntraced
 public import Spec.go_etcd_io.raft.v3.raft__maybeSendAppend
 public import Spec.go_etcd_io.raft.v3.raft__sendAppend
 public import Spec.go_etcd_io.raft.v3.raft__bcastAppend
+public import Spec.go_etcd_io.raft.v3.sendMsgReadIndexResponse
 
 @[expose] public section
 
@@ -144,6 +145,47 @@ theorem raft.bcastAppend.untraced (h : raft.bcastAppend.spec (GF := GF) (hG := h
   iapply HΦ $$ %ms %pvs
   iframe Hphys
   ipureintro; exact ⟨H1, H2⟩
+
+/-- `sendMsgReadIndexResponse.spec` at an untraced node (the statement before slice 6). -/
+abbrev sendMsgReadIndexResponse.untracedTriple : Prop :=
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
+    (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc),
+  s.role = .leader →
+  s.term ≠ W64 0 →
+  ents ≠ [] →
+  s.gh.tr = none →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+      "#Hm" ∷ msgOwn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
+    (App (App (Val #(functions sendMsgReadIndexResponse [])) (Val #r)) (Val #ml))
+  {{ (s' : NState), RET #();
+      ownRaftPhysCV c c.voters r id s' ∗ ⌜SendRIResult c id s m ents s'⌝ }}
+
+/-- `sendMsgReadIndexResponse.spec`'s untraced instance: every gate the struct's nil logger. -/
+theorem sendMsgReadIndexResponse.untraced (h : sendMsgReadIndexResponse.spec (GF := GF) (hG := hG)) :
+    sendMsgReadIndexResponse.untracedTriple (GF := GF) (hG := hG) := by
+  intro c r id s ml m ents sn ctx rs Hl Htz Hne htr
+  iintro %Φ ⟨#Hpkg, Hphys, #Hm⟩ HΦ
+  icases ownRaftPhysC_traceLogger c r id s htr $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
+  iapply h c r id s ml m ents sn ctx rs iprop(emp) Hl Htz Hne $$ [Hphys]
+  · iframe Hpkg Hphys Hm
+    isplitr
+    · iempintro
+    isplitr
+    · iintro %_ -
+      rw [htr]
+      iapply hookGateOpt_none r _ tl iprop(emp) Htlok
+      iframe Htl
+    imodintro
+    iintro %_ %to %cm %_ %_ -
+    rw [htr]
+    iapply hookGateOpt_none r _ tl iprop(emp) Htlok
+    iframe Htl
+  inext
+  iintro %s' ⟨Hphys, %H1, -⟩
+  iapply HΦ $$ %s'
+  iframe Hphys
+  ipureintro; exact H1
 
 end untraced
 

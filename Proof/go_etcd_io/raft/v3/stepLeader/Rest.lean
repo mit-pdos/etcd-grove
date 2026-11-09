@@ -1057,6 +1057,8 @@ theorem wp_stepLeader_readindex
     {{ (err : GoInterface) (s' : NState), RET #err;
         ownRaftPhysCV c c.voters r id s' ∗ ⌜err = interface.nil⌝ ∗
         ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ }} := by
+  -- (Q8 stage 1, slice 6) the untraced instance (`TracedUntracedSend.lean`)
+  have wp_sendMsgReadIndexResponse := sendMsgReadIndexResponse.untraced wp_sendMsgReadIndexResponse
   wp_start as ⟨Hphys, Hm⟩
   wp_auto
   wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hm] as Hm
