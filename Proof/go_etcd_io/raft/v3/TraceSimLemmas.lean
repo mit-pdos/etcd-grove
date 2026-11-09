@@ -2804,6 +2804,46 @@ theorem receive_staleAER (st : Etcdraft.State) (m : Etcdraft.Msg) (hsrv : st.ser
   have hsrv' : m.dest ∈ st.server := List.contains_iff_mem.1 hsrv
   simp [hsrv', hty, hut, hh, Etcdraft.somes, bind, Except.bind, pure, Except.pure]
 
+/-- **A message of a higher term** (not a pre-vote): `UpdateTerm`, the receive's one successor,
+the message kept. -/
+theorem receive_updateTerm (st : Etcdraft.State) (m : Etcdraft.Msg) (hsrv : st.server.contains m.dest = true)
+    (hty : m.type = .requestVoteRequest ∨ m.type = .requestVoteResponse ∨ m.type = .appendEntriesRequest ∨
+      m.type = .appendEntriesResponse)
+    (hterm : (st.s m.dest).currentTerm < m.term) :
+    st.receive m = .ok [st.becomeFollowerOfTerm m.dest m.term] := by
+  unfold Etcdraft.State.receive
+  have hut : st.updateTerm m.dest m.source m = some (st.becomeFollowerOfTerm m.dest m.term) := by
+    unfold Etcdraft.State.updateTerm
+    rcases hty with h | h | h | h <;> simp [h, hterm]
+  have hle : ¬ m.term ≤ (st.s m.dest).currentTerm := by omega
+  have hne : m.term ≠ (st.s m.dest).currentTerm := by omega
+  have hsrv' : m.dest ∈ st.server := List.contains_iff_mem.1 hsrv
+  rcases hty with h | h | h | h
+  · have hh : st.handleRequestVoteRequest m.dest m.source m = none := by
+      unfold Etcdraft.State.handleRequestVoteRequest; simp [hle]
+    simp [hsrv', h, hut, hh, Etcdraft.somes, pure, Except.pure]
+  · have hds : st.dropStaleResponse m.dest m.source m = none := by
+      unfold Etcdraft.State.dropStaleResponse; simp; omega
+    have hh : st.handleRequestVoteResponse m.dest m.source m = none := by
+      unfold Etcdraft.State.handleRequestVoteResponse; simp [hne]
+    simp [hsrv', h, hut, hds, hh, Etcdraft.somes, pure, Except.pure]
+  · have hh : st.handleAppendEntriesRequest m.dest m.source m = .ok [] := by
+      unfold Etcdraft.State.handleAppendEntriesRequest; simp [hle, pure, Except.pure]
+    simp [hsrv', h, hut, hh, Etcdraft.somes, bind, Except.bind, pure, Except.pure]
+  · have hds : st.dropStaleResponse m.dest m.source m = none := by
+      unfold Etcdraft.State.dropStaleResponse; simp; omega
+    have hh : st.handleAppendEntriesResponse m.dest m.source m = none := by
+      unfold Etcdraft.State.handleAppendEntriesResponse; simp [hne]
+    simp [hsrv', h, hut, hds, hh, Etcdraft.somes, pure, Except.pure]
+
+theorem becomeFollowerOfTerm_facts (st : Etcdraft.State) (i : Etcdraft.ID) (T : Int) :
+    (st.becomeFollowerOfTerm i T).server = st.server ∧ (st.becomeFollowerOfTerm i T).messages = st.messages ∧
+    ((st.becomeFollowerOfTerm i T).s i).state = Etcdraft.follower ∧
+    ((st.becomeFollowerOfTerm i T).s i).currentTerm = T ∧
+    ((st.becomeFollowerOfTerm i T).s i).commitIndex = (st.s i).commitIndex ∧
+    ((st.becomeFollowerOfTerm i T).s i).log = (st.s i).log := by
+  simp [Etcdraft.State.becomeFollowerOfTerm, Etcdraft.State.upd]
+
 end TraceSim
 
 end EtcdGrove
