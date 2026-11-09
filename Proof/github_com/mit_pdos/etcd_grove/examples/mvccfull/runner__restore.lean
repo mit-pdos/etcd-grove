@@ -216,12 +216,17 @@ theorem runner.restore.wp_proof
     subst Hag
     iunfold lessorW at Hlesb
     icases Hlesb with ⟨%rdb, %rb, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, Hrbb, %Hrecsb, Hstopb⟩
+    iunfold bkKeep at Hbkb
+    icases Hbkb with ⟨%HbkbP, #Hbkb1, #Hbkb2, Hbkb3, Hbkb4, Hbkb5, Hbkb6, Hbkb7⟩
     wp_apply (wp_shut x ks cfg wr h γ.h mpb vb'.path vb'.bk vb'.lp vb'.kv vb'.ι.kv
         (σOf ks ops vb'.ops) (leasesAfter ks ops vb'.ops) rb kb' hdbc rfl Hrecsb)
-      $$ [Hkvb Hleb Hbeb Hopenb Hrdrsb Hbackb Hσb Hbkb Hstopb Hrbb]
+      $$ [Hkvb Hleb Hbeb Hopenb Hrdrsb Hbackb Hσb Hbkb3 Hbkb4 Hbkb5 Hbkb6 Hbkb7 Hstopb Hrbb]
       as ⟨-, -, -, %D, %u, Hfile, Himg, %HrecD⟩
     · iframe #; iframe
-      iunfold isInc at Hisincb; icases Hisincb with ⟨-, #H⟩; iexact H
+      isplitr
+      · iunfold isInc at Hisincb; icases Hisincb with ⟨-, #H⟩; iexact H
+      iunfold bkKeep; iframe #; iframe; ipureintro; exact HbkbP
+    rw [HbkbP.1] at HrecD
     (try wp_auto)
     -- the follower's bounds raised to the builder's (`revHi`, `cmpHi`), in its incarnation
     iunfold memW at Hm1
@@ -311,6 +316,52 @@ theorem runner.restore.wp_proof
         (σOf ks ops vb'.ops).log (σOf ks ops vb'.ops).crev u ((sint.Z cfg.Ops').toNat + 1) hk
       $$ [Hreg Himg Hbfn Hnew] with ⟨Hsf, Hbkn, Hplh, Hrbn, Hwb1, Hwb2⟩
     · iframe #; iframe
+    -- `f.le.Recover(newbe, func() lease.TxnDelete { return kv.Write(traceutil.TODO()) })`
+    obtain ⟨recs, hrecs1, hrecs2, hrecs3⟩ := HrecD
+    iunfold lessorW at Hles1
+    icases Hles1 with ⟨%rd0, %r1, #Hlpkg, #Hlinv, #Hlcfg, #Hguard, #Hrevoc, #HlBack, #HapplyOk,
+      Hlrd, HlOwn, HlRevk, HlEver, #HreqU, HrdOwn, -, HbeOn, -, -, Hstop1⟩
+    iunfold bkKeep at Hbkn
+    icases Hbkn with ⟨%HnP, #Hnisb, #Hnsc, Hnbf, Hnoh, HnRT, Hntoks, Hncen⟩
+    simp only [mvccrand.rcKB_P, mvccrand.rcKB_γB, mvccrand.rcKB_be, mvccrand.rcKB_gx]
+    ihave Hwb2' : ownToks γB.wb 2 $$ [Hwb1 Hwb2]
+    · iunfold backend.wbTok at Hwb1 Hwb2
+      iapply (ownToks_add 1 1 γB.wb).2; iframe
+    ihave HEv : (if recs = [] then iprop(True) else lease.leaseEver (mvccLeases v1.ι.kv) v1.U) ∗
+        (if recs = [] then lease.leaseEver (mvccLeases v1.ι.kv) v1.U else iprop(True)) $$ [HlEver]
+    · split <;> iframe
+    icases HEv with ⟨HEv, HEvk⟩
+    ihave #HreqR := bigSepL_mem_or v1.U (fun x : w64 × w64 × w64 => x.1)
+      (fun id => lease.leaseReqIs (mvccLeases v1.ι.kv) id (W64 3600)) recs $$ HreqU
+    ihave #HgrR := granted_list (mvccLeases v1.ι.kv) (recs.map (·.1)) $$ Hguard
+    wp_func_lits
+    generalize hrd : (func.mk BAnon BAnon _ : GoFunc) = rd
+    -- the closure's deleter triple (the captured cell `kv`, read-only from here on)
+    ipersist kv
+    ihave #Hmv1 : isMvcc v1.kv v1.ι.kv $$ []
+    · iunfold isInc at Hisinc1; icases Hisinc1 with ⟨-, #H⟩; iexact H
+    ihave %Hkvs := hsh.1 v1.kv v1.ι.kv $$ Hmv1
+    obtain ⟨kty, kvv, hkveq, hKR, hKW, hKRev, hKFR, -, -, -, -, -, hKRest, -, -⟩ := Hkvs
+    haveI : ∀ rd γ, Persistent (mvccDeleter (GF := GF) rd γ) := by
+      intro rd γ; unfold mvccDeleter; infer_instance
+    ihave #Hdel : mvccDeleter rd v1.ι.kv $$ []
+    · iunfold mvccDeleter
+      isplitr
+      · ipureintro; rw [← hrd]; nofun
+      iintro !> %q' %B %P %Pre %Q %fh %R
+      wp_start_folded as ⟨Hr, Hb, #Hhk, Hpre, Hrun, Hau⟩
+      rw [← hrd]
+      wp_auto
+      wp_apply wp_traceTODO as %tr ⟨%Htr, Htrc⟩
+      (try wp_auto)
+      rw [hkveq]
+      (try wp_auto)
+      wp_apply (hKW v1.ι.kv tr true q' B P Pre Q fh R) $$ [Hr Htrc Hb Hpre Hrun Hau]
+        as %t ⟨-, Hb, Htx, HQ⟩
+      · iframe #; iframe; rw [← hkveq]; iframe #; ipureintro; exact Htr
+      (try wp_auto)
+      iapply HΦ
+      iframe
     sorry
 
 end proof
