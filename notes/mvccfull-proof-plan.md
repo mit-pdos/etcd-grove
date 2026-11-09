@@ -419,3 +419,15 @@ execution: a restart is the member's process restarting, and its requests in fli
   reader token (`incRd`), returned through its wait group.
 - **Across incarnations**, `m.σ`'s half, the monotone counters and the atomics leave one
   incarnation's invariant for the next.
+
+## The Freeze list so far (statements that change outside the tester)
+
+| # | Change | Kind | Status |
+|---|---|---|---|
+| 1 | `mvcc.New`/`NewStore` on any image (B3): `New.specR`/`NewStore.specR` (API) and the internal chain `NewStore`/`newWatchableStore`/`New.specR` | proved spec widened; callers move (mvccrand, `NewServer`, server results) | drafted, typechecks |
+| 2 | `lease.NewLessor` on a lease bucket with records: `NewLessor.specR` | **trusted** (an axiom restated); the `axiom` skill before the Freeze | drafted; its instance lemma's proof to fix |
+| 3 | `errVars.law` gains `ErrWatcherNotExist` (`errors.New("mvcc: watcher does not exist")`): the tester's `Cancel` checks compare with it | API law, proved from mvcc's package initialization as the other three | to draft |
+| 4 | `pick.specW` (the tester's own: a positive weight's choice) | tester | in progress |
+
+Each changed statement goes through the `spec-reviewer` (Review), and the restated axiom through the
+`axiom` skill, before the user's Freeze.
