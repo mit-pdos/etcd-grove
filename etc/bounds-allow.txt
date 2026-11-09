@@ -45,3 +45,9 @@ stock ^Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Api/(RdSupply|NewStoreApi|Re
 # `RunChecksWorld` allocates the history's `RWMutex` and makes its reader handles (`histRd`, at most
 # the lock's slots), `runChecks` hands one to each reader goroutine it forks.
 stock ^Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/(RunChecksWorld|runChecks)\.lean$
+
+# The registered message models (per-type models, stage A, 2026-11-08): each instance's own file
+# owns its `wireLen` and proves, from it, rule 7's witness `∃ m, wireLen m < grpcMsgMax` and the
+# length bounds its `ReqSat` store needs (`wireLen m < grpcMsgMax` gives the key's length): the
+# owner of the bound unfolds it, as `InvKVConn`'s size lemmas do for the client.
+wire-unfold /PerType[A-Za-z]*\.lean$
