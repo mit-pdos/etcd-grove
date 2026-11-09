@@ -39,11 +39,11 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 /-- `NewSTMRepeatable(ctx, c, apply)`: `NewSTM` at `RepeatableReads` with the abort context `ctx`. -/
 def NewSTMRepeatable.spec : Prop :=
   ∀ (ctx : GoInterface) (c : Loc) (γ : Cluster) (who : Principal) (apply : GoFunc)
-    (F : Attempt → IProp GF) (Rel : Attempt → Prop) (T : State → State → Prop),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isClient c γ who ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ applyOk apply γ who F Rel ∗ (∃ b, F b) ∗ etcdPerm γ T ∗
-      ⌜effIn (stmEff isoRR Rel) T⌝ ∗ threadTok }}
+    (F : Attempt → IProp GF) (Rel : Attempt → Prop) (T : State → State → Prop) (P : IProp GF) (σ0 : State),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isClient c γ who ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ applyOk apply γ who F Rel ∗ (∃ b, F b) ∗ etcdLent γ T P ∗ P ∗ etcdLb γ σ0 ∗
+      ⌜effIn (stmEff isoRR Rel) T⌝ }}
     (App (App (App (Val (@! go_etcd_io.etcd.client.v3.concurrency.NewSTMRepeatable)) (Val #ctx)) (Val #c)) (Val #apply))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); stmResult γ isoRR F Rel resp err }}
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); stmResult γ isoRR F Rel P σ0 resp err }}
 
 end spec
 

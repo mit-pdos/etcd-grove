@@ -5,7 +5,7 @@ links: []
 blocks-proof: no
 ---
 
-# recipes: DoubleBarrier.Leave panics when Enter did not create the process's key
+# recipes: DoubleBarrier.Leave, RWMutex.Unlock and RUnlock panic when no key of the process was created
 
 `(*DoubleBarrier).Leave` (`client/v3/experimental/recipes/double_barrier.go`) panics with a nil
 pointer dereference when other processes are waiting on the barrier and this `DoubleBarrier` has no
@@ -29,6 +29,10 @@ batch 1f of the specs-only branch).
   processes' keys under `key/waiters`.
 - A fix: `if b.myKey == nil { return nil }` (or an error) at `Leave`'s start; or document the
   precondition.
+- Same precondition: `RWMutex.Unlock`/`RUnlock` (`rwmutex.go:88-89`) call `rwm.myKey.Delete()`, a
+  promoted method through a nil `*EphemeralKV` when `Lock`/`RLock` was never called or failed before
+  creating the key: a nil dereference. etcd's `testRWMutex` sends the handle to the unlocking
+  goroutine even after a failed `Lock` (only after `t.Errorf`); the specs take `myKey` set.
 - Same shape, also no caller affected: `WaitEvents` and `WaitPrefixEvents` (exported) index their
   `evs` argument on the first event, so an empty slice panics once an event arrives
   (`WaitEvents.spec`'s premise `ts ≠ []`).

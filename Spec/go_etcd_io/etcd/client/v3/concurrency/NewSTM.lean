@@ -12,13 +12,14 @@ not in the pinned sources). No production caller in the pinned etcd, raft, Kuber
 Proof sketch: `Client.Ctx.spec` (1c); the options (`stmOptAt_call`, a fresh struct, persisted);
 with prefetch keys, the wrapping closure's `applyOk` from `apply`'s and `STM.GetTriple`
 (`stmAt_methods`: its value dropped, the frame threaded); `mkSTM.spec` (`stmStale`, the read
-permission from `etcdPerm`: `stmEff` contains no change), `runSTM.spec`.
+permission `etcdPeek` from the lent one), `runSTM.spec`.
 
 Changes: from `specs-ref`'s `NewSTM.lean`: the result over the cluster's states (`stmResult`:
 `etcdLb` of the commit's states and `stmCommitted`) instead of the old `stmOutcome`; the
 closure's contract keeps a caller's frame `F` indexed by the attempt (captured variables), given
-back on every outcome; the commit's effect through `etcdPerm` (`stmEff`); a client of any cluster
-state and any context; a `threadTok` for `runSTM`'s goroutine; no size bounds (the old
+back on every outcome; the commit's effect through the lent permission (`stmEff`; its token `P` back
+with the committed attempt); a client of any cluster state and any context; the result after the
+caller's `σ0`; no thread token (Perennial's fork needs none); no size bounds (the old
 `stmKeyMax`/`stmCallMax`: a request too large is a refusal, an error, in W0's model).
 
 Margin: the committed attempt's reads are also each one revision's (`readsSeen`); a failed
@@ -55,13 +56,13 @@ be one of the four, their context (the client's if none) a context. -/
 def NewSTM.spec : Prop :=
   ∀ (c : Loc) (γ : Cluster) (who : Principal) (apply : GoFunc) (F : Attempt → IProp GF)
     (Rel : Attempt → Prop) (sl : GoSlice) (gs : List (STMOpts → STMOpts))
-    (T : State → State → Prop),
+    (T : State → State → Prop) (P : IProp GF) (σ0 : State),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isClient c γ who ∗ stmOptsAt sl gs ∗ ⌜isoValid (applySTMOptsM gs).iso⌝ ∗
-      optCtxOk (applySTMOptsM gs).ctx who ∗ applyOk apply γ who F Rel ∗ (∃ b, F b) ∗ etcdPerm γ T ∗
-      ⌜effIn (stmEff (applySTMOptsM gs).iso Rel) T⌝ ∗ threadTok }}
+      optCtxOk (applySTMOptsM gs).ctx who ∗ applyOk apply γ who F Rel ∗ (∃ b, F b) ∗ etcdLent γ T P ∗ P ∗ etcdLb γ σ0 ∗
+      ⌜effIn (stmEff (applySTMOptsM gs).iso Rel) T⌝ }}
     (App (App (App (Val (@! go_etcd_io.etcd.client.v3.concurrency.NewSTM)) (Val #c)) (Val #apply)) (Val #sl))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); stmOptsAt sl gs ∗
-      stmResult γ (applySTMOptsM gs).iso F Rel resp err }}
+      stmResult γ (applySTMOptsM gs).iso F Rel P σ0 resp err }}
 
 end spec
 

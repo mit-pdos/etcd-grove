@@ -128,40 +128,58 @@ state's fact. -/
 def readStateVal (rγ : Raft.Cluster) (v : go_etcd_io.raft.v3.ReadState) : IProp GF :=
   iprop(∃ c : List w8, v.RequestCtx' ↦*□ c ∗ Raft.readState rγ c v.Index')
 
-/-- The method call `v.m()` on an interface value of the read package's interface type `t`. -/
-def call0 (v : GoInterface) (t : go.GoType) (m : GoString) : Expr :=
-  App (Val (v @!! t @!! m)) (Val #())
+/-- The methods' part of the environment's contract (pure: triples). -/
+def readEnvOk (srv rf : GoInterface) (rγ : Raft.Cluster) (γi : IdUtil.IdSpace) (A : Nat → IProp GF) :
+    Prop :=
+  (∀ a b : Nat, b ≤ a → A a ⊢ A b) ∧ (∀ a, Persistent (A a)) ∧
+  (∀ i : Nat, A i ⊢ ∃ l, Raft.committedLb rγ l ∗ ⌜i ≤ l.length⌝) ∧
+  ({{ (iprop(True) : IProp GF) }}
+     (App (Val (srv @!! go_etcd_io.etcd.server.v3.etcdserver.read.server.ty @!! go!"Done")) (Val #()))
+   {{ (ch : Loc), RET #ch; recvAny ch }}) ∧
+  ({{ (iprop(True) : IProp GF) }}
+     (App (Val (srv @!! go_etcd_io.etcd.server.v3.etcdserver.read.server.ty @!! go!"Stopping")) (Val #()))
+   {{ (ch : Loc), RET #ch; recvAny ch }}) ∧
+  ({{ (iprop(True) : IProp GF) }}
+     (App (Val (srv @!! go_etcd_io.etcd.server.v3.etcdserver.read.server.ty @!! go!"LeaderChanged")) (Val #()))
+   {{ (ch : Loc), RET #ch; recvAny ch }}) ∧
+  ({{ (iprop(True) : IProp GF) }}
+     (App (Val (srv @!! go_etcd_io.etcd.server.v3.etcdserver.read.server.ty @!! go!"FirstCommitInTermNotify")) (Val #()))
+   {{ (ch : Loc), RET #ch; recvAny ch }}) ∧
+  ({{ (iprop(True) : IProp GF) }}
+     (App (Val (srv @!! go_etcd_io.etcd.server.v3.etcdserver.read.server.ty @!! go!"Logger")) (Val #()))
+   {{ (lg : Loc), RET #lg; Zap.isLogger lg }}) ∧
+  ({{ (iprop(True) : IProp GF) }}
+     (App (Val (srv @!! go_etcd_io.etcd.server.v3.etcdserver.read.server.ty @!! go!"RequestTimeout")) (Val #()))
+   {{ (d : w64), RET #d; True }}) ∧
+  ({{ (iprop(True) : IProp GF) }}
+     (App (Val (srv @!! go_etcd_io.etcd.server.v3.etcdserver.read.server.ty @!! go!"AppliedIndex")) (Val #()))
+   {{ (i : w64), RET #i; A (uint.nat i) }}) ∧
+  ({{ (iprop(True) : IProp GF) }}
+     (App (Val (srv @!! go_etcd_io.etcd.server.v3.etcdserver.read.server.ty @!! go!"NextRequestID")) (Val #()))
+   {{ (id : w64), RET #id; IdUtil.idFresh γi id }}) ∧
+  (∀ d : w64, {{ (iprop(True) : IProp GF) }}
+     (App (Val (srv @!! go_etcd_io.etcd.server.v3.etcdserver.read.server.ty @!! go!"ApplyWait"))
+       (Val #d))
+   {{ (ch : Loc), RET #ch; ∃ γc : ChanNames, isChan ch γc Unit ∗
+       □ ∀ Φ : Unit → Bool → IProp GF, (∀ v ok, A (uint.nat d) -∗ Φ v ok) -∗ recvAu γc Unit Φ }}) ∧
+  ({{ (iprop(True) : IProp GF) }}
+     (App (Val (rf @!! go_etcd_io.etcd.server.v3.etcdserver.read.raftInterface.ty @!! go!"ReadState")) (Val #()))
+   {{ (ch : Loc), RET #ch; ∃ (_ : Pos.Countable go_etcd_io.raft.v3.ReadState) (γc : ChanNames),
+       isChan ch γc go_etcd_io.raft.v3.ReadState ∗
+       □ ∀ Φ : go_etcd_io.raft.v3.ReadState → Bool → IProp GF,
+         (∀ v ok, (⌜ok = true⌝ -∗ readStateVal rγ v) -∗ Φ v ok) -∗
+         recvAu γc go_etcd_io.raft.v3.ReadState Φ }}) ∧
+  (∀ (ctx : GoInterface) (rctx : GoSlice) (c : List w8) (Q : List Raft.LogEntry → IProp GF),
+   {{ Context.ctxOk ctx ∗ rctx ↦*□ c ∗ Raft.readCtx rγ c Q }}
+     (App (App (Val (rf @!! go_etcd_io.etcd.server.v3.etcdserver.read.raftInterface.ty @!!
+       go!"ReadIndex")) (Val #ctx)) (Val #rctx))
+   {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil ∨ readErr err⌝ }})
 
 /-- **The environment's contract** (see the header): the server's and raft's interface methods,
 and the registration of read contexts. Persistent. -/
 def readEnv (srv rf : GoInterface) (rγ : Raft.Cluster) (γi : IdUtil.IdSpace) (A : Nat → IProp GF) :
     IProp GF :=
-  let st := go_etcd_io.etcd.server.v3.etcdserver.read.server.ty
-  let rt := go_etcd_io.etcd.server.v3.etcdserver.read.raftInterface.ty
-  iprop(
-    ⌜(∀ a b : Nat, b ≤ a → A a ⊢ A b) ∧ (∀ a, Persistent (A a)) ∧
-     (∀ i : Nat, A i ⊢ ∃ l, Raft.committedLb rγ l ∗ ⌜i ≤ l.length⌝) ∧
-     ({{ True }} call0 srv st go!"Done" {{ (ch : Loc), RET #ch; recvAny ch }}) ∧
-     ({{ True }} call0 srv st go!"Stopping" {{ (ch : Loc), RET #ch; recvAny ch }}) ∧
-     ({{ True }} call0 srv st go!"LeaderChanged" {{ (ch : Loc), RET #ch; recvAny ch }}) ∧
-     ({{ True }} call0 srv st go!"FirstCommitInTermNotify" {{ (ch : Loc), RET #ch; recvAny ch }}) ∧
-     ({{ True }} call0 srv st go!"Logger" {{ (lg : Loc), RET #lg; Zap.isLogger lg }}) ∧
-     ({{ True }} call0 srv st go!"RequestTimeout" {{ (d : w64), RET #d; True }}) ∧
-     ({{ True }} call0 srv st go!"AppliedIndex" {{ (i : w64), RET #i; A (uint.nat i) }}) ∧
-     ({{ True }} call0 srv st go!"NextRequestID" {{ (id : w64), RET #id; IdUtil.idFresh γi id }}) ∧
-     (∀ d : w64, {{ True }} App (Val (srv @!! st @!! go!"ApplyWait")) (Val #d)
-        {{ (ch : Loc), RET #ch; ∃ γc : ChanNames, isChan ch γc Unit ∗
-            □ ∀ Φ : Unit → Bool → IProp GF, (∀ v ok, A (uint.nat d) -∗ Φ v ok) -∗
-              recvAu γc Unit Φ }}) ∧
-     ({{ True }} call0 rf rt go!"ReadState"
-        {{ (ch : Loc), RET #ch; ∃ γc : ChanNames, isChan ch γc go_etcd_io.raft.v3.ReadState ∗
-            □ ∀ Φ : go_etcd_io.raft.v3.ReadState → Bool → IProp GF,
-              (∀ v ok, (⌜ok = true⌝ -∗ readStateVal rγ v) -∗ Φ v ok) -∗
-              recvAu γc go_etcd_io.raft.v3.ReadState Φ }}) ∧
-     (∀ (ctx : GoInterface) (rctx : GoSlice) (c : List w8) (Q : List Raft.LogEntry → IProp GF),
-        {{ Context.ctxOk ctx ∗ rctx ↦*□ c ∗ Raft.readCtx rγ c Q }}
-          App (App (Val (rf @!! rt @!! go!"ReadIndex")) (Val #ctx)) (Val #rctx)
-        {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil ∨ readErr err⌝ }})⌝ ∗
+  iprop(⌜readEnvOk srv rf rγ γi A⌝ ∗
     □ ∀ (id : w64) (l : List Raft.LogEntry), IdUtil.idFresh γi id -∗ Raft.committedLb rγ l -∗
       |={⊤}=> Raft.readCtx rγ (be64 id) (readLbQ l))
 

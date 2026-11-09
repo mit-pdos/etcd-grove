@@ -3,11 +3,10 @@
 
 Users: `waitDeletes`.
 
-Proof sketch: `Context.WithCancel.spec`; the `Watcher` field's `Watch(cctx, key, WithRev(rev))`
-(`isClient_fields`' `watcherAt`, 1b: a consumer of the watch channel whose responses own their
-events; `req/go_etcd_io_etcd_client_v3.md`, "from 1d"); receive until a delete event or the
-channel's close; `WatchResponse.Err` (1b), `Context.Err.spec`, `errors.New` (Perennial); the
-deferred cancel (`cancelOk`).
+Proof sketch: `Context.WithCancel.spec`, `ctxPrin_child`; the `Watcher` field's `Watch(cctx, key,
+WithRev(rev))` (`clientRest_fields`' `watcherAt`, 1b's `Watcher.WatchTriple`: `watchChAt`); receive
+until a delete event or the channel's close (`watchChAt_recv`); `WatchResponse.Err` (1b),
+`Context.Err.spec`, `errors.New` (Perennial); the deferred cancel (`cancelOk`).
 
 Changes: from `specs-ref`'s `waitDelete.lean`: no post fact (`waitDeletes` does not use it: its
 own `Get` decides).

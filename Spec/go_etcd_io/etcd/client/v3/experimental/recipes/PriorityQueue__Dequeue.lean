@@ -5,8 +5,8 @@
 **Users**: `T/v3_queue_test.go:110` (all items enqueued before: priority order), `:230` (many readers
 and writers), `T/v3_closed_watch_test.go:76`. Snippet: `recipes/pqueue.go`.
 
-**Proof sketch**: as `Queue.Dequeue`'s, with `σ0` (`etcdLb γ σ0`, the caller's) and `σg` reached from
-it. Claim of the read's key `k` (first in key order at `σg`): at the claim `σ`, a key before `k` in key
+**Proof sketch**: as `Queue.Dequeue`'s (the watch path's value by `kvStep`'s `putOnce evs`), with `σ0`
+(`etcdLb γ σ0`, the caller's) and `σg` reached from it. Claim of the read's key `k` (first in key order at `σg`): at the claim `σ`, a key before `k` in key
 order was not there at `σg` with its record, so it was written after `σg.kv.rev ≥ σ0.kv.rev`. Watch
 path: as `Queue`'s, every key under the prefix at the claim was written at a revision `≥ m > σg.kv.rev`
 (`m > σg.kv.rev` because the one key present at `σg` was changed before the first claim), so every key
@@ -57,7 +57,7 @@ def PriorityQueue.Dequeue.spec : Prop :=
     (App (Val (q @!! go.GoType.PointerType PriorityQueue.ty @!! go!"Dequeue")) (Val #()))
   {{ (v : GoString) (err : GoInterface), RET (PairV #v #err);
       (⌜err = GoInterface.nil⌝ ∗ ∃ σ σ' k kr, Q σ σ' k kr ∗ ⌜v = kr.value⌝) ∨
-      ⌜err ≠ GoInterface.nil ∧ v = []⌝ }}
+      (⌜err ≠ GoInterface.nil ∧ v = []⌝ ∗ recipeErrOk err) }}
 
 end spec
 

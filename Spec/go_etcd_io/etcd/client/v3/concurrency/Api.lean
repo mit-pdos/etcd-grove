@@ -13,91 +13,102 @@ promises nothing. So nothing here is about time: a `Session` promises a lease th
 (or the one the caller named), not one that is alive; a `Mutex` promises **exclusion of
 revisions**, not of time. The guarantees are:
 
-* **Mutex** (`lockedSince`, `fence`): when `Lock` returns `nil`, at a state `σ` the mutex reached
-  after it began, no key under the prefix is older than the mutex's own create revision `c`
+* **Mutex** (`lockedSince`, `fence`): when `Lock` returns `nil`, at a state `σ` reached after the
+  state `σ0` the caller knew (every spec that returns a state takes the caller's `etcdLb γ σ0` and
+  returns `Reach σ0 σ`), no key under the prefix is older than the mutex's own create revision `c`
   (`noOlder`), and the header it keeps is `σ`'s revision. Any later state at which the mutex's key
   still has create revision `c` (what `IsOwner()`, `CreateRevision(key) = c`, compares) is one at
-  which the key is the oldest under the prefix (`holdsAt`): the pure law `fence`. So a write fenced
-  by `Txn(If(m.IsOwner()))` (W0's transaction contract) takes effect only in a state where the
-  mutex holds the lock, and two holders' fenced writes never take effect in one state (two
-  `holdsAt` at one store have one create revision). This holds even of `Lock`'s known gap
-  (`issues/mutex-lock-recreated.md`: `Lock` may return `nil` with its key re-created at a later
-  create revision): the fence then fails, as it should.
-* **Election**: `Campaign` gives the same fact at its create revision (`lockedSince`, without the
+  which the key is the oldest under the prefix (`holdsAt`): the pure law `fence`. So a write (or a
+  linearizable read) fenced by `Txn(If(m.IsOwner()))` (W0's transaction contract) takes effect only
+  in a state where the mutex holds the lock, and two holders' fenced writes never take effect in
+  one state. A read-only transaction of serializable ranges is answered at a member's possibly
+  stale view: its fence proves nothing now. This holds even of `Lock`'s known gap
+  (`issues/mutex-lock-recreated.md`): the fence then fails, as it should.
+* **Election**: `Campaign` gives the wait's fact at its create revision (`waitedFor`, without the
   last check: `nonissues/election-campaign-key-check.md`); `Proclaim` and `Resign` are fenced by
-  `CreateRevision(leaderKey) = leaderRev`, and say whether the fence held; `Leader` returns the
-  oldest key under the prefix at a linearized read (`holdsAt`); `Observe`'s values were each the
-  oldest key's write at some revision (`ObservedAt`), in header order.
+  the comparison `CreateRevision(leaderKey) = leaderRev` and say whether it held (as W0's
+  `Compare.holds` decides: at revision `0` an absent key passes,
+  `nonissues/etcd-v3election-proclaim-rev-zero.md`); `Leader` returns the oldest key under the
+  prefix at a linearized read (`holdsAt`); `Observe`'s values were each the oldest key's write at
+  some revision (`ObservedAt`), with no order between headers.
 * **STM** (`stmCommitted`): the committed attempt's writes were applied in one revision at a state
   `σ`, and (`SerializableSnapshot`, `Serializable`, `RepeatableReads`) every read of the attempt is
   `σ`'s key-value of its key: the attempt ran atomically at `σ` (serializability). A
   `RepeatableReads` attempt that wrote nothing is checked by a serializable transaction, so `σ` is
   then a past revision (`issues/etcd-txn-empty-serializable.md`). `SerializableSnapshot` also: no
   written key was modified after the attempt's first read. `ReadCommitted`: each read is some
-  revision's. A failed attempt's reads promise nothing (`issues/stm-serializable-snapshot.md`).
+  revision's. A failed attempt's reads promise nothing (`issues/stm-serializable-snapshot.md`);
+  during an attempt, each read is some reached revision's (`stmAt_reads`).
 
 ## The permission: how the package changes the cluster's state
 
 The package's functions make many requests per call (a lock's transaction, the gets and watches
-of its wait, its cleanup delete; an STM's reads and failed commits). The caller hands each such
-function **`etcdPerm γ T`**, a persistent atomic update over `etcdState γ` that performs any
-transition `T σ σ'`, and whose commit gives `etcdLb` of both states: the caller's own invariant
-over `etcdState` must be stable under `T`. Each spec states the transitions it may cause as a
-pure relation (`keysEff`, `grantEff`, `revokeEff`, `stmEff`, identity for reads) and requires it
-to be included in `T`. This is W0's `envUpd` shape for the package's own requests: the effects are
-stated in the model's terms (a key under the prefix put with the session's lease or deleted, a
-lease granted or revoked, an attempt's writes committed), never as the requests the code sends.
-The facts the specs return are `etcdLb γ σ` with pure model predicates over `σ`.
+of its wait, its cleanup delete; an STM's reads and failed commits). Each spec states the
+transitions it may cause as a pure relation (`mutexEff`, `campaignEff`, `putEff`, `delEff`,
+`grantEff`, `revokeEff`, `stmEff`; reads change nothing) and requires it to be included in the
+caller's `T`: the caller's own invariant over `etcdState` must be stable under `T`. The effects are
+stated in the model's terms, never as the requests the code sends. Facts come back as `etcdLb γ σ`
+with pure model predicates.
 
-Decision (1d; open for the user): a permission rather than an exclusive atomic update per
-operation. The functions' own writes are bookkeeping keys (lock and election keys, the session's
-lease) whose effect the caller's invariant only needs to tolerate; an exclusive update would have
-to be fired by the right one of several requests (an STM attempt's commit, a lock's creation
-versus its cleanup). The margin: a caller cannot do ghost work at the commit of a particular
-request (a linearizability log of STM transactions); the facts returned after the call say which
-transition took place.
+**Lent per call** (round 1, the coordinator's choice): the KV writes of a mutex, an election and an
+STM take **`etcdLent γ T P ∗ P`**: W0's `etcdPeek` for the reads, and an update performing `T` that
+can be fired only by giving up the caller's token `P`, back at its commit. The call returns `P` on
+every outcome whose writes have all been answered (success, `ErrLocked`, `ErrSessionExpired`,
+`ErrElectionNotLeader`, `ErrLockReleased`, ...); an outcome after which a write may still be pending
+(an indefinite error) keeps it. While the caller holds `P`, the package changes nothing, so a
+caller can rely on its keys' contents between calls. With `P := True` it is round 0's persistent
+permission. The session's grant and revoke take W0's persistent **`etcdPerm γ T`**: they are
+repeatable calls (retried after `Unavailable`), so an earlier attempt may apply after the call has
+answered; no token can be given back for them. Alternative (open question in `batch-1d.md`): one
+persistent permission for everything, simpler to give and weaker to rely on.
+
+**The principal per call**: a session names its client (`isSession s c γ id`); each mutex and
+election method takes `isClient c γ who` and its context's `ctxPrin ctx who` (the in-process client
+of v3lock/v3election sends each request as the RPC's principal); cleanups that run on
+`client.Ctx()` run as the client's own principal (`Client.Ctx.spec`, 1c).
 
 ## Vocabulary
 
-Pure (transparent): `noOlder`, `holdsAt`, `firstCreate`, `lockedSince`, `ObservedAt`; the
-effects `putKey`, `delKey`, `keysEff`, `grantEff`, `revokeEff`, `readEff`; the
-options' models (`SessOpts`, `STMOpts`) and the STM's attempt (`Attempt`: `ReadM`, `WriteM`,
-`readsAgree`, `readsSeen`, `applied`, `stmCommitted`, `stmEff`, `GetPost`, `RevPost`); the
-package's errors (`ConcErr`, values `concErrVal`); the mutex's and the election's fields
-(`MutexSt`, `ElectionSt`).
+Pure (transparent): `noOlder`, `holdsAt`, `firstCreate`, `waitedFor`, `lockedSince`,
+`ObservedAt`; the effects `putKey`, `delKey`, `putEff`, `delEff`, `mutexEff`, `campaignEff`,
+`grantEff`, `revokeEff`, `readEff`, `effIn`; the options' models (`SessOpts`, `STMOpts`) and the
+STM's attempt (`Attempt`: `ReadM`, `WriteM`, `readOf`, `readsAgree`, `readsSeen`, `applied`,
+`stmCommitted`, `stmEff`, `GetPost`, `RevPost`); the package's errors (`ConcErr`, values
+`concErrVal`); the mutex's and the election's fields (`MutexSt`, `ElectionSt`), `ownerCmp`.
 
 Resources:
-* `etcdPerm γ T` (transparent, persistent): the permission above.
-* `isSession s γ who id` (persistent): `s` is a `*Session` over a client of `γ` as `who`
-  (`isClient`) with lease `id`; its fields read-only. Intended realization: the fields `↦□`, the
-  client's `isClient`, the context `ctxOk`, the `donec` broadcast channel (Perennial's
-  `ownBroadcastChan ch γc True`), the cancel function's spec.
+* `etcdLent γ T P` (transparent): the lent permission above; W0's `etcdPerm`, `etcdPeek`.
+* `isSession s c γ id` (persistent): `s` is a `*Session` over the client `c` of `γ` with lease
+  `id`; its fields read-only. Intended realization: the fields `↦□`, the options' context (`ctxOk`,
+  `ctxPrin` of the principal it was made as, with that principal's `isClient`), the `donec`
+  broadcast channel (Perennial's `ownBroadcastChan ch γc True`), the cancel function's spec.
 * `sessOptAt f g` (persistent): the `SessionOption` closure `f` changes the options as `g`
-  (`sessOptsAt` a read-only slice of them). Same for `stmOptAt`/`stmOptsAt`.
+  (`sessOptsAt` a read-only slice of them); `optCtxOk o who` the options' context, if set, a
+  context of `who`. Same for `stmOptAt`/`stmOptsAt`.
 * `isMutex m s pfx` (persistent: the fields `s` and `pfx`, read-only) and `mutexSt m st`
   (exclusive: `myKey`, `myRev`, `hdr`). `isElection e s pfx` / `electionSt e st` the same for
   an `Election` (`Observe`'s goroutine reads `session` and `keyPrefix` while the caller keeps
   using the election).
-* `observeAt ch γ pfx R` (exclusive): the consumer of `Observe`'s channel, the last header
-  revision received `R`. Intended realization: Perennial's single-producer single-consumer
-  channel (`isSpsc`, `spscConsumer`) with `observe` the producer (`observeProd`, internal).
-* `stmAt iv γ who iso a` (exclusive): the `STM` interface value `iv` (level `iso`) holding the
-  attempt `a`; its methods' triples are the laws `stmAt_methods` (`Get`, `Put`, `Rev`, `Del`: the
-  user's closure's view) and `stmAt_commit`, `stmAt_reset` (the package's own, `runSTM`'s).
-  Intended realization: a bundle over `stmCoreAt`/`stmSerAt` (internal) and the read permission.
-* `applyOk apply γ who F Rel` (persistent): the user's closure `apply` meets the STM's contract:
-  on any `stmAt` it returns an error, or `nil` with an attempt satisfying `Rel`, keeping the
-  caller's frame `F` (indexed by the attempt, so that captured variables can reflect what was
-  read), or aborts through a method (`stmRet`).
+* `observeAt ch γ pfx σ0` (exclusive): the consumer of `Observe`'s channel, its values read after
+  `σ0`. Intended realization: Perennial's single-producer single-consumer channel (`isSpsc`,
+  `spscConsumer`) with `observe` the producer (`observeProd`, internal).
+* `stmAt iv γ who iso a` (exclusive) and `stmStale iv γ who iso` (between attempts): the `STM`
+  interface value `iv` (level `iso`) holding the attempt `a`; its methods' triples are the law
+  `stmAt_methods` (`Get`, `Put`, `Rev`, `Del`: the user's closure's view; `commit`, `reset`: the
+  package's own). Intended realization: a bundle over `stmCoreAt`/`stmSerAt` (internal) and `etcdPeek`.
+* `applyOk apply γ who F Rel` (persistent): the user's closure `apply` meets the STM's contract: on
+  any `stmAt` of an attempt with no writes yet, it returns an error, or `nil` with an attempt
+  satisfying `Rel`, keeping the caller's frame `F` (indexed by the attempt), or aborts through a
+  method (`stmRet`). `stmResult` (def) is `NewSTM`'s outcome.
 * Internal (the package's own proofs; no client mentions them): `observeProd`, `stmCoreAt`,
-  `stmSerAt`, `readSetAt`, `writeSetAt`, `readRespAt`.
+  `stmCoreStale`, `stmSerAt`, `stmSerStale`, `readSetAt`, `writeSetAt`, `readRespAt`.
 
 ## Laws
 
-`fence` (pure: the fencing guarantee); `concErrVal_ok` and `init.spec` (the package's error
-variables); `isSession_persistent`, `isSession_client`; `sessOptAt_persistent`, `sessOptAt_call`;
-`stmOptAt_persistent`, `stmOptAt_call`; `isMutex_persistent`, `isElection_persistent`,
-`electionSt_session`; `observeAt_recv`; `stmAt_methods`, `stmAt_commit`, `stmAt_reset`;
+`fence` (pure: the fencing guarantee); `concErrVal_ok`, `concErrVal_notCanceled` (with W0's
+`callErr_errorsNew`, no client call's error is one of the package's) and `init.spec` (the package's
+error variables); `handles_persistent`; `isSession_client`; `sessOptAt_call`, `stmOptAt_call`;
+`electionSt_session`; `observeAt_recv`, `observeAt_recvAu`; `stmAt_methods`, `stmAt_reads`;
 `applyOk_persistent`.
 
 ## Requirement snippets
@@ -720,7 +731,7 @@ def stmAt_reads.spec : Prop := ∀ (iv : GoInterface) (γ : Cluster) (who : Prin
 /-- The package's errors are not `context.Canceled` (distinct `errors.New` allocations); with W0's
 `callErr_errorsNew`, no client call returns one of them. -/
 def concErrVal_notCanceled.spec : Prop := ∀ (v : GoInterface),
-  globalAddr context.Canceled ↦□ v ⊢ ⌜∀ e, v ≠ concErrVal (GF := GF) e⌝
+  globalAddr context.Canceled ↦□ v ⊢ (⌜∀ e, v ≠ concErrVal e⌝ : IProp GF)
 
 def applyOk_persistent.spec : Prop := ∀ apply γ who F Rel,
   Persistent (applyOk (GF := GF) apply γ who F Rel)

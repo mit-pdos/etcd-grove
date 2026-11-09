@@ -3,16 +3,19 @@
 
 Users: `server/etcdserver/api/v3lock/lock.go:45` (`NewMutex(s, req.Name)`, `Lock(ctx)`, then
 `Key()` and `Header()` returned to the remote client, which fences its writes on the key and
-`Unlock`s by deleting it), etcdctl's `lock` command (not in the pinned sources: `Lock`, the key,
-`Unlock`), recipes' callers, etcd's tests (`tests/integration/clientv3/concurrency/mutex_test.go`,
-`example_mutex_test.go`: `Lock`, `TryLock` and `ErrLocked`, `IsOwner` in a `Txn`, `Unlock`,
-`NewLocker`). Snippet: `concurrency/mutex.go` (`ReqFencedWrite`).
+`Unlock`s by deleting it; the in-process client: each request's principal is the RPC context's),
+etcdctl's `lock` command (not in the pinned sources), etcd's tests
+(`tests/integration/clientv3/concurrency/mutex_test.go`, `example_mutex_test.go`: `Lock`, `TryLock`
+and `ErrLocked`, `IsOwner` in a `Txn`, `Unlock`, `NewLocker`; `tests/integration/v3lock_grpc_test.go`:
+a second lock's header after the first's). Snippet: `concurrency/mutex.go` (`ReqFencedWrite`).
 
 Proof sketch: `CreateRevision.spec`, `Compare.spec` (W0) with an `int64` (`CmpArg.i64`).
 
 Changes: from `specs-ref`'s `Mutex__IsOwner.lean`: over W0's `cmpAt`; unchanged.
 
-Margin: none.
+Margin: the fence proves something of writes and linearizable reads; a read-only transaction of
+serializable ranges is answered at a member's possibly stale view, where the comparison says
+nothing about the lock now.
 -/
 module
 
@@ -41,7 +44,7 @@ def Mutex.IsOwner.spec : Prop :=
   ∀ (m : Loc) (st : MutexSt),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ mutexSt m st }}
     (App (Val (m @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.concurrency.Mutex.ty @!! go!"IsOwner")) (Val #()))
-  {{ (c : go_etcd_io.etcd.client.v3.Cmp), RET #c; mutexSt m st ∗ cmpAt c (some (ownerCmp st.key st.rev)) }}
+  {{ (cmp : go_etcd_io.etcd.client.v3.Cmp), RET #cmp; mutexSt m st ∗ cmpAt cmp (some (ownerCmp st.key st.rev)) }}
 
 end spec
 

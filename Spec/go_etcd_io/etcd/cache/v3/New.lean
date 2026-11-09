@@ -58,7 +58,7 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 program's read permission over the cluster's state, and options with transformers `gs`: the
 configuration is `defaultConfig()` with the options applied in order; if `newCache` rejects it
 (`HistoryWindowSize ≤ 0` or `BTreeDegree < 2`), `nil` and an error; otherwise a cache of the keys
-under `pfx` (`isCache`) with the whole `cacheOpen` token. An accepted configuration must be
+under `pfx` (`isCache`, non-`nil`: `isCache_ne_null`) with the whole `cacheOpen` token. An accepted configuration must be
 `CfgBounded` (the code panics later otherwise). -/
 def New.spec : Prop :=
   ∀ (client : Loc) (γ : Cluster) (who : Principal) (pfx : GoString) (sl : GoSlice)

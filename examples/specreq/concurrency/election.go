@@ -13,8 +13,10 @@ import (
 // create revision (a Get right after sees the value or a later write); Resign clears the key.
 // Users: server/etcdserver/api/v3election/election.go:39-60 (Campaign; Key, Rev, Header, Lease
 // returned), etcd's tests (election_test.go).
-// Assumes: no principal writes keys under pfx+"/" but elections of sessions on other leases, and
-// only this election writes its own key (the key pfx/<lease> is the session's).
+// Assumes: the caller's invariant: keys under pfx+"/" with this session's lease are written only
+// through this election's lent permission (its token P, which the caller holds between calls),
+// and the lease does not expire during the snippet (EnvCfg.leaseExpiry = false), else a Get may
+// see the key re-created by a later Campaign.
 // Specs: NewSession.spec, NewElection.spec, Election.Campaign.spec, Election.Key.spec,
 // Election.Rev.spec, Election.Header.spec, Election.Proclaim.spec, Election.Resign.spec,
 // Client.Get.spec.
@@ -101,22 +103,28 @@ func ReqLeaderFenced(ctx context.Context, s *concurrency.Session, pfx, other str
 	}
 }
 
-// REQ concurrency/observe: Observe's channel yields responses with one key-value under the prefix
-// and a header, in non-decreasing header order, until closed.
+// REQ concurrency/observe: Observe's channel, received in a select with the context (v3election's
+// loop), yields responses with one key-value under the prefix and a header no older than the
+// value, until closed (no order between successive headers: a reconnect may reach a lagging member).
 // Users: server/etcdserver/api/v3election/election.go:77-94 (resp.Header, resp.Kvs[0] sent).
 // Assumes: none.
-// Specs: NewElection.spec, Election.Observe.spec; law: observeAt_recv.spec.
+// Specs: NewElection.spec, Election.Observe.spec; laws: observeAt_recvAu.spec, Context.doneRecv.
 func ReqObserve(ctx context.Context, s *concurrency.Session, pfx string) {
 	ch := concurrency.NewElection(s, pfx).Observe(ctx)
-	var last int64
-	for resp := range ch {
-		if resp.Header == nil || len(resp.Kvs) != 1 ||
-			!strings.HasPrefix(string(resp.Kvs[0].Key), pfx+"/") {
-			panic("observe: not one leader key-value")
+	for ctx.Err() == nil {
+		select {
+		case <-ctx.Done():
+		case resp, ok := <-ch:
+			if !ok {
+				return
+			}
+			if resp.Header == nil || len(resp.Kvs) != 1 ||
+				!strings.HasPrefix(string(resp.Kvs[0].Key), pfx+"/") {
+				panic("observe: not one leader key-value")
+			}
+			if resp.Kvs[0].ModRevision > resp.Header.Revision {
+				panic("observe: a value newer than its header")
+			}
 		}
-		if resp.Header.Revision < last || resp.Kvs[0].ModRevision > resp.Header.Revision {
-			panic("observe: out of order")
-		}
-		last = resp.Header.Revision
 	}
 }

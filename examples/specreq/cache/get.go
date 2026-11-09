@@ -108,7 +108,7 @@ func ReqWaitThenSerializable(ctx context.Context, c *cache.Cache, k string, rev 
 // Users: tests/integration/cache_test.go TestCacheWithPrefixGetOutOfScope,
 // TestCacheUnsupportedGetOptions.
 // Assumes: c is a cache of "/foo"; ctx is not done (the caller's own context).
-// Specs: Cache.Get.spec (getErr), init.spec; errors.Is on an identical error.
+// Specs: Cache.Get.spec (getErr), init.spec; laws: wrapsErr_refl, errorsIs_wraps.
 func ReqRangeInvalid(ctx context.Context, c *cache.Cache) {
 	if _, err := c.Get(ctx, "/bar/a", clientv3.WithSerializable()); err == nil {
 		panic("range-invalid: served a key outside the prefix")
@@ -117,5 +117,7 @@ func ReqRangeInvalid(ctx context.Context, c *cache.Cache) {
 	}
 	if _, err := c.Get(ctx, "/foo/a", clientv3.WithCountOnly()); err == nil {
 		panic("range-invalid: served an unsupported option")
+	} else if ctx.Err() == nil && !errors.Is(err, cache.ErrUnsupportedRequest) {
+		panic("range-invalid: an unsupported option's error is not ErrUnsupportedRequest")
 	}
 }

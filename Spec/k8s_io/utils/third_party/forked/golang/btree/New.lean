@@ -1,6 +1,6 @@
 /-
 `New` (`k8s.io/utils/third_party/forked/golang/btree/btree.go`).
-Users: etcd's cache `newStore` (`cache/store.go:42`) and `store.Restore` (`:109`), a tree of `*kvItem` by `kvItemLess` at the configured degree (snippet `btree/ReqSortedMap`).
+Users: etcd's cache `newStore` (`cache/store.go:42`) and `store.Restore` (`:109`), a tree of `*kvItem` by `kvItemLess` at the configured degree (snippet `btree/ReqSortedMap`); etcd's mvcc key index `newTreeIndex` (`server/v3/storage/mvcc/index.go:47`).
 Proof sketch: as the old proof (`specs-ref/Proof/k8s_io/utils/third_party/forked/golang/btree/New.lean`),
 over the realization of the predicates given in `Api.lean`'s and `Internal.lean`'s headers.
 Changes: restated over the opaque vocabulary of `Api.lean` (the model

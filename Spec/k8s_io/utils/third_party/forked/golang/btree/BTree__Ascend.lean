@@ -1,6 +1,6 @@
 /-
 `BTree.Ascend` (`k8s.io/utils/third_party/forked/golang/btree/btree.go`).
-Users: etcd's cache where it calls it (`cache/store.go`, `cache/snapshot.go`), else no caller outside the package (kept: verified before).
+Users: etcd's cache where it calls it (`cache/store.go`, `cache/snapshot.go`); mvcc's `treeIndex.Compact`, `Keep`, `Equal` (`index.go:212, 234, 250`; snippet `btree/ReqCompactClone`).
 Proof sketch: as the old proof (`specs-ref/Proof/k8s_io/utils/third_party/forked/golang/btree/BTree__Ascend.lean`),
 over the realization of the predicates given in `Api.lean`'s and `Internal.lean`'s headers.
 Changes: restated over the opaque vocabulary of `Api.lean` (the model

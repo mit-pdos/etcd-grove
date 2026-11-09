@@ -5,7 +5,9 @@
 //
 // "Owned" below: no other client (and no lease) writes or deletes the keys the snippet names; the
 // snippet's program keeps that in its invariant over etcdState (notes/specs-only/top.md). Time is
-// not modelled: a session's lease may expire at any time, so no snippet relies on one staying.
+// not modelled: a session's lease may expire at any time, unless the cluster runs with W0's
+// EnvCfg.leaseExpiry = false (a trusted deployment premise: every lease outlives the run); the
+// snippets marked "no lease expiry" assume that, and the others hold either way.
 package recipes
 
 import (

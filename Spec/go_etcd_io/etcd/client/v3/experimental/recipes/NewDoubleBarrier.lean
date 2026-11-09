@@ -7,7 +7,7 @@ Snippet: `recipes/doublebarrier.go`.
 **Proof sketch**: `context.TODO()`; allocate; `dbOwn`'s realization.
 
 **Changes**: old `isDoubleBarrier` took `concurrency.isSession` and the recipes' client invariant;
-now `sessionAt` (1d's slot). Any `count` (`count ≤ 0`: every `Enter` is `ErrTooManyClients`).
+now `sessionAt` (1d's `isSession`). Any `count` (`count ≤ 0`: every `Enter` is `ErrTooManyClients`).
 
 **Margin**: none.
 -/

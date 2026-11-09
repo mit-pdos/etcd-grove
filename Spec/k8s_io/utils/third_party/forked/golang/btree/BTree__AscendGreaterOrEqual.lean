@@ -1,6 +1,6 @@
 /-
 `BTree.AscendGreaterOrEqual` (`k8s.io/utils/third_party/forked/golang/btree/btree.go`).
-Users: etcd's cache `snapshot.Range` (`cache/snapshot.go:41`), a from-key read collecting every item (snippet `btree/ReqSortedMap`).
+Users: etcd's cache `snapshot.Range` (`cache/snapshot.go:41`), a from-key read collecting every item (snippet `btree/ReqSortedMap`); mvcc's `treeIndex.unsafeVisit` (`index.go:98`: stopped early at the end key or a limit; snippets `btree/ReqStopEarly`, `ReqFractionalReaders`).
 Proof sketch: as the old proof (`specs-ref/Proof/k8s_io/utils/third_party/forked/golang/btree/BTree__AscendGreaterOrEqual.lean`),
 over the realization of the predicates given in `Api.lean`'s and `Internal.lean`'s headers.
 Changes: restated over the opaque vocabulary of `Api.lean` (the model

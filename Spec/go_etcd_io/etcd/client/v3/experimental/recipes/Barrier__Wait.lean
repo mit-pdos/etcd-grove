@@ -12,7 +12,7 @@ once), `T/v3_closed_watch_test.go:181` (a closed client: an error, the fixed
 `etcdState_lb` the `etcdLb γ σg` its `Q` keeps; the reply's model is the range's answer at `σg`'s
 store (`kvStep`'s linearizable range). No key: `r = σg.kv.rev`. Else `WaitEvents.spec` from
 `σg.kv.rev + 1` for `[DELETE]` (`etcdState_revFits`, with one revision to spare, for the `int64`
-addition: `req/go_etcd_io_etcd_api_v3.md`): the first delete of `key` after `σg`, at a revision
+addition: W0's `etcdLb_revFits`): the first delete of `key` after `σg`, at a revision
 `r > σg.kv.rev ≥ σ0.kv.rev` of the history (`goneAt`'s second case).
 
 **Changes**: old spec required the recipes' client invariant and stated absence (`etcdAbsent`); now
@@ -49,7 +49,7 @@ def Barrier.Wait.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ barrierAt b c γ who key ∗ etcdPeek γ ∗ etcdLb γ σ0 }}
     (App (Val (b @!! go.GoType.PointerType Barrier.ty @!! go!"Wait")) (Val #()))
   {{ (err : GoInterface), RET #err;
-      ⌜err ≠ GoInterface.nil⌝ ∨
+      (⌜err ≠ GoInterface.nil⌝ ∗ recipeErrOk err) ∨
       (⌜err = GoInterface.nil⌝ ∗ ∃ (σ : State) (r : Nat), etcdLb γ σ ∗
         ⌜σ0.kv.rev ≤ r ∧ r ≤ σ.kv.rev ∧ goneAt σ.kv key r⌝) }}
 

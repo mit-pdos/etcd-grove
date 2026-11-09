@@ -104,3 +104,23 @@ func ReqSessionTTL(cli *clientv3.Client, ttl int) {
 	}
 	s.Orphan()
 }
+
+// REQ concurrency/session-loop: sessions made again and again, each awaited with Done (leasing's
+// monitor, the grpc proxy's re-registration): nothing once-only per session.
+// Users: client/leasing/kv.go:129-157 (monitorSession), server/proxy/grpcproxy/register.go:42-58.
+// Assumes: none.
+// Specs: NewSession.spec, Session.Done.spec, Session.Close.spec.
+func ReqSessionLoop(ctx context.Context, cli *clientv3.Client) {
+	for ctx.Err() == nil {
+		s, err := concurrency.NewSession(cli)
+		if err != nil {
+			continue
+		}
+		select {
+		case <-s.Done():
+		case <-ctx.Done():
+			_ = s.Close()
+			return
+		}
+	}
+}

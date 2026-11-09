@@ -1,6 +1,6 @@
 /-
 `BTree.Clone` (`k8s.io/utils/third_party/forked/golang/btree/btree.go`).
-Users: etcd's cache `newClonedSnapshot` (`cache/snapshot.go:30`): the clone is frozen (`ownBTree_persist`) and read by `Get`s concurrently with writes to the original (snippet `btree/ReqFrozenClone`).
+Users: etcd's cache `newClonedSnapshot` (`cache/snapshot.go:30`): the clone is frozen (`ownBTree_persist`) and read by `Get`s concurrently with writes to the original (snippet `btree/ReqFrozenClone`); mvcc's `treeIndex.Compact` (`index.go:209`: the clone iterated outside the lock while the original is written; snippet `btree/ReqCompactClone`).
 Proof sketch: as the old proof (`specs-ref/Proof/k8s_io/utils/third_party/forked/golang/btree/BTree__Clone.lean`),
 over the realization of the predicates given in `Api.lean`'s and `Internal.lean`'s headers.
 Changes: restated over the opaque vocabulary of `Api.lean` (the model

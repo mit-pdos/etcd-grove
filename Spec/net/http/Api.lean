@@ -194,6 +194,14 @@ opaque reqOwn (r : Loc) (R : HReq) (bd : GoInterface) : IProp GF := iprop(True)
 /-- **An owned header map** `hm` (an `http.Header`) holding `hs`. Exclusive. -/
 opaque hdrMap (hm : GoInterface) (hs : List (GoString × GoString)) : IProp GF := iprop(True)
 
+/-- **A read-only header map** `hm` holding `hs` (a received request's, a client's response's, a
+sent request's). Persistent. -/
+opaque hdrRO (hm : GoInterface) (hs : List (GoString × GoString)) : IProp GF := iprop(True)
+
+/-- **A sent request** `r` (after `RoundTrip`), read-only: its line and headers `R` (`r.URL`,
+`r.Header` readable for good; Go's `RoundTrip` does not modify it). Persistent. -/
+opaque reqRO (r : Loc) (R : HReq) : IProp GF := iprop(True)
+
 /-- **A body reader** `rd` (an `io.ReadCloser`) that has yielded `r`: every prefix it yields meets
 `Pre` (persistent knowledge), and a complete stream (ended by `EOF`) meets `Φ`. Exclusive. Its
 contract (`Read`, `Close`) is `readerAt_read.spec`, `readerAt_close.spec`. -/
@@ -247,9 +255,8 @@ def respPre (P : Proto GF) (R : HReq) (τ : GName) (st : w64) (hs : List (GoStri
 address `R.host` serving `P`, with the client's knowledge under its name `τ`, and the ticket if the
 request is `onceOnly`: an error (the ticket lost), or the response of one handler run of the
 request: the status it set, the headers it committed (`hdrView`), its body (prefixes of what that
-handler wrote, with the protocol's knowledge). The request's memory is the transport's for good
-(Go: "RoundTrip must always close the body"; the request may be read until the response body is
-closed). -/
+handler wrote, with the protocol's knowledge). The request is given back read-only (`reqRO`: Go's
+`RoundTrip` does not modify it; its body is the transport's, which closes it). -/
 def roundTripperOk (rt : GoInterface) : IProp GF :=
   iprop(∃ i : GoInterfaceOk, ⌜rt = interface.ok i⌝ ∗
     □ ∀ (r : Loc) (R : HReq) (bd : GoInterface) (τ : GName) (P : Proto GF)
@@ -259,7 +266,7 @@ def roundTripperOk (rt : GoInterface) : IProp GF :=
        else iprop(readerAt bd (fun _ => iprop(True)) Φb [] ∗ □ (∀ B, Φb B -∗ P.body R τ B))) -∗
       (if onceOnly R then reqTicket τ else iprop(True)) -∗
       ▷ (∀ (resp : Loc) (err : GoInterface),
-          ((⌜err ≠ interface.nil⌝ ∗ errOk err) ∨
+          reqRO r R ∗ ((⌜err ≠ interface.nil⌝ ∗ errOk err) ∨
            (⌜err = interface.nil⌝ ∗ ∃ (st : w64) (hs hc : List (GoString × GoString))
               (rd : GoInterface),
               ⌜hdrView hs hc⌝ ∗ respAt resp st hc rd ∗ readerCloser rd ∗
@@ -267,21 +274,34 @@ def roundTripperOk (rt : GoInterface) : IProp GF :=
           Ψ (PairV #resp #err)) -∗
       WP (App (Val #(methods i.ty go!"RoundTrip" i.v)) (Val #r)) {{ Ψ }})
 
-/-- **A handler serving the requests under the mux pattern `pfx` with protocol `P`** (persistent).
-`ServeHTTP(w, r)` of a received request under `pfx` (with the client's knowledge, its ticket if
-`onceOnly`, its body reader carrying the body knowledge at `EOF`) and a fresh response writer (an
-`http.Flusher`: Go's are), on a goroutine holding its thread token: it returns the token and the
-writer, committed, or panics (`Serve` recovers it and drops the connection). -/
+/-- **What a handler run gets** (`ServeHTTP(w, r)`): a received request under `pfx` with the
+client's knowledge, its ticket if `onceOnly`, its body reader carrying the body knowledge at `EOF`,
+a fresh response writer (an `http.Flusher`: Go's are), and its goroutine's thread token. -/
+def servePre (P : Proto GF) (pfx : GoString) (w : GoInterface) (r : Loc) (R : HReq) (τ : GName)
+    (rd : GoInterface) : IProp GF :=
+  iprop(⌜pathUnder pfx R.path⌝ ∗ srvReq r R rd ∗ □ P.hreq R τ ∗
+    (if onceOnly R then reqTicket τ else iprop(True)) ∗
+    readerAt rd (fun _ => iprop(True)) (fun B => iprop(□ P.body R τ B)) [] ∗
+    respW w R τ P none [] [] ∗ threadTok)
+
+/-- **What a handler run gives back**: the token and the writer, committed, or a panic (`Serve`
+recovers it and drops the connection). -/
+def serveDone (P : Proto GF) (w : GoInterface) (R : HReq) (τ : GName) (v : val) : IProp GF :=
+  iprop(threadTok ∗ ((∃ st hs bs, respW w R τ P (some st) hs bs) ∨
+    (⌜v.isPanic = true⌝ ∗ ∃ c hs bs, respW w R τ P c hs bs)))
+
+/-- **A handler serving the requests under the mux pattern `pfx` with protocol `P`** (persistent):
+`ServeHTTP` of every run `servePre` describes ends in `serveDone`. -/
 def handlerOk (h : GoInterface) (P : Proto GF) (pfx : GoString) : IProp GF :=
   iprop(∃ i : GoInterfaceOk, ⌜h = interface.ok i⌝ ∗
     □ ∀ (w : GoInterface) (r : Loc) (R : HReq) (τ : GName) (rd : GoInterface),
-      ⌜pathUnder pfx R.path⌝ -∗ srvReq r R rd -∗ □ P.hreq R τ -∗
-      (if onceOnly R then reqTicket τ else iprop(True)) -∗
-      readerAt rd (fun _ => iprop(True)) (fun B => iprop(□ P.body R τ B)) [] -∗
-      respW w R τ P none [] [] -∗ threadTok -∗
+      servePre P pfx w r R τ rd -∗
       WP (App (App (Val #(methods i.ty go!"ServeHTTP" i.v)) (Val #w)) (Val #r))
-        {{ v, threadTok ∗ ((∃ st hs bs, respW w R τ P (some st) hs bs) ∨
-            (⌜v.isPanic = true⌝ ∗ ∃ c hs bs, respW w R τ P c hs bs)) }})
+        {{ v, serveDone P w R τ v }})
+
+/-- **A URL `NewRequest` accepts** with any path (pure, opaque): one `url.Parse` returned (a peer
+URL from `types.NewURLs`), so its `String()` parses again. -/
+opaque urlOk (u : _root_.Perennial.net.url.URL) : Prop := True
 
 end vocab
 
@@ -298,6 +318,8 @@ def persistent.spec : Prop :=
   (∀ r R rd, Persistent (srvReq (GF := GF) r R rd)) ∧
   (∀ m L, Persistent (muxAt (GF := GF) m L)) ∧
   (∀ e, Persistent (errOk (GF := GF) e)) ∧
+  (∀ hm hs, Persistent (hdrRO (GF := GF) hm hs)) ∧
+  (∀ r R, Persistent (reqRO (GF := GF) r R)) ∧
   (∀ rt, Persistent (roundTripperOk (GF := GF) rt)) ∧
   (∀ h P pfx, Persistent (handlerOk (GF := GF) h P pfx))
 

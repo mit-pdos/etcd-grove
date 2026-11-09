@@ -129,3 +129,53 @@ on a nil `myKey` when others wait and this process's `Enter` did not create a ke
   `Session.Lease`.
 * `go_etcd_io_etcd_api_v3.md` (new), `## from 1f`: revision bound with one to spare; states'
   well-formedness.
+
+## Round 1 repairs (2026-11-09)
+
+Reviews: `reviews/1f-provability-1.md` (F1–F4, S1–S8), `reviews/1f-completeness-1.md` (C-1–C-9).
+Built against W0's round 2 (`etcdPerm`/`etcdPeek`, `putOnce`, `etcdLb_init`, `etcdLb_revFits`,
+`callErr_errorsNew`) and 1b's `ApiWatch.lean`: `etc/specs-build.sh --dir
+Spec/go_etcd_io/etcd/client/v3/experimental/recipes Spec/fmt` (41 modules OK); snippets vet and are
+gofmt-clean.
+
+* **F1** (`WaitEvents` on `""`): the watch specs are stated over 1b's `watchEvents w` with `w` the
+  request as the member reads it (`(opWatchM key [withRevM rev]).watchReq`: an empty key is
+  `"\x00"`).
+* **F2** (the dequeued value on the watch path): the sketches cite W0's `kvStep`'s `putOnce evs`
+  (`req/go_etcd_io_etcd_api_v3.md` item 3, done by W0).
+* **F3, C-3, C-7** (errors' shape): new `recipeErrOk err` (etcd's `errVal`, any `callErr`, a
+  sentinel, `Fmt.scanErr`), given by every error arm of `waitEvents`, `WaitEvents`,
+  `WaitPrefixEvents`, `Barrier.Wait`, both `Dequeue`s, `PriorityQueue.Enqueue`, `newSequentialKV`,
+  `enteredClients`, `Enter`, `Leave`, `Lock`/`RLock`, `waitOnLastRev`; `errorsIs_recipeErr` takes
+  it; `Enter`'s "not `ErrTooManyClients`" from `recipeErr_ne`, `recipeErr_fresh` (now also W0's
+  `callErr_errorsNew`).
+* **F4** (`Sscanf`): new trust-boundary spec `Spec/fmt/Sscanf.lean` (`Fmt.Sscanf_d.spec`, the `%d`
+  form into an `*int`: digits below `2^63` give `nil` and the value; otherwise some value or
+  `Fmt.scanErr`), vocabulary `Spec/fmt/Api.lean` (`decValue`, `scanErr`); 1f owns `Spec/fmt/`.
+* **C-1** (double barrier): `Enter` takes one-shot updates for creating its waiter key (`Qc`) and
+  for deleting that key (`∀ k`, `Qd k`), `Leave` one for deleting its key; `dbPerm` (now W0's
+  `etcdPerm`) covers only the `ready` key: its put after `count` waiters (`Enter`'s, `own = none`),
+  its delete after a revision whose only waiter is this process's key (`Leave`'s, `own = some k`;
+  provability S3). `Enter`'s post says which path ran: nothing created (`ErrTooManyClients` with the
+  fact, both updates back), the creation's error, or created (`nil`; `ErrTooManyClients` with the
+  key deleted by `Qd`; another error).
+* **C-2** (sequence numbers): `newSequentialKV`'s and `PriorityQueue.Enqueue`'s update binds the
+  read's revision `R` and `seqNext (σ.kv.storeAt R) prefix n` (one past the last key's number, by
+  `Sscanf`), the guard `R + 1`.
+* **C-4** (time-free exclusion): `Lock`/`RLock` and `Enter`/`Leave` docstrings and the Api header say
+  that with W0's `EnvCfg.leaseExpiry = false` the facts are the tests' exclusion; snippets
+  `ReqNoTwoHolders` (rwmutex.go), `ReqEnterCount` (doublebarrier.go). Decision 2 above is
+  superseded.
+* **C-5, C-6**: snippets `ReqDequeueWaitThenFed` (queue.go), `ReqSamePriority`,
+  `ReqPQEveryItemOnce` (pqueue.go).
+* **S1**: `waitEvents` restated over 1b's `watchChAt`, `watchChAt_recv`, `watchRespAt`, `eventOwn`
+  and `WatchResponse.Err.spec` (any position with `done = some (rev - 1)`: `Watch`'s `init` or
+  `closed`); the slots `watchChanAt`, `watchEvOwn`, `WatchEv`, `watchHist` removed; `evTyp`,
+  `matchCount` over 1b's `WEv`.
+* **S4**: `etcdPeek` is W0's; `dbPerm` is `etcdPerm` of the `ready` writes.
+* **S7, C-8**: `RWMutex.Unlock`/`RUnlock` with a nil `myKey` added to the nonissue (retitled).
+* **S8**: `waitOnLastRev` takes `0 < rev`.
+* Not done: S6 (updates given back on a deleted `RemoteKV`, a `Dequeue`'s definite error: margins);
+  S5 is 2a's (`callErr`'s `.other` and `errors.Is`, noted in `errorsIs_recipeErr`'s docstring);
+  `sessionAt` stays a slot for 1d's `isSession` (same signature), to keep this batch's build off
+  1d's draft.

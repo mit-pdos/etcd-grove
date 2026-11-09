@@ -6,12 +6,13 @@ Users: `Mutex.Lock` (`myRev - 1`), `Election.Campaign` (`leaderRev - 1`).
 
 Proof sketch: `WithLastCreate.spec`, `WithMaxCreateRev.spec`, `append` (W0's option models: a
 prefix get sorted by create revision, descending, limit 1, create revisions at most `n`); a loop
-of the KV contract's `Get` (a linearizable read, update from `etcdPerm`, `readEff`): an empty
-answer at `σ` means no key under the prefix has a create revision at most `n` (`RangeReq.answers`
-with the filter, `n > 0` so the filter is on): return `nil` with `etcdLb γ σ`; else
-`waitDelete.spec` on the newest such key from the reply's revision, an error returned.
+of the KV contract's `Get` (a linearizable read, its update from `etcdPeek`; `etcdLb_reach` inside
+it gives `Reach σ0`): an empty answer at `σ` means no key under the prefix has a create revision at
+most `n` (`RangeReq.answers` with the filter, `n > 0` so the filter is on): return `nil` with
+`etcdLb γ σ`; else `waitDelete.spec` on the newest such key from the reply's revision, an error
+returned.
 
-Changes: from `specs-ref`'s `waitDeletes.lean`: over the cluster's states.
+Changes: from `specs-ref`'s `waitDeletes.lean`: over the cluster's states; round 1: `σ0`.
 
 Margin: none.
 -/
@@ -37,15 +38,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
-/-- `waitDeletes(ctx, c, pfx, n)` (`n > 0`): `nil` and, at a state the cluster reached, no key under `pfx` is older than `n + 1`; or an error. -/
+/-- `waitDeletes(ctx, c, pfx, n)` (`n > 0`): `nil` and, at a state the cluster reached after `σ0`, no key under `pfx` is older than `n + 1`; or an error. -/
 def waitDeletes.spec : Prop :=
   ∀ (ctx : GoInterface) (c : Loc) (γ : Cluster) (who : Principal) (pfx : GoString) (n : w64)
-    (T : State → State → Prop),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isClient c γ who ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ etcdPerm γ T ∗ ⌜effIn readEff T⌝ ∗ ⌜0 < sint.Z n⌝ }}
+    (σ0 : State),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isClient c γ who ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ etcdPeek γ ∗ etcdLb γ σ0 ∗ ⌜0 < sint.Z n⌝ }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.client.v3.concurrency.waitDeletes)) (Val #ctx)) (Val #c)) (Val #pfx)) (Val #n))
   {{ (err : GoInterface), RET #err;
       (⌜err = GoInterface.nil⌝ ∗ ∃ σ : State, etcdLb γ σ ∗
-          ⌜noOlder pfx ((sint.Z n).toNat + 1) σ.kv.store⌝) ∨
+          ⌜Reach σ0 σ ∧ noOlder pfx ((sint.Z n).toNat + 1) σ.kv.store⌝) ∨
       ⌜err ≠ GoInterface.nil⌝ }}
 
 end spec

@@ -19,7 +19,9 @@ them.
 * `evalCmpM m c`: `evalCmp(resp, cmp)` (which is not etcd's comparison:
   `issues/leasing-evalcmp-missing-key.md`).
 * `inRangeM k b e`, `isBadOpM o`: `inRange`, `isBadOp`.
-* `gatherRespM ms os`, `gatherRespOk ms os`: `gatherResponseOps` (one level deep, as leasing calls it).
+* `gatherL os` (`gatherOps`), `gatherRespL ms os`, `respOkL ms os` (`gatherResponseOps`), at any depth.
+* `recAtHdr key σ m`: the cached response is `key`'s record at its header's revision; `entryOk γL key σ m`:
+  that, or the key marked as written through the KV (`lkvMarks`), and `cachedRespOk` either way.
 * `guardedReply rq res m`: a transaction reply `m` whose guard held and whose then-branch was the
   single operation of the request `rq`, against `rq`'s answer `res` (what `tryModifyOp`, `revoke`
   and `serverTxn` turn into the caller's reply).
@@ -145,23 +147,51 @@ def guardedReply (res : Resp) (m : TxnRespM) : Prop :=
   ∃ b rev o r, res = .ok b ∧ bodyRevOp b = some (rev, o) ∧ m.succeeded = true ∧
     m.hdr.revision = W64 rev ∧ m.responses = [r] ∧ r.ofResp o
 
-/-- **`gatherResponseOps(resps, ops)`** for operations at most one level deep: an operation that
-is not a transaction is kept, a transaction contributes the branch its response (at the same index)
-took. -/
-def gatherRespM : List ResponseOpM → List OpM → List OpM
-  | _, [] => []
-  | ms, o :: os =>
-    (if o.t = tTxn then
-      (match ms.head? with
-       | some (.txn _ ok _) => if ok then o.thenOps else o.elseOps
-       | _ => [])
-     else [o]) ++ gatherRespM ms.tail os
+mutual
+/-- **`gatherOps`** of one operation: a transaction replaced by its branches' operations, at any
+depth. -/
+def gatherOne : OpM → List OpM
+  | o@{ thenOps, elseOps, .. } => if o.t = tTxn then gatherL thenOps ++ gatherL elseOps else [o]
+/-- **`gatherOps(ops)`**. -/
+def gatherL : List OpM → List OpM
+  | [] => []
+  | o :: os => gatherOne o ++ gatherL os
+end
 
-/-- `gatherResponseOps` does not panic and stays one level deep: each transaction among `os` has a
-transaction response at its index and branches of no transaction. -/
-def gatherRespOk (ms : List ResponseOpM) (os : List OpM) : Prop :=
-  ∀ (i : Nat) (o : OpM), os[i]? = some o → o.t = tTxn →
-    (∀ o' ∈ o.thenOps ++ o.elseOps, o'.t ≠ tTxn) ∧ ∃ h ok rs, ms[i]? = some (.txn h ok rs)
+mutual
+/-- `gatherResponseOps` of one operation with its response: a transaction replaced by the operations
+of the branch its response took, at any depth. -/
+def gatherRespOne : Option ResponseOpM → OpM → List OpM
+  | r, o@{ thenOps, elseOps, .. } =>
+    if o.t = tTxn then
+      (match r with
+       | some (.txn _ ok rs) => if ok then gatherRespL rs thenOps else gatherRespL rs elseOps
+       | _ => [])
+    else [o]
+/-- **`gatherResponseOps(resps, ops)`**. -/
+def gatherRespL : List ResponseOpM → List OpM → List OpM
+  | _, [] => []
+  | ms, o :: os => gatherRespOne ms.head? o ++ gatherRespL ms.tail os
+end
+
+mutual
+/-- `gatherResponseOps` does not panic: a transaction has a transaction response at its index, and
+so on in the branch it took. -/
+def respOkOne : Option ResponseOpM → OpM → Prop
+  | r, o@{ thenOps, elseOps, .. } =>
+    o.t = tTxn → ∃ h ok rs, r = some (.txn h ok rs) ∧
+      (if ok then respOkL rs thenOps else respOkL rs elseOps)
+def respOkL : List ResponseOpM → List OpM → Prop
+  | _, [] => True
+  | ms, o :: os => respOkOne ms.head? o ∧ respOkL ms.tail os
+end
+
+/-- **A cached response is `key`'s record at its header's revision** (a past state's store: what an
+acquisition caches, and what stays cached while the key is not written through the KV). -/
+def recAtHdr (key : Key) (σ : State) (m : RangeRespM) : Prop :=
+  ∃ (h : HeaderM) (r : Nat), m.hdr = some h ∧ h.revision = W64 r ∧ 1 ≤ r ∧ r ≤ σ.kv.rev ∧
+    m.kvs = ((σ.kv.storeAt r key).map (fun rc => KeyValueM.ofKV (KV.ofRec key rc))).toList ∧
+    m.count = W64 m.kvs.length ∧ m.more = false
 
 /-! ## Resources -/
 
@@ -186,6 +216,11 @@ opaque waitCloser (ch : GoChan) : IProp GF := iprop(True)
 
 /-- One may receive from the waiter channel `ch` (persistent). -/
 opaque waitRecv (ch : GoChan) : IProp GF := iprop(True)
+
+/-- **What the cache keeps of each entry's response** (`m`, with an `etcdLb γ σ`): its shape, and
+`key`'s record at its header's revision unless the key is marked as written through the KV. -/
+def entryOk (γL : LeasingNames) (key : Key) (σ : State) (m : RangeRespM) : IProp GF :=
+  iprop(⌜cachedRespOk key σ m⌝ ∗ (⌜recAtHdr key σ m⌝ ∨ lkvMarks γL (fun k => k = key)))
 
 /-- **`monitorSession`'s resources** (exclusive). -/
 opaque sessMonitor (lkv : Loc) (γL : LeasingNames) : IProp GF := iprop(True)

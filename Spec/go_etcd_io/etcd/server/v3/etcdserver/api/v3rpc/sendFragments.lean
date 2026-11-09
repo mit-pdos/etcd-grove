@@ -48,7 +48,7 @@ def sendFragments.spec : Prop :=
   ∀ (wr : Loc) (m : WireWatchRespM) (mrb : w64) (send : GoFunc)
     (S : List WireWatchRespM → IProp GF),
   (∀ (ms : List WireWatchRespM) (p : Loc) (m' : WireWatchRespM),
-    {{ S ms ∗ wireWatchRespOwn p DFrac.discard m' ∗ ⌜m.fragPrefix (ms ++ [m'])⌝ }}
+    {{ S ms ∗ wireWatchRespOwn p DFrac.discard m' ∗ ⌜fragPrefix m (ms ++ [m'])⌝ }}
       (App (Val #send) (Val #p))
     {{ (err : GoInterface), RET #err;
         (⌜err = GoInterface.nil⌝ ∗ S (ms ++ [m'])) ∨ ⌜err ≠ GoInterface.nil⌝ }}) →
@@ -56,7 +56,7 @@ def sendFragments.spec : Prop :=
       wireWatchRespOwn wr DFrac.discard m ∗ S [] }}
     (App (App (App (Val (@! v3rpc.sendFragments)) (Val #wr)) (Val #mrb)) (Val #send))
   {{ (err : GoInterface), RET #err;
-      (⌜err = GoInterface.nil⌝ ∗ ∃ ms, ⌜m.fragmentsOf ms⌝ ∗ S ms) ∨ ⌜err ≠ GoInterface.nil⌝ }}
+      (⌜err = GoInterface.nil⌝ ∗ ∃ ms, ⌜fragmentsOf m ms⌝ ∗ S ms) ∨ ⌜err ≠ GoInterface.nil⌝ }}
 
 end spec
 

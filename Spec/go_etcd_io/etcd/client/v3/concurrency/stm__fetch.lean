@@ -5,7 +5,7 @@ Users: the user's closure through `STM` (`stmAt_methods`), `runSTM`, `stmSeriali
 
 Proof sketch: the read set's lookups; else `OpGet.spec` per key (the gets' options `gs`), the KV
 contract's `Txn(...).Then(gets...).Commit()` (a read-only transaction: its persistent update
-from the read permission, `readEff`); its reply's nested ranges (W0's model: one per key, each
+from the read permission, `etcdPeek`); its reply's nested ranges (W0's model: one per key, each
 with its view's revision as header) persisted, `readSet.add.spec` (each read `readOf` the
 reply's state); an error: `panic(stmError{err})` (`stmRet`'s abort).
 

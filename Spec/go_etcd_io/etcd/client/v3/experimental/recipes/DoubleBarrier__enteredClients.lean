@@ -4,8 +4,9 @@ WithSort(CreateRevision, Ascend))`.
 
 **Users**: `Enter` (twice). Internal.
 
-**Proof sketch**: `isClient_KV`; `KV.GetTriple` with an update made of `etcdPeek` (`etcdLb γ σ`,
-`Reach σ0 σ` by `etcdLb_reach`); the reply is the range's answer at `σ`'s store, or an error.
+**Proof sketch**: `isClient_KV`; `KV.GetTriple` (`b.ctx`: `ctxOk`, `ctxPrin`) with an update made of
+`etcdPeek` (its commit's `etcdLb γ σ`; `Reach σ0 σ` by `etcdLb_reach` inside it); the reply is the
+range's answer at `σ`'s store, or an error (`errVal`, `indefCall`: `recipeErrOk`).
 
 **Changes**: old spec over the recipes' client invariant; now the read's answer.
 
@@ -45,7 +46,7 @@ def DoubleBarrier.enteredClients.spec : Prop :=
           ⌜Reach σ0 σ ∧ m.hdr.map (·.revision) = some (W64 σ.kv.rev) ∧ m.ofAns a ∧
             (opGetM (waitersPfx key) [withPrefixM, withSortM SortByCreateRevision SortAscend]).rangeReq.answers
               σ.kv.store a⌝) ∨
-       ⌜err ≠ GoInterface.nil ∧ resp = null⌝) }}
+       (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ recipeErrOk err)) }}
 
 end spec
 

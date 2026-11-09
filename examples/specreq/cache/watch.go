@@ -117,3 +117,42 @@ func ReqWatchRejected(ctx context.Context, c *cache.Cache, pfx string) {
 		panic("watch-rejected: more than one response")
 	}
 }
+
+// REQ cache/progress-after-events: a progress notification received after the events of a
+// revision r is not below r.
+// Users: tests/integration/cache_test.go TestCacheRequestProgress (reads its puts' events, then
+// RequestProgress, then progressRev >= the last event's revision).
+// Assumes: k is under the cache's prefix and written only here.
+// Specs: Cache.Watch.spec, Cache.RequestProgress.spec, cacheWatchAt_recv (the seen revision).
+func ReqProgressAfterEvents(ctx context.Context, cli *clientv3.Client, c *cache.Cache, k string) {
+	wch := c.Watch(ctx, k, clientv3.WithRev(2))
+	presp, err := cli.Put(ctx, k, "v")
+	if err != nil {
+		return
+	}
+	r := presp.Header.Revision
+	seen := false
+	for wresp := range wch {
+		if wresp.Canceled {
+			return
+		}
+		if !seen {
+			var es []*mvccpb.Event = wresp.Events
+			for _, e := range es {
+				if e.Kv.ModRevision == r {
+					seen = true
+				}
+			}
+			if seen {
+				c.RequestProgress(ctx)
+			}
+			continue
+		}
+		if wresp.IsProgressNotify() {
+			if wresp.Header.Revision < r {
+				panic("progress-after-events: a notification below a delivered event")
+			}
+			return
+		}
+	}
+}

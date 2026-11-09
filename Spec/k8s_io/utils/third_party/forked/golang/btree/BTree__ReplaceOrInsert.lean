@@ -1,6 +1,6 @@
 /-
 `BTree.ReplaceOrInsert` (`k8s.io/utils/third_party/forked/golang/btree/btree.go`).
-Users: etcd's cache `store.Restore` (`cache/store.go:111`) and `store.applyEventsLocked` (`:161`): a put replaces the key's item (snippet `btree/ReqSortedMap`).
+Users: etcd's cache `store.Restore` (`cache/store.go:111`) and `store.applyEventsLocked` (`:161`): a put replaces the key's item (snippet `btree/ReqSortedMap`); mvcc's `treeIndex.Put`, `Insert` (`index.go:62, 265`).
 Proof sketch: as the old proof (`specs-ref/Proof/k8s_io/utils/third_party/forked/golang/btree/BTree__ReplaceOrInsert.lean`),
 over the realization of the predicates given in `Api.lean`'s and `Internal.lean`'s headers.
 Changes: restated over the opaque vocabulary of `Api.lean` (the model

@@ -38,3 +38,57 @@ func ReqPriorityOrder(c *clientv3.Client, key string) {
 		}
 	}
 }
+
+// REQ recipes/pqueue-same-priority: two items of one priority get distinct keys in enqueue order,
+// so both are dequeued, the first one first.
+// Users: T/v3_queue_test.go:99-116 ("[0, 2] priority for priority collision to test seq keys").
+// Assumes: every key with the byte prefix key+"/" is the queue's (owned), none at the start.
+// Specs: PriorityQueue.Enqueue.spec (the read's revision R and seqNext: the new key is one past the
+// last at R, __prefix unchanged since), Fmt.Sscanf_d.spec, PriorityQueue.Dequeue.spec.
+func ReqSamePriority(c *clientv3.Client, key string) {
+	q := recipe.NewPriorityQueue(c, key)
+	if err := q.Enqueue("first", 1); err != nil {
+		return
+	}
+	if err := q.Enqueue("second", 1); err != nil {
+		return
+	}
+	for _, want := range []string{"first", "second"} {
+		v, err := q.Dequeue()
+		if err != nil {
+			return
+		}
+		if v != want {
+			panic("pqueue-same-priority: lost or reordered")
+		}
+	}
+}
+
+// REQ recipes/pqueue-once: concurrent consumers of a priority queue never get the same item twice,
+// and items of one priority are not lost (distinct keys).
+// Users: T/v3_queue_test.go:119-127, 222-231 (flatPriorityQueue with priorities 0 and 1).
+// Assumes: key+"/" owned, empty at the start.
+// Specs: PriorityQueue.Enqueue.spec, PriorityQueue.Dequeue.spec.
+func ReqPQEveryItemOnce(c *clientv3.Client, key string) {
+	q := recipe.NewPriorityQueue(c, key)
+	if err := q.Enqueue("x", 0); err != nil {
+		return
+	}
+	if err := q.Enqueue("y", 0); err != nil {
+		return
+	}
+	got := make(chan string, 2)
+	for i := 0; i < 2; i++ {
+		go func() {
+			v, err := recipe.NewPriorityQueue(c, key).Dequeue()
+			if err != nil {
+				v = ""
+			}
+			got <- v
+		}()
+	}
+	v1, v2 := <-got, <-got
+	if v1 != "" && v1 == v2 {
+		panic("pqueue-once: one item dequeued twice")
+	}
+}

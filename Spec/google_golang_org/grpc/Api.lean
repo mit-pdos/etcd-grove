@@ -150,6 +150,19 @@ opaque reservedKey : GoString → Prop
 does not reserve. -/
 def mdSeen (md0 md : MD) : Prop := ∀ k, ¬ reservedKey k → md.get k = md0.get k
 
+/-- ASCII lowercase (grpc's `strings.ToLower` of metadata keys, which are ASCII). -/
+def lowerKey (k : GoString) : GoString :=
+  k.map (fun b => if W8 65 ≤ b ∧ b ≤ W8 90 then b + W8 32 else b)
+
+/-- `md.Set(k, vs...)`: the key's values replaced. -/
+def MD.set (md : MD) (k : GoString) (vs : List GoString) : MD :=
+  (md.filter (fun e => decide (e.1 ≠ lowerKey k))) ++ [(lowerKey k, vs)]
+
+/-- `Pairs(kv...)` / `AppendToOutgoingContext`'s pairs: keys lowercased, in order. -/
+def MD.ofPairs : List GoString → MD
+  | k :: v :: rest => (lowerKey k, [v]) :: MD.ofPairs rest
+  | _ => []
+
 /-- **The outcome of a run**: the reply's content, or a status. -/
 inductive Outcome where
   | ok (c : Content)
@@ -192,8 +205,8 @@ structure DialCfg where
 /-- A server being built: its chained interceptors and its registrations (method name, handler of
 the `MethodDesc`/`StreamDesc`, service value). -/
 structure SrvCfg where
-  ics : List val
-  sics : List val
+  ics : List GoFunc
+  sics : List GoFunc
   regs : List (GoString × val × GoInterface)
   sregs : List (GoString × val × GoInterface)
 
@@ -208,6 +221,12 @@ opaque ownErr (err : GoInterface) : IProp GF := iprop(True)
 
 /-- **The outgoing metadata of `ctx` is `md`**. -/
 opaque outMD (ctx : GoInterface) (md : MD) : IProp GF := iprop(True)
+
+/-- **A `metadata.MD` map at `m` holding `md`** (fraction `dq` of the map; its value slices
+read-only). Intended realization: Perennial's `ownMap m dq` of the keys to slices, each slice
+`↦*□` its strings (`mdAt_index`, a law of the realization, gives the map lookup `md[k]` the
+server's interceptors make). -/
+opaque mdAt (m : Loc) (dq : DFrac) (md : MD) : IProp GF := iprop(True)
 
 /-- **A client connection** (see the header). -/
 opaque connAt (cc : Loc) (A : GoString → IProp GF) (ui si : Option val) (R : MD → IProp GF) :
@@ -271,12 +290,12 @@ protobuf-go's). -/
 opaque codecOk (cd : GoInterface) : IProp GF := iprop(True)
 
 /-- **The chained unary interceptor of `ics`** (persistent): what grpc passes to a handler. -/
-opaque icChain (ics : List val) (ic : val) : IProp GF := iprop(True)
+opaque icChain (ics : List GoFunc) (ic : val) : IProp GF := iprop(True)
 
 /-- **A unary server handler continuation** (what an interceptor gets as `handler`): calling it is
 running the rest of the chain `ics` and then `h` (the generated handler's call of the service's
 method). -/
-opaque icHandler (ics : List val) (k : val) (h : val) : IProp GF := iprop(True)
+opaque icHandler (ics : List GoFunc) (k : val) (h : val) : IProp GF := iprop(True)
 
 /-- **grpc's one-attempt invoker of `cc`** (the `UnaryInvoker` an interceptor gets). -/
 opaque attemptOk (cc : Loc) (A : GoString → IProp GF) (R : MD → IProp GF) (inv : val) : IProp GF :=
@@ -499,6 +518,24 @@ def srvStream_context.spec : Prop := ∀ (st : GoInterface) (g : StreamName) (S 
     (App (Val (st @!! google_golang_org.grpc.ServerStream.ty @!! go!"Context")) (Val #()))
   {{ (ctx : GoInterface), RET #ctx; srvRecv st g S md i ∗ rpcCtx ctx md }}
 
+/-- A context with no outgoing metadata (W0's `ctxNoMeta`) has none. -/
+def outMD_noMeta.spec : Prop := ∀ ctx, Context.ctxNoMeta (GF := GF) ctx ⊢ outMD ctx []
+
+/-- Every context has its outgoing metadata (what `FromOutgoingContext` reads), one. -/
+def outMD_ctxOk.spec : Prop := ∀ ctx, Context.ctxOk (GF := GF) ctx ⊢ ∃ md, outMD ctx md
+def outMD_agree.spec : Prop := ∀ ctx md md',
+  outMD (GF := GF) ctx md ∗ outMD ctx md' ⊢ ⌜md = md'⌝
+
+/-- A child context (`WithCancel`, `WithTimeout`) and a `WithValue` at another key keep it. -/
+def outMD_child.spec : Prop := ∀ ctx ctx' md,
+  outMD (GF := GF) ctx md ∗ Context.ctxChild ctx ctx' ⊢ outMD ctx' md
+def outMD_value.spec : Prop := ∀ (ctx ctx' : GoInterface) (ki : GoInterfaceOk) md,
+  outMD (GF := GF) ctx md ∗ Context.ctxValueAt ctx ctx' (GoInterface.ok ki) ∗
+    ⌜ki.ty ≠ google_golang_org.grpc.metadata.mdOutgoingKey.ty⌝ ⊢ outMD ctx' md
+
+def mdAt_persist.spec : Prop := ∀ m md, mdAt (GF := GF) m (DFrac.own 1) md ⊢ |==> mdAt m DFrac.discard md
+def mdAt_discard_persistent.spec : Prop := ∀ m md, Persistent (mdAt (GF := GF) m DFrac.discard md)
+
 /-- **Binding an address**, once: the program chooses the contracts. -/
 def addrFree_bind.spec : Prop := ∀ ep (C : AddrContract (GF := GF)),
   addrFree ep ⊢ |==> addrAt ep C
@@ -525,22 +562,22 @@ def start.spec : Prop := ∀ (gs : Loc) (B : SrvCfg) (lis : GoInterface) (ep : G
 /-- **The chain's call** (WP form): the chained interceptor runs the first interceptor with a
 continuation running the rest, then the handler `h`; with no interceptor grpc passes `nil` and the
 generated handler calls the method itself (`icChain [] ic`: `ic` is the nil function). -/
-def icChain_call.spec : Prop := ∀ (i : val) (ics : List val) (ic : val) (ctx req : GoInterface)
+def icChain_call.spec : Prop := ∀ (i : GoFunc) (ics : List GoFunc) (ic : val) (ctx req : GoInterface)
     (info : Loc) (h : val) (Ψ : val → IProp GF),
   icChain (GF := GF) (i :: ics) ic ∗
     (∀ k, icHandler ics k h -∗
-      WP (App (App (App (App (Val i) (Val #ctx)) (Val #req)) (Val #info)) (Val k)) {{ Ψ }}) ⊢
+      WP (App (App (App (App (Val #i) (Val #ctx)) (Val #req)) (Val #info)) (Val k)) {{ Ψ }}) ⊢
   WP (App (App (App (App (Val ic) (Val #ctx)) (Val #req)) (Val #info)) (Val h)) {{ Ψ }}
 
 /-- **A continuation's call**: the next interceptor with the next continuation, or (none left) the
 handler. -/
-def icHandler_call.spec : Prop := ∀ (ics : List val) (k h : val) (ctx req : GoInterface)
+def icHandler_call.spec : Prop := ∀ (ics : List GoFunc) (k h : val) (ctx req : GoInterface)
     (Ψ : val → IProp GF),
   icHandler (GF := GF) ics k h ∗
     (match ics with
      | [] => WP (App (App (Val h) (Val #ctx)) (Val #req)) {{ Ψ }}
      | i :: rest => ∀ (info : Loc) (k' : val), icHandler rest k' h -∗
-         WP (App (App (App (App (Val i) (Val #ctx)) (Val #req)) (Val #info)) (Val k')) {{ Ψ }}) ⊢
+         WP (App (App (App (App (Val #i) (Val #ctx)) (Val #req)) (Val #info)) (Val k')) {{ Ψ }}) ⊢
   WP (App (App (Val k) (Val #ctx)) (Val #req)) {{ Ψ }}
 
 end res

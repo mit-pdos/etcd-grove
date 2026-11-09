@@ -6,30 +6,38 @@
 this key's revision.
 
 **Users**: `T/v3_double_barrier_test.go:56,74,135,150,185,194` (enter waits for `count`; an extra
-entrant gets `ErrTooManyClients`), `T/v3_closed_watch_test.go:215` (a closed client: an error, the
-fixed `issues/recipes-barrier-wait-closed-watch.md`). Snippet: `recipes/doublebarrier.go`.
+entrant gets `ErrTooManyClients` and leaves no key), `T/v3_closed_watch_test.go:215` (a closed
+client: an error, the fixed `issues/recipes-barrier-wait-closed-watch.md`). Snippet:
+`recipes/doublebarrier.go`.
 
 **Proof sketch**: `s.Client()` (1d); `enteredClients.spec` (`σ1`, reached from `σ0`): `count` or more:
-`ErrTooManyClients` (`init.spec`), fact at `σ1`. `newUniqueEphemeralKey.spec` with an update made of
-`dbPerm γ who key count id false` (its create case; `Q` keeps `etcdLb` of the state after, so `createdAt` and `R > σ1.kv.rev ≥
-σ0.kv.rev`); store `myKey`. `enteredClients.spec` again (`σ2`, reached from the creation):
-`count` or more and this key after the `count`-th's creation revision: `myKey.Delete()`
-(`RemoteKV.Delete.spec`, an update of its delete case), its error ignored, `ErrTooManyClients`
-with the fact at `σ2`. The `count`-th: `KV.Put(ready, "")` with an update of its `ready` case
-(guard: `σ2`'s store had `count` waiters, `σ2` reached), whose `Q` keeps the `etcdLb` after it
-(`readyPutAt` at its revision `> R`). Fewer, or before the `count`-th: `WaitEvents.spec` on
-`key/ready` from `R` for `[PUT]`: a put of the `ready` key at a revision `≥ R`.
+`ErrTooManyClients` (`init.spec`), nothing created, both updates back. `newUniqueEphemeralKey.spec`
+with the caller's creation update `AUc` (its `Q` built to keep `etcdLb` of the state after, with
+`etcdLb_init`: the record is a first version, `createdAt`; `R = σc'.kv.rev > σ1.kv.rev ≥ σ0.kv.rev`);
+on its error answer or indefinite error, return it, `AUd` back. Store `myKey`. `enteredClients.spec`
+again (`σ2`): `count` or more and this key after the `count`-th's creation revision: `myKey.Delete()`
+(`RemoteKV.Delete.spec` with `AUd k`), its error ignored, `ErrTooManyClients` with the fact at
+`σ2`. The `count`-th: `KV.Put(ready, "")` with an update of `dbPerm γ who key count none` (guard:
+`σ2`'s store had `count` waiters), whose commit gives `etcdLb` after it (`readyPutAt` at its revision
+`> R`). Fewer, or before the `count`-th: `WaitEvents.spec` on `key/ready` from `R` for `[PUT]`: a put
+of the `ready` key at a revision `≥ R`. Every error returned is `recipeErrOk` (`enteredClients`,
+`Put`'s `errVal`/`indefCall`, `WaitEvents`'), and not `ErrTooManyClients` (`recipeErr_ne`,
+`recipeErr_fresh`, from W0's `callErr_errorsNew`).
 
-**What it guarantees**: `nil` means this call's waiter key was created at `R` (after `σ0`), the first
-read saw fewer than `count` waiters (at a revision after `σ0`), and the `ready` key was put at a
-revision `≥ R`. With `dbPerm` the only writer of `ready`, the caller's invariant knows every such put
-followed a revision with `count` waiters.
+**What it guarantees**: `nil` means this call's waiter key `k` was created at `R` (after `σ0`) by the
+caller's update, the first read saw fewer than `count` waiters (at a revision after `σ0`), and
+`key/ready` was put at a revision `≥ R`. With no lease expiry (W0's `EnvCfg.leaseExpiry = false`),
+waiter keys are deleted only through the callers' delete updates, so a caller counting creations
+and deletions in its invariant knows that `count` processes entered before `ready` was put (the
+permission's guard), and that `Enter` on `count` live keys never returns `nil` (its first read sees
+them). With lease expiry, the same facts hold of revisions.
 
-**Changes**: old spec (`enterResult` over the recipes' client invariant, `dbMyKey`) assumed the keys
-under the prefix were the recipes' own; now the caller's permission (`dbPerm`), the history facts.
+**Changes**: old spec (`enterResult` over the recipes' client invariant) assumed the keys under the
+prefix were the recipes' own. Round 1 used a persistent permission for every write; now one-shot
+updates for creating and deleting this process's own key (review 1f-completeness-1, C-1), the
+permission only for the `ready` key; the `ErrTooManyClients` arm says whether a key was created.
 
-**Margin**: an error after the key's creation leaves `myKey` set (and the key, unless deleted). When
-this call puts `ready` itself, it also knows the `count` waiters at `σ2` (the guard).
+**Margin**: when this call puts `ready` itself, it also knows the `count` waiters at `σ2` (the guard).
 -/
 module
 
@@ -53,24 +61,63 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
-/-- **`b.Enter()`**: `nil` only if its waiter key was created at `R` after `σ0`, fewer than `count` waiters were there first, and `key/ready` was put at a revision `≥ R`; `ErrTooManyClients` only if `count` waiters were there at some revision after `σ0`. -/
+/-- **`b.Enter()`**: `nil` only if its waiter key was created (by the caller's update) at `R` after `σ0`, fewer than `count` waiters were there first, and `key/ready` was put at a revision `≥ R`; `ErrTooManyClients` only after `count` waiters at some revision after `σ0`, with the key it created (if any) given to the caller's delete update. -/
 def DoubleBarrier.Enter.spec : Prop :=
   ∀ (b : Loc) (γ : Cluster) (who : Principal) (key : GoString) (count id : w64) (my : Option RKSt)
-    (σ0 : State),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ dbOwn b γ who key count id my ∗ etcdPeek γ ∗ dbPerm γ who key count id false ∗
-      etcdLb γ σ0 }}
+    (σ0 : State) (Qc : State → State → GoString → Resp → IProp GF)
+    (Qd : GoString → State → State → Resp → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ dbOwn b γ who key count id my ∗ etcdPeek γ ∗ dbPerm γ who key count none ∗
+      etcdLb γ σ0 ∗ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
+        <{ ∀∀ (σ' : State) (k : GoString) (res : Resp),
+             ⌜uniqueKeyIn (waitersPfx key) k ∧ Step who (putNewReq k [] (sint.Z id)) σ σ' res ∧
+              ¬ txnCmpFailed res⌝ ∗ etcdState γ σ',
+           COMM Qc σ σ' k res }> ∗
+      (∀ k : GoString, AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
+        <{ ∀∀ (σ' : State) (res : Resp),
+             ⌜Step who (.deleteRange (delReq k)) σ σ' res⌝ ∗ etcdState γ σ',
+           COMM Qd k σ σ' res }>) }}
     (App (Val (b @!! go.GoType.PointerType DoubleBarrier.ty @!! go!"Enter")) (Val #()))
   {{ (err : GoInterface), RET #err; ∃ my' : Option RKSt, dbOwn b γ who key count id my' ∗
-      ((⌜err = GoInterface.nil⌝ ∗ ∃ (st : RKSt) (σ : State) (R : Nat), etcdLb γ σ ∗
-         ⌜my' = some st ∧ sint.Z st.rev = R ∧ σ0.kv.rev < R ∧ R ≤ σ.kv.rev ∧
-          uniqueKeyIn (waitersPfx key) st.key ∧ createdAt σ.kv st.key [] (sint.Z id) R ∧
-          (∃ r1 n, σ0.kv.rev ≤ r1 ∧ r1 < R ∧
-             storeCount (σ.kv.storeAt r1) (pfxRange (waitersPfx key)) n ∧ (n : Int) < sint.Z count) ∧
-          ∃ r, R ≤ r ∧ r ≤ σ.kv.rev ∧ readyPutAt σ.kv key r⌝) ∨
-       (⌜err = recipeErr .tooManyClients⌝ ∗ ∃ (σ : State) (r n : Nat), etcdLb γ σ ∗
-         ⌜σ0.kv.rev ≤ r ∧ r ≤ σ.kv.rev ∧
-          storeCount (σ.kv.storeAt r) (pfxRange (waitersPfx key)) n ∧ sint.Z count ≤ n⌝) ∨
-       ⌜err ≠ GoInterface.nil ∧ err ≠ recipeErr .tooManyClients⌝) }}
+      ((⌜my' = my⌝ ∗ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
+        <{ ∀∀ (σ' : State) (k : GoString) (res : Resp),
+             ⌜uniqueKeyIn (waitersPfx key) k ∧ Step who (putNewReq k [] (sint.Z id)) σ σ' res ∧
+              ¬ txnCmpFailed res⌝ ∗ etcdState γ σ',
+           COMM Qc σ σ' k res }> ∗
+         (∀ k : GoString, AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
+        <{ ∀∀ (σ' : State) (res : Resp),
+             ⌜Step who (.deleteRange (delReq k)) σ σ' res⌝ ∗ etcdState γ σ',
+           COMM Qd k σ σ' res }>) ∗
+         ((⌜err = recipeErr .tooManyClients⌝ ∗ ∃ (σ : State) (r n : Nat), etcdLb γ σ ∗
+             ⌜σ0.kv.rev ≤ r ∧ r ≤ σ.kv.rev ∧
+              storeCount (σ.kv.storeAt r) (pfxRange (waitersPfx key)) n ∧ sint.Z count ≤ n⌝) ∨
+          (⌜err ≠ GoInterface.nil ∧ err ≠ recipeErr .tooManyClients⌝ ∗ recipeErrOk err))) ∨
+       (⌜my' = my⌝ ∗ (∀ k : GoString, AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
+        <{ ∀∀ (σ' : State) (res : Resp),
+             ⌜Step who (.deleteRange (delReq k)) σ σ' res⌝ ∗ etcdState γ σ',
+           COMM Qd k σ σ' res }>) ∗
+         ((∃ (σ σ' : State) (k : GoString) (e : EtcdErr), Qc σ σ' k (.err e) ∗ ⌜err = errVal e⌝) ∨
+          indefCall err)) ∨
+       (∃ (σc σc' : State) (st : RKSt) (res : Resp), Qc σc σc' st.key res ∗
+         ⌜txnSucceeded res ∧ my' = some st ∧ st.rev = W64 σc'.kv.rev ∧
+          uniqueKeyIn (waitersPfx key) st.key⌝ ∗
+         ((⌜err = GoInterface.nil ∧ st.live = true⌝ ∗ (∀ k : GoString, AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
+        <{ ∀∀ (σ' : State) (res : Resp),
+             ⌜Step who (.deleteRange (delReq k)) σ σ' res⌝ ∗ etcdState γ σ',
+           COMM Qd k σ σ' res }>) ∗ ∃ σ : State, etcdLb γ σ ∗
+             ⌜σ0.kv.rev < σc'.kv.rev ∧ σc'.kv.rev ≤ σ.kv.rev ∧
+              createdAt σ.kv st.key [] (sint.Z id) σc'.kv.rev ∧
+              (∃ r1 n, σ0.kv.rev ≤ r1 ∧ r1 < σc'.kv.rev ∧
+                 storeCount (σ.kv.storeAt r1) (pfxRange (waitersPfx key)) n ∧ (n : Int) < sint.Z count) ∧
+              ∃ r, σc'.kv.rev ≤ r ∧ r ≤ σ.kv.rev ∧ readyPutAt σ.kv key r⌝) ∨
+          (⌜err = recipeErr .tooManyClients ∧ st.live = false⌝ ∗
+             ((∃ (σ σ' : State) (res' : Resp), Qd st.key σ σ' res') ∨ ∃ e', indefCall e') ∗ ∃ (σ : State) (r n : Nat), etcdLb γ σ ∗
+             ⌜σ0.kv.rev ≤ r ∧ r ≤ σ.kv.rev ∧
+              storeCount (σ.kv.storeAt r) (pfxRange (waitersPfx key)) n ∧ sint.Z count ≤ n⌝) ∨
+          (⌜err ≠ GoInterface.nil ∧ err ≠ recipeErr .tooManyClients ∧ st.live = true⌝ ∗
+             recipeErrOk err ∗ (∀ k : GoString, AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
+        <{ ∀∀ (σ' : State) (res : Resp),
+             ⌜Step who (.deleteRange (delReq k)) σ σ' res⌝ ∗ etcdState γ σ',
+           COMM Qd k σ σ' res }>))))) }}
 
 end spec
 

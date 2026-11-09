@@ -62,7 +62,7 @@ Pure (transparent):
   `--watch-progress-notify-interval`, raised to 100ms: a scope premise of the configuration,
   `nonissues/etcd-watch-progress-interval-overflow.md`), `minWatchProgressIntervalNs`.
 * `filterFuncs fl`: the filter functions `FiltersFromRequest` builds of a request's filter types.
-* `WireWatchRespM.fragmentsOf m ms`, `.fragPrefix`: `ms` is how `sendFragments` cuts `m`.
+* `fragmentsOf m ms`, `fragPrefix`: `ms` is how `sendFragments` cuts `m`.
 * `srvWireStep`: the contract (above).
 
 Resources:
@@ -156,7 +156,7 @@ def filterNoPutTy : w32 := W32 0
 def filterNoDeleteTy : w32 := W32 1
 
 section funcs
-variable [GooseExts] [GoGlobalContext] [sem : go.Semantics]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- **The filters `FiltersFromRequest` builds**: for each filter type of the request, in order,
 `filterNoPut` for `NOPUT`, `filterNoDelete` for `NODELETE`, nothing for any other value. -/
@@ -172,15 +172,15 @@ end funcs
 
 /-- **`ms` is how `sendFragments` sends `m`**: `m` whole, or fragments carrying its events in
 order, each non-empty, each with `m`'s other fields, all but the last with `Fragment` set. -/
-def WireWatchRespM.fragmentsOf (m : WireWatchRespM) (ms : List WireWatchRespM) : Prop :=
+def fragmentsOf (m : WireWatchRespM) (ms : List WireWatchRespM) : Prop :=
   ms = [m] ∨
   (ms ≠ [] ∧ (ms.map (·.events)).flatten = m.events ∧
     ∀ (i : Nat) (f : WireWatchRespM), ms[i]? = some f →
       f.events ≠ [] ∧ f = { m with events := f.events, fragment := decide (i + 1 < ms.length) })
 
 /-- `ms` is a prefix of a way `sendFragments` sends `m`. -/
-def WireWatchRespM.fragPrefix (m : WireWatchRespM) (ms : List WireWatchRespM) : Prop :=
-  ∃ rest, m.fragmentsOf (ms ++ rest)
+def fragPrefix (m : WireWatchRespM) (ms : List WireWatchRespM) : Prop :=
+  ∃ rest, fragmentsOf m (ms ++ rest)
 
 /-- **What a member's response `m` on a watch stream may be** (the contract): 1b's `wireStep`,
 except for a progress notification of id `-1`, which says nothing of a registration whose cancel
@@ -352,7 +352,7 @@ def watchReqOwn_unfold.spec : Prop := ∀ (p : Loc) (dq : DFrac) (r : WireWatchR
     ∃ (iv : GoInterface) (w : Loc), protoRest etcdserverpb.WatchRequest p dq ∗
     p.[etcdserverpb.WatchRequest, go!"RequestUnion"] ↦{dq} iv ∗
     match r with
-    | .create wq s => ∃ (c ks es fs : Loc) (k e : GoString) (fl : List w32),
+    | .create wq s => ∃ (c : Loc) (ks es fs : GoSlice) (k e : GoString) (fl : List w32),
         ⌜iv = interface.mkOk (go.GoType.PointerType etcdserverpb.WatchRequest_CreateRequest.ty) #w ∧
           c ≠ null ∧ createRange k e = wq.range ∧ -2 ^ 63 ≤ s ∧ s < 2 ^ 63 ∧
           (filterNoPutTy ∈ fl ↔ wq.filterPut = true) ∧

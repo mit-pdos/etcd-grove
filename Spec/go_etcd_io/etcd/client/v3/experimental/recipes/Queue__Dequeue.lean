@@ -22,7 +22,11 @@ update built from the caller's (a failed comparison aborts it: recurse): at the 
 under the prefix has mod revision `≥ m` (one present at `σg` was at most the one the read returned,
 which another claim changed; any other was written at a revision `≥ σg.kv.rev`, so `≥ m` as `e` is the
 first such put), so `e`'s key is the front. The value is `kv.Value` (the read's, unchanged since:
-same mod revision) or `ev.Kv.Value` (`watchEvOwn_unfold`).
+same mod revision) or `ev.Kv.Value` (1b's `eventOwn_unfold`): the record of the put at revision `m`,
+which is the claimed record because a transaction puts a key at most once (`kvStep`'s `putOnce evs`,
+W0; review 1f-provability-1, F2), so the one put of the key at `m` is the record whose mod
+revision is `m`. Errors: `recipeErrOk`. The facts about `σg`'s store at later states use W0's
+`etcdLb_init` (a present key's mod revision is its writing event's revision).
 
 **Changes**: old spec (`dequeuedAt`, `dequeueOrder` at the read's revision, over the recipes' client
 invariant) gave the order at the `Get`; now the caller's update fires at the claim, where the item is
@@ -69,7 +73,7 @@ def Queue.Dequeue.spec : Prop :=
     (App (Val (q @!! go.GoType.PointerType Queue.ty @!! go!"Dequeue")) (Val #()))
   {{ (v : GoString) (err : GoInterface), RET (PairV #v #err);
       (⌜err = GoInterface.nil⌝ ∗ ∃ σ σ' k kr, Q σ σ' k kr ∗ ⌜v = kr.value⌝) ∨
-      ⌜err ≠ GoInterface.nil ∧ v = []⌝ }}
+      (⌜err ≠ GoInterface.nil ∧ v = []⌝ ∗ recipeErrOk err) }}
 
 end spec
 

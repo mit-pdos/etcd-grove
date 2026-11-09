@@ -185,3 +185,23 @@ def Membership.applyChange : ConfChangeI → Membership → Option Membership
 R1's laws then follow from R4's: `applyChange_valid` from `changeV2_valid`; `simple_valid` from
 `ConfChange.simple_valid`; `applyChange_v1` (corrected) from `changeV2_single`. R1's `ConfState.Is`
 is `ConfChange.Lists` of the five fields.
+
+## Round 1 repairs (review `reviews/R4-review-1.md`)
+
+- **F1** (`opSpec`'s `□` blocked `Restore`'s proof: its closures read the caller's `ConfState` and
+  changes when `chain` runs them). `opSpec f F R` is no longer persistent (`chain` calls each op
+  once) and threads a frame `R`, taken and given back; `chain.spec` takes `R` and gives it back on
+  both exits. `Restore`'s sketch takes `R` = the `ConfState` share, the closures' variables and the
+  ops' `ccsPts` (raftpb's per-element split, already requested). `opSpec_persistent` removed.
+- **F2**: `Quorum.jointVote_won.spec` (won iff a joint quorum granted) and `jointVote_lost.spec`
+  (lost iff some half's non-rejecters are no majority).
+- **F3**: `ConfChange.changeV2_single.spec` is uniform at every valid non-joint configuration, the
+  empty one included (bootstrap's `AddNode`s): `changeV2 ⟨Auto, [c]⟩ m = (applyOne c m).bind (fun m'
+  => if m'.voters = ∅ then none else some m')`. R1's corrected `applyChange_v1` is its instance,
+  with no voters premise.
+- **F4**: `examples/specreq/raftconf/voters.go`: `ReqQuorumActive`, `ReqLearnerFlag`,
+  `ReqVoterReads`, `ReqProgressCopy` (vetted, run once).
+- Third tier: **N3** done (`Tracker.configOwn_agree.spec`). Not done: N1 (no raftpb vocabulary yet;
+  `Restore`/`ConfState` keep R1's provisional `confStatePts` until integration), N2 (field-level
+  footprints for the small tracker methods: no caller needs them), N4 (the ring bound stays a
+  premise of `NewInflights`/`BaseOf`: open question 1). N5-N7 are R1's, or notes.

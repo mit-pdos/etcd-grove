@@ -3,14 +3,14 @@
 
 Users: `server/etcdserver/api/v3lock/lock.go:36` and `v3election/election.go:126` (`WithLease(req.Lease)`,
 `WithContext(ctx)`, then `Orphan()`: a session over a lease the remote client holds, never
-refreshed by the server; `Leader`/`Observe` pass lease `-1`), `client/leasing/kv.go:147` (a
-session per monitor round, its `Done()` awaited), `server/proxy/grpcproxy/register.go:65`
-(`WithTTL`, its lease on an endpoint key, `Close()` on error or shutdown), recipes
+refreshed by the server; `Leader`/`Observe` pass lease `-1`; a session per RPC), `client/leasing/kv.go:147` (a
+session per monitor round, in a loop, its `Done()` awaited), `server/proxy/grpcproxy/register.go:65`
+(`WithTTL`, its lease on an endpoint key, `Close()` on error or shutdown, a new session per expiry), recipes
 (`key.go:142`, `rwmutex.go:69`, `double_barrier.go:47`: `Client()` and `Lease()`), etcd's tests
 (`tests/integration/clientv3/concurrency/session_test.go`). Snippet: `concurrency/session.go` (`ReqSessionResumeLease`).
 
-Proof sketch: a closure writing the field. Whether the context is one (`ctxOk`) is `NewSession`'s
-premise (`optCtxOk`), where it is used.
+Proof sketch: a closure writing the field. Whether the context is one (`ctxOk`, `ctxPrin`) is
+`NewSession`'s premise (`optCtxOk`), where it is used.
 
 Changes: from `specs-ref`'s `WithContext.lean`: any context (W0's `ctxOk`), not only Perennial's
 cancelable ones.

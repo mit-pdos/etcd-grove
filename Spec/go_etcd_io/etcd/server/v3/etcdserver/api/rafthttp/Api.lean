@@ -376,15 +376,72 @@ on the stream from `lid` to `pid`, and the next state: a heartbeat, an `AppEntri
 opaque v2Frame (st : w64 × w64) (lid pid : w64) (m : Msg) (fb : List w8) (st' : w64 × w64) :
     Prop := True
 
-/-- (internal) A `*msgAppV2Encoder`/`*messageEncoder` (as an `encoder`) writing on `w` with
-permission `Ok`, at codec state `st` (msgappv2's; `(0, 0)` for the message codec). Exclusive. -/
-opaque encAt (enc : GoInterface) (w : GoInterface) (Ok : List w8 → IProp GF) (bs : List w8)
-  (st : w64 × w64) : IProp GF := iprop(True)
+/-- (internal) **Bytes after a reader's position are a prefix of a chain of msgappv2 frames** from
+state `st` on the stream from `src` to `dst` (what the decoder needs not to panic: its lengths and
+entries are an encoder's). -/
+opaque v2Compat (st : w64 × w64) (src dst : w64) (ys : List w8) : Prop := True
 
-/-- (internal) A `*msgAppV2Decoder`/`*messageDecoder` reading `rd` (as a `decoder`) of a stream from
-`pid` to `lid` of type `t`, at codec state `st`. Exclusive. -/
-opaque decAt (dec : GoInterface) (rd : GoInterface) (ν : Net) (lid pid : w64) (t : StreamTy)
-  (st : w64 × w64) : IProp GF := iprop(True)
+/-- (internal) A `*messageEncoder` writing on `w` (persistent: its one field). -/
+opaque msgEncAt (enc : Loc) (w : GoInterface) : IProp GF := iprop(True)
+
+/-- (internal) A `*messageDecoder` reading `rd` (persistent: its one field). -/
+opaque msgDecAt (dec : Loc) (rd : GoInterface) : IProp GF := iprop(True)
+
+/-- (internal) A `*msgAppV2Encoder` writing on `w` for the stream from `src` to `dst`, at codec state
+`st` (exclusive: its buffers and state). -/
+opaque v2EncAt (enc : Loc) (w : GoInterface) (src dst : w64) (st : w64 × w64) : IProp GF :=
+  iprop(True)
+
+/-- (internal) A `*msgAppV2Decoder` reading `rd` for the stream from `src` to `dst`, at codec state
+`st` (exclusive). -/
+opaque v2DecAt (dec : Loc) (rd : GoInterface) (src dst : w64) (st : w64 × w64) : IProp GF :=
+  iprop(True)
+
+/-- (internal) What a writer of the transport's lock holds (`removePeer`'s caller): the `peers` and
+`remotes` maps with their entries' rights. Exclusive. -/
+opaque trMaps (t : Loc) (ν : Net) (id : w64) : IProp GF := iprop(True)
+
+/-- (internal) A `*pipelineHandler`, `*snapshotHandler`, `*streamHandler` of the transport of `lid`
+(persistent: their fields). -/
+opaque phAt (h : Loc) (ν : Net) (lid : w64) : IProp GF := iprop(True)
+opaque shAt (h : Loc) (ν : Net) (lid : w64) : IProp GF := iprop(True)
+opaque sthAt (h : Loc) (ν : Net) (lid : w64) : IProp GF := iprop(True)
+
+/-- (internal) What `streamWriter.mu` guards (`closer`, `working`, `msgc`), held under the lock;
+likewise `streamReader.mu`'s (`paused`, `closer`). Exclusive. -/
+opaque swLocked (cw : Loc) : IProp GF := iprop(True)
+opaque srLocked (cr : Loc) : IProp GF := iprop(True)
+
+/-- (internal) One of the transport's probers (`probing.NewProber`'s; persistent). -/
+opaque proberAt (p : GoInterface) : IProp GF := iprop(True)
+
+/-- (internal) **A snapshot request** `r` from `lid` to `pid` (a `POST /raft/snapshot` built by
+`createPostRequest` on a body from `createSnapBody`, with its protocol knowledge and ticket):
+exclusive, what `snapshotSender.post` gives `RoundTrip`. -/
+opaque snapReq (r : Loc) (ν : Net) (lid pid : w64) : IProp GF := iprop(True)
+
+/-- (internal) **A snapshot request body** `bd` for message `m` (exclusive): a reader whose complete
+streams are the message frame of an encoding of `m` followed by a `snapImg` image of its index. -/
+opaque snapBodyAt (bd : GoInterface) (ν : Net) (m : Msg) : IProp GF := iprop(True)
+
+/-- (internal, provisional: semver) A `*semver.Version` (persistent, read-only). -/
+opaque semverAt (v : Loc) : IProp GF := iprop(True)
+
+/-- (internal, provisional: semver) `semver.MustParse(s)` does not panic. -/
+opaque semverParses (s : GoString) : Prop := True
+
+/-- (internal) A version header value `serverVersion`/`minClusterVersion` accept without
+panicking: empty (read as `2.0.0`) or a version. -/
+def verHdrOk (s : GoString) : Prop := s = [] ∨ semverParses s
+
+/-- (internal) The headers `createPostRequest` sets on a request from `from` of cluster `cid` with
+content type `ct`, advertising the peer URLs with hosts `hs`. -/
+opaque postHdrs (ct : GoString) (frm cid : w64) (hs : List GoString) :
+    List (GoString × GoString) := []
+
+/-- (internal) `setPeerURLsHeader` turned `hdr` into `hdr'` (an `X-PeerURLs` naming the URLs with
+hosts `hs`, or unchanged for `nil` URLs). -/
+opaque peerURLsSet (hs : List GoString) (hdr hdr' : List (GoString × GoString)) : Prop := True
 
 end vocab
 

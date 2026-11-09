@@ -3,6 +3,7 @@ package recipes
 import (
 	"context"
 	"errors"
+	"sync/atomic"
 
 	"go.etcd.io/etcd/client/v3/concurrency"
 	recipe "go.etcd.io/etcd/client/v3/experimental/recipes"
@@ -78,5 +79,35 @@ func ReqEnterThenLeave(ctx context.Context, c *clientv3.Client, s *concurrency.S
 	}
 	if len(g.Kvs) == 1 && g.Kvs[0].CreateRevision == r1 {
 		panic("dbarrier-too-many: entered a full barrier while its waiter was there")
+	}
+}
+
+// REQ recipes/dbarrier-count: with no lease expiry, no Enter returns nil before count entrants
+// started entering, and an Enter on a barrier whose count keys are held never returns nil.
+// Users: T/v3_double_barrier_test.go:46-100 (no entrant passes before the last enters),
+// :116-162 (the 11th gets ErrTooManyClients).
+// Assumes: no lease expiry (EnvCfg.leaseExpiry = false); key+"/" owned by these barriers; one
+// round; no Leave.
+// Specs: DoubleBarrier.Enter.spec (the creation and the own delete are the caller's one-shot
+// updates, so the invariant counts the keys created, each after its entrant's counter increment;
+// ready is put only after count waiters, dbPerm's guard; nil only with fewer than count waiters at
+// the first read).
+func ReqEnterCount(s1, s2, s3 *concurrency.Session, key string) {
+	var entered atomic.Int32
+	errc := make(chan error, 2)
+	for _, s := range []*concurrency.Session{s1, s2} {
+		go func() {
+			b := recipe.NewDoubleBarrier(s, key, 2)
+			entered.Add(1)
+			errc <- b.Enter()
+		}()
+	}
+	for i := 0; i < 2; i++ {
+		if err := <-errc; err == nil && entered.Load() < 2 {
+			panic("dbarrier-count: entered before count entrants")
+		}
+	}
+	if err := recipe.NewDoubleBarrier(s3, key, 2).Enter(); err == nil {
+		panic("dbarrier-count: entered a full barrier")
 	}
 }

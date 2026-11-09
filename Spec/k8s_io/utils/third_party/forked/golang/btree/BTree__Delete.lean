@@ -1,6 +1,6 @@
 /-
 `BTree.Delete` (`k8s.io/utils/third_party/forked/golang/btree/btree.go`).
-Users: etcd's cache `store.applyEventsLocked` (`cache/store.go:157`): a delete event removes the key's item, and the cache errs if there was none (`ok`), so the returned flag is inspected (snippet `btree/ReqSortedMap`).
+Users: etcd's cache `store.applyEventsLocked` (`cache/store.go:157`): a delete event removes the key's item, and the cache errs if there was none (`ok`), so the returned flag is inspected (snippet `btree/ReqSortedMap`); mvcc's `treeIndex.Compact` (`index.go:218`: `lg.Panic` unless `ok`, deleting from the original while iterating a clone; snippet `btree/ReqCompactClone`).
 Proof sketch: as the old proof (`specs-ref/Proof/k8s_io/utils/third_party/forked/golang/btree/BTree__Delete.lean`),
 over the realization of the predicates given in `Api.lean`'s and `Internal.lean`'s headers.
 Changes: restated over the opaque vocabulary of `Api.lean` (the model

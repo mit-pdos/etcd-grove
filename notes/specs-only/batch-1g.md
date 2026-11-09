@@ -78,7 +78,8 @@ discard_persistent}`, `isFreeList_persistent`.
 - btree's `initialize` (package init: covered by the generated `Spec/PkgInit` and the cache's `init`
   law). No other.
 
-## Findings in the Go code (for the coordinator; not filed, the brief restricts my writes)
+## Findings in the Go code (filed in round 1: `nonissues/etcd-cache-get-keys-only-ignored.md`,
+`nonissues/etcd-cache-waittillrevision-goroutine-outlives-close.md`)
 
 - `Cache.Get` ignores `WithKeysOnly` (`validateGet` neither rejects nor honours it): a keys-only Get
   returns values, unlike the client's `Get` (documentation/behaviour mismatch; `nonissues/`
@@ -104,8 +105,11 @@ discard_persistent}`, `isFreeList_persistent`.
 3. **`New` takes `etcdPeek γ`** (the program's read permission over the cluster's state): new
    premise on a client-facing spec, needed because the cache's background list is a client `Get`
    that needs an update. Any owner of `etcdState` can give it.
-4. **Errors of `Get` are coarse** (`err ≠ nil`, except `ErrKeyRangeInvalid`): no caller inspects
-   `ErrCompacted`/`ErrFutureRev`/`ErrCacheTimeout` beyond logging; strengthen if a user appears.
+4. **Errors of `Get`** (corrected in round 1): `ErrUnsupportedRequest` and `ErrKeyRangeInvalid` are
+   stated; `ErrFutureRev` is not, though etcd's `testGet` checks it with `errors.Is` (12 cases): the
+   linearizable path may fail first in the client's own `Get`, and the serializable one is
+   deterministic only given the cache's latest revision, which the caller does not know. Stating
+   it would need a `getErr` clause over the latest revision; left as a margin, your call.
 5. `isCache` carries the client's principal `who` (W0's round 1: `Get` passes the caller's context
    to the client's `Get`, which needs `ctxPrin ctx who`).
 
@@ -121,3 +125,44 @@ discard_persistent}`, `isFreeList_persistent`.
 Header fields besides the revision, `Count`/`More` stated; `CompactRevision`/`CancelReason` of a
 cancel; that `Close` stops every watch; readiness's liveness; `WaitForNextResync`'s meaning;
 internal specs of the demux's locked helpers keep only the lock invariant's phase.
+
+## Round 1 repairs (2026-11-09)
+
+Reviews: `reviews/1g-completeness-1.md` (C), `reviews/1g-provability-1.md` (P). Rebuilt (161
+modules) and re-vetted.
+
+**First tier, fixed.**
+- P-F1: `threadTok` in the pre and post of `Cache.Watch` (deposited at the wait group's `Add`, a
+  fresh one from `wp_fork_tok`), `Cache.Get`, `Cache.WaitForRevision`, `Cache.WaitForNextResync`,
+  and the internal read-lockers (`store.LatestRev`, `store.getSnapshot`, `store.Get`,
+  `Cache.waitTillRevision`, `notifier.wait`, `demux.WaitForNextResync`, `demux.LatestRev`,
+  `demux.BroadcastProgressTo`). The snippets' callers hold one each (stated in no snippet: they
+  thread no tokens, as W0's).
+- P-F2: `respFact`'s third arm only for non-progress responses (header `0`, created, canceled, or a
+  compaction).
+- P-F3: law `isCache_ne_null` (cited in `New`'s docstring).
+- P-F4: W0's `etcdLb_keyNonEmpty` cited in `Cache.Get`'s, `Cache.Watch`'s and `Cache.get`'s sketches
+  (the root cache lists and watches from `"\x00"`).
+- C-F1: `getErr` states an unsupported request's `ErrUnsupportedRequest` (`wrapsErr err e`, new
+  opaque, with `wrapsErr_persistent`, `wrapsErr_refl`, `errorsIs_wraps`); `ReqRangeInvalid` checks it.
+- C-F2: `WatchSt.live pos seen`: a progress notification is at least the highest revision the watch
+  named before (`seen ≤ m.hdrRev`); snippet `ReqProgressAfterEvents`.
+- C-F3: mvcc's key index named in `btree/Api.lean` and the Users of `New`, `Get`, `ReplaceOrInsert`,
+  `Delete`, `Clone`, `Ascend`, `AscendGreaterOrEqual`, `Len`; snippets `btree/mvcc.go`
+  (`ReqMutateInPlace`, `ReqFractionalReaders`, `ReqStopEarly`, `ReqCompactClone`).
+
+**Coordinator's items.** W0's `etcdPeek` (`State.lean`) used, the cache's copy dropped; the two Go
+findings filed as `nonissues/` (and P-S1's re-watch as
+`nonissues/etcd-cache-rewatch-from-original-revision.md`); index regenerated.
+
+**Second tier.**
+- Done: P-S2 (`store.Get`/`getSnapshot` take `storeRevLb s r0` and return `r0 ≤ lrev`; internal
+  `cacheStoreAt` and `cacheRevLb_store` link the cache's and the store's lower bounds), P-S4 (the
+  tree's entries are (key, key-value pointer), via `kvItemAt`), P-S5 (the cancel arm's docstring: at
+  any time), C-F5 (`watchRespAt` states `closeErr = nil`).
+- Not done: P-S1's sketch (`Broadcast`'s fact taken at the demux's position: a replayed upstream
+  response needs a conversion, or an error arm; the code rejects it, `validateRevisions`); P-S3
+  (receive laws for `watcherConsumer`/`storeApplier`, a `cacheWatchAt_recvAu` for `select`);
+  C-F4 (a floor for a watch "from now"); C-F6's snippets (multi-key revisions, header equality, a
+  future revision); C-F3' (`ErrFutureRev`, open question 4); C-F7/P (the drop-in watch vocabulary,
+  open question 1).

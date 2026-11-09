@@ -73,3 +73,9 @@
    watcher) can compare revisions it reads (`etcdState_revFits` gives it only at the current state).
    (Update: W0's round 2 added `etcdLb_revFits`; the `compacted ≤ rev` half follows from the
    model, a pure lemma of the client.)
+
+3. (1f, round 1) **A transaction puts a key at most once** (etcd's `checkIntervals`; a put then a
+   delete in sibling nested transactions excepted). Without it a watch may deliver a put of `k` at
+   revision `m` whose value is not the record `k` holds at `m`, and `Queue.Dequeue`'s value on its
+   watch path is unprovable (review 1f-provability-1, F2). Done by W0's round 2: `kvStep`'s
+   `putOnce evs`, which `Queue.Dequeue.spec` and `PriorityQueue.Dequeue.spec` cite.

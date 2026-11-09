@@ -29,6 +29,9 @@ and the gap after it quiet, `Internal.lean`'s `isStore`), restricted to the rang
 (and `≥ r0`, `storeRevLb` monotone). The response is a fresh `RangeResponse` whose key-values are the
 snapshot's (read-only), `rangeRespOwn ... DFrac.discard`.
 
+For the root cache (`pfx = ""`) the cache lists and watches from `"\x00"` (`OpGet`/`OpWatch`
+rewrite an empty key) while `prefixRange ""` includes the empty key: W0's `etcdLb_keyNonEmpty`
+(no state the cluster has been in stores, or has an event of, the empty key) closes the gap.
 Changes: (round 1) a thread token, given back, for the store's and the progress requestor's reader
 slots (the read locks of `LatestRev`, `waitTillRevision`, `getSnapshot`: a thread pool over
 Perennial's `RWMutex`, as leasing's reads); `ErrUnsupportedRequest` stated (`wrapsErr`). From

@@ -45,6 +45,9 @@ quorum), `ReqTallyVotes` (won only with a quorum of granted votes), `ReqVisitSor
 visits every tracked id once, in increasing order, and may write the visited `Progress`),
 `ReqInflightsFull` (`Add` below capacity, `Full` at it, `FreeLE` frees), `ReqProgressFlow` (the
 probe/replicate/snapshot transitions raft makes), `ReqCloneFresh` (`Config.Clone` shares no map).
+`examples/specreq/raftconf/voters.go` (round 1): `ReqQuorumActive` (CheckQuorum), `ReqLearnerFlag`
+(tracked and not a learner means a voter of one half), `ReqVoterReads` (`Voters[0][id]`, `IDs`,
+`IsSingleton`, `VoterNodes` agree), `ReqProgressCopy` (`Status`'s ring copy).
 -/
 module
 

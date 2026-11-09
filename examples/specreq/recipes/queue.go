@@ -86,3 +86,32 @@ func ReqDequeueClosed(c *clientv3.Client, kp string) {
 	_ = c.Close()
 	<-done
 }
+
+// REQ recipes/queue-wait-then-fed: a consumer waiting on an empty queue gets the oldest item put
+// after it started waiting (the watch path: the first put after its read, claimed at its mod
+// revision, whose value is that put's).
+// Users: T/v3_queue_test.go:45-64 (the reader runs concurrently with the writer and usually finds
+// the queue empty).
+// Assumes: every key with the byte prefix kp is the queue's (owned), none at the start.
+// Specs: Queue.Dequeue.spec (frontByRev at the claim on every path; the value by kvStep's putOnce),
+// Queue.Enqueue.spec, WaitPrefixEvents.spec.
+func ReqDequeueWaitThenFed(c *clientv3.Client, kp string) {
+	got := make(chan string, 1)
+	go func() {
+		v, err := recipe.NewQueue(c, kp).Dequeue()
+		if err != nil {
+			v = ""
+		}
+		got <- v
+	}()
+	q := recipe.NewQueue(c, kp)
+	if err := q.Enqueue("a"); err != nil {
+		return
+	}
+	if err := q.Enqueue("b"); err != nil {
+		return
+	}
+	if v := <-got; v != "" && v != "a" {
+		panic("queue-wait-then-fed: not the oldest item")
+	}
+}

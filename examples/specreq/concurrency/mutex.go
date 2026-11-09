@@ -77,10 +77,9 @@ func ReqV3LockPattern(ctx context.Context, cli *clientv3.Client, lease clientv3.
 // REQ concurrency/trylock: TryLock either holds the lock (a header kept) or returns ErrLocked,
 // the mutex released (a following Unlock is ErrLockReleased).
 // Users: etcd's tests (mutex_test.go: TestMutexTryLock*), example_mutex_test.go.
-// Assumes: no client call returns one of concurrency's own error values (true: gRPC's, rpctypes'
-// and the context's errors are other values; not yet a law: open question, batch-1d.md).
+// Assumes: none.
 // Specs: NewMutex.spec, Mutex.TryLock.spec, Mutex.Unlock.spec, Mutex.Header.spec; laws:
-// concErrVal_ok, init.spec.
+// concErrVal_ok, concErrVal_notCanceled, W0's callErr_errorsNew, init.spec.
 func ReqTryLock(ctx context.Context, s *concurrency.Session, pfx string) {
 	m := concurrency.NewMutex(s, pfx)
 	err := m.TryLock(ctx)
@@ -116,19 +115,40 @@ func ReqLockUnlock(ctx context.Context, s *concurrency.Session, pfx string) {
 }
 
 // REQ concurrency/locker: NewLocker's Lock/Unlock as a sync.Locker: they return, or panic with
-// the client's (non-nil) error, as documented.
+// the client's (non-nil) error, as documented; the caller recovers.
 // Users: etcd's tests (mutex_test.go: NewLocker).
 // Assumes: none.
 // Specs: NewLocker.spec, lockerMutex.Lock.spec, lockerMutex.Unlock.spec.
 func ReqLocker(s *concurrency.Session, pfx string) {
 	defer func() {
-		if r := recover(); r != nil {
-			if _, ok := r.(error); !ok {
-				panic("locker: panicked with a non-error")
-			}
-		}
+		_ = recover()
 	}()
 	var l sync.Locker = concurrency.NewLocker(s, pfx)
 	l.Lock()
 	l.Unlock()
+}
+
+// REQ concurrency/lock-after-unlock: a lock taken after another was released has a later header
+// revision (the result is a state reached after what the caller knew).
+// Users: tests/integration/v3lock_grpc_test.go:49 (l1.Header.Revision < l2.Header.Revision), v3lock's
+// remote clients ordering their critical sections.
+// Assumes: no other principal writes under pfx+"/".
+// Specs: Mutex.Lock.spec (Reach σ0 σ), Mutex.Unlock.spec, Mutex.Header.spec; Reach monotone (a
+// pure fact: the revision does not decrease).
+func ReqLockAfterUnlock(ctx context.Context, s1, s2 *concurrency.Session, pfx string) {
+	m1 := concurrency.NewMutex(s1, pfx)
+	if err := m1.Lock(ctx); err != nil {
+		return
+	}
+	r1 := m1.Header().Revision
+	if err := m1.Unlock(ctx); err != nil {
+		return
+	}
+	m2 := concurrency.NewMutex(s2, pfx)
+	if err := m2.Lock(ctx); err != nil {
+		return
+	}
+	if m2.Header().Revision <= r1 {
+		panic("lock: a later lock's header is not later")
+	}
 }

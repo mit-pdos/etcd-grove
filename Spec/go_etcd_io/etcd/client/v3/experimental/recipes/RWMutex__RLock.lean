@@ -7,16 +7,20 @@
 
 **Proof sketch**: `newUniqueEphemeralKey.spec` with the caller's update unchanged (its `Q` fired at
 the key's creation, the queueing point); on success store `myKey` (`rwmOwn`); then a loop of
-`waitOnLastRev.spec` (`R ≥ 2`: a successful write's revision); its `true` gives the `etcdLb` with
-`rwHeld`, at a state reached from the creation (`R ≤ σ.kv.rev`).
+`waitOnLastRev.spec` (`R > 0`: a successful write's revision, `sint.Z (W64 R) = R` by
+`etcdState_revFits` at the creation's commit, which the update snapshots); its `true` gives the
+`etcdLb` with `rwHeld`, at a state reached from the creation (`R ≤ σ.kv.rev`). Errors: `recipeErrOk`.
 
 **What it guarantees** (revision fencing, `notes/specs-only/top.md` §2): when two acquisitions of the
 same mutex conflict (two writers, or a writer and a reader), the later key's acquisition saw the
 earlier key gone (`rwHeld` at the later one's state: the earlier key's mod revision, below the
 later's creation, is no longer there). So the earlier holder held from its acquisition until its key
 was deleted (by `Unlock`, or its lease's expiry, an environment step at any time), and a write it
-fences with `If(CreateRevision(myKey) = R)` takes effect only while it holds. Time-based exclusion
-(the test's "the other did not acquire while I hold") is not a consequence: a lease may expire.
+fences with `If(CreateRevision(myKey) = R)` takes effect only while it holds. **With no lease
+expiry** (W0's `EnvCfg.leaseExpiry = false`: a deployment whose leases outlive the run) a key is
+deleted only by its owner's `Unlock`/`RUnlock` (the caller's delete update), so this is the tests'
+exclusion in time: a writer and any other holder never hold at once (snippet
+`ReqNoTwoHolders`). With lease expiry it is revision fencing only.
 
 **Changes**: old spec (`rwLockResult`, `rwHeldAt` over the recipes' client invariant) stated the same
 fact over the old certificates; now the caller's update at the creation and the history fact.
@@ -61,7 +65,7 @@ def RWMutex.RLock.spec : Prop :=
       (∃ σ σ' k res, Q σ σ' k res ∗
         ((⌜txnSucceeded res⌝ ∗
            rwmOwn m γ who id pfx (some { live := true, key := k, rev := W64 σ'.kv.rev, val := [] }) ∗
-           (⌜err ≠ GoInterface.nil⌝ ∨
+           ((⌜err ≠ GoInterface.nil⌝ ∗ recipeErrOk err) ∨
             (⌜err = GoInterface.nil⌝ ∗ ∃ σh : State, etcdLb γ σh ∗
               ⌜σ'.kv.rev ≤ σh.kv.rev ∧ rwHeld (pfxRange (pfx ++ go!"write")) σ'.kv.rev σh.kv.store⌝))) ∨
          (⌜∃ e, res = .err e ∧ err = errVal e⌝ ∗ rwmOwn m γ who id pfx my))) ∨

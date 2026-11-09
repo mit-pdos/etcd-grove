@@ -2,6 +2,9 @@
 `Cache.get` (`cache/*.go`), an internal helper.
 Users: `Cache.getWatch`.
 Proof sketch: the client's `Get` of the prefix (`WithPrefix`, linearizable) with the update from `etcdPeek γ`, recording `etcdLb γ σ` at the firing and the ceiling's revision below it (the loop's lower bound, `etcdLb_reach`); on success `store.Restore.spec` (the answer is `σ.kv.store` in the prefix range: `kvStep`, `RangeReq.answers` with no limit, sort or filter) under the ceiling (`storeCeil`, in `cacheLoop`).
+For the root cache (`pfx = ""`) the cache lists and watches from `"\x00"` (`OpGet`/`OpWatch`
+rewrite an empty key) while `prefixRange ""` includes the empty key: W0's `etcdLb_keyNonEmpty`
+(no state the cluster has been in stores, or has an event of, the empty key) closes the gap.
 Changes: restated over the opaque vocabulary of `Internal.lean` (the old internal handles, ghost names and certificate parameters replaced by predicates over W0's model); the spec mirrors the code.
 Margin: none known.
 -/

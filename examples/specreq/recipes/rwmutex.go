@@ -2,6 +2,7 @@ package recipes
 
 import (
 	"context"
+	"sync/atomic"
 
 	"go.etcd.io/etcd/client/v3/concurrency"
 	recipe "go.etcd.io/etcd/client/v3/experimental/recipes"
@@ -75,4 +76,54 @@ func ReqReaderAfterWriter(ctx context.Context, c *clientv3.Client, s1, s2 *concu
 	}()
 	_ = m1.Unlock()
 	<-done
+}
+
+// REQ recipes/rwmutex-no-two-holders: with no lease expiry, a writer and a reader never hold the
+// mutex at once (each handle is unlocked by another goroutine, as the test does).
+// Users: T/v3_lock_test.go:314-360 (the non-blocking checks: no reader or writer acquires while a
+// writer holds).
+// Assumes: no lease expiry (EnvCfg.leaseExpiry = false); pfx+"/" owned by these two mutexes.
+// Specs: RWMutex.Lock.spec, RWMutex.RLock.spec (rwHeld: the older key gone, deleted only by its
+// owner's Unlock or RUnlock), RWMutex.Unlock.spec, RWMutex.RUnlock.spec.
+func ReqNoTwoHolders(s1, s2 *concurrency.Session, pfx string) {
+	var holders atomic.Int32
+	type held struct {
+		m      *recipe.RWMutex
+		reader bool
+	}
+	done := make(chan held, 2)
+	go func() {
+		m := recipe.NewRWMutex(s1, pfx)
+		if err := m.Lock(); err != nil {
+			done <- held{}
+			return
+		}
+		if holders.Add(1) != 1 {
+			panic("rwmutex-no-two-holders: a writer acquired while another held")
+		}
+		done <- held{m, false}
+	}()
+	go func() {
+		m := recipe.NewRWMutex(s2, pfx)
+		if err := m.RLock(); err != nil {
+			done <- held{}
+			return
+		}
+		if holders.Add(1) != 1 {
+			panic("rwmutex-no-two-holders: a reader acquired while a writer held")
+		}
+		done <- held{m, true}
+	}()
+	for i := 0; i < 2; i++ {
+		h := <-done
+		if h.m == nil {
+			continue
+		}
+		holders.Add(-1)
+		if h.reader {
+			_ = h.m.RUnlock()
+		} else {
+			_ = h.m.Unlock()
+		}
+	}
 }

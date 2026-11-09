@@ -28,6 +28,9 @@ so the forwarded response meets `cacheWatchAt_recv`'s arm; on `ctx`, the cache's
 watcher's channel closed, it unregisters (`demux.Unregister.spec`) and closes the response channel
 (`closed`). The consumer's position is the ghost half the demux's entry for the watcher shares.
 
+For the root cache (`pfx = ""`) the cache lists and watches from `"\x00"` (`OpGet`/`OpWatch`
+rewrite an empty key) while `prefixRange ""` includes the empty key: W0's `etcdLb_keyNonEmpty`
+(no state the cluster has been in stores, or has an event of, the empty key) closes the gap.
 Changes: (round 1) a thread token, given back: deposited at the wait group's `Add(1)` (the counter
 bounded by tokens, `notes/bounds-plan.md`), a fresh one received at the `go` statement
 (`wp_fork_tok`); the consumer position carries `seen` (a progress notification is never below an
