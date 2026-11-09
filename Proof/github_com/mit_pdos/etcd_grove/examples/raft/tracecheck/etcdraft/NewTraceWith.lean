@@ -1388,6 +1388,16 @@ theorem NewTraceWith.wp_proof
   obtain ⟨hs0, hs1, hcfP, hbfP, hsmk⟩ := Hn
   have hxb : (xs.length : Int) < 2 ^ 40 := by rw [hxl]; exact Hb.2
   have hxlen : sint.Z lsl.len = (xs.length : Int) := by rw [← Hlnl, Hlsl.1]; word
+  by_cases hnlt : ¬ sint.Z n < sint.Z srvsl.len
+  · rw [decide_eq_false hnlt]
+    simp only [Bool.false_eq_true, ite_false]
+    wp_pures
+    wp_load
+    wp_pures
+    wp_load
+    wp_pures
+    wp_store
+    sorry
   wp_if_destruct
   · have Hnlt2 : sint.Z n < sint.Z srvsl.len := Hif
     have Hlt : sint.nat n < sxs.length := by rw [Hsxsl.1]; word
@@ -2062,7 +2072,7 @@ theorem NewTraceWith.wp_proof
         rcases List.mem_append.1 h with h | h
         · exact h
         · exact absurd ((id_eq_iff _ _).2 (List.mem_singleton.1 h)) hk
-  sorry
+  exact absurd Hif hnlt
 
 end proof
 
