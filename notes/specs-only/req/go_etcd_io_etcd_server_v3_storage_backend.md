@@ -22,3 +22,20 @@ What the consistent index (`cindex`) and the apply thread need of the backend (4
    Used by: `createMergedSnapshotMessage.spec`, `newSnapshotReaderCloser.spec`.
 5. **`VerifyBackendConsistency(be, lg, true, buckets...)`** (`applyAll`): no panic on the server's
    backend (its checks pass, or `ETCD_VERIFY` is off: ApiBoot's `backendBootRes`).
+
+## from 2e
+
+Provisional names in 2e's modules, to be replaced by 4a's at integration:
+1. `Snap.BeImage` (a type), `Snap.emptyImage img`, `Snap.beFile path o` (a closed database file's
+   image, or no file: exclusive, timeless): a rename carries the image (`OpenSnapshotBackend`), an
+   open of an absent path creates an empty one. Used by `OpenBackend.spec`, `OpenSnapshotBackend.spec`,
+   `bootstrappedBackend.Close.spec`, `memberDisk`'s realization.
+2. `ServerStorage.beOpen be path img` (the whole open token; its `Close` gives `beFile path (some
+   img')`), `ServerStorage.beReadable be` (`Size`/`SizeInUse` at any time, also after `Close`:
+   `BackendQuota.Available` runs on request goroutines), `ServerStorage.beTx tx` (the locked batch
+   transaction the commit hooks write).
+3. `EtcdServer.backendBootRes cfg` (the backend's slot of `NewServer`: the quota bbolt can map,
+   `ETCD_VERIFY` unset).
+   ```go
+   be := serverstorage.OpenBackend(cfg, beHooks) // bootstrap.go:240
+   ```

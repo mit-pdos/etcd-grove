@@ -11,9 +11,11 @@ import (
 // error; nothing about the cluster's state.
 // Users: Kubernetes' feature_support_checker.go:194 (resp.Version), storagebackend/factory/etcd3.go:277
 // (status.DbSize), client.go's checkVersion.
-// Specs: maintenance.Status.spec (statusRespOwn; its field unfold is 3h's).
+// Assumes: as clientv3client/endpoints (the endpoints token's fraction, a non-empty list); ep serves
+// the cluster.
+// Specs: Client.Status.spec (Maint.StatusTriple: statusRespOwn; its field unfold is 3h's).
 func ReqStatus(ctx context.Context, cli *clientv3.Client, ep string) {
-	st, err := cli.Maintenance.Status(ctx, ep)
+	st, err := cli.Status(ctx, ep)
 	if err != nil {
 		return
 	}

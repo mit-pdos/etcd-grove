@@ -70,3 +70,9 @@ one of:
 * a configuration scope premise `ClientCertAuthEnabled = false` (2e's `NewServer`), a decision for
   the user.
 Used by: `serverWatchStream.isWatchPermitted.spec`; every handler's principal (2a).
+
+## from 2e
+
+1. `EtcdServer.authBootRes cfg` (provisional slot of `NewServer`: the token provider's configuration,
+   `AuthToken`, `TokenTTL`, `BcryptCost`; `NewTokenProvider`'s error is returned by `NewServer`).
+2. `authStore.Close` once (`Cleanup`, through `srvClosers`).

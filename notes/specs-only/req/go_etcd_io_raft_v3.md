@@ -436,3 +436,17 @@ Batch 2d (etcd's apply thread and raft node driver, `ApiApply.lean`):
 3. **The restart's applied start**: etcd's `raftConfig` leaves `Applied = 0`, so `RestartNode`'s
    delivered log starts at the storage's offset, which is the `MemoryStorage` snapshot's index
    (bootstrap's `ApplySnapshot` then `Append`): `run`'s `etcdProgress` starts there. Nothing new.
+
+## from 2e
+
+1. **The restart snapshot's configuration.** `bootstrap` rebuilds the `MemoryStorage` of a restart
+   from the WAL's newest valid snapshot record (index `si`, term) with the **backend's** configuration
+   at its consistent index `ci ≥ si` (`bootstrap.go:107-115`, `buildConfStateFromV3store`), then hands
+   it to `RestartNode`. `RestartNode.spec` takes `⌜σ.snap.isEmpty⌝ ∨ snapValid γ σ.snap`: with a conf
+   change in `(si, ci]` that snapshot is not valid (R1's provability F3). Either `snapValid` (or a
+   separate restart premise) admits "a snapshot at a committed index `si` with the configuration of a
+   committed index `ci ≥ si`", or this is a finding (a follower sent that snapshot installs the
+   configuration at `ci` with the log at `si`). Used by `bootstrap.spec`'s restart case,
+   `memberDisk`'s realization.
+2. `RestartNode.spec` at a configuration point `a` not bounded by the stored commit (R1 round 1, F1):
+   relied on (a stop after the apply thread ran ahead of the raft loop's last `Save` of the commit).

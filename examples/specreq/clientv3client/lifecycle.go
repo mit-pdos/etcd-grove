@@ -44,7 +44,8 @@ type wrapKV struct{ clientv3.KV }
 
 // REQ clientv3client/new-no-endpoints: New with no endpoint returns an error and nil.
 // Users: callers' configuration errors (Kubernetes' factory reports them).
-// Specs: New.spec (cfgOk with the empty list: no servesAt needed).
+// Assumes: lg a logger or nil.
+// Specs: New.spec (its post: no endpoint, an error and nil).
 func ReqNewNoEndpoints(lg *zap.Logger) {
 	cli, err := clientv3.New(clientv3.Config{Logger: lg})
 	if err == nil || cli != nil {
@@ -52,15 +53,18 @@ func ReqNewNoEndpoints(lg *zap.Logger) {
 	}
 }
 
-// REQ clientv3client/endpoints: the client's endpoints are the configured ones (a copy the caller
-// owns), each serving the cluster.
+// REQ clientv3client/endpoints: the client's endpoints are a copy the caller owns, each serving the
+// cluster; Status of each never panics.
 // Users: Kubernetes' compact.go (the compactor's endpoint key), feature_support_checker.go (Status
 // of each endpoint).
-// Specs: Client.Endpoints.spec, maintenance.Status.spec.
+// Assumes: auto-sync off and no SetEndpoints concurrent with Status, the list non-empty (the caller
+// holds a fraction of New's endpoints token: Client.dial reads c.endpoints[0] unlocked,
+// issues/etcd-client-dial-empty-endpoints.md).
+// Specs: Client.Endpoints.spec, Client.Status.spec (Maint.StatusTriple).
 func ReqEndpoints(ctx context.Context, cli *clientv3.Client) {
 	eps := cli.Endpoints()
 	for _, ep := range eps {
-		if _, err := cli.Maintenance.Status(ctx, ep); err != nil {
+		if _, err := cli.Status(ctx, ep); err != nil {
 			continue
 		}
 	}

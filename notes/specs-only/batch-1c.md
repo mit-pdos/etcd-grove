@@ -94,12 +94,11 @@ schemeToCredsRequirement,extractHostFromHostPort}` (internal to the two specifie
 (`newBlockLogger`, `blockLogger.recordWait`, old specs exist): the watch's helpers, left to 1b
 (their closures' contracts are the watch stream's).
 
-## Go findings (for `nonissues/`; not filed: outside my paths)
+## Go findings (filed in round 1)
 
-* **`NewLeaseFromLeaseClient(remote, nil, t)` leaves `l.lg` nil**; the receive and send loops call
-  `l.lg.Warn` on a stream error (zap's `Logger.Warn` dereferences the receiver): a panic for a lessor
-  made without a client once its keep-alive stream fails. `recvKeepAlive` guards its `Warn`, the
-  loops do not. By code reading; `blocks-proof: no` (the spec takes a client).
+`issues/etcd-client-dial-empty-endpoints.md` (with a failing test), `nonissues/etcd-client-lessor-nil-logger.md`,
+`nonissues/etcd-client-keepalive-close-never-closed.md`; `nonissues/etcd-client-dialoptions-unary-interceptor.md`
+updated (the gRPC proxy).
 
 ## Open questions for the user
 
@@ -128,3 +127,51 @@ the readiness gap, `clientMut` only `KV` writable, `callOptsOk` full, stream ope
 permission, the lease model). Other batches' needs of 1c (1d, 1e) are met: `Ctx`/`GetLogger` under
 `clientPre` (from `isClient`/`clientMut`), `KeepAlive` without a thread token, `Grant` with a
 persistent update, `clientMut_fields`.
+
+## Round 1 repairs (2026-11-09)
+
+Reviews: `reviews/1c-provability-1.md` (P), `reviews/1c-completeness-1.md` (C), and W0's round-3 names
+(the principal per call: `ctxPrin who ctx p`, `Step p`; `tokenUser`; `leaseViewLb`; the model's
+int64 lease ids and TTLs, positive granted TTL, uint64 member ids: W0's "Round 3, second part").
+Everything rebuilds (`etc/specs-build.sh --dir`: 348 + 31 modules); the snippets vet.
+
+**First tier.**
+
+| finding | repair |
+|---|---|
+| P-F1 `AttemptTriple` lost a not-sent update | case 4 is `∃ k, callErr err k ∗ ⌜k.indefinite ∧ k ≠ .notSent⌝`; req to 2a updated |
+| P-F2 `cc` dereferenced | new slot `grpcConnAt cc` (2a) in `AttemptTriple`'s and `uiOk_call`'s pre |
+| P-F3 `siOk_call`'s options | pre `callOptsOk opts rep` (no per-call option raises the limit: `callOptsOk_append`) |
+| P-F4 readiness gap | `clientReady c` (persistent), minted by `newClient` once `c.Auth` is set (`isClient_ready`, `clientMut_ready`, `clientRest_ready`; `clientReady_null` for handles over a caller's remote); `uiOk_call`, `siOk_call`, `getToken`, `refreshToken`, `Sync`, `autoSync`, `checkVersion` take it; the handles record their client (`authHandle a c`, `clusterHandle`, `maintHandle`, `lessorHandle`, `retry*Handle`) and meet their bundles only with it; the constructors do not need it; `streamClientInterceptor` now over `clientPre` (its `getToken` runs only at a call, under `siOk_call`'s `clientReady`). W0's `kvHandle_kvAt` needs the same (req, "from 1c (round 1, to W0)", item 1) |
+| P-F5 `dial` reads `c.endpoints[0]` unlocked and unchecked | `epsTok c dq eps` (fractional): `dial`, `dialWithBalancer`, `Dial`, `checkVersion`, `Maint.StatusTriple` take a fraction at a non-empty list, `SetEndpoints`/`Sync` the whole token; `New` gives it with auto-sync off (`epsTok_persist`, `clientVia`); `issues/etcd-client-dial-empty-endpoints.md` with a failing Go test (`SetEndpoints()` then `Maintenance.Status`: index out of range), the race in its text |
+| P-F6 `cfgPrincipal_user` under client-cert auth | premise `⌜cfg.TLS' = null⌝ ∨ tlsPrincipal γ cfg.TLS' none` |
+| P-F7/F8 integer ranges, `GrantedTTL > 0` | W0's model (round 3, second part): `leaseStep .leaseGrant` (int64 id, `0 < ttl' ≤ maxLeaseTTL`), `.leaseTimeToLive` (`0 < gttl < 2^63`), `EnvStep.alarm` (member id `< 2^64`); the snippets `ReqGrantTTL`, `ReqLeasesNoDup`, `ReqTimeToLiveAbout`, `ReqAlarmDisarm` follow |
+| P-F9 / C-F8 `New` with no endpoint | post `⌜cfg.Endpoints'.len = 0 → c = null ∧ err ≠ nil⌝` (`New`, `newClient`) |
+| C-F1 per-member lease reads | `Lease.GrantTriple` (through a frozen endpoint `ep`: `leaseViewLb γ ep` of the table it created) and `LeaseRead.Triple` (`TimeToLive`, `Leases`: from `leaseViewLb γ ep i`, answered at a table `j ≥ i`, `State.leaseAnsAt`, giving `leaseViewLb γ ep j`), over `leaseOf v c ∗ clientVia c ep` (`clientCore_leaseOf`); snippets `clientv3lease/member.go` (`ReqGrantThenListOneMember`, `ReqGoneNotListed`); `lessor__Leases.lean`'s users fixed |
+| C-F2 `clientRest` | `clientRest_core` (hence `clientPre`, `clientBase`); `Client.Close` over `clientRest`; `Ctx`, `GetLogger`, `WithLogger` over `clientBase` |
+| C-F3 in-process client | `NewCtxClient.spec`, `WithZapLogger.spec`, `clientBare`, `clientBare_base`, `clientBare_assemble` (→ `isClient c γ none ∗ clientReady c`, the principal per call); the `From*Client` constructors over `clientBase` (a bare client's); snippet `inproc.go`; req to W0 (item 2: `isClient_conn` is false for it) and to the server batch (the adapters' wire contracts) |
+| C-F4 the gRPC proxy's client | `dialOptsOk` admits `WithUnaryInterceptor`/`WithStreamInterceptor` of interceptors calling the invoker at most once with the call's principal (the post of `uiOk_call` holds of any such: the unsettled refusals fired by a ghost step); req to 2a item 3; the nonissue names the proxy |
+| C-F5 TLS | `Transport.tlsCfgOk` moved to `client/pkg/v3/transport` with `TLSInfo.ClientConfig.spec`; snippet `tls.go` (`ReqNewTLS`) |
+| C-F6 promoted methods | `Client.{Grant,Revoke,TimeToLive,Leases,KeepAlive,KeepAliveOnce}`, the 18 `Client.<Auth method>`, `Client.{MemberAdd,MemberAddAsLearner,MemberRemove,MemberUpdate,MemberList,MemberPromote}`, `Client.{AlarmList,AlarmDisarm,Status}` over `clientRest`; the bundles restated per method over a method function `m` (`Call.Triple`, `Lease.*Triple`, `Cluster.*Triple`, `Maint.*Triple`); snippets use `cli.Status` |
+| C-F7 refused principals | snippet `ReqRefusedPrincipals` (anon, foreign token); req to W0 item 3 (`ctxPrin` of an unissued token) |
+
+**Second tier done.** P-S3 (the repeatable writes: req to W0 item 4; W0 already changed `top.md`),
+P-S4 (findings filed), P-S5 / C-S4 / C-S6 (duplicated `ctxPrin`, `Status`'s subsumed disjunct,
+`once.go`, `ReqCloseThenCalls`, `ReqLeasesGranted`, `ReqRefreshAtMostOnce` marked a ghost assertion),
+C-S2 (`ReqEndpoints`' header), C-S5 (`Close` over `clientRest`). Also: `AlarmList` was applied to an
+extra `#()` argument (fixed). **Not done**: P-S1 (`kaRecvAt` tracking the ids sent: `keepAliveOnce`'s
+"about `id`" rests on 2a's handler copying `req.ID`, req item 4 of the v3rpc section), P-S2 (the
+peer holder: requested of 2a, round 1 item 4), C-S1 (`ActiveConnection`'s `GetState`/`Connect`:
+grpc's), C-S3 (Kubernetes `OptimisticDelete`/`Count` snippets).
+
+**Renamed or changed names (for 1d, 1e, 1g).** `tokenOf` → W0's `tokenUser`; `Auth.Triple` →
+`Call.Triple`; the bundles take a method function `m` (`Auth.methods m`, `Cluster.methods m`,
+`Maint.methods m v`, `Lease.methods m v`); every triple takes the call's principal `p` with
+`ctxPrin who ctx p`; handles take their client (`authHandle a c γ who`, ...); `Client.Ctx.spec` and
+`Client.GetLogger.spec` take `clientBase c who` (from `isClient`/`clientRest` by `clientRest_core`,
+`clientCore_pre`, `clientPre_base`); `NewLeaseFromLeaseClient` takes `clientBase c who`.
+
+**Open questions left.** 1: W0's `kvHandle_kvAt` readiness (req). 2: `isClient_conn` for in-process
+clients (req). 3: the per-call principal of an unissued token (req). 4 (from round 0): repeatable
+lease writes stay weaker than at-most-once; the scope premises (`permTypeM`, `alarmKindM`,
+`LogConfig`, auto-sync with `ETCD_VERIFY` off, `Status` only with the endpoints token).

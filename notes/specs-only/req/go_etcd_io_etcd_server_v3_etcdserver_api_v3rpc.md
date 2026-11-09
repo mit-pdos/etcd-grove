@@ -179,3 +179,14 @@ resend; K4's stale auth revision), or a `srvIndef` error. What 2c needs of 2a:
 6. **The outcome-2 path to the client**: a `srvUnfired` error the client's interceptor resends
    (`errRetryAuth`) or treats as `.notSent`/refusal must reach W0's `AttemptTriple`'s "update given
    back" case with the handler's update (the server gives it back).
+
+## from 2e
+
+1. `v3rpc.Server(s, …)` takes `EtcdServer.isServer s γ` (`Start`'s post; `ApiBoot.lean`) and, served,
+   gives `servesAt γ ep` (K3).
+2. `EtcdServer.v3rpcBootCfg cfg` (provisional slot of `NewServer`): K8's `MaxTxnOps ≤ 4999` and the
+   `MaxRequestBytes` bound; replace by your slot.
+3. The Election and Lock services (`v3election`, `v3lock`, registered by `v3rpc.Server` over
+   `v3client.New(s)`): their specs take `isClient c γ who`, `ctxPrin ctx who`, 1d's `etcdPerm γ T`
+   and a `threadTok` per call (the session's keep-alive goroutine); the registration must supply them
+   from the request's metadata.

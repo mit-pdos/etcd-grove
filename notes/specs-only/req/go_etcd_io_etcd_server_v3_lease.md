@@ -21,3 +21,12 @@ What the request path (2c) needs of the lessor (3c) and `lease/leasehttp`:
 2. **`Promote(d)`, `Demote()`** (`applyEntryNormal`'s empty entry at a leader, the ready handler's
    `updateLeadership`): no effect on the model; no panic.
 3. **`Recover(newbe, rd)`** (`applySnapshot`): over a snapshot's image, before mvcc's `Restore`.
+
+## from 2e
+
+1. `EtcdServer.leaseBootRes cfg ecfg` (provisional slot of `NewServer`): the lessor's configuration
+   against W0's `EnvCfg.leaseExpiry`. **With `leaseExpiry = false`** the server cannot fire a lease
+   expiry, so the lessor's slot must carry the deployment premise that no lease expires during the
+   run (time-based: 3c to state it, or the user decides to drop the mode: open question Q6 of
+   `batch-2e.md`).
+2. `lessor.Stop` once (`Cleanup`, through `srvClosers`).

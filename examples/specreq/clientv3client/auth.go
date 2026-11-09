@@ -6,6 +6,7 @@ import (
 	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
+	"google.golang.org/grpc/metadata"
 )
 
 // REQ clientv3client/admin-setup: an administrator's set-up with auth off: each call either
@@ -71,8 +72,9 @@ func ReqUserClient(ctx context.Context, ep, name, pw string, lg *zap.Logger) {
 // password changed, the auth revision moved) is resent only after a token refresh, and applied at
 // most once: the caller's update (exclusive) fires once, whatever the interceptor did.
 // Users: every write of a client with credentials (Kubernetes' writes, the concurrency recipes).
-// Assumes: the owner's invariant counts the firings of the update for this put (at most one,
-// checked as a panic in the invariant's proof, not in Go).
+// Assumes: none. This snippet checks nothing in Go: its reliance (one firing of the put's update) is
+// a ghost assertion of the owner's invariant (the update is exclusive: fired at most once by
+// uiOk_call's construction), recorded here for the reviewers.
 // Specs: Client.Put.spec (W0), Client.unaryClientInterceptor.spec (uiOk_call), Client.getToken.spec,
 // authClient.UserChangePassword.spec.
 func ReqRefreshAtMostOnce(ctx context.Context, admin, user *clientv3.Client, name, newPw string) {
@@ -84,5 +86,27 @@ func ReqRefreshAtMostOnce(ctx context.Context, admin, user *clientv3.Client, nam
 	_, err := user.Put(ctx, "k", "v")
 	if err == rpctypes.ErrAuthFailed {
 		return
+	}
+}
+
+// REQ clientv3client/refused-principals: with auth on, a client with no credentials (anon) and the
+// same client sending a token no provider issued (bad, through grpc metadata) are refused every
+// write: the error is never nil. (No bundle: the interceptor resends a token refusal as is until
+// its limit, then fires it as a refusal.)
+// Users: examples/etcd/auth/authkv.go:151-205 (reqCtx, refused: "anon"'s and "bad"'s puts).
+// Assumes: auth is on for good (the owner's invariant: no AuthDisable); badToken was never issued
+// (ctxPrin of a context carrying an unissued token: requested of W0/3d,
+// req/go_etcd_io_etcd_client_v3.md "from 1c (round 1)"); anon has no role on k.
+// Specs: New.spec (cfgPrincipal_none), Client.Put.spec (W0), uiOk_call; model: kvStep (permErr,
+// refusals).
+func ReqRefusedPrincipals(ctx context.Context, anon *clientv3.Client, k, badToken string) {
+	_, err := anon.Put(ctx, k, "v")
+	if err == nil {
+		panic("refused-principals: anon's put was not refused")
+	}
+	bctx := metadata.AppendToOutgoingContext(ctx, "token", badToken)
+	_, err = anon.Put(bctx, k, "v")
+	if err == nil {
+		panic("refused-principals: bad's put was not refused")
 	}
 }

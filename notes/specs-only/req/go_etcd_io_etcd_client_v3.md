@@ -453,3 +453,34 @@ grpc/Api.lean`, `Spec/go_etcd_io/etcd/api/v3/v3rpc/rpctypes/Api.lean`,
    status, its message no description), which 2a can add when W0 states it.
 5. **`tlsCfgOk`**: `V3rpc.Server.spec` takes 1c's `Transport.tlsCfgOk` for the server's TLS
    configuration (the same `credentials.NewTransportCredential`).
+
+## from 1c (round 1, to W0)
+
+1. **Readiness in the KV handle's introduction** (1c's `clientReady c`, `ApiClient.lean`): `newClient`
+   builds `NewKV(c)` before it sets `c.Auth`; a call through the handle in that window would refresh
+   a token through a `nil` `Auth`. 1c's handles now record their client and meet their bundles only
+   with `clientReady c` (`authHandle_authAt`, `lessorHandle_leaseAt`, ...); the interceptor laws
+   (`uiOk_call`, `siOk_call`) take it. Needed of W0: `kvHandle` records its client (or `NewKV`'s post
+   gives `kvHandle kv c γ who`) and `kvHandle_kvAt` takes `clientReady c`; `retryKVHandle_remoteKVAt`
+   likewise. 1c gives `isClient_ready`, `clientMut_ready`, `clientRest_ready`, `clientReady_null`.
+   ```go
+   client.KV = NewKV(client)   // client.go: before client.Auth = NewAuth(client)
+   ```
+   Used by: `Client.unaryClientInterceptor.spec`, `newClient.spec`.
+2. **`isClient_conn`/`clientRest_conn` are false of an in-process client** (`v3client.New`:
+   `NewCtxClient`, no connection; its fields set from adapters): 1c's `clientBare_assemble` gives
+   `isClient c γ none` for it, which cannot give `clientConnOk` (no `conn`). Request: drop
+   `isClient_conn`/`clientRest_conn` (their only use is `NewKV(c)` inside `newClient`, where 1c's
+   `clientCore` gives `clientConnOk`, `clientConnOk_core`), or index `isClient` by whether it has a
+   connection.
+   Used by: `clientBare_assemble`, snippet `clientv3client/inproc.go`.
+3. **A context carrying a token no provider issued** (`examples/etcd/auth`'s `bad` principal:
+   `metadata.AppendToOutgoingContext(ctx, "token", badToken)`): an introduction
+   `ctxTokenMd ctx tok ∗ tokenUnissued γ tok ⊢ ctxPrin dflt ctx p` for every `p` (the server refuses
+   with `ErrInvalidAuthToken`, a refusal at any principal), with `tokenUnissued` 3d's (the token
+   providers issue only tokens they generate). Used by: snippet `clientv3client/auth.go`
+   (`ReqRefusedPrincipals`).
+4. **Repeatable writes** (provability review S3): `top.md` and `Api.lean`'s header should say a
+   write is fired at most once *unless repeatable*: `LeaseGrant`, `LeaseRevoke`, `Alarm` (disarm)
+   are sent with `withRepeatablePolicy()` and take persistent updates (1c's `CallTriple`,
+   `reqRetryRep`). (W0's round 3 second part did this for `top.md`; the `Api.lean` header too.)

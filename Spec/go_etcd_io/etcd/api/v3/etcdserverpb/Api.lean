@@ -194,17 +194,17 @@ def chunkModels (c : Proto.Content) (m : RangeRespM) : Prop := chunkHolds c m
 /-- A proto3 scalar merged: the source's if set (non-zero). -/
 def mergeW (a b : w64) : w64 := if b = W64 0 then a else b
 
-def HeaderM.merge (h h' : HeaderM) : HeaderM :=
+def mergeHeader (h h' : HeaderM) : HeaderM :=
   ⟨mergeW h.clusterId h'.clusterId, mergeW h.memberId h'.memberId, mergeW h.revision h'.revision,
    mergeW h.raftTerm h'.raftTerm, mergeW h.leaderId h'.leaderId⟩
 
 /-- **`proto.Merge` of two `RangeResponse`s**: the key-values appended, the header merged field by
 field (taken if the destination has none), `More` or-ed, `Count` the source's if set. -/
-def RangeRespM.merge (m m' : RangeRespM) : RangeRespM :=
+def mergeRange (m m' : RangeRespM) : RangeRespM :=
   { hdr := match m.hdr, m'.hdr with
       | h, none => h
       | none, some h' => some h'
-      | some h, some h' => some (h.merge h')
+      | some h, some h' => some (mergeHeader h h')
     kvs := m.kvs ++ m'.kvs
     more := m.more || m'.more
     count := mergeW m.count m'.count }
@@ -242,7 +242,7 @@ def holds_depth.spec : Prop :=
 
 /-- **`proto.Merge` of two range responses** (2a's `Proto.merge`, at this type). -/
 def rangeResp_merge.spec : Prop := ∀ c c' m m',
-  rangeRespHolds c m → rangeRespHolds c' m' → rangeRespHolds (Proto.merge c c') (m.merge m')
+  rangeRespHolds c m → rangeRespHolds c' m' → rangeRespHolds (Proto.merge c c') (mergeRange m m')
 
 /-! ### Relation laws (W0's predicates) -/
 
@@ -291,20 +291,6 @@ def txnRespOwn_msgAt.spec : Prop := ∀ p dq m,
 def compactRespOwn_msgAt.spec : Prop := ∀ p dq m,
   compactRespOwn (GF := GF) p dq m ⊣⊢
     ∃ c, Proto.msgAt etcdserverpb.CompactionResponse.ty p dq c ∗ ⌜compactRespHolds c m⌝
-
-/-- **A fresh message** (`new(T)` of an etcdserverpb message type, `zero_val`) holds some content:
-what a stub's reply holder and a handler's request holder are before grpc decodes into them. -/
-def fresh_msgAt.spec : Prop := ∀ (t : go.GoType) (p : Loc),
-  t ∈ [etcdserverpb.RangeResponse.ty, etcdserverpb.PutResponse.ty,
-    etcdserverpb.DeleteRangeResponse.ty, etcdserverpb.TxnResponse.ty,
-    etcdserverpb.CompactionResponse.ty, etcdserverpb.LeaseGrantResponse.ty,
-    etcdserverpb.LeaseRevokeResponse.ty, etcdserverpb.LeaseTimeToLiveResponse.ty,
-    etcdserverpb.LeaseLeasesResponse.ty, etcdserverpb.AuthEnableResponse.ty,
-    etcdserverpb.AuthenticateResponse.ty, etcdserverpb.AuthUserAddResponse.ty,
-    etcdserverpb.AuthUserGrantRoleResponse.ty, etcdserverpb.AuthRoleAddResponse.ty,
-    etcdserverpb.AuthRoleGrantPermissionResponse.ty] →
-  typedPointsto p (zero_val etcdserverpb.RangeResponse) (DFrac.own 1) ∗ ⌜t = etcdserverpb.RangeResponse.ty⌝ ∨
-  ⌜t ≠ etcdserverpb.RangeResponse.ty⌝ ⊢ True
 
 /-! ### Package initialization: the generated descriptors and enum maps -/
 
@@ -377,15 +363,16 @@ What a generated unary stub does (`kVClient.Put`, ...): build the call options
 `c.cc.Invoke(ctx, method, in, out, cOpts...)`; return `(out, nil)` or `(nil, err)`. What a generated
 unary handler does (`_KV_Range_Handler`, ...): allocate the request holder, decode into it (grpc's
 `dec`), then call the service's method directly (no interceptor) or through the interceptor with a
-`*UnaryServerInfo` and a closure calling the method. -/
+`*UnaryServerInfo` and a closure calling the method. A fresh `new(T)` of a message type holds some
+content (part of `msgAt`'s realization): the stubs' reply holders and the handlers' request holders
+are given to grpc as such. -/
 
 section shapes
 variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
 /-- A stub's connection field: the `*kVClient` (or another stub) `c` holds `cc` (read-only). -/
-def stubAt (stubT : Type) [TypedPointsto (GF := GF) GoInterface] (c : Loc) (cc : GoInterface) :
-    IProp GF :=
+def stubAt (stubT : Type) (c : Loc) (cc : GoInterface) : IProp GF :=
   iprop(c.[stubT, go!"cc"] ↦□ cc)
 
 /-- **What a unary stub's caller must establish** (WP form): with a fresh reply holder `out` of type
@@ -393,10 +380,9 @@ def stubAt (stubT : Type) [TypedPointsto (GF := GF) GoInterface] (c : Loc) (cc :
 caller's), the connection's `Invoke` of method `m` on the request `in` and `out`, whose result the
 stub returns. -/
 def unaryStubWP (cc : GoInterface) (m : val) (reqT repT : go.GoType) (ctx : GoInterface) (q : Loc)
-    (opts : GoSlice) (Ψ : val → IProp GF) : IProp GF :=
-  iprop(∀ (out : Loc) (c0 : Proto.Content) (cOpts : GoSlice) (sm : GoInterface) (os : List GoInterface),
-    Proto.msgAt repT out (DFrac.own 1) c0 -∗ Grpc.callOptOk sm -∗
-    ⌜True⌝ -∗
+    (os : List GoInterface) (Ψ : val → IProp GF) : IProp GF :=
+  iprop(∀ (out : Loc) (c0 : Proto.Content) (cOpts : GoSlice) (sm : GoInterface),
+    Proto.msgAt repT out (DFrac.own 1) c0 -∗ Grpc.callOptOk sm -∗ cOpts ↦* (sm :: os) -∗
     WP (App (App (App (App (App (Val (cc @!! google_golang_org.grpc.ClientConnInterface.ty @!! go!"Invoke"))
         (Val #ctx)) (Val m)) (Val #(Proto.msgVal reqT q))) (Val #(Proto.msgVal repT out)))
         (Val #cOpts))
@@ -425,7 +411,49 @@ def handlerBodyWP (srv : GoInterfaceOk) (meth : GoString) (reqT repT : go.GoType
       WP (App (App (App (App (Val #ic) (Val #ctx)) (Val #(Proto.msgVal reqT q))) (Val #info))
         (Val h)) {{ Ψ }})
 
+/-- The interface type `RegisterKVServer` (and the other registrations) asserts the service value
+against (`interface{ testEmbeddedByValue() }`: a service embedding `Unimplemented*Server` by
+pointer); etcd's service values do not have the method. -/
+def embedTestTy : go.GoType :=
+  go.GoType.InterfaceType [go.InterfaceElem.MethodElem
+    go!"go.etcd.io/etcd/api/v3/etcdserverpb.testEmbeddedByValue" (go.signature.Signature [] false [])]
+
+/-- **What a streaming stub's caller must establish** (WP form): with the call options, the
+connection's `NewStream` of the service's stream descriptor `sd` and method `m`; on success the
+stub wraps the stream in a fresh `*grpc.GenericClientStream[Req, Res]` (returned as the stream
+interface), on an error it returns a `nil` stream. -/
+def streamStubWP {Req Res : Type} [TypedPointsto (GF := GF) (google_golang_org.grpc.GenericClientStream Req Res)]
+    (cc : GoInterface) (sd : Loc) (m : val) (reqT repT : go.GoType) (ctx : GoInterface)
+    (os : List GoInterface) (Ψ : val → IProp GF) : IProp GF :=
+  iprop(∀ (cOpts : GoSlice) (sm : GoInterface),
+    Grpc.callOptOk sm -∗ cOpts ↦* (sm :: os) -∗
+    WP (App (App (App (App (Val (cc @!! google_golang_org.grpc.ClientConnInterface.ty @!! go!"NewStream"))
+        (Val #ctx)) (Val #sd)) (Val m)) (Val #cOpts))
+      {{ v, ∃ (st err : GoInterface), ⌜v = PairV #st #err⌝ ∗
+          ((⌜err ≠ GoInterface.nil⌝ -∗ Ψ (PairV #GoInterface.nil #err)) ∧
+           (⌜err = GoInterface.nil⌝ -∗ ∀ x : Loc,
+              x ↦ (google_golang_org.grpc.GenericClientStream.mk st : google_golang_org.grpc.GenericClientStream Req Res) -∗
+              Ψ (PairV #(interface.mkOk (go.GoType.PointerType
+                (google_golang_org.grpc.GenericClientStream.ty reqT repT)) #x) #GoInterface.nil))) }})
+
 end shapes
+
+section initlaws
+variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
+
+/-- **The streaming services' stream descriptors are readable** (the stubs pass
+`&Watch_ServiceDesc.Streams[0]`, `&Lease_ServiceDesc.Streams[0]` to `NewStream`). -/
+def descStreams_init.spec : Prop :=
+  isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ⊢
+    (∃ (sl : GoSlice) (sds : List google_golang_org.grpc.StreamDesc),
+      (globalAddr etcdserverpb.Watch_ServiceDesc).[google_golang_org.grpc.ServiceDesc, go!"Streams"] ↦□ sl ∗
+      sl ↦*□ sds ∗ ⌜1 ≤ sds.length⌝) ∗
+    (∃ (sl : GoSlice) (sds : List google_golang_org.grpc.StreamDesc),
+      (globalAddr etcdserverpb.Lease_ServiceDesc).[google_golang_org.grpc.ServiceDesc, go!"Streams"] ↦□ sl ∗
+      sl ↦*□ sds ∗ ⌜1 ≤ sds.length⌝)
+
+end initlaws
 
 end EtcdServerPb
 end EtcdGrove

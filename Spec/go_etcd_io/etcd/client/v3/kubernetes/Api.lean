@@ -134,7 +134,7 @@ def Kube.GetTriple (m : GoString → val) (P : IProp GF) (γ : Cluster) (who : P
 
 /-- `List` (`m s`: the method `s` of the receiver). -/
 def Kube.ListTriple (m : GoString → val) (P : IProp GF) (γ : Cluster) (who : Principal) : Prop :=
-  ∀(ctx : GoInterface) (pfx : GoString) (o : go_etcd_io.etcd.client.v3.kubernetes.ListOptions)
+  ∀ (ctx : GoInterface) (p : Principal) (pfx : GoString) (o : go_etcd_io.etcd.client.v3.kubernetes.ListOptions)
      (Q : State → State → Resp → IProp GF),
     {{ P ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗
         kubeAU γ p (.range (listReqM pfx o.Continue' o.Limit' o.Revision')) true Q }}
@@ -144,7 +144,7 @@ def Kube.ListTriple (m : GoString → val) (P : IProp GF) (γ : Cluster) (who : 
 
 /-- `Count` (`m s`: the method `s` of the receiver). -/
 def Kube.CountTriple (m : GoString → val) (P : IProp GF) (γ : Cluster) (who : Principal) : Prop :=
-  ∀(ctx : GoInterface) (pfx : GoString) (o : go_etcd_io.etcd.client.v3.kubernetes.CountOptions)
+  ∀ (ctx : GoInterface) (p : Principal) (pfx : GoString) (o : go_etcd_io.etcd.client.v3.kubernetes.CountOptions)
      (Q : State → State → Resp → IProp GF),
     {{ P ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ kubeAU γ p (.range (countReqM pfx)) true Q }}
       (App (App (App (Val (m go!"Count")) (Val #ctx)) (Val #pfx)) (Val #o))
@@ -153,7 +153,7 @@ def Kube.CountTriple (m : GoString → val) (P : IProp GF) (γ : Cluster) (who :
 
 /-- `OptimisticPut` (`m s`: the method `s` of the receiver). -/
 def Kube.OptimisticPutTriple (m : GoString → val) (P : IProp GF) (γ : Cluster) (who : Principal) : Prop :=
-  ∀(ctx : GoInterface) (key : GoString) (vsl : GoSlice) (v : GoString) (rev : w64)
+  ∀ (ctx : GoInterface) (p : Principal) (key : GoString) (vsl : GoSlice) (v : GoString) (rev : w64)
      (o : go_etcd_io.etcd.client.v3.kubernetes.PutOptions) (Q : State → State → Resp → IProp GF),
     {{ P ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ vsl ↦*□ v ∗
         kubeAU γ p (.txn (optPutTxnM key v rev o.LeaseID' o.GetOnFailure')) false Q }}
@@ -165,7 +165,7 @@ def Kube.OptimisticPutTriple (m : GoString → val) (P : IProp GF) (γ : Cluster
 
 /-- `OptimisticDelete` (`m s`: the method `s` of the receiver). -/
 def Kube.OptimisticDeleteTriple (m : GoString → val) (P : IProp GF) (γ : Cluster) (who : Principal) : Prop :=
-  ∀(ctx : GoInterface) (key : GoString) (rev : w64)
+  ∀ (ctx : GoInterface) (p : Principal) (key : GoString) (rev : w64)
      (o : go_etcd_io.etcd.client.v3.kubernetes.DeleteOptions) (Q : State → State → Resp → IProp GF),
     {{ P ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗
         kubeAU γ p (.txn (optDeleteTxnM key rev o.GetOnFailure')) false Q }}

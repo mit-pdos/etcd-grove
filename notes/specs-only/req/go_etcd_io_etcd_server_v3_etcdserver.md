@@ -397,3 +397,81 @@ need of 2c (the request path, `pkg/wait`) and 2e (the lifecycle).
 15. **Names**: 2e's `isServer s γ` is over W0's `Cluster`; 2d's vocabulary over `Names` (a structure
     with `.etcd`, `.raft`, `.cfg`): `isServer_names` bridges them. If W0's `Cluster` becomes a
     structure with the raft names, `Names` can be replaced by it (a decision for integration).
+
+## from 2e
+
+2e's lifecycle vocabulary is `Spec/go_etcd_io/etcd/server/v3/etcdserver/ApiBoot.lean` (namespace
+`EtcdServer`): `srvMember s γ id` (persistent, from `NewServer`), `srvBuilt s γ id cfg` (exclusive,
+from `NewServer`), `isServer s γ` (persistent, from `Start`), `srvRunning s γ id ds` (exclusive, from
+`Start`, taken by `HardStop`/`Stop`), `memberDisk γ id ds` (the stopped member's durable state),
+`srvClosers`/`srvClosed` (`Cleanup`'s). `γ` is W0's `EtcdModel.Cluster` (2d's `Names` joins it by
+`isServer_names`: fine; at integration 2d's `Names.etcd` and the server's realization of `Cluster`
+must be one record).
+
+**To 2c (the request path).**
+1. `isServer s γ` stays valid after the stop (it is persistent; gRPC may still deliver requests):
+   every request-path spec over it must hold on a stopped server, answering an indefinite error
+   (`ErrStopped`, a context error) and firing nothing. Used by `HardStop.spec`'s Margin, the
+   snippets' `ReqStopAfterError`.
+   ```go
+   s.HardStop(); _, err := s.Put(ctx, req) // err != nil, indefinite
+   ```
+2. `EtcdServer.Compact.spec` is called by the auto-compactor (`V3compactor.compactable` of the
+   server's interface value) with an update the server builds from `envUpd γ ecfg` (an
+   `EnvStep.compact` on success, an abort on an answer that changes nothing): the spec's update must
+   be the caller's (TaDa), with the principal the context names (none: the compactor's context has no
+   token). Used by `NewServer`'s sketch, step 5.
+3. `publishV3` proposes `ClusterMemberAttrSet` through `raftRequest` (2c's spec of an internal request,
+   whose commit fires `envUpd`'s publication: 2d's apply). Used by `EtcdServer.publishV3.spec`.
+4. Left to 2c (their only callers are the request path or the read loop): `interface.go`'s
+   `ApplyWait`, `Done`, `LeaderChanged`, `NextRequestID`, `RequestTimeout`, `Stopping`,
+   `FirstCommitInTermNotify`, `AppliedIndex`/`CommittedIndex` of the read loop, `LinearizableReadNotify`,
+   and `FeatureEnabled` (2e specs `AppliedIndex` and `Term` as getters over `srvMember`, any value: if
+   2c needs more of them, restate there). The `util.go`/`tracing.go` helpers 2c calls are 2e's
+   (`quorum`, `isConnectedSince`, `numConnectedSince`, `isConnectedToQuorumSince`,
+   `exceedsRequestLimit`, `isPriorityRequest`, `firstCompareKey`, `firstOpKey`, `firstOpType`,
+   `firstOpLease`).
+
+**To 2d (the apply thread and the raft node).**
+1. `start` builds what `run` takes (2d's `srvRunTok s γ id`) from `srvBuilt` (its realization's
+   apply-thread slot), and forks `run`; `run`'s stop closes `s.done` depositing `memberDisk γ id ds`
+   (2d's `srvStopped` plus the files: the WAL's records `Wal.walRecs`, the snapshot dbs
+   `Snap.snapDbs`, the backend file `Snap.beFile` from `Cleanup`'s `srvClosed`), which `srvRunning`
+   reads (`HardStop.spec`). `run`'s stop must take the WAL purge's right back from `srvPurge`'s
+   invariant before `storage.Close` (its premise), after `wg.Wait` (the purge goroutine, if attached,
+   has deposited it).
+   ```go
+   s.HardStop() // run's defer: close(stopping); sched.Stop(); wg.Wait(); r.stop(); Cleanup(); close(done)
+   ```
+2. **The transport's entry points before `Start`** (2f's review F4): `tr.Start()` and `AddPeer` run
+   inside `NewServer` (`server.go:412-436`), so peers may call `Process`, `IsIDRemoved`,
+   `ReportUnreachable`, `ReportSnapshot` before `start`. State them over a predicate `NewServer` holds
+   at `tr.Start()` (2e offers `srvMember s γ id`: every field they read is set by then; add a sealed
+   part of `srvBuilt` if you need more), with `procErr err` in `Process`'s post (2f's `raftOk`), the
+   removed sender's `403` (`httptypes.HTTPError`, `IsIDRemoved` of the sender: the membership view's
+   `RaftCluster.IsIDRemoved.spec`). 2e did not write these files (they are 2d's).
+3. `bootstrappedRaft.newRaftNode.spec` gives 2d's `newRaftNode` result as `raftNodeBuilt rn γ id st`
+   (provisional in `ApiBoot`; replace by 2d's `rnInit`/`isRaftNode`), with the storage
+   `ServerStorage.isStorage st wd sd ∗ storageOpen st 1`.
+4. The raft loop's `Save` (`ServerStorage.storage.Save.spec`) takes an atomic update over the WAL's
+   records `Wal.walRecs wd R` (to `R.save hs k es`), fired at the write: compose R1's `readyEnter`
+   inside it (the cluster's invariant holds `walRecs` and `raftState` with `walHolds`). `Close` keeps
+   `walRecs` with its owner and gives the purge right back; `Release` needs a saved snapshot record at
+   its index (the update's premise: the old `walBaseLb`).
+5. `RaftCluster.UpdateAttributes` panics on an id neither a member nor removed (`cluster.go:481`):
+   the apply of `ClusterMemberAttrSet` needs it from the cluster's invariant (only a member
+   publishes, itself). `ValidateConfigurationChange` needs `ccPanicFree` (2c's `configure` marshals
+   the context) and reads the backend's view (`beView`), not the maps.
+6. Members must share `--max-learners` for a learner add to be decided alike
+   (`Membership.ccResult` allows `tooManyLearners` or not): a scope premise of the cluster, or 2d
+   states it in its conf-change decision (open question Q5 of `batch-2e.md`).
+
+## from 1c (round 1)
+
+1. **The in-process client's adapters** (`server/etcdserver/api/v3client`: `adapter.KvServerToKvClient`,
+   `LeaseServerToLeaseClient`, `AuthServerToAuthClient`, `ClusterServerToClusterClient`,
+   `MaintenanceServerToMaintenanceClient`, the watch adapter): each meets its wire contract
+   (`remoteKVAt`, `remoteLeaseAt`, `remoteAuthAt`, `remoteClusterAt`, `remoteMaintAt`, 1b's) with the
+   default principal `none`, each call's principal its context's (the in-process caller's forwarded
+   token). Used by: `clientBare_assemble`, snippet `clientv3client/inproc.go`, hence v3lock's and
+   v3election's sessions (1d).

@@ -249,3 +249,21 @@ Used by: `watchServer.Watch.spec`, `serverWatchStream.{recvLoop,sendLoop,isWatch
 * **The in-process pipe** (`proxy/grpcproxy/adapter`, used by `v3client`, hence v3lock/v3election)
   is not grpc and meets none of these laws as stated (it passes the message pointers): out of 2b's
   scope, an open question (`batch-2b.md`).
+
+## from 1c (round 1)
+
+1. **`grpcConnAt cc`** (slot, `ApiClient.lean`): the `*grpc.ClientConn` grpc's `Invoke` passes to the
+   interceptor and the invoker; `cc.Target()` (read in the interceptor's log calls) is safe. Part of
+   `AttemptTriple`'s and `uiOk_call`'s preconditions.
+2. **`AttemptTriple`'s indefinite case excludes `.notSent`**: a not-sent attempt always gives the
+   update back (case 3); item 1 of the section above should read so.
+3. **`dialOptsOk` admits the gRPC proxy's interceptors** (`server/etcdmain/grpc_proxy.go:344-349`:
+   `grpc.WithUnaryInterceptor(grpcproxy.AuthUnaryClientInterceptor)`, `WithStreamInterceptor(...)`):
+   an introduction for `WithUnaryInterceptor(ui)`/`WithStreamInterceptor(si)` whose interceptor calls
+   its invoker or streamer at most once with a context carrying the call's principal (the proxy's
+   forwards the incoming token: `ctxPrin none ctx' (some u)` from W0's `ctxPrin_token`). With such an
+   option grpc keeps it and drops the client's: the unary call then makes one attempt, whose
+   unsettled refusals the call's ghost update fires (`uiOk_call`'s post holds of any interceptor
+   that invokes once).
+4. **The peer holder** (provability review S2): `grpc.Peer(&p)` writes `p` after the attempt;
+   `AttemptTriple` should take and give back `p ↦ _` (or `grpcCallOptsOk`'s realization keep it).

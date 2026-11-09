@@ -139,3 +139,10 @@ The gRPC boundary (`Spec/google_golang_org/grpc/Api.lean`) and protobuf's
    streams) `SendMsg(in)`, `CloseSend()`. Used by: W0's `remoteKVAt` realization (1c, W0), 1b, 1c.
 5. **`proto.Merge` of `RangeResponse`s** (W0's request): `Proto.merge c c'`'s model: `Kvs` appended,
    `Header`, `More`, `Count` taken when set (a law over `rangeRespOwn`'s relation).
+
+## from 2e
+
+1. `EtcdServer.irrIsRevoke r b` (provisional): an `*InternalRaftRequest` (or nil) whose
+   `LeaseRevoke` is set exactly when `b` (`isPriorityRequest`, `exceedsRequestLimit`).
+2. The `v3electionpb` and `v3lockpb` messages' ownership (provisional in `V3election`/`V3lock`
+   `Api.lean`: `campaignReq`, `leaderResp`, `lockReq`, ...).

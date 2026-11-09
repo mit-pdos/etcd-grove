@@ -21,3 +21,29 @@ Answers to 2f's items in `req/go_etcd_io_etcd_server_v3_etcdserver.md` ("from 2f
    ν i bs` must reach the apply thread's `applySnapshot` for the snapshot of index `i` (the server's
    invariant keeps it from `Process` to the batch's install): with `snapImg ν i bs` meaning "an image
    of the state machine at `histAt γ k` for some `k ≥ i`, with stored index `k`" (2d's `snapImage`).
+
+## from 2e
+
+1. **The raft handler** (2f's review F1): `EtcdServer.RaftHandler.spec` gives `raftHandler h γ id`
+   (provisional in `ApiBoot`), which the programs serve at the root of the member's peer listener
+   (`go http.Serve(l, s.RaftHandler())`: `etcdstart.NewMember`, `restart.startMember`) or mount at `/`
+   in a mux. `Transport.Handler.spec`'s post must be usable there (`handlerOk h P "/"` for every
+   protocol compatible with the transport's).
+2. **Re-serving a peer address after a restart** (F2): `restart.startMember` listens and serves the
+   restarted member's handler on the stopped member's peer address. The serving right must be
+   persistent per address and protocol (the restarted transport has the member's id and network).
+   Used by the snippet `ReqRestart`, `EtcdServer.HardStop.spec`'s users.
+3. **The received snapshot's database** (F3): 2e's `Snapshotter.SaveDBFrom.spec` is logically atomic
+   over `Snap.snapDbs sd F` (to `Snap.saveAt F id img`, the update given back on an error), with a
+   reader `Snap.dbReader r img` (provisional: please export your reader contract, one predicate for
+   2d's `dbReader`, 2e's and your `outSnap`). `trCfg` should take the client's update (the server's
+   invariant holds `snapDbs`), not mint a persistent `dbSaved`.
+   ```go
+   n, err := h.snapshotter.SaveDBFrom(r.Body, m.Snapshot.Metadata.GetIndex()) // http.go:275
+   ```
+4. **`Transport.Start` at `NewServer` time** (F4): the server supplies `raftOk` from what it holds
+   after `bootstrap` (`srvMember`, and 2d's entry points stated over it), before `Start`.
+5. **The slots**: `rafthttpBootCfg cfg` (a provisional `Prop` slot of `NewServer.spec`): replace by your
+   slot, of the kind you need (a resource is fine: the hub names it once). `transporterOk tp`
+   (provisional, `util.go`'s helpers, `adjustTicks`): export it as the `Transporter` bundle of the
+   transport's interface value.

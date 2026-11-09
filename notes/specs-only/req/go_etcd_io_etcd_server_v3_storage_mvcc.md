@@ -75,3 +75,11 @@ protocol (1b's `wireStep`), and the snippets `examples/specreq/v3rpcwatch/`.
    state predicate (`mvccState`) that 2d's invariant can tie to `histAt γ k` for the member's applied
    point (reads see the backend, at or past every `srvApplied`). 2d states the law once 3e names the
    predicate.
+
+## from 2e
+
+1. `V3compactor.revGetter rg` of the store's interface value (`mvcc.New`'s): `Rev()` safe from any
+   goroutine at any time, **also after `Close`** (the compactor's loop may run after `Cleanup` closed
+   the store: `Stop` only cancels its context). Used by `V3compactor.New.spec`, `NewServer`'s sketch.
+2. `EtcdServer.mvccBootCfg cfg` (provisional slot of `NewServer`: `CompactionBatchLimit`).
+3. `kv.Close` gives back what `Cleanup` needs to close the backend (its readers: `srvClosers`).

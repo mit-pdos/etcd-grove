@@ -151,3 +151,19 @@ v3rpc, grpc-go v1.84):
 6. **At most once** (W0's item 1): true of grpc-go as `Grpc.attemptOk_call` states (one run per
    attempt; transparent retries only of streams that never reached a handler; no retry policy: the
    client's service config sets only the balancer, and `Grpc.dialOptAt`'s options cannot set one).
+
+## from 2e
+
+On the cluster contract (`top.md`, K1-K2), as 2e stated it (`ApiBoot.lean`):
+1. **K1**: `cluster_alloc` gives `etcdState γ (State.init ms)`, one `memberBoot γ ms m` per member, and
+   `memberUrls γ (peer URL sets)`. The members `ms` are `Membership.initialMembers token cluster` up to
+   order: their ids are SHA-1 values (`memberIdOf`, opaque) a program learns by running Go; no premise
+   on them (duplicate or zero ids make `bootstrap` fail).
+2. **K2's join** is keyed by the peer URLs (`memberJoin γ urls`, from `memberUrls_take`), not by an
+   `etcdLb` naming the member: `bootstrap` runs a joiner as whatever id the cluster has for its URLs
+   at that time (an id-keyed token would let two processes run one id). `NewServer`'s post names the
+   member id existentially.
+3. **K6, restarts**: after `HardStop`/`Stop` only (`memberDisk`); a restart after a crash is not in
+   2e's specs (no crash rule: open question Q2 of `batch-2e.md`).
+4. Metrics: 2e uses a provisional `EtcdServer.gaugeVecOk gv` (`addFeatureGateMetrics`); W0 owns the
+   metrics boundary.
