@@ -327,6 +327,21 @@ def replyPersist.spec : Prop :=
   (∀ p m, txnRespOwn (GF := GF) p (DFrac.own 1) m ⊢ |==> txnRespOwn p DFrac.discard m) ∧
   (∀ p m, compactRespOwn (GF := GF) p (DFrac.own 1) m ⊢ |==> compactRespOwn p DFrac.discard m)
 
+/-- **Read-only messages are persistent** (integration I1, 1g's need: the cache shares events among
+its watchers and store and returns read-only replies): every message predicate at `DFrac.discard`,
+and the protobuf bookkeeping under it. Realized by 3h through `Proto.msgAt`'s persistence at a
+discarded fraction. -/
+def msgOwn_discard_persistent.spec : Prop :=
+  (∀ (t : Type) p, Persistent (protoRest (GF := GF) t p DFrac.discard)) ∧
+  (∀ p m, Persistent (respHeaderOwn (GF := GF) p DFrac.discard m)) ∧
+  (∀ p m, Persistent (keyValueOwn (GF := GF) p DFrac.discard m)) ∧
+  (∀ p m, Persistent (rangeRespOwn (GF := GF) p DFrac.discard m)) ∧
+  (∀ p m, Persistent (putRespOwn (GF := GF) p DFrac.discard m)) ∧
+  (∀ p m, Persistent (deleteRespOwn (GF := GF) p DFrac.discard m)) ∧
+  (∀ p m, Persistent (responseOpOwn (GF := GF) p DFrac.discard m)) ∧
+  (∀ p m, Persistent (txnRespOwn (GF := GF) p DFrac.discard m)) ∧
+  (∀ p m, Persistent (compactRespOwn (GF := GF) p DFrac.discard m))
+
 /-! ### Requests -/
 
 def rangeReqOwn_unfold.spec : Prop := ∀ (p : Loc) (dq : DFrac) (r : RangeReq),
@@ -469,6 +484,10 @@ def eventOwn_unfold.spec : Prop := ∀ (p : Loc) (dq : DFrac) (e : EventM),
 /-- An event message made read-only. -/
 def eventOwn_persist.spec : Prop := ∀ (p : Loc) (dq : DFrac) (e : EventM),
   eventOwn (GF := GF) p dq e ⊢ |==> eventOwn p DFrac.discard e
+
+/-- A read-only event message is persistent (with `msgOwn_discard_persistent`). -/
+def eventOwn_discard_persistent.spec : Prop :=
+  ∀ (p : Loc) (e : EventM), Persistent (eventOwn (GF := GF) p DFrac.discard e)
 
 end own
 

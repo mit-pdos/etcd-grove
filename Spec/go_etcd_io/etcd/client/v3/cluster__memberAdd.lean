@@ -43,7 +43,7 @@ def cluster.memberAdd.spec : Prop :=
   CheckedCallTriple (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.cluster.ty @!!
       go!"memberAdd")) (Val #ctx)) (Val #sl)) (Val #learner))
     iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clusterHandle cl c γ who ∗ clientReady c ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗
-      sl ↦*□ urls) iprop(True) γ p (.memberAdd urls learner) false (Types.urlsValid urls) ansReply
+      sl ↦*□ urls ∗ urlsRight γ urls) iprop(True) γ p (.memberAdd urls learner) false (Types.urlsValid urls) ansReply
 
 end spec
 

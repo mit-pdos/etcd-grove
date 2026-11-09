@@ -25,7 +25,9 @@ with their message. Namespace `EtcdServer`.
 * `raftStoppedErr` (opaque): raft's `ErrStopped` (unmapped; R1's package variable, requested).
 * `srvErrShape err` (transparent): what every error a server spec returns carries, for 2a's
   `togRPCError` (its precondition) and the callers' `errors.Is`: a context's error, or not one and
-  either mapped (and a leaf) or unmapped with a message (`Grpc.errMsg`) and no sentinel inside.
+  either mapped (and a leaf) or unmapped with a message (`Grpc.errMsg`) that settles nothing
+  (`srvMsgIndef`) and no sentinel inside; comparable either way (`Grpc.cmpErr`; integration I4, 2a's
+  `srvErrOk` requests).
 * `srvIndef err`, `srvUnfired err` (pure, transparent): the error classes of the request path's
   outcomes 3 and 2 (`ApiReq.lean`).
 
@@ -38,6 +40,7 @@ module
 
 public import Spec.go_etcd_io.etcd.api.v3.Model
 public import Spec.google_golang_org.grpc.Api
+public import Spec.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Api
 
 set_option autoImplicit false
 
@@ -120,12 +123,21 @@ section shape
 variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
-/-- **What a returned server error carries** (see the header): `togRPCError`'s precondition. -/
+/-- **An unmapped error's message settles nothing**: if it is the description of an error rpctypes
+maps (which a client decodes by its message), that error is an indefinite one (2a's `indefMsg`,
+integration I3/I4). -/
+def srvMsgIndef (m : GoString) : Prop :=
+  ∀ e : EtcdErr, Rpctypes.mapped e = true → m = Rpctypes.desc e → e.indefinite = true
+
+/-- **What a returned server error carries** (see the header): `togRPCError`'s precondition (2a's
+`srvErrOk`, identified with this at integration I3): a context's error; or a comparable
+(`Grpc.cmpErr`: `toGRPCErrorMap`'s lookup) non-context error, mapped and a leaf, or unmapped with
+a message that settles nothing (`srvMsgIndef`). -/
 def srvErrShape (err : GoInterface) : IProp GF :=
   iprop(context.isCtxErr err ∨
-    ((context.isCtxErr err -∗ False) ∗
+    ((context.isCtxErr err -∗ False) ∗ ⌜Grpc.cmpErr err⌝ ∗
       ((⌜(∃ e, srvErrOf err e) ∧ srvErrLeaf err⌝) ∨
-       (∃ m, Grpc.errMsg err m ∗ ⌜(∀ e, ¬ srvErrOf err e) ∧ srvErrNotMapped err⌝))))
+       (∃ m, Grpc.errMsg err m ∗ ⌜(∀ e, ¬ srvErrOf err e) ∧ srvErrNotMapped err ∧ srvMsgIndef m⌝))))
 
 /-- A context's error is never a mapped server error (`togRPCError` passes those through). -/
 def srvErrOf_notCtx.spec : Prop := ∀ err,

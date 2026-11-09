@@ -45,12 +45,14 @@ race of round 0 is gone: W0's `Step` checks a read's permission at an auth table
 call's `lo` (`deniedSince`, `authOffSince`), which is what the code does; so is `LeaseRenew`'s
 permission error (W0's `leaseKeepAlive` has it).
 
-**Internal requests** (`raftRequest`'s other callers) are modelled by `IrrBody`: a client request
-`Req`, `Authenticate`'s token (`.authToken`: fired iff the auth revision is still the checked one),
-an alarm's activation, a member's publication, or nothing observable (a lease checkpoint, the
-cluster version, the downgrade info). Only a client request's (and `.authToken`'s) commit fires the
-proposer's update (`IrrBody.fires`); an alarm or a publication is an environment step the cluster's
-invariant takes by the `envUpd` the server holds.
+**Internal requests** (`raftRequest`'s other callers) are modelled by 3h's `EtcdServerPb.IrrBody`
+(re-exported here): a client request `Req`, `Authenticate`'s token (`.authToken name`), an alarm's
+activation, a member's publication, or nothing observable (a lease checkpoint, the cluster version,
+the downgrade info). The proposer's update is over a client request `aq` with `irrAsks ir (some aq)`:
+a client request's own, the token's `authenticate` request (its password is the update's: the
+message carries none), a client's alarm activation; the quota's activation and a publication carry
+no update (`none`): an environment step the cluster's invariant takes by the `envUpd` the server
+holds.
 
 ## Vocabulary
 
@@ -63,20 +65,21 @@ invariant takes by the `envUpd` the server holds.
   which imports this one).
 * `ctxNoIncoming ctx` (persistent, opaque) with `ctxNoIncoming_background`, `_child`, `_value`.
 * `reqReply γ rq`, `srvReply`: the replies (W0's and 1c's reply predicates), the server's return.
-* `IrrBody`, `irrStep`, `IrrBody.fires`, `IrrBody.wf` (the validation the gRPC layer does, and the
-  depth bound: `issues/etcd-txn-nested-depth-apply-panic.md`), `IrrBody.backOk`, `respTy`,
-  `irrReply`, `irrOwn p dq ir` (provisional, 3h's), `applyResult` (its trace 4b's `traceOpt`).
+* `IrrBody` (3h's), `irrAsks`, `irrUpd`, `irrWf` (the validation the gRPC layer does, and the
+  depth bound: `issues/etcd-txn-nested-depth-apply-panic.md`), `irrBackOk`, `respTy`,
+  `irrReply`, `irrOwn p dq ir` (3h's `irrOwn` at a fraction: `irrOwn_own`), `applyResult` (its trace
+  4b's `traceOpt`).
 * `reqCtxOk ctx` (4b's `ctxTraceIs ctx none`, otel's `ctxSpanOk`): the request context's tracing,
   in every spec's pre; `ctxTrace ctx` (the context's trace, owned: `doSerialize`).
 * `txnChecked t` (pure, opaque; provisional, 2a's: `checkTxnRequest`'s `nil`) with the
   introduction `txnChecked_small` (a flat transaction of at most one comparison and one operation per
   branch, each valid).
 * `rangeStreamOk r` (pure): the default order and no revision filters (`checkRangeStreamRequest`).
-* `alarmReqOwn p dq ir` (provisional, 3h's), `rsSink rs γ p r ms` (provisional, 2a's: a range stream's
+* `alarmReqOwn p dq ir` (3h's), `rsSink rs γ p r ms` (provisional, 2a's: a range stream's
   send end), `srvWatchable s γ w` (provisional, 2d's and 3f's) with `srvWatchable_persistent`,
   `srvWatchable_mvcc`.
 * `SrvCallTriple e P B γ p tls rq rep reply`: the three-outcome call shape.
-* `txnMsgDepth`.
+* `txnMsgDepth` (3h's).
 
 ## Intended realization
 
@@ -96,6 +99,7 @@ read update, fired at every history point from its registration on).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiBoot
+public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.Api
 public import Spec.go_etcd_io.etcd.client.v3.ApiClient
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.read.Api
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.errors.Api
@@ -138,62 +142,35 @@ def srvStep (p tls : Principal) (rq : Req) (σ σ' : State) (res : Resp) (lo : N
   Step p rq σ σ' res lo ∨ (rq.isRead = false ∧ Step tls rq σ σ' res lo) ∨
   emptyRangeStep p rq σ σ' res
 
-/-! ## Internal requests -/
+/-! ## Internal requests
 
-/-- **What an `InternalRaftRequest` asks** (the model `raftRequest` takes). -/
-inductive IrrBody where
-  /-- a client request (KV writes, compactions, lease grants and revocations, auth, alarm list
-  and disarm) -/
-  | req (rq : Req)
-  /-- `Authenticate`'s token for user `name` (password `pw`, checked at auth revision `rev`) -/
-  | authToken (name pw : GoString) (rev : Nat)
-  /-- an alarm raised (`AlarmRequest_ACTIVATE`: the quota, the corruption check) -/
-  | alarmActivate (al : Alarm)
-  /-- a member's attributes published (`ClusterMemberAttrSet`, `publishV3`) -/
-  | publish (id : Nat) (name : GoString) (urls : List GoString)
-  /-- no observable effect: a lease checkpoint, the cluster version, the downgrade info -/
-  | noop
+The model of an `InternalRaftRequest` is 3h's `EtcdServerPb.IrrBody` (the message's content: a client
+request, an alarm's activation, a member's publication, `Authenticate`'s token for a user, or nothing
+observable), with its depth functions; this file re-exports them under `EtcdServer`. What the server
+adds: the update the commit fires (`irrAsks`, `irrUpd`), the validation the server relies on
+(`irrWf`), and the answers with which the update is given back (`irrBackOk`). -/
 
-/-- Whether the request's commit fires its proposer's update: a client request's, `Authenticate`'s
-token's; an alarm or a publication is an environment step the cluster's invariant takes by its
-`envUpd` (2e's `isServer`), a `.noop` changes nothing. -/
-def IrrBody.fires : IrrBody → Bool
-  | .req _ | .authToken .. => true
-  | _ => false
+export EtcdServerPb (IrrBody opMsgDepth opsMsgDepth txnMsgDepth alarmReqOwn)
 
-/-- The relation of the proposer's update (`fires`), or the effect of the entry (the others). -/
-def irrStep (p tls : Principal) (lo : Nat) : IrrBody → State → State → Resp → Prop
-  | .req rq => fun σ σ' res => srvStep p tls rq σ σ' res lo
-  | .authToken name pw _ => fun σ σ' res => srvStep p tls (.authenticate name pw) σ σ' res lo
-  | .alarmActivate al => fun σ σ' _ => σ' = { σ with alarms := σ.alarms ++ [al] } ∨ σ' = σ
-  | .publish id name urls => fun σ σ' _ =>
-      ((∃ m ∈ σ.members, m.id = id) ∧
-        σ' = { σ with members := σ.members.map (fun m =>
-          if m.id = id then { m with name := name, clientURLs := urls } else m) }) ∨ σ' = σ
-  | .noop => fun σ σ' _ => σ' = σ
+/-- **The update the commit of `ir` fires** (`ao`: the client request the proposer's atomic update
+is over; `none`: no update). A client request fires its own; `Authenticate`'s token (`.authToken
+name`) the `authenticate` request whose password the server checked before proposing (Go proposes
+only the name and the token prefix: the password is the update's, not the message's); an alarm's
+activation a client's `Alarm(ACTIVATE)` (W0's `Req.alarmActivate`), or none (the quota's and the
+corruption checker's: an environment step the cluster's invariant takes by its `envUpd`); a
+publication or a `.noop` none. -/
+def irrAsks : IrrBody → Option Req → Prop
+  | .req rq, ao => ao = some rq
+  | .authToken name, ao => ∃ pw, ao = some (.authenticate name pw)
+  | .alarmActivate al, ao => ao = none ∨ ao = some (.alarmActivate al)
+  | _, ao => ao = none
 
 /-- **The answers of a request whose update the commit gives back** (outcome 2 at the apply): an
-apply refusal (`ErrAuthOldRevision`), or a token issued after the auth revision moved since the
-password check (`Authenticate` retries with the update). -/
-def IrrBody.backOk (ir : IrrBody) (res : Resp) : Prop :=
-  (∃ e, res = .err e ∧ e.refusal = true ∧ e.indefinite = false) ∨ ((∃ n pw r, ir = .authToken n pw r) ∧ ∃ b, res = .ok b)
-
--- The protobuf nesting depth of a `RequestOp` (itself `1`, its request `2`, a nested transaction's
--- `TxnRequest` `2` plus what it holds: a `Compare` one level below it, its operations theirs).
-mutual
-def opMsgDepth : RequestOp → Nat
-  | .empty => 1
-  | .txn cmps succ fail =>
-      2 + max (if cmps = [] then 0 else 1) (max (opsMsgDepth succ) (opsMsgDepth fail))
-  | _ => 2
-def opsMsgDepth : List RequestOp → Nat
-  | [] => 0
-  | op :: ops => max (opMsgDepth op) (opsMsgDepth ops)
-end
-
-/-- The protobuf nesting depth of a `TxnRequest`'s messages (the `TxnRequest` itself `1`). -/
-def txnMsgDepth (t : TxnReq) : Nat :=
-  1 + max (if t.compare = [] then 0 else 1) (max (opsMsgDepth t.success) (opsMsgDepth t.failure))
+apply refusal that is not indefinite (`ErrAuthOldRevision`), or a token issued after the auth state
+moved since the password check (`Authenticate` retries with the update). -/
+def irrBackOk (ir : IrrBody) (res : Resp) : Prop :=
+  (∃ e, res = .err e ∧ e.refusal = true ∧ e.indefinite = false) ∨
+  ((∃ n, ir = .authToken n) ∧ ∃ b, res = .ok b)
 
 /-- (provisional, 2a's) **`t` passes the gRPC layer's validation** (`checkTxnRequest` and
 `checkRequestOp` at the server's `--max-txn-ops`: the operations' own checks at every level, no key
@@ -218,8 +195,8 @@ def txnChecked_small.spec : Prop := ∀ (t : TxnReq),
 
 /-- **What the server needs of a request it proposes** (the gRPC layer's checks, which the server
 does not repeat: it would apply an empty key or an `IgnoreValue` put with a value; and the depth
-every member's apply can decode: `issues/etcd-txn-nested-depth-apply-panic.md`). -/
-def IrrBody.wf : IrrBody → Prop
+every member's apply can decode, 3h's `IrrBody.depthOk`: `issues/etcd-txn-nested-depth-apply-panic.md`). -/
+def irrWf : IrrBody → Prop
   | .req (.put p) => p.invalid = none
   | .req (.deleteRange d) => d.key ≠ []
   | .req (.txn t) => txnChecked t ∧ txnMsgDepth t + 1 ≤ 10000
@@ -324,15 +301,16 @@ def ctxNoIncoming_value.spec : Prop := ∀ (ctx ctx' : GoInterface) (ki : GoInte
 
 /-! ### Messages and slots -/
 
-/-- (provisional, 3h's) **`p` is an `InternalRaftRequest` asking `ir`** (the outer struct owned,
-its `Header` any, `ID` `0`; the inner request messages at fraction `dq`). 3h's laws wrap a request
-message into one (`&pb.InternalRaftRequest{Put: r}`) and take it back out. -/
+/-- (provisional, 3h's at a fraction) **`p` is an `InternalRaftRequest` asking `ir`** (the outer
+struct owned, its `Header` any, `ID` `0`; the inner request messages at fraction `dq`: a writer wraps
+the request message its caller lent it, `&pb.InternalRaftRequest{Put: r}`, and takes it back out).
+At `dq = 1` it is 3h's `EtcdServerPb.irrOwn` (`irrOwn_own`); 3h's wrap and unwrap laws at a fraction
+are requested (`req/go_etcd_io_etcd_api_v3_etcdserverpb.md`, "from I4"). -/
 opaque irrOwn (p : Loc) (dq : DFrac) (ir : IrrBody) : IProp GF := iprop(True)
 
-/-- (provisional, 3h's) **`p` is an `AlarmRequest` asking `ir`** (`.req .alarmList` for `GET`,
-`.req (.alarmDisarm al)` for `DEACTIVATE`, `.req (.alarmActivate al)` for a client's `ACTIVATE`,
-`.alarmActivate al` for the server's own (the quota's, no update); fraction `dq`). -/
-opaque alarmReqOwn (p : Loc) (dq : DFrac) (ir : IrrBody) : IProp GF := iprop(True)
+/-- At the whole fraction, `irrOwn` is 3h's. -/
+def irrOwn_own.spec : Prop := ∀ p ir,
+  irrOwn (GF := GF) p (DFrac.own 1) ir ⊣⊢ EtcdServerPb.irrOwn p ir
 
 /-- (provisional, 2a's) **The send end of a range stream** (`KV_RangeStreamServer` value `rs`,
 exclusive): the range `r` of principal `p`, the chunks `ms` sent so far. Sending appends a chunk
@@ -359,11 +337,6 @@ Persistent; the incoming gRPC context's (2a), the internal requesters' (`ctxTrac
 `ctxSpanOk_background`, their children). -/
 def reqCtxOk (ctx : GoInterface) : IProp GF :=
   iprop(TraceUtil.ctxTraceIs ctx none ∗ OtelTrace.ctxSpanOk ctx)
-
-/-- (deprecated: 4b's `TraceUtil.traceOpt`, kept for 3a's specs until they cite it) **`tr` is a
-trace, owned** (`nil`, or 4b's exclusive `traceOwn`; no longer the round-0 persistent slot, which
-was false of `traceutil`: its methods write unlocked fields). -/
-def traceAt (tr : Loc) : IProp GF := TraceUtil.traceOpt tr
 
 /-- **The trace a context carries, owned** (`doSerialize`'s `traceutil.Get`: the trace the caller's
 `EnsureTrace` installed). -/
@@ -394,17 +367,39 @@ def srvReply (reply : Resp → Loc → GoInterface → IProp GF) (res : Resp) (r
   | .err e => iprop(⌜resp = null ∧ srvErrOf err e⌝ ∗ srvErrShape err)
   | .ok _ => reply res resp err
 
-/-- **An internal request's reply** as a `proto.Message`: a client request's (and `Authenticate`'s
-token's) reply message, its dynamic type `*pb.<Kind>Response`; anything for the others (no caller
-reads it). -/
+/-- **An internal request's reply** as a `proto.Message`: a client request's reply message (its
+dynamic type `*pb.<Kind>Response`), `Authenticate`'s token's (an `*AuthenticateResponse`), an
+alarm activation's (an `*AlarmResponse`, as a client's `Alarm(ACTIVATE)` reads it); anything for
+the others (no caller reads it). -/
 def irrReply (γ : Cluster) (ir : IrrBody) (res : Resp) (resp : GoInterface) : IProp GF :=
   match ir with
   | .req rq => iprop(∃ p : Loc, ⌜resp = interface.mkOk (go.GoType.PointerType (respTy rq)) #p⌝ ∗
       reqReply γ rq res p GoInterface.nil)
-  | .authToken name pw _ => iprop(∃ p : Loc,
-      ⌜resp = interface.mkOk (go.GoType.PointerType (respTy (.authenticate name pw))) #p⌝ ∗
+  | .authToken name => iprop(∃ p : Loc,
+      ⌜resp = interface.mkOk (go.GoType.PointerType
+        go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty) #p⌝ ∗
       ClientV3.authReply γ name res p GoInterface.nil)
+  | .alarmActivate al => iprop(∃ p : Loc,
+      ⌜resp = interface.mkOk (go.GoType.PointerType (respTy (.alarmActivate al))) #p⌝ ∗
+      reqReply γ (.alarmActivate al) res p GoInterface.nil)
   | _ => iprop(True)
+
+/-- **The proposer's update for `ao`** (`irrAsks`): the caller's atomic update over `etcdState γ`
+by `srvStep` of the request `aq` (persistent if `rep`), or nothing (`none`). -/
+def irrUpd (γ : Cluster) (p tls : Principal) (lo : Nat) (ao : Option Req) (rep : Bool)
+    (Q : State → State → Resp → IProp GF) : IProp GF :=
+  match ao with
+  | some aq => iprop(□?rep AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
+      <{ ∀∀ (σ' : State) (res : Resp), ⌜srvStep p tls aq σ σ' res lo⌝ ∗ etcdState γ σ',
+         COMM Q σ σ' res }>)
+  | none => iprop(True)
+
+/-- The update's `Q` fired (`True` without an update). -/
+def irrFired (ao : Option Req) (Q : State → State → Resp → IProp GF) (σ σ' : State) (res : Resp) :
+    IProp GF :=
+  match ao with
+  | some _ => Q σ σ' res
+  | none => iprop(True)
 
 /-- **The apply's result `x` for `ir` answered `res`** (`*apply.Result`, non-nil, its fields
 read-only; its trace owned: 4b's `traceOpt`, exclusive, handed from the apply thread). -/
@@ -419,12 +414,30 @@ def applyResult (γ : Cluster) (x : Loc) (ir : IrrBody) (res : Resp) : IProp GF 
     | .ok _ => iprop(⌜err = GoInterface.nil⌝ ∗ irrReply γ ir res resp)
     | .err e => iprop(⌜srvErrOf err e⌝ ∗ srvErrShape err))
 
+/-- **The answers a server call fires** (outcome 1): not a token refusal (`ErrUserEmpty`,
+`ErrAuthOldRevision`, `ErrInvalidAuthToken`: the client's interceptor resends with a new token, so
+1c's `AttemptTriple` needs the update back) nor the learner's. The apply-time ones (`isOpPermitted`'s
+`ErrUserEmpty` after an `AuthEnable`, `ErrAuthOldRevision`) change nothing, so the cluster's invariant
+gives the update back (`irrBackOk`); the ones before proposing are outcome 2 already. 2a's
+`V3rpc.firedAns` (integration I3/I4). -/
+def srvFiredAns (res : Resp) : Prop :=
+  ∀ e, res = .err e → ClientV3.errRetryAuth e = false ∧ e ≠ .notSupportedForLearner
+
+/-- **`srvStep` is `Step` at the handler's calls** (2a's composition; integration I3/I4): with the
+certificate's name none or the principal itself, no empty-key range (2a's check), and a fired
+answer, `srvStep p tls` is W0's `Step p` (a principal-less write with auth on is only refused with
+`ErrUserEmpty`, which is not fired). -/
+def srvStep_step.spec : Prop := ∀ (p tls : Principal) (rq : Req) σ σ' res lo,
+  (tls = none ∨ tls = p) → (∀ r, rq = .range r → r.key ≠ []) → srvFiredAns res →
+  srvStep p tls rq σ σ' res lo → Step p rq σ σ' res lo
+
 /-! ## The call shape -/
 
 /-- **A server call** `e` for request `rq` by the principals `p`, `tls` (the update persistent if
 `rep`; the caller's auth-table bound `lo`), `P` the caller's resources, `B` given back, `reply` the
 success reply: outcome 1 (fired, with its reply), 2 (not fired: the update given back) or 3
-(unsettled); every error with its shape. -/
+(unsettled); every error with its shape. Outcome 1 fires no token or learner refusal
+(`srvFiredAns`). -/
 def SrvCallTriple (e : Expr) (P B : IProp GF) (γ : Cluster) (p tls : Principal) (rq : Req)
     (rep : Bool) (reply : Resp → Loc → GoInterface → IProp GF) : Prop :=
   ∀ (lo : Nat) (Q : State → State → Resp → IProp GF),
@@ -433,7 +446,7 @@ def SrvCallTriple (e : Expr) (P B : IProp GF) (γ : Cluster) (p tls : Principal)
            COMM Q σ σ' res }> }}
     e
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); B ∗
-      ((∃ σ σ' res, Q σ σ' res ∗ srvReply reply res resp err) ∨
+      ((∃ σ σ' res, ⌜srvFiredAns res⌝ ∗ Q σ σ' res ∗ srvReply reply res resp err) ∨
        (⌜resp = null ∧ srvUnfired err⌝ ∗ srvErrShape err ∗
           □?rep AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
             <{ ∀∀ (σ' : State) (res : Resp), ⌜srvStep p tls rq σ σ' res lo⌝ ∗ etcdState γ σ',

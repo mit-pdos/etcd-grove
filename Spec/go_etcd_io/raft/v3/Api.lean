@@ -74,9 +74,15 @@ is the client's: its methods' updates fire on `memStor ms σ` directly.
   log's (R3, `ApiLog.lean`): `nodeStorage n γ S` is R3's `logStorage l S (snapValid γ) N` of the
   node's raft log `l` (the log's invariant, not the node's, holds `S σ` with the relation between `σ`
   and the log: stored entries the stable log, compaction point a floor and at most the stored
-  snapshot's index, stored snapshot valid); `storSnapLb n j` is R3's `logSnapLb l j`; `readyStor`
-  is R3's `logPending`; the storage laws (`readyStor_*`, `stor_*`) are R3's `logStor_*` at mask `⊤`. `rawNode`: the `RawNode`'s own token (the raft struct, the log, the tracker, the
-  read-only queue: R2's, R3's and R4's predicates).
+  snapshot's index, stored snapshot valid); `storSnapLb n j` is `j = 0` or R3's `logSnapLb l j`;
+  `appliedLb n i` is `i = 0` or R3's `logFloor l i t` for the committed log's term `t` at `i` (R2's
+  commit facts tie the floor's term to `committedLb`, as `stor_createSnapshot` needs; R2's
+  `rawNodeAt_advance` publishes it with `raftLog_publish`); `readyStor n so k es` is R3's
+  `logPending l h so.isSome (es ≠ [])` of the batch `h` handed out (`h.start = k`); the storage laws
+  (`readyStor_*`, `stor_*`) are R3's `logStor_*` at mask `⊤` (at index `0`, a compaction is the
+  identity, through `logStor_read`; an append of nothing likewise). (Integration I2: checked against
+  R3's laws as they now are.) `rawNode`: the `RawNode`'s own token (the raft struct, the log, the
+  tracker, the read-only queue: R2's, R3's and R4's predicates).
 - `memStor ms σ`: a ghost var of `σ` whose authority is in `MemoryStorage`'s lock invariant,
   together with a fractional share of the footprint `InitialState` reads without the lock (the
   `snapshot` and `hardState` fields, the snapshot's `Metadata.ConfState` field and that `ConfState`,
@@ -443,13 +449,14 @@ def readyCheck (n : Loc) (γ : Cluster) (id : w64) (st : Driver) (b : Batch) : I
       (⌜(b.soft.map (·.2)).getD st.role = StateLeader⌝ -∗ [∗list] m ∈ b.msgs, msgSent γ m))
 
 /-- **What a `Ready` gives** (node `n`, from driver state `st`): its batch `b` and the Go values
-holding it, the facts it states (`BatchOk`), the committed log after it (`dl`: a snapshot's prefix,
+holding it, the facts it states (`BatchOk`; its `MsgApp`s are from `id`: 2f's request), the committed log after it (`dl`: a snapshot's prefix,
 or the delivered log with the committed entries) with the snapshot's validity, the messages'
 credits, the storage writes to do, and the two updates. -/
 def readyGot (n : Loc) (γ : Cluster) (id : w64) (st : Driver) (rd : go_etcd_io.raft.v3.Ready) :
     IProp GF :=
   iprop(∃ (b : Batch) (dl : List LogEntry),
     readyOwn rd st.delivered.length b ∗ ⌜BatchOk st b⌝ ∗
+    ⌜∀ m ∈ b.msgs, m.type = MsgApp → m.src = id⌝ ∗
     committedLb γ dl ∗ deliveredLb n γ dl ∗
     (match b.snap with
      | none => ⌜dl = st.delivered ++ b.committed⌝
@@ -546,7 +553,17 @@ chooses the namespace and the credit mode. It gets the client-owned states (empt
 committed bootstrap operations), every voter's durable state (empty) and vacancy, and the ids it
 handed out. The configuration: without a bootstrap log, the voters' from index 0; with one, the
 empty configuration at index 0 (a node joining later starts there, from an empty storage), each
-bootstrap entry decided to apply its `AddNode`, and the voters' after the bootstrap log. -/
+bootstrap entry decided to apply its `AddNode`, and the voters' after the bootstrap log.
+
+**Open (a user decision; R1's question 9, R2's question 1):** raft's term and index bound. `raft.Step`,
+`hup`, the ticks and `stepCandidate` take no term budget: R2's cluster invariant holds a time receipt
+per term increase and per appended entry (`ApiCore.lean`'s realization item 5), which bounds every
+term and index by the execution's step bound, and that bound must enter here, as an instance binder
+(R2's proposal: `∀ [ReceiptBoundLe GF (2^63)]`), at `2^63` so that it also gives R3's local range
+premises (every index below `2^63`: `raftLog.slice`/`entries`/`scan`'s `hi - lo < 2^63`, `append`'s
+`k + |es| < 2^64`, `maybeAppend`'s, `restore`'s). Not stated until the user decides; without it R2's
+`raft.Step` (a campaign at term `2^64 - 1` wraps, `raft.go:926`) and the specs above it are not
+provable. -/
 def cluster_alloc.spec : Prop :=
   ∀ (N : Namespace) (dup : Bool) (ps : List (w64 × List w8)) (boot : List LogEntry) (E : CoPset),
     let vs := ps.map (·.1)
@@ -569,6 +586,16 @@ def freshIds_take.spec : Prop :=
   ∀ (γ : Cluster) (U : List w64) (id : w64), id ∉ U → id ≠ W64 0 → isLocalTarget id = false →
     freshIds (GF := GF) γ U ⊢ |==> freshIds γ (id :: U) ∗ raftState γ id Durable.init ∗
       nodeVacant γ id
+
+/-- **The bootstrap entries' decisions** (R2's request, round 1 item 10: `RawNode.Bootstrap`'s proof
+applies each bootstrap `AddNode` through `raft.applyConfChange.spec`, which takes the entry's
+decision): each entry of a bootstrap log is decided to apply its `AddNode` (`cluster_alloc` decided
+them; persistent, so every founder's `Bootstrap` reads them). (Integration I2.) -/
+def bootLog_decided.spec : Prop :=
+  ∀ γ (ps : List (w64 × List w8)) (boot : List LogEntry), BootLog ps boot →
+    bootLog (GF := GF) γ boot ⊢ [∗list] k ∈ List.range boot.length,
+      ∃ p : w64 × List w8, ⌜ps[k]? = some p⌝ ∗
+        confDecided γ k (.apply (.v1 ⟨ConfChangeAddNode, p.1, p.2, W64 0⟩))
 
 /-! ### The committed log -/
 
@@ -749,6 +776,22 @@ def msgSent_snap.spec : Prop :=
   ∀ γ (m : Msg), m.type = MsgSnap → msgSent (GF := GF) γ m ⊢
     ∃ s, ⌜m.snapshot = some s⌝ ∗ snapValid γ s
 
+/-- **The shape of a sent `MsgApp`** (raft's one constructor, `maybeSendAppend`, sets only `To`,
+`Type`, `Index`, `LogTerm`, `Entries`, `Commit`; `send` sets `From` and `Term`): no vote, snapshot,
+rejection, hint or context. rafthttp's msgappv2 short frame carries only the entries and the commit
+and rebuilds the rest (2f's request, `req/go_etcd_io_raft_v3.md`, "from 2f, round 1"; integration
+I2). -/
+def msgSent_appShape.spec : Prop :=
+  ∀ γ (m : Msg), m.type = MsgApp → msgSent (GF := GF) γ m ⊢
+    iprop(⌜m.vote = W64 0 ∧ m.snapshot = none ∧ m.reject = false ∧ m.rejectHint = W64 0 ∧
+      m.context = []⌝)
+
+/-- **A sent `MsgSnap` has a non-zero term** (it is sent by its term's leader, and terms of leaders
+are at least 1): etcd's merged-snapshot guard `m.GetTerm() == raftTerm` excludes a restarted
+server whose `raftTerm` is still `0` (2d's request, round 1, item 3; integration I2). -/
+def msgSent_snapTerm.spec : Prop :=
+  ∀ γ (m : Msg), m.type = MsgSnap → msgSent (GF := GF) γ m ⊢ iprop(⌜m.term ≠ W64 0⌝)
+
 /-- **A sent `MsgSnap` may carry a newer valid snapshot instead, of a prefix of the sender's
 delivered log** (etcd's merged snapshot message, `createMergedSnapshotMessage`: the server's applied
 index, its configuration, no data). The prefix must be the sender's: a snapshot committed at a later
@@ -795,7 +838,12 @@ written log -- provided the result has at most one conf-change entry above its c
 (`confAboveOk`). Raft's safety argument: nothing of the batch was acknowledged (acknowledgements
 and votes are sent only after the enter update, at `Advance`, or by a leader whose term and vote the
 batch does not change: `readyCheck`), so the node may lose any suffix of it; the condition on conf
-entries is what a restart needs (`Durable.confAboveOk`). Not covered: a batch with a snapshot. -/
+entries is what a restart needs (`Durable.confAboveOk`): without it the law is false, by a real
+raft bug (`issues/raft-commit-lost-with-entries-kept.md`, reproduced against the pinned raft: two
+conf changes kept above a lost commit let the restarted node win in its old configuration and
+commit a different entry at an index already committed). Whether etcd may take it as a scope
+restriction or the bug blocks etcd's crash restarts is an open question for the user (R1's
+question 10). Not covered: a batch with a snapshot. -/
 def raftState_crash.spec : Prop :=
   ∀ (n : Loc) γ (id : w64) (st : Driver) (b : Batch) (dl : List LogEntry) (j : Nat)
     (hs : HardState),

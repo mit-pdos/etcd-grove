@@ -105,7 +105,9 @@ K7's realization), `histAt_committed`, `histAt_of_committed`, `answered_agree`, 
 `snapImage_point`, `snapPoint_agree`, `histPropose` (over 3a's `Apply.applyStep`),
 `readCtx_register`, `readReg_register`, `readReg_get`; the member: `srvApplied_mono`,
 `srvApplied_zero`, `srvApplied_hist`, `srvApplied_read`, `srvReadAt_mono`, `srvNode_raftNode`,
-`srvNode_agree`, `srvNode_cfg`, `srvCfg_agree`, `srvNode_errorc`, `isServer_names`, `srvMember_node`, `srvRunTok_intro`,
+`srvNode_agree`, `srvNode_cfg`, `srvCfg_agree`, `srvNode_errorc`, `isServer_names`, `srvNode_raftNames`,
+`srvMember_node`, `srvRunTok_intro`, `srvStores_agree`, `srvWatchable_hist`, `srvReadAt_mvcc`,
+`srvReader_mvcc`, `srvReadAt_lessor`, `srvReader_lessor`, `srvReadAt_auth`,
 `applyInit_ep`, `srvStopped_disk`, `isRaftNode_node`, `isRaftNode_storage`, `nodeSnapLb_stor`,
 `nodeAdvanced_applied`, `rnInit_place`, `applyThread_at`, `applyThread_applied`, `applyBatch_terms`,
 `applyc_recv` (with the cursor `applycPos`), `readStateC_recv`, `msgSnapC_recv`,
@@ -133,6 +135,10 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiBoot
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.read.Api
 public import Spec.go_etcd_io.etcd.pkg.v3.idutil.Api
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.Api
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiWatch
+public import Spec.go_etcd_io.etcd.server.v3.lease.Api
+public import Spec.go_etcd_io.etcd.server.v3.auth.Api
 
 set_option autoImplicit false
 
@@ -252,6 +258,13 @@ history point `k' ≥ k` (`histAt γ k' σ'`) and answers as one of `Step`'s ans
 **Provisional slot**: each subsystem's read spec is to be stated over it (requested in their `req/`
 files); `srvApplied_read` introduces it. -/
 opaque srvReadAt (s : Loc) (γ : Names) (k : Nat) : IProp GF := iprop(True)
+
+/-- **Member `s`'s stores' ghost names** (persistent; integration I4): its mvcc store's (3e),
+its lessor's (3c), its auth store's (3d), fixed by `NewServer`. The realization of `srvReadAt` over
+the owners' read vocabulary is the laws `srvReadAt_mvcc`, `srvReadAt_lessor`, `srvReadAt_auth`. -/
+opaque srvMvcc (s : Loc) (γm : Mvcc.MvccName) : IProp GF := iprop(True)
+opaque srvLessor (s : Loc) (γl : Lease.Names) : IProp GF := iprop(True)
+opaque srvAuth (s : Loc) (γa : Auth.AuthNames) : IProp GF := iprop(True)
 
 /-! ### A member -/
 
@@ -436,6 +449,9 @@ def persistent.spec : Prop :=
   (∀ s γi, Persistent (srvIdSpace (GF := GF) s γi)) ∧
   (∀ s mc, Persistent (srvCfg (GF := GF) s mc)) ∧
   (∀ s γ k, Persistent (srvReadAt (GF := GF) s γ k)) ∧
+  (∀ s γm, Persistent (srvMvcc (GF := GF) s γm)) ∧
+  (∀ s γl, Persistent (srvLessor (GF := GF) s γl)) ∧
+  (∀ s γa, Persistent (srvAuth (GF := GF) s γa)) ∧
   (∀ s γ id, Persistent (srvNode (GF := GF) s γ id)) ∧
   (∀ s γ id, Persistent (srvStarted (GF := GF) s γ id)) ∧
   (∀ err, Persistent (httpForbidden (GF := GF) err)) ∧
@@ -547,6 +563,17 @@ def isServer_names.spec : Prop :=
     ∃ (N : Names) (id : Nat), ⌜N.etcd = γ⌝ ∗ srvNode s N id ∗ srvStarted s N id ∗
       (∃ γi, srvIdSpace s γi)
 
+/-- **The server-level names' raft part** (integration: one bridge between 2e's `Cluster`-indexed
+vocabulary and these names): raft's namespace is the cluster's `etcdN .@ "raft"` (`histPropose`'s
+premise), its proposals one-shot (`dup = false`: 2f's at-most-once delivery; 2c's one-shot
+updates), and 2e's network of the cluster (`srvNet`) is over `γ.raft` with the images 2d chose at
+its allocation (`imgAt`). -/
+def srvNode_raftNames.spec : Prop :=
+  ∀ (s : Loc) (γ : Names) (id : Nat) (ν : Rafthttp.Net GF),
+    srvNode (GF := GF) s γ id ⊢
+      ⌜γ.raft.ns = EtcdModel.etcdN .@ "raft" ∧ Raft.Cluster.dup γ.raft = false⌝ ∗
+      (srvNet γ.etcd ν -∗ ⌜ν.γ = γ.raft⌝ ∗ □ (∀ i img, ν.img i img ∗-∗ imgAt γ i img))
+
 /-- **2e's built member is a member of the history** (round 1, completeness F4): `NewServer`'s
 persistent `srvMember` gives `srvNode` at the names over its cluster. -/
 def srvMember_node.spec : Prop :=
@@ -600,6 +627,71 @@ def srvStopped_disk.spec : Prop :=
 introduction). -/
 def srvApplied_read.spec : Prop :=
   ∀ s γ (id k : Nat), srvNode (GF := GF) s γ id ∗ srvApplied s γ k ⊢ srvReadAt s γ k
+
+/-- **The stores' names of a member** (one each; `NewServer` fixes them), and the watchable store
+2c's `srvWatchable` names is the member's mvcc store (3f's bridge, `req/`, "from 3f", item 3: the
+notified history is a view of the history at an applied point). -/
+def srvStores_agree.spec : Prop :=
+  (∀ s γm γm', srvMvcc (GF := GF) s γm ∗ srvMvcc s γm' ⊢ ⌜γm = γm'⌝) ∧
+  (∀ s γl γl', srvLessor (GF := GF) s γl ∗ srvLessor s γl' ⊢ ⌜γl = γl'⌝) ∧
+  (∀ s γa γa', srvAuth (GF := GF) s γa ∗ srvAuth s γa' ⊢ ⌜γa = γa'⌝) ∧
+  (∀ s γ id, srvNode (GF := GF) s γ id ⊢
+    (∃ γm, srvMvcc s γm) ∗ (∃ γl, srvLessor s γl) ∗ (∃ γa, srvAuth s γa))
+
+def srvWatchable_hist.spec : Prop :=
+  ∀ (s : Loc) (γ : Names) (id : Nat) (w : GoInterface) (γm : Mvcc.MvccName) (h : KVHist),
+    srvNode (GF := GF) s γ id ∗ srvWatchable s γ.etcd w ∗ Mvcc.watchableAt w γm ∗ Mvcc.mvccLb γm h ⊢
+      srvMvcc s γm ∗ |={⊤}=> ∃ σ, EtcdModel.etcdLb γ.etcd σ ∗ ⌜KVHist.IsView σ.kv h⌝
+
+/-- **The member's mvcc reads at or past `k`** (realization of `srvReadAt`, 3e's vocabulary): a
+persistent atomic accessor of the store's state, at which the store's history is the cluster's at a
+point `k' ≥ k` (the KV part of `histAt`: equal, the apply thread keeping the store at its applied
+point between entries; a transaction's writes are one atomic step of `mvccState`). The read takes
+one of the store's reader tokens, lent from the server's pool for a thread token (the bounds plan:
+the pool of `mvccTokN` the server's invariant keeps; 3e's request, "from 3e", item 1). -/
+def srvReadAt_mvcc.spec : Prop :=
+  ∀ (s : Loc) (γ : Names) (k : Nat) (γm : Mvcc.MvccName),
+    srvReadAt (GF := GF) s γ k ∗ srvMvcc s γm ⊢
+      □ AU <{ ∃∃ (σm : Mvcc.MvccState), Mvcc.mvccState γm σm }> @ ⊤ \ ↑Mvcc.mvccN, ∅
+        <{ Mvcc.mvccState γm σm,
+           COMM ∃ (k' : Nat) (σ : EtcdModel.State), histAt γ k' σ ∗ ⌜k ≤ k' ∧ σm.kv = σ.kv⌝ }>
+
+def srvReader_mvcc.spec : Prop :=
+  ∀ (s : Loc) (γ : Names) (id : Nat) (γm : Mvcc.MvccName),
+    srvNode (GF := GF) s γ id ∗ srvMvcc s γm ∗ threadTok ⊢
+      |={⊤}=> Mvcc.mvccReaders γm 1 ∗ (Mvcc.mvccReaders γm 1 ={⊤}=∗ threadTok)
+
+/-- **The member's lease reads at or past `k`** (3c's vocabulary; "from 3c", item 4): a lower bound
+of the lessor's history whose every later state has the lease ids of a lease table of a history
+point at or past `k` (the TTLs and the attached keys are W0's lease reads' tolerance: any TTL, keys
+of `r` or `r + 1`); and a reader token for a thread token (3c's `lessorReaders`, "from 3c (round
+1)", item 4). -/
+def srvReadAt_lessor.spec : Prop :=
+  ∀ (s : Loc) (γ : Names) (k : Nat) (γl : Lease.Names),
+    srvReadAt (GF := GF) s γ k ∗ srvLessor s γl ⊢
+      ∃ n σk, histAt γ k σk ∗ Lease.lessorLb γl n ∗
+        □ (∀ j ls, ⌜n ≤ j⌝ -∗ Lease.lessorAt γl j ls -∗
+            ∃ (k' : Nat) (σ : EtcdModel.State) (t : Nat) tb, histAt γ k' σ ∗
+              ⌜k ≤ k' ∧ σk.leaseTables.length ≤ t + 1 ∧ σ.leaseTables[t]? = some tb ∧
+                ∀ id, (ls.table id).isSome = (tb id).isSome⌝)
+
+def srvReader_lessor.spec : Prop :=
+  ∀ (s : Loc) (γ : Names) (id : Nat) (γl : Lease.Names),
+    srvNode (GF := GF) s γ id ∗ srvLessor s γl ∗ threadTok ⊢
+      |={⊤}=> Lease.lessorReaders γl 1 ∗ (Lease.lessorReaders γl 1 ={⊤}=∗ threadTok)
+
+/-- **The member's auth reads at or past `k`, linked to the cluster's auth tables** (3d's
+vocabulary; "from 3d, round 1", the store-index to cluster-index link): a lower bound `i` of the
+store's history every later state of which is a cluster auth table of index `t` at least the
+current one at `k` (so at least a call's `lo` when `k` is past the call's start: what `Range`'s
+permission check needs for W0's `permittedSince`/`deniedSince`). -/
+def srvReadAt_auth.spec : Prop :=
+  ∀ (s : Loc) (γ : Names) (k : Nat) (γa : Auth.AuthNames),
+    srvReadAt (GF := GF) s γ k ∗ srvAuth s γa ⊢
+      ∃ i σk, histAt γ k σk ∗ Auth.authLb γa i ∗
+        □ (∀ j a, ⌜i ≤ j⌝ -∗ Auth.authAt γa j a -∗
+            ∃ (k' : Nat) (σ : EtcdModel.State) (t : Nat), histAt γ k' σ ∗
+              ⌜k ≤ k' ∧ σk.authTables.length ≤ t + 1 ∧ σ.authTables[t]? = some a⌝)
 
 /-- `s.errorc` is 2f's error channel (any goroutine may send without blocking; `run` stops on it). -/
 def srvNode_errorc.spec : Prop :=

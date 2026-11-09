@@ -27,12 +27,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- `UnsafeReadScheduledCompact(tx)`: `metaRev D.sched`. -/
 def UnsafeReadScheduledCompact.spec : Prop :=
-  ∀ (t : GoInterfaceOk) (R : IProp GF) (D : KeyData) (b : Bool),
+  ∀ (t : GoInterfaceOk) (R : IProp GF) (L : Qp → IProp GF) (p : Qp) (D : KeyData) (b : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ schemaVars ∗
-      rangeOk t R D (if b then KeyData.range else KeyData.rtRange) ∗ R ∗ ⌜D.metaMade = true ∧ metaOk D.sched⌝ }}
+      rangeOk t R L D false (if b then KeyData.range else KeyData.rtRange) ∗ R ∗ L p ∗ ⌜D.metaMade = true ∧ metaOk D.sched⌝ }}
     (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeReadScheduledCompact))
       (Val #(GoInterface.ok t)))
-  {{ (x : w64) (found : Bool), RET (PairV #x #found); R ∗ ⌜(x, found) = metaRev D.sched⌝ }}
+  {{ (x : w64) (found : Bool), RET (PairV #x #found); R ∗ L p ∗ ⌜(x, found) = metaRev D.sched⌝ }}
 
 end spec
 end Mvcc

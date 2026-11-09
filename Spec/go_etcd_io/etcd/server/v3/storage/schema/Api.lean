@@ -18,7 +18,8 @@ abstractions it builds on"), as mvcc states its store over its storage contract:
   view `V` of the buckets in its scope `S`): a single-key `UnsafeRange` (a `nil` end) returns the
   key's entry, `UnsafeForEach` calls its function on each entry once (in some order: a read
   transaction visits bolt's entries, then its buffer's). The bytes are bbolt's, **lent against
-  `R V`** (`rangeK`, `lentIn`; the visitor's for its call), never readable after it (4c's `txBytes`).
+  `R V`** (`rangeK`, `lentIn`, given back with the result's two outer slices; the visitor's for its
+  call), never readable after it (4c's `txBytes`).
 * `txRange tx S R`: an interval `UnsafeRange` of a whole bucket, in key order (a batch transaction,
   or a read transaction of `key` only).
 * `txWr tx S R` (transparent, persistent): **writing through `tx`**: `UnsafePut` (an entry bbolt
@@ -27,8 +28,10 @@ abstractions it builds on"), as mvcc states its store over its storage contract:
 * `R : View → IProp` is the **caller's** family (its share of the backend: a lock-held batch view of
   its part, a read transaction's snapshot of it); `S : Scope` says which buckets and which keys of a
   shared bucket (`Meta`) are the caller's, so that a caller owning two keys of `Meta` (the consistent
-  index) never claims the rest of it. The backend (4a) proves these bundles of its transactions for
-  the parts it hands out (`req/go_etcd_io_etcd_server_v3_storage_backend.md`, "from 4b").
+  index) never claims the rest of it. The backend's laws producing these bundles for its
+  transactions, at the families `Backend.btView` (the batch transaction, its lock held) and
+  `Backend.rtView` (the shared read transaction, read-locked or under the batch lock), are in
+  `backend/SchemaTx.lean` (imported by the server's proofs only, as mvcc's `MvccStorage.lean`).
 * The struct methods that take a backend's locks themselves (`authBackend.GetUser`, `authBatchTx.Lock`,
   `ReadConsistentIndex`, ...) are stated with the triples of the backend calls they make as premises
   (`callOk`, `retOk`, `rdSect`): a wrapper's spec is its callee's, so the caller's own contract of
@@ -52,7 +55,9 @@ bundles. What a caller reasons about is the view's **values**: the pure encoding
   holding `r`).
 * Auth: `authEnabledOf m`, `authRevOf m` (the `Auth` bucket's flag and revision), `recsWf t m` (every
   value decodes as a `*t`: users, roles), `userName c`, `roleName c` (an `authpb.User`/`Role`
-  content's name; opaque, provisional 3h's).
+  content's name; opaque, provisional 3h's: 3h has no `authpb` vocabulary yet).
+* Alarms and membership: `alarmEnts`, `alarmsAt`; `memberEnts`, `memberBktsAt` (the buckets' records,
+  opaque encodings).
 * `bucketAt b bv` (persistent): `bv` is the `backend.Bucket` value of `b` (a `schema.bucket` of its
   id, name and range flag): what the package's variables hold (`bucketVars_init.spec`); no address
   is a constant (the name slices are allocated at the package's initialization).
@@ -67,14 +72,23 @@ The alarm and membership backends are translated names only (assumed specs), eac
 * `memberBkts be cb` (exclusive): **`be`'s `Members`, `MembersRemoved` and `Cluster` buckets hold
   `cb`** (`ClusterBkts`: 2e's view `ClusterSt`, the stored cluster version and downgrade info;
   `none`: not created yet; 2e's provisional `beMembers`).
-Intended realization: 4a's ownership of those buckets (the batch view, equal to the published one
-outside the writer's sections, since their holder is their only writer) with the records' encodings
-(an alarm: the marshalled `AlarmMember` as the key, an empty value; a member: its id's string ↦ its
-JSON; a removed id ↦ `removed`; the cluster version: its `String()`; the downgrade info: its JSON). Introduced by the backend's opener (2e's `OpenBackend` over 4a).
-* The reads of these two (`GetAllAlarms`, `MustReadMembersFromBackend`) go through `be.ReadTx()`:
-  each takes the caller's `threadTok` for its reader slot (the bounds plan) and gives it back.
-* `applyHook be Pre Q` (provisional, 4a's): `be`'s batch transaction's `LockInsideApply` runs its
-  post-lock hook from the caller's `Pre` to `Q` (3c's `beHook` with `Mvcc.hookRun`).
+Intended realization: 4a's ownership of those buckets, `be = Backend.beIface b` with `isBackend γ b
+p Pk`: the part's batch image and visible image (`beCur`, `beVis` of the buckets, equal outside the
+writer's sections, since their holder is their only writer), one reader slot (`beRdToks γ 1`: the
+holder reads one at a time), an open share (`beOpen γ q`: `CreateAlarmBucket`,
+`MustCreateBackendBuckets` lock outside apply), with the records' encodings (`alarmsAt`/`alarmEnts`:
+an alarm the marshalled `AlarmMember` as the key, an empty value; `memberBktsAt`/`memberEnts`: a
+member its id's string ↦ its JSON, a removed id ↦ `removed`, the cluster version its `String()`, the
+downgrade info its JSON). Introduced from the opener's parts and given back for the backend's
+close by `Backend.alarmBkt_intro`/`_elim`, `memberBkts_intro`/`_elim` (`backend/SchemaTx.lean`).
+* The reads of these two (`GetAllAlarms`, `MustReadMembersFromBackend`) go through `be.ReadTx()`
+  (the realization's slot; the specs still take and give back the caller's `threadTok`, which the
+  bounds plan lends a reader slot for).
+* `applyHook be Pre Q`: `be`'s batch transaction's `LockInsideApply` runs its post-lock hook from the
+  caller's `Pre` to `Q`, and `Q` gives the lock's resource back for the wrapper's `Unlock`
+  (realization: `isBackend`, an open share, a hook share, `Backend.hookRun γ q Pk f Pre Q'` and
+  `Q' ={⊤}=∗ Pk ∗ Q`; introduced by `Backend.applyHook_intro`, which hands the two shares back
+  inside `Q`).
 
 ## Users
 
@@ -89,9 +103,11 @@ hooks (2e: `MustUnsafeSaveConfStateToBackend`). Snippets: `examples/specreq/sche
 
 ## Laws
 
-`bucketAt_persistent`, `bucketAt_agree`, `bucketVars_init`, `keyNames_init`, `leaseMsg_of_struct`,
+`bucketAt_persistent`, `bucketVars_init`, `keyNames_init`, `leaseMsg_of_struct`,
 `leaseMsg_to_struct`, `alarmBkt_timeless`, `memberBkts_timeless`, `alarmBkt_excl`,
-`memberBkts_excl`.
+`memberBkts_excl`, `alarmEnts_empty`, `memberEnts_empty`. The laws relating the schema to the
+backend (`bucketAt` gives `Backend.bucketOk`, the safe-range registry, the bundles, `applyHook`,
+`alarmBkt`, `memberBkts`) are in `backend/SchemaTx.lean`: the schema does not import the backend.
 -/
 module
 
@@ -322,6 +338,30 @@ def memberFits (mm : EtcdModel.Member) : Prop :=
 /-- Fresh buckets: nothing stored. -/
 def ClusterBkts.empty : ClusterBkts := ⟨⟨[], []⟩, none, none⟩
 
+/-- **The `Alarm` bucket's entries are the alarms `al`'s records** (opaque: the protobuf encoding):
+each key a marshalled `AlarmMember` (`alarmMemberIs`) of an alarm of `al`, its value empty, each
+alarm of `al` (no duplicates) under exactly one key. -/
+opaque alarmEnts (m : BData) (al : List EtcdModel.Alarm) : Prop
+
+/-- **The bucket `o` (`none`: absent) holds the alarms `al`** (`none`: absent). -/
+def alarmsAt (o : Option BData) (al : Option (List EtcdModel.Alarm)) : Prop :=
+  match o, al with
+  | none, none => True
+  | some m, some al => alarmEnts m al
+  | _, _ => False
+
+/-- **The membership buckets' entries are `cb`'s records** (opaque: the JSON encodings; see the
+header): `Members` a member's id string ↦ its JSON, `MembersRemoved` a removed id ↦ `removed`,
+`Cluster` the cluster version's `String()` and the downgrade info's JSON. -/
+opaque memberEnts (mem rem cl : BData) (cb : ClusterBkts) : Prop
+
+/-- **The view's membership buckets hold `cb`** (`none`: each of the three absent or empty). -/
+def memberBktsAt (V : View) (cb : Option ClusterBkts) : Prop :=
+  match cb with
+  | none => ∀ b ∈ [Bkt.members, .membersRemoved, .cluster], V b = none ∨ V b = some BData.empty
+  | some cb => ∃ mem rem cl, V .members = some mem ∧ V .membersRemoved = some rem ∧
+      V .cluster = some cl ∧ memberEnts mem rem cl cb
+
 end model
 
 /-! ## Values and resources -/
@@ -363,13 +403,15 @@ def lentIn (dq : DFrac) (l : List GoString) (ps : List GoSlice) : IProp GF :=
   iprop([∗list] p; b ∈ ps; l, p ↦*{dq} b)
 
 /-- **`UnsafeRange`'s continuation**: the answer `l` (`rangeOf`), its keys and values lent against
-the view `R V` (given back with them). -/
+the view `R V`: given back with them **and with the two outer slices** (the backend's `rangeRes`
+takes the whole result back, `bytesListAt`; the schema's readers only index the slices). -/
 def rangeK (R : View → IProp GF) (V : View) (m : BData) (k e : GoString) (limit : w64)
     (Ψ : val → IProp GF) : IProp GF :=
   iprop(∀ (kl vl : GoSlice) (l : List (GoString × GoString)) (dq : DFrac) (ps qs : List GoSlice),
     ⌜rangeOf m k e (sint.Z limit) l⌝ -∗ kl ↦* ps -∗ vl ↦* qs -∗
     lentIn dq (l.map Prod.fst) ps -∗ lentIn dq (l.map Prod.snd) qs -∗
-    (lentIn dq (l.map Prod.fst) ps -∗ lentIn dq (l.map Prod.snd) qs -∗ R V) -∗
+    (kl ↦* ps -∗ vl ↦* qs -∗ lentIn dq (l.map Prod.fst) ps -∗ lentIn dq (l.map Prod.snd) qs -∗
+      R V) -∗
     Ψ (PairV #kl #vl))
 
 /-- **Reading through `tx`** with the caller's view `R V` of its scope `S` (see the header):
@@ -487,14 +529,20 @@ def recsRes (t : go.GoType) (sl : GoSlice) (l : List GoString) : IProp GF :=
   iprop(⌜l = [] → sl = slice.nil⌝ ∗ ∃ ps : List Loc, sl ↦* ps ∗
     [∗list] p; v ∈ ps; l, ∃ c, Proto.msgAt t p (DFrac.own 1) c ∗ ⌜Proto.encodes t c v⌝)
 
-/-- **`be`'s `Alarm` bucket holds `al`** (`none`: absent; exclusive; see the header). -/
-opaque alarmBkt (be : GoInterface) (al : Option (List EtcdModel.Alarm)) : IProp GF := iprop(True)
+/-- **`be`'s `Alarm` bucket holds `al`** (`none`: absent; exclusive; see the header). The heap
+binder is in the signature (an opaque body drops unused section variables). -/
+opaque alarmBkt [GooseSemantics] [GooseInterp] [HeapGS HasLC.hasLC GF] (be : GoInterface)
+    (al : Option (List EtcdModel.Alarm)) : IProp GF := iprop(True)
 
 /-- **`be`'s membership buckets hold `cb`** (`none`: not created yet; exclusive; see the header). -/
-opaque memberBkts (be : GoInterface) (cb : Option ClusterBkts) : IProp GF := iprop(True)
+opaque memberBkts [GooseSemantics] [GooseInterp] [HeapGS HasLC.hasLC GF] (be : GoInterface)
+    (cb : Option ClusterBkts) : IProp GF := iprop(True)
 
-/-- (provisional, 4a's) **`be`'s `LockInsideApply` runs its post-lock hook from `Pre` to `Q`**. -/
-opaque applyHook (be : GoInterface) (Pre Q : IProp GF) : IProp GF := iprop(True)
+/-- **`be`'s `LockInsideApply` runs its post-lock hook from `Pre` to `Q`, and the wrapper's
+`Unlock` gets the lock's resource back** (one use; see the header). Introduced from the backend's
+`hookRun` by `Backend.applyHook_intro` (`backend/SchemaTx.lean`). -/
+opaque applyHook [GooseSemantics] [GooseInterp] [HeapGS HasLC.hasLC GF] (be : GoInterface)
+    (Pre Q : IProp GF) : IProp GF := iprop(True)
 
 end vocab
 
@@ -549,6 +597,13 @@ def alarmBkt_excl.spec : Prop := ∀ be al al',
 def memberBkts_timeless.spec : Prop := ∀ be st, Timeless (memberBkts (GF := GF) be st)
 def memberBkts_excl.spec : Prop := ∀ be st st',
   memberBkts (GF := GF) be st ∗ memberBkts be st' ⊢ iprop(False)
+
+/-- An empty `Alarm` bucket holds no alarm (`CreateAlarmBucket` on a fresh member). -/
+def alarmEnts_empty.spec : Prop := alarmEnts BData.empty []
+
+/-- Empty membership buckets hold nothing (`MustCreateBackendBuckets` on a fresh member). -/
+def memberEnts_empty.spec : Prop :=
+  memberEnts BData.empty BData.empty BData.empty ClusterBkts.empty
 
 end laws
 

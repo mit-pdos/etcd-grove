@@ -8,7 +8,8 @@ closed the `recvc` of), `cur` (a fragment being reassembled: a `wireWatchRespOwn
 fragments' `wireStep` facts). Cases: a `*watchRequest` from `reqc` (its `retc` protocol: a new
 substream, `wsOwn` at `WatchPos.init` handed to a forked `serveSubstream` with `wsServe`, the
 consumer's `watchChAt` kept for `retc`), sent on the stream if first in `resuming`
-(`watchRequest.toPB.spec`, `wireWatchSend_send`); a progress request (forwarded); a response from
+(`watchRequest.toPB.spec`, `wireWatchSend_send`: recorded as sent even when `Send` fails, which
+`run` only logs); a progress request (forwarded); a response from
 `respc` (its `wireStep` facts: `Created` answers `resuming`'s head, `addSubstream.spec`, then
 `dispatchEvent.spec`; `Canceled` closes the substream's `recvc` and forgets its id (the fork's fix
 of `issues/etcd-watch-resume-stale-canceled-id.md`); a fragment waits; otherwise

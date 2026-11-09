@@ -6,9 +6,11 @@ views and the lessor's range deleter set to it; the loops not started.
 (`victimc` buffered 1, the two groups `newWatcherGroup`, `stopc`); the views (`readView`,
 `writeView`: 3e's); `le.SetRangeDeleter(func() { return s.Write(TODO) })` when `le` is not `nil`
 (3c's; the deleter's contract `KV.Write.contract` at `*watchableStore`, `mvccDeleter`); the watch
-invariant allocated (`wsInv`: empty groups, no victim, `mvccLb`'s authority at `h`) and the loops'
-shares (two of the store's reader slots, parked by `NewStore`; their wait-group deposits due once
-`New` ran `wg.Add(2)`).
+invariant allocated (`wsInv`: empty groups, no victim, `mvccLb`'s authority at `h`, part of
+`mvccState`'s realization) and the loops' shares (each the right to borrow, per pass and under
+`s.mu`, one of the store's own reader slots of its current storage: 3e's `mvccOwnN`, through an
+internal hand-off law of 3e's, requested at integration (I6); their wait-group deposits due once
+`New` ran `wg.Add(2)`). `NewStore`'s `mvccRevLent γ 0 ∗ mvccRestoreGate γ 1` passed through.
 -/
 module
 
@@ -37,7 +39,7 @@ def newWatchableStore.spec : Prop :=
     (Pk : IProp GF) (h : EtcdModel.KVHist) (u : Bool) (γl : Lease.Names) (c : Lease.Cfg) (n : Nat)
     (ls : Lease.LessorState) (dq : DFrac) (f : GoFunc) (Pre Q' Post X Y : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ (⌜lg = null⌝ ∨ Zap.isLogger lg) ∗ ⌜storeCfgOk cfg⌝ ∗
-      mvccStorageFor B Pk h u ∗ ⌜MvccReachable ⟨h, []⟩⌝ ∗
+      mvccStorageFor B Pk h u ∗
       storageHook B dq f ∗ ⌜f = func.nil ∨ dq = DFrac.discard⌝ ∗
       Pre ∗ hookRun Pk f Pre Q' ∗ (Q' ={⊤}=∗ Pk ∗ Post) ∗ X ∗ storageReq B Pk X Y ∗
       Lease.isLessor le γl c ∗ Lease.lessorState γl n ls }}
@@ -45,6 +47,7 @@ def newWatchableStore.spec : Prop :=
       (Val #(GoInterface.ok (storageVal B)))) (Val #(Lease.lessorIface le))) (Val #cfg))
   {{ (s : Loc), RET #s; ∃ γ : MvccName, wsInv s γ ∗ mvccLessorIs γ γl ∗
       mvccState γ ⟨h, []⟩ ∗ mvccOpen γ ∗ mvccBackend γ 1 B Pk ∗ mvccReaders γ mvccTokN ∗
+      mvccRevLent γ 0 ∗ mvccRestoreGate γ 1 ∗
       storageHook B dq f ∗ (if u then iprop(Post ∗ Y) else iprop(Pre ∗ X)) ∗
       (∃ (rd : GoFunc) (n' : Nat) (ls' : Lease.LessorState), mvccDeleter rd γ ∗
         ⌜RestoreLs { ls with rd := rd } h.store ls'⌝ ∗ Lease.lessorState γl n' ls') ∗

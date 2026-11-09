@@ -4,12 +4,17 @@ Internal: the compaction job's body (`compact`'s closure).
 
 **Proof sketch**: `LockForSafeRangeDelete` (the job's `kbSafe`, in `compactJobRes`);
 `kvindex.Compact(rev)` (the index compacted at `rev`, `idxCompact`, its available revisions
-`idxCompactAvail`); per batch: `LockOutsideApply` (no hook), `UnsafeRange` of `Key` below `rev+1`,
-`UnsafeDelete` of every entry not available (the store's image stays an image of the committed
-history with an unfinished compaction, `mvccImage … true`), `WriteKeyValue` of each (keys parse:
-the image's), then the last batch's `UnsafeSetFinishedCompact` (image complete again, `u = false`)
-and `Unlock`, or `Unlock`, `ForceCommit` (`storageReq_true`) and a sleep or the stop channel
-(`storeStopped` on that branch). The job's resources go back to the store's invariant at its end.
+`idxCompactAvail`); per batch: `LockOutsideApply` (no hook; the job's open share `kbOpen`, in
+`compactJobRes`), `UnsafeRange` of `Key` below `rev+1` (the batch's `KeyData.range`; its bytes lent
+against half the session's liveness `kbLive`, which the batch's writes do not need),
+`UnsafeDelete` of every entry not available, passing the lent key bytes themselves (each a key
+committed before this session and not yet deleted in it: the row's `D.keys k = D0.keys k`; the
+store's image stays an image of the committed history with an unfinished compaction, `mvccImage …
+true`), `WriteKeyValue` of each (keys parse: the image's), the lent bytes back (`kbLive B tx 1`),
+then the last batch's `UnsafeSetFinishedCompact` (image complete again, `u = false`; the entry bound
+trivial) and `Unlock` (the job's nested update: the finished key at the write-back, the batch's
+deletes at its commit, 4a's F1), or `Unlock`, `ForceCommit` (`storageReq_true`, the open share) and a
+sleep or the stop channel (`storeStopped` on that branch). The job's resources go back to the store's invariant at its end.
 `CompactionBatchLimit ≥ 0` (`storeCfgOk`): with a negative one the loop never ends (no panic).
 
 **Changes** from `specs-ref`'s file: over `compactJobRes`; the outcomes only (the hash's fields).

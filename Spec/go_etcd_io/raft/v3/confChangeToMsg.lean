@@ -4,6 +4,11 @@
 **Users.** `node.ProposeConfChange`, `RawNode.ProposeConfChange`. **Proof sketch.**
 `MarshalConfChange` (raftpb, 3h: the entry type and bytes decoding back to `c`; no error for a
 well-formed change). **Changes.** Mirrors the code.
+
+**Size premise (integration I2).** `c.wireBound < Proto.marshalMax` (`2^48`: a context under about
+`2^47` bytes) is `MarshalConfChange`'s (3h: protobuf-go fails to marshal a larger message; the old
+spec had no premise, false of protobuf-go). True of every real change; a client-facing premise until
+the user chooses otherwise (3h's open question 3: or a workload premise like grpc's `msgsFit`).
 -/
 module
 
@@ -33,7 +38,7 @@ variable [ctx_sem : context.Assumptions]
 def confChangeToMsg.spec : Prop :=
 
   ∀ (cc : GoInterface) (dq : DFrac) (c : ConfChangeI),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ confChangePts cc dq c }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ confChangePts cc dq c ∗ ⌜c.wireBound < Proto.marshalMax⌝ }}
     (App (Val (@! go_etcd_io.raft.v3.confChangeToMsg)) (Val #cc))
   {{ (ml : Loc) (err : GoInterface), RET (PairV #ml #err); confChangePts cc dq c ∗
       ⌜err = interface.nil⌝ ∗ ∃ (bs : List w8) (m : Msg), msgPts ml (DFrac.own 1) m ∗

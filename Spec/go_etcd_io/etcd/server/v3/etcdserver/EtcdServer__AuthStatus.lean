@@ -38,11 +38,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`s.AuthStatus(ctx, r)`**: the auth state's flag and revision, through raft (as `Put`). -/
 def EtcdServer.AuthStatus.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (p tls : Principal) (r : Loc) (dq : DFrac),
+  ∀ (s : Loc) (γ : Cluster) (q : Qp) (ctx : GoInterface) (p tls : Principal) (r : Loc) (dq : DFrac),
   SrvCallTriple (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"AuthStatus")) (Val #ctx)) (Val #r))
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ srvGate s q ∗
         Context.ctxOk ctx ∗ reqCtxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ ClientV3.reqOwn r dq (.authStatus))
-    iprop(threadTok ∗ ClientV3.reqOwn r dq (.authStatus)) γ p tls (.authStatus) false (ClientV3.ansReply)
+    iprop(srvGate s q ∗ threadTok ∗ ClientV3.reqOwn r dq (.authStatus)) γ p tls (.authStatus) false (ClientV3.ansReply)
 
 end spec
 end EtcdServer

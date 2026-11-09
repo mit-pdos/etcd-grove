@@ -36,7 +36,10 @@ predicate opaque, the pure model W0's history (`Model.lean`), the storage a cont
 * `mvccBackend γ q B Pk` (fractional): **a share of "the store's storage is `B`, its batch lock's
   invariant `Pk`"** (`NewStore`'s, then `Restore`'s): `Write`, `Put`, `DeleteRange`, `Compact`,
   `Commit` and a write transaction's `End` take a share (for the hook, the batch lock's invariant,
-  the commit request), `Restore` the whole (and gives the new storage's).
+  the commit request), `Restore` the whole (and gives the new storage's), the shutdown law the whole
+  (for the storage's open share). Intended realization: a fragment of the store's ghost record of
+  `(B, Pk)`, with a part of the storage's open share `kbOpen` (the lock rows and `ForceCommit` take
+  one), the store's invariant holding the rest.
 * `mvccTxn t γ trace k` (exclusive): **`t` (a `TxnRead`/`TxnWrite` interface value) is a
   transaction of `γ`, begun with `trace`, at `k`** (`MTxn`: read, or write with its events). It
   holds the reader token until its `End`, not the trace (lent per call).
@@ -642,17 +645,18 @@ def mvccReaders_split.spec : Prop :=
 
 /-- **Shutdown: the storage's rest back, an image of the final state** (the user's decision,
 2026-11-06, "mvcc's API: the store's readers as client-held tokens"): the closed store, every reader
-token but those turned into `Rev` tokens (no read of the storage in flight), a share of the store's
-backend and the state give the storage's data at an image of the state (the compaction job stopped,
-possibly part way: `u`), the delete right, the slots but the `Rev` tokens' (which keep theirs for
-lock-only reads), the history's receipt (what a later boot over the same storage takes,
-`mvccStorageFor`). -/
+token but those turned into `Rev` tokens (no read of the storage in flight), the whole of the
+store's backend share (no write or commit in flight) and the state give the storage's data at an
+image of the state (the compaction job stopped, possibly part way: `u`), the delete right, the slots
+but the `Rev` tokens' (which keep theirs for lock-only reads), the storage's whole open share
+(`kbOpen B 1`, which the storage's close takes: 4a's (a)), the history's receipt (what a later boot
+over the same storage takes, `mvccStorageFor`). -/
 def mvccClosed_rest.spec : Prop :=
-  ∀ γ (q : Qp) B (Pk : IProp GF) (σ : MvccState) (n m : Nat), n + m = mvccTokN →
-    mvccClosed (GF := GF) γ ∗ mvccReaders γ n ∗ mvccRevLent γ m ∗ mvccBackend γ q B Pk ∗
+  ∀ γ B (Pk : IProp GF) (σ : MvccState) (n m : Nat), n + m = mvccTokN →
+    mvccClosed (GF := GF) γ ∗ mvccReaders γ n ∗ mvccRevLent γ m ∗ mvccBackend γ 1 B Pk ∗
       mvccState γ σ ∗ ⌜σ.pending = []⌝ ={⊤}=∗
       (∃ (D : KeyData) (u : Bool), kbData B D ∗ ⌜mvccImage D σ.kv u⌝) ∗ kbSafe B ∗
-      kbRdToks B (mvccReaderN - m) ∗ ⧖ (evCount σ.kv) ∗ mvccBackend γ q B Pk ∗ mvccState γ σ
+      kbRdToks B (mvccReaderN - m) ∗ kbOpen B 1 ∗ ⧖ (evCount σ.kv) ∗ mvccState γ σ
 
 /-- **A reader token turned into a `Rev` token** (the server's compactor's, for its lifetime). -/
 def mvccRevTok_of.spec : Prop :=

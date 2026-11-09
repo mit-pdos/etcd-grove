@@ -30,7 +30,7 @@ watcherSetByKey`, batch 3f), the auth store's permission cache (byte keys: `Inse
   Intended realization: the tree struct, the sentinel (`Internal.lean`'s `ownSentinel`), the nodes
   from the root (`ownNode`) holding a red-black tree (`RbT`, `RbOk`) whose in-order list is `L`, each node's `max` the largest end of its
   subtree, the count `L.length` (below `ivtCountMax`, so `count++` does not wrap: `Stab` reads
-  `count == 0` as empty). Laws: `ivt_fractional`, `ivt_agree`, `ivt_persist` (a built tree made
+  `count == 0` as empty). Laws: `ivt_fractional` (with agreement), `ivt_persist` (a built tree made
   read-only: the auth store's caches are never modified), `ivt_sorted` (the entries are in the
   tree's order).
 * `ivAt c p dq z` (transparent): `p` points to an `IntervalValue` (a node's `iv` field: `Find`'s and

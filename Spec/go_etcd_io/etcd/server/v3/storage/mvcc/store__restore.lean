@@ -2,13 +2,18 @@
 `(*store).restore()` (`kvstore.go:317`). Internal: `NewStore` and `Restore` (under `s.mu`, with a
 fresh index, scheduler and stop channel), over a storage holding an image of any history `h`.
 
-**Proof sketch**: `setupMetricsReporter`; `ReadTx`, `RLock` (a reader slot of `mvccStorageFor`'s);
+**Proof sketch**: `setupMetricsReporter`; `ReadTx`, `RLock` (a reader slot of `mvccStorageFor`'s;
+the snapshot `kbRead` and the whole liveness `kbLive B rt 1`);
 `UnsafeReadFinishedCompact` (the image's finished compaction: `compactMainRev`) and
-`UnsafeReadScheduledCompact`; `restoreIntoIndex` over the image's `Key` entries in order
-(`RestoreEntsOk`: the image's keys parse, its values decode); `UnsafeRange` chunks of
-`restoreChunkKeys`, `restoreChunk` each (`kvDecodes`: no `lg.Fatal`), the next chunk's start after
-the last key (`BytesToRev` parses it); `close(rkvc)`; `<-revc` (`revRecv`: the index rebuilt,
-`idxRestore`, published, `idxShareC`); `currentRev` at least the compaction revisions (so `h.rev`:
+`UnsafeReadScheduledCompact` (each lent a share of the liveness, back at once); `restoreIntoIndex`
+over the image's `Key` entries in order (`RestoreEntsOk`: the image's keys parse, its values
+decode); `UnsafeRange` chunks of `restoreChunkKeys` (the shared read transaction's `rtRange`: exact
+cuts, the image `clean`, `mvccStorageFor`), each lent against a new share of the liveness (half of
+what is left: `rangeLent`), `restoreChunk` each with half of the chunk's lent fraction (the values
+back; the keys lent on to the index goroutine, `rkvProducer`'s loans), the next chunk's start after
+the last key (read with the other half; `BytesToRev` parses it); `close(rkvc)` (`rkvClose`); `<-revc`
+(`revRecv`: the index rebuilt, `idxRestore`, published, `idxShareC`, and the keys' loans back, so
+every chunk's wand gives its liveness share back: `kbLive B rt 1` again for `RUnlock`); `currentRev` at least the compaction revisions (so `h.rev`:
 an image's last revision is its history's, a compacted tail or a deleted tombstone at the scheduled
 compaction being why the Go code raises it); the leases re-attached through `le.Attach` (the store's lessor a real `*lessor`, `Lease.isLessor`:
 the `panic("no lessor to attach lease")` unreachable; each `Attach` steps the writer's token,

@@ -36,7 +36,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- (internal) **Starts a remote** (a pipeline only) for `pid`. -/
 def startRemote.spec : Prop :=
   ∀ (t : Loc) (ν : Net GF) (lid pid : w64) (urls : GoSlice) (hs : List GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ isTransport t ν lid ∗ urlsAt urls hs ∗ ⌜hs ≠ []⌝ ∗ ([∗list] a ∈ hs, peerAddr ν a) }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ isTransport t ν lid ∗ Types.urlsAt urls hs ∗ ⌜hs ≠ []⌝ ∗ ([∗list] a ∈ hs, peerAddr ν a) }}
     (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.startRemote)) (Val #t)) (Val #urls)) (Val #pid))
   {{ (g : Loc), RET #g; remoteAt g ν lid pid ∗ remoteStopRight g }}
 

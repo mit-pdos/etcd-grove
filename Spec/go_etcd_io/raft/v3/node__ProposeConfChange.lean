@@ -15,6 +15,11 @@ update is not fired by it.
 **Changes.** Unchanged in substance (over opaque predicates; v2 changes included).
 
 **Margin.** As `Propose`'s, and the leader's refusal is silent.
+
+**Size premise (integration I2).** `c.wireBound < Proto.marshalMax` (`2^48`: a context under about
+`2^47` bytes) is `MarshalConfChange`'s (3h: protobuf-go fails to marshal a larger message; the old
+spec had no premise, false of protobuf-go). True of every real change; a client-facing premise until
+the user chooses otherwise (3h's open question 3: or a workload premise like grpc's `msgsFit`).
 -/
 module
 
@@ -46,7 +51,7 @@ def node.ProposeConfChange.spec : Prop :=
 
   ∀ (n : Loc) (γ : Cluster) (id : w64) (ctx : GoInterface)
     (cc : GoInterface) (dq : DFrac) (c : ConfChangeI),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ id ∗ Context.ctxOk ctx ∗ confChangePts cc dq c ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ id ∗ Context.ctxOk ctx ∗ confChangePts cc dq c ∗ ⌜c.wireBound < Proto.marshalMax⌝ ∗
       (□?γ.dup AU <{ ∃∃ (ops : List LogEntry), committedOps γ ops }> @ ⊤ \ ↑γ.ns, ∅
         <{ ∀∀ (t : w64) (bs : List w8), ⌜decodeConfChange c.entryType bs = some c⌝ ∗
             committedOps γ (ops ++ opsOf [⟨t, c.entryType, bs⟩]), COMM True }>) }}

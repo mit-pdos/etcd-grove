@@ -17,15 +17,17 @@ owner, so the id is neither wrapped nor `-1`);
 `watchable.watch` (`watchableStore.watch.spec`: the caller's update fired under `s.mu` and
 `revMu` at the state read, a reader token (3e's `mvccReaders`) for `revMu`'s reader slot: the
 watcher registered under `s.mu`, synced or unsynced, at the store's revision `R`, the registration
-`wsReg` with the stream's send count as its stamp); `trace.SpanFromContext(ctx)` (otel's boundary,
-4b: any `ctxOk` context); the cancel closure and the watcher stored in the maps.
+`wsReg` with the stream's send count as its stamp); `trace.SpanFromContext(ctx)` (4b's
+`OtelTrace.SpanFromContext.spec`, from `ctxSpanOk ctx`: a `spanOk` span, whose `End` the cancel
+closure calls); the cancel closure and the watcher stored in the maps.
 
 **Changes** from `specs-ref`'s file: the stream's state update (an atomic update over `wsState`)
 replaced by the persistent facts the consumer needs (`wsReg` with the watcher's position and stamp,
 `mvccLb` at the registration's state) and the control token; the store's state read by the
 caller's update (3e's `KV.Rev` form: 2b's floor, the `Created` header's `Rev()` read after it, is at
-least the position); a context is any `ctxOk` one (W0's) in place of `TODO` or an `isContext` with
-its span; the id `0` stays a premise (a scope restriction, below). (Round 1: the read update, F2;
+least the position); a context is any one whose otel span is genuine (4b's `ctxSpanOk`: the only
+use of `ctx`; 2b's `Tracer.Start` context has it) in place of `TODO` or an `isContext` with its span
+(integration: `Context.ctxOk` dropped, the code never calls the context); the id `0` stays a premise (a scope restriction, below). (Round 1: the read update, F2;
 `id = n` with `wsReg_ctl`, the range non-empty on success, F4; the error value, F6; the receipt
 bound, S2.)
 
@@ -39,6 +41,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiWatch
 public import Spec.context.Api
+public import Spec.go_opentelemetry_io.otel.trace.Api
 
 @[expose] public section
 
@@ -70,7 +73,7 @@ def watchStream.Watch.spec : Prop :=
   let empty : Prop := endk ≠ slice.nil ∧ e ≠ [] ∧ ¬ go.GoStringLt k e
   let au : IProp GF := iprop(AU <{ ∃∃ (σ : MvccState), mvccState γ σ }> @ ⊤ \ ↑mvccN, ∅
     <{ mvccState γ σ, COMM Q σ }>)
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ wsAt w γ ι ∗ wsCtl ι n ∗ Context.ctxOk ctx ∗ key ↦*□ k ∗ endk ↦*□ e ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ wsAt w γ ι ∗ wsCtl ι n ∗ OtelTrace.ctxSpanOk ctx ∗ key ↦*□ k ∗ endk ↦*□ e ∗
       filtersAt fcs ds ∗ ⌜0 ≤ sint.Z startRev⌝ ∗ mvccReaders γ 1 ∗ au }}
     (App (App (App (App (App (App (Val (w @!! go.GoType.PointerType watchStream.ty @!! go!"Watch")) (Val #ctx)) (Val #(W64 0)))
       (Val #key)) (Val #endk)) (Val #startRev)) (Val #fcs))

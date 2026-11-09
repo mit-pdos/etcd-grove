@@ -7,7 +7,9 @@
 `a = σ.auth`, from `stAt`'s `authSt`; the request `Auth.authReqAt r rq cred` from `reqMsgAt`, with
 `cred` the op's credential): its premises `authReached γ (storeNext rq cred a)` and `recordsFit`
 from `nextOk` (the step's next state, `opStep`'s realization: `σ'.auth = storeNext rq cred a`);
-its post `admStep`, the writer at `i + 1`; `newHeader`.
+the backend's post-lock hook `Auth.authHook γa Pre Q` (3d's, provisional for 4a/2d: the
+apply thread's hook under `R`, as the KV writes'); its post `admStep`, the writer at `i + 1`;
+`newHeader`.
 
 **Changes** from `specs-ref`'s `applierV3backend__RoleGrantPermission.lean`: the old triple over the chain's `AEnv`, the mvcc log and the write tokens (`putPre`, `kvPostF`, `mPostW`, ...) restated over the model state (`stAt`, `layersStep`): any auth mode, leases, compaction
 

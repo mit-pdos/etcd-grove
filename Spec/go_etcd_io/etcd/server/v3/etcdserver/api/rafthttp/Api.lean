@@ -86,6 +86,7 @@ again with a second transport of the same member).
 -/
 module
 
+public import Spec.go_etcd_io.etcd.client.pkg.v3.types.Api
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp
 public import Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp
 public import Spec.go_etcd_io.raft.v3.Api
@@ -179,13 +180,8 @@ opaque leaderStatsOwn (s : Loc) : IProp GF := iprop(True)
 /-- (v2stats, 2e) A follower's `*FollowerStats` from `LeaderStats.Follower` (persistent). -/
 opaque followerStatsOk (s : Loc) : IProp GF := iprop(True)
 
-/-- (types, 1c) **`types.NewURLs(us)` succeeds**, with the parsed URLs' hosts (`host:port`; non-empty:
-`NewURLs` refuses an empty list). `none`: it fails (`AddPeer` then panics). -/
-opaque urlsHosts (us : List GoString) : Option (List GoString) := none
-
-/-- (types, 1c) **The `types.URLs` slice `sl` holds URLs with hosts `hs`**, read-only for good, each
-`String()` parsing back (`NewURLs`) to the same host. Persistent. -/
-opaque urlsAt (sl : GoSlice) (hs : List GoString) : IProp GF := iprop(True)
+-- (integration I4) `urlsHosts`, `urlsAt` were provisional here: now 1c's `Types.urlsHosts`,
+-- `Types.urlsAt` (`client/pkg/v3/types/Api.lean`).
 
 /-- (types, 1c; round 1) **No URL string of `hs`'s source contains a comma** (the receiver splits
 `X-PeerURLs` on `","`: `nonissues/etcd-rafthttp-peerurl-comma-split.md`): a fact `urlsAt` gives. -/
@@ -313,7 +309,7 @@ def trCfg (tv : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (ν
   iprop((⌜tv.Logger' = null⌝ ∨ Zap.isLogger tv.Logger') ∗
     raftOk ν tv.ID' tv.Raft' ∗ (∃ sd, Snap.isSnapshotter tv.Snapshotter' sd ∗ saveOk ν sd) ∗
     serverStatsOk tv.ServerStats' ∗ leaderStatsOwn tv.LeaderStats' ∗ errChanOk tv.ErrorC' ∗
-    (∃ hs, urlsAt tv.URLs' hs ∗ urlsNoComma tv.URLs' ∗ [∗list] a ∈ hs, peerAddr ν a) ∗
+    (∃ hs, Types.urlsAt tv.URLs' hs ∗ urlsNoComma tv.URLs' ∗ [∗list] a ∈ hs, peerAddr ν a) ∗
     ⌜tv.mu' = zero_val _root_.Perennial.sync.RWMutex⌝)
 
 /-! ## Internal (rafthttp's own functions; no client sees them) -/

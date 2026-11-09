@@ -81,6 +81,14 @@ Resources:
   `γ`**: its `Watch` method meets `WatchServer.WatchTriple` (`watchServiceAt_methods`). The slot 2a's
   registration (`grpc.go`'s `Server`, the service's spec at `/etcdserverpb.Watch/Watch`) consumes;
   `watchServerAt_service` gives it for a `*watchServer`.
+* **Integration I3**: `srvCtxPrin` is 2c's `reqPrin` (a definition); 2a's `watchSpec` is the grpc
+  contract these slots realize (`V3rpc.watchRun_open`, `v3rpc/Api.lean`); `Recv`'s error and the
+  handler's returned error have grpc's shapes (`Grpc.ownErr`, `Grpc.sentStatus`). **Open (3f's
+  reader tokens)**: the loops' mvcc reader tokens (`mvccReaders γm 1` each, for their lifetime) are
+  not threaded: the handler run holds one thread token (grpc's pool) and each loop its `Fork` token,
+  and no law of the member converts a thread token into a reader of its store; the stock is the
+  server's (2c/2e: `notes/specs-only/integration-I3.md`), and `swsRecver`/`swsSender` are meant to
+  carry the borrowed reader once it exists.
 * `watchMemberAt s γ` (persistent): **slot of the server batches (2c/2d/2e)**: the `*EtcdServer`
   `s` is a member of `γ` whose watch path is ready. What `NewWatchServer` and the handler read of it:
   its configuration's logger, request budget and progress interval (read-only fields,
@@ -127,6 +135,8 @@ progress interval's setter).
 module
 
 public import Spec.go_etcd_io.etcd.client.v3.ApiWatch
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiReq
+public import Spec.google_golang_org.grpc.Api
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
 public import Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
 public import Spec.go_uber_org.zap.Api
@@ -225,9 +235,11 @@ made the client's state `sst`. -/
 opaque srvWatchSend (st : GoInterface) (γ : Cluster) (who : Principal) (g : WatchStreamNames)
   (sst : WireSt) : IProp GF := iprop(True)
 
-/-- **Slot (2a, consumed by 2c/3d)**: the server-side context `ctx`'s incoming metadata names the
-principal `who` (persistent). -/
-opaque srvCtxPrin (ctx : GoInterface) (who : Principal) : IProp GF := iprop(True)
+/-- **The server-side context `ctx` is authenticated as `who`** (persistent): 2c's `reqPrin` of
+`who` (integration I3: was a slot of its own; 2a's `reqPrin_of_md` gives it from a run's context
+and the contract's `mdPrin`), whatever the certificate's name (the watch handler only reads). -/
+def srvCtxPrin (ctx : GoInterface) (who : Principal) : IProp GF :=
+  iprop(∃ tls : Principal, EtcdServer.reqPrin ctx who tls)
 
 /-- The type of a watch stream's server end. -/
 def watchSrvStreamTy : go.GoType :=
@@ -238,14 +250,15 @@ def watchSrvStreamTy : go.GoType :=
 
 /-- **`Watch(stream)`**, the handler of one watch stream: given the server end of a stream of a
 client of `γ` as `who`, both halves at the start, it serves the protocol (every response it sends
-carries its `wireStep` facts: `srvWatchSend_send`) and returns some error when the stream ends
-(the receive loop's error, `ErrGRPCWatchCanceled` for a canceled context, or the context's error:
-not modelled). -/
+carries its `wireStep` facts: `srvWatchSend_send`) and returns `nil` or an error grpc can send as a status
+when the stream ends (the receive loop's error, grpc's own; `ErrGRPCWatchCanceled` for a canceled
+context; or the context's error: integration I3, what grpc's `streamOut` needs). -/
 def WatchServer.WatchTriple (f : val) (P : IProp GF) (γ : Cluster) : Prop :=
   ∀ (st : GoInterface) (who : Principal) (g : WatchStreamNames),
   {{ P ∗ srvWatchStreamAt st γ who g ∗ srvWatchRecv st g [] ∗ srvWatchSend st γ who g WireSt.init }}
     (App (Val f) (Val #st))
-  {{ (err : GoInterface), RET #err; True }}
+  {{ (err : GoInterface), RET #err;
+      ⌜err = GoInterface.nil⌝ ∨ ∃ (code : w32) (msg : GoString), Grpc.sentStatus err code msg }}
 
 /-! ## Laws -/
 
@@ -301,7 +314,8 @@ def srvWatchRecv_recv.spec : Prop := ∀ (st : GoInterface) (γ : Cluster) (who 
   {{ (p : Loc) (err : GoInterface), RET (PairV #p #err);
       (⌜err = GoInterface.nil⌝ ∗ ∃ r : WireWatchReq,
          watchReqOwn p (DFrac.own 1) r ∗ srvWatchRecv st g (rs ++ [r])) ∨
-      (⌜err ≠ GoInterface.nil⌝ ∗ srvWatchRecv st g rs) }}
+      (⌜err ≠ GoInterface.nil⌝ ∗ (globalAddr io.EOF ↦□ err ∨ Grpc.ownErr err) ∗
+        srvWatchRecv st g rs) }}
 
 /-- A lower bound of what was received. -/
 def srvWatchRecv_lb.spec : Prop := ∀ st g rs,

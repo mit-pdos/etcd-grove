@@ -29,14 +29,14 @@ false of the code (two `Step`s from two goroutines race on `t.steps`), so it is 
 * the server's spans: `traceutil.Tracer.Start` (otel's tracer in the package variable).
 
 Snippets: `examples/specreq/pkgleaves/trace.go` (`ReqRequestTrace`, `ReqApplyTraceHandoff`,
-`ReqMvccTodoTrace`, `ReqReadLoopTrace`, `ReqSubTrace`).
+`ReqMvccTodoTrace`, `ReqReadLoopTrace`, `ReqSubTrace`, `ReqCtxTraceLent`).
 
 ## Vocabulary
 
 * `traceOwn t` (exclusive, timeless): **the trace `t` is the caller's** (non-nil). Intended
   realization: the `Trace` struct at `t` but its `isEmpty` field, its fields slice and steps slice
-  with their capacities, each step's fields slice (`fieldsOwn`), and `lg` nil or a zap logger
-  (`Zap.isLogger`).
+  with their capacities, each step's fields slice (`fieldsOwn`), `lg` nil or a zap logger
+  (`Zap.isLogger`), and `∃ e, traceEmpty t e` (`traceOwn_empty`).
 * `traceEmpty t e` (persistent): **`t`'s `isEmpty` flag is `e`**, for good (written only at the
   trace's creation: `TODO()`'s are empty, `newTrace`'s not). Realization: the field's discarded
   points-to. `EnsureTrace` keeps a context's trace only if not empty, so this is what lets a caller
@@ -55,7 +55,7 @@ Snippets: `examples/specreq/pkgleaves/trace.go` (`ReqRequestTrace`, `ReqApplyTra
 
 ## Laws
 
-`traceOwn_timeless`, `traceOwn_excl`, `traceOwn_ne_null`, `traceEmpty_persistent`,
+`traceOwn_timeless`, `traceOwn_excl`, `traceOwn_ne_null`, `traceOwn_empty`, `traceEmpty_persistent`,
 `traceEmpty_agree`, `ctxTraceIs_persistent`, `ctxTraceIs_agree`, and where a context's trace comes
 from: `ctxTraceIs_background`, `ctxTraceIs_todo` (none), `ctxTraceIs_child` (a `WithCancel`/
 `WithTimeout` child carries its parent's), `ctxTraceIs_value` (a `WithValue` at another key type
@@ -135,6 +135,11 @@ def traceOwn_timeless.spec : Prop := ∀ t, Timeless (traceOwn (GF := GF) t)
 def traceOwn_excl.spec : Prop := ∀ t, traceOwn (GF := GF) t ∗ traceOwn t ⊢ iprop(False)
 
 def traceOwn_ne_null.spec : Prop := ∀ t, traceOwn (GF := GF) t ⊢ ⌜t ≠ null⌝
+
+/-- **An owned trace has an emptiness flag** (every trace is made by `TODO` or `newTrace`, which
+give it). What lets a caller holding only `traceOwn t` (2c's `ctxTrace`, a context's trace from
+`Get`) lend it to a callee that begins with `EnsureTrace` (whose premise is `traceEmpty`). -/
+def traceOwn_empty.spec : Prop := ∀ t, traceOwn (GF := GF) t ⊢ ∃ e, traceEmpty t e
 
 def traceEmpty_persistent.spec : Prop := ∀ t e, Persistent (traceEmpty (GF := GF) t e)
 

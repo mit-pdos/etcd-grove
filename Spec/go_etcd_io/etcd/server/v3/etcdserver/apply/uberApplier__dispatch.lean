@@ -5,6 +5,9 @@
 
 **Proof sketch.** The membership methods (`applierV3backend.ClusterVersionSet.spec`, `ClusterMemberAttrSet.spec` with `memberUpd`, `DowngradeInfoSet.spec`, through the outer layers' promoted methods); the chain's method for the request's kind (the layer specs: `layersStep` at `chainLayers σ`, the result's `resMatch`), `uberApplier.Alarm.spec`; `replyAt_result` for the `Result`'s fields; `txn.ApplySecObserve`, `WarnOfExpensiveRequest`, `WarnOfFailedRequest` (3b's: logging only; `errors.Is` on `ar.Err`). The `default` branch's `lg.Panic` is excluded by `ir.op.ok` (the decoded request has a known field).
 
+`nextOk` (the next state's auth reached and fitting; `Authenticate`'s index) is passed down to
+the backend's admin methods (3d's `AdminTriple`; integration I5).
+
 **Changes** from `specs-ref`'s file of the same name: restated over the new vocabulary (`beAt`, `stAt`, `applierAt`, the model state); one spec for every mode.
 
 **Margin.** None.

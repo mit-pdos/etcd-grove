@@ -39,6 +39,7 @@ read-only for good once the configuration is built: `cfgHeap cfg c` gives it as 
 -/
 module
 
+public import Spec.go_etcd_io.etcd.client.pkg.v3.types.Api
 public import GeneratedProof.go_etcd_io.etcd.server.v3.config
 public import Spec.PkgInit.go_etcd_io.etcd.server.v3.config
 
@@ -121,10 +122,6 @@ def cfgHeap_timeless.spec : Prop := ∀ cfg c, Timeless (cfgHeap (GF := GF) cfg 
 def cfgHeap_agree.spec : Prop := ∀ cfg c c',
   cfgHeap (GF := GF) cfg c ∗ cfgHeap cfg c' ⊢ ⌜c = c'⌝
 
-/-- **Provisional (1c's `client/pkg/v3/types`):** the `types.URLs` slice `sl` holds, read-only for
-good, URLs whose `String()` forms are `us`. Persistent. -/
-opaque urlsStrs (sl : GoSlice) (us : List GoString) : IProp GF := iprop(True)
-
 /-- **Provisional (1c's `types`):** the `types.URLsMap` `m` holds, read-only for good, each name
 with URLs whose `String()` forms are given. Persistent. -/
 opaque urlsMapStrs (m : GoMap) (cl : List (GoString × List GoString)) : IProp GF := iprop(True)
@@ -133,7 +130,7 @@ opaque urlsMapStrs (m : GoMap) (cl : List (GoString × List GoString)) : IProp G
 builds them (composite literals of `types.URLs`/`types.URLsMap`, then never written). -/
 def cfgHeap_intro.spec : Prop := ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
     (c : Model),
-  urlsStrs (GF := GF) cfg.PeerURLs' c.peerURLs ∗ urlsStrs cfg.ClientURLs' c.clientURLs ∗
+  Types.urlsStrs (GF := GF) cfg.PeerURLs' c.peerURLs ∗ Types.urlsStrs cfg.ClientURLs' c.clientURLs ∗
     urlsMapStrs cfg.InitialPeerURLsMap' c.initialCluster ⊢ cfgHeap cfg c
 
 end res

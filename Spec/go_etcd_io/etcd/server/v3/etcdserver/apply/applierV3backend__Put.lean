@@ -3,7 +3,11 @@
 
 **Users.** `uberApplier.dispatch` through the chain (promoted methods of the outer layers).
 
-**Proof sketch.** 3b's `txn.Put` (provisional: the put at the store `σ.kv` and the leases, the backend's hook under `R`; the reply with the header's revision).
+**Proof sketch.** 3b's `Txn.Put.spec` with `context.TODO()`: the store's writer update pinned at
+`σ₀` (`σ₀.kv = σ.kv`, `pending = []`: from `stAt`'s `kvSt`, provisional, 3b's S6), `Mvcc.isMvcc`,
+`mvccBackend` and `txnWriter B Pk Post` (the backend's hook under `R`) from `beAt`'s `kvOk`, the
+lessor's `lessorState` (`lessorSt`, `leasesLive`); its answer `putAns pr σ.kv ls.table` is `opStep`'s;
+the lessor's new state `evsLs` is the store's attachment; the reply with the header's revision.
 
 **Changes** from `specs-ref`'s `applierV3backend__Put.lean`: the old triple over the chain's `AEnv`, the mvcc log and the write tokens (`putPre`, `kvPostF`, `mPostW`, ...) restated over the model state (`stAt`, `layersStep`): any auth mode, leases, compaction
 

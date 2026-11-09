@@ -4,7 +4,9 @@
 **Users.** `RawNode.ApplyConfChange` (`rawnode.go:111-113`, with `cc.AsV2()`); `node.run`'s `confc`
 arm (`node.go:400-427`, the `ConfChangeV2` `node.ApplyConfChange` sent). R1's `RawNode.ApplyConfChange.spec`
 and `node.ApplyConfChange.spec` take the same premises over the client's `ConfChangeI` `c`; `c2` is
-its `AsV2()` (3h's law: `applyChange (.v2 c.AsV2) = applyChange c`). Snippet: `conf.go`.
+its `AsV2()` (3h's `ConfChange.AsV2.spec`/`ConfChangeV2.AsV2.spec`: `c2 = c.asV2`; then
+`applyChange (.v2 c.asV2) = applyChange c` holds by `Membership.applyChange`'s definition, R4's
+`changeV2` of the same transition and changes: integration I2). Snippet: `conf.go`.
 
 **Proof sketch.** confchange's `Changer` (R4) on the tracker, by the transition: `LeaveJoint`,
 `EnterJoint`, `Simple`; it succeeds (`Membership.applyChange c v.membership = some m'`), so no panic;

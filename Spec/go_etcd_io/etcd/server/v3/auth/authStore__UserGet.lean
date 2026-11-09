@@ -3,7 +3,7 @@
 
 **Users.** `applierV3backend.UserGet` (`apply/backend.go:199`), behind `authApplierV3.UserGet`'s check (an administrator or the user itself). Snippet: `examples/specreq/auth/admin.go` (`ReqAdminSteps`).
 
-**Proof sketch.** `as.be.GetUser(name)` (4b: the batch transaction's state, the writer's `a`); absent: `ErrUserNotFound`; the roles copied into a fresh response. No state change (`a' = a`, recorded again). The step's state, `storeNext` (the code's function of the request, its
+**Proof sketch.** `as.be.GetUser(name)` (4b: a read section of the read transaction, at the writer's `a`: between writer calls every view is at it; no batch lock, so `Pre` and the hook come back, `hookOut`; integration I5: was "the batch transaction"); absent: `ErrUserNotFound`; the roles copied into a fresh response. No state change (`a' = a`, recorded again). The step's state, `storeNext` (the code's function of the request, its
 credential and `a`), is recorded at index `i + 1` (`authCur`), every view at it when the call
 returns; its answer is one W0's `authStep` gives (`storeNext_adm`).
 

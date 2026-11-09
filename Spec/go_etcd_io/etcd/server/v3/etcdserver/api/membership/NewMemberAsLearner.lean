@@ -33,7 +33,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assu
 /-- **A new member record** (a learner). -/
 def NewMemberAsLearner.spec : Prop :=
   ∀ (name : GoString) (sl : GoSlice) (urls : List GoString) (token : GoString) (now : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗ Config.urlsStrs sl urls }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗ Types.urlsStrs sl urls }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.membership.NewMemberAsLearner)) (Val #name)) (Val #sl)) (Val #token)) (Val #now))
   {{ (p : Loc), RET #p; ∃ id : Nat, ⌜id < 2 ^ 64 ∧ (now = null → id = memberIdOf urls token)⌝ ∗
       memberPts p (DFrac.own 1)

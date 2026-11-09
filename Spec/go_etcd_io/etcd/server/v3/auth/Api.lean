@@ -107,7 +107,7 @@ only matters for `authenticate`, which no admin method takes), `State.invertedDe
 `authAt_timeless`, `authLb_timeless`, `rootTokOk_persistent`, `authnCtx_persistent`,
 `ctxInMD_persistent`, `ctxCertUser_persistent`, `authReqAt_persistent`; `authCur_excl`,
 `authCur_at`, `authAt_agree`, `authAt_le`, `authLb_le`, `authLb_mono`, `authAt_reach`,
-`authAt_reached`, `authAt_valid`, `tokFrom_excl`; `errOf_ne_nil`, `errOf_inj`, `errOf_srvErrVal`, `init`;
+`authAt_reached`, `authAt_valid`, `tokFrom_excl`, `authStoreAt_agree`; `errOf_ne_nil`, `errOf_inj`, `errOf_srvErrVal`, `init`;
 `storeNext_adm`, `authRespAt_ne_null`, `authnRespAt_ne_null`.
 
 ## Requirement snippets
@@ -478,6 +478,10 @@ def tokFrom_excl.spec : Prop := ∀ γa n n',
 /-- The writer's state is recorded, and every view is at it. -/
 def authCur_at.spec : Prop := ∀ γa i a,
   authCur (GF := GF) γa i a ⊢ authCur γa i a ∗ authAt γa i a ∗ authLb γa i
+
+/-- A store has one cluster and one set of ghost names (3a's integration request). -/
+def authStoreAt_agree.spec : Prop := ∀ st γ γ' γa γa',
+  authStoreAt (GF := GF) st γ γa ∗ authStoreAt st γ' γa' ⊢ ⌜γ = γ' ∧ γa = γa'⌝
 
 def authAt_agree.spec : Prop := ∀ γa i a a',
   authAt (GF := GF) γa i a ∗ authAt γa i a' ⊢ ⌜a = a'⌝

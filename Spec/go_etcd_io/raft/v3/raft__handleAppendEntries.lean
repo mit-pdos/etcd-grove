@@ -5,6 +5,18 @@
 
 **Proof sketch.** Below the commit index: acknowledge the commit index. Else R3's `maybeAppend` (the sender led the term, `msgSent_leaderOf`; its `msgSent` says its log holds the entries after the matching `(index, logTerm)`: by log matching, a conflict is past the commit index, so no panic; the new commit `min(commit, last new)` is committed) and an acknowledgement of the last new index (queued after the append: its `msgSent` once durable), or a rejection with a hint (R3's `findConflictByTerm`).
 
+**Gap (integration I2): the entries' capacity.** `raftLog.maybeAppend` (R3) takes the slice with
+no spare capacity or with its capacity owned (`unstable.truncateAndAppend` may adopt it, `u.entries
+= ents`, and a later append writes into its capacity), and raftpb's `msgPts` grants neither (3h's
+decision: a `MsgApp` raft builds carries `limitSize`'s `ents[:limit]`, whose spare capacity is the
+leader's own log; a decoded message's capacity is fresh, but protobuf's specs do not hand it out).
+`logSliceFromMsgApp` names the entries (`entriesRO`), not their capacity, so this step is not
+provable from the cited specs as they are. The fix is outside the specs: the fork clips the slice
+in `logSliceFromMsgApp` (`slices.Clip(m.GetEntries())`, behavior-preserving: an adopted slice then
+reallocates on append), after which `⌜len = cap⌝` holds; or a received message's predicate owns its
+fresh capacity (2a's `Unmarshal`/`Clone`, 3h, and every transport delivering a decoded or cloned
+copy). Recorded in `notes/specs-only/integration-I2.md`.
+
 **Changes** (from `specs-ref`'s `raft__handleAppendEntries.lean`): over `raftCore` and `msgSent`.
 
 **Margin.** The new view keeps the term, vote, leader and role; its commit index is not stated.

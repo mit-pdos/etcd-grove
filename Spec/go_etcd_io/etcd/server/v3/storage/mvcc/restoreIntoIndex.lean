@@ -12,7 +12,8 @@ currentRev` (the deferred send), `revConsumer`'s result (`idxRestore ents`, `las
 
 **Changes** from `specs-ref`'s file: the two channels' protocols opaque (`rkvProducer`,
 `revConsumer`, with the laws `rkvSend`, `revRecv`) in place of `isSpsc` over `rkvProt`/`revProt`;
-the readers' capability (`rdCap`) gone (the entries' bytes are read-only slices, `rkvIs`).
+the readers' capability (`rdCap`) gone; the entries' key bytes are the storage's, lent to the
+goroutine until it reports (`rkvIs` at a fraction, `rkvProducer`'s loans, back by `revRecv`).
 -/
 module
 
@@ -44,7 +45,7 @@ def restoreIntoIndex.spec : Prop :=
     (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.restoreIntoIndex)) (Val #lg))
       (Val #(interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti)))
   {{ (rkvc revc : Loc), RET (PairV #rkvc #revc);
-      rkvProducer rkvc ents 0 ∗ revConsumer revc ti ents }}
+      rkvProducer rkvc ents 0 iprop(True) ∗ revConsumer revc rkvc ti ents }}
 
 end spec
 end Mvcc

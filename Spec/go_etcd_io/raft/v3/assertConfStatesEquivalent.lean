@@ -3,8 +3,8 @@
 
 **Users**: `newRaft` (`raft.go:479`), `appliedSnap` (`raft.go:787`): the restored configuration
 against the one switched to. Panics (through `l.Panic`) when they differ: the premise. **Proof
-sketch**: `ConfState.Equivalent` (3h's, requested: `nil` exactly for `ConfState.Equiv`).
-**Changes**: from `specs-ref/Spec/go_etcd_io/raft/v3/assertConfStatesEquivalent.lean`: over R1's `confStatePts`.
+sketch**: `ConfState.Equivalent` (raftpb's `ConfState.Equivalent.spec`: `nil` exactly for `ConfState.Equiv`).
+**Changes**: from `specs-ref/Spec/go_etcd_io/raft/v3/assertConfStatesEquivalent.lean`: over raftpb's `confStatePts`.
 -/
 module
 

@@ -36,7 +36,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- (internal) Sets `X-PeerURLs` to the URLs' strings (nothing for `nil` URLs). -/
 def setPeerURLsHeader.spec : Prop :=
   ∀ (r : Loc) (R : Http.HReq) (bd : GoInterface) (urls : GoSlice) (hs : List GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ Http.reqOwn r R bd ∗ urlsAt urls hs }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ Http.reqOwn r R bd ∗ Types.urlsAt urls hs }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.setPeerURLsHeader)) (Val #r)) (Val #urls))
   {{ RET #(); ∃ hdr', Http.reqOwn r { R with hdr := hdr' } bd ∗ ⌜peerURLsSet hs R.hdr hdr'⌝ }}
 

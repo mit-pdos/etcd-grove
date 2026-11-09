@@ -9,7 +9,7 @@ grpc-proxy's adapter. Snippet: `examples/specreq/etcdserverreq/kv.go` (`ReqPutTh
 **Proof sketch.** `traceutil.Tracer.Start` (otel's span, 4b's boundary), `context.WithValue`
 (W0's `Context.WithValue.spec`), `raftRequest(ctx, &pb.InternalRaftRequest{Put: r})`
 (`raftRequest.spec` at `ir = .req (.put pr)`, the message wrapped by 3h's law, `irrOwn r' dq ir`,
-given back and unwrapped: `putReqOwn r dq pr` returns; `IrrBody.wf` from the premise), the caller's
+given back and unwrapped: `putReqOwn r dq pr` returns; `irrWf` from the premise; `ao = some (.put pr)`), the caller's
 update passed on; on `nil`, the type assertion `resp.(*pb.PutResponse)`: `irrReply`'s dynamic type
 is `respTy (.put pr)`, so it never panics, and its message is `putReply`'s.
 The premise `pr.invalid = none` is `checkPutRequest`'s (2a's handler establishes it): the server
@@ -52,11 +52,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`s.Put(ctx, r)`**: the put `p`, proposed through raft; its update fired at most once, at its entry's commit, with the answer the apply computes (or given back, or unsettled). -/
 def EtcdServer.Put.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (p tls : Principal) (r : Loc) (dq : DFrac) (pr : PutReq),
+  ∀ (s : Loc) (γ : Cluster) (q : Qp) (ctx : GoInterface) (p tls : Principal) (r : Loc) (dq : DFrac) (pr : PutReq),
   SrvCallTriple (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"Put")) (Val #ctx)) (Val #r))
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ srvGate s q ∗
         Context.ctxOk ctx ∗ reqCtxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ putReqOwn r dq pr ∗ ⌜pr.invalid = none⌝)
-    iprop(threadTok ∗ putReqOwn r dq pr) γ p tls (.put pr) false (ClientV3.putReply)
+    iprop(srvGate s q ∗ threadTok ∗ putReqOwn r dq pr) γ p tls (.put pr) false (ClientV3.putReply)
 
 end spec
 end EtcdServer

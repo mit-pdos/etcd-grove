@@ -13,8 +13,8 @@ whose `Api.lean` modules import this one: `isServer`/`srvGate` below are what th
 **A cluster** is W0's `Cluster` (`api/v3/State.lean`). The program allocates its state with the
 members it will start (`cluster_alloc`, K1). It hands in **the peer addresses** of every initial
 member (`Http.addrFree a` for each host of their peer URLs: 2f's closed world, so two allocations
-cannot share an address: round 1, provability F3) and **the members' shared apply configuration**
-(`ApplyCfg`, 2d's `MemberCfg`: every member's configuration must have it, `applyCfgIs cfg mc`). It gets
+cannot share an address: round 1, provability F3); no shared apply configuration (members may be
+configured differently: 2d's `srvCfg`, a member's own 3a `Apply.MemberCfg`). It gets
 `etcdState γ (State.init ms)` in full, one `memberBoot γ ms m` per initial member, the cluster's
 raft network `srvNet γ ν` (2f's `Net`) and, for each reserved host, the persistent
 `Http.protoAt a (Rafthttp.raftProto ν)` with which the program serves the member's raft handler.
@@ -34,7 +34,7 @@ crash rule gives `crashGone γ ds`, from which `disk_crash` recovers `diskIdle` 
 crash left. `disk_new`/`disk_join` turn a fresh directory and a start token into a disk.
 
 **Peer-URL sets are single-use** (round 1, provability F4). `urls_reserve` turns the addresses of a
-new URL set into `urlsRight γ urls` and `memberJoin γ urls`. Every request that gives a member a
+new URL set into W0's `urlsRight γ urls` (`EtcdModel`, moved there by I1) and `memberJoin γ urls`. Every request that gives a member a
 URL set takes its `urlsRight` (`EtcdServer.AddMember`, `UpdateMember`); the initial members' are
 spent by `cluster_alloc`. So a URL set names at most one member over the cluster's life, and a
 joiner holding `memberJoin γ urls` runs as the member added under `urls` (`bootstrap` assigns the
@@ -49,7 +49,7 @@ idle token at kind `k`, and a configuration `k` admits (`diskCfgOk`): a new memb
 configuration's peer URLs), any for member `id`'s files (`.member id`: a WAL; etcd ignores
 `NewCluster`) but `--force-new-cluster`; in every kind `UnsafeNoFsync` false (the crash rule needs
 fsynced writes).
-It also takes `envUpd γ ecfg` (W0's), `clusterApplyCfg γ mc` with `applyCfgIs cfg mc`, the
+It also takes `envUpd γ ecfg` (W0's), the
 configuration's scope premises (one sealed slot per subsystem, below), the logger, the feature gate,
 the configuration's heap parts and the disk premise. It returns a member id `id`, non-zero and below
 `2 ^ 64`, `oid`'s if given, with `srvMember s γ id` (persistent) and `srvBuilt s γ id cfg`.
@@ -71,8 +71,10 @@ user may choose (`batch-2e.md` Q7).
 
 * `Cluster` holds raft's cluster names (`Raft.Cluster`, `dup = false`: 2d), the raft network `ν`
   (2f's `Net`, its `img`/`dbIn` the server's: a database image of the committed state through `i`;
-  a saved file of index `i` in the member's snapshot directory), the URL-set authority, the shared
-  `ApplyCfg`; `etcdState` is 2c/2d's.
+  a saved file of index `i` in the member's snapshot directory), the URL-set authority; `etcdState`
+  is 2c/2d's. The bridge to 2d's server-level `Names` (`.etcd = γ`) is `isServer_names`/
+  `srvMember_node` (W0 declined making `Cluster` a structure: the client API's ghost name stays
+  opaque); the realization fixes one `Names` per `Cluster` (`srvNode_agree`).
 * `memberBoot γ ms m`: raft's `raftState γ.raft m.id Durable.init ∗ nodeVacant γ.raft m.id` (raft's
   `cluster_alloc` at `ms`'s ids, the contexts `bootstrap` computes), the boot log's `confDecided`
   facts, `peerAddr ν a` of every member's hosts. When the ids of `ms` are not distinct or include
@@ -133,8 +135,9 @@ and fsynced: `UnsafeNoFsync` false); a member's files then restart by `memberSta
 
 **Scope** (`crashScope`, a premise of `disk_crash`; Q2 of `batch-2e.md`, the user's): (1) R1's
 `Durable.confAboveOk` of the crashed state: at most one conf-change entry above the stored commit
-(`issues/raft-commit-lost-with-entries-kept.md`: otherwise a restarted node can win an election
-counted in an older configuration; the alternative is a raft/etcd fix); (2) no crash during the
+(`issues/raft-commit-lost-with-entries-kept.md`, a reproduced raft safety bug: otherwise a restarted
+node can win an election counted in an older configuration and commit a conflicting entry; the
+alternative is a raft/etcd fix); (2) no crash during the
 write of a batch that carries a snapshot (R1's law excludes them: the loop's `SaveSnap` is fsynced
 first, but the state record that makes it valid follows). A graceful stop is the instance with no
 crash (`HardStop`'s post).
@@ -155,9 +158,9 @@ crash rule will need `UnsafeNoFsync = false`).
 `srvMember_persistent`, `srvMember_agree`, `srvMember_id`, `isServer_persistent`,
 `srvGate_fractional`, `srvBuilt_excl`, `srvRunning_excl`, `srvBuilt_running_excl`,
 `stoppingCh_persistent`, `doneCh_persistent`, `readyCh_persistent`, `srvNet_persistent`,
-`srvNet_agree`, `clusterApplyCfg_persistent`, `clusterApplyCfg_agree`, `diskState_timeless`,
+`srvNet_agree`, `diskState_timeless`,
 `diskState_excl`, `diskIdle_excl`, `diskIdle_agree`, `memberDisk_excl`, `dataDirFresh_timeless`,
-`dataDirFresh_excl`, `memberBoot_timeless`, `memberJoin_excl`, `urlsRight_excl`, `cluster_alloc`,
+`dataDirFresh_excl`, `memberBoot_timeless`, `memberJoin_excl` (W0's `urlsRight_excl`), `cluster_alloc`,
 `urls_reserve`, `disk_new`, `disk_join`, `disk_crash`, `memberStart_disk`, `srvBuilt_closers`, and
 the slots' introductions
 `raftNodeBootCfg_intro`, `v3rpcBootCfg_intro`, `mvccBootCfg_intro`, `backendBootRes_intro`,
@@ -188,15 +191,6 @@ namespace EtcdGrove
 namespace EtcdServer
 
 open Iris Iris.BI EtcdModel
-
-/-- **The members' shared apply configuration** (provisional: 2d's/3a's `MemberCfg`: the leases'
-minimum TTL, ...): the part of a member's configuration the apply's model depends on. -/
-opaque ApplyCfg : Type := Unit
-
-/-- `cfg`'s apply configuration is `mc` (provisional, 2d's/3a's: a function of the configuration's
-fields, e.g. the lease checkpoint settings and the election timing that fix the minimum TTL). -/
-opaque applyCfgIs [GooseExts] [GoGlobalContext]
-  (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (mc : ApplyCfg) : Prop
 
 /-- **What a member's directories hold** (round 2): a fresh directory with an initial member's
 start token, a fresh one with a joiner's (its peer URLs), or member `id`'s files (a WAL). -/
@@ -231,18 +225,15 @@ variable [go_gctx : GoGlobalContext] [sem : go.Semantics] [rsem : go_etcd_io.raf
 /-- **The raft network of cluster `γ` is `ν`** (persistent). -/
 opaque srvNet (γ : Cluster) (ν : Rafthttp.Net GF) : IProp GF := iprop(True)
 
-/-- **The members of `γ` share the apply configuration `mc`** (persistent). -/
-opaque clusterApplyCfg (γ : Cluster) (mc : ApplyCfg) : IProp GF := iprop(True)
-
 /-- **Nothing of etcd's is in the directories `ds`** (exclusive, timeless). -/
 opaque dataDirFresh (ds : Config.Dirs) : IProp GF := iprop(True)
 
 /-- **Member `m` of the new cluster `γ` of initial members `ms` may start once** (exclusive). -/
 opaque memberBoot (γ : Cluster) (ms : List Member) (m : Member) : IProp GF := iprop(True)
 
-/-- **The right to give a member of `γ` the peer URLs `urls`, once** (exclusive): taken by
-`AddMember`/`UpdateMember`. -/
-opaque urlsRight (γ : Cluster) (urls : List GoString) : IProp GF := iprop(True)
+-- `urlsRight γ urls` (the right to give a member of `γ` the peer URLs `urls`, once) is W0's
+-- `EtcdModel.urlsRight` (moved there at integration I1, so that a client's `MemberAdd`/`MemberUpdate`
+-- can take it); `urls_reserve` below mints it.
 
 /-- **The member added with the peer URLs `urls` may join `γ` once, from a fresh directory**
 (exclusive). -/
@@ -454,10 +445,6 @@ def readyCh_persistent.spec : Prop := ∀ s ch, Persistent (readyCh (GF := GF) s
 def srvNet_persistent.spec : Prop := ∀ γ ν, Persistent (srvNet (GF := GF) γ ν)
 def srvNet_agree.spec : Prop := ∀ γ ν ν', srvNet (GF := GF) γ ν ∗ srvNet γ ν' ⊢ ⌜ν = ν'⌝
 
-def clusterApplyCfg_persistent.spec : Prop := ∀ γ mc, Persistent (clusterApplyCfg (GF := GF) γ mc)
-def clusterApplyCfg_agree.spec : Prop := ∀ γ mc mc',
-  clusterApplyCfg (GF := GF) γ mc ∗ clusterApplyCfg γ mc' ⊢ ⌜mc = mc'⌝
-
 def diskState_timeless.spec : Prop := ∀ γ ds k, Timeless (diskState (GF := GF) γ ds k)
 
 def diskState_excl.spec : Prop := ∀ γ ds k k',
@@ -484,27 +471,24 @@ def memberBoot_timeless.spec : Prop := ∀ γ ms m, Timeless (memberBoot (GF := 
 def memberJoin_excl.spec : Prop := ∀ γ urls urls', urls.Perm urls' →
   memberJoin (GF := GF) γ urls ∗ memberJoin γ urls' ⊢ iprop(False)
 
-def urlsRight_excl.spec : Prop := ∀ γ urls urls', urls.Perm urls' →
-  urlsRight (GF := GF) γ urls ∗ urlsRight γ urls' ⊢ iprop(False)
-
 /-- **K1: a new cluster** of the members `ms` (each with the id `bootstrap` computes:
 `Membership.initialMembers`), their peer hosts `hs m` reserved (2f's closed world), the members'
 shared apply configuration `mc`: the state, one start token per member, the network, the
 protocols with which the program serves each member's raft handler. The initial URL sets are
-spent (no `urlsRight` for them). -/
-def cluster_alloc.spec : Prop := ∀ (ms : List Member) (hs : Member → List GoString) (mc : ApplyCfg)
+spent (no `urlsRight` for them). (Integration: no shared apply configuration: members may be
+configured differently, 2d's `srvCfg` per member, 3a's TTL-variant histories.) -/
+def cluster_alloc.spec : Prop := ∀ (ms : List Member) (hs : Member → List GoString)
     (E : CoPset),
-  (∀ m ∈ ms, Rafthttp.urlsHosts m.peerURLs = some (hs m)) →
+  (∀ m ∈ ms, Types.urlsHosts m.peerURLs = some (hs m)) →
   ([∗list] m ∈ ms, [∗list] a ∈ hs m, Http.addrFree (GF := GF) a) ⊢
     |={E}=> ∃ (γ : Cluster) (ν : Rafthttp.Net GF), etcdState γ (State.init ms) ∗ srvNet γ ν ∗
-      clusterApplyCfg γ mc ∗
       ([∗list] m ∈ ms, memberBoot γ ms m ∗
         [∗list] a ∈ hs m, Http.protoAt a (Rafthttp.raftProto ν))
 
 /-- **A new peer-URL set** for a member to be added: its hosts reserved for the cluster's network;
 the right to give it to a member (once) and the right to join as that member (once). -/
 def urls_reserve.spec : Prop := ∀ (γ : Cluster) (ν : Rafthttp.Net GF) (urls hs : List GoString),
-  Rafthttp.urlsHosts urls = some hs →
+  Types.urlsHosts urls = some hs →
   srvNet γ ν ∗ ([∗list] a ∈ hs, Http.addrFree (GF := GF) a) ⊢
     |==> urlsRight γ urls ∗ memberJoin γ urls ∗ [∗list] a ∈ hs, Http.protoAt a (Rafthttp.raftProto ν)
 
@@ -520,7 +504,13 @@ def disk_join.spec : Prop := ∀ (γ : Cluster) (urls : List GoString) (ds : Con
 
 /-- **The crash scope** (see the header, "Crashes"; the user's decision, `batch-2e.md` Q2): the
 crash left at most one conf-change entry above the stored commit (R1's `Durable.confAboveOk`) and
-did not interrupt the write of a snapshot-carrying batch. -/
+did not interrupt the write of a snapshot-carrying batch. The first conjunct **guards a real raft
+safety bug**, reproduced (`issues/raft-commit-lost-with-entries-kept.md`: a follower that writes two
+conf-change entries of one `Ready` and crashes before the `HardState` committing them restarts in
+its old configuration, wins an election counted in it, and commits a different entry at an index the
+new configuration's leader committed): outside this scope the restart is unsound, not merely
+unproved; a raft/etcd fix (persisting the commit with the entries, or not acknowledging a second
+pending conf change before it) would remove the conjunct. The second is a gap of R1's crash law. -/
 opaque crashScope : Prop
 
 /-- **After a crash**: the disk of the server that ran on `ds` is idle again, of the kind the crash

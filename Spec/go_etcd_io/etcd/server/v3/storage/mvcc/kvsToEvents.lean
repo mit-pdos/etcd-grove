@@ -3,8 +3,14 @@
 premise excludes it), keeps those whose key `c` contains, as events (a tombstone a delete with its
 revision patched in).
 
-**Proof sketch.** `proto.Unmarshal` (2a's proto boundary: an encoding decodes to its message,
-fresh), `c.contains` (`watcherGroup.contains.spec`), `isTombstone`, `BytesToRev` (3e's), `append`.
+**Proof sketch.** `proto.Unmarshal` (2a's `Proto.Unmarshal.spec`: an encoding decodes to its
+message, fresh; from 3e's `kvBytes m bs`, which must give `encodes` at a depth below `depthMax`:
+3e's two relations `kvBytes` (`Internal.lean`, the image law's) and `kvDecodes`
+(`InternalStore.lean`, `restoreChunk`'s) are to be one, requested at integration),
+`c.contains` (`watcherGroup.contains.spec`), `isTombstone`, `BytesToRev` (3e's `isTombstone.spec`,
+`BytesToRev.spec` over `revOfBytes`), `append`. The storage's bytes are read at any fraction and
+given back (the storage lends them until `tx.RUnlock()`: 3e's `rangeLent`); the events own fresh
+copies (`Unmarshal` copies every `bytes` field).
 -/
 module
 
@@ -30,18 +36,19 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 def kvsToEvents.spec : Prop :=
   ∀ (lg : Loc) (wg : Loc) (v : watcherGroup) (dq dq' : DFrac) (G : List (Loc × MRange))
-    (revs vals : GoSlice) (rs vs : List GoSlice) (rb vb : List GoString)
-    (ents : List (Nat × Bool × KeyValueM)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ Zap.isLogger lg ∗ wg ↦{dq} v ∗ wgOwn v dq' G ∗ revs ↦*□ rs ∗ vals ↦*□ vs ∗
-      ([∗list] x; b ∈ rs; rb, x ↦*□ b) ∗ ([∗list] x; b ∈ vs; vb, x ↦*□ b) ∗
-      ⌜List.Forall₂ (fun r e => revEnc r e.1 e.2.1) rb ents ∧
-        List.Forall₂ (fun bs e => kvEnc bs e.2.2) vb ents⌝ }}
+    (revs vals : GoSlice) (rs vs : List GoSlice) (rb vb : List GoString) (dr dv db : DFrac)
+    (ents : List (Rev × Bool × KeyValueM)),
+  let bytesAt : IProp GF := iprop(revs ↦*{dr} rs ∗ vals ↦*{dv} vs ∗
+    ([∗list] x; b ∈ rs; rb, x ↦*{db} b) ∗ ([∗list] x; b ∈ vs; vb, x ↦*{db} b))
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ Zap.isLogger lg ∗ wg ↦{dq} v ∗ wgOwn v dq' G ∗ bytesAt ∗
+      ⌜List.Forall₂ (fun r e => revOfBytes r = some (e.1, e.2.1)) rb ents ∧
+        List.Forall₂ (fun bs e => kvBytes e.2.2 bs) vb ents⌝ }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.kvsToEvents)) (Val #lg))
       (Val #(interface.mkOk (go.GoType.PointerType watcherGroup.ty) #wg))) (Val #revs)) (Val #vals))
-  {{ (evs : GoSlice), RET #evs; wg ↦{dq} v ∗ wgOwn v dq' G ∗
+  {{ (evs : GoSlice), RET #evs; wg ↦{dq} v ∗ wgOwn v dq' G ∗ bytesAt ∗
       ∃ (ps : List Loc), evs ↦* ps ∗
         [∗list] p; e ∈ ps; ((ents.filter (fun x => decide (∃ y ∈ G, y.2.watchMem x.2.2.key))).map
-          (fun x => entryEv x.1 x.2.1 x.2.2)), evOwn p e }}
+          (fun x => entryEv (uint.nat x.1.main) x.2.1 x.2.2)), evOwn p e }}
 
 end spec
 

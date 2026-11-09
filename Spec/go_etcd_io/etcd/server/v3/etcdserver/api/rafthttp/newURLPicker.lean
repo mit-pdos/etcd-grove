@@ -36,7 +36,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- (internal) A picker over URLs whose hosts are peer addresses (non-empty). -/
 def newURLPicker.spec : Prop :=
   ∀ (ν : Net GF) (urls : GoSlice) (hs : List GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ urlsAt urls hs ∗ ⌜hs ≠ []⌝ ∗ ([∗list] a ∈ hs, peerAddr ν a) }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ Types.urlsAt urls hs ∗ ⌜hs ≠ []⌝ ∗ ([∗list] a ∈ hs, peerAddr ν a) }}
     (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.newURLPicker)) (Val #urls))
   {{ (pk : Loc), RET #pk; pickerAt pk ν }}
 

@@ -328,11 +328,13 @@ def authReply (γ : Cluster) (name : GoString) (res : Resp) (resp : Loc) (err : 
 
 /-! ### The call shapes -/
 
-/-- The update of a call by the principal `p`, persistent if `rep`. -/
+/-- The update of a call by the principal `p`, persistent if `rep`; `lo` the auth state's index at
+the call's start (W0's `Step`'s last argument: `0`, the weakest, unless a KV read passes its own,
+`RemoteKV.*Triple`). -/
 def callAU (γ : Cluster) (p : Principal) (rq : Req) (rep : Bool)
-    (Q : State → State → Resp → IProp GF) : IProp GF :=
+    (Q : State → State → Resp → IProp GF) (lo : Nat := 0) : IProp GF :=
   iprop(□?rep AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-        <{ ∀∀ (σ' : State) (res : Resp), ⌜Step p rq σ σ' res⌝ ∗ etcdState γ σ',
+        <{ ∀∀ (σ' : State) (res : Resp), ⌜Step p rq σ σ' res lo⌝ ∗ etcdState γ σ',
            COMM Q σ σ' res }>)
 
 /-- **A non-KV call** `e` sending `rq` as the principal `p` for the caller's update (persistent if
@@ -370,6 +372,15 @@ def wireAns (rq : Req) (res : Resp) (resp : Loc) (err : GoInterface) : IProp GF 
       iprop(⌜err = GoInterface.nil⌝ ∗ replyOwn resp (.leaseTimeToLive id (-1) 0 []))
   | _, _ => wireReply ansReply res resp err
 
+/-- **The single-use right a request needs** (integration I1, the coordinator's decision): a member
+addition or update gives the member its peer URLs, which takes W0's `urlsRight γ urls` (2e's
+`AddMember`/`UpdateMember` consume it at the server; how it crosses the wire is 2a's to state:
+`notes/specs-only/integration-I1.md`). Spent even when the call is refused or fails (margin). -/
+def reqRight (γ : Cluster) : Req → IProp GF
+  | .memberAdd urls _ => urlsRight γ urls
+  | .memberUpdate _ urls => urlsRight γ urls
+  | _ => iprop(True)
+
 /-- **The wire contract of a non-KV unary RPC**: the method `m (reqRpc rq)` sends the request
 message `req` (modelled by `rq`, given back) with a context carrying the principal `p`, the update
 persistent if the RPC is repeatable, the options `callOptsOk` (a non-repeatable RPC's not
@@ -379,7 +390,8 @@ def RemoteCallTriple (m : GoString → val) (P : IProp GF) (γ : Cluster)
   ∀ (ctx : GoInterface) (p : Principal) (req : Loc) (dq : DFrac) (opts : GoSlice) (rep : Bool),
   (reqRetryRep rq = false → rep = false) →
   CallTriple (App (App (App (Val (m (reqRpc rq))) (Val #ctx)) (Val #req)) (Val #opts))
-    iprop(P ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ reqOwn req dq rq ∗ callOptsOk opts rep)
+    iprop(P ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ reqOwn req dq rq ∗ callOptsOk opts rep ∗
+      reqRight γ rq)
     (reqOwn req dq rq) γ p rq (reqRetryRep rq) (wireAns rq)
 
 end res
@@ -402,14 +414,15 @@ are safe. -/
 opaque grpcConnAt (cc : Loc) : IProp GF := iprop(True)
 
 /-- **One attempt** (grpc's `UnaryInvoker` `inv`, with the connection `cc`; 2a): success or a
-definite error, the update fired (`LeaseTimeToLive`'s not-found answer comes as a reply, `err =
+definite error, the update fired (over `Step … lo` for the call's auth index `lo`, `authLb γ lo`;
+`LeaseTimeToLive`'s not-found answer comes as a reply, `err =
 nil`: `replyAns`); an error after which the request is known not applied (not sent,
 a token or learner refusal), the update given back; or another indefinite error, the update lost. -/
 def AttemptTriple (inv : val) (cc : Loc) (P : IProp GF) (γ : Cluster) (who : Principal) : Prop :=
   ∀ (ctx : GoInterface) (p : Principal) (method : GoString) (req reply : GoInterface) (rq : Req)
-    (R : Resp → IProp GF) (opts : GoSlice) (rep : Bool) (Q : State → State → Resp → IProp GF),
+    (R : Resp → IProp GF) (opts : GoSlice) (rep : Bool) (Q : State → State → Resp → IProp GF) (lo : Nat),
   {{ P ∗ grpcConnAt cc ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ unaryArgs method req reply rq R ∗
-      grpcCallOptsOk opts ∗ callAU γ p rq rep Q }}
+      grpcCallOptsOk opts ∗ authLb γ lo ∗ callAU γ p rq rep Q lo }}
     (App (App (App (App (App (App (Val inv) (Val #ctx)) (Val #method)) (Val #req)) (Val #reply))
       (Val #cc)) (Val #opts))
   {{ (err : GoInterface), RET #err;
@@ -420,7 +433,7 @@ def AttemptTriple (inv : val) (cc : Loc) (P : IProp GF) (γ : Cluster) (who : Pr
         unaryArgs method req reply rq R) ∨
       ((callErr err .notSent ∨
         (∃ e, callErr err (.etcd e) ∗ ⌜errRetryAuth e = true ∨ e = .notSupportedForLearner⌝)) ∗
-        callAU γ p rq rep Q ∗ unaryArgs method req reply rq R) ∨
+        callAU γ p rq rep Q lo ∗ unaryArgs method req reply rq R) ∨
       ((∃ k, callErr err k ∗ ⌜k.indefinite = true ∧ k ≠ .notSent⌝) ∗ unaryArgs method req reply rq R) }}
 
 /-- **The client's unary interceptor `ui`** (persistent): see `uiOk_call`. -/
@@ -434,9 +447,10 @@ opaque siOk (si : val) (c : Loc) (γ : Cluster) (who : Principal) : IProp GF := 
 def uiOk_call.spec : Prop := ∀ (ui : val) (c : Loc) (γ : Cluster) (who : Principal) (inv : val)
     (cc : Loc) (Pinv : IProp GF), AttemptTriple inv cc Pinv γ who →
   ∀ (ctx : GoInterface) (p : Principal) (method : GoString) (req reply : GoInterface) (rq : Req)
-    (R : Resp → IProp GF) (opts : GoSlice) (rep : Bool) (Q : State → State → Resp → IProp GF),
+    (R : Resp → IProp GF) (opts : GoSlice) (rep : Bool) (Q : State → State → Resp → IProp GF) (lo : Nat),
   {{ uiOk (GF := GF) ui c γ who ∗ clientReady c ∗ grpcConnAt cc ∗ □ Pinv ∗ Context.ctxOk ctx ∗
-      ctxPrin who ctx p ∗ unaryArgs method req reply rq R ∗ callOptsOk opts rep ∗ callAU γ p rq rep Q }}
+      ctxPrin who ctx p ∗ unaryArgs method req reply rq R ∗ callOptsOk opts rep ∗ authLb γ lo ∗
+      callAU γ p rq rep Q lo }}
     (App (App (App (App (App (App (App (Val ui) (Val #ctx)) (Val #method)) (Val #req)) (Val #reply))
       (Val #cc)) (Val inv)) (Val #opts))
   {{ (err : GoInterface), RET #err;
@@ -523,7 +537,7 @@ def Cluster.MemberAddTriple (m : GoString → val) (P : IProp GF) (γ : Cluster)
   ∀ (ctx : GoInterface) (p : Principal) (sl : GoSlice) (urls : List GoString),
   CheckedCallTriple (App (App (Val (m (if learner then go!"MemberAddAsLearner" else go!"MemberAdd")))
       (Val #ctx)) (Val #sl))
-    iprop(P ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ sl ↦*□ urls) iprop(True) γ p
+    iprop(P ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ sl ↦*□ urls ∗ urlsRight γ urls) iprop(True) γ p
     (.memberAdd urls learner) false (Types.urlsValid urls) ansReply
 
 /-- `MemberUpdate`. -/
@@ -531,7 +545,7 @@ def Cluster.MemberUpdateTriple (m : GoString → val) (P : IProp GF) (γ : Clust
     Prop :=
   ∀ (ctx : GoInterface) (p : Principal) (id : w64) (sl : GoSlice) (urls : List GoString),
   CheckedCallTriple (App (App (App (Val (m go!"MemberUpdate")) (Val #ctx)) (Val #id)) (Val #sl))
-    iprop(P ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ sl ↦*□ urls) iprop(True) γ p
+    iprop(P ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ sl ↦*□ urls ∗ urlsRight γ urls) iprop(True) γ p
     (.memberUpdate (uint.nat id) urls) false (Types.urlsValid urls) ansReply
 
 /-- `MemberList(ctx, opts...)`: linearizable unless `WithSerializable`. -/

@@ -43,8 +43,13 @@ the client's requests (`watchReqOk`: no `prevKV`, no fragments, no filters, no e
 `other`) reduced to the last two (the wire model: `ApiWatch.lean`'s header): `prevKV`, fragments
 and filters are in scope.
 
-**Margin.** The returned error (the receive loop's error, `ErrGRPCWatchCanceled`, the context's) is
-not modelled: grpc turns it into the client's stream error, classified by 2a (`callErr`); the
+**Integration I3.** The returned error has a status grpc sends (what 2a's `streamOut` needs): the
+receive loop's `nil` (`io.EOF`) or grpc's own error (`recvLoop.spec`'s post; `ownErr_grpcMsg`,
+`statusErr_sent`); `ErrGRPCWatchCanceled` (rpctypes' `grpcVar`, a status: `statusErr_sent`); the
+context's error (`ctxErr_sent`).
+
+**Margin.** The returned error's status is not modelled further: grpc turns it into the client's
+stream error, classified by 2a (`callErr`); the
 handler returns only once the stream's context is done or the receive loop failed (liveness).
 -/
 module
@@ -77,7 +82,8 @@ def watchServer.Watch.spec : Prop :=
       watchServerAt p γ ∗ srvWatchStreamAt st γ who g ∗ srvWatchRecv st g [] ∗
       srvWatchSend st γ who g WireSt.init }}
     (App (Val (p @!! go.GoType.PointerType v3rpc.watchServer.ty @!! go!"Watch")) (Val #st))
-  {{ (err : GoInterface), RET #err; True }}
+  {{ (err : GoInterface), RET #err;
+      ⌜err = GoInterface.nil⌝ ∨ ∃ (code : w32) (msg : GoString), Grpc.sentStatus err code msg }}
 
 end spec
 

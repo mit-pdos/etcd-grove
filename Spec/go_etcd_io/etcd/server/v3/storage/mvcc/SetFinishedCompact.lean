@@ -27,16 +27,18 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- `SetFinishedCompact(tx, value)`: the hook, then the finished key written and made visible. -/
 def SetFinishedCompact.spec : Prop :=
-  ∀ (B : MvccStorage) (Pk : IProp GF) (dq : DFrac) (f : GoFunc) (Pre Q' Post R : IProp GF)
+  ∀ (B : MvccStorage) (Pk : IProp GF) (q : Qp) (dq : DFrac) (f : GoFunc) (Pre Q' Post R : IProp GF)
     (value : w64),
+  let D' (D : KeyData) := D.putMeta .fin (revBytes ⟨value, W64 0⟩ false)
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ schemaVars ∗
-      keyBackend B Pk ∗ storageHook B dq f ∗ Pre ∗ hookRun Pk f Pre Q' ∗ (Q' ={⊤}=∗ Pk ∗ Post) ∗
+      keyBackend B Pk ∗ kbOpen B q ∗ storageHook B dq f ∗ Pre ∗ hookRun Pk f Pre Q' ∗
+      (Q' ={⊤}=∗ Pk ∗ Post) ∗
       kbObs B (fun D => iprop(⌜D.metaMade = true⌝ ∗
-        AU <{ ∃∃ (D0 : KeyData), kbData B D0 }> @ ⊤, ∅
-          <{ kbData B (D.putMeta .fin (revBytes ⟨value, W64 0⟩ false)), COMM R }>)) }}
+        AU <{ ∃∃ (D1 : KeyData), kbData B D1 }> @ ⊤, ∅ <{ kbData B (D' D), COMM
+          AU <{ ∃∃ (D2 : KeyData), kbData B D2 }> @ ⊤, ∅ <{ kbData B (D' D), COMM R }> }>)) }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.SetFinishedCompact))
       (Val #(GoInterface.ok (kbBatchTx B)))) (Val #value))
-  {{ RET #(); storageHook B dq f ∗ Post ∗ R }}
+  {{ RET #(); kbOpen B q ∗ storageHook B dq f ∗ Post ∗ R }}
 
 end spec
 end Mvcc

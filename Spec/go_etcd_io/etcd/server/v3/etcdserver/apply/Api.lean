@@ -119,8 +119,27 @@ the laws above): `irrStep_fun`, `applyStep_fun`, `applyStep_total`, `irrStep_ste
 apply is a `Step` of W0 by its principal), `irrStep_env` (an alarm or a publication is an `EnvStep`
 or nothing), `irrStep_quiet` (a checkpoint, a token, a version, a downgrade: nothing),
 `irrStep_noV3`, `irrStep_oldRev` (a stale auth revision changes nothing), `irrStep_ttl`; round 1:
-`reachable`, `checksSane`, `irrStep_alarm`, `irrStep_read`, `applyStep_reach`, `applyStep_ttl_same`,
+`reachable`, `irrStep_alarm`, `irrStep_read`, `applyStep_reach`, `applyStep_ttl_same`,
 `opStep_noOldRev`, `opStep_read`, `uberOpts` with `smAt_optsSt`, `smAt_alarms`.
+
+## Integration I5 (2026-11-09)
+
+* `checksSane` dropped: W0's round 5 admits an inverted range's refusal (`State.invertedDeny`), and
+  `opErr` now answers it as the permission cache does (`invRefused`, provisional for 3d's exact
+  report), so `irrStep_step`, `opStep_step` and `applyStep_reach` hold without it.
+* The credential: `IrrOp.userAdd`/`userChangePassword` carry W0's stored credential (round 5's
+  `pwHash`); `IrrOp.ok` asks it be a hash of some password (what 3d's `storeNext_adm` takes),
+  `opStep_userAdd`/`opStep_userChangePassword` and `opBody` relate it to the client's request.
+* 3d's slots: `authOk`, `authSt` are transparent over 3d's `authStoreAt`, `authCur`, `tokFrom`;
+  `authRead` and `lessorRead` are gone (`CheckTxnAuth` is over 3d's names and takes a read-only
+  transaction); `authRecordFits` is replaced by `nextOk` (3d's `recordsFit` of the next state, with
+  `authReached`, which 3d's `AdminTriple` takes), threaded through `uberApplier.Apply`, `dispatch`,
+  `isUber_apply` and the backend's admin methods; `permReads` reports each check through `C`
+  (`permReads_writer`, `permReads_reader` in `ApiResult.lean`).
+* 3c's slots: `lessorOk`, `lessorSt` are transparent over `Lease.isLessor`, `Lease.lessorState`.
+* Left provisional (owners have no such predicate yet): `kvOk`, `kvSt` (3e/2d: the apply thread's
+  authority over `Mvcc.mvccState`, 3b's S6), `statusOk`, `snapSrvOk`, `ciOk`, `authnIdx` (2d),
+  `irrDecodes`, `irrMsgAt`, `reqMsgAt` (3h), `clusterVerOk` (2e), `invRefused` (3d).
 
 ## Requirement snippets
 
@@ -507,13 +526,15 @@ def txnAdmitted (t : TxnReq) : Prop :=
     TxnRun h s0 lv R ops (s0, []) (.ok (s, evs, rs)) → putOnce evs
 
 /-- **A request the request path proposes** (the gRPC layer's validation, the server's chosen lease
-id): the refinement laws' premise. -/
+id; a compaction's revision nonzero, W0's scope, which 3e's `KV.Compact` takes): the refinement
+laws' premise. -/
 def reqAdmitted : Req → Prop
   | .range r => r.key ≠ [] ∧ r.validSort
   | .put p => p.invalid = none
   | .deleteRange d => d.key ≠ []
   | .txn t => txnAdmitted t
   | .leaseGrant id _ => id ≠ 0
+  | .compact rev _ => rev ≠ 0
   | _ => True
 
 /-- **The requests a member applies without panicking** (with `irrDecodes` and `Irr.hasId`), as
@@ -611,12 +632,15 @@ def memberUpd (γc : Membership.CNames) (op : IrrOp) (Q : IProp GF) : IProp GF :
 
 /-! ### The options (`ApplierOptions`): the constructor's slots -/
 
-/-- (provisional, 3e's) **mvcc's `KV` `kv`**, whose write transactions run the backend's post-lock
-hook with the apply thread's lent `R`. Persistent. -/
+/-- (provisional, 3e's and 2d's) **mvcc's `KV` `kv`**, whose write transactions run the backend's
+post-lock hook with the apply thread's lent `R`. Persistent. Intended: `∃ γ γl q B Pk, Mvcc.isMvcc kv
+γ ∗ Mvcc.mvccLessorIs γ γl ∗ Mvcc.mvccBackend γ q B Pk` with `Pk` the hook's contract under `R`. -/
 opaque kvOk (kv : GoInterface) (R : IProp GF) : IProp GF := iprop(True)
 
-/-- (provisional, 3e's) **`kv`'s store is at the history `h`** (the apply thread's, its only
-writer). Exclusive. -/
+/-- (provisional, 3e's and 2d's) **`kv`'s store is at the history `h`** (the apply thread's, its
+only writer). Exclusive. Intended: the writer's half of an authority over `Mvcc.mvccState γ σ₀` with
+`σ₀.kv = h ∧ σ₀.pending = []`, whose other half the server's invariant holds while 2c's readers fire
+their updates on `mvccState` (3b's S6: the pinned update txn's writes take); 2d's to define. -/
 opaque kvSt (kv : GoInterface) (h : KVHist) : IProp GF := iprop(True)
 
 /-- **The lessor `le`** (3c's `Lease.isLessor`), with minimum TTL `mc.minLeaseTTL`. Persistent. -/
@@ -653,7 +677,8 @@ def authSt (ast : GoInterface) (a : AuthState) : IProp GF :=
 opaque statusOk (rs : GoInterface) : IProp GF := iprop(True)
 
 /-- (provisional, 2d's) **The snapshot server `ss`**: `ForceSnapshot()` with `R`, given back.
-Persistent. -/
+Persistent. Intended: `ss` the `*EtcdServer` `s` and `R ⊢ EtcdServer.forceSnapW s ∗ ...` (2d's
+`EtcdServer.ForceSnapshot.spec`). -/
 opaque snapSrvOk (ss : GoInterface) (R : IProp GF) : IProp GF := iprop(True)
 
 /-- (provisional, 2d's) **The consistent indexer `ci`**: `ConsistentIndex()` with `R` (any answer).

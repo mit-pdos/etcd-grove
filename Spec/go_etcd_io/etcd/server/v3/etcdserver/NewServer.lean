@@ -49,7 +49,8 @@ its idle token, at any kind (a new member's, a joiner's, a member's files after 
 **Round 1** (provability F3/F4/F7, completeness F1/F5; 2d's request): the start right carries
 the reserved peer addresses (`cluster_alloc`, `urls_reserve`: 2f's `protoAt`/`peerAddr`, so two
 allocations cannot alias) and the member id when it is known (`oid`, given back in the post with
-`0 < id < 2 ^ 64`); the members' shared apply configuration (`clusterApplyCfg`, 2d's `MemberCfg`);
+`0 < id < 2 ^ 64`); (integration: the shared apply configuration `clusterApplyCfg` dropped: members
+may be configured differently, 2d's `srvCfg` from `srvNode_cfg`, 3a's TTL-variant histories);
 `rafthttpBootCfg` dropped (2f's needs are the addresses); every provisional slot has its
 introduction law (`ApiBoot.lean`). Not covered: embed's `InitialCheck` between `NewServer` and
 `Start` (untranslated callers only).
@@ -108,13 +109,12 @@ right), with the environment's permission and the subsystems' boot premises: eit
 nil server, or the server `s` of some member `id`, built and not started. -/
 def NewServer.spec : Prop :=
   ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (c : Config.Model) (γ : Cluster)
-    (ecfg : EnvCfg) (mc : ApplyCfg) (oid : Option Nat),
+    (ecfg : EnvCfg) (oid : Option Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ Config.cfgHeap cfg c ∗ Zap.isLogger cfg.Logger' ∗
       Features.serverGate cfg.ServerFeatureGate' ∗ ⌜ServerStorage.diskOk⌝ ∗
       ⌜V3compactor.bootCfg cfg.AutoCompactionMode' cfg.AutoCompactionRetention' ecfg.autoCompact⌝ ∗
       ⌜raftNodeBootCfg cfg ∧ v3rpcBootCfg cfg ∧ mvccBootCfg cfg⌝ ∗
       backendBootRes cfg ∗ leaseBootRes cfg ecfg ∗ authBootRes cfg ∗
-      clusterApplyCfg γ mc ∗ ⌜applyCfgIs cfg mc⌝ ∗
       envUpd γ ecfg ∗ memberStart γ cfg c oid }}
     (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.NewServer)) (Val #cfg))
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);

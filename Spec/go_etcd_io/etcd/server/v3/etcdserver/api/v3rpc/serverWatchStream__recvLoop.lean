@@ -77,7 +77,8 @@ def serverWatchStream.recvLoop.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       swsAt sws γ who st g ∗ srvWatchRecv st g rs ∗ swsRecver sws rs ∗ threadTok }}
     (App (Val (sws @!! go.GoType.PointerType v3rpc.serverWatchStream.ty @!! go!"recvLoop")) (Val #()))
-  {{ (err : GoInterface), RET #err; threadTok ∗ ∃ rs' : List WireWatchReq, swsRecver sws rs' }}
+  {{ (err : GoInterface), RET #err; threadTok ∗ (⌜err = GoInterface.nil⌝ ∨ Grpc.ownErr err) ∗
+      ∃ rs' : List WireWatchReq, swsRecver sws rs' }}
 
 end spec
 

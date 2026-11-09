@@ -3,7 +3,11 @@
 
 **Users.** `uberApplier.dispatch` through the chain (promoted methods of the outer layers).
 
-**Proof sketch.** 3c's `Revoke` (its range deleter over 3e's store); `newHeader`.
+**Proof sketch.** 3c's `lessor.Revoke` at the writer's `lessorState`, with `ls.rd ≠ func.nil` and the
+deleter's contract `Lease.rdOk γl ls.rd n ls P D Q` (3e's `Mvcc.mvccDeleter_rdOk` until the first
+snapshot, 2d's closure after: inside `stAt`, the apply thread's): `ErrLeaseNotFound`, or the lease's
+keys deleted at one revision (`lessorSt`'s attachment: W0's `State.attachedKVs`, so `State.revoke`)
+and the lease removed; `newHeader`.
 
 **Changes** from `specs-ref`'s `applierV3backend__LeaseRevoke.lean`: the old triple over the chain's `AEnv`, the mvcc log and the write tokens (`putPre`, `kvPostF`, `mPostW`, ...) restated over the model state (`stAt`, `layersStep`): any auth mode, leases, compaction
 

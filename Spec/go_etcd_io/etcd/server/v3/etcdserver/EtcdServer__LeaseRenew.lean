@@ -49,15 +49,15 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **A keep-alive of lease `id`**: its TTL, or an error; the update fired at the return
 (outcome 1), given back (outcome 2) or lost (outcome 3). -/
 def EtcdServer.LeaseRenew.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (p tls : Principal) (lo : Nat) (id : w64)
+  ∀ (s : Loc) (γ : Cluster) (q : Qp) (ctx : GoInterface) (p tls : Principal) (lo : Nat) (id : w64)
     (Q : State → State → Resp → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ Context.ctxOk ctx ∗ reqCtxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ authLb γ lo ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ srvGate s q ∗ Context.ctxOk ctx ∗ reqCtxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ authLb γ lo ∗
       AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
         <{ ∀∀ (σ' : State) (res : Resp), ⌜srvStep p tls (.leaseKeepAlive (sint.Z id)) σ σ' res lo⌝ ∗
              etcdState γ σ', COMM Q σ σ' res }> }}
     (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"LeaseRenew")) (Val #ctx)) (Val #id))
-  {{ (ttl : w64) (err : GoInterface), RET (PairV #ttl #err); threadTok ∗
-      ((∃ σ σ' res, Q σ σ' res ∗
+  {{ (ttl : w64) (err : GoInterface), RET (PairV #ttl #err); srvGate s q ∗ threadTok ∗
+      ((∃ σ σ' res, ⌜srvFiredAns res⌝ ∗ Q σ σ' res ∗
           match res with
           | .ok (.leaseKeepAlive _ t) => iprop(⌜err = GoInterface.nil ∧ ttl = W64 t⌝)
           | .err e => iprop(⌜srvErrOf err e⌝ ∗ srvErrShape err)

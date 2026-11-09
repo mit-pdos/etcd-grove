@@ -10,8 +10,11 @@ some voter's acknowledgement (a non-empty half's quorum index is one of its vote
 the position (premise). The returned prefix aliases the queue's array; it is handed out read-only
 for good (nothing writes a request again).
 
-**Changes**: from `specs-ref/Spec/go_etcd_io/raft/v3/readOnly__maybeAdvance.lean`: the halves through R4's (provisional)
-`jointConfigOwn` (was `ownIdsetQ` of `c.arr`'s maps).
+**Changes**: from `specs-ref/Spec/go_etcd_io/raft/v3/readOnly__maybeAdvance.lean`: the halves through R4's
+`Quorum.jointConfigOwn` (was `ownIdsetQ` of `c.arr`'s maps). (Integration I2: the size premise in
+R4's form, `GMap.size … ≤ Quorum.sortMax`, as `JointConfig.CommittedIndex.spec` takes it; `ro` meets
+`Quorum.isAckedIndexer (ro as an AckedIndexer) (readOnly ro rs) (rs.acks !! ·)` by
+`readOnly.AckedIndex.spec`, so the result's `JointIdx … ((rs.acks !! ·).getD 0)` is `rs.ackOf`'s.)
 
 **Margin**: none. The size bound is quorum's `CommittedIndex`'s (its sort), kept here, local.
 -/
@@ -42,7 +45,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 def readOnly.maybeAdvance.spec : Prop :=
   ∀ (ro : Loc) (rs : ReadOnlyState) (c : go_etcd_io.raft.v3.quorum.JointConfig) (dq : DFrac)
     (s0 s1 : GSet w64),
-  (elements s0).length ≤ 2 ^ 62 → (elements s1).length ≤ 2 ^ 62 →
+  GMap.size s0 ≤ Quorum.sortMax → GMap.size s1 ≤ Quorum.sortMax →
   s0 ∪ s1 ≠ ∅ →
   (∀ v, v ∈ s0 ∪ s1 → uint.nat (rs.ackOf v) ≤ rs.position) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ readOnly ro rs ∗ jointConfigOwn c dq s0 s1 }}

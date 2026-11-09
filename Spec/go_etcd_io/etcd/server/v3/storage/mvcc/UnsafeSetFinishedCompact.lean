@@ -27,12 +27,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- `UnsafeSetFinishedCompact(tx, value)` on the storage's locked batch transaction. -/
 def UnsafeSetFinishedCompact.spec : Prop :=
-  ∀ (B : MvccStorage) (Pk : IProp GF) (D0 D : KeyData) (value : w64),
+  ∀ (B : MvccStorage) (Pk : IProp GF) (q : Qp) (D0 D : KeyData) (value : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ schemaVars ∗
-      keyBackend B Pk ∗ kbLocked B D0 D ∗ ⌜D.metaMade = true⌝ }}
+      keyBackend B Pk ∗ kbLocked B q D0 D ∗ ⌜D.metaMade = true⌝ }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeSetFinishedCompact))
       (Val #(GoInterface.ok (kbBatchTx B)))) (Val #value))
-  {{ RET #(); kbLocked B D0 (D.putMeta .fin (revBytes ⟨value, W64 0⟩ false)) }}
+  {{ RET #(); kbLocked B q D0 (D.putMeta .fin (revBytes ⟨value, W64 0⟩ false)) }}
 
 end spec
 end Mvcc

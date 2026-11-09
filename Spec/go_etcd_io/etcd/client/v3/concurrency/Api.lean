@@ -226,11 +226,12 @@ def campaignEff (pfx val : GoString) (lease : Int) (σ σ' : State) : Prop :=
   putEff (fun k => pfx <+: k) (fun v => v = val) lease σ σ' ∨ delEff (fun k => pfx <+: k) σ σ'
 
 /-- **A lease granted** (`NewSession`): nothing, or a lease the server chose with at least the TTL
-asked. -/
+asked, as W0's `leaseStep .leaseGrant` commits it (the old lease table appended to `leaseHist`;
+integration I1: the clause lacked it, so a real grant was not a `grantEff` step). -/
 def grantEff (ttl : Int) (σ σ' : State) : Prop :=
   σ' = σ ∨ ∃ id ttl', σ.leases id = none ∧ ttl ≤ ttl' ∧
     σ' = { σ with leases := fun i => if i = id then some { ttl := ttl' } else σ.leases i,
-                  granted := σ.granted ++ [id] }
+                  granted := σ.granted ++ [id], leaseHist := σ.leaseHist ++ [σ.leases] }
 
 /-- **The lease `id` revoked** (`Session.Close`): nothing, or its keys deleted at one revision and
 the lease gone (the transition of a lease's expiry, `EnvStep.leaseExpire`). -/

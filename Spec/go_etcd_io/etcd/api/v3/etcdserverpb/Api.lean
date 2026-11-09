@@ -128,6 +128,7 @@ def reqType : Req → go.GoType
   | .memberList _ => etcdserverpb.MemberListRequest.ty
   | .alarmList => etcdserverpb.AlarmRequest.ty
   | .alarmDisarm _ => etcdserverpb.AlarmRequest.ty
+  | .alarmActivate _ => etcdserverpb.AlarmRequest.ty
 
 /-- The Go type of a success reply's message. -/
 def bodyType : RespBody → go.GoType
@@ -470,7 +471,8 @@ inductive IrrBody where
   | alarmActivate (al : Alarm)
   /-- a member's attributes published (`ClusterMemberAttrSet`) -/
   | publish (id : Nat) (name : GoString) (urls : List GoString)
-  /-- a token assigned to user `name` (`InternalAuthenticateRequest`) -/
+  /-- a token assigned to user `name` (`InternalAuthenticateRequest`: `Name`, `SimpleToken`; Go does
+  not propose the password, `v3_server.go:872`) -/
   | authToken (name : GoString)
   /-- no observable effect: a lease checkpoint, the cluster version, the downgrade info -/
   | noop

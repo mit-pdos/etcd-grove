@@ -42,11 +42,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`s.LeaseRevoke(ctx, r)`**: the revocation of lease `id`, as `Put` (through raft). -/
 def EtcdServer.LeaseRevoke.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (p tls : Principal) (r : Loc) (dq : DFrac) (id : Int),
+  ∀ (s : Loc) (γ : Cluster) (q : Qp) (ctx : GoInterface) (p tls : Principal) (r : Loc) (dq : DFrac) (id : Int),
   SrvCallTriple (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"LeaseRevoke")) (Val #ctx)) (Val #r))
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ srvGate s q ∗
         Context.ctxOk ctx ∗ reqCtxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ ClientV3.reqOwn r dq (.leaseRevoke id))
-    iprop(threadTok ∗ ClientV3.reqOwn r dq (.leaseRevoke id)) γ p tls (.leaseRevoke id) false (ClientV3.ansReply)
+    iprop(srvGate s q ∗ threadTok ∗ ClientV3.reqOwn r dq (.leaseRevoke id)) γ p tls (.leaseRevoke id) false (ClientV3.ansReply)
 
 end spec
 end EtcdServer

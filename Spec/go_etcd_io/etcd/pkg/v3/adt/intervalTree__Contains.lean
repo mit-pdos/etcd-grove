@@ -8,13 +8,16 @@
 running maximum end; a gap stops it); the result compares the scan's maximum with the query's end
 and the first begin with its begin. Its correctness (`containsRes_iff` of `specs-ref`'s proof):
 for a query whose begin is below its end, the greedy scan over the begin-sorted stabbed entries
-answers coverage.
+answers coverage. A query from the top (`b = ""`: `IvlS.queryOk`, so `Visit` is exact) stabs
+nothing (`ivlCmp` puts it right of every interval), so `minBegin` stays `nil`: `false`.
 
 **Changes** from `specs-ref`'s `Contains_gen`: the result stated as its meaning (coverage of every
 key, `ivlMem`) rather than the scan's definition (`containsRes`), which a client would unfold; at a
 key kind `c`.
 
-**Margin.** For a query with no key (`affLt b e` false: an empty or top-begin query) some boolean.
+**Margin.** For an empty or inverted query with a key begin (`affLt b e` false, `b ≠ ""`) some
+boolean. (Integration: the top-begin query's `false` added for 3d's `checkKeyInterval`, I5's
+request, `req/go_etcd_io_etcd_pkg_v3_adt.md`, "from 3d", item 3.)
 -/
 module
 
@@ -45,7 +48,8 @@ def intervalTree.Contains.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.adt ∗ ivt c t L dq ∗ keyAt c db vb b ∗ keyAt c de ve e }}
     (App (Val (t @!! go.GoType.PointerType intervalTree.ty @!! go!"Contains")) (Val #(c.ivl vb ve)))
   {{ (r : Bool), RET #r; ivt c t L dq ∗ keyAt c db vb b ∗ keyAt c de ve e ∗
-      ⌜affLt b e → (r = true ↔ ∀ k, ivlMem (b, e) k → ∃ z ∈ L, ivlMem z.1 k)⌝ }}
+      ⌜(affLt b e → (r = true ↔ ∀ k, ivlMem (b, e) k → ∃ z ∈ L, ivlMem z.1 k)) ∧
+        (b = go!"" → r = false)⌝ }}
 
 end spec
 

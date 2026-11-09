@@ -105,6 +105,7 @@ public import Perennial.Code.io
 public import GeneratedProof.google_golang_org.grpc
 public import GeneratedProof.google_golang_org.grpc.status
 public import GeneratedProof.google_golang_org.grpc.metadata
+public import GeneratedProof.google_golang_org.grpc.peer
 public import Spec.PkgInit.google_golang_org.grpc
 public import Spec.PkgInit.google_golang_org.grpc.status
 public import Spec.PkgInit.google_golang_org.grpc.metadata
@@ -402,6 +403,32 @@ opaque streamerOk (cc : Loc) (A : GoString → IProp GF) (R : MD → IProp GF) (
 
 /-- **The context of a handler run**, with the incoming metadata `md`. -/
 opaque rpcCtx (ctx : GoInterface) (md : MD) : IProp GF := iprop(True)
+
+/-! #### Any context's incoming metadata and TLS peer (integration I3)
+
+What `metadata.FromIncomingContext` and `peer.FromContext` read of **any** context, not only a
+run's: the auth store's `AuthInfoFromCtx`/`AuthInfoFromTLS`/`WithRoot` (3d) and the server's
+internal requesters (2c's `ctxNoIncoming`) read them. These realize 3d's provisional
+`Auth.ctxInMD`, `Auth.ctxPeerCN`, `Auth.ctxCertUser` (`req/google_golang_org_grpc.md`, "from 3d"):
+the owner of `server/v3/auth/Api.lean` should define them as these. -/
+
+/-- **`ctx`'s incoming metadata is `o`** (persistent): `metadata.FromIncomingContext`'s answer,
+`none` for a context carrying none (`Background()`-derived, the server's `s.ctx`). A run's context
+has `some md` (`rpcCtx_inMD`). -/
+opaque ctxInMD (ctx : GoInterface) (o : Option MD) : IProp GF := iprop(True)
+
+/-- **`ctx`'s TLS peer identity** (persistent): `some cn` for a context whose `peer.FromContext`
+peer is a TLS peer (`credentials.TLSInfo`) with a non-empty verified chain whose first chain's leaf
+has common name `cn`; `none` otherwise (no peer, not TLS, no verified chain). -/
+opaque ctxPeerCN (ctx : GoInterface) (c : Option GoString) : IProp GF := iprop(True)
+
+/-- **The identity `AuthInfoFromTLS` reads** (transparent): the peer's common name when the
+incoming metadata is present and has no `grpcgateway-accept` key; `none` otherwise. -/
+def ctxCertUser (ctx : GoInterface) (c : Option GoString) : IProp GF :=
+  iprop(∃ (o : Option MD) (pc : Option GoString), ctxInMD ctx o ∗ ctxPeerCN ctx pc ∗
+    ⌜c = match o with
+      | some md => if md.get (go!"grpcgateway-accept") = [] then pc else none
+      | none => none⌝)
 
 /-- **The request decoder of a unary run** (the request's content `c`). -/
 opaque decOk (dec : val) (reqT : go.GoType) (c : Content) : IProp GF := iprop(True)
@@ -812,6 +839,36 @@ def icHandler_call.spec : Prop := ∀ (ics : List GoFunc) (info : Loc) (k h : va
      | i :: rest => ∀ (k' : val), icHandler rest info k' h -∗
          WP (App (App (App (App (Val #i) (Val #ctx)) (Val #req)) (Val #info)) (Val k')) {{ Ψ }}) ⊢
   WP (App (App (Val k) (Val #ctx)) (Val #req)) {{ Ψ }}
+
+/-! ### Any context's incoming metadata and peer (integration I3) -/
+
+def ctxInMD_persistent.spec : Prop :=
+  (∀ ctx o, Persistent (ctxInMD (GF := GF) ctx o)) ∧ (∀ ctx c, Persistent (ctxPeerCN (GF := GF) ctx c))
+
+/-- One context, one incoming metadata, one peer identity. -/
+def ctxInMD_agree.spec : Prop :=
+  (∀ ctx o o', ctxInMD (GF := GF) ctx o ∗ ctxInMD ctx o' ⊢ ⌜o = o'⌝) ∧
+  (∀ ctx c c', ctxPeerCN (GF := GF) ctx c ∗ ctxPeerCN ctx c' ⊢ ⌜c = c'⌝)
+
+/-- **A run's context**: its incoming metadata is the run's (grpc decoded it), and it has a peer
+identity (the connection's). -/
+def rpcCtx_inMD.spec : Prop := ∀ ctx md,
+  rpcCtx (GF := GF) ctx md ⊢ ctxInMD ctx (some md) ∗ ∃ c, ctxPeerCN ctx c
+
+/-- `Background()` carries neither. -/
+def ctxInMD_background.spec : Prop :=
+  ⊢ ctxInMD (GF := GF) (GoInterface.ok context.backgroundCtxVal) none ∗
+    ctxPeerCN (GoInterface.ok context.backgroundCtxVal) none
+
+/-- A child context (`WithCancel`, `WithTimeout`) keeps both. -/
+def ctxInMD_child.spec : Prop := ∀ ctx ctx' o c,
+  ctxInMD (GF := GF) ctx o ∗ ctxPeerCN ctx c ∗ Context.ctxChild ctx ctx' ⊢ ctxInMD ctx' o ∗ ctxPeerCN ctx' c
+
+/-- A `WithValue` at another key than the incoming metadata's and the peer's keeps both. -/
+def ctxInMD_value.spec : Prop := ∀ (ctx ctx' : GoInterface) (ki : GoInterfaceOk) o c,
+  ctxInMD (GF := GF) ctx o ∗ ctxPeerCN ctx c ∗ Context.ctxValueAt ctx ctx' (GoInterface.ok ki) ∗
+    ⌜ki.ty ≠ google_golang_org.grpc.metadata.mdIncomingKey.ty ∧
+      ki.ty ≠ google_golang_org.grpc.peer.peerKey.ty⌝ ⊢ ctxInMD ctx' o ∗ ctxPeerCN ctx' c
 
 end res
 

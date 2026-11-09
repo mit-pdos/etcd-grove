@@ -1,8 +1,8 @@
 /-
 ## `pbEntryID(entry)` (internal; `types.go`)
 
-**Users**: `findConflict`. Mirrors the code. **Changes**: from `specs-ref/Spec/go_etcd_io/raft/v3/pbEntryID.lean`: over the
-provisional `entryRO`.
+**Users**: `findConflict`. Mirrors the code. **Changes**: from `specs-ref/Spec/go_etcd_io/raft/v3/pbEntryID.lean`: over
+raftpb's `entryRO` (integration I2: was R3's provisional predicate).
 -/
 module
 

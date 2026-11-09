@@ -3,7 +3,7 @@
 
 **Users.** `applierV3backend.RoleGet` (`apply/backend.go:231`), behind `authApplierV3.RoleGet`'s check (an administrator, or a user with the role: `HasRole`). Snippet: `examples/specreq/auth/admin.go` (`ReqAdminSteps`).
 
-**Proof sketch.** `as.be.GetRole(name)` (4b); absent: `ErrRoleNotFound`, also for `root` when no role `root` is stored (W0's round 5: `roleGet` answers `roleNotFound` for an absent record first); `root` stored: `rootPerm`; else the permissions copied. The step's state, `storeNext` (the code's function of the request, its
+**Proof sketch.** `as.be.GetRole(name)` (4b: the read transaction; no batch lock: `Pre` back); absent: `ErrRoleNotFound`, also for `root` when no role `root` is stored (W0's round 5: `roleGet` answers `roleNotFound` for an absent record first); `root` stored: `rootPerm`; else the permissions copied. The step's state, `storeNext` (the code's function of the request, its
 credential and `a`), is recorded at index `i + 1` (`authCur`), every view at it when the call
 returns; its answer is one W0's `authStep` gives (`storeNext_adm`).
 

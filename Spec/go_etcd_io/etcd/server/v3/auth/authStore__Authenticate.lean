@@ -7,7 +7,7 @@
 Snippet: `examples/specreq/auth/token.go` (`ReqAuthenticateApply`).
 
 **Proof sketch.** The flag (`IsAuthEnabled`: the writer's `a`; off: `ErrAuthNotEnabled`);
-`as.be.GetUser(name)` (4b, the batch transaction: `a`'s user; absent or password-less:
+`as.be.GetUser(name)` (4b: a read section of the read transaction, at the writer's `a`, integration I5: was "the batch transaction"; absent or password-less:
 `ErrAuthFailed`); `assign(ctx, name, Revision())` (`tokenProviderAt`'s contract from `authnCtx`: the
 simple provider's token `p.idx`, fresh since no index above `n < idx` was assigned, `tokFrom`; its
 `tokenUser γ tok name` from `authnCtx`'s realization; the no-op provider's `ErrAuthFailed`; JWT's

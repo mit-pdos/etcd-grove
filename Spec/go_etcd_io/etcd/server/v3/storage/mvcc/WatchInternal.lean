@@ -22,9 +22,12 @@ are over `ApiWatch.lean`'s. Internal helpers' specs mirror their code (PRINCIPLE
 * `wsMu s γ` (exclusive): **the lock's contents, held** (`s.mu.Lock` gives it, `Unlock` takes it):
   what `notify`, `addVictim`, `chooseAll`/`choose` and the loops' locked sections read and write.
 * `wsLoopS s γ`, `wsLoopV s γ` (exclusive): the loops' shares: the stop channel's receive, the wait
-  group's `Done` (its deposit: the loop's reader of the store, given back at `Close`), the loop's
-  reader of the store (a reader token's slots, held for the loop's life), and for `syncVictimsLoop`
-  the victim channel's receive.
+  group's `Done` (its deposit: the share itself, given back at `Close`), the loop's reader of the
+  store (the right to borrow, per pass and under `s.mu`, one of the store's own reader slots of its
+  **current** storage, 3e's `mvccOwnN`: not held for the loop's life, since a `Restore` (under
+  `s.mu`, between passes) gives the old storage's slots back, `storageRest B mvccReaderN`; the
+  borrowing law is 3e's internal one, requested at integration), and for `syncVictimsLoop` the
+  victim channel's receive.
 
 ## Data structures (models mirror the code)
 
@@ -48,6 +51,7 @@ are over `ApiWatch.lean`'s. Internal helpers' specs mirror their code (PRINCIPLE
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiWatch
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Internal
 
 @[expose] public section
 
@@ -117,15 +121,8 @@ def minRevOf (R : Loc → WRec) (G : List (Loc × MRange)) (cr : Int) : Int :=
   (G.filter (fun x => decide (cr ≤ (R x.1).minRev))).foldl (fun m x => min m (R x.1).minRev)
     (2 ^ 63 - 1)
 
-/-- (3e's and 2a's encodings, internal here) `bs` is the protobuf encoding of the key-value `m`
-(`proto.Unmarshal` succeeds into it). -/
-opaque kvEnc : GoString → KeyValueM → Prop
-
-/-- (3e's) `bs` is the storage key of revision `rev` (main), a tombstone's iff `tomb`
-(`BytesToRev`, `isTombstone`). -/
-opaque revEnc : GoString → Nat → Bool → Prop
-
-/-- The event a storage entry (its revision key and its key-value) stands for: a tombstone a
+/-- The event a storage entry (its revision key, 3e's `revOfBytes`, and its key-value, 3e's
+`kvBytes`) stands for: a tombstone a
 delete, with the revision patched in (`kvsToEvents`). -/
 def entryEv (rev : Nat) (tomb : Bool) (m : KeyValueM) : EvM :=
   if tomb then { del := true, kv := { m with modRevision := W64 rev } } else { del := false, kv := m }

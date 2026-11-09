@@ -43,7 +43,9 @@ func ReqProposeV2Joint(ctx context.Context, n raft.Node, add, remove uint64) {
 // Users: server/etcdserver/server.go:2032-2053 (applyConfChange), examples/raft/kvdurable/kv.go:700.
 // Assumes: e is a committed conf-change entry at position k, delivered to n, at or past n's view,
 // whose decision valid (the client's, cluster-wide: confDecide) was taken before; refuseByZero is
-// etcd's mode, used only at configurations that are not joint (etcd proposes v1 only); the caller
+// etcd's mode, used only at configurations that are not joint and have voters (etcd proposes v1
+// only; at the empty configuration even a no-op is confchange's "removed all voters" error: the
+// corrected Membership.applyChange_v1, integration I2); the caller
 // holds a nodeRunning share of n (it runs the Ready loop).
 // Specs: node.ApplyConfChange.spec; laws: confDecide.spec, confAt_decided.spec, confAt_valid.spec,
 // committedLb_confDecodes.spec, Membership.applyChange_v1.spec.

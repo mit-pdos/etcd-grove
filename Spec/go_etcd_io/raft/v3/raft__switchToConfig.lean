@@ -46,7 +46,7 @@ def raft.switchToConfig.spec : Prop :=
   ∀ (r : Loc) (γ : Cluster) (id : w64) (o : CoreOpen) (cfg : go_etcd_io.raft.v3.tracker.Config) (trk : GoMap) (m : Membership),
   ∀ (mi mb : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftTrkOpen r γ id o ∗
-      trkShell (trkLoc r) o.votes mi mb ∗ trkResult cfg trk m ∗ ⌜m.Valid⌝ ∗
+      trkShell (structFieldRef go_etcd_io.raft.v3.raft go!"trk" r) o.votes mi mb ∗ trkResult cfg trk m ∗ ⌜m.Valid⌝ ∗
       (⌜o.view.role ≠ StateLeader⌝ ∨ coreInvConf r γ id o m) }}
     (App (App (Val (r @!! go.GoType.PointerType go_etcd_io.raft.v3.raft.ty @!! go!"switchToConfig")) (Val #cfg)) (Val #trk))
   {{ (csp : Loc), RET #csp; ∃ o' cs, raftOpen r γ id o' ∗ confStatePts csp (DFrac.own 1) cs ∗

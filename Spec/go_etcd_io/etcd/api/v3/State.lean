@@ -185,6 +185,18 @@ def leaseViewLb_persistent.spec : Prop := ∀ γ ep i, Persistent (leaseViewLb (
 def leaseViewLb_le.spec : Prop := ∀ (γ : Cluster) (ep : GoString) (i : Nat) (σ : State),
   leaseViewLb (GF := GF) γ ep i ∗ etcdState γ σ ⊢ ⌜i < σ.leaseTables.length⌝
 
+/-- **The right to give a member of `γ` the peer URLs `urls`, once** (exclusive; moved here from
+2e's `EtcdServer.urlsRight`, `etcdserver/ApiBoot.lean`, at integration I1, so that a client can hold
+it): taken by a client's `MemberAdd`/`MemberAddAsLearner`/`MemberUpdate` (1c's
+`Cluster.MemberAddTriple`, `Cluster.MemberUpdateTriple`, `reqRight`) and by the server's
+`AddMember`/`UpdateMember` (2e); minted, with the joiner's `memberJoin`, by 2e's `urls_reserve`
+(the URLs' hosts reserved for the cluster's network). The initial members' URL sets have none. -/
+opaque urlsRight (γ : Cluster) (urls : List GoString) : IProp GF := iprop(True)
+
+/-- One right per URL set (up to order). -/
+def urlsRight_excl.spec : Prop := ∀ (γ : Cluster) (urls urls' : List GoString), urls.Perm urls' →
+  urlsRight (GF := GF) γ urls ∗ urlsRight γ urls' ⊢ iprop(False)
+
 /-- **`tok` is a token the cluster issued to user `u`** (persistent; `Authenticate`'s answer, 1c and
 3d; also the tokens a member issues itself: `WithRoot`'s root tokens, the JWTs its keys sign): a
 request carrying it is `u`'s, or refused once it is invalid or stale. -/

@@ -12,7 +12,9 @@ slot; the snapshot `D` of `kbData`, which the store's invariant keeps at the ima
 history while `s.revMu` is held); read `compactMainRev`, `currentRev` and fire the caller's update at
 `σ` (the invariant's state: `D` is `σ.kv`'s image, `currentRev = σ.rev`); `s.revMu.RUnlock()`;
 `newMetricsTxnRead` over the `storeTxnRead` (`storeTxnR`), whose `mvccTxn t γ trace (.read σ)` keeps
-`s.mu`'s read slot and `kbRead` until `End`.
+`s.mu`'s read slot, `kbRead` and the transaction's liveness `kbLive` until `End`. (A concurrent read
+transaction's snapshot is exact only on the keys it has, `KeyData.linger`: the reads by revision ask
+only revisions the image has, so this is enough.)
 
 **Changes** from `specs-ref`'s `store__Read.lean`: the contract `KV.Read.contract` at `*store`
 (the frozen API's canonical spec), over W0's history; no certificates, revision tokens, tags or

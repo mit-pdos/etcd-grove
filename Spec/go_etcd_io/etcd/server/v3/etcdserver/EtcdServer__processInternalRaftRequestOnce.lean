@@ -28,16 +28,21 @@ metrics (4b's prometheus boundary).
 
 **Changes.** The old spec (`specs-ref`'s `EtcdServer__processInternalRaftRequestOnce.lean`: the
 request's names `ρ`, `idCred`, the proposal's ghost data, the outcome model) restated over W0's
-state: the caller's update over `etcdState` by `irrStep`, the three outcomes, the result as
+state: the caller's update over `etcdState` by `srvStep` (`irrUpd`), the three outcomes, the result as
 `applyResult`. Round 1: the message given back (`irrOwn`, its header set: Go keeps nothing of it, only
-the marshalled bytes are proposed); `IrrBody.wf` (the gRPC layer's validation and the depth); the
-principal pair; every error with `srvErrShape`; `backOk` (an apply refusal, or `Authenticate`'s token
+the marshalled bytes are proposed); `irrWf` (the gRPC layer's validation and the depth); the
+principal pair; every error with `srvErrShape`; `irrBackOk` (an apply refusal, or `Authenticate`'s token
 issued at a moved auth revision: the update back).
 
-**Margin.** A result of outcome 1 for an apply refusal other than a stale auth revision (`ErrCorrupt`)
-is fired (a refusal is a `Step`); the code would allow giving it back. `ErrNoSpace` is indefinite
+**Margin.** A result of outcome 1 for an apply refusal other than a token one (`ErrCorrupt`)
+is fired (a refusal is a `Step`); the code would allow giving it back. The token refusals
+(`srvFiredAns`: `ErrUserEmpty`, `ErrAuthOldRevision`, `ErrInvalidAuthToken`) are always given back
+(integration I4, 2a's `firedAns`): at the apply they change nothing, so the invariant may. `ErrNoSpace` is indefinite
 (W0's round 5: an over-quota member applies a write and answers it), so it is outcome 1 or 3, never
-given back (`backOk` excludes indefinite errors).
+given back (`irrBackOk` excludes indefinite errors).
+
+**Integration (I4).** The model of the request is 3h's `IrrBody`; the request the caller's update
+is over is a separate `ao` (`irrAsks`), since the token's password is not in the message.
 -/
 module
 
@@ -67,29 +72,17 @@ entry's commit (outcome 1), or with the update given back for an apply refusal (
 error before proposing, the update given back; an unsettled error. -/
 def EtcdServer.processInternalRaftRequestOnce.spec : Prop :=
   ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (p tls : Principal) (lo : Nat) (r : Loc)
-    (dq : DFrac) (ir : IrrBody) (rep : Bool) (Q : State → State → Resp → IProp GF),
+    (dq : DFrac) (ir : IrrBody) (ao : Option Req) (rep : Bool) (Q : State → State → Resp → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ Context.ctxOk ctx ∗ reqCtxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ irrOwn r dq ir ∗
-      ⌜ir.wf⌝ ∗ authLb γ lo ∗
-      (if ir.fires then
-          □?rep AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-            <{ ∀∀ (σ' : State) (res : Resp), ⌜irrStep p tls lo ir σ σ' res⌝ ∗ etcdState γ σ',
-               COMM Q σ σ' res }>
-        else True) }}
+      ⌜irrWf ir ∧ irrAsks ir ao⌝ ∗ authLb γ lo ∗
+      irrUpd γ p tls lo ao rep Q }}
     (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"processInternalRaftRequestOnce")) (Val #ctx)) (Val #r))
   {{ (x : Loc) (err : GoInterface), RET (PairV #x #err); threadTok ∗ irrOwn r dq ir ∗
-      ((⌜err = GoInterface.nil⌝ ∗ ∃ σ σ' res, (if ir.fires then Q σ σ' res else True) ∗
+      ((⌜err = GoInterface.nil⌝ ∗ ∃ σ σ' res, ⌜srvFiredAns res⌝ ∗ irrFired ao Q σ σ' res ∗
           applyResult γ x ir res) ∨
-       (⌜err = GoInterface.nil⌝ ∗ (∃ res, ⌜ir.backOk res⌝ ∗ applyResult γ x ir res) ∗
-          (if ir.fires then
-          □?rep AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-            <{ ∀∀ (σ' : State) (res : Resp), ⌜irrStep p tls lo ir σ σ' res⌝ ∗ etcdState γ σ',
-               COMM Q σ σ' res }>
-        else True)) ∨
-       (⌜x = null ∧ srvUnfired err⌝ ∗ srvErrShape err ∗ (if ir.fires then
-          □?rep AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-            <{ ∀∀ (σ' : State) (res : Resp), ⌜irrStep p tls lo ir σ σ' res⌝ ∗ etcdState γ σ',
-               COMM Q σ σ' res }>
-        else True)) ∨
+       (⌜err = GoInterface.nil⌝ ∗ (∃ res, ⌜irrBackOk ir res⌝ ∗ applyResult γ x ir res) ∗
+          irrUpd γ p tls lo ao rep Q) ∨
+       (⌜x = null ∧ srvUnfired err⌝ ∗ srvErrShape err ∗ irrUpd γ p tls lo ao rep Q) ∨
        (⌜x = null ∧ srvIndef err⌝ ∗ srvErrShape err)) }}
 
 end spec

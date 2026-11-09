@@ -30,8 +30,11 @@ Imported by mvcc's own spec files only. Pure models transparent, resources opaqu
   a fresh private index, `currentRev = 1`, `compactMainRev = -1`, a fresh scheduler and stop
   channel, `s.le = le`. `storeRestored s γ B Pk h` (exclusive): its end, the store's fields at the
   image of `h` (`currentRev = h.rev`, `compactMainRev` its compaction, the index `h`'s, published).
-* `rkvProducer c ents n`, `revConsumer c ti ents` (exclusive): `restoreIntoIndex`'s two channels:
-  `n` of the entries' restored forms sent (in order); the index goroutine's result.
+* `rkvProducer c ents n L`, `revConsumer c kc ti ents` (exclusive): `restoreIntoIndex`'s two channels:
+  `n` of the entries' restored forms sent (in order), their key bytes `L` lent to the index
+  goroutine (bbolt's, lent against the read transaction's liveness: the goroutine reads them until
+  it reports); `rkvClosed c L` once `rkvc` is closed; the index goroutine's result, with `L` back
+  (`revRecv`).
 * `ktlMap mp M` (exclusive): `restore`'s key→lease map. `keepMap mp dq K` (fractional): a
   `map[Revision]struct{}` holding `K`.
 * `hasherAt hp c r keep` (exclusive), `hasherVal h c r keep` (persistent): a `kvHasher` (at `hp`,
@@ -147,11 +150,15 @@ opaque storeRestoring (s : Loc) (γ : MvccName) (B : MvccStorage) (Pk : IProp GF
 opaque storeRestored (s : Loc) (γ : MvccName) (B : MvccStorage) (Pk : IProp GF) (h : KVHist) :
     IProp GF := iprop(True)
 
-/-- `n` of `ents`' restored forms sent on `c`. -/
-opaque rkvProducer (c : Loc) (ents : List KvEnt) (n : Nat) : IProp GF := iprop(True)
+/-- `n` of `ents`' restored forms sent on `c`, their key bytes `L` lent to the receiver. -/
+opaque rkvProducer (c : Loc) (ents : List KvEnt) (n : Nat) (L : IProp GF) : IProp GF := iprop(True)
 
-/-- The index goroutine's result channel `c` (its one value: the last revision, with the index). -/
-opaque revConsumer (c : Loc) (ti : Loc) (ents : List KvEnt) : IProp GF := iprop(True)
+/-- `c` closed after every entry was sent, the key bytes `L` still lent to the receiver. -/
+opaque rkvClosed (c : Loc) (L : IProp GF) : IProp GF := iprop(True)
+
+/-- The index goroutine's result channel `c` (its one value: the last revision, with the index), the
+entries coming on `kc`. -/
+opaque revConsumer (c kc : Loc) (ti : Loc) (ents : List KvEnt) : IProp GF := iprop(True)
 
 /-- `restore`'s key→lease map. -/
 opaque ktlMap (mp : Loc) (M : GoString → Option w64) : IProp GF := iprop(True)
@@ -178,10 +185,10 @@ def schemaVars : IProp GF :=
     (∃ sl : GoSlice, globalAddr go_etcd_io.etcd.server.v3.storage.schema.FinishedCompactKeyName ↦□ sl ∗
       sl ↦*□ metaKey .fin))
 
-/-- A restored entry sent on `rkvc`: the bucket key's bytes, a fresh key-value of the entry's
-content, its key as a string. -/
-def rkvIs (v : revKeyValue) (e : KvEnt) : IProp GF :=
-  iprop(v.key' ↦*□ e.bk ∗ keyValueOwn v.kv' (DFrac.own 1) e.kv ∗ ⌜v.kstr' = e.kv.key⌝)
+/-- A restored entry sent on `rkvc`: the bucket key's bytes (at `dq`: the storage's, lent), a fresh
+key-value of the entry's content, its key as a string. -/
+def rkvIs (v : revKeyValue) (e : KvEnt) (dq : DFrac) : IProp GF :=
+  iprop(v.key' ↦*{dq} e.bk ∗ keyValueOwn v.kv' (DFrac.own 1) e.kv ∗ ⌜v.kstr' = e.kv.key⌝)
 
 end vocab
 
@@ -208,18 +215,32 @@ def storeRestoring_wb.spec : Prop :=
 def hasherAt_intro.spec : Prop :=
   ∀ (hp : Loc) h c r keep, hp ↦ h ∗ hasherVal (GF := GF) h c r keep ⊢ hasherAt hp c r keep
 
-/-- Sending the next restored form on `rkvc`. -/
+/-- Sending the next restored form on `rkvc` (its key bytes join the loans). -/
 def rkvSend.spec : Prop :=
-  ∀ (c : Loc) ents n e (v : revKeyValue) (Φ : val → IProp GF),
-    ⌜ents[n]? = some e⌝ -∗ rkvProducer (GF := GF) c ents n -∗ rkvIs v e -∗
-    ▷ (rkvProducer c ents (n + 1) -∗ Φ #()) -∗
+  ∀ (c : Loc) ents n (L : IProp GF) e (v : revKeyValue) (dq : DFrac) (Φ : val → IProp GF),
+    ⌜ents[n]? = some e⌝ -∗ rkvProducer (GF := GF) c ents n L -∗ rkvIs v e dq -∗
+    ▷ (rkvProducer c ents (n + 1) iprop(L ∗ v.key' ↦*{dq} e.bk) -∗ Φ #()) -∗
     WP (App (App (Val (chan.send revKeyValue.ty)) (Val #c)) (Val #v)) {{ Φ }}
 
-/-- Receiving the index goroutine's result, once every entry was sent and the channel closed. -/
+/-- The loans the producer holds may be weakened (regrouped: a chunk's keys as one `lentIn`). -/
+def rkvProducer_mono.spec : Prop :=
+  ∀ (c : Loc) ents n (L L' : IProp GF),
+    rkvProducer (GF := GF) c ents n L ∗ (L -∗ L') ⊢ rkvProducer c ents n L'
+
+/-- Closing `rkvc` once every entry was sent (`restore`'s `close(rkvc)`). -/
+def rkvClose.spec : Prop :=
+  ∀ (c : Loc) ents (L : IProp GF) (Φ : val → IProp GF),
+    rkvProducer (GF := GF) c ents ents.length L -∗ ▷ (rkvClosed c L -∗ Φ #()) -∗
+    WP (App (App (Val (GoInstruction (FuncResolve go.close
+      [(go.GoType.ChannelType go.ChanDir.sendonly revKeyValue.ty)]))) (Val #())) (Val #c)) {{ Φ }}
+
+/-- Receiving the index goroutine's result, once every entry was sent and `rkvc` closed: the index,
+and the key bytes lent to the goroutine back. -/
 def revRecv.spec : Prop :=
-  ∀ (c ti : Loc) ents (Φ : val → IProp GF),
-    revConsumer (GF := GF) c ti ents -∗
-    ▷ (∀ P, ownIdxPriv ti P -∗ ⌜privModel P = idxRestore ents⌝ -∗ Φ (PairV #(lastMain ents) #true)) -∗
+  ∀ (c kc ti : Loc) ents (L : IProp GF) (Φ : val → IProp GF),
+    revConsumer (GF := GF) c kc ti ents -∗ rkvClosed kc L -∗
+    ▷ (∀ P, ownIdxPriv ti P -∗ ⌜privModel P = idxRestore ents⌝ -∗ L -∗
+        Φ (PairV #(lastMain ents) #true)) -∗
     WP (App (Val (chan.receive go.int64)) (Val #c)) {{ Φ }}
 
 /-- A new hash storage, once the store's handle exists. -/

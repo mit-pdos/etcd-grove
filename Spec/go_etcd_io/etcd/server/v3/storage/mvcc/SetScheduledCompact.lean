@@ -1,8 +1,11 @@
 /-
 `SetScheduledCompact(tx, value)` (`store.go:38`). Internal: `updateCompactRev`.
-`tx.LockInsideApply()` (the storage's hook run, `Pre` to `Q'`), `UnsafeSetScheduledCompact`, the
-deferred `tx.Unlock()` (`Pk` back; the write made visible: the caller's second update, built at the
-data the lock read, the first).
+`tx.LockInsideApply()` (the storage's hook run, `Pre` to `Q'`, on the open share `kbOpen B q`; the
+lock's observation is the caller's first update, `kbObs`), `UnsafeSetScheduledCompact` (the entry
+bound: a 19-byte key and a 17-byte value), the deferred `tx.Unlock()` (`Pk` and the session's
+liveness back; the caller's nested update, built at the data the lock read: the write-back's step to
+`KeyData.mid D D' = D'` (a session of `Meta` puts only), then the commit's, which changes nothing;
+the open share back).
 
 **Changes** from `specs-ref`'s file: over the storage contract (`storageHook`, `hookRun`, `kbObs`) in
 place of `batchTxSpecG`, `lockArmS`, `mwLend`.
@@ -28,18 +31,21 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `SetScheduledCompact(tx, value)`: the hook, then the scheduled key written and made visible. -/
+/-- `SetScheduledCompact(tx, value)`: the hook, then the scheduled key written and made visible
+(the storage's two-step publication, the second step a no-op for this session). -/
 def SetScheduledCompact.spec : Prop :=
-  ∀ (B : MvccStorage) (Pk : IProp GF) (dq : DFrac) (f : GoFunc) (Pre Q' Post R : IProp GF)
+  ∀ (B : MvccStorage) (Pk : IProp GF) (q : Qp) (dq : DFrac) (f : GoFunc) (Pre Q' Post R : IProp GF)
     (value : w64),
+  let D' (D : KeyData) := D.putMeta .sched (revBytes ⟨value, W64 0⟩ false)
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ schemaVars ∗
-      keyBackend B Pk ∗ storageHook B dq f ∗ Pre ∗ hookRun Pk f Pre Q' ∗ (Q' ={⊤}=∗ Pk ∗ Post) ∗
+      keyBackend B Pk ∗ kbOpen B q ∗ storageHook B dq f ∗ Pre ∗ hookRun Pk f Pre Q' ∗
+      (Q' ={⊤}=∗ Pk ∗ Post) ∗
       kbObs B (fun D => iprop(⌜D.metaMade = true⌝ ∗
-        AU <{ ∃∃ (D0 : KeyData), kbData B D0 }> @ ⊤, ∅
-          <{ kbData B (D.putMeta .sched (revBytes ⟨value, W64 0⟩ false)), COMM R }>)) }}
+        AU <{ ∃∃ (D1 : KeyData), kbData B D1 }> @ ⊤, ∅ <{ kbData B (D' D), COMM
+          AU <{ ∃∃ (D2 : KeyData), kbData B D2 }> @ ⊤, ∅ <{ kbData B (D' D), COMM R }> }>)) }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.SetScheduledCompact))
       (Val #(GoInterface.ok (kbBatchTx B)))) (Val #value))
-  {{ RET #(); storageHook B dq f ∗ Post ∗ R }}
+  {{ RET #(); kbOpen B q ∗ storageHook B dq f ∗ Post ∗ R }}
 
 end spec
 end Mvcc

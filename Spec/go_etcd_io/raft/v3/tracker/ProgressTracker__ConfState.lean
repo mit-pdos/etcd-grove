@@ -5,8 +5,8 @@
 `newRaft`'s/`appliedSnap`'s round-trip check `assertConfStatesEquivalent`): R2.
 
 **Proof sketch.** `configOwn_open` for the voters; `MajorityConfig.Slice` of each of the four maps
-(`sorted`, each `≤ 2^62`); `new(p.AutoLeave)`; the `ConfState` allocation (raftpb's `confStatePts`,
-R1's provisional predicate, 3h's).
+(`sorted`, each `≤ 2^62`); `new(p.AutoLeave)`; the `ConfState` allocation (raftpb's
+`RaftPb.confStatePts`; integration I2: was R1's provisional predicate).
 
 **Changes** (from `specs-ref`'s `tracker/ProgressTracker__ConfState.lean`): the lists are the
 configuration's members in increasing order (was a permutation); over raftpb's `confStatePts`.

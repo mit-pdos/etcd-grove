@@ -108,6 +108,20 @@ func ReqSubTrace(tr *traceutil.Trace, key string) {
 	tr.StopSubTrace()
 }
 
+// REQ traceutil/ctx-trace-lent: a function holding only its context's trace, owned, of unknown
+// emptiness (doSerialize's Get), lends it to a callee that begins with EnsureTrace (txn.Range in
+// doSerialize's get closure), gets back the trace the callee returns, and steps its own after.
+// Users: server/etcdserver/v3_server.go:1036-1050 (doSerialize: Get, Step, get()), :144-152 (the
+// get closure: txn.Range(ctx, ...)), txn/range.go:48 (EnsureTrace on that context).
+// Assumes: the caller owns the trace ctx carries, if any (2c's ctxTrace).
+// Specs: Get.spec, EnsureTrace.spec, Trace.Step.spec; laws traceOwn_empty, traceEmpty_agree.
+func ReqCtxTraceLent(ctx context.Context, lg *zap.Logger) {
+	t0 := traceutil.Get(ctx)
+	_, tr := traceutil.EnsureTrace(ctx, lg, "range")
+	tr.Step("range keys from in-memory index tree")
+	t0.Step("get authentication metadata")
+}
+
 // REQ otel/span-events: a span gets events and is ended from another goroutine (a watch's cancel
 // closure).
 // Users: server/etcdserver/v3_server.go:1112-1125 (AddEvent), storage/mvcc/watcher.go:140-144

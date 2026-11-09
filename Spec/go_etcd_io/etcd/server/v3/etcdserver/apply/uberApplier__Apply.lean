@@ -15,6 +15,9 @@ promoted, then `applierV3backend.Apply.spec`) calls the function value, whose tr
 `uberApplier.dispatch.spec` (with `aiAt`, `uberChain`, `stAt`, the membership update, `R`):
 `irrStep`'s other cases, the chain re-chosen after an alarm. `smAt_unfold` back.
 
+`nextOk` (the next state's auth reached and fitting; `Authenticate`'s index) is passed down to
+the backend's admin methods (3d's `AdminTriple`; integration I5).
+
 **Changes** from `specs-ref`'s `uberApplier__Apply.lean` (its 25 premises: `kvOwnPre`, `certPreV`,
 `rqOk`, `cmpAdmit`, `ltHalf`, `everOwn`, `grantFresh`, `revokeOwn`, `restReqOk`, `cmpOwn`, ...;
 two auth modes): one triple over the model state, any request kind, any mode; the answer is

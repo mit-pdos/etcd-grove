@@ -1,6 +1,6 @@
 /-
 `b.spill()` (`bucket.go`), on the root: child buckets first (inline ones written into their parent's
-value, `Bucket.write`), then the root node (`node.spill`: split by `splitThreshold`, D17's bound;
+value, `Bucket.write` once `inlineable` says `inlineOk` of the cached root), then the root node (`node.spill`: split by `splitThreshold`, D17's bound;
 each piece written to a page from `tx.allocate`, 4d's `freelist.Allocate` or past the high-water
 mark with `db.grow`'s remap). (internal, mirrors the code)
 

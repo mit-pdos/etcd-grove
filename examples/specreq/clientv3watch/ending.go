@@ -79,7 +79,7 @@ func ReqWatchCreatedFirst(ctx context.Context, cli *clientv3.Client, k string) {
 // REQ clientv3watch/close: closing a watcher, twice, and watching after it never panics.
 // Users: Client.Close (client.go:150), the namespace wrapper (namespace/watch.go:79).
 // Assumes: none.
-// Specs: NewWatcher.spec (via the client's connection, isClient_conn), watcher.Close.spec,
+// Specs: NewWatcher.spec (clientCore, from isClient by 1c's isClient_core), watcher.Close.spec,
 // watcher.Watch.spec (Watcher.CloseTriple, Watcher.WatchTriple).
 func ReqWatcherClose(ctx context.Context, cli *clientv3.Client, k string) {
 	w := clientv3.NewWatcher(cli)

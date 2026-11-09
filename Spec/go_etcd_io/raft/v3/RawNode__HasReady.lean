@@ -6,7 +6,8 @@ calls it from its goroutine, holding the token. **Proof sketch.** Reads raft's s
 computed in this phase (`readyKept`), `false` means `rd` is still the current state's `Ready`
 (R3's "next" sets are monotone between accepts). **Changes.** (Round 2, R2's request) a `false`
 answer restores `readyFresh` of a kept `Ready` (`node.run` hands out a `Ready` computed before
-other steps). **Margin.** A `true` answer says nothing.
+other steps); (integration I2, R2's round-1 item 8) and says that `Ready` is empty (`readyEmpty`,
+`ApiCore.lean`'s realization item 6), which `ReqReadyStale` needs. **Margin.** A `true` answer says nothing.
 -/
 module
 
@@ -42,7 +43,8 @@ def RawNode.HasReady.spec : Prop :=
     (App (Val (rn @!! go.GoType.PointerType go_etcd_io.raft.v3.RawNode.ty @!! go!"HasReady")) (Val #()))
   {{ (b : Bool), RET #b;
       match ord with
-      | some rd => if b then rawNodeAt rn γ id k adv else readyFresh rn γ id k adv rd
+      | some rd => if b then rawNodeAt rn γ id k adv
+                   else readyFresh rn γ id k adv rd ∗ ⌜readyEmpty rd⌝
       | none => rawNodeAt rn γ id k adv }}
 
 end spec

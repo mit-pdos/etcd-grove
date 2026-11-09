@@ -39,14 +39,13 @@ namespace Apply
 
 open Iris Iris.BI EtcdModel Classical
 
-/-- 2c's model of the request (see the header); a token's body with any checked revision (the
-proposer's, which the entry does not carry: the reply does not depend on it). -/
+/-- 2c's model of the request (3h's `EtcdServerPb.IrrBody`, see the header). -/
 def opBody (op : IrrOp) (b : EtcdServer.IrrBody) : Prop :=
   match op with
   | .req rq => b = .req rq
   | .userAdd name h np => ∃ pw, (np = false → pwHash pw h) ∧ b = .req (.userAdd name pw np)
   | .userChangePassword name h => ∃ pw, pwHash pw h ∧ b = .req (.userChangePassword name pw)
-  | .authenticate name pw _ => ∃ rev, b = .authToken name pw rev
+  | .authenticate name _ _ => b = .authToken name
   | .alarm .get _ at' => if at' = W32 0 then b = .req .alarmList else b = .noop
   | .alarm .activate mid at' =>
       match V3alarm.kindOf at' with

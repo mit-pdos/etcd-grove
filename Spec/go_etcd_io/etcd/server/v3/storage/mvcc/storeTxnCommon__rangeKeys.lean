@@ -11,7 +11,10 @@ transaction's view at `ro.Rev` (the current revision `curRev` for `ro.Rev ≤ 0`
 `nil`, lease `0`: `keysOnlyM`). Full: `treeIndex.Revisions.spec`, `sliceCapWithLimit.spec`, then
 for each revision a `select` on `ctx.Done()` (`Context.doneRecv`/`Done.spec`: closed only once the
 context is done: the `ctxErr` arm, `nil` result) and `tr.tx.UnsafeRange(Key, revBytes, nil, 0)`
-(`keyBackend`'s `rangeOk` on the snapshot `kbRead`/the batch's `kbLocked`): exactly one value,
+(`keyBackend`'s `rangeOk` on the snapshot `kbRead`/the batch's `kbLocked`; on a concurrent read
+transaction the single-key row, `KeyData.linger`, exact for a key the snapshot has; the bytes lent
+against a share of the transaction's liveness `kbLive`, which `txnCommon` holds, and given back once
+unmarshalled): exactly one value,
 because `txnCommon`'s realization keeps the storage's data at an image of `k.readHist` containing
 every revision the index returns at a revision at or above the compaction (so `lg.Fatal("range
 failed to find revision pair")` is unreachable: the pinned fork carries the doCompact fix of

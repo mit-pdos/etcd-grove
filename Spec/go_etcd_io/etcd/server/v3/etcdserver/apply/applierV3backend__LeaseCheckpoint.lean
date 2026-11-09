@@ -3,7 +3,8 @@
 
 **Users.** `uberApplier.dispatch` through the chain (promoted methods of the outer layers).
 
-**Proof sketch.** 3c's `Checkpoint` (the remaining TTL, not in the model); `newHeader`.
+**Proof sketch.** 3c's `lessor.Checkpoint` per entry (the remaining TTL, not in the model: the
+table unchanged, `persist` moves only the bucket; the backend's hook as `LeaseGrant`'s); `newHeader`.
 
 **Changes** from `specs-ref`'s `applierV3backend__LeaseCheckpoint.lean`: the old triple over the chain's `AEnv`, the mvcc log and the write tokens (`putPre`, `kvPostF`, `mPostW`, ...) restated over the model state (`stAt`, `layersStep`): any auth mode, leases, compaction
 

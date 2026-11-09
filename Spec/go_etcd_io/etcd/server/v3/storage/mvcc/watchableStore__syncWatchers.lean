@@ -5,11 +5,14 @@ reads the events of revisions `[minRev, curRev]` from the storage (`rangeEvents`
 watcher (`newWatcherBatch`), sends each watcher its batch (a full channel makes it a victim), moves the
 caught-up ones to the synced group. Returns the unsynced count.
 
-**Proof sketch.** `s.mu.Lock` (`wsMu`); `revMu.RLock` (the loop's reader, `wsLoopS`: `wsReadAt` with
-the notified history `h`, nothing pending, the storage's image of it); `choose` (its spec, with each
-member's compaction response sendable: `cr ≤ h.compacted`, below its `minRev`); `rangeEvents` (the
-events of `h` from the least `minRev`, exact under the compaction condition: what the facts of the
-responses built here need); `newWatcherBatch`; for each chosen watcher not behind the compaction:
+**Proof sketch.** `s.mu.Lock` (`wsMu`); `revMu.RLock` (the loop's reader, `wsLoopS`: one of the
+store's own slots of its current storage borrowed for the pass, 3e's internal hand-off; `wsReadAt`
+with the notified history `h`, nothing pending, the storage's image of it, `compactMainRev` its
+compaction revision or `-1`); `choose` (its spec, with each member's compaction response sendable:
+`cr ≤ h.compacted`, below its `minRev`; the least `minRev` it returns is at least `compactionRev`,
+`minRevOf`, so `h.compacted ≤` it: `rangeEvents`' premise); `rangeEvents` (the events of `h` from
+the least `minRev`, exact under the compaction condition: what the facts of the responses built
+here need); `newWatcherBatch`; for each chosen watcher not behind the compaction:
 `minRev` past `curRev`, or the batch's `moreRev`; `w.send` with the batch at `Revision: curRev`
 (`wsSendable`: the events of its range from its position, whole revisions up to the batch's last);
 `addVictim`; the gauges.

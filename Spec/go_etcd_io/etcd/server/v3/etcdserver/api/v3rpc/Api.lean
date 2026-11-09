@@ -49,6 +49,38 @@ Streams: `rangeStreamSpec γ` (this file), `kaSpec γ` (keep-alives: nothing mod
 * `srvErrOk` (what `togRPCError` takes; 2c's error outcomes give it).
 * `rangeStreamSpec` admits `ErrCompacted` before the first chunk; `rsChunk_agree`, `rsChunk_hdr_last`.
 
+## Integration I3 (2026-11-09)
+
+* **3h's realizations** replace the slots: `reqModels`, `replyModels`, `chunkModels` are
+  `EtcdServerPb`'s (definitions here, for the old names).
+* **The caller's read window** (W0's rounds 4-6): `etcdUnary` and `rangeStreamSpec` carry the
+  caller's `lo` with `authLb γ lo`, the update over `Step who rq σ σ' res lo` (`etcdAU`; 1c's
+  `callAU` is its `lo = 0` instance, so 1c's `AttemptTriple` composes with `lo := 0`, `authLb γ 0`
+  holding by its definition).
+* **The principal**: `mdPrin γ md who` is introduced by the client (`mdPrin_of`, from W0's `ctxPrin`,
+  the outgoing metadata and the credentials' `credMD`, 1c's slot) and eliminated by the member
+  (`reqPrin_of_md`: 2c's `reqPrin ctx who tls`, the certificate's name `tls` none or `who`, W0's
+  one-identity-per-client scope, round 5). 2b's `srvCtxPrin` is `∃ tls, reqPrin ctx who tls`.
+* **Composition with 2c's `SrvCallTriple`** (every handler over a server method): the handler holds
+  `etcdAU γ who rq rep lo Q` and `authLb γ lo`, and hands 2c the update over `srvStep who tls rq σ σ'
+  res lo`, built from its own: 2c fires it with `srvStep`, which is `Step who` here (the handler's
+  check excludes `emptyRangeStep`'s empty key; for a write `tls` is `none` or `who` and a
+  principal-less write is only refused: 2c's `srvStep_step`, requested of I4); 2c's outcome 1 must
+  fire only `firedAns` answers (requested of I4: an apply-time token refusal is given back, outcome
+  2); outcome 2's update is the handler's again (the second way for a token refusal, else fired
+  as a refusal or the third way); outcome 3 the third way.
+* `srvErrOk` **is 2c's `srvErrShape`** (`togRPCError`'s premise; two strengthenings of
+  `srvErrShape` requested of I4: comparable errors, an unmapped message settling nothing).
+* **The request's right** (I1's `reqRight γ rq`: W0's `urlsRight γ urls` for `MemberAdd`/
+  `MemberUpdate`, `True` otherwise) travels with the request in `etcdUnary` to the member op (2e's
+  `AddMember`/`UpdateMember` take it); it is spent whatever the outcome (not given back).
+* `kaSpec`: a response's lease id is one the client sent (`kaReq`, `kaLog`: 1c's `kaSent`).
+* `watchSpec` is a contract: the requests recorded (`wsReq`), each response a `wireStep` (1b) from
+  the state the earlier ones made (`wsSt`), the stream's principal fixed (`wsWho`); 2b's server
+  slots are opened from a run (`watchRun_open`).
+* Any context's incoming metadata and TLS peer (`Grpc.ctxInMD`, `ctxPeerCN`, `ctxCertUser`: 3d's
+  provisional `Auth.*` names), with `rpcCtx_reqCtxOk` (4b) and `ctxNoIncoming_inMD` (2c's contexts).
+
 ## Vocabulary
 
 * Pure: `etcdMethods`/`etcdStreams` (the method table: full names and message types),
@@ -80,6 +112,10 @@ Streams: `rangeStreamSpec γ` (this file), `kaSpec γ` (keep-alives: nothing mod
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiReq
+public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.Api
+public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.Realize
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ApiWatch
+public import Spec.go_etcd_io.etcd.client.v3.ApiLease
 public import Spec.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Api
 public import GeneratedProof.google_golang_org.grpc.health
 public import GeneratedProof.google_golang_org.grpc.health.grpc_health_v1
@@ -106,15 +142,15 @@ client maps (`Rpctypes.mapped`). -/
 def indefMsg (msg : GoString) : Prop :=
   ∀ e : EtcdErr, Rpctypes.mapped e = true → msg = Rpctypes.desc e → e.indefinite = true
 
-/-- **Slot (3h)**: the content `c` of a request of method `m` models `rq`. -/
-opaque reqModels (m : GoString) (c : Content) (rq : Req) : Prop
+/-- The content `c` of a request of method `m` models `rq` (3h's `EtcdServerPb.reqModels`). -/
+def reqModels (m : GoString) (c : Content) (rq : Req) : Prop := EtcdServerPb.reqModels m c rq
 
-/-- **Slot (3h)**: the content `c` of a reply of method `m` carries the success body `b` (the
-reply's header revision the body's; the other header fields any). -/
-opaque replyModels (m : GoString) (b : RespBody) (c : Content) : Prop
+/-- The content `c` of a reply of method `m` carries the success body `b` (the reply's header
+revision the body's; the other header fields any; 3h's `EtcdServerPb.replyModels`). -/
+def replyModels (m : GoString) (b : RespBody) (c : Content) : Prop := EtcdServerPb.replyModels m b c
 
-/-- **Slot (3h)**: the content `c` of a `RangeStreamResponse` carries the chunk `m`. -/
-opaque chunkModels (c : Content) (m : RangeRespM) : Prop
+/-- The content `c` of a `RangeStreamResponse` carries the chunk `m` (3h's). -/
+def chunkModels (c : Content) (m : RangeRespM) : Prop := EtcdServerPb.chunkModels c m
 
 /-- **The outcome a member sends for the answer `res`** of a request of method `m`. -/
 def ansOutcome (m : GoString) (rq : Req) (res : Resp) (o : Outcome) : Prop :=
@@ -192,9 +228,52 @@ opaque streamsMapAt (sm : Loc) : IProp GF := iprop(True)
 /-- A `*cancellableContext` over `parent` (persistent). -/
 opaque cctxAt (c : Loc) (parent : GoInterface) : IProp GF := iprop(True)
 
-/-- **Slot (2c/3d)**: a request with incoming metadata `md` is authenticated as `who` (or refused
-with a refusal: an invalid token). -/
+/-- **A request with incoming metadata `md` is authenticated as `who`** (persistent; 2a's, realized
+over 3d's auth store): its `token` (else `authorization`, `Bearer ` trimmed) a token the cluster
+issued to `who` (W0's `tokenUser`), or no token and `who` the principal of the connections that send
+`md` (`none`, or under `--client-cert-auth` their certificate's name); an invalid token is refused.
+Every connection sending `md` has a client certificate naming `who` or none (W0's round-5 scope:
+one identity per client, `connOk`'s premise): what `reqPrin_of_md`'s `tls` relies on.
+Introduced by the client (`mdPrin_of`); eliminated by the member (`reqPrin_of_md`). -/
 opaque mdPrin (γ : Cluster) (md : MD) (who : Principal) : IProp GF := iprop(True)
+
+/-- **Slot (1c)**: the metadata `mdc` a client of default principal `dflt` adds through its per-RPC
+credentials (its token bundle: `token: tok` with 1c's `tokFor γ dflt tok`, or nothing). What 1c's
+dial passes as grpc's `R` (`connAt`'s, `perRPCAt`'s), persistent. -/
+opaque credMD (γ : Cluster) (dflt : Principal) (mdc : MD) : IProp GF := iprop(True)
+
+/-- **The client side of the principal**: a request sent with `ctx` (W0's `ctxPrin dflt ctx p`,
+outgoing metadata `md0`) by a client of default principal `dflt` (credentials adding `mdc`) arrives
+with metadata `md` (grpc's `mdSeen`) authenticated as `p`. -/
+def mdPrin_of.spec : Prop := ∀ (γ : Cluster) (dflt p : Principal) (ctx : GoInterface)
+    (md0 mdc md : MD),
+  ctxPrin (GF := GF) dflt ctx p ∗ outMD ctx md0 ∗ credMD γ dflt mdc ∗ ⌜mdSeen (md0 ++ mdc) md⌝ ⊢
+    mdPrin γ md p
+
+/-- **The member side of the principal** (2c's request, round 1, item 1): a run's context with
+metadata authenticated as `who` has 2c's `reqPrin` of `who`, its certificate's name none or `who`
+(`mdPrin`'s scope). -/
+def reqPrin_of_md.spec : Prop := ∀ (γ : Cluster) (ctx : GoInterface) (md : MD) (who : Principal),
+  rpcCtx (GF := GF) ctx md ∗ mdPrin γ md who ⊢
+    ∃ tls : Principal, reqPrin ctx who tls ∗ ⌜tls = none ∨ tls = who⌝
+
+/-- **A run's context is a request context the server's methods take** (4b's request,
+`req/google_golang_org_grpc.md`, "from 4b"): no `traceutil` trace (grpc never sets etcd's
+`TraceKey{}`), its otel span (set by the `otelgrpc` stats handler, or none) usable. -/
+def rpcCtx_reqCtxOk.spec : Prop := ∀ ctx md, rpcCtx (GF := GF) ctx md ⊢ reqCtxOk ctx
+
+/-- **The contexts without incoming metadata** (2c's `ctxNoIncoming`, the internal requesters') carry
+none and no peer (3d's `AuthInfoFromCtx`/`AuthInfoFromTLS` on `s.ctx`). -/
+def ctxNoIncoming_inMD.spec : Prop := ∀ ctx,
+  ctxNoIncoming (GF := GF) ctx ⊢ ctxInMD ctx none ∗ ctxPeerCN ctx none
+
+/-- **The update of a call by `p` with the read window `lo`** (W0's `Step`'s `lo`; persistent if
+`rep`). 1c's `callAU` is `etcdAU … 0`. -/
+def etcdAU (γ : Cluster) (p : Principal) (rq : Req) (rep : Bool) (lo : Nat)
+    (Q : State → State → Resp → IProp GF) : IProp GF :=
+  iprop(□?rep AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
+        <{ ∀∀ (σ' : State) (res : Resp), ⌜Step p rq σ σ' res lo⌝ ∗ etcdState γ σ',
+           COMM Q σ σ' res }>)
 
 /-- **The contract of etcd's unary method `m`** (see the header). -/
 def leaseFact (γ : Cluster) (ep : GoString) (rq : Req) (vi : Option Nat) (σ σ' : State) (res : Resp) :
@@ -219,12 +298,13 @@ def firedAns (res : Resp) : Prop :=
 lease requests carry the member's lease view (`leaseFact`, W0's `leaseViewLb γ ep`). -/
 def etcdUnary (γ : Cluster) (ep : GoString) (m : GoString) : UnarySpec (GF := GF) :=
   fun md c Φ => iprop(∃ (who : Principal) (rq : Req) (rep : Bool) (Q : State → State → Resp → IProp GF)
-      (vi : Option Nat),
-    ⌜reqModels m c rq ∧ (rq.isRead = true → rep = true)⌝ ∗ mdPrin γ md who ∗ callAU γ who rq rep Q ∗
+      (vi : Option Nat) (lo : Nat),
+    ⌜reqModels m c rq ∧ (rq.isRead = true → rep = true)⌝ ∗ mdPrin γ md who ∗ authLb γ lo ∗
+    reqRight γ rq ∗ etcdAU γ who rq rep lo Q ∗
     (match vi with | some i => leaseViewLb γ ep i | none => iprop(True)) ∗
     ((∀ (σ σ' : State) (res : Resp) (o : Outcome), ⌜firedAns res ∧ ansOutcome m rq res o⌝ -∗
         Q σ σ' res -∗ leaseFact γ ep rq vi σ σ' res -∗ Φ o) ∧
-     (callAU γ who rq rep Q -∗ ∀ (e : EtcdErr) (code : w32),
+     (etcdAU γ who rq rep lo Q -∗ ∀ (e : EtcdErr) (code : w32),
         ⌜(errRetryAuth e = true ∨ e = .notSupportedForLearner) ∧ (code = Rpctypes.code e ∨ code = Grpc.cUnknown)⌝ -∗
         Φ (.status code (Rpctypes.desc e))) ∧
      (∀ (code : w32) (msg : GoString), ⌜indefMsg msg⌝ -∗ Φ (.status code msg))))
@@ -244,11 +324,10 @@ opaque rsChunk (g : StreamName) (j : Nat) (m : RangeRespM) : IProp GF := iprop(T
 chunks make (`streamMatches`), or a linearized error, or (after a chunk) `ErrCompacted` with no `Q`
 (the pinned revision compacted between chunks), or a status that settles nothing. -/
 def rangeStreamSpec (γ : Cluster) : StreamSpec (GF := GF) where
-  up := fun g md i c => iprop(⌜i = 0⌝ ∗ ∃ (who : Principal) (r : RangeReq) (Q : State → State → Resp → IProp GF),
+  up := fun g md i c => iprop(⌜i = 0⌝ ∗ ∃ (who : Principal) (r : RangeReq) (Q : State → State → Resp → IProp GF)
+      (lo : Nat),
     ⌜reqModels go!"/etcdserverpb.KV/RangeStream" c (.range r)⌝ ∗ mdPrin γ md who ∗ rsReq g who r Q ∗
-    □ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-        <{ ∀∀ (σ' : State) (res : Resp), ⌜Step who (.range r) σ σ' res⌝ ∗ etcdState γ σ',
-           COMM Q σ σ' res }>)
+    authLb γ lo ∗ etcdAU γ who (.range r) true lo Q)
   dn := fun g _ j c => iprop(∃ m, ⌜chunkModels c m⌝ ∗ rsChunk g j m)
   fin := fun g _ n e => iprop(∃ (who : Principal) (r : RangeReq) (Q : State → State → Resp → IProp GF)
       (ms : List RangeRespM), rsReq g who r Q ∗ ⌜ms.length = n⌝ ∗ ([∗list] j ↦ m ∈ ms, rsChunk g j m) ∗
@@ -258,13 +337,29 @@ def rangeStreamSpec (γ : Cluster) : StreamSpec (GF := GF) where
     | some (_, msg) => (∃ (σ σ' : State) (e : EtcdErr), Q σ σ' (.err e) ∗ ⌜msg = Rpctypes.desc e⌝) ∨
         ⌜msg = Rpctypes.desc .compacted⌝ ∨ ⌜indefMsg msg⌝)
 
-/-- **`LeaseKeepAlive`'s contract**: keep-alive requests, responses about some lease with some TTL
-(W0's model: a keep-alive says nothing), nothing at the end (1c's `kaSendAt`/`kaRecvAt`). -/
+/-- **The `i`-th keep-alive request of the stream `g` asked the lease `id`** (persistent, agreeing;
+minted by the client's sending half from `kaLog`). -/
+opaque kaReq (g : StreamName) (i : Nat) (id : Int) : IProp GF := iprop(True)
+
+/-- **The keep-alive requests sent on `g` so far** (exclusive; the client's sending half holds it). -/
+opaque kaLog (g : StreamName) (ids : List Int) : IProp GF := iprop(True)
+
+/-- **`LeaseKeepAlive`'s contract**: each request recorded (`kaReq`); each response about a lease
+some request asked, with some TTL (W0's model: a keep-alive says nothing else; 1c's `kaSent`, round
+1's item 4); nothing at the end (1c's `kaSendAt`/`kaRecvAt`). -/
 def kaSpec (γ : Cluster) : StreamSpec (GF := GF) where
-  up := fun _ _ _ c => iprop(∃ (id : Int),
-    ⌜reqModels go!"/etcdserverpb.Lease/LeaseKeepAlive" c (.leaseKeepAlive id)⌝)
-  dn := fun _ _ _ _ => iprop(True)
+  up := fun g _ i c => iprop(∃ (id : Int),
+    ⌜reqModels go!"/etcdserverpb.Lease/LeaseKeepAlive" c (.leaseKeepAlive id)⌝ ∗ kaReq g i id)
+  dn := fun g _ _ c => iprop(∃ (id ttl : Int) (i : Nat),
+    ⌜replyModels go!"/etcdserverpb.Lease/LeaseKeepAlive" (.leaseKeepAlive id ttl) c⌝ ∗ kaReq g i id)
   fin := fun _ _ _ _ => iprop(True)
+
+def kaLog_alloc.spec : Prop := ∀ g, streamKey (GF := GF) g ⊢ |==> kaLog g []
+def kaLog_add.spec : Prop := ∀ g ids id,
+  kaLog (GF := GF) g ids ⊢ |==> kaLog g (ids ++ [id]) ∗ kaReq g ids.length id
+def kaReq_lookup.spec : Prop := ∀ g ids i id,
+  kaLog (GF := GF) g ids ∗ kaReq g i id ⊢ ⌜ids[i]? = some id⌝
+def kaReq_persistent.spec : Prop := ∀ g i id, Persistent (kaReq (GF := GF) g i id)
 
 /-- **`Snapshot`'s contract**: the backend's bytes, nothing modelled. -/
 def snapSpec : StreamSpec (GF := GF) where
@@ -272,10 +367,59 @@ def snapSpec : StreamSpec (GF := GF) where
   dn := fun _ _ _ _ => iprop(True)
   fin := fun _ _ _ _ => iprop(True)
 
-/-- **Slot (2b)**: the `Watch` stream's contract (2b's handler, 1b's client:
-`Spec/go_etcd_io/etcd/client/v3/ApiWatch.lean`'s wire protocol). -/
-opaque watchSpec (γ : Cluster) : StreamSpec (GF := GF) :=
-  { up := fun _ _ _ _ => iprop(True), dn := fun _ _ _ _ => iprop(True), fin := fun _ _ _ _ => iprop(True) }
+/-- **The `i`-th request of the watch stream `g` is `r`** (persistent, agreeing; minted by the
+client's sending half, 1b's `wireWatchSend`). -/
+opaque wsReq (g : StreamName) (i : Nat) (r : WireWatchReq) : IProp GF := iprop(True)
+
+/-- **After `j` responses the client's state of the watch stream `g` is `sst`** (persistent,
+agreeing; `wsSt g 0 WireSt.init`; minted by the server's sending half, 2b's `srvWatchSend`). -/
+opaque wsSt (g : StreamName) (j : Nat) (sst : WireSt) : IProp GF := iprop(True)
+
+/-- **The watch stream `g` was opened as the principal `who`** (persistent, agreeing; minted by the
+client from `streamKey g`). -/
+opaque wsWho (g : StreamName) (who : Principal) : IProp GF := iprop(True)
+
+/-- **The `Watch` stream's contract** (2b's handler, 1b's client: 1b's wire protocol `wireStep`,
+`Spec/go_etcd_io/etcd/client/v3/ApiWatch.lean`): each request a wire request, recorded; each
+response a `wireStep` of the stream's principal from the state the earlier responses made, after
+requests that were sent, against reached states; nothing at the end. -/
+def watchSpec (γ : Cluster) : StreamSpec (GF := GF) where
+  up := fun g _ i c => iprop(∃ r : WireWatchReq, ⌜EtcdServerPb.watchReqHolds c r⌝ ∗ wsReq g i r)
+  dn := fun g _ j c => iprop(∃ (who : Principal) (m : WireWatchRespM) (σ σa : State)
+      (rs : List WireWatchReq) (sst sst' : WireSt),
+    ⌜EtcdServerPb.watchRespHolds c m ∧ wireStep who σ σa rs sst m sst'⌝ ∗ wsWho g who ∗
+    etcdLb γ σ ∗ etcdLb γ σa ∗ ([∗list] i ↦ r ∈ rs, wsReq g i r) ∗ wsSt g j sst ∗ wsSt g (j + 1) sst')
+  fin := fun _ _ _ _ => iprop(True)
+
+def watchSpec_records.spec : Prop :=
+  (∀ g i r, Persistent (wsReq (GF := GF) g i r)) ∧ (∀ g j s, Persistent (wsSt (GF := GF) g j s)) ∧
+  (∀ g w, Persistent (wsWho (GF := GF) g w)) ∧
+  (∀ g i r r', wsReq (GF := GF) g i r ∗ wsReq g i r' ⊢ ⌜r = r'⌝) ∧
+  (∀ g j s s', wsSt (GF := GF) g j s ∗ wsSt g j s' ⊢ ⌜s = s'⌝) ∧
+  (∀ g w w', wsWho (GF := GF) g w ∗ wsWho g w' ⊢ ⌜w = w'⌝) ∧
+  (∀ g, ⊢ wsSt (GF := GF) g 0 WireSt.init)
+
+/-- **A watch run opens 2b's server end** (2a's obligation, with 3h's `_Watch_Watch_Handler`'s
+wrapper `x`, its points-to `GenericServerStream.mk st` held as grpc's `genSrvAt`): grpc's halves of a run of `watchSpec γ` are 2b's slots on the wrapper, for the
+stream's principal and fresh names; the realization of 2b's slots is grpc's halves with the
+records above (`srvWatchRecv_recv` from `srvRecv_recv` and `up`, `srvWatchSend_send` from
+`srvSend_send` and `dn`, `srvWatchRecvdLb_sent` from `wsReq`). The end is `watchSpec`'s trivial
+`fin` with 2b's error shape (`WatchServer.WatchTriple`). -/
+def watchRun_open.spec : Prop := ∀ (γ : Cluster) (x : Loc) (ctx st : GoInterface) (md : MD)
+    (g : StreamName),
+  genSrvAt x st go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest.ty
+      go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty ∗
+    rpcCtx ctx md ∗ srvCtxOf st ctx md ∗ srvRecv st g (watchSpec γ) md 0 ∗ srvSend st g (watchSpec γ) md 0 ⊢
+  |==> ∃ (who : Principal) (gw : WatchStreamNames),
+    srvWatchStreamAt (interface.mkOk (go.GoType.PointerType (google_golang_org.grpc.GenericServerStream.ty
+      go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)) #x)
+      γ who gw ∗
+    srvWatchRecv (interface.mkOk (go.GoType.PointerType (google_golang_org.grpc.GenericServerStream.ty
+      go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)) #x)
+      gw [] ∗
+    srvWatchSend (interface.mkOk (go.GoType.PointerType (google_golang_org.grpc.GenericServerStream.ty
+      go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)) #x)
+      γ who gw WireSt.init
 
 /-- **etcd's contracts** at a member's client address: every unary method of the KV, Lease,
 Cluster, Maintenance and Auth services, and the four streams. -/
@@ -358,14 +502,11 @@ the final chunk only). -/
 def rsChunk_hdr_last.spec : Prop := ∀ g j j' (m m' : RangeRespM),
   rsChunk (GF := GF) g j m ∗ ⌜m.hdr ≠ none⌝ ∗ rsChunk g j' m' ⊢ ⌜j' ≤ j⌝
 
-/-- **A server error `togRPCError` can take** (persistent; round 1, provability F6): a context's
-error; or a comparable error that is no status and no context's error, printing `m`, which is
-either `e`'s server-side error (`srvErrOf`) or unmapped with a message settling nothing. 2c's error
-outcomes carry it (`req/go_etcd_io_etcd_server_v3_etcdserver.md`, "from 2a, round 1"). -/
-def srvErrOk (err : GoInterface) : IProp GF :=
-  iprop(context.isCtxErr err ∨
-    ((context.isCtxErr err -∗ False) ∗ (∀ c m, statusErr err c m -∗ False) ∗ ⌜cmpErr err⌝ ∗
-      ∃ m, errMsg err m ∗ ((∃ e, ⌜srvErrOf err e⌝) ∨ ⌜(∀ e, ¬ srvErrOf err e) ∧ indefMsg m⌝)))
+/-- **A server error `togRPCError` can take**: 2c's `srvErrShape` (integration I3: identified; was
+2a's own predicate, round 1, provability F6). `togRPCError`'s proof needs two facts `srvErrShape`
+does not state yet (requested of I4): a mapped leaf and an unmapped error are comparable (`cmpErr`:
+the `toGRPCErrorMap` lookup), and an unmapped error's message settles nothing (`indefMsg`). -/
+abbrev srvErrOk (err : GoInterface) : IProp GF := srvErrShape err
 
 /-- **Slot (2e)**: a `storage.Quota` value (its `Available(r)` returns a boolean, no panic). -/
 opaque quotaOk (q : GoInterface) : IProp GF := iprop(True)

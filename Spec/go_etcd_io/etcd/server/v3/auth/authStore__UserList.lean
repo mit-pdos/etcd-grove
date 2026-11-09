@@ -3,7 +3,7 @@
 
 **Users.** `applierV3backend.UserList` (`apply/backend.go:255`). Snippet: `examples/specreq/auth/admin.go` (`ReqAdminSteps`).
 
-**Proof sketch.** `as.be.GetAllUsers()` (4b), the names copied. No state change. The step's state, `storeNext` (the code's function of the request, its
+**Proof sketch.** `as.be.GetAllUsers()` (4b: the read transaction, each record once in some order, `Schema.entsAny`; no batch lock: `Pre` back), the names copied. No state change. The step's state, `storeNext` (the code's function of the request, its
 credential and `a`), is recorded at index `i + 1` (`authCur`), every view at it when the call
 returns; its answer is one W0's `authStep` gives (`storeNext_adm`).
 

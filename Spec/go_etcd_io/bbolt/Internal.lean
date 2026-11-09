@@ -294,6 +294,32 @@ variable {GF : BundledGFunctors}
 `NodeR.emptyLeaf` root, outside any transaction's node cache (exclusive). -/
 opaque emptyBkt [HasExt osFsExt] [hG : HeapGS HasLC.hasLC GF] (b : Loc) : IProp GF := iprop(True)
 
+/-- (internal) `v` is the value `tx`'s view stores for the bucket at `p` (persistent: 4d's
+`encInBucket` of its header, then, when its root is 0, its inline leaf page; in the mapping or a
+node of the writer), what `openBucket` reads through 4d's `inBucket_view` (`bucketHeaderSize ≤`
+its length). -/
+opaque bktVal [HasExt osFsExt] [hG : HeapGS HasLC.hasLC GF] (tx : Loc) (γ : BoltName) (p : BPath)
+    (v : GoSlice) : IProp GF := iprop(True)
+
+/-- (internal) A cursor's state between internal calls: positioned (`boltCur`, `.inl pos`) or the
+search path of a key, possibly past its leaf's end (`curPath`, `.inr k`: after `seek`). -/
+def curSt [HasExt osFsExt] [hG : HeapGS HasLC.hasLC GF] (tx : Loc) (γ : BoltName) (c : Loc)
+    (p : BPath) (gs : List Nat) (T : TxView) : Option Nat ⊕ GoString → IProp GF
+  | .inl pos => boltCur tx γ c p gs T pos
+  | .inr k => curPath tx γ c p gs T k
+
+/-- (internal) **What `c.seek(kb)` returns** (`k`, `v`, `fl`) in the bucket `p` of entries `es`:
+`kb`'s entry if the bucket has it (its key; a value's bytes, or a bucket's stored value `bktVal`
+with `BucketLeafFlag` set); else nil or some other key (the next entry in its leaf, if any). -/
+def seekRaw [HasExt osFsExt] [hG : HeapGS HasLC.hasLC GF] (tx : Loc) (γ : BoltName) (p : BPath)
+    (es : List CurEnt) (kb : GoString) (k v : GoSlice) (fl : w32) : IProp GF :=
+  match es.find? (fun e => decide (e.1 = kb)) with
+  | some (_, some vb) => iprop(⌜k ≠ slice.nil ∧ fl &&& BboltCommon.bucketLeafFlag = W32 0⌝ ∗
+      txBytes tx γ k kb ∗ txBytes tx γ v vb)
+  | some (_, none) => iprop(⌜k ≠ slice.nil ∧ fl &&& BboltCommon.bucketLeafFlag ≠ W32 0⌝ ∗
+      txBytes tx γ k kb ∗ bktVal tx γ (p.child kb) v)
+  | none => iprop(⌜k = slice.nil⌝ ∨ ∃ kb' : GoString, ⌜kb' ≠ kb⌝ ∗ txBytes tx γ k kb')
+
 end pages_vocab
 
 section pages_laws
@@ -307,6 +333,10 @@ gives 4d's `nodeFits` its key clause at `node.write`. -/
 def wtxCore_keys.spec [HasExt osFsExt] : Prop :=
   ∀ tx γ C, wtxCore (GF := GF) tx γ C ⊢
     ⌜∀ n N, C.nodes n = some N → ∀ i ∈ N.inodes, i.key ≠ []⌝
+
+/-- (internal) `bktVal` is persistent. -/
+def bktVal_persistent.spec [HasExt osFsExt] : Prop :=
+  ∀ tx γ p v, Persistent (bktVal (GF := GF) tx γ p v)
 
 end pages_laws
 

@@ -38,11 +38,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`s.RoleRevokePermission(ctx, r)`**, as `Put`. -/
 def EtcdServer.RoleRevokePermission.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (p tls : Principal) (r : Loc) (dq : DFrac) (role : GoString) (key rangeEnd : Bytes),
+  ∀ (s : Loc) (γ : Cluster) (q : Qp) (ctx : GoInterface) (p tls : Principal) (r : Loc) (dq : DFrac) (role : GoString) (key rangeEnd : Bytes),
   SrvCallTriple (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"RoleRevokePermission")) (Val #ctx)) (Val #r))
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ srvGate s q ∗
         Context.ctxOk ctx ∗ reqCtxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ ClientV3.reqOwn r dq (.roleRevokePermission role key rangeEnd))
-    iprop(threadTok ∗ ClientV3.reqOwn r dq (.roleRevokePermission role key rangeEnd)) γ p tls (.roleRevokePermission role key rangeEnd) false (ClientV3.ansReply)
+    iprop(srvGate s q ∗ threadTok ∗ ClientV3.reqOwn r dq (.roleRevokePermission role key rangeEnd)) γ p tls (.roleRevokePermission role key rangeEnd) false (ClientV3.ansReply)
 
 end spec
 end EtcdServer

@@ -112,7 +112,14 @@ fields the getters read. `coreInv r γ id o` is the node's share of the cluster 
    `appendEntry` from their own Go steps, so every term is at most the receipts taken plus one (the
    bootstrap's term 1) and every index at most the receipts taken; the execution's bound
    (`receiptBound`, at most `2^63`, so that R3's `lastIndex < 2^63` premises hold too) enters at R1's
-   `cluster_alloc` (requested in `req/go_etcd_io_raft_v3.md`).
+   `cluster_alloc` (requested in `req/go_etcd_io_raft_v3.md`; an open user decision, stated in
+   `cluster_alloc.spec`'s docstring). The same bound is the intended source of **the sort bound**
+   R4's specs take (`Visit`, `QuorumActive`, `VoterNodes`, `Committed`, `ConfState`,
+   `CommittedIndex`: `GMap.size … ≤ Quorum.sortMax`, `2^62`): a committed configuration has at most
+   the bootstrap peers plus one id per committed conf entry, each costing receipts (R4's question 2;
+   the alternative, a bound in `Membership.Valid` with `changeV2` refusing past it, is R4's). Until
+   then the sketches of `bcastAppend`, `bcastHeartbeatWithCtx`, `reset`, `maybeCommit`, `poll` that
+   call those specs rest on it (integration I2).
 6. **The `Ready` phases**: `readyFresh rn γ id k adv rd` is `rawNodeAt` with `rd` the `Ready` the
    current state gives (its slices raft's, until `ready_handout` moves them to the client);
    `readyKept rn k rd` keeps no claim on `rd`'s memory (`rd.Messages` aliases `r.msgs`, which a later
@@ -267,9 +274,6 @@ def trkResult (cfg : go_etcd_io.raft.v3.tracker.Config) (trk : GoMap) (m : Membe
   iprop(Tracker.configOwn cfg (DFrac.own 1) m ∗
     ∃ prs pv, Tracker.progressMapOwn trk prs pv ∗ ⌜Tracker.TrackerOk m pv⌝)
 
-/-- The raft struct's `trk` field. -/
-def trkLoc (r : Loc) : Loc := structFieldRef go_etcd_io.raft.v3.raft go!"trk" r
-
 /-! ## The raft struct -/
 
 /-- **The raft struct `r` of node `id` of `γ`**, of which its callers read `ρ`. Exclusive. -/
@@ -395,7 +399,7 @@ votes. `switchToConfig` takes it with the old tracker's shell (`trkShell`), afte
 `Changer` consumed the old progress map (`applyConfChange`) or while `Restore` built a new one on a
 fresh tracker (`appliedSnap`, `newRaft`). (Integration I2.) -/
 def raftTrkOpen (r : Loc) (γ : Cluster) (id : w64) (o : CoreOpen) : IProp GF :=
-  iprop(∀ T : Tracker.TrackerV, Tracker.progressTracker (trkLoc r) T -∗
+  iprop(∀ T : Tracker.TrackerV, Tracker.progressTracker (structFieldRef go_etcd_io.raft.v3.raft go!"trk" r) T -∗
     raftOpen r γ id { o with conf := T.conf, view := { o.view with prs := T.prs }, votes := T.votes })
 
 /-- (internal) **The tracker's shell**: the `ProgressTracker` struct at `t` (its `Config` and
@@ -493,7 +497,14 @@ when no snapshot came), the raft struct and the queued acknowledgements (each re
 none unless `adv`); given back the struct (any view), the field at an emptied slice of the same
 array and an `ackDone` for each, R1's `Advance` post: no acknowledgement queued, the driver's
 snapshot done, the applied index at the delivered log, the view kept or (after a snapshot) any
-committed configuration point at or after the snapshot's index the client chooses. -/
+committed configuration point at or after the snapshot's index the client chooses.
+Realization against R3's log laws (integration I2): the opening folds the written batch into the
+log (`raftLog_absorb`: R1's `readyStor rn none j []` is R3's `logPending h false false`), so the
+log has `handing = false` when the acknowledgements are stepped (R3's `StableOk` and `SnapAckOk`
+require it); the closing publishes the applied index as a floor (`raftLog_publish`: each delivered
+entry was written in this batch or an earlier one and is committed, so frozen, or is stable with
+nothing pending), which is R1's `appliedLb` (R3's `∃ t, logFloor l i t`, with `logFloor_agree` tying
+its term to the committed log for `stor_createSnapshot`). -/
 def rawNodeAt_advance.spec : Prop :=
   ∀ rn γ id k adv (st : Driver) (j : Nat) (v : ConfView),
     rawNodeAt (GF := GF) rn γ id k adv ∗ nodeDriver rn γ st ∗ readyStor rn none j [] ∗
@@ -593,7 +604,7 @@ helpers' `Progress` updates, `applyConfChange`'s `Changer`, `switchToConfig`). (
 sketches used R4's tracker specs with no way to reach the tracker.) -/
 def raftOpen_trk.spec : Prop :=
   ∀ r γ id o, raftOpen (GF := GF) r γ id o ⊢
-    ∃ T : Tracker.TrackerV, Tracker.progressTracker (trkLoc r) T ∗
+    ∃ T : Tracker.TrackerV, Tracker.progressTracker (structFieldRef go_etcd_io.raft.v3.raft go!"trk" r) T ∗
       ⌜T.conf = o.conf ∧ T.prs = o.view.prs ∧ T.votes = o.votes⌝ ∗ raftTrkOpen r γ id o
 
 /-- (internal) A read-only share of an opened struct. -/

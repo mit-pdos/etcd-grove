@@ -56,15 +56,15 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 (`streamMatches`); or an error: the first page's answer (fired, nothing sent), a stale auth revision
 after the sends (no `Q`), a compaction of the pinned revision (no `Q`), outcomes 2 and 3. -/
 def EtcdServer.RangeStream.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (p tls : Principal) (lo : Nat) (r : Loc) (rm : RangeReq)
+  ∀ (s : Loc) (γ : Cluster) (q : Qp) (p tls : Principal) (lo : Nat) (r : Loc) (rm : RangeReq)
     (rs : GoInterface) (Q : State → State → Resp → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ threadTok ∗ rangeReqOwn r (DFrac.own 1) rm ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ srvGate s q ∗ threadTok ∗ rangeReqOwn r (DFrac.own 1) rm ∗
       ⌜rm.key ≠ [] ∧ rm.validSort ∧ rangeStreamOk rm⌝ ∗ rsSink rs γ p tls rm [] ∗ authLb γ lo ∗
       □ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
         <{ ∀∀ (σ' : State) (res : Resp), ⌜srvStep p tls (.range rm) σ σ' res lo⌝ ∗ etcdState γ σ',
            COMM Q σ σ' res }> }}
     (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"RangeStream")) (Val #r)) (Val #rs))
-  {{ (err : GoInterface), RET #err; threadTok ∗ (∃ rm', rangeReqOwn r (DFrac.own 1) rm') ∗
+  {{ (err : GoInterface), RET #err; srvGate s q ∗ threadTok ∗ (∃ rm', rangeReqOwn r (DFrac.own 1) rm') ∗
       ∃ ms, rsSink rs γ p tls rm ms ∗
       ((⌜err = GoInterface.nil⌝ ∗ ∃ σ σ' rev a, Q σ σ' (.ok (.range rev a)) ∗
           ⌜ClientV3.streamMatches rm ms rev a⌝) ∨

@@ -42,7 +42,7 @@ variable [ctx_sem : context.Assumptions]
 /-- `RawNode.Ready`: what a node's `Ready` receive gives. -/
 def RawNode.Ready.spec : Prop :=
 
-  ∀ (rn : Loc) (γ : Cluster) (id : w64) (k : Nat) (adv : Bool) (st : Driver),
+  ∀ (rn : Loc) (γ : Cluster) (id : w64) (k : Nat) (st : Driver),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ rawNodeAt rn γ id k false ∗ nodeDriver rn γ st }}
     (App (Val (rn @!! go.GoType.PointerType go_etcd_io.raft.v3.RawNode.ty @!! go!"Ready")) (Val #()))
   {{ (rd : go_etcd_io.raft.v3.Ready), RET #rd; rawNodeAt rn γ id (k + 1) true ∗ readyGot rn γ id st rd }}

@@ -40,7 +40,11 @@ may); the pure models are transparent, the resources opaque.
   them (`newMetricsTxnRead`/`Write`).
 * `compactJobRes s γ c prev` (exclusive): what a scheduled compaction job at `c` (previous
   compaction `prev`) runs with (the safe-range right, the storage's batch lock's resources, a
-  reader slot, the job's receipts): `store.compact` schedules it.
+  share of the storage's open token `kbOpen` (the lock rows and `ForceCommit` take one), a reader
+  slot, the job's receipts): `store.compact` schedules it. The store's realization keeps
+  `mvccStorageFor`'s `kbOpen B 1` split among its own users (the job, `s.mu`'s writer `storeWB`, the
+  reader tokens a write transaction locks with, `mvccBackend`'s shares) and reassembles it for
+  `storageRest` (`Restore`, `mvccClosed_rest`, after `Close`/`Restore` waited out the job).
 * `isHasher h c r keep dq` (`kvHasher`'s fields), `isHashStorageAt hs s γ`.
 -/
 module

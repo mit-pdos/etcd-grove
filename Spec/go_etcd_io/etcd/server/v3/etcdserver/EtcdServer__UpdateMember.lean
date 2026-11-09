@@ -43,7 +43,7 @@ def EtcdServer.UpdateMember.spec : Prop :=
            COMM Q σ σ' res }> }}
     (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"UpdateMember")) (Val #ctx)) (Val #memb))
   {{ (sl : GoSlice) (err : GoInterface), RET (PairV #sl #err); srvGate s q ∗ threadTok ∗
-      ((∃ σ σ' res, Q σ σ' res ∗ ((∃ l : List Member, ⌜respMembers res = some l ∧ err = GoInterface.nil⌝ ∗
+      ((∃ σ σ' res, ⌜srvFiredAns res⌝ ∗ Q σ σ' res ∗ ((∃ l : List Member, ⌜respMembers res = some l ∧ err = GoInterface.nil⌝ ∗
           ∃ ms, Membership.membersOwn sl ms ∗ ⌜ms.Perm l⌝) ∨
        (∃ e, ⌜res = .err e⌝ ∗ ⌜srvErrOf err e⌝))) ∨
        (⌜srvUnfired err⌝ ∗ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅

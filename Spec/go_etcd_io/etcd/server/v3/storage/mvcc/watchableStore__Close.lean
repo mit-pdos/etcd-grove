@@ -6,10 +6,12 @@ interface's `Close` contract (3e's) at the watchable store.
 close). Snippet: `mvccwatch/store.go` `ReqClose`.
 
 **Proof sketch.** `close(s.stopc)` (the open token: a second `Close` panics); `s.wg.Wait()` (each
-loop exits at `stopc`, depositing its reader resources at `Done`: Perennial's wait group backed by
-the two goroutines); `s.store.Close()` (3e's); `mvccClosed` gathers both (`oneshot-close.md`: a
-closer gives back what the goroutines it waits for held; 3e's `mvccClosed_rest` then gives the
-storage's rest with every reader token).
+loop exits at `stopc`, between passes, so with no borrowed slot, depositing its share at `Done`:
+Perennial's wait group backed by the two goroutines); `s.store.Close()` (3e's `store.Close.spec`, the
+contract at `*store`: `mvccClosed`); the loops' shares dropped (their slots never left the store's
+invariant: `oneshot-close.md`, a closer gives back what the goroutines it waits for held; 3e's
+`mvccClosed_rest` then gives the storage's rest, `kbRdToks B (mvccReaderN - m)`, the loops' slots
+among `mvccOwnN`'s).
 
 **Changes** from `specs-ref`'s file: the canonical instance of 3e's restated contract.
 

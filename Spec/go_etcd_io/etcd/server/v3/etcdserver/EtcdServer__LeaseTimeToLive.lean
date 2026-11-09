@@ -47,11 +47,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`s.LeaseTimeToLive(ctx, r)`**: lease `id`'s remaining and granted TTL (and its keys), from the leader's lessor (forwarded if this member is not the leader); the update fired at the return. -/
 def EtcdServer.LeaseTimeToLive.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (p tls : Principal) (r : Loc) (dq : DFrac) (id : Int) (keys : Bool),
+  ∀ (s : Loc) (γ : Cluster) (q : Qp) (ctx : GoInterface) (p tls : Principal) (r : Loc) (dq : DFrac) (id : Int) (keys : Bool),
   SrvCallTriple (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"LeaseTimeToLive")) (Val #ctx)) (Val #r))
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ srvGate s q ∗
         Context.ctxOk ctx ∗ reqCtxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ ClientV3.reqOwn r dq (.leaseTimeToLive id keys))
-    iprop(threadTok ∗ ClientV3.reqOwn r dq (.leaseTimeToLive id keys)) γ p tls (.leaseTimeToLive id keys) false (ClientV3.ansReply)
+    iprop(srvGate s q ∗ threadTok ∗ ClientV3.reqOwn r dq (.leaseTimeToLive id keys)) γ p tls (.leaseTimeToLive id keys) false (ClientV3.ansReply)
 
 end spec
 end EtcdServer

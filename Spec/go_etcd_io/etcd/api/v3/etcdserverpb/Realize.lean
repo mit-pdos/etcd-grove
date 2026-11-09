@@ -13,6 +13,15 @@ and import this module.
 realization of `watchReqOwn`, `wireWatchRespOwn`), not restated here. A create's raw key `""` models
 the key `"\x00"` (`createRange`), as 1b asked (round 1, item 4).
 
+**Integration I3**: 1b's watch messages (`EventM`, `WireWatchReq`, `WireWatchRespM`, `eventOwn`,
+`watchReqOwn`, `wireWatchRespOwn`) now live in W0's `api/v3/Wire.lean`; this module realizes them
+there as before (`*_msgAt` below). W0's new laws `eventOwn_persist`, `eventOwn_discard_persistent`
+and `msgOwn_discard_persistent` (integration I1) are this batch's obligations too: each message
+predicate is `∃ c, Proto.msgAt T p dq c ∗ ⌜holds c m⌝` (the relation laws), and `Proto.msgAt`'s
+`persist` and its persistence at `DFrac.discard` (`Proto/Api.lean`) give them (`protoRest` likewise:
+the bookkeeping fields under `msgAt`). 2a's `watchSpec` (`v3rpc/Api.lean`) is stated over
+`watchReqHolds`/`watchRespHolds`.
+
 **Intended realization**: as `Api.lean`'s (each predicate the field-level predicate of its unfold
 law; `msgAt` of each type the same; each relation "the content's fields are the model's").
 

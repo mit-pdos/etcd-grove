@@ -3,7 +3,7 @@
 
 **Users.** `applierV3backend.RoleList` (`apply/backend.go:263`). Snippet: `examples/specreq/auth/admin.go` (`ReqAdminSteps`).
 
-**Proof sketch.** `as.be.GetAllRoles()` (4b: the batch transaction's, which works; `nonissues/etcd-auth-readtx-getallroles-panics.md` is the read transaction's), names copied. No state change. The step's state, `storeNext` (the code's function of the request, its
+**Proof sketch.** `as.be.GetAllRoles()` (4b: the batch transaction's, under `LockInsideApply`, so the post-lock hook runs from `Pre`, `authHook`; it works; `nonissues/etcd-auth-readtx-getallroles-panics.md` is the read transaction's), names copied. No state change. The step's state, `storeNext` (the code's function of the request, its
 credential and `a`), is recorded at index `i + 1` (`authCur`), every view at it when the call
 returns; its answer is one W0's `authStep` gives (`storeNext_adm`).
 

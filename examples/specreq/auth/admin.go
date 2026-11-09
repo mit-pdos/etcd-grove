@@ -18,7 +18,8 @@ import (
 // Users: apply/backend.go:139-263 (applierV3backend's auth methods), behind apply/auth.go:52.
 // Assumes: the apply thread, the store's only writer (authCur); each step is the committed
 // entry's (its one next state, storeNext, reached; its records fit); hashed is b64 of a hash of
-// some password (W0's pwHash); no user "u" or role "r" before; name "nobody" never added.
+// some password (W0's pwHash); no user "u" or role "r" before; name "nobody" never added; the
+// backend's post-lock hook for each batch lock (authHook: the applier's, from the apply loop).
 // Specs: authStore.{RoleAdd,UserAdd,UserGrantRole,UserGet,HasRole,UserDelete,RoleGrantPermission,
 // AuthEnable,AuthDisable,IsAuthEnabled}.spec
 // (AdminTriple, storeNext, admStep); laws: authCur_at.
@@ -58,7 +59,8 @@ func ReqAdminSteps(as etcdauth.AuthStore, hashed string) {
 // user never passes.
 // Users: v3_server.go:893 (EtcdServer.UserAdd hashes and encodes), :853 (Authenticate's
 // CheckPassword); apply/backend.go:167.
-// Assumes: the apply thread adds the user (no user "v" before); auth is on and stays on, and no
+// Assumes: the apply thread adds the user (no user "v" before; the post-lock hook, authHook);
+// auth is on and stays on, and no
 // other step changes "v" (the caller's workload); pw at most 72 bytes.
 // Specs: bcrypt GenerateFromPassword.spec, CompareHashAndPassword.spec; W0's pwHash_match;
 // authStore.BcryptCost.spec, UserAdd.spec, CheckPassword.spec.
@@ -80,7 +82,7 @@ func ReqUserAddThenCheck(as etcdauth.AuthStore, pw string) {
 // a reader's two equal Revision() reads mean no such change between the states they read.
 // Users: v3_server.go:881 (Authenticate's retry), :601,:779 (the lease checks' re-check),
 // apply/backend.go:153 (AuthStatus).
-// Assumes: the apply thread adds a new role between the two reads.
+// Assumes: the apply thread adds a new role between the two reads (with the post-lock hook).
 // Specs: authStore.Revision.spec, RoleAdd.spec; laws: authAt_reach (and W0's authStep bumps).
 func ReqRevisionBumped(as etcdauth.AuthStore) {
 	r0 := as.Revision()

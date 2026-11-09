@@ -56,11 +56,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`s.Compact(ctx, r)`**: the compaction at `rev` (not `0`), as `Put`. -/
 def EtcdServer.Compact.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (p tls : Principal) (r : Loc) (dq : DFrac) (rev : w64) (phys : Bool),
+  ∀ (s : Loc) (γ : Cluster) (q : Qp) (ctx : GoInterface) (p tls : Principal) (r : Loc) (dq : DFrac) (rev : w64) (phys : Bool),
   SrvCallTriple (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"Compact")) (Val #ctx)) (Val #r))
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ srvGate s q ∗
         Context.ctxOk ctx ∗ reqCtxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ compactReqOwn r dq (sint.Z rev) phys ∗ ⌜rev ≠ W64 0⌝)
-    iprop(threadTok ∗ compactReqOwn r dq (sint.Z rev) phys) γ p tls (.compact (sint.Z rev) phys) false (ClientV3.compactReply)
+    iprop(srvGate s q ∗ threadTok ∗ compactReqOwn r dq (sint.Z rev) phys) γ p tls (.compact (sint.Z rev) phys) false (ClientV3.compactReply)
 
 end spec
 end EtcdServer

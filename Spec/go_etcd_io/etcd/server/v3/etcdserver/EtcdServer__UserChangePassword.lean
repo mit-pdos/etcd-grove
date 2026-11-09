@@ -38,11 +38,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`s.UserChangePassword(ctx, r)`**: as `UserAdd`'s hashing, then as `Put`. -/
 def EtcdServer.UserChangePassword.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (p tls : Principal) (r : Loc) (name pw : GoString),
+  ∀ (s : Loc) (γ : Cluster) (q : Qp) (ctx : GoInterface) (p tls : Principal) (r : Loc) (name pw : GoString),
   SrvCallTriple (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"UserChangePassword")) (Val #ctx)) (Val #r))
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ srvGate s q ∗
         Context.ctxOk ctx ∗ reqCtxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ ClientV3.reqOwn r (DFrac.own 1) (.userChangePassword name pw))
-    iprop(threadTok ∗ ∃ rq', ClientV3.reqOwn r (DFrac.own 1) rq') γ p tls (.userChangePassword name pw) false (ClientV3.ansReply)
+    iprop(srvGate s q ∗ threadTok ∗ ∃ rq', ClientV3.reqOwn r (DFrac.own 1) rq') γ p tls (.userChangePassword name pw) false (ClientV3.ansReply)
 
 end spec
 end EtcdServer

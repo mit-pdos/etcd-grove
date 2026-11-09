@@ -329,7 +329,12 @@ def Durable.crashed (D : Durable) (b : Batch) (j : Nat) (hs : HardState) : Durab
 cut): what makes a restart from it safe. A node whose stored log holds two configuration changes
 above its stored commit restarts at a configuration older than its committed log, with a commit too
 low for raft's campaign guard to see the pending change, and can win an election counted in that
-older configuration (`issues/raft-commit-lost-with-entries-kept.md`, a model execution). -/
+older configuration, after which two nodes commit different entries at one index. **A real raft bug**
+(`issues/raft-commit-lost-with-entries-kept.md`: reproduced by a Go test against the pinned raft,
+etcd's PreVote and CheckQuorum on), not only a gap in the proof: this condition is the premise under
+which a crash restart is safe, and a client whose storage can leave the entries of a `Ready` without
+its `HardState` (etcd's WAL: entry records, then the state record, one fsync) must establish it or
+stay outside the covered executions. -/
 def Durable.confAboveOk (D : Durable) : Prop :=
   ((D.ents.zipIdx (uint.nat D.base.index + 1)).filter
     (fun p => uint.nat D.commit < p.2 ∧ p.1.isConfChange)).length ≤ 1
@@ -361,7 +366,11 @@ def Driver.start (l : List LogEntry) (hs : HardState) (D : Durable) : Driver :=
 committed entries follow the delivered ones; the new commit index covers them and lies within the
 durable log after the batch; the entries to store start after the old commit and at most one past
 the durable log; with a snapshot, no committed entries, and the snapshot past the delivered log and
-within the commit; `MustSync` as `MustSync` computes it; every entry of one of raft's types. -/
+within the commit; `MustSync` as `MustSync` computes it; every entry of one of raft's types; and
+(integration I2, 2d's request) every committed entry and the snapshot of the batch have a term at most
+the batch's hard-state term as the driver knows it after the batch (raft's log terms never exceed its
+current term, and a `Ready` reports a changed term in its `HardState`: etcd's merged-snapshot guard
+`m.GetTerm() == raftTerm` rests on it). -/
 def BatchOk (st : Driver) (b : Batch) : Prop :=
   let hs' := b.hs.getD st.hs
   (b.hs = none ∨ b.hs ≠ some st.hs) ∧
@@ -370,6 +379,8 @@ def BatchOk (st : Driver) (b : Batch) : Prop :=
   (b.ents ≠ [] → uint.nat st.hs.commit < b.entsFrom ∧ b.entsFrom ≤ st.durable.last + 1) ∧
   (∀ e ∈ b.ents, uint.nat e.type ≤ 2) ∧
   b.mustSync = (b.ents ≠ [] ∨ hs'.term ≠ st.hs.term ∨ hs'.vote ≠ st.hs.vote) ∧
+  (∀ e ∈ b.committed, uint.nat e.term ≤ uint.nat hs'.term) ∧
+  (∀ s, b.snap = some s → uint.nat s.term ≤ uint.nat hs'.term) ∧
   match b.snap with
   | none => (st.delivered ++ b.committed).length ≤ uint.nat hs'.commit
   | some s => b.committed = [] ∧ st.delivered.length < uint.nat s.index ∧
