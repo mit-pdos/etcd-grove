@@ -137,5 +137,24 @@ def SimServerR (C : List w64) (bl : Nat) (s : PState) (a : Etcdraft.Server) : Pr
 
 end TraceSim
 
+section ascii
+variable [GooseExts]
+
+/-! ## ASCII events (`ConvertEvents`'s premise, `notes/trace-validation-plan.md`, S7) -/
+
+/-- A Go string of ASCII bytes. -/
+def gsAscii (b : GoString) : Prop := ∀ c ∈ b, c.toNat < 128
+
+/-- An event whose strings `ConvertEvents` copies are ASCII (its configuration change field `cc`
+and its `match`/`next` properties are not copied). -/
+def TraceEv.Ascii (e : TraceEv) : Prop :=
+  gsAscii e.name ∧ gsAscii e.nid ∧ gsAscii e.vote ∧ gsAscii e.role ∧
+  (∀ s ∈ e.conf.1, gsAscii s) ∧ (∀ s ∈ e.conf.2, gsAscii s) ∧
+  (∀ m, e.msg = some m → gsAscii m.typ ∧ gsAscii m.frm ∧ gsAscii m.to ∧ gsAscii m.vote) ∧
+  (∀ c, e.propCC = some c → (∀ p ∈ c.changes, gsAscii p.1 ∧ gsAscii p.2) ∧ ∀ s ∈ c.newconf, gsAscii s)
+
+end ascii
+
+
 end EtcdGrove
 end Perennial

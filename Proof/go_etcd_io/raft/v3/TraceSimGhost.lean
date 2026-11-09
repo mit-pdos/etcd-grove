@@ -232,7 +232,9 @@ def simInv (C : List w64) (tn : TraceNames) (Fx : Etcdraft.State → IProp GF) :
       BagRep σ.messages ((GMap.toList B).map Prod.snd ++ phM) ∧ σ.preVote = false ∧ σ.checkQuorum = false ∧
       (∀ i ∈ C, ∀ x ∈ ((A !! i).map Prod.snd).getD [], x.source = idAbs i) ∧
       (∀ i ∈ C, ∃ b o, Bt !! i = some (b, o) ∧ (b = true ↔ booted L (idAbs i)) ∧ LastOf L (decStr i) o ∧
-        (b = true → o.isSome))⌝)
+        (b = true → o.isSome)) ∧
+      -- `ConvertEvents`'s premise: the events are ASCII
+      (∀ x ∈ L, TraceEv.Ascii x)⌝)
 
 instance simInv_timeless (C : List w64) (tn : TraceNames) (Fx : Etcdraft.State → IProp GF)
     [hFx : ∀ σ, Timeless (Fx σ)] : Timeless (simInv C tn Fx) := by

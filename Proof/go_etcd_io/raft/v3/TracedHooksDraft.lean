@@ -130,7 +130,9 @@ def SendEvOf (evt : w64) (id : w64) (s : NState) (c : CfgM) (m : Msg) (e : Trace
   e.role = roleStr s.role ∧ e.logSize = plastIndex (toPState s) ∧
   (∃ xs ys : List w64, xs ≡ₚ elements c.incoming ∧ ys ≡ₚ elements c.outgoing ∧
     e.conf = (xs.map decStr, ys.map decStr)) ∧
-  (∃ tm, e.msg = some tm ∧ MsgEvOf m tm) ∧ e.cc = none
+  (∃ tm, e.msg = some tm ∧ MsgEvOf m tm) ∧ e.cc = none ∧
+  -- what `makeTracingMessage` and `traceSendMessage` write besides (`ConvertEvents`'s ASCII premise)
+  e.propCC = none ∧ ∀ tm, e.msg = some tm → ∃ v : w64, tm.vote = decStr v
 
 /-- `traceSendMessage`'s event, by the message's type (`rsmSend*`); `none`: not traced (a snapshot
 is `SendAppendEntriesRequest` in Go, never sent in a traced cluster, P2). -/
@@ -215,6 +217,54 @@ def bfCond (e0 e : Etcdraft.Event) : Bool :=
     or (Etcdraft.isReceiveName e0.name && decide (e0.state.term < pm.term) && pm.term == e.state.term)
       (e0.name == "ReceiveAppendEntriesRequest" && e0.state.term == pm.term && pm.term == e.state.term &&
         (or (e0.role == Etcdraft.candidate) (e0.role == Etcdraft.preCandidate)))
+
+/-! ### The events are ASCII (`ConvertEvents`'s premise; a `simInv` clause) -/
+
+theorem gsAscii_decStr (n : w64) : gsAscii (decStr n) := by
+  rw [decStr_eq]
+  intro c hc
+  obtain ⟨d, hd, rfl⟩ := List.mem_map.1 hc
+  have := baseDigits_lt 10 (by omega) n.toNat d hd
+  unfold digitChar
+  simp [W8, this]
+  omega
+
+theorem gsAscii_evtNames : ∀ x ∈ evtNames, gsAscii x := by
+  simp only [evtNames, List.mem_cons, List.not_mem_nil, or_false, gsAscii]
+  intro x hx
+  rcases hx with h | h | h | h | h | h | h | h | h | h | h | h | h | h | h | h | h | h | h <;> subst h <;> decide
+
+theorem gsAscii_roleStr (r : PRole) : gsAscii (roleStr r) := by
+  cases r <;> simp only [roleStr, gsAscii] <;> decide
+
+theorem gsAscii_msgTypeStr (t : MsgType) : gsAscii (msgTypeStr t) := by
+  cases t <;> simp only [msgTypeStr, gsAscii] <;> decide
+
+theorem gsAscii_conf (xs : List w64) : ∀ x ∈ xs.map decStr, gsAscii x := by
+  intro x hx
+  obtain ⟨y, -, rfl⟩ := List.mem_map.1 hx
+  exact gsAscii_decStr y
+
+theorem nodeEvOf_ascii (evt id : w64) (s : NState) (c : CfgM) (e : TraceEv) (h : NodeEvOf evt id s c e) :
+    TraceEv.Ascii e := by
+  obtain ⟨hname, hnid, -, hvote, -, hrl, -, ⟨xs, ys, -, -, hconf⟩, hmsg, -, hcc, -, -⟩ := h
+  refine ⟨gsAscii_evtNames _ (List.mem_of_getElem? hname), by rw [hnid]; exact gsAscii_decStr _,
+    by rw [hvote]; exact gsAscii_decStr _, by rw [hrl]; exact gsAscii_roleStr _,
+    by rw [hconf]; exact gsAscii_conf xs, by rw [hconf]; exact gsAscii_conf ys,
+    (by intro m hm; rw [hmsg] at hm; cases hm), (by intro c hc; rw [hcc] at hc; cases hc)⟩
+
+theorem sendEvOf_ascii (evt id : w64) (s : NState) (c : CfgM) (m : Msg) (e : TraceEv)
+    (h : SendEvOf evt id s c m e) : TraceEv.Ascii e := by
+  obtain ⟨hname, hnid, -, hvote, -, hrl, -, ⟨xs, ys, -, -, hconf⟩, ⟨tm, hmsg, hm⟩, -, hcc, hv⟩ := h
+  refine ⟨gsAscii_evtNames _ (List.mem_of_getElem? hname), by rw [hnid]; exact gsAscii_decStr _,
+    by rw [hvote]; exact gsAscii_decStr _, by rw [hrl]; exact gsAscii_roleStr _,
+    by rw [hconf]; exact gsAscii_conf xs, by rw [hconf]; exact gsAscii_conf ys, ?_,
+    (by intro c hc; rw [hcc] at hc; cases hc)⟩
+  intro tm' htm
+  rw [hmsg] at htm; cases htm
+  obtain ⟨v, hv'⟩ := hv tm hmsg
+  exact ⟨by rw [hm.1]; exact gsAscii_msgTypeStr _, by rw [hm.2.2.1]; exact gsAscii_decStr _,
+    by rw [hm.2.2.2.1]; exact gsAscii_decStr _, by rw [hv']; exact gsAscii_decStr _⟩
 
 /-- **A step-down's server** (`StepDownToFollower`, the specification's `BecomeFollowerOfTerm` at the
 server's own term). -/
@@ -453,7 +503,7 @@ leaves the capability in phase `Φ'`. -/
 abbrev trCap_fire.statement : Prop :=
   ∀ (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (tl : GoInterface) (E : TraceEv → Prop)
     (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ Λ' : Option TraceEv → Prop),
-  PhaseStep id c E Φ Φ' → (∀ e, E e → Λ' (some e)) →
+  PhaseStep id c E Φ Φ' → (∀ e, E e → Λ' (some e)) → (∀ e, E e → TraceEv.Ascii e) →
   (trCap (some γd) γ r id c Φ Λ ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗ FxPres γ id E Φ Φ' : IProp GF) ⊢
     TraceFire (some γd) tl E (trCapB (some γd) γ r id c true Φ' Λ')
 
@@ -497,7 +547,7 @@ abbrev trCap_fire_recv.statement : Prop :=
   ∀ (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (tl : GoInterface) (E : TraceEv → Prop)
     (k : Nat) (m : Etcdraft.Msg) (Mid : Etcdraft.Server → Prop)
     (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ Λ' : Option TraceEv → Prop),
-  PhaseStepR id c m E Mid Φ Φ' → (∀ e, E e → Λ' (some e)) →
+  PhaseStepR id c m E Mid Φ Φ' → (∀ e, E e → Λ' (some e)) → (∀ e, E e → TraceEv.Ascii e) →
   (trCap (some γd) γ r id c Φ Λ ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗ FxPresR γ id m E Mid Φ Φ' ∗
     (∃ tn, traceDir γd tn ∗ inFlight tn k m) : IProp GF) ⊢
     TraceFire (some γd) tl E (trCapB (some γd) γ r id c true Φ' Λ')
@@ -526,7 +576,7 @@ pending messages to the network, the share empties, and the caller receives thei
 abbrev trCap_fire_ready.statement : Prop :=
   ∀ (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (tl : GoInterface) (E : TraceEv → Prop)
     (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ Λ' : Option TraceEv → Prop),
-  PhaseStepReady id c E Φ Φ' → (∀ e, E e → Λ' (some e)) →
+  PhaseStepReady id c E Φ Φ' → (∀ e, E e → Λ' (some e)) → (∀ e, E e → TraceEv.Ascii e) →
   (trCap (some γd) γ r id c Φ Λ ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗ FxPresReady γ id E Φ : IProp GF) ⊢
     TraceFire (some γd) tl E iprop(trCapB (some γd) γ r id c true Φ' Λ' ∗
       ∃ (tn : TraceNames) (P : List Etcdraft.Msg) (Bn : GMap Nat Etcdraft.Msg), traceDir γd tn ∗
@@ -540,7 +590,7 @@ abbrev trCap_fire_boot.statement : Prop :=
   ∀ (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (tl : GoInterface) (E : TraceEv → Prop)
     (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ Λ' : Option TraceEv → Prop),
   (∀ e, E e → e.nid = decStr id ∧ ∃ ln, Etcdraft.parseLine 0 (evConv e) = .ok ln ∧ ln.nid = idAbs id ∧
-    Etcdraft.isBootstrapName ln.ev.name = true) → (∀ e, E e → Λ' (some e)) →
+    Etcdraft.isBootstrapName ln.ev.name = true) → (∀ e, E e → Λ' (some e)) → (∀ e, E e → TraceEv.Ascii e) →
   (trCapB (some γd) γ r id c false Φ Λ ∗ r.[raft, go!"traceLogger"] ↦□ tl : IProp GF) ⊢
     TraceFire (some γd) tl E (trCapB (some γd) γ r id c false Φ Λ')
 
@@ -562,7 +612,7 @@ def PhaseStepB (id : w64) (c : CfgM) (E : TraceEv → Prop) (Φ Φ' : List w64 �
 abbrev trCap_fire_booted.statement : Prop :=
   ∀ (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (tl : GoInterface) (E : TraceEv → Prop)
     (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ Λ' : Option TraceEv → Prop),
-  PhaseStepB id c E Φ Φ' → (∀ e, E e → Λ' (some e)) →
+  PhaseStepB id c E Φ Φ' → (∀ e, E e → Λ' (some e)) → (∀ e, E e → TraceEv.Ascii e) →
   (trCapB (some γd) γ r id c true Φ Λ ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗ FxPres γ id E Φ Φ' : IProp GF) ⊢
     TraceFire (some γd) tl E (trCapB (some γd) γ r id c true Φ' Λ')
 

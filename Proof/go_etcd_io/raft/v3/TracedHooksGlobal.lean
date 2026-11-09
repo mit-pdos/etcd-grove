@@ -438,6 +438,13 @@ theorem gsStr_inj {a b : GoString} (h : gsStr a = gsStr b) : a = b := by
       simp only [List.map_cons, List.cons.injEq] at h1
       rw [hinj x y h1.1, ih h1.2]
 
+theorem ascii_snoc (L : List TraceEv) (e : TraceEv) (h : ∀ x ∈ L, TraceEv.Ascii x) (he : TraceEv.Ascii e) :
+    ∀ x ∈ L ++ [e], TraceEv.Ascii x := by
+  intro x hx
+  rcases List.mem_append.1 hx with hx | hx
+  · exact h x hx
+  · simp at hx; subst hx; exact he
+
 theorem lastOf_snoc_self (L : List TraceEv) (e : TraceEv) (n : GoString) (h : e.nid = n) :
     LastOf (L ++ [e]) n (some e) :=
   ⟨L, [], rfl, h, by simp⟩
@@ -500,7 +507,7 @@ theorem keep_pure {P : IProp GF} {φ : Prop} (h : P ⊢ ⌜φ⌝) : P ⊢ P ∗ 
 
 /-- **The global step's law** (`trCap_fire.statement`). -/
 theorem trCap_fire : trCap_fire.statement (GF := GF) := by
-  intro γd γ r id c tl E Φ Φ' Λ Λ' hps hΛ
+  intro γd γ r id c tl E Φ Φ' Λ Λ' hps hΛ hAsc
   iintro ⟨Hcap, #Htl, Hfx⟩
   iunfold FxPres at Hfx
   icases Hfx with #Hfx
@@ -548,7 +555,7 @@ theorem trCap_fire : trCap_fire.statement (GF := GF) := by
     imod Hmask with -
     iunfold simNode at Hnode
     icases ghost_map_lookup $$ HA Hnode with %HAid
-    obtain ⟨hrun, hsrv, hA, hAn, hPb, hMb, hpv, hcq, hsrcA, hbtC⟩ := Hp
+    obtain ⟨hrun, hsrv, hA, hAn, hPb, hMb, hpv, hcq, hsrcA, hbtC, hasc⟩ := Hp
     obtain ⟨Q, hQ⟩ := hA id hC
     rw [HAid] at hQ
     simp only [Option.some.injEq, Prod.mk.injEq] at hQ
@@ -591,7 +598,7 @@ theorem trCap_fire : trCap_fire.statement (GF := GF) := by
       iunfold traceFrag; iframe HL HA HB HBt Hfσ'
       ipureintro
       exact ⟨hrun', hsrvN, hA', hAn', hPb', by rw [hM']; exact hMb, hpv, hcq, hsrc',
-        bootClause_step C L e ln id Bt hpl hnl hnid (booted_snoc_self L e ln _ hpl hnl hbl) hbtC⟩
+        bootClause_step C L e ln id Bt hpl hnl hnid (booted_snoc_self L e ln _ hpl hnl hbl) hbtC, ascii_snoc L e hasc (hAsc e HE)⟩
     imodintro
     iunfold trCapB
     iexists tn, C, tl, toC σ.server a', P ++ P'
@@ -605,7 +612,7 @@ theorem trCap_fire : trCap_fire.statement (GF := GF) := by
 
 /-- **The global step's law for a `Ready` line** (`trCap_fire_ready.statement`). -/
 theorem trCap_fire_ready : trCap_fire_ready.statement (GF := GF) := by
-  intro γd γ r id c tl E Φ Φ' Λ Λ' hps hΛ
+  intro γd γ r id c tl E Φ Φ' Λ Λ' hps hΛ hAsc
   iintro ⟨Hcap, #Htl, Hfx⟩
   iunfold FxPresReady at Hfx
   icases Hfx with #Hfx
@@ -653,7 +660,7 @@ theorem trCap_fire_ready : trCap_fire_ready.statement (GF := GF) := by
     imod Hmask with -
     iunfold simNode at Hnode
     icases ghost_map_lookup $$ HA Hnode with %HAid
-    obtain ⟨hrun, hsrv, hA, hAn, hPb, hMb, hpv, hcq, hsrcA, hbtC⟩ := Hp
+    obtain ⟨hrun, hsrv, hA, hAn, hPb, hMb, hpv, hcq, hsrcA, hbtC, hasc⟩ := Hp
     obtain ⟨Q, hQ⟩ := hA id hC
     rw [HAid] at hQ
     simp only [Option.some.injEq, Prod.mk.injEq] at hQ
@@ -699,7 +706,7 @@ theorem trCap_fire_ready : trCap_fire_ready.statement (GF := GF) := by
       iunfold traceFrag; iframe HL HA HB HBt Hfσ'
       ipureintro
       exact ⟨hrun', hsrvN, hA', hAn', hPb', hM', hpv, hcq, hsrc',
-        bootClause_step C L e _ id Bt hpl rfl hnid1 (booted_snoc_self L e _ _ hpl rfl (by simp [evConv, hname1']; rfl)) hbtC⟩
+        bootClause_step C L e _ id Bt hpl rfl hnid1 (booted_snoc_self L e _ _ hpl rfl (by simp [evConv, hname1']; rfl)) hbtC, ascii_snoc L e hasc (hAsc e HE)⟩
     imodintro
     isplitl [Hnode Hbt]
     · iunfold trCapB
@@ -722,7 +729,7 @@ theorem trCap_fire_ready : trCap_fire_ready.statement (GF := GF) := by
 
 /-- **The global step's law for a receive line** (`trCap_fire_recv.statement`). -/
 theorem trCap_fire_recv : trCap_fire_recv.statement (GF := GF) := by
-  intro γd γ r id c tl E k m Mid Φ Φ' Λ Λ' hps hΛ
+  intro γd γ r id c tl E k m Mid Φ Φ' Λ Λ' hps hΛ hAsc
   iintro ⟨Hcap, #Htl, Hfx, ⟨%tn0, #Hdir0, Htok⟩⟩
   iunfold FxPresR at Hfx
   icases Hfx with #Hfx
@@ -775,7 +782,7 @@ theorem trCap_fire_recv : trCap_fire_recv.statement (GF := GF) := by
     imod Hmask with -
     iunfold simNode at Hnode
     icases ghost_map_lookup $$ HA Hnode with %HAid
-    obtain ⟨hrun, hsrv, hA, hAn, hPb, hMb, hpv, hcq, hsrcA, hbtC⟩ := Hp
+    obtain ⟨hrun, hsrv, hA, hAn, hPb, hMb, hpv, hcq, hsrcA, hbtC, hasc⟩ := Hp
     obtain ⟨Q, hQ⟩ := hA id hC
     rw [HAid] at hQ
     simp only [Option.some.injEq, Prod.mk.injEq] at hQ
@@ -833,7 +840,7 @@ theorem trCap_fire_recv : trCap_fire_recv.statement (GF := GF) := by
         A.insert id (toC σ.server a', P ++ P'), B.delete k, phP ++ Pph, phM, Bt.insert id (true, some e)
       iunfold traceFrag; iframe HL HA HB HBt Hfσ'
       ipureintro
-      exact ⟨hrun', hsrvN, hA', hAn', hPb', hM', hpv, hcq, hsrc', bootClause_step C L e ln id Bt hpl hnl hnid (booted_snoc_self L e ln _ hpl hnl hbl) hbtC⟩
+      exact ⟨hrun', hsrvN, hA', hAn', hPb', hM', hpv, hcq, hsrc', bootClause_step C L e ln id Bt hpl hnl hnid (booted_snoc_self L e ln _ hpl hnl hbl) hbtC, ascii_snoc L e hasc (hAsc e HE)⟩
     imodintro
     iunfold trCapB
     iexists tn, C, tl, toC σ.server a', P ++ P'
@@ -847,7 +854,7 @@ theorem trCap_fire_recv : trCap_fire_recv.statement (GF := GF) := by
 
 /-- **The global step's law for a bootstrap line** (`trCap_fire_boot.statement`). -/
 theorem trCap_fire_boot : trCap_fire_boot.statement (GF := GF) := by
-  intro γd γ r id c tl E Φ Λ Λ' hE hΛ
+  intro γd γ r id c tl E Φ Λ Λ' hE hΛ hAsc
   iintro ⟨Hcap, #Htl⟩
   iunfold trCapB at Hcap
   icases Hcap with ⟨%tn, %C, %tl', %cs, %P, #Hdir, %Hpf, #Htl', #Hlg, %Hnn, #Hinv, #Hrinv, Hnode, Hbt, %HΦ⟩
@@ -888,7 +895,7 @@ theorem trCap_fire_boot : trCap_fire_boot.statement (GF := GF) := by
     iframe Hnode Hbt
   · iintro HL
     imod Hmask with -
-    obtain ⟨hrun, hsrv, hA, hAn, hPb, hMb, hpv, hcq, hsrcA, hbtC⟩ := Hp
+    obtain ⟨hrun, hsrv, hA, hAn, hPb, hMb, hpv, hcq, hsrcA, hbtC, hasc⟩ := Hp
     icases Hbt with ⟨%o0, Hbt, -⟩
     iunfold simBoot at Hbt
     icases ghost_map_lookup $$ HBt Hbt with %HBtid
@@ -919,7 +926,7 @@ theorem trCap_fire_boot : trCap_fire_boot.statement (GF := GF) := by
       iexists L ++ [e], σ, A, B, phP, phM, Bt.insert id (false, some e)
       iunfold traceFrag; iframe HL HA HB HBt Hfσ
       ipureintro
-      exact ⟨hrun', hsrv, hA, hAn, hPb, hMb, hpv, hcq, hsrcA, hbt'⟩
+      exact ⟨hrun', hsrv, hA, hAn, hPb, hMb, hpv, hcq, hsrcA, hbt', ascii_snoc L e hasc (hAsc e HE)⟩
     imodintro
     iunfold trCapB
     iexists tn, C, tl, cs, P
@@ -940,6 +947,7 @@ theorem booted_snoc_mono (L : List TraceEv) (e : TraceEv) (j : Etcdraft.ID) (h :
 /-- **The law of a `BecomeFollower` line after the node's segment** (`trCap_fire_bf.statement`). -/
 theorem trCap_fire_bf : trCap_fire_bf.statement (GF := GF) := by
   intro γd γ r id c tl s Φ Φ' Λ Λ' hps hΛ
+  have hAsc : ∀ e, NodeEvOf (W64 2) id s c e → TraceEv.Ascii e := fun e he => nodeEvOf_ascii _ _ _ _ e he
   iintro ⟨Hcap, #Htl, Hfx⟩
   iunfold FxPresBF at Hfx
   icases Hfx with #Hfx
@@ -985,7 +993,7 @@ theorem trCap_fire_bf : trCap_fire_bf.statement (GF := GF) := by
     imod Hmask with -
     iunfold simNode at Hnode
     icases ghost_map_lookup $$ HA Hnode with %HAid
-    obtain ⟨hrun, hsrv, hA, hAn, hPb, hMb, hpv, hcq, hsrcA, hbtC⟩ := Hp
+    obtain ⟨hrun, hsrv, hA, hAn, hPb, hMb, hpv, hcq, hsrcA, hbtC, hasc⟩ := Hp
     obtain ⟨Q, hQ⟩ := hA id hC
     rw [HAid] at hQ
     simp only [Option.some.injEq, Prod.mk.injEq] at hQ
@@ -1033,7 +1041,7 @@ theorem trCap_fire_bf : trCap_fire_bf.statement (GF := GF) := by
         iexists L ++ [e], σ, A, B, phP, phM, Bt.insert id (true, some e)
         iunfold traceFrag; iframe HL HA HB HBt Hfσ
         ipureintro
-        exact ⟨hrun', hsrv, hA, hAn, hPb, hMb, hpv, hcq, hsrcA, hBt'⟩
+        exact ⟨hrun', hsrv, hA, hAn, hPb, hMb, hpv, hcq, hsrcA, hBt', ascii_snoc L e hasc (hAsc e HE)⟩
       imodintro
       iunfold trCapB
       iexists tn, C, tl, cs, P
@@ -1068,7 +1076,7 @@ theorem trCap_fire_bf : trCap_fire_bf.statement (GF := GF) := by
           A.insert id (toC σ.server (bfSrv (σ.s (idAbs id))), P ++ []), B, phP, phM, Bt.insert id (true, some e)
         iunfold traceFrag; iframe HL HA HB HBt Hfσ'
         ipureintro
-        exact ⟨hrun', hsrvN, hA', hAn', hPb', hMb, hpv, hcq, hsrc', hBt'⟩
+        exact ⟨hrun', hsrvN, hA', hAn', hPb', hMb, hpv, hcq, hsrc', hBt', ascii_snoc L e hasc (hAsc e HE)⟩
       imodintro
       iunfold trCapB
       iexists tn, C, tl, toC σ.server (bfSrv (σ.s (idAbs id))), P ++ []
@@ -1082,7 +1090,7 @@ theorem trCap_fire_bf : trCap_fire_bf.statement (GF := GF) := by
 
 /-- **The law of a booted node's line** (`trCap_fire_booted.statement`). -/
 theorem trCap_fire_booted : trCap_fire_booted.statement (GF := GF) := by
-  intro γd γ r id c tl E Φ Φ' Λ Λ' hps hΛ
+  intro γd γ r id c tl E Φ Φ' Λ Λ' hps hΛ hAsc
   iintro ⟨Hcap, #Htl, Hfx⟩
   iunfold FxPres at Hfx
   icases Hfx with #Hfx
@@ -1128,7 +1136,7 @@ theorem trCap_fire_booted : trCap_fire_booted.statement (GF := GF) := by
     imod Hmask with -
     iunfold simNode at Hnode
     icases ghost_map_lookup $$ HA Hnode with %HAid
-    obtain ⟨hrun, hsrv, hA, hAn, hPb, hMb, hpv, hcq, hsrcA, hbtC⟩ := Hp
+    obtain ⟨hrun, hsrv, hA, hAn, hPb, hMb, hpv, hcq, hsrcA, hbtC, hasc⟩ := Hp
     obtain ⟨Q, hQ⟩ := hA id hC
     rw [HAid] at hQ
     simp only [Option.some.injEq, Prod.mk.injEq] at hQ
@@ -1175,7 +1183,7 @@ theorem trCap_fire_booted : trCap_fire_booted.statement (GF := GF) := by
       iunfold traceFrag; iframe HL HA HB HBt Hfσ'
       ipureintro
       exact ⟨hrun', hsrvN, hA', hAn', hPb', by rw [hM']; exact hMb, hpv, hcq, hsrc',
-        bootClause_step C L e ln id Bt hpl hnl hnid (booted_snoc_mono L e _ hbooted) hbtC⟩
+        bootClause_step C L e ln id Bt hpl hnl hnid (booted_snoc_mono L e _ hbooted) hbtC, ascii_snoc L e hasc (hAsc e HE)⟩
     imodintro
     iunfold trCapB
     iexists tn, C, tl, toC σ.server a', P ++ P'
