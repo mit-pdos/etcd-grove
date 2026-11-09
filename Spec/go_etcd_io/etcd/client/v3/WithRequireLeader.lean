@@ -37,7 +37,7 @@ def WithRequireLeader.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ Context.ctxOk ctx }}
     (App (Val (@! go_etcd_io.etcd.client.v3.WithRequireLeader)) (Val #ctx))
   {{ (ctx' : GoInterface), RET #ctx'; Context.ctxOk ctx' ∗ Context.ctxWithValues ctx ctx' ∗
-      ctxRequireLeader ctx' }}
+      ctxRequireLeader ctx' ∗ □ (∀ who, ctxPrin ctx who -∗ ctxPrin ctx' who) }}
 
 end spec
 

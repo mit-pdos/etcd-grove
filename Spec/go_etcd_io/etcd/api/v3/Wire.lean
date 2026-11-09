@@ -107,10 +107,12 @@ structure CompactRespM where
 def RangeRespM.ofAns (m : RangeRespM) (a : RangeAns) : Prop :=
   m.kvs = a.kvs.map KeyValueM.ofKV ∧ m.more = a.more ∧ m.count = W64 a.count
 
-/-- A transaction's operation reply against the model's (the nested headers are not modelled). -/
+/-- A transaction's operation reply against the model's (a nested range's header revision is
+modelled; the other nested headers are not). -/
 inductive ResponseOpM.ofResp : ResponseOpM → OpResp → Prop
   | empty : ResponseOpM.ofResp .empty .empty
-  | range (m : RangeRespM) (a : RangeAns) : m.ofAns a → ResponseOpM.ofResp (.range m) (.range a)
+  | range (m : RangeRespM) (rev : Nat) (a : RangeAns) : m.hdr.map (·.revision) = some (W64 rev) →
+      m.ofAns a → ResponseOpM.ofResp (.range m) (.range rev a)
   | put (m : PutRespM) (prev : Option KV) : m.prevKv = prev.map KeyValueM.ofKV →
       ResponseOpM.ofResp (.put m) (.put prev)
   | deleteRange (m : DeleteRespM) (n : Nat) (l : List KV) :

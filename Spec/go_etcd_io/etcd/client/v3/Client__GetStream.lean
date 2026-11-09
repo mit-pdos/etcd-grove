@@ -9,7 +9,7 @@ Proof sketch: `isClient_KV`, `kvAt_methods`' `GetStream`.
 
 Changes: none (no old spec): Kubernetes' store now lists with it.
 
-Margin: the stream's counts and, for a sorted or filtered stream, its key-values are not modelled (`streamMatches`); a stream at the default ordering is the range's answer.
+Margin: a sorted or filtered stream's key-values are not modelled (`streamMatches`); a stream at the default ordering is the range's answer. The thread token comes back only for a drained stream: if the consumer stops receiving, the goroutine blocks for good (`nonissues/etcd-client-getstream-abandoned-leak.md`).
 -/
 module
 

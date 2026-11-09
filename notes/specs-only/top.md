@@ -52,7 +52,8 @@ history illegal. The proof:
    results): `Model`'s `step` agrees with the model's `Step` on these (a pure lemma of the example:
    `Step`'s range, put, delete and transaction cases, at auth off, no leases). A read takes its
    update persistently (`□ AU`, `Req.isRead`): each firing appends nothing new to the KV (`σ' =
-   σ`), and the last firing's `Q` is the one returned. A call that errs: definite errors are
+   σ`), and the `Q` returned is the firing's at the state the member read (registered before the
+   read index is taken; txnlin resolves which with its read-revision prophecy `rp`). A call that errs: definite errors are
    linearized answers (porcupine's model treats `Err` as "maybe applied"; a definite one is
    applied as a no-op), indefinite ones leave the update pending, fired later or never: the
    prophecy `p.ResolveBool(!out.Err)` (in `Apply`) tells the update at its firing whether the call
@@ -120,8 +121,9 @@ caller's update as the client's contract says (K4). The client's `New` (1c) turn
 **K4 — every answer is a `Step`, fired once for a write**: a reply, or a definite error, is the
 answer of `Step who rq σ σ' res` at a state where the caller's update was fired, with the reply's
 `Q`; a write is fired at most once per call (at its entry's commit; never for an attempt the
-client resends: a stale token); a read may be fired at every state until the member reads, and
-answers at the last; a refusal is a step with no change; an indefinite error fires nothing at
+client resends: a stale token); a read's update is registered before its read index is taken and
+may be fired at every state from then on; the read answers with the `Q` of the firing at the state
+the member read; a refusal is a step with no change; an indefinite error fires nothing at
 return (the update may fire later). At-most-once is the cluster's (one proposal per call, an entry
 committed once, rafthttp never resending).
 
@@ -134,13 +136,24 @@ continue the same `σ`; an answered step is durable on a quorum (no crash transi
 
 **K7 — the resource's laws** (2c/2d realize `etcdState` and `etcdLb` from the committed log's
 states): `etcdState_timeless`, `etcdState_excl`, `etcdLb_persistent`, `etcdLb_timeless`,
-`etcdState_lb`, `etcdLb_reach`, `etcdLb_ord`, `etcdState_revFits` (from the adequacy theorem's
-step bound).
+`etcdState_lb`, `etcdLb_reach`, `etcdLb_ord`, `etcdState_revFits`, `etcdState_sizeFits`. etcd
+never refuses at `2 ^ 63` (mvcc wraps), so the last two come from a **step budget**: a counted
+resource fixed by the adequacy theorem (as Perennial's thread tokens), one spent per committed
+entry, each entry writing a bounded number of events, held by the cluster's invariant (the bounds
+plan's rule: the bound at its owner).
 
 **K8 — scope** (configuration premises at `NewServer`, each an issue): `--max-txn-ops ≤ 4999`
 (`issues/etcd-txn-nested-depth-apply-panic.md`), `--max-request-bytes` below the bound of
 `issues/etcd-txn-keysonly-reply-alloc-panic.md`; at the client, `Compact` at a revision other than
-`0` (`issues/etcd-restore-scheduled-compact-zero.md`).
+`0` (`issues/etcd-restore-scheduled-compact-zero.md`). Open, for the user: a read racing
+`AuthEnable` (`nonissues/etcd-doserialize-auth-enable-race.md`: a fix on the fork, or a premise
+"no `AuthEnable` while reads are in flight"); a user or role name over 32 KiB makes every member
+exit (`issues/etcd-auth-useradd-long-name-fatal.md`): zap's `Fatal` diverges, so it is liveness
+only, no premise.
+
+**The principal of a request** is the client's (`who`), as long as the request's context carries
+no auth token metadata of its own (`ClientV3.ctxPrin ctx who`, a premise of every client call:
+the server takes the principal from the request's metadata).
 
 **What the model already contains of etcd's known quirks** (no premise needed, the client sees
 them): the limit pushed down before a sort with no order (`issues/etcd-range-sort-none-limit.md`),

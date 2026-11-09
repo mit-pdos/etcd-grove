@@ -55,6 +55,29 @@ func ReqGetErrors(ctx context.Context, cli *clientv3.Client, k string, rev int64
 	}
 }
 
+// REQ clientv3kv/auth-refusal: with auth on, a linearizable read outside the principal's
+// permissions never succeeds, and a read inside them returns only permitted keys.
+// Users: examples/etcd/auth/authkv.go:163-234 (its "good" and "bad" principals), every client
+// of a cluster with auth on.
+// Assumes: auth is on and stays on, cli authenticates as user u whose only role grants read on
+// [pfx, end) and nothing else, and no administrator changes u or its roles during the call (the
+// owner's invariant).
+// Specs: Client.Get.spec (State.permits at the firing state); laws: errorsIs_errVal.
+func ReqAuthRefusal(ctx context.Context, cli *clientv3.Client, pfx, end, outside string) {
+	if _, err := cli.Get(ctx, outside); err == nil {
+		panic("auth: a read outside the permission succeeded")
+	}
+	resp, err := cli.Get(ctx, pfx, clientv3.WithRange(end))
+	if err != nil {
+		return
+	}
+	for _, kv := range resp.Kvs {
+		if string(kv.Key) < pfx || string(kv.Key) >= end {
+			panic("auth: a key outside the permitted range")
+		}
+	}
+}
+
 // REQ clientv3kv/ctx-errors: a call whose context is done returns an error, which settles
 // nothing.
 // Users: every user passes a context with a deadline (txnlin: etcdstart.RequestTimeout;

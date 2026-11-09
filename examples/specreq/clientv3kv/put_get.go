@@ -7,7 +7,9 @@
 // owns the cluster's state etcdState in an invariant of its own (the "owner's invariant"), and
 // the keys a snippet names as "owned" are written by no other principal (an invariant clause the
 // owner keeps: every update fired through the invariant is checked against it) and attached to
-// no lease (so the environment's lease expiry does not delete them). Contexts are any contexts.
+// no lease (so the environment's lease expiry does not delete them). Contexts are any contexts
+// that carry no auth token metadata of their own (ctxPrin: Background, TODO, their children,
+// WithRequireLeader's).
 package clientv3kv
 
 import (
@@ -106,7 +108,8 @@ func ReqDeleteThenGet(ctx context.Context, cli *clientv3.Client, k string) {
 // Users: client/v3/concurrency (waitDeletes), recipes (queue, barrier), the cache (cache.go Get
 // with WithPrefix, WithLimit), Kubernetes' store (GetList with WithRange, WithLimit).
 // Assumes: none (any concurrent writers).
-// Specs: Client.Get.spec, WithPrefix.spec, WithLimit.spec; the model's RangeReq.answers.
+// Specs: Client.Get.spec, WithPrefix.spec, WithLimit.spec; the model's RangeReq.answers; law
+// etcdState_sizeFits (Count fits an int64).
 func ReqListPrefix(ctx context.Context, cli *clientv3.Client, pfx string) {
 	resp, err := cli.Get(ctx, pfx, clientv3.WithPrefix(), clientv3.WithLimit(2))
 	if err != nil {
@@ -117,6 +120,10 @@ func ReqListPrefix(ctx context.Context, cli *clientv3.Client, pfx string) {
 	}
 	if resp.More != (resp.Count > int64(len(resp.Kvs))) {
 		panic("list: More disagrees with Count")
+	}
+	if resp.More && len(resp.Kvs) == 0 {
+		// client/v3/mirror/syncer.go pages from the last key when More is set
+		panic("list: More with an empty page")
 	}
 	for i, kv := range resp.Kvs {
 		if !bytes.HasPrefix(kv.Key, []byte(pfx)) {

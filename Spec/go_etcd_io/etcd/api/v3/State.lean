@@ -41,12 +41,15 @@ and the server batches that must produce it (the cluster contract, `notes/specs-
 ## Laws (obligations of the cluster's implementation)
 
 `etcdState_timeless`, `etcdState_excl`, `etcdLb_persistent`, `etcdLb_timeless`, `etcdState_lb`,
-`etcdLb_reach`, `etcdLb_ord`, `etcdState_revFits`, `errVal_inj`, `errVal_ty`.
+`etcdLb_reach`, `etcdLb_ord`, `etcdState_revFits`, `etcdState_sizeFits`, `errVal_inj`, `errVal_ty`.
 
-`etcdState_revFits`: the current revision fits an `int64` (a reply's header carries it). The
-cluster's implementation proves it from the adequacy theorem's bound on the number of steps (each
-revision is one committed entry), as the bounds plan puts such a fact at its owner; no client
-spec carries a revision bound.
+`etcdState_revFits`, `etcdState_sizeFits`: the current revision and the number of events fit an
+`int64` (a reply's header, `Count`, `Version`, `Deleted` carry them). etcd itself never refuses at
+`2 ^ 63` (mvcc wraps), so the cluster's invariant keeps the bounds from a **step budget** fixed by
+the adequacy theorem: a counted resource (as Perennial's thread tokens) of which every committed
+entry spends one and each entry writes a bounded number of events (`--max-txn-ops` per level,
+nesting bounded by the request size), held by the cluster's invariant (bounds plan: the bound at
+its owner); no client spec carries a bound.
 -/
 module
 
@@ -103,6 +106,11 @@ def etcdLb_ord.spec : Prop := ∀ (γ : Cluster) (σ₁ σ₂ : State),
 /-- The current revision fits a reply's `int64`. -/
 def etcdState_revFits.spec : Prop := ∀ (γ : Cluster) (σ : State),
   etcdState (GF := GF) γ σ ⊢ ⌜σ.kv.rev < 2 ^ 63⌝
+
+/-- The number of events in the history fits an `int64` (so does every count of keys, every
+version, every `Deleted`: each needs an event). -/
+def etcdState_sizeFits.spec : Prop := ∀ (γ : Cluster) (σ : State),
+  etcdState (GF := GF) γ σ ⊢ ⌜(σ.kv.revs.map List.length).sum < 2 ^ 63⌝
 
 /-- **A member of the cluster `γ` serves etcd's v3 API at the endpoint `ep`** (persistent; the
 cluster contract, `notes/specs-only/top.md`): gRPC handlers registered at that address answer

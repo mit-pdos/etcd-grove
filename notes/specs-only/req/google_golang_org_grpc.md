@@ -28,7 +28,10 @@ complete it (`req/go_etcd_io_etcd_server_v3_etcdserver_api_v3rpc.md`,
    Used by: `retryKVClient.Put/DeleteRange/Txn/Compact.spec` (the exclusive update: at most one
    attempt applies), `retryKVClient.Range.spec` (any number of attempts: the update is persistent).
 
-2. **Errors are classified** (`callErr err k`, a slot of `client/v3/Api.lean` that 2a realizes):
+2. **Errors are classified** (`callErr err k`, a slot of `client/v3/Api.lean` that 2a realizes;
+   one error has one kind: `callErr_agree`; `ErrGRPCCanceled`/`ErrGRPCDeadlineExceeded` are
+   `.etcd` of the indefinite kinds `.canceled`/`.deadlineExceeded`; `errors.Is` against an `errVal`
+   is `errorsIs_errVal`, a law 2a proves):
    every error a call returns is `.etcd e` (a status whose message is etcd's error `e`, what the
    server's `togRPCError` sent), `.notSent` (item 1), or `.other` (any other status or error: a
    context's, a transport's). Laws W0 states and 2a proves: `callErr_errVal` (`errVal e` is
@@ -74,4 +77,47 @@ complete it (`req/go_etcd_io_etcd_server_v3_etcdserver_api_v3rpc.md`,
    copied := md.Copy(); copied.Set(rpctypes.MetadataRequireLeaderKey, rpctypes.MetadataHasLeader)
    return metadata.NewOutgoingContext(ctx, copied)
    ```
-   Used by: `WithRequireLeader.spec`, `withVersion.spec`.
+   Used by: `WithRequireLeader.spec`, `withVersion.spec` (they keep `ctxPrin`: the keys they set are
+   not `token`/`authorization`). `metadata.AppendToOutgoingContext` and `NewOutgoingContext` with a
+   caller's `token` (`examples/etcd/auth/authkv.go`) need an introduction of `ctxPrin` (a token
+   issued to the client's own user, or to no one: refused) from 2a.
+
+## from 1b
+
+Batch 1b (the client's watch, `Spec/go_etcd_io/etcd/client/v3/ApiWatch.lean`) states the gRPC watch
+stream as three slots with their laws (obligations of 2a's boundary, with 3h's stub and 2b's
+handler, `req/go_etcd_io_etcd_server_v3_etcdserver_api_v3rpc.md`): `remoteWatchAt v γ who` (a
+`pb.WatchClient`), the stream's halves `wireWatchSend wc γ who g ss` / `wireWatchRecv wc γ who g st`
+and `wireWatchSentLb g ss`. What 1b's sketches (`watchGRPCStream.openWatchClient`, `run`,
+`serveWatchClient`) assume of grpc, in plain terms:
+
+1. **Opening a bidirectional stream** (`remoteWatchAt_watch.spec`: `v.Watch(ctx, opts...)`, i.e.
+   `ClientConn.NewStream` through the client's stream interceptors, 1c): for any `Context.ctxOk`
+   context (the watcher's is `WithCancel(&valCtx{inctx})`, never done until canceled) and call
+   options `callOptsOk`, a non-nil stream with both halves and nothing sent or received, or an error
+   with a `callErr` kind (a context's, a transport's, `Unavailable`), never a panic; a `nil` stream
+   with a `nil` error is not returned (the client guards anyway).
+   ```go
+   if ws, err = w.remote.Watch(w.ctx, w.callOpts...); ws != nil && err == nil { break }
+   ```
+   Used by: `watchGRPCStream.openWatchClient.spec`.
+2. **Send** (`wireWatchSend_send.spec`): the request message is read (given back at any fraction)
+   and delivered once, in order, to the member's handler (no resend: a message is never
+   duplicated or reordered; after an error every later send fails too); an error ends nothing else.
+   Only `run` sends; grpc's `SendMsg` is not called concurrently on one stream.
+   Used by: `run`'s creates, cancels and progress requests.
+3. **Receive** (`wireWatchRecv_recv.spec`): the member's responses in the order it sent them, each a
+   fresh message the receiver owns in full (`wireWatchRespOwn p (own 1) m`), with the facts the
+   handler gave it (`wireStep`, 2b); or an error ending the stream, classified (`callErr`: a
+   context's error `.other`, the handler's returned status `.etcd e` for etcd's errors such as
+   `ErrGRPCNoLeader`, `io.EOF` `.other`). The facts travel with the message: the old `GrpcSpec`
+   shape for a stream's server-to-client messages. Only `serveWatchClient` receives.
+   Used by: `watchGRPCStream.serveWatchClient.spec`, through it every `watchChAt_recv` fact.
+4. **No size premise**: a create request whose key and range end exceed the send limit fails the
+   stream (an error, then the client reconnects or halts), never a panic (W0's item 3, here for
+   streams: the old `watchSizeOk` is dropped from `Watch`).
+5. **Metadata and errors**: `metadata.FromOutgoingContext` (any `ctxOk` context; the stream key's
+   `fmt.Sprintf("%+v", md)` is Perennial's `fmt`), `status.Error(codes.FailedPrecondition, reason)`
+   (an error, for `WatchResponse.Err`), `errors.Is(err, context.Canceled)` (any error), and
+   `status.FromError` / `Code` for 1c's `isHaltErr`/`isUnavailableErr` on every `callErr`.
+   Used by: `streamKeyFromCtx.spec`, `WatchResponse.Err.spec`, `watcher.Close.spec`.

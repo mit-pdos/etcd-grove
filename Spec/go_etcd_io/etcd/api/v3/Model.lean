@@ -300,6 +300,8 @@ inductive EtcdErr where
   | timeoutDueToLeaderFail | timeoutDueToConnectionLost | timeoutWaitAppliedIndex | unhealthy
   | corrupt | badLeaderTransferee | clusterVersionUnavailable | wrongDowngradeVersionFormat
   | invalidDowngradeTargetVersion | downgradeInProcess | noInflightDowngrade
+  | canceled | deadlineExceeded | notSupportedForLearner | invalidClientAPIVersion | watchCanceled
+  | permissionNotGiven
 
 /-- **The errors after which the request may still take effect** (or may have): the leader or
 the connection lost, a timeout, a stopping or unhealthy server. A client learns nothing from one.
@@ -307,15 +309,19 @@ Every other `EtcdErr` is definite: the request was linearized (`Step`) with that
 def EtcdErr.indefinite : EtcdErr → Bool
   | .noLeader | .notLeader | .leaderChanged | .notCapable | .stopped | .timeout
   | .timeoutDueToLeaderFail | .timeoutDueToConnectionLost | .timeoutWaitAppliedIndex
-  | .unhealthy | .clusterIdMismatch | .clusterVersionUnavailable | .badLeaderTransferee => true
+  | .unhealthy | .clusterIdMismatch | .clusterVersionUnavailable | .badLeaderTransferee
+  | .canceled | .deadlineExceeded | .watchCanceled => true
   | _ => false
 
 /-- **The refusals any request may meet**, the state unchanged: the server's admission control
 (too many requests, a request too large, the quota or an alarm, a stale or bad token the client's
-retries gave up on, a member not ready). -/
+retries gave up on, a failed token refresh (`ErrAuthFailed`: the client's interceptor returns the
+refresh's error for a request never applied), a learner refusing a request it does not serve, a
+client version refused, a member not ready). -/
 def EtcdErr.refusal : EtcdErr → Bool
   | .tooManyRequests | .requestTooLarge | .noSpace | .corrupt | .invalidAuthToken
-  | .authOldRevision | .userEmpty | .memberNotEnoughStarted | .memberLearnerNotReady
+  | .authOldRevision | .userEmpty | .authFailed | .notSupportedForLearner
+  | .invalidClientAPIVersion | .memberNotEnoughStarted | .memberLearnerNotReady
   | .unhealthy => true
   | _ => false
 
@@ -464,10 +470,12 @@ structure RangeAns where
   more : Bool
   count : Nat
 
-/-- An operation's answer inside a transaction (`ResponseOp`). The nested responses' headers are
-not modelled. -/
+/-- An operation's answer inside a transaction (`ResponseOp`). Only the nested ranges' header
+revisions are modelled (the STM pins its later reads at them). -/
 inductive OpResp where
-  | range (a : RangeAns)
+  /-- a nested range: the revision of the transaction's view when it ran (one more after the
+  transaction's first write: `storeTxnWrite.Range`), and its answer -/
+  | range (rev : Nat) (a : RangeAns)
   | put (prev : Option KV)
   | deleteRange (deleted : Nat) (prevKvs : List KV)
   | txn (succeeded : Bool) (responses : List OpResp)
@@ -599,6 +607,15 @@ def RangeReq.revErr (r : RangeReq) (h : KVHist) : Option EtcdErr :=
   else if 0 < r.revision ∧ r.revision < (h.compacted : Int) then some .compacted
   else none
 
+/-- `checkRange` inside a transaction (`txn/range.go`): against the history's first revision,
+which is `-1` before any compaction (`compactMainRev`), so a negative revision below it is
+`ErrCompacted` there. -/
+def RangeReq.txnRevErr (r : RangeReq) (h : KVHist) : Option EtcdErr :=
+  if r.revision = 0 then none
+  else if (h.rev : Int) < r.revision then some .futureRev
+  else if r.revision < (if h.compacted = 0 then -1 else (h.compacted : Int)) then some .compacted
+  else none
+
 /-! ## Writes -/
 
 /-- The record a put writes at revision `R` over the key's previous record `prev`. -/
@@ -671,12 +688,13 @@ inductive TxnRun (h : KVHist) (s0 : Store) (leases : Int → Option LeaseRec) (R
   | empty (rest st res) : TxnRun h s0 leases R rest st res →
       TxnRun h s0 leases R (.empty :: rest) st
         (res.map (fun x => (x.1, x.2.1, .empty :: x.2.2)))
-  | rangeErr (r : RangeReq) (rest st e) : r.revErr h = some e →
+  | rangeErr (r : RangeReq) (rest st e) : r.txnRevErr h = some e →
       TxnRun h s0 leases R (.range r :: rest) st (.error e)
-  | range (r : RangeReq) (rest st a res) : r.revErr h = none →
+  | range (r : RangeReq) (rest st a res) : r.txnRevErr h = none →
       r.answers (if r.revision ≤ 0 then st.1 else h.storeAt r.revision.toNat) a →
       TxnRun h s0 leases R rest st res →
-      TxnRun h s0 leases R (.range r :: rest) st (res.map (fun x => (x.1, x.2.1, .range a :: x.2.2)))
+      TxnRun h s0 leases R (.range r :: rest) st
+        (res.map (fun x => (x.1, x.2.1, .range (if st.2 = [] then h.rev else R) a :: x.2.2)))
   | putErr (p : PutReq) (rest st e) : p.check s0 leases = some e →
       TxnRun h s0 leases R (.put p :: rest) st (.error e)
   | put (p : PutReq) (rest st res) : p.check s0 leases = none →
@@ -755,13 +773,14 @@ def AuthState.admin (a : AuthState) (who : Principal) : Prop :=
 
 /-- **The permission check** (`isOpPermitted`, `checkLeasePuts`) of a request reading and writing
 `ps` and putting keys on the leases `ls`, at the state `σ`: auth off, or the principal a user of
-the root role, or one whose roles cover every pair and the keys attached to those leases. -/
+the root role, or each pair and each key attached to those leases covered by the principal's roles
+(checked one by one: with nothing to check, no principal is needed). -/
 def State.permits (σ : State) (who : Principal) (ps : List (PermType × KeyRange))
     (ls : List Int) : Prop :=
-  σ.auth.enabled = false ∨ ∃ u, who = some u ∧ (σ.auth.isRoot u ∨
-    (∀ p ∈ ps, σ.auth.covers u p.1 p.2) ∧
-    ∀ l ∈ ls, ∀ k, (∃ r, σ.kv.store k = some r ∧ r.lease = l) →
-      σ.auth.covers u .write { key := k, rangeEnd := [] })
+  σ.auth.enabled = false ∨ (∃ u, who = some u ∧ σ.auth.isRoot u) ∨
+    ((∀ p ∈ ps, ∃ u, who = some u ∧ σ.auth.covers u p.1 p.2) ∧
+     ∀ l ∈ ls, ∀ k, (∃ r, σ.kv.store k = some r ∧ r.lease = l) →
+       ∃ u, who = some u ∧ σ.auth.covers u .write { key := k, rangeEnd := [] })
 
 /-- The error of a failed permission check: no principal (`ErrUserEmpty`), or a denial. -/
 def AuthState.permErr (who : Principal) : EtcdErr :=
@@ -835,13 +854,17 @@ def kvStep (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) : Prop :=
   | .txn t =>
       -- the gRPC layer's per-level checks refuse (too many operations, a key written twice,
       -- an operation's own validation)
+      -- (an empty `RequestOp` is `ErrKeyNotFound` there: `checkRequestOp`'s default)
       (σ' = σ ∧ (res = .err .tooManyOps ∨ res = .err .duplicateKey ∨ res = .err .emptyKey ∨
-        res = .err .valueProvided ∨ res = .err .leaseProvided ∨ res = .err .invalidSortOption)) ∨
-      (¬ σ.permits who (RequestOp.txn t.compare t.success t.failure).perms
-          (RequestOp.txn t.compare t.success t.failure).leases ∧ σ' = σ ∧
-          res = .err (AuthState.permErr who)) ∨
-      σ.permits who (RequestOp.txn t.compare t.success t.failure).perms
-          (RequestOp.txn t.compare t.success t.failure).leases ∧
+        res = .err .valueProvided ∨ res = .err .leaseProvided ∨ res = .err .invalidSortOption ∨
+        res = .err .keyNotFound)) ∨
+      -- a read-only serializable transaction is checked at the answering member's auth state,
+      -- which may be behind
+      ((¬ σ.permits who (RequestOp.txn t.compare t.success t.failure).perms
+          (RequestOp.txn t.compare t.success t.failure).leases ∨ (t.readonly ∧ t.serializable)) ∧
+          σ' = σ ∧ res = .err (AuthState.permErr who)) ∨
+      (σ.permits who (RequestOp.txn t.compare t.success t.failure).perms
+          (RequestOp.txn t.compare t.success t.failure).leases ∨ (t.readonly ∧ t.serializable)) ∧
       -- a read-only serializable transaction (the empty one included) is answered at the view
       -- of a member that may be behind (`issues/etcd-txn-empty-serializable.md`)
       ∃ v, (if t.readonly ∧ t.serializable then σ.kv.IsView v else v = σ.kv) ∧
@@ -888,11 +911,15 @@ def leaseStep (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) : Prop 
   | .leaseTimeToLive id keys =>
       σ' = σ ∧
       (res = .err .leaseNotFound ∨  -- a lessor behind or deposed may not know it
-       id ∈ σ.granted ∧ ∃ ttl gttl r l, r ≤ σ.kv.rev ∧ ttl ≤ gttl ∧
+       -- the attached keys' read permission, checked at a member's auth state
+       (keys = true ∧ res = .err (AuthState.permErr who)) ∨
+       -- the remaining TTL may exceed the granted one after a leader change (`Promote` extends)
+       id ∈ σ.granted ∧ ∃ ttl gttl r l, r ≤ σ.kv.rev ∧
          (∀ k, k ∈ l ↔ ∃ rec, σ.kv.storeAt r k = some rec ∧ rec.lease = id) ∧
          res = .ok (.leaseTimeToLive id ttl gttl (if keys then l else [])))
   | .leaseLeases =>
-      σ' = σ ∧ ∃ ids, (∀ i ∈ ids, i ∈ σ.granted) ∧ res = .ok (.leaseLeases ids)
+      σ' = σ ∧ (res = .err (AuthState.permErr who) ∨
+        ∃ ids, ids.Nodup ∧ (∀ i ∈ ids, i ∈ σ.granted) ∧ res = .ok (.leaseLeases ids))
   | _ => False
 
 /-- User `name`'s record replaced. -/
@@ -911,7 +938,16 @@ def Perm.dropRange (ps : List Perm) (key rangeEnd : Bytes) : List Perm :=
 def AuthState.dropRole (a : AuthState) (name : GoString) : AuthState :=
   { a with users := fun u => Option.map (fun ur => { ur with roles := ur.roles.filter (· ≠ name) }) (a.users u) }
 
-/-- The auth RPCs that need an administrator. -/
+/-- **Who may call an auth RPC** (`needAdminPermission`, `authApplierV3.UserGet`/`RoleGet`): an
+administrator; a user may also read its own record and the roles it has. -/
+def AuthState.mayCall (a : AuthState) (who : Principal) (rq : Req) : Prop :=
+  a.admin who ∨
+  match rq with
+  | .userGet n => who = some n
+  | .roleGet r => ∃ u ur, who = some u ∧ a.users u = some ur ∧ r ∈ ur.roles
+  | _ => False
+
+/-- The auth RPCs that need an administrator (or the caller's own record, `mayCall`). -/
 def Req.isAuthAdmin : Req → Prop
   | .authEnable | .authDisable | .userAdd .. | .userGet _ | .userList | .userDelete _
   | .userChangePassword .. | .userGrantRole .. | .userRevokeRole .. | .roleAdd _ | .roleGet _
@@ -934,15 +970,17 @@ def authStep (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) : Prop :
   | .authStatus => σ' = σ ∧ res = .ok (.authStatus a.enabled a.rev)
   | _ =>
     rq.isAuthAdmin ∧
-    (¬ a.admin who ∧ σ' = σ ∧ res = .err (a.adminErr who) ∨
-    a.admin who ∧
+    (¬ a.mayCall who rq ∧ σ' = σ ∧ res = .err (a.adminErr who) ∨
+    a.mayCall who rq ∧
     match rq with
     | .authEnable =>
         a.enabled = true ∧ σ' = σ ∧ res = .ok .authEnable ∨
         a.enabled = false ∧
           (a.users rootUser = none ∧ σ' = σ ∧ res = .err .rootUserNotExist ∨
            ¬ a.isRoot rootUser ∧ a.users rootUser ≠ none ∧ σ' = σ ∧ res = .err .rootRoleNotExist ∨
-           a.isRoot rootUser ∧ σ' = bump { a with enabled := true } ∧ res = .ok .authEnable)
+           -- `AuthEnable` keeps the auth revision (`setRevision` of the stored one)
+           a.isRoot rootUser ∧ σ' = { σ with auth := { a with enabled := true } } ∧
+             res = .ok .authEnable)
     | .authDisable =>
         σ' = (if a.enabled then (bump { a with enabled := false }) else σ) ∧ res = .ok .authDisable
     | .userAdd name pw noPw =>
@@ -961,7 +999,8 @@ def authStep (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) : Prop :
     | .userChangePassword name pw =>
         a.users name = none ∧ σ' = σ ∧ res = .err .userNotFound ∨
         ∃ ur, a.users name = some ur ∧
-          σ' = bump (a.setUser name (some { ur with password := some pw })) ∧
+          -- a password-less user stays password-less (`store.go`, `UserChangePassword`)
+          σ' = bump (a.setUser name (some { ur with password := ur.password.map (fun _ => pw) })) ∧
           res = .ok .userChangePassword
     | .userGrantRole user role =>
         a.users user = none ∧ σ' = σ ∧ res = .err .userNotFound ∨
@@ -980,7 +1019,7 @@ def authStep (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) : Prop :
            res = .ok .userRevokeRole)
     | .userGet name =>
         σ' = σ ∧ (a.users name = none ∧ res = .err .userNotFound ∨
-          ∃ ur, a.users name = some ur ∧ res = .ok (.userGet ur.roles))
+          ∃ ur l, a.users name = some ur ∧ l.Perm ur.roles ∧ res = .ok (.userGet l))
     | .userList =>
         σ' = σ ∧ ∃ l, (∀ u, u ∈ l ↔ a.users u ≠ none) ∧ res = .ok (.userList l)
     | .roleAdd name =>
@@ -997,6 +1036,8 @@ def authStep (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) : Prop :
              σ' = bump (AuthState.dropRole (a.setRole name none) name) ∧
              res = .ok .roleDelete)
     | .roleGrantPermission name perm =>
+        -- an invalid range or a missing permission (`store.go`, `RoleGrantPermission`)
+        σ' = σ ∧ (res = .err .invalidAuthMgmt ∨ res = .err .permissionNotGiven) ∨
         a.roles name = none ∧ σ' = σ ∧ res = .err .roleNotFound ∨
         ∃ ps, a.roles name = some ps ∧
           σ' = bump (a.setRole name
@@ -1011,58 +1052,60 @@ def authStep (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) : Prop :
              σ' = bump (a.setRole role (some (Perm.dropRange ps key rangeEnd))) ∧
              res = .ok .roleRevokePermission)
     | .roleGet name =>
-        σ' = σ ∧ (a.roles name = none ∧ res = .err .roleNotFound ∨
-          ∃ ps, a.roles name = some ps ∧ res = .ok (.roleGet ps))
+        σ' = σ ∧ (a.roles name = none ∧ name ≠ rootRole ∧ res = .err .roleNotFound ∨
+          -- the root role answers its fixed permission (`rootPerm`), whatever is stored
+          name = rootRole ∧ (∃ ps, res = .ok (.roleGet ps)) ∨
+          ∃ ps l, name ≠ rootRole ∧ a.roles name = some ps ∧ l.Perm ps ∧ res = .ok (.roleGet l))
     | .roleList =>
         σ' = σ ∧ ∃ l, (∀ r, r ∈ l ↔ a.roles r ≠ none) ∧ res = .ok (.roleList l)
     | _ => False)
 
 /-- The membership and alarm steps (`server/etcdserver/api/membership`, `server.go`'s
-`AddMember`, ...). A new member's id is the server's choice; `MemberList` with `linearizable`
-false is answered from a member's possibly stale view (some earlier membership: not modelled, any
-list). -/
+`AddMember`, ...). A new member's id is the server's choice; lists come in any order (members
+sorted by id, alarms from a map); `MemberList` with `linearizable` false is answered from a
+member's possibly stale view (any list). The administrator check of these requests is made at the
+member's local auth state before proposing, which may be behind: a refusal at any state, and the
+change itself not conditioned on `σ`'s administrators. -/
 def clusterStep (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) : Prop :=
   match rq with
   | .memberAdd urls learner =>
-      (¬ σ.auth.admin who ∧ σ' = σ ∧ res = .err (σ.auth.adminErr who)) ∨
-      σ.auth.admin who ∧
+      (σ' = σ ∧ res = .err (σ.auth.adminErr who)) ∨
       ((∃ m ∈ σ.members, ∃ u ∈ urls, u ∈ m.peerURLs) ∧ σ' = σ ∧ res = .err .peerURLExist ∨
        learner = true ∧ σ' = σ ∧ res = .err .tooManyLearners ∨
-       ∃ id, (∀ m ∈ σ.members, m.id ≠ id) ∧
+       -- unparsable URLs; an id the server chose that is (or was) a member's
+       σ' = σ ∧ (res = .err .memberBadURLs ∨ res = .err .memberExist ∨ res = .err .memberNotFound) ∨
+       ∃ id l, (∀ m ∈ σ.members, m.id ≠ id) ∧
          let m : Member := { id := id, name := [], peerURLs := urls, clientURLs := [],
                              isLearner := learner }
-         σ' = { σ with members := σ.members ++ [m] } ∧ res = .ok (.memberAdd m σ'.members))
+         σ' = { σ with members := σ.members ++ [m] } ∧ l.Perm σ'.members ∧
+         res = .ok (.memberAdd m l))
   | .memberRemove id =>
-      (¬ σ.auth.admin who ∧ σ' = σ ∧ res = .err (σ.auth.adminErr who)) ∨
-      σ.auth.admin who ∧
+      (σ' = σ ∧ res = .err (σ.auth.adminErr who)) ∨
       ((∀ m ∈ σ.members, m.id ≠ id) ∧ σ' = σ ∧ res = .err .memberNotFound ∨
        (∃ m ∈ σ.members, m.id = id) ∧ σ' = { σ with members := σ.members.filter (·.id ≠ id) } ∧
-         res = .ok (.memberRemove σ'.members))
+         ∃ l, l.Perm σ'.members ∧ res = .ok (.memberRemove l))
   | .memberUpdate id urls =>
-      (¬ σ.auth.admin who ∧ σ' = σ ∧ res = .err (σ.auth.adminErr who)) ∨
-      σ.auth.admin who ∧
+      (σ' = σ ∧ res = .err (σ.auth.adminErr who)) ∨
       ((∀ m ∈ σ.members, m.id ≠ id) ∧ σ' = σ ∧ res = .err .memberNotFound ∨
        (∃ m ∈ σ.members, m.id ≠ id ∧ ∃ u ∈ urls, u ∈ m.peerURLs) ∧ σ' = σ ∧
          res = .err .peerURLExist ∨
        (∃ m ∈ σ.members, m.id = id) ∧
          σ' = { σ with members := σ.members.map (fun m => if m.id = id then { m with peerURLs := urls } else m) } ∧
-         res = .ok (.memberUpdate σ'.members))
+         ∃ l, l.Perm σ'.members ∧ res = .ok (.memberUpdate l))
   | .memberPromote id =>
-      (¬ σ.auth.admin who ∧ σ' = σ ∧ res = .err (σ.auth.adminErr who)) ∨
-      σ.auth.admin who ∧
+      (σ' = σ ∧ res = .err (σ.auth.adminErr who)) ∨
       ((∀ m ∈ σ.members, m.id ≠ id) ∧ σ' = σ ∧ res = .err .memberNotFound ∨
        (∃ m ∈ σ.members, m.id = id ∧ m.isLearner = false) ∧ σ' = σ ∧
          res = .err .memberNotLearner ∨
        (∃ m ∈ σ.members, m.id = id ∧ m.isLearner = true) ∧
          σ' = { σ with members := σ.members.map (fun m => if m.id = id then { m with isLearner := false } else m) } ∧
-         res = .ok (.memberPromote σ'.members))
+         ∃ l, l.Perm σ'.members ∧ res = .ok (.memberPromote l))
   | .memberList lin =>
-      σ' = σ ∧ (lin = true → res = .ok (.memberList σ.members)) ∧
+      σ' = σ ∧ (lin = true → ∃ l, l.Perm σ.members ∧ res = .ok (.memberList l)) ∧
         (lin = false → ∃ ms, res = .ok (.memberList ms))
-  | .alarmList => σ' = σ ∧ res = .ok (.alarm σ.alarms)
+  | .alarmList => σ' = σ ∧ ∃ l, l.Perm σ.alarms ∧ res = .ok (.alarm l)
   | .alarmDisarm al =>
-      (¬ σ.auth.admin who ∧ σ' = σ ∧ res = .err (σ.auth.adminErr who)) ∨
-      σ.auth.admin who ∧
+      (σ' = σ ∧ res = .err (σ.auth.adminErr who)) ∨
       ((¬ ∃ b ∈ σ.alarms, b.memberId = al.memberId ∧ b.kind = al.kind) ∧ σ' = σ ∧
           res = .ok (.alarm []) ∨
        (∃ b ∈ σ.alarms, b.memberId = al.memberId ∧ b.kind = al.kind) ∧
@@ -1078,13 +1121,17 @@ def Step (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) : Prop :=
   clusterStep who rq σ σ' res
 
 /-- **The cluster's configuration, as far as the environment's steps depend on it**: whether the
-members run an auto-compactor (`--auto-compaction-retention` not `0`). Fixed when the cluster's
+members run an auto-compactor (`--auto-compaction-retention` not `0`), and whether leases may expire
+during the run. Fixed when the cluster's
 state is allocated (the cluster contract); every member is configured alike. -/
 structure EnvCfg where
   autoCompact : Bool
+  /-- whether a lease may expire during the run (`false`: a deployment premise, every lease granted
+  outlives the run, as `examples/etcd/leasegrant` assumes) -/
+  leaseExpiry : Bool
 
 /-- Every environment step allowed (what `Reach` closes over). -/
-def EnvCfg.all : EnvCfg := { autoCompact := true }
+def EnvCfg.all : EnvCfg := { autoCompact := true, leaseExpiry := true }
 
 /-- **The environment's steps** in a cluster configured as `cfg`: what no client call causes. A live
 lease expires and the leader revokes it (its keys deleted at one revision); the server's
@@ -1092,7 +1139,7 @@ auto-compaction, if configured (at a revision it read: at most the current one);
 (the quota exceeded, a corruption check); a member publishing its name and client URLs
 (`publishV3`). -/
 inductive EnvStep (cfg : EnvCfg) : State → State → Prop
-  | leaseExpire (σ : State) (id : Int) (l : List KV) :
+  | leaseExpire (σ : State) (id : Int) (l : List KV) : cfg.leaseExpiry = true →
       σ.leases id ≠ none → σ.attachedKVs id l → EnvStep cfg σ (σ.revoke id l)
   | compact (σ : State) (r : Nat) : cfg.autoCompact = true →
       σ.kv.compacted < r → r ≤ σ.kv.rev → EnvStep cfg σ (σ.withKV { σ.kv with compacted := r })

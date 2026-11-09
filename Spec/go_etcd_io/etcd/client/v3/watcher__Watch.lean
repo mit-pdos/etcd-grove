@@ -1,0 +1,89 @@
+/-
+`(*clientv3.watcher).Watch(ctx, key, opts...)` (`client/v3/watch.go`).
+
+**Users** (pinned etcd `E = upamanyus/etcd/*@a4d2bb17`, Kubernetes apiserver `K`, `examples/` `X`;
+every one through `Client.Watch` or a `Watcher` value, `watcherAt`), by pattern:
+* wait for a delete from a known revision (`E client/v3/concurrency/key.go:30` `waitDelete`,
+  `leasing/kv.go:210` `waitRescind`, `experimental/recipes/watch.go:28,38`): no gap from the start
+  revision; snippet `clientv3watch/history.go` `ReqWatchWaitDelete`;
+* resume after a `Get` at its revision + 1 and apply events as deltas (`naming/endpoints/
+  endpoints_impl.go:131`, `mirror/syncer.go:119`, `server/.../v3discovery/discovery.go:370`,
+  `leasing/kv.go:174`, `K etcd3/watcher.go:493`, `K etcd3/compact.go:269`, the cache
+  `E cache/v3/cache.go:392`): revision order, no gap, no repeat, every event of a revision in one
+  response; `history.go` `ReqWatchFromGet`, `ReqWatchRevisionWhole`;
+* full-history checks (`X etcd/watch/watchkv.go:79`, `X etcd/partition/linkv3p.go:193`,
+  `X etcd/auth/authkv.go:434,445`, `X etcd/compactwatch/compactkv.go:122`): events are the
+  history's puts at their revisions; `history.go` `ReqWatchHistory`;
+* progress notifications as bookmarks (`K etcd3/watcher.go`, the cache's `maxRev`):
+  `progress.go`;
+* compaction and errors end the watch (every user; `X compactwatch/compactkv.go:142` reads
+  `CompactRevision`), a refused watch delivers nothing (`X etcd/auth/authkv.go:272`), `Created`
+  first (`server/proxy/grpcproxy/leader.go:62`, the cache's readiness): `ending.go`;
+* `select` with the context, writing the response (`concurrency/election.go:190,223`,
+  `namespace/watch.go:49`), Kubernetes' previous key-value (`K etcd3/event.go:67`):
+  `consume.go`.
+
+**Proof sketch.** `OpWatch.spec` (W0) gives the `Op` (`watchPanics` excluded); the filters are
+built from it. The loop: `w.mu.Lock()` (the watcher's lock invariant: `streams` is `nil` after
+`Close`, else a map of `wgsAt` streams); `nil` → a fresh channel, closed: its consumer
+`watchChAt` at the initial position (a closed channel delivers nothing: the realization's
+`R`). Else `newWatcherGRPCStream.spec` for a missing key, then `select` on `reqc` (`wgsAt`'s
+protocol: the `*watchRequest` goes with the `retc` protocol, whose receiver gets the channel `ch`
+with `watchChAt ch γ who (watchReq) (WatchPos.init rev)`: established by `run` when it makes the
+substream, the producer side going to `serveSubstream`), `ctx.Done()` (`Context.ctxOk`'s `Done`)
+or `donec` (closed: `closeErr` published; a closed-channel result with at most one error response
+`Canceled` with `closeErr`, whose `closeErrOk` is the published one: `watchStep`'s error case at
+the initial position). Then `select` on `retc` (the result) or again `ctx.Done()`/`donec`. Every
+path returns a channel whose consumer is `watchChAt` at `WatchPos.init`. No thread token: the
+goroutines `newWatcherGRPCStream` and `run` fork come with theirs (`wp_fork_tok`).
+
+**Changes** from `specs-ref/.../watcher__Watch.lean`: the responses are persistent facts about the
+history (`etcdLb` and `watchStep`), not firings of a persistent read update (D47); any range (from
+`""` normalized as the member does, `OpM.watchReq`), any start revision (`0` and negative
+included; was `≥ 1`), any context (`Context.ctxOk`; was `watchCtx`), filters, `prevKV`
+(`WatchReq.prevOk`), fragments, `createdNotify`, progress; with auth (any mode, any number of
+members): event responses carry the admitting auth state (`σa.permits who`), replacing the
+one-member gate `watchCheckOk`; no size premise (`watchSizeOk`: an oversized create fails the
+stream, `req/google_golang_org_grpc.md`), no `noDupKeys` server premise (a key written twice in
+one revision gives both events, as the model's history has them).
+
+**Margin.** Liveness (that the channel closes when `ctx` is done or after an error, that a
+`Created` or progress response comes) is not stated. A watch from the current revision states its
+completeness only from its first event or progress (`WatchPos.init`); the code also never delivers
+an event below the member's revision at the creation minus one. The error responses' errors are
+classified only by kind (`closeErrOk`).
+-/
+module
+
+public import Spec.go_etcd_io.etcd.client.v3.ApiWatch
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace ClientV3
+
+open Iris Iris.BI EtcdModel EtcdWire
+open Classical
+
+section spec
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
+
+/-- `watcher.Watch` meets the `Watcher` contract's `Watch` (`Watcher.WatchTriple`, `ApiWatch.lean`),
+for a `*watcher` of `γ` as `who` (`watcherHandle`). -/
+def watcher.Watch.spec : Prop :=
+  ∀ (w : Loc) (γ : Cluster) (who : Principal),
+  Watcher.WatchTriple (w @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watcher.ty @!! go!"Watch")
+    (iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ watcherHandle w γ who)) γ who
+
+end spec
+
+end ClientV3
+end EtcdGrove
+end Perennial

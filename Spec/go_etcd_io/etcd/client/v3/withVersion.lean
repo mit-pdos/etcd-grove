@@ -36,7 +36,8 @@ def withVersion.spec : Prop :=
   ∀ (ctx : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ Context.ctxOk ctx }}
     (App (Val (@! go_etcd_io.etcd.client.v3.withVersion)) (Val #ctx))
-  {{ (ctx' : GoInterface), RET #ctx'; Context.ctxOk ctx' ∗ Context.ctxWithValues ctx ctx' }}
+  {{ (ctx' : GoInterface), RET #ctx'; Context.ctxOk ctx' ∗ Context.ctxWithValues ctx ctx' ∗
+      □ (∀ who, ctxPrin ctx who -∗ ctxPrin ctx' who) }}
 
 end spec
 

@@ -39,10 +39,16 @@ start-up parts go to 2e (`req/go_etcd_io_etcd_server_v3_etcdserver.md`).
      rejected for a stale auth revision (`ErrAuthOldRevision`, retried by the client's
      interceptor) or an invalid token **is not fired** (the update stays for the retry) unless
      the client gives up, in which case the client fires the refusal itself (1c);
-   * a **read** (`Range`, a read-only `Txn`, `RangeStream`) takes a persistent update and may fire
-     it at every state; the answer is the one at the state it was last fired at (a linearizable
-     read: the state at the member's applied index after the read index; a serializable one: the
-     member's view, `KVHist.IsView`);
+   * a **read** (`Range`, a read-only `Txn`, `RangeStream`) takes a persistent update, registered
+     before its read index is taken, and may fire it at every state from then on; the reply goes
+     with the `Q` of the firing at the state the member read (a linearizable read: its applied
+     state after the read index, possibly behind the latest committed state; a serializable one:
+     the member's view, `KVHist.IsView`, the update fired at the current state);
+   * an **unpinned `RangeStream`** whose pinned revision is compacted between two chunks ends with
+     `ErrCompacted` and no `Q` (`wireStreamAt_recv`'s compaction disjunct);
+   * the **permission** of a read is checked at the state it answers from; `doSerialize`'s race
+     with `AuthEnable` breaks it (`nonissues/etcd-doserialize-auth-enable-race.md`): a fix or a
+     scope premise, the user's decision;
    * an error after which the request may still take effect is indefinite: `ErrTimeout*`,
      `ErrStopped`, `ErrNoLeader`, `ErrLeaderChanged`, ... (`EtcdErr.indefinite`).
    Used by: every `KV.*Triple` (exclusive or persistent updates), `txn.Commit.spec`.
@@ -53,6 +59,55 @@ start-up parts go to 2e (`req/go_etcd_io_etcd_server_v3_etcdserver.md`).
    (`issues/etcd-txn-keysonly-reply-alloc-panic.md`). No premise on the client's requests.
 
 5. **Streamed ranges** (`RangeStream`): the chunks are pages read at the revision pinned by the
-   first (`EtcdServer.rangeStream`): the client's `streamMatches` (default ordering: the pages'
-   key-values are the range's answer, the last chunk carries the header's revision and `More`).
+   first (`EtcdServer.rangeStream`): the client's `streamMatches` (only the last chunk has a
+   header, `More` and `Count`; earlier chunks are non-empty; at the default ordering the pages'
+   key-values are the range's answer and the last `Count` its count).
+
+6. **The principal** a request is authenticated as is the client's `who` whenever the request's
+   context satisfies `ctxPrin ctx who` (no token metadata of its own); a context with a token issued
+   to no one is refused (`ErrInvalidAuthToken`, a refusal).
    Used by: `kv.GetStream.spec` (`wireStreamAt_recv`).
+
+## from 1b
+
+Batch 1b (the client's watch) needs the member's **Watch stream handler** (2b, `v3rpc/watch.go`,
+over mvcc's watchable store, 3f) to give each response the facts of `wireStep`
+(`Spec/go_etcd_io/etcd/client/v3/ApiWatch.lean`), through grpc's stream (`req/google_golang_org_grpc.md`,
+`wireWatchRecv_recv.spec`): with `etcdLb γ σ` for a state `σ` of the cluster the response's events
+and revisions are read against (the committed log's state the member's store had reached), and
+`etcdLb γ σa` for the auth state that admitted the watch. In plain terms, for a stream of a client
+of `γ` as `who` (`servesAt γ ep`):
+
+1. **Creates are answered in order**: the `k`-th response with `Created` answers the `k`-th create
+   request the member read. A refused create (`isWatchPermitted` failing, a negative start revision,
+   mvcc's errors: an empty range, a duplicate id) is answered `Created`, `Canceled`, a non-empty
+   `CancelReason`, `WatchId = -1`; a registered one with a fresh id, never reused on that stream, and
+   **only if `who` may read the range** at the member's applied auth state (`σa.permits who
+   [(.read, range)] []`, the key normalized: an empty key is `"\x00"`).
+2. **A registration's responses are `watchStep`s** of it (`watchStep who w σ σa p m p'`, the position
+   `p` starting at `WatchPos.init start`): its events are exactly the range's events (`watchEvents`:
+   filters applied) of the revisions after its position up to the last event's, **every event of
+   a revision in one response** (mvcc's batches are cut at revision boundaries), the header's
+   revision at least the last event's and reached; `PrevKv` as `WatchReq.prevOk` (the range at
+   `ModRevision - 1`, none for a creation or below the compaction); no response of the id before
+   its `Created` (the pending buffer), none after its compaction or cancel response.
+3. **Progress**: a response of an id (or `-1`) with no events, not created, not canceled, is a
+   progress notification at its header's revision `P`: no event of the watch between its position
+   and `P`, and **`P` not below its position** (for a watch from a revision above the store's, no
+   progress until the store reaches it: the fork's #20229 check; a progress requested before a
+   watch's creation is not sent after its `Created`: the fork's fix of
+   `issues/etcd-watch-progress-before-created.md`); id `-1` (a `RequestProgress` answer): such a
+   notification for every registration of the stream.
+4. **Compaction**: `Canceled` with `CompactRevision = cr`, no events: `cr` at most the cluster's
+   compaction revision at `σ`, and above the registration's position + 1 (mvcc: `minRev <
+   compactRev`).
+5. **Cancel**: `Canceled` without compaction ends the id's registration.
+6. **Fragments**: the fragments of one response are sent contiguously, all with the same id, the
+   last without `Fragment` (`sendFragments` on the one send goroutine).
+7. **Every response has a header** (`newResponseHeader`); mvcc responses whose events were all
+   filtered are not sent.
+
+Used by: `watchGRPCStream.run.spec` (through `deliverOk`), hence every fact of `watchChAt_recv`
+(`watcher.Watch.spec`, `Client.Watch.spec`) and the snippets `examples/specreq/clientv3watch/`.
+`WithRequireLeader` (`ctxRequireLeader`, W0's slot) needs nothing of safety: closing a stream whose
+member lost its leader is liveness; the client ends its watches with that error (`closeErr`).

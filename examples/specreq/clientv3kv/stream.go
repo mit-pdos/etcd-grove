@@ -3,6 +3,9 @@ package clientv3kv
 import (
 	"bytes"
 	"context"
+	"errors"
+
+	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
@@ -22,6 +25,7 @@ func ReqGetStream(ctx context.Context, cli *clientv3.Client, from, to string, re
 	}
 	var keys [][]byte
 	var hdr int64
+	var count int64
 	for r := range ch {
 		if r.Err() != nil {
 			return
@@ -32,9 +36,14 @@ func ReqGetStream(ctx context.Context, cli *clientv3.Client, from, to string, re
 		for _, kv := range r.Kvs {
 			keys = append(keys, kv.Key)
 		}
-		if r.Header != nil {
+		if r.Header != nil && hdr == 0 {
+			// Kubernetes takes the first non-nil header (store.go:986): the last chunk's
 			hdr = r.Header.Revision
+			count = r.Count
 		}
+	}
+	if count != int64(len(keys)) {
+		panic("get-stream: the final Count counts the range's keys")
 	}
 	// the stream ended without an error: its chunks make the range's answer
 	for i, k := range keys {
@@ -47,5 +56,30 @@ func ReqGetStream(ctx context.Context, cli *clientv3.Client, from, to string, re
 	}
 	if rev > 0 && hdr != 0 && hdr < rev {
 		panic("get-stream: the stream's revision is at least the one asked")
+	}
+}
+
+// REQ clientv3kv/get-stream-compacted: an unpinned stream may end with ErrCompacted after some
+// chunks (the server pins the first chunk's revision, a compaction then overtakes it): the caller
+// relists; it is the only definite error mid-stream.
+// Users: Kubernetes' watcher (etcd3/watcher.go:410-415: "a compaction mid-stream can't be resumed
+// ... surface it as ResourceExpired") and store (store.go:978-980, listReadError).
+// Assumes: the caller holds no permission problem (auth off), so no read refusal of its range.
+// Specs: Client.GetStream.spec, streamAt_recv (the ms ≠ [] compaction disjunct), errorsIs_errVal.
+func ReqGetStreamCompacted(ctx context.Context, cli *clientv3.Client, from, to string) {
+	ch, err := cli.GetStream(ctx, from, clientv3.WithRange(to))
+	if err != nil {
+		return
+	}
+	for r := range ch {
+		if e := r.Err(); e != nil {
+			if errors.Is(e, rpctypes.ErrCompacted) {
+				return // relist
+			}
+			if errors.Is(e, rpctypes.ErrFutureRev) {
+				panic("get-stream: an unpinned stream is never in the future")
+			}
+			return
+		}
 	}
 }

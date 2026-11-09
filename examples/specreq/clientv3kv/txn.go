@@ -98,6 +98,26 @@ func ReqTxnReadsOwnWrites(ctx context.Context, cli *clientv3.Client, k string) {
 	}
 }
 
+// REQ clientv3kv/txn-nested-range-headers: a transaction's nested ranges carry a header whose
+// revision is the transaction's read revision (the outer header's, before any write).
+// Users: client/v3/concurrency/stm.go:193,201,293,325 (it keeps the nested range responses as
+// GetResponses and pins its later reads at their Header.Revision).
+// Assumes: none.
+// Specs: Client.Txn.spec ..., txn.Commit.spec; the model's TxnRun (.range rev), Wire's
+// ResponseOpM.ofResp.
+func ReqTxnNestedRangeHeaders(ctx context.Context, cli *clientv3.Client, k1, k2 string) {
+	resp, err := cli.Txn(ctx).Then(clientv3.OpGet(k1), clientv3.OpGet(k2)).Commit()
+	if err != nil {
+		return
+	}
+	for _, r := range resp.Responses {
+		rr := r.GetResponseRange()
+		if rr == nil || rr.Header == nil || rr.Header.Revision != resp.Header.Revision {
+			panic("txn: a nested range's header is the transaction's read revision")
+		}
+	}
+}
+
 // REQ clientv3kv/txn-nested: a nested transaction's branch is decided by its own comparisons,
 // evaluated before the outer transaction's writes.
 // Users: leasing/txn.go (OpTxn of the user's transaction inside its own guard).

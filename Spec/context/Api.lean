@@ -17,7 +17,10 @@ that the client's code relies on (PRINCIPLES, "an interface value gets a bundle"
 
 Laws (obligations of whoever realizes the bundle, from Perennial's specs and each context's
 code): `Err.spec`, `ErrDone.spec`; introduction from Perennial's contexts (`ctxOk_of_isContext`),
-`Background()` and `TODO()` (`ctxOk_background`, `ctxOk_todo`). A context outside these (`WithValue`'s,
+`Background()` and `TODO()` (`ctxOk_background`, `TODO.spec`); the constructors `WithCancel`,
+`WithTimeout` (a child: `ctxChild`, with `cancelOk`) and `WithValue` (`ctxWithValues`), `Done.spec`
+and the Done channel's receive (`ctxDoneChan`, `doneRecv.spec`: a blocking receive or a `select`
+case, Perennial's `recvAu`, completes only once the context is done). A context outside these (`WithValue`'s,
 a caller's own type) is introduced by the spec of the function that makes it (`WithRequireLeader`,
 `client/v3/ctx.go`; Kubernetes' contexts, batch 1g's users), never by unfolding.
 
@@ -105,6 +108,66 @@ def Background.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.context }}
     (App (Val (@! context.Background)) (Val #()))
   {{ (ctx : GoInterface), RET #ctx; ctxOk ctx }}
+
+/-- **`ctx'` is a child of `ctx`** (persistent): made by `WithCancel`, `WithTimeout` or
+`WithDeadline` over `ctx`: it carries exactly `ctx`'s values (a request's metadata among them) and
+is done once `ctx` is. (`WithValue` adds a value: `ctxWithValues`.) -/
+opaque ctxChild (ctx ctx' : GoInterface) : IProp GF := iprop(True)
+
+def ctxChild_persistent.spec : Prop := ∀ ctx ctx', Persistent (ctxChild (GF := GF) ctx ctx')
+
+/-- A child is done once its parent is. -/
+def ctxChild_done.spec : Prop := ∀ ctx ctx',
+  ctxChild (GF := GF) ctx ctx' ⊢ □ (ctxDone ctx -∗ ctxDone ctx')
+
+/-- **A cancel function** (persistent): calling it makes `ctx` done. -/
+def cancelOk (cancel : GoFunc) (ctx : GoInterface) : IProp GF :=
+  iprop(□ ∀ Φ : val → IProp GF, ▷ (ctxDone ctx -∗ Φ #()) -∗
+    WP (App (Val #cancel) (Val #())) {{ Φ }})
+
+/-- **`WithCancel(parent)`** of any context: a child context and its cancel function. -/
+def WithCancel.spec : Prop :=
+  ∀ (parent : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.context ∗ ctxOk parent }}
+    (App (Val (@! context.WithCancel)) (Val #parent))
+  {{ (ctx : GoInterface) (cancel : GoFunc), RET (PairV #ctx #cancel);
+      ctxOk ctx ∗ ctxChild parent ctx ∗ cancelOk cancel ctx }}
+
+/-- **`WithTimeout(parent, d)`** of any context: a child context, done by `d` at the latest (time
+is not modelled: at some point), and its cancel function. -/
+def WithTimeout.spec : Prop :=
+  ∀ (parent : GoInterface) (d : time.Duration),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.context ∗ ctxOk parent }}
+    (App (App (Val (@! context.WithTimeout)) (Val #parent)) (Val #d))
+  {{ (ctx : GoInterface) (cancel : GoFunc), RET (PairV #ctx #cancel);
+      ctxOk ctx ∗ ctxChild parent ctx ∗ cancelOk cancel ctx }}
+
+/-- **`WithValue(parent, key, val)`** of any context (a comparable key): a child carrying the value. -/
+def WithValue.spec : Prop :=
+  ∀ (parent key v : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.context ∗ ctxOk parent }}
+    (App (App (App (Val (@! context.WithValue)) (Val #parent)) (Val #key)) (Val #v))
+  {{ (ctx : GoInterface), RET #ctx; ctxOk ctx ∗ ctxWithValues parent ctx }}
+
+/-- **`ctx`'s Done channel is `ch`** (persistent; `ch` not nil). -/
+opaque ctxDoneChan (ctx : GoInterface) (ch : Loc) : IProp GF := iprop(True)
+
+def ctxDoneChan_persistent.spec : Prop := ∀ ctx ch, Persistent (ctxDoneChan (GF := GF) ctx ch)
+
+/-- **`ctx.Done()`**: `nil` for a context never done (`Background()`, `TODO()`, ...), else its Done
+channel (the same one at every call). -/
+def Done.spec : Prop :=
+  ∀ (ctx : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.context ∗ ctxOk ctx }}
+    (App (Val (ctx @!! context.Context.ty @!! go!"Done")) (Val #()))
+  {{ (ch : Loc), RET #ch; ⌜ch = null⌝ ∨ ctxDoneChan ctx ch }}
+
+/-- **Receiving from a Done channel** (a blocking receive or a `select` case: Perennial's
+`recvAu`): it completes only once the context is done. -/
+def doneRecv.spec : Prop := ∀ (ctx : GoInterface) (ch : Loc),
+  ctxDoneChan (GF := GF) ctx ch ⊢
+    ∃ γc : ChanNames, isChan ch γc Unit ∗
+      □ ∀ Φ : Unit → Bool → IProp GF, (∀ v ok, ctxDone ctx -∗ Φ v ok) -∗ recvAu γc Unit Φ
 
 end ctx
 

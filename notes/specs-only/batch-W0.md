@@ -174,3 +174,72 @@ firing discipline, configuration scope, streamed ranges);
 maps, the stub, `proto.Clone`/`Merge`); `go_etcd_io_etcd_client_v3.md` (1b, 1c: `New`, the slots,
 the interceptor's discipline, `callOptsOk`); `go_etcd_io_etcd_server_v3_etcdserver.md` (2c, 2d,
 2e: the cluster contract K1–K8).
+
+## Round 1 repairs (2026-11-09)
+
+Reviews: `reviews/W0-provability-1.md` (P), `reviews/W0-completeness-1.md` (C). Every first-tier
+finding is fixed; second-tier ones done where cheap (listed).
+
+**Renamed or changed names (wave-1 batches: follow these).**
+
+| name | change |
+|---|---|
+| `EtcdModel.OpResp.range` | **arity**: `range (rev : Nat) (a : RangeAns)` (was `range (a)`): a nested range's header revision (C-F3) |
+| `EtcdWire.ResponseOpM.ofResp.range` | takes the revision; requires `m.hdr.map (·.revision) = some (W64 rev)` |
+| `EtcdModel.EnvCfg` | new field `leaseExpiry : Bool` (C-F6); `EnvCfg.all` sets both; `EnvStep.leaseExpire` needs it |
+| `EtcdModel.EtcdErr` | new constructors `canceled`, `deadlineExceeded`, `notSupportedForLearner`, `invalidClientAPIVersion`, `watchCanceled`, `permissionNotGiven` (P-S1) |
+| `EtcdErr.refusal` | adds `authFailed` (P-F1, C-F5), `notSupportedForLearner`, `invalidClientAPIVersion` |
+| `EtcdErr.indefinite` | adds `canceled`, `deadlineExceeded`, `watchCanceled` |
+| `EtcdModel.State.permits` | same signature; a principal is needed only where a pair or an attached key is checked (P-F3.1) |
+| `EtcdModel.RangeReq.txnRevErr` | **new**: `checkRange` inside a txn (P-F3.3); `TxnRun.rangeErr`/`range` use it |
+| `EtcdModel.AuthState.mayCall` | **new**: admin, or self `UserGet`/own-role `RoleGet` (P-F3.7) |
+| `EtcdModel.etcdState_sizeFits` (State.lean) | **new law** (P-F4) |
+| every `KV.*Triple`, `RemoteKV.*Triple` | **new premise** `ctxPrin ctx who` beside `Context.ctxOk ctx` (C-F4) |
+| `ClientV3.ctxPrin` | **new** (persistent), laws `ctxPrin_persistent`, `ctxPrin_of_isContext`, `ctxPrin_background`, `ctxPrin_todo`, `ctxPrin_child`; `WithRequireLeader.spec`/`withVersion.spec` posts keep it |
+| `Txn.{If,Then,Else}Triple` | post `txnAt r ...` for the returned `r` (was `⌜r = iv⌝ ∗ txnAt iv ...`) (C-F7) |
+| `ClientV3.streamMatches` | stronger: non-last chunks have no header, `More` false, `Count` 0, key-values; last `Count = W64 a.count` (C-F2) |
+| `streamAt_recv`, `wireStreamAt_recv` | new terminal disjunct: `ErrCompacted` after a chunk, no `Q` (P-F2, C-F1) |
+| `ClientV3.callErr_agree`, `errorsIs_errVal` | **new laws** (P-S7, P-S6) |
+| `Context.ctxChild`, `cancelOk`, `WithCancel.spec`, `WithTimeout.spec`, `WithValue.spec`, `ctxDoneChan`, `Done.spec`, `doneRecv.spec` | **new** (P-F5; R1's `req/context.md`) |
+
+Nothing was removed.
+
+**Model fixes (P-F3).** Empty permission checks need no principal; serializable read-only txns
+checked at a stale auth state; negative revisions in a txn (`txnRevErr`); an empty `RequestOp` is
+`ErrKeyNotFound` (txn refusal); `AuthEnable` keeps the auth revision; role, permission, member and
+alarm lists answered as permutations; self `UserGet`/own-role `RoleGet`; `RoleGet "root"` any
+permissions; `RoleGrantPermission`'s `invalidAuthMgmt`/`permissionNotGiven`; a password-less user
+stays password-less; `TimeToLive`'s remaining TTL unbounded by the granted one; permission errors on
+`Leases` and `TimeToLive(keys)`; `Leases` without duplicates; `MemberAdd`'s `memberBadURLs`,
+`memberExist`, `memberNotFound`; member and alarm admin checks at a stale local state (refusal at
+any state, success not conditioned on `σ`'s administrators).
+
+**Snippets.** `ReqListPrefix` (now provable with `etcdState_sizeFits`; also `More` ⇒ non-empty page,
+C-S3 P5), `ReqCtxErrors` (`Context.WithCancel.spec`), new `ReqTxnNestedRangeHeaders` (C-F3),
+`ReqGetStream` (first non-nil header, final `Count`, C-F2), new `ReqGetStreamCompacted` (C-F1),
+new `ReqAuthRefusal` (C-F4). The package comment states the `ctxPrin` assumption.
+
+**Second tier done.** P-S1 (the gRPC-only rpctypes errors, `.other` reworded), P-S2/the learner
+resend (Api header, 1c's req item 2), P-S3 (reads answer with the firing at the state read: Api
+header, `top.md`, v3rpc req item 3), P-S5 (K8 names the long-name crash as liveness), P-S6,
+P-S7, P-S8 (the step budget in K7 and `State.lean`), C-S1 (leasing removed from `kvAt`'s
+realizers; `req/go_etcd_io_etcd_client_v3_leasing.md`), C-S2 (the GetStream margin), C-S4 (`WithValue`,
+`ctxOk_todo` fixed; `Client.Ctx()` in 1c's req). Not done: C-S3's other snippets (P14, P23, two
+clients), C-S5 (more zap: `Named`, `Sugar`, `Time`, `Float64`, `Binary`), C-S6, C-S7, C-S8.
+
+**Go findings recorded.** `nonissues/etcd-client-getstream-abandoned-leak.md` (blocks-proof: no),
+`nonissues/etcd-doserialize-auth-enable-race.md` (blocks-proof: yes; K8 open question).
+
+**New open questions for the user.**
+5. **`doSerialize`'s race with `AuthEnable`** (`nonissues/etcd-doserialize-auth-enable-race.md`):
+   a fix on the fork, or a scope premise "no `AuthEnable` while reads are in flight".
+6. **Lease reads per member** (C-F6): `examples/etcd/{leasegrant,leaseexpiry,leasecatchup}` need
+   `Leases` to answer the live leases of a state the cluster has been in, with a lower bound for a
+   client of one member. The model keeps no lease history and no per-member views, so `Leases`
+   only says "granted ids, no duplicates". Options: per-member views with a monotone lower bound a
+   client carries (a model change: `State` gains the leases' history, `Step` takes the answering
+   member), or a single-member mode. Your decision; `EnvCfg.leaseExpiry` (added) covers the
+   "no lease expires during the run" premise.
+7. **Contexts a caller builds with its own metadata** (`ctxPrin`): Kubernetes' request contexts
+   (`WithValue` chains) need `ctxPrin` from their batch: `Context.WithValue.spec` gives no
+   `ctxChild` because a value may be grpc's outgoing metadata.
