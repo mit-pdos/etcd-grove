@@ -411,6 +411,27 @@ def Durable.next (D : Durable) (b : Batch) : Durable :=
   { D2 with term := hs.term, vote := hs.vote, commit := hs.commit,
             wcommit := if b.ents = [] ∧ b.snap = none then D.wcommit else hs.commit }
 
+/-- **The durable state a crash during a batch's write can leave** (round 3, 2e's request): `D` with
+the first `j` of the batch's entries written (the log cut at the batch's first index; nothing
+written if `j = 0`), and hard state `hs` -- the old one or the batch's, with a commit index in
+between (a commit-only state record lost). The stored commit is then the whole truth
+(`wcommit := hs.commit`). A batch with a snapshot is not covered (`raftState_crash.spec`). -/
+def Durable.crashed (D : Durable) (b : Batch) (j : Nat) (hs : HardState) : Durable :=
+  let es := b.ents.take j
+  let D1 : Durable :=
+    if es = [] then D
+    else { D with ents := D.ents.take (b.entsFrom - uint.nat D.base.index - 1) ++ es }
+  { D1 with term := hs.term, vote := hs.vote, commit := hs.commit, wcommit := hs.commit }
+
+/-- **At most one conf-change entry above the commit** of a durable state (raft's `ConfI1` at the
+cut): what makes a restart from it safe. A node whose stored log holds two configuration changes
+above its stored commit restarts at a configuration older than its committed log, with a commit too
+low for raft's campaign guard to see the pending change, and can win an election counted in that
+older configuration (`nonissues/raft-commit-lost-with-entries-kept.md`, a model execution). -/
+def Durable.confAboveOk (D : Durable) : Prop :=
+  ((D.ents.zipIdx (uint.nat D.base.index + 1)).filter
+    (fun p => uint.nat D.commit < p.2 ∧ p.1.isConfChange)).length ≤ 1
+
 /-- **What a client knows of the `Ready` loop's position** (`nodeDriver`): the committed log handed
 out so far from index 1 (`delivered`: every `Ready`'s `CommittedEntries` in order, a snapshot's
 prefix in place of the entries it covers, after the prefix the node started at), the last hard state

@@ -789,6 +789,30 @@ def appliedLb_mono.spec : Prop :=
 def storSnapLb_mono.spec : Prop :=
   ∀ n (i j : Nat), j ≤ i → storSnapLb (GF := GF) n i ⊢ storSnapLb n j
 
+/-- **A crash during a batch's durable write** (round 3, 2e's request): with no node of `id` running
+(the crashed process gone: `nodeVacant`, which the crash rule of the adequacy theorem gives back)
+and the batch's enter update not fired (the evidence that `b` is the batch raft handed out at the
+durable state `D`), the client may move its `raftState` to any state the crash left:
+`D.crashed b j hs` for a prefix `j` of the batch's entries and a hard state with the old or the
+batch's term and vote and a commit between the old `wcommit` and the batch's commit, within the
+written log -- provided the result has at most one conf-change entry above its commit
+(`confAboveOk`). Raft's safety argument: nothing of the batch was acknowledged (acknowledgements
+and votes are sent only after the enter update, at `Advance`, or by a leader whose term and vote the
+batch does not change: `readyCheck`), so the node may lose any suffix of it; the condition on conf
+entries is what a restart needs (`Durable.confAboveOk`). Not covered: a batch with a snapshot. -/
+def raftState_crash.spec : Prop :=
+  ∀ (n : Loc) γ (id : w64) (st : Driver) (b : Batch) (dl : List LogEntry) (j : Nat)
+    (hs : HardState),
+    b.snap = none → j ≤ b.ents.length →
+    (hs.term = st.durable.term ∧ hs.vote = st.durable.vote ∨
+      ∃ h, b.hs = some h ∧ hs.term = h.term ∧ hs.vote = h.vote) →
+    uint.nat st.durable.wcommit ≤ uint.nat hs.commit →
+    uint.nat hs.commit ≤ uint.nat (b.hs.getD ⟨st.durable.term, st.durable.vote, st.durable.commit⟩).commit →
+    uint.nat hs.commit ≤ (st.durable.crashed b j hs).last →
+    (st.durable.crashed b j hs).confAboveOk →
+    readyEnter (GF := GF) n γ id st b dl ∗ raftState γ id st.durable ∗ nodeVacant γ id ⊢ |==>
+      raftState γ id (st.durable.crashed b j hs) ∗ nodeVacant γ id
+
 /-- Dropping a `RawNode` (it has no `Stop`): its id is vacant again. -/
 def rawNode_drop.spec : Prop :=
   ∀ rn γ id, rawNode (GF := GF) rn γ id ∗ nodeRunning rn 1 ⊢ |==> nodeVacant γ id

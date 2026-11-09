@@ -14,13 +14,35 @@ directory and namespace):
   contract `keyBackend` and its views, `mvccImage`, `mvccStorageFor`, `storageRest`), `Api.lean`
   (resources, the interfaces' contracts at a receiver, the bundles, the lessor steps, the laws),
   `Internal.lean` (the internal helpers' models and handles; imported by mvcc's own files only).
-  Internal additions by the sub-authors: FILLED-BELOW.
+  Internal additions: `InternalIdx.lean` (the index's logical state `idxAt γi M c` with a compaction
+  floor: `treeIndex.Compact` works key by key, so a single `M` is not linearizable; `availAt`, the
+  traversal `idxEnts`), `InternalStore.lean` (`storeWB` for `s.mu` held for writing, `revsAt`, the
+  scheduler's and restore channels' protocols, the hasher, the schema's globals `schemaVars`),
+  `InternalTxn.lean` (`txnCommon`, the change records `changesM`/`changesSl`, `storeTxnWNC`).
+  119 files in all (7 vocabulary modules, 112 specs).
 - **Client-facing specs** (canonical, per (type, method), each the contract at its type, full
   comments): `NewStore`, `store__{Read,Write,Rev,FirstRev,Range,Put,DeleteRange,Compact,Commit,
   Restore,HashStorage,Close}`, `metricsTxnWrite__{Range,DeleteRange,Put,End,FirstRev,Rev,Changes}`,
   `txnReadWrite__{Range,DeleteRange,Put,End,FirstRev,Rev,Changes}`, `NewReadOnlyTxnWrite`,
   `hashStorage__{Hash,HashByRev,Store,Hashes}` (trusted: names-only), `ReportEventReceived`.
-- **Internal specs** (mirror their code, short comments): FILLED-BELOW.
+- **Internal specs** (mirror their code, short comments; every panic path excluded by a premise):
+  revision.go (`Revision__GreaterThan`, `RevToBytes`, `BytesToRev`, `newBucketKey`, `NewRevBytes`,
+  `BucketKeyToBytes`, `BytesToBucketKey`, `isTombstone`, `IsTombstone`); key_index.go
+  (`keyIndex__{put,restore,restoreTombstone,tombstone,get,compact,keep,doCompact,isEmpty,
+  findGeneration,Less}`, `generation__{isEmpty,isRecreatedAt,walk}`); index.go (`newTreeIndex`,
+  `treeIndex__{Put,Get,unsafeGet,KeyIndex,keyIndex,unsafeVisit,Revisions,CountRevisions,Range,
+  Tombstone,Compact,Keep,Insert}`); kvstore internals (`store__{compactBarrier,updateCompactRev,
+  checkPrevCompactionCompleted,compact,compactLockfree,scheduleCompaction,restore,
+  setupMetricsReporter}`, `restoreIntoIndex`, `restoreChunk`); store.go (`UnsafeReadFinishedCompact`,
+  `UnsafeReadScheduledCompact`, `SetScheduledCompact`, `UnsafeSetScheduledCompact`,
+  `SetFinishedCompact`, `UnsafeSetFinishedCompact`); hash.go (`newKVHasher`,
+  `kvHasher__{WriteKeyValue,Hash}`, `NewHashStorage`; trusted); the views (`readView__{FirstRev,Rev,
+  Range}`, `writeView__{Put,DeleteRange}`); the transactions' internals (`storeTxnCommon__{FirstRev,
+  Rev,Range,rangeKeys}`, `sliceCapWithLimit`, `storeTxnRead__End`, `storeTxnWrite__{Rev,Range,
+  DeleteRange,Put,End,put,deleteRange,delete,Changes}`, `newMetricsTxnRead`, `newMetricsTxnWrite`).
+  `storeTxnWrite.End` is one spec for both callers: its outer update accepts the state at `σ₀` or
+  already notified (`notify` is idempotent), so the plain store passes `Txn.End`'s updates through
+  and the watchable store (3f) fires the first itself.
 - **Snippets**: `examples/specreq/mvcc/{store,compact,restore,lease,hash}.go` (`go vet` clean):
   `ReqReadFloor`, `ReqSoleWriter`, `ReqDeleteRange`, `ReqReadOnlyTxn`, `ReqRangeErrors`, `ReqViews`,
   `ReqCommit`, `ReqCompact`, `ReqCompactErrors`, `ReqBoot`, `ReqRestore`, `ReqClose`, `ReqPutLease`,
@@ -95,7 +117,17 @@ Changes,End}.contract`, `HashStorage.{HashByRev,Hash,Store,Hashes}.contract`, bu
 
 ## Functions left out
 
-FILLED-BELOW.
+- `store.hash`, `store.hashByRev`, `unsafeHashByRev`: translated names-only; covered by the trusted
+  `hashStorage` method contracts.
+- `treeIndex.Equal`, `keyIndex.since`, `keyIndex.equal`, `keyIndex.String`, `generation.String`,
+  `generation.equal`: no old spec, nothing in the verified code calls them (tests, the watch's
+  unused `since`).
+- The promoted wrappers `storeTxnRead.{FirstRev,Rev,Range,rangeKeys}`, `storeTxnWrite.{FirstRev,
+  rangeKeys}`, `BucketKey.GreaterThan`: covered by `storeTxnCommon`'s/`Revision`'s specs through the
+  embedded-field laws (`storeTxnR_common`, `storeTxnW_common`).
+- `metrics.go`'s `init` (Prometheus registration): the generated package initializer.
+- The watchable store's files are 3f's (`New`, `newWatchableStore`, `watchableStore.*`,
+  `watchableStoreTxnWrite.*`, `watchStream.*`, `kvsToEvents`, `rangeEvents`, `ChanBufLen`, ...).
 
 ## Callers' needs (`req/go_etcd_io_etcd_server_v3_storage_mvcc.md`): how they are met
 
@@ -160,4 +192,17 @@ marshals), and the split with 3f in `..._storage_mvcc.md`.
    rejected); or `Restore` gives back the old storage's slots but those of hashes in flight (the
    realization tracks them; 4a's close must then wait for them, which etcd's backend close does). The
    specs as written assume the latter.
-4. FILLED-BELOW (from the sub-authors' findings).
+4. **`ReportEventReceived(n)` takes `n ≥ 0`** (a Prometheus counter's `Add` of a negative panics):
+   v3rpc passes `len(...)`. Not a decision, noted for 2b.
+
+## Findings on the way (not decisions)
+
+- No new Go bug. The pinned fork has etcd-io/etcd#22377's fix in `keyIndex.doCompact`
+  (`isRecreatedAt`), so `issues/etcd-compaction-delete-then-put.md` (blocks-proof: yes on upstream)
+  does not block these specs.
+- `compactBarrier`'s `default` branch (re-scheduling on a stopped store) is unreachable: `Stop`
+  follows `close(stopc)` in both `Close` and `Restore`; the spec relies on it through the job
+  context's `Pay` (`storeStopped`).
+- The frozen API's `mvccTxn_state` claimed `pending = []` of every transaction: false for a read
+  transaction begun between a watchable store's notify and its bump; now only of write
+  transactions.
