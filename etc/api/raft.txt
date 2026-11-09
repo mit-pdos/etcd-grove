@@ -98,6 +98,9 @@ importable Proof.go_etcd_io.raft.v3.InvPb
 importable Proof.go_etcd_io.raft.v3.InvPbLog
 importable Proof.go_etcd_io.raft.v3.InvPbMsg
 importable Proof.go_etcd_io.raft.v3.InvPbSnapSet
+# (raft-entsize §2, 2026-11-09) the wire contents of messages and entries (`MsgC`, `EntryC`), the
+# frozen objects at a content (`msgRoC`, `entRoC`), moved from stage A's rafthttp `PerType*`
+importable Proof.go_etcd_io.raft.v3.PbContent
 
 ## The protocol's client vocabulary: the cluster's ghost names, the committed log, proposals, the
 ## read index, snapshots, the configuration
