@@ -2193,6 +2193,56 @@ theorem checkLine_of_chain (t : Etcdraft.Trace) (ts tsF : Etcdraft.TState) (h : 
       ↓reduceIte, List.nil_append, Bool.or_self]
     exact Etcdraft.Trace.CheckLineRel.nil _
 
+theorem bag_count_cons (it : Etcdraft.Msg × Nat) (b : Etcdraft.Bag) (m : Etcdraft.Msg) :
+    Etcdraft.Bag.count (it :: b) m = if it.1 = m then it.2 else Etcdraft.Bag.count b m := by
+  unfold Etcdraft.Bag.count; by_cases h : it.1 = m <;> simp [h]
+
+theorem filterMap_id_of {α : Type} (f : α → Option α) :
+    ∀ (l : List α), (∀ x ∈ l, f x = some x) → l.filterMap f = l := by
+  intro l
+  induction l with
+  | nil => intro _; rfl
+  | cons a l ih =>
+    intro h
+    rw [List.filterMap_cons, h a (by simp)]
+    simp only
+    rw [ih (fun x hx => h x (by simp [hx]))]
+
+/-- **A received message is one less** (`Bag.without` of a message present, the keys distinct). -/
+theorem bag_count_without (b : Etcdraft.Bag) (m : Etcdraft.Msg) (hnd : b.domain.Nodup)
+    (hm : 0 < Etcdraft.Bag.count b m) :
+    Etcdraft.Bag.count (b.without m) m + 1 = Etcdraft.Bag.count b m := by
+  unfold Etcdraft.Bag.without Etcdraft.Bag.sub
+  induction b with
+  | nil => simp [Etcdraft.Bag.count] at hm
+  | cons it b ih =>
+    simp only [Etcdraft.Bag.domain, List.map_cons, List.nodup_cons] at hnd
+    rw [List.filterMap_cons]
+    by_cases h : it.1 = m
+    · subst h
+      have hb : Etcdraft.Bag.count b it.1 = 0 := by
+        unfold Etcdraft.Bag.count
+        rw [show b.find? (fun x => x.1 == it.1) = none from by
+          rw [List.find?_eq_none]; intro x hx hxe
+          exact hnd.1 (by simp only [beq_iff_eq] at hxe; rw [← hxe]; exact List.mem_map_of_mem hx)]
+      have hfm : (List.filterMap (fun it' : Etcdraft.Msg × Nat => if (it'.1 == it.1) = true then
+          (if it'.2 > 1 then some (it'.1, it'.2 - 1) else none) else some it') b) = b := by
+        apply filterMap_id_of
+        intro x hx
+        have : (x.1 == it.1) = false := by
+          simp only [beq_eq_false_iff_ne]; intro hxe
+          exact hnd.1 (hxe ▸ List.mem_map_of_mem hx)
+        simp [this]
+      rw [bag_count_cons] at hm
+      simp only [↓reduceIte] at hm
+      by_cases h2 : it.2 > 1
+      · simp only [beq_self_eq_true, ↓reduceIte, h2, hfm, bag_count_cons]; omega
+      · simp only [beq_self_eq_true, ↓reduceIte, h2, hfm, bag_count_cons, hb]; simp; omega
+    · rw [bag_count_cons] at hm ⊢
+      have hne : (it.1 == m) = false := by simpa using h
+      simp only [hne, Bool.false_eq_true, ↓reduceIte, bag_count_cons, h]
+      exact ih hnd.2 (by simpa [h] using hm)
+
 end TraceSim
 
 end EtcdGrove
