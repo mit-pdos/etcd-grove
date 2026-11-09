@@ -178,6 +178,93 @@ theorem bnd_acc (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG)) (ks : Li
   imodintro
   iframe
 
+/-- **A read's update at a live incarnation** (`KV.Rev`, `KV.Read`): the state unchanged, the
+writer's half pinning it. -/
+theorem read_au (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG)) (ks : List GoString)
+    (γh : HistNames) (i : Nat) (mp : Loc) (m : MemberNames) (ι : IncNames) (kv : GoInterface)
+    (qw : Qp) (σf : MvccState) :
+    isInc (GF := GF) ks γh i mp m ι kv ∗ ghostVar ι.ret qw () ∗ ghostVar m.σ (1 : Qp).half σf ⊢
+      AU <{ ∃∃ (σ : MvccState), mvccState ι.kv σ }> @ ⊤ \ ↑mvccN, ∅
+        <{ mvccState ι.kv σ,
+           COMM (fun (σ : MvccState) => iprop(⌜σ = σf⌝ ∗ ghostVar ι.ret qw () ∗
+             ghostVar m.σ (1 : Qp).half σf)) σ }> := by
+  haveI := memberInv_timeless hpers ks γh mp m ι
+  have Hm := memberN_mask i
+  unfold isInc
+  iintro ⟨⟨#Hinv, -⟩, Hret, Hσw⟩
+  iauintro
+  unfold atomic_acc
+  iinv Hinv with >Hi Hclose
+  iunfold memberInv at Hi
+  icases Hi with (Hs | Hr)
+  rotate_left
+  · icombine Hret Hr gives %Hq0
+    obtain ⟨Hq, -⟩ := Hq0
+    exfalso
+    have h := Qp.le_iff.mp Hq
+    simp only [Qp.val_add, Qp.val_one] at h
+    have := qw.2
+    grind
+  iunfold memberState at Hs
+  icases Hs with ⟨%σ, %b0, %Hl, Hs, Hσi, Hrest⟩
+  ihave %Hag := ghostVar_agree m.σ _ _ _ _ $$ Hσi Hσw
+  subst Hag
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (⊤ \ ↑mvccN) \ ↑(memberN i) from
+    Std.LawfulSet.empty_subset)
+  iintro Hclose2
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iexists σ
+  iframe Hs
+  isplit
+  · iintro Hs
+    imod Hclose2 with -
+    imod Hclose $$ [Hs Hσi Hrest] with -
+    · inext; iunfold memberInv; ileft; iunfold memberState; iexists σ, b0, Hl; iframe
+    imodintro
+    iframe
+  · iintro Hs
+    imod Hclose2 with -
+    imod Hclose $$ [Hs Hσi Hrest] with -
+    · inext; iunfold memberInv; ileft; iunfold memberState; iexists σ, b0, Hl; iframe
+    imodintro
+    iframe
+    ipureintro; rfl
+
+/-- A persistent fact of every element of `U` holds of every key in `U` among `recs`. -/
+theorem bigSepL_mem_or {A B : Type} [DecidableEq A] (U : List A) (key : B → A) (Φ : A → IProp GF)
+    [∀ a, Persistent (Φ a)] : ∀ recs : List B,
+    □ ([∗list] a ∈ U, Φ a) ⊢ □ ([∗list] x ∈ recs, iprop(⌜key x ∉ U⌝ ∨ Φ (key x)))
+  | [] => by iintro -; imodintro; iapply BigSepL.bigSepL_nil.2; itrivial
+  | x :: recs => by
+    iintro #HU
+    imodintro
+    iapply BigSepL.bigSepL_cons.2
+    isplitl
+    · by_cases hx : key x ∈ U
+      · obtain ⟨i, hi⟩ := List.mem_iff_getElem?.1 hx
+        iright
+        iapply (BigSepL.bigSepL_lookup (Φ := fun _ a => Φ a) hi)
+        iexact HU
+      · ileft; ipureintro; exact hx
+    · ihave #H := bigSepL_mem_or U key Φ recs $$ HU
+      iexact H
+
+/-- **Every id is granted under the guard `True`** (unfolds `lease.leaseGranted`: a missing law of
+lease, `leaseGranted_of_guard`). -/
+theorem granted_list (γl : GName) : ∀ l : List w64,
+    lease.lessorGuard (GF := GF) γl (fun _ => iprop(True)) ⊢
+      □ ([∗list] id ∈ l, lease.leaseGranted γl id)
+  | [] => by iintro -; imodintro; iapply BigSepL.bigSepL_nil.2; itrivial
+  | x :: l => by
+    iintro #Hg
+    imodintro
+    iapply BigSepL.bigSepL_cons.2
+    isplitl
+    · iunfold lease.leaseGranted; iexists (fun _ => iprop(True)); iframe #
+      imodintro; itrivial
+    · ihave #H := granted_list γl l $$ Hg
+      iexact H
+
 end lemmas
 
 end mvccfull
