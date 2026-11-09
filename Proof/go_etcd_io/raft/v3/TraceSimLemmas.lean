@@ -740,6 +740,52 @@ theorem sim_appAccept (C : List w64) (bl : Nat) (s : PState) (a : Etcdraft.Serve
   · intro h; simp [padoptLeader] at h
   · intro h; simp [padoptLeader] at h
 
+/-- **An append request's `logOk` is raft's `matchTerm` of its previous entry**, on an uncompacted
+log (a request after index 0 carries term 0, as every leader's does: `term(0) = 0`). -/
+theorem appLogOk_abs (C : List w64) (bl : Nat) (es : List EntryM) (p : Nat) (lt : w64)
+    (hbl : BootTerms bl 1 es) (h0 : p = 0 → lt = W64 0) (hp : p < 2 ^ 64) :
+    or ((p : Int) == 0) (decide ((p : Int) > 0) && decide ((p : Int) ≤ (logAbs C bl 1 es).length) &&
+      some (uint.Z lt) == ((logAbs C bl 1 es)[((p : Int) - 1).toNat]?).map Etcdraft.Entry.term) =
+      decide (PlogMatches (entryID.mk (W64 0) (W64 0)) es (entryID.mk lt (W64 p))) := by
+  have hpz : uint.Z (W64 p) = p := by word
+  rw [logAbs_length]
+  by_cases hpz0 : p = 0
+  · subst hpz0
+    have := h0 rfl; subst this
+    have : PlogMatches (entryID.mk (W64 0) (W64 0)) es (entryID.mk (W64 0) (W64 0)) := by
+      unfold PlogMatches; exact plogTermAt_base _ _
+    rw [show (((0 : Nat) : Int) == 0) = true from rfl, Bool.true_or]
+    exact (decide_eq_true this).symm
+  · have hp0 : ((p : Int) == 0) = false := by simp; omega
+    have hpm : PlogMatches (entryID.mk (W64 0) (W64 0)) es (entryID.mk lt (W64 p)) ↔
+        es[p - 1]?.map EntryM.Term' = some lt := by
+      unfold PlogMatches
+      simp only
+      rw [plogTermAt_base0 es _ (by omega)]
+      have : uint.nat (W64 p) - 1 = p - 1 := by word
+      rw [this]
+    have hidx : ((p : Int) - 1).toNat = p - 1 := by omega
+    rw [hp0, Bool.false_or, hidx, logAbs_getElem?]
+    apply Bool.eq_iff_iff.2
+    simp only [Bool.and_eq_true, decide_eq_true_eq, beq_iff_eq, hpm]
+    constructor
+    · rintro ⟨⟨-, hle⟩, h⟩
+      obtain ⟨x, hx⟩ : ∃ x, es[p - 1]? = some x := ⟨es[p - 1], List.getElem?_eq_getElem (by omega)⟩
+      rw [hx] at h ⊢
+      simp only [Option.map_some, Option.some.injEq] at h ⊢
+      rw [entAbs_term C bl _ x (fun hb => hbl (p - 1) x (by omega) hx)] at h
+      exact (uint_Z_inj.mp h).symm
+    · intro h
+      obtain ⟨x, hx⟩ : ∃ x, es[p - 1]? = some x := by
+        cases hh : es[p - 1]? with
+        | none => rw [hh] at h; cases h
+        | some x => exact ⟨x, rfl⟩
+      have hlt : p - 1 < es.length := (List.getElem?_eq_some_iff.1 hx).1
+      rw [hx] at h ⊢
+      simp only [Option.map_some, Option.some.injEq] at h ⊢
+      refine ⟨⟨by omega, by omega⟩, ?_⟩
+      rw [entAbs_term C bl _ x (fun hb => hbl (p - 1) x (by omega) hx), h]
+
 end TraceSim
 
 end EtcdGrove
