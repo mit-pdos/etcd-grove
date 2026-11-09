@@ -70,6 +70,17 @@ theorem allM_take_end {α : Type} (f : α → EvalM Bool) (l : List α) (n : Nat
   rw [List.take_of_length_le hn, h] at h1
   cases h1; rfl
 
+/-- Two evaluations and a result: both evaluated. -/
+theorem bind2_ok {α β : Type} (a : EvalM α) (b : EvalM β) (f : α → β → Bool) (c : Bool)
+    (h : (do let x ← a; let y ← b; return f x y) = Except.ok (ε := EvalError) c) :
+    ∃ x y, a = .ok x ∧ b = .ok y ∧ c = f x y := by
+  cases ha : a with
+  | error e => rw [ha] at h; cases h
+  | ok x =>
+    cases hb : b with
+    | error e => rw [ha, hb] at h; cases h
+    | ok y => rw [ha, hb] at h; cases h; exact ⟨x, y, rfl, rfl, rfl⟩
+
 /-- One step of an `all` loop. -/
 theorem all_take_step {α : Type} (f : α → Bool) (l : List α) (n : Nat) (y : α)
     (hy : l[n]? = some y) (h1 : (l.take n).all f = true) :

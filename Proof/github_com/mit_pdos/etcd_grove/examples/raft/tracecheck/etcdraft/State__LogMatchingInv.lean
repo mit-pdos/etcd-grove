@@ -24,19 +24,6 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Assumptions]
 
--- A loop's next round (hygiene off: it names the proof's hypotheses).
-set_option hygiene false in
-local macro "es_cont" hs:ident hm:ident hstep:ident hG:ident : tactic => `(tactic| (
-    try wp_auto
-    wp_for_post
-    iframe
-    iexists _, _
-    iframe
-    ipureintro
-    refine ⟨by clear $hs $hstep $hG; word, by clear $hs $hstep $hG; word, ?_⟩
-    rw [$hm:ident]
-    exact $hstep.2 $hG))
-
 theorem toNat_sub_one_add_one (z : Int) (h : 1 ≤ z) : z.toNat - 1 + 1 = z.toNat := by omega
 
 -- A server loop's next round (hygiene off: it names the proof's hypotheses).
