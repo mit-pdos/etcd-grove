@@ -77,6 +77,8 @@ theorem sendMsgReadIndexResponse.wp_proof
     (wp_raft_bcastHeartbeat : raft.bcastHeartbeat.spec (GF := GF) (hG := hG))
     (wp_Message_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hG := hG)) :
     sendMsgReadIndexResponse.spec (GF := GF) (hG := hG) := by
+  -- (Q8 stage 1, slice 5) the untraced instance (`TracedUntraced.lean`)
+  have wp_raft_bcastHeartbeat := raft.bcastHeartbeat.untraced wp_raft_bcastHeartbeat
   -- (Q8 stage 1, slice 5) `send`'s untraced instance (`TracedUntraced.lean`)
   have wp_raft_send := raft.send.untraced wp_raft_send
   intro c r id s ml m ents sn ctx rs Hlead Htz Hne Htr

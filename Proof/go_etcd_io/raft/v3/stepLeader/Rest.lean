@@ -712,6 +712,8 @@ theorem wp_stepLeader_beat
     {{ (err : GoInterface) (s' : NState), RET #err;
         ownRaftPhysCV c c.voters r id s' ∗ ⌜err = interface.nil⌝ ∗
         ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ }} := by
+  -- (Q8 stage 1, slice 5) the untraced instance (`TracedUntraced.lean`)
+  have wp_raft_bcastHeartbeat := raft.bcastHeartbeat.untraced wp_raft_bcastHeartbeat
   wp_start as ⟨Hphys, Hm⟩
   wp_auto
   wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hm] as Hm

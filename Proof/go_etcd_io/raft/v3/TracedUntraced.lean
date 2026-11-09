@@ -29,6 +29,7 @@ public import Spec.go_etcd_io.raft.v3.raft__send
 public import Spec.go_etcd_io.raft.v3.raft__sendTimeoutNow
 public import Spec.go_etcd_io.raft.v3.raft__sendHeartbeat
 public import Spec.go_etcd_io.raft.v3.raft__bcastHeartbeatWithCtx
+public import Spec.go_etcd_io.raft.v3.raft__bcastHeartbeat
 
 @[expose] public section
 
@@ -308,6 +309,41 @@ theorem raft.bcastHeartbeatWithCtx.untraced (h : raft.bcastHeartbeatWithCtx.spec
   icases ownRaftPhysC_traceLogger c r id s htr $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
   iapply h c r id s ctx cl iprop(emp) Hlead Htz $$ [Hphys]
   · iframe Hpkg Hphys Hctx
+    isplitr
+    · imodintro
+      iintro %to %cm %_ %_ -
+      rw [htr]
+      iapply hookGateOpt_none r _ tl iprop(emp) Htlok
+      iframe Htl
+    iempintro
+  inext
+  iintro %ms %pvs ⟨Hphys, %H1, %H2, -⟩
+  iapply HΦ $$ %ms %pvs
+  iframe Hphys
+  ipureintro; exact ⟨H1, H2⟩
+
+/-- `raft.bcastHeartbeat.spec` at an untraced node (the statement before slice 5). -/
+abbrev raft.bcastHeartbeat.untracedTriple : Prop :=
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState),
+  s.role = .leader →
+  s.term ≠ W64 0 →
+  s.gh.tr = none →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"bcastHeartbeat")) (Val #()))
+  {{ (ms : List Msg) (pvs : GMap w64 Progress), RET #();
+      ownRaftPhysCV c c.voters r id { sendMsgs s ms with prvals := pvs } ∗
+      ⌜∀ m ∈ ms, HeartbeatOk id (toPState s) m ∧ m.ctx = hbCtx s.rd.ro⌝ ∗
+      ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ }}
+
+/-- `raft.bcastHeartbeat.spec`'s untraced instance: every gate the struct's nil logger. -/
+theorem raft.bcastHeartbeat.untraced (h : raft.bcastHeartbeat.spec (GF := GF) (hG := hG)) :
+    raft.bcastHeartbeat.untracedTriple (GF := GF) (hG := hG) := by
+  intro c r id s Hlead Htz htr
+  iintro %Φ ⟨#Hpkg, Hphys⟩ HΦ
+  icases ownRaftPhysC_traceLogger c r id s htr $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
+  iapply h c r id s iprop(emp) Hlead Htz $$ [Hphys]
+  · iframe Hpkg Hphys
     isplitr
     · imodintro
       iintro %to %cm %_ %_ -

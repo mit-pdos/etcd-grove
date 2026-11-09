@@ -33,9 +33,7 @@ theorem raft.bcastHeartbeat.wp_proof
     (wp_readOnly_heartbeatCtx : readOnly.heartbeatCtx.spec (GF := GF) (hG := hG))
     (wp_raft_bcastHeartbeatWithCtx : raft.bcastHeartbeatWithCtx.spec (GF := GF) (hG := hG)) :
     raft.bcastHeartbeat.spec (GF := GF) (hG := hG) := by
-  -- (Q8 stage 1, slice 5) the untraced instance (`TracedUntraced.lean`)
-  have wp_raft_bcastHeartbeatWithCtx := raft.bcastHeartbeatWithCtx.untraced wp_raft_bcastHeartbeatWithCtx
-  intro c r id s Hlead Htz Htr
+  intro c r id s G Hlead Htz
   wp_start as Hphys
   iNamed Hphys
   icases ownRaftPhysC_readOnly c r id s $$ Hphys with ⟨%ro, Hrof, Hro, Hback⟩
@@ -45,22 +43,27 @@ theorem raft.bcastHeartbeat.wp_proof
   ihave Hphys := ownRaftPhysC_eq c r id _ s rfl $$ Hphys
   icases Hsl with (⟨%Hpend, %Hsl⟩ | ⟨%Hne, Hsl, -⟩)
   · subst Hsl
-    wp_apply wp_raft_bcastHeartbeatWithCtx _ _ _ _ _ [] Hlead Htz (by tr_none) $$ [$Hphys]
-      as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
-    · iapply ownSlice_nil
+    rw [show hbCtx s.rd.ro = [] by unfold hbCtx; simp [Hpend]]
+    wp_apply wp_raft_bcastHeartbeatWithCtx _ _ _ _ _ [] G Hlead Htz $$ [$Hphys HG]
+      as %ms %pvs ⟨Hphys, %Hms, %Hmm, HG⟩
+    · isplitr
+      · iapply ownSlice_nil
+      iframe Hgate HG
     iapply HΦ
-    iframe Hphys
+    iframe Hphys HG
     ipureintro
     refine ⟨fun m Hm => ⟨(Hms m Hm).1, ?_⟩, Hmm⟩
-    rw [(Hms m Hm).2, hbCtx, ite_eq_left Hpend]
+    rw [(Hms m Hm).2]
   · imod ownSlice_persist _ _ _ $$ Hsl with #Hsl
-    wp_apply wp_raft_bcastHeartbeatWithCtx _ _ _ _ _ _ Hlead Htz (by tr_none) $$ [$Hphys $Hsl]
-      as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
+    rw [show hbCtx s.rd.ro = u64Le (readonlyPosition s.rd.ro) by unfold hbCtx; simp [Hne]]
+    wp_apply wp_raft_bcastHeartbeatWithCtx _ _ _ _ _ _ G Hlead Htz $$ [$Hphys $Hsl HG]
+      as %ms %pvs ⟨Hphys, %Hms, %Hmm, HG⟩
+    · iframe Hgate HG
     iapply HΦ
-    iframe Hphys
+    iframe Hphys HG
     ipureintro
     refine ⟨fun m Hm => ⟨(Hms m Hm).1, ?_⟩, Hmm⟩
-    rw [(Hms m Hm).2, hbCtx, ite_eq_right Hne]
+    rw [(Hms m Hm).2]
 
 end proof
 

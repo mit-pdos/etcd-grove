@@ -11,6 +11,7 @@ Lean notes:
 module
 
 public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import Proof.go_etcd_io.raft.v3.TracedMsg
 
 @[expose] public section
 
@@ -38,22 +39,27 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 was; the rest is `bcastHeartbeatWithCtx`'s spec. This is what `stepLeader` does on a
 `MsgBeat`, and the postcondition is the model's `Step.beat`. -/
 abbrev raft.bcastHeartbeat.spec : Prop :=
-  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState),
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (G : IProp GF),
   s.role = .leader →
   -- (2026-10-29, stage U7) the term past `0` that `send` stamps (`SentMsgShape`)
   s.term ≠ W64 0 →
-  -- (2026-11-09, Q8 stage 0 of `notes/trace-validation-plan.md`) an untraced node: its trace
-  -- hooks see a nil logger (`TraceLoggerOkS`); stage 1 replaces this premise by the traced
-  -- capability (`trCapB s.gh.tr …`, `TracedHooksDraft.lean`)
-  s.gh.tr = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hphys" ∷ ownRaftPhysCV c c.voters r id s }}
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+      -- (2026-11-09, Q8 stage 1 slice 5; until then, stage 0, the premise `s.gh.tr = none`) the
+      -- heartbeats' hook gates, as `raft.bcastHeartbeatWithCtx.spec`'s, at the read-only object's
+      -- context
+      "#Hgate" ∷ □ (∀ (to cm : w64), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
+          ⌜uint.Z cm ≤ uint.Z s.logst.committed ∧
+            uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ -∗ G -∗
+        HookGateOpt s.gh.tr r (sendOutGate id s c MsgHeartbeat
+          [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] (hbCtx s.rd.ro)]) G) ∗
+      "HG" ∷ G }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"bcastHeartbeat")) (Val #()))
   {{ (ms : List Msg) (pvs : GMap w64 Progress), RET #();
       ownRaftPhysCV c c.voters r id { sendMsgs s ms with prvals := pvs } ∗
       -- each with the read-only object's context (2026-10-12; `nil` without a request)
       ⌜∀ m ∈ ms, HeartbeatOk id (toPState s) m ∧ m.ctx = hbCtx s.rd.ro⌝ ∗
-      ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ }}
+      ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ ∗ G }}
 
 end spec
 
