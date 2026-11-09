@@ -119,6 +119,20 @@ theorem receiveNamesMap_lookup {gs : GoString} {s : String} (h : strRel gs s) :
   have n5 : (s == "ReceiveSnapshot") = false := beq_eq_false_iff_ne.2 (fun e => h5 e.symm)
   rw [n1, n2, n3, n4, n5]; rfl
 
+/-! ## Go comparisons, as the Lean's (instances pinned, for `rw`) -/
+
+theorem sint_decide {a b : w64} {x y : Int} (ha : sint.Z a = x) (hb : sint.Z b = y) :
+    decide (a = b) = decide (x = y) :=
+  decide_eq_decide.2 (sint_eq_iff a b x y ha hb)
+
+theorem sint_decide_nat {a b : w64} {x y : Nat} (ha : sint.Z a = (x : Int)) (hb : sint.Z b = (y : Int)) :
+    decide (a = b) = decide (x = y) := by
+  rw [sint_decide ha hb]; exact decide_eq_decide.2 Int.ofNat_inj
+
+theorem uint_decide {a b : w64} {x y : Nat} (ha : uint.nat a = x) (hb : uint.nat b = y) :
+    decide (a = b) = decide (x = y) :=
+  decide_eq_decide.2 (uint_eq_iff a b x y ha hb)
+
 /-! ## A trace's lines, purely -/
 
 /-- The line at a position in range is the list's. -/
