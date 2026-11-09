@@ -3575,6 +3575,29 @@ theorem lineEffect_requestVote (C : List w64) (e : TraceEv) (id : w64) (s : NSta
     have := isRVReq_vote C C.length e id s.vote xs m tm hmsg hm hty (by rw [hterm]; exact bt) bi blt
     rw [hsrc] at this ⊢
     simp [this]
+
+/-- **A one-round receive line's effect** (the line `ln` a receive matching `m`; in every state where
+it could occur, `m`'s receipt has the one successor `withNode σ i a' fM fP`, consuming `m`, and the
+line matches the node's state). -/
+theorem lineEffect_recv1 (C : List w64) (bf : Bool) (e : TraceEv) (i : Etcdraft.ID) (a a' : Etcdraft.Server)
+    (m : Etcdraft.Msg) (fM fP : Etcdraft.Bag → Etcdraft.Bag) (Mid : Etcdraft.Server → Prop) (ln : Etcdraft.Line)
+    (hparse : Etcdraft.parseLine 0 (evConv e) = .ok ln) (hnid : ln.nid = i)
+    (hrecv : Etcdraft.isReceiveName ln.ev.name = true) (hmatch : recvPred ln m = true) (hdest : m.dest = i)
+    (hrcv : ∀ σ : Etcdraft.State, σ.server = confAbs C → σ.s i = a → σ.preVote = false → σ.checkQuorum = false →
+      σ.messages.domain.Nodup → 0 < Etcdraft.Bag.count σ.messages m →
+      ln.stateMatches σ i = true ∧ σ.receive m = .ok [withNode σ i a' fM fP] ∧
+        Etcdraft.oneLessMessage σ (withNode σ i a' fM fP) m = true) :
+    LineEffect C bf e i a a' (some m) fM fP Mid := by
+  refine ⟨ln, hparse, hnid, ?_⟩
+  intro t l pl σ hline hl0 hl hb hts _ hsrv hσi hpv hcq hrc
+  obtain ⟨hnd, hmem, hcnt, huniq⟩ := hrc
+  obtain ⟨hsm, hr, hone⟩ := hrcv σ hsrv hσi hpv hcq hnd hcnt
+  refine ⟨⟨withNode σ i a' fM fP, l + 1, l⟩, [], RoundChain.last _ _ _ ?_ rfl, rfl, by simp⟩
+  have := next_receive t ⟨σ, l, pl⟩ m (withNode σ i a' fM fP) hl0 hl hb (by rw [hline]; exact hrecv) hnd hmem
+    (by rw [hline]; exact hmatch)
+    (by unfold Etcdraft.Trace.validatePreStates; rw [hline, hdest, hsm]; simp)
+    (fun m' hm' hne => by rw [hline]; simp [huniq m' hm' hne]) hr
+  rw [this]; simp [recvNext, hone]
 end TraceSim
 
 end EtcdGrove
