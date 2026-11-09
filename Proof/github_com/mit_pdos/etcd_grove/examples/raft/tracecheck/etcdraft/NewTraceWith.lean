@@ -1999,7 +1999,69 @@ theorem NewTraceWith.wp_proof
       rw [find_append_none _ (by rw [hcfst]; exact hinot), find_append_none _ (by rw [hbfst]; exact hinot)]
       simp only [htl, hxL, Option.map_some, Option.getD_some]
       rw [hV0, hLL]
-    sorry
+    ihave #HsrvNew : serverRO «$r0_ptr» (tServerOf xs srv (cfgsP ++ [(uint.nat iw, cfg)])
+        (bconfsP ++ [(uint.nat iw, cfs)]) (uint.nat iw)) $$ []
+    · rw [hVf]
+      iunfold serverRO
+      iexists _, ∅
+      iframe «$r0»
+      isplitl []
+      · ipureintro
+        rw [hV0]
+        exact ⟨HefL.2.2.1, HlfL.2.2.1, HlfL.2.1, rfl, HefL.2.2.2.2.1, rfl⟩
+      isplitl []
+      · iexact HlogV
+      isplitl []
+      · rw [hV0]; iapply setRO_nil
+      isplitl []
+      · rw [hV0]; iapply setRO_nil
+      iframe Hmim
+      isplitl []
+      · ipureintro; intro j; rw [hV0]; simp
+      iframe HcfgV Hdv
+    wp_for_post
+    iframe
+    iexists _, _, _, cfgsP ++ [(uint.nat iw, cfg)], bconfsP ++ [(uint.nat iw, cfs)]
+    iframe
+    have hn1 : sint.nat (n + W64 1) = sint.nat n + 1 := by word
+    have htk : srv.take (sint.nat n + 1) = srv.take (sint.nat n) ++ [uint.nat iw] := by
+      rw [List.take_add_one, Hsi]; rfl
+    rw [hn1, htk]
+    isplitl [Hsrvs]
+    · iapply BigSepL.bigSepL_snoc.2
+      isplitl [Hsrvs]
+      · iapply BigSepL.bigSepL_mono _ $$ Hsrvs
+        intro k j hkj
+        have hj : j ∈ srv.take (sint.nat n) := List.mem_of_getElem? hkj
+        have hjne : W64 (Int.ofNat j) ≠ iw := by
+          have hjs : j ∈ srv := List.mem_of_mem_take hj
+          rw [← Hsxsm] at hjs
+          obtain ⟨w, -, rfl⟩ := List.mem_map.1 hjs
+          rw [W64_uint_nat]
+          intro h; subst h; exact hinot hj
+        rw [tServerOf_congr xs srv (cfgsP ++ [(uint.nat iw, cfg)]) cfgsP (bconfsP ++ [(uint.nat iw, cfs)]) bconfsP j
+          (find_append_some (by rw [hcfst]; exact hj)) (find_append_some (by rw [hbfst]; exact hj))]
+        iintro ⟨%q, %Hq, #Hqs⟩
+        iexists q
+        iframe Hqs
+        ipureintro
+        rw [GMap.lookup_insert_ne _ _ (Ne.symm hjne)]; exact Hq
+      iexists «$r0_ptr»
+      iframe HsrvNew
+      ipureintro
+      rw [W64_uint_nat]; exact GMap.lookup_insert _ _ _
+    ipureintro
+    refine ⟨by word, by word, by rw [← htk]; exact hcfP', by rw [← htk]; exact hbfP', ?_⟩
+    intro k
+    by_cases hk : k = iw
+    · subst hk; simp [GMap.lookup_insert]
+    · rw [GMap.lookup_insert_ne _ _ (Ne.symm hk), hsmk k]
+      constructor
+      · intro h; exact List.mem_append_left _ h
+      · intro h
+        rcases List.mem_append.1 h with h | h
+        · exact h
+        · exact absurd ((id_eq_iff _ _).2 (List.mem_singleton.1 h)) hk
   sorry
 
 end proof
