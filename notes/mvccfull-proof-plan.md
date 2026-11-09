@@ -544,3 +544,23 @@ lists them).
   an agreement lemma?
 - `NewLessor` never ties `lessorCfg`'s `minLeaseTTL` to `cfg.MinLeaseTTL`; TTL ≥ 3600 suffices here.
 - Streams could adopt `incRd` with the `kv` share, which would drop `qk` from `lentOk`.
+
+## Review round 1: `NewLessor.specR` (`notes/review/mvccfull-f1-newlessor-r1.md`)
+
+Every clause is true of the Go code; it mirrors the proved `Recover`'s post at a fresh lessor.
+
+**First-tier:**
+
+- **F2.** `etc/bounds-check.py --check` fails: the copied `replicate … actualMaxReaders`. There
+  are two axioms for one function. *Repair:* `specR` becomes the only axiom (the
+  `NewLessor.wp_proof` axiom restated); the original is a theorem from it (`spec_of_specR`,
+  proved); the collections resting on the stronger claim are listed; the reader slots are given
+  through the owner's handle if possible.
+- **F1.** The axiom asserts the receipt `⧖ |recs|` (`lessorMu`'s `⧖ |M|`), which the original
+  never did. **For the user at the Freeze:** (a) keep it, arguing that Go's loop runs `|recs|`
+  iterations; or (b) take `⧖ |recs|` in the pre. The client must then show it executed that many
+  steps.
+
+**Second-tier:** S1 (citation lines; one write-back is stronger than `initAndRecover`'s two), S5
+(prove `spec_of_specR` first), S2/S3/S6/S7 optional, S4 (the server's records only in
+lease-granting auth-off mode: a note for R2d'b).
