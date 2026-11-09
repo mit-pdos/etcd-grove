@@ -33615,3 +33615,58 @@ is the gate at `s` (`rfl`). `maybeSendSnapshot` stays untraced by design (a trac
 snapshot, P2). Not done in this slice: `maybeSendAppend`, `sendAppend`, `bcastAppend`,
 `sendMsgReadIndexResponse`, `releasePendingReadIndexMessages`, `appendEntry`, `becomeLeader` (plan, "Q8
 stage 1 (slice 5)").
+
+## Q8 stage 1 (slice 6): the rest of the send path's gates; the snapshot branch excluded by `TrNoSnap`; chained resources for a fixed sequence of hooks (2026-11-09 · trace-check, Q8 stage 1 slice 6; decided by the agent under the user's delegation · branch `trace-check-q8s6`; DRAFT until trace-check's Freeze)
+
+**The snapshot branch: `TrNoSnap`, the narrowest premise.** `maybeSendAppend` falls back to
+`maybeSendSnapshot` (untraced by design, the Draft's P2) only from a compacted log: `term(pr.Next - 1)`
+failing (`prev.index ≠ 0`, the leader's progress bound) or `entries(pr.Next)` failing with
+`ErrCompacted` (`storPast storage pr.Next`); both give `maybeSendSnapshot`'s own precondition
+`⌜prev.index ≠ 0⌝ ∨ storPast storage 1`. The premise is that precondition refuted in traced mode:
+`TrNoSnap tr ls := □ (⌜tr ≠ none⌝ -∗ (⌜prev.index ≠ 0⌝ ∨ storPast storage 1) -∗ False)`
+(`TracedSend.lean`; `True` untraced, `trNoSnap_none`), taken by `maybeSendAppend`, `sendAppend`,
+`bcastAppend`. Rejected: a pure `s.gh.tr ≠ none → …` (compaction of the storage is ghost, `storPast`);
+the no-snapshot mode `s.gh.ns` (always `false` since U8 v2); a premise on the progress (`Next ≥ 2`,
+`PrLo`): stronger than needed and not what P2 gives. A traced caller has it from P2 (no compaction in
+a traced cluster, the storage's permit never handed out).
+
+**The `MsgApp`'s gate states what `maybeSendAppend` knows of the message, not the message.** Its
+fields depend on the peer's `Progress` (`Next - 1`, the term there, the entries fetched), which the
+caller cannot name and which a loop's state does not pin (`bcastAppend` keeps only `Match`): the gate
+is `∀ mm, ⌜AppOk id (toPState s) mm ∧ mm.commit = (toPState s).commit ∧ mm.dst = to⌝ -∗ G -∗
+HookGateOpt s.gh.tr r (sendOutGate id s c MsgApp [mm]) G`, as the heartbeats' `∀ cm` with its bounds;
+the facts are `ReplSends`' for one `MsgApp` (`appGate_send_prvals` carries them across a loop's sends).
+Not stated: that the entries are the whole suffix from `Next` (P5's `maybeSendAppend` lemma, which
+`simRun_msgApp` needs: `hents`, `hmatch`); a traced caller's gate needs them, so the gate's facts will
+grow when that lemma is proved (noted for the Prove phase).
+
+**One send or none: `G` to `G`.** `maybeSendAppend` and `sendAppend` send at most one `MsgApp`, so
+their gate is a (non-persistent) wand from the caller's `G` back to `G`, run only if the message is
+sent; `bcastAppend`, a loop, takes it persistently per peer (as slice 5's heartbeats).
+
+**Read-index: the gates per branch.** `sendMsgReadIndexResponse` sends a response (a single voter) or
+heartbeats (otherwise); its two gates are conditioned on the branch (`⌜CfgSingle c id⌝ -∗ …`,
+`⌜¬ CfgSingle c id⌝ -∗ …`), so that `releasePendingReadIndexMessages`, which knows the branch, gives
+only the one it has (each request's call needs both). The response (`MsgReadIndexResp`, not traced) at
+no event; the heartbeats at the state with the request registered (`arriveState`, the context
+`hbCtx (readonlyAdd …)`); `releasePendingReadIndexMessages`'s `k`-th request's at the state with the
+first `k` released (the record literal, as the proof's `relState`, inline: a new definition in a
+spec file would be a layout violation).
+
+**A fixed sequence of hooks: chained resources, not one `G`.** `appendEntry` (the `Replicate` lines,
+then the self-acknowledgement) and `becomeLeader` (`BecomeLeader`, the empty entry's `Replicate`, the
+self-acknowledgement) take one gate per hook from `G` to `G1` to `G2` (to `G3`), not a single `G` kept
+by every gate as the loops do: each line moves the capability's phase and last event, and the lines'
+`FxPresU` produce resources (`BecomeLeader`'s the new leader's term log, round 5's E1; `Replicate`'s
+the records of the new entries, round 6's F1) that the next gate consumes, so the traced caller's
+`G1`, `G2` are `trCapB` in the next phase with what the line created. (`appendEntry`'s reject path
+returns `G`, no gate run.) The `Replicate` gate is `HookGateN` (`TracedSend.lean`: `HookGate` for
+`TraceFireN`'s `n` events in a row), at `normalCount ents` (`normalCount_stamp`: stamping keeps the
+types), of the state before the append; the `BecomeLeader` event of `becomeLeaderPre` (no event field
+reads the progress or `pendingConfIndex`).
+
+**Not done (slice 6).** The capability forms (`raft.appendEntry.traced`, `raft.becomeLeader.traced`:
+`trCapB` in, the lines' `PhaseStepB` and `FxPresUT`, `trCapB` out with the term log and records),
+which need the self-acknowledgement's send-line law beside `trCap_fire_any` (as `raft.send.tracedSpec_of_spec`
+does inline) and, for `appendEntry`, an induction over `TraceFireN` with one phase step per entry;
+their caller (`raft.Step`'s win and `MsgProp` arms) is the Prove phase's next step.

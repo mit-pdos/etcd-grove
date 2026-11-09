@@ -3,7 +3,8 @@ Lean-first (no Rocq counterpart): the proof of `traceEvent` (`Spec/go_etcd_io/ra
 Untraced, the nil check; traced (Q8 stage 1, slice 2), the event's builder: every field read
 from raft's state (lent by the caller), then the message (slice 4: lent by the caller out of the same
 resource, `makeTracingMessage` of it), the event's cell and slices made read-only, the logger's
-`TraceEvent` handed the caller's update.
+`TraceEvent` handed the caller's update. (Slice 6: the helper `wp_makeTracingMessage_arg` moved to
+`LemmasTraceEvent.lean`, the layout's.)
 -/
 module
 
@@ -16,6 +17,7 @@ public import Spec.go_etcd_io.raft.v3.makeTracingMessage
 public import Spec.go_etcd_io.raft.v3.raftLog__lastIndex
 public import Spec.go_etcd_io.raft.v3.quorum.MajorityConfig__Slice
 public import Spec.strconv.FormatUint
+public import Proof.go_etcd_io.raft.v3.LemmasTraceEvent
 
 @[expose] public section
 
@@ -32,34 +34,6 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-
-/-- `makeTracingMessage` of the message argument, either case. -/
-theorem wp_makeTracingMessage_arg (h : makeTracingMessage.spec (GF := GF) (hG := hG)) (m : Loc)
-    (om : Option MsgArg) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ msgArg m om }}
-      (App (Val #(functions makeTracingMessage [])) (Val #m))
-    {{ (p : Loc), RET #p; msgArg m om ∗ tracingMsgRep p (msgArgTrace om) }} := by
-  cases om with
-  | none =>
-    iintro %Φ ⟨#Hpkg, Hm⟩ HΦ
-    simp only [msgArg]
-    icases Hm with %Hm
-    subst Hm
-    iapply h.1 $$ [$Hpkg]
-    inext
-    iintro -
-    iapply HΦ $$ %null
-    simp only [msgArgTrace, tracingMsgRep]
-    isplitr <;> ipureintro <;> trivial
-  | some a =>
-    simp only [msgArg]
-    iintro %Φ ⟨#Hpkg, Hm⟩ HΦ
-    iapply h.2 m a.dq a.dqe a.cap a.ms $$ [$Hpkg $Hm]
-    inext
-    iintro %p ⟨Hm, Hrep⟩
-    iapply HΦ $$ %p
-    simp only [msgArgTrace]
-    iframe Hm Hrep
 
 theorem traceEvent.wp_proof
     (wp_evtString : stateMachineEventType.String.spec (GF := GF) (hG := hG))

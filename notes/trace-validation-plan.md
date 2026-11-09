@@ -516,6 +516,37 @@ gated specs' proof files and `raft__campaign.txt`'s moved helpers; `etc/api-chec
 `etc/gen-link.py --raft` unchanged; `--layout`: one new violation not this slice's (`traceEvent`'s
 `wp_makeTracingMessage_arg`, slice 4).
 
+**Q8 stage 1 (slice 6), 2026-11-09 (branch `trace-check-q8s6`): the rest of the send path, one spec for
+both modes.** Decided by the agent (`notes/decisions.md`, "Q8 stage 1 (slice 6)"). Done, each with its
+`X.untraced` instance (`TracedUntracedSend.lean`, the statement before slice 6) so that its callers keep
+their call sites: (1) `maybeSendAppend`, `sendAppend`: the `MsgApp`'s hook gate from the caller's `G`
+back to `G` (`∀ mm`, with `AppOk`, the commit index the log's, to `to`), run only if it is sent; the
+snapshot fallback excluded in traced mode by `TrNoSnap s.gh.tr s.logst` (`TracedSend.lean`: compaction,
+as `maybeSendSnapshot`'s precondition states it, refuted when traced; the narrowest premise, P2).
+(2) `bcastAppend`: a loop, a persistent per-peer gate at `s` (as slice 5's heartbeats;
+`appGate_send_prvals`, `hookGateOpt_congr`), `TrNoSnap`. (3) `sendMsgReadIndexResponse`: the single
+voter's response gate (at no event: `MsgReadIndexResp` is not traced) and the heartbeats' persistent
+gate at `arriveState` (the request registered), each conditioned on its branch (`CfgSingle`). (4)
+`releasePendingReadIndexMessages`: persistent per-request gates, the `k`-th request's heartbeats at the
+state with the first `k` released. (5) `appendEntry`: `traceReplicate`'s gate (`HookGateN`, one
+`Replicate` event per normal entry, `normalCount ents`, of the state before the append) then the
+self-acknowledgement's (at the appended state), chained `G` → `G1` → `G2` (`G` back on the reject path):
+a traced caller's `Replicate` gate is where the line's `FxPresU` creates the records of the leader's new
+entries (round 6's F1), consumed by the next gate. (6) `becomeLeader`: three chained gates (`BecomeLeader`
+of `becomeLeaderPre`, before the empty entry; the entry's `Replicate`; the self-acknowledgement at
+`becomeLeaderLog`): the `BecomeLeader` gate is where the term log is created (round 5's E1). (7)
+`traceEvent`'s layout violation fixed (`wp_makeTracingMessage_arg` moved to `LemmasTraceEvent.lean`).
+No ghost change. **Not done:** the capability forms of `appendEntry` and `becomeLeader` (`X.traced`, with
+the lines' phase steps and `FxPresUT`; the self-acknowledgement needs the send law beside
+`trCap_fire_any`, `appendEntry` an induction over `TraceFireN`) and their traced caller (`raft.Step`'s
+win and `MsgProp` arms); the `MsgApp` gate's facts lack P5's "the whole suffix from `Next`"
+(`simRun_msgApp`'s `hents`, `hmatch`), to add with that lemma. Callers above stay on the untraced
+instances (`stepLeader`'s helpers, `stepCandidate`, `switchToConfig`). Checked (`trace-check` at
+`86bb19e789`, merged): full `lake build` green (13781 jobs); `etc/tcb-report.py --check` (806 axioms, 4
+`sorry`s, unchanged) and all 53 collections `--reuse --check`, none updated; `interface/` differs in the
+seven gated specs' proof files and `traceEvent.txt` (the helper moved out); `etc/api-check.py` 0 errors;
+`--layout` 0 new (`traceEvent`'s fixed); `etc/gen-link.py --raft` unchanged.
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its

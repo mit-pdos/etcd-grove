@@ -36,6 +36,7 @@ module
 
 public import Spec.go_etcd_io.raft.v3.raft__bcastHeartbeat
 public import Spec.go_etcd_io.raft.v3.raft__responseToReadIndexReq
+public import Proof.go_etcd_io.raft.v3.TracedMsg
 
 @[expose] public section
 
@@ -157,24 +158,39 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- See the file header. -/
+/-- See the file header.
+
+**One spec for both trace modes** (2026-11-09, trace-check Q8 stage 1 slice 6): the caller's `G`
+through the hook gates of what is sent, back to `G`: at a single voter, the forwarded response's
+(`send`'s gate at no event: `MsgReadIndexResp` is not traced); otherwise the heartbeats' (as
+`raft.bcastHeartbeat.spec`'s, persistent, one per heartbeat), at the state after the request is
+registered (`arriveState`) and with its context. Until slice 6 the premise `s.gh.tr = none` (stage
+0), now `sendMsgReadIndexResponse.untraced`'s (`TracedUntracedSend.lean`). -/
 abbrev sendMsgReadIndexResponse.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
-    (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc),
+    (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (G : IProp GF),
   s.role = .leader →
   -- (2026-10-29, stage U7) the term past `0` that `send` stamps (`SentMsgShape`)
   s.term ≠ W64 0 →
   ents ≠ [] →
-  -- (2026-11-09, Q8 stage 0 of `notes/trace-validation-plan.md`) an untraced node: its trace
-  -- hooks see a nil logger (`TraceLoggerOkS`); stage 1 replaces this premise by the traced
-  -- capability (`trCapB s.gh.tr …`, `TracedHooksDraft.lean`)
-  s.gh.tr = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-      "#Hm" ∷ msgOwn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
+      "#Hm" ∷ msgOwn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
+      -- (2026-11-09, Q8 stage 1 slice 6; until then, stage 0, the premise `s.gh.tr = none`) the
+      -- caller's resource, through the gates below
+      "HG" ∷ G ∗
+      -- the forwarded response's hook gate (a single voter), at no event
+      "Hgresp" ∷ (⌜CfgSingle c id⌝ -∗ G -∗ HookGateOpt s.gh.tr r none G) ∗
+      -- the heartbeats' hook gates (otherwise), at the state with the request registered
+      "#Hgate" ∷ □ (⌜¬ CfgSingle c id⌝ -∗ ∀ (to cm : w64), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
+          ⌜uint.Z cm ≤ uint.Z s.logst.committed ∧
+            uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ -∗ G -∗
+        HookGateOpt s.gh.tr r (sendOutGate id (arriveState id s m ents) c MsgHeartbeat
+          [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] []
+            (hbCtx (readonlyAdd s.rd.ro (arriveReq s m ents)))]) G) }}
     (App (App (Val #(functions sendMsgReadIndexResponse [])) (Val #r)) (Val #ml))
   {{ (s' : NState), RET #();
-      ownRaftPhysCV c c.voters r id s' ∗ ⌜SendRIResult c id s m ents s'⌝ }}
+      ownRaftPhysCV c c.voters r id s' ∗ ⌜SendRIResult c id s m ents s'⌝ ∗ G }}
 
 end spec
 
