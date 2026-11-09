@@ -8,21 +8,44 @@ theorem raft.appendEntry.wp_proof [package_sem : Assumptions] (wp_raftLog_lastIn
     (wp_raft_send : raft.send.spec) (wp_CloneEntry : proto.CloneEntry.spec) (wp_MessageType_Enum :
     raftpb.MessageType.Enum.spec) : raft.appendEntry.spec
   -- `Perennial.EtcdGrove.raft.appendEntry.spec`, unfolded:
-  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (es : GoSlice) (ents : List EntryM) (dq : DFrac) (m : Nat),
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (es : GoSlice) (ents : List EntryM) (dq : DFrac) (m : Nat)
+    (G G1 G2 : IProp GF),
     ↑ents.length < 2 ^ 61 →
       s.term ≠ W64 0 →
-        s.gh.tr = none →
-          ⊢
-            ∀ Φ,
-              isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                  ownRaftPhysCV c c.voters r id s ∗ "Hes" ∷ entsPts es dq ents ∗ "#Hrc" ∷ ⧖m -∗
-                (▷
-                    ∀ accepted,
-                      (⧖(m + ents.length) ∗
-                          ⌜(∀ (e : EntryM), e ∈ ents → e.Data' = []) → accepted = true⌝ ∗
-                            entsPts es dq ents ∗
-                              if accepted = true then
-                                ownRaftPhysCV c c.voters r id
+        ⊢
+          ∀ Φ,
+            isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                ownRaftPhysCV c c.voters r id s ∗
+                  "Hes" ∷ entsPts es dq ents ∗
+                    "#Hrc" ∷ ⧖m ∗
+                      "HG" ∷ G ∗
+                        "Hgrep" ∷ (G -∗ HookGateN s.gh.tr r (NodeEvOf (W64 5) id s c) (normalCount ents) G1) ∗
+                          "Hgack" ∷
+                            (G1 -∗
+                              HookGateOpt s.gh.tr r
+                                (sendOutGate id
+                                  { term := s.term, vote := s.vote, lead := s.lead, role := s.role, votes := s.votes,
+                                    outbox := s.outbox, stepfn := s.stepfn, ticking := s.ticking, progress := s.progress,
+                                    log := s.log,
+                                    logst := logAppend s.logst (List.mapIdx (stamp s.term (logLast s.logst)) ents),
+                                    prvals := s.prvals, prevote := s.prevote, gh := s.gh, rd := s.rd, lt := s.lt,
+                                    pci := s.pci, isLearner := s.isLearner, sdr := s.sdr, cq := s.cq }
+                                  c MsgAppResp
+                                  [selfAck id
+                                      { term := s.term, vote := s.vote, lead := s.lead, role := s.role, votes := s.votes,
+                                        outbox := s.outbox, stepfn := s.stepfn, ticking := s.ticking,
+                                        progress := s.progress, log := s.log,
+                                        logst := logAppend s.logst (List.mapIdx (stamp s.term (logLast s.logst)) ents),
+                                        prvals := s.prvals, prevote := s.prevote, gh := s.gh, rd := s.rd, lt := s.lt,
+                                        pci := s.pci, isLearner := s.isLearner, sdr := s.sdr, cq := s.cq }])
+                                G2) -∗
+              (▷
+                  ∀ accepted,
+                    (⧖(m + ents.length) ∗
+                        ⌜(∀ (e : EntryM), e ∈ ents → e.Data' = []) → accepted = true⌝ ∗
+                          entsPts es dq ents ∗
+                            if accepted = true then
+                              ownRaftPhysCV c c.voters r id
                                   (sendMsgs
                                     { term := s.term, vote := s.vote, lead := s.lead, role := s.role, votes := s.votes,
                                       outbox := s.outbox, stepfn := s.stepfn, ticking := s.ticking,
@@ -36,12 +59,13 @@ theorem raft.appendEntry.wp_proof [package_sem : Assumptions] (wp_raftLog_lastIn
                                           progress := s.progress, log := s.log,
                                           logst := logAppend s.logst (List.mapIdx (stamp s.term (logLast s.logst)) ents),
                                           prvals := s.prvals, prevote := s.prevote, gh := s.gh, rd := s.rd, lt := s.lt,
-                                          pci := s.pci, isLearner := s.isLearner, sdr := s.sdr, cq := s.cq }])
-                              else ownRaftPhysCV c c.voters r id s) -∗
-                        Φ (intoVal accepted)) -∗
-                  WP
-                    ((intoVal
-                        (methods raft.ty.PointerType
-                          go!"appendEntry" (intoVal r)))
-                      (intoVal es))
-                    {{ Φ }}
+                                          pci := s.pci, isLearner := s.isLearner, sdr := s.sdr, cq := s.cq }]) ∗
+                                G2
+                            else ownRaftPhysCV c c.voters r id s ∗ G) -∗
+                      Φ (intoVal accepted)) -∗
+                WP
+                  ((intoVal
+                      (methods raft.ty.PointerType
+                        go!"appendEntry" (intoVal r)))
+                    (intoVal es))
+                  {{ Φ }}

@@ -18,6 +18,7 @@ public import Spec.go_etcd_io.raft.v3.raftLog__lastIndex
 public import Spec.go_etcd_io.raft.v3.raft__appendEntry
 public import Spec.go_etcd_io.raft.v3.tracker.Progress__BecomeReplicate
 public import Proof.go_etcd_io.raft.v3.LemmasSendR
+public import Proof.go_etcd_io.raft.v3.TracedSend
 
 @[expose] public section
 
@@ -54,8 +55,9 @@ theorem raft.becomeLeader.wp_proof
     (wp_raft_appendEntry : raft.appendEntry.spec (GF := GF) (hG := hG))
     (wp_Progress_BecomeReplicate : tracker.Progress.BecomeReplicate.spec (GF := GF) (hG := hG)) :
     raft.becomeLeader.spec (GF := GF) (hG := hG) := by
-  intro c r id s Hrole Hnl Hnz Htr
-  wp_start as Hphys
+  intro c r id s G G1 G2 G3 Hrole Hnl Hnz
+  wp_start as Hpre
+  iNamed Hpre
   -- (2026-10-19, D21 M3) in the no-snapshot mode the log is not empty (it holds the bootstrap
   -- log, committed), so `reset`'s `Next = lastIndex + 1` is at least `2` (`PrLo`)
   icases ownRaftPhysC_ns_last c r id s $$ Hphys with ⟨%Hli1, Hphys⟩
@@ -136,7 +138,27 @@ theorem raft.becomeLeader.wp_proof
     simp only [becomeLeaderPre, resetTo, resetTo0] at Hli
     word
   subst Hli'
-  wp_node_hookC wp_traceBecomeLeader
+  -- (Q8 stage 1, slice 6) the `BecomeLeader` line, either mode: the caller's gate, raft's state under
+  -- `trOwn`, at the state named
+  let s2 : NState :=
+    { s1 with prvals := <[id := progressBecomeReplicate p0]> s1.prvals, pci := logLast s.logst }
+  ihave Hphys : ownRaftPhysCV c c.voters r id s2 $$ [Hphys]
+  · iapply ownRaftPhysC_eq c r id _ _ ?_ $$ Hphys
+    rfl
+  have Hgh : s2.gh.tr = s.gh.tr := by subst hs1; rfl
+  have Hev : ∀ e, NodeEvOf (W64 3) id s2 c e → NodeEvOf (W64 3) id (becomeLeaderPre id s) c e := by
+    subst hs1; exact fun e he => he
+  icases trOwn_split s.gh.tr _ $$ Hphys with ⟨Hown, Hback⟩
+  ihave Hg := Hgbl $$ HG
+  iunfold HookGate at Hg
+  imod Hg with ⟨%tl, #Htl, Hfire⟩
+  wp_apply wp_traceBecomeLeader c r id s2 tl G1 $$ [Htl Hown Hfire] as ⟨Hown, HG1⟩
+  · rw [Hgh]
+    iframe Htl Hown
+    iapply traceFire_mono_E _ tl _ _ _ Hev $$ Hfire
+  rw [Hgh]
+  ihave Hphys := Hback $$ Hown
+  iclear Htl
   -- (stage R4) `emptyEnt := &pb.Entry{Data: nil}`: a fresh entry, frozen read-only
   ihave Hnilb : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
   · iapply ownSlice_nil
@@ -164,14 +186,27 @@ theorem raft.becomeLeader.wp_proof
   -- (2026-10-18, D19b stage 5) `appendEntry`'s time receipt: `raft.Step`, which runs the ghost
   -- step that creates the leader's entry, takes its own; here the least one serves
   imod (preceipt_zero (GF := GF)) with #Hrc0
-  wp_apply wp_raft_appendEntry c r id _ _ [zero_val EntryM] (DFrac.own 1) 0
-      (by simp) (by subst hs1; exact Hnz)
-      (by tr_none) $$ [$Hphys $Hes $Hrc0]
+  -- (Q8 stage 1, slice 6) `appendEntry`'s gates are the caller's, at the states named
+  have E2 : NodeEvOf (W64 5) id s2 c = NodeEvOf (W64 5) id (becomeLeaderPre id s) c := by
+    subst hs1; rfl
+  have E3 : normalCount [zero_val EntryM] = 1 := rfl
+  have E4 : sendOutGate id
+      { s2 with logst := logAppend s2.logst ([zero_val EntryM].mapIdx (stamp s2.term (logLast s2.logst))) } c
+      MsgAppResp
+      [selfAck id
+        { s2 with logst := logAppend s2.logst ([zero_val EntryM].mapIdx (stamp s2.term (logLast s2.logst))) }] =
+      sendOutGate id (becomeLeaderLog id s) c MsgAppResp [selfAck id (becomeLeaderLog id s)] := by
+    subst hs1; rfl
+  wp_apply wp_raft_appendEntry c r id s2 _ [zero_val EntryM] (DFrac.own 1) 0 G1 G2 G3
+      (by simp) (by subst hs1; exact Hnz) $$ [$Hphys $Hes $Hrc0 HG1 Hgrep Hgack]
     as %accepted ⟨-, %Hacc, Hes, Hphys⟩
+  · rw [Hgh, E2, E3, E4]
+    iframe HG1 Hgrep Hgack
   -- empty payload, so accepted; the `false` branch is gone before any `WP` is stepped on it
   have Hacc' : accepted = true := Hacc (by intro e He; simp at He; subst He; rfl)
   subst Hacc'
   simp only [↓reduceIte]
+  icases Hphys with ⟨Hphys, HG3⟩
   wp_auto
   -- `appendEntry` appended the stamped empty entry: that is `becomeLeader` (`Defs.lean`)
   ihave Hphys : ownRaftPhysCV c c.voters r id

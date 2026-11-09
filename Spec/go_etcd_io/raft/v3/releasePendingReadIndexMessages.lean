@@ -65,24 +65,44 @@ them in order (`readonlyRelease`), and each arrival broadcasts heartbeats with t
 after it -- or (2026-10-14, the single-voter fix) at a configuration whose only voter is the
 leader itself, each is answered at once (`ReleaseResult`). Each has entries (`req.Entries[0]`
 in that branch; the read-only state keeps them so, `RdOk`). The `Error` arm is dead: `stepLeader` calls this only after a successful
-`maybeCommit`, which commits an entry of the leader's term (the premise). -/
+`maybeCommit`, which commits an entry of the leader's term (the premise).
+
+**One spec for both trace modes** (2026-11-09, trace-check Q8 stage 1 slice 6): the caller's `G`
+through the hook gates of what is sent, back to `G` (persistent: one per request), as
+`sendMsgReadIndexResponse.spec`'s: at a single voter, each forwarded response's (at no event);
+otherwise each request's heartbeats', the `k`-th request's at the state with the first `k` released
+(registered) and with that position as their context. Until slice 6 the premise `s.gh.tr = none`
+(stage 0), now `releasePendingReadIndexMessages.untraced`'s (`TracedUntracedSend.lean`). -/
 abbrev releasePendingReadIndexMessages.spec : Prop :=
-  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState),
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (G : IProp GF),
   s.role = .leader →
   s.term ≠ W64 0 →
   (s.rd.pend ≠ [] →
      plogTermAt s.logst.prev (s.logst.sents ++ s.logst.uents) s.logst.committed
        = some s.term) →
   (∀ p ∈ s.rd.pend, p.2 ≠ []) →
-  -- (2026-11-09, Q8 stage 0 of `notes/trace-validation-plan.md`) an untraced node: its trace
-  -- hooks see a nil logger (`TraceLoggerOkS`); stage 1 replaces this premise by the traced
-  -- capability (`trCapB s.gh.tr …`, `TracedHooksDraft.lean`)
-  s.gh.tr = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hphys" ∷ ownRaftPhysCV c c.voters r id s }}
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+      -- (2026-11-09, Q8 stage 1 slice 6; until then, stage 0, the premise `s.gh.tr = none`) the
+      -- caller's resource, through the gates below
+      "HG" ∷ G ∗
+      -- each forwarded response's hook gate (a single voter), at no event
+      "#Hgresp" ∷ □ (⌜CfgSingle c id⌝ -∗ G -∗ HookGateOpt s.gh.tr r none G) ∗
+      -- the `k`-th request's heartbeats' hook gates (otherwise), at the state with the first `k`
+      -- requests released
+      "#Hgate" ∷ □ (⌜¬ CfgSingle c id⌝ -∗ ∀ (k : Nat) (to cm : w64), ⌜0 < k ∧ k ≤ s.rd.pend.length⌝ -∗
+          ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
+          ⌜uint.Z cm ≤ uint.Z s.logst.committed ∧
+            uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ -∗ G -∗
+        HookGateOpt s.gh.tr r (sendOutGate id
+            { s with rd := { s.rd with pend := [],
+                                       ro := readonlyRelease s.rd.ro id s.logst.committed (s.rd.pend.take k) } }
+            c MsgHeartbeat
+          [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] []
+            (hbCtx (readonlyRelease s.rd.ro id s.logst.committed (s.rd.pend.take k)))]) G) }}
     (App (Val #(functions releasePendingReadIndexMessages [])) (Val #r))
   {{ (s' : NState), RET #();
-      ownRaftPhysCV c c.voters r id s' ∗ ⌜ReleaseResult c id s s'⌝ }}
+      ownRaftPhysCV c c.voters r id s' ∗ ⌜ReleaseResult c id s s'⌝ ∗ G }}
 
 end spec
 

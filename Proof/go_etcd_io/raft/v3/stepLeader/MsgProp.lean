@@ -21,6 +21,7 @@ public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetData
 public import Spec.go_etcd_io.raft.v3.raftpb.EntryType__Enum
 public import Spec.go_etcd_io.raft.v3.DescribeConfChange
 public import Proof.go_etcd_io.raft.v3.FrameH
+public import Proof.go_etcd_io.raft.v3.TracedUntracedSend
 
 @[expose] public section
 
@@ -326,6 +327,9 @@ theorem wp_stepLeader_prop
         ⌜LeaderProposeResult id s ents dropped s' c.joint⌝ ∗
         (if dropped then globalAddr ErrProposalDropped ↦□ err
          else ⌜err = interface.nil⌝) }} := by
+  -- (Q8 stage 1, slice 6) the untraced instance (`TracedUntracedSend.lean`)
+  have wp_raft_bcastAppend := raft.bcastAppend.untraced wp_raft_bcastAppend
+  have wp_raft_appendEntry := raft.appendEntry.untraced wp_raft_appendEntry
   wp_start as ⟨Hphys, Hm, #Hcc, #Hrc⟩
   ihave %Hct := ccEntsOk_types ents cs $$ Hcc
   ihave %Hlv := ccEntsOk_leaveOk ents cs $$ Hcc

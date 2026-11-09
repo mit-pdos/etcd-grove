@@ -10,6 +10,7 @@ module
 public import Spec.go_etcd_io.raft.v3.raft__bcastAppend
 public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__Visit
 public import Spec.go_etcd_io.raft.v3.raft__sendAppend
+public import Proof.go_etcd_io.raft.v3.TracedSend
 
 @[expose] public section
 
@@ -66,8 +67,9 @@ theorem raft.bcastAppend.wp_proof
     (wp_ProgressTracker_Visit : tracker.ProgressTracker.Visit.spec (GF := GF) (hG := hG))
     (wp_raft_sendAppend : raft.sendAppend.spec (GF := GF) (hG := hG)) :
     raft.bcastAppend.spec (GF := GF) (hG := hG) := by
-  intro c r id s Hlead Htz Htr
-  wp_start as Hphys
+  intro c r id s G Hlead Htz
+  wp_start as Hpre
+  iNamed Hpre
   wp_auto
   -- (stage R8a) the leader's progress bound, carried through the `Visit`
   icases ownRaftPhysC_prvals_ok c r id s $$ Hphys with ⟨%Hok0, -, Hphys⟩
@@ -75,6 +77,8 @@ theorem raft.bcastAppend.wp_proof
   wp_apply wp_ProgressTracker_Visit c _ tv ⟨s.votes, s.progress, s.prvals⟩ _
       (fun _ pvsx => iprop(∃ (ms : List Msg),
         "rp" ∷ r_ptr ↦ r ∗
+        -- (Q8 stage 1, slice 6) the caller's resource, through each message's gate
+        "HG" ∷ G ∗
         "%Hms" ∷ ⌜ReplSends id s ms⌝ ∗
         "%Hmm" ∷ ⌜prvalsMatch pvsx = prvalsMatch s.prvals⌝ ∗
         "%Hok" ∷ ⌜PrvalsOk { sendMsgs s ms with prvals := pvsx }⌝ ∗
@@ -82,11 +86,11 @@ theorem raft.bcastAppend.wp_proof
             ownTrackerC c tvx ⟨s.votes, s.progress, pvsx'⟩ -∗
             ⌜PrvalsOk { sendMsgs s ms with prvals := pvsx' }⌝ -∗
             ownRaftPhysCV c c.voters r id { sendMsgs s ms with prvals := pvsx' })))
-    $$ [$Htrkf $Htrk r Hrest]
-  · isplitl [r Hrest]
+    $$ [$Htrkf $Htrk r Hrest HG]
+  · isplitl [r Hrest HG]
     · iexists []
       simp only [named]
-      iframe r
+      iframe r HG
       isplitr
       · ipureintro; intro m Hm; simp at Hm
       isplitr
@@ -118,7 +122,7 @@ theorem raft.bcastAppend.wp_proof
       iframe Htrkf Htrk
       iexists ms
       simp only [named]
-      iframe rp
+      iframe rp HG
       isplitr
       · ipureintro; exact Hms
       isplitr
@@ -133,8 +137,19 @@ theorem raft.bcastAppend.wp_proof
     · -- a peer: `sendAppend` may add `App`s and change `Progress`es
       rw [decide_eq_false Hii]
       wp_auto
-      wp_apply wp_raft_sendAppend _ _ _ _ i Hii (by exact Hicfg) (by exact Hlead) (by exact Htz) (by tr_none) $$ [$Hphys]
-        as %ms' %pvs' ⟨Hphys, %Hms', %Hmm'⟩
+      wp_apply wp_raft_sendAppend _ _ _ _ i G Hii (by exact Hicfg) (by exact Hlead) (by exact Htz)
+        $$ [$Hphys HG] as %ms' %pvs' ⟨Hphys, %Hms', %Hmm', HG⟩
+      · -- (Q8 stage 1, slice 6) the caller's gate for this peer's message, at `s`
+        isplitr
+        · iintro %mm %Hmm1 HG
+          iapply hookGateOpt_congr s.gh.tr _ r (sendOutGate id s c MsgApp [mm]) _ G ?hg1 ?hg2
+          case hg1 => rfl
+          case hg2 => rfl
+          iapply Hgate $$ %i %mm %(And.intro Hii Hicfg) %(appGate_send_prvals id s ms _ i mm Hmm1) HG
+        iframe HG
+        iapply trNoSnap_congr s.gh.tr _ s.logst _ ?hn1 ?hn2 $$ Hnosnap
+        case hn1 => rfl
+        case hn2 => rfl
       try wp_auto
       icases ownRaftPhysC_prvals_ok c r id _ $$ Hphys with ⟨%Hok', -, Hphys⟩
       icases ownRaftPhysC_tracker_prvals $$ Hphys with ⟨%tv1, Htrkf, Htrk, Hrest⟩
@@ -145,7 +160,7 @@ theorem raft.bcastAppend.wp_proof
       iframe Htrkf Htrk
       iexists ms ++ ms'
       simp only [named]
-      iframe rp
+      iframe rp HG
       isplitr
       · ipureintro
         exact replSends_app id s ms ms' Hms ((replSends_send_prvals id s ms _ ms').1 Hms')
@@ -163,7 +178,7 @@ theorem raft.bcastAppend.wp_proof
   ihave Hphys := Hrest $$ %tvfin %pvsfin Htrkf Htrk %Hok
   wp_auto
   iapply HΦ $$ %ms %pvsfin
-  iframe Hphys
+  iframe Hphys HG
   ipureintro
   exact ⟨Hms, Hmm⟩
 

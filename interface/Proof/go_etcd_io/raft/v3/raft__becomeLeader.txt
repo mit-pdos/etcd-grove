@@ -7,29 +7,37 @@ theorem raft.becomeLeader.wp_proof [package_sem : Assumptions] (wp_raft_reset : 
     (wp_raft_appendEntry : raft.appendEntry.spec) (wp_Progress_BecomeReplicate :
     tracker.Progress.BecomeReplicate.spec) : raft.becomeLeader.spec
   -- `Perennial.EtcdGrove.raft.becomeLeader.spec`, unfolded:
-  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState),
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (G G1 G2 G3 : IProp GF),
     s.role ≠ PRole.follower →
       s.role ≠ PRole.leader →
         s.term ≠ W64 0 →
-          s.gh.tr = none →
-            ⊢
-              ∀ Φ,
-                isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s -∗
-                  (▷
-                      ∀ pvs,
-                        ownRaftPhysCV c c.voters r id
-                              (have __src := becomeLeader id s;
-                              { term := __src.term, vote := __src.vote, lead := __src.lead, role := __src.role,
-                                votes := __src.votes, outbox := __src.outbox, stepfn := __src.stepfn,
-                                ticking := __src.ticking, progress := __src.progress, log := __src.log,
-                                logst := __src.logst, prvals := pvs, prevote := __src.prevote, gh := __src.gh,
-                                rd := __src.rd, lt := __src.lt, pci := __src.pci, isLearner := __src.isLearner,
-                                sdr := __src.sdr, cq := __src.cq }) ∗
-                            ⌜prvalsMatch pvs = resetMatched id (logLast s.logst) s.prvals⌝ -∗
-                          Φ (intoVal ())) -∗
-                    WP
-                      ((intoVal
-                          (methods raft.ty.PointerType
-                            go!"becomeLeader" (intoVal r)))
-                        (intoVal ()))
-                      {{ Φ }}
+          ⊢
+            ∀ Φ,
+              isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                  "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+                    "HG" ∷ G ∗
+                      "Hgbl" ∷ (G -∗ HookGate s.gh.tr r (NodeEvOf (W64 3) id (becomeLeaderPre id s) c) G1) ∗
+                        "Hgrep" ∷ (G1 -∗ HookGateN s.gh.tr r (NodeEvOf (W64 5) id (becomeLeaderPre id s) c) 1 G2) ∗
+                          "Hgack" ∷
+                            (G2 -∗
+                              HookGateOpt s.gh.tr r
+                                (sendOutGate id (becomeLeaderLog id s) c MsgAppResp [selfAck id (becomeLeaderLog id s)])
+                                G3) -∗
+                (▷
+                    ∀ pvs,
+                      ownRaftPhysCV c c.voters r id
+                            (have __src := becomeLeader id s;
+                            { term := __src.term, vote := __src.vote, lead := __src.lead, role := __src.role,
+                              votes := __src.votes, outbox := __src.outbox, stepfn := __src.stepfn,
+                              ticking := __src.ticking, progress := __src.progress, log := __src.log,
+                              logst := __src.logst, prvals := pvs, prevote := __src.prevote, gh := __src.gh,
+                              rd := __src.rd, lt := __src.lt, pci := __src.pci, isLearner := __src.isLearner,
+                              sdr := __src.sdr, cq := __src.cq }) ∗
+                          ⌜prvalsMatch pvs = resetMatched id (logLast s.logst) s.prvals⌝ ∗ G3 -∗
+                        Φ (intoVal ())) -∗
+                  WP
+                    ((intoVal
+                        (methods raft.ty.PointerType
+                          go!"becomeLeader" (intoVal r)))
+                      (intoVal ()))
+                    {{ Φ }}
