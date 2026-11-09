@@ -12,7 +12,8 @@ live leases, the ids ever granted extended, `logOk_recover`); the store restores
 not above: `runM_mono`); the hook set on it; the old backend closed (its census with `Restore`'s
 `storageRest`). The model fields, `revLo`, `cmpLo` follow; the checks (`Rev`, `FirstRev`,
 `checkLeases`) pass; the `restores` counter. The readers and streams run throughout (the follower's
-incarnation is the same store). Afterwards the follower is at the leader's count, one more build.
+incarnation is the same store). Afterwards the follower is at the leader's count, one more build. (`ops.length ≤ Ops`, `write`'s: the
+builder's file is then among the unused ones, and its grants have write-back tokens.)
 The closure passed to `Recover` captures the store (`kv := f.kv`, `a4c071c7dd`), so its
 `mvccDeleter` triple is about a constant, not the field the writer rewrites at a restart.
 -/
@@ -44,7 +45,7 @@ abbrev runner.restore.spec : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)] (x : Loc) (ks : List GoString)
     (cfg : Config) (wr : List w64) (h : Loc) (γ : FullNames) (mp0 mp1 : Loc) (f0 f1 : GoFunc)
     (ops : List OpM) (v0 v1 : MemS) (nv nb : Nat) (q qs : Qp),
-  v1.ops < v0.ops → ops.length < 2 ^ 38 → backend.dbOpenOk → backend.dbCloseOk → ckptEffectsOk →
+  v1.ops < v0.ops → ops.length < 2 ^ 38 → ops.length ≤ (sint.Z cfg.Ops').toNat → backend.dbOpenOk → backend.dbCloseOk → ckptEffectsOk →
   sint.Z (limOf cfg) ≤ 2 ^ 57 → batchLimitOk (cblOf cfg) →
   {{ writerCtx (GF := GF) x ks cfg wr h γ.h ∗
       □ (∀ (γB : backend.BNames) (P : backend.BParams) (b' : Loc), keySized γB P b') ∗
