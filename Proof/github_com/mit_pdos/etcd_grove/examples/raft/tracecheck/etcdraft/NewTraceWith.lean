@@ -1013,7 +1013,7 @@ theorem NewTraceWith.wp_proof
     wp_join (v := #(if sint.Z (W64 1) < sint.Z fv then fv else W64 1)) iprop(True)
       at (if: _ then _ else _) with [] as -
     · by_cases hmx : sint.Z (W64 1) < sint.Z fv
-      · rw [decide_eq_true hmx]; wp_auto; rw [ite_cond_eq_true _ _ (eq_true hmx)]; wp_join_done; try (ipureintro; trivial)
+      · rw [decide_eq_true hmx]; wp_auto; rw [ite_eq_left_of_eq_true _ _ (eq_true hmx)]; wp_join_done; try (ipureintro; trivial)
       · rw [decide_eq_false hmx]; wp_auto; rw [ite_eq_right_iff.2 (fun h => absurd h hmx)]; wp_join_done
         try (ipureintro; trivial)
     have hk0 : sint.Z (if sint.Z (W64 1) < sint.Z fv then fv else W64 1) = ((max (bFirst xs (uint.nat iw)) 1 : Nat) : Int) := by
@@ -1384,20 +1384,12 @@ theorem NewTraceWith.wp_proof
     refine ⟨by word, by word, by rw [show sint.nat (W64 0) = 0 from rfl]; rfl,
       by rw [show sint.nat (W64 0) = 0 from rfl]; rfl, ?_⟩
     intro k; rw [show sint.nat (W64 0) = 0 from rfl]; simp
+  ihave Hinit : iprop(True -∗ tp.[G.Trace, go!"init"] ↦ (null : Loc)) $$ [init]
+  · iintro -; iexact init
   wp_for IHs
   obtain ⟨hs0, hs1, hcfP, hbfP, hsmk⟩ := Hn
   have hxb : (xs.length : Int) < 2 ^ 40 := by rw [hxl]; exact Hb.2
   have hxlen : sint.Z lsl.len = (xs.length : Int) := by rw [← Hlnl, Hlsl.1]; word
-  by_cases hnlt : ¬ sint.Z n < sint.Z srvsl.len
-  · rw [decide_eq_false hnlt]
-    simp only [Bool.false_eq_true, ite_false]
-    wp_pures
-    wp_load
-    wp_pures
-    wp_load
-    wp_pures
-    wp_store
-    sorry
   wp_if_destruct
   · have Hnlt2 : sint.Z n < sint.Z srvsl.len := Hif
     have Hlt : sint.nat n < sxs.length := by rw [Hsxsl.1]; word
@@ -2072,7 +2064,55 @@ theorem NewTraceWith.wp_proof
         rcases List.mem_append.1 h with h | h
         · exact h
         · exact absurd ((id_eq_iff _ _).2 (List.mem_singleton.1 h)) hk
-  exact absurd Hif hnlt
+  ihave init := Hinit $$ []
+  · ipureintro; trivial
+  wp_store
+  ipersist init
+  ipersist PreVote
+  ipersist CheckQuorum
+  ipersist Hsm
+  icases Hsrvs with #Hsrvs
+  have hnx : sint.nat n = srv.length := by
+    have := Hsxsl.1; rw [← Hsxsm, List.length_map, this]; word
+  rw [hnx, List.take_length] at hcfP hbfP hsmk
+  rw [hnx, List.take_length]
+  wp_auto
+  iapply HΦ
+  rw [htail, tail_ok pv cq hbnz hx0srv hbc hsub hcfP hbfP]
+  simp only
+  isplitl []
+  · ipureintro; first | rfl | trivial
+  iunfold traceHeapRO
+  iexists ⟨lsl, srvsl, cs, bsl, sp, pv, cq⟩
+  isplitl []
+  · iapply typedPointsto_combine _ _ _ Hr0nn
+    simp only [TypedPointsto.typedPointstoDef]
+    iframe lines Server InitSrv bootstrap init PreVote CheckQuorum
+  isplitl []
+  · iexists lns; iframe Hl Hlr
+  iframe Hsrv Hc0
+  isplitl []
+  · have : (List.range xs.length).map (fun k => (tPer xs srv).any (fun p => p.2.1.getD k false)) = bs := by
+      rw [hbs]; simp [tPer, List.any_map]; intros; rfl
+    rw [this]; iexact Hbs
+  iunfold stateRO
+  iexists _, sm
+  iframe Hsp Hsrv Hsm
+  have hsnd : srv.Nodup := by rw [← hsrvd]; exact SetIds.mk_nodup _
+  isplitl []
+  · ipureintro; exact hsmk
+  isplitl []
+  · ipureintro; exact hsnd
+  iframe Hsrvs
+  isplitl []
+  · iunfold bagRO; iexists []; isplitl []
+    · iapply ownSlice_nil
+    iapply BigSepL2.bigSepL2_nil.2; ipureintro; trivial
+  isplitl []
+  · iunfold bagRO; iexists []; isplitl []
+    · iapply ownSlice_nil
+    iapply BigSepL2.bigSepL2_nil.2; ipureintro; trivial
+  ipureintro; exact ⟨rfl, rfl, rfl⟩
 
 end proof
 
