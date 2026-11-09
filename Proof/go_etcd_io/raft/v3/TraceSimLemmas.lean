@@ -1950,6 +1950,54 @@ theorem bootstrapOf_snoc (lines : List Etcdraft.Line) (ln : Etcdraft.Line) (i : 
           simp only [this, ↓reduceIte]
           simp; omega
 
+/-! ### Node-event lines -/
+
+theorem flatMap_single {α β : Type} [DecidableEq α] (srv : List α) (f : α → List β) (i : α) (x : β)
+    (hnd : srv.Nodup) (hi : i ∈ srv) (hfi : f i = [x]) (hfj : ∀ j ∈ srv, j ≠ i → f j = []) :
+    srv.flatMap f = [x] := by
+  induction srv with
+  | nil => cases hi
+  | cons a srv ih =>
+    rw [List.flatMap_cons]
+    rw [List.nodup_cons] at hnd
+    by_cases ha : a = i
+    · subst ha
+      have : srv.flatMap f = [] := by
+        rw [List.flatMap_eq_nil_iff]; intro j hj; exact hfj j (by simp [hj]) (fun h => hnd.1 (h ▸ hj))
+      rw [hfi, this]; rfl
+    · rw [hfj a (by simp) ha, List.nil_append]
+      exact ih hnd.2 (by simpa [Ne.symm ha] using hi) (fun j hj hne => hfj j (by simp [hj]) hne)
+
+/-- **A `Commit` line has one successor**: the specification's `AdvanceCommitIndex` at the line's
+node, when it matches the line's state and the node is a leader. -/
+theorem next_commit (t : Etcdraft.Trace) (ts : Etcdraft.TState) (i : Etcdraft.ID) (s2 : Etcdraft.State)
+    (hl0 : ts.l ≠ 0) (hl : ts.l ≤ t.len) (hb : t.bootstrap.getD (ts.l - 1) false = false)
+    (hname : (t.line ts.l).ev.name = "Commit") (hnid : (t.line ts.l).nid = i)
+    (hnd : t.server.Nodup) (hi : i ∈ t.server)
+    (hadv : ts.s.advanceCommitIndex i = some s2)
+    (hpost : (t.line ts.l).stateMatches s2 i = true) (hrole : (t.line ts.l).ev.role = Etcdraft.leader)
+    (hlead : (ts.s.s i).state = Etcdraft.leader) :
+    t.next ts = .ok [{ s := s2, l := ts.l + 1, pl := ts.l }] := by
+  have hcomm : t.server.flatMap (t.advanceCommitIndexIfLogged ts) = [s2] := by
+    apply flatMap_single _ _ i s2 hnd hi
+    · simp [Etcdraft.Trace.advanceCommitIndexIfLogged, Etcdraft.Trace.isNodeEvent, Etcdraft.Trace.isEvent,
+        Etcdraft.Trace.validatePostStates, hl, hname, hnid, hadv, hpost, hrole, hlead]
+    · intro j _ hj
+      simp [Etcdraft.Trace.advanceCommitIndexIfLogged, Etcdraft.Trace.isNodeEvent, Etcdraft.Trace.isEvent,
+        hnid, Ne.symm hj]
+  have h1 : (decide (ts.l > t.len) || ts.l == 0) = false := by simp; omega
+  unfold Etcdraft.Trace.next
+  simp only [h1, hb, Bool.false_eq_true, ↓reduceIte]
+  have hnr : t.nonReceive ts = .ok [s2] := by
+    unfold Etcdraft.Trace.nonReceive
+    simp only [hname, hcomm]
+    simp [Etcdraft.Trace.skipUnusedLogline, Etcdraft.Trace.isEvent, hname,
+      Etcdraft.Trace.isBecomeFollowerInUpdateTermOrReturnToFollower, pure, Except.pure, bind, Except.bind]
+  have hrv : t.receive ts = .ok [] := by
+    unfold Etcdraft.Trace.receive
+    simp [hname, Etcdraft.isReceiveName, pure, Except.pure]
+  simp [hnr, hrv, bind, Except.bind, pure, Except.pure]
+
 end TraceSim
 
 end EtcdGrove
