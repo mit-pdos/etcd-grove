@@ -334,7 +334,7 @@ theorem stop_imageConf (γ : ServerRaftNames) (γk : KVNames) (A : List EntryMod
   icases Hinv' with ⟨-, #Hcl, -, -, -, #Hb, %Hvs0⟩
   have hvs := Hvs0.2
   iunfold srvClusterOk at Hcl
-  icases Hcl with ⟨-, -, -, -, -, -, -, -, -, %Hurl⟩
+  icases Hcl with ⟨-, -, -, -, -, -, -, -, -, %Hurl, -⟩
   ihave %Hpfx := srvRLogLb_prefix γ _ A $$ [Hb HA]
   · iframe Hb HA
   ihave #HA' := HA
