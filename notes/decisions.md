@@ -33400,7 +33400,10 @@ conjunct.** `Trace.Valid.reach_searchOk` (`Reach.lean`) proves part 2 from `Trac
 configuration change's `newconf` shorter than `numBound`), and `CheckTraceOk` replaces part 2 by
 `Trace.ConfsBounded`. Not `Event.Bounded` strengthened, as planned above: `Event.Bounded` is `NewTrace`'s
 premise, which its Go code does not establish (it reads the lists without a bound), so strengthening it
-would have changed `NewTrace.spec` (and `Trace.Valid`) for a bound only `CheckTrace` needs; the conjunct
+would have changed `NewTrace.spec` (and `Trace.Valid`) for a bound only `CheckTrace` needs (the review
+found the argument weaker than stated: `Event.Bounded` already bounds the messages' numbers, which only the
+search uses, so the bound would fit there too; kept as the delegating session's instruction, with the law
+`Trace.confsBounded_of_newTrace` for `Main`, the move left to the user); the conjunct
 is stated on the trace's lines' events, the events `Main` passes `NewTrace`, so `Main` discharges it from
 raft's three voters either way. No action needed a bound the invariant could not give (no reachable
 overflow on an in-scope trace): the invariant is at `numBound + l` at line `l`

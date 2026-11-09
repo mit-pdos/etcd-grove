@@ -1086,6 +1086,22 @@ the first two); `CheckTrace.spec`'s conclusion is unchanged, its proof takes par
 (`Trace.CheckTraceOk.nextOk`, `.actOk`), and `Trace.RunRel.checkTraceOk` takes `tr.ConfsBounded` in
 place of the reached states' bounds. `Main`'s S7 obligation 2 is now only `tr.ConfsBounded`.
 
+**Review of the weakened `CheckTrace.spec` (2026-11-09, fresh `spec-reviewer`, at `8e14d2ceca`): no
+first-tier finding** (the triple true of `check.go`, its post what `Main` inspects, the premise only
+weaker, the proof using each part as stated). Second tier: (S-1) part 2 would sit better on `NewTrace`'s
+premise, carried by `Trace.Valid`, since `Event.Bounded` already bounds fields only the search needs
+(the messages' numbers): taken in its minimum form, the law `Trace.confsBounded_of_newTrace` (events
+bounded ⇒ the trace's lines bounded), so `Main` needs no internal lemma; the placement kept, as the
+delegating session's instruction for this branch (strengthen `Event.Bounded`/`Trace.Valid` only for what
+`NewTrace`'s code establishes; otherwise a trace-level conjunct of `CheckTraceOk`) and to leave
+`NewTrace.spec` unchanged: the user may move it (one conjunct in `Event.Bounded`, `hcb` dropped from
+`reach_searchOk`). (S-2) `LinesInScope` still has no law from the events (round 2's T2-2): left to S7,
+as before. Third tier repaired: the spec header says part 3 is a premise on the search's own runs and
+what the Go returns then, that only the incoming `conf` list is bounded (`Event.ConfsBounded`'s
+docstring, which also says every line is bounded though only bootstrap lines feed configurations),
+`RunRel.checkTraceOk`'s reference reworded, `Rep.lean`'s header names the new bound; Q10's veto status
+unchanged.
+
 ### D. The harness and Main (the workload)
 
 The concurrent harness (`concurrent.go`, its Goose translation needs no change): each replica a

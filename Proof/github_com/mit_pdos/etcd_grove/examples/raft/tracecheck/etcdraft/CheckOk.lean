@@ -378,8 +378,8 @@ theorem Trace.CheckLineRel.step_violation (tr : Trace) (invariants : Bool) (ts :
         { branched := acc.2.branched || i2.branched, violation := i2.violation })) :=
   .step ts rest acc succ i2 _ hv hs (Trace.CheckLineRel.skip_all tr invariants _ hv2 rest)
 
-/-- How `Main` builds `CheckTrace`'s premise: from the lines in scope, the events' configuration lists
-bounded, and layer B's run through every line. -/
+/-- How `Main` builds `CheckTrace`'s premise: from the lines in scope, the lines' configuration lists
+bounded (`Trace.confsBounded_of_newTrace` gives it of the events), and layer B's run through every line. -/
 theorem Trace.RunRel.checkTraceOk {tr : Trace} {ts : TState} (hsc : tr.LinesInScope)
     (hcb : tr.ConfsBounded) (h : tr.RunRel tr.len ts) : tr.CheckTraceOk true :=
   ⟨hsc, hcb, h.noEvalError⟩

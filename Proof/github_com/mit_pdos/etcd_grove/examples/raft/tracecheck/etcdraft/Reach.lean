@@ -61,15 +61,23 @@ def State.SearchOk (st : State) : Prop := st.Bounds ∧ st.MsgsOk
 
 /-! ## The premise on the events' configuration lists -/
 
-/-- An event's configuration lists (its `conf`'s incoming list, a configuration change's `newconf`)
-shorter than `numBound` (raft's: three ids). -/
+/-- An event's configuration lists shorter than `numBound` (raft's: three ids): its `conf`'s incoming
+list (`conf.1`; the outgoing list, `conf.2`, is not bounded: no configuration the specification applies
+comes from it) and a configuration change's `newconf`. -/
 def Event.ConfsBounded (e : Event) : Prop :=
   (e.conf.1.length : Int) < numBound ∧
   ∀ nc, (e.prop.bind EventProps.cc).bind EventConfChange.newconf = some nc → (nc.length : Int) < numBound
 
 /-- Every line's event has `Event.ConfsBounded`: the configurations' sizes, which `Event.Bounded` does
-not bound, come from these lists. -/
+not bound, come from these lists. Only the bootstrap lines' lists reach a configuration (`newTraceWith`'s
+initial configurations and bootstrap log); every line is bounded, which is simpler to state and costs
+`Main` nothing. -/
 def Trace.ConfsBounded (tr : Trace) : Prop := ∀ ln ∈ tr.lines, ln.ev.ConfsBounded
+
+/-- How a client gets `Trace.ConfsBounded` of the trace `NewTrace` built: from its events. -/
+theorem Trace.confsBounded_of_newTrace {evs : List Event} {tr : Trace} (h : newTrace evs = .ok tr)
+    (hc : ∀ e ∈ evs, e.ConfsBounded) : tr.ConfsBounded :=
+  fun ln hln => hc _ (lines_ev_mem (newTraceWith_ok evs false false tr h).1 hln)
 
 /-! ## The invariant -/
 

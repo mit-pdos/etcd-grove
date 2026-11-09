@@ -14,15 +14,17 @@ The trace is read, not written (`traceRO`, which carries what `NewTrace` establi
 relies on that, review round 1 of layer C, F1).
 Its premise `Trace.CheckTraceOk` (`CheckOk.lean`; Q10 of the plan, 2026-11-09): the search meets its
 callees' premises, which are stated where the Lean transcription evaluates, on the workload's kinds of
-lines and on states far from overflow. It has three parts, each a property of the trace: the lines
-outside the bootstrap in scope (no `ChangeConf`, restart or snapshot); the events' configuration lists
-(each line's `conf` list, a configuration change's `newconf`) shorter than `numBound`, which
+lines and on states far from overflow. It has three parts: the lines outside the bootstrap in scope
+(no `ChangeConf`, restart or snapshot); the lines' configuration lists (each event's incoming `conf`
+list, a configuration change's `newconf`) shorter than `numBound` (`Trace.ConfsBounded`), which
 `Event.Bounded` does not bound and `NewTrace` does not check (with `Trace.Valid` and the lines in scope,
-every state reachable from `TraceInit` is then bounded: `Trace.Valid.reach_searchOk`); and no evaluation
-error in the search (where TLC fails, the Go panics with an `EvalError` and recovers, which its callees'
-triples do not describe). So the spec says nothing of the traces outside that class. `Main` is to
-discharge it of the trace raft produces (`Trace.RunRel.checkTraceOk`: raft's configurations have three
-ids).
+every state reachable from `TraceInit` is then bounded: `Trace.Valid.reach_searchOk`); and, a premise on
+the search itself, that it raises no evaluation error (where TLC fails, the Go panics with an `EvalError`
+and recovers, returning a failing `Result` whose `Branched` may differ from the relation's, which its
+callees' triples do not describe): the spec covers only such runs. So the spec says nothing of the
+traces outside that class. `Main` is to discharge it of the trace raft produces with
+`Trace.RunRel.checkTraceOk`, from the lines in scope, raft's configurations of three ids
+(`Trace.confsBounded_of_newTrace`) and layer B's run.
 -/
 module
 
