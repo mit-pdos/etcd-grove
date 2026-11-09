@@ -200,6 +200,33 @@ theorem bootFlags_nonBoot (srv : Etcdraft.SetIds) (lines : List Etcdraft.Line) (
   bootFlags_past srv (lines ++ [ln]) lines.length lines.length (by simp) (Nat.le_refl _) rfl
     (by simpa [List.getD_eq_getElem?_getD] using hb)
 
+/-- **`simRun_snoc_single` for any run, its first line included** (the state's invariants given). -/
+theorem simRun_snoc_single_any (C : List w64) (L : List TraceEv) (σ σ' : Etcdraft.State) (e : TraceEv)
+    (ln : Etcdraft.Line) (hrun : SimRun C L σ) (hσinv : σ.violated = .ok none)
+    (he : Etcdraft.parseLine L.length (evConv e) = .ok ln)
+    (hnext : ∀ lines (ts : Etcdraft.TState), parseLines (L.map evConv) = .ok lines → ts.s = σ →
+      ts.l = L.length + 1 →
+      (linesTrace C (lines ++ [ln])).next ts = .ok [{ s := σ', l := ts.l + 1, pl := ts.l }])
+    (hinv : σ'.violated = .ok none) :
+    SimRun C (L ++ [e]) σ' := by
+  by_cases hL : L = []
+  · subst hL
+    have hσ : σ = simInit C := by
+      rcases hrun with ⟨-, h⟩ | ⟨lines, ts, hl, hr, hσ', -⟩
+      · exact h
+      · simp only [List.map_nil, List.length_nil] at hl hr
+        cases hr
+        rw [← hσ']; rfl
+    subst hσ
+    have hl0 : parseLines (([] : List TraceEv).map evConv) = .ok [] := by
+      simp [parseLines, pure, Except.pure]
+    have h1 := hnext [] ⟨simInit C, 1, 0⟩ hl0 rfl rfl
+    rw [List.nil_append] at h1
+    have hc := checkLine_single (linesTrace C [ln]) ⟨simInit C, 1, 0⟩ ⟨σ', 1 + 1, 1⟩ h1 rfl hinv
+    rw [List.nil_append]
+    exact simRun_first C e ln _ _ hσinv he hc rfl rfl
+  · exact simRun_snoc_single C L σ σ' e ln hrun hL he hnext hinv
+
 end TraceSim
 
 end EtcdGrove
