@@ -20,8 +20,14 @@ and a restart should restore what was persisted, as raft does (a restarted node 
 
 **Impact:** model checking with crashes (`Next` includes `NextCrash`, as in `MCetcdraft.cfg`'s
 `NextDynamic`) aborts with an evaluation error as soon as it reaches a conflicting append request,
-instead of exploring restarts there. Trace validation is not affected (`Traceetcdraft` takes
-`Restart` only at an `InitState` line). raft v3.7.0 and `main` have the same specification.
+instead of exploring restarts there. Trace validation (`Traceetcdraft` takes `Restart` only at
+a restarted node's `InitState` line) meets it too, though only where the log stays shorter than its
+persisted length past the receive line: a truncating append request that drops more entries than it
+brings (a follower with five entries persisted takes a request replacing its last two by one), then
+a restart of that node before its next `Ready`; the `InitState` line's `Restart` then fails the same
+way. Upstream's trace validation fails earlier at any restart (`issues/raft-tla-restart-initstate-unmatched.md`),
+so this shows only once that is fixed (corrected 2026-11-09: this paragraph said trace validation was
+not affected). raft v3.7.0 and `main` have the same specification.
 
 **Reproduction:** `TestTLAModelRestartAfterTruncation` in
 [`issues/raft-tla-restart-truncated-log/tla_restart_truncated_log_test.go`](raft-tla-restart-truncated-log/tla_restart_truncated_log_test.go),
