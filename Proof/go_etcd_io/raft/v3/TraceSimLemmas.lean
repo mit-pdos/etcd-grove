@@ -1153,6 +1153,23 @@ theorem sim_lose (C : List w64) (bl : Nat) (s : PState) (a : Etcdraft.Server)
   · intro h; cases h
   · intro h; cases h
 
+/-- **A leader's self-acknowledgement** (`appendEntry`'s `MsgAppResp` to itself at its last index):
+the specification's `AppendEntriesToSelf(i)` sends its abstraction. -/
+theorem appendEntriesToSelf_send (st : Etcdraft.State) (C : List w64) (bl : Nat) (s : PState) (id : w64)
+    (hR : SimServerR C bl s (st.s (idAbs id))) (hl : s.role = .leader) (hs : LogShapeOk bl s) :
+    st.appendEntriesToSelf (idAbs id) =
+      some (st.send ((msgAbs C bl (pselfAck id s)).get (by simp [msgAbs, pselfAck]))) := by
+  obtain ⟨h1, h2, -, -, -, h6, -, -, -, -, -⟩ := hR
+  unfold Etcdraft.State.appendEntriesToSelf
+  have hlead : ((st.s (idAbs id)).state != Etcdraft.leader) = false := by rw [h2, hl]; rfl
+  simp only [hlead, Bool.false_eq_true, ↓reduceIte]
+  have hmsg : msgAbs C bl (pselfAck id s) = some
+      { type := .appendEntriesResponse, subtype := "app", term := uint.Z s.term, success := true,
+        matchIndex := uint.Z (plastIndex s), source := idAbs id, dest := idAbs id } := by
+    simp [msgAbs, pselfAck]
+  simp only [hmsg, Option.get_some]
+  rw [h1, h6, logAbs_length, plastIndex_length bl s hs]
+
 end TraceSim
 
 end EtcdGrove
