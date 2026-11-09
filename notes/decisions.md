@@ -33347,3 +33347,49 @@ their own in `TracedCap.lean`, their text unchanged.
 "returns" a panic value, after which `traceEvent`'s `do:` does not step. The recorder's spec already
 returns `#()`.
 
+## Q10: `CheckTrace`'s premise (2026-11-09 · trace-check, layer C; option (a') taken by the delegating session, pending the user's veto (`notes/trace-validation-plan.md`, Q10) · branch `trace-check-checktrace`; DRAFT until trace-check's Freeze)
+
+**The problem.** `CheckTrace.spec` assumed only `traceRO t tr` (so `Trace.Valid tr`), but its callees'
+specs (`StepLine`, `Violated`, and below them the actions) are stated where the Lean evaluation
+succeeds (`= .ok`), on lines in the workload's scope and on states far from overflow. Three things
+broke the proof, each with a counterexample (plan, layer C, "`CheckTrace` blocked"): valid traces
+whose search raises an evaluation error (the Go panics with an `EvalError` and recovers), lines
+`NewTrace` accepts but no action spec covers (`ChangeConf`, a restart's `InitState`, a `MsgSnap`
+sent), and bounds that hold only by a reachability invariant, one (the configurations' sizes) not
+derivable at all from `Event.Bounded`.
+
+**Decision: a pure premise, the conclusion unchanged.** `CheckTrace.spec` takes
+`⌜tr.CheckTraceOk invariants⌝` (`CheckOk.lean`), the conjunction of three parts chosen to be as
+close to what `Main` has as the proof allows: (1) `tr.LinesInScope`, a property of the trace alone
+(layer B's P1-P3); (2) every state `Trace.Reach` gives (the closure of `TraceInit` under
+`Trace.next`) meets `State.Bounds` (`State.ActOk` but its flags) and `State.MsgsOk`, an invariant of
+the specification proved by induction over the actions (the servers and the flags off are already
+proved, `Trace.Valid.reach_frame`, after review round 1's T2-1); (3) no result of `CheckTraceRel` carries
+an evaluation error, which `Main` gets from layer B's run by determinism
+(`Trace.RunRel.noEvalError`). Everything else `StepLine`'s premise asked for is proved here
+(`Trace.CheckTraceOk.stepLineOk`: positions, the expanded states reached, `Violated`'s bounds from
+the actions'), as are the facts the loop needs (the successors reached, a violation's name not
+empty, the relations deterministic).
+
+**Why not stated on the search's states.** A premise quantifying over the states the search
+expands (`StepLineOk` of every frontier state) would have been the shortest proof, but `Main` could
+discharge it only through the same invariant, phrased over the search's internals (frontiers,
+visited lists). `Trace.Reach` is the specification's own reachability, so part 2 is a theorem about
+`etcdraft` alone, and part 3 is about the relation the statement already uses.
+
+**Why not panic-aware specs (option (a)).** Goose models `recover` (`wp_with_defer_recover`), so a
+postcondition at `PanicV` of an `EvalError` is expressible; but every callee that can raise one
+(`SubSeq`, the `EvalM` invariants and actions, `Next`, `nonReceive`, `StepLine`, `Violated`) would
+need a second outcome, and the closed theorem gains nothing: `Main` panics unless `TLCOK`, which an
+evaluation error never is, and its accepted run has no error anyway. The seven out-of-scope actions
+and `HandleSnapshotRequest` would also need specs. Option (a) stays available if the user wants
+`CheckTrace` correct on every valid trace.
+
+**Deferred: part 2 as a lemma, `Event.Bounded` strengthened.** Review round 1 (T2-1) found that part
+2 exports the checker's overflow margins (`State.Bounds`, `Bag.Ok`) to `Main`, a client in another
+package, though it depends only on `Trace.Valid`, `LinesInScope` and the configurations' sizes. The
+right end state is a lemma of the checker, `Trace.Valid.reach_searchOk : tr.Valid → tr.LinesInScope →
+∀ ts, tr.Reach ts → ts.s.SearchOk`, with `Event.Bounded` bounding the events' configuration lists
+(raft's have three ids, so `NewTrace`'s premise costs `Main` nothing more); `CheckTraceOk` then loses
+part 2. Until that invariant is proved it stays a premise: a `sorry` in its place is not allowed in a
+committed state. What was provable now moved out of the premise (the servers and the flags).

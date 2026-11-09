@@ -44,8 +44,9 @@ def Line.InScope (ln : Line) : Prop :=
   ln.ev.name ≠ "ChangeConf" ∧ ln.ev.name ≠ "InitState" ∧
   (ln.ev.name = "SendAppendEntriesRequest" → ln.ev.msg.map EventMsg.type ≠ some "MsgSnap")
 
-/-- `State.Receive`'s premises of every message of the state (`receive`'s): none a pre-vote one or a
-snapshot, `prevLogIndex` in `[0, 2^62 - 1)`, entries and the destination's log below `2^62`. -/
+/-- `receive`'s premises: the bag of messages `Bag.Ok` (distinct, counts below `2^63 - 1`), and
+`State.Receive`'s of every message of it: none a pre-vote one or a snapshot, `prevLogIndex` in
+`[0, 2^62 - 1)`, entries and the destination's log below `2^62`. -/
 def State.MsgsOk (st : State) : Prop :=
   st.messages.Ok ∧
   ∀ m ∈ st.messages.domain, m.type ≠ .preVoteRequest ∧ m.type ≠ .preVoteResponse ∧
