@@ -167,11 +167,17 @@ theorem go_etcd_io.raft.v3.raftpb.wp_initialize'
   iintro %depIdxs ⟨-, -⟩
   simp only [go.arrayLiteralSize, List.foldl]
   wp_auto
+  -- (Q9, 2026-11-09) the package fact: `MessageType_name`'s table, read-only
+  ipersist HMessageType_name
+  imod ownMap_persist _ _ _ $$ Hm2 with Hm2
+  ipersist Hm2
   -- init.0: its trusted model does nothing
   wp_func_call
   wp_call
   iframe Hown
   is_pkg_init_finish
+  unfold go_etcd_io.raft.v3.raftpb.msgTypeNames
+  iexact Hm2
 
 end init_lc
 

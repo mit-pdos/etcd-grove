@@ -54,7 +54,7 @@ local macro "send_drop" : tactic => `(tactic| (
   repeat' (first_callee
     | "GetType" => (wp_apply hGetType.1 ml _ _ _ st $$ [] as -; iframe #)
     | "GetFrom" => (wp_apply hGetFrom.1 ml _ _ _ st $$ [] as -; iframe #)
-    | "String" => (ihave #HT := hTypeString st.msg.Type'
+    | "String" => (ihave #HT := fmt.stringMethodSpec_of_wp _ _ _ _ hTypeString st.msg.Type' $$ Hpb
                    iunfold fmt.stringMethodSpec at HT
                    wp_apply HT as %_)
     | "String" => (wp_apply hIDString as %_ -)
@@ -131,6 +131,9 @@ theorem rafthttp.peer.send.wp_proof
     rafthttp.peer.send.spec (GF := GF) (hG := hG) := by
   intro Rh lid pid γd R p ml
   wp_start as ⟨#Hp, Hpm⟩
+  -- (Q9, 2026-11-09) `MessageType.String`'s exact spec needs raftpb's package fact
+  ihave #Hpb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
+  · iPkgInit
   ihave #Hp' := Hp
   iunfold peerOk at Hp'
   icases Hp' with ⟨%lg, %ps, %pk, %cw2, %cw1, %pl, %ss, %cr2, %cr1, %r, %rc, %pc, #Hlg, %Hlgnn,

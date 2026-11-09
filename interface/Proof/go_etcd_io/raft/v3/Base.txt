@@ -40,7 +40,10 @@ def Perennial.go_etcd_io.raft.v3.raftpb_is_pkg_init_inst : IsPkgInit (IProp GF)
                 isPkgInit pkg_id.slices ∗
                   isPkgInit pkg_id.google_golang_org.protobuf.reflect.protoreflect ∗
                     isPkgInit pkg_id.google_golang_org.protobuf.runtime.protoimpl ∗ True),
-    isPkgInitDef := iprop(True) }
+    isPkgInitDef :=
+      iprop(∃ m,
+          typedPointsto (globalAddr raftpb.MessageType_name) m DFrac.discard ∗
+            ownMap m DFrac.discard raftpb.msgTypeNames) }
 
 def Perennial.go_etcd_io.raft.v3.isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.raft.v3 :=
   {
@@ -298,6 +301,32 @@ def Perennial.go_etcd_io.raft.v3.proto_is_pkg_init_inst : IsPkgInit (IProp GF)
       iprop(isPkgInit pkg_id.google_golang_org.protobuf.reflect.protoreflect ∗
           isPkgInit pkg_id.google_golang_org.protobuf.internal.pragma ∗ True),
     isPkgInitDef := iprop(True) }
+
+def Perennial.go_etcd_io.raft.v3.raftpb.msgTypeNames : GMap w32 GoString :=
+  <[W32 23 :=
+    go!"MsgForgetLeader"]><[W32 22 :=
+      go!"MsgStorageApplyResp"]><[W32 21 :=
+        go!"MsgStorageApply"]><[W32 20 :=
+          go!"MsgStorageAppendResp"]><[W32 19 :=
+            go!"MsgStorageAppend"]><[W32 18 :=
+              go!"MsgPreVoteResp"]><[W32 17 :=
+                go!"MsgPreVote"]><[W32 16 :=
+                  go!"MsgReadIndexResp"]><[W32 15 :=
+                    go!"MsgReadIndex"]><[W32 14 :=
+                      go!"MsgTimeoutNow"]><[W32 13 :=
+                        go!"MsgTransferLeader"]><[W32 12 :=
+                          go!"MsgCheckQuorum"]><[W32 11 :=
+                            go!"MsgSnapStatus"]><[W32 10 :=
+                              go!"MsgUnreachable"]><[W32 9 :=
+                                go!"MsgHeartbeatResp"]><[W32 8 :=
+                                  go!"MsgHeartbeat"]><[W32 7 :=
+                                    go!"MsgSnap"]><[W32 6 :=
+                                      go!"MsgVoteResp"]><[W32 5 :=
+                                        go!"MsgVote"]><[W32 4 :=
+                                          go!"MsgAppResp"]><[W32 3 :=
+                                            go!"MsgApp"]><[W32 2 :=
+                                              go!"MsgProp"]><[W32 1 :=
+                                                go!"MsgBeat"]><[W32 0 := go!"MsgHup"]>∅
 
 def Perennial.go_etcd_io.raft.v3.protobuf_pragma_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF)
     pkg_id.google_golang_org.protobuf.internal.pragma :=

@@ -33393,3 +33393,45 @@ right end state is a lemma of the checker, `Trace.Valid.reach_searchOk : tr.Vali
 (raft's have three ids, so `NewTrace`'s premise costs `Main` nothing more); `CheckTraceOk` then loses
 part 2. Until that invariant is proved it stays a premise: a `sorry` in its place is not allowed in a
 committed state. What was provable now moved out of the premise (the servers and the flags).
+
+## Q9: `MessageType.String` as trusted code over `MessageType_name` (2026-11-09 · trace-check, Q9; the user's decision, option (b) · branch `trace-check-q9`; DRAFT until trace-check's Freeze)
+
+**What.** protoc-gen-go's `(MessageType).String` (`protoimpl.X.EnumStringOf(x.Descriptor(), ...)`,
+reflection over the file descriptor) was names-only, with the trust-boundary axiom
+`raftpb.MessageType.String.wp_proof` that it returns *some* string (`fmt.stringMethodSpec`, all
+rafthttp's logs need). The traced send and receive hooks need the type's name (`msgTypeStr`, which the
+checker parses). The method is now `trusted` (`Code/go_etcd_io/raft/v3/raftpb.toml`; the other enums'
+`String`s stay names-only), its model (`TrustedCode/go_etcd_io/raft/v3/raftpb.lean`,
+`MessageType.String.impl`) the GooseLang goose produces for `if s, ok := MessageType_name[int32(x)];
+ok { return s }; return strconv.Itoa(int(x))` (translated by the pinned goose from a scratch copy of
+`raft.pb.go` with that body, the names then replaced by `model.` ones: the translation imports the
+model). Its docstring argues it is Go's: `EnumStringOf` (protobuf-go v1.36.11, raft v3.7's) returns
+the descriptor's value name for the number, else `strconv.Itoa(int(n))`; protoc-gen-go generates the
+table and the raw descriptor from the one `enum MessageType` of `raft.proto`, without aliases; a Go
+test checks it (`examples/raft/tracecheck/msgtype_string_test.go`: every key, and six numbers outside
+the enum).
+
+**The package fact.** `raftpb`'s `isPkgInit` was `True`; it now holds `∃ m, globalAddr
+MessageType_name ↦□ m ∗ m ↦$□ raftpb.msgTypeNames` (`Base.lean`; the literal with its keys inserted
+in the initializer's order, 0 first). Proved in raft's hand-written `Init.lean`
+(`go_etcd_io.raft.v3.raftpb.wp_initialize'`), not by `etc/gen-init.py`: raftpb is one of its
+`RAFT_INIT` packages, whose `wp_initialize'`s are hand-written (`proto`'s among them, which a
+generated raftpb file would have to import from raft's `Init.lean`, a cycle); `stmap` (Q8 stage 1,
+slice 2) was added to raft's fact the same way.
+
+**The spec** (`Spec/go_etcd_io/raft/v3/raftpb/MessageType__String.lean`) is exact: from raftpb's
+`isPkgInit`, `t.String()` returns `raftpb.msgTypeString t` (`MessageType_name`'s entry, else
+`fmtInt (W64 (sint.Z t)) 10`); proved over the model with `strconv.Itoa`'s spec (a trust boundary
+already in the baseline) as callee. The vocabulary is `Proof/go_etcd_io/raft/v3/raftpb/MsgTypeName.lean`
+(importable in `etc/api/raft.txt`): `msgTypeString`, its value at the six traced types, and
+`fmt.stringMethodSpec_of_wp`, which gives a `String` meeting such an exact spec `fmt`'s weak
+`fmt.stringMethodSpec` from its precondition: rafthttp's four proofs take raftpb's `isPkgInit`
+(`iPkgInit`) and use it where they used the axiom. `TracedMsgType.lean`: `msgTypeString_traced`
+(`mtypeOf t = some ty`, `sendEvt ty ≠ none` gives `msgTypeString t = msgTypeStr ty`) and its receive
+form, for the hooks.
+
+**Trust base.** One axiom fewer (`raftpb.MessageType.String.wp_proof`), one trusted model more
+(`MessageType.String.impl`); the server's results now reach `strconv.Itoa.wp_proof` (the model's
+fallback), already an axiom of the baseline. Rejected: (a) strengthening the axiom (the same trust,
+stated as a Hoare triple instead of code a reader compares with Go's); (c) translating protobuf's
+reflection path (large).
