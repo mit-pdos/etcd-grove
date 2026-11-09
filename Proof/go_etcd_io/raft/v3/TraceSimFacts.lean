@@ -106,6 +106,83 @@ theorem logAbs_match (C : List w64) (es1 es2 : List EntryM)
     exact entAbs_eq C C.length _ _ _ this
   · rfl
 
+/-! ### `ElectionSafetyInv` by a specification invariant (route (b)) -/
+
+/-- **The leaders' term entries** (route (b) of the notes' `ElectionSafetyInv`): for every leader `i`
+of term `T`, every term-`T` entry anywhere (a log, or a message in either bag at its index) is at a
+position where `i`'s log has a term-`T` entry. Only `T`'s leader creates such entries, at the end of
+its log, which it never truncates while it leads. -/
+def LeaderEntries (σ : Etcdraft.State) : Prop :=
+  ∀ i ∈ σ.server, (σ.s i).state = Etcdraft.leader →
+    (∀ j ∈ σ.server, ∀ (k : Nat) (e : Etcdraft.Entry), (σ.s j).log[k]? = some e →
+      e.term = (σ.s i).currentTerm → ((σ.s i).log[k]?).map Etcdraft.Entry.term = some e.term) ∧
+    (∀ m ∈ σ.messages.domain ++ σ.pendingMessages.domain, ∀ (k : Nat) (e : Etcdraft.Entry),
+      m.entries[k]? = some e → e.term = (σ.s i).currentTerm →
+      ((σ.s i).log[(m.prevLogIndex.toNat + k)]?).map Etcdraft.Entry.term = some e.term)
+
+theorem maxIndexOfTerm_ge (xlog : List Etcdraft.Entry) (t : Int) (k : Nat)
+    (hk : (xlog[k]?).map Etcdraft.Entry.term = some t) : k + 1 ≤ Etcdraft.maxIndexOfTerm xlog t := by
+  unfold Etcdraft.maxIndexOfTerm
+  have hkl : k < xlog.length := by
+    rcases Nat.lt_or_ge k xlog.length with h | h
+    · exact h
+    · rw [List.getElem?_eq_none h] at hk; cases hk
+  suffices ∀ N acc, k < N → N ≤ xlog.length →
+      k + 1 ≤ (List.range N).foldl (fun (acc : Nat) n => if ((xlog[n]?).map Etcdraft.Entry.term) == some t then n + 1 else acc) acc by
+    exact this _ 0 hkl (Nat.le_refl _)
+  intro N
+  induction N with
+  | zero => intro acc h; omega
+  | succ N ih =>
+    intro acc hkN hN
+    rw [List.range_succ, List.foldl_append, List.foldl_cons, List.foldl_nil]
+    rcases Nat.lt_or_ge k N with h | h
+    · have := ih acc h (by omega)
+      split
+      · omega
+      · exact this
+    · have : k = N := by omega
+      subst this; simp [hk]
+
+theorem maxIndexOfTerm_cases (xlog : List Etcdraft.Entry) (t : Int) :
+    Etcdraft.maxIndexOfTerm xlog t = 0 ∨
+      ∃ k, Etcdraft.maxIndexOfTerm xlog t = k + 1 ∧ (xlog[k]?).map Etcdraft.Entry.term = some t := by
+  unfold Etcdraft.maxIndexOfTerm
+  suffices ∀ N, (List.range N).foldl (fun (acc : Nat) n => if ((xlog[n]?).map Etcdraft.Entry.term) == some t then n + 1 else acc) 0 = 0 ∨
+      ∃ k, (List.range N).foldl (fun (acc : Nat) n => if ((xlog[n]?).map Etcdraft.Entry.term) == some t then n + 1 else acc) 0 = k + 1 ∧
+        (xlog[k]?).map Etcdraft.Entry.term = some t by
+    exact this _
+  intro N
+  induction N with
+  | zero => left; rfl
+  | succ N ih =>
+    rw [List.range_succ, List.foldl_append, List.foldl_cons, List.foldl_nil]
+    split
+    · rename_i h; right; exact ⟨N, rfl, by simpa using h⟩
+    · exact ih
+
+/-- **`ElectionSafetyInv` from the leaders' term entries.** -/
+theorem electionSafety_of_leaderEntries (σ : Etcdraft.State) (h : LeaderEntries σ) :
+    σ.electionSafetyInv = true := by
+  unfold Etcdraft.State.electionSafetyInv
+  rw [List.all_eq_true]
+  intro i hi
+  by_cases hl : (σ.s i).state = Etcdraft.leader
+  · have hli := (h i hi hl).1
+    simp only [hl, bne_self_eq_false, Bool.false_or, List.all_eq_true, decide_eq_true_eq]
+    intro j hj
+    rcases maxIndexOfTerm_cases (σ.s j).log (σ.s i).currentTerm with h0 | ⟨k, hk, hkt⟩
+    · rw [h0]; omega
+    · rw [hk]
+      obtain ⟨e, he⟩ : ∃ e, (σ.s j).log[k]? = some e := by
+        cases hx : (σ.s j).log[k]? with
+        | none => rw [hx] at hkt; cases hkt
+        | some e => exact ⟨e, rfl⟩
+      rw [he] at hkt
+      simp only [Option.map_some, Option.some.injEq] at hkt
+      exact maxIndexOfTerm_ge _ _ k (by rw [hli j hj k e he hkt, hkt])
+  · simp [hl]
+
 end pure
 
 section ghost
