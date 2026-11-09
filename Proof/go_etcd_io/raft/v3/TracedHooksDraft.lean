@@ -549,6 +549,14 @@ def FxPresU (γ : RaftNames) (id : w64) (E : TraceEv → Prop)
     votesTbl γ -∗ simFx γ C σ ==∗
       votesTbl γ ∗ simFx γ C (withNode σ (idAbs id) a' _root_.id (fun b => P'.foldl Etcdraft.Bag.with b)) ∗ R')
 
+/-- `FxPresU`, gated on the cluster's trace mode (review round 6's F4): untraced, only the update
+giving `R'` (so one spec per function still works for both modes). -/
+def FxPresUT (tr : Option GName) (γ : RaftNames) (id : w64) (E : TraceEv → Prop)
+    (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) (R' : IProp GF) : IProp GF :=
+  match tr with
+  | none => iprop(|==> R')
+  | some _ => FxPresU γ id E Φ Φ' R'
+
 theorem fxPres_upd (γ : RaftNames) (id : w64) (E : TraceEv → Prop)
     (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) :
     FxPres (GF := GF) γ id E Φ Φ' ⊢ FxPresU γ id E Φ Φ' iprop(emp) := by

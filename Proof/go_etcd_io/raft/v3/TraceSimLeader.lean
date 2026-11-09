@@ -12,13 +12,14 @@ What the new leader `i` of term `T` holds there (`becomeLeader_hyps`'s premises)
   (`terms !! T = none`): no entry of `T` exists yet;
 - the vote table `votesTbl γ`; the static `γ.reBoot ≠ []` (a bootstrapped cluster).
 
-**Not what raft's ghost has today** (the report of D2): raft's ghost takes the win in one step,
-`ownRaftGhost_step_win` (`Protocol/Refinement.lean`), after `stepCandidate` returns (`raft__Step/
-MsgVoteResp.lean`): at the hook its ghost is still the candidate's, with `terms !! T = none`
-(`TermsOk`) but no `isLeader γ i T`; after the step it has `isLeader` but also the term log, holding
-the empty entry. Both halves are needed at once: the first half of the step (freezing the quorum in
-`reWins`, `win_register`) must be taken before the hook, the second (the term log with the entry) at
-the append, with `WinsOk` relaxed for a candidate whose win is registered.
+**Not what raft's ghost has today** (the report of D2; corrected by review round 6's F2): raft's
+ghost takes the win in one step, `ownRaftGhost_step_win` (`Protocol/Refinement.lean`), after
+`stepCandidate` returns (`raft__Step/MsgVoteResp.lean`): at the hook its ghost is still the
+candidate's, with `terms !! T = none` (`TermsOk`) but no `isLeader γ i T`. The route (Prove phase,
+`notes/trace-validation-plan.md`): `stepCandidate`'s spec gains the converse of its win
+(`JQuorum → won`) and `Step` keeps the ghost open across the handler, taking the registration before
+the hook; the term log is created in the `BecomeLeader` line's `FxPresU`, the entries' records in
+each `Replicate` line's (F1); or else `WinsOk` and `TermsOk` are relaxed until the end of `Step`.
 
 `hents` (a message carrying entries is an append request, its entries' indices below `2 ^ 64`) is
 now `msgFacts`' (review round 4's D2: raft has it of every message it sends), derived inside.

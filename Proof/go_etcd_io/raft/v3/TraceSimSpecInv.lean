@@ -1365,9 +1365,10 @@ creates entries and append requests of its term). All four are `becomeLeader_hyp
 (no term log, so no entry, of `T` yet) and `votesTbl γ`. **Raft's ghost does not hold `isLeader` and
 the term map without `T` at once** (it takes the win, with the term log and the empty entry, in one
 step after `stepCandidate`): the hook needs the win's registration split from its term log, which
-the line's step itself creates (`FxPresU`, review round 5's E1), the empty entry following at its
-append; `campOwn`'s leader clause (a log longer than the campaign log) relaxed until that append
-(round 5's E4).
+the line's step itself creates (`FxPresU`, review round 5's E1), the entries' records in each
+`Replicate` line's (round 6's F1); the registration before the hook needs `stepCandidate`'s spec to
+give the win's converse with `Step` keeping the ghost open across the handler, or else `WinsOk` and
+`TermsOk` relaxed until the end of `Step` (round 6's F2, correcting round 5's E4).
 
 Each hypothesis's source:
 

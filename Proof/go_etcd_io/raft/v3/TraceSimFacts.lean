@@ -277,8 +277,10 @@ variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 /-- **A server's facts**: node `j`'s server `v` in the simulation's state. Its log is raft's
 recorded log `es` followed, at a leader, by its **pending entries** `pend`: the entries its
-`Replicate` lines have announced, which raft appends (and so records) only after the hook
-(`appendEntry`, raft.go:849-852; review finding A9). They are of the leader's term, and follow its
+`Replicate` lines have announced, which raft appends only after the hook (`appendEntry`,
+raft.go:849-852; review finding A9), and whose records raft's ghost creates only at the end of `Step`
+(review round 6's F1: the Prove phase creates them in each `Replicate` line's `FxPresU`, since the
+same call broadcasts them). They are of the leader's term, and follow its
 campaign log `F0` or an entry of its term (raft's `campOwn`; at `becomeLeader`'s own entry the
 records are the campaign log). The records, the commit facts and the leader's facts are over
 `es`. -/

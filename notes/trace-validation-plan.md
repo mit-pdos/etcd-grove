@@ -288,6 +288,20 @@ that append. E2: `msgFacts`' commit certificate dropped (raft's `Step` has the r
 message facts `#Hmsg`, `commitIn_move`); E3 docstrings. Open (second tier): D6 (`send` with
 `PhaseStepB`), C5-C7. Next: round 6.
 
+**Round 6 (`notes/trace-validation-reviews/s5-r6.md`, 2026-11-09): nothing first-tier; the S5 Draft
+is frozen** (tag `trace-check-frozen`, the freeze delegated by the user). Second tier: F4 done
+(`FxPresUT`, the mode gate); F3 docstrings done. F1 and F2 correct this plan's account of the Prove
+phase's raft-side changes: **(F1)** the records of a leader's new entries are needed before raft
+creates them (raft broadcasts them in the same `Step`: `becomeLeader(); bcastAppend()`, `appendEntry`
+then `bcastAppend`), so each `Replicate` line's `FxPresU` creates them (`propTk_set` is a basic update;
+the rest of a record is persistent or the term log's), the send lines only reading them; **(F2)** the
+win's registration before the hook: `stepCandidate`'s spec gains the converse of its win
+(`JQuorum → won`, as `JointConfig.VoteResult`) and `Step` keeps the ghost open across the handler, so
+nothing needs relaxing; else `WinsOk` and `TermsOk` (not `campOwn`) are relaxed until the end of
+`Step`. Also for the Prove phase: `maybeCommit`'s new `isCommitted` must be created before its
+deferred `traceCommit` (the law holds `raftLogInv` open and passes `FxPresU` only `votesTbl`).
+F5 (D6, C5-C7) cosmetic, open.
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its
