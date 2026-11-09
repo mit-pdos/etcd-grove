@@ -266,6 +266,30 @@ theorem sendEvOf_ascii (evt id : w64) (s : NState) (c : CfgM) (m : Msg) (e : Tra
   exact ⟨by rw [hm.1]; exact gsAscii_msgTypeStr _, by rw [hm.2.2.1]; exact gsAscii_decStr _,
     by rw [hm.2.2.2.1]; exact gsAscii_decStr _, by rw [hv']; exact gsAscii_decStr _⟩
 
+/-- **The events `traceConfChangeEvent(cfg, r)` may log** (review round 3's B5): an `ApplyConfChange`
+node event of `r`'s state (its configuration `c`, the old one at `switchToConfig`), its `cc`
+property the new configuration `cn`'s voters (`formatConf(cfg.Voters[0].Slice())`, no changes). -/
+def CCEvOf (id : w64) (s : NState) (c cn : CfgM) (e : TraceEv) : Prop :=
+  evtNames[7]? = some e.name ∧
+  e.nid = decStr id ∧ e.term = s.term ∧ e.vote = decStr s.vote ∧ e.commit = s.logst.committed ∧
+  e.role = roleStr s.role ∧ e.logSize = plastIndex (toPState s) ∧
+  (∃ xs ys : List w64, xs ≡ₚ elements c.incoming ∧ ys ≡ₚ elements c.outgoing ∧
+    e.conf = (xs.map decStr, ys.map decStr)) ∧
+  e.msg = none ∧ e.cc = none ∧
+  (∃ ns : List w64, ns ≡ₚ elements cn.incoming ∧ e.propCC = some { changes := [], newconf := ns.map decStr }) ∧
+  e.propMatch = none ∧ e.propNext = none
+
+theorem ccEvOf_ascii (id : w64) (s : NState) (c cn : CfgM) (e : TraceEv) (h : CCEvOf id s c cn e) :
+    TraceEv.Ascii e := by
+  obtain ⟨hname, hnid, -, hvote, -, hrl, -, ⟨xs, ys, -, -, hconf⟩, hmsg, -, ⟨ns, -, hcc⟩, -, -⟩ := h
+  refine ⟨gsAscii_evtNames _ (List.mem_of_getElem? hname), by rw [hnid]; exact gsAscii_decStr _,
+    by rw [hvote]; exact gsAscii_decStr _, by rw [hrl]; exact gsAscii_roleStr _,
+    by rw [hconf]; exact gsAscii_conf xs, by rw [hconf]; exact gsAscii_conf ys,
+    (by intro m hm; rw [hmsg] at hm; cases hm), ?_⟩
+  intro c' hc'
+  rw [hcc] at hc'; cases hc'
+  exact ⟨by simp, gsAscii_conf ns⟩
+
 /-- **A step-down's server** (`StepDownToFollower`, the specification's `BecomeFollowerOfTerm` at the
 server's own term). -/
 def bfSrv (a : Etcdraft.Server) : Etcdraft.Server :=
@@ -656,6 +680,24 @@ abbrev trCap_fire_bf.statement : Prop :=
   (trCapB (some γd) γ r id c true Φ Λ ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗ FxPresBF γ id Φ : IProp GF) ⊢
     TraceFire (some γd) tl (NodeEvOf (W64 2) id s c) (trCapB (some γd) γ r id c true Φ' Λ')
 
+/-- **The capability re-keyed to another configuration of raft's** (review round 3's B5: during the
+bootstrap, raft's configuration grows from empty to the voters'; the capability's `c` is only its
+pure clause, so any `c'` of the same voters will do). -/
+theorem trCapB_cfg (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c c' : CfgM) (b : Bool)
+    (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ : Option TraceEv → Prop)
+    (h : ∀ C, (elements c.incoming).Perm C → c.outgoing = ∅ → id ∈ C →
+      (elements c'.incoming).Perm C ∧ c'.outgoing = ∅) :
+    trCapB (GF := GF) (some γd) γ r id c b Φ Λ ⊢ trCapB (some γd) γ r id c' b Φ Λ := by
+  iintro H
+  iunfold trCapB at H
+  iunfold trCapB
+  icases H with ⟨%tn, %C, %tl, %cs, %P, #Hdir, %Hpf, Hrest⟩
+  obtain ⟨hvC, hperm, hout, hC⟩ := Hpf
+  obtain ⟨hperm', hout'⟩ := h C hperm hout hC
+  iexists tn, C, tl, cs, P
+  iframe Hdir Hrest
+  ipureintro; exact ⟨hvC, hperm', hout', hC⟩
+
 /-- A capability with its `booted` flag known is one. -/
 theorem trCapB_trCap (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (b : Bool)
     (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ : Option TraceEv → Prop) :
@@ -763,6 +805,31 @@ abbrev traceBecomeLeader.tracedSpec : Prop :=
       ownRaftPhysCV c c.voters r id s ∗ TraceFire s.gh.tr tl (NodeEvOf (W64 3) id s c) Q }}
     (App (Val #(functions traceBecomeLeader [])) (Val #r))
   {{ RET #(); ownRaftPhysCV c c.voters r id s ∗ Q }}
+
+/-- **`traceInitState(r)`, traced** (review round 3's B5): an `InitState` node event of `r`'s state.
+Draft: `newRaft` calls it before raft's predicate holds (the struct built, its configuration empty,
+before `confchange.Restore`), so its caller must assemble `ownRaftPhysCV` at the empty configuration
+there (round 1's S5, open). -/
+abbrev traceInitState.tracedSpec : Prop :=
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (tl : GoInterface) (Q : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗
+      ownRaftPhysCV c c.voters r id s ∗ TraceFire s.gh.tr tl (NodeEvOf (W64 0) id s c) Q }}
+    (App (Val #(functions traceInitState [])) (Val #r))
+  {{ RET #(); ownRaftPhysCV c c.voters r id s ∗ Q }}
+
+/-- **`traceConfChangeEvent(cfg, r)`, traced** (review round 3's B5): at `switchToConfig`'s entry,
+before `r.trk` is overwritten, an `ApplyConfChange` event of `r`'s state at its old configuration `c`,
+with the new configuration `cn`'s voters (`cfg`'s, read through `ownConfigC`, given back). Draft:
+`switchToConfig`'s callers hold the struct open (`Htrkf`, `Hback`); its traced statement must take
+`ownRaftPhysCV c` closed at entry instead. -/
+abbrev traceConfChangeEvent.tracedSpec : Prop :=
+  ∀ (c cn : CfgM) (r : Loc) (id : w64) (s : NState) (cfgv : tracker.Config) (prsm : Loc)
+    (prs : GMap w64 Loc) (pvs : GMap w64 Progress) (tl : GoInterface) (Q : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗
+      ownRaftPhysCV c c.voters r id s ∗ ownConfigC cn cfgv prsm prs pvs ∗
+      TraceFire s.gh.tr tl (CCEvOf id s c cn) Q }}
+    (App (App (Val #(functions traceConfChangeEvent [])) (Val #cfgv)) (Val #r))
+  {{ RET #(); ownRaftPhysCV c c.voters r id s ∗ ownConfigC cn cfgv prsm prs pvs ∗ Q }}
 
 /-- **`traceReady(r)`, traced**. -/
 abbrev traceReady.tracedSpec : Prop :=
