@@ -845,6 +845,34 @@ campaign's conditions and `HupGuard` exclusive; so `tickElection`'s corollary wa
 state (at `s`) lacks; where they are created is to decide. Unblocked, not done: the `BecomeCandidate`,
 vote-request and self-vote lines' facts and phase steps; `Commit`, the self-acknowledgement.
 
+**Q8 stage 1 (slice 18b), 2026-11-10 (branch `trace-check-q8s18b`): the receive paths of the traced
+types; stale messages, ignored responses and a same-term vote request proved; heartbeats and appends
+blocked on the bundle's missing message facts.** Decided by the agent (`notes/decisions.md`, "Q8 stage 1
+(slice 18b)"). Done (`TracedRaftStepRecv.lean`): the common pieces of every receive path (`recvLine_pred`:
+a receive event's parse matches its message; `recvEvTy_of`; `recvGate_traced`: the receive hook's gate
+from `trCapB_hookGateRecv`, framed; `trCapB_pinDir`: the share pinned with its trace directory, so the
+token's voters are the capability's; `ownStepGhost_traceOk`: the commit and last index below
+`traceNumBound` from the receipts' fit; the step functions' gates at `False` or type-refuted resources),
+and three path sets of `stepBundle_traced.onR` (`.on` with two premises found needed, stated as
+hypotheses for the coordinator to fold in: `s.role ≠ .preCandidate`, and `TrRecvShape m ents`: a
+heartbeat without entries, a heartbeat response not rejecting, a vote request not from its destination):
+**`stepBundle_traced_staleRecv`** (a lower-term message of a traced type: the phantom refusal of a
+request, `fxPresR_staleReq`, the drop of a response, `fxPresR_staleResp`), **`stepBundle_traced_ignResp`**
+(a response a role does not handle at the node's term: `respSrv`, `simFx_resp`, `specInv_respSrv`), and
+**`stepBundle_traced_voteReq`** (`MsgVote` at the node's term: the receive line's `HandleRequestVoteRequest`
+with raft's decision the specification's, `voteGrant_iff`, `voteEnd_simIdle`; the answer's send line
+skipped, `phaseStepB_skip`, `fxPres_skip`, `skipGate_vresp`). **Blocked (bundle statement, recommended:
+a premise)**: a follower's or candidate's `MsgHeartbeat`/`MsgApp` raise the commit index in the receive
+line's effect, and the receiver's `srvFacts` then need `isCommitted`/`commitIn` at the raised index, which
+come only from raft's own message facts (`isMessage`: the heartbeat's `leadFull`/`commitIn`/`isAcked`,
+the append's `leadPrefix`/`commitIn`; `commitIn_move`), which `raft.Step.spec` has (`#Hmsg`) and the
+bundle does not take: recommended, `stepBundle_traced.on` takes `isMessageC γ (absMsg ty m ents ctx)`
+(persistent, from `isRaftMsg`) for a traced type. **Not done, unblocked**: a higher-term message (the
+receive line's `UpdateTerm` changes the receiver's term: its `srvFacts`' `commitIn` at the new term, from
+raft's ghost; then the preamble's `BecomeFollower` line, skipped by `bfCond`); a candidate's
+`MsgVoteResp` without a win or loss (the tally: `SimServerR`'s candidate clause after `recordVote`); the
+broadcasts (leader `MsgAppResp`, `MsgHeartbeatResp`, a won `MsgVoteResp`).
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its

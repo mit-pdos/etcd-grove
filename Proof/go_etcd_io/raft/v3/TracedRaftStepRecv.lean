@@ -19,9 +19,22 @@ receive path:
   fit (`ownRaftGhost_traceBound`), for the event's `TraceEv.Ok`;
 - `hookGateOpt_frame`: a resource framed into a hook gate's result.
 
-**Proved paths**: the stale messages (`StaleRecv`, `stepBundle_traced_staleRecv`): the receive line,
-which the specification answers by the phantom refusal for a request (`fxPresR_staleReq`) and drops
-for a response (`fxPresR_staleResp`); raft ignores both (pre-vote and check-quorum off).
+**Proved paths** (`stepBundle_traced.onR`):
+- the stale messages (`StaleRecv`, `stepBundle_traced_staleRecv`): the receive line, which the
+  specification answers by the phantom refusal for a request (`fxPresR_staleReq`) and drops for a
+  response (`fxPresR_staleResp`); raft ignores both (pre-vote and check-quorum off);
+- a response a role does not handle, at the node's term (`IgnResp`, `stepBundle_traced_ignResp`): the
+  receive line only; the specification records it (`respSrv`) where that role's idle relation does
+  not look;
+- a vote request of the node's term (`VoteReq`, `stepBundle_traced_voteReq`): the receive line (the
+  specification's decision, which is raft's: `voteGrant_iff`), then the answer's send line, which the
+  specification skips (`phaseStepB_skip`, `fxPres_skip`).
+
+**Not here** (`notes/decisions.md`, "Q8 stage 1 (slice 18b)"): a higher-term message (the receive line's
+`UpdateTerm` changes the term, so the receiver's `srvFacts` need its commit certificate at the new term);
+a follower's or candidate's `MsgHeartbeat`/`MsgApp` (the raised commit index's `isCommitted`/`commitIn`
+come from raft's message facts, `isMessage`, which the bundle does not take); a candidate's
+`MsgVoteResp` (the tally); the leader's broadcasts.
 -/
 module
 
