@@ -243,3 +243,24 @@ Trust-base changes so far for the Freeze list: `perRPCCredsOk` (narrowed), `grpc
    the context-error branches from `ctxOk`/`ContextReadErrs.descs`); `ContextError`, `rangeErrOut` in
    `rangeCallOut`/`kv.Get.specM`/`client_range_any`; callers' mechanical edits.
 3. §3.1, §3.2, step 6 as listed above ("Next, in order (the Draft's §6 steps 3-7)", items 3-5).
+
+## The attack on `waitRetryBackoff` (2026-11-10): a HARD STOP (soundness finding on lean's trust base)
+
+Result (read-only subagent; Go test `/shared/tmp/k8s7e1/attack-wrb/main_test.go`, output `out.txt`):
+- **The new conjunct** `err = nil ∨ errDesc err ∉ handlerDescs`: **not refuted**. The returned error is
+  always `status.Error(code, ctx.Err().Error())`, a `*status.Error` whose message is `ctx.Err().Error()`.
+  For `isContext` that is "context canceled" or "context deadline exceeded" (the Cause variants too).
+  For `ctxErrs`' four `clientErrTys` types it is the message, or, for a `*status.Error`, the whole
+  "rpc error: code = … desc = …" string, which is never an "etcdserver: mvcc: …" description.
+- **Finding:** the axiom is refuted as stated today, old post or new. `ctxOk` admits contexts whose
+  `Done()` breaks Go's `context.Context` contract. `ctxQuiet` only says `Err()` returns nil; `ctxErrs`
+  says "Nothing about `Done()`". Two such contexts panic in Go:
+  - (a) `Done()` closed while `Err()` is nil: `contextErrToGRPCErr(nil)` calls `nil.Error()`;
+  - (b) `Done()` panics (a nil receiver).
+  The Go test shows both panic. Real callers meet the contract (`context.TODO`, k8s's
+  `channelContext`), so this is a premise missing from `ctxOk`, not an etcd bug.
+  - **Suggested fix (not applied):** `ctxQuiet` says `Done()` returns a nil channel; `ctxErrs` says
+    `Done()` returns, without panicking, a channel whose close implies `ContextClosed cd.Done_gn`.
+  - The same gap probably touches `grpcInvokerOk` and the other axioms that take `ctxOk`: grpc's
+    `invoke` also selects on `ctx.Done()`.
+- Not done: a Lean counterexample, the `notes/axiom-review` write-up, the `notes/audit.md` row.
