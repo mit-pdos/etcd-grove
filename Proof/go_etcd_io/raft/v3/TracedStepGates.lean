@@ -343,11 +343,11 @@ theorem gate_open (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NStat
 
 /-- ... and back, with the caller's `Gout` and the outbox's numbers. -/
 theorem gate_close (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : MessageM) (s : NState)
-    (R : StepG GF) (Gout : IProp GF) (s' : NState) (B : Int) (recv : List Msg)
+    (R : StepG GF) (Gout : NState → IProp GF) (s' : NState) (B : Int) (recv : List Msg)
     (h : s.gh.tr.isSome → StepCD c id B m s recv s') :
     ⊢ stepClose γ md c id m s R Gout -∗
       stepOut (ghostIn γ md c id s R) -∗
-      |={⊤}=> ownRaftGhost γ id (toPState s) md.isDyn ∗ ghostRest γ md c id s ∗ Gout ∗
+      |={⊤}=> ownRaftGhost γ id (toPState s) md.isDyn ∗ ghostRest γ md c id s ∗ Gout s' ∗
         ⌜OutTrStep s s'⌝ := by
   iintro Hc Ho
   have hw : stepOut (ghostIn γ md c id s R) ⊢ stepOut R := .rfl

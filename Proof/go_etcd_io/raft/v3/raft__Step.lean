@@ -95,7 +95,7 @@ private theorem dispatch_App (P : raft.Step.Postulates (GF := GF) (hG := hG))
     (Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (γ : RaftNames) (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (ml : Loc) (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8)
-    (rs : List Loc) (Φ : val → IProp GF) (R : StepG GF) (Gout : IProp GF)
+    (rs : List Loc) (Φ : val → IProp GF) (R : StepG GF) (Gout : NState → IProp GF)
     (md : GMode) (Hdh : ∀ s', DynHypFor md m s s') (Hwf : NStateWf s) (Hty : m.Type' = MsgApp)
     (Hm : m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧ m.From' ≠ id) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 -∗
@@ -183,7 +183,7 @@ private theorem dispatch_Heartbeat (P : raft.Step.Postulates (GF := GF) (hG := h
     (Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (γ : RaftNames) (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (ml : Loc) (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8)
-    (rs : List Loc) (Φ : val → IProp GF) (R : StepG GF) (Gout : IProp GF)
+    (rs : List Loc) (Φ : val → IProp GF) (R : StepG GF) (Gout : NState → IProp GF)
     (md : GMode) (Hdh : ∀ s', DynHypFor md m s s') (Hwf : NStateWf s)
     (Hty : m.Type' = MsgHeartbeat)
     (Hm : m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧ m.From' ≠ id) :
@@ -238,7 +238,7 @@ private theorem dispatch_AppResp (P : raft.Step.Postulates (GF := GF) (hG := hG)
     (Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (γ : RaftNames) (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (ml : Loc) (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8)
-    (rs : List Loc) (Φ : val → IProp GF) (R : StepG GF) (Gout : IProp GF)
+    (rs : List Loc) (Φ : val → IProp GF) (R : StepG GF) (Gout : NState → IProp GF)
     (md : GMode) (Hdh : ∀ s', DynHypFor md m s s') (Hwf : NStateWf s)
     (Hty : m.Type' = MsgAppResp)
     (Hm : m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧ (m.Reject' = true → m.From' ≠ id))
@@ -331,7 +331,7 @@ private theorem dispatch_HeartbeatResp (P : raft.Step.Postulates (GF := GF) (hG 
     (Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (γ : RaftNames) (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (ml : Loc) (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8)
-    (rs : List Loc) (Φ : val → IProp GF) (R : StepG GF) (Gout : IProp GF)
+    (rs : List Loc) (Φ : val → IProp GF) (R : StepG GF) (Gout : NState → IProp GF)
     (md : GMode) (Hdh : ∀ s', DynHypFor md m s s') (Hwf : NStateWf s)
     (Hty : m.Type' = MsgHeartbeatResp)
     (Hm : m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧ m.From' ≠ id) :
@@ -386,7 +386,7 @@ private theorem dispatch_Beat (P : raft.Step.Postulates (GF := GF) (hG := hG))
     (Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (γ : RaftNames) (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (ml : Loc) (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8)
-    (rs : List Loc) (Φ : val → IProp GF) (R : StepG GF) (Gout : IProp GF)
+    (rs : List Loc) (Φ : val → IProp GF) (R : StepG GF) (Gout : NState → IProp GF)
     (md : GMode) (Hdh : ∀ s', DynHypFor md m s s') (Hwf : NStateWf s)
     (Hty : m.Type' = MsgBeat) (Hterm : m.Term' = W64 0) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 -∗
@@ -423,7 +423,7 @@ private theorem dispatch_CheckQuorum (P : raft.Step.Postulates (GF := GF) (hG :=
     (Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (γ : RaftNames) (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (ml : Loc) (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8)
-    (rs : List Loc) (Φ : val → IProp GF) (R : StepG GF) (Gout : IProp GF)
+    (rs : List Loc) (Φ : val → IProp GF) (R : StepG GF) (Gout : NState → IProp GF)
     (md : GMode) (Hdh : ∀ s', DynHypFor md m s s') (Hwf : NStateWf s)
     (Hty : m.Type' = MsgCheckQuorum) (Hterm : m.Term' = W64 0) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 -∗
@@ -456,7 +456,7 @@ private theorem dispatch_Snap (P : raft.Step.Postulates (GF := GF) (hG := hG))
     (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (ml : Loc) (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8)
     (rs : List Loc) (sv : SnapshotM) (scfg : CSLists)
-    (Φ : val → IProp GF) (R : StepG GF) (Gout : IProp GF) (Hwf : NStateWf s)
+    (Φ : val → IProp GF) (R : StepG GF) (Gout : NState → IProp GF) (Hwf : NStateWf s)
     (Hty : m.Type' = MsgSnap)
     (Hm : m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧ m.From' ≠ id)
     (Hidx : uint.Z sv.Metadata'.Index' < 2^61)
@@ -552,7 +552,7 @@ private theorem dispatch_ReadIndex (P : raft.Step.Postulates (GF := GF) (hG := h
     (Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (γ : RaftNames) (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (ml : Loc) (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8)
-    (rs : List Loc) (Φ : val → IProp GF) (R : StepG GF) (Gout : IProp GF)
+    (rs : List Loc) (Φ : val → IProp GF) (R : StepG GF) (Gout : NState → IProp GF)
     (md : GMode) (Hdh : ∀ s', DynHypFor md m s s') (Hwf : NStateWf s)
     (Hty : m.Type' = MsgReadIndex)
     (Hterm : m.Term' = W64 0) (Hnors : rs = []) :
@@ -625,7 +625,7 @@ private theorem dispatch_ReadIndexResp (P : raft.Step.Postulates (GF := GF) (hG 
     (Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (γ : RaftNames) (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (ml : Loc) (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8)
-    (rs : List Loc) (Φ : val → IProp GF) (R : StepG GF) (Gout : IProp GF)
+    (rs : List Loc) (Φ : val → IProp GF) (R : StepG GF) (Gout : NState → IProp GF)
     (md : GMode) (Hdh : ∀ s', DynHypFor md m s s') (Hwf : NStateWf s)
     (Hty : m.Type' = MsgReadIndexResp)
     (Hm : m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧ m.From' ≠ id) :
@@ -900,9 +900,13 @@ theorem raft.Step.wp_proof
           (ghostIn γ md c id s R) HtyA Hhit Hle'
           Hrole Hvotes Hscope Hle Hstok Hghoff Hwf Hsxp Hkxp Htr0)
         $$ [$Hphys $Hmi $HG $Hgates] as %err ⟨Hphys, %Herr, HGo⟩
-      imod gate_close γ md c id m s R Gout s (plogLastIndexZ (toPState s).base (toPState s).log) [] (fun h => by rw [Htr0] at h; cases h)
-        $$ Hclose HGo with ⟨Hghost, Hrest, HGq, -⟩
       icases Hphys with ⟨%prs, %pvs, %il, Hphys⟩
+      -- (slice 12) closed at the state the branch returns
+      imod gate_close γ md c id m s R Gout
+          { s with logst := ackSnapLog s.logst m s.term sv, progress := prs, prvals := pvs,
+                   isLearner := il } (plogLastIndexZ (toPState s).base (toPState s).log) []
+          (fun h => by rw [Htr0] at h; cases h)
+        $$ Hclose HGo with ⟨Hghost, Hrest, HGq, -⟩
       obtain ⟨Hp1, Hp2, Hp3, Hp4, Hp5⟩ := ackSnapLog_proto s.logst m s.term sv
       have Hps : toPState { s with logst := ackSnapLog s.logst m s.term sv, progress := prs,
                                    prvals := pvs, isLearner := il } = toPState s := by

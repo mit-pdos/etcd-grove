@@ -277,7 +277,7 @@ lemma below ends in. `s` is the state the step starts from, `c` its configuratio
 `c` but after a `MsgSnap`; the ghost state in the mode `md`, afterwards in `md'`, the step in
 the mode's model, `GMode.StepOut`). -/
 def stepPost (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState)
-    (m : MessageM) (Gq : IProp GF) (Φ : val → IProp GF) : IProp GF :=
+    (m : MessageM) (Gq : NState → IProp GF) (Φ : val → IProp GF) : IProp GF :=
   -- (2026-10-14, stage R) the later credit of `raft.Step`'s precondition, for the branch's
   -- ghost step (`ghost_step_md`: the commit invariant's registry half opened around it)
   iprop(£ 1 ∗ ∀ (err : GoInterface) (s' : NState) (c' : CfgM) (md' : GMode),
@@ -292,12 +292,12 @@ def stepPost (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : 
      "Herr" ∷ (⌜err = interface.nil⌝ ∨
                (⌜m.Type' = MsgProp⌝ ∗ globalAddr ErrProposalDropped ↦□ err)) ∗
      -- (Q8 stage 1 slice 11) the caller's resource
-     "HG" ∷ Gq) -∗ Φ #err)
+     "HG" ∷ Gq s') -∗ Φ #err)
 
 /-- (D22 S-d3b, 2026-10-21) `stepPost` with one more pure fact `P` of the state afterwards: a
 `MsgApp`'s `AppTrunc` (`dispatch_App`'s continuation, `finish_branchT`). -/
 def stepPostT (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState)
-    (m : MessageM) (P : NState → Prop) (Gq : IProp GF) (Φ : val → IProp GF) : IProp GF :=
+    (m : MessageM) (P : NState → Prop) (Gq : NState → IProp GF) (Φ : val → IProp GF) : IProp GF :=
   iprop(£ 1 ∗ ∀ (err : GoInterface) (s' : NState) (c' : CfgM) (md' : GMode),
     ("Hphys" ∷ ownRaftPhysCV c' c'.voters r id s' ∗
      "Hghost" ∷ ownStepGhost γ md' c' id s' ∗
@@ -311,14 +311,14 @@ def stepPostT (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s :
      "Herr" ∷ (⌜err = interface.nil⌝ ∨
                (⌜m.Type' = MsgProp⌝ ∗ globalAddr ErrProposalDropped ↦□ err)) ∗
      -- (Q8 stage 1 slice 11) the caller's resource
-     "HG" ∷ Gq) -∗ Φ #err)
+     "HG" ∷ Gq s') -∗ Φ #err)
 
 /-- (2026-10-20, D22 S-c) `stepPost` for a `MsgSnap` holding the snapshot `sn`: what the spec says of
 a snapshot's step (`SnapStep`, `raft.Step.spec`), which `stepPost` does not carry, and the
 configuration kept (since 2026-10-28, stage U0; until then the snapshot's after a restore,
 `SnapCfgOut`); `dispatch_Snap`'s continuation. -/
 def snapPost (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState)
-    (m : MessageM) (sn : Option SnapshotM) (Gq : IProp GF) (Φ : val → IProp GF) : IProp GF :=
+    (m : MessageM) (sn : Option SnapshotM) (Gq : NState → IProp GF) (Φ : val → IProp GF) : IProp GF :=
   iprop(£ 1 ∗ ∀ (err : GoInterface) (s' : NState) (c' : CfgM) (md' : GMode),
     ("Hphys" ∷ ownRaftPhysCV c' c'.voters r id s' ∗
      "Hghost" ∷ ownStepGhost γ md' c' id s' ∗
@@ -330,7 +330,7 @@ def snapPost (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : 
                    ∀ sv, sn = some sv → SnapLogStep sv m s s'⌝ ∗
      "%Herr" ∷ ⌜err = interface.nil⌝ ∗
      -- (Q8 stage 1 slice 11) the caller's resource
-     "HG" ∷ Gq) -∗ Φ #err)
+     "HG" ∷ Gq s') -∗ Φ #err)
 
 /-- What the dynamic mode's update needs of a step from `s` to `s'` (`DynHyp`), given the
 invariant: from `raft.Step`'s premises (`GMode.Pre.dynHyp`). -/
@@ -711,7 +711,7 @@ theorem ghost_step_snapack (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64
 /-- A branch's postcondition, delivered: the ghost step, then `Φ`. -/
 theorem finish_branch (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64)
     (s s' : NState) (m : MessageM) (a : Msg) (recv : List Msg) (err : GoInterface)
-    (Gq : IProp GF) (Φ : val → IProp GF)
+    (Gq : NState → IProp GF) (Φ : val → IProp GF)
     (Hdh : DynHypFor md m s s') (Hwf' : NStateWf s') (Hrecv : ∀ m' ∈ recv, m' = a)
     (Hstep : StepCD c id (plogLastIndexZ (toPState s).base (toPState s).log) m s recv s')
     (Hfr : m.Type' ≠ MsgSnap → NetFrame s s') (Htm : m.Type' ≠ MsgSnap → TermStep m s s')
@@ -725,7 +725,7 @@ theorem finish_branch (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w
       ownRaftPhysCV c c.voters r id s' -∗
       (⌜err = interface.nil⌝ ∨
         (⌜m.Type' = MsgProp⌝ ∗ globalAddr ErrProposalDropped ↦□ err)) -∗
-      Gq -∗ stepPost γ md c r id s m Gq Φ -∗
+      Gq s' -∗ stepPost γ md c r id s m Gq Φ -∗
       |={⊤}=> Φ #err := by
   iintro #Hm Hghost Hrest Hphys Herr HG HΦ
   have Hcnt : rdCount recv = 0 := by
@@ -750,7 +750,7 @@ theorem finish_branch (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w
 /-- (D22 S-d3b) `finish_branch` for `stepPostT`, with the extra fact of the state afterwards. -/
 theorem finish_branchT (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64)
     (s s' : NState) (m : MessageM) (a : Msg) (recv : List Msg) (err : GoInterface)
-    (Gq : IProp GF) (Φ : val → IProp GF) (P : NState → Prop) (HP : P s')
+    (Gq : NState → IProp GF) (Φ : val → IProp GF) (P : NState → Prop) (HP : P s')
     (Hdh : DynHypFor md m s s') (Hwf' : NStateWf s') (Hrecv : ∀ m' ∈ recv, m' = a)
     (Hstep : StepCD c id (plogLastIndexZ (toPState s).base (toPState s).log) m s recv s')
     (Hfr : m.Type' ≠ MsgSnap → NetFrame s s') (Htm : m.Type' ≠ MsgSnap → TermStep m s s')
@@ -764,7 +764,7 @@ theorem finish_branchT (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : 
       ownRaftPhysCV c c.voters r id s' -∗
       (⌜err = interface.nil⌝ ∨
         (⌜m.Type' = MsgProp⌝ ∗ globalAddr ErrProposalDropped ↦□ err)) -∗
-      Gq -∗ stepPostT γ md c r id s m P Gq Φ -∗
+      Gq s' -∗ stepPostT γ md c r id s m P Gq Φ -∗
       |={⊤}=> Φ #err := by
   iintro #Hm Hghost Hrest Hphys Herr HG HΦ
   have Hcnt : rdCount recv = 0 := by
@@ -789,7 +789,7 @@ theorem finish_branchT (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : 
 (2026-10-18, D19b stage 5): `MsgVoteResp`'s win. -/
 theorem finish_branchB (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64)
     (s s' : NState) (m : MessageM) (a : Msg) (recv : List Msg) (err : GoInterface)
-    (Gq : IProp GF) (Φ : val → IProp GF) (B : Int) (HB : B < 2 ^ 64)
+    (Gq : NState → IProp GF) (Φ : val → IProp GF) (B : Int) (HB : B < 2 ^ 64)
     (Hdh : DynHypFor md m s s') (Hwf' : NStateWf s') (Hrecv : ∀ m' ∈ recv, m' = a)
     (Hstep : StepCD c id B m s recv s')
     (Hfr : m.Type' ≠ MsgSnap → NetFrame s s') (Htm : m.Type' ≠ MsgSnap → TermStep m s s')
@@ -803,7 +803,7 @@ theorem finish_branchB (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : 
       ownRaftPhysCV c c.voters r id s' -∗
       (⌜err = interface.nil⌝ ∨
         (⌜m.Type' = MsgProp⌝ ∗ globalAddr ErrProposalDropped ↦□ err)) -∗
-      Gq -∗ stepPost γ md c r id s m Gq Φ -∗
+      Gq s' -∗ stepPost γ md c r id s m Gq Φ -∗
       |={⊤}=> Φ #err := by
   iintro #Hrc #Hm Hghost Hrest Hphys Herr HG HΦ
   have Hcnt : rdCount recv = 0 := by
@@ -823,7 +823,7 @@ theorem finish_branchB (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : 
 
 /-- The same, for a branch that consumed nothing. -/
 theorem finish_branch0 (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64)
-    (s s' : NState) (m : MessageM) (err : GoInterface) (Gq : IProp GF) (Φ : val → IProp GF)
+    (s s' : NState) (m : MessageM) (err : GoInterface) (Gq : NState → IProp GF) (Φ : val → IProp GF)
     (Hdh : DynHypFor md m s s') (Hwf' : NStateWf s')
     (Hstep : StepCD c id (plogLastIndexZ (toPState s).base (toPState s).log) m s [] s')
     (Hfr : m.Type' ≠ MsgSnap → NetFrame s s') (Htm : m.Type' ≠ MsgSnap → TermStep m s s')
@@ -834,7 +834,7 @@ theorem finish_branch0 (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : 
       ownRaftPhysCV c c.voters r id s' -∗
       (⌜err = interface.nil⌝ ∨
         (⌜m.Type' = MsgProp⌝ ∗ globalAddr ErrProposalDropped ↦□ err)) -∗
-      Gq -∗ stepPost γ md c r id s m Gq Φ -∗
+      Gq s' -∗ stepPost γ md c r id s m Gq Φ -∗
       |={⊤}=> Φ #err := by
   iintro Hghost Hrest Hphys Herr HG HΦ
   unfold stepPost
