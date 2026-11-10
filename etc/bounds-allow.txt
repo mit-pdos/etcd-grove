@@ -45,3 +45,20 @@ stock ^Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Api/(RdSupply|NewStoreApi|Re
 # `RunChecksWorld` allocates the history's `RWMutex` and makes its reader handles (`histRd`, at most
 # the lock's slots), `runChecks` hands one to each reader goroutine it forks.
 stock ^Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/(RunChecksWorld|runChecks)\.lean$
+# The full tester's epoch tokens, by their owner, the tester (`examples/mvccfull`, 2026-11-10): the
+# writer lends its incarnation's per-stream parts (`epochTok`: a history reader slot and the
+# registrar's and receiver's `epRd`), one per stream, counted by `cfg.Streams` (bounded by `Run`'s
+# `runCfgOk`); `startEpoch` takes them, `endEpoch` gives them back, and `WriterShares` splits and
+# joins them with the writer's shares.
+stock ^Spec/github_com/mit_pdos/etcd_grove/examples/mvccfull/runner__endEpoch\.lean$
+stock ^Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/WriterShares\.lean$
+
+# mvccfull's writer owns its log and so its model's revisions (F1 Prove, 2026-11-10): the writer's
+# helpers `end` and `gen` take the member's revision with room for the next two (`rev + 2 < 2 ^ 63`),
+# which their caller, the writer, derives from its own bound on the log (`writerCtx`'s
+# `cfg.Ops < 2 ^ 38`; a member's revision is at most one per operation applied, `runM_hs_len`), not
+# from a callee: the revision is a counter of the tester's model, local to the writer.
+spec-rev ^Spec/github_com/mit_pdos/etcd_grove/examples/mvccfull/runner__(end|gen)\.lean$
+# The writer lends each incarnation's shares to its epoch's streams and gathers them back (`epochTok`
+# per stream, `shares_split`/`shares_join`): the owner of the lending.
+stock ^Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/WriterShares\.lean$
