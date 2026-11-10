@@ -59,7 +59,7 @@ Build: `flock /shared/tmp/etcd-grove-build.lock systemd-run --scope -q -p Memory
   the old bodies under new names, so its unfolded statement is unchanged; `ContextReadErrs.errs_strong`
   derives the Format facts from Perennial's `context.isInit` (`HCanceledCell`, `HDeadlineExceededTy`).
 - Step 4 done: errdesc-check REVIEWED entries mention the Format fact.
-- BLOCKED (trust text, reported to etcd-grove-81): `WatchResponse__Err` needs Format of rpctypes'
+- Formerly blocked, now approved (trust text, etcd-grove-81 2026-11-10): `WatchResponse__Err` needs Format of rpctypes'
   `ErrCompacted`/`ErrFutureRev` (axioms `ErrCompacted_init`, `ErrFutureRev_init` in rpctypes `Init.lean`,
   via `etc/gen-init.py` custom posts, and `rpctypesInit`'s two conjuncts); `EtcdServer__UserAdd` needs it
   of bcrypt's errors (axiom spec `Spec/golang_org/x/crypto/bcrypt/GenerateFromPassword.lean`). Draft:
@@ -68,7 +68,8 @@ Build: `flock /shared/tmp/etcd-grove-build.lock systemd-run --scope -q -p Memory
 
 ## Next, in order
 
-1. On approval: the trust-text edits above; `rpctypesInit` gains the two Format facts (gen-init `finish`),
+1. APPROVED (etcd-grove-81, 2026-11-10; minimal form, not `e.ty = EtcdError.ty`; see questions.md): the
+   trust-text edits above; `rpctypesInit` gains the two Format facts (gen-init `finish`),
    `WatchResponse__Err` lines 70/86 use them; `UserAdd` lines 61-63/171-173 pass `hF`.
 2. The full build (build6.log, then k8s etcd3 `parseRV`/`decoder__Decode` fixed and rebuilt) fails only
    in `WatchResponse__Err` and `EtcdServer__UserAdd` (and their dependents, not built).
