@@ -17,6 +17,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartRe
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Cluster
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.MainDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.ObjSpec
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Calls
 
 @[expose] public section
 
@@ -50,6 +51,7 @@ abbrev MainPartition.spec : Prop :=
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → grpcRepliesFit →
   storage.diskOk → v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty → storageErrTyOk →
+  clientErrPlain (sem := sem) →
   objTyOk →
   0 ≤ sint.Z clients → sint.Z clients < 2 ^ 31 → 0 ≤ sint.Z ops →
   sint.Z clients * sint.Z ops < 2 ^ 60 →
