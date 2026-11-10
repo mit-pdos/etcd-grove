@@ -234,7 +234,7 @@ theorem localBeat_end {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} 
 
 /-- **`raft.Step`'s traced bundle on `MsgBeat` at a leader** (the heartbeats). -/
 theorem stepBundle_traced_beat : stepBundle_traced.on (GF := GF) (hG := hG) LocalBeat := by
-  intro γ md c r id s m ents sn ctx rs γd Λ hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit hlrn hsub _ _
+  intro γ md c r id s m ents sn ctx rs γd Λ hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit hlrn hsub _ _ _
   have hT0 : m.Term' = W64 0 := hloc (.inr (.inl hp.1))
   have hnbf : ¬ PreBF m s := by
     unfold PreBF; rw [hT0]; intro h; have := h.1; simp at this
@@ -422,7 +422,8 @@ theorem raft.tickHeartbeat.traced (h : raft.tickHeartbeat.spec (GF := GF) (hG :=
       (fun ty h => by rw [hmt] at h; cases h) (by rw [hT2]; exact hT) (by simp; unfold traceNumBound; omega)
       (fun ty h => by rw [hmt] at h; cases h) hfit hlrn (by rw [hpr2]; exact Hsub) (by rw [hrole]; nofun)
       (by refine ⟨fun h => ?_, fun h => ?_, fun h => ?_⟩ <;> rw [hb] at h <;>
-            simp [MsgBeat, MsgHeartbeat, MsgHeartbeatResp, MsgVote] at h)
+            simp [MsgBeat, MsgHeartbeat, MsgHeartbeatResp, MsgVote, MsgApp] at h)
+      (fun h => by rw [hb] at h; simp [MsgBeat, MsgHeartbeat, MsgApp] at h)
     rw [hS2, hgh, hls2] at hgo
     iapply hgo
     iframe Hc Htok Hnosnap

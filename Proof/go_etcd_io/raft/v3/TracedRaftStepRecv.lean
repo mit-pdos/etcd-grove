@@ -1128,7 +1128,7 @@ theorem idlePin_term (s : NState) (C0 : List w64) (cs0 : ServerC) (P0 : List Etc
 /-- **`raft.Step`'s traced bundle on the stale messages of a traced type**: the receive line (the
 specification's phantom refusal of a request, the drop of a response), nothing else. -/
 theorem stepBundle_traced_staleRecv : stepBundle_traced.on (GF := GF) (hG := hG) StaleRecv := by
-  intro γ md c r id s m ents sn ctx rs γd Λ hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit hlrn hdom hnpc hsh
+  intro γ md c r id s m ents sn ctx rs γd Λ hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit hlrn hdom hnpc hsh hboot
   obtain ⟨hst, ty, hmty, htrd⟩ := hp
   obtain ⟨evt, hevt, hev⟩ := recvEvTy_of ty m ents hmty htrd hsh
   have hto' : m.To' = id := hto ty hmty htrd
@@ -1273,7 +1273,7 @@ def ignR (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NSta
 /-- **`raft.Step`'s traced bundle on a response a role does not handle, at the node's term**: the
 receive line (the specification records it, `respSrv`), nothing else. -/
 theorem stepBundle_traced_ignResp : stepBundle_traced.on (GF := GF) (hG := hG) IgnResp := by
-  intro γ md c r id s m ents sn ctx rs γd Λ hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit hlrn hdom hnpc hsh
+  intro γ md c r id s m ents sn ctx rs γd Λ hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit hlrn hdom hnpc hsh hboot
   have hp' := hp
   obtain ⟨hterm, ty, hmty, hresp, hrole⟩ := hp'
   have htrd : ty.traced = true := by rcases hresp with rfl | rfl | rfl <;> rfl
@@ -1506,13 +1506,13 @@ def voteR (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NSt
 specification's grant decision, `HandleRequestVoteRequest`), then the answer's send line, which the
 specification skips; raft's decision is the specification's (`voteEnd_simIdle`). -/
 theorem stepBundle_traced_voteReq : stepBundle_traced.on (GF := GF) (hG := hG) VoteReq := by
-  intro γ md c r id s m ents sn ctx rs γd Λ hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit hlrn hdom hnpc hsh
+  intro γ md c r id s m ents sn ctx rs γd Λ hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit hlrn hdom hnpc hsh hboot
   obtain ⟨hTy, hterm⟩ := hp
   have hmty : mtypeOf m.Type' = some .vote := by rw [hTy]; rfl
   have htrd : MsgType.traced .vote = true := rfl
   obtain ⟨evt, hevt, hev⟩ := recvEvTy_of .vote m ents hmty htrd hsh
   have hto' : m.To' = id := hto .vote hmty htrd
-  have hne : id ≠ m.From' := fun h => hsh.2.2 hTy (by rw [hto', h])
+  have hne : id ≠ m.From' := fun h => hsh.2.2 (.inl hTy) (by rw [hto', h])
   have hnbf : ¬ PreBF m s := fun h => absurd h.1 (by rw [hterm]; omega)
   have hpre : ∀ pvs, preState s m pvs = s := fun pvs => by simp [preState, hnbf]
   have hns : ¬ StaleMsg s m := fun h => absurd h.2 (by rw [hterm]; omega)

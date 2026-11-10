@@ -45,11 +45,12 @@ variable [GooseExts]
 (premise of `stepBundle_traced.on` since slice 19b, slice 18b's finding; the node API's: raft never sends otherwise, `handleHeartbeat` and
 `bcastHeartbeat`): a heartbeat carries no entries (the line logs the entry count, the specification's
 heartbeat has none) and a heartbeat response does not reject (the specification's is a success); and a
-vote request is not from its destination (its response's send line, skipped by the specification, is
-of a message to another node: `lineEffect_skipResp`; `isRaftMsg`'s `SentMsgShape` states it). -/
+vote request, an append request or a heartbeat is not from its destination (its response's send line,
+skipped by the specification, is of a message to another node: `lineEffect_skipResp`; `isRaftMsg`'s
+`SentMsgShape` states it; slice 19b added the append request and the heartbeat). -/
 def TrRecvShape (m : MessageM) (ents : List EntryM) : Prop :=
   (m.Type' = MsgHeartbeat → ents = []) ∧ (m.Type' = MsgHeartbeatResp → m.Reject' = false) ∧
-    (m.Type' = MsgVote → m.From' ≠ m.To')
+    (m.Type' = MsgVote ∨ m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat → m.From' ≠ m.To')
 
 end shape
 
@@ -118,6 +119,11 @@ abbrev stepBundle_traced.on (Path : NState → MessageM → Prop) : Prop :=
   -- call), and what a receive line reads of the physical message that its specification message does
   -- not record (`TrRecvShape`: the node API's, from `isRaftMsg`'s `SentMsgShape`)
   s.role ≠ .preCandidate → TrRecvShape m ents →
+  -- (slice 19b) a heartbeat or an append request is received in a cluster started from a bootstrap
+  -- log (the Draft's traced cluster, `StartNode` with its peers): the receiver's commit index is then
+  -- past `0` (`ownStepGhost_bootCommit`), which the specification's heartbeat handling needs
+  -- (`AppendEntriesAlreadyDone` at `index = 1`)
+  (m.Type' = MsgHeartbeat ∨ m.Type' = MsgApp → γ.reBoot ≠ []) →
   -- (slice 15) the log never compacted (P2): `TrNoSnap`, persistent; (slice 19b) with the received
   -- message's token, its raft facts (`isMessageC`, persistent, the node API's from `isRaftMsg`): the
   -- commit certificates of a raised commit index
