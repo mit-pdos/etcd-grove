@@ -35,6 +35,7 @@ theorem runner.newVal.wp_proof
     (wp_itoa : itoa.spec (GF := GF) (hG := hG)) :
     runner.newVal.spec (GF := GF) (hG := hG) := by
   intro x cfg n h0 h1
+  have hn1 : 0 ≤ sint.Z (n + W64 1) := by word
   wp_start as ⟨#Hcfg, Hv⟩
   icases typedPointsto_split _ _ _ $$ Hcfg with #Hcfgf
   simp only [TypedPointsto.typedPointstoDef]
@@ -51,7 +52,7 @@ theorem runner.newVal.wp_proof
       "i" ∷ i_ptr ↦ j ∗ "ui" ∷ ui ↦ u ∗ "Hsl" ∷ sl ↦* bs ∗ "pad" ∷ pad_ptr ↦ sl ∗
       "x" ∷ x_ptr ↦ x ∗ "Hv" ∷ rF go!"vals" x ↦ (n + W64 1) ∗
       "res" ∷ «$res0_ptr» ↦ (zero_val GoString) ∗
-      "HΦ" ∷ (∀ v : GoString, rF go!"vals" x ↦ (n + W64 1) -∗ Φ #v) ∗
+      "Hpost" ∷ (∀ v : GoString, rF go!"vals" x ↦ (n + W64 1) -∗ Φ #v) ∗
       "%Hj" ∷ ⌜bs.length = sint.nat sl.len ∧ 0 ≤ sint.Z j⌝ : IProp GF) $$ [-Hcap]
   · iexists W64 0, _, _
     iframe
@@ -84,11 +85,12 @@ theorem runner.newVal.wp_proof
     · word
   · rw [decide_eq_false Hlt]; simp only [Bool.false_eq_true, ↓reduceIte]
     (try wp_auto)
-    wp_apply wp_itoa (n + W64 1) (by word)
+    wp_apply wp_itoa (n + W64 1) hn1
     (try wp_auto)
     wp_apply (wp_bytes_to_string sl bs (DFrac.own 1)) $$ [Hsl] as Hsl
+    · iexact Hsl
     (try wp_auto)
-    iapply HΦ
+    iapply Hpost
     iframe
 
 end proof
