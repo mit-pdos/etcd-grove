@@ -113,6 +113,12 @@ def TraceSim.msgAbs (C : List w64) (bl : Nat) (m : Msg) : Option Etcdraft.Msg :=
         matchIndex := b.matchIndex, source := b.source, dest := b.dest }
   | x => none
 
+def TraceSim.TallyGranted (votes : GMap w64 Bool) (g : Etcdraft.SetIds) : Prop :=
+  ∃ L,
+    g = Etcdraft.SetIds.mk L ∧
+      (∀ (k : w64), votes !! k = some true → TraceSim.idAbs k ∈ L) ∧
+        ∀ (x : Etcdraft.ID), x ∈ L → ∃ k v, votes !! k = some v ∧ TraceSim.idAbs k = x
+
 def TraceEv.InScope (e : TraceEv) : Prop :=
   TraceSim.gsStr e.name ≠ "ChangeConf" ∧
     TraceSim.gsStr e.name ≠ "InitState" ∧
@@ -176,9 +182,7 @@ def TraceSim.SimServerR (C : List w64) (bl : Nat) (s : PState) (a : Etcdraft.Ser
                   a.pendingConfChangeIndex = 0 ∧
                     (s.role = Role.candidate →
                         a.votesResponded = Etcdraft.SetIds.mk (List.map (fun p => TraceSim.idAbs p.fst) s.votes.toList) ∧
-                          a.votesGranted =
-                            Etcdraft.SetIds.mk
-                              (List.map (fun p => TraceSim.idAbs p.fst) (List.filter (fun p => p.snd) s.votes.toList))) ∧
+                          TraceSim.TallyGranted s.votes a.votesGranted) ∧
                       (s.role = Role.leader →
                         ∀ (j : w64), j ∈ C → a.matchIndex (TraceSim.idAbs j) = uint.Z ((s.matched !! j).getD (W64 0)))
 

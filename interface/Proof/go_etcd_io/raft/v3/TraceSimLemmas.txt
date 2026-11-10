@@ -10,15 +10,14 @@ theorem TraceSim.nonReceive_becomeCandidate (t : Etcdraft.Trace) (ts : Etcdraft.
     ts.l).ev.state.term) : t.nonReceive ts = Except.ok [s2]
 
 theorem TraceSim.sim_recordVote (C : List w64) (bl : Nat) (s : PState) (a : Etcdraft.Server) (src :
-    w64) (v : Bool) (hR : TraceSim.SimServerR C bl s a) (hc : s.role = Role.candidate) (hnew :
-    s.votes !! src = none) : TraceSim.SimServerR C bl { term := s.term, vote := s.vote, lead :=
-    s.lead, role := s.role, votes := recordVote s.votes src v, outbox := s.outbox, base := s.base,
-    log := s.log, commit := s.commit, matched := s.matched, rd := s.rd } { currentTerm :=
-    a.currentTerm, state := a.state, votedFor := a.votedFor, lead := a.lead, log := a.log,
-    commitIndex := a.commitIndex, votesResponded := a.votesResponded.add (TraceSim.idAbs src),
-    votesGranted := if v = true then a.votesGranted.add (TraceSim.idAbs src) else a.votesGranted,
-    matchIndex := a.matchIndex, pendingConfChangeIndex := a.pendingConfChangeIndex, config :=
-    a.config, durable := a.durable }
+    w64) (v : Bool) (hR : TraceSim.SimServerR C bl s a) (hc : s.role = Role.candidate) :
+    TraceSim.SimServerR C bl { term := s.term, vote := s.vote, lead := s.lead, role := s.role, votes
+    := recordVote s.votes src v, outbox := s.outbox, base := s.base, log := s.log, commit :=
+    s.commit, matched := s.matched, rd := s.rd } { currentTerm := a.currentTerm, state := a.state,
+    votedFor := a.votedFor, lead := a.lead, log := a.log, commitIndex := a.commitIndex,
+    votesResponded := a.votesResponded.add (TraceSim.idAbs src), votesGranted := if v = true then
+    a.votesGranted.add (TraceSim.idAbs src) else a.votesGranted, matchIndex := a.matchIndex,
+    pendingConfChangeIndex := a.pendingConfChangeIndex, config := a.config, durable := a.durable }
 
 theorem TraceSim.alreadyDone_accept (st : Etcdraft.State) (i j : Etcdraft.ID) (m : Etcdraft.Msg) (C
     : List w64) (bl p : Nat) (L ents : List EntryM) (hlog : (st.s i).log = TraceSim.logAbs C bl 1 L)
@@ -57,6 +56,8 @@ theorem TraceSim.specQuorum_iff (C : List w64) (hnd : C.Nodup) (bl : Nat) (s : P
     Etcdraft.Server) (hR : TraceSim.SimServerR C bl s a) (hl : s.role = Role.leader) (k : Nat) (hk1
     : 1 ≤ k) (hk : k < 2 ^ 64) : Etcdraft.isQuorum (List.filter (fun x => decide (a.matchIndex x ≥
     ↑k)) a.config.incoming) a.config.incoming = true ↔ IsQuorum (listToSet C) (ackedBy s (W64 ↑k))
+
+theorem TraceSim.tallyGranted_empty : TraceSim.TallyGranted ∅ []
 
 theorem TraceSim.sim_commitTo (C : List w64) (bl : Nat) (s : PState) (a : Etcdraft.Server) (c : w64)
     (hR : TraceSim.SimServerR C bl s a) : TraceSim.SimServerR C bl { term := s.term, vote := s.vote,
@@ -731,6 +732,12 @@ theorem TraceSim.memEq_false_of_logs_or_term (visited : List Etcdraft.TState) (g
     (i : Etcdraft.ID) (h : ∀ (v : Etcdraft.TState), v ∈ visited → i ∈ v.s.server ∧ ((v.s.s i).log ≠
     (g.s.s i).log ∨ TraceSim.srvKey (v.s.s i) ≠ TraceSim.srvKey (g.s.s i))) : Etcdraft.memEq visited
     g = false
+
+theorem TraceSim.tallyGranted_quorum (votes : GMap w64 Bool) (g c : Etcdraft.SetIds) (hT :
+    TraceSim.TallyGranted votes g) (hc : ∀ (k : w64) (w : Bool), votes !! k = some w →
+    TraceSim.idAbs k ∈ c) (hq : Etcdraft.isQuorum (Etcdraft.SetIds.mk (List.map (fun p =>
+    TraceSim.idAbs p.fst) (List.filter (fun p => p.snd) votes.toList))) c = true) :
+    Etcdraft.isQuorum g c = true
 
 theorem TraceSim.next_of_nonReceive (t : Etcdraft.Trace) (ts : Etcdraft.TState) (s2 :
     Etcdraft.State) (hl0 : ts.l ≠ 0) (hl : ts.l ≤ t.len) (hb : t.bootstrap.getD (ts.l - 1) false =
