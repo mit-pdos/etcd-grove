@@ -81,6 +81,12 @@ Build: `flock /shared/tmp/etcd-grove-build.lock systemd-run --scope -q -p Memory
   import-all, premisefix ok; errorf-wrap failed on cache `Base.lean` (`wp_Errorf_errStrOk`), reviewed
   and added to REVIEWED (rerun alone: ok). A full gates rerun is left to `etc/land.sh`.
 
+- Lean moved to ef6bc4663b (raft-entsize): merged (8e451e2be2; STATUS conflict: one copy of each
+  entry, the mvcc API merge entry appended to `status-history.md`, 19129 lines, lean 19128); full build
+  green (13644 jobs, `build9.log`); interfaces unchanged; gen-init ok; `etc/gates.sh` all passed
+  (`/shared/tmp/premise-fixes-4/gates2.log`; tcb 843 axioms, 5 sorries = lean's baseline; 53
+  collections match; no baseline file changed against lean).
+
 ## Next, in order
 
 1. Wait for etcd-grove-81's go after the checkpoint (c) report; merge lean again if it moved
