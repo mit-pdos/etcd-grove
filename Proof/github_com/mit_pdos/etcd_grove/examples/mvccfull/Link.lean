@@ -491,7 +491,7 @@ theorem runner.wp_readOne [go_etcd_io.etcd.cache.v3.Assumptions] :
 
 theorem runner.wp_startReaders [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.mvccfull.runner.startReaders.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.mvccfull.runner.startReaders.wp_proof runner.wp_readOne
+  EtcdGrove.mvccfull.runner.startReaders.wp_proof mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccReaders_split_law_holds _root_.Perennial.time.wp_Sleep runner.wp_readOne
 
 theorem runner.wp_newVal :
     EtcdGrove.mvccfull.runner.newVal.spec (GF := GF) (hG := hG) :=
