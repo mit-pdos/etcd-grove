@@ -33762,3 +33762,70 @@ events as bootstrap lines (`nodeEvOf_bf_boot`'s counterpart, for `trCap_fire_boo
 either-mode `ApplyConfChange` gate for `switchToConfig` with `cC` apart from `c` (`b = false` in
 `Bootstrap`, `b = true` in the application's apply); an intro law building `trCapB` once `newRaft` has
 allocated `r`. Owed by the Prove phase: the message fact above (q13-r1's F4), the receipt bound (F3).
+
+## Q8 stage 1 (slice 7): the leader's lines on the capability, chained; the handlers' reply gates; `campaign`'s two gates (2026-11-10 · trace-check, Q8 stage 1 slice 7; decided by the agent under the user's delegation · branch `trace-check-q8s7`; DRAFT until trace-check's Freeze)
+
+**The capability forms of `appendEntry` and `becomeLeader`** (`raft.appendEntry.traced`,
+`raft.becomeLeader.traced`, `TracedHooks.lean`), the Draft's shape as slice 3's `.traced`
+corollaries (`trCapB` in, `trCapB … true Φ' Λ'` and the facts' resource out), each line by its law:
+- **Facts chained, not one resource per line.** A line's facts take the previous line's resource:
+  `FxPresUT … Φ Φ1 R1 ∗ (R1 -∗ FxPresUT … Φ1 Φ2 R2) ∗ (R2 -∗ FxPresUT … Φ2 Φ' R')`. The
+  `BecomeLeader` line's update creates the new leader's term log (round 5's E1) and the `Replicate`
+  line's the entry's record, which needs the term log (round 6's F1); the self-acknowledgement's
+  facts read the record. Independent `FxPresUT`s would make the caller create everything up front,
+  before the line that announces it, which is what E1 and F1 rule out. Rejected: one `FxPresUT` for
+  the whole sequence (the laws consume one per line).
+- **`appendEntry`'s `Replicate` lines: a family of phases `Φs : Nat → phase`** with a phase step per
+  line (`∀ k < normalCount ents, PhaseStepB … (Φs k) (Φs (k + 1))`), the facts a list
+  (`[∗list] k ∈ List.range n, (Rs k -∗ FxPresUT … (Φs k) (Φs (k+1)) (Rs (k+1)))`), the induction over
+  `TraceFireN` in `trCap_fireN` (traced: `trCap_fire_any` per line) and `fxChain_none` (untraced: the
+  updates in a row), packaged as `trCapB_hookGateN` (either mode). All `n` events are of the same
+  state (Go's `traceReplicate` logs before the append), so one event predicate serves every line.
+  With no normal entry (`n = 0`, a batch of configuration changes) nothing fires: the capability's
+  `booted` flag and last event are the input's (`if n = 0 then b else true`, `if n = 0 then Λ else
+  Λ'`), stated so rather than by a monotonicity in `Λ`, which the capability does not have as a law.
+- **The self-acknowledgement's send law is `trCap_fire_any`'s** (a send line consumes no message),
+  as a gate: `trCapB_hookGateOpt` (`trCapB_hookGate` then `hookGate_opt`: `HookGate` gives
+  `HookGateOpt` at `some E`, its untraced nil logger from `TraceFire none`'s), with
+  `sendOutGate_selfAck` (the `MsgAppResp` gate is the one `SendAppendEntriesResponse` event). No new
+  law. The send and `Replicate` lines are not bootstrap lines whatever the `booted` flag
+  (`evtNames_notBoot`, `nodeEvOf_notBoot`, `sendEvOf_notBoot`), so the gates need no `hnb` premise.
+- The reject path of `appendEntry` gives back the capability, the resource and the facts untouched.
+
+**The handlers' reply gates.** `handleHeartbeat` sends one reply at the state with the commit
+moved: its gate `G -∗ HookGateOpt s.gh.tr r (sendOutGate id s1 c MsgHeartbeatResp [resp]) G'` at
+that state. `handleAppendEntries` takes one of three exits, each with its own state and reply: the
+gate is for every state and reply whose send ends in the exit relation, `∀ s1 mm,
+⌜HandleAppResult id s m ents (sendMsgs s1 [mm])⌝ -∗ G -∗ HookGateOpt … (sendOutGate id s1 c
+MsgAppResp [mm]) G'` (as `maybeSendAppend`'s `∀ mm`), so the traced caller knows the reply and the
+state it is traced at (the log after `maybeAppend`, the commit raised) from the relation it already
+reasons about. Rejected: one gate per exit (three premises naming the exits' states, which the spec
+does not otherwise name: `maybeAppend`'s `ls'` is existential).
+
+**`campaign` and `hup`: a gate for the role change, a persistent one for the votes.** The role
+change's gate is the `BecomeCandidate` line's (`becomeCandidate`'s `HookGate`) for an election and an
+update for a pre-election (`becomePreCandidate` traces nothing): one wand `G0 -∗ if t =
+campaignPreElection then |={⊤}=> G else HookGate …`. The vote messages are sent in `IDs`' order,
+which the caller cannot name: a persistent gate per voter `y` (`□ ∀ pvs y, ⌜y ∈ c.voters⌝ -∗ G -∗
+HookGateOpt … (sendOutGate id {campRoleState … with prvals := pvs} c ty [campMsg … y]) G`), as
+slice 5's heartbeats, each event at the state after the role change (`sendOutGate_sendMsgs`: an
+earlier send changes nothing the event reads). The messages (`vreqTy` … `campMsg`) moved from the
+proof file to `LemmasCampaign.lean`, where the spec can name them (a layout fix as slice 5's
+`campRoleState`). `hup` has `campaign`'s gates at `s` (it campaigns at the state it is called in) and
+returns `(⌜s' = s⌝ ∗ G0) ∨ G` (no campaign: nothing traced).
+
+**Untraced instances** (`TracedUntracedStep.lean`): `raft.handleHeartbeat.untraced`,
+`raft.handleAppendEntries.untraced`, `raft.campaign.untraced` (the gates from `campaignGates_none`),
+`raft.hup.untraced`, the statements before slice 7; `stepFollower`, `stepCandidate` and `raft.Step`'s
+bundle (its `hup` field now the instance's statement) take them, their call sites unchanged.
+
+No ghost change; no change to a client-visible predicate or to a spec with clients outside raft.
+
+**Not done (slice 7).** The gated specs of `stepCandidate` (its arms: `becomeFollower` then the
+handlers, the vote count's win into `becomeLeader` and `bcastAppend`, the pre-vote win into
+`campaign`; with the win's split, round 6's F2), `stepFollower` (`hup` on `MsgTimeoutNow`, the
+forwarding sends, the handlers), `stepLeader` and its helpers (`MsgProp`'s `appendEntry` and
+`bcastAppend`, `maybeCommit`'s `isCommitted` before `traceCommit`), the dispatch, and `raft.Step`'s
+traced arms (step 3: the gates built from raft's ghost, the received message's numbers through a
+trace-gated conjunct of `isMessage`, the receipt bound); `tickElection`/`tickHeartbeat` call
+`raft.Step`, so their gated form follows `Step`'s.

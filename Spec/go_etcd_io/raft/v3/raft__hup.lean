@@ -9,6 +9,8 @@ module
 public import Proof.go_etcd_io.raft.v3.InvRaftPhys
 public import Proof.go_etcd_io.raft.v3.StepLemmasC
 public import Proof.go_etcd_io.raft.v3.SpecResults
+public import Proof.go_etcd_io.raft.v3.TracedMsg
+public import Proof.go_etcd_io.raft.v3.LemmasCampaign
 
 @[expose] public section
 
@@ -40,9 +42,14 @@ turned into an update of `ownRaftGhost`.
 
 At any configuration since 2026-10-13 (reconfiguration stage A2): the post is `HupOkC`, a
 `StepC c` step (a campaign by a voter of either half, asking every other one), and nothing
-at a node that is not a voter. The old statement, `raft.hup.specS`, had no caller and is gone (2026-10-17). -/
+at a node that is not a voter. The old statement, `raft.hup.specS`, had no caller and is gone (2026-10-17).
+
+**One spec for both trace modes** (2026-11-10, trace-check Q8 stage 1 slice 7): `campaign`'s gates
+(`raft.campaign.spec`), at `s`, used only if `hup` campaigns; the caller's resource comes back as
+`G0` with the state unchanged (no campaign: nothing is traced) or as `G` (a campaign). Until slice 7
+the premise `s.gh.tr = none` (stage 0), now `raft.hup.untraced`'s (`TracedUntracedStep.lean`). -/
 abbrev raft.hup.spec : Prop :=
-  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (t : CampaignType),
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (t : CampaignType) (G0 G : IProp GF),
   -- `hup` may reach `campaign`, which increments the term -- see the note on
   -- `raft.campaign.spec`.
   uint.Z s.term + 1 < 2 ^ 64 →
@@ -53,14 +60,24 @@ abbrev raft.hup.spec : Prop :=
   NStateWf s →
   -- (D19i part 1) the floor at most `applied` (`hasUnappliedConfChanges`')
   uint.Z s.logst.fl ≤ uint.Z s.logst.applied →
-  -- (2026-11-09, Q8 stage 0 of `notes/trace-validation-plan.md`) an untraced node: its trace
-  -- hooks see a nil logger (`TraceLoggerOkS`); stage 1 replaces this premise by the traced
-  -- capability (`trCapB s.gh.tr …`, `TracedHooksDraft.lean`)
-  s.gh.tr = none →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
+      -- (2026-11-10, Q8 stage 1 slice 7; until then, stage 0, the premise `s.gh.tr = none`)
+      -- `campaign`'s gates, the caller's resource through them
+      "HG" ∷ G0 ∗
+      "Hgbc" ∷ (G0 -∗ if t = campaignPreElection then iprop(|={⊤}=> G)
+        else HookGate s.gh.tr r (NodeEvOf (W64 1) id (becomeCandidate id s) c) G) ∗
+      "#Hgsend" ∷ □ (∀ (pvs : GMap w64 Progress) (y : w64), ⌜y ∈ c.voters⌝ -∗ G -∗
+        HookGateOpt s.gh.tr r
+          (sendOutGate id { campRoleState id s (decide (t = campaignPreElection)) with prvals := pvs } c
+            (if y = id then vrespW32 (decide (t = campaignPreElection))
+             else vreqW32 (decide (t = campaignPreElection)))
+            [campMsg (decide (t = campaignPreElection)) id (s.term + W64 1)
+              (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) (transferCtx t) y]) G) }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"hup")) (Val #t))
   {{ (s' : NState), RET #();
-      ownRaftPhysCV c c.voters r id s' ∗ ⌜HupOkC c id s s'⌝ ∗
+      ownRaftPhysCV c c.voters r id s' ∗
+      -- (Q8 stage 1, slice 7) no campaign, nothing traced: `G0`, at `s`; a campaign: `G`
+      ((⌜s' = s⌝ ∗ G0) ∨ G) ∗ ⌜HupOkC c id s s'⌝ ∗
       -- (2026-10-17) only a pre-election makes a pre-candidate
       ⌜s'.role = .preCandidate → s'.role = s.role ∨ t = campaignPreElection⌝ }}
 

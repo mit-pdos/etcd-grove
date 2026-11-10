@@ -547,6 +547,30 @@ instances (`stepLeader`'s helpers, `stepCandidate`, `switchToConfig`). Checked (
 seven gated specs' proof files and `traceEvent.txt` (the helper moved out); `etc/api-check.py` 0 errors;
 `--layout` 0 new (`traceEvent`'s fixed); `etc/gen-link.py --raft` unchanged.
 
+**Q8 stage 1 (slice 7), 2026-11-10 (branch `trace-check-q8s7`): the leader's lines on the capability;
+the handlers and `campaign`/`hup` one spec for both modes.** Decided by the agent (`notes/decisions.md`,
+"Q8 stage 1 (slice 7)"). Done: (1) **the capability forms** `raft.appendEntry.traced` and
+`raft.becomeLeader.traced` (`TracedHooks.lean`, from the gated specs, at `HasLC.hasLC`): each line by
+`trCap_fire_any`, the lines' facts **chained** (`FxPresUT … R1 ∗ (R1 -∗ FxPresUT … R2) ∗ …`), so that the
+`BecomeLeader` line's update creates the term log and each `Replicate` line's the record of its entry
+(rounds 5-6's E1, F1), read by the next lines; `appendEntry`'s `Replicate` lines over a family of
+phases `Φs k` (the induction over `TraceFireN`: `trCap_fireN`, `fxChain_none`, packaged as
+`trCapB_hookGateN`); the self-acknowledgement's send line by the same law as a gate
+(`trCapB_hookGateOpt`, `hookGate_opt`, `sendOutGate_selfAck`; no new law); non-bootstrap names
+(`evtNames_notBoot`). (2) **One spec for both modes, gate style**, each with its `X.untraced` instance
+(`TracedUntracedStep.lean`, the statement before slice 7; callers' call sites unchanged):
+`handleHeartbeat` (the reply's gate at the state with the commit moved), `handleAppendEntries` (the
+reply's gate for every state and reply whose send ends in `HandleAppResult`, `∀ s1 mm`), `campaign`
+(the role change's gate, `becomeCandidate`'s `HookGate` or an update for a pre-election, and a
+persistent per-voter vote gate at the state after the role change; `campMsg` and the message
+definitions moved to `LemmasCampaign.lean`), `hup` (`campaign`'s gates; `(⌜s' = s⌝ ∗ G0) ∨ G` back).
+`raft.Step`'s bundle takes `hup`'s instance. No ghost change; no client-visible change; no axiom or
+`sorry`. **Not done** (step 2's rest and step 3): `stepCandidate` (with the win's split, round 6's F2),
+`stepFollower`, `stepLeader` and its helpers, the dispatch, `tickElection`/`tickHeartbeat` (they call
+`raft.Step`, so after it), and `raft.Step`'s traced arms (the gates from raft's ghost, a received
+message's numbers through a trace-gated conjunct of `isMessage`, the receipt bound); then the node
+API (`RawNode`, `node.run`, `newRaft` traced). Checked (`trace-check` at `b5b17cfc4a`, merged): full `lake build` green (13783 jobs); `etc/tcb-report.py --check` (806 axioms, 4 `sorry`s, unchanged) and all 53 collections `--reuse --check`, none updated; `interface/` differs in the four gated specs' proof files only (`raft__campaign`, `raft__handleAppendEntries`, `raft__handleHeartbeat`, `raft__hup`: their specs, and `campaign`'s message definitions gone from its proof file); `etc/api-check.py` 0 errors; `--layout` 0 new, six fixed (`campMsg` … `vrespW32`, dropped from `etc/api/raft-layout.txt`); `etc/gen-link.py --raft` unchanged.
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its

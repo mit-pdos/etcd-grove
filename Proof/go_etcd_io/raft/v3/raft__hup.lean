@@ -54,18 +54,21 @@ theorem raft.hup.wp_proof
     (wp_raft_promotable : raft.promotable.spec (GF := GF) (hG := hG))
     (wp_raft_hasUnappliedConfChanges : raft.hasUnappliedConfChanges.spec (GF := GF) (hG := hG)) :
     raft.hup.spec (GF := GF) (hG := hG) := by
-  intro c r id s t Hnowrap Hpv Hwf Hfla Htr
-  wp_start as Hphys
+  intro c r id s t G0 G Hnowrap Hpv Hwf Hfla
+  wp_start as Hpre
+  icases Hpre with ⟨Hphys, HG, Hgbc, #Hgsend⟩
   wp_auto
   wp_apply raft.wp_load_stateC $$ Hphys as Hphys
   by_cases Hrl : s.role = .leader
   · -- already a leader: log and return, having done nothing
-    rw [Hrl, decide_eq_true (by rfl)]
+    rw [Hrl, decide_eq_true (show stateW64 PRole.leader = W64 2 by rfl)]
     wp_auto
     wp_apply raft.wp_load_idC $$ Hphys as Hphys
     wp_raft_logC
     iapply HΦ $$ %s
     iframe Hphys
+    isplitl [HG]
+    · ileft; iframe HG; ipureintro; rfl
     ipureintro
     exact ⟨⟨Hwf, fun _ => .refl _, ⟨rfl, Int.le_refl _, by omega, rfl, rfl⟩, fun _ => rfl, .inl rfl⟩,
       fun _ => .inl (by first | rfl | simp_all)⟩
@@ -91,18 +94,22 @@ theorem raft.hup.wp_proof
         wp_raft_logC
         iapply HΦ $$ %s
         iframe Hphys
+        isplitl [HG]
+        · ileft; iframe HG; ipureintro; rfl
         ipureintro
         exact ⟨⟨Hwf, fun _ => .refl _, ⟨rfl, Int.le_refl _, by omega, rfl, rfl⟩, fun _ => rfl, .inl rfl⟩,
-        fun _ => .inl (by first | rfl | simp_all)⟩
+          fun _ => .inl (by first | rfl | simp_all)⟩
       | false =>
       wp_auto
       wp_apply raft.wp_load_idC $$ Hphys as Hphys
       wp_apply raft.wp_load_TermC $$ Hphys as Hphys
       wp_raft_logC
-      wp_apply wp_raft_campaign _ _ _ _ _ Hrl Hin Hnowrap Hpv (by tr_none) $$ [$Hphys]
-        as %peers %pvs ⟨%Hpeers, Hphys⟩
+      wp_apply wp_raft_campaign _ _ _ _ _ G0 G Hrl Hin Hnowrap Hpv $$ [$Hphys $HG $Hgbc $Hgsend]
+        as %peers %pvs ⟨%Hpeers, Hphys, HG⟩
       iapply HΦ
       iframe Hphys
+      isplitl [HG]
+      · iright; iexact HG
       ipureintro
       refine ⟨⟨nstateWf_prvals _ _ (nstateWf_campaignState _ _ _ _ _),
         fun _ => stepC_campaignState c _ _ _ _ _ Hrl Hin Hnowrap Hpeers _, ?_, fun h => absurd Hin h,
@@ -125,6 +132,8 @@ theorem raft.hup.wp_proof
       wp_raft_logC
       iapply HΦ $$ %s
       iframe Hphys
+      isplitl [HG]
+      · ileft; iframe HG; ipureintro; rfl
       ipureintro
       exact ⟨⟨Hwf, fun _ => .refl _, ⟨rfl, Int.le_refl _, by omega, rfl, rfl⟩, fun _ => rfl, .inl rfl⟩,
         fun _ => .inl (by first | rfl | simp_all)⟩

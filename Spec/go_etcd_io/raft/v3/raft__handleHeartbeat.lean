@@ -30,10 +30,17 @@ fraction (`msgPtsC ml dq dqe cap`, given back: `stepFollower`/`stepCandidate` pa
 the response `&pb.Message{To: m.From, ..., Context: m.GetContext()}` shares `m`'s `From` cell and
 `Context` slice, both read-only (`cellRO`, `↦*□`), and is the caller's no longer (`send`). The
 context's list `cl` is the message state's `ctx`.
+
+One spec for both trace modes (2026-11-10, trace-check Q8 stage 1 slice 7): the caller's resource `G`
+goes through the response's hook gate (`send`'s `HookGateOpt`, its `SendAppendEntriesResponse` event
+at the state with the commit moved, which is when Go traces) and comes back as `G'`. Until slice 7
+the premise `s.gh.tr = none` (stage 0), now `raft.handleHeartbeat.untraced`'s
+(`TracedUntracedStep.lean`).
 -/
 module
 
 public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import Proof.go_etcd_io.raft.v3.TracedMsg
 
 @[expose] public section
 
@@ -75,21 +82,25 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- See the file header. -/
 abbrev raft.handleHeartbeat.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (dq dqe : DFrac) (cap : Bool)
-    (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (cl : List w8) (rs : List Loc),
+    (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (cl : List w8) (rs : List Loc)
+    (G G' : IProp GF),
   uint.Z m.Commit' ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) →
   m.From' ≠ id →
   -- (2026-10-29, stage U7) the term past `0` that `send` stamps (`SentMsgShape`)
   s.term ≠ W64 0 →
-  -- (2026-11-09, Q8 stage 0 of `notes/trace-validation-plan.md`) an untraced node: its trace
-  -- hooks see a nil logger (`TraceLoggerOkS`); stage 1 replaces this premise by the traced
-  -- capability (`trCapB s.gh.tr …`, `TracedHooksDraft.lean`)
-  s.gh.tr = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-      "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, cl, rs⟩ }}
+      "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, cl, rs⟩ ∗
+      -- (2026-11-10, Q8 stage 1 slice 7; until then, stage 0, the premise `s.gh.tr = none`) the
+      -- caller's resource, through the response's hook gate (at the state with the commit moved)
+      "HG" ∷ G ∗
+      "Hgate" ∷ (G -∗ HookGateOpt s.gh.tr r
+        (sendOutGate id { s with logst :=
+            { s.logst with committed := plogCommitTo s.logst.committed m.Commit' } } c MsgHeartbeatResp
+          [{ Msg.plain .heartbeatResp id m.From' s.term false with ctx := cl }]) G') }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"handleHeartbeat")) (Val #ml))
   {{ RET #(); ownRaftPhysCV c c.voters r id (heartbeatResult id s m cl) ∗
-      msgPtsC ml dq dqe cap ⟨m, ents, sn, cl, rs⟩ }}
+      msgPtsC ml dq dqe cap ⟨m, ents, sn, cl, rs⟩ ∗ G' }}
 
 end spec
 

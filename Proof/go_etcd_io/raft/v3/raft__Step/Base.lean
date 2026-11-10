@@ -27,6 +27,7 @@ public import Spec.go_etcd_io.raft.v3.raft__Step
 public import Spec.go_etcd_io.raft.v3.raft__hup
 public import Spec.go_etcd_io.raft.v3.raft__becomeFollower
 public import Proof.go_etcd_io.raft.v3.TracedUntraced
+public import Proof.go_etcd_io.raft.v3.TracedUntracedStep
 public import Spec.go_etcd_io.raft.v3.voteRespMsgType
 public import Spec.go_etcd_io.raft.v3.raft__send
 public import Spec.go_etcd_io.raft.v3.stepCandidate
@@ -165,7 +166,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- Rocq `STEP_POSTULATES`: the callee specs the branches are proved from. -/
 structure raft.Step.Postulates : Prop where
-  hup : raft.hup.spec (GF := GF) (hG := hG)
+  hup : raft.hup.untracedTriple (GF := GF) (hG := hG)
   becomeFollower : raft.becomeFollower.untracedTriple (GF := GF) (hG := hG)
   voteRespMsgType : voteRespMsgType.spec (GF := GF) (hG := hG)
   send : raft.send.untracedTriple (GF := GF) (hG := hG)
