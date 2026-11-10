@@ -133,7 +133,7 @@ theorem streamSent_msgFrame (N : NetPayload GF) (γw : GName) (rid : w64)
     (fr : List (MsgWire × List w8)) (s : msgCodec.S) (bs : List w8)
     (Hfr : Chain msgCodec msgCodec.init fr s) :
     ⊢ streamSent msgCodec N γw rid (chainBytes fr ++ msgFrame bs) -∗
-      ⌜bs.length < 2 ^ 63 → ∃ st, MsgWireOk st bs⌝ := by
+      ⌜bs.length < 2 ^ 63 → ∃ st, MsgWireOk st bs ∧ MsgEnc st bs⌝ := by
   iintro Hs
   ihave %H := streamSent_compat _ N γw rid fr s (msgFrame bs) Hfr $$ Hs
   ipureintro
@@ -141,9 +141,9 @@ theorem streamSent_msgFrame (N : NetPayload GF) (γw : GName) (rid : w64)
   rcases H with h | ⟨w, bs', s1, z1, z2, hf, he⟩
   · have := congrArg List.length h
     simp [msgFrame, u64Be_length] at this
-  obtain ⟨st, mbs, -, hw, hml, rfl⟩ := hf
+  obtain ⟨st, mbs, -, hw, hen, hml, rfl⟩ := hf
   obtain ⟨rfl, -⟩ := chunk_eq hl hml (by simpa only [msgFrame, List.append_assoc] using he)
-  exact ⟨st, hw⟩
+  exact ⟨st, hw, hen⟩
 
 /-- **`dec.decode()`** of the reader's decoder (through the `decoder` interface), having decoded the
 chain `fr` (to `s`), knowing that what it reads is a stream's bytes (`HK`): a frame of the codec from
@@ -216,7 +216,7 @@ theorem wp_stream_decode
     iframe HB Hm
     ipureintro
     have hl : bs.length < 2 ^ 63 := by have := Hb.2.1; omega
-    exact ⟨MsgFrameOf.of_wire Hb.2.2 hl, Hb.1, rfl, Hb.2.2.1⟩
+    exact ⟨MsgFrameOf.of_wire Hb.2.2.1 Hb.2.2.2 hl, Hb.1, rfl, Hb.2.2.1.1⟩
 
 /-- The reader's decoder is an interface value (`dec.decode` resolves its method). -/
 theorem decOwn_ok (lid pid : w64) (ty : StreamTy) (dec r : GoInterface) (s : (ty.codec pid lid).S) :

@@ -75,6 +75,18 @@ axiom klog.Verbose.Infof.wp_proof
 axiom metrics.NewEtcdMetricsTracker.wp_proof
 axiom metrics.OperationLatencyTracker.Record.wp_proof
 axiom metrics.RecordEtcdRequest.wp_proof
+axiom pbAuthenticateRequestT_reg
+axiom pbAuthenticateResponseT_reg
+axiom pbCompactionRequestT_reg
+axiom pbCompactionResponseT_reg
+axiom pbDeleteRangeRequestT_reg
+axiom pbDeleteRangeResponseT_reg
+axiom pbPutRequestT_reg
+axiom pbPutResponseT_reg
+axiom pbRangeRequestT_reg
+axiom pbRangeResponseT_reg
+axiom pbTxnRequestT_reg
+axiom pbTxnResponseT_reg
 axiom peer.Peer.String.wp_proof
 axiom proto.Clone.wp_proof
 axiom reflect.New.wp_proof
@@ -102,6 +114,8 @@ axiom time.Time.IsZero.wp_proof
 axiom tracing.Span.AddEvent.wp_proof
 axiom tracing.Span.End.wp_proof
 axiom tracing.Start.wp_proof
+axiom v3rpc.pbWatchRequestT_reg
+axiom v3rpc.pbWatchResponseT_reg
 axiom waitRetryBackoff.wp_proof
 axiom withVersion.wp_proof
 axiom zap.Duration.wp_proof

@@ -53,7 +53,7 @@ private theorem smPts_of_struct_ro (p pc pi pt : Loc) (md : SnapshotMetadataM) (
   rw [Hu]
   ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
   · iapply ownSlice_nil
-  imod pbMsg_alloc raftpb.SnapshotMetadata p v.state' v.sizeCache' slice.nil [] E $$ [state sizeCache unknownFields Hnil] with #Hpb
+  imod pbMsg_alloc raftpb.SnapshotMetadata p v.state' v.sizeCache' slice.nil [] E (ufWire_nil _) $$ [state sizeCache unknownFields Hnil] with #Hpb
   · iframe
   imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ ConfState with #ConfState
   imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Index with #Index
@@ -85,7 +85,7 @@ private theorem ownSnapM_of_struct_ro (p : Loc) (ds : GoSlice) (pm : Loc) (s : S
   rw [Hu]
   ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
   · iapply ownSlice_nil
-  imod pbMsg_alloc raftpb.Snapshot p v.state' v.sizeCache' slice.nil [] E $$ [state sizeCache unknownFields Hnil] with #Hpb
+  imod pbMsg_alloc raftpb.Snapshot p v.state' v.sizeCache' slice.nil [] E (ufWire_nil _) $$ [state sizeCache unknownFields Hnil] with #Hpb
   · iframe
   imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Data with #Data
   imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Metadata with #Metadata

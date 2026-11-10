@@ -43,6 +43,8 @@ only producer, takes; their statements do not show it.
 -/
 module
 
+public import Proof.go_etcd_io.etcd.client.v3.PerTypeAuth
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.PerTypeWatch
 public import Proof.context.ReqKeys
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.CheckPure
@@ -890,6 +892,25 @@ theorem authWrapOut_userAdd (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx :
       iintro %He
       exact absurd He Hr.2
 
+/-- **`AuthServer.UserAdd`'s answer is not `nil` without an error** (`adminOutOn_nn`). -/
+theorem authWrapOut_userAdd_nn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (F : mvcc.Log) (name : GoString)
+    (Qa : List auth.AuthState → IProp GF) (resp : Loc) (err : GoInterface) :
+    v3rpc.authWrapOut (userAddAnsOn s E ρ ctx cd F name false Qa) resp err ⊢
+      ⌜err = GoInterface.nil → resp ≠ null⌝ := by
+  iintro H
+  iunfold v3rpc.authWrapOut at H
+  icases H with (⟨%He, H⟩ | ⟨%Hr, -⟩)
+  · subst He
+    iunfold userAddAnsOn at H
+    icases H with (⟨%Hc, -⟩ | H)
+    · exact absurd rfl Hc.2
+    iunfold userAddOutOn at H
+    icases H with ⟨%um, -, H⟩
+    ihave %Hn := v3rpc.adminOutOn_nn s E ρ ctx (irrUserAdd um) F _ _ resp rfl $$ H
+    ipureintro; intro _; exact Hn
+  · ipureintro; intro He; exact absurd He Hr.2
+
 /-- **`*AuthServer` implements `pb.AuthServer`** (a method-set fact, from the method sets goose
 emits; `RegisterAuthServer`'s `grpcImplements`). -/
 theorem authServer_isAuthServer :
@@ -941,6 +962,7 @@ theorem etcd_userAddHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (a
   inext
   iintro %resp %err Hout
   ihave ⟨#HSe, Hout⟩ := v3rpc.authWrapOut_srvErrOk _ resp err $$ Hout
+  ihave %Hrn := authWrapOut_userAdd_nn s E ρ ci cd [] m.name Qa resp err $$ Hout
   ihave ⟨Hs, Hrep⟩ := authWrapOut_userAdd s E ρ ci cd [] m.name Qa resp err $$ Hout
   ihave Hed := handlerErr_all (GF := GF) Ψe err $$ HΨe
   iapply HΨ
@@ -950,7 +972,7 @@ theorem etcd_userAddHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (a
   iintro %He
   iexists ()
   isplitr
-  · simp only [pbAuthUserAddResponse]; itrivial
+  · simp only [pbAuthUserAddResponse]; ipureintro; exact Hrn He
   iapply Hk
   iapply Hrep
   ipureintro; exact He
@@ -986,6 +1008,7 @@ theorem etcd_roleAddHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
   inext
   iintro %resp %err Hout
   ihave ⟨#HSe, Hout⟩ := v3rpc.authWrapOut_srvErrOk _ resp err $$ Hout
+  ihave %Hrn := v3rpc.authWrapOut_admin_nn s E ρ ci (irrRoleAdd m) _ [] _ resp err rfl $$ Hout
   ihave ⟨Hs, Hrep⟩ := authWrapOut_admin s E ρ ci (irrRoleAdd m) Qa [] _ resp err $$ Hout
   ihave Hed := handlerErr_all (GF := GF) Ψe err $$ HΨe
   iapply HΨ
@@ -995,7 +1018,7 @@ theorem etcd_roleAddHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
   iintro %He
   iexists ()
   isplitr
-  · simp only [pbAuthRoleAddResponse]; itrivial
+  · simp only [pbAuthRoleAddResponse]; ipureintro; exact Hrn He
   iapply Hk
   iapply Hrep
   ipureintro; exact He
@@ -1031,6 +1054,7 @@ theorem etcd_userGrantRoleHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNam
   inext
   iintro %resp %err Hout
   ihave ⟨#HSe, Hout⟩ := v3rpc.authWrapOut_srvErrOk _ resp err $$ Hout
+  ihave %Hrn := v3rpc.authWrapOut_admin_nn s E ρ ci (irrUserGrantRole m.1 m.2) _ [] _ resp err rfl $$ Hout
   ihave ⟨Hs, Hrep⟩ := authWrapOut_admin s E ρ ci (irrUserGrantRole m.1 m.2) Qa [] _ resp err $$ Hout
   ihave Hed := handlerErr_all (GF := GF) Ψe err $$ HΨe
   iapply HΨ
@@ -1040,7 +1064,7 @@ theorem etcd_userGrantRoleHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNam
   iintro %He
   iexists ()
   isplitr
-  · simp only [pbAuthUserGrantRoleResponse]; itrivial
+  · simp only [pbAuthUserGrantRoleResponse]; ipureintro; exact Hrn He
   iapply Hk
   iapply Hrep
   ipureintro; exact He
@@ -1076,6 +1100,7 @@ theorem etcd_roleGrantPermissionHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : 
   inext
   iintro %resp %err Hout
   ihave ⟨#HSe, Hout⟩ := v3rpc.authWrapOut_srvErrOk _ resp err $$ Hout
+  ihave %Hrn := v3rpc.authWrapOut_admin_nn s E ρ ci (irrRoleGrantPermission m.1 (some m.2)) _ [] _ resp err rfl $$ Hout
   ihave ⟨Hs, Hrep⟩ := authWrapOut_admin s E ρ ci (irrRoleGrantPermission m.1 (some m.2)) Qa [] _ resp err $$ Hout
   ihave Hed := handlerErr_all (GF := GF) Ψe err $$ HΨe
   iapply HΨ
@@ -1085,7 +1110,7 @@ theorem etcd_roleGrantPermissionHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : 
   iintro %He
   iexists ()
   isplitr
-  · simp only [pbAuthRoleGrantPermissionResponse]; itrivial
+  · simp only [pbAuthRoleGrantPermissionResponse]; ipureintro; exact Hrn He
   iapply Hk
   iapply Hrep
   ipureintro; exact He
@@ -1120,6 +1145,7 @@ theorem etcd_authEnableHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
   inext
   iintro %resp %err Hout
   ihave ⟨#HSe, Hout⟩ := v3rpc.authWrapOut_srvErrOk _ resp err $$ Hout
+  ihave %Hrn := v3rpc.authWrapOut_admin_nn s E ρ ci irrAuthEnable _ [] _ resp err rfl $$ Hout
   ihave ⟨Hs, Hrep⟩ := authWrapOut_admin s E ρ ci irrAuthEnable Qa [] _ resp err $$ Hout
   ihave Hed := handlerErr_all (GF := GF) Ψe err $$ HΨe
   iapply HΨ
@@ -1129,7 +1155,7 @@ theorem etcd_authEnableHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
   iintro %He
   iexists ()
   isplitr
-  · simp only [pbAuthEnableResponse]; itrivial
+  · simp only [pbAuthEnableResponse]; ipureintro; exact Hrn He
   iapply Hk
   iapply Hrep
   ipureintro; exact He
@@ -1310,16 +1336,16 @@ open Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
 
 /-- **etcd's Auth methods** as registered, with etcd's specs. -/
 def etcdAuthMethods (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) : List (GrpcMethod GF) :=
-  [⟨go!"/etcdserverpb.Auth/UserAdd", pbAuthUserAddRequest, pbAuthUserAddResponse, etcdUserAddSpec s E ρ,
-     (@! etcdserverpb._Auth_UserAdd_Handler), interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #p⟩,
-   ⟨go!"/etcdserverpb.Auth/UserGrantRole", pbAuthUserGrantRoleRequest, pbAuthUserGrantRoleResponse, etcdUserGrantRoleSpec s E ρ,
-     (@! etcdserverpb._Auth_UserGrantRole_Handler), interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #p⟩,
-   ⟨go!"/etcdserverpb.Auth/RoleAdd", pbAuthRoleAddRequest, pbAuthRoleAddResponse, etcdRoleAddSpec s E ρ,
-     (@! etcdserverpb._Auth_RoleAdd_Handler), interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #p⟩,
-   ⟨go!"/etcdserverpb.Auth/RoleGrantPermission", pbAuthRoleGrantPermissionRequest, pbAuthRoleGrantPermissionResponse, etcdRoleGrantPermissionSpec s E ρ,
-     (@! etcdserverpb._Auth_RoleGrantPermission_Handler), interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #p⟩,
-   ⟨go!"/etcdserverpb.Auth/AuthEnable", pbAuthEnableRequest, pbAuthEnableResponse, etcdAuthEnableSpec s E ρ,
-     (@! etcdserverpb._Auth_AuthEnable_Handler), interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #p⟩]
+  [⟨go!"/etcdserverpb.Auth/UserAdd", pbAuthUserAddRequestT, pbAuthUserAddResponseT, etcdUserAddSpec s E ρ,
+     (@! etcdserverpb._Auth_UserAdd_Handler), interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #p, pbAuthUserAddRequestT_reg, pbAuthUserAddResponseT_reg⟩,
+   ⟨go!"/etcdserverpb.Auth/UserGrantRole", pbAuthUserGrantRoleRequestT, pbAuthUserGrantRoleResponseT, etcdUserGrantRoleSpec s E ρ,
+     (@! etcdserverpb._Auth_UserGrantRole_Handler), interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #p, pbAuthUserGrantRoleRequestT_reg, pbAuthUserGrantRoleResponseT_reg⟩,
+   ⟨go!"/etcdserverpb.Auth/RoleAdd", pbAuthRoleAddRequestT, pbAuthRoleAddResponseT, etcdRoleAddSpec s E ρ,
+     (@! etcdserverpb._Auth_RoleAdd_Handler), interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #p, pbAuthRoleAddRequestT_reg, pbAuthRoleAddResponseT_reg⟩,
+   ⟨go!"/etcdserverpb.Auth/RoleGrantPermission", pbAuthRoleGrantPermissionRequestT, pbAuthRoleGrantPermissionResponseT, etcdRoleGrantPermissionSpec s E ρ,
+     (@! etcdserverpb._Auth_RoleGrantPermission_Handler), interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #p, pbAuthRoleGrantPermissionRequestT_reg, pbAuthRoleGrantPermissionResponseT_reg⟩,
+   ⟨go!"/etcdserverpb.Auth/AuthEnable", pbAuthEnableRequestT, pbAuthEnableResponseT, etcdAuthEnableSpec s E ρ,
+     (@! etcdserverpb._Auth_AuthEnable_Handler), interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #p, pbAuthEnableRequestT_reg, pbAuthEnableResponseT_reg⟩]
 
 /-- **etcd's server serves its Auth methods** (the auth plan's E3za; as `etcd_kv_served`): the gRPC
 server at `addr` built with the chain `ics` of transparent interceptors (with their per-run
@@ -1378,11 +1404,11 @@ theorem etcd_auth_served (addr : GoString) (p s : Loc) (E : apply.AEnv GF) (ρ :
       rcases hx with rfl | rfl | rfl | rfl | rfl <;> simp [v3rpc.authRegs])) $$ [Hl Hslots] with Hrpcs
   · iframe
     imodintro
-    simp only [etcdAuthMethods]
+    simp only [etcdAuthMethods, pbAuthUserAddRequestT, pbAuthUserAddResponseT, pbAuthUserGrantRoleRequestT, pbAuthUserGrantRoleResponseT, pbAuthRoleAddRequestT, pbAuthRoleAddResponseT, pbAuthRoleGrantPermissionRequestT, pbAuthRoleGrantPermissionResponseT, pbAuthEnableRequestT, pbAuthEnableResponseT]
     iframe #
     iapply BigSepL.bigSepL_nil.2
     itrivial
-  simp only [etcdAuthMethods]
+  simp only [etcdAuthMethods, pbAuthUserAddRequestT, pbAuthUserAddResponseT, pbAuthUserGrantRoleRequestT, pbAuthUserGrantRoleResponseT, pbAuthRoleAddRequestT, pbAuthRoleAddResponseT, pbAuthRoleGrantPermissionRequestT, pbAuthRoleGrantPermissionResponseT, pbAuthEnableRequestT, pbAuthEnableResponseT]
   icases Hrpcs with ⟨#H1, #H2, #H3, #H4, #H5, -⟩
   imodintro
   iframe #
@@ -1693,10 +1719,12 @@ theorem etcd_watchMethodOk (p : Loc) (R : WSrv GF) (W : SrvW GF) (ics : List GoF
   · iintro !> %md
     iapply streamSpecOk_watchSpec R W
   iintro !> %γs %Dn %ci %cd %st %info HSpec ⟨HS, HRs⟩ #Hraw HRt HSt HAux #Hinfo
-  iapply (srvStreamChainWP_of_ok ics Rs pbWatchRequest pbWatchResponse (watchUp R) Dn γs ci cd
+  iapply (srvStreamChainWP_of_ok ics Rs pbWatchRequestT pbWatchResponseT pbWatchRequestT_reg
+    pbWatchResponseT_reg (watchUp R) Dn γs ci cd
     (interface.mkOk (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty) #p) st info
     (@! etcdserverpb._Watch_Watch_Handler) (fun _ => iprop(True)))
+  simp only [pbWatchRequestT, pbWatchResponseT]
   iframe #
   iframe HRs
   isplit
@@ -1750,7 +1778,8 @@ theorem etcd_watch_served (addr : GoString) (p : Loc) (R : WSrv GF) (W : SrvW GF
   ihave #Hok := etcd_watchMethodOk p R W ics Rs hset $$ [Hpb Hinit Hws HW Hics]
   · iframe #
   let m : GrpcStreamMethod GF :=
-    { name := go!"/etcdserverpb.Watch/Watch", Req := pbWatchRequest, Rep := pbWatchResponse,
+    { name := go!"/etcdserverpb.Watch/Watch", Req := pbWatchRequestT, Rep := pbWatchResponseT,
+      reqReg := pbWatchRequestT_reg, repReg := pbWatchResponseT_reg,
       Up := watchUp R, spec := fun md => watchSpec R W (auth.mdTokenOf md), handler := @! etcdserverpb._Watch_Watch_Handler,
       srv := interface.mkOk (go.GoType.PointerType
         go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty) #p }
@@ -1764,9 +1793,11 @@ theorem etcd_watch_served (addr : GoString) (p : Loc) (R : WSrv GF) (W : SrvW GF
   · iframe
     imodintro
     iapply BigSepL.bigSepL_singleton.2
+    simp only [m, pbWatchRequestT, pbWatchResponseT]
     iexact Hok
   ihave Hs := BigSepL.bigSepL_singleton.1 $$ Hs
   imodintro
+  simp only [m, pbWatchRequestT, pbWatchResponseT]
   iexact Hs
 
 /-- **The watch service is served by etcd's server** (`etcd_watch_served` at the stream chain

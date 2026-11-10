@@ -41,8 +41,8 @@ reads as `0`, as `ConfChangeV2M` records it; `Context`'s bytes are the same, a `
 `[]`). No pure encoder is claimed (the bytes depend on which fields are set, which `ConfChangeV2M`
 forgets): the round trip is the postcondition. (Premise fixes 1, 2026-11-10) The round trip
 holds for the unknown fields an object of the verified programs can hold, which `pbMsg` now
-constrains (`pbUnknownOk`: none, or what `proto.Unmarshal` left, which a re-decode puts back
-among the unknown fields), not for arbitrary bytes: a record of the message's own field number and
+constrains (`ufWire` at the type's schema, `PbSchema.lean`, per-type models stage A: unknown fields
+as protobuf-go's decoder leaves them, which a re-decode puts back among the unknown fields), not for arbitrary bytes: a record of the message's own field number and
 wire type overrides that field, and garbage does not decode (the premise attack; Go:
 `examples/premisefix/confchange`, `TestRoundTripArbitraryUnknownFails` and
 `TestRoundTripUnmarshalLeftovers`). Until then `pbMsg` admitted any bytes and this axiom was false

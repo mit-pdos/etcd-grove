@@ -124,13 +124,18 @@ refusal; (C1's A2) an `Authenticate`'s, at its response `resp`: the authority as
 @[reducible] def AdminReq.result (Own : auth.AuthNames → List auth.AuthState → IProp GF)
     (γa : auth.AuthNames) (M : auth.AuthMode) (hs : List auth.AuthState) (resp : Loc)
     (err : GoInterface) : AdminReq → IProp GF
-  | .userAdd n => auth.adminOutX (.on γa) (Own γa) hs (auth.stepOf (auth.userAddF n)) auth.noExtra err
-  | .roleAdd n => auth.adminOutX (.on γa) (Own γa) hs (auth.stepOf (auth.roleAddF n)) auth.noExtra err
-  | .userGrantRole u ro => auth.adminOutX (.on γa) (Own γa) hs (auth.userGrantRoleR u ro) auth.noExtra err
+  | .userAdd n => iprop(auth.adminOutX (.on γa) (Own γa) hs (auth.stepOf (auth.userAddF n)) auth.noExtra err ∗
+      ⌜err = GoInterface.nil → resp ≠ null⌝)
+  | .roleAdd n => iprop(auth.adminOutX (.on γa) (Own γa) hs (auth.stepOf (auth.roleAddF n)) auth.noExtra err ∗
+      ⌜err = GoInterface.nil → resp ≠ null⌝)
+  | .userGrantRole u ro => iprop(auth.adminOutX (.on γa) (Own γa) hs (auth.userGrantRoleR u ro) auth.noExtra err ∗
+      ⌜err = GoInterface.nil → resp ≠ null⌝)
   | .roleGrantPermission n w =>
-      auth.adminOutX (.on γa) (Own γa) hs (auth.roleGrantPermissionR n w) auth.noExtra err
+      iprop(auth.adminOutX (.on γa) (Own γa) hs (auth.roleGrantPermissionR n w) auth.noExtra err ∗
+        ⌜err = GoInterface.nil → resp ≠ null⌝)
   | .authEnable => iprop(∃ en : Bool, auth.enabledVerdict M en ∗
-      auth.adminOutX (.on γa) (Own γa) hs (authEnableR M en) auth.noExtra err)
+      auth.adminOutX (.on γa) (Own γa) hs (authEnableR M en) auth.noExtra err ∗
+      ⌜err = GoInterface.nil → resp ≠ null⌝)
   | .authenticate n _ => iprop(Own γa hs ∗ authnOut γa n resp err)
 
 /-- **The admin triples of the `applierV3` value `ai` of the chain `c`** in the mode `on γa`

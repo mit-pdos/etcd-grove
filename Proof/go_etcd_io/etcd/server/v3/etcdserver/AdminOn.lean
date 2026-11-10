@@ -224,7 +224,21 @@ theorem dispatchAnswer_admin (rq : apply.IRRModel) (log : mvcc.Log) (skip : Bool
   cases apply.dispatchKind rq <;> intro hT <;> simp only [adminRespTy, reduceCtorEq] at hT <;>
     (cases hT; iintro ⟨%r, %h⟩; isplitl
      · iexists r; ipureintro; exact h
-     ipureintro; exact ⟨r, h⟩)
+     ipureintro; exact ⟨r, h.1⟩)
+
+omit package_sem in
+/-- **Without an error, `dispatch`'s answer to an admitted admin request is not `nil`** (a fresh
+response). -/
+theorem dispatchAnswer_admin_nn (rq : apply.IRRModel) (log : mvcc.Log) (skip : Bool)
+    (tr : Loc) (o : apply.Outcome) (T : go.GoType) (l : Loc)
+    (hT : adminRespTy (apply.dispatchKind rq) = some T) :
+    apply.dispatchAnswer (GF := GF) rq log skip (interface.mkOk (go.GoType.PointerType T) #l)
+      GoInterface.nil tr o ⊢ ⌜l ≠ null⌝ := by
+  unfold apply.dispatchAnswer
+  revert hT
+  cases apply.dispatchKind rq <;> intro hT <;> simp only [adminRespTy, reduceCtorEq] at hT <;>
+    (cases hT; iintro ⟨%r, %h⟩; ipureintro
+     rw [apply.mkOk_ptr_inj _ _ _ h.1]; exact h.2 rfl)
 
 /-- **The Auth entry points' contract, in the mode `on`** (see the file header): for an admitted
 admin request (`adminRespTy`, `adminPropOk`), `raftRequest.spec` with auth on is `authRaftOk` over

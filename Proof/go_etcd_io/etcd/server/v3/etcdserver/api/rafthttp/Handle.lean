@@ -29,9 +29,11 @@ variable [sem : go.Semantics]
 
 /-- **A message for the pipeline to the peer `to`**: read-only, marshalable, for `to`, not a
 snapshot (which goes by `snapshotSender`) and without responses, with its persistent part and
-its one-shot part (`N.P`, `N.O`: what the network delivers with it). -/
+its one-shot part (`N.P`, `N.O`: what the network delivers with it); (stage A of the per-type
+models) its wire content, bounded (`swMsgBound`: `handle` sizes and marshals the content). -/
 def pipeMsg (Rh : RaftHttp GF) (to : w64) (ml : Loc) : IProp GF :=
-  iprop(∃ st : MsgSt, msgOwn ml DFrac.discard st ∗ □ Rh.γn.N.P st ∗ Rh.γn.N.O st ∗
+  iprop(∃ st : MsgSt, msgOwn ml DFrac.discard st ∗ swMsgBound ml st ∗ □ Rh.γn.N.P st ∗
+    Rh.γn.N.O st ∗
     ⌜MsgMarshals st ∧ st.msg.To' = to ∧ st.msg.Type' ≠ MsgSnap ∧ st.resps = []⌝)
 
 /-- **What `handle` reads** (persistent) of the pipeline `p` to the peer `to`: what `post` reads,

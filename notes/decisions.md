@@ -34086,4 +34086,8 @@ vacuous. Each fix narrows or removes a premise; no closed theorem gains one.
    every caller): the `proto.MarshalConfChange(V2)` round trips are false for arbitrary bytes, true
    for these. The axiom texts are unchanged; what `pbMsg` means is narrowed, which every producer
    (struct allocation, the `Unmarshal` and `Clone` axioms) meets in Go.
+   *Merged with per-type models stage A* (lean `de9c19e020`): in the main tree `pbMsg` already
+   carries `ufWire (pbSchemaOf …) uf` (the decoder's leftovers at the type's schema), the same
+   narrowing made precise, so `pbUnknownOk`/`pbUnmarshalLeft` were dropped there; RaftWitness keeps
+   them.
 

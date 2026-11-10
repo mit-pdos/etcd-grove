@@ -100,12 +100,14 @@ theorem rafthttp.messageDecoder.decodeLimit.wp_proof
         · rw [← Hframe]; iexact HB2
         ihave %HV2 := HV $$ %ys2 HB3
         have Hlt : ys2.length < 2 ^ 63 := by rw [hl2]; word
-        obtain ⟨st0, Hw0⟩ := HV2 Hlt
+        obtain ⟨st0, Hw0, c0, hc0m, hc0u, hc0cs, hc0b⟩ := HV2 Hlt
         wp_auto
-        have wpU := wp_Unmarshal pbMessage buf ys2 (DFrac.own 1) m_ptr
-        simp only [pbMessage_ty, pbMessage_blank, pbMessage_dec, pbMessage_wire] at wpU
+        have wpU := wp_Unmarshal pbMessageC pbMessageC_reg buf ys2 (DFrac.own 1) m_ptr
+        simp only [pbMessageC_ty, pbMessageC_blank, pbMessageC_dec, pbMessageC_wire,
+          pbMessageC_modelOf, pbMessageC_C, pbMessageC_marshals, pbMessageC_ufValid,
+          pbMessageC_size, pbEncC_pbMessageC] at wpU
         wp_apply wpU $$ [$Hbuf $m] as %err3 ⟨Hbuf, %Hnn, Hdec⟩
-        have He3 : err3 = GoInterface.nil := Hnn ⟨st0, Hw0⟩
+        have He3 : err3 = GoInterface.nil := Hnn ⟨c0, by rw [hc0m]; exact Hw0.1, hc0u, hc0b⟩
         subst He3
         (try wp_auto)
         iapply HΦ
@@ -116,11 +118,14 @@ theorem rafthttp.messageDecoder.decodeLimit.wp_proof
         iexists _
         iframe HRd
         iintro -
-        ihave ⟨%st, Hm, %Hw⟩ := Hdec $$ %rfl
-        iexists ys2, st
+        ihave ⟨%c, Hm, %Hw⟩ := Hdec $$ %rfl
+        have hcc : c = c0 := Hw.2.2.2 c0 (by rw [hc0m]; exact Hw0.1) hc0u hc0b
+        subst hcc
+        ihave Hm := Hm $$ %hc0cs
+        iexists ys2, c.model
         iframe Hm HB2
         ipureintro
-        refine ⟨?_, ?_, Hw⟩
+        refine ⟨?_, ?_, by rw [hc0m]; exact Hw0, c, rfl, hc0u, hc0cs, hc0b⟩
         · exact Hframe
         · rw [hl2]; word
   · cases err with

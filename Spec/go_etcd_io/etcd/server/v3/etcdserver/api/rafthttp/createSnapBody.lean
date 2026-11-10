@@ -34,7 +34,7 @@ abbrev rafthttp.createSnapBody.spec : Prop :=
       snap.msgIs m ml rc ∗ msgOwn ml DFrac.discard st ∗ backend.readerStreams rc Φ }}
     (App (App (Val (@! rafthttp.createSnapBody)) (Val #lg)) (Val #m))
   {{ (body : GoInterface), RET #body; ∃ (bs : List w8) (bi : GoInterfaceOk),
-      ⌜body = GoInterface.ok bi ∧ MsgWireOk st bs ∧ bs.length < 2 ^ 63⌝ ∗
+      ⌜body = GoInterface.ok bi ∧ MsgWireOk st bs ∧ MsgEnc st bs ∧ bs.length < 2 ^ 63⌝ ∗
       http.streamHas body (snapPre bs) (snapPhi bs Φ) ∗ rdCloseOk bi }}
 
 end spec

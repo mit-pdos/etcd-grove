@@ -646,7 +646,7 @@ theorem bootConfChange_of_struct (p : Loc) (v : raftpb.ConfChange) (m : ConfChan
   rw [Hi]
   ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
   · iapply ownSlice_nil
-  imod pbMsg_alloc raftpb.ConfChange p v.state' v.sizeCache' slice.nil [] E $$ [state sizeCache unknownFields Hnil] with #Hpb
+  imod pbMsg_alloc raftpb.ConfChange p v.state' v.sizeCache' slice.nil [] E (ufWire_nil _) $$ [state sizeCache unknownFields Hnil] with #Hpb
   · iframe
   imodintro
   iunfold bootConfChange

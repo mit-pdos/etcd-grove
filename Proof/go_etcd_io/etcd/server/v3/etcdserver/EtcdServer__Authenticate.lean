@@ -224,7 +224,7 @@ theorem EtcdServer.Authenticate.wp_proof
       · iframe #; iframe Hlt Hrd Hid
         iexists _; iexact Header
       (try wp_auto)
-      icases Hout with (⟨%He, %rp, %v, %Hresp, Hrp, #Ht⟩ | ⟨%Hre, %Hne⟩)
+      icases Hout with (⟨%He, %rp, %v, %Hresp, Hrp, %Hvu, #Ht⟩ | ⟨%Hre, %Hne⟩)
       · subst He
         wp_auto
         wp_apply hAS s (GoInterface.ok ast) $$ []
@@ -249,6 +249,7 @@ theorem EtcdServer.Authenticate.wp_proof
           · ipureintro; rfl
           iexists v
           iframe Hrp Ht
+          ipureintro; exact Hvu
         · (try wp_auto)
           wp_apply hInfo w.lg $$ []
           · iframe #; ipureintro; exact Hlgn

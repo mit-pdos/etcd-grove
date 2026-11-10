@@ -90,6 +90,16 @@ axiom mvcc.hashStorage.Store.wp_proof
 axiom mvcc.kvHasher.Hash.wp_proof
 axiom mvcc.kvHasher.WriteKeyValue.wp_proof
 axiom mvcc.newKVHasher.wp_proof
+axiom pbCompactionRequestT_reg
+axiom pbCompactionResponseT_reg
+axiom pbDeleteRangeRequestT_reg
+axiom pbDeleteRangeResponseT_reg
+axiom pbPutRequestT_reg
+axiom pbPutResponseT_reg
+axiom pbRangeRequestT_reg
+axiom pbRangeResponseT_reg
+axiom pbTxnRequestT_reg
+axiom pbTxnResponseT_reg
 axiom promSrvMetrics
 axiom prometheus.HistogramVec.WithLabelValues.wp_proof
 axiom proto.Clone.wp_proof

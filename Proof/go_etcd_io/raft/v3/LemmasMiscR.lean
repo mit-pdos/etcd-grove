@@ -59,9 +59,9 @@ theorem emptyState_hsRO :
   isplitr
   · iunfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩
   unfold pbMsg pbN
-  isplitr
-  · ipureintro; exact Or.inl rfl
-  iexact Hpb
+  isplitl
+  · iexact Hpb
+  · ipureintro; exact ufWire_nil _
 
 /-- The getters of a `nil`-or-read-only hard state. -/
 theorem wp_hsOpt_GetTerm (wp_GetTerm : raftpb.HardState.GetTerm.spec (GF := GF) (hG := hG))
