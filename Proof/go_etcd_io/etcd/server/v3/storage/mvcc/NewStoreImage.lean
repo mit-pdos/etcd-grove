@@ -86,7 +86,7 @@ theorem restoreImageM_norm (d : KBReal) (γb : GName) (L : Log) (r : CmpRecs) :
     iexists ents
     iframe Hv Hr Hvals
     ipureintro
-    exact ⟨Hok.1, Hok.2.1, Hok.2.2, fun h => absurd h Bool.true_ne_false⟩
+    exact ⟨Hok.1, Hok.2.1, Hok.2.2, fun h => absurd h (by decide)⟩
   | false =>
     iintro H
     icases (restoreImageM_off d γb L r hcm).1 $$ H with ⟨Hv, Hnc, %hr⟩
@@ -139,7 +139,7 @@ theorem cmpTrack_image (γ : StoreNames) (d : KBReal) (hk : γ.kb = some d) (L :
     iintro H
     isplitl [H]
     · iapply cmpTrack_restored γ d hk hcm L hb r ents hrec hpos hcut $$ H
-    · iintro %h; exact absurd h Bool.true_ne_false
+    · iintro %h; exact absurd h (by decide)
   | false =>
     iintro ⟨Hv, -, -, -⟩
     isplitr
