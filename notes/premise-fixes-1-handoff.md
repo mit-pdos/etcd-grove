@@ -43,7 +43,9 @@ Done and committed: fix 1 (`c87acade60`), fix 2 (`0427e0b867`), fix 4 (`01e666e5
 (`00e0cbcf74`); each built targeted (fix 1: all 431 importers; fixes 2/3: the changed proofs).
 Then: interface regenerated (raft's), the full build and `etc/gates.sh` passed (2026-11-10: trust
 base 809 axioms / 4 sorries unchanged, 53 collections match, premisefix Go tests ok). Fixes 1-4 approved by etcd-grove-81; the
-protobuf docstrings fixed (form only). Waiting for etcd-grove-81's decision on fix 5; then merge lean and `etc/land.sh` when told.
+protobuf docstrings fixed (form only). Fix 5 goes to `premise-fixes-2` (option 1, the raft fork's `Equivalent`, approved by the user via
+etcd-grove-81). Lean merged (`de9c19e020`, stage A's `ufWire` supersedes `pbUnknownOk` in the main
+tree); full build, interfaces and tcb check green; landing with `etc/land.sh`.
 Open questions: `questions.md`.
 
 ## Pitfalls
