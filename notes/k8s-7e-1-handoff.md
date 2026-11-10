@@ -611,3 +611,11 @@ land.sh only on 81's go.
   `notes/k8s-7e-freeze.md` §8); unbuilt Lean edits: `Results.lean` (docs), `ErrorsNewOk.lean` (binder),
   `InvGrpc.lean`/`ClientErr.lean` (docstrings), `pflag/Init.lean` (regenerated docstring). Go: control
   test, `examples/k8s7e1attack`, k8s7e2attack bump; gates 9d control, 9e, 9f.
+- `d4d2e99d63`: the Results.lean batch-1 sentence keeps only the unrepaired refuted axioms
+  (`zap.Logger.{Debug,Error,Fatal,Info,Warn}`, still `l ≠ null`; `errors.IsCtxErr`, still
+  `isTypedErr`); `http.Handle`, the feature-gate initializers and `ValueStartTime` dropped (repaired).
+  Note: `notes/audit.md` marks zap's Debug/Info/Warn/Error "ok", which disagrees with STATUS's batch-1
+  table; the specs decided it.
+- **Waiting** (etcd-grove-81, 2026-11-10): the fixes are accepted; the sync is not on lean yet. On 81's
+  word: merge lean (and premise-fixes-5 if landed), full build, tcb `--check --update` + collections,
+  interfaces, full gates (with 9d's control, 9e, 9f), Freeze §3 counts redone; stop before land.sh.
