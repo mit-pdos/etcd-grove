@@ -383,7 +383,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
       · iapply chanBag_nbRecv γc msc _ _ $$ Hmscb
         iintro %m HP
         iunfold rnSnapMsg at HP
-        icases HP with ⟨%sm, Hm, %Htyb, #Hsm, -⟩
+        icases HP with ⟨%sm, Hm, %Htyb, #Hsm, -, #Huf⟩
         obtain ⟨Hty, Hsbt⟩ := Htyb
         rw [hγn]
         -- (R2d'a A7) past the window after the batch, or no merged send at the batch's term
@@ -501,9 +501,10 @@ theorem EtcdServer.applyAll.wp_proofBatch
               · exfalso; omega
               · iexact H
             iunfold epCsCfg at Hcv0
-            wp_apply (hCM s m sm at' ai' cs' sv.lg kv be dq RC RC' RS RS' Qd γr.raft hsz20)
+            wp_apply (hCM s m sm at' ai' cs' sv.lg kv be dq RC RC' RS RS' Qd γr.raft hsz20
+              (by have h := Hsh.1.2.2.2.2.2.2.1 (Or.inr (Or.inr Hty)); exact ⟨h.1, h.2, Hsh.1.2.2.2.2.2.2.2⟩))
               $$ [Hlr Hkc HRC Hbeo Hbs HRCS Hm HgT]
-              as %mg ⟨Hlr, HRS', Hbeo, HgT, %rc, %D, %c, #Hmg, #Hml, #Hcso, %Hcml, Hrs, HQd⟩
+              as %mg ⟨Hlr, HRS', Hbeo, HgT, %rc, %D, %c, #Hmg, #Hml, #HszC, #Hcso, %Hcml, Hrs, HQd⟩
             · iframe #; iframe Hlr Hkc HRC Hbeo Hbs HRCS Hm HgT; ipureintro; exact Hlgnn
             ihave Hgr : srvGoRes s $$ [HgrW HgT]
             · iunfold srvGoRes; iframe HgrW HgT
@@ -543,8 +544,8 @@ theorem EtcdServer.applyAll.wp_proofBatch
               ipureintro; exact Hst3.1
             imod Hmi with ⟨Hka, #Himg⟩
             imod srvMerged_bundle γr.raft.raft m rc sm γn.id c ai' at' D Hty
-              $$ [Hml Hsm' Hrs Himg] with Hbun
-            · iframe Hml Hsm' Hrs Himg
+              $$ [Hml HszC Hsm' Hrs Himg] with Hbun
+            · iframe Hml HszC Hsm' Hrs Himg
             (try wp_auto)
             wp_apply (hSMS s mg m rc sv.lg sv.memberID stg tr γN SN TSN lid) $$ [Hgr Hlr Hbun]
               as ⟨Hgr, Hlr⟩

@@ -54,7 +54,7 @@ theorem rnMsgR_open (E : RNEnv GF) (γ : RNNames) (m : Loc) :
     · iintro %h
       exact absurd h Hty
   · iunfold rnSnapMsg at Hs
-    icases Hs with ⟨%st, Hm, %Hty, #Hsm, Hc⟩
+    icases Hs with ⟨%st, Hm, %Hty, #Hsm, Hc, #Huf⟩
     iexists DFrac.own 1, st
     iframe Hm
     isplit
@@ -63,7 +63,7 @@ theorem rnMsgR_open (E : RNEnv GF) (γ : RNNames) (m : Loc) :
     · iintro %_ Hm
       iunfold rnSnapMsg
       iexists st
-      iframe Hm Hsm Hc
+      iframe Hm Hsm Hc Huf
       ipureintro; exact Hty
 
 /-- `m.GetTo()` at any fraction. -/

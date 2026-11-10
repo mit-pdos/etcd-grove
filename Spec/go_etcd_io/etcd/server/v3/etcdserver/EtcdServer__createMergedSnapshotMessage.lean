@@ -39,21 +39,26 @@ a pure fact: the snapshot's image is mvcc's persistent `mvccImage`). The reader 
 slot (`srvBeSnapOk`), and the reader goroutine's fork token comes back to it. (raft-entsize [r3c],
 2026-11-09) `cs` is the voters' conf state (`epCsVoters`, in place of `epCsOk`) of a configuration
 of at most `2 ^ 20` members (`srvMemOk`'s bound), so the merged conf state `c` lists at most
-`2 ^ 20` ids: what bounds the merged message's size. -/
+`2 ^ 20` ids: what bounds the merged message's size. (raft-entsize [r3c], 2026-11-10) The raft
+message has no top-level unknown fields (`pbMsg … []`, `rnSnapMsg`'s) and no entries, `Context` or
+responses (a `MsgSnap`'s `SentMsgShape`), so the merged message is frozen at a content below
+`2 ^ 47` bytes (`msgSzC False`): what the envelope's encoder needs (`netSnapBundle`). -/
 abbrev EtcdServer.createMergedSnapshotMessage.spec : Prop :=
   ∀ (s ml : Loc) (st : MsgSt) (snapt snapi : w64) (cs lg : Loc) (kv be : GoInterface) (dq : DFrac)
     (RC RC' RS RS' : IProp GF) (Qd : backend.Data → IProp GF) (γs : ServerRaftNames),
-  GMap.size γs.raft.cfg ≤ 2 ^ 20 →
+  GMap.size γs.raft.cfg ≤ 2 ^ 20 → st.ents = [] ∧ st.ctx = [] ∧ st.resps = [] →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvLgAddr s ↦□ lg ∗ ⌜lg ≠ null⌝ ∗ srvLgReader s ∗
       srvKVAddr s ↦□ kv ∗ srvKVCommitOk kv RC RC' ∗ RC ∗
       srvBeAddr s ↦{dq} be ∗ srvBeSnapOk be RS RS' Qd ∗ (RC' -∗ RS) ∗
-      msgOwn ml (DFrac.own 1) st ∗ epCsVoters γs cs ∗ threadTok }}
+      msgOwn ml (DFrac.own 1) st ∗ pbMsg go_etcd_io.raft.v3.raftpb.Message ml [] ∗
+      epCsVoters γs cs ∗ threadTok }}
     (App (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!!
       go!"createMergedSnapshotMessage")) (Val #ml)) (Val #snapt)) (Val #snapi)) (Val #cs))
   {{ (mg : Loc), RET #mg; srvLgReader s ∗ RS' ∗ srvBeAddr s ↦{dq} be ∗ threadTok ∗
       ∃ (rc : GoInterface) (D : backend.Data) (c : ConfStateM),
         mergedMsg mg ml rc ∗ msgOwn ml DFrac.discard (mergedSt st c snapi snapt) ∗
+        msgSzC False ml (mergedSt st c snapi snapt) ∗
         csOpt cs DFrac.discard c ∗
         ⌜(c.Voters' ++ c.Learners' ++ c.VotersOutgoing' ++ c.LearnersNext').length ≤ 2 ^ 20⌝ ∗
         backend.readerStreams rc (fun bs => backend.boltImage bs D) ∗ Qd D }}

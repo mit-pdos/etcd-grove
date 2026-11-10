@@ -162,7 +162,21 @@ next (touches `InvPb`, pbMsg's unknown fields): merge lean again after it.
   (+ `msgSzC_of_swMsgBound`). The axiom's remaining users: `srvMerged_bundle`, `streamWriter.run`.
 - Targeted build: `/shared/tmp/ptm-cp3/entsize/c1.log` (targets `c1-targets.txt`).
 
-## Next: [r3c] in the server (design, from the step-3 check)
+## Done (step 3, part 2: [r3c] in the server; 2026-11-10)
+
+- `rnSnapMsg` gains `pbMsg raftpb.Message m []` (last conjunct; `msgOut_snapUf`, `InvRaftNode.lean`,
+  from raft's `msgOut_snap`). Patterns: `⟨%sm, Hm, %Htyb, #Hsm, -, #Huf⟩`.
+- `InvSnapSend.lean`: `smPtsCC_of_struct`, `ownSnapCC_of_struct` (fresh literals at contents with
+  `uf = []`), `msgPtsCC_store_Snapshot`, `repW64Size_le`, `merged_sizeOk`.
+- `createMergedSnapshotMessage.spec`: premises `st.ents = [] ∧ st.ctx = [] ∧ st.resps = []` (the
+  callers': `SentMsgShape`) and `pbMsg raftpb.Message ml []`; post adds `msgSzC False ml (mergedSt …)`.
+- `srvMerged_bundle` takes that `msgSzC`; `swMsgBound_phys`'s only user left: `streamWriter.run`.
+- Checked with `etc/lean-check.py` (InvSnapSend, InvRaftNode, createMerged, processMessages,
+  SnapSendBranch, applyAll, ApplyAllSnap: 0 errors).
+- PITFALL: the disk (/shared) was full once (2026-11-10): a python rewrite truncated
+  `InvSnapSend.lean` to 0 bytes. Check `git diff --stat` after edits if `df` is low.
+
+## Next: (old design notes of [r3c], done above)
 
 `pbMsg T l uf` is the content's unknown fields by fiat (`msgPtsC_msgPtsCC_uf` builds a content with
 `uf := uf0` from any `pbMsg … l uf0`), so the bound needs only the right `pbMsg … []` facts:
