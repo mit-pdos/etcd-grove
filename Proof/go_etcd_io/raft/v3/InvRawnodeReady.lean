@@ -664,7 +664,9 @@ theorem outboxRelP_isRaftMsg (γ : RaftNames) (id : w64) (s : NState) (o : List 
     -- a `MsgApp` the node's own, a stamped `MsgTransferLeader` recorded in `NGhost.xw`
     (Hsh : SentMsgShape q.st) (Hfr : AppFrom id q.st)
     (Hxw : q.st.msg.Type' = MsgTransferLeader → q.st.msg.Term' ≠ W64 0 →
-      (s.gh.xw !! (q.st.msg.To', q.st.msg.Term')).isSome) :
+      (s.gh.xw !! (q.st.msg.To', q.st.msg.Term')).isSome)
+    -- (Q8 stage 1 slice 10) in a traced cluster, the outbox's numbers (`NsLink`'s `OutTr`)
+    (Htr : ∀ x ∈ o, MsgTrOk γ x) :
     ([∗list] x ∈ o, isMessage (GF := GF) γ x) ⊢ qCert γ q -∗ xfW γ s -∗ isRaftMsg γ id q.st := by
   obtain ⟨as1, as2, Ho, Hf1, Hf2⟩ := Hp
   have Hex : ∃ a, msgAbs q.st a ∧ ∀ x ∈ a.toList, x ∈ o := by
@@ -713,7 +715,7 @@ theorem outboxRelP_isRaftMsg (γ : RaftNames) (id : w64) (s : NState) (o : List 
       iapply BigSepL.bigSepL_singleton.2
       ihave #Hx := (BigSepL.bigSepL_mem (Φ := fun x => isMessage (GF := GF) γ x)
         (Hin x (by simp))) $$ Ho
-      iapply isMessageC_intro $$ Hx
+      iapply isMessageC_intro γ x (Htr x (Hin x (by simp))) $$ Hx
       -- (D22 S-b′3) the certificate: none but a snapshot's, the queue's
       unfold qCert
       iunfold raftSnapCertD at Hqc
@@ -769,7 +771,9 @@ theorem outboxRelP_isRaftMsg_gen (γ : RaftNames) (id : w64) (s : NState) (o : L
     -- a `MsgApp` the node's own, a stamped `MsgTransferLeader` recorded in `NGhost.xw`
     (Hsh : SentMsgShape q.st) (Hfr : AppFrom id q.st)
     (Hxw : q.st.msg.Type' = MsgTransferLeader → q.st.msg.Term' ≠ W64 0 →
-      (s.gh.xw !! (q.st.msg.To', q.st.msg.Term')).isSome) :
+      (s.gh.xw !! (q.st.msg.To', q.st.msg.Term')).isSome)
+    -- (Q8 stage 1 slice 10) in a traced cluster, the outbox's numbers (`NsLink`'s `OutTr`)
+    (Htr : ∀ x ∈ o, MsgTrOk γ x) :
     ([∗list] x ∈ o, R x) ⊢ qCert γ q -∗ xfW γ s -∗ isRaftMsg γ id q.st := by
   obtain ⟨as1, as2, Ho, Hf1, Hf2⟩ := Hp
   have Hex : ∃ a, msgAbs q.st a ∧ ∀ x ∈ a.toList, x ∈ o := by
@@ -820,7 +824,7 @@ theorem outboxRelP_isRaftMsg_gen (γ : RaftNames) (id : w64) (s : NState) (o : L
         rcases Ha with ⟨-, h⟩ | ⟨ty', -, -, h⟩ | ⟨sv, -, -, h⟩ <;> cases h <;> rfl
       ihave #Hx0 := (BigSepL.bigSepL_mem (Φ := R) (Hin x (by simp))) $$ Ho
       ihave #Hx := HR x Hxd $$ Hx0
-      iapply isMessageC_intro $$ Hx
+      iapply isMessageC_intro γ x (Htr x (Hin x (by simp))) $$ Hx
       -- (D22 S-b′3) the certificate: none but a snapshot's, the queue's
       unfold qCert
       iunfold raftSnapCertD at Hqc

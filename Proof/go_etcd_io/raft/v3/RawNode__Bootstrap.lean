@@ -466,8 +466,9 @@ theorem RawNode.Bootstrap.wp_proof
     rw [HNls, HNgh] at h
     simp only [logAppend] at h
     exact h.symm
-  have Hnl0 : NsLink γ ({ sk with gh := { sk.gh with tc := W64 1 } } : NState) := by
-    unfold NsLink; show sk.gh.ns = γ.reNoSnap; rw [HNgh, Hns]
+  have Hnl0 : NsLink γ ({ sk with gh := { sk.gh with tc := W64 1 } } : NState) :=
+    ⟨by show sk.gh.ns = γ.reNoSnap; rw [HNgh, Hns], by show sk.gh.tr = γ.reTrace; rw [HNgh, HtrG],
+      fun m _ => MsgTrOk.of_none HtrG m⟩
   have HpS : toPState ({ sk with gh := { sk.gh with tc := W64 1 } } : NState) = bootPState bootLog := HNrel.1
   have Hlead0 : (toPState ({ sk with gh := { sk.gh with tc := W64 1 } } : NState)).lead = W64 0 := by
     rw [HpS]; rfl

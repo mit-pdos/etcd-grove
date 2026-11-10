@@ -2897,9 +2897,9 @@ theorem ownRaftPhysC_nsOut (γ : RaftNames) (md : GMode) (c : CfgM) {V : GSet w6
   iframe Hphys Hghost
   ipureintro
   intro h
-  unfold NsLink at Hnl
-  rw [Hsn.1, h] at Hnl
-  cases Hnl
+  have Hnl1 := Hnl.1
+  rw [Hsn.1, h] at Hnl1
+  cases Hnl1
 
 /-- (2026-10-20, D22 S-c) A node with nothing committed is of a cluster with no bootstrap log
 (`ownLogGhost_boot`), so not in the no-transfer mode (`RaftNames.reNoXfer_ok`): what

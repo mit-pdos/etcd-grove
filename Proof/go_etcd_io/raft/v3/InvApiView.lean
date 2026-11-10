@@ -444,7 +444,9 @@ theorem sentMsg_replaceSnapshot_impl (γ : Cluster) (N : Namespace) (src : w64) 
             { { absSnap st.msg sv sv.Metadata'.ConfState'.lists with
                 index := sv'.Metadata'.Index', logterm := sv'.Metadata'.Term' } with
               cl := sv'.Metadata'.ConfState'.lists, al := sv'.Metadata'.ConfState'.AutoLeave' } := rfl
-        iapply isMessageC_intro
+        -- (Q8 stage 1 slice 10) a snapshot is of no traced type: no numbers to carry
+        iapply isMessageC_intro _ _
+          (MsgTrOk.of_untraced _ (by simp [absSnap, absSnapFrom, MsgType.traced]))
         · rw [Heq, Hvo]; iexact Hm'
         unfold msgCert; iright
         have Hk : raftSnapCert (GF := GF) γ.raft
