@@ -133,6 +133,88 @@ private theorem updObj_cases (x : Input) (o : DObj) :
     · right; simp [DObj.ofObj, updGo, hn]
   · left; rfl
 
+/-- A list's error is not `nil`. -/
+private theorem listErr_ne (c : StoreCfg GF DObj) (err : GoInterface) :
+    listErr c err ⊢ ⌜err ≠ GoInterface.nil⌝ := by
+  iintro #He
+  iunfold listErr at He
+  icases He with (#Hu | ⟨%st, #Hw, -⟩)
+  · iapply unkErr_ne c err $$ Hu
+  iunfold apierrors.apiErrAt at Hw
+  icases Hw with ⟨%l, %hl, -⟩
+  ipureintro; rw [hl]; nofun
+
+/-- The Go items of a list answer's items are their objects at their resource versions. -/
+private theorem forall2_itemRelD (l : List (DObj × Nat)) (vs : List Obj)
+    (h : List.Forall₂ itemRelD (l.map fun p => (p.1, rvStr (W64 (p.2 : Int)))) vs) :
+    vs = l.map fun p => p.1.toObj (W64 (p.2 : Int)) := by
+  induction l generalizing vs with
+  | nil => cases h; rfl
+  | cons p l ih =>
+    simp only [List.map_cons] at h
+    cases h with
+    | cons hr ht =>
+      obtain ⟨n, hv, hs⟩ := hr
+      rw [hv, ih _ ht, rvStr_inj hs.symm]
+      rfl
+
+/-- **`listOut` of a list answer is the driver's** (`listIs`'s items, token and remaining count,
+`listOutDriver`). -/
+private theorem listObjOut_eq (x : Input) (R : w64) (k : GoString)
+    (hk : prepareKeyM go!"/objs" x.ListKey' x.Recursive' = some k)
+    (a : ListModel.LState w8 (DObj × Nat)) (vs : List Obj)
+    (hf : List.Forall₂ itemRelD (a.items.reverse.map fun p => (p.1, rvStr (W64 (p.2 : Int)))) vs) :
+    listObjOutL vs R (if a.more then encL (a.last.getD [] ++ [W8 0]) (go!"/registry" ++ k) R else [])
+      (if a.more ∧ predEmptyL x then some (W64 (a.total : Int) - x.Limit') else none) =
+    listOutDriver x R a := by
+  rw [forall2_itemRelD _ _ hf]
+  unfold listOutDriver listObjOutL
+  rw [hk]
+  cases a.more <;> cases predEmptyL x <;> simp
+
+set_option hygiene false in
+/-- A list's too-large answer (`Htl`, at `σ` with `hlt`): `errOut`'s `ETooLarge`, `lOut`'s. -/
+local macro "list_tl" : tactic => `(tactic| (
+  ihave %Hp := apierrors.tooLargeErrIs_ptr err0 $$ Htl
+  obtain ⟨lp, rfl⟩ := Hp
+  wp_auto
+  wp_apply wp_errOut _ tooLargeL $$ [Htl]
+  · iunfold errIs; iright; iright; iright; ileft; iframe Htl; ipureintro; rfl
+  (try iintro -)
+  (try wp_auto)
+  iapply HΦ
+  iframe Htt
+  iright
+  iexists σ
+  rw [if_pos h4]
+  iframe HQ1
+  ipureintro
+  rw [callOut, if_pos h4, hout, if_pos hlt]))
+
+set_option hygiene false in
+/-- A list's answer (`Hl`, at `σ` with `hlt`, `he`): `listOut`'s, `lOut`'s. -/
+local macro "list_ok" : tactic => `(tactic| (
+  subst he
+  iunfold listIs at Hl
+  iunfold ListSpec.listAt at Hl
+  icases Hl with ⟨%pl, %hpl, Hl⟩
+  simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq, _root_.true_and] at hpl
+  cases GoGlobalContext.intoVal_inj_loc hpl.2
+  wp_auto
+  wp_apply wp_listOut $$ [Hl] as %y %Hy
+  · iframe #; iexact Hl
+  (try wp_auto)
+  iapply HΦ
+  iframe Htt
+  iright
+  iexists σ
+  rw [if_pos h4]
+  iframe HQ1
+  ipureintro
+  rw [callOut, if_pos h4, hout, if_neg hlt]
+  obtain ⟨vs, hf, rfl⟩ := Hy
+  rw [hc, hpre] at hf ⊢))
+
 /-- The background context is never done (its `Done` returns `nil`). -/
 private theorem background_neverDone :
     ⊢ ctxNeverDone (GF := GF) (GoInterface.ok context.backgroundCtxVal) := by
@@ -253,7 +335,62 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
       isplitr
       · unfold listOptsV; dsimp only; iexact Hsel
       ipureintro; exact htb
-    sorry
+    icases Hres with (⟨#Herr, -⟩ | ⟨%σ, #HQ1, Hr⟩)
+    · -- an error of unknown outcome
+      ihave %Hne := listErr_ne c err0 $$ Herr
+      ihave Hy := listErr_errIs hse hpl c hc err0 $$ [Herr]
+      · iframe #
+      cases err0 with
+      | nil => exact absurd rfl Hne
+      | ok ei =>
+        wp_auto
+        wp_apply wp_errOut _ _ $$ [Hy]
+        · iframe Hy
+        iintro -
+        (try wp_auto)
+        iapply HΦ
+        iframe Htt
+        ileft; ipureintro; rfl
+    have hRn : uint.Z (listRevL (matchOptL x) x.Recursive' x.Limit' n) ≠ 0 →
+        listRevL (matchOptL x) x.Recursive' x.Limit' n = n := by
+      intro h
+      unfold listRevL at h ⊢
+      by_cases h1 : matchOptL x = go!"Exact"
+      · rw [if_pos h1]
+      · rw [if_neg h1] at h ⊢
+        by_cases h2 : (matchOptL x = [] ∧ x.Recursive' = true ∧ 0 < sint.Z x.Limit' ∧ 0 < uint.Z n)
+        · rw [if_pos h2]
+        · rw [if_neg h2] at h; exact absurd (by simp) h
+    have hout : lOut x σ =
+        let R := listRevL (matchOptL x) x.Recursive' x.Limit' n
+        if σ.rev < uint.nat n then tooLargeL
+        else listOutDriver x (if uint.Z R = 0 then W64 (σ.rev : Int) else R)
+          (kListL driverCodec.dec (selD x) (limN x.Limit') (go!"/registry" ++ k) x.Recursive'
+            (if uint.Z R = 0 then σ.store else σ.at (uint.nat R))) := by
+      unfold lOut; rw [hn, hk]
+    by_cases hR0 : uint.Z (listRevL (matchOptL x) x.Recursive' x.Limit' n) = 0
+    · isimp only [if_pos hR0] at Hr
+      by_cases hlt : σ.rev < uint.nat n
+      · isimp only [if_pos hlt] at Hr
+        icases Hr with ⟨#Htl, -⟩
+        list_tl
+      · isimp only [if_neg hlt] at Hr
+        icases Hr with ⟨%he, Hl⟩
+        list_ok
+        simp only [if_pos hR0]
+        exact listObjOut_eq x _ k hk _ vs hf
+    · isimp only [if_neg hR0] at Hr
+      isimp only [hRn hR0] at Hr
+      by_cases hlt : σ.rev < uint.nat n
+      · isimp only [if_pos hlt] at Hr
+        icases Hr with ⟨#Htl, -⟩
+        list_tl
+      · isimp only [if_neg hlt] at Hr
+        icases Hr with ⟨%he, Hl⟩
+        list_ok
+        simp only [if_neg hR0]
+        rw [hRn hR0]
+        exact listObjOut_eq x _ k hk _ vs hf
   isimp only [if_neg h4] at Hpre
   rw [decide_eq_false h4]
   wp_auto
