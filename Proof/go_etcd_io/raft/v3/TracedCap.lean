@@ -125,7 +125,9 @@ def msgTypeStr : MsgType → GoString
   | .heartbeatResp => go!"MsgHeartbeatResp"
   | _ => go!""
 
-/-- The traced message `tm` of raft's message `m` (`makeTracingMessage`, a non-snapshot). -/
+/-- The traced message `tm` of raft's message `m` (`makeTracingMessage`, a non-snapshot): every field
+it writes but `Vote` (`SendEvOf`'s). Only for the traced types (`sendEvt m.ty ≠ none`, the gates'):
+`msgTypeStr` names no other, so of a Go `MsgSnap` this is false. -/
 def MsgEvOf (m : Msg) (tm : TraceMsg) : Prop :=
   tm.typ = msgTypeStr m.ty ∧ tm.term = m.term ∧ tm.frm = decStr m.src ∧ tm.to = decStr m.dst ∧
   tm.entries = W64 m.entries.length ∧ tm.logTerm = m.logterm ∧ tm.index = m.index ∧
@@ -414,12 +416,18 @@ theorem recvEvt_inScope (ty : MsgType) (evt : w64) (h : recvEvt ty = some evt) :
     uint.nat evt ≠ 0 ∧ uint.nat evt ≠ 6 := by
   cases ty <;> simp only [recvEvt, Option.some.injEq, reduceCtorEq] at h <;> subst h <;> decide
 
+/-- **A message's numbers below `K`**: the ones its traced form carries (`MsgEvOf`'s, `TraceEv.NumsBelow`
+reads). A received message's are not its receiver's to prove (a rejected `MsgAppResp` also relays the
+received `MsgApp`'s index): owed by the Prove phase, as a fact the send line records of the message. -/
+def Msg.NumsBelow (K : Nat) (m : Msg) : Prop :=
+  uint.nat m.term < K ∧ m.entries.length < K ∧ uint.nat m.logterm < K ∧ uint.nat m.index < K ∧
+  uint.nat m.commit < K ∧ uint.nat m.rejecthint < K
+
 /-- A send or receive event's numbers: its state's and its message's (`MsgEvOf`'s fields). -/
 theorem sendEvOf_numsBelow (evt id : w64) (s : NState) (c : CfgM) (m : Msg) (e : TraceEv) (K : Nat)
     (h : SendEvOf evt id s c m e) (ht : uint.nat s.term < K) (hc : uint.nat s.logst.committed < K)
-    (hl : uint.nat (plastIndex (toPState s)) < K) (hmt : uint.nat m.term < K)
-    (hme : m.entries.length < K) (hmlt : uint.nat m.logterm < K) (hmi : uint.nat m.index < K)
-    (hmc : uint.nat m.commit < K) (hmr : uint.nat m.rejecthint < K) : e.NumsBelow K := by
+    (hl : uint.nat (plastIndex (toPState s)) < K) (hm : m.NumsBelow K) : e.NumsBelow K := by
+  obtain ⟨hmt, hme, hmlt, hmi, hmc, hmr⟩ := hm
   obtain ⟨-, -, hterm, -, hcommit, -, hlog, -, ⟨tm, hmsg, hm⟩, -⟩ := h
   refine ⟨by rw [hterm]; exact ht, by rw [hcommit]; exact hc, by rw [hlog]; exact hl, ?_⟩
   intro tm' htm; rw [hmsg] at htm; cases htm
@@ -439,22 +447,20 @@ theorem sendEvOf_confsWithin (evt id : w64) (s : NState) (c : CfgM) (m : Msg) (e
 /-- **A send or receive event, as the laws take it** (`TraceEv.Ok n`, `n` at least its configuration's
 size; the event a gate's predicate allows, `sendGate`/`recvGate`, of an event `sendEvt_inScope` or
 `recvEvt_inScope` puts in scope): from its state's numbers and its message's below `traceNumBound`
-(the caller's: the state's from the time receipts, a sent message's from the state it is built of, a
-received one's from the bags). In scope also by its message's type: `msgTypeStr` names no
-`MsgSnap`. -/
+(the caller's: the state's from the time receipts; the message's, `Msg.NumsBelow`, a sent message's
+from the state and the message it answers, a received one's from what its send line recorded: owed by
+the Prove phase). In scope also by its message's type: `msgTypeStr` names no `MsgSnap`. -/
 theorem sendEvOf_ok (evt id : w64) (s : NState) (c : CfgM) (m : Msg) (e : TraceEv) (n : Nat)
     (h : SendEvOf evt id s c m e) (hevt : uint.nat evt ≠ 0 ∧ uint.nat evt ≠ 6)
     (ht : uint.nat s.term < traceNumBound) (hc : uint.nat s.logst.committed < traceNumBound)
-    (hl : uint.nat (plastIndex (toPState s)) < traceNumBound) (hmt : uint.nat m.term < traceNumBound)
-    (hme : m.entries.length < traceNumBound) (hmlt : uint.nat m.logterm < traceNumBound)
-    (hmi : uint.nat m.index < traceNumBound) (hmc : uint.nat m.commit < traceNumBound)
-    (hmr : uint.nat m.rejecthint < traceNumBound) (hn : (elements c.incoming).length ≤ n) :
+    (hl : uint.nat (plastIndex (toPState s)) < traceNumBound) (hm : m.NumsBelow traceNumBound)
+    (hn : (elements c.incoming).length ≤ n) :
     e.Ok n := by
   refine ⟨sendEvOf_ascii evt id s c m e h, ?_,
-    sendEvOf_numsBelow evt id s c m e _ h ht hc hl hmt hme hmlt hmi hmc hmr,
+    sendEvOf_numsBelow evt id s c m e _ h ht hc hl hm,
     sendEvOf_confsWithin evt id s c m e _ h hn⟩
   have hname := h.1
-  obtain ⟨tm, hmsg, hm⟩ := h.2.2.2.2.2.2.2.2.1
+  obtain ⟨tm, hmsg, hmev⟩ := h.2.2.2.2.2.2.2.2.1
   have hk : uint.nat evt < evtNames.length := (List.getElem?_eq_some_iff.1 hname).1
   obtain ⟨hk1, hk2⟩ := List.getElem?_eq_some_iff.1 hname
   have hsc := evtNames_inScope ⟨uint.nat evt, hk⟩ hevt.1 hevt.2
@@ -462,7 +468,7 @@ theorem sendEvOf_ok (evt id : w64) (s : NState) (c : CfgM) (m : Msg) (e : TraceE
   rw [hk2] at hsc
   refine ⟨hsc.1, hsc.2, fun _ tm' htm => ?_⟩
   rw [hmsg] at htm; cases htm
-  rw [hm.1]
+  rw [hmev.1]
   cases m.ty <;> simp only [msgTypeStr] <;> decide
 
 /-- **A step-down's server** (`StepDownToFollower`, the specification's `BecomeFollowerOfTerm` at the
@@ -833,9 +839,10 @@ theorem simFx_violated (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (hs
 one, the node's share `(cs, P)` with the function's phase `Φ C cs P` (`C` the voters, the
 configuration `c` their permutation with no outgoing half, the node one of them: review round 1's
 F4), the node's logger and its contract, and the simulation's invariant. `c` is only this pure
-clause: raft's configuration once the node's bootstrap is over, the voters' (not raft's, still growing
-from empty) during it (amendment A1: the bootstrap lines' events are of raft's configuration, their
-law's bound of the capability's, `trCapB_hookGate_bf`; `trCapB_cfg` re-keys it). -/
+clause, always the voters': raft's own whenever raft's tracker holds all the voters (which `b = true`
+implies), not while it grows from empty in `newRaft` and `Bootstrap` (amendment A1: the bootstrap
+lines' events are of raft's configuration, their law's bound of the capability's,
+`trCapB_hookGate_bf`; `trCapB_cfg` re-keys it). -/
 def trCapB (tr : Option GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (b : Bool)
     (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ : Option TraceEv → Prop := fun _ => True) :
     IProp GF :=

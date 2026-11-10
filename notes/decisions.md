@@ -33742,6 +33742,17 @@ its bootstrap) would then need the configuration as a new premise, all to say wh
 of the one gate says. *The bootstrap law over the configuration the line carries*: the law already is
 (its `E` is free); only the gate fixed one `c`.
 
+*`sendEvOf_ok` over `Msg.NumsBelow`* (review a1-r1's 2): one premise for the message's six numbers; a
+received message's numbers are not its receiver's to prove (the bags' `msgAbs` drops `rejectHint`, and a
+rejected `MsgAppResp` relays the received `MsgApp`'s index), so the intended source is a persistent,
+trace-mode-gated fact the send line records of the message (it proves `Msg.NumsBelow` for its own
+premise) and the receive line reads back; no law changes for it. Decided here, built in the Prove phase.
+`TraceEv.ok_mono`/`okBoot_mono` dropped (unused once the bootstrap bound is at `|cC|`).
+
 **Open (owed by the bootstrap clause's work, layer B):** the routing itself, `newRaft`'s and
 `Bootstrap`'s traced proofs creating the capability at the voters' configuration and calling these
-gates; a received message's numbers (q13-r1's F4, now its `rejectHint` too).
+gates, with the gates still missing (review a1-r1's 3): a lemma parsing `InitState`/`ApplyConfChange`
+events as bootstrap lines (`nodeEvOf_bf_boot`'s counterpart, for `trCap_fire_boot`'s first premise); an
+either-mode `ApplyConfChange` gate for `switchToConfig` with `cC` apart from `c` (`b = false` in
+`Bootstrap`, `b = true` in the application's apply); an intro law building `trCapB` once `newRaft` has
+allocated `r`. Owed by the Prove phase: the message fact above (q13-r1's F4), the receipt bound (F3).
