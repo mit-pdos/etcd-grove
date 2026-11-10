@@ -1087,6 +1087,8 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   in-flight message raft's `msgAbs` or a phantom); (c) `MsgsUniq` on the logged fields only (breaks
   `LineEffect`'s single match). **Recommended: (a)**, folded into amendment A2 (same files, one review
   round, one re-freeze). Not taken: a frozen definition.
+  **Taken by the coordinator (the freeze being delegated to it), pending the user's veto: (a)**, folded
+  into amendment A2 before its re-freeze (one review round covering Q14 and Q15).
 - **Q14 (2026-11-10, Q8 stage 1 slice 15): a receive line's phantom replies, unpinned in the frozen
   `FxPresR`.** `FxPresR` (`TracedCap.lean`, frozen at `trace-check-frozen-a1`) asks the specification
   state's facts after the line for every result `(a', P', Pph)` its `LineEffect` admits; the phases pin
