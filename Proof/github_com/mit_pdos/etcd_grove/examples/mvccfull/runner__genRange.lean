@@ -161,7 +161,6 @@ theorem runner.genRange.wp_proof
         iframe
         ipureintro
         refine ⟨⟨Hkk, He⟩, Or.inr (Or.inr (Or.inl rfl)), lim_ok _ _ _ Hksn.1 Hksn.2 Hl⟩
-  sorry
 
 end proof
 
