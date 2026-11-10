@@ -100,7 +100,7 @@ theorem store.updateOnce.wp_proof
   iunfold transformerOk at Htr
   icases Htr with ⟨-, #HtrTo⟩
   wp_apply HtrTo $$ [$Hdsl] as %vsl %terr Htres
-  icases Htres with (⟨%Hterr, %val, %Hval, #Hvsl⟩ | ⟨%Hterr, #Htes⟩)
+  icases Htres with (⟨%Hterr, %val, %Hval, #Hvsl⟩ | ⟨%Hterr, %Htre, #Htes⟩)
   · subst Hterr
     have hdv : c.S.dec val = some (o', true) := c.S.dec_toS_encode o' val Hval
     (try wp_auto)
@@ -352,7 +352,7 @@ theorem store.updateOnce.wp_proof
       · iframe #
         ipureintro; exact Hspn
       (try wp_auto)
-      wp_apply wp_NewInternalError ti' $$ [] as %ie -
+      wp_apply wp_NewInternalError ti' $$ [] as %ie %Hie
       · iframe #
         iunfold go_etcd_io.etcd.cache.v3.errorStringSpec
         iexact Hes
@@ -360,7 +360,7 @@ theorem store.updateOnce.wp_proof
       iapply HΦ
       ileft
       isplitl []
-      · iapply unkErr_internal
+      · iapply (unkErr_internal _ _ (by rw [Hie]; exact Htre))
       iexists o0, rv0
       iexact Hout
 

@@ -129,6 +129,7 @@ def driverSpec : ObjSpec GF DObj where
   objAt_ptr := objAtD_ptr
   newObj := objAtD_new
   encErr _ := False
+  trErr _ := False
 
 theorem driverSpec_tyOk (h : objTyOk) : (driverSpec (GF := GF)).tyOk := h
 

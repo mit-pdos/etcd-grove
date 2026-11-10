@@ -62,6 +62,17 @@ Planned forms, not yet made: `errIs` on `errOutL`, with `(tooLargeErrIs err ∗ 
 Val ≤ 2^20 ∧ CachedNoRV x`; `call`/`Apply` take `threadTok` (lintest's `applySpec` lends it) and
 `⌜threadBound GF ≤ 2^30-1⌝`; `callPre`/`callAt` gain the list kind (`listQ`/`listP`-shaped `QL`, `PL`).
 
+**Decided by etcd-grove-81 under the user's delegation (2026-11-10), as recommended:**
+(A) stays with 7c-3; the driver carries a named pending hypothesis until then; k8s-7e lands after 7c-3
+and 7e-1. (B) approved: `ObjSpec.trErr`, `transformerOk`'s error branches under it,
+`NewInternalError`'s post `ie.err' = ei` (a proved spec, `Proof/k8s_io/apiserver/pkg/storage/
+NewInternalError.lean`: no trusted text, so no Go test needed), `unkErr`'s InternalError branch
+`∧ c.S.trErr ie.err'`, the driver's `trErr` `False`; every other `ObjSpec` instance gets a true
+`trErr` (there is none: `driverSpec` is the only one, checked by grep). Planned forms accepted.
+**(B) done** (third session): built capped with the compactor's `Results`, the store's and cacher's
+`Link`, the driver's `ObjSpec`/`Contract`/`ListContract`/`InvSteps`/`Cache` (7982 jobs,
+`/shared/tmp/k8s-7e-4/b2.log`).
+
 ## Forms decided (accepted by etcd-grove-81, 2026-11-10, all five)
 
 1. `Refine`: `ItemRel`/`PairRel` → `KRel` over 7e-3c's `PairRelH`; `mkObj` moved to `Refine`

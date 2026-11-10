@@ -157,7 +157,7 @@ theorem store.Create.wp_proof
     iunfold transformerOk at Htr
     icases Htr with ⟨-, #HtrTo⟩
     wp_apply HtrTo $$ [$Hdsl] as %vsl %terr Htres
-    icases Htres with (⟨%Hterr, %v, %Hv, #Hvsl⟩ | ⟨%Hterr, #Htes⟩)
+    icases Htres with (⟨%Hterr, %v, %Hv, #Hvsl⟩ | ⟨%Hterr, %Htre, #Htes⟩)
     · subst Hterr
       (try wp_auto)
       wp_apply wp_AddEvent spn _ _ $$ []
@@ -322,7 +322,7 @@ theorem store.Create.wp_proof
         · iframe #
           ipureintro; exact Hspn
         (try wp_auto)
-        wp_apply wp_NewInternalError ti' $$ [] as %ie -
+        wp_apply wp_NewInternalError ti' $$ [] as %ie %Hie
         · iframe #
           iunfold go_etcd_io.etcd.cache.v3.errorStringSpec
           iexact Hes
@@ -336,7 +336,7 @@ theorem store.Create.wp_proof
         · iexists o, []; iexact Hobj
         ileft
         isplitl []
-        · iapply unkErr_internal
+        · iapply (unkErr_internal _ _ (by rw [Hie]; exact Htre))
         iexists o0, rv0
         iexact Hout
   · -- the encoding failed

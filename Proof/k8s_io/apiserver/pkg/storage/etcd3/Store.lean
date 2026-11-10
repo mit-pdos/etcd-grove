@@ -161,7 +161,8 @@ def storageErrIs (err : GoInterface) (code : w64) (key : GoString) (rv : w64) : 
 
 /-- **An error whose outcome is unknown** (a method's first disjunct: its write, if any, may or may
 not have fired): not `nil`, and the client's (`clientErr`, `statusErrOk`, `errCellOk`: the store
-returns the client's errors unchanged), an `InternalError` (the transformer's failures, wrapped),
+returns the client's errors unchanged), an `InternalError` wrapping a transformer's failure
+(`ObjSpec.trErr`; stage 7e-4, (B), decided by etcd-grove-81),
 or the codec's own (`ObjSpec.encErr`). None is a `*StorageError` or a callback's error, which a
 caller tells apart by type or identity. -/
 def unkErr (c : StoreCfg GF Obj) (err : GoInterface) : IProp GF :=
@@ -169,7 +170,8 @@ def unkErr (c : StoreCfg GF Obj) (err : GoInterface) : IProp GF :=
     ((⌜clientErr err⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗
         go_etcd_io.etcd.cache.v3.errCellOk err) ∨
       ⌜(∃ ie : k8s_io.apiserver.pkg.storage.InternalError,
-          err = interface.mkOk k8s_io.apiserver.pkg.storage.InternalError.ty #ie) ∨
+          err = interface.mkOk k8s_io.apiserver.pkg.storage.InternalError.ty #ie ∧
+          c.S.trErr ie.err') ∨
         c.S.encErr err⌝))
 
 instance unkErr_persistent (c : StoreCfg GF Obj) (err : GoInterface) :
@@ -197,13 +199,14 @@ theorem unkErr_client (c : StoreCfg GF Obj) (err : GoInterface) (hn : err ≠ Go
   ipureintro; exact hc
 
 open Iris.ProofMode in
-theorem unkErr_internal (c : StoreCfg GF Obj) (ie : k8s_io.apiserver.pkg.storage.InternalError) :
+theorem unkErr_internal (c : StoreCfg GF Obj) (ie : k8s_io.apiserver.pkg.storage.InternalError)
+    (ht : c.S.trErr ie.err') :
     ⊢ unkErr (GF := GF) c (interface.mkOk k8s_io.apiserver.pkg.storage.InternalError.ty #ie) := by
   unfold unkErr
   isplitr
   · ipureintro; nofun
   iright
-  ipureintro; exact .inl ⟨ie, rfl⟩
+  ipureintro; exact .inl ⟨ie, rfl, ht⟩
 
 open Iris.ProofMode in
 theorem unkErr_enc (c : StoreCfg GF Obj) (err : GoInterface) (hn : err ≠ GoInterface.nil)
