@@ -115,6 +115,43 @@ Next, in order:
    `listCall_take` (`InvSteps`), `lOut_name` for `ansOk`.
 3. The generator, Check, Main* (handoff step 4 of etcd-grove-81's list), then report.
 
+## Fourth session (2026-11-10): `call` proved
+
+Done (each commit checked; `call`, `listOut` built capped, `/shared/tmp/k8s-7e-4/b8.log`):
+- `call.lean` proved (no `sorry`) on the restated `call.spec` (`25ff73d407`): the old branches with
+  `threadTok`, `otherL`, `callOut`, `splitKey` (a new callee), the 8-field `Obj` (`mkObj_toObj`,
+  `updObj_cases` redone, `storedSize_small` on `encodeWith tagV1 (o.toObj 0)`); the list branch:
+  `&ObjList{}` split by `iStructNamed` into `driverListSpec.listAt … [] 0 [] none`, `predOk_driver`,
+  `driver_listContractOk`, `background_neverDone` (local: `ctxNeverDone` of `Background()`),
+  `store.GetList.spec`, then `listErr_errIs` (EOther), `list_tl` (ETooLarge, `errOut`'s tooLarge
+  disjunct) or `list_ok` (`listOut`, `listObjOut_eq`: `listOutDriver`), against `lOut` (`hout`).
+- New `listOut.spec`/proof (`listObjOutL` in `ListSpecD`), `Calls.listErr_errIs`.
+- Forms decided (report at the step-4 checkpoint; `questions.md` is gitignored, so they are here):
+  1. `cachedObjOk` gains `ob.Annotated' = false` (`objAtD` holds an annotation-free record).
+  2. `InOk`'s list conjunct gains `x.ListKey'.length ≤ 2 ^ 20` (GetList's `opKeyMax`; Gen draws
+     short keys: **Gen's proof must give it**).
+  3. `call.spec` gains `c.resourcePrefix = "/objs"`, `c.di = decoderI`, `c.vi = versionerI`, and the
+     persistent pre `rangeStreamOff` (GetList's premises). **Apply/Check/Main discharge them**
+     (`rangeStreamOff` from `noStreaming` in Main; `c.di`/`c.vi` from `New`'s post).
+  4. `call.wp_proof`'s callees: `+ splitKey, listOptions, listOut, store.GetList` and
+     `predOk_driver`'s 7 (`SelectionPredicate.Matches/Empty`, `labelSel.Matches/Empty`,
+     `fieldSel.Matches/Empty`, `getAttrs`), `driver_listContractOk`'s 6 (`apimeta.GetItemsPtr`,
+     `reflect.MakeSlice/Copy/Append`, `decoder.DecodeListItem`, `versioner.UpdateList`). **Put them
+     on `call`'s line of `etc/link-lean-first-k8s-etcd3.txt` at the Link step**, with `listOut`'s
+     line (`encodeItems`).
+
+Next: step 2, `Apply` (below), then 3-6 of etcd-grove-81's list.
+- `Apply.spec`: lintest's `applySpec` is `{{ inOk i ∗ threadTok }} … {{ RET #o; ioOk ∗ threadTok }}`;
+  add `threadTok` both sides, premises `clientErrPlain (sem := sem)`, `threadBound GF ≤ 2^30-1`,
+  `c.di = decoderI`, `c.vi = versionerI`, and `rangeStreamOff -∗` with the other persistent args.
+- Every `wp_call` use: new args `QL PL` (non-list: `fun _ _ => True`, its premises trivial),
+  `hc hrp hdi hvi hAs hse hpl htb …`, the pre's `rangeStreamOff ∗ threadTok`, the post's
+  `threadTok ∗ …`, `callOut` (`if_neg`) for the old `(kStep …).2`.
+- `Hgen.2.1` has five cases now (`Kind = 4` the list). List, prophecy `EOther`: as a `Get`'s
+  (`read_err_commit`); else `listCall`/`list_maker`/`list_makerP`/`listQ_pure`/`listQP_pure`/
+  `listCall_take` (`InvSteps`), `lOut_ans`/`lOut_name` for `ansOk`.
+- `readQ`'s unused `n`: drop it (InvSteps, Apply).
+
 ## Forms decided (accepted by etcd-grove-81, 2026-11-10, all five)
 
 1. `Refine`: `ItemRel`/`PairRel` → `KRel` over 7e-3c's `PairRelH`; `mkObj` moved to `Refine`
