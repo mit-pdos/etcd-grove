@@ -351,6 +351,120 @@ theorem stream.watch.wp_proof
     iapply (register_au' hpers hreach T q W wpl kk e endk st flt nn hkne)
     iframe
     iframe #
+  icases Hres with (⟨%Hc, -⟩ | ⟨-, %σ, %S, HQ, Herr⟩)
+  · exfalso
+    rcases Hend with h | h
+    · exact Hc.1 h
+    · exact Hc.2.1 h
+  iunfold regQ' at HQ
+  icases HQ with ⟨Hret, Hcl, %HQ, #Lrev, %k, #Hk, Hreg⟩
+  obtain ⟨hSo, hWid, hid1, hnσ, hlog2, hlogM⟩ := HQ
+  rw [hSo]
+  simp only [Bool.false_eq_true, ↓reduceIte]
+  icases Herr with %Herr
+  subst Herr
+  ihave Hlive : incLive (GF := GF) T.ep.ks T.ep.γh T.ep.i T.ep.mp T.ep.m T.ep.ι T.ep.kv q $$ [Hret]
+  · iunfold incLive; iframe; iframe #
+  (try wp_auto)
+  wp_apply_core sync.atomic.Int64.wp_Load (mF go!"revHi" T.ep.mp) (DFrac.own 1) $$ [] [-]
+  · iPkgInit
+  imod revHi_acc T.ep.ks T.ep.γh T.ep.i T.ep.mp T.ep.m T.ep.ι T.ep.kv q _ $$ [$Hlive $Lrev]
+    with ⟨%hi, Hvh, %Hhib, Hcl2⟩
+  imodintro
+  inext
+  iexists hi
+  iframe Hvh
+  iintro Hvh
+  imod Hcl2 $$ Hvh with Hlive
+  imodintro
+  (try wp_auto)
+  wp_apply wp_check
+  · ipureintro; rfl
+  (try wp_auto)
+  wp_apply (wp_map_lookup1 go_etcd_io.etcd.server.v3.storage.mvcc.WatchID.ty
+    watcher.ty.PointerType T.wm (GMap.fmap Reg.wp W) id (DFrac.own 1)) $$ [$Hwm] as Hwm
+  rw [hWid]
+  simp only [Option.map_none, Option.getD_none]
+  (try wp_auto)
+  wp_apply wp_check
+  · ipureintro; simp
+  (try wp_auto)
+  -- the watcher's position: floating from `0`, or at its start
+  have hfresh : recvEvs rs id = [] := recvEvs_fresh' Hknown.1 hWid hid1
+  have hrevσ : (σ.rev : Int) = σ.log.length - 1 := by unfold MvccState.rev; omega
+  have hx1 : 1 ≤ watchLo σ st ∧ watchLo σ st < 2 ^ 63 - 1 ∧
+      (st ≠ W64 0 → watchLo σ st = sint.nat st) := by
+    unfold watchLo
+    by_cases h0 : st = W64 0
+    · rw [if_pos h0]; exact ⟨by omega, by omega, fun h => absurd h0 h⟩
+    · rw [if_neg h0]
+      have := Hst.2.2 h0
+      have : sint.nat st = (sint.Z st).toNat := rfl
+      exact ⟨by omega, by have := Hst.2.1; omega, fun _ => rfl⟩
+  wp_bind (If _ _ _)
+  iapply (wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗ w_ptr ↦ wpl ∗
+      ∃ wv : watcher, wpl ↦ wv ∗ ⌜wv.key' = ksl ∧ wv.end' = endk ∧
+        watcherOk Hl rs id (regOf wpl kk e endk st flt (watchLo σ st) k) wv⌝))) $$ [w «$r0» lo hi]
+  · wp_if_destruct
+    · -- floating in `[revLo + 1, revHi + 1]`
+      have hlo1 : sint.Z (lo + W64 1) = sint.Z lo + 1 := by
+        have : sint.Z lo ≤ nn := Hlon.2; have : (nn : Int) ≤ σ.rev := by exact_mod_cast hnσ
+        word
+      have hhi1 : sint.Z (hi + W64 1) = sint.Z hi + 1 := by have := Hhib.2; word
+      have hwl : watchLo σ (W64 0) = σ.log.length := by unfold watchLo; rw [if_pos rfl]
+      iframe
+      ipureintro
+      refine ⟨rfl, rfl, ?_⟩
+      unfold watcherOk
+      refine ⟨rfl, hkne, rfl, rfl, ?_, ?_, hx1.1, hx1.2.1, hx1.2.2, ?_, rfl, ?_, ?_, ?_⟩
+      · simp only [regOf]; word
+      · simp only [regOf]; word
+      · intro h; exact absurd rfl h
+      · intro h; cases h
+      · intro h; cases h
+      rw [hfresh]
+      simp only [List.length_nil]
+      have hl1 : 1 ≤ sint.Z lo := Hlon.1
+      have hhM := Hhib.2
+      refine ⟨?_, ?_, ?_, ?_, ?_⟩
+      · simp only; omega
+      · simp only; decide
+      · simp only; omega
+      · simp only; omega
+      simp only
+      rw [if_pos (by omega)]
+      refine ⟨by first | trivial | rfl, by first | trivial | rfl, ?_, ?_⟩
+      · simp only [regOf]; rw [hwl, hlo1]
+        have : sint.Z lo ≤ nn := Hlon.2; have : (nn : Int) ≤ σ.rev := by exact_mod_cast hnσ
+        omega
+      · simp only [regOf]; rw [hwl, hhi1]; have := Hhib.1; omega
+    · -- at its start
+      iframe
+      ipureintro
+      have hlo := hx1.2.2 Hif
+      refine ⟨rfl, rfl, ?_⟩
+      unfold watcherOk
+      refine ⟨rfl, hkne, rfl, rfl, Hst.1, ?_, hx1.1, hx1.2.1, hx1.2.2, fun _ => rfl, rfl, ?_, ?_, ?_⟩
+      · have := Hst.2.1; simp only [regOf]; omega
+      · intro h; cases h
+      · intro h; cases h
+      rw [hfresh]
+      simp only [List.length_nil]
+      have hs2 := Hst.2.1
+      refine ⟨?_, ?_, ?_, ?_, ?_⟩
+      · simp only; exact Hst.1
+      · simp only; decide
+      · simp only; decide
+      · simp only; omega
+      simp only
+      rw [if_neg (by decide)]
+      simp only [regOf, Reg.mt]
+      rw [hlo]
+      exact ⟨posOk_start _ _ _, Or.inr ⟨by first | trivial | rfl, by first | trivial | rfl,
+        by first | trivial | rfl⟩⟩
+  iintro %v ⟨%hv, w, %wv, «$r0», %Hwv⟩
+  subst hv
+  (try wp_auto)
   trace_state
   sorry
 
