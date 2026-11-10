@@ -501,6 +501,21 @@ def minRVL (m d : w64) (c : Obj) (hasC : Bool) : GoString :=
   else if m < 98 then (if c.ResourceVersion' ≤ d then rvBytes 1 else rvBytes (c.ResourceVersion' - d))
   else rvBytes (c.ResourceVersion' + d)
 
+theorem parseRVD_rvBytes (n : w64) : parseRVD (rvBytes n) = some n := by
+  have hb := bytesBE_rvBytes n
+  simp only [rvBytes] at hb ⊢
+  simp [parseRVD, hb]
+
+/-- **Every string `minRV` returns parses below `2 ^ 63`** (`InOk`'s bound, from the driver's
+`2 ^ 62` cut), for an offset `d` below `2 ^ 61` (the generator's are at most 200). -/
+theorem minRVL_ok (m d : w64) (c : Obj) (hasC : Bool) (hd : uint.Z d ≤ 2 ^ 61) :
+    ∃ k, parseRVD (minRVL m d c hasC) = some k ∧ uint.Z k < 2 ^ 63 := by
+  unfold minRVL
+  repeat' split
+  all_goals first
+    | exact ⟨0, rfl, by decide⟩
+    | (refine ⟨_, parseRVD_rvBytes _, ?_⟩; word)
+
 /-- **The cached object's scope premise** (D1 of stage 7b, `notes/k8s-etcd3-plan.md`;
 `issues/k8s-etcd3-cached-noop-skips-preconditions.md`): an update with a cached object carries no
 resource version precondition. -/
