@@ -44,6 +44,29 @@ names `rpctypesInit`). `etc/gen-init.py --check` passes.
   false = some k ∧ (pathPrefix ++ k).length ≤ opKeyMax`, for `GetCurrentResourceVersion`) proved. Not
   linked (no new trusted spec is linked yet; the last third links them).
 
+## Eighth session (2026-11-10): the review's fixes, the trusted specs linked
+Decisions: etcd-grove-81 (the coordinator's review of the trusted texts, results in its workflow
+journal `wf_dac9ea87-502`, Go tests `/shared/tmp/k8s7e2-review/`). Done, one commit each:
+- `IsTimeout`/`HasStatusCause` (refuted: typed-nil `*StatusError`, bare or `%w`-wrapped, panics in
+  `Status()`): precondition `apiErrOk err` (`View.lean`: a `*StatusError` held read-only, or a
+  `.plain` error; `apiErrAt_ok`); consumers `IsTooLargeResourceVersion` (from the view) and
+  `createPods` (from `errIs`'s struct) discharge it; citation `errors.go:75-79`; Go test
+  `TestTypedNilStatusError` gains the wrapped case.
+- `Client.List.spec`, `store.getList.spec` (refuted: raw range below the prefix): premise
+  `opts.Continue' = [] ∨ pfx <+: opts.Continue'`; `pagedChunks` discharges it (`pagesL_prefix` in
+  `ListDefs`); `GetList` requires no continue key. `Client.GetAt`: the review holds, no change.
+- `KindCompare`: an axiom (`Proof/reflect/KindCompare.lean`), Go test `TestKindIsUint`.
+- `reflect.Type'`: `type_typed_pointsto` (an instance, `heapTypedPointsto` from the axiom
+  `type_intoVal_inj : go.IntoValInj reflect.Type'`; depends on `hG`, `go_gctx`) and the axiom
+  `type_into_val_typed`, both priority high over the generated `sorry`s (`Values.lean`). Value's
+  instance untouched (premise-fixes-3 fixes it on lean; align Type' after merging).
+- Docstrings: `Value.IsNil` (attack test), `json.Marshal` (JSONv2 at go1.27.3).
+- Links: every 7e-2 trusted spec non-pending in `etc/link-lean-first-k8s-etcd3.txt` except
+  `Client__List`/`Client__GetAt`; `etcd3/Link.lean` regenerated.
+- **Next:** `#print axioms store.wp_GetList` (no `sorryAx`), `etc/tcb-report.py --check --update` and
+  the collections, the full build (lock, 64G cap), STOP. After premise-fixes-3 lands: merge lean,
+  RecordEtcdRequest's err precondition comes with it; align `Type'` with Value's pattern.
+
 ## Seventh session (2026-11-10): `GetList` proved
 Rules: `/shared/tmp/coord-81/common-rules.md`. Decisions: `questions.md` (7e-2, seventh session).
 - Done (no `sorry`; built capped, `/shared/tmp/k8s-7e-2/b21.log`, 7369 jobs):
