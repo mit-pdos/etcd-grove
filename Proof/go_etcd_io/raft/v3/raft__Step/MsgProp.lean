@@ -171,6 +171,8 @@ theorem wp_Step_MsgProp
           B < 2 ^ 64⌝ ∗
         "Hrcb" ∷ (⌜plogLastIndexZ (toPState s).base (toPState s).log < B⌝ -∗
           ⧖ (k0 + ents.length)) ∗
+        -- (Q8 stage 1 slice 13) the end state on the path (`StepEnd`, `LemmasStepGates.lean`)
+        "%Hend" ∷ ⌜StepEnd c id m ents ctx s s'⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         -- what `RawNode` keeps track of is untouched (2026-10-09)
         "%Hframe" ∷ ⌜LocalFrame s s' ∧ s'.logst.applying = s.logst.applying⌝ ∗
@@ -230,6 +232,7 @@ theorem wp_Step_MsgProp
       (fun _ => Hnors) $$ [$Hphys Hm $Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
     · iapply msgIn_prop Hty $$ Hm
     ihave HG := stepOut_or R _ _ $$ HGo
+    have Hres0 := Hres
     have Hc1 := (FollowerStepResultC.cfg (by nonsnap Hty) Hres).symm
     unfold FollowerStepResultC at Hres
     replace Hres := Hres.2
@@ -249,6 +252,9 @@ theorem wp_Step_MsgProp
         · ipureintro; exact ⟨Int.le_refl _, by omega, HL⟩
         isplitr
         · iintro %Hlt; exact absurd Hlt (Int.lt_irrefl _)
+        isplitr
+        · ipureintro; exact StepEnd.fn_nobf hnbf (notStale_of_zero Hterm) (by rw [Hty]; w32_ne)
+            (by rw [Hty]; w32_ne) (StepFnEnd.follower Hrole Hres0)
         isplitr
         · ipureintro; exact Hwf
         isplitr
@@ -273,6 +279,9 @@ theorem wp_Step_MsgProp
       · ipureintro; exact ⟨Int.le_refl _, by omega, HL⟩
       isplitr
       · iintro %Hlt; exact absurd Hlt (Int.lt_irrefl _)
+      isplitr
+      · ipureintro; exact StepEnd.fn_nobf hnbf (notStale_of_zero Hterm) (by rw [Hty]; w32_ne)
+          (by rw [Hty]; w32_ne) (StepFnEnd.follower Hrole Hres0)
       isplitr
       · ipureintro; exact nstateWf_sendMsgs _ _ Hwf
       isplitr
@@ -310,6 +319,7 @@ theorem wp_Step_MsgProp
       $$ [$Hphys Hm $Hsrc0 $HG $Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
     · iapply msgIn_prop Hty $$ Hm
     ihave HG := stepOut_or R _ _ $$ HGo
+    have Hres0 := Hres
     have Hc1 := (CandidateStepResultC.cfg (by nonsnap Hty) Hres).symm
     unfold CandidateStepResultC at Hres
     replace Hres := Hres.2
@@ -326,6 +336,9 @@ theorem wp_Step_MsgProp
       · ipureintro; exact ⟨Int.le_refl _, by omega, HL⟩
       isplitr
       · iintro %Hlt; exact absurd Hlt (Int.lt_irrefl _)
+      isplitr
+      · ipureintro; exact StepEnd.fn_nobf hnbf (notStale_of_zero Hterm) (by rw [Hty]; w32_ne)
+          (by rw [Hty]; w32_ne) (StepFnEnd.candidate (.inl Hrole) Hres0)
       isplitr
       · ipureintro; exact Hwf
       isplitr
@@ -356,6 +369,7 @@ theorem wp_Step_MsgProp
       · iapply msgIn_prop Hty $$ Hm
       · iintro _; iexists cs; iexact Hcc
     ihave HG := stepOut_leader R _ _ _ _ $$ HGo
+    have Hres0 := Hres
     unfold LeaderStepResultC at Hres
     rw [ite_pos Hty] at Hres
     unfold LeaderProposeResult at Hres
@@ -388,6 +402,9 @@ theorem wp_Step_MsgProp
       · ipureintro; exact ⟨by omega, Int.le_refl _, Hnwe0⟩
       isplitr
       · iintro -; iexact Hrc2
+      isplitr
+      · ipureintro; exact StepEnd.fn_nobf hnbf (notStale_of_zero Hterm) (by rw [Hty]; w32_ne)
+          (by rw [Hty]; w32_ne) (StepFnEnd.leader Hrole Hres0)
       isplitr
       · ipureintro; exact nstateWf_prvals _ _ (nstateWf_sendMsgs _ _ Hwf)
       isplitr
@@ -488,6 +505,9 @@ theorem wp_Step_MsgProp
         isplitr
         · iintro %Hlt; exact absurd Hlt (Int.lt_irrefl _)
         isplitr
+        · ipureintro; exact StepEnd.fn_nobf hnbf (notStale_of_zero Hterm) (by rw [Hty]; w32_ne)
+            (by rw [Hty]; w32_ne) (StepFnEnd.leader Hrole Hres0)
+        isplitr
         · ipureintro; exact Hwf
         isplitr
         · ipureintro; exact ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩, rfl⟩
@@ -520,6 +540,7 @@ theorem wp_Step_MsgProp
       $$ [$Hphys Hm $Hsrc0 $HG $Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
     · iapply msgIn_prop Hty $$ Hm
     ihave HG := stepOut_or R _ _ $$ HGo
+    have Hres0 := Hres
     have Hc1 := (CandidateStepResultC.cfg (by nonsnap Hty) Hres).symm
     unfold CandidateStepResultC at Hres
     replace Hres := Hres.2
@@ -536,6 +557,9 @@ theorem wp_Step_MsgProp
       · ipureintro; exact ⟨Int.le_refl _, by omega, HL⟩
       isplitr
       · iintro %Hlt; exact absurd Hlt (Int.lt_irrefl _)
+      isplitr
+      · ipureintro; exact StepEnd.fn_nobf hnbf (notStale_of_zero Hterm) (by rw [Hty]; w32_ne)
+          (by rw [Hty]; w32_ne) (StepFnEnd.candidate (.inr Hrole) Hres0)
       isplitr
       · ipureintro; exact Hwf
       isplitr

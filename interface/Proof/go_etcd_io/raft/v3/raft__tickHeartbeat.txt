@@ -19,7 +19,7 @@ theorem raft.tickHeartbeat.wp_proof [package_sem : Assumptions] (wp_raft_Step : 
                       "Hgcq" ∷
                           (⌜s.cq = true⌝ -∗
                             stepGates c r id s (tickMsg MsgCheckQuorum id) [] none [] [] (ghostIn γ md c id s R) ∗
-                              stepClose γ md c id (tickMsg MsgCheckQuorum id) s R Gm) ∗
+                              stepClose γ md c id (tickMsg MsgCheckQuorum id) [] [] s R Gm) ∗
                         "Hskip" ∷ (R.G ={⊤}=∗ Gm s) ∗
                           "Hgbeat" ∷
                             ∀ s1 s2,
@@ -37,7 +37,7 @@ theorem raft.tickHeartbeat.wp_proof [package_sem : Assumptions] (wp_raft_Step : 
                                   ∃ R2,
                                     R2.G ∗
                                       stepGates c r id s2 (tickMsg MsgBeat id) [] none [] [] (ghostIn γ md c id s2 R2) ∗
-                                        stepClose γ md c id (tickMsg MsgBeat id) s2 R2 Gout) -∗
+                                        stepClose γ md c id (tickMsg MsgBeat id) [] [] s2 R2 Gout) -∗
               (▷
                   ∀ s',
                     "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗

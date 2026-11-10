@@ -19,7 +19,7 @@ theorem raft.tickElection.wp_proof [package_sem : Assumptions] (wp_promotable :
                         "Hghost" ∷ ownStepGhost γ md c id s ∗
                           "HG" ∷ R.G ∗
                             "Hgates" ∷ stepGates c r id s (tickMsg MsgHup id) [] none [] [] (ghostIn γ md c id s R) ∗
-                              "Hclose" ∷ stepClose γ md c id (tickMsg MsgHup id) s R Gout -∗
+                              "Hclose" ∷ stepClose γ md c id (tickMsg MsgHup id) [] [] s R Gout -∗
                     (▷
                         ∀ s',
                           "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗

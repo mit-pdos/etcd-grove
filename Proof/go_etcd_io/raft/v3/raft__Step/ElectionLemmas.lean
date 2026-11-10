@@ -168,7 +168,7 @@ within the timeout, not forced), so the rest of `Step` is verified once, not onc
 (MsgVote_gt: 15m to 3m of CPU, 2026-10-20). The return is closed here (`StepC.refl`); the one
 goal left is the code after the check. -/
 macro "wp_lease_check " cx:term : tactic => `(tactic| (
-  wp_join (Q := fun v => iprop(⌜v = executeVal ∨ v = returnVal #()⌝ ∗
+  wp_join (Q := fun v => iprop(⌜v = executeVal ∨ (v = returnVal #() ∧ s.cq = true)⌝ ∗
       r_ptr ↦ r ∗ m_ptr ↦ ml ∗ ownRaftPhysCV c c.voters r id s ∗
       msgPtsC ml (DFrac.own 1) DFrac.discard (needsCap (⟨m, ents, sn, ctx, rs⟩ : MsgSt).msg)
         ⟨m, ents, sn, ctx, rs⟩ ∗ «$res0_ptr» ↦ interface.nil)) at next
@@ -219,9 +219,9 @@ macro "wp_lease_check " cx:term : tactic => `(tactic| (
       try wp_auto
       iframe
       ipureintro
-      first | exact Or.inl rfl | exact Or.inr rfl | exact Or.inl trivial)
+      first | exact Or.inl rfl | exact Or.inr ⟨rfl, by first | rfl | exact Hcq⟩ | (right; refine ⟨rfl, ?_⟩; simp_all) | exact Or.inl trivial)
   iintro ⟨%Hv, r, m, Hphys, Hm, «$res0»⟩
-  rcases Hv with rfl | rfl
+  rcases Hv with rfl | ⟨rfl, Hcqr⟩
   -- ignored within the lease: `nil`, the state unchanged
   rotate_left
   · wp_auto
@@ -230,6 +230,11 @@ macro "wp_lease_check " cx:term : tactic => `(tactic| (
     iframe Hphys HG
     ipureintro
     first
+      | exact ⟨Perennial.EtcdGrove.StepEnd.vote Hty
+          (Perennial.EtcdGrove.notStale_of_le (Int.le_of_lt Hgt0)) (.inl ⟨Hcqr, rfl⟩), Hwf, ⟨[],
+          fun _ H => absurd H List.not_mem_nil,
+          Perennial.EtcdGrove.StepCD.frame (.refl _) (Perennial.EtcdGrove.RFrame.refl _)⟩, rfl,
+          Perennial.EtcdGrove.StepProof.keep_frame rfl rfl rfl rfl rfl⟩
       | exact ⟨Hwf, ⟨[], fun _ H => absurd H List.not_mem_nil,
           Perennial.EtcdGrove.StepCD.frame (.refl _) (Perennial.EtcdGrove.RFrame.refl _)⟩, rfl,
           Perennial.EtcdGrove.StepProof.keep_frame rfl rfl rfl rfl rfl⟩
@@ -317,7 +322,13 @@ macro "vote_grant_tail" : tactic => `(tactic| (
   iapply HΦ $$ %interface.nil %_
   iframe Hphys HG
   ipureintro
-  refine ⟨Hwf, ⟨[absMsg .vote m ents], fun m' Hm' => by simpa using Hm', ?_⟩, rfl,
+  refine ⟨Perennial.EtcdGrove.StepEnd.vote Hty
+      (Perennial.EtcdGrove.notStale_of_le (by rw [Heq0]; exact Int.le_refl _))
+      (.inr ⟨∅, by
+        rw [Perennial.EtcdGrove.preState_nobf hnbf]
+        exact Perennial.EtcdGrove.VoteEnd.grant' Hty
+          ⟨by first | exact .inl Hv1 | exact .inr (.inl ⟨Hv00, Hl0⟩), Hutd.symm⟩⟩),
+    Hwf, ⟨[absMsg .vote m ents], fun m' Hm' => by simpa using Hm', ?_⟩, rfl,
     keep_frame rfl rfl rfl rfl rfl⟩
   refine StepCD.frame ?_ (by rframe)
   have H : StepCF c id (toPState s) [absMsg .vote m ents]
@@ -377,7 +388,19 @@ macro "vote_reject_tail" : tactic => `(tactic| (
   iapply HΦ $$ %interface.nil %_
   iframe Hphys HG
   ipureintro
-  exact ⟨Hwf, ⟨[absMsg .vote m ents], fun m' Hm' => by simpa using Hm',
+  exact ⟨Perennial.EtcdGrove.StepEnd.vote Hty
+      (Perennial.EtcdGrove.notStale_of_le (by rw [Heq0]; exact Int.le_refl _))
+      (.inr ⟨∅, by
+        rw [Perennial.EtcdGrove.preState_nobf hnbf]
+        refine Perennial.EtcdGrove.VoteEnd.reject' Hty (fun h => ?_)
+        obtain ⟨hc, hu⟩ := h
+        first
+        | exact absurd (Hutd.trans hu) (by decide)
+        | (rcases hc with hc | ⟨hv, hl⟩ | ⟨hp, -⟩
+           · first | exact Hv1 hc | exact Hfnz (hc.symm.trans Hv00)
+           · first | exact Hl0 hl | exact Hv00 hv
+           · rw [Hty] at hp; exact absurd hp (by w32_ne))⟩),
+    Hwf, ⟨[absMsg .vote m ents], fun m' Hm' => by simpa using Hm',
     StepCD.frame (StepCF.rejectVote (absMsg .vote m ents) (toPState s) rfl Hto) (by rframe)⟩, rfl,
     keep_frame rfl rfl rfl rfl rfl⟩))
 

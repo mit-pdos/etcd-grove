@@ -62,7 +62,7 @@ abbrev raft.tickHeartbeat.spec : Prop :=
       -- the quorum check's `Step`, at `s`
       "Hgcq" ∷ (⌜s.cq = true⌝ -∗
         stepGates c r id s (tickMsg MsgCheckQuorum id) [] none [] [] (ghostIn γ md c id s R) ∗
-        stepClose γ md c id (tickMsg MsgCheckQuorum id) s R Gm) ∗
+        stepClose γ md c id (tickMsg MsgCheckQuorum id) [] [] s R Gm) ∗
       -- no quorum check
       "Hskip" ∷ (R.G ={⊤}=∗ Gm s) ∗
       -- the heartbeat's `Step`, at the state the first part left
@@ -70,7 +70,7 @@ abbrev raft.tickHeartbeat.spec : Prop :=
           (s2 = s1 ∨ s2 = { s1 with lt := W64 0 })⌝ -∗ Gm s1 ={⊤}=∗
         ∃ R2 : StepG GF, R2.G ∗
           stepGates c r id s2 (tickMsg MsgBeat id) [] none [] [] (ghostIn γ md c id s2 R2) ∗
-          stepClose γ md c id (tickMsg MsgBeat id) s2 R2 Gout) }}
+          stepClose γ md c id (tickMsg MsgBeat id) [] [] s2 R2 Gout) }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"tickHeartbeat")) (Val #()))
   {{ (s' : NState), RET #();
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗

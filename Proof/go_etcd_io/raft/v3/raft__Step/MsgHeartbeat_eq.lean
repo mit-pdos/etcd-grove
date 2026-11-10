@@ -64,6 +64,8 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
+        -- (Q8 stage 1 slice 13) the end state on the path (`StepEnd`, `LemmasStepGates.lean`)
+        "%Hend" ∷ ⌜StepEnd c id m ents ctx s s'⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .heartbeat m ents ctx) ∧
             StepCD c id B m s recv s'⌝ ∗
@@ -123,7 +125,8 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
     iapply HΦ $$ %interface.nil %_
     iframe Hphys HG
     ipureintro
-    refine ⟨nstateWf_heartbeatResult _ _ _ _ Hwf, ⟨[absMsg .heartbeat m ents ctx], ?_, ?_⟩, rfl,
+    refine ⟨StepEnd.fn_nobf hnbf (notStale_of_le (by rw [Hteq]; exact Int.le_refl _)) (by rw [Hty]; w32_ne)
+      (by rw [Hty]; w32_ne) (StepFnEnd.follower Hrole Hres), nstateWf_heartbeatResult _ _ _ _ Hwf,⟨[absMsg .heartbeat m ents ctx], ?_, ?_⟩, rfl,
       keep_frame rfl rfl rfl rfl rfl (hpc := .mk' fun h => absurd (h.symm.trans Hrole) (by decide))⟩
     · intro m' Hm'
       exact List.mem_singleton.mp Hm'
@@ -154,7 +157,9 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
     iapply HΦ $$ %interface.nil %_
     iframe Hphys HG
     ipureintro
-    refine ⟨nstateWf_heartbeatResult _ _ _ _ ⟨rfl, rfl⟩, ⟨[absMsg .heartbeat m ents ctx], ?_, ?_⟩, rfl,
+    refine ⟨StepEnd.fn_nobf hnbf (notStale_of_le (by rw [Hteq]; exact Int.le_refl _)) (by rw [Hty]; w32_ne)
+      (by rw [Hty]; w32_ne) (StepFnEnd.candidate (by first | exact .inl Hrole | exact .inr Hrole) Hres),
+      nstateWf_heartbeatResult _ _ _ _ ⟨rfl, rfl⟩,⟨[absMsg .heartbeat m ents ctx], ?_, ?_⟩, rfl,
       keep_frame rfl rfl rfl rfl rfl⟩
     · intro m' Hm'
       exact List.mem_singleton.mp Hm'
@@ -192,6 +197,8 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
     iapply HΦ $$ %interface.nil %s'
     iframe Hphys HG
     ipureintro
+    refine ⟨StepEnd.fn_nobf hnbf (notStale_of_le (by rw [Hteq]; exact Int.le_refl _)) (by rw [Hty]; w32_ne)
+      (by rw [Hty]; w32_ne) (StepFnEnd.leader Hrole Hres), ?_⟩
     rw [Hs']
     exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
       keep_frame rfl rfl rfl rfl rfl⟩
@@ -220,7 +227,9 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
     iapply HΦ $$ %interface.nil %_
     iframe Hphys HG
     ipureintro
-    refine ⟨nstateWf_heartbeatResult _ _ _ _ ⟨rfl, rfl⟩, ⟨[absMsg .heartbeat m ents ctx], ?_, ?_⟩, rfl,
+    refine ⟨StepEnd.fn_nobf hnbf (notStale_of_le (by rw [Hteq]; exact Int.le_refl _)) (by rw [Hty]; w32_ne)
+      (by rw [Hty]; w32_ne) (StepFnEnd.candidate (by first | exact .inl Hrole | exact .inr Hrole) Hres),
+      nstateWf_heartbeatResult _ _ _ _ ⟨rfl, rfl⟩,⟨[absMsg .heartbeat m ents ctx], ?_, ?_⟩, rfl,
       keep_frame rfl rfl rfl rfl rfl⟩
     · intro m' Hm'
       exact List.mem_singleton.mp Hm'

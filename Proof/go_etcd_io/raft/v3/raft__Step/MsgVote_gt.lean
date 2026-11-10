@@ -75,6 +75,8 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
+        -- (Q8 stage 1 slice 13) the end state on the path (`StepEnd`, `LemmasStepGates.lean`)
+        "%Hend" ∷ ⌜StepEnd c id m ents ctx s s'⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         -- `recv` is whatever this branch consumed -- nothing, or the incoming message
         -- once or twice. Naming its elements rather than the list lets
@@ -248,7 +250,10 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ $$ %interface.nil %_
     iframe Hphys HG
     ipureintro
-    refine ⟨nstateWf_sendMsgs _ _ Hwf1, ⟨[absMsg .vote m ents] ++ [absMsg .vote m ents], ?_, ?_⟩,
+    refine ⟨StepEnd.vote Hty (notStale_of_le (Int.le_of_lt Hgt0)) (.inr ⟨pvs, by
+        rw [preState_bf' hbf hlead pvs, ← Hs1]
+        exact VoteEnd.reject' Hty (fun h => absurd (Hutd.trans h.2) (by decide))⟩),
+      nstateWf_sendMsgs _ _ Hwf1, ⟨[absMsg .vote m ents] ++ [absMsg .vote m ents], ?_, ?_⟩,
       rfl, stepdown_frame' (by rw [Hty]; w32_ne) Hgt0 Hs1 rfl rfl⟩
     · intro m' Hm'; simpa using Hm'
     · refine StepCD.frame ?_ (by subst Hs1; rframe)
@@ -308,7 +313,10 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ $$ %interface.nil %_
     iframe Hphys HG
     ipureintro
-    refine ⟨Hwf1, ⟨[absMsg .vote m ents] ++ [absMsg .vote m ents], ?_, ?_⟩, rfl,
+    refine ⟨StepEnd.vote Hty (notStale_of_le (Int.le_of_lt Hgt0)) (.inr ⟨pvs, by
+        rw [preState_bf' hbf hlead pvs, ← Hs1]
+        exact VoteEnd.grant' Hty ⟨.inr (.inl ⟨Hv1, Hl1⟩), Hutd.symm⟩⟩),
+      Hwf1, ⟨[absMsg .vote m ents] ++ [absMsg .vote m ents], ?_, ?_⟩, rfl,
       stepdown_frame' (by rw [Hty]; w32_ne) Hgt0 Hs1 rfl rfl rfl rfl
         (.mk' (fun h => absurd h (by subst Hs1; simp [sendMsgs, becomeFollower]))
           (fun h1 _ => (h1 (by subst Hs1; simp [sendMsgs, becomeFollower])).elim))⟩

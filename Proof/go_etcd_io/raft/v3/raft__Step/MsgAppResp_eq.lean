@@ -70,6 +70,8 @@ theorem wp_Step_MsgAppResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
+        -- (Q8 stage 1 slice 13) the end state on the path (`StepEnd`, `LemmasStepGates.lean`)
+        "%Hend" ∷ ⌜StepEnd c id m ents ctx s s'⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .appResp m ents) ∧
             StepCD c id B m s recv s'⌝ ∗
@@ -133,7 +135,7 @@ theorem wp_Step_MsgAppResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ $$ %interface.nil %s
     iframe Hphys HG
     ipureintro
-    exact ⟨Hwf, ⟨[], fun _ Hin => absurd Hin List.not_mem_nil, StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
+    exact ⟨by end_nobf, Hwf, ⟨[], fun _ Hin => absurd Hin List.not_mem_nil, StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
       keep_frame rfl rfl rfl rfl rfl⟩
   · -- Candidate: no `MsgAppResp` arm either
     simp only [stepFuncOf]
@@ -160,7 +162,7 @@ theorem wp_Step_MsgAppResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ $$ %interface.nil %s
     iframe Hphys HG
     ipureintro
-    exact ⟨Hwf, ⟨[], fun _ Hin => absurd Hin List.not_mem_nil, StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
+    exact ⟨by end_nobf, Hwf, ⟨[], fun _ Hin => absurd Hin List.not_mem_nil, StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
       keep_frame rfl rfl rfl rfl rfl⟩
   · -- Leader: the replication path
     simp only [stepFuncOf]
@@ -192,7 +194,7 @@ theorem wp_Step_MsgAppResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ $$ %interface.nil %s'
     iframe Hphys HG
     ipureintro
-    exact ⟨Hwf', ⟨recv, Hrecv, Hstep⟩, rfl, Hft⟩
+    exact ⟨by end_nobf, Hwf', ⟨recv, Hrecv, Hstep⟩, rfl, Hft⟩
   · -- PreCandidate (2026-10-04), as a candidate: no `MsgAppResp` arm either
     simp only [stepFuncOf]
     ihave #Hsrc0 : rcvSrc (GF := GF) s.gh.sn m.Type' sn $$ []
@@ -218,7 +220,7 @@ theorem wp_Step_MsgAppResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ $$ %interface.nil %s
     iframe Hphys HG
     ipureintro
-    exact ⟨Hwf, ⟨[], fun _ Hin => absurd Hin List.not_mem_nil, StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
+    exact ⟨by end_nobf, Hwf, ⟨[], fun _ Hin => absurd Hin List.not_mem_nil, StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
       keep_frame rfl rfl rfl rfl rfl⟩
 
 end StepProof
