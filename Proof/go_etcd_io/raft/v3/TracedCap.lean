@@ -816,6 +816,19 @@ logs agree, which a new message's line can then re-establish. -/
 def MsgsShape (σ : Etcdraft.State) : Prop :=
   ∀ x ∈ σ.messages.domain ++ σ.pendingMessages.domain, canonMsg x = x
 
+/-- **A leader's append requests of its term are slices of its log** (amendment A2, Q16; the notes'
+`AppSlices`): while server `i` leads term `T`, every append request in flight of term `T` from `i`
+carries, at each of its positions, the entry of `i`'s log at that index. Inductive: only the term's
+leader sends append requests of its term, from its log (`appendEntriesInRangeToPeer`); a leader's log
+only grows within its term (`Replicate`; truncations, `ConflictAppendEntriesRequest` and a snapshot's,
+happen at followers only); a candidate has none of its term out (`CandS`), and a leader steps down
+for good in its term. With it, a new append request of the leader matches no other in-flight request
+differing from it in its entries (which its line logs by count only). -/
+def AppSlices (σ : Etcdraft.State) : Prop :=
+  ∀ m ∈ σ.messages.domain ++ σ.pendingMessages.domain, m.type = .appendEntriesRequest →
+    ∀ i ∈ σ.server, (σ.s i).state = Etcdraft.leader → (σ.s i).currentTerm = m.term → m.source = i →
+      ∀ (k : Nat) (e : Etcdraft.Entry), m.entries[k]? = some e → (σ.s i).log[m.prevLogIndex.toNat + k]? = some e
+
 /-- **A message's facts** (review round 2's A3): an append request carries its source's leadership of
 its term (`isLeader`: raft sends one only while leading), its entries' records after its previous
 entry (`logRecs`, their indices within `w64`); any other message carries no entries. (Review round
@@ -845,11 +858,11 @@ instance msgFacts_timeless (γ : RaftNames) (C : List w64) (m : Etcdraft.Msg) :
 `Replicate` lines announced before raft appends them: `srvFacts`, review finding A9), the
 specification invariant `SpecInv` (`TraceSimSpecInv.lean`: with it
 `ElectionSafetyInv`, `CommittedIsDurableInv`, `CommitWithinLeader`; it replaces `DurInv`, false as
-stated), `QuorumLogInv`'s fact, the bags' uniqueness and (amendment A2, Q15) every message in flight canonical
-(`MsgsShape`). -/
+stated), `QuorumLogInv`'s fact, the bags' uniqueness and (amendment A2, Q15, Q16) every message in flight
+canonical (`MsgsShape`) and a leader's append requests of its term slices of its log (`AppSlices`). -/
 def simFx (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) : IProp GF :=
   iprop(allFacts γ C σ ∗ (□ ∀ m, ⌜m ∈ σ.messages.domain ++ σ.pendingMessages.domain⌝ → msgFacts γ C m) ∗
-    ⌜TraceSpecInv.SpecInv σ ∧ QuorumLogF σ ∧ MsgsUniq σ ∧ MsgsShape σ⌝)
+    ⌜TraceSpecInv.SpecInv σ ∧ QuorumLogF σ ∧ MsgsUniq σ ∧ MsgsShape σ ∧ AppSlices σ⌝)
 
 instance simFx_persistent (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) :
     Persistent (simFx (GF := GF) γ C σ) := by

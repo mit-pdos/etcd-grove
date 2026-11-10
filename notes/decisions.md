@@ -34405,7 +34405,7 @@ and the other send lines' phase steps (`lineEffect_requestVote`, `lineEffect_sel
 
 No ghost change; no client-visible change; no frozen statement changed; no axiom or `sorry`.
 
-## Amendment A2 (Q14, Q15): a receive line's phantom replies a function of the receiving server; `simFx`'s shape clause (2026-11-10 · trace-check, Q14 (a) and Q15 (a) taken by the coordinator pending the user's veto, their form decided by the agent · branch `trace-check-a2`; amends the frozen Draft, tag `trace-check-frozen-a1`; DRAFT until the re-freeze `trace-check-frozen-a2`)
+## Amendment A2 (Q14, Q15, Q16): a receive line's phantom replies a function of the receiving server; `simFx`'s shape clause and a leader's append slices (2026-11-10 · trace-check, Q14 (a), Q15 (a) and Q16 (b) taken by the coordinator pending the user's veto, their form decided by the agent · branch `trace-check-a2`; amends the frozen Draft, tag `trace-check-frozen-a1`; DRAFT until the re-freeze `trace-check-frozen-a2`)
 
 **Why.** Two blockers of the frozen Draft. Q14 (slice 15): `FxPresR` asked the facts `simFx` after a
 receive line for every phantom list `Pph` (the specification's replies raft does not send) its
@@ -34454,10 +34454,34 @@ layers); (c) `MsgsUniq` on the logged fields only (breaks `LineEffect`'s single 
 responses-only clause (`RespCanon`, this branch's first repair of review a2-r1: too narrow, a2-r2's
 T1-1).
 
-**Open.** An append request's entries' contents are not pinned by `MsgsShape` (its line reads their
-number only), so an `"app"` send line's uniqueness needs the entries' agreement (the notes'
-`AppSlices`), which `msgFacts` as frozen (`isLeader`, `logRecs`) very probably does not give (review
-a2-r3's F1): plan, Q16; `phaseStepB_send` states its phase at the unpinned idle server, so a path proof
-needs a pinned variant to meet the sufficiency lemmas' `hΦ'`, and a lower-term request's `PhaseStepR`
-is still to state (a2-r3's F4); the heartbeat's gate gives its commit only bounded
-(slice 16). Reviews: `notes/trace-validation-reviews/a2-r1.md` … `a2-r4.md`.
+**Q16 (`AppSlices`).** An `"app"` request's line logs its entry count only, so `MsgsShape` cannot pin
+its entries. Checked first in the transcription (`Spec.lean`; `etc/tla-fixes/` is the patch series it
+transcribes): append requests are created only by `appendEntriesInRangeToPeer` (`AppendEntries`,
+`Heartbeat`, `SendSnapshot`), whose entries are `subSeqM v.log b lastEntry` of the sender, a leader;
+`Ready` and the receive handlers create none. A server's log changes only by `Replicate` (appends),
+`ConflictAppendEntriesRequest`/`NoConflictAppendEntriesRequest`/`HandleSnapshotRequest` (reached
+through `AcceptAppendEntriesRequest`, a follower only) and `Restart` (which makes it a follower); a
+leader never becomes one again in its term (`BecomeLeader` needs a candidate, a candidacy a new term),
+and a candidate has no append request of its term out (`CandS`). So `simFx` gains the pure clause
+`AppSlices σ`: while `i` leads term `T`, every in-flight append request of term `T` from `i` carries at
+each position the entry of `i`'s log at that index. It is inductive (a new request is a slice; the log
+only grows in the term; stepping down makes the clause vacuous) and it is all a send needs: the
+coordinator's suggested pairwise half (any two term-`T` requests agree) is not needed, since
+`MsgsUniq` is itself the invariant and a send only adds pairs with the new request, whose sender leads
+its term, so both sides are slices of one log (`pinned_of_slices`). Kept as a clause of `simFx`
+beside `MsgsShape`, not inside `SpecInv` (whose lemmas would all change for a fact only the
+uniqueness reads). `fxPresReady` keeps it (`Ready` changes no log, state or term).
+`recvPred_canon_eq` and `msgsUniq_send_canon` take `PinnedBy y p` (the new message pins each
+in-flight one where its line does not look) in place of `ContentLogged`.
+
+**Sufficiency, Q16 and the open items of round 4.** `fxPres_app` (`FxPres` of an `"app"` send line with
+entries, from its `msgFacts` and its slice of the node's log; `msgOk_app`); the pinned phase steps
+`phaseStepB_send_pin`, `phaseStepB_heartbeat_pin` (`PinAt`, the server kept, the message added),
+`pinAt_step` (their `hΦ'`), `heartbeat_lead` and `fxPres_heartbeat_pin` (the heartbeat line's facts at
+the pinned idle phases, from raft's state). `simFx` at the initial state is **not** done: `allFacts`
+there needs every voter's `srvFacts` of the bootstrap log (its records, commit certificate), raft's
+ghost state at the cluster's allocation, not a small lemma; the new clauses hold trivially there (empty
+bags).
+
+**Open.** The heartbeat gate's exact commit (slice 16; slice 17's); `simFx` at the initial state (layer
+B's allocation); the path proofs themselves. Reviews: `notes/trace-validation-reviews/a2-r1.md` … `a2-r6.md`.

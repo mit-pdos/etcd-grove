@@ -670,7 +670,7 @@ theorem fxPresReady (γ : RaftNames) (id : w64) (E : TraceEv → Prop)
   iframe Htbl
   iunfold simFx at Hfx
   icases Hfx with ⟨#Hall, #Hm, %hp⟩
-  obtain ⟨hsi, hq, hu, hsh⟩ := hp
+  obtain ⟨hsi, hq, hu, hsh, has⟩ := hp
   iunfold simFx
   isplitl []
   · iunfold allFacts at Hall
@@ -687,7 +687,7 @@ theorem fxPresReady (γ : RaftNames) (id : w64) (E : TraceEv → Prop)
   · iintro !> %m %hm
     iapply Hm $$ %m %(ready_msgs_sub σ (idAbs id) m hm)
   ipureintro
-  refine ⟨TraceSpecInv.specInv_ready hsi, ?_, ?_, ?_⟩
+  refine ⟨TraceSpecInv.specInv_ready hsi, ?_, ?_, ?_, ?_⟩
   · exact quorumLogF_congr σ _ rfl
       (fun k => by rw [ready_s]; split <;> subst_vars <;> rfl)
       (fun k => by rw [ready_s]; split <;> subst_vars <;> rfl)
@@ -696,6 +696,15 @@ theorem fxPresReady (γ : RaftNames) (id : w64) (E : TraceEv → Prop)
     exact hu ln m1 m2 (ready_msgs_sub σ _ m1 h1) (ready_msgs_sub σ _ m2 h2) hp1 hp2
   · intro x hx
     exact hsh x (ready_msgs_sub σ _ x hx)
+  · intro x hx hty j hj hl ht hs k e he
+    rw [ready_s] at hl ht ⊢
+    by_cases hji : j = idAbs id
+    · rw [if_pos hji] at hl ht ⊢
+      simp only at hl ht ⊢
+      subst hji
+      exact has x (ready_msgs_sub σ _ x hx) hty _ hj hl ht hs k e he
+    · rw [if_neg hji] at hl ht ⊢
+      exact has x (ready_msgs_sub σ _ x hx) hty j hj hl ht hs k e he
 
 /-- **The global step's law for a `Ready` line** (`trCap_fire_ready.statement`). -/
 theorem trCap_fire_ready : trCap_fire_ready.statement (GF := GF) := by

@@ -1094,6 +1094,10 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   ghost state); `SpecInv` is frozen too through `simFx`; (c) prove the agreement from the existing facts
   (a2-r4: very probably fails); (d) leave the `"app"` lines to a later amendment. **Recommended: (b)**
   (pure, the smallest), else (a). Not taken here: beyond the coordinator's Q15 decision.
+  **Taken by the coordinator (the freeze being delegated to it), pending the user's veto: (b), folded
+  into amendment A2.** **Done** on branch `trace-check-a2`: `simFx`'s clause `AppSlices` (while a server
+  leads term `T`, its in-flight term-`T` append requests are slices of its log), checked inductive in the
+  transcription; `fxPres_app` (`notes/decisions.md`, "Amendment A2 (Q14, Q15, Q16)").
 - **Q15 (2026-11-10, Q8 stage 1 slice 16): the frozen `simFx`'s `MsgsUniq` is not kept by a send
   line.** `FxPres` asks `simFx` after the line for every `σ` with `simFx`; after a send the new message
   must be the only in-flight message a receive line matches with it, but a line logs only some fields
@@ -2040,15 +2044,18 @@ capability forms of `appendEntry`/`becomeLeader` (the term log and the entry rec
 owed items a1-r2 lists (a received message's numbers through a trace-gated conjunct of raft's
 `isMessage`, the receipt bound, the bootstrap routing gates).
 
-**Amendment A2 (2026-11-10, branch `trace-check-a2`; Q14 (a) and Q15 (a), pending the user's veto).**
-(Q14) `PhaseStepR`, `FxPresR` and `trCap_fire_recv.statement` take the phantoms as a function `ph` of the
-receiving server before the line (`P' ++ ph a`); checked first against `State.receive`: the only
-replies raft does not send (pre-vote, check-quorum off) are the refusals of lower-term requests,
+**Amendment A2 (2026-11-10, branch `trace-check-a2`; Q14 (a), Q15 (a), Q16 (b), pending the user's
+veto).** (Q14) `PhaseStepR`, `FxPresR` and `trCap_fire_recv.statement` take the phantoms as a function
+`ph` of the receiving server before the line (`P' ++ ph a`); checked first against `State.receive`: the
+only replies raft does not send (pre-vote, check-quorum off) are the refusals of lower-term requests,
 `phantomOf a m`. (Q15) `simFx` gains `MsgsShape` (every message in flight canonical in the fields its
 line does not log), checked first to hold of every message the specification, raft (`msgAbs`), the
-phantoms and the bootstrap can put in flight. The laws and the gate re-proved, nothing else frozen
-changed (`notes/decisions.md`, "Amendment A2 (Q14, Q15)"). Sufficiency (`TracedRecvPhantom.lean`):
-`fxPresR_staleReq` (a lower-term request's receive line) and `fxPres_heartbeat` (a heartbeat's send
-line), proved. Left: an `"app"` send line's entries' agreement for `MsgsUniq` (Q16, a2-r3's F1: `msgFacts` as
-frozen looks insufficient),
-the heartbeat gate's exact commit (slice 16). Reviews `a2-r1.md` … `a2-r4.md`.
+phantoms and the bootstrap can put in flight. (Q16) `simFx` gains `AppSlices` (a leader's in-flight
+append requests of its term are slices of its log), checked inductive: requests come only from a
+leader's log, a leader's log only grows in its term. The laws and the gate re-proved, nothing else
+frozen changed (`notes/decisions.md`, "Amendment A2 (Q14, Q15, Q16)"). Sufficiency
+(`TracedRecvPhantom.lean`, `TracedRaftStepPaths.lean`): `fxPresR_staleReq` (a lower-term request's
+receive line), `fxPres_heartbeat` and `fxPres_heartbeat_pin` (a heartbeat's send line, at the pinned
+phases of `phaseStepB_heartbeat_pin`), `fxPres_app` (an `"app"` send line with entries), proved. Left:
+`simFx` at the initial state (raft's bootstrap ghost, layer B's allocation), the heartbeat gate's exact
+commit (slice 17). Reviews `a2-r1.md` … `a2-r6.md`.

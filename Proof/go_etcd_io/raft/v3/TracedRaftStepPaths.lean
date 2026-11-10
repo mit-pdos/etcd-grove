@@ -24,14 +24,16 @@ the idle server (`phaseStepB_send`, the heartbeat's `phaseStepB_heartbeat`). Sli
 line's `FxPres` blocked on the frozen `simFx`'s `MsgsUniq` (plan, Q15); amendment A2 adds the shape
 clause `MsgsShape` to `simFx`, and the heartbeat's `FxPres` is proved (`fxPres_heartbeat`,
 `TracedRecvPhantom.lean`, at phases keeping the share's server and adding the heartbeat). Still open:
-the heartbeat's gate gives its commit only bounded, the line needs it exact; an `"app"` request with
-entries (the `MsgProp` path's appends, the replies' catch-up appends) waits on plan Q16; and the phase
-steps are stated at unpinned phases (a pinned variant is what `fxPres_heartbeat`'s `hΦ'` needs).
+the heartbeat's gate gives its commit only bounded, the line needs it exact. Amendment A2 (Q16) adds
+`AppSlices`, and an `"app"` request's facts are `fxPres_app`. **Pinned phase steps** (`PinAt`,
+`trCapB_pin`'s form): `phaseStepB_send_pin`, `phaseStepB_heartbeat_pin`, with `pinAt_step` and
+`heartbeat_lead` giving `fxPres_heartbeat_pin`, the heartbeat line's facts at those phases.
 -/
 module
 
 public import Proof.go_etcd_io.raft.v3.TracedFamilies
 public import Proof.go_etcd_io.raft.v3.TracedHooks
+public import Proof.go_etcd_io.raft.v3.TracedRecvPhantom
 
 @[expose] public section
 
@@ -180,6 +182,92 @@ theorem phaseStepB_heartbeat (id : w64) (c : CfgM) (s : NState) (o : List Msg) (
   exact lineEffect_heartbeat C e id s c _ a he hin hout hC (hin.mem_iff.1 hto) hR hs hlead rfl rfl hne rfl rfl
     (by rw [hcm, hmo]; simp only [toPState])
     bt bc bl (by show uint.Z cm < 2 ^ 63; omega)
+
+/-- The pinned phase at the idle server (`trCapB_pin`'s form): the voters, the share's server and
+list named, the list a permutation of the outbox's traced messages. -/
+def PinAt (s : NState) (C0 : List w64) (cs0 : ServerC) (P0 : List Etcdraft.Msg) (o : List Msg) :
+    List w64 → ServerC → List Etcdraft.Msg → Prop :=
+  fun C cs P => C = C0 ∧ cs = cs0 ∧ P = P0 ∧ PhaseAt (fun C => SimIdleS C s) o C cs P
+
+/-- **A send line's phase step, pinned** (amendment A2, review a2-r4's open item): as
+`phaseStepB_send`, from the pinned phase to the pinned phase with the server unchanged and the
+message `ma0` (`m`'s specification message at the voters `C0`) added, so that the line's facts
+(`fxPres_heartbeat`, `fxPres_app`, whose `hΦ'` asks exactly this: `pinAt_step`) can be given. -/
+theorem phaseStepB_send_pin (id : w64) (c : CfgM) (s : NState) (E : TraceEv → Prop) (o : List Msg) (m : Msg)
+    (C0 : List w64) (cs0 : ServerC) (P0 : List Etcdraft.Msg) (ma0 : Etcdraft.Msg)
+    (hma : TraceSim.msgAbs C0 C0.length m = some ma0)
+    (hsrc : m.src = id)
+    (hE : ∀ e, E e → e.nid = decStr id ∧ Etcdraft.isBootstrapName (TraceSim.gsStr e.name) = false)
+    (heff : ∀ (C : List w64) (e : TraceEv) (a : Etcdraft.Server), E e → (elements c.incoming).Perm C →
+      c.outgoing = ∅ → id ∈ C → SimServerR C C.length (toPState s) a → LogShapeOk C.length (toPState s) →
+      uint.Z s.term < 2 ^ 63 → uint.Z s.logst.committed < 2 ^ 63 →
+      uint.Z (plastIndex (toPState s)) < 2 ^ 63 →
+      ∃ ma, TraceSim.msgAbs C C.length m = some ma ∧
+        LineEffect C false e (idAbs id) a a none _root_.id (fun b => b.with ma) (fun _ => False)) :
+    PhaseStepB id c E (PinAt s C0 cs0 P0 o) (PinAt s C0 cs0 (P0 ++ [ma0]) (o ++ [m])) := by
+  rintro C cs P ⟨rfl, rfl, rfl, ⟨a0, ha0, hR0, hs, bt, bc, bl⟩, hP⟩ ⟨hin, hout, hC⟩ e he
+  obtain ⟨hnid, hnb⟩ := hE e he
+  refine ⟨hnid, isBootstrapName_bf _ hnb, ?_⟩
+  intro a ha
+  have hR : SimServerR C C.length (toPState s) a := simServerR_toC (ha0.trans ha.symm) hR0
+  obtain ⟨ma, hma', hle⟩ := heff C e a he hin hout hC hR hs bt bc bl
+  rw [hma] at hma'
+  cases hma'
+  refine ⟨a, [ma0], ⟨rfl, ha, rfl, ⟨a0, ha0.trans ha.symm, hR0, hs, bt, bc, bl⟩, ?_⟩, ?_, hle⟩
+  · rw [pendAbs_append]
+    have h1 : pendAbs C [m] = [ma0] := by simp [pendAbs, hma]
+    rw [h1]
+    exact hP.append_right _
+  · intro x hx
+    simp only [List.mem_singleton] at hx
+    subst hx
+    rw [msgAbs_source hma, hsrc]
+
+/-- **The pinned phases meet the send lines' facts' `hΦ'`**: the server kept, the message added. -/
+theorem pinAt_step (s : NState) (C0 : List w64) (cs0 : ServerC) (P0 : List Etcdraft.Msg) (o : List Msg)
+    (m : Msg) (ma0 : Etcdraft.Msg) :
+    ∀ C cs P cs' P', PinAt s C0 cs0 P0 o C cs P → PinAt s C0 cs0 (P0 ++ [ma0]) (o ++ [m]) C cs' (P ++ P') →
+      cs' = cs ∧ P' = [ma0] := by
+  rintro C cs P cs' P' ⟨-, rfl, rfl, -⟩ ⟨-, rfl, h, -⟩
+  exact ⟨rfl, List.append_cancel_left h⟩
+
+/-- **A leader's heartbeat line's phase step, pinned** (`phaseStepB_heartbeat` at `PinAt`). -/
+theorem phaseStepB_heartbeat_pin (id : w64) (c : CfgM) (s : NState) (o : List Msg) (to cm : w64) (cl : List w8)
+    (C0 : List w64) (cs0 : ServerC) (P0 : List Etcdraft.Msg) (ma0 : Etcdraft.Msg)
+    (hma : TraceSim.msgAbs C0 C0.length (Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl) = some ma0)
+    (hlead : s.role = .leader) (hne : to ≠ id) (hto : to ∈ elements c.incoming)
+    (hcm : uint.Z cm = min (uint.Z s.logst.committed) (uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0)))) :
+    PhaseStepB id c
+      (SendEvOf (W64 9) id s c (Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl))
+      (PinAt s C0 cs0 P0 o)
+      (PinAt s C0 cs0 (P0 ++ [ma0]) (o ++ [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl])) := by
+  apply phaseStepB_send_pin id c s _ o _ C0 cs0 P0 ma0 hma rfl
+    (fun e he => ⟨he.2.1, sendEvOf_notBoot he (by decide) (by decide) (by decide)⟩)
+  intro C e a he hin hout hC hR hs bt bc bl
+  refine ⟨_, rfl, ?_⟩
+  have hmo : matchOf (toPState s) to = (prvalsMatch s.prvals !! to).getD (W64 0) := by
+    simp [matchOf, toPState, hlead]
+  exact lineEffect_heartbeat C e id s c _ a he hin hout hC (hin.mem_iff.1 hto) hR hs hlead rfl rfl hne rfl rfl
+    (by rw [hcm, hmo]; simp only [toPState])
+    bt bc bl (by show uint.Z cm < 2 ^ 63; omega)
+
+/-- **The heartbeat's facts' premises at the pinned idle phase** (`fxPres_heartbeat`'s `hlead`): the
+idle server is a leader of the node's term, its commit index the node's, at least the heartbeat's. -/
+theorem heartbeat_lead (s : NState) (C0 : List w64) (cs0 : ServerC) (P0 : List Etcdraft.Msg) (o : List Msg)
+    (id to cm : w64) (cl : List w8) (ma0 : Etcdraft.Msg)
+    (hma : TraceSim.msgAbs C0 C0.length (Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl) = some ma0)
+    (hlead : s.role = .leader)
+    (hcm : uint.Z cm = min (uint.Z s.logst.committed) (uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0)))) :
+    ∀ C cs P, PinAt s C0 cs0 P0 o C cs P →
+      cs.state = Etcdraft.leader ∧ ma0.term = cs.currentTerm ∧ ma0.commitIndex ≤ cs.commitIndex := by
+  rintro C cs P ⟨rfl, rfl, -, ⟨a, rfl, hR, -⟩, -⟩
+  obtain ⟨hT, hS, -, -, -, -, hCm, -⟩ := hR
+  simp only [TraceSim.msgAbs] at hma
+  cases hma
+  refine ⟨?_, ?_, ?_⟩
+  · show a.state = _; rw [hS]; simp [toPState, hlead, proleRole, roleAbs]
+  · show _ = a.currentTerm; rw [hT]; simp [toPState]
+  · show _ ≤ a.commitIndex; rw [hCm]; simp only [toPState]; omega
 
 end sendStep
 
@@ -365,6 +453,23 @@ theorem stepBundle_traced_localNoLine : stepBundle_traced.on (GF := GF) (hG := h
     isplitl [H]
     · iapply trCapB_monoΛ s.gh.tr γ r id c true _ Λ _ (fun o h => .inl h) $$ H
     ipureintro; exact hout
+
+/-- **A leader's heartbeat line's facts at the pinned idle phases** (`fxPres_heartbeat` with
+`pinAt_step`, `heartbeat_lead`): what the `MsgBeat` path's heartbeat gate needs besides its phase step
+`phaseStepB_heartbeat_pin`. -/
+theorem fxPres_heartbeat_pin (γ : RaftNames) (id : w64) (E : TraceEv → Prop) (s : NState) (o : List Msg)
+    (to cm : w64) (cl : List w8) (C0 : List w64) (cs0 : ServerC) (P0 : List Etcdraft.Msg) (ma0 : Etcdraft.Msg)
+    (hma : TraceSim.msgAbs C0 C0.length (Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl) = some ma0)
+    (hC0 : id ∈ C0) (hlead : s.role = .leader)
+    (hcm : uint.Z cm = min (uint.Z s.logst.committed) (uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0)))) :
+    ⊢ FxPres (GF := GF) γ id E (PinAt s C0 cs0 P0 o)
+      (PinAt s C0 cs0 (P0 ++ [ma0]) (o ++ [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl])) := by
+  have hma' := hma
+  simp only [TraceSim.msgAbs] at hma'
+  cases hma'
+  exact fxPres_heartbeat γ id E _ _ _ (msgAbs_canon _ _ _ _ hma) rfl rfl (msgAbs_source hma)
+    (fun C _ _ h => h.1 ▸ hC0) (heartbeat_lead s C0 cs0 P0 o id to cm cl _ hma hlead hcm)
+    (pinAt_step s C0 cs0 P0 o _ _)
 
 end paths
 

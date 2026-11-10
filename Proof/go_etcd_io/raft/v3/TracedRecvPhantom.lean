@@ -1,6 +1,6 @@
 /-
 Lean-first (no Rocq counterpart). **Amendment A2's sufficiency checks** (2026-11-10, trace-check
-amendment A2, `notes/decisions.md`, "Amendment A2 (Q14, Q15)"): a receive line's facts `FxPresR` at
+amendment A2, `notes/decisions.md`, "Amendment A2 (Q14, Q15, Q16)"): a receive line's facts `FxPresR` at
 its phantoms (Q14: the phantoms a function `ph` of the receiving server) and a send line's facts
 `FxPres` (Q15: `simFx`'s shape clause `MsgsShape`, every message in flight canonical), each proved for
 one line. Before A2 neither was provable: the phantoms were arbitrary (slice 15), and a message in
@@ -13,9 +13,12 @@ flight differing from a new one only in a field no line logs broke `MsgsUniq` (r
   for an append request's entries); the uniqueness and the shape after sending a canonical message.
 - `simFx_congr` (`simFx` reads the servers only up to `toC`, the bags by their domains),
   `simFx_discard`, `simFx_send` (a message fine to send, `MsgOk`, with its `msgFacts`, canonical).
+- (Q16) `PinnedBy`, `AppSliceOf`, `pinned_of_slices`: a leader's new `"app"` request, a slice of its
+  log, pins every in-flight message (`AppSlices`), so its line keeps `MsgsUniq`.
 - `fxPresR_staleReq`: `FxPresR` of a lower-term request's receive line at `recvPhantoms m`;
-  `fxPres_heartbeat`: `FxPres` of a heartbeat's send line (`msgOk_heartbeat`), each at phases that keep
-  the share's server (up to `toC`) and add the line's message to its list (none for the stale line).
+  `fxPres_heartbeat`: `FxPres` of a heartbeat's send line (`msgOk_heartbeat`); `fxPres_app`: of an
+  `"app"` send line with entries (`msgOk_app`); each at phases that keep the share's server (up to
+  `toC`) and add the line's message to its list (none for the stale line).
 -/
 module
 
@@ -101,10 +104,26 @@ theorem canonMsg_type (x : Etcdraft.Msg) : (canonMsg x).type = x.type := by
 def ContentLogged (p : Etcdraft.Msg) : Prop :=
   p.type = .appendEntriesRequest → p.subtype = "heartbeat" ∨ (p.subtype = "app" ∧ p.entries = [])
 
-/-- **Two canonical messages a line matches are equal**, the second's content logged (not an append
-request with entries, nor a snapshot). -/
+/-- **`y` agrees with `p` where no line looks** (amendment A2, Q16): `p` not an append request, or a
+heartbeat, or an `"app"` request whose entries `y` carries too whenever it is from the same sender, of
+the same term, after the same entry, with as many entries (what `AppSlices` gives for a leader's
+requests of its term). -/
+def PinnedBy (y p : Etcdraft.Msg) : Prop :=
+  p.type = .appendEntriesRequest → p.subtype = "heartbeat" ∨
+    (p.subtype = "app" ∧ (y.type = .appendEntriesRequest → y.source = p.source → y.term = p.term →
+      y.prevLogIndex = p.prevLogIndex → y.entries.length = p.entries.length → y.entries = p.entries))
+
+theorem ContentLogged.pinned {p : Etcdraft.Msg} (h : ContentLogged p) (y : Etcdraft.Msg) : PinnedBy y p := by
+  intro hp
+  rcases h hp with h | ⟨h1, h2⟩
+  · exact .inl h
+  · refine .inr ⟨h1, fun _ _ _ _ hl => ?_⟩
+    rw [h2] at hl ⊢; exact List.eq_nil_of_length_eq_zero hl
+
+/-- **Two canonical messages a line matches are equal**, the first pinned by the second where the line
+does not look (`PinnedBy`: not a snapshot, and an `"app"` request's entries agreeing). -/
 theorem recvPred_canon_eq (ln : Etcdraft.Line) (y p : Etcdraft.Msg) (hy0 : canonMsg y = y)
-    (hp0 : canonMsg p = p) (hpk : ContentLogged p)
+    (hp0 : canonMsg p = p) (hpk : PinnedBy y p)
     (hy : recvPred ln y = true) (hp : recvPred ln p = true) : y = p := by
   unfold recvPred at hy hp
   split at hy
@@ -118,7 +137,7 @@ theorem recvPred_canon_eq (ln : Etcdraft.Line) (y p : Etcdraft.Msg) (hy0 : canon
       obtain ⟨⟨⟨⟨⟨⟨⟨⟨y1, y2⟩, y3⟩, y4⟩, y5⟩, y6⟩, y7⟩, y8⟩, y9⟩ := hy
       obtain ⟨⟨⟨⟨⟨⟨⟨⟨p1, p2⟩, p3⟩, p4⟩, p5⟩, p6⟩, p7⟩, p8⟩, p9⟩ := hp
       have hsub : y.subtype = p.subtype := by rw [y3] at p3; exact Option.some.inj p3
-      rcases hpk p1 with hps | ⟨hps, hpe⟩
+      rcases hpk p1 with hps | ⟨hps, hent⟩
       · have hys : y.subtype = "heartbeat" := by rw [hsub, hps]
         have hc : y.commitIndex = p.commitIndex := by
           rcases y7 with h | h
@@ -143,14 +162,14 @@ theorem recvPred_canon_eq (ln : Etcdraft.Line) (y p : Etcdraft.Msg) (hy0 : canon
           rcases p8 with h' | h'
           · rw [hps] at h'; exact absurd h' (by decide)
           exact ⟨by rw [h.1, h'.1], by rw [h.2, h'.2]⟩
-        have hye : y.entries = [] := by
-          rw [hpe] at p9
-          have : (y.entries.length : Int) = 0 := by rw [y9, ← p9]; rfl
-          exact List.eq_nil_of_length_eq_zero (by omega)
+        have hlen : y.entries.length = p.entries.length := by
+          have : (y.entries.length : Int) = p.entries.length := by rw [y9, p9]
+          exact_mod_cast this
+        have hye : y.entries = p.entries := hent y1 (by rw [y5, p5]) (by rw [y6, p6]) hpl.2 hlen
         rw [← hy0, ← hp0]
         unfold canonMsg
         rw [y1, p1]
-        simp only [hsub, hps, y4, p4, y5, p5, y6, p6, hc, hpl.1, hpl.2, hye, hpe]
+        simp only [hsub, hps, y4, p4, y5, p5, y6, p6, hc, hpl.1, hpl.2, hye]
   · rw [if_neg ‹_›] at hp
     split at hy
     · rw [if_pos ‹_›] at hp
@@ -220,20 +239,62 @@ theorem recvPred_canon_eq (ln : Etcdraft.Line) (y p : Etcdraft.Msg) (hy0 : canon
 /-- **The uniqueness and the shape after sending a canonical message** (not an append request with
 entries). -/
 theorem msgsUniq_send_canon (σ : Etcdraft.State) (p : Etcdraft.Msg) (hu : MsgsUniq σ) (hc : MsgsShape σ)
-    (hp0 : canonMsg p = p) (hpk : ContentLogged p) :
+    (hp0 : canonMsg p = p) (hpk : ∀ y ∈ σ.messages.domain ++ σ.pendingMessages.domain, PinnedBy y p) :
     MsgsUniq (σ.send p) ∧ MsgsShape (σ.send p) := by
   constructor
   · intro ln m1 m2 h1 h2 r1 r2
     rcases TraceSpecInv.mem_msgs_send σ p m1 h1 with g1 | e1 <;>
       rcases TraceSpecInv.mem_msgs_send σ p m2 h2 with g2 | e2
     · exact hu ln m1 m2 g1 g2 r1 r2
-    · subst e2; exact recvPred_canon_eq ln m1 m2 (hc m1 g1) hp0 hpk r1 r2
-    · subst e1; exact (recvPred_canon_eq ln m2 m1 (hc m2 g2) hp0 hpk r2 r1).symm
+    · subst e2; exact recvPred_canon_eq ln m1 m2 (hc m1 g1) hp0 (hpk m1 g1) r1 r2
+    · subst e1; exact (recvPred_canon_eq ln m2 m1 (hc m2 g2) hp0 (hpk m2 g2) r2 r1).symm
     · rw [e1, e2]
   · intro x hx
     rcases TraceSpecInv.mem_msgs_send σ p x hx with g | e
     · exact hc x g
     · rw [e]; exact hp0
+
+/-- `AppSlices`' clause for one message. -/
+def AppSliceOf (σ : Etcdraft.State) (m : Etcdraft.Msg) : Prop :=
+  m.type = .appendEntriesRequest →
+    ∀ i ∈ σ.server, (σ.s i).state = Etcdraft.leader → (σ.s i).currentTerm = m.term → m.source = i →
+      ∀ (k : Nat) (e : Etcdraft.Entry), m.entries[k]? = some e → (σ.s i).log[m.prevLogIndex.toNat + k]? = some e
+
+theorem appSlices_iff (σ : Etcdraft.State) :
+    AppSlices σ ↔ ∀ m ∈ σ.messages.domain ++ σ.pendingMessages.domain, AppSliceOf σ m := Iff.rfl
+
+/-- A message with no entries, or not an append request, has its clause. -/
+theorem appSliceOf_nil (σ : Etcdraft.State) (m : Etcdraft.Msg) (h : m.entries = []) : AppSliceOf σ m := by
+  intro _ _ _ _ _ _ k e he; rw [h] at he; simp at he
+
+/-- **Sending keeps `AppSlices`** when the new message has its clause. -/
+theorem appSlices_send (σ : Etcdraft.State) (x : Etcdraft.Msg) (h : AppSlices σ) (hx : AppSliceOf σ x) :
+    AppSlices (σ.send x) := by
+  intro m hm
+  rcases TraceSpecInv.mem_msgs_send σ x m hm with g | e
+  · exact h m g
+  · rw [e]; exact hx
+
+/-- **A leader's new `"app"` request, a slice of its log, pins every in-flight message** (`AppSlices`:
+an in-flight request of the leader's term from it is a slice of the same log). -/
+theorem pinned_of_slices (σ : Etcdraft.State) (p : Etcdraft.Msg) (i : Etcdraft.ID) (hi : i ∈ σ.server)
+    (hl : (σ.s i).state = Etcdraft.leader) (ht : (σ.s i).currentTerm = p.term) (hsrc : p.source = i)
+    (hps : p.subtype = "app")
+    (hsl : ∀ (k : Nat) (e : Etcdraft.Entry), p.entries[k]? = some e → (σ.s i).log[p.prevLogIndex.toNat + k]? = some e)
+    (has : AppSlices σ) : ∀ y ∈ σ.messages.domain ++ σ.pendingMessages.domain, PinnedBy y p := by
+  intro y hy _
+  refine .inr ⟨hps, fun hyt hys hyterm hypl hlen => ?_⟩
+  have hy' := has y hy hyt i hi hl (by rw [ht, hyterm]) (by rw [hys, hsrc])
+  apply List.ext_getElem?
+  intro k
+  by_cases hk : k < y.entries.length
+  · have hk' : k < p.entries.length := hlen ▸ hk
+    have e1 := hy' k _ (List.getElem?_eq_getElem hk)
+    have e2 := hsl k _ (List.getElem?_eq_getElem hk')
+    rw [hypl, e2] at e1
+    rw [List.getElem?_eq_getElem hk, List.getElem?_eq_getElem hk']
+    exact e1.symm
+  · rw [List.getElem?_eq_none (by omega), List.getElem?_eq_none (by omega)]
 
 /-- **Raft's messages are canonical** (as the specification's, `msgAbs`): what a send line's facts need
 of its message for `MsgsShape` (review a2-r3's F3). -/
@@ -290,7 +351,7 @@ theorem simFx_congr (γ : RaftNames) (C : List w64) (σ σ' : Etcdraft.State) (h
   iunfold simFx at Hfx
   iunfold simFx
   icases Hfx with ⟨#Hal, #Hmf, %Hp⟩
-  obtain ⟨hsi, hq, hu, hsh⟩ := Hp
+  obtain ⟨hsi, hq, hu, hsh, has⟩ := Hp
   isplitl
   · iunfold allFacts at Hal
     iunfold allFacts
@@ -305,8 +366,12 @@ theorem simFx_congr (γ : RaftNames) (C : List w64) (σ σ' : Etcdraft.State) (h
     ipureintro
     exact hsub x hx
   ipureintro
-  exact ⟨specInv_congr_srv hsi hsrv hm hp hT hS hL hD hV hC hM hG,
-    quorumLogF_congr σ σ' hsrv hL hC hG hq, msgsUniq_mono hsub hu, fun x hx => hsh x (hsub x hx)⟩
+  refine ⟨specInv_congr_srv hsi hsrv hm hp hT hS hL hD hV hC hM hG,
+    quorumLogF_congr σ σ' hsrv hL hC hG hq, msgsUniq_mono hsub hu, fun x hx => hsh x (hsub x hx), ?_⟩
+  intro m hm hty i hi hl ht hs k e he
+  rw [hL]
+  rw [hsrv] at hi; rw [hS] at hl; rw [hT] at ht
+  exact has m (hsub m hm) hty i hi hl ht hs k e he
 
 /-- **Consuming a message keeps the facts.** -/
 theorem simFx_discard (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (m : Etcdraft.Msg) :
@@ -321,7 +386,7 @@ theorem simFx_discard (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (m :
   iunfold simFx at Hfx
   iunfold simFx
   icases Hfx with ⟨#Hal, #Hmf, %Hp⟩
-  obtain ⟨hsi, hq, hu, hsh⟩ := Hp
+  obtain ⟨hsi, hq, hu, hsh, has⟩ := Hp
   isplitl
   · iapply allFacts_congr_s γ C σ (σ.discard m) rfl
     iexact Hal
@@ -331,19 +396,21 @@ theorem simFx_discard (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (m :
     iapply Hmf
     ipureintro; exact hsub x hx
   ipureintro
-  exact ⟨TraceSpecInv.specInv_discard m hsi, hq, msgsUniq_mono hsub hu, fun x hx => hsh x (hsub x hx)⟩
+  exact ⟨TraceSpecInv.specInv_discard m hsi, hq, msgsUniq_mono hsub hu, fun x hx => hsh x (hsub x hx),
+    fun x hx => has x (hsub x hx)⟩
 
 /-- **Sending a message keeps the facts** when it is fine to send (`MsgOk`), has its facts (`msgFacts`),
 is canonical and is not an append request with entries. -/
 theorem simFx_send (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (x : Etcdraft.Msg)
     (hok : TraceSpecInv.MsgOk σ x) (hx0 : canonMsg x = x)
-    (hxk : ContentLogged x) :
+    (hxk : ∀ y ∈ σ.messages.domain ++ σ.pendingMessages.domain, PinnedBy y x)
+    (hxs : AppSliceOf σ x) :
     (simFx (GF := GF) γ C σ ∗ msgFacts γ C x) ⊢ simFx γ C (σ.send x) := by
   iintro ⟨Hfx, #Hx⟩
   iunfold simFx at Hfx
   iunfold simFx
   icases Hfx with ⟨#Hal, #Hmf, %Hp⟩
-  obtain ⟨hsi, hql, hu, hsh⟩ := Hp
+  obtain ⟨hsi, hql, hu, hsh, has⟩ := Hp
   isplitl
   · iapply allFacts_congr_s γ C σ (σ.send x) rfl
     iexact Hal
@@ -355,7 +422,7 @@ theorem simFx_send (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (x : Et
     · iexact Hx
   ipureintro
   obtain ⟨hu', hsh'⟩ := msgsUniq_send_canon σ x hu hsh hx0 hxk
-  exact ⟨TraceSpecInv.specInv_send hsi hok, hql, hu', hsh'⟩
+  exact ⟨TraceSpecInv.specInv_send hsi hok, hql, hu', hsh', appSlices_send σ x has hxs⟩
 
 /-- A message that is not an append request has the facts `⌜entries = []⌝`. -/
 theorem msgFacts_plain (γ : RaftNames) (C : List w64) (x : Etcdraft.Msg) (hq : x.type ≠ .appendEntriesRequest)
@@ -390,7 +457,8 @@ theorem fxPresR_staleReq (γ : RaftNames) (id : w64) (m : Etcdraft.Msg) (E : Tra
   ihave #H2 := simFx_send γ C (σ.discard m) (phantomOf a m)
     (TraceSpecInv.msgOk_plain _ _ phe phq phs phv
       (by rw [pht, phsrc, hdst]; show a.currentTerm ≤ (σ.s (idAbs id)).currentTerm; rw [hσa]; exact Int.le_refl _))
-    (phantomOf_canon a m) (fun h => absurd h (phantomOf_facts a m).2.1) $$ [$H1 $Hpf]
+    (phantomOf_canon a m) (fun y _ => ContentLogged.pinned (fun h => absurd h phq) y)
+    (appSliceOf_nil _ _ phe) $$ [$H1 $Hpf]
   have hs : ∀ j, toC ((σ.discard m).send (phantomOf a m)).server
       ((withNode σ (idAbs id) a' (fun b => b.without m)
         (fun b => ([] ++ recvPhantoms m a).foldl Etcdraft.Bag.with b)).s j) =
@@ -494,7 +562,98 @@ theorem fxPres_heartbeat (γ : RaftNames) (id : w64) (E : TraceEv → Prop)
     · unfold logRecs; iapply Iris.BI.BigSepL.bigSepL_nil.2; iempintro
   ihave #H2 := simFx_send γ C σ p
     (msgOk_heartbeat σ p (idAbs id) Hp0.1 h1 hi hl hpt hpe.1 hpe.2 hsrc ht hcm)
-    hp0 (fun _ => .inl hps) $$ [$Hfx $Hpf]
+    hp0 (fun _ _ _ => .inl hps) (appSliceOf_nil σ p hpe.1) $$ [$Hfx $Hpf]
+  have hs : ∀ j, toC (σ.send p).server
+      ((withNode σ (idAbs id) a' _root_.id (fun b => [p].foldl Etcdraft.Bag.with b)).s j) =
+      toC (σ.send p).server ((σ.send p).s j) := by
+    intro j
+    show toC σ.server (if j = idAbs id then a' else σ.s j) = toC σ.server (σ.s j)
+    split
+    · rename_i hj; subst hj; rw [hσa, hsrv, hcs', hcs]
+    · rfl
+  ihave #H3 := simFx_congr γ C (σ.send p)
+    (withNode σ (idAbs id) a' _root_.id (fun b => [p].foldl Etcdraft.Bag.with b))
+    rfl rfl rfl hs $$ H2
+  iframe Htbl
+  iexact H3
+
+/-- **An append request is fine to send** from its term's leader `i` when its entries are a slice of
+`i`'s log (`hsl`) within it, its commit at most `i`'s: the leaders' entries (`LeaderEntries`), the
+entries' terms (`LogTermsLe`), the durable bound (`DurS`), one leader per term. -/
+theorem msgOk_app (σ : Etcdraft.State) (p : Etcdraft.Msg) (i : Etcdraft.ID)
+    (hsi : TraceSpecInv.SpecInv σ) (h1 : σ.moreThanOneLeaderInv = true) (hi : i ∈ σ.server)
+    (hl : (σ.s i).state = Etcdraft.leader) (hpt : p.type = .appendEntriesRequest) (hsrc : p.source = i)
+    (hterm : p.term = (σ.s i).currentTerm) (hcm : p.commitIndex ≤ (σ.s i).commitIndex)
+    (hpi : 0 ≤ p.prevLogIndex) (hlen : p.prevLogIndex + p.entries.length ≤ (σ.s i).log.length)
+    (hsl : ∀ (k : Nat) (e : Etcdraft.Entry), p.entries[k]? = some e → (σ.s i).log[p.prevLogIndex.toNat + k]? = some e) :
+    TraceSpecInv.MsgOk σ p := by
+  have hdur := hsi.2.1 i hi hl
+  refine ⟨?_, ?_, ⟨by rw [hsrc, hterm]; exact Int.le_refl _, ?_⟩, ?_, fun _ => hpi, ?_, ?_⟩
+  · intro j hj hlj k e hk het
+    have hlog := hsl k e hk
+    exact (hsi.leaderEntries j hj hlj).1 i hi _ e hlog het
+  · intro j hj hlj
+    refine ⟨fun hs _ _ => ?_, ?_, ?_⟩
+    · rw [hsrc] at hs; subst hs; exact hlen
+    · intro _ h; rw [hpt] at h; cases h
+    · intro _ ht
+      have hij : i = j := TraceSpecInv.oneLeader h1 hi hj hl hlj (by rw [← hterm, ht])
+      subst hij
+      exact Int.le_trans hcm hdur.2.1
+  · rintro (⟨h, -⟩ | ⟨h, -⟩) <;> rw [hpt] at h <;> cases h
+  · intro j _ hc
+    refine ⟨?_, ?_, ?_⟩
+    · intro hs _; rw [← hs, hsrc, hl] at hc; exact absurd hc (by decide)
+    · intro _ h; rw [hpt] at h; cases h
+    · intro _ _ h; rw [hpt] at h; cases h
+  · intro e he
+    obtain ⟨k, hk⟩ := List.getElem?_of_mem he
+    have hlog := hsl k e hk
+    rw [hterm]
+    exact hsi.logTermsLe.1 i hi e (List.mem_of_getElem? hlog)
+  · intro _; exact ⟨by rw [hsrc]; exact hi, by rw [hsrc]; exact hcm⟩
+
+/-- **The facts of an `"app"` request's send line, with entries** (`FxPres`, the sufficiency check of
+Q16): at phases that keep the share's server (up to `toC`) and add the request `p` (canonical, from the
+node leading its term, its entries a slice of the node's log within it, its commit at most the node's),
+the facts after the line follow from those before and the request's own facts (`msgFacts`: its
+sender's leadership and its entries' records, which raft's ghost state gives the caller); the
+uniqueness from `MsgsShape` and `AppSlices` (`pinned_of_slices`), `AppSlices` kept by the slice. -/
+theorem fxPres_app (γ : RaftNames) (id : w64) (E : TraceEv → Prop)
+    (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) (p : Etcdraft.Msg)
+    (hp0 : canonMsg p = p) (hpt : p.type = .appendEntriesRequest) (hps : p.subtype = "app")
+    (hsrc : p.source = idAbs id)
+    (hC : ∀ C cs P, Φ C cs P → id ∈ C)
+    (hlead : ∀ C cs P, Φ C cs P →
+      cs.state = Etcdraft.leader ∧ p.term = cs.currentTerm ∧ p.commitIndex ≤ cs.commitIndex ∧
+      0 ≤ p.prevLogIndex ∧ p.prevLogIndex + p.entries.length ≤ cs.log.length ∧
+      ∀ (k : Nat) (e : Etcdraft.Entry), p.entries[k]? = some e → cs.log[p.prevLogIndex.toNat + k]? = some e)
+    (hΦ' : ∀ C cs P cs' P', Φ C cs P → Φ' C cs' (P ++ P') → cs' = cs ∧ P' = [p]) :
+    (□ ∀ C cs P, ⌜Φ C cs P⌝ -∗ msgFacts γ C p : IProp GF) ⊢ FxPres (GF := GF) γ id E Φ Φ' := by
+  iintro #Hmf
+  iunfold FxPres
+  imodintro
+  iintro %C %cs %P %e %a %a' %P' %σ %hpre Htbl #Hfx
+  obtain ⟨hΦ, -, hcs, hΦ1, -, hsrv, hσa, -, -, -⟩ := hpre
+  obtain ⟨hcs', hP'⟩ := hΦ' C cs P _ P' hΦ hΦ1
+  subst hP'
+  have hidC := hC C cs P hΦ
+  obtain ⟨hl, ht, hcm, hpi, hlen, hsl⟩ := hlead C cs P hΦ
+  rw [← hcs] at hl ht hcm hlen hsl
+  simp only [toC] at hl ht hcm hlen hsl
+  rw [← hσa] at hl ht hcm hlen hsl
+  have hi : idAbs id ∈ σ.server := by rw [hsrv]; exact (mem_confAbs C id).2 hidC
+  ihave #Hfx0 := Hfx
+  iunfold simFx at Hfx0
+  icases Hfx0 with ⟨#Hal, -, %Hp0⟩
+  icases allFacts_oneLeader γ C σ hsrv $$ Hal with %h1
+  ihave #Hpf := Hmf $$ %C %cs %P %hΦ
+  have hslice : AppSliceOf σ p := by
+    intro _ j hj hlj htj hsj k e he
+    rw [hsrc] at hsj; subst hsj; exact hsl k e he
+  ihave #H2 := simFx_send γ C σ p
+    (msgOk_app σ p (idAbs id) Hp0.1 h1 hi hl hpt hsrc ht hcm hpi hlen hsl)
+    hp0 (pinned_of_slices σ p (idAbs id) hi hl ht.symm hsrc hps hsl Hp0.2.2.2.2) hslice $$ [$Hfx $Hpf]
   have hs : ∀ j, toC (σ.send p).server
       ((withNode σ (idAbs id) a' _root_.id (fun b => [p].foldl Etcdraft.Bag.with b)).s j) =
       toC (σ.send p).server ((σ.send p).s j) := by
