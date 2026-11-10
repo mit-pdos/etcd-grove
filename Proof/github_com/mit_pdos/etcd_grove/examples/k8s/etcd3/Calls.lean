@@ -54,15 +54,37 @@ def ErrOther (eD eU err : GoInterface) : Prop :=
   err ≠ eD ∧ err ≠ eU ∧ ∃ ii : GoInterfaceOk, err = .ok ii ∧ ii.ty ≠ seTy ∧
     (ii.ty = go.GoType.PointerType _root_.Perennial.errors.errorString.ty → ∃ l : Loc, ii.v = #l)
 
-/-- **`errOut(err)` is `y`** (see the file header). -/
+/-- A sentinel's value (`errors.New`'s `*errorString`). -/
+abbrev sentV (l : Loc) : GoInterface :=
+  interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #l
+
+/-- **The client's errors are no `APIStatus`** (the pending hypothesis of decision (A), etcd-grove-81,
+2026-11-10: Scope §5 gives it to 7c-3, whose restated client error states it; until then a premise):
+the dynamic type of an error of etcd's client (`clientErr`) is outside `APIStatus`'s type set, so
+`storage.IsTooLargeResourceVersion` (`errors.As` to `APIStatus`) does not recognize it. -/
+def clientErrPlain : Prop :=
+  ∀ ii : GoInterfaceOk, clientErr (GoInterface.ok ii) →
+    go.typeSetContains ii.ty k8s_io.apimachinery.pkg.api.errors.APIStatus.ty = false
+
+/-- **An error `IsTooLargeResourceVersion` does not recognize**: seen by it as a view (`apiErrAt`)
+whose answer is `false`. -/
+def notTooLarge (err : GoInterface) : IProp GF :=
+  iprop(∃ w, apierrors.apiErrAt err w ∗ ⌜apierrors.tooLargeV w = false⌝)
+
+instance notTooLarge_persistent (err : GoInterface) : Persistent (notTooLarge (GF := GF) err) := by
+  unfold notTooLarge; infer_instance
+
+/-- **`errOut(err)` is `y`** (see the file header; stage 7e-4: a too-large error, `ETooLarge`; an
+`EOther` error is no too-large one, `notTooLarge`). -/
 def errIs (err : GoInterface) (y : Output) : IProp GF :=
-  iprop((∃ k rv, storageErrIs err (W64 1) k rv ∗ ⌜y = ⟨W64 1, k, rv, [], [], [], 0⟩⌝) ∨
-    (∃ k rv, storageErrIs err (W64 2) k rv ∗ ⌜y = ⟨W64 2, k, rv, [], [], [], 0⟩⌝) ∨
-    (∃ k, invalidErrIs err k ∗ ⌜y = ⟨W64 5, k, 0, [], [], [], 0⟩⌝) ∨
+  iprop((∃ k rv, storageErrIs err (W64 1) k rv ∗ ⌜y = errOutL (W64 1) k rv⌝) ∨
+    (∃ k rv, storageErrIs err (W64 2) k rv ∗ ⌜y = errOutL (W64 2) k rv⌝) ∨
+    (∃ k, invalidErrIs err k ∗ ⌜y = errOutL (W64 5) k 0⌝) ∨
+    (apierrors.tooLargeErrIs err ∗ ⌜y = tooLargeL⌝) ∨
     ((globalAddr github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errDeleteRejected ↦□ err ∨
         globalAddr github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errUpdateRejected ↦□ err) ∗
       ⌜y = rejectedL⌝) ∨
-    (⌜y = errOutL⌝ ∗ ∃ eD eU : GoInterface,
+    (⌜y = otherL⌝ ∗ notTooLarge err ∗ ∃ eD eU : GoInterface,
       globalAddr github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errDeleteRejected ↦□ eD ∗
       globalAddr github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errUpdateRejected ↦□ eU ∗
       ⌜ErrOther eD eU err⌝))
@@ -96,38 +118,79 @@ theorem clientErr_other (hse : storageErrTyOk) (err : GoInterface) (lD lU : Loc)
   rw [ht] at hl
   exact hl hse
 
-/-- **An error of the store whose outcome is unknown is `EOther`** (see the file header). -/
-theorem unkErr_errIs (hse : storageErrTyOk) (c : StoreCfg GF DObj) (hc : c.S = driverSpec)
-    (err : GoInterface) :
+/-- **The package's sentinels** (`drvInit`): `errDeleteRejected`'s and `errUpdateRejected`'s
+values, `errors.New`'s, their cells holding the driver's messages. -/
+theorem drvInit_sents :
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.drvInit : IProp GF) ⊢
+      ∃ lD lU : Loc,
+        globalAddr github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errDeleteRejected ↦□ sentV lD ∗
+        globalAddr github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errUpdateRejected ↦□ sentV lU ∗
+        EtcdGrove.errStrCell lD go!"k8setcd3: deletion rejected" ∗
+        EtcdGrove.errStrCell lU go!"k8setcd3: update rejected" := by
+  iintro ⟨-, -, -, HD, HU⟩
+  iunfold github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errVarOk at HD
+  iunfold github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errVarOk at HU
+  icases HD with ⟨%lD, HD, -, CD⟩
+  icases HU with ⟨%lU, HU, -, CU⟩
+  iexists lD, lU
+  iframe
+
+/-- A client error is no too-large one (`clientErrPlain`, and `clientErr`'s leaf). -/
+theorem clientErr_notTooLarge (hpl : clientErrPlain (sem := sem)) (err : GoInterface)
+    (hn : err ≠ GoInterface.nil) (hc : clientErr err) : ⊢ notTooLarge (GF := GF) err := by
+  cases err with
+  | nil => exact absurd rfl hn
+  | ok ii =>
+  have hl := (hc.2 ii rfl).1
+  iunfold notTooLarge
+  iexists .plain
+  unfold apierrors.apiErrAt
+  ipureintro
+  exact ⟨⟨ii, rfl, hpl ii hc, hl.2.1, hl.2.2, hl.1⟩, rfl⟩
+
+/-- **An error of the store whose outcome is unknown is `EOther`** (see the file header): the
+client's (`clientErrPlain`, pending 7c-3), not an `InternalError` (the driver's transformer never
+fails: `trErr` is `False`) nor the codec's (none). -/
+theorem unkErr_errIs (hse : storageErrTyOk) (hpl : clientErrPlain (sem := sem)) (c : StoreCfg GF DObj)
+    (hc : c.S = driverSpec) (err : GoInterface) :
     isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗
-      unkErr c err ⊢ errIs err errOutL := by
+      unkErr c err ⊢ errIs err otherL := by
   iintro ⟨#Hpkg, #Hu⟩
   ihave #Hi : (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.drvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hi with ⟨-, -, -, -, ⟨%lD, #HD, -, #CD⟩, ⟨%lU, #HU, -, #CU⟩⟩
-  iunfold errIs
-  iright; iright; iright; iright
-  isplitr
-  · ipureintro; rfl
-  iexists _, _
-  iframe HD HU
+  ihave ⟨%lD, %lU, #HD, #HU, #CD, #CU⟩ := drvInit_sents $$ Hi
   iunfold unkErr at Hu
   icases Hu with ⟨%Hne, (⟨%Hc, -, #Hcl⟩ | %Hie)⟩
-  · iapply clientErr_other hse err lD lU Hne Hc $$ Hcl CD CU
-  · ipureintro
-    rcases Hie with ⟨ie, rfl⟩ | he
-    · have hne : ∀ t : go.GoType,
-          k8s_io.apiserver.pkg.storage.InternalError.ty ≠ go.GoType.PointerType t := by
-        intro t h
-        rw [k8s_io.apiserver.pkg.storage.InternalError.ty] at h
-        cases h
-      refine ⟨fun h => ?_, fun h => ?_, _, rfl, hne _, fun h => absurd h (hne _)⟩
-      · simp only [interface.mkOk, GoInterface.ok.injEq] at h
-        exact hne _ (congrArg GoInterfaceOk.ty h)
-      · simp only [interface.mkOk, GoInterface.ok.injEq] at h
-        exact hne _ (congrArg GoInterfaceOk.ty h)
-    · rw [hc] at he
-      exact he.elim
+  · iunfold errIs
+    iright; iright; iright; iright; iright
+    isplitr
+    · ipureintro; rfl
+    isplitr
+    · iapply clientErr_notTooLarge hpl err Hne Hc
+    iexists _, _
+    iframe HD HU
+    iapply clientErr_other hse err lD lU Hne Hc $$ Hcl CD CU
+  · exfalso
+    rcases Hie with ⟨ie, -, ht⟩ | he
+    · rw [hc] at ht; exact ht.elim
+    · rw [hc] at he; exact he.elim
+
+/-- A sentinel (`errors.New`'s `*errorString`) is seen as a plain error: no `APIStatus`, a leaf
+(its method set is `Error` only). -/
+theorem sentV_plain [_root_.Perennial.errors.Assumptions]
+    [k8s_io.apimachinery.pkg.api.errors.Assumptions] (l : Loc) :
+    ⊢ apierrors.apiErrAt (GF := GF) (sentV l) .plain := by
+  have hU := go.method_set_is
+    (t := go.GoType.PointerType _root_.Perennial.errors.errorString.ty) go!"Unwrap"
+  have hA := go.method_set_is
+    (t := go.GoType.PointerType _root_.Perennial.errors.errorString.ty) go!"As"
+  simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at hU hA
+  unfold apierrors.apiErrAt
+  ipureintro
+  refine ⟨_, rfl, ?_, ?_, ?_, ?_⟩
+  · simp only
+    go_type_set
+  all_goals simp only [hU, hA, ne_eq, reduceCtorEq, not_false_eq_true]
 
 theorem rvStr_inj {a b : w64} (h : rvStr a = rvStr b) : a = b := by
   have ha := parseRVD_rvStr a
@@ -229,7 +292,7 @@ theorem respIs_call {E : Type} [KUserErr E] (c : StoreCfg GF DObj) (hc : c.S = d
       isplitr
       · ipureintro; exact He.1
       iunfold errIs
-      iright; iright; iright; ileft
+      iright; iright; iright; iright; ileft
       isplitl
       · rcases hu e err rfl He.2 with h | h
         · rw [h]; ileft; iexact HD
@@ -252,43 +315,16 @@ theorem respIs_call {E : Type} [KUserErr E] (c : StoreCfg GF DObj) (hc : c.S = d
       iframe Hse
       ipureintro; rfl
     | tooLarge _ _ =>
-      -- a `*StatusError`: neither sentinel (`eD`, `eU`: `errors.New`'s, by `drvInit`)
       unfold respIs
-      icases Hr with ⟨%He, -⟩
-      obtain ⟨l, rfl⟩ := He
-      ihave #Hi : (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.drvInit : IProp GF) $$ []
-      · iapply isPkgInit_access $$ Hpkg
-      icases Hi with ⟨-, -, -, -, ⟨%lD, #HD', -, -⟩, ⟨%lU, #HU', -, -⟩⟩
-      icombine HD HD' gives %hD
-      icombine HU HU' gives %hU
-      subst hD hU
+      icases Hr with ⟨#Ht, -⟩
+      ihave %Hp := apierrors.tooLargeErrIs_ptr err $$ Ht
       ileft
       isplitr
-      · ipureintro; nofun
+      · ipureintro; obtain ⟨l, rfl⟩ := Hp; nofun
       iunfold errIs
-      iright; iright; iright; iright
-      isplitr
-      · ipureintro; rfl
-      iexists _, _
-      iframe HD HU
-      ipureintro
-      have hse : k8s_io.apimachinery.pkg.api.errors.StatusError.ty ≠
-          _root_.Perennial.errors.errorString.ty ∧
-          k8s_io.apimachinery.pkg.api.errors.StatusError.ty ≠
-            k8s_io.apiserver.pkg.storage.StorageError.ty := by
-        unfold k8s_io.apimachinery.pkg.api.errors.StatusError.ty
-          _root_.Perennial.errors.errorString.ty k8s_io.apiserver.pkg.storage.StorageError.ty
-        refine ⟨?_, ?_⟩ <;> (intro h; injection h with h; simp at h)
-      have hne : ∀ l' : Loc, interface.mkOk
-          (go.GoType.PointerType k8s_io.apimachinery.pkg.api.errors.StatusError.ty) #l ≠
-          interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #l' := by
-        intro l' h
-        simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq] at h
-        injection h.1 with h1
-        exact hse.1 h1
-      refine ⟨hne lD, hne lU, _, rfl, fun h => ?_, fun h => ?_⟩
-      · injection h with h1; exact hse.2 h1
-      · injection h with h1; exact absurd h1 hse.1
+      iright; iright; iright; ileft
+      iframe Ht
+      ipureintro; rfl
 
 theorem create_noOdd {E : Type} (s : KSt DObj) (k : GoString) (o : DObj) :
     NoOddErr (s.create (E := E) k o 0).2 := by
@@ -303,7 +339,7 @@ theorem get_noOdd {E : Type} (s : KSt DObj) (k : GoString) (n : Nat) (ign : Bool
   all_goals trivial
 
 theorem delete_noOdd (s : KSt DObj) (k : GoString) (pre : DObj → Nat → Bool) (eD : GoInterface)
-    (r : GoString) : NoOddErr (s.delete k pre (rejD eD r)).2 := by
+    (b : Bool) (r : GoString) : NoOddErr (s.delete k pre (rejD eD b r)).2 := by
   unfold KSt.delete
   repeat' split
   all_goals trivial
@@ -316,7 +352,8 @@ theorem update_noOdd (s : KSt DObj) (k : GoString) (ign : Bool) (pre : DObj → 
 
 /-- A `Delete`'s callback error is `errDeleteRejected`'s value. -/
 theorem delete_user (s : KSt DObj) (k : GoString) (pre : DObj → Nat → Bool) (eD : GoInterface)
-    (r : GoString) (e : GoInterface) (h : (s.delete k pre (rejD eD r)).2 = .err (.user e)) :
+    (b : Bool) (r : GoString) (e : GoInterface)
+    (h : (s.delete k pre (rejD eD b r)).2 = .err (.user e)) :
     e = eD := by
   unfold KSt.delete at h
   repeat' split at h
@@ -353,7 +390,7 @@ def callPre (c : StoreCfg GF DObj) (eD eU : GoInterface) (x : Input) (W : IProp 
   if x.Kind' = W64 0 then iprop([∧list] sv ∈ c.ms, k8sAu1 sv.γr.kv c (createStep x) Φ)
   else if x.Kind' = W64 1 then
     iprop(W ∗ [∗list] sv ∈ c.ms,
-      k8sAuRW sv.γr.kv c (delStep (mkeyL x.Key') (preD x) (rejD eD x.Reject')) W Φ)
+      k8sAuRW sv.γr.kv c (delStep (mkeyL x.Key') (preD x) (rejD eD x.HasReject' x.Reject')) W Φ)
   else if x.Kind' = W64 2 then
     iprop(W ∗ [∗list] sv ∈ c.ms,
       k8sAuRW sv.γr.kv c
@@ -370,7 +407,7 @@ def callAt (x : Input) (Φ : KVState → IProp GF) (Q : w64 → w64 → KVState 
 
 /-- A driver object in the heap is the store's object at its resource version's string. -/
 theorem objAtD_pt (p : Loc) (o : DObj) (n : w64) :
-    p ↦ github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.mk o.name o.uid o.val n ⊢
+    p ↦ o.toObj n ⊢
       objAtD (GF := GF) (interface.mkOk (go.GoType.PointerType objTyD) #p) o (rvStr n) := by
   iintro H
   icases (typedPointsto_not_null_dup _ _ _) $$ H with ⟨H, %Hn⟩
@@ -413,13 +450,9 @@ or updates fits a request; 2026-10-31, `notes/invoke-size.md`, pass 4), its UID 
 bytes (`uidOf`'s two), its minimum resource version one `parseRV` takes (`minRV`'s), and no
 resource version precondition on an update with a cached object (`CachedNoRV`). -/
 def GenIn (x : Input) : Prop :=
-  (x.Key' = go!"a" ∨ x.Key' = go!"b" ∨ x.Key' = go!"c") ∧
-    (x.Kind' = W64 0 ∨ x.Kind' = W64 1 ∨ x.Kind' = W64 2 ∨ x.Kind' = W64 3) ∧
-    x.Val'.length ≤ 2 ^ 20 ∧ x.UID'.length < 256 ∧ (parseRVD x.MinRV').isSome ∧ CachedNoRV x
+  InOk x ∧ (x.Kind' = W64 0 ∨ x.Kind' = W64 1 ∨ x.Kind' = W64 2 ∨ x.Kind' = W64 3 ∨ x.Kind' = W64 4) ∧
+    x.Val'.length ≤ 2 ^ 20 ∧ CachedNoRV x
 
-/-- A sentinel's value (`errors.New`'s `*errorString`). -/
-abbrev sentV (l : Loc) : GoInterface :=
-  interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #l
 
 /-- `Apply`'s input (`lintest`'s `inOk`): a boxed `Input` `Gen` may return, with its cached object
 one of the store `c` (`cachedIn`). -/
@@ -434,23 +467,23 @@ instance kInOk_persistent (c : StoreCfg GF DObj) (i : GoInterface) :
 theorem genIn_ok (x : Input) (hx : GenIn x) :
     InOk x ∧ prepareKeyM go!"/objs" (storeKeyL x.Key') false = some (storeKeyL x.Key') ∧
       go!"/registry" ++ storeKeyL x.Key' = mkeyL x.Key' := by
-  refine ⟨?_, ?_, rfl⟩
-  · refine ⟨?_, hx.2.2.2.1, hx.2.2.2.2.1⟩
-    rcases hx.1 with h | h | h <;> (rw [h]; decide)
-  · rcases hx.1 with h | h | h <;> (rw [h]; decide)
+  refine ⟨hx.1, ?_, rfl⟩
+  have hk := hx.1.1
+  simp only [wkKeysL, List.mem_cons, List.not_mem_nil, or_false] at hk
+  rcases hk with h | h | h | h <;> (rw [h]; decide)
 
 /-- An answer `call` places is never `EOther`, but a too-large minimum resource version. -/
 theorem outOf_err {E : Type} (r : KResp DObj E) (h : NoOddErr r)
     (ht : ∀ a b, r ≠ .err (.tooLarge a b)) : (outOf r).Err' ≠ W64 4 := by
   cases r with
   | obj o rv => simp [outOf, objOutL]
-  | zero => simp [outOf, zeroOutL]
+  | zero => simp [outOf, zeroOutL, errOutL]
   | err e =>
     cases e with
-    | notFound k rv => simp [outOf]
-    | keyExists k => simp [outOf]
-    | invalidObj k => simp [outOf]
-    | user e => simp [outOf, rejectedL]
+    | notFound k rv => simp [outOf, errOutL]
+    | keyExists k => simp [outOf, errOutL]
+    | invalidObj k => simp [outOf, errOutL]
+    | user e => simp [outOf, rejectedL, errOutL]
     | rvSetOnCreate => exact h.elim
     | tooLarge a b => exact absurd rfl (ht a b)
 
@@ -469,7 +502,7 @@ theorem kStep_err (eD eU : GoInterface) (x : Input) (ks : KSt DObj)
   rw [ite_eq_right h0]
   by_cases h1 : x.Kind' = W64 1
   · rw [ite_eq_left h1]
-    refine outOf_err _ (delete_noOdd _ _ _ _ _) fun a b h => ?_
+    refine outOf_err _ (delete_noOdd _ _ _ _ _ _) fun a b h => ?_
     unfold KSt.delete at h
     repeat' split at h
     all_goals cases h
