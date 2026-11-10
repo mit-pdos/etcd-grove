@@ -65,6 +65,8 @@ theorem wp_Step_MsgHeartbeatResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
+        -- (Q8 stage 1 slice 13) the end state on the path (`StepEnd`, `LemmasStepGates.lean`)
+        "%Hend" ∷ ⌜StepEnd c id m ents ctx s s'⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ cx recv, (cx = [] ∨ cx = ctx) ∧
             (∀ m' ∈ recv, m' = absMsg .heartbeatResp m ents cx) ∧
@@ -77,28 +79,28 @@ theorem wp_Step_MsgHeartbeatResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
   wp_start_folded as ⟨Hphys, Hm, HG, Hgates⟩
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
   · wp_apply (wp_Step_Resp_gt _P _Q c r id s ml m sn ctx rs ents R .heartbeatResp (.inr ⟨Hty, rfl⟩) Hto Hterm
-        Hgt Hwf) $$ [$Hpkg $Hphys $Hm $HG $Hgates] as %err %s' ⟨Hphys, %Hwf', %Href, %Herr, %Hfr, %Htm, HG⟩
+        Hgt Hwf) $$ [$Hpkg $Hphys $Hm $HG $Hgates] as %err %s' ⟨Hphys, %Hend, %Hwf', %Href, %Herr, %Hfr, %Htm, HG⟩
     iapply HΦ $$ %err %s'
     iframe Hphys HG
     ipureintro
     obtain ⟨recv, Hrecv, Hstep⟩ := Href
-    exact ⟨Hwf', ⟨[], recv, .inl rfl, Hrecv, Hstep⟩, Herr, Hfr, Htm⟩
+    exact ⟨Hend, Hwf', ⟨[], recv, .inl rfl, Hrecv, Hstep⟩, Herr, Hfr, Htm⟩
   · by_cases Hlt : uint.Z m.Term' < uint.Z s.term
     · wp_apply (wp_Step_Resp_lt _P _Q c r id s ml m sn ctx rs ents R .heartbeatResp (.inr Hty) Hterm Hlt Hwf)
-        $$ [$Hpkg $Hphys $Hm $HG $Hgates] as %err %s' ⟨Hphys, %Hwf', %Href, %Herr, -, %Hfr, %Htm, HG⟩
+        $$ [$Hpkg $Hphys $Hm $HG $Hgates] as %err %s' ⟨Hphys, %Hend, %Hwf', %Href, %Herr, -, %Hfr, %Htm, HG⟩
       iapply HΦ $$ %err %s'
       iframe Hphys HG
       ipureintro
       obtain ⟨recv, Hrecv, Hstep⟩ := Href
-      exact ⟨Hwf', ⟨[], recv, .inl rfl, Hrecv, Hstep⟩, Herr, Hfr, Htm⟩
+      exact ⟨Hend, Hwf', ⟨[], recv, .inl rfl, Hrecv, Hstep⟩, Herr, Hfr, Htm⟩
     · have Hteq : m.Term' = s.term := by word
       wp_apply (wp_Step_MsgHeartbeatResp_eq _P _Q c r id s ml m sn ctx rs ents R Hlrd Hty Hto Hterm Hteq Hfnz
-        Hfid Hwf) $$ [$Hpkg $Hphys $Hm $HG $Hgates] as %err %s' ⟨Hphys, %Hwf', %Href, %Herr, %Hfr, %Htm, HG⟩
+        Hfid Hwf) $$ [$Hpkg $Hphys $Hm $HG $Hgates] as %err %s' ⟨Hphys, %Hend, %Hwf', %Href, %Herr, %Hfr, %Htm, HG⟩
       iapply HΦ $$ %err %s'
       iframe Hphys HG
       ipureintro
       obtain ⟨recv, Hrecv, Hstep⟩ := Href
-      exact ⟨Hwf', ⟨ctx, recv, .inr rfl, Hrecv, Hstep⟩, Herr, Hfr, Htm⟩
+      exact ⟨Hend, Hwf', ⟨ctx, recv, .inr rfl, Hrecv, Hstep⟩, Herr, Hfr, Htm⟩
 
 end StepProof
 

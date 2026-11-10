@@ -34142,3 +34142,62 @@ runs only for a snapshot, which a traced node never has (P2), and its tracker re
 
 No ghost change; no client-visible change (`raft.Step.spec`, the tick specs and `appliedTo`'s are
 raft-internal; the node API keeps its statements); no axiom or `sorry`.
+
+## Q8 stage 1 (slice 13): `Step`'s closing wand learns the end state (`StepEnd`); the receive line's gate; a traced `Step` blocked on the broadcasts' messages (2026-11-10 · trace-check, Q8 stage 1 slice 13; decided by the agent under the user's delegation · branch `trace-check-q8s13`; DRAFT until trace-check's Freeze)
+
+**`StepEnd`, what the closing wand learns** (slice 12's recommendation, taken). `stepClose γ md c id m
+ents ctx s R Gout` (now with the message's entries and context) receives, besides the model step,
+`⌜s.gh.tr.isSome → StepEnd c id m ents ctx s s'⌝` (`LemmasStepGates.lean`), the end state `Step`
+returns on the message's path, in the gates' own states:
+- on the types a traced node steps (`StepEndTy`: the six traced types, `MsgHup`, `MsgBeat`, `MsgProp`);
+  nothing on the others (`StepEnd.of_ty`);
+- a stale message (`StaleMsg`): unchanged, or its answer queued (`LowSend`);
+- `MsgHup`: `hup`'s result (`HupOkC`);
+- `MsgVote`: unchanged inside a leader's lease (`s.cq = true` only), else the answer at the state after the
+  preamble (`preState s m pvs`), the code's decision `VoteGrant` (`canVote` and `isUpToDate`) picking
+  `VoteEnd`'s granted state (the answer queued, the vote recorded) or declined one;
+- every other type: the role's step function's result at `preState s m pvs` (`StepFnEnd`:
+  `FollowerStepResultC`, `CandidateStepResultC`, `LeaderStepResultC`, as `stepFnGates` states the gates
+  there).
+
+Each is the callee spec's own result predicate, so `StepEnd` is exactly as precise as the specs
+`Step`'s proof calls: each branch lemma returns it (`"%Hend"`, proved from the callee's `Hres`, with the
+helpers `StepEnd.fn_nobf`/`fn_bf`, `VoteEnd.grant'`/`reject'` and the macros `end_nobf`, `end_bf`,
+`end_ty`), and the dispatch hands it to `gate_close`. The lease's join (`wp_lease_check`) now carries
+`s.cq = true` on its return. `raft.Step.untraced`, the ticks' untraced instances and `appliedTo` are
+unchanged in statement (their closing wands ignore the premise). Rejected: an exact function of
+`(s, m)` for all of `Step` (the specs do not give one: `HandleAppResult`, `ReplSends` are relations);
+`StepEnd` unguarded by the trace mode (it is proved unguarded, but a caller only needs it traced).
+
+**The receive line's gate** (`trCapB_hookGateRecv`, `TracedRecvGate.lean`): `stepGates`' `"Hgrecv"` from
+the capability in either mode, as `trCapB_hookGate` gives a node event's: traced by `trCap_fire_recv`
+(the line's `PhaseStepR`, its facts `FxPresRT` and the message's token `recvTok`), untraced from the nil
+logger.
+
+**`raft.Step` on the capability, stated** (`stepBundle_traced.statement`, `TracedRaftStep.lean`): the
+traced counterpart of `stepBundle_none`: the capability idle at `s` and the message's token
+(`recvTokOf`), with the node's premises (pre-vote and check-quorum off, `StepEndTy`, the term bound, the
+message's `MsgTrOk`, the receipts' fit), give `R`, `Step`'s gates and the closing wand ending in the
+capability idle at `s'`; with `raft.Step.spec` it is the traced triple. A definition, not proved.
+Rejected: restating `raft.Step.spec`'s whole precondition a third time (`raft.Step.untracedTriple`
+already copies it); the bundle is the content.
+
+**Finding: the bundle is not derivable on the paths that broadcast.** Every send line adds its message
+to the node's pending share (the line's effect `P'`), and `SimIdle` asks the share to be the outbox's
+traced messages (`P = pendAbs C (toPState s').outbox`). On a single-reply path the gate names the reply
+(`Hgapp`'s `mm` with `HandleAppResult … (sendMsgs s1 [mm])`, `Hghb`'s heartbeat response,
+`Hgvresp`'s answer), so the caller's resource can record it and `StepEnd` pins the same state. On a
+broadcast (`bcastHeartbeat`, `bcastAppend`, `sendAppend`'s loop, a won election's appends, a
+campaign's vote requests) the per-message gates are persistent, from a fixed state, `G` to `G`, and
+the result is `sendMsgs s ms` with `ms` only constrained (`ReplSends`, `HeartbeatOk`, `HupOkC`): the
+caller's resource cannot be tied to the outbox's new messages, their number or order. **Recommended
+(raft-internal, not client-visible):** index the broadcasts' gate resources by the messages queued so
+far (`G : List Msg → IProp`, each send gate `G ms0 -∗ … (G (ms0 ++ [mm]))`, the step function returning
+`G ms` with `s' = … sendMsgs … ms`), from `send` (which knows the outbox at its hook,
+`sendGate_le`'s `o`) up through `bcastHeartbeat`, `bcastAppend`, `maybeSendAppend`, `sendAppend`,
+`campaign`/`hup`, `becomeLeader`, the step functions and `Step`'s `StepG`; then `StepEnd` names the same
+`ms`. Rejected: a pure determinism lemma (the specs abstract the order and the count); a ghost record of
+the sends in `NGhost` (the caller's resource would still not be linked to it).
+
+No ghost change; no client-visible change (`raft.Step.spec`'s closing wand and the tick specs' are
+raft-internal); no axiom or `sorry`.

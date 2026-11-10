@@ -93,6 +93,112 @@ def tickMsg (ty : w32) (id : w64) : MessageM := { (zero_val MessageM) with Type'
 @[simp] theorem tickMsg_From' (ty : w32) (id : w64) : (tickMsg ty id).From' = id := rfl
 @[simp] theorem tickMsg_Term' (ty : w32) (id : w64) : (tickMsg ty id).Term' = W64 0 := rfl
 
+/-! ### `Step`'s end state (2026-11-10, slice 13)
+
+What the closing wand (`stepClose`) learns of the state `Step` returns, on the message types a traced
+node steps (`StepEndTy`), in the gates' own states: the step function's result at the state after the
+preamble (`preState`, as `stepFnGates`), a vote request's answer, a stale message's answer, `hup`'s.
+Each is what the callee's spec gives (`FollowerStepResultC`, `CandidateStepResultC`,
+`LeaderStepResultC`, `HupOkC`), so as exact as the code's specs: the messages a broadcast queues
+(`ReplSends`' `ms`) are existential there (`notes/decisions.md`, "Q8 stage 1 (slice 13)"). -/
+
+/-- The message types `StepEnd` describes: the six traced types and the three local ones a traced
+node steps (`tickElection`'s `MsgHup`, `tickHeartbeat`'s `MsgBeat`, `Propose`'s `MsgProp`). -/
+def StepEndTy (ty : w32) : Prop :=
+  ty = MsgApp ∨ ty = MsgAppResp ∨ ty = MsgHeartbeat ∨ ty = MsgHeartbeatResp ∨ ty = MsgVote ∨
+    ty = MsgVoteResp ∨ ty = MsgHup ∨ ty = MsgBeat ∨ ty = MsgProp
+
+/-- A stale message (`Step`'s `m.Term < r.Term` arm). -/
+def StaleMsg (s : NState) (m : MessageM) : Prop := m.Term' ≠ W64 0 ∧ uint.Z m.Term' < uint.Z s.term
+
+/-- The role's step function's result at `s1` (the state after the preamble), as its spec states it. -/
+def StepFnEnd (c : CfgM) (id : w64) (s1 : NState) (m : MessageM) (ents : List EntryM) (ctx : List w8)
+    (s' : NState) : Prop :=
+  (s1.role = .follower → ∃ (scfg : CSLists) (sv : SnapshotM) (d : Bool) (c' : CfgM),
+      FollowerStepResultC c scfg id s1 m ents sv d s' c' ctx) ∧
+  (s1.role = .candidate ∨ s1.role = .preCandidate → ∃ (scfg : CSLists) (sv : SnapshotM) (d : Bool) (c' : CfgM),
+      CandidateStepResultC c scfg id s1 m ents sv d s' c' ctx) ∧
+  (s1.role = .leader → ∃ d : Bool, LeaderStepResultC c id s1 m ents d s' ctx)
+
+/-- Whether `Step` grants a vote request at `s1` (the state after the preamble): `canVote` and the
+candidate's log up to date (`isUpToDate`). -/
+def VoteGrant (s1 : NState) (m : MessageM) : Prop :=
+  (s1.vote = m.From' ∨ (s1.vote = W64 0 ∧ s1.lead = W64 0) ∨
+      (m.Type' = MsgPreVote ∧ uint.Z s1.term < uint.Z m.Term')) ∧
+    plogUpToDate s1.logst.prev (s1.logst.sents ++ s1.logst.uents) (entryID.mk m.LogTerm' m.Index') = true
+
+/-- A `MsgVote`'s answer at `s1`: granted, the answer queued and the vote recorded; declined, the
+rejection queued. -/
+def VoteEnd (id : w64) (s1 : NState) (m : MessageM) (s' : NState) : Prop :=
+  (VoteGrant s1 m ∧ s' = { sendMsgs s1 [vrespMsgOf id s1 m false] with vote := m.From' }) ∨
+  (¬ VoteGrant s1 m ∧ s' = sendMsgs s1 [vrespMsgOf id s1 m true])
+
+/-- **`Step`'s end state** `s'` from `s` on `m` (see above); nothing on the other types. -/
+def StepEnd (c : CfgM) (id : w64) (m : MessageM) (ents : List EntryM) (ctx : List w8) (s s' : NState) :
+    Prop :=
+  StepEndTy m.Type' →
+  (StaleMsg s m → s' = s ∨ ∃ (ty : w32) (mm : Msg), LowSend id s m ty mm ∧ s' = sendMsgs s [mm]) ∧
+  (¬ StaleMsg s m → m.Type' = MsgHup → HupOkC c id s s') ∧
+  (¬ StaleMsg s m → m.Type' = MsgVote →
+    (s.cq = true ∧ s' = s) ∨ ∃ pvs : GMap w64 Progress, VoteEnd id (preState s m pvs) m s') ∧
+  (¬ StaleMsg s m → m.Type' ≠ MsgHup → m.Type' ≠ MsgVote →
+    ∃ pvs : GMap w64 Progress, StepFnEnd c id (preState s m pvs) m ents ctx s')
+
+theorem StepEnd.of_ty {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
+    {s s' : NState} (h : ¬ StepEndTy m.Type') : StepEnd c id m ents ctx s s' :=
+  fun h' => absurd h' h
+
+theorem StepEnd.stale {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
+    {s s' : NState} (hst : StaleMsg s m)
+    (h : s' = s ∨ ∃ (ty : w32) (mm : Msg), LowSend id s m ty mm ∧ s' = sendMsgs s [mm]) :
+    StepEnd c id m ents ctx s s' :=
+  fun _ => ⟨fun _ => h, fun h' => absurd hst h', fun h' => absurd hst h', fun h' => absurd hst h'⟩
+
+theorem StepEnd.hup {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
+    {s s' : NState} (hty : m.Type' = MsgHup) (hns : ¬ StaleMsg s m) (h : HupOkC c id s s') :
+    StepEnd c id m ents ctx s s' :=
+  fun _ => ⟨fun h' => absurd h' hns, fun _ _ => h,
+    fun _ h' => absurd (hty.symm.trans h') (by simp only [MsgHup, MsgVote, ne_eq]; first | exact of_decide_eq_true rfl | word), fun _ h' => absurd hty h'⟩
+
+theorem StepEnd.vote {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
+    {s s' : NState} (hty : m.Type' = MsgVote) (hns : ¬ StaleMsg s m)
+    (h : (s.cq = true ∧ s' = s) ∨ ∃ pvs : GMap w64 Progress, VoteEnd id (preState s m pvs) m s') :
+    StepEnd c id m ents ctx s s' :=
+  fun _ => ⟨fun h' => absurd h' hns, fun _ h' => absurd (hty.symm.trans h') (by simp only [MsgHup, MsgVote, ne_eq]; first | exact of_decide_eq_true rfl | word),
+    fun _ _ => h, fun _ _ h' => absurd hty h'⟩
+
+theorem StepEnd.fn {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
+    {s s' : NState} (hns : ¬ StaleMsg s m) (hh : m.Type' ≠ MsgHup) (hv : m.Type' ≠ MsgVote)
+    (pvs : GMap w64 Progress) (h : StepFnEnd c id (preState s m pvs) m ents ctx s') :
+    StepEnd c id m ents ctx s s' :=
+  fun _ => ⟨fun h' => absurd h' hns, fun _ h' => absurd h' hh, fun _ h' => absurd h' hv,
+    fun _ _ _ => ⟨pvs, h⟩⟩
+
+theorem StepFnEnd.follower {c : CfgM} {id : w64} {s1 : NState} {m : MessageM} {ents : List EntryM}
+    {ctx : List w8} {s' : NState} {scfg : CSLists} {sv : SnapshotM} {d : Bool} {c' : CfgM}
+    (hr : s1.role = .follower) (h : FollowerStepResultC c scfg id s1 m ents sv d s' c' ctx) :
+    StepFnEnd c id s1 m ents ctx s' := by
+  refine ⟨fun _ => ⟨scfg, sv, d, c', h⟩, ?_, ?_⟩
+  · intro h'; rcases h' with h' | h' <;> rw [hr] at h' <;> cases h'
+  · intro h'; rw [hr] at h'; cases h'
+
+theorem StepFnEnd.candidate {c : CfgM} {id : w64} {s1 : NState} {m : MessageM} {ents : List EntryM}
+    {ctx : List w8} {s' : NState} {scfg : CSLists} {sv : SnapshotM} {d : Bool} {c' : CfgM}
+    (hr : s1.role = .candidate ∨ s1.role = .preCandidate)
+    (h : CandidateStepResultC c scfg id s1 m ents sv d s' c' ctx) :
+    StepFnEnd c id s1 m ents ctx s' := by
+  refine ⟨?_, fun _ => ⟨scfg, sv, d, c', h⟩, ?_⟩
+  · intro h'; rcases hr with hr | hr <;> rw [hr] at h' <;> cases h'
+  · intro h'; rcases hr with hr | hr <;> rw [hr] at h' <;> cases h'
+
+theorem StepFnEnd.leader {c : CfgM} {id : w64} {s1 : NState} {m : MessageM} {ents : List EntryM}
+    {ctx : List w8} {s' : NState} {d : Bool}
+    (hr : s1.role = .leader) (h : LeaderStepResultC c id s1 m ents d s' ctx) :
+    StepFnEnd c id s1 m ents ctx s' := by
+  refine ⟨?_, ?_, fun _ => ⟨d, h⟩⟩
+  · intro h'; rw [hr] at h'; cases h'
+  · intro h'; rcases h' with h' | h' <;> rw [hr] at h' <;> cases h'
+
 end pure
 
 section gates
@@ -325,11 +431,14 @@ def ghostIn (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) (R 
 /-- **Raft's ghost state, given back to `Step`** by the caller from whichever resource the path ended
 in (`stepOut R`), with the caller's own `Gout` at the step's end state `s'` (2026-11-10, slice 12: the
 state `Step` returns, so that a caller's resources can follow it), and (traced) the step's new
-messages' numbers (`OutTrStep`, `NsLink`'s `OutTr`), for any end state of a step from `s` in the model (`StepCD`). -/
-def stepClose (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : MessageM) (s : NState)
-    (R : StepG GF) (Gout : NState → IProp GF) : IProp GF :=
+messages' numbers (`OutTrStep`, `NsLink`'s `OutTr`), for any end state of a step from `s` in the model
+(`StepCD`) that is (traced; 2026-11-10, slice 13) the code's end state on the message's path
+(`StepEnd`, on the types a traced node steps: what the gates' resources predicted). -/
+def stepClose (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : MessageM) (ents : List EntryM)
+    (ctx : List w8) (s : NState) (R : StepG GF) (Gout : NState → IProp GF) : IProp GF :=
   iprop(∀ (s' : NState) (B : Int) (recv : List Msg),
-    ⌜s.gh.tr.isSome → StepCD c id B m s recv s'⌝ -∗ stepOut R -∗
+    ⌜s.gh.tr.isSome → StepCD c id B m s recv s'⌝ -∗ ⌜s.gh.tr.isSome → StepEnd c id m ents ctx s s'⌝ -∗
+    stepOut R -∗
     |={⊤}=> ownStepGhost γ md c id s ∗ Gout s' ∗ ⌜OutTrStep s s'⌝)
 
 end close

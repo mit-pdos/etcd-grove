@@ -721,6 +721,34 @@ received message, and the node's premises (`TrOk`, `termLB`, `readyFits`), and b
 (`trCapB_hookGate*`, a receive-line gate from `trCap_fire_recv` still to write, `lineEffect_*`, the
 `FxPres*` facts from raft's ghost); then the ticks' traced corollaries over it and the node API. Checked (branch at its base `8ebee7832f` plus this slice): full `lake build` green (13788 jobs); `etc/tcb-report.py --check` (806 axioms, 4 `sorry`s, unchanged) and all 53 collections `--reuse --check`, none updated; `interface/` differs in four proof files only (`raft__Step`: `Gout` at the end state and the narrowed acknowledgement premise; `raft__appliedTo`: its premise; `raft__tickElection`, `raft__tickHeartbeat`: their gated specs); `etc/api-check.py` 0 errors; `--layout` 0 new; `etc/gen-link.py --raft` unchanged.
 
+**Q8 stage 1 (slice 13), 2026-11-10 (branch `trace-check-q8s13`): `Step`'s closing wand learns the
+end state; the receive line's gate; the traced bundle stated; the broadcasts block it.** Decided by the
+agent (`notes/decisions.md`, "Q8 stage 1 (slice 13)"). Done: (1) **`StepEnd`** (`LemmasStepGates.lean`):
+`stepClose` (now `… m ents ctx s R Gout`) receives, traced, the code's end state on the types a traced node
+steps (`StepEndTy`): a stale message's (`LowSend`), `hup`'s (`HupOkC`), a vote request's answer at
+`preState` by the code's decision (`VoteGrant`, `VoteEnd`; the lease only at `s.cq = true`), else the
+role's step function's result at `preState s m pvs` (`StepFnEnd`); every branch lemma returns it
+(`"%Hend"`) and the dispatch passes it to `gate_close` (`end_ty` for the other types); statements of
+`raft.Step.untraced`, the ticks' untraced instances, `appliedTo` and the node API unchanged. (2)
+**`trCapB_hookGateRecv`** (`TracedRecvGate.lean`): the receive hook's gate from the capability, traced by
+`trCap_fire_recv` (`PhaseStepR`, `FxPresRT`, the token `recvTok`), untraced from the nil logger. (3)
+**`stepBundle_traced.statement`** (`TracedRaftStep.lean`, a definition): the traced counterpart of
+`stepBundle_none`, the capability idle at `s` and the message's token (`recvTokOf`) with the node's
+premises (pre-vote and check-quorum off, `StepEndTy`, the term bound, `MsgTrOk`, the receipts' fit) giving
+`Step`'s gates and a closing wand ending in the capability idle at `s'`; with `raft.Step.spec` it is
+`raft.Step`'s traced triple. **Finding (not derivable on the broadcast paths):** a send line adds its
+message to the node's pending share, which `SimIdle` equates with the outbox; a broadcast's per-message
+gates are persistent from a fixed state and the step functions give the queued messages only as a
+relation (`ReplSends`, `HupOkC`), so the closing wand cannot tie the share to the outbox (`MsgBeat`,
+`MsgProp`, an accepted or rejected `MsgAppResp` and `MsgHeartbeatResp` at a leader, a won `MsgVoteResp`,
+`MsgHup`). **Next (recommended, raft-internal):** index the broadcasts' gate resources by the messages
+queued so far, from `send` up through the broadcast functions, `campaign`/`hup`, `becomeLeader`, the
+step functions and `StepG`, so that `StepEnd` names the same `ms`; meanwhile the bundle's single-reply
+paths (a follower's or candidate's `MsgApp`/`MsgHeartbeat`, a vote request's answer, stale messages, a
+vote response without a win, the ignored types) can be proved path by path from
+`trCapB_hookGateRecv`, `lineEffect_*` and the `FxPres*` facts; then the ticks' traced corollaries over
+the bundle. Not started: any path's proof (piece 3), the ticks' traced corollaries (piece 4). Checked (branch at its base `b21eeb5bd5` plus this slice): full `lake build` green (13789 jobs; `TracedRaftStep.lean`, added during it, built after); `etc/tcb-report.py --check` (806 axioms, 4 `sorry`s, unchanged) and all 53 collections `--reuse --check`, none updated; `interface/` differs in three proof files only (`raft__Step`, `raft__tickElection`, `raft__tickHeartbeat`: `stepClose`'s new `ents ctx` arguments); `etc/api-check.py` 0 errors; `--layout` 0 new; `etc/gen-link.py --raft` unchanged.
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its

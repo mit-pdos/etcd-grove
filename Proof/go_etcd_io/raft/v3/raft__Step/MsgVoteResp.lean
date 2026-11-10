@@ -126,6 +126,8 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%HBb" ∷ ⌜plogLastIndexZ (toPState s).base (toPState s).log ≤ B ∧
           B ≤ plogLastIndexZ (toPState s).base (toPState s).log + 1 ∧ B < 2 ^ 64⌝ ∗
         "#Hrcb" ∷ ⧖ (k0 + 1) ∗
+        -- (Q8 stage 1 slice 13) the end state on the path (`StepEnd`, `LemmasStepGates.lean`)
+        "%Hend" ∷ ⌜StepEnd c id m ents ctx s s'⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .voteResp m ents) ∧
             StepCD c id B m s recv s'⌝ ∗
@@ -195,6 +197,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       (by notfwd_tac) $$ [$Hphys Hm $Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
     · rw [ite_neg Hnprop]; iexact Hm
     ihave HG := stepOut_or R _ _ $$ HGo
+    have Hres0 := Hres
     have Hc1 := (FollowerStepResultC.cfg (by nonsnap Hty) Hres).symm
     unfold FollowerStepResultC at Hres
     replace Hres := Hres.2
@@ -213,7 +216,9 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     isplitr
     · iexact Hrc
     ipureintro
-    refine ⟨⟨rfl, rfl⟩, ⟨[absMsg .voteResp m ents], by simp, StepCD.frame ?_ (by rframe)⟩, rfl,
+    refine ⟨StepEnd.fn_bf hbf hlead (by rw [Hty]; w32_ne) (by rw [Hty]; w32_ne) pvs
+        (StepFnEnd.follower rfl Hres0),
+      ⟨rfl, rfl⟩, ⟨[absMsg .voteResp m ents], by simp, StepCD.frame ?_ (by rframe)⟩, rfl,
       RespStep.of_fresh Hnpv (Int.le_of_lt Hgt), stepdown_frame (by rw [Hty]; w32_ne) (Int.le_of_lt Hgt) rfl rfl rfl rfl rfl⟩
     wp_gets
     rw [toPState_prvals_nl (becomeFollower s m.Term' (W64 0)) pvs (by simp [becomeFollower]),
@@ -261,7 +266,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       isplitr
       · iexact Hrc
       ipureintro
-      exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil,
+      exact ⟨StepEnd.stale ⟨Hterm, Hlt⟩ (.inl rfl), Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil,
         StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
         RespStep.refl _ _, keep_frame rfl rfl rfl rfl rfl⟩
     · -- m.Term = r.Term: the preamble does nothing and control reaches the type
@@ -294,6 +299,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
           (by notfwd_tac) $$ [$Hphys Hm $Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
         · rw [ite_neg Hnprop]; iexact Hm
         ihave HG := stepOut_or R _ _ $$ HGo
+        have Hres0 := Hres
         have Hc1 := (FollowerStepResultC.cfg (by nonsnap Hty) Hres).symm
         unfold FollowerStepResultC at Hres
         replace Hres := Hres.2
@@ -313,7 +319,9 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         isplitr
         · iexact Hrc
         ipureintro
-        exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil,
+        exact ⟨StepEnd.fn_nobf hnbf (notStale_of_le (by rw [Hteq]; exact Int.le_refl _)) (by rw [Hty]; w32_ne)
+          (by rw [Hty]; w32_ne) (StepFnEnd.follower Hrole Hres0),
+          Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil,
           StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
       RespStep.refl _ _, keep_frame rfl rfl rfl rfl rfl⟩
       · -- Candidate: `stepCandidate` records the vote and may win or lose in the same
@@ -348,6 +356,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
           $$ [$Hphys Hm $Hsrc0 $HG $Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
         · rw [ite_neg Hnprop]; iexact Hm
         ihave HG := stepOut_or R _ _ $$ HGo
+        have Hres0 := Hres
         have Hc1 := (CandidateStepResultC.cfg (by nonsnap Hty) Hres).symm
         unfold CandidateStepResultC at Hres
         replace Hres := Hres.2
@@ -371,7 +380,9 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         isplitr
         · iexact Hrc
         ipureintro
-        refine ⟨nstateWf_prvals _ _ (nstateWf_voteRespResult _ _ _ _ _ _ _ Hwf), ?_, rfl,
+        refine ⟨StepEnd.fn_nobf hnbf (notStale_of_le (by rw [Hteq]; exact Int.le_refl _)) (by rw [Hty]; w32_ne)
+          (by rw [Hty]; w32_ne) (StepFnEnd.candidate (.inl Hrole) Hres0),
+          nstateWf_prvals _ _ (nstateWf_voteRespResult _ _ _ _ _ _ _ Hwf), ?_, rfl,
           RespStep.of_fresh Hnpv (Int.le_of_eq (congrArg (fun x : w64 => uint.Z x) Hteq.symm)),
           voteRespResult_frame _ _ _ _ _ _ _ _ _ Hrole⟩
         refine ⟨[absMsg .voteResp m ents], by simp, ?_⟩
@@ -473,6 +484,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
           (by p3_tac) $$ [$Hphys $Hrc00 Hm $HG $Hlg] as %err %s1 %dropped ⟨Hphys, -, %Hres, Herrn, HGo⟩
         · rw [ite_neg Hnprop]; iframe Hm; iintro %Hc; exact absurd Hc Hnprop
         ihave HG := stepOut_leader R _ _ _ _ $$ HGo
+        have Hres0 := Hres
         unfold LeaderStepResultC at Hres
         wp_gets
         rw [ite_neg (by rw [Hty]; w32_ne)] at Hres
@@ -493,7 +505,9 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         isplitr
         · iexact Hrc
         ipureintro
-        exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil,
+        exact ⟨StepEnd.fn_nobf hnbf (notStale_of_le (by rw [Hteq]; exact Int.le_refl _)) (by rw [Hty]; w32_ne)
+          (by rw [Hty]; w32_ne) (StepFnEnd.leader Hrole Hres0),
+          Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil,
           StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
       RespStep.refl _ _, keep_frame rfl rfl rfl rfl rfl⟩
       · -- PreCandidate (2026-10-04): `stepCandidate`'s `myVoteRespType` is
@@ -512,6 +526,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
           $$ [$Hphys Hm $Hsrc0 $HG $Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
         · rw [ite_neg Hnprop]; iexact Hm
         ihave HG := stepOut_or R _ _ $$ HGo
+        have Hres0 := Hres
         have Hc1 := (CandidateStepResultC.cfg (by nonsnap Hty) Hres).symm
         unfold CandidateStepResultC at Hres
         replace Hres := Hres.2
@@ -531,7 +546,9 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         isplitr
         · iexact Hrc
         ipureintro
-        exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil,
+        exact ⟨StepEnd.fn_nobf hnbf (notStale_of_le (by rw [Hteq]; exact Int.le_refl _)) (by rw [Hty]; w32_ne)
+          (by rw [Hty]; w32_ne) (StepFnEnd.candidate (.inr Hrole) Hres0),
+          Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil,
           StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
       RespStep.refl _ _, keep_frame rfl rfl rfl rfl rfl⟩
 

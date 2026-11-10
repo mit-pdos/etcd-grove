@@ -756,7 +756,7 @@ abbrev raft.Step.spec : Prop :=
       -- ... and back, whichever resource the path ends in, with (traced) the step's new messages'
       -- numbers (`OutTrStep`, which the node's outbox keeps: `NsLink`'s `OutTr`), each logged by a
       -- send line of the caller's
-      "Hclose" ∷ stepClose γ md c id m s R Gout }}
+      "Hclose" ∷ stepClose γ md c id m ents ctx s R Gout }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
   {{ (err : GoInterface) (s' : NState) (c' : CfgM) (md' : GMode), RET #err;
       "Hphys" ∷ ownRaftPhysCV c' c'.voters r id s' ∗

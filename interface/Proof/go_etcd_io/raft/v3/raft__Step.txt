@@ -150,7 +150,8 @@ theorem raft.Step.wp_proof [package_sem : Assumptions] (wp_raft_hup : raft.hup.s
                                                                                   stepGates c r id s m ents sn ctx rs
                                                                                     (ghostIn γ md c id s R) ∗
                                                                                 "Hclose" ∷
-                                                                                  stepClose γ md c id m s R Gout -∗
+                                                                                  stepClose γ md c id m ents ctx s R
+                                                                                    Gout -∗
                                                             (▷
                                                                 ∀ err s' c' md',
                                                                   "Hphys" ∷ ownRaftPhysCV c' c'.voters r id s' ∗

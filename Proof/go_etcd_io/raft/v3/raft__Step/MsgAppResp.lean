@@ -67,6 +67,8 @@ theorem wp_Step_MsgAppResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
+        -- (Q8 stage 1 slice 13) the end state on the path (`StepEnd`, `LemmasStepGates.lean`)
+        "%Hend" ∷ ⌜StepEnd c id m ents ctx s s'⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .appResp m ents) ∧
             StepCD c id B m s recv s'⌝ ∗
@@ -79,22 +81,22 @@ theorem wp_Step_MsgAppResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   wp_start_folded as ⟨Hphys, Hm, HG, Hgates⟩
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
   · wp_apply (wp_Step_Resp_gt _P _Q c r id s ml m sn ctx rs ents R .appResp (.inl ⟨Hty, rfl⟩) Hto Hterm Hgt Hwf)
-      $$ [$Hpkg $Hphys $Hm $HG $Hgates] as %err %s' ⟨Hphys, %Hwf', %Href, %Herr, %Hfr, %Htm, HG⟩
+      $$ [$Hpkg $Hphys $Hm $HG $Hgates] as %err %s' ⟨Hphys, %Hend, %Hwf', %Href, %Herr, %Hfr, %Htm, HG⟩
     iapply HΦ $$ %err %s'
     iframe Hphys HG
     ipureintro
-    exact ⟨Hwf', Href, Herr, RespStep.of_fresh (by rw [Hty]; w32_ne) (Int.le_of_lt Hgt), Hfr,
+    exact ⟨Hend, Hwf', Href, Herr, RespStep.of_fresh (by rw [Hty]; w32_ne) (Int.le_of_lt Hgt), Hfr,
       Htm⟩
   · by_cases Hlt : uint.Z m.Term' < uint.Z s.term
     · iapply wp_Step_Resp_lt _P _Q c r id s ml m sn ctx rs ents R .appResp (.inl Hty) Hterm Hlt Hwf $$ [$Hpkg $Hphys $Hm $HG $Hgates] HΦ
     · have Hteq : m.Term' = s.term := by word
       wp_apply (wp_Step_MsgAppResp_eq _P _Q c r id s ml m sn ctx rs ents R Hlrd Hack Hty Hto Hterm Hteq Hfnz Hrej
         Hwf)
-        $$ [$Hpkg $Hphys $Hm $HG $Hgates] as %err %s' ⟨Hphys, %Hwf', %Href, %Herr, %Hfr, %Htm, HG⟩
+        $$ [$Hpkg $Hphys $Hm $HG $Hgates] as %err %s' ⟨Hphys, %Hend, %Hwf', %Href, %Herr, %Hfr, %Htm, HG⟩
       iapply HΦ $$ %err %s'
       iframe Hphys HG
       ipureintro
-      exact ⟨Hwf', Href, Herr, RespStep.of_fresh (by rw [Hty]; w32_ne)
+      exact ⟨Hend, Hwf', Href, Herr, RespStep.of_fresh (by rw [Hty]; w32_ne)
         (Int.le_of_eq (congrArg (fun x : w64 => uint.Z x) Hteq.symm)), Hfr, Htm⟩
 
 end StepProof

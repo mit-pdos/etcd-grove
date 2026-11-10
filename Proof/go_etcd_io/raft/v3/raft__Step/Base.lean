@@ -172,6 +172,31 @@ macro "bf_gate" : tactic => `(tactic| (
   ihave Hgb := Perennial.EtcdGrove.preGate_bf c r id s m R.G0 R.G1 _ hbf hlead $$ Hgpre HG))
 
 set_option hygiene false in
+/-- (Q8 stage 1 slice 13) `StepEnd` of a step function's arm at the node's term, no step-down
+(`hnbf`, `Hteq`, `Hty`, the role `Hrole` and the step function's result `Hres` in context). -/
+macro "end_nobf" : tactic => `(tactic| exact Perennial.EtcdGrove.StepEnd.fn_nobf hnbf
+  (by first
+    | exact Perennial.EtcdGrove.notStale_of_le (by rw [Hteq]; exact Int.le_refl _)
+    | exact Perennial.EtcdGrove.notStale_of_zero Hterm)
+  (by rw [Hty]; w32_ne) (by rw [Hty]; w32_ne)
+  (by first
+    | exact Perennial.EtcdGrove.StepFnEnd.follower Hrole Hres
+    | exact Perennial.EtcdGrove.StepFnEnd.candidate (.inl Hrole) Hres
+    | exact Perennial.EtcdGrove.StepFnEnd.candidate (.inr Hrole) Hres
+    | exact Perennial.EtcdGrove.StepFnEnd.leader Hrole Hres
+    | (subst Hs1
+       first
+       | exact Perennial.EtcdGrove.StepFnEnd.follower Hrole Hres
+       | exact Perennial.EtcdGrove.StepFnEnd.candidate (.inl Hrole) Hres
+       | exact Perennial.EtcdGrove.StepFnEnd.candidate (.inr Hrole) Hres)))
+
+set_option hygiene false in
+/-- (Q8 stage 1 slice 13) `StepEnd` of a step function's arm after the preamble's step-down (`hbf`,
+`hlead` of `bf_gate`, `Hty`, the step-down's `pvs` and the follower's result `Hres` in context). -/
+macro "end_bf" : tactic => `(tactic| exact Perennial.EtcdGrove.StepEnd.fn_bf hbf hlead
+  (by rw [Hty]; w32_ne) (by rw [Hty]; w32_ne) pvs (Perennial.EtcdGrove.StepFnEnd.follower rfl Hres))
+
+set_option hygiene false in
 /-- (2026-11-10, Q8 stage 1 slice 11) `stepLeader`'s premise that a traced node proposes no
 configuration change (P3), at a branch of another type (`Hty`). -/
 macro "p3_tac" : tactic => `(tactic| (intro Hc; exfalso; first
@@ -211,6 +236,50 @@ macro "rframe" : tactic =>
              Perennial.EtcdGrove.resetTo, Perennial.EtcdGrove.resetTo0,
              Perennial.EtcdGrove.heartbeatResult, Perennial.EtcdGrove.addReadState,
              Perennial.EtcdGrove.arriveState, Perennial.EtcdGrove.releasedState]; done)))
+
+section stepEnd
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+
+/-- (Q8 stage 1 slice 13) A message no older than the node's term is not stale (`StepEnd`). -/
+theorem notStale_of_le {s : NState} {m : MessageM} (h : uint.Z s.term ≤ uint.Z m.Term') :
+    ¬ StaleMsg s m := fun h' => by unfold StaleMsg at h'; omega
+
+/-- An unstamped message is not stale. -/
+theorem notStale_of_zero {s : NState} {m : MessageM} (h : m.Term' = W64 0) : ¬ StaleMsg s m :=
+  fun h' => h'.1 h
+
+/-- A `MsgVote`'s answer as the vote branches build it. -/
+theorem vrespMsgOf_vote {id : w64} {s1 : NState} {m : MessageM} {rej : Bool} (h : m.Type' = MsgVote) :
+    vrespMsgOf id s1 m rej = Msg.plain .voteResp id m.From' (if rej then s1.term else m.Term') rej := by
+  simp [vrespMsgOf, h]
+
+/-- A granted `MsgVote`'s end state. -/
+theorem VoteEnd.grant' {id : w64} {s1 : NState} {m : MessageM} (hty : m.Type' = MsgVote)
+    (h : VoteGrant s1 m) :
+    VoteEnd id s1 m { sendMsgs s1 [Msg.plain .voteResp id m.From' m.Term' false] with vote := m.From' } :=
+  .inl ⟨h, by rw [vrespMsgOf_vote hty]; rfl⟩
+
+/-- A declined `MsgVote`'s end state. -/
+theorem VoteEnd.reject' {id : w64} {s1 : NState} {m : MessageM} (hty : m.Type' = MsgVote)
+    (h : ¬ VoteGrant s1 m) :
+    VoteEnd id s1 m (sendMsgs s1 [Msg.plain .voteResp id m.From' s1.term true]) :=
+  .inr ⟨h, by rw [vrespMsgOf_vote hty]; rfl⟩
+
+/-- The step function's end state, without a step-down (`preState` is `s`). -/
+theorem StepEnd.fn_nobf {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
+    {s s' : NState} (hnbf : ¬ PreBF m s) (hns : ¬ StaleMsg s m) (hh : m.Type' ≠ MsgHup)
+    (hv : m.Type' ≠ MsgVote) (h : StepFnEnd c id s m ents ctx s') : StepEnd c id m ents ctx s s' :=
+  StepEnd.fn hns hh hv ∅ (by rw [preState_nobf hnbf]; exact h)
+
+/-- The step function's end state, after the preamble's step-down. -/
+theorem StepEnd.fn_bf {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
+    {s s' : NState} {lead : w64} (hbf : PreBF m s) (hl : preLead m = lead) (hh : m.Type' ≠ MsgHup)
+    (hv : m.Type' ≠ MsgVote) (pvs : GMap w64 Progress)
+    (h : StepFnEnd c id { becomeFollower s m.Term' lead with prvals := pvs } m ents ctx s') :
+    StepEnd c id m ents ctx s s' :=
+  StepEnd.fn (notStale_of_le (Int.le_of_lt hbf.1)) hh hv pvs (by rw [preState_bf' hbf hl]; exact h)
+
+end stepEnd
 
 section cfg_eq
 variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]

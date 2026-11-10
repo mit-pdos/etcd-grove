@@ -164,7 +164,7 @@ theorem raft.appliedTo.wp_proof
               (fun _ => by rw [Hs1term]; exact Hlnz (Hs1role ▸ Hrl)) (Hwf1 (Hs1role ▸ Hrl))
               (by rw [Hs1ps]; exact HL (Hs1role ▸ Hrl)) rfl (fun h => absurd Htr1 h))
             $$ [$Hphys Hm $Hcc $Hrc Hgates]
-            as %err %s' %B ⟨Hphys, -, %HBb, Hrcb, %Hwf', %Hfr, %Happl, %Hpk, %Hst, Herr⟩
+            as %err %s' %B ⟨Hphys, -, %HBb, Hrcb, -, %Hwf', %Hfr, %Happl, %Hpk, %Hst, Herr⟩
           · rw [show leaveMsgM = propMsgM from rfl, show leaveEntM = ccEntryM none [] from rfl]
             isplitl [Hm]
             · iexact Hm

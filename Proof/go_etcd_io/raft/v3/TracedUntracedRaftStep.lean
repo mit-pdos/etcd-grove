@@ -345,7 +345,7 @@ theorem stepBundle_none (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id :
     (tl : GoInterface) (htr : s.gh.tr = none) (Htlok : TraceLoggerOk tl) :
     (r.[raft, go!"traceLogger"] ↦□ tl : IProp GF) ⊢
       stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s (untracedR γ md c id s)) ∗
-      stepClose γ md c id m s (untracedR γ md c id s) (fun _ => iprop(emp)) := by
+      stepClose γ md c id m ents ctx s (untracedR γ md c id s) (fun _ => iprop(emp)) := by
   iintro #Htl
   have hgi : ghostIn γ md c id s (untracedR (GF := GF) γ md c id s) =
       ⟨iprop(ownStepGhost γ md c id s ∗ emp), ownStepGhost γ md c id s, ownStepGhost γ md c id s,
@@ -359,7 +359,7 @@ theorem stepBundle_none (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id :
       (by iintro ⟨H, -⟩; iexact H) htr Htlok
     iexact Htl
   unfold stepClose untracedR
-  iintro %s' %B %recv %_ Hout
+  iintro %s' %B %recv %_ %_ Hout
   ihave HX := stepOut_const (GF := GF) iprop(emp) (ownStepGhost γ md c id s) $$ Hout
   imodintro
   iframe HX
@@ -395,7 +395,7 @@ theorem raft.Step.untraced (h : raft.Step.spec (GF := GF) (hG := hG)) :
   · rw [hgi]
     iframe Hinit Hphys Hghost Hxfer Hm Hcred Hlc Hsnap Hgates
     unfold stepClose
-    iintro %s' %B %recv %_ Hout
+    iintro %s' %B %recv %_ %_ Hout
     ihave HX := stepOut_const (GF := GF) iprop(emp) (ownStepGhost γ md c id s) $$ Hout
     imodintro
     iframe HX

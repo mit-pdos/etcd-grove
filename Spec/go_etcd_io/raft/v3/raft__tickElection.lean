@@ -74,7 +74,7 @@ abbrev raft.tickElection.spec : Prop :=
       "Hghost" ∷ ownStepGhost γ md c id s ∗
       "HG" ∷ R.G ∗
       "Hgates" ∷ stepGates c r id s (tickMsg MsgHup id) [] none [] [] (ghostIn γ md c id s R) ∗
-      "Hclose" ∷ stepClose γ md c id (tickMsg MsgHup id) s R Gout }}
+      "Hclose" ∷ stepClose γ md c id (tickMsg MsgHup id) [] [] s R Gout }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"tickElection")) (Val #()))
   {{ (s' : NState), RET #();
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
