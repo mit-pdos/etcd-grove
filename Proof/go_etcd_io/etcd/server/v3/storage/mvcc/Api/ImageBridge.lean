@@ -227,6 +227,90 @@ theorem newStore_of_storage
     rw [hkrt]; iexact Hrts
   iframe Hb Hsup
 
+/-- **The resumed compaction's context, from the API's** (the API constructors' `if u then …`, as
+`watchableStore.Restore.wp_api` builds it): none; the hook unset (the caller's view shift); the hook
+set and frozen (the caller's triple). Back: the hook's share, `Post` and `Y` when resumed. -/
+theorem resumeCtx_of_api (d' : KBReal) (r : CmpRecs) (u : Bool) (hru : r.resumes = u)
+    (Pk : IProp GF) (dq : DFrac) (f : GoFunc) (Pre Q' Post X Y : IProp GF) :
+    □ backend.isBackend d'.γB d'.P (lateW d'.gx) Pk d'.be ∗
+      (if u then iprop(storageHook (etcdStorage d') dq f ∗ ⌜f = func.nil ∨ dq = DFrac.discard⌝ ∗
+        Pre ∗ hookRun Pk f Pre Q' ∗ (Q' ={⊤}=∗ Pk ∗ Post) ∗ X ∗
+        storageReq (etcdStorage d') Pk X Y)
+       else iprop(True)) ⊢
+    ∃ (hkH : Option val) (dqh : DFrac) (PreH QH PostH XH YH : IProp GF),
+      resumeCtxM d' r Pk hkH PreH QH PostH dqh XH YH ∗
+      (resumeBackM d' r hkH dqh PostH YH -∗
+        if u then iprop(storageHook (etcdStorage d') dq f ∗ Post ∗ Y) else iprop(True)) := by
+  unfold etcdStorage
+  iintro ⟨#Hbk', Hif⟩
+  cases hu : u
+  · iexists none, dq, iprop(True), iprop(True), iprop(True), iprop(True), iprop(True)
+    rw [resumeCtxM_no _ _ _ _ _ _ _ _ _ _ (by rw [hru, hu]),
+      resumeBackM_no _ _ _ _ _ _ (by rw [hru, hu])]
+    isplitr
+    · itrivial
+    iintro -
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    itrivial
+  have hres : r.resumes = true := by rw [hru, hu]
+  simp only [↓reduceIte]
+  icases Hif with ⟨Hhook, %Hfdq, HPre, Hrun, Hupd, HX, Hreq⟩
+  ihave #Hreq : backend.commitReq (GF := GF) d'.γB d'.P Pk d'.be X Y $$ [Hreq]
+  · iunfold storageReq at Hreq; iexact Hreq
+  ihave #HreqK : kbReq (GF := GF) (some d') X Y $$ []
+  · simp only [kbReq]
+    iunfold bkReq
+    iright
+    iexists (lateW d'.gx), Pk
+    iframe Hbk'
+    iexact Hreq
+  by_cases hf : f = func.nil
+  · subst hf
+    iexists none, dq, Pre, Q', Post, X, Y
+    unfold resumeCtxM resumeBackM
+    simp only [hres, ↓reduceIte]
+    iunfold hookRun at Hrun
+    simp only [↓reduceIte] at *
+    isplitl [HX Hhook HPre Hrun Hupd]
+    · iframe HX HreqK HPre
+      isplitl [Hhook]
+      · simp only [kbHookNilAt]; iunfold storageHook at Hhook; iexact Hhook
+      iintro HPP
+      imod Hrun $$ HPP with HQ'
+      iapply Hupd $$ HQ'
+    · iintro ⟨HPost, HY, Hnil⟩
+      iframe HPost HY
+      simp only [kbHookNilAt]
+      iunfold storageHook
+      iexact Hnil
+  · have hdq : dq = DFrac.discard := by
+      rcases Hfdq with h | h
+      · exact absurd h hf
+      · exact h
+    subst hdq
+    iunfold storageHook at Hhook
+    ihave #Hhk : backend.plHookRO (GF := GF) d'.γB f $$ [Hhook]
+    · iexact Hhook
+    iexists (some #f), DFrac.discard, Pre, Q', Post, X, Y
+    unfold resumeCtxM resumeBackM
+    simp only [hres, ↓reduceIte]
+    iunfold hookRun at Hrun
+    simp only [hf, ↓reduceIte]
+    isplitl [HX HPre Hrun Hupd]
+    · iframe HX HreqK
+      isplitr
+      · iunfold bkHookIs
+        iexists f
+        isplitr
+        · ipureintro; exact ⟨rfl, hf⟩
+        iexact Hhk
+      iunfold csContract
+      iframe HPre Hrun Hupd
+    · iintro ⟨HPost, HY, -⟩
+      iframe HPost HY
+      iunfold storageHook
+      iexact Hhk
+
 end proof
 
 end api
