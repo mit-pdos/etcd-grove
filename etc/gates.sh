@@ -166,6 +166,16 @@ for m in $(find examples/premisefix -mindepth 2 -name go.mod 2>/dev/null | sort)
   fi
 done
 echo "premisefix (own modules): $pfn ok"
+# 9c. the Go evidence for k8s 7e-1's restated trust statements (decided by etcd-grove-81): every
+# error kubernetes.Client returns has one of clientErrTys' four dynamic types, under partitions,
+# deadlines and a closed client (TestClientErrorTypes, about 4 minutes), and etcd's per-RPC
+# credential never errs (TestCredentialNilError, perRPCCredsOk)
+if (cd examples/k8s/etcd3 && GOWORK=off go test -count=1 -timeout 30m \
+    -run '^(TestClientErrorTypes|TestCredentialNilError)$' . > "$tmp/cet.log" 2>&1); then
+  echo "k8s client error types: ok"
+else
+  echo "k8s client error types: FAILED"; tail -20 "$tmp/cet.log"; fail=1
+fi
 
 [ "$fail" = 0 ] && echo "gates: all passed" || echo "gates: FAILED"
 exit $fail

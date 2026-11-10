@@ -10,6 +10,7 @@ import (
 	"time"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"go.etcd.io/etcd/client/v3/credentials"
 	"go.etcd.io/etcd/client/v3/kubernetes"
 	"go.uber.org/zap"
 
@@ -167,5 +168,24 @@ func clientErrorTypes(t *testing.T, sched []cluster3.Step) {
 	}
 	if bad {
 		t.Fatal("a fifth error type")
+	}
+}
+
+// TestCredentialNilError (k8s 7e-1, the soundness fix of perRPCCredsOk, decided by etcd-grove-81):
+// etcd's per-RPC credential's GetRequestMetadata returns a nil error, with no token, with a token,
+// and on a cancelled context. grpc-go returns a credentials error that carries a status (or wraps
+// one) unchanged as the attempt's, so the trusted perRPCCredsOk admits only credentials that never
+// err.
+func TestCredentialNilError(t *testing.T) {
+	b := credentials.NewPerRPCCredentialBundle()
+	cancelled, cancel := context.WithCancel(context.Background())
+	cancel()
+	for _, tok := range []string{"", "tok", ""} {
+		b.UpdateAuthToken(tok)
+		for _, ctx := range []context.Context{context.Background(), cancelled} {
+			if _, err := b.PerRPCCredentials().GetRequestMetadata(ctx, "uri"); err != nil {
+				t.Fatalf("GetRequestMetadata with token %q: %v", tok, err)
+			}
+		}
 	}
 }

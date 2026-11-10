@@ -1332,9 +1332,12 @@ def credsMapIs (mp : Loc) (cm : GrpcMd) : IProp GF :=
     ⌜cm = (some fun k => (m !! k).map fun v => [v]) ∧ ∀ k v, m !! k = some v → metadata.lowerKey k⌝)
 
 /-- **The per-RPC credentials `pc` return metadata meeting `Q`** (persistent; the auth plan's C1,
-2026-10-28): each call of `pc.GetRequestMetadata(ctx, uri...)` returns no error or one whose
-description is not a handler's (`handlerDescs`; k8s etcd3 7c, HS-5 (a): grpc passes such an error
-through as the attempt's), and, with no error, a map whose metadata `cm` has `□ Q cm` (what grpc sends with an attempt, `connCredsOk`); and
+2026-10-28): each call of `pc.GetRequestMetadata(ctx, uri...)` returns no error (k8s 7e-1,
+2026-11-10, a soundness fix decided by etcd-grove-81: it allowed any error whose description is not a
+handler's, but grpc-go v1.84 returns a credentials error that carries a status, or wraps one with
+`%w`, unchanged as the attempt's (`http2_client.go:697-702`), a `*fmt.wrapError` or the caller's own
+type: neither a leaf nor of `clientErrTys`, so `grpcInvokerOk`/`cliStreamErr` overclaimed under such
+credentials; etcd's `perRPCCredential` returns `nil`), and, a map whose metadata `cm` has `□ Q cm` (what grpc sends with an attempt, `connCredsOk`); and
 `pc.RequireTransportSecurity()` can be called (grpc calls it at the dial to refuse credentials that
 need a secure transport on an insecure one; C1's review, F4). -/
 def perRPCCredsOk (pc : GoInterface) (Q : GrpcMd → IProp GF) : IProp GF :=
@@ -1344,7 +1347,7 @@ def perRPCCredsOk (pc : GoInterface) (Q : GrpcMd → IProp GF) : IProp GF :=
           google_golang_org.grpc.credentials.PerRPCCredentials.ty go!"GetRequestMetadata")))
         (Val #pc)) (Val #ctx)) (Val #sl))
     {{ (mp : Loc) (err : GoInterface), RET (PairV #mp #err);
-        ⌜err = GoInterface.nil ∨ go_etcd_io.etcd.cache.v3.errDesc err ∉ handlerDescs⌝ ∗
+        ⌜err = GoInterface.nil⌝ ∗
         (⌜err = GoInterface.nil⌝ -∗ ∃ cm, credsMapIs mp cm ∗ □ Q cm) }}) ∗
     □ {{ True }}
       (App (App (Val (GoInstruction (MethodResolve

@@ -1482,6 +1482,24 @@ here:
   `errors.IsCtxErr`, `context.ValueStartTime`, `http.Handle_ok`, and the k8s
   `DefaultFeatureGate`/`DefaultFeatureSupportChecker` initializers.
 
+### Soundness finding in the trust base: `perRPCCredsOk` admitted erring credentials (7e-1 checkpoint (ii), 2026-11-10; fix decided by etcd-grove-81)
+
+On lean, `perRPCCredsOk pc Q` (`Proof/google_golang_org/grpc/InvGrpc.lean`) let `GetRequestMetadata`
+return any error whose description is not a handler's, and `dialOptsAt` admits `.perRPCCreds pc` for any
+such `pc`. grpc-go v1.84 returns a credentials error that already carries a status (a `GRPCStatus()`
+method, or a status wrapped with `%w`) unchanged as the attempt's (`internal/transport/http2_client.go:
+697-702`), so the error is the caller's type or a `*fmt.wrapError`: not a leaf (`Unwrap`), contrary to
+`clientErr`'s `errors.isLeafError`, which `grpcInvokerOk` and `cliStreamErr` assert. A Go program against
+grpc v1.84.0 confirms both (`/shared/tmp/k8s7e1/attack-invoker/main_test.go`). So lean's
+`grpcInvokerOk`/`cliStreamErr` overclaim under an admissible credential. etcd is not affected: its
+`perRPCCredential.GetRequestMetadata` always returns `nil` (proved,
+`perRPCCredential__GetRequestMetadata`), so no Go user of etcd's client hits it (no `nonissues/` entry).
+**Fix (k8s-7e):** `perRPCCredsOk`'s error clause is `err = nil`; etcd's bundle's proof discharges it;
+`TestCredentialNilError` (gates step 9c). The same review found a third grpc path to a non-leaf error,
+a service-config retry policy exhausting its attempts (`stream.go:867`); nothing in the trusted text
+excluded it, so `grpcResolverAt`'s meaning now includes "its service config sets no retry policy"
+(etcd's resolver: `round_robin` only; no `GrpcDialOpt` sets a default service config).
+
 ### Bug in our own specs: `HGetAt`/`HList`'s error clause unprovable (7e-1, 2026-11-10; recorded as etcd-grove-81 decided)
 
 The hypotheses `Client.GetAt.spec` and `Client.List.spec` (7e-2, premises of `store.getList`'s proof, and on
