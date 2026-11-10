@@ -2,7 +2,7 @@
 
 The outline: `normalize`; `walkKeys` (`keysOf`, sorted, not empty); `zap.NewNop`; the history
 (`hist0`, its names); the runner's fields persisted (`writerCtx`: `rnCtx`, `runnerCfg`, the weights,
-the counters' invariants, `rdShared`); `memberPath`, `newMember` twice (the files `filePathsM`'s
+the counters' invariants, `rdShared`, `0 ≤ Ops < 2 ^ 38` from `runCfgOk`); `memberPath`, `newMember` twice (the files `filePathsM`'s
 first two); `startEpoch` of each (the members' shares split, `lentOk`); `startReaders`; `write`;
 `stopReaders`; `hashing(cfg.Mix.Read)`, false under `runCfgOk`'s `readMixOk`
 (`hashingM_of_readMixOk`), so `x.hashes()` is skipped; for each member `endEpoch`,

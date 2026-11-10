@@ -4,7 +4,8 @@
 `cfg.Ops` operations, each step by `Mix.Step`: the leader applies a new operation (`gen`, appended to
 the log, `apply` leading), the follower applies the next one, the follower installs a snapshot
 (`restore`), a member restarts (`restart`), or the lessors are checked; then the follower catches up.
-Every check passes. Started between steps (`writerOwn`, at most `cfg.Ops` operations in the log),
+Every check passes. Started between steps (`writerOwn`, which keeps the log at most `cfg.Ops`
+operations long; `writerCtx` bounds `cfg.Ops` below `2 ^ 38`),
 afterwards the log extended to exactly `cfg.Ops` operations, both members at its end.
 -/
 module
@@ -35,7 +36,7 @@ abbrev runner.write.spec : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 38)] (x : Loc) (ks : List GoString)
     (cfg : Config) (wr : List w64) (h : Loc) (γ : FullNames) (mp0 mp1 : Loc) (f0 f1 : GoFunc)
     (ops : List OpM) (v0 v1 : MemS) (nv nb : Nat) (q qs : Qp),
-  ops.length ≤ (sint.Z cfg.Ops').toNat → sint.Z cfg.Ops' < 2 ^ 38 → nv + 3 * (sint.Z cfg.Ops').toNat < 2 ^ 62 →
+  nv + 3 * (sint.Z cfg.Ops').toNat < 2 ^ 62 →
   backend.dbOpenOk → backend.dbCloseOk → ckptEffectsOk →
   sint.Z (limOf cfg) ≤ 2 ^ 57 → batchLimitOk (cblOf cfg) →
   {{ writerCtx (GF := GF) x ks cfg wr h γ.h ∗

@@ -543,7 +543,9 @@ def leadPost (γh : HistNames) (ks : List GoString) (ops : List OpM) (n : Nat) (
 
 /-- **The writer's context** (persistent): the run's read-only part the streams read (`rnCtx`) and
 the readers' (`runnerCfg` at the read weights `wr`, F1's scope `readMixOk`, `rdShared`), the other
-packages, the keys' lengths, the logger, the writer's weights, the report counters it adds to. -/
+packages, the keys' lengths, the logger, the writer's weights, the report counters it adds to, and
+the bound on the operations (`Run`'s `runCfgOk`: `cfg.Ops < 2 ^ 38`, so that a member's `Ops + 1`
+write-back tokens fit in a fresh backend's, `inc_open_backend`). -/
 def writerCtx (x : Loc) (ks : List GoString) (cfg : Config) (wr : List w64) (h : Loc)
     (γh : HistNames) : IProp GF :=
   iprop(rnCtx x ks cfg h γh ∗ runnerCfg x cfg wr ∗ ⌜readMixOk (wr.map sint.Z)⌝ ∗ rdShared x ∗
@@ -558,7 +560,8 @@ def writerCtx (x : Loc) (ks : List GoString) (cfg : Config) (wr : List w64) (h :
     ctrInv (readersN .@ "revisions") (rF go!"revisions" x) ∗
     ctrInv (readersN .@ "compactions") (rF go!"compactions" x) ∗
     ctrInv (readersN .@ "restores") (rF go!"restores" x) ∗
-    ctrInv (readersN .@ "restarts") (rF go!"restarts" x))
+    ctrInv (readersN .@ "restarts") (rF go!"restarts" x) ∗
+    ⌜0 ≤ sint.Z cfg.Ops' ∧ sint.Z cfg.Ops' < 2 ^ 38⌝)
 
 instance writerCtx_persistent (x : Loc) (ks : List GoString) (cfg : Config) (wr : List w64)
     (h : Loc) (γh : HistNames) : Persistent (writerCtx (GF := GF) x ks cfg wr h γh) := by
@@ -585,8 +588,10 @@ records, `q` the shares lent to the readers, `qs` to each member's streams): the
 the leader's part of the history at the model's history and compactions (`histW`), a reader slot
 of the history, the builders' files not yet used (`nb` builds so far: at most one per leader
 operation, since a restore needs the follower behind and leaves it caught up), both members
-(`memW`, each keeping a reader token of its own, `1 ≤ nw`) with their epoch's streams (`epochStream`, `m.streams`) and the readers' join (`startReaders`' post: the lent stock). The leader is at the log's
-end, the follower behind. -/
+(`memW`, each keeping a reader token of its own, `1 ≤ nw`) with their epoch's streams
+(`epochStream`, `m.streams`) and the readers' join (`startReaders`' post: the lent stock). The leader
+is at the log's end, the follower behind; the log is at most `cfg.Ops` long (`write` appends only
+under its loop guard `l.ops < x.cfg.Ops`). -/
 def writerOwn (x : Loc) (ks : List GoString) (cfg : Config) (h : Loc) (γ : FullNames)
     (mp0 mp1 : Loc) (f0 f1 : GoFunc) (ops : List OpM) (v0 v1 : MemS)
     (nv nb : Nat) (q qs : Qp) : IProp GF :=
@@ -597,7 +602,7 @@ def writerOwn (x : Loc) (ks : List GoString) (cfg : Config) (h : Loc) (γ : Full
   iprop(runnerMs x mp0 mp1 ∗ ctrInv (sCtrN .@ "regs") (mF go!"regs" mp0) ∗
     ctrInv (sCtrN .@ "regs") (mF go!"regs" mp1) ∗ logOwn x ks ops ∗ writerCtrs x ks ops nv nb ∗
     histW γ.h (histAt ks ops ops.length) (compsAt ks ops ops.length) ∗ histRd h γ.h ∗
-    ⌜v0.ops = ops.length ∧ v1.ops ≤ v0.ops⌝ ∗
+    ⌜v0.ops = ops.length ∧ v1.ops ≤ v0.ops ∧ ops.length ≤ (sint.Z cfg.Ops').toNat⌝ ∗
     ⌜nb ≤ v0.ops ∧ (nb = v0.ops → v1.ops = v0.ops)⌝ ∗
     ([∗list] j ∈ List.range' (nb + 1) ((sint.Z cfg.Ops').toNat - nb),
       backend.fileHolds (buildPathM cfg.Prefix' j) ∅) ∗

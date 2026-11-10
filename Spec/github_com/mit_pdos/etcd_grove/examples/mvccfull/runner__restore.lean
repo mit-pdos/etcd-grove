@@ -5,15 +5,17 @@ snapshot at the leader's point, as the server's `applySnapshot` does. A builder 
 next builder's file, `buildPathM`, fresh) applies the log up to the leader's count (`apply`, not
 leading) and is shut (`inc_retire`, `shut`: its file's data the image of the leader's history there,
 its lease bucket the live leases'). The follower's bounds are raised to the builder's (`revHi`,
-`cmpHi`; the new `revHi`, the builder's revision, below `2 ^ 62` from `Ops < 2 ^ 38`); a backend is opened on the builder's file (`openBackend`, `etcdStorage_open.law` at the
+`cmpHi`; the new `revHi`, the builder's revision, below `2 ^ 62` from `writerCtx`'s
+`Ops < 2 ^ 38`); a backend is opened on the builder's file (`openBackend`, `etcdStorage_open.law` at the
 image); the follower's lessor recovers from it (`lessor.Recover`: its owner part at the builder's
 live leases, the ids ever granted extended, `logOk_recover`); the store restores onto it
 (`KV.Restore.contract`, the follower's history a prefix of the builder's and its compaction revision
 not above: `runM_mono`); the hook set on it; the old backend closed (its census with `Restore`'s
 `storageRest`). The model fields, `revLo`, `cmpLo` follow; the checks (`Rev`, `FirstRev`,
 `checkLeases`) pass; the `restores` counter. The readers and streams run throughout (the follower's
-incarnation is the same store). Afterwards the follower is at the leader's count, one more build. (`ops.length ≤ Ops`, `write`'s: the
-builder's file is then among the unused ones, and its grants have write-back tokens.)
+incarnation is the same store). Afterwards the follower is at the leader's count, one more build. (`writerOwn`'s `ops.length ≤ Ops`: the
+builder's file is then among the unused ones, and its grants have write-back tokens; `writerCtx`'s
+`Ops < 2 ^ 38`: the snapshot backend's `Ops + 1` kept tokens fit in its fresh stock.)
 The closure passed to `Recover` captures the store (`kv := f.kv`, `a4c071c7dd`), so its
 `mvccDeleter` triple is about a constant, not the field the writer rewrites at a restart.
 -/
@@ -45,8 +47,7 @@ abbrev runner.restore.spec : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 38)] (x : Loc) (ks : List GoString)
     (cfg : Config) (wr : List w64) (h : Loc) (γ : FullNames) (mp0 mp1 : Loc) (f0 f1 : GoFunc)
     (ops : List OpM) (v0 v1 : MemS) (nv nb : Nat) (q qs : Qp),
-  v1.ops < v0.ops → ops.length < 2 ^ 38 → ops.length ≤ (sint.Z cfg.Ops').toNat →
-  sint.Z cfg.Ops' < 2 ^ 38 → backend.dbOpenOk → backend.dbCloseOk → ckptEffectsOk →
+  v1.ops < v0.ops → backend.dbOpenOk → backend.dbCloseOk → ckptEffectsOk →
   sint.Z (limOf cfg) ≤ 2 ^ 57 → batchLimitOk (cblOf cfg) →
   {{ writerCtx (GF := GF) x ks cfg wr h γ.h ∗
       □ (∀ (γB : backend.BNames) (P : backend.BParams) (b' : Loc), keySized γB P b') ∗

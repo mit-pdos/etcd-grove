@@ -51,7 +51,7 @@ theorem runner.restart.wp_proof
     (wp_startEpoch : runner.startEpoch.spec (GF := GF) (hG := hG))
     (wp_startReaders : runner.startReaders.spec (GF := GF) (hG := hG)) :
     runner.restart.spec (GF := GF) (hG := hG) := by
-  intro _ _ x ks cfg wr h γ mp0 mp1 f0 f1 ops v0 v1 nv nb q qs j mp hj hlen hdbo hdbc hck hlim hcbl
+  intro _ _ x ks cfg wr h γ mp0 mp1 f0 f1 ops v0 v1 nv nb q qs j mp hj hdbo hdbc hck hlim hcbl
   haveI : Persistent (runnerMs (GF := GF) x mp0 mp1) := by unfold runnerMs; infer_instance
   haveI : ∀ N l, Persistent (ctrInv (GF := GF) N l) := by intro N l; unfold ctrInv; infer_instance
   haveI := isInc_persistent hpers
@@ -73,7 +73,8 @@ theorem runner.restart.wp_proof
   · iunfold writerCtx at Hctx; icases Hctx with ⟨#H, -⟩; iexact H
   iunfold writerCtx at Hctx
   icases Hctx with ⟨#Hrn, #Hcfg, %Hmix, #Hrds, #Hpb, #Hps, #Hpl, #Hpt, %Hksl, #Hlg, #Hwo, #Hwc,
-    #Hws, #Hcrev, #Hccmp, #Hcres, #Hcrst⟩
+    #Hws, #Hcrev, #Hccmp, #Hcres, #Hcrst, %HOpsB⟩
+  have hlen : ops.length < 2 ^ 38 := by have := Hops.2.2; have := HOpsB.2; omega
   iunfold rnCtx at Hrn
   icases Hrn with ⟨#Hpkg, #Hpm, #Hkeys, %Hkne, #HrH, #Hhist, #Hcfgp, #Hwa, #Hwst, #Hce, #Hcp, #Hcc, #Hccn⟩
   wp_auto

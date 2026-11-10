@@ -73,7 +73,7 @@ theorem runner.restore.wp_proof
     (wp_bClose : backend.backend.Close.spec (GF := GF) (hG := hG))
     (wp_checkLeases : runner.checkLeases.spec (GF := GF) (hG := hG)) :
     runner.restore.spec (GF := GF) (hG := hG) := by
-  intro _ _ x ks cfg wr h γ mp0 mp1 f0 f1 ops v0 v1 nv nb q qs hlt hlen hOps hOps38 hdbo hdbc hck hlim hcbl
+  intro _ _ x ks cfg wr h γ mp0 mp1 f0 f1 ops v0 v1 nv nb q qs hlt hdbo hdbc hck hlim hcbl
   haveI : Persistent (runnerMs (GF := GF) x mp0 mp1) := by unfold runnerMs; infer_instance
   haveI : ∀ N l, Persistent (ctrInv (GF := GF) N l) := by intro N l; unfold ctrInv; infer_instance
   haveI := isInc_persistent hpers
@@ -92,12 +92,15 @@ theorem runner.restore.wp_proof
   · iunfold writerCtx at Hctx; icases Hctx with ⟨#H, -⟩; iexact H
   iunfold writerCtx at Hctx
   icases Hctx with ⟨#Hrn, #Hcfg, %Hmix, #Hrds, #Hpb, #Hps, #Hpl, #Hpt, %Hksl, #Hlg, #Hwo, #Hwc,
-    #Hws, #Hcrev, #Hccmp, #Hcres, #Hcrst⟩
+    #Hws, #Hcrev, #Hccmp, #Hcres, #Hcrst, %HOpsB⟩
   iunfold rnCtx at Hrn
   icases Hrn with ⟨#Hpkg, #Hpm, #Hkeys, %Hkne, #HrH, #Hhist, #Hcfgp, #Hwa, #Hwst, #Hce, #Hcp, #Hcc, #Hccn⟩
   iunfold writerOwn at Hw
   icases Hw with ⟨#Hms, #Hreg0, #Hreg1, Hlog, Hctrs, HhW, Hrd, %Hops, %Hnb, Hfiles,
     ⟨%qw0, %nw0, %k0, Hm0, %Hl0⟩, ⟨%qw1, %nw1, %k1, Hm1, %Hl1⟩, Hss0, Hss1, Hadd⟩
+  have hOps : ops.length ≤ (sint.Z cfg.Ops').toNat := Hops.2.2
+  have hOps38 : sint.Z cfg.Ops' < 2 ^ 38 := HOpsB.2
+  have hlen : ops.length < 2 ^ 38 := by omega
   iunfold logOwn at Hlog
   icases Hlog with ⟨%lsl, %lps, Hlog1, Hlog2, Hlog3, %Hlogp, Hlog4⟩
   have hlogOk := Hlogp.2
@@ -704,7 +707,7 @@ theorem runner.restore.wp_proof
       have hb1 : W64 (nb : Int) + W64 1 = W64 ((nb + 1 : Nat) : Int) := by word
       rw [hb1]; iframe; ipureintro; exact Hnl'
     isplitr
-    · ipureintro; exact ⟨Hops.1, Nat.le_refl _⟩
+    · ipureintro; exact ⟨Hops.1, Nat.le_refl _, Hops.2.2⟩
     isplitr
     · ipureintro; exact ⟨by omega, fun _ => rfl⟩
     isplitl [Hfiles]

@@ -35,7 +35,7 @@ abbrev runner.restart.spec : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 38)] (x : Loc) (ks : List GoString)
     (cfg : Config) (wr : List w64) (h : Loc) (γ : FullNames) (mp0 mp1 : Loc) (f0 f1 : GoFunc)
     (ops : List OpM) (v0 v1 : MemS) (nv nb : Nat) (q qs : Qp) (j : Nat) (mp : Loc),
-  [mp0, mp1][j]? = some mp → ops.length < 2 ^ 38 → backend.dbOpenOk → backend.dbCloseOk →
+  [mp0, mp1][j]? = some mp → backend.dbOpenOk → backend.dbCloseOk →
   ckptEffectsOk → sint.Z (limOf cfg) ≤ 2 ^ 57 → batchLimitOk (cblOf cfg) →
   {{ writerCtx (GF := GF) x ks cfg wr h γ.h ∗
       □ (∀ (γB : backend.BNames) (P : backend.BParams) (b' : Loc), keySized γB P b') ∗

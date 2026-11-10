@@ -3,7 +3,8 @@
 The outline: the struct allocated; the closure (`hookOk`'s triple: `applying.Load`,
 `saved.Load`, `saved.Store`); the atomics' stores; the ghost names (`ghostVar`s, `monoNat`s) and
 `memberCarry` at `mvccStart` (`histOkM` against `hist0`, `onceUpToAll` of the empty log);
-`mvccImage_fresh.law`; `open` at `n = 0`; the `regs` invariant.
+`mvccImage_fresh.law`; `open` at `n = 0` (its `Ops ≤ k` the post's; `ops.length < 2 ^ 38` at the
+empty log); the `regs` invariant.
 -/
 module
 

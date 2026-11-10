@@ -1,7 +1,8 @@
 /- Lean-first (no Rocq counterpart). The proof of `runner.open`: Draft, to come.
 
 The outline (the chain's step 3): `openBackend` (the opener's `K := bFresh`, `W := mvccW gx` of
-`mvccW_alloc.law`), `inc_open_backend`; `lease.NewLessor.specR` over the records (`GA := True`,
+`mvccW_alloc.law`), `inc_open_backend` at `k = Ops` (its `receiptBound + Ops + 4 ≤ wbInit` from
+`ReceiptBoundLe 2 ^ 38` and `writerCtx`'s `Ops < 2 ^ 38`; the post's `Ops ≤ k`); `lease.NewLessor.specR` over the records (`GA := True`,
 `reqOf := 3600`, the ids the live leases, `logOk_leases`; `noCluster`'s `clusterOk` from
 `noCluster.Version.spec`); `mvcc.api.New.specR` at `σ` (the lessor's owner part at the live leases,
 `logOk_leases`' items; the resumed compaction at `u` with the unset hook, `Pre := True`, the commit
