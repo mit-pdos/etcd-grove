@@ -404,3 +404,24 @@ pflag does not panic in Go; every Go test linking featuregate shows it), and the
 featuregate's `initialize'` now runs pflag's (Go does too). No Perennial/translator change, no trusted
 text. Next: build featuregate's importers capped, then step 4 (the Link) with `noStreaming`'s line (callees none: it takes `featureGateOk`
 from the package inits).
+
+### Eighth session, after the approval: step 4 (Link, Adequacy, Results)
+
+- Cherry-picked as `39bad66370` (`k8s-7e` had the handoff commit, so no fast-forward); branch
+  `k8s-7e-4-pflag` deleted.
+- `etc/link-lean-first-k8setcd3.txt`: every driver proof's callees (checked mechanically against each
+  `wp_proof`'s binders, `/shared/tmp/k8s-7e-4/py/hyps.py`, `names.py`), the new driver functions
+  (history, `mlist` and its selectors, `genList`, `splitKey`, `listOptions`, `listOut`, `objOf`,
+  `noStreaming`, ...), the store's list helpers `@`, the list contract's axioms (`meta_GetItemsPtr`,
+  `reflect_MakeSlice/Copy/Append`) as trust-boundary lines, and the decided pending hypotheses
+  `Client__GetAt: ?`, `Client__List: ?` with `etcd3_store__GetList: @ Client__GetAt Client__List`.
+- `etc/gen-link.py` (form): `<fn>: @ <pending>...` — an external result from its own Link's
+  `links_pending` section, applied to this mode's pending hypotheses (every other mode's Link is
+  unchanged: all `gen-link` outputs compared).
+- `mlist.wp_proof` (form): takes the selector and `PrepareContinueToken` specs and builds
+  `mlistMatches`/`mlistPCT` (`PredOk.lean`) itself, so the Link passes Go functions' results only.
+- `MainLinked`: `wp_noStreaming`, `(wp_Check h_Client__GetAt h_Client__List)`, the two hypotheses.
+- `Adequacy`/`Results` (the decided pending hypotheses reach the closed theorems): `(Hpl :
+  k8s_etcd3.clientErrPlain (sem := sem))`, `(HGetAt : ∀ hG, kubernetes.Client.GetAt.spec …)`,
+  `(HList : ∀ hG, kubernetes.Client.List.spec …)` after `Hctx`; `k8setcd3_Main*` take
+  `h_Client__GetAt h_Client__List`.
