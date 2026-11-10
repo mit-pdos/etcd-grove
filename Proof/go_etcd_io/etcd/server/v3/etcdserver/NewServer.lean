@@ -738,7 +738,15 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     isplitr; · ipureintro; exact Hckok
     isplitr; · ipureintro; simp
     imodintro; rw [List.map_nil]; iapply BigSepL.bigSepL_nil.2; itrivial
-  rw [hLe]
+  rw [List.map_nil]
+  ihave Hrbo : backend.rbOwnIn d.γB (fun _ => True) ((backend.rbData d.P D).insert go!"lease" ∅)
+    $$ [Hrbo]
+  · iExactEq Hrbo
+    first
+    | exact congrArg (fun v => backend.rbOwnIn (GF := GF) d.γB (fun _ => True)
+        ((backend.rbData d.P D).insert go!"lease" v)) hLe
+    | exact (congrArg (fun v => backend.rbOwnIn (GF := GF) d.γB (fun _ => True)
+        ((backend.rbData d.P D).insert go!"lease" v)) hLe).symm
   -- (the lease-grant stage, 2.13) the lessor's live set's ghost variable at `[]`: one half to the
   -- boot's `leasesLive`, the other to the apply thread's image (`srvRest`'s leased arm, 3b)
   imod (ghostVar_alloc (GF := GF) ([] : List w64)) with ⟨%γlt, Hlt⟩
@@ -865,7 +873,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     isplitr
     · ipureintro; intro it lid hl; rw [mvcc.api.pendItems_mvccStart] at hl; cases hl
     simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
-  rw [mvcc.api.pendItems_mvccStart]
+  first | rw [mvcc.api.pendItems_mvccStart] | rw [show mvcc.pendItems [[], []] [] = ∅ from mvcc.api.pendItems_mvccStart]
   clear hNew hsv
   -- (R8) the store invariant at the boot (`bootStore_holds`): the store's state at `mvccStart`,
   -- the server's store names fresh, raft's committed log's empty floor

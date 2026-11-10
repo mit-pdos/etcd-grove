@@ -971,7 +971,7 @@ theorem server_kv_backend (lg : Loc) (le : GoInterface)
   iintro %s ⟨%γ, %Hγ, #Hkv, Hst, Hop, HB, Hrds, Hdel, Hlo, -, -⟩
   iapply HΦ
   iexists γ
-  rw [mvcc.api.pendItems_mvccStart]
+  first | rw [mvcc.api.pendItems_mvccStart] | rw [show mvcc.pendItems [[], []] [] = ∅ from mvcc.api.pendItems_mvccStart]
   iframe Hkv Hst Hop HB Hrds Hdel Hrest Hrt1 Hrt2 Hlo
   isplitr
   · ipureintro; exact Hγ
@@ -1040,7 +1040,7 @@ theorem server_kv_watchable (lg : Loc) (le : GoInterface)
   iintro %s ⟨%γ, %Hγ, #Hkv, Hst, Hop, HB, Hrds, Hdel, Hlo, -, -⟩
   iapply HΦ
   iexists γ
-  rw [mvcc.api.pendItems_mvccStart]
+  first | rw [mvcc.api.pendItems_mvccStart] | rw [show mvcc.pendItems [[], []] [] = ∅ from mvcc.api.pendItems_mvccStart]
   iframe Hkv Hst Hop HB Hrds Hdel Hrest Hrt1 Hrt2 Hlo
   isplitr
   · ipureintro; exact Hγ

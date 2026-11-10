@@ -155,7 +155,8 @@ theorem runChecks.wp_proof
     isplitl [Hrbo]
     · iunfold backend.rbOwn at Hrbo; iexact Hrbo
     imodintro; rw [List.map_nil]; iapply BigSepL.bigSepL_nil.2; itrivial
-  rw [hLe]
+  try rw [hLe]
+  rw [List.map_nil]
   (try wp_auto)
   subst Hl
   -- two of the lessor's reader slots: the store's, the writer's
@@ -182,14 +183,14 @@ theorem runChecks.wp_proof
   wp_apply (wp_mNew lg _ _ (etcdStorage (rcKB γB b gx bc.BatchLimit')) iprop(True) γl func.nil
       mvccStart false [] (DFrac.own 1) func.nil iprop(True) iprop(True) iprop(True) iprop(True)
       iprop(True)) $$ [Hsf Hlrd1 Hrdo Hlown]
-    as %wsl ⟨%γk, %Hγl, #Hkv, Hσ, Hopn, Hmb, Hrdrs, %rd, Hrdo, Hdel, Hlown, -, -⟩
+    as %wsl ⟨%γk, %Hγl, #Hkv, Hσ, Hopn, Hmb, Hrdrs, ⟨%rd, Hrdo, Hdel⟩, Hlown, -, -⟩
   · iframe Hsf Hlrd1 HisL Hrdo Hlown
     isplitr
     · ipureintro; exact ⟨hbl, .start, rfl⟩
     isplitr
     · ipureintro; intro it lid hl; rw [pendItems_mvccStart] at hl; cases hl
     simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
-  rw [pendItems_mvccStart]
+  first | rw [mvcc.api.pendItems_mvccStart] | rw [show mvcc.pendItems [[], []] [] = ∅ from mvcc.api.pendItems_mvccStart]
   (try wp_auto)
   rw [etcdStorage_val]
   (try wp_auto)

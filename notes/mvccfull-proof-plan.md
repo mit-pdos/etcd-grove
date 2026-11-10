@@ -907,3 +907,62 @@ No exported API statement and nothing of `ApiNewRestoring.lean` changed; no axio
 - **`NewLessor.specR`'s docstring**: the receipt `⧖ |recs|` settled (kept): its source is the proved
   `lessor.initAndRecover.spec`'s post (earned per iteration, `wp_raise_receipt`); the axiom adds only
   `newLessor`'s names-only wrapper (`notes/axiom-review/mvccfull-newlessor-specR.md`).
+
+## Freeze (2026-11-10)
+
+The user approved the Freeze list (`notes/decisions.md`, "mvccfull F1's Freeze"); the frozen drafts
+are swapped in, so each function has one spec again. Commits on `worktree-mvcc-full-tester`:
+`fe7367ddc8` (item 5), `8ffc17cc79` (item 3), `0669d7d369` (item 2), `0143f5dfba`
+(item 1 and the callers), then the build repairs. The statements before the Freeze are at
+`ae30739dde`.
+
+**What was swapped** (the draft files deleted: `ApiNewRestoring`, `NewR`, `NewStoreR`,
+`newWatchableStoreR`, `ApiErrVars2`, `ApiWatchR`, lease `NewLessorR`; their `spec_of_specR`
+corollaries and `api.New.specR_of_internal` with them):
+
+1. **`mvcc.api.New.spec`/`NewStore.spec`** (`Api.lean`): `specR`'s text (any image
+   `mvccStorageFor B Pk σ.log σ.crev u`, `⌜batchLimitOk ∧ MvccReachable σ ∧ σ.pending = none⌝` inside
+   the pre, the lessor's owner part `leaseOwn γl Ls ∅` lent and back at `pendItems σ.log []`, the
+   items' premise, the resumed compaction `if u then …`, the receipt `⧖ (logCh σ.log)` in the post).
+   `pendItems_mvccStart` moved to `Api.lean`. The internal `mvcc.NewStore.spec`,
+   `newWatchableStore.spec`, `New.spec` (`Spec/.../mvcc/{NewStore,newWatchableStore,New}.lean`):
+   the internal `specR`s (real backend only, the image `restoreImageM`, the session contract, the
+   contract behind the fix, the clean read, `restoreRcptM`, the certificate map at `M`, the permits,
+   the lessor's part, `resumeCtxM`; posts with `storeCloserM`/`wsCloserM`, `hookP`, `resumeBackM`).
+   `StoreBackend.lean`'s `NewStore_backend` (a fresh-backend corollary no linked result used, not
+   derivable without the lessor's part) is removed.
+2. **`lease.NewLessor.spec`** (`Spec/.../lease/NewLessor.lean`): `specR`'s text (records `recs` in
+   the bucket, `reqOf`, `Lr`, `□ GA` of the records' ids, the receipt `⧖ |recs|` kept, `minLeaseTTL`,
+   the requests, `lessorAt γl 0 …`); `NewLessor.wp_proof` is still the one axiom (over the new text).
+   The reader slots stay `replicate actualMaxReaders` (review round 1's F2 "through the owner's
+   handle if possible": not done, it would change the frozen text); the bounds gate's lease counts
+   are back at the baseline.
+3. **`mvcc.api.errVars.law`**: `errVars2`'s text (`ErrWatcherNotExist`'s `errorsNewVar`, the four
+   variables apart, `errVarNames`); `mvccInit` gains a 43rd conjunct (`Base.lean`), proved by the
+   generated `Init.lean` (`etc/gen-init.py`'s mvcc `SPECIAL`: the cells of `ErrWatcherNotExist` and
+   `ErrEmptyWatcherRange`); `store__setupMetricsReporter.lean`'s pattern gains `, -`;
+   `errVars.law_holds` (`SnapLaws.lean`) is `law_of_ext`'s proof.
+4. (`pick.specW`, the tester's own: unchanged here.)
+5. **`WatchStream.Watch.contract`**: `contractR`'s text (`⌜empty⌝ ∨ au`; the empty branch gives
+   nothing back). `watchStream__Watch.lean`: 6 lines; mvccrand's `watchCheck.register`: the empty
+   case no longer builds an update (`register_au_empty` now unused), the patterns of `Watch`'s post
+   and of `errVars` adapted.
+
+**Statements that changed outside mvcc's and lease's specs**: etcdserver `Results.lean`'s
+`server_kv_backend`, `server_kv_watchable`, `server_kv_backend_hooks` gain `lease.leaseOwn γl [] ∅` in
+pre and post. Callers adapted (proofs only): `NewServer.lean` (`NewLessor` at no record, `Hlown` lent
+to `New`), mvccrand's `runChecks.lean` (likewise). mvccfull: `runner.open`'s hypotheses are now
+`lease.NewLessor.spec`/`mvcc.api.New.spec`; `etc/link-lean-first-mvccfull.txt` has no `?` lines
+left (`runner.open`, `newMember`, `restore`, `write`, `restart`, `Run`, `Main` are linked results
+again, no hypotheses).
+
+**New `sorry`s, all "B3 Prove"** (the proofs of the fresh statements are at `ae30739dde`):
+- `Proof/.../mvcc/NewStore.lean`: `mvcc.NewStore.wp_proof`;
+- `Proof/.../mvcc/newWatchableStore.lean`: `mvcc.newWatchableStore.wp_proof`;
+- `Proof/.../mvcc/New.lean`: `mvcc.New.wp_proof`;
+- `Proof/.../mvcc/Api/NewApi.lean`: `mvcc.api.New.wp_proof` (its docstring holds the glue outline,
+  from the deleted `NewR.lean`);
+- `Proof/.../mvcc/Api/NewStoreApi.lean`: `mvcc.api.NewStore.wp_proof` (review round 2's S3/S4: its
+  glue is written here).
+`ApiResults.lean`'s `mvccApi_New_wp_proof`/`mvccApi_NewStore_wp_proof` are unchanged text, now of the
+new statements, resting on these.
