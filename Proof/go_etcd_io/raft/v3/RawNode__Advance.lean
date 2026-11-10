@@ -1081,7 +1081,8 @@ theorem RawNode.Advance.wp_proof
     have Hsd0 : s0.logst.sdt = [] := by rw [← Hs0]; rfl
     ihave Hghost := ownStepGhost_congr γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds⟩) cf id (s := s) (s' := s0)
       (by rw [← Hs0] <;> rfl) (by rw [← Hs0] <;> rfl) (by rw [← Hs0] <;> rfl) (by rw [← Hs0] <;> rfl) (by rw [← Hs0] <;> rfl)
-      (by rw [← Hs0] <;> rfl) (by rw [← Hs0] <;> rfl) (by rw [← Hs0] <;> rfl) $$ Hghost
+      (by rw [← Hs0] <;> rfl) (by rw [← Hs0] <;> rfl) (by rw [← Hs0] <;> rfl)
+      (by rw [← Hs0]) $$ Hghost
     have Hwf0 : NStateWf s0 := by rw [← Hs0]; exact Hwf
     have Hstok0 : StepsOk s0 rs.steps :=
       stepsOk_mono s s0 rs.steps Hs0f.2.2.2.2.2.2.2.2.2.2.1

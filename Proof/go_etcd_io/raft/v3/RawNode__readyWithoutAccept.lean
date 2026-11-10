@@ -695,7 +695,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
       ihave #Hkr' := Hkr
       icases Hkr' with (%Hns | #Hkr')
       · exfalso
-        have := (Hlns (by rw [Hnl]; exact Hns)).1
+        have := (Hlns (by rw [Hnl.1]; exact Hns)).1
         rw [Hss] at this; cases this
       ihave ⟨#Hcr, -⟩ := BigSepL.bigSepL_mem_acc Hk $$ Hkr'
       obtain ⟨xh, Hxh⟩ := _root_.id Hhas
