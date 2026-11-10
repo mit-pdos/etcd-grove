@@ -29,6 +29,16 @@ Translations regenerated with `--src`; `confStatesEqual`/`idsEqual`/`boolOf` (an
 in both trees; the link lists and Links regenerated; `examples/premisefix/confstate` asserts the
 new behavior; `nonissues/raft-confstate-unknown-fields-panic.md` updated.
 
+## Checked (2026-11-10)
+
+Full build green (13637 jobs); `etc/gates.sh` (with `RAFT_SRC`/`RAFT_WITNESS_SRC` naming the local
+fork checkouts and `GOPROXY=off`) passed every gate but two that need the fork commits on GitHub,
+both rerun green against local copies: `goose` (`etc/goose.py --check` after the witness module
+was in the module cache: 40 projects up to date) and `reader-slot` (it reads `.lake/goose/raft{,-witness}`,
+which `--src` does not fill: cloned there from the local checkouts). Trust base 845 axioms, 4
+`sorry`s (`proto.EqualConfState` gone; 21 collections updated). Stopped before `etc/land.sh`: the
+user pushes the fork branches first.
+
 ## Not done (scope change, see `notes/decisions.md`, "Premise fixes 2")
 
 `csPts` keeps `[]`: stage A already made the decode path sound; relaxing it is for etcd-grove-81 to
