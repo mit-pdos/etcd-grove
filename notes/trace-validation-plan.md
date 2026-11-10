@@ -826,6 +826,25 @@ gate or `SimIdleS`). The vote request, self-vote, self-acknowledgement and reply
 from their gates (their messages and states are named). Still blocked on Q15 (every send line's
 `FxPres`) and Q14 (receive lines). Checked (branch at its base `98ca21bb96` plus this slice): full `lake build` green (13792 jobs); `etc/tcb-report.py --check` (806 axioms, 4 `sorry`s, unchanged) and all 53 collections `--reuse --check`, none updated; `interface/` differs in `Defs` (`PrOk`'s conjunct, `PrOk.fields`/`maybeUpdate`'s new premises, `PrOk.match_le_prev`) and the ten changed specs' proof files (their gates); `etc/api-check.py` 0 errors; `--layout` 0 new; `etc/gen-link.py --raft` unchanged.
 
+**Q8 stage 1 (slice 18a), 2026-11-10 (branch `trace-check-q8s18a`): the local paths that log lines;
+`MsgBeat` at a leader and `tickHeartbeat`'s traced corollary proved; `MsgHup` blocked on `hup`'s
+non-exclusive result (raft-internal), `MsgProp` on where its records are created.** Decided by the agent
+(`notes/decisions.md`, "Q8 stage 1 (slice 18a)"); the receive paths are slice 18b's. Done: (1)
+`stepBundle_traced.on` gains `c.learners = ∅` and `domSet s.progress ⊆ c.voters ∪ c.learners` (the
+heartbeat's and append's destination a voter); the log-term bound is not a premise (raft's ghost state in
+the families gives it, `ownRaftGhost_terms_le`). (2) `TracedPin.lean`: a local path's family `lineF`
+(raft's ghost state, `trFam`, the new messages' numbers `OutOk`), `lineF_recv`, `lineF_close`; the
+pin/unpin pair `trFam_pin`/`trFam_unpin` (`PinAtG`); `hookGateOpt_mono`, `sendOutGate_one`; `app_lead`
+(`fxPres_app`'s `hlead`); `AppSlices`' preservation (`appSlices_mono`, `appSlices_becomeLeader`,
+`appSlices_extend`). (3) `TracedRaftStepLocal.lean`: `lineF_heartbeat`, **`stepBundle_traced_beat`**
+(`MsgBeat` at a leader), **`raft.tickHeartbeat.traced`** (check-quorum off: no quorum check). **Blocked
+(raft-internal, recommended, not done)**: `MsgHup`'s close cannot exclude the candidate family at `s' =
+s` (`HupGuard` not exclusive; `hup`'s result `(⌜s' = s⌝ ∗ G0) ∨ G s'.outbox`): `"Hgbc"` premised by the
+campaign's conditions and `HupGuard` exclusive; so `tickElection`'s corollary waits too. **Open
+(design)**: `MsgProp`'s append requests need records of the proposed entries, which the families' ghost
+state (at `s`) lacks; where they are created is to decide. Unblocked, not done: the `BecomeCandidate`,
+vote-request and self-vote lines' facts and phase steps; `Commit`, the self-acknowledgement.
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its

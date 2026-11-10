@@ -34565,3 +34565,99 @@ bags).
 `AppSlices`' preservation lemmas for the callers' lines (`Replicate`, `BecomeLeader`, step-downs, a
 follower's receives; a2-r5) and an `"app"` counterpart of `heartbeat_lead` for `fxPres_app`'s `hlead`;
 the path proofs themselves. Reviews: `notes/trace-validation-reviews/a2-r1.md` … `a2-r6.md`.
+
+## Q8 stage 1 (slice 18a): the traced bundle's learners premises; a path's family and the pin/unpin pair; `MsgBeat` at a leader and `tickHeartbeat`'s traced corollary proved; `MsgHup` blocked on `hup`'s non-exclusive result, `MsgProp` on the `Replicate` lines' records (2026-11-10 · trace-check, Q8 stage 1 slice 18a; decided by the agent under the user's delegation · branch `trace-check-q8s18a`; DRAFT until trace-check's Freeze)
+
+**Scope** (the coordinator's split): the local paths that log lines (`MsgBeat` at a leader, `MsgHup` at a
+follower or candidate, `MsgProp` at a leader), their infrastructure, and the ticks' traced corollaries
+over them; the receive paths are slice 18b's (another branch, its own files). Only this slice edits
+`TracedRaftStep.lean`.
+
+**The bundle's new premises** (`stepBundle_traced.on`, `TracedRaftStep.lean`; not client-visible, not at
+the frozen tag): `c.learners = ∅` (the Draft's P3: a traced cluster has voters only; no raft invariant
+gives it, raft supports learners) and `domSet s.progress ⊆ c.voters ∪ c.learners` (raft's own,
+`ownRaftPhysC_dom`, which a caller reads off `ownRaftPhysCV` before the call, as
+`raft.tickHeartbeat.traced` does). With the capability's `c.outgoing = ∅` a heartbeat's or append's
+destination is then in `elements c.incoming` (`mem_incoming_of`), what `phaseStepB_heartbeat(_pin)` and
+`phaseStepB_msgApp` ask. **The log-term bound (`blt`) is not a premise**, as slice 17 suggested: the
+families hold raft's ghost state (`Step` hands it to the receive gate), which gives every log term at
+most the node's term (`ownRaftGhost_terms_le`), and the bundle has `s.term + 1 < traceNumBound`.
+Rejected: `blt` as a premise (redundant with the ghost state; one more thing for the node API to supply).
+
+**A local path's family** (`lineF`, `TracedPin.lean`): `ownStepGhost γ md c id s` (at the step's first
+state, as `stepClose` gives it back), `trFam` at the phase `Φs` (booted, last-event predicate `stepLastEv
+Λ`), and `⌜OutOk s o⌝` (every message of the outbox `s`'s or `Msg.TrOk`: the closing wand's
+`OutTrStep` read off the family, so the close needs no message-by-message argument). `PermInv`
+(`lineF_permInv`); `lineF_recv` (the receive gate of a local type, no line: the idle capability weakened
+to `stepLastEv Λ`), `lineF_close` (at an end state whose server part is `s`'s: `trFam_idle`). Why the
+numbers in the family: the close receives only `stepOut R s'.outbox` and `StepEnd`, whose broadcast
+messages are existential (`HeartbeatOk` bounds each heartbeat's commit by the node's, but the node's
+commit's bound is the ghost's, under an update).
+
+**Pin and unpin** (`trFam_pin`, `trFam_unpin`, `PinAtG`; `PinAt s` is `PinAtG (SimIdleS · s)`): a line's
+gate pins the share (`trCapB_pinMem`) so that the line's facts (`FxPres`, asked of every result the
+phases admit) see one server and one list, fires (`trCapB_hookGateOpt`), and forgets the pin
+(`trCapB_mono`). `hookGateOpt_mono`, `hookGateOpt_fupd` (the receipt bound's ghost update before the
+gate), `sendOutGate_one` (a one-message gate is its `SendEvOf`).
+
+**`app_lead`** (the `"app"` counterpart of `heartbeat_lead`, `fxPres_app`'s `hlead`): at the pinned idle
+phases, from `AppOk` and the commit equality, the idle server leads the node's term, the request's commit
+is its commit, and the request's entries are the slice of its log after the previous index, within it
+(`appOk_slice` with `SimServerR`'s `logAbs` log). **`AppSlices`' preservation** (amendment A2's open
+item): `appSlices_mono` (bags only shrink; every leader of the result led the same term before with a
+prefix of its log, or has no append request of its term in flight), `appSlices_becomeLeader` (the latter
+for a candidate, by `CandS`), `appSlices_extend` (one server's log extended at the same role and term: a
+`Replicate` line). A send keeps it by `appSlices_send` (amendment A2's).
+
+**Proved** (`TracedRaftStepLocal.lean`): `lineF_heartbeat` (a heartbeat's gate on the family:
+`ownStepGhost_traceBound` for the event's and the message's numbers, `phaseStepB_heartbeat_pin`,
+`fxPres_heartbeat_pin`); **`stepBundle_traced_beat`** (`stepBundle_traced.on LocalBeat`, `MsgBeat` at a
+leader: one family `beatR` from the receive gate to the close; every other gate discharged by its type or
+role; the close reads `LeaderNonpropResultC`'s `MsgBeat` arm, the `Match` values unchanged, so
+`SimIdleS` of the end state is `s`'s, `simIdleS_prvals`); **`raft.tickHeartbeat.traced`** (the triple
+`raft.tickHeartbeat.tracedTriple`: the capability idle at `s` and `TrNoSnap` in, idle at the end state with
+`stepLastEv Λ` out; check-quorum off, so the quorum check's `Step` is not reached, `"Hgcq"` vacuous, and
+`"Hskip"` keeps the capability; the heartbeat's `Step` at `s` or `{s with lt := 0}`, whose idle relation
+is `s`'s, by `stepBundle_traced_beat`). `MsgCheckQuorum` needs no path (check-quorum off).
+
+**Blocked: `MsgHup` (and so `tickElection`), on `hup`'s result (raft-internal, not frozen).** The close
+receives `stepOut R s'.outbox` and `StepEnd`'s `HupOkC c id s s'`, whose `HupGuard` is `s' = s ∨ (the
+campaign's conditions ∧ s' = the campaign's state)`, not exclusive; `hup`'s postcondition is `(⌜s' = s⌝ ∗
+G0) ∨ G s'.outbox`. So the close must handle the candidate family (`GE`, after the `BecomeCandidate` line)
+at `s' = s`, where the capability's server is the candidate of term `s.term + 1` and the idle relation at
+`s` cannot be re-established. (The other cross case, `G1` at the campaign's state, is excluded by a pure
+`⌜o = s.outbox⌝` in `G1`: the campaign's outbox grows by the self-vote at least.) No family can exclude it:
+`"Hgbc"` must give `GE s.outbox` itself. **Recommended (raft-internal)**: `hupGates`' `"Hgbc"` (and `hup`'s
+spec's) premised by the campaign's conditions (`HupCampaigns c id s`: not leading, a voter, no snapshot
+pending, no unapplied conf change: `HupGuard`'s second disjunct's), and `HupGuard` made exclusive (`(¬
+HupCampaigns c id s ∧ s' = s) ∨ (HupCampaigns c id s ∧ …)`, which `hup`'s three early returns give if
+`promotable`'s and `hasUnappliedConfChanges`'s specs state their results exactly); the candidate family
+then carries `⌜HupCampaigns c id s⌝` and the close refutes `s' = s`. Other options: (b) `hup`'s and
+`campaign`'s gate restructured so the `BecomeCandidate` line's resource is not outbox-indexed until the
+first send (the family then carries `⌜s.outbox.length < o.length⌝`; heavier, `campaign`'s `PermInv`
+order); (c) `stepClose` given the provenance of `stepOut`'s disjunct (a change to every `Step` arm). Not
+done here: it changes `hup`'s proof, `HupOkC`'s users (`Step`, `stepFollower`'s `MsgTimeoutNow`) and
+`hupGates`. The line-level pieces `MsgHup` needs are unblocked and not done: the `BecomeCandidate` line's
+`FxPresU` (`srvFacts` of `candOf a`: `pend = []` as a non-leader, the term below `2^63`, the commit
+certificate at the new term by `commitIn_agree`, monotone in the term; `specInv_timeout`; `QuorumLogF`,
+`MsgsUniq`, `MsgsShape` with the bags unchanged; `AppSlices` by `appSlices_mono`), its phase step
+(`lineEffect_becomeCandidate`, to `SimIdleS · (becomeCandidate id s)`), the vote request's and self-vote's
+`FxPres` (`specInv_requestVote`; a request carries no entries) and phase steps (`lineEffect_requestVote`,
+`lineEffect_selfVote` through `phaseStepB_send_pin`).
+
+**Not done: `MsgProp` at a leader; found what it needs (design, raft-internal).** Its close is not
+blocked like `MsgHup`'s: `LeaderProposeResult` leaves the outbox unchanged when dropped and grows it by the
+self-acknowledgement when appended, so `G1` carrying `⌜o = s.outbox⌝` and `Gp2` (first produced by
+`"Hgpack"` at `s.outbox ++ [selfAck …]`) carrying `⌜s.outbox.length < o.length⌝` separate the cases. But
+its append requests' facts (`fxPres_app`) need `msgFacts`' `logRecs` of the new entries, and the families
+hold raft's ghost state at `s` (the closing wand gives it back at `s`; `Step`'s own ghost update to `s'`
+runs after), where the proposed entries have no records yet; the `Replicate` lines' facts may create them
+(`raft.appendEntry.traced`'s chained `FxPresUT`, review round 6's F1) only if `ownStepGhost γ md c id s`
+survives a term log extended past `s`'s log (`srvFacts`' `pend`/`isCamp` were designed for that on the
+specification side; raft's side is not). To decide: where the proposal's records are created (in the
+`Replicate` facts' update, with the ghost state's log ahead of `s`'s, or by `Step` before the
+`"#Hgpapp"` gates, which then name the records). Then `Commit` (`quorumLog_commitTo`) and the
+self-acknowledgement (`lineEffect_selfAck`).
+
+No axiom, no `sorry`, no frozen statement changed (`TracedCap.lean` untouched); not client-visible
+(`stepBundle_traced.on` and the new files are raft-internal).

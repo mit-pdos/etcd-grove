@@ -22,7 +22,7 @@ check-quorum off) and message types (`StepEndTy`).
 **Slice 13's finding** (the broadcast paths not derivable while the gates' resources were not indexed
 by the outbox) **is resolved by slice 14's indexing**; a traced caller's families are `trFam`
 (`TracedFamilies.lean`). Proved path by path (`stepBundle_traced.on`, slice 15,
-`TracedRaftStepPaths.lean`).
+`TracedRaftStepPaths.lean`; the local paths that log lines, slice 18a, `TracedRaftStepLocal.lean`).
 -/
 module
 
