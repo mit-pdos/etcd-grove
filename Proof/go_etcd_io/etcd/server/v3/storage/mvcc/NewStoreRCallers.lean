@@ -1,10 +1,12 @@
 /-
-**B3: what the callers of the internal chain's corollaries hold** (`NewStoreR.lean`'s
-`NewStore.spec_of_specR`, `newWatchableStoreR.lean`'s and `NewR.lean`'s `spec_of_specR`; review round
-2's T2, `notes/review/mvccfull-f1-r2.md`). Lean-first (no Rocq counterpart). Scratch with them: not
-imported, not linked.
+**B3: what the callers of the internal chain hold** (review round 2's T2,
+`notes/review/mvccfull-f1-r2.md`; until mvccfull's Freeze, 2026-11-10, for the draft corollaries
+`spec_of_specR` of `NewStoreR.lean`, `newWatchableStoreR.lean` and `NewR.lean`, now gone: the drafts
+are the internal `NewStore.spec`/`newWatchableStore.spec`/`New.spec`). Lean-first (no Rocq
+counterpart). Not imported, not linked: for B3's Prove (the API proofs `NewStore.wp_proof`,
+`New.wp_proof`).
 
-The corollaries take the backend in `specR`'s form: the session contract (`storeSessT`), the contract
+The internal specs take the backend in this form: the session contract (`storeSessT`), the contract
 behind the fix of the deletable keys' registration (`restoreFixM d γ -∗ storeBackendT`), the clean
 read lent `storeRT γ ∗ restoreRegM d`, the unfixed registration `restoreRegM d`, and `kbNoDelOff`.
 `backendC_newStoreR_pre` derives exactly these from what their callers hold at the call, in both

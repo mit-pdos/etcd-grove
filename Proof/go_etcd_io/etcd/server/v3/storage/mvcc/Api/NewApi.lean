@@ -45,7 +45,45 @@ variable [go_etcd_io.etcd.cache.v3.Assumptions]
 variable [backend_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 variable [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 
-/-- **`New.spec`** (the API's) from the internal one and the bridge's backend specs. -/
+/-- **`New.spec`** (the API's) from the internal one and the bridge's backend specs (B3 Prove: the
+proof of the fresh statement, until mvccfull's Freeze of 2026-11-10, is at commit `ae30739dde`).
+Outline (the bridge `Restore`'s API proof uses),
+in the order of `NewApi.lean`'s `New.wp_proof`, with `RestoreApi.lean`'s bridge in place of
+`imageOk_start`:
+
+1. `mvccStorageFor B Pk σ.log σ.crev u` opened as `restore_of_storage` does: `bk`, `D`, the image
+   `imageOk D σ.log σ.crev u` (`snap.imageOk_keyImageM`: records `r` with `r.crev = σ.crev`,
+   `r.resumes = u`, `keyImageM true σ.log r D`), `σ.log = [[], []] ++ R` with `restoreLogOk R`
+   (`restoreLog_ch`, the `IdxWf` from `LogB`/`LogWf'`), `recsSign r`, the receipt `⧖ (logCh σ.log)`
+   (→ `restoreRcptM bk σ.log`, mode on). `restore_of_storage` is `private` and quantifies over
+   `γ.withPhys p` for a given `γ`; its body is what is reused, at `∀ γ` with `γ.idx = γi`.
+2. The index's names `γi` (`idxFresh_alloc`). The registration stays unfixed (`dlInit`, which is
+   `restoreRegM bk` on). The session contract comes from `storeSessT_of_backendC`
+   (`NewStoreSessReal.lean`: `isKeyBackendG_of_backendC` at `bkDel`, no registration). The contract
+   at the records behind the fix comes from `storeBackendTR_of_backendC … γi r hsign` under
+   `restoreFixM bk γ = storeDlReg bk.γB γ.idx` (on, `γ.idx = γi`). It needs `fkV … true`, from
+   `fkV_of_fkCl` with `fkWfD_of_keyImageM`.
+3. The image `restoreImageM bk γb σ.log r` from `restoreImageM_of_openOn` (`bView` and `fkCl`).
+4. The clean read is `keyCleanRead_of_backendC`, lent `storeRT γ ∗ dlInit bk.γB`, which is
+   `restoreRegM bk` on. `NewStore` fixes the registration itself once `restore()` gives the token
+   back (`storeSess_fix`). (Until 2026-11-09 this step needed R1's bridge lemma over a registration
+   fixed at step 2. The Probe found that `NewStore`'s batch session needs no registration:
+   `NewStoreSess.lean`.)
+5. The certificate map: `ghost_map_alloc_empty`, then `ghost_map_insert_persist 0 []` before the
+   call (`M = {0 ↦ []}`, the third disjunct; the API's `certFree` is that element).
+6. The permit: `Perm := fun _ => True` (both disjuncts' right side); the lessor: `leaseOwn γl Ls ∅`
+   and the items' premise are the API's verbatim; the resumed compaction: the API's `if u then …` to
+   `resumeCtxM bk r Pk (some #f | none) …` exactly as `watchableStore.Restore.wp_api` builds it
+   from `storageHook`/`hookRun`/`storageReq` (with `kbWTSupplyM` from `mvccStorageFor`'s supply).
+7. The readers, the safe-range slot, `kbRegRight`, the two write tokens, `kbNoDelOff` (`True` on):
+   from `mvccStorageFor`, as today.
+8. After the call: `wsCloserM_on` gives `wsCloserR … σ.crev`, which is `openRest`'s and
+   `mvccOpen`'s right at `σ.crev` (today made from `compactRightR_of_closer` at `-1`); `newClient
+   … σ.log σ.crev` gives `mvccState γ σ` (`MvccReachable σ`, `σ.pending = none` from the premises;
+   `idxCert`'s receipt for `mvccStateI`'s `⧖`); `storeReader_retire2`, `rdkPool_init`,
+   `watchTokPool_alloc` as today; `resumeBackM` to the API's `if u then storageHook … ∗ Post ∗ Y`
+   (`resumeBackM_of`'s inverse reading, as `Restore`'s API proof); `mvccBackend γ 1 B Pk` as today,
+   with `hookP`; the receipt `⧖ (logCh σ.log)` from step 1's (persistent). -/
 theorem New.wp_proof
     (hNew : mvcc.New.spec (GF := GF) (hG := hG))
     (hCRT : backend.backend.ConcurrentReadTx.spec (GF := GF) (hG := hG))
@@ -76,175 +114,9 @@ theorem New.wp_proof
     (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG))
     (hWr : mvcc.store.Write.spec (GF := GF) (hG := hG)) :
     New.spec (GF := GF) (hG := hG) := by
-  intro hrbI lg le cfg B Pk γl rd0 hcfg
-  have hrb : receiptBound GF ≤ 2 ^ 48 := hrbI.receiptBound_le
-  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, Hfor, Hlrd, #Hle, Hro⟩ HΦ
-  iunfold mvccStorageFor at Hfor
-  icases Hfor with ⟨%bk, %D, %Hf, #Hrc, #Hb, #Hsz, Hv, Hdl, Hfk, Hsr, Hrs, Hrg, Hw1, Hw2, #Hsup,
-    Hopen⟩
-  obtain ⟨hB, hP, hcm, himg, hlp⟩ := Hf
-  subst hB
-  obtain ⟨hk0, hnc⟩ := imageOk_start himg
-  -- the internal premises, as `NewStore.wp_proof`'s
-  imod idxFresh_alloc (GF := GF) with ⟨%γi, Hifresh⟩
-  imod storeDlReg_fix bk.γB γi $$ Hdl with #Hreg
-  icases bkNoCmp_fkV_of_fkCl bk.γB bk.P hnc $$ Hfk with ⟨Hncmp, #Hfv⟩
-  ihave #Hsz1 := Hsz $$ %bk.γB %bk.be
-  ihave #Hbk := storeBackend_of_backendC hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU hrUR
-    hLI hLO hSP hUL hbUR hCB hDel hID hName hSafe hLSR hUSR hUP bk hP Pk γl γi
-    $$ [$Hbpkg $Hsch $Hb $Hsz1 $Hreg $Hfv]
-  imod ghost_map_alloc_empty (K := w64) (V := Log) (GF := GF) with ⟨%γok, Hok0⟩
-  ihave Hrts := bkRTx_of_rdToks bk.γB bk.P bk.be nReaders $$ [Hrs Hopen]
-  · iframe Hrs Hopen
-  have hsv : storageVal (bk : MvccStorage) =
-      interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
-        #bk.be := rfl
-  rw [hsv]
-  iapply wp_fupd
-  wp_apply +noauto (hNew lg _ le cfg (some bk) γl γl Pk #func.nil rd0 γi γok γl
-      (fun _ => iprop(True)) hcfg)
-    $$ [Hv Hncmp Hrg Hw1 Hw2 Hsr Hrts Hlrd Hro Hifresh Hok0]
-    as %ws ⟨%st, %γw, %Hγ, #Hws, ⟨%rd, Hro, -, #Hrc⟩, #Hhk, Htw, Hcok, Hrds, Hcl, Hcr, Hfrag, Hret,
-      #Hcp, #Hwreg, Hnc, Hlc1⟩
-  · iframe Hle Hro Hifresh Hok0
-    isplitr
-    · iexact Hbk
-    rw [show kbRT (GF := GF) (some bk) = bkRTx bk.γB bk.P bk.be from rfl]
-    simp only [kbView_some, kbNoCmp_some, kbRegRight_some, kbNoDelOff, kbCmpM, hcm, kbWT,
-      kbSRM, kbSR, ↓reduceIte]
-    isplitl [Hv]
-    · unfold bkView
-      iexists _
-      isplitl [Hv]
-      · unfold backend.bView; iexists true; iexact Hv
-      ipureintro
-      exact keyView_of_dget hP (fun k => by rw [hk0]; rfl)
-    iframe Hncmp Hrg Hw1 Hw2 Hsr Hrts Hlrd
-  obtain ⟨-, hγl, hγk, -, -, -, hγcm⟩ := Hγ
-  have hcm' : γw.st.cm = true := by rw [hγcm]; simp [kbCmpM, hcm]
-  have hjr : nJobRd (some bk) = 1 := by simp [nJobRd, hcm]
-  ihave #Hws' := Hws
-  iunfold isWatchableStore at Hws'
-  icases Hws' with ⟨%vc, %stc0, %rv, %γv, Hws'⟩
-  iNamed Hws'
-  iunfold api.newClient at Hnc
-  icases Hnc with ⟨Hab, Hpn, Hcr2, Hcr4, #Hlb, Htok, Hnl, #Hloc, Hrdk⟩
-  -- a reader retired from the slots for the open token's reader (the compactor's), the rest the
-  -- readers' pool
-  iunfold writerFrag at Hfrag
-  icases Hfrag with ⟨%o, Hcur⟩
-  rw [hjr]
-  have hn : nReaders - 1 - 2 = (nReaders - 5) + 1 + 1 := by
-    have : 5 ≤ nReaders := by rw [nReaders_val]; omega
-    omega
-  rw [hn, List.replicate_succ, List.replicate_succ]
-  icases BigSepL.bigSepL_cons.1 $$ Hrds with ⟨Hrd1, Hrds⟩
-  icases BigSepL.bigSepL_cons.1 $$ Hrds with ⟨Hrd2, Hrds⟩
-  iunfold watchReader at Hrd1 Hrd2
-  icases Hrd1 with ⟨Hrd1, -⟩
-  icases Hrd2 with ⟨Hrd2, -⟩
-  -- (2026-11-06) and one for the writer's own (`writerOwn`, which `Restore` takes)
-  imod storeReader_retire2 st γw.st _ o 1 $$ Hlc1 Hs Hcur Hrd1 Hrd2 Hret with ⟨HRT, HRTw, Hret, Hcur⟩
-  -- (the reader tokens, 2026-11-06; 2026-11-07) the readers, their locks' slots and tickets, in the
-  -- pool of the client's reader tokens
-  imod watchReaders_split ws st γw _ $$ Hrds with ⟨Hrds, Htks⟩
-  imod rdkPool_init γw.st (watchSlots ws st γw) _ $$ [Hrdk Htks Hrds] with ⟨#Hpool, Htks⟩
-  · iframe Hrdk Htks Hrds
-  have hrb' : receiptBound GF ≤ 2 ^ 63 - 2 := by omega
-  imod watchTokPool_alloc γw ⊤ hrb' $$ Htw with #Htp
-  -- the certificate map's free entry (track A, request 3)
-  imod ghost_map_insert_persist (W64 0) ([] : Log) (GMap.lookup_empty _) $$ Hcok with ⟨-, #Hfree⟩
-  ihave #Hfree' : certFree (GF := GF) γw.st $$ []
-  · iunfold certFree; iexact Hfree
-  ihave #Hwts : □ (⧗ 1 ={⊤}=∗ storeWT (GF := GF) γw.st) $$ []
-  · unfold storeWT kbWT; rw [show γw.st.kb = some bk from hγk]; iexact Hsup
-  -- the compaction right from the inner closer; the watchable store's own closer kept
-  iunfold wsCloser at Hcl
-  icases Hcl with ⟨%stc, #Hstc, Hsc, Hwait, Hscl⟩
-  rw [show crevRightM (GF := GF) γw.st = crevUB γw.st.idx (1 : Qp).half (-1) from by
-    unfold crevRightM; simp [hcm']]
-  imod compactRightR_of_closer st γw.st ⊤ $$ Hscl Hcr with Hright
-  -- the initial log's receipt (`mvccState`'s: nothing changed yet)
-  imod (preceipt_zero (GF := GF)) with #Hr0
-  ihave #Hr0' : ⧖ (logCh ([[], []] : Log)) $$ []
-  · rw [show logCh ([[], []] : Log) = 0 from rfl]; iexact Hr0
-  -- the handle
-  ihave #Hmv : □ isMvcc (GF := GF) (interface.mkOk (go.GoType.PointerType watchableStore.ty) #ws)
-      γw.st $$ []
-  · iintro !>
-    iunfold isMvcc
-    iintro !>
-    iright
-    iunfold isMvccWatchable
-    iexists ws, st, γw
-    iframe Hws Htp Hpool Hloc Hcp Hfree'
-    ipureintro; exact ⟨rfl, rfl⟩
-  imodintro
-  iapply HΦ
-  iexists γw.st
-  isplitr
-  · ipureintro; exact hγl
-  isplitr
-  · iexact Hmv
-  isplitl [Hab Hpn Hcr2 Hnl]
-  · iunfold mvccState
-    iunfold api.mvccStateI
-    rw [show (mvccStart : MvccState) = ⟨[[], []], -1, none⟩ from rfl]
-    simp only [MvccState.notifiedLog]
-    iframe Hab Hpn Hcr2 Hnl
-    iframe Hr0'; ipureintro; exact MvccReachable.start
-  isplitl [Hright Hcr4 HRT Hsc Hwait HRTw Hret]
-  · iunfold mvccOpen
-    iexists st, γw.st.phys, (-1)
-    rw [StoreNames.withPhys_self]
-    iframe Hloc Hright Hcr4 HRT
-    isplitr
-    · rw [show γw.st.phys.kb = some bk from hγk]
-      simp only [kbWTSupplyM, kbCmpM, hcm, kbWTSupply, ↓reduceIte]
-      iexact Hsup
-    isplitr
-    · ipureintro; exact Int.le_refl _
-    ihave Hwo : writerOwn (GF := GF) γw.st $$ [HRTw Hret]
-    · iunfold writerOwn
-      iframe HRTw
-      have hwo : 2 + nJobRd γw.st.kb = 1 + 2 := by
-        rw [show γw.st.kb = some bk from hγk, hjr]
-      rw [hwo]; iexact Hret
-    iframe Hwo
-    iunfold openRest
-    rw [Hwq]
-    simp only [↓reduceIte]
-    isplitr
-    · ipureintro; show kbCmpM γw.st.phys.kb; rw [show γw.st.phys.kb = some bk from hγk]; exact hcm
-    iexists ws, rv, stc
-    iframe Hrv Hrvkv Hstc Hsc Hwait
-  isplitl [Htok Hcur]
-  · iunfold mvccBackend
-    iframe Htok
-    iexists γw.st.phys, o, bk
-    rw [StoreNames.withPhys_self]
-    iframe Hcur Hb
-    isplitr
-    · ipureintro; exact ⟨hγk, hcm, rfl⟩
-    isplitr
-    · iintro !>; iexists st; iexact Hwreg
-    iunfold hookInit at Hhk
-    icases Hhk with ⟨#HhP, -⟩
-    isplitr
-    · iintro !>; iexact HhP
-    isplitr
-    · iexact Hwts
-    ipureintro; exact hlp
-  isplitl [Htks]
-  · iunfold mvccReaders
-    have hN : nReaders - 5 = mvccReaderN := by
-      have h1 : mvccReaderN = backend.rdStockN - 7 := rfl
-      have h2 : nReaders = backend.rdStockN - 2 := rfl
-      omega
-    rw [← hN]; iexact Htks
-  iexists rd
-  iframe Hro
-  iapply (mvccDeleter_of hTODO _ _ (watchableStore.Write.wp_api hWr ws) rd γw.st) $$ [$Hpkg $Hmv $Hrc]
+  -- B3 Prove (mvccfull's Freeze, 2026-11-10): the outline above, over the internal `mvcc.New.spec`
+  -- (also restated); `NewStoreRCallers.lean`'s `backendC_newStoreR_pre` gives its backend part.
+  sorry
 
 end proof
 

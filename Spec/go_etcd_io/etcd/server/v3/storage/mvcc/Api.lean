@@ -924,11 +924,24 @@ abbrev txnReadWrite.End.spec : Prop := ∀ t : Loc, Txn.End.contract (GF := GF) 
 abbrev watchStream.Watch.spec : Prop := ∀ w : Loc, WatchStream.Watch.contract (GF := GF) PWS #w
 -- (and likewise `Chan`, `RequestProgress`, `RequestProgressAll`, `Cancel`, `Close`, `Rev`)
 
-/-- **`mvcc.New(lg, be, le, cfg)`**: the watchable store over the backend `B` (holding the empty
-history), with the real lessor; the state at `mvccStart`, the open token, the backend's token, the
-range deleter, and the store's reader tokens (`mvccReaders γ mvccReaderN`; the reader tokens,
-2026-11-06). Each reader of the store (a read transaction, the compaction's job, the sync loops, a
-progress request's read) holds one of the backend's counted reader slots, of which the store has
+/-- **`mvcc.New(lg, be, le, cfg)`** over a storage `B` holding the history `σ.log` compacted at
+`σ.crev`, recording an unfinished compaction iff `u` (`mvccStorageFor`, from the storage's
+provider: `etcdStorage_open.law` at an image, a fresh file's `mvccImage_fresh.law` or a stopped
+store's `mvccImage_stop.law`): the watchable store at the state `σ` (nothing pending, reachable),
+with the open token, the whole backend share, the reader tokens and the range deleter, as at a fresh
+storage; the lessor's items re-attached (each restored key with a lease attached through the lessor,
+`restore()`'s `Attach`, from the owner's part at the live leases `Ls`, each restored item's lease
+among them and its key short; the owner's map becomes `pendItems σ.log []`); the restored history's
+receipt `⧖ (logCh σ.log)` (`mvccStorageFor`'s, as `Restore` gives it to its update); when the image
+records an unfinished compaction (`u`), `restore()` resumes it (`compactLockfree`), as `Restore`
+does: under the storage's batch lock its post-lock hook `f` at the share `dq` runs once (`Pre` to
+`Q'`, giving `Pk` back) and the storage commits once (`X` to `Y`), the hook's share, `Post` and `Y`
+given back; otherwise nothing is asked or given. At `σ = mvccStart`, `u = false`, `Ls = []`: a fresh
+storage (`pendItems_mvccStart`), the lessor's owner part lent and given back (mvccfull's Freeze,
+2026-11-10: until then `New` took only `mvccStart`, without the lessor's part).
+
+Each reader of the store (a read transaction, the compaction's job, the sync loops, a progress
+request's read) holds one of the backend's counted reader slots, of which the store has
 `rdStockN - 2` (about `2 ^ 29`; the rest of the `2 ^ 30 - 1` Go's `RWMutex` admits are the client's
 pool): the store's own (the loops', the job's, the compactor's, the writer's) for good, a client's
 call's for a reader token, which also carries the reader's slots of the store's locks (2026-11-07:
@@ -937,39 +950,62 @@ of round 13's decisions, D1). The receipts' bound is an instance (`notes/bounds-
 the internal `mvcc.New`'s. -/
 abbrev New.spec : Prop :=
   ∀ [ReceiptBoundLe GF (2 ^ 48)] (lg : Loc) (le : GoInterface) (cfg : StoreConfig) (B : MvccStorage)
-    (Pk : IProp GF) (γl : GName) (rd0 : GoFunc),
-  batchLimitOk cfg.CompactionBatchLimit' →
+    (Pk : IProp GF) (γl : GName) (rd0 : GoFunc) (σ : MvccState) (u : Bool) (Ls : List w64)
+    (dq : DFrac) (f : GoFunc) (Pre Q' Post X Y : IProp GF),
   {{ pkgInit ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-      mvccStorageFor B Pk mvccStart.log mvccStart.crev false ∗
-      lease.lessorRdOf γl ∗ isLessor le γl ∗ lease.rdOwn γl rd0 }}
+      mvccStorageFor B Pk σ.log σ.crev u ∗
+      ⌜batchLimitOk cfg.CompactionBatchLimit' ∧ MvccReachable σ ∧ σ.pending = none⌝ ∗
+      lease.lessorRdOf γl ∗ isLessor le γl ∗ lease.rdOwn γl rd0 ∗
+      lease.leaseOwn γl Ls ∅ ∗
+      ⌜∀ it lid, (pendItems σ.log []).lookup it = some lid →
+        lid ∈ Ls ∧ (it.Key'.length : Int) < 2 ^ 63 - 1⌝ ∗
+      (if u then iprop(storageHook B dq f ∗ ⌜f = func.nil ∨ dq = DFrac.discard⌝ ∗
+        Pre ∗ hookRun Pk f Pre Q' ∗ (Q' ={⊤}=∗ Pk ∗ Post) ∗ X ∗ storageReq B Pk X Y)
+       else iprop(True)) }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.New)) (Val #lg))
       (Val #(storageVal B)))
       (Val #le)) (Val #cfg))
   {{ (ws : Loc), RET #(interface.mkOk PW #ws);
       ∃ γ : MvccName, ⌜mvccLeases γ = γl⌝ ∗
-        isMvcc (interface.mkOk PW #ws) γ ∗ mvccState γ mvccStart ∗ mvccOpen γ ∗
+        isMvcc (interface.mkOk PW #ws) γ ∗ mvccState γ σ ∗ mvccOpen γ ∗
         mvccBackend γ 1 B Pk ∗ mvccReaders γ mvccReaderN ∗
-        (∃ rd : GoFunc, lease.rdOwn γl rd ∗ mvccDeleter rd γ) }}
+        (∃ rd : GoFunc, lease.rdOwn γl rd ∗ mvccDeleter rd γ) ∗
+        lease.leaseOwn γl Ls (pendItems σ.log []) ∗ ⧖ (logCh σ.log) ∗
+        (if u then iprop(storageHook B dq f ∗ Post ∗ Y) else iprop(True)) }}
 
 /-- **`mvcc.NewStore(lg, be, le, cfg)`**: as `New`, a store without watchers (its open token keeps
 the tickets of the two readers a watchable store's loops hold, so that `Close` gives as much back). -/
 abbrev NewStore.spec : Prop :=
   ∀ [ReceiptBoundLe GF (2 ^ 48)] (lg : Loc) (le : GoInterface) (cfg : StoreConfig) (B : MvccStorage)
-    (Pk : IProp GF) (γl : GName) (rd0 : GoFunc),
-  batchLimitOk cfg.CompactionBatchLimit' →
+    (Pk : IProp GF) (γl : GName) (rd0 : GoFunc) (σ : MvccState) (u : Bool) (Ls : List w64)
+    (dq : DFrac) (f : GoFunc) (Pre Q' Post X Y : IProp GF),
   {{ pkgInit ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-      mvccStorageFor B Pk mvccStart.log mvccStart.crev false ∗
-      lease.lessorRdOf γl ∗ isLessor le γl ∗ lease.rdOwn γl rd0 }}
+      mvccStorageFor B Pk σ.log σ.crev u ∗
+      ⌜batchLimitOk cfg.CompactionBatchLimit' ∧ MvccReachable σ ∧ σ.pending = none⌝ ∗
+      lease.lessorRdOf γl ∗ isLessor le γl ∗ lease.rdOwn γl rd0 ∗
+      lease.leaseOwn γl Ls ∅ ∗
+      ⌜∀ it lid, (pendItems σ.log []).lookup it = some lid →
+        lid ∈ Ls ∧ (it.Key'.length : Int) < 2 ^ 63 - 1⌝ ∗
+      (if u then iprop(storageHook B dq f ∗ ⌜f = func.nil ∨ dq = DFrac.discard⌝ ∗
+        Pre ∗ hookRun Pk f Pre Q' ∗ (Q' ={⊤}=∗ Pk ∗ Post) ∗ X ∗ storageReq B Pk X Y)
+       else iprop(True)) }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.NewStore)) (Val #lg))
       (Val #(storageVal B)))
       (Val #le)) (Val #cfg))
   {{ (s : Loc), RET #s;
       ∃ γ : MvccName, ⌜mvccLeases γ = γl⌝ ∗
-        isMvcc (interface.mkOk PS #s) γ ∗ mvccState γ mvccStart ∗ mvccOpen γ ∗
+        isMvcc (interface.mkOk PS #s) γ ∗ mvccState γ σ ∗ mvccOpen γ ∗
         mvccBackend γ 1 B Pk ∗ mvccReaders γ mvccReaderN ∗
-        (∃ rd : GoFunc, lease.rdOwn γl rd ∗ mvccDeleter rd γ) }}
+        (∃ rd : GoFunc, lease.rdOwn γl rd ∗ mvccDeleter rd γ) ∗
+        lease.leaseOwn γl Ls (pendItems σ.log []) ∗ ⧖ (logCh σ.log) ∗
+        (if u then iprop(storageHook B dq f ∗ Post ∗ Y) else iprop(True)) }}
+
+/-- The empty history attaches no lease item (mvccrand's `pendItems_start`). -/
+theorem pendItems_mvccStart : pendItems mvccStart.log [] = ∅ := by
+  rw [pendItems_nil]
+  exact GMap.ext (fun _ => rfl)
 
 /-- **`mvcc.NewReadOnlyTxnWrite(t)`** of a read transaction. -/
 abbrev NewReadOnlyTxnWrite.spec : Prop :=

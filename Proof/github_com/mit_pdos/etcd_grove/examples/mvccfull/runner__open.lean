@@ -2,9 +2,9 @@
 
 The outline (the chain's step 3): `openBackend` (the opener's `K := bFresh`, `W := mvccW gx` of
 `mvccW_alloc.law`), `inc_open_backend` at `k = Ops` (its `receiptBound + Ops + 4 ≤ wbInit` from
-`ReceiptBoundLe 2 ^ 38` and `writerCtx`'s `Ops < 2 ^ 38`; the post's `Ops ≤ k`); `lease.NewLessor.specR` over the records (`GA := True`,
+`ReceiptBoundLe 2 ^ 38` and `writerCtx`'s `Ops < 2 ^ 38`; the post's `Ops ≤ k`); `lease.NewLessor.spec` over the records (`GA := True`,
 `reqOf := 3600`, the ids the live leases, `logOk_leases`; `noCluster`'s `clusterOk` from
-`noCluster.Version.spec`); `mvcc.api.New.specR` at `σ` (the lessor's owner part at the live leases,
+`noCluster.Version.spec`); `mvcc.api.New.spec` at `σ` (the lessor's owner part at the live leases,
 `logOk_leases`' items; the resumed compaction at `u` with the unset hook, `Pre := True`, the commit
 request `True`); `SetTxPostLockInsideApplyHook` and the hook frozen (`hookIs`); `inc_alloc` with
 the carried parts; the checks by `KV.Rev`, `KV.Read`, `Txn.Rev`, `Txn.FirstRev`, `Txn.End` at the new
@@ -52,8 +52,8 @@ theorem runner.open.wp_proof
     (hCR : mvcc.api.mvccClosed_rest.law (GF := GF))
     (wp_openBackend : runner.openBackend.spec (GF := GF) (hG := hG))
     (wp_Version : noCluster.Version.spec (GF := GF) (hG := hG))
-    (wp_NewLessor : lease.NewLessor.specR (GF := GF) (hG := hG))
-    (wp_mNew : mvcc.api.New.specR (GF := GF) (hG := hG))
+    (wp_NewLessor : lease.NewLessor.spec (GF := GF) (hG := hG))
+    (wp_mNew : mvcc.api.New.spec (GF := GF) (hG := hG))
     (wp_SetHook : backend.backend.SetTxPostLockInsideApplyHook.spec (GF := GF) (hG := hG))
     (wp_check : check.spec (GF := GF) (hG := hG))
     (wp_traceTODO : traceutil.TODO.spec (GF := GF) (hG := hG))

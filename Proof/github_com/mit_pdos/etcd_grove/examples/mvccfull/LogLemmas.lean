@@ -736,7 +736,7 @@ theorem runM_mono (ks : List GoString) (ops : List OpM) (n n' : Nat) (hn : n ≤
     (runM_hs_prefix ks ops n n' hn).map _⟩
 
 /-- **The live leases are granted, increasing, positive**, and every key of the state is on no
-lease or a live one (`New.specR`'s and `Restore`'s item premise, the key short). (Pure; proved.) -/
+lease or a live one (`New.spec`'s and `Restore`'s item premise, the key short). (Pure; proved.) -/
 theorem logOk_leases (ks : List GoString) (hks : ∀ k ∈ ks, (k.length : Int) < 2 ^ 63 - 1)
     (ops : List OpM) (h : logOk ks ops) (n : Nat) :
     (leasesAfter ks ops n).Pairwise (fun a b => sint.Z a < sint.Z b) ∧

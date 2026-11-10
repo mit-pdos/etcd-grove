@@ -8,8 +8,8 @@ or a closed store's, `runner.shut`), its lease bucket the live leases' records (
 `m.rev`, `m.cmp`, `m.leases` are the model's. With what is carried across incarnations
 (`memberCarry`, which holds the invariant's halves of `m.σ` and `m.bnd`, and the writer's halves of
 both) and the member's hook, the chain's step 3
-(`Writer.lean`'s header): `openBackend`, `NewLessor` on the records (`lease.NewLessor.specR`),
-`mvcc.New` on the image (`mvcc.api.New.specR`), the hook set; the checks (`Rev`, a read
+(`Writer.lean`'s header): `openBackend`, `NewLessor` on the records (`lease.NewLessor.spec`),
+`mvcc.New` on the image (`mvcc.api.New.spec`), the hook set; the checks (`Rev`, a read
 transaction's `Rev` and `FirstRev`, `checkLeases`) pass. Afterwards the member is `memCore` at a new
 incarnation, the writer holding every share (`1`, `1`, `mvccReaderN`) and at least `cfg.Ops`
 write-back tokens of the new backend. Fields `be`, `le`, `kv` are overwritten (their old values any).

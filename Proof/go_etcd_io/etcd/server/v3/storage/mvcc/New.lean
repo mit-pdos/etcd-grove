@@ -43,66 +43,10 @@ theorem mvcc.New.wp_proof
     (hSWL : mvcc.watchableStore.syncWatchersLoop.spec (GF := GF) (hG := hG))
     (hSVL : mvcc.watchableStore.syncVictimsLoop.spec (GF := GF) (hG := hG)) :
     mvcc.New.spec (GF := GF) (hG := hG) := by
-  intro _ lg b le cfg kb γb γl P f rd0 γi γok γtag Perm Hcfg0
-  wp_start as ⟨Hbk, Hbv, Hncmp, #Hnd, Hrg, Hwt1, Hwt2, Hsrm, Hrts, Hlrd, #Hlessor, Hro, Hifresh, Hok0⟩
-  ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
-  · iPkgInit
-  wp_auto
-  wp_apply (hNew _ _ _ _ _ _ _ _ f _ γi γok γtag Perm Hcfg0)
-    $$ [$Hbk $Hbv $Hncmp $Hnd $Hrg $Hwt1 $Hwt2 $Hsrm $Hrts $Hlrd $Hlessor $Hro $Hifresh $Hok0]
-    as %s ⟨%st, %γ, %Hγ, #Hws, Hro, #Hhook, Htw, Hok, Hreaders,
-    ⟨%stc, #Hstc, Hstop⟩, Hsclose, Hcr, Hfrag, Hret, #HcpIs, Hwg, #Hwreg, Hnc, Hlc⟩
-  (try wp_auto)
-  imod sync.init_WaitGroup mvcc.wsWgWGN (mvcc.wsWgAddr s) $$ Hwg with ⟨%γwg, #HisWg, Hctr, Hwaiters⟩
-  wp_apply mvcc.wp_wsWg_Add2_init s γwg $$ [$Hctr $Hwaiters] as ⟨Hctr, Hwaiters⟩
-  · iframe #
-  imod ownTokAuth_alloc (GF := GF) with ⟨%γd, Hauth⟩
-  imod ownTokAuth_add 2 γd 0 $$ Hauth with ⟨Hauth, Hdone⟩
-  icases (ownToks_add 1 1 γd).1 $$ Hdone with ⟨Hd1, Hd2⟩
-  -- (R-D1) the closer's claim on the loops' readers
-  imod token_alloc (GF := GF) with ⟨%γw, Hγw⟩
-  imod inv_alloc mvcc.wsWgN ⊤ (mvcc.wsWgInv st γ.st γwg γd γw) $$ [Hctr Hauth] with #Hinv
-  · inext
-    iunfold mvcc.wsWgInv
-    iexists W32 2, 0 + 2, 0
-    iframe Hctr Hauth
-    isplitr
-    · ipureintro; exact ⟨by decide, rfl⟩
-    ileft
-    rw [List.replicate_zero]
-    iapply BigSepL.bigSepL_nil_intro
-    iempintro
-  have hN : 2 ≤ mvcc.nReaders - mvcc.nJobRd kb := by
-    have := mvcc.nReaders_val
-    have := mvcc.nJobRd_le kb
-    omega
-  icases mvcc.slots_take2 _ _ hN $$ Hreaders with ⟨Hr1, Hr2, Hreaders⟩
-  (try wp_auto)
-  wp_apply wp_fork $$ [Hr1 Hd1]
-  · wp_apply hSWL s st γ $$ [$Hws $Hr1 Hd1]
-    · iunfold mvcc.wsDone
-      iexists γwg, γd, γw
-      iframe HisWg Hinv Hd1
-    itrivial
-  (try wp_auto)
-  wp_apply wp_fork $$ [Hr2 Hd2]
-  · wp_apply hSVL s st γ $$ [$Hws $Hr2 Hd2]
-    · iunfold mvcc.wsDone
-      iexists γwg, γd, γw
-      iframe HisWg Hinv Hd2
-    itrivial
-  (try wp_auto)
-  iapply HΦ
-  iexists st, γ
-  iframe Hws Hro Hhook Htw Hok Hreaders Hcr Hfrag Hret HcpIs Hwreg Hnc Hlc
-  isplitr
-  · ipureintro; exact Hγ
-  iunfold mvcc.wsCloser
-  iexists stc
-  iframe Hstc Hstop Hsclose
-  iunfold mvcc.wsWaiter
-  iexists γwg, γd, γw
-  iframe HisWg Hinv Hwaiters Hγw
+  -- B3 Prove (mvccfull's Freeze, 2026-11-10): over `newWatchableStore.spec`'s restated pre; the
+  -- closer `wsCloserM … r.crev` from `storeCloserM` and the stop channel's closer, as the fresh proof
+  -- (commit `ae30739dde`, this file) made `wsCloser`.
+  sorry
 
 end proof
 

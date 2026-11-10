@@ -60,8 +60,8 @@ ghost state.)
    leases' records (`leaseRecsOk (rbData P D)`);
 3. *reopen* (`runner.open`): `backend.New` on `fileHolds path D` (`newPostK`, at `mvccW gx` of a
    fresh registration, `mvccW_alloc.law`), the backend opened for the store (`etcdStorage_open.law`,
-   `backendRest_open.law`: `inc_open_backend`, `mvccrand.rc_open` at any image), `NewLessor.specR`
-   over the records (`GA := True`, `reqOf := 3600`), `mvcc.New.specR` at the image's state (the
+   `backendRest_open.law`: `inc_open_backend`, `mvccrand.rc_open` at any image), `NewLessor.spec`
+   over the records (`GA := True`, `reqOf := 3600`), `mvcc.api.New.spec` at the image's state (the
    lessor's owner part at the live leases, every key's lease live: `logOk_items`), the hook set and
    frozen (`SetTxPostLockInsideApplyHook`), a new incarnation's invariant allocated with the carried
    parts (`inc_alloc`).
@@ -72,8 +72,9 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.Streams
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.LogLemmas
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.RunChecksBackend
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiNewRestoring
-public import Spec.go_etcd_io.etcd.server.v3.lease.NewLessorR
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
+public import Spec.go_etcd_io.etcd.server.v3.lease.NewLessor
+public import Spec.go_etcd_io.etcd.server.v3.lease.lessor__Recover
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.New
 public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccfull.FilePaths
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.StopLaws
