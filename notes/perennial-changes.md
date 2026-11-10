@@ -2039,3 +2039,22 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
   term it is given, it should fail with an error naming the mismatch, never close the goal with an
   admitted proof.
 - **Status.** Recorded only; not reduced to a minimal example.
+
+## An `RWMutex` can be made a lock only unlocked (2026-11-10, mvccfull F1's B3)
+
+- **What happened.** `mvcc.NewStore` locks `s.mu` while the store is still private memory and, in
+  compaction mode, `restore()` resumes a compaction (`compactLockfree`) before the deferred
+  `s.mu.Unlock()`. That call takes the store (`isStore`), whose `s.mu` must be a lock
+  (`isRWMutexGuard`); but `sync.init_RWMutex` takes an unlocked `RWMutex` (`zero_val`) and its
+  resource `▷ P 1`, which `NewStore` has only after `restore()` (the index it publishes, the fixed
+  registration).
+- **Local workaround.** `Proof/go_etcd_io/etcd/server/v3/storage/mvcc/RWMutexWLocked.lean`:
+  `init_RWMutex_wlocked P rw : rw ↦ rwW ={E}=∗ ownRWMutexWLocked rw P ∗ [∗list] … ownRWMutex rw P`
+  (every slot), from the write-locked memory `plain.wp_Lock` leaves; `P 1` is given at the unlock
+  (`RWMutex.wp_Unlock_guard`). Proved over Perennial's sealed RWMutex internals
+  (`rwmutex.ownRWMutexInvariant_unseal`, `isRWMutex_unseal`, `isLock_unseal`, `ownLock_unseal`,
+  `isMutex_unseal`, `ownMutex_unseal`, the guard's `invSt`), mirroring `rwmutex.init_RWMutex` at the
+  protocol's `Locked`/`IsLocked` state, with `init_lock_locked` for the inner `Mutex`. No axiom.
+- **Proposed (general).** `sync.init_RWMutex_wlocked` (and `init_Mutex_locked`) in Perennial, next to
+  `init_RWMutex`: a lock made by its holder.
+- **Status.** Local lemma; to be proposed.
