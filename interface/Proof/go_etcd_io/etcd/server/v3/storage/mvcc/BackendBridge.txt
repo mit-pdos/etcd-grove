@@ -441,6 +441,9 @@ theorem mvcc.keysKept_putMeta {m' : mvcc.Bucket} {st : backend.BSess} (k v : GoS
 theorem mvcc.mem_bktEnts (m : backend.BktData) (e : backend.Ent) : e ∈ backend.bktEnts m ↔ m !!
     e.fst = some e.snd
 
+theorem mvcc.keySized_all [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions] : ⊢ □
+    ∀ γ P b, mvcc.keySized γ P b
+
 theorem mvcc.rt_keyRange [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions] (hUR :
     backend.readTx.UnsafeRange.spec) (hID : schema.bucket.ID.spec) (hName : schema.bucket.Name.spec)
     (hSafe : schema.bucket.IsSafeRangeBucket.spec) {P : backend.BParams} (hP : mvcc.bridgeParams P)
@@ -907,6 +910,9 @@ theorem mvcc.rt_locked [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.As
 
 theorem mvcc.lastVal_sorted {es : List backend.Ent} (hs : backend.entsSorted es) (k v : GoString) :
     backend.lastVal es k = some v ↔ (k, v) ∈ es
+
+theorem mvcc.keySized_at [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions] (P :
+    backend.BParams) : ⊢ □ ∀ γ b, mvcc.keySized γ P b
 
 theorem mvcc.bt_metaPut [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions] (hUP :
     backend.batchTxBuffered.UnsafePut.spec) (hUL : backend.batchTxBuffered.Unlock.spec) (hID :
