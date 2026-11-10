@@ -157,8 +157,9 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
     -- premises for its leave's proposal
     (s.role = .leader → s.term ≠ W64 0) →
     plogLastIndexZ (toPState s).base (toPState s).log < 2 ^ 64 →
-    -- (2026-11-10, Q8 stage 1 slice 11; until then of any message) `appliedTo`'s premise
-    (ents ≠ [] → s.gh.tr = none) →
+    -- (2026-11-10, Q8 stage 1 slice 11; until then of any message) `appliedTo`'s premise (slice 12:
+    -- its leave's, untraced)
+    (ents ≠ [] → c.autoLeave = true → s.gh.tr = none) →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗

@@ -30,7 +30,7 @@ theorem raft.appliedTo.wp_proof [package_sem : Assumptions] (wp_raftLog_appliedT
                         s.logst.sip = false →
                           uint.Z s.logst.applying < uint.Z index → uint.Z index < uint.Z s.logst.prev.index') →
                       (s.logst.aps = true → ∀ (k : SnapTrip), s.gh.snp = some k → uint.Z k.sid.index' ≤ uint.Z index) →
-                        s.gh.tr = none →
+                        (c.autoLeave = true → s.gh.tr = none) →
                           ⊢
                             ∀ Φ,
                               isPkgInit pkg_id.go_etcd_io.raft.v3 ∗

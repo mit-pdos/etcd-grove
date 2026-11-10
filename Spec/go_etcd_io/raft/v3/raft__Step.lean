@@ -480,13 +480,14 @@ runs (`stepGates`: the receive hook's, the term preamble's step-down or a stale 
 `hup`'s, a vote request's answer, or the role's step function's, each as its callee's spec states it).
 **Raft's ghost state is the caller's across the handler**: the receive hook's gate takes it with the
 caller's first resource (`ghostIn`: `ownStepGhost γ md c id s ∗ R.G`), and the caller gives it back at the end
-(`"Hclose"`, from whichever resource the path ended in, `stepOut R`), with its own `Gout`; so a traced
+(`"Hclose"`, from whichever resource the path ended in, `stepOut R`), with its own `Gout` at the end
+state (slice 12: `Gout s'`, the state the closing wand is given and `Step` returns); so a traced
 caller reads and updates raft's ghost inside its gates (a vote win registered inside the `BecomeLeader`
 gate, a new commit's certificate before the `Commit` line: rounds 5-6 of the plan), and confirms the
 step's new messages' numbers when traced (`OutTrStep`: the send lines' `TraceEv.Ok`). What a traced node
-does not do stays a premise on its type: no snapshot (P2), no snapshot acknowledgement and no
-application acknowledgement with entries (`appliedSnap`'s, `appliedTo`'s premise; not yet gated), no
-proposed configuration change (P3, `stepLeader`'s). The untraced instance is `raft.Step.untraced`
+does not do stays a premise on its type: no snapshot (P2), no snapshot acknowledgement (`appliedSnap`'s
+premise), no automatic leave at an application acknowledgement (`appliedTo`'s, slice 12: a traced
+node's configuration never leaves automatically), no proposed configuration change (P3, `stepLeader`'s). The untraced instance is `raft.Step.untraced`
 (`TracedUntracedRaftStep.lean`), the statement before slice 11, which the node API uses. -/
 abbrev raft.Step.spec : Prop :=
   ∀ (c : CfgM)
@@ -509,7 +510,7 @@ abbrev raft.Step.spec : Prop :=
     (ctx : List w8) (sn : Option SnapshotM) (rs : List Loc)
     -- (2026-11-10, Q8 stage 1 slice 11) the caller's resources through the gates, and what it gets
     -- back with raft's ghost state
-    (R : StepG GF) (Gout : IProp GF),
+    (R : StepG GF) (Gout : NState → IProp GF),
   StepMsg m →
   -- (Until 2026-10-14, stage B8, a premise `m.Type' = MsgSnap → id ∈ γ.reCfg`: the node one of
   -- the ghost state's voters, which a snapshot's `restore` needs. It is now one of the
@@ -657,7 +658,9 @@ abbrev raft.Step.spec : Prop :=
   -- `appliedTo`'s premise), propose a configuration change (P3, `stepLeader`'s)
   (m.Type' = MsgSnap → s.gh.tr = none) →
   (m.Type' = MsgStorageAppendResp → sn ≠ none → s.gh.tr = none) →
-  (m.Type' = MsgStorageApplyResp → ents ≠ [] → s.gh.tr = none) →
+  -- (slice 12) the application acknowledgement's: only `appliedTo`'s automatic leave, a configuration
+  -- change (P3), is untraced-only
+  (m.Type' = MsgStorageApplyResp → ents ≠ [] → c.autoLeave = true → s.gh.tr = none) →
   (m.Type' = MsgProp → s.gh.tr ≠ none → ∀ e ∈ ents, ¬ IsConfEnt e) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
@@ -805,8 +808,9 @@ abbrev raft.Step.spec : Prop :=
       "Herr" ∷ (⌜err = interface.nil⌝ ∨
                 (⌜m.Type' = MsgProp⌝ ∗
                  globalAddr ErrProposalDropped ↦□ err)) ∗
-      -- (Q8 stage 1 slice 11) the caller's resource, back from `"Hclose"`
-      "HG" ∷ Gout }}
+      -- (Q8 stage 1 slice 11) the caller's resource, back from `"Hclose"`; (slice 12) at the end
+      -- state, the one `"Hclose"` was given
+      "HG" ∷ Gout s' }}
 
 end spec
 

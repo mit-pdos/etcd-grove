@@ -6,31 +6,34 @@ theorem raft.tickElection.wp_proof [package_sem : Assumptions] (wp_promotable :
     raft.promotable.spec) (wp_pastElectionTimeout : raft.pastElectionTimeout.spec) (wp_raft_Step :
     raft.Step.spec) (wp_MessageType_Enum : raftpb.MessageType.Enum.spec) : raft.tickElection.spec
   -- `Perennial.EtcdGrove.raft.tickElection.spec`, unfolded:
-  ∀ (c : CfgM) (md : GMode) (γ : RaftNames) (r : Loc) (id : w64) (s : NState),
+  ∀ (c : CfgM) (md : GMode) (γ : RaftNames) (r : Loc) (id : w64) (s : NState) (R : StepG GF) (Gout : NState → IProp GF),
     uint.Z s.term + 1 < 2 ^ 64 →
       (s.prevote = true → uint.Z s.term + 1 ≤ uint.Z s.gh.tc) →
         NStateWf s →
           uint.Z s.logst.fl ≤ uint.Z s.logst.applied →
             md.Guard s →
-              s.gh.tr = none →
-                ⊢
-                  ∀ Φ,
-                    isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                        "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗ "Hghost" ∷ ownStepGhost γ md c id s -∗
-                      (▷
-                          ∀ s',
-                            "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
-                                "Hghost" ∷ ownStepGhost γ md c id s' ∗
-                                  "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
-                                    "%Hcm" ∷
-                                        ⌜uint.Z s.logst.committed ≤ uint.Z s'.logst.committed ∧
-                                            PVoteLe (toPState s) (toPState s')⌝ ∗
-                                      "%Htick" ∷ ⌜TickStep s s'⌝ -∗
-                              Φ (intoVal ())) -∗
-                        WP
-                          ((intoVal
-                              (methods raft.ty.PointerType
-                                go!"tickElection"
-                                (intoVal r)))
-                            (intoVal ()))
-                          {{ Φ }}
+              ⊢
+                ∀ Φ,
+                  isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                      "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+                        "Hghost" ∷ ownStepGhost γ md c id s ∗
+                          "HG" ∷ R.G ∗
+                            "Hgates" ∷ stepGates c r id s (tickMsg MsgHup id) [] none [] [] (ghostIn γ md c id s R) ∗
+                              "Hclose" ∷ stepClose γ md c id (tickMsg MsgHup id) s R Gout -∗
+                    (▷
+                        ∀ s',
+                          "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
+                              "Hghost" ∷ ownStepGhost γ md c id s' ∗
+                                "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
+                                  "%Hcm" ∷
+                                      ⌜uint.Z s.logst.committed ≤ uint.Z s'.logst.committed ∧
+                                          PVoteLe (toPState s) (toPState s')⌝ ∗
+                                    "%Htick" ∷ ⌜TickStep s s'⌝ ∗ "HG" ∷ (⌜s' = s⌝ ∗ R.G ∨ Gout s') -∗
+                            Φ (intoVal ())) -∗
+                      WP
+                        ((intoVal
+                            (methods raft.ty.PointerType
+                              go!"tickElection"
+                              (intoVal r)))
+                          (intoVal ()))
+                        {{ Φ }}

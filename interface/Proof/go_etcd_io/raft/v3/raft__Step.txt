@@ -22,7 +22,8 @@ theorem raft.Step.wp_proof [package_sem : Assumptions] (wp_raft_hup : raft.hup.s
     raft.Step.spec
   -- `Perennial.EtcdGrove.raft.Step.spec`, unfolded:
   ∀ (c : CfgM) (md : GMode) (γ : RaftNames) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
-    (ents : List EntryM) (ctx : List w8) (sn : Option SnapshotM) (rs : List Loc) (R : StepG GF) (Gout : IProp GF),
+    (ents : List EntryM) (ctx : List w8) (sn : Option SnapshotM) (rs : List Loc) (R : StepG GF)
+    (Gout : NState → IProp GF),
     StepMsg m →
       (m.Type' = MsgHup →
           m.Term' = W64 0 ∧
@@ -79,7 +80,8 @@ theorem raft.Step.wp_proof [package_sem : Assumptions] (wp_raft_hup : raft.hup.s
                                             (m.Type' = MsgSnap → s.gh.ns = false) →
                                               (m.Type' = MsgSnap → s.gh.tr = none) →
                                                 (m.Type' = MsgStorageAppendResp → sn ≠ none → s.gh.tr = none) →
-                                                  (m.Type' = MsgStorageApplyResp → ents ≠ [] → s.gh.tr = none) →
+                                                  (m.Type' = MsgStorageApplyResp →
+                                                      ents ≠ [] → c.autoLeave = true → s.gh.tr = none) →
                                                     (m.Type' = MsgProp →
                                                         s.gh.tr ≠ none → ∀ (e : EntryM), e ∈ ents → ¬IsConfEnt e) →
                                                       ⊢
@@ -280,7 +282,7 @@ theorem raft.Step.wp_proof [package_sem : Assumptions] (wp_raft_hup : raft.hup.s
                                                                                                       (globalAddr
                                                                                                         ErrProposalDropped)
                                                                                                       err DFrac.discard) ∗
-                                                                                              "HG" ∷ Gout -∗
+                                                                                              "HG" ∷ Gout s' -∗
                                                                     Φ (intoVal err)) -∗
                                                               WP
                                                                 ((intoVal

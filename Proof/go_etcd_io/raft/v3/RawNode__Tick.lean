@@ -3,6 +3,8 @@ module
 
 public import Spec.go_etcd_io.raft.v3.RawNode__Tick
 public import Spec.go_etcd_io.raft.v3.raft__tickHeartbeat
+-- (Q8 stage 1 slice 12) the ticks' untraced instances
+public import Proof.go_etcd_io.raft.v3.TracedUntracedTick
 -- `Step.commit_mono`
 public import Proof.go_etcd_io.raft.v3.Protocol.Facts
 
@@ -29,6 +31,9 @@ theorem RawNode.Tick.wp_proof
     (wp_tickElection : raft.tickElection.spec (GF := GF) (hG := hG))
     (wp_tickHeartbeat : raft.tickHeartbeat.spec (GF := GF) (hG := hG)) :
     RawNode.Tick.spec (GF := GF) (hG := hG) := by
+  -- (2026-11-10, Q8 stage 1 slice 12) the ticks' untraced instances (`TracedUntracedTick.lean`)
+  have wp_tickElection := raft.tickElection.untraced wp_tickElection
+  have wp_tickHeartbeat := raft.tickHeartbeat.untraced wp_tickHeartbeat
   intro γ rn id rs Hterm Hflw HtrG
   wp_start as H
   iNamed H

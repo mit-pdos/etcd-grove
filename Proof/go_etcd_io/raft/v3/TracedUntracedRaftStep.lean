@@ -330,6 +330,41 @@ abbrev raft.Step.untracedTriple : Prop :=
                 (⌜m.Type' = MsgProp⌝ ∗
                  globalAddr ErrProposalDropped ↦□ err)) }}
 
+/-- (2026-11-10, slice 12) **The resources an untraced caller passes through a `Step` at `s`**: its own
+`emp` first, every later one raft's ghost state (the receive gate's argument, `ghostIn`, adds it). -/
+def untracedR (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) : StepG GF :=
+  ⟨iprop(emp), ownStepGhost γ md c id s, ownStepGhost γ md c id s, ownStepGhost γ md c id s,
+    ownStepGhost γ md c id s, ownStepGhost γ md c id s, ownStepGhost γ md c id s,
+    ownStepGhost γ md c id s, ownStepGhost γ md c id s, fun _ _ => ownStepGhost γ md c id s⟩
+
+/-- (slice 12) **An untraced `Step`'s gates and closing wand** at `untracedR`, the caller's `Gout` `emp`
+(`stepGates_none`, `stepOut_const`, `OutTrStep.of_none`): what an untraced caller of a gated spec
+over `Step` (the ticks) supplies. -/
+theorem stepBundle_none (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState)
+    (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
+    (tl : GoInterface) (htr : s.gh.tr = none) (Htlok : TraceLoggerOk tl) :
+    (r.[raft, go!"traceLogger"] ↦□ tl : IProp GF) ⊢
+      stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s (untracedR γ md c id s)) ∗
+      stepClose γ md c id m s (untracedR γ md c id s) (fun _ => iprop(emp)) := by
+  iintro #Htl
+  have hgi : ghostIn γ md c id s (untracedR (GF := GF) γ md c id s) =
+      ⟨iprop(ownStepGhost γ md c id s ∗ emp), ownStepGhost γ md c id s, ownStepGhost γ md c id s,
+        ownStepGhost γ md c id s, ownStepGhost γ md c id s, ownStepGhost γ md c id s,
+        ownStepGhost γ md c id s, ownStepGhost γ md c id s, ownStepGhost γ md c id s,
+        fun _ _ => ownStepGhost γ md c id s⟩ := rfl
+  rw [hgi]
+  isplitl
+  · iapply stepGates_none (GF := GF) c r id s m ents sn ctx rs tl
+      iprop(ownStepGhost γ md c id s ∗ emp) (ownStepGhost γ md c id s)
+      (by iintro ⟨H, -⟩; iexact H) htr Htlok
+    iexact Htl
+  unfold stepClose untracedR
+  iintro %s' %B %recv %_ Hout
+  ihave HX := stepOut_const (GF := GF) iprop(emp) (ownStepGhost γ md c id s) $$ Hout
+  imodintro
+  iframe HX
+  ipureintro; exact ⟨trivial, OutTrStep.of_none htr⟩
+
 /-- `raft.Step.spec`'s untraced instance: the gates from the struct's nil logger, every resource raft's
 ghost state (`stepGates_none`), the caller's `emp`. -/
 theorem raft.Step.untraced (h : raft.Step.spec (GF := GF) (hG := hG)) :
@@ -353,9 +388,9 @@ theorem raft.Step.untraced (h : raft.Step.spec (GF := GF) (hG := hG)) :
     ⟨iprop(emp), ownStepGhost γ md c id s, ownStepGhost γ md c id s, ownStepGhost γ md c id s,
       ownStepGhost γ md c id s, ownStepGhost γ md c id s, ownStepGhost γ md c id s,
       ownStepGhost γ md c id s, ownStepGhost γ md c id s, fun _ _ => ownStepGhost γ md c id s⟩
-    iprop(emp) Hsm Hhup Hvote Hvoteresp Hprevote Hprevoteresp
+    (fun _ => iprop(emp)) Hsm Hhup Hvote Hvoteresp Hprevote Hprevoteresp
     Happ Hhb Happresp Hhbresp Hsnapt Hbeat Hprop Hsar Hsapr Hri Hrir Hrest Hwf Hpre Hnsx
-    (fun _ => htr) (fun _ _ => htr) (fun _ _ => htr) (fun _ h => absurd htr h)
+    (fun _ => htr) (fun _ _ => htr) (fun _ _ _ => htr) (fun _ h => absurd htr h)
     $$ [Hphys Hghost Hm Hcred Hlc Hgates]
   · rw [hgi]
     iframe Hinit Hphys Hghost Hxfer Hm Hcred Hlc Hsnap Hgates

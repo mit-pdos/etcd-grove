@@ -84,6 +84,15 @@ def vrespMsgOf (id : w64) (s1 : NState) (m : MessageM) (rej : Bool) : Msg :=
 def hupType (s : NState) : CampaignType :=
   if s.prevote = true then campaignPreElection else campaignElection
 
+/-- (2026-11-10, slice 12) **The local message a tick steps** (`tickElection`'s `MsgHup`,
+`tickHeartbeat`'s `MsgCheckQuorum` and `MsgBeat`): `&pb.Message{From: new(r.id), Type: ty.Enum()}`,
+every other field unset. The tick specs name it for `Step`'s gates. -/
+def tickMsg (ty : w32) (id : w64) : MessageM := { (zero_val MessageM) with Type' := ty, From' := id }
+
+@[simp] theorem tickMsg_Type' (ty : w32) (id : w64) : (tickMsg ty id).Type' = ty := rfl
+@[simp] theorem tickMsg_From' (ty : w32) (id : w64) : (tickMsg ty id).From' = id := rfl
+@[simp] theorem tickMsg_Term' (ty : w32) (id : w64) : (tickMsg ty id).Term' = W64 0 := rfl
+
 end pure
 
 section gates
@@ -314,13 +323,14 @@ def ghostIn (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) (R 
   { R with G := iprop(ownStepGhost γ md c id s ∗ R.G) }
 
 /-- **Raft's ghost state, given back to `Step`** by the caller from whichever resource the path ended
-in (`stepOut R`), with the caller's own `Gout`, and (traced) the step's new messages' numbers
-(`OutTrStep`, `NsLink`'s `OutTr`), for any end state of a step from `s` in the model (`StepCD`). -/
+in (`stepOut R`), with the caller's own `Gout` at the step's end state `s'` (2026-11-10, slice 12: the
+state `Step` returns, so that a caller's resources can follow it), and (traced) the step's new
+messages' numbers (`OutTrStep`, `NsLink`'s `OutTr`), for any end state of a step from `s` in the model (`StepCD`). -/
 def stepClose (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : MessageM) (s : NState)
-    (R : StepG GF) (Gout : IProp GF) : IProp GF :=
+    (R : StepG GF) (Gout : NState → IProp GF) : IProp GF :=
   iprop(∀ (s' : NState) (B : Int) (recv : List Msg),
     ⌜s.gh.tr.isSome → StepCD c id B m s recv s'⌝ -∗ stepOut R -∗
-    |={⊤}=> ownStepGhost γ md c id s ∗ Gout ∗ ⌜OutTrStep s s'⌝)
+    |={⊤}=> ownStepGhost γ md c id s ∗ Gout s' ∗ ⌜OutTrStep s s'⌝)
 
 end close
 

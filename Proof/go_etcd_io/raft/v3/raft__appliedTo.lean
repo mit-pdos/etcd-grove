@@ -64,7 +64,7 @@ theorem raft.appliedTo.wp_proof
      wp_Message_GetIndex, wp_Message_GetLogTerm, wp_Message_GetCommit, wp_Message_GetReject,
      wp_Message_GetEntries, wp_Message_GetSnapshot, wp_Message_GetContext, wp_Entry_GetIndex,
      wp_MessageType_Enum⟩
-  intro c r id s index size k0 Hidx Hipo Hwf Hlnz HL Hsa Hapsb Hsx Hsp Hkx Htr
+  intro c r id s index size k0 Hidx Hipo Hwf Hlnz HL Hsa Hapsb Hsx Hsp Hkx Htrl
   wp_start as H
   iNamed H
   wp_auto
@@ -149,6 +149,8 @@ theorem raft.appliedTo.wp_proof
           ihave #Hcc := ccEntsOk_leave (GF := GF)
           -- (2026-11-10, Q8 stage 1 slice 11) `Step`'s `MsgProp` branch, gated, at an untraced node:
           -- the gates from the struct's nil logger (`stepGates_none`)
+          -- (slice 12) the leave's proposal at an untraced node (`appliedTo`'s premise)
+          have Htr := Htrl Hcal
           have Htr1 : s1.gh.tr = none := by tr_none
           icases ownRaftPhysC_traceLogger c r id s1 Htr1 $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
           ihave Hgates := stepGates_none (GF := GF) c r id s1 leaveMsgM [leaveEntM] none [] [] tl

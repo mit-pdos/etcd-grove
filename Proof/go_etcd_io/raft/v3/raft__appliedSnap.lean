@@ -141,7 +141,7 @@ theorem raft.appliedSnap.wp_proof
   wp_apply wp_raft_appliedTo c r id { s with logst := logStableSnap s.logst sv.Metadata'.Index' }
       sv.Metadata'.Index' (W64 0) 0 (by simp only; omega) (fun _ => by simp only; omega)
       Hnl Hnl Hnl Hsa1 Haps1
-      Hsx1 Hsp1 (fun _ k hk => Hkx k hk) (by tr_none) $$ [$Hphys $Hrc0] as %s2' %B %recv ⟨Hphys, %Hls, -⟩
+      Hsx1 Hsp1 (fun _ k hk => Hkx k hk) (fun _ => by tr_none) $$ [$Hphys $Hrc0] as %s2' %B %recv ⟨Hphys, %Hls, -⟩
   rcases Hls with ⟨rfl, -⟩ | ⟨-, Hl, -⟩
   case inr => exact absurd (Hrole.symm.trans Hl) (by decide)
   -- (U0) `cs := pb.EnsureConfState(snap.GetMetadata().GetConfState())`: the set snapshot's conf
