@@ -128,7 +128,8 @@ and a phantom refusal (Q14, of the voter's current term) can sit in flight besid
 grant, so no fact of the specification's state rules out a second response
 (`notes/decisions.md`, "Amendment A3 (Q17)"); with this relation the specification's tally only ever
 holds more granting voters than raft's, all of them responded, which is all its `BecomeLeader` reads
-(`isQuorum`, monotone). -/
+(`isQuorum`, monotone on subsets of the configuration: `tallyGranted_quorum`, given that raft's
+voters are in it). -/
 def TallyGranted (votes : GMap w64 Bool) (g : Etcdraft.SetIds) : Prop :=
   ∃ L : List Etcdraft.ID, g = Etcdraft.SetIds.mk L ∧
     (∀ k, votes !! k = some true → idAbs k ∈ L) ∧ (∀ x ∈ L, ∃ k v, votes !! k = some v ∧ idAbs k = x)

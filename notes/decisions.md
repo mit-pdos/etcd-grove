@@ -34936,8 +34936,8 @@ bootstrap state's bags are empty.
 `TallyGranted votes g` (`∃ L, g = SetIds.mk L ∧` every voter raft counts granting is in `L` `∧` every
 voter of `L` is one raft heard from), and `SimServerR`'s candidate clause is `a.votesResponded =
 SetIds.mk (raft's voters) ∧ TallyGranted s.votes a.votesGranted` (was: both equalities). Nothing else
-frozen changes (`SimIdle`'s text, `simFx`, the laws untouched); not client-visible (`TraceSim.lean` is not
-on `etc/api/raft.txt`).
+frozen changes (`SimIdle`'s text, `simFx`, the laws untouched); client-visible as a weakening of `SimServerR` (`TraceSim` and `TraceSimLemmas` are on
+`etc/api/raft.txt`: their interfaces regenerated; review a3-r1's F1).
 
 **Checked first: nothing needs the equality.** `SimServerR` is read only in the raft directory's
 `TraceSim*`/`Traced*` files (layer C, `Reach`, the trace build and acceptance, `simInv`/`SimRun` work on
@@ -34960,8 +34960,8 @@ raft unchanged, the specification's `votesResponded` unchanged by the idempotent
 `votesGranted` at most gaining a responded voter); `sim_campaign` and slice 19a's
 `simServerR_becomeCandidate` (`TracedRaftStepHup.lean`, one line: `tallyGranted_empty`).
 
-**Sufficiency** (`TracedRecvVoteResp.lean`, new): a candidate's `MsgVoteResp` of its term leaving the
-election pending, granting or refusing, from a voter raft has or has not heard from:
+**Sufficiency** (`TracedRecvVoteResp.lean`, new): the receive line of a candidate's `MsgVoteResp` of its term,
+to raft's state after `recordVote` (which `poll` reaches whatever it decides), granting or refusing, from a voter raft has or has not heard from:
 `simServerR_respSrv_cand` (the idle relation after raft's `recordVote` and the specification's
 `respSrv`), `specInv_respCand` (`CandS`: a granted response of an unpersisted candidate's term is not in
 `messages`), `simFx_respCand`, `fxPresR_voteRespCand` (`FxPresR` at `recvPhantoms`, none) and

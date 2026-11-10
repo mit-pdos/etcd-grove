@@ -2,9 +2,9 @@
 Lean-first (no Rocq counterpart). **A candidate's vote response of its term, its receive line**
 (2026-11-10, trace-check amendment A3, Q17 (d); `notes/decisions.md`, "Amendment A3 (Q17)"): the
 sufficiency check of the relaxed tally (`TallyGranted` in `SimServerR`). The receive line's pieces
-for a `MsgVoteResp` of the candidate's term that leaves the election pending (raft's `poll` neither
-won nor lost: the idle relation after `recordVote` alone), granting or refusing, from a voter raft
-has or has not heard from:
+for a `MsgVoteResp` of the candidate's term, granting or refusing, from a voter raft has or has not
+heard from: the step to raft's state after `recordVote` (which `poll` reaches in all three outcomes;
+the won and lost lines follow it, the path proof's):
 - `simServerR_respSrv_cand`: the idle relation after raft's `recordVote` and the specification's
   `HandleRequestVoteResponse` (`respSrv`), by `sim_recordVote`;
 - `specInv_respCand`: `SpecInv` after it (`CandS`: an unpersisted candidate with no granted vote has
@@ -38,7 +38,8 @@ theorem simServerR_respSrv_cand {C : List w64} {bl : Nat} {p : PState} {a : Etcd
     (hty : ma.type = .requestVoteResponse) (hsrc : ma.source = idAbs src) :
     SimServerR C bl { p with votes := recordVote p.votes src ma.voteGranted } (respSrv a ma) := by
   unfold respSrv
-  rw [if_pos hty, hsrc]
+  simp only [hty, ↓reduceIte]
+  rw [hsrc]
   exact sim_recordVote C bl p a src ma.voteGranted h hc
 
 /-- **`SpecInv` after a vote response of a candidate's term** (amendment A3): the response consumed
@@ -177,7 +178,7 @@ theorem fxPresR_voteRespCand (γ : RaftNames) (id : w64) (ma : Etcdraft.Msg) (E 
     exact hv.elim
 
 /-- **A vote response's receive line's phase step at a candidate of its term** (amendment A3): from
-the pinned idle phase at `s` to the one at raft's state after `recordVote` (an election left pending),
+the pinned idle phase at `s` to the one at raft's state after `recordVote` (whatever `poll` then decides),
 the server recorded (`respSrv`, at the pinned server `toC a0`), the list kept (`lineEffect_resp`);
 granting or refusing, whether raft has heard from the voter or not. -/
 theorem phaseStepR_voteRespCand (id : w64) (c : CfgM) (s : NState) (m : MessageM)

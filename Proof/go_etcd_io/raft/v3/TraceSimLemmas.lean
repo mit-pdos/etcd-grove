@@ -355,7 +355,9 @@ theorem tallyGranted_empty : TallyGranted ∅ [] :=
 
 /-- **A won tally is a specification quorum** (amendment A3): raft's granting voters a quorum of a
 configuration holding every voter raft heard from, so is the specification's `votesGranted`
-(`TallyGranted`: more voters, all heard from), `isQuorum` being monotone on sets. -/
+(`TallyGranted`: more voters, all heard from), `isQuorum` being monotone on subsets of the
+configuration: `hc`, every voter raft heard from in it, which the won path must supply (raft's
+`TallyVotes` counts the configuration's voters only). -/
 theorem tallyGranted_quorum (votes : GMap w64 Bool) (g c : Etcdraft.SetIds) (hT : TallyGranted votes g)
     (hc : ∀ k w, votes !! k = some w → idAbs k ∈ c)
     (hq : Etcdraft.isQuorum
