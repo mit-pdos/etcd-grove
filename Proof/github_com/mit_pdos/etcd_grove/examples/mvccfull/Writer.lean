@@ -74,6 +74,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiNewRestoring
 public import Spec.go_etcd_io.etcd.server.v3.lease.NewLessorR
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.New
 public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccfull.FilePaths
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.StopLaws
 
 @[expose] public section
 
@@ -736,13 +737,9 @@ theorem inc_stop_image (hstop : mvccImage_stop.law (GF := GF)) (kv : GoInterface
     ∃ u : Bool, mvccImage D σ.log σ.crev u ∗ ⌜leaseRecsOk (backend.rbData bk.P D) L⌝ := by
   iintro ⟨Hkv, Hmb, Hsv, Hσ, Hrb⟩
   -- the lease bucket: the writer's part against the stopped lock's `rbOwn`
-  ihave %Hag : ⌜(r.lookup leaseName) = (backend.rbData bk.P D).lookup leaseName⌝ $$ [Hsv Hrb]
-  · iunfold backend.bStopView at Hsv
-    icases Hsv with ⟨-, -, -, -, Hown, -⟩
-    iunfold backend.rbOwn at Hown
-    icases backend.rbPart_agree bk.γB (· = leaseName) (fun _ => True) r _ $$ [$Hrb $Hown]
-      with ⟨-, -, %Ha⟩
-    ipureintro; exact Ha leaseName rfl trivial
+  icases backend.bStopView_rbPart_agree bk.γB bk.P (mvccW bk.gx) iprop(True) D (· = leaseName) r
+    $$ [$Hsv $Hrb] with ⟨Hsv, -, %Ha⟩
+  have Hag : r.lookup leaseName = (backend.rbData bk.P D).lookup leaseName := Ha leaseName rfl
   imod hstop kv γk bk iprop(True) D (fun σ' => iprop(⌜σ' = σ⌝)) $$ [Hkv Hmb Hsv Hσ]
     with ⟨-, -, %σ', %u, %Hσ', Himg⟩
   · iframe Hmb Hsv Hkv
