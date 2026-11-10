@@ -131,11 +131,11 @@ theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     -- (2026-10-28, stage U0) and a node no follower afterwards with a snapshot pending was
     -- one before: a campaign checked that none is pending (`promotable`)
     have Hsrb : SnapRoleBack s s' := fun h1 h2 => by
-      rcases Hhg with rfl | ⟨-, -, Hsn, -⟩
+      rcases Hhg with ⟨-, rfl⟩ | ⟨⟨-, -, Hsn, -⟩, -⟩
       · exact ⟨h1, h2⟩
       · exact absurd (by rw [Hl]; exact Hsn) h2
     have Hpcs : PreCandStep m s s' := ⟨fun h => ⟨Hpc h, by
-      rcases Hhg with rfl | ⟨-, -, Hsn, Hno, -⟩
+      rcases Hhg with ⟨-, rfl⟩ | ⟨⟨-, -, Hsn, Hno⟩, -⟩
       · exact .inl ⟨h, rfl, rfl, rfl, fun h => h, Int.le_refl _⟩
       · exact .inr ⟨Hty, Hl, Hsn, Hno, Hlogf.1 Hsn, Hlogf.2.1, Hlogf.2.2⟩⟩, Hsrb⟩
     try phys_out

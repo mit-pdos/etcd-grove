@@ -422,7 +422,7 @@ snapshot is pending. -/
 theorem HupGuard.snapRoleBack [GoGlobalContext] [GoSemanticsFunctions] {c : CfgM}
     {id : w64} {s s' : NState} (h : HupGuard c id s s') (hl : s'.logst = s.logst) :
     SnapRoleBack s s' := fun h1 h2 => by
-  rcases h with rfl | ⟨-, -, Hsn, -⟩
+  rcases h with ⟨-, rfl⟩ | ⟨⟨-, -, Hsn, -⟩, -⟩
   · exact ⟨h1, h2⟩
   · exact absurd (by rw [hl]; exact Hsn) h2
 

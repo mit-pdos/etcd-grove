@@ -583,9 +583,11 @@ theorem stepFollower.wp_proof
       simp (config := {decide := true}) [campaignTransfer, campaignPreElection]
     have Htc : transferCtx campaignTransfer = campaignTransfer := by
       simp [transferCtx]
-    ihave Hgbc : G s.outbox -∗ (if campaignTransfer = campaignPreElection then iprop(|={⊤}=> G' s.outbox)
+    ihave Hgbc : ⌜HupCampaigns c id s⌝ -∗ G s.outbox -∗
+        (if campaignTransfer = campaignPreElection then iprop(|={⊤}=> G' s.outbox)
         else HookGate s.gh.tr r (NodeEvOf (W64 1) id (becomeCandidate id s) c) (G' s.outbox)) $$ [Hgc]
     · simp only [eq_false (show ¬ _ from by simpa using Hde), ite_false]
+      iintro %_
       iexact Hgc
     ihave #Hgsend : □ (∀ (pvs : GMap w64 Progress) (y : w64) (o : List Msg), ⌜y ∈ c.voters⌝ -∗ G' o -∗
         HookGateOpt s.gh.tr r

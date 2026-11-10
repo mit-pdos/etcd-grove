@@ -34661,3 +34661,70 @@ self-acknowledgement (`lineEffect_selfAck`).
 
 No axiom, no `sorry`, no frozen statement changed (`TracedCap.lean` untouched); not client-visible
 (`stepBundle_traced.on` and the new files are raft-internal).
+
+## Q8 stage 1 (slice 19a): `hup`'s result exclusive; `MsgHup` at a follower or candidate and `tickElection`'s traced corollary proved; where a proposal's records are created (2026-11-10 · trace-check, Q8 stage 1 slice 19a; `HupGuard` exclusive decided by the coordinator (slice 18a's option (a)), its form and the rest by the agent under the user's delegation · branch `trace-check-q8s19a`; DRAFT until trace-check's Freeze)
+
+**`hup`'s result exclusive** (raft-internal, `SpecResults.lean`, `raft__hup.lean`): `HupCampaigns c id s`
+names the campaign's conditions (not leading, a voter of either half, no snapshot pending, no
+conf-change entry committed and not applied) and `HupGuard` is now `(¬ HupCampaigns ∧ s' = s) ∨
+(HupCampaigns ∧ ∃ pre peers pvs cl, (pre = true → s.prevote = true) ∧ peers ≡ₚ … ∧ s' = …)`. The early
+returns give the first disjunct exactly because `promotable`'s and `hasUnappliedConfChanges`' specs
+already state their results exactly (`b = decide (id ∈ c.voters ∧ snap = none)`, `b = true ↔ ∃ e ∈
+unappliedEnts, IsConfEnt e`: nothing to strengthen). The clause `pre = true → s.prevote = true` (from
+`hup`'s premise on a pre-election) was found needed too: without it the close cannot tell an election
+from a pre-election (both are `HupGuard`'s second disjunct, and `StepEnd` gives only `HupOkC`).
+`hup`'s `"Hgbc"` (and `hupGates`' ) is premised by `⌜HupCampaigns c id s⌝`: `campaign`'s first gate is
+asked only when `hup` campaigns, so the caller's resource after it may record the conditions. Users
+updated: `HupGuard.precand`, `HupGuard.snapRoleBack`, `stepCD_hup`, `Step`'s `MsgHup` arm,
+`stepFollower`'s `MsgTimeoutNow` (its `"Hgcamp"` unchanged: the premise discarded), `hupGates_none`,
+`raft.hup.untraced` (statement unchanged). Rejected: slice 18a's (b) (the `BecomeCandidate` resource
+not outbox-indexed until the first send: heavier, `campaign`'s `PermInv` order) and (c) (`stepClose`
+given `stepOut`'s provenance: every `Step` arm).
+
+**`MsgHup` at a follower or candidate** (`TracedRaftStepHup.lean`): the families `hupR` — before the
+campaign `G0`/`G1` = `⌜o = s.outbox⌝ ∗ lineF` at the idle server of `s`; after the `BecomeCandidate`
+line `GE` = `⌜HupCampaigns c id s⌝ ∗ lineF` at the idle server of `becomeCandidate id s`. The close: at
+`G0`/`G1` the outbox is `s`'s, which a campaign's is not (`campaignState_outbox_ne`), so `s' = s`; at
+`GE` `HupCampaigns` refutes `s' = s` and `s.prevote = false` refutes a pre-election, so `s'` is the
+election's state, whose idle server part is the candidate's (`simIdleS_prvals_nl`, `lineF_closeAt`).
+The lines: **`BecomeCandidate`** — phase step `phaseStepB_becomeCandidate` (the share's server `candC`,
+`candOf`'s through `toC`; `simServerR_becomeCandidate`), facts `fxPres_timeout` (`specInv_timeout`
+with `LeaderComplete` from `allFacts_leaderCompleteness`/`allFacts_commitOk`, kept with the vote table
+by `persistent_entails_right`; the node's `srvFacts` at the new term by `srvFacts_candOf`, its commit
+certificate by `commitIn_agree`; `QuorumLogF` by `quorumLogF_congr`; bags unchanged; `AppSlices` by
+`appSlices_mono`, no new leader); **vote request and self-vote** — phase step `phaseStepB_campMsg`
+(`phaseStepB_send_pin` with `lineEffect_requestVote`/`lineEffect_selfVote`; the request's last-entry
+numbers from `LogShapeOk`'s `PlogWf` and raft's ghost `TermsLe`, `ownStepGhost_termsLe`), facts
+`fxPres_plain` (`simFx_send` with `msgFacts_plain`; `MsgOk` by `msgOk_plain`/`msgOk_vote` from the node's
+term; pinned by `ContentLogged`). `stepBundle_hup_R` (the bundle at `hupR`), `stepBundle_traced_hup`
+(`stepBundle_traced.on LocalHup`), **`raft.tickElection.traced`** (the triple
+`raft.tickElection.tracedTriple`: the capability idle at `s` in, idle at the end state out, with
+`stepLastEv Λ`; a non-leader with pre-vote and check-quorum off). Why `stepBundle_hup_R` and not only
+the `.on` form: the tick's spec gives back its `R.G` when it does not campaign, which must be known to be
+the capability.
+
+**`MsgProp` at a leader: where the proposal's records are created (decided, not proved).** The append
+requests' facts (`fxPres_app`) need `logRecs` of the proposed entries; raft's ghost state, which the
+caller's family holds from the receive gate to the close, creates them only by moving the leader's term
+log (`ownLogGhost`'s `leadLogOwn`) past `s`'s log. The two options of slice 18a:
+(a) **the `Replicate` lines' facts update creates them** (`raft.appendEntry.traced`'s chained `FxPresUT`,
+review round 6's F1); (b) **`Step`/`appendEntry` creates them before the `"#Hgpapp"` gates**, which then
+name them. (b) needs `Step` to hold raft's ghost state between the receive gate and the close, which it
+hands the caller at the receive gate (`ghostIn`, slice 11) and which the families need throughout (the
+lines' numbers, `ownRaftGhost_traceBound`; the receive lines' facts): it splits the ghost state across
+the spec, a larger change. (a) as slice 18a stated it ("`ownStepGhost γ md c id s` survives a term log
+ahead of `s`'s log") changes `ownLogGhost` (`Protocol/GhostState.lean`, importable: client-visible). **Taken:
+(a) with the close relaxed instead of the ghost**: the family carries raft's ghost state at the
+proposal's appended state (`propAppended s …`, after the `Replicate` lines' updates, the protocol's own
+propose step) and `stepClose` takes it back at `s` or, on a leader's `MsgProp`, at that state, `Step`'s
+ghost step then starting from it (`StepCD` from the appended state for the rest). Raft-internal only
+(`raft.Step.spec`'s `stepClose`, `LemmasStepGates`, `Step`'s `MsgProp` arm and `gate_close`; the
+untraced bundle gives back `s`; the node API, `RawNode` and tick statements unchanged). Not done in this
+slice: the `stepClose` change, the `Replicate` facts (with the record creation), the self-acknowledgement
+(`lineEffect_selfAck`), the appends (`fxPres_app` + `app_lead`). `Commit` (`quorumLog_commitTo`) is not
+on `MsgProp`'s path (raft commits on the self-acknowledgement's receipt, a `MsgAppResp`: slice 18b's).
+
+No axiom, no `sorry`, no frozen statement changed (`TracedCap.lean` untouched). Not client-visible:
+`SpecResults` (importable, debt: no client names `HupGuard`) changes in `HupGuard`'s body and the new
+`HupCampaigns`; the rest is raft-internal; `raft.hup.untraced`, the tick, `RawNode` and node statements
+unchanged.

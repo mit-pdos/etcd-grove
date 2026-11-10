@@ -478,7 +478,7 @@ theorem hupGates_none (c : CfgM) (r : Loc) (id : w64) (s : NState) (t : Campaign
   dsimp only
   rw [htr]
   isplitl
-  · iintro HX
+  · iintro %_ HX
     split
     · imodintro; iexact HX
     · iapply hookGate_none r _ tl X Htlok

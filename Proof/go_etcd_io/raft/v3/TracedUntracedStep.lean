@@ -193,7 +193,9 @@ theorem raft.hup.untraced (h : raft.hup.spec (GF := GF) (hG := hG)) :
   icases campaignGates_none c r id s t tl htr Htlok $$ Htl with ⟨Hgbc, #Hgsend⟩
   iapply h c r id s t iprop(emp) (fun _ => iprop(emp)) Hnw Hpv Hwf Hfla (PermInv.const _) $$ [Hphys Hgbc]
   · dsimp only
-    iframe Hpkg Hphys Hgbc Hgsend
+    iframe Hpkg Hphys Hgsend
+    iintro %_
+    iexact Hgbc
   inext
   iintro %s' ⟨Hphys, -, %H1, %H2⟩
   iapply HΦ $$ %s'
