@@ -595,12 +595,97 @@ theorem mvcc.NewStore.wp_proofR
       |={⊤}=> mvcc.nsReady «$r0_ptr» γ d r ([[], []] ++ R) ti $$ []
   · sorry
   -- the resume: `compactLockfree` at the scheduled record, else nothing
+  ihave HCt : mvcc.slotFr (GF := GF) γ $$ [HCt]
+  · iunfold mvcc.slotFr; rw [hγapi]; iexact HCt
   ihave HK : mvcc.resumeK (GF := GF) «$r0_ptr» r (mvcc.restoreDone «$r0_ptr» (GoInterface.ok bi) ti
       (1 : Qp).half (DFrac.own 1) (DFrac.own 1) (DFrac.own (1 : Qp).half) ([[], []] ++ R) ents r
       iprop(mvcc.storeRT γ ∗ mvcc.restoreRegM d) (mvcc.kbRecs γ.kb γ.bucket r)
       (mvcc.nsRevQ «$r0_ptr» γ r ([[], []] ++ R) ents ti))
-      iprop(|={⊤}=> mvcc.nsFin «$r0_ptr» γ d r ([[], []] ++ R) ti hkH dqh PostH YH) $$ [Hready]
-  · sorry
+      iprop(|={⊤}=> mvcc.nsFin «$r0_ptr» γ d r ([[], []] ++ R) ti hkH dqh PostH YH)
+      $$ [Hready HCt HrH Hsup]
+  · iunfold mvcc.resumeK
+    cases hres : r.resumes
+    · -- no resume: the lag is none
+      simp only [Bool.false_eq_true, ↓reduceIte]
+      iintro HD
+      have hcf := mvcc.CmpRecs.crev_noResume r hres
+      imod Hready $$ HD with HY
+      iunfold mvcc.nsReady at HY
+      icases HY with ⟨#Hs, Hmu', Hwr, HfsM, Hright, Hcrf, Hfw, Hrevs, #Hcert, HlogQ, #Hrg, Hrt, Hird,
+        #HpCr, Hlr⟩
+      imodintro
+      iunfold mvcc.nsFin
+      rw [mvcc.resumeBackM_no d r hkH dqh PostH YH hres]
+      iframe Hs Hright Hcrf Hfw Hrevs Hcert HlogQ Hrg Hrt Hird HCt
+      isplitl [Hmu' Hwr HfsM]
+      · iunfold mvcc.muInv
+        iexists r.crev
+        iframe Hwr HfsM
+        iapply (mvcc.muInvLag_at _ _ _).1
+        rw [← hcf] at *
+        iexact Hmu'
+      iapply mvcc.lagTok_rest γ r.crev r.finRev
+      iframe Hlr
+      iunfold mvcc.lagTok
+      simp only [hcf, ↓reduceIte]
+      itrivial
+    · -- the resumed compaction (compaction mode: an image at no record resumes none)
+      simp only [↓reduceIte]
+      iintro %Ψ HD HΨ
+      have hcmT : d.cm = true := by
+        cases hcm : d.cm
+        · have := (hoff hcm).1; subst this; rw [mvcc.CmpRecs.resumes_empty] at hres; cases hres
+        · rfl
+      have hon : mvcc.kbCmpM γ.kb := hcmγ.2 hcmT
+      obtain ⟨hlt, hcs⟩ := mvcc.CmpRecs.resumes_lt r hres
+      have hsr : sint.Z (r.sched.getD (W64 0)) = r.crev := by
+        rw [mvcc.CmpRecs.schedRev_getD, hcs]
+      have h1r : 1 ≤ sint.Z (r.sched.getD (W64 0)) := by
+        have hres' := hres
+        unfold mvcc.CmpRecs.resumes at hres'
+        simp only [decide_eq_true_eq] at hres'
+        cases hsch : r.sched with
+        | none => simp [mvcc.CmpRecs.schedRev, hsch] at hres'
+        | some x => simp only [Option.getD_some]; exact hpos.2 x hsch
+      have hlt' : r.finRev < sint.Z (r.sched.getD (W64 0)) := by rw [hsr]; exact hlt
+      imod Hready $$ HD with HY
+      iunfold mvcc.nsReady at HY
+      icases HY with ⟨#Hs, Hmu', Hwr, HfsM, Hright, Hcrf, Hfw, Hrevs, #Hcert, HlogQ, #Hrg, Hrt, Hird,
+        #HpCr, Hlr⟩
+      ihave HrH := mvcc.resumeCtxM_lock γ d r P hkH PreH QH PostH dqh XH YH hkγ hres $$ [HrH]
+      · iframe HrH HhookP
+      icases HrH with ⟨Hctx, HXH, #HreqH⟩
+      ihave Hright := (mvcc.storeCloserM_on _ _ _ hon).1 $$ Hright
+      ihave Hsup : mvcc.kbWTSupplyM (GF := GF) γ.kb $$ [Hsup]
+      · rw [hγk]; first | iexact Hsup | (simp only [hres, ↓reduceIte]; iexact Hsup)
+      ihave Hmu' : mvcc.muInvLag (GF := GF) «$r0_ptr» γ (sint.Z (r.sched.getD (W64 0))) r.finRev
+          $$ [Hmu']
+      · rw [hsr]; iexact Hmu'
+      ihave Hright : mvcc.compactRightR (GF := GF) «$r0_ptr» γ (sint.Z (r.sched.getD (W64 0)))
+          $$ [Hright]
+      · rw [hsr]; iexact Hright
+      ihave #HpCr : mvcc.crevPermAt (GF := GF) γ (sint.Z (r.sched.getD (W64 0))) $$ []
+      · rw [hsr]; iexact HpCr
+      wp_apply (hCLF «$r0_ptr» γ (r.sched.getD (W64 0)) r.finRev P hkH PreH QH PostH dqh XH YH
+          hon hlt' h1r) $$ [Hmu' Hright Hrt Hctx Hwr HCt HXH Hsup]
+        as %ch %err ⟨Hrt, Hback, Hwr, HCt, %Herr, Hmu, Hright, -, HPostH, -, Hlag, HYH⟩
+      · iframe Hs Hmu' Hright Hrt Hctx Hwr HCt HXH Hsup HreqH HpCr
+      ihave HrB := mvcc.resumeBackM_of γ d r P hkH dqh PostH YH hkγ hres $$ [Hback HPostH HYH]
+      · iframe Hback HPostH HYH
+      iapply HΨ
+      imodintro
+      iunfold mvcc.nsFin
+      iframe Hs Hcrf Hfw Hrevs Hcert HlogQ Hrg Hrt Hird HCt HrB
+      isplitl [Hmu Hwr HfsM]
+      · iunfold mvcc.muInv
+        iexists _
+        iframe Hmu Hwr HfsM
+      isplitl [Hright]
+      · iapply (mvcc.storeCloserM_on _ _ _ hon).2; rw [← hsr]; iexact Hright
+      ihave Hlag : mvcc.lagTok (GF := GF) γ r.crev r.finRev $$ [Hlag]
+      · rw [← hsr]; iexact Hlag
+      iapply mvcc.lagTok_rest γ _ r.finRev
+      iframe Hlag Hlr
   have hdq : ∀ x, r.fin = some x →
       DFrac.own (1 : Qp).half • DFrac.own (1 : Qp).half = DFrac.own 1 := by
     intro _ _; rw [DFrac.op_own, Qp.half_add_half]
