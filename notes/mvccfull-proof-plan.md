@@ -966,3 +966,14 @@ again, no hypotheses).
   glue is written here).
 `ApiResults.lean`'s `mvccApi_New_wp_proof`/`mvccApi_NewStore_wp_proof` are unchanged text, now of the
 new statements, resting on these.
+
+**Checks.** `lake build` of the leaves (mvcc `ApiResults`/`Link`/`Results`/`NewStoreRCallers`/
+`NewStoreLineup`, every mvcc module, lease `NewLessor`, etcdserver `Results`, mvccrand `Adequacy`,
+mvccfull `Link`): green. `etc/api-check.py etc/api/mvcc.txt --check`: 0 errors (after adding
+`NewStoreSess`, which the internal `New.spec` names). `etc/gen-interface.py etc/api/mvcc.txt`
+regenerated; `--check --layout`: no new violation. `etc/gen-init.py --check`: up to date.
+`etc/bounds-check.py --check`: lease back at its baseline (the duplicate `replicate
+actualMaxReaders` gone), mvcc 49 (below 54: the deleted fresh proofs' text, so not recorded),
+still FAILED on mvccfull's own 9 new matches (from before the Freeze; the tester's to settle).
+`etc/tcb-report.py --check` and the collections: not run, the build of record is not up to date
+(524 stale modules outside these leaves, porcupine's among them); to run after a full build.
