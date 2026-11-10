@@ -6,19 +6,45 @@ theorem raft.hup.wp_proof [package_sem : Assumptions] (wp_raft_campaign : raft.c
     (wp_raft_promotable : raft.promotable.spec) (wp_raft_hasUnappliedConfChanges :
     raft.hasUnappliedConfChanges.spec) : raft.hup.spec
   -- `Perennial.EtcdGrove.raft.hup.spec`, unfolded:
-  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (t : CampaignType),
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (t : CampaignType) (G0 G : IProp GF),
     uint.Z s.term + 1 < 2 ^ 64 →
       (t = campaignPreElection → s.prevote = true ∧ uint.Z s.term + 1 ≤ uint.Z s.gh.tc) →
         NStateWf s →
           uint.Z s.logst.fl ≤ uint.Z s.logst.applied →
-            s.gh.tr = none →
-              ⊢
-                ∀ Φ,
-                  isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s -∗
-                    (▷
-                        ∀ s',
-                          ownRaftPhysCV c c.voters r id s' ∗
+            ⊢
+              ∀ Φ,
+                (isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                    ownRaftPhysCV c c.voters r id s ∗
+                      "HG" ∷ G0 ∗
+                        "Hgbc" ∷
+                            (G0 -∗
+                              if t = campaignPreElection then |={⊤}=> G
+                              else HookGate s.gh.tr r (NodeEvOf (W64 1) id (becomeCandidate id s) c) G) ∗
+                          "#Hgsend" ∷
+                            □
+                              ∀ pvs y,
+                                ⌜y ∈ c.voters⌝ -∗
+                                  G -∗
+                                    HookGateOpt s.gh.tr r
+                                      (sendOutGate id
+                                        (have __src := campRoleState id s (decide (t = campaignPreElection));
+                                        { term := __src.term, vote := __src.vote, lead := __src.lead, role := __src.role,
+                                          votes := __src.votes, outbox := __src.outbox, stepfn := __src.stepfn,
+                                          ticking := __src.ticking, progress := __src.progress, log := __src.log,
+                                          logst := __src.logst, prvals := pvs, prevote := __src.prevote, gh := __src.gh,
+                                          rd := __src.rd, lt := __src.lt, pci := __src.pci, isLearner := __src.isLearner,
+                                          sdr := __src.sdr, cq := __src.cq })
+                                        c
+                                        (if y = id then vrespW32 (decide (t = campaignPreElection))
+                                        else vreqW32 (decide (t = campaignPreElection)))
+                                        [campMsg (decide (t = campaignPreElection)) id (s.term + W64 1)
+                                            (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) (transferCtx t) y])
+                                      G) -∗
+                  (▷
+                      ∀ s',
+                        ownRaftPhysCV c c.voters r id s' ∗
+                            (⌜s' = s⌝ ∗ G0 ∨ G) ∗
                               ⌜HupOkC c id s s'⌝ ∗
                                 ⌜s'.role = PRole.preCandidate → s'.role = s.role ∨ t = campaignPreElection⌝ -∗
-                            Φ (intoVal ())) -∗
-                      WP ((intoVal (methods raft.ty.PointerType go!"hup" (intoVal r))) (intoVal t)) {{ Φ }}
+                          Φ (intoVal ())) -∗
+                    WP ((intoVal (methods raft.ty.PointerType go!"hup" (intoVal r))) (intoVal t)) {{ Φ }}
