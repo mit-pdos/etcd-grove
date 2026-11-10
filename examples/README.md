@@ -75,6 +75,9 @@ names).
 | `goose/prophkv` | (new) | `GetAny` reads a map twice and returns one answer, chosen at random afterwards: a plain logically atomic spec over a prophecy patch (`etc/proph-patches/prophkv/`) | `goose_prophkv_safe` |
 
 `axiomcx/` holds counterexamples to trust-boundary axioms (`notes/axiom-review/`), not examples.
+`premisefix/` holds the Go tests of premise fixes 1 (2026-11-10): Go's behavior that a closed theorem's
+premise or a trust-boundary axiom was restated to (`bootfg`: `bootstrap`'s feature gate; `confchange`:
+`proto.Marshal` of a raft conf change); `etc/gates.sh` runs them.
 
 The raft key-value stores repeat their harness (`check.go`, `cluster.go`, `kv.go`): each is a
 separately verified package. Sharing it would be a package of its own with its spec (a follow-up

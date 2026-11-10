@@ -112,7 +112,7 @@ check panics, no compactor round panics). -/
 theorem k8s_compactor_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC k8scompactorGF, ContextReadErrs (GF := k8scompactorGF) (hG := heapAtKc hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC k8scompactorGF, ContextErrsClient (GF := k8scompactorGF) (hG := heapAtKc hG lctx))
@@ -198,7 +198,7 @@ ended in a panic (no API server's check panics, no compactor round panics). -/
 theorem k8s_compactor_partition_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC k8scompactorGF, ContextReadErrs (GF := k8scompactorGF) (hG := heapAtKc hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC k8scompactorGF, ContextErrsClient (GF := k8scompactorGF) (hG := heapAtKc hG lctx))

@@ -154,12 +154,13 @@ theorem RawNode.Bootstrap.wp_proof
       Hpn Hcn $$ Hctx
     haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
     wp_apply wp_ConfChangeType_Enum (W32 0) as %pty Hpty
-    imod cellRO_alloc $$ Hpty with #cTy
-    imod cellRO_alloc $$ «$v1» with #cN
-    imod ownConfChange_of_struct «$r0_ptr» (⟨zero_val _, pty, «$v1_ptr», p.Context', null, slice.nil, 0⟩ : raftpb.ConfChange)
-        ⟨W32 0, p.ID', ctx, W64 0⟩ ⊤ rfl $$ [«$r0»] with Hcc
+    imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Hpty with #cTy
+    imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ «$v1» with #cN
+    -- the conf change as built (`bootConfChange`: `Type` and `NodeId` set, `Id` unset, no
+    -- unknown fields), which `bootMarshal` is stated over (premise fixes 1)
+    imod bootConfChange_of_struct «$r0_ptr» (⟨zero_val _, pty, «$v1_ptr», p.Context', null, slice.nil, 0⟩ : raftpb.ConfChange)
+        ⟨W32 0, p.ID', ctx, W64 0⟩ ⊤ rfl rfl $$ [«$r0»] with Hcc
     · iframe «$r0» cTy cN Hpctx
-      iunfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩
     -- `proto.Marshal(cc)`: the boot entry's bytes (`bootMarshal`)
     obtain ⟨e, Hen⟩ : ∃ e, bootLog[sint.nat n]? = some e :=
       ⟨_, List.getElem?_eq_getElem (by rw [HbLen, Hpslen]; exact Hlt)⟩
@@ -171,7 +172,8 @@ theorem RawNode.Bootstrap.wp_proof
         bootLog[sint.nat n]? = some e ∧ (⟨W32 0, p.ID', ctx, W64 0⟩ : ConfChangeM).type = W32 0 ∧
         (⟨W32 0, p.ID', ctx, W64 0⟩ : ConfChangeM).id = W64 0 := ⟨Hpsn, Hcn, Hen, rfl, rfl⟩
     iunfold bootMarshal at Hmarshal
-    ihave #Hmk := Hmarshal $$ %(sint.nat n) %«$r0_ptr» %(DFrac.own 1) %(⟨W32 0, p.ID', ctx, W64 0⟩ : ConfChangeM)
+    icases Hmarshal with ⟨-, #Hmarshal'⟩
+    ihave #Hmk := Hmarshal' $$ %(sint.nat n) %«$r0_ptr» %(DFrac.own 1) %(⟨W32 0, p.ID', ctx, W64 0⟩ : ConfChangeM)
       %e %Hpure
     wp_apply Hmk $$ [$Hcc] as %d Hcc Hd
     try wp_auto

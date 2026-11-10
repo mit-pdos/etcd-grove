@@ -1,7 +1,7 @@
 /-
 `(*TypedItemExponentialFailureRateLimiter[T]).When(item)` (`default_rate_limiters.go`): counts the failure; `baseDelay * 2^failures`, capped at `maxDelay`. Lean-first.
 
-The spec bounds the result above by `maxDelay` only: the conversion of the `float64` backoff to a `Duration` is uninterpreted in the model (`EtcdGrove.Float64ToInt64Semantics`), and Go's is out of range (implementation-defined, `math.MinInt64` on amd64) when the backoff is exactly `2^63`, which the cap `backoff > math.MaxInt64` lets through (`issues/k8s-workqueue-exponential-backoff-2to63.md`).
+The spec bounds the result above by `maxDelay` only: the conversion of the `float64` backoff to a `Duration` is an arbitrary value in the model (Perennial's `Float64Semantics.convert_float64_to_integer`), and Go's is out of range (implementation-defined, `math.MinInt64` on amd64) when the backoff is exactly `2^63`, which the cap `backoff > math.MaxInt64` lets through (`issues/k8s-workqueue-exponential-backoff-2to63.md`).
 -/
 module
 

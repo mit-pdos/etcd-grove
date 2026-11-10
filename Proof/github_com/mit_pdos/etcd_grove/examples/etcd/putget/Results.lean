@@ -41,7 +41,7 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.putget.Assumptions]
 
 /-- **`Main` does not panic** (`MainLinked.lean`'s `etcd_putget.wp_Main`). -/
-theorem putget_Main [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem putget_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     etcd_putget.Main.spec (GF := GF) (hG := hG) :=
   etcd_putget.wp_Main
 
@@ -56,7 +56,7 @@ file header and `Adequacy.lean`). -/
 theorem etcd_putget_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.putget.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC putgetGF, ContextReadErrs (GF := putgetGF) (hG := heapAt hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC putgetGF, ContextErrsClient (GF := putgetGF) (hG := heapAt hG lctx))

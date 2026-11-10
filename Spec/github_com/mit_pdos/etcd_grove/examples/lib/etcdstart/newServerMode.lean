@@ -1,6 +1,6 @@
 /-
 `newServerMode(name, peer, client, cluster, token, mode, retention, snapCount, catchUp, lg)`
-(`examples/lib/etcdstart/etcdstart.go`; periodic mode, 2026-11-02): `newServer` with the auto-compactor's mode
+(`examples/lib/etcdstart/common.go`; periodic mode, 2026-11-02): `newServer` with the auto-compactor's mode
 a parameter -- member `name` of a new cluster with token `token` built, its configuration and
 `etcdserver.NewServer`. Lean-first (no Rocq counterpart).
 

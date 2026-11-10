@@ -41,12 +41,11 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.leasegrant.Assumptions]
 
 /-- **The adequacy example's `Main` does not panic** (see the file header;
-`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/leasegrant/Main.lean`), under the semantic premises of
-its callees' linked results: `int64(f)` of a `float64` (`Float64ToInt64Semantics`, the server's)
-and the client's `dialWithBalancer` body (`DialWithBalancerBody`). (Until the lease-expiry plan's
+`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/leasegrant/Main.lean`), under the semantic premise of
+its callees' linked results: the client's `dialWithBalancer` body (`DialWithBalancerBody`). (Until the lease-expiry plan's
 S2–S4, 2026-11-05, also the open snapshot case of `run` in a cluster that grants leases,
 `srvGrantOpen_open`, a `sorry`.) -/
-theorem etcd_leasegrant.wp_Main [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem etcd_leasegrant.wp_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     etcd_leasegrant.Main.spec (GF := GF) (hG := hG) :=
   etcd_leasegrant.Main.wp_proof zap.NewNop.wp_proof etcd_leasegrant.holdToken.wp_proof etcdstart.wp_StartServer etcdstart.wp_Serve
     etcdstart.wp_NewClient context.wp_Background context.WithTimeoutBackground.wp_proof
