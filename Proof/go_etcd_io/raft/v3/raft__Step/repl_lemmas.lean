@@ -83,7 +83,7 @@ theorem step_handle_app (c : CfgM) (id : w64) (ps : PState) (t : NState)
   simp only [Hb, Hl] at Hres
   rw [Hc] at Hres
   rcases Hres with ⟨Hlt, rfl⟩ | ⟨Hle, lastnewi, es', ls', Happ, Hprev', Hes, -, Hcm', -, -, rfl⟩ |
-      ⟨Hle, Hnm, hint, hintterm, Hrh, rfl⟩
+      ⟨Hle, Hnm, hint, hintterm, Hrh, -, rfl⟩
   · -- stale
     refine stepCF_eq c id _ _ _ _
       (StepCF.appStale (absMsg .app m ents) ps rfl Hto Hfid Hterm Hnl Hlt) ?_
@@ -179,7 +179,7 @@ theorem nstateWf_handle_app (id : w64) (t : NState) (m : MessageM)
     NStateWf t → HandleAppResult id t m ents s' → NStateWf s' := by
   intro Hwf Hres
   unfold HandleAppResult at Hres
-  rcases Hres with ⟨-, rfl⟩ | ⟨-, _, _, _, -, -, -, -, -, -, -, rfl⟩ | ⟨-, -, _, _, -, rfl⟩ <;>
+  rcases Hres with ⟨-, rfl⟩ | ⟨-, _, _, _, -, -, -, -, -, -, -, rfl⟩ | ⟨-, -, _, _, -, -, rfl⟩ <;>
     exact Hwf
 
 /-- `handleAppendEntries` keeps the term and `NetFrame`'s fields (2026-10-09). -/
@@ -188,7 +188,7 @@ theorem frame_handle_app (id : w64) (t : NState) (m : MessageM)
     HandleAppResult id t m ents s' → NetFrame t s' ∧ s'.term = t.term := by
   intro Hres
   unfold HandleAppResult at Hres
-  rcases Hres with ⟨-, rfl⟩ | ⟨-, _, _, _, -, -, -, Hapl, -, Hfr, -, rfl⟩ | ⟨-, -, _, _, -, rfl⟩
+  rcases Hres with ⟨-, rfl⟩ | ⟨-, _, _, _, -, -, -, Hapl, -, Hfr, -, rfl⟩ | ⟨-, -, _, _, -, -, rfl⟩
   · exact ⟨NetFrame.refl _, rfl⟩
   · obtain ⟨H1, H2, H3, H4, H5, H6, H7⟩ := Hfr
     exact ⟨⟨H1, H2, H3, H4, H5, H6, rfl, rfl, H7, by
@@ -201,7 +201,7 @@ theorem rframe_handle_app (id : w64) (t : NState) (m : MessageM)
     (ents : List EntryM) (s' : NState) (H : HandleAppResult id t m ents s') :
     RFrame t s' := by
   unfold HandleAppResult at H
-  rcases H with ⟨-, rfl⟩ | ⟨-, _, _, ls', -, -, -, Ha, -, Hfr, -, rfl⟩ | ⟨-, -, _, _, -, rfl⟩
+  rcases H with ⟨-, rfl⟩ | ⟨-, _, _, ls', -, -, -, Ha, -, Hfr, -, rfl⟩ | ⟨-, -, _, _, -, -, rfl⟩
   · exact ⟨rfl, rfl, fun h => ⟨h, rfl⟩⟩
   · exact ⟨Ha, Hfr.2.1, fun h => ⟨h, rfl⟩⟩
   · exact ⟨rfl, rfl, fun h => ⟨h, rfl⟩⟩
@@ -213,7 +213,7 @@ theorem handle_app_role {id : w64} {t : NState} {m : MessageM} {ents : List Entr
   rcases Hres with ⟨-, rfl⟩ | ⟨-, _, _, _, -, -, -, -, -, -, -, rfl⟩ | H
   · rfl
   · rfl
-  · obtain ⟨-, -, _, _, -, rfl⟩ := H
+  · obtain ⟨-, -, _, _, -, -, rfl⟩ := H
     rfl
 
 /-- (D22 S-d3b) `handleAppendEntries` on a state `t` with `s`'s log at the message's term: its
@@ -222,7 +222,7 @@ theorem trunc_handle_app {id : w64} {m : MessageM} {ents : List EntryM} {s t s' 
     (Hres : HandleAppResult id t m ents s') (Hl : t.logst = s.logst) (Ht : t.term = m.Term') :
     AppTrunc m ents s s' := by
   unfold HandleAppResult at Hres
-  rcases Hres with ⟨-, rfl⟩ | ⟨-, _, _, ls', -, -, -, -, -, -, Htr, rfl⟩ | ⟨-, -, _, _, -, rfl⟩
+  rcases Hres with ⟨-, rfl⟩ | ⟨-, _, _, ls', -, -, -, -, -, -, Htr, rfl⟩ | ⟨-, -, _, _, -, -, rfl⟩
   · exact AppTrunc.of_ip (by show t.logst.inprogress = _; rw [Hl])
   · intro h
     have h' : uint.Z ls'.inprogress < uint.Z t.logst.inprogress := by rw [Hl]; exact h

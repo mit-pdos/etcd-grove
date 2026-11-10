@@ -2019,7 +2019,7 @@ theorem wp_stepLeader_appresp
       ipureintro
       intro hns
       obtain ⟨h1, h2, h3, h4⟩ := Hrj Hty Hrej hns
-      refine ⟨Hi'.2 h2 (fun t0 ht => by have := h4 t0 ht; word), by have := Hi'.1; omega⟩
+      refine ⟨Hi'.2.2 h2 (fun t0 ht => by have := h4 t0 ht; word), by have := Hi'.1; omega⟩
     · iexists _
       iframe
       ipureintro

@@ -267,7 +267,7 @@ theorem raft.handleAppendEntries.wp_proof
       -- (2026-10-19, D21 M3) the hint: `findConflictByTerm(min(m.Index, lastIndex()), m.LogTerm)`
       have Hrh : RejHintOk s.logst.prev (s.logst.sents ++ s.logst.uents) m.Index' m.LogTerm' hint := by
         have Hmin := w64Min_spec m.Index' li
-        refine ⟨by have := Hfc.1; omega, fun h1 h2 hC => Hfc.2 ?_ hC⟩
+        refine ⟨by have := Hfc.1; omega, fun h1 h2 hC => Hfc.2.2 ?_ hC⟩
         unfold plogLastIndexZ at h2
         simp only [List.length_append] at h2
         push_cast at h2
@@ -275,12 +275,12 @@ theorem raft.handleAppendEntries.wp_proof
       wp_apply wp_send_appResp wp_raft_send (Hdst := Hfid) (Htz := (by first | exact Htz | simpa using Htz | simp_all)) (tr := s.gh.tr) (Htr := by rfl)
         (P := HandleAppResult id s m ents) $$ [$Hphys $Hr $HG $Hgate] as ⟨Hphys, HG'⟩
       · ipureintro
-        exact .inr (.inr ⟨by omega, Hnm, hint, hintterm, Hrh, rfl⟩)
+        exact .inr (.inr ⟨by omega, Hnm, hint, hintterm, Hrh, Hfc.2.1, rfl⟩)
       iapply HΦ
       iframe Hphys
       isplitr
       · ipureintro
-        exact .inr (.inr ⟨by omega, Hnm, hint, hintterm, Hrh, rfl⟩)
+        exact .inr (.inr ⟨by omega, Hnm, hint, hintterm, Hrh, Hfc.2.1, rfl⟩)
       iidx HG'
 
 end proof
