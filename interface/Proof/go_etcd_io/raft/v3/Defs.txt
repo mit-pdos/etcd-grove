@@ -138,6 +138,9 @@ inductive PRole : Type
 theorem becomeFollower.proj_lt [GoGlobalContext] [GoSemanticsFunctions] (s : NState) (term lead :
     w64) : (becomeFollower s term lead).lt = (resetTo s term).lt
 
+theorem PrOk.match_le_prev {ls : LogState} {p : Progress} (H : PrOk ls p) (hst : p.state ≠
+    PRState.snapshot) : uint.Z p.matched ≤ uint.Z (p.next - W64 1)
+
 def MsgHeartbeatResp : w32 :=
   W32 9
 
@@ -238,7 +241,8 @@ def MsgTransferLeader : w32 :=
 def PrOk (ls : LogState) (p : Progress) : Prop :=
   1 ≤ uint.Z p.next ∧
     uint.Z p.next ≤ uint.Z (logLast ls) + 1 ∧
-      uint.Z p.matched ≤ uint.Z (logLast ls) ∧ uint.Z p.pendingSnapshot ≤ uint.Z (logLast ls)
+      uint.Z p.matched ≤ uint.Z (logLast ls) ∧
+        uint.Z p.pendingSnapshot ≤ uint.Z (logLast ls) ∧ (p.state ≠ PRState.snapshot → uint.Z p.matched < uint.Z p.next)
 
 theorem inflightsNew.proj_maxBytes (size maxBytes : w64) : (inflightsNew size maxBytes).maxBytes =
     uint.Z maxBytes
@@ -455,6 +459,8 @@ def progressResetState (p : Progress) (st : PRState) : Progress :=
   { matched := p.matched, next := p.next, sentCommit := p.sentCommit, state := st, pendingSnapshot := W64 0,
     paused := false, infl := inflightsReset p.infl, learner := p.learner }
 
+theorem PRState.enumToBitVec_le✝ (x : PRState) : x.enumToBitVec ≤ 2#2
+
 theorem progressResetState.proj_paused (p : Progress) (st : PRState) : (progressResetState p
     st).paused = false
 
@@ -598,6 +604,8 @@ theorem becomePrecandidate.proj_prvals [GoGlobalContext] [GoSemanticsFunctions] 
     (becomePrecandidate s).prvals = s.prvals
 
 theorem logRestore.proj_lent (ls : LogState) (k : SnapTrip) : (logRestore ls k).lent = ls.lent
+
+theorem PRState.eq_iff_enumToBitVec_eq✝ (x y : PRState) : x = y ↔ x.enumToBitVec = y.enumToBitVec
 
 theorem logLast_le_of_fields {ls ls' : LogState} (hp : ls'.prev.index' = ls.prev.index') (hs :
     ls'.sents.length = ls.sents.length) (hu : ls'.uents.length = ls.uents.length) : uint.Z (logLast
@@ -1019,7 +1027,8 @@ def ResetPr (id li v : w64) (p : Progress) : Prop :=
   p.next = li + W64 1 ∧ (p.matched = if v = id then li else W64 0) ∧ p.pendingSnapshot = W64 0 ∧ p.state = PRState.probe
 
 theorem PrOk.fields {ls : LogState} {p p' : Progress} (H : PrOk ls p) (hn : p'.next = p.next) (hm :
-    p'.matched = p.matched) (hs : uint.Z p'.pendingSnapshot ≤ uint.Z p.pendingSnapshot) : PrOk ls p'
+    p'.matched = p.matched) (hst : p'.state = p.state) (hs : uint.Z p'.pendingSnapshot ≤ uint.Z
+    p.pendingSnapshot) : PrOk ls p'
 
 theorem ResetPr.prOkN {ns : Bool} {id v : w64} {ls : LogState} {p : Progress} (Hnw : LogNoWrap ls)
     (H : ResetPr id (logLast ls) v p) (Hli : ns = true → 1 ≤ uint.Z (logLast ls)) : PrOkN ns ls p
@@ -1143,8 +1152,8 @@ structure NState : Type where
   sdr : Bool
   cq : Bool
 
-theorem PrOk.maybeUpdate {ls : LogState} {p : Progress} {n : w64} (H : PrOk ls p) (Hn : uint.Z n ≤
-    uint.Z (logLast ls)) : PrOk ls (progressMaybeUpdate p n)
+theorem PrOk.maybeUpdate {ls : LogState} {p : Progress} {n : w64} (Hnw : LogNoWrap ls) (H : PrOk ls
+    p) (Hn : uint.Z n ≤ uint.Z (logLast ls)) : PrOk ls (progressMaybeUpdate p n)
 
 theorem progressResetState.proj_pendingSnapshot (p : Progress) (st : PRState) : (progressResetState
     p st).pendingSnapshot = W64 0
@@ -1270,6 +1279,9 @@ theorem ResetPr.prOk {id v : w64} {ls : LogState} {p : Progress} (Hnw : LogNoWra
 
 theorem logLast_eq_of_Z (ls : LogState) (i : w64) (H : uint.Z i = uint.Z ls.prev.index' +
     ↑ls.sents.length + ↑ls.uents.length) : i = logLast ls
+
+def PRState.enumToBitVec✝ : PRState → BitVec 2 :=
+  PRState.recOn x 0#2 1#2 2#2
 
 theorem logRestore.proj_sapp (ls : LogState) (k : SnapTrip) : (logRestore ls k).sapp = false
 
@@ -1554,7 +1566,8 @@ theorem PrOk.setPaused {ls : LogState} {p : Progress} (H : PrOk ls p) (b : Bool)
     p.pendingSnapshot, paused := b, infl := p.infl, learner := p.learner }
 
 theorem PrOk.fields0 {ls : LogState} {p p' : Progress} (H : PrOk ls p) (hn : p'.next = p.next) (hm :
-    p'.matched = p.matched) (hs : p'.pendingSnapshot = W64 0) : PrOk ls p'
+    p'.matched = p.matched) (hst : p'.state = p.state) (hs : p'.pendingSnapshot = W64 0) : PrOk ls
+    p'
 
 theorem logRestore.proj_ksn (ls : LogState) (k : SnapTrip) : (logRestore ls k).ksn = ls.ksn ++ [k]
 

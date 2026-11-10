@@ -291,12 +291,11 @@ theorem releasePendingReadIndexMessages.wp_proof
         iexfalso; ipureintro; exact Hsg Hs1
       imodintro
       iintro %Hns1 %to %cm %o %Hto %Hcm HG
-      have Hcm' : uint.Z cm ≤ uint.Z s.logst.committed ∧
-          uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0)) := by
-        obtain ⟨h1, h2⟩ := Hcm
-        simp only at h2
-        rw [Hmm] at h2
-        exact ⟨h1, h2⟩
+      have Hcm' : uint.Z cm = min (uint.Z s.logst.committed)
+          (uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))) := by
+        simp only at Hcm
+        rw [Hmm] at Hcm
+        exact Hcm
       iapply hookGateOpt_congrQ s.gh.tr _ r
         (sendOutGate id
           { s with rd := { s.rd with pend := [],

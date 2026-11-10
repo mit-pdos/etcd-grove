@@ -340,7 +340,8 @@ theorem wp_stepLeader_prop
           (Gp2 (s.outbox ++ [selfAck id (propAppended s (leaderPropConf s ents cs c.joint).1)]))) ∗
         "#Hgapp" ∷ □ (∀ (to : w64) (mm : Msg) (o : List Msg), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
           ⌜AppOk id (toPState (propAppended s (leaderPropConf s ents cs c.joint).1)) mm ∧
-            mm.commit = s.logst.committed ∧ mm.dst = to⌝ -∗ Gp2 o -∗
+            mm.commit = s.logst.committed ∧ mm.dst = to ∧
+            uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0)) ≤ uint.Z mm.index⌝ -∗ Gp2 o -∗
           HookGateOpt s.gh.tr r
             (sendOutGate id (propAppended s (leaderPropConf s ents cs c.joint).1) c MsgApp [mm]) (Gp2 (o ++ [mm]))) ∗
         "#Hnosnap" ∷ TrNoSnap s.gh.tr s.logst }}

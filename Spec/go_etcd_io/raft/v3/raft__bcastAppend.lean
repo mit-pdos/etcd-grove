@@ -56,8 +56,10 @@ abbrev raft.bcastAppend.spec : Prop :=
       -- `MsgApp`s' hook gates, one per message (to a peer `to`, as `raft.maybeSendAppend.spec`'s),
       -- each taking the caller's `G` back to `G`, at `s`
       -- (2026-11-10, slice 14) `G` indexed by the outbox, as `raft.maybeSendAppend.spec`'s
+      -- (2026-11-10, slice 17) with `Match ≤ mm.index`, as `raft.maybeSendAppend.spec`'s
       "#Hgate" ∷ □ (∀ (to : w64) (mm : Msg) (o : List Msg), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
-          ⌜AppOk id (toPState s) mm ∧ mm.commit = (toPState s).commit ∧ mm.dst = to⌝ -∗ G o -∗
+          ⌜AppOk id (toPState s) mm ∧ mm.commit = (toPState s).commit ∧ mm.dst = to ∧
+            uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0)) ≤ uint.Z mm.index⌝ -∗ G o -∗
         HookGateOpt s.gh.tr r (sendOutGate id s c MsgApp [mm]) (G (o ++ [mm]))) ∗
       "HG" ∷ G s.outbox ∗
       "#Hnosnap" ∷ TrNoSnap s.gh.tr s.logst }}

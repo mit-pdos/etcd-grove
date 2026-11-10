@@ -35,8 +35,9 @@ theorem sendMsgReadIndexResponse.wp_proof [package_sem : Assumptions] (wp_IsSing
                               (⌜¬CfgSingle c id⌝ -∗
                                 ∀ to cm o,
                                   ⌜to ≠ id ∧ to ∈ s.progress.domSet⌝ -∗
-                                    ⌜uint.Z cm ≤ uint.Z s.logst.committed ∧
-                                          uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ -∗
+                                    ⌜uint.Z cm =
+                                          min (uint.Z s.logst.committed)
+                                            (uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0)))⌝ -∗
                                       G o -∗
                                         HookGateOpt s.gh.tr r
                                           (sendOutGate id (arriveState id s m ents) c MsgHeartbeat

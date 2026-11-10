@@ -309,7 +309,9 @@ theorem stepCandidate.wp_proof [package_sem : Assumptions] (wp_raft_poll : raft.
                                                                                 isLearner := __src.isLearner,
                                                                                 sdr := __src.sdr,
                                                                                 cq := __src.cq })).commit ∧
-                                                                        mm.dst = to⌝ -∗
+                                                                        mm.dst = to ∧
+                                                                          uint.Z ((prvalsMatch pvs !! to).getD (W64 0)) ≤
+                                                                            uint.Z mm.index⌝ -∗
                                                                   G' o -∗
                                                                     HookGateOpt s.gh.tr r
                                                                       (sendOutGate id

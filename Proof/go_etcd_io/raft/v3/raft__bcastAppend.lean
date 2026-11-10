@@ -145,7 +145,8 @@ theorem raft.bcastAppend.wp_proof
           iapply hookGateOpt_congr s.gh.tr _ r (sendOutGate id s c MsgApp [mm]) _ _ ?hg1 ?hg2
           case hg1 => rfl
           case hg2 => rfl
-          iapply Hgate $$ %i %mm %o %(And.intro Hii Hicfg) %(appGate_send_prvals id s ms _ i mm Hmm1) HG
+          iapply Hgate $$ %i %mm %o %(And.intro Hii Hicfg) %(appGate_send_prvals id s ms _ i mm
+            (by rw [GMap.insert_id _ _ _ Hpvi]; exact Hmm) Hmm1) HG
         isplitl [HG]
         · simp only [sendMsgs]; iexact HG
         iapply trNoSnap_congr s.gh.tr _ s.logst _ ?hn1 ?hn2 $$ Hnosnap

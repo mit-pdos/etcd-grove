@@ -25,6 +25,11 @@ cannot be re-established for a new message, since nothing in `simFx` fixes the f
 does not log (a heartbeat's `prevLogIndex`, an append request's `matchIndex`, ...), so an in-flight
 message differing from the new one only there is consistent with `simFx` and breaks `MsgsUniq` (plan,
 Q15). And the heartbeat's gate gives its commit only bounded, the line needs it exact.
+
+(2026-11-10, slice 17, `notes/decisions.md`, "Q8 stage 1 (slice 17)") The heartbeat gates give the
+commit exactly and the append gates the peer's `Match` at most the request's index; the append
+request's phase step (`phaseStepB_msgApp`, with `appOk_slice`), from the gate's facts, a voter
+destination and the log term's bound (`blt`, raft's ghost `TermsLe`, the caller's).
 -/
 module
 
@@ -159,9 +164,9 @@ theorem phaseStepB_send (id : w64) (c : CfgM) (s : NState) (E : TraceEv → Prop
 
 /-- **A leader's heartbeat line's phase step** (`MsgBeat`'s `"#Hgbeat"` gate, the `SendAppendEntriesRequest`
 line of a `MsgHeartbeat`), by `lineEffect_heartbeat`, for the commit raft computes, **exactly**
-`min(committed, Match)` (`hcm`). The gate as `leaderGates` states it gives only the two bounds
-(`sendHeartbeat`'s spec): a heartbeat of a smaller commit is not the specification's, whose
-`Heartbeat` sends exactly the minimum (`notes/decisions.md`, "Q8 stage 1 (slice 16)"). -/
+`min(committed, Match)` (`hcm`): the specification's `Heartbeat` sends exactly the minimum. Since
+slice 17 the gate gives `hcm` as is (`leaderGates`' `"#Hgbeat"`, from `sendHeartbeat`'s spec; until then
+only the two bounds: `notes/decisions.md`, "Q8 stage 1 (slice 16)", "(slice 17)"). -/
 theorem phaseStepB_heartbeat (id : w64) (c : CfgM) (s : NState) (o : List Msg) (to cm : w64) (cl : List w8)
     (hlead : s.role = .leader) (hne : to ≠ id) (hto : to ∈ elements c.incoming)
     (hcm : uint.Z cm = min (uint.Z s.logst.committed) (uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0)))) :
@@ -178,6 +183,66 @@ theorem phaseStepB_heartbeat (id : w64) (c : CfgM) (s : NState) (o : List Msg) (
   exact lineEffect_heartbeat C e id s c _ a he hin hout hC (hin.mem_iff.1 hto) hR hs hlead rfl rfl hne rfl rfl
     (by rw [hcm, hmo]; simp only [toPState])
     bt bc bl (by show uint.Z cm < 2 ^ 63; omega)
+
+/-- (slice 17) An append request's entries and their bounds, from what its gate gives (`AppOk`) and the
+log's shape at the idle server (base `0`, `PlogWf`): the request's range is a slice of the log from its
+index, within it. -/
+theorem appOk_slice (id : w64) (s : PState) (mm : Msg) (happ : AppOk id s mm)
+    (hb : uint.Z s.base.index' = 0) (hl : (s.log.length : Int) < 2 ^ 63) :
+    uint.nat mm.index + mm.entries.length ≤ s.log.length ∧
+    mm.entries = (s.log.drop (uint.nat mm.index)).take mm.entries.length := by
+  obtain ⟨-, -, -, -, hlt, -, -, hpre, -⟩ := happ
+  have hi : uint.Z mm.index ≤ (s.log.length : Int) := by
+    unfold plogTermAt at hlt
+    split at hlt
+    · cases hlt
+    split at hlt
+    · omega
+    rename_i h1 h2
+    cases hk : s.log[(uint.Z mm.index - uint.Z s.base.index' - 1).toNat]? with
+    | none => rw [hk] at hlt; cases hlt
+    | some e =>
+      have := (List.getElem?_eq_some_iff.1 hk).1
+      omega
+  have hn : (uint.nat mm.index : Int) = uint.Z mm.index := by word
+  have hdrop : plogFrom s.base s.log (mm.index + W64 1) = s.log.drop (uint.nat mm.index) := by
+    unfold plogFrom
+    congr 1
+    have : uint.Z (mm.index + W64 1) = uint.Z mm.index + 1 := by word
+    rw [this, hb]; omega
+  rw [hdrop] at hpre
+  have hlen := hpre.length_le
+  rw [List.length_drop] at hlen
+  refine ⟨by omega, ?_⟩
+  exact (List.prefix_iff_eq_take.1 hpre)
+
+/-- **A leader's append request's phase step** (the `SendAppendEntriesRequest` line of a `MsgApp`), by
+`lineEffect_msgApp`, from what the append gates give since slice 17 (`AppOk`, the commit, the peer's
+`Match` at most the index: `hmatch`), the destination a voter (`hto`), and the request's log term below
+`2^63` (`blt`: a term of the leader's log, at most its term by raft's ghost `TermsLe`, which neither
+the gate nor the idle relation states; the caller's family holds the ghost state). -/
+theorem phaseStepB_msgApp (id : w64) (c : CfgM) (s : NState) (o : List Msg) (mm : Msg)
+    (hlead : s.role = .leader) (hto : mm.dst ∈ elements c.incoming)
+    (happ : AppOk id (toPState s) mm) (hcommit : mm.commit = (toPState s).commit)
+    (hmatch : uint.Z ((prvalsMatch s.prvals !! mm.dst).getD (W64 0)) ≤ uint.Z mm.index)
+    (blt : uint.Z mm.logterm < 2 ^ 63) :
+    PhaseStepB id c (SendEvOf (W64 9) id s c mm)
+      (PhaseAt (fun C => SimIdleS C s) o) (PhaseAt (fun C => SimIdleS C s) (o ++ [mm])) := by
+  have hsrc : mm.src = id := happ.2.1
+  apply phaseStepB_send id c s _ o _ hsrc
+    (fun e he => ⟨he.2.1, sendEvOf_notBoot he (by decide) (by decide) (by decide)⟩)
+  intro C e a he hin hout hC hR hs bt bc bl
+  have hty : mm.ty = .app := happ.1
+  refine ⟨(TraceSim.msgAbs C C.length mm).get (by simp [TraceSim.msgAbs, hty]), (Option.some_get _).symm, ?_⟩
+  have hmo : matchOf (toPState s) mm.dst = (prvalsMatch s.prvals !! mm.dst).getD (W64 0) := by
+    simp [matchOf, toPState, hlead]
+  have hlen : ((toPState s).log.length : Int) < 2 ^ 63 := by
+    have := plastIndex_length _ _ hs; omega
+  obtain ⟨hpk, hents⟩ := appOk_slice id (toPState s) mm happ (by rw [hs.1]; rfl) hlen
+  exact lineEffect_msgApp C e id s c mm a _ he hin hout hC (hin.mem_iff.1 hto) hR hs hlead hty hsrc
+    happ.2.2.2.1 happ.2.2.1 hpk happ.2.2.2.2.1 hents hcommit (by rw [hmo]; exact hmatch)
+    bt bc bl (by have := hpk; have : (uint.nat mm.index : Int) = uint.Z mm.index := by word
+                 omega) blt
 
 end sendStep
 

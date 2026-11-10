@@ -49,9 +49,10 @@ abbrev raft.bcastHeartbeat.spec : Prop :=
       -- heartbeats' hook gates, as `raft.bcastHeartbeatWithCtx.spec`'s, at the read-only object's
       -- context
       -- (2026-11-10, slice 14) indexed by the outbox, as `raft.bcastHeartbeatWithCtx.spec`'s
+      -- (2026-11-10, slice 17) at the exact commit, as `raft.bcastHeartbeatWithCtx.spec`'s
       "#Hgate" ∷ □ (∀ (to cm : w64) (o : List Msg), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
-          ⌜uint.Z cm ≤ uint.Z s.logst.committed ∧
-            uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ -∗ G o -∗
+          ⌜uint.Z cm = min (uint.Z s.logst.committed)
+            (uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0)))⌝ -∗ G o -∗
         HookGateOpt s.gh.tr r (sendOutGate id s c MsgHeartbeat
           [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] (hbCtx s.rd.ro)])
           (G (o ++ [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] (hbCtx s.rd.ro)]))) ∗
