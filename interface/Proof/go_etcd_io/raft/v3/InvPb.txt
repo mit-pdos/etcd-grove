@@ -179,16 +179,17 @@ def msgOwn (l : Loc) (dq : DFrac) (ms : MsgSt) : IProp GF :=
   msgPts l dq DFrac.discard ms
 
 def pbMsg (T : Type) (l : Loc) (uf : List w8) : IProp GF :=
-  inv pbN
-    iprop(∃ st sc us,
-        typedPointsto (structFieldRef T go!"state" l) st (DFrac.own 1) ∗
-          typedPointsto (structFieldRef T go!"sizeCache" l) sc
-              (DFrac.own 1) ∗
-            typedPointsto
-                (structFieldRef T
-                  go!"unknownFields" l)
-                us (DFrac.own 1) ∗
-              ownSlice us uf (DFrac.own 1))
+  iprop(⌜pbUnknownOk T uf⌝ ∗
+      inv pbN
+        iprop(∃ st sc us,
+            typedPointsto (structFieldRef T go!"state" l) st (DFrac.own 1) ∗
+              typedPointsto (structFieldRef T go!"sizeCache" l) sc
+                  (DFrac.own 1) ∗
+                typedPointsto
+                    (structFieldRef T
+                      go!"unknownFields" l)
+                    us (DFrac.own 1) ∗
+                  ownSlice us uf (DFrac.own 1)))
 
 def ConfChangeM.asV2 (m : ConfChangeM) : ConfChangeV2M :=
   { transition := W32 0, changes := [{ Type' := m.type, NodeId' := m.nodeId }], context := m.context }
@@ -298,6 +299,8 @@ def CSLists.Perm (a b : CSLists) : Prop :=
 theorem csPts_nn [package_sem : Assumptions] (p : Loc) (dq : DFrac) (c : ConfStateM) (al : Bool) :
     csPts p dq c al ⊢ csPts p dq c al ∗ ⌜p ≠ null⌝
 
+def (sealed) pbUnmarshalLeft (T : Type) (uf : List w8) : Prop
+
 theorem sortedW64_iff_pairwise (xs : List w64) : SortedW64 xs ↔ List.Pairwise (fun a b => uint.Z a ≤
     uint.Z b) xs
 
@@ -335,9 +338,10 @@ theorem hsRO_persistent (p : Loc) (hs : HardStateM) : Persistent (hsRO p hs)
 
 theorem pbMsg_alloc [package_sem : Assumptions] (T : Type) (l : Loc) (st :
     google_golang_org.protobuf.internal.impl.MessageState) (sc : w32) (us : GoSlice) (uf : List w8)
-    (E : CoPset) : typedPointsto (structFieldRef T go!"state" l) st (DFrac.own 1) ∗ typedPointsto
-    (structFieldRef T go!"sizeCache" l) sc (DFrac.own 1) ∗ typedPointsto (structFieldRef T
-    go!"unknownFields" l) us (DFrac.own 1) ∗ ownSlice us uf (DFrac.own 1) ⊢ |={E}=> pbMsg T l uf
+    (E : CoPset) (Huf : pbUnknownOk T uf := by exact Or.inl rfl) : typedPointsto (structFieldRef T
+    go!"state" l) st (DFrac.own 1) ∗ typedPointsto (structFieldRef T go!"sizeCache" l) sc (DFrac.own
+    1) ∗ typedPointsto (structFieldRef T go!"unknownFields" l) us (DFrac.own 1) ∗ ownSlice us uf
+    (DFrac.own 1) ⊢ |={E}=> pbMsg T l uf
 
 def ownConfChange (p : Loc) (dq : DFrac) (m : ConfChangeM) : IProp GF :=
   iprop(∃ pt pn pi cs uf,
@@ -381,6 +385,9 @@ theorem csPts_persistent (p : Loc) (c : ConfStateM) (al : Bool) : Persistent (cs
 
 theorem cellRO_alloc {V : Type} [ZeroVal V] [TypedPointsto V] (p : Loc) (v : V) : typedPointsto p v
     (DFrac.own 1) ⊢ |==> cellRO p v
+
+def pbUnknownOk (T : Type) (uf : List w8) : Prop :=
+  uf = [] ∨ pbUnmarshalLeft T uf
 
 theorem entRO_persistent (l : Loc) (e : EntryM) : Persistent (entRO l e)
 
