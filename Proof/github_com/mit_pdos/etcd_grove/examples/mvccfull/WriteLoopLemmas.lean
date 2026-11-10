@@ -129,6 +129,78 @@ theorem writerOwn_follower (x : Loc) (ks : List GoString) (cfg : Config) (h : Lo
   · iexists qw0, nw0, k0; iframe; ipureintro; exact Hl0
   · iexists qw1, nw1, k'; iframe; ipureintro; exact ⟨Hl1.1, Hl1.2.1, by omega⟩
 
+/-- **The leader's part for a new operation** (`gen`, the log appended, `apply(l, o, true)`): the
+log, the counters, the history's writer part, its reader slot, the leader's `memW`; and back at
+the longer log, the leader's new record. -/
+theorem writerOwn_leader (x : Loc) (ks : List GoString) (cfg : Config) (h : Loc) (γ : FullNames)
+    (mp0 mp1 : Loc) (f0 f1 : GoFunc) (ops : List OpM) (v0 v1 : MemS) (nv nb : Nat) (q qs : Qp)
+    (hlt : ops.length < (sint.Z cfg.Ops').toNat) :
+    writerOwn (GF := GF) x ks cfg h γ mp0 mp1 f0 f1 ops v0 v1 nv nb q qs ⊢
+      ∃ (qw : Qp) (nw k : Nat), logOwn x ks ops ∗ writerCtrs x ks ops nv nb ∗
+        histW γ.h (histAt ks ops ops.length) (compsAt ks ops ops.length) ∗ histRd h γ.h ∗
+        memW ks γ.h ops 0 mp0 γ.m0 f0 v0 qw nw k ∗
+        ⌜1 ≤ nw ∧ (sint.Z cfg.Ops').toNat ≤ k + v0.ops ∧ v0.ops = ops.length ∧ v1.ops ≤ v0.ops⌝ ∗
+        (∀ (o : OpM) (v0' : MemS) (k' nv' : Nat), logOwn x ks (ops ++ [o]) -∗
+          writerCtrs x ks (ops ++ [o]) nv' nb -∗
+          histW γ.h (histAt ks (ops ++ [o]) (ops.length + 1)) (compsAt ks (ops ++ [o]) (ops.length + 1)) -∗
+          histRd h γ.h -∗ memW ks γ.h (ops ++ [o]) 0 mp0 γ.m0 f0 v0' qw nw k' -∗
+          ⌜MemS.sameInc v0 v0' ∧ v0'.ops = v0.ops + 1 ∧ k ≤ k' + 1⌝ -∗
+          writerOwn x ks cfg h γ mp0 mp1 f0 f1 (ops ++ [o]) v0' v1 nv' nb q qs) := by
+  iintro Hown
+  iunfold writerOwn at Hown
+  icases Hown with ⟨Hms, Hreg0, Hreg1, Hlog, Hctrs, HhW, Hrd, %HopsA, %HnbA, Hfiles,
+    ⟨%qw0, %nw0, %k0, Hm0, %Hl0⟩, ⟨%qw1, %nw1, %k1, Hm1, %Hl1⟩, Hss0, Hss1, Hadd⟩
+  iexists qw0, nw0, k0
+  iframe Hlog Hctrs HhW Hrd Hm0
+  isplitr
+  · ipureintro; exact ⟨Hl0.2.1, Hl0.2.2, HopsA.1, HopsA.2.1⟩
+  iintro %o %v0' %k' %nv' Hlog Hctrs HhW Hrd Hm0 %Hs
+  obtain ⟨⟨hpa, hlp, hkv, hbk, hι⟩, hops, hk⟩ := Hs
+  ihave Hm1 := memW_snoc ks γ.h ops o 1 mp1 γ.m1 f1 v1 qw1 nw1 k1 (by omega) $$ Hm1
+  have hlen : (ops ++ [o]).length = ops.length + 1 := by simp
+  iunfold writerOwn
+  dsimp only
+  rw [hkv, hι, hlen]
+  iframe Hms Hreg0 Hreg1 Hlog Hctrs HhW Hrd Hfiles Hss0 Hss1 Hadd
+  isplitr
+  · ipureintro; omega
+  isplitr
+  · ipureintro; omega
+  isplitl [Hm0]
+  · iexists qw0, nw0, k'; iframe; ipureintro; exact ⟨Hl0.1, Hl0.2.1, by omega⟩
+  · iexists qw1, nw1, k1; iframe; ipureintro; exact Hl1
+
+/-- **The members' `ops` fields** (the loops' guards), and the counts' facts. -/
+theorem writerOwn_ops (x : Loc) (ks : List GoString) (cfg : Config) (h : Loc) (γ : FullNames)
+    (mp0 mp1 : Loc) (f0 f1 : GoFunc) (ops : List OpM) (v0 v1 : MemS) (nv nb : Nat) (q qs : Qp) :
+    writerOwn (GF := GF) x ks cfg h γ mp0 mp1 f0 f1 ops v0 v1 nv nb q qs ⊢
+      ⌜v0.ops = ops.length ∧ v1.ops ≤ v0.ops ∧ ops.length ≤ (sint.Z cfg.Ops').toNat ∧
+        nb ≤ v0.ops ∧ (nb = v0.ops → v1.ops = v0.ops)⌝ ∗
+      mF go!"ops" mp0 ↦ (W64 (v0.ops : Int)) ∗ mF go!"ops" mp1 ↦ (W64 (v1.ops : Int)) ∗
+      (mF go!"ops" mp0 ↦ (W64 (v0.ops : Int)) -∗ mF go!"ops" mp1 ↦ (W64 (v1.ops : Int)) -∗
+        writerOwn x ks cfg h γ mp0 mp1 f0 f1 ops v0 v1 nv nb q qs) := by
+  iintro Hown
+  iunfold writerOwn at Hown
+  icases Hown with ⟨Hms, Hreg0, Hreg1, Hlog, Hctrs, HhW, Hrd, %HopsA, %HnbA, Hfiles,
+    ⟨%qw0, %nw0, %k0, Hm0, %Hl0⟩, ⟨%qw1, %nw1, %k1, Hm1, %Hl1⟩, Hss0, Hss1, Hadd⟩
+  iunfold memW at Hm0 Hm1
+  icases Hm0 with ⟨Ho0, Hh0, Hc0⟩
+  icases Hm1 with ⟨Ho1, Hh1, Hc1⟩
+  iframe Ho0 Ho1
+  isplitr
+  · ipureintro; exact ⟨HopsA.1, HopsA.2.1, HopsA.2.2, HnbA⟩
+  iintro Ho0 Ho1
+  iunfold writerOwn
+  dsimp only
+  iframe Hms Hreg0 Hreg1 Hlog Hctrs HhW Hrd Hfiles Hss0 Hss1 Hadd
+  isplitr
+  · ipureintro; exact HopsA
+  isplitr
+  · ipureintro; exact HnbA
+  isplitl [Ho0 Hh0 Hc0]
+  · iexists qw0, nw0, k0; iunfold memW; iframe; ipureintro; exact Hl0
+  · iexists qw1, nw1, k1; iunfold memW; iframe; ipureintro; exact Hl1
+
 end lemmas
 
 end mvccfull
