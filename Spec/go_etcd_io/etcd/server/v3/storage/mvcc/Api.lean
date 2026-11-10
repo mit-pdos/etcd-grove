@@ -1005,16 +1005,29 @@ abbrev excl.law : Prop :=
   (∀ ι rs rs', wsRecv (GF := GF) ι rs ∗ wsRecv ι rs' ⊢ False) ∧
   (∀ γ, mvccOpen (GF := GF) γ ∗ mvccOpen γ ⊢ False)
 
-/-- **mvcc's error variables are `errors.New`'s** (the tester's migration, 2026-11-06, G2: decided
-by the coordinator): the package's initialization gives `ErrCompacted`, `ErrFutureRev` and
-`ErrEmptyWatcherRange` as `*errors.errorString` values with their messages (`errorsNewVar`), so a
-client's `err == ErrFutureRev` (Go's interface `==`, which checks the dynamic type's
-comparability) is provable without mvcc's internals. -/
+/-- **mvcc's error variables a client compares an error with** (`kvstore.go` l.38-39, `watcher.go`
+l.30-31). -/
+abbrev errVarNames : List GoString :=
+  [ErrCompacted, ErrFutureRev, ErrEmptyWatcherRange, ErrWatcherNotExist]
+
+/-- **mvcc's error variables are `errors.New`'s, and distinct** (the tester's migration, 2026-11-06,
+G2: decided by the coordinator; mvccfull's Freeze, 2026-11-10: `ErrWatcherNotExist` and the
+apartness added): the package's initialization gives `ErrCompacted`, `ErrFutureRev`,
+`ErrEmptyWatcherRange` and `ErrWatcherNotExist` as `*errors.errorString` values with their messages
+(`errorsNewVar`), so a client's `err == X` (Go's interface `==`, which checks the dynamic type's
+comparability) is provable without mvcc's internals; and any two different variables of the four
+hold different values (`errVarApart`), so `err == ErrCompacted` is false of `ErrFutureRev`'s value.
+True of the code: each is its own `errors.New` call with its own literal message, and the four
+messages differ (the proof's argument, not the client's). A client discharges `X ≠ Y` by
+`simp [ErrCompacted, ErrFutureRev]` (`decide` fails: the names take section instances). -/
 abbrev errVars.law : Prop :=
   isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ⊢
     EtcdGrove.errorsNewVar ErrCompacted go!"mvcc: required revision has been compacted" ∗
     EtcdGrove.errorsNewVar ErrFutureRev go!"mvcc: required revision is a future revision" ∗
-    EtcdGrove.errorsNewVar ErrEmptyWatcherRange go!"mvcc: watcher range is empty"
+    EtcdGrove.errorsNewVar ErrEmptyWatcherRange go!"mvcc: watcher range is empty" ∗
+    EtcdGrove.errorsNewVar ErrWatcherNotExist go!"mvcc: watcher does not exist" ∗
+    □ (∀ (X Y : GoString), ⌜X ∈ errVarNames ∧ Y ∈ errVarNames ∧ X ≠ Y⌝ -∗
+        EtcdGrove.errVarApart X Y)
 
 /-- **The reader tokens split and join** (the reader tokens, 2026-11-06). -/
 abbrev mvccReaders_split.law : Prop :=

@@ -1,7 +1,7 @@
 /- Lean-first (no Rocq counterpart). The proof of `stream.cancel`: Draft, to come (`sorry`).
 
 The callees in call order: `stream.pick`, `Cancel` (through `shapes.law`; its error compared with
-`ErrWatcherNotExist`, whose identity `errVars.law` does not give yet), `check`.
+`ErrWatcherNotExist`, whose identity `errVars.law` gives since the Freeze of 2026-11-10), `check`.
 -/
 module
 

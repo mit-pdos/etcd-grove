@@ -1,8 +1,8 @@
 /- Lean-first (no Rocq counterpart). The proof of `runner.endEpoch`: Draft, to come (`sorry`).
 
 The callees in call order: `complete`, `time.Sleep`, `Close`, `context.TODO`, `genKey`
-`Watch` and `Cancel` (through `shapes.law`; `ErrWatcherNotExist`'s identity is not in
-`errVars.law` yet: the plan's Freeze list), `check`.
+`Watch` and `Cancel` (through `shapes.law`; `ErrWatcherNotExist`'s identity and apartness from
+`errVars.law`, since the Freeze of 2026-11-10), `check`.
 -/
 module
 

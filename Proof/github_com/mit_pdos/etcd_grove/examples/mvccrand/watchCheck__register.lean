@@ -129,7 +129,7 @@ theorem watchCheck.register.wp_proof
     have hlen0 : se.len ≠ W64 0 := by
       intro h0; apply hemp.1; rw [← List.length_eq_zero_iff, Hsel.1, h0]; rfl
     ihave Hinit := errVars $$ Hmpkg
-    icases Hinit with ⟨-, -, #HeEmp⟩
+    icases Hinit with ⟨-, -, #HeEmp, -⟩
     iunfold errorsNewVar at HeEmp
     icases HeEmp with ⟨%xe, #HeEmp, -⟩
     ihave %Hag := typedPointsto_agree_wand _ _ _ _ _ $$ Herr HeEmp
