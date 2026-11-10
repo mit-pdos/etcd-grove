@@ -3,7 +3,8 @@
 (revised after the attack, change 4).
 
 Faithful: `IsNil` of a slice is `Data == nil`, which only a nil slice has, whose length is 0
-(`reflect/value.go`; `TestKindLenCapIsNil`).
+(`reflect/value.go`; this repository's attack test `TestKindLenCapIsNil`,
+`examples/k8s7e2attack/attack_test.go`).
 
 The trust boundary: an axiom, `Proof/reflect/Value__IsNil.lean` (`reflect` is names-only; the reasoning principles of `Proof/reflect/Values.lean`; stage 7e-2, `notes/k8s-7e-2-draft.md` §5.2, attacked in `notes/k8s-7e-2-attack.md`). Lean-first (no Rocq counterpart).
 -/
