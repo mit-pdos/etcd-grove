@@ -221,7 +221,8 @@ theorem store.pagedChunks.wp_proof
         rw [Hrc.2]; apply decide_eq_decide.2; constructor <;> intro h <;> word
       rw [hhm]
       wp_bind (App (App (Val #y) _) _)
-      iapply (wp_wand (Φ := fun v => iprop(∃ b : Bool, ⌜v = #b⌝ ∗ J (some (σ, R0)) (0 + 1))))
+      iapply (wp_wand (Φ := fun v => iprop(∃ b : Bool, ⌜v = #b⌝ ∗
+          if b then J (some (σ, R0)) (0 + 1) else (threadTok -∗ Φ' #()))))
         $$ [HJ Hkvs]
       · iapply Hy $$ %σ %R0 %0
           %(k8s_io.apiserver.pkg.storage.etcd3.listChunk.mk resp.Kvs' revision_ptr resp.Count'
@@ -240,14 +241,19 @@ theorem store.pagedChunks.wp_proof
       iintro %v ⟨%b, %hv, HJ⟩
       subst hv
       cases b
-      · (try wp_auto)
+      · simp only [Bool.false_eq_true, ↓reduceIte]
+        (try wp_auto)
         wp_for_post
-        iapply Hend $$ HJ Htt
+        iapply HJ $$ Htt
+      simp only [↓reduceIte]
       by_cases hm : ¬ pg.1.length < pg.2
       · rw [show decide (pg.1.length < pg.2) = false from decide_eq_false hm]
         (try wp_auto)
         wp_for_post
-        iapply Hend $$ HJ Htt
+        iapply Hend $$ %σ %R0 %0 HJ [] Htt
+        ipureintro
+        simp only [pageMore, pagesL, hpgdef]
+        exact decide_eq_false hm
       rw [Decidable.not_not] at hm
       rw [show decide (pg.1.length < pg.2) = true from decide_eq_true hm]
       (try wp_auto)
@@ -448,7 +454,8 @@ theorem store.pagedChunks.wp_proof
         rw [Hrc.2]; apply decide_eq_decide.2; constructor <;> intro h <;> word
       rw [hhm]
       wp_bind (App (App (Val #y) _) _)
-      iapply (wp_wand (Φ := fun v => iprop(∃ b : Bool, ⌜v = #b⌝ ∗ J (some (σ, R)) (n + 1 + 1))))
+      iapply (wp_wand (Φ := fun v => iprop(∃ b : Bool, ⌜v = #b⌝ ∗
+          if b then J (some (σ, R)) (n + 1 + 1) else (threadTok -∗ Φ' #()))))
         $$ [HJ Hkvs]
       · iapply Hy $$ %σ %R %(n + 1)
           %(k8s_io.apiserver.pkg.storage.etcd3.listChunk.mk resp.Kvs' revision_ptr resp.Count'
@@ -466,14 +473,19 @@ theorem store.pagedChunks.wp_proof
       iintro %v ⟨%b, %hv, HJ⟩
       subst hv
       cases b
-      · (try wp_auto)
+      · simp only [Bool.false_eq_true, ↓reduceIte]
+        (try wp_auto)
         wp_for_post
-        iapply Hend $$ HJ Htt
+        iapply HJ $$ Htt
+      simp only [↓reduceIte]
       by_cases hm : ¬ pg.1.length < pg.2
       · rw [show decide (pg.1.length < pg.2) = false from decide_eq_false hm]
         (try wp_auto)
         wp_for_post
-        iapply Hend $$ HJ Htt
+        iapply Hend $$ %σ %R %(n + 1) HJ [] Htt
+        ipureintro
+        simp only [pageMore, hL, hpgdef]
+        exact decide_eq_false hm
       rw [Decidable.not_not] at hm
       rw [show decide (pg.1.length < pg.2) = true from decide_eq_true hm]
       (try wp_auto)

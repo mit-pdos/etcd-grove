@@ -6,7 +6,8 @@ items grow by `growSlice`, then each key-value is evaluated (`processListItem`) 
 reached (`chunkL`: 7e-3a's loop step, stopping at `more`), and freed (`kvs[i] = nil`: the slice is
 owned). The post gives the count `n` of key-values evaluated, the last of their keys
 (`lastKeyIs`), all of them unless the limit was reached, and, when the limit is reached or full,
-that key is the loop's last match. Proved (stage 7e-2, `notes/k8s-7e-2-draft.md` §3.4, with the
+that key is the loop's last match; the limit is found before the first key-value only if the
+items were already full. Proved (stage 7e-2, `notes/k8s-7e-2-draft.md` §3.4, with the
 forms settled at Prove: the length and mod-revision premises, `n`). Lean-first (no Rocq
 counterpart).
 -/
@@ -55,6 +56,7 @@ abbrev store.appendChunk.spec : Prop :=
       let st' := chunkL (fun x => sel x.1) (limN pred.Limit') st (decodedL c.S.dec kvs)
       iprop(⌜lr = st'.more⌝ ∗ (∃ ps' : List Loc, ksl ↦* ps') ∗ (∃ s, p ↦ s ∗ L.itemsAt s (itemsOf c st')) ∗
       ∃ n : Nat, ⌜n ≤ kvs.length ∧ evd = W64 (n : Int) ∧ (lr = false → n = kvs.length) ∧
+        (lr = true → n = 0 → 0 < limN pred.Limit' ∧ limN pred.Limit' ≤ st.items.length) ∧
         (0 < n → (lr = true ∨ 0 < limN pred.Limit' ∧ limN pred.Limit' ≤ st'.items.length) →
           ∃ kv, kvs[n - 1]? = some kv ∧ st'.last = some kv.key)⌝ ∗
         lastKeyIs lk kvs n) }}

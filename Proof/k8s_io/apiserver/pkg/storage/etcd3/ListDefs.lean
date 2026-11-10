@@ -419,6 +419,13 @@ def pagesL (s : KVStore) (kp : GoString) (recur : Bool) (lim0 : Nat) : Nat → G
         [W8 0],
       if p.2 < 10000 then min (2 * p.2) 10000 else p.2)
 
+/-- **Page `i` has more** (`pagedChunks`' `hasMore`, `store.go:891`): its read found fewer key-values
+than the scope from its start holds. -/
+def pageMore (s : KVStore) (kp : GoString) (recur : Bool) (lim0 : Nat) (i : Nat) : Bool :=
+  let p := pagesL s kp recur lim0 i
+  let pg := pageKvsL s kp recur p.1 (if recur then p.2 else 1)
+  decide (pg.1.length < pg.2)
+
 /-- **A chunk value of page `i`** (`listChunk`, `store.go:873-878`) of the store `s` read at `R`. -/
 def chunkIs (ch : k8s_io.apiserver.pkg.storage.etcd3.listChunk) (s : KVStore) (kp : GoString)
     (recur : Bool) (lim0 : Nat) (R : w64) (i : Nat) : IProp GF :=
@@ -432,8 +439,10 @@ def chunkIs (ch : k8s_io.apiserver.pkg.storage.etcd3.listChunk) (s : KVStore) (k
 mutates): for any `yield` and consumer invariant `J` (`J o i` before page `i`, `o` the first page's
 state and revision once known), `f(yield)` calls `yield(page 0, nil)` with the state `σ` `Q` fired
 at and `R` (`σ`'s revision, or `rev0`), then `yield(page i+1, nil)` while `yield` returned `true`
-and page `i` had more, each page of `σ`'s store at `R`; or `yield(zero, e)` once, on an error
-(`listReadError`'s: too large only at the first page). The thread token is lent for the reads. -/
+and page `i` had more (`pageMore`), each page of `σ`'s store at `R`; or `yield(zero, e)` once, on
+an error (`listReadError`'s: too large only at the first page). `f` returns after a `yield` that
+returned `false`, or after page `i` without more (the consumer's `J` after it). The thread token is
+lent for the reads. -/
 def pagesOk (c : StoreCfg GF Obj) (f : GoFunc) (kp : GoString) (recur : Bool) (rev0 lim0 : w64)
     (Q : w64 → KVState → IProp GF) (P : KVState → KVState → IProp GF) : IProp GF :=
   iprop(∀ (y : GoFunc) (J : Option (KVState × w64) → Nat → IProp GF) (Φ : val → IProp GF),
@@ -449,14 +458,16 @@ def pagesOk (c : StoreCfg GF Obj) (f : GoFunc) (kp : GoString) (recur : Bool) (r
          else iprop(True)) -∗
         chunkIs ch (σ.at (uint.nat R)) kp recur (limN lim0) R i -∗
         WP (App (App (Val #y) (Val #ch)) (Val #GoInterface.nil))
-          {{ v, ∃ b : Bool, ⌜v = #b⌝ ∗ J (some (σ, R)) (i + 1) }}) -∗
+          {{ v, ∃ b : Bool, ⌜v = #b⌝ ∗
+            if b then J (some (σ, R)) (i + 1) else (threadTok -∗ Φ #()) }}) -∗
     (□ ∀ (o : Option (KVState × w64)) (i : Nat) (e : GoInterface), J o i -∗
         ((apierrors.tooLargeErrIs e ∗ ⌜o = none⌝ ∗
             ∃ σ : KVState, □ Q (W64 (σ.rev : Int)) σ ∗ ⌜σ.rev < uint.nat rev0⌝) ∨ listErr c e) -∗
         WP (App (App (Val #y)
             (Val #(zero_val k8s_io.apiserver.pkg.storage.etcd3.listChunk))) (Val #e))
           {{ v, ∃ b : Bool, ⌜v = #b⌝ ∗ (threadTok -∗ Φ #()) }}) -∗
-    (∀ o i, J o i -∗ threadTok -∗ Φ #()) -∗
+    (∀ σ R i, J (some (σ, R)) (i + 1) -∗
+      ⌜pageMore (σ.at (uint.nat R)) kp recur (limN lim0) i = false⌝ -∗ threadTok -∗ Φ #()) -∗
     WP (App (Val #f) (Val #y)) {{ Φ }})
 
 end defs

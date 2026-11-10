@@ -296,10 +296,13 @@ theorem store.appendChunk.wp_proof
           iexists sint.nat j
           iframe #
           ipureintro
-          refine ⟨?_, ?_, ?_, ?_⟩
+          refine ⟨?_, ?_, ?_, ?_, ?_⟩
           · omega
           · word
           · intro h; cases h
+          · intro _ hj0
+            rw [hj0] at hfull
+            simpa [chunkAt, decodedL, chunkL] using hfull
           · intro hn _
             rw [hl]
             exact hlast hn hfull
@@ -371,7 +374,7 @@ theorem store.appendChunk.wp_proof
       iexists sint.nat j
       iframe #
       ipureintro
-      refine ⟨by omega, by word, fun _ => rfl, ?_⟩
+      refine ⟨by omega, by word, fun _ => rfl, fun h => (by cases h), ?_⟩
       intro hn hor
       rcases hor with h | h
       · exact absurd h (by simp)
