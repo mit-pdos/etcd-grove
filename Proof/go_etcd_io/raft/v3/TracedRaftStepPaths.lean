@@ -14,9 +14,10 @@ and the capability at the idle server of `s` with the share the outbox's traced 
 a message type or a role that is not this path's. The closing wand reads the end state from `StepEnd`
 (`localNoLine_end`: unchanged, or the forward queued) and re-orders the share (`trFam_idle`).
 
-**Not yet here**: every path of a traced type starts with a receive line, whose gate needs the frozen
-`FxPresR`, not dischargeable as stated (its phantom replies are unpinned: plan, Q14); the local paths
-with lines (`MsgHup` at a non-leader, `MsgBeat`/`MsgProp` at a leader) need each line's `FxPres`.
+**Not yet here**: every path of a traced type starts with a receive line, whose gate needs the line's
+`FxPresR` (since amendment A2 at the phantoms `ph a` of the receiving server, `recvPhantoms`, so
+dischargeable: `fxPresR_staleReq`, `TracedRecvPhantom.lean`); the local paths with lines (`MsgHup` at a
+non-leader, `MsgBeat`/`MsgProp` at a leader) need each line's `FxPres`.
 -/
 module
 
