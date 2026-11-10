@@ -24,7 +24,9 @@ the idle server (`phaseStepB_send`, the heartbeat's `phaseStepB_heartbeat`). Sli
 line's `FxPres` blocked on the frozen `simFx`'s `MsgsUniq` (plan, Q15); amendment A2 adds the shape
 clause `MsgsShape` to `simFx`, and the heartbeat's `FxPres` is proved (`fxPres_heartbeat`,
 `TracedRecvPhantom.lean`, at phases keeping the share's server and adding the heartbeat). Still open:
-the heartbeat's gate gives its commit only bounded, the line needs it exact.
+the heartbeat's gate gives its commit only bounded, the line needs it exact; an `"app"` request with
+entries (the `MsgProp` path's appends, the replies' catch-up appends) waits on plan Q16; and the phase
+steps are stated at unpinned phases (a pinned variant is what `fxPres_heartbeat`'s `hΦ'` needs).
 -/
 module
 

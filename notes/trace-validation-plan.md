@@ -1074,21 +1074,26 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   (`TracedMsgType.lean`) gives `msgTypeStr ty` for the six traced types, for the send and receive
   hooks; the Go test `examples/raft/tracecheck/msgtype_string_test.go`. Trust base: the axiom out,
   the model in, the server's results on `strconv.Itoa`'s axiom (`notes/decisions.md`, "Q9").
-- **Q16 (2026-11-10, amendment A2's review a2-r3): an `"app"` append request's entries, unpinned for
-  `MsgsUniq`.** A receive line logs an append request's entry count only (`Line.isAppendEntriesRequest`),
-  so after an `"app"` send line `MsgsUniq` needs every in-flight request from the same leader, term,
-  previous entry, commit and count to carry the same entries. `MsgsShape` (A2) leaves the entries free
-  (they are the message's content), and `msgFacts` gives only `isLeader` and `logRecs` (Log Matching:
-  logs agree *below* a shared entry), which do not tie an old request's entries of earlier terms to the
-  leader's term-`T` log (the reviewer's argument, not yet a Lean counterexample). Options: (a) amend
-  `msgFacts` (frozen) for an append request with the leader's term-log prefix, `∃ bL l, leadPrefix γ src
-  (W64 m.term) bL l ∗ ⌜the entries are l's slice after prevLogIndex⌝`, so that two requests of one term
-  agree by `leadPrefix_agree` (the notes' `AppSlices`); to check first: `sendAppend`'s caller holds
-  `leadPrefix` of its log (unverified); (b) prove the agreement from `logRecs` and the leader's
-  completeness at the send (if it holds, no amendment); (c) leave the `"app"` lines' facts to a
-  later amendment. **Recommended: check (b), else (a)**; not taken here: a frozen definition beyond
-  the coordinator's Q15 decision. Blocks only the `"app"` send lines (`MsgApp`, the leader's appends);
-  heartbeats, votes, responses and phantoms are covered by `MsgsShape` (`msgsUniq_send_canon`).
+- **Q16 (2026-11-10, amendment A2's reviews a2-r3, a2-r4): an `"app"` append request's entries,
+  unpinned for `MsgsUniq`.** A receive line logs an append request's entry count only
+  (`Line.isAppendEntriesRequest`), so after an `"app"` send line with entries `MsgsUniq` needs every
+  in-flight request from the same leader, term, previous entry, commit and count to carry the same
+  entries. `MsgsShape` (A2) leaves the entries free (they are content); `msgFacts` gives only
+  `isLeader` and `logRecs`, and `MsgOk` ties only the current-term entries to the leader's log, so two
+  term-`T` requests with the same previous entry may carry different earlier-term entries (a leader
+  catching up a lagging follower sends such entries). A request with no entries is covered
+  (`ContentLogged`: heartbeats, probes, commit-only appends). Blocked: every `"app"` send line with
+  entries: the `MsgProp` path's appends, and the appends sent while handling `MsgAppResp`/`MsgVoteResp`
+  (catch-up, a won election's appends). Options: (a) amend `msgFacts` (frozen) for an append request
+  with the leader's term-log prefix, `∃ bL l, leadPrefix γ src (W64 m.term) bL l ∗ ⌜the entries are l's
+  slice after prevLogIndex⌝`; two requests of one term then agree by `leadPrefix_base`,
+  `leadPrefix_agree` and the records' agreement (`isEntryR`); to check: `sendAppend`'s caller holds
+  `leadPrefix` of its log; (b) strengthen `MsgOk`/`SpecInv` (pure): an append request from the current
+  leader of its term carries exactly that leader's log slice, of every term (it holds when sent, the
+  specification's `appendEntries` takes `subSeqM v.log`, and a leader's log only grows in its term; no
+  ghost state); `SpecInv` is frozen too through `simFx`; (c) prove the agreement from the existing facts
+  (a2-r4: very probably fails); (d) leave the `"app"` lines to a later amendment. **Recommended: (b)**
+  (pure, the smallest), else (a). Not taken here: beyond the coordinator's Q15 decision.
 - **Q15 (2026-11-10, Q8 stage 1 slice 16): the frozen `simFx`'s `MsgsUniq` is not kept by a send
   line.** `FxPres` asks `simFx` after the line for every `σ` with `simFx`; after a send the new message
   must be the only in-flight message a receive line matches with it, but a line logs only some fields

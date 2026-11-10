@@ -96,10 +96,15 @@ but for an append request's entries' contents (not a heartbeat's: it has none). 
 theorem canonMsg_type (x : Etcdraft.Msg) : (canonMsg x).type = x.type := by
   unfold canonMsg; split <;> (try split) <;> rfl
 
-/-- **Two canonical messages a line matches are equal**, the second not an append request with entries
-(a heartbeat, a vote message or a response). -/
+/-- An append request whose content a line pins: a heartbeat, or an `"app"` request with no entries
+(review a2-r4's S2); any other message. -/
+def ContentLogged (p : Etcdraft.Msg) : Prop :=
+  p.type = .appendEntriesRequest → p.subtype = "heartbeat" ∨ (p.subtype = "app" ∧ p.entries = [])
+
+/-- **Two canonical messages a line matches are equal**, the second's content logged (not an append
+request with entries, nor a snapshot). -/
 theorem recvPred_canon_eq (ln : Etcdraft.Line) (y p : Etcdraft.Msg) (hy0 : canonMsg y = y)
-    (hp0 : canonMsg p = p) (hpk : p.type = .appendEntriesRequest → p.subtype = "heartbeat")
+    (hp0 : canonMsg p = p) (hpk : ContentLogged p)
     (hy : recvPred ln y = true) (hp : recvPred ln p = true) : y = p := by
   unfold recvPred at hy hp
   split at hy
@@ -112,19 +117,40 @@ theorem recvPred_canon_eq (ln : Etcdraft.Line) (y p : Etcdraft.Msg) (hy0 : canon
       simp only [Bool.and_eq_true, beq_iff_eq, Bool.or_eq_true] at hy hp
       obtain ⟨⟨⟨⟨⟨⟨⟨⟨y1, y2⟩, y3⟩, y4⟩, y5⟩, y6⟩, y7⟩, y8⟩, y9⟩ := hy
       obtain ⟨⟨⟨⟨⟨⟨⟨⟨p1, p2⟩, p3⟩, p4⟩, p5⟩, p6⟩, p7⟩, p8⟩, p9⟩ := hp
-      have hps := hpk p1
       have hsub : y.subtype = p.subtype := by rw [y3] at p3; exact Option.some.inj p3
-      have hys : y.subtype = "heartbeat" := by rw [hsub, hps]
-      have hc : y.commitIndex = p.commitIndex := by
-        rcases y7 with h | h
-        · rw [hys] at h; exact absurd h (by decide)
-        rcases p7 with h' | h'
-        · rw [hps] at h'; exact absurd h' (by decide)
-        rw [h, h']
-      rw [← hy0, ← hp0]
-      unfold canonMsg
-      rw [y1, p1]
-      simp only [if_pos hps, hsub, y4, p4, y5, p5, y6, p6, hc]
+      rcases hpk p1 with hps | ⟨hps, hpe⟩
+      · have hys : y.subtype = "heartbeat" := by rw [hsub, hps]
+        have hc : y.commitIndex = p.commitIndex := by
+          rcases y7 with h | h
+          · rw [hys] at h; exact absurd h (by decide)
+          rcases p7 with h' | h'
+          · rw [hps] at h'; exact absurd h' (by decide)
+          rw [h, h']
+        rw [← hy0, ← hp0]
+        unfold canonMsg
+        rw [y1, p1]
+        simp only [if_pos hps, hsub, y4, p4, y5, p5, y6, p6, hc]
+      · have hys : y.subtype = "app" := by rw [hsub, hps]
+        have hc : y.commitIndex = p.commitIndex := by
+          rcases y7 with h | h
+          · rw [hys] at h; exact absurd h (by decide)
+          rcases p7 with h' | h'
+          · rw [hps] at h'; exact absurd h' (by decide)
+          rw [h, h']
+        have hpl : y.prevLogTerm = p.prevLogTerm ∧ y.prevLogIndex = p.prevLogIndex := by
+          rcases y8 with h | h
+          · rw [hys] at h; exact absurd h (by decide)
+          rcases p8 with h' | h'
+          · rw [hps] at h'; exact absurd h' (by decide)
+          exact ⟨by rw [h.1, h'.1], by rw [h.2, h'.2]⟩
+        have hye : y.entries = [] := by
+          rw [hpe] at p9
+          have : (y.entries.length : Int) = 0 := by rw [y9, ← p9]; rfl
+          exact List.eq_nil_of_length_eq_zero (by omega)
+        rw [← hy0, ← hp0]
+        unfold canonMsg
+        rw [y1, p1]
+        simp only [hsub, hps, y4, p4, y5, p5, y6, p6, hc, hpl.1, hpl.2, hye, hpe]
   · rw [if_neg ‹_›] at hp
     split at hy
     · rw [if_pos ‹_›] at hp
@@ -194,7 +220,7 @@ theorem recvPred_canon_eq (ln : Etcdraft.Line) (y p : Etcdraft.Msg) (hy0 : canon
 /-- **The uniqueness and the shape after sending a canonical message** (not an append request with
 entries). -/
 theorem msgsUniq_send_canon (σ : Etcdraft.State) (p : Etcdraft.Msg) (hu : MsgsUniq σ) (hc : MsgsShape σ)
-    (hp0 : canonMsg p = p) (hpk : p.type = .appendEntriesRequest → p.subtype = "heartbeat") :
+    (hp0 : canonMsg p = p) (hpk : ContentLogged p) :
     MsgsUniq (σ.send p) ∧ MsgsShape (σ.send p) := by
   constructor
   · intro ln m1 m2 h1 h2 r1 r2
@@ -220,10 +246,6 @@ theorem msgAbs_canon (C : List w64) (bl : Nat) (m : Msg) (ma : Etcdraft.Msg)
 theorem phantomOf_canon (a : Etcdraft.Server) (m : Etcdraft.Msg) : canonMsg (phantomOf a m) = phantomOf a m := by
   unfold phantomOf
   split <;> simp [canonMsg]
-
-theorem phantomOf_notReq (a : Etcdraft.Server) (m : Etcdraft.Msg) :
-    (phantomOf a m).type = .appendEntriesRequest → (phantomOf a m).subtype = "heartbeat" := by
-  intro h; exact absurd h (phantomOf_facts a m).2.1
 
 end pure
 
@@ -315,7 +337,7 @@ theorem simFx_discard (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (m :
 is canonical and is not an append request with entries. -/
 theorem simFx_send (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (x : Etcdraft.Msg)
     (hok : TraceSpecInv.MsgOk σ x) (hx0 : canonMsg x = x)
-    (hxk : x.type = .appendEntriesRequest → x.subtype = "heartbeat") :
+    (hxk : ContentLogged x) :
     (simFx (GF := GF) γ C σ ∗ msgFacts γ C x) ⊢ simFx γ C (σ.send x) := by
   iintro ⟨Hfx, #Hx⟩
   iunfold simFx at Hfx
@@ -368,7 +390,7 @@ theorem fxPresR_staleReq (γ : RaftNames) (id : w64) (m : Etcdraft.Msg) (E : Tra
   ihave #H2 := simFx_send γ C (σ.discard m) (phantomOf a m)
     (TraceSpecInv.msgOk_plain _ _ phe phq phs phv
       (by rw [pht, phsrc, hdst]; show a.currentTerm ≤ (σ.s (idAbs id)).currentTerm; rw [hσa]; exact Int.le_refl _))
-    (phantomOf_canon a m) (phantomOf_notReq a m) $$ [$H1 $Hpf]
+    (phantomOf_canon a m) (fun h => absurd h (phantomOf_facts a m).2.1) $$ [$H1 $Hpf]
   have hs : ∀ j, toC ((σ.discard m).send (phantomOf a m)).server
       ((withNode σ (idAbs id) a' (fun b => b.without m)
         (fun b => ([] ++ recvPhantoms m a).foldl Etcdraft.Bag.with b)).s j) =
@@ -472,7 +494,7 @@ theorem fxPres_heartbeat (γ : RaftNames) (id : w64) (E : TraceEv → Prop)
     · unfold logRecs; iapply Iris.BI.BigSepL.bigSepL_nil.2; iempintro
   ihave #H2 := simFx_send γ C σ p
     (msgOk_heartbeat σ p (idAbs id) Hp0.1 h1 hi hl hpt hpe.1 hpe.2 hsrc ht hcm)
-    hp0 (fun _ => hps) $$ [$Hfx $Hpf]
+    hp0 (fun _ => .inl hps) $$ [$Hfx $Hpf]
   have hs : ∀ j, toC (σ.send p).server
       ((withNode σ (idAbs id) a' _root_.id (fun b => [p].foldl Etcdraft.Bag.with b)).s j) =
       toC (σ.send p).server ((σ.send p).s j) := by

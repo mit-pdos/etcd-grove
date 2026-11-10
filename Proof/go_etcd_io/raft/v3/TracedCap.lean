@@ -845,7 +845,8 @@ instance msgFacts_timeless (γ : RaftNames) (C : List w64) (m : Etcdraft.Msg) :
 `Replicate` lines announced before raft appends them: `srvFacts`, review finding A9), the
 specification invariant `SpecInv` (`TraceSimSpecInv.lean`: with it
 `ElectionSafetyInv`, `CommittedIsDurableInv`, `CommitWithinLeader`; it replaces `DurInv`, false as
-stated), `QuorumLogInv`'s fact and the bags' uniqueness. -/
+stated), `QuorumLogInv`'s fact, the bags' uniqueness and (amendment A2, Q15) every message in flight canonical
+(`MsgsShape`). -/
 def simFx (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) : IProp GF :=
   iprop(allFacts γ C σ ∗ (□ ∀ m, ⌜m ∈ σ.messages.domain ++ σ.pendingMessages.domain⌝ → msgFacts γ C m) ∗
     ⌜TraceSpecInv.SpecInv σ ∧ QuorumLogF σ ∧ MsgsUniq σ ∧ MsgsShape σ⌝)
