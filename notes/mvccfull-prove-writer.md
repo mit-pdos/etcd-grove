@@ -12,22 +12,30 @@ modules added.
   `runner.open`, `runner.newMember` (see their commits; `open`/`newMember` add `OpenLemmas.lean`).
 - Generator leaves: see the generators' commits (`gen` has one case open, below).
 
-## Proved but for a gap of a frozen spec (a marked `sorry` at the gap; everything else checked)
+## Post-Freeze spec changes (tester's own specs only; approved by the coordinator, 2026-11-10)
 
-1. **`runner.writeSub`, the put's key length.** `Txn.Put.contract` needs `|key| < 2 ^ 63 - 1`.
-   writeSub's pre gives the key only as a slice (`|key| ≤ 2 ^ 63 - 1`) in `ks`, and no length bound
-   on `ks` (`writerCtx` has `∀ k ∈ ks, |k| < 2 ^ 63 - 1`, but writeSub does not take `writerCtx`).
-   Fix: writeSub's pre takes `⌜∀ k ∈ ks, (k.length : Int) < 2 ^ 63 - 1⌝` (its callers have it).
-2. **`runner.write`, `nextLease`.** (a) `gen` needs `nextLease + 1 < 2 ^ 63`; `writerCtrs` bounds
-   `nextLease` only from below (`0 ≤ nl`, `≥` every granted id), so `write.spec`'s `writerOwn` admits
-   `nl = 2 ^ 63 - 1`. (b) `gen`'s post (`nl' = nl ∨ (grant ∧ id = nl + 1 ∧ nl' = nl + 1)`) admits a
-   grant with `nl' = nl`, whose id `writerCtrs` cannot then bound. Fix: `writerCtrs` keeps
-   `sint.Z nl ≤ |ops|` (each grant is one operation; `Run` starts at 0), and `gen`'s post says a
-   grant always takes the second disjunct (`o.kind = kGrant → o.id = nl + 1 ∧ nl' = nl + 1`).
+Commit `33050af361`. Each closes a gap found in Prove; every caller still meets the new premise.
 
-3. **`runner.gen`, a compaction at the current revision when `s.rev = 0`.** `gen.spec` does not
-   assume `1 ≤ s.rev`; `CompactAt`'s case 2 sets `o.rev = l.rev`, and `opValid` needs a positive
-   compaction revision. Fix: the premise `1 ≤ s.rev` (`write` meets it: `runM` starts at `hist0`).
+1. **`pending.del.spec` takes `ks.Pairwise go.GoStringLt`.** Cause: the spec's count filters over
+   `ks`, so a repeated key counts twice while Go deletes it once (`ks = [k, k]`: Go 1, spec 2; found
+   by the readers agent). Caller: `writeSub` (from `runnerKeys`). `pending.del` proved (`ca64f1d69d`).
+2. **`runner.writeSub.spec` takes `∀ k ∈ ks, (k.length : Int) < 2 ^ 63 - 1`.** Cause: `Txn.Put`
+   needs the put key shorter than `2 ^ 63 - 1`; the slice gives only `≤ 2 ^ 63 - 1`. Callers: `txn`,
+   `apply` (from `writerCtx`'s key-length conjunct).
+3. **`runner.gen.spec` assumes `1 ≤ s.rev`, and its post says a grant advances `nextLease`**
+   (`if o.kind = kGrant then o.id = nl + 1 ∧ nl' = nl + 1 else nl' = nl`, for the disjunction
+   `nl' = nl ∨ (grant ∧ …)`). Causes: `CompactAt`'s case 2 compacts at `s.rev`, against `opValid`'s
+   positive revision when `s.rev = 0`; a grant leaving `nl' = nl` has an id `writerCtrs` cannot bound.
+   Caller: `write` (`runM` starts at `hist0`, so `s.rev ≥ 1`).
+4. **`writerCtrs` (in `writerOwn`) bounds `nextLease` by the log's length** (`sint.Z nl ≤ |ops|`).
+   Cause: `gen` needs `nextLease + 1 < 2 ^ 63`, and `writerOwn` (in `write`'s, `restore`'s and
+   `restart`'s specs) bounded it only from below. Kept by `write` (one grant per operation); `Run`
+   starts at `0`, `[]`.
+5. **`writerCtx` and `Run.spec`'s `runCfgOk` bound the key count, `< 2 ^ 60`** (`runCfgOk` had
+   `≤ 2 ^ 62`, outside `writerCtx`). Cause: `writeSub`'s `|pend| + |ks| < 2 ^ 62`, at `txn`'s
+   `|pend| ≤ |ks|`. `Main`'s configuration (120 keys) meets it.
+
+With these, `writeSub`, `write`, `gen` and `txn` are proved without `sorry`.
 
 ## Not proved (blocked by a frozen spec)
 
