@@ -1071,6 +1071,13 @@ unless they start otherwise. The specs are written to each choice except D6 (ope
   under the fix rule). Network design: handler panics are program panics (coordinator; the
   pipeline-panic issue is fixed on the fork).
 
+- **Network and membership (2026-11-10):** Q5 and peer-URL reuse **accepted**, as etcd's
+  runtime-reconfiguration guide does (remove, `member add`, start with an empty data dir and
+  `--initial-cluster-state existing`, same addresses). The network: **a TCP extension** (byte
+  streams; a node's crash closes its connections) with grpc and net/http as **trusted Go models
+  over it**, replacing the preface-based design (C1); C5's trusted error table accepted while grpc
+  is a trusted model.
+
 ### Needs your approval
 
 New client-visible ghost state, or a change to an API or decision you approved.
