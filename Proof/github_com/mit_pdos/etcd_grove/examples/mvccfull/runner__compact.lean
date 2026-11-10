@@ -59,6 +59,7 @@ theorem runner.compact.wp_proof
   iunfold rnCtx at Hrn2
   icases Hrn2 with ⟨#Hpkg, #Hpm, #Hrk, -, #HH, #Hhist, -⟩
   iunfold runnerH at HH
+  iunfold ctrInv at Hccp
   iunfold opIs at Hop
   icases Hop with ⟨%ov, %subs, #Hov, -, -, -, -, -, -, %Hovs⟩
   obtain ⟨-, -, -, -, -, -, -, hrev, hwait⟩ := Hovs
@@ -280,7 +281,171 @@ theorem runner.compact.wp_proof
         simp only [hncok', hncok, ↓reduceIte]
         iintro H; iexact H
       ipureintro; exact HU
-  sorry
+  -- above the compaction revision, at most the current one: the compaction
+  rw [decide_eq_false hB]
+  (try wp_auto)
+  have hcr0 : (σOf ks ops v.ops).crev = cmpAfter ks ops v.ops := rfl
+  have hcok : (σOf ks ops v.ops).crev < sint.Z o.rev ∧
+      sint.Z o.rev ≤ ((σOf ks ops v.ops).rev : Int) := ⟨by omega, by rw [hrv]; omega⟩
+  -- `m.cmpHi.Store(c)`
+  wp_apply_core sync.atomic.Int64.wp_Store (mF go!"cmpHi" mp) o.rev $$ [] [-]
+  · iPkgInit
+  imod bnd_acc hpers ks γh i mp m v.ι v.kv qw (σOf ks ops v.ops) v.b
+    $$ [Hret Hσw Hbw] with ⟨%Hl1, %Hok1, Hrl, Hrh, Hcl, Hchi, Hcls⟩
+  · iframe #; iframe
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ ⊤ \ ↑(memberN i) from Std.LawfulSet.empty_subset)
+  iintro Hcl2
+  inext
+  iexists _
+  iframe Hchi
+  iintro Hchi
+  imod Hcl2 with -
+  let b1 : Bnd := (v.b.1, v.b.2.1, v.b.2.2.1, o.rev)
+  have hok1 : bndOk ks (σOf ks ops v.ops) b1 Hl1 := by
+    obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10⟩ := Hok1
+    exact ⟨h1, h2, h3, h4, h5, h6, by show (σOf ks ops v.ops).crev ≤ sint.Z o.rev; omega, h8, h9, h10⟩
+  imod Hcls $$ %b1 %hok1 Hrl Hrh Hcl Hchi with ⟨Hret, Hσw, Hbw⟩
+  imodintro
+  (try wp_auto)
+  have hcab : (σOf ks ops v.ops).crev < sint.Z o.rev ∧
+      sint.Z o.rev ≤ ((σOf ks ops v.ops).rev : Int) → sint.Z o.rev ≤ sint.Z b1.2.2.2 :=
+    fun _ => Int.le_refl _
+  wp_apply wp_traceTODO $$ [$Hpt] as %trc ⟨%Htrc, Htrco⟩
+  (try wp_auto)
+  rw [hkv]
+  (try wp_auto)
+  ihave Hau := compact_au hpers ks γh i mp m v.ι (interface.mkOk kty kvv) qw (σOf ks ops v.ops) b1
+    (sint.Z o.rev) hcab $$ [Hret Hσw Hbw]
+  · iframe #; iframe
+  ihave Hrun1 := Hrun $$ %a %s
+  wp_apply (hKC v.ι.kv trc true o.rev 1 (etcdStorage v.bk) iprop(True) f (hookPre mp a s)
+      iprop(True ∗ hookPost mp a) (hookPost mp a) iprop(True) iprop(True)
+      (fun σ' => iprop(⌜σ' = σOf ks ops v.ops⌝ ∗ ghostVar v.ι.ret qw () ∗
+        ghostVar m.σ (1 : Qp).half
+          (if (σOf ks ops v.ops).crev < sint.Z o.rev ∧ sint.Z o.rev ≤ ((σOf ks ops v.ops).rev : Int)
+            then (σOf ks ops v.ops).compactTo (sint.Z o.rev) else σOf ks ops v.ops) ∗
+        ghostVar m.bnd (1 : Qp).half b1)))
+    $$ [Hopen Htrco Hmb Hpre Hrun1 Hau]
+    as %ch %err ⟨Hopen, Htrco, Hmb, %σr, ⟨%Hσr, Hret, Hσw, Hbw⟩, Hout⟩
+  · iframe #; iframe
+    isplitr
+    · ipureintro; exact Htrc
+    isplitr
+    · ipureintro; exact hc1
+    iintro ⟨-, Hq⟩; imodintro; iframe
+  subst Hσr
+  icases Hout with (⟨%Hc, Hpost, -, #Hch⟩ | ⟨%Hc, -⟩ | ⟨%Hc, -⟩)
+  rotate_left
+  · exfalso; omega
+  · exfalso; have := hrv; omega
+  obtain ⟨rfl, -, -⟩ := Hc
+  (try wp_auto)
+  have hchn : ch ≠ chan.nil := by
+    -- SPEC GAP (frozen mvcc API): KV.Compact.contract gives no ch ≠ nil (notes/mvccfull-prove-writer.md)
+    sorry
+  wp_apply wp_check
+  · ipureintro; simp [hchn]
+  (try wp_auto)
+  -- `m.cmpLo.Store(c)`, at the compacted state
+  let σc := (σOf ks ops v.ops).compactTo (sint.Z o.rev)
+  have hcok' : cmpAfter ks ops v.ops < sint.Z o.rev := hcok.1
+  irevert Hσw
+  simp only [hcok, hcok', _root_.and_self, true_and, and_true, ↓reduceIte]
+  iintro Hσw
+  wp_apply_core sync.atomic.Int64.wp_Store (mF go!"cmpLo" mp) o.rev $$ [] [-]
+  · iPkgInit
+  imod bnd_acc hpers ks γh i mp m v.ι (interface.mkOk kty kvv) qw σc b1
+    $$ [Hret Hσw Hbw] with ⟨%Hl2, %Hok2, Hrl, Hrh, Hcl, Hchi, Hcls⟩
+  · iframe #; iframe
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ ⊤ \ ↑(memberN i) from Std.LawfulSet.empty_subset)
+  iintro Hcl2
+  inext
+  iexists _
+  iframe Hcl
+  iintro Hcl
+  imod Hcl2 with -
+  let b2 : Bnd := (b1.1, b1.2.1, o.rev, o.rev)
+  have hok2 : bndOk ks σc b2 Hl2 := by
+    obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10⟩ := Hok2
+    exact ⟨h1, h2, h3, h4, h5, by show sint.Z o.rev ≤ sint.Z o.rev; exact Int.le_refl _, h7, h8,
+      h9, h10⟩
+  imod Hcls $$ %b2 %hok2 Hrl Hrh Hcl Hchi with ⟨Hret, Hσw, Hbw⟩
+  imodintro
+  (try wp_auto)
+  -- the leader's compaction recorded
+  wp_bind (If _ _ _)
+  iapply (wp_wand (Φ := fun w => iprop(⌜w = executeVal⌝ ∗ leadPost γh ks ops v.ops lead ∗
+      c_ptr ↦ o.rev ∗ x_ptr ↦ x))) $$ [Hlead c x]
+  · cases lead
+    · (try wp_auto)
+      unfold leadPost; simp only [Bool.false_eq_true, ↓reduceIte]
+      iframe
+    · (try wp_auto)
+      irevert Hlead
+      unfold leadPre leadPost
+      simp only [↓reduceIte]
+      rw [hH, hCs, if_pos hcok]
+      iintro Hlead
+      (try wp_auto)
+      wp_apply wp_addComp h γh (histAt ks ops v.ops) (compsAt ks ops v.ops) o.rev
+        $$ [$Hhist $Hlead] as Hlead
+      (try wp_auto)
+      wp_apply_core sync.atomic.Int64.wp_Add (rF go!"compactions" x) (W64 1) $$ [] [-]
+      · iPkgInit
+      iinv Hccp with ⟨%av, >Ha⟩ Hclose
+      iapply fupd_mask_intro (show (∅ : CoPset) ⊆ ⊤ \ ↑(readersN .@ "compactions") from
+        Std.LawfulSet.empty_subset)
+      iintro Hcl3
+      inext
+      iexists av
+      iframe
+      iintro Ha
+      imod Hcl3 with -
+      imod Hclose $$ [Ha] with -
+      · inext; iexists _; iframe
+      imodintro
+      (try wp_auto)
+      iframe; ipureintro; rfl
+  iintro %w ⟨%hw, Hlead, c, x⟩
+  subst hw
+  (try wp_auto)
+  -- the wait
+  wp_bind (If _ _ _)
+  iapply (wp_wand (Φ := fun w => iprop(⌜w = executeVal⌝ ∗ ch_ptr ↦ ch))) $$ [ch]
+  · (try wp_auto)
+    rcases Bool.eq_false_or_eq_true ov.wait' with hw | hw <;> rw [hw]
+    · iunfold compactChanOk at Hch
+      (try wp_auto)
+      wp_apply Hch
+      iintro %r -
+      -- SPEC GAP (frozen mvcc API): `compactChanOk`'s receive returns any value, not the
+      -- receive's pair, so `<-ch` (its `Fst`) is not provable (notes/mvccfull-prove-writer.md)
+      sorry
+    · (try wp_auto); iframe; ipureintro; rfl
+  iintro %w ⟨%hw, ch⟩
+  subst hw
+  (try wp_auto)
+  iapply HΦ
+  iframe Hlead
+  isplitl [Hpost]
+  · ileft; iexact Hpost
+  iexists ⟨v.path, v.lp, v.kv, v.ops + 1, v.bk, v.ι, v.U, b2⟩
+  isplitr
+  · ipureintro; exact ⟨⟨rfl, rfl, rfl, rfl, rfl⟩, rfl⟩
+  iapply memCore_compact ks γh ops i mp m f v qw nw k o b2 hov hkind
+  rw [hkv]
+  have hoZ : W64 (sint.Z o.rev) = o.rev := by word
+  have hσ1 : σOf ks ops (v.ops + 1) = (σOf ks ops v.ops).compactTo (sint.Z o.rev) := by
+    rw [hS, if_pos hcok]
+  have hcc : W64 (((σOf ks ops v.ops).compactTo (sint.Z o.rev)).crev) = o.rev := hoZ
+  rw [hC, hσ1, hcc]
+  iframe Hid Hhook Hpath Hbe Hle Hkvf Hrevf Hcmpf Hlsl Hopen Hmb Hrds Hbk HlW
+  iframe #
+  isplitr
+  · iunfold hookOk; iframe #; ipureintro; exact Hfnil
+  isplitl [Hret Hσw Hbw]
+  · iunfold incW; iframe #; iframe
+  ipureintro; exact HU
 
 end proof
 
