@@ -39,6 +39,8 @@ theorem runner.begin.wp_proof
     (wp_copyState : copyState.spec (GF := GF) (hG := hG)) :
     runner.begin.spec (GF := GF) (hG := hG) := by
   intro x ks h γh i mp m ι kv qw σ b Hs hlen hpend h62
+  haveI : Persistent (isInc (GF := GF) ks γh i mp m ι kv) := by
+    haveI := hpers.1; unfold isInc; infer_instance
   wp_start as ⟨Hh, Hrd, #Hlb, Hrev, Hinc⟩
   iunfold runnerH at Hh
   icases Hh with #Hh
@@ -71,7 +73,12 @@ theorem runner.begin.wp_proof
     refine ⟨h1, h2, ?_, ?_, ?_, h6, h7, h8, h9, h10⟩
     · show (σ.rev : Int) ≤ sint.Z (W64 (σ.rev + 1 : Int)); rw [hp1Z]; omega
     · show sint.Z (W64 (σ.rev + 1 : Int)) < 2 ^ 62; rw [hp1Z]; omega
-    · show (σ.notifiedLog.length : Int) ≤ sint.Z (W64 (σ.rev + 1 : Int)) + 1; rw [hp1Z]; omega
+    · show (σ.notifiedLog.length : Int) ≤ sint.Z (W64 (σ.rev + 1 : Int)) + 1
+      rw [hp1Z]
+      have hn : σ.notifiedLog = σ.log := by unfold MvccState.notifiedLog; rw [hpend]
+      rw [hn]
+      have : σ.rev = σ.log.length - 1 := rfl
+      omega
   rw [hplus]
   imod Hcls $$ %(b.1, W64 (σ.rev + 1 : Int), b.2.2) %hok' Hrl Hrh Hcl Hch with ⟨Hret, Hσw, Hbw⟩
   imodintro

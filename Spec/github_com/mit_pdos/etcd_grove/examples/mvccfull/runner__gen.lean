@@ -38,13 +38,14 @@ abbrev runner.gen.spec : Prop :=
     (mp : Loc) (s : MSt) (sl : GoSlice) (nl nv : w64),
   0 ≤ sint.Z nl → sint.Z nl + 1 < 2 ^ 63 → (∀ id ∈ s.granted, sint.Z id ≤ sint.Z nl) →
   0 ≤ sint.Z nv → sint.Z nv + 3 < 2 ^ 63 → s.rev + 2 < 2 ^ 63 → -1 ≤ s.crev → s.crev ≤ s.rev →
+  1 ≤ s.rev →
   {{ writerCtx (GF := GF) x ks cfg wr h γh ∗ mF go!"rev" mp ↦ (W64 (s.rev : Int)) ∗ mF go!"cmp" mp ↦ (W64 s.crev) ∗
       mF go!"leases" mp ↦ sl ∗ sl ↦* s.leases ∗ rF go!"nextLease" x ↦ nl ∗ rF go!"vals" x ↦ nv }}
     (App (x @!! go.GoType.PointerType runner.ty @!! go!"gen") (Val #mp))
   {{ (p : Loc), RET #p; mF go!"rev" mp ↦ (W64 (s.rev : Int)) ∗ mF go!"cmp" mp ↦ (W64 s.crev) ∗
       mF go!"leases" mp ↦ sl ∗ sl ↦* s.leases ∗
       ∃ (o : OpM) (nl' nv' : w64), opIs p o ∗ rF go!"nextLease" x ↦ nl' ∗ rF go!"vals" x ↦ nv' ∗
-        ⌜opValid ks s o ∧ (nl' = nl ∨ (o.kind = kGrant ∧ o.id = nl + W64 1 ∧ nl' = nl + W64 1)) ∧
+        ⌜opValid ks s o ∧ (if o.kind = kGrant then o.id = nl + W64 1 ∧ nl' = nl + W64 1 else nl' = nl) ∧
           sint.Z nv ≤ sint.Z nv' ∧ sint.Z nv' ≤ sint.Z nv + 3⌝ }}
 
 end spec

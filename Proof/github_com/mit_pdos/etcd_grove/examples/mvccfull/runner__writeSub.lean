@@ -44,7 +44,7 @@ theorem runner.writeSub.wp_proof
     (wp_del : pending.del.spec (GF := GF) (hG := hG))
     (wp_writeRange : runner.writeRange.spec (GF := GF) (hG := hG)) :
     runner.writeSub.spec (GF := GF) (hG := hG) := by
-  intro x ks h γh mp γk tw trace te σ pend Hs p P sv sm L hok hlen hrev hreach hLok h63 hpl hfresh hput
+  intro x ks h γh mp γk tw trace te σ pend Hs p P sv sm L hok hlen hrev hreach hLok h63 hpl hfresh hput hkl
   wp_start as ⟨Hks, HH, Hrd, Hlb, Hcmp, Htx, Htrc, Hp, Hs, Hlo⟩
   icases (persistent_entails_right (hsh.2.2.1 tw γk trace (.write σ pend))) $$ Htx with ⟨%Hsht, Htx⟩
   obtain ⟨tty, tv, rfl, -, -, -, hPutC, hDelC, -, -⟩ := Hsht
@@ -74,11 +74,7 @@ theorem runner.writeSub.wp_proof
     · rw [← hval]; iexact Hvs
     (try wp_auto)
     try rw [hlease]
-    -- SPEC GAP (frozen spec): `Txn.Put` needs `|key| < 2 ^ 63 - 1`; writeSub's pre bounds the key
-    -- only through its slice (`|key| ≤ 2 ^ 63 - 1`) and `sm.key ∈ ks`, with no length bound on `ks`
-    -- (`writerCtx` has one, writeSub does not take it). `notes/mvccfull-prove-writer.md`.
-    have hklen : (sm.key.length : Int) < 2 ^ 63 - 1 := by
-      sorry
+    have hklen : (sm.key.length : Int) < 2 ^ 63 - 1 := hkl sm.key hkks
     wp_apply (hPutC γk trace te σ pend sv.key' vs sm.key sm.val sm.lease L)
       $$ [$Htx $Htrc $Hk $Hvs' $Hlo] as ⟨Htx, Htrc, Hlo⟩
     · ipureintro; exact ⟨hklen, hlL⟩
@@ -110,7 +106,7 @@ theorem runner.writeSub.wp_proof
       simp only [hk1, _root_.decide_true]
       (try wp_auto)
       wp_apply wp_del p P keys ks DFrac.discard sv.key' sv.end' sm.key sm.e DFrac.discard
-        DFrac.discard $$ [$Hp $Hksl $Hk $He] as ⟨Hp, -, -, -⟩
+        DFrac.discard Hsorted $$ [$Hp $Hksl $Hk $He] as ⟨Hp, -, -, -⟩
       (try wp_auto)
       wp_apply (hDelC γk trace σ pend sv.key' sv.end' sm.key sm.e L) $$ [$Htx $Hk $He $Hlo]
         as %n2 %rev ⟨Htx, Hlo, %Hnr, %Hlwf⟩

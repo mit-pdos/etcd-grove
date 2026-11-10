@@ -39,6 +39,7 @@ abbrev runner.writeSub.spec : Prop :=
   pendOk ks σ Hs pend P → Hs.length = σ.log.length → HistRevs ks σ.log Hs → MvccReachable σ →
   txn.LogOk (σ.log ++ [pend]) → σ.log.length + 3 ≤ 2 ^ 63 → pend.length + ks.length < 2 ^ 62 →
   subFresh P.chs sm → (sm.kind = W64 0 → sm.key ∈ ks ∧ (sm.lease = W64 0 ∨ sm.lease ∈ L)) →
+  (∀ k ∈ ks, (k.length : Int) < 2 ^ 63 - 1) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccfull ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ runnerKeys x ks ∗ runnerH x h ∗ histRd h γh ∗ monoListLbOwn γh.l Hs ∗
       mF go!"cmp" mp ↦ (W64 σ.crev) ∗ mvccTxn tw γk trace (.write σ pend) ∗ traceutil.ownTrace trace te ∗
       ownPending p P ∗

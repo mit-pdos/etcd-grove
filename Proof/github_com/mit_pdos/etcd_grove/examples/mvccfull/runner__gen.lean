@@ -149,7 +149,7 @@ theorem runner.gen.wp_proof
     (wp_genSubs : runner.genSubs.spec (GF := GF) (hG := hG))
     (wp_genRange : runner.genRange.spec (GF := GF) (hG := hG)) :
     runner.gen.spec (GF := GF) (hG := hG) := by
-  intro x ks cfg wr h γh mp s sl nl nv hnl0 hnl1 hnlg hnv0 hnv1 hrev hc0 hc1
+  intro x ks cfg wr h γh mp s sl nl nv hnl0 hnl1 hnlg hnv0 hnv1 hrev hc0 hc1 hrpos
   wp_start as ⟨#Hctx, Hrv, Hc, Hls, Hsl, Hnl, Hnv⟩
   iapply wp_fupd
   iunfold writerCtx at Hctx
@@ -207,7 +207,7 @@ theorem runner.gen.wp_proof
       ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
     ipureintro
     have hnvs := sint_succ nv hnv0 (by omega)
-    exact ⟨opValid_put rfl Hkk Hl, Or.inl rfl, by omega, by omega⟩
+    exact ⟨opValid_put rfl Hkk Hl, (by simp [kGrant, plainOp]), by omega, by omega⟩
   · (try wp_auto)
     wp_if_destruct
     · -- a delete
@@ -241,7 +241,7 @@ theorem runner.gen.wp_proof
         isplitr; · rw [List.zip_nil_left]; iapply BigSepL.bigSepL_nil.2; itrivial
         ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
       ipureintro
-      exact ⟨opValid_plain kDelete rfl (Or.inl rfl), Or.inl rfl, Int.le_refl _, by omega⟩
+      exact ⟨opValid_plain kDelete rfl (Or.inl rfl), (by simp [kGrant, plainOp]), Int.le_refl _, by omega⟩
     · (try wp_auto)
       wp_if_destruct
       · -- a transaction
@@ -286,7 +286,7 @@ theorem runner.gen.wp_proof
             isplitr; · ipureintro; exact Hsms.1
             ipureintro; simp
           ipureintro
-          exact ⟨opValid_txn rfl (fun _ => Hsms.2.2.2.1), Or.inl rfl, Hsms.2.2.2.2.1, Hsms.2.2.2.2.2⟩
+          exact ⟨opValid_txn rfl (fun _ => Hsms.2.2.2.1), (by simp [kGrant, plainOp]), Hsms.2.2.2.2.1, Hsms.2.2.2.2.2⟩
         · -- a read-only transaction
           (try wp_auto)
           wp_apply wp_choose (W64 3) as %cn %Hcn
@@ -302,7 +302,7 @@ theorem runner.gen.wp_proof
                 mF go!"leases" mp ↦ sl ∗ sl ↦* s.leases ∗
                 ∃ (o : OpM) (nl' nv' : w64), opIs p o ∗ rF go!"nextLease" x ↦ nl' ∗
                   rF go!"vals" x ↦ nv' ∗
-                  ⌜opValid ks s o ∧ (nl' = nl ∨ (o.kind = kGrant ∧ o.id = nl + W64 1 ∧ nl' = nl + W64 1)) ∧
+                  ⌜opValid ks s o ∧ (if o.kind = kGrant then o.id = nl + W64 1 ∧ nl' = nl + W64 1 else nl' = nl) ∧
                     sint.Z nv ≤ sint.Z nv' ∧ sint.Z nv' ≤ sint.Z nv + 3⌝) -∗ Φ #p) ∗
               "%Hinv" ∷ ⌜xs.length = sint.nat jj ∧ 0 ≤ sint.Z jj ∧ sint.Z jj ≤ sint.Z (W64 1 + cn)⌝ :
                 IProp GF) $$ [j «$r0» HΦ]
@@ -387,7 +387,7 @@ theorem runner.gen.wp_proof
               isplitr; · rw [zip_fst_snd]; iframe #
               ipureintro; simp
             ipureintro
-            exact ⟨opValid_txn rfl (fun h => by cases h), Or.inl rfl, Int.le_refl _, by omega⟩
+            exact ⟨opValid_txn rfl (fun h => by cases h), (by simp [kGrant, plainOp]), Int.le_refl _, by omega⟩
       · (try wp_auto)
         wp_if_destruct
         · -- a grant
@@ -403,7 +403,7 @@ theorem runner.gen.wp_proof
           iframe
           iframe #
           ipureintro
-          exact ⟨opValid_grant rfl hg0 hg1, Or.inr ⟨rfl, rfl, rfl⟩, Int.le_refl _, by omega⟩
+          exact ⟨opValid_grant rfl hg0 hg1, (by simp [kGrant, plainOp]), Int.le_refl _, by omega⟩
         · (try wp_auto)
           wp_if_destruct
           · -- a revoke
@@ -417,7 +417,7 @@ theorem runner.gen.wp_proof
               iframe
               iframe #
               ipureintro
-              exact ⟨opValid_plain kCommit rfl (Or.inr (Or.inl rfl)), Or.inl rfl, Int.le_refl _, by omega⟩
+              exact ⟨opValid_plain kCommit rfl (Or.inr (Or.inl rfl)), (by simp [kGrant, plainOp]), Int.le_refl _, by omega⟩
             · (try wp_auto)
               have hpos : 0 < sint.Z sl.len := by
                 have := Hsn.2
@@ -441,7 +441,7 @@ theorem runner.gen.wp_proof
               iframe
               iframe #
               ipureintro
-              exact ⟨opValid_revoke rfl (List.getElem_mem hdl), Or.inl rfl, Int.le_refl _, by omega⟩
+              exact ⟨opValid_revoke rfl (List.getElem_mem hdl), (by simp [kGrant, plainOp]), Int.le_refl _, by omega⟩
           · (try wp_auto)
             wp_if_destruct
             · -- a compaction
@@ -465,7 +465,7 @@ theorem runner.gen.wp_proof
                   iframe
                   iframe #
                   ipureintro
-                  exact ⟨opValid_compact rfl h11, Or.inl rfl, Int.le_refl _, by omega⟩
+                  exact ⟨opValid_compact rfl h11, (by simp [kGrant, plainOp]), Int.le_refl _, by omega⟩
                 · (try wp_auto)
                   have hr1 : 1 ≤ sint.Z (W64 s.crev + W64 1) := by
                     have : sint.Z (W64 1) = 1 := by decide
@@ -477,7 +477,7 @@ theorem runner.gen.wp_proof
                   iframe
                   iframe #
                   ipureintro
-                  exact ⟨opValid_compact rfl hr1, Or.inl rfl, Int.le_refl _, by omega⟩
+                  exact ⟨opValid_compact rfl hr1, (by simp [kGrant, plainOp]), Int.le_refl _, by omega⟩
               · (try wp_auto)
                 wp_if_destruct
                 · (try wp_auto)
@@ -490,10 +490,8 @@ theorem runner.gen.wp_proof
                     iframe
                     iframe #
                     ipureintro
-                    exact ⟨opValid_compact rfl hr1, Or.inl rfl, Int.le_refl _, by omega⟩
-                  · -- `gen.spec` does not rule out `s.rev = 0`, at which `CompactAt`'s case 2
-                    -- compacts at revision 0, against `opValid` (see the report)
-                    sorry
+                    exact ⟨opValid_compact rfl hr1, (by simp [kGrant, plainOp]), Int.le_refl _, by omega⟩
+                  · exact absurd hrpos hr0
                 · (try wp_auto)
                   have hcr1 : 1 ≤ sint.Z (W64 1 + cr) := compact_rev_ok s.rev cr hrev Hcr
                   imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ «$r0» with #Hop
@@ -503,7 +501,7 @@ theorem runner.gen.wp_proof
                   iframe
                   iframe #
                   ipureintro
-                  exact ⟨opValid_compact rfl hcr1, Or.inl rfl, Int.le_refl _, by omega⟩
+                  exact ⟨opValid_compact rfl hcr1, (by simp [kGrant, plainOp]), Int.le_refl _, by omega⟩
             · (try wp_auto)
               wp_if_destruct
               · -- a commit
@@ -515,7 +513,7 @@ theorem runner.gen.wp_proof
                 iframe
                 iframe #
                 ipureintro
-                exact ⟨opValid_plain kCommit rfl (Or.inr (Or.inl rfl)), Or.inl rfl, Int.le_refl _, by omega⟩
+                exact ⟨opValid_plain kCommit rfl (Or.inr (Or.inl rfl)), (by simp [kGrant, plainOp]), Int.le_refl _, by omega⟩
               · (try wp_auto)
                 wp_if_destruct
                 · -- a read
@@ -550,7 +548,7 @@ theorem runner.gen.wp_proof
                     isplitr; · rw [List.zip_nil_left]; iapply BigSepL.bigSepL_nil.2; itrivial
                     ipureintro; simp
                   ipureintro
-                  exact ⟨opValid_plain kRead rfl (Or.inr (Or.inr (Or.inl rfl))), Or.inl rfl,
+                  exact ⟨opValid_plain kRead rfl (Or.inr (Or.inr (Or.inl rfl))), (by simp [kGrant, plainOp]),
                     Int.le_refl _, by omega⟩
                 · -- a lease check
                   (try wp_auto)
@@ -561,7 +559,7 @@ theorem runner.gen.wp_proof
                   iframe
                   iframe #
                   ipureintro
-                  exact ⟨opValid_plain kLeases rfl (Or.inr (Or.inr (Or.inr rfl))), Or.inl rfl, Int.le_refl _, by omega⟩
+                  exact ⟨opValid_plain kLeases rfl (Or.inr (Or.inr (Or.inr rfl))), (by simp [kGrant, plainOp]), Int.le_refl _, by omega⟩
 
 end proof
 

@@ -30,6 +30,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccfull.Assumpt
 abbrev pending.del.spec : Prop :=
   ∀ (p : Loc) (P : PendM) (keys : GoSlice) (ks : List GoString) (dks : DFrac) (key endk : GoSlice)
     (kk e : GoString) (dq dq' : DFrac),
+  ks.Pairwise go.GoStringLt →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccfull ∗ ownPending p P ∗ keys ↦*{dks} ks ∗ key ↦*{dq} kk ∗ endk ↦*{dq'} e }}
     (App (App (App (p @!! go.GoType.PointerType pending.ty @!! go!"del") (Val #keys)) (Val #key)) (Val #endk))
   {{ RET #(W64 (P.delKeys ks (decide (endk = slice.nil)) kk e).length);

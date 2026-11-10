@@ -99,7 +99,7 @@ theorem runner.restore.wp_proof
   icases Hw with ⟨#Hms, #Hreg0, #Hreg1, Hlog, Hctrs, HhW, Hrd, %Hops, %Hnb, Hfiles,
     ⟨%qw0, %nw0, %k0, Hm0, %Hl0⟩, ⟨%qw1, %nw1, %k1, Hm1, %Hl1⟩, Hss0, Hss1, Hadd⟩
   have hOps : ops.length ≤ (sint.Z cfg.Ops').toNat := Hops.2.2
-  have hOps38 : sint.Z cfg.Ops' < 2 ^ 38 := HOpsB.2
+  have hOps38 : sint.Z cfg.Ops' < 2 ^ 38 := HOpsB.2.1
   have hlen : ops.length < 2 ^ 38 := by omega
   iunfold logOwn at Hlog
   icases Hlog with ⟨%lsl, %lps, Hlog1, Hlog2, Hlog3, %Hlogp, Hlog4⟩

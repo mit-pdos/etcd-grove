@@ -284,7 +284,9 @@ def leadPost (γh : HistNames) (ks : List GoString) (ops : List OpM) (n : Nat) (
 the readers' (`runnerCfg` at the read weights `wr`, F1's scope `readMixOk`, `rdShared`), the other
 packages, the keys' lengths, the logger, the writer's weights, the report counters it adds to, and
 the bound on the operations (`Run`'s `runCfgOk`: `cfg.Ops < 2 ^ 38`, so that a member's `Ops + 1`
-write-back tokens fit in a fresh backend's, `inc_open_backend`). -/
+write-back tokens fit in a fresh backend's, `inc_open_backend`); and (post-Freeze) the number of
+keys, `< 2 ^ 60`, `Run`'s `runCfgOk` (a transaction's changes and the keys within `writeSub`'s
+`2 ^ 62`). -/
 def writerCtx (x : Loc) (ks : List GoString) (cfg : Config) (wr : List w64) (h : Loc)
     (γh : HistNames) : IProp GF :=
   iprop(rnCtx x ks cfg h γh ∗ runnerCfg x cfg wr ∗ ⌜readMixOk (wr.map sint.Z)⌝ ∗ rdShared x ∗
@@ -300,19 +302,21 @@ def writerCtx (x : Loc) (ks : List GoString) (cfg : Config) (wr : List w64) (h :
     ctrInv (readersN .@ "compactions") (rF go!"compactions" x) ∗
     ctrInv (readersN .@ "restores") (rF go!"restores" x) ∗
     ctrInv (readersN .@ "restarts") (rF go!"restarts" x) ∗
-    ⌜0 ≤ sint.Z cfg.Ops' ∧ sint.Z cfg.Ops' < 2 ^ 38⌝)
+    ⌜0 ≤ sint.Z cfg.Ops' ∧ sint.Z cfg.Ops' < 2 ^ 38 ∧ ks.length < 2 ^ 60⌝)
 
 instance writerCtx_persistent (x : Loc) (ks : List GoString) (cfg : Config) (wr : List w64)
     (h : Loc) (γh : HistNames) : Persistent (writerCtx (GF := GF) x ks cfg wr h γh) := by
   unfold writerCtx rnCtx runnerKeys runnerH runnerCfg runnerRangeMix rdShared ctrInv
   infer_instance
 
-/-- **The writer's own counters**: `nextLease` at the largest id granted (`0` before any), `vals`
-at `nv`, `builds` at `nb`, each in range. -/
+/-- **The writer's own counters**: `nextLease` at the largest id granted (`0` before any; at most one
+per operation, so at most the log's length: post-Freeze, for `gen`'s `nextLease + 1 < 2 ^ 63`),
+`vals` at `nv`, `builds` at `nb`, each in range. -/
 def writerCtrs (x : Loc) (ks : List GoString) (ops : List OpM) (nv nb : Nat) : IProp GF :=
   iprop(∃ nl : w64, rF go!"nextLease" x ↦ nl ∗ rF go!"vals" x ↦ (W64 (nv : Int)) ∗
     rF go!"builds" x ↦ (W64 (nb : Int)) ∗
-    ⌜0 ≤ sint.Z nl ∧ ∀ id ∈ grantedAfter ks ops ops.length, sint.Z id ≤ sint.Z nl⌝)
+    ⌜0 ≤ sint.Z nl ∧ (∀ id ∈ grantedAfter ks ops ops.length, sint.Z id ≤ sint.Z nl) ∧
+      sint.Z nl ≤ ops.length⌝)
 
 /-- **What the writer lent of a running member's incarnation** (to `n = 2·Readers` readers at the
 share `q`, `rdStock`, and to `Streams` streams at `qs` each, `epochTok`), against what it keeps

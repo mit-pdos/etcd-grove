@@ -72,6 +72,11 @@ theorem runner.txn.wp_proof
   ihave #Hctx2 := Hctx
   iunfold writerCtx at Hctx2
   icases Hctx2 with ⟨#Hrn, -, -, -, -, -, -, -, %Hkeylen, -⟩
+  ihave %HksB : ⌜ks.length < 2 ^ 60⌝ $$ []
+  · ihave #Hc3 := Hctx
+    iunfold writerCtx at Hc3
+    icases Hc3 with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, %H⟩
+    ipureintro; exact H.2.2
   iunfold rnCtx at Hrn
   icases Hrn with ⟨#Hpkg, #Hpm, #Hkeys, %Hkne, #HrH, -⟩
   ihave #HrH2 := HrH
@@ -355,10 +360,7 @@ theorem runner.txn.wp_proof
       obtain ⟨hj0, hj1, hokj, hLogj⟩ := Hj
       have hpl : pend.length + ks.length < 2 ^ 62 := by
         have h1 := pendOk_chs_length hokj
-        -- SPEC GAP (frozen spec): `writeSub` needs `|pend| + |ks| < 2 ^ 62`, here at most
-        -- `2 |ks|`; nothing in `txn`'s precondition bounds the number of keys (`Run`'s
-        -- `|keysOf depth| ≤ 2 ^ 62` stays outside `writerCtx`).
-        have hks61 : ks.length < 2 ^ 61 := by sorry
+        have hks61 : ks.length < 2 ^ 61 := by omega
         omega
       (try wp_auto)
       wp_apply (wp_writeSub x ks h γh mp v.ι.kv (interface.mkOk tty tv) trc2 true (σOf ks ops v.ops)

@@ -140,17 +140,15 @@ theorem runner.write.wp_proof
       have hhl := runM_hs_len ks opsA vA0.ops
       have hrev2 : (runM ks opsA vA0.ops).rev + 2 < 2 ^ 63 := by
         unfold MSt.rev; omega
-      -- SPEC GAP (frozen spec): `gen` needs `nextLease + 1 < 2 ^ 63`; `writerCtrs` bounds
-      -- `nextLease` only from below (`notes/mvccfull-prove-writer.md`)
-      have hnl1 : sint.Z nl + 1 < 2 ^ 63 := by
-        sorry
+      have hnl1 : sint.Z nl + 1 < 2 ^ 63 := by have := Hnl.2.2; omega
       have hgr : ∀ id ∈ (runM ks opsA vA0.ops).granted, sint.Z id ≤ sint.Z nl := by
-        rw [hv0]; exact Hnl.2
+        rw [hv0]; exact Hnl.2.1
       have hnvZ : sint.Z (W64 (nvA : Int)) = (nvA : Int) := by
         have : nvA < 2 ^ 62 := by omega
         word
       wp_apply (wp_gen x ks cfg wr h γ.h mp0 (runM ks opsA vA0.ops) lsl nl (W64 (nvA : Int))
-          Hnl.1 hnl1 hgr (by rw [hnvZ]; omega) (by rw [hnvZ]; omega) hrev2 hcr1 hcr2)
+          Hnl.1 hnl1 hgr (by rw [hnvZ]; omega) (by rw [hnvZ]; omega) hrev2 hcr1 hcr2
+          (by unfold MSt.rev; omega))
         $$ [$Hctx $Hrevf $Hcmpf $Hlsl $Hlsv $Hnl $Hvals]
         as %pp ⟨Hrevf, Hcmpf, Hlsl, Hlsv, %o, %nl', %nv', #Hop, Hnl, Hvals, %Hg⟩
       obtain ⟨hvalid, hnl', hnv1, hnv2⟩ := Hg
@@ -214,22 +212,21 @@ theorem runner.write.wp_proof
       · iunfold writerCtrs; iexists nl'; rw [hnvw]; iframe
         ipureintro
         rw [hgra]
-        rcases hnl' with rfl | ⟨hgk, hid, rfl⟩
-        · refine ⟨Hnl.1, fun id hid => ?_⟩
-          by_cases hk : o.kind = kGrant
-          · rw [if_pos hk] at hid
-            rcases List.mem_append.1 hid with h1 | h1
-            · exact hgr id h1
-            · -- SPEC GAP (frozen spec): `gen`'s post allows a grant that leaves `nextLease`
-              -- (`nl' = nl`), whose id `writerCtrs` cannot bound (`notes/mvccfull-prove-writer.md`)
-              sorry
-          · rw [if_neg hk] at hid; exact hgr id hid
-        · have hnl1' : sint.Z (nl + W64 1) = sint.Z nl + 1 := by word
-          refine ⟨by omega, fun id hid' => ?_⟩
-          rw [if_pos hgk] at hid'
+        have hl1 : (((opsA ++ [o]).length : Nat) : Int) = (opsA.length : Int) + 1 := by simp
+        rw [hl1]
+        by_cases hk : o.kind = kGrant
+        · rw [if_pos hk] at hnl'
+          obtain ⟨hid, rfl⟩ := hnl'
+          have hnl1' : sint.Z (nl + W64 1) = sint.Z nl + 1 := by word
+          refine ⟨by omega, fun id hid' => ?_, by have := Hnl.2.2; omega⟩
+          rw [if_pos hk] at hid'
           rcases List.mem_append.1 hid' with h1 | h1
           · have := hgr id h1; omega
           · simp at h1; subst h1; rw [hid]; exact Int.le_refl _
+        · rw [if_neg hk] at hnl'
+          subst hnl'
+          refine ⟨Hnl.1, fun id hid => ?_, by have := Hnl.2.2; omega⟩
+          rw [if_neg hk] at hid; exact hgr id hid
       ihave Hown := Hbackl $$ %o %vB0 %kB %((sint.Z nv').toNat) Hlog Hctrs HhW Hrd Hm0 %HvB
       (try wp_auto)
       wp_for_post
