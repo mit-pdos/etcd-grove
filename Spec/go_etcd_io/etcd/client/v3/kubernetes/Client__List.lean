@@ -5,7 +5,11 @@ prefix)` from the continue key (or the prefix) at `opts.Revision` (`0`: the late
 `opts.Limit`, through `New`'s client of the members, with a read update or none at each member.
 The answer is about the state `σ` the update fired at: its revision is the response's, the page
 of `σ`'s store at the read revision (`listRespIs`; the `Kvs` slice owned: `appendChunk` writes it);
-an error is the client's, with the future-revision soundness (`rangeErrSound`).
+an error is the client's, with the future-revision soundness (`rangeErrSound`). The continue key is
+none or has the prefix (review of 2026-11-10, which refuted the statement without this premise: the
+client reads the raw range `[Continue, GetPrefixRangeEnd prefix)`, so a key below the prefix returns
+and counts keys outside it; the store's continue keys are `DecodeContinue`'s `keyPrefix ++ ...` and
+`pagedChunks`' last key and `"\x00"`).
 
 **A hypothesis** until 7e-1 (a premise of `store.getList`'s proof only, never an axiom; decided by
 etcd-grove-81). Requirements on 7e-1 recorded in the Draft §7 (owned `Kvs`, `Count` from the range
@@ -41,7 +45,7 @@ abbrev Client.List.spec : Prop :=
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (pfx : GoString)
     (opts : go_etcd_io.etcd.client.v3.kubernetes.ListOptions) (Q : w64 → KVState → IProp GF),
   pfx.length ≤ opKeyMax → opts.Continue'.length ≤ opKeyMax →
-  0 ≤ sint.Z opts.Revision' → 0 ≤ sint.Z opts.Limit' →
+  0 ≤ sint.Z opts.Revision' → 0 ≤ sint.Z opts.Limit' → (opts.Continue' = [] ∨ pfx <+: opts.Continue') →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.kubernetes ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isNewClient kc.Client' (ms.map client.SrvAt.addr) V ∗ ([∗list] x ∈ ms, client.kvRegsAt x) ∗

@@ -36,7 +36,7 @@ theorem store.getList.wp_proof
     (wp_RecordEtcdRequest : metrics.RecordEtcdRequest.spec (GF := GF) (hG := hG))
     (wp_rse : store.getResourceSizeEstimator.spec (GF := GF) (hG := hG)) :
     store.getList.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ sp c ci cd kp recur lo Q hkp hct hrev hlim hrc
+  intro _ _ Obj _ sp c ci cd kp recur lo Q hkp hct hrev hlim hrc hcp
   wp_start as ⟨#Hst, #Hctx, #Hce, Htt, %htb, HQ⟩
   ihave Hst' := Hst
   iunfold isStore at Hst'
@@ -146,7 +146,7 @@ theorem store.getList.wp_proof
     (try wp_auto)
     wp_apply (wp_kList (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty) #c.kc))
-        c.ms c.V ci cd kp lo Q hkp hct hrev hlim) $$ [HQ]
+        c.ms c.V ci cd kp lo Q hkp hct hrev hlim hcp) $$ [HQ]
       as %resp %lerr Hlist
     · iframe #
       iexact HQ

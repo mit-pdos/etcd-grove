@@ -426,6 +426,36 @@ def pageMore (s : KVStore) (kp : GoString) (recur : Bool) (lim0 : Nat) (i : Nat)
   let pg := pageKvsL s kp recur p.1 (if recur then p.2 else 1)
   decide (pg.1.length < pg.2)
 
+/-- Every page's start key has the prefix (`Client.List.spec`'s continue-key premise): a page's
+last key is in scope. -/
+theorem pagesL_prefix (s : KVStore) (kp : GoString) (recur : Bool) (lim0 : Nat) :
+    ∀ i, kp <+: (pagesL s kp recur lim0 i).1
+  | 0 => List.prefix_refl _
+  | i + 1 => by
+    have ih := pagesL_prefix s kp recur lim0 i
+    simp only [pagesL]
+    apply List.IsPrefix.trans _ (List.prefix_append _ _)
+    generalize hp : pagesL s kp recur lim0 i = p at ih
+    cases hl : (pageKvsL s kp recur p.1 (if recur then p.2 else 1)).1.getLast? with
+    | none => exact ih
+    | some kv =>
+      simp only [Option.map_some, Option.getD_some]
+      have hm := List.mem_of_getLast? hl
+      unfold pageKvsL at hm
+      simp only at hm
+      have hm' : kv ∈ s.kvs.filter fun v => kInScope kp recur v.key &&
+          !decide (go.GoStringLt v.key p.1) := by
+        by_cases h0 : (if recur = true then p.snd else 1) = 0
+        · rw [if_pos h0] at hm; exact hm
+        · rw [if_neg h0] at hm; exact List.mem_of_mem_take hm
+      have := (List.mem_filter.1 hm').2
+      simp only [Bool.and_eq_true] at this
+      have h := this.1
+      unfold kInScope at h
+      split at h
+      · exact of_decide_eq_true h
+      · rw [of_decide_eq_true h]; exact List.prefix_refl _
+
 /-- **A chunk value of page `i`** (`listChunk`, `store.go:873-878`) of the store `s` read at `R`. -/
 def chunkIs (ch : k8s_io.apiserver.pkg.storage.etcd3.listChunk) (s : KVStore) (kp : GoString)
     (recur : Bool) (lim0 : Nat) (R : w64) (i : Nat) : IProp GF :=
