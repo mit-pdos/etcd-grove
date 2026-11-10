@@ -5,8 +5,8 @@ The outline: `m.ops++`, `applying.Store(i)` (the hook's counters, `memW`); by `o
 hook at `i`: `hookOk`), `checkHook`, `Rev`, `writeRange` of the key's previous value, the put
 (`pending.put`, `Txn.Put.contract`) or `writeSub` of the delete, and `end` at `tw.End` (`endCb` from
 `Txn.End.contract` at the incarnation's invariant, `memberInv_live`); `txn`; a grant is
-`lessor.Grant` (`lessorW`'s contract, `csContractA` at the hook), `checkHook`, the leases' slice
-appended, `Rev` unchanged; a revoke is `begin`, the keys on the lease (`onLease`), `end` at the
+`lessor.Grant` (the lessor's contract at the member's backend, `lessorW_backend`; `csContractA` at
+the hook), `checkHook`, the leases' slice appended, `Rev` unchanged; a revoke is `begin`, the keys on the lease (`onLease`), `end` at the
 closure calling `lessor.Revoke` (its update through the range deleter, `mvccDeleter`), `checkHook`,
 the slice filtered, `Lookup` nil; `compact`; `Commit` (`KV.Commit.contract`); a read (`KV.Read`,
 `Txn.Rev`, `Txn.FirstRev`, `Txn.Range`, `history.snapshot`, `checkRangeAt`, `Txn.End`);

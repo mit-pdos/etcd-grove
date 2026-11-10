@@ -28,8 +28,9 @@ store (`mvccOpen`, the whole backend share at the tester's real backend `bk`, th
 the member's closure `f` (`hookIs`), its own `nw` reader tokens), the backend's kept part
 (`bkKeep`: its contract and stop channels, its file, the census for `backend.Close`, the lessor's
 write right and write-back tokens), the lessor (`lessorW`: its invariant, configuration, guard
-`True`, the revocable mode, its write contract (and `NewLessor`'s on any backend, `lessorApplyOk`, which
-`restore` needs after `Recover` moves the lessor to the snapshot's backend), a reader slot, the owner's part at the live leases
+`True`, the revocable mode, its write contract on any backend (`lessorApplyOk`, `NewLessor`'s: at the
+member's backend through `lessorW_backend`, at the snapshot's after `Recover` moves the lessor there
+through `lessorApplyOk_at`), a reader slot, the owner's part at the live leases
 and the store's items, the revokers, the ids ever granted with their requests (`3600`), the range
 deleter at the store's, the lease bucket's part holding exactly the live leases' records,
 `leaseRecsOk`, the stop right), and the hook's counters (`applying`, `saved`, owned outright, as
@@ -79,6 +80,8 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.BkRTLaws
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.WbTokLaws
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.NewKLaws
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.ClientLaws
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LessorApplyLaws
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RwLensLaws
 
 @[expose] public section
 
@@ -465,8 +468,7 @@ def lessorW (γk : MvccName) (bk : mvcc.KBReal) (f : GoFunc) (lp : Loc) (L U : L
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
     lease.lessorInv lp (mvccLeases γk) ∗ lease.lessorCfg lp ∗
     lease.lessorGuard (mvccLeases γk) (fun _ => iprop(True)) ∗ lease.lessorRevocable (mvccLeases γk) ∗
-    lease.lessorBackend lp iprop(True) #f (backend.wbTok bk.γB) (lease.lessorBeOn lp bk.be)
-      (apply.bkRT bk) (backend.rbPart bk.γB (· = leaseName)) ∗ lessorApplyOk lp ∗
+    lessorApplyOk lp ∗
     lease.lessorRd lp (mvccLeases γk) ∗
     lease.leaseOwn (mvccLeases γk) L (pendItems σ.log []) ∗ lease.leaseRevokers (mvccLeases γk) L ∗
     lease.leaseEver (mvccLeases γk) U ∗
@@ -923,6 +925,33 @@ theorem inc_open_backend [ThreadBoundLe GF (2 ^ 28)] (hopen : etcdStorage_open.l
   isplitl [Hw3]
   · iapply (backend.wbTok_toks γB).2; iexact Hw3
   · iapply (backend.wbTok_toks γB).2; iexact Hw3'
+
+/-- **The lessor's write contract at the member's backend** (`lessorW` keeps only `NewLessor`'s on
+any backend, `lessorApplyOk`; review round 2's S5): at `bk`, from its contract (`bkKeep`'s) and the
+hook frozen at `f` (`hookIs`, `memCore`'s; not `nil`, `hookOk`'s). (Proved: `lessorApplyOk_at`,
+`rwLens_refl`.) -/
+theorem lessorW_backend (γk : MvccName) (bk : mvcc.KBReal) (f : GoFunc) (lp : Loc) (L U : List w64)
+    (σ : MvccState) (hf : f ≠ func.nil) :
+    lessorW (GF := GF) γk bk f lp L U σ ∗ backend.isBackend bk.γB bk.P (mvccW bk.gx) iprop(True) bk.be ∗
+      hookIs (etcdStorage bk) f ⊢
+    lessorW γk bk f lp L U σ ∗
+      lease.lessorBackend lp iprop(True) #f (backend.wbTok bk.γB) (lease.lessorBeOn lp bk.be)
+        (apply.bkRT bk) (backend.rbPart bk.γB (· = leaseName)) := by
+  iintro ⟨Hl, #Hb, #Hh⟩
+  iunfold lessorW at Hl
+  icases Hl with ⟨%rd, %r, #Hpkg, #Hinv, #Hcfg, #Hg, #Hrv, #Hok, Hrest⟩
+  isplitl [Hrest]
+  · iunfold lessorW; iexists rd, r; iframe #; iframe
+  have hln : leaseName = go!"lease" := rfl
+  rw [hln]
+  iapply lessorApplyOk_at lp bk (mvccW bk.gx) iprop(True) f (lease.lessorBeOn lp bk.be)
+  isplitr; iexact Hok
+  isplitr; iexact Hb
+  isplitr
+  · rw [← etcdStorage_hookIs]; iexact Hh
+  isplitr
+  · ipureintro; exact hf
+  · iapply rwLens_refl
 
 /-- **Reopen, the incarnation** (step 3, after `mvcc.New`): a new incarnation's invariant (namespace
 `memberN i`) at the new store `γk`, with the carried parts; the writer gets the whole retirement

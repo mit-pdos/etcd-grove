@@ -223,7 +223,7 @@ theorem runner.restore.wp_proof
     ihave %Hag := ghostVar_agree mb.σ _ _ _ _ $$ Hσwb Hσc
     subst Hag
     iunfold lessorW at Hlesb
-    icases Hlesb with ⟨%rdb, %rb, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, Hrbb, %Hrecsb, Hstopb⟩
+    icases Hlesb with ⟨%rdb, %rb, -, -, -, -, -, -, -, -, -, -, -, -, -, -, Hrbb, %Hrecsb, Hstopb⟩
     iunfold bkKeep at Hbkb
     icases Hbkb with ⟨%HbkbP, #Hbkb1, #Hbkb2, Hbkb3, Hbkb4, Hbkb5, Hbkb6, Hbkb7⟩
     wp_apply (wp_shut x ks cfg wr h γ.h mpb vb'.path vb'.bk vb'.lp vb'.kv vb'.ι.kv
@@ -327,7 +327,7 @@ theorem runner.restore.wp_proof
     -- `f.le.Recover(newbe, func() lease.TxnDelete { return kv.Write(traceutil.TODO()) })`
     obtain ⟨recs, hrecs1, hrecs2, hrecs3⟩ := HrecD
     iunfold lessorW at Hles1
-    icases Hles1 with ⟨%rd0, %r1, #Hlpkg, #Hlinv, #Hlcfg, #Hguard, #Hrevoc, #HlBack, #HapplyOk,
+    icases Hles1 with ⟨%rd0, %r1, #Hlpkg, #Hlinv, #Hlcfg, #Hguard, #Hrevoc, #HapplyOk,
       Hlrd, HlOwn, HlRevk, HlEver, #HreqU, HrdOwn, -, HbeOn, -, -, Hstop1⟩
     iunfold bkKeep at Hbkn
     icases Hbkn with ⟨%HnP, #Hnisb, #Hnsc, Hnbf, Hnoh, HnRT, Hntoks, Hncen⟩
@@ -583,7 +583,7 @@ theorem runner.restore.wp_proof
       iprop(True)) $$ [Htx] as ⟨Hr1, -⟩
     · iframe #; iframe
     (try wp_auto)
-    -- the restored follower's `memCore`: the lessor on the new backend (`lessorApplyOk`)
+    -- the restored follower's `memCore`: the lessor on the new backend (`lessorApplyOk`, kept)
     obtain ⟨U', hU'⟩ : ∃ U' : List w64, U' = if recs = [] then v1.U else v1.U ++ recs.map (·.1) :=
       ⟨_, rfl⟩
     have hU'g : ∀ id ∈ U', id ∈ grantedAfter ks ops v0.ops := by
@@ -614,23 +614,6 @@ theorem runner.restore.wp_proof
           rw [e]; iexact HreqN
     iunfold hookOk at HhookOk1
     icases HhookOk1 with ⟨%Hf1, #Hf1run⟩
-    ihave #HlBackN : lease.lessorBackend v1.lp iprop(True) #f1
-        (backend.wbTok (mvccrand.rcKB γB bnb gx (limOf cfg)).γB)
-        (lease.lessorBeOn v1.lp (mvccrand.rcKB γB bnb gx (limOf cfg)).be)
-        (apply.bkRT (mvccrand.rcKB γB bnb gx (limOf cfg)))
-        (backend.rbPart (mvccrand.rcKB γB bnb gx (limOf cfg)).γB (· = leaseName)) $$ []
-    · have hln : leaseName = go!"lease" := rfl
-      rw [hln]
-      iapply lessorApplyOk_at v1.lp (mvccrand.rcKB γB bnb gx (limOf cfg)) (mvccW gx) iprop(True) f1
-        (lease.lessorBeOn v1.lp (mvccrand.rcKB γB bnb gx (limOf cfg)).be)
-      isplitr; iexact HapplyOk
-      isplitr
-      · simp only [mvccrand.rcKB_P, mvccrand.rcKB_γB, mvccrand.rcKB_be]; iexact Hnisb
-      isplitr
-      · simp only [mvccrand.rcKB_γB]; iexact HhkRO
-      isplitr
-      · ipureintro; exact Hf1
-      · iapply rwLens_refl
     ihave Hrbn' := backend.rbOwnIn_part γB _ _ $$ Hrbn
     ihave Hc1n : memCore ks γ.h ops 1 mp1 γ.m1 f1
         ⟨vb'.path, v1.lp, v1.kv, v0.ops, mvccrand.rcKB γB bnb gx (limOf cfg), v1.ι, U', b4⟩ qw1 nw1
