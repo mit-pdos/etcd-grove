@@ -63,9 +63,30 @@ journal `wf_dac9ea87-502`, Go tests `/shared/tmp/k8s7e2-review/`). Done, one com
 - Docstrings: `Value.IsNil` (attack test), `json.Marshal` (JSONv2 at go1.27.3).
 - Links: every 7e-2 trusted spec non-pending in `etc/link-lean-first-k8s-etcd3.txt` except
   `Client__List`/`Client__GetAt`; `etcd3/Link.lean` regenerated.
-- **Next:** `#print axioms store.wp_GetList` (no `sorryAx`), `etc/tcb-report.py --check --update` and
-  the collections, the full build (lock, 64G cap), STOP. After premise-fixes-3 lands: merge lean,
-  RecordEtcdRequest's err precondition comes with it; align `Type'` with Value's pattern.
+- **7e-2 is done**, the review's fixes included (etcd-grove-81 accepted them, 2026-11-10).
+- **The full build, the TCB baseline and the gates are deferred to 7e-4's end** (etcd-grove-81):
+  k8s-7e cannot land before 7e-4, since lean's closed `k8s_etcd3` results go through the driver.
+  Until then a targeted build of what changed is the check of record. The full build of 2026-11-10
+  fails only in the driver's `Refine` and `workloadKeys` (and skips what imports them).
+- **The axiom delta so far** (`#print axioms` on the etcd3 `Link`'s results, against
+  `etc/tcb-baseline.txt`; no `sorryAx` in any):
+  - `store.wp_GetList`: `encoding.json.Marshal.wp_proof`, `metrics.RecordListLatency.wp_proof`,
+    `metrics.RecordStorageListMetrics.wp_proof`, `reflect.KindCompare.wp_proof`,
+    `reflect.Type.Elem.wp_proof`, `reflect.Value.{Cap,IsNil,Kind,Len}.wp_proof`,
+    `reflectM.type_intoVal_inj`, `reflectM.type_into_val_typed`, and
+    `k8sfeature.featureOff_persistent` (sweep repairs 1's B5, `58e751be1e`, joint with 7e);
+  - `storage.wp_IsTooLargeResourceVersion`: `apierrors.HasStatusCause.wp_proof`,
+    `apierrors.IsTimeout.wp_proof`;
+  - `wp_getNewItemFunc`: the `Type.Elem` and two `reflectM` axioms above; and it no longer reaches
+    the generated `sorry`s `Type'_typed_pointsto`/`Type'_into_val_typed` (they stay in the baseline
+    while client-go's reflector reaches them);
+  - `store.wp_listReadError`: none.
+  `Client.List`/`Client.GetAt` remain hypotheses (pending in the `Link`).
+- **7e-4 items:** `Refine` (the store/driver relation on 7e-3b's model: `DObj`, 8-field `Obj`,
+  17-field `Output`), and `workloadKeys`/`genFrom` (`wksD` is still `a b c`; the Go keys are
+  `ns-1/pod-1`, `ns-1/pod-11`, `ns-2/pod-2`, `ns-11/pod-1`; `genFrom` indexes `% 3`).
+- Not before etcd-grove-81 says so: merge lean (premise-fixes-1 and -3 first; RecordEtcdRequest's err
+  precondition comes with it; then align `Type'` with Value's pattern).
 
 ## Seventh session (2026-11-10): `GetList` proved
 Rules: `/shared/tmp/coord-81/common-rules.md`. Decisions: `questions.md` (7e-2, seventh session).
