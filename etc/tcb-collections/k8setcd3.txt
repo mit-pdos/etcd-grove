@@ -264,7 +264,7 @@ axiom Perennial.k8s_io.apiserver.pkg.endpoints.request.opaqueInitsOk
 axiom Perennial.k8s_io.apiserver.pkg.features.init_0_ok
 axiom Perennial.k8s_io.apiserver.pkg.features.opaqueInitsOk
 axiom Perennial.k8s_io.apiserver.pkg.storage.etcd3.klogWrapper_toLoggerV2
-axiom Perennial.k8s_io.apiserver.pkg.storage.etcd3.metrics.ErrTransactionConflict_init
+axiom Perennial.k8s_io.apiserver.pkg.storage.etcd3.metrics.errorsNewVarsInit
 axiom Perennial.k8s_io.apiserver.pkg.storage.etcd3.metrics.opaqueInitsOk
 axiom Perennial.k8s_io.apiserver.pkg.storage.feature.DefaultFeatureSupportChecker_init
 axiom Perennial.k8s_io.apiserver.pkg.storage.feature.opaqueInitsOk
@@ -633,8 +633,8 @@ axiom reflect.Value.Type.wp_proof
 axiom reflect.ValueOf.wp_proof
 axiom reflect.Zero.wp_proof
 axiom reflectM.reflNew_pointsto
+axiom reflectM.value_intoVal_inj
 axiom reflectM.value_into_val_typed
-axiom reflectM.value_typed_pointsto
 axiom resolver.EtcdManualResolver.Close.wp_proof
 axiom resolver.EtcdManualResolver.SetEndpoints.wp_proof
 axiom resolver.New.wp_proof

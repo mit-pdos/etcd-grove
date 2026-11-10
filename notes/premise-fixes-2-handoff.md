@@ -41,8 +41,8 @@ user pushes the fork branches first.
 
 ## Not done (scope change, see `notes/decisions.md`, "Premise fixes 2")
 
-`csPts` keeps `[]`: stage A already made the decode path sound; relaxing it is for etcd-grove-81 to
-schedule.
+`csPts` keeps `[]` (decided by etcd-grove-81, 2026-11-10): stage A's `decOk` already makes the
+decode path sound; relaxing it would only add coverage. Parked as a possible follow-up.
 
 ## Pitfalls
 
