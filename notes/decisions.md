@@ -34404,3 +34404,79 @@ and the other send lines' phase steps (`lineEffect_requestVote`, `lineEffect_sel
 `lineEffect_selfAck`, `lineEffect_msgApp` through `phaseStepB_send`).
 
 No ghost change; no client-visible change; no frozen statement changed; no axiom or `sorry`.
+
+## Q8 stage 1 (slice 17): the heartbeat gates at the exact commit; the append gates with `Match ≤ Index`; what each send line needs of its gate (2026-11-10 · trace-check, Q8 stage 1 slice 17; decided by the agent under the user's delegation · branch `trace-check-q8s17`; DRAFT until trace-check's Freeze)
+
+**What.** Slice 16's two raft-internal findings taken as recommended, then every send line's
+`lineEffect_*` checked against the gate that will discharge it.
+
+**1. The heartbeat's commit, exactly.** `raft.sendHeartbeat.spec`'s gate is now given
+`uint.Z cm = min (uint.Z s.logst.committed) (uint.Z ((prvalsMatch s.prvals !! to).getD 0))` (until
+now its two bounds `≤`); the proof had it (`Hmin`, `w64Min_spec`). Carried through
+`bcastHeartbeatWithCtx`, `bcastHeartbeat`, `sendMsgReadIndexResponse`, `releasePendingReadIndexMessages`
+(their per-heartbeat gates) and `stepLeader`'s `"#Hgbeat"`, `"#Hgrihb"`, `"#Hgrlhb"` (the last at
+`min(N, appRespMatch …)`, the committed index and the raised `Match` values), in `Spec/stepLeader.lean`,
+`leaderGates` and `stepLeader/Rest.lean`'s arm statements. The postconditions keep the two bounds (what
+`HeartbeatOk` reads). `lineEffect_heartbeat`'s `hcommit` is now the gate's premise as is
+(`phaseStepB_heartbeat`'s `hcm`). Rejected: the equality as an extra conjunct beside the bounds
+(redundant; every caller destructures the premise anyway).
+
+**2. `Match ≤ Index` for every `MsgApp` gate.** `lineEffect_msgApp`'s `hmatch` (the specification's
+`AppendEntries` range starts past `matchIndex`). Raft sends from `pr.Next - 1`, so the fact is
+`progress.go`'s "Invariant: 0 <= Match < Next", which the proof did not have. Added to the leader's
+progress bound `PrOk` (`Defs.lean`) as `p.state ≠ .snapshot → Match < Next`: **not in `StateSnapshot`**,
+since `BecomeSnapshot(i)` sets `Next = i + 1` whatever `Match` is (a `Storage` snapshot may be older than
+`Match`: an application may compact past its last snapshot), and leaving the state (`BecomeProbe`,
+`Next = max(Match, PendingSnapshot) + 1`) restores it; `maybeSendAppend` sends only when not paused, so
+not in `StateSnapshot`. Every `Progress` method keeps it (`MaybeUpdate`: `Next = max(Next, n + 1)`, now
+under `LogNoWrap` for `n + 1`; `MaybeDecrTo`: both arms at least `Match + 1`; `SentEntries`: `Next`
+grows; `reset`'s and `initProgress`'s fresh values: `Match = 0` or `lastIndex`, `Next = lastIndex + 1` or
+`max(lastIndex, 1)`); `PrOk.fields`/`fields0` now ask the state unchanged. `PrOk.match_le_prev` gives
+`Match ≤ Next - 1`. The gate's premise gains `uint.Z ((prvalsMatch X.prvals !! to).getD 0) ≤ uint.Z
+mm.index` at the gate's state `X`: `maybeSendAppend`, `sendAppend`, `bcastAppend` (`appGate_send_prvals`
+takes the `Match` values' equality), `stepCandidate`'s `"#Hgcast"` (at the new leader's `pvs`),
+`stepLeader`'s `"Hgxapp"`, `"#Hgpapp"`, `"Hgsapp"` (at `s.prvals`: the transfer, the appended
+proposal and a response's flow control change no `Match` of the destination) and `"#Hgaapp"` (at
+`appRespMatch s m.From' m.Index'`, **the raised values**, as `"#Hgrlhb"` does: the gate's state
+`commitAt s b N` keeps `s.prvals`, which is stale there; the raised value implies the stale one). Helper
+`and4_last` (`TracedSend.lean`) restates the last conjunct where a call's state reads the `Match`
+values another way. **Checked, raft-correct**: the invariant is the code's own, documented in
+`tracker/progress.go`; no Go issue.
+
+**3. What each send line needs, beyond its gate** (the phase gives `SimServerR`, `LogShapeOk` and the
+term/commit/last-index bounds; the event gives the configuration's incoming and outgoing):
+- *heartbeat* (`lineEffect_heartbeat`): the commit (done, 1); `bmc` from `bc`. **Also needs the
+  destination a voter** (`hdC`, `phaseStepB_heartbeat`'s `hto : to ∈ elements c.incoming`): the gate gives
+  `to ∈ domSet s.progress`, which raft makes `c.voters ∪ c.learners` (`ownRaftPhysC`, `InvRaftPhys.lean`),
+  and the phase `c.outgoing = ∅`; what is missing is **`c.learners = ∅` at a traced node**, which no raft
+  invariant can give (raft supports learners) and nothing in the capability states. Not a gate fact:
+  a premise for the traced bundle (as `TrNoSnap` is, the Draft's P2/P3: no learners in a traced cluster),
+  together with `domSet s.progress = c.voters ∪ c.learners`, which `raft.Step.traced` can read off
+  `ownRaftPhysC` before the call. Not taken here (the bundle's statement, unproved, is the next slice's).
+- *append request* (`lineEffect_msgApp`): `hmatch` (done, 2); `hpk`, `hlt`, `hents`, `bi` from `AppOk` and
+  `LogShapeOk` (proved: `appOk_slice`); `hdC` as the heartbeat's; **`blt` (the log term below `2^63`)**:
+  a term of the leader's log, at most its term by raft's ghost `TermsLe` (`Protocol/GhostState.lean`),
+  which neither the gate (raft's physical state has no term bound on its log) nor the idle relation
+  states; the caller's family holds raft's ghost state (`localF`'s `ownStepGhost`), so a law reading
+  `TermsLe` off it, or the bound in `SimIdleS`, gives it. `phaseStepB_msgApp` (`TracedRaftStepPaths.lean`)
+  is the line's phase step from the gate's facts, `hto` and `blt`.
+- *vote request* (`lineEffect_requestVote`): nothing from the gate: `campaign`'s gate names the message
+  (`campMsg`) and the state (`campRoleState`), whose tally is empty (`hw`, `resetTo0`), whose log is the
+  one the request's last entry id reads (`hidx`, `hlt`); `hdC` from the gate's `y ∈ c.voters` and the
+  phase's `c.outgoing = ∅`; `blt` as the append request's (the last log term).
+- *self-vote* (`lineEffect_selfVote`): nothing (empty tally, `reject = false` by `campMsg`).
+- *self-acknowledgement* (`lineEffect_selfAck`): nothing: `selfAck id X` is `pselfAck id (toPState X)` up
+  to `logLast`/`plastIndex`, equal under the phase's last-index bound.
+- *responses to others* (`lineEffect_skipResp`: the skipped `SendAppendEntriesResponse`/
+  `SendRequestVoteResponse` lines): the type and `src ≠ dst`, which the handlers' reply gates name; the
+  replies' content is the receive line's (blocked on Q14).
+
+No ghost change; no axiom or `sorry`; no frozen statement touched (`TracedCap.lean` unchanged). The
+untraced instances (`X.untraced`, `TracedUntraced*.lean`) keep their statements; `raft.Step.spec`'s text,
+the tick specs, the node API and `Link.lean` are unchanged (`stepGates`' definition changes with
+`leaderGates`/`candidateGates`, raft-internal).
+
+`interface/Proof/go_etcd_io/raft/v3/Defs.txt` regenerated also gains three hygienic `PRState`
+enum helpers (`PRState.enumToBitVec✝`, `…enumToBitVec_le✝`, `…eq_iff_enumToBitVec_eq✝`, realized by
+`deriving DecidableEq`): **not this slice's** — checked by rebuilding `Defs` from `trace-check`'s own
+`Defs.lean` and regenerating, which prints them too (the committed file predates their appearance).

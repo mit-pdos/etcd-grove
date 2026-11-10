@@ -22,7 +22,10 @@ theorem raft.maybeSendAppend.wp_proof [package_sem : Assumptions] (wp_Progress_I
                       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
                         ("Hgate" ∷
                             ∀ mm o,
-                              ⌜AppOk id (toPState s) mm ∧ mm.commit = (toPState s).commit ∧ mm.dst = to⌝ -∗
+                              ⌜AppOk id (toPState s) mm ∧
+                                    mm.commit = (toPState s).commit ∧
+                                      mm.dst = to ∧
+                                        uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0)) ≤ uint.Z mm.index⌝ -∗
                                 G o -∗ HookGateOpt s.gh.tr r (sendOutGate id s c MsgApp [mm]) (G (o ++ [mm]))) ∗
                           "HG" ∷ G s.outbox ∗ "#Hnosnap" ∷ TrNoSnap s.gh.tr s.logst -∗
                     (▷

@@ -809,6 +809,23 @@ requests lack `Match ≤ Index` (`lineEffect_msgApp`'s `hmatch`). **Not done,
 unblocked**: the node lines' facts (`BecomeCandidate`, `Replicate`, `Commit`: `FxPresU`) and the other
 send lines' phase steps.
 
+**Q8 stage 1 (slice 17), 2026-11-10 (branch `trace-check-q8s17`): the heartbeat gates at the exact
+commit; the append gates with `Match ≤ Index`; each send line's needs checked.** Decided by the agent
+(`notes/decisions.md`, "Q8 stage 1 (slice 17)"). Done: (1) `sendHeartbeat`'s gate given `cm =
+min(committed, Match)` exactly, carried through `bcastHeartbeat(WithCtx)`, the read-index heartbeats and
+`stepLeader`'s `"#Hgbeat"`/`"#Hgrihb"`/`"#Hgrlhb"`; (2) every `MsgApp` gate (`maybeSendAppend`,
+`sendAppend`, `bcastAppend`, `"#Hgcast"`, `"Hgxapp"`, `"#Hgpapp"`, `"Hgsapp"`, `"#Hgaapp"`) given the
+destination's `Match` at most `mm.index`, from raft's own invariant `Match < Next` added to `PrOk`
+outside `StateSnapshot` (where `BecomeSnapshot` may break it); (3) `phaseStepB_msgApp` and `appOk_slice`
+(`TracedRaftStepPaths.lean`): the append line's phase step from the gate's facts. **Found, not taken
+(the traced bundle's premises, next slice)**: the heartbeat and append lines need the destination a voter
+(`to ∈ c.incoming`), which needs `c.learners = ∅` at a traced node (no raft invariant; a premise like
+`TrNoSnap`) with `domSet s.progress = c.voters ∪ c.learners` (`ownRaftPhysC`); the append and vote-request
+lines need their log term below `2^63` (raft's ghost `TermsLe`, held by the caller's family, not by the
+gate or `SimIdleS`). The vote request, self-vote, self-acknowledgement and reply lines need nothing more
+from their gates (their messages and states are named). Still blocked on Q15 (every send line's
+`FxPres`) and Q14 (receive lines). Checked (branch at its base `98ca21bb96` plus this slice): full `lake build` green (13792 jobs); `etc/tcb-report.py --check` (806 axioms, 4 `sorry`s, unchanged) and all 53 collections `--reuse --check`, none updated; `interface/` differs in `Defs` (`PrOk`'s conjunct, `PrOk.fields`/`maybeUpdate`'s new premises, `PrOk.match_le_prev`) and the ten changed specs' proof files (their gates); `etc/api-check.py` 0 errors; `--layout` 0 new; `etc/gen-link.py --raft` unchanged.
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its
