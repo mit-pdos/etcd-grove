@@ -206,14 +206,6 @@ theorem TraceEv.confsWithin_mono {n n' : Nat} {e : TraceEv} (hn : n ≤ n') (h :
     e.ConfsWithin n' :=
   ⟨Nat.le_trans h.1 hn, fun c hc => Nat.le_trans (h.2 c hc) hn⟩
 
-/-- `Ok` at a larger configuration bound (a bootstrap event, at raft's growing configuration, under
-the capability's whole one). -/
-theorem TraceEv.ok_mono {n n' : Nat} {e : TraceEv} (hn : n ≤ n') (h : e.Ok n) : e.Ok n' :=
-  ⟨h.1, h.2.1, h.2.2.1, TraceEv.confsWithin_mono hn h.2.2.2⟩
-
-theorem TraceEv.okBoot_mono {n n' : Nat} {e : TraceEv} (hn : n ≤ n') (h : e.OkBoot n) : e.OkBoot n' :=
-  ⟨h.1, h.2.1, TraceEv.confsWithin_mono hn h.2.2.1, h.2.2.2⟩
-
 namespace TraceSim
 
 /-- Node `i` has logged only bootstrap-named lines in `L1` (`¬ TraceSim.booted L1 i`). -/

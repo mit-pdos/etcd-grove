@@ -64,7 +64,7 @@ theorem msgEvOf_traceMsgOf (ms : MsgSt) (ty : MsgType) (ctx : List w8)
     exact hs rfl
   unfold traceMsgOf MsgEvOf
   simp only [hns, ↓reduceIte]
-  refine ⟨msgTypeString_traced _ ty h hs, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+  refine ⟨msgTypeString_traced _ ty h hs, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
 
 /-- `traceMsgOf`'s vote is a decimal. -/
 theorem traceMsgOf_vote (ms : MsgSt) : ∃ v : w64, (traceMsgOf ms).vote = decStr v := by

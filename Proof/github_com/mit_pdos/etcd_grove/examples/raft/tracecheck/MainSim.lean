@@ -17,9 +17,10 @@ simulation (hypotheses here):
   holds the trace's authority) rather than the simulation.
 
 (Inside the simulation, the laws' premises are owed by their callers in the Prove phase: raft's
-numbers below `traceNumBound` from the time receipts, a received message's numbers. Not yet
-dischargeable for a send or receive line: `MsgEvOf` does not pin the traced message's `rejectHint`,
-the re-freeze's blocker, `notes/trace-validation-plan.md`, "Q13 (a) done".)
+numbers below `traceNumBound` from the time receipts, and a message's (`Msg.NumsBelow`): a sent one's
+from the state and the message it answers, a received one's from a fact its send line records (neither
+raft's message facts nor the bags carry them today: the bags drop `rejectHint`): `nodeEvOf_ok`,
+`ccEvOf_ok`, `sendEvOf_ok`, `TracedCap.lean`.)
 -/
 module
 

@@ -1368,10 +1368,11 @@ theorem trCapB_mono (tr : Option GName) (γ : RaftNames) (r : Loc) (id : w64) (c
 
 /-- **The logger field, either mode**: the struct's (nil) when untraced, the capability's when traced. -/
 theorem trCapB_logger0 (c : CfgM) (V : GSet w64) (r : Loc) (id : w64) (s : NState) (γ : RaftNames)
-    (b : Bool) (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ : Option TraceEv → Prop) :
-    (ownRaftPhysCV c V r id s ∗ trCapB s.gh.tr γ r id c b Φ Λ : IProp GF) ⊢
+    (b : Bool) (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ : Option TraceEv → Prop)
+    (cC : CfgM := c) :
+    (ownRaftPhysCV c V r id s ∗ trCapB s.gh.tr γ r id cC b Φ Λ : IProp GF) ⊢
       ∃ tl0 : GoInterface, r.[raft, go!"traceLogger"] ↦□ tl0 ∗ ⌜s.gh.tr = none → TraceLoggerOk tl0⌝ ∗
-        ownRaftPhysCV c V r id s ∗ trCapB s.gh.tr γ r id c b Φ Λ := by
+        ownRaftPhysCV c V r id s ∗ trCapB s.gh.tr γ r id cC b Φ Λ := by
   cases htr : s.gh.tr with
   | none =>
     iintro ⟨Hphys, Hcap⟩
@@ -1384,7 +1385,7 @@ theorem trCapB_logger0 (c : CfgM) (V : GSet w64) (r : Loc) (id : w64) (s : NStat
     iframe Hphys Hcap
   | some γd =>
     iintro ⟨Hphys, Hcap⟩
-    icases trCapB_logger γd γ r id c b Φ Λ $$ Hcap with ⟨%tl, #Htl, Hcap⟩
+    icases trCapB_logger γd γ r id cC b Φ Λ $$ Hcap with ⟨%tl, #Htl, Hcap⟩
     iexists tl
     isplitr
     · iexact Htl
@@ -1475,18 +1476,24 @@ theorem nodeEvOf_bf_boot (id : w64) (s : NState) (c : CfgM) (e : TraceEv) (hout 
 
 /-- **A `BecomeFollower` line, either mode**: before the node's segment is over (`b = false`) a
 bootstrap line (`trCap_fire_boot`, the share unchanged, `Φ` weakened to `Φ'`), after it a step-down
-or a skip (`trCap_fire_bf`, `PhaseStepBF`, the caller's `FxPresBF` under the mode's gate). -/
-theorem trCapB_hookGate_bf (tr : Option GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM)
+or a skip (`trCap_fire_bf`, `PhaseStepBF`, the caller's `FxPresBF` under the mode's gate).
+(Amendment A1, 2026-11-09) The capability's configuration `cC` is apart from raft's `c` (the struct's
+and the event's): during the node's bootstrap raft's grows from empty to the voters' (`newRaft`'s and
+`Bootstrap`'s `becomeFollower`, before `applyConfChange`), while the capability's is the voters'
+throughout (`trCapB`); after it they are one (`b = true → cC = c`). The bootstrap line's event is
+bounded at the capability's configuration (`nodeEvOf_okBoot` at `n = |cC|`). -/
+theorem trCapB_hookGate_bf (tr : Option GName) (γ : RaftNames) (r : Loc) (id : w64) (c cC : CfgM)
     (tl0 : GoInterface) (s : NState) (b : Bool)
     (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ Λ' : Option TraceEv → Prop)
+    (hcC : b = true → cC = c) (hout : b = false → c.outgoing = ∅)
     (hbf : b = true → PhaseStepBF id c s Φ Φ' Λ) (hb0 : b = false → ∀ C cs P, Φ C cs P → Φ' C cs P)
     (hΛ : ∀ e, NodeEvOf (W64 2) id s c e → Λ' (some e))
     (hOk : tr.isSome → (b = true → ∀ e, NodeEvOf (W64 2) id s c e → TraceEv.Ok (elements c.incoming).length e) ∧
-      (b = false → ∀ e, NodeEvOf (W64 2) id s c e → TraceEv.OkBoot (elements c.incoming).length e))
+      (b = false → ∀ e, NodeEvOf (W64 2) id s c e → TraceEv.OkBoot (elements cC.incoming).length e))
     (hok : tr = none → TraceLoggerOk tl0) :
-    (r.[raft, go!"traceLogger"] ↦□ tl0 ∗ trCapB tr γ r id c b Φ Λ ∗
+    (r.[raft, go!"traceLogger"] ↦□ tl0 ∗ trCapB tr γ r id cC b Φ Λ ∗
         trOwn tr (if b then FxPresBF γ id Φ else iprop(emp)) : IProp GF) ⊢
-      HookGate tr r (NodeEvOf (W64 2) id s c) (trCapB tr γ r id c b Φ' Λ') := by
+      HookGate tr r (NodeEvOf (W64 2) id s c) (trCapB tr γ r id cC b Φ' Λ') := by
   cases tr with
   | none =>
     simp only [trCapB]
@@ -1503,7 +1510,7 @@ theorem trCapB_hookGate_bf (tr : Option GName) (γ : RaftNames) (r : Loc) (id : 
   | some γd =>
     simp only [trOwn]
     iintro ⟨-, Hcap, Hfx⟩
-    icases trCapB_logger γd γ r id c b Φ Λ $$ Hcap with ⟨%tl, #Htl, Hcap⟩
+    icases trCapB_logger γd γ r id cC b Φ Λ $$ Hcap with ⟨%tl, #Htl, Hcap⟩
     obtain ⟨hOkT, hOkF⟩ := hOk rfl
     iunfold HookGate
     imodintro
@@ -1512,17 +1519,17 @@ theorem trCapB_hookGate_bf (tr : Option GName) (γ : RaftNames) (r : Loc) (id : 
     · iexact Htl
     cases b with
     | true =>
+      obtain rfl := hcC rfl
       simp only [↓reduceIte]
-      iapply trCap_fire_bf γd γ r id c tl s Φ Φ' Λ Λ' (hbf rfl) hΛ (hOkT rfl)
+      iapply trCap_fire_bf γd γ r id cC tl s Φ Φ' Λ Λ' (hbf rfl) hΛ (hOkT rfl)
       iframe Hcap Htl Hfx
     | false =>
       iclear Hfx
-      icases trCapB_out γd γ r id c false Φ Λ $$ Hcap with ⟨%hout, Hcap⟩
-      iapply traceFire_mono (some γd) tl _ (trCapB (some γd) γ r id c false Φ Λ') _
+      iapply traceFire_mono (some γd) tl _ (trCapB (some γd) γ r id cC false Φ Λ') _
       isplitr
       · iintro H
-        iapply trCapB_mono (some γd) γ r id c false Φ Φ' Λ' (hb0 rfl) $$ H
-      iapply trCap_fire_boot γd γ r id c tl _ Φ Λ Λ' (fun e he => nodeEvOf_bf_boot id s c e hout he) hΛ
+        iapply trCapB_mono (some γd) γ r id cC false Φ Φ' Λ' (hb0 rfl) $$ H
+      iapply trCap_fire_boot γd γ r id cC tl _ Φ Λ Λ' (fun e he => nodeEvOf_bf_boot id s c e (hout rfl) he) hΛ
         (hOkF rfl)
       iframe Hcap Htl
 

@@ -212,11 +212,12 @@ reads it, the queued abstraction's (`absMsgFrom`, whose context `MsgEvOf` does n
 private theorem msgEvOf_absMsg_from (t : MsgType) (m' m : MessageM) (src T : w64)
     (ents : List EntryM) (ctx : List w8) (tm : TraceMsg)
     (h1 : m'.From' = src) (h2 : m'.Term' = T) (h3 : m'.To' = m.To') (h4 : m'.Reject' = m.Reject')
-    (h5 : m'.Index' = m.Index') (h6 : m'.LogTerm' = m.LogTerm') (h7 : m'.Commit' = m.Commit') :
+    (h5 : m'.Index' = m.Index') (h6 : m'.LogTerm' = m.LogTerm') (h7 : m'.Commit' = m.Commit')
+    (h8 : m'.RejectHint' = m.RejectHint') :
     MsgEvOf (absMsg t m' ents) tm → MsgEvOf (absMsgFrom t m src T ents ctx) tm := by
   unfold MsgEvOf absMsg absMsgFrom
   simp only [Msg.mkV]
-  rw [h1, h2, h3, h4, h5, h6, h7]
+  rw [h1, h2, h3, h4, h5, h6, h7, h8]
   exact id
 
 /-- (Q8 stage 1, slice 5) **`send`'s hook, the message queued and recorded** (`NGhost.lq`): the

@@ -740,7 +740,7 @@ theorem isRVResp_voteResp (C : List w64) (bl : Nat) (e : TraceEv) (id vote : w64
     (bt : uint.Z m.term < 2 ^ 63) :
     (msgLine e id vote m.src m.dst xs).isRequestVoteResponse
       ((msgAbs C bl m).get (by simp [msgAbs, hty])) = true := by
-  obtain ⟨htyp, hterm, -, -, -, -, -, -, hrej⟩ := hm
+  obtain ⟨htyp, hterm, -, -, -, -, -, -, hrej, -⟩ := hm
   have hmsg' : (msgAbs C bl m) = some
       { type := .requestVoteResponse, term := uint.Z m.term, source := idAbs m.src, dest := idAbs m.dst,
         voteGranted := !m.reject } := by
@@ -849,7 +849,7 @@ theorem isAEResp_appResp (C : List w64) (bl : Nat) (e : TraceEv) (id vote : w64)
     (bt : uint.Z m.term < 2 ^ 63) (bi : uint.Z m.index < 2 ^ 63) :
     (msgLine e id vote m.src m.dst xs).isAppendEntriesResponse
       ((msgAbs C bl m).get (by simp [msgAbs, hty])) = true := by
-  obtain ⟨htyp, hterm, -, -, -, -, hidx, -, hrej'⟩ := hm
+  obtain ⟨htyp, hterm, -, -, -, -, hidx, -, hrej', -⟩ := hm
   have hmsg' : (msgAbs C bl m) = some
       { type := .appendEntriesResponse, subtype := "app", term := uint.Z m.term, success := true,
         matchIndex := uint.Z m.index, source := idAbs m.src, dest := idAbs m.dst } := by
@@ -2239,7 +2239,7 @@ theorem isAEResp_any (C : List w64) (bl : Nat) (e : TraceEv) (id vote : w64) (xs
     (bt : uint.Z m.term < 2 ^ 63) (bi : uint.Z m.index < 2 ^ 63) :
     (msgLine e id vote m.src m.dst xs).isAppendEntriesResponse
       ((msgAbs C bl m).get (by simp [msgAbs, hty])) = true := by
-  obtain ⟨htyp, hterm, -, -, -, -, hidx, -, hrej'⟩ := hm
+  obtain ⟨htyp, hterm, -, -, -, -, hidx, -, hrej', -⟩ := hm
   simp only [msgAbs, hty, Option.get_some]
   unfold Etcdraft.Line.isAppendEntriesResponse
   simp only [msgLine, evConv, hmsg, Option.map_some]
@@ -2254,7 +2254,7 @@ theorem isAEResp_hbResp (C : List w64) (bl : Nat) (e : TraceEv) (id vote : w64) 
     (hrej : m.reject = false) (bt : uint.Z m.term < 2 ^ 63) :
     (msgLine e id vote m.src m.dst xs).isAppendEntriesResponse
       ((msgAbs C bl m).get (by simp [msgAbs, hty])) = true := by
-  obtain ⟨htyp, hterm, -, -, -, -, -, -, hrej'⟩ := hm
+  obtain ⟨htyp, hterm, -, -, -, -, -, -, hrej', -⟩ := hm
   simp only [msgAbs, hty, Option.get_some]
   unfold Etcdraft.Line.isAppendEntriesResponse
   simp only [msgLine, evConv, hmsg, Option.map_some]

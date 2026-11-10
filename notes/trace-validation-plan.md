@@ -883,6 +883,24 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   headers list the new lemmas and the blocker (N2). Note for F4: once `MsgEvOf` pins `rejectHint`, a
   receive line's premise also needs the received message's `rejectHint` bounded (its source, raft's
   message facts or a `simInv` clause on the bags, unchecked).
+  **Amendment A1 ready to freeze (2026-11-10, branch `trace-check-a1`).** The re-freeze's two repairs:
+  (1) `MsgEvOf` gains `tm.rejectHint = m.rejecthint` (every field `makeTracingMessage` writes is pinned
+  but `Vote`, some decimal), with `Msg.NumsBelow` and `sendEvOf_ok` (one lemma for send and receive
+  events, `sendEvt_inScope`/`recvEvt_inScope`); (2) the bootstrap capability's configuration: the
+  capability's `c` is always the voters', raft's apart from it while it grows from empty in `newRaft`
+  and `Bootstrap`; no law or Draft statement changed (`trCap_fire_boot`'s events were already free),
+  the gate `trCapB_hookGate_bf` and `raft.becomeFollower.traced` take the capability's `cC` apart from
+  raft's `c` (`b = true → cC = c`, `b = false → c.outgoing = ∅`) (`notes/decisions.md`, "Amendment
+  A1"). Also q13-r4's N3 (`ccEvOf_numsBelow`/`_confsWithin`), the stale "vacuous until Q8's logger
+  clause" note, `TraceEv.ok_mono`/`okBoot_mono` dropped (unused). Reviews: `a1-r1.md` (no first tier;
+  repaired: `Msg.NumsBelow`, docstrings, the open bootstrap gates named), `a1-r2.md` (no first tier;
+  repaired: the received numbers' carrier named, raft's `isMessage` with a trace-gated conjunct,
+  docstrings). Left (second tier, the Prove phase's or the user's): the carrier itself and the receipt
+  bound (F3, F4); the bootstrap routing (an `InitState`/`ApplyConfChange` parse lemma, an either-mode
+  `ApplyConfChange` gate with `cC` apart, an intro law for `trCapB` in `newRaft`); literal `2^40`/`2^61`,
+  unnamed event indices, pure premises outside the triples (grown by `hcC`, `hout`), the repeated
+  outcome state, `SimIdle`'s `2^63`, the API widening, `SendEvOf`'s vote unpinned. Full build green;
+  every TCB collection unchanged; the coordinator can tag the branch's head `trace-check-frozen-a1`.
 - **Q12 (2026-11-09, `Main`'s pure obligations): the checker's `numBound` against the step bound.**
   `numBound = 2^40` (`etcdraft/Rep.lean`, a constant of the proof, not of the Go) bounds the trace's
   numbers (`Event.Bounded`) and its length; raft's terms, indices and event count grow with the steps,
