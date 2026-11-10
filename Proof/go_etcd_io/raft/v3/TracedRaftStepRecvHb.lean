@@ -58,7 +58,7 @@ theorem ownRaftGhost_hbFacts (γ : RaftNames) (id : w64) (s : PState) (m : Msg) 
     m.ty = .heartbeat → m.dst = id → m.term = s.term → s.role ≠ .leader → s.base = base0 →
     PlogWf base0 s.log →
     ⊢ isMessage (GF := GF) γ m -∗ ownRaftGhost γ id s md ={⊤}=∗
-      ownRaftGhost γ id s md ∗ logRecs γ base0 s.log ∗
+      ownRaftGhost γ id s md ∗ ⌜(γ.reBoot.length : Int) ≤ uint.Z s.commit⌝ ∗ logRecs γ base0 s.log ∗
       (⌜¬ uint.Z s.commit < uint.Z m.commit⌝ ∨
         (⌜uint.Z s.commit < uint.Z m.commit ∧ uint.Z m.commit ≤ s.log.length⌝ ∗ commitIn γ s.log m.commit s.term ∗
           isCommitted γ (s.log.take (uint.Z m.commit).toNat))) := by
@@ -73,6 +73,8 @@ theorem ownRaftGhost_hbFacts (γ : RaftNames) (id : w64) (s : PState) (m : Msg) 
   icases Hown with ⟨%γs, %V, %πc, %kl, H⟩
   iNamed H
   ihave ⟨%Hok, #Hrecs⟩ := ownLogGhost_recs $$ Hlg
+  icases persistent_entails_right (wand_entails (ownLogGhost_boot (GF := GF) γ id s kl (virt V πc))) $$ Hlg
+    with ⟨⟨%Hbt, -⟩, Hlg⟩
   rw [Hbase]
   icases isMessage_hb_inv γ m Hty $$ Hm with ⟨-, ⟨%Fl, #Hfl, #Hmc, #Hmcm⟩, ⟨%i, %Hi, #Hack⟩, -, -⟩
   rw [Hto, Hterm]
@@ -117,6 +119,7 @@ theorem ownRaftGhost_hbFacts (γ : RaftNames) (id : w64) (s : PState) (m : Msg) 
         iexists γs, V, πc, kl
         iframe Hslot Hvirt Hpend Hout Htally Hlead Hlg Hlcm Hrd
         ipureintro; exact ⟨Hsname, Hfresh, Hidnz, Hhist, Hlead_ok, Hfollower_votes, Hrole_ok, Hmode⟩
+      isplitr; · ipureintro; exact Hbt.1
       iframe Hrecs
       iright
       isplitr; · ipureintro; exact ⟨Hlt, by omega⟩
@@ -134,6 +137,7 @@ theorem ownRaftGhost_hbFacts (γ : RaftNames) (id : w64) (s : PState) (m : Msg) 
         iexists γs, V, πc, kl
         iframe Hslot Hvirt Hpend Hout Htally Hlead Hlg Hlcm Hrd
         ipureintro; exact ⟨Hsname, Hfresh, Hidnz, Hhist, Hlead_ok, Hfollower_votes, Hrole_ok, Hmode⟩
+      isplitr; · ipureintro; exact Hbt.1
       iframe Hrecs
       iright
       isplitr; · ipureintro; exact ⟨Hlt, by omega⟩
@@ -147,6 +151,7 @@ theorem ownRaftGhost_hbFacts (γ : RaftNames) (id : w64) (s : PState) (m : Msg) 
       iexists γs, V, πc, kl
       iframe Hslot Hvirt Hpend Hout Htally Hlead Hlg Hlcm Hrd
       ipureintro; exact ⟨Hsname, Hfresh, Hidnz, Hhist, Hlead_ok, Hfollower_votes, Hrole_ok, Hmode⟩
+    isplitr; · ipureintro; exact Hbt.1
     iframe Hrecs
     ileft; ipureintro; exact Hlt
 
@@ -156,10 +161,11 @@ positions) agree are equal (`full_take_eq` at their last index). -/
 theorem log_eq_of_abs (γ : RaftNames) (C : List w64) (es L : List EntryM)
     (hb1 : BootTerms C.length 1 es) (hb2 : BootTerms C.length 1 L)
     (habs : logAbs C C.length 1 es = logAbs C C.length 1 L)
-    (hw1 : PlogWf base0 es) (hw2 : PlogWf base0 L) (hl : L.length < 2 ^ 63) :
+    (hw1 : PlogWf base0 es) (hw2 : PlogWf base0 L) (hl1 : es.length < 2 ^ 63) :
     logRecs (GF := GF) γ base0 es ∗ logRecs γ base0 L ⊢ ⌜es = L⌝ := by
   have hlen : es.length = L.length := by
     have := congrArg List.length habs; simpa [logAbs_length] using this
+  have hl : L.length < 2 ^ 63 := by omega
   iintro ⟨#H1, #H2⟩
   rcases Nat.eq_zero_or_pos L.length with h0 | hpos
   · ipureintro
@@ -221,8 +227,7 @@ theorem simFx_hb (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (ma : Etc
     (hterm : ma.term = (σ.s ma.dest).currentTerm) (hsub : ma.subtype = "heartbeat")
     (hprev : ma.prevLogIndex = 0) (hents : ma.entries = []) (hc1 : 1 ≤ (σ.s ma.dest).commitIndex)
     (hmem : ma ∈ σ.messages.domain)
-    (hlog : (σ.s ma.dest).log = logAbs C C.length 1 L) (hbL : BootTerms C.length 1 L) (hwL : PlogWf base0 L)
-    (hlL : L.length < 2 ^ 63) :
+    (hlog : (σ.s ma.dest).log = logAbs C C.length 1 L) (hbL : BootTerms C.length 1 L) (hwL : PlogWf base0 L) :
     simFx (GF := GF) γ C σ ∗ logRecs γ base0 L ∗
       (⌜¬ (σ.s ma.dest).commitIndex < ma.commitIndex⌝ ∨
         (⌜(σ.s ma.dest).commitIndex < ma.commitIndex ∧ ma.commitIndex ≤ L.length⌝ ∗
@@ -276,7 +281,7 @@ theorem simFx_hb (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (ma : Etc
       subst hpend
       simp only [List.append_nil] at hlg hbt hwr hln
       have hwe : PlogWf base0 es := PlogWfR_wf _ _ hwr (by unfold plogLastIndexZ; rw [base0_index]; omega)
-      icases log_eq_of_abs γ C es L hbt hbL (hlg.symm.trans hlog) hwe hwL hlL $$ [$Hrec $HL] with %HeL
+      icases log_eq_of_abs γ C es L hbt hbL (hlg.symm.trans hlog) hwe hwL hln $$ [$Hrec $HL] with %HeL
       subst HeL
       iunfold srvFacts
       iexists es, []
@@ -425,7 +430,7 @@ theorem fxPresR_hb (γ : RaftNames) (id : w64) (ma : Etcdraft.Msg) (E : TraceEv 
     (C0 : List w64) (cs0 cs1 : ServerC) (P0 : List Etcdraft.Msg) (r1 : Etcdraft.Msg) (L : List EntryM)
     (c0 T : Int) (hiC : id ∈ C0) (hdst : ma.dest = idAbs id) (hty : ma.type = .appendEntriesRequest)
     (hsub : ma.subtype = "heartbeat") (hprev : ma.prevLogIndex = 0) (hents : ma.entries = [])
-    (hbL : BootTerms C0.length 1 L) (hwL : PlogWf base0 L) (hlL : L.length < 2 ^ 63)
+    (hbL : BootTerms C0.length 1 L) (hwL : PlogWf base0 L)
     (hpin : ∀ a, toC (confAbs C0) a = cs0 → cs1 = toC (confAbs C0) (hbSrv a ma.source ma.commitIndex) ∧
       r1 = hbResp a (idAbs id) ma.source ∧ ma.term = a.currentTerm ∧ a.state = Etcdraft.follower ∧
       1 ≤ a.commitIndex ∧ a.commitIndex = c0 ∧ a.currentTerm = T ∧ a.log = logAbs C0 C0.length 1 L) :
@@ -446,7 +451,7 @@ theorem fxPresR_hb (γ : RaftNames) (id : w64) (ma : Etcdraft.Msg) (E : TraceEv 
   have hph : recvPhantoms ma a = [] := recvPhantoms_nolow ma a (by rw [hle]; exact Int.lt_irrefl _)
   have hσd : σ.s ma.dest = a := by rw [hdst]; exact hσa
   ihave #H1 := simFx_hb γ C σ ma L id hsrv hiC hdst hpv hcq (by rw [hσd]; exact hfol) hty
-    (by rw [hσd]; exact hle) hsub hprev hents (by rw [hσd]; exact hcm1) hmem (by rw [hσd]; exact hlog) hbL hwL hlL
+    (by rw [hσd]; exact hle) hsub hprev hents (by rw [hσd]; exact hcm1) hmem (by rw [hσd]; exact hlog) hbL hwL
     $$ [$Hfx $HL]
   · rw [hσd, hc0, hT]
     iexact Hcert
@@ -554,6 +559,240 @@ theorem hbEnd_simIdle (C : List w64) (id : w64) (s : NState) (m : MessageM) (ent
   · exact bl
 
 end hb
+
+section paths
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- A heartbeat is none of the other types a gate guards on. -/
+theorem hb_ne {t : w32} (h : t = MsgHeartbeat) :
+    t ≠ MsgApp ∧ t ≠ MsgVote ∧ t ≠ MsgProp ∧ t ≠ MsgReadIndex ∧ t ≠ MsgTransferLeader ∧
+    t ≠ MsgTimeoutNow ∧ t ≠ MsgBeat ∧ t ≠ MsgCheckQuorum ∧ t ≠ MsgPreVoteResp ∧ t ≠ MsgVoteResp ∧
+    t ≠ MsgHeartbeatResp ∧ t ≠ MsgAppResp ∧ t ≠ MsgPreVote ∧ t ≠ MsgHup ∧ t ≠ MsgSnap := by
+  subst h
+  simp [MsgAppResp, MsgHeartbeatResp, MsgVoteResp, MsgApp, MsgHeartbeat, MsgProp, MsgReadIndex,
+    MsgTransferLeader, MsgTimeoutNow, MsgBeat, MsgCheckQuorum, MsgPreVoteResp, MsgVote, MsgPreVote, MsgHup,
+    MsgSnap]
+
+/-- **A heartbeat of the node's term at a follower.** -/
+def FolHb (s : NState) (m : MessageM) : Prop :=
+  m.Type' = MsgHeartbeat ∧ m.Term' = s.term ∧ s.role = .follower
+
+/-- **`raft.Step`'s traced bundle on a heartbeat of the node's term at a follower**: the receive line
+(the specification's heartbeat handling, the commit raised with the certificates the heartbeat's raft
+facts give, `ownRaftGhost_hbFacts`), then the response's send line, which the specification skips; the
+end state is `heartbeatResult`'s (`hbEnd_simIdle`). The resources are `voteR`'s (one pinned phase after
+the receive line). -/
+theorem stepBundle_traced_folHb : stepBundle_traced.on (GF := GF) (hG := hG) FolHb := by
+  intro γ md c r id s m ents sn ctx rs γd Λ hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit hlrn hdom
+    hnpc hsh hboot
+  obtain ⟨hTy, hterm, hrole⟩ := hp
+  have hmty : mtypeOf m.Type' = some .heartbeat := by rw [hTy]; rfl
+  have htrd : MsgType.traced .heartbeat = true := rfl
+  obtain ⟨evt, hevt, hev⟩ := recvEvTy_of .heartbeat m ents hmty htrd hsh
+  have hto' : m.To' = id := hto .heartbeat hmty htrd
+  have hne : id ≠ m.From' := fun h => hsh.2.2 (.inr (.inr hTy)) (by rw [hto', h])
+  have hents : ents = [] := hsh.1 hTy
+  have hb0 : γ.reBoot ≠ [] := hboot (.inl hTy)
+  have hnbf : ¬ PreBF m s := fun h => absurd h.1 (by rw [hterm]; omega)
+  have hpre : ∀ pvs, preState s m pvs = s := fun pvs => by simp [preState, hnbf]
+  have hns : ¬ StaleMsg s m := fun h => absurd h.2 (by rw [hterm]; omega)
+  have hsome : s.gh.tr ≠ none := by rw [htr]; simp
+  have hnl : s.role ≠ .leader := by rw [hrole]; nofun
+  obtain ⟨hnA, hnV, hnP, hnRI, hnTL, hnTN, hnB, hnCQ, hnPVR, hnVR, hnHR, hnAR, hnPV, hnHup, hnS⟩ := hb_ne hTy
+  have hmt2 : mtypeOf m.Type' = some .heartbeat ∧ MsgType.traced .heartbeat = true := ⟨hmty, htrd⟩
+  iintro ⟨Hcap, ⟨Htok, #Hmsg⟩, #Hnosnap⟩
+  iunfold recvTokOf at Htok
+  icases Htok $$ %MsgType.heartbeat %hmt2 with ⟨%tn, %k, %ma, #Hdir, %hma, Htok⟩
+  ihave #Hmc := Hmsg $$ %MsgType.heartbeat %hmt2
+  ihave #Hm := isMessageC_isMessage γ _ $$ Hmc
+  rw [msgAbs_absMsg_ctx] at hma
+  rw [htr]
+  icases trCapB_pinDir γd γ r id c true _ Λ $$ Hcap with ⟨%tn', %cs0, %P0, #Hdir', %hI0, Hcap⟩
+  icases traceDir_agree γd tn tn' $$ [$Hdir $Hdir'] with %Htn
+  subst Htn
+  obtain ⟨⟨a0, ha0, hR0, hs0, hP0, bt, bc, bl⟩, hidC⟩ := hI0
+  -- the specification's heartbeat
+  have hfa : ma.dest = idAbs id ∧ ma.source = idAbs m.From' ∧ ma.type = .appendEntriesRequest ∧
+      ma.subtype = "heartbeat" ∧ ma.prevLogIndex = 0 ∧ ma.entries = [] ∧ ma.commitIndex = uint.Z m.Commit' ∧
+      ma.term = uint.Z m.Term' := by
+    simp only [TraceSim.msgAbs, absMsg, absMsgFrom, Msg.mkV] at hma
+    injection hma with hma
+    rw [← hma]
+    simp [hto']
+  obtain ⟨hmd, hms, hmty', hmsub, hmprev, hments, hmcm, hmterm⟩ := hfa
+  have hlogA : a0.log = logAbs tn.voters tn.voters.length 1 (toPState s).log := hR0.2.2.2.2.2.1
+  have hwB : PlogWf base0 (toPState s).log := by have h := hs0.2.1; rw [hs0.1] at h; exact h
+  have hbL : BootTerms tn.voters.length 1 (toPState s).log := fun k e hk he => hs0.2.2 k e (by omega) he
+  imodintro
+  iexists voteR γ md c r id s γd tn cs0 (toC (confAbs tn.voters) (hbSrv a0 (idAbs m.From') ma.commitIndex)) P0
+    (P0 ++ [hbResp a0 (idAbs id) (idAbs m.From')]) Λ k ma
+  isplitl [Hcap Htok]
+  · dsimp only [voteR]; iframe Hcap Htok
+  isplitr
+  · iunfold stepGates
+    dsimp only [ghostIn, voteR]
+    isplitr
+    · -- the receive line
+      iintro ⟨Hgh, Hc, Htok⟩
+      iapply hookGateOpt_fupd_recv
+      icases ownStepGhost_nsLink γ md c id s $$ Hgh with ⟨%Hnl, Hgh⟩
+      imod ownStepGhost_traceOk γ md c id s hfit $$ Hgh with ⟨%Hb, Hgh⟩
+      iunfold ownStepGhost at Hgh
+      icases Hgh with ⟨Hg, Hr⟩
+      imod ownRaftGhost_hbFacts γ id (toPState s) (absMsg .heartbeat m ents ctx) rfl hto'
+        (by show m.Term' = s.term; exact hterm) (by show proleRole s.role ≠ .leader; rw [hrole]; nofun)
+        hs0.1 hwB $$ Hm Hg with ⟨Hg, %Hbc, #HL, #Hcert⟩
+      imodintro
+      have hreT : γ.reTrace.isSome := by rw [← Hnl.2.1, htr]; rfl
+      have hnb : (absMsg .heartbeat m ents).NumsBelow traceNumBound := hok .heartbeat hmty hreT htrd
+      have hc1 : 1 ≤ uint.Z (toPState s).commit := by
+        have : (1 : Int) ≤ γ.reBoot.length := by
+          have := List.length_pos_iff.mpr hb0; omega
+        omega
+      have hps := phaseStepR_hb id c s m ents evt tn.voters cs0 P0 a0 ha0 ma hev hto' hterm hrole hents hc1 hnb hma
+      have hnb' := recvEvTy_notBoot hev
+      have hOk : ∀ e, SendEvOf evt id s c (absMsg .heartbeat m ents) e → TraceEv.Ok (elements c.incoming).length e :=
+        fun e he => sendEvOf_ok evt id s c _ e _ he ⟨hnb'.1, hnb'.2.2.2⟩ (by word) Hb.2 Hb.1 hnb (Nat.le_refl _)
+      iapply recvGate_traced γd γ r id c s m ents sn ctx rs .heartbeat evt true k ma (fun _ => False)
+        (recvPhantoms ma) _ _ Λ (ownStepGhost γ md c id s) htr hmty hevt hps hOk
+      isplitl [Hg Hr]
+      · iunfold ownStepGhost; iframe Hg Hr
+      iframe Hc
+      isplitr
+      · iapply fxPresR_hb γ id ma _ s tn.voters cs0 _ P0 _ (toPState s).log (uint.Z s.logst.committed)
+          (uint.Z s.term) hidC hmd hmty' hmsub hmprev hments hbL hwB
+        · intro a ha
+          have hcx : toC (confAbs tn.voters) a0 = toC (confAbs tn.voters) a := ha0.trans ha.symm
+          have hRa : SimServerR tn.voters tn.voters.length (toPState s) a := simServerR_toC hcx hR0
+          refine ⟨?_, ?_, ?_, ?_, ?_, hRa.2.2.2.2.2.2.1, hRa.1, hRa.2.2.2.2.2.1⟩
+          · rw [hms]
+            have h1 : a0.commitIndex = a.commitIndex := congrArg ServerC.commitIndex hcx
+            simp only [toC, hbSrv] at hcx ⊢
+            injection hcx with h1' h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12
+            rw [h1]
+            congr 1
+          · rw [hms]
+            have h1 : a0.currentTerm = a.currentTerm := congrArg ServerC.currentTerm hcx
+            unfold hbResp; rw [h1]
+          · rw [hmterm, hRa.1, hterm]; rfl
+          · rw [hRa.2.1]; simp [toPState, hrole, proleRole, roleAbs]
+          · rw [hRa.2.2.2.2.2.2.1]; exact hc1
+        · have hW1 : W64 (uint.Z m.Commit') = m.Commit' := by word
+          have hW2 : W64 (uint.Z s.term) = s.term := by word
+          rw [hmcm, hW1, hW2, show (absMsg .heartbeat m ents ctx).commit = m.Commit' from rfl,
+            show (toPState s).term = s.term from rfl]
+          iframe HL
+          icases Hcert with (%H0 | ⟨%H1, #H2, #H3⟩)
+          · ileft; ipureintro; exact H0
+          · iright
+            isplitr; · ipureintro; exact H1
+            isplitr
+            · iexact H2
+            · iexact H3
+      · iexists tn; iframe Hdir Htok
+    isplitr
+    · -- the preamble: no step-down at the node's term
+      unfold preGate
+      iintro %_ HG0
+      simp only [hnbf, ↓reduceIte]
+      imodintro
+      iexact HG0
+    isplitr
+    · iintro %h; exact (hns h).elim
+    isplitr
+    · iintro %h; exfalso; rcases h with h | h
+      · exact hnV h
+      · exact hnPV h
+    isplitr
+    · iintro %h; exact (hnHup h).elim
+    isplitr
+    · unfold stepFnGates
+      iintro %pvs
+      rw [hpre pvs]
+      isplit
+      · iintro %_
+        iunfold followerGates
+        isplitr
+        · iguard_false [hnA]
+        isplitr
+        · -- the response's send line, skipped by the specification
+          iintro %_ ⟨Hgh, Hc⟩
+          rw [htr]
+          iapply hookGateOpt_fupd_recv
+          icases ownStepGhost_nsLink γ md c id s $$ Hgh with ⟨%Hnl, Hgh⟩
+          imod ownStepGhost_traceOk γ md c id s hfit $$ Hgh with ⟨%Hb, Hgh⟩
+          imodintro
+          have hreT : γ.reTrace.isSome := by rw [← Hnl.2.1, htr]; rfl
+          have hnb : (absMsg .heartbeat m ents).NumsBelow traceNumBound := hok .heartbeat hmty hreT htrd
+          have hn := hbresp_nums id s m ctx hT
+          have hcm : uint.nat (plogCommitTo s.logst.committed m.Commit') < traceNumBound := by
+            unfold plogCommitTo; split
+            · exact hnb.2.2.2.2.1
+            · exact Hb.2
+          iapply skipGate_hbresp γd γ r id c _ { Msg.plain .heartbeatResp id m.From' s.term false with ctx := ctx }
+            tn.voters _ _ (ownStepGhost γ md c id s) rfl (by simp only [Msg.plain]; exact hne)
+            (fun e ⟨mm, hmm, he⟩ => by
+              simp only [List.mem_singleton] at hmm; subst hmm
+              exact sendEvOf_ok _ id _ c _ e _ he (by decide) (by word) hcm Hb.1 hn (Nat.le_refl _))
+          iframe Hgh Hc
+        repeat (isplitr; · iguard_false [hnP, hnRI, hnTL, hnTN])
+        iguard_false [hnTN]
+      isplit
+      · iintro %h; exfalso; rw [hrole] at h; rcases h with h | h <;> cases h
+      · iintro %h; exfalso; rw [hrole] at h; cases h
+    · ipureintro
+      exact ⟨fun _ _ _ => rfl, IdxFree.of_some _ hsome, IdxFree.of_some _ hsome,
+        IdxFree.of_some _ hsome, fun _ _ => IdxFree.of_some _ hsome⟩
+  · -- the closing wand: raft's heartbeat handling, the specification's
+    iunfold stepClose
+    iintro %s' %B %recv %_ %hend Hout
+    have hse : s' = heartbeatResult id { s with lead := m.From' } m ctx := by
+      obtain ⟨pvs, h⟩ := ((hend (by rw [htr]; rfl)) hty).2.2.2 hns hnHup hnV
+      rw [hpre pvs] at h
+      obtain ⟨scfg, sv, d, c', hf⟩ := h.1 hrole
+      unfold FollowerStepResultC at hf
+      obtain ⟨-, hf⟩ := hf
+      rw [hTy] at hf
+      simp [MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat] at hf
+      exact hf.2
+    subst hse
+    have hmono : γ.reTrace.isSome → ∀ C cs P, VPin tn.voters
+        (toC (confAbs tn.voters) (hbSrv a0 (idAbs m.From') ma.commitIndex))
+        (P0 ++ [hbResp a0 (idAbs id) (idAbs m.From')]) C cs P →
+        SimIdle C (heartbeatResult id { s with lead := m.From' } m ctx) cs P := by
+      intro hre
+      rintro C cs P ⟨rfl, rfl, rfl⟩
+      have hnb := hok .heartbeat hmty hre htrd
+      have hmc63 : uint.Z m.Commit' < 2 ^ 63 := (numsBelow_63 hnb).2.2.2.2
+      have hP0' : P0 = pendAbs tn.voters s.outbox := hP0
+      rw [hP0']
+      exact hbEnd_simIdle tn.voters id s m ents ctx a0 ma hR0 hs0 bt bc bl hrole hmc63 hma
+    have hout : OutTrStep s (heartbeatResult id { s with lead := m.From' } m ctx) := by
+      intro _ x hx
+      simp only [heartbeatResult, sendMsgs, List.mem_append, List.mem_singleton] at hx
+      rcases hx with hx | rfl
+      · exact .inl hx
+      · exact .inr (fun _ => hbresp_nums id s m ctx hT)
+    unfold stepOut
+    dsimp only [voteR]
+    icases Hout with (⟨Hgh, Hc⟩ | ⟨Hgh, Hc⟩ | ⟨Hgh, Hc, -⟩ | %h | ⟨%b, %N, %h⟩)
+    rotate_right 2
+    · exact h.elim
+    · exact h.elim
+    all_goals
+      icases ownStepGhost_nsLink γ md c id s $$ Hgh with ⟨%Hnl, Hgh⟩
+      have hre : γ.reTrace.isSome := by rw [← Hnl.2.1, htr]; rfl
+      iframe Hgh
+      isplitl [Hc]
+      · iapply trCapB_monoΛ (some γd) γ r id c true _ _ _ (fun o h => .inr h)
+        iapply trCapB_mono (some γd) γ r id c true _ _ _ (hmono hre) $$ Hc
+      · ipureintro; exact hout
+
+end paths
 
 end EtcdGrove
 end Perennial
