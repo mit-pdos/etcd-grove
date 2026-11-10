@@ -375,7 +375,6 @@ axiom streamKeyOf_none
 axiom streamKeyOf_single
 axiom strings.SplitN.wp_proof
 axiom strings.TrimSuffix.wp_proof
-axiom swMsgBound_phys
 axiom time.Duration.Seconds.wp_proof
 axiom time.Duration.Seconds_ptr.wp_proof
 axiom time.Time.After.wp_proof
@@ -436,3 +435,4 @@ axiom zap.Uint.wp_proof
 axiom zap.Uint32.wp_proof
 axiom zap.Uint64.wp_proof
 axiom zapcore.CheckedEntry.Write.wp_proof
+sorry out_size
