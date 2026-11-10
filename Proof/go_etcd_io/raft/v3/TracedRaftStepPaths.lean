@@ -389,7 +389,7 @@ def localR (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NS
 
 /-- **`raft.Step`'s traced bundle on the local messages that log no line.** -/
 theorem stepBundle_traced_localNoLine : stepBundle_traced.on (GF := GF) (hG := hG) LocalNoLine := by
-  intro γ md c r id s m ents sn ctx rs γd Λ hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit
+  intro γ md c r id s m ents sn ctx rs γd Λ hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit _ _
   have hT0 : m.Term' = W64 0 := hloc (by rcases hp.1 with h | h <;> simp [h])
   have hnbf : ¬ PreBF m s := by
     unfold PreBF; rw [hT0]; intro h; have := h.1; simp at this
