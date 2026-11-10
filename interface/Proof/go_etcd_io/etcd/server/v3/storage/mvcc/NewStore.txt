@@ -2,19 +2,10 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem mvcc.ownToks_ones [go_etcd_io.etcd.cache.v3.Assumptions] (γ : GName) (n : Nat) : ownToks γ n
-    ⊢ [∗list] _x ∈ List.replicate n (), ownToks γ 1
-
-theorem mvcc.storeReaders_of_slots [go_etcd_io.etcd.cache.v3.Assumptions] (s : Loc) (γ :
-    mvcc.StoreNames) (n : Nat) : (([∗list] _x ∈ List.replicate n (), sync.ownRWMutex (mvcc.muAddr s)
-    (mvcc.muInv s γ)) ∗ ([∗list] _x ∈ List.replicate n (), sync.ownRWMutex (mvcc.revMuAddr s)
-    (mvcc.revMuInv s γ)) ∗ [∗list] _x ∈ List.replicate n (), ownToks γ.tk 1) ⊢ [∗list] _x ∈
-    List.replicate n (), mvcc.storeReaderC s γ
-
 theorem mvcc.NewStore.wp_proof [go_etcd_io.etcd.cache.v3.Assumptions] (hNop : zap.NewNop.spec)
     (hNewIdx : mvcc.newTreeIndex.spec) (hFifo : schedule.NewFIFOScheduler.spec) (hHash :
     mvcc.NewHashStorage.spec) (hMeta : schema.UnsafeCreateMetaBucket.spec) (hRestore :
-    mvcc.store.restore.spec) : mvcc.NewStore.spec
+    mvcc.store.restore.spec) (hCLF : mvcc.store.compactLockfree.spec) : mvcc.NewStore.spec
   -- `Perennial.EtcdGrove.mvcc.NewStore.spec`, unfolded:
   ∀ [ReceiptBoundLe GF (2 ^ 48)] (lg : Loc) (b le : GoInterface)
     (cfg : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig) (d : mvcc.KBReal) (γb γl : GName) (P : IProp GF)
@@ -107,15 +98,3 @@ theorem mvcc.NewStore.wp_proof [go_etcd_io.etcd.cache.v3.Assumptions] (hNop : za
                   (intoVal le))
                 (intoVal cfg))
               {{ Φ }}
-
-theorem mvcc.cmpTrack_fresh [go_etcd_io.etcd.cache.v3.Assumptions] (γ : mvcc.StoreNames) :
-    mvcc.kbVals γ.kb (none, none) ∅ ∗ ghostVar γ.rcv (Qp.half 1) (-1) ∗ ghostVar γ.jc (Qp.half 1)
-    (-1, { main := W64 0, sub := W64 0 }) ∗ monoNatAuthOwn γ.rcl 1 (mvcc.crevN (-1)) ⊢ mvcc.cmpTrack
-    γ [[], []] ∅ { fin := none, sched := none } ∗ (⌜¬mvcc.kbCmpM γ.kb⌝ -∗ mvcc.kbVals γ.kb (none,
-    none) ∅)
-
-theorem mvcc.cmpOk_fresh : mvcc.snap.cmpOk [[], []] ∅ ∅ { fin := none, sched := none } (-1, { main
-    := W64 0, sub := W64 0 })
-
-theorem mvcc.slot_take [go_etcd_io.etcd.cache.v3.Assumptions] (Q : IProp GF) : ([∗list] _x ∈
-    List.replicate mvcc.nReaders (), Q) ⊢ Q ∗ (Q -∗ [∗list] _x ∈ List.replicate mvcc.nReaders (), Q)
