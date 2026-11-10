@@ -5,7 +5,8 @@ counterpart). Over the sealed definitions of `Api.lean` (imported with `import a
 * `imageOk_start`: the image of the empty history has an empty `Key` bucket and no compaction
   record (`noCmpData`).
 * `NewStore.wp_proof`: `NewStore.spec` (the API's) from the internal `mvcc.NewStore.spec` and the
-  bridge's backend specs: `mvccStorageFor` at `mvccStart` gives the internal premises (the bridge's
+  bridge's backend specs (B3, 2026-11-10: at any image, `ImageBridge.lean`; until then as follows):
+  `mvccStorageFor` at `mvccStart` gives the internal premises (the bridge's
   contract `storeBackend_of_backendC` over the registration fixed at fresh index names, the empty
   view, the exact no-compaction token and the bit from the open's `fkCl`, the reader tokens, the
   safe-range slot); the post's `isMvcc` (`isMvccPlain`: the store, its location, the permit `True`),
@@ -27,6 +28,8 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.SnapImage
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.RdSupply
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.DeleterApi
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.WriteApi
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.ImageBridge
+import all Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend
 
 @[expose] public section
 
@@ -101,10 +104,12 @@ theorem bkRTx_of_rdToks (γ : backend.BNames) (P : backend.BParams) (b : Loc) : 
     iapply bkRTx_of_rdToks γ P b n
     iframe Hr Ho
 
-/-- **`NewStore.spec`** (the API's) from the internal one and the bridge's backend specs (B3 Prove:
-the proof of the fresh statement, until mvccfull's Freeze of 2026-11-10, is at commit `ae30739dde`;
-the outline is `New.wp_proof`'s, `NewApi.lean`, at a store without watchers; review round 2's S3/S4:
-its glue, `restore_of_storage`'s reuse, is written here). -/
+/-- **`NewStore.spec`** (the API's) from the internal one and the bridge's backend specs (B3,
+mvccfull's Freeze, 2026-11-10; until then of the fresh statement, commit `ae30739dde`): the storage
+at its image as the internal `NewStore` takes it (`newStore_of_storage`, `ImageBridge.lean`), the
+resumed compaction's context (`resumeCtx_of_api`), the certificate map's free entry before the call;
+after it, the restorable compaction right at the restored revision (`storeCloserM_on`), the client's
+state at `σ` from `newClient`, the initial log's certificate from `isStore`. -/
 theorem NewStore.wp_proof
     (hNewStore : mvcc.NewStore.spec (GF := GF) (hG := hG))
     (hCRT : backend.backend.ConcurrentReadTx.spec (GF := GF) (hG := hG))
@@ -135,10 +140,184 @@ theorem NewStore.wp_proof
     (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG))
     (hWr : mvcc.store.Write.spec (GF := GF) (hG := hG)) :
     NewStore.spec (GF := GF) (hG := hG) := by
-  -- B3 Prove (mvccfull's Freeze, 2026-11-10): as `New.wp_proof` (`NewApi.lean`), over the internal
-  -- `mvcc.NewStore.spec` (also restated).
-  sorry
-
+  intro hrbI lg le cfg B Pk γl rd0 σ u Ls dq f Pre Q' Post X Y
+  have hrb : receiptBound GF ≤ 2 ^ 48 := hrbI.receiptBound_le
+  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, Hfor, %Hpre, Hlrd, #Hle, Hro, HLo, %HLs, Hif⟩ HΦ
+  obtain ⟨hcfg, hreach, hpend⟩ := Hpre
+  -- the index's names; the storage at its image
+  imod idxFresh_alloc (GF := GF) with ⟨%γi, Hifresh⟩
+  icases newStore_of_storage hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU hrUR hLI hLO hSP hUL
+      hbUR hCB hDel hID hName hSafe hLSR hUSR hUP hrb B Pk σ.log σ.crev u γl γi
+      $$ [$Hbpkg $Hsch $Hfor]
+    with ⟨%bk, %r, %R, %Hb, Hrcpt, #Hrc, #Hsess, HbkT, HcrT, Himg, HndO, Hrg, Hreg, Hw1, Hw2,
+      Hsr, #Hsup, Hrts, #Hb, #Hwbs⟩
+  obtain ⟨hB, hcm, hL, hlok, hrc, hru, hlp, hrec⟩ := Hb
+  subst hB
+  rcases σ with ⟨log, crev, pend⟩
+  simp only at hL hrc hpend hreach HLs ⊢
+  subst hL hrc hpend
+  -- the resumed compaction's context
+  icases resumeCtx_of_api bk r u hru Pk dq f Pre Q' Post X Y $$ [$Hb $Hif]
+    with ⟨%hkH, %dqh, %PreH, %QH, %PostH, %XH, %YH, Hctx, Hback⟩
+  -- the certificate map, with its free entry
+  imod ghost_map_alloc_empty (K := w64) (V := Log) (GF := GF) with ⟨%γok, Hok0⟩
+  imod ghost_map_insert_persist (W64 0) ([] : Log) (GMap.lookup_empty _) $$ Hok0 with ⟨Hok0, #Hfree⟩
+  iapply wp_fupd
+  wp_apply +noauto (hNewStore lg _ le cfg bk γl γl Pk rd0 false γi γok _ (fun _ => iprop(True))
+      R r Ls hkH PreH QH PostH XH YH dqh)
+    $$ [HbkT HcrT Himg Hrcpt HndO Hrg Hreg Hw1 Hw2 Hsr Hrts Hlrd Hro HLo Hifresh Hok0 Hctx]
+    as %s ⟨%γ, %Hγ, #Hs, ⟨%rd, Hro, #Hrdc⟩, Hcok, #Hhk, ⟨%rv, %wv, HrvF, #HrvI, HwvF, #HwvI⟩,
+      Hrds, #HcL, -, Hcl, -, HfsQ, Hwsd, Hfrag, Hret, #Hcp, #Hwreg, ⟨%pr, %hpr, Hnc⟩, HLo, HrB,
+      Hlc1⟩
+  · iframe Hpkg Hle Hro Hifresh Hok0 Hsess HbkT HcrT Himg Hrcpt HndO Hrg Hreg Hw1 Hw2 Hsr Hrts
+      Hlrd HLo Hctx
+    isplitr
+    · ipureintro; exact ⟨hcfg, hlok⟩
+    isplitr
+    · ipureintro; exact HLs
+    isplitr
+    · iright; iright; iexact Hfree
+    isplitr
+    · iright; iintro !>; itrivial
+    isplitr
+    · iright; iintro !>; itrivial
+    cases r.resumes
+    · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
+    · simp only [↓reduceIte]; iexact Hsup
+  obtain ⟨-, hγl, hγk, hγw, -, hγc, -⟩ := Hγ
+  icases Hback $$ HrB with Hres
+  -- the initial log's certificate (the store's)
+  ihave #Hs' := Hs
+  iunfold isStore at Hs'
+  icases Hs' with ⟨%le', %lg', %scfg, %shs, Hs'⟩
+  iNamed Hs'
+  -- the views, for good (a store without watchers: no watchable store rewrites them)
+  ipersist HrvF
+  ipersist HwvF
+  -- the pending revision's client part: half (a plain store)
+  have hpr' : pr = (1 : Qp).half := by
+    unfold pndW at hpr
+    rw [hγw] at hpr
+    simp only [Bool.false_eq_true, ↓reduceIte] at hpr
+    rw [Qp.ext_iff] at hpr ⊢
+    simp only [Qp.val_add, Qp.val_half, Qp.val_one] at hpr ⊢
+    grind
+  subst hpr'
+  iunfold api.newClient at Hnc
+  icases Hnc with ⟨Hab, Hpn, Hcr2, Hcr4, #Hlb, Htok, Hnl, #Hloc, Hrdk⟩
+  -- a reader retired from the pool for the open token's reader (the compactor's)
+  iunfold writerFrag at Hfrag
+  icases Hfrag with ⟨%o, Hcur⟩
+  have hn : nReaders - nJobRd (some bk) = (nReaders - nJobRd (some bk) - 2) + 1 + 1 := by
+    have : 3 ≤ nReaders := by rw [nReaders_val]; omega
+    have : nJobRd (some bk) ≤ 1 := nJobRd_le (some bk)
+    omega
+  rw [hn, List.replicate_succ, List.replicate_succ]
+  icases BigSepL.bigSepL_cons.1 $$ Hrds with ⟨Hrd1, Hrds⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hrds with ⟨Hrd2, Hrds⟩
+  ihave Hrd1 : storeReader (GF := GF) s γ $$ [Hrd1]
+  · iunfold storeReader; iexact Hrd1
+  ihave Hrd2 : storeReader (GF := GF) s γ $$ [Hrd2]
+  · iunfold storeReader; iexact Hrd2
+  -- and one for the writer's own (`writerOwn`, which `Restore` takes)
+  imod storeReader_retire2 s γ _ o (nJobRd (some bk)) $$ Hlc1 Hs Hcur Hrd1 Hrd2 Hret
+    with ⟨HRT, HRTw, Hret, Hcur⟩
+  -- the rest: two readers' tickets the open token's, the other readers in the reader tokens' pool
+  have hN : nReaders - nJobRd (some bk) - 2 = 2 + mvccReaderN := by
+    have h1 : mvccReaderN = backend.rdStockN - 7 := rfl
+    have h2 : nReaders = backend.rdStockN - 2 := rfl
+    have : 7 ≤ backend.rdStockN := by rw [backend.rdStockN_val]; omega
+    have : nJobRd (some bk) = 1 := by simp [nJobRd, hcm]
+    omega
+  rw [hN]
+  rw [show List.replicate (2 + mvccReaderN) () = List.replicate 2 () ++ List.replicate mvccReaderN ()
+    from List.replicate_append_replicate.symm]
+  icases BigSepL.bigSepL_append.1 $$ Hrds with ⟨Hrd2s, Hrds⟩
+  imod storeReaders_split s γ 2 $$ Hrd2s with ⟨-, Htk2⟩
+  imod rdSupply_init s γ _ $$ [Hrdk Hrds] with ⟨#Hsupp, Htks⟩
+  · iframe Hrdk Hrds
+  -- the certificate map's free entry
+  ihave #Hfree' : certFree (GF := GF) γ $$ []
+  · iunfold certFree; rw [hγc]
+    iexact Hfree
+  ihave #Hwts : □ (⧗ 1 ={⊤}=∗ storeWT (GF := GF) γ) $$ []
+  · unfold storeWT kbWT; rw [show γ.kb = some bk from hγk]; iexact Hwbs
+  -- the compaction right, from the closer at the restored revision
+  have hcmγ : kbCmpM γ.kb := by rw [hγk]; exact hcm
+  icases (storeCloserM_on s γ r.crev hcmγ).1 $$ Hcl with Hright
+  -- the handle
+  ihave #Hmv : □ isMvcc (GF := GF) (interface.mkOk (go.GoType.PointerType store.ty) #s) γ $$ []
+  · iintro !>
+    iunfold isMvcc
+    iintro !>
+    ileft
+    isplitl
+    · iunfold isMvccPlain
+      iexists s
+      iframe Hs Hloc Hcp Hsupp Hfree' Hc0
+      isplitr
+      · ipureintro; rfl
+      iexists rv, wv
+      iframe HrvF HrvI HwvF HwvI
+    ipureintro; exact hγw
+  imodintro
+  iapply HΦ
+  iexists γ
+  isplitr
+  · ipureintro; exact hγl
+  isplitr
+  · iexact Hmv
+  isplitl [Hab Hpn Hcr2 Hnl]
+  · iunfold mvccState
+    iunfold api.mvccStateI
+    simp only [MvccState.notifiedLog]
+    iframe Hab Hpn Hcr2 Hnl Hrc
+    ipureintro; exact hreach
+  isplitl [Hright Hcr4 HRT HRTw Hret HfsQ Hwsd Htk2]
+  · iunfold mvccOpen
+    iexists s, γ.phys, r.crev
+    rw [StoreNames.withPhys_self]
+    iframe Hloc Hright Hcr4 HRT
+    isplitr
+    · rw [show γ.phys.kb = some bk from hγk]
+      simp only [kbWTSupplyM, kbCmpM, hcm, kbWTSupply, ↓reduceIte]
+      iexact Hwbs
+    isplitr
+    · ipureintro; exact CmpRecs.crev_ge _ r hrec
+    ihave Hwo : writerOwn (GF := GF) γ $$ [HRTw Hret]
+    · iunfold writerOwn
+      iframe HRTw
+      have hwo : 2 + nJobRd γ.kb = nJobRd (some bk) + 2 := by
+        rw [show γ.kb = some bk from hγk]; omega
+      rw [hwo]; iexact Hret
+    iframe Hwo
+    iunfold openRest
+    rw [hγw]
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    isplitr
+    · ipureintro; show kbCmpM γ.phys.kb; rw [show γ.phys.kb = some bk from hγk]; exact hcm
+    iframe HfsQ Hwsd Htk2
+  isplitl [Htok Hcur]
+  · iunfold mvccBackend
+    iframe Htok
+    iexists γ.phys, o, bk
+    rw [StoreNames.withPhys_self]
+    iframe Hcur Hb
+    isplitr
+    · ipureintro; exact ⟨hγk, hcm, rfl⟩
+    isplitr
+    · iintro !>; iexists s; iexact Hwreg
+    isplitr
+    · iintro !>; iexact Hhk
+    isplitr
+    · iexact Hwts
+    ipureintro; exact hlp
+  isplitl [Htks]
+  · iunfold mvccReaders; iexact Htks
+  iframe HLo Hrc Hres
+  iexists rd
+  iframe Hro
+  iapply (mvccDeleter_of hTODO _ _ (store.Write.wp_api hWr s) rd γ) $$ [$Hpkg $Hmv $Hrdc]
 end proof
 
 end api
