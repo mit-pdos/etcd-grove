@@ -33829,3 +33829,69 @@ forwarding sends, the handlers), `stepLeader` and its helpers (`MsgProp`'s `appe
 traced arms (step 3: the gates built from raft's ghost, the received message's numbers through a
 trace-gated conjunct of `isMessage`, the receipt bound); `tickElection`/`tickHeartbeat` call
 `raft.Step`, so their gated form follows `Step`'s.
+
+## Q8 stage 1 (slice 8): the step functions' gates by arm; the vote win's split by a gate given the quorum (2026-11-10 · trace-check, Q8 stage 1 slice 8; decided by the agent under the user's delegation · branch `trace-check-q8s8`; DRAFT until trace-check's Freeze)
+
+**Gates conditioned on the arm.** `stepCandidate`, `stepFollower` and `stepLeader` take one gate per
+arm that reaches a hook, each a wand from the caller's `G` premised on its arm (`⌜m.Type' = X⌝ -∗ …`,
+with the outcome's facts where the outcome decides the line), so that a caller provides only the arm
+it is in and proves the others vacuously from the type. Intermediate resources are the spec's
+parameters where a line is followed by another (`stepCandidate`'s `Gf` between `becomeFollower` and
+the handler's reply, `G1`, `G2` in `becomeLeader`'s chain); the loops' gates are persistent and keep
+their resource (`bcastAppend`, the vote messages, the heartbeats), as slices 5-6 did. Rejected: one
+uniform persistent gate "any send at any reachable state" (shorter, but its state relation would be too
+weak for a traced caller to prove the lines' facts).
+
+**The result's resource is tagged.** Each spec returns `G'` when a gate ran and `G` otherwise, under a
+pure tag the caller can decide from what it knows before the call: `stepCandidate`'s `(⌜Hooked⌝ ∗ G')
+∨ (⌜¬Hooked⌝ ∗ G)` with `Hooked` = a `MsgApp`, a `MsgHeartbeat`, or (at the right role) a count's
+win or loss (`JQuorum ∨ JLost` of the tally); `stepFollower`'s `G'` for `MsgApp`, `MsgHeartbeat`,
+`MsgTimeoutNow` and `G` otherwise (a `MsgTimeoutNow` that does not campaign gives `G` at `s' = s`, as
+`hup`'s); `stepLeader`'s `G'` after a quorum check's step-down. The forwards to the leader
+(`MsgProp`, `MsgReadIndex`, `MsgTransferLeader` at a follower) and the leader's untraced-type sends
+(`sendTimeoutNow`, a single voter's read-index response) take a gate at no event from `G` back to `G`:
+the send needs the logger field, and nothing is traced.
+
+**The vote win's split (round 6's F2): neither the converse in the result relation nor the
+relaxation.** The plan's two routes were: `stepCandidate`'s spec gains the converse of its win
+(`JQuorum → won`) with `Step` keeping the ghost open across the handler, or `WinsOk`/`TermsOk` relaxed
+until the end of `Step`. Taken: the `BecomeLeader` gate itself is premised on the win's quorum
+(`⌜m.Type' = MsgVoteResp ∧ s.role = .candidate ∧ JQuorum c (granted votes')⌝ -∗ G -∗ HookGate …`),
+which `stepCandidate` has from `poll` when it calls `becomeLeader`. A traced `Step` holds raft's ghost
+in `G` (open across the handler, so no invariant is relaxed: `WinsOk` is only `ownRaftGhost`'s, which
+is not held closed while the gate runs) and registers the win (`win_register`) inside that gate, before
+the hook's line creates the term log (round 5's E1). The converse is still there, where it is
+needed: `poll`'s outcome is an `iff`, so `Hooked` in the result is exactly `JQuorum ∨ JLost`, and the
+caller knows before the call whether the chain will run. Rejected: the relaxation (it changes raft's
+invariants for a step the gate can do with the ghost open); the converse as a new conjunct of
+`CandVoteRespResultC` (a change to a definition `Step`'s arms reason about, with no use the tag does
+not already give).
+
+**A snapshot only untraced.** `handleSnapshot` keeps stage 0's `s.gh.tr = none` (a traced node
+receives no snapshot, the Draft's P2), so `stepCandidate`'s and `stepFollower`'s `MsgSnap` premise gains
+the conjunct `s.gh.tr = none` instead of a gate.
+
+**`stepLeader`: gated so far for `MsgBeat`, `MsgReadIndex`, `MsgTransferLeader`, `MsgCheckQuorum`.**
+Their helpers (`wp_stepLeader_beat`, `_readindex`, `_transfer`, `_checkQuorum`) take their callees'
+gates (`bcastHeartbeat`'s at `s`; `sendMsgReadIndexResponse`'s two, the heartbeats at `arriveState`;
+`sendTimeoutNow`'s at no event and `sendAppend`'s at `{ s with lt := m.From' }`, with `TrNoSnap`;
+`becomeFollower`'s step-down at `becomeFollower s s.term 0`). **Not gated:** `MsgProp`
+(`appendEntry`'s `Replicate` gates and `bcastAppend`'s), `MsgAppResp` (`maybeCommit`'s per-outcome
+gate, with the new commit's `isCommitted` created there before `traceCommit`, and the sends at the
+states after `MaybeUpdate`/`MaybeDecrTo`, `releasePendingReadIndexMessages`), `MsgHeartbeatResp`
+(`sendAppend` at the state after the flow-control update, the read-index responses' loop): their
+premise `s.gh.tr = none` stays, now on their type (`m.Type' = MsgProp ∨ MsgAppResp ∨ MsgHeartbeatResp →
+s.gh.tr = none`), the narrowest form until their gates name those intermediate states.
+
+**Untraced instances** (`TracedUntracedStep.lean`): `stepCandidate.untraced`, `stepFollower.untraced`,
+`stepLeader.untraced`, the statements before slice 8; `raft.Step`'s bundle (`raft.Step.Postulates`),
+`StepProof.wp_Step_MsgProp` and `raft.appliedTo` take them, their call sites unchanged.
+
+No ghost change; no change to a client-visible predicate or to a spec with clients outside raft (the
+three specs' only clients are `raft.Step`'s proof and `raft.appliedTo`'s).
+
+**Not done (slice 8).** `stepLeader`'s three arms above; `raft.Step`'s traced arms (its spec taking
+`trCapB` and the node's ghost, building each callee's gate from raft's ghost through the `trCap_fire*`
+laws, with the ghost changes the plan lists: the received message's numbers through a trace-gated
+conjunct of `isMessage`, the receipt bound `readyFits`/`receiptBound` for `TraceEv.Ok`'s numbers);
+`tickElection`/`tickHeartbeat` after `Step`.
