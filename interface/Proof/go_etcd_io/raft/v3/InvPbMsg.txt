@@ -5,6 +5,16 @@
 theorem msgOwn_persist [package_sem : Assumptions] (l : Loc) (dq : DFrac) (ms : MsgSt) : msgOwn l dq
     ms ⊢ |==> msgOwn l DFrac.discard ms
 
+theorem msgOwn_of_struct_uf [package_sem : Assumptions] (l : Loc) (v : raftpb.Message) (els : List
+    Loc) (ms : MsgSt) (E : CoPset) (Hu : v.unknownFields' = slice.nil) : typedPointsto l v
+    (DFrac.own 1) ∗ cellRO v.Type' ms.msg.Type' ∗ cellRO v.To' ms.msg.To' ∗ cellRO v.From'
+    ms.msg.From' ∗ cellRO v.Term' ms.msg.Term' ∗ cellRO v.LogTerm' ms.msg.LogTerm' ∗ cellRO v.Index'
+    ms.msg.Index' ∗ cellRO v.Commit' ms.msg.Commit' ∗ cellRO v.Vote' ms.msg.Vote' ∗ cellRO v.Reject'
+    ms.msg.Reject' ∗ cellRO v.RejectHint' ms.msg.RejectHint' ∗ ownSlice v.Entries' els DFrac.discard
+    ∗ ([∗list] p;e ∈ els;ms.ents, entRO p e) ∗ snapOpt v.Snapshot' (DFrac.own 1) ms.snap ∗ ownSlice
+    v.Context' ms.ctx DFrac.discard ∗ ownSlice v.Responses' ms.resps (DFrac.own 1) ⊢ |={E}=> msgOwn
+    l (DFrac.own 1) ms ∗ pbMsg raftpb.Message l []
+
 theorem msgPtsC_store_To [package_sem : Assumptions] (l : Loc) (dqe : DFrac) (cap : Bool) (ms :
     MsgSt) : msgPtsC l (DFrac.own 1) dqe cap ms ⊢ ∃ p, typedPointsto (structFieldRef raftpb.Message
     go!"To" l) p (DFrac.own 1) ∗ ∀ p' v, typedPointsto (structFieldRef raftpb.Message go!"To" l) p'
@@ -24,6 +34,17 @@ theorem msgPtsC_store_From [package_sem : Assumptions] (l : Loc) (dqe : DFrac) (
                       LogTerm' := __src.LogTerm', Index' := __src.Index', Commit' := __src.Commit',
                       Vote' := __src.Vote', Reject' := __src.Reject', RejectHint' := __src.RejectHint' },
                   ents := ms.ents, snap := ms.snap, ctx := ms.ctx, resps := ms.resps }
+
+theorem msgPtsC_of_struct_uf [package_sem : Assumptions] (l : Loc) (v : raftpb.Message) (dqe :
+    DFrac) (cap : Bool) (els : List Loc) (ms : MsgSt) (E : CoPset) (Hu : v.unknownFields' =
+    slice.nil) : typedPointsto l v (DFrac.own 1) ∗ cellRO v.Type' ms.msg.Type' ∗ cellRO v.To'
+    ms.msg.To' ∗ cellRO v.From' ms.msg.From' ∗ cellRO v.Term' ms.msg.Term' ∗ cellRO v.LogTerm'
+    ms.msg.LogTerm' ∗ cellRO v.Index' ms.msg.Index' ∗ cellRO v.Commit' ms.msg.Commit' ∗ cellRO
+    v.Vote' ms.msg.Vote' ∗ cellRO v.Reject' ms.msg.Reject' ∗ cellRO v.RejectHint' ms.msg.RejectHint'
+    ∗ ownSlice v.Entries' els dqe ∗ ([∗list] p;e ∈ els;ms.ents, entRO p e) ∗ (if cap = true then
+    ownSliceCap Loc v.Entries' (DFrac.own 1) else emp) ∗ snapOpt v.Snapshot' (DFrac.own 1) ms.snap ∗
+    ownSlice v.Context' ms.ctx DFrac.discard ∗ ownSlice v.Responses' ms.resps (DFrac.own 1) ⊢
+    |={E}=> msgPtsC l (DFrac.own 1) dqe cap ms ∗ pbMsg raftpb.Message l []
 
 theorem entsPts_elim [package_sem : Assumptions] (s : GoSlice) (dq : DFrac) (es : List EntryM) :
     entsPts s dq es ⊢ ∃ ls, ownSlice s ls dq ∗ [∗list] l;e ∈ ls;es, entRO l e

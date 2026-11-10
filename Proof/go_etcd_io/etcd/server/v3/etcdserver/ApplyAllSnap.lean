@@ -749,7 +749,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
         · iapply chanBag_nbRecv γc msc _ _ $$ Hmscb
           iintro %m HP
           iunfold rnSnapMsg at HP
-          icases HP with ⟨%sm, Hm, %Htyb, #Hsm, -⟩
+          icases HP with ⟨%sm, Hm, %Htyb, #Hsm, -, #Huf⟩
           obtain ⟨Hty, -⟩ := Htyb
           rw [Hγm]
           letI := srvStor (GF := GF) γr.raft.raft
@@ -824,9 +824,10 @@ theorem EtcdServer.applyAll.wp_proofSnapM
               iunfold srvGoRes at Hgr
               icases Hgr with ⟨HgrW, HgT⟩
               wp_apply (hCM s m sm sv.Metadata'.Term' sv.Metadata'.Index' cs' fv.lg kv' be dq RC RC'
-                  RS RS' Qd)
+                  RS RS' Qd γr.raft hmo.2.1
+                (by have h := Hsh.1.2.2.2.2.2.2.1 (Or.inr (Or.inr Hty)); exact ⟨h.1, h.2, Hsh.1.2.2.2.2.2.2.2⟩))
                 $$ [Hlr Hkc HRC Hbeo Hbs HRCS Hm HgT]
-                as %mg ⟨Hlr, HRS', Hbeo, HgT, %rc, %Dm, %cm, #Hmg, #Hml, #Hcsom, Hrs, HQd⟩
+                as %mg ⟨Hlr, HRS', Hbeo, HgT, %rc, %Dm, %cm, #Hmg, #Hml, #HszC, #Hcsom, %Hcml, Hrs, HQd⟩
               · iframe #; iframe Hlr Hkc HRC Hbeo Hbs HRCS Hm HgT; ipureintro; exact Hlgnn
               ihave Hgr : srvGoRes s $$ [HgrW HgT]
               · iunfold srvGoRes; iframe HgrW HgT
@@ -850,7 +851,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
               · iframe Hcsom Hc0
               subst Hcc
               imod srv_merged_sent γr A' sv.Metadata'.Index' sv.Metadata'.Term' cm γm.id ct sm sn hpos
-                  hi61 hmo.2.1 hlenZ hltA Hcs0 Hty hsn (by word)
+                  hi61 (by have := hmo.2.1; omega) hlenZ hltA Hcs0 Hty hsn (by word)
                   (by have := hnI; have := uint_nat_eq sv.Metadata'.Index'; omega)
                 $$ [Hrli HA' Hsm Hct] with #Hsm'
               · iframe Hrli HA' Hsm Hct
@@ -860,8 +861,8 @@ theorem EtcdServer.applyAll.wp_proofSnapM
               · iframe Hsrv1 Hka Hmimg
               imod srvMerged_bundle γr.raft.raft m rc sm γm.id cm sv.Metadata'.Index'
                   sv.Metadata'.Term' Dm Hty
-                $$ [Hml Hsm' Hrs Himg'] with Hbun
-              · iframe Hml Hsm' Hrs Himg'
+                $$ [Hml HszC Hsm' Hrs Himg'] with Hbun
+              · iframe Hml HszC Hsm' Hrs Himg'
               (try wp_auto)
               wp_apply (hSMS s mg m rc fv.lg fv.memberID stg tr γNt SN TSN lidt) $$ [Hgr Hlr Hbun]
                 as ⟨Hgr, Hlr⟩
@@ -1271,7 +1272,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
       · iapply chanBag_nbRecv γc msc _ _ $$ Hmscb
         iintro %m HP
         iunfold rnSnapMsg at HP
-        icases HP with ⟨%sm, Hm, %Htyb, #Hsm, -⟩
+        icases HP with ⟨%sm, Hm, %Htyb, #Hsm, -, #Huf⟩
         obtain ⟨Hty, -⟩ := Htyb
         rw [Hγm]
         letI := srvStor (GF := GF) γr.raft.raft
@@ -1345,9 +1346,10 @@ theorem EtcdServer.applyAll.wp_proofSnapM
             iunfold srvGoRes at Hgr
             icases Hgr with ⟨HgrW, HgT⟩
             wp_apply (hCM s m sm sv.Metadata'.Term' sv.Metadata'.Index' cs' fv.lg kv' be dq RC RC'
-                RS RS' Qd)
+                RS RS' Qd γr.raft hmo.2.1
+                (by have h := Hsh.1.2.2.2.2.2.2.1 (Or.inr (Or.inr Hty)); exact ⟨h.1, h.2, Hsh.1.2.2.2.2.2.2.2⟩))
               $$ [Hlr Hkc HRC Hbeo Hbs HRCS Hm HgT]
-              as %mg ⟨Hlr, HRS', Hbeo, HgT, %rc, %Dm, %cm, #Hmg, #Hml, #Hcsom, Hrs, HQd⟩
+              as %mg ⟨Hlr, HRS', Hbeo, HgT, %rc, %Dm, %cm, #Hmg, #Hml, #HszC, #Hcsom, %Hcml, Hrs, HQd⟩
             · iframe #; iframe Hlr Hkc HRC Hbeo Hbs HRCS Hm HgT; ipureintro; exact Hlgnn
             ihave Hgr : srvGoRes s $$ [HgrW HgT]
             · iunfold srvGoRes; iframe HgrW HgT
@@ -1374,7 +1376,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
             · iframe Hcsom Hc0
             subst Hcc
             imod srv_merged_sent γr A' sv.Metadata'.Index' sv.Metadata'.Term' cm γm.id ct sm sn hpos
-                hi61 hmo.2.1 hlenZ hltA Hcs0 Hty hsn (by word)
+                hi61 (by have := hmo.2.1; omega) hlenZ hltA Hcs0 Hty hsn (by word)
                 (by have := hnI; have := uint_nat_eq sv.Metadata'.Index'; omega)
               $$ [Hrli HA' Hsm Hct] with #Hsm'
             · iframe Hrli HA' Hsm Hct
@@ -1390,8 +1392,8 @@ theorem EtcdServer.applyAll.wp_proofSnapM
             imod Hmi with ⟨Hka, #Himg'⟩
             imod srvMerged_bundle γr.raft.raft m rc sm γm.id cm sv.Metadata'.Index'
                 sv.Metadata'.Term' Dm Hty
-              $$ [Hml Hsm' Hrs Himg'] with Hbun
-            · iframe Hml Hsm' Hrs Himg'
+              $$ [Hml HszC Hsm' Hrs Himg'] with Hbun
+            · iframe Hml HszC Hsm' Hrs Himg'
             (try wp_auto)
             wp_apply (hSMS s mg m rc fv.lg fv.memberID stg tr γNt SN TSN lidt) $$ [Hgr Hlr Hbun]
               as ⟨Hgr, Hlr⟩

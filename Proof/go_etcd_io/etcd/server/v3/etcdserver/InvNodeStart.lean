@@ -64,7 +64,8 @@ variable [GooseExts] [go_gctx : GoGlobalContext]
 /-- **The raft configuration and the peers a new cluster's node boots with** (pure; 2026-11-05,
 the `newRaftNode` review's M: until then the same conjuncts spelled out in
 `bootstrappedRaft.newRaftNode.spec`'s, `NodeStartSpec`'s and `bootOk`'s `Hraft`): the wrapper's
-logger `b.lg` non-nil (`newRaftNode`'s), `NewRawNode`'s premises on `b.config` (`StartNode.spec`'s;
+logger `b.lg` non-nil (`newRaftNode`'s), `NewRawNode`'s premises on `b.config` (`StartNode.spec`'s,
+with (raft-entsize [r3f]) its `MaxSizePerMsg ≤ 2 ^ 20` at a bounded cluster;
 its storage the `MemoryStorage` `b.storage`; `CheckQuorum` and `PreVote` either way since
 2026-10-17), and the peers `pv` non-empty (`len(b.peers) != 0`: `StartNode`'s branch) with their
 ids `ps`. What each user needs beyond it (the heartbeat, the peers' distinctness, the cluster's
@@ -80,6 +81,13 @@ structure rnStartCfg (bv : bootstrappedRaft) (cv : Config) (lok : GoInterfaceOk)
   readOnly : cv.ReadOnlyOption' = W64 0
   ccValidation : cv.DisableConfChangeValidation' = false
   sizes : cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0
+  /-- (raft-entsize [r3f], the user's decision 2026-11-09) a message's entries are cut at
+  `MaxSizePerMsg ≤ 2 ^ 20` (`StartNode.spec`'s premise at a bounded cluster, the size law's):
+  etcd's raft configuration sets `MaxSizePerMsg: maxSizePerMsg` (`server/etcdserver/raft.go:38`,
+  `maxSizePerMsg = 1 * 1024 * 1024`) in `raftConfig`, which both `bootstrappedRaft` constructions
+  call (`server/etcdserver/bootstrap.go:564-575`), at the pinned etcd (`a4d2bb1720`); checked by
+  `examples/entsize` (`TestMaxSizePerMsg`, run from `etc/gates.sh`). -/
+  maxMsg : uint.Z cv.MaxSizePerMsg' ≤ 2 ^ 20
   noAsync : cv.AsyncStorageWrites' = false
   applied : cv.Applied' = W64 0
   peers : ps = pv.map Peer.ID'

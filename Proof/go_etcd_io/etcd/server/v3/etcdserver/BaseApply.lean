@@ -170,14 +170,19 @@ def hbSt : EtcdGrove.MsgSt :=
 /-- rafthttp's package fact (2026-10-22, rafthttp stage 3): `ErrExceedSizeLimit`
 (`msg_codec.go`, `errors.New`), the message decoder's error for a message over its limit, holds a
 non-nil error; `linkHeartbeatMessage` (`stream.go`), which the msgappv2 decoder clones for a
-heartbeat frame, is a heartbeat with no other field set, read-only for good (no code writes it);
+heartbeat frame, is a heartbeat with no other field set, read-only for good (no code writes it)
+(raft-entsize, route H1, 2026-11-10: with no unknown fields, `pbMsg … []`, which fixes its content
+up to presences, `hbMsg_msgRoC`; its initializer translated, `hbMsg_init`; until then without, the
+trust-boundary axiom `linkHeartbeatMessage_init`'s);
 (2026-10-23) `RaftPrefix` (`http.go`), the pipeline's path, is `"/raft"`, read-only for good,
 and (2026-10-24) `ProbingPrefix`, `RaftStreamPrefix` and `RaftSnapshotPrefix` its `probing`,
 `stream` and `snapshot` subpaths;
 (stage 5b) `ConnReadTimeout` (`peer.go`) is five seconds, read-only for good. -/
 abbrev rafthttpInit : IProp GF :=
   iprop(EtcdGrove.errorsNewVar ErrExceedSizeLimit go!"rafthttp: error limit exceeded" ∗
-    EtcdGrove.msgOwn (globalAddr linkHeartbeatMessage) DFrac.discard hbSt ∗
+    (EtcdGrove.msgOwn (globalAddr linkHeartbeatMessage) DFrac.discard hbSt ∗
+      EtcdGrove.pbMsg _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message
+        (globalAddr linkHeartbeatMessage) []) ∗
     -- (2026-10-23, rafthttp stage 4) the pipeline's path (`http.go`, translated)
     globalAddr RaftPrefix ↦□ go!"/raft" ∗
     -- (2026-10-24, rafthttp stage 6d) the handlers' and the streams' paths (`http.go`,

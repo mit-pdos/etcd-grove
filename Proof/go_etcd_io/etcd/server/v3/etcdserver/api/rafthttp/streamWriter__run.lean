@@ -196,11 +196,12 @@ local macro "run_msg" : tactic => `(tactic| (
   iunfold swMsg at Hm
   icases Hm with ⟨%st, #Hm, #Hbd, #HP, HO, %Hst⟩
   ihave #Hbd' := Hbd
-  iunfold swMsgBound at Hbd'
+  iunfold msgSzC at Hbd'
   icases Hbd' with ⟨%cm, #Hcm, %Hcmb⟩
+  ihave #Hbd := msgSzC_mono (Sz' := Rh.γn.N.Sz ∧ ¬isHB st.msg) (fun h => h.1) _ _ $$ Hbd
   iunfold swLive at Hlive
   icases Hlive with ⟨%wi, %a, %R, %γk, %γw, %fr, %s, %Hfl, HencO, Hrw, %Hc, #Hfs, #Hreg, %HR3, Hclr⟩
-  ihave ⟨HencO, %Hei⟩ := encOwn_ok _ _ _ _ _ _ _ $$ HencO
+  ihave ⟨HencO, %Hei⟩ := encOwn_ok _ _ _ _ _ _ _ _ $$ HencO
   obtain ⟨ei, rfl⟩ := Hei
   imod (stream_deposit Rh.γn.N γw fr.length st ⊤) $$ HO with #Hdeposit
   ihave #Hdep : frameDep Rh.γn.N γw pid fr.length (wireOf st) $$ []
@@ -213,7 +214,7 @@ local macro "run_msg" : tactic => `(tactic| (
   ihave #Hperm := stream_perm Rh ty lid pid a R γk γw fr s st Hc HR3.1 $$ Hreg Hfs Hdep
   ihave #Hwr := respWriter_writerAt (raftHttpNet Rh) (hWrite _) wi a R γk
   (try wp_auto)
-  wp_apply (wp_stream_encode hMsgEnc hV2Enc ty lid pid fs _ ei rfl wi s _ _ (chainBytes fr) ml st
+  wp_apply (wp_stream_encode hMsgEnc hV2Enc Rh.γn.N.Sz ty lid pid fs _ ei rfl wi s _ _ (chainBytes fr) ml st
       ⟨Hst.1, Hst.2.2.2.2⟩) $$ [HencO Hrw]
     as %err ⟨#Herr, %h', %s', HWr, HencO, %Hok⟩
   · iframe; iframe #
@@ -287,31 +288,35 @@ set_option hygiene false in
 deposit: the reader drops it); flushed, or on an error the connection closed. -/
 local macro "run_hb" : tactic => `(tactic| (
   (try wp_auto)
-  ihave ⟨%chb, #Hchb, %Hchbm⟩ := msgOwn_msgRoC _ _ rfl $$ Hhb
+  ihave ⟨%chb, #Hchb, %Hchbm⟩ := hbMsg_msgRoC _ $$ Hhb
   have wpC := hClone pbMessageC pbMessageC_reg
     (globalAddr go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.linkHeartbeatMessage) chb
-  simp only [pbMessageC_ty, pbMessageC_roC, pbMessageC_dec, pbMessageC_eqv, pbMessageC_modelOf,
+  simp only [pbMessageC_ty, pbMessageC_roC, pbMessageC_decC, pbMessageC_eqv, pbMessageC_modelOf,
     pbMessageC_C] at wpC
   wp_apply wpC $$ [] as %l' ⟨%c', Hl', %Heqv⟩
   · iexact Hchb
-  have hcs : c'.csUfNil := by
-    have h := Heqv.2.2 (by first | rfl | (simp only [pbMessageC_marshals, MsgMarshals, Hchbm.1]; rfl) | simp [pbMessageC_marshals, MsgMarshals, Hchbm.1])
-    rw [h]; exact Hchbm.2
-  ihave Hl' := Hl' $$ %hcs
+  -- (raft-entsize, route H1, 2026-11-10) the clone is the global's content (`proto.Clone`'s
+  -- exactness), of bounded size (`hbMsg_msgRoC`): no trust boundary (until then `swMsgBound_phys`)
+  have hceq : c' = chb := Heqv.2.2 (by first | rfl | (simp only [pbMessageC_marshals, MsgMarshals, Hchbm.1]; rfl) | simp [pbMessageC_marshals, MsgMarshals, Hchbm.1])
+  have hcs : c'.csUfNil := by rw [hceq]; exact Hchbm.2.1
+  have hr : c'.resps = [] := by rw [hceq]; exact Hchbm.2.2.1
+  have hok : msgSizeOk c' := by rw [hceq]; exact Hchbm.2.2.2
+  (try wp_auto)
+  imod msgPtsCC_freeze _ _ _ _ _ $$ Hl' with Hl'
+  imod msgPtsCC_persist _ _ _ $$ Hl' with #Hl'
+  ihave #Hro := msgPtsCC_msgRoC _ _ hr $$ Hl'
+  ihave #Hlb : msgSzC (Rh.γn.N.Sz ∧ ¬isHB c'.model.msg) l' c'.model $$ []
+  · iunfold msgSzC
+    iexists c'
+    iframe Hro
+    ipureintro; exact ⟨rfl, hcs, msgSize_lt_of_ok _ hok, fun _ => hok⟩
+  ihave #Hl' := msgPtsCC_msgPtsC _ _ _ _ _ hcs $$ Hl'
   rw [Hchbm.1] at Heqv
   replace Heqv := Heqv.1
   generalize c'.model = m' at Heqv ⊢
-  (try wp_auto)
-  ihave Hl'' := msgPtsC_to_msgOwn l' _ _ _ m' $$ Hl'
-  imod Hl'' with Hl'
-  ihave Hl'' := msgOwn_persist l' _ m' $$ Hl'
-  imod Hl'' with Hl'
-  -- the clone, bounded: the trust boundary `swMsgBound_phys` (stage A of the per-type models)
-  icases Hl' with #Hl'
-  ihave #Hlb := swMsgBound_phys l' m' (Heqv.2 rfl) $$ Hl'
   iunfold swLive at Hlive
   icases Hlive with ⟨%wi, %a, %R, %γk, %γw, %fr, %s, %Hfl, HencO, Hrw, %Hc, #Hfs, #Hreg, %HR3, Hclr⟩
-  ihave ⟨HencO, %Hei⟩ := encOwn_ok _ _ _ _ _ _ _ $$ HencO
+  ihave ⟨HencO, %Hei⟩ := encOwn_ok _ _ _ _ _ _ _ _ $$ HencO
   obtain ⟨ei, rfl⟩ := Hei
   (try wp_auto)
   have Hw' : wireOf m' = hbWire := Heqv.1.symm
@@ -321,7 +326,7 @@ local macro "run_hb" : tactic => `(tactic| (
   · iunfold frameDep; ileft; ipureintro; exact Hhb'
   ihave #Hperm := stream_perm Rh ty lid pid a R γk γw fr s m' Hc HR3.1 $$ Hreg Hfs Hdep
   ihave #Hwr := respWriter_writerAt (raftHttpNet Rh) (hWrite _) wi a R γk
-  wp_apply (wp_stream_encode hMsgEnc hV2Enc ty lid pid fs _ ei rfl wi s _ _ (chainBytes fr) l' m'
+  wp_apply (wp_stream_encode hMsgEnc hV2Enc Rh.γn.N.Sz ty lid pid fs _ ei rfl wi s _ _ (chainBytes fr) l' m'
       ⟨Hmar, fun _ => ⟨Hmar, Or.inl ⟨Hhb', Hw'⟩⟩⟩) $$ [HencO Hrw Hl']
     as %err ⟨#Herr, %h', %s', HWr, HencO, %Hok⟩
   · iframe; iframe #
@@ -459,9 +464,9 @@ local macro "run_conn" : tactic => `(tactic| (
     (try wp_auto)
     (wp_apply hNewEnc wi fs as %e Henc; (ipureintro; exact Hfsnn))
     (try wp_auto)
-    ihave HencO : encOwn lid pid fs .msgAppV2
+    ihave HencO : encOwn Rh.γn.N.Sz lid pid fs .msgAppV2
         (interface.mkOk (go.GoType.PointerType rafthttp.msgAppV2Encoder.ty) #e) wi
-        (StreamTy.msgAppV2.codec lid pid).init $$ [Henc]
+        (StreamTy.msgAppV2.codec Rh.γn.N.Sz lid pid).init $$ [Henc]
     · simp only [encOwn]
       iexists e
       iframe
@@ -474,9 +479,9 @@ local macro "run_conn" : tactic => `(tactic| (
     iStructNamed He
     ipersist w
     (try wp_auto)
-    ihave HencO : encOwn lid pid fs .message
+    ihave HencO : encOwn Rh.γn.N.Sz lid pid fs .message
         (interface.mkOk (go.GoType.PointerType rafthttp.messageEncoder.ty) #e) wi
-        (StreamTy.message.codec lid pid).init $$ []
+        (StreamTy.message.codec Rh.γn.N.Sz lid pid).init $$ []
     · simp only [encOwn]
       iexists e
       iframe #

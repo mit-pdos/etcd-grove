@@ -33,9 +33,11 @@ Against protobuf-go v1.36.12 (`proto/merge.go:41`, `Clone`: a new message of the
 into): `internal/impl/merge.go:40-80` copies each present field (a nil proto2 field, `isPointer`, is
 skipped, so presence and nil-versus-empty `bytes` are kept: `codec_message.go:136`,
 `merge.go:187-189`), and appends the unknown fields verbatim (`proto/merge.go:105-106`), so
-`ufWire` is kept at every level. The clone is the post's owned decoded message at `c'`'s model (the
-instance's `dec`) when `c'` is one `dec` describes (`decOk`); without `decOk` Go's clone is not
-described (true of Go: the caller then owns nothing it can use). `c'`'s facts are pure. Go's stack exhaustion on a deep chain of `Message` responses (a recursion through `Responses`, a fatal error, not a panic) is outside the model, as memory exhaustion is (`notes/txn-nested.md`, the axiom review's note on very deep trees). -/
+`ufWire` is kept at every level. The clone is the post's owned object at the content `c'` itself
+(the instance's `decC l' c'`): faithful because the clone copies the source's fields (presence and
+nil versus empty included) and unknown fields verbatim, so it holds exactly a content `c'`, the same
+as `c` when `c` marshals. The instance's model-level `dec` follows from it when `c'` is one `dec`
+describes (`decC_dec`, a proved field, under `decOk`). `c'`'s facts are pure. Go's stack exhaustion on a deep chain of `Message` responses (a recursion through `Responses`, a fatal error, not a panic) is outside the model, as memory exhaustion is (`notes/txn-nested.md`, the axiom review's note on very deep trees). -/
 abbrev proto.ClonePb.spec : Prop :=
   ∀ (I : PbTypeC GF), pbModelOf GF I.data.ty = some I →
   ∀ (l : Loc) (c : I.data.C),
@@ -43,7 +45,7 @@ abbrev proto.ClonePb.spec : Prop :=
     (App (Val (@! google_golang_org.protobuf.proto.Clone))
       (Val #(interface.mkOk (go.GoType.PointerType I.data.ty) #l)))
   {{ (l' : Loc), RET #(interface.mkOk (go.GoType.PointerType I.data.ty) #l');
-      ∃ c' : I.data.C, (⌜I.data.decOk c'⌝ -∗ I.data.dec l' (I.data.modelOf c')) ∗
+      ∃ c' : I.data.C, I.data.decC l' c' ∗
         ⌜I.data.eqv (I.data.modelOf c) (I.data.modelOf c') ∧ I.data.ufValid c' ∧
           (I.data.marshals (I.data.modelOf c) → c' = c)⌝ }}
 

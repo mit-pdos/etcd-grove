@@ -447,7 +447,7 @@ theorem Cluster.start.wp_proof
       (kdContents (some F)) (kdInitCS (raft_kvreconf.bootCS vs) F) (uint.nat F.snap.Metadata'.Index') m
       (fun S' => iprop(kdWriter γ id S fo ∗ ⌜S' = S⌝))
       (fun K => iprop(memStorMeta ms γs F.hs ∗ memStorInvP ms γs (kdJ γ.r.cluster K)))
-      HcV HcLg HcSt HcM HcDP HcRO HcDC HcSz HcAS
+      HcV HcLg HcSt HcM HcDP HcRO HcDC HcSz HcAS (fun h => absurd Hmd h)
       (by rw [HA]; simp only [kdContents_some_b, kdContents_some_commit]
           rcases Hap0 with ⟨h1, -⟩ | ⟨h1, h2, -⟩
           · left; rw [h1]; rfl
@@ -508,7 +508,7 @@ theorem Cluster.start.wp_proof
     $$ [$Hpkg $Hcci $Hcl $Hstats $Hseqs $HfInv $HisNode' $Hdrv $Hncfg $Hrun $Hrec $HmsInv $Hmeta
       $Himg $Himage $Hcert $Hwr $Hcmp $Hfz $Hfzt $Hslb $HK $HA $Hcso $Hap $Hcap $Hf]
     as %r ⟨Hr, Hstop⟩
-  · ipureintro; exact ⟨Hcfgm, HKv, HAok⟩
+  · ipureintro; exact ⟨Hcfgm, HKv, HAok, Hmd⟩
   try wp_auto
   iapply HΦ
   iframe Hr Hstop

@@ -24,8 +24,9 @@ variable [sem : go.Semantics]
 
 /-- **`dec.decodeLimit(numBytes)`** from the decoder's reader `r` at the bytes `rs` (a limit below
 `2^63`, as `int(l)` needs): the reader at some bytes `rs'` and, if the error is nil, `rs'` is `rs`
-followed by the frame of an encoding `bs` of a message `st` (no longer than the limit), what is
-known of `rs'` (`B`), and the decoded message, owned, at `ml`. (2026-10-23, stage 5c) Knowing that a
+followed by the frame of an encoding `bs` of a message (no longer than the limit), what is
+known of `rs'` (`B`), and the decoded message, owned, at `ml`; (raft-entsize §4, 2026-11-10) at the
+decoded content `c` (`msgPtsCC`), with `proto.Unmarshal`'s D1 and D2 (`MsgDecC`). (2026-10-23, stage 5c) Knowing that a
 frame it may read is of an encoding (the stream's frames are), `proto.Unmarshal` does not fail, and
 its error's `Error()` returns (the stream reader logs it). (2026-10-25, stage 7e) On an error the
 message is `nil` (the snapshot handler reads its sender of it). -/
@@ -41,10 +42,9 @@ abbrev rafthttp.messageDecoder.decodeLimit.spec : Prop :=
       (Val #numBytes))
   {{ (ml : Loc) (err : GoInterface), RET (PairV #ml #err); http.errStrOk err ∗
       ⌜err = GoInterface.nil ∨ ml = null⌝ ∗ ∃ rs' : List w8, Rd rs' ∗
-        (⌜err = GoInterface.nil⌝ -∗ ∃ (bs : List w8) (st : MsgSt),
-          ⌜rs' = rs ++ msgFrame bs ∧ bs.length ≤ uint.Z numBytes ∧ MsgWireOk st bs ∧
-            MsgEnc st bs⌝ ∗
-          □ B rs' ∗ msgPtsC ml (DFrac.own 1) (DFrac.own 1) true st) }}
+        (⌜err = GoInterface.nil⌝ -∗ ∃ (bs : List w8) (c : MsgC),
+          ⌜rs' = rs ++ msgFrame bs ∧ bs.length ≤ uint.Z numBytes ∧ MsgDecC c bs⌝ ∗
+          □ B rs' ∗ msgPtsCC ml (DFrac.own 1) (DFrac.own 1) true c) }}
 
 end spec
 

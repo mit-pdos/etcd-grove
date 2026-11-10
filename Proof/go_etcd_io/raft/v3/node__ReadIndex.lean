@@ -209,7 +209,7 @@ private theorem node.wp_ReadIndex_impl
     EtcdGrove.node.ReadIndex.spec (GF := GF) (hG := hG) := by
   unfold EtcdGrove.node.ReadIndex.spec EtcdGrove.Cluster EtcdGrove.isNode EtcdGrove.isReadCtx
   intro n γ N id rctx c Q ctx cd
-  iintro %Φ ⟨#Hinit, #Hnode, #Hctx, #Hrctx, #Hrc⟩ HΦ
+  iintro %Φ ⟨#Hinit, #Hnode, #Hctx, #Hrctx, #Hrc, %_⟩ HΦ
   iunfold isNode at Hnode
   icases Hnode with ⟨%γn, %Hf, #Hrn, #Htab, #Hci, #Hpool, -⟩
   have Hγr := Hf.1

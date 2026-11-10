@@ -85,6 +85,9 @@ abbrev RawNode.readyWithoutAccept.spec : Prop :=
       "Hmsgs_cap" ∷ ownSliceCap Loc rd.Messages' (DFrac.own 1) ∗
       -- (2026-10-16, stage R5, D8) the messages handed out, a response at half
       "Hmsgs_own" ∷ ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) ∗
+      -- (raft-entsize §2, 2026-11-09) a `MsgSnap`'s top-level unknown fields none: the `pbMsg` of
+      -- the literal `maybeSendSnapshot` built (`snapUf`), for the content a `Ready` pins
+      "#Hmsgs_uf" ∷ ([∗list] q ∈ ms, snapUf q.loc q.st) ∗
       -- (2026-11-01, durability stage II (k), fix C; until then each message's `isRaftMsg` here)
       -- the messages' facts come with the cut (`ownRawNodeReady_handout`)
       -- (2026-10-17; until then at most `rs.term`) within the term ceiling (a granted pre-vote)

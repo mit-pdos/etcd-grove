@@ -246,6 +246,11 @@ local macro "piro_tail" : tactic => `(tactic| (
       · iunfold mvcc.txnCtx; iright; iexact Hcctx
       isplitr
       · ipureintro; exact Hbsne (by simp [apply.withHeader])
+      isplitr
+      · -- (raft-entsize §3) the `MaxRequestBytes` check
+        ipureintro
+        unfold v3rpc.etcdMaxRequestBytesOk v3rpc.etcdMaxRecvMsgSize v3rpc.grpcOverheadBytes at Hmrbv
+        word
       iframe HlcP
       iunfold srvPropArg
       iframe Hpf Hau Hqi

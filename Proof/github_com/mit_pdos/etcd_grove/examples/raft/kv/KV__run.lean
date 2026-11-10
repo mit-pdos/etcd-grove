@@ -250,7 +250,8 @@ theorem KV.run.wp_proof
   imod Henter $$ %⊤ %(1 : Qp) %(by simp) [$Hraft $Hrun] with ⟨Hraft, Hrun, Hdrv, #Hmsgs⟩
   ihave ⟨%Hidx, Hrest⟩ := readyRest_indices _ _ _ _ _ _ _ _ _ _ $$ Hrest
   unfold readyRest
-  icases Hrest with ⟨#Hes, Hms, Hmsok, -, -, %Hbnd, HS, -⟩
+  icases Hrest with ⟨#HesO, Hms, Hmsok, -, -, %Hbnd, HS, -⟩
+  ihave #Hes := readyEnts_entsRO _ _ _ $$ HesO
   try wp_auto
   wp_apply wp_fits rdv'.Entries' es DFrac.discard $$ [$Hpkg $Hes] as %b ⟨-, %Hfit⟩
   cases b

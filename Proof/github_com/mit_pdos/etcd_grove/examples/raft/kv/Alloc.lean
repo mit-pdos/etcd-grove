@@ -105,13 +105,15 @@ bootstrap log (`γ.bootLen = 0`; 2026-11-01, durability stage II (l): `RestartNo
 and each voter's durable state at `RaftState.init` and its vacant id. -/
 theorem kvCluster_alloc (E : CoPset) (S0 : GMap w64 w64) (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) :
     ⊢ |={E}=> ∃ γr : RKVNames,
-        ⌜γr.cluster.dup = false ∧ γr.cluster.snapLoc = (fun _ => none) ∧ γr.cluster.bootLen = 0⌝ ∗
+        ⌜γr.cluster.dup = false ∧ γr.cluster.snapLoc = (fun _ => none) ∧ γr.cluster.bootLen = 0 ∧
+          γr.cluster.maxData = none⌝ ∗
         kvCluster γr ∗ rkvInv γr ∗
         rkvVal γr kvEmpty ∗ ([∗map] id ↦ s ∈ S0, id ↪[γr.seq] s) ∗
         [∗list] id ∈ kvVoters, raftState γr.cluster id RaftState.init ∗ nodeVacant γr.cluster id := by
   iintro
-  imod cluster_alloc (GF := GF) kvRaftN kvVoters [] [] false (fun _ => none) E Hrb (by decide) (by decide)
-      (by decide) (by decide) (fun h => absurd rfl h) $$ [] with
+  imod cluster_alloc (GF := GF) kvRaftN kvVoters [] [] false (fun _ => none) none E Hrb (by decide) (by decide)
+      (by decide) (by decide) (fun h => absurd rfl h) (fun _ h => by cases h) (fun _ h => by cases h)
+      $$ [] with
     ⟨%γ, %Hγ, Hops, HU, #Hiscl, Hdec, #Hca0, Hsm, Hslots, -⟩
   · iempintro
   imod confPolicy_alloc γ kvConfN kvRule E $$ Hdec with #Hpol

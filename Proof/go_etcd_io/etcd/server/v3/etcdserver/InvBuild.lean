@@ -125,11 +125,34 @@ M1; 2026-10-27: the node API's): read-only, a message the node `id` of the serve
 (`sentMsg`: raft's protocol facts and its term bound, and its sender, what the transport's msgappv2
 stream needs), with its credits (`msgCredits`: a `MsgReadIndex`'s read credit, a forwarded
 proposal's tickets): what a peer's `node.Step` takes of a network message (`stepIn_intro`) but the
-receiver's own facts. -/
+receiver's own facts; (raft-entsize §4, 2026-11-10) frozen at the content raft handed it out with
+(`msgOut`), of bounded size (`msgOut_netContent`, the server's cluster bounding proposed data). -/
 def srvMsgNet (γ : SrvRaft) (id : w64) (m : Loc) : IProp GF :=
   letI := srvStor (GF := GF) γ
   iprop(∃ st : MsgSt, msgOwn m DFrac.discard st ∗ sentMsg γ.cl srvClusterN id st ∗
-    msgCredits γ.cl srvClusterN st)
+    msgCredits γ.cl srvClusterN st ∗
+    ∃ c : MsgC, msgRoC m c ∗ ⌜c.model = st ∧ c.csUfNil ∧ msgSizeOk c⌝)
+
+/-- **A handed-out message's content for the network** (raft-entsize §4, 2026-11-10): frozen at
+the content raft handed it out with (`msgOut`), of bounded size in a cluster with a bound on
+proposed data (`Cluster.outObj_size`), unless a `MsgSnap`. -/
+theorem msgOut_netContent [StorageModel GF] (γc : Cluster) (m : Loc) (st : MsgSt) (b : Nat)
+    (hmd : γc.maxData = some b) (hns : st.msg.Type' ≠ MsgSnap) (hr : st.resps = []) :
+    msgOut (GF := GF) γc m DFrac.discard st ⊢
+      ∃ c : MsgC, msgRoC m c ∗ ⌜c.model = st ∧ c.csUfNil ∧ msgSizeOk c⌝ := by
+  iintro Hmo
+  iunfold msgOut at Hmo
+  icases Hmo with ⟨%c, #Hc, %Hm, #Ho⟩
+  have hcr : c.resps = [] := by
+    have h := congrArg MsgSt.resps Hm.1
+    simp only [MsgC.model, hr, List.map_eq_nil_iff] at h
+    exact h
+  ihave #Hro := msgPtsCC_msgRoC m c hcr $$ Hc
+  ihave %Hsz := Cluster.outObj_size γc m c b $$ Ho
+  iexists c
+  iframe Hro
+  ipureintro
+  exact ⟨Hm.1, Hm.2.1, Hsz hmd (by rw [Hm.1]; exact hns)⟩
 
 /-- Two read-only views of a message agree on its type. -/
 theorem msgOwn_type_agree (m : Loc) (st1 st2 : MsgSt) :
@@ -156,7 +179,7 @@ theorem srvMsgNet_bundle (γ : SrvRaft) (id : w64) (m : Loc) :
   letI := srvAnyStor (GF := GF)
   iintro ⟨H, Hns⟩
   iunfold srvMsgNet at H
-  icases H with ⟨%st, #Hm, #Hr, Hc⟩
+  icases H with ⟨%st, #Hm, #Hr, Hc, %c, #Hcc, %Hcc⟩
   ihave %Hsh := sentMsg_shape γ.cl srvClusterN id st $$ Hr
   ihave %Hfrom := sentMsg_appFrom γ.cl srvClusterN id st $$ Hr
   iunfold srvMsgNoSnap at Hns
@@ -170,9 +193,13 @@ theorem srvMsgNet_bundle (γ : SrvRaft) (id : w64) (m : Loc) :
   isplitr
   · imodintro
     iexists id; iexact Hr
-  ipureintro
-  rw [Hty]
-  exact ⟨Hns, Hsh.1.2.2.2.2.2.2.2, fun ha => ⟨Hsh.1.2.2.2.2.2.1 (Hty ▸ ha), Hfrom (Hty ▸ ha)⟩⟩
+  isplitr
+  · ipureintro
+    rw [Hty]
+    exact ⟨Hns, Hsh.1.2.2.2.2.2.2.2, fun ha => ⟨Hsh.1.2.2.2.2.2.1 (Hty ▸ ha), Hfrom (Hty ▸ ha)⟩⟩
+  iexists c
+  iframe Hcc
+  ipureintro; exact Hcc
 
 /-- **The server's raft environment** (`RNEnv`): `E.C` the server's (`srvC`), every message raft
 hands out but a snapshot (`srvMsgNoSnap`, D19p) with its bundle (`srvMsgNet`, D21 stage M1), a

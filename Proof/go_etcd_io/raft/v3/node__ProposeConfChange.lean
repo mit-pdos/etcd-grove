@@ -165,8 +165,12 @@ private theorem node.wp_ProposeConfChange_impl
     EtcdGrove.node.ProposeConfChange.spec (GF := GF) (hG := hG) := by
   unfold EtcdGrove.node.ProposeConfChange.spec EtcdGrove.Cluster EtcdGrove.isNode EtcdGrove.ownCommittedOps
     EtcdGrove.Cluster.dup
-  intro n γ N id c o dq ctx cd
-  iintro %Φ ⟨#Hinit, #Hnode, #Hctx, Hcc, Hau⟩ HΦ
+  intro n γ N id c o cc dq ctx cd
+  iintro %Φ ⟨#Hinit, #Hnode, #Hctx, Hcc, %Hmd, Hau⟩ HΦ
+  -- (raft-entsize §3) the conf change at its model; the size bound is for the later proof
+  obtain ⟨Ho, -⟩ := Hmd
+  ihave Hcc : ownConfChangeI c dq (some o) $$ [Hcc]
+  · rw [← Ho]; iapply ccPtsCC_own c dq cc $$ Hcc
   ihave #HnodeA := Hnode
   iunfold isNode at Hnode
   icases Hnode with ⟨%γn, %Hf, #Hrn, -, #Hci, -⟩

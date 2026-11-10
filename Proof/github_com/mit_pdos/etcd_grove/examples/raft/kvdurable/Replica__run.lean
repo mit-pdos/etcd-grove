@@ -118,7 +118,8 @@ private theorem ready_ents_wf_G20 (γc : Cluster) (N : Namespace) (id : w64) (rd
   icases readyRest_ents_type γc N id rd st ce es h L ms ss $$ H with ⟨H, %Hty⟩
   ihave #Hes : entsRO rd.Entries' es $$ [H]
   · iunfold readyRest at H
-    icases H with ⟨#Hes, -⟩
+    icases H with ⟨#HesO, -⟩
+    ihave #Hes := readyEnts_entsRO _ _ _ $$ HesO
     iexact Hes
   ihave %Hd := entsRO_data_len _ _ $$ Hes
   iframe H
@@ -274,7 +275,8 @@ theorem Replica.run.wp_proof
       ihave ⟨%Hin, Hrest⟩ := readyRest_ceInBatch _ _ _ _ _ _ _ _ _ $$ Hrest
       simp only at G9 G10 G14 G17 Hin
       iunfold readyRest at Hrest
-      icases Hrest with ⟨#Hes, Hmsl, Hmsok, #Hhs, #Hss, %Hbnd, Hsnap, -⟩
+      icases Hrest with ⟨#HesO, Hmsl, Hmsok, #Hhs, #Hss, %Hbnd, Hsnap, -⟩
+      ihave #Hes := readyEnts_entsRO _ _ _ $$ HesO
       iunfold readySnap at Hsnap
       icases Hsnap with ⟨%Hnull, Happ, #Hcef, -⟩
       ihave %Hesl := entsPts_len _ _ _ $$ Hes
@@ -643,7 +645,7 @@ theorem Replica.run.wp_proof
       try wp_auto
       -- sent first: at role leader (`readyLeaderMsgs`)
       wp_join iprop((⌜fb = true⌝ ∨ (rdv.Messages' ↦* List.map QMsg.loc ms ∗
-            [∗list] q ∈ ms, iprop(msgOwn q.loc (readyDq q.st) q.st ∗ msgCredits γ.r.cluster kdRaftN q.st))) ∗
+            [∗list] q ∈ ms, iprop(msgOut γ.r.cluster q.loc (readyDq q.st) q.st ∗ msgCredits γ.r.cluster kdRaftN q.st))) ∗
           r_ptr ↦ r ∗ rd_ptr ↦ rdv ∗ send_ptr ↦ f) at next with [Hmsl Hmsok Hlm r rd send]
         as ⟨Hmq, r, rd, send⟩
       · cases fb
@@ -1041,7 +1043,8 @@ theorem Replica.run.wp_proof
       ihave ⟨Hrest, %G7⟩ := readyRest_snap _ _ _ _ _ _ _ _ _ _ _ $$ Hrest
       simp only at G7
       iunfold readyRest at Hrest
-      icases Hrest with ⟨#Hes, Hmsl, Hmsok, #Hhs, #Hss, %Hbnd, Hsnap, -⟩
+      icases Hrest with ⟨#HesO, Hmsl, Hmsok, #Hhs, #Hss, %Hbnd, Hsnap, -⟩
+      ihave #Hes := readyEnts_entsRO _ _ _ $$ HesO
       iunfold readySnap at Hsnap
       icases Hsnap with ⟨%Hl, Hss4, #HcL, #Hcert, ⟨%k, %old, %Hk, Hlog, Hend⟩, #Hgiven, #HclS, -, -⟩
       obtain ⟨Hdlv, Hptr, Hce0, Hpre, Hlt, Hdlen, Hpos, H61, -, Hli⟩ := Hl
@@ -1351,7 +1354,7 @@ theorem Replica.run.wp_proof
       try wp_auto
       -- sent first: at role leader (`readyLeaderMsgs`)
       wp_join iprop((⌜fb = true⌝ ∨ (rdv.Messages' ↦* List.map QMsg.loc ms ∗
-            [∗list] q ∈ ms, iprop(msgOwn q.loc (readyDq q.st) q.st ∗ msgCredits γ.r.cluster kdRaftN q.st))) ∗
+            [∗list] q ∈ ms, iprop(msgOut γ.r.cluster q.loc (readyDq q.st) q.st ∗ msgCredits γ.r.cluster kdRaftN q.st))) ∗
           r_ptr ↦ r ∗ rd_ptr ↦ rdv ∗ send_ptr ↦ f) at next with [Hmsl Hmsok Hlm r rd send]
         as ⟨Hmq, r, rd, send⟩
       · cases fb
