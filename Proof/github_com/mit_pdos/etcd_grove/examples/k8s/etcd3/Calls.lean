@@ -66,6 +66,16 @@ def clientErrPlain : Prop :=
   ∀ ii : GoInterfaceOk, clientErr (GoInterface.ok ii) →
     go.typeSetContains ii.ty k8s_io.apimachinery.pkg.api.errors.APIStatus.ty = false
 
+/-- **`clientErrPlain` holds** (k8s 7e-1: `clientErr` fixes the dynamic type, `clientErrTys`): none
+of the four types' method sets (`*status.Error`: `Error`, `GRPCStatus`, `Is`; `EtcdError`: `Code`,
+`Error`; `*errorString`: `Error`; `deadlineExceededError`: `Error`, `Temporary`, `Timeout`) has
+`APIStatus`'s `Status`. -/
+theorem clientErrPlain_holds : clientErrPlain (sem := sem) := by
+  intro ii hc
+  have ht := ((hc.2 ii rfl).2).2
+  simp only [clientErrTys, List.mem_cons, List.not_mem_nil, or_false] at ht
+  rcases ht with ht | ht | ht | ht <;> rw [ht] <;> go_type_set
+
 /-- **An error `IsTooLargeResourceVersion` does not recognize**: seen by it as a view (`apiErrAt`)
 whose answer is `false`. -/
 def notTooLarge (err : GoInterface) : IProp GF :=

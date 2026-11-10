@@ -1294,7 +1294,17 @@ Go's `maxAlloc`.
 Since stage A of the per-type models (2026-11-07, `notes/per-type-blockers.md`) the request's and
 the reply's models are the ones registered for their Go types (`grpcReqModelOf`,
 `grpcRepModelOf`): a caller cannot choose a model of its own, and each registered model's
-`ProtoMsgT.ReqSat`/`RepSat` is proved. -/
+`ProtoMsgT.ReqSat`/`RepSat` is proved.
+
+Since k8s 7e-1 (2026-11-10, approved by etcd-grove-81) the error's dynamic type is one of
+`clientErrTys` (through `clientErr`): `*status.Error` (`toRPCErr`, `status.Error`,
+`status.FromContextError`), `*errors.errorString` (`io.EOF`), and the two other types of the list,
+which no attempt returns. True of grpc-go v1.84 under etcd's configuration only, the bounds of this
+claim: no dial option beyond `GrpcDialOpt`'s (`dialOptsAt`), per-RPC credentials that return no
+error (`perRPCCredsOk`: a credentials error carrying a status is returned unchanged, or wrapped with
+`%w`, `http2_client.go:697-702`), and a service config without a retry policy (`grpcResolverAt`:
+an exhausted retry policy wraps the last error, `stream.go:867`). Checked by `examples/k8s/etcd3`'s
+`TestClientErrorTypes`. -/
 def grpcInvokerOk (conn : Loc) (addrs : List GoString) (inv : GoFunc) : IProp GF :=
   iprop(□ ∀ (method : GoString) (Req Rep : ProtoMsgT GF)
       (_ : grpcReqModelOf GF Req.ty = some Req) (_ : grpcRepModelOf GF Rep.ty = some Rep)

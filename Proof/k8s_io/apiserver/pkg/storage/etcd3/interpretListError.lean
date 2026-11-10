@@ -57,7 +57,7 @@ theorem interpretListError.wp_proof
     ileft
     iapply kClientErr_unkErr $$ H
   by_cases hty : ii.ty = go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty
-  · have hv := (hcl.2 ii rfl).2
+  · have hv := (hcl.2 ii rfl).2.1
     unfold errors.AsTypeTyped at hv
     have hni : go.isInterfaceType (underlying go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) = false := by
       have hu : underlying go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty =

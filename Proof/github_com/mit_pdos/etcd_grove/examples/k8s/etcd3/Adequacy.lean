@@ -129,8 +129,6 @@ theorem k8s_etcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     -- (k8s 7e-4, decision (A) and the 7e-2 links, etcd-grove-81, 2026-11-10) the pending
     -- hypotheses until 7c-3 and 7e-1 land: the client's errors are no `APIStatus`, and the client's
     -- `GetAt`/`List` specs (which the store's `GetList` takes)
-    (Hpl : ∀ hG : HeapGS .hasLC k8setcd3GF,
-      k8s_etcd3.clientErrPlain (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx) (sem := sem))
     (HGetAt : ∀ hG : HeapGS .hasLC k8setcd3GF,
       kubernetes.Client.GetAt.spec (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
     (HList : ∀ hG : HeapGS .hasLC k8setcd3GF,
@@ -178,7 +176,6 @@ theorem k8s_etcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   have Hctx0 := Hctx hG
   have HGetAt0 := HGetAt hG
   have HList0 := HList hG
-  have Hpl0 := Hpl hG
   obtain ⟨G, ⟨fl, lc, nh, gs, th, cr⟩⟩ := hG
   subst Hlctx
   subst HL
@@ -219,7 +216,7 @@ theorem k8s_etcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     iframe
   have hM := k8s_etcd3.wp_Main (GF := k8setcd3GF) HGetAt0 HList0 n id ctxs boot clients ops Hbf
     (by rw [HT]; word) (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
-    k8s_etcd3.storageErrTyOk_holds Hpl0 k8s_etcd3.objTyOk_holds Hc0 Hc31 Hops Hmul
+    k8s_etcd3.storageErrTyOk_holds k8s_etcd3.clientErrPlain_holds k8s_etcd3.objTyOk_holds Hc0 Hc31 Hops Hmul
   wp_apply hM $$ [Hstart Htok]
   · iframe; iframe #
   iintro %r %Hr
@@ -265,8 +262,6 @@ theorem k8s_etcd3_cluster_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     -- (k8s 7e-4, decision (A) and the 7e-2 links, etcd-grove-81, 2026-11-10) the pending
     -- hypotheses until 7c-3 and 7e-1 land: the client's errors are no `APIStatus`, and the client's
     -- `GetAt`/`List` specs (which the store's `GetList` takes)
-    (Hpl : ∀ hG : HeapGS .hasLC k8setcd3GF,
-      k8s_etcd3.clientErrPlain (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx) (sem := sem))
     (HGetAt : ∀ hG : HeapGS .hasLC k8setcd3GF,
       kubernetes.Client.GetAt.spec (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
     (HList : ∀ hG : HeapGS .hasLC k8setcd3GF,
@@ -325,7 +320,7 @@ theorem k8s_etcd3_cluster_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   have hM := k8s_etcd3.wp_MainCluster (GF := k8setcd3GF) (HGetAt hG) (HList hG) n id₁ id₂ id₃ ps ctxs boot clients ops Hbf
     (by unfold bootWB backend.wbInit; omega)
     Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
-    k8s_etcd3.storageErrTyOk_holds (Hpl hG) k8s_etcd3.objTyOk_holds Hc0 Hc31 Hops Hmul
+    k8s_etcd3.storageErrTyOk_holds k8s_etcd3.clientErrPlain_holds k8s_etcd3.objTyOk_holds Hc0 Hc31 Hops Hmul
   wp_apply hM $$ [Hstart Htok]
   · iframe; iframe #
   iintro %r %Hr
@@ -359,8 +354,6 @@ theorem k8s_etcd3_partition_adequate [lctx : GoLocalContext] [sem : go.Semantics
     -- (k8s 7e-4, decision (A) and the 7e-2 links, etcd-grove-81, 2026-11-10) the pending
     -- hypotheses until 7c-3 and 7e-1 land: the client's errors are no `APIStatus`, and the client's
     -- `GetAt`/`List` specs (which the store's `GetList` takes)
-    (Hpl : ∀ hG : HeapGS .hasLC k8setcd3GF,
-      k8s_etcd3.clientErrPlain (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx) (sem := sem))
     (HGetAt : ∀ hG : HeapGS .hasLC k8setcd3GF,
       kubernetes.Client.GetAt.spec (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
     (HList : ∀ hG : HeapGS .hasLC k8setcd3GF,
@@ -455,7 +448,7 @@ theorem k8s_etcd3_partition_adequate [lctx : GoLocalContext] [sem : go.Semantics
         (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty)))))
     steps Hbf (by unfold bootWB backend.wbInit; omega)
     Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
-    k8s_etcd3.storageErrTyOk_holds (Hpl hG) k8s_etcd3.objTyOk_holds Hc0 Hc31 Hops Hmul
+    k8s_etcd3.storageErrTyOk_holds k8s_etcd3.clientErrPlain_holds k8s_etcd3.objTyOk_holds Hc0 Hc31 Hops Hmul
   wp_apply hM $$ [Hstart Htok]
   · iframe; iframe #
   iintro %r %Hr

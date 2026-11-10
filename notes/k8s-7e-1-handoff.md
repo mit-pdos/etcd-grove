@@ -183,3 +183,35 @@ Done after the review (`50b82d8c50`, targeted build green: the bundle's proof, `
 
 Trust-base changes so far for the Freeze list: `perRPCCredsOk` (narrowed), `grpcResolverAt`'s meaning
 (no retry policy); to come: `clientErr`'s conjunct (so `grpcInvokerOk`, `cliStreamErr`), `status.Error.spec`.
+
+## Step 2 (`clientErrTys`) done (eighth session, 2026-11-10)
+
+- `clientErrTys` (`client/v3/ClientErr.lean`); `clientErr`'s leaf clause: `isLeafError ∧ AsTypeTyped ∧
+  ii.ty ∈ clientErrTys`. Producers: `errorsNewOk_of`, `clientErr_statusErrOk_of_leaf` (new `hT`),
+  `eofOk_of_init`, `canceledOk_of_init` (`ChanCtx`), `ctxErrClientAllW_of` (types from `context.isInit`;
+  new binder `[context.Assumptions]`), `rpctypes_etcdError_clientErr`. Consumers destructuring the
+  leaf clause: `ContextError`, `isSafeRetryImmutableRPC`, `leasingKV.acquire` (`⟨Hleaf, Htyped, -⟩`).
+- `status.Error.spec`'s post gains the type (`*internal/status.Error`); `togRPCError` follows.
+- Docstrings of `grpcInvokerOk`, `cliStreamErr` name the bounds.
+- `clientErrPlain_holds` (Calls.lean); `Hpl` gone from Adequacy/Results. The driver's internal specs
+  (`call`/`Apply`/`Check`/`Main*`) still take `clientErrPlain` as a premise (drop in step 6).
+- Trusted statements whose meaning changes through `clientErr` (Freeze list): `grpcInvokerOk`
+  (`ClientConn.Invoke`), the stream axioms through `cliStreamErr`, `waitRetryBackoff` (axiom, through
+  `clientErrOk`: its error is `status.Error`'s, so true), `status.Error.spec`; plus `perRPCCredsOk`,
+  `grpcResolverAt` (earlier).
+
+## STOP before §2 (for etcd-grove-81)
+
+- `waitRetryBackoff.spec` is an **axiom** (names-only; `etc/tcb-baseline.txt`), not a proved spec as
+  the Draft's §2 said. The interceptor's error outcome needs its error's description not a handler's.
+  Proposed restatement: post `clientErrOk err ∗ ⌜err = nil ∨ errDesc err ∉ handlerDescs⌝`. True of
+  etcd (`retry_interceptor.go:317-374`: `contextErrToGRPCErr(ctx.Err())` is `status.Error(code,
+  ctx.Err().Error())`, whose description is the context error's message; for a `ctxOk` context that is
+  `"context canceled"`/`"context deadline exceeded"` (Go's contexts) or excluded by `ctxErrs`).
+- `refreshToken` (§2.2): no trusted change if the interceptor's error outcome is conditional on
+  `kvMethod method ∧ ∀ a ∈ addr, noRefusalAt a` (`grpcInvokerOk`'s `noRefusal` of the last attempt's
+  error makes `shouldRefreshToken` false, so the refresh branch is unreachable). Cost: kubernetes
+  `Client.Get`/`List` (and the store's read path) take `∀ x ∈ ms, noRefusalAt x.addr`, which the
+  driver's `Main`/`MainCluster`/`MainPartition` already have (`hnr`).
+- `rangeReply_state_at` (§2.4): likely no `receiptBound` (the revision-0 lemma takes the log's facts
+  from `rangeReplyOk` itself, `%Hlk`; `rangeAns_st` uses the certificate instead). Not yet written.

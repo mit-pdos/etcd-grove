@@ -73,7 +73,7 @@ theorem rpctypes_etcdError_clientErr (hty : rpctypesEtcdErrorTy (GF := GF) (hG :
     clientErr (interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x) := by
   refine ⟨hc.1, fun ii h => ?_⟩
   cases h
-  exact ⟨hty.1 #x, rpctypes_etcdError_asTypeTyped x⟩
+  exact ⟨hty.1 #x, rpctypes_etcdError_asTypeTyped x, by simp [clientErrTys]⟩
 
 theorem rpctypes.Error.wp_proof
     (wp_ErrorDesc : rpctypes.ErrorDesc.spec (GF := GF) (hG := hG))

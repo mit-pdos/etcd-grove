@@ -340,7 +340,9 @@ instance streamErr_persistent (err : GoInterface) : Persistent (streamErr (GF :=
 /-- **An error of the client's end** (persistent): a non-nil stream error that is a client error
 (`clientErr`: a leaf, possibly an `EtcdError`) grpc's `status` accepts (`statusErrOk`): a gRPC status
 error, a context error, or `io.EOF` (a `SendMsg` on a stream the server ended), as the unary
-attempt's errors (`grpcInvokerOk`). -/
+attempt's errors (`grpcInvokerOk`). Since k8s 7e-1 (2026-11-10, approved by etcd-grove-81) its
+dynamic type is one of `clientErrTys` (through `clientErr`), with the bounds `grpcInvokerOk` names:
+no dial option beyond `GrpcDialOpt`'s, per-RPC credentials that return no error, no retry policy. -/
 def cliStreamErr (err : GoInterface) : IProp GF :=
   iprop(⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗
     streamErr err)

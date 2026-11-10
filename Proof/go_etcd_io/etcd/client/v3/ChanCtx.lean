@@ -83,7 +83,7 @@ theorem canceledOk_of_init
       go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty := by
     unfold go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty; nofun
   ihave ⟨%Hc, #Hs⟩ := client.clientErr_statusErrOk_of_leaf _ hl.2.1 hl.2.2
-    ErrorStringNoGRPCStatus.noGRPCStatus hty hAs $$ Hm
+    ErrorStringNoGRPCStatus.noGRPCStatus hty hAs (by simp [clientErrTys]) $$ Hm
   isplitr
   · ipureintro; exact ⟨nofun, Hc⟩
   iframe Hs
