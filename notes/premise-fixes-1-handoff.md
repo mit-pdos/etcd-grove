@@ -30,9 +30,14 @@ systemd-run --scope -q -p MemoryMax=64G lake --packages=/shared/tmp/manifest-ddc
    round-trip axioms true. Go test `examples/premisefix/confchange`.
 4. `ckptEffectsOk`'s docstring citation.
 
-## Status
+## Status (2026-11-10)
 
-See the commits on the branch; the stage stops before `etc/land.sh`.
+Done and committed: fix 1 (`c87acade60`), fix 2 (`0427e0b867`), fix 4 (`01e666e510`), fix 3
+(`00e0cbcf74`); each built targeted (fix 1: all 431 importers; fixes 2/3: the changed proofs).
+Next, in order: the full build (under the lock and cap), `etc/tcb-report.py --check` (`--update`
+if the baseline or a collection moved), `etc/gen-interface.py --check` on `etc/api/*.txt`
+(regenerate raft's: `bootMarshal`, `bootConfChange`, `pbMsg` changed), `etc/gates.sh`, then the
+report to etcd-grove-81; stop before `etc/land.sh`. Open questions: `questions.md`.
 
 ## Pitfalls
 

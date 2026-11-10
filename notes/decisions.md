@@ -9204,6 +9204,11 @@ configuration `goose_adequacy` speaks of).
 
 ## `int64(f)`: a hypothesis class, not an axiom over every semantics (2026-10-18)
 
+*Superseded in part* (2026-11-10, "Premise fixes 1" below): the class `Float64ToInt64Semantics` itself
+contradicted Perennial once Perennial gained its own float-to-integer rule (`08d191151`); it is deleted.
+The general point (a missing fact as a hypothesis class, not an axiom) stands, with the caveat that
+every such class must be re-checked against `go.Semantics` at each Perennial pin.
+
 **2026-10-18 · adopted (branch `raft-retarget`; the axiom audit's first false axiom,
 `notes/audit.md`)**
 
@@ -34045,3 +34050,40 @@ the other examples', and decided its shape:
   `backend.Close`'s precondition: the backend's whole open token, from the server's census
   (`stop_census_open`) over the store's `mvccClosed` with every reader token (the goroutines give
   theirs back through the wait group) and the open token's shares `rc_open` used to drop.
+
+## Premise fixes 1: closed theorems' premises false of Go or of Perennial (2026-11-10 · etcd-grove-81's stage, from the read-only premise attack · branch `premise-fixes-1`)
+
+A read-only attack on `etcd_putget_safe`'s premises (each finding confirmed by an independent
+verifier; evidence in `/shared/tmp/premise-attack/`) found three ways the closed theorems were
+vacuous. Each fix narrows or removes a premise; no closed theorem gains one.
+
+1. **`Float64ToInt64Semantics` deleted.** The class asserted `int64(f)` steps to an uninterpreted
+   function of `f`; Perennial `08d191151` added `Float64Semantics.convert_float64_to_integer`
+   (an arbitrary value of the integer type) for the same instruction. Both are
+   `IsGoStepPureDet` equations, so with `go.Semantics` the class proved `False`
+   (`FloatFalse.lean`). Its three users needed nothing of the value: they take Perennial's arbitrary
+   `int64` (`wp_ArbitraryInt`). **The sweep** of the other hypothesis classes on the semantics
+   (`UntypedIntToFloat64Semantics`, `MutexLitSemantics`, `DialWithBalancerBody`, `log.NewModel`,
+   `os`'s `FieldAssumptions`, the method-set classes, `ContextReadErrs`, `ContextErrsClient`,
+   `ApiDeps`) found no rule of the pinned Perennial or of the generated assumptions on the same
+   instruction, function or method; the method-set classes are theorems of the generated
+   assumptions. (Lesson: a hypothesis class on the semantics needs re-checking at every Perennial
+   pin bump; the gate the attack proposed, deriving `False` mechanically, is not built.)
+2. **`bootstrapContract` takes the feature gate** (`nil`, or `isFeatureGate`), as
+   `storage.openPre` already did: `newBackend` asks a non-`nil` gate for `NonBlockingDefrag` and
+   `featuregate` panics on an unregistered feature (`examples/premisefix/bootfg`). The other free
+   configuration fields `bootstrap` reads lead to an error or to `bootOk` (`MaxLearners`,
+   `BackendBatchInterval` (a non-positive interval only spins the commit timer), `BackendFreelistType`,
+   `UnsafeNoFsync` (out of the WAL's API: no crash in the closed theorems), `MaxRequestBytes`,
+   `PreVote`, `PeerTLSInfo` (bad files: an error), `BootstrapTimeout`); `MemoryMlock`'s failure is
+   `storage.dbOpensOk`'s, by its docstring.
+3. **`bootMarshal` over the object `Bootstrap` builds** (`bootConfChange`: `Type`/`NodeId` set, `Id`
+   `nil`, no unknown fields; and the contexts non-empty, since an empty one's bytes depend on the
+   slice being `nil`): stated over `ownConfChange`, it covered objects Go marshals to other bytes
+   (`examples/premisefix/confchange`). **`pbMsg`'s unknown fields** are none or `proto.Unmarshal`'s
+   leftovers (`pbUnknownOk`, opaque `pbUnmarshalLeft`; considered: requiring `uf = []` in the
+   Marshal axioms' preconditions, which would have threaded a new fact through raft's API specs from
+   every caller): the `proto.MarshalConfChange(V2)` round trips are false for arbitrary bytes, true
+   for these. The axiom texts are unchanged; what `pbMsg` means is narrowed, which every producer
+   (struct allocation, the `Unmarshal` and `Clone` axioms) meets in Go.
+
