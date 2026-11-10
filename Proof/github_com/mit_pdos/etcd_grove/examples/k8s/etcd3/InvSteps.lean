@@ -409,7 +409,7 @@ theorem cachedObj_of_item (c : StoreCfg GF DObj) (τ : KVState) (hw : kvWf c τ)
   rw [hW]
   isplitr
   · ipureintro
-    exact ⟨DObj.toObj_fits o _, hr0⟩
+    exact ⟨DObj.toObj_fits o _, hr0, rfl⟩
   rw [dobjOf_toObj]
   iexact Hv
 
@@ -437,7 +437,7 @@ theorem cachedObj_of_del (c : StoreCfg GF DObj) (σ σ' : KVState) (hw' : kvWf c
   unfold cachedObjOk
   isplitr
   · ipureintro
-    exact ⟨DObj.toObj_fits o _, hr0⟩
+    exact ⟨DObj.toObj_fits o _, hr0, rfl⟩
   rw [dobjOf_toObj]
   iexact Hv
 

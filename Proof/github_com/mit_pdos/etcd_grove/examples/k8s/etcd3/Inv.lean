@@ -910,10 +910,10 @@ instance rwCall_persistent (γ : KNames) (g0 : HSt) (γt : GName) (x : Input)
     (Φ : val → IProp GF) : Persistent (rwCall γ g0 γt x Φ) := by
   unfold rwCall; infer_instance
 
-/-- **A cached object** (`Cache.lean`): it fits a `DObj`, its resource version is not `0`,
-and every key held it at that resource version. -/
+/-- **A cached object** (`Cache.lean`): it fits a `DObj`, its resource version is not `0`, it has
+no annotation (`objOf` sets none), and every key held it at that resource version. -/
 def cachedObjOk (c : StoreCfg GF DObj) (ob : Obj) : IProp GF :=
-  iprop(⌜fitsD ob ∧ ob.ResourceVersion' ≠ W64 0⌝ ∗
+  iprop(⌜fitsD ob ∧ ob.ResourceVersion' ≠ W64 0 ∧ ob.Annotated' = false⌝ ∗
     □ ∀ k : GoString, ⌜c.pfx <+: k⌝ → versionAt c k ob.ResourceVersion' (dobjOf ob))
 
 instance cachedObjOk_persistent (c : StoreCfg GF DObj) (ob : Obj) :
