@@ -505,7 +505,15 @@ call `lg.Fatal`, which does not return (`zap.Logger.Fatal.spec`). (Sweep repairs
 2026-11-07) With a zap logger (`zapLoggerOk cfg.Logger'`): `bootstrap` logs through it from its first
 line (`bootstrap.go:64`, `:92`), and on a zero `&zap.Logger{}` panics; until then the contract
 covered any non-nil logger (`bootCfgOk`'s `cfg.Logger' ≠ null`), so it was false of Go there and
-every closed theorem assuming it held vacuously on that account. -/
+every closed theorem assuming it held vacuously on that account. (Premise fixes 1, 2026-11-10) With
+the feature gate `nil` or a feature gate (`isFeatureGate`, which answers `NonBlockingDefrag`, as
+`storage.openPre`): `newBackend` (`storage/backend.go:50-51`) asks a non-`nil` gate for it, and
+`featuregate` panics on an unregistered feature; until then the contract covered every gate, so it
+was false of Go there (the premise attack; `examples/premisefix/bootfg`, `featuregate.New`'s empty
+gate panics in `bootstrap`). The other configuration fields `bootstrap` reads and no precondition
+fixes (`MaxLearners`, `BackendBatchInterval`, `BackendFreelistType`, `UnsafeNoFsync`,
+`MaxRequestBytes`, `PreVote`, `PeerTLSInfo`, `BootstrapTimeout`) make it return an error or do
+what `bootOk` says, and `MemoryMlock`'s failure is `storage.dbOpensOk`'s. -/
 def bootstrapContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs)
     (γ : SrvRaft) (id : w64) (ctxs : List (List w8)) (N : Nat) (dir : w64 → List GoString) :
     IProp GF :=
@@ -513,6 +521,9 @@ def bootstrapContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U :
           storage.dbOpensOk ∧ storage.walCreateOk⌝ ∗
         -- (sweep repairs 1, L4) a zap logger
         zapLoggerOk cfg.Logger' ∗
+        -- (premise fixes 1) the feature gate `nil` or one that answers `NonBlockingDefrag`
+        -- (`storage.openPre`'s)
+        (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
         -- (sweep repairs 1, B4) `ETCD_VERIFY` off: its backend's lock checks return (`bootOk`'s
         -- `isBackend` carries it)
         envVerifyOff ∗

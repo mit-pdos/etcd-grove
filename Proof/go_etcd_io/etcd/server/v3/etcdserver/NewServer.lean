@@ -446,7 +446,9 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   iunfold bootstrapContract at Hboot'
   wp_apply Hboot' $$ [Hrauth Hwdf] as %b %err Hb
   · iframe; iframe Hcfgro Hzlg Hvoff
-    ipureintro; exact ⟨Hbco, Hbcf, Hbwb, Hdisk.1, Hdisk.2.2.2.2⟩
+    isplitl []
+    · ipureintro; exact ⟨Hbco, Hbcf, Hbwb, Hdisk.1, Hdisk.2.2.2.2⟩
+    iright; iexact Hfg
   icases Hb with (%Herr | ⟨%Herr, Hb⟩)
   · -- `bootstrap` failed
     cases err with
