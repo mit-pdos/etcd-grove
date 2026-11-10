@@ -149,7 +149,10 @@ theorem RealPodControl.createPods.wp_proof
         icases Herr with ⟨%sp, %st, %herr, #Hsp, %hst⟩
         subst herr
         wp_auto
-        wp_apply (wp_HasStatusCause _ _) as %b _
+        wp_apply (wp_HasStatusCause _ _) $$ [] as %b _
+        · iunfold apierrors.apiErrOk; ileft; iexists sp, st; isplitr
+          · ipureintro; rfl
+          · iexact Hsp
         iunfold recorderOk at Hrec
         icases Hrec with ⟨%i, %hi, #HEv⟩
         cases b
@@ -265,7 +268,10 @@ theorem RealPodControl.createPods.wp_proof
           icases Herr with ⟨%sp, %st, %herr, #Hsp, %hst⟩
           subst herr
           wp_auto
-          wp_apply (wp_HasStatusCause _ _) as %b _
+          wp_apply (wp_HasStatusCause _ _) $$ [] as %b _
+          · iunfold apierrors.apiErrOk; ileft; iexists sp, st; isplitr
+            · ipureintro; rfl
+            · iexact Hsp
           iunfold recorderOk at Hrec
           icases Hrec with ⟨%i, %hi, #HEv⟩
           cases b

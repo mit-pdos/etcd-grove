@@ -3,10 +3,14 @@
 a `*StatusError` its status's timeout test (`timeoutV`: `reasonAndCodeForError`, `:817-822`, the
 `APIStatus` assertion, then `Status()`, the struct's `ErrStatus`); of an error that is no `APIStatus`
 and wraps none (`.plain`), `false` (reason `Unknown`, code 0). Stated as a post every view of the
-error answers (a caller holding no view sees some bool).
+error answers (a caller holding no view sees some bool). Precondition `apiErrOk err` (`View.lean`):
+a `*StatusError` held read-only, or a `.plain` error; added after the review of 2026-11-10, which
+refuted the precondition-free statement: a typed-nil `*StatusError`, bare or wrapped with `%w`,
+passes the assertion (or `errors.As`) and panics in `Status()`
+(`examples/k8s7e2attack/attack_test.go` `TestTypedNilStatusError`).
 
 Faithful: `IsTimeout` reads the error only through `err.(APIStatus)` / `errors.As(err, &status)` and
-`Status()`, which for `*StatusError` returns `ErrStatus` (`errors.go:52-56`); for a value whose type
+`Status()`, which for `*StatusError` returns `ErrStatus` (`errors.go:75-79`); for a value whose type
 does not implement `APIStatus` and has no `Unwrap`/`As`, `errors.As` is false (`TestStatusView`,
 `TestPlainView`, `TestLeafMustExcludeAsAndUnwrapSlice`). The trust boundary (stage 7e-2,
 `notes/k8s-7e-2-draft.md` §5.1, attacked T1): an axiom,
@@ -38,7 +42,7 @@ variable [package_sem : k8s_io.apimachinery.pkg.api.errors.Assumptions]
 /-- See the file header. -/
 abbrev IsTimeout.spec : Prop :=
   ∀ (err : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.api.errors }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.api.errors ∗ apiErrOk err }}
     (App (Val (@! k8s_io.apimachinery.pkg.api.errors.IsTimeout)) (Val #err))
   {{ (b : Bool), RET #b; □ ∀ w, apiErrAt err w -∗ ⌜b = match w with
       | .status st _ => timeoutV st | .plain => false⌝ }}

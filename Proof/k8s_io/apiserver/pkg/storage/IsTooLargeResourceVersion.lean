@@ -37,7 +37,8 @@ theorem storage.IsTooLargeResourceVersion.wp_proof
   ihave #Pe : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.api.errors $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply (wp_IsTimeout err) as %b1 #H1
+  ihave #Hok := apierrors.apiErrAt_ok err w $$ Hw
+  wp_apply (wp_IsTimeout err) $$ [$Hok] as %b1 #H1
   ihave %h1 := H1 $$ Hw
   cases b1
   · (try wp_auto)
@@ -47,7 +48,7 @@ theorem storage.IsTooLargeResourceVersion.wp_proof
     iapply HΦ
     itrivial
   · (try wp_auto)
-    wp_apply (wp_HasStatusCause err _) as %b2 #H2
+    wp_apply (wp_HasStatusCause err _) $$ [$Hok] as %b2 #H2
     ihave %h2 := H2 $$ Hw
     have heq : apierrors.tooLargeV w = b2 := by
       cases w <;> simp_all [apierrors.tooLargeV]

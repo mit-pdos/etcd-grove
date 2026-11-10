@@ -111,6 +111,34 @@ instance apiErrAt_persistent (err : GoInterface) (w : ApiErrView) :
     Persistent (apiErrAt (GF := GF) err w) := by
   cases w <;> unfold apiErrAt <;> (try unfold statusDetailsAt) <;> infer_instance
 
+/-- **An error `apierrors`' checks may read** (the precondition of `IsTimeout`/`HasStatusCause`,
+after the review of 2026-11-10: a typed-nil `*StatusError`, bare or wrapped with `%w`, panics in
+`Status()`, `examples/k8s7e2attack/attack_test.go` `TestTypedNilStatusError`): a `*StatusError`
+whose struct is held read-only (so non-nil), or a `.plain` error. Weaker than a view: the pod
+control's create holds the struct (`errIs`) but not its details' causes. -/
+def apiErrOk (err : GoInterface) : IProp GF :=
+  iprop((∃ (l : Loc) (st : k8s_io.apimachinery.pkg.apis.«meta».v1.Status), ⌜err = interface.mkOk
+      (go.GoType.PointerType k8s_io.apimachinery.pkg.api.errors.StatusError.ty) #l⌝ ∗
+      l ↦□ k8s_io.apimachinery.pkg.api.errors.StatusError.mk st) ∨ apiErrAt err .plain)
+
+instance apiErrOk_persistent (err : GoInterface) : Persistent (apiErrOk (GF := GF) err) := by
+  unfold apiErrOk apiErrAt; infer_instance
+
+/-- A view gives the precondition. -/
+theorem apiErrAt_ok (err : GoInterface) (w : ApiErrView) :
+    apiErrAt (GF := GF) err w ⊢ apiErrOk err := by
+  cases w with
+  | status st cs =>
+    unfold apiErrOk apiErrAt
+    iintro ⟨%l, %h, #Hl, -⟩
+    ileft; iexists l, st; isplitr
+    · ipureintro; exact h
+    · iexact Hl
+  | plain =>
+    unfold apiErrOk
+    iintro #H
+    iright; iexact H
+
 /-- **The error `IsTooLargeResourceVersion` recognizes** (`errors.go:259-265`): a timeout (`Timeout`
 reason) `*StatusError` whose details list the `ResourceVersionTooLarge` cause. -/
 def tooLargeErrIs (err : GoInterface) : IProp GF :=

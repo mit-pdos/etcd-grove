@@ -192,8 +192,9 @@ func TestLeafMustExcludeAsAndUnwrapSlice(t *testing.T) {
 	}
 }
 
-// A typed-nil *StatusError panics in both (Status() dereferences nil). Excluded from `.status`
-// by `l ↦□ _` (typedPointsto_not_null) and from `.plain` by the type set.
+// A typed-nil *StatusError, bare or wrapped with %w, panics in both (Status() dereferences nil,
+// errors.go:75-79). Excluded from `.status` by `l ↦□ _` (typedPointsto_not_null), from `.plain`
+// by the type set (and, wrapped, by leafErrTy), hence by the specs' precondition apiErrOk.
 func TestTypedNilStatusError(t *testing.T) {
 	var se *apierrors.StatusError
 	var err error = se
@@ -204,6 +205,16 @@ func TestTypedNilStatusError(t *testing.T) {
 	}
 	if r := panics(func() { apierrors.HasStatusCause(err, "x") }); r == nil {
 		t.Errorf("typed nil: no panic")
+	}
+	// Wrapped with %w, errors.As finds the typed nil and Status() panics the same way: the
+	// review of 2026-11-10 refuted the precondition-free IsTimeout/HasStatusCause specs with
+	// these, hence their precondition apiErrOk (View.lean).
+	w := fmt.Errorf("wrapped: %w", err)
+	if r := panics(func() { apierrors.IsTimeout(w) }); r == nil {
+		t.Errorf("wrapped typed nil: IsTimeout: no panic")
+	}
+	if r := panics(func() { apierrors.HasStatusCause(w, "x") }); r == nil {
+		t.Errorf("wrapped typed nil: HasStatusCause: no panic")
 	}
 }
 
