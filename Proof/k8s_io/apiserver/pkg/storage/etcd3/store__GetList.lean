@@ -773,6 +773,104 @@ theorem store.GetList.wp_proof
       iintro %bv ⟨%Hbv, %lkp', %lkb', lastKey, #Hlkb', %Hlk'⟩
       subst Hbv
       wp_auto
+      have hst' : chunkL (fun x => sel x.1) (limN opts.Predicate'.Limit') st (decodedL c.S.dec pg.1) =
+          chunkL (fun x => sel x.1) (limN opts.Predicate'.Limit') ⟨[], none, false, 0⟩
+            (decodedL c.S.dec ((scopeL (σ.at (uint.nat R)) (c.pathPrefix ++ k)
+              opts.Recursive').take (m + pg.1.length))) := by
+        rw [hst]
+        exact chunkL_take_add _ _ _ _ _ _ hpg1 (decodedL c.S.dec) (decodedL_append' _) _
+      have hpg2' : pg.2 = pg.1.length + rest.length := by
+        rw [hpg2, hpg1, List.length_append]
+      have hhmc : ch.hasMore' = decide (rest ≠ []) := by
+        rw [Hcc.2, hpg2']
+        apply decide_eq_decide.2
+        constructor
+        · intro h he; rw [he] at h; simp at h
+        · intro h; have := List.length_pos_iff.2 h; omega
+      generalize hst'd : chunkL (fun x => sel x.1) (limN opts.Predicate'.Limit') st
+        (decodedL c.S.dec pg.1) = st' at hst' Hlr hn'4 hn'5
+      ihave Hbrk : (∀ hmv' : Bool, ⌜hmv' = (ch.hasMore' || lr) ∧ (lr = true ∨ ch.hasMore' = false ∨
+          (0 < limN opts.Predicate'.Limit' ∧ limN opts.Predicate'.Limit' ≤ st'.items.length))⌝ -∗
+          hasMore_ptr ↦ hmv' -∗ v_ptr ↦ rv -∗ L.itemsRef pl ↦ sl' -∗ Ψb breakVal) $$
+          [Hk «$res0» withRev lastKey count numFetched numEvald err Hits]
+      · iintro %hmv' %Hh hasMore v Hip
+        obtain ⟨hhmv, hcase⟩ := Hh
+        have hcase' : st'.more = true ∨ rest = [] ∨ (0 < limN opts.Predicate'.Limit' ∧
+            limN opts.Predicate'.Limit' ≤ st'.items.length) := by
+          rcases hcase with h | h | h
+          · left; rw [← Hlr]; exact h
+          · right; left
+            rw [hhmc] at h
+            exact Decidable.of_not_not (fun hn => by simp [hn] at h)
+          · right; right; exact h
+        obtain ⟨ha1, ha2, ha3⟩ := kListL_final c.S.dec sel (limN opts.Predicate'.Limit')
+          (σ.at (uint.nat R)) (c.pathPrefix ++ k) opts.Recursive' m pg.1 rest hpg1 hdec st' hst' hcase'
+        have hmvA : hmv' = (kListL c.S.dec sel (limN opts.Predicate'.Limit') (c.pathPrefix ++ k)
+            opts.Recursive' (σ.at (uint.nat R))).more := by
+          rw [ha3, hhmv, hhmc, Hlr]
+          cases st'.more <;> simp
+        have hn'pos : hmv' = true → 0 < n' := by
+          intro hm
+          refine Nat.pos_of_ne_zero fun h0 => ?_
+          cases hlr : lr
+          · rw [hhmv, hlr, Bool.or_false, hhmc] at hm
+            have hr : rest ≠ [] := of_decide_eq_true hm
+            have hn0 := hn'3 hlr
+            rw [h0] at hn0
+            have hne := hmne (by rw [hpg2']; have := List.length_pos_iff.2 hr; omega)
+            exact hne (List.eq_nil_of_length_eq_zero hn0.symm)
+          · exact hstf (hn'4 hlr h0)
+        rw [hΨb]
+        unfold forRangePost
+        iright
+        isplitr
+        · ipureintro; exact Or.inl rfl
+        iintro HD
+        iexists false
+        isplitr
+        · ipureintro; rfl
+        simp only [Bool.false_eq_true, ↓reduceIte]
+        iintro Htt
+        isplitr
+        · ipureintro; simp
+        iright; ileft
+        iframe HD
+        rw [hHkP]
+        icases Hk with ⟨Hfin, -⟩
+        iapply Hfin $$ %σ %R %R %lkp' %lkb' %hmv' %ch.count' %(W64 ((m + pg.1.length : Nat) : Int))
+          %(nev + evd) %e1 %sl' %st' «$res0» withRev lastKey Hlkb' hasMore count numFetched numEvald err
+          v Hip Hits HQσ Htt []
+        ipureintro
+        refine ⟨hR, hRle, hσb, hRn, rfl, ha1.symm, hmvA, ?_, ?_, by word, ?_⟩
+        · intro hm
+          have hn := hn'pos hm
+          have hor : lr = true ∨ 0 < limN opts.Predicate'.Limit' ∧
+              limN opts.Predicate'.Limit' ≤ st'.items.length := by
+            rcases hcase with h | h | h
+            · exact Or.inl h
+            · cases hlr : lr
+              · exfalso
+                rw [hhmv, h, hlr] at hm; cases hm
+              · exact Or.inl rfl
+            · exact Or.inr h
+          obtain ⟨kv, hkv, hlast⟩ := hn'5 hn hor
+          obtain ⟨kv', hkv', hlkb⟩ := Hlk' hn
+          rw [hkv] at hkv'
+          cases hkv'
+          refine ⟨by rw [ha2, hlast, hlkb], ?_⟩
+          rw [hlkb]
+          exact scopeL_prefix _ _ _ _ (hpgsc kv (List.mem_of_getElem? hkv))
+        · intro hm he
+          have hi : i = 0 := by
+            refine Classical.byContradiction fun hi => ?_
+            rw [(hi1 hi).2.1] at he; cases he
+          obtain ⟨-, hm0⟩ := hi0 hi
+          subst hm0
+          rw [Hcc.1, kListL_total _ _ _ _ _ _ hdec, hpg2]
+          simp
+        · rw [hn'2]
+          have := hn'1
+          word
       sorry
     · subst Hbv
       wp_auto
