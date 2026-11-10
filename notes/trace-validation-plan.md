@@ -845,6 +845,29 @@ campaign's conditions and `HupGuard` exclusive; so `tickElection`'s corollary wa
 state (at `s`) lacks; where they are created is to decide. Unblocked, not done: the `BecomeCandidate`,
 vote-request and self-vote lines' facts and phase steps; `Commit`, the self-acknowledgement.
 
+**Q8 stage 1 (slice 19b), 2026-11-10 (branch `trace-check-q8s19b`): the bundle's premises folded; a
+follower's `MsgHeartbeat` proved; the vote tally blocked on a missing uniqueness invariant (Q17).**
+Decided by the coordinator (the premises) and the agent (their form, the rest) (`notes/decisions.md`, "Q8
+stage 1 (slice 19b)"). Done: (1) `stepBundle_traced.on` takes slice 18b's `s.role ≠ .preCandidate` and
+`TrRecvShape` (`onR` dropped; the shape now also `From ≠ To` for an append request and a heartbeat),
+the received message's `isMessageC` (beside its token) and, found needed, `m.Type' = MsgHeartbeat ∨
+MsgApp → γ.reBoot ≠ []` (the specification's heartbeat handling needs a commit index past `0`); where
+the node API gets each is recorded (raft's `ownRaftPhysC_precand`; `isRaftMsg`'s `SentMsgShape`, to be
+extended by the two heartbeat clauses; `isRaftMsg`'s `isMessageC`; the cluster's bootstrap log). (2)
+**`stepBundle_traced_folHb`** (`TracedRaftStepRecvHb.lean`): a follower's `MsgHeartbeat` of its term,
+the commit raised with the heartbeat's certificates moved to the receiver's log without changing raft's
+ghost state (`ownRaftGhost_hbFacts`), the specification server's recorded log identified with raft's
+(`log_eq_of_abs`), the response's send line skipped. **Blocked (Q17, recommended (a), an amendment
+A3)**: a candidate's `MsgVoteResp` (raft records a voter's first response only, the specification every
+granting one; no invariant excludes a second response). **Not done, unblocked** (exact items in the
+decisions entry): a candidate's `MsgHeartbeat` (the two-round receipt, `ReturnToFollowerState`, and the
+`BecomeFollower` line skipped by `bfCond`, which needs the receive event kept as the last event), a
+follower's `MsgApp` (rejected: `hlt0` from the message's facts; the hint is irrelevant, `msgAbs` drops it;
+stale: log matching below the commit from the ghost; accepted: the new log's records and certificate and
+`QuorumLogF` under a truncation/append, no lemma yet), a higher-term receive (`UpdateTerm`'s first
+round, `commitIn` at the new term by `commitIn_agree`, `LeaderComplete` for `specInv_updateTerm`, the
+preamble's `BecomeFollower` line skipped), the leader's `MsgAppResp`/`MsgHeartbeatResp`.
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its

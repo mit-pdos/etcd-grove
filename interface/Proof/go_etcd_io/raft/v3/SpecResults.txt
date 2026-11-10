@@ -48,20 +48,18 @@ def SnapScopeIf (id : w64) (sv : SnapshotM) (cl : CSLists) : Prop :=
 
 def HupGuard [GoGlobalContext] [GoSemanticsFunctions] (c : CfgM) (id : w64) (s s' : NState) : Prop
     :=
-  s' = s ∨
-    s.role ≠ PRole.leader ∧
-      id ∈ c.voters ∧
-        s.logst.snap = none ∧
-          (¬∃ e, e ∈ unappliedEnts s.logst ∧ IsConfEnt e) ∧
-            ∃ pre peers pvs cl,
-              peers.Perm (elements (c.voters \ {id})) ∧
-                s' =
-                  have __src := campaignState id s pre peers cl;
-                  { term := __src.term, vote := __src.vote, lead := __src.lead, role := __src.role, votes := __src.votes,
-                    outbox := __src.outbox, stepfn := __src.stepfn, ticking := __src.ticking, progress := __src.progress,
-                    log := __src.log, logst := __src.logst, prvals := pvs, prevote := __src.prevote, gh := __src.gh,
-                    rd := __src.rd, lt := __src.lt, pci := __src.pci, isLearner := __src.isLearner, sdr := __src.sdr,
-                    cq := __src.cq }
+  ¬HupCampaigns c id s ∧ s' = s ∨
+    HupCampaigns c id s ∧
+      ∃ pre peers pvs cl,
+        (pre = true → s.prevote = true) ∧
+          peers.Perm (elements (c.voters \ {id})) ∧
+            s' =
+              have __src := campaignState id s pre peers cl;
+              { term := __src.term, vote := __src.vote, lead := __src.lead, role := __src.role, votes := __src.votes,
+                outbox := __src.outbox, stepfn := __src.stepfn, ticking := __src.ticking, progress := __src.progress,
+                log := __src.log, logst := __src.logst, prvals := pvs, prevote := __src.prevote, gh := __src.gh,
+                rd := __src.rd, lt := __src.lt, pci := __src.pci, isLearner := __src.isLearner, sdr := __src.sdr,
+                cq := __src.cq }
 
 def unappliedEnts (ls : LogState) : List EntryM :=
   scanRange ls (ls.applied + W64 1) (ls.committed + W64 1)
@@ -75,6 +73,9 @@ def HupOkC [GoGlobalContext] [GoSemanticsFunctions] (c : CfgM) (id : w64) (s s' 
       (s'.logst = s.logst ∧
           uint.Z s.term ≤ uint.Z s'.term ∧ uint.Z s'.term ≤ uint.Z s.term + 1 ∧ s'.prevote = s.prevote ∧ s'.gh = s.gh) ∧
         (¬id ∈ c.voters → s' = s) ∧ HupGuard c id s s'
+
+def HupCampaigns (c : CfgM) (id : w64) (s : NState) : Prop :=
+  s.role ≠ PRole.leader ∧ id ∈ c.voters ∧ s.logst.snap = none ∧ ¬∃ e, e ∈ unappliedEnts s.logst ∧ IsConfEnt e
 
 def scanRange (ls : LogState) (lo hi : w64) : List EntryM :=
   List.take (uint.Z hi - uint.Z lo).toNat (plogFrom ls.prev (ls.sents ++ ls.uents) lo)
