@@ -111,8 +111,9 @@ theorem Client.Get.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
     first
       | rfl
       | (refine ⟨?_, rfl⟩; unfold opGetPanics opFold OpFull.newOp; simp [withRevM, withLimitM])
-  icases Hout with (⟨%Herr, %m, #Hm, %x, %hx, #Hq⟩ | ⟨⟨%Herr, %Hrn⟩, #Hke⟩)
+  icases Hout with (⟨%Herr, %m, Hm, %x, %hx, #Hq⟩ | ⟨⟨%Herr, %Hrn⟩, #Hke⟩)
   · subst Herr
+    imod rangeRespMsgO_persist _ _ $$ Hm with #Hm
     ihave Hs := rangeReply_state_at x.E x.γr (W64 0) x.cid x.mid _ [] Q m rfl $$ Hq
     icases Hs with ⟨%σ, #HQ, %Hσ⟩
     obtain ⟨hsel, -, hrevσ, hle, hb, hvals⟩ := Hσ
