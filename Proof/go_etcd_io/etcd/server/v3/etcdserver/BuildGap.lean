@@ -217,6 +217,11 @@ theorem rnEnvOk_of_cluster (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64
   · iexact Hr
   isplitr
   · iintro !> %m %st ⟨#Hmo, #Hrm, Hc, %Hns⟩
+    -- (raft-entsize §4) the content the bundle carries, of bounded size under a data bound
+    ihave %Hshm := (letI := srvStor (GF := GF) γw.node;
+      sentMsg_shape (GF := GF) γw.node.cl srvClusterN γw.id st) $$ Hrm
+    ihave #Hcc := (letI := srvStor (GF := GF) γw.node;
+      msgOut_netContent γw.node.cl m st Hns Hshm.1.2.2.2.2.2.2.2) $$ Hmo
     -- (raft-entsize §2) today's form of the handed-out message (the bundle's)
     ihave #Hmo := (letI := srvStor (GF := GF) γw.node; msgOut_msgOwn γw.node.cl m DFrac.discard st) $$ Hmo
     rw [hraft, hid] at *
@@ -224,7 +229,7 @@ theorem rnEnvOk_of_cluster (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64
     · -- (D21 stage M1) the bundle a receiver's `Step` takes
       iunfold srvMsgNet
       iexists st
-      iframe Hmo Hrm Hc
+      iframe Hmo Hrm Hc Hcc
     iunfold srvMsgNoSnap
     iexists st
     iframe Hmo

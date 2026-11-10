@@ -95,6 +95,28 @@ def V2Frame (frm to : w64) (cs : V2St) (w : MsgWire) (bs : List w8) (cs' : V2St)
   (∃ (st : MsgSt) (mbs : List w8), wireOf st = w ∧ MsgWireOk st mbs ∧ mbs.length < 2 ^ 63 ∧
     MsgEnc st mbs ∧ bs = W8 2 :: msgFrame mbs ∧ cs' = ⟨w.msg.Term', lastIdx w⟩)
 
+/-! ## The encoders' content (raft-entsize §4) -/
+
+section szc
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+open Iris.ProofMode
+
+/-- A message's content for the encoders is bounded (`swMsgBound`). -/
+theorem msgSzC_swMsgBound (Sz : Prop) (ml : Loc) (st : MsgSt) :
+    msgSzC (GF := GF) Sz ml st ⊢ swMsgBound ml st := by
+  iintro H
+  iunfold msgSzC at H
+  icases H with ⟨%c, #Hc, %H⟩
+  iunfold swMsgBound
+  iexists c
+  iframe Hc
+  ipureintro; exact ⟨H.1, H.2.1, H.2.2.1⟩
+
+end szc
+
 /-! ## Indices -/
 
 theorem sint_sub_one_bounds {x : w64} (h : 0 < sint.Z x) :

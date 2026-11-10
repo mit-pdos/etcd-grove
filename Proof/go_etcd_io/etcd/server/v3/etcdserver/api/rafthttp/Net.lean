@@ -38,6 +38,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Defs
 public import Proof.go_etcd_io.raft.v3.InvNodeCtx
 public import Proof.go_etcd_io.raft.v3.ApiVocab
 public import Proof.go_etcd_io.raft.v3.InvPb
+public import Proof.go_etcd_io.raft.v3.MsgOut
 public import Perennial.Ghost.GhostMap
 public import Perennial.Ghost.MonoNat
 public import Perennial.Proof.ThreadPool
@@ -72,6 +73,10 @@ structure NetPayload (GF : BundledGFunctors) [GooseExts] where
   once : MsgSt → Prop
   P_pers : ∀ st, Persistent (P st)
   dup : ∀ st, ¬ once st → ⊢ |==> O st
+  /-- (raft-entsize §4, 2026-11-10) whether the messages are of bounded size (`msgSizeOk`): the
+  size facts of the bundle, the frames and the received copy hold when `Sz` does (the server's: its
+  cluster states a bound on proposed data, `γ.cl.maxData ≠ none`), and are vacuous otherwise -/
+  Sz : Prop
   /-- (D22 S-i) what a snapshot message's database image `D` of index `i` carries (persistent):
   the sender's certificate, kept with the saved file in the receiver's directory -/
   img : w64 → backend.Data → IProp GF
@@ -116,11 +121,28 @@ goroutines marshal it after `Send` returns), its persistent part and its one-sho
 not a `MsgSnap`, which goes by `SendSnapshot` (`netSnapBundle`). (2026-10-22, D38a) With no
 responses: what marshals (`MsgMarshals`), so that the receiver's copy has none either (`netRecv`).
 (2026-10-24, rafthttp stage 6d) Of the sender `lid`: a `MsgApp` of raft's shape (`AppShape`) from
-`lid`, what rafthttp's msgappv2 stream carries whole (raft's `isRaftMsg` says both of its messages). -/
+`lid`, what rafthttp's msgappv2 stream carries whole (raft's `isRaftMsg` says both of its messages).
+(raft-entsize §4, 2026-11-10) Frozen at a content of `st` (`msgRoC`; its snapshot's conf state
+without unknown fields), of bounded size when the payload says so (`N.Sz`): the content the
+transport encodes, which the receiver decodes back (`proto.Unmarshal`'s D2). -/
 def netBundle (N : NetPayload GF) (lid : w64) (m : Loc) : IProp GF :=
   iprop(∃ st : MsgSt, msgOwn m DFrac.discard st ∗ (□ N.P st) ∗ N.O st ∗
     ⌜st.msg.Type' ≠ MsgSnap ∧ st.resps = [] ∧
-      (st.msg.Type' = MsgApp → AppShape st ∧ st.msg.From' = lid)⌝)
+      (st.msg.Type' = MsgApp → AppShape st ∧ st.msg.From' = lid)⌝ ∗
+    ∃ c : MsgC, msgRoC m c ∗ ⌜c.model = st ∧ c.csUfNil ∧ (N.Sz → msgSizeOk c)⌝)
+
+/-- **A message's content for the encoders** (persistent; raft-entsize §4, 2026-11-10): the
+message `ml` frozen at a content of `st` without unknown fields in its snapshot's conf state, below
+`2^47` bytes (what `swMsgBound` says, `msgSzC_swMsgBound`), and of bounded size when `Sz`
+(`msgSizeOk`): one content for both, so that the bytes the encoders write are the encoding of a
+content of bounded size, which the receiver decodes back (`proto.Unmarshal`'s D2). -/
+def msgSzC (Sz : Prop) (ml : Loc) (st : MsgSt) : IProp GF :=
+  iprop(∃ c : MsgC, msgRoC ml c ∗
+    ⌜c.model = st ∧ c.csUfNil ∧ msgSize c < 2 ^ 47 ∧ (Sz → msgSizeOk c)⌝)
+
+instance msgSzC_persistent (Sz : Prop) (ml : Loc) (st : MsgSt) :
+    Persistent (msgSzC (GF := GF) Sz ml st) := by
+  unfold msgSzC; infer_instance
 
 /-- **A snapshot message handed to `SendSnapshot`** (D22 S-i): the raft message `ml` of the merged
 message, a `MsgSnap` with a snapshot of index `i`, with its bundle (read-only for good, as
@@ -349,6 +371,302 @@ theorem raftLoanL_giveBack (R : IProp GF) (E : CoPset) (HN : ↑raftPoolN ⊆ E)
   iframe; iframe #
 
 end pool
+
+/-! ### The size facts (raft-entsize §4, the receive row) -/
+
+section sizePure
+variable [GooseExts]
+
+theorem varintSize_pos (n : Nat) : 1 ≤ varintSize n := by
+  unfold varintSize
+  rw [varintEnc]
+  split <;> simp
+
+theorem varintSize_le_succ : ∀ n : Nat, varintSize n ≤ n + 1 := by
+  intro n
+  induction n using Nat.strongRecOn with
+  | _ n ih =>
+    unfold varintSize
+    rw [varintEnc]
+    split
+    · simp
+    · rename_i h
+      simp only [List.length_cons]
+      have := ih (n / 128) (by omega)
+      unfold varintSize at this
+      omega
+
+theorem varintSize_le_of_lt : ∀ (k n : Nat), n < 2 ^ (7 * (k + 1)) → varintSize n ≤ k + 1 := by
+  intro k
+  induction k with
+  | zero =>
+    intro n h
+    unfold varintSize
+    rw [varintEnc, dite_eq_left_iff.2 (fun h' => absurd (by simpa using h) h')]
+    simp
+  | succ k ih =>
+    intro n h
+    unfold varintSize
+    rw [varintEnc]
+    split
+    · simp
+    · simp only [List.length_cons]
+      have h2 : n / 128 < 2 ^ (7 * (k + 1)) := by
+        rw [Nat.div_lt_iff_lt_mul (by decide)]
+        have : 2 ^ (7 * (k + 1 + 1)) = 2 ^ (7 * (k + 1)) * 128 := by
+          rw [show 7 * (k + 1 + 1) = 7 * (k + 1) + 7 by omega, Nat.pow_add]
+        omega
+      have := ih (n / 128) h2
+      unfold varintSize at this
+      omega
+
+theorem varintSize_le_ten (n : Nat) (h : n < 2 ^ 64) : varintSize n ≤ 10 :=
+  varintSize_le_of_lt 9 n (by
+    have : (2 : Nat) ^ 64 ≤ 2 ^ (7 * (9 + 1)) := Nat.pow_le_pow_right (by decide) (by decide)
+    omega)
+
+theorem optW64Size_le (o : Option w64) : optW64Size o ≤ 11 := by
+  rcases o with _ | v
+  · simp [optW64Size, optVarintSize]
+  · simp only [optW64Size, optVarintSize, Option.map_some]
+    have := varintSize_le_ten (uint.Z v).toNat (by word)
+    omega
+
+theorem optVarintSize_le_type {T : Type} (o : Option T) (f : T → w64) :
+    optVarintSize (o.map fun t => (uint.Z (f t)).toNat) ≤ 11 := by
+  rcases o with _ | v
+  · simp [optVarintSize]
+  · simp only [optVarintSize, Option.map_some]
+    have := varintSize_le_ten (uint.Z (f v)).toNat (by word)
+    omega
+
+theorem nat_le_sum_of_mem' {l : List Nat} {a : Nat} (h : a ∈ l) : a ≤ l.sum := by
+  induction l with
+  | nil => simp at h
+  | cons x xs ih =>
+    simp only [List.sum_cons]
+    rcases List.mem_cons.1 h with rfl | h
+    · omega
+    · have := ih h; omega
+
+theorem lenSize_ge (n : Nat) : n + 2 ≤ lenSize n := by
+  have := varintSize_pos n; unfold lenSize; omega
+
+theorem lenSize_le (n : Nat) : lenSize n ≤ 2 * n + 2 := by
+  have := varintSize_le_succ n; unfold lenSize; omega
+
+theorem sum_map_le_sum_map {α : Type} (l : List α) (f g : α → Nat) (h : ∀ x ∈ l, f x ≤ g x) :
+    (l.map f).sum ≤ (l.map g).sum := by
+  induction l with
+  | nil => simp
+  | cons x xs ih =>
+    simp only [List.map_cons, List.sum_cons]
+    have h1 := h x List.mem_cons_self
+    have h2 := ih (fun y hy => h y (List.mem_cons_of_mem _ hy))
+    omega
+
+theorem sum_map_mul {α : Type} (l : List α) (f : α → Nat) (k : Nat) :
+    (l.map fun x => k * f x).sum = k * (l.map f).sum := by
+  induction l with
+  | nil => simp
+  | cons x xs ih => simp only [List.map_cons, List.sum_cons, ih, Nat.mul_add]
+
+theorem entBytes_le_entrySize (e : EntryC) : entBytes e ≤ entrySize e := by
+  unfold entBytes entrySize
+  rcases e.data with _ | bs
+  · simp
+  · simp only [Option.getD_some]; omega
+
+theorem entrySize_le_entBytes (e : EntryC) : entrySize e ≤ 2 * entBytes e + 35 := by
+  have h2 := optW64Size_le e.term
+  have h3 := optW64Size_le e.index
+  unfold optW64Size at h2 h3
+  unfold entBytes entrySize
+  generalize hT : optVarintSize (Option.map _ e.type) = T
+  have h1 : T ≤ 11 := by
+    rw [← hT]
+    rcases e.type with _ | ty
+    · simp [optVarintSize]
+    · simp only [Option.map_some, optVarintSize]
+      exact Nat.le_trans (Nat.add_le_add_left (varintSize_le_ten _ (by word)) 1) (by omega)
+  revert h1 h2 h3
+  generalize e.data = d
+  rcases d with _ | bs
+  · simp only [Option.getD_none, List.length_nil]; intros; omega
+  · have := varintSize_le_succ bs.length
+    simp only [Option.getD_some]; intros; omega
+
+theorem optBytesSize_ge (o : Option (List w8)) : (o.getD []).length ≤ optBytesSize o := by
+  rcases o with _ | bs
+  · simp [optBytesSize]
+  · simp only [optBytesSize, Option.getD_some]; have := lenSize_ge bs.length; omega
+
+theorem optBytesSize_le (o : Option (List w8)) : optBytesSize o ≤ 2 * (o.getD []).length + 2 := by
+  rcases o with _ | bs
+  · simp [optBytesSize]
+  · simp only [optBytesSize, Option.getD_some]; exact lenSize_le _
+
+/-- **A content of size at most `2^30` without responses is of bounded size** (raft-entsize §4: what
+the message stream's decoder gives, `D1` under `readBytesLimit`). Each entry costs at least two bytes
+of the size, so the entries' framed sum stays below `32 · 2^30`. -/
+theorem msgSizeOk_of_size (c : MsgC) (hs : msgSize c ≤ 2 ^ 30) (hr : c.resps = []) :
+    msgSizeOk c := by
+  cases c with
+  | mk f rs =>
+  simp only [MsgC.resps] at hr
+  subst hr
+  have hsz : f.size ≤ 2 ^ 30 := by simpa [msgSize, respsSize] using hs
+  have hent : (f.entries.map fun e => lenSize (entrySize e)).sum ≤ f.size := by
+    unfold MsgFC.size; omega
+  have hctx := optBytesSize_ge f.context
+  refine ⟨rfl, ?_, ?_, ?_⟩
+  · simp only [hdrBytes, MsgC.f]
+    revert hsz
+    unfold MsgFC.size
+    generalize f.snapshot = sn
+    rcases sn with _ | s
+    · simp only [optSnapSize]; intro; omega
+    · have := lenSize_ge (snapSize s)
+      simp only [optSnapSize]; intro; omega
+  · intro e he
+    simp only [MsgC.f] at he
+    have h1 : lenSize (entrySize e) ≤ (f.entries.map fun e => lenSize (entrySize e)).sum :=
+      nat_le_sum_of_mem' (List.mem_map.2 ⟨e, he, rfl⟩)
+    have := entBytes_le_entrySize e
+    have := lenSize_ge (entrySize e)
+    omega
+  · simp only [MsgC.f]
+    have h1 : (f.entries.map fun e => entBytes e + 64).sum ≤
+        (f.entries.map fun e => 32 * lenSize (entrySize e)).sum :=
+      sum_map_le_sum_map _ _ _ (fun e _ => by
+        have := entBytes_le_entrySize e; have := lenSize_ge (entrySize e); omega)
+    rw [sum_map_mul] at h1
+    omega
+
+/-- **A content of bounded size is below `2^47` bytes** (raft-entsize §4: the encoders' bound from
+the size law; at most `2^38 + 2^34`). -/
+theorem msgSize_lt_of_ok (c : MsgC) (h : msgSizeOk c) : msgSize c < 2 ^ 47 := by
+  cases c with
+  | mk f rs =>
+  obtain ⟨hr, hh, he, hs⟩ := h
+  simp only [MsgC.resps] at hr
+  subst hr
+  simp only [msgSize, respsSize, Nat.add_zero]
+  simp only [hdrBytes, MsgC.f] at hh he hs
+  have hent : (f.entries.map fun e => lenSize (entrySize e)).sum ≤
+      (f.entries.map fun e => 4 * (entBytes e + 64)).sum :=
+    sum_map_le_sum_map _ _ _ (fun e _ => by
+      have := lenSize_le (entrySize e); have := entrySize_le_entBytes e; omega)
+  rw [sum_map_mul] at hent
+  have hctx := optBytesSize_le f.context
+  have := optW64Size_le f.to; have := optW64Size_le f.frm; have := optW64Size_le f.term
+  have := optW64Size_le f.logTerm; have := optW64Size_le f.index; have := optW64Size_le f.commit
+  have := optW64Size_le f.vote; have := optW64Size_le f.rejectHint
+  have hb : optBoolSize f.reject ≤ 2 := by rcases f.reject with _ | _ <;> simp [optBoolSize]
+  revert hh
+  unfold MsgFC.size
+  generalize hT : optVarintSize (Option.map _ f.type) = T
+  have h1 : T ≤ 11 := by
+    rw [← hT]
+    rcases f.type with _ | ty
+    · simp [optVarintSize]
+    · simp only [Option.map_some, optVarintSize]
+      exact Nat.le_trans (Nat.add_le_add_left (varintSize_le_ten _ (by word)) 1) (by omega)
+  generalize f.snapshot = sn
+  rcases sn with _ | s
+  · simp only [optSnapSize]; intro; omega
+  · have := lenSize_le (snapSize s)
+    simp only [optSnapSize]; intro; omega
+
+end sizePure
+
+/-! ### A frozen message's content form is its read-only content (raft-entsize §4) -/
+
+section contentRo
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+theorem bytesCC_bytesC (ds : GoSlice) (o : Option (List w8)) :
+    bytesCC (GF := GF) ds DFrac.discard o ⊢ bytesC ds o := by
+  rcases o with _ | bs
+  · simp only [bytesCC, bytesC]; iintro %H; ipureintro; exact H
+  · simp only [bytesCC, bytesC]; iintro ⟨%H, #Hs⟩; iframe Hs; ipureintro; exact H
+
+theorem csPtsCC_csRoC (p : Loc) (c : CSC) (al : Bool) :
+    csPtsCC (GF := GF) p DFrac.discard c al ⊢ csRoC p c := by
+  unfold csPtsCC csRoC
+  iintro ⟨%sv, %sl, %so, %sn, %pa, %Hnn, #HV, #Hv, #HL, #Hl, #HO, #Ho, #HN, #Hn, #HA, #cA, -, #Hpb⟩
+  iexists sv, sl, so, sn, pa
+  iframe HV Hv HL Hl HO Ho HN Hn HA cA Hpb
+  ipureintro; exact Hnn
+
+theorem csOptCC_csOptC (p : Loc) (o : Option CSC) :
+    csOptCC (GF := GF) p DFrac.discard o ⊢ csOptC p o := by
+  rcases o with _ | c
+  · simp only [csOptCC, csOptC]; iintro %H; ipureintro; exact H
+  · simp only [csOptCC, csOptC]
+    iintro (H | H)
+    · iapply csPtsCC_csRoC $$ H
+    · iapply csPtsCC_csRoC $$ H
+
+theorem smPtsCC_metaRoC (p : Loc) (m : SnapMetaC) :
+    smPtsCC (GF := GF) p DFrac.discard m ⊢ metaRoC p m := by
+  unfold smPtsCC metaRoC
+  iintro ⟨%pc, %pi, %pt, %Hnn, #HC, Hc, #HI, #cI, #HT, #cT, #Hpb⟩
+  ihave #Hc := csOptCC_csOptC _ _ $$ Hc
+  iexists pc, pi, pt
+  iframe HC Hc HI cI HT cT Hpb
+  ipureintro; exact Hnn
+
+theorem smOptCC_metaOptC (p : Loc) (o : Option SnapMetaC) :
+    smOptCC (GF := GF) p DFrac.discard o ⊢ metaOptC p o := by
+  rcases o with _ | m
+  · simp only [smOptCC, metaOptC]; iintro %H; ipureintro; exact H
+  · simp only [smOptCC, metaOptC]; iapply smPtsCC_metaRoC
+
+theorem ownSnapCC_snapRoC (p : Loc) (s : SnapC) :
+    ownSnapCC (GF := GF) p DFrac.discard s ⊢ snapRoC p s := by
+  unfold ownSnapCC snapRoC
+  iintro ⟨%ds, %pm, %Hnn, #HD, Hd, #HM, Hm, #Hpb⟩
+  ihave #Hd := bytesCC_bytesC _ _ $$ Hd
+  ihave #Hm := smOptCC_metaOptC _ _ $$ Hm
+  iexists ds, pm
+  iframe HD Hd HM Hm Hpb
+  ipureintro; exact Hnn
+
+theorem snapOptCC_snapOptC (p : Loc) (o : Option SnapC) :
+    snapOptCC (GF := GF) p DFrac.discard o ⊢ snapOptC p o := by
+  rcases o with _ | s
+  · simp only [snapOptCC, snapOptC]; iintro %H; ipureintro; exact H
+  · simp only [snapOptCC, snapOptC]; iapply ownSnapCC_snapRoC
+
+/-- **A read-only message at its content, without responses, is frozen at that content**
+(`msgRoC`): what a handed-out message (`msgOut`) gives the network's bundle. -/
+theorem msgPtsCC_msgRoC (l : Loc) (c : MsgC) (hr : c.resps = []) :
+    msgPtsCC (GF := GF) l DFrac.discard DFrac.discard false c ⊢ msgRoC l c := by
+  cases c with
+  | mk f rs =>
+  simp only [MsgC.resps] at hr
+  subst hr
+  unfold msgPtsCC
+  iintro ⟨%pty, %pto, %pfr, %pte, %plt, %pix, %pco, %pvo, %prj, %prh, %es, %els, %ps, %cs,
+    %rsl, %Hnn, #HTy, #cTy, #HTo, #cTo, #HFr, #cFr, #HTe, #cTe, #HLt, #cLt, #HIx, #cIx, #HCo, #cCo,
+    #HVo, #cVo, #HRj, #cRj, #HRh, #cRh, #HEs, #Hes, #Hents, -, #HSn, Hsn, #HCx, #Hcx, #HRs, #Hrs,
+    #Hpb⟩
+  ihave #Hsn := snapOptCC_snapOptC _ _ $$ Hsn
+  simp only [msgRoC, respsRoC, MsgC.f, MsgC.resps, List.map_nil] at *
+  isplitl
+  · unfold msgFRoC
+    iexists pty, pto, pfr, pte, plt, pix, pco, pvo, prj, prh, es, els, ps, cs, rsl
+    iframe HTy cTy HTo cTo HFr cFr HTe cTe HLt cLt HIx cIx HCo cCo HVo cVo HRj cRj HRh cRh
+    iframe HEs Hes Hents HSn Hsn HCx Hcx HRs Hrs Hpb
+    ipureintro; exact Hnn
+  iempintro
+
+end contentRo
+
 
 section lemmas
 variable [GooseExts] [GooseSemantics] [GooseInterp]

@@ -51,7 +51,7 @@ those there); (stage 5b) its wire content, of size below `2^47` bytes (`swMsgBou
 the content in stage A of the per-type models: the writer sizes and marshals the content, and sums
 the sizes of up to 2049 messages into an `int` it adds to a counter, which must not be negative). -/
 def swMsg (Rh : RaftHttp GF) (ty : StreamTy) (lid pid : w64) (ml : Loc) : IProp GF :=
-  iprop(∃ st : MsgSt, msgOwn ml DFrac.discard st ∗ swMsgBound ml st ∗ □ Rh.γn.N.P st ∗
+  iprop(∃ st : MsgSt, msgOwn ml DFrac.discard st ∗ msgSzC Rh.γn.N.Sz ml st ∗ □ Rh.γn.N.P st ∗
     Rh.γn.N.O st ∗
     ⌜MsgMarshals st ∧ st.msg.To' = pid ∧ st.msg.Type' ≠ MsgSnap ∧ st.resps = [] ∧
       (ty = .msgAppV2 → V2EncOk lid pid st)⌝)

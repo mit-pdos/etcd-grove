@@ -32,7 +32,7 @@ snapshot (which goes by `snapshotSender`) and without responses, with its persis
 its one-shot part (`N.P`, `N.O`: what the network delivers with it); (stage A of the per-type
 models) its wire content, bounded (`swMsgBound`: `handle` sizes and marshals the content). -/
 def pipeMsg (Rh : RaftHttp GF) (to : w64) (ml : Loc) : IProp GF :=
-  iprop(∃ st : MsgSt, msgOwn ml DFrac.discard st ∗ swMsgBound ml st ∗ □ Rh.γn.N.P st ∗
+  iprop(∃ st : MsgSt, msgOwn ml DFrac.discard st ∗ msgSzC Rh.γn.N.Sz ml st ∗ □ Rh.γn.N.P st ∗
     Rh.γn.N.O st ∗
     ⌜MsgMarshals st ∧ st.msg.To' = to ∧ st.msg.Type' ≠ MsgSnap ∧ st.resps = []⌝)
 

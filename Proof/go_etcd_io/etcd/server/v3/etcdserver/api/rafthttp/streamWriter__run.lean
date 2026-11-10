@@ -196,8 +196,9 @@ local macro "run_msg" : tactic => `(tactic| (
   iunfold swMsg at Hm
   icases Hm with ⟨%st, #Hm, #Hbd, #HP, HO, %Hst⟩
   ihave #Hbd' := Hbd
-  iunfold swMsgBound at Hbd'
+  iunfold msgSzC at Hbd'
   icases Hbd' with ⟨%cm, #Hcm, %Hcmb⟩
+  ihave #Hbd := msgSzC_swMsgBound _ _ _ $$ Hbd
   iunfold swLive at Hlive
   icases Hlive with ⟨%wi, %a, %R, %γk, %γw, %fr, %s, %Hfl, HencO, Hrw, %Hc, #Hfs, #Hreg, %HR3, Hclr⟩
   ihave ⟨HencO, %Hei⟩ := encOwn_ok _ _ _ _ _ _ _ $$ HencO

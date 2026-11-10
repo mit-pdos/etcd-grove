@@ -133,9 +133,10 @@ def peerStop (Rh : RaftHttp GF) (pid : w64) (R : IProp GF) (p : Loc) : IProp GF 
 marshalable, for `pid`, not a snapshot, without responses, with its bundle; a `MsgApp` of raft's
 shape from `lid` (what the msgappv2 stream encodes: `V2EncOk`); its wire content, of size below
 `2^47` bytes (`swMsgBound`: `swMsgBound_phys`, the user's choice in stage 6d, restated over the
-content in stage A of the per-type models). -/
+content in stage A of the per-type models), and (raft-entsize §4) of bounded size when the payload
+says so (`msgSzC`: one content for both). -/
 def peerMsg (Rh : RaftHttp GF) (lid pid : w64) (ml : Loc) : IProp GF :=
-  iprop(∃ st : MsgSt, msgOwn ml DFrac.discard st ∗ swMsgBound ml st ∗ □ Rh.γn.N.P st ∗
+  iprop(∃ st : MsgSt, msgOwn ml DFrac.discard st ∗ msgSzC Rh.γn.N.Sz ml st ∗ □ Rh.γn.N.P st ∗
     Rh.γn.N.O st ∗
     ⌜MsgMarshals st ∧ st.msg.To' = pid ∧ st.msg.Type' ≠ MsgSnap ∧ st.resps = [] ∧
       (st.msg.Type' = MsgApp → AppShape st ∧ st.msg.From' = lid)⌝)
@@ -170,7 +171,7 @@ def remoteStop (Rh : RaftHttp GF) (pid : w64) (R : IProp GF) (g : Loc) : IProp G
 /-- **A message the member `lid` sends** (what `Transport.Send` takes; stage 6c): `peerMsg`'s but
 for its recipient, `Send`'s routing (by `To`). -/
 def sendMsg (Rh : RaftHttp GF) (lid : w64) (ml : Loc) : IProp GF :=
-  iprop(∃ st : MsgSt, msgOwn ml DFrac.discard st ∗ swMsgBound ml st ∗ □ Rh.γn.N.P st ∗
+  iprop(∃ st : MsgSt, msgOwn ml DFrac.discard st ∗ msgSzC Rh.γn.N.Sz ml st ∗ □ Rh.γn.N.P st ∗
     Rh.γn.N.O st ∗
     ⌜MsgMarshals st ∧ st.msg.Type' ≠ MsgSnap ∧ st.resps = [] ∧
       (st.msg.Type' = MsgApp → AppShape st ∧ st.msg.From' = lid)⌝)
@@ -209,13 +210,29 @@ axiom swMsgBound_phys (ml : Loc) (st : MsgSt) (h : st.resps = []) :
     msgOwn (GF := GF) ml DFrac.discard st ⊢ swMsgBound ml st
 
 /-- **A message in the network's bundle is one the transport's `Send` takes** (stage 6d): the
-bundle's facts (`netBundle`), and its encoding's bound (`swMsgBound_phys`). -/
+bundle's facts (`netBundle`), and its encoding's bound: (raft-entsize §4, 2026-11-10) one content
+for both (`msgSzC`): when the payload's messages are of bounded size (`N.Sz`), the bundle's content,
+below `2^47` bytes by its size (`msgSize_lt_of_ok`); otherwise `swMsgBound_phys`'s. -/
 theorem sendMsg_of_netBundle (Rh : RaftHttp GF) (lid : w64) (ml : Loc) :
     netBundle Rh.γn.N lid ml ⊢ sendMsg Rh lid ml := by
   iintro Hb
   iunfold netBundle at Hb
-  icases Hb with ⟨%st, #Hm, #HP, HO, %H⟩
-  ihave #Hbd := swMsgBound_phys ml st H.2.1 $$ Hm
+  icases Hb with ⟨%st, #Hm, #HP, HO, %H, %c, #Hc, %Hcs⟩
+  ihave #Hbd : msgSzC Rh.γn.N.Sz ml st $$ []
+  · by_cases hSz : Rh.γn.N.Sz
+    · iunfold msgSzC
+      iexists c
+      iframe Hc
+      ipureintro
+      exact ⟨Hcs.1, Hcs.2.1, msgSize_lt_of_ok c (Hcs.2.2 hSz), Hcs.2.2⟩
+    · ihave #Hsw := swMsgBound_phys ml st H.2.1 $$ Hm
+      iunfold swMsgBound at Hsw
+      icases Hsw with ⟨%c', #Hc', %Hc'⟩
+      iunfold msgSzC
+      iexists c'
+      iframe Hc'
+      ipureintro
+      exact ⟨Hc'.1, Hc'.2.1, Hc'.2.2, fun h => absurd h hSz⟩
   iunfold sendMsg
   iexists st
   iframe; iframe #
@@ -262,7 +279,7 @@ theorem swMsg_v2_of_peerMsg (Rh : RaftHttp GF) (lid pid : w64) (ml : Loc) (st : 
     (Hm : MsgMarshals st ∧ st.msg.To' = pid ∧ st.msg.Type' ≠ MsgSnap ∧ st.resps = [] ∧
       (st.msg.Type' = MsgApp → AppShape st ∧ st.msg.From' = lid))
     (hty : st.msg.Type' = MsgApp) :
-    ⊢ msgOwn ml DFrac.discard st -∗ swMsgBound ml st -∗ □ Rh.γn.N.P st -∗ Rh.γn.N.O st -∗
+    ⊢ msgOwn ml DFrac.discard st -∗ msgSzC Rh.γn.N.Sz ml st -∗ □ Rh.γn.N.P st -∗ Rh.γn.N.O st -∗
       swMsg Rh .msgAppV2 lid pid ml := by
   iintro Hm' #Hb #HP HO
   iunfold swMsg

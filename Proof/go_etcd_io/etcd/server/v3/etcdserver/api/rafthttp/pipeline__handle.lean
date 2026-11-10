@@ -95,9 +95,9 @@ theorem rafthttp.pipeline.handle.wp_proof
     iintro %ml Hm
     iunfold pipeMsg at Hm
     icases Hm with ⟨%st, #Hm, #Hb, #HP, HO, %Hst⟩
-    iunfold swMsgBound at Hb
+    iunfold msgSzC at Hb
     icases Hb with ⟨%c, #Hc, %Hcb⟩
-    obtain ⟨hcm, hcu, hcs⟩ := Hcb
+    obtain ⟨hcm, hcu, hcs, hcsz⟩ := Hcb
     have hm' : MsgMarshals c.model := hcm ▸ Hst.1
     ihave %Hp := msgRoC_enc ml c $$ Hc
     obtain ⟨Hw0, hlenc, Hu⟩ := Hp hm' (by omega)
