@@ -213,7 +213,7 @@ theorem k8s_etcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     iframe
   have hM := k8s_etcd3.wp_Main (GF := k8setcd3GF) HList0 n id ctxs boot clients ops Hbf
     (by rw [HT]; word) (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
-    k8s_etcd3.storageErrTyOk_holds k8s_etcd3.clientErrPlain_holds k8s_etcd3.objTyOk_holds Hc0 Hc31 Hops Hmul
+    k8s_etcd3.storageErrTyOk_holds k8s_etcd3.objTyOk_holds Hc0 Hc31 Hops Hmul
   wp_apply hM $$ [Hstart Htok]
   · iframe; iframe #
   iintro %r %Hr
@@ -315,7 +315,7 @@ theorem k8s_etcd3_cluster_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   have hM := k8s_etcd3.wp_MainCluster (GF := k8setcd3GF) (HList hG) n id₁ id₂ id₃ ps ctxs boot clients ops Hbf
     (by unfold bootWB backend.wbInit; omega)
     Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
-    k8s_etcd3.storageErrTyOk_holds k8s_etcd3.clientErrPlain_holds k8s_etcd3.objTyOk_holds Hc0 Hc31 Hops Hmul
+    k8s_etcd3.storageErrTyOk_holds k8s_etcd3.objTyOk_holds Hc0 Hc31 Hops Hmul
   wp_apply hM $$ [Hstart Htok]
   · iframe; iframe #
   iintro %r %Hr
@@ -441,7 +441,7 @@ theorem k8s_etcd3_partition_adequate [lctx : GoLocalContext] [sem : go.Semantics
         (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty)))))
     steps Hbf (by unfold bootWB backend.wbInit; omega)
     Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
-    k8s_etcd3.storageErrTyOk_holds k8s_etcd3.clientErrPlain_holds k8s_etcd3.objTyOk_holds Hc0 Hc31 Hops Hmul
+    k8s_etcd3.storageErrTyOk_holds k8s_etcd3.objTyOk_holds Hc0 Hc31 Hops Hmul
   wp_apply hM $$ [Hstart Htok]
   · iframe; iframe #
   iintro %r %Hr

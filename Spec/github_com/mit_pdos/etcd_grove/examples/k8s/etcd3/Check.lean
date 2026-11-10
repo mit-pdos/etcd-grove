@@ -43,7 +43,7 @@ abbrev Check.spec : Prop :=
   c.S = driverSpec → c.pathPrefix = go!"/registry" → c.resourcePrefix = go!"/objs" →
   c.di = decoderI → c.vi = versionerI →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty → storageErrTyOk →
-  clientErrPlain (sem := sem) → threadBound GF ≤ 2 ^ 30 - 1 → (∀ x ∈ c.ms, noRefusalAt x.addr) →
+  threadBound GF ≤ 2 ^ 30 - 1 → (∀ x ∈ c.ms, noRefusalAt x.addr) →
   c.ms ≠ [] →
   receiptBound GF ≤ 2 ^ 63 →
   0 ≤ sint.Z clients → sint.Z clients < 2 ^ 31 → 0 ≤ sint.Z ops →

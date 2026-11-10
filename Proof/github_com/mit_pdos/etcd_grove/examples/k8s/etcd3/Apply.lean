@@ -120,7 +120,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
     (wp_put : cache.put.spec (GF := GF) (hG := hG))
     (wp_objOf : objOf.spec (GF := GF) (hG := hG)) :
     Apply.spec (GF := GF) (hG := hG) := by
-  intro _ _ _ γ sp tbl c g0 hc hpfx hrp hdi hvi hAs hse hpl htb hnr
+  intro _ _ _ γ sp tbl c g0 hc hpfx hrp hdi hvi hAs hse htb hnr
   iintro #Hpkg #Hpe #Hst #Hinvs %hne #Htbl #Hrs
   have hcd : CfgD c := ⟨by rw [hc]; rfl, by simp only [StoreCfg.pfx, hpfx, hrp]; rfl⟩
   obtain ⟨s0, hs0⟩ : ∃ s0, s0 ∈ c.ms := by
@@ -200,7 +200,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
       ihave Hau := hau $$ [Htok]
       · iframe Htok Hinvs
       wp_apply (wp_call sp c (sentV lD) (sentV lU) x iprop(True) (fun _ => iprop(True))
-          (fun _ _ => plainQ c) (fun _ σ => plainL c γ σ) listP hc hrp hdi hvi hAs hse hpl htb hnr
+          (fun _ _ => plainQ c) (fun _ σ => plainL c γ σ) listP hc hrp hdi hvi hAs hse htb hnr
           hkey' hpp' hx Hgen.2.2.1 Hgen.2.2.2 hQp hQL0 hQLP0) $$ [Htt Hau] as %y ⟨Htt, Hy⟩
       · iframe Htt
         iframe #
@@ -232,7 +232,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
           (Ψ := fun _ (sv : client.SrvAt GF) => k8sAuRW sv.γr.kv c (delStep (mkeyL x.Key') (preD x) (rejD (sentV lD) x.HasReject' x.Reject')) (pendTok γ n x) (fun _ => iprop(True)))
           (fun {_ sv} _ => pend_rw γ c hcd g0 sv.γr.kv (sentV lD) (sentV lU) n x _ hstep)) $$ Hinvs
       wp_apply (wp_call sp c (sentV lD) (sentV lU) x (pendTok γ n x) (fun _ => iprop(True))
-          (fun _ _ => plainQ c) (fun _ σ => plainL c γ σ) listP hc hrp hdi hvi hAs hse hpl htb hnr
+          (fun _ _ => plainQ c) (fun _ σ => plainL c γ σ) listP hc hrp hdi hvi hAs hse htb hnr
           hkey' hpp' hx Hgen.2.2.1 Hgen.2.2.2 hQp hQL0 hQLP0) $$ [Htt Htok Haus] as %y ⟨Htt, Hy⟩
       · iframe Htt
         iframe #
@@ -264,7 +264,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
           (Ψ := fun _ (sv : client.SrvAt GF) => k8sAuRW sv.γr.kv c (updStep (mkeyL x.Key') x.IgnoreNotFound' dzero (preD x) (updD (sentV lU) x)) (pendTok γ n x) (fun _ => iprop(True)))
           (fun {_ sv} _ => pend_rw γ c hcd g0 sv.γr.kv (sentV lD) (sentV lU) n x _ hstep)) $$ Hinvs
       wp_apply (wp_call sp c (sentV lD) (sentV lU) x (pendTok γ n x) (fun _ => iprop(True))
-          (fun _ _ => plainQ c) (fun _ σ => plainL c γ σ) listP hc hrp hdi hvi hAs hse hpl htb hnr
+          (fun _ _ => plainQ c) (fun _ σ => plainL c γ σ) listP hc hrp hdi hvi hAs hse htb hnr
           hkey' hpp' hx Hgen.2.2.1 Hgen.2.2.2 hQp hQL0 hQLP0) $$ [Htt Htok Haus] as %y ⟨Htt, Hy⟩
       · iframe Htt
         iframe #
@@ -298,7 +298,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
       ihave Hmk := plain_maker γ c g0 c.ms $$ [Hinvs]
       · iexact Hinvs
       wp_apply (wp_call sp c (sentV lD) (sentV lU) x iprop(True) (fun _ => iprop(True))
-          (fun _ _ => plainQ c) (fun _ σ => plainL c γ σ) listP hc hrp hdi hvi hAs hse hpl htb hnr
+          (fun _ _ => plainQ c) (fun _ σ => plainL c γ σ) listP hc hrp hdi hvi hAs hse htb hnr
           hkey' hpp' hx Hgen.2.2.1 Hgen.2.2.2 hQp hQL0 hQLP0) $$ [Htt Hmk] as %y ⟨Htt, Hy⟩
       · iframe Htt
         iframe #
@@ -329,7 +329,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
       ihave #HmkP := plainL_makerP γ c g0 c.ms $$ [Hinvs]
       · iexact Hinvs
       wp_apply (wp_call sp c (sentV lD) (sentV lU) x iprop(True) (fun _ => iprop(True))
-          (fun _ _ => plainQ c) (fun _ σ => plainL c γ σ) listP hc hrp hdi hvi hAs hse hpl htb hnr
+          (fun _ _ => plainQ c) (fun _ σ => plainL c γ σ) listP hc hrp hdi hvi hAs hse htb hnr
           hkey' hpp' hx Hgen.2.2.1 Hgen.2.2.2 hQp hQL0 hQLP0) $$ [Htt HmkQ] as %y ⟨Htt, Hy⟩
       · iframe Htt
         iframe #
@@ -365,7 +365,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
       · iframe Hinvs HU
       wp_apply (wp_call sp c (sentV lD) (sentV lU) x iprop(True)
           (fun σ => iprop(contAt g0 x (kStep (sentV lD) (sentV lU) x (c.abs σ)).2 Φt ∗ ansOk c (kStep (sentV lD) (sentV lU) x (c.abs σ)).2))
-          (fun _ _ => plainQ c) (fun _ σ => plainL c γ σ) listP hc hrp hdi hvi hAs hse hpl htb hnr
+          (fun _ _ => plainQ c) (fun _ σ => plainL c γ σ) listP hc hrp hdi hvi hAs hse htb hnr
           hkey' hpp' hx Hgen.2.2.1 Hgen.2.2.2 hQp hQL0 hQLP0) $$ [Htt Hau] as %y ⟨Htt, Hy⟩
       · iframe Htt
         iframe #
@@ -407,7 +407,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
         iframe Hi Hc
       wp_apply (wp_call sp c (sentV lD) (sentV lU) x (dghostVar γt (DFrac.own 1) ())
           (fun σ => iprop(contAt g0 x (kStep (sentV lD) (sentV lU) x (c.abs σ)).2 Φt ∗ ansOk c (kStep (sentV lD) (sentV lU) x (c.abs σ)).2))
-          (fun _ _ => plainQ c) (fun _ σ => plainL c γ σ) listP hc hrp hdi hvi hAs hse hpl htb hnr
+          (fun _ _ => plainQ c) (fun _ σ => plainL c γ σ) listP hc hrp hdi hvi hAs hse htb hnr
           hkey' hpp' hx Hgen.2.2.1 Hgen.2.2.2 hQp hQL0 hQLP0) $$ [Htt Htok Haus] as %y ⟨Htt, Hy⟩
       · iframe Htt
         iframe #
@@ -449,7 +449,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
         iframe Hi Hc
       wp_apply (wp_call sp c (sentV lD) (sentV lU) x (dghostVar γt (DFrac.own 1) ())
           (fun σ => iprop(contAt g0 x (kStep (sentV lD) (sentV lU) x (c.abs σ)).2 Φt ∗ ansOk c (kStep (sentV lD) (sentV lU) x (c.abs σ)).2))
-          (fun _ _ => plainQ c) (fun _ σ => plainL c γ σ) listP hc hrp hdi hvi hAs hse hpl htb hnr
+          (fun _ _ => plainQ c) (fun _ σ => plainL c γ σ) listP hc hrp hdi hvi hAs hse htb hnr
           hkey' hpp' hx Hgen.2.2.1 Hgen.2.2.2 hQp hQL0 hQLP0) $$ [Htt Htok Haus] as %y ⟨Htt, Hy⟩
       · iframe Htt
         iframe #
@@ -501,7 +501,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
         ipureintro; exact h.1
       wp_apply (wp_call sp c (sentV lD) (sentV lU) x iprop(True) (fun _ => iprop(True))
           (fun R _ σ => readQ c γc R σ) (fun _ σ => plainL c γ σ) listP hc hrp hdi hvi hAs hse
-          hpl htb hnr hkey' hpp' hx Hgen.2.2.1 Hgen.2.2.2 hQr hQL0 hQLP0) $$ [Htt Hmk] as %y ⟨Htt, Hy⟩
+          htb hnr hkey' hpp' hx Hgen.2.2.1 Hgen.2.2.2 hQr hQL0 hQLP0) $$ [Htt Hmk] as %y ⟨Htt, Hy⟩
       · iframe Htt
         iframe #
         isimp only [if_neg h4k]
@@ -555,7 +555,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
       ihave #HmkP := list_makerP γ c g0 c.ms γc x tl $$ [Hinvs]
       · iexact Hinvs
       wp_apply (wp_call sp c (sentV lD) (sentV lU) x iprop(True) (fun _ => iprop(True))
-          (fun _ _ => plainQ c) (listQ c γ γc x tl) listP hc hrp hdi hvi hAs hse hpl htb hnr
+          (fun _ _ => plainQ c) (listQ c γ γc x tl) listP hc hrp hdi hvi hAs hse htb hnr
           hkey' hpp' hx Hgen.2.2.1 Hgen.2.2.2 hQp (fun R σ => listQ_pure c γ γc x tl R σ)
           (fun R σ σ' => listQP_pure c γ γc x tl R σ σ')) $$ [Htt HmkQ] as %y ⟨Htt, Hy⟩
       · iframe Htt

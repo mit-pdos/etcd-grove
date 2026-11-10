@@ -51,7 +51,6 @@ abbrev MainPartition.spec : Prop :=
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → grpcRepliesFit →
   storage.diskOk → v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty → storageErrTyOk →
-  clientErrPlain (sem := sem) →
   objTyOk →
   0 ≤ sint.Z clients → sint.Z clients < 2 ^ 31 → 0 ≤ sint.Z ops →
   sint.Z clients * sint.Z ops < 2 ^ 60 →

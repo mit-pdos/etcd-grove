@@ -83,7 +83,7 @@ theorem Main.wp_proof
     (hne : mvcc.api.names_nonempty.law) :
     Main.spec (GF := GF) (hG := hG) := by
   intro CS EK RT SC ST VA N id ctxs boot clients ops Hbf Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms hAs
-    hse hpl Hty H0 H31 Hops Hmul
+    hse Hty H0 H31 Hops Hmul
   have hcon := driver_contractOk wp_Encode wp_cEncode wp_Upd wp_Prep wp_ORV wp_Parse wp_From wp_To
     wp_Dec wp_SetZero wp_UID wp_RV (driverSpec_tyOk Hty)
   wp_start as ⟨Hstart, Htok, #Hprem⟩
@@ -323,7 +323,7 @@ theorem Main.wp_proof
   imod (kInv_seed ρ.rd.kv c rfl rfl ⊤) $$ [Hetcd Hhist] with ⟨%γ, #Hinv, Hks⟩
   · iframe
     iexact Hsr
-  wp_apply (wp_Check γ sp c g0s st0 h0 hs clients ops (W64 0) rfl rfl rfl rfl rfl hAs hse hpl
+  wp_apply (wp_Check γ sp c g0s st0 h0 hs clients ops (W64 0) rfl rfl rfl rfl rfl hAs hse
       (by omega)
       (by intro y hy; simp only [c, List.mem_cons, List.not_mem_nil, _root_.or_false] at hy
           subst hy; exact Hnr)

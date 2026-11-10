@@ -16,8 +16,7 @@ becomes the client's cached object in the table `tbl` (`isCache c tbl`, stage 7b
 
 Premises: the store `s` (`isStore sp c`) holds the driver's objects (`c.S = driverSpec`) under
 the driver's prefixes (`"/registry"`, `"/objs"`), decoder and versioner, the packages' facts, and
-`errors.As`'s target (the client's context lemma). Stage 7e-4: the client's errors no `APIStatus`
-(`clientErrPlain`, pending 7c-3), the thread bound and the goroutine's `threadTok` (lent by
+`errors.As`'s target (the client's context lemma). Stage 7e-4: the thread bound and the goroutine's `threadTok` (lent by
 `lintest`) `GetList` needs, and the feature gate's `EtcdRangeStream` off (`rangeStreamOff`).
 -/
 module
@@ -54,7 +53,7 @@ abbrev Apply.spec : Prop :=
   c.S = driverSpec → c.pathPrefix = go!"/registry" → c.resourcePrefix = go!"/objs" →
   c.di = decoderI → c.vi = versionerI →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty → storageErrTyOk →
-  clientErrPlain (sem := sem) → threadBound GF ≤ 2 ^ 30 - 1 → (∀ x ∈ c.ms, noRefusalAt x.addr) →
+  threadBound GF ≤ 2 ^ 30 - 1 → (∀ x ∈ c.ms, noRefusalAt x.addr) →
   ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 -∗
     isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 -∗
     k8s.isStore sp c -∗ ([∗list] sv ∈ c.ms, kInv γ c g0 sv.γr.kv) -∗ ⌜c.ms ≠ []⌝ -∗

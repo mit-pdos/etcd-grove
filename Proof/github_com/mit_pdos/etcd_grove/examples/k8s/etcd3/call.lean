@@ -262,7 +262,7 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
     (wp_DecodeListItem : decoder.DecodeListItem.spec (GF := GF) (hG := hG))
     (wp_UpdateList : versioner.UpdateList.spec (GF := GF) (hG := hG)) :
     call.spec (GF := GF) (hG := hG) := by
-  intro _ _ _ sp c eD eU x W _ Φu Q QL PL hc hrp hdi hvi hAs hse hpl htb hnr hkey hpp hx hvl hD1 hQ hQL hQLP
+  intro _ _ _ sp c eD eU x W _ Φu Q QL PL hc hrp hdi hvi hAs hse htb hnr hkey hpp hx hvl hD1 hQ hQL hQLP
   have hkl : (c.pathPrefix ++ storeKeyL x.Key').length ≤ 2 ^ 27 := by
     rw [hpp]; have := wkKeysL_len _ hx.1; simp [mkeyL, storeKeyL]; omega
   wp_start as ⟨#Hst, #HD, #HU, #Hca, #Hrs, Htt, Hpre⟩
@@ -344,7 +344,7 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
     icases Hres with (⟨#Herr, -⟩ | ⟨%R', %σ, #HQ1, %HR', Hr⟩)
     · -- an error of unknown outcome
       ihave %Hne := listErr_ne c err0 $$ Herr
-      ihave Hy := listErr_errIs hse hpl c hc err0 $$ [Herr]
+      ihave Hy := listErr_errIs hse c hc err0 $$ [Herr]
       · iframe #
       cases err0 with
       | nil => exact absurd rfl Hne
@@ -447,7 +447,7 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
         $$ [Hres]
     · icases Hres with (⟨#Hu, -⟩ | ⟨%σ, HΦ1, Hr⟩)
       · ihave %Hne := unkErr_ne c err0 $$ Hu
-        ihave Hy := unkErr_errIs hse hpl c hc err0 $$ [Hu]
+        ihave Hy := unkErr_errIs hse c hc err0 $$ [Hu]
         · iframe #
         iexists otherL
         isplitl [Hy]
@@ -515,7 +515,7 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
         $$ [Hres]
     · icases Hres with (⟨#Hu, -⟩ | ⟨%σ, HΦ1, Hr⟩)
       · ihave %Hne := unkErr_ne c err0 $$ Hu
-        ihave Hy := unkErr_errIs hse hpl c hc err0 $$ [Hu]
+        ihave Hy := unkErr_errIs hse c hc err0 $$ [Hu]
         · iframe #
         iexists otherL
         isplitl [Hy]
@@ -640,7 +640,7 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
         $$ [Hres]
     · icases Hres with (⟨#Hu, -⟩ | ⟨%σ, HΦ1, Hr⟩)
       · ihave %Hne := unkErr_ne c err0 $$ Hu
-        ihave Hy := unkErr_errIs hse hpl c hc err0 $$ [Hu]
+        ihave Hy := unkErr_errIs hse c hc err0 $$ [Hu]
         · iframe #
         iexists otherL
         isplitl [Hy]
@@ -694,7 +694,7 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
         $$ [Hres]
     · icases Hres with (⟨#Hu, -⟩ | ⟨%σ, #HQ1, Hr⟩)
       · ihave %Hne := unkErr_ne c err0 $$ Hu
-        ihave Hy := unkErr_errIs hse hpl c hc err0 $$ [Hu]
+        ihave Hy := unkErr_errIs hse c hc err0 $$ [Hu]
         · iframe #
         iexists otherL
         isplitl [Hy]

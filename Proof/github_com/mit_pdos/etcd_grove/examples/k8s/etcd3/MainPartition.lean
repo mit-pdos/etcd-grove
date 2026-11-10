@@ -74,7 +74,7 @@ theorem MainPartition.wp_proof
     (wp_Check : Check.spec (GF := GF) (hG := hG)) :
     MainPartition.spec (GF := GF) (hG := hG) := by
   intro CS EK RT SC ST VA N id₁ id₂ id₃ ps ctxs boot clients ops sched steps ThB RcB RcN Hbf HwbN Hck
-    Haf Hbuq Hrf Hdbo Hms hAs hse hpl Hty H0 H31 Hops Hmul
+    Haf Hbuq Hrf Hdbo Hms hAs hse Hty H0 H31 Hops Hmul
   have Htb := ThreadBoundLe.le (GF := GF) (2 ^ 28)
   have Hrb48 := ReceiptBoundLe.le (GF := GF) (2 ^ 48)
   have HrbN := ReceiptBoundLe.le (GF := GF) (N + 1)
@@ -356,7 +356,7 @@ theorem MainPartition.wp_proof
   · iframe
     iexact Hsr
   ihave #Hinvs := kInvs_of_same γ c g0s ρ₁.rd.kv ms hsame $$ Hinv
-  wp_apply (wp_Check γ sp c g0s st0 h0 hs clients ops (W64 0) rfl rfl rfl rfl rfl hAs hse hpl
+  wp_apply (wp_Check γ sp c g0s st0 h0 hs clients ops (W64 0) rfl rfl rfl rfl rfl hAs hse
       (by omega)
       (by intro y hy; apply hnr; simp only [c, ms, List.mem_cons, List.not_mem_nil, _root_.or_false] at hy
           rcases hy with rfl | rfl | rfl <;> simp [cluster3.bridges])

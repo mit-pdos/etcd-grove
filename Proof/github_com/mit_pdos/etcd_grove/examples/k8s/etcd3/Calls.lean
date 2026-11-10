@@ -58,8 +58,8 @@ def ErrOther (eD eU err : GoInterface) : Prop :=
 abbrev sentV (l : Loc) : GoInterface :=
   interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #l
 
-/-- **The client's errors are no `APIStatus`** (the pending hypothesis of decision (A), etcd-grove-81,
-2026-11-10: Scope §5 gives it to 7c-3, whose restated client error states it; until then a premise):
+/-- **The client's errors are no `APIStatus`** (decision (A), etcd-grove-81, 2026-11-10; a lemma since
+k8s 7e-1, `clientErrPlain_holds`, no longer a premise of the driver's specs):
 the dynamic type of an error of etcd's client (`clientErr`) is outside `APIStatus`'s type set, so
 `storage.IsTooLargeResourceVersion` (`errors.As` to `APIStatus`) does not recognize it. -/
 def clientErrPlain : Prop :=
@@ -146,7 +146,7 @@ theorem drvInit_sents :
   iframe
 
 /-- A client error is no too-large one (`clientErrPlain`, and `clientErr`'s leaf). -/
-theorem clientErr_notTooLarge (hpl : clientErrPlain (sem := sem)) (err : GoInterface)
+theorem clientErr_notTooLarge (err : GoInterface)
     (hn : err ≠ GoInterface.nil) (hc : clientErr err) : ⊢ notTooLarge (GF := GF) err := by
   cases err with
   | nil => exact absurd rfl hn
@@ -156,12 +156,12 @@ theorem clientErr_notTooLarge (hpl : clientErrPlain (sem := sem)) (err : GoInter
   iexists .plain
   unfold apierrors.apiErrAt
   ipureintro
-  exact ⟨⟨ii, rfl, hpl ii hc, hl.2.1, hl.2.2, hl.1⟩, rfl⟩
+  exact ⟨⟨ii, rfl, clientErrPlain_holds ii hc, hl.2.1, hl.2.2, hl.1⟩, rfl⟩
 
 /-- **An error of the store whose outcome is unknown is `EOther`** (see the file header): the
-client's (`clientErrPlain`, pending 7c-3), not an `InternalError` (the driver's transformer never
+client's (`clientErrPlain_holds`), not an `InternalError` (the driver's transformer never
 fails: `trErr` is `False`) nor the codec's (none). -/
-theorem unkErr_errIs (hse : storageErrTyOk) (hpl : clientErrPlain (sem := sem)) (c : StoreCfg GF DObj)
+theorem unkErr_errIs (hse : storageErrTyOk) (c : StoreCfg GF DObj)
     (hc : c.S = driverSpec) (err : GoInterface) :
     isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗
       unkErr c err ⊢ errIs err otherL := by
@@ -176,7 +176,7 @@ theorem unkErr_errIs (hse : storageErrTyOk) (hpl : clientErrPlain (sem := sem)) 
     isplitr
     · ipureintro; rfl
     isplitr
-    · iapply clientErr_notTooLarge hpl err Hne Hc
+    · iapply clientErr_notTooLarge err Hne Hc
     iexists _, _
     iframe HD HU
     iapply clientErr_other hse err lD lU Hne Hc $$ Hcl CD CU
@@ -187,14 +187,14 @@ theorem unkErr_errIs (hse : storageErrTyOk) (hpl : clientErrPlain (sem := sem)) 
 
 /-- **A list's error is `EOther`** (`listErr`): the client's (`unkErr_errIs`), or the 410
 `*StatusError` `interpretListError` makes, with no causes (so no too-large one), not a sentinel. -/
-theorem listErr_errIs (hse : storageErrTyOk) (hpl : clientErrPlain (sem := sem)) (c : StoreCfg GF DObj)
+theorem listErr_errIs (hse : storageErrTyOk) (c : StoreCfg GF DObj)
     (hc : c.S = driverSpec) (err : GoInterface) :
     isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗
       listErr c err ⊢ errIs err otherL := by
   iintro ⟨#Hpkg, #He⟩
   iunfold listErr at He
   icases He with (#Hu | ⟨%st, #Hw, %Hst⟩)
-  · iapply unkErr_errIs hse hpl c hc err
+  · iapply unkErr_errIs hse c hc err
     iframe #
   ihave #Hi : (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.drvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg

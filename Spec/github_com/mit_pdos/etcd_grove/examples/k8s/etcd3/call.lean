@@ -13,8 +13,7 @@ precondition on an update (`CachedNoRV`, the scope premise D1 of stage 7b,
 `issues/k8s-etcd3-cached-noop-skips-preconditions.md`); a `Get`'s reads see the store's states;
 `errors.As`'s target (the client's context lemma). Stage 7e-4: a list (`listPre`: `GetList`'s
 updates, the first page's result at the answer's state: for the revision `R` its maker was given,
-`σ`'s unless the answer is `ETooLarge`, 7e-1's R1), `ETooLarge`, the client's errors no
-`APIStatus` (`clientErrPlain`, pending 7c-3), the thread token lent by `lintest` and the thread
+`σ`'s unless the answer is `ETooLarge`, 7e-1's R1), `ETooLarge`, the thread token lent by `lintest` and the thread
 bound `GetList` needs; for a list, the store's resource prefix, decoder and versioner the driver's
 (`driver_listContractOk`) and the feature gate's `EtcdRangeStream` off (`rangeStreamOff`, from
 `noStreaming`).
@@ -54,7 +53,7 @@ abbrev call.spec : Prop :=
     (QL : w64 → KVState → IProp GF) (PL : KVState → KVState → IProp GF),
   c.S = driverSpec → c.resourcePrefix = go!"/objs" → c.di = decoderI → c.vi = versionerI →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty → storageErrTyOk →
-  clientErrPlain (sem := sem) → threadBound GF ≤ 2 ^ 30 - 1 → (∀ x ∈ c.ms, noRefusalAt x.addr) →
+  threadBound GF ≤ 2 ^ 30 - 1 → (∀ x ∈ c.ms, noRefusalAt x.addr) →
   prepareKeyM c.resourcePrefix (storeKeyL x.Key') false = some (storeKeyL x.Key') →
   c.pathPrefix ++ storeKeyL x.Key' = mkeyL x.Key' →
   InOk x → x.Val'.length ≤ 2 ^ 20 → CachedNoRV x →
