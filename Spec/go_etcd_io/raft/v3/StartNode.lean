@@ -58,6 +58,9 @@ abbrev StartNode.spec : Prop :=
   cv.DisableConfChangeValidation' = false →
   (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
   cv.AsyncStorageWrites' = false →
+  -- (raft-entsize §3, 2026-11-09) in a cluster with a bound on proposed data, a `MsgApp`'s entries
+  -- cut at `MaxSizePerMsg ≤ 2^20` (the size law's)
+  (γ.maxData ≠ none → uint.Z cv.MaxSizePerMsg' ≤ 2 ^ 20) →
   cv.Applied' = W64 0 →
   -- the empty conf state (a new cluster's)
   csm.Voters' = [] → csm.VotersOutgoing' = [] → csm.Learners' = [] → csm.LearnersNext' = [] →

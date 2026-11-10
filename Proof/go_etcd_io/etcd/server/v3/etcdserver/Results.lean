@@ -2120,16 +2120,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **A new cluster's resources with auth on** (the auth plan's E2z, `NewServerAllocOn.lean`):
 `srvClusterBoot_alloc`'s, with the mode-`on` KV invariant `kvInvOn _ _ srvAuthSt0` (and, 5b, the client's
 view of the auth history, `authHistView`) at the start
-chain with auth on; with `server_member_alloc_on`, what `server_new_auth_on`'s caller allocates. -/
+chain with auth on; with `server_member_alloc_on`, what `server_new_auth_on`'s caller allocates.
+(2026-11-09, raft-entsize [r3a]/[r3a']: the boot premises as one `BootCore`, which adds the bound
+on the boot entries, `bootDataOk`, from which (2026-11-10) the allocation passes `maxData = some 2^30`.) -/
 theorem server_cluster_alloc_on (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (xs : w64 → GName) (reg : GName)
     (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (Hrb2 : receiptBound GF + boot.length ≤ 2 ^ 61)
-    (HB : BootLog ps ctxs boot) (Hnd : ps.Nodup) (Hne : ps ≠ []) (Hnz : W64 0 ∉ ps)
-    (hcc : ∀ e ∈ LogEntry.toEntries boot 0,
-      ccIdOf e.Data' = W64 0 ∧ ccBootOk (GMap.listToSet ps) e.Data')
-    (Hurl : bootURLsOk (LogEntry.toEntries boot 0))
-    (Hpd : (ps.map (fun id => uint.Z id % 2 ^ 16)).Nodup)
-    (Hp0 : ∀ id ∈ ps, uint.Z id % 2 ^ 16 ≠ 0) :
+    (Hbc : BootCore ps ctxs boot) (Hnd : ps.Nodup) (Hne : ps ≠ []) (Hnz : W64 0 ∉ ps) :
     ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) ={⊤}=∗
       ∃ (γ : SrvRaft) (issued cnt wn fs : GName) (γk : KVNames),
         ⌜γ.vs = ps ∧ γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧ γ.boot = LogEntry.toEntries boot 0 ∧ γ.reg = reg ∧
@@ -2153,7 +2150,7 @@ theorem server_cluster_alloc_on (ps : List w64) (ctxs : List (List w8)) (boot : 
           ∃ γd : GName, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 (∅ : GMap w64 Unit))) ∗
         -- (linkv-txn stage B1, 2026-10-20) each member's entry of the registries' map
         [∗list] id ∈ ps, idWaitTokAt wn (idPfxOf (W16 (uint.Z id)), 0) :=
-  srvClusterBootOn_alloc ps ctxs boot xs reg Hrb Hrb2 HB Hnd Hne Hnz hcc Hurl Hpd Hp0
+  srvClusterBootOn_alloc ps ctxs boot xs reg Hrb Hrb2 Hbc Hnd Hne Hnz
 
 /-- **A member's names with auth on** (`srvMemberBootOn_alloc`): the mode-`on` KV invariant at
 its names, as `NewServer.specM true`'s `kvInvM true`. -/

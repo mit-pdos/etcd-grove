@@ -346,7 +346,7 @@ theorem raft.appendEntry.wp_proof
       unfold selfAck absMsgFrom
       rw [Hlast2]
       rfl
-    · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
+    · iapply tsSrcU_ne; exact (fun h => absurd h (by simp [MsgSnap]))
     try wp_auto
     iapply HΦ
     simp only [↓reduceIte]

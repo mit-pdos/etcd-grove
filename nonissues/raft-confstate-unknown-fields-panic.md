@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-23
+checked: 2026-11-10
 links:
   - etcd-io/raft#168 pr open: related (draft since 2024-02, idle since 2025-02: witness support, adds ConfState fields 6 and 7; the only known proposal adding a ConfState field)
   - etcd-io/raft#133 issue open: related (the witness proposal #168 implements)
@@ -41,6 +41,19 @@ ownership at all. Until the per-type stage (re-freeze, 2026-11-09), the trusted 
 `pbMessage` wrongly claimed it of any bytes (`notes/per-type-blockers.md`, "`UnmarshalPb` at
 `pbMessage` claims a decoded `ConfState` has no unknown fields"); the stage's first Freeze package
 still did (its `dec` was today's `msgPtsC`), which the review of 2026-11-08 found.
+
+**The goosed fork carries a fix** (premise fixes 2, 2026-11-10, the user's choice): its fourth fix
+(`raft37-goose-lean-a2`, and the witness fork `raft-witness-goose-lean`) makes `Equivalent`
+compare the configurations field by field (`confStatesEqual`: the four sorted id lists and
+`AutoLeave`, and in the witness fork the two witness fields) instead of `proto.Equal`; the verified
+`Equivalent` no longer rests on the trusted `proto.EqualConfState` (deleted). The fork compares by
+hand rather than clearing the clones' unknown fields as the PR draft below does, because
+`ProtoReflect().SetUnknown` is outside the translation; the cost the draft names is real: the
+witness fork's first version of the fix forgot its two witness fields. Go:
+`examples/premisefix/confstate` (a decoded `MsgSnap`'s conf state keeps the unknown field, and
+`Equivalent` now ignores it). `csPts` still requires no unknown fields, as the receive path above
+gives it; with the fix it need not, a possible relaxation that would let the theorems cover a peer
+that sends unknown fields.
 
 ## Fix
 

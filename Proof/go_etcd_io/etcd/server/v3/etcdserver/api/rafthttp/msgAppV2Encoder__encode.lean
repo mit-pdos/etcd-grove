@@ -57,7 +57,7 @@ set_option hygiene false in
 /-- The App frame (`msgTypeApp`): the tag, then `messageEncoder`'s frame of the message, the
 state the message's term and its last entry's index. -/
 local macro "enc_full" : tactic => `(tactic| (
-  have Hfr := V2Frame.full (frm := frm) (to := to) cst Hw0 (by omega) ⟨c, hcm, Hu, hcu, rfl⟩
+  have Hfr := V2Frame.full (frm := frm) (to := to) cst Hw0 (by omega) ⟨c, hcm, Hu, hcu, rfl, hcsz⟩
   ihave #Hbin : isPkgInit (PROP := IProp GF) pkg_id.encoding.binary $$ []
   · iPkgInit
   ihave %Hbe := bigEndian_ne_null $$ Hbin
@@ -241,11 +241,11 @@ theorem rafthttp.msgAppV2Encoder.encode.wp_proof
     (wp_WriteUint64 : binary.WriteUint64.spec (GF := GF) (hG := hG))
     (wp_Succ : v2stats.FollowerStats.Succ.spec (GF := GF) (hG := hG)) :
     rafthttp.msgAppV2Encoder.encode.spec (GF := GF) (hG := hG) := by
-  intro enc wi fs cst frm to ml st Wr A h Hok
+  intro Sz enc wi fs cst frm to ml st Wr A h Hok
   wp_start as ⟨Henc, #Hwr, HWr, #Hm, #Hb, #HA⟩
-  iunfold swMsgBound at Hb
+  iunfold msgSzC at Hb
   icases Hb with ⟨%c, #Hc, %Hcb⟩
-  obtain ⟨hcm, hcu, hcs⟩ := Hcb
+  obtain ⟨hcm, hcu, hcs, hcsz⟩ := Hcb
   have hm' : MsgMarshals c.model := hcm ▸ Hok.1
   ihave %Hp := msgRoC_enc ml c $$ Hc
   obtain ⟨Hw0, hlenc, Hu⟩ := Hp hm' (by omega)
@@ -315,6 +315,7 @@ theorem rafthttp.msgAppV2Encoder.encode.wp_proof
       refine ⟨[W8 0], Hok.hb_frame cst hb, ?_⟩
       rw [List.take_of_length_le (by simp [Hk.2.2 rfl])]
   · rw [decide_eq_false (p := isHB st.msg) hb]
+    replace hcsz : Sz → msgSizeOk c := fun h => hcsz ⟨h, hb⟩
     wp_auto
     wp_apply wp_GetIndex.1 ml DFrac.discard DFrac.discard false st $$ [] as -
     · iexact Hm
@@ -348,7 +349,8 @@ theorem rafthttp.msgAppV2Encoder.encode.wp_proof
           rw [← hents] at He
           have Hn : st.ents.length < 2 ^ 63 := by
             have := Hesl.1; unfold sint.nat at this; word
-          have Hfr := Hok.short_frame (cs := cst) hb c1 c2 c3 He Hn
+          ihave %Heu := entsRoC_uf els c.f.entries $$ HentsC
+          have Hfr := Hok.short_frame (cs := cst) hb c1 c2 c3 He Hn (EntsSz.of_msg (Sz := Sz) c Heu hcsz)
           -- the tag
           ihave %Hs1l := ownSlice_len _ _ _ $$ Hs1s
           have hx1 : ∃ b, x1 = [b] := by

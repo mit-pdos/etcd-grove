@@ -95,9 +95,9 @@ theorem rafthttp.pipeline.handle.wp_proof
     iintro %ml Hm
     iunfold pipeMsg at Hm
     icases Hm with ⟨%st, #Hm, #Hb, #HP, HO, %Hst⟩
-    iunfold swMsgBound at Hb
+    iunfold msgSzC at Hb
     icases Hb with ⟨%c, #Hc, %Hcb⟩
-    obtain ⟨hcm, hcu, hcs⟩ := Hcb
+    obtain ⟨hcm, hcu, hcs, hcsz⟩ := Hcb
     have hm' : MsgMarshals c.model := hcm ▸ Hst.1
     ihave %Hp := msgRoC_enc ml c $$ Hc
     obtain ⟨Hw0, hlenc, Hu⟩ := Hp hm' (by omega)
@@ -109,7 +109,7 @@ theorem rafthttp.pipeline.handle.wp_proof
     simp only [pbMessageC_ty, pbMessageC_roC, pbEncC_pbMessageC] at wpM
     wp_apply wpM $$ [$Hc] as %d ⟨Hd, -, -⟩
     (try wp_auto)
-    wp_apply hPost Rh p to d _ st Hw0 ⟨c, hcm, Hu, hcu, rfl⟩ Hst.2.1 Hst.2.2.1 Hst.2.2.2 $$ [$Hs $Hd $HP $HO] as %err #Herr
+    wp_apply hPost Rh p to d _ st Hw0 ⟨c, hcm, Hu, hcu, rfl, hcsz⟩ Hst.2.1 Hst.2.2.1 Hst.2.2.2 $$ [$Hs $Hd $HP $HO] as %err #Herr
     (try wp_auto)
     wp_apply wp_Now as %t1 -
     (try wp_auto)

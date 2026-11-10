@@ -99,7 +99,7 @@ theorem Main.wp_proof
   (try wp_auto)
   -- the ghost state `NewServer` takes (`alloc1`), at KV names that grant leases
   have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
-  imod (etcdstart.alloc1 hne id ctxs boot Hbf.idLow Hbf.boot Hbf.cc Hbf.urls (leasegrantDir id)
+  imod (etcdstart.alloc1 hne id ctxs boot Hbf (leasegrantDir id)
       (dirOne_member id _) (by omega) (by omega) false 0 .mono .mono (lease.runCfg_mono HnE)) $$ Hmarsh
     with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, -⟩
   obtain ⟨hvs, hrule, hboot, hγn1, hγn2, -, -, -, hlgρ⟩ := Hal

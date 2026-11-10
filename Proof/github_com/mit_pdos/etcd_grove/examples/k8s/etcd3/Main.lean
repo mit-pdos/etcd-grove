@@ -121,7 +121,7 @@ theorem Main.wp_proof
   (try wp_auto)
   -- the ghost state `NewServer` takes (`alloc1`)
   have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
-  imod (etcdstart.alloc1_false hne id ctxs boot Hbf.idLow Hbf.boot Hbf.cc Hbf.urls (k8setcd3Dir id) (dirOne_member id _)
+  imod (etcdstart.alloc1_false hne id ctxs boot Hbf (k8setcd3Dir id) (dirOne_member id _)
       (by omega) (by omega)) $$ Hmarsh
     with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
   obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog, -⟩ := Hal

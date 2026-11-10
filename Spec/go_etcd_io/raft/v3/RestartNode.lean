@@ -76,6 +76,9 @@ abbrev RestartNode.spec : Prop :=
   cv.DisableConfChangeValidation' = false →
   (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
   cv.AsyncStorageWrites' = false →
+  -- (raft-entsize §3, 2026-11-09) in a cluster with a bound on proposed data, a `MsgApp`'s entries
+  -- cut at `MaxSizePerMsg ≤ 2^20` (the size law's)
+  (γ.maxData ≠ none → uint.Z cv.MaxSizePerMsg' ≤ 2 ^ 20) →
   -- `Applied` (raft's `appliedTo` panics otherwise; `0`: from the base)
   (uint.nat cv.Applied' = 0 ∨ σ.b ≤ uint.nat cv.Applied' ∧ uint.nat cv.Applied' ≤ σ.commit) →
   -- the configuration point, from the applied index the node starts at to the stored commit

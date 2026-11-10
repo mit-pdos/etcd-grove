@@ -125,7 +125,7 @@ theorem Main.wp_proof
   (try wp_auto)
   -- the ghost state `NewServer` takes, in compaction mode at retention `0`
   have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
-  imod (etcdstart.alloc1_false hne id ctxs boot Hbf.idLow Hbf.boot Hbf.cc Hbf.urls (etcdstart.dir1 peerAddr id)
+  imod (etcdstart.alloc1_false hne id ctxs boot Hbf (etcdstart.dir1 peerAddr id)
       (dirOne_member id _) (by omega) (by omega) (cmp := true) (cret := 0)) $$ Hmarsh
     with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
   obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog, hkc, hkr⟩ := Hal

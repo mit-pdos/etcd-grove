@@ -91,10 +91,18 @@ unlink_perennial
 # the built .oleans, so only after a successful build
 python3 etc/model-param-check.py || fail=1
 python3 etc/pbschema-check.py || fail=1
-# etc/joint-landing-check.py refuses swMsgBound_phys in the baselines; stage A lands without it
-# (the user, 2026-11-09: stage A ahead of raft-entsize, whose landing deletes the axiom and turns
-# the check on again). Its selftest stays.
+# raft-entsize: etcd's bootstrapped raft configuration has MaxSizePerMsg = 2^20 (`rnStartCfg`'s
+# `maxMsg`, a field of the bootstrap contract; examples/entsize, about a second)
+if (cd examples && GOWORK=off go test -count=1 ./entsize/ > "$tmp/entsize.log" 2>&1); then
+  echo "entsize: ok"
+else
+  echo "entsize: FAILED"; tail -10 "$tmp/entsize.log"; fail=1
+fi
+# the per-type stage's joint landing: stage A's restated swMsgBound_phys is gone (raft-entsize
+# deleted it); etc/joint-landing-check.py refuses it in the baselines (reads them only), with its
+# selftest
 python3 etc/joint-landing-check.py --selftest || fail=1
+python3 etc/joint-landing-check.py || fail=1
 
 # 6. the issues' front matter
 if python3 etc/issues-status.py --check > "$tmp/issues.log" 2>&1; then

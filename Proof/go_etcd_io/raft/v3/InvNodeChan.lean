@@ -677,6 +677,8 @@ def readyData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
     -- (2026-11-01, durability stage I-3) each message's `isRaftMsg` behind the batch's fragments
     -- (`readyCut`)
     ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ termLB γ.bud q.st.msg.Term') ∗
+    -- (raft-entsize §2) their `snapUf`s, for the content a `Ready` pins (`readyRest`'s `msgOut`)
+    ([∗list] q ∈ ms, snapUf q.loc q.st) ∗
     ([∗list] q ∈ ms, rdCred γ.raft (if q.st.msg.Type' = MsgReadIndex then 1 else 0)) ∗
     -- (2026-10-19, D21 M6) each forwarded proposal's tickets (`stTks`)
     ([∗list] q ∈ ms, stTks γ.raft q.st) ∗
@@ -731,6 +733,8 @@ def readySnapData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
     entsRO rd.Entries' es ∗
     rd.Messages' ↦* ms.map QMsg.loc ∗
     ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ termLB γ.bud q.st.msg.Term') ∗
+    -- (raft-entsize §2) their `snapUf`s, for the content a `Ready` pins (`readyRest`'s `msgOut`)
+    ([∗list] q ∈ ms, snapUf q.loc q.st) ∗
     ([∗list] q ∈ ms, rdCred γ.raft (if q.st.msg.Type' = MsgReadIndex then 1 else 0)) ∗
     ([∗list] q ∈ ms, stTks γ.raft q.st) ∗
     (∃ sts : List ReadStateM, readStatesPts rd.ReadStates' sts ∗

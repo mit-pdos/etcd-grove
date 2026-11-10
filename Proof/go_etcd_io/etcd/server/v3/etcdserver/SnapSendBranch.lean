@@ -341,11 +341,12 @@ theorem srvFrozenTerm_bound (γs : MemStorNames) (ai at' : w64) :
 /-- **The merged message as the network's snapshot bundle** (`netSnapBundle`, `sendMergedSnap`'s
 premise): read-only, of a `MsgSnap` the node `sid` sent (`srv_merged_sent`), with new credits (a
 `MsgSnap` is no `MsgProp`, `msgCredits_intro`), the reader's streams of the image `D`, and the
-image's certificate at the snapshot's index (`merged_image`). -/
+image's certificate at the snapshot's index (`merged_image`); (raft-entsize [r3c], 2026-11-10) at
+the content `createMergedSnapshotMessage` gives (`msgSzC False`). -/
 theorem srvMerged_bundle (γ : SrvRaft) (ml : Loc) (rc : GoInterface) (st : MsgSt) (sid : w64)
     (c : ConfStateM) (ai at' : w64) (D : backend.Data) (hty : st.msg.Type' = MsgSnap) :
     letI := srvStor (GF := GF) γ
-    msgOwn ml DFrac.discard (mergedSt st c ai at') ∗
+    msgOwn ml DFrac.discard (mergedSt st c ai at') ∗ msgSzC False ml (mergedSt st c ai at') ∗
       sentMsg γ.cl srvClusterN sid { st with snap := some (memSnapMade ai at' c []) } ∗
       backend.readerStreams rc (fun bs => backend.boltImage bs D) ∗
       □ (srvNet (GF := GF) γ).img ai D ⊢ |==> netSnapBundle (srvNet γ) ml rc := by
@@ -354,14 +355,14 @@ theorem srvMerged_bundle (γ : SrvRaft) (ml : Loc) (rc : GoInterface) (st : MsgS
   letI := srvStor (GF := GF) γ
   rw [show ({ st with snap := some (memSnapMade ai at' c []) } : MsgSt) = mergedSt st c ai at'
     from rfl]
-  iintro ⟨#Hm, #Hs, Hrs, #Himg⟩
+  iintro ⟨#Hm, #Hsw, #Hs, Hrs, #Himg⟩
   ihave %Hsh := sentMsg_shape γ.cl srvClusterN sid _ $$ Hs
   imod msgCredits_intro γ.cl srvClusterN (mergedSt st c ai at')
     hP with HO
   imodintro
   iunfold netSnapBundle
   iexists mergedSt st c ai at', SnapshotM.mk [] (SnapshotMetadataM.mk c ai at'), D
-  iframe Hm Hrs Himg
+  iframe Hm Hsw Hrs Himg
   isplitr
   · iintro !>
     simp only [srvNet]

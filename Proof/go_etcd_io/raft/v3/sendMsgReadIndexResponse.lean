@@ -150,7 +150,7 @@ theorem sendMsgReadIndexResponse.wp_proof
             (fun h => by simp [readIndexRespMsg, MsgSnap] at h)
             (fun h => by simp [readIndexRespMsg, MsgApp] at h)
           rfl $$ [$Hphys $Hresp]
-        · iapply tsSrc_ne; exact (fun h => by simp [readIndexRespMsg, MsgSnap] at h)
+        · iapply tsSrcU_ne; exact (fun h => by simp [readIndexRespMsg, MsgSnap] at h)
         iintro Hphys
         wp_auto
         iapply HΦ

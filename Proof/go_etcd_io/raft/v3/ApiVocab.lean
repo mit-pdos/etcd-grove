@@ -119,8 +119,8 @@ def sentShapeTypes : List w32 := sentTypes ++ [MsgTimeoutNow, MsgTransferLeader]
 those and a forwarded `MsgTransferLeader` (no term or the forwarder's: `send` stamps the follower's,
 which may be `0`), from a node other than its destination unless it is a read-index request, a vote
 or pre-vote response, an accepting `MsgAppResp` or a transfer request (its `From` is the transferee,
-possibly the leader it is forwarded to); a `MsgApp` of raft's shape; the transfer messages with no
-entries and no context; no responses. (The frozen design's `MsgSnap` index bound below `2^61` is not
+possibly the leader it is forwarded to); a `MsgApp` of raft's shape; the transfer messages and
+(raft-entsize [r3c], 2026-11-09) a `MsgSnap` with no entries and no context; no responses. (The frozen design's `MsgSnap` index bound below `2^61` is not
 here yet: `stepIn_intro` keeps it as a premise; `notes/raft-unified-plan.md`, "Spec changes during
 track A (third)".) -/
 def SentMsgShape (st : MsgSt) : Prop :=
@@ -132,7 +132,8 @@ def SentMsgShape (st : MsgSt) : Prop :=
      st.msg.Type' ≠ MsgTransferLeader →
      (st.msg.Type' = MsgAppResp → st.msg.Reject' = true) → st.msg.From' ≠ st.msg.To') ∧
   (st.msg.Type' = MsgApp → AppShape st) ∧
-  (st.msg.Type' = MsgTimeoutNow ∨ st.msg.Type' = MsgTransferLeader → st.ents = [] ∧ st.ctx = []) ∧
+  (st.msg.Type' = MsgTimeoutNow ∨ st.msg.Type' = MsgTransferLeader ∨ st.msg.Type' = MsgSnap →
+    st.ents = [] ∧ st.ctx = []) ∧
   st.resps = []
 
 /-- (2026-10-29, stage U7) A message of a type the model describes (no transfer message) of the

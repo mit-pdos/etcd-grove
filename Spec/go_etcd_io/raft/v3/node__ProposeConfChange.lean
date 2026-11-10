@@ -34,12 +34,17 @@ refuses the change (an empty normal entry commits in its place, `raft.go:1341`),
 for an empty `ConfChangeV2`. (2026-10-29, stage U5: until then the post was `ops ++ [entry]`, an
 empty `ConfChangeV2` a requested entry.) (2026-10-29, S1) The update is wrapped in `□?γ.dup`, as
 `node.Propose`'s. (raft-final, 2026-10-29, K5: the stopped answer carries `nodeStopped`, `nodeErrS`; until then
-`nodeErr`, which `nodeErrS_nodeErr` gives back.) -/
+`nodeErr`, which `nodeErrS_nodeErr` gives back.) (raft-entsize §3, [r3e], 2026-11-09: the
+conf change is taken at its content `cc` (`ccPtsCC`), whose size measure `ccSize` is within the
+cluster's bound on proposed data, if any: the entry's data, its encoding, is at most
+`ccSize cc + 64` bytes; it is given back at its model, `ownConfChangeI`.) -/
 abbrev node.ProposeConfChange.spec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (c : GoInterface) (o : ConfChangeIM) (dq : DFrac)
-    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (c : GoInterface) (o : ConfChangeIM)
+    (cc : ConfChangeIC) (dq : DFrac) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd ∗
-      ownConfChangeI c dq (some o) ∗
+      -- (raft-entsize §3, [r3e]) the conf change at its content `cc` (its unknown fields pinned),
+      -- of model `o`, its size within the cluster's bound on proposed data, if any
+      ccPtsCC c dq cc ∗ ⌜cc.model = o ∧ ∀ b, γ.maxData = some b → ccSize cc + 64 ≤ b⌝ ∗
       □?γ.dup (AU <{ ∃∃ (ops : List LogEntry), ownCommittedOps γ ops }> @ ⊤ \ ↑N, ∅
          <{ ∀∀ (t : w64) (bs : List w8), ⌜MarshalsConfChange (some o) bs⌝ ∗
               ownCommittedOps γ (ops ++ opsOf [⟨t, confChangeEntryType (some o), bs⟩]),

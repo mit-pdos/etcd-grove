@@ -5,11 +5,14 @@
 theorem RawNode.ProposeConfChange.wp_proof [package_sem : Assumptions] (wp_confChangeToMsg :
     confChangeToMsg.spec) (wp_raft_Step : raft.Step.spec) : RawNode.ProposeConfChange.spec
   -- `Perennial.EtcdGrove.RawNode.ProposeConfChange.spec`, unfolded:
-  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (c : GoInterface) (o : ConfChangeIM) (dq : DFrac),
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (c : GoInterface) (o : ConfChangeIM) (cc : ConfChangeIC)
+    (dq : DFrac),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-            "Hrn" ∷ ownRawNode γ rn id rs ∗ "Hc" ∷ ownConfChangeI c dq (some o) ∗ "Harg" ∷ ccPropArg γ o -∗
+            "Hrn" ∷ ownRawNode γ rn id rs ∗
+              "Hc" ∷ ccPtsCC c dq cc ∗
+                "%Hmd" ∷ ⌜cc.model = o ∧ ∀ (b : Nat), γ.maxData = some b → ccSize cc + 64 ≤ b⌝ ∗ "Harg" ∷ ccPropArg γ o -∗
           (▷
               ∀ err,
                 "Hrn" ∷ ownRawNode γ rn id rs ∗

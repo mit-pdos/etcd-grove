@@ -412,8 +412,6 @@ axiom supportedStream.init [GooseExts] [GoGlobalContext] : val
 noncomputable def linkHeartbeatMessage [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.linkHeartbeatMessage"
 
-axiom linkHeartbeatMessage.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def linkHeartbeatSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.linkHeartbeatSize"
 
@@ -8089,6 +8087,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #(go!"/raft"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (GlobalVarAddr RaftPrefix))) (Val #())))
@@ -8136,6 +8135,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$v0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty go!"Enum"))) (Val #(W32 8))) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Type")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty) (Var "$v0")))])))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -8149,7 +8150,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val linkHeartbeatSize.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val linkHeartbeatMessage.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr linkHeartbeatMessage))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val supportedStream.init) (Val #()))))))
   (App (Val doExecute)
@@ -8285,7 +8286,9 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc readBytesLimit go.uint64)) (Val #()))))))
   (App (Val doExecute)
-  (App (Val (go.GlobalAlloc ConnReadTimeout _root_.Perennial.time.Duration.ty)) (Val #()))))))))
+  (App (Val (go.GlobalAlloc ConnReadTimeout _root_.Perennial.time.Duration.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc linkHeartbeatMessage _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)) (Val #()))))))))
 
 abbrev encoder [GooseExts] : Type := GoInterface
 
