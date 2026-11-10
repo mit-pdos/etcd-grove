@@ -101,6 +101,35 @@ theorem leadPre_lb (γh : HistNames) (ks : List GoString) (ops : List OpM) (n : 
     iapply histW_lb
     iexact H
 
+/-- **`apply`'s close for an operation that changes nothing in the model**: the member with one
+more operation applied, the hook's counters at the operation's index. -/
+theorem apply_close_same (ks : List GoString) (γh : HistNames) (ops : List OpM) (i : Nat)
+    (mp : Loc) (m : MemberNames) (f : GoFunc) (v : MemS) (qw : Qp) (nw k : Nat) (lead : Bool)
+    (s0 : w64) (h : runM ks ops (v.ops + 1) = runM ks ops v.ops) (hl : v.ops + 1 ≤ ops.length)
+    (h38 : v.ops < 2 ^ 38) (hs : sint.Z s0 ≤ sint.Z (W64 ((v.ops + 1 : Nat) : Int))) :
+    memCore (GF := GF) ks γh ops i mp m f v qw nw k ∗ leadPre γh ks ops v.ops lead ∗
+        sync.atomic.ownInt64 (mF go!"applying" mp) (DFrac.own 1) (W64 ((v.ops + 1 : Nat) : Int)) ∗
+        sync.atomic.ownInt64 (mF go!"saved" mp) (DFrac.own 1) s0 ∗
+        mF go!"ops" mp ↦ (W64 ((v.ops + 1 : Nat) : Int)) ⊢
+      leadPost γh ks ops v.ops lead ∗
+        ∃ (v' : MemS) (k' : Nat), ⌜MemS.sameInc v v' ∧ v'.ops = v.ops + 1 ∧ k ≤ k' + 1⌝ ∗
+          memW ks γh ops i mp m f v' qw nw k' := by
+  iintro ⟨Hmc, Hlead, Happ, Hsav, Hops⟩
+  isplitl [Hlead]
+  · iapply leadPost_same γh ks ops v.ops lead h; iexact Hlead
+  iexists { v with ops := v.ops + 1 }, k
+  isplitr
+  · ipureintro; exact ⟨⟨rfl, rfl, rfl, rfl, rfl⟩, rfl, by omega⟩
+  iunfold memW
+  isplitl [Hops]
+  · iexact Hops
+  isplitl [Happ Hsav]
+  · iexists _, _; iunfold hookPre; iframe; ipureintro
+    have : sint.Z (W64 ((v.ops + 1 : Nat) : Int)) = v.ops + 1 := by word
+    refine ⟨hs, by omega, by simp only; omega⟩
+  iapply memCore_succ_same ks γh ops i mp m f v qw nw k h hl
+  iexact Hmc
+
 end lemmas
 
 end mvccfull

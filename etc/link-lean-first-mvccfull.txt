@@ -99,7 +99,7 @@ pending__del: inRange
 pending__put: 
 pick: choose
 pick+W: choose
-runner__apply: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds traceutil_TODO runner__begin runner__checkHook check runner__writeRange pending__put runner__end runner__writeSub runner__txn lease_lessor__Grant lease_lessor__Revoke lease_lessor__Lookup runner__compact history__snapshot context_TODO checkRangeAt runner__checkLeases
+runner__apply: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds =mvcc.api.mvccApi_mvccReaders_split_law_holds traceutil_TODO runner__begin runner__checkHook check runner__writeRange pending__put runner__end runner__writeSub runner__txn lease_lessor__Grant lease_lessor__Revoke lease_lessor__Lookup runner__compact history__snapshot context_TODO checkRangeAt runner__checkLeases
 runner__begin: =mvcc.api.mvccApi_persistent_law_holds history__snapshot copyState
 runner__checkAll: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccReaders_split_law_holds history__snapshot traceutil_TODO context_TODO checkRangeAt
 runner__checkHook: check
