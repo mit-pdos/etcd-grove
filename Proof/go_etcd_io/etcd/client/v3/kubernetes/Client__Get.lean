@@ -99,7 +99,7 @@ theorem Client.Get.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
       (opSizeOk_opGetModel (K := 2 ^ 27) (E := 0) (V := 0)
         (optsKeep_cons (withRevM_keep _) (optsKeep_cons (withLimitM_keep _) (optsKeep_nil _ _ _)))
         hk (by decide))) $$ []
-    as %resp %err ⟨-, Hout⟩
+    as %resp %err ⟨-, Hout, -⟩
   · iframe #
     isplitl []
     · rw [show (opGetModel key [withRevM (W64 0), withLimitM (W64 1)]).base.sortSet = false

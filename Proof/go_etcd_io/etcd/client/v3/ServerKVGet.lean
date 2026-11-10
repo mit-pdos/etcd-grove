@@ -324,7 +324,7 @@ theorem kv_get_server_r (api : Loc) (addr : List GoString) (s : Loc) (E : apply.
     iapply knownAt_srvsAt $$ []
     iframe #
   inext
-  iintro %resp %err ⟨HR, Hout⟩
+  iintro %resp %err ⟨HR, Hout, -⟩
   iapply HΦ
   iframe HR
   iunfold rangeCallOut at Hout

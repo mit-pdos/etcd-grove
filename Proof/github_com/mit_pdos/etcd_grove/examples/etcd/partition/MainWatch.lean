@@ -416,7 +416,7 @@ theorem MainWatch.wp_proof
         isplitr
         · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₁ HPut₁]; iframe #
         isplitr
-        · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₁ HRange₁]; iframe #
+        · iapply cluster3.isGrpcRpcMd_forwards $$ [Hfw₁ HRange₁]; iframe #
         isplitr
         · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₁ HDel₁]; iframe #
         isplitr
@@ -432,7 +432,7 @@ theorem MainWatch.wp_proof
         isplitr
         · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₂ HPut₂]; iframe #
         isplitr
-        · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₂ HRange₂]; iframe #
+        · iapply cluster3.isGrpcRpcMd_forwards $$ [Hfw₂ HRange₂]; iframe #
         isplitr
         · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₂ HDel₂]; iframe #
         isplitr
@@ -448,7 +448,7 @@ theorem MainWatch.wp_proof
         isplitr
         · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₃ HPut₃]; iframe #
         isplitr
-        · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₃ HRange₃]; iframe #
+        · iapply cluster3.isGrpcRpcMd_forwards $$ [Hfw₃ HRange₃]; iframe #
         isplitr
         · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₃ HDel₃]; iframe #
         isplitr

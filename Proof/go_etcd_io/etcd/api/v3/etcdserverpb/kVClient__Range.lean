@@ -30,7 +30,7 @@ theorem kVClient.Range.wp_proof
     (wp_StaticMethod : grpc.StaticMethod.spec (GF := GF) (hG := hG))
     (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (hG := hG)) :
     kVClient.Range.spec (GF := GF) (hG := hG) := by
-  intro kc conn addr Spec Q ctx cd inp req k e opts vs
+  intro kc conn addr Spec Q ctx cd inp req k e opts vs Ψe
   wp_start as ⟨#Hstub, #Hconn, #Hrpc, #Hpre, #Hctx, Hin, #Hk, #He, #Hopts, #Hok, %Hsz⟩
   wp_auto
   wp_apply wp_StaticMethod as %sm ⟨#Hsm, %Hsms⟩
@@ -55,7 +55,7 @@ theorem kVClient.Range.wp_proof
   ihave Hblank : pbRangeResponse (GF := GF) |>.blank «$r0_ptr» $$ [«$r0»]
   · simp only [pbRangeResponse]
     iexact «$r0»
-  have hI := etcdConn_InvokeMd wp_Invoke conn addr go!"/etcdserverpb.KV/Range" pbRangeRequestT pbRangeResponseT pbRangeRequestT_reg pbRangeResponseT_reg Spec (rangeReqOp req k e) Q ctx cd inp «$r0_ptr» copts
+  have hI := etcdConn_InvokeMdE wp_Invoke conn addr go!"/etcdserverpb.KV/Range" pbRangeRequestT pbRangeResponseT pbRangeRequestT_reg pbRangeResponseT_reg Spec (rangeReqOp req k e) Q Ψe ctx cd inp «$r0_ptr» copts
     ([sm] ++ vs)
   simp only [pbRangeRequestT, pbRangeResponseT] at hI
   rw [show (pbRangeRequest (GF := GF)).ty = etcdserverpb.RangeRequest.ty from rfl,
@@ -66,29 +66,34 @@ theorem kVClient.Range.wp_proof
     iframe
     try (ipureintro; first | exact Hsz.2 | exact Hsz | exact (by decide : wireSlack < grpcMsgMax))
   icases Hin' with ⟨%req', %k', %e', Hin', -⟩
-  icases Hres with (⟨%Herr, %m', Hm, Hq⟩ | ⟨%Herr, #Hse⟩)
+  icases Hres with (⟨%Herr, %m', Hm, Hq⟩ | ⟨%Herr, #Hse, #Hcl, Heo⟩)
   · subst Herr
     wp_auto
     iapply HΦ
     iframe
-    unfold rangeCallOut
-    ileft
-    isplitl []
-    · ipureintro; rfl
-    iexists m'
-    iframe
+    isplitl
+    · unfold rangeCallOut
+      ileft
+      isplitl []
+      · ipureintro; rfl
+      iexists m'
+      iframe
+    · iintro %h; exact absurd rfl h
   · obtain ⟨Hne, Hce⟩ := Herr
     cases err with
     | nil => exact absurd rfl Hne
     | ok ei =>
       wp_auto
       iapply HΦ
-      iframe
-      unfold rangeCallOut
-      iright
-      iframe #
-      ipureintro
-      exact ⟨Hne, Hce, rfl⟩
+      isplitl [Hin']
+      · iframe
+      isplitr [Heo]
+      · unfold rangeCallOut
+        iright
+        iframe #
+        ipureintro
+        exact ⟨Hne, Hce, rfl⟩
+      · iintro -; iexact Heo
 
 end proof
 

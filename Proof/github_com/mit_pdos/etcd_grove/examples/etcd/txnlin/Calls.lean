@@ -341,7 +341,7 @@ theorem client_List_st [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc)
   wp_pures
   wp_auto
   wp_apply (client.client_range_any api ms (W64 0) ci cd listFrom sl [withRangeM listTo]
-      iprop(True) Q [] hsz) $$ [] as %resp %err ⟨-, Hout⟩
+      iprop(True) Q [] hsz) $$ [] as %resp %err ⟨-, Hout, -⟩
   · iframe #
     isplitl []
     · rw [show (opGetModel listFrom [withRangeM listTo]).base.sortSet = false from rfl]

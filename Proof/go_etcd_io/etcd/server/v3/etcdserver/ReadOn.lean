@@ -201,17 +201,6 @@ instance rangeErrAt_persistent (on : Bool) (E : apply.AEnv GF) (γr : ReadNames)
     Persistent (rangeErrAt on E γr c F o Q P) := by
   unfold rangeErrAt; infer_instance
 
-/-- The future revision at the log `log` (`txn.rangeResult`'s first case): the request's revision
-above the log's last. -/
-def rangeFutureAt (o : OpFull) (log : mvcc.Log) (_crev : Int) : Prop :=
-  sint.Z (W64 ((log.length : Int) - 1)) < sint.Z o.base.rev
-
-/-- The compacted revision at the log `log` and compaction revision `crev` (`txn.rangeResult`'s
-fourth case): the revision read below `crev`. -/
-def rangeCompactedAt (o : OpFull) (log : mvcc.Log) (crev : Int) : Prop :=
-  sint.Z o.base.rev ≤ sint.Z (W64 ((log.length : Int) - 1)) ∧
-    sint.Z (mvcc.rangeRev (W64 ((log.length : Int) - 1)) o.base.rev) < crev
-
 /-- **Which error a failed `Range` returns** (k8s etcd3 7c-2 part 2, S3, 2026-11-06): mvcc's
 `ErrFutureRev` or `ErrCompacted`, each with the read's facts at the error (`rangeErrAt`); an auth
 package variable (`authErrVarIs`: `doSerialize`'s, S3a); the read index's (`readErrIs`, S3b); or

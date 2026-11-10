@@ -294,7 +294,7 @@ theorem client_Get_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoIn
   wp_pures
   wp_auto
   wp_apply (client_range_any api ms (W64 0) ci cd key sl [] iprop(True) Q [] hsz) $$ []
-    as %resp %err ⟨-, Hout⟩
+    as %resp %err ⟨-, Hout, -⟩
   · iframe #
     isplitl []
     · rw [show (opGetModel key []).base.sortSet = false from rfl]

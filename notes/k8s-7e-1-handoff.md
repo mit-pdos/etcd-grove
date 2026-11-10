@@ -334,3 +334,43 @@ right after the decision.
    `ifcErrOut` across it); `kv.Get.specM`/`client_range_any` gain `rangeErrOut` (Draft §2.3).
 2. Draft §3.1, §3.2, step 6 as listed above. Merge lean (premise-fixes-4, then premise-fixes-5) before
    step 6.
+
+## Steps 1-3 done, step 4 in part (tenth session, 2026-11-10; forms in `questions.md`, "tenth session")
+
+Targeted builds green: every leaf importing `KVService`, `KVMembers`, `ContextError` and client
+`Results` (`/shared/tmp/k8s7e1/leaves1.txt`, under the lock; log `a10.log`).
+- **Registration (A)**: `kvRegsAt`'s Range conjunct is `isGrpcRpcMd x.addr Range (etcdRangeSpecE …)`.
+  `etcdRangeSpecE` (KVService) is `etcdRangeSpecM false` without its auth parts (trivial with auth off);
+  `etcdRangeSpecE_M` (KVServiceOn) and `etcdRangeSpec_E` convert. Moves: `rangeErrReply` KVServiceOn →
+  KVService; `rangeFutureAt`/`rangeCompactedAt` server `ReadOn` → `InvRead` (names unchanged; this
+  rebuilds the server once); KVService imports `v3rpc.Defs`. The Md conjunct also in
+  `etcd_kv_served(_with)`, `etcd_kv_started(_with)`, `etcd_kv_lease_served`, etcdstart's `etcdKVAt`,
+  cluster3's `memberServed_none`/`memberAt_none`, txnlin's `Check.spec`; new
+  `cluster3.isGrpcRpcMd_forwards` for the Mains that build `kvRegsAt` by hand.
+- **Chain**: `kVClient.Range.spec`, `retryKVClient.Range.spec` (last binder `Ψe`, post gains
+  `⌜err ≠ nil⌝ -∗ ifcErrOut`), `doRunGen` (optional `Ψr`), `kv.Do.specG`, `kv.Get.specG` (last binder
+  `Ψr`; post FIRST conjunct `⌜(o.t = 1 ∧) err ≠ nil ∧ sortValid o = true⌝ -∗ ifcErrOut …`).
+- **`ContextError.spec`**: fourth (last) post conjunct `⌜err ≠ nil → errDesc err' = errDesc err ∨
+  errDesc err' ∉ handlerDescs⌝`; all 39 call sites take `, -`; `ifcErrOut_desc` carries the outcome.
+- **rangeErrOut** (step 4, client half): `rangeErrΨ`, `rangeErrOut` (KVService, persistent);
+  `kv.Get.specM`'s and `client_range_any`'s post gain (last) `⌜sortValid (opGetModel key gs) = true⌝ →
+  rangeErrOut ms c F (rangeWireOf …) Q err`.
+
+Pitfalls: in this IPM `isplitr [H]` sends `H` to the RIGHT goal, bare `isplitr` sends everything right,
+`isplitl [H]` sends `H` left. A spec binder left last and not determined by a hypothesis (`Ψr`) must be
+passed explicitly (`(fun _ => iprop(True))`), or `unfold doRunGen` fails on the metavariable.
+
+### Next, in order (the next agent starts here)
+
+1. Step 4, kubernetes half: `Client.Get`/`Client.List` (and the store's read path) take
+   `∀ x ∈ ms, noRefusalAt x.addr` (approved) and need `rangeCheck (rangeWireOf o) = none` for their
+   requests (approved pure lemma): `rangeCheck` refuses an EMPTY key (`emptyKey`), so the k8s reads need
+   `key ≠ []` (the store's keys carry its prefix) or a lemma from the store's key shape; the sort fields
+   are the defaults. From `rangeErrOut`'s future half: `rangeErrReply` gives `□ Q (kvStateOf log)` and
+   `rangeFutureAt o log` (`sint (len log - 1) < sint o.base.rev`), so `rangeErrSound` (R1's form) with
+   `σ := kvStateOf log` (Draft §2.5, `rangeErrSound_of`).
+2. §3.1 (`Client.Get.spec` at any revision, `Client__GetAt.lean` deleted). `rangeReply_state_at`:
+   follow `rangeReply_state_bnd` (ClientPutGet.lean:217, takes `%Hlk` from `rangeReplyOk` itself) and
+   `rangeAns_st`'s revision lemmas (KVService.lean ~1810: `hRR`, `hRle`, `kvStateOf_at_kvs`) without
+   `srvLogCert_logOk`: no `receiptBound` expected (if needed: STOP).
+3. §3.2, step 6 as listed above (merge lean first: premise-fixes-4, premise-fixes-5).

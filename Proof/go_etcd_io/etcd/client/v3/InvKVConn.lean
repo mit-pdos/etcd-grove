@@ -1344,6 +1344,22 @@ theorem ifcErrOut_absurd (method : GoString) (addr : List GoString) (Ψe : GoStr
   iintro %hk
   exact absurd hk h
 
+/-- The outcome carries over to an error `err'` of the same description, or of none of the handlers'
+(`ContextError`'s result). -/
+theorem ifcErrOut_desc (method : GoString) (addr : List GoString) (Ψe : GoString → IProp GF)
+    (err err' : GoInterface)
+    (h : go_etcd_io.etcd.cache.v3.errDesc err' = go_etcd_io.etcd.cache.v3.errDesc err ∨
+      go_etcd_io.etcd.cache.v3.errDesc err' ∉ handlerDescs) :
+    ifcErrOut (GF := GF) method addr Ψe err ⊢ ifcErrOut method addr Ψe err' := by
+  unfold ifcErrOut
+  iintro H %hk %hm
+  rcases h with h | h
+  · rw [h] at hm ⊢
+    iapply H
+    · ipureintro; exact hk
+    · ipureintro; exact hm
+  · exact absurd hm h
+
 /-- **The client's retry interceptor's contract** (persistent; unit P3a: what
 `Client.unaryClientInterceptor` returns, `Client__unaryClientInterceptor.lean`): called on a
 connection to `addr` (`grpcConn`, any interceptors) with an invoker making one attempt

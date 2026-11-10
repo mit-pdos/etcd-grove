@@ -41,10 +41,12 @@ theorem ContextError.wp_proof
       exact ⟨fun _ => rfl, fun h => absurd rfl h⟩
     isplitl
     · iapply statusErrOk_nil
+    isplitl
     · iintro !> -; iapply go_etcd_io.etcd.cache.v3.errCellOk_nil
+    · ipureintro; intro h; exact absurd rfl h
   | ok ei =>
     wp_auto
-    wp_apply wp_rpctypes_Error (GoInterface.ok ei) $$ [$Hse] as %err1 ⟨%Hne1, #Hse1, %Hce1, -, #Hcl1⟩
+    wp_apply wp_rpctypes_Error (GoInterface.ok ei) $$ [$Hse] as %err1 ⟨%Hne1, #Hse1, %Hce1, %Hd1, #Hcl1⟩
     · ipureintro; simp
     have Hc1 := Hce1 (Herr (by simp))
     obtain ⟨e1, rfl⟩ : ∃ e1, err1 = GoInterface.ok e1 := by
@@ -73,7 +75,7 @@ theorem ContextError.wp_proof
       cases okv
       · wp_auto
         iapply HΦ
-        iframe #; ipureintro; exact Hfin _ Hne1 Hc1
+        iframe #; ipureintro; exact ⟨Hfin _ Hne1 Hc1, fun _ => Or.inl Hd1⟩
       · wp_auto
         wp_apply HCode
         wp_if_destruct
@@ -82,39 +84,41 @@ theorem ContextError.wp_proof
           | nil =>
             wp_auto
             iapply HΦ
-            iframe #; ipureintro; exact Hfin _ Hne1 Hc1
+            iframe #; ipureintro; exact ⟨Hfin _ Hne1 Hc1, fun _ => Or.inl Hd1⟩
           | ok e2 =>
             simp only [reduceCtorEq, ↓reduceIte]
             wp_auto
-            wp_apply Hce $$ %Broadcast.Done [He2] as %e3 %Hne3 %Hc3 #Hs3 #Hcl3 -
+            wp_apply Hce $$ %Broadcast.Done [He2] as %e3 %Hne3 %Hc3 #Hs3 #Hcl3 %Hd3
             · iexact He2
             ihave #Hcl3' : iprop(□ (go_etcd_io.etcd.cache.v3.errCellOk (GoInterface.ok ei) -∗
                 go_etcd_io.etcd.cache.v3.errCellOk e3)) $$ []
             · iintro !> -; iexact Hcl3
             iapply HΦ
-            iframe #; ipureintro; exact ⟨False.elim, fun _ => ⟨Hne3, Hc3⟩⟩
+            iframe #; ipureintro
+            exact ⟨⟨False.elim, fun _ => ⟨Hne3, Hc3⟩⟩, fun _ => Or.inr (Hd3.resolve_left Hne3)⟩
         · wp_if_destruct
           · wp_apply Hce $$ %Broadcast.Pending as %e2 He2 %Hc2 - - -
             cases e2 with
             | nil =>
               wp_auto
               iapply HΦ
-              iframe #; ipureintro; exact Hfin _ Hne1 Hc1
+              iframe #; ipureintro; exact ⟨Hfin _ Hne1 Hc1, fun _ => Or.inl Hd1⟩
             | ok e2 =>
               simp only [reduceCtorEq, ↓reduceIte]
               wp_auto
-              wp_apply Hce $$ %Broadcast.Done [He2] as %e3 %Hne3 %Hc3 #Hs3 #Hcl3 -
+              wp_apply Hce $$ %Broadcast.Done [He2] as %e3 %Hne3 %Hc3 #Hs3 #Hcl3 %Hd3
               · iexact He2
               ihave #Hcl3' : iprop(□ (go_etcd_io.etcd.cache.v3.errCellOk (GoInterface.ok ei) -∗
                   go_etcd_io.etcd.cache.v3.errCellOk e3)) $$ []
               · iintro !> -; iexact Hcl3
               iapply HΦ
-              iframe #; ipureintro; exact ⟨False.elim, fun _ => ⟨Hne3, Hc3⟩⟩
+              iframe #; ipureintro
+              exact ⟨⟨False.elim, fun _ => ⟨Hne3, Hc3⟩⟩, fun _ => Or.inr (Hd3.resolve_left Hne3)⟩
           · iapply HΦ
-            iframe #; ipureintro; exact Hfin _ Hne1 Hc1
+            iframe #; ipureintro; exact ⟨Hfin _ Hne1 Hc1, fun _ => Or.inl Hd1⟩
     · wp_auto
       iapply HΦ
-      iframe #; ipureintro; exact Hfin _ Hne1 Hc1
+      iframe #; ipureintro; exact ⟨Hfin _ Hne1 Hc1, fun _ => Or.inl Hd1⟩
 
 end proof
 

@@ -350,27 +350,6 @@ def etcdDeleteSpecM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (c
         ∀ m : DelRespM, deleteReplied E ρ.rd F o Q cid mid m -∗
           (⌜on = true⌝ → v3rpc.writeGrantOn s E ρ (auth.mdTokenOf md) (irrDeleteRange o)) -∗ Φ m)
 
-/-- **A failed `Range`'s reply facts** (persistent; k8s etcd3 7c-2 part 2, S6, 2026-11-06): what
-the caller learns when `Range` fails with mvcc's future-revision or compacted error, `P` the
-condition (`rangeFutureAt`, `rangeCompactedAt`): `rangeReplyOk`'s facts of the log read without a
-reply, a certified log `log` extending the floor `F`, the compaction revision `crev` read with it
-(its permit `E.Cp crev`; R8, 2026-11-08, the second `lean` merge: over mvcc's API as
-`rangeReplyOk`, in place of `lean`'s `idxCert`/`certOk`/`crevLb`), read after the read index unless
-serializable, the read's `□ Q` there. -/
-def rangeErrReply (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log) (o : OpFull)
-    (Q : KVState → IProp GF) (P : mvcc.Log → Int → Prop) : IProp GF :=
-  iprop(∃ (log : mvcc.Log) (crev : Int), srvApi.kvLogLb E.γs log ∗ □ E.Nx log ∗
-    ⧖ (mvcc.logCh log) ∗ □ E.Cp crev ∗
-    ⌜mvcc.LogWf' log ∧ 2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ F <+: log ∧ -1 ≤ crev ∧
-      P log crev⌝ ∗
-    (if o.base.serializable then iprop(True) else readLogOk γr c log) ∗
-    (if o.base.serializable then iprop(True) else □ Q (kvStateOf log)))
-
-instance rangeErrReply_persistent (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log)
-    (o : OpFull) (Q : KVState → IProp GF) (P : mvcc.Log → Int → Prop) :
-    Persistent (rangeErrReply E γr c F o Q P) := by
-  unfold rangeErrReply; split <;> infer_instance
-
 /-- **etcd's `Range` in the auth mode `on`**: with a lower bound `n` of the published auth index,
 the reply with the read's check with auth on. (DRAFT, k8s etcd3 7c-2 part 2, S6: the error
 outcome at every description when the request's check refuses it, `v3rpc.rangeCheck`; at the
@@ -583,6 +562,22 @@ theorem etcdRangeSpecM_false [go_etcd_io.etcd.server.v3.etcdserver.Assumptions] 
   · isplit
     · iintro -; iapply HΨe
     · iintro -; iapply HΨe
+  iintro %m Hm -
+  iapply Hk $$ Hm
+
+/-- `etcdRangeSpecE`'s caller meets the spec over the mode with auth off (the auth index's lower
+bound `0`, `authPubLbM_zero`; the auth gate `on = true` vacuous). -/
+theorem etcdRangeSpecE_M [go_etcd_io.etcd.server.v3.etcdserver.Assumptions] (s : Loc) (E : apply.AEnv GF)
+    (γr : ReadNames) (cid mid : w64) :
+    ∀ md o Φ Ψe, etcdRangeSpecE (GF := GF) E γr cid mid md o Φ Ψe ⊢
+      |==> etcdRangeSpecM false s E γr cid mid md o Φ Ψe := by
+  intro md o Φ Ψe
+  unfold etcdRangeSpecE etcdRangeSpecM
+  iintro ⟨%c, %F, %Q, #Hc, #HF, Hq, Hck, He, Hk⟩
+  imod (authPubLbM_zero (GF := GF) E.authMode) with #Hn
+  imodintro
+  iexists c, F, Q, 0
+  iframe Hc HF Hn Hq Hck He
   iintro %m Hm -
   iapply Hk $$ Hm
 

@@ -46,7 +46,7 @@ server's cluster and member ids. -/
 def etcdKVAt (addr : GoString) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
     (cid mid : w64) : IProp GF :=
   iprop(isGrpcRpc addr go!"/etcdserverpb.KV/Put" (client.etcdPutSpec E ρ.rd cid mid) ∗
-    isGrpcRpc addr go!"/etcdserverpb.KV/Range" (client.etcdRangeSpec E γr cid mid) ∗
+    isGrpcRpcMd addr go!"/etcdserverpb.KV/Range" (client.etcdRangeSpecE E γr cid mid) ∗
     isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (client.etcdDeleteSpec E ρ.rd cid mid) ∗
     isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (client.etcdTxnSpec E ρ.rd γr cid mid) ∗
     isGrpcRpc addr go!"/etcdserverpb.KV/Compact" (client.etcdCompactSpec E ρ.rd cid mid))
@@ -62,7 +62,7 @@ theorem etcdKVAt_eq (addr : GoString) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
     (cid mid : w64) :
     etcdKVAt (GF := GF) addr E ρ γr cid mid =
       iprop(isGrpcRpc addr go!"/etcdserverpb.KV/Put" (client.etcdPutSpec E ρ.rd cid mid) ∗
-        isGrpcRpc addr go!"/etcdserverpb.KV/Range" (client.etcdRangeSpec E γr cid mid) ∗
+        isGrpcRpcMd addr go!"/etcdserverpb.KV/Range" (client.etcdRangeSpecE E γr cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (client.etcdDeleteSpec E ρ.rd cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (client.etcdTxnSpec E ρ.rd γr cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Compact" (client.etcdCompactSpec E ρ.rd cid mid)) :=

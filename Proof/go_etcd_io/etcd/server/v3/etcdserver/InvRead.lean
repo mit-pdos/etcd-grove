@@ -244,6 +244,18 @@ def txnErrOk (E : apply.AEnv GF) (ρ : ReqNames) (F : mvcc.Log) (t : TxnModel) (
       ⌜irrWireOf (apply.withHeader (irrTxn tw) hm) rq'⌝ ∗ appliedErr E rq' F err) ∨
     srvMaybeDeposited ρ (irrTxn tw)))
 
+/-- The future revision at the log `log` (`txn.rangeResult`'s first case): the request's revision
+above the log's last. -/
+def rangeFutureAt (o : OpFull) (log : mvcc.Log) (_crev : Int) : Prop :=
+  sint.Z (W64 ((log.length : Int) - 1)) < sint.Z o.base.rev
+
+/-- The compacted revision at the log `log` and compaction revision `crev` (`txn.rangeResult`'s
+fourth case): the revision read below `crev`. (In `ReadOn` until 2026-11-10, moved here for the
+client's `etcdRangeSpecE`.) -/
+def rangeCompactedAt (o : OpFull) (log : mvcc.Log) (crev : Int) : Prop :=
+  sint.Z o.base.rev ≤ sint.Z (W64 ((log.length : Int) - 1)) ∧
+    sint.Z (mvcc.rangeRev (W64 ((log.length : Int) - 1)) o.base.rev) < crev
+
 /-- The server's KV invariants, of the read side (`isServerRead`'s; G2's follow-up, 2026-10-30: the server's law,
 until then the client's). -/
 theorem srvKVInvs_of_read (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
