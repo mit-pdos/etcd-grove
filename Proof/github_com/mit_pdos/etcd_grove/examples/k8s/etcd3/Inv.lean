@@ -950,15 +950,14 @@ instance getCall_persistent (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (eD 
   unfold getCall; infer_instance
 
 /-- **A read's result** at a firing at `σ`: the state is the store's, with room, and, at the
-prophesied revision `R`, the commit bit holds it. (Stage 7e-4: whatever the read's minimum resource
-version `n`, now unused: below it the answer is `ETooLarge`, committed there too; drop `n` with
-`call`/`Apply`.) -/
-def readQ (c : StoreCfg GF DObj) (γc : GName) (n : Nat) (R : w64) (σ : KVState) : IProp GF :=
+prophesied revision `R`, the commit bit holds it (stage 7e-4: whatever the read's minimum resource
+version: below it the answer is `ETooLarge`, committed there too). -/
+def readQ (c : StoreCfg GF DObj) (γc : GName) (R : w64) (σ : KVState) : IProp GF :=
   iprop(⌜kvWf c σ ∧ σ.rev + 2 < 2 ^ 63⌝ ∗
     (⌜σ.rev = uint.nat R⌝ → dghostVar γc DFrac.discard (some σ)))
 
-instance readQ_persistent (c : StoreCfg GF DObj) (γc : GName) (n : Nat) (R : w64)
-    (σ : KVState) : Persistent (readQ c γc n R σ) := by
+instance readQ_persistent (c : StoreCfg GF DObj) (γc : GName) (R : w64)
+    (σ : KVState) : Persistent (readQ c γc R σ) := by
   unfold readQ; infer_instance
 
 end defs

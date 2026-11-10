@@ -932,7 +932,7 @@ theorem get_read_au (γ : KNames) (c : StoreCfg GF DObj) (hc : CfgD c) (g0 : HSt
     (eD eU : GoInterface) (γc γt γp : GName) (x : Input) (hx : InOk x) (hk : x.Kind' = W64 3)
     (R : w64) (Φ : val → IProp GF) :
     kInv γ c g0 γk ∗ getCall γ c g0 eD eU γc γt γp x Φ ∗ dghostVar γp DFrac.discard (some R) ⊢
-      kvReadAu γk (readQ c γc (uint.nat (minOf x)) R) := by
+      kvReadAu γk (readQ c γc R) := by
   have Hm := drvInvN_mask'
   have Hcm := callN_mask'
   have HE := drvE_mask'
@@ -1060,8 +1060,8 @@ theorem get_maker (γ : KNames) (c : StoreCfg GF DObj) (hc : CfgD c) (g0 : HSt) 
     □ ([∗list] sv ∈ ms, kInv γ c g0 sv.γr.kv) ∗ getCall γ c g0 eD eU γc γt γp x Φ ∗
       dghostVar γp (DFrac.own 1) (none : Option w64) ⊢
       (iprop(∀ (R m : w64), |==> □ [∧list] sv ∈ ms,
-        ⌜(fun σ => readQ c γc (uint.nat (minOf x)) R σ) = fun _ => iprop(True)⌝ ∨
-          kvReadAu sv.γr.kv (fun σ => readQ c γc (uint.nat (minOf x)) R σ)) : IProp GF) := by
+        ⌜(fun σ => readQ c γc R σ) = fun _ => iprop(True)⌝ ∨
+          kvReadAu sv.γr.kv (fun σ => readQ c γc R σ)) : IProp GF) := by
   iintro ⟨#Hinvs, #Hc, Hp⟩ %R %m
   imod dghostVar_update (some R) γp none $$ Hp with Hp
   imod dghostVar_persist γp 1 _ $$ Hp with #Hp
@@ -1421,6 +1421,114 @@ theorem list_makerP (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (ms : List (
   iintro %R %σ #HQ
   iunfold listQ at HQ
   icases HQ with ⟨-, #Hel, -⟩
+  imodintro
+  imodintro
+  refine BigAndL.bigAndL_intro (PROP := IProp GF) fun j sv hj => ?_
+  have hsv : sv ∈ ms := List.mem_of_getElem? hj
+  iintro ⟨#Hinvs, #Hel⟩
+  iright
+  iapply list_later_au γ c g0 sv.γr.kv σ
+  iframe Hel
+  iapply (BigSepL.bigSepL_mem (Φ := fun sv : client.SrvAt GF => kInv γ c g0 sv.γr.kv)
+    hsv) $$ Hinvs
+
+/-- **A list's plain first page's result** (a list whose prophecy says `EOther`, committed before
+the call): `listQ` without the commit bit. -/
+def plainL (c : StoreCfg GF DObj) (γ : KNames) (σ : KVState) : IProp GF :=
+  iprop(⌜kvWf c σ ∧ kvWfHist c σ ∧ kvKeysShort σ ∧ σ.rev + 2 < 2 ^ 63⌝ ∗
+    ghostMapElem γ.r σ.rev DFrac.discard σ)
+
+instance plainL_persistent (c : StoreCfg GF DObj) (γ : KNames) (σ : KVState) :
+    Persistent (plainL (GF := GF) c γ σ) := by
+  unfold plainL; infer_instance
+
+theorem plainL_pure (c : StoreCfg GF DObj) (γ : KNames) (σ : KVState) :
+    plainL (GF := GF) c γ σ ⊢ ⌜kvWf c σ ∧ kvWfHist c σ ∧ kvKeysShort σ⌝ := by
+  unfold plainL
+  iintro ⟨%H, -⟩
+  ipureintro; exact ⟨H.1, H.2.1, H.2.2.1⟩
+
+theorem plainLP_pure (c : StoreCfg GF DObj) (γ : KNames) (σ σ' : KVState) :
+    plainL (GF := GF) c γ σ ∗ listP σ σ' ⊢ ⌜kvSameHist σ σ' ∧ σ.rev ≤ σ'.rev⌝ := by
+  unfold listP
+  iintro ⟨-, %H⟩
+  ipureintro; exact H
+
+/-- **A list's plain first page's read update** (as `plain_read_au`). -/
+theorem plainL_read_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVNames) :
+    kInv γ c g0 γk ⊢ kvReadAu γk (plainL c γ) := by
+  have Hm := drvInvN_mask'
+  iintro #Hinv
+  unfold kvReadAu kvAu
+  imodintro
+  iauintro
+  unfold atomic_acc
+  iunfold kInv at Hinv
+  iinv Hinv with >Hi Hclose
+  iunfold kInvBody at Hi
+  icases Hi with ⟨%h, %S, %σ, %M, %nx, Hh, Hσ, HM, Hrv, Hhist, %Hok⟩
+  obtain ⟨Hr, Hok⟩ := Hok
+  ihave ⟨Hrv, #Hel⟩ := revOwn_elem γ σ $$ Hrv
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ ((⊤ \ ↑srvRaftN) \ ↑kvN) \ ↑drvInvN from
+    Std.LawfulSet.empty_subset)
+  iintro Hclose2
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iexists σ
+  iframe Hσ
+  isplit
+  · iintro Hσ
+    imod Hclose2 with -
+    imod Hclose $$ [Hh Hσ HM Hrv Hhist] with -
+    · inext
+      iunfold kInvBody
+      iexists h, S, σ, M, nx
+      iframe
+      ipureintro; exact ⟨Hr, Hok⟩
+    imodintro
+    iempintro
+  · iintro ⟨Hσ, %hroom⟩
+    imod Hclose2 with -
+    imod Hclose $$ [Hh Hσ HM Hrv Hhist] with -
+    · inext
+      iunfold kInvBody
+      iexists h, S, σ, M, nx
+      iframe
+      ipureintro; exact ⟨Hr, Hok⟩
+    imodintro
+    imodintro
+    unfold plainL
+    isplitr
+    · ipureintro; exact ⟨Hok.wf, Hok.hwf, keysOk_short σ Hok.keys, kvRoom_two hroom⟩
+    iexact Hel
+
+/-- **The maker of a list's plain first page's updates**. -/
+theorem plainL_maker (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (ms : List (client.SrvAt GF)) :
+    □ ([∗list] sv ∈ ms, kInv γ c g0 sv.γr.kv) ⊢
+      (iprop(∀ _R : w64, |==> □ [∧list] sv ∈ ms,
+        ⌜plainL c γ = fun _ => iprop(True)⌝ ∨ kvReadAu sv.γr.kv (plainL c γ)) : IProp GF) := by
+  iintro #Hinvs %R
+  imodintro
+  imodintro
+  refine BigAndL.bigAndL_intro (PROP := IProp GF) fun j sv hj => ?_
+  have hsv : sv ∈ ms := List.mem_of_getElem? hj
+  iintro #Hinvs
+  iright
+  iapply plainL_read_au γ c g0 sv.γr.kv
+  iapply (BigSepL.bigSepL_mem (Φ := fun sv : client.SrvAt GF => kInv γ c g0 sv.γr.kv)
+    hsv) $$ Hinvs
+
+/-- **The maker of a plain list's later pages' updates** (as `list_makerP`). -/
+theorem plainL_makerP (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (ms : List (client.SrvAt GF)) :
+    □ ([∗list] sv ∈ ms, kInv γ c g0 sv.γr.kv) ⊢
+      (iprop(□ ∀ (_R : w64) (σ : KVState), □ plainL c γ σ -∗
+        |==> □ [∧list] sv ∈ ms, ⌜listP (GF := GF) σ = fun _ => iprop(True)⌝ ∨
+          kvReadAu sv.γr.kv (listP σ)) :
+        IProp GF) := by
+  iintro #Hinvs
+  imodintro
+  iintro %R %σ #HQ
+  iunfold plainL at HQ
+  icases HQ with ⟨-, #Hel⟩
   imodintro
   imodintro
   refine BigAndL.bigAndL_intro (PROP := IProp GF) fun j sv hj => ?_
