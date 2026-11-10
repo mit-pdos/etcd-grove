@@ -98,8 +98,9 @@ if (cd examples && GOWORK=off go test -count=1 ./entsize/ > "$tmp/entsize.log" 2
 else
   echo "entsize: FAILED"; tail -10 "$tmp/entsize.log"; fail=1
 fi
-# the per-type stage's joint landing: stage A's restated swMsgBound_phys never lands (raft-entsize
-# deletes it in the same landing; reads the baselines only)
+# the per-type stage's joint landing: stage A's restated swMsgBound_phys is gone (raft-entsize
+# deleted it); etc/joint-landing-check.py refuses it in the baselines (reads them only), with its
+# selftest
 python3 etc/joint-landing-check.py --selftest || fail=1
 python3 etc/joint-landing-check.py || fail=1
 

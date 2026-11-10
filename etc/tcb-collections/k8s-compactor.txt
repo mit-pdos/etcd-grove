@@ -40,6 +40,16 @@ axiom grpcWrotePeer
 axiom klog.Errorf.wp_proof
 axiom klog.V.wp_proof
 axiom klog.Verbose.Infof.wp_proof
+axiom pbCompactionRequestT_reg
+axiom pbCompactionResponseT_reg
+axiom pbDeleteRangeRequestT_reg
+axiom pbDeleteRangeResponseT_reg
+axiom pbPutRequestT_reg
+axiom pbPutResponseT_reg
+axiom pbRangeRequestT_reg
+axiom pbRangeResponseT_reg
+axiom pbTxnRequestT_reg
+axiom pbTxnResponseT_reg
 axiom proto.Clone.wp_proof
 axiom rpctypes.errDesc_etcdError
 axiom status.Error.wp_proof
@@ -48,6 +58,8 @@ axiom strconv.FormatInt.wp_proof
 axiom strconv.ParseInt.wp_proof
 axiom streamKeyFromCtx.wp_proof
 axiom time.Time.IsZero.wp_proof
+axiom v3rpc.pbWatchRequestT_reg
+axiom v3rpc.pbWatchResponseT_reg
 axiom zap.Duration.wp_proof
 axiom zap.Error.wp_proof
 axiom zap.Int'.wp_proof
