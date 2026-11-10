@@ -216,6 +216,13 @@ The three stuck cases above are lifted by one change (`Tree.lean`, `Impl.lean`):
   directory's rename is stuck while another such call is in flight; `Follows` orders by the
   directories an operation locks (`MetaOp.locks`: not a directory a rename moves); a restart begins
   after the old process has left the kernel (assumed).
+- *Superseded 2026-11-10* (review round 5, S1/S2, `notes/axiom-review/fs-v2-r5.md`): `Follows`
+  keeps only its first clause (an entry that took effect before another's call began is kept with
+  it); the lock and cross-rename clauses (`MetaOp.locks`, `crossRename`), which no proof used, are
+  gone: Linux orders those pairs too, so dropping them only allows more crashes. A successful
+  directory `fsync` commits every logged entry (`OsState.commitAll`: ext4 on C commits the whole
+  journal for a file that is not regular, `ext4_force_commit`); `MetaOp.dirs`, `lastTouch`,
+  `Needed` and `commitThrough` are gone. The journal order was measured on C (B1).
 
 - `TreeWf` (2026-11-06, during the port) allows removed directories: unreachable, empty, named by
   no entry (an `rmdir`, or a rename onto an empty directory, leaves its inode in the tree so that an

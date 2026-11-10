@@ -24,7 +24,7 @@
 //	env_no_failed_writeback.go    no failed writeback (F1)           OsFile.syncFailed, ReadSees
 //	env_durable_at_first_start.go durable at first start (F2)        FsInit
 //	env_restarts.go               restarts are machine crashes       OsCrash := MachineCrash
-//	env_journal_order.go          metadata in journal order          Follows, Closed, Needed, MachineCrash, DirSync
+//	env_journal_order.go          metadata in journal order          Follows, Closed, MachineCrash, DirSync
 //	env_roots_only.go             only the roots' trees              TreeName, TreePath, CanonBelow, RootsOk
 //
 // File contents and sizes:
@@ -43,11 +43,11 @@
 // The directory tree and metadata calls:
 //
 //	meta_inodes_hidden.go         inodes, internal                   Ino, FsState.files, Named, MachineCrash
-//	meta_dir_fds.go               directory fds by inode             OsDirFd, DirSync, TreeWf, lastTouch
+//	meta_dir_fds.go               directory fds by inode             OsDirFd, DirSync, TreeWf
 //	meta_overlapping_calls.go     overlapping metadata calls         CallBegin, LogEntry.start, Follows
 //	meta_dir_rename_stuck.go      directory rename vs path walks     Rename (stuck clause), CallBegin
 //	meta_file_fsync.go            a file fsync commits no name       Fsync, DirSync
-//	meta_wal_create.go            wal.Create's directory swap        DirSync, Follows, Needed
+//	meta_wal_create.go            wal.Create's directory swap        DirSync, Follows
 //	meta_readdir.go               readdir racing changes             OsDirRead, DirReadNext
 //
 // Trace-level assumption (not part of the semantics):

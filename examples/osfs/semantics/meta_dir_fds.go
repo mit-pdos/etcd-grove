@@ -12,12 +12,11 @@ import (
 // Decision: a directory fd refers to the directory by inode. Renaming the
 // directory, or a directory above it, keeps the fd on it; removing it leaves
 // an empty, unreachable directory the fd still reads (no names) and syncs. A
-// directory fsync makes the directory's last logged change durable with all
-// it follows.
+// directory fsync makes every logged change durable.
 //
-// Lean: Impl.lean: OsDirFd (ino), DirSync (lastTouch of the fd's inode),
-// DirReadNext ("A removed directory has no names"); Tree.lean: TreeWf
-// (removed directories allowed), lastTouch; Tests.lean: rmdir_open_fd;
+// Lean: Impl.lean: OsDirFd (ino), DirSync (commitAll), DirReadNext ("A
+// removed directory has no names"); Tree.lean: TreeWf (removed directories
+// allowed); Tests.lean: rmdir_open_fd;
 // notes/fs-semantics-v2.md, "Directories as inodes".
 //
 // Allowed: the fsync below commits the create of wal2/seg, under the

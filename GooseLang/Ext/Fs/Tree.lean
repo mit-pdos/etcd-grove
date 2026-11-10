@@ -14,10 +14,11 @@ name, as the journal records them (so that replaying some of them gives a tree w
 did to the paths above). Each is atomic and logged in the order the calls took effect
 (`FsState.metaLog`), with the length of the log when its call began (`LogEntry.start`). A crash keeps
 a set of logged operations closed under `Follows` (`Impl.lean`, `MachineCrash`), replayed in log
-order: an operation that took effect before another's call began is journaled before it; two that
-change a common directory are serialized by that directory's lock, so the journal has them in the
-log's order; two renames across directories are serialized by the filesystem's rename lock. Two
-operations related by none of these change the entries of disjoint directories, so they commute.
+order: an operation that took effect before another's call began is journaled before it (one
+journal, committing whole transactions in order: a call that began after another returned joins a
+transaction no earlier than the other's). Nothing else orders them: two overlapping calls may be
+kept in either combination, even when Linux serializes them (a directory's lock, the rename lock),
+which only allows more crashes than Linux has.
 -/
 module
 
@@ -83,29 +84,6 @@ def MetaOp.apply : MetaOp → Tree → Tree
 /-- The operations `ops`, in order, replayed on `m`. -/
 def replay (ops : List MetaOp) (m : Tree) : Tree := ops.foldl (fun m o => o.apply m) m
 
-/-- The directories an operation changes or locks: the directories whose entries it changes, the
-directory it creates, and a directory it removes, moves or replaces. -/
-def MetaOp.dirs : MetaOp → List Ino
-  | .create j _ _ => [j]
-  | .mkdir j _ j' => [j, j']
-  | .remove j _ n => j :: n.dirIno
-  | .rename j _ j' _ n old => [j, j'] ++ n.dirIno ++ (old.map Node.dirIno).getD []
-
-/-- The directories an operation locks (Linux's `i_rwsem`), which order it against the others: as
-`dirs`, but not a directory a rename moves (Linux locks it on no same-directory rename, and before
-6.5 on no rename at all; the rename does not change its entries, so it commutes with operations in
-it). -/
-def MetaOp.locks : MetaOp → List Ino
-  | .create j _ _ => [j]
-  | .mkdir j _ j' => [j, j']
-  | .remove j _ n => j :: n.dirIno
-  | .rename j _ j' _ _ old => [j, j'] ++ (old.map Node.dirIno).getD []
-
-/-- A rename from one directory to another (Linux serializes them per filesystem). -/
-def MetaOp.crossRename : MetaOp → Bool
-  | .rename j _ j' _ _ _ => decide (j ≠ j')
-  | _ => false
-
 /-- The names an operation adds to the directory `j`. -/
 def MetaOp.adds (j : Ino) : MetaOp → List GoString
   | .create j0 b _ => if j0 = j then [b] else []
@@ -127,30 +105,18 @@ structure LogEntry where
   start : Nat
 
 /-- The entry `y` of the log must survive a crash that keeps the entry `x`: `y` took effect before
-`x`'s call began, or `y` is earlier and they lock a common directory (`locks`), or both are renames
-across directories. -/
+`x`'s call began. -/
 def Follows (log : List LogEntry) (x y : Nat) : Prop :=
-  y < x ∧ ∃ ex ey, log[x]? = some ex ∧ log[y]? = some ey ∧
-    (y < ex.start ∨ (∃ j, j ∈ ex.op.locks ∧ j ∈ ey.op.locks) ∨
-      (ex.op.crossRename = true ∧ ey.op.crossRename = true))
+  y < x ∧ ∃ ex, log[x]? = some ex ∧ y < ex.start
 
 /-- A set of entries closed under `Follows`: what a crash may keep. -/
 def Closed (log : List LogEntry) (S : Nat → Prop) : Prop :=
   ∀ x y, S x → Follows log x y → S y
 
-/-- The entries that must be on disk once `x` is: `x`, and what it follows, transitively. -/
-inductive Needed (log : List LogEntry) (x : Nat) : Nat → Prop where
-  | self : Needed log x x
-  | step (y z : Nat) : Needed log x y → Follows log y z → Needed log x z
-
 open Classical in
 /-- The operations of the entries of `log` in `S`, in log order. -/
 def keptOps (log : List LogEntry) (S : Nat → Prop) : List MetaOp :=
   (List.range log.length).filterMap (fun k => if S k then (log[k]?).map (·.op) else none)
-
-/-- The last entry of the log that changes or locks the directory `j`. -/
-def lastTouch (log : List LogEntry) (j : Ino) : Option Nat :=
-  ((List.range log.length).filter (fun k => decide (∃ e, log[k]? = some e ∧ j ∈ e.op.dirs))).getLast?
 
 /-- The roots: distinct paths, canonical and absolute (`RootForm`), none in another's tree. -/
 def RootForm (r : GoString) : Prop :=

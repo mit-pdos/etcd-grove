@@ -9,13 +9,14 @@ import (
 
 // Overlapping metadata calls on unrelated directories (model decision).
 //
-// Decision: metadata calls may overlap. Two overlapping calls that lock no
-// common directory (and are not both cross-directory renames) are unordered:
-// a crash may keep either without the other.
+// Decision: metadata calls may overlap. Two overlapping calls are unordered: a
+// crash may keep either without the other (even where Linux serializes them,
+// on a common directory's lock or the rename lock: more crashes than Linux
+// has, which is sound).
 //
 // Lean: Impl.lean: CallBegin (the token records the log's length when the
-// call began, LogEntry.start); Tree.lean: Follows (no clause relates them),
-// MetaOp.locks, MetaOp.crossRename; Tests.lean: crash_overlap.
+// call began, LogEntry.start); Tree.lean: Follows (only the start order);
+// Tests.lean: crash_overlap.
 //
 // Allowed: after the crash below, any of {}, {x/a}, {y/b}, {x/a, y/b}, even if
 // the model logged a first.

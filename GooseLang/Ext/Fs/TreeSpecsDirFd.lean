@@ -255,16 +255,13 @@ theorem wp_osDirSync (fd : w64) (dq : DFrac) (x : Ino × DirPh) (hE : ↑osN ⊆
   -- the state after: `st`, or `st` with more of the log committed
   have hfacts : FilesSame st st' ∧ st'.fs.roots = st.fs.roots ∧ FsTreeWf st' ∧
       TreeCoh st' V Γdf Γc := by
-    have hcm : ∀ x, FilesSame st (st.commitThrough x) ∧
-        (st.commitThrough x).fs.roots = st.fs.roots ∧ FsTreeWf (st.commitThrough x) ∧
-        TreeCoh (st.commitThrough x) V Γdf Γc := fun x =>
+    have hcm : FilesSame st st.commitAll ∧
+        st.commitAll.fs.roots = st.fs.roots ∧ FsTreeWf st.commitAll ∧
+        TreeCoh st.commitAll V Γdf Γc :=
       ⟨⟨rfl, rfl, rfl, rfl⟩, rfl, ⟨hw.roots, hw.hist, hw.dfds, hw.disj, hw.files_lt⟩,
         hc.congr rfl rfl rfl rfl⟩
     rcases hres with ⟨hst, -⟩ | ⟨e, -, -, hst⟩
-    · rw [hst]
-      cases lastTouch st.fs.metaLog df'.ino with
-      | none => exact ⟨filesSame_refl st, rfl, hw, hc⟩
-      | some x => exact hcm x
+    · rw [hst]; exact hcm
     · rw [hst]; exact ⟨filesSame_refl st, rfl, hw, hc⟩
   obtain ⟨hs, hroots, hw', hc'⟩ := hfacts
   imod worlds_close hs Hr Hfr hroots hw' hc' $$ [HAb HAm HAf HAt Htok Hcells Hσ]

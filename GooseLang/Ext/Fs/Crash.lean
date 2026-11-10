@@ -34,8 +34,7 @@ theorem sequential_snoc {log : List LogEntry} {o : MetaOp} (h : Sequential log) 
 theorem follows_seq {log : List LogEntry} (h : Sequential log) {x y : Nat} (hx : x < log.length)
     (hy : y < x) : Follows log x y := by
   obtain ⟨ex, hex⟩ : ∃ e, log[x]? = some e := ⟨_, List.getElem?_eq_getElem hx⟩
-  obtain ⟨ey, hey⟩ : ∃ e, log[y]? = some e := ⟨_, List.getElem?_eq_getElem (by omega)⟩
-  exact ⟨hy, ex, ey, hex, hey, .inl (by rw [h x ex hex]; exact hy)⟩
+  exact ⟨hy, ex, hex, by rw [h x ex hex]; exact hy⟩
 
 open Classical in
 /-- A set of naturals below `L`, closed downwards, is an initial segment. -/

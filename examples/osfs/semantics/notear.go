@@ -33,14 +33,17 @@ import (
 // unlimited and ext4's maximum file size with 4 KiB blocks is page-aligned
 // (outside C, 1-2 KiB blocks or `ulimit -f 6` cut a one-page write mid-page:
 // measured, notes/axiom-review/fs-v2-r4.md N2); write(2) returns an errno only
-// when nothing was written. Assumed beyond C: the source buffer is present
-// while the call runs. The copy does not fault the source in first; a source
-// page that is not present (never written by the program, swapped out, or
-// being migrated) stops the copy there and commits a prefix ending inside the
-// file's page, which writeback can write (measured with userfaultfd, N1). The
-// program must write every page of its buffer before the call (meta below
-// is filled), C has no swap, and migration during a pwrite is assumed not to
-// happen.
+// when nothing was written. The copy does not fault the source in first: a
+// source page that is not mapped (never written by the program, or being
+// migrated by compaction) stops the copy there and commits a prefix ending
+// where the source crosses a page, which writeback can write (measured on C:
+// N1 with userfaultfd; fs-v2-r5.md A1, 1000/1000 writes from fresh heap). So
+// the premise rests on a program assumption: each pwrite's buffer address is
+// congruent to its file offset mod 4096 (minibolt: 4096- and 16384-byte
+// buffers, which go1.27.3's size classes align to 4096 and 8192, at page
+// offsets); and on a machine one: no source page is unmapped while the copy
+// is inside it (not seen in 3e6 aligned writes under forced compaction;
+// assumed). The buffer below is aligned; buf[100:] would not be.
 //
 // Client: bbolt's meta slot is the 64 bytes at offset 16 of page 0 or 1 (one
 // sector), validated by magic, version and an FNV-64a checksum of its first

@@ -376,18 +376,18 @@ theorem named_ov (i : Ino) : Named stOv'.fs.treeDur i ↔ i = 6 ∨ i = 7 := by
     · exact ⟨1, aB, by simp [stOv', tree3, replay, MetaOp.apply, Tree.upd, Tree.entry]⟩
 
 /-- **Overlapping calls in disjoint directories**: a crash may keep the create in `/r/c/x` without
-the rename of `/r/a` that took effect before it (they lock no common directory; the create's call
-began before the rename took effect, so the journal may have either first). -/
+the rename of `/r/a` that took effect before it (the create's call began before the rename took
+effect, so the journal may have either first). -/
 theorem crash_overlap : OsCrash stOv stOv' := by
   refine ⟨rfl, rfl, rfl, fun _ h => h, rfl,
     ⟨fun x => x = 1, fun x hx => by simp [hx, stOv], fun _ h => h.elim, ?_, ?_⟩,
     fun i => ⟨fun hi => ?_, fun hi => ?_⟩⟩
   · intro x y hx hf; subst hx
-    obtain ⟨hy, ex, ey, hex, hey, h⟩ := hf
+    obtain ⟨hy, ex, hex, h⟩ := hf
     have : y = 0 := by omega
     subst this
-    simp [stOv] at hex hey; subst hex; subst hey
-    simp [MetaOp.locks, MetaOp.crossRename, Node.dirIno] at h
+    simp [stOv] at hex; subst hex
+    simp at h
   · simp [keptOps, stOv, List.range_succ]; rfl
   · have hf : ∃ f, stOv.fs.files !! i = some f ∧ f = newFile ∧
         stOv'.fs.files !! i = some (OsFile.ofBytes []) := by
@@ -418,14 +418,11 @@ theorem dirsync_new_dir [GooseExts] [GoGlobalContext] [go.BasicIntoValInj] (st' 
   subst hfd
   simp [stMk] at hdf; subst hdf
   rcases hr with ⟨rfl, -⟩ | ⟨e, he0, rfl, -⟩
-  · have hl : lastTouch stMk.fs.metaLog 1 = some 0 := by
-      simp [lastTouch, stMk, MetaOp.dirs]
-    rw [hl] at hc
-    obtain ⟨-, -, -, -, -, ⟨S, hlt, hS, -, htr⟩, -⟩ := hc
-    have h0 : S 0 := hS 0 (.inr .self)
+  · obtain ⟨-, -, -, -, -, ⟨S, hlt, hS, -, htr⟩, -⟩ := hc
+    have h0 : S 0 := hS 0 (.inr (by simp [stMk]))
     have hk : keptOps stMk.fs.metaLog S = [.mkdir 1 go!"m" 2] := by
       simp [keptOps, stMk, h0]
-    simp only [OsState.commitThrough] at htr
+    simp only [OsState.commitAll] at htr
     rw [htr, hk]
     simp [replay, MetaOp.apply, Tree.upd, Tree.entry, stMk]
   · exact absurd (go.intoVal_inj (by simpa using he)) he0

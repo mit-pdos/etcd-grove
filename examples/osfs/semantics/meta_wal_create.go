@@ -9,14 +9,13 @@ import (
 // wal.Create: a directory made to appear atomically, by journal order (model
 // decision, a consequence of env_journal_order.go and meta_dir_fds.go).
 //
-// Decision: the fsync of the parent after `rename(dir.tmp, dir)` makes the
-// rename durable with everything it follows, including the create of the
-// first segment inside dir.tmp, whose directory was never synced. The
-// directory fsync of a directory made in this run commits (no rule about
-// paths rebound since the log's start).
+// Decision: the fsync of the parent after `rename(dir.tmp, dir)` makes every
+// logged operation durable, the rename and the create of the first segment
+// inside dir.tmp (whose directory was never synced) included.
 //
-// Lean: Impl.lean: DirSync (commitThrough (lastTouch …)); Tree.lean: Follows
-// (the create returned before the rename began), Needed; Tests.lean:
+// Lean: Impl.lean: DirSync (commitAll); Tree.lean: Follows (before the fsync,
+// a crash that keeps the rename keeps the create, which returned before the
+// rename began); Tests.lean:
 // dirsync_new_dir; the walfs example's DirSwap (examples/osfs/walfs/dirswap.go)
 // and its proof.
 //

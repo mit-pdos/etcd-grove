@@ -24,9 +24,8 @@ hard link of another; no other process changes their trees or moves a directory 
 filesystem has no error or shutdown event (then an `fsync` may return 0 without committing); the
 tree at boot is their trees' entries. The journal (jbd2) commits whole transactions, in order; a
 metadata call joins a transaction no earlier than those of the calls that returned before it
-began, and two calls that lock a common directory (`i_rwsem`), or two renames across directories
-(the filesystem's rename lock), join transactions in the order they took effect; an `fsync` of a
-directory commits the whole journal.
+began (measured, `notes/axiom-review/fs-v2-r5.md`, B1); an `fsync` of a directory commits the
+whole journal (`ext4_force_commit` for a file that is not regular, `fs/ext4/fsync.c`).
 **Restarts**: the program restarts only after a machine restart, or after the previous process
 has exited (every thread of it returned from the kernel; by any means, a Go runtime fatal error
 such as `netpollinit failed` at the first `os.OpenFile` included, which the model does not
@@ -499,9 +498,9 @@ def OsState.metaDo (st : OsState) (o : MetaOp) (start : Nat) : OsState :=
 def OsState.takeIno (st : OsState) : OsState :=
   { st with fs := { st.fs with nextIno := st.fs.nextIno + 1 } }
 
-/-- `st` with the entry `x` of its log, and what it follows, durable. -/
-def OsState.commitThrough (st : OsState) (x : Nat) : OsState :=
-  { st with fs := { st.fs with committed := fun y => st.fs.committed y ∨ Needed st.fs.metaLog x y } }
+/-- `st` with every entry of its log durable. -/
+def OsState.commitAll (st : OsState) : OsState :=
+  { st with fs := { st.fs with committed := fun y => st.fs.committed y ∨ y < st.fs.metaLog.length } }
 
 /-- A new file: empty. Whether its name survives a crash is the tree's question. -/
 def newFile : OsFile := OsFile.ofBytes []
@@ -702,14 +701,11 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
       st.proc.inflight !! t = none ∧
       st' = st.setProc { st.proc with calls := <[t := st.fs.metaLog.length]> st.proc.calls } ∧
       e' = Val (osTokV t)
-  /- `fsync(fd)` of a directory: `#fd ↦ #errno`. Success makes the last logged operation that
-  changed or locked the directory durable, with everything it follows (`Needed`: ext4 commits the
-  whole journal, xfs forces its log through the directory's last change); a failure guarantees
-  nothing more (whatever it committed, a crash may keep anyway). -/
+  /- `fsync(fd)` of a directory: `#fd ↦ #errno`. Success makes every logged operation durable
+  (ext4 commits the whole journal for a file that is not regular); a failure guarantees nothing
+  more (whatever it committed, a crash may keep anyway). -/
   | "DirSync" => ∃ (fd : w64) (df : OsDirFd), v = #fd ∧ st.proc.dfds !! fd = some df ∧
-      ((st' = (match lastTouch st.fs.metaLog df.ino with
-          | some x => st.commitThrough x
-          | none => st) ∧ e' = Val (#(0 : w64))) ∨
+      ((st' = st.commitAll ∧ e' = Val (#(0 : w64))) ∨
        ∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧ st' = st)
   /- `close(fd)` of a directory: `#fd ↦ #errno`; the fd is freed whatever the errno. -/
   | "DirClose" => ∃ (fd e : w64) (df : OsDirFd), v = #fd ∧ st.proc.dfds !! fd = some df ∧

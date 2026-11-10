@@ -16,6 +16,14 @@ successful `fdatasync`s, so the file's `OsMeta` knows each meta sector has at mo
 (`OsMeta.vk`), and a crash leaves the sector whole (`crashSeen_sec`); the write in flight over it
 is the no-tear premise (a page-aligned prefix of a write covers a sector whole or misses it). Proved in
 `Results.lean` (`bootCrashSafety`).
+
+**Why minibolt's real runs on C satisfy the no-tear premises** (`NoTear.lean`'s docstring): on C a
+`pwrite` lands a prefix ending at its end, at a file page boundary, or where its source buffer
+crosses a page; every `WriteAt` of minibolt writes a `make([]byte, 4096)` or `make([]byte, 16384)`
+buffer (or the 4096-byte second half of one) at a page-multiple offset, and go1.27.3 places those
+objects at multiples of 4096 (`internal/runtime/gc/sizeclasses.go`, classes 44 and 59), so its
+source page boundaries are file page boundaries. What remains assumed is a machine property: no
+source page is unmapped (migrated) while the copy is inside it.
 -/
 module
 

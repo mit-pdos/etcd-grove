@@ -38,17 +38,26 @@ buffered I/O, a regular file), and the **environment assumptions** the premises 
   4 KiB blocks, `(2^32 - 1) << 12` (`ext4_max_size`), is page-aligned. (1 KiB and 2 KiB blocks, or
   a limit not a page multiple, cut a one-page write inside its page: outside C, measured,
   `notes/axiom-review/fs-v2-r4.md`, N2.)
-- **Assumed: the source buffer is present while the call runs.** The copy runs with page faults
-  disabled and is not preceded by a fault-in: if it meets a source page that is not present, it
-  stops there, `write_end` commits the copied prefix of an uptodate folio (an overwrite) and
-  unlocks it, and the copy resumes after faulting the page in; in between, writeback (or another
-  thread's `fsync`) can write the page torn at the source page's boundary, anywhere in the file's
-  page (measured with `userfaultfd`, `fs-v2-r4.md`, N1). A source page is not present if the
-  program never wrote it (Go memory fresh from the OS is not touched by Go), if it was swapped out
-  (C has no swap), or while the kernel migrates it (compaction, `khugepaged`, NUMA balancing):
-  the premise assumes none of these happens during a `pwrite`. A program meets the first by
-  writing every page of the buffer before the call (minibolt fills its pages); the last is a
-  property of the machine, not of the program, and is assumed.
+- The copy runs with page faults disabled and is not preceded by a fault-in: if it meets a source
+  page that is not mapped, it stops there, `write_end` commits the copied prefix of an uptodate
+  folio (an overwrite) and unlocks it, and the copy resumes after faulting the page in; in between,
+  writeback (or another thread's `fsync`) can write the file page torn where the *source* crosses
+  a page boundary. On C a source page is unmapped every time the program never wrote it (Go does
+  not touch memory fresh from the OS) and now and then while compaction migrates it (measured:
+  `notes/axiom-review/fs-v2-r4.md`, N1, with `userfaultfd`; `fs-v2-r5.md`, A1, without). So on C a
+  `pwrite`'s landed prefix ends at its end, at a file page boundary, or at a source page boundary.
+- **Program assumption: each `pwrite`'s buffer is at the same offset in its page as the file
+  offset** (address ≡ offset, mod 4096). Then every source page boundary is a file page boundary
+  and every cut is a page cut, whether or not the source pages are mapped. minibolt meets it: it
+  writes only `make([]byte, n)` buffers of 4096 or 16384 bytes (and the 4096-byte second half of
+  a 16384-byte one) at offsets that are page multiples, and go1.27.3 places the objects of those
+  size classes at multiples of 4096 and 8192 (`internal/runtime/gc/sizeclasses.go`, classes 44 and
+  59, "min align"; a span starts on an 8 KiB runtime page). A theorem over these premises says so
+  of its program (`bboltfs/Results.lean`).
+- **Machine assumption: no source page is unmapped while the copy is inside it** (a migration
+  that unmaps the page between two of the copy's loads would stop it mid-page even for an aligned
+  buffer). Linux does not exclude it; on C it was not seen in 3·10⁶ aligned writes under forced
+  compaction (`fs-v2-r5.md`, A1, the `aligned` row). Assumed.
 - A `write(2)`/`pwrite(2)` returns the count when anything was written, and an errno only with
   nothing written: hence nothing lands with a nonzero errno.
 
