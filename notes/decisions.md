@@ -34077,3 +34077,24 @@ taken). Not taken: the backend strengthening `rtHeldDlsLaw` (`backend/RtHeldDls.
 prototype). The API `NewStore.specR`'s glue (review round 2's S3/S4) is written in Prove: that spec
 is frozen pending it. Proving `NewLessor`/`Stop` is a separate, later track (it changes nothing in
 the tester's proof).
+
+## mvccfull F1, Prove: the post-Freeze changes (2026-11-10 · the coordinator, under the minor-fix rule · branch `worktree-mvcc-full-tester`)
+
+**What it was.** Proving the frozen specs found gaps, each closed by the smallest change that is true
+of the Go code; none adds client-visible ghost state or weakens a guarantee to a client, so none went
+to the user (memory: minor spec fixes are fixed and logged). Full list with causes:
+`notes/mvccfull-prove-writer.md`, "Post-Freeze spec changes". **The tester's own specs:**
+`pending.del` takes sorted keys (a repeated key was counted twice: the spec was false);
+`writeSub` takes keys shorter than `2^63 - 1` (`Txn.Put`'s premise); `gen` assumes `1 ≤ s.rev` and
+its post says a grant advances `nextLease`; `writerCtrs` bounds `nextLease ≤ |ops|`; `writerCtx` and
+`Run.spec`'s `runCfgOk` bound the keys `< 2^60` (was `≤ 2^62`); `checkLeases`/`apply` take the
+caller's `threadTok` and the bound classes, and `lessorW` the lessor's reader pool (for
+`Leases.spec`). **Additive API laws (no exported statement changed):** mvcc's `compactChan.law`
+(`ApiCompactChan.lean`: `Compact`'s channel is not nil and its receive is a pair; `kvstore.go:200`,
+`:235`), lease's `leaseOwn_leases` (`LeaseOwnLeases.lean`: the owner's live set is what a later
+`Leases()` lists). **Internal invariants** (the coordinator's, `notes/mvccfull-prove-*.md`): `isInc`
+records a watchable store's handle; `streamInv` takes the closed stream's receiver,
+`regOk'` "every cancelled id is registered", `regLock` the registry's fragments. **Local
+workarounds of Perennial gaps**, proposed there (`notes/perennial-changes.md`):
+`init_RWMutex_wlocked` (a lock made by its holder, B3) and `AtomicLoad` (a `Load` whose fraction is
+chosen inside the atomic update, `inBounds`).
