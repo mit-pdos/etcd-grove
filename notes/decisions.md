@@ -34091,3 +34091,22 @@ vacuous. Each fix narrows or removes a premise; no closed theorem gains one.
    narrowing made precise, so `pbUnknownOk`/`pbUnmarshalLeft` were dropped there; RaftWitness keeps
    them.
 
+## Premise fixes 2: `ConfState.Equivalent` compares configurations (the raft fork's fourth fix) (2026-11-10 · option 1, approved by the user via etcd-grove-81 · branch `premise-fixes-2`)
+
+raft's `assertConfStatesEquivalent` panics when a snapshot's `ConfState` carries a field this
+`raftpb` does not know: `Equivalent` compared with `proto.Equal`, which compares unknown fields
+(`nonissues/raft-confstate-unknown-fields-panic.md`). The goosed forks now compare field by field
+(`confStatesEqual`, `idsEqual`, `boolOf`, and in the witness fork `uint64Of` for its two witness
+fields), all verified; the trusted `proto.EqualConfState` is deleted (trust base -1 in each tree).
+By hand rather than `SetUnknown(nil)` on the clones (the upstream PR draft's fix): `ProtoReflect`
+is outside the translation.
+
+**Scope change against the brief.** The brief also asked to relax `csPts` to any unknown fields and
+to cover the decode paths. The merge of per-type models stage A (lean `de9c19e020`) had already
+closed the soundness hole fix 5 was about: `proto.UnmarshalPb` gives the owned message only under
+`decOk` (`MsgC.csUfNil` for `Message`), and the receiver gets it from the sender's frame through the
+exact round trip (D2). So `csPts` keeps `[]`; relaxing it is a strengthening (the theorems would
+cover peers that send unknown conf-state fields) that touches stage A's fresh model
+(`PerTypeMessage`'s bridges, `csUfNil` in `Codec`/`Transport`, `decOk`) and rafthttp's decoders,
+which the raft-entsize stage is editing; left for etcd-grove-81 to schedule.
+
