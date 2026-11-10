@@ -49,12 +49,15 @@ trust base of each printed in the build log (`#print axioms`). Lean-first (no Ro
 (`client/v3/kubernetes/Client__List.lean`), restated `Client.Get.spec` at any revision, and made
 `clientErrPlain` a lemma (`clientErrPlain_holds`).
 
-**Resting on refuted axioms (axiom sweep batch 1, 2026-11-07).** The `_safe` theorems rest on axioms
-the sweep refuted, until its repairs land (`notes/axiom-review/`, `notes/STATUS.md`, "Axiom sweep
-batch 1"): `zap.Logger.{Debug,Error,Fatal,Info,Warn}`, `errors.IsCtxErr`, `http.Handle_ok`, and the
-k8s `DefaultFeatureGate` and `DefaultFeatureSupportChecker` initializers. (The `pbEnc_ok` axiom and
-grpc's refuted `ProtoMsg` axioms, which made them vacuous until 2026-11-10, are gone: per-type
-protobuf models, stage A.)
+**Resting on refuted axioms (axiom sweep batch 1, 2026-11-07; checked 2026-11-10).** The `_safe`
+theorems rest on two of the batch's refuted families that sweep repairs 1 left unrepaired:
+`zap.Logger.{Debug,Error,Fatal,Info,Warn}` (still `⌜l ≠ null⌝`, which a zero `&zap.Logger{}` meets
+and panics on; R1-2 gave `zapLoggerOk` to `bootstrap`'s contract and to `Check`/`Write` only, the
+loggers' own specs deferred to LG-2..LG-5, `notes/decisions.md`) and `errors.IsCtxErr` (premise
+`context.isTypedErr`, `notes/axiom-review/isctxerr.md`). The batch's other ones this header listed
+were repaired (`http.Handle`, B3; the default feature gate's and `DefaultFeatureSupportChecker`'s
+initializers, B5; `context.ValueStartTime`, a theorem since B2), and the `pbEnc_ok` axiom and grpc's
+refuted `ProtoMsg` axioms are gone (per-type protobuf models, stage A).
 -/
 module
 
@@ -186,7 +189,7 @@ theorem k8s_etcd3_cluster_safe [lctx : GoLocalContext] [sem : go.Semantics]
 
 /-- **The Kubernetes etcd3 store's linearizability instance over three members under any partition
 schedule is safe, in the operational semantics** (`k8s_etcd3_partition_adequate`, see the file
-header and `Adequacy.lean`; resting on refuted axioms until the sweep's batch-1 repairs land: see the file header). -/
+header and `Adequacy.lean`; resting on the refuted `zap.Logger` and `errors.IsCtxErr` axioms: see the file header). -/
 theorem k8s_etcd3_partition_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]

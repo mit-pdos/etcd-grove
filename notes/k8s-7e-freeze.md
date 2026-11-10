@@ -203,8 +203,12 @@ value". The internal lemma `clientErr_statusErrOk_of_leaf` takes both `hT` and `
 critical or major issue; the combined rpctypes init text accepted)
 
 1. `Results.lean`: the stale "Vacuous for now … `pbEnc_ok`" paragraph and the `_partition_safe`
-   docstring's mention removed; what is left of it (the sweep's batch-1 refuted axioms, still in the
-   baseline under the same names) kept as "Resting on refuted axioms".
+   docstring's mention removed. Of the batch-1 sentence, checked against `notes/decisions.md` and the
+   specs (etcd-grove-81: keep only the still-unrepaired): kept for `zap.Logger.{Debug,Error,Fatal,
+   Info,Warn}` (their specs still take only `l ≠ null`; R1-2 repaired `bootstrap`'s contract and
+   `Check`/`Write`, the rest deferred to LG-2..LG-5) and `errors.IsCtxErr` (premise still
+   `context.isTypedErr`); dropped for `http.Handle` (B3), the feature-gate initializers (B5) and
+   `ValueStartTime` (B2).
 2. "Paginated": the header of `Results.lean` and this file say the driver never sends a continue
    token (`DecodeContinue`, the continue-key branch not covered); a follow-up in the handoff.
 3. `ErrorsNewOk.lean` `ctxErrClientAllW_of`: the duplicated `[context.Assumptions]` binder removed.
