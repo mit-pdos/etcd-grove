@@ -75,6 +75,60 @@ theorem memW_snoc (ks : List GoString) (γh : HistNames) (ops : List OpM) (o : O
   iapply memCore_snoc ks γh ops o i mp m f v qw nw k hn
   iexact Hc
 
+/-- **The follower's part for its next operation** (`apply(f, x.log[f.ops], false)`): the log's
+slice and the operation at the follower's count, the follower's `memW`, the history's reader slot
+and its lower bound after that operation; and back, at the follower's new record. -/
+theorem writerOwn_follower (x : Loc) (ks : List GoString) (cfg : Config) (h : Loc) (γ : FullNames)
+    (mp0 mp1 : Loc) (f0 f1 : GoFunc) (ops : List OpM) (v0 v1 : MemS) (nv nb : Nat) (q qs : Qp)
+    (hlt : v1.ops < v0.ops) :
+    writerOwn (GF := GF) x ks cfg h γ mp0 mp1 f0 f1 ops v0 v1 nv nb q qs ⊢
+      ∃ (sl : GoSlice) (ps : List Loc) (p : Loc) (o : OpM) (qw : Qp) (nw k : Nat),
+        rF go!"log" x ↦ sl ∗ sl ↦* ps ∗
+        ⌜ps[v1.ops]? = some p ∧ ops[v1.ops]? = some o ∧ logOk ks ops ∧ 1 ≤ nw ∧
+          (sint.Z cfg.Ops').toNat ≤ k + v1.ops ∧ v1.ops < ops.length ∧
+          ops.length ≤ (sint.Z cfg.Ops').toNat⌝ ∗
+        opIs p o ∗ memW ks γ.h ops 1 mp1 γ.m1 f1 v1 qw nw k ∗ histRd h γ.h ∗
+        monoListLbOwn γ.h.l (histAt ks ops (v1.ops + 1)) ∗
+        (∀ (v1' : MemS) (k' : Nat), rF go!"log" x ↦ sl -∗ sl ↦* ps -∗
+          memW ks γ.h ops 1 mp1 γ.m1 f1 v1' qw nw k' -∗ histRd h γ.h -∗
+          ⌜MemS.sameInc v1 v1' ∧ v1'.ops = v1.ops + 1 ∧ k ≤ k' + 1⌝ -∗
+          writerOwn x ks cfg h γ mp0 mp1 f0 f1 ops v0 v1' nv nb q qs) := by
+  iintro Hown
+  iunfold writerOwn at Hown
+  icases Hown with ⟨Hms, Hreg0, Hreg1, Hlog, Hctrs, HhW, Hrd, %HopsA, %HnbA, Hfiles,
+    ⟨%qw0, %nw0, %k0, Hm0, %Hl0⟩, ⟨%qw1, %nw1, %k1, Hm1, %Hl1⟩, Hss0, Hss1, Hadd⟩
+  iunfold logOwn at Hlog
+  icases Hlog with ⟨%sl, %ps, Hlsl, Hps, Hcap, %Hlp, #Hopis⟩
+  have hl : v1.ops < ops.length := by omega
+  obtain ⟨o, ho⟩ : ∃ o, ops[v1.ops]? = some o := ⟨_, List.getElem?_eq_getElem hl⟩
+  obtain ⟨p, hp⟩ : ∃ p, ps[v1.ops]? = some p :=
+    ⟨_, List.getElem?_eq_getElem (by rw [Hlp.1]; exact hl)⟩
+  have hz : (ps.zip ops)[v1.ops]? = some (p, o) := by
+    rw [List.getElem?_zip_eq_some]; exact ⟨hp, ho⟩
+  ihave #Hop := (BigSepL.bigSepL_lookup (Φ := fun _ x => opIs (GF := GF) x.1 x.2) hz) $$ Hopis
+  icases histW_lb γ.h _ _ $$ HhW with ⟨HhW, #Hlb⟩
+  ihave #Hlb' := monoListLbOwn_le (histAt ks ops (v1.ops + 1))
+    (runM_hs_prefix ks ops (v1.ops + 1) ops.length (by omega)) $$ Hlb
+  iexists sl, ps, p, o, qw1, nw1, k1
+  iframe Hlsl Hps Hm1 Hrd Hop Hlb'
+  isplitr
+  · ipureintro; exact ⟨hp, ho, Hlp.2, Hl1.2.1, Hl1.2.2, hl, HopsA.2.2⟩
+  iintro %v1' %k' Hlsl Hps Hm1 Hrd %Hs
+  obtain ⟨⟨hpa, hlp, hkv, hbk, hι⟩, hops, hk⟩ := Hs
+  iunfold writerOwn
+  dsimp only
+  rw [hkv, hι]
+  iframe Hms Hreg0 Hreg1 Hctrs HhW Hrd Hfiles Hss0 Hss1 Hadd
+  isplitl [Hlsl Hps Hcap]
+  · iunfold logOwn; iexists sl, ps; iframe; iframe #; ipureintro; exact Hlp
+  isplitr
+  · ipureintro; omega
+  isplitr
+  · ipureintro; omega
+  isplitl [Hm0]
+  · iexists qw0, nw0, k0; iframe; ipureintro; exact Hl0
+  · iexists qw1, nw1, k'; iframe; ipureintro; exact ⟨Hl1.1, Hl1.2.1, by omega⟩
+
 end lemmas
 
 end mvccfull
