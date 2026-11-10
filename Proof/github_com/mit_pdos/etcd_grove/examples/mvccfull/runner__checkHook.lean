@@ -1,4 +1,4 @@
-/- Lean-first (no Rocq counterpart). The proof of `runner.checkHook`: Draft, to come.
+/- Lean-first (no Rocq counterpart). The proof of `runner.checkHook`: proved.
 
 The outline: `saved.Load`, `check`.
 -/
@@ -32,7 +32,25 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 theorem runner.checkHook.wp_proof
     (wp_check : check.spec (GF := GF) (hG := hG)) :
     runner.checkHook.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro x mp i
+  wp_start as Hs
+  wp_auto
+  wp_apply_core sync.atomic.Int64.wp_Load (mF go!"saved" mp) (DFrac.own 1) $$ [] [-]
+  · iPkgInit
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ ⊤ from Std.LawfulSet.empty_subset)
+  iintro Hcl
+  inext
+  iexists i
+  iframe
+  iintro Hs
+  imod Hcl with -
+  imodintro
+  wp_auto
+  wp_apply wp_check
+  · itrivial
+  (try wp_auto)
+  iapply HΦ
+  iframe
 
 end proof
 
