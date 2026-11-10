@@ -34338,3 +34338,55 @@ nothing to add until the bundle is proved on every path); the ticks' traced coro
 is `MsgHup`'s campaign, `tickHeartbeat` `MsgBeat`'s broadcast: neither path is proved).
 
 No ghost change; no client-visible change; no frozen statement changed; no axiom or `sorry`.
+
+## Amendment A2 (Q14): a receive line's phantom replies a function of the receiving server (2026-11-10 · trace-check, Q14 (a) taken by the coordinator pending the user's veto, its form decided by the agent · branch `trace-check-a2`; amends the frozen Draft, tag `trace-check-frozen-a1`; DRAFT until the re-freeze `trace-check-frozen-a2`)
+
+**Why.** Slice 15's finding ("Q8 stage 1 (slice 15)"): the frozen `FxPresR` asked the facts `simFx` at the
+line's result for every phantom list `Pph` (the specification's replies raft does not send) that the
+line's `LineEffect` admits, and nothing pinned `Pph`, so no receive line's facts were provable and every
+path of a traced type was blocked.
+
+**Checked first: the phantoms are determined by the receiving server and the message.** In the
+transcription (`etcdraft/Tla/Spec.lean`, `State.receive`) every handler reads only the destination's
+server `st.s i`, the message and the (fixed) flags; with pre-vote and check-quorum off, the only replies
+raft does not send are the refusals of a lower-term `AppendEntries`/`RequestVote` request
+(`rejectAppendEntriesRequest`, `handleRequestVoteRequest` at `m.term < currentTerm`, which raft's
+`Step` ignores: `receive_staleAER`, `receive_staleVoteReq`), whose fields are the request's and the
+receiver's term: `phantomOf a m`, at the server `a` before the line (the line leaves it unchanged).
+Every other reply (a refusal at the same term, a vote response, an append response, a heartbeat's) raft
+sends itself, so it is in the share's `P'`.
+
+**What.** `PhaseStepR id c m E Mid ph Φ Φ'`, `FxPresR γ id m E Mid ph Φ Φ'` and
+`trCap_fire_recv.statement` take `ph : Etcdraft.Server → List Etcdraft.Msg`; the effect's bag is
+`(P' ++ ph a).foldl with` at the share's server `a` (`PhaseStepR` no longer chooses `Pph`; `FxPresR` no
+longer quantifies over it). The law's proof passes `ph (σ.s (idAbs id))` through unchanged; the gate
+`trCapB_hookGateRecv` (and `FxPresRT`) take `ph`. No other frozen statement changes; nothing
+client-visible (the files are outside `etc/api/raft.txt`'s interface).
+
+**Sufficiency** (`TracedRecvPhantom.lean`): `recvPhantoms m a` (the phantoms of any receive line:
+`[phantomOf a m]` for a lower-term request, `[]` otherwise); `simFx_congr` (`simFx` reads the servers
+only up to `toC`, the bags by their domains, which is what lets a phase that pins only `toC a'` state the
+facts), `simFx_discard`, `simFx_send_plain`: the step slice 15 found blocked (`TermsLe`, `msgFacts` of the
+added message) now goes through. But **`FxPresR` itself is still not provable**, for a reason A2 does not
+touch (review a2-r1's F1/F2): it must give the bags' uniqueness `MsgsUniq` after the phantom from `simFx`
+alone, and `recvPred` ignores some fields of a response (a refusal's `matchIndex`, a vote response's
+`lastLogIndex`/`lastLogTerm`), so a stray response differing from the phantom only there breaks it; the
+same holds of raft's own responses on every line that sends one. Raft's and the specification's
+responses are canonical in those fields; `RespCanon` says so, and with it the uniqueness after a
+canonical response follows (`recvPred_canon_eq`, `msgsUniq_send_canon`, `msgsUniq_staleReq`); the stale
+line's step is proved at one state from `RespCanon σ` (`simFx_staleReqLine`). `RespCanon` belongs in
+`simFx`, a frozen definition: plan, Q15. (A first version, `fxPresR_staleReq`, took the uniqueness after
+the phantom as a hypothesis over all states; the reviewer proved it false, so it was vacuous.)
+
+**Rejected.** (b) `FxPresR` given the bag's premises with a chain-determinism lemma (heavier, and the
+result's `violated` circular); (c) `Pph` an argument of `Φ'` (the phases would carry the specification's
+replies raft never sees). *`ph` also of the message*: `m` is already a parameter of the three
+statements, so `ph` closes over it. *`ph` of the line's result `a'`*: a phantom is of the state before
+the line (`phantomOf a m` reads `a.currentTerm`; the line leaves `a`'s term unchanged).
+
+**Open:** Q15 (`RespCanon` in `simFx`, another amendment of the frozen Draft); with it, `FxPresR` of the
+stale line follows from `simFx_staleReqLine`, and every send line's uniqueness from `msgsUniq_send_canon`
+once `RespCanon` is widened to every message type (`MsgCanon`, review a2-r2's T1-1: heartbeats'
+`prevLog*`, heartbeat responses' `matchIndex` and every type's other types' fields are unread too); the
+stale line's `Mid` clause (vacuous, `Mid` empty) is left for then (a2-r2's T2-1).
+Reviews: `notes/trace-validation-reviews/a2-r1.md`, `a2-r2.md`.

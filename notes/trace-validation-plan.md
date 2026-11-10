@@ -1059,6 +1059,27 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   (`TracedMsgType.lean`) gives `msgTypeStr ty` for the six traced types, for the send and receive
   hooks; the Go test `examples/raft/tracecheck/msgtype_string_test.go`. Trust base: the axiom out,
   the model in, the server's results on `strconv.Itoa`'s axiom (`notes/decisions.md`, "Q9").
+- **Q15 (2026-11-10, amendment A2's review): every message in the bags canonical, a clause of the
+  frozen `simFx`.** In plain terms: a trace line matches a message on some of its fields only, and the
+  proof must show that a line never matches two different messages in flight (`MsgsUniq`). Real
+  messages always leave the fields no line reads at their defaults, but `simFx` does not record that,
+  so after any send (a phantom, or raft's own reply or request) the uniqueness cannot be re-proved
+  (review a2-r1's F1/F2, with the reviewer's Lean counterexample; a2-r2's T1-1: the unread fields are a
+  refused append response's `matchIndex`, a vote response's `lastLog*`, a heartbeat's `prevLog*`, a
+  heartbeat response's `matchIndex`, and every type's other types' fields). Options: (a) a clause
+  `MsgCanon σ` in `simFx`: every message in the bags equals its canonical form, keeping per type only
+  the fields its line reads (vote requests: type, term, `lastLogTerm`, `lastLogIndex`, source, dest;
+  vote responses: type, term, `voteGranted`, source, dest; append requests `"app"`: type, subtype, term,
+  `prevLog*`, entries, `commitIndex`, source, dest; heartbeats: type, subtype, term, `commitIndex`,
+  source, dest; append responses: type, subtype, term, `success`, source, dest, and `matchIndex` when
+  successful and `"app"`), kept by every line since raft's (`msgAbs`) and the specification's messages
+  are canonical (a2-r2 checked the sends); then two canonical messages one line matches are equal but
+  for an append request's entry contents (left to `msgFacts`, unchecked); amendment A3 of the frozen
+  Draft. `TracedRecvPhantom.lean`'s `RespCanon` is the responses-only part, enough for the phantom
+  (`msgsUniq_send_canon`, `simFx_staleReqLine`); (b) weaken `MsgsUniq` to the messages raft sent
+  (phantoms out; the Ready line's and the bags' handling to re-check); (c) make `recvPred` read every
+  field (unfaithful to `Traceetcdraft.tla`'s `LoglineIs*`). **Recommended: (a).** Not taken: a frozen
+  definition.
 - **Q14 (2026-11-10, Q8 stage 1 slice 15): a receive line's phantom replies, unpinned in the frozen
   `FxPresR`.** `FxPresR` (`TracedCap.lean`, frozen at `trace-check-frozen-a1`) asks the specification
   state's facts after the line for every result `(a', P', Pph)` its `LineEffect` admits; the phases pin
@@ -1988,3 +2009,17 @@ nothing first-tier. The Prove phase continues against it: next, `raft.Step`'s tr
 capability forms of `appendEntry`/`becomeLeader` (the term log and the entry records), with the
 owed items a1-r2 lists (a received message's numbers through a trace-gated conjunct of raft's
 `isMessage`, the receipt bound, the bootstrap routing gates).
+
+**Amendment A2 (2026-11-10, branch `trace-check-a2`; Q14 (a), pending the user's veto).** `PhaseStepR`,
+`FxPresR` and `trCap_fire_recv.statement` take the phantoms as a function `ph` of the receiving server
+before the line (`P' ++ ph a`); checked first against `State.receive`: the only replies raft does not
+send (pre-vote, check-quorum off) are the refusals of lower-term requests, `phantomOf a m`. The law and
+the gate `trCapB_hookGateRecv` re-proved, nothing else frozen changed (`notes/decisions.md`, "Amendment A2
+(Q14)"). Sufficiency (`TracedRecvPhantom.lean`): the phantom's `TermsLe`/`msgFacts` step slice 15 found
+blocked now goes through (`simFx_congr`, `simFx_send_plain`), and the stale request's line step is
+proved at one state (`simFx_staleReqLine`), **but only given `RespCanon`**: review a2-r1 found that the
+uniqueness of the bags after any response cannot follow from the frozen `simFx` (F1, the first
+sufficiency lemma vacuous; F2, open as Q15, recommended (a): a canonical-message clause `MsgCanon` in `simFx`, amendment A3;
+a2-r2's T1-1 widened it from the responses-only `RespCanon`).
+Reviews `a2-r1.md`, `a2-r2.md`. So the re-freeze `trace-check-frozen-a2` fixes the phantoms, but the
+receive gates stay blocked on Q15.
