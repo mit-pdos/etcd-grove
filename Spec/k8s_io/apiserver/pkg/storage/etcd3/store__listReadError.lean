@@ -2,7 +2,8 @@
 `(*store).listReadError(ctx, err, withRev, false, continueKey, keyPrefix)`
 (`k8s.io/apiserver/pkg/storage/etcd3/store.go:922-934`) of a failed read's error (`readErrIs`): a
 future revision (`errors.Is(err, rpctypes.ErrFutureRev)`, by the descriptions) gives
-`NewTooLargeResourceVersionError` (`tooLargeErrIs`), with the state `Q` fired at below `withRev`;
+`NewTooLargeResourceVersionError` (`tooLargeErrIs`), with the state `Q` fired at (for some revision
+argument, 7e-1's R1) below `withRev`;
 anything else `interpretListError`'s (`listErr`). The current resource version it reads for the
 message is not used (`GetCurrentResourceVersion` with the trivial update). Proved (stage 7e-2,
 `notes/k8s-7e-2-draft.md` §3.5; the resource prefix's key is the one `GetCurrentResourceVersion`
@@ -44,7 +45,7 @@ abbrev store.listReadError.spec : Prop :=
       k8s_io.apiserver.pkg.storage.etcd3.store.ty @!! go!"listReadError")) (Val #(GoInterface.ok ci)))
       (Val #err)) (Val #withRev)) (Val #false)) (Val #ck)) (Val #kp))
   {{ (e : GoInterface), RET #e;
-      (apierrors.tooLargeErrIs e ∗ ∃ σ : KVState, □ Q (W64 (σ.rev : Int)) σ ∗
+      (apierrors.tooLargeErrIs e ∗ ∃ (R : w64) (σ : KVState), □ Q R σ ∗
         ⌜σ.rev < sint.nat withRev⌝) ∨ listErr c e }}
 
 end spec

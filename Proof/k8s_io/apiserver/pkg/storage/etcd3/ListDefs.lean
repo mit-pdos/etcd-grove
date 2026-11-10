@@ -332,23 +332,24 @@ theorem kClientErr_unkErr (c : StoreCfg GF Obj) (err : GoInterface) :
 
 /-- **A range error's future-revision soundness** (B4, decided by etcd-grove-81: the future half
 only): an error whose description is `ErrFutureRev`'s (`errDesc`, D29) means the state the read's
-update fired at is below the revision `o` asked. What `Client.List`/`Client.GetAt` (hypotheses
-until 7e-1/7c-3) give. -/
+update fired at is below the revision `o` asked, whatever revision `R` the update was made for
+(7e-1's R1: the client makes its update for the prophesied response revision, never resolved on an
+error, so `R` is unrelated to `σ.rev`). What `Client.List`/`Client.Get` give. -/
 def rangeErrSound (o : w64) (Q : w64 → KVState → IProp GF) (err : GoInterface) : IProp GF :=
   iprop(□ (⌜go_etcd_io.etcd.cache.v3.errDesc err = go_etcd_io.etcd.cache.v3.futureRevDesc⌝ -∗
-      ∃ σ : KVState, □ Q (W64 (σ.rev : Int)) σ ∗ ⌜σ.rev < sint.nat o⌝))
+      ∃ (R : w64) (σ : KVState), □ Q R σ ∗ ⌜σ.rev < sint.nat o⌝))
 
 instance rangeErrSound_persistent o Q err : Persistent (rangeErrSound (GF := GF) o Q err) := by
   unfold rangeErrSound; infer_instance
 
 /-- **A failed read's error** (Draft §3.5): the client's error (`kClientErr`, so `unkErr`; D1), and,
-by its description (`errDesc`, D29), a future revision only if the state `Q` fired at is below `rev`
-(`rangeErrSound`'s future half). -/
+by its description (`errDesc`, D29), a future revision only if the state `Q` fired at (for some
+revision argument `R`, R1) is below `rev` (`rangeErrSound`'s future half). -/
 def readErrIs (c : StoreCfg GF Obj) (rev : w64) (Q : w64 → KVState → IProp GF)
     (err : GoInterface) : IProp GF :=
   iprop(kClientErr err ∗
     □ (⌜go_etcd_io.etcd.cache.v3.errDesc err = go_etcd_io.etcd.cache.v3.futureRevDesc⌝ -∗
-      ∃ σ : KVState, □ Q (W64 (σ.rev : Int)) σ ∗ ⌜σ.rev < sint.nat rev⌝))
+      ∃ (R : w64) (σ : KVState), □ Q R σ ∗ ⌜σ.rev < sint.nat rev⌝))
 
 instance readErrIs_persistent (c : StoreCfg GF Obj) rev Q err :
     Persistent (readErrIs c rev Q err) := by
@@ -492,7 +493,7 @@ def pagesOk (c : StoreCfg GF Obj) (f : GoFunc) (kp : GoString) (recur : Bool) (r
             if b then J (some (σ, R)) (i + 1) else (threadTok -∗ Φ #()) }}) -∗
     (□ ∀ (o : Option (KVState × w64)) (i : Nat) (e : GoInterface), J o i -∗
         ((apierrors.tooLargeErrIs e ∗ ⌜o = none⌝ ∗
-            ∃ σ : KVState, □ Q (W64 (σ.rev : Int)) σ ∗ ⌜σ.rev < uint.nat rev0⌝) ∨ listErr c e) -∗
+            ∃ (R : w64) (σ : KVState), □ Q R σ ∗ ⌜σ.rev < uint.nat rev0⌝) ∨ listErr c e) -∗
         WP (App (App (Val #y)
             (Val #(zero_val k8s_io.apiserver.pkg.storage.etcd3.listChunk))) (Val #e))
           {{ v, ∃ b : Bool, ⌜v = #b⌝ ∗ (threadTok -∗ Φ #()) }}) -∗

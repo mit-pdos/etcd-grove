@@ -342,12 +342,12 @@ theorem store.pagedChunks.wp_proof
         iapply (wp_wand (Φ := fun v => iprop(∃ b : Bool, ⌜v = #b⌝ ∗ (threadTok -∗ Φ' #()))))
           $$ [HJ He]
         · iapply Herr $$ %none %0 %e HJ
-          icases He with (⟨He, %σ, #HQσ, %Hlt⟩ | He)
+          icases He with (⟨He, %R', %σ, #HQσ, %Hlt⟩ | He)
           · ileft
             iframe He
             isplitr
             · ipureintro; rfl
-            iexists σ
+            iexists R', σ
             iframe HQσ
             ipureintro; word
           · iright; iexact He
@@ -564,7 +564,7 @@ theorem store.pagedChunks.wp_proof
         iapply (wp_wand (Φ := fun v => iprop(∃ b : Bool, ⌜v = #b⌝ ∗ (threadTok -∗ Φ' #()))))
           $$ [HJ He]
         · iapply Herr $$ %(some (σ, R)) %(n + 1) %e HJ
-          icases He with (⟨-, %σ'', #HPσ, %Hlt⟩ | He)
+          icases He with (⟨-, %R'', %σ'', #HPσ, %Hlt⟩ | He)
           · ihave %Hh := (hP _ σ σ'') $$ [HQσ HPσ]
             · iframe HQσ HPσ
             exfalso

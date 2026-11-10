@@ -12,7 +12,8 @@ cached object, if any, one the store's keys held (`cachedIn`), with no resource 
 precondition on an update (`CachedNoRV`, the scope premise D1 of stage 7b,
 `issues/k8s-etcd3-cached-noop-skips-preconditions.md`); a `Get`'s reads see the store's states;
 `errors.As`'s target (the client's context lemma). Stage 7e-4: a list (`listPre`: `GetList`'s
-updates, the first page's result at the answer's state), `ETooLarge`, the client's errors no
+updates, the first page's result at the answer's state: for the revision `R` its maker was given,
+`σ`'s unless the answer is `ETooLarge`, 7e-1's R1), `ETooLarge`, the client's errors no
 `APIStatus` (`clientErrPlain`, pending 7c-3), the thread token lent by `lintest` and the thread
 bound `GetList` needs; for a list, the store's resource prefix, decoder and versioner the driver's
 (`driver_listContractOk`) and the feature gate's `EtcdRangeStream` off (`rangeStreamOff`, from
@@ -70,7 +71,9 @@ abbrev call.spec : Prop :=
       (Val #(interface.mkOk (go.GoType.PointerType k8s_io.apiserver.pkg.storage.etcd3.store.ty)
         #sp))) (Val #x))
   {{ (y : Output), RET #y; threadTok ∗ (⌜y = otherL⌝ ∨
-      ∃ σ : KVState, (if x.Kind' = W64 4 then iprop(□ QL (W64 (σ.rev : Int)) σ) else callAt x Φ Q σ) ∗
+      ∃ σ : KVState, (if x.Kind' = W64 4 then
+          iprop(∃ R : w64, □ QL R σ ∗ ⌜y = tooLargeL ∨ R = W64 (σ.rev : Int)⌝)
+        else callAt x Φ Q σ) ∗
         ⌜y = callOut c eD eU x σ⌝) }}
 
 end spec

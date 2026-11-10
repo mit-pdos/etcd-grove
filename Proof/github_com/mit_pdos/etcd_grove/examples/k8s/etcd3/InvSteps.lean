@@ -1157,32 +1157,57 @@ theorem lOut_ans (x : Input) (σ : KVState) (hx : InOk x) (hk4 : x.Kind' = W64 4
     rw [listOutDriver_err]
     decide
 
+/-- **Where a list commits** (7e-1's R1): if `Apply`'s prophecy says the answer is `ETooLarge`
+(`tl`), at any firing whose answer is `ETooLarge`, whatever revision `R` the update was made for
+(on the client's future-revision error the update is made for a revision the client never learns,
+`rangeErrSound`); otherwise at a firing at the prophesied revision `R`. -/
+def listCommitOk (x : Input) (tl : Bool) (R : w64) (σ : KVState) : Prop :=
+  if tl then lOut x σ = tooLargeL else σ.rev = uint.nat R
+
+/-- A list answers `ETooLarge` only as `tooLargeL`. -/
+theorem lOut_tooLarge (x : Input) (σ : KVState) (hx : InOk x) (hk4 : x.Kind' = W64 4)
+    (h : (lOut x σ).Err' = W64 6) : lOut x σ = tooLargeL := by
+  obtain ⟨-, -, -, hks, -⟩ := hx.2.2.2.2.2 hk4
+  obtain ⟨n, hn, -⟩ := hx.2.2.2.2.1
+  obtain ⟨k, hk⟩ := Option.isSome_iff_exists.1 hks
+  unfold lOut at h ⊢
+  rw [hn, hk] at h ⊢
+  simp only at h ⊢
+  by_cases hlt : σ.rev < uint.nat n
+  · rw [if_pos hlt]
+  · rw [if_neg hlt] at h ⊢
+    rw [listOutDriver_err] at h
+    exact absurd h (by decide)
+
 /-- **A list's call invariant** (as `getCall`'s): `lintest`'s update with a later credit and the
-commit bit `γc` at `none`, or, once committed at a state `σ` of the prophesied revision (`γp`),
-the continuation at `lOut x σ` (a list caches nothing: `lOut_name`), until `Apply` takes it with
-its token `γt`. -/
-def listCall (γ : KNames) (g0 : HSt) (γc γt γp : GName) (x : Input) (Φ : val → IProp GF) :
-    IProp GF :=
+commit bit `γc` at `none`, or, once committed at a state `σ` where it may (`listCommitOk`, the
+prophesied revision `γp`), the continuation at `lOut x σ` (a list caches nothing: `lOut_name`),
+until `Apply` takes it with its token `γt`. -/
+def listCall (γ : KNames) (g0 : HSt) (γc γt γp : GName) (x : Input) (tl : Bool)
+    (Φ : val → IProp GF) : IProp GF :=
   inv callN iprop(
     (linU γ g0 (boxIn x) Φ ∗ £ 1 ∗ dghostVar γc (DFrac.own 1) (none : Option KVState)) ∨
     (∃ (σ : KVState) (R : w64), dghostVar γc DFrac.discard (some σ) ∗
-      dghostVar γp DFrac.discard (some R) ∗ ⌜σ.rev = uint.nat R⌝ ∗
+      dghostVar γp DFrac.discard (some R) ∗ ⌜listCommitOk x tl R σ⌝ ∗
       ghostMapElem γ.r σ.rev DFrac.discard σ ∗
       (contAt g0 x (lOut x σ) Φ ∨ dghostVar γt (DFrac.own 1) ())))
 
-instance listCall_persistent (γ : KNames) (g0 : HSt) (γc γt γp : GName) (x : Input)
-    (Φ : val → IProp GF) : Persistent (listCall γ g0 γc γt γp x Φ) := by
+instance listCall_persistent (γ : KNames) (g0 : HSt) (γc γt γp : GName) (x : Input) (tl : Bool)
+    (Φ : val → IProp GF) : Persistent (listCall γ g0 γc γt γp x tl Φ) := by
   unfold listCall; infer_instance
 
 /-- **A list's first page's result** at a firing at `σ`: what `GetList` asks of it (`σ` fit for
-lists), room, `σ` in the revisions' map, and, at the prophesied revision `R`, the commit bit. -/
-def listQ (c : StoreCfg GF DObj) (γ : KNames) (γc : GName) (R : w64) (σ : KVState) : IProp GF :=
+lists), room, `σ` in the revisions' map, and, where the list commits (`listCommitOk`), the commit
+bit at a state with `σ`'s answer. -/
+def listQ (c : StoreCfg GF DObj) (γ : KNames) (γc : GName) (x : Input) (tl : Bool) (R : w64)
+    (σ : KVState) : IProp GF :=
   iprop(⌜kvWf c σ ∧ kvWfHist c σ ∧ kvKeysShort σ ∧ σ.rev + 2 < 2 ^ 63⌝ ∗
     ghostMapElem γ.r σ.rev DFrac.discard σ ∗
-    (⌜σ.rev = uint.nat R⌝ → dghostVar γc DFrac.discard (some σ)))
+    (⌜listCommitOk x tl R σ⌝ →
+      ∃ σ0 : KVState, dghostVar γc DFrac.discard (some σ0) ∗ ⌜lOut x σ0 = lOut x σ⌝))
 
-instance listQ_persistent (c : StoreCfg GF DObj) (γ : KNames) (γc : GName) (R : w64)
-    (σ : KVState) : Persistent (listQ c γ γc R σ) := by
+instance listQ_persistent (c : StoreCfg GF DObj) (γ : KNames) (γc : GName) (x : Input) (tl : Bool)
+    (R : w64) (σ : KVState) : Persistent (listQ c γ γc x tl R σ) := by
   unfold listQ; infer_instance
 
 /-- **A list's later page's result** at a firing at `σ'`, the first page's state `σ`: one history,
@@ -1190,14 +1215,16 @@ instance listQ_persistent (c : StoreCfg GF DObj) (γ : KNames) (γc : GName) (R 
 def listP (σ σ' : KVState) : IProp GF := iprop(⌜kvSameHist σ σ' ∧ σ.rev ≤ σ'.rev⌝)
 
 /-- `GetList`'s premises on `Q` and `P`. -/
-theorem listQ_pure (c : StoreCfg GF DObj) (γ : KNames) (γc : GName) (R : w64) (σ : KVState) :
-    listQ c γ γc R σ ⊢ ⌜kvWf c σ ∧ kvWfHist c σ ∧ kvKeysShort σ⌝ := by
+theorem listQ_pure (c : StoreCfg GF DObj) (γ : KNames) (γc : GName) (x : Input) (tl : Bool)
+    (R : w64) (σ : KVState) :
+    listQ c γ γc x tl R σ ⊢ ⌜kvWf c σ ∧ kvWfHist c σ ∧ kvKeysShort σ⌝ := by
   unfold listQ
   iintro ⟨%H, -, -⟩
   ipureintro; exact ⟨H.1, H.2.1, H.2.2.1⟩
 
-theorem listQP_pure (c : StoreCfg GF DObj) (γ : KNames) (γc : GName) (R : w64) (σ σ' : KVState) :
-    listQ c γ γc R σ ∗ listP σ σ' ⊢ ⌜kvSameHist σ σ' ∧ σ.rev ≤ σ'.rev⌝ := by
+theorem listQP_pure (c : StoreCfg GF DObj) (γ : KNames) (γc : GName) (x : Input) (tl : Bool)
+    (R : w64) (σ σ' : KVState) :
+    listQ c γ γc x tl R σ ∗ listP σ σ' ⊢ ⌜kvSameHist σ σ' ∧ σ.rev ≤ σ'.rev⌝ := by
   unfold listQ listP
   iintro ⟨-, %H⟩
   ipureintro; exact H
@@ -1219,10 +1246,10 @@ theorem revOwn_ext (γ : KNames) (σ s : KVState) :
 
 /-- **A list's first page's read update for the prophesied revision `R`** (as `get_read_au`). -/
 theorem list_read_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVNames)
-    (γc γt γp : GName) (x : Input) (hx : InOk x) (hk4 : x.Kind' = W64 4)
+    (γc γt γp : GName) (x : Input) (tl : Bool) (hx : InOk x) (hk4 : x.Kind' = W64 4)
     (R : w64) (Φ : val → IProp GF) :
-    kInv γ c g0 γk ∗ listCall γ g0 γc γt γp x Φ ∗ dghostVar γp DFrac.discard (some R) ⊢
-      kvReadAu γk (listQ c γ γc R) := by
+    kInv γ c g0 γk ∗ listCall γ g0 γc γt γp x tl Φ ∗ dghostVar γp DFrac.discard (some R) ⊢
+      kvReadAu γk (listQ c γ γc x tl R) := by
   have Hm := drvInvN_mask'
   have Hcm := callN_mask'
   have HE := drvE_mask'
@@ -1258,11 +1285,11 @@ theorem list_read_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVNa
     imod Hclose2 with -
     have hpure : kvWf c σ ∧ kvWfHist c σ ∧ kvKeysShort σ ∧ σ.rev + 2 < 2 ^ 63 :=
       ⟨Hok.wf, Hok.hwf, keysOk_short σ Hok.keys, kvRoom_two hroom⟩
-    by_cases Hrev : σ.rev = uint.nat R
+    by_cases Hrev : listCommitOk x tl R σ
     · unfold listCall
       iinv Hc with Hci Hclosec
       icases Hci with (⟨HU, >Hlc, >Hγc⟩ | ⟨%σ0, %R0, >#Hv, >#Hp0, >%Hrev0, >#HL, Hrest⟩)
-      · -- the first firing at revision `R`: commit
+      · -- the first firing where it may: commit
         imod lc_fupd_elim_later $$ Hlc HU with HU
         obtain ⟨S', HS', Hok'⟩ := kOk_list Hok x hx hk4
         have Hst : (k8setcd3S (GF := GF) g0).M.step S (boxIn x, boxOut (lOut x σ)) = some S' := by
@@ -1295,14 +1322,24 @@ theorem list_read_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVNa
         · ipureintro; exact hpure
         iframe Hel
         iintro %_
-        iexact Hγc
-      · -- a later firing at revision `R`: the same state, nothing to do
+        iexists σ
+        iframe Hγc
+        ipureintro; rfl
+      · -- a later firing where it may: the committed state answers the same, nothing to do
         ihave %HpR := dghostVar_agree γp _ _ _ _ $$ Hp Hp0
         simp only [Option.some.injEq] at HpR
         subst HpR
-        ihave %HLe := ghostMapElem_agree σ.rev γ.r _ _ _ _ $$ [HL] Hel
-        · rw [Hrev, ← Hrev0]; iexact HL
-        subst HLe
+        ihave %Hsame : (⌜lOut x σ0 = lOut x σ⌝ : IProp GF) $$ []
+        · unfold listCommitOk at Hrev Hrev0
+          cases tl with
+          | true =>
+            simp only [↓reduceIte] at Hrev Hrev0
+            ipureintro; rw [Hrev, Hrev0]
+          | false =>
+            simp only [Bool.false_eq_true, ↓reduceIte] at Hrev Hrev0
+            ihave %HLe := ghostMapElem_agree σ.rev γ.r _ _ _ _ $$ [HL] Hel
+            · rw [Hrev, ← Hrev0]; iexact HL
+            ipureintro; rw [HLe]
         imod Hclosec $$ [Hrest] with -
         · inext
           iright
@@ -1322,7 +1359,9 @@ theorem list_read_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVNa
         · ipureintro; exact hpure
         iframe Hel
         iintro %_
-        iexact Hv
+        iexists σ0
+        iframe Hv
+        ipureintro; exact Hsame
     · imod Hclose $$ [Hh Hσ HM Hrv Hhist] with -
       · inext
         iunfold kInvBody
@@ -1388,11 +1427,12 @@ theorem list_later_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVN
 /-- **The maker of a list's first page's updates**: for the revision the client prophesies, the
 revision recorded (`γp`) and each member's read update for it. -/
 theorem list_maker (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (ms : List (client.SrvAt GF))
-    (γc γt γp : GName) (x : Input) (hx : InOk x) (hk4 : x.Kind' = W64 4) (Φ : val → IProp GF) :
-    □ ([∗list] sv ∈ ms, kInv γ c g0 sv.γr.kv) ∗ listCall γ g0 γc γt γp x Φ ∗
+    (γc γt γp : GName) (x : Input) (tl : Bool) (hx : InOk x) (hk4 : x.Kind' = W64 4)
+    (Φ : val → IProp GF) :
+    □ ([∗list] sv ∈ ms, kInv γ c g0 sv.γr.kv) ∗ listCall γ g0 γc γt γp x tl Φ ∗
       dghostVar γp (DFrac.own 1) (none : Option w64) ⊢
       (iprop(∀ R : w64, |==> □ [∧list] sv ∈ ms,
-        ⌜listQ c γ γc R = fun _ => iprop(True)⌝ ∨ kvReadAu sv.γr.kv (listQ c γ γc R)) :
+        ⌜listQ c γ γc x tl R = fun _ => iprop(True)⌝ ∨ kvReadAu sv.γr.kv (listQ c γ γc x tl R)) :
         IProp GF) := by
   iintro ⟨#Hinvs, #Hc, Hp⟩ %R
   imod dghostVar_update (some R) γp none $$ Hp with Hp
@@ -1403,16 +1443,16 @@ theorem list_maker (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (ms : List (c
   have hsv : sv ∈ ms := List.mem_of_getElem? hj
   iintro ⟨⟨#Hinvs, #Hc⟩, #Hp⟩
   iright
-  iapply list_read_au γ c g0 sv.γr.kv γc γt γp x hx hk4 R Φ
+  iapply list_read_au γ c g0 sv.γr.kv γc γt γp x tl hx hk4 R Φ
   iframe Hc Hp
   iapply (BigSepL.bigSepL_mem (Φ := fun sv : client.SrvAt GF => kInv γ c g0 sv.γr.kv)
     hsv) $$ Hinvs
 
 /-- **The maker of a list's later pages' updates**, from the first page's result. -/
 theorem list_makerP (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (ms : List (client.SrvAt GF))
-    (γc : GName) :
+    (γc : GName) (x : Input) (tl : Bool) :
     □ ([∗list] sv ∈ ms, kInv γ c g0 sv.γr.kv) ⊢
-      (iprop(□ ∀ (R : w64) (σ : KVState), □ listQ c γ γc R σ -∗
+      (iprop(□ ∀ (R : w64) (σ : KVState), □ listQ c γ γc x tl R σ -∗
         |==> □ [∧list] sv ∈ ms, ⌜listP (GF := GF) σ = fun _ => iprop(True)⌝ ∨
           kvReadAu sv.γr.kv (listP σ)) :
         IProp GF) := by
@@ -1541,9 +1581,9 @@ theorem plainL_makerP (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (ms : List
     hsv) $$ Hinvs
 
 /-- **`Apply` takes a list's continuation** after the reply (as `getCall_take`). -/
-theorem listCall_take (γ : KNames) (g0 : HSt) (γc γt γp : GName) (x : Input)
+theorem listCall_take (γ : KNames) (g0 : HSt) (γc γt γp : GName) (x : Input) (tl : Bool)
     (Φ : val → IProp GF) (σ : KVState) :
-    listCall γ g0 γc γt γp x Φ ∗ dghostVar γc DFrac.discard (some σ) ∗
+    listCall γ g0 γc γt γp x tl Φ ∗ dghostVar γc DFrac.discard (some σ) ∗
       dghostVar γt (DFrac.own 1) () ∗ £ 1 ⊢
       |={⊤}=> contAt g0 x (lOut x σ) Φ := by
   iintro ⟨#Hc, #Hv, Htok, Hlc⟩

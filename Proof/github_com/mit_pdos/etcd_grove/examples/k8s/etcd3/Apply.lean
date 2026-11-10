@@ -532,30 +532,32 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
         rw [← Hy]
         icases HΦc with ⟨HΦc, #Hans⟩
         cache_tail
-    · -- a list: committed at its first page's first firing at the prophesied revision
+    · -- a list: committed at its first page's first firing where it may (`listCommitOk`: an
+      -- `ETooLarge` answer if the prophecy says so, else the prophesied revision)
+      generalize htl : decide (xs.head? = some (W64 6)) = tl
       imod dghostVar_alloc (GF := GF) (none : Option KVState) with ⟨%γc, Hγc⟩
       imod dghostVar_alloc (GF := GF) () with ⟨%γt, Htok⟩
       imod dghostVar_alloc (GF := GF) (none : Option w64) with ⟨%γp, Hγp⟩
       imod inv_alloc callN ⊤ iprop(
           (linU γ g0 (boxIn x) Φt ∗ £ 1 ∗ dghostVar γc (DFrac.own 1) (none : Option KVState)) ∨
           (∃ (σ : KVState) (R : w64), dghostVar γc DFrac.discard (some σ) ∗
-            dghostVar γp DFrac.discard (some R) ∗ ⌜σ.rev = uint.nat R⌝ ∗
+            dghostVar γp DFrac.discard (some R) ∗ ⌜listCommitOk x tl R σ⌝ ∗
             ghostMapElem γ.r σ.rev DFrac.discard σ ∗
             (contAt g0 x (lOut x σ) Φt ∨ dghostVar γt (DFrac.own 1) ())))
           $$ [HU Hlc1 Hγc] with #Hci
       · inext
         ileft
         iframe Hlc1 Hγc HU
-      ihave #Hc : listCall γ g0 γc γt γp x Φt $$ []
+      ihave #Hc : listCall γ g0 γc γt γp x tl Φt $$ []
       · iunfold listCall; iexact Hci
-      ihave HmkQ := list_maker γ c g0 c.ms γc γt γp x hx h4 Φt $$ [Hγp]
+      ihave HmkQ := list_maker γ c g0 c.ms γc γt γp x tl hx h4 Φt $$ [Hγp]
       · iframe Hinvs Hc Hγp
-      ihave #HmkP := list_makerP γ c g0 c.ms γc $$ [Hinvs]
+      ihave #HmkP := list_makerP γ c g0 c.ms γc x tl $$ [Hinvs]
       · iexact Hinvs
       wp_apply (wp_call sp c (sentV lD) (sentV lU) x iprop(True) (fun _ => iprop(True))
-          (fun _ _ => plainQ c) (listQ c γ γc) listP hc hrp hdi hvi hAs hse hpl htb
-          hkey' hpp' hx Hgen.2.2.1 Hgen.2.2.2 hQp (fun R σ => listQ_pure c γ γc R σ)
-          (fun R σ σ' => listQP_pure c γ γc R σ σ')) $$ [Htt HmkQ] as %y ⟨Htt, Hy⟩
+          (fun _ _ => plainQ c) (listQ c γ γc x tl) listP hc hrp hdi hvi hAs hse hpl htb
+          hkey' hpp' hx Hgen.2.2.1 Hgen.2.2.2 hQp (fun R σ => listQ_pure c γ γc x tl R σ)
+          (fun R σ σ' => listQP_pure c γ γc x tl R σ σ')) $$ [Htt HmkQ] as %y ⟨Htt, Hy⟩
       · iframe Htt
         iframe #
         isimp only [if_pos h4]
@@ -566,7 +568,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
         resolve3
         exact absurd (by rw [Hxs]; rfl) Hok
       · isimp only [if_pos h4] at HQc
-        icases HQc with #HQc
+        icases HQc with ⟨%R, #HQc, %HRy⟩
         iunfold listQ at HQc
         icases HQc with ⟨%Hwr, -, #Hbit⟩
         have hrev : σ.rev = uint.nat (W64 (σ.rev : Int)) := by
@@ -576,12 +578,25 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
         rw [callOut, if_pos h4] at Hy
         have hN : y.Name' = [] := by rw [Hy]; exact lOut_name x σ
         resolve3
-        ihave #Hv := Hbit $$ %hrev
+        have hcm : listCommitOk x tl R σ := by
+          subst htl
+          unfold listCommitOk
+          by_cases h6 : xs.head? = some (W64 6)
+          · simp only [h6, decide_true, ↓reduceIte]
+            rw [Hxs] at h6
+            simp only [List.head?_cons, Option.some.injEq] at h6
+            exact lOut_tooLarge x σ hx h4 (by rw [← Hy]; exact h6)
+          · simp only [h6, decide_false, Bool.false_eq_true, ↓reduceIte]
+            rcases HRy with h | h
+            · exact absurd (by rw [Hxs, h]; rfl) h6
+            · rw [h]; exact hrev
+        ihave ⟨%σ0, #Hv, %Hs0⟩ := Hbit $$ %hcm
         iapply fupd_wp
-        imod (listCall_take γ g0 γc γt γp x Φt σ) $$ [Htok Hlc2] with HΦc
+        imod (listCall_take γ g0 γc γt γp x tl Φt σ0) $$ [Htok Hlc2] with HΦc
         · iframe Hc Hv Htok Hlc2
         imodintro
-        rw [← Hy]
+        ihave HΦc : contAt g0 x y Φt $$ [HΦc]
+        · rw [Hy, ← Hs0]; iexact HΦc
         list_tail
 
 end proof

@@ -187,7 +187,10 @@ local macro "list_tl" : tactic => `(tactic| (
   iright
   iexists σ
   rw [if_pos h4]
-  iframe HQ1
+  isplitr
+  · iexists R'
+    iframe HQ1
+    ipureintro; exact Or.inl rfl
   ipureintro
   rw [callOut, if_pos h4, hout, if_pos hlt]))
 
@@ -209,7 +212,10 @@ local macro "list_ok" : tactic => `(tactic| (
   iright
   iexists σ
   rw [if_pos h4]
-  iframe HQ1
+  isplitr
+  · iexists R'
+    iframe HQ1
+    ipureintro; exact Or.inr (HR'.resolve_left hlt)
   ipureintro
   rw [callOut, if_pos h4, hout, if_neg hlt]
   obtain ⟨vs, hf, rfl⟩ := Hy
@@ -335,7 +341,7 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
       isplitr
       · unfold listOptsV; dsimp only; iexact Hsel
       ipureintro; exact htb
-    icases Hres with (⟨#Herr, -⟩ | ⟨%σ, #HQ1, Hr⟩)
+    icases Hres with (⟨#Herr, -⟩ | ⟨%R', %σ, #HQ1, %HR', Hr⟩)
     · -- an error of unknown outcome
       ihave %Hne := listErr_ne c err0 $$ Herr
       ihave Hy := listErr_errIs hse hpl c hc err0 $$ [Herr]
@@ -435,7 +441,8 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
         (⌜err0 = GoInterface.nil⌝ ∗ ∃ (p : Loc) (o : Obj),
           ⌜interface.mkOk (go.GoType.PointerType objTyD) #«$r0_ptr» =
             interface.mkOk (go.GoType.PointerType objTyD) #p ∧ objOutL o = y⌝ ∗ p ↦ o)) ∗
-        (⌜y = otherL⌝ ∨ ∃ σ, (if x.Kind' = W64 4 then iprop(□ QL (W64 (σ.rev : Int)) σ)
+        (⌜y = otherL⌝ ∨ ∃ σ, (if x.Kind' = W64 4 then
+          iprop(∃ R : w64, □ QL R σ ∗ ⌜y = tooLargeL ∨ R = W64 (σ.rev : Int)⌝)
           else callAt x Φu Q σ) ∗ ⌜y = callOut c eD eU x σ⌝) : IProp GF)
         $$ [Hres]
     · icases Hres with (⟨#Hu, -⟩ | ⟨%σ, HΦ1, Hr⟩)
@@ -502,7 +509,8 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
         (⌜err0 = GoInterface.nil⌝ ∗ ∃ (p : Loc) (o : Obj),
           ⌜interface.mkOk (go.GoType.PointerType objTyD) #«$r0_ptr» =
             interface.mkOk (go.GoType.PointerType objTyD) #p ∧ objOutL o = y⌝ ∗ p ↦ o)) ∗
-        (⌜y = otherL⌝ ∨ ∃ σ, (if x.Kind' = W64 4 then iprop(□ QL (W64 (σ.rev : Int)) σ)
+        (⌜y = otherL⌝ ∨ ∃ σ, (if x.Kind' = W64 4 then
+          iprop(∃ R : w64, □ QL R σ ∗ ⌜y = tooLargeL ∨ R = W64 (σ.rev : Int)⌝)
           else callAt x Φu Q σ) ∗ ⌜y = callOut c eD eU x σ⌝) : IProp GF)
         $$ [Hres]
     · icases Hres with (⟨#Hu, -⟩ | ⟨%σ, HΦ1, Hr⟩)
@@ -626,7 +634,8 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
         (⌜err0 = GoInterface.nil⌝ ∗ ∃ (p : Loc) (o : Obj),
           ⌜interface.mkOk (go.GoType.PointerType objTyD) #«$r0_ptr» =
             interface.mkOk (go.GoType.PointerType objTyD) #p ∧ objOutL o = y⌝ ∗ p ↦ o)) ∗
-        (⌜y = otherL⌝ ∨ ∃ σ, (if x.Kind' = W64 4 then iprop(□ QL (W64 (σ.rev : Int)) σ)
+        (⌜y = otherL⌝ ∨ ∃ σ, (if x.Kind' = W64 4 then
+          iprop(∃ R : w64, □ QL R σ ∗ ⌜y = tooLargeL ∨ R = W64 (σ.rev : Int)⌝)
           else callAt x Φu Q σ) ∗ ⌜y = callOut c eD eU x σ⌝) : IProp GF)
         $$ [Hres]
     · icases Hres with (⟨#Hu, -⟩ | ⟨%σ, HΦ1, Hr⟩)
@@ -679,7 +688,8 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
         (⌜err0 = GoInterface.nil⌝ ∗ ∃ (p : Loc) (o : Obj),
           ⌜interface.mkOk (go.GoType.PointerType objTyD) #«$r0_ptr» =
             interface.mkOk (go.GoType.PointerType objTyD) #p ∧ objOutL o = y⌝ ∗ p ↦ o)) ∗
-        (⌜y = otherL⌝ ∨ ∃ σ, (if x.Kind' = W64 4 then iprop(□ QL (W64 (σ.rev : Int)) σ)
+        (⌜y = otherL⌝ ∨ ∃ σ, (if x.Kind' = W64 4 then
+          iprop(∃ R : w64, □ QL R σ ∗ ⌜y = tooLargeL ∨ R = W64 (σ.rev : Int)⌝)
           else callAt x Φu Q σ) ∗ ⌜y = callOut c eD eU x σ⌝) : IProp GF)
         $$ [Hres]
     · icases Hres with (⟨#Hu, -⟩ | ⟨%σ, #HQ1, Hr⟩)

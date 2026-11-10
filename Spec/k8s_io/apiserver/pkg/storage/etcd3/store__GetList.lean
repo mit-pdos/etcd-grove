@@ -5,7 +5,9 @@ a paginated list (no streaming: `rangeStreamOff`) of the prepared key's scope. T
 revision, of one history with `σ`); the answer is the store's list `kListL` of `σ`'s store at the
 read revision (`listRevL`: the latest, `σ`'s, or the past revision asked), in the list object
 (`listIs`), or a too-large error when that revision is above `σ`'s, or a failed read's error
-(`listErr`). Proved (stage 7e-2, `notes/k8s-7e-2-draft.md` §2 with its corrections G1, G2, B2 and B5
+(`listErr`). `Q` fires for the revision `R'` its maker was given, `σ`'s on an answer; on a too-large
+error `R'` may be any (7e-1's R1: from the client's error, the update was made for a revision the
+client never learned). Proved (stage 7e-2, `notes/k8s-7e-2-draft.md` §2 with its corrections G1, G2, B2 and B5
 (a)). Lean-first (no Rocq counterpart).
 -/
 module
@@ -60,7 +62,7 @@ abbrev store.GetList.spec : Prop :=
       (Val #key)) (Val #opts)) (Val #lx))
   {{ (err : GoInterface), RET #err; threadTok ∗
       ((listErr c err ∗ ∃ os rv cont rem, L.listAt lx os rv cont rem) ∨
-       (∃ σ : KVState, □ Q (W64 (σ.rev : Int)) σ ∗
+       (∃ (R' : w64) (σ : KVState), □ Q R' σ ∗ ⌜σ.rev < uint.nat n ∨ R' = W64 (σ.rev : Int)⌝ ∗
          let R := listRevL opts.ResourceVersionMatch' opts.Recursive' opts.Predicate'.Limit' n
          if uint.Z R = 0 then
            -- a read at the latest revision, `σ`'s

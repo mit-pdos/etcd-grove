@@ -261,6 +261,17 @@ theorem store.GetList.wp_proof
   ipersist aggregator
   generalize hR0 : listRevL opts.ResourceVersionMatch' opts.Recursive' opts.Predicate'.Limit' n = R0
     at hrev0
+  have hR0n : uint.Z R0 ≠ 0 → R0 = n := by
+    intro h
+    rw [← hR0] at h ⊢
+    unfold listRevL at h ⊢
+    by_cases h1 : opts.ResourceVersionMatch' = go!"Exact"
+    · rw [if_pos h1]
+    · rw [if_neg h1] at h ⊢
+      by_cases h2 : (opts.ResourceVersionMatch' = [] ∧ opts.Recursive' = true ∧
+          0 < sint.Z opts.Predicate'.Limit' ∧ 0 < uint.Z n)
+      · rw [if_pos h2]
+      · rw [if_neg h2] at h; exact absurd (by simp) h
   wp_bind (App (App (Val (func.forRange 2)) _) _)
   iapply wp_post_named
   iintro %K %hK
@@ -286,7 +297,7 @@ theorem store.GetList.wp_proof
     iprop(∀ (e : GoInterface) (nfch nev : w64) (sl : GoSlice) (os : List (Obj × GoString)),
         «$res0_ptr» ↦ e -∗ numFetched_ptr ↦ nfch -∗ numEvald_ptr ↦ nev -∗ v_ptr ↦ rv -∗
         L.itemsRef pl ↦ sl -∗ L.itemsAt sl os -∗ threadTok -∗ ⌜0 ≤ sint.Z nfch ∧ 0 ≤ sint.Z nev⌝ -∗
-        (listErr c e ∨ ∃ σ : KVState, □ Q (W64 (σ.rev : Int)) σ ∗ apierrors.tooLargeErrIs e ∗
+        (listErr c e ∨ ∃ (R' : w64) (σ : KVState), □ Q R' σ ∗ apierrors.tooLargeErrIs e ∗
           ⌜if uint.Z R0 = 0 then σ.rev < uint.nat n else σ.rev < uint.nat R0⌝) -∗
         K (returnVal #()))) := ⟨_, rfl⟩
   ihave Hk : (HkP) $$ [HΦ Hmeta Hag defer]
@@ -390,8 +401,10 @@ theorem store.GetList.wp_proof
       iapply HΦ
       iframe Htt
       iright
-      iexists σ
+      iexists (W64 (σ.rev : Int)), σ
       iframe HQσ
+      isplitr
+      · ipureintro; exact Or.inr rfl
       by_cases h0 : uint.Z R0 = 0
       · rw [if_pos h0] at hR
         rw [if_pos h0, if_neg (hRn h0), ← hR,
@@ -433,7 +446,7 @@ theorem store.GetList.wp_proof
       (try wp_auto)
       iapply HΦ
       iframe Htt
-      icases Herr with (#Herr | ⟨%σ, #HQσ, #Herr, %Hlt⟩)
+      icases Herr with (#Herr | ⟨%R', %σ, #HQσ, #Herr, %Hlt⟩)
       · ileft
         iframe Herr
         iexists os, rv0, cont0, rem0
@@ -442,8 +455,14 @@ theorem store.GetList.wp_proof
         iframe
         ipureintro; exact ⟨rfl, Hpl⟩
       · iright
-        iexists σ
+        iexists R', σ
         iframe HQσ
+        isplitr
+        · ipureintro
+          left
+          by_cases h0 : uint.Z R0 = 0
+          · rw [if_pos h0] at Hlt; exact Hlt
+          · rw [if_neg h0] at Hlt; rw [← hR0n h0]; exact Hlt
         by_cases h0 : uint.Z R0 = 0
         · rw [if_pos h0] at Hlt
           rw [if_pos h0, if_pos Hlt]
@@ -636,7 +655,7 @@ theorem store.GetList.wp_proof
           iapply Hret $$ %_ %_ %_ %_ %_ «$res0» numFetched numEvald v Hip Hits Htt []
           · ipureintro; exact ⟨by word, hnev0⟩
           iright
-          iexists σ
+          iexists (W64 (σ.rev : Int)), σ
           iframe HQσ Hverr
           ipureintro
           rw [if_pos hR0z]
@@ -1117,9 +1136,9 @@ theorem store.GetList.wp_proof
     rw [hHkP]
     icases Hk with ⟨-, Hret⟩
     iapply Hret $$ %_ %_ %_ %_ %_ «$res0» numFetched numEvald v Hip Hits Htt %Hnn
-    icases Herr with (⟨#Htl, %Ho0, %σ, #HQσ, %Hlt⟩ | #Hle)
+    icases Herr with (⟨#Htl, %Ho0, %R', %σ, #HQσ, %Hlt⟩ | #Hle)
     · iright
-      iexists σ
+      iexists R', σ
       iframe HQσ Htl
       ipureintro
       have h0 : ¬ uint.Z R0 = 0 := by
