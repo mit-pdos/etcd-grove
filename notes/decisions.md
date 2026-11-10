@@ -34919,3 +34919,74 @@ No axiom, no `sorry`, no frozen statement changed (`TracedCap.lean` untouched). 
 `SpecResults` (importable, debt: no client names `HupGuard`) changes in `HupGuard`'s body and the new
 `HupCampaigns`; the rest is raft-internal; `raft.hup.untraced`, the tick, `RawNode` and node statements
 unchanged.
+
+## Q8 stage 1 (slice 21): the bootstrap's pieces and the received message's premises; the node API's traced specs blocked on three statement questions (2026-11-10 · trace-check, Q8 stage 1 slice 21; decided by the agent under the user's delegation · branch `trace-check-q8s21`; DRAFT until trace-check's Freeze)
+
+**Scope found.** The harness runs `raft.Node`s (`concurrent.go`): `StartNode` for the three voters, then
+the node API's `Tick`, `Ready`, `Advance`, `Propose`, `ApplyConfChange` (the bootstrap entries' changes:
+`Bootstrap` appends them committed, the first `Ready` hands them to the application, which applies them
+after the node's first `Ready` line, so they are a booted node's `ApplyConfChange` lines), `Step`,
+`ReportUnreachable`, `Stop`; with `DefaultCConfig`, `RestartNode` (no extra node), `ProposeConfChange`
+and `Status` (no configuration change: the proposer's loop never runs) and `ReportSnapshot` (no
+snapshot, so no `MsgSnap`) are not reached. So the traced node API is `node.run` over the traced
+`RawNode` functions it calls, `StartNode` over `newRaft`'s and `Bootstrap`'s.
+
+**Done (raft-internal: `TracedNodeBoot.lean`, `TracedNodeRecv.lean`, not on `etc/api/raft.txt`).**
+- `simFx_simInit`: `raftCommitInv γ ={E}=∗ simFx γ C (simInit C)` for the voters of the bootstrap log
+  (`BootLogOk C γ.reBoot`, `nodeBootU`'s). Each voter's `srvFacts` (`srvFacts_simInit`) with `es =
+  γ.reBoot`, no pending entry: the log `logAbs` of any list of the voters' length (`simInit_log`:
+  `entAbs` reads a bootstrap position by its index), the records and the committed prefix from
+  `Protocol/Enter.lean`'s private `boot_facts` (reached with `import all`, inside the package; not
+  copied, not made public: `Enter` is imported by much of raft and a public lemma there would rebuild
+  it), the commit certificate `commitIn γ γ.reBoot |C| 1` by `commitJ`'s bootstrap arm with
+  `dynOn`'s `witsB` vacuous (its positions are past the bootstrap log, the commit index is its length).
+  `SpecInv` (`specInv_simInit`: no leader, candidate or message; the entries of term `1`; `CfgFixed`),
+  `QuorumLogF` (every log is the whole committed log), `MsgsUniq`/`MsgsShape`/`AppSlices` (no message):
+  the A2 clauses hold since the bags start empty.
+- `simIdle_boot`: raft's state after `Bootstrap` (term `1`, follower, no vote or leader, the bootstrap log
+  from index `1`, all committed, nothing queued) is `SimIdle`-related to the bootstrap state's server,
+  nothing pending: the phase the bundle and the ticks start from.
+- The bootstrap lines: `nodeEvOf_init_boot` and `ccEvOf_boot` (an `InitState` and an `ApplyConfChange`
+  event parse to a bootstrap-named line of their node: `parseLine_node`, as `nodeEvOf_bf_boot`, without
+  its `c.outgoing = ∅`, which the parse does not need); `trCapB_hookGate_boot` (the gate of any hook
+  whose events are bootstrap lines, either mode, flag unset: `trCap_fire_boot` traced, the nil logger
+  untraced) with its instances `trCapB_hookGate_init` (`newRaft`'s `traceInitState`) and
+  `trCapB_hookGate_ccBoot` (`switchToConfig`'s `traceConfChangeEvent` during `newRaft` and `Bootstrap`).
+- `trCapB_intro`: the capability, unbooted, from what `newRaft` holds once its struct exists (the logger
+  field, the trace directory, the invariant, `raftLogInv`, the share, the flag).
+- `isRaftMsg_trRecv`: of a received message's `isRaftMsg`, the bundle's `isMessageC` for a traced type
+  (never a snapshot, whose abstraction is `absSnap`), `MsgTrOk` for every type (`isMessageC_trOk`, or
+  vacuous for an untraced type), and `TrRecvShape`'s third clause (`sentMsgShape_fromTo`).
+
+**Where the node API gets the other bundle premises** (for the `RawNode.Step` proof to come):
+`s.gh.tr = some γd` from `ownRawNode`'s `%Hgtr`; no pre-candidate from `ownRaftPhysC_precand` with
+`prevote = false`; `domSet` from `ownRaftPhysC_dom`; `NStateWf` from `%Hwf`; the term bound from the
+ceiling `rs.tc` (`RNPv`'s `s.term ≤ s.gh.tc`, `rs.tc = s.gh.tc`) below `traceNumBound - 1`, a pure
+premise of the traced `RawNode.Step` (the node's budget, `termLB`, as for the untraced ceiling); the
+message's term from `rs.tc` likewise; `receiptBound` from the cluster's (`readyFits`); `γ.reBoot ≠ []`
+from `nodeBootU`'s `BootLogOk` with three voters; `To = id` from `NetMsgOk`; `StepEndTy` and the local
+types' premises from the types the node steps; the token `recvTokOf` from the transport (the tokens
+`trCap_fire_ready` hands out at the sender's `Ready`, carried by the harness from `node.Ready` to
+`node.Step`). **Not in any invariant yet**: `prevote = cq = false` and `c.learners = ∅` at a traced node
+(`TracedConfigOk` at `StartNode`; no step changes them), and the capability itself: both go in one
+gated conjunct of `ownRawNode` (`rnTrace γ r id c s`: `emp` when `s.gh.tr = none`; else those facts,
+`TrNoSnap`, and `∃ b Λ, trCapB s.gh.tr γ r id c b (fun C => SimIdle C s) Λ`), which every untraced
+`RawNode` proof only threads (`emp` by `%Hgtr` and its `γ.reTrace = none`), about 45 `ownRawNode_intro`
+sites in 22 files. Not done in this slice: that conjunct and every traced node-API triple.
+
+**Three questions (plan Q18-Q20), each blocking part of the node API.**
+- Q18: `TrRecvShape`'s heartbeat clauses are in neither `SentMsgShape` nor `isMessage` (checked:
+  `isMessage`'s heartbeat arm is about the leader, its commit and acknowledgement, its read-index
+  context). Recommended: in `Msg.TrOk` (gated on the trace mode through `MsgTrOk`, carried in
+  `isMessageC`, established where raft queues the message). Not taken: it changes an importable
+  definition's body (`Protocol/Model.lean`).
+- Q19: the bundle and the ticks' traced corollaries take the capability booted (`trCapB … true …`);
+  `node.run`'s `select` may step or tick before the node's first `Ready` line, when it is not.
+  Recommended: those statements take any flag (the laws on their first lines, `trCap_fire_recv` and
+  `trCap_fire_any`, already do). Not taken: the bundle's statement and the path files are other slices'.
+- Q20: the frozen `StartNode.gatedSpec`'s `startTrace` gives `inv (simN N) (simInv vs tn (fun _ =>
+  True))` and no `simBoot`, while `trCapB` holds `inv (simNS γ.raft) (simInv C tn (simFx γ.raft C))`
+  and `simBoot tn id b o`: the gated `StartNode` cannot build the capability. Recommended: amend
+  `startTrace` to the capability's pieces (with the next amendment). Not taken: frozen.
+
+No axiom, no `sorry`, no frozen or client-visible statement changed; untraced statements unchanged.

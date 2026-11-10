@@ -92,17 +92,6 @@ theorem msgsShape_simInit (C : List w64) : MsgsShape (simInit C) := by
 theorem appSlices_simInit (C : List w64) : AppSlices (simInit C) := by
   intro m hm; simp [msgs_simInit] at hm
 
-end pure
-
-/-! ## The bootstrap state's facts from raft's commit invariant -/
-
-section facts
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-
 /-- The bootstrap state's log is raft's bootstrap log read by `logAbs` (any log of the voters' length:
 `entAbs` reads a bootstrap position by its index only). -/
 theorem simInit_log (C : List w64) (es : List EntryM) (hlen : es.length = C.length) (i : Etcdraft.ID) :
@@ -114,6 +103,56 @@ theorem simInit_log (C : List w64) (es : List EntryM) (hlen : es.length = C.leng
     simp only [List.getElem_map, List.getElem_range, List.getElem_mapIdx, entAbs]
     have hk : 1 + k ≤ C.length := by simp at h1; omega
     rw [if_pos hk, Nat.add_comm 1 k]
+
+/-- **The idle relation at the end of a fresh node's bootstrap** (`StartNode`: `newRaft` on an empty
+storage, then `Bootstrap`'s configuration entries, committed, at term `1`): raft's state, a follower of
+term `1` with no vote and no leader whose log is a bootstrap log of the voters' length (`es`, of term
+`1`, from index `1`), all of it committed, and nothing queued, is idle-related to the bootstrap state's
+server with nothing pending (`SimIdle`, the bundle's and the ticks' phase). -/
+theorem simIdle_boot (C : List w64) (id : w64) (s : NState) (es : List EntryM)
+    (hterm : s.term = W64 1) (hrole : s.role = .follower) (hvote : s.vote = W64 0)
+    (hlead : s.lead = W64 0) (hprev : s.logst.prev = entryID.mk (W64 0) (W64 0))
+    (hlog : s.logst.sents ++ s.logst.uents = es) (hlen : es.length = C.length)
+    (hlt : (C.length : Int) < 2 ^ 61) (hcom : s.logst.committed = W64 (C.length : Int))
+    (hout : s.outbox = []) (hwf : PlogWf (entryID.mk (W64 0) (W64 0)) es)
+    (hones : ∀ e ∈ es, e.Term' = W64 1) :
+    SimIdle C s (toC (confAbs C) ((simInit C).s (idAbs id))) [] := by
+  have hW : uint.Z (W64 (C.length : Int)) = (C.length : Int) := uint_Z_W64 _ (by omega) (by omega)
+  have hlog' : (toPState s).log = es := hlog
+  refine ⟨(simInit C).s (idAbs id), rfl, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, rfl, rfl, ?_, ?_⟩
+    · show (1 : Int) = uint.Z (toPState s).term
+      simp only [toPState, hterm]; rfl
+    · simp only [toPState, hrole, proleRole, roleAbs]; rfl
+    · simp only [toPState, hvote]; rfl
+    · simp only [toPState, hrole, hlead]; rfl
+    · simp only [toPState, hprev]; rfl
+    · rw [hlog']; exact simInit_log C es hlen _
+    · show (C.length : Int) = uint.Z (toPState s).commit
+      simp only [toPState, hcom, hW]
+    · intro h; simp [toPState, hrole, proleRole] at h
+    · intro h; simp [toPState, hrole, proleRole] at h
+  · refine ⟨by simp only [toPState, hprev], by simp only [toPState, hprev]; rw [hlog]; exact hwf,
+      fun k e _ he => hones e (List.mem_of_getElem? (by rw [← hlog']; exact he))⟩
+  · simp only [toPState, hout, pendAbs, List.filterMap_nil]
+  · rw [hterm]; decide
+  · rw [hcom, hW]; omega
+  · simp only [plastIndex, plogLastIndexZ, toPState, hprev]
+    rw [hlog, hlen]
+    have : uint.Z (W64 (uint.Z (W64 0) + (C.length : Int))) = (C.length : Int) := by
+      rw [show uint.Z (W64 0) = 0 from rfl, Int.zero_add]; exact hW
+    rw [this]; omega
+
+end pure
+
+/-! ## The bootstrap state's facts from raft's commit invariant -/
+
+section facts
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- **A voter's facts at the bootstrap state** (`srvFacts`): raft's bootstrap log `γ.reBoot`, of the
 voters' length, with its records and committed (`boot_facts`), all of it committed at term `1`: its

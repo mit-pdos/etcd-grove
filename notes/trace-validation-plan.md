@@ -914,6 +914,33 @@ ghost state it hands the caller). Left: that relaxation, the `Replicate` facts, 
 follows the self-acknowledgement's receipt). (The coordinator wrote this paragraph at the merge: the
 branch's own plan commit had copied slice 19b's.)
 
+**Q8 stage 1 (slice 21), 2026-11-10 (branch `trace-check-q8s21`): the bootstrap's pieces (the facts at
+the bootstrap state, the bootstrap lines' gates, the capability's introduction, the idle relation after
+`Bootstrap`) and the received message's premises from `isRaftMsg`; the node API's traced specs not
+started, three questions (Q18-Q20).** Decided by the agent (`notes/decisions.md`, "Q8 stage 1 (slice
+21)"). The harness (`examples/raft/tracecheck`) runs `raft.Node`s: `StartNode`, the node's `Tick`,
+`Ready`, `Advance`, `Propose`, `ApplyConfChange` (the bootstrap entries' changes, committed in the first
+`Ready`s), `Step`, `ReportUnreachable`, `Stop` (`Status`, `ProposeConfChange`, `RestartNode` and
+`ReportSnapshot` unreached with `DefaultCConfig`), so the traced node API is `node.run` over the traced
+`RawNode` functions. Done (raft-internal, `TracedNodeBoot.lean`, `TracedNodeRecv.lean`): `simFx_simInit`
+(the facts at `simInit C` from raft's commit invariant: each voter's `srvFacts` with the bootstrap log,
+`SpecInv`, `QuorumLogF`, the empty bags); `simIdle_boot` (raft's state after `Bootstrap` idle-related to
+the bootstrap server, nothing pending); `nodeEvOf_init_boot`, `ccEvOf_boot` (the `InitState` and
+`ApplyConfChange` lines parse as their node's bootstrap lines) and the gates `trCapB_hookGate_boot`,
+`_init`, `_ccBoot` (either mode, flag unset); `trCapB_intro` (the capability from `newRaft`'s pieces);
+`isRaftMsg_trRecv` (the received message's `isMessageC` and `MsgTrOk`, and `TrRecvShape`'s third
+clause). **Not done, with what each needs**: the node holding the capability (a gated conjunct of
+`ownRawNode`, `rnTrace`: the capability idle at the struct's state with any flag, `TrNoSnap`, and the
+traced configuration's `prevote = cq = false`, no learners; `emp` untraced, so every untraced proof only
+threads it), then `RawNode.Step`'s, `Tick`'s, `Ready`'s (`trCap_fire_ready`, the tokens out),
+`Advance`'s (the self-addressed tokens back), `Propose`'s, `ApplyConfChange`'s (a booted node's
+`ApplyConfChange` line: `lineEffect_applyCC`'s identity under `AccIdle`; no gate yet) traced triples,
+`node.run`'s and the `node` API's gated statements (the tokens from `Ready` to `Step`, `recvTokOf`);
+`newRaft` and `Bootstrap` traced (`traceConfChangeEvent.spec` is still untraced-only, its unified form
+the `_ccBoot` gate's consumer; `newRaft.spec` sets `s.gh.tr := none`); and Q18 (a heartbeat's shape:
+recommended in `Msg.TrOk`), Q19 (the bundle and ticks need the booted flag: recommended any flag), Q20
+(the frozen `startTrace` lacks the capability's invariant and flag: recommended an amendment).
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its
@@ -1179,6 +1206,48 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   (`TracedMsgType.lean`) gives `msgTypeStr ty` for the six traced types, for the send and receive
   hooks; the Go test `examples/raft/tracecheck/msgtype_string_test.go`. Trust base: the axiom out,
   the model in, the server's results on `strconv.Itoa`'s axiom (`notes/decisions.md`, "Q9").
+- **Q20 (2026-11-10, Q8 stage 1 slice 21): the frozen `StartNode.gatedSpec` does not give the
+  capability.** `TracedApiDraft`'s `startTrace` hands `StartNode` the simulation's invariant as
+  `inv (simN N) (simInv vs tn (fun _ => True))` and the node's share `simNode`, but `trCapB` (frozen,
+  `TracedCap.lean`) holds `inv (simNS γ.raft) (simInv C tn (simFx γ.raft C))` (another namespace, the
+  facts `simFx`), the node's `booted` flag `simBoot tn id false none`, and `raftLogInv`; a weaker
+  invariant cannot be strengthened inside `StartNode`, and the flag is the invariant's (`Bt`), so
+  `StartNode`'s traced proof cannot build the capability from `startTrace`. Options: (a) amend
+  `startTrace` (frozen tag `trace-check-frozen-a2`) to the capability's pieces: `inv (simNS γ.raft)
+  (simInv vs tn (simFx γ.raft vs))` and `simBoot tn cv.ID' false none` beside `simNode` (`Main`'s
+  allocation, S7, creates both; `simFx_simInit` gives the facts at the start); (b) keep `startTrace`
+  and give `StartNode` the capability itself, `trCapB` needing the struct's logger field, which does
+  not exist before `newRaft` (not possible); (c) `StartNode` allocates the invariant itself (one per
+  node: the cluster needs one shared). **Recommended: (a)**, with the next amendment (A3's review
+  round, or its own) (`notes/decisions.md`, "Q8 stage 1 (slice 21)").
+- **Q19 (2026-11-10, Q8 stage 1 slice 21): an unbooted node's `Step` and ticks.** `stepBundle_traced.on`
+  (`TracedRaftStep.lean`) and the ticks' traced corollaries (`raft.tickElection.tracedTriple`,
+  `raft.tickHeartbeat.traced`) take the capability with its `booted` flag set (`trCapB … true …`), but
+  `node.run` may step a message or tick before the node's first non-bootstrap line (its first `Ready`):
+  its `select` takes `recvc`/`tickc` as soon as `readyc`, and another node can have campaigned by then.
+  Before that line the flag is unset (`trCapB … false …`), and no law sets it without a line. Options:
+  (a) the bundle and the ticks' corollaries take the capability with any flag (`∃ b`, `trCap`), which
+  the laws they use already accept: a receive line goes through `trCap_fire_recv` (any flag), a
+  `BecomeCandidate` through `trCap_fire_any` (not bootstrap-named), and a path's first line is one of
+  these (a leader's `MsgBeat` and `MsgProp` paths are of a booted node: a leader has logged
+  `BecomeLeader`); raft-internal, not frozen; (b) the node API supplies `b = true` (impossible as the
+  code is: nothing orders the first `Ready` before the first receipt or tick); (c) the harness waits for
+  each node's first `Ready` before starting the network and the ticker (a harness change, weaker
+  workload). **Recommended: (a)** (`notes/decisions.md`, "Q8 stage 1 (slice 21)").
+- **Q18 (2026-11-10, Q8 stage 1 slice 21, slice 19b's finding): a received heartbeat's shape.**
+  `stepBundle_traced.on`'s `TrRecvShape` asks a heartbeat without entries and a heartbeat response not
+  rejecting; the node API has of a received message its `isRaftMsg` (`ApiVocab.lean`, importable),
+  whose `SentMsgShape` gives the third clause (`isRaftMsg_trRecv`) but not these two, and neither does
+  `isMessage` (`Protocol/GhostState.lean`, importable: its heartbeat clauses say nothing of the entries
+  or the rejection). Raft never sends otherwise (`bcastHeartbeat` attaches no entries,
+  `handleHeartbeat` never rejects). Options: (a) the two clauses in `SentMsgShape` (client-visible:
+  every client's `isRaftMsg`, every send site's proof obligation, which raft meets); (b) the two
+  clauses in `Msg.TrOk` (`Protocol/Model.lean`), the traced numbers clause, which a traced message
+  already carries in `isMessageC` (`MsgTrOk`, gated on the cluster's trace mode: vacuous for every
+  untraced client) and which raft establishes where it queues a message (slice 10's `OutTr`): the
+  shape becomes a traced-only fact; (c) the clauses in `isMessage`'s heartbeat and heartbeat-response
+  arms (client-visible, ungated). **Recommended: (b)**: gated, and on the path the traced numbers
+  already take (`notes/decisions.md`, "Q8 stage 1 (slice 21)").
 - **Q17 (2026-11-10, Q8 stage 1 slice 19b): a candidate's vote responses, a voter's first only.**
   Raft's tally records a voter's first response of a term only (`recordVote`); the specification's
   `HandleRequestVoteResponse` adds a voter to `votesGranted` on every granting response, so a voter that
