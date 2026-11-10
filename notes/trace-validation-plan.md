@@ -1718,3 +1718,11 @@ the logger's contract, waits for S4 (what the hook hands the logger, the update'
 - **Probe**: an easy proof (a hook) and a hard one (a step of the simulation: a received append).
 - **Freeze**: the user's; the tag `trace-check-frozen`.
 - **Prove**: S5, S6, S7 and the rest.
+
+**Amendment A1 frozen (2026-11-10).** The coordinator tagged `trace-check-frozen-a1` at the merge of
+`trace-check-a1` (the Draft with Q13's event premise, `MsgEvOf`'s `rejectHint`, the bootstrap
+capability's configuration apart from raft's); reviews q13-r1..r4, a1-r1, a1-r2, the last two with
+nothing first-tier. The Prove phase continues against it: next, `raft.Step`'s traced arms and the
+capability forms of `appendEntry`/`becomeLeader` (the term log and the entry records), with the
+owed items a1-r2 lists (a received message's numbers through a trace-gated conjunct of raft's
+`isMessage`, the receipt bound, the bootstrap routing gates).
