@@ -1,9 +1,11 @@
 /- Lean-first (no Rocq counterpart). The proof of `runner.write`: Draft, to come.
 
-The outline: the loop's invariant is `writerOwn` (with `nv ≤ 3 · |ops|`); `pick` of
-`Mix.Step`; the leader's step: `gen` at `runM ks ops |ops|` (`writerCtrs`' `nextLease`), the op
-appended to `x.log` (`logOk` extended by `opValid`; every `memW` and `histW` restated at the longer
-log, `runM_prefix`), `apply` leading; the follower's: `apply` with the lower bound from `histW`;
+The outline: the loop's invariant is `writerOwn` (with `nv ≤ 3 · |ops|`; `writerOwn` itself keeps
+`|ops| ≤ Ops`, which `restore` needs at every iteration); `pick` of `Mix.Step`; the leader's step,
+only under the loop guard `l.ops < x.cfg.Ops` (case 0; `l.ops = |ops|`, so the longer log is still
+at most `Ops`): `gen` at `runM ks ops |ops|` (`writerCtrs`' `nextLease`), the op appended to `x.log`
+(`logOk` extended by `opValid`; every `memW` and `histW` restated at the longer log, `runM_prefix`),
+`apply` leading; the follower's: `apply` with the lower bound from `histW`;
 `restore`; `restart` of either; `checkLeases` of both; then the follower's loop.
 -/
 module
