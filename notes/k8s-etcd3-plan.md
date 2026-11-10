@@ -1482,6 +1482,21 @@ here:
   `errors.IsCtxErr`, `context.ValueStartTime`, `http.Handle_ok`, and the k8s
   `DefaultFeatureGate`/`DefaultFeatureSupportChecker` initializers.
 
+### Bug in our own specs: `HGetAt`/`HList`'s error clause unprovable (7e-1, 2026-11-10; recorded as etcd-grove-81 decided)
+
+The hypotheses `Client.GetAt.spec` and `Client.List.spec` (7e-2, premises of `store.getList`'s proof, and on
+branch `k8s-7e` pending hypotheses `HGetAt`/`HList` of the closed `k8s_etcd3_safe`, `_cluster_safe`,
+`_partition_safe` and their `_adequate` versions) stated their error clause `rangeErrSound o Q err` as
+`□ (errDesc err = futureRevDesc -∗ ∃ σ, □ Q (W64 σ.rev) σ ∗ σ.rev < o)`: the read update fired with its
+revision argument equal to `σ.rev`. No client proof of this design gives it: the client makes its update once,
+at the prophesied response revision `R`, and on the error path the prophecy is never resolved (an error has
+no header), so the update fired at `σ` gives `□ Q R σ` for an `R` unrelated to `σ.rev`. The closed theorems on
+`k8s-7e` were therefore possibly vacuous through `HGetAt`/`HList`; never on `lean` (the hypotheses never
+reached it). Fix R1 (`notes/k8s-7e-1-draft.md` §1, approved by etcd-grove-81 under the user's delegation):
+`rangeErrSound` quantifies `R`, `readErrIs`'s future clause follows, and the driver's `readQ`/`listQ` commit
+`ETooLarge` at `σ.rev < n` whatever `R` (answered reads stay at `σ.rev = R`), as Go's `ErrFutureRev` says only
+that the served revision was below `o` at the linearization point.
+
 ## What blocks where
 
 **Error identity (`Range`'s errors).** Only the list and watch paths branch on which etcd error

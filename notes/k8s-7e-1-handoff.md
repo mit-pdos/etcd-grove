@@ -52,3 +52,38 @@ The Draft's §6 table, steps 1-7.
 Full (under the lock and the 64G cap; filtered log): `/shared/tmp/k8s7e1/full.sh LOGNAME`.
 Targeted, capped: `/shared/tmp/k8s7e1/build.sh LOGNAME targets...`.
 Every lake command takes `--packages=/shared/tmp/manifest-ddc.json`.
+
+## Draft review (etcd-grove-81, 2026-11-10): all five decisions approved (see `questions.md`)
+
+Decision 3 is conditional: the Go error-type test and an axiom-skill attack on each of the four trusted
+restatements come BEFORE building on them; a fifth error type is a STOP. The three possible STOPs stay.
+Checkpoints: (i) R1 built (targeted green); (ii) Go test and attack results; (iii) Freeze package.
+The finding is recorded in `notes/k8s-etcd3-plan.md` ("Bug in our own specs: `HGetAt`/`HList`'s error
+clause unprovable").
+
+### The check before R1: kInv allows the ETooLarge commit at a state the update picks (done: yes)
+
+- A read changes no state; its commit is `getCall`/`listCall`'s one-shot commit bit (`γc`, own → discard)
+  taken inside `get_read_au`/`list_read_au` while `kInv` is open at the firing state `σ`: `linU` becomes
+  `contAt g0 x (kStep … x (c.abs σ)).2` (`lOut x σ` for a list). `kInv` constrains only that the model
+  step is taken at the current state (`KOk`), not which firing commits.
+- `Apply`'s prophecy's first value is the output's error kind (`xs.head?`, `resolve3`), known before the
+  call. When it says `ETooLarge`, the answer is `ETooLarge`, and at any firing with `σ.rev < n`
+  (`n = parseRVD x.MinRV'`) the model step answers `tooLargeL` (Get: `Inv.lean:288`; list: `lOut`,
+  `Inv.lean:172`). So the commit at the first such firing is consistent with the final answer, whichever
+  attempt fires first.
+- If the call answers `ETooLarge`, some firing had `σ.rev < n`: from the client's error (R1's `∃ R σ, □ Q R σ ∗
+  σ.rev < n`) or from a data answer at `R < n` (the store's own minimum check: the firing at `σ.rev = R < n`).
+
+### R1, the implementation plan (step 2 of the Draft's §6; not started)
+
+1. `ListDefs.lean`: `rangeErrSound o Q err := □ (desc = futureRevDesc -∗ ∃ R σ, □ Q R σ ∗ ⌜σ.rev < sint.nat o⌝)`;
+   `readErrIs`'s future clause the same. Then `store__listReadError`, `store__getList` (the two
+   `iunfold rangeErrSound at Hrs`, lines ~140, ~179), `pagedChunks`, `GetList` as they consume it.
+2. Driver: `readQ`/`listQ` take the commit condition as a parameter, `cond : w64 → KVState → Prop`
+   (`fun R σ => σ.rev = uint.nat R` for an answer, `fun _ σ => σ.rev < uint.nat n` when the prophecy says
+   `ETooLarge`); `getCall`/`listCall`'s committed disjunct records `⌜cond R σ⌝` in place of `σ.rev = R`;
+   `get_read_au`/`list_read_au`/`get_maker`/`list_maker`/`getCall_take`/`listCall_take` follow; `Apply`
+   splits the answering case on `xs.head? = some tooLargeCode`. The answer `y = tooLargeL` matches
+   `kStep`/`lOut` at the committed `σ` by `σ.rev < n`.
+3. Targeted build (checkpoint (i)): the store's `Link`, the driver's `Link`/`Results`.
