@@ -34455,6 +34455,9 @@ responses-only clause (`RespCanon`, this branch's first repair of review a2-r1: 
 T1-1).
 
 **Open.** An append request's entries' contents are not pinned by `MsgsShape` (its line reads their
-number only), so an `"app"` send line's uniqueness needs the entries' agreement (`msgFacts`' `logRecs`
-and the leader's term log, the notes' `AppSlices`); the heartbeat's gate gives its commit only bounded
+number only), so an `"app"` send line's uniqueness needs the entries' agreement (the notes'
+`AppSlices`), which `msgFacts` as frozen (`isLeader`, `logRecs`) very probably does not give (review
+a2-r3's F1): plan, Q16; `phaseStepB_send` states its phase at the unpinned idle server, so a path proof
+needs a pinned variant to meet the sufficiency lemmas' `hΦ'`, and a lower-term request's `PhaseStepR`
+is still to state (a2-r3's F4); the heartbeat's gate gives its commit only bounded
 (slice 16). Reviews: `notes/trace-validation-reviews/a2-r1.md` … `a2-r4.md`.

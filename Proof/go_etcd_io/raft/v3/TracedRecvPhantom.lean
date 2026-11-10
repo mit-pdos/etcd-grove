@@ -209,6 +209,14 @@ theorem msgsUniq_send_canon (σ : Etcdraft.State) (p : Etcdraft.Msg) (hu : MsgsU
     · exact hc x g
     · rw [e]; exact hp0
 
+/-- **Raft's messages are canonical** (as the specification's, `msgAbs`): what a send line's facts need
+of its message for `MsgsShape` (review a2-r3's F3). -/
+theorem msgAbs_canon (C : List w64) (bl : Nat) (m : Msg) (ma : Etcdraft.Msg)
+    (h : TraceSim.msgAbs C bl m = some ma) : canonMsg ma = ma := by
+  unfold TraceSim.msgAbs at h
+  cases hty : m.ty <;> simp only [hty] at h <;> cases h <;> simp [canonMsg] <;>
+    (try split <;> simp_all) <;> (try (intro h1 h2; rw [h1] at h2; cases h2))
+
 theorem phantomOf_canon (a : Etcdraft.Server) (m : Etcdraft.Msg) : canonMsg (phantomOf a m) = phantomOf a m := by
   unfold phantomOf
   split <;> simp [canonMsg]

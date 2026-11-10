@@ -783,8 +783,9 @@ def MsgsUniq (σ : Etcdraft.State) : Prop :=
     recvPred ln m1 = true → recvPred ln m2 = true → m1 = m2
 
 /-- **A message's canonical form** (amendment A2, Q15): the fields its type's receive line logs (the
-specification's `LoglineIs*`, `recvPred`), the others at the values the specification's constructors
-(and raft's, `msgAbs`) give them: a vote request its term, last log term and index; a vote response its
+specification's `LoglineIs*`, `recvPred`; besides them a snapshot's commit and an `"app"` request's
+entries' contents, which its line does not log: their agreement is not this clause's, plan Q16), the
+others at the values the specification's constructors (and raft's, `msgAbs`: `msgAbs_canon`) give them: a vote request its term, last log term and index; a vote response its
 term and grant; an append request its subtype, term, previous index and term, entries and commit, a
 heartbeat (subtype `"heartbeat"`) its subtype, term and commit only (no previous entry, no entries); an
 append response its subtype, term, success and, when a successful `"app"` response, its match index
@@ -987,7 +988,7 @@ allows is a line matching `m` (its parse's `recvPred`), not bootstrap-named, wit
 `a` the share stands for, an effect consuming `m` into phase `Φ'`, its replies pending: raft's `P'` in
 the node's share, the phantoms `ph a` (the specification's replies raft does not send, review round
 2's A6; a function of the receiving server before the line, amendment A2, chosen by the caller: the
-intended instance is `recvPhantoms m`, `phantomOf` for a lower-term request and none otherwise) among
+intended instance is `recvPhantoms m` (`TracedRecvPhantom.lean`), `phantomOf` for a lower-term request and none otherwise) among
 the phantoms, through intermediate states of the shape `Mid`. -/
 def PhaseStepR (id : w64) (c : CfgM) (m : Etcdraft.Msg) (E : TraceEv → Prop) (Mid : Etcdraft.Server → Prop)
     (ph : Etcdraft.Server → List Etcdraft.Msg)
