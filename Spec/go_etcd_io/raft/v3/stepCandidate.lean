@@ -42,6 +42,9 @@ module
 public import Spec.go_etcd_io.raft.v3.raft__handleAppendEntries
 public import Spec.go_etcd_io.raft.v3.raft__handleHeartbeat
 public import Spec.go_etcd_io.raft.v3.raft__handleSnapshot
+public import Spec.go_etcd_io.raft.v3.raft__becomeLeader
+public import Spec.go_etcd_io.raft.v3.raft__bcastAppend
+public import Spec.go_etcd_io.raft.v3.raft__campaign
 public import Proof.go_etcd_io.raft.v3.StepLemmas
 
 @[expose] public section
@@ -156,10 +159,29 @@ raft v3.7 (2026-10-15, stage R4): `m` is a `*pb.Message` (`ml`), taken as `Step`
 The `"Hctx"`/`"Hents"` points-tos are the message's state (`cl`, `ents`); the `MsgSnap` premise
 is pure, on the snapshot the message holds (`sn = some sv`) and its `ConfState`'s lists (`scfg =
 sv.Metadata'.ConfState'.lists`; until the retarget the read-only slices, `ownCSL`).
+
+(2026-11-10, Q8 stage 1 slice 8 of `notes/trace-validation-plan.md`) **One spec for both modes**, in
+place of stage 0's premise `s.gh.tr = none`: the caller's resource `G` goes through the gates of the
+arm that runs, each conditioned on its arm (`notes/decisions.md`, "Q8 stage 1 (slice 8)"):
+- a `MsgApp` or a `MsgHeartbeat`: `becomeFollower`'s gate (`G` to `Gf`), then the handler's reply gate
+  (`Gf` to `G'`, as `raft.handleAppendEntries.spec`'s and `raft.handleHeartbeat.spec`'s, at the
+  follower state);
+- a vote count's win (`MsgVoteResp` at a candidate, `JQuorum` of the tally): `becomeLeader`'s three
+  chained gates (`G` to `G1` to `G2` to `G'`), the `BecomeLeader` gate taking the win's quorum, so that
+  a traced caller holding raft's ghost open registers the win there, before the hook (round 6's F2:
+  the win's split), then `bcastAppend`'s per-peer gate (`G'` to `G'`) and `TrNoSnap`;
+- a pre-vote count's win: `campaign`'s gates (the `BecomeCandidate` line, `G` to `G'`, and the vote
+  messages', `G'` to `G'`);
+- a loss of either count: `becomeFollower`'s gate (`G` to `G'`).
+It gives back `G'` exactly when one of these ran (the tally's outcome is `poll`'s, an `iff`: the
+win's converse), else `G`. A `MsgSnap` only untraced (`handleSnapshot`'s premise; a traced node
+receives no snapshot, the Draft's P2). The untraced instance is `stepCandidate.untraced`
+(`TracedUntracedStep.lean`).
 -/
 abbrev stepCandidate.spec : Prop :=
   ∀ (c : CfgM) (scfg : CSLists) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
-    (ents : List EntryM) (sn : Option SnapshotM) (rs : List Loc) (sv : SnapshotM) (cl : List w8),
+    (ents : List EntryM) (sn : Option SnapshotM) (rs : List Loc) (sv : SnapshotM) (cl : List w8)
+    (G G' Gf G1 G2 : IProp GF),
   (m.Type' = MsgVoteResp ∨ m.Type' = MsgProp ∨
    m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat ∨
    (m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp ∨
@@ -193,11 +215,10 @@ abbrev stepCandidate.spec : Prop :=
      sn = some sv ∧ scfg = sv.Metadata'.ConfState'.lists ∧
      SnapScopeIf id sv scfg ∧ m.From' ≠ id ∧
      -- (2026-10-19, D21 M3) outside the no-snapshot mode
-     s.gh.ns = false) →
-  -- (2026-11-09, Q8 stage 0 of `notes/trace-validation-plan.md`) an untraced node: its trace
-  -- hooks see a nil logger (`TraceLoggerOkS`); stage 1 replaces this premise by the traced
-  -- capability (`trCapB s.gh.tr …`, `TracedHooksDraft.lean`)
-  s.gh.tr = none →
+     s.gh.ns = false ∧
+     -- (2026-11-10, Q8 stage 1 slice 8; until then, stage 0, of every message) untraced
+     -- (`handleSnapshot`'s premise: a traced node receives no snapshot, the Draft's P2)
+     s.gh.tr = none) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       -- (stage R4) the message, as `Step` received it (its `Context` holding `cl`: what the
@@ -206,13 +227,80 @@ abbrev stepCandidate.spec : Prop :=
                ⟨m, ents, sn, cl, rs⟩ ∗
       -- (D22 S-b′3; U8 v2: pinned at the node's storage names, `rcvSrc`) a `MsgSnap`'s snapshot
       -- certified (`handleSnapshot`'s; `rcvSrc_ne` for any other type)
-      "#Hcert" ∷ rcvSrc s.gh.sn m.Type' sn }}
+      "#Hcert" ∷ rcvSrc s.gh.sn m.Type' sn ∗
+      -- (2026-11-10, Q8 stage 1 slice 8; until then, stage 0, the premise `s.gh.tr = none`) the
+      -- caller's resource, through the gates of the arm that runs
+      "HG" ∷ G ∗
+      -- a `MsgApp` or a `MsgHeartbeat`: `becomeFollower(m.Term, m.From)`'s gate ...
+      "Hgbf" ∷ (⌜m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat⌝ -∗ G -∗
+        HookGate s.gh.tr r (NodeEvOf (W64 2) id (becomeFollower s s.term m.From') c) Gf) ∗
+      -- ... then the reply's (`handleAppendEntries`'s, at the follower state) ...
+      "Hgapp" ∷ (⌜m.Type' = MsgApp⌝ -∗ ∀ (pvs : GMap w64 Progress) (s1 : NState) (mm : Msg),
+        ⌜HandleAppResult id { becomeFollower s s.term m.From' with prvals := pvs } m ents
+          (sendMsgs s1 [mm])⌝ -∗
+        Gf -∗ HookGateOpt s.gh.tr r (sendOutGate id s1 c MsgAppResp [mm]) G') ∗
+      -- ... or (`handleHeartbeat`'s, at the follower state with the commit moved)
+      "Hghb" ∷ (⌜m.Type' = MsgHeartbeat⌝ -∗ ∀ (pvs : GMap w64 Progress),
+        Gf -∗ HookGateOpt s.gh.tr r
+          (sendOutGate id { ({ becomeFollower s s.term m.From' with prvals := pvs } : NState) with
+              logst := { s.logst with committed := plogCommitTo s.logst.committed m.Commit' } }
+            c MsgHeartbeatResp [{ Msg.plain .heartbeatResp id m.From' s.term false with ctx := cl }])
+          G') ∗
+      -- a vote count's win: `becomeLeader`'s `BecomeLeader` gate, given the win's quorum (where a
+      -- traced caller registers the win, round 6's F2) ...
+      "Hgbl" ∷ (⌜m.Type' = MsgVoteResp ∧ s.role = .candidate ∧
+          JQuorum c (granted (recordVote s.votes m.From' (!m.Reject')))⌝ -∗ G -∗
+        HookGate s.gh.tr r (NodeEvOf (W64 3) id (becomeLeaderPre id { s with votes := recordVote s.votes m.From' (!m.Reject') }) c) G1) ∗
+      -- ... its empty entry's `Replicate` gate and its self-acknowledgement's ...
+      "Hgrep" ∷ (G1 -∗ HookGateN s.gh.tr r (NodeEvOf (W64 5) id (becomeLeaderPre id { s with votes := recordVote s.votes m.From' (!m.Reject') }) c) 1 G2) ∗
+      "Hgack" ∷ (G2 -∗ HookGateOpt s.gh.tr r (sendOutGate id (becomeLeaderLog id { s with votes := recordVote s.votes m.From' (!m.Reject') }) c MsgAppResp
+          [selfAck id (becomeLeaderLog id { s with votes := recordVote s.votes m.From' (!m.Reject') })]) G') ∗
+      -- ... and `bcastAppend`'s, per peer, at the new leader's state
+      "#Hgcast" ∷ □ (⌜m.Type' = MsgVoteResp ∧ s.role = .candidate ∧
+          JQuorum c (granted (recordVote s.votes m.From' (!m.Reject')))⌝ -∗
+        ∀ (pvs : GMap w64 Progress) (to : w64) (mm : Msg),
+        ⌜to ≠ id ∧ to ∈ domSet ({ becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') } with prvals := pvs } : NState).progress⌝ -∗
+        ⌜AppOk id (toPState { becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') } with prvals := pvs }) mm ∧
+          mm.commit = (toPState { becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') } with prvals := pvs }).commit ∧ mm.dst = to⌝ -∗
+        G' -∗
+        HookGateOpt s.gh.tr r (sendOutGate id { becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') } with prvals := pvs } c MsgApp [mm])
+          G') ∗
+      "#Hnosnap" ∷ TrNoSnap s.gh.tr s.logst ∗
+      -- a pre-vote count's win: `campaign(campaignElection)`'s gates (the `BecomeCandidate` line,
+      -- then each vote message, at the candidate's state)
+      "Hgcamp" ∷ (⌜m.Type' = MsgPreVoteResp ∧ s.role = .preCandidate ∧
+          JQuorum c (granted (recordVote s.votes m.From' (!m.Reject')))⌝ -∗ G -∗
+        HookGate s.gh.tr r (NodeEvOf (W64 1) id (becomeCandidate id { s with votes := recordVote s.votes m.From' (!m.Reject') }) c) G') ∗
+      "#Hgvote" ∷ □ (⌜m.Type' = MsgPreVoteResp ∧ s.role = .preCandidate ∧
+          JQuorum c (granted (recordVote s.votes m.From' (!m.Reject')))⌝ -∗
+        ∀ (pvs : GMap w64 Progress) (y : w64), ⌜y ∈ c.voters⌝ -∗ G' -∗
+        HookGateOpt s.gh.tr r
+          (sendOutGate id { becomeCandidate id { s with votes := recordVote s.votes m.From' (!m.Reject') } with prvals := pvs } c
+            (if y = id then vrespW32 false else vreqW32 false)
+            [campMsg false id (s.term + W64 1) (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents))
+              [] y]) G') ∗
+      -- a loss of either count: `becomeFollower(r.Term, None)`'s gate
+      "Hglost" ∷ (⌜(m.Type' = MsgVoteResp ∧ s.role = .candidate ∨
+            m.Type' = MsgPreVoteResp ∧ s.role = .preCandidate) ∧
+          JLost c (recordVote s.votes m.From' (!m.Reject'))⌝ -∗ G -∗
+        HookGate s.gh.tr r (NodeEvOf (W64 2) id (becomeFollower { s with votes := recordVote s.votes m.From' (!m.Reject') } s.term (W64 0)) c) G') }}
     (App (App (Val #(functions stepCandidate [])) (Val #r)) (Val #ml))
   {{ (err : GoInterface) (s' : NState) (dropped : Bool) (c' : CfgM), RET #err;
       ownRaftPhysCV c' c'.voters r id s' ∗
       ⌜CandidateStepResultC c scfg id s m ents sv dropped s' c' cl⌝ ∗
       (if dropped then globalAddr ErrProposalDropped ↦□ err
-       else ⌜err = interface.nil⌝) }}
+       else ⌜err = interface.nil⌝) ∗
+      -- `G'` exactly when a gate ran: a `MsgApp`, a `MsgHeartbeat`, or a count's win or loss
+      ((⌜m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat ∨
+          ((m.Type' = MsgVoteResp ∧ s.role = .candidate ∨
+            m.Type' = MsgPreVoteResp ∧ s.role = .preCandidate) ∧
+           (JQuorum c (granted (recordVote s.votes m.From' (!m.Reject'))) ∨
+            JLost c (recordVote s.votes m.From' (!m.Reject'))))⌝ ∗ G') ∨
+       (⌜¬ (m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat ∨
+          ((m.Type' = MsgVoteResp ∧ s.role = .candidate ∨
+            m.Type' = MsgPreVoteResp ∧ s.role = .preCandidate) ∧
+           (JQuorum c (granted (recordVote s.votes m.From' (!m.Reject'))) ∨
+            JLost c (recordVote s.votes m.From' (!m.Reject')))))⌝ ∗ G)) }}
 
 end spec
 

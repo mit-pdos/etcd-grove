@@ -70,17 +70,25 @@ theorem stepCandidate.wp_proof
     (wp_GetTerm : raftpb.Message.GetTerm.spec (GF := GF) (hG := hG))
     (wp_GetReject : raftpb.Message.GetReject.spec (GF := GF) (hG := hG)) :
     stepCandidate.spec (GF := GF) (hG := hG) := by
-  -- (Q8 stage 1, slice 6) the untraced instance (`TracedUntracedSend.lean`)
-  have wp_raft_bcastAppend := raft.bcastAppend.untraced wp_raft_bcastAppend
-  have wp_raft_becomeLeader := raft.becomeLeader.untraced wp_raft_becomeLeader
-  have wp_raft_becomeFollower := raft.becomeFollower.untraced wp_raft_becomeFollower
-  -- (Q8 stage 1, slice 7) the handlers' untraced instances (`TracedUntracedStep.lean`)
-  have wp_raft_handleAppendEntries := raft.handleAppendEntries.untraced wp_raft_handleAppendEntries
-  have wp_raft_handleHeartbeat := raft.handleHeartbeat.untraced wp_raft_handleHeartbeat
-  have wp_raft_campaign := raft.campaign.untraced wp_raft_campaign
-  intro c scfg r id s ml m ents sn rs sv cl Hty Hterm Hrole Happ Hhb Hpvnw Hsnap Htr
+  -- (Q8 stage 1, slice 8) the gated specs, each arm consuming its gates; a `MsgSnap` untraced
+  have wp_raft_becomeFollowerU := raft.becomeFollower.untraced wp_raft_becomeFollower
+  intro c scfg r id s ml m ents sn rs sv cl G G' Gf G1 G2 Hty Hterm Hrole Happ Hhb Hpvnw Hsnap
   wp_start as H
   iNamed H
+  -- the tag of the outcome, kept whole through the arms' rewriting of `m.Type'`
+  generalize HHk : (m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat ∨
+    ((m.Type' = MsgVoteResp ∧ s.role = .candidate ∨
+      m.Type' = MsgPreVoteResp ∧ s.role = .preCandidate) ∧
+     (JQuorum c (granted (recordVote s.votes m.From' (!m.Reject'))) ∨
+      JLost c (recordVote s.votes m.From' (!m.Reject'))))) = Hk
+  -- the outcome is no gate's: `G` back, with the tag
+  have Hnot : ∀ (P : Prop), m.Type' ≠ MsgApp → m.Type' ≠ MsgHeartbeat → ¬ P →
+      ¬ (m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat ∨ P) := by
+    intro P h1 h2 h3 h
+    rcases h with h | h | h
+    · exact h1 h
+    · exact h2 h
+    · exact h3 h
   -- a candidate is a voter (`ownRaftPhys`'s `Hvoter`; until 2026-10-13 a premise)
   icases ownRaftPhysC_voter c r id s $$ Hphys with ⟨%Hvoter, Hphys⟩
   have Hcfg : id ∈ c.voters :=
@@ -121,6 +129,9 @@ theorem stepCandidate.wp_proof
   · -- `MsgVoteResp`: none of `MsgProp`, `MsgApp`, `MsgHeartbeat`, `MsgSnap`, so it falls
     -- through to `myVoteRespType`
     obtain ⟨Hterm', Hmnz⟩ := Hterm (Or.inl Hty)
+    have Hna : m.Type' ≠ MsgApp := by rw [Hty]; simp [MsgVoteResp, MsgApp]
+    have Hnh : m.Type' ≠ MsgHeartbeat := by rw [Hty]; simp [MsgVoteResp, MsgHeartbeat]
+    have Hnpv : m.Type' ≠ MsgPreVoteResp := by rw [Hty]; simp [MsgVoteResp, MsgPreVoteResp]
     simp only [Hty, MsgVoteResp]
     wp_auto
     rcases Hrole with Hrole | Hrole
@@ -132,11 +143,22 @@ theorem stepCandidate.wp_proof
       iapply HΦ $$ %GoInterface.nil %s %false %c
       iframe Hphys
       simp only [Bool.false_eq_true, ↓reduceIte]
-      ipureintro
-      refine ⟨?_, trivial⟩
-      unfold CandidateStepResultC
-      refine ⟨by simp [Hty, MsgVoteResp, MsgSnap], ?_⟩
-      simp [Hty, Hrole, MsgVoteResp]
+      isplitr [HG]
+      · ipureintro
+        unfold CandidateStepResultC
+        refine ⟨by simp [Hty, MsgVoteResp, MsgSnap], ?_⟩
+        simp [Hty, Hrole, MsgVoteResp]
+      isplitr [HG]
+      · ipureintro; first | rfl | trivial
+      iright
+      isplitr
+      · ipureintro
+        rw [← HHk]
+        refine Hnot _ Hna Hnh ?_
+        rintro ⟨⟨_, h⟩ | ⟨h, _⟩, _⟩
+        · rw [Hrole] at h; exact absurd h (by decide)
+        · exact Hnpv h
+      iexact HG
     rw [Hmc (by rw [Hrole]; decide)]
     wp_auto
     wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
@@ -152,71 +174,138 @@ theorem stepCandidate.wp_proof
     · -- `quorum.VoteWon`: become leader and broadcast. `poll` does not touch the role,
       -- so we are still a candidate: not a pre-candidate, so this is `becomeLeader` and
       -- not `campaign`.
+      have Hwin : m.Type' = MsgVoteResp ∧ s.role = .candidate ∧
+          JQuorum c (granted (recordVote s.votes m.From' (!m.Reject'))) := ⟨Hty, Hrole, Hwon.1 rfl⟩
       simp only [VoteWon]
       wp_auto
       wp_apply raft.wp_load_stateC $$ Hphys as Hphys
       rw [decide_eq_false (by simp only [Hrole]; decide)]
       wp_auto
-      wp_apply wp_raft_becomeLeader _ _ _ _ (by simp only [Hrole]; decide) (by simp only [Hrole]; decide)
-          (by exact Hterm' ▸ Hmnz) (by tr_none) $$ [$Hphys]
-        as %pvs1 ⟨Hphys, %Hmb⟩
+      ispecialize Hgbl $$ %(⟨trivial, Hwin.2⟩)
+      wp_apply wp_raft_becomeLeader c r id _ G G1 G2 G' (by simp only [Hrole]; decide)
+          (by simp only [Hrole]; decide) (by exact Hterm' ▸ Hmnz) $$ [$Hphys $HG $Hgbl $Hgrep $Hgack]
+        as %pvs1 ⟨Hphys, %Hmb, HG⟩
       -- `bcastAppend` adds *some* list of `App`s from `id` at the current term -- not one
       -- per peer; see `Spec/raft__bcastAppend.lean`.
-      wp_apply wp_raft_bcastAppend c r id _ (by rfl)
-        (by first | exact Hterm' ▸ Hmnz | (simp only [becomeLeader, resetTo, resetTo0]; exact Hterm' ▸ Hmnz) | simp_all) (by tr_none) $$ [$Hphys] as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
+      ihave #Hgc := Hgcast $$ %(⟨trivial, Hwin.2⟩)
+      ihave #Hgate : □ (∀ (to : w64) (mm : Msg),
+          ⌜to ≠ id ∧ to ∈ domSet ({ becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') }
+            with prvals := pvs1 } : NState).progress⌝ -∗
+          ⌜AppOk id (toPState { becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') }
+              with prvals := pvs1 }) mm ∧
+            mm.commit = (toPState { becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') }
+              with prvals := pvs1 }).commit ∧ mm.dst = to⌝ -∗ G' -∗
+          HookGateOpt ({ becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') }
+              with prvals := pvs1 } : NState).gh.tr r
+            (sendOutGate id { becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') }
+              with prvals := pvs1 } c MsgApp [mm]) G') $$ []
+      · rw [show ({ becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') } with prvals := pvs1 } : NState).gh = s.gh from rfl]
+        imodintro
+        iintro %to %mm %Hto %Hmm HG
+        ispecialize Hgc $$ %pvs1 %to %mm %Hto %Hmm HG
+        iapply hookGateOpt_congr _ _ r _ _ G' (by rfl) (by rfl) $$ Hgc
+      ihave #Hnosnap2 : TrNoSnap (GF := GF)
+          ({ becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') }
+            with prvals := pvs1 } : NState).gh.tr
+          ({ becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') }
+            with prvals := pvs1 } : NState).logst $$ []
+      · rw [show ({ becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') } with prvals := pvs1 } : NState).gh = s.gh from rfl,
+          show TrNoSnap (GF := GF) s.gh.tr ({ becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') } with prvals := pvs1 } : NState).logst = TrNoSnap s.gh.tr s.logst from rfl]
+        iexact Hnosnap
+      wp_apply wp_raft_bcastAppend c r id
+        { becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') } with prvals := pvs1 }
+        G' (by rfl)
+        (by first | exact Hterm' ▸ Hmnz | (simp only [becomeLeader, resetTo, resetTo0]; exact Hterm' ▸ Hmnz) | simp_all)
+        $$ [$Hphys $HG $Hgate $Hnosnap2] as %ms %pvs ⟨Hphys, %Hms, %Hmm, HG⟩
       iapply HΦ $$ %GoInterface.nil %_ %false %c
       iframe Hphys
       simp only [Bool.false_eq_true, ↓reduceIte]
-      ipureintro
-      refine ⟨?_, trivial⟩
-      unfold CandidateStepResultC
-      refine ⟨by simp [Hty, MsgVoteResp, MsgSnap], ?_⟩
-      simp only [Hty, Hrole, ↓reduceIte]
-      refine ⟨trivial, ?_⟩
-      have Hnp : ¬ (PRole.candidate = PRole.preCandidate) := by decide
-      simp only [Hnp, ↓reduceIte]
-      refine ⟨true, false, ms, pvs, fun _ => ⟨Hwon.1 rfl, ?_, ?_⟩, fun h => absurd h (by decide), ?_⟩
-      · exact (replSends_prvals _ _ pvs1 ms).1 Hms
-      · rw [Hmm]; exact Hmb
-      · cases s; rfl
+      isplitr [HG]
+      · ipureintro
+        unfold CandidateStepResultC
+        refine ⟨by simp [Hty, MsgVoteResp, MsgSnap], ?_⟩
+        simp only [Hty, Hrole, ↓reduceIte]
+        refine ⟨trivial, ?_⟩
+        have Hnp : ¬ (PRole.candidate = PRole.preCandidate) := by decide
+        simp only [Hnp, ↓reduceIte]
+        refine ⟨true, false, ms, pvs, fun _ => ⟨Hwon.1 rfl, ?_, ?_⟩, fun h => absurd h (by decide), ?_⟩
+        · exact (replSends_prvals _ _ pvs1 ms).1 Hms
+        · rw [Hmm]; exact Hmb
+        · cases s; rfl
+      isplitr [HG]
+      · ipureintro; first | rfl | trivial
+      ileft
+      isplitr
+      · ipureintro
+        rw [← HHk]
+        exact Or.inr (Or.inr ⟨Or.inl ⟨Hty, Hrole⟩, Or.inl (Hwon.1 rfl)⟩)
+      iexact HG
     · -- `quorum.VoteLost`: step down at the unchanged term
       simp only [VoteLost]
       wp_auto
       -- the `r.Term` the code passes is `s1`'s term
       wp_apply raft.wp_load_TermC $$ Hphys as Hphys
-      wp_apply wp_raft_becomeFollower _ _ _ _ _ _ (by exact Int.le_refl _) (by tr_none) $$ [$Hphys] as %pvs Hphys
+      have Hlo : (m.Type' = MsgVoteResp ∧ s.role = .candidate ∨
+          m.Type' = MsgPreVoteResp ∧ s.role = .preCandidate) ∧
+          JLost c (recordVote s.votes m.From' (!m.Reject')) := ⟨Or.inl ⟨Hty, Hrole⟩, Hlost.1 rfl⟩
+      ispecialize Hglost $$ %(by first | exact ⟨Or.inl ⟨trivial, Hrole⟩, Hlost.1 rfl⟩ | exact ⟨Or.inr ⟨trivial, Hrole⟩, Hlost.1 rfl⟩) HG
+      wp_apply wp_raft_becomeFollower c r id _ _ _ G' (by exact Int.le_refl _) (fun _ => rfl)
+        $$ [$Hphys $Hglost] as %pvs ⟨Hphys, HG⟩
       iapply HΦ $$ %GoInterface.nil %_ %false %c
       iframe Hphys
       simp only [Bool.false_eq_true, ↓reduceIte]
-      ipureintro
-      refine ⟨?_, trivial⟩
-      unfold CandidateStepResultC
-      refine ⟨by simp [Hty, MsgVoteResp, MsgSnap], ?_⟩
-      simp only [Hty, Hrole, ↓reduceIte]
-      refine ⟨trivial, ?_⟩
-      have Hnp : ¬ (PRole.candidate = PRole.preCandidate) := by decide
-      simp only [Hnp, ↓reduceIte]
-      refine ⟨false, true, [], pvs, fun h => absurd h (by decide), fun _ => Hlost.1 rfl, ?_⟩
-      cases s; rfl
+      isplitr [HG]
+      · ipureintro
+        unfold CandidateStepResultC
+        refine ⟨by simp [Hty, MsgVoteResp, MsgSnap], ?_⟩
+        simp only [Hty, Hrole, ↓reduceIte]
+        refine ⟨trivial, ?_⟩
+        have Hnp : ¬ (PRole.candidate = PRole.preCandidate) := by decide
+        simp only [Hnp, ↓reduceIte]
+        refine ⟨false, true, [], pvs, fun h => absurd h (by decide), fun _ => Hlost.1 rfl, ?_⟩
+        cases s; rfl
+      isplitr [HG]
+      · ipureintro; first | rfl | trivial
+      ileft
+      isplitr
+      · ipureintro
+        rw [← HHk]
+        exact Or.inr (Or.inr ⟨Or.inl ⟨Hty, Hrole⟩, Or.inr (Hlost.1 rfl)⟩)
+      iexact HG
     · -- `quorum.VotePending`: neither switch arm fires; keep waiting
       simp only [VotePending]
       wp_auto
       iapply HΦ $$ %GoInterface.nil %_ %false %c
       iframe Hphys
       simp only [Bool.false_eq_true, ↓reduceIte]
-      ipureintro
-      refine ⟨?_, trivial⟩
-      unfold CandidateStepResultC
-      refine ⟨by simp [Hty, MsgVoteResp, MsgSnap], ?_⟩
-      simp only [Hty, Hrole, ↓reduceIte]
-      refine ⟨trivial, ?_⟩
-      have Hnp : ¬ (PRole.candidate = PRole.preCandidate) := by decide
-      simp only [Hnp, ↓reduceIte]
-      -- nothing wrote a `Progress`: the values are `s1`'s own
-      refine ⟨false, false, [], s.prvals, fun h => absurd h (by decide),
-        fun h => absurd h (by decide), ?_⟩
-      cases s; simp only at Hrole; subst Hrole; rfl
+      isplitr [HG]
+      · ipureintro
+        unfold CandidateStepResultC
+        refine ⟨by simp [Hty, MsgVoteResp, MsgSnap], ?_⟩
+        simp only [Hty, Hrole, ↓reduceIte]
+        refine ⟨trivial, ?_⟩
+        have Hnp : ¬ (PRole.candidate = PRole.preCandidate) := by decide
+        simp only [Hnp, ↓reduceIte]
+        -- nothing wrote a `Progress`: the values are `s1`'s own
+        refine ⟨false, false, [], s.prvals, fun h => absurd h (by decide),
+          fun h => absurd h (by decide), ?_⟩
+        cases s; simp only at Hrole; subst Hrole; rfl
+      isplitr [HG]
+      · ipureintro; first | rfl | trivial
+      iright
+      isplitr
+      · ipureintro
+        rw [← HHk]
+        refine Hnot _ Hna Hnh ?_
+        rintro ⟨_, h | h⟩
+        · exact absurd (Hwon.2 h) (by decide)
+        · exact absurd (Hlost.2 h) (by decide)
+      iexact HG
   · -- `MsgProp`: no leader to forward to; dropped
+    have Hna : m.Type' ≠ MsgApp := by rw [Hty]; simp [MsgProp, MsgApp]
+    have Hnh : m.Type' ≠ MsgHeartbeat := by rw [Hty]; simp [MsgProp, MsgHeartbeat]
+    have Hnv : m.Type' ≠ MsgVoteResp := by rw [Hty]; simp [MsgProp, MsgVoteResp]
+    have Hnpv : m.Type' ≠ MsgPreVoteResp := by rw [Hty]; simp [MsgProp, MsgPreVoteResp]
     simp only [Hty, MsgProp]
     wp_auto
     wp_apply raft.wp_load_idC $$ Hphys as Hphys
@@ -225,12 +314,22 @@ theorem stepCandidate.wp_proof
     iapply HΦ $$ %errPropDropped %s %true %c
     iframe Hphys
     simp only [↓reduceIte]
-    isplitr
+    isplitr [HG]
     · ipureintro
       unfold CandidateStepResultC
       refine ⟨by simp [Hty, MsgProp, MsgSnap], ?_⟩
       simp [Hty, MsgVoteResp, MsgProp]
-    iexact ErrPropDropped
+    isplitr [HG]
+    · iexact ErrPropDropped
+    iright
+    isplitr
+    · ipureintro
+      rw [← HHk]
+      refine Hnot _ Hna Hnh ?_
+      rintro ⟨⟨h, _⟩ | ⟨h, _⟩, _⟩
+      · exact Hnv h
+      · exact Hnpv h
+    iexact HG
   · -- `MsgApp`: `becomeFollower(m.Term, m.From)`, then `handleAppendEntries`
     obtain ⟨Hwf, Hnw, Hconf, Hfid⟩ := Happ Hty
     have Hterm' := (Hterm (Or.inr (Or.inl Hty))).1
@@ -240,24 +339,46 @@ theorem stepCandidate.wp_proof
     wp_auto
     wp_apply wp_GetTerm.1 ml _ _ _ _ $$ [$Hm] as Hm
     wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
-    wp_apply wp_raft_becomeFollower _ _ _ _ _ _
-      (by exact Int.le_of_eq (congrArg (fun x : w64 => uint.Z x) Hterm'.symm)) (by tr_none) $$ [$Hphys]
-      as %pvs Hphys
+    ihave Hgbf2 : HookGate s.gh.tr r (NodeEvOf (W64 2) id (becomeFollower s m.Term' m.From') c) Gf
+        $$ [Hgbf HG]
+    · rw [Hterm']
+      iapply Hgbf $$ %(by first | exact Or.inl trivial | exact Or.inr trivial) HG
+    wp_apply wp_raft_becomeFollower c r id s m.Term' m.From' Gf
+      (by exact Int.le_of_eq (congrArg (fun x : w64 => uint.Z x) Hterm'.symm)) (fun _ => rfl)
+      $$ [$Hphys $Hgbf2] as %pvs ⟨Hphys, HGf⟩
+    ihave Hga : ∀ (s1 : NState) (mm : Msg),
+        ⌜HandleAppResult id ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState) m ents
+          (sendMsgs s1 [mm])⌝ -∗
+        Gf -∗ HookGateOpt ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState).gh.tr r
+          (sendOutGate id s1 c MsgAppResp [mm]) G' $$ [Hgapp]
+    · rw [Hterm']
+      iintro %s1 %mm %Hr HGf
+      ispecialize Hgapp $$ %trivial %pvs %s1 %mm %Hr HGf
+      iapply hookGateOpt_congr _ _ r _ _ G' (by rfl) (by rfl) $$ Hgapp
     wp_apply wp_raft_handleAppendEntries _ _ _ { becomeFollower s m.Term' m.From' with prvals := pvs }
-      ml m ents sn cl rs Hwf Hnw Hconf Hfid Hty (fun h => by simp [becomeFollower] at h)
-      (by simp only [becomeFollower, resetTo, resetTo0]; first | exact (Hterm (Or.inr (Or.inl Hty))).2 | exact (Hterm (Or.inr (Or.inr (Or.inl Hty)))).2 | exact (Hterm (Or.inr (Or.inr (Or.inr Hty)))).2) (by tr_none) $$ [$Hphys $Hm]
-      as %s' ⟨Hphys, %Hres⟩
+      ml m ents sn cl rs Gf G' Hwf Hnw Hconf Hfid Hty (fun h => by simp [becomeFollower] at h)
+      (by simp only [becomeFollower, resetTo, resetTo0]; exact (Hterm (Or.inr (Or.inl Hty))).2)
+      $$ [$Hphys $Hm $HGf $Hga]
+      as %s' ⟨Hphys, %Hres, HG⟩
     iapply HΦ $$ %GoInterface.nil %s' %false %c
     iframe Hphys
     simp only [Bool.false_eq_true, ↓reduceIte]
-    ipureintro
-    refine ⟨?_, trivial⟩
-    unfold CandidateStepResultC
-    refine ⟨by simp [Hty, MsgApp, MsgSnap], ?_⟩
-    simp only [Hty, MsgVoteResp, MsgProp, MsgApp]
-    refine ⟨trivial, pvs, ?_⟩
-    rw [← Hterm']
-    exact Hres
+    isplitr [HG]
+    · ipureintro
+      unfold CandidateStepResultC
+      refine ⟨by simp [Hty, MsgApp, MsgSnap], ?_⟩
+      simp only [Hty, MsgVoteResp, MsgProp, MsgApp]
+      refine ⟨trivial, pvs, ?_⟩
+      rw [← Hterm']
+      exact Hres
+    isplitr [HG]
+    · ipureintro; first | rfl | trivial
+    ileft
+    isplitr
+    · ipureintro
+      rw [← HHk]
+      exact Or.inl Hty
+    iexact HG
   · -- `MsgHeartbeat`: `becomeFollower(m.Term, m.From)`, then `handleHeartbeat`
     obtain ⟨Hcommit, Hfrom⟩ := Hhb Hty
     have Hterm' := (Hterm (Or.inr (Or.inr (Or.inl Hty)))).1
@@ -265,23 +386,58 @@ theorem stepCandidate.wp_proof
     wp_auto
     wp_apply wp_GetTerm.1 ml _ _ _ _ $$ [$Hm] as Hm
     wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
-    wp_apply wp_raft_becomeFollower _ _ _ _ _ _
-      (by exact Int.le_of_eq (congrArg (fun x : w64 => uint.Z x) Hterm'.symm)) (by tr_none) $$ [$Hphys]
-      as %pvs Hphys
+    ihave Hgbf2 : HookGate s.gh.tr r (NodeEvOf (W64 2) id (becomeFollower s m.Term' m.From') c) Gf
+        $$ [Hgbf HG]
+    · rw [Hterm']
+      iapply Hgbf $$ %(by first | exact Or.inl trivial | exact Or.inr trivial) HG
+    wp_apply wp_raft_becomeFollower c r id s m.Term' m.From' Gf
+      (by exact Int.le_of_eq (congrArg (fun x : w64 => uint.Z x) Hterm'.symm)) (fun _ => rfl)
+      $$ [$Hphys $Hgbf2] as %pvs ⟨Hphys, HGf⟩
+    ihave Hgh : Gf -∗ HookGateOpt ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState).gh.tr r
+        (sendOutGate id { ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState) with
+            logst := { ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState).logst with
+              committed := plogCommitTo
+                ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState).logst.committed m.Commit' } }
+          c MsgHeartbeatResp
+          [{ Msg.plain .heartbeatResp id m.From'
+              ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState).term false with ctx := cl }])
+        G' $$ [Hghb]
+    · rw [Hterm']
+      iintro HGf
+      ispecialize Hghb $$ %trivial %pvs HGf
+      iapply hookGateOpt_congr _ _ r _ _ G' (by rfl) (by rfl) $$ Hghb
     wp_apply wp_raft_handleHeartbeat _ _ _ { becomeFollower s m.Term' m.From' with prvals := pvs }
-      ml _ _ _ m ents sn cl rs Hcommit Hfrom (by simp only [becomeFollower, resetTo, resetTo0]; first | exact (Hterm (Or.inr (Or.inl Hty))).2 | exact (Hterm (Or.inr (Or.inr (Or.inl Hty)))).2 | exact (Hterm (Or.inr (Or.inr (Or.inr Hty)))).2) (by tr_none) $$ [$Hphys $Hm] as ⟨Hphys, -⟩
+      ml _ _ _ m ents sn cl rs Gf G' Hcommit Hfrom
+      (by simp only [becomeFollower, resetTo, resetTo0]; exact (Hterm (Or.inr (Or.inr (Or.inl Hty)))).2)
+      $$ [$Hphys $Hm $HGf $Hgh] as ⟨Hphys, -, HG⟩
     iapply HΦ $$ %GoInterface.nil %_ %false %c
     iframe Hphys
     simp only [Bool.false_eq_true, ↓reduceIte]
-    ipureintro
-    refine ⟨?_, trivial⟩
-    unfold CandidateStepResultC
-    refine ⟨by simp [Hty, MsgHeartbeat, MsgSnap], ?_⟩
-    simp only [Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat]
-    refine ⟨trivial, pvs, ?_⟩
-    rw [← Hterm']
+    isplitr [HG]
+    · ipureintro
+      unfold CandidateStepResultC
+      refine ⟨by simp [Hty, MsgHeartbeat, MsgSnap], ?_⟩
+      simp only [Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat]
+      refine ⟨trivial, pvs, ?_⟩
+      rw [← Hterm']
+    isplitr [HG]
+    · ipureintro; first | rfl | trivial
+    ileft
+    isplitr
+    · ipureintro
+      rw [← HHk]
+      exact Or.inr (Or.inl Hty)
+    iexact HG
   · -- `MsgBeat`, `MsgAppResp`, `MsgHeartbeatResp`: no arm; `myVoteRespType` is one of
     -- the two response types, neither of these
+    have Hnh0 : ¬ (m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat ∨
+        ((m.Type' = MsgVoteResp ∧ s.role = .candidate ∨
+          m.Type' = MsgPreVoteResp ∧ s.role = .preCandidate) ∧
+         (JQuorum c (granted (recordVote s.votes m.From' (!m.Reject'))) ∨
+          JLost c (recordVote s.votes m.From' (!m.Reject'))))) := by
+      rcases Hty with Hty' | Hty' | Hty' | Hty' <;> rw [Hty'] <;>
+        simp [MsgBeat, MsgAppResp, MsgHeartbeatResp, MsgCheckQuorum, MsgApp, MsgHeartbeat,
+          MsgVoteResp, MsgPreVoteResp]
     rcases Hty with Hty' | Hty' | Hty' | Hty' <;> rw [Hty'] <;>
       simp only [MsgBeat, MsgAppResp, MsgHeartbeatResp, MsgCheckQuorum] <;> wp_auto
     all_goals
@@ -291,33 +447,55 @@ theorem stepCandidate.wp_proof
         iapply HΦ $$ %GoInterface.nil %s %false %c
         iframe Hphys
         simp only [Bool.false_eq_true, ↓reduceIte]
-        ipureintro
-        refine ⟨?_, trivial⟩
-        unfold CandidateStepResultC
-        refine ⟨by simp [Hty', MsgBeat, MsgAppResp, MsgHeartbeatResp, MsgCheckQuorum, MsgSnap], ?_⟩
-        simp [Hty', MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
-          MsgAppResp, MsgHeartbeatResp, MsgCheckQuorum]
+        isplitr [HG]
+        · ipureintro
+          unfold CandidateStepResultC
+          refine ⟨by simp [Hty', MsgBeat, MsgAppResp, MsgHeartbeatResp, MsgCheckQuorum, MsgSnap], ?_⟩
+          simp [Hty', MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
+            MsgAppResp, MsgHeartbeatResp, MsgCheckQuorum]
+        isplitr [HG]
+        · ipureintro; first | rfl | trivial
+        iright
+        isplitr
+        · ipureintro
+          rw [← HHk]
+          exact Hnh0
+        iexact HG
       · rw [Hmc Hp]
         wp_auto
         iapply HΦ $$ %GoInterface.nil %s %false %c
         iframe Hphys
         simp only [Bool.false_eq_true, ↓reduceIte]
-        ipureintro
-        refine ⟨?_, trivial⟩
-        unfold CandidateStepResultC
-        refine ⟨by simp [Hty', MsgBeat, MsgAppResp, MsgHeartbeatResp, MsgCheckQuorum, MsgSnap], ?_⟩
-        simp [Hty', MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
-          MsgAppResp, MsgHeartbeatResp, MsgCheckQuorum]
-  · -- `MsgSnap`: `becomeFollower(m.Term, m.From)`, then `handleSnapshot`
+        isplitr [HG]
+        · ipureintro
+          unfold CandidateStepResultC
+          refine ⟨by simp [Hty', MsgBeat, MsgAppResp, MsgHeartbeatResp, MsgCheckQuorum, MsgSnap], ?_⟩
+          simp [Hty', MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
+            MsgAppResp, MsgHeartbeatResp, MsgCheckQuorum]
+        isplitr [HG]
+        · ipureintro; first | rfl | trivial
+        iright
+        isplitr
+        · ipureintro
+          rw [← HHk]
+          exact Hnh0
+        iexact HG
+  · -- `MsgSnap`: `becomeFollower(m.Term, m.From)`, then `handleSnapshot` (untraced only)
     have Hterm' := (Hterm (Or.inr (Or.inr (Or.inr Hty)))).1
-    obtain ⟨Hsn, Hscfg, Hscope, Hfid, Hns⟩ := Hsnap Hty
+    obtain ⟨Hsn, Hscfg, Hscope, Hfid, Hns, Htr⟩ := Hsnap Hty
+    have Hnh0 : ¬ (m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat ∨
+        ((m.Type' = MsgVoteResp ∧ s.role = .candidate ∨
+          m.Type' = MsgPreVoteResp ∧ s.role = .preCandidate) ∧
+         (JQuorum c (granted (recordVote s.votes m.From' (!m.Reject'))) ∨
+          JLost c (recordVote s.votes m.From' (!m.Reject'))))) := by
+      rw [Hty]; simp [MsgSnap, MsgApp, MsgHeartbeat, MsgVoteResp, MsgPreVoteResp]
     rw [show (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard) = DFrac.discard by
       simp [Hty, MsgSnap, MsgProp]]
     simp only [Hty, MsgSnap]
     wp_auto
     wp_apply wp_GetTerm.1 ml _ _ _ _ $$ [$Hm] as Hm
     wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
-    wp_apply wp_raft_becomeFollower _ _ _ _ _ _
+    wp_apply wp_raft_becomeFollowerU _ _ _ _ _ _
       (by exact Int.le_of_eq (congrArg (fun x : w64 => uint.Z x) Hterm'.symm)) (by tr_none) $$ [$Hphys]
       as %pvs Hphys
     -- (2026-10-14) at any configuration: `handleSnapshot` on the struct at `c`
@@ -337,16 +515,27 @@ theorem stepCandidate.wp_proof
     iapply HΦ $$ %GoInterface.nil %s' %false %c
     iframe Hphys
     simp only [Bool.false_eq_true, ↓reduceIte]
-    ipureintro
-    refine ⟨?_, trivial⟩
-    unfold CandidateStepResultC
-    refine ⟨rfl, ?_⟩
-    simp only [Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
-      MsgAppResp, MsgHeartbeatResp, MsgCheckQuorum, MsgSnap]
-    refine ⟨trivial, pvs, ?_⟩
-    rw [← Hterm']
-    exact Hres
+    isplitr [HG]
+    · ipureintro
+      unfold CandidateStepResultC
+      refine ⟨rfl, ?_⟩
+      simp only [Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
+        MsgAppResp, MsgHeartbeatResp, MsgCheckQuorum, MsgSnap]
+      refine ⟨trivial, pvs, ?_⟩
+      rw [← Hterm']
+      exact Hres
+    isplitr [HG]
+    · ipureintro; first | rfl | trivial
+    iright
+    isplitr
+    · ipureintro
+      rw [← HHk]
+      exact Hnh0
+    iexact HG
   · -- `MsgPreVoteResp` (2026-10-04)
+    have Hna : m.Type' ≠ MsgApp := by rw [Hty]; simp [MsgPreVoteResp, MsgApp]
+    have Hnh : m.Type' ≠ MsgHeartbeat := by rw [Hty]; simp [MsgPreVoteResp, MsgHeartbeat]
+    have Hnv : m.Type' ≠ MsgVoteResp := by rw [Hty]; simp [MsgPreVoteResp, MsgVoteResp]
     simp only [Hty, MsgPreVoteResp]
     wp_auto
     rcases Hrole with Hrole | Hrole
@@ -357,12 +546,23 @@ theorem stepCandidate.wp_proof
       iapply HΦ $$ %GoInterface.nil %s %false %c
       iframe Hphys
       simp only [Bool.false_eq_true, ↓reduceIte]
-      ipureintro
-      refine ⟨?_, trivial⟩
-      unfold CandidateStepResultC
-      refine ⟨by simp [Hty, MsgSnap, MsgPreVoteResp], ?_⟩
-      simp [Hty, Hrole, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat,
-        MsgBeat, MsgAppResp, MsgHeartbeatResp, MsgCheckQuorum, MsgSnap, MsgPreVoteResp]
+      isplitr [HG]
+      · ipureintro
+        unfold CandidateStepResultC
+        refine ⟨by simp [Hty, MsgSnap, MsgPreVoteResp], ?_⟩
+        simp [Hty, Hrole, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat,
+          MsgBeat, MsgAppResp, MsgHeartbeatResp, MsgCheckQuorum, MsgSnap, MsgPreVoteResp]
+      isplitr [HG]
+      · ipureintro; first | rfl | trivial
+      iright
+      isplitr
+      · ipureintro
+        rw [← HHk]
+        refine Hnot _ Hna Hnh ?_
+        rintro ⟨⟨h, _⟩ | ⟨_, h⟩, _⟩
+        · exact Hnv h
+        · rw [Hrole] at h; exact absurd h (by decide)
+      iexact HG
     · -- a pre-candidate: `poll`, then win, lose or wait
       rw [Hmp Hrole]
       wp_auto
@@ -391,6 +591,8 @@ theorem stepCandidate.wp_proof
         exact ⟨won, lost, peers, pvs, Hw, Hl, Hs'⟩
       rcases Hres with rfl | rfl | rfl
       · -- `quorum.VoteWon`: the real election, `campaign(campaignElection)`
+        have Hwin : m.Type' = MsgPreVoteResp ∧ s.role = .preCandidate ∧
+            JQuorum c (granted (recordVote s.votes m.From' (!m.Reject'))) := ⟨Hty, Hrole, Hwon.1 rfl⟩
         simp only [VoteWon]
         wp_auto
         wp_apply raft.wp_load_stateC $$ Hphys as Hphys
@@ -398,52 +600,116 @@ theorem stepCandidate.wp_proof
         wp_auto
         have Hnl1 : s.role ≠ .leader := by rw [Hrole]; decide
         have Hnw1 := Hpvnw Hrole Hty
+        have Hde : decide (campaignElection = campaignPreElection) = false := by
+          simp (config := {decide := true}) [campaignElection, campaignPreElection]
+        have Htc : transferCtx campaignElection = [] := by
+          simp (config := {decide := true}) [transferCtx, campaignElection, campaignTransfer]
+        ihave Hgbc : G -∗ (if campaignElection = campaignPreElection then iprop(|={⊤}=> G')
+            else HookGate ({ s with votes := recordVote s.votes m.From' (!m.Reject') } : NState).gh.tr r
+              (NodeEvOf (W64 1) id (becomeCandidate id { s with votes := recordVote s.votes m.From' (!m.Reject') })
+                c) G') $$ [Hgcamp]
+        · simp only [eq_false (show ¬ _ from by simpa using Hde), ite_false]
+          iapply Hgcamp $$ %(⟨trivial, Hwin.2⟩)
+        ihave #Hgsend : □ (∀ (pvs : GMap w64 Progress) (y : w64), ⌜y ∈ c.voters⌝ -∗ G' -∗
+            HookGateOpt ({ s with votes := recordVote s.votes m.From' (!m.Reject') } : NState).gh.tr r
+              (sendOutGate id { campRoleState id { s with votes := recordVote s.votes m.From' (!m.Reject') }
+                  (decide (campaignElection = campaignPreElection)) with prvals := pvs } c
+                (if y = id then vrespW32 (decide (campaignElection = campaignPreElection))
+                 else vreqW32 (decide (campaignElection = campaignPreElection)))
+                [campMsg (decide (campaignElection = campaignPreElection)) id
+                  (({ s with votes := recordVote s.votes m.From' (!m.Reject') } : NState).term + W64 1)
+                  (plogLast ({ s with votes := recordVote s.votes m.From' (!m.Reject') } : NState).logst.prev
+                    (({ s with votes := recordVote s.votes m.From' (!m.Reject') } : NState).logst.sents ++
+                     ({ s with votes := recordVote s.votes m.From' (!m.Reject') } : NState).logst.uents))
+                  (transferCtx campaignElection) y]) G') $$ []
+        · rw [Hde, Htc]
+          imodintro
+          iintro %pvs %y %Hy HG
+          ispecialize Hgvote $$ %(⟨trivial, Hwin.2⟩) %pvs %y %Hy HG
+          iapply hookGateOpt_congr _ _ r _ _ G' (by rfl) (by rfl) $$ Hgvote
         try rw [show go_etcd_io.raft.v3.campaignElection = #campaignElection from rfl]
         wp_apply wp_raft_campaign _ _ _ { s with votes := recordVote s.votes m.From' (!m.Reject') }
-            _ Hnl1 Hcfg Hnw1
+            _ G G' Hnl1 Hcfg Hnw1
             (fun h => by
               have := congrArg List.length h
               simp [campaignElection, campaignPreElection] at this)
-            (by tr_none) $$ [$Hphys]
-          as %peers %pvs ⟨%Hpeers, Hphys⟩
+            $$ [$Hphys $HG $Hgbc $Hgsend]
+          as %peers %pvs ⟨%Hpeers, Hphys, HG⟩
         iapply HΦ $$ %GoInterface.nil %_ %false %c
         iframe Hphys
         simp only [Bool.false_eq_true, ↓reduceIte]
-        ipureintro
-        refine ⟨?_, trivial⟩
-        refine Hres_pv _ true false peers pvs (fun _ => ⟨Hwon.1 rfl, Hpeers⟩)
-          (fun h => absurd h (by decide)) ?_
-        have Htc : transferCtx campaignElection = [] := by
-          simp (config := {decide := true}) [transferCtx, campaignElection, campaignTransfer]
-        rw [Htc]
-        rfl
+        isplitr [HG]
+        · ipureintro
+          refine Hres_pv _ true false peers pvs (fun _ => ⟨Hwon.1 rfl, Hpeers⟩)
+            (fun h => absurd h (by decide)) ?_
+          rw [Htc]
+          rfl
+        isplitr [HG]
+        · ipureintro; first | rfl | trivial
+        ileft
+        isplitr
+        · ipureintro
+          rw [← HHk]
+          exact Or.inr (Or.inr ⟨Or.inr ⟨Hty, Hrole⟩, Or.inl (Hwon.1 rfl)⟩)
+        iexact HG
       · -- `quorum.VoteLost`: step down at the unchanged term
         simp only [VoteLost]
         wp_auto
         wp_apply raft.wp_load_TermC $$ Hphys as Hphys
-        wp_apply wp_raft_becomeFollower _ _ _ _ _ _ (by exact Int.le_refl _) (by tr_none) $$ [$Hphys]
-          as %pvs Hphys
+        have Hlo : (m.Type' = MsgVoteResp ∧ s.role = .candidate ∨
+            m.Type' = MsgPreVoteResp ∧ s.role = .preCandidate) ∧
+            JLost c (recordVote s.votes m.From' (!m.Reject')) := ⟨Or.inr ⟨Hty, Hrole⟩, Hlost.1 rfl⟩
+        ispecialize Hglost $$ %(by first | exact ⟨Or.inl ⟨trivial, Hrole⟩, Hlost.1 rfl⟩ | exact ⟨Or.inr ⟨trivial, Hrole⟩, Hlost.1 rfl⟩) HG
+        wp_apply wp_raft_becomeFollower c r id _ _ _ G' (by exact Int.le_refl _) (fun _ => rfl)
+          $$ [$Hphys $Hglost] as %pvs ⟨Hphys, HG⟩
         iapply HΦ $$ %GoInterface.nil %_ %false %c
         iframe Hphys
         simp only [Bool.false_eq_true, ↓reduceIte]
-        ipureintro
-        refine ⟨?_, trivial⟩
-        exact Hres_pv _ false true [] pvs (fun h => absurd h (by decide)) (fun _ => Hlost.1 rfl) rfl
+        isplitr [HG]
+        · ipureintro
+          exact Hres_pv _ false true [] pvs (fun h => absurd h (by decide)) (fun _ => Hlost.1 rfl) rfl
+        isplitr [HG]
+        · ipureintro; first | rfl | trivial
+        ileft
+        isplitr
+        · ipureintro
+          rw [← HHk]
+          exact Or.inr (Or.inr ⟨Or.inr ⟨Hty, Hrole⟩, Or.inr (Hlost.1 rfl)⟩)
+        iexact HG
       · -- `quorum.VotePending`: keep waiting
         simp only [VotePending]
         wp_auto
         iapply HΦ $$ %GoInterface.nil %_ %false %c
         iframe Hphys
         simp only [Bool.false_eq_true, ↓reduceIte]
-        ipureintro
-        refine ⟨?_, trivial⟩
-        refine Hres_pv _ false false [] s.prvals (fun h => absurd h (by decide))
-          (fun h => absurd h (by decide)) ?_
-        cases s; rfl
+        isplitr [HG]
+        · ipureintro
+          refine Hres_pv _ false false [] s.prvals (fun h => absurd h (by decide))
+            (fun h => absurd h (by decide)) ?_
+          cases s; rfl
+        isplitr [HG]
+        · ipureintro; first | rfl | trivial
+        iright
+        isplitr
+        · ipureintro
+          rw [← HHk]
+          refine Hnot _ Hna Hnh ?_
+          rintro ⟨_, h | h⟩
+          · exact absurd (Hwon.2 h) (by decide)
+          · exact absurd (Hlost.2 h) (by decide)
+        iexact HG
 
   · -- `MsgReadIndex`, `MsgReadIndexResp` (2026-10-12), and (2026-10-13) `MsgForgetLeader`,
     -- `MsgTransferLeader` and the local reports: no arm; `MsgTimeoutNow`: logged. In each case
     -- `myVoteRespType` is one of the two vote response types, neither of these
+    have Hnh0 : ¬ (m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat ∨
+        ((m.Type' = MsgVoteResp ∧ s.role = .candidate ∨
+          m.Type' = MsgPreVoteResp ∧ s.role = .preCandidate) ∧
+         (JQuorum c (granted (recordVote s.votes m.From' (!m.Reject'))) ∨
+          JLost c (recordVote s.votes m.From' (!m.Reject'))))) := by
+      rcases Hty with Hty' | Hty' | Hty' | Hty' | Hty' | Hty' | Hty' <;> rw [Hty'] <;>
+        simp [MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgTransferLeader,
+          MsgTimeoutNow, MsgUnreachable, MsgSnapStatus, MsgApp, MsgHeartbeat, MsgVoteResp, MsgPreVoteResp]
     rcases Hty with Hty' | Hty' | Hty' | Hty' | Hty' | Hty' | Hty' <;> rw [Hty'] <;>
       simp only [MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgTransferLeader,
         MsgTimeoutNow, MsgUnreachable, MsgSnapStatus] <;> wp_auto
@@ -460,13 +726,21 @@ theorem stepCandidate.wp_proof
         iapply HΦ $$ %GoInterface.nil %s %false %c
         iframe Hphys
         simp only [Bool.false_eq_true, ↓reduceIte]
-        ipureintro
-        refine ⟨?_, trivial⟩
-        unfold CandidateStepResultC
-        refine ⟨by simp [Hty', MsgSnap, MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgTransferLeader, MsgTimeoutNow, MsgUnreachable, MsgSnapStatus], ?_⟩
-        simp [Hty', MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
-          MsgAppResp, MsgHeartbeatResp, MsgCheckQuorum, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
-          MsgForgetLeader, MsgTransferLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow]
+        isplitr [HG]
+        · ipureintro
+          unfold CandidateStepResultC
+          refine ⟨by simp [Hty', MsgSnap, MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgTransferLeader, MsgTimeoutNow, MsgUnreachable, MsgSnapStatus], ?_⟩
+          simp [Hty', MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
+            MsgAppResp, MsgHeartbeatResp, MsgCheckQuorum, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
+            MsgForgetLeader, MsgTransferLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow]
+        isplitr [HG]
+        · ipureintro; first | rfl | trivial
+        iright
+        isplitr
+        · ipureintro
+          rw [← HHk]
+          exact Hnh0
+        iexact HG
       · rw [Hmc Hp]
         wp_auto
         try (
@@ -478,13 +752,21 @@ theorem stepCandidate.wp_proof
         iapply HΦ $$ %GoInterface.nil %s %false %c
         iframe Hphys
         simp only [Bool.false_eq_true, ↓reduceIte]
-        ipureintro
-        refine ⟨?_, trivial⟩
-        unfold CandidateStepResultC
-        refine ⟨by simp [Hty', MsgSnap, MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgTransferLeader, MsgTimeoutNow, MsgUnreachable, MsgSnapStatus], ?_⟩
-        simp [Hty', MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
-          MsgAppResp, MsgHeartbeatResp, MsgCheckQuorum, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
-          MsgForgetLeader, MsgTransferLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow]
+        isplitr [HG]
+        · ipureintro
+          unfold CandidateStepResultC
+          refine ⟨by simp [Hty', MsgSnap, MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgTransferLeader, MsgTimeoutNow, MsgUnreachable, MsgSnapStatus], ?_⟩
+          simp [Hty', MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
+            MsgAppResp, MsgHeartbeatResp, MsgCheckQuorum, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
+            MsgForgetLeader, MsgTransferLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow]
+        isplitr [HG]
+        · ipureintro; first | rfl | trivial
+        iright
+        isplitr
+        · ipureintro
+          rw [← HHk]
+          exact Hnh0
+        iexact HG
 end proof
 
 end EtcdGrove
