@@ -1066,6 +1066,11 @@ unless they start otherwise. The specs are written to each choice except D6 (ope
   never crashes**; (3) **random reconfigurations** during the test (members added, removed,
   promoted), so the raft membership fixes and join specs are back in scope.
 
+- **More answers (2026-11-10):** PreVote **on** in the test; Q1 accepted (Perennial: a node can be
+  marked non-crashing, for the client node); Q6: snapshots stay reachable (F9 to be tested and fixed
+  under the fix rule). Network design: handler panics are program panics (coordinator; the
+  pipeline-panic issue is fixed on the fork).
+
 ### Needs your approval
 
 New client-visible ghost state, or a change to an API or decision you approved.

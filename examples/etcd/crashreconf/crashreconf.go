@@ -239,6 +239,8 @@ func serverConfig(name string, i int, cluster types.URLsMap, newCluster bool,
 		// etcd's defaults (--strict-reconfig-check, --max-learners), which the zero values turn off
 		StrictReconfigCheck: true,
 		MaxLearners:         1,
+		// etcd's default --pre-vote (the user's choice, 2026-11-10; etcdstart's members keep it off)
+		PreVote: true,
 		// the auto-compactor off (a zero retention), as etcdstart's members
 		AutoCompactionMode: "revision",
 		Logger:             lg,
