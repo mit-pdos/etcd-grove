@@ -683,7 +683,7 @@ theorem raft.Step.wp_proof
   have wp_raft_send := raft.send.untraced wp_raft_send
   have P : raft.Step.Postulates (GF := GF) (hG := hG) :=
     ⟨raft.hup.untraced wp_raft_hup, raft.becomeFollower.untraced wp_raft_becomeFollower, wp_voteRespMsgType, wp_raft_send, stepCandidate.untraced wp_stepCandidate,
-     stepFollower.untraced wp_stepFollower, wp_stepLeader, traceReceiveMessage.untraced wp_traceReceiveMessage, wp_raftLog_lastEntryID,
+     stepFollower.untraced wp_stepFollower, stepLeader.untraced wp_stepLeader, traceReceiveMessage.untraced wp_traceReceiveMessage, wp_raftLog_lastEntryID,
      wp_raftLog_isUpToDate, wp_raftLog_stableTo, wp_raft_appliedTo, wp_raft_appliedSnap,
      wp_raft_reduceUncommittedSize, wp_entsSize, wp_payloadsSize⟩
   have Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG) :=

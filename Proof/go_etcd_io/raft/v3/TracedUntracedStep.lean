@@ -14,6 +14,7 @@ public import Spec.go_etcd_io.raft.v3.raft__campaign
 public import Spec.go_etcd_io.raft.v3.raft__hup
 public import Spec.go_etcd_io.raft.v3.stepCandidate
 public import Spec.go_etcd_io.raft.v3.stepFollower
+public import Spec.go_etcd_io.raft.v3.stepLeader
 
 @[expose] public section
 
@@ -400,6 +401,91 @@ theorem stepFollower.untraced (h : stepFollower.spec (GF := GF) (hG := hG)) :
   iintro %err %s' %dropped %c' ⟨Hphys, %Hres, Herr, -⟩
   iapply HΦ $$ %err %s' %dropped %c'
   iframe Hphys Herr
+  ipureintro; exact Hres
+
+/-- `stepLeader.spec` at an untraced node (the statement before slice 8). -/
+abbrev stepLeader.untracedTriple : Prop :=
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
+    (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (k0 : Nat),
+  (m.Type' = MsgVoteResp ∨ m.Type' = MsgBeat ∨
+   m.Type' = MsgHeartbeatResp ∨ m.Type' = MsgAppResp ∨
+   m.Type' = MsgProp ∨ m.Type' = MsgApp ∨
+   m.Type' = MsgHeartbeat ∨ m.Type' = MsgPreVoteResp ∨
+   m.Type' = MsgReadIndex ∨
+   (m.Type' = MsgReadIndexResp ∨ m.Type' = MsgForgetLeader ∨ m.Type' = MsgTimeoutNow ∨
+    m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus ∨ m.Type' = MsgTransferLeader ∨
+    m.Type' = MsgCheckQuorum)) →
+  s.role = .leader →
+  (m.Type' = MsgBeat ∨ m.Type' = MsgTransferLeader → s.term ≠ W64 0) →
+  (m.Type' = MsgAppResp → m.From' ≠ W64 0) →
+  (m.Type' = MsgHeartbeatResp ∨ (m.Type' = MsgAppResp ∧ m.Reject' = true) →
+   m.From' ≠ id) →
+  (m.Type' = MsgProp →
+   ents ≠ [] ∧
+   (ents.length : Int) < 2^61 ∧
+   s.term ≠ W64 0) →
+  (m.Type' = MsgHeartbeatResp ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgReadIndex →
+   RdOk c.voters s.rd ∧ s.term ≠ W64 0) →
+  (m.Type' = MsgReadIndex → ents ≠ []) →
+  (m.Type' = MsgHeartbeatResp →
+   (ctx = [] ∨ 8 ≤ ctx.length) ∧
+   (ctx ≠ [] → uint.Z (leToU64 (ctx.take 8))
+                 ≤ uint.Z s.rd.ro.confirmed + (s.rd.ro.pending.length : Int)) ∧
+   c.voters ≠ ∅) →
+  (m.Type' = MsgAppResp →
+    (m.Reject' = false → uint.Z m.Index' ≤ uint.Z (logLast s.logst)) ∧
+    (m.Reject' = true → s.gh.ns = true →
+      2 ≤ uint.Z m.Index' ∧ 1 ≤ uint.Z m.RejectHint' ∧ uint.Z m.RejectHint' ≤ uint.Z m.Index' ∧
+      (∀ t0, plogTermAt s.logst.prev (s.logst.sents ++ s.logst.uents) (W64 1) = some t0 →
+        uint.Z t0 ≤ 1))) →
+  s.gh.tr = none →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+      "Hm" ∷ msgIn ml (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
+               ⟨m, ents, sn, ctx, rs⟩ ∗
+      "Hcc" ∷ (⌜m.Type' = MsgProp⌝ -∗ ∃ cs, ccEntsOk ents cs) ∗
+      "#Hrc" ∷ ⧖ k0 }}
+    (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #ml))
+  {{ (err : GoInterface) (s' : NState) (dropped : Bool), RET #err;
+      ownRaftPhysCV c c.voters r id s' ∗
+      (⌜m.Type' = MsgProp ∧ dropped = false⌝ -∗ ⧖ (k0 + ents.length)) ∗
+      ⌜LeaderStepResultC c id s m ents dropped s' ctx⌝ ∗
+      (if dropped then globalAddr ErrProposalDropped ↦□ err
+       else ⌜err = interface.nil⌝) }}
+
+/-- `stepLeader.spec`'s untraced instance: every gate from the struct's nil logger, `G := emp`. -/
+theorem stepLeader.untraced (h : stepLeader.spec (GF := GF) (hG := hG)) :
+    stepLeader.untracedTriple (GF := GF) (hG := hG) := by
+  intro c r id s ml m ents sn ctx rs k0 Hty Hlead Htz Hfrom0 Hself Hprop Hrdnz Hri Hhr Hack htr
+  iintro %Φ ⟨#Hpkg, Hphys, Hm, Hcc, #Hrc⟩ HΦ
+  icases ownRaftPhysC_traceLogger c r id s htr $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
+  iapply h c r id s ml m ents sn ctx rs k0 iprop(emp) iprop(emp)
+    Hty Hlead Htz Hfrom0 Hself Hprop Hrdnz Hri Hhr Hack (fun _ => htr) $$ [Hphys Hm Hcc]
+  · iframe Hpkg Hphys Hm Hcc Hrc
+    rw [htr]
+    isplitr
+    · iempintro
+    isplitr
+    · imodintro
+      iintro %_ %to %cm %_ %_ -
+      iapply hookGateOpt_none r _ tl iprop(emp) Htlok
+      iframe Htl
+    isplitr
+    · iintro %_ %_ -
+      iapply hookGateOpt_none r _ tl iprop(emp) Htlok
+      iframe Htl
+    isplitr
+    · imodintro
+      iintro %_ %_ %to %cm %_ %_ -
+      iapply hookGateOpt_none r _ tl iprop(emp) Htlok
+      iframe Htl
+    · iintro %_ -
+      iapply hookGate_none r _ tl iprop(emp) Htlok
+      iframe Htl
+  inext
+  iintro %err %s' %dropped ⟨Hphys, Hrc', %Hres, Herr, -⟩
+  iapply HΦ $$ %err %s' %dropped
+  iframe Hphys Hrc' Herr
   ipureintro; exact Hres
 
 end untraced

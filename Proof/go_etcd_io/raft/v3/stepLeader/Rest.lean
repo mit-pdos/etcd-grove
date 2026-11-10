@@ -708,23 +708,29 @@ theorem wp_stepLeader_beat
         (wp_GetType : raftpb.Message.GetType.spec (GF := GF) (hG := hG))
     (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM) (ents : List EntryM)
     (ctx : List w8) (sn : Option SnapshotM) (rs : List Loc) (dq dqe : DFrac) (cap : Bool) (Hty : m.Type' = MsgBeat) (Hlead : s.role = .leader) (Htz : s.term ≠ W64 0)
-    (Htr : s.gh.tr = none) :
+    (G : IProp GF) :
+    -- (Q8 stage 1, slice 8; until then the premise `s.gh.tr = none`) `bcastHeartbeat`'s gate
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
-        "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, ctx, rs⟩ }}
+        "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, ctx, rs⟩ ∗
+        "#Hgate" ∷ □ (∀ (to cm : w64), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
+          ⌜uint.Z cm ≤ uint.Z s.logst.committed ∧
+            uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ -∗ G -∗
+          HookGateOpt s.gh.tr r (sendOutGate id s c MsgHeartbeat
+            [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] (hbCtx s.rd.ro)]) G) ∗
+        "HG" ∷ G }}
       (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         ownRaftPhysCV c c.voters r id s' ∗ ⌜err = interface.nil⌝ ∗
-        ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ }} := by
-  -- (Q8 stage 1, slice 5) the untraced instance (`TracedUntraced.lean`)
-  have wp_raft_bcastHeartbeat := raft.bcastHeartbeat.untraced wp_raft_bcastHeartbeat
-  wp_start as ⟨Hphys, Hm⟩
+        ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ ∗ G }} := by
+  wp_start as ⟨Hphys, Hm, #Hgate, HG⟩
   wp_auto
   wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hm] as Hm
   simp only [Hty, MsgBeat]
   wp_auto
-  wp_apply wp_raft_bcastHeartbeat c r id s Hlead Htz (by tr_none) $$ [$Hphys] as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
+  wp_apply wp_raft_bcastHeartbeat c r id s G Hlead Htz $$ [$Hphys $Hgate $HG]
+    as %ms %pvs ⟨Hphys, %Hms, %Hmm, HG⟩
   iapply HΦ
-  iframe Hphys
+  iframe Hphys HG
   ipureintro
   exact ⟨rfl, Or.inr (Or.inl ⟨Hty, ms, pvs, rfl,
     fun m' h => ⟨(Hms m' h).1, by rw [(Hms m' h).2]; exact hbCtx_ok _⟩, Hmm⟩)⟩
@@ -1050,16 +1056,24 @@ theorem wp_stepLeader_readindex
     (ctx : List w8) (sn : Option SnapshotM) (rs : List Loc) (dq dqe : DFrac) (cap : Bool)
     (Hty : m.Type' = MsgReadIndex) (Hlead : s.role = .leader) (Hnz : s.term ≠ W64 0)
     (Hne : ents ≠ [])
-    (Htr : s.gh.tr = none) :
+    (G : IProp GF) :
+    -- (Q8 stage 1, slice 8; until then the premise `s.gh.tr = none`) `sendMsgReadIndexResponse`'s
+    -- gates
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
-        "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, ctx, rs⟩ }}
+        "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, ctx, rs⟩ ∗
+        "HG" ∷ G ∗
+        "Hgresp" ∷ (⌜CfgSingle c id⌝ -∗ G -∗ HookGateOpt s.gh.tr r none G) ∗
+        "#Hgate" ∷ □ (⌜¬ CfgSingle c id⌝ -∗ ∀ (to cm : w64), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
+          ⌜uint.Z cm ≤ uint.Z s.logst.committed ∧
+            uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ -∗ G -∗
+          HookGateOpt s.gh.tr r (sendOutGate id (arriveState id s m ents) c MsgHeartbeat
+            [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] []
+              (hbCtx (readonlyAdd s.rd.ro (arriveReq s m ents)))]) G) }}
       (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         ownRaftPhysCV c c.voters r id s' ∗ ⌜err = interface.nil⌝ ∗
-        ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ }} := by
-  -- (Q8 stage 1, slice 6) the untraced instance (`TracedUntracedSend.lean`)
-  have wp_sendMsgReadIndexResponse := sendMsgReadIndexResponse.untraced wp_sendMsgReadIndexResponse
-  wp_start as ⟨Hphys, Hm⟩
+        ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ ∗ G }} := by
+  wp_start as ⟨Hphys, Hm, HG, Hgresp, #Hgate⟩
   wp_auto
   wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hm] as Hm
   simp only [Hty, MsgReadIndex]
@@ -1098,16 +1112,16 @@ theorem wp_stepLeader_readindex
       iexists sn, ctx, rs
       iexact Hm
     iapply HΦ
-    iframe Hphys
+    iframe Hphys HG
     ipureintro
     exact ⟨rfl, Or.inr (Or.inr (Or.inr (Or.inl ⟨Hty, Or.inl ⟨Hb', rfl⟩⟩)))⟩
   · -- `sendMsgReadIndexResponse(r, m)`
     have Hb' := Hb.1 rfl
     wp_auto
-    wp_apply wp_sendMsgReadIndexResponse c r id s ml m ents sn ctx rs Hlead Hnz Hne (by tr_none) $$ [$Hphys $Hm]
-      as %s' ⟨Hphys, %Hres⟩
+    wp_apply wp_sendMsgReadIndexResponse c r id s ml m ents sn ctx rs G Hlead Hnz Hne
+      $$ [$Hphys $Hm $HG $Hgresp $Hgate] as %s' ⟨Hphys, %Hres, HG⟩
     iapply HΦ
-    iframe Hphys
+    iframe Hphys HG
     ipureintro
     exact ⟨rfl, Or.inr (Or.inr (Or.inr (Or.inl ⟨Hty, Or.inr ⟨Hb', Hres⟩⟩)))⟩
 

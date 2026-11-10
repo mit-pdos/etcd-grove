@@ -107,6 +107,10 @@ public import Spec.go_etcd_io.raft.v3.raft__appendEntry
 -- read-index (2026-10-12)
 public import Spec.go_etcd_io.raft.v3.releasePendingReadIndexMessages
 public import Spec.go_etcd_io.raft.v3.raft__responseToReadIndexReq
+-- (2026-11-10, Q8 stage 1 slice 8) the gates' callees
+public import Spec.go_etcd_io.raft.v3.raft__bcastHeartbeat
+public import Spec.go_etcd_io.raft.v3.sendMsgReadIndexResponse
+public import Spec.go_etcd_io.raft.v3.raft__becomeFollower
 
 @[expose] public section
 
@@ -324,10 +328,20 @@ change), and `RdOk` is over the voters of either half. A read-index request at a
 the pinned raft has the fix of `issues/raft-readindex-singleton-stale.md`: the shortcut is in
 `sendMsgReadIndexResponse`, after `committedEntryInCurrentTerm`, and only for the leader as the
 single voter. (Until 2026-10-14 also `stepLeader.specS`, at a simple configuration; no
-caller.) -/
+caller.)
+
+(2026-11-10, Q8 stage 1 slice 8 of `notes/trace-validation-plan.md`) **One spec for both modes, for
+the arms gated so far**: in place of stage 0's premise `s.gh.tr = none`, the caller's resource `G`
+through the gates of `MsgBeat` (`bcastHeartbeat`'s per-heartbeat gate, `G` to `G`), `MsgReadIndex`
+(`sendMsgReadIndexResponse`'s two gates, `G` to `G`) and `MsgCheckQuorum` (`becomeFollower`'s gate
+on a step-down, `G` to `G'`); `G'` back after a step-down, else `G`. The arms with a send or a commit
+line at a state the spec does not yet name (`MsgProp`, `MsgAppResp`, `MsgHeartbeatResp`,
+`MsgTransferLeader`) keep the premise, now on their type (`notes/decisions.md`, "Q8 stage 1 (slice
+8)"). The untraced instance is `stepLeader.untraced` (`TracedUntracedStep.lean`). -/
 abbrev stepLeader.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
-    (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (k0 : Nat),
+    (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (k0 : Nat)
+    (G G' : IProp GF),
   (m.Type' = MsgVoteResp ∨ m.Type' = MsgBeat ∨
    m.Type' = MsgHeartbeatResp ∨ m.Type' = MsgAppResp ∨
    m.Type' = MsgProp ∨ m.Type' = MsgApp ∨
@@ -382,9 +396,10 @@ abbrev stepLeader.spec : Prop :=
   -- (raft-final, 2026-10-29, U9: until then a transfer request only with leader transfer on,
   -- `NGhost.xf`, D21 M2r)
   -- (2026-11-09, Q8 stage 0 of `notes/trace-validation-plan.md`) an untraced node: its trace
-  -- hooks see a nil logger (`TraceLoggerOkS`); stage 1 replaces this premise by the traced
-  -- capability (`trCapB s.gh.tr …`, `TracedHooksDraft.lean`)
-  s.gh.tr = none →
+  -- hooks see a nil logger (`TraceLoggerOkS`); (2026-11-10, slice 8) only for the arms not yet
+  -- gated
+  (m.Type' = MsgProp ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp ∨
+    m.Type' = MsgTransferLeader → s.gh.tr = none) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       -- (stage R4) the message, as `Step` received it: its entry pointers owned for a
@@ -395,14 +410,38 @@ abbrev stepLeader.spec : Prop :=
       "Hcc" ∷ (⌜m.Type' = MsgProp⌝ -∗ ∃ cs, ccEntsOk ents cs) ∗
       -- (2026-10-18, D19b stage 5) a time receipt, raised by one per entry of an appended
       -- proposal (`appendEntry`'s)
-      "#Hrc" ∷ ⧖ k0 }}
+      "#Hrc" ∷ ⧖ k0 ∗
+      -- (2026-11-10, Q8 stage 1 slice 8) the caller's resource, through the gates of the arm
+      "HG" ∷ G ∗
+      -- `MsgBeat`: `bcastHeartbeat`'s gate, per heartbeat, at `s`
+      "#Hgbeat" ∷ □ (⌜m.Type' = MsgBeat⌝ -∗ ∀ (to cm : w64), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
+          ⌜uint.Z cm ≤ uint.Z s.logst.committed ∧
+            uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ -∗ G -∗
+        HookGateOpt s.gh.tr r (sendOutGate id s c MsgHeartbeat
+          [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] (hbCtx s.rd.ro)]) G) ∗
+      -- `MsgReadIndex`: `sendMsgReadIndexResponse`'s gates (the single voter's response, at no
+      -- event; the heartbeats, at the state with the request registered)
+      "Hgriresp" ∷ (⌜m.Type' = MsgReadIndex⌝ -∗ ⌜CfgSingle c id⌝ -∗ G -∗ HookGateOpt s.gh.tr r none G) ∗
+      "#Hgrihb" ∷ □ (⌜m.Type' = MsgReadIndex⌝ -∗ ⌜¬ CfgSingle c id⌝ -∗
+        ∀ (to cm : w64), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
+          ⌜uint.Z cm ≤ uint.Z s.logst.committed ∧
+            uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ -∗ G -∗
+        HookGateOpt s.gh.tr r (sendOutGate id (arriveState id s m ents) c MsgHeartbeat
+          [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] []
+            (hbCtx (readonlyAdd s.rd.ro (arriveReq s m ents)))]) G) ∗
+      -- `MsgCheckQuorum`: the step-down's `becomeFollower(r.Term, None)` gate
+      "Hgcq" ∷ (⌜m.Type' = MsgCheckQuorum⌝ -∗ G -∗
+        HookGate s.gh.tr r (NodeEvOf (W64 2) id (becomeFollower s s.term (W64 0)) c) G') }}
     (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #ml))
   {{ (err : GoInterface) (s' : NState) (dropped : Bool), RET #err;
       ownRaftPhysCV c c.voters r id s' ∗
       (⌜m.Type' = MsgProp ∧ dropped = false⌝ -∗ ⧖ (k0 + ents.length)) ∗
       ⌜LeaderStepResultC c id s m ents dropped s' ctx⌝ ∗
       (if dropped then globalAddr ErrProposalDropped ↦□ err
-       else ⌜err = interface.nil⌝) }}
+       else ⌜err = interface.nil⌝) ∗
+      -- `G'` after a quorum check's step-down, else `G`
+      ((⌜m.Type' = MsgCheckQuorum ∧ s'.role = .follower⌝ ∗ G') ∨
+       (⌜¬ (m.Type' = MsgCheckQuorum ∧ s'.role = .follower)⌝ ∗ G)) }}
 
 
 end spec

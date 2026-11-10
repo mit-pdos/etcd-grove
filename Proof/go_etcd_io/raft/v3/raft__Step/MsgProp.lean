@@ -127,7 +127,7 @@ theorem wp_Step_MsgProp
     (wp_traceReceiveMessage : traceReceiveMessage.untracedTriple (GF := GF) (hG := hG))
     (wp_stepFollower : stepFollower.untracedTriple (GF := GF) (hG := hG))
     (wp_stepCandidate : stepCandidate.untracedTriple (GF := GF) (hG := hG))
-    (wp_stepLeader : stepLeader.spec (GF := GF) (hG := hG))
+    (wp_stepLeader : stepLeader.untracedTriple (GF := GF) (hG := hG))
     (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)

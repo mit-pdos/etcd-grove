@@ -175,7 +175,7 @@ structure raft.Step.Postulates : Prop where
   of the three depending on the role -- on `m.Term > r.Term` the term preamble has
   already run `becomeFollower`. -/
   stepFollower : stepFollower.untracedTriple (GF := GF) (hG := hG)
-  stepLeader : stepLeader.spec (GF := GF) (hG := hG)
+  stepLeader : stepLeader.untracedTriple (GF := GF) (hG := hG)
   traceReceiveMessage : traceReceiveMessage.untracedTriple (GF := GF) (hG := hG)
   lastEntryID : raftLog.lastEntryID.spec (GF := GF) (hG := hG)
   isUpToDate : raftLog.isUpToDate.spec (GF := GF) (hG := hG)

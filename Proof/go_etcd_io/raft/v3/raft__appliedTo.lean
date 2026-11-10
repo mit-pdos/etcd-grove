@@ -148,7 +148,7 @@ theorem raft.appliedTo.wp_proof
           try wp_auto
           ihave #Hcc := ccEntsOk_leave (GF := GF)
           wp_apply (StepProof.wp_Step_MsgProp (traceReceiveMessage.untraced wp_traceReceiveMessage) (stepFollower.untraced wp_stepFollower)
-              (stepCandidate.untraced wp_stepCandidate) wp_stepLeader Q c r id s1 ml leaveMsgM none [] [] [leaveEntM]
+              (stepCandidate.untraced wp_stepCandidate) (stepLeader.untraced wp_stepLeader) Q c r id s1 ml leaveMsgM none [] [] [leaveEntM]
               [some (.v2 ConfChangeV2M.empty)] k0 rfl rfl (.inl rfl) (by simp) (by simp)
               (fun h => absurd (h.symm.trans Hrl) (by decide))
               (fun _ => by rw [Hs1term]; exact Hlnz (Hs1role ▸ Hrl)) (Hwf1 (Hs1role ▸ Hrl))
