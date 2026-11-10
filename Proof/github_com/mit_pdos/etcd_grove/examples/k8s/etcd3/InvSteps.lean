@@ -85,41 +85,53 @@ theorem run_snoc (g0 : HSt) (h : List OpV) (S S' : linkv.PSet HSt Input) (a : Op
 
 /-- The store's model's answer on an input, at the instance's state: an answer (never
 `EOther`). -/
-theorem kStep_ans {c : StoreCfg GF DObj} {g0 : HSt} {S : linkv.PSet HSt Input} {σ : KVState}
-    {M : GMap Nat Input} {nx : Nat} (H : KOk c g0 S σ M nx) (hr : σ.rev + 2 < 2 ^ 63)
-    (eD eU : GoInterface) (x : Input) (hx : InOk x)
-    (hk : x.Kind' = W64 0 ∨ x.Kind' = W64 1 ∨ x.Kind' = W64 2 ∨ uint.nat (minOf x) ≤ σ.rev) :
+theorem kStep_ans {c : StoreCfg GF DObj} (hc : CfgD c) {g0 : HSt} {S : linkv.PSet HSt Input}
+    {σ : KVState} {M : GMap Nat Input} {nx : Nat} (H : KOk c g0 S σ M nx) (hr : σ.rev + 2 < 2 ^ 63)
+    (eD eU : GoInterface) (x : Input) (hx : InOk x) (hk4 : x.Kind' ≠ W64 4) :
     ansOf (kStep eD eU x (c.abs σ)).2 = .ok (kStep eD eU x (c.abs σ)).2 := by
   obtain ⟨cf, -, hrel, -⟩ := H.cfg
+  have hK := (krel_abs c hc σ cf.st.st (by omega)).2 hrel.2.1
   have hrv : (c.abs σ).rv + 1 < 2 ^ 64 := by rw [abs_rv]; omega
-  rw [(refine_step eD eU _ _ hrel x hx hrv).2]
-  rcases hk with h | h | h | hmin
-  · exact ansOf_mstepL x cf.st (Or.inl h)
-  · exact ansOf_mstepL x cf.st (Or.inr (Or.inl h))
-  · exact ansOf_mstepL x cf.st (Or.inr (Or.inr h))
-  -- a `Get` whose minimum resource version the state has reached: not the too-large `EOther`
   by_cases hk3 : x.Kind' = W64 0 ∨ x.Kind' = W64 1 ∨ x.Kind' = W64 2
-  · exact ansOf_mstepL x cf.st hk3
-  rw [← (refine_step eD eU _ _ hrel x hx hrv).2]
+  · rw [(refine_step eD eU _ _ hK x hx hrv).2]
+    exact ansOf_mstepL x cf.st.st hk3
+  -- a `Get`: an object, the zero object, "not found" or "too large", never `EOther`
   have h0 : ¬ x.Kind' = W64 0 := fun h => hk3 (Or.inl h)
   have h1 : ¬ x.Kind' = W64 1 := fun h => hk3 (Or.inr (Or.inl h))
   have h2 : ¬ x.Kind' = W64 2 := fun h => hk3 (Or.inr (Or.inr h))
   unfold ansOf
   rw [if_neg]
   simp only [kStep, h0, h1, h2, ↓reduceIte, KSt.get]
-  rw [if_neg (by rw [abs_rv]; omega)]
   repeat' split
-  all_goals simp [outOf, objOutL, zeroOutL]
+  all_goals simp [outOf, objOutL, zeroOutL, tooLargeL, errOutL]
+
+/-- `KvExt` is a preorder. -/
+theorem kvExt_refl (σ : KVState) : k8s.KvExt σ σ := ⟨rfl, rfl, List.prefix_refl _⟩
+
+theorem kvExt_trans {a b d : KVState} (h1 : k8s.KvExt a b) (h2 : k8s.KvExt b d) : k8s.KvExt a d :=
+  ⟨h1.1.trans h2.1, h1.2.1.trans h2.2.1, h1.2.2.trans h2.2.2⟩
+
+theorem kvNext_ext {σ σ' : KVState} (hn : k8s.KvNext σ σ') : k8s.KvExt σ σ' := by
+  rcases hn with rfl | ⟨-, -, h⟩
+  · exact kvExt_refl _
+  · exact h
+
+/-- A state of the history extends one recorded before: one history, the later revision. -/
+theorem kvExt_sameHist {σ σ' : KVState} (h : k8s.KvExt σ σ') :
+    k8s.kvSameHist σ σ' ∧ σ.rev ≤ σ'.rev := by
+  obtain ⟨hc, hb, hp⟩ := h
+  refine ⟨⟨hc, hb, Or.inl hp⟩, ?_⟩
+  unfold KVState.rev; rw [hc]; have := hp.length_le; omega
 
 /-- The revisions' map, after a step: the next revision's state added, if it moved. -/
-theorem revOwn_next (γ : KNames) (σ σ' : KVState) (hn : σ' = σ ∨ σ'.rev = σ.rev + 1) :
+theorem revOwn_next (γ : KNames) (σ σ' : KVState) (hn : k8s.KvNext σ σ') :
     revOwn (GF := GF) γ σ ⊢ |==> revOwn γ σ' := by
   iintro H
-  rcases hn with he | hr
+  rcases hn with he | ⟨hr, -, hext⟩
   · rw [he]; imodintro; iexact H
   iunfold revOwn at H
   icases H with ⟨%Mr, HA, -, %Hok⟩
-  have hfresh : Mr !! (σ.rev + 1) = none := Hok.2 _ (by omega)
+  have hfresh : Mr !! (σ.rev + 1) = none := Hok.2.1 _ (by omega)
   imod ghost_map_insert_persist (σ.rev + 1) σ' hfresh $$ HA with ⟨HA, #He⟩
   imodintro
   iunfold revOwn
@@ -127,10 +139,16 @@ theorem revOwn_next (γ : KNames) (σ σ' : KVState) (hn : σ' = σ ∨ σ'.rev 
   rw [hr]
   iframe He HA
   ipureintro
-  refine ⟨?_, fun n hn => ?_⟩
+  refine ⟨?_, fun n hn => ?_, fun n s hs => ?_⟩
   · rw [hr]; exact GMap.lookup_insert _ _ _
   · rw [GMap.lookup_insert_ne _ _ (by omega)]
-    exact Hok.2 n (by omega)
+    exact Hok.2.1 n (by omega)
+  · by_cases e : σ.rev + 1 = n
+    · subst e
+      rw [GMap.lookup_insert] at hs
+      cases hs; exact kvExt_refl _
+    · rw [GMap.lookup_insert_ne _ _ e] at hs
+      exact kvExt_trans (Hok.2.2 n s hs) hext
 
 /-- The current revision's state, read-only. -/
 theorem revOwn_elem (γ : KNames) (σ : KVState) :
@@ -170,11 +188,11 @@ theorem histOwn_next (c : StoreCfg GF DObj) (σ σ' : KVState) (hn : KvNext σ �
   iframe Hs
   iunfold shistOwn
   iframe Hh
-  rcases hn with he | ⟨hrv, hnew⟩
+  rcases hn with he | ⟨hrv, hnew, hext⟩
   · subst he
     iexact Ho
   obtain ⟨K, hK⟩ := hK
-  have h1 := chgOf_pfx_one σ σ' (Or.inr ⟨hrv, hnew⟩) hrv hw hw' K hK
+  have h1 := chgOf_pfx_one σ σ' (Or.inr ⟨hrv, hnew, hext⟩) hrv hw hw' K hK
   iunfold oneKeyRevs
   imodintro
   iintro %r %hr
@@ -204,12 +222,8 @@ theorem inv_next (γ : KNames) (c : StoreCfg GF DObj) (σ σ' : KVState) (hn : K
     rcases hn with he | ⟨hrv, -⟩
     · rw [he]; omega
     · omega
-  have hn' : σ' = σ ∨ σ'.rev = σ.rev + 1 := by
-    rcases hn with he | ⟨hrv, -⟩
-    · exact Or.inl he
-    · exact Or.inr hrv
   iintro ⟨Hrv, Hhist⟩
-  ihave Hrv := (revOwn_next γ σ σ' hn') $$ Hrv
+  ihave Hrv := (revOwn_next γ σ σ' hn) $$ Hrv
   ihave Hhist := (histOwn_next c σ σ' hn hw hw' hr' hK) $$ Hhist
   imod Hrv with Hrv
   imod Hhist with ⟨Hhist, #Hs⟩
@@ -368,7 +382,7 @@ under the prefix. -/
 theorem cachedObj_of_item (c : StoreCfg GF DObj) (τ : KVState) (hw : kvWf c τ) (K : GoString)
     (o : DObj) (rv : Nat) (b : Bool) (h : (c.abs τ).items K = some ⟨o, rv, b⟩) :
     kvSeen (GF := GF) c.γh τ ∗ oneKeyRevs c τ.rev ⊢
-      cachedObjOk c ⟨o.name, o.uid, o.val, W64 (rv : Int)⟩ := by
+      cachedObjOk c (o.toObj (W64 (rv : Int))) := by
   obtain ⟨hpK, v, hf, hd, hrv⟩ := abs_inv c τ K _ h
   simp only at hd hrv
   have hmem : v ∈ τ.kvs := List.mem_of_find?_eq_some hf
@@ -395,8 +409,8 @@ theorem cachedObj_of_item (c : StoreCfg GF DObj) (τ : KVState) (hw : kvWf c τ)
   rw [hW]
   isplitr
   · ipureintro
-    refine ⟨o.2.1, o.2.2, hr0⟩
-  rw [dobjOf_mk]
+    exact ⟨DObj.toObj_fits o _, hr0⟩
+  rw [dobjOf_toObj]
   iexact Hv
 
 /-- **A deleted key's answer is a cached object**, vacuously: its revision wrote nothing under
@@ -405,7 +419,7 @@ theorem cachedObj_of_del (c : StoreCfg GF DObj) (σ σ' : KVState) (hw' : kvWf c
     (hrv : σ'.rev = σ.rev + 1) (K : GoString) (hpK : c.pfx <+: K)
     (hin : (K, (none : Option GoString)) ∈ chgOf σ σ') (o : DObj) :
     revSeen (GF := GF) c.γh σ σ' ∗ oneKeyRevs c σ'.rev ⊢
-      cachedObjOk c ⟨o.name, o.uid, o.val, W64 ((σ'.rev : Nat) : Int)⟩ := by
+      cachedObjOk c (o.toObj (W64 ((σ'.rev : Nat) : Int))) := by
   have hR : uint.nat (W64 ((σ'.rev : Nat) : Int)) = σ'.rev := by
     have := hw'.2.2.2
     simp only [linkv.absSt] at this
@@ -423,8 +437,8 @@ theorem cachedObj_of_del (c : StoreCfg GF DObj) (σ σ' : KVState) (hw' : kvWf c
   unfold cachedObjOk
   isplitr
   · ipureintro
-    exact ⟨o.2.1, o.2.2, hr0⟩
-  rw [dobjOf_mk]
+    exact ⟨DObj.toObj_fits o _, hr0⟩
+  rw [dobjOf_toObj]
   iexact Hv
 
 /-- **An answer at a step's firing is a cached object** (`ansOk`): its item is in the state
@@ -438,8 +452,7 @@ theorem ansOk_step (c : StoreCfg GF DObj) (σ σ' : KVState) (hw : kvWf c σ) (h
   by_cases he : y.Err' = W64 0 ∧ y.Name' ≠ []
   · rw [if_pos he]
     obtain ⟨o, rv, rfl, hr⟩ := ha he.1 he.2
-    have hco : cachedOf (objOutL ⟨o.name, o.uid, o.val, W64 (rv : Int)⟩) =
-        ⟨o.name, o.uid, o.val, W64 (rv : Int)⟩ := rfl
+    have hco : cachedOf (objOutL (o.toObj (W64 (rv : Int)))) = o.toObj (W64 (rv : Int)) := rfl
     rw [hco]
     rcases hr with ⟨b, hb | hb⟩ | ⟨it, hrv, hit, hnone, hrr⟩
     · iapply cachedObj_of_item c σ hw K o rv b hb
@@ -481,7 +494,7 @@ theorem ansOk_read (c : StoreCfg GF DObj) (σ : KVState) (hw : kvWf c σ) (K : G
   iframe Hs Ho Hr
 
 /-- **A `Create` whose prophecy says it answers** (see the file header). -/
-theorem create_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVNames)
+theorem create_au (γ : KNames) (c : StoreCfg GF DObj) (hc : CfgD c) (g0 : HSt) (γk : KVNames)
     (eD eU : GoInterface) (x : Input) (hx : InOk x) (hk : x.Kind' = W64 0)
     (Φ : val → IProp GF) :
     kInv γ c g0 γk ∗ linU γ g0 (boxIn x) Φ ⊢
@@ -522,14 +535,14 @@ theorem create_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVNames
     iexact HU
   · -- the write's firing: `lintest`'s update commits with the model's output
     iintro %σ' ⟨Hσ, %Hpost⟩
-    obtain ⟨hw', habs, hn, hroom⟩ := Hpost
+    obtain ⟨hw', habs, hn, hroom, hki⟩ := Hpost
     imod Hclose2 with -
     have habs' : c.abs σ' = (kStep eD eU x (c.abs σ)).1 := by rw [habs]; simp [kStep, hk]
     ihave ⟨Hhist, #Hone⟩ := histOwn_one c σ $$ Hhist
     imod (inv_next γ c σ σ' hn Hok.wf hw' hroom (kStep_oneKey c eD eU x σ σ' habs')) $$ [Hrv Hhist]
       with ⟨Hrv, Hhist, %hr', #Hrs⟩
     · iframe
-    obtain ⟨S', HS', Hok'⟩ := kOk_ok Hok eD eU x hx habs' hw' (kvRoom_two hroom)
+    obtain ⟨S', HS', Hok'⟩ := kOk_ok hc Hok eD eU x hx (by intro e; rw [e] at hk; simp at hk) habs' hw' hn hki (kvRoom_two hroom)
     ihave ⟨Hhist, #Hseen'⟩ := histOwn_seen c σ' $$ Hhist
     ihave ⟨Hhist, #Hone'⟩ := histOwn_one c σ' $$ Hhist
     ihave #Hans := ansOk_step c σ σ' Hok.wf hw' (mkeyL x.Key') (kStep eD eU x (c.abs σ)).2
@@ -537,7 +550,7 @@ theorem create_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVNames
     · iframe Hseen Hone Hseen' Hone' Hrs
     have Hst : (k8setcd3S (GF := GF) g0).M.step S (boxIn x, boxOut (kStep eD eU x (c.abs σ)).2) =
         some S' := by
-      rw [step_box, kStep_ans Hok (kvRoom_two hroom) eD eU x hx (Or.inl hk)]; exact HS'
+      rw [step_box, kStep_ans hc Hok (kvRoom_two hroom) eD eU x hx (by rw [hk]; decide)]; exact HS'
     imod (fupd_mask_subseteq HE) with Hclose3
     imod (linU_commit γ g0 x _ Φ h S S' Hr Hst) $$ [Hh HU] with ⟨Hh, HΦ⟩
     · iframe
@@ -553,7 +566,7 @@ theorem create_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVNames
 
 /-- **A `Delete` or `GuaranteedUpdate` whose prophecy says it answers** (see the file header):
 the store's step is the model's on the input (`hstep`). -/
-theorem rw_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVNames)
+theorem rw_au (γ : KNames) (c : StoreCfg GF DObj) (hc : CfgD c) (g0 : HSt) (γk : KVNames)
     (eD eU : GoInterface) (x : Input) (hx : InOk x) (hk : x.Kind' = W64 1 ∨ x.Kind' = W64 2)
     (step : KSt DObj → KSt DObj)
     (hstep : ∀ ks, step ks = (kStep eD eU x ks).1) (γt : GName) (Φ : val → IProp GF) :
@@ -614,14 +627,14 @@ theorem rw_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVNames)
     · -- the linearization point: `lintest`'s update commits with the model's output
       isimp only [↓reduceIte] at Hb
       icases Hb with ⟨Htok, %Hpost⟩
-      obtain ⟨hw', habs, hn⟩ := Hpost
+      obtain ⟨hw', habs, hn, hki⟩ := Hpost
       imod Hclose2 with -
       have habs' : c.abs σ' = (kStep eD eU x (c.abs σ)).1 := by rw [habs, hstep]
       ihave ⟨Hhist, #Hone⟩ := histOwn_one c σ $$ Hhist
       imod (inv_next γ c σ σ' hn Hok.wf hw' hroom (kStep_oneKey c eD eU x σ σ' habs')) $$ [Hrv Hhist]
         with ⟨Hrv, Hhist, %hr', #Hrs⟩
       · iframe
-      obtain ⟨S', HS', Hok'⟩ := kOk_ok Hok eD eU x hx habs' hw' (kvRoom_two hroom)
+      obtain ⟨S', HS', Hok'⟩ := kOk_ok hc Hok eD eU x hx (by intro e; rw [e] at hk; simp at hk) habs' hw' hn hki (kvRoom_two hroom)
       ihave ⟨Hhist, #Hseen'⟩ := histOwn_seen c σ' $$ Hhist
       ihave ⟨Hhist, #Hone'⟩ := histOwn_one c σ' $$ Hhist
       ihave #Hans := ansOk_step c σ σ' Hok.wf hw' (mkeyL x.Key') (kStep eD eU x (c.abs σ)).2
@@ -629,8 +642,8 @@ theorem rw_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVNames)
       · iframe Hseen Hone Hseen' Hone' Hrs
       have Hst : (k8setcd3S (GF := GF) g0).M.step S
           (boxIn x, boxOut (kStep eD eU x (c.abs σ)).2) = some S' := by
-        rw [step_box, kStep_ans Hok (kvRoom_two hroom) eD eU x hx (hk.elim (fun h => Or.inr (Or.inl h))
-          (fun h => Or.inr (Or.inr (Or.inl h))))]; exact HS'
+        rw [step_box, kStep_ans hc Hok (kvRoom_two hroom) eD eU x hx
+          (by intro e; rw [e] at hk; simp at hk)]; exact HS'
       unfold rwCall
       iinv Hc with Hci Hclosec
       icases Hci with (⟨HU, >Hlc⟩ | >Htok')
@@ -658,7 +671,7 @@ theorem rw_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVNames)
 
 /-- **A write whose prophecy says `EOther`, its pending effect** (`Create`; see the file header):
 at the store's firing the pending write `n ↦ x` takes effect, its token consumed. -/
-theorem pend_au1 (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVNames)
+theorem pend_au1 (γ : KNames) (c : StoreCfg GF DObj) (hc : CfgD c) (g0 : HSt) (γk : KVNames)
     (eD eU : GoInterface) (n : Nat) (x : Input) (hk : x.Kind' = W64 0) :
     kInv γ c g0 γk ∗ pendTok γ n x ⊢
       k8sAu1 γk c (fun s => (s.create (E := Empty) (mkeyL x.Key') (mkObj x) 0).1)
@@ -694,7 +707,7 @@ theorem pend_au1 (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVNames)
     imodintro
     iexact Htok
   · iintro %σ' ⟨Hσ, %Hpost⟩
-    obtain ⟨hw', habs, hn, hroom⟩ := Hpost
+    obtain ⟨hw', habs, hn, hroom, hki⟩ := Hpost
     imod Hclose2 with -
     have habs' : c.abs σ' = (kStep eD eU x (c.abs σ)).1 := by rw [habs]; simp [kStep, hk]
     imod (inv_next γ c σ σ' hn Hok.wf hw' hroom (kStep_oneKey c eD eU x σ σ' habs')) $$ [Hrv Hhist]
@@ -708,13 +721,13 @@ theorem pend_au1 (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVNames)
       iunfold kInvBody
       iexists h, S, σ', _, nx
       iframe
-      ipureintro; exact ⟨Hr, kOk_pend Hok eD eU n x Hn habs' hw' (kvRoom_two hroom)⟩
+      ipureintro; exact ⟨Hr, kOk_pend hc Hok eD eU n x Hn habs' hw' hn hki (kvRoom_two hroom)⟩
     imodintro
     itrivial
 
 /-- **A write whose prophecy says `EOther`, its pending effect** (`Delete`, `GuaranteedUpdate`):
 where the store hands the token, the pending write `n ↦ x` takes effect. -/
-theorem pend_rw (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVNames)
+theorem pend_rw (γ : KNames) (c : StoreCfg GF DObj) (hc : CfgD c) (g0 : HSt) (γk : KVNames)
     (eD eU : GoInterface) (n : Nat) (x : Input) (step : KSt DObj → KSt DObj)
     (hstep : ∀ ks, step ks = (kStep eD eU x ks).1) :
     kInv γ c g0 γk ⊢ k8sAuRW γk c step (pendTok γ n x) (fun _ => iprop(True)) := by
@@ -766,7 +779,7 @@ theorem pend_rw (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVNames)
       iempintro
     · isimp only [↓reduceIte] at Hb
       icases Hb with ⟨Htok, %Hpost⟩
-      obtain ⟨hw', habs, hn⟩ := Hpost
+      obtain ⟨hw', habs, hn, hki⟩ := Hpost
       imod Hclose2 with -
       have habs' : c.abs σ' = (kStep eD eU x (c.abs σ)).1 := by rw [habs, hstep]
       imod (inv_next γ c σ σ' hn Hok.wf hw' hroom (kStep_oneKey c eD eU x σ σ' habs')) $$ [Hrv Hhist]
@@ -780,34 +793,31 @@ theorem pend_rw (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVNames)
         iunfold kInvBody
         iexists h, S, σ', _, nx
         iframe
-        ipureintro; exact ⟨Hr, kOk_pend Hok eD eU n x Hn habs' hw' (kvRoom_two hroom)⟩
+        ipureintro; exact ⟨Hr, kOk_pend hc Hok eD eU n x Hn habs' hw' hn hki (kvRoom_two hroom)⟩
       imodintro
       simp only [↓reduceIte]
       itrivial
 
-/-- `call`'s output of an error it cannot place (`Output{Err: EOther}`). -/
-def errOutL : Output := ⟨W64 4, [], 0, [], [], [], 0⟩
+theorem ansOf_otherL : ansOf otherL = .err := by
+  simp [ansOf, otherL, errOutL]
 
-theorem ansOf_errOutL : ansOf errOutL = .err := by
-  simp [ansOf, errOutL]
-
-/-- **A `Get`'s `EOther`** is the model's "too large" answer, `errOutL`. -/
-theorem kStep_err4 (eD eU : GoInterface) (x : Input) (ks : KSt DObj) (hk : x.Kind' = W64 3)
-    (h : (kStep eD eU x ks).2.Err' = W64 4) : (kStep eD eU x ks).2 = errOutL := by
+/-- **A `Get` never answers `EOther` in the model** (stage 7e: above the store's resource version
+it answers `ETooLarge`): `EOther` is a failed call's. -/
+theorem kStep_get_ne4 (eD eU : GoInterface) (x : Input) (ks : KSt DObj) (hk : x.Kind' = W64 3) :
+    (kStep eD eU x ks).2.Err' ≠ W64 4 := by
   have h0 : ¬ x.Kind' = W64 0 := by rw [hk]; decide
   have h1 : ¬ x.Kind' = W64 1 := by rw [hk]; decide
   have h2 : ¬ x.Kind' = W64 2 := by rw [hk]; decide
-  simp only [kStep, h0, h1, h2, ↓reduceIte, KSt.get] at h ⊢
-  revert h
+  simp only [kStep, h0, h1, h2, ↓reduceIte, KSt.get]
   repeat' split
-  all_goals simp [outOf, objOutL, zeroOutL, otherL, errOutL]
+  all_goals simp [outOf, objOutL, zeroOutL, tooLargeL, errOutL]
 
 /-- **A write whose prophecy says `EOther`** (see the file header): `lintest`'s update commits
 at once, the write pending (`kOk_errW`), with the pending write's token. -/
 theorem write_err_commit (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVNames)
     (x : Input) (hx : InOk x) (hw : isWriteL x = true) (Φ : val → IProp GF) :
     kInv γ c g0 γk ∗ linU γ g0 (boxIn x) Φ ⊢
-      |={⊤}=> ∃ n : Nat, contAt g0 x errOutL Φ ∗ pendTok γ n x := by
+      |={⊤}=> ∃ n : Nat, contAt g0 x otherL Φ ∗ pendTok γ n x := by
   have HE := drvE_mask_top
   iintro ⟨#Hinv, HU⟩
   iunfold kInv at Hinv
@@ -816,8 +826,8 @@ theorem write_err_commit (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : 
   icases Hi with ⟨%h, %S, %σ, %M, %nx, Hh, Hσ, HM, Hrv, Hhist, %Hok⟩
   obtain ⟨Hr, Hok⟩ := Hok
   obtain ⟨S', HS', Hok'⟩ := kOk_errW Hok x hw hx
-  have Hst : (k8setcd3S (GF := GF) g0).M.step S (boxIn x, boxOut errOutL) = some S' := by
-    rw [step_box, ansOf_errOutL]; exact HS'
+  have Hst : (k8setcd3S (GF := GF) g0).M.step S (boxIn x, boxOut otherL) = some S' := by
+    rw [step_box, ansOf_otherL]; exact HS'
   imod (fupd_mask_subseteq HE) with Hclose3
   imod (linU_commit γ g0 x _ Φ h S S' Hr Hst) $$ [Hh HU] with ⟨Hh, HΦ⟩
   · iframe
@@ -838,7 +848,7 @@ theorem write_err_commit (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : 
 /-- **A `Get` whose prophecy says `EOther`**: `lintest`'s update commits at once (`kOk_errR`). -/
 theorem read_err_commit (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVNames)
     (x : Input) (hw : isWriteL x = false) (Φ : val → IProp GF) :
-    kInv γ c g0 γk ∗ linU γ g0 (boxIn x) Φ ⊢ |={⊤}=> contAt g0 x errOutL Φ := by
+    kInv γ c g0 γk ∗ linU γ g0 (boxIn x) Φ ⊢ |={⊤}=> contAt g0 x otherL Φ := by
   have HE := drvE_mask_top
   iintro ⟨#Hinv, HU⟩
   iunfold kInv at Hinv
@@ -847,8 +857,8 @@ theorem read_err_commit (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : K
   icases Hi with ⟨%h, %S, %σ, %M, %nx, Hh, Hσ, HM, Hrv, Hhist, %Hok⟩
   obtain ⟨Hr, Hok⟩ := Hok
   obtain ⟨S', HS', Hok'⟩ := kOk_errR Hok x hw
-  have Hst : (k8setcd3S (GF := GF) g0).M.step S (boxIn x, boxOut errOutL) = some S' := by
-    rw [step_box, ansOf_errOutL]; exact HS'
+  have Hst : (k8setcd3S (GF := GF) g0).M.step S (boxIn x, boxOut otherL) = some S' := by
+    rw [step_box, ansOf_otherL]; exact HS'
   imod (fupd_mask_subseteq HE) with Hclose3
   imod (linU_commit γ g0 x _ Φ h S S' Hr Hst) $$ [Hh HU] with ⟨Hh, HΦ⟩
   · iframe
@@ -918,7 +928,7 @@ theorem plain_read_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVN
 first firing at a state of revision `R`, `lintest`'s update commits with the model's output
 there and the commit bit records the state; a later firing at revision `R` sees the same state
 (the revisions' map). -/
-theorem get_read_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVNames)
+theorem get_read_au (γ : KNames) (c : StoreCfg GF DObj) (hc : CfgD c) (g0 : HSt) (γk : KVNames)
     (eD eU : GoInterface) (γc γt γp : GName) (x : Input) (hx : InOk x) (hk : x.Kind' = W64 3)
     (R : w64) (Φ : val → IProp GF) :
     kInv γ c g0 γk ∗ getCall γ c g0 eD eU γc γt γp x Φ ∗ dghostVar γp DFrac.discard (some R) ⊢
@@ -958,18 +968,19 @@ theorem get_read_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVNam
     iempintro
   · iintro ⟨Hσ, %hroom⟩
     imod Hclose2 with -
-    by_cases Hrev2 : σ.rev = uint.nat R ∧ uint.nat (minOf x) ≤ σ.rev
-    · have Hrev := Hrev2.1
+    by_cases Hrev : σ.rev = uint.nat R
+    · have hk4 : x.Kind' ≠ W64 4 := by rw [hk]; decide
       unfold getCall
       iinv Hc with Hci Hclosec
       icases Hci with (⟨HU, >Hlc, >Hγc⟩ | ⟨%σ0, %R0, >#Hv, >#Hp0, >%Hrev0, >#HL, Hrest⟩)
       · -- the first firing at revision `R`: commit
         imod lc_fupd_elim_later $$ Hlc HU with HU
         have habs' : c.abs σ = (kStep eD eU x (c.abs σ)).1 := (kStep_get eD eU x hk _).symm
-        obtain ⟨S', HS', Hok'⟩ := kOk_ok Hok eD eU x hx habs' Hok.wf (kvRoom_two hroom)
+        obtain ⟨S', HS', Hok'⟩ := kOk_ok hc Hok eD eU x hx hk4 habs' Hok.wf (Or.inl rfl)
+          (k8s.keysIn_refl _ _) (kvRoom_two hroom)
         have Hst : (k8setcd3S (GF := GF) g0).M.step S
             (boxIn x, boxOut (kStep eD eU x (c.abs σ)).2) = some S' := by
-          rw [step_box, kStep_ans Hok (kvRoom_two hroom) eD eU x hx (Or.inr (Or.inr (Or.inr Hrev2.2)))]; exact HS'
+          rw [step_box, kStep_ans hc Hok (kvRoom_two hroom) eD eU x hx hk4]; exact HS'
         imod (fupd_mask_subseteq HE) with Hclose3
         imod (linU_commit γ g0 x _ Φ h S S' Hr Hst) $$ [Hh HU] with ⟨Hh, HΦ⟩
         · iframe
@@ -1039,11 +1050,11 @@ theorem get_read_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVNam
       isplitr
       · ipureintro; exact ⟨Hok.wf, kvRoom_two hroom⟩
       iintro %H
-      exact absurd H Hrev2
+      exact absurd H Hrev
 
 /-- **The maker `Get` takes** (a `Get` whose prophecy says it answers): for the pair the client
 prophesies, the revision recorded (`γp`) and each member's read update for it. -/
-theorem get_maker (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (ms : List (client.SrvAt GF))
+theorem get_maker (γ : KNames) (c : StoreCfg GF DObj) (hc : CfgD c) (g0 : HSt) (ms : List (client.SrvAt GF))
     (eD eU : GoInterface) (γc γt γp : GName) (x : Input) (hx : InOk x) (hk : x.Kind' = W64 3)
     (Φ : val → IProp GF) :
     □ ([∗list] sv ∈ ms, kInv γ c g0 sv.γr.kv) ∗ getCall γ c g0 eD eU γc γt γp x Φ ∗
@@ -1060,7 +1071,7 @@ theorem get_maker (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (ms : List (cl
   have hsv : sv ∈ ms := List.mem_of_getElem? hj
   iintro ⟨⟨#Hinvs, #Hc⟩, #Hp⟩
   iright
-  iapply get_read_au γ c g0 sv.γr.kv eD eU γc γt γp x hx hk R Φ
+  iapply get_read_au γ c hc g0 sv.γr.kv eD eU γc γt γp x hx hk R Φ
   iframe Hc Hp
   iapply (BigSepL.bigSepL_mem (Φ := fun sv : client.SrvAt GF => kInv γ c g0 sv.γr.kv)
     hsv) $$ Hinvs

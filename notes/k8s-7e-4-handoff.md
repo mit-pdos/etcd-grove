@@ -23,35 +23,24 @@ etcd-grove-81 says so.
 3. **`Inv.lean`** (`cf62d305bc`, no `sorry`; lean-check clean, built capped): see "The invariant's design"
    below.
 
+4. **`InvSteps.lean`** (no `sorry`, built capped with `Inv`, `Refine`): `kStep_ans` (takes `hc : CfgD c`,
+   `hk4`; a `Get` never answers `EOther`), `kvExt_refl`/`kvExt_trans`/`kvNext_ext`/`kvExt_sameHist`,
+   `revOwn_next` on `KvNext` (keeps `RevOk`'s history clause), the AU lemmas (`create_au`, `rw_au`,
+   `pend_au1`, `pend_rw`, `get_read_au`, `get_maker`) take `hc : CfgD c` and thread `KeysIn`;
+   `kStep_err4` is now `kStep_get_ne4`; InvSteps' nullary `errOutL` is KModel's `otherL`
+   (`ansOf_otherL`). **`readQ`'s commit condition is `σ.rev = R` only** (a `Get` below its minimum answers
+   `ETooLarge`, committed at `R` too); its `n` parameter is unused, to drop with `call`/`Apply`.
+
 ## Next, in order
 
-1. **`InvSteps.lean`** (the only file of step 2 left; `GSt`→`HSt` and `histOwn`→`shistOwn` already
-   replaced, uncommitted edits none). What changes:
-   - `revOwn_next`: take `KvNext σ σ'` (not `σ' = σ ∨ rev+1`); keep `RevOk`'s third clause (every entry
-     `KvExt` to the current state: transitivity of `KvExt` with the step's, `KvExt σ' σ'` refl). Prove
-     `kvExt_trans`, `kvExt_refl` (pure, in `Inv` or here).
-   - `inv_next`: the store's COMM now gives `KvNext σ σ' ∧ kvRoom σ ∧ KeysIn c.pfx σ σ'` (create),
-     `KvNext σ σ' ∧ KeysIn c.pfx σ σ'` (RW, `b = true`); thread `KeysIn` to `kOk_ok`/`kOk_pend`.
-   - `kOk_ok`/`kOk_pend` now take `hc : CfgD c` (from `c.S = driverSpec`, `c.pfx = kpfxD`), `hk4 : x.Kind'
-     ≠ W64 4`, `hn : KvNext`, `hki : KeysIn`. `H.ins n x` now gives `InOk x ∧ isWriteL x = true`.
-   - `kStep_ans`: `refine_step` needs `KRel (c.abs σ) cf.st.st`: from `krel_abs c hc σ _ _ |>.2 hrel.2.1`.
-   - **Gets and `ETooLarge`**: a `Get` above the state's revision now answers `tooLargeL` (Err 6, an
-     `.ok` answer), not `EOther`. So `readQ`'s commit condition `n ≤ σ.rev` (D5) goes: the read commits at
-     the first firing at the prophesied revision `R`, whatever `n`; `kStep_min` (now "Err ≠ 6 → min ≤
-     rev") is no longer needed by `get_read_au`; `kStep_err4`/`read_err_commit` stay for a client error
-     (`EOther`). Rename InvSteps' local `errOutL : Output` (clashes with `KModel.errOutL e k r`) to
-     `otherL` (KModel's, `errOutL (W64 4) [] 0`), also in `Calls`/`call`/`Apply`.
-   - `cachedObj_of_item`/`ansOk_step`/`ansOk_read`: `cachedOf y = objOfL y`, `cachedObjOk`'s pure part is
-     now `fitsD ob ∧ ob.ResourceVersion' ≠ W64 0`; `dobjOf_toObj` replaces `dobjOf_mk`;
-     `AnsFrom`'s object is `objOutL (o.toObj (W64 rv))`.
-   - **Lists, new** (`list_read_au`, `listCall`): as `getCall`/`get_read_au`, with `lOut x σ` for
-     `(kStep …).2`, `lOut_name` for `ansOk` (a list caches nothing), `kOk_list` for the commit. The first
-     page's `Q R σ` must give `kvWf c σ ∧ kvWfHist c σ ∧ kvKeysShort σ` (`H.wf`, `H.hwf`,
-     `keysOk_short σ H.keys`) and record `σ` in `γ.r` (`revOwn_elem`). The later pages' `P σ σ'` (B5 (a),
-     Scope §5): fire at the server's state `σ'`, open `kInv`, read `σ`'s element of `γ.r` against `RevOk`'s
-     third clause: `KvExt σ σ'` gives `kvSameHist σ σ' ∧ σ.rev ≤ σ'.rev` (prove `kvExt_sameHist`); define
-     `P σ σ' := ⌜kvSameHist σ σ' ∧ σ.rev ≤ σ'.rev⌝ ∗ (what getList needs of a later page: kvWf …)`; check
-     `store.GetList.spec`'s use of `P` before fixing it.
+1. **Lists in `InvSteps`** (new): `listCall`/`list_read_au`/`list_maker`, as `getCall`/`get_read_au`/
+   `get_maker`, with `lOut x σ` for `(kStep …).2`, `lOut_name` for `ansOk` (a list caches nothing),
+   `kOk_list` for the commit. The first page's `Q R σ` must give `kvWf c σ ∧ kvWfHist c σ ∧ kvKeysShort σ`
+   (`H.wf`, `H.hwf`, `keysOk_short σ H.keys`) and record `σ` in `γ.r` (`revOwn_elem`). The later pages'
+   `P σ σ'` (B5 (a), Scope §5): fire at the server's state `σ'`, open `kInv`, read `σ`'s element of `γ.r`
+   against `RevOk`'s third clause: `KvExt σ σ'` gives `kvSameHist σ σ' ∧ σ.rev ≤ σ'.rev`
+   (`kvExt_sameHist`); `P σ σ' := ⌜kvSameHist σ σ' ∧ σ.rev ≤ σ'.rev⌝ ∗ …` (check what
+   `store.GetList.spec`/`pagedChunks` need of a later page's `P` first).
 2. `Cache.lean` (cached objects on the 8-field `Obj`), `Calls.lean` (`GenIn` with `InOk`'s new
    conjuncts: workload key, node/app lengths, `parseRVD … = some n ∧ uint.Z n < 2^63`, the list's match,
    `"/objs/" <+:`, `0 ≤ Limit`, `prepareKeyM … isSome`; `errIs` on the 17-field `Output` with
