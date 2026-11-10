@@ -50,7 +50,7 @@ abbrev Apply.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     [k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
-    (γ : KNames) (sp tbl : Loc) (c : StoreCfg GF DObj) (g0 : GSt),
+    (γ : KNames) (sp tbl : Loc) (c : StoreCfg GF DObj) (g0 : HSt),
   c.S = driverSpec → c.pathPrefix = go!"/registry" → c.resourcePrefix = go!"/objs" →
   c.di = decoderI → c.vi = versionerI →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty → storageErrTyOk →

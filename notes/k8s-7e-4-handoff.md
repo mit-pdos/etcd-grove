@@ -152,7 +152,8 @@ Next: step 2, `Apply` (below), then 3-6 of etcd-grove-81's list.
   `listCall_take` (`InvSteps`), `lOut_ans`/`lOut_name` for `ansOk`.
 - `readQ`'s unused `n`: drop it (InvSteps, Apply).
 
-**`Apply.spec` restated** (fourth session, committed, `Apply.lean`'s proof not yet adapted): premises
+**`Apply.spec` restated** (fourth session, committed, built capped `b9.log`; `Apply.lean`'s proof not
+yet adapted): `g0 : HSt` (was `GSt`, stale since `Inv` moved to `HSt`); premises
 `+ c.di = decoderI → c.vi = versionerI →` after the prefixes and `+ clientErrPlain (sem := sem) →
 threadBound GF ≤ 2 ^ 30 - 1 →` after `storageErrTyOk`; `isCache c tbl -∗ rangeStreamOff -∗`; the
 triple `{{ kInOk c i ∗ threadTok }} … {{ RET #o; ioOk i o ∗ threadTok }}` (lintest's `applySpec`).
