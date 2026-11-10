@@ -136,3 +136,50 @@ clause unprovable").
   `err = nil` (etcd's credential returns nil; its proof must then show it). Original question: whether the trusted dial/credentials
   statements (`dialOptsAt`, `perRPCCredsOk`) let a caller install credentials whose error carries a
   status or wraps one; if so, `perRPCCredsOk` should require it not to (etcd's returns nil).
+
+## Checkpoint (ii) decided (etcd-grove-81, 2026-11-10; in `questions.md`): R1 accepted; go-ahead to (iii)
+
+Done after the review (`50b82d8c50`, targeted build green: the bundle's proof, `Client__dial`, `InvClientNew`):
+- `perRPCCredsOk`'s error clause is `err = nil` (soundness fix; finding in `notes/k8s-etcd3-plan.md`,
+  "Soundness finding in the trust base"); etcd's bundle proof already had `err = nil` from
+  `GetRequestMetadata.spec`. No `nonissues/` entry (etcd's credential returns nil).
+- Path 3 (retry policy): nothing excluded it; `grpcResolverAt`'s docstring (axiomatized predicate,
+  `InvDial.lean`) now claims "its service config sets no retry policy" (etcd's: round_robin only; no
+  `GrpcDialOpt` sets a default service config). **List in the Freeze package** as a trusted-text change.
+- `TestCredentialNilError` (next to `TestClientErrorTypes`); gates step 9c runs both (~4 min).
+
+## Next, in order (the Draft's §6 steps 3-7; the next agent starts here)
+
+0. **Merge lean** first when premise-fixes-4 has landed (it adds a no-`Format` conjunct to `statusErrOk`,
+   which the `clientErr` work touches; it also changes etcdstart's premise bags and the http/fmt
+   axioms). Lean at the time of writing: `f4e98c54f9` (premise-fixes-2), not merged yet.
+1. **`clientErrTys`** in `Proof/go_etcd_io/etcd/client/v3/ClientErr.lean`: the four types
+   (`PointerType google_golang_org.grpc.internal.status.Error.ty`, `v3rpc.rpctypes.EtcdError.ty`,
+   `PointerType errors.errorString.ty`, `context.deadlineExceededError.ty`); `clientErr`'s leaf clause
+   gains `ii.ty ∈ clientErrTys`. Docstrings of `grpcInvokerOk`, `cliStreamErr` name the bounds (no
+   DialOptions beyond `GrpcDialOpt`'s, no retry policy, credentials returning nil).
+   Producers found so far (each needs the type):
+   - `clientErr_statusErrOk_of_leaf` (`ErrorsNewOk.lean:133`): add a hypothesis `e.ty ∈ clientErrTys`.
+     Callers: `eofOk_of_init` (**`eofOk` is proved, not trusted**: type `*errorString` from `io`'s init),
+     `ChanCtx.lean:85` (`Canceled`, `*errorString`), `ctxErrClientAllW_of` (`ErrorsNewOk.lean:220-221`).
+   - For `ctxErrClientAllW_of`: do NOT strengthen `ContextErrsClient` (a closed-theorem premise, `Hcec`
+     in many Results: that would be a STOP). The types come from Perennial's `context` init:
+     `isPkgInit context` gives `"#HCanceledCell"` (`*errorString`) and `"#HDeadlineExceededTy"`
+     (`deadlineExceededError`) (`.lake/packages/perennial/Perennial/Proof/context/Base.lean:245-249`).
+   - `rpctypes_etcdError_clientErr` (`rpctypes/Error.lean:70`): `EtcdError.ty` is in the list.
+   - `status.Error.spec` (axiom; `Spec/google_golang_org/grpc/status/Error.lean`): post gains the type
+     (restatement, attacked, not refuted). Then `contextErrToGRPCErr`'s proof.
+   - Then build the client package's leaves (`etc/importers.py --leaves --git HEAD`) and fix the rest.
+   - `clientErrPlain` (`examples/k8s/etcd3/Calls.lean:65`) becomes a lemma (cases on the list,
+     `go_type_set`); `Hpl` goes from the closed theorems.
+2. Draft §2 (`attemptPre`'s `Ψe`, the interceptor's error outcome, `ContextError`/`waitRetryBackoff`,
+   `rangeErrOut`, callers' mechanical edits). STOP if `refreshToken`'s error cannot be handled (§2.2).
+3. §3.1 `Client.Get.spec` at any revision, `Client__GetAt.lean` deleted; STOP if `rangeReply_state_at`
+   needs `receiptBound` (§2.4).
+4. §3.2 the List prophecy patch (`etc/proph-patches/etcd/02-client-list-revision.patch`, prophcheck),
+   re-translation, `Client.List` proof; STOP on owned `Kvs` if only `↦*□` is available.
+5. Link/Results/Adequacy without `Hpl`/`HGetAt`/`HList`; full build; gates; tcb `--check --update` and
+   collections; the Freeze package (checkpoint (iii)); stop before `land.sh`.
+
+Trust-base changes so far for the Freeze list: `perRPCCredsOk` (narrowed), `grpcResolverAt`'s meaning
+(no retry policy); to come: `clientErr`'s conjunct (so `grpcInvokerOk`, `cliStreamErr`), `status.Error.spec`.
