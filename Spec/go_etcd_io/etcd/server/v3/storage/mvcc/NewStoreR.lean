@@ -151,16 +151,25 @@ abbrev mvcc.NewStore.specR : Prop :=
 lessor's part at `[]`), at the real backend, for the callers that hold what the general spec takes
 more than the fresh one: NOT exact. The fresh pre lacks (i) the clean view (`kbView` there; a fresh
 real backend's creator has it clean: `NewStoreApi` builds `bkView` from `bView … true`), (ii) the
-clean read lent the unfixed registration and that registration (`restoreRegM d`, from
-`keyCleanRead_of_backendC`; the fresh pre had it fixed), with the contract at the witness `True`
-(`storeBackendT`, in place of `storeBackend`'s some `Dep`), (iii) the
+backend in `specR`'s form (review round 2's T2): the session contract (`storeSessT`), the contract
+at the witness `True` behind the fix (`restoreFixM d γ -∗ storeBackendT`, in place of
+`storeBackend`'s some `Dep` at a registration already fixed), the clean read lent the unfixed
+registration, and that registration (`restoreRegM d`; the fresh pre had it fixed), (iii) the
 lessor's owner part (`leaseOwn γl [] ∅`: the API's callers hold it, `NewLessor`'s post), (iv) the
 compaction keys' tracked values and well-formedness of `restoreImageM` on (`kbVals`, `fkVM`: the
 open's `fkCl` gives them, `bkNoCmp_fkV_of_fkCl`); and `kb = none` is not covered. The fresh post is
 recovered off exactly (`storeCloserM_off`); on, the closer comes as the compaction right at `-1`
 (`storeCloserM_on`) in place of `storeCloser ∗ crevUB ½ (-1)`, which every on-caller turns into that
 right at once (`compactRightR_of_closer`: `NewStoreApi`, `NewApi`). So the instance is stated with
-those premises added and that post: the callers migrate to it (or to `specR`). -/
+those premises added and that post. **Its callers** (they would migrate to it, keeping the
+creator's `dlInit` instead of fixing it before the call): `NewStoreApi.lean`'s `NewStore.wp_proof`
+(on; it fixes the registration today, `storeDlReg_fix`) and `StoreBackend.lean`'s
+`NewStore_backend` (either mode; it fixes `dlNoDel` or `storeDlReg` today). Both meet the backend
+part of this pre from what they hold at the call: `NewStoreRCallers.lean`'s
+`backendC_newStoreR_pre` (proved; in compaction mode `storeSessT_of_backendC`,
+`storeBackendT_of_backendC` behind the wand, `keyCleanRead_of_backendC`, `dlInit` kept; off,
+`dlNoDel_fix`, `storeBackendT_of_backend`, a constant wand, `keyCleanRead_of_backend`). `NewApi`
+reaches `NewStore` through `New.spec_of_specR` (`NewR.lean`). -/
 theorem mvcc.NewStore.spec_of_specR (h : mvcc.NewStore.specR (GF := GF) (hG := hG))
     [ReceiptBoundLe GF (2 ^ 48)] (lg : Loc) (b le : GoInterface) (cfg : StoreConfig)
     (d : mvcc.KBReal) (γb γl : GName) (P : IProp GF) (rd0 : GoFunc) (wq : Bool)
@@ -168,7 +177,9 @@ theorem mvcc.NewStore.spec_of_specR (h : mvcc.NewStore.specR (GF := GF) (hG := h
     (hcfg : mvcc.batchLimitOk cfg.CompactionBatchLimit') :
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = some d ∧ γ.idx = γi⌝ →
-        mvcc.storeBackendT b s γ P) ∗
+        mvcc.storeSessT b s γ P) ∗
+      (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = some d ∧ γ.idx = γi⌝ →
+        mvcc.restoreFixM d γ -∗ mvcc.storeBackendT b s γ P) ∗
       -- (added) the clean read, lent the unfixed registration
       (∀ γ : mvcc.StoreNames, ⌜γ.bucket = γb ∧ γ.kb = some d ∧ γ.idx = γi⌝ →
         mvcc.keyCleanRead b (mvcc.bucketViewC γ) iprop(mvcc.storeRT γ ∗ mvcc.restoreRegM d)
@@ -209,8 +220,9 @@ theorem mvcc.NewStore.spec_of_specR (h : mvcc.NewStore.specR (GF := GF) (hG := h
       mvcc.crevPermIs γ Perm ∗ mvcc.writerReg s γ ∗
       (∃ pr : Qp, ⌜mvcc.pndW γ + pr = 1⌝ ∗ mvcc.api.newClient γ.api [[], []] (-1) pr s) ∗
       lease.leaseOwn γl [] ∅ ∗ £ 1 }} := by
-  -- `h … d γb γl P rd0 wq γi γok ∅ Perm [] CmpRecs.empty [] none …`: `storeSessT_of_storeBackendT`
-  -- for the session, `storeBackendTR_empty` (the wand ignoring the fix) for the contract and `keyCleanReadR_empty` for the clean read; `restoreRcptM` of
+  -- `h … d γb γl P rd0 wq γi γok ∅ Perm [] CmpRecs.empty [] none …`: the session contract as
+  -- given, `storeBackendTR_empty` under the wand for the contract and `keyCleanReadR_empty` for the
+  -- clean read; `restoreRcptM` of
   -- `[[], []]` is `⧖ 0` (`preceipt_zero`); `pendItems [[], []] [] = ∅` (`pendItems_start`);
   -- `CmpRecs.crev_empty`, `finRev = -1`, `resumes = false` (`resumeCtxM_no`, `resumeBackM_no`); the
   -- certificate's first disjunct; `hookP γ P ⊢ hookInit γ P _` at `γ.kb = some d`.

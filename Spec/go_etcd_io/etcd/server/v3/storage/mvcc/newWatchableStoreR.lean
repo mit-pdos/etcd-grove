@@ -90,11 +90,15 @@ abbrev mvcc.newWatchableStore.specR : Prop :=
       mvcc.resumeBackM d r hk dq Post Y ∗ £ 1 }}
 
 /-- **Today's `newWatchableStore.spec` as an instance**: as `NewStore.spec_of_specR`, not exact, for
-the same reasons (the real backend only; the clean view and read lent the unfixed registration, the contract at the witness `True`; the lessor's part lent;
-the image's tracked values); the post exactly today's off (`storeCloserM_off`, `crevRightM_off`),
+the same reasons (the real backend only; the clean view; the backend in `specR`'s form, review
+round 2's T2: the session contract, the contract at the witness `True` behind the fix, the clean
+read lent the unfixed registration and that registration; the lessor's part lent; the image's
+tracked values); the post exactly today's off (`storeCloserM_off`, `crevRightM_off`),
 on with the compaction right at `-1` in place of `storeCloser ∗ crevRightM` (`NewApi` makes that
 right at once). Stated as the corollary the callers would use; its proof is `h` at `R = []`,
-`r = empty`, `M = ∅`, `Ls = []`, `hk = none`. -/
+`r = empty`, `M = ∅`, `Ls = []`, `hk = none`. **Its callers**: none outside the chain; `New` calls
+`newWatchableStore` with its own pre's backend part unchanged (`New.lean`), so `New.spec_of_specR`'s
+callers' glue (`NewStoreRCallers.lean`'s `backendC_newStoreR_pre`) is this one's. -/
 theorem mvcc.newWatchableStore.spec_of_specR
     (h : mvcc.newWatchableStore.specR (GF := GF) (hG := hG))
     [ReceiptBoundLe GF (2 ^ 48)] (lg : Loc) (b le : GoInterface) (cfg : StoreConfig)
@@ -103,7 +107,9 @@ theorem mvcc.newWatchableStore.spec_of_specR
     (hcfg : mvcc.batchLimitOk cfg.CompactionBatchLimit') :
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = some d ∧ γ.idx = γi⌝ →
-        mvcc.storeBackendT b s γ P) ∗
+        mvcc.storeSessT b s γ P) ∗
+      (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = some d ∧ γ.idx = γi⌝ →
+        mvcc.restoreFixM d γ -∗ mvcc.storeBackendT b s γ P) ∗
       (∀ γ : mvcc.StoreNames, ⌜γ.bucket = γb ∧ γ.kb = some d ∧ γ.idx = γi⌝ →
         mvcc.keyCleanRead b (mvcc.bucketViewC γ) iprop(mvcc.storeRT γ ∗ mvcc.restoreRegM d)
           (mvcc.kbNoCmpF γ.kb γ.bucket)) ∗ mvcc.restoreRegM d ∗

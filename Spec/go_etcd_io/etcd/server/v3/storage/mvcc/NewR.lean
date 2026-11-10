@@ -91,9 +91,14 @@ abbrev mvcc.New.specR : Prop :=
         mvcc.resumeBackM d r hk dq Post Y ∗ £ 1 }}
 
 /-- **Today's `New.spec` as an instance**: as `NewStore.spec_of_specR`, not exact (the real backend
-only; the clean view and read lent the unfixed registration, the contract at the witness `True`; the lessor's part lent; the image's tracked values); the
-post exactly today's off (`wsCloserM_off`, `crevRightM_off`), on with `wsCloserR … (-1)` in place of
-`wsCloser ∗ crevRightM`, which `NewApi` makes at once (`compactRightR_of_closer`). -/
+only; the clean view; the backend in `specR`'s form, review round 2's T2: the session contract, the
+contract at the witness `True` behind the fix, the clean read lent the unfixed registration and
+that registration; the lessor's part lent; the image's tracked values); the post exactly today's off
+(`wsCloserM_off`, `crevRightM_off`), on with `wsCloserR … (-1)` in place of `wsCloser ∗ crevRightM`,
+which `NewApi` makes at once (`compactRightR_of_closer`). **Its caller**: `NewApi.lean`'s
+`New.wp_proof` (on; it fixes the registration today, `storeDlReg_fix`, l. 90), which meets the
+backend part of this pre from what it holds at the call, the creator's `dlInit` kept:
+`NewStoreRCallers.lean`'s `backendC_newStoreR_pre` (proved). -/
 theorem mvcc.New.spec_of_specR (h : mvcc.New.specR (GF := GF) (hG := hG))
     [ReceiptBoundLe GF (2 ^ 48)] (lg : Loc) (b le : GoInterface) (cfg : StoreConfig)
     (d : mvcc.KBReal) (γb γl : GName) (P : IProp GF) (rd0 : GoFunc)
@@ -101,7 +106,9 @@ theorem mvcc.New.spec_of_specR (h : mvcc.New.specR (GF := GF) (hG := hG))
     (hcfg : mvcc.batchLimitOk cfg.CompactionBatchLimit') :
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = some d ∧ γ.idx = γi⌝ →
-        mvcc.storeBackendT b s γ P) ∗
+        mvcc.storeSessT b s γ P) ∗
+      (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = some d ∧ γ.idx = γi⌝ →
+        mvcc.restoreFixM d γ -∗ mvcc.storeBackendT b s γ P) ∗
       (∀ γ : mvcc.StoreNames, ⌜γ.bucket = γb ∧ γ.kb = some d ∧ γ.idx = γi⌝ →
         mvcc.keyCleanRead b (mvcc.bucketViewC γ) iprop(mvcc.storeRT γ ∗ mvcc.restoreRegM d)
           (mvcc.kbNoCmpF γ.kb γ.bucket)) ∗ mvcc.restoreRegM d ∗
