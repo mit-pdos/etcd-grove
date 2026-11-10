@@ -73,8 +73,11 @@ proved from it.
 
 ## Not proved
 
-- **`runner.apply`'s revoke arm** (`sorry`; no spec gap known). The rest of `apply` is proved, and
-  `ApplyLemmas.log_cs_lt` (each revision's changes are distinct keys of `ks`) is proved.
+- (none of `apply`: its revoke arm is proved, 2026-11-10, with `RevokeLemmas.lean`: the revoke's
+  model `opPend_revoke`, `pendOk_revoke'` (it is the store's `leaseDels`, via
+  `leaseDelKeys_eq_onLease`), `runM_succ_revoke`, `stMatch_length_le'` (Revoke's `≤ 2 ^ 62` from
+  `ks.length < 2 ^ 60`), and `revoke_au`/`end_au`: `Revoke`'s `auBegin`/`auEnd` from the
+  incarnation's `incW`, as `write_au` and `endCb_txnEnd`'s steps; no spec change.)
 - `runner.compact` and `runner.checkLeases` are proved (second round of spec changes above, 6-9;
   `CompactLemmas.lean`, `CheckLeasesLemmas.lean`).
 
