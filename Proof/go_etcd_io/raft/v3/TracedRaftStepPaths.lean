@@ -185,7 +185,7 @@ theorem phaseStepB_heartbeat (id : w64) (c : CfgM) (s : NState) (o : List Msg) (
 
 /-- The pinned phase at the idle server (`trCapB_pin`'s form): the voters, the share's server and
 list named, the list a permutation of the outbox's traced messages. -/
-def PinAt (s : NState) (C0 : List w64) (cs0 : ServerC) (P0 : List Etcdraft.Msg) (o : List Msg) :
+abbrev PinAt (s : NState) (C0 : List w64) (cs0 : ServerC) (P0 : List Etcdraft.Msg) (o : List Msg) :
     List w64 → ServerC → List Etcdraft.Msg → Prop :=
   fun C cs P => C = C0 ∧ cs = cs0 ∧ P = P0 ∧ PhaseAt (fun C => SimIdleS C s) o C cs P
 

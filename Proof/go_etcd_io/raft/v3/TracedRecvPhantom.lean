@@ -236,8 +236,8 @@ theorem recvPred_canon_eq (ln : Etcdraft.Line) (y p : Etcdraft.Msg) (hy0 : canon
           rw [hty]
           rcases p1 with h | h <;> rw [h] <;> simp only [y3, p3, y4, p4, y5, p5, hvg]
 
-/-- **The uniqueness and the shape after sending a canonical message** (not an append request with
-entries). -/
+/-- **The uniqueness and the shape after sending a canonical message `p` that pins every in-flight
+message** (`PinnedBy`). -/
 theorem msgsUniq_send_canon (σ : Etcdraft.State) (p : Etcdraft.Msg) (hu : MsgsUniq σ) (hc : MsgsShape σ)
     (hp0 : canonMsg p = p) (hpk : ∀ y ∈ σ.messages.domain ++ σ.pendingMessages.domain, PinnedBy y p) :
     MsgsUniq (σ.send p) ∧ MsgsShape (σ.send p) := by
@@ -400,7 +400,8 @@ theorem simFx_discard (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (m :
     fun x hx => has x (hsub x hx)⟩
 
 /-- **Sending a message keeps the facts** when it is fine to send (`MsgOk`), has its facts (`msgFacts`),
-is canonical and is not an append request with entries. -/
+is canonical, pins every in-flight message (`PinnedBy`) and, an append request, is a slice of its
+leading sender's log (`AppSliceOf`). -/
 theorem simFx_send (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (x : Etcdraft.Msg)
     (hok : TraceSpecInv.MsgOk σ x) (hx0 : canonMsg x = x)
     (hxk : ∀ y ∈ σ.messages.domain ++ σ.pendingMessages.domain, PinnedBy y x)
