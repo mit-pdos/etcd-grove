@@ -2540,6 +2540,9 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.putget':
 # (R10, 2026-11-07) mvcc's randomized tester
 PROGRAMS['github_com.mit_pdos.etcd_grove.examples.mvccrand'] = \
     'Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/PkgTable.lean'
+# (F1 Prove, 2026-11-10) mvcc's full tester, for its closed theorem (`mvccfull_adequate`)
+PROGRAMS['github_com.mit_pdos.etcd_grove.examples.mvccfull'] = \
+    'Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/PkgTable.lean'
 
 TABLE_DOC = """/-
 The package table of the program of `{p}`
