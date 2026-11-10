@@ -264,3 +264,63 @@ Result (read-only subagent; Go test `/shared/tmp/k8s7e1/attack-wrb/main_test.go`
   - The same gap probably touches `grpcInvokerOk` and the other axioms that take `ctxOk`: grpc's
     `invoke` also selects on `ctx.Done()`.
 - Not done: a Lean counterexample, the `notes/axiom-review` write-up, the `notes/audit.md` row.
+
+## Decisions after the attack (etcd-grove-81, 2026-11-10; in `questions.md`)
+
+- The `ctxOk` gap (contexts whose `Done()`/`Err()` break Go's contract) is fixed on lean's trust base by
+  a separate branch, **premise-fixes-5** (with the axiom write-up and the Go counterexample). Do NOT
+  change `ctxOk` here. **k8s-7e merges premise-fixes-5 when it lands** (a dependency of the Freeze).
+- `waitRetryBackoff.spec` restated (done, below); on the Freeze list.
+- refreshToken form and the §2.4 `receiptBound` STOP stand.
+
+## §2 under way (ninth session, 2026-11-10)
+
+Done (targeted build green: `client.v3.Link`, `examples.etcd.auth.SetupInv`):
+- `Spec/go_etcd_io/etcd/client/v3/waitRetryBackoff.lean`: post `clientErrOk err ∗ ⌜err = nil ∨ errDesc
+  err ∉ handlerDescs⌝` (the approved restatement of an axiom; Freeze list).
+- `InvKVConn.lean`: `attemptPre … Φ (Ψe := fun _ => True)` (a default, so every old use is unchanged);
+  `ifcErrOut method addr Ψe err := ⌜kvMethod method ∧ ∀ a ∈ addr, noRefusalAt a⌝ -∗ ⌜errDesc err ∈
+  handlerDescs⌝ -∗ Ψe (errDesc err)` with `ifcErrOut_notin`/`_of_attempt`/`_absurd`;
+  `etcdInterceptorOk`/`etcdInterceptorOkM` take a binder `Ψe` after `Φ`, ask `attemptPre … Φ Ψe`, and
+  their error post gains `ifcErrOut method addr Ψe err`; `attemptPre_attempt` takes `Ψe`.
+- The interceptor's proof (`Client__unaryClientInterceptor.lean`): the invoker gets `Ψe`; the loop
+  invariant carries `"Heo" ∷ (⌜a = 0⌝ ∨ ifcErrOut … le)`; the wait's error by the restated
+  `waitRetryBackoff`; the refresh error by `ifcErrOut_absurd` (`Hnr` and `shouldRefreshToken`'s post);
+  `maxRecDepth 8192` (one `wp_if_destruct` hit the limit with the larger context).
+- `EtcdInvoke.lean`: new `etcdConn.InvokeMdE.spec`/`etcdConn_InvokeMdE` (with `Ψe` and the outcome);
+  `etcdConn_InvokeMd` derived from it at `Ψe := True` (its statement unchanged, so the stubs are too).
+
+### STOP (for etcd-grove-81): the members' registrations the client sees carry no error outcome
+
+`client_range_any`/`kv.Get.specM` reach `Range` through `kvRegsAt x` (`KVService.lean:634`), which
+registers the **plain** `etcdRangeSpec`. Its metadata form `GrpcSpec.md` makes the caller give
+`□ ∀ d, Ψe d`, so whatever the chain above carries, the outcome a client gets back is only what it put
+in: the handler's `rangeErrReply` never reaches the client. The server proves the metadata spec with the
+outcome, `isGrpcRpcMd addr Range (etcdRangeSpecM false s E γr cid mid)` (`H2` in
+`etcd_kv_served`'s proof, `Results.lean:~2468`), and then weakens it to the plain registration for
+`etcd_kv_served`'s conclusion, `etcdstart`'s `etcdKVAt` and `kvRegsAt`. The Draft's §0 ("server side,
+done") did not see this step. Every way to carry it changes exported vocabulary or statements:
+- (A, recommended) `kvRegsAt`'s Range conjunct becomes the metadata registration
+  `isGrpcRpcMd x.addr Range (etcdRangeSpecM false null x.E x.γr x.cid x.mid)` (`s` is unused at
+  `on = false`); `kvRegs_range` derives the plain one (`etcdRangeSpecM_false`, `isGrpcRpcMd_mono_upd`,
+  `isGrpcRpc_md`), so consumers do not change. Producers: `etcd_kv_served(_with)`'s conclusion (Range in
+  the metadata form, which its proof already has), `etcdstart`'s `etcdKVAt`/`etcdKVAt_regs`. A
+  strengthened conclusion of an exported server theorem, and a strengthened premise (through `kvRegs`) of
+  the exported results that take it (`cache/v3/Results.lean`, client `Results.lean`), each discharged by
+  the server. No trust-base change.
+- (B) a separate fact only on the k8s path (a new server-side export with the metadata Range registration,
+  carried by `etcdstart` and the k8s Mains): more vocabulary, the same exported-statement change.
+- Cost either way: `etcdRangeSpecM` asks `(⌜v3rpc.rangeCheck o ≠ none⌝ -∗ □ ∀ d, Ψe d)`, so the k8s
+  reads must show `rangeCheck o = none` for their requests (sort/limit/revision checks: a pure lemma).
+
+### Next, in order (after 81 decides)
+
+1. The registration (A or B), then the chain above the interceptor: `kVClient.Range.spec`,
+   `retryKVClient.Range.spec` (a binder `Ψe`, post `… ∗ (⌜err ≠ nil⌝ -∗ ifcErrOut
+   "/etcdserverpb.KV/Range" addr Ψe err)`); `kv.Do.specG` (`doRunGen`'s range case `attemptPre … Qr
+   Ψr`, `Ψr` with a default; post gains the outcome when `o.t = 1 ∧ err ≠ nil`); `kv.Get.specG`;
+   `ContextError.spec`'s post gains `⌜err ≠ nil → errDesc err' = errDesc err ∨ errDesc err' ∉
+   handlerDescs⌝` (38 call sites destructure its post: choose the position to break fewest; lemma
+   `ifcErrOut` across it); `kv.Get.specM`/`client_range_any` gain `rangeErrOut` (Draft §2.3).
+2. Draft §3.1, §3.2, step 6 as listed above. Merge lean (premise-fixes-4, then premise-fixes-5) before
+   step 6.
