@@ -2058,3 +2058,27 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
 - **Proposed (general).** `sync.init_RWMutex_wlocked` (and `init_Mutex_locked`) in Perennial, next to
   `init_RWMutex`: a lock made by its holder.
 - **Status.** Local lemma; to be proposed.
+
+## `Int64.Load` with the fraction chosen inside the update (2026-11-10, mvccfull F1 Prove)
+
+- **Missing.** `sync.atomic.Int64.Load.spec` (and `LoadInt64.spec`) quantify the fraction `dq` before
+  the atomic update; a caller whose fraction is known only once it opens its invariant (the update's
+  `∃ dq x, ownInt64 u dq x ∗ …`) cannot use them, although their proofs open the update before the
+  load and would prove the stronger form unchanged.
+- **Needed by.** mvccfull's `inBounds.spec` (frozen): `check(v <= hi.Load())` with the caller's
+  accessor picking the fraction.
+- **Workaround here.** `Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/AtomicLoad.lean`:
+  `wp_LoadInt64_ex`, `wp_Int64_Load_ex`, Perennial's two proofs re-run with `∃ dq` inside the
+  update (`wp_load_bytes_typed`, the struct field). No axiom.
+- **Proposed (general).** State `LoadInt64`/`Int64.Load` (and the other atomic loads) with the
+  fraction inside the update, the current form a corollary.
+- **Status.** Local lemma; to be proposed.
+
+## `GoStringLe` as the negation of the converse `GoStringLt` (2026-11-10, mvccfull F1 Prove)
+
+- **Missing.** `go.GoStringLe a b ↔ ¬ go.GoStringLt b a`, a general fact about Perennial's string
+  order.
+- **Workaround here.** `goStringLe_iff_not_lt` in
+  `Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/inRange.lean`.
+- **Proposed (general).** The lemma next to `GoStringLe`'s definition in Perennial.
+- **Status.** Local lemma; to be proposed.
