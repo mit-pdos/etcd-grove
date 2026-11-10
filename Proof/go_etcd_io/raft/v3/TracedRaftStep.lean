@@ -71,7 +71,11 @@ is zero (a local message at a higher term steps the node down with no receive li
 `Timeout` step); the log never compacted (`TrNoSnap`, which `candidateGates`'/`leaderGates`'
 `"#Hnosnap"` ask unguarded, from the Draft's P2); a traced message addressed to the node (the receive
 line's event is the node's, `SendEvOf … m.dst`, and the specification delivers it to its
-destination). And the node's last event after the step is `stepLastEv Λ`, not `Λ`. -/
+destination). And the node's last event after the step is `stepLastEv Λ`, not `Λ`. (2026-11-10, slice
+18a, `notes/decisions.md`, "Q8 stage 1 (slice 18a)") No learners (`c.learners = ∅`) and the tracker's
+peers within the configuration: a heartbeat's and an append's send line needs its destination a voter.
+The log terms' bound the append and vote-request lines need (`blt`) is not a premise: raft's ghost state,
+which the gates hand the caller's families, gives it (`ownRaftGhost_terms_le`). -/
 abbrev stepBundle_traced.on (Path : NState → MessageM → Prop) : Prop :=
   ∀ (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM)
     (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (γd : GName)
@@ -91,6 +95,10 @@ abbrev stepBundle_traced.on (Path : NState → MessageM → Prop) : Prop :=
   uint.Z s.term + 1 < traceNumBound → uint.Z m.Term' < traceNumBound →
   (∀ ty, mtypeOf m.Type' = some ty → MsgTrOk γ (absMsg ty m ents ctx)) →
   receiptBound GF + γ.reBoot.length ≤ traceNumBound →
+  -- (slice 18a) no learners at a traced node (the Draft's P3: a traced cluster's voters only), and the
+  -- tracker's peers the configuration's (`ownRaftPhysC`'s, read off before the call): a heartbeat's
+  -- or an append's destination is then a voter, as its send line needs
+  c.learners = ∅ → domSet s.progress ⊆ c.voters ∪ c.learners →
   -- (slice 15) the log never compacted (P2): `TrNoSnap`, persistent
   (trCapB s.gh.tr γ r id c true (fun C => SimIdle C s) Λ ∗ recvTokOf γd m ents ctx ∗
       TrNoSnap s.gh.tr s.logst : IProp GF) ⊢
