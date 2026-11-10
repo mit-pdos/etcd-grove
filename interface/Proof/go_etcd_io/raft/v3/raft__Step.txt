@@ -22,7 +22,7 @@ theorem raft.Step.wp_proof [package_sem : Assumptions] (wp_raft_hup : raft.hup.s
     raft.Step.spec
   -- `Perennial.EtcdGrove.raft.Step.spec`, unfolded:
   ∀ (c : CfgM) (md : GMode) (γ : RaftNames) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
-    (ents : List EntryM) (ctx : List w8) (sn : Option SnapshotM) (rs : List Loc),
+    (ents : List EntryM) (ctx : List w8) (sn : Option SnapshotM) (rs : List Loc) (R : StepG GF) (Gout : IProp GF),
     StepMsg m →
       (m.Type' = MsgHup →
           m.Term' = W64 0 ∧
@@ -77,182 +77,214 @@ theorem raft.Step.wp_proof [package_sem : Assumptions] (wp_raft_hup : raft.hup.s
                                         NStateWf s →
                                           md.Pre m ents s →
                                             (m.Type' = MsgSnap → s.gh.ns = false) →
-                                              s.gh.tr = none →
-                                                ⊢
-                                                  ∀ Φ,
-                                                    isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                                                        "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-                                                          "Hghost" ∷ ownStepGhost γ md c id s ∗
-                                                            "#Hxfer" ∷
-                                                                □
-                                                                  (⌜m.Type' = MsgTransferLeader ∧ m.Term' ≠ W64 0⌝ -∗
-                                                                    isLeader γ id m.Term') ∗
-                                                              "Hm" ∷
-                                                                  ("Hmsg_in" ∷
-                                                                      msgIn ml
-                                                                        (if m.Type' = MsgProp then DFrac.own 1
-                                                                        else DFrac.discard)
-                                                                        { msg := m, ents := ents, snap := sn, ctx := ctx,
-                                                                          resps := rs } ∗
-                                                                    ("Hents" ∷
-                                                                        if m.Type' = MsgProp then
-                                                                          (∃ cs, ccEntsOk ents cs) ∗
-                                                                            [∗list] e ∈ ents, entTk γ e
-                                                                        else emp) ∗
-                                                                      "%Hprop" ∷
-                                                                          ⌜m.Type' = MsgProp →
-                                                                              ents ≠ [] ∧ ↑ents.length < 2 ^ 61⌝ ∗
-                                                                        "%Hnors" ∷
-                                                                            ⌜m.Type' = MsgProp ∨
-                                                                                  m.Type' = MsgReadIndex ∨
-                                                                                    m.Type' = MsgTransferLeader →
-                                                                                rs = []⌝ ∗
-                                                                          "%Happly" ∷
-                                                                              ⌜m.Type' = MsgStorageApplyResp →
-                                                                                  ∀ (e : EntryM),
-                                                                                    ents.getLast? = some e →
-                                                                                      uint.Z e.Index' ≤
-                                                                                          uint.Z s.logst.committed ∧
-                                                                                        uint.Z e.Index' ≤
-                                                                                          uint.Z s.logst.applying⌝ ∗
-                                                                            "#Hmsg" ∷
-                                                                              □
-                                                                                ∀ ty,
-                                                                                  ⌜mtypeOf m.Type' = some ty⌝ -∗
-                                                                                    ⌜ty ≠ MsgType.snap⌝ -∗
-                                                                                      isMessage γ
-                                                                                        (absMsg ty m ents ctx)) ∗
-                                                                "Hcred" ∷
-                                                                    rdCred γ (if m.Type' = MsgReadIndex then 1 else 0) ∗
-                                                                  "Hlc" ∷ £ 1 ∗
-                                                                    "#Hsnap" ∷
+                                              (m.Type' = MsgSnap → s.gh.tr = none) →
+                                                (m.Type' = MsgStorageAppendResp → sn ≠ none → s.gh.tr = none) →
+                                                  (m.Type' = MsgStorageApplyResp → ents ≠ [] → s.gh.tr = none) →
+                                                    (m.Type' = MsgProp →
+                                                        s.gh.tr ≠ none → ∀ (e : EntryM), e ∈ ents → ¬IsConfEnt e) →
+                                                      ⊢
+                                                        ∀ Φ,
+                                                          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                                                              "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+                                                                "Hghost" ∷ ownStepGhost γ md c id s ∗
+                                                                  "#Hxfer" ∷
                                                                       □
-                                                                        (⌜m.Type' = MsgSnap⌝ -∗
-                                                                          ∃ sv scfg,
-                                                                            ⌜sn = some sv ∧
-                                                                                  scfg = sv.Metadata'.ConfState'.lists ∧
-                                                                                    uint.Z sv.Metadata'.Index' < 2 ^ 61⌝ ∗
-                                                                              isMessageC γ (absSnap m sv scfg) ∗
-                                                                                snapDataOk γ sv.Metadata'.Index'
-                                                                                  sv.Data') -∗
-                                                      (▷
-                                                          ∀ err s' c' md',
-                                                            "Hphys" ∷ ownRaftPhysCV c' c'.voters r id s' ∗
-                                                                "Hghost" ∷ ownStepGhost γ md' c' id s' ∗
-                                                                  "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
-                                                                    "%Hrefines" ∷ ⌜md.StepOut c id m s s' md'⌝ ∗
-                                                                      "%Hcfg'" ∷
-                                                                          ⌜(m.Type' = MsgStorageAppendResp → sn = none) →
-                                                                              c' = c⌝ ∗
-                                                                        "%Hlocal" ∷
-                                                                            ⌜((m.Type' = MsgStorageAppendResp →
-                                                                                    sn = none) →
-                                                                                  LocalStepOk m ents s s') ∧
-                                                                                (m.Type' = MsgStorageAppendResp →
-                                                                                  ∀ (sv : SnapshotM),
-                                                                                    sn = some sv →
-                                                                                      c' =
-                                                                                          snapCfg sv
-                                                                                            sv.Metadata'.ConfState'.lists ∧
-                                                                                        (∃ prs pvs il,
-                                                                                            s' =
-                                                                                              { term := s.term,
-                                                                                                vote := s.vote,
-                                                                                                lead := s.lead,
-                                                                                                role := s.role,
-                                                                                                votes := s.votes,
-                                                                                                outbox := s.outbox,
-                                                                                                stepfn := s.stepfn,
-                                                                                                ticking := s.ticking,
-                                                                                                progress := prs,
-                                                                                                log := s.log,
-                                                                                                logst :=
-                                                                                                  ackSnapLog s.logst m
-                                                                                                    s.term sv,
-                                                                                                prvals := pvs,
-                                                                                                prevote := s.prevote,
-                                                                                                gh := s.gh, rd := s.rd,
-                                                                                                lt := s.lt, pci := s.pci,
-                                                                                                isLearner := il,
-                                                                                                sdr := s.sdr,
-                                                                                                cq := s.cq }) ∧
-                                                                                          ∀ (dec : CCDec) (c0 : CCState)
-                                                                                            (h0 : CfgOk c0) (g : RGh),
-                                                                                            md = GMode.dyn dec c0 h0 g →
-                                                                                              ∃ cs',
-                                                                                                md' =
-                                                                                                  GMode.dyn dec c0 h0
-                                                                                                    {
-                                                                                                      cidx :=
-                                                                                                        uint.nat
-                                                                                                          sv.Metadata'.Index',
-                                                                                                      cfg := cs',
-                                                                                                      fp := g.fp,
-                                                                                                      decs := g.decs })⌝ ∗
-                                                                          "%Hframe" ∷
-                                                                              ⌜m.Type' ≠ MsgSnap →
-                                                                                  m.Type' ≠ MsgStorageApplyResp →
-                                                                                    m.Type' ≠ MsgTransferLeader →
-                                                                                      (m.Type' = MsgStorageAppendResp →
+                                                                        (⌜m.Type' = MsgTransferLeader ∧
+                                                                              m.Term' ≠ W64 0⌝ -∗
+                                                                          isLeader γ id m.Term') ∗
+                                                                    "Hm" ∷
+                                                                        ("Hmsg_in" ∷
+                                                                            msgIn ml
+                                                                              (if m.Type' = MsgProp then DFrac.own 1
+                                                                              else DFrac.discard)
+                                                                              { msg := m, ents := ents, snap := sn,
+                                                                                ctx := ctx, resps := rs } ∗
+                                                                          ("Hents" ∷
+                                                                              if m.Type' = MsgProp then
+                                                                                (∃ cs, ccEntsOk ents cs) ∗
+                                                                                  [∗list] e ∈ ents, entTk γ e
+                                                                              else emp) ∗
+                                                                            "%Hprop" ∷
+                                                                                ⌜m.Type' = MsgProp →
+                                                                                    ents ≠ [] ∧ ↑ents.length < 2 ^ 61⌝ ∗
+                                                                              "%Hnors" ∷
+                                                                                  ⌜m.Type' = MsgProp ∨
+                                                                                        m.Type' = MsgReadIndex ∨
+                                                                                          m.Type' = MsgTransferLeader →
+                                                                                      rs = []⌝ ∗
+                                                                                "%Happly" ∷
+                                                                                    ⌜m.Type' = MsgStorageApplyResp →
+                                                                                        ∀ (e : EntryM),
+                                                                                          ents.getLast? = some e →
+                                                                                            uint.Z e.Index' ≤
+                                                                                                uint.Z s.logst.committed ∧
+                                                                                              uint.Z e.Index' ≤
+                                                                                                uint.Z s.logst.applying⌝ ∗
+                                                                                  "#Hmsg" ∷
+                                                                                    □
+                                                                                      ∀ ty,
+                                                                                        ⌜mtypeOf m.Type' = some ty⌝ -∗
+                                                                                          ⌜ty ≠ MsgType.snap⌝ -∗
+                                                                                            isMessage γ
+                                                                                              (absMsg ty m ents ctx)) ∗
+                                                                      "Hcred" ∷
+                                                                          rdCred γ
+                                                                            (if m.Type' = MsgReadIndex then 1 else 0) ∗
+                                                                        "Hlc" ∷ £ 1 ∗
+                                                                          "#Hsnap" ∷
+                                                                              □
+                                                                                (⌜m.Type' = MsgSnap⌝ -∗
+                                                                                  ∃ sv scfg,
+                                                                                    ⌜sn = some sv ∧
+                                                                                          scfg =
+                                                                                              sv.Metadata'.ConfState'.lists ∧
+                                                                                            uint.Z sv.Metadata'.Index' <
+                                                                                              2 ^ 61⌝ ∗
+                                                                                      isMessageC γ (absSnap m sv scfg) ∗
+                                                                                        snapDataOk γ sv.Metadata'.Index'
+                                                                                          sv.Data') ∗
+                                                                            "HG" ∷ R.G ∗
+                                                                              "Hgates" ∷
+                                                                                  stepGates c r id s m ents sn ctx rs
+                                                                                    (ghostIn γ md c id s R) ∗
+                                                                                "Hclose" ∷
+                                                                                  stepClose γ md c id m s R Gout -∗
+                                                            (▷
+                                                                ∀ err s' c' md',
+                                                                  "Hphys" ∷ ownRaftPhysCV c' c'.voters r id s' ∗
+                                                                      "Hghost" ∷ ownStepGhost γ md' c' id s' ∗
+                                                                        "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
+                                                                          "%Hrefines" ∷ ⌜md.StepOut c id m s s' md'⌝ ∗
+                                                                            "%Hcfg'" ∷
+                                                                                ⌜(m.Type' = MsgStorageAppendResp →
+                                                                                      sn = none) →
+                                                                                    c' = c⌝ ∗
+                                                                              "%Hlocal" ∷
+                                                                                  ⌜((m.Type' = MsgStorageAppendResp →
                                                                                           sn = none) →
-                                                                                        NetFrame s s'⌝ ∗
-                                                                            "%Hxwframe" ∷
-                                                                                ⌜m.Type' = MsgTransferLeader →
-                                                                                    NetFrame s
-                                                                                        { term := s'.term,
-                                                                                          vote := s'.vote,
-                                                                                          lead := s'.lead,
-                                                                                          role := s'.role,
-                                                                                          votes := s'.votes,
-                                                                                          outbox := s'.outbox,
-                                                                                          stepfn := s'.stepfn,
-                                                                                          ticking := s'.ticking,
-                                                                                          progress := s'.progress,
-                                                                                          log := s'.log,
-                                                                                          logst := s'.logst,
-                                                                                          prvals := s'.prvals,
-                                                                                          prevote := s'.prevote,
-                                                                                          gh := s.gh, rd := s'.rd,
-                                                                                          lt := s'.lt, pci := s'.pci,
-                                                                                          isLearner := s'.isLearner,
-                                                                                          sdr := s'.sdr, cq := s'.cq } ∧
-                                                                                      (s'.gh =
-                                                                                          have __src := s.gh;
-                                                                                          { outlb := __src.outlb,
-                                                                                            unst := __src.unst,
-                                                                                            tc := __src.tc,
-                                                                                            ns := __src.ns,
-                                                                                            xw := s'.gh.xw,
-                                                                                            slent := __src.slent,
-                                                                                            snp := __src.snp,
-                                                                                            sn := __src.sn,
-                                                                                            tr := __src.tr,
-                                                                                            lq := __src.lq }) ∧
-                                                                                        ∀ (p : w64 × w64),
-                                                                                          p ∈ s.gh.xw → p ∈ s'.gh.xw⌝ ∗
-                                                                              "%Hterm" ∷
-                                                                                  ⌜m.Type' ≠ MsgSnap → TermStep m s s'⌝ ∗
-                                                                                "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
-                                                                                  "%Hsnapfr" ∷
-                                                                                      ⌜m.Type' = MsgSnap →
-                                                                                          SnapStep m s s' ∧
-                                                                                            ∀ (sv : SnapshotM),
-                                                                                              sn = some sv →
-                                                                                                SnapLogStep sv m s s'⌝ ∗
-                                                                                    "%Htrunc" ∷
-                                                                                        ⌜m.Type' = MsgApp →
-                                                                                            AppTrunc m ents s s'⌝ ∗
-                                                                                      "Herr" ∷
-                                                                                        (⌜err = GoInterface.nil⌝ ∨
-                                                                                          ⌜m.Type' = MsgProp⌝ ∗
-                                                                                            typedPointsto
-                                                                                              (globalAddr
-                                                                                                ErrProposalDropped)
-                                                                                              err DFrac.discard) -∗
-                                                              Φ (intoVal err)) -∗
-                                                        WP
-                                                          ((intoVal
-                                                              (methods raft.ty.PointerType go!"Step"
-                                                                (intoVal r)))
-                                                            (intoVal ml))
-                                                          {{ Φ }}
+                                                                                        LocalStepOk m ents s s') ∧
+                                                                                      (m.Type' = MsgStorageAppendResp →
+                                                                                        ∀ (sv : SnapshotM),
+                                                                                          sn = some sv →
+                                                                                            c' =
+                                                                                                snapCfg sv
+                                                                                                  sv.Metadata'.ConfState'.lists ∧
+                                                                                              (∃ prs pvs il,
+                                                                                                  s' =
+                                                                                                    { term := s.term,
+                                                                                                      vote := s.vote,
+                                                                                                      lead := s.lead,
+                                                                                                      role := s.role,
+                                                                                                      votes := s.votes,
+                                                                                                      outbox := s.outbox,
+                                                                                                      stepfn := s.stepfn,
+                                                                                                      ticking :=
+                                                                                                        s.ticking,
+                                                                                                      progress := prs,
+                                                                                                      log := s.log,
+                                                                                                      logst :=
+                                                                                                        ackSnapLog s.logst
+                                                                                                          m s.term sv,
+                                                                                                      prvals := pvs,
+                                                                                                      prevote :=
+                                                                                                        s.prevote,
+                                                                                                      gh := s.gh,
+                                                                                                      rd := s.rd,
+                                                                                                      lt := s.lt,
+                                                                                                      pci := s.pci,
+                                                                                                      isLearner := il,
+                                                                                                      sdr := s.sdr,
+                                                                                                      cq := s.cq }) ∧
+                                                                                                ∀ (dec : CCDec)
+                                                                                                  (c0 : CCState)
+                                                                                                  (h0 : CfgOk c0)
+                                                                                                  (g : RGh),
+                                                                                                  md =
+                                                                                                      GMode.dyn dec c0 h0
+                                                                                                        g →
+                                                                                                    ∃ cs',
+                                                                                                      md' =
+                                                                                                        GMode.dyn dec c0
+                                                                                                          h0
+                                                                                                          {
+                                                                                                            cidx :=
+                                                                                                              uint.nat
+                                                                                                                sv.Metadata'.Index',
+                                                                                                            cfg := cs',
+                                                                                                            fp := g.fp,
+                                                                                                            decs :=
+                                                                                                              g.decs })⌝ ∗
+                                                                                "%Hframe" ∷
+                                                                                    ⌜m.Type' ≠ MsgSnap →
+                                                                                        m.Type' ≠ MsgStorageApplyResp →
+                                                                                          m.Type' ≠ MsgTransferLeader →
+                                                                                            (m.Type' =
+                                                                                                  MsgStorageAppendResp →
+                                                                                                sn = none) →
+                                                                                              NetFrame s s'⌝ ∗
+                                                                                  "%Hxwframe" ∷
+                                                                                      ⌜m.Type' = MsgTransferLeader →
+                                                                                          NetFrame s
+                                                                                              { term := s'.term,
+                                                                                                vote := s'.vote,
+                                                                                                lead := s'.lead,
+                                                                                                role := s'.role,
+                                                                                                votes := s'.votes,
+                                                                                                outbox := s'.outbox,
+                                                                                                stepfn := s'.stepfn,
+                                                                                                ticking := s'.ticking,
+                                                                                                progress := s'.progress,
+                                                                                                log := s'.log,
+                                                                                                logst := s'.logst,
+                                                                                                prvals := s'.prvals,
+                                                                                                prevote := s'.prevote,
+                                                                                                gh := s.gh, rd := s'.rd,
+                                                                                                lt := s'.lt,
+                                                                                                pci := s'.pci,
+                                                                                                isLearner := s'.isLearner,
+                                                                                                sdr := s'.sdr,
+                                                                                                cq := s'.cq } ∧
+                                                                                            (s'.gh =
+                                                                                                have __src := s.gh;
+                                                                                                { outlb := __src.outlb,
+                                                                                                  unst := __src.unst,
+                                                                                                  tc := __src.tc,
+                                                                                                  ns := __src.ns,
+                                                                                                  xw := s'.gh.xw,
+                                                                                                  slent := __src.slent,
+                                                                                                  snp := __src.snp,
+                                                                                                  sn := __src.sn,
+                                                                                                  tr := __src.tr,
+                                                                                                  lq := __src.lq }) ∧
+                                                                                              ∀ (p : w64 × w64),
+                                                                                                p ∈ s.gh.xw →
+                                                                                                  p ∈ s'.gh.xw⌝ ∗
+                                                                                    "%Hterm" ∷
+                                                                                        ⌜m.Type' ≠ MsgSnap →
+                                                                                            TermStep m s s'⌝ ∗
+                                                                                      "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
+                                                                                        "%Hsnapfr" ∷
+                                                                                            ⌜m.Type' = MsgSnap →
+                                                                                                SnapStep m s s' ∧
+                                                                                                  ∀ (sv : SnapshotM),
+                                                                                                    sn = some sv →
+                                                                                                      SnapLogStep sv m s
+                                                                                                        s'⌝ ∗
+                                                                                          "%Htrunc" ∷
+                                                                                              ⌜m.Type' = MsgApp →
+                                                                                                  AppTrunc m ents s s'⌝ ∗
+                                                                                            "Herr" ∷
+                                                                                                (⌜err = GoInterface.nil⌝ ∨
+                                                                                                  ⌜m.Type' = MsgProp⌝ ∗
+                                                                                                    typedPointsto
+                                                                                                      (globalAddr
+                                                                                                        ErrProposalDropped)
+                                                                                                      err DFrac.discard) ∗
+                                                                                              "HG" ∷ Gout -∗
+                                                                    Φ (intoVal err)) -∗
+                                                              WP
+                                                                ((intoVal
+                                                                    (methods raft.ty.PointerType
+                                                                      go!"Step" (intoVal r)))
+                                                                  (intoVal ml))
+                                                                {{ Φ }}
