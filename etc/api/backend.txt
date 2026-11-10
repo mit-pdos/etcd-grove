@@ -17,6 +17,11 @@ importable Proof.go_etcd_io.etcd.server.v3.storage.backend.Base
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.BatchLemmas
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.BboltOptions
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.ClientLaws
+# (mvccfull's Probe, 2026-11-09) clients' laws, in place of unfolds: the stopped view's agreement,
+# the constructor's posts' parts and constants, the write-back token
+importable Proof.go_etcd_io.etcd.server.v3.storage.backend.NewKLaws
+importable Proof.go_etcd_io.etcd.server.v3.storage.backend.StopLaws
+importable Proof.go_etcd_io.etcd.server.v3.storage.backend.WbTokLaws
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.CommitLemmas
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.DelKeys
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.HooksLoeb
