@@ -804,7 +804,8 @@ the ticks' traced corollaries: each sends, and no send line's `FxPres` is provab
 `MsgsUniq` is not re-established for a new message (nothing in `simFx` fixes the fields a receive line
 does not log; a counterexample `σ` for the heartbeat; Q15, recommended: a shape clause in `simFx`, with
 amendment A2). Also found (raft-internal, recommended, not done): `"#Hgbeat"`'s heartbeat commit only
-bounded (`sendHeartbeat`'s gate), the line needs `min(committed, Match)` exactly. **Not done,
+bounded (`sendHeartbeat`'s gate), the line needs `min(committed, Match)` exactly; `"#Hgpapp"`'s append
+requests lack `Match ≤ Index` (`lineEffect_msgApp`'s `hmatch`). **Not done,
 unblocked**: the node lines' facts (`BecomeCandidate`, `Replicate`, `Commit`: `FxPresU`) and the other
 send lines' phase steps.
 

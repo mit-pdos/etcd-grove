@@ -34386,7 +34386,10 @@ line checks it (`lineEffect_heartbeat`'s `hcommit`), so a gate for a smaller `cm
 `sendHeartbeat`'s proof has the equality (`Hmin`, `w64Min_spec`). **Recommended**: strengthen the gate's
 premise to the equality in `sendHeartbeat`, `bcastHeartbeat(WithCtx)`, `leaderGates`' `"#Hgbeat"` (and
 `"#Hgrihb"`, `"#Hgrlhb"` for the read-index heartbeats), raft-internal like slice 14 (the untraced
-instances unchanged); not done here, since the path stays blocked by the finding above.
+instances unchanged); not done here, since the path stays blocked by the finding above. Likewise (checked, not
+fixed) `"#Hgpapp"`'s append requests: `AppOk` does not give `Match ≤ m.Index`, which
+`lineEffect_msgApp` needs (`hmatch`: the specification's `AppendEntries` range); raft sends from
+`pr.Next - 1 ≥ pr.Match`, so the gate's premise can carry it from `maybeSendAppend`'s spec.
 
 **Done** (`TracedRaftStepPaths.lean`): `phaseStepB_send`, a send line's phase step at the idle server
 (`PhaseAt (SimIdleS · s)` from `o` to `o ++ [m]`, the server unchanged, `m`'s specification message
