@@ -153,10 +153,11 @@ theorem runner.checkStoreRange.wp_proof
       obtain ⟨c0, c1, c2⟩ := check_ok ks σ Hl Hs ms Hhist Hreach Hb Hpre.1 Hmlen (sint.Z clo)
       have hlog := logOk_read σ Hb Hreach Hlwf
       ihave Hout := Hback $$ Hr
-      ihave Hout := rangeOutcomeC_lower res err σ.log (W64 (σ.rev : Int)) σ.crev (sint.Z clo) _ kk e
+      ihave Hout := rangeOutcomeC_lower res (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #xf) σ.log (W64 (σ.rev : Int)) σ.crev (sint.Z clo) _ kk e
         q.ro' hclo Hlive $$ Hout
       wp_apply (wp_checkRangeAt keys ks DFrac.discard s DFrac.discard ms (Hs.map Prod.fst)
-        (List.replicate Hs.length DFrac.discard) (W64 (σ.rev : Int)) clo q kk e dk de res err σ.log
+        (List.replicate Hs.length DFrac.discard) (W64 (σ.rev : Int)) clo q kk e dk de res
+        (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #xf) σ.log
         Hks.1 hlog c0 c1 c2) $$ [$Hks $Hms $Hsts $Hk $He $Hout] as ⟨-, -, -, Hk, He⟩
       · ipureintro; exact Hres
       try wp_auto
@@ -192,10 +193,10 @@ theorem runner.checkStoreRange.wp_proof
       obtain ⟨c0, c1, c2⟩ := check_ok ks σ Hl Hs ms Hhist Hreach Hb Hpre.1 Hmlen (sint.Z clo)
       have hlog := logOk_read σ Hb Hreach Hlwf
       ihave Hout := Hback $$ Hr
-      ihave Hout := rangeOutcomeC_lower res err σ.log (W64 (σ.rev : Int)) σ.crev (sint.Z clo) _ kk e
+      ihave Hout := rangeOutcomeC_lower res GoInterface.nil σ.log (W64 (σ.rev : Int)) σ.crev (sint.Z clo) _ kk e
         q.ro' hclo Hlive $$ Hout
       wp_apply (wp_checkRangeAt keys ks DFrac.discard s DFrac.discard ms (Hs.map Prod.fst)
-        (List.replicate Hs.length DFrac.discard) (W64 (σ.rev : Int)) clo q kk e dk de res err σ.log
+        (List.replicate Hs.length DFrac.discard) (W64 (σ.rev : Int)) clo q kk e dk de res GoInterface.nil σ.log
         Hks.1 hlog c0 c1 c2) $$ [$Hks $Hms $Hsts $Hk $He $Hout] as ⟨-, -, -, Hk, He⟩
       · ipureintro; exact Hres
       try wp_auto
