@@ -117,7 +117,6 @@ axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.disconnectedPe
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.errMemberNotFound_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.errorsNewVarsInit
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.linkHeartbeatMessage_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.linkHeartbeatSize_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.receivedBytes_init
@@ -586,7 +585,6 @@ axiom strconv.FormatUint.wp_proof
 axiom streamKeyFromCtx.wp_proof
 axiom strings.SplitN.wp_proof
 axiom strings.TrimSuffix.wp_proof
-axiom swMsgBound_phys
 axiom time.Duration.Seconds.wp_proof
 axiom time.Duration.Seconds_ptr.wp_proof
 axiom time.Time.After.wp_proof
@@ -646,3 +644,4 @@ axiom zap.Strings.wp_proof
 axiom zap.Uint.wp_proof
 axiom zap.Uint32.wp_proof
 axiom zap.Uint64.wp_proof
+sorry out_size
