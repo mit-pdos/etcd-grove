@@ -666,8 +666,97 @@ theorem stream.receive.wp_proof
         iintro %v ⟨%hv, ev, want⟩
         subst hv
         wp_auto
-        trace_state
-        sorry
+        -- the position past the event (`advW`)
+        wp_bind (If _ _ _)
+        iapply (wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗ w_ptr ↦ x.wp ∗
+            r_ptr ↦ evk.kv.modRev ∗ ∃ wv3 : watcher, x.wp ↦ wv3 ∗
+            ⌜if sint.Z wv2.rev' < sint.Z evk.kv.modRev then
+               wv3 = { wv2 with rev' := evk.kv.modRev, index' := W64 0 } else wv3 = wv2⌝))) $$ [w r Hwp]
+        · wp_if_destruct
+          · iframe; ipureintro; rw [if_pos Hif]
+          · iframe; ipureintro; rw [if_neg Hif]
+        iintro %v ⟨%hv, w, r, %wv3, Hwp, %Hw3⟩
+        subst hv
+        wp_auto
+        have hadv : ({ wv3 with index' := wv3.index' + W64 1 } : watcher).rev' =
+              (advW wv2 (W64 (r1 : Int))).rev' ∧
+            ({ wv3 with index' := wv3.index' + W64 1 } : watcher).index' =
+              (advW wv2 (W64 (r1 : Int))).index' ∧
+            ({ wv3 with index' := wv3.index' + W64 1 } : watcher).key' = wv2.key' ∧
+            ({ wv3 with index' := wv3.index' + W64 1 } : watcher).end' = wv2.end' ∧
+            ({ wv3 with index' := wv3.index' + W64 1 } : watcher).filter' = wv2.filter' ∧
+            ({ wv3 with index' := wv3.index' + W64 1 } : watcher).start' = wv2.start' ∧
+            ({ wv3 with index' := wv3.index' + W64 1 } : watcher).stamped' = wv2.stamped' ∧
+            ({ wv3 with index' := wv3.index' + W64 1 } : watcher).cancelled' = wv2.cancelled' ∧
+            ({ wv3 with index' := wv3.index' + W64 1 } : watcher).compacted' = wv2.compacted' ∧
+            ({ wv3 with index' := wv3.index' + W64 1 } : watcher).floatLo' = wv2.floatLo' := by
+          rw [hmodk] at Hw3
+          unfold advW
+          split at Hw3
+          · rename_i hlt; subst Hw3; rw [if_pos hlt]
+            refine ⟨rfl, ?_, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+            show W64 0 + W64 1 = W64 1; rfl
+          · rename_i hlt; subst Hw3; rw [if_neg hlt]
+            exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+        have hr1M : r1 < 2 ^ 63 := by omega
+        have hpa := posOk_advW Hlx x.mt x.lo ((recvEvs rs r.id).length + sint.nat j) (r1 : Int) wv2 r1 ch
+          h2r h2i h2pos h2exp hr1M hlenR
+        have hrle := (expNext_some h2exp).1
+        have hadvR : sint.nat (advW wv2 (W64 (r1 : Int))).rev' = r1 := by
+          have hrN : sint.nat (W64 (r1 : Int)) = r1 := by word
+          unfold advW; split
+          · exact hrN
+          · rename_i hlt
+            have : sint.nat wv2.rev' = (sint.Z wv2.rev').toNat := rfl
+            rw [hr1Z] at hlt; simp only; omega
+        have hadvZ : sint.Z (advW wv2 (W64 (r1 : Int))).rev' = r1 := by
+          have := hpa.1
+          have : sint.nat (advW wv2 (W64 (r1 : Int))).rev' =
+            (sint.Z (advW wv2 (W64 (r1 : Int))).rev').toNat := rfl
+          omega
+        obtain ⟨ha1, ha2, ha3, ha4, ha5, ha6, ha7, ha8, ha9, ha10⟩ := hadv
+        wp_apply_core sync.atomic.Int64.wp_Add (rF go!"events" T.ep.x) (W64 1) $$ [] [-]
+        · iPkgInit
+        iunfold ctrInv at Cev
+        iinv Cev with ⟨%a, >Ha⟩ Hclose
+        all_goals (try exact (fun _ _ => CoPset.mem_full))
+        iapply fupd_mask_intro (show (∅ : CoPset) ⊆ ⊤ \ ↑(sCtrN .@ "events") from
+          Std.LawfulSet.empty_subset)
+        iintro Hcl
+        inext
+        iexists a
+        iframe
+        iintro Ha
+        imod Hcl with -
+        imod Hclose $$ [Ha] with -
+        · inext; iexists _; iframe
+        imodintro
+        (try wp_auto)
+        -- now and then, the event's previous key-value read
+        wp_bind (If _ _ _)
+        iapply (wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗ r_ptr ↦ evk.kv.modRev ∗
+            ev_ptr ↦ pk ∗ histRd T.ep.h T.ep.γh ∗
+            incLive T.ep.ks T.ep.γh T.ep.i T.ep.mp T.ep.m T.ep.ι T.ep.kv q ∗
+            mvccReaders T.ep.ι.kv 1 ∗ m_ptr ↦ T.ep.mp))) $$ [r ev Hhr Hlive Hrdr m]
+        · sorry
+        iintro %v ⟨%hv, r, ev, Hhr, Hlive, Hrdr, m⟩
+        subst hv
+        (try wp_auto)
+        wp_for_post
+        iframe
+        iexists j + W64 1, pk, { wv3 with index' := wv3.index' + W64 1 }
+        iframe
+        ipureintro
+        have hj1 : sint.nat (j + W64 1) = sint.nat j + 1 := by word
+        refine ⟨by word, by word, by rw [ha3, h2k], by rw [ha4, h2e], by rw [ha5, h2f],
+          by rw [ha6, h2s], by rw [ha7, h2st], by rw [ha8, h2c], by rw [ha9, h2cp],
+          fun _ => by rw [ha10, h2fl], ?_⟩
+        refine ⟨by rw [ha1]; exact hpa.1, by rw [ha2]; exact hpa.2.1, by rw [ha10, h2fl]; exact Int.le_refl _,
+          by rw [ha1, hadvZ]; omega, ?_⟩
+        rw [if_neg (by rw [ha10, h2fl]; exact Int.lt_irrefl _)]
+        refine ⟨?_, Or.inl ?_⟩
+        · rw [ha1, ha2, hj1, ← Nat.add_assoc]; exact hpa.2.2
+        · rw [ha1, hadvR]; omega
     · -- a compaction response
       rw [decide_eq_false hc]
       obtain ⟨he, -, hr0, hcp, hcle⟩ := hcrne hc
