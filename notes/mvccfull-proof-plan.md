@@ -854,3 +854,56 @@ backend change), the stamp and the restart/restore handoff over the drafted inva
 local repairs. Next: the unfold laws (additive API laws: `etc/api/*`, interfaces regenerated), the
 pure model lemmas, review round 2 of the changed statements, the `axiom` attack on
 `NewLessor.specR`, then the user's Freeze.
+
+## Repair round 2 (2026-11-10)
+
+Every first- and second-tier finding of `notes/review/mvccfull-f1-r2.md` repaired but S3 and S4 (the
+glue's reuse of `restore_of_storage`, and the API `NewStore.specR`'s glue: Freeze's, not a
+statement change); plus the unfold left in `openBackend` and `NewLessor.specR`'s receipt docstring.
+No exported API statement and nothing of `ApiNewRestoring.lean` changed; no axiom, no new `sorry`.
+
+- **T1** (`open`/`newMember` promised `Ops ≤ k` write-back tokens with no bound on `Ops`):
+  `writerCtx` gains `⌜0 ≤ sint.Z cfg.Ops' ∧ sint.Z cfg.Ops' < 2 ^ 38⌝` (last conjunct; `Run` has it
+  from `runCfgOk`). So `open`, `newMember` (through `open`), `restart`, `restore`, `write` have it for
+  free: `inc_open_backend`'s `receiptBound + Ops + 4 ≤ wbInit` at `k = Ops` (`open`'s outline says
+  so). `restore.spec` loses `ops.length < 2 ^ 38`, `ops.length ≤ Ops`, `Ops < 2 ^ 38`; `write.spec`
+  loses `ops.length ≤ Ops`, `Ops < 2 ^ 38`; `restart.spec` loses `ops.length < 2 ^ 38` (derived for
+  `open` from the two bounds). `runner.restore` and `runner.restart` still proved.
+- **S1**: `writerOwn`'s `⌜v0.ops = ops.length ∧ v1.ops ≤ v0.ops⌝` gains `ops.length ≤ Ops` (a state
+  invariant: `write` appends only under its guard `l.ops < x.cfg.Ops`; `Run` starts at `[]`; `write`'s
+  post, `ops'.length = Ops`, is consistent with it). `restore` reads it from there.
+- **S2**: `runner__write.lean`'s outline names it (`writerOwn` keeps `|ops| ≤ Ops`; the leader's step
+  only under the loop guard, case 0).
+- **T2** (the `spec_of_specR` corollaries could not be met in compaction mode): `NewStoreR`,
+  `newWatchableStoreR`, `NewR`'s corollaries now take `specR`'s backend form, the session contract
+  `∀ s γ, storeSessT b s γ P` and `∀ s γ, restoreFixM d γ -∗ storeBackendT b s γ P` (in place of
+  `∀ s γ, storeBackendT b s γ P`), beside the clean read and `restoreRegM d` (unchanged). Their
+  docstrings name the callers: `NewStoreApi`'s `NewStore.wp_proof` and `StoreBackend`'s
+  `NewStore_backend` (`NewStore`'s), `NewApi`'s `New.wp_proof` (`New`'s), none outside the chain
+  (`newWatchableStore`'s). The check: `mvcc/NewStoreRCallers.lean`'s `backendC_newStoreR_pre`
+  (proved, scratch like the corollaries): from what those callers hold at the call (the packages,
+  `isBackend` at `lateW`, `keySized`, the creator's `dlInit`, `□ (⌜d.cm⌝ -∗ fkV … true)`) it gives
+  the session contract, the contract behind the fix, the clean read, `restoreRegM d` and
+  `kbNoDelOff`, in both modes (on: `storeSessT_of_backendC`, `storeBackendT_of_backendC` behind the
+  wand, `keyCleanRead_of_backendC`, `dlInit` kept; off: `dlNoDel_fix`, `storeBackendT_of_backend`, a
+  constant wand, `keyCleanRead_of_backend` framed). The rest of the pre (image, lessor part, ...) is
+  as before. The corollaries stay `sorry` (Prove's).
+- **S5**: `lessorW` keeps only `lessorApplyOk lp` (the member's `lessorBackend` dropped); the member's
+  contract is `Writer.lean`'s `lessorW_backend` (proved: `lessorApplyOk_at` at `bkKeep`'s
+  `isBackend`, `hookIs` as `plHookRO`, `hookOk`'s `f ≠ nil`, `rwLens_refl`). `restore` no longer
+  rebuilds the new backend's contract; `apply`'s outline cites `lessorW_backend`.
+- **S6 and the log model**: the duplicate `Countable` instances of `Change`/`MvccState` are one
+  module, `mvccrand/MvccCountable.lean` (from `World.lean`'s, which `World.lean` and mvccfull's
+  `History.lean` import; their copies deleted), and the `attribute [local instance high]` workaround
+  is gone from `Writer.lean` and `RestoreLemmas.lean`. `Writer.lean`'s pure model section and
+  `WriterShares.lean`'s pure model lemmas are `LogModel.lean` (imports `Members`, for
+  `onceUpToAll`, and schema's `leaseRecEnc`); `LogLemmas.lean` imports only it and its `*_holds` are
+  now the plain names (`logOk_once`, `logOk_hist`, `runM_mono`, `logOk_leases`, `logOk_recover`, with
+  the docstrings that were `Writer.lean`'s); `Writer.lean` imports `LogLemmas` and its five `sorry`
+  copies are deleted (the users, `restore`, unchanged).
+- **The unfold left**: `runner__openBackend.lean` unfolded `backend.hooksOk`/`hooksSpec`; now
+  `backend.hooksOk_nil` (`backend/HooksLaws.lean`, importable in `etc/api/backend.txt`, interface
+  generated).
+- **`NewLessor.specR`'s docstring**: the receipt `⧖ |recs|` settled (kept): its source is the proved
+  `lessor.initAndRecover.spec`'s post (earned per iteration, `wp_raise_receipt`); the axiom adds only
+  `newLessor`'s names-only wrapper (`notes/axiom-review/mvccfull-newlessor-specR.md`).
