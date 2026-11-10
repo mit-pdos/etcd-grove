@@ -11,6 +11,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Write
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.TODO
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchFrac
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewWatchableLemmas
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewWatchableAt
 
 @[expose] public section
 
@@ -38,8 +39,9 @@ theorem mvcc.newWatchableStore.wp_proof
     (hWrite : mvcc.watchableStore.Write.spec (GF := GF) (hG := hG))
     (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG)) :
     mvcc.newWatchableStore.spec (GF := GF) (hG := hG) := by
-  intro _ lg b le cfg kb γb γl P f rd0 γi γok γtag Perm Hcfg0
-  wp_start as ⟨Hbk, Hbv, Hncmp, #Hnd, Hrg, Hwt1, Hwt2, Hsrm, Hrts, Hlrd, #Hlessor, Hro, Hifresh, Hok0⟩
+  intro _ lg b le cfg d γb γl P rd0 γi γok γtag M Perm R r Ls hk Pre Q Post X Y dq
+  wp_start as ⟨%Hpre, #Hpkg, Hsess, Hbtr, Hkcr, Hreg, Himg, Hrcpt, #Hnd, Hrg, Hwt1, Hwt2, Hsrm, Hrts, Hlrd,
+    #Hlessor, Hro, Hlo, %Hpend, Hifresh, Hok0, Hcert0, Hfin, Hcrv, Hres, Hsup⟩
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   wp_auto
@@ -49,14 +51,16 @@ theorem mvcc.newWatchableStore.wp_proof
     isplitr
     · ipureintro; rfl
     iexists l; iexact lg
-  wp_apply (hNewStore _ _ _ _ _ _ _ _ f _ true γi γok Perm Hcfg0)
-    $$ [$Hbk $Hbv $Hncmp $Hnd $Hrg $Hwt1 $Hwt2 $Hsrm $Hrts $Hlrd $Hlessor $Hro $Hifresh $Hok0] as %st
-    ⟨%γs, ⟨%hγb, %hγl, %hγk, %hγw, %hγi, %hγok, %hγcm⟩, #Hst, ⟨%rd1, Hro, -⟩, Hok, #HhookP, Hviews, Hreaders, #Hcert, HlogQ, Hsclose, Hfw,
-      Hwsd, Hfrag, Hright, Hret, #HcpIs, #Hwreg, ⟨%pr, %hpr, Hnc⟩, Hlc⟩
-  -- (M2, the storage side, P3) the right's half of the revision's authority by the mode: frozen
-  -- when the store does not compact, handed to the caller when it does (`crevRight_split`); the
-  -- closer, with the scheduler's stop token, goes to the caller (D19m (C))
-  imod mvcc.crevRight_split γs $$ Hright with ⟨#Hfrz, Hcr⟩
+  wp_apply (hNewStore _ b le cfg d γb γl P rd0 true γi γok M Perm R r Ls hk Pre Q Post X Y dq)
+    $$ [$Hsess $Hbtr $Hkcr $Hreg $Himg $Hrcpt $Hnd $Hrg $Hwt1 $Hwt2 $Hsrm $Hrts $Hlrd $Hlessor $Hro
+      $Hlo $Hifresh $Hok0 $Hcert0 $Hfin $Hcrv $Hres $Hsup] as %st
+    ⟨%γs, ⟨%hγb, %hγl, %hγk, %hγw, %hγi, %hγok, %hγcm⟩, #Hst, ⟨%rd1, Hro, -⟩, Hok, #HhookP, Hviews,
+      Hreaders, #Hcert, HlogQ, Hsclose, Hcrh, Hfw, Hwsd, Hfrag, Hret, #HcpIs, #Hwreg,
+      ⟨%pr, %hpr, Hnc⟩, Hlo, Hrb, Hlc⟩
+  · iframe #; ipureintro; exact ⟨Hpre, Hpend⟩
+  -- (M2, the storage side, P3) the frozen fact by the mode: off, the compaction revision's half
+  -- `NewStore` returns frozen; on, nothing (the closer by the mode, `storeCloserM`, holds the right)
+  imod mvcc.wsFrozenM_of_new γs d.cm hγcm $$ Hcrh with #Hfrz
   ihave Hreaders := mvcc.storeReaders_of st γs _ $$ Hreaders
   wp_apply chan.wp_make2 (V := Unit) $$ [] as %vc %γv ⟨#Hvc, %Hvcap, Hvown⟩
   · ipureintro; decide
@@ -90,11 +94,11 @@ theorem mvcc.newWatchableStore.wp_proof
   -- the ghost state
   imod ghost_map_alloc_empty (K := Loc) (V := mvcc.WatcherNames) (GF := GF) with ⟨%γm, Hmeta⟩
   -- the notified log, the lock's whole (2026-11-06)
-  imod mono_list_own_alloc (GF := GF) ([[], []] : mvcc.Log) with ⟨%γwl, Hwl1, -⟩
-  imod ghostVar_alloc (GF := GF) mvcc.wsInit with ⟨%γwst, Hwst⟩
+  imod mono_list_own_alloc (GF := GF) (([[], []] ++ R) : mvcc.Log) with ⟨%γwl, Hwl1, -⟩
+  imod ghostVar_alloc (GF := GF) (mvcc.wsInitAt ([[], []] ++ R)) with ⟨%γwst, Hwst⟩
   imod ownTokAuth_alloc (GF := GF) with ⟨%γt, Hta⟩
   imod ownTokAuth_add (2 ^ 63 - 3) γt 0 $$ Hta with ⟨Hta, Htw⟩
-  imod mono_nat_own_alloc (GF := GF) mvcc.wsInit.Lmu.length with ⟨%γrel, Hrel, -⟩
+  imod mono_nat_own_alloc (GF := GF) (mvcc.wsInitAt ([[], []] ++ R)).Lmu.length with ⟨%γrel, Hrel, -⟩
   let γ : mvcc.WsNames := ⟨γs, γm, γwl, γwst, γt, γrel, γtag⟩
   ihave Hwt : mvcc.watchBudget γ 1 (∅ : GMap Loc mvcc.WatcherNames) $$ [Hta]
   · iunfold mvcc.watchBudget
@@ -104,9 +108,9 @@ theorem mvcc.newWatchableStore.wp_proof
   ihave Hsy := Hgs $$ %(mvcc.syncedAddr «$r0_ptr») synced
   ihave Hun := Hgu $$ %(mvcc.unsyncedAddr «$r0_ptr») unsynced
   -- the outer quarter of the committed log's authority, `s.mu`'s (unit W-K)
-  ihave HlogQ : mvcc.logQ γs [[], []] $$ [HlogQ]
-  · have h : (if true = true then mvcc.logQ (GF := GF) γs [[], []] else iprop(True)) =
-        mvcc.logQ γs [[], []] := by simp
+  ihave HlogQ : mvcc.logQ γs ([[], []] ++ R) $$ [HlogQ]
+  · have h : (if true = true then mvcc.logQ (GF := GF) γs ([[], []] ++ R) else iprop(True)) =
+        mvcc.logQ γs ([[], []] ++ R) := by simp
     rw [← h]; iexact HlogQ
   -- the inner store's fields: the watchable store's share (D22 receiver epochs, S3)
   ihave Hwsf : mvcc.wsFields «$r0_ptr» γ 1 $$ [Hfw Hwsd]
@@ -125,22 +129,22 @@ theorem mvcc.newWatchableStore.wp_proof
   icases Hnc with ⟨Hab, Hpn, Hcr2, Hcr4, #Hclb, Htok, Hnl, #Hloc, Hrdk⟩
   icases ((mvcc.api.pndPart_fractional (GF := GF) γs.api none).fractional (1 : Qp).half.half
     (1 : Qp).half).1 $$ Hpn with ⟨Hpq, Hpn⟩
-  ihave #Hnlb : mvcc.api.nlLb (GF := GF) γs.api ([[], []] : mvcc.Log) $$ [Hnl]
+  ihave #Hnlb : mvcc.api.nlLb (GF := GF) γs.api (([[], []] ++ R) : mvcc.Log) $$ [Hnl]
   · iunfold mvcc.api.nlAuth at Hnl; iunfold mvcc.api.nlLb
     iapply monoListLbOwn_get _ 1 _ $$ Hnl
-  ihave Hrel : mvcc.relAuth γ 1 mvcc.wsInit.Lmu $$ [Hrel Hpq]
+  ihave Hrel : mvcc.relAuth γ 1 (mvcc.wsInitAt ([[], []] ++ R)).Lmu $$ [Hrel Hpq]
   · iunfold mvcc.relAuth; iframe Hrel; iunfold mvcc.wsSlot; isplitl [Hpq]
     · iexact Hpq
-    · simp only [mvcc.wsInit]; iexact Hnlb
+    · simp only [mvcc.wsInitAt]; iexact Hnlb
   ihave Hbody : mvcc.watchStoreInv «$r0_ptr» γ 1 $$ [Hwst Hwl1 Hsy Hun victims Hmeta Hwt HlogQ Hrel Hwsf]
   · iunfold mvcc.watchStoreInv
-    iexists mvcc.wsInit
+    iexists mvcc.wsInitAt ([[], []] ++ R)
     isplitl [Hwst Hwl1 Hsy Hun victims Hmeta Hwt HlogQ]
     rotate_left
-    · iframe Hrel Hwsf; ipureintro; exact ⟨mvcc.wsInit_settled, fun w γw h => by simp [mvcc.wsInit, GMap.lookup_empty] at h,
-        fun w st h => by simp [mvcc.wsInit, GMap.lookup_empty] at h⟩
+    · iframe Hrel Hwsf; ipureintro
+      exact ⟨mvcc.wsInitAt_settled _, mvcc.wsInitAt_srBelow _, mvcc.wsInitAt_unsRst _⟩
     iunfold mvcc.watchStoreBody
-    simp only [named, mvcc.wsInit]
+    simp only [named, mvcc.wsInitAt]
     iframe Hwst Hsy Hun victims Hmeta Hwt
     isplitl [Hwl1 HlogQ]
     · iunfold mvcc.wlogQ; iframe Hwl1; iexact HlogQ
@@ -166,7 +170,7 @@ theorem mvcc.newWatchableStore.wp_proof
     · iapply BigSepM.bigSepM_empty.2; iempintro
     isplitr
     · iapply BigSepM.bigSepM_empty.2; iempintro
-    ipureintro; exact mvcc.wsInit_ok
+    ipureintro; exact mvcc.wsInitAt_ok _
   haveI := mvcc.watchStoreInv_fractional hsplit «$r0_ptr» γ
   imod sync.init_RWMutex (mvcc.watchStoreInv «$r0_ptr» γ) (mvcc.wsMuAddr «$r0_ptr») $$ Hbody mu with Hmus
   icases sync.ownRWMutex_slots_guard _ _ $$ Hmus with ⟨Hmus, #Hmug⟩
@@ -231,16 +235,16 @@ theorem mvcc.newWatchableStore.wp_proof
     · ipureintro; exact Htrnn
     (try wp_auto)
     iapply HΦ'; iexact Ht
-  iframe HhookP Hsclose Hcr wg Hfrag Hret
+  iframe HhookP Hsclose wg Hfrag Hret Hlo Hrb
   isplitl [Htw]
   · iunfold mvcc.watchToks; iexact Htw
   isplitl [Hok]
   · iexact Hok
   isplitr [Hstop Hab Hpn Hcr2 Hcr4 Htok Hnl Hlc Hrdk]
-  · have hjr : mvcc.nJobRd kb ≤ mvcc.nReaders := by
-      have := mvcc.nReaders_val; have := mvcc.nJobRd_le kb; omega
+  · have hjr : mvcc.nJobRd (some d) ≤ mvcc.nReaders := by
+      have := mvcc.nReaders_val; have := mvcc.nJobRd_le (some d); omega
     ihave Hmus := mvcc.rep_nReaders _ $$ Hmus
-    icases mvcc.rep_sub _ (mvcc.nJobRd kb) _ hjr $$ Hmus with ⟨Hmus, -⟩
+    icases mvcc.rep_sub _ (mvcc.nJobRd (some d)) _ hjr $$ Hmus with ⟨Hmus, -⟩
     iapply mvcc.watchReaders_of «$r0_ptr» st γ
     iframe Hreaders Hmus
   iframe HcpIs Hwreg Hlc

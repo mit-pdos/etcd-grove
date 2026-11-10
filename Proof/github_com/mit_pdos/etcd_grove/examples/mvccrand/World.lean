@@ -27,6 +27,7 @@ contract's outcome is `rangeOutcome`'s and the watch guarantee's condition `once
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.History
+public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.MvccCountable
 public import Perennial.Ghost.GhostMap
 public import Perennial.Ghost.MonoNat
 
@@ -44,30 +45,6 @@ open Iris Iris.BI Iris.ProofMode github_com.mit_pdos.etcd_grove.examples.mvccran
 
 section model
 variable [GooseExts]
-
-/-- A change as a tuple (its tag, key, value, lease). -/
-def encChange : Change → Bool × GoString × GoString × w64
-  | .put k v l => (false, k, v, l)
-  | .del k => (true, k, [], W64 0)
-
-theorem encChange_inj : ∀ a b : Change, encChange a = encChange b → a = b
-  | .put _ _ _, .put _ _ _, h => by simp only [encChange, Prod.mk.injEq] at h; obtain ⟨-, rfl, rfl, rfl⟩ := h; rfl
-  | .del _, .del _, h => by simp only [encChange, Prod.mk.injEq] at h; obtain ⟨-, rfl, -⟩ := h; rfl
-  | .put _ _ _, .del _, h => by simp [encChange] at h
-  | .del _, .put _ _ _, h => by simp [encChange] at h
-
-instance change_api_countable : Pos.Countable Change :=
-  .ofInjective (fun c => Pos.Countable.encode (encChange c))
-    (fun a b h => encChange_inj a b (Pos.encode_inj h))
-
-instance mvccState_countable : Pos.Countable MvccState :=
-  .ofInjective (fun σ => Pos.Countable.encode (σ.log, σ.crev, σ.pending))
-    (fun a b h => by
-      have h := Pos.encode_inj h
-      cases a; cases b
-      simp only [Prod.mk.injEq] at h
-      obtain ⟨h1, h2, h3⟩ := h
-      subst h1 h2 h3; rfl)
 
 /-- **A revision `e` of the history `Hs` is the log `L`'s revision `r`**: its state is the store's
 at `r`, and past revision `0` it is the tester's model (`pendOf`) of the log's changes of `r` from

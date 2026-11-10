@@ -97,6 +97,10 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'k8s_io.client_go.listers.core.v1']
 # (R10, 2026-11-07) mvcc's randomized tester (examples/mvccrand), for its closed theorem
 ROOTS.append('github_com.mit_pdos.etcd_grove.examples.mvccrand')
+# (F1 Draft, 2026-11-09) mvcc's full tester (examples/mvccfull): no package variables, its fact
+# `True` (`Base.lean`), so no `SPECIAL`; its `PkgTable.lean` (`PROGRAMS`) is Prove's, for the closed
+# theorem
+ROOTS.append('github_com.mit_pdos.etcd_grove.examples.mvccfull')
 # Packages of the closure still without a `wp_initialize'` (their facts are assumed: notes/STATUS.md,
 # "Item 8: package initialization"); see also `ASSUMED`.
 NOT_YET = set()
@@ -1602,8 +1606,12 @@ fact). `opaqueInitsOk` states its other untranslated initializers run.""",
     before={'defaultCompactionBatchLimit': ['wp_apply _root_.Perennial.context.wp_New_errorString as %xRNF ⟨-, #MRNF⟩'] +
                                 [f'wp_apply EtcdGrove.wp_New_errorString_cell as %x{t} ⟨#M{t}, #C{t}⟩'
                                  for t in ['CP', 'FR']],
-            '$inits': [f'wp_apply _root_.Perennial.context.wp_New_errorString as %x{t} ⟨-, #M{t}⟩'
-                       for t in ['WNE', 'EWR', 'WDI']]},
+            # (mvccfull's Freeze, 2026-11-10) `ErrWatcherNotExist`'s and `ErrEmptyWatcherRange`'s
+            # message cells too, for `errVars.law`'s apartness (`mvccInit`'s last conjunct)
+            '$inits': [f'wp_apply EtcdGrove.wp_New_errorString_cell as %x{t} ⟨#M{t}, #C{t}⟩'
+                       for t in ['WNE', 'EWR']] +
+                      [f'wp_apply _root_.Perennial.context.wp_New_errorString as %x{t} ⟨-, #M{t}⟩'
+                       for t in ['WDI']]},
     finish=([f'ipersist H{x}' for x in _MV_ERR] +
             [f'ipersist H{x}' for x in list(_mv_custom)] +
             ['ipersist HchanBufLen', 'ipersist HmaxWatchersPerSync', 'ipersist HwatchResyncPeriod',
@@ -1615,6 +1623,10 @@ fact). `opaqueInitsOk` states its other untranslated initializers run.""",
              '· unfold EtcdGrove.errVarCell; iexists _; iframe HErrCompacted CCP',
              'ihave #VFR : (EtcdGrove.errVarCell ErrFutureRev go!"mvcc: required revision is a future revision" : IProp GF) $$ []',
              '· unfold EtcdGrove.errVarCell; iexists _; iframe HErrFutureRev CFR',
+             'ihave #VEWR : (EtcdGrove.errVarCell ErrEmptyWatcherRange go!"mvcc: watcher range is empty" : IProp GF) $$ []',
+             '· unfold EtcdGrove.errVarCell; iexists _; iframe HErrEmptyWatcherRange CEWR',
+             'ihave #VWNE : (EtcdGrove.errVarCell ErrWatcherNotExist go!"mvcc: watcher does not exist" : IProp GF) $$ []',
+             '· unfold EtcdGrove.errVarCell; iexists _; iframe HErrWatcherNotExist CWNE',
              '-- (R2) the metrics reporters\' locks, each over its reporter (any closure)'] +
             [l for i, x in enumerate(_MV_REPORT) for l in [
                 f'imod (sync.init_RWMutex (go_etcd_io.etcd.server.v3.storage.mvcc.reportP {x}) (globalAddr {x}Mu) (E := ⊤)) $$ [H{x}] H{x}Mu with HRP{i}',
@@ -2589,6 +2601,9 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.putget':
 # (R10, 2026-11-07) mvcc's randomized tester
 PROGRAMS['github_com.mit_pdos.etcd_grove.examples.mvccrand'] = \
     'Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/PkgTable.lean'
+# (F1 Prove, 2026-11-10) mvcc's full tester, for its closed theorem (`mvccfull_adequate`)
+PROGRAMS['github_com.mit_pdos.etcd_grove.examples.mvccfull'] = \
+    'Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/PkgTable.lean'
 
 TABLE_DOC = """/-
 The package table of the program of `{p}`
