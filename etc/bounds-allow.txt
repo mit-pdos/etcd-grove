@@ -45,3 +45,21 @@ stock ^Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Api/(RdSupply|NewStoreApi|Re
 # `RunChecksWorld` allocates the history's `RWMutex` and makes its reader handles (`histRd`, at most
 # the lock's slots), `runChecks` hands one to each reader goroutine it forks.
 stock ^Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/(RunChecksWorld|runChecks)\.lean$
+
+# The registered message models (per-type models, stage A, 2026-11-08): each instance's own file
+# owns its `wireLen` and proves, from it, rule 7's witness `∃ m, wireLen m < grpcMsgMax` and the
+# length bounds its `ReqSat` store needs (`wireLen m < grpcMsgMax` gives the key's length); only the
+# registered instances' files in their owner packages.
+wire-unfold ^Proof/go_etcd_io/etcd/(client/v3|api/v3/etcdserverpb|server/v3/etcdserver/api/v3rpc)/PerType[A-Za-z]*\.lean$
+
+# k8s 7e (decided by etcd-grove-81, 2026-11-10; follow-up: thread `threadTok` through the owner instead,
+# `notes/k8s-7e-1-handoff.md`, "Follow-ups"). The etcd3 store's list path (7e-2): `New` builds
+# `collectorMux`'s reader pool (`Store.lean`, an `RWMutex`, whose reader slots need `threadBound GF ≤ 2 ^ 30 - 1`)
+# from the bound; `GetList` -> `pagedChunks` -> `getList` carry it to the reader token they borrow with the
+# caller's `threadTok` (`getResourceSizeEstimator`). The store, the lock's owner, should take it once in
+# `isStore` (from `New`) instead of on every list call.
+spec-thread ^Spec/k8s_io/apiserver/pkg/storage/etcd3/(New|store__GetList|store__getList|store__pagedChunks)\.lean$  # the store's list path (7e-2): the RWMutex reader-slot bound, to move into isStore (follow-up)
+# The k8s etcd3 driver (7e-4): `call`, `Apply` and `Check` pass the same bound on to the store's
+# `GetList` (`Main` takes it from the adequacy theorem's constants, as before); they go once the store's
+# `isStore` holds it (the follow-up above).
+spec-thread ^Spec/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/(call|Apply|Check)\.lean$  # the driver passes the store's list-path bound on (7e-4; follow-up above)
