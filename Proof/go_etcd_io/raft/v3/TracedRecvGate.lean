@@ -36,10 +36,11 @@ def recvTok (tr : Option GName) (k : Nat) (m : Etcdraft.Msg) : IProp GF :=
 
 /-- **A receive line's facts, by the cluster's trace mode** (`FxPresR` traced, nothing untraced). -/
 def FxPresRT (tr : Option GName) (γ : RaftNames) (id : w64) (m : Etcdraft.Msg) (E : TraceEv → Prop)
-    (Mid : Etcdraft.Server → Prop) (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) : IProp GF :=
+    (Mid : Etcdraft.Server → Prop) (ph : Etcdraft.Server → List Etcdraft.Msg)
+    (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) : IProp GF :=
   match tr with
   | none => iprop(True)
-  | some _ => FxPresR γ id m E Mid Φ Φ'
+  | some _ => FxPresR γ id m E Mid ph Φ Φ'
 
 /-- **A receive line's gate, either mode**: the logger `tl0` (nil when untraced), the capability in
 phase `Φ`, the line's facts and the received message's token give the receive hook's gate, whose update
@@ -47,12 +48,12 @@ gives the capability in phase `Φ'` (its `booted` flag set): traced by `trCap_fi
 the nil logger. -/
 theorem trCapB_hookGateRecv (tr : Option GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM)
     (tl0 : GoInterface) (E : TraceEv → Prop) (b : Bool) (k : Nat) (m : Etcdraft.Msg)
-    (Mid : Etcdraft.Server → Prop) (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop)
-    (Λ Λ' : Option TraceEv → Prop)
-    (hps : PhaseStepR id c m E Mid Φ Φ') (hΛ : ∀ e, E e → Λ' (some e))
+    (Mid : Etcdraft.Server → Prop) (ph : Etcdraft.Server → List Etcdraft.Msg)
+    (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ Λ' : Option TraceEv → Prop)
+    (hps : PhaseStepR id c m E Mid ph Φ Φ') (hΛ : ∀ e, E e → Λ' (some e))
     (hOk : tr.isSome → ∀ e, E e → TraceEv.Ok (elements c.incoming).length e)
     (hok : tr = none → TraceLoggerOk tl0) :
-    (r.[raft, go!"traceLogger"] ↦□ tl0 ∗ trCapB tr γ r id c b Φ Λ ∗ FxPresRT tr γ id m E Mid Φ Φ' ∗
+    (r.[raft, go!"traceLogger"] ↦□ tl0 ∗ trCapB tr γ r id c b Φ Λ ∗ FxPresRT tr γ id m E Mid ph Φ Φ' ∗
         recvTok tr k m : IProp GF) ⊢
       HookGateOpt tr r (some E) (trCapB tr γ r id c true Φ' Λ') := by
   cases tr with
@@ -73,7 +74,7 @@ theorem trCapB_hookGateRecv (tr : Option GName) (γ : RaftNames) (r : Loc) (id :
     isplitr
     · ipureintro; intro h; cases h
     simp only [TraceFireOpt]
-    iapply trCap_fire_recv γd γ r id c tl E k m Mid Φ Φ' Λ Λ' hps hΛ (hOk rfl)
+    iapply trCap_fire_recv γd γ r id c tl E k m Mid ph Φ Φ' Λ Λ' hps hΛ (hOk rfl)
     iframe Htl Hfx Htok
     iapply trCapB_trCap
     iexact Hcap

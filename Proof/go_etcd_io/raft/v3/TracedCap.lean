@@ -782,6 +782,54 @@ def MsgsUniq (σ : Etcdraft.State) : Prop :=
     m1 ∈ σ.messages.domain ++ σ.pendingMessages.domain → m2 ∈ σ.messages.domain ++ σ.pendingMessages.domain →
     recvPred ln m1 = true → recvPred ln m2 = true → m1 = m2
 
+/-- **A message's canonical form** (amendment A2, Q15): the fields its type's receive line logs (the
+specification's `LoglineIs*`, `recvPred`; besides them a snapshot's commit and an `"app"` request's
+entries' contents, which its line does not log: their agreement is not this clause's, plan Q16), the
+others at the values the specification's constructors (and raft's, `msgAbs`: `msgAbs_canon`) give them: a vote request its term, last log term and index; a vote response its
+term and grant; an append request its subtype, term, previous index and term, entries and commit, a
+heartbeat (subtype `"heartbeat"`) its subtype, term and commit only (no previous entry, no entries); an
+append response its subtype, term, success and, when a successful `"app"` response, its match index
+(else 0); always the source and destination. -/
+def canonMsg (x : Etcdraft.Msg) : Etcdraft.Msg :=
+  match x.type with
+  | .requestVoteRequest | .preVoteRequest =>
+    { type := x.type, term := x.term, lastLogTerm := x.lastLogTerm, lastLogIndex := x.lastLogIndex,
+      source := x.source, dest := x.dest }
+  | .requestVoteResponse | .preVoteResponse =>
+    { type := x.type, term := x.term, voteGranted := x.voteGranted, source := x.source, dest := x.dest }
+  | .appendEntriesRequest =>
+    if x.subtype = "heartbeat" then
+      { type := x.type, subtype := x.subtype, term := x.term, commitIndex := x.commitIndex,
+        source := x.source, dest := x.dest }
+    else
+      { type := x.type, subtype := x.subtype, term := x.term, prevLogIndex := x.prevLogIndex,
+        prevLogTerm := x.prevLogTerm, entries := x.entries, commitIndex := x.commitIndex,
+        source := x.source, dest := x.dest }
+  | .appendEntriesResponse =>
+    { type := x.type, subtype := x.subtype, term := x.term, success := x.success,
+      matchIndex := if x.success && x.subtype != "heartbeat" then x.matchIndex else 0,
+      source := x.source, dest := x.dest }
+
+/-- **Every message in flight in its canonical form** (amendment A2, Q15; the notes' `MsgsDet`, "the
+other fields constant"): with it, two messages a line matches are equal (`MsgsUniq`) once the fields it
+logs agree, which a new message's line can then re-establish. -/
+def MsgsShape (σ : Etcdraft.State) : Prop :=
+  ∀ x ∈ σ.messages.domain ++ σ.pendingMessages.domain, canonMsg x = x
+
+/-- **A leader's append requests of its term are slices of its log** (amendment A2, Q16; the notes'
+`AppSlices`): while server `i` leads term `T`, every append request in flight of term `T` from `i`
+carries, at each of its positions, the entry of `i`'s log at that index. Inductive with `SpecInv`'s
+`CandS`: only a leader sends append requests, from its log (`appendEntriesInRangeToPeer`); a leader's
+log only grows while it leads (`Replicate`; truncations, `ConflictAppendEntriesRequest` and a
+snapshot's, happen at followers only); a step-down, a term change or a restart makes the clause
+vacuous; and at `BecomeLeader` it holds vacuously, a candidate having no append request of its term out
+(`CandS`), whatever happened in that term before (a restart may return to an earlier term). With it, a new append request of the leader matches no other in-flight request
+differing from it in its entries (which its line logs by count only). -/
+def AppSlices (σ : Etcdraft.State) : Prop :=
+  ∀ m ∈ σ.messages.domain ++ σ.pendingMessages.domain, m.type = .appendEntriesRequest →
+    ∀ i ∈ σ.server, (σ.s i).state = Etcdraft.leader → (σ.s i).currentTerm = m.term → m.source = i →
+      ∀ (k : Nat) (e : Etcdraft.Entry), m.entries[k]? = some e → (σ.s i).log[m.prevLogIndex.toNat + k]? = some e
+
 /-- **A message's facts** (review round 2's A3): an append request carries its source's leadership of
 its term (`isLeader`: raft sends one only while leading), its entries' records after its previous
 entry (`logRecs`, their indices within `w64`); any other message carries no entries. (Review round
@@ -811,10 +859,11 @@ instance msgFacts_timeless (γ : RaftNames) (C : List w64) (m : Etcdraft.Msg) :
 `Replicate` lines announced before raft appends them: `srvFacts`, review finding A9), the
 specification invariant `SpecInv` (`TraceSimSpecInv.lean`: with it
 `ElectionSafetyInv`, `CommittedIsDurableInv`, `CommitWithinLeader`; it replaces `DurInv`, false as
-stated), `QuorumLogInv`'s fact and the bags' uniqueness. -/
+stated), `QuorumLogInv`'s fact, the bags' uniqueness and (amendment A2, Q15, Q16) every message in flight
+canonical (`MsgsShape`) and a leader's append requests of its term slices of its log (`AppSlices`). -/
 def simFx (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) : IProp GF :=
   iprop(allFacts γ C σ ∗ (□ ∀ m, ⌜m ∈ σ.messages.domain ++ σ.pendingMessages.domain⌝ → msgFacts γ C m) ∗
-    ⌜TraceSpecInv.SpecInv σ ∧ QuorumLogF σ ∧ MsgsUniq σ⌝)
+    ⌜TraceSpecInv.SpecInv σ ∧ QuorumLogF σ ∧ MsgsUniq σ ∧ MsgsShape σ ∧ AppSlices σ⌝)
 
 instance simFx_persistent (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) :
     Persistent (simFx (GF := GF) γ C σ) := by
@@ -951,45 +1000,49 @@ abbrev trCap_fire.statement : Prop :=
 
 /-- **A phase step by a receive line consuming `m`**: from every share in phase `Φ`, each event `E`
 allows is a line matching `m` (its parse's `recvPred`), not bootstrap-named, with, for every server
-the share stands for, an effect consuming `m` into phase `Φ'`, its replies pending: raft's `P'` in the
-node's share, the phantoms `Pph` (the specification's replies raft does not send, review round 2's
-A6) among the phantoms, through intermediate states of the shape `Mid`. -/
+`a` the share stands for, an effect consuming `m` into phase `Φ'`, its replies pending: raft's `P'` in
+the node's share, the phantoms `ph a` (the specification's replies raft does not send, review round
+2's A6; a function of the receiving server before the line, amendment A2, chosen by the caller: the
+intended instance is `recvPhantoms m` (`TracedRecvPhantom.lean`), `phantomOf` for a lower-term request and none otherwise) among
+the phantoms, through intermediate states of the shape `Mid`. -/
 def PhaseStepR (id : w64) (c : CfgM) (m : Etcdraft.Msg) (E : TraceEv → Prop) (Mid : Etcdraft.Server → Prop)
+    (ph : Etcdraft.Server → List Etcdraft.Msg)
     (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) : Prop :=
   ∀ C cs P, Φ C cs P → (elements c.incoming).Perm C ∧ c.outgoing = ∅ ∧ id ∈ C → ∀ e, E e →
     e.nid = decStr id ∧ Etcdraft.isBootstrapName (gsStr e.name) = false ∧
     (∀ ln, Etcdraft.parseLine 0 (evConv e) = .ok ln → recvPred ln m = true) ∧
     ∀ a : Etcdraft.Server, toC (confAbs C) a = cs →
-    ∃ (a' : Etcdraft.Server) (P' Pph : List Etcdraft.Msg),
+    ∃ (a' : Etcdraft.Server) (P' : List Etcdraft.Msg),
       Φ' C (toC (confAbs C) a') (P ++ P') ∧ (∀ x ∈ P', x.source = idAbs id) ∧
       LineEffect C false e (idAbs id) a a' (some m) (fun b => b.without m)
-        (fun b => (P' ++ Pph).foldl Etcdraft.Bag.with b) Mid
+        (fun b => (P' ++ ph a).foldl Etcdraft.Bag.with b) Mid
 
 /-- **The facts kept by a receive line** (`FxPres`'s counterpart): at the result, and at every
-intermediate state. -/
+intermediate state; the phantom replies are the receiving server's `ph a` (amendment A2). -/
 def FxPresR (γ : RaftNames) (id : w64) (m : Etcdraft.Msg) (E : TraceEv → Prop) (Mid : Etcdraft.Server → Prop)
+    (ph : Etcdraft.Server → List Etcdraft.Msg)
     (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) : IProp GF :=
   iprop(□ ∀ (C : List w64) (cs : ServerC) (P : List Etcdraft.Msg) (e : TraceEv) (a a' : Etcdraft.Server)
-      (P' Pph : List Etcdraft.Msg) (σ : Etcdraft.State),
+      (P' : List Etcdraft.Msg) (σ : Etcdraft.State),
     ⌜Φ C cs P ∧ E e ∧ toC (confAbs C) a = cs ∧ Φ' C (toC (confAbs C) a') (P ++ P') ∧
       LineEffect C false e (idAbs id) a a' (some m) (fun b => b.without m)
-        (fun b => (P' ++ Pph).foldl Etcdraft.Bag.with b) Mid ∧
+        (fun b => (P' ++ ph a).foldl Etcdraft.Bag.with b) Mid ∧
       σ.server = confAbs C ∧ σ.s (idAbs id) = a ∧ σ.preVote = false ∧ σ.checkQuorum = false ∧
       σ.violated = .ok none ∧ m ∈ σ.messages.domain⌝ -∗
     votesTbl γ -∗ simFx γ C σ -∗
       votesTbl γ ∗ simFx γ C (withNode σ (idAbs id) a' (fun b => b.without m)
-        (fun b => (P' ++ Pph).foldl Etcdraft.Bag.with b)) ∗
+        (fun b => (P' ++ ph a).foldl Etcdraft.Bag.with b)) ∗
       (∀ v, ⌜Mid v⌝ -∗ simFx γ C (withNode σ (idAbs id) v _root_.id _root_.id)))
 
 /-- **The global step of a receive line, as one law** (Draft statement): as `trCap_fire`, the line
 consuming the message of the caller's token `k`. -/
 abbrev trCap_fire_recv.statement : Prop :=
   ∀ (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (tl : GoInterface) (E : TraceEv → Prop)
-    (k : Nat) (m : Etcdraft.Msg) (Mid : Etcdraft.Server → Prop)
+    (k : Nat) (m : Etcdraft.Msg) (Mid : Etcdraft.Server → Prop) (ph : Etcdraft.Server → List Etcdraft.Msg)
     (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ Λ' : Option TraceEv → Prop),
-  PhaseStepR id c m E Mid Φ Φ' → (∀ e, E e → Λ' (some e)) →
+  PhaseStepR id c m E Mid ph Φ Φ' → (∀ e, E e → Λ' (some e)) →
   (∀ e, E e → TraceEv.Ok (elements c.incoming).length e) →
-  (trCap (some γd) γ r id c Φ Λ ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗ FxPresR γ id m E Mid Φ Φ' ∗
+  (trCap (some γd) γ r id c Φ Λ ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗ FxPresR γ id m E Mid ph Φ Φ' ∗
     (∃ tn, traceDir γd tn ∗ inFlight tn k m) : IProp GF) ⊢
     TraceFire (some γd) tl E (trCapB (some γd) γ r id c true Φ' Λ')
 
@@ -1184,8 +1237,9 @@ theorem phaseStepB_bot (id : w64) (c : CfgM) (E : TraceEv → Prop)
   fun _ _ _ h => h.elim
 
 theorem phaseStepR_bot (id : w64) (c : CfgM) (m : Etcdraft.Msg) (E : TraceEv → Prop)
-    (Mid : Etcdraft.Server → Prop) (Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) :
-    PhaseStepR id c m E Mid phaseBot Φ' :=
+    (Mid : Etcdraft.Server → Prop) (ph : Etcdraft.Server → List Etcdraft.Msg)
+    (Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) :
+    PhaseStepR id c m E Mid ph phaseBot Φ' :=
   fun _ _ _ h => h.elim
 
 theorem phaseStepReady_bot (id : w64) (c : CfgM) (E : TraceEv → Prop)

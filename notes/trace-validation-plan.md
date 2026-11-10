@@ -1091,6 +1091,30 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   (`TracedMsgType.lean`) gives `msgTypeStr ty` for the six traced types, for the send and receive
   hooks; the Go test `examples/raft/tracecheck/msgtype_string_test.go`. Trust base: the axiom out,
   the model in, the server's results on `strconv.Itoa`'s axiom (`notes/decisions.md`, "Q9").
+- **Q16 (2026-11-10, amendment A2's reviews a2-r3, a2-r4): an `"app"` append request's entries,
+  unpinned for `MsgsUniq`.** A receive line logs an append request's entry count only
+  (`Line.isAppendEntriesRequest`), so after an `"app"` send line with entries `MsgsUniq` needs every
+  in-flight request from the same leader, term, previous entry, commit and count to carry the same
+  entries. `MsgsShape` (A2) leaves the entries free (they are content); `msgFacts` gives only
+  `isLeader` and `logRecs`, and `MsgOk` ties only the current-term entries to the leader's log, so two
+  term-`T` requests with the same previous entry may carry different earlier-term entries (a leader
+  catching up a lagging follower sends such entries). A request with no entries is covered
+  (`ContentLogged`: heartbeats, probes, commit-only appends). Blocked: every `"app"` send line with
+  entries: the `MsgProp` path's appends, and the appends sent while handling `MsgAppResp`/`MsgVoteResp`
+  (catch-up, a won election's appends). Options: (a) amend `msgFacts` (frozen) for an append request
+  with the leader's term-log prefix, `∃ bL l, leadPrefix γ src (W64 m.term) bL l ∗ ⌜the entries are l's
+  slice after prevLogIndex⌝`; two requests of one term then agree by `leadPrefix_base`,
+  `leadPrefix_agree` and the records' agreement (`isEntryR`); to check: `sendAppend`'s caller holds
+  `leadPrefix` of its log; (b) strengthen `MsgOk`/`SpecInv` (pure): an append request from the current
+  leader of its term carries exactly that leader's log slice, of every term (it holds when sent, the
+  specification's `appendEntries` takes `subSeqM v.log`, and a leader's log only grows in its term; no
+  ghost state); `SpecInv` is frozen too through `simFx`; (c) prove the agreement from the existing facts
+  (a2-r4: very probably fails); (d) leave the `"app"` lines to a later amendment. **Recommended: (b)**
+  (pure, the smallest), else (a). Not taken here: beyond the coordinator's Q15 decision.
+  **Taken by the coordinator (the freeze being delegated to it), pending the user's veto: (b), folded
+  into amendment A2.** **Done** on branch `trace-check-a2`: `simFx`'s clause `AppSlices` (while a server
+  leads term `T`, its in-flight term-`T` append requests are slices of its log), checked inductive
+  with `CandS` by reading the transcription (no preservation lemmas yet); `fxPres_app` (`notes/decisions.md`, "Amendment A2 (Q14, Q15, Q16)").
 - **Q15 (2026-11-10, Q8 stage 1 slice 16): the frozen `simFx`'s `MsgsUniq` is not kept by a send
   line.** `FxPres` asks `simFx` after the line for every `σ` with `simFx`; after a send the new message
   must be the only in-flight message a receive line matches with it, but a line logs only some fields
@@ -1105,7 +1129,8 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   `LineEffect`'s single match). **Recommended: (a)**, folded into amendment A2 (same files, one review
   round, one re-freeze). Not taken: a frozen definition.
   **Taken by the coordinator (the freeze being delegated to it), pending the user's veto: (a)**, folded
-  into amendment A2 before its re-freeze (one review round covering Q14 and Q15).
+  into amendment A2 before its re-freeze (one review round covering Q14 and Q15). **Done** on branch
+  `trace-check-a2` (`MsgsShape`, `canonMsg`; `fxPres_heartbeat`).
 - **Q14 (2026-11-10, Q8 stage 1 slice 15): a receive line's phantom replies, unpinned in the frozen
   `FxPresR`.** `FxPresR` (`TracedCap.lean`, frozen at `trace-check-frozen-a1`) asks the specification
   state's facts after the line for every result `(a', P', Pph)` its `LineEffect` admits; the phases pin
@@ -2035,3 +2060,23 @@ nothing first-tier. The Prove phase continues against it: next, `raft.Step`'s tr
 capability forms of `appendEntry`/`becomeLeader` (the term log and the entry records), with the
 owed items a1-r2 lists (a received message's numbers through a trace-gated conjunct of raft's
 `isMessage`, the receipt bound, the bootstrap routing gates).
+
+**Amendment A2 (2026-11-10, branch `trace-check-a2`; Q14 (a), Q15 (a), Q16 (b), pending the user's
+veto).** (Q14) `PhaseStepR`, `FxPresR` and `trCap_fire_recv.statement` take the phantoms as a function
+`ph` of the receiving server before the line (`P' ++ ph a`); checked first against `State.receive`: the
+only replies raft does not send (pre-vote, check-quorum off) are the refusals of lower-term requests,
+`phantomOf a m`. (Q15) `simFx` gains `MsgsShape` (every message in flight canonical in the fields its
+line does not log), checked first to hold of every message the specification, raft (`msgAbs`), the
+phantoms and the bootstrap can put in flight. (Q16) `simFx` gains `AppSlices` (a leader's in-flight
+append requests of its term are slices of its log), checked by reading to be inductive with `CandS`:
+requests come only from a leader's log, a leader's log only grows while it leads, and at `BecomeLeader`
+a candidate has none of its term out. The laws and the gate re-proved, nothing else
+frozen changed (`notes/decisions.md`, "Amendment A2 (Q14, Q15, Q16)"). Sufficiency
+(`TracedRecvPhantom.lean`, `TracedRaftStepPaths.lean`): `fxPresR_staleReq` (a lower-term request's
+receive line), `fxPres_heartbeat` and `fxPres_heartbeat_pin` (a heartbeat's send line, at the pinned
+phases of `phaseStepB_heartbeat_pin`, `id ∈ C0` from `trCapB_pinMem`), `fxPres_app` (an `"app"` send
+line with entries), proved. Left: `simFx` at the initial state (raft's bootstrap ghost, layer B's
+allocation); the heartbeat gate's exact commit (slice 17); `AppSlices`' preservation lemmas for the
+callers' lines (`Replicate`, `BecomeLeader`, step-downs, a follower's receives); an `"app"` counterpart
+of `heartbeat_lead` for `fxPres_app`'s `hlead`; a `trFam`/`PinAt` pin-and-unpin pair for the path
+proofs. Reviews `a2-r1.md` … `a2-r6.md`.

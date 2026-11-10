@@ -34480,3 +34480,88 @@ the tick specs, the node API and `Link.lean` are unchanged (`stepGates`' definit
 enum helpers (`PRState.enumToBitVec✝`, `…enumToBitVec_le✝`, `…eq_iff_enumToBitVec_eq✝`, realized by
 `deriving DecidableEq`): **not this slice's** — checked by rebuilding `Defs` from `trace-check`'s own
 `Defs.lean` and regenerating, which prints them too (the committed file predates their appearance).
+## Amendment A2 (Q14, Q15, Q16): a receive line's phantom replies a function of the receiving server; `simFx`'s shape clause and a leader's append slices (2026-11-10 · trace-check, Q14 (a), Q15 (a) and Q16 (b) taken by the coordinator pending the user's veto, their form decided by the agent · branch `trace-check-a2`; amends the frozen Draft, tag `trace-check-frozen-a1`; DRAFT until the re-freeze `trace-check-frozen-a2`)
+
+**Why.** Two blockers of the frozen Draft. Q14 (slice 15): `FxPresR` asked the facts `simFx` after a
+receive line for every phantom list `Pph` (the specification's replies raft does not send) its
+`LineEffect` admits, and nothing pinned `Pph`, so no receive line's facts were provable. Q15 (slice 16,
+and this amendment's review a2-r1): no line that sends can re-establish `simFx`'s `MsgsUniq` (two
+messages in flight one receive line matches are equal), because a line logs only some fields
+(`recvPred`, the specification's `LoglineIs*`) and `simFx` fixed none of the others: a message in flight
+differing from the new one only in an unlogged field (a heartbeat's `prevLogIndex`, a refusal's
+`matchIndex`, a vote response's `lastLog*`) is consistent with `simFx` and breaks it.
+
+**Checked first.** (Q14) In the transcription (`etcdraft/Tla/Spec.lean`, `State.receive`) every handler
+reads only the destination's server, the message and the fixed flags; with pre-vote and check-quorum
+off, the only replies raft does not send are the refusals of a lower-term `AppendEntries`/
+`RequestVote` request (raft's `Step` ignores them; `receive_staleAER`, `receive_staleVoteReq`): `phantomOf
+a m`, at the server `a` before the line. (Q15) Every message that can be in flight is canonical in the
+unlogged fields: the specification's constructors (`requestVote`, `requestPreVote`,
+`appendEntriesInRangeToPeer` — a heartbeat at `b = e = 1` has no previous entry and no entries —,
+`appendEntriesToSelf`, the vote and pre-vote replies, `rejectAppendEntriesRequest` with `matchIndex 0`,
+`appendEntriesAlreadyDone`, whose heartbeat reply's `matchIndex` is the canonical heartbeat's `0 + 0`,
+`handleSnapshotRequest`), raft's (`msgAbs`: each type's fields only, a refusal's `matchIndex` 0), the
+phantoms (`phantomOf_canon`); `Ready` only moves messages; the bootstrap lines (`InitState`,
+`ApplyConfChange`) send none, and the bags start empty.
+
+**What.** (Q14) `PhaseStepR id c m E Mid ph Φ Φ'`, `FxPresR γ id m E Mid ph Φ Φ'` and
+`trCap_fire_recv.statement` take `ph : Etcdraft.Server → List Etcdraft.Msg`; the effect's bag is
+`(P' ++ ph a).foldl with` at the share's server `a` (`PhaseStepR` no longer chooses `Pph`, `FxPresR` no
+longer quantifies over it); the law's proof passes `ph (σ.s (idAbs id))` through; the gate
+`trCapB_hookGateRecv` (and `FxPresRT`) take `ph`. (Q15) `simFx`'s pure part gains `MsgsShape σ` (every
+message in flight equals `canonMsg` of itself: per type the fields its line logs, the others at the
+constructors' values; a heartbeat without previous entry and entries; an append response's `matchIndex`
+only when a successful `"app"` response); `fxPresReady` keeps it (`Ready` moves messages), the other
+laws carry it in `simFx` from the caller's facts. No other frozen statement changes; nothing
+client-visible (outside `etc/api/raft.txt`'s interface).
+
+**Sufficiency** (`TracedRecvPhantom.lean`): `recvPred_canon_eq` (two canonical messages one line matches
+are equal, the second not an append request with entries), `msgsUniq_send_canon`; `simFx_congr`
+(`simFx` reads the servers up to `toC`, the bags by their domains), `simFx_discard`, `simFx_send`;
+`fxPresR_staleReq` (`FxPresR` of a lower-term request's line at `recvPhantoms m`) and `fxPres_heartbeat`
+(`FxPres` of a heartbeat's send line, `msgOk_heartbeat`), each at phases that keep the share's server up
+to `toC` and add the line's message: a path proof pins its phases (`trCapB_pin`) to give them.
+
+**Rejected.** Q14: (b) `FxPresR` given the bag's premises and a chain-determinism lemma (heavier, the
+result's `violated` circular); (c) `Pph` an argument of `Φ'`; `ph` of the line's result `a'` (a phantom is
+of the state before the line). Q15: (b) `FxPres` given the bag relation to raft's messages (mixes the
+layers); (c) `MsgsUniq` on the logged fields only (breaks `LineEffect`'s single match); a
+responses-only clause (`RespCanon`, this branch's first repair of review a2-r1: too narrow, a2-r2's
+T1-1).
+
+**Q16 (`AppSlices`).** An `"app"` request's line logs its entry count only, so `MsgsShape` cannot pin
+its entries. Checked first in the transcription (`Spec.lean`; `etc/tla-fixes/` is the patch series it
+transcribes): append requests are created only by `appendEntriesInRangeToPeer` (`AppendEntries`,
+`Heartbeat`, `SendSnapshot`), whose entries are `subSeqM v.log b lastEntry` of the sender, a leader;
+`Ready` and the receive handlers create none. A server's log changes only by `Replicate` (appends),
+`ConflictAppendEntriesRequest`/`NoConflictAppendEntriesRequest`/`HandleSnapshotRequest` (reached
+through `AcceptAppendEntriesRequest`, a follower only) and `Restart` (which makes it a follower); a
+step-down, a term change or a restart makes the clause below vacuous, and at `BecomeLeader` it holds
+vacuously since a candidate has no append request of its term out (`CandS`, which also covers a
+restart back to an earlier term: review a2-r5). So `simFx` gains the pure clause
+`AppSlices σ`: while `i` leads term `T`, every in-flight append request of term `T` from `i` carries at
+each position the entry of `i`'s log at that index. It is inductive with `CandS` (a new request is a slice; the log
+only grows while leading; stepping down makes the clause vacuous; `BecomeLeader` by `CandS`; checked by
+reading, review a2-r5, not yet by preservation lemmas) and it is all a send needs: the
+coordinator's suggested pairwise half (any two term-`T` requests agree) is not needed, since
+`MsgsUniq` is itself the invariant and a send only adds pairs with the new request, whose sender leads
+its term, so both sides are slices of one log (`pinned_of_slices`). Kept as a clause of `simFx`
+beside `MsgsShape`, not inside `SpecInv` (whose lemmas would all change for a fact only the
+uniqueness reads). `fxPresReady` keeps it (`Ready` changes no log, state or term).
+`recvPred_canon_eq` and `msgsUniq_send_canon` take `PinnedBy y p` (the new message pins each
+in-flight one where its line does not look) in place of `ContentLogged`.
+
+**Sufficiency, Q16 and the open items of round 4.** `fxPres_app` (`FxPres` of an `"app"` send line with
+entries, from its `msgFacts` and its slice of the node's log; `msgOk_app`); the pinned phase steps
+`phaseStepB_send_pin`, `phaseStepB_heartbeat_pin` (`PinAt`, the server kept, the message added),
+`pinAt_step` (their `hΦ'`), `heartbeat_lead` and `fxPres_heartbeat_pin` (the heartbeat line's facts at
+the pinned idle phases, from raft's state). `simFx` at the initial state is **not** done: `allFacts`
+there needs every voter's `srvFacts` of the bootstrap log (its records, commit certificate), raft's
+ghost state at the cluster's allocation, not a small lemma; the new clauses hold trivially there (empty
+bags).
+
+**Open.** The heartbeat gate's exact commit (slice 16; slice 17's; `heartbeat_lead` and
+`fxPres_heartbeat_pin` need only its bound); `simFx` at the initial state (layer B's allocation);
+`AppSlices`' preservation lemmas for the callers' lines (`Replicate`, `BecomeLeader`, step-downs, a
+follower's receives; a2-r5) and an `"app"` counterpart of `heartbeat_lead` for `fxPres_app`'s `hlead`;
+the path proofs themselves. Reviews: `notes/trace-validation-reviews/a2-r1.md` … `a2-r6.md`.
