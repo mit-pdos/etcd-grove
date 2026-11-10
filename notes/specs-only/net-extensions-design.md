@@ -225,8 +225,11 @@ Impl may use plain ids instead (C11).
   per request build a `*Request` (fields read-only, `Body` reading with `HBodyRead`, `Context()`
   canceled by a `HGone` watcher), a `ResponseWriter` (`Header()` a map, `WriteHeader` →
   `PutKV`s + `HCommit`, `Write` → `HWrite`, `Flush` commits `200`), call `Handler.ServeHTTP`
-  (dynamic) **under `recover`** (net/http recovers handler panics but `ErrAbortHandler`,
-  `server.go:1956`): `HFinish(true)` on return, `HFinish(false)` and close on a panic; then call the
+  (dynamic) **with no `recover`** (coordinator's decision, 2026-11-10: net/http recovers handler
+  panics but `ErrAbortHandler`, `server.go:1956`, yet the model lets a handler panic be the
+  program's panic, so the proof must show no handler panics; stronger than Go, and true of the
+  program once `issues/etcd-rafthttp-pipeline-process-error-panic.md` is fixed on the fork):
+  `HFinish(true)` on return; then call the
   connection's `Close` (the program's wrapper: `LimitListener`'s slot). `Shutdown(ctx)`: close the
   listeners, wait until no handler runs or `ctx` is done. `ServeMux`: plain path patterns, the
   longest wins, a subtree pattern redirects its bare path (`301`), no match `404`; methods,

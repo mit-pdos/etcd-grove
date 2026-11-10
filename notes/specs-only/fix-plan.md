@@ -319,3 +319,12 @@ Batches 4-6 touch disjoint files and may share one translation if done together.
 - `leasing-write-resend-after-error`: a failed write resent lands late (F5). Test? yes, with etcd's integration `bridge` dropping the first reply.
 - `k8s-etcd3-watcher-events-after-error`: Kubernetes, no fork. Test? only through a fake watcher today.
 - Already fixed on the fork (no action): `etcd-compactor-started-before-start`, `etcd-purge-snapdb-unopened`, `etcd-wal-restart-file-below-snapshot`, `etcd-wal-snapshot-record-order`, `etcd-wal-stale-entries-above-snapshot`, `etcd-watch-resume-stale-canceled-id`, `etcd-watch-resume-nil-watch-chan`, `etcd-watch-resume-waitgroup-overflow`, `etcd-watch-sync-ticker-reset-zero`.
+
+
+## Added 2026-11-10 (crashreconf test)
+
+- **`etcd-rafthttp-pipeline-process-error-panic`** (goal path: reused peer URLs in `examples/etcd/crashreconf`;
+  etcd fork, S): the two-part fix of the issue's `fix.patch` — `writerToResponse.WriteTo` returns
+  `error` (so `HTTPError` matches), and `Process` answers a misaddressed message with `412`, not
+  `403` (else the latent `nonissues/etcd-rafthttp-misaddressed-403-member-removed.md` becomes real).
+  Spec: the rafthttp handlers' status clause (no panic; `403` only for a removed sender).

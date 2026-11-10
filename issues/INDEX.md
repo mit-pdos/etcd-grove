@@ -4,7 +4,7 @@
 
 The bugs with a valid failing Go test (format: [README.md](README.md)); the findings without one are in [../nonissues/](../nonissues/INDEX.md).
 
-## Not reported (56)
+## Not reported (57)
 
 | Issue | Blocks proof | Upstream links |
 |---|---|---|
@@ -15,6 +15,7 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [etcdserver: two membership changes while the leader's apply loop lags can lose an acknowledged write](etcd-leader-advance-before-applyconfchange.md) | yes | etcd-io/raft#80 issue open; etcd-io/raft#354 issue open |
 | [etcdserver: a leader that steps down while saving a Ready can send a follower a snapshot of a term above the follower's term](etcd-merged-snapshot-stale-term.md) | yes | etcd-io/etcd#7470 issue closed; etcd-io/etcd#7513 pr merged; etcd-io/raft#47 pr open; etcd-io/raft#108 issue open |
 | [etcdserver: a member that catches up by a snapshot rejects writes with "database space exceeded" while its db is under its quota](etcd-quota-stale-backend-after-snapshot.md) | yes | etcd-io/etcd#20553 pr merged |
+| [rafthttp: a raft message the member rejects makes the peer handler panic and answer 500 instead of 403](etcd-rafthttp-pipeline-process-error-panic.md) | yes | etcd-io/etcd#10569 issue closed; etcd-io/etcd#17078 pr merged; etcd-io/etcd#3579 pr merged |
 | [etcdserver: a Txn with comparisons and no operations returns a stale result from a member that is behind](etcd-txn-empty-serializable.md) | yes | etcd-io/etcd#20418 issue closed |
 | [etcdserver: a Txn of nested keys-only whole-range reads makes every member build a huge reply, and the member that answers it panics (with --max-request-bytes of about 10 MiB or more)](etcd-txn-keysonly-reply-alloc-panic.md) | yes |  |
 | [etcdserver: a transaction nested about 5000 deep panics every member, permanently (with --max-txn-ops of 5000 or more)](etcd-txn-nested-depth-apply-panic.md) | yes |  |
