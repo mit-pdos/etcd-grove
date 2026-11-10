@@ -77,6 +77,13 @@ def metaAtD (pl : Loc) (rv : w64) (cont : GoString) (rem : Option w64) : IProp G
     ∃ r : Loc, structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.ObjList
       go!"RemainingItemCount" pl ↦ r ∗ remIs r rem)
 
+/-- **`listOut(l)`'s output** (stage 7e-4) for the items `vs`, the list's resource version `rv`,
+continue token `cont` and remaining count `rem`: no error, the items encoded (`encItemsL`), the
+remaining count iff the list has one. -/
+def listObjOutL (vs : List github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj) (rv : w64)
+    (cont : GoString) (rem : Option w64) : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Output :=
+  ⟨W64 0, [], 0, [], [], [], [], [], [], 0, encItemsL vs, rv, cont, rem.isSome, rem.getD 0, [], false⟩
+
 /-- **The driver's list objects** (see the file header). -/
 def driverListSpec : ListSpec GF DObj where
   listTy := github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.ObjList.ty
