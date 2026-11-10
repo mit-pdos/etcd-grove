@@ -124,12 +124,14 @@ responses: what marshals (`MsgMarshals`), so that the receiver's copy has none e
 `lid`, what rafthttp's msgappv2 stream carries whole (raft's `isRaftMsg` says both of its messages).
 (raft-entsize §4, 2026-11-10) Frozen at a content of `st` (`msgRoC`; its snapshot's conf state
 without unknown fields), of bounded size when the payload says so (`N.Sz`): the content the
-transport encodes, which the receiver decodes back (`proto.Unmarshal`'s D2). -/
+transport encodes, which the receiver decodes back (`proto.Unmarshal`'s D2). (2026-11-10, the
+coordinator's decision) Of bounded size whatever the payload (until then only when `N.Sz`): the
+transport's encoders need a bound, and the server's cluster bounds proposed data. -/
 def netBundle (N : NetPayload GF) (lid : w64) (m : Loc) : IProp GF :=
   iprop(∃ st : MsgSt, msgOwn m DFrac.discard st ∗ (□ N.P st) ∗ N.O st ∗
     ⌜st.msg.Type' ≠ MsgSnap ∧ st.resps = [] ∧
       (st.msg.Type' = MsgApp → AppShape st ∧ st.msg.From' = lid)⌝ ∗
-    ∃ c : MsgC, msgRoC m c ∗ ⌜c.model = st ∧ c.csUfNil ∧ (N.Sz → msgSizeOk c)⌝)
+    ∃ c : MsgC, msgRoC m c ∗ ⌜c.model = st ∧ c.csUfNil ∧ msgSizeOk c⌝)
 
 /-- **A message's content for the encoders** (persistent; raft-entsize §4, 2026-11-10): the
 message `ml` frozen at a content of `st` without unknown fields in its snapshot's conf state, below
@@ -148,9 +150,13 @@ instance msgSzC_persistent (Sz : Prop) (ml : Loc) (st : MsgSt) :
 message, a `MsgSnap` with a snapshot of index `i`, with its bundle (read-only for good, as
 `netBundle`'s), and the right to read the merged message's reader `rc` (`readerStreams`), whose
 complete streams are bbolt images of some `D` (`boltImage`) with the payload's certificate
-`N.img i D` (for the server, `srvImage`: the committed state through `i`). -/
+`N.img i D` (for the server, `srvImage`: the committed state through `i`). (raft-entsize [r3c],
+2026-11-10) Frozen at a content below `2^47` bytes (`msgSzC False`, `swMsgBound`'s meaning): what
+the envelope's encoder needs (`createSnapBody`), derived by the sender (until then
+`swMsgBound_phys`'s). -/
 def netSnapBundle (N : NetPayload GF) (ml : Loc) (rc : GoInterface) : IProp GF :=
   iprop(∃ (st : MsgSt) (sn : SnapshotM) (D : backend.Data), msgOwn ml DFrac.discard st ∗
+    msgSzC False ml st ∗
     (□ N.P st) ∗ N.O st ∗ ⌜st.msg.Type' = MsgSnap ∧ st.snap = some sn ∧ st.resps = []⌝ ∗
     backend.readerStreams rc (fun bs => backend.boltImage bs D) ∗
     □ N.img sn.Metadata'.Index' D)

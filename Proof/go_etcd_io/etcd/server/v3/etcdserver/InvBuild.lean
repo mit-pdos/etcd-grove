@@ -126,20 +126,20 @@ M1; 2026-10-27: the node API's): read-only, a message the node `id` of the serve
 stream needs), with its credits (`msgCredits`: a `MsgReadIndex`'s read credit, a forwarded
 proposal's tickets): what a peer's `node.Step` takes of a network message (`stepIn_intro`) but the
 receiver's own facts; (raft-entsize §4, 2026-11-10) frozen at the content raft handed it out with
-(`msgOut`), of bounded size in a cluster with a bound on proposed data (`msgOut_size`). -/
+(`msgOut`), of bounded size (`msgOut_netContent`, the server's cluster bounding proposed data). -/
 def srvMsgNet (γ : SrvRaft) (id : w64) (m : Loc) : IProp GF :=
   letI := srvStor (GF := GF) γ
   iprop(∃ st : MsgSt, msgOwn m DFrac.discard st ∗ sentMsg γ.cl srvClusterN id st ∗
     msgCredits γ.cl srvClusterN st ∗
-    ∃ c : MsgC, msgRoC m c ∗ ⌜c.model = st ∧ c.csUfNil ∧ (γ.cl.maxData ≠ none → msgSizeOk c)⌝)
+    ∃ c : MsgC, msgRoC m c ∗ ⌜c.model = st ∧ c.csUfNil ∧ msgSizeOk c⌝)
 
 /-- **A handed-out message's content for the network** (raft-entsize §4, 2026-11-10): frozen at
 the content raft handed it out with (`msgOut`), of bounded size in a cluster with a bound on
 proposed data (`Cluster.outObj_size`), unless a `MsgSnap`. -/
-theorem msgOut_netContent [StorageModel GF] (γc : Cluster) (m : Loc) (st : MsgSt) (hns : st.msg.Type' ≠ MsgSnap)
-    (hr : st.resps = []) :
+theorem msgOut_netContent [StorageModel GF] (γc : Cluster) (m : Loc) (st : MsgSt) (b : Nat)
+    (hmd : γc.maxData = some b) (hns : st.msg.Type' ≠ MsgSnap) (hr : st.resps = []) :
     msgOut (GF := GF) γc m DFrac.discard st ⊢
-      ∃ c : MsgC, msgRoC m c ∗ ⌜c.model = st ∧ c.csUfNil ∧ (γc.maxData ≠ none → msgSizeOk c)⌝ := by
+      ∃ c : MsgC, msgRoC m c ∗ ⌜c.model = st ∧ c.csUfNil ∧ msgSizeOk c⌝ := by
   iintro Hmo
   iunfold msgOut at Hmo
   icases Hmo with ⟨%c, #Hc, %Hm, #Ho⟩
@@ -148,17 +148,11 @@ theorem msgOut_netContent [StorageModel GF] (γc : Cluster) (m : Loc) (st : MsgS
     simp only [MsgC.model, hr, List.map_eq_nil_iff] at h
     exact h
   ihave #Hro := msgPtsCC_msgRoC m c hcr $$ Hc
-  cases hmd : γc.maxData with
-  | none =>
-    iexists c
-    iframe Hro
-    ipureintro; exact ⟨Hm.1, Hm.2.1, fun h => absurd rfl h⟩
-  | some b =>
-    ihave %Hsz := Cluster.outObj_size γc m c b $$ Ho
-    iexists c
-    iframe Hro
-    ipureintro
-    exact ⟨Hm.1, Hm.2.1, fun _ => Hsz hmd (by rw [Hm.1]; exact hns)⟩
+  ihave %Hsz := Cluster.outObj_size γc m c b $$ Ho
+  iexists c
+  iframe Hro
+  ipureintro
+  exact ⟨Hm.1, Hm.2.1, Hsz hmd (by rw [Hm.1]; exact hns)⟩
 
 /-- Two read-only views of a message agree on its type. -/
 theorem msgOwn_type_agree (m : Loc) (st1 st2 : MsgSt) :

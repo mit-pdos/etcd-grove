@@ -816,6 +816,13 @@ instance srvRaftLogInv_persistent (γ : ServerRaftNames) :
     Persistent (srvRaftLogInv (GF := GF) γ) := by
   unfold srvRaftLogInv; infer_instance
 
+/-- (raft-entsize §2, 2026-11-10) The server's cluster bounds proposed data at `2^30`. -/
+theorem srvRaftLogInv_maxData (γ : ServerRaftNames) :
+    srvRaftLogInv (GF := GF) γ ⊢ ⌜γ.raft.cl.maxData = some (2 ^ 30)⌝ := by
+  unfold srvRaftLogInv srvClusterOk
+  iintro ⟨-, ⟨-, -, -, -, -, -, -, -, -, -, %H⟩, -⟩
+  ipureintro; exact H
+
 theorem srvRaftLogInv_facts (γ : ServerRaftNames) :
     srvRaftLogInv (GF := GF) γ ⊢ ⌜uint.Z γ.ai0 = γ.pre.length⌝ := by
   unfold srvRaftLogInv

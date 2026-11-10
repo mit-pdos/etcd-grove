@@ -359,9 +359,13 @@ theorem srvMerged_bundle (γ : SrvRaft) (ml : Loc) (rc : GoInterface) (st : MsgS
   imod msgCredits_intro γ.cl srvClusterN (mergedSt st c ai at')
     hP with HO
   imodintro
+  -- (raft-entsize [r3c], INTERIM) the envelope's bound, still from the trust boundary
+  -- `swMsgBound_phys`: derived from the merged message's content next (`createMergedSnapshotMessage`)
+  ihave #Hsw := swMsgBound_phys ml (mergedSt st c ai at') Hsh.1.2.2.2.2.2.2.2 $$ Hm
+  ihave #Hsw := msgSzC_of_swMsgBound (Sz := False) id ml _ $$ Hsw
   iunfold netSnapBundle
   iexists mergedSt st c ai at', SnapshotM.mk [] (SnapshotMetadataM.mk c ai at'), D
-  iframe Hm Hrs Himg
+  iframe Hm Hsw Hrs Himg
   isplitr
   · iintro !>
     simp only [srvNet]

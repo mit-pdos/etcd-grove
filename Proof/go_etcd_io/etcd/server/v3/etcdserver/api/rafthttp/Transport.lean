@@ -211,28 +211,18 @@ axiom swMsgBound_phys (ml : Loc) (st : MsgSt) (h : st.resps = []) :
 
 /-- **A message in the network's bundle is one the transport's `Send` takes** (stage 6d): the
 bundle's facts (`netBundle`), and its encoding's bound: (raft-entsize §4, 2026-11-10) one content
-for both (`msgSzC`): when the payload's messages are of bounded size (`N.Sz`), the bundle's content,
-below `2^47` bytes by its size (`msgSize_lt_of_ok`); otherwise `swMsgBound_phys`'s. -/
+for both (`msgSzC`): the bundle's content, below `2^47` bytes by its size (`msgSize_lt_of_ok`). -/
 theorem sendMsg_of_netBundle (Rh : RaftHttp GF) (lid : w64) (ml : Loc) :
     netBundle Rh.γn.N lid ml ⊢ sendMsg Rh lid ml := by
   iintro Hb
   iunfold netBundle at Hb
   icases Hb with ⟨%st, #Hm, #HP, HO, %H, %c, #Hc, %Hcs⟩
   ihave #Hbd : msgSzC Rh.γn.N.Sz ml st $$ []
-  · by_cases hSz : Rh.γn.N.Sz
-    · iunfold msgSzC
-      iexists c
-      iframe Hc
-      ipureintro
-      exact ⟨Hcs.1, Hcs.2.1, msgSize_lt_of_ok c (Hcs.2.2 hSz), Hcs.2.2⟩
-    · ihave #Hsw := swMsgBound_phys ml st H.2.1 $$ Hm
-      iunfold swMsgBound at Hsw
-      icases Hsw with ⟨%c', #Hc', %Hc'⟩
-      iunfold msgSzC
-      iexists c'
-      iframe Hc'
-      ipureintro
-      exact ⟨Hc'.1, Hc'.2.1, Hc'.2.2, fun h => absurd h hSz⟩
+  · iunfold msgSzC
+    iexists c
+    iframe Hc
+    ipureintro
+    exact ⟨Hcs.1, Hcs.2.1, msgSize_lt_of_ok c Hcs.2.2, fun _ => Hcs.2.2⟩
   iunfold sendMsg
   iexists st
   iframe; iframe #

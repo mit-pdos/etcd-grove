@@ -534,8 +534,10 @@ theorem rnEnvOk_of_clusterOn (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w
     -- (raft-entsize §4) the content the bundle carries, of bounded size under a data bound
     ihave %Hshm := (letI := srvStor (GF := GF) γw.node;
       sentMsg_shape (GF := GF) γw.node.cl srvClusterN γw.id st) $$ Hrm
+    ihave %Hmd := srvRaftLogInv_maxData ρ.raft $$ Hr
     ihave #Hcc := (letI := srvStor (GF := GF) γw.node;
-      msgOut_netContent γw.node.cl m st Hns Hshm.1.2.2.2.2.2.2.2) $$ Hmo
+      msgOut_netContent γw.node.cl m st (2 ^ 30) (by rw [hraft]; exact Hmd) Hns
+        Hshm.1.2.2.2.2.2.2.2) $$ Hmo
     -- (raft-entsize §2) today's form of the handed-out message (the bundle's)
     ihave #Hmo := (letI := srvStor (GF := GF) γw.node; msgOut_msgOwn γw.node.cl m DFrac.discard st) $$ Hmo
     rw [hraft, hid] at *

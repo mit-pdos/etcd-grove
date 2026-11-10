@@ -141,7 +141,49 @@ timeout 12000 flock /shared/tmp/etcd-grove-build.lock systemd-run --scope -q -p 
    carry `msgSizeOk c` unconditionally (the server's producers have `maxData = some 2^30` from
    `srvClusterOk`), or the payload's `Sz`; a form decision of this stage.
 
-## Next, in order
+## Done (step 3, part 1: netBundle and the snapshot path's rafthttp side; 2026-11-10, uncommitted)
+
+Decisions (etcd-grove-81, 2026-11-10): heartbeat route H1 (translate `linkHeartbeatMessage`'s
+initializer, `gen-init.py` SPECIAL, `rafthttpInit`'s heartbeat fact in content form; STOP if the
+translated initializer needs a new axiom); forms accepted (MsgDecC, decoder posts, V2Compat EntsSz,
+netRecv, raftPropose's conjunct, netBundle carrying `msgSizeOk` unconditionally). Stage A landed:
+lean is `de9c19e020`; merge lean before the full build, take lean's `etc/tcb-baseline.txt` and
+collections and re-update with this stage's deltas, restore the joint-landing check in
+`etc/gates.sh` (stage A turned it off) with the deletion of `swMsgBound_phys`. premise-fixes-1 lands
+next (touches `InvPb`, pbMsg's unknown fields): merge lean again after it.
+
+- `netBundle`: `msgSizeOk c` unconditionally. `srvMsgNet` likewise; `msgOut_netContent` takes
+  `γc.maxData = some b`; `ServerOn`/`BuildGap` get it from the new `srvRaftLogInv_maxData`
+  (`SrvRaftLog.lean`). `sendMsg_of_netBundle` no longer uses `swMsgBound_phys`.
+- `netSnapBundle` and `snapBundleTo` carry `msgSzC False ml st` (the content below `2^47`, as
+  `swMsgBound`; `swMsgBound` itself lives in `Codec.lean`, above `Net.lean`); `createSnapBody`'s spec
+  takes it (its `swMsgBound_phys` gone); `snapshotSender.send`, `Transport.SendSnapshot` pass it.
+- INTERIM: `srvMerged_bundle` (`SnapSendBranch.lean`) gets it from `swMsgBound_phys`
+  (+ `msgSzC_of_swMsgBound`). The axiom's remaining users: `srvMerged_bundle`, `streamWriter.run`.
+- Targeted build: `/shared/tmp/ptm-cp3/entsize/c1.log` (targets `c1-targets.txt`).
+
+## Next: [r3c] in the server (design, from the step-3 check)
+
+`pbMsg T l uf` is the content's unknown fields by fiat (`msgPtsC_msgPtsCC_uf` builds a content with
+`uf := uf0` from any `pbMsg … l uf0`), so the bound needs only the right `pbMsg … []` facts:
+1. `rnSnapMsg` (`InvRaftNode.lean:196`) gains `snapUf m st` (persistent; for a `MsgSnap` it is
+   `pbMsg raftpb.Message m []`); its producer (`InvRaftNode.lean:~1008`) has the `Ready`'s `msgOut`
+   (`c.sentOk`: `c.f.uf = []` for a `MsgSnap`; `msgPtsCC` holds `pbMsg raftpb.Message m c.f.uf`).
+   Consumers: `EtcdServer__applyAll.lean:386`, `ApplyAllSnap.lean:751,1273` (pattern `⟨%sm, Hm, %Htyb, #Hsm, -⟩`).
+2. `createMergedSnapshotMessage`'s spec takes `snapUf ml st` (or `pbMsg raftpb.Message ml []`) and
+   posts `msgSzC False ml (mergedSt st c snapi snapt)`. In its proof: content-form struct lemmas for
+   the snapshot and metadata (as `ownSnapM_of_struct`/`smPts_of_struct`, `InvPb.lean:680/:704`, but
+   building `ownSnapCC`/`smPtsCC` with `uf = []`; write them in the server, not in raft's InvPb, which
+   premise-fixes-1 edits), the clone's conf state (`csPts`: `pbMsg ConfState … []`, ≤ `2^20` ids),
+   `msgPtsC_msgPtsCC_uf` at `[]` for `ml`, a content-form store of `Snapshot`, `msgPtsCC_msgRoC`, and
+   the size: entries `[]` and context `[]` (`SentMsgShape` of a `MsgSnap`), scalars by `varintSize ≤ 10`,
+   the conf state ≤ `2^20 · 11` + framing.
+3. `srvMerged_bundle` takes that `msgSzC` in place of `swMsgBound_phys`.
+
+Then: the heartbeat (H1), delete `swMsgBound_phys` (and `msgSzC_of_swMsgBound` if unused), restore the
+joint-landing check, merge lean, tcb baseline/collections, full build, gates; STOP before land.sh.
+
+## Next, in order (older list)
 
 1. (done: B, the rest, above.)
 2. (done, above) The server switch to `maxData = some 2^30` (drop `srvClusterOk`'s interim `maxData = none`; the
