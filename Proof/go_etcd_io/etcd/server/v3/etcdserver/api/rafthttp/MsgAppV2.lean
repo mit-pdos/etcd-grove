@@ -763,6 +763,108 @@ theorem msgPtsCC_of_struct [go_etcd_io.raft.v3.Assumptions] (l : Loc) (v : raftp
   iframe
   iframe cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh Hents Hcs Hpb
 
+/-- (raft-entsize, route H1, 2026-11-10) The wire content of `linkHeartbeatMessage`'s literal: its
+`Type` set to `MsgHeartbeat`, no other field, no unknown fields, no responses. -/
+def hbC : MsgC :=
+  .mk ⟨some MsgHeartbeat, none, none, none, none, none, [], none, none, none, none, none, none, []⟩ []
+
+/-- A message's object's unknown fields (its `pbMsg`). -/
+theorem msgPtsCC_pbMsg (l : Loc) (dq dqe : DFrac) (cap : Bool) (c : MsgC) :
+    msgPtsCC (GF := GF) l dq dqe cap c ⊢ pbMsg raftpb.Message l c.f.uf := by
+  iintro H
+  iunfold msgPtsCC at H
+  icases H with ⟨%pty, %pto, %pfr, %pte, %plt, %pix, %pco, %pvo, %prj, %prh, %es, %els, %ps, %cs,
+    %rsl, %Hnn, HTy, #cTy, HTo, #cTo, HFr, #cFr, HTe, #cTe, HLt, #cLt, HIx, #cIx, HCo, #cCo,
+    HVo, #cVo, HRj, #cRj, HRh, #cRh, HEs, Hes, #Hents, Hcap, HSn, Hsn, HCx, #Hcx, HRs, Hrs, #Hpb⟩
+  iexact Hpb
+
+/-- **A message at a content, frozen**: its entries slice frozen, its capacity dropped. -/
+theorem msgPtsCC_freeze (l : Loc) (dq dqe : DFrac) (cap : Bool) (c : MsgC) :
+    msgPtsCC (GF := GF) l dq dqe cap c ⊢ |==> msgPtsCC l dq DFrac.discard false c := by
+  unfold msgPtsCC
+  iintro ⟨%pty, %pto, %pfr, %pte, %plt, %pix, %pco, %pvo, %prj, %prh, %es, %els, %ps, %cs,
+    %rsl, %Hnn, HTy, #cTy, HTo, #cTo, HFr, #cFr, HTe, #cTe, HLt, #cLt, HIx, #cIx, HCo, #cCo,
+    HVo, #cVo, HRj, #cRj, HRh, #cRh, HEs, Hes, #Hents, -, HSn, Hsn, HCx, #Hcx, HRs, Hrs, #Hpb⟩
+  imod (ownSlice_dfractional (GF := GF) _ _).dfractional_persist _ $$ Hes with #Hes
+  imodintro
+  iexists pty, pto, pfr, pte, plt, pix, pco, pvo, prj, prh, es, els, ps, cs, rsl
+  simp only [Bool.false_eq_true, ↓reduceIte]
+  isplitr
+  · ipureintro; exact Hnn
+  iframe
+  iframe cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh Hes Hents Hcx Hpb
+
+/-- (raft-entsize, route H1, 2026-11-10) **`linkHeartbeatMessage`'s translated initializer**: the
+literal `raftpb.Message{Type: MsgHeartbeat.Enum()}` stored at `l`, with `Enum`'s fresh cell, is a
+heartbeat read-only for good without unknown fields (what `rafthttpInit` states, `Init.lean`). -/
+theorem hbMsg_init [go_etcd_io.raft.v3.Assumptions] (l pty : Loc) (E : CoPset) :
+    (l ↦ (raftpb.Message.mk zeroValDef pty null null null null null slice.nil null null null null
+        null slice.nil slice.nil slice.nil 0) ∗
+      pty ↦ (W32 8 : raftpb.MessageType) : IProp GF) ⊢ |={E}=>
+      msgOwn l DFrac.discard go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.hbSt ∗
+        pbMsg raftpb.Message l [] := by
+  iintro ⟨Hl, Hp⟩
+  imod optCell_alloc pty (W32 8 : raftpb.MessageType) $$ Hp with #cTy
+  ihave Hes : (slice.nil ↦*{DFrac.discard} ([] : List Loc) : IProp GF) $$ []
+  · iapply ownSlice_nil
+  ihave Hrs : (slice.nil ↦* ([] : List Loc) : IProp GF) $$ []
+  · iapply ownSlice_nil
+  imod msgPtsCC_of_struct l (raftpb.Message.mk zeroValDef pty null null null null null slice.nil
+    null null null null null slice.nil slice.nil slice.nil 0) DFrac.discard false [] hbC.f E rfl rfl
+    $$ [Hl Hes Hrs] with Hm
+  · simp only [hbC, MsgC.f, optCell, snapOptCC, bytesC, MsgHeartbeat]
+    iframe Hl Hes Hrs cTy
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    isplitl
+    · iapply (BigSepL2.bigSepL2_nil (PROP := IProp GF)).2; iempintro
+    iempintro
+  rw [show MsgC.mk hbC.f [] = hbC from rfl]
+  imod msgPtsCC_persist l (DFrac.own 1) _ $$ Hm with #Hm
+  imodintro
+  have hm : hbC.model = go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.hbSt := rfl
+  have hu : hbC.f.uf = [] := rfl
+  ihave #Hp := msgPtsCC_pbMsg $$ Hm
+  rw [hu]
+  rw [← hm]
+  iframe Hp
+  iapply msgPtsCC_msgPtsC l DFrac.discard DFrac.discard false hbC
+    (by intro s hs; simp [hbC, MsgC.f] at hs) $$ Hm
+
+/-- (raft-entsize, route H1) **`linkHeartbeatMessage` at a content** (`rafthttpInit`'s fact): read-only
+at a content of `hbSt` of bounded size (no entries, `Context`, snapshot or unknown fields). -/
+theorem hbMsg_msgRoC [go_etcd_io.raft.v3.Assumptions] (l : Loc) :
+    (msgOwn l DFrac.discard go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.hbSt ∗
+      pbMsg raftpb.Message l [] : IProp GF) ⊢
+      ∃ c : MsgC, msgRoC l c ∗ ⌜c.model = go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.hbSt ∧
+        c.csUfNil ∧ c.resps = [] ∧ msgSizeOk c⌝ := by
+  iintro ⟨Hm, #Hp⟩
+  icases msgPtsC_msgPtsCC_uf l DFrac.discard DFrac.discard false _ [] $$ [Hm Hp] with ⟨%c, #Hc, %Hc⟩
+  · iframe Hm Hp
+  obtain ⟨hm, hcs, hu⟩ := Hc
+  have hr : c.resps = [] := by
+    have := congrArg MsgSt.resps hm
+    simp only [MsgC.model, go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.hbSt,
+      List.map_eq_nil_iff] at this; exact this
+  have he : c.f.entries = [] := by
+    have := congrArg MsgSt.ents hm
+    simp only [MsgC.model, go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.hbSt,
+      List.map_eq_nil_iff] at this; exact this
+  have hx : c.f.context.getD [] = [] := by
+    have := congrArg MsgSt.ctx hm
+    simpa only [MsgC.model, go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.hbSt] using this
+  have hs : c.f.snapshot = none := by
+    have := congrArg MsgSt.snap hm
+    simpa only [MsgC.model, go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.hbSt,
+      Option.map_eq_none_iff] using this
+  iexists c
+  ihave #Hro := msgPtsCC_msgRoC l c hr $$ Hc
+  iframe Hro
+  ipureintro
+  refine ⟨hm, hcs, hr, hr, ?_, ?_, ?_⟩
+  · simp only [hdrBytes, hx, hu, hs, optSnapSize, List.length_nil]; omega
+  · intro e he'; rw [he] at he'; simp at he'
+  · rw [he]; simp
+
 end preds
 
 section make

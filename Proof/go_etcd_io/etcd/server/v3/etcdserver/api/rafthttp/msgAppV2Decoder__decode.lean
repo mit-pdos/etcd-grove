@@ -111,7 +111,7 @@ theorem rafthttp.msgAppV2Decoder.decode.wp_proof
     ihave Hei : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
     · iapply isPkgInit_access $$ Hpkg
     icases Hei with ⟨-, #Hhb, -⟩
-    ihave ⟨%chb, #Hchb, %Hchbm⟩ := msgOwn_msgRoC _ _ rfl $$ Hhb
+    ihave ⟨%chb, #Hchb, %Hchbm⟩ := hbMsg_msgRoC _ $$ Hhb
     have wpC := wp_Clone pbMessageC pbMessageC_reg
       (globalAddr go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.linkHeartbeatMessage) chb
     simp only [pbMessageC_ty, pbMessageC_roC, pbMessageC_decC, pbMessageC_eqv, pbMessageC_modelOf,
@@ -120,7 +120,7 @@ theorem rafthttp.msgAppV2Decoder.decode.wp_proof
     · iexact Hchb
     have hcs : c'.csUfNil := by
       have h := Heqv.2.2 (by first | rfl | (simp only [pbMessageC_marshals, MsgMarshals, Hchbm.1]; rfl) | simp [pbMessageC_marshals, MsgMarshals, Hchbm.1])
-      rw [h]; exact Hchbm.2
+      rw [h]; exact Hchbm.2.1
     rw [Hchbm.1] at Heqv
     (try wp_auto)
     iapply HΦ

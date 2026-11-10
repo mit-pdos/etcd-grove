@@ -288,32 +288,32 @@ set_option hygiene false in
 deposit: the reader drops it); flushed, or on an error the connection closed. -/
 local macro "run_hb" : tactic => `(tactic| (
   (try wp_auto)
-  ihave ⟨%chb, #Hchb, %Hchbm⟩ := msgOwn_msgRoC _ _ rfl $$ Hhb
+  ihave ⟨%chb, #Hchb, %Hchbm⟩ := hbMsg_msgRoC _ $$ Hhb
   have wpC := hClone pbMessageC pbMessageC_reg
     (globalAddr go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.linkHeartbeatMessage) chb
   simp only [pbMessageC_ty, pbMessageC_roC, pbMessageC_decC, pbMessageC_eqv, pbMessageC_modelOf,
     pbMessageC_C] at wpC
   wp_apply wpC $$ [] as %l' ⟨%c', Hl', %Heqv⟩
   · iexact Hchb
-  have hcs : c'.csUfNil := by
-    have h := Heqv.2.2 (by first | rfl | (simp only [pbMessageC_marshals, MsgMarshals, Hchbm.1]; rfl) | simp [pbMessageC_marshals, MsgMarshals, Hchbm.1])
-    rw [h]; exact Hchbm.2
-  ihave Hl' := msgPtsCC_msgPtsC _ _ _ _ _ hcs $$ Hl'
+  -- (raft-entsize, route H1, 2026-11-10) the clone is the global's content (`proto.Clone`'s
+  -- exactness), of bounded size (`hbMsg_msgRoC`): no trust boundary (until then `swMsgBound_phys`)
+  have hceq : c' = chb := Heqv.2.2 (by first | rfl | (simp only [pbMessageC_marshals, MsgMarshals, Hchbm.1]; rfl) | simp [pbMessageC_marshals, MsgMarshals, Hchbm.1])
+  have hcs : c'.csUfNil := by rw [hceq]; exact Hchbm.2.1
+  have hr : c'.resps = [] := by rw [hceq]; exact Hchbm.2.2.1
+  have hok : msgSizeOk c' := by rw [hceq]; exact Hchbm.2.2.2
+  (try wp_auto)
+  imod msgPtsCC_freeze _ _ _ _ _ $$ Hl' with Hl'
+  imod msgPtsCC_persist _ _ _ $$ Hl' with #Hl'
+  ihave #Hro := msgPtsCC_msgRoC _ _ hr $$ Hl'
+  ihave #Hlb : msgSzC (Rh.γn.N.Sz ∧ ¬isHB c'.model.msg) l' c'.model $$ []
+  · iunfold msgSzC
+    iexists c'
+    iframe Hro
+    ipureintro; exact ⟨rfl, hcs, msgSize_lt_of_ok _ hok, fun _ => hok⟩
+  ihave #Hl' := msgPtsCC_msgPtsC _ _ _ _ _ hcs $$ Hl'
   rw [Hchbm.1] at Heqv
   replace Heqv := Heqv.1
   generalize c'.model = m' at Heqv ⊢
-  (try wp_auto)
-  ihave Hl'' := msgPtsC_to_msgOwn l' _ _ _ m' $$ Hl'
-  imod Hl'' with Hl'
-  ihave Hl'' := msgOwn_persist l' _ m' $$ Hl'
-  imod Hl'' with Hl'
-  -- the clone, bounded: the trust boundary `swMsgBound_phys` (stage A of the per-type models)
-  icases Hl' with #Hl'
-  ihave #Hlb := swMsgBound_phys l' m' (Heqv.2 rfl) $$ Hl'
-  have Hhb0 : isHB m'.msg := by
-    show isHB (wireOf m').msg; rw [← Heqv.1]; exact ⟨rfl, rfl, rfl⟩
-  ihave #Hlb := msgSzC_of_swMsgBound (Sz := Rh.γn.N.Sz ∧ ¬isHB m'.msg) (fun h => h.2 Hhb0)
-    _ _ $$ Hlb
   iunfold swLive at Hlive
   icases Hlive with ⟨%wi, %a, %R, %γk, %γw, %fr, %s, %Hfl, HencO, Hrw, %Hc, #Hfs, #Hreg, %HR3, Hclr⟩
   ihave ⟨HencO, %Hei⟩ := encOwn_ok _ _ _ _ _ _ _ _ $$ HencO
