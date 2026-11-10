@@ -33,11 +33,19 @@ Two findings:
   `/shared/tmp/premise-fixes-5/gates-rest.sh` (gates.sh without steps 1-5, root fixed), log
   `gates3.log`.
 
+- Gates 5b-9b on the tree merged with lean `ef6bc4663b`: **all passed** (`gates3.log`; premisefix 4
+  packages, ctxdone among them).
+
 ## Next, in order
 
-1. Gates 5b-9b result; then checkpoint (b) report. Stop before land.sh.
-2. If lean moves again (premise-fixes-4: context error facts' no-Format conjuncts, `rnSetLoggerOk`):
-   merge, rebuild, tcb/collections again.
+1. HOLD (etcd-grove-81): lean is reserved for the sync of GitHub's lean (mvccfull F1: mvcc B3,
+   NewLessor over records, the lessor logger fix) into local lean, after premise-fixes-4
+   (`0c3adbf69e`). When the coordinator says the sync landed: merge lean (expect conflicts in the
+   context error facts (pf4: `errVarLeafW`, `ctxDeadlineLeafW`, `context.errStringOk`, no-Format
+   conjuncts, `statusErrOk`/`errStrOk`, `gen-init.py`) and near `keySized`/`Hks` in
+   mvccrand/mvcc/lease), full build, tcb `--check --update` (expect only `+backend.rtxSnap_size` over
+   lean's baseline), collections, interfaces, gates (`timeout 14000`).
+2. Checkpoint (b) report. Stop before land.sh.
 
 ## Build command
 
