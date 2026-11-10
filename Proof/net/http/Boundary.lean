@@ -668,10 +668,14 @@ No error for `GET` or `POST`: `NewRequest` fails only on an invalid method or a 
 parse, and the string of a parsed URL's host and a path parses (`urlHostOk`, stage 4e). (2026-10-24,
 D42) Of a fixed or a streamed body `K` (`bodyHas`): a streamed body's stream moves into the
 request (`reqStream`); Go keeps a reader that is not a `*bytes.Buffer`, `*bytes.Reader` or
-`*strings.Reader` as the body, of unknown length, which its client sends chunked. -/
+`*strings.Reader` as the body, of unknown length, which its client sends chunked. (premise-fixes-4,
+2026-11-10, the round-2 premise attack's `http-reqAt-path-not-slash`) Of a path starting with `/`:
+Go sends `""` as `/` and `"a"` as `/a`, where `reqAt` gives the server the client's path
+(`examples/premisefix/httppath`). -/
 def NewRequest_spec : Prop :=
   ∀ (meth u : GoString) (body : GoInterface) (K : Body) (host path : GoString),
-    u = urlOf host path → urlHostOk host → (meth = go!"POST" ∨ meth = go!"GET") →
+    u = urlOf host path → urlHostOk host → path.head? = some (W8 47) →
+    (meth = go!"POST" ∨ meth = go!"GET") →
     ⊢ {{ bodyHas (GF := GF) body K }}
         (App (App (App (Val (@! _root_.Perennial.net.http.NewRequest)) (Val #meth)) (Val #u))
           (Val #body))
@@ -882,6 +886,40 @@ def route (pats : List GoString) (path : GoString) : Option GoString :=
       | none => some p
       | some b => if b.length < p.length then some p else some b) none
 
+/-- The segments of a path in `ServeMux`'s clean form: none `.` or `..`, none empty but the last
+(premise-fixes-4). -/
+def cleanSegs : List GoString → Bool
+  | [] => true
+  | [s] => s != [W8 46] && s != [W8 46, W8 46]
+  | s :: rest => s != [] && s != [W8 46] && s != [W8 46, W8 46] && cleanSegs rest
+
+/-- **A path `ServeMux` does not redirect to a cleaned one** (Go's `cleanPath p = p`, `server.go`;
+premise-fixes-4): starting with `/`, with no empty, `.` or `..` segment but an empty last one (a
+trailing `/`). -/
+def cleanPath (p : GoString) : Bool :=
+  p.head? == some (W8 47) && cleanSegs ((p.drop 1).splitOn (W8 47))
+
+/-- **`ServeMux`'s trailing-slash redirect** (`matchOrRedirect`; premise-fixes-4): `p` lacks a
+trailing `/`, is no pattern, and `p ++ "/"` is one. -/
+def slashRedir (pats : List GoString) (p : GoString) : Bool :=
+  p.getLast? != some (W8 47) && !pats.contains p && pats.contains (p ++ [W8 47])
+
+/-- **The pattern whose handler `ServeMux` runs for `R`** (premise-fixes-4, the round-2 premise
+attack's `http-mux-redirect-307`): none for a request it redirects with `307` (the trailing slash,
+`slashRedir`, or a path not clean but for `CONNECT`, whose path Go does not clean), else `route`
+(`examples/premisefix/httpmux` checks it of Go). -/
+def muxRoute (pats : List GoString) (R : HReq) : Option GoString :=
+  if slashRedir pats R.path || (R.meth != go!"CONNECT" && !cleanPath R.path) then none
+  else route pats R.path
+
+/-- `muxRoute` routes as `route` when it routes. -/
+theorem route_of_muxRoute {pats : List GoString} {R : HReq} {pat : GoString}
+    (h : muxRoute pats R = some pat) : route pats R.path = some pat := by
+  unfold muxRoute at h
+  split at h
+  · cases h
+  · exact h
+
 /-- **A mux being built** at `m` (exclusive): its registrations so far. -/
 opaque muxOwn (m : Loc) (regs : List (GoString × GoInterface)) : IProp GF
 
@@ -925,12 +963,13 @@ def Handle_spec : Prop :=
       {{ RET #(); muxOwn m (regs ++ [(pat, h)]) }}
 
 /-- **A handler of `a` for the requests routed to `pat`** (persistent): as `handlerOk`, for the
-requests whose path `route` sends to `pat`. -/
+requests `ServeMux` sends to `pat` (`muxRoute`; until premise-fixes-4, those whose path `route`
+sends there, which ran the handler for a path Go redirects). -/
 def handlerFor (H : HttpNet GF) (a : GoString) (Rs : IProp GF) (pats : List GoString)
     (pat : GoString) (h : GoInterface) : IProp GF :=
   iprop(∃ hi : GoInterfaceOk, ⌜h = GoInterface.ok hi⌝ ∗
     □ (∀ (wi : GoInterfaceOk) (r : Loc) (R : HReq) (γk : GName) (rd : GoInterface),
-      reqAt r R rd -∗ ⌜R.host = a ∧ route pats R.path = some pat⌝ -∗ □ (H.proto a).req R γk -∗
+      reqAt r R rd -∗ ⌜R.host = a ∧ muxRoute pats R = some pat⌝ -∗ □ (H.proto a).req R γk -∗
         reqTicket γk -∗ reqBody H a R γk rd -∗ respWriter H (GoInterface.ok wi) a R γk none [] -∗
         respHdrs (GoInterface.ok wi) [] -∗
         ⌜go.typeSetContains wi.ty _root_.Perennial.net.http.Flusher.ty = true⌝ -∗ Rs -∗
@@ -939,16 +978,19 @@ def handlerFor (H : HttpNet GF) (a : GoString) (Rs : IProp GF) (pats : List GoSt
 
 /-- **A built mux is a handler of `a`** (the mux's dispatch, stated as what its `ServeHTTP` does):
 each registered handler handles what is routed to it; a request routed nowhere (or redirected,
-for a path not in `ServeMux`'s clean form) gets the mux's own `404`/`301` response, which the
-protocol must allow (2026-10-23, rafthttp stage 6c: of those two statuses only, was of any). -/
+for a path not in `ServeMux`'s clean form or the trailing-slash redirect: `muxRoute`) gets the mux's
+own `404`/`307` response, which the protocol must allow (2026-10-23, rafthttp stage 6c: of those two
+statuses only, was of any). (premise-fixes-4, 2026-11-10, the round-2 premise attack's
+`http-mux-redirect-307`: until then `301` and `route`; Go 1.27 redirects with `307`, and runs no
+handler for a redirected path, `examples/premisefix/httpmux`.) -/
 def mux_handlerOk_spec (H : HttpNet GF) : Prop :=
   ∀ (m : Loc) (regs : List (GoString × GoInterface)) (a : GoString) (Rs : IProp GF),
     ⊢ muxOwn (GF := GF) m regs -∗
       ([∗list] reg ∈ regs, handlerFor H a Rs (regs.map Prod.fst) reg.1 reg.2) -∗
       (□ ∀ (R : HReq) (γk : GName) (w : List w8),
-        ⌜route (regs.map Prod.fst) R.path = none⌝ → (H.proto a).req R γk -∗
-          (H.proto a).resp R γk (W64 404) w ∗ (H.proto a).resp R γk (W64 301) w) -∗
-      ⌜∀ (R : HReq) (loc : GoString), route (regs.map Prod.fst) R.path = none →
+        ⌜muxRoute (regs.map Prod.fst) R = none⌝ → (H.proto a).req R γk -∗
+          (H.proto a).resp R γk (W64 404) w ∗ (H.proto a).resp R γk (W64 307) w) -∗
+      ⌜∀ (R : HReq) (loc : GoString), muxRoute (regs.map Prod.fst) R = none →
         (H.proto a).rhdr R [] ∧ (H.proto a).rhdr R (hdrSet [] go!"Location" loc)⌝ -∗
       handlerOk H a Rs (interface.mkOk (go.GoType.PointerType
         _root_.Perennial.net.http.ServeMux.ty) #m)

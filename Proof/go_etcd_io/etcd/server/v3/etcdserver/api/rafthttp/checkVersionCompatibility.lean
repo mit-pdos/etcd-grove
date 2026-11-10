@@ -94,9 +94,13 @@ theorem rafthttp.checkVersionCompatibility.wp_proof
         apply fmt.argWf_of_argsWf
         exact .cons_string _ _ .nil
       isplitr
-      · iright; iright; iapply semver_stringMethodSpec hString server Hs $$ Hsp
+      · iright; iright; isplitr
+        · iapply semver_stringMethodSpec hString server Hs $$ Hsp
+        · ipureintro; fmt_method_none
       isplitr
-      · iright; iright; iapply semver_stringMethodSpec hString ls Hlsnn $$ Hsp
+      · iright; iright; isplitr
+        · iapply semver_stringMethodSpec hString ls Hlsnn $$ Hsp
+        · ipureintro; fmt_method_none
       itrivial
     (try wp_auto)
     iapply HΦ; ipureintro; exact ⟨Hlsnn, Hlmnn⟩
@@ -117,9 +121,13 @@ theorem rafthttp.checkVersionCompatibility.wp_proof
         apply fmt.argWf_of_argsWf
         exact .cons_string _ _ .nil
       isplitr
-      · iright; iright; iapply semver_stringMethodSpec hString server Hs $$ Hsp
+      · iright; iright; isplitr
+        · iapply semver_stringMethodSpec hString server Hs $$ Hsp
+        · ipureintro; fmt_method_none
       isplitr
-      · iright; iright; iapply semver_stringMethodSpec hString ls Hlsnn $$ Hsp
+      · iright; iright; isplitr
+        · iapply semver_stringMethodSpec hString ls Hlsnn $$ Hsp
+        · ipureintro; fmt_method_none
       itrivial
     (try wp_auto)
     iapply HΦ; ipureintro; exact ⟨Hlsnn, Hlmnn⟩

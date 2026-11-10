@@ -179,7 +179,7 @@ theorem rafthttp.snapshotSender.send.wp_proof
   wp_apply hPick pk (peerURL Rh pid) $$ [$Hpick] as %u %Hu
   (try wp_auto)
   wp_apply hCreate lg u go!"/raft/snapshot" _ (.stream (snapPre bs) (snapPhi bs (fun t => backend.boltImage t D)))
-      _ urls uvs lid cid Hlgnn Hu.1 $$ [Hbody $Huvs] as %req ⟨%hdrs, Hreq, Hstr, %Hfrom⟩
+      _ urls uvs lid cid Hlgnn Hu.1 rfl $$ [Hbody $Huvs] as %req ⟨%hdrs, Hreq, Hstr, %Hfrom⟩
   · unfold http.bodyHas; iexact Hbody
   (try wp_auto)
   wp_apply hBytes as %ssz -

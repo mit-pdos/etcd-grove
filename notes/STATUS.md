@@ -11,6 +11,44 @@ that moved, so a reference `notes/STATUS.md, "..."` to one of them resolves ther
 record is `notes/decisions.md`; the Rocq development's notes are on branch `main`
 (`git show main:notes/STATUS.md`).
 
+
+## Premise fixes 4: the closed theorems' premise bags, round 2 (2026-11-10, branch `premise-fixes-4`)
+
+From the round-2 premise attack on `etcd_partition_safe` (etcd-grove-81's decisions under the
+user's delegation; `notes/decisions.md`, "Premise fixes 4"):
+
+- **`rnSetLoggerOk` was false in the model** (critical: a conjunct of `etcdstart.commonPremises`, so
+  every etcd closed theorem was vacuous). It stated `{{ True }} raft.SetLogger l {{ True }}` of a
+  translated body that locks `raftLoggerMu` and stores to `raftLogger`, whose ownership raft's
+  initializer dropped. Now raft's `isInitialized` keeps `raftLoggerMu` owning `raftLogger`,
+  `SetLogger.spec` (`{{ isPkgInit raft }}`) is proved and linked, and the conjunct is gone from every
+  bag: the closed theorems lost a premise.
+- **A sweep of every bag** found no other triple about a translated function or global that the
+  model cannot satisfy.
+- **`http.mux_handlerOk_spec`**: Go 1.27's `ServeMux` redirects with `307` (was `301`) and runs no
+  handler for a redirected path (`muxRoute`: the trailing-slash redirect, an unclean path but for
+  `CONNECT`); **`NewRequest_spec`** takes a path starting with `/` (Go sends `""` as `/`);
+  **`fmt.argOk`**'s `Error()` disjunct excludes a `Format` method, its `String()` one `Format` and
+  `Error`. Go tests: `examples/premisefix/{httpmux,httppath,fmtarg}` (gates step 9).
+
+**Caveats of the closed theorems** (the round-2 attack's CM-1, CM-5):
+
+- *"No panic" is not "no exit".* zap's `Logger.Fatal` calls `os.Exit(1)` (even on `zap.NewNop()`),
+  which Perennial models as an angelic exit (`Fatal`'s spec: post `False`): only the calling thread
+  stops in the model. The verified code reaches it (`raftNode.start` on a WAL `Save`/`Sync` error,
+  `batchTx.commit` on a bbolt commit error). An exit yields no `Illegal` verdict, so linearizability
+  stands; the main thread's result is claimed of executions that do not exit.
+- *`Hprem` is unproved trust about real code* (D13b), a hypothesis, not in `#print axioms`. What the
+  bags hold after the sweep: each member's `bootstrapContract` (etcd's `bootstrap`, names-only; its
+  post includes `#Hmembers`, a triple of the translated `RaftCluster.Members` stronger than its
+  proved spec, and `#Hsz`, `mvcc.keySized`, whose truth etcd-grove-81 is settling separately),
+  `bootMarshal` (`proto.Marshal`, names-only), `rnLoggerZapOk`, `rnTimeoutDetectorOk`,
+  `rnNewStorageOk` (names-only callees), `v3rpc.runsNoRequireLeader` (a fact of the deployment).
+  Beside the bags, the closed theorems take `ContextReadErrs` and (the watch's) `ContextErrsClient`,
+  claims about `context`'s translated globals (provable from Perennial's `context.isInit` but for
+  `descs`, which rests on the opaque `errDesc` and is read per location: `read/Init.lean`), and
+  bboltfs's `Hinit_wp` (its translated initializer's spec). All go to a later stage.
+
 ## R2d'a: a restart at σ.b = 0 (2026-11-07, etcd-grove-83, branch `r2dp`; frozen after fixes, tag `r2dpa-frozen` to be set at landing)
 
 `notes/restart-plan.md`, "R2d'a restart-only premises", "Swap batch 1"-"5" and "R2d'a Freeze fixes";

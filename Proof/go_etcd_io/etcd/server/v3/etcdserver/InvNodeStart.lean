@@ -17,8 +17,10 @@ cluster's `bootstrappedRaft.newRaftNode` (`bootstrap.go`) are specified over, be
   globals `raftStatus` (a function value) and `raftStatusMu` (the mutex protecting it; not in the
   package facts `srvRaftInit`, which hold the metrics only: `rnRaftStatusOk`, the mutex's
   invariant owning the function); `serverstorage.NewStorage` (names-only: the WAL, `isRNWal`,
-  `rnNewStorageOk`); `membership.RaftCluster.IsIDRemoved` (names-only: some boolean,
-  `rnClusterOk`, from which the `isIDRemoved` closure meets `isRNIDRemoved`).
+  `rnNewStorageOk`); `membership.RaftCluster.IsIDRemoved` (translated and proved,
+  `membership.RaftCluster.IsIDRemoved.spec_static`; here as some boolean, `rnClusterOk`, from which
+  the `isIDRemoved` closure meets `isRNIDRemoved`; `bootstrapContract`'s post gives it, a
+  consequence of its `isRaftCluster`).
 * **`rnBuilt E γ r cv`**: the wrapper as `newRaftNode(cv)` leaves it, before `NewServer` copies
   it into `EtcdServer.r` (`r: *b.raft.newRaftNode(...)`, by value), sets its `transport` and
   `start` runs it: the struct value owned whole at `r`, with the components `newRaftNode` alone
@@ -170,8 +172,10 @@ def rnNewStorageOk : IProp GF :=
 instance rnNewStorageOk_persistent : Persistent (rnNewStorageOk (GF := GF)) := by
   unfold rnNewStorageOk; infer_instance
 
-/-- **`cl.IsIDRemoved(id)`** of the cluster `cl` (`membership.RaftCluster`, names-only): some
-boolean. -/
+/-- **`cl.IsIDRemoved(id)`** of the cluster `cl` (`membership.RaftCluster`): some boolean.
+(premise-fixes-4: until then this said names-only; `IsIDRemoved` is translated and proved, and this
+triple follows from its spec, `membership.RaftCluster.IsIDRemoved.spec_static`, under the cluster's
+`isRaftCluster`.) -/
 def rnClusterOk (cl : Loc) : IProp GF :=
   iprop(□ ∀ id : w64, {{ True }}
     (App (Val (cl @!! go.GoType.PointerType api.membership.RaftCluster.ty @!! go!"IsIDRemoved"))

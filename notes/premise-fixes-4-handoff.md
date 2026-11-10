@@ -27,6 +27,19 @@ Build: `flock /shared/tmp/etcd-grove-build.lock systemd-run --scope -q -p Memory
    opaque), `#Hmembers` (stronger than `Members.spec`), bboltfs `Hinit_wp`. Checkpoint (a) report.
 3. Go tests for fixes 3-5 (`examples/premisefix/{httpmux,httppath,fmtarg}`), passing at go1.27.3.
 
+## In progress (after checkpoint (a): fixes 3-5 approved, decided by etcd-grove-81)
+
+- Fix 3 (`muxRoute`), fix 4 (`NewRequest` path `/`): done, rafthttp callers discharged.
+- Fix 5 (`fmt.argOk`): restated; `fmt_method_none` (new macro, `Spec/fmt/Errorf.lean`) proves the
+  method-set facts from `go.MethodSetIs`; `fmt_args_ok` uses it. Callers fixed: Duration, types.ID,
+  semver, syscall.Errno, cache's `ErrUnsupportedRequest` (cacheInit + gen-init SPECIAL). BLOCKED
+  (trust text): errors from trust-boundary predicates carry no `Format` fact: `http.errStrOk`
+  (snapshotHandler), cache's `errStrOk`/`statusErrOk` (Cache.getWatchLoop,
+  conditionalProgressRequestor.run). Asked the coordinator.
+- Fix 6 docstrings: partition Results/Adequacy/AdequacyWatch/Main (CM-1..4), read/Init H1 (via
+  gen-init), rnClusterOk; STATUS section and decisions entry written; STATUS "Last updated" still to
+  do after merging lean.
+
 ## Next, in order
 
 - checkpoint (a) reported; await the coordinator's answer.

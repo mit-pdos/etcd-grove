@@ -7777,7 +7777,8 @@ and `PreVote` settings stay premises.
   premise: the server holds no `ownMemoryStorage` once raft owns the storage, and
   `MemoryStorage.Snapshot`'s spec does not state the clone's pointers non-nil. (viii) Raft's
   `SetLogger` is a contract (`rnSetLoggerOk`): raft's package initializer drops the logger
-  globals' ownership. D12's risk 3 did not materialize.
+  globals' ownership. (*Superseded* 2026-11-10, "Premise fixes 4": that made the contract false in
+  the model; the initializer now keeps the globals and `SetLogger` is proved.) D12's risk 3 did not materialize.
 - **Staging.** R8b-A (the protocol: `reBoot`'s arms, the three conjuncts, leader completeness's
   boot cases, `ownRaftGhost_alloc_boot`) and R8b-B (raft: `Restore`/`newRaft`/`NewRawNode` at an
   empty conf state, `ownRaftLog_setCommitted`, `Bootstrap`, `setupNode`, `StartNode`) in
@@ -34119,3 +34120,37 @@ independent review).
 Trust base: `ErrTransactionConflict_init` → `metrics.errorsNewVarsInit`, `value_typed_pointsto` →
 `value_intoVal_inj`; count unchanged. Gates: step 9 (premise-fixes-1's text, skipped when the
 examples module holds no premisefix package) and 9b (each Go module under `examples/premisefix`).
+
+## Premise fixes 4: raft keeps its logger globals; the mux's redirects; paths; `fmt`'s method choice (2026-11-10 · decided by etcd-grove-81 under the user's delegation · branch `premise-fixes-4`)
+
+From the round-2 premise attack on `etcd_partition_safe` (`/shared/tmp/coord-81/round2/findings.json`).
+
+- **`rnSetLoggerOk` (critical).** A premise of every etcd closed theorem (`etcdstart.commonPremises`)
+  stated `{{ True }} raft.SetLogger l {{ True }}`, a triple about a translated body (lock
+  `raftLoggerMu`, store `raftLogger`) whose globals raft's initializer allocated and dropped: no
+  heap instance satisfies it, so every theorem taking it was vacuous (R8b-C's item (viii), above,
+  chose the contract for that reason). Decision: prove it. Raft's `isInitialized` gains
+  `"#HloggerMu" ∷ sync.isMutex (globalAddr raftLoggerMu) (∃ l, globalAddr raftLogger ↦ l)` (a
+  named conjunct, no new existential, so the many destructurings stand); raft's `Init.lean`
+  (hand-written: raft is `etc/gen-init.py`'s `RAFT_INIT`, outside the script) makes the mutex from
+  the two allocations; `SetLogger.spec` is `{{ isPkgInit raft }} SetLogger l {{ True }}`, in raft's
+  API and Link; `newRaftNode`'s proof takes it as a callee. The closed theorems lose a premise. Not
+  done: merely adding `isPkgInit` to the contract (still unproved trust). `getLogger` unspecified
+  (nothing verified calls it).
+- **The sweep** of every bag (by a read-only subagent) found no other triple of a translated
+  function or global the model cannot satisfy. Open, to a later stage or settled separately:
+  `mvcc.keySized` (possibly refutable: nothing in `rtHeld` bounds the bucket), `ContextReadErrs`
+  /`ContextErrsClient`, `bootstrapContract`'s `#Hmembers`, bboltfs's `Hinit_wp`
+  (`notes/STATUS.md`, "Premise fixes 4").
+- **`http.mux_handlerOk_spec`.** Go 1.27's `ServeMux` answers `307`, not `301`, and runs no handler
+  for a path it redirects: the trailing-slash redirect (`p` no pattern, `p/` one) and, but for
+  `CONNECT`, a path not in clean form. `muxRoute pats R` (none for those, `route` otherwise; with
+  `cleanPath`, `slashRedir`) replaces `route` in `handlerFor` and in the mux's own responses. No
+  premise on request paths: the statement is of Go for literal patterns. `probing.NewHandler.spec`
+  keeps `route` in its premises (stronger than needed, still true).
+- **`NewRequest_spec`** takes `path.head? = some '/'`: Go sends `""` as `/` and `"a"` as `/a`,
+  which `reqAt` (the server sees the client's path) denied. rafthttp's callers' paths are constants.
+- **`fmt.argOk`.** Its `Error()` disjunct requires no `Format` method, its `String()` disjunct no
+  `Format` and no `Error` (Go calls `Format` in place of either, and `Error` in place of `String`).
+- **Go tests** first, each passing at go1.27.3: `examples/premisefix/{httpmux,httppath,fmtarg}`, run
+  by gates step 9.

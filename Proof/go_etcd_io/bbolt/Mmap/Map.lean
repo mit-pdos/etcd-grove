@@ -152,7 +152,9 @@ theorem mmapF.wp_proof (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
         · iframe
           simp only [fmt.argsOk, fmt.argOk]
           isplitl
-          · iright; ileft; iapply HeS; iempintro
+          · iright; ileft; isplitr
+            · iapply HeS; iempintro
+            · ipureintro; fmt_method_none
           · itrivial
         try wp_auto
         iapply HΦ

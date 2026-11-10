@@ -657,7 +657,8 @@ instance clientv3_get_is_pkg_init_wf_inst :
 (`validateRange`) and `ErrCacheTimeout` (`waitTillRevision`), each a fixed non-nil error;
 `ErrKeyRangeInvalid.Error()` returns some string (`errors.New`'s `*errorString`; `Cache.Watch`
 puts it in a cancel response), and so does `ErrUnsupportedRequest.Error()` (`errors.New`'s too;
-`fmt.Errorf`'s `%w` of it calls it, `fmt.argsOk`). -/
+`fmt.Errorf`'s `%w` of it calls it, `fmt.argsOk`, which since premise-fixes-4 also asks that its
+type, `*errors.errorString`, have no `Format` method). -/
 abbrev cacheInit : IProp GF :=
   iprop((∃ e : GoInterfaceOk, globalAddr ErrNotReady ↦□ GoInterface.ok e) ∗
     (∃ e : GoInterfaceOk, globalAddr ErrUnsupportedRequest ↦□ GoInterface.ok e) ∗
@@ -665,7 +666,7 @@ abbrev cacheInit : IProp GF :=
     (∃ e : GoInterfaceOk, globalAddr ErrCacheTimeout ↦□ GoInterface.ok e) ∗
     □ (∀ e : GoInterfaceOk, globalAddr ErrKeyRangeInvalid ↦□ GoInterface.ok e -∗ errorStringSpec e) ∗
     □ (∀ e : GoInterfaceOk, globalAddr ErrUnsupportedRequest ↦□ GoInterface.ok e -∗
-      errorStringSpec e))
+      errorStringSpec e ∗ ⌜methodSet e.ty !! go!"Format" = none⌝))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 :=
   define_is_pkg_init cacheInit

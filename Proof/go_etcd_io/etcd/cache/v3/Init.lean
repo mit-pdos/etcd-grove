@@ -126,8 +126,10 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   icombine HErrUnsupportedRequest He gives %Heq
   simp only [interface.mkOk, GoInterface.ok.injEq] at Heq
   subst Heq
-  iapply (errorStringSpec_of_msg _ go!"cache: unsupported request parameters")
-  iexact MUR
+  isplitr
+  · iapply (errorStringSpec_of_msg _ go!"cache: unsupported request parameters")
+    iexact MUR
+  · ipureintro; fmt_method_none
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

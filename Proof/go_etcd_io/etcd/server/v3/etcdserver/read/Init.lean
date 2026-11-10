@@ -71,7 +71,14 @@ class EtcdGrove.ContextReadErrs : Prop where
       go_etcd_io.etcd.server.v3.etcdserver.read.ctxDeadlineLeaf
   /-- The two errors' gRPC descriptions (k8s etcd3 7c-2 part 2, S1, HS-2): neither is a status
   error, so `errDesc` is its `Error()`, `"context canceled"` and `"context deadline exceeded"`
-  (`context.go`). -/
+  (`context.go`). How to read it (premise-fixes-4, the round-2 premise attack's H1): as a hypothesis
+  for every `hG`, at the unit resource, the entailment is of every resource satisfying `isPkgInit
+  context`, and `isPkgInit` is persistent fragments only, valid at any location; so it holds only if
+  `errDesc` of `*errorString` at every location whose `s` is `"context canceled"` is that string
+  (and likewise of `deadlineExceededError`), not only at the location this run's initializer
+  allocates. That is the per-execution claim Go makes of the values themselves (`errDesc` is opaque:
+  `status.FromError` of a non-status error is its `Error()`); this repository neither proves nor
+  refutes it (`notes/STATUS.md`, the unproved bag items). -/
   descs : isPkgInit (PROP := IProp GF) pkg_id.context ⊢
     (∃ e : GoInterface, globalAddr _root_.Perennial.context.Canceled ↦□ e ∗
         ⌜go_etcd_io.etcd.cache.v3.errDesc e = go!"context canceled"⌝) ∗
