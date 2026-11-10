@@ -9,7 +9,8 @@ deleted in one revision through the lessor's range deleter, `end`'s callback), a
 leader (`lead`) appends the revision to the history (`leadPre`/`leadPost`: the history's writer part);
 the follower and the builder find it there. **Every check passes**: afterwards the member is at the
 model after `v.ops + 1` operations (the same incarnation and files, `MemS.sameInc`), at most one
-write-back token spent (a grant's). The log is valid (`logOk`).
+write-back token spent (a grant's). The log is valid (`logOk`). (F1 Prove, 2026-11-10: the caller's
+thread token and the bounds' classes, lent to `checkLeases`.)
 -/
 module
 
@@ -36,14 +37,14 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- See the file header. -/
 abbrev runner.apply.spec : Prop :=
-  ∀ (x : Loc) (ks : List GoString) (cfg : Config) (wr : List w64) (h : Loc) (γh : HistNames)
+  ∀ [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 38)] (x : Loc) (ks : List GoString) (cfg : Config) (wr : List w64) (h : Loc) (γh : HistNames)
     (ops : List OpM) (i : Nat) (mp : Loc) (m : MemberNames) (f : GoFunc) (v : MemS)
     (qw : Qp) (nw k : Nat) (p : Loc) (o : OpM) (lead : Bool),
   ops[v.ops]? = some o → logOk ks ops → 1 ≤ nw → (o.kind = kGrant → 1 ≤ k) → ops.length < 2 ^ 38 →
   {{ writerCtx (GF := GF) x ks cfg wr h γh ∗ histRd h γh ∗ opIs p o ∗
-      memW ks γh ops i mp m f v qw nw k ∗ leadPre γh ks ops v.ops lead }}
+      memW ks γh ops i mp m f v qw nw k ∗ leadPre γh ks ops v.ops lead ∗ threadTok }}
     (App (App (App (x @!! go.GoType.PointerType runner.ty @!! go!"apply") (Val #mp)) (Val #p)) (Val #lead))
-  {{ RET #(); histRd h γh ∗ leadPost γh ks ops v.ops lead ∗
+  {{ RET #(); histRd h γh ∗ leadPost γh ks ops v.ops lead ∗ threadTok ∗
       ∃ (v' : MemS) (k' : Nat), ⌜MemS.sameInc v v' ∧ v'.ops = v.ops + 1 ∧ k ≤ k' + 1⌝ ∗
         memW ks γh ops i mp m f v' qw nw k' }}
 

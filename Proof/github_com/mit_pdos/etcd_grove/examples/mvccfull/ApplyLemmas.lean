@@ -98,14 +98,107 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccfull.Assumpt
 variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
+/-- A state's key untouched by the changes `cs` keeps its key-value. -/
+theorem findKey_applyChanges_ne (r : w64) (k : GoString) : ∀ (cs : List Change) (s : List EtcdKv),
+    s.Pairwise etcdKvLess → k ∉ cs.map Change.key → findKey k (applyChanges r s cs) = findKey k s
+  | [], _, _, _ => rfl
+  | c :: cs, s, hs, hk => by
+    have hc : c.key ≠ k := fun h => hk (by simp [h])
+    have hk' : k ∉ cs.map Change.key := fun h => hk (List.mem_cons_of_mem _ h)
+    show findKey k (applyChanges r (applyChange r s c) cs) = _
+    rw [findKey_applyChanges_ne r k cs _ (applyChange_sorted hs r c) hk']
+    cases c with
+    | put k' v l => exact findKey_putKv_other hs r k k' v l hc
+    | del k' => exact findKey_filter_ne s k' k (fun h => hc h.symm)
+
+/-- **A key put by a revision whose changes' keys are distinct is in the state after it.** -/
+theorem findKey_applyChanges_put (r : w64) : ∀ (cs : List Change) (s : List EtcdKv),
+    s.Pairwise etcdKvLess → (cs.map Change.key).Nodup → ∀ (k v : GoString) (l : w64),
+    Change.put k v l ∈ cs → (findKey k (applyChanges r s cs)).isSome
+  | [], _, _, _, _, _, _, h => by simp at h
+  | c :: cs, s, hs, hnd, k, v, l, h => by
+    show (findKey k (applyChanges r (applyChange r s c) cs)).isSome
+    rw [List.map_cons, List.nodup_cons] at hnd
+    rcases List.mem_cons.1 h with rfl | h
+    · rw [findKey_applyChanges_ne r k cs _ (applyChange_sorted hs r _) (by simpa [Change.key] using hnd.1)]
+      obtain ⟨nv, hnv, -⟩ := findKey_putKv_self hs r k v l
+      show (findKey k (putKv r k v l s)).isSome
+      rw [hnv]; rfl
+    · exact findKey_applyChanges_put r cs _ (applyChange_sorted hs r c) hnd.2 k v l h
+
+/-- **A key of the state after the changes `cs` was in the state before, or `cs` puts it.** -/
+theorem findKey_applyChanges_origin (r : w64) (k : GoString) : ∀ (cs : List Change)
+    (s : List EtcdKv), s.Pairwise etcdKvLess → (findKey k (applyChanges r s cs)).isSome →
+    (findKey k s).isSome ∨ ∃ (v : GoString) (l : w64), Change.put k v l ∈ cs
+  | [], _, _, h => Or.inl h
+  | c :: cs, s, hs, h => by
+    rcases findKey_applyChanges_origin r k cs _ (applyChange_sorted hs r c) h with h1 | ⟨v, l, hm⟩
+    · cases c with
+      | put k' v l =>
+        by_cases hk : k' = k
+        · subst hk; exact Or.inr ⟨v, l, List.mem_cons_self ..⟩
+        · left; simp only [applyChange] at h1; rwa [findKey_putKv_other hs r k k' v l hk] at h1
+      | del k' =>
+        simp only [applyChange] at h1
+        by_cases hk : k = k'
+        · subst hk; rw [findKey_filter_eq] at h1; cases h1
+        · left; rwa [findKey_filter_ne s k' k hk] at h1
+    · exact Or.inr ⟨v, l, List.mem_cons_of_mem _ hm⟩
+
 /-- **Each revision of a member's log has fewer than `2 ^ 63` changes**: its changes' keys are
-distinct (`logOk_once`) and among the keys `ks` (a put's key is one, a delete's a present key),
-fewer than `2 ^ 63` (a slice's). (To prove: an induction over `runM` that every change's key is in
-`ks`, from `opValid`/`subsOk` and `stMatch`; `sorry` for now.) -/
+distinct (`logOk_once`) and among the keys `ks`: a put's key is in the state after the revision
+(`findKey_applyChanges_put`), a delete's in the state it deletes from (`LogWf'`), so in the state
+before or put earlier in the revision (`findKey_applyChanges_origin`); every state's keys are in
+`ks` (`stMatch`, `logOk_hist`). -/
 theorem log_cs_lt (ks : List GoString) (hks : ks.Pairwise go.GoStringLt) (ops : List OpM)
-    (h : logOk ks ops) (hksl : ks.length < 2 ^ 63) (n : Nat) :
+    (h : logOk ks ops) (hksl : ks.length < 2 ^ 63) (n : Nat) (hn : n ≤ ops.length) :
     ∀ cs ∈ (σOf ks ops n).log, cs.length < 2 ^ 63 := by
-  sorry
+  intro cs hc
+  obtain ⟨r, hr⟩ := List.mem_iff_getElem?.1 hc
+  have honce := logOk_once ks hks ops h n r
+  have hgd : (σOf ks ops n).log.getD r [] = cs := by rw [List.getD_eq_getElem?_getD, hr]; rfl
+  rw [σOf_notified, hgd] at honce
+  obtain ⟨-, ⟨-, hrev⟩, hreach⟩ := logOk_hist ks hks ops h n n (Nat.le_refl _) hn
+  rw [σOf_notified] at hrev
+  have hwf := (reach_logWf (σOf ks ops n) hreach).1
+  have hrl : r < (σOf ks ops n).log.length := (List.getElem?_eq_some_iff.1 hr).1
+  have hkeys : ∀ r' < (σOf ks ops n).log.length, ∀ k,
+      (findKey k (stateAt (σOf ks ops n).log r')).isSome → k ∈ ks := by
+    intro r' hr' k hk
+    obtain ⟨e, -, hst, -⟩ := hrev r' hr'
+    obtain ⟨kv, hkv⟩ := Option.isSome_iff_exists.1 hk
+    have := hst.2 kv (List.mem_of_find?_eq_some hkv)
+    rwa [findKey_key hkv] at this
+  rcases Nat.eq_zero_or_pos r with rfl | hr1
+  · have := hwf.1 (List.ne_nil_of_length_pos (by omega))
+    rw [hr] at this; cases this; simp
+  have hst : stateAt (σOf ks ops n).log r =
+      applyChanges (W64 r) (stateAt (σOf ks ops n).log (r - 1)) cs := by
+    unfold stateAt
+    rw [show r - 1 + 1 = r by omega, List.take_add_one, hr, Option.toList_some, stateAfter_append,
+      List.length_take, Nat.min_eq_left (by omega)]
+  have hsrt := stateAt_sorted (σOf ks ops n).log (r - 1)
+  have hck : ∀ c ∈ cs, c.key ∈ ks := by
+    intro c hc
+    cases c with
+    | put k v l =>
+      have := findKey_applyChanges_put (W64 r) cs _ hsrt honce k v l hc
+      rw [← hst] at this
+      exact hkeys r hrl k this
+    | del k =>
+      obtain ⟨j, hj⟩ := List.mem_iff_getElem?.1 hc
+      have hp := hwf.2 r cs j k hr hj
+      rcases findKey_applyChanges_origin (W64 r) k (cs.take j) _ hsrt hp with h1 | ⟨v, l, hm⟩
+      · exact hkeys (r - 1) (by omega) k h1
+      · have := findKey_applyChanges_put (W64 r) cs _ hsrt honce k v l (List.mem_of_mem_take hm)
+        rw [← hst] at this; exact hkeys r hrl k this
+  have hsub : cs.map Change.key ⊆ ks := by
+    intro k hk
+    obtain ⟨c, hc, rfl⟩ := List.mem_map.1 hk
+    exact hck c hc
+  have := (List.subperm_of_subset honce hsub).length_le
+  simp only [List.length_map] at this
+  omega
 
 /-- **What a write transaction at a member's state needs of the model** (`begin`'s, `writeRange`'s,
 `writeSub`'s premises). -/
@@ -138,7 +231,7 @@ theorem member_facts (ks : List GoString) (hks : ks.Pairwise go.GoStringLt) (ops
     intro cs hcs
     simp only [List.mem_append, List.mem_singleton] at hcs
     rcases hcs with hc | hc
-    · exact log_cs_lt ks hks ops h hksl n cs hc
+    · exact log_cs_lt ks hks ops h hksl n hn cs hc
     · subst hc; simp
   · omega
   · obtain ⟨e, he⟩ : ∃ e, (runM ks ops n).hs[(runM ks ops n).hs.length - 1]? = some e :=
@@ -174,7 +267,7 @@ theorem leadPost_same (γh : HistNames) (ks : List GoString) (ops : List OpM) (n
   · simp only [↓reduceIte, h]; iintro H; iexact H
 
 /-- **The history's lower bound at the member's count**, from either history part. -/
-theorem leadPre_lb (γh : HistNames) (ks : List GoString) (ops : List OpM) (n : Nat) (lead : Bool) :
+theorem leadPre_lb_apply (γh : HistNames) (ks : List GoString) (ops : List OpM) (n : Nat) (lead : Bool) :
     leadPre (GF := GF) γh ks ops n lead ⊢
       leadPre γh ks ops n lead ∗ monoListLbOwn γh.l (histAt ks ops n) := by
   unfold leadPre

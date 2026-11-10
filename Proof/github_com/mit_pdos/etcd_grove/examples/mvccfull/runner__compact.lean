@@ -91,7 +91,7 @@ theorem runner.compact.wp_proof
   iunfold incW at HincW
   icases HincW with ⟨#Hinc, Hret, Hσw, Hbw⟩
   ihave #Hmv : isMvcc v.kv v.ι.kv $$ []
-  · iunfold isInc at Hinc; icases Hinc with ⟨-, #H⟩; iexact H
+  · iunfold isInc at Hinc; icases Hinc with ⟨-, #H, -⟩; iexact H
   ihave %Hkvs := hsh.1 v.kv v.ι.kv $$ Hmv
   obtain ⟨kty, kvv, hkv, -⟩ := Hkvs
   ihave %hKC := hcc kty kvv v.ι.kv $$ [Hmv]

@@ -87,10 +87,10 @@ theorem runner.apply.wp_proof
     (wp_checkRangeAt : checkRangeAt.spec (GF := GF) (hG := hG))
     (wp_checkLeases : runner.checkLeases.spec (GF := GF) (hG := hG)) :
     runner.apply.spec (GF := GF) (hG := hG) := by
-  intro x ks cfg wr h γh ops i mp m f v qw nw k p o lead hov hlogOk hnw hgk h38
+  intro _ _ x ks cfg wr h γh ops i mp m f v qw nw k p o lead hov hlogOk hnw hgk h38
   haveI := isInc_persistent hpers
   haveI := hpers.1
-  wp_start as ⟨Hctx, Hrd, Hop, Hmw, Hlead⟩
+  wp_start as ⟨Hctx, Hrd, Hop, Hmw, Hlead, Htok⟩
   ihave #Hctx := Hctx
   ihave #Hctx2 := Hctx
   iunfold writerCtx at Hctx2
@@ -165,7 +165,7 @@ theorem runner.apply.wp_proof
       Hinc, Hopen, Hback, #Hhk, Hrdrs, Hbk, Hles, %HU⟩
     iunfold hookOk at HhookOk
     icases HhookOk with ⟨%Hfnil, #Hhrun⟩
-    icases leadPre_lb γh ks ops v.ops lead $$ Hlead with ⟨Hlead, #Hlb⟩
+    icases leadPre_lb_apply γh ks ops v.ops lead $$ Hlead with ⟨Hlead, #Hlb⟩
     -- `begin`
     rw [← σOf_rev]
     (try wp_auto)
@@ -177,7 +177,7 @@ theorem runner.apply.wp_proof
     iunfold incW at Hinc
     icases Hinc with ⟨#Hisinc, Hret, Hσw, Hbw⟩
     ihave #Hmv : isMvcc v.kv v.ι.kv $$ []
-    · iunfold isInc at Hisinc; icases Hisinc with ⟨-, #H⟩; iexact H
+    · iunfold isInc at Hisinc; icases Hisinc with ⟨-, #H, -⟩; iexact H
     ihave %Hkvs := hsh.1 v.kv v.ι.kv $$ Hmv
     obtain ⟨kty, kvv, hkveq, -, hKW, -⟩ := Hkvs
     rw [hkveq]
@@ -242,7 +242,7 @@ theorem runner.apply.wp_proof
     try rw [hlease]
     iunfold lessorW at Hles
     icases Hles with ⟨%rd, %r, #Hlpkg, #Hlinv, #Hlcfg, #Hguard, #Hrevoc, #Hlok, Hlrd, Hlo, Hrvk, Hever,
-      #Hreq, Hrdo, Hdel, Hlbe, Hrb, %Hrecs, Hstop⟩
+      #Hreq, Hrdo, Hdel, Hlbe, Hrb, %Hrecs, Hstop, #Hpool⟩
     wp_apply (hTPut v.ι.kv trc true (σOf ks ops v.ops) [] ov.key' vs o.key o.val o.lease
         (leasesAfter ks ops v.ops)) $$ [Htw Htrc Hok Hvs Hlo] as ⟨Htw, Htrc, Hlo⟩
     · iframe; iframe #
@@ -298,7 +298,7 @@ theorem runner.apply.wp_proof
     ihave Hrdrs := hR1.2 $$ [$Hrdrs $Hr1]
     obtain ⟨-, hlz, hgz, hcz⟩ := runM_succ_pd ks ops v.ops o hov (Or.inl hk0)
     iapply HΦ
-    iframe Hrd
+    iframe Hrd Htok
     isplitl [Hlead]
     · iapply leadPost_end γh ks ops v.ops lead _ hh1 hcz; iexact Hlead
     rw [← hσ1, ← hkveq]
@@ -347,7 +347,7 @@ theorem runner.apply.wp_proof
       Hinc, Hopen, Hback, #Hhk, Hrdrs, Hbk, Hles, %HU⟩
     iunfold hookOk at HhookOk
     icases HhookOk with ⟨%Hfnil, #Hhrun⟩
-    icases leadPre_lb γh ks ops v.ops lead $$ Hlead with ⟨Hlead, #Hlb⟩
+    icases leadPre_lb_apply γh ks ops v.ops lead $$ Hlead with ⟨Hlead, #Hlb⟩
     -- `begin`
     rw [← σOf_rev]
     (try wp_auto)
@@ -359,7 +359,7 @@ theorem runner.apply.wp_proof
     iunfold incW at Hinc
     icases Hinc with ⟨#Hisinc, Hret, Hσw, Hbw⟩
     ihave #Hmv : isMvcc v.kv v.ι.kv $$ []
-    · iunfold isInc at Hisinc; icases Hisinc with ⟨-, #H⟩; iexact H
+    · iunfold isInc at Hisinc; icases Hisinc with ⟨-, #H, -⟩; iexact H
     ihave %Hkvs := hsh.1 v.kv v.ι.kv $$ Hmv
     obtain ⟨kty, kvv, hkveq, -, hKW, -⟩ := Hkvs
     rw [hkveq]
@@ -407,7 +407,7 @@ theorem runner.apply.wp_proof
     (try wp_auto)
     iunfold lessorW at Hles
     icases Hles with ⟨%rd, %r, #Hlpkg, #Hlinv, #Hlcfg, #Hguard, #Hrevoc, #Hlok, Hlrd, Hlo, Hrvk, Hever,
-      #Hreq, Hrdo, Hdel, Hlbe, Hrb, %Hrecs, Hstop⟩
+      #Hreq, Hrdo, Hdel, Hlbe, Hrb, %Hrecs, Hstop, #Hpool⟩
     let sm : SubM := ⟨W64 1, o.key, o.e, o.endNil, [], W64 0, ⟨[], [], true, zeroValDef⟩⟩
     wp_apply (wp_writeSub x ks h γh mp v.ι.kv (interface.mkOk tty tv) trc true (σOf ks ops v.ops) []
         (histAt ks ops v.ops) pp _ _ sm (leasesAfter ks ops v.ops) hok0 hlenH hrevH hreachH hLok0 h63H
@@ -463,7 +463,7 @@ theorem runner.apply.wp_proof
     ihave Hrdrs := hR1.2 $$ [$Hrdrs $Hr1]
     obtain ⟨-, hlz, hgz, hcz⟩ := runM_succ_pd ks ops v.ops o hov (Or.inr hk1)
     iapply HΦ
-    iframe Hrd
+    iframe Hrd Htok
     isplitl [Hlead]
     · iapply leadPost_end γh ks ops v.ops lead _ hh1 hcz; iexact Hlead
     rw [← hσ1, ← hkveq]
@@ -505,7 +505,7 @@ theorem runner.apply.wp_proof
     · iframe; iframe #; iunfold hookPre; iframe; ipureintro; omega
     (try wp_auto)
     iapply HΦ
-    iframe Hrd Hlead
+    iframe Hrd Hlead Htok
     iexists v', k
     isplitr
     · ipureintro; exact ⟨Hv'.1, Hv'.2, by omega⟩
@@ -529,7 +529,7 @@ theorem runner.apply.wp_proof
     ihave ⟨Hles, Hlbk⟩ := lessorW_backend v.ι.kv v.bk f v.lp _ v.U _ Hfnil $$ [$Hles $Hisb $Hhk]
     iunfold lessorW at Hles
     icases Hles with ⟨%rd, %r, #Hlpkg, #Hlinv, #Hlcfg, #Hguard, #Hrevoc, #Hlok, Hlrd, Hlo, Hrvk, Hever,
-      #Hreq, Hrdo, Hdel, Hlbe, Hrb, %Hrecs, Hstop⟩
+      #Hreq, Hrdo, Hdel, Hlbe, Hrb, %Hrecs, Hstop, #Hpool⟩
     -- one write-back token
     obtain ⟨k1, rfl⟩ : ∃ k1, k = k1 + 1 := ⟨k - 1, by have := hgk hk3; omega⟩
     icases ownToks_add_1 1 k1 v.bk.γB.wb $$ Htoks with ⟨Htoks, Hwb⟩
@@ -590,7 +590,7 @@ theorem runner.apply.wp_proof
     iunfold incW at Hinc
     icases Hinc with ⟨#Hisinc, Hret, Hσw, Hbw⟩
     ihave #Hmv : isMvcc v.kv v.ι.kv $$ []
-    · iunfold isInc at Hisinc; icases Hisinc with ⟨-, #H⟩; iexact H
+    · iunfold isInc at Hisinc; icases Hisinc with ⟨-, #H, -⟩; iexact H
     ihave %Hkvs := hsh.1 v.kv v.ι.kv $$ Hmv
     obtain ⟨kty, kvv, hkveq, -, -, hKRev, -⟩ := Hkvs
     ihave #Hmv' : isMvcc (interface.mkOk kty kvv) v.ι.kv $$ []
@@ -618,7 +618,7 @@ theorem runner.apply.wp_proof
     have hrv1 : revAfter ks ops (v.ops + 1) = revAfter ks ops v.ops := by
       unfold revAfter MSt.rev; unfold histAt at hg1; rw [hg1]
     iapply HΦ
-    iframe Hrd
+    iframe Hrd Htok
     isplitl [Hlead]
     · unfold leadPre leadPost compsAt
       cases lead
@@ -690,7 +690,7 @@ theorem runner.apply.wp_proof
     · iframe; iframe #; iunfold hookPre; iframe; ipureintro; omega
     (try wp_auto)
     iapply HΦ
-    iframe Hrd Hlead
+    iframe Hrd Hlead Htok
     iexists v', k
     isplitr
     · ipureintro; exact ⟨Hv'.1, Hv'.2, by omega⟩
@@ -707,7 +707,7 @@ theorem runner.apply.wp_proof
     iunfold incW at Hinc
     icases Hinc with ⟨#Hisinc, Hret, Hσw, Hbw⟩
     ihave #Hmv : isMvcc v.kv v.ι.kv $$ []
-    · iunfold isInc at Hisinc; icases Hisinc with ⟨-, #H⟩; iexact H
+    · iunfold isInc at Hisinc; icases Hisinc with ⟨-, #H, -⟩; iexact H
     ihave %Hkvs := hsh.1 v.kv v.ι.kv $$ Hmv
     obtain ⟨kty, kvv, hkveq, -, -, -, -, -, -, -, -, hKCommit, -, -, -⟩ := Hkvs
     ihave #Hmv' : isMvcc (interface.mkOk kty kvv) v.ι.kv $$ []
@@ -730,7 +730,7 @@ theorem runner.apply.wp_proof
     ihave Hinc : incW ks γh i mp m v.ι v.kv qw (σOf ks ops v.ops) v.b $$ [Hret Hσw Hbw]
     · iunfold incW; iframe; iframe #
     iapply HΦ
-    iframe Hrd
+    iframe Hrd Htok
     iapply apply_close_same ks γh ops i mp m f v qw nw k lead s0
       (runM_succ_same ks ops v.ops o hov (Or.inl hk6)) hvl hn38 hsa'
     iframe
@@ -749,7 +749,7 @@ theorem runner.apply.wp_proof
     iunfold incW at Hinc
     icases Hinc with ⟨#Hisinc, Hret, Hσw, Hbw⟩
     ihave #Hmv : isMvcc v.kv v.ι.kv $$ []
-    · iunfold isInc at Hisinc; icases Hisinc with ⟨-, #H⟩; iexact H
+    · iunfold isInc at Hisinc; icases Hisinc with ⟨-, #H, -⟩; iexact H
     ihave %Hkvs := hsh.1 v.kv v.ι.kv $$ Hmv
     obtain ⟨kty, kvv, hkveq, hKR, -⟩ := Hkvs
     obtain ⟨-, -, hreach⟩ := logOk_hist ks Hsorted ops hlogOk v.ops v.ops (Nat.le_refl _) Hvops
@@ -819,7 +819,7 @@ theorem runner.apply.wp_proof
     · iframe #; iframe
     (try wp_auto)
     -- `checkRangeAt(x.keys, x.h.snapshot(), …)`
-    icases leadPre_lb γh ks ops v.ops lead $$ Hlead with ⟨Hlead, #Hlb⟩
+    icases leadPre_lb_apply γh ks ops v.ops lead $$ Hlead with ⟨Hlead, #Hlb⟩
     iunfold runnerH at HH
     (try wp_auto)
     wp_apply wp_snapshot h γh (histAt ks ops v.ops) $$ [$Hrd $Hlb]
@@ -872,7 +872,7 @@ theorem runner.apply.wp_proof
     ihave Hinc : incW ks γh i mp m v.ι v.kv qw (σOf ks ops v.ops) v.b $$ [Hret Hσw Hbw]
     · iunfold incW; iframe; iframe #
     iapply HΦ
-    iframe Hrd
+    iframe Hrd Htok
     iapply apply_close_same ks γh ops i mp m f v qw nw k lead s0
       (runM_succ_same ks ops v.ops o hov (Or.inr (Or.inl hk7))) hvl hn38 hsa'
     iframe
@@ -882,13 +882,13 @@ theorem runner.apply.wp_proof
   (try wp_auto)
   -- the leases' check
   have hk8 : o.kind = W64 8 := by word
-  icases leadPre_lb γh ks ops v.ops lead $$ Hlead with ⟨Hlead, #Hlb⟩
-  wp_apply (wp_checkLeases x ks cfg wr h γh ops i mp m f v qw nw k hlogOk) $$ [Hrd Hmc]
-    as ⟨Hrd, Hmc⟩
+  icases leadPre_lb_apply γh ks ops v.ops lead $$ Hlead with ⟨Hlead, #Hlb⟩
+  wp_apply (wp_checkLeases x ks cfg wr h γh ops i mp m f v qw nw k hlogOk) $$ [Hrd Hmc Htok]
+    as ⟨Hrd, Hmc, Htok⟩
   · iframe; iframe #
   (try wp_auto)
   iapply HΦ
-  iframe Hrd
+  iframe Hrd Htok
   iapply apply_close_same ks γh ops i mp m f v qw nw k lead s0
     (runM_succ_same ks ops v.ops o hov (Or.inr (Or.inr (Or.inl hk8)))) hvl hn38 hsa'
   iframe

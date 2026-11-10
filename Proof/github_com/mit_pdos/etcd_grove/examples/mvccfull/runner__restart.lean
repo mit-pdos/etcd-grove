@@ -144,11 +144,11 @@ theorem runner.restart.wp_proof
     obtain ⟨-, rfl⟩ := Hσeq
     obtain ⟨-, rfl⟩ := Hbeq
     iunfold lessorW at Hles
-    icases Hles with ⟨%rd, %r, -, -, -, -, -, -, -, -, -, -, -, -, -, -, Hrb, %Hrecs, Hstop⟩
+    icases Hles with ⟨%rd, %r, -, -, -, -, -, -, -, -, -, -, -, -, -, -, Hrb, %Hrecs, Hstop, -⟩
     iunfold bkKeep at Hbk
     icases Hbk with ⟨%HbkP, #Hbk1, #Hbk2, Hbk3, Hbk4, Hbk5, Hbk6, Hbk7⟩
     ihave #Hmv : isMvcc v0.kv v0.ι.kv $$ []
-    · iunfold isInc at Hisinc; icases Hisinc with ⟨-, #H⟩; iexact H
+    · iunfold isInc at Hisinc; icases Hisinc with ⟨-, #H, -⟩; iexact H
     wp_apply (wp_shut x ks cfg wr h γ.h mp0 v0.path v0.bk v0.lp v0.kv v0.ι.kv (σOf ks ops v0.ops)
         (leasesAfter ks ops v0.ops) r k0 hdbc rfl Hrecs)
       $$ [Hkv Hle Hbe Hopen Hrdrs Hback Hσ Hbk3 Hbk4 Hbk5 Hbk6 Hbk7 Hstop Hrb]
@@ -289,11 +289,11 @@ theorem runner.restart.wp_proof
     obtain ⟨-, rfl⟩ := Hσeq
     obtain ⟨-, rfl⟩ := Hbeq
     iunfold lessorW at Hles
-    icases Hles with ⟨%rd, %r, -, -, -, -, -, -, -, -, -, -, -, -, -, -, Hrb, %Hrecs, Hstop⟩
+    icases Hles with ⟨%rd, %r, -, -, -, -, -, -, -, -, -, -, -, -, -, -, Hrb, %Hrecs, Hstop, -⟩
     iunfold bkKeep at Hbk
     icases Hbk with ⟨%HbkP, #Hbk1, #Hbk2, Hbk3, Hbk4, Hbk5, Hbk6, Hbk7⟩
     ihave #Hmv : isMvcc v1.kv v1.ι.kv $$ []
-    · iunfold isInc at Hisinc; icases Hisinc with ⟨-, #H⟩; iexact H
+    · iunfold isInc at Hisinc; icases Hisinc with ⟨-, #H, -⟩; iexact H
     wp_apply (wp_shut x ks cfg wr h γ.h mp1 v1.path v1.bk v1.lp v1.kv v1.ι.kv (σOf ks ops v1.ops)
         (leasesAfter ks ops v1.ops) r k1 hdbc rfl Hrecs)
       $$ [Hkv Hle Hbe Hopen Hrdrs Hback Hσ Hbk3 Hbk4 Hbk5 Hbk6 Hbk7 Hstop Hrb]

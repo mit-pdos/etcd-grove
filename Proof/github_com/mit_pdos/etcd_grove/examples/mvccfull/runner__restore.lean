@@ -148,9 +148,9 @@ theorem runner.restore.wp_proof
   -- the builder applies the log up to the leader's count
   ihave HI : (∃ (vb' : MemS) (kb' : Nat),
       "b" ∷ b_ptr ↦ mpb ∗ "Hmb" ∷ memW ks γ.h ops 2 mpb mb fb vb' 1 mvccReaderN kb' ∗
-      "Hrd" ∷ histRd h γ.h ∗
+      "Hrd" ∷ histRd h γ.h ∗ "Htok" ∷ threadTok ∗
       "%Hvb'" ∷ ⌜vb'.ops ≤ v0.ops ∧ (sint.Z cfg.Ops').toNat ≤ kb' + vb'.ops ∧
-        vb'.path = buildPathM cfg.Prefix' (nb + 1)⌝ : IProp GF) $$ [b Hmb Hrd]
+        vb'.path = buildPathM cfg.Prefix' (nb + 1)⌝ : IProp GF) $$ [b Hmb Hrd Htok]
   · iexists vb, kb; iframe; ipureintro; exact ⟨by omega, by omega, Hvb.2.1⟩
   wp_for HI
   iunfold memW at Hmb
@@ -186,7 +186,7 @@ theorem runner.restore.wp_proof
     (try wp_auto)
     have hgr : o.kind = kGrant → 1 ≤ kb' := fun _ => by omega
     wp_apply (wp_apply x ks cfg wr h γ.h ops 2 mpb mb fb vb' 1 mvccReaderN kb' p o false ho hlogOk
-        hNpos hgr hlen) $$ [Hrd Hbops Hbhk Hbc] as ⟨Hrd, -, %v', %k', %Hv', Hmb⟩
+        hNpos hgr hlen) $$ [Hrd Hbops Hbhk Hbc Htok] as ⟨Hrd, -, Htok, %v', %k', %Hv', Hmb⟩
     · iframe #; iframe
       isplitl
       · iunfold memW; iframe
@@ -223,7 +223,7 @@ theorem runner.restore.wp_proof
     ihave %Hag := ghostVar_agree mb.σ _ _ _ _ $$ Hσwb Hσc
     subst Hag
     iunfold lessorW at Hlesb
-    icases Hlesb with ⟨%rdb, %rb, -, -, -, -, -, -, -, -, -, -, -, -, -, -, Hrbb, %Hrecsb, Hstopb⟩
+    icases Hlesb with ⟨%rdb, %rb, -, -, -, -, -, -, -, -, -, -, -, -, -, -, Hrbb, %Hrecsb, Hstopb, -⟩
     iunfold bkKeep at Hbkb
     icases Hbkb with ⟨%HbkbP, #Hbkb1, #Hbkb2, Hbkb3, Hbkb4, Hbkb5, Hbkb6, Hbkb7⟩
     wp_apply (wp_shut x ks cfg wr h γ.h mpb vb'.path vb'.bk vb'.lp vb'.kv vb'.ι.kv
@@ -232,7 +232,7 @@ theorem runner.restore.wp_proof
       as ⟨-, -, -, %D, %u, Hfile, Himg, %HrecD⟩
     · iframe #; iframe
       isplitr
-      · iunfold isInc at Hisincb; icases Hisincb with ⟨-, #H⟩; iexact H
+      · iunfold isInc at Hisincb; icases Hisincb with ⟨-, #H, -⟩; iexact H
       iunfold bkKeep; iframe #; iframe; ipureintro; exact HbkbP
     rw [HbkbP.1] at HrecD
     (try wp_auto)
@@ -328,7 +328,7 @@ theorem runner.restore.wp_proof
     obtain ⟨recs, hrecs1, hrecs2, hrecs3⟩ := HrecD
     iunfold lessorW at Hles1
     icases Hles1 with ⟨%rd0, %r1, #Hlpkg, #Hlinv, #Hlcfg, #Hguard, #Hrevoc, #HapplyOk,
-      Hlrd, HlOwn, HlRevk, HlEver, #HreqU, HrdOwn, -, HbeOn, -, -, Hstop1⟩
+      Hlrd, HlOwn, HlRevk, HlEver, #HreqU, HrdOwn, -, HbeOn, -, -, Hstop1, #Hpool⟩
     iunfold bkKeep at Hbkn
     icases Hbkn with ⟨%HnP, #Hnisb, #Hnsc, Hnbf, Hnoh, HnRT, Hntoks, Hncen⟩
     simp only [mvccrand.rcKB_P]
@@ -348,7 +348,7 @@ theorem runner.restore.wp_proof
     -- the closure's deleter triple (the captured cell `kv`, read-only from here on)
     ipersist kv
     ihave #Hmv1 : isMvcc v1.kv v1.ι.kv $$ []
-    · iunfold isInc at Hisinc1; icases Hisinc1 with ⟨-, #H⟩; iexact H
+    · iunfold isInc at Hisinc1; icases Hisinc1 with ⟨-, #H, -⟩; iexact H
     ihave %Hkvs := hsh.1 v1.kv v1.ι.kv $$ Hmv1
     obtain ⟨kty, kvv, hkveq, hKR, hKW, hKRev, hKFR, -, -, -, -, -, hKRest, -, -⟩ := Hkvs
     ihave #Hdel : mvccDeleter rd v1.ι.kv $$ []
@@ -652,7 +652,7 @@ theorem runner.restore.wp_proof
     -- `x.checkLeases(f)`; `x.restores.Add(1)`
     wp_apply (wp_checkLeases x ks cfg wr h γ.h ops 1 mp1 γ.m1 f1
         ⟨vb'.path, v1.lp, v1.kv, v0.ops, mvccrand.rcKB γB bnb gx (limOf cfg), v1.ι, U', b4⟩ qw1 nw1
-        (sint.Z cfg.Ops').toNat hlogOk) $$ [Hrd Hc1n] as ⟨Hrd, Hc1n⟩
+        (sint.Z cfg.Ops').toNat hlogOk) $$ [Hrd Hc1n Htok] as ⟨Hrd, Hc1n, Htok⟩
     · iframe #; iframe
       dsimp only; rw [Hops.1]; iexact Hlb
     (try wp_auto)

@@ -476,7 +476,7 @@ theorem stream.wp_cancel [go_etcd_io.etcd.cache.v3.Assumptions] :
 
 theorem stream.wp_act [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.mvccfull.stream.act.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.mvccfull.stream.act.wp_proof mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds mvcc.api.mvccApi_errVars_law_holds wp_pick stream.wp_watch stream.wp_cancel stream.wp_pick wp_inBounds runner.wp_genKey context.wp_TODO wp_check
+  EtcdGrove.mvccfull.stream.act.wp_proof mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds mvcc.api.mvccApi_errVars_law_holds _root_.Perennial.EtcdGrove.mvccfull.wp_pick stream.wp_watch stream.wp_cancel stream.wp_pick wp_inBounds runner.wp_genKey context.wp_TODO wp_check
 
 theorem runner.wp_startEpoch [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.mvccfull.runner.startEpoch.spec (GF := GF) (hG := hG) :=

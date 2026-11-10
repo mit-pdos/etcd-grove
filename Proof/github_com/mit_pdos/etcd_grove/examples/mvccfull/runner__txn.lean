@@ -92,7 +92,7 @@ theorem runner.txn.wp_proof
   iunfold incW at Hinc
   icases Hinc with ⟨#Hisinc, Hret, Hσw, Hbw⟩
   ihave #Hmv : isMvcc v.kv v.ι.kv $$ []
-  · iunfold isInc at Hisinc; icases Hisinc with ⟨-, #H⟩; iexact H
+  · iunfold isInc at Hisinc; icases Hisinc with ⟨-, #H, -⟩; iexact H
   ihave %Hkvs := hsh.1 v.kv v.ι.kv $$ Hmv
   obtain ⟨kty, kvv, hkveq, hKR, hKW, -⟩ := Hkvs
   iunfold opIs at Hop
@@ -319,7 +319,7 @@ theorem runner.txn.wp_proof
     -- the sub-operations
     iunfold lessorW at Hles
     icases Hles with ⟨%rd, %r, Hl1, Hl2, Hl3, Hl4, Hl5, Hl6, Hl7, Hlo, Hl9, Hl10, Hl11, Hl12, Hl13,
-      Hl14, Hl15, %Hl16, Hl17⟩
+      Hl14, Hl15, %Hl16, Hl17, #Hl18⟩
     ihave %Hsubl := ownSlice_len $$ Hosubs
     ihave HI : (∃ (j : w64) (sv0 : subOp) (pend : List Change), "Hi" ∷ i_ptr ↦ j ∗
         "Hs" ∷ s_ptr ↦ sv0 ∗
@@ -452,7 +452,7 @@ theorem runner.txn.wp_proof
       ihave Hles : lessorW v.ι.kv v.bk f v.lp (leasesAfter ks ops v.ops) v.U
           (commitSt (σOf ks ops v.ops) pend)
         $$ [Hl1 Hl2 Hl3 Hl4 Hl5 Hl6 Hl7 Hlo Hl9 Hl10 Hl11 Hl12 Hl13 Hl14 Hl15 Hl17]
-      · iunfold lessorW; iexists rd, r; rw [pendItems_commit]; iframe; ipureintro; exact Hl16
+      · iunfold lessorW; iexists rd, r; rw [pendItems_commit]; iframe; iframe Hl18; ipureintro; exact Hl16
       iapply HΦ
       isplitl [Hrd]
       · iexact Hrd

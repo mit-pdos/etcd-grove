@@ -179,8 +179,8 @@ theorem runner.write.wp_proof
       · unfold leadPre histAt compsAt; simp only [↓reduceIte]; rw [hrs, hv0]; iexact HhW
       have hoo : (opsA ++ [o])[vA0.ops]? = some o := by rw [hv0]; simp
       wp_apply (wp_apply x ks cfg wr h γ.h (opsA ++ [o]) 0 mp0 γ.m0 f0 vA0 qwl nwl kl pp o true
-          hoo hlok' hnw (fun _ => by omega) (by simp; omega)) $$ [$Hctx $Hrd $Hop $Hm0 $Hlead]
-        as ⟨Hrd, Hpost, %vB0, %kB, %HvB, Hm0⟩
+          hoo hlok' hnw (fun _ => by omega) (by simp; omega)) $$ [$Hctx $Hrd $Hop $Hm0 $Hlead $Htok]
+        as ⟨Hrd, Hpost, Htok, %vB0, %kB, %HvB, Hm0⟩
       ihave HhW : histW γ.h (histAt ks (opsA ++ [o]) (opsA.length + 1))
           (compsAt ks (opsA ++ [o]) (opsA.length + 1)) $$ [Hpost]
       · irevert Hpost
@@ -285,8 +285,8 @@ theorem runner.write.wp_proof
         ihave Hlbf' : leadPre γ.h ks opsA vA1.ops false $$ []
         · unfold leadPre; simp only [Bool.false_eq_true, ↓reduceIte]; iexact Hlbf
         wp_apply (wp_apply x ks cfg wr h γ.h opsA 1 mp1 γ.m1 f1 vA1 qwf nwf kf pp o false hoo hlok hnw1
-            (fun _ => by omega) (by omega)) $$ [$Hctx $Hrd $Hop $Hm1 $Hlbf']
-          as ⟨Hrd, -, %vB1, %kB, %HvB, Hm1⟩
+            (fun _ => by omega) (by omega)) $$ [$Hctx $Hrd $Hop $Hm1 $Hlbf' $Htok]
+          as ⟨Hrd, -, Htok, %vB1, %kB, %HvB, Hm1⟩
         ihave Hown := Hbackf $$ %vB1 %kB Hlogf Hlps Hm1 Hrd %HvB
         (try wp_auto)
         wp_for_post
@@ -374,13 +374,13 @@ theorem runner.write.wp_proof
     icases writerOwn_check0 x ks cfg h γ mp0 mp1 f0 f1 opsA vA0 vA1 nvA nbA qA qsA $$ Hown
       with ⟨%qwc, %nwc, %kc, Hc, Hrd, #Hlbc, %Hlok, Hback⟩
     wp_apply (wp_checkLeases x ks cfg wr h γ.h opsA 0 mp0 γ.m0 f0 vA0 qwc nwc kc Hlok)
-      $$ [$Hctx $Hrd $Hlbc $Hc] as ⟨Hrd, Hc⟩
+      $$ [$Hctx $Hrd $Hlbc $Hc $Htok] as ⟨Hrd, Hc, Htok⟩
     ihave Hown := Hback $$ Hc Hrd
     (try wp_auto)
     icases writerOwn_check1 x ks cfg h γ mp0 mp1 f0 f1 opsA vA0 vA1 nvA nbA qA qsA $$ Hown
       with ⟨%qwc, %nwc, %kc, Hc, Hrd, #Hlbc, %Hlok, Hback⟩
     wp_apply (wp_checkLeases x ks cfg wr h γ.h opsA 1 mp1 γ.m1 f1 vA1 qwc nwc kc Hlok)
-      $$ [$Hctx $Hrd $Hlbc $Hc] as ⟨Hrd, Hc⟩
+      $$ [$Hctx $Hrd $Hlbc $Hc $Htok] as ⟨Hrd, Hc, Htok⟩
     ihave Hown := Hback $$ Hc Hrd
     (try wp_auto)
     wp_for_post
@@ -441,8 +441,8 @@ theorem runner.write.wp_proof
       ihave Hlbf' : leadPre γ.h ks opsA vA1.ops false $$ []
       · unfold leadPre; simp only [Bool.false_eq_true, ↓reduceIte]; iexact Hlbf
       wp_apply (wp_apply x ks cfg wr h γ.h opsA 1 mp1 γ.m1 f1 vA1 qwf nwf kf pp o false hoo hlok hnw1
-          (fun _ => by omega) (by omega)) $$ [$Hctx $Hrd $Hop $Hm1 $Hlbf']
-        as ⟨Hrd, -, %vB1, %kB, %HvB, Hm1⟩
+          (fun _ => by omega) (by omega)) $$ [$Hctx $Hrd $Hop $Hm1 $Hlbf' $Htok]
+        as ⟨Hrd, -, Htok, %vB1, %kB, %HvB, Hm1⟩
       ihave Hown := Hbackf $$ %vB1 %kB Hlogf Hlps Hm1 Hrd %HvB
       (try wp_auto)
       wp_for_post

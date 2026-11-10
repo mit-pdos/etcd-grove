@@ -198,7 +198,9 @@ def bkKeep (bk : mvcc.KBReal) (path : GoString) (k : Nat) : IProp GF :=
     ownToks bk.γB.wb k ∗ bkCensus bk)
 
 /-- **The writer's lessor of a member** (`lp`, the store `γk`'s, on the backend `bk`, the hook `f`),
-at the live leases `L` and the store state `σ`, the ids it ever had `U` (see the file header). -/
+at the live leases `L` and the store state `σ`, the ids it ever had `U` (see the file header);
+(F1 Prove, 2026-11-10) the lessor's reader pool (`lessorRdPool`, made at `open` of `NewLessor`'s
+reader slots the member does not keep), which `checkLeases`' `Leases()` borrows from. -/
 def lessorW (γk : MvccName) (bk : mvcc.KBReal) (f : GoFunc) (lp : Loc) (L U : List w64)
     (σ : MvccState) : IProp GF :=
   iprop(∃ (rd : GoFunc) (r : GMap GoString backend.BktData),
@@ -211,7 +213,8 @@ def lessorW (γk : MvccName) (bk : mvcc.KBReal) (f : GoFunc) (lp : Loc) (L U : L
     lease.leaseEver (mvccLeases γk) U ∗
     □ ([∗list] id ∈ U, lease.leaseReqIs (mvccLeases γk) id (W64 3600)) ∗
     lease.rdOwn (mvccLeases γk) rd ∗ mvccDeleter rd γk ∗ lease.lessorBeOn lp bk.be ∗
-    backend.rbPart bk.γB (· = leaseName) r ∗ ⌜leaseRecsOk r L⌝ ∗ lease.lessorStopTok lp)
+    backend.rbPart bk.γB (· = leaseName) r ∗ ⌜leaseRecsOk r L⌝ ∗ lease.lessorStopTok lp ∗
+    lease.lessorRdPool (mvccLeases γk))
 
 /-- **The writer's part of an incarnation** `ι` (handle `kv`) of member `i`: its handles, the
 writer's share `qw` of the retirement token (so it may open the invariant), its halves of `m.σ` (at
@@ -437,7 +440,7 @@ theorem inc_retire (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG)) (ks :
     refine @exists_timeless _ _ _ _ (fun Hl => ?_)
     infer_instance
   unfold isInc
-  iintro ⟨⟨#Hinv, -⟩, Hret⟩
+  iintro ⟨⟨#Hinv, -, -⟩, Hret⟩
   imod inv_acc (E := ⊤) (fun _ _ => CoPset.mem_full) $$ Hinv with ⟨Hi, Hclose⟩
   iunfold memberInv at Hi
   icases Hi with (>Hs | >Hr)
@@ -698,7 +701,8 @@ theorem lessorW_backend (γk : MvccName) (bk : mvcc.KBReal) (f : GoFunc) (lp : L
 `memberN i`) at the new store `γk`, with the carried parts; the writer gets the whole retirement
 token. (Proof to come: `sorry`; a fresh ghost variable, `inv_alloc` of the left disjunct.) -/
 theorem inc_alloc (ks : List GoString) (γh : HistNames) (i : Nat) (mp : Loc) (m : MemberNames)
-    (γk : MvccName) (kv : GoInterface) (σ : MvccState) (b : Bnd) (Hl : List HRev) :
+    (γk : MvccName) (kv : GoInterface) (σ : MvccState) (b : Bnd) (Hl : List HRev)
+    (hkv : ∃ s : Loc, kv = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #s) :
     isMvcc (GF := GF) kv γk ∗ mvccState γk σ ∗ memberCarry ks γh mp m σ b Hl ={⊤}=∗
     ∃ ι : IncNames, ⌜ι.kv = γk⌝ ∗ isInc ks γh i mp m ι kv ∗ ghostVar ι.ret 1 () := by
   iintro ⟨Hkv, Hσ, Hcarry⟩
@@ -713,6 +717,7 @@ theorem inc_alloc (ks : List GoString) (γh : HistNames) (i : Nat) (mp : Loc) (m
   isplitr
   · ipureintro; rfl
   iunfold isInc; iframe; iframe #
+  ipureintro; exact hkv
 
 end chain
 

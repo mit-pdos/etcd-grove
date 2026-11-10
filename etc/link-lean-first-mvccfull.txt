@@ -130,7 +130,7 @@ runner__view: history__snapshot
 runner__write: pick runner__gen runner__apply runner__restore runner__restart runner__checkLeases
 runner__writeRange: =mvcc.api.mvccApi_shapes_law runner__view context_TODO checkRangeAt
 runner__writeSub: =mvcc.api.mvccApi_shapes_law pending__put check pending__del runner__writeRange
-stream__act: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds =mvcc.api.mvccApi_errVars_law_holds pick stream__watch stream__cancel stream__pick inBounds runner__genKey context_TODO check
+stream__act: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds =mvcc.api.mvccApi_errVars_law_holds =_root_.Perennial.EtcdGrove.mvccfull.wp_pick stream__watch stream__cancel stream__pick inBounds runner__genKey context_TODO check
 stream__cancel: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_errVars_law_holds stream__pick check
 stream__complete: stream__expect
 stream__covered: stream__expect check

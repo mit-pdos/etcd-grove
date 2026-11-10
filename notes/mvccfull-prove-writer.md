@@ -37,23 +37,50 @@ Commit `33050af361`. Each closes a gap found in Prove; every caller still meets 
 
 With these, `writeSub`, `write`, `gen` and `txn` are proved without `sorry`.
 
-## Not proved (blocked by a frozen spec)
+**Second round (2026-11-10, the coordinator under the "minor spec fixes" rule):**
 
-- **`runner.checkLeases`**: `lease.lessor.Leases.spec` needs `threadTok`, `lessorRdPool`,
-  `lessorLb` and thread/receipt bound facts, none of which `checkLeases.spec`'s pre (`memCore`'s
-  `lessorW` holds a reader slot, not the pool) gives; and lease has no law from `Leases()`'s post to
-  the owner's live set in `leaseOwn`. Fix: the spec (or `lessorW`) carries the pool and a token;
-  lease adds that law.
-- **`runner.compact`: proved but for four `sorry`s, two gaps of the frozen mvcc API** (each in the
-  ErrCompacted and the success branch; `7700669085`, `CompactLemmas.lean`): (1) `KV.Compact.contract`
-  gives no `ch ≠ chan.nil`, which the tester checks (`compactChanOk` is met by a nil channel, whose
-  receive blocks); (2) `compactChanOk`'s receive returns an arbitrary value, and the code's `<-ch`
-  takes its `Fst`. Fix (mvcc's API, the user's): `ch ≠ nil` in both branches, and the receive's
-  result a pair. Everything else proved (`compact_au`, the bounds, the hook, the history).
+6. **mvcc's `compactChan.law`** (new API module `Spec/.../mvcc/ApiCompactChan.lean`, additive:
+   `Api.lean` unchanged). Cause: `KV.Compact.contract`'s `compactChanOk` is met by a `nil` channel
+   and its receive returns any value, while `runner.compact` checks `ch != nil` and takes `<-ch`'s
+   `Fst`. True of the Go code: `store.Compact` returns `make(chan struct{})` in both the success
+   (`compact`, `kvstore.go:235`) and the `ErrCompacted` arm (`updateCompactRev`, `:200`), `nil` only
+   at `ErrFutureRev`; a receive on a `chan struct{}` is the pair. `compactChanRecv ch` is
+   `compactChanOk` with `ch ≠ nil` and the pair; `compactChan.law`: at every handle, `Compact` meets
+   `KV.Compact.contractC` (the contract with `compactChanRecv`). Proved
+   (`Proof/.../mvcc/Api/CompactChan.lean`, a copy of `CmpCb`'s proofs with the channel's `isChan`;
+   linked in `ApiCompactChanResults.lean`); `etc/api/mvcc.txt` lists the module (vocab), interface
+   generated. `runner.compact` takes the law: proved.
+7. **`runner.checkLeases.spec` and `runner.apply.spec` take (and give back) the caller's
+   `threadTok`, and the classes `ThreadBoundLe GF (2 ^ 28)`, `ReceiptBoundLe GF (2 ^ 38)` (as `write`'s,
+   `restore`'s, `open`'s specs).** Cause: `lessor.Leases.spec` (the `len(m.le.Leases())` check) takes a thread token
+   (its sort borrows each lease's `expiryMu` slot) and the bounds `threadBound ≤ 2^30 - 1`,
+   `receiptBound ≤ 2^62`. Callers `open`, `restore`, `write` hold one;
+   `apply` lends it to `checkLeases` (its default arm).
+8. **`lessorW` holds the lessor's reader pool** (`lease.lessorRdPool (mvccLeases γk)`, persistent,
+   its last conjunct). Cause: `Leases.spec` borrows a reader slot from the pool, not the member's
+   own slot. `open` makes it (`lessorRdPool_init`) of the `2^30 - 3` reader slots of `NewLessor`'s it
+   used to drop (`threadBound ≤ 2^28`); every other proof carries it.
+9. **lease's `leaseOwn_leases`** (new module `Proof/.../lease/LeaseOwnLeases.lean`, proved): the
+   owner gives a lower bound `m` of the lessor's history (its last index) such that a lease map at
+   an index `≥ m` (`Leases()`'s post) has exactly the live set's ids, once each.
+
+**Invariant change (not a spec change; the coordinator, 2026-11-10):** `isInc` (`Members.lean`)
+records that the incarnation's handle is a watchable store's
+(`⌜∃ s, kv = interface.mkOk (PointerType watchableStore.ty) #s⌝`), which `runner.open` has from
+`New`'s post (`inc_alloc` takes it). Cause: `startEpoch`'s `m.kv.NewWatchStream()` needs
+`isWatchableKV`, which `shapes.law` gives only at `*watchableStore`. `EpochLemmas.inc_watchable`
+proved from it.
+
+## Not proved
+
+- **`runner.apply`'s revoke arm** (`sorry`; no spec gap known). The rest of `apply` is proved, and
+  `ApplyLemmas.log_cs_lt` (each revision's changes are distinct keys of `ks`) is proved.
+- `runner.compact` and `runner.checkLeases` are proved (second round of spec changes above, 6-9;
+  `CompactLemmas.lean`, `CheckLeasesLemmas.lean`).
 
 ## Modules added (the writer's own)
 
-`EndLemmas` (commitSt's facts at mvccfull's `commitSt`), `WriterLemmas` (`incW_bndOk`,
+`CheckLeasesLemmas` (`checkLeases`' model facts over `ks`), `EndLemmas` (commitSt's facts at mvccfull's `commitSt`), `WriterLemmas` (`incW_bndOk`,
 `endCb_txnEnd`: `tw.End` is `end`'s callback at the incarnation's invariant; `write_au`,
 `end_readT`, `pendItems_commit`, `bndOk_notify/commit`), `WriteSubLemmas` (the pending model's put
 and delete at mvccfull's keys), `StepModel` (`σOf_succ_commit`: the member's state after a write is

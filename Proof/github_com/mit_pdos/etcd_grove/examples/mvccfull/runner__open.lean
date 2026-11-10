@@ -22,6 +22,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccfull.noCluster__V
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.OpenLemmas
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.WriterShares
 public import Proof.go_etcd_io.etcd.server.v3.lease.LessorContract
+public import Proof.go_etcd_io.etcd.server.v3.lease.RdPool
 public import Spec.go_etcd_io.etcd.server.v3.lease.NewLessor
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiLaws
 
@@ -150,7 +151,14 @@ theorem runner.open.wp_proof
   obtain ⟨nl, hnl⟩ : ∃ nl, Int.toNat sync.rwmutex.actualMaxReaders = 2 + nl :=
     ⟨Int.toNat sync.rwmutex.actualMaxReaders - 2, by have := sync.actualMaxReaders_ge_2; omega⟩
   rw [hnl]
-  icases (backend.bigSepL_replicate_add _ 2 nl).1 $$ Hlrds with ⟨Hlrd2, -⟩
+  icases (backend.bigSepL_replicate_add _ 2 nl).1 $$ Hlrds with ⟨Hlrd2, Hlrdp⟩
+  -- the rest: the lessor's reader pool (`lessorW`'s, `checkLeases`' `Leases()`)
+  have hTB : threadBound GF ≤ nl + 1 := by
+    have h1 : threadBound GF ≤ 2 ^ 28 := ThreadBoundLe.le_of (2 ^ 28) (Nat.le_refl _)
+    have h2 := hnl
+    rw [sync.rwmutex.actualMaxReaders_unseal] at h2
+    omega
+  imod lease.lessorRdPool_init γl ⊤ nl hTB $$ Hlrdp with #Hpool
   rw [List.replicate_succ, List.replicate_one]
   icases BigSepL.bigSepL_cons.1 $$ Hlrd2 with ⟨Hlrd1, Hlrd2⟩
   ihave Hlrd2 := (BigSepL.bigSepL_singleton (PROP := IProp GF)).1 $$ Hlrd2
@@ -268,7 +276,7 @@ theorem runner.open.wp_proof
     (try wp_auto)
     -- the new incarnation, with the carried parts
     imod inc_alloc ks γh i mp m γk (interface.mkOk (go.GoType.PointerType
-        go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl) σ b Hl
+        go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl) σ b Hl ⟨wsl, rfl⟩
       $$ [Hkvm Hσ Hcarry] with ⟨%ι, %Hι, #Hinc, Hret⟩
     · iframe #; iframe
     subst Hι
@@ -321,7 +329,7 @@ theorem runner.open.wp_proof
     wp_apply (wp_checkLeases x ks cfg wr h γh ops i mp m f ⟨path, lp, interface.mkOk
         (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl, n,
         mvccrand.rcKB γB bnb gx (limOf cfg), ι, recs.map (·.1), b⟩ 1 mvccReaderN
-        (sint.Z cfg.Ops').toNat hlog) $$ [Hrd Hc] as ⟨Hrd, Hc⟩
+        (sint.Z cfg.Ops').toNat hlog) $$ [Hrd Hc Htok] as ⟨Hrd, Hc, Htok⟩
     · iframe #; iframe
     (try wp_auto)
     iapply HΦ

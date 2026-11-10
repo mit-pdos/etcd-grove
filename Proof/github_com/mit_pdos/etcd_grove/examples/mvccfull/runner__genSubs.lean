@@ -106,7 +106,7 @@ theorem all_take_succ {α : Type} (l : List α) (i : Nat) (hi : i < l.length) (p
     (l.take (i + 1)).all p = ((l.take i).all p && p l[i]) := by
   rw [List.take_succ_eq_append_getElem hi, List.all_append]; simp
 
-theorem zip_fst_snd {α β : Type} (xs : List (α × β)) :
+theorem genSubs_zip_fst_snd {α β : Type} (xs : List (α × β)) :
     (xs.map Prod.fst).zip (xs.map Prod.snd) = xs := by
   induction xs with
   | nil => rfl
@@ -582,7 +582,7 @@ theorem runner.genSubs.wp_proof
     iapply HΦ
     iframe
     iexists xs.map Prod.fst, xs.map Prod.snd
-    rw [zip_fst_snd]
+    rw [genSubs_zip_fst_snd]
     iframe #
     ipureintro
     obtain ⟨_, hok, hlen, hne, hj0, hjn, hv1, hv2⟩ := Hinv
