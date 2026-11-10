@@ -1048,6 +1048,11 @@ unless they start otherwise. The specs are written to each choice except D6 (ope
   by a justifiable trusted model; where no reasonable model exists, or the Go features a library
   uses would be hard to support, escalate with a concrete example.
 
+- **Fix plan answers (2026-11-10):** `etcd-range-keys-only-lease`: turn `FastKeysOnly` off (the
+  performance cost accepted). Kubernetes is out of scope: no fourth fork, no k8s proofs; the goal is
+  only the etcd client porcupine test without axioms, so fixes off its path are deferred.
+  `msgsFit`: explanation requested (given in the session).
+
 ### Needs your approval
 
 New client-visible ghost state, or a change to an API or decision you approved.
