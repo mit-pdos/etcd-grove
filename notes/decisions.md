@@ -34045,3 +34045,32 @@ the other examples', and decided its shape:
   `backend.Close`'s precondition: the backend's whole open token, from the server's census
   (`stop_census_open`) over the store's `mvccClosed` with every reader token (the goroutines give
   theirs back through the wait group) and the open token's shares `rc_open` used to drop.
+
+## Premise fixes 3: `reflect.Value`'s points-to is the heap's; `RecordEtcdRequest` takes `statusErrOk` (2026-11-10 · decided by etcd-grove-81 under the user's delegation · branch `premise-fixes-3`)
+
+Two defects in trust-boundary statements the closed k8s results rest on (found by etcd-grove-81's
+independent review).
+
+1. `reflectM.value_typed_pointsto` (`Proof/reflect/Values.lean`) was an axiom of type
+   `TypedPointsto reflect.Value`, which Lean elaborated as `{GF} → TypedPointsto Value` with no
+   heap instance `hG`: one points-to for every ghost heap, unrelated to the heap's. It is now an
+   instance, `heapTypedPointsto reflect.Value value_intoVal_inj.intoVal_inj`, the form of the basic
+   types' (`typedPointsto_loc`), over one new axiom `value_intoVal_inj [reflect.Assumptions] :
+   go.IntoValInj reflect.Value` (true of the real `Value`, a struct its representation
+   determines). No importer needed a change (they reach `reflect.Assumptions` through their
+   package's `Assumptions`).
+2. `metrics.RecordEtcdRequest.spec` returned for every `err`. Go's (`metrics.go:217-223` at the
+   apiserver pin `9c4ec15b8038`) calls `errorReason(err)` for a non-nil `err`, registered metrics or
+   not, and `errorReason` (`225-243`) calls grpc's `status.FromError`, which calls `GRPCStatus()`:
+   a typed-nil `*status.Error` panics (`examples/premisefix/recordetcdrequest`, own Go module). The
+   spec now takes `statusErrOk err`. For `txnError`'s result to have it, `ErrTransactionConflict`'s
+   init axiom, which gave some error, is restated as what Go has, `errors.New("transaction
+   conflict")` (`metrics.go:42`, checked by the Go test: message, `*errors.errorString`, `Error` its
+   only method), in gen-init.py's `newvars` form (`errorsNewVarsInit`, `errorsNewVarInitC`);
+   `metricsInit` is `errorsNewVar ErrTransactionConflict "transaction conflict"`; `txnError`'s post
+   is `statusErrOk err -∗ statusErrOk e` (`errorString_statusErrOk`, etcd3's `Base.lean`); the five
+   call sites take the client's `statusErrOk` from its post (`statusErrOk_split`).
+
+Trust base: `ErrTransactionConflict_init` → `metrics.errorsNewVarsInit`, `value_typed_pointsto` →
+`value_intoVal_inj`; count unchanged. Gates: step 9 (premise-fixes-1's text, skipped when the
+examples module holds no premisefix package) and 9b (each Go module under `examples/premisefix`).
