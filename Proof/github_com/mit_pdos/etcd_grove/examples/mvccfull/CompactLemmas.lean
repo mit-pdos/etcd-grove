@@ -45,6 +45,31 @@ theorem runM_compact (ks : List GoString) (ops : List OpM) (n : Nat) (o : OpM)
   simp only [hh, hk]
   refine ⟨trivial, ?_, ?_, ?_, ?_⟩ <;> simp
 
+/-- **The member's state after a compaction**: its state before, compacted if it compacts. -/
+theorem σOf_compact (ks : List GoString) (ops : List OpM) (n : Nat) (o : OpM)
+    (ho : ops[n]? = some o) (hk : o.kind = kCompact) :
+    σOf ks ops (n + 1) =
+      (if (σOf ks ops n).crev < sint.Z o.rev ∧ sint.Z o.rev ≤ ((σOf ks ops n).rev : Int)
+        then (σOf ks ops n).compactTo (sint.Z o.rev) else σOf ks ops n) ∧
+    revAfter ks ops (n + 1) = revAfter ks ops n ∧
+    cmpAfter ks ops (n + 1) = (σOf ks ops (n + 1)).crev ∧
+    leasesAfter ks ops (n + 1) = leasesAfter ks ops n ∧
+    grantedAfter ks ops (n + 1) = grantedAfter ks ops n ∧
+    histAt ks ops (n + 1) = histAt ks ops n ∧
+    compsAt ks ops (n + 1) =
+      (if (σOf ks ops n).crev < sint.Z o.rev ∧ sint.Z o.rev ≤ ((σOf ks ops n).rev : Int)
+        then compsAt ks ops n ++ [o.rev] else compsAt ks ops n) := by
+  obtain ⟨hh, hl, hg, hc, hcs⟩ := runM_compact ks ops n o ho hk
+  have hr : ((σOf ks ops n).rev : Int) = ((runM ks ops n).rev : Int) := by rw [σOf_rev]
+  have hcr : (σOf ks ops n).crev = (runM ks ops n).crev := rfl
+  refine ⟨?_, ?_, rfl, hl, hg, hh, ?_⟩
+  · rw [hcr, hr]
+    unfold σOf histAt cmpAfter
+    rw [hh, hc]
+    split <;> rfl
+  · unfold revAfter MSt.rev; rw [hh]
+  · unfold compsAt; rw [hcs, hcr, hr]
+
 theorem bndOk_compact (ks : List GoString) (σ : MvccState) (b : Bnd) (Hl : List HRev) (c : Int)
     (hok : bndOk ks σ b Hl) (hc : σ.crev < c) (hcb : c ≤ sint.Z b.2.2.2) :
     bndOk ks (σ.compactTo c) b Hl := by
@@ -60,6 +85,53 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccfull.Assumptions]
 variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+
+/-- The writer's lessor only sees the store state's log. -/
+theorem lessorW_log [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+    (γk : MvccName) (bk : mvcc.KBReal) (f : GoFunc) (lp : Loc) (L U : List w64)
+    (σ σ' : MvccState) (h : σ.log = σ'.log) :
+    lessorW (GF := GF) γk bk f lp L U σ ⊢ lessorW γk bk f lp L U σ' := by
+  unfold lessorW; rw [h]
+
+/-- **The member's part after a compaction** (its count one more, the bounds `b'`): from its parts
+at the count before, the compaction revision field and the incarnation's state after. -/
+theorem memCore_compact [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+    (ks : List GoString) (γh : HistNames) (ops : List OpM) (i : Nat) (mp : Loc) (m : MemberNames)
+    (f : GoFunc) (v : MemS) (qw : Qp) (nw k : Nat) (o : OpM) (b' : Bnd)
+    (ho : ops[v.ops]? = some o) (hk : o.kind = kCompact) :
+    let n := v.ops
+    (mF go!"id" mp ↦□ (W64 (i : Int)) ∗ mF go!"hook" mp ↦□ f ∗ hookOk mp f ∗
+      mF go!"path" mp ↦ v.path ∗
+      mF go!"be" mp ↦ (interface.mkOk
+        (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #v.bk.be :
+          GoInterface) ∗
+      mF go!"le" mp ↦ lease.lessorIface v.lp ∗ mF go!"kv" mp ↦{DFrac.own qw} v.kv ∗
+      mF go!"rev" mp ↦ (W64 (revAfter ks ops n : Int)) ∗
+      mF go!"cmp" mp ↦ (W64 (cmpAfter ks ops (n + 1))) ∗
+      (∃ sl : GoSlice, mF go!"leases" mp ↦ sl ∗ sl ↦* leasesAfter ks ops n ∗
+        ownSliceCap w64 sl (DFrac.own 1)) ∗
+      incW ks γh i mp m v.ι v.kv qw (σOf ks ops (n + 1)) b' ∗
+      mvccOpen v.ι.kv ∗ mvccBackend v.ι.kv 1 (etcdStorage v.bk) iprop(True) ∗
+      hookIs (etcdStorage v.bk) f ∗ mvccReaders v.ι.kv nw ∗
+      bkKeep v.bk v.path k ∗ lessorW v.ι.kv v.bk f v.lp (leasesAfter ks ops n) v.U (σOf ks ops n) ∗
+      ⌜∀ id ∈ v.U, id ∈ grantedAfter ks ops n⌝ : IProp GF) ⊢
+    memCore ks γh ops i mp m f ⟨v.path, v.lp, v.kv, v.ops + 1, v.bk, v.ι, v.U, b'⟩ qw nw k := by
+  intro n
+  have hvo : v.ops < ops.length := (List.getElem?_eq_some_iff.1 ho).1
+  obtain ⟨hS, hR, -, hL, hG, -, -⟩ := σOf_compact ks ops v.ops o ho hk
+  have hlog : (σOf ks ops n).log = (σOf ks ops (n + 1)).log := by
+    rw [hS]; split <;> rfl
+  iintro ⟨Hid, Hhook, Hhok, Hpath, Hbe, Hle, Hkv, Hrev, Hcmp, Hls, Hinc, Hop, Hmb, Hhis, Hrds, Hbk,
+    Hlw, %HU⟩
+  iunfold memCore
+  dsimp only
+  rw [hR, hL, hG]
+  iframe Hid Hhook Hhok Hpath Hbe Hle Hkv Hrev Hcmp Hls Hinc Hop Hmb Hhis Hrds Hbk
+  isplitr
+  · ipureintro; omega
+  isplitl [Hlw]
+  · iapply lessorW_log _ _ _ _ _ _ _ _ hlog; iexact Hlw
+  · ipureintro; exact HU
 
 /-- **`Compact`'s update at a live incarnation** (the writer's halves at `σf` and the bounds `b`,
 `cmpHi` at least `c` if it compacts): the state compacted to `c` if `c` is above its compaction
