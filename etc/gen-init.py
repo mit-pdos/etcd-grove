@@ -683,6 +683,24 @@ are now `features`' registration's, `features.init_0_ok`.)''',
             'imodintro', 'iexists _', 'iframe #'],
 )
 
+# (k8s 7e-1, 2026-11-10, decided by etcd-grove-81) grpc's fact: `EnableTracing` holds `false`
+SPECIAL['google_golang_org.grpc'] = dict(
+    doc='''Its fact (`grpcInit`, `cache/v3/Base.lean`): `EnableTracing` holds `false` for good. Its
+initializer initializes its imports, runs the untranslated initializers of its variables (`X.init`,
+axioms of the translation), which the trust-boundary axiom `opaqueInitsOk` says run without
+panicking, but the first, `DefaultBackoffConfig.init`, whose trust-boundary axiom
+`DefaultBackoffConfig_init` also gives `EnableTracing`'s cell, holding `false`: Go allocates every
+package variable, zero-valued, before the first initializer runs, and `EnableTracing` (`var
+EnableTracing bool`, `trace.go:33` at v1.84.0) has no initializer of its own, so the names-only
+translation has no step that allocates it and the fact rides on the first initializer. Its
+untranslated `init` functions the trust-boundary axiom `initFuncsOk` says return.''',
+    custom={'DefaultBackoffConfig': dict(
+        doc='/-- `DefaultBackoffConfig = BackoffConfig{MaxDelay: 120 * time.Second}` (`backoff.go`) runs without panicking, and `EnableTracing`\'s cell holds `false` after it: Go allocates every package variable, zero-valued, before the first initializer runs, and `EnableTracing` (`var EnableTracing bool`, `trace.go:33` at grpc v1.84.0) has no initializer of its own, so its allocation is attributed to the package\'s first initializer (grpc\'s translation is names-only: its `initialize\'` has no `GlobalAlloc`). No translated code writes `EnableTracing`; a program that writes it (etcd\'s `embed` at log level debug, grpc-proxy `--debug`) gets no proof: it would need the cell, which `finish` makes persistent. -/',
+        post='globalAddr EnableTracing ↦ false',
+        pat='H@')},
+    finish=['ipersist HDefaultBackoffConfig'] + FIN_PRE[:6],
+)
+
 # (sweep repairs 1, B5, 2026-11-08) the default gate's registration: `features`' `init`
 SPECIAL['k8s_io.apiserver.pkg.features'] = dict(
     doc='''Its fact (`featuresInit`, `storage/etcd3/Base.lean`): `DefaultFeatureGate` holds a gate with
