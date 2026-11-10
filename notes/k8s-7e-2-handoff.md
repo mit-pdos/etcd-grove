@@ -44,6 +44,44 @@ names `rpctypesInit`). `etc/gen-init.py --check` passes.
   false = some k ∧ (pathPrefix ++ k).length ≤ opKeyMax`, for `GetCurrentResourceVersion`) proved. Not
   linked (no new trusted spec is linked yet; the last third links them).
 
+## Sixth session (2026-11-10, after B5 (a)): `pagedChunks` proved; next `GetList`
+Read the Draft's B5 decision and `questions.md` (B5, and "Forms decided by the agent"; rules:
+`/shared/tmp/coord-81/common-rules.md`, "Form-only changes").
+- Done: `pagesL`, `chunkIs`, `pagesOk` in `ListDefs` (B5 (a); `pagesOk` a one-shot WP with
+  `threadTok`, `Q`'s update and `P`'s persistent update as premises); `Spec/.../store__pagedChunks.lean`
+  and its proof (no `sorry`; pure lemmas `pageKvsL_snd_le/fst_le/more/mem/key_nomore`, `limN_W64`,
+  `pagesL_succ`, the loop invariant `pageInv`, all in the proof file). Built capped
+  (`/shared/tmp/k8s-7e-2/b18.log`, 7354 jobs).
+- **Next, in order:**
+  1. `GetList` (Draft §2 with B5 (a): `P : KVState → KVState → IProp GF`, premise `Q R σ ∗ P σ σ' ⊢
+     ⌜kvSameHist σ σ' ∧ σ.rev ≤ σ'.rev⌝`, update `□ ∀ R σ, □ Q R σ -∗ |==> …kvReadAu (P σ)`; plus
+     `ctxNeverDone (ok ci)`, G1/G2). Its proof needs: `pagedChunks.spec` (premises: GetList's own;
+     `listReadError`'s key premise from `storeListOk`'s `prepareKeyM rp rp false = some rp` and
+     `prepareKeyM_prefix` on GetList's key: `(pathPrefix ++ rp).length ≤ (pathPrefix ++ k).length`);
+     the range-over-func `for chunk, chunkErr := range chunks` is `func.forRange 2` (Perennial
+     `Golang/Defn/Loop.lean`), which has **no WP lemma in Perennial**: unfold `func.forRange_unseal`
+     (cells `state` (`go.int`) and `exit` (untyped `Alloc`)), or prove a local lemma
+     `wp_forRange2` from `pagesOk`'s shape (record it in `notes/perennial-changes.md` as a candidate
+     general lemma). `yieldOf 2` is the closure `λ "$k" "$v", step (λ <>, body "$k" "$v")`. Then
+     instantiate `pagesOk`'s `J` with the loop state (items so far as `chunkL`'s state, `count`,
+     `lastKey`, `hasMore`, `numFetched/numEvald`, `withRev`); compose pages into `kListL` (a pure
+     lemma: the pages' `chunkL` over `pagesL` is `ListModel.loop` on the scope; `kListL_last`).
+     Callees already proved: `shouldStream` (false: `rangeStreamOff`), `ValidateListOptions`,
+     `getNewItemFunc`, `appendChunk`, `validateMinimumResourceVersion`, `PrepareContinueToken`,
+     `finalizeList`, aggregator factory, `tracing.Start` (B2), the metrics, `GetItemsPtr`.
+  2. The driver's `DecodeListItem`/`UpdateList`/`driver_listContractOk` (Draft §6).
+  3. Links (`etc/gen-link.py` as in "Notes for the last third") and interfaces — STOP before linking
+     the new trusted specs or touching `etc/tcb-baseline.txt`/collections.
+- Patterns (pagedChunks): a closure's body: after `iapply HΦ; iunfold pagesOk; iintro …`, `wp_auto`
+  enters it; callback WPs with a fixed post: `wp_bind (App (App (Val #y) _) _)` then `iapply (wp_wand
+  (Φ := …)) $$ [..]`, and `iapply Hy $$ %a %b %c %(ch) [HJ] [] [Hkvs]` (goal patterns: the context
+  goes to the last goal otherwise; `simp only [↓reduceIte]` before `iexact` on `J (if 0 = 0 …)`);
+  `ipersist` on a fresh `revision` cell inside a WP; `generalize h : e = x` (no `at`) generalizes
+  the Iris context too, and `rw` on the goal rewrites Iris hypotheses; no Mathlib (`set`, `swap`,
+  `not_not` absent: `generalize`, reorder `by_cases`, `Decidable.not_not`); lean-check hides
+  `trace` output; a WP post `{{ _, … }}` does not parse (`{{ v, … }}`); `do: v` on an unknown `v`
+  needs `v.isPanic = false`: state yield posts as `∃ b : Bool, ⌜v = #b⌝ ∗ …`.
+
 ## Fifth session (2026-11-10): `getList` proved; stopped at B5
 - `store.getList` proved (no `sorry`; both branches; `Client.List.spec`/`Client.GetAt.spec` premises
   of the proof only). Pure lemmas in `ListDefs`: `filter_key_eq_findKey` (on a key-sorted list,
