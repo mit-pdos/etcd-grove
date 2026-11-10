@@ -195,6 +195,12 @@ after a Go test (`examples/k8s7e2attack`) that the derived context of `context.B
   since `P σ'` cannot know it fired after `Q`'s state (an entailment over all pairs). Recommended:
   (a).
 
+**Decided by etcd-grove-81 (2026-11-10, under the user's delegation):** B5 option (a): `P : KVState →
+KVState → IProp GF`, the update `□ ∀ R σ, □ Q R σ -∗ |==> □ [∧list] x ∈ c.ms, ⌜P σ = fun _ =>
+iprop(True)⌝ ∨ kvReadAu x.γr.kv (P σ)`, the premise `∀ R σ σ', Q R σ ∗ P σ σ' ⊢ ⌜kvSameHist σ σ' ∧
+σ.rev ≤ σ'.rev⌝`, in `GetList.spec`, `pagedChunks.spec` and `pagesOk`; 7e-4 produces it
+(`notes/k8s-7e-scope.md`). `filter_key_eq_findKey` and `pageKvsL_key` accepted.
+
 ## 0. Summary
 
 | # | Item | Status | Producer |

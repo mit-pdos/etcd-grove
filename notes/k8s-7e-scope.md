@@ -270,6 +270,10 @@ revision.
     closed theorem (that goes to the user). Adopt 7e-3c's `ItemRelH` (whole object) in `Refine.lean`.
     `refine_list` is stated with `driverCodec.dec`; `driverSpec_dec` (`ObjSpec.lean`, `rfl`) bridges
     it to `driverSpec.dec`, which `GetList`'s post uses.
+  - **7e-4 (from 7e-2's B5; decided by etcd-grove-81 under the user's delegation, 2026-11-10):**
+    produce `GetList`'s later-page update `P σ` (indexed by the first page's state `σ`) so that it
+    fires only at a log state that extends `γ.r`'s record of `σ`, giving `Q R σ ∗ P σ σ' ⊢
+    ⌜kvSameHist σ σ' ∧ σ.rev ≤ σ'.rev⌝`; it may not become a premise of a closed theorem.
 
 ## 6. The model in Lean and the invariant
 
