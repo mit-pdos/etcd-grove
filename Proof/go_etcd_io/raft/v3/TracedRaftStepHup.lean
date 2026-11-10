@@ -814,7 +814,7 @@ theorem stepBundle_hup_R (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id 
 /-- **`raft.Step`'s traced bundle on `MsgHup` at a follower or candidate** (`stepBundle_hup_R`, the
 resources `hupR`). -/
 theorem stepBundle_traced_hup : stepBundle_traced.on (GF := GF) (hG := hG) LocalHup := by
-  intro γ md c r id s m ents sn ctx rs γd Λ hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit hlrn hsub
+  intro γ md c r id s m ents sn ctx rs γd Λ hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit hlrn hsub _ _ _
   iintro ⟨Hcap, -, #Hnosnap⟩
   imod stepBundle_hup_R γ md c r id s m ents sn ctx rs γd Λ hp htr hpv hty (hloc (.inl hp.1)) hT hfit hlrn
     $$ [$Hcap $Hnosnap] with ⟨HG, Hgates, Hclose⟩
