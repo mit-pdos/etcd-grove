@@ -250,6 +250,8 @@ theorem store.GetList.wp_proof
   ipersist opts
   ihave #opts' := opts
   iStructNamed opts'
+  ihave #Predicate' := Predicate
+  iStructNamed Predicate'
   ipersist keyPrefix
   ipersist ctx
   ipersist paging
@@ -900,7 +902,55 @@ theorem store.GetList.wp_proof
                   count_ptr ↦ ch.count' ∗ numFetched_ptr ↦ W64 ((m + pg.1.length : Nat) : Int) ∗
                   numEvald_ptr ↦ (nev + evd) ∗ err_ptr ↦ e1 ∗ L.itemsAt sl' (itemsOf c st'))) ∨
               (⌜bv = breakVal⌝ ∗ Ψb breakVal)))) $$ [v Hip hasMore Hbrk]
-          · sorry
+          · by_cases hp : 0 < sint.Z opts.Predicate'.Limit'
+            · rw [show decide (sint.Z (W64 0) < sint.Z opts.Predicate'.Limit') = true from
+                decide_eq_true hp]
+              wp_auto
+              wp_apply (wp_Len v_ptr _ _ rv c.S.objTy (L.itemsRef pl) sl') $$ [$v $Hip] as ⟨v, Hip⟩
+              · iframe #
+                ipureintro; exact Hrv
+              (try wp_auto)
+              have hlimn : limN opts.Predicate'.Limit' = sint.nat opts.Predicate'.Limit' := by
+                unfold limN; rw [if_pos hp]
+              by_cases hge : sint.Z opts.Predicate'.Limit' ≤ sint.Z sl'.len
+              · rw [show decide (sint.Z opts.Predicate'.Limit' ≤ sint.Z sl'.len) = true from
+                  decide_eq_true hge]
+                wp_auto
+                iright
+                isplitr
+                · ipureintro; rfl
+                icases Hbrk with ⟨Hbrk, -⟩
+                iapply Hbrk $$ %true [] hasMore v Hip
+                ipureintro
+                refine ⟨by simp, Or.inr (Or.inr ⟨by rw [hlimn]; word, ?_⟩)⟩
+                rw [hlimn, ← Hil']
+                have := Hiw.1
+                word
+              · rw [show decide (sint.Z opts.Predicate'.Limit' ≤ sint.Z sl'.len) = false from
+                  decide_eq_false hge]
+                wp_auto
+                icases Hbrk with ⟨-, Hrest⟩
+                ileft
+                iframe
+                ipureintro
+                refine ⟨rfl, fun h => ?_⟩
+                have h2 := h.2
+                rw [hlimn, ← Hil'] at h2
+                have := Hiw.1
+                apply hge
+                word
+            · rw [show decide (sint.Z (W64 0) < sint.Z opts.Predicate'.Limit') = false from
+                decide_eq_false hp]
+              wp_auto
+              icases Hbrk with ⟨-, Hrest⟩
+              ileft
+              iframe
+              ipureintro
+              refine ⟨rfl, fun h => ?_⟩
+              have := h.1
+              unfold limN at this
+              rw [if_neg hp] at this
+              omega
           iintro %bv Hbv
           icases Hbv with (⟨%Hbv, v, Hip, hasMore, Hrest⟩ | ⟨%Hbv, HΨ⟩)
           · obtain ⟨rfl, hnf⟩ := Hbv
