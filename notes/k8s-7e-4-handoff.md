@@ -59,7 +59,10 @@ etcd-grove-81 says so.
    against `RevOk`'s third clause: `KvExt σ σ'` gives `kvSameHist σ σ' ∧ σ.rev ≤ σ'.rev`
    (`kvExt_sameHist`); `P σ σ' := ⌜kvSameHist σ σ' ∧ σ.rev ≤ σ'.rev⌝ ∗ …` (check what
    `store.GetList.spec`/`pagedChunks` need of a later page's `P` first).
-2. `Cache.lean` (cached objects on the 8-field `Obj`), `Calls.lean` (`GenIn` with `InOk`'s new
+2. `Cache.lean` checks unchanged (lean-check, 2026-11-10). `Calls.lean` (errors from line 59: `errIs`'s
+   7-field `Output` literals → `errOutL e k r`, an `ETooLarge` branch (`apierrors.tooLargeErrIs`, as
+   `IsTooLargeResourceVersion`'s spec gives), `errVarOk` destructuring, `KErr.tooLarge` in `outOf`'s
+   cases, `delete_noOdd` gone), then `Calls.lean` (`GenIn` with `InOk`'s new
    conjuncts: workload key, node/app lengths, `parseRVD … = some n ∧ uint.Z n < 2^63`, the list's match,
    `"/objs/" <+:`, `0 ≤ Limit`, `prepareKeyM … isSome`; `errIs` on the 17-field `Output` with
    `ETooLarge`; `callPre`/`callAt` with the list kind), `call`, `errOut`, `Apply`. Then report (after 2 is
