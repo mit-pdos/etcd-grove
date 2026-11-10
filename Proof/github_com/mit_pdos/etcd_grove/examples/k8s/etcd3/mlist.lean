@@ -42,10 +42,18 @@ theorem mlist.wp_proof
     (wp_keyInScope : keyInScope.spec (GF := GF) (hG := hG))
     (wp_listOptions : listOptions.spec (GF := GF) (hG := hG))
     (wp_encodeItems : encodeItems.spec (GF := GF) (hG := hG))
-    (wp_Matches : mlistMatches.spec (GF := GF) (hG := hG))
+    (wp_SM : storage.SelectionPredicate.Matches.spec (GF := GF) (hG := hG))
+    (wp_SE : storage.SelectionPredicate.Empty.spec (GF := GF) (hG := hG))
+    (wp_LM : labelSel.Matches.spec (GF := GF) (hG := hG))
+    (wp_LE : labelSel.Empty.spec (GF := GF) (hG := hG))
+    (wp_FM : fieldSel.Matches.spec (GF := GF) (hG := hG))
+    (wp_FE : fieldSel.Empty.spec (GF := GF) (hG := hG))
+    (wp_GA : getAttrs.spec (GF := GF) (hG := hG))
     (wp_PrepareKey : storage.PrepareKey.spec (GF := GF) (hG := hG))
-    (wp_PrepareContinueToken : mlistPCT.spec (GF := GF) (hG := hG)) :
+    (wp_PCT : storage.PrepareContinueToken.spec (GF := GF) (hG := hG)) :
     mlist.spec (GF := GF) (hG := hG) := by
+  have wp_Matches := mlistMatches.wp_proof wp_SM wp_LM wp_LE wp_FM wp_FE wp_GA
+  have wp_PrepareContinueToken := mlistPCT.wp_proof wp_PCT wp_SM wp_SE wp_LM wp_LE wp_FM wp_FE wp_GA
   intro x c g
   wp_start as #Hc
   unfold cfgOwn storeOwn
