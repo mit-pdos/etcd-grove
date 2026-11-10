@@ -327,7 +327,8 @@ theorem runner.restore.wp_proof
     icases Hbkn with ⟨%HnP, #Hnisb, #Hnsc, Hnbf, Hnoh, HnRT, Hntoks, Hncen⟩
     simp only [mvccrand.rcKB_P]
     ihave Hwb2' : ownToks γB.wb 2 $$ [Hwb1 Hwb2]
-    · iunfold backend.wbTok at Hwb1 Hwb2
+    · ihave Hwb1 := (backend.wbTok_toks γB).1 $$ Hwb1
+      ihave Hwb2 := (backend.wbTok_toks γB).1 $$ Hwb2
       iapply (ownToks_add 1 1 γB.wb).2; iframe
     ihave HEv : (if recs = [] then iprop(True) else lease.leaseEver (mvccLeases v1.ι.kv) v1.U) ∗
         (if recs = [] then lease.leaseEver (mvccLeases v1.ι.kv) v1.U else iprop(True)) $$ [HlEver]
@@ -454,7 +455,7 @@ theorem runner.restore.wp_proof
     rw [etcdStorage_hook] at *
     wp_apply (wp_SetHook γB (mvccrand.rcP (limOf cfg)) (mvccW gx) iprop(True) bnb (1 : Qp).half
         func.nil f1) $$ [Hnoh Hplh Hw1] as ⟨Hnoh, Hplh⟩
-    · iframe #; iframe; iunfold backend.wbTok; iexact Hw1
+    · iframe #; iframe; iapply (backend.wbTok_toks γB).2; iexact Hw1
     imod backend.plHook_persist γB f1 $$ Hplh with #HhkRO
     (try wp_auto)
     -- the old backend: its census (`Restore` gave the store's rest back), `Close`

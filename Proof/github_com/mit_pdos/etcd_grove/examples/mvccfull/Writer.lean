@@ -76,6 +76,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.backend.New
 public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccfull.FilePaths
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.StopLaws
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.BkRTLaws
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.WbTokLaws
 
 @[expose] public section
 
@@ -799,7 +800,7 @@ theorem wbStock_supply (γB : backend.BNames) :
     iframe Ha Hn
     ipureintro; omega
   imodintro
-  unfold backend.wbTok
+  iapply (backend.wbTok_toks γB).2
   iexact Ht
 
 /-- **Reopen, the backend** (step 3, after `backend.New` on the file's data `D` at a fresh
@@ -878,8 +879,8 @@ theorem inc_open_backend [ThreadBoundLe GF (2 ^ 28)] (hopen : etcdStorage_open.l
     isplitl [Himg]; iexact Himg
     isplitl [Hnp]; iexact Hnp
     isplitl [Hreg]; iexact Hreg
-    isplitl [Hw1]; iunfold backend.wbTok; iexact Hw1
-    isplitl [Hw1']; iunfold backend.wbTok; iexact Hw1'
+    isplitl [Hw1]; iapply (backend.wbTok_toks γB).2; iexact Hw1
+    isplitl [Hw1']; iapply (backend.wbTok_toks γB).2; iexact Hw1'
     isplitl [Hsup]; iexact Hsup
     iexact Hos
   ihave ⟨-, -, Hhk, Hrbo, -⟩ := hrest _ _ _ _ _ $$ Hrest
@@ -913,8 +914,9 @@ theorem inc_open_backend [ThreadBoundLe GF (2 ^ 28)] (hopen : etcdStorage_open.l
     iframe Ho1
     iapply (BigSepL.bigSepL_singleton (PROP := IProp GF)).2
     iexact Ho2
-  iunfold backend.wbTok
-  iframe
+  isplitl [Hw3]
+  · iapply (backend.wbTok_toks γB).2; iexact Hw3
+  · iapply (backend.wbTok_toks γB).2; iexact Hw3'
 
 /-- **Reopen, the incarnation** (step 3, after `mvcc.New`): a new incarnation's invariant (namespace
 `memberN i`) at the new store `γk`, with the carried parts; the writer gets the whole retirement
