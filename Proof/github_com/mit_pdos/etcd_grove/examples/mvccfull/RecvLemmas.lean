@@ -114,6 +114,15 @@ theorem recv_ev_get {rs : List WResp} {r : WResp} {E : List (Nat × change)} {k 
   | none => rw [hp] at h; cases h
   | some p => rw [hp] at h; exact ⟨p, rfl, (Option.some.inj h).symm⟩
 
+/-- The eventless revision, one more response. -/
+theorem eventlessOk_snoc {rs : List WResp} {P : w64} (r : WResp) (h : eventlessOk rs P) :
+    eventlessOk (rs ++ [r]) P := by
+  refine ⟨h.1, ?_⟩
+  rcases h.2 with h0 | ⟨i, y, hy, h1, h2, h3⟩
+  · exact Or.inl h0
+  · have hi : i < rs.length := (List.getElem?_eq_some_iff.1 hy).1
+    exact Or.inr ⟨i, y, by rw [List.getElem?_append_left hi]; exact hy, h1, h2, h3⟩
+
 /-- A longer lower bound of the history still covers the notified history. -/
 theorem histOkM_prefix {ks : List GoString} {σ : MvccState} {Hl Hm : List HRev}
     (hh : histOkM ks σ Hl) (hp : Hl <+: Hm) : histOkM ks σ Hm := by
@@ -262,6 +271,28 @@ theorem wats_take' {Hl Hm : List HRev} (hp : Hl <+: Hm) (rs : List WResp) (r : W
   imodintro
   iintro %k %v %_ %hk Hk
   iapply watcherOwn'_frame hp rs r ws k v (hs k hk) $$ Hk
+
+/-- **The registrations' pure facts**, out of the lock's watchers: each registration's key is not
+empty, and its first revision positive and small. -/
+theorem wats_regs (Hl : List HRev) (rs : List WResp) (ws : WsName) (W : GMap w64 Reg) :
+    ([∗map] id ↦ x ∈ W, watcherOwn' (GF := GF) Hl rs ws id x) ⊢
+      ([∗map] id ↦ x ∈ W, watcherOwn' (GF := GF) Hl rs ws id x) ∗
+        ⌜∀ id x, W !! id = some x → x.key ≠ [] ∧ 1 ≤ x.lo ∧ x.lo < 2 ^ 63 - 1⌝ := by
+  iintro H
+  ihave H := (BigSepM.bigSepM_mono (Φ := fun id x => watcherOwn' (GF := GF) Hl rs ws id x)
+    (Ψ := fun id (x : Reg) => iprop(watcherOwn' (GF := GF) Hl rs ws id x ∗
+      ⌜x.key ≠ [] ∧ 1 ≤ x.lo ∧ x.lo < 2 ^ 63 - 1⌝)) (m := W) (fun {id x} _ => by
+        unfold watcherOwn'
+        iintro ⟨%wv, Hw, Hk, He, Hlb, %H⟩
+        isplitl
+        · iexists wv; iframe; ipureintro; exact H
+        · ipureintro; exact ⟨H.2.1, H.2.2.2.2.2.2.1, H.2.2.2.2.2.2.2.1⟩)) $$ H
+  rw [BigSepM.bigSepM_sep_eq]
+  icases H with ⟨H, Hp⟩
+  ihave %Hp := BigSepM.bigSepM_pure_intro $$ Hp
+  iframe H
+  ipureintro
+  exact fun id x hx => Hp id x hx
 
 /-- An authority keeps itself and gives its lower bound. -/
 theorem monoNat_auth_lb (γ : GName) (q : Qp) (n : Nat) :
