@@ -152,6 +152,31 @@ Next: step 2, `Apply` (below), then 3-6 of etcd-grove-81's list.
   `listCall_take` (`InvSteps`), `lOut_ans`/`lOut_name` for `ansOk`.
 - `readQ`'s unused `n`: drop it (InvSteps, Apply).
 
+**`Apply.spec` restated** (fourth session, committed, `Apply.lean`'s proof not yet adapted): premises
+`+ c.di = decoderI → c.vi = versionerI →` after the prefixes and `+ clientErrPlain (sem := sem) →
+threadBound GF ≤ 2 ^ 30 - 1 →` after `storageErrTyOk`; `isCache c tbl -∗ rangeStreamOff -∗`; the
+triple `{{ kInOk c i ∗ threadTok }} … {{ RET #o; ioOk i o ∗ threadTok }}` (lintest's `applySpec`).
+Notes for the proof (`Apply.lean`, 426 lines, every branch calls `wp_call`):
+- intro: `intro _ _ _ γ sp tbl c g0 hc hpfx hrp hdi hvi hAs hse hpl htb`; `iintro … #Htbl #Hrs`;
+  `iintro %Φ ⟨Hin, Htt⟩ HAU` (check the AU triple's pre shape).
+- `wp_call`'s new argument order: `sp c eD eU x W Φ Q QL PL hc hrp hdi hvi hAs hse hpl htb hkey hpp
+  hx hvl hD1 hQ hQL hQLP`; `hvl = Hgen.2.2.1`, **`hD1 = Hgen.2.2.2`** (was `.2.2.2.2.2`, before
+  `GenIn` changed). For a non-list call pass `QL := fun _ σ => ⌜kvWf c σ ∧ kvWfHist c σ ∧
+  kvKeysShort σ⌝`, `PL := listP` (their premises trivial; a local `macro` for the call term saves
+  repetition). The pre: `… cachedIn c x ∗ rangeStreamOff ∗ threadTok ∗ (if x.Kind' = W64 4 then
+  listPre … else callPre …)` (`isimp only [if_neg h4k]` before `iunfold callPre`); the post
+  `threadTok ∗ (⌜y = otherL⌝ ∨ ∃ σ, (if … then □ QL … else callAt …) ∗ ⌜y = callOut …⌝)`; give
+  `Htt` back to `HΦc` (`resolve3`/`cache_tail` end with `iapply HΦc` on `ioOk ∗ threadTok`).
+- `Hgen.2.1` has 5 cases. A `Get` never answers `EOther` now: the old `kStep_err4` use (Get with an
+  `EOther` prophecy answering) becomes a contradiction with `kStep_get_ne4`; the Get commit: `readQ`'s
+  commit bit is `σ.rev = R` only (`Hbit $$ %hrev`; `kStep_min`/`hmin` no longer needed).
+- List, prophecy `EOther`: `read_err_commit` (`isWriteL x = false`), `call` with `listPre` of plain
+  updates (`QL := fun _ σ => ⌜…⌝`-style, as the Get's `plainQ`); an answer `≠ otherL` contradicts the
+  prophecy via `lOut_ans`/`listOutDriver_err` (a list never answers `EOther`). Else: `listCall`
+  (allocate as `getCall`, with `contAt g0 x (lOut x σ) Φ`), `list_maker`, `list_makerP`, `QL :=
+  listQ c γ γc`, `PL := listP`, `listQ_pure`, `listQP_pure`; after the reply `listCall_take`, then
+  `cache_tail` with `lOut_name` (no cache put).
+
 ## Forms decided (accepted by etcd-grove-81, 2026-11-10, all five)
 
 1. `Refine`: `ItemRel`/`PairRel` → `KRel` over 7e-3c's `PairRelH`; `mkObj` moved to `Refine`
