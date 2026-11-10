@@ -110,3 +110,25 @@ clause unprovable").
 - Axiom attacks (subagents, scratch `/shared/tmp/k8s7e1/attack-{invoker,stream,eof}/`) on
   `grpcInvokerOk`, `cliStreamErr`, `eofOk` + `status.Error.spec` with the `clientErrTys` conjunct.
 - No Lean for `clientErrTys` until 81 reviews (ii).
+
+### Checkpoint (ii) results (2026-11-10; HARD STOP, awaiting etcd-grove-81)
+
+- **Go test** `TestClientErrorTypes`: PASS (217s, five schedules, deadlines, cancellations, a closed client).
+  Only the four types seen, each of them seen (`*status.Error`, `rpctypes.EtcdError`,
+  `*errors.errorString`, `context.deadlineExceededError`). `TestReadAtRevision` (List at a past revision
+  added): PASS.
+- **`eofOk`, `status.Error.spec`**: not refuted (io.EOF is `errors.New`, proved in Perennial's io init;
+  `status.Error(c≠OK)` is always `*internalstatus.Error`; callers pass FailedPrecondition, Unimplemented,
+  Unknown). Scratch `/shared/tmp/k8s7e1/attack-eof/`.
+- **`grpcInvokerOk`, `cliStreamErr`**: not refuted on etcd's configuration, but three grpc paths
+  return a fifth type (`*fmt.wrapError`, or a user type with `GRPCStatus()`), each confirmed by a Go
+  program against grpc v1.84.0 (`/shared/tmp/k8s7e1/attack-invoker/main_test.go`,
+  `/shared/tmp/k8s7e1/attack-stream/retrycx/main.go`): (1) a per-RPC credentials error carrying a status
+  (`http2_client.go:697-702`, returned raw); (2) the same wrapped with `%w`; (3) a service-config retry
+  policy exhausting its attempts (`stream.go:867`, `"max retries exhausted …: %w"`). All three also break
+  today's `clientErr` conjunct `isLeafError` (`*fmt.wrapError` has `Unwrap`): a bound of the existing
+  trusted statements, not only of the new conjunct. etcd's configuration excludes them: `Config.DialOptions`
+  empty (required by `Client__dial`/`InvClientNew`), the resolver's service config has no retry policy,
+  etcd's `perRPCCredential` never errs. To check (decision): whether the trusted dial/credentials
+  statements (`dialOptsAt`, `perRPCCredsOk`) let a caller install credentials whose error carries a
+  status or wraps one; if so, `perRPCCredsOk` should require it not to (etcd's returns nil).
