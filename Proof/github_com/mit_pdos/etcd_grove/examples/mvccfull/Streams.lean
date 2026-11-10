@@ -1,7 +1,7 @@
 /-
 mvccfull's watch streams (`notes/mvccfull-proof-plan.md`, "Draft (F1): the invariants in full", E,
 and "Draft revision: readers per epoch"). Lean-first (no Rocq counterpart). Draft: the statements
-in full; the lemmas' proofs `sorry` unless pure and short (each `sorry` marked).
+in full, and their laws, proved.
 
 **An epoch's stream** (`Strm`: the epoch's fixed part `Ep`, the stream's struct `s`, its mvcc
 handle `ws`, its watchers' map `wm`, its ghost names `StreamNames`) belongs to one incarnation `ι`
@@ -154,13 +154,6 @@ theorem stamp_ok (W : GMap w64 Reg) (rs : List WResp) (n : Nat)
     ∀ id x, W !! id = some x → x.k ≤ rs.length :=
   fun id x hx => Nat.le_trans (hn id x hx) hle
 
-/-- **The poll's bound is one registration's** (or `0`): the registry's largest `k`, attained.
-(Pure; proof `sorry`, Draft.) -/
-theorem maxK_attained (W : GMap w64 Reg) :
-    ∃ n, (∀ id x, W !! id = some x → x.k ≤ n) ∧
-      (n = 0 ∨ ∃ id x, W !! id = some x ∧ x.k = n) := by
-  sorry
-
 end model
 
 /-- **A stream's ghost names.** -/
@@ -265,11 +258,16 @@ def epCtx (E : Ep) : IProp GF :=
   iprop(rnCtx E.x E.ks E.cfg E.h E.γh ∗ isInc E.ks E.γh E.i E.mp E.m E.ι E.kv ∗
     ctrInv (sCtrN .@ "regs") (mF go!"regs" E.mp))
 
-/-- **The stream's invariant** (see the file header). -/
+/-- **The stream's invariant** (see the file header). Its registry facts (`regOk'`) hold while the
+receiver runs: once it has stopped (the stream closed and drained), `endEpoch` may deposit the
+receiver's `wsRecv` in their place (the second branch), since its `Cancel` on the closed stream
+makes a watcher not live without a cancel mark (`Cancel` commits `S.cancel id` closed or not); the
+receiver, which holds its `wsRecv`, rules that branch out (`excl.law`). -/
 def streamInv (σs : StreamNames) : IProp GF :=
   iprop(∃ (S : StreamState) (W : GMap w64 Reg) (C : List w64),
     wsState σs.ws S ∗ ghostVar σs.cl (1 : Qp).half S.closed ∗
-    ghostMapAuth σs.reg (1 : Qp).half W ∗ ghostVar σs.cn (1 : Qp).half C ∗ ⌜regOk' S W C⌝)
+    ghostMapAuth σs.reg (1 : Qp).half W ∗ ghostVar σs.cn (1 : Qp).half C ∗
+    (⌜regOk' S W C⌝ ∨ ∃ rs : List WResp, wsRecv σs.ws rs))
 
 /-- **A registered watcher under `s.mu`** (see the file header): its struct, its range's slices
 (read-only), the stream's sent count at its registration, and `watcherOk`. -/
@@ -326,6 +324,21 @@ def epochStream (E : Ep) (q : Qp) (s : Loc) : IProp GF :=
     sync.join.ownAdder (sF go!"regDone" s) (W32 1) iprop(True ∗ ∃ C, regOwn T q.half C) ∗
     sync.join.ownAdder (sF go!"recvDone" s) (W32 1) iprop(True ∗ ∃ rs, rcvOwn T q.half rs))
 
+/-- An authority keeps itself and gives its lower bound. -/
+theorem monoNat_auth_lb (γ : GName) (q : Qp) (n : Nat) :
+    monoNatAuthOwn (GF := GF) γ q n ⊢ monoNatLbOwn γ n ∗ monoNatAuthOwn γ q n :=
+  persistent_entails_right (by iintro H; iapply (monoNatLbOwn_get γ q n) $$ H)
+
+/-- The streams' invariants are apart from the members'. -/
+theorem streamN_apart_memberN (i : Nat) : (↑streamN : CoPset) ⊆ ⊤ \ ↑(memberN i) := by
+  unfold streamN memberN
+  intro p hp
+  rw [Std.LawfulSet.mem_diff]
+  have h1 := nclose_subseteq ((nroot .@ "mvccfull") .@ "member") (toString i)
+  refine ⟨CoPset.mem_full, fun h' => ?_⟩
+  exact ndot_ne_disjoint (nroot .@ "mvccfull") (by decide : "stream" ≠ "member") p
+    ⟨hp, h1 p h'⟩
+
 /-- **The receiver's facts** at its state (mvccrand's `recv_facts`, with compaction): opening the
 incarnation's invariant (its live share excludes the retired branch, `memberInv_live`) and the
 stream's, at the store's state `σ` (what a read learns of it, `readQ`: lower bounds of its
@@ -333,9 +346,10 @@ revision and compaction revision for the checks against `revHi`/`cmpHi` loaded a
 of the history covering its notified log, its reachability), mvcc's watch guarantee of the
 responses received (`wsRecv_ok.law`), every revision changing each key at most once (`onceUpTo` at
 any first revision and the compaction revision, from `memberState`'s `onceUpToAll`), the registry
-(`regOk'`, for some cancel record), the notified log well-formed and small. (Proof `sorry`, Draft:
-`iinv` of both, `memberInv_live`, the laws.) -/
+(`regOk'`, for some cancel record: the invariant's other branch is ruled out by the receiver's
+`wsRecv`, `excl.law`), the notified log well-formed and small. -/
 theorem recv_facts (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG))
+    (hexcl : mvcc.api.excl.law (GF := GF) (hG := hG))
     (hreach : mvcc.api.mvccState_reachable.law (GF := GF) (hG := hG))
     (hrok : mvcc.api.wsRecv_ok.law (GF := GF) (hG := hG))
     (T : Strm) (q : Qp) (rs : List WResp) (W : GMap w64 Reg) :
@@ -345,7 +359,61 @@ theorem recv_facts (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG))
         ∃ (σ : MvccState) (S : StreamState) (C : List w64), readQ T.ep.ks T.ep.γh T.ep.m σ ∗
           ⌜wsRecvOk σ S rs ∧ (∀ lo, onceUpTo σ.notifiedLog lo σ.crev) ∧ regOk' S W C ∧
             LogWf' σ.notifiedLog ∧ σ.notifiedLog.length < 2 ^ 63⌝ := by
-  sorry
+  haveI := fun σ => hpers.2.2.2.2.2.1 T.ep.ι.kv σ
+  haveI := fun S => hpers.2.2.2.2.2.2.1 T.σs.ws S
+  haveI := hpers.1 T.ep.kv T.ep.ι.kv
+  haveI := hpers.2.1 T.ws T.ep.ι.kv T.σs.ws
+  haveI := fun rs => hpers.2.2.2.2.2.2.2.2.1 T.σs.ws rs
+  haveI : Timeless (streamInv (GF := GF) T.σs) := by unfold streamInv; infer_instance
+  haveI : Timeless (memberInv (GF := GF) T.ep.ks T.ep.γh T.ep.mp T.ep.m T.ep.ι) := by
+    unfold memberInv memberState; infer_instance
+  have hm := streamN_apart_memberN T.ep.i
+  iintro ⟨Hlive, #Hsinv, #Hws, Hrcv, Hreg⟩
+  iunfold epLive at Hlive
+  iunfold incLive at Hlive
+  iunfold isInc at Hlive
+  icases Hlive with ⟨⟨#Hminv, #Hkv⟩, Hret⟩
+  iinv Hminv with >Hmi Hmclose
+  icases memberInv_live T.ep.ks T.ep.γh T.ep.mp T.ep.m T.ep.ι q $$ [$Hret $Hmi] with ⟨Hret, Hms⟩
+  iunfold memberState at Hms
+  icases Hms with ⟨%σ, %b, %Hl, Hσ, Hgσ, Ha1, Ha2, Ha3, Ha4, Hbnd, Hmr, Hmc, Hmn, #Hlb, %Hok⟩
+  iinv Hsinv with >Hsi Hsclose
+  iunfold streamInv at Hsi
+  icases Hsi with ⟨%S, %W', %C, HS, Hcl, Hreg', Hcn, Hor⟩
+  icases Hor with (%HregOk | ⟨%rs', Hwr'⟩)
+  rotate_left
+  · iexfalso
+    ihave Hf := (hexcl.2.2.1 T.σs.ws rs rs') $$ [$Hrcv $Hwr']
+    iexact Hf
+  ihave %HW := ghostMapAuth_agree T.σs.reg _ _ _ _ $$ Hreg' Hreg
+  subst HW
+  ihave %Hro := hrok T.ws T.ep.ι.kv T.σs.ws rs S σ $$ [$Hws $Hrcv $HS $Hσ]
+  ihave %Hr := hreach T.ep.kv T.ep.ι.kv σ $$ [$Hkv $Hσ]
+  have hwf := (reach_logWf.law_holds σ Hr.1).2
+  have hnl : σ.notifiedLog.length < 2 ^ 63 := by
+    have := Hr.2
+    unfold MvccState.notifiedLog; split <;> simp <;> omega
+  icases monoNat_auth_lb _ _ _ $$ Hmr with ⟨#L1, Hmr⟩
+  icases monoNat_auth_lb _ _ _ $$ Hmc with ⟨#L2, Hmc⟩
+  icases monoNat_auth_lb _ _ _ $$ Hmn with ⟨#L3, Hmn⟩
+  ihave #Hq : readQ T.ep.ks T.ep.γh T.ep.m σ $$ []
+  · iunfold readQ
+    iexists Hl
+    iframe #
+    ipureintro; exact ⟨Hok.2.2.2.2.2.2.2.2.1, Hr.1, Hr.2⟩
+  imod Hsclose $$ [HS Hcl Hreg' Hcn] with -
+  · inext; iunfold streamInv; iexists S, W', C; iframe; ileft; ipureintro; exact HregOk
+  imod Hmclose $$ [Hσ Hgσ Ha1 Ha2 Ha3 Ha4 Hbnd Hmr Hmc Hmn] with -
+  · inext; iunfold memberInv; ileft; iunfold memberState
+    iexists σ, b, Hl; iframe; iframe #; ipureintro; exact Hok
+  imodintro
+  iframe Hrcv Hreg
+  isplitl [Hret]
+  · iunfold epLive; iunfold incLive; iunfold isInc; iframe; iframe #
+  iexists σ, S, C
+  iframe Hq
+  ipureintro
+  exact ⟨Hro, fun lo => onceUpTo_of_all Hok.2.2.2.2.2.2.2.2.2 lo σ.crev, HregOk, hwf, hnl⟩
 
 end defs
 

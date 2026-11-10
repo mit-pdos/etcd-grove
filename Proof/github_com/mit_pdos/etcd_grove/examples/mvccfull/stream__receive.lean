@@ -42,6 +42,7 @@ variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem stream.receive.wp_proof
     (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
     (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG))
+    (hexcl : mvcc.api.excl.law (GF := GF) (hG := hG))
     (hreach : mvcc.api.mvccState_reachable.law (GF := GF) (hG := hG))
     (hrok : mvcc.api.wsRecv_ok.law (GF := GF) (hG := hG))
     (wp_check : check.spec (GF := GF) (hG := hG))
@@ -72,7 +73,7 @@ theorem stream.receive.wp_proof
   iunfold smuBody at HB
   icases HB with ⟨Hwm, Hord, Hevl, Hreg, Hrcv0, #Hlb, %Hknown, Hwats⟩
   ihave %Hrs := ghostVar_agree T.σs.rcv _ _ _ _ $$ Hrcv0 Hhalf
-  imod recv_facts' hpers hreach hrok T q (rs ++ [r]) W $$ [$Hlive $Hinv $Hws $Hwr $Hreg]
+  imod recv_facts hpers hexcl hreach hrok T q (rs ++ [r]) W $$ [$Hlive $Hinv $Hws $Hwr $Hreg]
     with ⟨Hlive, Hwr, Hreg, %σ, %S, %C, #Hq, %Hfacts⟩
   obtain ⟨Hro, Honce, HregOk, hwf, hnl⟩ := Hfacts
   iunfold readQ at Hq
@@ -444,7 +445,96 @@ theorem stream.receive.wp_proof
         iframe
         iframe #
         ipureintro; exact ⟨Hids, hknown', HevOk⟩
-      · sorry
+      · -- the watcher's events
+        rw [decide_eq_false (fun h => he (hlen0.1 h))]
+        (try wp_auto)
+        obtain ⟨hi, hhi, hE⟩ := recv_exp' T.ep.ks σ S (rs ++ [r]) Hlx Hro Hhx Honce hwf hnl r.id x wi
+          hwi hrg hfs hlo wv.end' hen hkk hlo1
+        have hpmem : ∀ p, p ∈ expChs Hlx x.mt x.lo hi →
+            (chEv p.1 p.2).kv.modRev = W64 (p.1 : Int) ∧ p.1 < σ.notifiedLog.length ∧ x.lo ≤ p.1 :=
+          fun p hp => ⟨chEv_modRev T.ep.ks σ.notifiedLog Hlx Hhx.2 _ _ hi hlo1 hhi p hp,
+            by have := (mem_expChs hp).2.1; omega, (mem_expChs hp).1⟩
+        ihave IH : (∃ (j : w64) (evp : Loc) (wv' : watcher),
+            "i" ∷ i_ptr ↦ j ∗ "ev" ∷ ev_ptr ↦ evp ∗ "Hwp" ∷ x.wp ↦ wv' ∗
+            "Hhr" ∷ histRd T.ep.h T.ep.γh ∗ "Hlive" ∷ incLive T.ep.ks T.ep.γh T.ep.i T.ep.mp T.ep.m T.ep.ι T.ep.kv q ∗
+            "Hrdr" ∷ mvccReaders T.ep.ι.kv 1 ∗
+            "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.nat j ≤ r.evs.length ∧
+              wv'.key' = wv.key' ∧ wv'.end' = wv.end' ∧ wv'.filter' = wv.filter' ∧
+              wv'.start' = wv.start' ∧ wv'.stamped' = wv.stamped' ∧
+              wv'.cancelled' = wv.cancelled' ∧ wv'.compacted' = wv.compacted' ∧
+              (x.start ≠ W64 0 → wv'.floatLo' = W64 0) ∧
+              wPosOk' Hlx x.mt x.lo wv' ((recvEvs rs r.id).length + sint.nat j)⌝ : IProp GF)
+          $$ [i ev Hwp Hhr Hlive Hrdr]
+        · iexists W64 0, _, wv
+          iframe
+          ipureintro
+          exact ⟨by word, by word, rfl, rfl, rfl, rfl, rfl, rfl, rfl, hstfl, Hposx⟩
+        wp_for IH
+        obtain ⟨hj0, hjle, hkey, hend, hfil, hsta, hstm, hcan, hcmp, hflz, hposj⟩ := Hj
+        by_cases Hlt : sint.Z j < sint.Z resp.Events'.len
+        rotate_left
+        · -- every event checked
+          rw [decide_eq_false Hlt]; simp only [Bool.false_eq_true, ↓reduceIte]
+          have hjn : sint.nat j = r.evs.length := by
+            have h1 := Hpsn.1; rw [Hpsl] at h1; word
+          (try wp_auto)
+          ihave Hwats := Hback $$ [Hwp Hlbk]
+          · iunfold watcherOwn'
+            iexists wv'
+            iframe
+            rw [hkey, hend]
+            iframe #
+            ipureintro
+            refine ⟨by rw [hend]; exact hen, hkk, by rw [hfil]; exact hfl, by rw [hsta]; exact hstart,
+              hst0, hstM, hlo1, hloM, hstlo, hflz, by rw [hcan]; exact hcm, ?_, ?_, ?_⟩
+            · intro h; rw [hstm] at h; have := hstk h; simp; omega
+            · intro h; rw [hcmp] at h; obtain ⟨y, hy, hy2⟩ := hcpk h
+              exact ⟨y, List.mem_append_left _ hy, hy2⟩
+            · rw [recvEvs_snoc]
+              simp only [↓reduceIte, List.length_append]
+              rw [← hjn]
+              exact hposj
+          iapply HΦ
+          iexists Hlx, P'
+          iunfold smuBody
+          iframe
+          iframe #
+          ipureintro; exact ⟨Hids, hknown', HevOk⟩
+        rw [decide_eq_true Hlt]; simp only [↓reduceIte]
+        have hjl : sint.nat j < r.evs.length := by
+          have h1 := Hpsn.1; rw [Hpsl] at h1; word
+        obtain ⟨pk, hpk⟩ : ∃ pk, ps[sint.nat j]? = some pk :=
+          ⟨_, List.getElem?_eq_getElem (by omega)⟩
+        obtain ⟨evk, hevk⟩ : ∃ evk, r.evs[sint.nat j]? = some evk :=
+          ⟨_, List.getElem?_eq_getElem hjl⟩
+        have hb : 0 ≤ sint.Z j ∧ sint.Z j < sint.Z resp.Events'.len := ⟨hj0, Hlt⟩
+        (try wp_auto)
+        (try simp only [hb, _root_.and_self, ↓reduceIte])
+        wp_apply wp_load_slice_index resp.Events' (sint.Z j) ps DFrac.discard pk hj0 $$ [Hps] as -
+        · iframe #; ipureintro; exact hpk
+        have hz : (ps.zip r.evs)[sint.nat j]? = some (pk, evk) := by
+          rw [List.getElem?_zip_eq_some]; exact ⟨hpk, hevk⟩
+        ihave #Hevk := BigSepL.bigSepL_lookup hz $$ Hevs
+        iunfold evIs at Hevk
+        icases Hevk with ⟨%pp, %qq, %st', %uf, %sc, %Hnn, #Hept, #Hkvf, -⟩
+        iunfold kvPtrFixed at Hkvf
+        icases Hkvf with ⟨%kks, %vs, %st2, %uf2, %sc2, #Hks, #Hvs, #Hkp⟩
+        obtain ⟨⟨r1, ch1⟩, hEp, hevp⟩ := recv_ev_get hE hevk
+        have hpE := List.mem_of_getElem? hEp
+        obtain ⟨hmod, hpl, hplo⟩ := hpmem _ hpE
+        simp only at hmod hpl hplo hevp
+        have hmodk : evk.kv.modRev = W64 (r1 : Int) := by rw [hevp]; exact hmod
+        have hr1Z : sint.Z (W64 (r1 : Int)) = r1 := by word
+        have hle := hevle evk (List.mem_of_getElem? hevk)
+        simp only at Hnn
+        iStructNamedSuffix Hept "E"
+        iStructNamedSuffix Hkp "K"
+        (try wp_auto)
+        wp_apply wp_check
+        · ipureintro; simp only [decide_eq_true_eq]; rw [Hfl.2.1]; exact hle
+        (try wp_auto)
+        trace_state
+        sorry
     · -- a compaction response
       rw [decide_eq_false hc]
       obtain ⟨he, -, hr0, hcp, hcle⟩ := hcrne hc

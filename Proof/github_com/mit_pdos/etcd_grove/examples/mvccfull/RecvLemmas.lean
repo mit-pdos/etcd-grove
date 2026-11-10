@@ -12,7 +12,6 @@ counterpart); mvccrand's `WatchLock.lean` (`recvEvs_snoc`, `rg_eq`, `recv_exp`, 
   (`float_anchor`).
 - `watcherOk` and `watcherOwn'` at one more response that carried nothing for the watcher
   (`watcherOk_frame`, `wats_frame'`, `wats_take'`).
-- `recv_facts'`: `Streams.lean`'s `recv_facts`, proved (`memberInv_live`).
 -/
 module
 
@@ -293,83 +292,6 @@ theorem wats_regs (Hl : List HRev) (rs : List WResp) (ws : WsName) (W : GMap w64
   iframe H
   ipureintro
   exact fun id x hx => Hp id x hx
-
-/-- An authority keeps itself and gives its lower bound. -/
-theorem monoNat_auth_lb (γ : GName) (q : Qp) (n : Nat) :
-    monoNatAuthOwn (GF := GF) γ q n ⊢ monoNatLbOwn γ n ∗ monoNatAuthOwn γ q n :=
-  persistent_entails_right (by iintro H; iapply (monoNatLbOwn_get γ q n) $$ H)
-
-/-- The streams' invariants are apart from the members'. -/
-theorem streamN_memberN (i : Nat) : (↑streamN : CoPset) ⊆ ⊤ \ ↑(memberN i) := by
-  unfold streamN memberN
-  intro p hp
-  rw [Std.LawfulSet.mem_diff]
-  have h1 := nclose_subseteq ((nroot .@ "mvccfull") .@ "member") (toString i)
-  refine ⟨CoPset.mem_full, fun h' => ?_⟩
-  exact ndot_ne_disjoint (nroot .@ "mvccfull") (by decide : "stream" ≠ "member") p
-    ⟨hp, h1 p h'⟩
-
-/-- **`recv_facts`** (`Streams.lean`), proved: the incarnation's invariant opened with the live
-share (`memberInv_live`), then the stream's. -/
-theorem recv_facts' (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG))
-    (hreach : mvcc.api.mvccState_reachable.law (GF := GF) (hG := hG))
-    (hrok : mvcc.api.wsRecv_ok.law (GF := GF) (hG := hG))
-    (T : Strm) (q : Qp) (rs : List WResp) (W : GMap w64 Reg) :
-    epLive T.ep q ∗ inv streamN (streamInv T.σs) ∗ isMvccWatchStream T.ws T.ep.ι.kv T.σs.ws ∗
-        wsRecv T.σs.ws rs ∗ ghostMapAuth T.σs.reg (1 : Qp).half W ⊢
-      |={⊤}=> epLive T.ep q ∗ wsRecv T.σs.ws rs ∗ ghostMapAuth T.σs.reg (1 : Qp).half W ∗
-        ∃ (σ : MvccState) (S : StreamState) (C : List w64), readQ T.ep.ks T.ep.γh T.ep.m σ ∗
-          ⌜wsRecvOk σ S rs ∧ (∀ lo, onceUpTo σ.notifiedLog lo σ.crev) ∧ regOk' S W C ∧
-            LogWf' σ.notifiedLog ∧ σ.notifiedLog.length < 2 ^ 63⌝ := by
-  haveI := fun σ => hpers.2.2.2.2.2.1 T.ep.ι.kv σ
-  haveI := fun S => hpers.2.2.2.2.2.2.1 T.σs.ws S
-  haveI := hpers.1 T.ep.kv T.ep.ι.kv
-  haveI := hpers.2.1 T.ws T.ep.ι.kv T.σs.ws
-  haveI : Timeless (streamInv (GF := GF) T.σs) := by unfold streamInv; infer_instance
-  haveI : Timeless (memberInv (GF := GF) T.ep.ks T.ep.γh T.ep.mp T.ep.m T.ep.ι) := by
-    unfold memberInv memberState; infer_instance
-  have hm := streamN_memberN T.ep.i
-  iintro ⟨Hlive, #Hsinv, #Hws, Hrcv, Hreg⟩
-  iunfold epLive at Hlive
-  iunfold incLive at Hlive
-  iunfold isInc at Hlive
-  icases Hlive with ⟨⟨#Hminv, #Hkv⟩, Hret⟩
-  iinv Hminv with >Hmi Hmclose
-  icases memberInv_live T.ep.ks T.ep.γh T.ep.mp T.ep.m T.ep.ι q $$ [$Hret $Hmi] with ⟨Hret, Hms⟩
-  iunfold memberState at Hms
-  icases Hms with ⟨%σ, %b, %Hl, Hσ, Hgσ, Ha1, Ha2, Ha3, Ha4, Hbnd, Hmr, Hmc, Hmn, #Hlb, %Hok⟩
-  iinv Hsinv with >Hsi Hsclose
-  iunfold streamInv at Hsi
-  icases Hsi with ⟨%S, %W', %C, HS, Hcl, Hreg', Hcn, %HregOk⟩
-  ihave %HW := ghostMapAuth_agree T.σs.reg _ _ _ _ $$ Hreg' Hreg
-  subst HW
-  ihave %Hro := hrok T.ws T.ep.ι.kv T.σs.ws rs S σ $$ [$Hws $Hrcv $HS $Hσ]
-  ihave %Hr := hreach T.ep.kv T.ep.ι.kv σ $$ [$Hkv $Hσ]
-  have hwf := (reach_logWf.law_holds σ Hr.1).2
-  have hnl : σ.notifiedLog.length < 2 ^ 63 := by
-    have := Hr.2
-    unfold MvccState.notifiedLog; split <;> simp <;> omega
-  icases monoNat_auth_lb _ _ _ $$ Hmr with ⟨#L1, Hmr⟩
-  icases monoNat_auth_lb _ _ _ $$ Hmc with ⟨#L2, Hmc⟩
-  icases monoNat_auth_lb _ _ _ $$ Hmn with ⟨#L3, Hmn⟩
-  ihave #Hq : readQ T.ep.ks T.ep.γh T.ep.m σ $$ []
-  · iunfold readQ
-    iexists Hl
-    iframe #
-    ipureintro; exact ⟨Hok.2.2.2.2.2.2.2.2.1, Hr.1, Hr.2⟩
-  imod Hsclose $$ [HS Hcl Hreg' Hcn] with -
-  · inext; iunfold streamInv; iexists S, W', C; iframe; ipureintro; exact HregOk
-  imod Hmclose $$ [Hσ Hgσ Ha1 Ha2 Ha3 Ha4 Hbnd Hmr Hmc Hmn] with -
-  · inext; iunfold memberInv; ileft; iunfold memberState
-    iexists σ, b, Hl; iframe; iframe #; ipureintro; exact Hok
-  imodintro
-  iframe Hrcv Hreg
-  isplitl [Hret]
-  · iunfold epLive; iunfold incLive; iunfold isInc; iframe; iframe #
-  iexists σ, S, C
-  iframe Hq
-  ipureintro
-  exact ⟨Hro, fun lo => onceUpTo_of_all Hok.2.2.2.2.2.2.2.2.2 lo σ.crev, HregOk, hwf, hnl⟩
 
 end defs
 
