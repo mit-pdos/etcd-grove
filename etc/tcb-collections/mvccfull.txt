@@ -1,0 +1,11 @@
+# mvcc's full tester (examples/mvccfull): every linked result of
+# Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/Link.lean and the restated results of its
+# Results.lean (`mvccfull_Main`, the closed theorem's `mvccfull_safe`, over Adequacy.lean's
+# `mvccfull_adequate`).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/mvccfull.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update. (2026-11-10: no baseline yet,
+# the build of record not up to date when the collection was added.)
+roots ^Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/(Link|Results)\.lean$
