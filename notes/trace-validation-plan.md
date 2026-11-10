@@ -1096,8 +1096,8 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   (pure, the smallest), else (a). Not taken here: beyond the coordinator's Q15 decision.
   **Taken by the coordinator (the freeze being delegated to it), pending the user's veto: (b), folded
   into amendment A2.** **Done** on branch `trace-check-a2`: `simFx`'s clause `AppSlices` (while a server
-  leads term `T`, its in-flight term-`T` append requests are slices of its log), checked inductive in the
-  transcription; `fxPres_app` (`notes/decisions.md`, "Amendment A2 (Q14, Q15, Q16)").
+  leads term `T`, its in-flight term-`T` append requests are slices of its log), checked inductive
+  with `CandS` by reading the transcription (no preservation lemmas yet); `fxPres_app` (`notes/decisions.md`, "Amendment A2 (Q14, Q15, Q16)").
 - **Q15 (2026-11-10, Q8 stage 1 slice 16): the frozen `simFx`'s `MsgsUniq` is not kept by a send
   line.** `FxPres` asks `simFx` after the line for every `σ` with `simFx`; after a send the new message
   must be the only in-flight message a receive line matches with it, but a line logs only some fields
@@ -2051,11 +2051,15 @@ only replies raft does not send (pre-vote, check-quorum off) are the refusals of
 `phantomOf a m`. (Q15) `simFx` gains `MsgsShape` (every message in flight canonical in the fields its
 line does not log), checked first to hold of every message the specification, raft (`msgAbs`), the
 phantoms and the bootstrap can put in flight. (Q16) `simFx` gains `AppSlices` (a leader's in-flight
-append requests of its term are slices of its log), checked inductive: requests come only from a
-leader's log, a leader's log only grows in its term. The laws and the gate re-proved, nothing else
+append requests of its term are slices of its log), checked by reading to be inductive with `CandS`:
+requests come only from a leader's log, a leader's log only grows while it leads, and at `BecomeLeader`
+a candidate has none of its term out. The laws and the gate re-proved, nothing else
 frozen changed (`notes/decisions.md`, "Amendment A2 (Q14, Q15, Q16)"). Sufficiency
 (`TracedRecvPhantom.lean`, `TracedRaftStepPaths.lean`): `fxPresR_staleReq` (a lower-term request's
 receive line), `fxPres_heartbeat` and `fxPres_heartbeat_pin` (a heartbeat's send line, at the pinned
-phases of `phaseStepB_heartbeat_pin`), `fxPres_app` (an `"app"` send line with entries), proved. Left:
-`simFx` at the initial state (raft's bootstrap ghost, layer B's allocation), the heartbeat gate's exact
-commit (slice 17). Reviews `a2-r1.md` … `a2-r6.md`.
+phases of `phaseStepB_heartbeat_pin`, `id ∈ C0` from `trCapB_pinMem`), `fxPres_app` (an `"app"` send
+line with entries), proved. Left: `simFx` at the initial state (raft's bootstrap ghost, layer B's
+allocation); the heartbeat gate's exact commit (slice 17); `AppSlices`' preservation lemmas for the
+callers' lines (`Replicate`, `BecomeLeader`, step-downs, a follower's receives); an `"app"` counterpart
+of `heartbeat_lead` for `fxPres_app`'s `hlead`; a `trFam`/`PinAt` pin-and-unpin pair for the path
+proofs. Reviews `a2-r1.md` … `a2-r6.md`.
