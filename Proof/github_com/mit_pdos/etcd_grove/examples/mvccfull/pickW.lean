@@ -54,7 +54,7 @@ theorem pick.wp_proofW
   · rw [decide_eq_true Hc.1]
     (try wp_auto)
     rw [decide_eq_true Hc.2]
-    (try simp only [↓reduceIte, decide_true])
+    (try simp only [↓reduceIte, decide_true, decide_True_any])
     (try wp_auto)
     have hjl' : sint.nat j < ws.length := by rw [Hwl.1]; word
     list_elem ws (sint.nat j) as wj
@@ -187,7 +187,7 @@ theorem pick.wp_proofW
     · rw [decide_eq_true Hc2.1]
       (try wp_auto)
       rw [decide_eq_true Hc2.2]
-      (try simp only [↓reduceIte, decide_true])
+      (try simp only [↓reduceIte, decide_true, decide_True_any])
       (try wp_auto)
       have hjl' : sint.nat j2 < ws.length := by rw [Hwl.1]; word
       list_elem ws (sint.nat j2) as wj
@@ -211,6 +211,8 @@ theorem pick.wp_proofW
         have hwp : (0 : Int) < sint.Z wj := by simpa using hpos
         by_cases hlt : sint.Z rc < sint.Z wj
         · rw [decide_eq_true hlt]
+          (try wp_auto)
+          wp_for_post
           (try wp_auto)
           iapply HΦ
           iframe
@@ -282,7 +284,8 @@ theorem pick.wp_proofW
           by_cases h5 : sint.Z j2 < sint.Z n
           · exact Or.inr (by have := fun h2 => Hc2 ⟨h5, h2⟩; word)
           · exact Or.inl (by word)
-      have := Hr.2.1 (by omega)
+      have h6 := (hPm hP hlt).2.1
+      have h7 := Hr.2.1 (by omega)
       omega
 
 end proof

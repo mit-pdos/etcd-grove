@@ -123,7 +123,6 @@ theorem stream.expect.wp_proof
   · iframe #; ipureintro; exact hx
   (try wp_auto)
   wp_apply wp_watcher_matches w wv dqw dqk dqe kk e x $$ [$Hw $Hk $He] as ⟨Hw, Hk, He⟩
-  · iframe #
   have htk := filter_take_succ' chs (matchesM wv.filter' (decide (wv.end' = slice.nil)) kk e) (sint.nat j) x hx
   have hj1 : sint.nat (j + W64 1) = sint.nat j + 1 := by word
   cases hin : matchesM wv.filter' (decide (wv.end' = slice.nil)) kk e x
