@@ -39,6 +39,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.WriterLemma
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.ApplyLemmas
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.LeaseRecLemmas
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.WriteSubLemmas
+public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.RevokeLemmas
 public import Perennial.Spec.sync.atomic.Int64__Add
 
 @[expose] public section
@@ -677,7 +678,434 @@ theorem runner.apply.wp_proof
   by_cases hk4 : o.kind = W64 4
   · -- a revoke
     simp only [hk4, _root_.decide_true]
-    sorry
+    have hidL : o.id ∈ leasesAfter ks ops v.ops := hvrev hk4
+    obtain ⟨-, -, -, ⟨hLsub, -, hgpos, -⟩, -⟩ := runM_inv ks ops hlogOk v.ops
+    have hid0 : o.id ≠ W64 0 := by
+      intro h; have := hgpos _ (hLsub.subset hidL); rw [h] at this; revert this; decide
+    iunfold runnerKeys at Hks
+    icases Hks with ⟨%keys, #Hkeys, #Hksl, %Hsorted, %Hksne2⟩
+    ihave %Hksn := ownSlice_len $$ Hksl
+    have hksl : ks.length < 2 ^ 63 := by
+      have : sint.nat keys.len = (sint.Z keys.len).toNat := rfl
+      have := Hksn.1; have : sint.Z keys.len < 2 ^ 63 := by word
+      omega
+    obtain ⟨hlenH, hrevH, hreachH, hLok0, h63H, hmatchH, hpnH, hr40, honceH⟩ :=
+      member_facts ks Hsorted ops hlogOk hksl v.ops (by omega) h38
+    iunfold memCore at Hmc
+    icases Hmc with ⟨#Hid, #Hhook, HhookOk, Hpath, Hbe, Hle, Hkv, Hrev, Hcmp, Hleases, %Hvops,
+      Hinc, Hopen, Hback, #Hhk, Hrdrs, Hbk, Hles, %HU⟩
+    iunfold hookOk at HhookOk
+    icases HhookOk with ⟨%Hfnil, #Hhrun⟩
+    icases leadPre_lb_apply γh ks ops v.ops lead $$ Hlead with ⟨Hlead, #Hlb⟩
+    -- `begin`
+    rw [← σOf_rev]
+    (try wp_auto)
+    wp_apply (wp_begin x ks h γh i mp m v.ι v.kv qw (σOf ks ops v.ops) v.b (histAt ks ops v.ops)
+      hlenH hpnH (by omega)) $$ [Hrd Hrev Hinc] as %pp ⟨Hrd, Hrev, Hinc, Hpp⟩
+    · iframe; iframe #
+    (try wp_auto)
+    iunfold ownPending at Hpp
+    icases Hpp with ⟨%pv, Hpv, %Hprev, Hpst, Hpch, Hpcap⟩
+    simp only at Hprev
+    (try wp_auto)
+    have hmatch_succ : ∀ (n : Nat) (x : GoString) (pr : GoString → Bool), ks[n]? = some x →
+        (ks.take (n + 1)).filter pr = (ks.take n).filter pr ++ (if pr x then [x] else []) := by
+      intro n x pr hx
+      rw [List.take_add_one, hx, List.filter_append]
+      cases h : pr x <;> simp [List.filter, h]
+    have hkslen : ks.length = sint.nat keys.len := Hksn.1
+    -- the keys on the lease, in key order
+    ihave HI : (∃ (j : w64) (wsl : GoSlice) (kv0 : GoString),
+        "i" ∷ i_ptr ↦ j ∗ "ks" ∷ ks_ptr ↦ wsl ∗
+        "Hwl" ∷ wsl ↦* ((ks.take (sint.nat j)).filter (onLease (lastSt (histAt ks ops v.ops)) o.id)) ∗
+        "Hwc" ∷ ownSliceCap GoString wsl (DFrac.own 1) ∗ "k" ∷ k_ptr ↦ kv0 ∗
+        "Hpst" ∷ pv.st' ↦$ lastSt (histAt ks ops v.ops) ∗ "Hpv" ∷ pp ↦ pv ∗ "p" ∷ p_ptr ↦ pp ∗
+        "o" ∷ o_ptr ↦ p ∗
+        "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ sint.Z keys.len⌝ : IProp GF) $$ [i ks k Hpst Hpv p o]
+    · iexists W64 0, slice.nil, _
+      simp only [show sint.nat (W64 0) = 0 from rfl, List.take_zero, List.filter_nil]
+      iframe
+      isplitl
+      · iapply ownSlice_nil
+      isplitl
+      · iapply ownSliceCap_nil
+      ipureintro; constructor <;> word
+    wp_for HI
+    by_cases Hlt : sint.Z j < sint.Z keys.len
+    · rw [decide_eq_true Hlt]; simp only [↓reduceIte]
+      have hjl : sint.nat j < ks.length := by
+        rw [hkslen]; have h1 : sint.nat j = (sint.Z j).toNat := rfl
+        have h2 : sint.nat keys.len = (sint.Z keys.len).toNat := rfl
+        omega
+      list_elem ks (sint.nat j) as x
+      have hb : 0 ≤ sint.Z j ∧ sint.Z j < sint.Z keys.len := ⟨Hj.1, Hlt⟩
+      (try wp_auto)
+      (try simp only [hb, _root_.and_self, ↓reduceIte])
+      wp_apply wp_load_slice_index keys (sint.Z j) ks DFrac.discard x Hj.1 $$ [Hksl] as -
+      · iframe #; ipureintro; exact Hx_lookup
+      (try wp_auto)
+      have hj1 : sint.nat (j + W64 1) = sint.nat j + 1 := by word
+      wp_apply (wp_map_lookup2 go.string kvRec.ty pv.st' (lastSt (histAt ks ops v.ops)) x
+        (DFrac.own 1)) $$ [$Hpst] as Hpst
+      (try wp_auto)
+      cases hx : (lastSt (histAt ks ops v.ops)) !! x with
+      | none =>
+        simp only [Option.isSome_none, Bool.false_eq_true, decide_false]
+        (try wp_auto)
+        wp_for_post
+        iframe
+        iexists j + W64 1, wsl, x
+        rw [hj1, hmatch_succ (sint.nat j) x _ Hx_lookup]
+        simp only [onLease, hx, Bool.false_eq_true, ↓reduceIte, List.append_nil]
+        iframe
+        ipureintro; constructor <;> word
+      | some ev =>
+        simp only [Option.isSome_some, decide_true, Option.getD_some]
+        (try wp_auto)
+        rw [hid]
+        by_cases hev : ev.lease' = o.id
+        · simp only [hev, decide_true]
+          (try wp_auto)
+          wp_apply wp_slice_literal
+          isplitr
+          · ipureintro; rfl
+          iintro %osl ⟨Hosl, -⟩
+          (try wp_auto)
+          wp_apply wp_slice_append $$ [$Hwl $Hwc $Hosl] as %wsl' ⟨Hwl, Hwc, -⟩
+          wp_for_post
+          iframe
+          iexists j + W64 1, wsl', x
+          rw [hj1, hmatch_succ (sint.nat j) x _ Hx_lookup]
+          simp only [onLease, hx, hev, decide_true, ↓reduceIte]
+          iframe
+          ipureintro; constructor <;> word
+        · simp only [hev, decide_false]
+          (try wp_auto)
+          wp_for_post
+          iframe
+          iexists j + W64 1, wsl, x
+          rw [hj1, hmatch_succ (sint.nat j) x _ Hx_lookup]
+          simp only [onLease, hx, hev, decide_false, Bool.false_eq_true, ↓reduceIte, List.append_nil]
+          iframe
+          ipureintro; constructor <;> word
+    rw [decide_eq_false Hlt]; simp only [Bool.false_eq_true, ↓reduceIte]
+    have hjk : sint.nat j = ks.length := by
+      rw [hkslen]; have h1 : sint.nat j = (sint.Z j).toNat := rfl
+      have h2 : sint.nat keys.len = (sint.Z keys.len).toNat := rfl
+      omega
+    rw [hjk, List.take_length]
+    (try wp_auto)
+    -- their deletes
+    generalize hKS : ks.filter (onLease (lastSt (histAt ks ops v.ops)) o.id) = KS
+    ihave %Hwln := ownSlice_len $$ Hwl
+    have hn : ∀ x : w64, sint.nat x = (sint.Z x).toNat := fun _ => rfl
+    ihave HI2 : (∃ (j : w64) (cs : GoSlice) (kv0 : GoString),
+        "i" ∷ i_ptr ↦ j ∗ "k" ∷ k_ptr ↦ kv0 ∗
+        "Hpv" ∷ pp ↦ { pv with changes' := cs } ∗
+        "Hpst" ∷ pv.st' ↦$ delAll (KS.take (sint.nat j)) (lastSt (histAt ks ops v.ops)) ∗
+        "Hpch" ∷ cs ↦* ((KS.take (sint.nat j)).map delChange) ∗
+        "Hpcap" ∷ ownSliceCap change cs (DFrac.own 1) ∗
+        "Hwl" ∷ wsl ↦* KS ∗ "p" ∷ p_ptr ↦ pp ∗
+        "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ sint.Z wsl.len⌝ : IProp GF)
+      $$ [i k Hpv Hpst Hpch Hpcap Hwl p]
+    · iexists W64 0, pv.changes', _
+      simp only [show sint.nat (W64 0) = 0 from rfl, List.take_zero, List.map_nil, delAll,
+        List.foldl_nil]
+      iframe
+      ipureintro; constructor <;> word
+    wp_for HI2
+    by_cases Hlt : sint.Z j < sint.Z wsl.len
+    · rw [decide_eq_true Hlt]; simp only [↓reduceIte]
+      have hjl : sint.nat j < KS.length := by have := Hwln.1; rw [hn] at this ⊢; omega
+      list_elem KS (sint.nat j) as x
+      have hb : 0 ≤ sint.Z j ∧ sint.Z j < sint.Z wsl.len := ⟨Hj.1, Hlt⟩
+      (try wp_auto)
+      (try simp only [hb, _root_.and_self, ↓reduceIte])
+      wp_apply wp_load_slice_index wsl (sint.Z j) KS (DFrac.own 1) x Hj.1 $$ [Hwl] as Hwl
+      · iframe; ipureintro; exact Hx_lookup
+      (try wp_auto)
+      have hj1 : sint.nat (j + W64 1) = sint.nat j + 1 := by word
+      have htk1 : KS.take (sint.nat j + 1) = KS.take (sint.nat j) ++ [x] := by
+        rw [List.take_add_one, Hx_lookup]; rfl
+      wp_apply (wp_mapDelete pv.st' _ x go.string kvRec.ty) $$ [$Hpst] as Hpst
+      (try wp_auto)
+      wp_apply wp_slice_literal
+      isplitr
+      · ipureintro; rfl
+      iintro %osl ⟨Hosl, -⟩
+      (try wp_auto)
+      wp_apply wp_slice_append $$ [$Hpch $Hpcap $Hosl] as %cs' ⟨Hpch, Hpcap, -⟩
+      (try wp_auto)
+      wp_for_post
+      iframe
+      iexists j + W64 1, cs', x
+      rw [hj1, htk1, delAll_append]
+      simp only [List.map_append, List.map_cons, List.map_nil]
+      iframe
+      ipureintro; constructor <;> word
+    rw [decide_eq_false Hlt]; simp only [Bool.false_eq_true, ↓reduceIte]
+    have hjK : sint.nat j = KS.length := by have := Hwln.1; rw [hn] at this ⊢; omega
+    rw [hjK, List.take_length]
+    (try wp_auto)
+    subst hKS
+    -- `end`, with the closure calling `Revoke`
+    have hok := pendOk_revoke' ks Hsorted (σOf ks ops v.ops) (histAt ks ops v.ops) hmatchH o.id hid0
+    have hop : opPend ks (runM ks ops v.ops) o =
+        ⟨W64 ((histAt ks ops v.ops).length : Int),
+          delAll (ks.filter (onLease (lastSt (histAt ks ops v.ops)) o.id)) (lastSt (histAt ks ops v.ops)),
+          (ks.filter (onLease (lastSt (histAt ks ops v.ops)) o.id)).map delChange⟩ :=
+      opPend_revoke ks (runM ks ops v.ops) o hk4
+    obtain ⟨hcr, hlz, hgz, hcz⟩ := runM_succ_revoke ks ops v.ops o hov hk4
+    obtain ⟨hσ1, hh1⟩ := σOf_succ_commit ks ops v.ops o hov _ (by rw [hop]; exact hok) hcr
+    rw [hop] at hh1
+    obtain ⟨-, hhist1, -⟩ := logOk_hist ks Hsorted ops hlogOk (v.ops + 1) (v.ops + 1) (Nat.le_refl _) hvl
+    have honce1 := logOk_once ks Hsorted ops hlogOk (v.ops + 1)
+    rw [hσ1, hh1] at hhist1
+    rw [hσ1] at honce1
+    have hb1 : sint.Z (W64 ((σOf ks ops v.ops).rev + 1 : Int)) = (σOf ks ops v.ops).rev + 1 := by word
+    have hcrle := commitSt_rev_le (σOf ks ops v.ops) (leaseDels (stateAfter (σOf ks ops v.ops).log) o.id)
+      (by rw [← hlenH]; have := runM_hs_len ks ops v.ops; unfold histAt; omega)
+    have hst62 : (stateAfter (σOf ks ops v.ops).log).length ≤ 2 ^ 62 := by
+      have := stMatch_length_le' ks _ _ hmatchH (stateAfter_sorted _)
+      have := HOps.2.2; omega
+    ihave Hpp : ownPending pp ⟨W64 ((histAt ks ops v.ops).length : Int),
+        delAll (ks.filter (onLease (lastSt (histAt ks ops v.ops)) o.id)) (lastSt (histAt ks ops v.ops)),
+        (ks.filter (onLease (lastSt (histAt ks ops v.ops)) o.id)).map delChange⟩
+      $$ [Hpv Hpst Hpch Hpcap]
+    · iunfold ownPending; iexists { pv with changes' := cs }; iframe; ipureintro; exact Hprev
+    ihave Hlead := leadPre_end γh ks ops v.ops lead _ hh1 $$ Hlead
+    iunfold lessorW at Hles
+    icases Hles with ⟨%rd, %r, #Hlpkg, #Hlinv, #Hlcfg, #Hguard, #Hrevoc, #Hlok, Hlrd, Hlo, Hrvk, Hever,
+      #Hreq, Hrdo, Hdel, Hlbe, Hrb, %Hrecs, Hstop, #Hpool⟩
+    iunfold mvccDeleter at Hdel
+    icases Hdel with ⟨%Hrdnn, #Hdel⟩
+    iunfold bkKeep at Hbk
+    icases Hbk with ⟨%HbkP, #Hisb, #Hsc, Hbf, Hoh, HRT, Htoks, Hcen⟩
+    have hR1 : mvccReaders (GF := GF) v.ι.kv nw ⊣⊢ mvccReaders v.ι.kv (nw - 1) ∗ mvccReaders v.ι.kv 1 := by
+      have := hRdSplit v.ι.kv (nw - 1) 1; rwa [Nat.sub_add_cancel hnw] at this
+    icases hR1.1 $$ Hrdrs with ⟨Hrdrs, Hr1⟩
+    have hR := wp_Revoke v.lp v.ι.kv o.id rd 1 v.bk iprop(True) f (σOf ks ops v.ops)
+      (leasesAfter ks ops v.ops) r (hookPre mp (W64 ((v.ops + 1 : Nat) : Int)) s0)
+      iprop(True ∗ hookPost mp (W64 ((v.ops + 1 : Nat) : Int))) (hookPost mp (W64 ((v.ops + 1 : Nat) : Int)))
+      iprop(ghostVar v.ι.ret qw () ∗
+        ghostVar m.σ (1 : Qp).half (commitSt (σOf ks ops v.ops) (leaseDels (stateAfter (σOf ks ops v.ops).log) o.id)) ∗
+        ghostVar m.bnd (1 : Qp).half (v.b.1, W64 ((σOf ks ops v.ops).rev + 1 : Int), v.b.2.2))
+    dsimp only at hR
+    wp_func_lits
+    wp_apply (wp_end x ks h γh i mp m v.ι v.kv qw (σOf ks ops v.ops)
+        (v.b.1, W64 ((σOf ks ops v.ops).rev + 1 : Int), v.b.2.2) (histAt ks ops v.ops)
+        (compsAt ks ops v.ops) pp _ (leaseDels (stateAfter (σOf ks ops v.ops).log) o.id) _
+        iprop(mvccReaders v.ι.kv 1 ∗ m_ptr ↦ mp ∗ o_ptr ↦ p ∗ mF go!"le" mp ↦ lease.lessorIface v.lp ∗
+          mvccBackend v.ι.kv 1 (etcdStorage v.bk) iprop(True) ∗ lease.rdOwn (mvccLeases v.ι.kv) rd ∗
+          hookPre mp (W64 ((v.ops + 1 : Nat) : Int)) s0 ∗
+          lease.leaseOwn (mvccLeases v.ι.kv) (leasesAfter ks ops v.ops) (pendItems (σOf ks ops v.ops).log []) ∗
+          lease.leaseRevokers (mvccLeases v.ι.kv) (leasesAfter ks ops v.ops) ∗
+          backend.rbPart v.bk.γB (· = leaseName) r ∗ lease.lessorBeOn v.lp v.bk.be)
+        iprop(m_ptr ↦ mp ∗ o_ptr ↦ p ∗ mF go!"le" mp ↦ lease.lessorIface v.lp ∗
+          mvccBackend v.ι.kv 1 (etcdStorage v.bk) iprop(True) ∗ lease.rdOwn (mvccLeases v.ι.kv) rd ∗
+          hookPost mp (W64 ((v.ops + 1 : Nat) : Int)) ∗
+          lease.leaseOwn (mvccLeases v.ι.kv) ((leasesAfter ks ops v.ops).filter (· != o.id))
+            (leaseItemsOf (stateAfter (commitLog (σOf ks ops v.ops).log
+              (leaseDels (stateAfter (σOf ks ops v.ops).log) o.id)))) ∗
+          lease.leaseRevokers (mvccLeases v.ι.kv) ((leasesAfter ks ops v.ops).filter (· != o.id)) ∗
+          backend.rbPart v.bk.γB (· = leaseName) (rbDel r leaseName (u64Le o.id).reverse) ∗
+          lease.lessorBeOn v.lp v.bk.be) lead hok hlenH hpnH hb1 (by omega))
+      $$ [Hrd Hrev Hkv Hinc Hpp Hlead Hr1 m o Hle Hback Hrdo Happ Hsav Hlo Hrvk Hrb Hlbe]
+      as ⟨Hrd, Hrev, Hkv, Hinc, Hr1, ⟨m, o, Hle, Hback, Hrdo, Hpost, Hlo, Hrvk, Hrb, Hlbe⟩, Hlead⟩
+    · iframe Hrd Hrev Hkv Hinc Hpp Hlead
+      iframe #
+      isplitr [Hr1 m o Hle Hback Hrdo Happ Hsav Hlo Hrvk Hrb Hlbe]
+      · -- the closure is `end`'s callback
+        iunfold endCb
+        iintro %Φ' ⟨Hinc, #Hlb', Hr1, m, o, Hle, Hback, Hrdo, Hpre, Hlo, Hrvk, Hrb, Hlbe⟩ HΦ'
+        iunfold incW at Hinc
+        icases Hinc with ⟨#Hisinc, Hret, Hσw, Hbw⟩
+        ihave Hau := revoke_au hpers ks γh i mp m v.ι v.kv qw (σOf ks ops v.ops)
+          (v.b.1, W64 ((σOf ks ops v.ops).rev + 1 : Int), v.b.2.2)
+          (leaseDels (stateAfter (σOf ks ops v.ops).log) o.id) _ hpnH hhist1 honce1
+          (by simp only; rw [hb1]; omega) $$ [Hret Hσw Hbw]
+        · iframe; iframe #
+        (try wp_auto)
+        rw [hid]
+        wp_apply hR $$ [Hr1 Hrdo Hback Hpre Hlo Hrvk Hrb Hlbe Hau]
+          as %err ⟨Hr1, Hrdo, Hback, Hlbe, Hres⟩
+        · iframe Hlinv Hrevoc Hr1 Hrdo Hback Hhk Hrvk Hrb Hlbe
+          isplitr
+          · iunfold mvccDeleter; iframe Hdel; ipureintro; exact Hrdnn
+          isplitl [Hpre]
+          · iunfold srvApi.csContractA
+            iframe Hpre
+            isplitl
+            · iapply Hhrun
+            iintro HQ
+            imodintro
+            iexact HQ
+          isplitr
+          · ipureintro; exact ⟨hpnH, hst62, hreachH, h63H⟩
+          isplitl [Hau]
+          · simp only [hidL, decide_true, ↓reduceIte]
+            iexact Hau
+          isplitl [Hlo]
+          · rw [← pendItems_nil]; iexact Hlo
+          ipureintro; rw [HbkP.1]; exact mvccrand.rcP_lease _
+        icases Hres with (⟨%Hnin, -⟩ | ⟨%Hok2, HY, Hpost, Hlo, Hrvk, Hrb⟩)
+        · exact absurd hidL Hnin
+        obtain ⟨-, rfl⟩ := Hok2
+        (try wp_auto)
+        wp_apply wp_check
+        · ipureintro; simp
+        (try wp_auto)
+        iapply HΦ'
+        icases HY with ⟨Hret, Hσw, Hbw⟩
+        iframe
+        iunfold incW; iframe; iframe #
+      iframe
+      iunfold hookPre; iframe; ipureintro; omega
+    -- after `end`: the hook's check, the lease out of the member's leases, `Lookup` nil
+    iunfold hookPost at Hpost
+    icases Hpost with ⟨Happ, Hsav⟩
+    (try wp_auto)
+    wp_apply wp_checkHook x mp (W64 ((v.ops + 1 : Nat) : Int)) $$ [$Hsav] as Hsav
+    icases Hleases with ⟨%lsl, Hlf, Hlsl, Hlcap⟩
+    (try wp_auto)
+    ihave %Hlsln := ownSlice_len $$ Hlsl
+    ihave HI3 : (∃ (j : w64) (rsl : GoSlice) (id0 : w64),
+        "i" ∷ i_ptr ↦ j ∗ "rest" ∷ rest_ptr ↦ rsl ∗
+        "Hrl" ∷ rsl ↦* (((leasesAfter ks ops v.ops).take (sint.nat j)).filter (· != o.id)) ∗
+        "Hrc" ∷ ownSliceCap w64 rsl (DFrac.own 1) ∗ "id" ∷ id_ptr ↦ id0 ∗
+        "Hlsl" ∷ lsl ↦* leasesAfter ks ops v.ops ∗ "o" ∷ o_ptr ↦ p ∗
+        "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ sint.Z lsl.len⌝ : IProp GF) $$ [i rest id Hlsl o]
+    · iexists W64 0, slice.nil, _
+      simp only [show sint.nat (W64 0) = 0 from rfl, List.take_zero, List.filter_nil]
+      iframe
+      isplitl
+      · iapply ownSlice_nil
+      isplitl
+      · iapply ownSliceCap_nil
+      ipureintro; constructor <;> word
+    wp_for HI3
+    by_cases Hlt : sint.Z j < sint.Z lsl.len
+    · rw [decide_eq_true Hlt]; simp only [↓reduceIte]
+      have hjl : sint.nat j < (leasesAfter ks ops v.ops).length := by
+        have := Hlsln.1; rw [hn] at this ⊢; omega
+      list_elem (leasesAfter ks ops v.ops) (sint.nat j) as x
+      have hb : 0 ≤ sint.Z j ∧ sint.Z j < sint.Z lsl.len := ⟨Hj.1, Hlt⟩
+      (try wp_auto)
+      (try simp only [hb, _root_.and_self, ↓reduceIte])
+      wp_apply wp_load_slice_index lsl (sint.Z j) (leasesAfter ks ops v.ops) (DFrac.own 1) x Hj.1
+        $$ [Hlsl] as Hlsl
+      · iframe; ipureintro; exact Hx_lookup
+      (try wp_auto)
+      have hj1 : sint.nat (j + W64 1) = sint.nat j + 1 := by word
+      have htk1 : (leasesAfter ks ops v.ops).take (sint.nat j + 1) =
+          (leasesAfter ks ops v.ops).take (sint.nat j) ++ [x] := by
+        rw [List.take_add_one, Hx_lookup]; rfl
+      rw [hid]
+      by_cases hxe : x = o.id
+      · subst hxe
+        simp only [decide_true, Bool.not_true]
+        (try wp_auto)
+        wp_for_post
+        iframe
+        iexists j + W64 1, rsl, o.id
+        rw [hj1, htk1, List.filter_append]
+        simp only [bne_self_eq_false, Bool.false_eq_true, not_false_eq_true, List.filter_cons_of_neg,
+          List.filter_nil, List.append_nil]
+        iframe
+        ipureintro; constructor <;> word
+      · simp only [hxe, decide_false, Bool.not_false]
+        (try wp_auto)
+        wp_apply wp_slice_literal
+        isplitr
+        · ipureintro; rfl
+        iintro %osl ⟨Hosl, -⟩
+        (try wp_auto)
+        wp_apply wp_slice_append $$ [$Hrl $Hrc $Hosl] as %rsl' ⟨Hrl, Hrc, -⟩
+        (try wp_auto)
+        wp_for_post
+        iframe
+        iexists j + W64 1, rsl', x
+        rw [hj1, htk1, List.filter_append]
+        have hb' : (x != o.id) = true := by simpa using hxe
+        simp only [List.filter_cons, hb', ↓reduceIte, List.filter_nil]
+        iframe
+        ipureintro; constructor <;> word
+    rw [decide_eq_false Hlt]; simp only [Bool.false_eq_true, ↓reduceIte]
+    have hjL : sint.nat j = (leasesAfter ks ops v.ops).length := by
+      have := Hlsln.1; rw [hn] at this ⊢; omega
+    rw [hjL, List.take_length]
+    (try wp_auto)
+    rw [hid]
+    have hlog : (σOf ks ops v.ops).log = logOfHist (histAt ks ops v.ops) := rfl
+    rw [← hlog]
+    ihave ⟨Hlo, #Hlb0⟩ := lease.leaseOwn_lb (mvccLeases v.ι.kv) _ _ $$ Hlo
+    wp_apply (wp_Lookup v.lp (mvccLeases v.ι.kv) o.id 0
+        (some ((leasesAfter ks ops v.ops).filter (· != o.id),
+          leaseItemsOf (stateAfter (commitLog (σOf ks ops v.ops).log
+            (leaseDels (stateAfter (σOf ks ops v.ops).log) o.id))))))
+      $$ [Hlrd Hlo] as %l ⟨Hlrd, -, Ho⟩
+    · iframe Hlinv Hlrd Hlb0; rw [lease.lookupView_some]; iexact Hlo
+    try rw [← hlog]
+    ihave ⟨%Hl0, Ho⟩ : iprop(⌜l = null ↔ o.id ∉ (leasesAfter ks ops v.ops).filter (· != o.id)⌝ ∗
+        ((⌜l = null⌝ ∗ lease.leaseOwn (mvccLeases v.ι.kv) ((leasesAfter ks ops v.ops).filter (· != o.id))
+            (leaseItemsOf (stateAfter (commitLog (σOf ks ops v.ops).log
+              (leaseDels (stateAfter (σOf ks ops v.ops).log) o.id))))) ∨
+          lease.leaseOwnOpen (mvccLeases v.ι.kv) ((leasesAfter ks ops v.ops).filter (· != o.id))
+            (leaseItemsOf (stateAfter (commitLog (σOf ks ops v.ops).log
+              (leaseDels (stateAfter (σOf ks ops v.ops).log) o.id)))) o.id l))
+      $$ [Ho]
+    · rw [← lease.lookupViewAfter_some]; iexact Ho
+    have hnin : o.id ∉ (leasesAfter ks ops v.ops).filter (· != o.id) := by simp
+    have hlnull : l = null := Hl0.2 hnin
+    ihave Hlo : lease.leaseOwn (mvccLeases v.ι.kv) ((leasesAfter ks ops v.ops).filter (· != o.id))
+        (leaseItemsOf (stateAfter (commitLog (σOf ks ops v.ops).log
+          (leaseDels (stateAfter (σOf ks ops v.ops).log) o.id)))) $$ [Ho]
+    · icases Ho with (⟨-, Ho⟩ | Ho)
+      · iexact Ho
+      · iapply lease.leaseOwnOpen_close $$ Ho
+    subst hlnull
+    (try wp_auto)
+    wp_apply wp_check
+    · ipureintro; simp
+    (try wp_auto)
+    ihave Hrdrs := hR1.2 $$ [$Hrdrs $Hr1]
+    iapply HΦ
+    iframe Hrd Htok
+    isplitl [Hlead]
+    · iapply leadPost_end γh ks ops v.ops lead _ hh1 hcz; iexact Hlead
+    rw [← hσ1]
+    iexists { v with ops := v.ops + 1, b := ((W64 ((σOf ks ops (v.ops + 1)).rev : Int),
+      W64 ((σOf ks ops (v.ops + 1)).rev : Int), v.b.2.2) : Bnd) }, k
+    isplitr
+    · ipureintro; exact ⟨⟨rfl, rfl, rfl, rfl, rfl⟩, rfl, by omega⟩
+    iunfold memW
+    iframe Hops
+    isplitl [Happ Hsav]
+    · iexists _, _; iunfold hookPre; iframe; ipureintro
+      have : sint.Z (W64 ((v.ops + 1 : Nat) : Int)) = v.ops + 1 := by word
+      refine ⟨Int.le_refl _, by omega, by simp only; omega⟩
+    iunfold memCore
+    dsimp only
+    rw [← σOf_rev, hcr, hlz, hgz]
+    iframe Hid Hhook
+    isplitr
+    · iunfold hookOk; iframe #; ipureintro; exact Hfnil
+    iframe Hpath Hbe Hle Hkv Hrev Hcmp Hopen Hback Hhk Hrdrs Hinc
+    isplitl [Hlf Hrl Hrc]
+    · iexists rsl; iframe
+    isplitr
+    · ipureintro; exact hvl
+    isplitl [Hbf Hoh HRT Htoks Hcen]
+    · iunfold bkKeep; iframe; iframe #; ipureintro; exact HbkP
+    isplitl
+    · iunfold lessorW
+      iexists rd, _
+      rw [hσ1, pendItems_nil, commitSt_log]
+      iframe; iframe #
+      isplitr
+      · iunfold mvccDeleter; iframe Hdel; ipureintro; exact Hrdnn
+      ipureintro; exact leaseRecsOk_revoke r _ o.id Hrecs
+    ipureintro; exact HU
   simp only [hk4, _root_.decide_false]
   (try wp_auto)
   by_cases hk5 : o.kind = W64 5
