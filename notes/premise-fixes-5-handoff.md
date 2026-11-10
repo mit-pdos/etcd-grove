@@ -15,22 +15,20 @@ Two findings:
 
 ## State
 
-- Checkpoint (a), the design, reported to etcd-grove-81 (2026-11-10); waiting for approval. No Lean
-  changed yet.
+- Checkpoint (a) approved by etcd-grove-81 (2026-11-10; `questions.md`, untracked).
+- Done (commits `704ebf5e6b`, `eed48b6f50`, `d35a230efa`, then the STATUS commit): A and B implemented
+  as approved; `examples/premisefix/ctxdone` passes; `notes/axiom-review/ctxok-done.md`, audit rows
+  (ctxOk, `rtxSnap_size`); STATUS entry. Targeted builds green for the changed client, backend and
+  mvccrand modules; `NewServer`/`etcdserver.Results` fixed after the first targeted build
+  (`ihave X := thm` for a `⊢ P` theorem, no `$$ []`).
 
-## Next, in order (after approval)
+## Next, in order
 
-1. A: `ctxDoneCh`/`ctxDone`/`ctxErrsErr` in `InvGrpc.lean`, `ctxQuiet` + Done, `ctxErrs := ctxDone ∗
-   ctxErrsErr`; `ctxErrClient_eq_errs` to `ctxErrsErr`; re-prove `ctxQuiet_todo`/`_background`,
-   `chanCtx_ok` (Done of `channelContext` returns `stopCh`), `ctxErrClient_quiet`,
-   `Client__unaryClientInterceptor` (split the conjunction), `Client__getToken`.
-2. A: Go test `examples/premisefix/ctxdone` (the contract of TODO/Background/WithCancel/ContextForChannel,
-   the two panics of waitRetryBackoff's copy); wired by gates step 9 automatically.
-3. A: `notes/axiom-review/ctxok-done.md` and a `notes/audit.md` row.
-4. B: `axiom rtxSnap_size` in `backend/InvBbolt.lean`; `rtHeld_keyBound` (backend), `keySized_all`
-   (BackendBridge); drop `#Hsz`, `Hks`; docstrings (`etcdserver/Results.lean` ~883, mvccrand Adequacy:34).
-5. Merge lean (premise-fixes-4 touches context error facts), full build, gates, tcb `--check --update`,
-   collections, interfaces. Stop before land.sh.
+1. Merge lean if it moved (raft-entsize, premise-fixes-4: expect conflicts around the context error
+   facts, `statusErrOk`/`errStrOk` no-Format conjuncts; `ctxErrsErr` is the old `ctxErrs` body).
+2. Full build; interfaces (`etc/api/mvcc.txt`, `backend.txt`); gates; `etc/tcb-report.py --check
+   --update` (+1 axiom `backend.rtxSnap_size`) and the collections that reach it.
+3. Checkpoint (b) report: the changed closed and exported statements. Stop before land.sh.
 
 ## Build command
 
