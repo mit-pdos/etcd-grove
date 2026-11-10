@@ -62,9 +62,27 @@ Rules: `/shared/tmp/coord-81/common-rules.md`. Decisions: `questions.md` (7e-2, 
 - GetList proof structure: `wp_post_named` names the code after the loop (`K`); `HkP` = `Fin ∧ Ret`
   (the post-loop continuation after a `break`, and after a `return`), carried in the loop invariant `J`
   (given to `pagesOk`), with `Tok` from `wp_forRange2`; the page yield names its post `Ψb`.
-- **Next, in order:** the driver's `decoder.DecodeListItem`, `versioner.UpdateList`,
-  `driver_listContractOk` (Draft §6); links (`etc/gen-link.py`) and interfaces; STOP before linking
-  trusted specs or touching `etc/tcb-baseline.txt`/collections.
+- Then (same session): the driver's `ListSpecD.lean` (`driverListSpec`, items as `itemRelD`, a
+  pointwise filling of the Draft's `vs.map (objBody, rvString)`), `decoder.DecodeListItem`,
+  `versioner.UpdateList` (specs + proofs), `ListContract.lean` (`driver_listContractOk'` from the
+  reflect/GetItemsPtr specs as hypotheses, `driver_listContractOk`). Links: `etc/link-lean-first-
+  k8s-etcd3.txt` gains the list path (new trusted specs, `Client__List`/`Client__GetAt` and
+  `reflect_KindCompare` pending `?`, so hypotheses, no axiom linked); `etc/gen-link.py` gains
+  `PER_FN_PENDING` (k8s-etcd3 only: a result takes only the pending hypotheses it reaches, so the
+  compactor's results, used by `examples/k8s/compactor/MainLinked`, keep their statements; other
+  modes regenerate identically). The driver's `Link.lean` regenerated (two new theorems; it is
+  known broken until 7e-4, not built). `GetList`'s Kind premise is now an explicit hypothesis
+  `reflect.KindCompare.spec` (`Spec/reflect/KindCompare.lean`, a Prop, pending).
+  Interfaces: no `etc/api` module imports a changed module (`etc/importers.py`); not regenerated.
+  Built capped: `b28.log` (7911 jobs, green; includes etcd3 `Link`, compactor `MainLinked`).
+- **Finding (for 81):** `getNewItemFunc.wp_proof` (second session) depends on `sorryAx`: its code
+  allocates a `reflect.Type'` cell, whose `TypedPointsto` is Goose's generated `sorry --
+  axiomatized type` instance; `store.wp_GetList` in the etcd3 `Link` reaches it (checked with
+  `#print axioms`; `GetList.wp_proof` itself and the other list-path results do not). Fix options:
+  a trust-boundary `TypedPointsto reflect.Type'` axiom in `Proof/reflect/Values.lean` (as
+  `value_typed_pointsto`), or a Perennial change.
+- **Next:** 81's decisions (KindCompare, the `Type'` instance, the trusted texts' review); then link
+  the trusted specs as axioms, `etc/tcb-baseline.txt` and collections (not done: STOP).
 - Pitfalls: `iassert` does not exist (use `ihave H : (P) $$ [...]`); `swap`, `by_contra` absent;
   `cases h : x.f'` substitutes only where the goal already shows `x.f'`; a long proof needs
   `set_option maxHeartbeats 8000000 in`; `iunfold A B` takes one name (use `unfold A B` on the goal).
