@@ -99,7 +99,7 @@ theorem readOne_at
   icases HRM' with ⟨#Hcfg, %wrr, #Hwrr⟩
   ihave #Hinc' := Hinc
   iunfold isInc at Hinc'
-  icases Hinc' with ⟨#Hinv, #Hkv⟩
+  icases Hinc' with ⟨#Hinv, #Hkv, -⟩
   ihave %Hsh := (hsh.1 kv ι.kv) $$ Hkv
   obtain ⟨tyK, vK, rfl, hRead, -, hRev, hFirst, hRange, -⟩ := Hsh
   ihave Hlive : incLive (GF := GF) ks γh i mp m ι (interface.mkOk tyK vK) q $$ [Hq]

@@ -750,7 +750,7 @@ theorem stream.receive.wp_proof
           · -- the previous key-value read
             ihave #Hinc' := Hinc
             iunfold isInc at Hinc'
-            icases Hinc' with ⟨#HmInv, #Hkv⟩
+            icases Hinc' with ⟨#HmInv, #Hkv, -⟩
             ihave %Hsh := (hsh.1 T.ep.kv T.ep.ι.kv) $$ Hkv
             obtain ⟨tyK, vK, hkvE, -, -, -, -, hRange, -⟩ := Hsh
             wp_apply_core sync.atomic.Int64.wp_Load (mF go!"cmpLo" T.ep.mp) (DFrac.own 1) $$ [] [-]

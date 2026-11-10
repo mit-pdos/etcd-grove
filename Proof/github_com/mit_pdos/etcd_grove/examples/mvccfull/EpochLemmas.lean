@@ -13,8 +13,8 @@ Lean-first (no Rocq counterpart).
   invariant gives the store's state, unchanged), the stream closed: no registration.
 - **A cancel on the closed stream** (`cancel_closed_au`): the stopped receiver's `wsRecv` deposited
   in `streamInv`'s second branch (the cancel may break `regOk'`).
-- **The incarnation's store is a watchable store** (`inc_watchable`): **not provable** from
-  today's `isInc`; see its docstring.
+- **The incarnation's store is a watchable store** (`inc_watchable`): `isInc`'s handle fact (F1
+  Prove, 2026-11-10).
 -/
 module
 
@@ -215,7 +215,7 @@ theorem watch_closed_au (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG))
   iunfold incLive at Hlive
   icases Hlive with ⟨#Hinc, Hret⟩
   iunfold isInc at Hinc
-  icases Hinc with ⟨#Hmi, #Hkv⟩
+  icases Hinc with ⟨#Hmi, #Hkv, %Hws⟩
   iinv Hmi with >Hm Hclm
   icases memberInv_live E.ks E.γh E.mp E.m E.ι qw $$ [$Hret $Hm] with ⟨Hret, Hm⟩
   iunfold memberState at Hm
@@ -242,6 +242,7 @@ theorem watch_closed_au (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG))
     iunfold epLive; iunfold incLive; iunfold isInc
     iframe
     iframe #
+    try (ipureintro; exact Hws)
   · iintro %id %k ⟨Hσ, HS⟩
     rw [Hc]
     simp only [↓reduceIte]
@@ -256,6 +257,7 @@ theorem watch_closed_au (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG))
     iunfold epLive; iunfold incLive; iunfold isInc
     iframe
     iframe #
+    try (ipureintro; exact Hws)
 
 /-- **A cancel on the closed stream** (`endEpoch`'s `ws.Cancel(0)`, after the receiver ended):
 mvcc's `Cancel` commits `S.cancel id` on a closed stream too, which may make a registered, unmarked
@@ -310,15 +312,16 @@ theorem cancel_closed_au (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG))
 /-- **An incarnation's store is a watchable store** (`startEpoch`'s `m.kv.NewWatchStream()`: the
 contract of `NewWatchStream` is only in `isWatchableKV`, which `shapes.law` gives of
 `*watchableStore`; `isMvcc` is sealed and may be a plain store's, whose type has no
-`NewWatchStream`). **Not provable from today's `isInc`** (proof `sorry`): it records the store's
-handle `kv` and `isMvcc kv ι.kv`, not its type. Proposed fix (`Members.lean`): `isInc` gains
-`⌜∃ s : Loc, kv = interface.mkOk (go.GoType.PointerType watchableStore.ty) #s⌝`, which `runner.open`
-has from `mvcc.api.New.spec`'s post (`RET #(interface.mkOk PW #ws)`). -/
+`NewWatchStream`): `isInc` records it (F1 Prove, 2026-11-10; `runner.open` has it from
+`mvcc.api.New.spec`'s post, `RET #(interface.mkOk PW #ws)`). -/
 theorem inc_watchable (E : Ep) :
     isInc (GF := GF) E.ks E.γh E.i E.mp E.m E.ι E.kv ⊢
       ⌜∃ s : Loc, E.kv = interface.mkOk
         (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #s⌝ := by
-  sorry
+  iintro H
+  iunfold isInc at H
+  icases H with ⟨-, -, %Hws⟩
+  ipureintro; exact Hws
 
 /-- **A stream after its registrar's end** (`endEpoch`, after `regDone.Wait()`): its handles, the
 receiver's wait group, and the registrar's resources back. -/

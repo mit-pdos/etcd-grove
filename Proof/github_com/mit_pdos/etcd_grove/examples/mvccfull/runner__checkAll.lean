@@ -99,7 +99,7 @@ theorem runner.checkAll.wp_proof
   iunfold incW at Hinc
   icases Hinc with ⟨#Hisinc, Hret, Hσw, Hbw⟩
   ihave #Hmv : isMvcc v.kv v.ι.kv $$ []
-  · iunfold isInc at Hisinc; icases Hisinc with ⟨-, #H⟩; iexact H
+  · iunfold isInc at Hisinc; icases Hisinc with ⟨-, #H, -⟩; iexact H
   ihave %Hkvs := hsh.1 v.kv v.ι.kv $$ Hmv
   obtain ⟨kty, kvv, hkveq, hKR, -⟩ := Hkvs
   -- the model

@@ -1,6 +1,6 @@
-/- Lean-first (no Rocq counterpart). The proof of `runner.startEpoch`: proved over
-`EpochLemmas.inc_watchable` (`sorry`: `isInc` does not record that the incarnation's store is a
-watchable store, which `NewWatchStream` needs; see its docstring).
+/- Lean-first (no Rocq counterpart). The proof of `runner.startEpoch`: proved (the
+incarnation's store a watchable store, which `NewWatchStream` needs: `EpochLemmas.inc_watchable`,
+from `isInc`).
 
 The callees in call order: `m.regs.Store(0)` (its counter invariant); per stream: `NewWatchStream`
 (through `shapes.law`, at the watchable store), the stream's ghost state (`stream_alloc`), its lock
@@ -122,7 +122,7 @@ theorem runner.startEpoch.wp_proof
   (try wp_auto)
   ihave Hinc2 := Hinc
   iunfold isInc at Hinc2
-  icases Hinc2 with ⟨#Hmi, #Hkvm⟩
+  icases Hinc2 with ⟨#Hmi, #Hkvm, %Hws⟩
   have hNWS := (hsh.2.1 sw).2 E.ι.kv
   rw [hsw]
   wp_auto

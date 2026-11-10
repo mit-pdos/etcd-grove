@@ -151,7 +151,7 @@ theorem compact_au (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG)) (ks :
   haveI := memberInv_timeless hpers ks γh mp m ι
   have Hm := memberN_mask i
   unfold isInc
-  iintro ⟨⟨#Hinv, -⟩, Hret, Hσw, Hbw⟩
+  iintro ⟨⟨#Hinv, -, -⟩, Hret, Hσw, Hbw⟩
   iauintro
   unfold atomic_acc
   iinv Hinv with >Hi Hclose

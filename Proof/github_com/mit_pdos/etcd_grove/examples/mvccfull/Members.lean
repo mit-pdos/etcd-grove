@@ -135,10 +135,12 @@ def memberInv (ks : List GoString) (γh : HistNames) (mp : Loc) (m : MemberNames
 
 /-- **An incarnation's handles** (persistent): its invariant and its store's handle `kv`, the
 member's `kv` field holding it (read-only for the incarnation's life: the writer alone writes it,
-at a restart, after every reader and stream of the incarnation ended). -/
+at a restart, after every reader and stream of the incarnation ended); (F1 Prove, 2026-11-10) the
+handle a watchable store's (`New`'s result), whose `NewWatchStream` `startEpoch` calls. -/
 def isInc (ks : List GoString) (γh : HistNames) (i : Nat) (mp : Loc) (m : MemberNames)
     (ι : IncNames) (kv : GoInterface) : IProp GF :=
-  iprop(inv (memberN i) (memberInv ks γh mp m ι) ∗ isMvcc kv ι.kv)
+  iprop(inv (memberN i) (memberInv ks γh mp m ι) ∗ isMvcc kv ι.kv ∗
+    ⌜∃ s : Loc, kv = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #s⌝)
 
 /-- **A goroutine's part of an incarnation** (exclusive, at the share `q`; a reader's, `Readers.lean`'s
 `rdOwn`): its handles, one reader token of its store, the share `q` of the incarnation's retirement

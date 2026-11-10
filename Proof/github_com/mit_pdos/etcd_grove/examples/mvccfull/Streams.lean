@@ -385,7 +385,7 @@ theorem recv_facts (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG))
   iunfold epLive at Hlive
   iunfold incLive at Hlive
   iunfold isInc at Hlive
-  icases Hlive with ⟨⟨#Hminv, #Hkv⟩, Hret⟩
+  icases Hlive with ⟨⟨#Hminv, #Hkv, %Hws⟩, Hret⟩
   iinv Hminv with >Hmi Hmclose
   icases memberInv_live T.ep.ks T.ep.γh T.ep.mp T.ep.m T.ep.ι q $$ [$Hret $Hmi] with ⟨Hret, Hms⟩
   iunfold memberState at Hms
@@ -425,6 +425,7 @@ theorem recv_facts (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG))
   iframe Hrcv Hreg
   isplitl [Hret]
   · iunfold epLive; iunfold incLive; iunfold isInc; iframe; iframe #
+    try (ipureintro; exact Hws)
   iexists σ, S, C
   iframe Hq
   ipureintro

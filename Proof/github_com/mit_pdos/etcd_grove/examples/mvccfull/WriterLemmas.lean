@@ -131,7 +131,7 @@ theorem endCb_txnEnd {ty : go.GoType} {v : val}
   iunfold incW at Hw
   icases Hw with ⟨#Hinc, Hret, Hσw, Hbw⟩
   ihave #Hinv : inv (memberN i) (memberInv (GF := GF) ks γh mp m ι) $$ []
-  · iunfold isInc at Hinc; icases Hinc with ⟨#H, -⟩; iexact H
+  · iunfold isInc at Hinc; icases Hinc with ⟨#H, -, -⟩; iexact H
   iapply hE $$ [Htx Hbk Hret Hσw Hbw]
   · iframe Hpkg Htx Hbk
     isplitr
@@ -254,7 +254,7 @@ theorem write_au (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG)) (ks : L
   haveI := memberInv_timeless hpers ks γh mp m ι
   have Hm := memberN_mask i
   unfold isInc
-  iintro ⟨⟨#Hinv, -⟩, Hret, Hσw⟩
+  iintro ⟨⟨#Hinv, -, -⟩, Hret, Hσw⟩
   iauintro
   unfold atomic_acc
   iinv Hinv with >Hi Hclose

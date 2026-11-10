@@ -153,7 +153,7 @@ theorem register_au' (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG))
   unfold atomic_acc
   ihave #Hinc' := Hinc
   iunfold isInc at Hinc'
-  icases Hinc' with ⟨#Hmi, #Hkv⟩
+  icases Hinc' with ⟨#Hmi, #Hkv, %Hws⟩
   iinv Hmi with >Hm Hclm
   icases memberInv_live T.ep.ks T.ep.γh T.ep.mp T.ep.m T.ep.ι q $$ [$Hret $Hm] with ⟨Hret, Hm⟩
   iunfold memberState at Hm
@@ -249,7 +249,7 @@ theorem cmpLo_acc_lt (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG))
   icases Hlive with ⟨#Hinc, Hret⟩
   ihave #Hinc' := Hinc
   iunfold isInc at Hinc'
-  icases Hinc' with ⟨#Hmi, #Hkv⟩
+  icases Hinc' with ⟨#Hmi, #Hkv, %Hws⟩
   iinv Hmi with >Hm Hclm
   icases memberInv_live ks γh mp m ι q $$ [$Hret $Hm] with ⟨Hret, Hm⟩
   iunfold memberState at Hm

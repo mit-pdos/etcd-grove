@@ -72,7 +72,7 @@ theorem restore_au (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG)) (ks :
   haveI := memberInv_timeless hpers ks γh mp m ι
   have Hm := memberN_mask i
   unfold isInc
-  iintro ⟨⟨#Hinv, -⟩, Hret, Hσw, Hbw, #Hlb⟩
+  iintro ⟨⟨#Hinv, -, -⟩, Hret, Hσw, Hbw, #Hlb⟩
   iauintro
   unfold atomic_acc
   iinv Hinv with >Hi Hclose
@@ -146,7 +146,7 @@ theorem bnd_acc (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG)) (ks : Li
           ghostVar ι.ret qw () ∗ ghostVar m.σ (1 : Qp).half σf ∗ ghostVar m.bnd (1 : Qp).half b') := by
   haveI := memberInv_timeless hpers ks γh mp m ι
   unfold isInc
-  iintro ⟨⟨#Hinv, -⟩, Hret, Hσw, Hbw⟩
+  iintro ⟨⟨#Hinv, -, -⟩, Hret, Hσw, Hbw⟩
   iinv Hinv with >Hi Hclose
   iunfold memberInv at Hi
   icases Hi with (Hs | Hr)
@@ -189,7 +189,7 @@ theorem read_au (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG)) (ks : Li
   haveI := memberInv_timeless hpers ks γh mp m ι
   have Hm := memberN_mask i
   unfold isInc
-  iintro ⟨⟨#Hinv, -⟩, Hret, Hσw⟩
+  iintro ⟨⟨#Hinv, -, -⟩, Hret, Hσw⟩
   iauintro
   unfold atomic_acc
   iinv Hinv with >Hi Hclose

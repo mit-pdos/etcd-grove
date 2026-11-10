@@ -509,7 +509,7 @@ theorem reader_au (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG))
     unfold memberInv; infer_instance
   have Hm := memberN_mask i
   unfold isInc
-  iintro ⟨⟨#Hinv, #Hkv⟩, #Hn, #Hc⟩ Hq
+  iintro ⟨⟨#Hinv, #Hkv, %Hws⟩, #Hn, #Hc⟩ Hq
   iauintro
   unfold atomic_acc
   iinv Hinv with >Hi Hclose

@@ -192,7 +192,7 @@ theorem runner.end.wp_proof
   iunfold incW at HincW
   icases HincW with ⟨#Hinc, Hret, Hσw, Hbw⟩
   ihave #Hmv : isMvcc kv ι.kv $$ []
-  · iunfold isInc at Hinc; icases Hinc with ⟨-, #H⟩; iexact H
+  · iunfold isInc at Hinc; icases Hinc with ⟨-, #H, -⟩; iexact H
   ihave %Hkvs := hsh.1 kv ι.kv $$ Hmv
   obtain ⟨kty, kvv, rfl, -, -, hKRev, -⟩ := Hkvs
   ihave Hau := read_au hpers ks γh i mp m ι (interface.mkOk kty kvv) qw (commitSt σ pend)
