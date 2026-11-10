@@ -39,6 +39,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.Members
 public import Perennial.Proof.sync.WaitGroupTokJoin
+public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.ReplicateLemmas
 
 @[expose] public section
 
@@ -238,7 +239,23 @@ variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- The members' invariants are outside mvcc's namespace. (Proof to come: `sorry`.) -/
 theorem memberN_mask (i : Nat) : (↑(memberN i) : CoPset) ⊆ ⊤ \ ↑mvccN := by
-  sorry
+  unfold memberN mvccN
+  intro p hp
+  rw [LawfulSet.mem_diff]
+  have h1 := nclose_subseteq ((nroot .@ "mvccfull") .@ "member") (toString i) p hp
+  have h2 := nclose_subseteq (nroot .@ "mvccfull") "member" p h1
+  exact ⟨CoPset.mem_full, fun h' => ndot_ne_disjoint nroot (by decide : "mvccfull" ≠ "mvcc") p
+    ⟨h2, h'⟩⟩
+
+/-- A live share and the whole retirement token are inconsistent. -/
+theorem ret_live_false (γ : GName) (q : Qp) :
+    ghostVar (GF := GF) γ q () ∗ ghostVar γ 1 () ⊢ False := by
+  iintro ⟨Hq, H1⟩
+  icases ghostVar_valid_2 γ () q () 1 $$ Hq H1 with ⟨%Hle, -⟩
+  exfalso
+  have : (q : Rat) + 1 ≤ 1 := Hle
+  have : (0 : Rat) < q := q.2
+  grind
 
 /-- **A live share rules out retirement**: with a share of the retirement token, the incarnation's
 invariant holds its contents. (Proof to come: `sorry`; `ghostVar_valid_2`.) -/
@@ -246,7 +263,15 @@ theorem memberInv_live (ks : List GoString) (γh : HistNames) (mp : Loc) (m : Me
     (ι : IncNames) (q : Qp) :
     ghostVar (GF := GF) ι.ret q () ∗ memberInv ks γh mp m ι ⊢
       ghostVar ι.ret q () ∗ memberState ks γh mp m ι.kv := by
-  sorry
+  iintro ⟨Hq, Hi⟩
+  iunfold memberInv at Hi
+  icases Hi with (Hs | H1)
+  · iframe
+  · icases ghostVar_valid_2 ι.ret () q () 1 $$ Hq H1 with ⟨%Hle, -⟩
+    exfalso
+    have : (q : Rat) + 1 ≤ 1 := Hle
+    have : (0 : Rat) < q := q.2
+    grind
 
 /-- **The revision's floor**: `revLo`'s load gives a lower bound `n` of the member's monotone
 revision with the value loaded at most `n`, and at least `1` (`watch`'s floating window). In the shape of `Int64.Load`'s premise. (Proof to
@@ -258,7 +283,35 @@ theorem revLo_acc (ks : List GoString) (γh : HistNames) (i : Nat) (mp : Loc) (m
         (sync.atomic.ownInt64 (mF go!"revLo" mp) (DFrac.own 1) v ={∅,⊤}=∗
           incLive ks γh i mp m ι kv q ∗ ∃ n : Nat, monoNatLbOwn m.rev n ∗
             ⌜1 ≤ sint.Z v ∧ sint.Z v ≤ n⌝) := by
-  sorry
+  have Hm := memberN_mask i
+  haveI : Inhabited MvccState := ⟨mvccStart⟩
+  unfold incLive isInc
+  iintro ⟨⟨#Hinv, Hkv⟩, Hq⟩
+  iinv Hinv with Hi Hclose
+  iunfold memberInv at Hi
+  icases Hi with (Hs | >Hr)
+  rotate_left
+  · iexfalso; iapply ret_live_false ι.ret q; iframe
+  iunfold memberState at Hs
+  icases Hs with ⟨%σ, %b, %Hl, Hs, >Hσi, >Hrl, >Hrh, >Hcl, >Hch, >Hbi, >Hrev, >Hcrev, >Hnrev,
+    >#Hlb, >%Hp⟩
+  ihave #Hn := monoNatLbOwn_get m.rev 1 σ.rev $$ Hrev
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ ⊤ \ ↑(memberN i) from
+    Std.LawfulSet.empty_subset)
+  iintro Hclose2
+  iexists b.1
+  iframe Hrl
+  iintro Hrl
+  imod Hclose2 with -
+  imod Hclose $$ [Hs Hσi Hrl Hrh Hcl Hch Hbi Hrev Hcrev Hnrev] with -
+  · inext; iunfold memberInv; ileft; iunfold memberState; iexists σ, b, Hl; iframe
+    iframe #
+    ipureintro; exact Hp
+  imodintro
+  iframe
+  iframe #
+  ipureintro
+  exact ⟨Hp.1, Hp.2.1⟩
 
 /-- **The compaction revision's floor**: `cmpLo`'s load gives a lower bound `c` of the member's
 monotone compaction revision plus one, with the value loaded plus one at most `c`. (Proof to come:
@@ -269,7 +322,36 @@ theorem cmpLo_acc (ks : List GoString) (γh : HistNames) (i : Nat) (mp : Loc) (m
       |={⊤,∅}=> ∃ v : w64, sync.atomic.ownInt64 (mF go!"cmpLo" mp) (DFrac.own 1) v ∗
         (sync.atomic.ownInt64 (mF go!"cmpLo" mp) (DFrac.own 1) v ={∅,⊤}=∗
           incLive ks γh i mp m ι kv q ∗ ∃ c : Nat, monoNatLbOwn m.crev c ∗ ⌜sint.Z v + 1 ≤ c⌝) := by
-  sorry
+  have Hm := memberN_mask i
+  haveI : Inhabited MvccState := ⟨mvccStart⟩
+  unfold incLive isInc
+  iintro ⟨⟨#Hinv, Hkv⟩, Hq⟩
+  iinv Hinv with Hi Hclose
+  iunfold memberInv at Hi
+  icases Hi with (Hs | >Hr)
+  rotate_left
+  · iexfalso; iapply ret_live_false ι.ret q; iframe
+  iunfold memberState at Hs
+  icases Hs with ⟨%σ, %b, %Hl, Hs, >Hσi, >Hrl, >Hrh, >Hcl, >Hch, >Hbi, >Hrev, >Hcrev, >Hnrev,
+    >#Hlb, >%Hp⟩
+  ihave #Hn := monoNatLbOwn_get m.crev 1 (Int.toNat (σ.crev + 1)) $$ Hcrev
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ ⊤ \ ↑(memberN i) from
+    Std.LawfulSet.empty_subset)
+  iintro Hclose2
+  iexists b.2.2.1
+  iframe Hcl
+  iintro Hcl
+  imod Hclose2 with -
+  imod Hclose $$ [Hs Hσi Hrl Hrh Hcl Hch Hbi Hrev Hcrev Hnrev] with -
+  · inext; iunfold memberInv; ileft; iunfold memberState; iexists σ, b, Hl; iframe
+    iframe #
+    ipureintro; exact Hp
+  imodintro
+  iframe
+  iframe #
+  ipureintro
+  have := Hp.2.2.2.2.2.1; have := Hp.2.2.2.2.2.2.2.1
+  omega
 
 /-- **The revision's ceiling**: `revHi` holds at least any lower bound `n` of the monotone
 revision (the revision now, at most `revHi`, is at least the one seen), and below `2 ^ 62` (a
@@ -282,7 +364,37 @@ theorem revHi_acc (ks : List GoString) (γh : HistNames) (i : Nat) (mp : Loc) (m
         ⌜(n : Int) ≤ sint.Z v ∧ sint.Z v < 2 ^ 62⌝ ∗
         (sync.atomic.ownInt64 (mF go!"revHi" mp) (DFrac.own 1) v ={∅,⊤}=∗
           incLive ks γh i mp m ι kv q) := by
-  sorry
+  have Hm := memberN_mask i
+  haveI : Inhabited MvccState := ⟨mvccStart⟩
+  unfold incLive isInc
+  iintro ⟨⟨⟨#Hinv, Hkv⟩, Hq⟩, #Hn⟩
+  iinv Hinv with Hi Hclose
+  iunfold memberInv at Hi
+  icases Hi with (Hs | >Hr)
+  rotate_left
+  · iexfalso; iapply ret_live_false ι.ret q; iframe
+  iunfold memberState at Hs
+  icases Hs with ⟨%σ, %b, %Hl, Hs, >Hσi, >Hrl, >Hrh, >Hcl, >Hch, >Hbi, >Hrev, >Hcrev, >Hnrev,
+    >#Hlb, >%Hp⟩
+  ihave %Hle := monoNatLbOwn_valid m.rev 1 _ _ $$ Hrev Hn
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ ⊤ \ ↑(memberN i) from
+    Std.LawfulSet.empty_subset)
+  iintro Hclose2
+  iexists b.2.1
+  iframe Hrh
+  isplitr
+  · ipureintro
+    obtain ⟨-, -, h3, h4, h5, -, h7, h8, -⟩ := Hp
+    have := Hle.2; omega
+  iintro Hrh
+  imod Hclose2 with -
+  imod Hclose $$ [Hs Hσi Hrl Hrh Hcl Hch Hbi Hrev Hcrev Hnrev] with -
+  · inext; iunfold memberInv; ileft; iunfold memberState; iexists σ, b, Hl; iframe
+    iframe #
+    ipureintro; exact Hp
+  imodintro
+  iframe
+  iframe #
 
 /-- **The revision's ceiling against the notified length** (F1 of review round 1): `revHi` plus one
 holds at least any lower bound `n` of the monotone notified log's length (`memberState`'s
@@ -297,7 +409,37 @@ theorem nrevHi_acc (ks : List GoString) (γh : HistNames) (i : Nat) (mp : Loc) (
         ⌜(n : Int) ≤ sint.Z v + 1 ∧ sint.Z v < 2 ^ 62⌝ ∗
         (sync.atomic.ownInt64 (mF go!"revHi" mp) (DFrac.own 1) v ={∅,⊤}=∗
           incLive ks γh i mp m ι kv q) := by
-  sorry
+  have Hm := memberN_mask i
+  haveI : Inhabited MvccState := ⟨mvccStart⟩
+  unfold incLive isInc
+  iintro ⟨⟨⟨#Hinv, Hkv⟩, Hq⟩, #Hn⟩
+  iinv Hinv with Hi Hclose
+  iunfold memberInv at Hi
+  icases Hi with (Hs | >Hr)
+  rotate_left
+  · iexfalso; iapply ret_live_false ι.ret q; iframe
+  iunfold memberState at Hs
+  icases Hs with ⟨%σ, %b, %Hl, Hs, >Hσi, >Hrl, >Hrh, >Hcl, >Hch, >Hbi, >Hrev, >Hcrev, >Hnrev,
+    >#Hlb, >%Hp⟩
+  ihave %Hle := monoNatLbOwn_valid m.nrev 1 _ _ $$ Hnrev Hn
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ ⊤ \ ↑(memberN i) from
+    Std.LawfulSet.empty_subset)
+  iintro Hclose2
+  iexists b.2.1
+  iframe Hrh
+  isplitr
+  · ipureintro
+    obtain ⟨-, -, h3, h4, h5, -, h7, h8, -⟩ := Hp
+    have := Hle.2; omega
+  iintro Hrh
+  imod Hclose2 with -
+  imod Hclose $$ [Hs Hσi Hrl Hrh Hcl Hch Hbi Hrev Hcrev Hnrev] with -
+  · inext; iunfold memberInv; ileft; iunfold memberState; iexists σ, b, Hl; iframe
+    iframe #
+    ipureintro; exact Hp
+  imodintro
+  iframe
+  iframe #
 
 /-- **The compaction revision's ceiling**: `cmpHi` plus one holds at least any lower bound `c` of
 the monotone compaction revision plus one. (Proof to come: `sorry`.) -/
@@ -308,7 +450,37 @@ theorem cmpHi_acc (ks : List GoString) (γh : HistNames) (i : Nat) (mp : Loc) (m
         ⌜(c : Int) ≤ sint.Z v + 1⌝ ∗
         (sync.atomic.ownInt64 (mF go!"cmpHi" mp) (DFrac.own 1) v ={∅,⊤}=∗
           incLive ks γh i mp m ι kv q) := by
-  sorry
+  have Hm := memberN_mask i
+  haveI : Inhabited MvccState := ⟨mvccStart⟩
+  unfold incLive isInc
+  iintro ⟨⟨⟨#Hinv, Hkv⟩, Hq⟩, #Hn⟩
+  iinv Hinv with Hi Hclose
+  iunfold memberInv at Hi
+  icases Hi with (Hs | >Hr)
+  rotate_left
+  · iexfalso; iapply ret_live_false ι.ret q; iframe
+  iunfold memberState at Hs
+  icases Hs with ⟨%σ, %b, %Hl, Hs, >Hσi, >Hrl, >Hrh, >Hcl, >Hch, >Hbi, >Hrev, >Hcrev, >Hnrev,
+    >#Hlb, >%Hp⟩
+  ihave %Hle := monoNatLbOwn_valid m.crev 1 _ _ $$ Hcrev Hn
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ ⊤ \ ↑(memberN i) from
+    Std.LawfulSet.empty_subset)
+  iintro Hclose2
+  iexists b.2.2.2
+  iframe Hch
+  isplitr
+  · ipureintro
+    obtain ⟨-, -, h3, h4, h5, -, h7, h8, -⟩ := Hp
+    have := Hle.2; omega
+  iintro Hch
+  imod Hclose2 with -
+  imod Hclose $$ [Hs Hσi Hrl Hrh Hcl Hch Hbi Hrev Hcrev Hnrev] with -
+  · inext; iunfold memberInv; ileft; iunfold memberState; iexists σ, b, Hl; iframe
+    iframe #
+    ipureintro; exact Hp
+  imodintro
+  iframe
+  iframe #
 
 /-- **A reader's read update at the incarnation's invariant** (mvccrand's `reader_au`, per
 incarnation and with the compaction revision): the state committed unchanged, with what the read
@@ -325,7 +497,59 @@ theorem reader_au (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG))
       AU <{ ∃∃ σ, mvccState ι.kv σ }> @ ⊤ \ ↑mvccN, ∅
         <{ mvccState ι.kv σ, COMM ghostVar ι.ret q () ∗ readQ ks γh m σ ∗
           ⌜n ≤ σ.rev ∧ c ≤ Int.toNat (σ.crev + 1)⌝ }> := by
-  sorry
+  haveI := hpers.1 kv ι.kv
+  haveI := hpers.2.2.2.2.2.1
+  haveI : Timeless (memberInv (GF := GF) ks γh mp m ι) := by
+    haveI : Timeless (memberState (GF := GF) ks γh mp m ι.kv) := by
+      unfold memberState
+      refine @exists_timeless _ _ _ _ (fun σ => ?_)
+      refine @exists_timeless _ _ _ _ (fun b => ?_)
+      refine @exists_timeless _ _ _ _ (fun Hl => ?_)
+      infer_instance
+    unfold memberInv; infer_instance
+  have Hm := memberN_mask i
+  unfold isInc
+  iintro ⟨⟨#Hinv, #Hkv⟩, #Hn, #Hc⟩ Hq
+  iauintro
+  unfold atomic_acc
+  iinv Hinv with >Hi Hclose
+  icases memberInv_live ks γh mp m ι q $$ [$Hq $Hi] with ⟨Hq, Hs⟩
+  iunfold memberState at Hs
+  icases Hs with ⟨%σ, %b, %Hl, Hs, Hσi, Hrl, Hrh, Hcl, Hch, Hbi, Hrev, Hcrev, Hnrev, #Hlb, %Hp⟩
+  ihave %Hle1 := monoNatLbOwn_valid m.rev 1 _ _ $$ Hrev Hn
+  ihave %Hle2 := monoNatLbOwn_valid m.crev 1 _ _ $$ Hcrev Hc
+  ihave #Hr1 := monoNatLbOwn_get m.rev 1 _ $$ Hrev
+  ihave #Hr2 := monoNatLbOwn_get m.crev 1 _ $$ Hcrev
+  ihave #Hr3 := monoNatLbOwn_get m.nrev 1 _ $$ Hnrev
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (⊤ \ ↑mvccN) \ ↑(memberN i) from
+    Std.LawfulSet.empty_subset)
+  iintro Hclose2
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iexists σ
+  iframe Hs
+  isplit
+  · iintro Hs
+    imod Hclose2 with -
+    imod Hclose $$ [Hs Hσi Hrl Hrh Hcl Hch Hbi Hrev Hcrev Hnrev] with -
+    · inext; iunfold memberInv; ileft; iunfold memberState; iexists σ, b, Hl; iframe
+      iframe #; ipureintro; exact Hp
+    imodintro
+    iframe
+  · iintro Hs
+    icases (persistent_entails_right (hreach kv ι.kv σ)) $$ [$Hkv $Hs] with ⟨%Hr, -, Hs⟩
+    imod Hclose2 with -
+    imod Hclose $$ [Hs Hσi Hrl Hrh Hcl Hch Hbi Hrev Hcrev Hnrev] with -
+    · inext; iunfold memberInv; ileft; iunfold memberState; iexists σ, b, Hl; iframe
+      iframe #; ipureintro; exact Hp
+    imodintro
+    iframe Hq
+    isplitr
+    · unfold readQ
+      iexists Hl
+      iframe #
+      ipureintro
+      exact ⟨Hp.2.2.2.2.2.2.2.2.1, Hr.1, Hr.2⟩
+    · ipureintro; exact ⟨Hle1.2, Hle2.2⟩
 
 /-- **A read the compaction revision `c` did not reach is one `clo ≤ c` did not reach**: the
 outcome at `c`'s live case is the outcome at `clo` (`checkStoreRange` checks the store's `Range` at
@@ -342,14 +566,66 @@ theorem rangeOutcomeC_lower (r : Loc) (err : GoInterface) (L : Log) (rev : w64) 
   · ipureintro; intro h'; have := h h'; omega
   · iexact H
 
+/-- **What the writer lends one member's `k + 1` readers, as `k + 1` readers' parts** (the share
+`r` each, `q = (k + 1) r`). -/
+theorem rdLent_split (hsplit : mvcc.api.mvccReaders_split.law (GF := GF)) (mp : Loc) (ι : IncNames)
+    (kv : GoInterface) (k : Nat) (q r : Qp) (hq : q.val = ((k : Rat) + 1) * r.val) :
+    rdLent (GF := GF) mp ι kv (k + 1) q ⊣⊢
+      [∗list] _u ∈ List.replicate (k + 1) (),
+        iprop(mvccReaders ι.kv 1 ∗ ghostVar ι.ret r () ∗ mF go!"kv" mp ↦{DFrac.own r} kv) := by
+  haveI := fractional_of_dfractional (fun dq => (mF go!"kv" mp ↦{dq} kv : IProp GF))
+  unfold rdLent
+  refine (sep_congr (rep_add (fun j => mvccReaders (GF := GF) ι.kv j) (hsplit ι.kv) k)
+    (rep_frac (fun r => iprop(ghostVar (GF := GF) ι.ret r () ∗ mF go!"kv" mp ↦{DFrac.own r} kv))
+      r k q hq)).trans ?_
+  exact (rep_sep _ _ _).symm
+
 /-- **The lent parts split among `n` readers** (and join back): `n` readers' parts, each at the
-share `q / n`, are the stock with the persistent handles. (Proof to come: `sorry`.) -/
-theorem rdStock_split (ks : List GoString) (h : Loc) (γ : FullNames) (mp0 mp1 : Loc)
+share `q / n`, are the stock with the persistent handles. -/
+theorem rdStock_split (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG))
+    (hsplit : mvcc.api.mvccReaders_split.law (GF := GF))
+    (ks : List GoString) (h : Loc) (γ : FullNames) (mp0 mp1 : Loc)
     (e0 e1 : IncNames × GoInterface) (n : Nat) (q : Qp) (hn : 0 < n) :
     isInc (GF := GF) ks γ.h 0 mp0 γ.m0 e0.1 e0.2 ∗ isInc ks γ.h 1 mp1 γ.m1 e1.1 e1.2 ⊢
       (rdStock h γ mp0 mp1 e0 e1 n q ∗-∗
         [∗list] _u ∈ List.replicate n (), rdOwn ks h γ mp0 mp1 e0 e1 (q / sync.posToQpZ (n : Int))) := by
-  sorry
+  haveI : ∀ i mp m ι kv, Persistent (isInc (GF := GF) ks γ.h i mp m ι kv) := by
+    intro i mp m ι kv; haveI := hpers.1 kv ι.kv; unfold isInc; infer_instance
+  obtain ⟨k, rfl⟩ : ∃ k, n = k + 1 := ⟨n - 1, by omega⟩
+  have hq := div_posToQpZ_val q k
+  have E : (isInc (GF := GF) ks γ.h 0 mp0 γ.m0 e0.1 e0.2 ∗ isInc ks γ.h 1 mp1 γ.m1 e1.1 e1.2 ∗
+      rdStock h γ mp0 mp1 e0 e1 (k + 1) q) ⊣⊢
+      isInc (GF := GF) ks γ.h 0 mp0 γ.m0 e0.1 e0.2 ∗ isInc ks γ.h 1 mp1 γ.m1 e1.1 e1.2 ∗
+      [∗list] _u ∈ List.replicate (k + 1) (),
+        rdOwn ks h γ mp0 mp1 e0 e1 (q / sync.posToQpZ ((k + 1 : Nat) : Int)) := by
+    unfold rdStock histRds
+    refine (sep_congr_right (sep_congr_right (sep_congr_right (sep_congr
+      (rdLent_split hsplit mp0 e0.1 e0.2 k q _ hq) (rdLent_split hsplit mp1 e1.1 e1.2 k q _ hq))))).trans ?_
+    unfold rdOwn incRdL incRd
+    constructor
+    · iintro ⟨#H0, #H1, Hh, Hl0, Hl1⟩
+      iframe H0 H1
+      iapply (rep_sep _ _ _).2
+      iframe Hh
+      iapply (rep_sep _ _ _).2
+      isplitl [Hl0]
+      · iapply (rep_pers _ _ k).1; iframe H0 Hl0
+      · iapply (rep_pers _ _ k).1; iframe H1 Hl1
+    · iintro ⟨#H0, #H1, Hs⟩
+      iframe H0 H1
+      icases (rep_sep _ _ _).1 $$ Hs with ⟨Hh, Hs⟩
+      icases (rep_sep _ _ _).1 $$ Hs with ⟨Hl0, Hl1⟩
+      icases (rep_pers _ _ k).2 $$ Hl0 with ⟨-, Hl0⟩
+      icases (rep_pers _ _ k).2 $$ Hl1 with ⟨-, Hl1⟩
+      iframe
+  iintro ⟨#H0, #H1⟩
+  isplit
+  · iintro Hs
+    icases E.1 $$ [$H0 $H1 $Hs] with ⟨-, -, Hs⟩
+    iexact Hs
+  · iintro Hs
+    icases E.2 $$ [$H0 $H1 $Hs] with ⟨-, -, Hs⟩
+    iexact Hs
 
 end laws
 
