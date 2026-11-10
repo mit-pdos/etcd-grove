@@ -122,7 +122,8 @@ theorem store.updateOnce.wp_proof
       (fun σ => kvWf c σ → stItem c key s σ)
       (fun σ hw0 hb hA => ⟨(updStepOk_item c key hk s ign c.S.zero hz pre hpre f o' hok hw val hdv σ hw0 hb hA).1,
         fun hf => ⟨(updStepOk_item c key hk s ign c.S.zero hz pre hpre f o' hok hw val hdv σ hw0 hb hA).2 hf,
-          fun hh => by simpa [stepHand] using hh⟩⟩)) $$ [HW Hau]
+          fun hh => by simpa [stepHand] using hh⟩⟩)
+      (fun σ hw => keysIn_optPut _ _ _ _ _ hk σ hw.1)) $$ [HW Hau]
     · iframe HW HA Hau
     rw [method_unfold (t := go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty)
       (m := go!"OptimisticPut")]

@@ -90,7 +90,8 @@ theorem store.deleteOnce.wp_proof
     (itemAt c key s)
     (fun σ hw hb hA => ⟨(delStepOk_item c key s hr pre validate hpre hval σ hw hb hA).1,
       fun hf => ⟨(delStepOk_item c key s hr pre validate hpre hval σ hw hb hA).2 hf,
-        fun hh => by simpa [stepHand] using hh⟩⟩)) $$ [HW Hau]
+        fun hh => by simpa [stepHand] using hh⟩⟩)
+    (fun σ hw => keysIn_optDel _ _ _ _ hk σ hw.1)) $$ [HW Hau]
   · iframe HW HA Hau
   rw [method_unfold (t := go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty)
     (m := go!"OptimisticDelete")]
