@@ -84,6 +84,7 @@ def pgFacts [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.server.v3.et
     st.more = false ∧ ¬ (0 < lim ∧ lim ≤ st.items.length) ∧
     0 ≤ sint.Z nev ∧ sint.nat nev ≤ m
 
+set_option maxHeartbeats 8000000 in
 theorem store.GetList.wp_proof
     [hKind : go.IsStrictlyComparable _root_.Perennial.reflect.Kind.underlying w64]
     (wp_prepareKey : store.prepareKey.spec (GF := GF) (hG := hG))
@@ -495,7 +496,185 @@ theorem store.GetList.wp_proof
     ipureintro
     simp
   · -- a page
-    sorry
+    iintro !> %σ %R %i %ch HJ Hfirst Hch
+    simp only
+    icases HJ with ⟨%wr, %lkp, %lkb, %hmv, %cnt, %nev, %m, %e0, %chE, %chv, %sl, %st, HTok, Hk,
+      «$res0», withRev, lastKey, #Hlkb, hasMore, count, numFetched, numEvald, err, chunk, chunkErr, v,
+      Hip, Hits, Ho⟩
+    ihave ⟨#HQσ, %HU⟩ : (□ Q (W64 (σ.rev : Int)) σ ∗
+        ⌜R = (if uint.Z R0 = 0 then W64 (σ.rev : Int) else R0) ∧ uint.nat R ≤ σ.rev ∧
+          fromL (σ.at (uint.nat R)) (c.pathPrefix ++ k) opts.Recursive'
+            (pagesL (σ.at (uint.nat R)) (c.pathPrefix ++ k) opts.Recursive'
+              (limN opts.Predicate'.Limit') i).1 =
+            (scopeL (σ.at (uint.nat R)) (c.pathPrefix ++ k) opts.Recursive').drop m ∧
+          m ≤ (scopeL (σ.at (uint.nat R)) (c.pathPrefix ++ k) opts.Recursive').length ∧
+          st = chunkL (fun x => sel x.1) (limN opts.Predicate'.Limit') ⟨[], none, false, 0⟩
+            (decodedL c.S.dec ((scopeL (σ.at (uint.nat R)) (c.pathPrefix ++ k)
+              opts.Recursive').take m)) ∧
+          st.more = false ∧ ¬ (0 < limN opts.Predicate'.Limit' ∧
+            limN opts.Predicate'.Limit' ≤ st.items.length) ∧
+          0 ≤ sint.Z nev ∧ sint.nat nev ≤ m ∧
+          (i = 0 → wr = R0 ∧ m = 0) ∧
+          (i ≠ 0 → wr = R ∧ emp = false ∧ (uint.Z R0 = 0 → ¬ σ.rev < uint.nat n))⌝) $$ [Hfirst Ho]
+    · cases i with
+      | zero =>
+        simp only [↓reduceIte]
+        icases Hfirst with ⟨#HQσ, %Hf⟩
+        icases Ho with %Ho
+        obtain ⟨-, rfl, rfl, rfl, rfl⟩ := Ho
+        iframe HQσ
+        ipureintro
+        refine ⟨Hf.1, Hf.2, ?_, Nat.zero_le _, rfl, rfl, fun h => by have h2 := h.2; simp at h2; omega,
+          by decide, by decide, fun _ => ⟨rfl, rfl⟩, fun h => absurd rfl h⟩
+        simp only [pagesL, List.drop_zero]
+        exact fromL_kp _ _ _
+      | succ j =>
+        simp only [Nat.succ_ne_zero, ↓reduceIte]
+        icases Ho with ⟨#HQσ, %Ho⟩
+        obtain ⟨-, hwr, Hpg, hemp, -⟩ := Ho
+        obtain ⟨h1, h2, -, h4, h5, h6, h7, h8, h9, h10, h11⟩ := Hpg
+        iframe HQσ
+        ipureintro
+        exact ⟨h1, h2, h5, h6, h7, h8, h9, h10, h11, fun h => by simp at h,
+          fun _ => ⟨hwr, hemp, h4⟩⟩
+    obtain ⟨hR, hRle, hfrom, hm, hst, hstm, hstf, hnev0, hnev, hi0, hi1⟩ := HU
+    ihave %Hwf := (hQ _ σ) $$ HQσ
+    obtain ⟨⟨-, -, -, hσb⟩, hwh, hks⟩ := Hwf
+    change σ.rev + 1 < 2 ^ 63 at hσb
+    iunfold chunkIs at Hch
+    generalize hPL : pagesL (σ.at (uint.nat R)) (c.pathPrefix ++ k) opts.Recursive'
+      (limN opts.Predicate'.Limit') i = PL at hfrom
+    icases Hch with ⟨#Hrev, %Hcc, %ps, Hkvs, #Hps⟩
+    generalize hpg : pageKvsL (σ.at (uint.nat R)) (c.pathPrefix ++ k) opts.Recursive' PL.1
+      (if opts.Recursive' = true then PL.2 else 1) = pg at Hcc
+    obtain ⟨hpg1, hpg2⟩ := pageKvsL_prefix (σ.at (uint.nat R)) (c.pathPrefix ++ k) opts.Recursive'
+      PL.1 (if opts.Recursive' = true then PL.2 else 1)
+    rw [hpg, hfrom] at hpg1 hpg2
+    generalize hrest : ((scopeL (σ.at (uint.nat R)) (c.pathPrefix ++ k) opts.Recursive').drop m).drop
+      pg.1.length = rest at hpg1
+    ihave %Hpsl := BigSepL2.bigSepL2_length $$ Hps
+    ihave %Hkl := ownSlice_len $$ Hkvs
+    iapply Hy $$ %_ %_ %_ [] HTok
+    · ipureintro; exact ⟨by simp, by simp⟩
+    iapply wp_post_named
+    iintro %Ψb %hΨb
+    wp_auto
+    ihave %Hrn := typedPointsto_not_null _ _ _ $$ Hrev
+    rw [show decide (ch.revision' = null) = false from decide_eq_false Hrn]
+    wp_auto
+    have hσr : uint.nat (W64 (σ.rev : Int)) = σ.rev := by word
+    have hscl : (scopeL (σ.at (uint.nat R)) (c.pathPrefix ++ k) opts.Recursive').length < 2 ^ 41 := by
+      have h1 := (hks (uint.nat R) hRle).1
+      have h2 : (scopeL (σ.at (uint.nat R)) (c.pathPrefix ++ k) opts.Recursive').length ≤
+          (σ.at (uint.nat R)).kvs.length := List.length_filter_le _ _
+      omega
+    have hmp : m + pg.1.length + rest.length =
+        (scopeL (σ.at (uint.nat R)) (c.pathPrefix ++ k) opts.Recursive').length := by
+      have := congrArg List.length hpg1
+      simp only [List.length_drop, List.length_append] at this
+      omega
+    have hkvl : sint.nat ch.kvs'.len = pg.1.length := by rw [← Hkl.1]; exact Hpsl
+    have hfetch : W64 (m : Int) + ch.kvs'.len = W64 ((m + pg.1.length : Nat) : Int) := by
+      have := Hkl.2
+      word
+    rw [hfetch]
+    -- the revision check: `withRev` becomes `R`, or a too-large error returns
+    wp_bind (If _ _ _)
+    iapply (wp_wand (Φ := fun bv => iprop(
+        (⌜bv = executeVal ∧ (uint.Z R0 = 0 → ¬ σ.rev < uint.nat n)⌝ ∗ withRev_ptr ↦ R ∗
+          (∃ e' : GoInterface, err_ptr ↦ e') ∗ «$res0_ptr» ↦ GoInterface.nil ∗ chunk_ptr ↦ ch) ∨
+        (⌜bv = returnVal #()⌝ ∗ (HkP -∗ numFetched_ptr ↦ W64 ((m + pg.1.length : Nat) : Int) -∗
+          numEvald_ptr ↦ nev -∗ v_ptr ↦ rv -∗ L.itemsRef pl ↦ sl -∗ L.itemsAt sl (itemsOf c st) -∗
+          Ψb (returnVal #())))))) $$ [withRev err «$res0» chunk]
+    · by_cases hw0 : wr = W64 0
+      · rw [show decide (wr = W64 0) = true from decide_eq_true hw0]
+        wp_auto
+        wp_apply (wp_validateMin Obj sp c opts.ResourceVersion' n R) $$ [] as %verr Hverr
+        · iframe #
+          ipureintro; exact hrv
+        have hR0z : uint.Z R0 = 0 := by
+          by_cases hi : i = 0
+          · have h1 := (hi0 hi).1
+            rw [hw0] at h1
+            rw [← h1]; decide
+          · refine Classical.byContradiction fun h => ?_
+            have h2 := (hi1 hi).1
+            rw [if_neg h] at hR
+            rw [hw0, hR] at h2
+            apply h; rw [← h2]; decide
+        rw [if_pos hR0z] at hR
+        by_cases hlt : uint.nat R < uint.nat n
+        · rw [if_pos hlt]
+          icases persistent_entails_left (apierrors.tooLargeErrIs_ptr verr) $$ Hverr with
+            ⟨Hverr, %Hptr⟩
+          obtain ⟨l, rfl⟩ := Hptr
+          wp_auto
+          iright
+          isplitr
+          · ipureintro; rfl
+          iintro Hk numFetched numEvald v Hip Hits
+          rw [hΨb]
+          unfold forRangePost
+          iright
+          isplitr
+          · ipureintro; exact Or.inr ⟨_, rfl, by simp⟩
+          iintro HD
+          iexists false
+          isplitr
+          · ipureintro; rfl
+          simp only [Bool.false_eq_true, ↓reduceIte]
+          iintro Htt
+          isplitr
+          · ipureintro; simp
+          iright; iright
+          iexists #()
+          iframe HD
+          rw [hHkP]
+          icases Hk with ⟨-, Hret⟩
+          iapply Hret $$ %_ %_ %_ %_ %_ «$res0» numFetched numEvald v Hip Hits Htt []
+          · ipureintro; exact ⟨by word, hnev0⟩
+          iright
+          iexists σ
+          iframe HQσ Hverr
+          ipureintro
+          rw [if_pos hR0z]
+          rw [hR, hσr] at hlt; exact hlt
+        · rw [if_neg hlt]
+          icases Hverr with %Hverr
+          subst Hverr
+          wp_auto
+          ileft
+          iframe
+          ipureintro
+          refine ⟨rfl, fun _ => ?_⟩
+          rw [hR, hσr] at hlt; exact hlt
+      · rw [show decide (wr = W64 0) = false from decide_eq_false hw0]
+        wp_auto
+        have hwR : wr = R := by
+          by_cases hi : i = 0
+          · obtain ⟨h1, -⟩ := hi0 hi
+            subst h1
+            have : ¬ uint.Z wr = 0 := by intro h; apply hw0; word
+            rw [if_neg this] at hR; exact hR.symm
+          · exact (hi1 hi).1
+        subst hwR
+        rw [show decide (wr = wr) = true from decide_eq_true rfl]
+        wp_auto
+        ileft
+        iframe
+        ipureintro
+        refine ⟨rfl, fun h => ?_⟩
+        by_cases hi : i = 0
+        · exfalso; apply hw0; rw [(hi0 hi).1]; word
+        · exact (hi1 hi).2.2 h
+    iintro %bv Hbv
+    icases Hbv with (⟨%Hbv, withRev, ⟨%e1, err⟩, «$res0», chunk⟩ | ⟨%Hbv, HΨ⟩)
+    · obtain ⟨rfl, hRn⟩ := Hbv
+      wp_auto
+      sorry
+    · subst Hbv
+      wp_auto
+      iapply HΨ $$ Hk numFetched numEvald v Hip Hits
   · -- an error
     iintro !> %o %i %e HJ Herr
     simp only
