@@ -8,9 +8,9 @@ def etcdstart.etcdKVAt [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3r
   iprop(isGrpcRpc addr
         go!"/etcdserverpb.KV/Put"
         (client.etcdPutSpec E ρ.rd cid mid) ∗
-      isGrpcRpc addr
+      isGrpcRpcMd addr
           go!"/etcdserverpb.KV/Range"
-          (client.etcdRangeSpec E γr cid mid) ∗
+          (client.etcdRangeSpecE E γr cid mid) ∗
         isGrpcRpc addr
             go!"/etcdserverpb.KV/DeleteRange"
             (client.etcdDeleteSpec E ρ.rd cid mid) ∗
@@ -27,8 +27,8 @@ def etcdstart.srvWOf (E : apply.AEnv GF) (γr : ReadNames) (on : Bool) : v3rpc.S
 theorem etcdstart.etcdKVAt_eq [v3rpc_sem :
     go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (addr : GoString) (E : apply.AEnv
     GF) (ρ : ReqNames) (γr : ReadNames) (cid mid : w64) : etcdstart.etcdKVAt addr E ρ γr cid mid =
-    iprop(isGrpcRpc addr go!"/etcdserverpb.KV/Put" (client.etcdPutSpec E ρ.rd cid mid) ∗ isGrpcRpc
-    addr go!"/etcdserverpb.KV/Range" (client.etcdRangeSpec E γr cid mid) ∗ isGrpcRpc addr
+    iprop(isGrpcRpc addr go!"/etcdserverpb.KV/Put" (client.etcdPutSpec E ρ.rd cid mid) ∗ isGrpcRpcMd
+    addr go!"/etcdserverpb.KV/Range" (client.etcdRangeSpecE E γr cid mid) ∗ isGrpcRpc addr
     go!"/etcdserverpb.KV/DeleteRange" (client.etcdDeleteSpec E ρ.rd cid mid) ∗ isGrpcRpc addr
     go!"/etcdserverpb.KV/Txn" (client.etcdTxnSpec E ρ.rd γr cid mid) ∗ isGrpcRpc addr
     go!"/etcdserverpb.KV/Compact" (client.etcdCompactSpec E ρ.rd cid mid))
