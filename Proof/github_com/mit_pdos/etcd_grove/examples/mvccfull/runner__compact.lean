@@ -200,6 +200,86 @@ theorem runner.compact.wp_proof
       simp only [hncok', hncok, ↓reduceIte]
       iintro H; iexact H
     ipureintro; exact HU
+  rw [decide_eq_false hA]
+  (try wp_auto)
+  rw [hrevZ]
+  by_cases hB : (revAfter ks ops v.ops : Int) < sint.Z o.rev
+  · -- past the current revision: `ErrFutureRev`
+      have hncok : ¬ ((σOf ks ops v.ops).crev < sint.Z o.rev ∧
+          sint.Z o.rev ≤ ((σOf ks ops v.ops).rev : Int)) := fun h => by
+        have : (σOf ks ops v.ops).crev = cmpAfter ks ops v.ops := rfl
+        rw [hrv] at h
+        omega
+      have hcab : (σOf ks ops v.ops).crev < sint.Z o.rev ∧
+          sint.Z o.rev ≤ ((σOf ks ops v.ops).rev : Int) → sint.Z o.rev ≤ sint.Z v.b.2.2.2 :=
+        fun h => absurd h hncok
+      simp only [hB, _root_.decide_true]
+      (try wp_auto)
+      wp_apply wp_traceTODO $$ [$Hpt] as %trc ⟨%Htrc, Htrco⟩
+      (try wp_auto)
+      rw [hkv]
+      (try wp_auto)
+      ihave Hau := compact_au hpers ks γh i mp m v.ι (interface.mkOk kty kvv) qw (σOf ks ops v.ops) v.b (sint.Z o.rev)
+        hcab $$ [Hret Hσw Hbw]
+      · iframe #; iframe
+      ihave Hrun1 := Hrun $$ %a %s
+      wp_apply (hKC v.ι.kv trc true o.rev 1 (etcdStorage v.bk) iprop(True) f (hookPre mp a s)
+          iprop(True ∗ hookPost mp a) (hookPost mp a) iprop(True) iprop(True)
+          (fun σ' => iprop(⌜σ' = σOf ks ops v.ops⌝ ∗ ghostVar v.ι.ret qw () ∗
+            ghostVar m.σ (1 : Qp).half
+              (if (σOf ks ops v.ops).crev < sint.Z o.rev ∧ sint.Z o.rev ≤ ((σOf ks ops v.ops).rev : Int)
+                then (σOf ks ops v.ops).compactTo (sint.Z o.rev) else σOf ks ops v.ops) ∗
+            ghostVar m.bnd (1 : Qp).half v.b)))
+        $$ [Hopen Htrco Hmb Hpre Hrun1 Hau]
+        as %ch %err ⟨Hopen, Htrco, Hmb, %σr, ⟨%Hσr, Hret, Hσw, Hbw⟩, Hout⟩
+      · iframe #; iframe
+        isplitr
+        · ipureintro; exact Htrc
+        isplitr
+        · ipureintro; exact hc1
+        iintro ⟨-, Hq⟩; imodintro; iframe
+      subst Hσr
+      icases Hout with (⟨%Hc, -⟩ | ⟨%Hc, -⟩ | ⟨%Hc, #Herr, Hpre, -⟩)
+      · exfalso; exact hncok Hc.2
+      · exfalso; have := hrv; omega
+      obtain ⟨-, rfl⟩ := Hc
+      ihave %Hag := typedPointsto_agree_wand _ _ _ _ _ $$ Herr HeFut
+      subst Hag
+      (try wp_auto)
+      wp_apply wp_check
+      · ipureintro; simp
+      (try wp_auto)
+      iapply HΦ
+      isplitl [Hlead]
+      · cases lead
+        · unfold leadPost; simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
+        · irevert Hlead
+          unfold leadPre leadPost
+          simp only [↓reduceIte]
+          rw [hH, hCs, if_neg hncok]
+          iintro H; iexact H
+      isplitl [Hpre]
+      · iright; iexact Hpre
+      iexists ⟨v.path, v.lp, v.kv, v.ops + 1, v.bk, v.ι, v.U, v.b⟩
+      isplitr
+      · ipureintro; exact ⟨⟨rfl, rfl, rfl, rfl, rfl⟩, rfl⟩
+      iapply memCore_compact ks γh ops i mp m f v qw nw k o v.b hov hkind
+      rw [hkv]
+      rw [hC, hS]
+      simp only [hncok, ↓reduceIte]
+      rw [show (σOf ks ops v.ops).crev = cmpAfter ks ops v.ops from rfl]
+      iframe Hid Hhook Hpath Hbe Hle Hkvf Hrevf Hcmpf Hlsl Hopen Hmb Hrds Hbk HlW
+      iframe #
+      isplitr
+      · iunfold hookOk; iframe #; ipureintro; exact Hfnil
+      isplitl [Hret Hσw Hbw]
+      · iunfold incW; iframe #; iframe
+        have hncok' : ¬ (cmpAfter ks ops v.ops < sint.Z o.rev ∧
+            sint.Z o.rev ≤ ((σOf ks ops v.ops).rev : Int)) := hncok
+        irevert Hσw
+        simp only [hncok', hncok, ↓reduceIte]
+        iintro H; iexact H
+      ipureintro; exact HU
   sorry
 
 end proof
