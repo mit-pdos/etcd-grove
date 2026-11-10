@@ -89,7 +89,7 @@ theorem store.pagedChunks.wp_proof
     (wp_getList : store.getList.spec (GF := GF) (hG := hG))
     (wp_listReadError : store.listReadError.spec (GF := GF) (hG := hG)) :
     store.pagedChunks.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ sp c ci cd kp opts rev0 lim0 Q P hkp hrev hlim hcont hrk hQ hP
+  intro _ _ Obj _ sp c ci cd kp opts rev0 lim0 Q P hkp hrev hlim hcont hrk hQ hP hkne hnr
   wp_start as ⟨#Hst, #Hctx, #Hce, %htb⟩
   (try wp_auto)
   iapply HΦ
@@ -121,7 +121,7 @@ theorem store.pagedChunks.wp_proof
     (try wp_auto)
     wp_apply (wp_getList Obj sp c ci cd kp opts.Recursive'
         (go_etcd_io.etcd.client.v3.kubernetes.ListOptions.mk rev0 lim0 []) Q hkp (by simp) hrev hlim
-        (fun _ => rfl) (Or.inl rfl)) $$ [Htt HQ] as %resp %gerr ⟨Htt, Hres⟩
+        (fun _ => rfl) (Or.inl rfl) hkne hnr) $$ [Htt HQ] as %resp %gerr ⟨Htt, Hres⟩
     · iframe # Htt
       isplitr
       · ipureintro; exact htb
@@ -372,7 +372,7 @@ theorem store.pagedChunks.wp_proof
     wp_apply (wp_getList Obj sp c ci cd kp opts.Recursive'
         (go_etcd_io.etcd.client.v3.kubernetes.ListOptions.mk R (W64 (L.2 : Int)) L.1)
         (fun _ => P σ) hkp hckl (by word) (by word) (fun h => absurd hrec (by rw [h]; decide))
-        (Or.inr (by rw [← hL]; exact pagesL_prefix _ _ _ _ _)))
+        (Or.inr (by rw [← hL]; exact pagesL_prefix _ _ _ _ _)) hkne hnr)
         $$ [Htt] as %resp %gerr ⟨Htt, Hres⟩
     · iframe # Htt
       isplitr

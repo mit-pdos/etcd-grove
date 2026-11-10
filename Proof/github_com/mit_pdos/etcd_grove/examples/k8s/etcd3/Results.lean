@@ -42,9 +42,10 @@ trust base of each printed in the build log (`#print axioms`). Lean-first (no Ro
   schedule `steps` built as a slice literal (`schedLit`), for every `steps` of fewer than `2 ^ 63`
   steps, under `k8s_etcd3_cluster_safe`'s hypotheses.
 
-**Pending hypotheses (k8s 7e-4, 2026-11-10).** Until 7c-3 and 7e-1 land, every result here takes the
-client's `GetAt` and `List` specs (`HGetAt`, `HList`; the store's `GetList` reads through them) as
-hypotheses. (`clientErrPlain`, the client's errors are no `APIStatus`, which `errOut`'s
+**Pending hypotheses (k8s 7e-4, 2026-11-10).** Until 7e-1 lands, every result here takes the
+client's `List` spec (`HList`; the store's `GetList` reads through it) as a hypothesis (its `GetAt`
+spec, `HGetAt`, was one too until 7e-1 restated `Client.Get.spec` at any revision).
+(`clientErrPlain`, the client's errors are no `APIStatus`, which `errOut`'s
 `IsTooLargeResourceVersion` test needs, was one too until 7e-1 made it a lemma,
 `clientErrPlain_holds`, from `clientErr`'s `clientErrTys`.)
 
@@ -86,26 +87,23 @@ variable [NaInvG GF]
 /-- **`Main` does not panic** (`Link.lean`'s `k8s_etcd3.wp_Main`). -/
 theorem k8setcd3_Main [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [ContextReadErrs (GF := GF) (hG := hG)]
-    (h_Client__GetAt : kubernetes.Client.GetAt.spec (GF := GF) (hG := hG))
     (h_Client__List : kubernetes.Client.List.spec (GF := GF) (hG := hG)) :
     k8s_etcd3.Main.spec (GF := GF) (hG := hG) :=
-  k8s_etcd3.wp_Main h_Client__GetAt h_Client__List
+  k8s_etcd3.wp_Main h_Client__List
 
 /-- **`MainCluster` does not panic** (`MainLinked.lean`'s `k8s_etcd3.wp_MainCluster`). -/
 theorem k8setcd3_MainCluster [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [ContextReadErrs (GF := GF) (hG := hG)]
-    (h_Client__GetAt : kubernetes.Client.GetAt.spec (GF := GF) (hG := hG))
     (h_Client__List : kubernetes.Client.List.spec (GF := GF) (hG := hG)) :
     k8s_etcd3.MainCluster.spec (GF := GF) (hG := hG) :=
-  k8s_etcd3.wp_MainCluster h_Client__GetAt h_Client__List
+  k8s_etcd3.wp_MainCluster h_Client__List
 
 /-- **`MainPartition` does not panic** (`MainLinked.lean`'s `k8s_etcd3.wp_MainPartition`). -/
 theorem k8setcd3_MainPartition [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [ContextReadErrs (GF := GF) (hG := hG)]
-    (h_Client__GetAt : kubernetes.Client.GetAt.spec (GF := GF) (hG := hG))
     (h_Client__List : kubernetes.Client.List.spec (GF := GF) (hG := hG)) :
     k8s_etcd3.MainPartition.spec (GF := GF) (hG := hG) :=
-  k8s_etcd3.wp_MainPartition h_Client__GetAt h_Client__List
+  k8s_etcd3.wp_MainPartition h_Client__List
 
 end results
 
@@ -124,8 +122,6 @@ theorem k8s_etcd3_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC k8setcd3GF, ContextReadErrs (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
-    (HGetAt : ∀ hG : HeapGS .hasLC k8setcd3GF,
-      kubernetes.Client.GetAt.spec (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
     (HList : ∀ hG : HeapGS .hasLC k8setcd3GF,
       kubernetes.Client.List.spec (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
     (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
@@ -152,7 +148,7 @@ theorem k8s_etcd3_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #(go!"Ok") ∨ v = #(go!"Unknown")) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
-  k8s_etcd3_adequate Hctx HGetAt HList id ctxs boot Hbf Hck Haf Hbuq Hrf Hdbo clients ops Hc0 Hc31 Hops
+  k8s_etcd3_adequate Hctx HList id ctxs boot Hbf Hck Haf Hbuq Hrf Hdbo clients ops Hc0 Hc31 Hops
     Hmul HNs HAs HDs HEnv n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
 
@@ -167,8 +163,6 @@ theorem k8s_etcd3_cluster_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC k8setcd3GF, ContextReadErrs (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
-    (HGetAt : ∀ hG : HeapGS .hasLC k8setcd3GF,
-      kubernetes.Client.GetAt.spec (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
     (HList : ∀ hG : HeapGS .hasLC k8setcd3GF,
       kubernetes.Client.List.spec (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
     (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
@@ -195,7 +189,7 @@ theorem k8s_etcd3_cluster_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #(go!"Ok") ∨ v = #(go!"Unknown")) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
-  k8s_etcd3_cluster_adequate Hctx HGetAt HList id₁ id₂ id₃ ps ctxs boot Hbf Hck Haf Hbuq Hrf Hdbo clients ops
+  k8s_etcd3_cluster_adequate Hctx HList id₁ id₂ id₃ ps ctxs boot Hbf Hck Haf Hbuq Hrf Hdbo clients ops
     Hc0 Hc31 Hops Hmul HNs HAs HDs HEnv n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
 /-- **The Kubernetes etcd3 store's linearizability instance over three members under any partition
@@ -210,8 +204,6 @@ theorem k8s_etcd3_partition_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC k8setcd3GF, ContextReadErrs (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
-    (HGetAt : ∀ hG : HeapGS .hasLC k8setcd3GF,
-      kubernetes.Client.GetAt.spec (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
     (HList : ∀ hG : HeapGS .hasLC k8setcd3GF,
       kubernetes.Client.List.spec (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
     (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
@@ -240,7 +232,7 @@ theorem k8s_etcd3_partition_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #(go!"Ok") ∨ v = #(go!"Unknown")) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
-  k8s_etcd3_partition_adequate Hctx HGetAt HList id₁ id₂ id₃ ps ctxs boot Hbf Hck Haf Hbuq Hrf Hdbo clients ops
+  k8s_etcd3_partition_adequate Hctx HList id₁ id₂ id₃ ps ctxs boot Hbf Hck Haf Hbuq Hrf Hdbo clients ops
     Hc0 Hc31 Hops Hmul steps Hsteps HNs HAs HDs HEnv n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2
     Hsteps' Hn
 

@@ -5,7 +5,8 @@ prefix)` from the continue key (or the prefix) at `opts.Revision` (`0`: the late
 `opts.Limit`, through `New`'s client of the members, with a read update or none at each member.
 The answer is about the state `σ` the update fired at: its revision is the response's, the page
 of `σ`'s store at the read revision (`listRespIs`; the `Kvs` slice owned: `appendChunk` writes it);
-an error is the client's, with the future-revision soundness (`rangeErrSound`). The continue key is
+an error is the client's, with the future-revision soundness (`rangeErrSound`) for a non-empty
+prefix on members that refuse no request (`noRefusalAt`; k8s 7e-1). The continue key is
 none or has the prefix (review of 2026-11-10, which refuted the statement without this premise: the
 client reads the raw range `[Continue, GetPrefixRangeEnd prefix)`, so a key below the prefix returns
 and counts keys outside it; the store's continue keys are `DecodeContinue`'s `keyPrefix ++ ...` and
@@ -19,7 +20,8 @@ moves down. Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Proof.k8s_io.apiserver.pkg.storage.etcd3.ListDefs
+public import Proof.go_etcd_io.etcd.client.v3.kubernetes.Defs
+public import GeneratedProof.go_etcd_io.etcd.client.v3.kubernetes
 
 @[expose] public section
 
@@ -60,7 +62,8 @@ abbrev Client.List.spec : Prop :=
         listRespIs resp σ pfx true opts.Revision' opts.Limit'
           (if opts.Continue' = [] then pfx else opts.Continue')) ∨
       (⌜err ≠ GoInterface.nil⌝ ∗ ⌜clientErr err⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗
-        go_etcd_io.etcd.cache.v3.errCellOk err ∗ rangeErrSound opts.Revision' Q err) }}
+        go_etcd_io.etcd.cache.v3.errCellOk err ∗
+        (⌜pfx ≠ [] ∧ ∀ x ∈ ms, noRefusalAt x.addr⌝ → rangeErrSound opts.Revision' Q err)) }}
 
 end spec
 

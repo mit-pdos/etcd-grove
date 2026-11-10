@@ -21,6 +21,7 @@ public import Spec.k8s_io.apiserver.pkg.audit.GetAuditIDTruncated
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker__Record
 public import Spec.go_etcd_io.etcd.client.v3.kubernetes.Client__Get
 public import Perennial.Proof.time.Link
+public import Proof.go_etcd_io.etcd.client.v3.kubernetes.GetLatest
 
 @[expose] public section
 
@@ -116,7 +117,7 @@ theorem store.Get.wp_proof
     (m := go!"Get")]
   wp_call
   (try wp_auto)
-  wp_apply (wp_kGet (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
+  wp_apply (kubernetes.Client.Get.latest wp_kGet (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty) #c.kc))
       c.ms c.V ci' cd (c.pathPrefix ++ k) (zero_val _) Q rfl) $$ [Hau]
     as %resp %gerr Hget

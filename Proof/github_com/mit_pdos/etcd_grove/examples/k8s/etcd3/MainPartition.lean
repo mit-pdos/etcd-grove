@@ -357,7 +357,10 @@ theorem MainPartition.wp_proof
     iexact Hsr
   ihave #Hinvs := kInvs_of_same γ c g0s ρ₁.rd.kv ms hsame $$ Hinv
   wp_apply (wp_Check γ sp c g0s st0 h0 hs clients ops (W64 0) rfl rfl rfl rfl rfl hAs hse hpl
-      (by omega) (by simp [c, ms]) (by omega) H0 H31 Hops Hmul
+      (by omega)
+      (by intro y hy; apply hnr; simp only [c, ms, List.mem_cons, List.not_mem_nil, _root_.or_false] at hy
+          rcases hy with rfl | rfl | rfl <;> simp [cluster3.bridges])
+      (by simp [c, ms]) (by omega) H0 H31 Hops Hmul
       (by rw [g0s_len, σs2_rev]; show st3.items.length + 3 < _; rw [st3_items]; simp))
     $$ [Hks] as %r %hr
   · iframe #

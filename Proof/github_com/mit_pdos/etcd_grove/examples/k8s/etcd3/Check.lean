@@ -62,7 +62,7 @@ theorem Check.wp_proof
     (wp_Gen : Gen.spec (GF := GF) (hG := hG))
     (wp_Apply : Apply.spec (GF := GF) (hG := hG)) :
     Check.spec (GF := GF) (hG := hG) := by
-  intro _ _ _ γ sp c g0 s0 hsl hs clients ops dur hc hpfx hrp hdi hvi hAs hse hpl htb hne Hrb H0
+  intro _ _ _ γ sp c g0 s0 hsl hs clients ops dur hc hpfx hrp hdi hvi hAs hse hpl htb hnr hne Hrb H0
     H31 Hops Hmul Hg0
   wp_start as ⟨#Hcc, #Hst, #Hrs, #Hinvs, Hks, #Hs0, #Hsl, #Hhs⟩
   wp_auto
@@ -70,7 +70,7 @@ theorem Check.wp_proof
   (try wp_auto)
   ipersist s
   ipersist tbl
-  ihave #HA := (wp_Apply γ sp tbl c g0 hc hpfx hrp hdi hvi hAs hse hpl htb) $$ Hpkg Hpkg2 Hst Hinvs
+  ihave #HA := (wp_Apply γ sp tbl c g0 hc hpfx hrp hdi hvi hAs hse hpl htb hnr) $$ Hpkg Hpkg2 Hst Hinvs
     %hne Htbl Hrs
   wp_apply wp_Model s0 hsl hs g0 $$ [] as %m ⟨%Hp, #Hinit, %Hsc, #Hstep, #Heh⟩
   · iframe #

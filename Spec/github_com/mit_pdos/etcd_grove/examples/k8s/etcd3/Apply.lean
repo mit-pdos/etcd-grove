@@ -54,7 +54,7 @@ abbrev Apply.spec : Prop :=
   c.S = driverSpec → c.pathPrefix = go!"/registry" → c.resourcePrefix = go!"/objs" →
   c.di = decoderI → c.vi = versionerI →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty → storageErrTyOk →
-  clientErrPlain (sem := sem) → threadBound GF ≤ 2 ^ 30 - 1 →
+  clientErrPlain (sem := sem) → threadBound GF ≤ 2 ^ 30 - 1 → (∀ x ∈ c.ms, noRefusalAt x.addr) →
   ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 -∗
     isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 -∗
     k8s.isStore sp c -∗ ([∗list] sv ∈ c.ms, kInv γ c g0 sv.γr.kv) -∗ ⌜c.ms ≠ []⌝ -∗

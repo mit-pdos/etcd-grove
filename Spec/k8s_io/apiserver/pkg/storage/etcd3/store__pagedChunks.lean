@@ -40,6 +40,7 @@ abbrev store.pagedChunks.spec : Prop :=
     (c.pathPrefix ++ k).length ≤ opKeyMax) →
   (∀ R σ, Q R σ ⊢ ⌜kvWf c σ ∧ kvWfHist c σ ∧ kvKeysShort σ⌝) →
   (∀ R σ σ', Q R σ ∗ P σ σ' ⊢ ⌜kvSameHist σ σ' ∧ σ.rev ≤ σ'.rev⌝) →
+  kp ≠ [] → (∀ x ∈ c.ms, noRefusalAt x.addr) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isStore sp c ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ }}
     (App (App (App (App (App (App (Val (sp @!! go.GoType.PointerType

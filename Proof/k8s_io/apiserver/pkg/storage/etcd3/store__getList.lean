@@ -8,7 +8,7 @@ public import Spec.k8s_io.apiserver.pkg.storage.etcd3.store__getList
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.store__getResourceSizeEstimator
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.metrics.RecordEtcdRequest
 public import Spec.go_etcd_io.etcd.client.v3.kubernetes.Client__List
-public import Spec.go_etcd_io.etcd.client.v3.kubernetes.Client__GetAt
+public import Spec.go_etcd_io.etcd.client.v3.kubernetes.Client__Get
 
 @[expose] public section
 
@@ -32,11 +32,11 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 theorem store.getList.wp_proof
     (wp_kList : kubernetes.Client.List.spec (GF := GF) (hG := hG))
-    (wp_kGetAt : kubernetes.Client.GetAt.spec (GF := GF) (hG := hG))
+    (wp_kGet : kubernetes.Client.Get.spec (GF := GF) (hG := hG))
     (wp_RecordEtcdRequest : metrics.RecordEtcdRequest.spec (GF := GF) (hG := hG))
     (wp_rse : store.getResourceSizeEstimator.spec (GF := GF) (hG := hG)) :
     store.getList.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ sp c ci cd kp recur lo Q hkp hct hrev hlim hrc hcp
+  intro _ _ Obj _ sp c ci cd kp recur lo Q hkp hct hrev hlim hrc hcp hkne hnr
   wp_start as ⟨#Hst, #Hctx, #Hce, Htt, %htb, HQ⟩
   ihave Hst' := Hst
   iunfold isStore at Hst'
@@ -65,13 +65,14 @@ theorem store.getList.wp_proof
       (m := go!"Get")]
     wp_call
     (try wp_auto)
-    wp_apply (wp_kGetAt (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
+    wp_apply (wp_kGet (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty) #c.kc))
-        c.ms c.V ci cd kp (go_etcd_io.etcd.client.v3.kubernetes.GetOptions.mk lo.Revision') Q hkp
-        hrev) $$ [HQ]
+        c.ms c.V ci cd kp (go_etcd_io.etcd.client.v3.kubernetes.GetOptions.mk lo.Revision')
+        (fun R _ σ => Q R σ) hrev hkp) $$ [HQ]
       as %gresp %gerr Hget
     · iframe #
-      iexact HQ
+      iintro %R %m
+      iapply HQ
     (try wp_auto)
     icases (k8s_io.apiserver.pkg.storage.etcd3.statusErrOk_split gerr _ _ _) $$ Hget with ⟨#Hse, Hget⟩
     wp_apply (wp_RecordEtcdRequest go!"get" c.gr _ _ (by decide) Hutf.1 Hutf.2) $$ []
@@ -135,9 +136,22 @@ theorem store.getList.wp_proof
         · iright
           isplitr
           · ipureintro; exact Hge
+          have hg := And.intro hkne hnr
+          ihave #Hrs1 := Hrs $$ %hg
+          ihave #Hrs2 : rangeErrSound lo.Revision' Q gerr $$ []
+          · iunfold rangeErrSound at Hrs1
+            iunfold rangeErrSound
+            imodintro
+            iintro %Hd
+            ihave Hx := Hrs1 $$ %Hd
+            icases Hx with ⟨%R, %σ, #HQ', %Hlt⟩
+            icases HQ' with ⟨%m, #HQm⟩
+            iexists R, σ
+            iframe HQm
+            ipureintro; exact Hlt
           iunfold readErrIs
           iunfold kClientErr
-          iunfold rangeErrSound at Hrs
+          iunfold rangeErrSound at Hrs2
           iframe #
           ipureintro; exact ⟨Hge, Hce'⟩)
   · -- recursive: `List`
@@ -174,9 +188,11 @@ theorem store.getList.wp_proof
       · iright
         isplitr
         · ipureintro; exact Hle
+        have hg := And.intro hkne hnr
+        ihave #Hrs2 := Hrs $$ %hg
         iunfold readErrIs
         iunfold kClientErr
-        iunfold rangeErrSound at Hrs
+        iunfold rangeErrSound at Hrs2
         iframe #
         ipureintro; exact ⟨Hle, Hce'⟩)
 

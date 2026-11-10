@@ -105,11 +105,10 @@ etcd3_store__Create: @
 etcd3_store__Delete: @
 etcd3_store__GuaranteedUpdate: @
 etcd3_store__Get: @
-# (stage 7e-4) the decided pending hypotheses: the client's List and GetAt (7c-3's), which the
-# store's GetList result takes
-Client__GetAt: ?
+# (stage 7e-4) the decided pending hypothesis: the client's List (7e-1's), which the store's
+# GetList result takes
 Client__List: ?
-etcd3_store__GetList: @ Client__GetAt Client__List
+etcd3_store__GetList: @ Client__List
 IsTooLargeResourceVersion: @
 # the trust boundary (stage 7e-2): the list contract's apimachinery and reflect functions (axioms)
 meta_GetItemsPtr:

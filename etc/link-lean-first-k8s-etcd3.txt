@@ -130,11 +130,11 @@ NewCompactor: compactor__runCompactLoop compactor__runWatchLoop
 StartCompactorPerEndpoint: NewCompactor Client__Endpoints v2_V Verbose__Infof
 #
 # (stage 7e-2, notes/k8s-7e-2-draft.md) the paginated list path, GetList. Pending (`?`): the
-# kubernetes client's List and its Get at a revision (hypotheses until 7e-1/7c-3, never axioms).
+# kubernetes client's List (a hypothesis until 7e-1, never an axiom; its Get at a revision is
+# `Client.Get`'s since 7e-1).
 # 7e-2's new trusted specs (the Draft's §5) and reflect.Kind's comparison
 # (`Spec/reflect/KindCompare.lean`): axioms, after etcd-grove-81's review (2026-11-10)
 Client__List: ?
-Client__GetAt: ?
 reflect_KindCompare:
 reflect_Value__Kind:
 reflect_Value__Len:
@@ -174,7 +174,7 @@ store__processListItem: reflect_ValueOf reflect_Value__Set
 store__appendChunk: store__processListItem growSlice reflect_Value__Len
 store__finalizeList: reflect_Value__IsNil reflect_Value__Type reflect_Value__Set SelectionPredicate__SetShardInfoOnList
 store__getResourceSizeEstimator:
-store__getList: Client__List Client__GetAt RecordEtcdRequest store__getResourceSizeEstimator
+store__getList: Client__List Client__Get RecordEtcdRequest store__getResourceSizeEstimator
 interpretListError: NewResourceExpired
 store__listReadError: interpretListError store__GetCurrentResourceVersion NewTooLargeResourceVersionError errors_IsStatusErr
 store__pagedChunks: store__getList store__listReadError

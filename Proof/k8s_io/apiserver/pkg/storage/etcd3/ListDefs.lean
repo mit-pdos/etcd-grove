@@ -40,11 +40,6 @@ section pure
 variable [GooseExts]
 variable {Obj : Type}
 
-/-- **A list's scope** (`store.go:1081-1100`): recursive, the keys under the prepared prefix `kp`
-(`kubernetes.Client.List`'s range `[kp, GetPrefixRangeEnd kp)`, `client.go:59-73`); not recursive,
-the key `kp` itself (`kubernetes.Client.Get`, `client.go:47-57`). -/
-def kInScope (kp : GoString) (recur : Bool) (k : GoString) : Bool :=
-  if recur then decide (kp <+: k) else decide (k = kp)
 
 /-- **The store's list over the store `s` at the list's revision**: the key-values of the scope in
 key order, each decoded by `dec` (`ObjSpec.dec`) with its mod revision, through 7e-3a's loop
@@ -55,9 +50,6 @@ def kListL (dec : Dec Obj) (sel : Obj → Bool) (lim : Nat) (kp : GoString) (rec
   k8s_etcd3.ListModel.loop (fun x => sel x.1) lim
     ((s.kvs.filter fun v => kInScope kp recur v.key).filterMap fun v =>
       (dec v.value).map fun d => (v.key, (d.1, sint.nat v.modRev)))
-
-/-- A list's limit as a count (`opts.Predicate.Limit`; none for `≤ 0`). -/
-def limN (l : w64) : Nat := if 0 < sint.Z l then sint.nat l else 0
 
 /-- **Two states of one history**: the same base and compaction revision, one's changes a prefix
 of the other's (so they agree at every revision both keep: `kvSameHist_at`). -/
@@ -330,18 +322,6 @@ theorem kClientErr_unkErr (c : StoreCfg GF Obj) (err : GoInterface) :
   iintro ⟨%h, #Hs, #Hc⟩
   iapply (unkErr_client c err h.1 h.2) $$ Hc Hs
 
-/-- **A range error's future-revision soundness** (B4, decided by etcd-grove-81: the future half
-only): an error whose description is `ErrFutureRev`'s (`errDesc`, D29) means the state the read's
-update fired at is below the revision `o` asked, whatever revision `R` the update was made for
-(7e-1's R1: the client makes its update for the prophesied response revision, never resolved on an
-error, so `R` is unrelated to `σ.rev`). What `Client.List`/`Client.Get` give. -/
-def rangeErrSound (o : w64) (Q : w64 → KVState → IProp GF) (err : GoInterface) : IProp GF :=
-  iprop(□ (⌜go_etcd_io.etcd.cache.v3.errDesc err = go_etcd_io.etcd.cache.v3.futureRevDesc⌝ -∗
-      ∃ (R : w64) (σ : KVState), □ Q R σ ∗ ⌜σ.rev < sint.nat o⌝))
-
-instance rangeErrSound_persistent o Q err : Persistent (rangeErrSound (GF := GF) o Q err) := by
-  unfold rangeErrSound; infer_instance
-
 /-- **A failed read's error** (Draft §3.5): the client's error (`kClientErr`, so `unkErr`; D1), and,
 by its description (`errDesc`, D29), a future revision only if the state `Q` fired at (for some
 revision argument `R`, R1) is below `rev` (`rangeErrSound`'s future half). -/
@@ -354,60 +334,6 @@ def readErrIs (c : StoreCfg GF Obj) (rev : w64) (Q : w64 → KVState → IProp G
 instance readErrIs_persistent (c : StoreCfg GF Obj) rev Q err :
     Persistent (readErrIs c rev Q err) := by
   unfold readErrIs; infer_instance
-
-/-- **A page of a list read** (Draft §3.5) in the store `s`, from `start` with limit `l`: the first
-`l` key-values of the scope from `start` (all for `l = 0`), and the count of the scope from
-`start`. -/
-def pageKvsL (s : KVStore) (kp : GoString) (recur : Bool) (start : GoString) (l : Nat) :
-    List EtcdKv × Nat :=
-  let sc := s.kvs.filter fun v => kInScope kp recur v.key && !decide (go.GoStringLt v.key start)
-  (if l = 0 then sc else sc.take l, sc.length)
-
-/-- In a key-sorted list (`KVStore.kvs_sorted`), the key-values of the key `k` are the one
-`findKey` finds, or none. -/
-theorem filter_key_eq_findKey (k : GoString) :
-    ∀ (s : List EtcdKv), s.Pairwise etcdKvLess →
-      s.filter (fun v => decide (v.key = k)) = (mvcc.findKey k s).toList
-  | [], _ => by simp [mvcc.findKey]
-  | w :: ws, hs => by
-    rw [List.pairwise_cons] at hs
-    rw [findKey_cons]
-    by_cases hw : w.key = k
-    · have hnil : ws.filter (fun v => decide (v.key = k)) = [] := by
-        rw [List.filter_eq_nil_iff]
-        intro y hy hyk
-        have hlt := hs.1 y hy
-        unfold etcdKvLess at hlt
-        simp only [decide_eq_true_eq] at hyk
-        rw [hw, hyk] at hlt
-        exact go.goStringLt_irrefl _ hlt
-      simp [hw, hnil]
-    · simp only [List.filter_cons, hw, decide_false, Bool.false_eq_true, ↓reduceIte]
-      exact filter_key_eq_findKey k ws hs.2
-
-/-- **A non-recursive list's page** (`getList`'s `Get` branch, from the key itself with `Count` at
-most one): the key's key-value in the store, or none. -/
-theorem pageKvsL_key (s : KVStore) (kp : GoString) :
-    pageKvsL s kp false kp 1 =
-      ((mvcc.findKey kp s.kvs).toList, (mvcc.findKey kp s.kvs).toList.length) := by
-  have hf : s.kvs.filter (fun v => kInScope kp false v.key && !decide (go.GoStringLt v.key kp)) =
-      s.kvs.filter (fun v => decide (v.key = kp)) := by
-    apply List.filter_congr
-    intro v _
-    by_cases hv : v.key = kp
-    · simp [kInScope, hv, go.goStringLt_irrefl]
-    · simp [kInScope, hv]
-  unfold pageKvsL
-  simp only [hf, filter_key_eq_findKey kp s.kvs (KVStore.kvs_sorted s)]
-  cases mvcc.findKey kp s.kvs <;> rfl
-
-/-- `getList`'s answer (Draft §3.5): a page of `σ`'s store at `σ.readRev rev`, the response's
-revision `σ`'s. -/
-def listRespIs (resp : go_etcd_io.etcd.client.v3.kubernetes.ListResponse) (σ : KVState)
-    (kp : GoString) (recur : Bool) (rev lim : w64) (start : GoString) : IProp GF :=
-  let pg := pageKvsL (σ.at (σ.readRev rev)) kp recur start (if recur then limN lim else 1)
-  iprop(⌜resp.Revision' = W64 (σ.rev : Int) ∧ resp.Count' = W64 (pg.2 : Int)⌝ ∗
-    ∃ ps, resp.Kvs' ↦* ps ∗ [∗list] q;kv ∈ ps;pg.1, txn.kvIs q kv)
 
 /-- **The pages** (Draft §3.5): page `0` reads from `kp` with limit `lim0`; page `i + 1` from page
 `i`'s last key and `"\x00"` (`store.go:903`), with the limit doubled up to `maxLimit` (10000,

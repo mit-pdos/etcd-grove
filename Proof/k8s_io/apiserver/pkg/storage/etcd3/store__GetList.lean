@@ -107,7 +107,7 @@ theorem store.GetList.wp_proof
     (wp_GetAuditIDTruncated : audit.GetAuditIDTruncated.spec (GF := GF) (hG := hG)) :
     store.GetList.spec (GF := GF) (hG := hG) := by
   have hKind : go.IsStrictlyComparable _root_.Perennial.reflect.Kind.underlying w64 := wp_KindCompare
-  intro _ _ Obj _ sp c L ci cd key opts lx rv0 cont0 rem0 k n sel emp Q P hQ hP
+  intro _ _ Obj _ sp c L ci cd key opts lx rv0 cont0 rem0 k n sel emp Q P hQ hP hnr
   wp_start as ⟨#Hst, %Hpre, #Hsel, #Hlc, #Hrs, #Hctx, #Hce, #Hnd, Htt, %htb, Hlx, HQ, #HP⟩
   obtain ⟨hk, hkl, hrv, hmatch, hcont, hn63, hlim⟩ := Hpre
   ihave #Hst0 := Hst
@@ -238,7 +238,7 @@ theorem store.GetList.wp_proof
     have := (prepareKeyM_prefix c.pathPrefix c.resourcePrefix key k opts.Recursive' hk).length_le
     omega
   wp_apply (wp_pagedChunks Obj sp c ci' cd (c.pathPrefix ++ k) opts _ _ Q P hkl hrev0 hlim hcont
-      hrk hQ hP) $$ [] as %chf Hpages
+      hrk hQ hP (by have := prepareKeyM_ne_nil _ _ _ _ hk; simp [this]) hnr) $$ [] as %chf Hpages
   · iframe #
     ipureintro; exact htb
   (try wp_auto)

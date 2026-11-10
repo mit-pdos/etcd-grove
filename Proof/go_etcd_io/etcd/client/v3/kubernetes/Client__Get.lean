@@ -3,7 +3,9 @@ Lean-first (no Rocq counterpart).
 
 The proof of `kubernetes.Client.Get`: the options `[WithRev(0), WithLimit(1)]`, then
 `client_range_any` through the client's `*kv` (as linkvtxn's `client_Get_st`), and the response's
-`KV` from the selection (`srvRangeOk_getKey1`; not `nil`: `kvIs_ne_null`). The prophecy
+`KV` from the selection at the revision read (`rangeReply_state_at`, `srvRangeOk_getKey1`; not `nil`:
+`kvIs_ne_null`); an error's future-revision soundness from `client_range_any`'s `rangeErrOut`
+(`rangeErrReply_future`; k8s 7e-1). The prophecy
 (`NewProph`, then the two `ResolveU64`s) is of the response's revision and the key's mod
 revision: the read update used is `Q` at the prophesied pair, which the resolutions show is the
 response's.
@@ -63,7 +65,7 @@ theorem Client.Get.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
   generalize hsl : slice.mk sl _ _ = optsSl
   have hfs : [f1, zero_val GoFunc].set (sint.nat (W64 (0 + 1))) f2 = [f1, f2] := by
     show [f1, zero_val GoFunc].set 1 f2 = [f1, f2]; rfl
-  ihave #Hopts : optsAt optsSl ([withRevM (W64 0), withLimitM (W64 1)] : List (OpFull → OpFull))
+  ihave #Hopts : optsAt optsSl ([withRevM opts.Revision', withLimitM (W64 1)] : List (OpFull → OpFull))
     $$ []
   · iunfold optsAt
     iexists _
@@ -74,7 +76,7 @@ theorem Client.Get.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
     iintro %i %f %g %Hf %Hg
     rw [hfs] at Hf
     rcases i with _ | _ | i
-    · cases Hf; cases Hg; rw [← hrev]; iexact Hf1
+    · cases Hf; cases Hg; iexact Hf1
     · cases Hf; cases Hg; iexact Hf2
     · simp at Hf
   iunfold isNewClient at Hcl
@@ -86,7 +88,7 @@ theorem Client.Get.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
   have hm : ∀ (k : Nat) (x : client.SrvAt GF), ms[k]? = some x →
       iprop(⌜Q = fun _ => iprop(True)⌝ ∨ kvReadAu x.γr.kv Q) ⊢
       iprop(⌜Q = fun _ => iprop(True)⌝ ∨
-        (⌜(rangeWireOf (opGetModel key [withRevM (W64 0), withLimitM (W64 1)])).base.serializable
+        (⌜(rangeWireOf (opGetModel key [withRevM opts.Revision', withLimitM (W64 1)])).base.serializable
             = false⌝ ∗ kvReadAu x.γr.kv Q)) :=
     fun _ _ _ => by
       iintro (%h | #h)
@@ -95,14 +97,14 @@ theorem Client.Get.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
   ihave #Hau' := (BigAndL.bigAndL_mono hm) $$ Hau
   wp_auto
   wp_apply (client.client_range_any api ms (W64 0) ci cd key optsSl
-      [withRevM (W64 0), withLimitM (W64 1)] iprop(True) Q []
+      [withRevM opts.Revision', withLimitM (W64 1)] iprop(True) Q []
       (opSizeOk_opGetModel (K := 2 ^ 27) (E := 0) (V := 0)
         (optsKeep_cons (withRevM_keep _) (optsKeep_cons (withLimitM_keep _) (optsKeep_nil _ _ _)))
         hk (by decide))) $$ []
-    as %resp %err ⟨-, Hout, -⟩
+    as %resp %err ⟨-, Hout, #Heo⟩
   · iframe #
     isplitl []
-    · rw [show (opGetModel key [withRevM (W64 0), withLimitM (W64 1)]).base.sortSet = false
+    · rw [show (opGetModel key [withRevM opts.Revision', withLimitM (W64 1)]).base.sortSet = false
         from rfl]
       iapply sortNamesIf_false
     ipureintro
@@ -111,11 +113,13 @@ theorem Client.Get.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
       | (refine ⟨?_, rfl⟩; unfold opGetPanics opFold OpFull.newOp; simp [withRevM, withLimitM])
   icases Hout with (⟨%Herr, %m, #Hm, %x, %hx, #Hq⟩ | ⟨⟨%Herr, %Hrn⟩, #Hke⟩)
   · subst Herr
-    ihave Hs := client.rangeReply_state_bnd x.E x.γr (W64 0) x.cid x.mid _ [] Q m rfl rfl $$ Hq
+    ihave Hs := rangeReply_state_at x.E x.γr (W64 0) x.cid x.mid _ [] Q m rfl $$ Hq
     icases Hs with ⟨%σ, #HQ, %Hσ⟩
-    obtain ⟨hsel, hrevσ, hb, hvals⟩ := Hσ
-    rw [rangeWireOf_getKey1] at hsel
-    have hkvs := srvRangeOk_getKey1 key σ.kvs m.kvs m.more hsel
+    obtain ⟨hsel, -, hrevσ, hle, hb, hvals⟩ := Hσ
+    rw [rangeWireOf_getKey1] at hsel hle
+    have hbr : (getKey1Op key opts.Revision').base.rev = opts.Revision' := rfl
+    rw [hbr] at hsel hle
+    have hkvs := srvRangeOk_getKey1 key opts.Revision' _ m.kvs m.more hsel
     iunfold rangeRespMsg at Hm
     icases Hm with ⟨%Hnn, %h, %sl2, %ps, #Hh, #Hhf, #Hkvf2, #Hsl2, #Hkvs, #Hmore, #Hcount⟩
     iunfold hdrFull at Hhf
@@ -124,7 +128,7 @@ theorem Client.Get.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
     iunfold txn.kvsIs at Hkvs
     icases Hkvs with ⟨%Hlen, #Hall⟩
     ihave %Hsll := ownSlice_len _ _ _ $$ Hsl2
-    cases hk : mvcc.findKey key σ.kvs with
+    cases hk : mvcc.findKey key (σ.at (σ.readRev opts.Revision')).kvs with
     | none =>
       rw [hk] at hkvs
       have hps : ps = [] := by
@@ -140,7 +144,7 @@ theorem Client.Get.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
         (try wp_auto)
         subst Hx2; subst Hx1; subst hQ
         isimp only [List.getD_cons_zero, List.getD_cons_succ] at HQ
-        have e1 : modAt key σ = W64 0 := by simp [modAt, hk]
+        have e1 : modAtRev key σ opts.Revision' = W64 0 := by simp [modAtRev, hk]
         iapply HΦ
         ileft
         isplitl []
@@ -149,7 +153,7 @@ theorem Client.Get.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
         rw [e1, ← hrevσ]
         iframe HQ
         isplitl []
-        · ipureintro; exact ⟨rfl, hb, hvals⟩
+        · ipureintro; exact ⟨rfl, hle, hb, hvals⟩
         rw [hk]
         simp only [kvOut]
         ipureintro; first | rfl | trivial
@@ -181,7 +185,7 @@ theorem Client.Get.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
           (try wp_auto)
           subst Hx2; subst Hx1; subst hQ
           isimp only [List.getD_cons_zero, List.getD_cons_succ] at HQ
-          have e1 : modAt key σ = v.modRev := by simp [modAt, hk]
+          have e1 : modAtRev key σ opts.Revision' = v.modRev := by simp [modAtRev, hk]
           iapply HΦ
           ileft
           isplitl []
@@ -190,7 +194,7 @@ theorem Client.Get.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
           rw [e1, ← hrevσ]
           iframe HQ
           isplitl []
-          · ipureintro; exact ⟨rfl, hb, hvals⟩
+          · ipureintro; exact ⟨rfl, hle, hb, hvals⟩
           rw [hk]
           iapply kvOut_some
           iexact Hkv
@@ -211,7 +215,39 @@ theorem Client.Get.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
     iframe Hse Hcl
     isplitl []
     · ipureintro; exact Herr
-    ipureintro; exact Hce
+    isplitl []
+    · ipureintro; exact Hce
+    -- the future-revision error's soundness (k8s 7e-1)
+    iintro %Hg
+    iunfold k8s.rangeErrSound
+    imodintro
+    iintro %Hd
+    ihave Ho := Heo $$ %rfl
+    iunfold client.rangeErrOut at Ho
+    have hg2 := And.intro Herr Hg.2
+    ihave Ho2 := Ho $$ %hg2
+    iunfold client.rangeErrΨ at Ho2
+    have hck : v3rpc.rangeCheck
+        (rangeWireOf (opGetModel key [withRevM opts.Revision', withLimitM (W64 1)])) = none := by
+      rw [rangeWireOf_getKey1]; exact rangeCheck_getKey1 key _ Hg.1
+    ihave Ho3 := Ho2 $$ %hck
+    icases Ho3 with ⟨Hf, -⟩
+    ihave Hf2 := Hf $$ %Hd
+    icases Hf2 with ⟨%x, %hx, #Hr⟩
+    ihave Hs := rangeErrReply_future x.E x.γr (W64 0) [] _ Q rfl $$ Hr
+    icases Hs with ⟨%σ, #HQ, %Hσ⟩
+    subst hQ
+    iexists (xs.getD 0 (W64 0)), σ
+    isplitl []
+    · imodintro
+      iexists (xs.getD 1 (W64 0))
+      iexact HQ
+    ipureintro
+    have hbr : (rangeWireOf (opGetModel key [withRevM opts.Revision', withLimitM (W64 1)])).base.rev
+        = opts.Revision' := rfl
+    rw [hbr] at Hσ
+    unfold sint.nat
+    word
 
 end proof
 

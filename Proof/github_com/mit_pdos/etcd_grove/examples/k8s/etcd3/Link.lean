@@ -120,7 +120,6 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.workloadNo
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.workloadVals
 public import Proof.go_uber_org.zap.NewNop
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
-public import Spec.go_etcd_io.etcd.client.v3.kubernetes.Client__GetAt
 public import Spec.go_etcd_io.etcd.client.v3.kubernetes.Client__List
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Link
@@ -601,25 +600,24 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 variable [NaInvG GF]
 variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [ctxDescs : EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
-variable (h_Client__GetAt : EtcdGrove.kubernetes.Client.GetAt.spec (GF := GF) (hG := hG))
 variable (h_Client__List : EtcdGrove.kubernetes.Client.List.spec (GF := GF) (hG := hG))
-include h_Client__GetAt h_Client__List
+include h_Client__List
 
 theorem wp_call :
     EtcdGrove.k8s_etcd3.call.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.call.wp_proof wp_errOut wp_objOut wp_storeKey wp_splitKey wp_preconditions wp_validateFor wp_cachedObj wp_tryUpdateFor k8s.store.wp_Create k8s.store.wp_Delete k8s.store.wp_GuaranteedUpdate k8s.store.wp_Get wp_listOptions wp_listOut (k8s.store.wp_GetList h_Client__GetAt h_Client__List) k8s.storage.SelectionPredicate.wp_Matches k8s.storage.SelectionPredicate.wp_Empty labelSel.wp_Matches labelSel.wp_Empty fieldSel.wp_Matches fieldSel.wp_Empty wp_getAttrs apimeta.wp_GetItemsPtr reflect.wp_MakeSlice reflect.wp_Copy reflect.wp_Append decoder.wp_DecodeListItem versioner.wp_UpdateList
+  EtcdGrove.k8s_etcd3.call.wp_proof wp_errOut wp_objOut wp_storeKey wp_splitKey wp_preconditions wp_validateFor wp_cachedObj wp_tryUpdateFor k8s.store.wp_Create k8s.store.wp_Delete k8s.store.wp_GuaranteedUpdate k8s.store.wp_Get wp_listOptions wp_listOut (k8s.store.wp_GetList h_Client__List) k8s.storage.SelectionPredicate.wp_Matches k8s.storage.SelectionPredicate.wp_Empty labelSel.wp_Matches labelSel.wp_Empty fieldSel.wp_Matches fieldSel.wp_Empty wp_getAttrs apimeta.wp_GetItemsPtr reflect.wp_MakeSlice reflect.wp_Copy reflect.wp_Append decoder.wp_DecodeListItem versioner.wp_UpdateList
 
 theorem wp_Apply :
     EtcdGrove.k8s_etcd3.Apply.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.Apply.wp_proof (wp_call h_Client__GetAt h_Client__List) cache.wp_put wp_objOf
+  EtcdGrove.k8s_etcd3.Apply.wp_proof (wp_call h_Client__List) cache.wp_put wp_objOf
 
 theorem wp_Check :
     EtcdGrove.k8s_etcd3.Check.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.Check.wp_proof lintest.wp_Run lintest.wp_CounterClock wp_Model wp_newCache wp_Gen (wp_Apply h_Client__GetAt h_Client__List)
+  EtcdGrove.k8s_etcd3.Check.wp_proof lintest.wp_Run lintest.wp_CounterClock wp_Model wp_newCache wp_Gen (wp_Apply h_Client__List)
 
 theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.k8s_etcd3.Main.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.Main.wp_proof zap.wp_NewNop etcdstart.wp_StartServer etcdstart.wp_Serve kubernetes.wp_New wp_seed wp_noStreaming k8s.wp_New k8s.wp_NewDefaultLeaseManagerConfig wp_newObj runtime.wp_Encode codec.wp_Encode versioner.wp_UpdateObject versioner.wp_PrepareObjectForStorage versioner.wp_ObjectResourceVersion versioner.wp_ParseResourceVersion identity.wp_TransformFromStorage identity.wp_TransformToStorage decoder.wp_Decode runtime.wp_SetZeroValue Obj.wp_GetUID Obj.wp_GetResourceVersion (wp_Check h_Client__GetAt h_Client__List) mvcc.api.mvccApi_names_nonempty_law_holds
+  EtcdGrove.k8s_etcd3.Main.wp_proof zap.wp_NewNop etcdstart.wp_StartServer etcdstart.wp_Serve kubernetes.wp_New wp_seed wp_noStreaming k8s.wp_New k8s.wp_NewDefaultLeaseManagerConfig wp_newObj runtime.wp_Encode codec.wp_Encode versioner.wp_UpdateObject versioner.wp_PrepareObjectForStorage versioner.wp_ObjectResourceVersion versioner.wp_ParseResourceVersion identity.wp_TransformFromStorage identity.wp_TransformToStorage decoder.wp_Decode runtime.wp_SetZeroValue Obj.wp_GetUID Obj.wp_GetResourceVersion (wp_Check h_Client__List) mvcc.api.mvccApi_names_nonempty_law_holds
 
 end links_pending
 

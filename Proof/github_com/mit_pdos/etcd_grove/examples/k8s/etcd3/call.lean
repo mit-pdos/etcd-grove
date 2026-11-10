@@ -262,7 +262,7 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
     (wp_DecodeListItem : decoder.DecodeListItem.spec (GF := GF) (hG := hG))
     (wp_UpdateList : versioner.UpdateList.spec (GF := GF) (hG := hG)) :
     call.spec (GF := GF) (hG := hG) := by
-  intro _ _ _ sp c eD eU x W _ Φu Q QL PL hc hrp hdi hvi hAs hse hpl htb hkey hpp hx hvl hD1 hQ hQL hQLP
+  intro _ _ _ sp c eD eU x W _ Φu Q QL PL hc hrp hdi hvi hAs hse hpl htb hnr hkey hpp hx hvl hD1 hQ hQL hQLP
   have hkl : (c.pathPrefix ++ storeKeyL x.Key').length ≤ 2 ^ 27 := by
     rw [hpp]; have := wkKeysL_len _ hx.1; simp [mkeyL, storeKeyL]; omega
   wp_start as ⟨#Hst, #HD, #HU, #Hca, #Hrs, Htt, Hpre⟩
@@ -326,7 +326,7 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
       unfold mkeyL at hpp; exact List.append_cancel_right hpp
     have hkk := prepareKeyM_eq _ _ _ _ hk
     wp_apply (wp_GetList DObj sp c driverListSpec context.backgroundCtxVal cd x.ListKey' (listOptsV x)
-        _ 0 [] none k n (selD x) (predEmptyL x) QL PL hQL hQLP) $$ [Hlist Htt HQm] as %err0 ⟨Htt, Hres⟩
+        _ 0 [] none k n (selD x) (predEmptyL x) QL PL hQL hQLP hnr) $$ [Hlist Htt HQm] as %err0 ⟨Htt, Hres⟩
     · rw [hc]
       iframe #
       iframe Htt Hlist HQm

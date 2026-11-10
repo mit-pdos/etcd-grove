@@ -12,6 +12,7 @@ public import Spec.k8s_io.apiserver.pkg.storage.etcd3.store__stateFromEtcdRespon
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.metrics.RecordEtcdRequest
 public import Spec.go_etcd_io.etcd.client.v3.kubernetes.Client__Get
 public import Perennial.Proof.time.Link
+public import Proof.go_etcd_io.etcd.client.v3.kubernetes.GetLatest
 
 @[expose] public section
 
@@ -83,7 +84,7 @@ theorem store.getCurrentState.wp_proof
     (m := go!"Get")]
   wp_call
   (try wp_auto)
-  wp_apply (wp_kGet (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
+  wp_apply (kubernetes.Client.Get.latest wp_kGet (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty) #c.kc))
       c.ms c.V ci cd key (zero_val _) R rfl) $$ [Hmk]
     as %resp %gerr Hget

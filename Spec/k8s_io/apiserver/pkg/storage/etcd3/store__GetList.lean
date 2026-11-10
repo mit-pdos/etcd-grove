@@ -44,6 +44,7 @@ abbrev store.GetList.spec : Prop :=
     (Q : w64 → KVState → IProp GF) (P : KVState → KVState → IProp GF),
   (∀ R σ, Q R σ ⊢ ⌜kvWf c σ ∧ kvWfHist c σ ∧ kvKeysShort σ⌝) →
   (∀ R σ σ', Q R σ ∗ P σ σ' ⊢ ⌜kvSameHist σ σ' ∧ σ.rev ≤ σ'.rev⌝) →
+  (∀ x ∈ c.ms, noRefusalAt x.addr) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isStore sp c ∗
       ⌜prepareKeyM c.resourcePrefix key opts.Recursive' = some k ∧
         (c.pathPrefix ++ k).length ≤ opKeyMax ∧ c.S.parseRV opts.ResourceVersion' = some n ∧

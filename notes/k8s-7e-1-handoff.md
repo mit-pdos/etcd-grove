@@ -374,3 +374,40 @@ passed explicitly (`(fun _ => iprop(True))`), or `unfold doRunGen` fails on the 
    `rangeAns_st`'s revision lemmas (KVService.lean ~1810: `hRR`, `hRle`, `kvStateOf_at_kvs`) without
    `srvLogCert_logOk`: no `receiptBound` expected (if needed: STOP).
 3. §3.2, step 6 as listed above (merge lean first: premise-fixes-4, premise-fixes-5).
+
+## Eleventh session (2026-11-10): step 4 (kubernetes half), §3.1 done; §3.2 patch done; STOP on owned `Kvs`
+
+Decision recorded (questions.md): `Client.Get`/`List` take `key ≠ []` for the error outcome (built as a
+guard in the post, see the forms in questions.md, "eleventh session").
+
+Done (forms in questions.md):
+- `Client.Get.spec` at any revision (`modAtRev`), error branch gains `(⌜key ≠ [] ∧ ∀ x ∈ ms,
+  noRefusalAt x.addr⌝ → rangeErrSound opts.Revision' (fun R σ => ∃ m, Q R m σ) err)`; proof via
+  `rangeReply_state_at` (no `receiptBound`: the log facts come from `rangeReplyOk`), `client_range_any`'s
+  `rangeErrOut`, `rangeCheck_getKey1`, `rangeErrReply_future` (all in `kubernetes/Defs.lean`).
+- `Client__GetAt.lean` deleted; `store.getList` on `Client.Get.spec`; the three revision-0 store
+  callers through `Client.Get.latest` (`kubernetes/GetLatest.lean`, the old statement derived).
+- `Client.List.spec`'s error branch guarded the same way (`pfx ≠ []`).
+- `noRefusalAt` threaded: `getList`/`pagedChunks` (+ `kp ≠ []`), `GetList`, driver `call`/`Apply`/`Check`;
+  Mains discharge it (`hnr`, `Hnr`). `HGetAt` gone from MainLinked/Results/Adequacy; links regenerated
+  (`--k8s-etcd3`, `--k8setcd3`).
+- List vocabulary moved down to `kubernetes/Defs.lean` (namespace `k8s` kept).
+- `etc/proph-patches/etcd/02-client-list-revision.patch`; `etc/proph_patch.py --project etcd` passes;
+  `etc/goose.py --project etcd` re-translated `Code/go_etcd_io/etcd/client/v3/kubernetes.lean`.
+
+### STOP (for etcd-grove-81): an owned `Kvs` needs a trusted change
+
+`listRespIs` asks `resp.Kvs' ↦* ps` (the store's `appendChunk` writes `kvs[i] = nil`, `store.go:1074`).
+The reply reaches the client only as `Rep.recv out m'` (`grpcInvokerOk`'s success post,
+`InvGrpc.lean:1323`, trusted), which `ProtoMsg.recv_persistent` makes persistent, and
+`ProtoMsgT.RepSat` (trusted definition, `InvGrpc.lean:733`) yields only `T.recv l m`; the client's
+`pbRangeResponseT_repSat` persists the decoded `Kvs` slice (`ownSlice_persist`, `PerTypeKV.lean:~290`).
+So no proved statement can hand out the slice owned. Options in the report.
+
+### Next, in order (after 81's decision)
+
+1. The owned-`Kvs` route 81 picks; then the `Client.List` proof (`client_range_any` with
+   `[withRangeM (prefixRangeEnd pfx), withLimitM lim, withRevM rev]`, `rangeReply_state_at`, new pure
+   `srvRangeOk_page`), `Client__List: ?` out of both link files, `HList` out of MainLinked/Results/Adequacy.
+2. Drop `clientErrPlain` from the driver's `call`/`Apply`/`Check`/`Main*` (step 6).
+3. Merge lean (premise-fixes-4, -5 if landed), step 6 (Freeze).
