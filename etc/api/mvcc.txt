@@ -92,6 +92,7 @@ importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.M2StorageDraftIndex
 importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.M2StorageDraftRestore
 importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.M2StorageDraftSealed
 importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.PlainRWMutex
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewStoreSess
 importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ReaderSpecs
 importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreChunks
 importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreCut

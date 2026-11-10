@@ -17,73 +17,96 @@ theorem mvcc.NewStore.wp_proof [go_etcd_io.etcd.cache.v3.Assumptions] (hNop : za
     mvcc.store.restore.spec) : mvcc.NewStore.spec
   -- `Perennial.EtcdGrove.mvcc.NewStore.spec`, unfolded:
   ∀ [ReceiptBoundLe GF (2 ^ 48)] (lg : Loc) (b le : GoInterface)
-    (cfg : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig) (kb : Option mvcc.KBReal) (γb γl : GName) (P : IProp GF)
-    (f : val) (rd0 : GoFunc) (wq : Bool) (γi : mvcc.IdxNames) (γok : GName) (Perm : Int → IProp GF),
-    mvcc.batchLimitOk cfg.CompactionBatchLimit' →
-      ⊢
-        ∀ Φ,
-          isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-              (∀ s γ, ⌜γ.bucket = γb ∧ γ.kb = kb ∧ γ.idx = γi⌝ → mvcc.storeBackend b s γ P) ∗
-                mvcc.kbView kb γb 1 ∅ ∗
-                  mvcc.kbNoCmp kb γb ∗
-                    mvcc.kbNoDelOff kb ∗
-                      mvcc.kbRegRight kb ∗
-                        mvcc.kbWT kb ∗
-                          mvcc.kbWT kb ∗
-                            mvcc.kbSRM kb ∗
-                              ([∗list] _x ∈ List.replicate mvcc.nReaders (), mvcc.kbRT kb) ∗
-                                lease.lessorRdOf γl ∗
-                                  mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 ∗ mvcc.idxFresh γi ∗ ghostMapAuth γok 1 ∅ -∗
-            (▷
-                ∀ s,
-                  (∃ γ,
-                      ⌜γ.bucket = γb ∧
-                            γ.leases = γl ∧
-                              γ.kb = kb ∧ γ.watchQ = wq ∧ γ.idx = γi ∧ γ.cok = γok ∧ γ.cm = decide (mvcc.kbCmpM kb)⌝ ∗
-                        mvcc.isStore s γ ∗
-                          (∃ rd,
-                              lease.rdOwn γl rd ∗
-                                mvcc.rdCalls rd go_etcd_io.etcd.server.v3.storage.mvcc.store.ty.PointerType (intoVal s)) ∗
-                            ghostMapAuth γ.cok 1 ∅ ∗
-                              mvcc.hookInit γ P f ∗
-                                (∃ rv wv,
-                                    typedPointsto
-                                        (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.store
-                                          go!"ReadView" s)
-                                        (interface.mkOk go_etcd_io.etcd.server.v3.storage.mvcc.readView.ty.PointerType
-                                          (intoVal rv))
-                                        (DFrac.own 1) ∗
-                                      mvcc.isReadView rv s γ ∗
-                                        typedPointsto
-                                            (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.store
-                                              go!"WriteView" s)
-                                            (interface.mkOk
-                                              go_etcd_io.etcd.server.v3.storage.mvcc.writeView.ty.PointerType
-                                              (intoVal wv))
-                                            (DFrac.own 1) ∗
-                                          mvcc.isWriteView wv s γ) ∗
-                                  ([∗list] _x ∈ List.replicate (mvcc.nReaders - mvcc.nJobRd kb) (),
-                                      mvcc.storeReaderC s γ) ∗
-                                    mvcc.idxCert γ.idx [[], []] ∗
-                                      (if wq = true then mvcc.logQ γ [[], []] else True) ∗
-                                        mvcc.storeCloser s γ ∗
+    (cfg : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig) (d : mvcc.KBReal) (γb γl : GName) (P : IProp GF)
+    (rd0 : GoFunc) (wq : Bool) (γi : mvcc.IdxNames) (γok : GName) (M : GMap w64 mvcc.Log) (Perm : Int → IProp GF)
+    (R : mvcc.Log) (r : mvcc.CmpRecs) (Ls : List w64) (hk : Option val) (Pre Q Post X Y : IProp GF) (dq : DFrac),
+    ⊢
+      ∀ Φ,
+        (⌜mvcc.batchLimitOk cfg.CompactionBatchLimit' ∧ mvcc.restoreLogOk R⌝ ∗
+            isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+              (∀ s γ, ⌜γ.bucket = γb ∧ γ.kb = some d ∧ γ.idx = γi⌝ → mvcc.storeSessT b s γ P) ∗
+                (∀ s γ,
+                    ⌜γ.bucket = γb ∧ γ.kb = some d ∧ γ.idx = γi⌝ →
+                      mvcc.restoreFixM d γ -∗ mvcc.storeBackendTR b s γ P r) ∗
+                  (∀ γ,
+                      ⌜γ.bucket = γb ∧ γ.kb = some d ∧ γ.idx = γi⌝ →
+                        mvcc.keyCleanReadR b (mvcc.bucketViewC γ) iprop(mvcc.storeRT γ ∗ mvcc.restoreRegM d)
+                          (mvcc.kbRecs γ.kb γ.bucket r) r) ∗
+                    mvcc.restoreRegM d ∗
+                      mvcc.restoreImageM d γb ([[], []] ++ R) r ∗
+                        mvcc.restoreRcptM d ([[], []] ++ R) ∗
+                          mvcc.kbNoDelOff (some d) ∗
+                            mvcc.kbRegRight (some d) ∗
+                              mvcc.kbWT (some d) ∗
+                                mvcc.kbWT (some d) ∗
+                                  mvcc.kbSRM (some d) ∗
+                                    ([∗list] _x ∈ List.replicate mvcc.nReaders (), mvcc.kbRT (some d)) ∗
+                                      lease.lessorRdOf γl ∗
+                                        mvcc.isLessor le γl ∗
+                                          lease.rdOwn γl rd0 ∗
+                                            lease.leaseOwn γl Ls ∅ ∗
+                                              ⌜∀ (it : go_etcd_io.etcd.server.v3.lease.LeaseItem) (lid : w64),
+                                                    mvcc.pendItems ([[], []] ++ R) [] !! it = some lid →
+                                                      lid ∈ Ls ∧ ↑(List.length it.Key') < 2 ^ 63 - 1⌝ ∗
+                                                mvcc.idxFresh γi ∗
+                                                  ghostMapAuth γok 1 M ∗
+                                                    (⌜([[], []] ++ R).length ≤ 2⌝ ∨
+                                                        W64 ↑([[], []] ++ R).length ↪[γok]□ [[], []] ++ R ∨
+                                                          W64 0 ↪[γok]□ []) ∗
+                                                      (⌜r.finRev = -1⌝ ∨ □ Perm r.finRev) ∗
+                                                        (⌜r.crev = -1⌝ ∨ □ Perm r.crev) ∗
+                                                          mvcc.resumeCtxM d r P hk Pre Q Post dq X Y ∗
+                                                            if r.resumes = true then mvcc.kbWTSupplyM (some d)
+                                                            else True) -∗
+          (▷
+              ∀ s,
+                (∃ γ,
+                    ⌜γ.bucket = γb ∧
+                          γ.leases = γl ∧ γ.kb = some d ∧ γ.watchQ = wq ∧ γ.idx = γi ∧ γ.cok = γok ∧ γ.cm = d.cm⌝ ∗
+                      mvcc.isStore s γ ∗
+                        (∃ rd,
+                            lease.rdOwn γl rd ∗
+                              mvcc.rdCalls rd go_etcd_io.etcd.server.v3.storage.mvcc.store.ty.PointerType (intoVal s)) ∗
+                          ghostMapAuth γ.cok 1 M ∗
+                            mvcc.hookP γ P ∗
+                              (∃ rv wv,
+                                  typedPointsto
+                                      (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.store
+                                        go!"ReadView" s)
+                                      (interface.mkOk go_etcd_io.etcd.server.v3.storage.mvcc.readView.ty.PointerType
+                                        (intoVal rv))
+                                      (DFrac.own 1) ∗
+                                    mvcc.isReadView rv s γ ∗
+                                      typedPointsto
+                                          (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.store
+                                            go!"WriteView" s)
+                                          (interface.mkOk go_etcd_io.etcd.server.v3.storage.mvcc.writeView.ty.PointerType
+                                            (intoVal wv))
+                                          (DFrac.own 1) ∗
+                                        mvcc.isWriteView wv s γ) ∗
+                                ([∗list] _x ∈ List.replicate (mvcc.nReaders - mvcc.nJobRd (some d)) (),
+                                    mvcc.storeReaderC s γ) ∗
+                                  mvcc.idxCert γ.idx ([[], []] ++ R) ∗
+                                    (if wq = true then mvcc.logQ γ ([[], []] ++ R) else True) ∗
+                                      mvcc.storeCloserM s γ r.crev ∗
+                                        (if d.cm = true then True else mvcc.crevUB γ.idx (Qp.half 1) (-1)) ∗
                                           mvcc.fieldShare s γ (Qp.half 1).half ∗
                                             mvcc.wsDep γ ∗
                                               mvcc.writerFrag γ ∗
-                                                mvcc.crevUB γ.idx (Qp.half 1) (-1) ∗
-                                                  mvcc.retiredAt γ (mvcc.nJobRd kb) ∗
-                                                    mvcc.crevPermIs γ Perm ∗
-                                                      mvcc.writerReg s γ ∗
-                                                        (∃ pr,
-                                                            ⌜mvcc.pndW γ + pr = 1⌝ ∗
-                                                              mvcc.api.newClient γ.api [[], []] (-1) pr s) ∗
-                                                          £ 1) -∗
-                    Φ (intoVal s)) -∗
-              WP
-                (((((intoVal (functions go_etcd_io.etcd.server.v3.storage.mvcc.NewStore [])) (intoVal lg)) (intoVal b))
-                    (intoVal le))
-                  (intoVal cfg))
-                {{ Φ }}
+                                                mvcc.retiredAt γ (mvcc.nJobRd (some d)) ∗
+                                                  mvcc.crevPermIs γ Perm ∗
+                                                    mvcc.writerReg s γ ∗
+                                                      (∃ pr,
+                                                          ⌜mvcc.pndW γ + pr = 1⌝ ∗
+                                                            mvcc.api.newClient γ.api ([[], []] ++ R) r.crev pr s) ∗
+                                                        lease.leaseOwn γl Ls (mvcc.pendItems ([[], []] ++ R) []) ∗
+                                                          mvcc.resumeBackM d r hk dq Post Y ∗ £ 1) -∗
+                  Φ (intoVal s)) -∗
+            WP
+              (((((intoVal (functions go_etcd_io.etcd.server.v3.storage.mvcc.NewStore [])) (intoVal lg)) (intoVal b))
+                  (intoVal le))
+                (intoVal cfg))
+              {{ Φ }}
 
 theorem mvcc.cmpTrack_fresh [go_etcd_io.etcd.cache.v3.Assumptions] (γ : mvcc.StoreNames) :
     mvcc.kbVals γ.kb (none, none) ∅ ∗ ghostVar γ.rcv (Qp.half 1) (-1) ∗ ghostVar γ.jc (Qp.half 1)
