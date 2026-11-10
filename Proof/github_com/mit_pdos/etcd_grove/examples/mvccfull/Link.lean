@@ -447,7 +447,7 @@ theorem runner.wp_checkStoreRange [go_etcd_io.etcd.cache.v3.Assumptions] :
 
 theorem stream.wp_receive [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.mvccfull.stream.receive.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.mvccfull.stream.receive.wp_proof mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds mvcc.api.mvccApi_wsRecv_ok_law_holds wp_check stream.wp_covered stream.wp_expect wp_checkKV wp_choose context.wp_TODO runner.wp_checkStoreRange
+  EtcdGrove.mvccfull.stream.receive.wp_proof mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_excl_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds mvcc.api.mvccApi_wsRecv_ok_law_holds wp_check stream.wp_covered stream.wp_expect wp_checkKV wp_choose context.wp_TODO runner.wp_checkStoreRange
 
 theorem stream.wp_recvOne [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.mvccfull.stream.recvOne.spec (GF := GF) (hG := hG) :=

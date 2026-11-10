@@ -1,10 +1,16 @@
-/- Lean-first (no Rocq counterpart). The proof of `stream.receive`: Draft, to come (`sorry`).
+/- Lean-first (no Rocq counterpart). The proof of `stream.receive` (proved).
 
-The callees in call order: `check`, `stream.covered`, `stream.expect`, `checkKV`, `choose`,
-`context.TODO`, `Range` (through `shapes.law`), `checkStoreRange`; the facts from `recv_facts`
-(`persistent`, `mvccState_reachable`, `wsRecv_ok`). The first check, `resp.Revision ≤ m.revHi`:
-`readQ`'s `monoNatLbOwn m.nrev |σ.notifiedLog|` and `nrevHi_acc` at the load (`Int64.Load`) give
-`|σ.notifiedLog| ≤ revHi + 1`, with clause 1's `r.rev < |σ.notifiedLog|`.
+`recv_facts` (at `rs ++ [r]`) gives the state `σ`, the stream's `S`, `wsRecvOk`, `regOk'` and
+`readQ`; the lock's and `readQ`'s lower bounds of the history are merged (the longer, `Hlx`). Then,
+in the code's order: the first check (`nrevHi_acc` at `revHi`'s load); the eventless revision
+(clause 5, a `wp_bind` merging both arms, `eventlessOk`); the stream's progress (`-1`: the loop over
+`s.order`, `covered` for each stamped, unmarked watcher, clause 3 through `recv_prog'`,
+`covered_none`); a watcher's response (taken out of the lock's map, `wats_take'`): a compaction's
+(clause 1, `cmpHi_acc`), a progress (clause 4 for `lower`, clause 3), or events (clause 2,
+`recv_exp'`): each event its watcher's next expected change (`float_anchor` for a floating watcher's
+first one, `expNext_of_get` otherwise), its fields, the position past it (`posOk_advW`), and now
+and then the previous key-value read (`cmpLo_acc`, `revLo_acc`, `reader_au`, `Range`,
+`checkStoreRange`). Lemmas: `RecvLemmas.lean`.
 -/
 module
 
@@ -58,6 +64,7 @@ theorem stream.receive.wp_proof
   haveI : ∀ ws γ ι, Persistent (isMvccWatchStream (GF := GF) ws γ ι) := hpers.2.1
   haveI : ∀ ι n, Persistent (wsSentLb (GF := GF) ι n) := hpers.2.2.1
   haveI := streamCtx_persistent hpers T
+  haveI : ∀ kv γ, Persistent (isMvcc (GF := GF) kv γ) := hpers.1
   haveI : ∀ N l, Persistent (ctrInv (GF := GF) N l) := by intro N l; unfold ctrInv; infer_instance
   wp_start as ⟨#Hctx0, HB, Hhalf, Hwr, Hresp, Hrdr, Hlive, Hhr⟩
   ihave Hctx := Hctx0
@@ -737,9 +744,83 @@ theorem stream.receive.wp_proof
         iapply (wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗ r_ptr ↦ evk.kv.modRev ∗
             ev_ptr ↦ pk ∗ histRd T.ep.h T.ep.γh ∗
             incLive T.ep.ks T.ep.γh T.ep.i T.ep.mp T.ep.m T.ep.ι T.ep.kv q ∗
-            mvccReaders T.ep.ι.kv 1 ∗ m_ptr ↦ T.ep.mp))) $$ [r ev Hhr Hlive Hrdr m]
-        · sorry
-        iintro %v ⟨%hv, r, ev, Hhr, Hlive, Hrdr, m⟩
+            mvccReaders T.ep.ι.kv 1 ∗ m_ptr ↦ T.ep.mp ∗ s_ptr ↦ T.s))) $$ [r ev Hhr Hlive Hrdr m s]
+        · wp_apply wp_choose as %c4 %Hc4
+          wp_if_destruct
+          · -- the previous key-value read
+            ihave #Hinc' := Hinc
+            iunfold isInc at Hinc'
+            icases Hinc' with ⟨#HmInv, #Hkv⟩
+            ihave %Hsh := (hsh.1 T.ep.kv T.ep.ι.kv) $$ Hkv
+            obtain ⟨tyK, vK, hkvE, -, -, -, -, hRange, -⟩ := Hsh
+            wp_apply_core sync.atomic.Int64.wp_Load (mF go!"cmpLo" T.ep.mp) (DFrac.own 1) $$ [] [-]
+            · iPkgInit
+            imod cmpLo_acc T.ep.ks T.ep.γh T.ep.i T.ep.mp T.ep.m T.ep.ι T.ep.kv q $$ Hlive
+              with ⟨%clo, Hclo, Hcl⟩
+            imodintro
+            inext
+            iexists clo
+            iframe Hclo
+            iintro Hclo
+            imod Hcl $$ Hclo with ⟨Hlive, %cc, #Hcc, %Hcloc⟩
+            imodintro
+            wp_auto
+            wp_apply_core sync.atomic.Int64.wp_Load (mF go!"revLo" T.ep.mp) (DFrac.own 1) $$ [] [-]
+            · iPkgInit
+            imod revLo_acc T.ep.ks T.ep.γh T.ep.i T.ep.mp T.ep.m T.ep.ι T.ep.kv q $$ Hlive
+              with ⟨%lo, Hlo, Hcl⟩
+            imodintro
+            inext
+            iexists lo
+            iframe Hlo
+            iintro Hlo
+            imod Hcl $$ Hlo with ⟨Hlive, %nn, #Hnn, %Hlon⟩
+            imodintro
+            wp_auto
+            wp_apply wp_ctxTODO
+            iunfold incLive at Hlive
+            icases Hlive with ⟨-, Hret⟩
+            ihave Hau := reader_au hpers hreach T.ep.ks T.ep.γh T.ep.i T.ep.mp T.ep.m T.ep.ι T.ep.kv q
+              nn cc $$ [$Hinc $Hnn $Hcc]
+            ihave Hau := Hau $$ Hret
+            ihave #Hctx : mvcc.rangeCtx (GF := GF) true todoCtxVal
+                ({ Values := GMap.empty, Deadline := none, Done_gn := ⟨0, 0⟩, PDone := iprop(True) } :
+                  context.ContextDesc (IProp GF)) $$ []
+            · simp only [mvcc.rangeCtx, ↓reduceIte]; ileft; iapply mvcc.doneNil_todo
+            ihave #Hnil : (slice.nil ↦*□ ([] : List w8) : IProp GF) $$ []
+            · iapply ownSlice_nil
+            (try wp_auto)
+            rw [hkvE]
+            (try wp_auto)
+            ihave #Hkv2 : isMvcc (interface.mkOk tyK vK) T.ep.ι.kv $$ []
+            · rw [← hkvE]; iexact Hkv
+            wp_apply (hRange T.ep.ι.kv todoCtxVal _ true kks slice.nil evk.kv.key [] _
+                (fun σ => iprop(ghostVar T.ep.ι.ret q () ∗ readQ T.ep.ks T.ep.γh T.ep.m σ ∗
+                  ⌜nn ≤ σ.rev ∧ cc ≤ Int.toNat (σ.crev + 1)⌝))) $$ [$Hkv2 $Hrdr $Hctx $Hks $Hnil $Hau]
+              as %rr %err ⟨Hrdr, %Hrn, %σr, ⟨Hret, #HQ, %Hnc⟩, Hout, -, %Hlwf⟩
+            ihave #HQ' := HQ
+            iunfold readQ at HQ'
+            icases HQ' with ⟨%Hlr, -, -, -, -, %Hq''⟩
+            obtain ⟨-, hc1, -⟩ := reach_bounds σr Hq''.2.1
+            have hlo' : sint.Z lo ≤ σr.rev := by omega
+            have hclo' : sint.Z clo ≤ σr.crev := by omega
+            ihave Hlive : incLive (GF := GF) T.ep.ks T.ep.γh T.ep.i T.ep.mp T.ep.m T.ep.ι
+                (interface.mkOk tyK vK) q $$ [Hret]
+            · iunfold incLive; iframe Hret; rw [← hkvE]; iexact Hinc
+            (try wp_auto)
+            wp_apply (wp_runner_checkStoreRange T.ep.x T.ep.ks T.ep.h T.ep.γh T.ep.i T.ep.mp T.ep.m T.ep.ι
+                (interface.mkOk tyK vK) q lo clo
+                (rangeReq.mk kks slice.nil (go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions.mk 0 (evk.kv.modRev - W64 1) false false false))
+                evk.kv.key [] DFrac.discard DFrac.discard rr err σr hlo' hclo')
+              $$ [$Hkeys $HrH $Hhr $Hlive $Hks $Hnil $HQ Hout] as ⟨Hhr, Hlive, -, -⟩
+            · isimp only [decide_true]
+              iframe
+              ipureintro; exact ⟨Hrn rfl, Hlwf⟩
+            (try wp_auto)
+            iframe
+            ipureintro; rfl
+          · iframe
+        iintro %v ⟨%hv, r, ev, Hhr, Hlive, Hrdr, m, s⟩
         subst hv
         (try wp_auto)
         wp_for_post

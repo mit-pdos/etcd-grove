@@ -136,7 +136,7 @@ stream__complete: stream__expect
 stream__covered: stream__expect check
 stream__expect: history__changesAt watcher__matches
 stream__pick: choose
-stream__receive: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds =mvcc.api.mvccApi_wsRecv_ok_law_holds check stream__covered stream__expect checkKV choose context_TODO runner__checkStoreRange
+stream__receive: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_excl_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds =mvcc.api.mvccApi_wsRecv_ok_law_holds check stream__covered stream__expect checkKV choose context_TODO runner__checkStoreRange
 stream__recvOne: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_wsChan_recv_law_holds =mvcc.api.mvccApi_wsSentLb_zero_law_holds stream__receive
 stream__watch: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds =mvcc.api.mvccApi_errVars_law_holds runner__genKey runner__genEnd choose pick context_TODO check
 walkKeys: 
