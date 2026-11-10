@@ -652,6 +652,9 @@ LOCAL_INSTANCES = {"--kvreconf": ["raft_kvreconf.kvrStorageModel"],
 # 2026-11-10: the etcd3 store's list path pends specs the compactor, linked into a closed
 # result, does not reach); the others take every pending hypothesis
 PER_FN_PENDING = {"--k8s-etcd3"}
+# The modes whose `@` callees with no Link of their own package are looked up in every imported Link
+# (k8s 7e-4: the driver's `storage`/`labels`/`fields` callees, linked in the k8s etcd3 store's Link)
+EXT_ANY_LINK = {"--k8setcd3"}
 # The trusted assumptions a mode's linked proofs need beyond its package's, first (minibolt's: the
 # layouts of `os.file` and `os.fileStat`, which `TrustedCode/os.lean` states and goose cannot
 # emit; `OpenFile`'s and `Stat`'s proofs take them).
@@ -771,6 +774,13 @@ with open(os.path.join(here, mode[0])) as f:
             # linked in its own package's `Link.lean` (the btree): imported, not emitted
             external.add(fn)
             cs = ""
+        elif cs.strip().startswith("@ "):
+            # (k8s 7e-4, 2026-11-10) `@ <pending>...`: linked in its own package's `Link.lean` as a
+            # result of its `links_pending` section, which takes those pending functions' specs as
+            # hypotheses (k8s etcd3's `store.wp_GetList`, over `Client.GetAt`/`Client.List`): here
+            # those functions are pending too (`?`), and the result is applied to their hypotheses
+            external.add(fn)
+            cs = cs.strip()[1:]
         if cs.strip() == "?":
             # specified, not proved yet (a later unit's): a hypothesis of the results that
             # reach it (`section links_pending`)
@@ -907,6 +917,15 @@ if cache:
     for fn in external:
         mod = external_link(fn)
         if not os.path.exists(link_file(mod)):
+            # (k8s 7e-4, 2026-11-10) no Link of its package or above: linked in another imported
+            # Link (the k8s etcd3 store's links `storage`'s, `labels`' and `fields`' functions), the
+            # first that states its result in another namespace than this one's (only in the modes
+            # of `EXT_ANY_LINK`: elsewhere such a callee keeps its bare name)
+            for lmod, lns, lthms in (links if sys.argv[1] in EXT_ANY_LINK else []):
+                lrel = lns[len("EtcdGrove."):] if lns.startswith("EtcdGrove.") else ""
+                if lns != here_ns and lrel and result(fn) in lthms:
+                    ext_ref[fn] = f"{lrel}.{result(fn)}"
+                    break
             continue
         src = open(link_file(mod)).read()
         ns = link_namespace(src)
@@ -1207,7 +1226,7 @@ variable [sem : go.Semantics]
 {em}{LC_EXTRA_VARS.get(sys.argv[1], "")}""")
         out.extend(emit_cache(fn) for fn in special)
         out.append("end links_hasLC\n")
-    later = [fn for fn in order if fn in blocked and fn not in pending]
+    later = [fn for fn in order if fn in blocked and fn not in pending and fn not in external]
     if later:
         # a pending spec over the ghost state (`[AllG GF]`) takes it as a section variable; one over
         # a store's storage registry (`STOR_REGS`) is a hypothesis at every registry (`∀ [KvrStor
