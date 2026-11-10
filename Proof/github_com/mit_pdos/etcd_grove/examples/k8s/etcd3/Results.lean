@@ -7,7 +7,8 @@ trust base of each printed in the build log (`#print axioms`). Lean-first (no Ro
   started in process, a kubernetes client configured for one attempt per call, the seed objects,
   the Kubernetes etcd3 store over the client (`etcd3.New`, the driver's codec, versioner,
   transformer and decoder), `Check(s, st0, clients, ops, 0)` (`lintest.Run` with the driver's Go
-  model of the store, `Apply` over the store: `Create`, `Get`, `Delete`, `GuaranteedUpdate`;
+  model of the store, `Apply` over the store: `Create`, `Get`, `Delete`, `GuaranteedUpdate`, and
+  `GetList` (paginated, with selectors and the past-revision modes; stage 7e);
   porcupine's checker), and a panic if porcupine answers `Illegal` -- does not panic and returns
   `Ok` or `Unknown`. From `isPkgInit k8setcd3`, the right to listen on `127.0.0.1:23896`, the main
   thread's token and `Main`'s named premises
