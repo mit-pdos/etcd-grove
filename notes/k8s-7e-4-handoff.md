@@ -73,6 +73,48 @@ NewInternalError.lean`: no trusted text, so no Go test needed), `unkErr`'s Inter
 `Link`, the driver's `ObjSpec`/`Contract`/`ListContract`/`InvSteps`/`Cache` (7982 jobs,
 `/shared/tmp/k8s-7e-4/b2.log`).
 
+## Third session (2026-11-10): (B), `Calls`, `errOut`, `call.spec`; stopped for context
+
+Done (each commit checked; capped builds `/shared/tmp/k8s-7e-4/b2.log`, `b3.log`, `b4.log` green):
+- (B) above (`ca80696501`).
+- `Calls.lean` (no `sorry`, lean-check clean): `sentV` moved up; `clientErrPlain` (the pending hypothesis
+  of (A): `∀ ii, clientErr (ok ii) → typeSetContains ii.ty APIStatus.ty = false`; write it
+  `clientErrPlain (sem := sem)`, else instance search sticks); `notTooLarge err := ∃ w, apiErrAt err w
+  ∗ ⌜tooLargeV w = false⌝`; `errIs` on `errOutL`, disjuncts in order notFound, exists, invalid,
+  **tooLarge** (`tooLargeErrIs ∗ ⌜y = tooLargeL⌝`), sentinel, other (`⌜y = otherL⌝ ∗ notTooLarge err ∗
+  …`); `drvInit_sents` (the sentinels from `drvInit`; `errVarOk` is an abbrev `icases` cannot open);
+  `clientErr_notTooLarge`; `unkErr_errIs` takes `hpl : clientErrPlain` and gives `errIs err otherL`
+  (InternalError and encErr branches are `False` for the driver); `sentV_plain` (`*errorString` is
+  `.plain`: `go_type_set` and its method set); `respIs_call`'s tooLarge case is the new disjunct;
+  `GenIn x := InOk x ∧ Kind ∈ {0..4} ∧ Val ≤ 2^20 ∧ CachedNoRV x` (so `.2.2.1` is the value bound,
+  `.2.2.2` `CachedNoRV`); `delete_noOdd`/`delete_user` take the `HasReject` bool; `listPre c QL PL`
+  (GetList's two update premises); `callOut c eD eU x σ` (`lOut` for a list, else `kStep`'s).
+- `errOut.lean`: proved; takes `wp_IsTooLarge : storage.IsTooLargeResourceVersion.spec`. **Add it to
+  `etc/link-lean-first-k8s-etcd3.txt`'s `errOut` line at the Link step.**
+- `Spec/.../call.lean` restated (accepted forms): binders `QL PL`; premises `clientErrPlain (sem :=
+  sem)`, `threadBound GF ≤ 2^30-1`, `QL`'s and `QL ∗ PL`'s `GetList` premises; pre `threadTok ∗ (if
+  Kind = 4 then listPre c QL PL else callPre …)`; post `threadTok ∗ (⌜y = otherL⌝ ∨ ∃ σ, (if Kind = 4
+  then □ QL (σ.rev) σ else callAt x Φ Q σ) ∗ ⌜y = callOut c eD eU x σ⌝)`.
+
+Next, in order:
+1. `call.lean`'s proof: the old branches with `threadTok` framed through, `y = callOut` (`if_neg`),
+   `unkErr_errIs … hpl`, `otherL` for the old `errOutL`, `rejD eD x.HasReject' x.Reject'`, the 8-field
+   `Obj` (`objAtD_pt` now takes `o.toObj n`; `cachedOk_of`'s `e` must be redone with `DObj.toObj`).
+   The **list branch** (`in.Kind == KList`): `l := &ObjList{}` (an `L.listAt lx [] 0 [] none` for the
+   driver's `driverListSpec`, `ListSpecD.lean`), `listOptions` (`listOptsV x`), `store.GetList.spec`
+   (its pure premises from `InOk`'s list conjuncts and `prepareKeyM`, `selPredOk` from `PredOk.lean`'s
+   `predOk_driver`, `listContractOk` from `ListContract.lean`'s `driver_listContractOk`, `rangeStreamOff`
+   from where `New`'s callers get it, ctx facts as for `Get`), then on `listErr` `errOut` with
+   `errIs err otherL` (`unkErr_errIs`, or the 410 view: `.status st []`, `tooLargeV` false, `ErrOther` as
+   for a `*StatusError`), on `tooLargeErrIs` `errOut` with the tooLarge disjunct, else a **new
+   `listOut.spec`** (`listOut(l)`: `encodeItems`, `ListRV`, `Continue`, the remaining count pointer)
+   giving `listOutDriver x R a` from `listIs`; then `lOut x σ = …` by unfolding `lOut` with
+   `parseRVD`/`prepareKeyM` (the `matchOptL`/`listRevL` of `listOptsV x`).
+2. `Apply.spec`/proof: take and return `threadTok`, `clientErrPlain`, `threadBound`; Get path's `readQ`
+   `n` drop; the list path with `listCall`, `list_maker`, `list_makerP`, `listQ_pure`, `listQP_pure`,
+   `listCall_take` (`InvSteps`), `lOut_name` for `ansOk`.
+3. The generator, Check, Main* (handoff step 4 of etcd-grove-81's list), then report.
+
 ## Forms decided (accepted by etcd-grove-81, 2026-11-10, all five)
 
 1. `Refine`: `ItemRel`/`PairRel` → `KRel` over 7e-3c's `PairRelH`; `mkObj` moved to `Refine`

@@ -405,6 +405,19 @@ def callAt (x : Input) (Φ : KVState → IProp GF) (Q : w64 → w64 → KVState 
   if x.Kind' = W64 0 ∨ x.Kind' = W64 1 ∨ x.Kind' = W64 2 then Φ σ
   else iprop(□ Q (W64 (σ.rev : Int)) (kubernetes.modAt (mkeyL x.Key') σ) σ)
 
+/-- **What `call` needs for a list** (stage 7e-4; `store.GetList.spec`'s updates): the maker of the
+first page's read updates `QL R` for the revision the client prophesies, and, from a first page's
+result, its later pages' `PL σ`. -/
+def listPre (c : StoreCfg GF DObj) (QL : w64 → KVState → IProp GF)
+    (PL : KVState → KVState → IProp GF) : IProp GF :=
+  iprop((∀ R, |==> □ [∧list] sv ∈ c.ms, ⌜QL R = fun _ => iprop(True)⌝ ∨ kvReadAu sv.γr.kv (QL R)) ∗
+    (□ ∀ R σ, □ QL R σ -∗
+      |==> □ [∧list] sv ∈ c.ms, ⌜PL σ = fun _ => iprop(True)⌝ ∨ kvReadAu sv.γr.kv (PL σ)))
+
+/-- **`call`'s output at the state `σ`** (stage 7e-4): a list's `lOut`, else the store's model's. -/
+def callOut (c : StoreCfg GF DObj) (eD eU : GoInterface) (x : Input) (σ : KVState) : Output :=
+  if x.Kind' = W64 4 then lOut x σ else (kStep eD eU x (c.abs σ)).2
+
 /-- A driver object in the heap is the store's object at its resource version's string. -/
 theorem objAtD_pt (p : Loc) (o : DObj) (n : w64) :
     p ↦ o.toObj n ⊢
