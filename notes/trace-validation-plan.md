@@ -871,7 +871,7 @@ bundle does not take: recommended, `stepBundle_traced.on` takes `isMessageC γ (
 receive line's `UpdateTerm` changes the receiver's term: its `srvFacts`' `commitIn` at the new term, from
 raft's ghost; then the preamble's `BecomeFollower` line, skipped by `bfCond`); a candidate's
 `MsgVoteResp` without a win or loss (the tally: `SimServerR`'s candidate clause after `recordVote`); the
-broadcasts (leader `MsgAppResp`, `MsgHeartbeatResp`, a won `MsgVoteResp`).
+broadcasts (leader `MsgAppResp`, `MsgHeartbeatResp`, a won `MsgVoteResp`). Checked (branch at `trace-check` `96a2599b67` plus this slice): full `lake build` green (13796 jobs); `etc/tcb-report.py --check` (806 axioms, 4 `sorry`s, unchanged) and all 53 collections `--reuse --check`, none updated; `interface/` unchanged (the new module is not on `etc/api/raft.txt`); `etc/api-check.py` 0 errors; `--layout` 0 new; `etc/gen-link.py --raft` unchanged.
 
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
