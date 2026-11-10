@@ -1484,7 +1484,7 @@ theorem wp_applyConf_dyn
   · iapply (ownStepGhost_dyn γ dec c0 h0 g' cs'.cfg id s').2
     iframe Hgr HM
     isplitr
-    · ipureintro; exact ⟨HD, rfl, by unfold NsLink; rw [Hok.gh]; exact Hnl⟩
+    · ipureintro; exact ⟨HD, rfl, Hnl.step Hok.gh (OutTrStep.of_none (Hgtr.trans HtrG))⟩
     -- (raft-final phase 2) the certificate link and the transfer records over the kept ghost
     -- fields, the leader witness across the step (`leadW_applyCC`)
     icases Hcl with ⟨#Hcl1, #Hlw, #Hxw⟩
@@ -1575,8 +1575,9 @@ theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
     -- (D19p, 2026-10-18) the new tracker within the tracked bound
     (Htrk' : TrackedOk γ (CfgM.simple γ.reCfg (domSet s'.progress \ γ.reCfg)) id)
     (Hnl : NsLink γ s)
-    -- (2026-11-09, Q8 stage 0) the trace mode the cluster's
-    (Hgtr : s.gh.tr = γ.reTrace)
+    -- (2026-11-09, Q8 stage 0) the trace mode the cluster's; (Q8 stage 1 slice 10) the cluster
+    -- untraced (`NsLink`'s outbox numbers kept vacuously)
+    (Hgtr : s.gh.tr = γ.reTrace) (HtrG : γ.reTrace = none)
     -- (2026-11-09, Q8 stage 1 slice 5) no message recorded as just queued (`NGhost.lq`)
     (Hglq : s.gh.lq = [] := by tr_keep) :
     ⊢ rawNodeOwn rn rnv -∗ ownRaftPhys γ.reCfg rnv.raft' id s' -∗ ownRaftGhost (GF := GF) γ id ps -∗
@@ -1633,7 +1634,8 @@ theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
     (by unfold SdtTie; rw [Hls]; exact Hsdt) Hrole
     (Hphs.keep rfl rfl rfl (HsLe.of_step (applyCCOkC_voteLe Hok) Hc) Hsnap'
       (.inl (by rw [Hls]; exact Int.le_refl _)))
-    Htrk' (by unfold NsLink; rw [Hgh]; exact Hnl) (by rw [Hgh]; exact Hgtr) (by rw [Hgh]; exact Hglq)
+    Htrk' (Hnl.step Hgh (OutTrStep.of_none (Hgtr.trans HtrG))) (by rw [Hgh]; exact Hgtr)
+    (by rw [Hgh]; exact Hglq)
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstr' Hloanc Hcl' Hsloc' Hlw' Hxw' [Hdur]
   iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) (by rw [Hls]) (by rw [Hls])
     (by rw [Hls]) $$ Hdur
@@ -1676,7 +1678,7 @@ theorem wp_rn_raft_applyConfChange
     $$ [$Hphys $Hccs] as %cs %xs %ls %s' ⟨Hphys, Hccs, Hcs, %Hcs0, %Hok, %Hdom'⟩
   imod rawNode_applyCC_reseal γ rn id rs s s' _ rnv sv hprev steps Hm Hrel Hin Hasync Hdlen Hunp
     Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hsdt Hrole Hphs (Hdom' ▸ Hok)
-    (trackedOk_shrink Htrk Hlp Hdom') Hnl Hgtr
+    (trackedOk_shrink Htrk Hlp Hdom') Hnl Hgtr HtrG
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hcl Hsloc Hlw Hxw Hdur Hlc with Hrn
   try wp_auto
   imodintro

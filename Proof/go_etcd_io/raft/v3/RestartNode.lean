@@ -802,10 +802,8 @@ private theorem wp_RestartNode_impl
     iapply (ownStepGhost_dyn γ.raft noDec (stOf c0m) h0 g (stOf m).cfg cv.ID' s1).2
     isplitr
     · ipureintro
-      refine ⟨HD, rfl, ?_⟩
-      unfold NsLink
-      show s.gh.ns = _
-      rw [Hgh, Hns]
+      refine ⟨HD, rfl, ⟨by show s.gh.ns = _; rw [Hgh, Hns], by show s.gh.tr = _; rw [Hgh, HtrG],
+        fun m _ => MsgTrOk.of_none HtrG m⟩⟩
     isplitr; · iexact HMA
     isplitl [Hg]
     · unfold ownRaftGhostR

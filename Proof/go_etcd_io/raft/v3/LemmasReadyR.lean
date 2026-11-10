@@ -236,7 +236,9 @@ theorem outboxRelP_isRaftMsgs (γ : RaftNames) (id : w64) (s : NState) (o : List
     (Hns : γ.reNoSnap = true → ∀ x ∈ o, x.ty ≠ .snap)
     -- (raft-final, 2026-10-29: the design's §2.6) the queues' facts (`ownRaftPhys`'s `Hxf`), with
     -- the transfer records' witnesses (`xfW`)
-    (Hxf : XfOk id s (ms1 ++ ms2)) :
+    (Hxf : XfOk id s (ms1 ++ ms2))
+    -- (Q8 stage 1 slice 10) in a traced cluster, the outbox's numbers (`NsLink`'s `OutTr`)
+    (Htr : ∀ x ∈ o, MsgTrOk γ x) :
     ([∗list] x ∈ o, isMessage (GF := GF) γ x) ⊢ qCerts γ (ms1 ++ ms2) -∗ xfW γ s -∗
       [∗list] q ∈ l, isRaftMsg γ id q.st := by
   induction l with
@@ -248,7 +250,7 @@ theorem outboxRelP_isRaftMsgs (γ : RaftNames) (id : w64) (s : NState) (o : List
     isplitr
     · ihave #Hq := qCerts_mem γ _ q Hq0 $$ Hqc
       iapply outboxRelP_isRaftMsg γ id s o ms1 ms2 q Hp Hq0 Hns (Hxf.1 q Hq0) (Hxf.2.1 q Hq0)
-        (Hxf.2.2.1 q Hq0) $$ Ho Hq Hxw
+        (Hxf.2.2.1 q Hq0) Htr $$ Ho Hq Hxw
     · iapply (ih (fun q' hq' => Hsub q' (List.mem_cons_of_mem _ hq'))) $$ Ho Hqc Hxw
 
 /-- (2026-11-01, durability stage II (k), fix C) `outboxRelP_isRaftMsgs` of messages to others, from
@@ -258,7 +260,9 @@ theorem outboxRelP_isRaftMsgs_ns (γ : RaftNames) (id : w64) (s : NState) (o : L
     (Hp : outboxRelP o ms1 ms2) (l : List QMsg) (Hsub : ∀ q ∈ l, q ∈ ms1 ++ ms2)
     (Hto : ∀ q ∈ l, q.st.msg.To' ≠ id)
     (Hns : γ.reNoSnap = true → ∀ x ∈ o, x.ty ≠ .snap)
-    (Hxf : XfOk id s (ms1 ++ ms2)) :
+    (Hxf : XfOk id s (ms1 ++ ms2))
+    -- (Q8 stage 1 slice 10) in a traced cluster, the outbox's numbers (`NsLink`'s `OutTr`)
+    (Htr : ∀ x ∈ o, MsgTrOk γ x) :
     ([∗list] x ∈ o, ⌜x.dst ≠ id⌝ -∗ isMessage (GF := GF) γ x) ⊢ qCerts γ (ms1 ++ ms2) -∗ xfW γ s -∗
       [∗list] q ∈ l, isRaftMsg γ id q.st := by
   induction l with
@@ -272,7 +276,7 @@ theorem outboxRelP_isRaftMsgs_ns (γ : RaftNames) (id : w64) (s : NState) (o : L
     · ihave #Hq := qCerts_mem γ _ q Hq0 $$ Hqc
       iapply outboxRelP_isRaftMsg_gen γ id s o ms1 ms2 q (fun x => iprop(⌜x.dst ≠ id⌝ -∗ isMessage γ x))
         (fun x hx => by iintro #H; iapply H; ipureintro; rw [hx]; exact Hq1) Hp Hq0 Hns
-        (Hxf.1 q Hq0) (Hxf.2.1 q Hq0) (Hxf.2.2.1 q Hq0) $$ Ho Hq Hxw
+        (Hxf.1 q Hq0) (Hxf.2.1 q Hq0) (Hxf.2.2.1 q Hq0) Htr $$ Ho Hq Hxw
     · iapply (ih (fun q' hq' => Hsub q' (List.mem_cons_of_mem _ hq'))
         (fun q' hq' => Hto q' (List.mem_cons_of_mem _ hq'))) $$ Ho Hqc Hxw
 
@@ -297,7 +301,9 @@ theorem self_pending (γ : RaftNames) (id t : w64) (s : NState) (o : List Msg)
     (Hok : ∀ q ∈ l, AAMsgOk id t q.st) (Hns : γ.reNoSnap = true → ∀ x ∈ o, x.ty ≠ .snap)
     -- (raft-final, 2026-10-29: the design's §2.6) the queues' facts, with the transfer records'
     -- witnesses (`xfW`)
-    (Hxf : XfOk id s (ms1 ++ ms2)) (W : DurMaps) :
+    (Hxf : XfOk id s (ms1 ++ ms2))
+    -- (Q8 stage 1 slice 10) in a traced cluster, the outbox's numbers (`NsLink`'s `OutTr`)
+    (Htr : ∀ x ∈ o, MsgTrOk γ x) (W : DurMaps) :
     ⊢ ([∗list] x ∈ o, □ (durFrags (GF := GF) γ id W -∗ isMessage γ x)) -∗ qCerts γ (ms1 ++ ms2) -∗
       xfW γ s -∗
       ([∗list] q ∈ l, selfOwn (GF := GF) id q) -∗
@@ -334,7 +340,7 @@ theorem self_pending (γ : RaftNames) (id t : w64) (s : NState) (o : List Msg)
             iintro #Hfr %ty %Hty
             ihave #Ho' := bigSepL_wand_pers (durFrags (GF := GF) γ id W) (isMessage γ) o $$ Ho Hfr
             ihave #Hr := outboxRelP_isRaftMsg γ id s o ms1 ms2 q Hp Hq0 Hns (Hxf.1 q Hq0)
-              (Hxf.2.1 q Hq0) (Hxf.2.2.1 q Hq0) $$ Ho' Hqq Hxw
+              (Hxf.2.1 q Hq0) (Hxf.2.2.1 q Hq0) Htr $$ Ho' Hqq Hxw
             ihave H := isRaftMsg_isMessage γ id q.st ty Hty
               (fun hs => mtypeOf_resp_ne_snap _ Hresp (hs ▸ Hty)) $$ Hr
             rw [Hsm.2.2.2.2.1, Hsm.2.2.2.2.2.1]

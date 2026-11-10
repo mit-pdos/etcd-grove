@@ -614,6 +614,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
   · iintro !> #Ho
     rw [show s.outbox = (toPState s).outbox from rfl]
     iapply outboxRelP_isRaftMsgs_ns γ id s (toPState s).outbox ms1 ms2 Houtbox _ Hsub Hto Hnsout Hxf
+      Hnl.2.2
       $$ Ho Hqc Hxw
   -- the `Ready`'s soft state: `nil` (the role `prevSoftSt`'s, the node's), or the node's
   ihave #Hrdlead : iprop(∃ ss : Option (w64 × StateType), softStateIs sp ss ∗
@@ -694,7 +695,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
       ihave #Hkr' := Hkr
       icases Hkr' with (%Hns | #Hkr')
       · exfalso
-        have := (Hlns (by rw [Hnl]; exact Hns)).1
+        have := (Hlns (by rw [Hnl.1]; exact Hns)).1
         rw [Hss] at this; cases this
       ihave ⟨#Hcr, -⟩ := BigSepL.bigSepL_mem_acc Hk $$ Hkr'
       obtain ⟨xh, Hxh⟩ := _root_.id Hhas

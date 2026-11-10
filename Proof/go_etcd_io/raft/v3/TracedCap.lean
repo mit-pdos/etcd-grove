@@ -416,13 +416,17 @@ theorem recvEvt_inScope (ty : MsgType) (evt : w64) (h : recvEvt ty = some evt) :
     uint.nat evt ≠ 0 ∧ uint.nat evt ≠ 6 := by
   cases ty <;> simp only [recvEvt, Option.some.injEq, reduceCtorEq] at h <;> subst h <;> decide
 
-/-- **A message's numbers below `K`**: the ones its traced form carries (`MsgEvOf`'s, `TraceEv.NumsBelow`
-reads). A received message's are not its receiver's to prove (a `MsgApp`'s index is of its sender's
-log, not the receiver's): owed by the Prove phase, as a fact the send line records of the message
-(`notes/decisions.md`, "Amendment A1"). -/
-def Msg.NumsBelow (K : Nat) (m : Msg) : Prop :=
-  uint.nat m.term < K ∧ m.entries.length < K ∧ uint.nat m.logterm < K ∧ uint.nat m.index < K ∧
-  uint.nat m.commit < K ∧ uint.nat m.rejecthint < K
+-- `Msg.NumsBelow` (a message's numbers below `K`) moved to `Protocol/Model.lean` (Q8 stage 1 slice 10),
+-- verbatim, so that raft's message facts can carry it (`isMessageC`'s trace-gated conjunct).
+
+/-- (Q8 stage 1 slice 10) A type `traceSendMessage` logs is a traced one (`MsgType.traced`). -/
+theorem sendEvt_traced (ty : MsgType) (evt : w64) (h : sendEvt ty = some evt) : ty.traced = true := by
+  cases ty <;> simp_all [sendEvt, MsgType.traced]
+
+/-- (Q8 stage 1 slice 10) A type `traceReceiveMessage` logs is a traced one: what the message's
+trace-gated fact (`Msg.TrOk`, `isMessageC`) covers. -/
+theorem recvEvt_traced (ty : MsgType) (evt : w64) (h : recvEvt ty = some evt) : ty.traced = true := by
+  cases ty <;> simp_all [recvEvt, MsgType.traced]
 
 /-- A send or receive event's numbers: its state's and its message's (`MsgEvOf`'s fields). -/
 theorem sendEvOf_numsBelow (evt id : w64) (s : NState) (c : CfgM) (m : Msg) (e : TraceEv) (K : Nat)

@@ -633,6 +633,39 @@ files) and the receipt bound to `traceNumBound` (`readyFits` gives `receiptBound
 law owed); (b) `tickElection`/`tickHeartbeat` (step 3), which call `raft.Step` and follow its gated
 form. Checked (`trace-check` at `cdbf0f5660`, the branch's base, no newer commit to merge): full `lake build` green (13784 jobs); `etc/tcb-report.py --check` (806 axioms, 4 `sorry`s, unchanged) and all 53 collections `--reuse --check`, none updated; `interface/` differs in `stepLeader`'s proof file only (its spec); `etc/api-check.py` 0 errors; `--layout` 0 new; `etc/gen-link.py --raft` unchanged.
 
+**Q8 stage 1 (slice 10), 2026-11-10 (branch `trace-check-q8s10`): piece 1 done, the ghost change for a
+received message's numbers and the receipt-bound law; pieces 2-4 (`raft.Step` gated, traced,
+`tickElection`/`tickHeartbeat`) not started.** Decided by the agent (`notes/decisions.md`, "Q8 stage 1
+(slice 10)"). Done: (1) `traceNumBound` and `Msg.NumsBelow` moved verbatim to `Protocol/Model.lean` (no
+Draft statement changed), with `MsgType.traced` (the six logged types; `sendEvt_traced`,
+`recvEvt_traced`) and `Msg.TrOk`. (2) **The carrier** (amendment A1's, a1-r2's 1): the gated fact
+`MsgTrOk γ m` (`γ.reTrace.isSome → m.TrOk`) is a conjunct of **`isMessageC`**, the facts a message carries
+on the network (`isRaftMsg`'s), not of `isMessage`: the protocol's step lemmas, which produce
+`isMessage` for every message they send, cannot prove it (terms are bounded by no receipt, only by the
+`RawNode`'s budget; a `StepC` run's `trans`/`drain` sends messages no final outbox shows), the same
+reason the snapshot certificate already sits there. The node's outbox carries it meanwhile: `NsLink`
+gains `s.gh.tr = γ.reTrace` and `OutTr γ s`; the step helpers rebuilding `ghostRest` take `OutTrStep s
+s'` (by default from the context's `s.gh.tr = none`, `outtr_tac`: `raft.Step`'s branches unchanged); the
+`Ready` exits attach it (`readyWithoutAccept` from `OutTr`). A traced `raft.Step` will prove `OutTrStep`
+from its send lines (each proves `Msg.NumsBelow` of its message for `TraceEv.Ok`) and take the received
+message's `TrOk` as a premise its `RawNode` reads from `isRaftMsg`. (3) **The receipt-bound law**
+`ownRaftGhost_traceBound`: given `receiptBound GF + γ.reBoot.length ≤ traceNumBound` (`readyFits`'s bound,
+for the traced spec to take from the node API), the last index and commit index are below
+`traceNumBound`; terms are not (a premise of the traced `Step`, from the `RawNode`'s `termLB`). No
+client-visible statement changed (`isRaftMsg`'s text unchanged; `isMessageC`'s body raft-internal,
+vacuous untraced); no axiom or `sorry`. **Not done:** piece 2 (`raft.Step.spec` one spec for both modes:
+the receive hook's `recvGate` and the step functions', `hup`'s gates threaded through `raft__Step.lean`,
+`raft.Step.Postulates` and the branch files, a `raft.Step.untraced` instance), piece 3
+(`raft.Step.traced` at `HasLC.hasLC`: the gates from `trCapB` and raft's ghost, `OutTrStep` from the send
+lines, premises the node supplies: the received message's `TrOk`, the term bound, the receipts' fit),
+piece 4 (`tickElection`, `tickHeartbeat`); then the node API. Checked (`trace-check` at `bd9b2bed02`,
+already merged): full `lake build` green (13784 jobs); `etc/tcb-report.py --check` (806 axioms, 4
+`sorry`s, unchanged) and all 53 collections `--reuse --check`, none updated; `interface/` differs in
+`Protocol/Model.txt` (the moved definitions, `MsgType.traced`, `Msg.TrOk`), `TraceSim.txt`
+(`traceNumBound` gone from it) and `Protocol/GhostState.txt` (`MsgTrOk`, its lemmas, `isMessageC`'s
+conjunct, `isMessageC_intro`'s argument); `etc/api-check.py` 0 errors; `--layout` 0 new;
+`etc/gen-link.py --raft` unchanged.
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its

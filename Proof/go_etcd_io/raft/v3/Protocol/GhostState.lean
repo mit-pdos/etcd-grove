@@ -268,7 +268,28 @@ A `snap` message's snapshot carries the application's configuration certificate
 keeps `isMessage` -- a step derivation (`StepC`'s `trans`, `drain`) cannot be given a certificate
 for every message it sends on the way -- and the certificate is attached where a message leaves
 raft (`isRaftMsg`, a `Ready`'s messages: the storage's registry, `storCertOk`), and read where a
-`MsgSnap` enters it (`raft.Step`). -/
+`MsgSnap` enters it (`raft.Step`).
+
+(2026-11-10, trace-check Q8 stage 1 slice 10) **In a traced cluster, a message's numbers** (`MsgTrOk`:
+of a traced type, `Msg.NumsBelow traceNumBound`, what a receive line's `TraceEv.Ok` reads of the
+message, amendment A1's carrier): a conjunct of `isMessageC`, attached where the message leaves raft
+like the certificate, for the same reason (a step derivation cannot be given the numbers of every
+message it sends on the way, nor can the protocol, which bounds no term: a node's term is bounded by
+its `RawNode`'s budget, `InvNodeChan.lean`); the node's outbox carries them meanwhile (`OutTr`,
+`ghostRest`, `StepGhostMode.lean`), which a traced `raft.Step` keeps from its send lines. `True`
+untraced (`RaftNames.reTrace = none`). -/
+
+/-- (Q8 stage 1 slice 10) **A message's numbers, in a traced cluster** (see above). -/
+def MsgTrOk (γ : RaftNames) (m : Msg) : Prop :=
+  γ.reTrace.isSome → m.TrOk
+
+/-- Nothing to carry in an untraced cluster. -/
+theorem MsgTrOk.of_none {γ : RaftNames} (h : γ.reTrace = none) (m : Msg) : MsgTrOk γ m := by
+  intro h'; rw [h] at h'; cases h'
+
+/-- Nothing to carry for an untraced type. -/
+theorem MsgTrOk.of_untraced (γ : RaftNames) {m : Msg} (h : m.ty.traced = false) : MsgTrOk γ m :=
+  fun _ => Msg.trOk_of_untraced h
 
 /-- The certificate a message carries: none but a `snap`'s. -/
 def msgCert (γ : RaftNames) (m : Msg) : IProp GF :=
@@ -280,9 +301,10 @@ instance msgCert_persistent (γ : RaftNames) (m : Msg) : Persistent (msgCert (GF
 instance msgCert_timeless (γ : RaftNames) (m : Msg) : Timeless (msgCert (GF := GF) γ m) := by
   unfold msgCert; infer_instance
 
-/-- A certified message: the protocol's facts and, for a `snap`, its certificate. -/
+/-- A certified message: the protocol's facts and, for a `snap`, its certificate; (Q8 stage 1 slice
+10) in a traced cluster, its numbers (`MsgTrOk`). -/
 def isMessageC (γ : RaftNames) (m : Msg) : IProp GF :=
-  iprop(isMessage γ m ∗ msgCert γ m)
+  iprop(isMessage γ m ∗ msgCert γ m ∗ ⌜MsgTrOk γ m⌝)
 
 instance isMessageC_persistent (γ : RaftNames) (m : Msg) :
     Persistent (isMessageC (GF := GF) γ m) := by
@@ -292,6 +314,11 @@ theorem isMessageC_isMessage (γ : RaftNames) (m : Msg) :
     isMessageC (GF := GF) γ m ⊢ isMessage γ m := by
   unfold isMessageC; iintro ⟨#H, -⟩; iexact H
 
+/-- (Q8 stage 1 slice 10) A certified message's numbers, in a traced cluster. -/
+theorem isMessageC_trOk (γ : RaftNames) (m : Msg) :
+    isMessageC (GF := GF) γ m ⊢ ⌜MsgTrOk γ m⌝ := by
+  unfold isMessageC; iintro ⟨-, -, %H⟩; ipureintro; exact H
+
 theorem msgCert_of_ne (γ : RaftNames) (m : Msg) (h : m.ty ≠ .snap) :
     ⊢ msgCert (GF := GF) γ m := by
   unfold msgCert; ileft; ipureintro; exact h
@@ -300,13 +327,14 @@ theorem msgCert_of_ne (γ : RaftNames) (m : Msg) (h : m.ty ≠ .snap) :
 theorem isMessageC_snap_cert (γ : RaftNames) (m : Msg) (h : m.ty = .snap) :
     isMessageC (GF := GF) γ m ⊢ raftSnapCert γ (msgSnapTrip m) := by
   unfold isMessageC msgCert
-  iintro ⟨-, (%Hn | #Hc)⟩
+  iintro ⟨-, (%Hn | #Hc), -⟩
   · exact absurd h Hn
   · iexact Hc
 
-theorem isMessageC_intro (γ : RaftNames) (m : Msg) :
+/-- (Q8 stage 1 slice 10: with the message's numbers in a traced cluster, `MsgTrOk`.) -/
+theorem isMessageC_intro (γ : RaftNames) (m : Msg) (Htr : MsgTrOk γ m) :
     ⊢ isMessage (GF := GF) γ m -∗ msgCert γ m -∗ isMessageC γ m := by
-  unfold isMessageC; iintro #H #Hc; iframe H Hc
+  unfold isMessageC; iintro #H #Hc; iframe H Hc; ipureintro; exact Htr
 
 /-- An accepting `MsgAppResp` acknowledges an index within the leader's log (stage R8a, D11). -/
 theorem isMessage_appResp_ackIn (γ : RaftNames) (m : Msg) :

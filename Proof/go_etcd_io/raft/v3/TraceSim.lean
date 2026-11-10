@@ -166,10 +166,8 @@ stated first, 2026-11-09) so that raft's simulation can state them. -/
 section facts
 variable [GooseExts]
 
-/-- **The bound on the events' numbers** (`Etcdraft.numBound`, Q12 (a)): `NewTrace`'s `Event.Bounded`
-asks each number below it. The traced cluster's time receipts must keep raft's terms and indices
-below it (a bound on `receiptBound` the adequacy theorem states, Q13). -/
-def traceNumBound : Nat := 2 ^ 61
+-- `traceNumBound` (the bound on the events' numbers) moved to `Protocol/Model.lean` (Q8 stage 1 slice
+-- 10), verbatim, so that raft's message facts can carry it.
 
 /-- An event of a kind the workload logs outside a node's bootstrap (`Line.InScope` of its line):
 not a configuration change (`ChangeConf`, P3), a restart (`InitState`, P1) or a snapshot sent
