@@ -295,7 +295,7 @@ macro "vote_grant_tail" : tactic => `(tactic| (
       (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne))
       (fun h => absurd h (by show MsgVoteResp ≠ MsgApp; w32_ne)) rfl $$ [Hphys Hresp] as Hphys
   · iframe
-    iapply tsSrc_ne; exact (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne))
+    iapply tsSrcU_ne; exact (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne))
   wp_gets
   rw [Hty]
   try wp_auto
@@ -356,7 +356,7 @@ macro "vote_reject_tail" : tactic => `(tactic| (
       (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne))
       (fun h => absurd h (by show MsgVoteResp ≠ MsgApp; w32_ne)) rfl $$ [Hphys Hresp] as Hphys
   · iframe
-    iapply tsSrc_ne; exact (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne))
+    iapply tsSrcU_ne; exact (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne))
   iapply HΦ $$ %interface.nil %_
   iframe Hphys
   ipureintro
@@ -430,7 +430,7 @@ macro "prevote_resp_tail " grant:ident : tactic =>
            (fun h => absurd h (by show MsgPreVoteResp ≠ MsgApp; w32_ne))
          rfl $$ [Hphys Hresp]
        · iframe Hphys Hresp
-         iapply tsSrc_ne; exact (fun h => absurd h (by show MsgPreVoteResp ≠ MsgSnap; w32_ne))
+         iapply tsSrcU_ne; exact (fun h => absurd h (by show MsgPreVoteResp ≠ MsgSnap; w32_ne))
        iintro Hphys)
     | (have _h : $grant = false := rfl
        wp_apply Perennial.EtcdGrove.raft.wp_load_TermC $$ Hphys as Hphys
@@ -461,7 +461,7 @@ macro "prevote_resp_tail " grant:ident : tactic =>
            (fun h => absurd h (by show MsgPreVoteResp ≠ MsgApp; w32_ne))
          rfl $$ [Hphys Hresp]
        · iframe Hphys Hresp
-         iapply tsSrc_ne; exact (fun h => absurd h (by show MsgPreVoteResp ≠ MsgSnap; w32_ne))
+         iapply tsSrcU_ne; exact (fun h => absurd h (by show MsgPreVoteResp ≠ MsgSnap; w32_ne))
        iintro Hphys)
     try wp_auto
     -- not a `MsgVote`: no vote recorded

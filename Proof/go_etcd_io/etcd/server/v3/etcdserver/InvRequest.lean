@@ -2104,8 +2104,11 @@ def raftPropose (γ : ServerRaftNames) (n : GoInterface) : IProp GF :=
         (data : List w8) (Q : List EntryModel → IProp GF),
       -- (2026-10-16, stage R7b, B3) non-empty data: raft's `node.Propose` wants it (D6: an empty
       -- proposal would be a leader's own entry); the server's request marshals to a non-empty
-      -- string (`irrWireOf`, `processInternalRaftRequestOnce`)
-      {{ mvcc.txnCtx ctx cd ∗ data_sl ↦*□ data ∗ ⌜data ≠ []⌝ ∗ srvPropArg γ data Q ∗ £ 1 }}
+      -- string (`irrWireOf`, `processInternalRaftRequestOnce`); (raft-entsize §3, 2026-11-10) at
+      -- most `2^27` bytes (`processInternalRaftRequestOnce`'s `MaxRequestBytes` check, under
+      -- `etcdMaxRequestBytesOk`): within the cluster's bound on proposed data (`maxData = 2^30`)
+      {{ mvcc.txnCtx ctx cd ∗ data_sl ↦*□ data ∗ ⌜data ≠ []⌝ ∗ ⌜data.length ≤ 2 ^ 27⌝ ∗
+          srvPropArg γ data Q ∗ £ 1 }}
         (App (App (Val #(methods ni.ty go!"Propose" ni.v)) (Val #(GoInterface.ok ctx)))
           (Val #data_sl))
       {{ (err : GoInterface), RET #err; srvPropRes γ data Q ∗ applyErrIs err }}))

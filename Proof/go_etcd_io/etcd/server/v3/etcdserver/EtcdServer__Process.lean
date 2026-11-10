@@ -19,6 +19,7 @@ public import Spec.google_golang_org.protobuf.proto.SizeMessage
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetFrom
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetTo
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.MsgRead
 
 @[expose] public section
 
@@ -67,8 +68,12 @@ theorem EtcdServer.Process.wp_proof
       pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats $$ []
   · iPkgInit
   iunfold netRecv at Hrecv
-  icases Hrecv with ⟨%sm, %sm', Hm, %Hw, #HP, HO, #HS⟩
-  obtain ⟨⟨Hmsg, Hents, Hsnap, Hctx'⟩, Hto, Hrs'⟩ := Hw
+  icases Hrecv with ⟨%sm, %cm, Hm, %Hw, #HP, HO, #HS⟩
+  obtain ⟨Hcm, Hcs, Hto, Hsz⟩ := Hw
+  -- (raft-entsize §4) read through half of it, keeping the content for `netRecv`
+  icases msgPtsCC_read ml true cm Hcs $$ Hm with ⟨Hm, Hback⟩
+  generalize hsm' : cm.model = sm'
+  have Hmsg : sm'.msg = sm.msg := by rw [← hsm', Hcm]
   wp_auto
   wp_apply wp_Logger s l $$ [Hlr] as ⟨-, Hlr⟩
   · iframe #; iframe Hlr; ipureintro; exact Hlgnn
@@ -106,12 +111,13 @@ theorem EtcdServer.Process.wp_proof
     (try wp_auto)
     (try wp_auto)
     -- `s.r.Step(ctx, m)`: raft's, of what the network delivered
+    ihave Hm := Hback $$ Hm
     ihave Hrecv : netRecv γn γ.id γd ml $$ [Hm HO]
     · iunfold netRecv
-      iexists sm, sm'
+      iexists sm, cm
       iframe Hm HO HP HS
       ipureintro
-      exact ⟨⟨Hmsg, Hents, Hsnap, Hctx'⟩, by rw [Hγid]; exact Hto, Hrs'⟩
+      exact ⟨Hcm, Hcs, by rw [Hγid]; exact Hto, Hsz⟩
     imod (stepIn_of_recv γn γ HN (by rw [Hγid]; exact Hd) ml) $$ [Hcok Hrecv] with Hstep
     · iframe Hcok Hrecv
     iunfold rnStepIfc at Hsi
@@ -131,12 +137,13 @@ theorem EtcdServer.Process.wp_proof
     iframe Hlr Herr
   · (try wp_auto)
     -- `s.r.Step(ctx, m)`: raft's, of what the network delivered
+    ihave Hm := Hback $$ Hm
     ihave Hrecv : netRecv γn γ.id γd ml $$ [Hm HO]
     · iunfold netRecv
-      iexists sm, sm'
+      iexists sm, cm
       iframe Hm HO HP HS
       ipureintro
-      exact ⟨⟨Hmsg, Hents, Hsnap, Hctx'⟩, by rw [Hγid]; exact Hto, Hrs'⟩
+      exact ⟨Hcm, Hcs, by rw [Hγid]; exact Hto, Hsz⟩
     imod (stepIn_of_recv γn γ HN (by rw [Hγid]; exact Hd) ml) $$ [Hcok Hrecv] with Hstep
     · iframe Hcok Hrecv
     iunfold rnStepIfc at Hsi

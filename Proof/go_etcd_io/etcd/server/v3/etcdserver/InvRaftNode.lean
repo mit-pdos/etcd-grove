@@ -192,19 +192,50 @@ node, with its credits (`sentMsg_snapshot` gives its snapshot's certificate): wh
 `processMessages` hands to `msgSnapC` and `applyAll`'s merge rewrites. (R2d'a A10 item 5, approved by
 82; DRAFT) Its term is above this incarnation's start term `γ.t0` (`W64 0` at a first start, where
 `sentMsg_shape`'s nonzero term gives it; at a restart `rnRestartOk`'s `rnSnapTermAbove`, R2d'b's
-target): `applyAll`'s merged-send case at a batch term `rt ≤ t0` reads it (`winNoMergedSendR`). -/
+target): `applyAll`'s merged-send case at a batch term `rt ≤ t0` reads it (`winNoMergedSendR`).
+(raft-entsize [r3c], 2026-11-10) Without top-level unknown fields (`pbMsg … []`, raft's literal:
+`msgOut_snapUf`), for the merged message's content (`createMergedSnapshotMessage`). -/
 def rnSnapMsg (γ : RNNames) (m : Loc) : IProp GF :=
   letI := srvStor (GF := GF) γ.node
   iprop(∃ st : MsgSt, msgOwn m (DFrac.own 1) st ∗
     ⌜st.msg.Type' = MsgSnap ∧ uint.Z γ.t0 < uint.Z st.msg.Term'⌝ ∗
-    sentMsg γ.node.cl srvClusterN γ.id st ∗ msgCredits γ.node.cl srvClusterN st)
+    sentMsg γ.node.cl srvClusterN γ.id st ∗ msgCredits γ.node.cl srvClusterN st ∗
+    pbMsg raftpb.Message m [])
 
 /-- (D22 S-l sender) **A message of a `Ready`, as the server receives it**: any but a `MsgSnap`
 read-only with `E.M` (`rnMsgOk`'s, with its type not `MsgSnap`), a `MsgSnap` owned
 (`rnSnapMsg`). `processMessages` turns the first into `rnMsgOk` for the transport and hands the
-second to `msgSnapC`. -/
+second to `msgSnapC`. (raft-entsize §2, 2026-11-09: the first read-only at the content raft handed
+it out with, `msgOut`; until then `msgAt`, today's form of it.) -/
 def rnMsgR (E : RNEnv GF) (γ : RNNames) (m : Loc) : IProp GF :=
-  iprop((∃ (to : w64) (ty : w32), msgAt m to ty ∗ ⌜ty ≠ MsgSnap⌝ ∗ E.M m) ∨ rnSnapMsg γ m)
+  iprop((∃ st : MsgSt, msgOut γ.node.cl m DFrac.discard st ∗ ⌜st.msg.Type' ≠ MsgSnap⌝ ∗ E.M m) ∨
+    rnSnapMsg γ m)
+
+/-- (raft-entsize [r3c]) **A handed-out `MsgSnap` has no top-level unknown fields** (raft's
+`msgOut_snap`), as its object's `pbMsg … []`. -/
+theorem msgOut_snapUf [StorageModel GF] (γc : Cluster) (l : Loc) (dq : DFrac) (st : MsgSt)
+    (h : st.msg.Type' = MsgSnap) :
+    msgOut (GF := GF) γc l dq st ⊢ msgOut γc l dq st ∗ pbMsg raftpb.Message l [] := by
+  unfold msgOut
+  iintro ⟨%c, Hc, %Hm, #Ho⟩
+  obtain ⟨Hmod, Hcs, Hsn⟩ := Hm
+  have hu : c.f.uf = [] := Hsn (by rw [← Hmod] at h; exact h)
+  unfold msgPtsCC
+  icases Hc with ⟨%pty, %pto, %pfr, %pte, %plt, %pix, %pco, %pvo, %prj, %prh, %es, %els, %ps, %cs,
+    %rsl, %Hnn, HTy, #cTy, HTo, #cTo, HFr, #cFr, HTe, #cTe, HLt, #cLt, HIx, #cIx, HCo, #cCo,
+    HVo, #cVo, HRj, #cRj, HRh, #cRh, HEs, Hes, #Hents, Hcap, HSn, Hsn, HCx, #Hcx, HRs, Hrs, #Hpb⟩
+  isplitl
+  · iexists c
+    isplitl
+    · iexists pty, pto, pfr, pte, plt, pix, pco, pvo, prj, prh, es, els, ps, cs, rsl
+      isplitr
+      · ipureintro; exact Hnn
+      iframe
+      iframe cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh Hents Hcx Hpb
+    iframe Ho
+    ipureintro; exact ⟨Hmod, Hcs, Hsn⟩
+  rw [hu] at *
+  iexact Hpb
 
 /-! ## The node's `Ready`/`Advance` exchange -/
 
@@ -332,11 +363,13 @@ theorem rnSnapTermOk_cons {γ : RNNames} {q : QMsg} {ms : List QMsg} (h : rnSnap
   h.imp_right fun h' q' hq' => h' q' (List.mem_cons_of_mem _ hq')
 
 /-- (2026-11-03, R2b-3: *enter* at the `Save`) **A `Ready`'s messages `ms`, not yet sent**: each
-owned as the node API hands it out, with its credits, and at role leader (`r' = StateLeader`, the
+owned as the node API hands it out (raft-entsize §2: at the content it pinned, `msgOut`), with its
+credits, and at role leader (`r' = StateLeader`, the
 role after the `Ready`) their sends (raft's `readyLeaderMsgs`: a leader may send before the batch is
 durable). Otherwise *enter* gives the sends (`readyMsgs`), after the WAL `Save`. -/
 def rnRawMsgs (γ : RNNames) (ms : List QMsg) (r' : StateType) : IProp GF :=
-  iprop(([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ msgCredits γ.node.cl srvClusterN q.st) ∗
+  iprop(([∗list] q ∈ ms, msgOut γ.node.cl q.loc (readyDq q.st) q.st ∗
+      msgCredits γ.node.cl srvClusterN q.st) ∗
     (⌜r' = StateLeader⌝ -∗ readyMsgs γ.node.cl srvClusterN γ.id ms) ∗
     -- (R2d'a A10 item 5, Q29 (d)) a first start (`t0 = 0`), or every `MsgSnap` above `t0`
     -- (`rnSnapTermAbove`, at the receive)
@@ -670,7 +703,9 @@ def rnEnvOk (E : RNEnv GF) (γ : RNNames) : IProp GF :=
       uint.Z E.γr.raft.ai0 = γ.pre.length⌝ ∗
     ⌜γ.node.rule = srvRule E.γr.kv.c0 γ.node.boot⌝ ∗
     srvRaftLogInv E.γr.raft ∗
-    □ (∀ (m : Loc) (st : MsgSt), msgOwn m DFrac.discard st ∗
+    -- (raft-entsize §2, 2026-11-09) the message at the content raft handed it out with (`msgOut`,
+    -- whose element of the handed-out set gives the size law); until then `msgOwn m □ st`
+    □ (∀ (m : Loc) (st : MsgSt), msgOut γ.node.cl m DFrac.discard st ∗
         sentMsg γ.node.cl srvClusterN γ.id st ∗ msgCredits γ.node.cl srvClusterN st ∗ ⌜st.msg.Type' ≠ MsgSnap⌝ -∗
         E.M m) ∗
     □ (∀ L : List EntryModel, srvRLogLb E.γr.raft L -∗
@@ -972,10 +1007,10 @@ term above `γ.t0` combines the two cases of `rnSnapTermOk`: at a first start (`
 term (`sentMsg_shape`), at a restart the receive's bound (`rnSnapTermAbove`). -/
 theorem rnMsgOk_of_api [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNames) :
     ∀ ms : List QMsg, rnSnapTermOk γ ms →
-      ⊢ □ (∀ (m : Loc) (st : MsgSt), msgOwn m DFrac.discard st ∗
+      ⊢ □ (∀ (m : Loc) (st : MsgSt), msgOut γ.node.cl m DFrac.discard st ∗
           sentMsg γ.node.cl srvClusterN γ.id st ∗ msgCredits γ.node.cl srvClusterN st ∗ ⌜st.msg.Type' ≠ MsgSnap⌝ -∗
           E.M m) -∗ srvClusterOk E.γr.raft -∗ ⌜E.γr.raft.raft = γ.node⌝ -∗
-        ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗
+        ([∗list] q ∈ ms, msgOut γ.node.cl q.loc (readyDq q.st) q.st ∗
           sentMsg γ.node.cl srvClusterN γ.id q.st ∗ msgCredits γ.node.cl srvClusterN q.st)
           ={⊤}=∗
         [∗list] m ∈ ms.map QMsg.loc, rnMsgR E γ m
@@ -987,7 +1022,7 @@ theorem rnMsgOk_of_api [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNN
     itrivial
   | q :: ms, hb => by
     iintro #HM #Hcl %Hraft H
-    icases (BigSepL.bigSepL_cons (Φ := fun _ (q : QMsg) => iprop(msgOwn (GF := GF) q.loc
+    icases (BigSepL.bigSepL_cons (Φ := fun _ (q : QMsg) => iprop(msgOut (GF := GF) γ.node.cl q.loc
       (readyDq q.st) q.st ∗ sentMsg γ.node.cl srvClusterN γ.id q.st ∗
       msgCredits γ.node.cl srvClusterN q.st))).1 $$ H with ⟨⟨Hm, #Hsm, Hc⟩, Hrest⟩
     imod rnMsgOk_of_api E γ ms (rnSnapTermOk_cons hb) $$ HM Hcl %Hraft Hrest with Hrest
@@ -1004,9 +1039,13 @@ theorem rnMsgOk_of_api [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNN
       have hdq : readyDq q.st = DFrac.own 1 := by
         unfold readyDq; rw [hsn]; exact if_neg (by unfold RespType; decide)
       rw [hdq] at *
+      ihave ⟨Hm, #Huf⟩ := (letI := srvStor (GF := GF) γ.node;
+        msgOut_snapUf γ.node.cl q.loc (DFrac.own 1) q.st hsn) $$ Hm
+      ihave Hm := (letI := srvStor (GF := GF) γ.node;
+        msgOut_msgOwn γ.node.cl q.loc (DFrac.own 1) q.st) $$ Hm
       ihave %Hsh := (letI := srvStor (GF := GF) γ.node;
         sentMsg_shape (GF := GF) γ.node.cl srvClusterN γ.id q.st) $$ Hsm
-      iframe Hm Hsm Hc
+      iframe Hm Hsm Hc Huf
       ipureintro
       refine ⟨hsn, ?_⟩
       rcases hb with h0 | hb
@@ -1017,18 +1056,16 @@ theorem rnMsgOk_of_api [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNN
         have : uint.Z q.st.msg.Term' ≠ 0 := fun h => hne (by word)
         word
       · exact hb q List.mem_cons_self hsn
-    imod msgOwn_persist_fupd q.loc _ q.st ⊤ $$ Hm with #Hm
+    -- (raft-entsize §2) frozen at the content raft handed it out with
+    imod (letI := srvStor (GF := GF) γ.node;
+      msgOut_persist_fupd γ.node.cl q.loc (readyDq q.st) q.st ⊤) $$ Hm with #Hm
     imodintro
     iapply (BigSepL.bigSepL_cons (Φ := fun _ m => rnMsgR (GF := GF) E γ m)).2
     iframe Hrest
     iunfold rnMsgR
     ileft
-    iexists q.st.msg.To', q.st.msg.Type'
-    isplitr
-    · iunfold msgAt
-      iexists q.st
-      iframe Hm
-      ipureintro; exact ⟨rfl, rfl⟩
+    iexists q.st
+    iframe Hm
     isplitr
     · ipureintro; exact hsn
     iapply HM $$ %q.loc %q.st
@@ -1051,7 +1088,7 @@ theorem rnRawMsgs_sent [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNN
   icases Henv with ⟨-, %Hn, -, #Hinv, #HM, -⟩
   ihave #Hcl : srvClusterOk E.γr.raft $$ []
   · iunfold srvRaftLogInv at Hinv; icases Hinv with ⟨-, #H, -⟩; iexact H
-  ihave Hmo := readyMsgs_sent γ.node.cl srvClusterN γ.id ms $$ [$Hmo $Hsent]
+  ihave Hmo := readyMsgs_sentC γ.node.cl srvClusterN γ.id ms $$ [$Hmo $Hsent]
   iapply rnMsgOk_of_api E γ ms Hb $$ HM Hcl %Hn.1 Hmo
 
 /-- (2026-11-03, R2b-3) **A leader's messages, sent before *enter*** (raft's `readyLeaderMsgs`). -/
@@ -1215,8 +1252,9 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
       with ⟨Hrest, %Hfit61⟩
     · iframe Hfits Hrest
     simp only [readyRest, readySnap]
-    icases Hrest with ⟨#Hes, Hmsgs, Hmo, #Hhs, #Hss, -, ⟨%Hsp, Hown, #Hcom2, #Hcert, Hold,
+    icases Hrest with ⟨#HesO, Hmsgs, Hmo, #Hhs, #Hss, -, ⟨%Hsp, Hown, #Hcom2, #Hcert, Hold,
       Hgiv⟩, %Hrrf⟩
+    ihave #Hes := readyEnts_entsRO _ _ _ $$ HesO
     obtain ⟨Hdlv, Hptr, Hce0, Hpfx, Hlt, Hdl, Hpos, H61, Hfl, Hli⟩ := Hsp
     subst Hce0
     obtain ⟨A', HA'⟩ : ∃ A', A' = (l.dlv.drop γ.pre.length).map EntryModel.ofM := ⟨_, rfl⟩
@@ -1396,7 +1434,8 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
     with ⟨Hrest, %Hfit61⟩
   · iframe Hfits Hrest
   simp only [readyRest, readySnap]
-  icases Hrest with ⟨#Hes, Hmsgs, Hmo, #Hhs, #Hss, %Hbnd, ⟨%Hsnap, Happ, #Hcf, %Hidx⟩, %Hrrf⟩
+  icases Hrest with ⟨#HesO, Hmsgs, Hmo, #Hhs, #Hss, %Hbnd, ⟨%Hsnap, Happ, #Hcf, %Hidx⟩, %Hrrf⟩
+  ihave #Hes := readyEnts_entsRO _ _ _ $$ HesO
   obtain ⟨Lx, HLx, Hes0, Hdl, -⟩ := Hbnd
   obtain ⟨ce', Hce'def⟩ : ∃ ce', ce' = rnCe (srvLE γ.srv L).length ce := ⟨_, rfl⟩
   have Hce'LE : ce'.map EntryModel.toLE = ce := by rw [Hce'def]; exact rnCe_toLE _ ce

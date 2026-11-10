@@ -60,6 +60,7 @@ premise is over `st` (`NetMsgOk id st`: the transfer request's "no entries, no c
 module
 
 public import Proof.go_etcd_io.raft.v3.InvRawnode
+public import Proof.go_etcd_io.raft.v3.MsgOut
 
 @[expose] public section
 
@@ -109,7 +110,13 @@ abbrev RawNode.Step.spec : Prop :=
       -- (2026-10-16, stage R5) the message, taken for good as `raft.Step` takes it (until then
       -- `#Hents`, `Hents_cap`, `#Hctx`: the entries read-only with the slice's capacity, the
       -- context read-only)
-      "Hm" ∷ msgIn ml DFrac.discard st ∗
+      -- (raft-entsize §2, 2026-11-09) at a content `c` (`msgPtsCC`; until then `msgIn ml □ st`,
+      -- which is `c`'s model with no unknown fields in its snapshot's conf state,
+      -- `msgPtsC_iff_CC`), of bounded size in a cluster with a bound on proposed data, but a
+      -- `MsgSnap`
+      "Hm" ∷ (∃ c : MsgC, msgPtsCC ml (DFrac.own 1) DFrac.discard (needsCap st.msg) c ∗
+        ⌜c.model = st ∧ c.csUfNil ∧
+          (∀ b, γ.maxData = some b → st.msg.Type' ≠ MsgSnap → msgSizeOk c)⌝) ∗
       -- (raft-final, 2026-10-29, U7: the design's §2.6) a stamped transfer request's witness that
       -- the node leads its term (`raft.Step`'s `"#Hxfer"`; `isRaftMsg`'s transfer clause)
       "#Hxfer" ∷ □ (⌜st.msg.Type' = MsgTransferLeader ∧ st.msg.Term' ≠ W64 0⌝ -∗

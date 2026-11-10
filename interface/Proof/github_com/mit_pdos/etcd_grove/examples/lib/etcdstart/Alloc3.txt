@@ -56,28 +56,25 @@ theorem etcdstart.srvRaftLogInv_reg [v3rpc_sem :
 
 theorem etcdstart.alloc3 [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (hne : mvcc.api.names_nonempty.law) (id₁ id₂ id₃ : w64) (ps : List w64) (hperm : ps.Perm [id₁,
-    id₂, id₃]) (ctxs : List (List w8)) (boot : List LogEntry) (Hlow : (List.map (fun id => uint.Z id
-    % 2 ^ 16) [id₁, id₂, id₃]).Nodup) (Hlow0 : ∀ (id : w64), id ∈ [id₁, id₂, id₃] → uint.Z id % 2 ^
-    16 ≠ 0) (HB : BootLog ps ctxs boot) (Hcc : etcdstart.bootCCOk ps (LogEntry.toEntries boot 0))
-    (Hurl : bootURLsOk (LogEntry.toEntries boot 0)) (dir : w64 → List GoString) (a₁ a₂ a₃ :
-    GoString) (Hd0 : dir 0 = []) (Hhost : ∀ (i : w64) (h : GoString), go!"http://" ++ h ∈ dir i → h
-    = a₁ ∨ h = a₂ ∨ h = a₃) (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (Hrb2 : receiptBound GF +
-    boot.length ≤ 2 ^ 61) (n₁ n₂ n₃ : GoString) (c₁ c₂ c₃ : Option GoString) (lm : lease.Mode) (hrun
-    : lease.runCfg lm lm) (hrev : lm ≠ lease.Mode.revocable) (cmp : Bool := false) (cret : Nat := 0)
-    : ⊢ bootMarshal ps ctxs (LogEntry.toEntries boot 0) -∗ etcdstart.memberStartRes n₁ { peer :=
-    some a₁, client := c₁ } -∗ etcdstart.memberStartRes n₂ { peer := some a₂, client := c₂ } -∗
-    etcdstart.memberStartRes n₃ { peer := some a₃, client := c₃ } ={⊤}=∗ ∃ γ reg₁ reg₂ reg₃ ρ₁ ρ₂ ρ₃
-    E₁ E₂ E₃ Φs γn, ⌜γ.vs = ps ∧ γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧ γ.boot =
-    LogEntry.toEntries boot 0 ∧ γn.N = srvNet γ ∧ γn.dir = dir ∧ ρ₁.rd.kv.log0 = [[], []] ∧
-    ρ₂.rd.kv.st = ρ₁.rd.kv.st ∧ ρ₃.rd.kv.st = ρ₁.rd.kv.st ∧ kvModel ρ₂.rd.kv = kvModel ρ₁.rd.kv ∧
-    kvModel ρ₃.rd.kv = kvModel ρ₁.rd.kv ∧ ρ₂.rd.kv.log0 = [[], []] ∧ ρ₃.rd.kv.log0 = [[], []] ∧
-    kvSame ρ₂.rd.kv ρ₁.rd.kv ∧ kvSame ρ₃.rd.kv ρ₁.rd.kv ∧ ρ₁.rd.kv.cmp = cmp ∧ ρ₁.rd.kv.cret = cret⌝
-    ∗ etcdstart.memberBoot { cl := γ.cl, vs := γ.vs, rule := γ.rule, boot := γ.boot, reg := reg₁,
-    snapLoc := γ.snapLoc, log := γ.log, fresh := γ.fresh, props := γ.props, fired := γ.fired,
-    rdFresh := γ.rdFresh, pend := γ.pend, authOn := γ.authOn } ctxs ρ₁ E₁ Φs id₁ cmp lm ∗ (netHttpOk
-    γn id₁ ∗ etcdstart.memberFreshRes n₁ { peer := some a₁, client := c₁ } γn) ∗
-    etcdstart.memberBoot { cl := γ.cl, vs := γ.vs, rule := γ.rule, boot := γ.boot, reg := reg₂,
-    snapLoc := γ.snapLoc, log := γ.log, fresh := γ.fresh, props := γ.props, fired := γ.fired,
+    id₂, id₃]) (ctxs : List (List w8)) (boot : List LogEntry) (Hbc : BootCore ps ctxs boot) (dir :
+    w64 → List GoString) (a₁ a₂ a₃ : GoString) (Hd0 : dir 0 = []) (Hhost : ∀ (i : w64) (h :
+    GoString), go!"http://" ++ h ∈ dir i → h = a₁ ∨ h = a₂ ∨ h = a₃) (Hrb : receiptBound GF ≤ 2 ^ 64
+    - 2) (Hrb2 : receiptBound GF + boot.length ≤ 2 ^ 61) (n₁ n₂ n₃ : GoString) (c₁ c₂ c₃ : Option
+    GoString) (lm : lease.Mode) (hrun : lease.runCfg lm lm) (hrev : lm ≠ lease.Mode.revocable) (cmp
+    : Bool := false) (cret : Nat := 0) : ⊢ bootMarshal ps ctxs (LogEntry.toEntries boot 0) -∗
+    etcdstart.memberStartRes n₁ { peer := some a₁, client := c₁ } -∗ etcdstart.memberStartRes n₂ {
+    peer := some a₂, client := c₂ } -∗ etcdstart.memberStartRes n₃ { peer := some a₃, client := c₃ }
+    ={⊤}=∗ ∃ γ reg₁ reg₂ reg₃ ρ₁ ρ₂ ρ₃ E₁ E₂ E₃ Φs γn, ⌜γ.vs = ps ∧ γ.rule = srvRule (W64 0)
+    (LogEntry.toEntries boot 0) ∧ γ.boot = LogEntry.toEntries boot 0 ∧ γn.N = srvNet γ ∧ γn.dir =
+    dir ∧ ρ₁.rd.kv.log0 = [[], []] ∧ ρ₂.rd.kv.st = ρ₁.rd.kv.st ∧ ρ₃.rd.kv.st = ρ₁.rd.kv.st ∧ kvModel
+    ρ₂.rd.kv = kvModel ρ₁.rd.kv ∧ kvModel ρ₃.rd.kv = kvModel ρ₁.rd.kv ∧ ρ₂.rd.kv.log0 = [[], []] ∧
+    ρ₃.rd.kv.log0 = [[], []] ∧ kvSame ρ₂.rd.kv ρ₁.rd.kv ∧ kvSame ρ₃.rd.kv ρ₁.rd.kv ∧ ρ₁.rd.kv.cmp =
+    cmp ∧ ρ₁.rd.kv.cret = cret⌝ ∗ etcdstart.memberBoot { cl := γ.cl, vs := γ.vs, rule := γ.rule,
+    boot := γ.boot, reg := reg₁, snapLoc := γ.snapLoc, log := γ.log, fresh := γ.fresh, props :=
+    γ.props, fired := γ.fired, rdFresh := γ.rdFresh, pend := γ.pend, authOn := γ.authOn } ctxs ρ₁ E₁
+    Φs id₁ cmp lm ∗ (netHttpOk γn id₁ ∗ etcdstart.memberFreshRes n₁ { peer := some a₁, client := c₁
+    } γn) ∗ etcdstart.memberBoot { cl := γ.cl, vs := γ.vs, rule := γ.rule, boot := γ.boot, reg :=
+    reg₂, snapLoc := γ.snapLoc, log := γ.log, fresh := γ.fresh, props := γ.props, fired := γ.fired,
     rdFresh := γ.rdFresh, pend := γ.pend, authOn := γ.authOn } ctxs ρ₂ E₂ Φs id₂ cmp lm ∗ (netHttpOk
     γn id₂ ∗ etcdstart.memberFreshRes n₂ { peer := some a₂, client := c₂ } γn) ∗
     etcdstart.memberBoot { cl := γ.cl, vs := γ.vs, rule := γ.rule, boot := γ.boot, reg := reg₃,

@@ -16,7 +16,11 @@ theorem RawNode.Step.wp_proof [package_sem : Assumptions] (wp_IsResponseMsg : Is
               ∀ Φ,
                 isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
                     "Hrn" ∷ ownRawNode γ rn id rs ∗
-                      "Hm" ∷ msgIn ml DFrac.discard st ∗
+                      ("Hm" ∷
+                          ∃ c,
+                            msgPtsCC ml (DFrac.own 1) DFrac.discard (needsCap st.msg) c ∗
+                              ⌜c.model = st ∧
+                                  c.csUfNil ∧ ∀ (b : Nat), γ.maxData = some b → st.msg.Type' ≠ MsgSnap → msgSizeOk c⌝) ∗
                         "#Hxfer" ∷
                             □ (⌜st.msg.Type' = MsgTransferLeader ∧ st.msg.Term' ≠ W64 0⌝ -∗ isLeader γ id st.msg.Term') ∗
                           ("#Hmsg" ∷

@@ -390,7 +390,7 @@ private theorem wp_RestartNode_impl
     (wp_node_run : node.run.spec (GF := GF) (hG := hG)) :
     EtcdGrove.RestartNode.spec (GF := GF) (hG := hG) := by
   unfold EtcdGrove.RestartNode.spec
-  intro γ N c cv lok si σ csm a m Q F H1 H2 H3 H4 H5 H6 H7 H8 H9 Happ Ha1 Ha2 Hboot Hcs
+  intro γ N c cv lok si σ csm a m Q F H1 H2 H3 H4 H5 H6 H7 H8 H9 _ Happ Ha1 Ha2 Hboot Hcs
   wp_start as ⟨Hc, #Hlg, #Hcl, Hvac, #Hfits, HAU, #Hconf, Hrs⟩
   iunfold EtcdGrove.isCluster at Hcl
   ihave #Hcl' := Hcl

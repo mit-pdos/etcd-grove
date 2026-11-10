@@ -150,7 +150,7 @@ theorem rafthttp.snapshotSender.send.wp_proof
   intro Rh pid s m ml rc
   wp_start as ⟨#Hs, #Hmsg, Hb⟩
   iunfold snapBundleTo at Hb
-  icases Hb with ⟨%st, %sn, %D, #Hml, #HP, HO, %Hst, Hrs, #Himg⟩
+  icases Hb with ⟨%st, %sn, %D, #Hml, #Hsw, #HP, HO, %Hst, Hrs, #Himg⟩
   obtain ⟨Hsnap, Hsn, Hrsp, Hto⟩ := Hst
   ihave #Hs' := Hs
   iunfold snapSenderOk at Hs'
@@ -172,7 +172,7 @@ theorem rafthttp.snapshotSender.send.wp_proof
   (try wp_auto)
   wp_apply hIDString as %ts %Hts
   (try wp_auto)
-  wp_apply hBody lg m ml rc st _ Hlgnn Hrsp $$ [$Hrs] as %body ⟨%bs, %bi, ⟨%Hbi, %Hwire, %Hwe, %Hbl⟩, Hbody, #Hbc⟩
+  wp_apply hBody lg m ml rc st _ Hlgnn Hrsp $$ [$Hrs Hsw] as %body ⟨%bs, %bi, ⟨%Hbi, %Hwire, %Hwe, %Hbl⟩, Hbody, #Hbc⟩
   · iframe #
   subst Hbi
   (try wp_auto)

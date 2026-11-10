@@ -467,10 +467,12 @@ theorem qOwns_other_halves (id : w64) (l : List QMsg) :
         iframe H2
         unfold otherHalf; simp only [h, Bool.false_eq_true, ↓reduceIte]; iexact Hq2
 
-/-- `msgQ`s are the messages owned and their contributions. -/
+/-- `msgQ`s are the messages owned and their contributions; (raft-entsize §2) with each one's
+`snapUf` (persistent). -/
 theorem msgQs_split (l : List QMsg) (as_ : List (Option Msg)) :
     ([∗list] _k ↦ q;a ∈ l;as_, msgQ (GF := GF) q a) ⊣⊢
-      ⌜List.Forall₂ (fun q a => msgAbs q.st a) l as_⌝ ∗ [∗list] q ∈ l, qOwn q := by
+      ⌜List.Forall₂ (fun q a => msgAbs q.st a) l as_⌝ ∗ ([∗list] q ∈ l, qOwn q) ∗
+        [∗list] q ∈ l, snapUf q.loc q.st := by
   induction l generalizing as_ with
   | nil =>
     cases as_ with
@@ -478,7 +480,7 @@ theorem msgQs_split (l : List QMsg) (as_ : List (Option Msg)) :
       constructor
       · iintro -; isplitr
         · ipureintro; exact List.Forall₂.nil
-        · iempintro
+        · isplitl <;> iempintro
       · iintro -; iapply (BigSepL2.bigSepL2_nil (Φ := fun _ q a => msgQ (GF := GF) q a)).2; iempintro
     | cons a as' =>
       constructor
@@ -494,48 +496,54 @@ theorem msgQs_split (l : List QMsg) (as_ : List (Option Msg)) :
       constructor
       · iintro H
         icases (BigSepL2.bigSepL2_cons (Φ := fun _ q a => msgQ (GF := GF) q a)).1 $$ H with ⟨Hq, H⟩
-        icases (ih as').1 $$ H with ⟨%Hf, H⟩
+        icases (ih as').1 $$ H with ⟨%Hf, H, Hu⟩
         unfold msgQ
-        icases Hq with ⟨Hq, %Ha⟩
+        icases Hq with ⟨⟨Hq, Hqu⟩, %Ha⟩
         isplitr
         · ipureintro; exact List.Forall₂.cons Ha Hf
-        iapply BigSepL.bigSepL_cons.2; iframe Hq H
-      · iintro ⟨%Hf, H⟩
+        isplitl [Hq H]
+        · iapply BigSepL.bigSepL_cons.2; iframe Hq H
+        · iapply BigSepL.bigSepL_cons.2; iframe Hqu Hu
+      · iintro ⟨%Hf, H, Hu⟩
         icases BigSepL.bigSepL_cons.1 $$ H with ⟨Hq, H⟩
+        icases BigSepL.bigSepL_cons.1 $$ Hu with ⟨Hqu, Hu⟩
         cases Hf with
         | cons Ha Hf =>
           iapply (BigSepL2.bigSepL2_cons (Φ := fun _ q a => msgQ (GF := GF) q a)).2
-          isplitl [Hq]
-          · unfold msgQ; iframe Hq; ipureintro; exact Ha
+          isplitl [Hq Hqu]
+          · unfold msgQ; iframe Hq Hqu; ipureintro; exact Ha
           iapply (ih as').2
           isplitr
           · ipureintro; exact Hf
-          iexact H
+          iframe H Hu
 
-/-- `outboxRel` is its pure part and the messages owned (2026-10-16, stage R5). -/
+/-- `outboxRel` is its pure part and the messages owned (2026-10-16, stage R5), with their
+`snapUf`s (raft-entsize §2). -/
 theorem outboxRel_split (o : List Msg) (ms1 ms2 : List QMsg) :
     outboxRel (GF := GF) o ms1 ms2 ⊢
-      ⌜outboxRelP o ms1 ms2⌝ ∗ ([∗list] q ∈ ms1, qOwn q) ∗ [∗list] q ∈ ms2, qOwn q := by
+      ⌜outboxRelP o ms1 ms2⌝ ∗ ([∗list] q ∈ ms1, qOwn q) ∗ ([∗list] q ∈ ms2, qOwn q) ∗
+        ([∗list] q ∈ ms1, snapUf q.loc q.st) ∗ [∗list] q ∈ ms2, snapUf q.loc q.st := by
   iintro H
   unfold outboxRel
   icases H with ⟨%as1, %as2, %Ho, H1, H2⟩
-  icases (msgQs_split ms1 as1).1 $$ H1 with ⟨%Hf1, H1⟩
-  icases (msgQs_split ms2 as2).1 $$ H2 with ⟨%Hf2, H2⟩
-  iframe H1 H2
+  icases (msgQs_split ms1 as1).1 $$ H1 with ⟨%Hf1, H1, Hu1⟩
+  icases (msgQs_split ms2 as2).1 $$ H2 with ⟨%Hf2, H2, Hu2⟩
+  iframe H1 H2 Hu1 Hu2
   ipureintro; exact ⟨as1, as2, Ho, Hf1, Hf2⟩
 
 theorem outboxRel_join (o : List Msg) (ms1 ms2 : List QMsg) :
-    ⌜outboxRelP o ms1 ms2⌝ ∗ ([∗list] q ∈ ms1, qOwn (GF := GF) q) ∗ ([∗list] q ∈ ms2, qOwn q) ⊢
+    ⌜outboxRelP o ms1 ms2⌝ ∗ ([∗list] q ∈ ms1, qOwn (GF := GF) q) ∗ ([∗list] q ∈ ms2, qOwn q) ∗
+      ([∗list] q ∈ ms1, snapUf q.loc q.st) ∗ ([∗list] q ∈ ms2, snapUf q.loc q.st) ⊢
       outboxRel o ms1 ms2 := by
-  iintro ⟨%Hp, H1, H2⟩
+  iintro ⟨%Hp, H1, H2, Hu1, Hu2⟩
   obtain ⟨as1, as2, Ho, Hf1, Hf2⟩ := Hp
   unfold outboxRel
   iexists as1, as2
   isplitr
   · ipureintro; exact Ho
-  isplitl [H1]
-  · iapply (msgQs_split ms1 as1).2; iframe H1; ipureintro; exact Hf1
-  · iapply (msgQs_split ms2 as2).2; iframe H2; ipureintro; exact Hf2
+  isplitl [H1 Hu1]
+  · iapply (msgQs_split ms1 as1).2; iframe H1 Hu1; ipureintro; exact Hf1
+  · iapply (msgQs_split ms2 as2).2; iframe H2 Hu2; ipureintro; exact Hf2
 
 omit [StorageModel GF] in
 theorem mtypeOf_snap_eq (t : w32) (h : mtypeOf t = some .snap) : t = MsgSnap := by
@@ -916,6 +924,9 @@ def ownRaftPhysReady (c : CfgM) (r : Loc) (id : w64) (s : NState) (msl : GoSlice
     "%Hxf" ∷ ⌜XfOk id s (ms1 ++ ms2)⌝ ∗
     -- (D22 S-b′3) the queues' certificates' source (`ownRaftPhys`'s `Hscert`)
     "#Hscert" ∷ qSrcs s.gh.sn (ms1 ++ ms2) ∗
+    -- (raft-entsize §2) the queues' `snapUf`s (`msgQ`'s)
+    "#Hsuf1" ∷ ([∗list] q ∈ ms1, snapUf q.loc q.st) ∗
+    "#Hsuf2" ∷ ([∗list] q ∈ ms2, snapUf q.loc q.st) ∗
     "%Hmslen" ∷ ⌜ms.length ≤ ms1.length + ms2.length⌝ ∗
     "Hundo" ∷ (msl ↦* ms.map QMsg.loc -∗ ownSliceCap Loc msl (DFrac.own 1) -∗
                ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) -∗
@@ -1468,7 +1479,7 @@ theorem ownRawNodeReady_abandon (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
   ihave Hown2 := (qOwns_self_split id ms2).2 $$ [Hself Hoth]
   · iframe Hself Hoth
   ihave Hob := outboxRel_join s.outbox ms1 ms2 $$ [Hown1 Hown2]
-  · iframe Hown1 Hown2; ipureintro; exact Houtbox
+  · iframe Hown1 Hown2 Hsuf1 Hsuf2; ipureintro; exact Houtbox
   simp only [Bool.false_eq_true, ↓reduceIte]
   ihave Hlog : ownRaftLog s.log s.logst $$ [Hlog]
   · iExactEq Hlog; rfl
@@ -2423,6 +2434,7 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
       simp only [named, ↓reduceIte]
       iframe Hf_id Hf_Term Hf_Vote Hf_readStates HreadStates HreadStates_cap Hf_raftLog
         Hf_state Hf_lead Hf_msgs Hf_msgsAA HmsgsAA HmsgsAA_cap Hself Hother Hundo Hlog Hclose Hscert
+        Hsuf1 Hsuf2
       ipureintro
       exact ⟨Houtbox, HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, Hxf, Hmslen⟩
     ipureintro
@@ -2658,7 +2670,7 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
   · iexists sts
     iframe Hrsts
     ipureintro; intro _; exact Hidle.2.2.1
-  icases outboxRel_split _ _ _ $$ Houtbox with ⟨%Hob, Hown1, Hown2⟩
+  icases outboxRel_split _ _ _ $$ Houtbox with ⟨%Hob, Hown1, Hown2, #Hsuf1, #Hsuf2⟩
   icases (qOwns_self_split id ms2).1 $$ Hown2 with ⟨Hself, Hoth⟩
   icases (qOwns_other_halves id ms2).2 $$ Hoth with ⟨Hhalf, Hother⟩
   ihave #Hrdhard : iprop(∃ hrd : HardStateM, hsOpt rd.HardState' hrd ∗ phsWit γ hrd ∗
@@ -2700,6 +2712,10 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
     · ipureintro; exact Hxf
     isplitr
     · iexact Hscert
+    isplitr
+    · iexact Hsuf1
+    isplitr
+    · iexact Hsuf2
     isplitr
     · ipureintro; simp
     isplitl [Hmsgs Hmsgs_cap Hown1 Hhalf]

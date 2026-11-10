@@ -186,7 +186,7 @@ private theorem node.wp_Propose_impl
   unfold EtcdGrove.node.Propose.spec EtcdGrove.Cluster EtcdGrove.isNode EtcdGrove.ownCommittedOps
     EtcdGrove.Cluster.dup
   intro n γ N id data_sl data ctx cd
-  iintro %Φ ⟨#Hinit, #Hnode, #Hctx, #Hd, Hau⟩ HΦ
+  iintro %Φ ⟨#Hinit, #Hnode, #Hctx, #Hd, %_, Hau⟩ HΦ
   iunfold isNode at Hnode
   icases Hnode with ⟨%γn, %Hf, #Hrn, #Htab, #Hci, -⟩
   have Hγr := Hf.1

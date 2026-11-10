@@ -208,13 +208,15 @@ def raft_subpath(seg, tag):
 
 SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp'] = dict(
     doc='''Its fact (`rafthttpInit`, `etcdserver/BaseApply.lean`): `ErrExceedSizeLimit` holds a non-nil
-error, `linkHeartbeatMessage` a heartbeat message, read-only for good. Its initializer runs its
-variables' untranslated initializers: `ErrExceedSizeLimit`'s is an `errors.New` call
-(`msg_codec.go`), which the trust-boundary axiom `errorsNewVarsInit` states; `linkHeartbeatMessage_init`
-states `linkHeartbeatMessage`'s and `linkHeartbeatSize_init` `linkHeartbeatSize`'s (`stream.go`);
-`opaqueInitsOk` the others. `RaftPrefix` (`"/raft"`), its subpaths `ProbingPrefix`,
-`RaftStreamPrefix` and `RaftSnapshotPrefix` (`path.Join`, proved), `ConnReadTimeout`
-(`DefaultConnReadTimeout`, five seconds) and `readBytesLimit` (512 MiB) are translated and set.''',
+error, `linkHeartbeatMessage` a heartbeat message without unknown fields, read-only for good. Its
+initializer runs its variables' untranslated initializers: `ErrExceedSizeLimit`'s is an `errors.New`
+call (`msg_codec.go`), which the trust-boundary axiom `errorsNewVarsInit` states;
+`linkHeartbeatSize_init` states `linkHeartbeatSize`'s (`stream.go`); `opaqueInitsOk` the others.
+`RaftPrefix` (`"/raft"`), its subpaths `ProbingPrefix`, `RaftStreamPrefix` and `RaftSnapshotPrefix`
+(`path.Join`, proved), `ConnReadTimeout` (`DefaultConnReadTimeout`, five seconds), `readBytesLimit`
+(512 MiB) and (raft-entsize, route H1, 2026-11-10) `linkHeartbeatMessage`
+(`raftpb.Message{Type: raftpb.MsgHeartbeat.Enum()}`, `stream.go`: `Enum`'s proof inlined, the
+literal frozen by `hbMsg_init`) are translated and set.''',
     newvars=dict(ErrExceedSizeLimit="rafthttp: error limit exceeded",
         errIncompatibleVersion="incompatible version", ErrClusterIDMismatch="cluster ID mismatch",
         errStopped="stopped",
@@ -222,10 +224,7 @@ states `linkHeartbeatMessage`'s and `linkHeartbeatSize_init` `linkHeartbeatSize`
         errMemberRemoved="the member has been permanently removed from the cluster",
         # (2026-10-23, rafthttp stage 5c) `fmt.Errorf` without verbs, as `errMemberRemoved`
         errUnsupportedStreamType="unsupported stream type"),
-    custom={'linkHeartbeatMessage': dict(
-        doc='/-- `linkHeartbeatMessage = raftpb.Message{Type: raftpb.MsgHeartbeat.Enum()}` (`stream.go`): a message whose type is `MsgHeartbeat`, no other field set; nothing writes it (`hbSt`). -/',
-        post='EtcdGrove.msgOwn (globalAddr linkHeartbeatMessage) DFrac.discard hbSt',
-        pat='#H@'),
+    custom={
         # (2026-10-23, rafthttp stage 5b) the stream writer counts a heartbeat's size
         'linkHeartbeatSize': dict(
         doc='/-- `linkHeartbeatSize = proto.Size(&linkHeartbeatMessage)` (`stream.go`): the heartbeat\'s encoding\'s size (two bytes), an `int` from `0` to below `2^50`; nothing writes it (the stream writer adds it to its metrics). -/',
@@ -239,15 +238,27 @@ states `linkHeartbeatMessage`'s and `linkHeartbeatSize_init` `linkHeartbeatSize`
         pat='⟨%m@, %M@, H@, #MM@, #ME@⟩')},
     alloc_types={'RaftPrefix': 'GoString', 'ConnReadTimeout': 'w64', 'readBytesLimit': 'w64',
                  'ProbingPrefix': 'GoString', 'RaftStreamPrefix': 'GoString',
-                 'RaftSnapshotPrefix': 'GoString'},
+                 'RaftSnapshotPrefix': 'GoString',
+                 'linkHeartbeatMessage': '_root_.Perennial.go_etcd_io.raft.v3.raftpb.Message'},
     # `ConnReadTimeout = DefaultConnReadTimeout`: the constant's value, for the store to step;
     # (2026-10-24, rafthttp stage 6d) the three subpaths of `RaftPrefix`: `path.Join` (proved)
     before={'ConnReadTimeout': ['simp only [DefaultConnReadTimeout]', 'try wp_auto'],
             'ProbingPrefix': raft_subpath('probing', 'P'),
             'RaftStreamPrefix': raft_subpath('stream', 'S'),
-            'RaftSnapshotPrefix': raft_subpath('snapshot', 'N')},
+            'RaftSnapshotPrefix': raft_subpath('snapshot', 'N'),
+            # (raft-entsize, route H1, 2026-11-10) `Message{Type: MsgHeartbeat.Enum()}`, translated:
+            # `Enum`'s proof, the literal stored, frozen at its content `hbC` (`hbMsg_init`)
+            'linkHeartbeatMessage': ['try wp_auto',
+                'haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩',
+                'wp_apply (show EtcdGrove.raftpb.MessageType.Enum.spec (GF := GF) (hG := hG) from by '
+                'intro x; wp_start; wp_auto; iapply HΦ; iframe) (W32 8) as %phb Hphb',
+                'try wp_auto',
+                'imod (EtcdGrove.hbMsg_init _ _ ⊤) $$ [HlinkHeartbeatMessage Hphb] with #HlinkHeartbeatMessage',
+                '· iframe HlinkHeartbeatMessage Hphb']},
     imports=['Proof.path.Join', 'Proof.path.Clean', 'Proof.path.lazybuf__index',
-             'Proof.path.lazybuf__append', 'Proof.path.lazybuf__string'],
+             'Proof.path.lazybuf__append', 'Proof.path.lazybuf__string',
+             'Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum',
+             'Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.MsgAppV2'],
     finish=['ipersist HErrExceedSizeLimit', 'ipersist HerrIncompatibleVersion',
             'ipersist HErrClusterIDMismatch', 'ipersist HerrStopped', 'ipersist HerrMemberRemoved',
             'ipersist HRaftPrefix', 'ipersist HProbingPrefix', 'ipersist HRaftStreamPrefix',

@@ -87,7 +87,10 @@ theorem Cluster.step.wp_proof
   ihave #Hnc : nodeCtx ctx' cd $$ []
   · unfold nodeCtx; iright; iexact Hctx
   ihave #Hloc := snapLocalMsg_noDir (GF := GF) γ.r.cluster st.msg.To' (by rw [Hsl]) st
-  imod stepIn_intro γ.r.cluster kdRaftN st.msg.To' ml sid st rfl $$ [$Hsent $Hm $Hcred $Hloc] with Hin
+  -- (raft-entsize §2) the message's content form; no bound on proposed data (`Hmd`)
+  icases msgPtsC_msgPtsCC _ _ _ _ _ $$ Hm with ⟨%cm, Hm, %Hcm⟩
+  imod stepIn_intro γ.r.cluster kdRaftN st.msg.To' ml sid st cm rfl Hcm.1 Hcm.2
+    (fun b h => by simp [Hmd] at h) $$ [$Hsent $Hm $Hcred $Hloc] with Hin
   wp_apply wp_node_Step dn γ.r.cluster kdRaftN st.msg.To' ml ctx' cd
     $$ [$Hraftinit $HDisNode $Hnc $Hin] as %err #Herr
   try wp_auto

@@ -5,11 +5,11 @@
 theorem etcdstart.kvModel_boot (γk : KVNames) (ps : List w64) (bootLog : List EntryM) (hb :
     srvBootLogOk ps bootLog) : kvModel γk (bootEntries bootLog) = γk.log0
 
-structure etcdstart.BootFacts (id : w64) (ctxs : List (List w8)) (bl : List LogEntry) : Prop where
-  idLow : uint.Z id % 2 ^ 16 ≠ 0
-  boot : BootLog [id] ctxs bl
-  cc : ccIdOf e.Data' = W64 0 ∧ ccBootOk (listToSet [id]) e.Data'
-  urls : bootURLsOk (LogEntry.toEntries bl 0)
+def etcdstart.BootFacts (id : w64) (ctxs : List (List w8)) (bl : List LogEntry) : Prop :=
+  BootCore [id] ctxs bl
+
+theorem etcdstart.BootFacts.idLow {id : w64} {ctxs : List (List w8)} {bl : List LogEntry} (h :
+    etcdstart.BootFacts id ctxs bl) : uint.Z id % 2 ^ 16 ≠ 0
 
 def etcdstart.dir1 (peer : GoString) (id : w64) : w64 → List GoString :=
   dirOne id (go!"http://" ++ peer)

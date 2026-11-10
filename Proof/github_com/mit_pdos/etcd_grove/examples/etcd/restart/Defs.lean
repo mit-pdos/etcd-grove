@@ -26,6 +26,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartR
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restart.Base
 public import Proof.net.http.ListenerClose
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Served
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putget3.Defs
 
 @[expose] public section
 
@@ -43,25 +44,10 @@ section pure
 variable [GooseExts]
 
 /-- **`bootstrap`'s results, as Go computes them** (pure facts of the program; see the file
-header). (2026-10-27, the server port: the bootstrap log `bl` with the peers' contexts `ctxs` the
-node API's `BootLog`, each entry a conf change of id `0` that the server's `applyConfChange` takes;
-until then `srvBootLogOk (ccOk [id₁, id₂, id₃]) [id₁, id₂, id₃] bootLog`, under the conf-change
-policy `ccOk`, over raft's records.) -/
-structure BootFacts (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8))
-    (bl : List LogEntry) : Prop where
-  /-- the peers are a permutation of the members' ids (`bootstrap`'s order is the sorted one:
-  `0x2828…`, `0x8389…`, `0xd217…`, the members `-2`, `-3`, `-1`; only it meets the premises)
-  (2026-11-03, the final whole-`bootOk` review's S1: until then
-  `[id₁, id₂, id₃]`, which is not `bootstrap`'s order, so that the premise was false) -/
-  perm : ps.Perm [id₁, id₂, id₃]
-  idLow : ([id₁, id₂, id₃].map (fun id => uint.Z id % 2 ^ 16)).Nodup
-  idLow0 : ∀ id ∈ [id₁, id₂, id₃], uint.Z id % 2 ^ 16 ≠ 0
-  boot : BootLog ps ctxs bl
-  cc : ∀ e ∈ LogEntry.toEntries bl 0,
-    ccIdOf e.Data' = W64 0 ∧ ccBootOk (GMap.listToSet ps) e.Data'
-  /-- (2026-11-04, the restart plan's R2b-3d gap 3) the boot members' peer URLs valid UTF-8 and
-  pairwise disjoint (`bootURLsOk`). -/
-  urls : bootURLsOk (LogEntry.toEntries bl 0)
+header): putget3's (2026-11-09, raft-entsize [r3a]: until then a field-for-field copy of it). -/
+abbrev BootFacts (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8))
+    (bl : List LogEntry) : Prop :=
+  etcd_putget3.BootFacts id₁ id₂ id₃ ps ctxs bl
 
 /-- The members' names. -/
 abbrev name₁ : GoString := go!"restart3-1"

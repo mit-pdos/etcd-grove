@@ -250,7 +250,7 @@ theorem restReplay_closeI (γr : ReadNames) (rp : RestartPt) (Em : CoPset) (hL :
   iunfold srvRaftLogInv at Hinv2
   icases Hinv2 with ⟨-, #Hcl, -, %Hai, %Hpre, #Hb, %Hok⟩
   iunfold srvClusterOk at Hcl
-  icases Hcl with ⟨-, -, -, -, -, -, -, -, -, %Hurl⟩
+  icases Hcl with ⟨-, -, -, -, -, -, -, -, -, %Hurl, -⟩
   ihave %Hp := srvRLogLb_prefix γr.raft (γr.raft.raft.boot.map EntryModel.ofM) rp.A₀ $$ [Hb HA]
   · iframe Hb HA
   ihave #HA2 := HA

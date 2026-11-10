@@ -101,6 +101,16 @@ importable Proof.go_etcd_io.raft.v3.InvPb
 importable Proof.go_etcd_io.raft.v3.InvPbLog
 importable Proof.go_etcd_io.raft.v3.InvPbMsg
 importable Proof.go_etcd_io.raft.v3.InvPbSnapSet
+# (raft-entsize §2, 2026-11-09) the wire contents of messages and entries (`MsgC`, `EntryC`), the
+# frozen objects at a content (`msgRoC`, `entRoC`), moved from stage A's rafthttp `PerType*`
+importable Proof.go_etcd_io.raft.v3.PbContent
+# (raft-entsize §2 step 1) owned objects at their wire content: `msgPtsCC`, `entPtsCC`, and the
+# equivalences with today's `msgPtsC` (`msgPtsC_iff_CC`, with `csUfNil`) and `entPts`
+importable Proof.go_etcd_io.raft.v3.PbContentOwn
+# (raft-entsize §2 step 3) the objects a `Ready` hands out: `snapUf` (a `MsgSnap`'s unknown fields
+# none, the literal's), the handed-out set's elements `outObjR`/`outEntR` (`RaftNames.out`), and a
+# message handed out at a content raft pins (`msgOutR`, with the `MsgSnap` law `msgOutR_snap`)
+importable Proof.go_etcd_io.raft.v3.MsgOut
 
 ## The protocol's client vocabulary: the cluster's ghost names, the committed log, proposals, the
 ## read index, snapshots, the configuration

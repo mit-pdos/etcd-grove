@@ -30,11 +30,11 @@ theorem rafthttp.messageEncoder.encode.wp_proof
     (wp_WriteUint64 : binary.WriteUint64.spec (GF := GF) (hG := hG))
     (wp_MustMarshalMessage : pbutil.MustMarshalMessage.spec (GF := GF) (hG := hG)) :
     rafthttp.messageEncoder.encode.spec (GF := GF) (hG := hG) := by
-  intro enc wi ml st Wr A h nf hm
+  intro Sz enc wi ml st Wr A h nf hm
   wp_start as ⟨#Hw, #Hwr, HWr, #Hm, #Hb, #HA⟩
-  iunfold swMsgBound at Hb
+  iunfold msgSzC at Hb
   icases Hb with ⟨%c, #Hc, %Hcb⟩
-  obtain ⟨hcm, hcu, hcs⟩ := Hcb
+  obtain ⟨hcm, hcu, hcs, hcsz⟩ := Hcb
   have hm' : MsgMarshals c.model := hcm ▸ hm
   have wpS := wp_Size pbMessageC pbMessageC_reg ml c
   simp only [pbMessageC_ty, pbMessageC_roC, pbMessageC_size] at wpS
@@ -55,8 +55,8 @@ theorem rafthttp.messageEncoder.encode.wp_proof
   have hlen : (msgEncC c).length < 2 ^ 63 := by word
   have hn : n = W64 (msgEncC c).length := by word
   subst hn
-  have Hw0' : MsgWireOk st (msgEncC c) ∧ MsgEnc st (msgEncC c) ∧
-      (msgEncC c).length < 2 ^ 63 := ⟨Hw0, ⟨c, hcm, Hu, hcu, rfl⟩, hlen⟩
+  have Hw0' : MsgWireOk st (msgEncC c) ∧ MsgEncSz Sz st (msgEncC c) ∧
+      (msgEncC c).length < 2 ^ 63 := ⟨Hw0, ⟨c, hcm, Hu, hcu, rfl, hcsz⟩, hlen⟩
   ihave ⟨#HA1, #HA2⟩ := HA $$ %(msgEncC c) %Hw0'
   ihave Hbw := wp_WriteUint64 wi (W64 (msgEncC c).length) iprop(Wr h)
     (fun n' err => iprop(∃ k : Nat,
@@ -113,7 +113,7 @@ theorem rafthttp.messageEncoder.encode.wp_proof
     iintro %Hnil
     iexists (msgEncC c)
     ipureintro
-    refine ⟨Hw0, ⟨c, hcm, Hu, hcu, rfl⟩, hlen, ?_⟩
+    refine ⟨Hw0, ⟨c, hcm, Hu, hcu, rfl, hcsz⟩, hlen, ?_⟩
     rw [List.take_of_length_le (by rw [Hk2.2.2 Hnil]; exact Nat.le_refl _)]
     simp [msgFrame]
 

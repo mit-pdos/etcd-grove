@@ -359,9 +359,13 @@ theorem rafthttp.snapshotHandler.ServeHTTP.wp_proof
           (try wp_auto)
           iframe HRs; unfold http.handlerDone; ileft; iexists _, _; iexact Hw
         | nil =>
-          ihave ⟨%bs, %st, %Hb, #HB, Hm⟩ := Hok $$ %rfl
+          ihave ⟨%bs, %c, %Hb, #HB, Hm⟩ := Hok $$ %rfl
           ihave %HBp := HB
-          obtain ⟨Hrs', Hbl, Hwire, -⟩ := Hb
+          obtain ⟨Hrs', Hbl, Hwire, -, Hcs, -⟩ := Hb
+          -- a `MsgSnap`: its content is not needed (no size fact for it)
+          ihave Hm := msgPtsCC_msgPtsC _ _ _ _ _ Hcs $$ Hm
+          clear Hcs
+          generalize c.model = st at Hwire ⊢
           simp only [List.nil_append] at Hrs'
           subst Hrs'
           have hbs : bs = bs0 := msgFrame_prefix_eq Hbl0 (by word) (HPre _ HBp)
@@ -451,13 +455,17 @@ theorem rafthttp.snapshotHandler.ServeHTTP.wp_proof
               iapply wp_todoCtx_Done'
             wp_apply HProc $$ %todoCtxVal %bgCd %ml [$HRs HO Hm] as %perr ⟨#Hperr, HRs⟩
             · iframe #
+              icases msgPtsC_msgPtsCC _ _ _ _ _ $$ Hm with ⟨%c2, Hm, %Hc2⟩
               iunfold netRecv
-              iexists st0, st
+              iexists st0, c2
               iframe Hm HO HP
               isplitr
               · ipureintro
-                refine ⟨Hweq, ?_, Hwire.1⟩
-                rw [Hto0, Hhost]; exact Hhvok.2
+                refine ⟨?_, Hc2.2, ?_, fun _ hne => absurd Hty0 hne⟩
+                · rw [Hc2.1]
+                  exact MsgSt.eq_of_wire (by simp [wireOf, Hweq.1, Hweq.2.1, Hweq.2.2.1, Hweq.2.2.2])
+                    Hwire.1
+                · rw [Hto0, Hhost]; exact Hhvok.2
               iunfold netSnapRecv
               iintro -
               iexists sn

@@ -72,7 +72,7 @@ theorem raft.handleHeartbeat.wp_proof
   wp_apply wp_raft_send c r id _ «$a0_ptr» _ [] none cl [] _ (Or.inl rfl) (Hok _ (by first | exact Htz | simpa using Htz | simp_all))
     (fun h => absurd h (by simp [MsgSnap]))
       (fun h => absurd h (by simp [MsgApp])) rfl $$ [$Hphys $Hr] as Hphys
-  · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
+  · iapply tsSrcU_ne; exact (fun h => absurd h (by simp [MsgSnap]))
   try wp_auto
   iapply HΦ
   iframe Hm

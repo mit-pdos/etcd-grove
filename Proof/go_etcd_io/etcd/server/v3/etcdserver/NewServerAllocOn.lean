@@ -50,16 +50,13 @@ invariant at the bootstrap log (`kvInv_alloc_boot`) with the client's view of th
 read contexts, and each member's share: its prefix's entry of the claims, `2 ^ 48` of the
 cluster's read credits, its boot token and its snapshot directory. The pure premises (D21e (A),
 `nonissues/etcd-request-id-member-prefix.md`): the members' ids' 16 low bits are distinct and not
-`0`; every bootstrap conf change of id `0`, one `applyConfChange` takes (`ccBootOk`). -/
+`0`; every bootstrap conf change of id `0`, one `applyConfChange` takes (`ccBootOk`).
+(2026-11-09, raft-entsize [r3a]/[r3a']: the boot premises as one `BootCore`, which adds the bound
+on the boot entries, `bootDataOk`, from which (2026-11-10) the allocation passes `maxData = some 2^30`.) -/
 theorem srvClusterBootOn_alloc (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (xs : w64 → GName) (reg : GName)
     (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (Hrb2 : receiptBound GF + boot.length ≤ 2 ^ 61)
-    (HB : BootLog ps ctxs boot) (Hnd : ps.Nodup) (Hne : ps ≠ []) (Hnz : W64 0 ∉ ps)
-    (hcc : ∀ e ∈ LogEntry.toEntries boot 0,
-      ccIdOf e.Data' = W64 0 ∧ ccBootOk (GMap.listToSet ps) e.Data')
-    (Hurl : bootURLsOk (LogEntry.toEntries boot 0))
-    (Hpd : (ps.map (fun id => uint.Z id % 2 ^ 16)).Nodup)
-    (Hp0 : ∀ id ∈ ps, uint.Z id % 2 ^ 16 ≠ 0) :
+    (Hbc : BootCore ps ctxs boot) (Hnd : ps.Nodup) (Hne : ps ≠ []) (Hnz : W64 0 ∉ ps) :
     ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) ={⊤}=∗
       ∃ (γ : SrvRaft) (issued cnt wn fs : GName) (γk : KVNames),
         ⌜γ.vs = ps ∧ γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧ γ.boot = LogEntry.toEntries boot 0 ∧ γ.reg = reg ∧
@@ -84,7 +81,10 @@ theorem srvClusterBootOn_alloc (ps : List w64) (ctxs : List (List w8)) (boot : L
         -- (linkv-txn stage B1, 2026-10-20) each member's entry of the registries' map
         [∗list] id ∈ ps, idWaitTokAt wn (idPfxOf (W16 (uint.Z id)), 0) := by
   letI := srvAnyStor (GF := GF)
-  obtain ⟨Hpnd, Hok, Hlen⟩ := idPfxsOf_ok ps Hpd Hp0
+  have HB := Hbc.boot
+  have hcc := Hbc.cc
+  have Hurl := Hbc.urls
+  obtain ⟨Hpnd, Hok, Hlen⟩ := idPfxsOf_ok ps Hbc.lowNodup Hbc.lowNz
   have hboot := srvBootLogOk_of_BootLog ps ctxs boot HB
   obtain ⟨hidx, hty⟩ := bootEntries_ok ps _ hboot
   have hbne : boot ≠ [] := by
@@ -133,9 +133,12 @@ theorem srvClusterBootOn_alloc (ps : List w64) (ctxs : List (List w8)) (boot : L
   ihave ⟨Hwns, Hfs⟩ := (BigSepL.bigSepL_sep_eqv (PROP := IProp GF)).1 $$ Hrest
   imod (snapDirs_alloc (GF := GF) ps Hnd) with ⟨%sl, Hsd⟩
   -- the node API's cluster from the bootstrap log, proposals not duplicated
-  imod (cluster_alloc (GF := GF) srvClusterN ps ctxs boot false sl ⊤ Hrb Hne Hnd Hnz
-      (by omega) (fun _ => HB)) $$ [Hmarsh]
-    with ⟨%cl, ⟨%Hdup, %Hcsl, %Hbl⟩, Hops, Hctxs, #Hst, Hdec, #Hca0, Hsm, Hslots, Hboots⟩
+  -- (raft-entsize §2) the cluster's bound on proposed data, `2^30`, met by the boot entries
+  -- (`BootCore`'s `bootDataOk`)
+  imod (cluster_alloc (GF := GF) srvClusterN ps ctxs boot false sl (some (2 ^ 30)) ⊤ Hrb Hne Hnd Hnz
+      (by omega) (fun _ => HB) (fun _ h => by cases h; omega)
+      (fun _ h e he => by cases h; have := Hbc.data e he; unfold bootCtxMax at this; omega)) $$ [Hmarsh]
+    with ⟨%cl, ⟨%Hdup, %Hcsl, %Hbl, %Hmd⟩, Hops, Hctxs, #Hst, Hdec, #Hca0, Hsm, Hslots, Hboots⟩
   · rw [if_neg hbne]; iexact Hmarsh
   isimp only [hbne, ↓reduceIte] at Hboots
   icases Hboots with ⟨#Hbl0c, Hboots⟩
@@ -159,7 +162,7 @@ theorem srvClusterBootOn_alloc (ps : List w64) (ctxs : List (List w8)) (boot : L
     iframe Hst Hpol Hca0 Hfits Hsinv
     ipureintro
     exact ⟨Hdup, srvRule_keeps _ _ _ hval, by rw [Hcsl, hsl], by rw [Hbl, hbt]; simp [LogEntry.toEntries],
-      by rw [hbt]; exact Hurl⟩
+      by rw [hbt]; exact Hurl, Hmd⟩
   ihave #Hsrl : srvRaftLogInv (⟨γ, [], W64 0⟩ : ServerRaftNames) $$ []
   · iunfold srvRaftLogInv
     iframe Hli Hcok Hlb0

@@ -385,7 +385,10 @@ def isReplica (γr : RKVNames) (γp : RepNames) (r : Loc) (id : w64) (n st : Loc
     "#HisNode" ∷ isNode n γr.cluster kvRaftN id ∗
     "#Hcl" ∷ kvCluster γr ∗
     "#Hmu" ∷ sync.isMutex (r.[RKV, go!"mu"]) (lockInv γr γp id r) ∗
-    "#Hinv" ∷ rkvInv γr)
+    "#Hinv" ∷ rkvInv γr ∗
+    -- (raft-entsize §2, 2026-11-09) no bound on proposed data (`cluster_alloc`'s `md = none`): the
+    -- node API's size premises hold vacuously
+    "%Hmd" ∷ ⌜γr.cluster.maxData = none⌝)
 
 set_option synthInstance.maxHeartbeats 400000 in
 set_option synthInstance.maxSize 4096 in

@@ -23,6 +23,7 @@ module
 
 public import Proof.google_golang_org.protobuf.proto.InvProto
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.PbMessage
+public import Proof.go_etcd_io.raft.v3.PbContent
 
 @[expose] public section
 
@@ -34,30 +35,6 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI go_etcd_io.raft.v3
-
-/-- **An `Entry`'s wire content** (see the file header). -/
-structure EntryC [GooseExts] where
-  term : Option w64
-  index : Option w64
-  type : Option raftpb.EntryType
-  data : Option (List w8)
-  uf : List w8
-
-/-- What the getters read of a wire content. -/
-def EntryC.model [GooseExts] (c : EntryC) : EntryM :=
-  ⟨c.term.getD (zero_val w64), c.index.getD (zero_val w64), c.type.getD (zero_val raftpb.EntryType),
-    c.data.getD []⟩
-
-/-- An optional varint field's size: its tag and its value. -/
-def optVarintSize (o : Option Nat) : Nat := match o with | none => 0 | some n => 1 + varintSize n
-
-/-- **protobuf's size of an `Entry`** (an enum is an `int32`, sign-extended to 64 bits). -/
-def entrySize [GooseExts] (c : EntryC) : Nat :=
-  optVarintSize (c.type.map fun t => (uint.Z (W64 (sint.Z t))).toNat) +
-  optVarintSize (c.term.map fun v => (uint.Z v).toNat) +
-  optVarintSize (c.index.map fun v => (uint.Z v).toNat) +
-  (match c.data with | none => 0 | some bs => 1 + varintSize bs.length + bs.length) +
-  c.uf.length
 
 /-- **The encoding of an `Entry`'s wire content** (opaque: protobuf-go's `Marshal`). -/
 opaque entryEncC [GooseExts] (c : EntryC) : List w8
@@ -73,79 +50,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-
-/-- A proto2 optional scalar's cell, frozen: `nil`, or set (possibly to zero). -/
-def optCell {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (p : Loc) : Option V → IProp GF
-  | none => iprop(⌜p = null⌝)
-  | some v => iprop(p ↦□ v)
-
-/-- A `bytes` field, frozen: `nil`, or a non-nil slice holding the bytes. -/
-def bytesC (ds : GoSlice) : Option (List w8) → IProp GF
-  | none => iprop(⌜ds = slice.nil⌝)
-  | some bs => iprop(⌜ds ≠ slice.nil⌝ ∗ ds ↦*□ bs)
-
-instance optCell_persistent {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (p : Loc)
-    (o : Option V) : Persistent (optCell (GF := GF) p o) := by
-  cases o <;> unfold optCell <;> infer_instance
-
-instance bytesC_persistent (ds : GoSlice) (o : Option (List w8)) :
-    Persistent (bytesC (GF := GF) ds o) := by
-  cases o <;> unfold bytesC <;> infer_instance
-
-/-- An entry's unknown fields are valid at `Entry`'s schema (`pbMsg`'s, `[v6a]` 3). -/
-theorem pbMsg_uf_entry (l : Loc) (uf : List w8) :
-    pbMsg (GF := GF) raftpb.Entry l uf ⊢ ⌜ufWire entrySchema uf⌝ := by
-  have h := pbMsg_ufWire (GF := GF) raftpb.Entry l uf
-  rwa [show PbGoType.goTy raftpb.Entry = raftpb.Entry.ty from rfl, pbSchemaOf_entry] at h
-
-/-- **A frozen `*Entry` holding exactly `c`** (see the file header). -/
-def entRoC (l : Loc) (c : EntryC) : IProp GF :=
-  iprop(∃ (pt pi pty : Loc) (ds : GoSlice),
-    ⌜l ≠ null⌝ ∗
-    l.[raftpb.Entry, go!"Term"] ↦□ pt ∗ optCell pt c.term ∗
-    l.[raftpb.Entry, go!"Index"] ↦□ pi ∗ optCell pi c.index ∗
-    l.[raftpb.Entry, go!"Type"] ↦□ pty ∗ optCell pty c.type ∗
-    l.[raftpb.Entry, go!"Data"] ↦□ ds ∗ bytesC ds c.data ∗
-    pbMsg raftpb.Entry l c.uf)
-
-set_option synthInstance.maxSize 512 in
-set_option synthInstance.maxHeartbeats 200000 in
-instance entRoC_persistent (l : Loc) (c : EntryC) : Persistent (entRoC (GF := GF) l c) := by
-  unfold entRoC; infer_instance
-
-theorem optCell_cellRO {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (p : Loc) (o : Option V) :
-    optCell (GF := GF) p o ⊢ cellRO p (o.getD (zero_val V)) := by
-  cases o with
-  | none => unfold optCell cellRO; iintro %h; ileft; ipureintro; exact ⟨h, rfl⟩
-  | some v => simp only [optCell, cellRO, Option.getD_some]; iintro #h; iright; iexact h
-
-theorem bytesC_ro (ds : GoSlice) (o : Option (List w8)) :
-    bytesC (GF := GF) ds o ⊢ ds ↦*□ o.getD [] := by
-  cases o with
-  | none =>
-    unfold bytesC; iintro %h; subst h
-    simp only [Option.getD_none]
-    ihave H := ownSlice_nil (V := w8) (GF := GF) DFrac.discard
-    iexact H
-  | some bs => simp only [bytesC, Option.getD_some]; iintro ⟨-, #H⟩; iexact H
-
-/-- **The wire content gives today's `entRO`** (its clients keep working). -/
-theorem entRoC_entRO (l : Loc) (c : EntryC) : entRoC (GF := GF) l c ⊢ entRO l c.model := by
-  unfold entRoC
-  iintro ⟨%pt, %pi, %pty, %ds, %Hnn, #HT, #cT, #HI, #cI, #HY, #cY, #HD, #cD, #Hpb⟩
-  simp only [entRO]
-  iunfold entPts
-  iexists pt, pi, pty, ds, c.uf
-  isplitr
-  · ipureintro; exact Hnn
-  ihave #cT' := optCell_cellRO pt c.term $$ cT
-  ihave #cI' := optCell_cellRO pi c.index $$ cI
-  ihave #cY' := optCell_cellRO pty c.type $$ cY
-  ihave #cD' := bytesC_ro ds c.data $$ cD
-  iframe HT HI HY HD Hpb
-  simp only [EntryC.model]
-  iframe cT' cI' cY' cD'
-
 /-- **The store of an entry**: each scalar `nil` if zero, `Data` `nil` if empty. -/
 def entryTree (e : EntryM) : VTree :=
   .strct raftpb.Entry.ty
@@ -183,6 +87,12 @@ def pbEntryM : PbModelC GF where
     rw [List.mem_singleton] at hp
     subst hp
     exact Hu
+  decC := entRoC
+  decC_dec l c _ := by
+    iintro #H
+    iexists c
+    iframe H
+    ipureintro; rfl
 
 /-- **`raftpb.Entry` at its wire content** (the registered instance): the data and the encoder,
 whose `enc_ok` is the type's one trusted fact `entryEncC_ok`. -/

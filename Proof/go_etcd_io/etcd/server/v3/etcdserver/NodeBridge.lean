@@ -385,6 +385,13 @@ theorem raftPropose_of_isNode (E : RNEnv GF) (γ : RNNames)
     iunfold srvClusterOk at Hcl
     icases Hcl with ⟨-, -, -, -, %H, -⟩
     ipureintro; exact H
+  ihave %Hmd : ⌜E.γr.raft.raft.cl.maxData = some (2 ^ 30)⌝ $$ []
+  · ihave #Hcl := Hinv
+    iunfold srvRaftLogInv at Hcl
+    icases Hcl with ⟨-, #Hcl, -⟩
+    iunfold srvClusterOk at Hcl
+    icases Hcl with ⟨-, -, -, -, -, -, -, -, -, -, %H⟩
+    ipureintro; exact H
   iunfold raftPropose
   iexists ⟨go.GoType.PointerType node.ty, #γ.nl⟩
   isplitr
@@ -393,7 +400,7 @@ theorem raftPropose_of_isNode (E : RNEnv GF) (γ : RNNames)
   · iexact Hinv
   isplitr
   · iapply srvPropWits_of E.γr.raft $$ Hinv
-  iintro !> %ctx %cd %dsl %data %Q %Φ !> ⟨#Hctx, #Hdata, %Hne, Harg, Hlc⟩ HΦ
+  iintro !> %ctx %cd %dsl %data %Q %Φ !> ⟨#Hctx, #Hdata, %Hne, %Hlen, Harg, Hlc⟩ HΦ
   ihave #Hnctx := txnCtx_nodeCtx ctx cd $$ Hctx
   iunfold srvPropArg at Harg
   icases Harg with ⟨Hfr, Hau, #HQinv⟩
@@ -405,6 +412,9 @@ theorem raftPropose_of_isNode (E : RNEnv GF) (γ : RNNames)
   wp_apply wp_Propose γ.nl E.γr.raft.raft.cl srvClusterN γ.id dsl data ctx cd $$ [Hapi]
     as %err #Herr
   · iframe #
+    -- (raft-entsize §3) the cluster's bound on proposed data (`2^30`), above the server's `2^27`
+    isplitr
+    · ipureintro; intro b h; rw [Hmd] at h; cases h; omega
     rw [Hdup]
     iexact Hapi
   iapply HΦ
@@ -516,6 +526,11 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
   · iunfold srvClusterOk at Hcl
     icases Hcl with ⟨#H, -⟩
     iexact H
+  -- (raft-entsize §3) the cluster's bound on proposed data (`srvClusterOk`)
+  ihave %Hmd : ⌜γ.node.cl.maxData = some (2 ^ 30)⌝ $$ []
+  · iunfold srvClusterOk at Hcl
+    icases Hcl with ⟨-, -, -, -, -, -, -, -, -, -, %H⟩
+    ipureintro; exact H
   iunfold isRaftNodeIfc
   iexists ⟨go.GoType.PointerType node.ty, #γ.nl⟩
   isplitr
@@ -720,6 +735,8 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
     wp_apply wp_ReadIndex γ.nl γ.node.cl srvClusterN γ.id sl (beBytes id)
       (srvReadQ E.γr.raft Qr) ctx cd $$ [] as %err #Herr
     · iframe #
+      -- (raft-entsize §3) the read context's 8 bytes, within the cluster's bound (`2^30`)
+      ipureintro; intro b h; rw [Hmd] at h; cases h; rw [beBytes_length]; omega
     ihave #Herr' := nodeErrS_nodeErr _ _ _ cd err $$ Herr
     iapply HΦ
     isplitr

@@ -74,7 +74,9 @@ abbrev newReplica.spec : Prop :=
       mK ↦$ Kv ∗ mA ↦$ A ∗ csOpt csp DFrac.discard cfg ∗ ⌜confStateIs cfg m⌝ ∗
       isCommittedLogLb γ.r.cluster ap ∗ confAt γ.r.cluster ap.length m ∗
       ⌜∀ k, (Kv !! k).getD [] = raft_kvreconf.kvFold (raft_kvreconf.logHist ap) k⌝ ∗
-      ⌜raft_kvreconf.AppliedOk A (raft_kvreconf.logHist ap)⌝ ∗ sendSpec γ id f }}
+      ⌜raft_kvreconf.AppliedOk A (raft_kvreconf.logHist ap)⌝ ∗ sendSpec γ id f ∗
+      -- (raft-entsize §2, 2026-11-09) no bound on proposed data (the replica's `%Hmd`)
+      ⌜γ.r.cluster.maxData = none⌝ }}
     (App (App (App (App (App (App (App (App (App (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.newReplica)) (Val #id)) (Val #(kdFileName dir id)))
       (Val #(interface.mkOk (go.GoType.PointerType node.ty) #n))) (Val #st)) (Val #mK)) (Val #mA))

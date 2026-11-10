@@ -71,6 +71,8 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
       -- which nothing here uses), a positive heartbeat (`newRaftNode`'s: the final whole-`bootOk`
       -- review's S2, a scope restriction), and (2026-10-31, `notes/axiom-review/savesnap.md`) the
       -- WAL read (`NewStorage`'s contract)
+      -- (raft-entsize [r3f], 2026-11-09) `StartNode`'s `MaxSizePerMsg` premise from
+      -- `rnStartCfg`'s `maxMsg` (until then an interim `γr.cl.maxData = none`)
       "%Hraft" ∷ ⌜rnStartCfg bv cv lok pv ps ∧ 0 < sint.Z bv.heartbeat' ∧ storage.walReady wal⌝ ∗
       "Hb" ∷ b ↦{dq} bv ∗ "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
       -- (2026-10-30, the repair: raft's unified `StartNode.spec`) the storage `b.storage` as

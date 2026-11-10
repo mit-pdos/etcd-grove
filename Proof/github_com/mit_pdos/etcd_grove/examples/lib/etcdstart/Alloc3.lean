@@ -176,11 +176,7 @@ allocation, on the start bundles' pieces; until hub step 7's steps 7-8 also used
 partition and restart examples and `cluster3`, which do not yet take the bundles). -/
 private theorem alloc3Http (hne : mvcc.api.names_nonempty.law) (id₁ id₂ id₃ : w64) (ps : List w64) (hperm : ps.Perm [id₁, id₂, id₃])
     (ctxs : List (List w8)) (boot : List LogEntry)
-    (Hlow : ([id₁, id₂, id₃].map (fun id => uint.Z id % 2 ^ 16)).Nodup)
-    (Hlow0 : ∀ id ∈ [id₁, id₂, id₃], uint.Z id % 2 ^ 16 ≠ 0)
-    (HB : BootLog ps ctxs boot)
-    (Hcc : bootCCOk ps (LogEntry.toEntries boot 0))
-    (Hurl : bootURLsOk (LogEntry.toEntries boot 0))
+    (Hbc : BootCore ps ctxs boot)
     (dir : w64 → List GoString)
     -- (2026-10-24, rafthttp stage 6d) the directory's hosts the three peer addresses, no member `0`
     (a₁ a₂ a₃ : GoString) (Hd0 : dir 0 = [])
@@ -213,6 +209,10 @@ private theorem alloc3Http (hne : mvcc.api.names_nonempty.law) (id₁ id₂ id�
       (netHttpOk γn id₃ ∗ http.httpProtoOwn a₃ (raftProto (netRh γn))) ∗
       (if decide (lm ≠ .none) then iprop(True) else
         etcdKV ρ₁.rd.kv (kvModelSt ρ₁.rd.kv (bootEntries (LogEntry.toEntries boot 0)))) := by
+  have Hlow : ([id₁, id₂, id₃].map (fun id => uint.Z id % 2 ^ 16)).Nodup :=
+    (hperm.map _).nodup_iff.1 Hbc.lowNodup
+  have Hlow0 : ∀ id ∈ [id₁, id₂, id₃], uint.Z id % 2 ^ 16 ≠ 0 :=
+    fun id hid => Hbc.lowNz id (hperm.mem_iff.2 hid)
   obtain ⟨hn12, hn13, hn23⟩ := id_ne id₁ id₂ id₃ Hlow Hlow0
   obtain ⟨hp12, hp13, hp23⟩ := pfx_ne id₁ id₂ id₃ Hlow Hlow0
   have Hnz := id_nz id₁ id₂ id₃ Hlow Hlow0
@@ -247,11 +247,10 @@ private theorem alloc3Http (hne : mvcc.api.names_nonempty.law) (id₁ id₂ id�
     simp only [xs, Ne.symm hp13, Ne.symm hp23, if_false]
   -- the peers `ps`, in `bootstrap`'s (sorted) order, a permutation of the members' ids
   -- (2026-11-03, the final whole-`bootOk` review's S1)
-  imod (srvClusterBoot_alloc (GF := GF) ps ctxs boot xs reg₁ Hrb Hrb2 HB
+  imod (srvClusterBoot_alloc (GF := GF) ps ctxs boot xs reg₁ Hrb Hrb2 Hbc
       (hperm.nodup_iff.2 (by simp [hn12, hn13, hn23]))
       (fun h => by rw [h] at hperm; exact absurd hperm.length_eq (by simp))
-      (fun h => Hnz _ (hperm.subset h) rfl) Hcc Hurl ((hperm.map _).nodup_iff.2 Hlow)
-      (fun id h => Hlow0 id (hperm.subset h)) cmp cret lm) $$ Hmarsh
+      (fun h => Hnz _ (hperm.subset h) rfl) cmp cret lm) $$ Hmarsh
     with ⟨%γ, %issued, %cnt, %wn, %fs, %γk, %Hγ, #Hsrl, #Hkv, Hetcd, #Hcl, #H0, #Hpm, #Hrc, Hms,
       Hwns⟩
   obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss, -, hwn, hfs, hkc, hkr, hklg, -⟩ := Hγ
@@ -311,11 +310,7 @@ the network's raft protocol: each member's start bundle becomes its fresh bundle
 `γn` (`memberFreshRes`), what its first-start starter takes. -/
 theorem alloc3 (hne : mvcc.api.names_nonempty.law) (id₁ id₂ id₃ : w64) (ps : List w64) (hperm : ps.Perm [id₁, id₂, id₃])
     (ctxs : List (List w8)) (boot : List LogEntry)
-    (Hlow : ([id₁, id₂, id₃].map (fun id => uint.Z id % 2 ^ 16)).Nodup)
-    (Hlow0 : ∀ id ∈ [id₁, id₂, id₃], uint.Z id % 2 ^ 16 ≠ 0)
-    (HB : BootLog ps ctxs boot)
-    (Hcc : bootCCOk ps (LogEntry.toEntries boot 0))
-    (Hurl : bootURLsOk (LogEntry.toEntries boot 0))
+    (Hbc : BootCore ps ctxs boot)
     (dir : w64 → List GoString)
     (a₁ a₂ a₃ : GoString) (Hd0 : dir 0 = [])
     (Hhost : ∀ (i : w64) (h : GoString), go!"http://" ++ h ∈ dir i → h = a₁ ∨ h = a₂ ∨ h = a₃)
@@ -346,7 +341,7 @@ theorem alloc3 (hne : mvcc.api.names_nonempty.law) (id₁ id₂ id₃ : w64) (ps
         etcdKV ρ₁.rd.kv (kvModelSt ρ₁.rd.kv (bootEntries (LogEntry.toEntries boot 0)))) := by
   simp only [memberStartRes, memberFreshRes]
   iintro #Hmarsh ⟨#Hv₁, Hw₁, ⟨Ha₁, Hf₁⟩, Hc₁⟩ ⟨#Hv₂, Hw₂, ⟨Ha₂, Hf₂⟩, Hc₂⟩ ⟨#Hv₃, Hw₃, ⟨Ha₃, Hf₃⟩, Hc₃⟩
-  imod (alloc3Http hne id₁ id₂ id₃ ps hperm ctxs boot Hlow Hlow0 HB Hcc Hurl dir a₁ a₂ a₃ Hd0 Hhost Hrb
+  imod (alloc3Http hne id₁ id₂ id₃ ps hperm ctxs boot Hbc dir a₁ a₂ a₃ Hd0 Hhost Hrb
       Hrb2 lm hrun hrev cmp cret) $$ Hmarsh Hf₁ Hf₂ Hf₃
     with ⟨%γ, %reg₁, %reg₂, %reg₃, %ρ₁, %ρ₂, %ρ₃, %E₁, %E₂, %E₃, %Φs, %γn, %Hγ, Hb₁, ⟨Hn₁, Ho₁⟩,
       Hb₂, ⟨Hn₂, Ho₂⟩, Hb₃, ⟨Hn₃, Ho₃⟩, Hetcd⟩

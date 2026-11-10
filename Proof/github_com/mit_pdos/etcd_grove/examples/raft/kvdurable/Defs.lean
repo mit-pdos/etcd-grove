@@ -515,7 +515,10 @@ def isReplica (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r n st
     "#HfInv" ∷ kdFileInv γ dir id ∗
     "#Hrec" ∷ kdStorRec st ms γs ∗
     "#Hmu" ∷ sync.isMutex (r.[KReplica, go!"mu"]) (lockInv γ id r) ∗
-    "#Hdmu" ∷ sync.isMutex (r.[KReplica, go!"dmu"]) (kdDmuInv γ id r n st ms γs ph))
+    "#Hdmu" ∷ sync.isMutex (r.[KReplica, go!"dmu"]) (kdDmuInv γ id r n st ms γs ph) ∗
+    -- (raft-entsize §2, 2026-11-09) no bound on proposed data (`cluster_alloc`'s `md = none`): the
+    -- node API's size premises hold vacuously
+    "%Hmd" ∷ ⌜γ.r.cluster.maxData = none⌝)
 
 /-- **What a request to the snapshot goroutine carries** (kvreconf's `snapReqOk`, at the storage's
 key `K`): for a snapshot, the frozen entry at its index, its validity and the node's committed
@@ -679,6 +682,9 @@ def isClusterC (γ : KdNames) (vs : List w64) (dir : GoString) (c : Loc) : IProp
     "%Hbl0" ∷ ⌜γ.r.cluster.bootLen = 0⌝ ∗
     -- (2026-11-02, `lean`'s J8a) no snapshot directories (kvreconf's `%Hsl`)
     "%Hsl" ∷ ⌜γ.r.cluster.snapLoc = fun _ => none⌝ ∗
+    -- (raft-entsize §2, 2026-11-09) no bound on proposed data (`cluster_alloc`'s `md = none`): the
+    -- node API's size premises hold vacuously
+    "%Hmd" ∷ ⌜γ.r.cluster.maxData = none⌝ ∗
     -- (2026-11-02, stage II (t)) the receipts' bound within `2^61` (`readyFits`): `RestartNode`'s
     "#Hfits" ∷ readyFits γ.r.cluster kdRaftN ∗
     "#HstorInv" ∷ kdStorInv ∗
