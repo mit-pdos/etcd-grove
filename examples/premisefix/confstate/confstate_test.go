@@ -3,7 +3,8 @@
 // by proto.UnmarshalPb at pbMessage (a decoded *raftpb.Message, msgPtsC → snapshot → metadata →
 // conf state), but a MsgSnap whose ConfState carries an unknown field decodes and keeps it; then
 // proto.Equal against a conf state of the same model is false, and raft's Equivalent errors
-// (assertConfStatesEquivalent panics: nonissues/raft-confstate-unknown-fields-panic.md).
+// (assertConfStatesEquivalent panicked: nonissues/raft-confstate-unknown-fields-panic.md, fixed in
+// the raft fork by premise fixes 2: Equivalent compares the configurations).
 // Found by etcd-grove-81's independent review (/shared/tmp/pfix-review/t/review_test.go).
 package confstate
 
@@ -44,7 +45,10 @@ func TestDecodedMessageConfStateUnknown(t *testing.T) {
 	if proto.Equal(proto.Clone(acs), fresh) {
 		t.Fatalf("expected proto.Equal to see the unknown field")
 	}
-	if acs.Equivalent(fresh) == nil {
-		t.Fatalf("expected Equivalent to report a difference")
+	// Since the raft fork's fourth fix (premise fixes 2), Equivalent compares the configurations,
+	// so the unknown field no longer makes the decoded conf state inequivalent (until then it did,
+	// and assertConfStatesEquivalent panicked).
+	if err := acs.Equivalent(fresh); err != nil {
+		t.Fatalf("expected Equivalent to ignore the unknown field, got %v", err)
 	}
 }
