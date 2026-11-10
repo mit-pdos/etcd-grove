@@ -202,8 +202,10 @@ next (touches `InvPb`, pbMsg's unknown fields): merge lean again after it.
   (17 files), −linkHeartbeatMessage_init (14), +sorry out_size (16). Nothing else.
 - Gates: `/shared/tmp/ptm-cp3/entsize/gates1.log` (LAKE_PACKAGES=/shared/tmp/manifest-ddc.json
   PERENNIAL_CHECKOUT=/shared/perennial-ddc0f0acc, under the build lock). Then STOP before land.sh.
-- If lean moves (premise-fixes-1 touches `InvPb`): merge it again, rebuild, redo the tcb update from
-  lean's files, rerun the gates.
+- lean moved to `9ca174a34d` (premise-fixes-1) during the first gates run (stopped, in
+  model-param-check, after build/links/tcb/collections/goose/gen-init passed): merged (`4d5456fa6c`,
+  only notes conflicted), tcb files reset to lean's; second full build `/shared/tmp/ptm-cp3/entsize/full2.log`,
+  then `--check --update` again, then gates `gates2.log`. Note: model-param-check takes about an hour.
 
 ## Next: (old design notes of [r3c], done above)
 
