@@ -34730,3 +34730,125 @@ candidate's `MsgVoteResp` without a win or a loss (the tally: `SimServerR`'s can
 copy of `TracedRaftStepLocal.lean`'s `hookGateOpt_fupd` (this module does not import it): dedupe.
 
 No axiom, no `sorry`, no frozen statement changed (`TracedCap.lean` untouched); not client-visible.
+
+## Q8 stage 1 (slice 19b): the bundle's premises folded (no pre-candidate, the receive shape, the received message's `isMessageC`, a bootstrapped cluster); a follower's `MsgHeartbeat` proved; the vote tally blocked on a missing uniqueness invariant (2026-11-10 · trace-check, Q8 stage 1 slice 19b; the premises decided by the coordinator, their form and the rest by the agent under the user's delegation · branch `trace-check-q8s19b`; DRAFT until trace-check's Freeze)
+
+**1. The bundle's premises** (`stepBundle_traced.on`, `TracedRaftStep.lean`; raft-internal, not at the
+frozen tag, not client-visible). Slice 18b's `onR` is folded into `.on` and dropped (one statement;
+`TrRecvShape` moved to `TracedRaftStep.lean`); the receive paths now prove `.on`. Added at the end of
+the premise list (so the local paths' proofs only gain `_`s, and `raft.tickHeartbeat.traced` three
+arguments, discharged by `MsgBeat`'s type and the leader role):
+- `s.role ≠ .preCandidate`. **Where the node API gets it**: raft's own physical invariant,
+  `ownRaftPhys`'s `%Hprevote` (`s.role = .preCandidate → s.prevote = true`), read off before the call
+  with `ownRaftPhysC_precand` (`InvRaftPhys.lean`), as `raft.tickHeartbeat.traced` reads
+  `ownRaftPhysC_dom`; with the traced configuration's `s.prevote = false`. No new invariant needed
+  (checked: raft's `becomePreCandidate` runs only under `r.preVote`, and the invariant is already
+  maintained by every step).
+- `TrRecvShape m ents` (a heartbeat without entries, a heartbeat response not rejecting, and, extended
+  here, a vote request, an append request or a heartbeat not from its destination: a follower's
+  heartbeat response is the skipped send line `phaseStepB_skip`, which needs `src ≠ dst`). **Where**:
+  `isRaftMsg`'s `SentMsgShape` (`ApiVocab.lean`) already states the third (`From ≠ To` for every type
+  but a read-index request, a vote/pre-vote response, an accepting `MsgAppResp` and a transfer); the
+  first two are to be added there (raft sends neither otherwise: `bcastHeartbeat` attaches no entries,
+  `handleHeartbeat` never rejects). Not done now: `SentMsgShape` is in `ApiVocab`, on
+  `etc/api/raft.txt` (client-visible), and its proof obligations reach every `send` caller (`XfOk`).
+- the received message's raft facts, `□ (∀ ty, ⌜mtypeOf m.Type' = some ty ∧ ty.traced⌝ -∗ isMessageC γ
+  (absMsg ty m ents ctx))`, beside the token in the precondition (nested with `recvTokOf`, so that the
+  local paths' `iintro ⟨Hcap, -, #Hnosnap⟩` is unchanged). **Where**: `isRaftMsg`'s `[∗list] x ∈
+  a.toList, isMessageC γ x` at the message's abstraction (`msgAbs st a`), which for a traced type is
+  `absMsg ty m ents ctx`.
+- `m.Type' = MsgHeartbeat ∨ m.Type' = MsgApp → γ.reBoot ≠ []` (**new, found needed**): the
+  specification's heartbeat handling at a follower is `AppendEntriesAlreadyDone` only at a commit index
+  past `0` (`receive_heartbeat`'s `hc`, `lineEffect_heartbeatRecv`'s `hc1`): at commit `0` a heartbeat
+  (its `index = 1`) is not "already done" and the specification takes another branch than raft. Raft's
+  ghost gives `|reBoot| ≤ committed` (`ownLogGhost_boot`), so a bootstrapped cluster (the Draft's: the
+  tracecheck cluster is started with its peers, one `EntryConfChange` each, committed) suffices.
+  **Where**: static, the cluster's allocation (`ownRaftGhost_alloc_boot`'s `γ.reBoot`). Rejected: the
+  premise `1 ≤ s.logst.committed` (state-dependent; the node API would derive it from the same
+  ghost fact); unconditional (it would change `raft.tickHeartbeat.traced`'s triple, another branch's).
+
+**2. A follower's `MsgHeartbeat` of its term, proved** (`stepBundle_traced_folHb`, new file
+`TracedRaftStepRecvHb.lean`). The resources are `voteR`'s (one pinned phase from the receive line to the
+close). Pieces:
+- `ownRaftGhost_hbFacts`: raft's `ownRaftGhost_step_heartbeat`'s commit bullets **without the step**:
+  from the heartbeat's `isMessage` (its `leadFull`, `commitIn`, `isCommitted`, the receiver's `isAcked`
+  of an index past the commit) and raft's ghost state at a non-leader of the term with an uncompacted
+  log, persistently: the log's records, `|reBoot| ≤ commit`, and, when the commit rises, the raised
+  index within the log, its certificate `commitIn γ log m.commit s.term` and the committed prefix; the
+  ghost state is given back unchanged (the families must return it at `s`; `Step`'s own update runs after
+  the close). Copies of two private `Refinement.lean` helpers (`isMessage_hb_inv`, the boot-prefix
+  agreement inline).
+- `log_eq_of_abs`: two recorded logs (`logRecs γ base0`) with the same abstraction (`logAbs`, terms past
+  the bootstrap positions; `BootTerms` below) are equal (`full_take_eq` at the last index). This is the
+  bridge slice 18b asked for between the specification server's recorded log (`srvFacts`' `es`) and raft's.
+- `simFx_hb` (the facts after `hbRecvSt`: the receiver's `srvFacts` at the raised commit from the moved
+  certificates; `SpecInv` by `specInv_handleAppendEntriesRequest` with `handleAER_hb`; `QuorumLogF` by
+  `quorumLog_appendEntriesAlreadyDone` at the specification's intermediate state, `CommittedCmp` from
+  `allFacts_logInv` of the new state; `MsgsUniq`/`MsgsShape` with the canonical `hbResp`; `AppSlices`
+  unchanged), `fxPresR_hb`, `phaseStepR_hb` (`lineEffect_heartbeatRecv`), `skipGate_hbresp` (the
+  response's send line, skipped, `phaseStepB_skip` at event 11), `hbEnd_simIdle` (raft's
+  `heartbeatResult` related to `hbSrv`/`hbResp`: commit `plogCommitTo` = `max`).
+
+**3. Findings (not done; exact).**
+- **A candidate's `MsgHeartbeat`** (and an accepted `MsgApp` at a candidate): the receive line is the
+  specification's two-round receipt (`ReturnToFollowerState`, then the follower's handling:
+  `lineEffect_recv2`/`lineEffect_recvU`, `Mid = (· = u)`), and raft's `becomeFollower` logs a
+  `BecomeFollower` line (`candidateGates`' `"Hgbf"`) the specification skips by `bfCond`'s
+  `ReturnToFollower` case, which reads the previous event: the family after the receive line must keep the
+  receive event as the last event (a `recvGate_traced` variant with `Λ' := (· = some e)`-shaped
+  predicate), then `PhaseStepBF`'s skip, then the follower heartbeat's pieces at `becomeFollower s
+  s.term m.From'` (the same `ownRaftGhost_hbFacts`; `FxPresR`'s `Mid` clause by
+  `specInv_returnToFollowerState`). Unblocked, not done.
+- **`MsgApp` at a follower.** Three code paths (`HandleAppResult`), decided at the receive gate by `s`
+  and `m`: (i) *rejected* (`committed ≤ m.Index`, the log not matching): `lineEffect_rejectRecv`, the
+  server's lead only, `specInv_rejectAppendEntriesRequest`; it needs `m.Index = 0 → m.LogTerm = 0`
+  (`hlt0`: at index `0` raft's `matchTerm` compares with the base's term `0` and rejects, the
+  specification's `LogOK` accepts), from the message's `isMessage` (`plogTermAt bL l m.index = some
+  m.logterm` with the leader's full log at `base0`). **The reply hint**: `msgAbs` of a rejecting
+  `MsgAppResp` is `matchIndex 0`, `success false` whatever the hint (`rjResp`), so the spec's
+  existential hint (`RejHintOk`) is enough: nothing reads it. (ii) *stale* (`m.Index < committed`):
+  raft answers with its commit index without looking at its log; the specification's
+  `AppendEntriesAlreadyDone` (`lineEffect_staleRecv`) needs the log to match at `m.Index`
+  (`hmt0`), which holds by log matching below the commit (the leader's log at the term agrees with the
+  follower's committed prefix: `commitIn`/`isCommitted` against the message's `leadPrefix`) — a ghost
+  fact still to derive, as `ownRaftGhost_hbFacts` does for the heartbeat. (iii) *accepted*
+  (`lineEffect_appRecv`): the receiver's log changes; `srvFacts` needs the new log's records (the
+  message's `msgFacts` `logRecs` and the old ones), the raised commit's certificate (from the
+  message's `commitIn`/`isCommitted`, moved as raft's `ownRaftGhost_step_app…` does), and
+  **`QuorumLogF` under a truncation or an append** (`ConflictAppendEntriesRequest`,
+  `NoConflictAppendEntriesRequest`): no lemma exists (only `quorumLog_appendEntriesAlreadyDone`); it needs
+  that no server's committed prefix is cut, i.e. the truncation point past every committed prefix the
+  follower's log carries, from leader completeness. `AppSlices` is vacuous for the follower (not a
+  leader). Unblocked, not done.
+- **A higher-term receive** (task 4): the receive line's first round is `UpdateTerm` (`firstRound_ut`,
+  `utSrv`), the receiver's `srvFacts` at the new term need `commitIn γ es c (W64 m.term)` from the one at
+  its old term (`commitIn` is monotone in the term: `commitIn_agree` with `tm ≤ tm'`), and `FxPresR`'s `Mid`
+  clause at `utSrv` (`specInv_updateTerm` needs `LeaderComplete σ i m.term`, raft's leader completeness,
+  from the vote table); then `Step`'s preamble `BecomeFollower` line (`"Hgpre"`, `PreBF`), skipped by
+  `bfCond`'s first case, with the same last-event family as the candidate heartbeat. Unblocked, not done.
+- **A candidate's `MsgVoteResp` (task 5): blocked on a missing invariant (frozen `simFx`).** Raft
+  records only a voter's first response of a term (`recordVote` ignores a known voter); the
+  specification's `HandleRequestVoteResponse` adds to `votesGranted` on every granting response
+  (`respSrv`). They agree (`sim_recordVote`) only if the voter has not responded yet (`s.votes !!
+  m.From' = none`); a second response from a voter that rejected, now granting, would diverge. Raft
+  never sends it (one `MsgVote` per peer per campaign, one answer per request, at-most-once delivery),
+  but nothing in `simFx` or the bundle says that no vote response of the candidate's term from a voter
+  already in `votesResponded` is in flight. **Question for the user** (plan, Q17), options: (a) a clause
+  of `simFx`'s pure part (`VoteRespUniq σ`: while `i` is a candidate of `T`, no vote response of term `T`
+  to `i` in flight from a server in `i`'s `votesResponded`, and at most one from each other server;
+  preserved by the specification's actions, the requests being one per peer per campaign:
+  `RequestVote` sends to servers not yet responded); (b) a bundle premise `m.Type' = MsgVoteResp →
+  s.role = .candidate → s.votes !! m.From' = none` (the node API cannot supply it: the transport knows
+  nothing of the tally); (c) derive it from the tokens' at-most-once half in layer B (the token is
+  consumed, but a second message with equal content may be another token). **Recommended: (a)**,
+  with an amendment A3 (plan, Q17). Until then the pending, won and lost vote responses are not provable.
+- **The leader's `MsgAppResp`/`MsgHeartbeatResp` (task 6)**: not started (broadcasts after a receive;
+  `respSrv` at a leader reads `matchIndex`, then `Commit` and the appends' lines, slice 18a's `MsgProp`
+  question on the records of the appended entries does not arise, only `maybeCommit`'s `Commit` line,
+  `quorumLog_commitTo`).
+
+No axiom, no `sorry`, no frozen statement changed (`TracedCap.lean`, `TraceSimSpecInv.lean` untouched);
+not client-visible (`stepBundle_traced.on`, `TrRecvShape` and the new module are raft-internal, not on
+`etc/api/raft.txt`). The other branch's files: `TracedRaftStepLocal.lean` gets only the new premises'
+`_`s in `stepBundle_traced_beat`'s `intro` and three arguments (and the `isMessageC` conjunct's
+discharge) in `raft.tickHeartbeat.traced`'s call; `TracedPin.lean` untouched.

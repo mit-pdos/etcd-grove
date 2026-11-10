@@ -38,6 +38,22 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3 TraceSim
 
+section shape
+variable [GooseExts]
+
+/-- **What a traced receive's line reads of the physical message beyond its specification message**
+(premise of `stepBundle_traced.on` since slice 19b, slice 18b's finding; the node API's: raft never sends otherwise, `handleHeartbeat` and
+`bcastHeartbeat`): a heartbeat carries no entries (the line logs the entry count, the specification's
+heartbeat has none) and a heartbeat response does not reject (the specification's is a success); and a
+vote request, an append request or a heartbeat is not from its destination (its response's send line,
+skipped by the specification, is of a message to another node: `lineEffect_skipResp`; `isRaftMsg`'s
+`SentMsgShape` states it; slice 19b added the append request and the heartbeat). -/
+def TrRecvShape (m : MessageM) (ents : List EntryM) : Prop :=
+  (m.Type' = MsgHeartbeat → ents = []) ∧ (m.Type' = MsgHeartbeatResp → m.Reject' = false) ∧
+    (m.Type' = MsgVote ∨ m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat → m.From' ≠ m.To')
+
+end shape
+
 section traced
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -99,8 +115,22 @@ abbrev stepBundle_traced.on (Path : NState → MessageM → Prop) : Prop :=
   -- tracker's peers the configuration's (`ownRaftPhysC`'s, read off before the call): a heartbeat's
   -- or an append's destination is then a voter, as its send line needs
   c.learners = ∅ → domSet s.progress ⊆ c.voters ∪ c.learners →
-  -- (slice 15) the log never compacted (P2): `TrNoSnap`, persistent
-  (trCapB s.gh.tr γ r id c true (fun C => SimIdle C s) Λ ∗ recvTokOf γd m ents ctx ∗
+  -- (slice 19b) no pre-candidate (`ownRaftPhysC_precand` with `s.prevote = false`, read off before the
+  -- call), and what a receive line reads of the physical message that its specification message does
+  -- not record (`TrRecvShape`: the node API's, from `isRaftMsg`'s `SentMsgShape`)
+  s.role ≠ .preCandidate → TrRecvShape m ents →
+  -- (slice 19b) a heartbeat or an append request is received in a cluster started from a bootstrap
+  -- log (the Draft's traced cluster, `StartNode` with its peers): the receiver's commit index is then
+  -- past `0` (`ownStepGhost_bootCommit`), which the specification's heartbeat handling needs
+  -- (`AppendEntriesAlreadyDone` at `index = 1`)
+  (m.Type' = MsgHeartbeat ∨ m.Type' = MsgApp → γ.reBoot ≠ []) →
+  -- (slice 15) the log never compacted (P2): `TrNoSnap`, persistent; (slice 19b) with the received
+  -- message's token, its raft facts (`isMessageC`, persistent, the node API's from `isRaftMsg`): the
+  -- commit certificates of a raised commit index
+  (trCapB s.gh.tr γ r id c true (fun C => SimIdle C s) Λ ∗
+      (recvTokOf γd m ents ctx ∗
+        □ (∀ ty : MsgType, ⌜mtypeOf m.Type' = some ty ∧ ty.traced = true⌝ -∗
+          isMessageC γ (absMsg ty m ents ctx))) ∗
       TrNoSnap s.gh.tr s.logst : IProp GF) ⊢
     |={⊤}=> ∃ R : StepG GF, R.G ∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) ∗
       stepClose γ md c id m ents ctx s R

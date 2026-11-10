@@ -873,6 +873,29 @@ raft's ghost; then the preamble's `BecomeFollower` line, skipped by `bfCond`); a
 `MsgVoteResp` without a win or loss (the tally: `SimServerR`'s candidate clause after `recordVote`); the
 broadcasts (leader `MsgAppResp`, `MsgHeartbeatResp`, a won `MsgVoteResp`). Checked (branch at `trace-check` `96a2599b67` plus this slice): full `lake build` green (13796 jobs); `etc/tcb-report.py --check` (806 axioms, 4 `sorry`s, unchanged) and all 53 collections `--reuse --check`, none updated; `interface/` unchanged (the new module is not on `etc/api/raft.txt`); `etc/api-check.py` 0 errors; `--layout` 0 new; `etc/gen-link.py --raft` unchanged.
 
+**Q8 stage 1 (slice 19b), 2026-11-10 (branch `trace-check-q8s19b`): the bundle's premises folded; a
+follower's `MsgHeartbeat` proved; the vote tally blocked on a missing uniqueness invariant (Q17).**
+Decided by the coordinator (the premises) and the agent (their form, the rest) (`notes/decisions.md`, "Q8
+stage 1 (slice 19b)"). Done: (1) `stepBundle_traced.on` takes slice 18b's `s.role ≠ .preCandidate` and
+`TrRecvShape` (`onR` dropped; the shape now also `From ≠ To` for an append request and a heartbeat),
+the received message's `isMessageC` (beside its token) and, found needed, `m.Type' = MsgHeartbeat ∨
+MsgApp → γ.reBoot ≠ []` (the specification's heartbeat handling needs a commit index past `0`); where
+the node API gets each is recorded (raft's `ownRaftPhysC_precand`; `isRaftMsg`'s `SentMsgShape`, to be
+extended by the two heartbeat clauses; `isRaftMsg`'s `isMessageC`; the cluster's bootstrap log). (2)
+**`stepBundle_traced_folHb`** (`TracedRaftStepRecvHb.lean`): a follower's `MsgHeartbeat` of its term,
+the commit raised with the heartbeat's certificates moved to the receiver's log without changing raft's
+ghost state (`ownRaftGhost_hbFacts`), the specification server's recorded log identified with raft's
+(`log_eq_of_abs`), the response's send line skipped. **Blocked (Q17, recommended (a), an amendment
+A3)**: a candidate's `MsgVoteResp` (raft records a voter's first response only, the specification every
+granting one; no invariant excludes a second response). **Not done, unblocked** (exact items in the
+decisions entry): a candidate's `MsgHeartbeat` (the two-round receipt, `ReturnToFollowerState`, and the
+`BecomeFollower` line skipped by `bfCond`, which needs the receive event kept as the last event), a
+follower's `MsgApp` (rejected: `hlt0` from the message's facts; the hint is irrelevant, `msgAbs` drops it;
+stale: log matching below the commit from the ghost; accepted: the new log's records and certificate and
+`QuorumLogF` under a truncation/append, no lemma yet), a higher-term receive (`UpdateTerm`'s first
+round, `commitIn` at the new term by `commitIn_agree`, `LeaderComplete` for `specInv_updateTerm`, the
+preamble's `BecomeFollower` line skipped), the leader's `MsgAppResp`/`MsgHeartbeatResp`. Checked (branch at `trace-check` `bb336f50f2` plus this slice): full `lake build` green (13797 jobs); `etc/tcb-report.py --check` (806 axioms, 4 `sorry`s, unchanged) and all 53 collections `--reuse --check`, none updated; `interface/` unchanged (regenerated: no file differs; the changed modules are not on `etc/api/raft.txt`); `etc/api-check.py` 0 errors; `--layout` 0 new; `etc/gen-link.py --raft` unchanged.
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its
@@ -1138,6 +1161,20 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   (`TracedMsgType.lean`) gives `msgTypeStr ty` for the six traced types, for the send and receive
   hooks; the Go test `examples/raft/tracecheck/msgtype_string_test.go`. Trust base: the axiom out,
   the model in, the server's results on `strconv.Itoa`'s axiom (`notes/decisions.md`, "Q9").
+- **Q17 (2026-11-10, Q8 stage 1 slice 19b): a candidate's vote responses, a voter's first only.**
+  Raft's tally records a voter's first response of a term only (`recordVote`); the specification's
+  `HandleRequestVoteResponse` adds a voter to `votesGranted` on every granting response, so a voter that
+  rejected and then granted would make them diverge (`sim_recordVote` needs `s.votes !! m.From' =
+  none`). Raft never sends that (one `MsgVote` per peer per campaign, one answer per request,
+  at-most-once delivery), but nothing in the frozen `simFx` or the bundle states it, so a candidate's
+  `MsgVoteResp` (pending, won or lost) is not provable. Options: (a) a pure clause of `simFx`
+  (`VoteRespUniq`: while `i` is a candidate of `T`, no vote response of term `T` to `i` is in flight
+  from a server of `i`'s `votesResponded`, and at most one from any other), with its preservation by the
+  specification's actions; (b) a premise of the bundle (`s.votes !! m.From' = none` for a candidate's
+  `MsgVoteResp`), which the node API cannot supply; (c) layer B's tokens (their at-most-once half
+  covers one message, not two equal-content ones). **Recommended: (a)**, in an amendment A3 (with a
+  review round) (`notes/decisions.md`, "Q8
+  stage 1 (slice 19b)").
 - **Q16 (2026-11-10, amendment A2's reviews a2-r3, a2-r4): an `"app"` append request's entries,
   unpinned for `MsgsUniq`.** A receive line logs an append request's entry count only
   (`Line.isAppendEntriesRequest`), so after an `"app"` send line with entries `MsgsUniq` needs every
