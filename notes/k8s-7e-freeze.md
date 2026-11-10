@@ -7,6 +7,11 @@ were reviewed and accepted (`notes/k8s-7e-2-handoff.md`, "Eighth session"); 7e-1
 restatements were each approved before they were built (`questions.md`, "k8s 7e-1 ..."). This file
 puts the whole branch's delta against lean in one place.
 
+**Coverage bound of `GetList`.** The store pages through a list itself (`pagedChunks`), but the
+driver never sends a continue token: `storage.DecodeContinue` and `GetList`'s continue-key branch
+are proved (`GetList` requires no continue key) but not exercised by the closed theorems
+(follow-up in `notes/k8s-7e-1-handoff.md`, "Follow-ups").
+
 ## 1. The closed theorems carry exactly lean's premises
 
 `k8s_etcd3_safe`, `k8s_etcd3_cluster_safe`, `k8s_etcd3_partition_safe` (`Results.lean`) and
@@ -193,3 +198,29 @@ sync merge (`notes/k8s-7e-1-handoff.md`, "Merge order").
 One trusted text combines two approved changes: `rpctypes.ErrFutureRev_init`/`ErrCompacted_init`
 (and `rpctypesInit`) carry both pf4's `methodSet e.ty !! "Format" = none` and 7e-2's "an `EtcdError`
 value". The internal lemma `clientErr_statusErrOk_of_leaf` takes both `hT` and `hF`.
+
+## 8. The Freeze review's minors (etcd-grove-81, 2026-11-10, independent check `wf_c8907e0e-b1d`: no
+critical or major issue; the combined rpctypes init text accepted)
+
+1. `Results.lean`: the stale "Vacuous for now … `pbEnc_ok`" paragraph and the `_partition_safe`
+   docstring's mention removed; what is left of it (the sweep's batch-1 refuted axioms, still in the
+   baseline under the same names) kept as "Resting on refuted axioms".
+2. "Paginated": the header of `Results.lean` and this file say the driver never sends a continue
+   token (`DecodeContinue`, the continue-key branch not covered); a follow-up in the handoff.
+3. `ErrorsNewOk.lean` `ctxErrClientAllW_of`: the duplicated `[context.Assumptions]` binder removed.
+4. pflag's `opaqueInitsOk` docstring (trusted text, docstring only, approved; `etc/gen-init.py`'s new
+   `opaque_doc_extra`): names the assumption of a non-empty `argv` (`CommandLine =
+   NewFlagSet(os.Args[0], ExitOnError)`, `flag.go:1262`, v1.0.10) and that it is reached through
+   `featuregate` (the k8s etcd3 driver's `noStreaming`).
+5. `grpcInvokerOk` (`InvGrpc.lean`) and `clientErrTys` (`ClientErr.lean`) docstrings: `TestClientErrorTypes`
+   sees the client's results after `ContextError`/`rpctypes.Error`, evidence for the post-processed
+   types; the attempt-level claim rests on the attack programs, now kept in `examples/k8s7e1attack`
+   (own Go module, grpc v1.84.0): `invoker` (`TestTypes` now asserts `nil` or `*status.Error` for the
+   in-bounds cases), `wrb`, `eof`, `retrycx`; gates 9e runs them.
+6. Gate 9d's positive control: `TestTracingRace` (in `examples/k8s/etcd3/kvsown_test.go`, run only with
+   `K8S_KVSOWN_CONTROL=1`): the same harness with grpc tracing on must fail under `-race` with a data
+   race (checked: it does, on the reply's list, read by prototext from the trace; `TestDefaultNoRace`
+   passes); the gate requires the failure and the race report.
+7. `examples/k8s7e2attack` bumped to the etcd pin `a4d2bb1720b9` (was the fork at `673da07c8fab`;
+   `go mod tidy`, tests pass), and run by gates 9f, so the rpctypes init docstrings' "at the etcd pin"
+   is true.

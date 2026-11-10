@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"net/http/httptest"
+	"os"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -13,6 +15,7 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/kubernetes"
 	"go.uber.org/zap"
+	"golang.org/x/net/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -86,4 +89,27 @@ func kvsOwnHammer(t *testing.T, kc *kubernetes.Client, render func()) {
 // every reply for /debug/requests (`notes/k8s-7e-1-handoff.md`, TestTracingRace).
 func TestDefaultNoRace(t *testing.T) {
 	kvsOwnHammer(t, kvsOwnStart(t), nil)
+}
+
+// TestTracingRace is TestDefaultNoRace's positive control (the Freeze review of k8s 7e, 2026-11-10):
+// the same harness with a component that keeps the reply, grpc's tracing (`grpc.EnableTracing = true`,
+// which etcd's SetupGlobalLoggers sets at log level debug: the client trace keeps each reply and
+// formats it lazily when /debug/requests is rendered). Under -race it must FAIL with a data race on
+// the Kvs array, which shows the harness catches a retained reply. It runs only with
+// K8S_KVSOWN_CONTROL=1 (gates 9d runs it so and requires the failure); skipped otherwise.
+func TestTracingRace(t *testing.T) {
+	if os.Getenv("K8S_KVSOWN_CONTROL") != "1" {
+		t.Skip("positive control: run with K8S_KVSOWN_CONTROL=1 under -race; it must fail")
+	}
+	grpc.EnableTracing = true
+	defer func() { grpc.EnableTracing = false }()
+	c := kvsOwnStart(t)
+	var mu sync.Mutex
+	render := func() {
+		mu.Lock()
+		defer mu.Unlock()
+		w := httptest.NewRecorder()
+		trace.Render(w, httptest.NewRequest("GET", "/debug/requests?fam=grpc.Sent.etcdserverpb.KV&b=0&exp=1", nil), true)
+	}
+	kvsOwnHammer(t, c, render)
 }

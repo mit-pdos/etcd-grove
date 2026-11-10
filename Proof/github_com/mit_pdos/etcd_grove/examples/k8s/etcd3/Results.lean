@@ -8,7 +8,9 @@ trust base of each printed in the build log (`#print axioms`). Lean-first (no Ro
   the Kubernetes etcd3 store over the client (`etcd3.New`, the driver's codec, versioner,
   transformer and decoder), `Check(s, st0, clients, ops, 0)` (`lintest.Run` with the driver's Go
   model of the store, `Apply` over the store: `Create`, `Get`, `Delete`, `GuaranteedUpdate`, and
-  `GetList` (paginated, with selectors and the past-revision modes; stage 7e);
+  `GetList` (with selectors and the past-revision modes; stage 7e: the store pages through the
+  result itself, but the driver never sends a continue token, so `storage.DecodeContinue` and
+  `GetList`'s continue-key branch are not covered);
   porcupine's checker), and a panic if porcupine answers `Illegal` -- does not panic and returns
   `Ok` or `Unknown`. From `isPkgInit k8setcd3`, the right to listen on `127.0.0.1:23896`, the main
   thread's token and `Main`'s named premises
@@ -47,13 +49,12 @@ trust base of each printed in the build log (`#print axioms`). Lean-first (no Ro
 (`client/v3/kubernetes/Client__List.lean`), restated `Client.Get.spec` at any revision, and made
 `clientErrPlain` a lemma (`clientErrPlain_holds`).
 
-**Vacuous for now (2026-11-07).** Every `_safe` theorem here, `k8s_etcd3_partition_safe` included,
-rests on `pbEnc_ok`, which proves `False` (lean `cffe36ea9d`, `notes/pbenc-ok-inconsistent.md`), and
-on grpc's refuted `ProtoMsg` axioms: until etcd-grove-c9's per-type fix lands, they hold vacuously.
-They also rest on false axioms until the axiom sweep's repairs of batch 1 land (lean `0eda5f10de`,
-`notes/axiom-review/`): `zap.Logger.{Debug,Error,Fatal,Info,Warn}`, `errors.IsCtxErr`,
-`context.ValueStartTime` (a theorem since sweep repairs 1's B2, 2026-11-08), `http.Handle_ok`, and
-the k8s `DefaultFeatureGate` and `DefaultFeatureSupportChecker` initializers.
+**Resting on refuted axioms (axiom sweep batch 1, 2026-11-07).** The `_safe` theorems rest on axioms
+the sweep refuted, until its repairs land (`notes/axiom-review/`, `notes/STATUS.md`, "Axiom sweep
+batch 1"): `zap.Logger.{Debug,Error,Fatal,Info,Warn}`, `errors.IsCtxErr`, `http.Handle_ok`, and the
+k8s `DefaultFeatureGate` and `DefaultFeatureSupportChecker` initializers. (The `pbEnc_ok` axiom and
+grpc's refuted `ProtoMsg` axioms, which made them vacuous until 2026-11-10, are gone: per-type
+protobuf models, stage A.)
 -/
 module
 
@@ -185,7 +186,7 @@ theorem k8s_etcd3_cluster_safe [lctx : GoLocalContext] [sem : go.Semantics]
 
 /-- **The Kubernetes etcd3 store's linearizability instance over three members under any partition
 schedule is safe, in the operational semantics** (`k8s_etcd3_partition_adequate`, see the file
-header and `Adequacy.lean`; vacuous until the `pbEnc_ok` fix lands, and resting on false axioms until the sweep's batch-1 repairs land: see the file header). -/
+header and `Adequacy.lean`; resting on refuted axioms until the sweep's batch-1 repairs land: see the file header). -/
 theorem k8s_etcd3_partition_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]

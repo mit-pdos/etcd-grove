@@ -206,7 +206,6 @@ theorem eofOk_of_init [_root_.Perennial.io.Assumptions]
 theorem ctxErrClientAllW_of [_root_.Perennial.context.Assumptions]
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
-    [_root_.Perennial.context.Assumptions]
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
     isPkgInit (PROP := IProp GF) pkg_id.context ⊢ ctxErrClientAllW := by
   iintro #Hp

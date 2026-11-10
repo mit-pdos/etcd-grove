@@ -1326,8 +1326,15 @@ which no attempt returns. True of grpc-go v1.84 under etcd's configuration only,
 claim: no dial option beyond `GrpcDialOpt`'s (`dialOptsAt`), per-RPC credentials that return no
 error (`perRPCCredsOk`: a credentials error carrying a status is returned unchanged, or wrapped with
 `%w`, `http2_client.go:697-702`), and a service config without a retry policy (`grpcResolverAt`:
-an exhausted retry policy wraps the last error, `stream.go:867`). Checked by `examples/k8s/etcd3`'s
-`TestClientErrorTypes`.
+an exhausted retry policy wraps the last error, `stream.go:867`). The evidence for this
+attempt-level claim is `examples/k8s7e1attack` (the axiom-skill attack programs): `invoker`'s
+`TestTypes` calls the bare invoker the way etcd's interceptor gets it and requires `nil` or
+`*status.Error` for a server status, a context canceled or expired before or during the attempt, a
+closed and a refused connection (and prints the out-of-bounds cases: a credentials error carrying a
+status, or wrapping one, and an exhausted retry policy, which `retrycx` shows for a stream);
+`eof` shows `io.EOF`'s and `status.Error`'s types. `examples/k8s/etcd3`'s `TestClientErrorTypes` (gates
+9c) observes only the client's results, after `ContextError` and `rpctypes.Error` have converted the
+attempt's error: evidence for the post-processed types (`clientErr`), not for this claim.
 
 Since k8s 7e-1 (2026-11-10, approved by etcd-grove-81) a success also gives the caller what the
 reply's model says it owns of the decoded reply (`Rep.recvOwn out m'`; `RepSat` proves the store

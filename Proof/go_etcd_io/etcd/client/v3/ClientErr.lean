@@ -25,7 +25,10 @@ variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 etcd-grove-81): a gRPC status error (`*status.Error`, grpc's `internal/status`: `toRPCErr`,
 `status.Error`, `status.FromContextError`), an `rpctypes.EtcdError` (`rpctypes.Error`), an
 `*errors.errorString` (`io.EOF`, `context.Canceled`) and `context.deadlineExceededError`
-(`context.DeadlineExceeded`). Checked by `examples/k8s/etcd3`'s `TestClientErrorTypes`. True of
+(`context.DeadlineExceeded`). Checked, for the errors `kubernetes.Client` returns (after
+`ContextError` and `rpctypes.Error` have converted the attempt's error), by `examples/k8s/etcd3`'s
+`TestClientErrorTypes` (gates 9c: partitions, deadlines, a closed client); the attempt-level types
+`grpcInvokerOk` states rest on the attack programs of `examples/k8s7e1attack` (`InvGrpc.lean`). True of
 grpc-go v1.84 under etcd's configuration only: a per-RPC credentials error carrying a status (or
 wrapping one with `%w`), and a service-config retry policy's `"max retries exhausted"` error, are of
 other types; `perRPCCredsOk` requires credentials that return no error, and `grpcResolverAt` a

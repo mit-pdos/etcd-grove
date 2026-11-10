@@ -47,6 +47,11 @@ The Draft's §6 table, steps 1-7.
   once, so that `GetList`/`pagedChunks`/`getList` and the driver's `call`/`Apply`/`Check` take only
   `threadTok` and the store's handle (`notes/bounds-plan.md`); then the seven allow-list entries go.
 
+- **Continue tokens** (the Freeze review, etcd-grove-81, 2026-11-10): the driver never sends a
+  continue token, so `storage.DecodeContinue` and `GetList`'s continue-key branch are proved but not
+  covered by the closed theorems; a driver operation that lists with the returned `Continue` would
+  cover them.
+
 ## Builds
 
 Full (under the lock and the 64G cap; filtered log): `/shared/tmp/k8s7e1/full.sh LOGNAME`.
@@ -601,3 +606,8 @@ moves during the gates, merge again and redo). The Freeze package's §3 counts a
 Next: etcd-grove-81's review of the Freeze package; the merge order above (pf5: ctxDone in
 ctxErrs/ctxQuiet, keySized dropped; expect conflicts in context predicates and the tcb files); then
 land.sh only on 81's go.
+
+- Freeze review minors (etcd-grove-81, 2026-11-10), all seven done before the sync merge (listed in
+  `notes/k8s-7e-freeze.md` §8); unbuilt Lean edits: `Results.lean` (docs), `ErrorsNewOk.lean` (binder),
+  `InvGrpc.lean`/`ClientErr.lean` (docstrings), `pflag/Init.lean` (regenerated docstring). Go: control
+  test, `examples/k8s7e1attack`, k8s7e2attack bump; gates 9d control, 9e, 9f.

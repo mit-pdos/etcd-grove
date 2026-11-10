@@ -694,6 +694,19 @@ are now `features`' registration's, `features.init_0_ok`.)''',
             'imodintro', 'iexists _', 'iframe #'],
 )
 
+# (k8s 7e Freeze review, etcd-grove-81, 2026-11-10) pflag's opaque initializers: what they assume
+SPECIAL['github_com.spf13.pflag'] = dict(
+    opaque_doc_extra=[
+        'Reached through the Kubernetes packages: `featuregate` (whose `MutableFeatureGate.AddFlag`',
+        'names `*pflag.FlagSet`) imports pflag since stage 7e-4, so that the k8s etcd3 driver\'s',
+        '`noStreaming` can call `MutableVersionedFeatureGate.Set`. The assumption:',
+        '`CommandLine = NewFlagSet(os.Args[0], ExitOnError)` (`flag.go:1262`, pflag v1.0.10) indexes',
+        '`os.Args`, so it holds only of a process started with a non-empty argument vector (every',
+        'program run from a shell or `exec` with its name; a process exec\'d with an empty `argv`',
+        'panics here). `ErrHelp` (`errors.New`) and `Usage` (a function literal) cannot panic.',
+    ],
+)
+
 # (k8s 7e-1, 2026-11-10, decided by etcd-grove-81) grpc's fact: `EnableTracing` holds `false`
 SPECIAL['google_golang_org.grpc'] = dict(
     doc='''Its fact (`grpcInit`, `cache/v3/Base.lean`): `EnableTracing` holds `false` for good. Its
@@ -2286,6 +2299,8 @@ def gen(p, cfg=None):
             A(f'/-- **The trust boundary: `{p}`\'s untranslated variable initializers run.**')
             A('Goose translates them names-only, so each `X.init` is an axiom of the translation; Go')
             A('runs them at program start, and etcd starts, so each returns without panicking.')
+            for l in cfg.get('opaque_doc_extra', []):
+                A(l)
             A('Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/')
             A('axiom opaqueInitsOk :')
             A('    ∀ v ∈ ([' + ',\n        '.join(f'{x}.init' for x in opq) + '] : List val),')

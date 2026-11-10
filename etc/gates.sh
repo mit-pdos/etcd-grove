@@ -185,6 +185,20 @@ else
   echo "k8s client error types: FAILED"; tail -20 "$tmp/cet.log"; fail=1
 fi
 
+# 9e. the attack programs behind grpcInvokerOk's attempt-level error types (k8s 7e Freeze review):
+# grpc-go's bare invoker returns nil or *status.Error under etcd's configuration (seconds)
+if (cd examples/k8s7e1attack && GOWORK=off go test -count=1 ./... > "$tmp/k7a.log" 2>&1); then
+  echo "k8s 7e-1 attack programs: ok"
+else
+  echo "k8s 7e-1 attack programs: FAILED"; tail -20 "$tmp/k7a.log"; fail=1
+fi
+# 9f. k8s 7e-2's Go evidence for its trusted texts (examples/k8s7e2attack, at the etcd pin of
+# etc/goose.py: rpctypes' error values, apierrors' views, tracing's contexts, reflect; seconds)
+if (cd examples/k8s7e2attack && GOWORK=off go test -count=1 ./... > "$tmp/k72.log" 2>&1); then
+  echo "k8s 7e-2 attack tests: ok"
+else
+  echo "k8s 7e-2 attack tests: FAILED"; tail -20 "$tmp/k72.log"; fail=1
+fi
 # 9d. k8s 7e-1's owned reply Kvs (recvOwn, decided by etcd-grove-81): no race on the reply's Kvs
 # array after Invoke, with retries, in the default configuration (EnableTracing off)
 if (cd examples/k8s/etcd3 && GOWORK=off go test -race -count=1 -timeout 10m \
@@ -192,6 +206,17 @@ if (cd examples/k8s/etcd3 && GOWORK=off go test -race -count=1 -timeout 10m \
   echo "k8s owned reply Kvs: ok"
 else
   echo "k8s owned reply Kvs: FAILED"; tail -20 "$tmp/kvo.log"; fail=1
+fi
+# ... and its positive control (the k8s 7e Freeze review): the same harness with grpc's tracing on,
+# which keeps the reply, must FAIL under -race with a data race (TestTracingRace, gated by
+# K8S_KVSOWN_CONTROL=1), so that a passing TestDefaultNoRace means something
+if (cd examples/k8s/etcd3 && K8S_KVSOWN_CONTROL=1 GOWORK=off go test -race -count=1 -timeout 10m \
+    -run '^TestTracingRace$' . > "$tmp/kvc.log" 2>&1); then
+  echo "k8s owned reply Kvs control: FAILED (no race detected with tracing on)"; tail -20 "$tmp/kvc.log"; fail=1
+elif grep -q 'WARNING: DATA RACE' "$tmp/kvc.log"; then
+  echo "k8s owned reply Kvs control: ok (race detected with tracing on)"
+else
+  echo "k8s owned reply Kvs control: FAILED (failed without a data race)"; tail -20 "$tmp/kvc.log"; fail=1
 fi
 
 [ "$fail" = 0 ] && echo "gates: all passed" || echo "gates: FAILED"

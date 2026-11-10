@@ -37,6 +37,13 @@ variable [sem : go.Semantics]
 /-- **The trust boundary: `github_com.spf13.pflag`'s untranslated variable initializers run.**
 Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
 runs them at program start, and etcd starts, so each returns without panicking.
+Reached through the Kubernetes packages: `featuregate` (whose `MutableFeatureGate.AddFlag`
+names `*pflag.FlagSet`) imports pflag since stage 7e-4, so that the k8s etcd3 driver's
+`noStreaming` can call `MutableVersionedFeatureGate.Set`. The assumption:
+`CommandLine = NewFlagSet(os.Args[0], ExitOnError)` (`flag.go:1262`, pflag v1.0.10) indexes
+`os.Args`, so it holds only of a process started with a non-empty argument vector (every
+program run from a shell or `exec` with its name; a process exec'd with an empty `argv`
+panics here). `ErrHelp` (`errors.New`) and `Usage` (a function literal) cannot panic.
 Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
 axiom opaqueInitsOk :
     ∀ v ∈ ([ErrHelp.init,
