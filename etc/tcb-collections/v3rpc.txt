@@ -135,6 +135,16 @@ axiom mvcc.kvHasher.Hash.wp_proof
 axiom mvcc.kvHasher.WriteKeyValue.wp_proof
 axiom mvcc.newKVHasher.wp_proof
 axiom otelgrpc.NewServerHandler.wp_proof
+axiom pbAuthEnableRequestT_reg
+axiom pbAuthEnableResponseT_reg
+axiom pbAuthRoleAddRequestT_reg
+axiom pbAuthRoleAddResponseT_reg
+axiom pbAuthRoleGrantPermissionRequestT_reg
+axiom pbAuthRoleGrantPermissionResponseT_reg
+axiom pbAuthUserAddRequestT_reg
+axiom pbAuthUserAddResponseT_reg
+axiom pbAuthUserGrantRoleRequestT_reg
+axiom pbAuthUserGrantRoleResponseT_reg
 axiom promSrvMetrics
 axiom promSrvMetricsOpt
 axiom promSrvMetrics_persistent
@@ -167,6 +177,8 @@ axiom v3rpc.NewMaintenanceServer.wp_proof
 axiom v3rpc.codec_proto
 axiom v3rpc.isClientCtxErr.wp_proof
 axiom v3rpc.logUnaryRequestStats.wp_proof
+axiom v3rpc.pbWatchRequestT_reg
+axiom v3rpc.pbWatchResponseT_reg
 axiom verify.Verify.wp_proof
 axiom zap.Duration.wp_proof
 axiom zap.Error.wp_proof

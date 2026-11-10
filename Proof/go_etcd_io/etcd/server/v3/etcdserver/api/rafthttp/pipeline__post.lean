@@ -49,7 +49,7 @@ theorem rafthttp.pipeline.post.wp_proof
     (hBackground : context.Background.spec (GF := GF) (hG := hG))
     (hIs : errors.Is.spec (GF := GF) (hG := hG)) :
     rafthttp.pipeline.post.spec (GF := GF) (hG := hG) := by
-  intro Rh p to d bs st Hw Hto Hns Hrs
+  intro Rh p to d bs st Hw Hwe Hto Hns Hrs
   wp_start as ⟨#Hs, Hd, #HP, HO⟩
   iunfold pipeSenderOk at Hs
   icases Hs with ⟨%tr, %pk, %sc, %ec, %γs, %lg, %urls, %uvs, %lid, %cid, %rt, #Htr, #Hpk, #Hsc, #Hec,
@@ -145,7 +145,7 @@ theorem rafthttp.pipeline.post.wp_proof
     iexists st
     iframe #
     ipureintro
-    exact ⟨Hw, by rw [Hto]; exact Hu.2.symm, Hns, Hrs, lid, Hfrom.1, Hmem.1,
+    exact ⟨Hw, Hwe, by rw [Hto]; exact Hu.2.symm, Hns, Hrs, lid, Hfrom.1, Hmem.1,
       by rw [Hu.2]; exact Hmem.2, peerURLsHdrOk_of Rh lid uvs hdrs Hturls (Hfrom.2 Hturls.1 (fun u hu => (Hturls.2 u hu).1))⟩
   iunfold pipeReg at Hreg
   ihave #Hpa0 := Hreg $$ %u.Host' %Hu.2

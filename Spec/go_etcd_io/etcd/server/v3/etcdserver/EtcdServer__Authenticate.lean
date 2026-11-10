@@ -66,7 +66,7 @@ abbrev EtcdServer.Authenticate.spec : Prop :=
         ⌜err = GoInterface.nil → pw' = []⌝) ∗
       applyErrIs err ∗
       ((⌜err = GoInterface.nil⌝ ∗ ∃ v : etcdserverpb.AuthenticateResponse,
-          resp ↦ v ∗ auth.tokIssued γa v.Token' name) ∨
+          resp ↦ v ∗ ⌜v.unknownFields' = slice.nil⌝ ∗ auth.tokIssued γa v.Token' name) ∨
        ⌜resp = null ∧ err ≠ GoInterface.nil⌝) }}
 
 end spec

@@ -85,6 +85,17 @@ else
 fi
 unlink_perennial
 
+# 5b. the per-type message models (stage A): no trusted statement lets its user choose a message
+# model (etc/model-param-check.py, rules 1-7 with their negative tests), and the trusted protobuf
+# schemas agree with the Go descriptors (etc/pbschema-check.py, with its negative tests); both read
+# the built .oleans, so only after a successful build
+python3 etc/model-param-check.py || fail=1
+python3 etc/pbschema-check.py || fail=1
+# etc/joint-landing-check.py refuses swMsgBound_phys in the baselines; stage A lands without it
+# (the user, 2026-11-09: stage A ahead of raft-entsize, whose landing deletes the axiom and turns
+# the check on again). Its selftest stays.
+python3 etc/joint-landing-check.py --selftest || fail=1
+
 # 6. the issues' front matter
 if python3 etc/issues-status.py --check > "$tmp/issues.log" 2>&1; then
   echo "issues: ok"

@@ -16,6 +16,14 @@ axiom grpcPeerOpt
 axiom grpcServes
 axiom grpcServes_persistent
 axiom grpcWrotePeer
+axiom pbDeleteRangeRequestT_reg
+axiom pbDeleteRangeResponseT_reg
+axiom pbPutRequestT_reg
+axiom pbPutResponseT_reg
+axiom pbRangeRequestT_reg
+axiom pbRangeResponseT_reg
+axiom pbTxnRequestT_reg
+axiom pbTxnResponseT_reg
 axiom proto.Clone.wp_proof
 axiom rpctypes.errDesc_etcdError
 axiom status.Error.wp_proof

@@ -61,20 +61,20 @@ structure StreamCodec where
 /-- The message codec's frame (`messageEncoder`'s): an encoding of a message of the content,
 below `2^63` bytes, after its length. -/
 def MsgFrameOf (w : MsgWire) (bs : List w8) : Prop :=
-  ∃ (st : MsgSt) (mbs : List w8), wireOf st = w ∧ MsgWireOk st mbs ∧ mbs.length < 2 ^ 63 ∧
-    bs = msgFrame mbs
+  ∃ (st : MsgSt) (mbs : List w8), wireOf st = w ∧ MsgWireOk st mbs ∧ MsgEnc st mbs ∧
+    mbs.length < 2 ^ 63 ∧ bs = msgFrame mbs
 
 theorem MsgFrameOf.uniq {w1 w2 : MsgWire} {b1 b2 x y : List w8} (h1 : MsgFrameOf w1 b1)
     (h2 : MsgFrameOf w2 b2) (h : b1 ++ x = b2 ++ y) : w1 = w2 ∧ b1 = b2 ∧ x = y := by
-  obtain ⟨s1, m1, rfl, hm1, hl1, rfl⟩ := h1
-  obtain ⟨s2, m2, rfl, hm2, hl2, rfl⟩ := h2
+  obtain ⟨s1, m1, rfl, hm1, -, hl1, rfl⟩ := h1
+  obtain ⟨s2, m2, rfl, hm2, -, hl2, rfl⟩ := h2
   obtain ⟨rfl, rfl⟩ := chunk_eq hl1 hl2 (by simpa only [msgFrame, List.append_assoc] using h)
   exact ⟨Option.some.inj (hm1.2.symm.trans hm2.2), rfl, rfl⟩
 
 /-- The message encoder's frame, and the decoder's, is the message codec's. -/
-theorem MsgFrameOf.of_wire {st : MsgSt} {bs : List w8} (h : MsgWireOk st bs)
+theorem MsgFrameOf.of_wire {st : MsgSt} {bs : List w8} (h : MsgWireOk st bs) (he : MsgEnc st bs)
     (hl : bs.length < 2 ^ 63) : MsgFrameOf (wireOf st) (msgFrame bs) :=
-  ⟨st, bs, rfl, h, hl, rfl⟩
+  ⟨st, bs, rfl, h, he, hl, rfl⟩
 
 /-- **The message stream's codec** (`messageEncoder`/`messageDecoder`): no state. -/
 def msgCodec : StreamCodec where
@@ -85,7 +85,7 @@ def msgCodec : StreamCodec where
     obtain ⟨hw, hb, hx⟩ := MsgFrameOf.uniq h1 h2 h
     exact ⟨hw, hb, rfl, hx⟩
   nonempty h := by
-    obtain ⟨_, _, _, _, _, rfl⟩ := h
+    obtain ⟨_, _, _, _, _, _, rfl⟩ := h
     intro he
     have hl := congrArg List.length he
     simp [msgFrame, u64Be_length] at hl
@@ -98,7 +98,7 @@ def v2Codec (frm to : w64) : StreamCodec where
   F := V2Frame frm to
   uniq h1 h2 h := V2Frame.unique h1 h2 h
   nonempty h := by
-    rcases h with ⟨-, rfl, -⟩ | ⟨_, -, -, -, rfl, -⟩ | ⟨_, _, -, -, -, rfl, -⟩ <;> simp
+    rcases h with ⟨-, rfl, -⟩ | ⟨_, -, -, -, rfl, -⟩ | ⟨_, _, -, -, -, -, rfl, -⟩ <;> simp
 
 /-- **A chain of frames** from `s` to `s'`: each frame from the state the previous one leads to. -/
 inductive Chain (C : StreamCodec) : C.S → List (MsgWire × List w8) → C.S → Prop
@@ -418,7 +418,7 @@ stream contract is this one; what the handler decodes of the prefix is `st`, and
 def snapSReq (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) (Pre Φ : List w8 → Prop) :
     IProp GF :=
   iprop(∃ (st : MsgSt) (bs : List w8) (sn : SnapshotM) (D : backend.Data),
-    ⌜MsgWireOk st bs ∧ bs.length < 2 ^ 63 ∧ st.msg.To' = Rh.owner R.host ∧
+    ⌜MsgWireOk st bs ∧ MsgEnc st bs ∧ bs.length < 2 ^ 63 ∧ st.msg.To' = Rh.owner R.host ∧
       st.msg.Type' = MsgSnap ∧ st.snap = some sn ∧ st.resps = [] ∧
       (∀ x, Pre x → x <+: msgFrame bs ∨ msgFrame bs <+: x) ∧
       (∀ x, Φ x → ∃ t, x = msgFrame bs ++ t ∧ backend.boltImage t D)⌝ ∗

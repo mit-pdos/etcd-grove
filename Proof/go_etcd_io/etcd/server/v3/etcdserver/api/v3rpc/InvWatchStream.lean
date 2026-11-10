@@ -250,9 +250,14 @@ def createReqSend (cr : Loc) (c : CreateReqM) : IProp GF :=
 (`RequestUnion`) and the inner request's fields the server reads (as `watchReqRecv`, all
 read-only). The codec's copy of it is one `watchReqRecv` holds at `m` (the wire model; the
 decoded key's length bound, `createReqOwn`'s, is the codec's: a message is at most grpc's
-receive limit, below `2 ^ 31` bytes). -/
+receive limit, below `2 ^ 31` bytes). The message is not `nil` (stage A of the per-type models,
+2026-11-07: a registered model's `send null m ⊢ False`; every sender builds it fresh). An `other`
+request has no oneof: Go encodes a wrapper whose inner message is `nil` as an empty inner message,
+which decodes to a non-`nil` one, so a sent wrapper of `nil` is not an `other` on the wire (the
+stage A Freeze review, W1). -/
 def watchReqSend (l : Loc) (m : WatchReqM) : IProp GF :=
-  iprop(∃ u : GoInterface, structFieldRef etcdserverpb.WatchRequest go!"RequestUnion" l ↦□ u ∗
+  iprop(⌜l ≠ null⌝ ∗
+    ∃ u : GoInterface, structFieldRef etcdserverpb.WatchRequest go!"RequestUnion" l ↦□ u ∗
     match m with
     | .create c => ∃ cr : Loc, oneofCreate u cr ∗ createReqSend cr c
     | .cancel id => ∃ cr : Loc, ⌜cr ≠ null⌝ ∗
@@ -260,8 +265,7 @@ def watchReqSend (l : Loc) (m : WatchReqM) : IProp GF :=
         structFieldRef etcdserverpb.WatchCancelRequest go!"WatchId" cr ↦□ id
     | .progress => ∃ cr : Loc, ⌜cr ≠ null⌝ ∗
         oneofProgress u cr
-    | .other => ⌜u = GoInterface.nil⌝ ∨ oneofCreate u null ∨ oneofCancel u null ∨
-        oneofProgress u null)
+    | .other => ⌜u = GoInterface.nil⌝)
 
 /-- **A bound on a `*pb.WatchRequest`'s encoding** (`pbWatchRequest.wireLen`; 2026-10-30): a
 create's key and range end, its filters (a packed enum, at most 10 bytes each), and the fixed part

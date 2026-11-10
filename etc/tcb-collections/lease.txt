@@ -40,6 +40,12 @@ axiom grpcServesStream_persistent
 axiom grpcServes_persistent
 axiom grpcWrotePeer
 axiom metadata.FromOutgoingContext.wp_proof
+axiom pbLeaseGrantRequestT_reg
+axiom pbLeaseGrantResponseT_reg
+axiom pbLeaseKeepAliveRequestT_reg
+axiom pbLeaseKeepAliveResponseT_reg
+axiom pbLeaseRevokeRequestT_reg
+axiom pbLeaseRevokeResponseT_reg
 axiom rpctypes.errDesc_etcdError
 axiom status.FromError.wp_proof
 axiom zap.Error.wp_proof

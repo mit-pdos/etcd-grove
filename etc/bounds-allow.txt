@@ -80,3 +80,9 @@ stock ^Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/(Readers|runner__s
 # `runCfgOk`), and lends each member's per-stream `epochTok`s to its first epoch (`memW_lend`, at the
 # reverse `memW_gather`'s shares), as `WriterShares` does at a restart.
 stock ^Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/(Run|RunLemmas)\.lean$
+
+# The registered message models (per-type models, stage A, 2026-11-08): each instance's own file
+# owns its `wireLen` and proves, from it, rule 7's witness `∃ m, wireLen m < grpcMsgMax` and the
+# length bounds its `ReqSat` store needs (`wireLen m < grpcMsgMax` gives the key's length); only the
+# registered instances' files in their owner packages.
+wire-unfold ^Proof/go_etcd_io/etcd/(client/v3|api/v3/etcdserverpb|server/v3/etcdserver/api/v3rpc)/PerType[A-Za-z]*\.lean$

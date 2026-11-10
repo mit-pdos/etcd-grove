@@ -106,7 +106,7 @@ theorem Client.unaryClientInterceptor.wp_proof
   iapply etcdInterceptorOkM_split
   iintro !> %md
   unfold etcdInterceptorOkM
-  iintro !> %conn %addr %ics %dopts %inv %method %Req %Rep %Spec %m %Φ' %ctx %cd %inp %out %opts
+  iintro !> %conn %addr %ics %dopts %inv %method %Req %Rep %hreq %hrep %Spec %m %Φ' %ctx %cd %inp %out %opts
     %vs %Ψ !> ⟨#Hgc, #Hinv, #Hrpc, Hpre, #Hctx, Hsend, Hblank, #Hopts, #Hok, #Hsz⟩ HΨ
   -- (D29) a write's ordinary precondition, never retried (`.write`), or a persistent one (`.any`)
   obtain ⟨once, hon⟩ : ∃ b : Bool, b = (md != AttemptMode.any) := ⟨_, rfl⟩
@@ -177,7 +177,7 @@ theorem Client.unaryClientInterceptor.wp_proof
     ihave Hsp : ▷ (∀ md, ⌜grpcAttemptMd conn (GoInterface.ok ci) md⌝ -∗ Spec md m Φ' (fun _ => iprop(True)))
       $$ [Hsp]
     · inext; iapply (attemptPre_attempt conn _ _ vver Hver) $$ Hsp
-    wp_apply Hinv $$ %method %Req %Rep %Spec %m %Φ' %(fun _ => iprop(True)) %ci
+    wp_apply Hinv $$ %method %Req %Rep %hreq %hrep %Spec %m %Φ' %(fun _ => iprop(True)) %ci
         %{ cd with Values := vsv } %inp %out %g' %(gs ++ [pv]) %([p_ptr] : List Loc) [Hsend Hout Hpb Hsp]
       as %err ⟨Hsend, -, Hres⟩
     · iframe Hg' Hctx' Hrpc
@@ -271,7 +271,7 @@ theorem Client.unaryClientInterceptor.wp_proof
       ihave Hsp : ▷ (∀ md, ⌜grpcAttemptMd conn (GoInterface.ok ci) md⌝ -∗ Spec md m Φ' (fun _ => iprop(True)))
         $$ [Hsp]
       · inext; iapply (attemptPre_attempt conn _ _ vver Hver) $$ Hsp
-      wp_apply Hinv $$ %method %Req %Rep %Spec %m %Φ' %(fun _ => iprop(True)) %ci
+      wp_apply Hinv $$ %method %Req %Rep %hreq %hrep %Spec %m %Φ' %(fun _ => iprop(True)) %ci
           %{ cd with Values := vsv } %inp %out %g' %(gs ++ [pv]) %([p_ptr] : List Loc) [Hsend Hout Hpb Hsp]
         as %err ⟨Hsend, Hpbs, Hres⟩
       · iframe Hg' Hctx' Hrpc

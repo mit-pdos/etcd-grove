@@ -89,16 +89,40 @@ theorem adminReqResult_authApplyErrIs (Own : auth.AuthNames → List auth.AuthSt
       ad.result Own γa M hs resp err -∗ ad.result Own γa M hs resp err ∗ authApplyErrIs err := by
   iintro #Hpkg H
   cases ad with
-  | userAdd n => iapply adminOutX_authApplyErrIs $$ Hpkg H
-  | roleAdd n => iapply adminOutX_authApplyErrIs $$ Hpkg H
-  | userGrantRole u ro => iapply adminOutX_authApplyErrIs $$ Hpkg H
-  | roleGrantPermission n w => iapply adminOutX_authApplyErrIs $$ Hpkg H
-  | authEnable =>
+  | userAdd n =>
     simp only [apply.AdminReq.result]
-    icases H with ⟨%en, #Hev, H⟩
+    icases H with ⟨H, %Hrn⟩
     ihave ⟨H, #HA⟩ := adminOutX_authApplyErrIs _ _ _ _ _ err $$ Hpkg H
     isplitl [H]
-    · iexists en; iframe Hev H
+    · iframe H; ipureintro; exact Hrn
+    · iexact HA
+  | roleAdd n =>
+    simp only [apply.AdminReq.result]
+    icases H with ⟨H, %Hrn⟩
+    ihave ⟨H, #HA⟩ := adminOutX_authApplyErrIs _ _ _ _ _ err $$ Hpkg H
+    isplitl [H]
+    · iframe H; ipureintro; exact Hrn
+    · iexact HA
+  | userGrantRole u ro =>
+    simp only [apply.AdminReq.result]
+    icases H with ⟨H, %Hrn⟩
+    ihave ⟨H, #HA⟩ := adminOutX_authApplyErrIs _ _ _ _ _ err $$ Hpkg H
+    isplitl [H]
+    · iframe H; ipureintro; exact Hrn
+    · iexact HA
+  | roleGrantPermission n w =>
+    simp only [apply.AdminReq.result]
+    icases H with ⟨H, %Hrn⟩
+    ihave ⟨H, #HA⟩ := adminOutX_authApplyErrIs _ _ _ _ _ err $$ Hpkg H
+    isplitl [H]
+    · iframe H; ipureintro; exact Hrn
+    · iexact HA
+  | authEnable =>
+    simp only [apply.AdminReq.result]
+    icases H with ⟨%en, #Hev, H, %Hrn⟩
+    ihave ⟨H, #HA⟩ := adminOutX_authApplyErrIs _ _ _ _ _ err $$ Hpkg H
+    isplitl [H]
+    · iexists en; iframe Hev H; ipureintro; exact Hrn
     · iexact HA
   | authenticate n pre =>
     simp only [apply.AdminReq.result]

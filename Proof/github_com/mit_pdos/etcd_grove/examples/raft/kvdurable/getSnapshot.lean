@@ -102,7 +102,7 @@ theorem getSnapshot.wp_proof (wp_getUint64 : getUint64.spec (GF := GF) (hG := hG
   icases Hm with ⟨state, ConfState, Index, Term, unknownFields, sizeCache, -⟩
   ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
   · iapply ownSlice_nil
-  imod pbMsg_alloc raftpb.SnapshotMetadata «$v0_ptr» zeroValDef 0 slice.nil [] ⊤
+  imod pbMsg_alloc raftpb.SnapshotMetadata «$v0_ptr» zeroValDef 0 slice.nil [] ⊤ (ufWire_nil _)
     $$ [state sizeCache unknownFields Hnil] with #Hpbm
   · iframe
   ihave Hsm : smPtsS «$v0_ptr» (DFrac.own 1) s.Metadata' $$ [ConfState Index Term Hcs]
