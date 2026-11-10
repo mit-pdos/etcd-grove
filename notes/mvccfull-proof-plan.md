@@ -977,3 +977,30 @@ actualMaxReaders` gone), mvcc 49 (below 54: the deleted fresh proofs' text, so n
 still FAILED on mvccfull's own 9 new matches (from before the Freeze; the tester's to settle).
 `etc/tcb-report.py --check` and the collections: not run, the build of record is not up to date
 (524 stale modules outside these leaves, porcupine's among them); to run after a full build.
+
+## F1 landed (2026-11-10)
+
+Landed on `lean` from `worktree-mvcc-full-tester` (the closed theorem at `432b996e31`; merged with
+`lean` at `de9c19e020`, per-type stage A, with one repair: v3rpc's `serverWatchStream.recvLoop`,
+whose case split still expected `Watch`'s old empty-range post, which handed back the update).
+
+**Results.** `mvccfull_adequate` (`examples/mvccfull/Adequacy.lean`) and `Results.lean`'s
+`mvccfull_Main`/`mvccfull_safe`: in every run of the tester's `Main`, at its `MainConfig` with hash
+reads off, no thread is stuck or panicked and every check of mvcc passes. Hypotheses: mvccrand's,
+minus `sort.Slice.spec`. With it: B3 (`mvcc.New`/`NewStore` and the API's on any image, the lessor's
+owner part lent) proved, so the Freeze's five "B3 Prove" `sorry`s are gone; the post-Freeze changes
+(`notes/decisions.md`, "mvccfull F1, Prove: the post-Freeze changes"). No `sorry` in any mvccfull
+result.
+
+**Checks at the landing.** Full `lake build` green (13830 jobs). `etc/tcb-report.py --check`: matches
+(846 axioms, 4 `sorry`s, the axiomatized types'); every collection matches; `mvccfull` gets its
+baseline (250 axioms, no `sorry`). `etc/bounds-check.py`: mvcc's stocks 54 to 44, recorded. API and
+interface checks (raft, mvcc, backend), `gen-init`, `goose.py --check`, `issues-status`: clean.
+
+**F2: hashing.** Lift the scope premise (the hash read's weight 0 in `Mix.Read`) and restate the
+closed theorem over `MainConfig` with hash reads on: translate `hash.go` and `hashByRev`/
+`hashStorage` (names only today), specify the hash's value (`hashInput`, `kvHash`; "Hashing, in
+detail" above), give the compaction job's stored hash (reopening `scheduleCompaction`'s proved
+spec, with `hashStorage.Store`'s ghost list of `Hashes`), and `hash/crc32` as a local
+trust-boundary axiom (`Sum32` an opaque function of the bytes written; the user's decision of
+2026-11-09).
