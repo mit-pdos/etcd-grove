@@ -12,8 +12,8 @@ client reads the raw range `[Continue, GetPrefixRangeEnd prefix)`, so a key belo
 and counts keys outside it; the store's continue keys are `DecodeContinue`'s `keyPrefix ++ ...` and
 `pagedChunks`' last key and `"\x00"`).
 
-**A hypothesis** until 7e-1 (a premise of `store.getList`'s proof only, never an axiom; decided by
-etcd-grove-81). Requirements on 7e-1 recorded in the Draft §7 (owned `Kvs`, `Count` from the range
+A hypothesis until 7e-1 (a premise of `store.getList`'s proof only, never an axiom; decided by
+etcd-grove-81); proved since (`Proof/go_etcd_io/etcd/client/v3/kubernetes/Client__List.lean`, 2026-11-10). Requirements on 7e-1 recorded in the Draft §7 (owned `Kvs`, `Count` from the range
 start, the error's soundness, `len(Kvs) ≤ 2 ^ 41`). It is stated with the store's vocabulary
 (`listRespIs`, `rangeErrSound`, `Proof/k8s_io/apiserver/pkg/storage/etcd3/ListDefs.lean`), which 7e-1
 moves down. Lean-first (no Rocq counterpart).

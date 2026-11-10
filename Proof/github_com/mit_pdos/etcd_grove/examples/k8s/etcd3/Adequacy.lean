@@ -126,11 +126,6 @@ theorem k8s_etcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC k8setcd3GF, ContextReadErrs (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
-    -- (k8s 7e-4, decision (A) and the 7e-2 links, etcd-grove-81, 2026-11-10) the pending
-    -- hypotheses until 7c-3 and 7e-1 land: the client's errors are no `APIStatus`, and the client's
-    -- `List` spec (which the store's `GetList` takes)
-    (HList : ∀ hG : HeapGS .hasLC k8setcd3GF,
-      kubernetes.Client.List.spec (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
     (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : etcd_putget.BootFacts id ctxs boot)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
@@ -172,7 +167,6 @@ theorem k8s_etcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   intro hG HN HT HL
   have Hprem0 := Hprem hG
   have Hctx0 := Hctx hG
-  have HList0 := HList hG
   obtain ⟨G, ⟨fl, lc, nh, gs, th, cr⟩⟩ := hG
   subst Hlctx
   subst HL
@@ -211,7 +205,7 @@ theorem k8s_etcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   · iframe Hown
     iunfold read.readRegPerm
     iframe
-  have hM := k8s_etcd3.wp_Main (GF := k8setcd3GF) HList0 n id ctxs boot clients ops Hbf
+  have hM := k8s_etcd3.wp_Main (GF := k8setcd3GF) n id ctxs boot clients ops Hbf
     (by rw [HT]; word) (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
     k8s_etcd3.storageErrTyOk_holds k8s_etcd3.objTyOk_holds Hc0 Hc31 Hops Hmul
   wp_apply hM $$ [Hstart Htok]
@@ -256,11 +250,6 @@ theorem k8s_etcd3_cluster_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC k8setcd3GF, ContextReadErrs (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
-    -- (k8s 7e-4, decision (A) and the 7e-2 links, etcd-grove-81, 2026-11-10) the pending
-    -- hypotheses until 7c-3 and 7e-1 land: the client's errors are no `APIStatus`, and the client's
-    -- `List` spec (which the store's `GetList` takes)
-    (HList : ∀ hG : HeapGS .hasLC k8setcd3GF,
-      kubernetes.Client.List.spec (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
     (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : cluster3.BootFacts id₁ id₂ id₃ ps ctxs boot)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
@@ -312,7 +301,7 @@ theorem k8s_etcd3_cluster_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   haveI : ThreadBoundLe k8setcd3GF (2 ^ 28) := ⟨by rw [HT]; word⟩
   haveI : ReceiptBoundLe k8setcd3GF (2 ^ 48) := ⟨by rw [HN]; omega⟩
   haveI : ReceiptBoundLe k8setcd3GF (n + 1) := ⟨by rw [HN]; omega⟩
-  have hM := k8s_etcd3.wp_MainCluster (GF := k8setcd3GF) (HList hG) n id₁ id₂ id₃ ps ctxs boot clients ops Hbf
+  have hM := k8s_etcd3.wp_MainCluster (GF := k8setcd3GF) n id₁ id₂ id₃ ps ctxs boot clients ops Hbf
     (by unfold bootWB backend.wbInit; omega)
     Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
     k8s_etcd3.storageErrTyOk_holds k8s_etcd3.objTyOk_holds Hc0 Hc31 Hops Hmul
@@ -346,11 +335,6 @@ theorem k8s_etcd3_partition_adequate [lctx : GoLocalContext] [sem : go.Semantics
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC k8setcd3GF, ContextReadErrs (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
-    -- (k8s 7e-4, decision (A) and the 7e-2 links, etcd-grove-81, 2026-11-10) the pending
-    -- hypotheses until 7c-3 and 7e-1 land: the client's errors are no `APIStatus`, and the client's
-    -- `List` spec (which the store's `GetList` takes)
-    (HList : ∀ hG : HeapGS .hasLC k8setcd3GF,
-      kubernetes.Client.List.spec (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
     (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : cluster3.BootFacts id₁ id₂ id₃ ps ctxs boot)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
@@ -433,7 +417,7 @@ theorem k8s_etcd3_partition_adequate [lctx : GoLocalContext] [sem : go.Semantics
   haveI : ThreadBoundLe k8setcd3GF (2 ^ 28) := ⟨by rw [HT]; word⟩
   haveI : ReceiptBoundLe k8setcd3GF (2 ^ 48) := ⟨by rw [HN]; omega⟩
   haveI : ReceiptBoundLe k8setcd3GF (n + 1) := ⟨by rw [HN]; omega⟩
-  have hM := k8s_etcd3.wp_MainPartition (GF := k8setcd3GF) (HList hG) n id₁ id₂ id₃ ps ctxs boot clients ops
+  have hM := k8s_etcd3.wp_MainPartition (GF := k8setcd3GF) n id₁ id₂ id₃ ps ctxs boot clients ops
     (slice.mk sl
       (W64 (go.arrayLiteralSize
         (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty))))

@@ -120,7 +120,6 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.workloadNo
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.workloadVals
 public import Proof.go_uber_org.zap.NewNop
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
-public import Spec.go_etcd_io.etcd.client.v3.kubernetes.Client__List
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Link
 public import Proof.go_etcd_io.etcd.client.v3.kubernetes.Link
@@ -475,9 +474,17 @@ theorem versioner.wp_UpdateList :
     EtcdGrove.k8s_etcd3.versioner.UpdateList.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.versioner.UpdateList.wp_proof
 
+theorem wp_call :
+    EtcdGrove.k8s_etcd3.call.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.call.wp_proof wp_errOut wp_objOut wp_storeKey wp_splitKey wp_preconditions wp_validateFor wp_cachedObj wp_tryUpdateFor k8s.store.wp_Create k8s.store.wp_Delete k8s.store.wp_GuaranteedUpdate k8s.store.wp_Get wp_listOptions wp_listOut k8s.store.wp_GetList k8s.storage.SelectionPredicate.wp_Matches k8s.storage.SelectionPredicate.wp_Empty labelSel.wp_Matches labelSel.wp_Empty fieldSel.wp_Matches fieldSel.wp_Empty wp_getAttrs apimeta.wp_GetItemsPtr reflect.wp_MakeSlice reflect.wp_Copy reflect.wp_Append decoder.wp_DecodeListItem versioner.wp_UpdateList
+
 theorem wp_objOf :
     EtcdGrove.k8s_etcd3.objOf.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.objOf.wp_proof
+
+theorem wp_Apply :
+    EtcdGrove.k8s_etcd3.Apply.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.Apply.wp_proof wp_call cache.wp_put wp_objOf
 
 theorem wp_isWrite :
     EtcdGrove.k8s_etcd3.isWrite.spec (GF := GF) (hG := hG) :=
@@ -563,6 +570,10 @@ theorem wp_Gen :
     EtcdGrove.k8s_etcd3.Gen.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.Gen.wp_proof cache.wp_get wp_genFrom
 
+theorem wp_Check :
+    EtcdGrove.k8s_etcd3.Check.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.Check.wp_proof lintest.wp_Run lintest.wp_CounterClock wp_Model wp_newCache wp_Gen wp_Apply
+
 theorem wp_seedOne :
     EtcdGrove.k8s_etcd3.seedOne.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.seedOne.wp_proof wp_splitKey wp_storeKey wp_encodeV0 wp_setItem
@@ -579,6 +590,10 @@ theorem wp_newObj :
     EtcdGrove.k8s_etcd3.newObj.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.newObj.wp_proof
 
+theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+    EtcdGrove.k8s_etcd3.Main.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.Main.wp_proof zap.wp_NewNop etcdstart.wp_StartServer etcdstart.wp_Serve kubernetes.wp_New wp_seed wp_noStreaming k8s.wp_New k8s.wp_NewDefaultLeaseManagerConfig wp_newObj runtime.wp_Encode codec.wp_Encode versioner.wp_UpdateObject versioner.wp_PrepareObjectForStorage versioner.wp_ObjectResourceVersion versioner.wp_ParseResourceVersion identity.wp_TransformFromStorage identity.wp_TransformToStorage decoder.wp_Decode runtime.wp_SetZeroValue Obj.wp_GetUID Obj.wp_GetResourceVersion wp_Check mvcc.api.mvccApi_names_nonempty_law_holds
+
 theorem fieldSel.wp_RequiresExactMatch :
     EtcdGrove.k8s_etcd3.fieldSel.RequiresExactMatch.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.fieldSel.RequiresExactMatch.wp_proof
@@ -588,38 +603,6 @@ theorem labelSel.wp_RequiresExactMatch :
   EtcdGrove.k8s_etcd3.labelSel.RequiresExactMatch.wp_proof
 
 end links_hasLC
-
-/-! The results that reach a function specified but not proved yet (a later unit's):
-its spec is a hypothesis (`h_<fn>`) of each of them. -/
-section links_pending
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
-variable [NaInvG GF]
-variable [reg : EtcdGrove.k8s.CompactorRegistry]
-variable [ctxDescs : EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
-variable (h_Client__List : EtcdGrove.kubernetes.Client.List.spec (GF := GF) (hG := hG))
-include h_Client__List
-
-theorem wp_call :
-    EtcdGrove.k8s_etcd3.call.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.call.wp_proof wp_errOut wp_objOut wp_storeKey wp_splitKey wp_preconditions wp_validateFor wp_cachedObj wp_tryUpdateFor k8s.store.wp_Create k8s.store.wp_Delete k8s.store.wp_GuaranteedUpdate k8s.store.wp_Get wp_listOptions wp_listOut (k8s.store.wp_GetList h_Client__List) k8s.storage.SelectionPredicate.wp_Matches k8s.storage.SelectionPredicate.wp_Empty labelSel.wp_Matches labelSel.wp_Empty fieldSel.wp_Matches fieldSel.wp_Empty wp_getAttrs apimeta.wp_GetItemsPtr reflect.wp_MakeSlice reflect.wp_Copy reflect.wp_Append decoder.wp_DecodeListItem versioner.wp_UpdateList
-
-theorem wp_Apply :
-    EtcdGrove.k8s_etcd3.Apply.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.Apply.wp_proof (wp_call h_Client__List) cache.wp_put wp_objOf
-
-theorem wp_Check :
-    EtcdGrove.k8s_etcd3.Check.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.Check.wp_proof lintest.wp_Run lintest.wp_CounterClock wp_Model wp_newCache wp_Gen (wp_Apply h_Client__List)
-
-theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
-    EtcdGrove.k8s_etcd3.Main.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.Main.wp_proof zap.wp_NewNop etcdstart.wp_StartServer etcdstart.wp_Serve kubernetes.wp_New wp_seed wp_noStreaming k8s.wp_New k8s.wp_NewDefaultLeaseManagerConfig wp_newObj runtime.wp_Encode codec.wp_Encode versioner.wp_UpdateObject versioner.wp_PrepareObjectForStorage versioner.wp_ObjectResourceVersion versioner.wp_ParseResourceVersion identity.wp_TransformFromStorage identity.wp_TransformToStorage decoder.wp_Decode runtime.wp_SetZeroValue Obj.wp_GetUID Obj.wp_GetResourceVersion (wp_Check h_Client__List) mvcc.api.mvccApi_names_nonempty_law_holds
-
-end links_pending
 
 end k8s_etcd3
 end EtcdGrove

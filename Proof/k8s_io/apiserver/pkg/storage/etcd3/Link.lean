@@ -143,7 +143,6 @@ public import Proof.k8s_io.klog.v2.Errorf
 public import Proof.k8s_io.klog.v2.V
 public import Proof.go_etcd_io.etcd.client.v3.Compare
 public import Perennial.Proof.time.Link
-public import Spec.go_etcd_io.etcd.client.v3.kubernetes.Client__List
 public import Spec.k8s_io.utils.clock.RealClock__After
 public import Proof.fmt.Link
 public import Proof.go_etcd_io.etcd.client.v3.Link
@@ -664,9 +663,17 @@ theorem store.wp_getResourceSizeEstimator :
     EtcdGrove.k8s.store.getResourceSizeEstimator.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s.store.getResourceSizeEstimator.wp_proof
 
+theorem store.wp_getList :
+    EtcdGrove.k8s.store.getList.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.store.getList.wp_proof kubernetes.Client.wp_List kubernetes.Client.wp_Get metrics.wp_RecordEtcdRequest store.wp_getResourceSizeEstimator
+
 theorem store.wp_listReadError :
     EtcdGrove.k8s.store.listReadError.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s.store.listReadError.wp_proof wp_interpretListError store.wp_GetCurrentResourceVersion storage.wp_NewTooLargeResourceVersionError errors.wp_IsStatusErr
+
+theorem store.wp_pagedChunks :
+    EtcdGrove.k8s.store.pagedChunks.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.store.pagedChunks.wp_proof store.wp_getList store.wp_listReadError
 
 theorem store.wp_processListItem :
     EtcdGrove.k8s.store.processListItem.spec (GF := GF) (hG := hG) :=
@@ -679,6 +686,10 @@ theorem store.wp_appendChunk :
 theorem store.wp_finalizeList :
     EtcdGrove.k8s.store.finalizeList.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s.store.finalizeList.wp_proof reflect.Value.wp_IsNil reflect.Value.wp_Type reflect.Value.wp_Set storage.SelectionPredicate.wp_SetShardInfoOnList
+
+theorem store.wp_GetList :
+    EtcdGrove.k8s.store.GetList.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.store.GetList.wp_proof reflect.wp_KindCompare store.wp_prepareKey store.wp_pagedChunks store.wp_appendChunk store.wp_finalizeList store.wp_validateMinimumResourceVersion wp_shouldStream wp_getNewItemFunc storage.wp_ValidateListOptions storage.wp_PrepareContinueToken conversion.wp_EnforcePtr reflect.Value.wp_Kind reflect.Value.wp_Len metrics.wp_RecordStorageListMetrics metrics.wp_RecordListLatency tracing.wp_Start tracing.Span.wp_End «attribute».wp_String «attribute».wp_Int audit.wp_GetAuditIDTruncated
 
 theorem store.wp_updateState :
     EtcdGrove.k8s.store.updateState.spec (GF := GF) (hG := hG) :=
@@ -704,39 +715,20 @@ variable [sem : go.Semantics]
 variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [ctxDescs : EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
-variable (h_Client__List : EtcdGrove.kubernetes.Client.List.spec (GF := GF) (hG := hG))
 variable (h_clock_RealClock__After : EtcdGrove.clock.RealClock.After.spec (GF := GF) (hG := hG))
+include h_clock_RealClock__After
 
-
-include h_clock_RealClock__After in
 theorem compactor.wp_runCompactLoop :
     EtcdGrove.k8s.compactor.runCompactLoop.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s.compactor.runCompactLoop.wp_proof wait.wp_ContextForChannel wait.channelContext.wp_Done wait.channelContext.wp_Err h_clock_RealClock__After wp_Compact compactor.wp_UpdateCompactRevision v3.Client.wp_Endpoints klog.wp_Errorf
 
-include h_clock_RealClock__After in
 theorem wp_NewCompactor :
     EtcdGrove.k8s.NewCompactor.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s.NewCompactor.wp_proof (compactor.wp_runCompactLoop h_clock_RealClock__After) compactor.wp_runWatchLoop
 
-include h_clock_RealClock__After in
 theorem wp_StartCompactorPerEndpoint :
     EtcdGrove.k8s.StartCompactorPerEndpoint.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s.StartCompactorPerEndpoint.wp_proof (wp_NewCompactor h_clock_RealClock__After) v3.Client.wp_Endpoints klog.wp_V klog.Verbose.wp_Infof
-
-include h_Client__List in
-theorem store.wp_getList :
-    EtcdGrove.k8s.store.getList.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s.store.getList.wp_proof h_Client__List kubernetes.Client.wp_Get metrics.wp_RecordEtcdRequest store.wp_getResourceSizeEstimator
-
-include h_Client__List in
-theorem store.wp_pagedChunks :
-    EtcdGrove.k8s.store.pagedChunks.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s.store.pagedChunks.wp_proof (store.wp_getList h_Client__List) store.wp_listReadError
-
-include h_Client__List in
-theorem store.wp_GetList :
-    EtcdGrove.k8s.store.GetList.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s.store.GetList.wp_proof reflect.wp_KindCompare store.wp_prepareKey (store.wp_pagedChunks h_Client__List) store.wp_appendChunk store.wp_finalizeList store.wp_validateMinimumResourceVersion wp_shouldStream wp_getNewItemFunc storage.wp_ValidateListOptions storage.wp_PrepareContinueToken conversion.wp_EnforcePtr reflect.Value.wp_Kind reflect.Value.wp_Len metrics.wp_RecordStorageListMetrics metrics.wp_RecordListLatency tracing.wp_Start tracing.Span.wp_End «attribute».wp_String «attribute».wp_Int audit.wp_GetAuditIDTruncated
 
 end links_pending
 

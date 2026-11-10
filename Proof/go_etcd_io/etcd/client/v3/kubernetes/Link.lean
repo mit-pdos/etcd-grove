@@ -9,10 +9,12 @@ hand.
 module
 
 public import Proof.go_etcd_io.etcd.client.v3.kubernetes.Client__Get
+public import Proof.go_etcd_io.etcd.client.v3.kubernetes.Client__List
 public import Proof.go_etcd_io.etcd.client.v3.kubernetes.Client__OptimisticDelete
 public import Proof.go_etcd_io.etcd.client.v3.kubernetes.Client__OptimisticPut
 public import Proof.go_etcd_io.etcd.client.v3.Cmp__Clone
 public import Proof.go_etcd_io.etcd.client.v3.Cmp__ensureCompare
+public import Proof.go_etcd_io.etcd.client.v3.GetPrefixRangeEnd
 public import Proof.go_etcd_io.etcd.client.v3.IsOptsWithFromKey
 public import Proof.go_etcd_io.etcd.client.v3.IsOptsWithPrefix
 public import Proof.go_etcd_io.etcd.client.v3.ModRevision
@@ -23,8 +25,10 @@ public import Proof.go_etcd_io.etcd.client.v3.OpPut
 public import Proof.go_etcd_io.etcd.client.v3.Op__applyOpts
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp__GetResponseRange
 public import Proof.go_etcd_io.etcd.client.v3.WithLimit
+public import Proof.go_etcd_io.etcd.client.v3.WithRange
 public import Proof.go_etcd_io.etcd.client.v3.WithRev
 public import Proof.go_etcd_io.etcd.client.v3.cloneCompare
+public import Proof.go_etcd_io.etcd.client.v3.getPrefix
 public import Proof.go_etcd_io.etcd.client.v3.kubernetes.New
 public import Proof.go_etcd_io.etcd.client.v3.kubernetes.kvFromTxnResponse
 public import Proof.go_etcd_io.etcd.client.v3.mustInt64
@@ -58,6 +62,18 @@ theorem v3.wp_WithRev :
 theorem v3.wp_WithLimit :
     EtcdGrove.WithLimit.spec (GF := GF) (hG := hG) :=
   EtcdGrove.WithLimit.wp_proof
+
+theorem v3.wp_WithRange :
+    EtcdGrove.WithRange.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.WithRange.wp_proof
+
+theorem v3.wp_getPrefix :
+    EtcdGrove.getPrefix.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.getPrefix.wp_proof
+
+theorem v3.wp_GetPrefixRangeEnd :
+    EtcdGrove.GetPrefixRangeEnd.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.GetPrefixRangeEnd.wp_proof v3.wp_getPrefix
 
 theorem v3.wp_NewOp :
     EtcdGrove.NewOp.spec (GF := GF) (hG := hG) :=
@@ -141,6 +157,10 @@ variable [package_sem : go_etcd_io.etcd.client.v3.kubernetes.Assumptions]
 theorem Client.wp_Get :
     EtcdGrove.kubernetes.Client.Get.spec (GF := GF) (hG := hG) :=
   EtcdGrove.kubernetes.Client.Get.wp_proof v3.wp_WithRev v3.wp_WithLimit
+
+theorem Client.wp_List :
+    EtcdGrove.kubernetes.Client.List.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.kubernetes.Client.List.wp_proof v3.wp_WithRev v3.wp_WithLimit v3.wp_WithRange v3.wp_GetPrefixRangeEnd
 
 theorem wp_kvFromTxnResponse :
     EtcdGrove.kubernetes.kvFromTxnResponse.spec (GF := GF) (hG := hG) :=

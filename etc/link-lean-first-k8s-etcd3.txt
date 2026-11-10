@@ -129,12 +129,12 @@ NewCompactor: compactor__runCompactLoop compactor__runWatchLoop
 # (Q1 (c), 2026-11-05) the compactor registry
 StartCompactorPerEndpoint: NewCompactor Client__Endpoints v2_V Verbose__Infof
 #
-# (stage 7e-2, notes/k8s-7e-2-draft.md) the paginated list path, GetList. Pending (`?`): the
-# kubernetes client's List (a hypothesis until 7e-1, never an axiom; its Get at a revision is
-# `Client.Get`'s since 7e-1).
+# (stage 7e-2, notes/k8s-7e-2-draft.md) the paginated list path, GetList, over the kubernetes
+# client's List (a hypothesis until 7e-1, proved since: `kubernetes/Client__List.lean`; its Get at a
+# revision is `Client.Get`'s since 7e-1).
 # 7e-2's new trusted specs (the Draft's §5) and reflect.Kind's comparison
 # (`Spec/reflect/KindCompare.lean`): axioms, after etcd-grove-81's review (2026-11-10)
-Client__List: ?
+Client__List: @
 reflect_KindCompare:
 reflect_Value__Kind:
 reflect_Value__Len:
