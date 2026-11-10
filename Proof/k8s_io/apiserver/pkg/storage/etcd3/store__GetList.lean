@@ -245,6 +245,8 @@ theorem store.GetList.wp_proof
   ipersist s
   ipersist listObj
   ipersist opts
+  ihave #opts' := opts
+  iStructNamed opts'
   ipersist keyPrefix
   ipersist ctx
   ipersist paging
@@ -285,7 +287,127 @@ theorem store.GetList.wp_proof
   ihave Hk : (HkP) $$ [HΦ Hmeta Hag defer]
   · rw [hHkP]
     isplit
-    · sorry
+    · iintro %σ %R %wr %lkp %lkb %hmv %cnt %nfch %nev %e %sl %st «$res0» withRev lastKey #Hlkb hasMore
+        count numFetched numEvald err v Hip Hits #HQσ Htt %Hf
+      obtain ⟨hR, hRle, hσb, hRn, hwr, hit, hhm, hlast, hcnt, hnf, hne⟩ := Hf
+      subst wr
+      rw [hK]
+      simp only
+      wp_auto
+      wp_apply (wp_bytes_to_string lkp lkb) $$ [$Hlkb] as -
+      (try wp_auto)
+      wp_apply (wp_PrepareContinueToken Obj c.S lkb (c.pathPrefix ++ k) R cnt hmv opts sel emp) $$ []
+        as %t %rem %perr Hpct
+      · iframe #
+      have hkpne : c.pathPrefix ++ k ≠ [] := by
+        have := prepareKeyM_ne_nil _ _ _ _ hk
+        intro h; exact this (List.append_eq_nil_iff.1 h).2
+      ihave Hpc : (⌜perr = GoInterface.nil ∧
+          t = (if hmv then k8s_etcd3.encL (lkb ++ [W8 0]) (c.pathPrefix ++ k) R else [])⌝ ∗
+          remIs rem (if hmv ∧ emp then some (cnt - opts.Predicate'.Limit') else none)) $$ [Hpct]
+      · cases hmv
+        · simp only [Bool.false_eq_true, ↓reduceIte, _root_.false_and]
+          icases Hpct with %Hp
+          obtain ⟨rfl, rfl, rfl⟩ := Hp
+          simp only [remIs]
+          ipureintro; simp
+        · have henc : k8s_etcd3.encOkL (lkb ++ [W8 0]) (c.pathPrefix ++ k) = true := by
+            unfold k8s_etcd3.encOkL
+            exact decide_eq_true ⟨hkpne, (hlast rfl).2.trans (List.prefix_append _ _)⟩
+          simp only [↓reduceIte, _root_.true_and, henc]
+          cases emp
+          · simp only [Bool.false_eq_true, ↓reduceIte]
+            icases Hpct with ⟨%Hp, %Hr⟩
+            simp only [remIs]
+            ipureintro; exact ⟨⟨Hp.1, Hp.2⟩, Hr⟩
+          · simp only [↓reduceIte]
+            icases Hpct with ⟨%Hp, Hr⟩
+            simp only [remIs]
+            iframe Hr
+            ipureintro; exact Hp
+      icases Hpc with ⟨%Hpc, Hrem⟩
+      obtain ⟨rfl, rfl⟩ := Hpc
+      (try wp_auto)
+      wp_apply (wp_finalizeList Obj sp c L _ pl opts.Predicate' sel emp R _ rem _ ag rv (itemsOf c st)
+        rv0 cont0 rem0 rfl) $$ [Hag Hip Hits Hmeta Hrem] as Hlx
+      · iframe # Hag Hrem
+        isplitr
+        · ipureintro; exact Hrv
+        unfold ListSpec.listAtItems
+        iframe
+        ipureintro; exact Hpl
+      unfold ListSpec.listAt ListSpec.listAtItems
+      icases Hlx with ⟨%pl', %Hpl', -, %sl', Hip, Hits, Hmeta⟩
+      have hpl : pl' = pl := by
+        have h := ((interface_mkOk_inj _ _ _ _).1 Hpl').2
+        exact (go.intoVal_inj h).symm
+      subst hpl
+      (try wp_auto)
+      icases persistent_entails_left (L.itemsAt_wf _ _) $$ Hits with ⟨Hits, %Hiw⟩
+      wp_apply (wp_Len v_ptr _ _ rv c.S.objTy (L.itemsRef pl') sl') $$ [$v $Hip] as ⟨v, Hip⟩
+      · iframe #
+        ipureintro; exact Hrv
+      (try wp_auto)
+      wp_apply (wp_RecordStorageListMetrics c.gr [] nfch nev sl'.len hnf hne Hiw.1 Hutf.1 Hutf.2
+        (by decide))
+      (try wp_auto)
+      wp_apply (wp_RecordListLatency c.gr _ t0 Hutf.1 Hutf.2)
+      (try wp_auto)
+      wp_apply wp_End spn _ $$ []
+      · iframe #
+        ipureintro; exact Hspn
+      (try wp_auto)
+      have hσr : uint.nat (W64 (σ.rev : Int)) = σ.rev := by word
+      have hcont' : (if (kListL c.S.dec sel (limN opts.Predicate'.Limit') (c.pathPrefix ++ k)
+            opts.Recursive' (σ.at (uint.nat R))).more then
+          k8s_etcd3.encL ((kListL c.S.dec sel (limN opts.Predicate'.Limit') (c.pathPrefix ++ k)
+            opts.Recursive' (σ.at (uint.nat R))).last.getD [] ++ [W8 0]) (c.pathPrefix ++ k) R
+          else []) = (if hmv then k8s_etcd3.encL (lkb ++ [W8 0]) (c.pathPrefix ++ k) R else []) := by
+        rw [← hhm]
+        cases hmv
+        · rfl
+        · simp [(hlast rfl).1]
+      have hrem' : (if (kListL c.S.dec sel (limN opts.Predicate'.Limit') (c.pathPrefix ++ k)
+            opts.Recursive' (σ.at (uint.nat R))).more ∧ emp then
+          some (W64 ((kListL c.S.dec sel (limN opts.Predicate'.Limit') (c.pathPrefix ++ k)
+            opts.Recursive' (σ.at (uint.nat R))).total : Int) - opts.Predicate'.Limit') else none) =
+          (if hmv ∧ emp then some (cnt - opts.Predicate'.Limit') else none) := by
+        rw [← hhm]
+        cases hmv
+        · simp
+        · cases emp
+          · simp
+          · simp [hcnt rfl rfl]
+      have hits' : (kListL c.S.dec sel (limN opts.Predicate'.Limit') (c.pathPrefix ++ k)
+            opts.Recursive' (σ.at (uint.nat R))).items.reverse.map
+            (fun x => (x.1, c.S.fmtRV (W64 (x.2 : Int)))) = itemsOf c st := by
+        rw [itemsOf, hit]
+      iapply HΦ
+      iframe Htt
+      iright
+      iexists σ
+      iframe HQσ
+      by_cases h0 : uint.Z R0 = 0
+      · rw [if_pos h0] at hR
+        rw [if_pos h0, if_neg (hRn h0), ← hR,
+          show σ.store = σ.at (uint.nat R) by rw [hR, hσr]; rfl]
+        isplitr
+        · ipureintro; rfl
+        unfold listIs ListSpec.listAt ListSpec.listAtItems
+        rw [hcont', hrem', hits']
+        iexists pl'
+        iframe
+        ipureintro; exact ⟨rfl, Hpl⟩
+      · rw [if_neg h0] at hR
+        have hle : ¬ σ.rev < uint.nat R0 := by rw [← hR]; omega
+        rw [if_neg h0, if_neg hle, ← hR]
+        isplitr
+        · ipureintro; rfl
+        unfold listIs ListSpec.listAt ListSpec.listAtItems
+        rw [hcont', hrem', hits']
+        iexists pl'
+        iframe
+        ipureintro; exact ⟨rfl, Hpl⟩
     · iintro %e %nfch %nev %sl %os «$res0» numFetched numEvald v Hip Hits Htt %Hnn Herr
       rw [hK]
       simp only
