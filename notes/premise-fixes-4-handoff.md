@@ -43,31 +43,40 @@ Build: `flock /shared/tmp/etcd-grove-build.lock systemd-run --scope -q -p Memory
   `ContextReadErrs.descs` via `etc/gen-init.py`, read/Init.lean is generated; rnClusterOk);
   STATUS section "Premise fixes 4" (CM-1, CM-5 caveats) and decisions entry written.
 
-## Next, in order (option A approved by etcd-grove-81, 2026-11-10)
+## State at 104cecf56e (second agent, 2026-11-10)
 
-1. Go test FIRST: move/extend `/shared/tmp/premise-fixes-4/noformat/noformat_test.go` into
-   `examples/premisefix/fmtarg` (the examples module has grpc and etcd): check that none of these
-   implements `fmt.Formatter`: the 13 std errors already there, grpc's `*status.Error` from
-   `status.Error(codes.X, "m")` and from `status.FromContextError(ctx.Err())` (`.Err()`),
-   `rpctypes.EtcdError` (e.g. `rpctypes.ErrGRPCNoLeader`'s client form `rpctypes.Error(...)`),
-   `context.DeadlineExceeded`. If any does, STOP and report.
-2. Add `⌜methodSet ei.ty !! go!"Format" = none⌝` (trust text, approved) to: `http.errStrOk`
-   (`Proof/net/http/Boundary.lean:341`, inside the `∃ ei` clause), cache's `errStrOk`
-   (`Proof/go_etcd_io/etcd/cache/v3/Base.lean:686`), `statusErrOk` (same file, :338) and
-   `isEtcdProgressNotifier`'s error clause (`cache/v3/InvEtcd.lean:1154`).
-3. Repair producers: about 10 that unfold `statusErrOk` (`grep -rln "unfold.*statusErrOk\|iunfold
-   statusErrOk" Proof`: rpctypes `Error.lean`, client `ErrorsNewOk`, `watcher__Close`, k8s etcd3
-   `Base`/stores, apply `Base`, cache `Base`), `http.errStrOk`'s (`Codec.errorString_errStrOk`,
-   `ReaderRun.wp_Is_errStrOk`, `errStrOk_nil`), cache `errStrOk_of_statusErrOk`, `errStrOk_of_ctx`
-   (`Cache__watchEvents.lean:289`). Use `fmt_method_none` for concrete types. Then the three
-   consumers: `argOk_of_errStrOk` (snapshotHandler), getWatchLoop line ~96, the requestor ~173.
-4. `etc/errdesc-check.py`: its REVIEWED entries must still describe the restated
-   `statusErrOk`/`errStrOk`; update them if the gate flags them.
-5. Merge lean (f4e98c54f9 or later: premise-fixes-2, raft-entsize); STATUS "Last updated" entry
-   (ten newest; move the oldest to `notes/status-history.md`, append-only, check `wc -l`).
-6. Full build; regenerate interfaces (all `etc/api/*.txt`, `LAKE_OPTS=--packages=...`);
-   `etc/gen-init.py --check`; `etc/gates.sh`; `etc/tcb-report.py --check` (expect no axiom change)
-   and every collection `--check` (`--reuse`); checkpoint (c) report; stop before `etc/land.sh`.
+- Step 1 done: `examples/premisefix/fmtarg` `TestNoFormatter` (873b4d403d, 62b071df72): none of the 13
+  std errors, grpc `*status.Error` (`status.Error`, `FromContextError(...).Err()`), `rpctypes.EtcdError`,
+  the context errors, bcrypt's `ErrPasswordTooLong`/`InvalidCostError` implements `fmt.Formatter`.
+- Step 2 done: the four predicates carry `⌜methodSet _.ty !! go!"Format" = none⌝`.
+- Step 3 (producers), done except the STOP items below: `errLeaf` (5th conjunct), `ErrorStringLeaf.noFormat`,
+  `errorString_errLeaf`, `rpctypesEtcdErrorTy` + `RpctypesEtcdErrorMethods.noFormat` (gen-init),
+  `authErrVar`, `leaseErrVar`, `ctxDeadlineLeaf`, `context.errStringOk` (proved from `isCtxErr`),
+  cache `wp_New_errStrOk`/`wp_Errorf_errStrOk` (step into Perennial's model; faithful for basic args),
+  `errStrOk_ok` takes `hF`, `errStrOk_noFormat`, `statusErrOk_of_leafMsg`/`applyErrIs_valLeaf`/
+  `clientErr_statusErrOk_of_leaf` take `hF`.
+- `EtcdGrove.ContextReadErrs` (a closed theorems' premise) is stated over `errVarLeafW`/`ctxDeadlineLeafW`,
+  the old bodies under new names, so its unfolded statement is unchanged; `ContextReadErrs.errs_strong`
+  derives the Format facts from Perennial's `context.isInit` (`HCanceledCell`, `HDeadlineExceededTy`).
+- Step 4 done: errdesc-check REVIEWED entries mention the Format fact.
+- BLOCKED (trust text, reported to etcd-grove-81): `WatchResponse__Err` needs Format of rpctypes'
+  `ErrCompacted`/`ErrFutureRev` (axioms `ErrCompacted_init`, `ErrFutureRev_init` in rpctypes `Init.lean`,
+  via `etc/gen-init.py` custom posts, and `rpctypesInit`'s two conjuncts); `EtcdServer__UserAdd` needs it
+  of bcrypt's errors (axiom spec `Spec/golang_org/x/crypto/bcrypt/GenerateFromPassword.lean`). Draft:
+  add `∗ ⌜methodSet e.ty !! go!"Format" = none⌝` (rpctypes posts), `∧ methodSet ei.ty !! go!"Format" = none`
+  (bcrypt's error clause). See the full build log `/shared/tmp/premise-fixes-4/build6.log`.
+
+## Next, in order
+
+1. On approval: the trust-text edits above; `rpctypesInit` gains the two Format facts (gen-init `finish`),
+   `WatchResponse__Err` lines 70/86 use them; `UserAdd` lines 61-63/171-173 pass `hF`.
+2. Fix any remaining failures of the full build (build6.log).
+3. Merge lean (f4e98c54f9 or later; raft-entsize touches rafthttp); STATUS "Last updated" entry (ten
+   newest; move the oldest to `notes/status-history.md`, append-only, check `wc -l`).
+4. Full build; regenerate interfaces (all `etc/api/*.txt`, `LAKE_OPTS=--packages=...`);
+   `etc/gen-init.py --check`; `etc/gates.sh`; `etc/tcb-report.py --check` (no axiom added; texts of the
+   approved axioms change) and every collection `--check` (`--reuse`); checkpoint (c) report; stop
+   before `etc/land.sh`.
 
 Closed statements changed (fix 1, permitted): every etcd closed theorem lost `rnSetLoggerOk` from its
 premises (via `etcdstart.commonPremises`, `etcdstart.premises`, `cluster3.premises`, putget3/auth/
