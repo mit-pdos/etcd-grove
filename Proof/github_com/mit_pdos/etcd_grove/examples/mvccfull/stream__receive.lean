@@ -39,6 +39,7 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccfull.Assumptions]
 variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
+set_option maxHeartbeats 3200000 in
 theorem stream.receive.wp_proof
     (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
     (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG))
@@ -487,7 +488,8 @@ theorem stream.receive.wp_proof
             ipureintro
             refine ⟨by rw [hend]; exact hen, hkk, by rw [hfil]; exact hfl, by rw [hsta]; exact hstart,
               hst0, hstM, hlo1, hloM, hstlo, hflz, by rw [hcan]; exact hcm, ?_, ?_, ?_⟩
-            · intro h; rw [hstm] at h; have := hstk h; simp; omega
+            · intro h; rw [hstm] at h; have := hstk h
+              rw [List.length_append, List.length_singleton]; omega
             · intro h; rw [hcmp] at h; obtain ⟨y, hy, hy2⟩ := hcpk h
               exact ⟨y, List.mem_append_left _ hy, hy2⟩
             · rw [recvEvs_snoc]
@@ -533,6 +535,137 @@ theorem stream.receive.wp_proof
         wp_apply wp_check
         · ipureintro; simp only [decide_eq_true_eq]; rw [Hfl.2.1]; exact hle
         (try wp_auto)
+        have hmZ : sint.Z evk.kv.modRev = r1 := by rw [hmodk, hr1Z]
+        have hn0 := hposj.2.2.1
+        -- the floating window: anchored at the first event
+        wp_bind (If _ _ _)
+        iapply (wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗ w_ptr ↦ x.wp ∗
+            r_ptr ↦ evk.kv.modRev ∗ ∃ wv'' : watcher, x.wp ↦ wv'' ∗
+            ⌜wv''.key' = wv.key' ∧ wv''.end' = wv.end' ∧ wv''.filter' = wv.filter' ∧
+              wv''.start' = wv.start' ∧ wv''.stamped' = wv.stamped' ∧
+              wv''.cancelled' = wv.cancelled' ∧ wv''.compacted' = wv.compacted' ∧
+              wv''.floatLo' = W64 0 ∧ 0 ≤ sint.Z wv''.rev' ∧ 0 ≤ sint.Z wv''.index' ∧
+              sint.Z wv''.rev' < 2 ^ 63 - 1 ∧
+              posOk Hlx x.mt x.lo (sint.nat wv''.rev') (sint.nat wv''.index')
+                ((recvEvs rs r.id).length + sint.nat j) ∧
+              expNext Hlx x.mt (sint.nat wv''.rev') (sint.nat wv''.index') (r1 : Int) =
+                some (r1, ch1)⌝))) $$ [w r Hwp]
+        · wp_if_destruct
+          · -- floating
+            have h5 := hposj.2.2.2.2
+            rw [if_pos (show 0 < sint.Z wv'.floatLo' from Hif)] at h5
+            obtain ⟨hn00, hi0, hfl0, hlor⟩ := h5
+            have hj0' : (recvEvs rs r.id).length = 0 ∧ sint.nat j = 0 := by omega
+            rw [hj0'.1, hj0'.2] at hEp
+            have hrevN : (x.lo : Int) ≤ sint.Z wv'.rev' := hlor
+            have hlo' : x.lo ≤ sint.nat wv'.rev' := by
+              have : sint.nat wv'.rev' = (sint.Z wv'.rev').toNat := rfl; omega
+            obtain ⟨hpa, hea⟩ := float_anchor Hlx x.mt x.lo hi (sint.nat wv'.rev') (r1, ch1) hlo1 hlo'
+              hEp
+            simp only at hpa hea
+            wp_apply wp_check
+            · ipureintro; simp only [decide_eq_true_eq]; rw [hmZ]; omega
+            (try wp_auto)
+            wp_if_destruct
+            · -- below the window's revision
+              have hlt : r1 < sint.nat wv'.rev' := by
+                have : sint.nat wv'.rev' = (sint.Z wv'.rev').toNat := rfl
+                rw [hmZ] at Hif; omega
+              rw [if_pos hlt] at hpa hea
+              iframe
+              ipureintro
+              have hrN : sint.nat (W64 (r1 : Int)) = r1 := by word
+              simp only [hmodk, hrN]
+              refine ⟨hkey, hend, hfil, hsta, hstm, hcan, hcmp, trivial, by word, by word, by word,
+                ?_, ?_⟩
+              · rw [hj0'.1, hj0'.2]; exact hpa
+              · exact hea
+            · have hlt : ¬ r1 < sint.nat wv'.rev' := by
+                have : sint.nat wv'.rev' = (sint.Z wv'.rev').toNat := rfl
+                rw [hmZ] at Hif; omega
+              rw [if_neg hlt] at hpa hea
+              iframe
+              ipureintro
+              simp only [hi0]
+              refine ⟨hkey, hend, hfil, hsta, hstm, hcan, hcmp, trivial, hposj.1, by word,
+                hposj.2.2.2.1, ?_, ?_⟩
+              · rw [hj0'.1, hj0'.2]; exact hpa
+              · exact hea
+          · -- anchored
+            have h5 := hposj.2.2.2.2
+            rw [if_neg (show ¬ 0 < sint.Z wv'.floatLo' from Hif)] at h5
+            have hfz : wv'.floatLo' = W64 0 := by have := hposj.2.2.1; word
+            iframe
+            ipureintro
+            refine ⟨hkey, hend, hfil, hsta, hstm, hcan, hcmp, hfz, hposj.1, hposj.2.1, hposj.2.2.2.1,
+              h5.1, ?_⟩
+            exact expNext_of_get Hlx x.mt x.lo _ _ _ hi r1 ch1 hlo1 h5.1 hEp
+        iintro %v ⟨%hv, w, r, %wv2, Hwp, %Hw2⟩
+        subst hv
+        wp_auto
+        obtain ⟨h2k, h2e, h2f, h2s, h2st, h2c, h2cp, h2fl, h2r, h2i, h2M, h2pos, h2exp⟩ := Hw2
+        have hmt2 : matchesM wv2.filter' (decide (wv2.end' = slice.nil)) x.key x.e = x.mt := by
+          rw [h2f, h2e, hfl, ← Reg.mt_eq x wv.end' hen]
+        ihave #Hk2 : wv2.key' ↦*□ x.key $$ []
+        · rw [h2k]; iexact Hk
+        ihave #He2 : wv2.end' ↦*□ x.e $$ []
+        · rw [h2e]; iexact He
+        wp_apply (wp_stream_expect T.s T.ep.x T.ep.h T.ep.γh Hlx x.wp wv2 x.key x.e evk.kv.modRev
+            (DFrac.own 1) DFrac.discard DFrac.discard h2r h2i (by rw [hmZ]; omega) (by rw [hmZ]; omega))
+          $$ [Hwp Hhr] as %ch %rr %ok ⟨Hwp, -, -, Hhr, %Hres⟩
+        · iframe Hwp Hhr
+          iframe #
+        rw [hmt2, hmZ] at Hres
+        unfold expRes at Hres
+        rw [h2exp] at Hres
+        obtain ⟨rfl, rfl, rfl, hlenR⟩ := Hres
+        (try wp_auto)
+        wp_apply wp_check
+        · ipureintro; simp [hmodk]
+        (try wp_auto)
+        wp_apply wp_bytes_to_string kks evk.kv.key DFrac.discard $$ [$Hks] as -
+        (try wp_auto)
+        wp_apply wp_check
+        · ipureintro; simp only [decide_eq_true_eq]; rw [hevp, chEv_key]
+        (try wp_auto)
+        -- the event's fields
+        wp_bind (If _ _ _)
+        iapply (wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗ ev_ptr ↦ pk ∗ want_ptr ↦ ch))) $$ [ev want]
+        · cases hdel : ch.del'
+          · -- a put
+            have hkv : evk = ⟨false, kvOfRec ch.key' ch.kv', none⟩ := by
+              rw [hevp]; unfold chEv; simp [hdel]
+            (try wp_auto)
+            wp_apply wp_check
+            · ipureintro; simp [hkv, evType]
+            (try wp_auto)
+            wp_apply wp_checkKV pp _ DFrac.discard DFrac.discard DFrac.discard evk.kv.key evk.kv.value
+              ch.key' ch.kv' false (by rw [hkv]; simp [kvMatches, kvOfRec]) $$ [$Hkp $Hks $Hvs] as -
+            (try wp_auto)
+            iframe; ipureintro; rfl
+          · -- a delete
+            have hkv : evk = ⟨true, { zeroKv ch.key' with modRev := W64 (r1 : Int) }, none⟩ := by
+              rw [hevp]; unfold chEv; simp [hdel]
+            (try wp_auto)
+            wp_apply wp_check
+            · ipureintro; simp [hkv, evType]
+            ihave %Hvsl := ownSlice_len $$ Hvs
+            have hc0 : evk.kv.createRev = W64 0 := by rw [hkv]; rfl
+            have hv0 : evk.kv.version = W64 0 := by rw [hkv]; rfl
+            have hl0 : vs.len = W64 0 := by
+              rw [hkv] at Hvsl; simp [zeroKv] at Hvsl; word
+            (try wp_auto)
+            rw [decide_eq_true hc0]
+            (try wp_auto)
+            rw [decide_eq_true hv0]
+            (try wp_auto)
+            wp_apply wp_check
+            · ipureintro; simp [hl0]
+            (try wp_auto)
+            iframe; ipureintro; rfl
+        iintro %v ⟨%hv, ev, want⟩
+        subst hv
+        wp_auto
         trace_state
         sorry
     · -- a compaction response
@@ -593,8 +726,8 @@ theorem stream.receive.wp_proof
         iframe #
         ipureintro
         refine ⟨hen, hkk, hfl, hstart, hst0, hstM, hlo1, hloM, hstlo, hstfl, hcm, ?_, ?_, ?_⟩
-        · intro h; have := hstk h; simp; omega
-        · intro _; exact ⟨r, by simp, rfl, hc⟩
+        · intro h; have := hstk h; rw [List.length_append, List.length_singleton]; omega
+        · intro _; exact ⟨r, List.mem_append_right _ (List.mem_singleton_self _), rfl, hc⟩
         · rw [recvEvs_snoc_ne _ _ _ (Or.inr he)]; exact Hposx
       iapply HΦ
       iexists Hlx, P'
