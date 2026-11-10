@@ -1036,7 +1036,14 @@ unless they start otherwise. The specs are written to each choice except D6 (ope
   provided a Go snippet illustrates why the assumption is needed.
 - **D32: accepted** if it is what ext4 guarantees: a rename within one directory is atomic across a
   crash.
-- **D4, 2.8:** explanations requested (given in the session; pending the user's answer).
+- **D4: no Iris axioms.** The end state is a closed theorem with minimal assumptions: a library this
+  repository does not verify gets a trusted *operational* model (a GooseLang extension's semantics,
+  as OsFs), and its specs are proved from it. Assumed Iris specs on a boundary (net/http, grpc,
+  proto, zap, ...) are temporary; the protocol-family question becomes a proof-side design over
+  that model.
+- **2.8: fix, then prove.** A bug with a failing Go test (`issues/raft-commit-lost-with-entries-kept.md`)
+  is fixed on the Goose fork and the fixed code proved; the `Wal.crashInScope` conf-change part is
+  deleted, not kept as a premise. The same holds for every `issues/` finding a premise sidesteps.
 - **Trust boundaries:** every trusted spec on the goal's path is ultimately to be proved or replaced
   by a justifiable trusted model; where no reasonable model exists, or the Go features a library
   uses would be hard to support, escalate with a concrete example.
