@@ -504,3 +504,45 @@ equate `sl`). Then:
 5. Then `Client.List`'s proof (plan above, `srvRangeOk_page`), `HList` out.
 
 Size: about 40 files; a full day's work with targeted builds. Budget it before starting.
+
+## Thirteenth session (2026-11-10): EnableTracing cell (a), K1 trusted edits and the client chain
+
+Decision recorded (`questions.md`, "EnableTracing cell source"): option (a), approved by etcd-grove-81.
+
+Done (commits on `k8s-7e`):
+- `425d7ed79c`: `etc/gen-init.py` `SPECIAL['google_golang_org.grpc']`: grpc's first initializer's axiom
+  `DefaultBackoffConfig_init` (`{{True}} DefaultBackoffConfig.init #() {{RET #(); globalAddr EnableTracing ↦ false}}`;
+  out of `opaqueInitsOk`, whose post was `True`: nothing else changes meaning), persisted in `finish`;
+  `cache/v3/Base.lean`: `grpcInit := globalAddr google_golang_org.grpc.EnableTracing ↦□ false`, grpc's fact
+  (was `True`). `etc/gen-init.py --check` clean. Rebuilds ~6300 modules (cache `Base`).
+- `1eb0c1b286` (TRUSTED, Freeze list): `InvGrpc.lean` `ProtoMsgT.RepSat`'s store post `send ∗ recv ∗ recvOwn`;
+  `grpcInvokerOk`'s success post `∃ m', Rep.recv out m' ∗ Rep.recvOwn out m' ∗ Φ m'`; docstrings name the
+  bounds (EnableTracing false through `isPkgInit grpc` of `ClientConn.Invoke`; default proto codec; no stats
+  handler (no `GrpcDialOpt` for one) or interceptor keeping the reply; protobuf-go v2 generated reply types;
+  `TestDefaultNoRace`). `StreamMsgT.RepSat` left alone. New `ProtoMsgT.repSat_of_recvOwn_true` (the 14 default
+  `*_repSat` proofs: one `apply` line each; Watch/LeaseKeepAlive are `StreamMsgT`, untouched).
+  `InvKVConn.lean`: `rangeRespRecv` (header, More, Count), `rangeRespKvsOwn` (`Kvs ↦□ sl ∗ sl ↦* ps ∗
+  txn.kvsIs ps m.kvs`; the name `rangeRespOwn` is taken by cache/v3), `rangeRespMsgO := recv ∗ own`,
+  `rangeRespMsgO_persist` (⊢ |==> rangeRespMsg); `pbRangeResponse.recv := rangeRespRecv`, `recvOwn :=
+  rangeRespKvsOwn`, `send` stays `rangeRespMsg`; `rangeCallOut`'s success on `rangeRespMsgO`;
+  `etcdInterceptorOk(M)` and `EtcdInvoke`'s three statements carry `Rep.recvOwn`. `pbRangeResponseT_repSat` keeps
+  the slice owned. The interceptor's proof needed no change.
+- `23b2325664`: the 15 stub proofs (`etcdserverpb/*Client__*`) take `recvOwn` (`-` or `Ho`); `rangeCallOutP` (the
+  old persistent form) and `rangeCallOut_persist`; `rangeCallOut_st` takes `rangeCallOutP`, so `kv.Get.spec`
+  is UNCHANGED (its proof persists); **`client_range_any`'s post is `rangeRespMsgO`** (EXPORTED statement:
+  Freeze list); its readers persist (`client_range_end_to_end`, `client_get_on` (ResultsOn), `ClientPutGet`,
+  txnlin `Calls`) with `iapply wp_fupd` before the call and `imod rangeRespMsgO_persist`/`rangeCallOut_persist`.
+  So far the only exported statement change of K1 besides the trusted ones; the plan's other Results
+  (2935/2989/3161) keep `rangeRespMsg`.
+
+Next, in order:
+1. The full build's remaining breakages (first full build after K1: `/shared/tmp/k8s7e1/full1.log.raw`);
+   `kubernetes/Client__Get.lean` matches `#Hm` on `client_range_any`'s post: make it `Hm` and `imod
+   rangeRespMsgO_persist _ _ $$ Hm with #Hm` after `subst Herr` (a WP goal there).
+2. `Client.List` proof (handoff "Next, in order (after 81's decision)" item 2): Get's proof is the model;
+   `client_range_any` with `[withRangeM (prefixRangeEnd pfx), withLimitM opts.Limit', withRevM opts.Revision']`
+   (`rangeWireOf_page`), `rangeReply_state_at`, `srvRangeOk_page`; the reply's `rangeRespKvsOwn` gives
+   `resp.Kvs' ↦* ps` owned for `listRespIs` (kvsIs → `[∗list]` by `kvsIs` lookup); specs needed: `WithRange`,
+   `WithLimit`, `WithRev`, `GetPrefixRangeEnd`; the `if opts.Continue != ""` branch (start = Continue or pfx).
+   Then `Client__List: ?` out of both link files, `HList` out of MainLinked/Results/Adequacy.
+3. Merge lean, step 6, Freeze (as before).
