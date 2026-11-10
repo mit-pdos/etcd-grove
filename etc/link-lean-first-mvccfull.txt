@@ -118,7 +118,7 @@ runner__openBackend: backend_New
 runner__readOne: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds pick+W inBounds traceutil_TODO history__snapshot choose runner__genRange context_TODO checkRangeAt =mvcc.api.mvccApi_NewReadOnlyTxnWrite_wp_api check runner__checkStoreRange
 runner__restart: =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccReaders_split_law_holds runner__stopReaders runner__endEpoch runner__shut runner__open runner__startEpoch runner__startReaders
 runner__restore: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds =mvcc.api.mvccApi_mvccW_alloc_law_holds =mvcc.api.mvccApi_etcdStorage_open_law_holds =mvcc.api.mvccApi_backendRest_open_law_holds =mvcc.api.mvccApi_mvccClosed_rest_law_holds =mvcc.api.mvccApi_mvccReaders_split_law_holds buildPath runner__newMember runner__apply runner__shut runner__openBackend lease_lessor__Recover traceutil_TODO check backend__SetTxPostLockInsideApplyHook backend__Close runner__checkLeases
-runner__shut: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_mvccClosed_rest_law_holds =mvcc.api.mvccApi_mvccImage_stop_law_holds check lease_lessor__Stop backend__Close
+runner__shut: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccClosed_rest_law_holds =mvcc.api.mvccApi_mvccImage_stop_law_holds check lease_lessor__Stop backend__Close
 runner__startEpoch: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccReaders_split_law_holds stream__recvOne =_root_.Perennial.time.wp_Sleep stream__act
 runner__startReaders: runner__readOne
 runner__stopReaders: 

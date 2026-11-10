@@ -552,7 +552,7 @@ theorem lease.lessor.wp_Stop :
 
 theorem runner.wp_shut [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.mvccfull.runner.shut.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.mvccfull.runner.shut.wp_proof mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_mvccClosed_rest_law_holds mvcc.api.mvccApi_mvccImage_stop_law_holds wp_check lease.lessor.wp_Stop backend.backend.wp_Close
+  EtcdGrove.mvccfull.runner.shut.wp_proof mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccClosed_rest_law_holds mvcc.api.mvccApi_mvccImage_stop_law_holds wp_check lease.lessor.wp_Stop backend.backend.wp_Close
 
 theorem heap.wp_Init_ :
     EtcdGrove.heap.Init_.spec (GF := GF) (hG := hG) :=
