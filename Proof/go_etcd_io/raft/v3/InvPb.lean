@@ -174,8 +174,8 @@ def pbN : Namespace := nroot.@"protobuf"
 
 /-- **Unknown fields `proto.Unmarshal` leaves in a `T`** (opaque, the trust boundary; premise fixes
 1, 2026-11-10): the records of the decoded bytes that protobuf-go's decoder did not take as one of
-`T`'s fields (an unknown field number, a known one at another wire type, a closed enum's unknown
-value). The decoder classifies each record by itself, so decoding a message's known fields followed
+`T`'s fields (an unknown field number, or a known one at another wire type; protobuf-go treats
+proto2's closed enums as open, so an undeclared enum value decodes into its field). The decoder classifies each record by itself, so decoding a message's known fields followed
 by such records gives the same known fields again: what makes the `proto.Marshal` round trips
 (`proto.MarshalConfChange.wp_proof`, ...) true of objects `proto.Unmarshal` made
 (`examples/premisefix/confchange`, `TestRoundTripUnmarshalLeftovers`). Only the `proto.*` axioms

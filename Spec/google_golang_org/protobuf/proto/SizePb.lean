@@ -24,7 +24,7 @@ variable [sem : go.Semantics]
 /-- `proto.Size(m)` of a read-only-for-good `*T` holding `m` returns the length of its encoding,
 an encoding of `m` if `m` marshals (`proto.MarshalPb.spec`'s result).
 
-Against protobuf-go v1.36.11 (`proto/size.go`): `Size` is the length of the wire encoding `Marshal`
+Against protobuf-go v1.36.12 (`proto/size.go`): `Size` is the length of the wire encoding `Marshal`
 produces (the same, unchanged message); it stores the size cache, a hidden field the instance's `ro`
 owns inside an invariant. -/
 abbrev proto.SizePb.spec : Prop :=

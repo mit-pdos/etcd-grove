@@ -24,7 +24,7 @@ variable [sem : go.Semantics]
 /-- `proto.Clone(m)` of a read-only-for-good `*T` holding `m` returns a fresh `*T` (as a
 `proto.Message` of dynamic type `*T`) holding a message of the same wire content, owned.
 
-Against protobuf-go v1.36.11 (`proto/merge.go`): `Clone` of a non-nil message makes a new message
+Against protobuf-go v1.36.12 (`proto/merge.go`): `Clone` of a non-nil message makes a new message
 of its type and merges it in (a deep copy of its fields and unknown fields). -/
 abbrev proto.ClonePb.spec : Prop :=
   ∀ (T : PbType GF) (l : Loc) (m : T.M),

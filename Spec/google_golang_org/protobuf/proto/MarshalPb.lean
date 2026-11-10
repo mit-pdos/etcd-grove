@@ -24,7 +24,7 @@ variable [sem : go.Semantics]
 /-- `proto.Marshal(m)` of a read-only-for-good `*T` holding `m`, a message that `marshals`, returns
 a fresh slice of its encoding, an encoding of `m`, and `nil`.
 
-Against protobuf-go v1.36.11 (`proto/encode.go`): `Marshal` fails only on a missing required field,
+Against protobuf-go v1.36.12 (`proto/encode.go`): `Marshal` fails only on a missing required field,
 invalid UTF-8 in a proto3 string or a message changed while it is encoded, which the instance's
 `marshals` and `ro` exclude; an empty encoding is a non-nil empty slice. -/
 abbrev proto.MarshalPb.spec : Prop :=

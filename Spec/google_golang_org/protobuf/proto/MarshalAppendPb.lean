@@ -26,7 +26,7 @@ variable [sem : go.Semantics]
 a message that `marshals`, appends its encoding (`Marshal`'s, `pbEnc`) to `b` and returns the
 result and `nil`; if it fits `b`'s capacity, in `b`'s array (the same pointer and capacity).
 
-Against protobuf-go v1.36.11 (`proto/encode.go`): `MarshalAppend` is `Marshal` appending to `b`
+Against protobuf-go v1.36.12 (`proto/encode.go`): `MarshalAppend` is `Marshal` appending to `b`
 (Go's `append`: in place within the capacity). -/
 abbrev proto.MarshalAppendPb.spec : Prop :=
   ∀ (T : PbType GF) (o : Loc) (dq : DFrac) (l : Loc) (m : T.M) (b : GoSlice) (xs : List w8),

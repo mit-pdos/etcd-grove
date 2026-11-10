@@ -31,7 +31,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 bytes that decode back to `m` (`ccDecodeV2`, what `proto.Unmarshal` makes of bytes, `CCModel.lean`) and
 a `nil` error; the message is untouched but for its size cache (hidden).
 
-Against protobuf-go v1.36.11 (`proto/encode.go`): `Marshal` fails only on a required field
+Against protobuf-go v1.36.12 (`proto/encode.go`): `Marshal` fails only on a required field
 unset, an invalid UTF-8 string (proto3 `string` or `enforce_utf8`) or a size mismatch from a
 concurrent mutation; `raft.proto` is proto2 with no `required` and no `string` field, and the
 caller's fraction excludes a concurrent writer, so the error is `nil`. The output is the

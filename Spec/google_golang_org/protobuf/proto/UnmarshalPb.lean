@@ -25,7 +25,7 @@ variable [sem : go.Semantics]
 and the `*T` holding some `m` of which the bytes are an encoding; `b` is read, not kept. Bytes that
 are an encoding of some message decode: the error is `nil`.
 
-Against protobuf-go v1.36.11 (`proto/decode.go`): `Unmarshal` resets the message, then decodes;
+Against protobuf-go v1.36.12 (`proto/decode.go`): `Unmarshal` resets the message, then decodes;
 it copies `bytes` fields out of the buffer (the default options do not alias it). -/
 abbrev proto.UnmarshalPb.spec : Prop :=
   ∀ (T : PbType GF) (b : GoSlice) (bs : List w8) (dq : DFrac) (l : Loc),
