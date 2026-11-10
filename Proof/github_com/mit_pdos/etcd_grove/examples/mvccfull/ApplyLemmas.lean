@@ -71,6 +71,17 @@ theorem runM_succ_grant (ks : List GoString) (ops : List OpM) (n : Nat) (o : OpM
   · simp
   · simp
 
+/-- **A put's or a delete's model step** leaves the compaction revision, the leases and the
+compactions. -/
+theorem runM_succ_pd (ks : List GoString) (ops : List OpM) (n : Nat) (o : OpM)
+    (ho : ops[n]? = some o) (hk : o.kind = kPut ∨ o.kind = kDelete) :
+    cmpAfter ks ops (n + 1) = cmpAfter ks ops n ∧ leasesAfter ks ops (n + 1) = leasesAfter ks ops n ∧
+      grantedAfter ks ops (n + 1) = grantedAfter ks ops n ∧ compsAt ks ops (n + 1) = compsAt ks ops n := by
+  unfold cmpAfter leasesAfter grantedAfter compsAt
+  rw [runM_succ ks ops n o ho]
+  unfold opStep
+  rcases hk with hk | hk <;> rw [hk] <;> simp
+
 theorem σOf_succ_grant (ks : List GoString) (ops : List OpM) (n : Nat) (o : OpM)
     (ho : ops[n]? = some o) (hk : o.kind = kGrant) : σOf ks ops (n + 1) = σOf ks ops n := by
   obtain ⟨h1, h2, -, -⟩ := runM_succ_grant ks ops n o ho hk
@@ -86,6 +97,59 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccfull.Assumptions]
 variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+/-- **Each revision of a member's log has fewer than `2 ^ 63` changes**: its changes' keys are
+distinct (`logOk_once`) and among the keys `ks` (a put's key is one, a delete's a present key),
+fewer than `2 ^ 63` (a slice's). (To prove: an induction over `runM` that every change's key is in
+`ks`, from `opValid`/`subsOk` and `stMatch`; `sorry` for now.) -/
+theorem log_cs_lt (ks : List GoString) (hks : ks.Pairwise go.GoStringLt) (ops : List OpM)
+    (h : logOk ks ops) (hksl : ks.length < 2 ^ 63) (n : Nat) :
+    ∀ cs ∈ (σOf ks ops n).log, cs.length < 2 ^ 63 := by
+  sorry
+
+/-- **What a write transaction at a member's state needs of the model** (`begin`'s, `writeRange`'s,
+`writeSub`'s premises). -/
+theorem member_facts (ks : List GoString) (hks : ks.Pairwise go.GoStringLt) (ops : List OpM)
+    (h : logOk ks ops) (hksl : ks.length < 2 ^ 63) (n : Nat) (hn : n ≤ ops.length)
+    (h38 : ops.length < 2 ^ 38) :
+    (histAt ks ops n).length = (σOf ks ops n).log.length ∧
+      HistRevs ks (σOf ks ops n).log (histAt ks ops n) ∧ MvccReachable (σOf ks ops n) ∧
+      txn.LogOk ((σOf ks ops n).log ++ [[]]) ∧ (σOf ks ops n).log.length + 3 ≤ 2 ^ 63 ∧
+      stMatch ks (lastSt (histAt ks ops n)) (stateAfter (σOf ks ops n).log) ∧
+      (σOf ks ops n).pending = none ∧ (σOf ks ops n).rev + 2 < 2 ^ 40 ∧
+      onceUpToAll (σOf ks ops n).log := by
+  have hlen : (histAt ks ops n).length = (σOf ks ops n).log.length := by
+    simp [σOf, logOfHist_length]
+  have hl := runM_hs_len ks ops n
+  have hlh : (histAt ks ops n).length = (runM ks ops n).hs.length := rfl
+  obtain ⟨-, hh, hreach⟩ := logOk_hist ks hks ops h n n (Nat.le_refl _) hn
+  have hinv := runM_inv ks ops h n
+  obtain ⟨-, -, hst, -, hnd⟩ := hinv
+  obtain ⟨-, hwf, -⟩ := hnd (nodup_of_sorted hks)
+  have hlog : (σOf ks ops n).log = logOfHist (runM ks ops n).hs := rfl
+  have hne : (σOf ks ops n).log ≠ [] := by
+    intro h0; have := congrArg List.length h0; simp only [List.length_nil] at this; omega
+  refine ⟨hlen, ?_, hreach, ?_, ?_, ?_, rfl, ?_, logOk_once ks hks ops h n⟩
+  · intro r hr
+    have := hh.2 r (by rw [σOf_notified]; exact hr)
+    rwa [σOf_notified] at this
+  · refine txn.LogOk.of_cert ⟨LogWf'.append_nil (LogWf'.of_wf (by rw [hlog]; exact hwf)) hne,
+      by simp; omega, ?_⟩ (by simp)
+    intro cs hcs
+    simp only [List.mem_append, List.mem_singleton] at hcs
+    rcases hcs with hc | hc
+    · exact log_cs_lt ks hks ops h hksl n cs hc
+    · subst hc; simp
+  · omega
+  · obtain ⟨e, he⟩ : ∃ e, (runM ks ops n).hs[(runM ks ops n).hs.length - 1]? = some e :=
+      ⟨_, List.getElem?_eq_getElem (by omega)⟩
+    have := hst _ e he
+    have hl1 : lastSt (histAt ks ops n) = e.1 := lastSt_of he
+    rw [hl1, ← hlog] at *
+    rw [← stateAt_last (σOf ks ops n).log (by rw [← hlen]; omega)]
+    rw [← hlen]; exact this
+  · unfold MvccState.rev; omega
+
 
 /-- **The member after an operation that changes nothing in the model**: its record with one more
 operation applied. -/
