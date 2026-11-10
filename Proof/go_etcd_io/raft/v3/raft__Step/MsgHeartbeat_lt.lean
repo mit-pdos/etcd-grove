@@ -42,7 +42,7 @@ theorem wp_Step_MsgHeartbeat_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
     (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
-    (ents : List EntryM) :
+    (ents : List EntryM) (R : StepG GF) :
     m.Type' = MsgHeartbeat →
     m.To' = id →
     m.Term' ≠ W64 0 →
@@ -53,10 +53,11 @@ theorem wp_Step_MsgHeartbeat_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
     -- (no commit premise: a stale heartbeat never reaches `commitTo`)
     -- this file: the incoming term is stale: logged and dropped
     uint.Z m.Term' < uint.Z s.term →
-    s.gh.tr = none →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
+        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
+        -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
@@ -65,15 +66,16 @@ theorem wp_Step_MsgHeartbeat_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
             StepCD c id B m s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
-        "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hfid Hwf Hlt Htr
+        "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
+        "HG" ∷ stepOut R }} := by
+  intro Hty Hto Hterm Hfnz Hfid Hwf Hlt
   wp_start as H
   iNamed H
   icases msgPtsC_nn _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
   wp_auto
   rw [decide_eq_false Hnn]
   wp_auto
-  wp_trace_hookC _P.traceReceiveMessage
+  wp_recv_gate_ns
   try wp_auto
   wp_get _Q
   rw [decide_eq_false Hterm]
@@ -97,8 +99,9 @@ theorem wp_Step_MsgHeartbeat_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
     wp_auto
     wp_drive _Q
     wp_raft_logC
+    ihave HG := stepOut_G0 R $$ HG
     iapply HΦ $$ %interface.nil %s
-    iframe Hphys
+    iframe Hphys HG
     ipureintro
     exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, StepCD.frame (.refl _) (by rframe)⟩, rfl,
       keep_frame rfl rfl rfl rfl rfl⟩
@@ -123,12 +126,17 @@ theorem wp_Step_MsgHeartbeat_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
       iapply cellRO_null
     have Hok : SendOk id s ack [] [] [absMsgFrom .appResp ack id s.term []] :=
       Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, (by intro h; rw [h] at Hlt; word), fun h => absurd h Hfid, rfl⟩)))
-    wp_apply _P.send c r id s «$a0_ptr» ack [] none [] [] _ (Or.inl rfl) Hok
+    ihave Hgl := Hglow $$ %(And.intro Hterm Hlt) %MsgAppResp %(absMsgFrom .appResp ack id s.term [])
+      %(.inl ⟨rfl, by first | exact .inl Hcq | exact .inr Hpv, .inl Hty, rfl⟩) HG
+    wp_apply _P.send c r id s «$a0_ptr» ack [] none [] [] _ R.GE (Or.inl rfl) Hok
       (fun h => absurd h (by simp only [ack]; w32_ne)) (fun h => absurd h (by simp only [ack]; w32_ne))
-      rfl (by tr_none) $$ [$Hphys $Hack] as Hphys
-    · iapply tsSrc_ne; exact (fun h => absurd h (by simp only [ack]; w32_ne))
+      rfl (fun _ h => absurd (mtypeOf_Snap _ h) (by simp only [ack]; w32_ne)) $$ [$Hphys $Hack Hgl] as ⟨Hphys, HG⟩
+    · isplitr
+      · iapply tsSrc_ne; exact (fun h => absurd h (by simp only [ack]; w32_ne))
+      · rw [show ack.Type' = MsgAppResp from rfl]; iexact Hgl
+    ihave HG := stepOut_GE R $$ HG
     iapply HΦ $$ %interface.nil %_
-    iframe Hphys
+    iframe Hphys HG
     ipureintro
     refine ⟨nstateWf_sendMsgs _ _ Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, ?_⟩, rfl,
       keep_frame rfl rfl rfl rfl rfl⟩

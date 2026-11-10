@@ -54,7 +54,7 @@ theorem wp_Step_MsgSnap (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
-    (ents : List EntryM) (scfg : CSLists) (sv : SnapshotM)
+    (ents : List EntryM) (R : StepG GF) (scfg : CSLists) (sv : SnapshotM)
     -- (2026-10-19, D21 M3) not in the no-snapshot mode (`raft.restore`'s premise)
     (Hnsf : s.gh.ns = false) :
     m.Type' = MsgSnap →
@@ -79,7 +79,9 @@ theorem wp_Step_MsgSnap (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
         -- (D22 S-b′3, 2026-10-20) the snapshot certified in the storage's registry
-        "#Hcert" ∷ ksnCert s.gh.sn (snapTrip sv sv.Metadata'.ConfState'.lists) }}
+        "#Hcert" ∷ ksnCert s.gh.sn (snapTrip sv sv.Metadata'.ConfState'.lists) ∗
+        -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState) (c' : CfgM), RET #err;
         "Hphys" ∷ ownRaftPhysCV c' c'.voters r id s' ∗
@@ -92,22 +94,23 @@ theorem wp_Step_MsgSnap (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         -- (2026-10-19, D21 M3) the no-snapshot mode kept
         "%Hng" ∷ ⌜s'.gh = s.gh⌝ ∗
         -- (2026-10-20, D22 S-c) what is kept of the state, and the term
-        "%Hsf" ∷ ⌜SnapStep m s s' ∧ SnapLogStep sv m s s'⌝ }} := by
+        "%Hsf" ∷ ⌜SnapStep m s s' ∧ SnapLogStep sv m s s'⌝ ∗
+        "HG" ∷ stepOut R }} := by
   intro Hty Hto Hterm Hfnz Hfid Hwf Hscope Hsn Hscl Hnl Hvotes Htr
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
-  · exact wp_Step_MsgSnap_gt _P _Q c r id s ml m sn ctx rs ents scfg sv Hnsf Hty Hto Hterm Hfnz Hfid
+  · exact wp_Step_MsgSnap_gt _P _Q c r id s ml m sn ctx rs ents R scfg sv Hnsf Hty Hto Hterm Hfnz Hfid
       Hwf Hscope Hsn Hscl Hgt Htr
   · by_cases Hlt : uint.Z m.Term' < uint.Z s.term
-    · wp_start_folded as ⟨Hphys, Hm, -⟩
-      iapply wp_Step_MsgSnap_lt _P _Q c r id s ml m sn ctx rs ents sv scfg Hty Hto Hterm Hwf Hlt Htr $$ [$Hpkg $Hphys $Hm]
+    · wp_start_folded as ⟨Hphys, Hm, -, HG, Hgates⟩
+      iapply wp_Step_MsgSnap_lt _P _Q c r id s ml m sn ctx rs ents R sv scfg Hty Hto Hterm Hwf Hlt Htr $$ [$Hpkg $Hphys $Hm $HG $Hgates]
       inext
-      iintro %err %s' ⟨Hphys, %Hwf', %Href, %Herr, %Hng, %Hsf⟩
+      iintro %err %s' ⟨Hphys, %Hwf', %Href, %Herr, %Hng, %Hsf, HG⟩
       iapply HΦ $$ %err %s' %c
-      iframe Hphys
+      iframe Hphys HG
       ipureintro
       exact ⟨rfl, Hwf', Href, Herr, Hng, Hsf⟩
     · have Hteq : m.Term' = s.term := by word
-      exact wp_Step_MsgSnap_eq _P _Q c r id s ml m sn ctx rs ents scfg sv Hnsf Hty Hto Hterm Hfnz Hfid
+      exact wp_Step_MsgSnap_eq _P _Q c r id s ml m sn ctx rs ents R scfg sv Hnsf Hty Hto Hterm Hfnz Hfid
         Hwf Hscope Hsn Hscl Hteq (Hnl Hteq) Hvotes Htr
 
 end StepProof

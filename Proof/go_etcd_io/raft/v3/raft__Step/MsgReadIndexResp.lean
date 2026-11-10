@@ -57,16 +57,17 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
     (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
-    (e : EntryM) :
+    (e : EntryM) (R : StepG GF) :
     m.Type' = MsgReadIndexResp →
     m.To' = id →
     m.Term' ≠ W64 0 →
     m.From' ≠ id →
     NStateWf s →
-    s.gh.tr = none →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-        "Hm" ∷ msgIn ml DFrac.discard ⟨m, [e], sn, ctx, rs⟩ }}
+        "Hm" ∷ msgIn ml DFrac.discard ⟨m, [e], sn, ctx, rs⟩ ∗
+        -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m [e] sn ctx rs R }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
@@ -75,15 +76,16 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
             StepCD c id B m s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
-        "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hto Hterm Hfid Hwf Htr
+        "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
+        "HG" ∷ stepOut R }} := by
+  intro Hty Hto Hterm Hfid Hwf
   wp_start as H
   iNamed H
   icases msgPtsC_nn _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
   wp_auto
   rw [decide_eq_false Hnn]
   wp_auto
-  wp_trace_hookC _P.traceReceiveMessage
+  wp_recv_gate_ns
   try wp_auto
   wp_get _Q
   rw [decide_eq_false Hterm]
@@ -99,7 +101,9 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
     wp_drive _Q
     wp_raft_logC
     wp_drive _Q
-    wp_apply _P.becomeFollower _ _ _ _ _ _ (by exact Int.le_of_lt Hgt) (by tr_none) $$ [$Hphys] as %pvs Hphys
+    bf_gate
+    wp_apply _P.becomeFollower c r id s m.Term' _ R.G1 (by exact Int.le_of_lt Hgt) (fun _ => rfl) $$ [$Hphys $Hgb]
+      as %pvs ⟨Hphys, HG⟩
     wp_drive _Q
     wp_apply raft.wp_load_stepC $$ Hphys as Hphys
     rw [show ({ becomeFollower s m.Term' (W64 0) with prvals := pvs } : NState).stepfn =
@@ -107,8 +111,9 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
     simp only [stepFuncOf]
     ihave #Hsrc0 : rcvSrc (GF := GF) ({ becomeFollower s m.Term' (W64 0) with prvals := pvs } : NState).gh.sn m.Type' sn $$ []
     · iapply rcvSrc_ne; notsnap_tac
+    gates_fol
     wp_apply _P.stepFollower c ∅ r id { becomeFollower s m.Term' (W64 0) with prvals := pvs }
-        ml m [e] sn rs (zero_val _) ctx
+        ml m [e] sn rs (zero_val _) ctx R.G1 R.GE
         (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))))))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne)) (by intro Hc; first | (exfalso; rcases Hc with Hc | Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne)) | (exfalso; rcases Hc with Hc | Hc | Hc <;> simp_all [MsgApp, MsgHeartbeat, MsgSnap]) | simp_all [becomeFollower, resetTo, resetTo0])
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -116,8 +121,9 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-      (by notfwd_tac) (by tr_none) $$ [$Hphys Hm $Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
+      (by notfwd_tac) $$ [$Hphys Hm $Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
     · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
+    ihave HG := stepOut_or R _ _ $$ HGo
     obtain ⟨rfl, rfl, rfl⟩ := followerStepResult_readIndexResp _ _ _ _ _ _ _ _ _ Hty Hres
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Herrn with %Herrn
@@ -125,7 +131,7 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
     wp_auto
     iapply HΦ $$ %interface.nil
       %(addReadState { becomeFollower s m.Term' (W64 0) with prvals := pvs } m.Index' e.Data')
-    iframe Hphys
+    iframe Hphys HG
     ipureintro
     have Hfr := stepdown_frame (m := m) (s := s)
       (s' := addReadState { becomeFollower s m.Term' (W64 0) with prvals := pvs } m.Index' e.Data')
@@ -152,7 +158,7 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
       -- `(r.checkQuorum || r.preVote) && (MsgHeartbeat || MsgApp)` is false whichever way the
       -- flags go: the condition is joined at `false` (`wp_join`), so the rest of the arm is
       -- verified once, not once per flag case
-      wp_join (v := #false) at (If (If _ (Val #true) _) _ (Val #false)) with [Hphys r m Hm]
+      wp_join (v := #false) at (If (If _ (Val #true) _) _ (Val #false)) with [Hphys r m Hm HG]
       · wp_drive _Q
         cq_split _Q
         -- where the type test ran, its last disjunct (`MsgApp`) is the value left
@@ -164,8 +170,9 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
       try wp_auto
       wp_drive _Q
       wp_raft_logC
+      ihave HG := stepOut_G0 R $$ HG
       iapply HΦ $$ %interface.nil %s
-      iframe Hphys
+      iframe Hphys HG
       ipureintro
       exact ⟨Hwf, ⟨[], fun _ Hin => absurd Hin List.not_mem_nil, StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
         NetFrame.refl _, TermStep.refl _ _⟩
@@ -174,6 +181,9 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
       rw [decide_eq_false Hlt]
       wp_auto
       wp_drive _Q
+      -- the preamble did not step down (the current term)
+      have hnbf : ¬ PreBF m s := PreBF.of_le (by rw [Hteq]; exact Int.le_refl _)
+      imod preGate_nobf c r id s m _ _ (.inr (by rw [Hteq]; exact Int.le_refl _)) hnbf $$ Hgpre HG with HG
       wp_apply raft.wp_load_stepC $$ Hphys as Hphys
       rw [show s.stepfn = stepFuncOf s.role from Hwf.1]
       cases Hrole : s.role
@@ -181,7 +191,8 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
         simp only [stepFuncOf]
         ihave #Hsrc0 : rcvSrc (GF := GF) s.gh.sn m.Type' sn $$ []
         · iapply rcvSrc_ne; notsnap_tac
-        wp_apply _P.stepFollower c ∅ r id s ml m [e] sn rs (zero_val _) ctx
+        gates_fol
+        wp_apply _P.stepFollower c ∅ r id s ml m [e] sn rs (zero_val _) ctx R.G1 R.GE
             (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))))))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne)) (by intro Hc; first | (exfalso; rcases Hc with Hc | Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne)) | (exfalso; rcases Hc with Hc | Hc | Hc <;> simp_all [MsgApp, MsgHeartbeat, MsgSnap]) | simp_all [becomeFollower, resetTo, resetTo0])
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -189,15 +200,16 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-          (by notfwd_tac) (by tr_none) $$ [$Hphys Hm $Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
+          (by notfwd_tac) $$ [$Hphys Hm $Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
         · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
+        ihave HG := stepOut_or R _ _ $$ HGo
         obtain ⟨rfl, rfl, rfl⟩ := followerStepResult_readIndexResp _ _ _ _ _ _ _ _ _ Hty Hres
         simp only [Bool.false_eq_true, ↓reduceIte]
         icases Herrn with %Herrn
         subst Herrn
         wp_auto
         iapply HΦ $$ %interface.nil %(addReadState s m.Index' e.Data')
-        iframe Hphys
+        iframe Hphys HG
         ipureintro
         refine ⟨Hwf, ⟨[absMsg .readIndexResp m [e] ctx], by simp, StepCD.frame ?_ (by rframe)⟩, rfl,
           NetFrame.of_logst rfl, TermStep.of_term rfl (fun _ => Int.le_refl _)⟩
@@ -207,7 +219,8 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
         simp only [stepFuncOf]
         ihave #Hsrc0 : rcvSrc (GF := GF) s.gh.sn m.Type' sn $$ []
         · iapply rcvSrc_ne; notsnap_tac
-        wp_apply _P.stepCandidate c ∅ r id s ml m [e] sn rs (zero_val _) ctx
+        gates_cand
+        wp_apply _P.stepCandidate c ∅ r id s ml m [e] sn rs (zero_val _) ctx R.G1 R.GE R.Gf R.Gb1 R.Gb2
             (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))))))
             (fun Hc => by
               exfalso; rw [Hty] at Hc
@@ -217,8 +230,9 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-          (by tr_none) $$ [$Hphys Hm $Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
+          $$ [$Hphys Hm $Hsrc0 $HG $Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
         · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
+        ihave HG := stepOut_or R _ _ $$ HGo
         obtain ⟨rfl, rfl, Hs1⟩ := candidateStepResult_readIndex _ _ _ _ _ _ _ _ _ (.inr Hty) Hres
         subst s1
         simp only [Bool.false_eq_true, ↓reduceIte]
@@ -226,13 +240,14 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
         subst Herrn
         wp_auto
         iapply HΦ $$ %interface.nil %s
-        iframe Hphys
+        iframe Hphys HG
         ipureintro
         exact ⟨Hwf, ⟨[], by simp, StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl, NetFrame.refl _, TermStep.refl _ _⟩
       · -- Leader: ignored (neither switch has it)
         simp only [stepFuncOf]
         imod (preceipt_zero (GF := GF)) with #Hrc00
-        wp_apply _P.stepLeader c r id s ml m [e] sn ctx rs 0
+        gates_lead
+        wp_apply _P.stepLeader c r id s ml m [e] sn ctx rs 0 R.G1 R.GE R.Gp1 R.Gp2 R.Gc
             (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty))))))))))
             Hrole (by intro Hc; exfalso; first | (rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne)) | (rcases Hc with Hc | Hc <;> simp_all [MsgBeat, MsgTransferLeader]))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -244,10 +259,11 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-          (by tr_none) $$ [$Hphys $Hrc00 Hm] as %err %s' %dropped ⟨Hphys, -, %Hres, Herrn⟩
+          (by p3_tac) $$ [$Hphys $Hrc00 Hm $HG $Hlg] as %err %s' %dropped ⟨Hphys, -, %Hres, Herrn, HGo⟩
         · isplitl [Hm]
           · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
           · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+        ihave HG := stepOut_leader R _ _ _ _ $$ HGo
         unfold LeaderStepResultC at Hres
         rw [ite_eq_right (by rw [Hty]; w32_ne)] at Hres
         obtain ⟨rfl, Hres⟩ := Hres
@@ -265,14 +281,15 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
         subst Herrn
         wp_auto
         iapply HΦ $$ %interface.nil %s
-        iframe Hphys
+        iframe Hphys HG
         ipureintro
         exact ⟨Hwf, ⟨[], by simp, StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl, NetFrame.refl _, TermStep.refl _ _⟩
       · -- PreCandidate: ignored
         simp only [stepFuncOf]
         ihave #Hsrc0 : rcvSrc (GF := GF) s.gh.sn m.Type' sn $$ []
         · iapply rcvSrc_ne; notsnap_tac
-        wp_apply _P.stepCandidate c ∅ r id s ml m [e] sn rs (zero_val _) ctx
+        gates_cand
+        wp_apply _P.stepCandidate c ∅ r id s ml m [e] sn rs (zero_val _) ctx R.G1 R.GE R.Gf R.Gb1 R.Gb2
             (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))))))
             (fun Hc => by
               exfalso; rw [Hty] at Hc
@@ -282,8 +299,9 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-          (by tr_none) $$ [$Hphys Hm $Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
+          $$ [$Hphys Hm $Hsrc0 $HG $Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
         · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
+        ihave HG := stepOut_or R _ _ $$ HGo
         obtain ⟨rfl, rfl, Hs1⟩ := candidateStepResult_readIndex _ _ _ _ _ _ _ _ _ (.inr Hty) Hres
         subst s1
         simp only [Bool.false_eq_true, ↓reduceIte]
@@ -291,7 +309,7 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
         subst Herrn
         wp_auto
         iapply HΦ $$ %interface.nil %s
-        iframe Hphys
+        iframe Hphys HG
         ipureintro
         exact ⟨Hwf, ⟨[], by simp, StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl, NetFrame.refl _, TermStep.refl _ _⟩
 

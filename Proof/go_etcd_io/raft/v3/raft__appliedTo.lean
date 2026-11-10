@@ -147,16 +147,28 @@ theorem raft.appliedTo.wp_proof
           subst Hbs
           try wp_auto
           ihave #Hcc := ccEntsOk_leave (GF := GF)
-          wp_apply (StepProof.wp_Step_MsgProp (traceReceiveMessage.untraced wp_traceReceiveMessage) (stepFollower.untraced wp_stepFollower)
-              (stepCandidate.untraced wp_stepCandidate) (stepLeader.untraced wp_stepLeader) Q c r id s1 ml leaveMsgM none [] [] [leaveEntM]
-              [some (.v2 ConfChangeV2M.empty)] k0 rfl rfl (.inl rfl) (by simp) (by simp)
+          -- (2026-11-10, Q8 stage 1 slice 11) `Step`'s `MsgProp` branch, gated, at an untraced node:
+          -- the gates from the struct's nil logger (`stepGates_none`)
+          have Htr1 : s1.gh.tr = none := by tr_none
+          icases ownRaftPhysC_traceLogger c r id s1 Htr1 $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
+          ihave Hgates := stepGates_none (GF := GF) c r id s1 leaveMsgM [leaveEntM] none [] [] tl
+            iprop(emp) iprop(emp) .rfl Htr1 Htlok $$ Htl
+          wp_apply (StepProof.wp_Step_MsgProp (traceReceiveMessage.gated wp_traceReceiveMessage) wp_stepFollower
+              wp_stepCandidate wp_stepLeader Q c r id s1 ml leaveMsgM none [] [] [leaveEntM]
+              [some (.v2 ConfChangeV2M.empty)] k0
+              ⟨iprop(emp), iprop(emp), iprop(emp), iprop(emp), iprop(emp), iprop(emp), iprop(emp),
+                iprop(emp), iprop(emp), fun _ _ => iprop(emp)⟩ rfl rfl (.inl rfl) (by simp) (by simp)
               (fun h => absurd (h.symm.trans Hrl) (by decide))
               (fun _ => by rw [Hs1term]; exact Hlnz (Hs1role ▸ Hrl)) (Hwf1 (Hs1role ▸ Hrl))
-              (by rw [Hs1ps]; exact HL (Hs1role ▸ Hrl)) rfl (by tr_none))
-            $$ [$Hphys Hm $Hcc $Hrc]
-            as %err %s' %B ⟨Hphys, %HBb, Hrcb, %Hwf', %Hfr, %Happl, %Hpk, %Hst, Herr⟩
+              (by rw [Hs1ps]; exact HL (Hs1role ▸ Hrl)) rfl (fun h => absurd Htr1 h))
+            $$ [$Hphys Hm $Hcc $Hrc Hgates]
+            as %err %s' %B ⟨Hphys, -, %HBb, Hrcb, %Hwf', %Hfr, %Happl, %Hpk, %Hst, Herr⟩
           · rw [show leaveMsgM = propMsgM from rfl, show leaveEntM = ccEntryM none [] from rfl]
-            iexact Hm
+            isplitl [Hm]
+            · iexact Hm
+            isplitr
+            · iempintro
+            iexact Hgates
           obtain ⟨recv, Hrecv, Hrl1, Hstep⟩ := Hst
           have Hout : LeaveStep c id s1 s' B recv :=
             .inr ⟨Hcal, Hrl, Hrecv, Hrl1, Hstep, Hfr.1, Hfr.2, Happl, Hwf', HBb.1, by

@@ -56,7 +56,7 @@ premise `Hutd0`). -/
 theorem wp_Step_MsgPreVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (PB : raft.Step.PbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
-    (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) :
+    (ents : List EntryM) (R : StepG GF) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) :
     m.Type' = MsgPreVote →
     m.To' = id →
     m.Term' ≠ W64 0 →
@@ -71,11 +71,12 @@ theorem wp_Step_MsgPreVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (entryID.mk m.LogTerm' m.Index') = true) →
     -- (2026-10-17) the requested term within the ceiling (`NGhost.tc`): a grant answers at it
     uint.Z m.Term' ≤ uint.Z s.gh.tc →
-    s.gh.tr = none →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         -- (stage R4) the message, as `Step` received it
-        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
+        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
+        -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
@@ -83,20 +84,23 @@ theorem wp_Step_MsgPreVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hrefines" ∷ ⌜StepCD c id B m s [] s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
-        "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hfid Hgt0 Hwf Hutd0 Hptc Htr
+        "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
+        "HG" ∷ stepOut R }} := by
+  intro Hty Hto Hterm Hfnz Hfid Hgt0 Hwf Hutd0 Hptc
   have Hn5 : decide (m.Type' = W32 5) = false := decide_eq_false (by rw [Hty]; w32_ne)
   have Hy17 : decide (m.Type' = W32 17) = true := decide_eq_true Hty
   -- `MessageType.Enum()`'s receiver: `int32` is not an interface (as in `toConfChangeSingle`)
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
-  wp_start as ⟨Hphys, Hm⟩
+  wp_start as ⟨Hphys, Hm, HG, Hgates⟩
   icases msgPtsC_nn _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
   wp_auto
   wp_gets
   rw [decide_eq_false Hnn]
   wp_auto
   wp_gets
-  wp_trace_hookC _P.traceReceiveMessage
+  wp_recv_gate_ns
+  ihave Hgvresp := Hgvresp $$ %(.inr Hty)
+  have hnbf : ¬ PreBF m s := PreBF.of_prevote Hty
   try wp_auto
   -- `m.Term ≠ 0`, so the first arm of the term preamble is skipped
   wp_gets
@@ -122,6 +126,8 @@ theorem wp_Step_MsgPreVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   -- `force` (2026-10-13): a leader transfer's vote request or not; (2026-10-17) with
   -- `checkQuorum` on, a request within the lease that is not forced is ignored
   wp_lease_check ctx
+  -- (Q8 stage 1 slice 11) no step-down for a pre-vote request
+  imod preGate_nobf c r id s m _ _ (.inr (Int.le_of_lt Hgt0)) hnbf $$ Hgpre HG with HG
   -- the step-down switch: `MsgPreVote`, so nothing
   wp_gets
   rw [Hy17]

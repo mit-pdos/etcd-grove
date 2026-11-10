@@ -53,7 +53,7 @@ theorem wp_Step_MsgApp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
-    (ents : List EntryM) :
+    (ents : List EntryM) (R : StepG GF) :
     m.Type' = MsgApp →
     m.To' = id →
     m.Term' ≠ W64 0 →
@@ -79,10 +79,11 @@ theorem wp_Step_MsgApp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     -- `padoptLeader` clears `votes`; the Go code's `r.lead = m.From` does not touch
     -- `r.trk.Votes`, so the two agree only when the tally already is empty.
     (s.role = .follower → s.votes = ∅) →
-    s.gh.tr = none →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
+        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
+        -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
@@ -93,17 +94,18 @@ theorem wp_Step_MsgApp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
         -- (D22 S-d3b) a truncation's mark (`AppTrunc`)
-        "%Htrunc" ∷ ⌜AppTrunc m ents s s'⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hfid Hwf Hpwf Hnw Hconf Hvotes Htr
+        "%Htrunc" ∷ ⌜AppTrunc m ents s s'⌝ ∗
+        "HG" ∷ stepOut R }} := by
+  intro Hty Hto Hterm Hfnz Hfid Hwf Hpwf Hnw Hconf Hvotes
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
-  · exact wp_Step_MsgApp_gt _P _Q c r id s ml m sn ctx rs ents Hty Hto Hterm Hfnz Hfid Hwf Hpwf Hnw
-      (Hconf (by omega)) Hgt Htr
+  · exact wp_Step_MsgApp_gt _P _Q c r id s ml m sn ctx rs ents R Hty Hto Hterm Hfnz Hfid Hwf Hpwf Hnw
+      (Hconf (by omega)) Hgt
   · by_cases Hlt : uint.Z m.Term' < uint.Z s.term
-    · exact wp_Step_MsgApp_lt _P _Q c r id s ml m sn ctx rs ents Hty Hto Hterm Hfnz Hfid Hwf Hpwf Hnw
-        Hlt Htr
+    · exact wp_Step_MsgApp_lt _P _Q c r id s ml m sn ctx rs ents R Hty Hto Hterm Hfnz Hfid Hwf Hpwf Hnw
+        Hlt
     · have Hteq : m.Term' = s.term := by word
-      exact wp_Step_MsgApp_eq _P _Q c r id s ml m sn ctx rs ents Hty Hto Hterm Hfnz Hfid Hwf Hpwf Hnw
-        (Hconf (by omega)) Hteq Hvotes Htr
+      exact wp_Step_MsgApp_eq _P _Q c r id s ml m sn ctx rs ents R Hty Hto Hterm Hfnz Hfid Hwf Hpwf Hnw
+        (Hconf (by omega)) Hteq Hvotes
 
 end StepProof
 

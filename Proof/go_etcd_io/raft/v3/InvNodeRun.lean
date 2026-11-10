@@ -42,6 +42,7 @@ import all Proof.go_etcd_io.raft.v3.InvNodeChan
 public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
 public import Proof.go_etcd_io.raft.v3.InvApplyConf
 public import Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange
+public import Proof.go_etcd_io.raft.v3.TracedUntracedRaftStep
 
 @[expose] public section
 
@@ -667,6 +668,8 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
           (st.msg.Type' ≠ MsgPreVoteResp →
             uint.Z t ≤ max (uint.Z rs.term) (uint.Z st.msg.Term') +
               (if st.msg.Type' = MsgTimeoutNow then 1 else 0))⌝ }} := by
+  -- (2026-11-10, Q8 stage 1 slice 11) `Step`'s untraced instance (`TracedUntracedRaftStep.lean`)
+  have wp_raft_Step := raft.Step.untraced wp_raft_Step
   rcases st with ⟨m, ents, sn, ctx, rsp⟩
   have Hok0 := Hok
   simp only [NetMsgOk] at Hok0 Htn Hmtc ⊢
@@ -994,6 +997,8 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
         ([∗list] e ∈ st.ents, entTk γ e) ∗ £ 1 }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface), RET #err; ownRawNode γ rn id rs ∗ stepErr err }} := by
+  -- (2026-11-10, Q8 stage 1 slice 11) `Step`'s untraced instance (`TracedUntracedRaftStep.lean`)
+  have wp_raft_Step := raft.Step.untraced wp_raft_Step
   rcases st with ⟨m, ents, sn, ctx, rsp⟩
   simp only at Hty Hfr Hrs ⊢
   iintro %Φ ⟨#Hpkg, Hrn, #Hr, Hmin, #Hm, Htk, Hlc⟩ HΦ

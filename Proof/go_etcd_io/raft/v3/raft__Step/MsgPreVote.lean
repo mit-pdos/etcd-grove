@@ -43,7 +43,7 @@ state never changes (no step-down, no vote recorded). The protocol step is one
 theorem wp_Step_MsgPreVote (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (PB : raft.Step.PbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
-    (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) :
+    (ents : List EntryM) (R : StepG GF) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) :
     m.Type' = MsgPreVote →
     m.To' = id →
     m.Term' ≠ W64 0 →
@@ -56,11 +56,12 @@ theorem wp_Step_MsgPreVote (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (entryID.mk m.LogTerm' m.Index') = true) →
     -- (2026-10-17) the requested term within the node's or the ceiling (`NGhost.tc`)
     (uint.Z m.Term' ≤ uint.Z s.term ∨ uint.Z m.Term' ≤ uint.Z s.gh.tc) →
-    s.gh.tr = none →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         -- (stage R4) the message, as `Step` received it
-        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
+        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
+        -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
@@ -68,18 +69,19 @@ theorem wp_Step_MsgPreVote (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hrefines" ∷ ⌜StepCD c id B m s [] s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
-        "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hfid Hwf Hutd0 Hptc Htr
+        "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
+        "HG" ∷ stepOut R }} := by
+  intro Hty Hto Hterm Hfnz Hfid Hwf Hutd0 Hptc
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
-  · exact wp_Step_MsgPreVote_gt _P PB c r id s ml m ents sn ctx rs Hty Hto Hterm Hfnz Hfid Hgt Hwf Hutd0
-      (Hptc.resolve_left (by omega)) Htr
-  · wp_start_folded as ⟨Hphys, Hm⟩
+  · exact wp_Step_MsgPreVote_gt _P PB c r id s ml m ents R sn ctx rs Hty Hto Hterm Hfnz Hfid Hgt Hwf Hutd0
+      (Hptc.resolve_left (by omega))
+  · wp_start_folded as ⟨Hphys, Hm, HG, Hgates⟩
     by_cases Hlt : uint.Z m.Term' < uint.Z s.term
-    · iapply wp_Step_MsgPreVote_lt _P PB c r id s ml m ents sn ctx rs Hty Hto Hterm Hfnz Hfid Hlt Hwf
-        Htr $$ [$Hpkg $Hphys $Hm] HΦ
+    · iapply wp_Step_MsgPreVote_lt _P PB c r id s ml m ents R sn ctx rs Hty Hto Hterm Hfnz Hfid Hlt Hwf
+        $$ [$Hpkg $Hphys $Hm $HG $Hgates] HΦ
     · have Heq : m.Term' = s.term := by word
-      iapply wp_Step_MsgPreVote_eq _P PB c r id s ml m ents sn ctx rs Hty Hto Hterm Hfnz Hfid Heq Hwf
-        Htr $$ [$Hpkg $Hphys $Hm] HΦ
+      iapply wp_Step_MsgPreVote_eq _P PB c r id s ml m ents R sn ctx rs Hty Hto Hterm Hfnz Hfid Heq Hwf
+        $$ [$Hpkg $Hphys $Hm $HG $Hgates] HΦ
 
 end StepProof
 

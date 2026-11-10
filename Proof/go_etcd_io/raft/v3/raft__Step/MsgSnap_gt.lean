@@ -43,7 +43,7 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
-    (ents : List EntryM) (scfg : CSLists) (sv : SnapshotM)
+    (ents : List EntryM) (R : StepG GF) (scfg : CSLists) (sv : SnapshotM)
     -- (2026-10-19, D21 M3) not in the no-snapshot mode (`raft.restore`'s premise)
     (Hnsf : s.gh.ns = false) :
     m.Type' = MsgSnap →
@@ -63,7 +63,9 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
         -- (D22 S-b′3, 2026-10-20) the snapshot certified in the storage's registry
-        "#Hcert" ∷ ksnCert s.gh.sn (snapTrip sv sv.Metadata'.ConfState'.lists) }}
+        "#Hcert" ∷ ksnCert s.gh.sn (snapTrip sv sv.Metadata'.ConfState'.lists) ∗
+        -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState) (c' : CfgM), RET #err;
         "Hphys" ∷ ownRaftPhysCV c' c'.voters r id s' ∗
@@ -76,7 +78,8 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         -- (2026-10-19, D21 M3) the no-snapshot mode kept
         "%Hng" ∷ ⌜s'.gh = s.gh⌝ ∗
         -- (2026-10-20, D22 S-c) what is kept of the state, and the term (the message's)
-        "%Hsf" ∷ ⌜SnapStep m s s' ∧ SnapLogStep sv m s s'⌝ }} := by
+        "%Hsf" ∷ ⌜SnapStep m s s' ∧ SnapLogStep sv m s s'⌝ ∗
+        "HG" ∷ stepOut R }} := by
   intro Hty Hto Hterm Hfnz Hfid Hwf Hscope Hsn Hscl Hgt Htr
   wp_start as H
   iNamed H
@@ -84,7 +87,8 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   wp_auto
   rw [decide_eq_false Hnn]
   wp_auto
-  wp_trace_hookC _P.traceReceiveMessage
+  have Hrns : s.gh.tr ≠ none → mtypeOf m.Type' ≠ some .snap := fun h => absurd Htr h
+  wp_recv_gate Hrns
   try wp_auto
   wp_get _Q
   rw [decide_eq_false Hterm]
@@ -101,7 +105,9 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   -- MsgApp || MsgHeartbeat || MsgSnap: the third holds
   wp_drive _Q
   -- becomeFollower(m.Term, m.From): a leader's message
-  wp_apply _P.becomeFollower c r id s m.Term' m.From' (Int.le_of_lt Hgt) (by tr_none) $$ [$Hphys] as %pvs Hphys
+  bf_gate
+  wp_apply _P.becomeFollower c r id s m.Term' _ R.G1 (Int.le_of_lt Hgt) (fun _ => rfl) $$ [$Hphys $Hgb]
+    as %pvs ⟨Hphys, HG⟩
   wp_drive _Q
   wp_apply raft.wp_load_stepC $$ Hphys as Hphys
   rw [show ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState).stepfn
@@ -109,17 +115,19 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   ihave #Hsrc0 : rcvSrc (GF := GF) ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState).gh.sn m.Type' sn $$ []
   · rw [Hsn, show ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState).gh.sn = s.gh.sn by simp [becomeFollower, resetTo, resetTo0]]
     iapply rcvSrc_snap; iexact Hcert
+  gates_fol
   wp_apply _P.stepFollower c scfg r id
-      ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState) ml m ents sn rs sv ctx
+      ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState) ml m ents sn rs sv ctx R.G1 R.GE
       (.inr (.inr (.inr (.inr (.inr (.inl Hty))))))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne)) (by intro _; simp only [becomeFollower, resetTo, resetTo0]; exact Hterm)
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
-      (fun _ => ⟨Hsn, Hscl, Hscope, rfl, rfl, Hfid, Hnsf⟩)
-    (by notfwd_tac) (by tr_none) $$ [$Hphys Hm $Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
+      (fun _ => ⟨Hsn, Hscl, Hscope, rfl, rfl, Hfid, Hnsf, Htr⟩)
+    (by notfwd_tac) $$ [$Hphys Hm $Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
   · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
+  ihave HG := stepOut_or R _ _ $$ HGo
   obtain ⟨Hc1, rfl, Hhs⟩ := followerStepResult_snap _ _ _ _ _ _ _ _ Hty Hres
   subst c1
   simp only [Bool.false_eq_true, ↓reduceIte]
@@ -127,7 +135,7 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   subst Herrn
   wp_auto
   iapply HΦ $$ %interface.nil %s1 %c
-  iframe Hphys
+  iframe Hphys HG
   ipureintro
   refine ⟨rfl, nstateWf_handle_snap _ _ _ _ _ ?_ Hhs, ?_, rfl,
     by rw [HandleSnapResult.ns Hhs]; try simp [becomeFollower, resetTo, resetTo0],

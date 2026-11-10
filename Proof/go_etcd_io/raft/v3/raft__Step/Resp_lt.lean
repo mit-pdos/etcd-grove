@@ -44,15 +44,16 @@ theorem wp_Step_Resp_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
-    (ents : List EntryM) (ty : MsgType) :
+    (ents : List EntryM) (R : StepG GF) (ty : MsgType) :
     m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp →
     m.Term' ≠ W64 0 →
     uint.Z m.Term' < uint.Z s.term →
     NStateWf s →
-    s.gh.tr = none →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
+        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
+        -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
@@ -62,15 +63,16 @@ theorem wp_Step_Resp_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
-        "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hterm Hlt Hwf Htr
+        "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
+        "HG" ∷ stepOut R }} := by
+  intro Hty Hterm Hlt Hwf
   wp_start as H
   iNamed H
   icases msgPtsC_nn _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
   wp_auto
   rw [decide_eq_false Hnn]
   wp_auto
-  wp_trace_hookC _P.traceReceiveMessage
+  wp_recv_gate_ns
   try wp_auto
   wp_get _Q
   rw [decide_eq_false Hterm]
@@ -86,7 +88,7 @@ theorem wp_Step_Resp_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   -- joined (`wp_join`) at `#false` and the rest verified once per type
   rcases Hty with Hty | Hty
   all_goals
-    wp_join (v := #false) at (if: _ then _ else #false) with [Hphys r m Hm]
+    wp_join (v := #false) at (if: _ then _ else #false) with [Hphys r m Hm HG]
     · wp_drive _Q
       cq_split _Q
       -- at the join value (`#false`, or the closed `decide` of the last type test)
@@ -96,8 +98,9 @@ theorem wp_Step_Resp_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         iframe
     wp_drive _Q
     wp_raft_logC
+    ihave HG := stepOut_G0 R $$ HG
     iapply HΦ $$ %interface.nil %s
-    iframe Hphys
+    iframe Hphys HG
     ipureintro
     exact ⟨Hwf, ⟨[], fun _ Hin => absurd Hin List.not_mem_nil, StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
       RespStep.refl _ _, keep_frame rfl rfl rfl rfl rfl⟩

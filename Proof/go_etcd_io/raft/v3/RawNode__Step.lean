@@ -18,6 +18,7 @@ public import Spec.go_etcd_io.raft.v3.IsLocalMsgTarget
 -- `Step.commit_mono`
 public import Proof.go_etcd_io.raft.v3.Protocol.Facts
 public import Proof.go_etcd_io.raft.v3.LemmasP3bXw
+public import Proof.go_etcd_io.raft.v3.TracedUntracedRaftStep
 
 @[expose] public section
 
@@ -79,6 +80,8 @@ theorem RawNode.Step.wp_proof
     (wp_GetType : raftpb.Message.GetType.spec (GF := GF) (hG := hG))
     (wp_GetFrom : raftpb.Message.GetFrom.spec (GF := GF) (hG := hG)) :
     RawNode.Step.spec (GF := GF) (hG := hG) := by
+  -- (2026-11-10, Q8 stage 1 slice 11) `Step`'s untraced instance (`TracedUntracedRaftStep.lean`)
+  have wp_raft_Step := raft.Step.untraced wp_raft_Step
   intro γ rn id rs ml st Hok Hmtc Htn Hflw HtrG
   rcases st with ⟨m, ents, sn, ctx, rsp⟩
   simp only at Hok Hmtc Htn ⊢

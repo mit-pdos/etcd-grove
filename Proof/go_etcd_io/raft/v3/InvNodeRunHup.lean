@@ -16,6 +16,7 @@ public import Proof.go_etcd_io.raft.v3.LemmasRawnodeR
 public import Proof.go_etcd_io.raft.v3.InvNodeChan
 -- `Step.commit_mono`
 public import Proof.go_etcd_io.raft.v3.Protocol.Facts
+public import Proof.go_etcd_io.raft.v3.TracedUntracedRaftStep
 
 @[expose] public section
 
@@ -53,6 +54,8 @@ theorem wp_rn_raft_Step_hup (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
     {{ (err : GoInterface) (t : w64), RET #err;
         ownRawNode γ rn id { rs with term := t } ∗
         ⌜uint.Z rs.term ≤ uint.Z t ∧ uint.Z t ≤ uint.Z rs.term + 1⌝ }} := by
+  -- (2026-11-10, Q8 stage 1 slice 11) `Step`'s untraced instance (`TracedUntracedRaftStep.lean`)
+  have wp_raft_Step := raft.Step.untraced wp_raft_Step
   subst Hst
   iintro %Φ ⟨#Hpkg, Hrn, #Hr, Hm, Hlc1⟩ HΦ
   unfold hupSt

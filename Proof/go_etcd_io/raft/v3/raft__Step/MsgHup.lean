@@ -45,7 +45,7 @@ the whole development. -/
 theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (PB : raft.Step.PbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
-    (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) :
+    (ents : List EntryM) (R : StepG GF) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) :
     m.Type' = MsgHup →
     m.Term' = W64 0 →
     -- an election increments the term; `send` panics if that wraps to zero
@@ -56,10 +56,11 @@ theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     NStateWf s →
     -- (D19i part 1) the floor at most `applied` (`hup`'s)
     uint.Z s.logst.fl ≤ uint.Z s.logst.applied →
-    s.gh.tr = none →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
+        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
+        -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
@@ -67,14 +68,15 @@ theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hrefines" ∷ ⌜StepCD c id B m s [] s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
-        "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hterm Hnowrap Htc Hwf Hfla Htr
-  wp_start as ⟨Hphys, Hm⟩
+        "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
+        "HG" ∷ stepOut R }} := by
+  intro Hty Hterm Hnowrap Htc Hwf Hfla
+  wp_start as ⟨Hphys, Hm, HG, Hgates⟩
   icases msgPtsC_nn _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
   wp_auto
   rw [decide_eq_false Hnn]
   wp_auto
-  wp_trace_hookC _P.traceReceiveMessage
+  wp_recv_gate_ns
   try wp_auto
   wp_apply PB.GetTerm.1 $$ [$Hm] as Hm
   -- `m.Term = 0` (a local message), so the term preamble is skipped
@@ -86,6 +88,10 @@ theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   wp_auto
   -- `hup(campaignPreElection)` with pre-vote on, `hup(campaignElection)` otherwise;
   -- `hup`'s spec covers both
+  -- a local message: the preamble skipped
+  have hnbf : ¬ PreBF m s := PreBF.of_zero Hterm
+  imod preGate_nobf c r id s m _ _ (.inl Hterm) hnbf $$ Hgpre HG with HG
+  ihave Hhg := Hghup $$ %(by first | exact Hty | rfl)
   wp_apply raft.wp_load_preVoteC $$ Hphys as Hphys
   -- (2026-10-14, stage B7) the log facts the campaign guard reads on the full log
   icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hback⟩
@@ -99,14 +105,20 @@ theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   cases Hpv : s.prevote
   all_goals
     wp_auto
-    wp_apply _P.hup c r id s _ Hnowrap ?Hpvt Hwf Hfla (by tr_none) $$ [$Hphys]
-      as %s' ⟨Hphys, %Hok, -⟩
+    first
+    | ihave Hhg := hupGates_type c r id s _ _ _ (hupType_pre Hpv) $$ Hhg
+    | ihave Hhg := hupGates_type c r id s _ _ _ (hupType_el Hpv) $$ Hhg
+    iunfold hupGates at Hhg
+    wp_apply _P.hup c r id s _ R.G1 R.GE Hnowrap ?Hpvt Hwf Hfla $$ [$Hphys $HG Hhg]
+      as %s' ⟨Hphys, HGo, %Hok, -⟩
     case Hpvt =>
       first
         | exact fun _ => ⟨Hpv, Htc Hpv⟩
         | exact fun h => by
             have := congrArg List.length h
             simp [campaignPreElection] at this
+    · iexact Hhg
+    ihave HG := stepOut_hup R _ $$ HGo
     have HCD := stepCD_hup (B := B) (m := m) Hok Hnowrap Hlogf
     have Hpc := fun h => HupGuard.precand Hok.2.2.2.2 h
     have Hhg := Hok.2.2.2.2
@@ -124,7 +136,7 @@ theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       · exact .inl ⟨h, rfl, rfl, rfl, fun h => h, Int.le_refl _⟩
       · exact .inr ⟨Hty, Hl, Hsn, Hno, Hlogf.1 Hsn, Hlogf.2.1, Hlogf.2.2⟩⟩, Hsrb⟩
     iapply HΦ $$ %interface.nil %s'
-    iframe Hphys
+    iframe Hphys HG
     ipureintro
     exact ⟨Hwf', HCD, rfl, NetFrame.of_logst Hl Hpv' Hg', Ht1, fun _ => Ht2,
       fun h _ _ => absurd Hty h, fun _ => by rw [Hl]; exact Int.le_refl _,
