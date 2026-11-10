@@ -32,6 +32,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply
 public import Proof.encoding.base64.Base
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.RegistryDefs
 public import Proof.k8s_io.apiserver.pkg.util.feature.Gate
+public import Perennial.Proof.context.Base
 
 @[expose] public section
 
@@ -144,6 +145,22 @@ instance k8s_io_apimachinery_pkg_util_wait_is_pkg_init_inst :
   define_is_pkg_init iprop(True)
 instance k8s_io_apimachinery_pkg_util_wait_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.wait :=
+  build_get_is_pkg_init_wf
+
+-- (version: moved from the cacher's Base, featuregate imports it)
+instance k8s_io_apimachinery_pkg_util_version_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.version :=
+  define_is_pkg_init iprop(True)
+instance k8s_io_apimachinery_pkg_util_version_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.version :=
+  build_get_is_pkg_init_wf
+
+-- (pflag: names only, what featuregate's interfaces name)
+instance github_com_spf13_pflag_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.github_com.spf13.pflag :=
+  define_is_pkg_init iprop(True)
+instance github_com_spf13_pflag_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.github_com.spf13.pflag :=
   build_get_is_pkg_init_wf
 
 instance k8s_io_component_base_featuregate_is_pkg_init_inst :
