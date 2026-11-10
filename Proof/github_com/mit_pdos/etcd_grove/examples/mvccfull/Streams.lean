@@ -273,9 +273,12 @@ def streamInv (σs : StreamNames) : IProp GF :=
     (⌜regOk' S W C⌝ ∨ ⌜S.closed = true⌝ ∗ ∃ rs : List WResp, wsRecv σs.ws rs))
 
 /-- **The lock's half of the registry**, with every entry's fragment (so that the registrar, under
-`s.mu` and with the stream's invariant opened, can mark an entry cancelled, `ghost_map_update`). -/
+`s.mu` and with the stream's invariant opened, can mark an entry cancelled, `ghost_map_update`;
+a marked entry's fragment is persistent, so `cancel` keeps a copy as the witness its `Cancel`'s
+commit needs, after the lock is released). -/
 def regLock (σs : StreamNames) (W : GMap w64 Reg) : IProp GF :=
-  iprop(ghostMapAuth σs.reg (1 : Qp).half W ∗ [∗map] id ↦ x ∈ W, id ↪[σs.reg] x)
+  iprop(ghostMapAuth σs.reg (1 : Qp).half W ∗
+    [∗map] id ↦ x ∈ W, if x.cm then id ↪[σs.reg]□ x else id ↪[σs.reg] x)
 
 /-- **A registered watcher under `s.mu`** (see the file header): its struct, its range's slices
 (read-only), the stream's sent count at its registration, and `watcherOk`. -/
