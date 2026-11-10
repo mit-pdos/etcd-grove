@@ -1128,6 +1128,343 @@ theorem getCall_take (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (eD eU : Go
       iapply tok_excl γt
       iframe Htok Htok'
 
+/-! ### Lists (stage 7e-4)
+
+A list commits as a `Get` does, at the first firing of its first page's read update (`listQ`) at
+the revision the client prophesies (`listCall`), with the answer `lOut x σ` there; its later pages'
+updates (`listP σ`, indexed by the first page's state) fire only at states that extend it, by the
+revisions' map (`RevOk`'s last clause: `GetList`'s premise `Q R σ ∗ P σ σ' ⊢ ⌜kvSameHist σ σ' ∧
+σ.rev ≤ σ'.rev⌝`, Scope §5, B5 (a)). -/
+
+theorem listOutDriver_err (x : Input) (R : w64) (a : ListModel.LState w8 (DObj × Nat)) :
+    (listOutDriver x R a).Err' = W64 0 := by
+  unfold listOutDriver
+  split <;> rfl
+
+/-- A list never answers `EOther`. -/
+theorem lOut_ans (x : Input) (σ : KVState) (hx : InOk x) (hk4 : x.Kind' = W64 4) :
+    ansOf (lOut x σ) = .ok (lOut x σ) := by
+  obtain ⟨-, -, -, hks⟩ := hx.2.2.2.2.2 hk4
+  obtain ⟨n, hn, -⟩ := hx.2.2.2.2.1
+  obtain ⟨k, hk⟩ := Option.isSome_iff_exists.1 hks
+  unfold ansOf lOut
+  rw [hn, hk]
+  simp only
+  by_cases hlt : σ.rev < uint.nat n
+  · simp [hlt, tooLargeL, errOutL]
+  · rw [if_neg hlt]
+    refine if_neg ?_
+    rw [listOutDriver_err]
+    decide
+
+/-- **A list's call invariant** (as `getCall`'s): `lintest`'s update with a later credit and the
+commit bit `γc` at `none`, or, once committed at a state `σ` of the prophesied revision (`γp`),
+the continuation at `lOut x σ` (a list caches nothing: `lOut_name`), until `Apply` takes it with
+its token `γt`. -/
+def listCall (γ : KNames) (g0 : HSt) (γc γt γp : GName) (x : Input) (Φ : val → IProp GF) :
+    IProp GF :=
+  inv callN iprop(
+    (linU γ g0 (boxIn x) Φ ∗ £ 1 ∗ dghostVar γc (DFrac.own 1) (none : Option KVState)) ∨
+    (∃ (σ : KVState) (R : w64), dghostVar γc DFrac.discard (some σ) ∗
+      dghostVar γp DFrac.discard (some R) ∗ ⌜σ.rev = uint.nat R⌝ ∗
+      ghostMapElem γ.r σ.rev DFrac.discard σ ∗
+      (contAt g0 x (lOut x σ) Φ ∨ dghostVar γt (DFrac.own 1) ())))
+
+instance listCall_persistent (γ : KNames) (g0 : HSt) (γc γt γp : GName) (x : Input)
+    (Φ : val → IProp GF) : Persistent (listCall γ g0 γc γt γp x Φ) := by
+  unfold listCall; infer_instance
+
+/-- **A list's first page's result** at a firing at `σ`: what `GetList` asks of it (`σ` fit for
+lists), room, `σ` in the revisions' map, and, at the prophesied revision `R`, the commit bit. -/
+def listQ (c : StoreCfg GF DObj) (γ : KNames) (γc : GName) (R : w64) (σ : KVState) : IProp GF :=
+  iprop(⌜kvWf c σ ∧ kvWfHist c σ ∧ kvKeysShort σ ∧ σ.rev + 2 < 2 ^ 63⌝ ∗
+    ghostMapElem γ.r σ.rev DFrac.discard σ ∗
+    (⌜σ.rev = uint.nat R⌝ → dghostVar γc DFrac.discard (some σ)))
+
+instance listQ_persistent (c : StoreCfg GF DObj) (γ : KNames) (γc : GName) (R : w64)
+    (σ : KVState) : Persistent (listQ c γ γc R σ) := by
+  unfold listQ; infer_instance
+
+/-- **A list's later page's result** at a firing at `σ'`, the first page's state `σ`: one history,
+`σ'` not older. -/
+def listP (σ σ' : KVState) : IProp GF := iprop(⌜kvSameHist σ σ' ∧ σ.rev ≤ σ'.rev⌝)
+
+/-- `GetList`'s premises on `Q` and `P`. -/
+theorem listQ_pure (c : StoreCfg GF DObj) (γ : KNames) (γc : GName) (R : w64) (σ : KVState) :
+    listQ c γ γc R σ ⊢ ⌜kvWf c σ ∧ kvWfHist c σ ∧ kvKeysShort σ⌝ := by
+  unfold listQ
+  iintro ⟨%H, -, -⟩
+  ipureintro; exact ⟨H.1, H.2.1, H.2.2.1⟩
+
+theorem listQP_pure (c : StoreCfg GF DObj) (γ : KNames) (γc : GName) (R : w64) (σ σ' : KVState) :
+    listQ c γ γc R σ ∗ listP σ σ' ⊢ ⌜kvSameHist σ σ' ∧ σ.rev ≤ σ'.rev⌝ := by
+  unfold listQ listP
+  iintro ⟨-, %H⟩
+  ipureintro; exact H
+
+/-- A state in the revisions' map is extended by the current one. -/
+theorem revOwn_ext (γ : KNames) (σ s : KVState) :
+    revOwn (GF := GF) γ σ ∗ ghostMapElem γ.r s.rev DFrac.discard s ⊢
+      revOwn γ σ ∗ ⌜k8s.KvExt s σ⌝ := by
+  iintro ⟨H, #Hs⟩
+  iunfold revOwn at H
+  icases H with ⟨%Mr, HA, #He, %Hok⟩
+  ihave %Hl := ghost_map_lookup $$ HA Hs
+  isplitl
+  · iunfold revOwn
+    iexists Mr
+    iframe HA He
+    ipureintro; exact Hok
+  · ipureintro; exact Hok.2.2 _ _ Hl
+
+/-- **A list's first page's read update for the prophesied revision `R`** (as `get_read_au`). -/
+theorem list_read_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVNames)
+    (γc γt γp : GName) (x : Input) (hx : InOk x) (hk4 : x.Kind' = W64 4)
+    (R : w64) (Φ : val → IProp GF) :
+    kInv γ c g0 γk ∗ listCall γ g0 γc γt γp x Φ ∗ dghostVar γp DFrac.discard (some R) ⊢
+      kvReadAu γk (listQ c γ γc R) := by
+  have Hm := drvInvN_mask'
+  have Hcm := callN_mask'
+  have HE := drvE_mask'
+  iintro ⟨#Hinv, #Hc, #Hp⟩
+  unfold kvReadAu kvAu
+  imodintro
+  iauintro
+  unfold atomic_acc
+  iunfold kInv at Hinv
+  iinv Hinv with >Hi Hclose
+  iunfold kInvBody at Hi
+  icases Hi with ⟨%h, %S, %σ, %M, %nx, Hh, Hσ, HM, Hrv, Hhist, %Hok⟩
+  obtain ⟨Hr, Hok⟩ := Hok
+  ihave ⟨Hrv, #Hel⟩ := revOwn_elem γ σ $$ Hrv
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ ((⊤ \ ↑srvRaftN) \ ↑kvN) \ ↑drvInvN from
+    Std.LawfulSet.empty_subset)
+  iintro Hclose2
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iexists σ
+  iframe Hσ
+  isplit
+  · iintro Hσ
+    imod Hclose2 with -
+    imod Hclose $$ [Hh Hσ HM Hrv Hhist] with -
+    · inext
+      iunfold kInvBody
+      iexists h, S, σ, M, nx
+      iframe
+      ipureintro; exact ⟨Hr, Hok⟩
+    imodintro
+    iempintro
+  · iintro ⟨Hσ, %hroom⟩
+    imod Hclose2 with -
+    have hpure : kvWf c σ ∧ kvWfHist c σ ∧ kvKeysShort σ ∧ σ.rev + 2 < 2 ^ 63 :=
+      ⟨Hok.wf, Hok.hwf, keysOk_short σ Hok.keys, kvRoom_two hroom⟩
+    by_cases Hrev : σ.rev = uint.nat R
+    · unfold listCall
+      iinv Hc with Hci Hclosec
+      icases Hci with (⟨HU, >Hlc, >Hγc⟩ | ⟨%σ0, %R0, >#Hv, >#Hp0, >%Hrev0, >#HL, Hrest⟩)
+      · -- the first firing at revision `R`: commit
+        imod lc_fupd_elim_later $$ Hlc HU with HU
+        obtain ⟨S', HS', Hok'⟩ := kOk_list Hok x hx hk4
+        have Hst : (k8setcd3S (GF := GF) g0).M.step S (boxIn x, boxOut (lOut x σ)) = some S' := by
+          rw [step_box, lOut_ans x σ hx hk4]; exact HS'
+        imod (fupd_mask_subseteq HE) with Hclose3
+        imod (linU_commit γ g0 x _ Φ h S S' Hr Hst) $$ [Hh HU] with ⟨Hh, HΦ⟩
+        · iframe
+        imod Hclose3 with -
+        imod dghostVar_update (some σ) γc none $$ Hγc with Hγc
+        imod dghostVar_persist γc 1 _ $$ Hγc with #Hγc
+        imod Hclosec $$ [HΦ] with -
+        · inext
+          iright
+          iexists σ, R
+          iframe Hγc Hp Hel
+          isplitr
+          · ipureintro; exact Hrev
+          ileft
+          iframe HΦ
+        imod Hclose $$ [Hh Hσ HM Hrv Hhist] with -
+        · inext
+          iunfold kInvBody
+          iexists _, S', σ, M, nx
+          iframe
+          ipureintro; exact ⟨run_snoc g0 h S S' _ Hr Hst, Hok'⟩
+        imodintro
+        imodintro
+        unfold listQ
+        isplitr
+        · ipureintro; exact hpure
+        iframe Hel
+        iintro %_
+        iexact Hγc
+      · -- a later firing at revision `R`: the same state, nothing to do
+        ihave %HpR := dghostVar_agree γp _ _ _ _ $$ Hp Hp0
+        simp only [Option.some.injEq] at HpR
+        subst HpR
+        ihave %HLe := ghostMapElem_agree σ.rev γ.r _ _ _ _ $$ [HL] Hel
+        · rw [Hrev, ← Hrev0]; iexact HL
+        subst HLe
+        imod Hclosec $$ [Hrest] with -
+        · inext
+          iright
+          iexists σ0, R
+          iframe Hv Hp0 HL Hrest
+          ipureintro; exact Hrev0
+        imod Hclose $$ [Hh Hσ HM Hrv Hhist] with -
+        · inext
+          iunfold kInvBody
+          iexists h, S, _, M, nx
+          iframe
+          ipureintro; exact ⟨Hr, Hok⟩
+        imodintro
+        imodintro
+        unfold listQ
+        isplitr
+        · ipureintro; exact hpure
+        iframe Hel
+        iintro %_
+        iexact Hv
+    · imod Hclose $$ [Hh Hσ HM Hrv Hhist] with -
+      · inext
+        iunfold kInvBody
+        iexists h, S, σ, M, nx
+        iframe
+        ipureintro; exact ⟨Hr, Hok⟩
+      imodintro
+      imodintro
+      unfold listQ
+      isplitr
+      · ipureintro; exact hpure
+      iframe Hel
+      iintro %H
+      exact absurd H Hrev
+
+/-- **A list's later page's read update** for the first page's state `s` (in the revisions' map):
+it fires only at a state that extends `s`. -/
+theorem list_later_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVNames)
+    (s : KVState) :
+    kInv γ c g0 γk ∗ ghostMapElem γ.r s.rev DFrac.discard s ⊢ kvReadAu γk (listP s) := by
+  have Hm := drvInvN_mask'
+  iintro ⟨#Hinv, #Hs⟩
+  unfold kvReadAu kvAu
+  imodintro
+  iauintro
+  unfold atomic_acc
+  iunfold kInv at Hinv
+  iinv Hinv with >Hi Hclose
+  iunfold kInvBody at Hi
+  icases Hi with ⟨%h, %S, %σ, %M, %nx, Hh, Hσ, HM, Hrv, Hhist, %Hok⟩
+  ihave ⟨Hrv, %Hext⟩ := revOwn_ext γ σ s $$ [Hrv Hs]
+  · iframe Hrv Hs
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ ((⊤ \ ↑srvRaftN) \ ↑kvN) \ ↑drvInvN from
+    Std.LawfulSet.empty_subset)
+  iintro Hclose2
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iexists σ
+  iframe Hσ
+  isplit
+  · iintro Hσ
+    imod Hclose2 with -
+    imod Hclose $$ [Hh Hσ HM Hrv Hhist] with -
+    · inext
+      iunfold kInvBody
+      iexists h, S, σ, M, nx
+      iframe
+      ipureintro; exact Hok
+    imodintro
+    iempintro
+  · iintro ⟨Hσ, -⟩
+    imod Hclose2 with -
+    imod Hclose $$ [Hh Hσ HM Hrv Hhist] with -
+    · inext
+      iunfold kInvBody
+      iexists h, S, σ, M, nx
+      iframe
+      ipureintro; exact Hok
+    imodintro
+    imodintro
+    unfold listP
+    ipureintro; exact kvExt_sameHist Hext
+
+/-- **The maker of a list's first page's updates**: for the revision the client prophesies, the
+revision recorded (`γp`) and each member's read update for it. -/
+theorem list_maker (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (ms : List (client.SrvAt GF))
+    (γc γt γp : GName) (x : Input) (hx : InOk x) (hk4 : x.Kind' = W64 4) (Φ : val → IProp GF) :
+    □ ([∗list] sv ∈ ms, kInv γ c g0 sv.γr.kv) ∗ listCall γ g0 γc γt γp x Φ ∗
+      dghostVar γp (DFrac.own 1) (none : Option w64) ⊢
+      (iprop(∀ R : w64, |==> □ [∧list] sv ∈ ms,
+        ⌜listQ c γ γc R = fun _ => iprop(True)⌝ ∨ kvReadAu sv.γr.kv (listQ c γ γc R)) :
+        IProp GF) := by
+  iintro ⟨#Hinvs, #Hc, Hp⟩ %R
+  imod dghostVar_update (some R) γp none $$ Hp with Hp
+  imod dghostVar_persist γp 1 _ $$ Hp with #Hp
+  imodintro
+  imodintro
+  refine BigAndL.bigAndL_intro (PROP := IProp GF) fun j sv hj => ?_
+  have hsv : sv ∈ ms := List.mem_of_getElem? hj
+  iintro ⟨⟨#Hinvs, #Hc⟩, #Hp⟩
+  iright
+  iapply list_read_au γ c g0 sv.γr.kv γc γt γp x hx hk4 R Φ
+  iframe Hc Hp
+  iapply (BigSepL.bigSepL_mem (Φ := fun sv : client.SrvAt GF => kInv γ c g0 sv.γr.kv)
+    hsv) $$ Hinvs
+
+/-- **The maker of a list's later pages' updates**, from the first page's result. -/
+theorem list_makerP (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (ms : List (client.SrvAt GF))
+    (γc : GName) :
+    □ ([∗list] sv ∈ ms, kInv γ c g0 sv.γr.kv) ⊢
+      (iprop(□ ∀ (R : w64) (σ : KVState), □ listQ c γ γc R σ -∗
+        |==> □ [∧list] sv ∈ ms, ⌜listP (GF := GF) σ = fun _ => iprop(True)⌝ ∨
+          kvReadAu sv.γr.kv (listP σ)) :
+        IProp GF) := by
+  iintro #Hinvs
+  imodintro
+  iintro %R %σ #HQ
+  iunfold listQ at HQ
+  icases HQ with ⟨-, #Hel, -⟩
+  imodintro
+  imodintro
+  refine BigAndL.bigAndL_intro (PROP := IProp GF) fun j sv hj => ?_
+  have hsv : sv ∈ ms := List.mem_of_getElem? hj
+  iintro ⟨#Hinvs, #Hel⟩
+  iright
+  iapply list_later_au γ c g0 sv.γr.kv σ
+  iframe Hel
+  iapply (BigSepL.bigSepL_mem (Φ := fun sv : client.SrvAt GF => kInv γ c g0 sv.γr.kv)
+    hsv) $$ Hinvs
+
+/-- **`Apply` takes a list's continuation** after the reply (as `getCall_take`). -/
+theorem listCall_take (γ : KNames) (g0 : HSt) (γc γt γp : GName) (x : Input)
+    (Φ : val → IProp GF) (σ : KVState) :
+    listCall γ g0 γc γt γp x Φ ∗ dghostVar γc DFrac.discard (some σ) ∗
+      dghostVar γt (DFrac.own 1) () ∗ £ 1 ⊢
+      |={⊤}=> contAt g0 x (lOut x σ) Φ := by
+  iintro ⟨#Hc, #Hv, Htok, Hlc⟩
+  unfold listCall
+  iinv Hc with Hci Hclosec
+  icases Hci with (⟨-, -, >Hγc⟩ | ⟨%σ', %R', >#Hv', >#Hp', >%Hrev', >#HL, Hrest⟩)
+  · ihave %Hbad := dghostVar_valid_2 γc _ _ _ _ $$ Hv Hγc
+    exfalso
+    cases Hbad.2
+  · ihave %Hvv := dghostVar_agree γc _ _ _ _ $$ Hv Hv'
+    simp only [Option.some.injEq] at Hvv
+    subst Hvv
+    imod lc_fupd_elim_later $$ Hlc Hrest with Hrest
+    icases Hrest with (HΦ | Htok')
+    · imod Hclosec $$ [Htok] with -
+      · inext
+        iright
+        iexists σ, R'
+        iframe Hv Hp' HL
+        isplitr
+        · ipureintro; exact Hrev'
+        iright
+        iexact Htok
+      imodintro
+      iexact HΦ
+    · iexfalso
+      iapply tok_excl γt
+      iframe Htok Htok'
+
 end proofs
 
 end k8s_etcd3
