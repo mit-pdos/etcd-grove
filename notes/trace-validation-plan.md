@@ -775,6 +775,25 @@ collections `--reuse --check`, none updated; `interface/` differs in the fourtee
 files only (their gates and resources); `etc/api-check.py` 0 errors; `--layout` 0 new; `etc/gen-link.py
 --raft` unchanged.
 
+**Q8 stage 1 (slice 15), 2026-11-10 (branch `trace-check-q8s15`): the traced families and the share's
+re-ordering; `stepBundle_traced` by paths, the local no-line paths proved; every receive-line path
+blocked on the frozen `FxPresR` (Q14).** Decided by the agent (`notes/decisions.md`, "Q8 stage 1 (slice
+15)"). Done: (1) **the families** (`TracedFamilies.lean`): `PhaseAt Φs o` (the server in `Φs`, the share
+a permutation of `pendAbs C o`), `trFam` (`PermInv`, unchanged by untraced messages), `SimIdleS` (the
+idle relation's server part, outbox-free); **the re-ordering law** `trCapB_perm` (checked: `simInv`
+reads a share's list only as a bag and by membership), `trFam_idle`, `trCapB_monoΛ`, `trCapB_pin`. (2)
+**The statement by paths** (`stepBundle_traced.on Path`) with what slice 13's statement lacked: local
+messages at term zero, `MsgHup` not at a leader, `TrNoSnap`, a traced message's `To` the node, and the
+last-event predicate given back as `stepLastEv Λ`. (3) **Proved**: `stepBundle_traced_localNoLine`
+(`MsgBeat`/`MsgProp` at a non-leader; `TracedRaftStepPaths.lean`), the template for the rest (one
+family `R`, guards discharged, `StepEnd` read at the close, the share re-ordered). **Blocked**: every
+path of a traced type: its receive line's `FxPresR` (frozen) quantifies over arbitrary phantom replies
+`Pph` that no phase or premise pins, so its facts are not provable (Q14, recommended: the phantoms a
+function of the receiving server). **Not done, unblocked**: the local paths with lines (`MsgHup` at a
+non-leader, `MsgBeat`/`MsgProp` at a leader: `FxPres`/`FxPresU` per line, the share pinned by
+`trCapB_pin`); then the ticks' traced corollaries; `raft.Step.traced` is the bundle with
+`raft.Step.spec` (slice 13), nothing to add until the bundle holds on every path.
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its
@@ -1040,6 +1059,17 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   (`TracedMsgType.lean`) gives `msgTypeStr ty` for the six traced types, for the send and receive
   hooks; the Go test `examples/raft/tracecheck/msgtype_string_test.go`. Trust base: the axiom out,
   the model in, the server's results on `strconv.Itoa`'s axiom (`notes/decisions.md`, "Q9").
+- **Q14 (2026-11-10, Q8 stage 1 slice 15): a receive line's phantom replies, unpinned in the frozen
+  `FxPresR`.** `FxPresR` (`TracedCap.lean`, frozen at `trace-check-frozen-a1`) asks the specification
+  state's facts after the line for every result `(a', P', Pph)` its `LineEffect` admits; the phases pin
+  `toC a'` and `P'`, nothing pins the phantoms `Pph`, and `LineEffect` cannot be instantiated inside
+  `FxPresR` to pin them (no bag `Nodup`/count there; the result's `violated` circular). So no receive
+  line's gate can be built and every path of a traced type is blocked (`notes/decisions.md`, "Q8 stage
+  1 (slice 15)"). Options: (a) the phantoms a function `ph : Etcdraft.Server → List Etcdraft.Msg` of the
+  receiving server, a parameter of `PhaseStepR`, `FxPresR` and `trCap_fire_recv.statement` (`Pph := ph
+  a`; the existing `phantomOf` gives it); (b) `FxPresR` given the bag's premises and a chain-determinism
+  lemma; (c) `Pph` an argument of `Φ'`. **Recommended: (a)** (the smallest change; the law's proof
+  passes `ph a` through unchanged). Not taken: a frozen statement.
 - **Q13 (2026-11-09, layer B's exports): amending the frozen laws' event premise.** `mainPure` needs
   per-event facts (`ScopeOk`, `NumsBelow K`, `ConfsWithin 3`, `BootLogsOk`, an event count) that `simInv`
   cannot keep: the frozen `trCap_fire*` laws are generic in their events, four of them admit a

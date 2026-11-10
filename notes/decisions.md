@@ -34256,3 +34256,85 @@ at the outbox it knows.
 
 No ghost change; no client-visible change (every changed spec is raft-internal; `raft.Step.spec`, the
 tick specs and the node API keep their text, `Link.lean` unchanged); no axiom or `sorry`.
+
+## Q8 stage 1 (slice 15): the traced families, the share's re-ordering; `stepBundle_traced` by paths, the local no-line paths proved; the receive lines blocked on the frozen `FxPresR` (2026-11-10 · trace-check, Q8 stage 1 slice 15; decided by the agent under the user's delegation · branch `trace-check-q8s15`; DRAFT until trace-check's Freeze)
+
+**The traced families** (`TracedFamilies.lean`). A traced caller's resource family over raft's outbox is
+the capability with the server in a phase `Φs` and the share's pending list **a permutation of** the
+outbox's traced messages: `PhaseAt Φs o C cs P := Φs C cs ∧ P ≡ₚ pendAbs C o`, `trFam … Φs Λ o :=
+trCapB … (PhaseAt Φs o) Λ`; `PermInv` by `trFam_permInv` (what `StepGOk` asks of `GE`), unchanged by
+untraced messages (`trFam_untraced`, from `msgAbs_untraced`). The idle relation is split into the
+server's part and the list (`SimIdleS`, `simIdle_iff`; `SimIdleS` does not read the outbox,
+`simIdleS_sendMsgs`). Rejected: an exact-list family for the paths that do not campaign and a
+permuted one for the rest (two kinds of family through the same gates; the permuted one costs nothing
+where order is kept).
+
+**The share re-ordering law** (`trCapB_perm`): the capability's share's list replaced by any
+permutation, the phase changed accordingly, by an update inside the simulation's invariant. **Checked
+against the code**: `simInv` (`TraceSimGhost.lean`) reads the shares' lists only through
+`BagRep σ.pendingMessages ((C.flatMap …) ++ phP)` (counts, so a permutation of one node's list keeps
+it: `flatMap_perm_one`, `bagRep_perm`) and through every pending message's source (membership); the
+share's key and server are unchanged (`sharePerm_pure`). The laws take whatever list the share holds
+(`trCap_fire_ready` hands it out as tokens in its order; nothing reads the order). So the slice-14
+claim holds; `trFam_idle` closes a family at `s'.outbox` into `SimIdle C s'`. Also: `trCapB_monoΛ`
+(the last-event predicate weakened), `trCapB_pin` (the share's voters, server and list named, so a
+later phase can pin a line's result: see the finding below).
+
+**`stepBundle_traced` by paths, and four premises/one conclusion found needed** (`TracedRaftStep.lean`,
+not proved before, not client-visible, not at the frozen tag). The statement is now
+`stepBundle_traced.on Path` (`statement := on (fun _ _ => True)`), so the proofs come path by path. It
+was not derivable as slice 13 stated it:
+- a local message (`MsgHup`, `MsgBeat`, `MsgProp`) at a positive term steps the node down
+  (`becomeFollower`, a `BecomeFollower` line) with no receive line before it, which the specification
+  cannot take: premise `m.Term' = 0` for those (the ticks' `tickMsg` and `Propose` have it;
+  `raft.Step.spec` already has it for `MsgHup`);
+- `MsgHup` at a leader: `hupGates`' `"Hgbc"` (the `BecomeCandidate` line's gate) is asked whatever the
+  role, and a leader has no `Timeout` step, so no phase step exists; `hup` returns before it at a
+  leader. Premise `m.Type' = MsgHup → s.role ≠ .leader` (`tickElection` is a non-leader's tick).
+  Rejected for now: guarding `"Hgbc"` by the role in `hup`'s spec (a raft-internal change through
+  `hup`, `campaign`'s callers and `Step`'s proof, for a case a traced node never reaches);
+- `candidateGates`'/`leaderGates`' `"#Hnosnap"` (`TrNoSnap`) is asked unguarded and nothing in the
+  capability or raft's ghost refutes a storage compaction: the bundle takes `TrNoSnap s.gh.tr s.logst`
+  (the Draft's P2, the node API's to supply);
+- the receive line's event is the node's own (`SendEvOf … m.dst`, `lineEffect_resp`'s `hev`): premise
+  `m.To' = id` for a traced type (`raft.Step.spec` has it per type already);
+- the conclusion gave back the input's last-event predicate `Λ`, which a path that logs a line cannot
+  (the capability's `simBoot` then records the line): now `stepLastEv Λ := Λ o ∨ o.isSome`.
+
+**Proved: the local messages that log no line** (`stepBundle_traced_localNoLine`,
+`TracedRaftStepPaths.lean`): `MsgBeat`/`MsgProp` at a non-leader (ignored, dropped, or forwarded as an
+untraced `MsgProp`). The pattern for every path: `R` is one traced family (`localF`: raft's ghost state,
+handed in at the receive gate and back at the close, with `trFam` at the idle server) wherever `Step`
+may end, `⌜False⌝` between hooks no path reaches (`Gf`, `Gb1`, `Gb2`, `Gp1`); every other gate is
+discharged by its type or role guard; the close reads the end state from `StepEnd`
+(`localNoLine_end`) and re-orders the share (`trFam_idle`).
+
+**Finding (blocks every receive-line path; frozen law): `FxPresR` cannot be discharged.** The frozen
+`FxPresR` (`TracedCap.lean`, at `trace-check-frozen-a1`) asks the facts at
+`withNode σ id a' (without m) (fold (P' ++ Pph))` for **every** `a'`, `P'`, `Pph` with the line's
+`LineEffect`, constrained otherwise only by `Φ' C (toC a') (P ++ P')`. The phases can pin `toC a'` and
+`P'` (with `trCapB_pin`), but nothing pins the phantom replies `Pph`; and `LineEffect` cannot be
+instantiated inside `FxPresR` to pin them by the specification's determinism (it needs the bag's
+`Nodup` and the message's positive count, which `FxPresR` does not carry, and the result's
+`violated = none`, circular). With an arbitrary `Pph` the pending bag may hold any message, so
+`simFx` (`SpecInv`'s `TermsLe`, `msgFacts`) is not provable. Every path of a traced type starts with a
+receive line, so all of them (the single-reply paths and the broadcasts after a receive) are blocked.
+The non-receive lines' `FxPres`/`FxPresU` are not affected (no phantoms; `a'` pinned up to `toC`, which
+is all `simFx` reads). **Question for the user** (plan, Q14), options: (a) the phantoms a function of
+the receiving server and the message, `ph : Etcdraft.Server → List Etcdraft.Msg`, a parameter of
+`PhaseStepR`, `FxPresR` and `trCap_fire_recv.statement` (`Pph := ph a`; `phantomOf` already is one:
+`[phantomOf a m]` for a stale request, `[]` otherwise); (b) `FxPresR` given the bag's premises
+(`σ.messages.domain.Nodup`, `0 < count σ.messages m`) so a caller can pin `Pph` through `LineEffect`
+and a chain-determinism lemma (heavier, and still circular on `violated`); (c) `Pph` added to `Φ'`'s
+arguments. Recommended: (a).
+
+**Not done** (exact): every path of a traced type (blocked as above); the local paths with lines:
+`MsgHup` at a follower or candidate (`BecomeCandidate`, then the vote requests and the self-vote's
+response: `FxPresU` with the term's commit certificate at the new term), `MsgBeat` at a leader (the
+heartbeats, `FxPres` of each send line), `MsgProp` at a leader (`Replicate` lines with their records,
+the self-acknowledgement, the appends, a commit); `raft.Step.traced` (slice 13's decision: the bundle
+with `raft.Step.spec` is the traced triple, and a third copy of `Step`'s precondition was rejected;
+nothing to add until the bundle is proved on every path); the ticks' traced corollaries (`tickElection`
+is `MsgHup`'s campaign, `tickHeartbeat` `MsgBeat`'s broadcast: neither path is proved).
+
+No ghost change; no client-visible change; no frozen statement changed; no axiom or `sorry`.

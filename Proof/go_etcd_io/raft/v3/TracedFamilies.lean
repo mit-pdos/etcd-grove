@@ -15,6 +15,9 @@ pending bag's counts, `BagRep … (C.flatMap …) ++ phP`) and by membership (ev
 source): checked against `simInv`'s definition (`TraceSimGhost.lean`) in this slice; the other readers
 of a share's list are the laws, which take whatever list the share holds (`trCap_fire_ready` hands
 the list out as tokens in its order, which nothing relies on).
+
+Also: `trCapB_monoΛ` (the node's last-event predicate weakened), `trCapB_pin` (the share named, so a
+phase can state a line's exact result).
 -/
 module
 
@@ -215,6 +218,45 @@ theorem trCapB_perm (tr : Option GName) (γ : RaftNames) (r : Loc) (id : w64) (c
     isplitr; · ipureintro; exact Hpf
     isplitr; · ipureintro; exact Hnn
     ipureintro; exact hΦ'
+
+/-- The capability's last-event predicate weakened. -/
+theorem trCapB_monoΛ (tr : Option GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (b : Bool)
+    (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ Λ' : Option TraceEv → Prop)
+    (h : ∀ o, Λ o → Λ' o) :
+    trCapB (GF := GF) tr γ r id c b Φ Λ ⊢ trCapB tr γ r id c b Φ Λ' := by
+  cases tr with
+  | none => exact .rfl
+  | some γd =>
+    iintro H
+    iunfold trCapB at H
+    icases H with ⟨%tn, %C, %tl, %cs, %P, #Hdir, %Hpf, #Htl, #Hlg, %Hnn, #Hinv, #Hrinv, Hnode, ⟨%o, Hbt, %HΛ⟩, %HΦ⟩
+    iunfold trCapB
+    iexists tn, C, tl, cs, P
+    iframe Hdir Htl Hlg Hinv Hrinv Hnode
+    isplitr; · ipureintro; exact Hpf
+    isplitr; · ipureintro; exact Hnn
+    isplitl [Hbt]; · iexists o; iframe Hbt; ipureintro; exact h o HΛ
+    ipureintro; exact HΦ
+
+/-- **The capability's share, pinned**: its voters, server and pending list named, so that a later
+phase can state the line's exact result on them (a node-event line's facts, `FxPres`, are asked of
+every result the phase admits: pinning the share pins the result up to `toC`). -/
+theorem trCapB_pin (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (b : Bool)
+    (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ : Option TraceEv → Prop) :
+    trCapB (GF := GF) (some γd) γ r id c b Φ Λ ⊢
+      ∃ (C0 : List w64) (cs0 : ServerC) (P0 : List Etcdraft.Msg), ⌜Φ C0 cs0 P0⌝ ∗
+        trCapB (some γd) γ r id c b (fun C cs P => C = C0 ∧ cs = cs0 ∧ P = P0 ∧ Φ C cs P) Λ := by
+  iintro H
+  iunfold trCapB at H
+  icases H with ⟨%tn, %C, %tl, %cs, %P, #Hdir, %Hpf, #Htl, #Hlg, %Hnn, #Hinv, #Hrinv, Hnode, Hbt, %HΦ⟩
+  iexists C, cs, P
+  isplitr; · ipureintro; exact HΦ
+  iunfold trCapB
+  iexists tn, C, tl, cs, P
+  iframe Hdir Htl Hlg Hinv Hrinv Hnode Hbt
+  isplitr; · ipureintro; exact Hpf
+  isplitr; · ipureintro; exact Hnn
+  ipureintro; exact ⟨rfl, rfl, rfl, HΦ⟩
 
 /-- **The traced family**: the capability (booted `b`) in the phase `Φs` of the server, its share's
 pending list the outbox's traced messages up to order (`PhaseAt`). -/

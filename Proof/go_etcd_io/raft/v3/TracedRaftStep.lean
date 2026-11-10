@@ -53,6 +53,11 @@ def recvTokOf (γd : GName) (m : MessageM) (ents : List EntryM) (ctx : List w8) 
     ∃ (tn : TraceNames) (k : Nat) (ma : Etcdraft.Msg), traceDir γd tn ∗
       ⌜TraceSim.msgAbs tn.voters tn.voters.length (absMsg ty m ents ctx) = some ma⌝ ∗ inFlight tn k ma)
 
+/-- (2026-11-10, slice 15) **The node's last event after `Step`**: the one before (`Λ`, no line logged) or
+one of the step's lines. Until slice 15 the statement gave back `Λ` itself, which a path logging a line
+cannot (the capability's `simBoot` records the line as the node's last event). -/
+def stepLastEv (Λ : Option TraceEv → Prop) : Option TraceEv → Prop := fun o => Λ o ∨ o.isSome = true
+
 /-- **`raft.Step`'s resources from the capability, on the paths `Path`** (the statement; see the
 header): at a traced node (`s.gh.tr = some γd`) idle at `s`, on a message `m` whose path at `s` is
 one of `Path`'s, the capability, the received message's token and the node's premises give, after an
@@ -64,7 +69,9 @@ is zero (a local message at a higher term steps the node down with no receive li
 `BecomeFollower` line the specification cannot take); `MsgHup` not at a leader (`hup`'s
 `BecomeCandidate` gate, `hupGates`' `"Hgbc"`, is asked whatever the role, and a leader has no
 `Timeout` step); the log never compacted (`TrNoSnap`, which `candidateGates`'/`leaderGates`'
-`"#Hnosnap"` ask unguarded, from the Draft's P2). -/
+`"#Hnosnap"` ask unguarded, from the Draft's P2); a traced message addressed to the node (the receive
+line's event is the node's, `SendEvOf … m.dst`, and the specification delivers it to its
+destination). And the node's last event after the step is `stepLastEv Λ`, not `Λ`. -/
 abbrev stepBundle_traced.on (Path : NState → MessageM → Prop) : Prop :=
   ∀ (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM)
     (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (γd : GName)
@@ -77,6 +84,8 @@ abbrev stepBundle_traced.on (Path : NState → MessageM → Prop) : Prop :=
   -- `MsgHup` stepped by a node that is not leading (`tickElection` is a non-leader's tick)
   (m.Type' = MsgHup ∨ m.Type' = MsgBeat ∨ m.Type' = MsgProp → m.Term' = W64 0) →
   (m.Type' = MsgHup → s.role ≠ .leader) →
+  -- (slice 15) a traced message is the node's (rafthttp delivers a message to its `To`)
+  (∀ ty, mtypeOf m.Type' = some ty → ty.traced = true → m.To' = id) →
   -- the numbers the lines read (`TraceEv.Ok`): the terms (`termLB`'s bound at the node API), the
   -- message's (`isRaftMsg`'s `MsgTrOk`), the receipts' fit (`readyFits`)
   uint.Z s.term + 1 < traceNumBound → uint.Z m.Term' < traceNumBound →
@@ -86,7 +95,8 @@ abbrev stepBundle_traced.on (Path : NState → MessageM → Prop) : Prop :=
   (trCapB s.gh.tr γ r id c true (fun C => SimIdle C s) Λ ∗ recvTokOf γd m ents ctx ∗
       TrNoSnap s.gh.tr s.logst : IProp GF) ⊢
     |={⊤}=> ∃ R : StepG GF, R.G ∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) ∗
-      stepClose γ md c id m ents ctx s R (fun s' => trCapB s.gh.tr γ r id c true (fun C => SimIdle C s') Λ)
+      stepClose γ md c id m ents ctx s R
+        (fun s' => trCapB s.gh.tr γ r id c true (fun C => SimIdle C s') (stepLastEv Λ))
 
 /-- **`raft.Step`'s resources from the capability** on every path (see `stepBundle_traced.on`). -/
 abbrev stepBundle_traced.statement : Prop := stepBundle_traced.on (GF := GF) (hG := hG) (fun _ _ => True)

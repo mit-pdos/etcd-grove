@@ -13,6 +13,10 @@ and the capability at the idle server of `s` with the share the outbox's traced 
 (`Gf`, `Gb1`, `Gb2`, `Gp1`) are `False`, since no path here reaches them; every other gate is guarded by
 a message type or a role that is not this path's. The closing wand reads the end state from `StepEnd`
 (`localNoLine_end`: unchanged, or the forward queued) and re-orders the share (`trFam_idle`).
+
+**Not yet here**: every path of a traced type starts with a receive line, whose gate needs the frozen
+`FxPresR`, not dischargeable as stated (its phantom replies are unpinned: plan, Q14); the local paths
+with lines (`MsgHup` at a non-leader, `MsgBeat`/`MsgProp` at a leader) need each line's `FxPres`.
 -/
 module
 
@@ -147,7 +151,7 @@ def localR (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NS
 
 /-- **`raft.Step`'s traced bundle on the local messages that log no line.** -/
 theorem stepBundle_traced_localNoLine : stepBundle_traced.on (GF := GF) (hG := hG) LocalNoLine := by
-  intro γ md c r id s m ents sn ctx rs γd Λ hp htr hpv hcq hty hwf hloc hhup hT hmT hok hfit
+  intro γ md c r id s m ents sn ctx rs γd Λ hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit
   have hT0 : m.Term' = W64 0 := hloc (by rcases hp.1 with h | h <;> simp [h])
   have hnbf : ¬ PreBF m s := by
     unfold PreBF; rw [hT0]; intro h; have := h.1; simp at this
@@ -271,7 +275,9 @@ theorem stepBundle_traced_localNoLine : stepBundle_traced.on (GF := GF) (hG := h
     icases H with ⟨Hgh, H⟩
     imod trFam_idle s.gh.tr γ r id c true s s' Λ hS $$ H with H
     imodintro
-    iframe Hgh H
+    iframe Hgh
+    isplitl [H]
+    · iapply trCapB_monoΛ s.gh.tr γ r id c true _ Λ _ (fun o h => .inl h) $$ H
     ipureintro; exact hout
 
 end paths
