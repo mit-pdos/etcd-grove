@@ -205,7 +205,11 @@ next (touches `InvPb`, pbMsg's unknown fields): merge lean again after it.
 - lean moved to `9ca174a34d` (premise-fixes-1) during the first gates run (stopped, in
   model-param-check, after build/links/tcb/collections/goose/gen-init passed): merged (`4d5456fa6c`,
   only notes conflicted), tcb files reset to lean's; second full build `/shared/tmp/ptm-cp3/entsize/full2.log`,
-  then `--check --update` again, then gates `gates2.log`. Note: model-param-check takes about an hour.
+  then `--check --update` again (same three deltas), then gates. `gates2.log` hit EXIT 124: its
+  `timeout` wrapped the flock, and the lock wait (about 2 hours) counted; rerun as `gates3.log` with
+  `flock … systemd-run … env … timeout 14000 bash etc/gates.sh`. Note: model-param-check takes over an
+  hour (main run and selftest). Everything before it passed in gates2 (build, links, tcb 844 axioms
+  5 sorries, collections 53, goose 40, gen-init 223).
 
 ## Next: (old design notes of [r3c], done above)
 
