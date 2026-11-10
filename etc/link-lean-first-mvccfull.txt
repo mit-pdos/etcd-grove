@@ -125,7 +125,7 @@ runner__shut: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_hold
 runner__startEpoch: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccReaders_split_law_holds stream__recvOne =_root_.Perennial.time.wp_Sleep stream__act
 runner__startReaders: =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccReaders_split_law_holds =_root_.Perennial.time.wp_Sleep runner__readOne
 runner__stopReaders: 
-runner__txn: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds traceutil_TODO check history__snapshot =mvcc.api.mvccApi_NewReadOnlyTxnWrite_wp_api context_TODO checkRangeAt runner__begin runner__checkHook runner__writeRange runner__writeSub runner__end
+runner__txn: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds =mvcc.api.mvccApi_mvccReaders_split_law_holds traceutil_TODO check history__snapshot =mvcc.api.mvccApi_NewReadOnlyTxnWrite_wp_api context_TODO checkRangeAt runner__begin runner__checkHook runner__writeRange runner__writeSub runner__end
 runner__view: history__snapshot
 runner__write: pick runner__gen runner__apply runner__restore runner__restart runner__checkLeases
 runner__writeRange: =mvcc.api.mvccApi_shapes_law runner__view context_TODO checkRangeAt

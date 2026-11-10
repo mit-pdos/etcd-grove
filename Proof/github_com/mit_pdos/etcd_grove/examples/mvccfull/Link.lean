@@ -535,7 +535,7 @@ theorem runner.wp_writeSub [go_etcd_io.etcd.cache.v3.Assumptions] :
 
 theorem runner.wp_txn [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.mvccfull.runner.txn.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.mvccfull.runner.txn.wp_proof mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds traceutil.wp_TODO wp_check history.wp_snapshot mvcc.api.mvccApi_NewReadOnlyTxnWrite_wp_api context.wp_TODO wp_checkRangeAt runner.wp_begin runner.wp_checkHook runner.wp_writeRange runner.wp_writeSub runner.wp_end
+  EtcdGrove.mvccfull.runner.txn.wp_proof mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds mvcc.api.mvccApi_mvccReaders_split_law_holds traceutil.wp_TODO wp_check history.wp_snapshot mvcc.api.mvccApi_NewReadOnlyTxnWrite_wp_api context.wp_TODO wp_checkRangeAt runner.wp_begin runner.wp_checkHook runner.wp_writeRange runner.wp_writeSub runner.wp_end
 
 theorem lease.wp_NewLease :
     EtcdGrove.lease.NewLease.spec (GF := GF) (hG := hG) :=
