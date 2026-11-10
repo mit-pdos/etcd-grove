@@ -30,6 +30,11 @@ user's delegation; `notes/decisions.md`, "Premise fixes 4"):
   `CONNECT`); **`NewRequest_spec`** takes a path starting with `/` (Go sends `""` as `/`);
   **`fmt.argOk`**'s `Error()` disjunct excludes a `Format` method, its `String()` one `Format` and
   `Error`. Go tests: `examples/premisefix/{httpmux,httppath,fmtarg}` (gates step 9).
+- **The Format fact downstream**: `http.errStrOk`, cache's `errStrOk`, `statusErrOk`,
+  `isEtcdProgressNotifier`'s error clause and `errLeaf` carry `methodSet _.ty !! "Format" = none`;
+  three trusted statements gain it (`rpctypes.ErrCompacted_init`, `ErrFutureRev_init` with
+  `rpctypesInit`, `bcrypt.GenerateFromPassword`'s error clause), backed by `fmtarg`'s
+  `TestNoFormatter`.
 
 **Caveats of the closed theorems** (the round-2 attack's CM-1, CM-5):
 
