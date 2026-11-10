@@ -154,7 +154,8 @@ theorem kv.Get.wp_proof
         rangeCallOut (rangeStOk (rangeWireOf (opGetModel key gs)) Q) r.get' err := by
       unfold doOut; rw [Ht]; simp only [↓reduceIte]
     rw [← Heq]; iexact Hout
-  iunfold rangeCallOut at Hout'
+  imod rangeCallOut_persist _ _ _ $$ Hout' with Hout'
+  iunfold rangeCallOutP at Hout'
   icases Hout' with (⟨%Herr, Hm⟩ | ⟨%Herr, #Hse, #Hcl⟩)
   · subst Herr
     ihave #Hse0 := go_etcd_io.etcd.cache.v3.statusErrOk_nil (GF := GF)
@@ -165,7 +166,7 @@ theorem kv.Get.wp_proof
     iapply HΦ
     iframe HR
     iapply rangeCallOut_st
-    unfold rangeCallOut
+    unfold rangeCallOutP
     ileft
     iframe
     ipureintro; rfl
@@ -176,7 +177,7 @@ theorem kv.Get.wp_proof
     iapply HΦ
     iframe HR
     iapply rangeCallOut_st
-    unfold rangeCallOut
+    unfold rangeCallOutP
     iright
     iframe #
     ipureintro

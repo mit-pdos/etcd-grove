@@ -66,7 +66,7 @@ theorem kVClient.Range.wp_proof
     iframe
     try (ipureintro; first | exact Hsz.2 | exact Hsz | exact (by decide : wireSlack < grpcMsgMax))
   icases Hin' with ⟨%req', %k', %e', Hin', -⟩
-  icases Hres with (⟨%Herr, %m', Hm, Hq⟩ | ⟨%Herr, #Hse, #Hcl, Heo⟩)
+  icases Hres with (⟨%Herr, %m', Hm, Ho, Hq⟩ | ⟨%Herr, #Hse, #Hcl, Heo⟩)
   · subst Herr
     wp_auto
     iapply HΦ
@@ -77,6 +77,7 @@ theorem kVClient.Range.wp_proof
       isplitl []
       · ipureintro; rfl
       iexists m'
+      unfold rangeRespMsgO
       iframe
     · iintro %h; exact absurd rfl h
   · obtain ⟨Hne, Hce⟩ := Herr

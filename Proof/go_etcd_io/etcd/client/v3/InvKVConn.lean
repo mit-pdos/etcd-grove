@@ -1066,6 +1066,25 @@ def rangeCallOut (Q : RangeRespM → IProp GF) (resp : Loc) (err : GoInterface) 
   iprop((⌜err = GoInterface.nil⌝ ∗ ∃ m : RangeRespM, rangeRespMsgO resp m ∗ Q m) ∨
     (⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝ ∗ statusErrOk err ∗ errCellOk err))
 
+/-- **`rangeCallOut` with the reply read-only** (`rangeRespMsg`; k8s 7e-1): what a caller that does
+not write the reply's key-values keeps of it (`rangeCallOut_persist`). -/
+def rangeCallOutP (Q : RangeRespM → IProp GF) (resp : Loc) (err : GoInterface) : IProp GF :=
+  iprop((⌜err = GoInterface.nil⌝ ∗ ∃ m : RangeRespM, rangeRespMsg resp m ∗ Q m) ∨
+    (⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝ ∗ statusErrOk err ∗ errCellOk err))
+
+theorem rangeCallOut_persist (Q : RangeRespM → IProp GF) (resp : Loc) (err : GoInterface) :
+    rangeCallOut Q resp err ⊢ |==> rangeCallOutP Q resp err := by
+  unfold rangeCallOut rangeCallOutP
+  iintro (⟨%He, %m, Hm, Hq⟩ | H)
+  · imod rangeRespMsgO_persist _ _ $$ Hm with #Hm
+    imodintro
+    ileft
+    isplitl []
+    · ipureintro; exact He
+    iexists m
+    iframe Hm Hq
+  · imodintro; iright; iexact H
+
 /-- **What a unary `DeleteRange` call returns** (as `putCallOut`; the vertical slice's unit V2). -/
 def deleteCallOut (Q : DelRespM → IProp GF) (resp : Loc) (err : GoInterface) : IProp GF :=
   iprop((⌜err = GoInterface.nil⌝ ∗ ∃ m : DelRespM, delRespMsg resp m ∗ Q m) ∨

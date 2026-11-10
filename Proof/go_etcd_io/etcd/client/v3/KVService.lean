@@ -2007,7 +2007,7 @@ theorem putCallOut_st (γ : KVNames) (o : OpFull) (Q : KVState → IProp GF) (re
     ipureintro; exact He.2.1
 
 theorem rangeCallOut_st (o : OpFull) (Q : KVState → IProp GF) (resp : Loc) (err : GoInterface) :
-    rangeCallOut (rangeStOk o Q) resp err ⊢
+    rangeCallOutP (rangeStOk o Q) resp err ⊢
       (⌜err = GoInterface.nil⌝ ∗ ∃ (m : RangeRespM) (σ : KVState), rangeRespMsg resp m ∗
         (if o.base.serializable then iprop(True) else iprop(□ Q σ)) ∗
         ⌜sint.Z o.base.rev ≤ (σ.rev : Int) ∧
@@ -2015,7 +2015,7 @@ theorem rangeCallOut_st (o : OpFull) (Q : KVState → IProp GF) (resp : Loc) (er
           m.count = txn.srvCount o (σ.at (σ.readRev o.base.rev)).kvs true ∧
           m.hdr.revision = W64 (σ.rev : Int) ∧ kvRevFits σ.rev ∧ kvLogOk σ⌝) ∨
       (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) := by
-  unfold rangeCallOut rangeStOk kvErr
+  unfold rangeCallOutP rangeStOk kvErr
   iintro (⟨%He, %m, Hm, %σ, HQ, %Hs⟩ | ⟨%He, #Hs, #Hc⟩)
   · ileft
     isplitl []

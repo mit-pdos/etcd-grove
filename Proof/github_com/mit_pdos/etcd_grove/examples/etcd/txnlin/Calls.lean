@@ -340,6 +340,7 @@ theorem client_List_st [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc)
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Get_unfold.method_unfold]
   wp_pures
   wp_auto
+  iapply wp_fupd
   wp_apply (client.client_range_any api ms (W64 0) ci cd listFrom sl [withRangeM listTo]
       iprop(True) Q [] hsz) $$ [] as %resp %err ⟨-, Hout, -⟩
   · iframe #
@@ -350,9 +351,11 @@ theorem client_List_st [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc)
     first
       | rfl
       | (refine ⟨?_, rfl⟩; simp [opGetPanics, op_simps])
-  iapply HΦ
-  icases Hout with (⟨%Herr, %m, #Hm, %x, %hx, #Hq⟩ | ⟨%Herr, -⟩)
-  · ileft
+  icases Hout with (⟨%Herr, %m, Hm, %x, %hx, #Hq⟩ | ⟨%Herr, -⟩)
+  · imod rangeRespMsgO_persist _ _ $$ Hm with #Hm
+    imodintro
+    iapply HΦ
+    ileft
     isplitl []
     · ipureintro; exact Herr
     ihave Hs := client.rangeReply_state_bnd x.E x.γr (W64 0) x.cid x.mid _ [] Q m rfl rfl $$ Hq
@@ -362,7 +365,9 @@ theorem client_List_st [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc)
     iframe Hm HQ
     ipureintro
     exact ⟨(srvRangeOk_list _ _ _ hsel).1, hrev, hb⟩
-  · iright
+  · imodintro
+    iapply HΦ
+    iright
     ipureintro; exact Herr.1
 
 /-- **`Commit()` of the model's transaction** through a client of the members `ms` (see the file

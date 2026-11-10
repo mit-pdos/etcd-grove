@@ -2642,8 +2642,9 @@ theorem client_put_any (api : Loc) (ms : List (SrvAt GF)) (ci : GoInterfaceOk)
 header; `kv.Get.spec`): etcd's KV specs registered at the members, their committed indices at
 least `c` and floor `F`, and the caller's read update at each member's names, persistent (`□ [∧
 list]`: a read may be answered by any member); `R` back, and `nil` with the reply's
-`rangeReplyOk` of some member, or an error, which with a valid sort option tells what
-`rangeErrOut` says (k8s 7e-1). -/
+`rangeReplyOk` of some member, its key-values' slice owned (`rangeRespMsgO`, k8s 7e-1;
+`rangeRespMsgO_persist` gives the read-only `rangeRespMsg`), or an error, which with a valid sort
+option tells what `rangeErrOut` says (k8s 7e-1). -/
 theorem client_range_any (api : Loc) (ms : List (SrvAt GF)) (c : w64) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (key : GoString) (sl : GoSlice)
     (gs : List (OpFull → OpFull)) (R : IProp GF) (Q : KVState → IProp GF) (F : mvcc.Log)
@@ -2659,7 +2660,7 @@ theorem client_range_any (api : Loc) (ms : List (SrvAt GF)) (c : w64) (ci : GoIn
       (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
           go!"Get")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #sl))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); R ∗
-        ((⌜err = GoInterface.nil⌝ ∗ ∃ m : RangeRespM, rangeRespMsg resp m ∗ ∃ x : SrvAt GF,
+        ((⌜err = GoInterface.nil⌝ ∗ ∃ m : RangeRespM, rangeRespMsgO resp m ∗ ∃ x : SrvAt GF,
             ⌜x ∈ ms⌝ ∗ rangeReplyOk x.E x.γr c F (rangeWireOf (opGetModel key gs)) x.cid x.mid Q m) ∨
           (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err)) ∗
         (⌜sortValid (opGetModel key gs) = true⌝ →
@@ -2946,6 +2947,7 @@ theorem client_range_end_to_end (api : Loc) (addr : List GoString) (E : apply.AE
     (fun x : SrvAt GF => iprop(⌜Q = fun _ => iprop(True)⌝ ∨
       (⌜(rangeWireOf (opGetModel key gs)).base.serializable = false⌝ ∗ kvReadAu x.γr.kv Q)))
     (fun _ _ => .rfl) $$ Hdq
+  iapply wp_fupd
   iapply (client_range_any api (srvsAt addr E γr cid mid) c ci cd key sl gs R Q F hsz)
     $$ [Hopts HR Hsn]
   · rw [srvsAt_addr]
@@ -2954,17 +2956,22 @@ theorem client_range_end_to_end (api : Loc) (addr : List GoString) (E : apply.AE
     ipureintro; exact Hg
   inext
   iintro %resp %err ⟨HR, Hout, -⟩
-  iapply HΦ
-  iframe HR
   icases Hout with (⟨%Herr, %m, Hm, %x, %hx, Hq⟩ | ⟨%Herr, -⟩)
-  · obtain ⟨a, -, rfl⟩ := srvsAt_mem hx
+  · imod rangeRespMsgO_persist _ _ $$ Hm with #Hm
+    imodintro
+    iapply HΦ
+    iframe HR
+    obtain ⟨a, -, rfl⟩ := srvsAt_mem hx
     ileft
     isplitl []
     · ipureintro; exact Herr
     iexists m
     iframe Hm
     iexact Hq
-  · iright
+  · imodintro
+    iapply HΦ
+    iframe HR
+    iright
     ipureintro; exact Herr
 
 

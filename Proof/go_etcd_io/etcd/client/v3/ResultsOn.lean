@@ -170,6 +170,7 @@ theorem client_range_on (api conn : Loc) (addr : GoString) (s : Loc) (E : apply.
               v3rpc.rangeAuthed s E γr c n (auth.mdTokenOf md) (rangeWireOf (opGetModel key gs))) ∨
           (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err)) }} := by
   iintro %Φ ⟨#Pc, #Hkv, #Hreg, #Hc, #HF, #Hn, #Hctx', #Hce, Hopts, HR, Hsn, %Hg, #Hdq⟩ HΦ
+  iapply wp_fupd
   iapply (v3.kv.wp_GetG api conn [addr] ci cd key sl gs R (etcdRangeSpecOn s E γr cid mid)
     (fun m => iprop(rangeReplyOk E γr c F (rangeWireOf (opGetModel key gs)) cid mid Q m ∗
       ∃ md, ⌜clientAttemptMd conn (GoInterface.ok ci) md⌝ ∗
@@ -199,9 +200,11 @@ theorem client_range_on (api conn : Loc) (addr : GoString) (s : Loc) (E : apply.
     ipureintro; exact Hmd
   inext
   iintro %resp %err ⟨-, HR, Hout⟩
+  imod rangeCallOut_persist _ _ _ $$ Hout with Hout
+  imodintro
   iapply HΦ
   iframe HR
-  iunfold rangeCallOut at Hout
+  iunfold rangeCallOutP at Hout
   icases Hout with (⟨%Herr, %m, Hm, Hq⟩ | ⟨%Herr, #Hse, #Hcl⟩)
   · ileft
     isplitl []
