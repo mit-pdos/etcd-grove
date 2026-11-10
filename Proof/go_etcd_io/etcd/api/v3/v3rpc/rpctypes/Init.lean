@@ -316,14 +316,17 @@ class EtcdGrove.RpctypesEtcdErrorMethods [GooseExts] [GoGlobalContext] [GoSemant
   leaf : ∀ v : val, errors.isLeafError ⟨go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty, v⟩
   noGRPCStatus : methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"GRPCStatus" = none
   noIs : methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"Is" = none
+  /-- (premise-fixes-4) nor a `Format` method (`fmt` prints it with its `Error`). -/
+  noFormat : methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"Format" = none
 
 instance EtcdGrove.rpctypesEtcdErrorMethods_inst [GooseExts] [GoGlobalContext] [GoLocalContext]
     [GoSemanticsFunctions] [_root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] :
     EtcdGrove.RpctypesEtcdErrorMethods := by
   have h := fun m => go.method_set_is (t := go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) m
   have hAs := h go!"As"; have hU := h go!"Unwrap"; have hG := h go!"GRPCStatus"; have hIs := h go!"Is"
-  simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at hAs hU hG hIs
-  exact ⟨fun _ => by simp [errors.isLeafError, hAs, hU], hG, hIs⟩
+  have hF := h go!"Format"
+  simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at hAs hU hG hIs hF
+  exact ⟨fun _ => by simp [errors.isLeafError, hAs, hU], hG, hIs, hF⟩
 
 /-- `rpctypes.EtcdError` implements `error` (its `Error` has a value receiver): a target
 `errors.As` accepts. -/
@@ -534,7 +537,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipureintro
   repeat' (first
     | assumption
-    | exact ⟨EtcdGrove.RpctypesEtcdErrorMethods.leaf, EtcdGrove.RpctypesEtcdErrorMethods.noGRPCStatus, EtcdGrove.RpctypesEtcdErrorMethods.noIs⟩
+    | exact ⟨EtcdGrove.RpctypesEtcdErrorMethods.leaf, EtcdGrove.RpctypesEtcdErrorMethods.noGRPCStatus, EtcdGrove.RpctypesEtcdErrorMethods.noIs, EtcdGrove.RpctypesEtcdErrorMethods.noFormat⟩
     | constructor)
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/

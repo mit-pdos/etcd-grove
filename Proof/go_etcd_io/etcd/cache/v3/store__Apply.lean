@@ -143,7 +143,7 @@ theorem store.Apply.wp_proof
       have Happ : applyResp cap st r = (st, false) := by simp [applyResp, hc, hv]
       iapply HΦ
       isplitl []
-      · first | iapply errStrOk_nil | iexact HverrS | iexact HeA | (iapply errStrOk_ok; iapply errorStringSpec_of_msg; iexact HeN)
+      · first | iapply errStrOk_nil | iexact HverrS | iexact HeA | iexact HeNS
       iright
       iexists st
       rw [Happ]
@@ -177,7 +177,7 @@ theorem store.Apply.wp_proof
           have Happ := Apply_empty (cap := cap) hc hv hpn he
           iapply HΦ
           isplitl []
-          · first | iapply errStrOk_nil | iexact HverrS | iexact HeA | (iapply errStrOk_ok; iapply errorStringSpec_of_msg; iexact HeN)
+          · first | iapply errStrOk_nil | iexact HverrS | iexact HeA | iexact HeNS
           iright
           iexists st
           rw [Happ]
@@ -229,7 +229,7 @@ theorem store.Apply.wp_proof
             iframe; iframe #; ipureintro; exact ⟨Hsync', Hinv'⟩
           iapply HΦ
           isplitl []
-          · first | iapply errStrOk_nil | iexact HverrS | iexact HeA | (iapply errStrOk_ok; iapply errorStringSpec_of_msg; iexact HeN)
+          · first | iapply errStrOk_nil | iexact HverrS | iexact HeA | iexact HeNS
           iright
           iexists st
           rw [Happ]
@@ -283,7 +283,7 @@ theorem store.Apply.wp_proof
           iframe; iframe #; ipureintro; exact ⟨Hsync', Hinv'⟩
         iapply HΦ
         isplitl []
-        · first | iapply errStrOk_nil | iexact HverrS | iexact HeA | (iapply errStrOk_ok; iapply errorStringSpec_of_msg; iexact HeN)
+        · first | iapply errStrOk_nil | iexact HverrS | iexact HeA | iexact HeNS
         iright
         iexists st
         rw [Happ]
@@ -294,10 +294,10 @@ theorem store.Apply.wp_proof
         ipureintro; exact ⟨Hpost, rfl⟩
   · -- canceled: `errors.New("canceled")`, nothing changes
     wp_auto
-    wp_apply errors.wp_New as %e ⟨-, #HeN⟩
+    wp_apply wp_New_errStrOk as %e ⟨-, #HeNS⟩
     iapply HΦ
     isplitl []
-    · first | iapply errStrOk_nil | iexact HverrS | iexact HeA | (iapply errStrOk_ok; iapply errorStringSpec_of_msg; iexact HeN)
+    · first | iapply errStrOk_nil | iexact HverrS | iexact HeA | iexact HeNS
     ileft
     ipureintro; exact ⟨rfl, e, rfl⟩
 

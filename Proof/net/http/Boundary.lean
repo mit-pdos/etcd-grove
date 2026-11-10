@@ -336,12 +336,16 @@ instance errTreeOk_persistent (ei : GoInterfaceOk) : Persistent (errTreeOk (GF :
   unfold errTreeOk; infer_instance
 
 /-- **An error whose `Error()` returns** (persistent; `nil`, or a value whose `Error` method
-returns some string, of a well-formed error tree, `errTreeOk`): what net/http's errors are (rafthttp
-logs them, `err.Error()`, and asks `errors.Is` of them; the tree since 2026-10-23, stage 5c). -/
+returns some string, of a well-formed error tree, `errTreeOk`, and which has no `Format` method):
+what net/http's errors are (rafthttp logs them, `err.Error()`, and asks `errors.Is` of them; the
+tree since 2026-10-23, stage 5c). No `Format` (premise-fixes-4, 2026-11-10): `fmt` prints such an
+error with its `Error` (`fmt.argOk`); none of the errors net/http and rafthttp return has one
+(`examples/premisefix/fmtarg`). -/
 def errStrOk (e : GoInterface) : IProp GF :=
   iprop(⌜e = GoInterface.nil⌝ ∨ ∃ ei : GoInterfaceOk, ⌜e = GoInterface.ok ei⌝ ∗
     □ (∀ Φ : val → IProp GF, ▷ (∀ s : GoString, Φ #s) -∗
-      WP (App (Val #(methods ei.ty go!"Error" ei.v)) (Val #())) {{ Φ }}) ∗ errTreeOk ei)
+      WP (App (Val #(methods ei.ty go!"Error" ei.v)) (Val #())) {{ Φ }}) ∗ errTreeOk ei ∗
+    ⌜methodSet ei.ty !! go!"Format" = none⌝)
 
 instance errStrOk_persistent (e : GoInterface) : Persistent (errStrOk (GF := GF) e) := by
   unfold errStrOk; infer_instance

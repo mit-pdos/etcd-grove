@@ -163,7 +163,7 @@ theorem wp_Is_errStrOk (hIs : errors.Is.spec (GF := GF) (hG := hG)) (err target 
     {{ (b : Bool), RET #b; True }} := by
   iintro %Φ ⟨#Hpkg, #He⟩ HΦ
   iunfold http.errStrOk at He
-  icases He with (%Hn | ⟨%ei, %Hei, -, #Htree⟩)
+  icases He with (%Hn | ⟨%ei, %Hei, -, #Htree, -⟩)
   · subst Hn
     wp_apply hIs (· = GoInterface.nil) (fun _ => False) GoInterface.nil target Htgt
       (fun _ _ h => by cases h) $$ [] as %b -
