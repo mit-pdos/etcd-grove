@@ -1,6 +1,4 @@
-/- Lean-first (no Rocq counterpart). The proof of `runner.endEpoch`: proved over
-`EpochLemmas.cancel_closed_au` (`sorry`: today's `streamInv` cannot take `Cancel(0)`'s commit on the
-closed stream, which makes a registered, unmarked watcher not live; see its docstring).
+/- Lean-first (no Rocq counterpart). The proof of `runner.endEpoch`: proved.
 
 Four loops over `m.streams`, then `m.streams = nil`: each stream's stop flag set (its counter
 invariant); each registrar's end (`regDone.Wait()`: its `regOwn`, the stream now `epochStream1`);
@@ -8,7 +6,8 @@ each stream complete up to `m.rev` (`complete` until it says so, `time.Sleep`); 
 (`Close`, by `close_au`: the registrar's half of the closed flag), its receiver's end
 (`recvDone.Wait()`: its `rcvOwn`), a watch refused (`Watch` at `watch_closed_au`: the writer's live
 share opens the incarnation's invariant for the store's state; `ErrEmptyWatcherRange`'s identity
-from `errVars.law`), and a cancel refused (`Cancel` at `cancel_closed_au`; `ErrWatcherNotExist`'s),
+from `errVars.law`), and a cancel refused (`Cancel` at `cancel_closed_au`, the receiver's `wsRecv` deposited in the
+stream's invariant; `ErrWatcherNotExist`'s),
 the stream's `epochTok` (its receiver's history slot and both goroutines' `epRd`) collected.
 -/
 module
@@ -219,9 +218,9 @@ theorem runner.endEpoch.wp_proof
         (try wp_auto)
         wp_apply (hCancel E.ι.kv T.σs.ws (W64 0)
             (fun S => iprop(ghostVar (GF := GF) T.σs.cl (1 : Qp).half true ∗ ⌜S.closed = true⌝)))
-          $$ [Hcl] as %err2 ⟨%S2, ⟨Hcl, %HS2⟩, Hres2⟩
+          $$ [Hcl Hwr] as %err2 ⟨%S2, ⟨Hcl, %HS2⟩, Hres2⟩
         · iframe #
-          iapply cancel_closed_au T.σs (W64 0) $$ [Hcl]
+          iapply cancel_closed_au hpers T.σs (W64 0) rs $$ [Hcl Hwr]
           iframe #; iframe
         icases Hres2 with (%Hc2 | ⟨-, #Herr2⟩)
         · exfalso; rw [HS2] at Hc2; exact absurd Hc2.2.2 (by decide)

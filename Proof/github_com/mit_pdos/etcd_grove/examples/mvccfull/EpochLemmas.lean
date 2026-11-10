@@ -11,8 +11,8 @@ Lean-first (no Rocq counterpart).
   both halves become `true`.
 - **A watch on the closed stream** (`watch_closed_au`): with a live share of the incarnation (its
   invariant gives the store's state, unchanged), the stream closed: no registration.
-- **A cancel on the closed stream** (`cancel_closed_au`): **not provable** over today's
-  `streamInv`; see its docstring.
+- **A cancel on the closed stream** (`cancel_closed_au`): the stopped receiver's `wsRecv` deposited
+  in `streamInv`'s second branch (the cancel may break `regOk'`).
 - **The incarnation's store is a watchable store** (`inc_watchable`): **not provable** from
   today's `isInc`; see its docstring.
 -/
@@ -72,6 +72,7 @@ variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem streamInv_timeless (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG))
     (σs : StreamNames) : Timeless (streamInv (GF := GF) σs) := by
   haveI := hpers.2.2.2.2.2.2.1
+  haveI := hpers.2.2.2.2.2.2.2.2.1
   unfold streamInv; infer_instance
 
 /-- **A new stream's ghost state** (see the file header). -/
@@ -99,7 +100,7 @@ theorem stream_alloc (ι : WsName) :
     iexists wsStart, ∅, []
     rw [show wsStart.closed = false from rfl]
     iframe HS Hcl1 Hreg1 Hcn1
-    ipureintro; exact regOk'_start
+    ileft; ipureintro; exact regOk'_start
   imodintro
   iexists σs
   isplitr
@@ -147,7 +148,7 @@ theorem close_au (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG)) (σs : 
   unfold atomic_acc
   iinv Hinv with >Hi Hclose
   iunfold streamInv at Hi
-  icases Hi with ⟨%S, %W, %C, HS, HScl, Hreg, Hcn, %Hok⟩
+  icases Hi with ⟨%S, %W, %C, HS, HScl, Hreg, Hcn, Hok⟩
   ihave %Hc := ghostVar_agree σs.cl _ _ _ _ $$ HScl Hcl
   iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (⊤ \ ↑mvccN) \ ↑streamN from
     Std.LawfulSet.empty_subset)
@@ -160,19 +161,17 @@ theorem close_au (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG)) (σs : 
   isplit
   · iintro ⟨HS, -⟩
     imod Hclose2 with -
-    imod Hclose $$ [HS HScl Hreg Hcn] with -
-    · inext; iunfold streamInv; iexists S, W, C; iframe; ipureintro; exact Hok
+    imod Hclose $$ [HS HScl Hreg Hcn Hok] with -
+    · inext; iunfold streamInv; iexists S, W, C; iframe
     imodintro
     iframe
   · iintro HS
     imod ghostVar_update_halves true σs.cl _ _ $$ HScl Hcl with ⟨HScl, Hcl⟩
     imod Hclose2 with -
-    imod Hclose $$ [HS HScl Hreg Hcn] with -
+    imod Hclose $$ [HS HScl Hreg Hcn Hok] with -
     · inext; iunfold streamInv
       iexists S.close, W, C
       iframe
-      ipureintro
-      exact Hok
     imodintro
     iexact Hcl
 
@@ -216,7 +215,7 @@ theorem watch_closed_au (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG))
   icases Hm with ⟨%σ, %b, %Hl, Hσ, Hmrest⟩
   iinv Hinv with >Hi Hclose
   iunfold streamInv at Hi
-  icases Hi with ⟨%S, %W, %C, HS, HScl, Hreg, Hcn, %Hok⟩
+  icases Hi with ⟨%S, %W, %C, HS, HScl, Hreg, Hcn, Hok⟩
   ihave %Hc := ghostVar_agree σs.cl _ _ _ _ $$ HScl Hcl
   iapply fupd_mask_intro (show (∅ : CoPset) ⊆ ((⊤ \ ↑mvccN) \ ↑(memberN E.i)) \ ↑streamN from
     Std.LawfulSet.empty_subset)
@@ -227,8 +226,8 @@ theorem watch_closed_au (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG))
   isplit
   · iintro ⟨Hσ, HS⟩
     imod Hclose2 with -
-    imod Hclose $$ [HS HScl Hreg Hcn] with -
-    · inext; iunfold streamInv; iexists S, W, C; iframe; ipureintro; exact Hok
+    imod Hclose $$ [HS HScl Hreg Hcn Hok] with -
+    · inext; iunfold streamInv; iexists S, W, C; iframe
     imod Hclm $$ [Hσ Hmrest] with -
     · inext; iunfold memberInv; ileft; iunfold memberState; iexists σ, b, Hl; iframe
     imodintro
@@ -241,8 +240,8 @@ theorem watch_closed_au (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG))
     simp only [↓reduceIte]
     icases HS with ⟨-, HS⟩
     imod Hclose2 with -
-    imod Hclose $$ [HS HScl Hreg Hcn] with -
-    · inext; iunfold streamInv; iexists S, W, C; rw [Hc]; iframe; ipureintro; exact Hok
+    imod Hclose $$ [HS HScl Hreg Hcn Hok] with -
+    · inext; iunfold streamInv; iexists S, W, C; rw [Hc]; iframe
     imod Hclm $$ [Hσ Hmrest] with -
     · inext; iunfold memberInv; ileft; iunfold memberState; iexists σ, b, Hl; iframe
     imodintro
@@ -252,23 +251,51 @@ theorem watch_closed_au (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG))
     iframe #
 
 /-- **A cancel on the closed stream** (`endEpoch`'s `ws.Cancel(0)`, after the receiver ended):
-mvcc's `Cancel` commits `S.cancel id` on a closed stream too, which makes the watcher `id` not
-live. **Not provable over today's `streamInv`** (proof `sorry`): `regOk'` keeps every watcher of
-the registry live unless the registrar's cancel record `C` has it, and it may join `C` only with its
-registry entry cancel-marked (`x.cm`), but that entry's other half is in `s.mu`'s invariant, which
-`endEpoch` does not hold (the code takes no lock there). The watcher `0` is the first a stream
-registers (mvcc's automatic ids count from `0`), so the case is reachable. Proposed fix
-(`Streams.lean`): `streamInv`'s `⌜regOk' S W C⌝` becomes `⌜regOk' S W C⌝ ∨ ∃ rs, wsRecv σs.ws rs`,
-`endEpoch` depositing the receiver's `wsRecv` (back from `recvDone`) before the cancel; the receiver,
-which holds its `wsRecv`, rules the second branch out (`excl.law`), so `recv_facts` keeps its
-statement (with `excl.law` among its hypotheses). -/
-theorem cancel_closed_au (σs : StreamNames) (id : w64) :
-    inv streamN (streamInv σs) ∗ ghostVar σs.cl (1 : Qp).half true ⊢
+mvcc's `Cancel` commits `S.cancel id` on a closed stream too, which may make a registered, unmarked
+watcher not live (the watcher `0` is the first a stream registers), so `regOk'` may no longer hold:
+the stopped receiver's `wsRecv` (back from `recvDone`) is deposited in the invariant's other
+branch, which the receiver, while it runs, rules out with its own (`recv_facts`, `excl.law`). -/
+theorem cancel_closed_au (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG))
+    (σs : StreamNames) (id : w64) (rs : List WResp) :
+    inv streamN (streamInv σs) ∗ ghostVar σs.cl (1 : Qp).half true ∗ wsRecv σs.ws rs ⊢
       AU <{ ∃∃ (S : StreamState), wsState (GF := GF) σs.ws S }> @ ⊤ \ ↑mvccN, ∅
       <{ wsState σs.ws (S.cancel id),
         COMM (fun (S : StreamState) => iprop(ghostVar (GF := GF) σs.cl (1 : Qp).half true ∗
           ⌜S.closed = true⌝)) S }> := by
-  sorry
+  haveI := streamInv_timeless hpers σs
+  have Hm := streamN_mvccN
+  iintro ⟨#Hinv, Hcl, Hwr⟩
+  iauintro
+  unfold atomic_acc
+  iinv Hinv with >Hi Hclose
+  iunfold streamInv at Hi
+  icases Hi with ⟨%S, %W, %C, HS, HScl, Hreg, Hcn, Hok⟩
+  ihave %Hc := ghostVar_agree σs.cl _ _ _ _ $$ HScl Hcl
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (⊤ \ ↑mvccN) \ ↑streamN from
+    Std.LawfulSet.empty_subset)
+  iintro Hclose2
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iexists S
+  iframe HS
+  isplit
+  · iintro HS
+    imod Hclose2 with -
+    imod Hclose $$ [HS HScl Hreg Hcn Hok] with -
+    · inext; iunfold streamInv; iexists S, W, C; iframe
+    imodintro
+    iframe
+  · iintro HS
+    imod Hclose2 with -
+    imod Hclose $$ [HS HScl Hreg Hcn Hwr] with -
+    · inext; iunfold streamInv
+      iexists S.cancel id, W, C
+      have hcl : (S.cancel id).closed = S.closed := by
+        unfold StreamState.cancel; split <;> rfl
+      rw [hcl]
+      iframe
+    imodintro
+    iframe
+    ipureintro; exact Hc
 
 /-- **An incarnation's store is a watchable store** (`startEpoch`'s `m.kv.NewWatchStream()`: the
 contract of `NewWatchStream` is only in `isWatchableKV`, which `shapes.law` gives of
