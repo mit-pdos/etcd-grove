@@ -115,6 +115,20 @@ theorem mtypeOf_eq_of (t : w32) (ty : MsgType) (h : mtypeOf t = some ty) :
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩ <;> intro hty <;> subst hty <;> split at h <;> simp_all <;>
     rename_i h' <;> exact uint_Z_inj.1 (by rw [h']; rfl)
 
+/-- `roleAbs` is injective. -/
+theorem roleAbs_ne_of {r r' : Role} (h : r ≠ r') : roleAbs r ≠ roleAbs r' := by
+  cases r <;> cases r' <;> first | exact absurd rfl h |
+    simp [roleAbs, Etcdraft.follower, Etcdraft.candidate, Etcdraft.leader]
+
+/-- The responses are none of the types a gate guards on. -/
+theorem resp_ne {t : w32} (h : t = MsgAppResp ∨ t = MsgHeartbeatResp ∨ t = MsgVoteResp) :
+    t ≠ MsgApp ∧ t ≠ MsgHeartbeat ∧ t ≠ MsgProp ∧ t ≠ MsgReadIndex ∧ t ≠ MsgTransferLeader ∧
+    t ≠ MsgTimeoutNow ∧ t ≠ MsgBeat ∧ t ≠ MsgCheckQuorum ∧ t ≠ MsgPreVoteResp ∧ t ≠ MsgVote ∧
+    t ≠ MsgPreVote ∧ t ≠ MsgHup := by
+  rcases h with rfl | rfl | rfl <;>
+    simp [MsgAppResp, MsgHeartbeatResp, MsgVoteResp, MsgApp, MsgHeartbeat, MsgProp, MsgReadIndex,
+      MsgTransferLeader, MsgTimeoutNow, MsgBeat, MsgCheckQuorum, MsgPreVoteResp, MsgVote, MsgPreVote, MsgHup]
+
 /-- **A traced type's receive event** at `absMsg`, with its line's shape (`TrRecvShape`). -/
 theorem recvEvTy_of (ty : MsgType) (m : MessageM) (ents : List EntryM) (hty : mtypeOf m.Type' = some ty)
     (htr : ty.traced = true) (hsh : TrRecvShape m ents) :
@@ -162,6 +176,80 @@ theorem recvPhantoms_resp (m : Etcdraft.Msg) (a : Etcdraft.Server)
   · rename_i h
     rcases h.1 with h | h <;> rcases hty with h' | h' <;> rw [h] at h' <;> cases h'
   · rfl
+
+/-! ### (slice 18b) A response a role does not handle, at the node's term
+
+Raft ignores a `MsgAppResp`/`MsgHeartbeatResp` at a follower or candidate and a `MsgVoteResp` at a
+follower or leader; the specification records it (`respSrv`: a vote response's tally, a successful
+append response's match index), in fields the idle relation does not read at that role. -/
+
+/-- **The idle relation after a recorded response** at a role that does not read what it records. -/
+theorem simServerR_respSrv {C : List w64} {bl : Nat} {p : PState} {a : Etcdraft.Server} (ma : Etcdraft.Msg)
+    (h : SimServerR C bl p a) (hc : p.role ≠ .candidate ∨ ma.type ≠ .requestVoteResponse)
+    (hl : p.role ≠ .leader ∨ ma.type = .requestVoteResponse) : SimServerR C bl p (respSrv a ma) := by
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11⟩ := h
+  unfold respSrv
+  split
+  · rename_i hv
+    refine ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, fun hr => absurd hv (hc.resolve_left (by rw [hr]; simp)), h11⟩
+  · rename_i hv
+    split
+    · refine ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, fun hr => absurd (hl.resolve_left (by rw [hr]; simp)) hv⟩
+    · exact ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11⟩
+
+/-- `respSrv` reads a server only through `toC`. -/
+theorem toC_respSrv (S : Etcdraft.SetIds) (x y : Etcdraft.Server) (ma : Etcdraft.Msg)
+    (h : toC S x = toC S y) : toC S (respSrv x ma) = toC S (respSrv y ma) := by
+  have hM : S.map x.matchIndex = S.map y.matchIndex := congrArg ServerC.matchIndex h
+  have hpw : ∀ k ∈ S, x.matchIndex k = y.matchIndex k := List.map_inj_left.1 hM
+  have hR : x.votesResponded = y.votesResponded := congrArg ServerC.votesResponded h
+  have hG : x.votesGranted = y.votesGranted := congrArg ServerC.votesGranted h
+  unfold respSrv
+  split
+  · simp only [toC] at h ⊢
+    injection h with h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12
+    rw [h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12]
+  · split
+    · simp only [toC] at h ⊢
+      injection h with h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12
+      rw [h1, h2, h3, h4, h5, h6, h7, h10, h11, h12]
+      congr 1
+      apply List.map_inj_left.2
+      intro k hk
+      split
+      · rename_i hks; subst hks; rw [hpw _ hk]
+      · exact hpw k hk
+    · exact h
+
+/-- **`SpecInv` after a recorded response** at a role that does not read what it records (a vote
+response at a non-candidate, an append response at a non-leader): the response consumed, the server
+recorded (`respSrv`). -/
+theorem specInv_respSrv (σ : Etcdraft.State) (i : Etcdraft.ID) (ma : Etcdraft.Msg)
+    (h : TraceSpecInv.SpecInv σ)
+    (hc : (σ.s i).state ≠ Etcdraft.candidate ∨ ma.type ≠ .requestVoteResponse)
+    (hl : (σ.s i).state ≠ Etcdraft.leader ∨ ma.type = .requestVoteResponse) :
+    TraceSpecInv.SpecInv (withNode σ i (respSrv (σ.s i) ma) (fun b => b.without ma) _root_.id) := by
+  have hd := TraceSpecInv.specInv_discard ma h
+  have hs : ∀ j, (withNode σ i (respSrv (σ.s i) ma) (fun b => b.without ma) _root_.id).s j =
+      if j = i then respSrv (σ.s i) ma else (σ.discard ma).s j := fun _ => rfl
+  by_cases hv : ma.type = .requestVoteResponse
+  · refine TraceSpecInv.specInv_congr_v hd rfl rfl rfl ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ <;>
+      (try (intro j; rw [hs]; split <;> (try subst_vars) <;> simp only [respSrv, hv, ↓reduceIte] <;> rfl))
+    intro j hcand _ _
+    rw [hs]
+    split
+    · rename_i hj; subst hj
+      exact absurd hcand (hc.resolve_right (fun h => h hv))
+    · assumption
+  · refine TraceSpecInv.specInv_congr_m hd rfl rfl rfl ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ <;>
+      (try (intro j; rw [hs]; split <;> (try subst_vars) <;> simp only [respSrv, hv, ↓reduceIte] <;>
+        (try split) <;> rfl))
+    intro j hj hlead k hk
+    rw [hs]
+    split
+    · rename_i hji; subst hji
+      exact absurd hlead (hl.resolve_right hv)
+    · exact (hd.2.1 j hj hlead).2.2.1 k hk
 
 end pure
 
@@ -267,6 +355,230 @@ end stale
 macro "ifalse_gate" : tactic => `(tactic| first
   | (iintro **; contradiction)
   | (imodintro; iintro **; contradiction))
+
+/-- A gate at a resource `⌜False⌝`, or whose pure guard the facts `ts` refute (by `simp`). -/
+macro "iguard_false" " [" ts:Lean.Parser.Tactic.simpLemma,* "]" : tactic => `(tactic| first
+  | (iintro %hg; exfalso; simp [$ts,*] at hg; done)
+  | (imodintro; iintro %hg; exfalso; simp [$ts,*] at hg; done)
+  | (iintro **; contradiction)
+  | (imodintro; iintro **; contradiction))
+
+section ign
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- **A response a role does not handle, at the node's term**: a `MsgAppResp`/`MsgHeartbeatResp` at a
+follower or candidate, a `MsgVoteResp` at a follower or leader. -/
+def IgnResp (s : NState) (m : MessageM) : Prop :=
+  m.Term' = s.term ∧ ∃ ty, mtypeOf m.Type' = some ty ∧
+    (ty = .appResp ∨ ty = .heartbeatResp ∨ ty = .voteResp) ∧
+    (s.role = .follower ∨ (s.role = .candidate ∧ ty ≠ .voteResp) ∨ (s.role = .leader ∧ ty = .voteResp))
+
+/-- The end state of an `IgnResp` path's step function: unchanged. -/
+theorem ignResp_end {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
+    {s s' : NState} (hp : IgnResp s m) (h : StepFnEnd c id s m ents ctx s') : s' = s := by
+  obtain ⟨-, ty, hmty, hresp, hrole⟩ := hp
+  obtain ⟨-, -, -, h4, h5, h6⟩ := mtypeOf_eq_of _ _ hmty
+  obtain ⟨hf, hc, hl⟩ := h
+  rcases hrole with hr | ⟨hr, hnv⟩ | ⟨hr, rfl⟩
+  · obtain ⟨_, _, _, _, -, hres⟩ := hf hr
+    rcases hresp with rfl | rfl | rfl
+    · rw [h4 rfl] at hres; simp [MsgAppResp, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat] at hres
+      exact hres.2
+    · rw [h6 rfl] at hres; simp [MsgHeartbeatResp, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat] at hres
+      exact hres.2
+    · rw [h5 rfl] at hres; simp at hres; exact hres.2
+  · obtain ⟨_, _, _, _, -, hres⟩ := hc (.inl hr)
+    rcases hresp with rfl | rfl | rfl
+    · rw [h4 rfl] at hres; simp [MsgAppResp, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat] at hres
+      exact hres.2
+    · rw [h6 rfl] at hres; simp [MsgHeartbeatResp, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat] at hres
+      exact hres.2
+    · exact absurd rfl hnv
+  · obtain ⟨_, hres⟩ := hl hr
+    unfold LeaderStepResultC LeaderNonpropResultC at hres
+    rw [h5 rfl] at hres
+    simp [MsgVoteResp, MsgProp, MsgBeat, MsgHeartbeatResp, MsgReadIndex, MsgAppResp, MsgForgetLeader,
+      MsgTimeoutNow, MsgUnreachable, MsgSnapStatus, MsgTransferLeader, MsgCheckQuorum, MsgApp, MsgHeartbeat,
+      MsgPreVoteResp, MsgReadIndexResp] at hres
+    exact hres.2
+
+/-- What `respSrv` keeps: every field but the tally and the match indices. -/
+theorem respSrv_fields (v : Etcdraft.Server) (m : Etcdraft.Msg) :
+    (respSrv v m).log = v.log ∧ (respSrv v m).commitIndex = v.commitIndex ∧
+    (respSrv v m).currentTerm = v.currentTerm ∧ (respSrv v m).state = v.state ∧
+    (respSrv v m).config = v.config ∧ (respSrv v m).durable = v.durable := by
+  unfold respSrv
+  split
+  · exact ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
+  · split
+    · exact ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
+    · exact ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
+
+/-- **The facts after a recorded response** at a role that does not read what it records. -/
+theorem simFx_resp (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (i : Etcdraft.ID) (ma : Etcdraft.Msg)
+    (hc : (σ.s i).state ≠ Etcdraft.candidate ∨ ma.type ≠ .requestVoteResponse)
+    (hl : (σ.s i).state ≠ Etcdraft.leader ∨ ma.type = .requestVoteResponse) :
+    simFx (GF := GF) γ C σ ⊢ simFx γ C (withNode σ i (respSrv (σ.s i) ma) (fun b => b.without ma) _root_.id) := by
+  have hF : ∀ j, ((withNode σ i (respSrv (σ.s i) ma) (fun b => b.without ma) _root_.id).s j).log = (σ.s j).log ∧
+      ((withNode σ i (respSrv (σ.s i) ma) (fun b => b.without ma) _root_.id).s j).commitIndex = (σ.s j).commitIndex ∧
+      ((withNode σ i (respSrv (σ.s i) ma) (fun b => b.without ma) _root_.id).s j).currentTerm = (σ.s j).currentTerm ∧
+      ((withNode σ i (respSrv (σ.s i) ma) (fun b => b.without ma) _root_.id).s j).state = (σ.s j).state ∧
+      ((withNode σ i (respSrv (σ.s i) ma) (fun b => b.without ma) _root_.id).s j).config = (σ.s j).config := by
+    intro j
+    have hj : (withNode σ i (respSrv (σ.s i) ma) (fun b => b.without ma) _root_.id).s j =
+        if j = i then respSrv (σ.s i) ma else σ.s j := rfl
+    rw [hj]
+    split
+    · rename_i hj; subst hj
+      obtain ⟨h1, h2, h3, h4, h5, -⟩ := respSrv_fields (σ.s j) ma
+      exact ⟨h1, h2, h3, h4, h5⟩
+    · exact ⟨rfl, rfl, rfl, rfl, rfl⟩
+  have hsub : ∀ x ∈ (withNode σ i (respSrv (σ.s i) ma) (fun b => b.without ma) _root_.id).messages.domain ++
+      (withNode σ i (respSrv (σ.s i) ma) (fun b => b.without ma) _root_.id).pendingMessages.domain,
+      x ∈ σ.messages.domain ++ σ.pendingMessages.domain := by
+    intro x hx
+    rcases List.mem_append.mp hx with hx | hx
+    · exact List.mem_append_left _ (TraceSpecInv.mem_without _ _ _ hx)
+    · exact List.mem_append_right _ hx
+  iintro Hfx
+  iunfold simFx at Hfx
+  iunfold simFx
+  icases Hfx with ⟨#Hal, #Hmf, %Hp⟩
+  obtain ⟨hsi, hq, hu, hsh, has⟩ := Hp
+  isplitl
+  · iunfold allFacts at Hal
+    iunfold allFacts
+    imodintro
+    iintro %j %hj
+    obtain ⟨h1, h2, h3, h4, -⟩ := hF (idAbs j)
+    iapply srvFacts_congr γ C j _ _ h1 h2 h3 h4
+    iapply Hal $$ %j %hj
+  isplitl
+  · imodintro
+    iintro %x %hx
+    iapply Hmf
+    ipureintro
+    exact hsub x hx
+  ipureintro
+  refine ⟨specInv_respSrv σ i ma hsi hc hl,
+    quorumLogF_congr σ _ rfl (fun k => (hF k).1) (fun k => (hF k).2.1) (fun k => (hF k).2.2.2.2) hq,
+    msgsUniq_mono hsub hu, fun x hx => hsh x (hsub x hx), ?_⟩
+  intro m hm hty j hj hlj htj hs k e he
+  rw [(hF j).1]
+  rw [(hF j).2.2.2.1] at hlj; rw [(hF j).2.2.1] at htj
+  exact has m (hsub m hm) hty j hj hlj htj hs k e he
+
+/-- **The facts of a response's receive line at a role that does not handle it** (`FxPresR` at
+`recvPhantoms m`, none for a response): raft ignores it, the specification records it (`respSrv`) in
+fields that role's idle relation does not read; the phases keep the list and take the server to the
+recorded one (`hΦ'`). -/
+theorem fxPresR_ignResp (γ : RaftNames) (id : w64) (ma : Etcdraft.Msg) (E : TraceEv → Prop)
+    (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop)
+    (hty : ma.type = .appendEntriesResponse ∨ ma.type = .requestVoteResponse)
+    (hrole : ∀ C cs P, Φ C cs P → (cs.state ≠ Etcdraft.candidate ∨ ma.type ≠ .requestVoteResponse) ∧
+      (cs.state ≠ Etcdraft.leader ∨ ma.type = .requestVoteResponse))
+    (hΦ' : ∀ C cs P cs' P', Φ C cs P → Φ' C cs' (P ++ P') →
+      P' = [] ∧ ∀ a, toC (confAbs C) a = cs → cs' = toC (confAbs C) (respSrv a ma)) :
+    ⊢ FxPresR (GF := GF) γ id ma E (fun _ => False) (recvPhantoms ma) Φ Φ' := by
+  iunfold FxPresR
+  imodintro
+  iintro %C %cs %P %e %a %a' %P' %σ %hpre Htbl #Hfx
+  obtain ⟨hΦ, -, hcs, hΦ1, -, hsrv, hσa, -, -, -, -⟩ := hpre
+  obtain ⟨hP', hcs'⟩ := hΦ' C cs P _ P' hΦ hΦ1
+  subst hP'
+  have hcs1 := hcs' a hcs
+  have hph : recvPhantoms ma a = [] := recvPhantoms_resp ma a hty
+  obtain ⟨hc, hl⟩ := hrole C cs P hΦ
+  have hst : (σ.s (idAbs id)).state = cs.state := by rw [hσa, ← hcs]; rfl
+  rw [← hst] at hc hl
+  ihave #H1 := simFx_resp γ C σ (idAbs id) ma hc hl $$ Hfx
+  have hs : ∀ j, toC (withNode σ (idAbs id) (respSrv (σ.s (idAbs id)) ma) (fun b => b.without ma) _root_.id).server
+      ((withNode σ (idAbs id) a' (fun b => b.without ma)
+        (fun b => ([] ++ recvPhantoms ma a).foldl Etcdraft.Bag.with b)).s j) =
+      toC (withNode σ (idAbs id) (respSrv (σ.s (idAbs id)) ma) (fun b => b.without ma) _root_.id).server
+        ((withNode σ (idAbs id) (respSrv (σ.s (idAbs id)) ma) (fun b => b.without ma) _root_.id).s j) := by
+    intro j
+    show toC σ.server (if j = idAbs id then a' else σ.s j) =
+      toC σ.server (if j = idAbs id then respSrv (σ.s (idAbs id)) ma else σ.s j)
+    split
+    · rw [hsrv, hcs1, hσa]
+    · rfl
+  ihave #H3 := simFx_congr γ C
+    (withNode σ (idAbs id) (respSrv (σ.s (idAbs id)) ma) (fun b => b.without ma) _root_.id)
+    (withNode σ (idAbs id) a' (fun b => b.without ma) (fun b => ([] ++ recvPhantoms ma a).foldl Etcdraft.Bag.with b))
+    rfl rfl (by rw [hph]; rfl) hs $$ H1
+  iframe Htbl
+  isplitl
+  · iexact H3
+  · iintro %v %hv
+    exact hv.elim
+
+/-- **A response's receive line's phase step at a role that does not handle it**: the server
+recorded (`respSrv`, at the pinned server `toC a0`), the list kept (`lineEffect_resp`). -/
+theorem phaseStepR_ignResp (id : w64) (c : CfgM) (s : NState) (ty : MsgType) (m : MessageM)
+    (ents : List EntryM) (evt : w64) (C0 : List w64) (cs0 : ServerC) (P0 : List Etcdraft.Msg)
+    (a0 : Etcdraft.Server) (ha0 : toC (confAbs C0) a0 = cs0)
+    (ma : Etcdraft.Msg) (hev : RecvEvTy (absMsg ty m ents) evt) (hto : m.To' = id)
+    (hresp : ty = .appResp ∨ ty = .heartbeatResp ∨ ty = .voteResp)
+    (hterm : m.Term' = s.term) (hpre : s.role ≠ .preCandidate)
+    (hc : (toPState s).role ≠ .candidate ∨ ty ≠ .voteResp) (hl : (toPState s).role ≠ .leader ∨ ty = .voteResp)
+    (hb : (absMsg ty m ents).NumsBelow traceNumBound)
+    (hma : TraceSim.msgAbs C0 C0.length (absMsg ty m ents) = some ma) :
+    PhaseStepR id c ma (SendEvOf evt id s c (absMsg ty m ents)) (fun _ => False) (recvPhantoms ma)
+      (IdlePin s C0 cs0 P0) (IdlePin s C0 (toC (confAbs C0) (respSrv a0 ma)) P0) := by
+  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC⟩ e he
+  obtain ⟨a1, ha1, hR0, hs, hP, bt, bc, bl⟩ := hI
+  have hdst : (absMsg ty m ents).dst = id := hto
+  have he' : SendEvOf evt (absMsg ty m ents).dst s c (absMsg ty m ents) e := by rw [hdst]; exact he
+  obtain ⟨bmt, bk, blt, bi, bmc⟩ := numsBelow_63 hb
+  have hnb := recvEvTy_notBoot hev
+  refine ⟨he.2.1, sendEvOf_notBoot he hnb.1 hnb.2.1 hnb.2.2.1,
+    recvLine_pred C e s c _ evt ma hev he' hout bmt bi blt bk bmc hma, ?_⟩
+  intro a ha
+  have hR : SimServerR C C.length (toPState s) a := simServerR_toC (ha1.trans ha.symm) hR0
+  have hC' : (absMsg ty m ents).dst ∈ C := by rw [hdst]; exact hC
+  obtain ⟨-, -, -, -, -, hr, hvr⟩ := msgAbs_recvTy hev hma
+  have hty0 : (absMsg ty m ents).ty = ty := rfl
+  have hmc : (toPState s).role ≠ .candidate ∨ ma.type ≠ .requestVoteResponse := by
+    rcases hc with h | h
+    · exact .inl h
+    · right; intro hv
+      rcases hresp with rfl | rfl | rfl
+      · rw [hr (.inl rfl)] at hv; cases hv
+      · rw [hr (.inr rfl)] at hv; cases hv
+      · exact h rfl
+  have hml : (toPState s).role ≠ .leader ∨ ma.type = .requestVoteResponse := by
+    rcases hl with h | h
+    · exact .inl h
+    · right; exact hvr (h ▸ rfl)
+  have hRr := simServerR_respSrv ma hR hmc hml
+  have htoC : toC (confAbs C) (respSrv a ma) = toC (confAbs C) (respSrv a0 ma) :=
+    toC_respSrv _ _ _ ma (ha.trans ha0.symm)
+  have hrt : ma.type = .appendEntriesResponse ∨ ma.type = .requestVoteResponse := by
+    rcases hresp with rfl | rfl | rfl
+    · exact .inl (hr (.inl rfl))
+    · exact .inl (hr (.inr rfl))
+    · exact .inr (hvr rfl)
+  have hph := recvPhantoms_resp ma a hrt
+  have hrev : (absMsg ty m ents).ty = .appResp ∧ evt = W64 12 ∨ (absMsg ty m ents).ty = .voteResp ∧ evt = W64 16 ∨
+      (absMsg ty m ents).ty = .heartbeatResp ∧ (absMsg ty m ents).reject = false ∧ evt = W64 12 := by
+    rcases hev with ⟨h, -⟩ | ⟨h, -, -⟩ | ⟨h, -⟩ | h
+    · rw [hty0] at h; subst h; rcases hresp with h | h | h <;> cases h
+    · rw [hty0] at h; subst h; rcases hresp with h | h | h <;> cases h
+    · rw [hty0] at h; subst h; rcases hresp with h | h | h <;> cases h
+    · exact h
+  refine ⟨respSrv a ma, [], ⟨rfl, htoC, by rw [List.append_nil],
+      ⟨respSrv a ma, by first | exact htoC | rfl, hRr, hs, by simpa using hP, bt, bc, bl⟩⟩,
+    fun x hx => by simp at hx, ?_⟩
+  rw [← hdst]
+  simp only [List.nil_append, hph, List.foldl_nil]
+  exact lineEffect_resp C e s c _ evt a ma _ hrev he' hin hout hC' hR hs hpre hterm bt bc bl bi hma
+
+end ign
 
 section gates
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -623,6 +935,197 @@ theorem stepBundle_traced_staleRecv : stepBundle_traced.onR (GF := GF) (hG := hG
         iapply trCapB_mono (some γd) γ r id c true _ _ _ (fun C cs P h => h.2.2.2) $$ Hc
       · ipureintro; exact OutTrStep.of_sub (fun _ h => h)
     all_goals exact h.elim
+
+/-- `IgnResp`'s resources: after the receive line, raft's ghost state and the capability at the
+pinned phase with the recorded server (`G0`, `G1`, `GE`: no further hook runs); `False` at the
+others. -/
+def ignR (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState) (γd : GName)
+    (tn : TraceNames) (cs0 cs1 : ServerC) (P0 : List Etcdraft.Msg) (Λ : Option TraceEv → Prop) (k : Nat)
+    (ma : Etcdraft.Msg) : StepG GF where
+  G := iprop(trCapB (some γd) γ r id c true (IdlePin s tn.voters cs0 P0) Λ ∗ inFlight tn k ma)
+  G0 := fun _ => iprop(ownStepGhost γ md c id s ∗
+    trCapB (some γd) γ r id c true (IdlePin s tn.voters cs1 P0) (fun o => o.isSome = true))
+  G1 := fun _ => iprop(ownStepGhost γ md c id s ∗
+    trCapB (some γd) γ r id c true (IdlePin s tn.voters cs1 P0) (fun o => o.isSome = true))
+  GE := fun _ => iprop(ownStepGhost γ md c id s ∗
+    trCapB (some γd) γ r id c true (IdlePin s tn.voters cs1 P0) (fun o => o.isSome = true))
+  Gf := iprop(⌜False⌝)
+  Gb1 := iprop(⌜False⌝)
+  Gb2 := iprop(⌜False⌝)
+  Gp1 := iprop(⌜False⌝)
+  Gp2 := fun _ => iprop(⌜False⌝)
+  Gc := fun _ _ _ => iprop(⌜False⌝)
+
+/-- **`raft.Step`'s traced bundle on a response a role does not handle, at the node's term**: the
+receive line (the specification records it, `respSrv`), nothing else. -/
+theorem stepBundle_traced_ignResp : stepBundle_traced.onR (GF := GF) (hG := hG) IgnResp := by
+  intro γ md c r id s m ents sn ctx rs γd Λ hp hnpc hsh htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit
+  have hp' := hp
+  obtain ⟨hterm, ty, hmty, hresp, hrole⟩ := hp'
+  have htrd : ty.traced = true := by rcases hresp with rfl | rfl | rfl <;> rfl
+  obtain ⟨evt, hevt, hev⟩ := recvEvTy_of ty m ents hmty htrd hsh
+  have hto' : m.To' = id := hto ty hmty htrd
+  have hnbf : ¬ PreBF m s := fun h => absurd h.1 (by rw [hterm]; omega)
+  have hpre : ∀ pvs, preState s m pvs = s := fun pvs => by simp [preState, hnbf]
+  have hns : ¬ StaleMsg s m := fun h => absurd h.2 (by rw [hterm]; omega)
+  have hsome : s.gh.tr ≠ none := by rw [htr]; simp
+  obtain ⟨-, -, -, h4, h5, h6⟩ := mtypeOf_eq_of _ _ hmty
+  have hTy : m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp ∨ m.Type' = MsgVoteResp := by
+    rcases hresp with rfl | rfl | rfl
+    · exact .inl (h4 rfl)
+    · exact .inr (.inl (h6 rfl))
+    · exact .inr (.inr (h5 rfl))
+  -- every type a gate guards on, but the responses' own where a role handles them
+  obtain ⟨hnA, hnH, hnP, hnRI, hnTL, hnTN, hnB, hnCQ, hnPVR, hnV, hnPV, hnHup⟩ := resp_ne hTy
+  have hmt2 : mtypeOf m.Type' = some ty ∧ ty.traced = true := ⟨hmty, htrd⟩
+  iintro ⟨Hcap, Htok, #Hnosnap⟩
+  iunfold recvTokOf at Htok
+  icases Htok $$ %ty %hmt2 with ⟨%tn, %k, %ma, #Hdir, %hma, Htok⟩
+  rw [msgAbs_absMsg_ctx] at hma
+  rw [htr]
+  icases trCapB_pinDir γd γ r id c true _ Λ $$ Hcap with ⟨%tn', %cs0, %P0, #Hdir', %hI0, Hcap⟩
+  icases traceDir_agree γd tn tn' $$ [$Hdir $Hdir'] with %Htn
+  subst Htn
+  obtain ⟨⟨a0, ha0, -⟩, -⟩ := hI0
+  imodintro
+  iexists ignR γ md c r id s γd tn cs0 (toC (confAbs tn.voters) (respSrv a0 ma)) P0 Λ k ma
+  isplitl [Hcap Htok]
+  · dsimp only [ignR]; iframe Hcap Htok
+  -- the roles, as the specification's
+  have hc : (toPState s).role ≠ .candidate ∨ ty ≠ .voteResp := by
+    rcases hrole with hr | ⟨hr, hv⟩ | ⟨hr, -⟩
+    · left; simp [toPState, hr, proleRole]
+    · exact .inr hv
+    · left; simp [toPState, hr, proleRole]
+  have hl : (toPState s).role ≠ .leader ∨ ty = .voteResp := by
+    rcases hrole with hr | ⟨hr, -⟩ | ⟨-, hv⟩
+    · left; simp [toPState, hr, proleRole]
+    · left; simp [toPState, hr, proleRole]
+    · exact .inr hv
+  isplitr
+  · iunfold stepGates
+    dsimp only [ghostIn, ignR]
+    isplitr
+    · -- the receive line
+      iintro ⟨Hgh, Hc, Htok⟩
+      iapply hookGateOpt_fupd
+      icases ownStepGhost_nsLink γ md c id s $$ Hgh with ⟨%Hnl, Hgh⟩
+      imod ownStepGhost_traceOk γ md c id s hfit $$ Hgh with ⟨%Hb, Hgh⟩
+      imodintro
+      have hreT : γ.reTrace.isSome := by rw [← Hnl.2.1, htr]; rfl
+      have hnb : (absMsg ty m ents).NumsBelow traceNumBound := hok ty hmty hreT htrd
+      have hps := phaseStepR_ignResp id c s ty m ents evt tn.voters cs0 P0 a0 ha0 ma hev hto' hresp hterm
+        hnpc hc hl hnb hma
+      have hnb' := recvEvTy_notBoot hev
+      have hOk : ∀ e, SendEvOf evt id s c (absMsg ty m ents) e → TraceEv.Ok (elements c.incoming).length e :=
+        fun e he => sendEvOf_ok evt id s c _ e _ he ⟨hnb'.1, hnb'.2.2.2⟩ (by word) Hb.2 Hb.1 hnb (Nat.le_refl _)
+      iapply recvGate_traced γd γ r id c s m ents sn ctx rs ty evt true k ma (fun _ => False) (recvPhantoms ma)
+        (IdlePin s tn.voters cs0 P0) (IdlePin s tn.voters (toC (confAbs tn.voters) (respSrv a0 ma)) P0) Λ
+        (ownStepGhost γ md c id s) htr hmty hevt hps hOk
+      iframe Hgh Hc
+      isplitr
+      · obtain ⟨-, -, -, -, -, hr, hvr⟩ := msgAbs_recvTy hev hma
+        have hty0 : (absMsg ty m ents).ty = ty := rfl
+        have hrt : ma.type = .appendEntriesResponse ∨ ma.type = .requestVoteResponse := by
+          rcases hresp with rfl | rfl | rfl
+          · exact .inl (hr (.inl rfl))
+          · exact .inl (hr (.inr rfl))
+          · exact .inr (hvr rfl)
+        iapply fxPresR_ignResp γ id ma _ _ _ hrt
+        · rintro C cs P ⟨-, -, -, a, rfl, hR, -⟩
+          have hS : (toC (confAbs C) a).state = roleAbs (toPState s).role := hR.2.1
+          refine ⟨?_, ?_⟩
+          · rcases hc with h | h
+            · left; rw [hS]; exact roleAbs_ne_of h
+            · right; intro hv; rcases hresp with rfl | rfl | rfl
+              · rw [hr (.inl rfl)] at hv; cases hv
+              · rw [hr (.inr rfl)] at hv; cases hv
+              · exact h rfl
+          · rcases hl with h | h
+            · left; rw [hS]; exact roleAbs_ne_of h
+            · right; exact hvr (h ▸ rfl)
+        · rintro C cs P cs' P' ⟨rfl, rfl, rfl, -⟩ ⟨-, rfl, h, -⟩
+          refine ⟨by simpa using h, fun a ha => ?_⟩
+          exact toC_respSrv _ _ _ ma (ha0.trans ha.symm)
+      · iexists tn; iframe Hdir Htok
+    isplitr
+    · -- the preamble: no step-down at the node's term
+      unfold preGate
+      iintro %_ HG0
+      simp only [hnbf, ↓reduceIte]
+      imodintro
+      iexact HG0
+    isplitr
+    · iintro %h; exact (hns h).elim
+    isplitr
+    · iintro %h; exact (h.elim hnV hnPV).elim
+    isplitr
+    · iintro %h; exact (hnHup h).elim
+    isplitr
+    · unfold stepFnGates
+      iintro %pvs
+      rw [hpre pvs]
+      isplit
+      · iintro %_
+        iunfold followerGates
+        repeat (isplitr; · iguard_false [hnA, hnH, hnP, hnRI, hnTL, hnTN, hnB, hnCQ, hnPVR, hnV, hnPV, hnHup])
+        iguard_false [hnA, hnH, hnP, hnRI, hnTL, hnTN, hnB, hnCQ, hnPVR, hnV, hnPV, hnHup]
+      isplit
+      · iintro %hrc
+        have hrc' : s.role = .candidate := by
+          rcases hrc with h | h
+          · exact h
+          · exact absurd h hnpc
+        have hnVR : m.Type' ≠ MsgVoteResp := by
+          rcases hrole with hr | ⟨-, hv⟩ | ⟨hr, -⟩
+          · rw [hr] at hrc'; cases hrc'
+          · intro h; rw [h] at hmty; cases hmty; exact hv rfl
+          · rw [hr] at hrc'; cases hrc'
+        iunfold candidateGates
+        repeat (isplitr; · first | (rw [htr]; iexact Hnosnap) | iguard_false [hnA, hnH, hnP, hnRI, hnTL, hnTN, hnB, hnCQ, hnPVR, hnV, hnPV, hnHup, hnVR])
+        iguard_false [hnA, hnH, hnP, hnRI, hnTL, hnTN, hnB, hnCQ, hnPVR, hnV, hnPV, hnHup, hnVR]
+      · iintro %hrl
+        have hnHR : m.Type' ≠ MsgHeartbeatResp := by
+          rcases hrole with hr | ⟨hr, -⟩ | ⟨-, rfl⟩
+          · rw [hr] at hrl; cases hrl
+          · rw [hr] at hrl; cases hrl
+          · intro h; rw [h] at hmty; cases hmty
+        have hnAR : m.Type' ≠ MsgAppResp := by
+          rcases hrole with hr | ⟨hr, -⟩ | ⟨-, rfl⟩
+          · rw [hr] at hrl; cases hrl
+          · rw [hr] at hrl; cases hrl
+          · intro h; rw [h] at hmty; cases hmty
+        iunfold leaderGates
+        repeat (isplitr; · first | (rw [htr]; iexact Hnosnap) | iguard_false [hnA, hnH, hnP, hnRI, hnTL, hnTN, hnB, hnCQ, hnPVR, hnV, hnPV, hnHup, hnHR, hnAR])
+        iguard_false [hnA, hnH, hnP, hnRI, hnTL, hnTN, hnB, hnCQ, hnPVR, hnV, hnPV, hnHup, hnHR, hnAR]
+    · ipureintro
+      exact ⟨fun _ _ _ => rfl, IdxFree.of_some _ hsome, IdxFree.of_some _ hsome,
+        IdxFree.of_some _ hsome, fun _ _ => IdxFree.of_some _ hsome⟩
+  · -- the closing wand: the end state is `s`
+    iunfold stepClose
+    iintro %s' %B %recv %_ %hend Hout
+    have hs' : s' = s := by
+      obtain ⟨pvs, h⟩ := ((hend (by rw [htr]; rfl)) hty).2.2.2 hns hnHup hnV
+      rw [hpre pvs] at h
+      exact ignResp_end hp h
+    subst hs'
+    unfold stepOut
+    dsimp only [ignR]
+    ihave H : iprop(ownStepGhost γ md c id s' ∗
+        trCapB (some γd) γ r id c true (IdlePin s' tn.voters (toC (confAbs tn.voters) (respSrv a0 ma)) P0)
+          (fun o => o.isSome = true)) $$ [Hout]
+    · icases Hout with (H | H | H | %h | ⟨%b, %N, %h⟩)
+      · iexact H
+      · iexact H
+      · iexact H
+      · exact h.elim
+      · exact h.elim
+    icases H with ⟨Hgh, Hc⟩
+    iframe Hgh
+    isplitl [Hc]
+    · iapply trCapB_monoΛ (some γd) γ r id c true _ _ _ (fun o h => .inr h)
+      iapply trCapB_mono (some γd) γ r id c true _ _ _ (fun C cs P h => h.2.2.2) $$ Hc
+    · ipureintro; exact OutTrStep.of_sub (fun _ h => h)
 
 end paths
 
