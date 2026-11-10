@@ -44,7 +44,7 @@ theorem wp_Step_MsgHeartbeatResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
     (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
-    (ents : List EntryM)
+    (ents : List EntryM) (R : StepG GF)
     (Hlrd : s.role = .leader → m.Term' = s.term →
       (RdOk c.voters s.rd ∧ s.term ≠ W64 0) ∧ (ctx = [] ∨ 8 ≤ ctx.length) ∧
       (ctx ≠ [] → uint.Z (leToU64 (ctx.take 8))
@@ -57,10 +57,11 @@ theorem wp_Step_MsgHeartbeatResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
     m.From' ≠ W64 0 →
     m.From' ≠ id →
     NStateWf s →
-    s.gh.tr = none →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
+        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
+        -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
@@ -70,30 +71,31 @@ theorem wp_Step_MsgHeartbeatResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
             StepCD c id B m s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
-        "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hfid Hwf Htr
-  wp_start_folded as ⟨Hphys, Hm⟩
+        "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
+        "HG" ∷ stepOut R }} := by
+  intro Hty Hto Hterm Hfnz Hfid Hwf
+  wp_start_folded as ⟨Hphys, Hm, HG, Hgates⟩
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
-  · wp_apply (wp_Step_Resp_gt _P _Q c r id s ml m sn ctx rs ents .heartbeatResp (.inr ⟨Hty, rfl⟩) Hto Hterm
-        Hgt Hwf Htr) $$ [$Hpkg $Hphys $Hm] as %err %s' ⟨Hphys, %Hwf', %Href, %Herr, %Hfr, %Htm⟩
+  · wp_apply (wp_Step_Resp_gt _P _Q c r id s ml m sn ctx rs ents R .heartbeatResp (.inr ⟨Hty, rfl⟩) Hto Hterm
+        Hgt Hwf) $$ [$Hpkg $Hphys $Hm $HG $Hgates] as %err %s' ⟨Hphys, %Hwf', %Href, %Herr, %Hfr, %Htm, HG⟩
     iapply HΦ $$ %err %s'
-    iframe Hphys
+    iframe Hphys HG
     ipureintro
     obtain ⟨recv, Hrecv, Hstep⟩ := Href
     exact ⟨Hwf', ⟨[], recv, .inl rfl, Hrecv, Hstep⟩, Herr, Hfr, Htm⟩
   · by_cases Hlt : uint.Z m.Term' < uint.Z s.term
-    · wp_apply (wp_Step_Resp_lt _P _Q c r id s ml m sn ctx rs ents .heartbeatResp (.inr Hty) Hterm Hlt Hwf Htr)
-        $$ [$Hpkg $Hphys $Hm] as %err %s' ⟨Hphys, %Hwf', %Href, %Herr, -, %Hfr, %Htm⟩
+    · wp_apply (wp_Step_Resp_lt _P _Q c r id s ml m sn ctx rs ents R .heartbeatResp (.inr Hty) Hterm Hlt Hwf)
+        $$ [$Hpkg $Hphys $Hm $HG $Hgates] as %err %s' ⟨Hphys, %Hwf', %Href, %Herr, -, %Hfr, %Htm, HG⟩
       iapply HΦ $$ %err %s'
-      iframe Hphys
+      iframe Hphys HG
       ipureintro
       obtain ⟨recv, Hrecv, Hstep⟩ := Href
       exact ⟨Hwf', ⟨[], recv, .inl rfl, Hrecv, Hstep⟩, Herr, Hfr, Htm⟩
     · have Hteq : m.Term' = s.term := by word
-      wp_apply (wp_Step_MsgHeartbeatResp_eq _P _Q c r id s ml m sn ctx rs ents Hlrd Hty Hto Hterm Hteq Hfnz
-        Hfid Hwf Htr) $$ [$Hpkg $Hphys $Hm] as %err %s' ⟨Hphys, %Hwf', %Href, %Herr, %Hfr, %Htm⟩
+      wp_apply (wp_Step_MsgHeartbeatResp_eq _P _Q c r id s ml m sn ctx rs ents R Hlrd Hty Hto Hterm Hteq Hfnz
+        Hfid Hwf) $$ [$Hpkg $Hphys $Hm $HG $Hgates] as %err %s' ⟨Hphys, %Hwf', %Href, %Herr, %Hfr, %Htm, HG⟩
       iapply HΦ $$ %err %s'
-      iframe Hphys
+      iframe Hphys HG
       ipureintro
       obtain ⟨recv, Hrecv, Hstep⟩ := Href
       exact ⟨Hwf', ⟨ctx, recv, .inr rfl, Hrecv, Hstep⟩, Herr, Hfr, Htm⟩

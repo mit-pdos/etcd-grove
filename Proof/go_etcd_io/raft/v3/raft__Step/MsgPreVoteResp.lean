@@ -42,17 +42,18 @@ namespace StepProof
 theorem wp_Step_MsgPreVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (PB : raft.Step.PbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
-    (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) :
+    (ents : List EntryM) (R : StepG GF) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) :
     m.Type' = MsgPreVoteResp →
     m.To' = id →
     m.Term' ≠ W64 0 →
     -- a pre-candidate's term does not wrap (a won pre-vote campaigns)
     (s.role = .preCandidate → uint.Z s.term + 1 < 2 ^ 64) →
     NStateWf s →
-    s.gh.tr = none →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
+        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
+        -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
@@ -62,14 +63,15 @@ theorem wp_Step_MsgPreVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
-        "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hto Hterm Hnw Hwf Htr
+        "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
+        "HG" ∷ stepOut R }} := by
+  intro Hty Hto Hterm Hnw Hwf
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
-  · exact wp_Step_MsgPreVoteResp_gt _P PB c r id s ml m ents sn ctx rs Hty Hto Hterm Hgt Hnw Hwf Htr
+  · exact wp_Step_MsgPreVoteResp_gt _P PB c r id s ml m ents R sn ctx rs Hty Hto Hterm Hgt Hnw Hwf
   by_cases Hlt : uint.Z m.Term' < uint.Z s.term
-  · exact wp_Step_MsgPreVoteResp_lt _P PB c r id s ml m ents sn ctx rs Hty Hterm Hlt Hwf Htr
+  · exact wp_Step_MsgPreVoteResp_lt _P PB c r id s ml m ents R sn ctx rs Hty Hterm Hlt Hwf
   have Heq : m.Term' = s.term := by word
-  exact wp_Step_MsgPreVoteResp_eq _P PB c r id s ml m ents sn ctx rs Hty Hto Hterm Heq Hnw Hwf Htr
+  exact wp_Step_MsgPreVoteResp_eq _P PB c r id s ml m ents R sn ctx rs Hty Hto Hterm Heq Hnw Hwf
 
 end StepProof
 

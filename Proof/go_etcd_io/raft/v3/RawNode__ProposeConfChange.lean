@@ -14,6 +14,7 @@ public import Spec.go_etcd_io.raft.v3.confChangeToMsg
 public import Spec.go_etcd_io.raft.v3.raft__Step
 -- `Step.commit_mono`
 public import Proof.go_etcd_io.raft.v3.Protocol.Facts
+public import Proof.go_etcd_io.raft.v3.TracedUntracedRaftStep
 
 @[expose] public section
 
@@ -42,6 +43,8 @@ theorem RawNode.ProposeConfChange.wp_proof
     (wp_confChangeToMsg : confChangeToMsg.spec (GF := GF) (hG := hG))
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
     RawNode.ProposeConfChange.spec (GF := GF) (hG := hG) := by
+  -- (2026-11-10, Q8 stage 1 slice 11) `Step`'s untraced instance (`TracedUntracedRaftStep.lean`)
+  have wp_raft_Step := raft.Step.untraced wp_raft_Step
   intro γ rn id rs c o dq HtrG
   wp_start as H
   iNamed H

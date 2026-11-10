@@ -5,6 +5,7 @@ public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
 public import Proof.go_etcd_io.raft.v3.InvPbMsg
 public import Spec.go_etcd_io.raft.v3.raft__tickHeartbeat
 public import Spec.go_etcd_io.raft.v3.raft__abortLeaderTransfer
+public import Proof.go_etcd_io.raft.v3.TracedUntracedRaftStep
 
 @[expose] public section
 
@@ -38,6 +39,8 @@ theorem raft.tickHeartbeat.wp_proof
     (wp_raft_abortLeaderTransfer : raft.abortLeaderTransfer.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.tickHeartbeat.spec (GF := GF) (hG := hG) := by
+  -- (2026-11-10, Q8 stage 1 slice 11) `Step`'s untraced instance (`TracedUntracedRaftStep.lean`)
+  have wp_raft_Step := raft.Step.untraced wp_raft_Step
   intro c md γ r id s Hwf Hpc Htr
   wp_start as H
   iNamed H

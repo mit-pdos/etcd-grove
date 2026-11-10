@@ -40,7 +40,7 @@ theorem wp_Step_MsgSnap_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
-    (ents : List EntryM) (sv : SnapshotM) (scfg : CSLists) :
+    (ents : List EntryM) (R : StepG GF) (sv : SnapshotM) (scfg : CSLists) :
     m.Type' = MsgSnap →
     m.To' = id →
     m.Term' ≠ W64 0 →
@@ -50,7 +50,9 @@ theorem wp_Step_MsgSnap_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     s.gh.tr = none →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
+        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
+        -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
@@ -61,7 +63,8 @@ theorem wp_Step_MsgSnap_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         -- (2026-10-19, D21 M3) the no-snapshot mode kept
         "%Hng" ∷ ⌜s'.gh = s.gh⌝ ∗
         -- (2026-10-20, D22 S-c) nothing changes
-        "%Hsf" ∷ ⌜SnapStep m s s' ∧ SnapLogStep sv m s s'⌝ }} := by
+        "%Hsf" ∷ ⌜SnapStep m s s' ∧ SnapLogStep sv m s s'⌝ ∗
+        "HG" ∷ stepOut R }} := by
   intro Hty Hto Hterm Hwf Hlt Htr
   wp_start as H
   iNamed H
@@ -69,7 +72,8 @@ theorem wp_Step_MsgSnap_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   wp_auto
   rw [decide_eq_false Hnn]
   wp_auto
-  wp_trace_hookC _P.traceReceiveMessage
+  have Hrns : s.gh.tr ≠ none → mtypeOf m.Type' ≠ some .snap := fun h => absurd Htr h
+  wp_recv_gate Hrns
   try wp_auto
   wp_get _Q
   rw [decide_eq_false Hterm]
@@ -84,7 +88,7 @@ theorem wp_Step_MsgSnap_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   -- false
   -- (2026-10-20) joined at `false` (`wp_join`): the rest of the arm is verified once, not
   -- once per flag case
-  wp_join (v := #false) at (If (If _ (Val #true) _) _ (Val #false)) with [Hphys r m Hm]
+  wp_join (v := #false) at (If (If _ (Val #true) _) _ (Val #false)) with [Hphys r m Hm HG]
   · wp_drive _Q
     cq_split _Q
     -- where the type test ran, its last disjunct (`MsgApp`) is the value left
@@ -97,8 +101,9 @@ theorem wp_Step_MsgSnap_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   try wp_auto
   wp_drive _Q
   wp_raft_logC
+  ihave HG := stepOut_G0 R $$ HG
   iapply HΦ $$ %interface.nil %s
-  iframe Hphys
+  iframe Hphys HG
   ipureintro
   exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil,
     StepCDS.frame (.refl _) (RFrame.refl _)⟩, rfl, rfl, SnapStep.refl m s,

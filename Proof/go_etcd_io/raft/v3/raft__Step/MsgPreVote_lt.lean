@@ -44,7 +44,7 @@ set_option maxHeartbeats 2000000 in
 theorem wp_Step_MsgPreVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (PB : raft.Step.PbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
-    (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) :
+    (ents : List EntryM) (R : StepG GF) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) :
     m.Type' = MsgPreVote →
     m.To' = id →
     m.Term' ≠ W64 0 →
@@ -54,11 +54,12 @@ theorem wp_Step_MsgPreVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     -- this file: the incoming term is stale
     uint.Z m.Term' < uint.Z s.term →
     NStateWf s →
-    s.gh.tr = none →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         -- (stage R4) the message, as `Step` received it
-        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
+        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
+        -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
@@ -66,22 +67,24 @@ theorem wp_Step_MsgPreVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hrefines" ∷ ⌜StepCD c id B m s [] s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
-        "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hfid Hlt0 Hwf Htr
+        "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
+        "HG" ∷ stepOut R }} := by
+  intro Hty Hto Hterm Hfnz Hfid Hlt0 Hwf
   have Hn8 : decide (m.Type' = W32 8) = false := decide_eq_false (by rw [Hty]; w32_ne)
   have Hn3 : decide (m.Type' = W32 3) = false := decide_eq_false (by rw [Hty]; w32_ne)
   have Hy17 : decide (m.Type' = W32 17) = true := decide_eq_true Hty
   have Hs0 : s.term ≠ W64 0 := by intro H0; rw [H0] at Hlt0; word
   -- `MessageType.Enum()`'s receiver: `int32` is not an interface (as in `toConfChangeSingle`)
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
-  wp_start as ⟨Hphys, Hm⟩
+  wp_start as ⟨Hphys, Hm, HG, Hgates⟩
   icases msgPtsC_nn _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
   wp_auto
   wp_gets
   rw [decide_eq_false Hnn]
   wp_auto
   wp_gets
-  wp_trace_hookC _P.traceReceiveMessage
+  wp_recv_gate_ns
+  ihave Hglow := Hglow $$ %(And.intro Hterm Hlt0)
   try wp_auto
   -- `m.Term ≠ 0`, so the first arm of the term preamble is skipped
   wp_gets
@@ -150,15 +153,19 @@ theorem wp_Step_MsgPreVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
           rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne),
         fun h => absurd h Hfid,
         .inl (Int.le_refl _), rfl⟩)
-  wp_apply _P.send c r id s «$a0_ptr» resp [] none [] [] _ (Or.inl rfl) Hok
+  wp_apply _P.send c r id s «$a0_ptr» resp [] none [] [] _ R.GE (Or.inl rfl) Hok
       (fun h => absurd h (by show MsgPreVoteResp ≠ MsgSnap; w32_ne))
       (fun h => absurd h (by show MsgPreVoteResp ≠ MsgApp; w32_ne))
-    rfl (by tr_none) $$ [$Hphys $Hresp]
-  · iapply tsSrc_ne; exact (fun h => absurd h (by show MsgPreVoteResp ≠ MsgSnap; w32_ne))
-  iintro Hphys
+    rfl (fun _ h => absurd (mtypeOf_Snap _ h) (by show MsgPreVoteResp ≠ MsgSnap; w32_ne))
+    $$ [$Hphys $Hresp Hglow HG]
+  · isplitr
+    · iapply tsSrc_ne; exact (fun h => absurd h (by show MsgPreVoteResp ≠ MsgSnap; w32_ne))
+    iapply lowGate_prevote c r id s m R Hty _ $$ Hglow HG
+  iintro ⟨Hphys, HG⟩
+  ihave HG := stepOut_GE R $$ HG
   wp_auto
   iapply HΦ $$ %interface.nil %_
-  iframe Hphys
+  iframe Hphys HG
   ipureintro
   refine ⟨nstateWf_sendMsgs _ _ Hwf, StepCD.frame ?_ (by rframe), rfl,
     keep_frame rfl rfl rfl rfl rfl⟩

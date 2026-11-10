@@ -38,6 +38,7 @@ public import Spec.go_etcd_io.raft.v3.raft__Step
 public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
 -- `Step.commit_mono`
 public import Proof.go_etcd_io.raft.v3.Protocol.Facts
+public import Proof.go_etcd_io.raft.v3.TracedUntracedRaftStep
 
 @[expose] public section
 
@@ -242,6 +243,8 @@ private theorem wp_step_pending
          (st.msg.Type' = MsgStorageAppendResp → s'.logst.applied = s.logst.applied) ∧
          -- (2026-11-01, durability stage II (m)) `offsetInProgress` not moved back
          uint.Z s.logst.inprogress ≤ uint.Z s'.logst.inprogress⌝ }} := by
+  -- (2026-11-10, Q8 stage 1 slice 11) `Step`'s untraced instance (`TracedUntracedRaftStep.lean`)
+  have wp_raft_Step := raft.Step.untraced wp_raft_Step
   iintro %Φ ⟨#Hinit, Hphys, Hghost, Hmin, #Hp, Hlc, #Hfrg⟩ HΦ
   imod rdCred_zero_upd (GF := GF) γ with Hcr
   cases p with
@@ -535,6 +538,8 @@ private theorem wp_step_snapack
          ∃ (prs : GMap w64 Loc) (pvs : GMap w64 Progress) (il : Bool), s' = { s with
            logst := ackSnapLog s.logst (appendAckM id t (e.getD ⟨W64 0, W64 0⟩)) s.term sv,
            progress := prs, prvals := pvs, isLearner := il }⌝ }} := by
+  -- (2026-11-10, Q8 stage 1 slice 11) `Step`'s untraced instance (`TracedUntracedRaftStep.lean`)
+  have wp_raft_Step := raft.Step.untraced wp_raft_Step
   iintro %Φ ⟨#Hinit, Hphys, Hghost, Hmin, Hlc, #HD⟩ HΦ
   imod rdCred_zero_upd (GF := GF) γ with Hcr
   obtain ⟨Hle0, -⟩ := Hok

@@ -34023,3 +34023,56 @@ see it vacuous. No closed statement changes.
 
 **Not done (pieces 2-4 of the slice).** `raft.Step` gated (its spec still takes `s.gh.tr = none` and the
 `X.untraced` instances), `raft.Step.traced`, `tickElection`/`tickHeartbeat`: see the plan's paragraph.
+
+## Q8 stage 1 (slice 11): `raft.Step` one spec for both modes; raft's ghost state the caller's across the handler; `OutTrStep` in the closing wand (2026-11-10 · trace-check, Q8 stage 1 slice 11; decided by the agent under the user's delegation · branch `trace-check-q8s11`; DRAFT until trace-check's Freeze)
+
+**What (piece 1 of the slice).** `raft.Step.spec` loses stage 0's premise `s.gh.tr = none`: the caller's
+resources `R : StepG GF` (`LemmasStepGates.lean`: `G`, `G0`, `G1`, `GE`, `Gf`, `Gb1`, `Gb2`, `Gp1`, `Gp2`,
+`Gc`) go through `stepGates`, the gates of every hook a path of `Step` runs, each as its callee states it:
+the receive hook's (`recvGate`, `G` to `G0`), the term preamble's (`preGate`: the step-down's
+`BecomeFollower` line when `PreBF m s`, an update otherwise, `G0` to `G1`), a stale message's answer
+(`LowSend`, `G0` to `GE`), a vote request's answer (`vrespMsgOf` at `preState`, `G1` to `GE`), `hup`'s
+(`hupGates` at `hupType s`), and the role's step function's (`stepFnGates`: `followerGates`,
+`candidateGates`, `leaderGates`, the specs' own text bundled, at `preState s m pvs`, `∀ pvs`). `Step`
+gives back one of them (`stepOut R`, untagged).
+- **Raft's ghost state is the caller's across the handler.** The receive gate's argument is
+  `ghostIn γ md c id s R` (`ownStepGhost γ md c id s ∗ R.G`), and the closing wand
+  `stepClose γ md c id m s R Gout` gives it back with the caller's `Gout`. So a traced caller reads and
+  updates raft's ghost inside its gates (slice 8's win registered inside the `BecomeLeader` gate; slice
+  9's new commit certificate before the `Commit` line) without any invariant relaxed. Rejected: lending the
+  ghost in each gate (`Gh ∗ Gi -∗ … (Gh ∗ Gj)`: every gate longer, same power); keeping it out of the gates
+  (only persistent ghost facts would reach them).
+- **`OutTrStep` in the closing wand.** A traced step must keep `NsLink`'s `OutTr` (slice 10): `stepClose`
+  takes the end state `s'` and the model step (`s.gh.tr.isSome → StepCD c id B m s recv s'`) and
+  returns `⌜OutTrStep s s'⌝`. The caller has it from its send lines (each line's `TraceEv.Ok` gives
+  `Msg.NumsBelow` of its message) or from a bounded-step lemma; the untraced instance from
+  `OutTrStep.of_none`. Rejected: the send gates returning `⌜mm.TrOk⌝` (the step functions' specs fix
+  their gates' resources before the message is known, so `Step` could not collect the facts without
+  changing every hook-path spec); a pure bound premise on `Step` (a model-level lemma over all `StepC`
+  constructors, which belongs to piece 2).
+- **Untraced-only premises, on the type** (the narrowest, as slices 8-9): `m.Type' = MsgSnap → s.gh.tr =
+  none` (P2), `m.Type' = MsgStorageAppendResp → sn ≠ none → s.gh.tr = none` (`appliedSnap`'s premise),
+  `m.Type' = MsgStorageApplyResp → ents ≠ [] → s.gh.tr = none` (`appliedTo`'s), `m.Type' = MsgProp →
+  s.gh.tr ≠ none → ∀ e ∈ ents, ¬ IsConfEnt e` (P3, `stepLeader`'s). `appliedTo`/`appliedSnap` gated is
+  left (a traced node's `Advance` needs them).
+- **The transfer arm.** `Step` records a forwarding follower's leader in `NGhost.xw` in the struct before
+  the step; the gates move to the recorded state by `stepGates_xw` (a transfer at a follower runs only
+  `xw`-free gates; the others are refuted by type or role), and the ghost state's record is taken after
+  the closing wand.
+- **Proof structure.** `raft.Step.Postulates` holds the gated specs (`traceReceiveMessage.gated`, the
+  receive hook with the message as `Step` holds it); every branch lemma takes `R`, `"HG" ∷ R.G`,
+  `"Hgates" ∷ stepGates … R` and returns `stepOut R`; the dispatch puts the ghost in
+  (`gate_open`) and takes it back (`gate_close`), and `stepPost`/`finish_branch*` carry `Gout`.
+  `wp_Step_MsgProp` (shared with `raft.appliedTo`) is gated too; `appliedTo` supplies `stepGates_none`.
+- **Untraced instance** `raft.Step.untraced` (`TracedUntracedRaftStep.lean`): the statement before slice
+  11, from the one spec with every resource raft's ghost state (`stepGates_none`). Its clients (`RawNode`'s
+  methods, `node.run`'s helpers, `tickElection`, `tickHeartbeat`) take `raft.Step.spec` as before and
+  open with `have wp_raft_Step := raft.Step.untraced wp_raft_Step`: no spec of theirs changed, `Link.lean`
+  unchanged.
+
+No change to a client-visible predicate or to a spec with clients outside raft (`raft.Step.spec`'s
+clients are raft's node API, which keeps its statements); no ghost change; no axiom or `sorry`.
+
+**Not done (slice 11).** Piece 2 (`raft.Step.traced` at `HasLC.hasLC`: building `stepGates` and
+`stepClose` from `trCapB` and raft's ghost) and piece 3 (`tickElection`/`tickHeartbeat` gated): see the
+plan's paragraph.

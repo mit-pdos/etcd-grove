@@ -6,6 +6,7 @@ public import Proof.go_etcd_io.raft.v3.InvPbMsg
 public import Spec.go_etcd_io.raft.v3.raft__tickElection
 public import Spec.go_etcd_io.raft.v3.raft__promotable
 public import Spec.go_etcd_io.raft.v3.raft__pastElectionTimeout
+public import Proof.go_etcd_io.raft.v3.TracedUntracedRaftStep
 
 @[expose] public section
 
@@ -40,6 +41,8 @@ theorem raft.tickElection.wp_proof
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.tickElection.spec (GF := GF) (hG := hG) := by
+  -- (2026-11-10, Q8 stage 1 slice 11) `Step`'s untraced instance (`TracedUntracedRaftStep.lean`)
+  have wp_raft_Step := raft.Step.untraced wp_raft_Step
   intro c md γ r id s Hterm Htc Hwf Hfla Hpc Htr
   wp_start as H
   iNamed H

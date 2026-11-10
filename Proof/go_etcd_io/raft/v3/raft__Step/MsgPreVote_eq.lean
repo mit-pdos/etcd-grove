@@ -53,7 +53,7 @@ either answer is a free message (`StepC.sendFree`). -/
 theorem wp_Step_MsgPreVote_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (PB : raft.Step.PbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
-    (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) :
+    (ents : List EntryM) (R : StepG GF) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) :
     m.Type' = MsgPreVote →
     m.To' = id →
     m.Term' ≠ W64 0 →
@@ -63,11 +63,12 @@ theorem wp_Step_MsgPreVote_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     -- this file: the same term
     m.Term' = s.term →
     NStateWf s →
-    s.gh.tr = none →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         -- (stage R4) the message, as `Step` received it
-        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
+        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
+        -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
@@ -75,19 +76,23 @@ theorem wp_Step_MsgPreVote_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hrefines" ∷ ⌜StepCD c id B m s [] s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
-        "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hfid Heq0 Hwf Htr
+        "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
+        "HG" ∷ stepOut R }} := by
+  intro Hty Hto Hterm Hfnz Hfid Heq0 Hwf
   have Hs0 : s.term ≠ W64 0 := Heq0 ▸ Hterm
   -- `MessageType.Enum()`'s receiver: `int32` is not an interface (as in `toConfChangeSingle`)
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
-  wp_start as ⟨Hphys, Hm⟩
+  wp_start as ⟨Hphys, Hm, HG, Hgates⟩
   icases msgPtsC_nn _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
   wp_auto
   wp_gets
   rw [decide_eq_false Hnn]
   wp_auto
   wp_gets
-  wp_trace_hookC _P.traceReceiveMessage
+  wp_recv_gate_ns
+  ihave Hgvresp := Hgvresp $$ %(.inr Hty)
+  have hnbf : ¬ PreBF m s := PreBF.of_le (by rw [Heq0]; exact Int.le_refl _)
+  imod preGate_nobf c r id s m _ _ (.inr (by rw [Heq0]; exact Int.le_refl _)) hnbf $$ Hgpre HG with HG
   try wp_auto
   -- `m.Term ≠ 0`, so the first arm of the term preamble is skipped
   wp_gets

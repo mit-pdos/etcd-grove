@@ -54,6 +54,8 @@ public import Proof.go_etcd_io.raft.v3.StepLemmas
 public import Spec.go_etcd_io.raft.v3.raft__handleHeartbeat
 -- `bytes.wp_Equal`, for the `MsgVote` branch's `Context` comparison.
 public import Perennial.Proof.bytes
+-- (2026-11-10, Q8 stage 1 slice 11) the gates (`stepGates`, `StepG`, `stepOut`)
+public import Proof.go_etcd_io.raft.v3.LemmasStepGates
 
 @[expose] public section
 
@@ -469,7 +471,23 @@ function below it is specified against `ownRaftPhys` alone, saying which state t
 struct ends up refining and how the outbox grew; `Step` assembles those pure facts into
 one `Step` witness and takes one `ownRaftGhost_step`. A caller that needs to know a
 pending outgoing message is protocol-legal gets that from `ownRaftGhost_outbox`, not
-from `ownRaftPhys`. -/
+from `ownRaftPhys`.
+
+(2026-11-10, Q8 stage 1 slice 11 of `notes/trace-validation-plan.md`) **One spec for both modes**, in
+place of stage 0's premise `s.gh.tr = none` (`notes/decisions.md`, "Q8 stage 1 (slice 11)"): the
+caller's resources `R` (`StepG`, `LemmasStepGates.lean`) go through the gates of the hooks the path
+runs (`stepGates`: the receive hook's, the term preamble's step-down or a stale message's answer, then
+`hup`'s, a vote request's answer, or the role's step function's, each as its callee's spec states it).
+**Raft's ghost state is the caller's across the handler**: the receive hook's gate takes it with the
+caller's first resource (`ghostIn`: `ownStepGhost γ md c id s ∗ R.G`), and the caller gives it back at the end
+(`"Hclose"`, from whichever resource the path ended in, `stepOut R`), with its own `Gout`; so a traced
+caller reads and updates raft's ghost inside its gates (a vote win registered inside the `BecomeLeader`
+gate, a new commit's certificate before the `Commit` line: rounds 5-6 of the plan), and confirms the
+step's new messages' numbers when traced (`OutTrStep`: the send lines' `TraceEv.Ok`). What a traced node
+does not do stays a premise on its type: no snapshot (P2), no snapshot acknowledgement and no
+application acknowledgement with entries (`appliedSnap`'s, `appliedTo`'s premise; not yet gated), no
+proposed configuration change (P3, `stepLeader`'s). The untraced instance is `raft.Step.untraced`
+(`TracedUntracedRaftStep.lean`), the statement before slice 11, which the node API uses. -/
 abbrev raft.Step.spec : Prop :=
   ∀ (c : CfgM)
     -- (2026-10-14, stage B7) the mode of the ghost state: static (`ownRaftGhost`, at a
@@ -488,7 +506,10 @@ abbrev raft.Step.spec : Prop :=
     (ents : List EntryM)
     -- (2026-10-12) the list the message's `Context` holds, which the abstract message
     -- carries (a heartbeat's response echoes it; a forwarded proposal keeps it)
-    (ctx : List w8) (sn : Option SnapshotM) (rs : List Loc),
+    (ctx : List w8) (sn : Option SnapshotM) (rs : List Loc)
+    -- (2026-11-10, Q8 stage 1 slice 11) the caller's resources through the gates, and what it gets
+    -- back with raft's ghost state
+    (R : StepG GF) (Gout : IProp GF),
   StepMsg m →
   -- (Until 2026-10-14, stage B8, a premise `m.Type' = MsgSnap → id ∈ γ.reCfg`: the node one of
   -- the ghost state's voters, which a snapshot's `restore` needs. It is now one of the
@@ -630,10 +651,14 @@ abbrev raft.Step.spec : Prop :=
   -- (2026-10-19, D21 M3) no snapshot in the no-snapshot mode (`NGhost.ns`; `RawNode.Step` takes
   -- none)
   (m.Type' = MsgSnap → s.gh.ns = false) →
-  -- (2026-11-09, Q8 stage 0 of `notes/trace-validation-plan.md`) an untraced node: its trace
-  -- hooks see a nil logger (`TraceLoggerOkS`); stage 1 replaces this premise by the traced
-  -- capability (`trCapB s.gh.tr …`, `TracedHooksDraft.lean`)
-  s.gh.tr = none →
+  -- (2026-11-09, Q8 stage 0 of `notes/trace-validation-plan.md`, until 2026-11-10, slice 11: the
+  -- premise `s.gh.tr = none`) what a traced node does not do (the gates below cover the rest): receive
+  -- a snapshot (the Draft's P2), acknowledge a snapshot or applied entries (`appliedSnap`'s,
+  -- `appliedTo`'s premise), propose a configuration change (P3, `stepLeader`'s)
+  (m.Type' = MsgSnap → s.gh.tr = none) →
+  (m.Type' = MsgStorageAppendResp → sn ≠ none → s.gh.tr = none) →
+  (m.Type' = MsgStorageApplyResp → ents ≠ [] → s.gh.tr = none) →
+  (m.Type' = MsgProp → s.gh.tr ≠ none → ∀ e ∈ ents, ¬ IsConfEnt e) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hghost" ∷ ownStepGhost γ md c id s ∗
@@ -720,7 +745,15 @@ abbrev raft.Step.spec : Prop :=
            -- certificate, which the step registers in the storage (`certLink`) before the restore
            isMessageC γ (absSnap m sv scfg) ∗
            -- (D22 S-r, 2026-10-21) and its data certificate, registered with it
-           snapDataOk γ sv.Metadata'.Index' sv.Data') }}
+           snapDataOk γ sv.Metadata'.Index' sv.Data') ∗
+      -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource, through the gates of the path that
+      -- runs, raft's ghost state with it from the receive hook on ...
+      "HG" ∷ R.G ∗
+      "Hgates" ∷ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) ∗
+      -- ... and back, whichever resource the path ends in, with (traced) the step's new messages'
+      -- numbers (`OutTrStep`, which the node's outbox keeps: `NsLink`'s `OutTr`), each logged by a
+      -- send line of the caller's
+      "Hclose" ∷ stepClose γ md c id m s R Gout }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
   {{ (err : GoInterface) (s' : NState) (c' : CfgM) (md' : GMode), RET #err;
       "Hphys" ∷ ownRaftPhysCV c' c'.voters r id s' ∗
@@ -771,7 +804,9 @@ abbrev raft.Step.spec : Prop :=
       -- only a proposal can be dropped, with `ErrProposalDropped`
       "Herr" ∷ (⌜err = interface.nil⌝ ∨
                 (⌜m.Type' = MsgProp⌝ ∗
-                 globalAddr ErrProposalDropped ↦□ err)) }}
+                 globalAddr ErrProposalDropped ↦□ err)) ∗
+      -- (Q8 stage 1 slice 11) the caller's resource, back from `"Hclose"`
+      "HG" ∷ Gout }}
 
 end spec
 

@@ -147,7 +147,7 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
     (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
-    (ents : List EntryM) (k0 : Nat) :
+    (ents : List EntryM) (k0 : Nat) (R : StepG GF) :
     m.Type' = MsgStorageApplyResp →
     m.Term' = W64 0 →
     (∀ e, ents.getLast? = some e → uint.Z e.Index' ≤ uint.Z s.logst.committed ∧
@@ -157,11 +157,14 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
     -- premises for its leave's proposal
     (s.role = .leader → s.term ≠ W64 0) →
     plogLastIndexZ (toPState s).base (toPState s).log < 2 ^ 64 →
-    s.gh.tr = none →
+    -- (2026-11-10, Q8 stage 1 slice 11; until then of any message) `appliedTo`'s premise
+    (ents ≠ [] → s.gh.tr = none) →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
-        "#Hrc" ∷ ⧖ k0 }}
+        "#Hrc" ∷ ⧖ k0 ∗
+        -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState) (B : Int) (recv : List Msg), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
@@ -182,7 +185,8 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
           ∃ e, ents.getLast? = some e ∧ s'.logst.applied = w64Max e.Index' s.logst.applied⌝ ∗
         -- (D19i part 1) and at least to it
         "%Happ2" ∷ ⌜∀ e, ents.getLast? = some e → uint.Z e.Index' ≤ uint.Z s'.logst.applied⌝ ∗
-        "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
+        "%Herr" ∷ ⌜err = interface.nil⌝ ∗
+        "HG" ∷ stepOut R }} := by
   intro Hty Hterm Hlast Hwf Hlnz HL Htr
   wp_start as H
   iNamed H
@@ -190,7 +194,7 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
   wp_auto
   rw [decide_eq_false Hnn]
   wp_auto
-  wp_trace_hookC _P.traceReceiveMessage
+  wp_recv_gate_ns
   try wp_auto
   wp_get _Q
   -- `m.Term = 0` (a local message), so the term preamble is skipped
@@ -209,9 +213,10 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
     subst He
     rw [decide_eq_false (by simp only [List.length_nil] at Hlen; word)]
     wp_auto
+    ihave HG := stepOut_G0 R $$ HG
     iapply HΦ $$ %interface.nil %s %(plogLastIndexZ (toPState s).base (toPState s).log)
       %([] : List Msg)
-    iframe Hphys
+    iframe Hphys HG
     isplitr
     · ipureintro; exact Hwf
     isplitr
@@ -264,7 +269,7 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
       (fun h => absurd (Hq0.2.symm.trans h) (by decide))
       (fun _ _ h => absurd (Hlast e He).2 (Int.not_le.2 h))
       (fun _ _ h => absurd (Hlast e He).2 (Int.not_le.2 h))
-      (fun h => absurd (Hq0.2.symm.trans h) (by decide)) (by tr_none) $$ [$Hphys $Hrc]
+      (fun h => absurd (Hq0.2.symm.trans h) (by decide)) (Htr (by simp)) $$ [$Hphys $Hrc]
       as %s2 %B %recv ⟨Hphys, %Hls, Hrcb⟩
     try wp_auto
     wp_apply wp_GetEntries_ro _Q $$ [$Hm] as %es5 ⟨#Hes5, Hm⟩
@@ -302,8 +307,9 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
     have Happ2' : uint.Z e.Index' ≤ uint.Z (w64Max e.Index' s.logst.applied) := by
       unfold w64Max
       split <;> word
+    ihave HG := stepOut_G0 R $$ HG
     iapply HΦ $$ %interface.nil %s2 %B %recv
-    iframe Hphys
+    iframe Hphys HG
     rcases Hls with ⟨rfl, rfl, rfl⟩ |
       ⟨-, Hrl, Hrecv, Hrl1, Hst2, Hfr2, Hapg2, Happl2, Hwf2, HB1, HB2, HB3, Hbound⟩
     · -- nothing more

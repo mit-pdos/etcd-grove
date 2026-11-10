@@ -70,7 +70,7 @@ The log is re-split (`logStableTo`) and the protocol sees nothing: `StepC.refl`.
 theorem wp_Step_MsgStorageAppendResp_none (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
-    (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (ents : List EntryM) :
+    (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (ents : List EntryM) (R : StepG GF) :
     m.Type' = MsgStorageAppendResp →
     sn = none →
     uint.Z m.Term' ≤ uint.Z s.term →
@@ -79,10 +79,11 @@ theorem wp_Step_MsgStorageAppendResp_none (_P : raft.Step.Postulates (GF := GF) 
      StableOk s.logst (entryID.mk m.LogTerm' m.Index')) →
     s.gh.unst = false →
     NStateWf s →
-    s.gh.tr = none →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
+        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
+        -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
@@ -93,15 +94,16 @@ theorem wp_Step_MsgStorageAppendResp_none (_P : raft.Step.Postulates (GF := GF) 
         -- (2026-10-25, T-M M2b) a pre-candidate keeps its log and commit index (`PreKeep`)
         "%Hpk" ∷ ⌜s.role = .preCandidate → PreKeep s s'⌝ ∗
         "%Hrefines" ∷ ⌜StepCD c id B m s [] s'⌝ ∗
-        "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
-  intro Hty Hsn Hle Hstok Hghoff Hwf Htr
+        "%Herr" ∷ ⌜err = interface.nil⌝ ∗
+        "HG" ∷ stepOut R }} := by
+  intro Hty Hsn Hle Hstok Hghoff Hwf
   wp_start as H
   iNamed H
   icases msgPtsC_nn _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
   wp_auto
   rw [decide_eq_false Hnn]
   wp_auto
-  wp_trace_hookC _P.traceReceiveMessage
+  wp_recv_gate_ns
   try wp_auto
   wp_get _Q
   by_cases Hstale : m.Term' ≠ W64 0 ∧ uint.Z m.Term' < uint.Z s.term
@@ -118,7 +120,7 @@ theorem wp_Step_MsgStorageAppendResp_none (_P : raft.Step.Postulates (GF := GF) 
     -- `(r.checkQuorum || r.preVote) && (MsgHeartbeat || MsgApp)` is false whichever way the
     -- flags go: the condition is joined at `false` (`wp_join`), so the rest of the arm is
     -- verified once, not once per flag case
-    wp_join (v := #false) at (If (If _ (Val #true) _) _ (Val #false)) with [Hphys r m Hm]
+    wp_join (v := #false) at (If (If _ (Val #true) _) _ (Val #false)) with [Hphys r m Hm HG]
     · wp_drive _Q
       cq_split _Q
       -- where the type test ran, its last disjunct (`MsgApp`) is the value left
@@ -143,8 +145,9 @@ theorem wp_Step_MsgStorageAppendResp_none (_P : raft.Step.Postulates (GF := GF) 
     all_goals
       wp_apply wp_GetSnapshot_none _Q _ _ _ _ _ Hsn $$ [$Hm] as Hm
       try wp_auto
+      ihave HG := stepOut_G0 R $$ HG
       iapply HΦ $$ %interface.nil %s
-      iframe Hphys
+      iframe Hphys HG
       ipureintro
       exact ⟨Hwf, ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩, rfl⟩,
         rfl, fun _ => ⟨rfl, rfl, rfl, fun h => h, Int.le_refl _⟩,
@@ -158,7 +161,7 @@ theorem wp_Step_MsgStorageAppendResp_none (_P : raft.Step.Postulates (GF := GF) 
       word
   -- the term switch falls through either way: joined (`wp_join`), so the type switch is
   -- verified once, not once per case
-  wp_join at (if: _ then _ else _) with [Hphys r m Hm]
+  wp_join at (if: _ then _ else _) with [Hphys r m Hm HG]
   · by_cases Hz : m.Term' = W64 0
     all_goals first
       | (rw [decide_eq_true Hz]
@@ -180,8 +183,9 @@ theorem wp_Step_MsgStorageAppendResp_none (_P : raft.Step.Postulates (GF := GF) 
     wp_auto
     wp_apply wp_GetSnapshot_none _Q _ _ _ _ _ Hsn $$ [$Hm] as Hm
     try wp_auto
+    ihave HG := stepOut_G0 R $$ HG
     iapply HΦ $$ %interface.nil %s
-    iframe Hphys
+    iframe Hphys HG
     ipureintro
     exact ⟨Hwf, ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩, rfl⟩,
         rfl, fun _ => ⟨rfl, rfl, rfl, fun h => h, Int.le_refl _⟩,
@@ -206,8 +210,9 @@ theorem wp_Step_MsgStorageAppendResp_none (_P : raft.Step.Postulates (GF := GF) 
       %(fun _ => by rw [logLast_stableTo]; exact Int.le_refl _)
     wp_apply wp_GetSnapshot_none _Q _ _ _ _ _ Hsn $$ [$Hm] as Hm
     try wp_auto
+    ihave HG := stepOut_G0 R $$ HG
     iapply HΦ $$ %interface.nil %_
-    iframe Hphys
+    iframe Hphys HG
     ipureintro
     obtain ⟨Hap, Hun, Hsn', Hip, Hpv, Hst⟩ :=
       logStableTo_fields s.logst (entryID.mk m.LogTerm' m.Index')
@@ -431,7 +436,7 @@ configuration (2026-10-28, stage U0: `appliedSnap` switches to it); the protocol
 theorem wp_Step_MsgStorageAppendResp_snap (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
-    (sv : SnapshotM) (ctx : List w8) (rs : List Loc) (ents : List EntryM) :
+    (sv : SnapshotM) (ctx : List w8) (rs : List Loc) (ents : List EntryM) (R : StepG GF) :
     m.Type' = MsgStorageAppendResp →
     snapHit s.logst.snap sv.Metadata'.Index' = s.logst.sat →
     uint.Z sv.Metadata'.Index' ≤ uint.Z s.logst.prev.index' →
@@ -450,7 +455,9 @@ theorem wp_Step_MsgStorageAppendResp_snap (_P : raft.Step.Postulates (GF := GF) 
     s.gh.tr = none →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, some sv, ctx, rs⟩ }}
+        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, some sv, ctx, rs⟩ ∗
+        -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents (some sv) ctx rs R }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface), RET #err;
         "Hphys" ∷ (∃ (prs : GMap w64 Loc) (pvs : GMap w64 Progress) (il : Bool),
@@ -458,7 +465,8 @@ theorem wp_Step_MsgStorageAppendResp_snap (_P : raft.Step.Postulates (GF := GF) 
             (snapCfg sv sv.Metadata'.ConfState'.lists).voters r id
             { s with logst := ackSnapLog s.logst m s.term sv, progress := prs, prvals := pvs,
                      isLearner := il }) ∗
-        "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
+        "%Herr" ∷ ⌜err = interface.nil⌝ ∗
+        "HG" ∷ stepOut R }} := by
   intro Hty Hhit Hle Hrole Hvotes Hscope Hlt Hstok Hghoff Hwf Hsx Hkx Htr
   wp_start as H
   iNamed H
@@ -490,7 +498,8 @@ theorem wp_Step_MsgStorageAppendResp_snap (_P : raft.Step.Postulates (GF := GF) 
   wp_auto
   rw [decide_eq_false Hnn]
   wp_auto
-  wp_trace_hookC _P.traceReceiveMessage
+  have Hrns : s.gh.tr ≠ none → mtypeOf m.Type' ≠ some .snap := fun h => absurd Htr h
+  wp_recv_gate Hrns
   try wp_auto
   wp_get _Q
   by_cases Hstale : m.Term' ≠ W64 0 ∧ uint.Z m.Term' < uint.Z s.term
@@ -542,7 +551,9 @@ theorem wp_Step_MsgStorageAppendResp_snap (_P : raft.Step.Postulates (GF := GF) 
         iapply ownRaftPhysC_eq _ r id _ _ ?_ $$ Hphys
         rw [ackSnapLog_none _ _ _ _ Hnone]
         try (first | rfl | (simp only [Hcq, Hpv]; done) | (simp only [Hcq]; done) | (simp only [Hpv]; done))
-      ipureintro; rfl
+      isplitr
+      · ipureintro; rfl
+      iapply stepOut_G0; iexact HG
   -- `Term = 0` or `Term = r.Term`: the switch's case
   have Hmt : m.Term' = W64 0 ∨ m.Term' = s.term := by
     by_cases Hz : m.Term' = W64 0
@@ -588,7 +599,9 @@ theorem wp_Step_MsgStorageAppendResp_snap (_P : raft.Step.Postulates (GF := GF) 
         iapply ownRaftPhysC_eq _ r id _ _ ?_ $$ Hphys
         rw [ackSnapLog_none _ _ _ _ Hnone]
         try (first | rfl | (simp only [Hcq, Hpv]; done) | (simp only [Hcq]; done) | (simp only [Hpv]; done))
-      ipureintro; rfl
+      isplitr
+      · ipureintro; rfl
+      iapply stepOut_G0; iexact HG
     · have Hsome : ackStableId m s.term = some ⟨m.LogTerm', m.Index'⟩ := by
         unfold ackStableId; rw [if_pos ⟨Hmt, Hi0⟩]
       rw [decide_eq_false Hi0]
@@ -634,7 +647,9 @@ theorem wp_Step_MsgStorageAppendResp_snap (_P : raft.Step.Postulates (GF := GF) 
         iapply ownRaftPhysC_eq _ r id _ _ ?_ $$ Hphys
         rw [ackSnapLog_some _ _ _ _ _ Hsome]
         try (first | rfl | (simp only [Hcq, Hpv]; done) | (simp only [Hcq]; done) | (simp only [Hpv]; done))
-      ipureintro; rfl
+      isplitr
+      · ipureintro; rfl
+      iapply stepOut_G0; iexact HG
 
 end StepProof
 

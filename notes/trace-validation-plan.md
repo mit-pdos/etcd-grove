@@ -666,6 +666,36 @@ already merged): full `lake build` green (13784 jobs); `etc/tcb-report.py --chec
 conjunct, `isMessageC_intro`'s argument); `etc/api-check.py` 0 errors; `--layout` 0 new;
 `etc/gen-link.py --raft` unchanged.
 
+**Q8 stage 1 (slice 11), 2026-11-10 (branch `trace-check-q8s11`): piece 1 done, `raft.Step` one spec for
+both modes; pieces 2-3 (`raft.Step.traced`, `tickElection`/`tickHeartbeat`) not started.** Decided by the
+agent (`notes/decisions.md`, "Q8 stage 1 (slice 11)"). Done: `raft.Step.spec` takes the caller's resources
+`R : StepG` through `stepGates` (`LemmasStepGates.lean`: the receive hook's `recvGate`, the term preamble's
+step-down `preGate`/`PreBF`, a stale message's answer `LowSend`, a vote request's answer `vrespMsgOf`,
+`hupGates`, and the step functions' gate bundles `followerGates`/`candidateGates`/`leaderGates` at
+`preState s m pvs`), **raft's ghost state the caller's across the handler** (the receive gate takes
+`ghostIn γ md c id s R`, the closing wand `stepClose` gives it back with the caller's `Gout`), and
+**`OutTrStep` from the closing wand** (traced: the caller confirms the step's new messages' numbers, from
+its send lines, for any model step `StepCD … s recv s'`). Untraced-only, on the type: `MsgSnap` (P2), a
+snapshot acknowledgement and an application acknowledgement with entries (`appliedSnap`'s, `appliedTo`'s
+premises, not yet gated), a proposed configuration change (P3). `raft.Step.Postulates` takes the gated
+specs (`traceReceiveMessage.gated`); every branch lemma threads `R` (macros `wp_recv_gate_ns`, `gates_fol`,
+`gates_cand`, `gates_lead`, `bf_gate`, `p3_tac`); the dispatch opens and closes the ghost (`gate_open`,
+`gate_close`); the transfer arm's `xw` record moves the gates (`stepGates_xw`) and the ghost's record
+follows the closing wand. `raft.Step.untraced` (`TracedUntracedRaftStep.lean`, the statement before slice
+11, gates from `stepGates_none`) serves `RawNode`, `node.run`, `tickElection`, `tickHeartbeat` (a `have` at
+each proof's start; no spec of theirs changed); `raft.appliedTo` steps its leave through the gated
+`wp_Step_MsgProp` with `stepGates_none`. No ghost change; no client-visible change; no axiom or `sorry`.
+**Not done:** piece 2, `raft.Step.traced` at `HasLC.hasLC`: build `stepGates` and `stepClose` from
+`trCapB` and raft's ghost (the receive line by `trCap_fire_recv` with `PhaseStepR`/`FxPresR`; each later
+line's phase step from `TraceSimMatch.lean`'s `lineEffect_*`; the `FxPresU` facts from the term log,
+records, commit certificate (`QuorumLogF` at the raised commit via `quorumLog_commitTo`) and vote table;
+`maybeCommit`'s `isCommitted` at `leaderGates`' `Hgcommit`; the win registered inside `candidateGates`'
+`Hgbl`; `OutTrStep` in `stepClose` from a bounded-step lemma or the send lines), with the premises only
+the node supplies: the received message's `TrOk` (`isRaftMsg`'s `MsgTrOk`), a term bound (`termLB`), the
+receipt fit (`readyFits`, for `ownRaftGhost_traceBound`); piece 3, `tickElection`/`tickHeartbeat` taking
+`Step`'s gates for `MsgHup`/`MsgCheckQuorum`/`MsgBeat` (two steps in one tick: the second's gates at the
+first's unnamed end state), with untraced instances; then `appliedTo`/`appliedSnap` gated and the node API.
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its

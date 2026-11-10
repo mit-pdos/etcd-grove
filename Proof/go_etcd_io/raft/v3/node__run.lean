@@ -48,6 +48,7 @@ public import Proof.go_etcd_io.raft.v3.InvApplyConf
 public import Proof.go_etcd_io.raft.v3.InvBoot
 public import Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange
 public import Spec.go_etcd_io.raft.v3.NewRawNode
+public import Proof.go_etcd_io.raft.v3.TracedUntracedRaftStep
 
 @[expose] public section
 
