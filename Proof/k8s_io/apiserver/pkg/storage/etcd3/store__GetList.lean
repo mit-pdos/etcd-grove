@@ -671,6 +671,108 @@ theorem store.GetList.wp_proof
     icases Hbv with (⟨%Hbv, withRev, ⟨%e1, err⟩, «$res0», chunk⟩ | ⟨%Hbv, HΨ⟩)
     · obtain ⟨rfl, hRn⟩ := Hbv
       wp_auto
+      have hmne : pg.1.length < pg.2 → pg.1 ≠ [] := by
+        rw [← hpg]; exact pageKvsL_more_ne _ _ _ _ _
+      wp_bind (If _ _ _)
+      iapply (wp_wand (Φ := fun bv => iprop(⌜bv = executeVal⌝ ∗ chunk_ptr ↦ ch))) $$ [chunk]
+      · by_cases hz : ch.kvs'.len = W64 0
+        · have hp0 : pg.1 = [] := by
+            rw [hz] at hkvl; exact List.eq_nil_of_length_eq_zero (by rw [← hkvl]; rfl)
+          have hhm0 : ch.hasMore' = false := by
+            rw [Hcc.2]; exact decide_eq_false (fun h => hmne h hp0)
+          rw [show decide (ch.kvs'.len = W64 0) = true from decide_eq_true hz]
+          wp_auto
+          rw [hhm0]
+          wp_auto
+          iframe
+          ipureintro; rfl
+        · rw [show decide (ch.kvs'.len = W64 0) = false from decide_eq_false hz]
+          wp_auto
+          iframe
+          ipureintro; rfl
+      iintro %bv ⟨%Hbv, chunk⟩
+      subst Hbv
+      wp_auto
+      have hpgsc : ∀ kv ∈ pg.1, kv ∈ scopeL (σ.at (uint.nat R)) (c.pathPrefix ++ k) opts.Recursive' := by
+        intro kv hkv
+        have : kv ∈ (scopeL (σ.at (uint.nat R)) (c.pathPrefix ++ k) opts.Recursive').drop m := by
+          rw [hpg1]; exact List.mem_append_left _ hkv
+        exact List.mem_of_mem_drop this
+      have hdec : ∀ kv ∈ scopeL (σ.at (uint.nat R)) (c.pathPrefix ++ k) opts.Recursive',
+          c.S.dec kv.value ≠ none := by
+        intro kv hkv
+        have hpf : c.pfx <+: kv.key :=
+          (prepareKeyM_prefix c.pathPrefix c.resourcePrefix key k opts.Recursive' hk).trans
+            (scopeL_prefix _ _ _ _ hkv)
+        exact (hwh (uint.nat R) hRle kv (List.mem_filter.1 hkv).1).1 hpf
+      have hmod : ∀ kv ∈ pg.1, 0 ≤ sint.Z kv.modRev := by
+        intro kv hkv
+        have h1 := (hwh (uint.nat R) hRle kv (List.mem_filter.1 (hpgsc kv hkv)).1).2
+        have : uint.nat kv.modRev < 2 ^ 63 := by omega
+        word
+      have hpaging : decide (sint.Z (W64 0) < sint.Z opts.Predicate'.Limit') =
+          decide (0 < sint.Z opts.Predicate'.Limit') := rfl
+      wp_apply (wp_appendChunk Obj sp c L (GoInterface.ok ci') ch.kvs' ps pg.1 opts.Predicate' sel emp
+          nf ag rv (L.itemsRef pl) _ st (fun kv h => hdec kv (hpgsc kv h)) hmod (by omega) hpaging)
+        $$ [Hkvs Hip Hits] as %lk %evd %lr ⟨%Hlr, ⟨%ps', Hkvs⟩, ⟨%sl', Hip, Hits⟩, %n', %Hn', #Hlk⟩
+      · iframe # Hkvs
+        isplitr
+        · ipureintro; exact Hrv
+        isplitl
+        · iexists sl; iframe
+        ipureintro; exact hstm
+      obtain ⟨hn'1, hn'2, hn'3, hn'4, hn'5⟩ := Hn'
+      have hkpne : c.pathPrefix ++ k ≠ [] := by
+        have := prepareKeyM_ne_nil _ _ _ _ hk
+        intro h; exact this (List.append_eq_nil_iff.1 h).2
+      -- the last key
+      wp_bind (If _ _ _)
+      iapply (wp_wand (Φ := fun bv => iprop(⌜bv = executeVal⌝ ∗ ∃ (lkp' : GoSlice) (lkb' : GoString),
+          lastKey_ptr ↦ lkp' ∗ lkp' ↦*□ lkb' ∗
+          ⌜0 < n' → ∃ kv, pg.1[n' - 1]? = some kv ∧ lkb' = kv.key⌝))) $$ [lastKey chunkLastKey]
+      · by_cases hl : lk = slice.nil
+        · rw [show decide (lk = slice.nil) = true from decide_eq_true hl]
+          wp_auto
+          ihave %Hn0 : ⌜n' = 0⌝ $$ []
+          · unfold lastKeyIs
+            by_cases h0 : n' = 0
+            · ipureintro; exact h0
+            · rw [if_neg h0]
+              icases Hlk with ⟨%kv, %Hkv, #Hks⟩
+              subst hl
+              ihave %Hl := ownSlice_len _ _ _ $$ Hks
+              exfalso
+              have hkvm : kv ∈ pg.1 := List.mem_of_getElem? Hkv
+              have hpre := scopeL_prefix _ _ _ _ (hpgsc kv hkvm)
+              have h0' : kv.key = [] := List.eq_nil_of_length_eq_zero (by rw [Hl.1]; rfl)
+              rw [h0'] at hpre
+              exact hkpne (List.prefix_nil.1 hpre)
+          isplitr
+          · ipureintro; rfl
+          iexists lkp, lkb
+          iframe
+          isplitl []
+          · iexact Hlkb
+          ipureintro; intro h; omega
+        · rw [show decide (lk = slice.nil) = false from decide_eq_false hl]
+          wp_auto
+          unfold lastKeyIs
+          by_cases h0 : n' = 0
+          · rw [if_pos h0]
+            icases Hlk with %Hl
+            exact absurd Hl hl
+          · rw [if_neg h0]
+            icases Hlk with ⟨%kv, %Hkv, #Hks⟩
+            isplitr
+            · ipureintro; rfl
+            iexists lk, kv.key
+            iframe
+            isplitl []
+            · iexact Hks
+            ipureintro; intro _; exact ⟨kv, Hkv, rfl⟩
+      iintro %bv ⟨%Hbv, %lkp', %lkb', lastKey, #Hlkb', %Hlk'⟩
+      subst Hbv
+      wp_auto
       sorry
     · subst Hbv
       wp_auto

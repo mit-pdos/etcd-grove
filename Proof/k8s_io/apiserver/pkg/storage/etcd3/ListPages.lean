@@ -385,6 +385,19 @@ theorem page0_full (dec : Dec Obj) (sel : Obj → Bool) (hs : ∀ o, sel o = tru
   refine ⟨by omega, ?_⟩
   rw [h1]; simp [hd]
 
+/-- A page with more than it read is not empty. -/
+theorem pageKvsL_more_ne (s : KVStore) (kp : GoString) (recur : Bool) (st : GoString) (l : Nat)
+    (h : (pageKvsL s kp recur st l).1.length < (pageKvsL s kp recur st l).2) :
+    (pageKvsL s kp recur st l).1 ≠ [] := by
+  rw [pageKvsL_eq] at h ⊢
+  by_cases hl : l = 0
+  · simp [hl] at h
+  · simp only [hl, ↓reduceIte, List.length_take] at h ⊢
+    intro he
+    have := congrArg List.length he
+    simp only [List.length_take, List.length_nil] at this
+    omega
+
 end pure
 
 end k8s
