@@ -817,7 +817,7 @@ theorem trCap_fire_ready : trCap_fire_ready.statement (GF := GF) := by
 
 /-- **The global step's law for a receive line** (`trCap_fire_recv.statement`). -/
 theorem trCap_fire_recv : trCap_fire_recv.statement (GF := GF) := by
-  intro γd γ r id c tl E k m Mid Φ Φ' Λ Λ' hps hΛ hOk
+  intro γd γ r id c tl E k m Mid ph Φ Φ' Λ Λ' hps hΛ hOk
   iintro ⟨Hcap, #Htl, Hfx, ⟨%tn0, #Hdir0, Htok⟩⟩
   iunfold FxPresR at Hfx
   icases Hfx with #Hfx
@@ -876,7 +876,7 @@ theorem trCap_fire_recv : trCap_fire_recv.statement (GF := GF) := by
     simp only [Option.some.injEq, Prod.mk.injEq] at hQ
     obtain ⟨hcs, hQP⟩ := hQ
     obtain ⟨hnid, hname, hmatch, hall⟩ := hps C cs P HΦ ⟨hperm, hout, hC⟩ e HE
-    obtain ⟨a', P', Pph, hΦ', hsrcP, hle⟩ := hall (σ.s (idAbs id)) (by rw [hcs, hsrv])
+    obtain ⟨a', P', hΦ', hsrcP, hle⟩ := hall (σ.s (idAbs id)) (by rw [hcs, hsrv])
     iunfold inFlight at Htok
     icases ghost_map_lookup $$ HB Htok with %HBk
     icases keep_pure (simFx_violated γ C σ hsrv) $$ [$Htbl $Hfσ] with ⟨⟨Htbl, -⟩, %hv0⟩
@@ -886,17 +886,17 @@ theorem trCap_fire_recv : trCap_fire_recv.statement (GF := GF) := by
       exact bag_mem_domain_of_count _ _ (by rw [hMb.2.2 m]; exact List.count_pos_iff.2 hml)
     have hpre : Φ C cs P ∧ E e ∧ toC (confAbs C) (σ.s (idAbs id)) = cs ∧ Φ' C (toC (confAbs C) a') (P ++ P') ∧
         LineEffect C false e (idAbs id) (σ.s (idAbs id)) a' (some m) (fun b => b.without m)
-          (fun b => List.foldl Etcdraft.Bag.with b (P' ++ Pph)) Mid ∧
+          (fun b => List.foldl Etcdraft.Bag.with b (P' ++ (ph (σ.s (idAbs id))))) Mid ∧
         σ.server = confAbs C ∧ σ.s (idAbs id) = σ.s (idAbs id) ∧ σ.preVote = false ∧ σ.checkQuorum = false ∧
         σ.violated = .ok none ∧ m ∈ σ.messages.domain :=
       ⟨HΦ, HE, by rw [hcs, hsrv], hΦ', hle, hsrv, rfl, hpv, hcq, hv0, hmd⟩
-    icases Hfx $$ %C %cs %P %e %(σ.s (idAbs id)) %a' %P' %Pph %σ %hpre Htbl Hfσ with ⟨Htbl, #Hfσ', #Hmid⟩
+    icases Hfx $$ %C %cs %P %e %(σ.s (idAbs id)) %a' %P' %σ %hpre Htbl Hfσ with ⟨Htbl, #Hfσ', #Hmid⟩
     ihave #Hfσc := Hfσ
     iunfold simFx at Hfσc
     icases Hfσc with ⟨-, -, %hfx⟩
     have huq : MsgsUniq σ := hfx.2.2
     icases keep_pure (simFx_violated γ C σ hsrv) $$ [$Htbl $Hfσ] with ⟨⟨Htbl, -⟩, %hv⟩
-    have hsrv' : (withNode σ (idAbs id) a' (fun b => b.without m) (fun b => List.foldl Etcdraft.Bag.with b (P' ++ Pph))).server =
+    have hsrv' : (withNode σ (idAbs id) a' (fun b => b.without m) (fun b => List.foldl Etcdraft.Bag.with b (P' ++ (ph (σ.s (idAbs id)))))).server =
         confAbs C := hsrv
     -- the intermediate states' invariants, by contradiction on one
     by_cases hmids : ∀ v, Mid v → (withNode σ (idAbs id) v _root_.id _root_.id).violated = .ok none
@@ -910,7 +910,7 @@ theorem trCap_fire_recv : trCap_fire_recv.statement (GF := GF) := by
     icases keep_pure (simFx_violated γ C _ hsrv') $$ [$Htbl $Hfσ'] with ⟨⟨Htbl, -⟩, %hv'⟩
     have hAid : A !! id = some (toC σ.server (σ.s (idAbs id)), P) := by rw [HAid, hcs]
     obtain ⟨hrun', hsrvN, hA', hAn', hsrc', hPb', hM'⟩ :=
-      simStepR_pure C L σ A B phP phM id hC hnd P e a' P' Pph k m Mid hrun hsrv hA hAid hAn hsrcA hsrcP hPb hMb HBk huq hpv hcq
+      simStepR_pure C L σ A B phP phM id hC hnd P e a' P' (ph (σ.s (idAbs id))) k m Mid hrun hsrv hA hAid hAn hsrcA hsrcP hPb hMb HBk huq hpv hcq
         hname hmatch hle hv hmids hv'
     imod ghost_map_update (toC σ.server a', P ++ P') $$ HA Hnode with ⟨HA, Hnode⟩
     imod ghost_map_delete $$ HB Htok with HB
@@ -924,8 +924,8 @@ theorem trCap_fire_recv : trCap_fire_recv.statement (GF := GF) := by
     · inext; iunfold raftLogInvBody; iexists lc; iframe
     imod Hclose $$ [HL HA HB HBt] with -
     · inext; iunfold simInv
-      iexists L ++ [e], withNode σ (idAbs id) a' (fun b => b.without m) (fun b => List.foldl Etcdraft.Bag.with b (P' ++ Pph)),
-        A.insert id (toC σ.server a', P ++ P'), B.delete k, phP ++ Pph, phM, Bt.insert id (true, some e)
+      iexists L ++ [e], withNode σ (idAbs id) a' (fun b => b.without m) (fun b => List.foldl Etcdraft.Bag.with b (P' ++ (ph (σ.s (idAbs id))))),
+        A.insert id (toC σ.server a', P ++ P'), B.delete k, phP ++ (ph (σ.s (idAbs id))), phM, Bt.insert id (true, some e)
       iunfold traceFrag; iframe HL HA HB HBt Hfσ'
       ipureintro
       exact ⟨hrun', hsrvN, hA', hAn', hPb', hM', hpv, hcq, hsrc', bootClause_step C L e ln id Bt hpl hnl hnid (booted_snoc_self L e ln _ hpl hnl hbl) hbtC,

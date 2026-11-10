@@ -951,45 +951,48 @@ abbrev trCap_fire.statement : Prop :=
 
 /-- **A phase step by a receive line consuming `m`**: from every share in phase `Φ`, each event `E`
 allows is a line matching `m` (its parse's `recvPred`), not bootstrap-named, with, for every server
-the share stands for, an effect consuming `m` into phase `Φ'`, its replies pending: raft's `P'` in the
-node's share, the phantoms `Pph` (the specification's replies raft does not send, review round 2's
-A6) among the phantoms, through intermediate states of the shape `Mid`. -/
+`a` the share stands for, an effect consuming `m` into phase `Φ'`, its replies pending: raft's `P'` in
+the node's share, the phantoms `ph a` (the specification's replies raft does not send, review round
+2's A6; a function of the receiving server, amendment A2: `phantomOf` for a lower-term request, none
+otherwise) among the phantoms, through intermediate states of the shape `Mid`. -/
 def PhaseStepR (id : w64) (c : CfgM) (m : Etcdraft.Msg) (E : TraceEv → Prop) (Mid : Etcdraft.Server → Prop)
+    (ph : Etcdraft.Server → List Etcdraft.Msg)
     (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) : Prop :=
   ∀ C cs P, Φ C cs P → (elements c.incoming).Perm C ∧ c.outgoing = ∅ ∧ id ∈ C → ∀ e, E e →
     e.nid = decStr id ∧ Etcdraft.isBootstrapName (gsStr e.name) = false ∧
     (∀ ln, Etcdraft.parseLine 0 (evConv e) = .ok ln → recvPred ln m = true) ∧
     ∀ a : Etcdraft.Server, toC (confAbs C) a = cs →
-    ∃ (a' : Etcdraft.Server) (P' Pph : List Etcdraft.Msg),
+    ∃ (a' : Etcdraft.Server) (P' : List Etcdraft.Msg),
       Φ' C (toC (confAbs C) a') (P ++ P') ∧ (∀ x ∈ P', x.source = idAbs id) ∧
       LineEffect C false e (idAbs id) a a' (some m) (fun b => b.without m)
-        (fun b => (P' ++ Pph).foldl Etcdraft.Bag.with b) Mid
+        (fun b => (P' ++ ph a).foldl Etcdraft.Bag.with b) Mid
 
 /-- **The facts kept by a receive line** (`FxPres`'s counterpart): at the result, and at every
-intermediate state. -/
+intermediate state; the phantom replies are the receiving server's `ph a` (amendment A2). -/
 def FxPresR (γ : RaftNames) (id : w64) (m : Etcdraft.Msg) (E : TraceEv → Prop) (Mid : Etcdraft.Server → Prop)
+    (ph : Etcdraft.Server → List Etcdraft.Msg)
     (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) : IProp GF :=
   iprop(□ ∀ (C : List w64) (cs : ServerC) (P : List Etcdraft.Msg) (e : TraceEv) (a a' : Etcdraft.Server)
-      (P' Pph : List Etcdraft.Msg) (σ : Etcdraft.State),
+      (P' : List Etcdraft.Msg) (σ : Etcdraft.State),
     ⌜Φ C cs P ∧ E e ∧ toC (confAbs C) a = cs ∧ Φ' C (toC (confAbs C) a') (P ++ P') ∧
       LineEffect C false e (idAbs id) a a' (some m) (fun b => b.without m)
-        (fun b => (P' ++ Pph).foldl Etcdraft.Bag.with b) Mid ∧
+        (fun b => (P' ++ ph a).foldl Etcdraft.Bag.with b) Mid ∧
       σ.server = confAbs C ∧ σ.s (idAbs id) = a ∧ σ.preVote = false ∧ σ.checkQuorum = false ∧
       σ.violated = .ok none ∧ m ∈ σ.messages.domain⌝ -∗
     votesTbl γ -∗ simFx γ C σ -∗
       votesTbl γ ∗ simFx γ C (withNode σ (idAbs id) a' (fun b => b.without m)
-        (fun b => (P' ++ Pph).foldl Etcdraft.Bag.with b)) ∗
+        (fun b => (P' ++ ph a).foldl Etcdraft.Bag.with b)) ∗
       (∀ v, ⌜Mid v⌝ -∗ simFx γ C (withNode σ (idAbs id) v _root_.id _root_.id)))
 
 /-- **The global step of a receive line, as one law** (Draft statement): as `trCap_fire`, the line
 consuming the message of the caller's token `k`. -/
 abbrev trCap_fire_recv.statement : Prop :=
   ∀ (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (tl : GoInterface) (E : TraceEv → Prop)
-    (k : Nat) (m : Etcdraft.Msg) (Mid : Etcdraft.Server → Prop)
+    (k : Nat) (m : Etcdraft.Msg) (Mid : Etcdraft.Server → Prop) (ph : Etcdraft.Server → List Etcdraft.Msg)
     (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ Λ' : Option TraceEv → Prop),
-  PhaseStepR id c m E Mid Φ Φ' → (∀ e, E e → Λ' (some e)) →
+  PhaseStepR id c m E Mid ph Φ Φ' → (∀ e, E e → Λ' (some e)) →
   (∀ e, E e → TraceEv.Ok (elements c.incoming).length e) →
-  (trCap (some γd) γ r id c Φ Λ ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗ FxPresR γ id m E Mid Φ Φ' ∗
+  (trCap (some γd) γ r id c Φ Λ ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗ FxPresR γ id m E Mid ph Φ Φ' ∗
     (∃ tn, traceDir γd tn ∗ inFlight tn k m) : IProp GF) ⊢
     TraceFire (some γd) tl E (trCapB (some γd) γ r id c true Φ' Λ')
 
@@ -1184,8 +1187,9 @@ theorem phaseStepB_bot (id : w64) (c : CfgM) (E : TraceEv → Prop)
   fun _ _ _ h => h.elim
 
 theorem phaseStepR_bot (id : w64) (c : CfgM) (m : Etcdraft.Msg) (E : TraceEv → Prop)
-    (Mid : Etcdraft.Server → Prop) (Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) :
-    PhaseStepR id c m E Mid phaseBot Φ' :=
+    (Mid : Etcdraft.Server → Prop) (ph : Etcdraft.Server → List Etcdraft.Msg)
+    (Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) :
+    PhaseStepR id c m E Mid ph phaseBot Φ' :=
   fun _ _ _ h => h.elim
 
 theorem phaseStepReady_bot (id : w64) (c : CfgM) (E : TraceEv → Prop)
