@@ -246,7 +246,10 @@ theorem sim_campaign (C : List w64) (bl : Nat) (s : PState) (a : Etcdraft.Server
   obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11⟩ := hR
   refine ⟨?_, rfl, rfl, rfl, h5, h6, h7, h8, h9, ?_, ?_⟩
   · simp only [pbecomeCandidate]; rw [h1]; word
-  · intro _; simp [pbecomeCandidate, GMap.toList_empty]; rfl
+  · intro _
+    refine ⟨by simp [pbecomeCandidate, GMap.toList_empty]; rfl, [], rfl, ?_, ?_⟩
+    · intro k hk; simp [pbecomeCandidate] at hk
+    · intro x hx; cases hx
   · intro h; cases h
 
 /-- Membership of the abstract keys of a vote map. -/
@@ -268,63 +271,116 @@ theorem mem_grantedAbs (m : GMap w64 Bool) (x : Etcdraft.ID) :
     exact ⟨k, (GMap.mem_toList m k _).1 hm, hx⟩
   · rintro ⟨k, hm, hx⟩; exact ⟨⟨k, true⟩, ⟨(GMap.mem_toList m k true).2 hm, rfl⟩, hx⟩
 
-/-- **A vote response at a candidate** (the rule `recordVote`), its sender's first in the term (raft
-records only a first response; the simulation's invariant: one `MsgVote` per campaign, no
-duplication): the specification's `HandleRequestVoteResponse` and raft agree on the tally. -/
+/-- **A vote response at a candidate** (the rule `recordVote`; amendment A3): the specification's
+`HandleRequestVoteResponse` and raft's tally stay related, whether or not raft has heard from the
+sender (raft keeps a voter's first response only; the specification's `votesResponded` already holds
+a known voter, and a granting response only adds a responded voter to `votesGranted`, which
+`TallyGranted` allows). -/
 theorem sim_recordVote (C : List w64) (bl : Nat) (s : PState) (a : Etcdraft.Server) (src : w64) (v : Bool)
-    (hR : SimServerR C bl s a) (hc : s.role = .candidate) (hnew : s.votes !! src = none) :
+    (hR : SimServerR C bl s a) (hc : s.role = .candidate) :
     SimServerR C bl { s with votes := recordVote s.votes src v }
       { a with votesResponded := a.votesResponded.add (idAbs src),
                votesGranted := if v then a.votesGranted.add (idAbs src) else a.votesGranted } := by
   obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11⟩ := hR
-  obtain ⟨hvr, hvg⟩ := h10 hc
-  have hrv : recordVote s.votes src v = <[src := v]> s.votes := by
-    unfold recordVote; rw [hnew]
+  obtain ⟨hvr, L, hgL, hgin, hgout⟩ := h10 hc
+  -- the votes after: `src` known, every earlier vote kept
+  have hsrc : ∃ w, recordVote s.votes src v !! src = some w := by
+    unfold recordVote
+    cases hs : s.votes !! src with
+    | some w => exact ⟨w, hs⟩
+    | none => exact ⟨v, GMap.lookup_insert _ _ _⟩
+  have hkeep : ∀ k w, s.votes !! k = some w → recordVote s.votes src v !! k = some w := by
+    intro k w hk
+    unfold recordVote
+    cases hs : s.votes !! src with
+    | some _ => exact hk
+    | none =>
+      by_cases hks : k = src
+      · subst hks; rw [hs] at hk; cases hk
+      · rw [GMap.lookup_insert_ne _ _ (Ne.symm hks)]; exact hk
+  have hback : ∀ k w, recordVote s.votes src v !! k = some w → k ≠ src → s.votes !! k = some w := by
+    intro k w hk hks
+    unfold recordVote at hk
+    cases hs : s.votes !! src with
+    | some _ => rw [hs] at hk; exact hk
+    | none => rw [hs, GMap.lookup_insert_ne _ _ (Ne.symm hks)] at hk; exact hk
+  have hnewv : s.votes !! src = none → recordVote s.votes src v !! src = some v := by
+    intro hs; unfold recordVote; rw [hs]; exact GMap.lookup_insert _ _ _
   refine ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, ?_, ?_⟩
   · intro _
-    simp only [hrv]
     constructor
     · rw [hvr]; unfold Etcdraft.SetIds.add Etcdraft.SetIds.union
       apply setIds_mk_eq; intro x
       rw [List.mem_append, setIds_mk_mem, mem_keysAbs, mem_keysAbs, List.mem_singleton]
       constructor
       · rintro (⟨k, w, hk, rfl⟩ | rfl)
-        · by_cases hks : k = src
-          · subst hks; exact ⟨k, v, GMap.lookup_insert _ _ _, rfl⟩
-          · exact ⟨k, w, by rw [GMap.lookup_insert_ne _ _ (Ne.symm hks)]; exact hk, rfl⟩
-        · exact ⟨src, v, GMap.lookup_insert _ _ _, rfl⟩
+        · exact ⟨k, w, hkeep k w hk, rfl⟩
+        · obtain ⟨w, hw⟩ := hsrc; exact ⟨src, w, hw, rfl⟩
       · rintro ⟨k, w, hk, rfl⟩
         by_cases hks : k = src
         · subst hks; exact Or.inr rfl
-        · rw [GMap.lookup_insert_ne _ _ (Ne.symm hks)] at hk; exact Or.inl ⟨k, w, hk, rfl⟩
+        · exact Or.inl ⟨k, w, hback k w hk hks, rfl⟩
     · cases v
       · simp only [Bool.false_eq_true, ↓reduceIte]
-        rw [hvg]; apply setIds_mk_eq; intro x
-        rw [mem_grantedAbs, mem_grantedAbs]
-        constructor
-        · rintro ⟨k, hk, rfl⟩
+        refine ⟨L, hgL, ?_, ?_⟩
+        · intro k hk
           by_cases hks : k = src
-          · subst hks; rw [hnew] at hk; cases hk
-          · exact ⟨k, by rw [GMap.lookup_insert_ne _ _ (Ne.symm hks)]; exact hk, rfl⟩
-        · rintro ⟨k, hk, rfl⟩
-          by_cases hks : k = src
-          · subst hks; rw [GMap.lookup_insert] at hk; cases hk
-          · exact ⟨k, by rw [GMap.lookup_insert_ne _ _ (Ne.symm hks)] at hk; exact hk, rfl⟩
+          · subst hks
+            cases hs : s.votes !! k with
+            | none => rw [hnewv hs] at hk; cases hk
+            | some w => rw [hkeep k w hs] at hk; cases hk; exact hgin k hs
+          · exact hgin k (hback k true hk hks)
+        · intro x hx
+          obtain ⟨k, w, hk, e⟩ := hgout x hx
+          exact ⟨k, w, hkeep k w hk, e⟩
       · simp only [↓reduceIte]
-        rw [hvg]; unfold Etcdraft.SetIds.add Etcdraft.SetIds.union
-        apply setIds_mk_eq; intro x
-        rw [List.mem_append, setIds_mk_mem, mem_grantedAbs, mem_grantedAbs, List.mem_singleton]
-        constructor
-        · rintro (⟨k, hk, rfl⟩ | rfl)
-          · by_cases hks : k = src
-            · subst hks; rw [hnew] at hk; cases hk
-            · exact ⟨k, by rw [GMap.lookup_insert_ne _ _ (Ne.symm hks)]; exact hk, rfl⟩
-          · exact ⟨src, GMap.lookup_insert _ _ _, rfl⟩
-        · rintro ⟨k, hk, rfl⟩
+        refine ⟨Etcdraft.SetIds.mk L ++ [idAbs src], ?_, ?_, ?_⟩
+        · rw [hgL]; rfl
+        · intro k hk
+          rw [List.mem_append, setIds_mk_mem, List.mem_singleton]
           by_cases hks : k = src
           · subst hks; exact Or.inr rfl
-          · rw [GMap.lookup_insert_ne _ _ (Ne.symm hks)] at hk; exact Or.inl ⟨k, hk, rfl⟩
+          · exact Or.inl (hgin k (hback k true hk hks))
+        · intro x hx
+          rw [List.mem_append, setIds_mk_mem, List.mem_singleton] at hx
+          rcases hx with hx | rfl
+          · obtain ⟨k, w, hk, e⟩ := hgout x hx
+            exact ⟨k, w, hkeep k w hk, e⟩
+          · obtain ⟨w, hw⟩ := hsrc; exact ⟨src, w, hw, rfl⟩
   · intro h; rw [hc] at h; cases h
+
+/-- An empty tally (a new campaign's, amendment A3). -/
+theorem tallyGranted_empty : TallyGranted ∅ [] :=
+  ⟨[], rfl, fun k hk => by simp at hk, fun x hx => by cases hx⟩
+
+/-- **A won tally is a specification quorum** (amendment A3): raft's granting voters a quorum of a
+configuration holding every voter raft heard from, so is the specification's `votesGranted`
+(`TallyGranted`: more voters, all heard from), `isQuorum` being monotone on sets. -/
+theorem tallyGranted_quorum (votes : GMap w64 Bool) (g c : Etcdraft.SetIds) (hT : TallyGranted votes g)
+    (hc : ∀ k w, votes !! k = some w → idAbs k ∈ c)
+    (hq : Etcdraft.isQuorum
+      (Etcdraft.SetIds.mk (((GMap.toList votes).filter (fun p => p.2)).map (fun p => idAbs p.1))) c = true) :
+    Etcdraft.isQuorum g c = true := by
+  obtain ⟨L, rfl, hin, hout⟩ := hT
+  unfold Etcdraft.isQuorum at hq ⊢
+  rw [Bool.and_eq_true, decide_eq_true_iff] at hq ⊢
+  refine ⟨?_, ?_⟩
+  · unfold Etcdraft.SetIds.subset
+    rw [List.all_eq_true]
+    intro x hx
+    rw [setIds_mk_mem] at hx
+    obtain ⟨k, w, hk, rfl⟩ := hout x hx
+    rw [List.contains_iff_mem]; exact hc k w hk
+  · have hnd : ∀ l : List Etcdraft.ID, (Etcdraft.SetIds.mk l).Nodup := fun l =>
+      (setIds_mk_sorted l).imp (fun h => Nat.ne_of_lt h)
+    have hsub : Etcdraft.SetIds.mk (((GMap.toList votes).filter (fun p => p.2)).map (fun p => idAbs p.1)) ⊆
+        Etcdraft.SetIds.mk L := by
+      intro x hx
+      rw [setIds_mk_mem, mem_grantedAbs] at hx
+      obtain ⟨k, hk, rfl⟩ := hx
+      rw [setIds_mk_mem]; exact hin k hk
+    have hle := List.Nodup.length_le_of_subset (hnd _) hsub
+    omega
 
 /-- Raft's `lastIndex()` is the abstract log's length. -/
 theorem plastIndex_length (bl : Nat) (s : PState) (h : LogShapeOk bl s) :
