@@ -37,27 +37,30 @@ gate (`raft.maybeSendAppend.spec`): the `MsgApp`'s hook gate from the caller's `
 `TrNoSnap`. Until slice 6 the premise `s.gh.tr = none` (stage 0), now `raft.sendAppend.untraced`'s
 (`TracedUntracedSend.lean`). -/
 abbrev raft.sendAppend.spec : Prop :=
-  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (to : w64) (G : IProp GF),
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (to : w64) (G : List Msg → IProp GF),
   to ≠ id →
   to ∈ domSet s.progress →
   -- (2026-10-16, stage R8a) a leader's, as `maybeSendAppend`
   s.role = .leader →
   -- (2026-10-29, stage U7) the term past `0` that `send` stamps (`SentMsgShape`)
   s.term ≠ W64 0 →
+  -- (2026-11-10, slice 14) the caller's resource indexed by the outbox (`maybeSendAppend`'s)
+  IdxFree s.gh.tr G →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       -- (2026-11-09, Q8 stage 1 slice 6; until then, stage 0, the premise `s.gh.tr = none`)
       -- `maybeSendAppend`'s gate and its no-compaction premise
-      "Hgate" ∷ (∀ mm : Msg, ⌜AppOk id (toPState s) mm ∧ mm.commit = (toPState s).commit ∧
-          mm.dst = to⌝ -∗ G -∗
-        HookGateOpt s.gh.tr r (sendOutGate id s c MsgApp [mm]) G) ∗
-      "HG" ∷ G ∗
+      "Hgate" ∷ (∀ (mm : Msg) (o : List Msg), ⌜AppOk id (toPState s) mm ∧ mm.commit = (toPState s).commit ∧
+          mm.dst = to⌝ -∗ G o -∗
+        HookGateOpt s.gh.tr r (sendOutGate id s c MsgApp [mm]) (G (o ++ [mm]))) ∗
+      "HG" ∷ G s.outbox ∗
       "#Hnosnap" ∷ TrNoSnap s.gh.tr s.logst }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"sendAppend")) (Val #to))
   {{ (ms : List Msg) (pvs : GMap w64 Progress), RET #();
       ownRaftPhysCV c c.voters r id { sendMsgs s ms with prvals := pvs } ∗
       ⌜ReplSends id s ms⌝ ∗
-      ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ ∗ G }}
+      ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ ∗
+      G ({ sendMsgs s ms with prvals := pvs } : NState).outbox }}
 
 end spec
 

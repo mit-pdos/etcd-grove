@@ -74,7 +74,7 @@ theorem wp_Step_MsgApp_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
         -- (D22 S-d3b) a truncation's mark (`AppTrunc`)
         "%Htrunc" ∷ ⌜AppTrunc m ents s s'⌝ ∗
-        "HG" ∷ stepOut R }} := by
+        "HG" ∷ stepOut R s'.outbox }} := by
   intro Hty Hto Hterm Hfnz Hfid Hwf Hpwf Hnw Hlt
   wp_start as H
   iNamed H
@@ -108,6 +108,7 @@ theorem wp_Step_MsgApp_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     wp_drive _Q
     wp_raft_logC
     ihave HG := stepOut_G0 R $$ HG
+    try phys_out
     iapply HΦ $$ %interface.nil %s
     iframe Hphys HG
     ipureintro
@@ -135,13 +136,14 @@ theorem wp_Step_MsgApp_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, (by intro h; rw [h] at Hlt; word), fun h => absurd h Hfid, rfl⟩)))
     ihave Hgl := Hglow $$ %(And.intro Hterm Hlt) %MsgAppResp %(absMsgFrom .appResp ack id s.term [])
       %(.inl ⟨rfl, by first | exact .inl Hcq | exact .inr Hpv, .inr Hty, rfl⟩) HG
-    wp_apply _P.send c r id s «$a0_ptr» ack [] none [] [] _ R.GE (Or.inl rfl) Hok
+    wp_apply _P.send c r id s «$a0_ptr» ack [] none [] [] _ (R.GE (s.outbox ++ [absMsgFrom .appResp ack id s.term []])) (Or.inl rfl) Hok
       (fun h => absurd h (by simp only [ack]; w32_ne)) (fun h => absurd h (by simp only [ack]; w32_ne))
       rfl (fun _ h => absurd (mtypeOf_Snap _ h) (by simp only [ack]; w32_ne)) $$ [$Hphys $Hack Hgl] as ⟨Hphys, HG⟩
     · isplitr
       · iapply tsSrc_ne; exact (fun h => absurd h (by simp only [ack]; w32_ne))
       · rw [show ack.Type' = MsgAppResp from rfl]; iexact Hgl
     ihave HG := stepOut_GE R $$ HG
+    try phys_out
     iapply HΦ $$ %interface.nil %_
     iframe Hphys HG
     ipureintro

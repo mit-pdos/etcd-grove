@@ -158,8 +158,8 @@ theorem raft.appliedTo.wp_proof
           wp_apply (StepProof.wp_Step_MsgProp (traceReceiveMessage.gated wp_traceReceiveMessage) wp_stepFollower
               wp_stepCandidate wp_stepLeader Q c r id s1 ml leaveMsgM none [] [] [leaveEntM]
               [some (.v2 ConfChangeV2M.empty)] k0
-              ⟨iprop(emp), iprop(emp), iprop(emp), iprop(emp), iprop(emp), iprop(emp), iprop(emp),
-                iprop(emp), iprop(emp), fun _ _ => iprop(emp)⟩ rfl rfl (.inl rfl) (by simp) (by simp)
+              ⟨iprop(emp), fun _ => iprop(emp), fun _ => iprop(emp), fun _ => iprop(emp), iprop(emp),
+                iprop(emp), iprop(emp), iprop(emp), fun _ => iprop(emp), fun _ _ _ => iprop(emp)⟩ rfl rfl (.inl rfl) (by simp) (by simp)
               (fun h => absurd (h.symm.trans Hrl) (by decide))
               (fun _ => by rw [Hs1term]; exact Hlnz (Hs1role ▸ Hrl)) (Hwf1 (Hs1role ▸ Hrl))
               (by rw [Hs1ps]; exact HL (Hs1role ▸ Hrl)) rfl (fun h => absurd Htr1 h))

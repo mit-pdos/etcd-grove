@@ -81,7 +81,7 @@ theorem wp_Step_MsgApp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
         -- (D22 S-d3b) a truncation's mark (`AppTrunc`)
         "%Htrunc" ∷ ⌜AppTrunc m ents s s'⌝ ∗
-        "HG" ∷ stepOut R }} := by
+        "HG" ∷ stepOut R s'.outbox }} := by
   intro Hty Hto Hterm Hfnz Hfid Hwf Hpwf Hnw Hconf Hgt
   wp_start as H
   iNamed H
@@ -104,8 +104,9 @@ theorem wp_Step_MsgApp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   wp_drive _Q
   -- `becomeFollower(m.Term, m.From)`: a leader's message
   bf_gate
-  wp_apply _P.becomeFollower c r id s m.Term' _ R.G1 (by exact Int.le_of_lt Hgt) (fun _ => rfl) $$ [$Hphys $Hgb]
+  wp_apply _P.becomeFollower c r id s m.Term' _ (R.G1 s.outbox) (by exact Int.le_of_lt Hgt) (fun _ => rfl) $$ [$Hphys $Hgb]
     as %pvs ⟨Hphys, HG⟩
+  phys_idx HG
   wp_drive _Q
   wp_apply raft.wp_load_stepC $$ Hphys as Hphys
   have Hsf : ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState).stepfn =
@@ -121,7 +122,7 @@ theorem wp_Step_MsgApp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-    (by notfwd_tac) $$ [$Hphys Hm $Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+    (by notfwd_tac) Hgok.1 Hgok.2.1 $$ [$Hphys Hm $Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
   · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
   ihave HG := stepOut_or R _ _ $$ HGo
   obtain ⟨rfl, rfl, Happ⟩ := followerStepResult_app _ _ _ _ _ _ _ _ Hty Hres
@@ -132,6 +133,7 @@ theorem wp_Step_MsgApp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   icases Herrn with %Herrn
   subst Herrn
   wp_auto
+  try phys_out
   iapply HΦ $$ %interface.nil %s1
   iframe Hphys HG
   ipureintro

@@ -187,7 +187,7 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
         -- (D19i part 1) and at least to it
         "%Happ2" ∷ ⌜∀ e, ents.getLast? = some e → uint.Z e.Index' ≤ uint.Z s'.logst.applied⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
-        "HG" ∷ stepOut R }} := by
+        "HG" ∷ stepOut R s'.outbox }} := by
   intro Hty Hterm Hlast Hwf Hlnz HL Htr
   wp_start as H
   iNamed H
@@ -215,6 +215,7 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
     rw [decide_eq_false (by simp only [List.length_nil] at Hlen; word)]
     wp_auto
     ihave HG := stepOut_G0 R $$ HG
+    try phys_out
     iapply HΦ $$ %interface.nil %s %(plogLastIndexZ (toPState s).base (toPState s).log)
       %([] : List Msg)
     iframe Hphys HG
@@ -238,6 +239,8 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
     simp only [List.length_append, List.length_singleton] at Hlen
     rw [decide_eq_true (by word)]
     wp_auto
+    have hnbf : ¬ PreBF m s := PreBF.of_zero Hterm
+    imod preGate_nobf c r id s m _ _ (.inl Hterm) hnbf $$ Hgpre HG with HG
     -- `m.GetEntries()[len(m.GetEntries())-1].GetIndex()`
     wp_apply wp_GetEntries_ro _Q $$ [$Hm] as %es2 ⟨#Hes2, Hm⟩
     wp_apply wp_GetEntries_ro _Q $$ [$Hm] as %es3 ⟨#Hes3, Hm⟩
@@ -308,7 +311,13 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
     have Happ2' : uint.Z e.Index' ≤ uint.Z (w64Max e.Index' s.logst.applied) := by
       unfold w64Max
       split <;> word
-    ihave HG := stepOut_G0 R $$ HG
+    -- (2026-11-10, Q8 stage 1 slice 14) the caller's resource past the (skipped) preamble, at the
+    -- end state's outbox: unchanged, or (the leave proposed: untraced) a family ignoring it
+    ihave HG : R.G1 s2.outbox $$ [HG]
+    · rcases Hls with ⟨rfl, -, -⟩ | ⟨Hal, -⟩
+      · rw [← Hs1]; iidx HG
+      · rw [Hgok.2.1 (Htr (by simp) Hal) s2.outbox s.outbox]; iexact HG
+    ihave HG := stepOut_G1 R $$ HG
     iapply HΦ $$ %interface.nil %s2 %B %recv
     iframe Hphys HG
     rcases Hls with ⟨rfl, rfl, rfl⟩ |

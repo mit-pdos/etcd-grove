@@ -71,7 +71,7 @@ theorem wp_Step_MsgHeartbeat_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
-        "HG" ∷ stepOut R }} := by
+        "HG" ∷ stepOut R s'.outbox }} := by
   intro Hty Hto Hterm Hfnz Hfid Hwf Hcommit Hgt
   wp_start as H
   iNamed H
@@ -97,8 +97,9 @@ theorem wp_Step_MsgHeartbeat_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
   have hbf : PreBF m s := PreBF.of_gt Hgt (by rw [Hty]; w32_ne) (fun h => absurd (Hty.symm.trans h) (by w32_ne))
   have hlead : preLead m = m.From' := preLead_from (.inr (.inl Hty))
   ihave Hgb := preGate_bf c r id s m R.G0 R.G1 m.From' hbf hlead $$ Hgpre HG
-  wp_apply _P.becomeFollower c r id s m.Term' m.From' R.G1 (Int.le_of_lt Hgt) (fun _ => rfl) $$ [$Hphys $Hgb]
+  wp_apply _P.becomeFollower c r id s m.Term' m.From' (R.G1 s.outbox) (Int.le_of_lt Hgt) (fun _ => rfl) $$ [$Hphys $Hgb]
     as %pvs ⟨Hphys, HG⟩
+  phys_idx HG
   wp_drive _Q
   wp_apply raft.wp_load_stepC $$ Hphys as Hphys
   rw [show ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState).stepfn
@@ -115,7 +116,7 @@ theorem wp_Step_MsgHeartbeat_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
       (fun _ => ⟨Hcommit, Hfid⟩)
       (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-    (by notfwd_tac) $$ [$Hphys Hm $Hsrc0 $HG Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+    (by notfwd_tac) Hgok.1 Hgok.2.1 $$ [$Hphys Hm $Hsrc0 $HG Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
   · isplitl [Hm]
     · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
     · iunfold followerGates at Hfg; iexact Hfg
@@ -125,6 +126,7 @@ theorem wp_Step_MsgHeartbeat_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
   icases Herrn with %Herrn
   subst Herrn
   wp_auto
+  try phys_out
   iapply HΦ $$ %interface.nil %_
   iframe Hphys HG
   ipureintro

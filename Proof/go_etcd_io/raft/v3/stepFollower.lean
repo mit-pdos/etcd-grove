@@ -76,7 +76,7 @@ theorem stepFollower.wp_proof
     (wp_GetData : raftpb.Entry.GetData.spec (GF := GF) (hG := hG)) :
     stepFollower.spec (GF := GF) (hG := hG) := by
   -- (Q8 stage 1, slice 8) the gated specs, each arm consuming its gates; a `MsgSnap` untraced
-  intro c scfg r id s ml m ents sn rs sv cl G G' Hty Hri Hstz Hprop Happ Hhb Hrest Hsnap Hnors
+  intro c scfg r id s ml m ents sn rs sv cl G G' Hty Hri Hstz Hprop Happ Hhb Hrest Hsnap Hnors Hpinv Hidx
   wp_start as H
   iNamed H
   ihave #Hinit := isInitialized_access $$ Hpkg
@@ -101,7 +101,7 @@ theorem stepFollower.wp_proof
     · ipureintro; first | rfl | trivial
     iright; isplitr
     · ipureintro; simp [MsgApp, MsgHeartbeat, MsgTimeoutNow]
-    iexact HG
+    iidx HG
   · -- `MsgProp`
     obtain ⟨Hfrom0, Hterm0, Hlid⟩ := Hprop Hty
     simp only [Hty, MsgProp]
@@ -124,7 +124,7 @@ theorem stepFollower.wp_proof
       · iexact ErrPropDropped
       iright; isplitr
       · ipureintro; simp [MsgApp, MsgHeartbeat, MsgTimeoutNow]
-      iexact HG
+      iidx HG
     · -- forwarded to the leader: `m.To = new(r.lead)`, the message frozen and sent
       rw [decide_eq_false Hlead]
       wp_auto
@@ -136,15 +136,16 @@ theorem stepFollower.wp_proof
       ihave Hm := Hback $$ %_ %s.lead HTo cTo
       imod msgIn_to_msgOwn $$ Hm with Hm
       ihave Hgs : HookGateOpt s.gh.tr r (sendOutGate id s c ({ m with To' := s.lead } : MessageM).Type'
-          [propForward id s.lead m ents cl]) G $$ [Hgfwd HG]
+          [propForward id s.lead m ents cl]) (G (s.outbox ++ [propForward id s.lead m ents cl])) $$ [Hgfwd HG]
       · have hn : sendOutGate id s c ({ m with To' := s.lead } : MessageM).Type'
             [propForward id s.lead m ents cl] = none := by
           show sendOutGate id s c m.Type' _ = none
           rw [Hty]; rfl
         rw [hn]
-        iapply Hgfwd $$ %(by first | exact Or.inl trivial | exact Or.inl Hty) HG
+        iapply Hgfwd $$ %(by first | exact Or.inl trivial | exact Or.inl Hty) %([propForward id s.lead m ents cl])
+          %(by intro x hx; simp only [List.mem_singleton] at hx; subst hx; rfl) HG
       wp_apply wp_raft_send c r id s ml { m with To' := s.lead } ents sn cl rs
-          [propForward id s.lead m ents cl] G
+          [propForward id s.lead m ents cl] (G (s.outbox ++ [propForward id s.lead m ents cl]))
           (Or.imp_right Or.inl Hfrom0)
           (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨Hty, Hterm0, fun h => Hlid h, rfl⟩)))))
           (fun h => by simp [Hty, MsgProp, MsgSnap] at h)
@@ -164,7 +165,7 @@ theorem stepFollower.wp_proof
       · ipureintro; first | rfl | trivial
       iright; isplitr
       · ipureintro; simp [MsgApp, MsgHeartbeat, MsgTimeoutNow]
-      iexact HG
+      iidx HG
   · -- `MsgApp`: adopt the sender as leader, then `handleAppendEntries`
     obtain ⟨Hwf, Hnw, Hconf, Hfid, Hnl⟩ := Happ Hty
     rw [show (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard) = DFrac.discard by
@@ -177,12 +178,13 @@ theorem stepFollower.wp_proof
     wp_apply raft.wp_store_leadC $$ Hphys as Hphys
     ihave Hga2 : ∀ (s1 : NState) (mm : Msg),
         ⌜HandleAppResult id ({ s with lead := m.From' } : NState) m ents (sendMsgs s1 [mm])⌝ -∗
-        G -∗ HookGateOpt ({ s with lead := m.From' } : NState).gh.tr r
-          (sendOutGate id s1 c MsgAppResp [mm]) G' $$ [Hga]
+        G s.outbox -∗ HookGateOpt ({ s with lead := m.From' } : NState).gh.tr r
+          (sendOutGate id s1 c MsgAppResp [mm]) (G' (sendMsgs s1 [mm]).outbox) $$ [Hga]
     · iintro %s1 %mm %Hr HG
       ispecialize Hga $$ %s1 %mm %Hr HG
-      iapply hookGateOpt_congr _ _ r _ _ G' (by rfl) (by rfl) $$ Hga
-    wp_apply wp_raft_handleAppendEntries c r id { s with lead := m.From' } ml m ents sn cl rs G G'
+      iapply hookGateOpt_congr _ _ r _ _ _ (by rfl) (by rfl) $$ Hga
+    wp_apply wp_raft_handleAppendEntries c r id { s with lead := m.From' } ml m ents sn cl rs
+        (G s.outbox) G'
         Hwf Hnw Hconf Hfid Hty Hnl (by simp only; first | exact Hstz (Or.inl Hty) | exact Hstz (Or.inr (Or.inl Hty)) | exact Hstz (Or.inr (Or.inr Hty)))
         $$ [$Hphys $Hm $HG $Hga2] as %s' ⟨Hphys, %Hres, HG⟩
     iapply HΦ $$ %GoInterface.nil %s' %false %c
@@ -197,7 +199,7 @@ theorem stepFollower.wp_proof
     · ipureintro; first | rfl | trivial
     ileft; isplitr
     · ipureintro; simp
-    iexact HG
+    iidx HG
   · -- `MsgHeartbeat`: adopt the sender as leader, then `handleHeartbeat`
     obtain ⟨Hcommit, Hfrom⟩ := Hhb Hty
     ihave Hgh := Hghb $$ %Hty
@@ -206,17 +208,18 @@ theorem stepFollower.wp_proof
     wp_apply raft.wp_store_electionElapsedC $$ Hphys as Hphys
     wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
     wp_apply raft.wp_store_leadC $$ Hphys as Hphys
-    ihave Hgh2 : G -∗ HookGateOpt ({ s with lead := m.From' } : NState).gh.tr r
+    ihave Hgh2 : G s.outbox -∗ HookGateOpt ({ s with lead := m.From' } : NState).gh.tr r
         (sendOutGate id { ({ s with lead := m.From' } : NState) with
             logst := { ({ s with lead := m.From' } : NState).logst with
               committed := plogCommitTo ({ s with lead := m.From' } : NState).logst.committed m.Commit' } }
           c MsgHeartbeatResp
           [{ Msg.plain .heartbeatResp id m.From' ({ s with lead := m.From' } : NState).term false with ctx := cl }])
-        G' $$ [Hgh]
+        (G' (s.outbox ++ [{ Msg.plain .heartbeatResp id m.From' s.term false with ctx := cl }])) $$ [Hgh]
     · iintro HG
       ispecialize Hgh $$ HG
-      iapply hookGateOpt_congr _ _ r _ _ G' (by rfl) (by rfl) $$ Hgh
-    wp_apply wp_raft_handleHeartbeat c r id { s with lead := m.From' } ml _ _ _ m ents sn cl rs G G'
+      iapply hookGateOpt_congr _ _ r _ _ _ (by rfl) (by rfl) $$ Hgh
+    wp_apply wp_raft_handleHeartbeat c r id { s with lead := m.From' } ml _ _ _ m ents sn cl rs (G s.outbox)
+        (G' (s.outbox ++ [{ Msg.plain .heartbeatResp id m.From' s.term false with ctx := cl }]))
         Hcommit Hfrom (by simp only; first | exact Hstz (Or.inl Hty) | exact Hstz (Or.inr (Or.inl Hty)) | exact Hstz (Or.inr (Or.inr Hty)))
         $$ [$Hphys $Hm $HG $Hgh2] as ⟨Hphys, -, HG⟩
     iapply HΦ $$ %GoInterface.nil %_ %false %c
@@ -230,7 +233,7 @@ theorem stepFollower.wp_proof
     · ipureintro; first | rfl | trivial
     ileft; isplitr
     · ipureintro; simp
-    iexact HG
+    iidx HG
   · -- `MsgBeat`, `MsgAppResp`, `MsgHeartbeatResp`: no arm
     rcases Hty with Hty' | Hty' | Hty' | Hty' <;>
       simp only [Hty', MsgBeat, MsgAppResp, MsgHeartbeatResp, MsgCheckQuorum] <;> wp_auto
@@ -246,7 +249,7 @@ theorem stepFollower.wp_proof
       · ipureintro; first | rfl | trivial
       iright; isplitr
       · ipureintro; simp [MsgApp, MsgHeartbeat, MsgTimeoutNow]
-      iexact HG
+      iidx HG
   · -- `MsgSnap`: adopt the sender as leader, then `handleSnapshot` (untraced only)
     obtain ⟨Hsn, Hscfg, Hscope, Hrole, Hvotes, Hfid, Hns, Htr⟩ := Hsnap Hty
     rw [show (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard) = DFrac.discard by
@@ -264,6 +267,9 @@ theorem stepFollower.wp_proof
     wp_apply wp_raft_handleSnapshot c r id { s with lead := m.From' } ml m ents sn cl rs sv scfg
         Hrole Hvotes Hsn Hscfg Hscope Hfid Hns (by simp only; first | exact Hstz (Or.inl Hty) | exact Hstz (Or.inr (Or.inl Hty)) | exact Hstz (Or.inr (Or.inr Hty))) (by tr_none) $$ [$Hphys $Hm $Hcs]
       as %s' ⟨Hphys, %Hres⟩
+    -- (2026-11-10, slice 14) untraced: the caller's resource ignores the outbox
+    ihave HG : G s'.outbox $$ [HG]
+    · rw [Hidx Htr s'.outbox s.outbox]; iexact HG
     iapply HΦ $$ %GoInterface.nil %s' %false %c
     iframe Hphys
     simp only [Bool.false_eq_true, ↓reduceIte]
@@ -276,7 +282,7 @@ theorem stepFollower.wp_proof
     · ipureintro; first | rfl | trivial
     iright; isplitr
     · ipureintro; simp [MsgApp, MsgHeartbeat, MsgTimeoutNow]
-    iexact HG
+    iidx HG
   · -- `MsgPreVoteResp` (2026-10-04): no arm
     simp only [Hty, MsgPreVoteResp]
     wp_auto
@@ -291,7 +297,7 @@ theorem stepFollower.wp_proof
     · ipureintro; first | rfl | trivial
     iright; isplitr
     · ipureintro; simp [MsgApp, MsgHeartbeat, MsgTimeoutNow]
-    iexact HG
+    iidx HG
   · -- `MsgReadIndex` (2026-10-12): forwarded to the leader, if any
     obtain ⟨Hterm0, Hlid⟩ := Hri Hty
     simp only [Hty, MsgReadIndex]
@@ -315,7 +321,7 @@ theorem stepFollower.wp_proof
       · ipureintro; first | rfl | trivial
       iright; isplitr
       · ipureintro; simp [MsgApp, MsgHeartbeat, MsgTimeoutNow]
-      iexact HG
+      iidx HG
     · -- forwarded to the leader
       rw [decide_eq_false Hlead]
       wp_auto
@@ -326,15 +332,17 @@ theorem stepFollower.wp_proof
       ihave Hm := Hback $$ %_ %s.lead HTo cTo
       imod msgIn_to_msgOwn $$ Hm with Hm
       ihave Hgs : HookGateOpt s.gh.tr r (sendOutGate id s c ({ m with To' := s.lead } : MessageM).Type'
-          [readForward id s.lead m ents cl]) G $$ [Hgfwd HG]
+          [readForward id s.lead m ents cl]) (G (s.outbox ++ [readForward id s.lead m ents cl])) $$ [Hgfwd HG]
       · have hn : sendOutGate id s c ({ m with To' := s.lead } : MessageM).Type'
             [readForward id s.lead m ents cl] = none := by
           show sendOutGate id s c m.Type' _ = none
           rw [Hty]; rfl
         rw [hn]
-        iapply Hgfwd $$ %(by first | exact Or.inr (Or.inl trivial) | exact Or.inr (Or.inl Hty)) HG
+        iapply Hgfwd $$ %(by first | exact Or.inr (Or.inl trivial) | exact Or.inr (Or.inl Hty))
+          %([readForward id s.lead m ents cl])
+          %(by intro x hx; simp only [List.mem_singleton] at hx; subst hx; rfl) HG
       wp_apply wp_raft_send c r id s ml { m with To' := s.lead } ents sn cl rs
-          [readForward id s.lead m ents cl] G
+          [readForward id s.lead m ents cl] (G (s.outbox ++ [readForward id s.lead m ents cl]))
           (Or.inr (Or.inr (Or.inl Hty)))
           (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr ⟨Hty, Hterm0, fun h => Hlid h, rfl⟩)))))
           (fun h => by simp [Hty, MsgReadIndex, MsgSnap] at h)
@@ -355,7 +363,7 @@ theorem stepFollower.wp_proof
       · ipureintro; first | rfl | trivial
       iright; isplitr
       · ipureintro; simp [MsgApp, MsgHeartbeat, MsgTimeoutNow]
-      iexact HG
+      iidx HG
   · -- `MsgReadIndexResp` (2026-10-12): one entry becomes a `ReadState`
     simp only [Hty, MsgReadIndexResp]
     wp_auto
@@ -421,7 +429,7 @@ theorem stepFollower.wp_proof
       · ipureintro; first | rfl | trivial
       iright; isplitr
       · ipureintro; simp [MsgApp, MsgHeartbeat, MsgTimeoutNow]
-      iexact HG
+      iidx HG
     · -- not one entry: logged and ignored
       wp_apply raft.wp_load_idC $$ Hphys as Hphys
       wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
@@ -446,7 +454,7 @@ theorem stepFollower.wp_proof
       · ipureintro; first | rfl | trivial
       iright; isplitr
       · ipureintro; simp [MsgApp, MsgHeartbeat, MsgTimeoutNow]
-      iexact HG
+      iidx HG
   · -- `MsgForgetLeader` (2026-10-13): the read-only option is `Safe` (not `LeaseBased`),
     -- then a leader, if any, is forgotten
     simp only [Hty, MsgForgetLeader]
@@ -477,7 +485,7 @@ theorem stepFollower.wp_proof
       · ipureintro; first | rfl | trivial
       iright; isplitr
       · ipureintro; simp [MsgApp, MsgHeartbeat, MsgTimeoutNow]
-      iexact HG
+      iidx HG
     · rw [decide_eq_false Hlead]
       wp_auto
       wp_apply raft.wp_load_idC $$ Hphys as Hphys
@@ -497,7 +505,7 @@ theorem stepFollower.wp_proof
       · ipureintro; first | rfl | trivial
       iright; isplitr
       · ipureintro; simp [MsgApp, MsgHeartbeat, MsgTimeoutNow]
-      iexact HG
+      iidx HG
   · -- `MsgTransferLeader` (2026-10-13): forwarded to the leader, if any; it is outside
     -- the model (`mtypeOf` is `none`), so nothing is queued abstractly
     obtain ⟨Htl, -⟩ := Hrest (Or.inl Hty)
@@ -524,7 +532,7 @@ theorem stepFollower.wp_proof
       · ipureintro; first | rfl | trivial
       iright; isplitr
       · ipureintro; simp [MsgApp, MsgHeartbeat, MsgTimeoutNow]
-      iexact HG
+      iidx HG
     · rw [decide_eq_false Hlead]
       wp_auto
       wp_apply raft.wp_load_leadC $$ Hphys as Hphys
@@ -535,13 +543,14 @@ theorem stepFollower.wp_proof
       ihave Hm := Hback $$ %_ %s.lead HTo cTo
       imod msgIn_to_msgOwn $$ Hm with Hm
       ihave Hgs : HookGateOpt s.gh.tr r (sendOutGate id s c ({ m with To' := s.lead } : MessageM).Type'
-          []) G $$ [Hgfwd HG]
+          []) (G (s.outbox ++ [])) $$ [Hgfwd HG]
       · have hn : sendOutGate id s c ({ m with To' := s.lead } : MessageM).Type' [] = none := by
           show sendOutGate id s c m.Type' _ = none
           rw [Hty]; rfl
         rw [hn]
-        iapply Hgfwd $$ %(by first | exact Or.inr (Or.inr trivial) | exact Or.inr (Or.inr Hty)) HG
-      wp_apply wp_raft_send c r id s ml { m with To' := s.lead } [] sn [] rs [] G
+        iapply Hgfwd $$ %(by first | exact Or.inr (Or.inr trivial) | exact Or.inr (Or.inr Hty)) %([] : List Msg)
+          %(by intro x hx; cases hx) HG
+      wp_apply wp_raft_send c r id s ml { m with To' := s.lead } [] sn [] rs [] (G (s.outbox ++ []))
           (Or.inr (Or.inr (Or.inr Hty)))
           (Or.inr (Or.inr (Or.inl (Or.inr ⟨Or.inr Hty, fun h => absurd (Hty.symm.trans h) (by simp [MsgTransferLeader, MsgTimeoutNow]),
             rfl, rfl, Hterm0', fun h => Hlid h, rfl, fun _ => Hxo Hlead⟩))))
@@ -564,7 +573,7 @@ theorem stepFollower.wp_proof
       · ipureintro; first | rfl | trivial
       iright; isplitr
       · ipureintro; simp [MsgApp, MsgHeartbeat, MsgTimeoutNow]
-      iexact HG
+      iidx HG
   · -- `MsgTimeoutNow` (2026-10-13): `hup(campaignTransfer)`, an ordinary campaign
     obtain ⟨-, Htn⟩ := Hrest (Or.inr Hty)
     obtain ⟨Hnw, Hwf, Hfla⟩ := Htn Hty
@@ -574,11 +583,11 @@ theorem stepFollower.wp_proof
       simp (config := {decide := true}) [campaignTransfer, campaignPreElection]
     have Htc : transferCtx campaignTransfer = campaignTransfer := by
       simp [transferCtx]
-    ihave Hgbc : G -∗ (if campaignTransfer = campaignPreElection then iprop(|={⊤}=> G')
-        else HookGate s.gh.tr r (NodeEvOf (W64 1) id (becomeCandidate id s) c) G') $$ [Hgc]
+    ihave Hgbc : G s.outbox -∗ (if campaignTransfer = campaignPreElection then iprop(|={⊤}=> G' s.outbox)
+        else HookGate s.gh.tr r (NodeEvOf (W64 1) id (becomeCandidate id s) c) (G' s.outbox)) $$ [Hgc]
     · simp only [eq_false (show ¬ _ from by simpa using Hde), ite_false]
       iexact Hgc
-    ihave #Hgsend : □ (∀ (pvs : GMap w64 Progress) (y : w64), ⌜y ∈ c.voters⌝ -∗ G' -∗
+    ihave #Hgsend : □ (∀ (pvs : GMap w64 Progress) (y : w64) (o : List Msg), ⌜y ∈ c.voters⌝ -∗ G' o -∗
         HookGateOpt s.gh.tr r
           (sendOutGate id { campRoleState id s (decide (campaignTransfer = campaignPreElection))
               with prvals := pvs } c
@@ -586,12 +595,13 @@ theorem stepFollower.wp_proof
              else vreqW32 (decide (campaignTransfer = campaignPreElection)))
             [campMsg (decide (campaignTransfer = campaignPreElection)) id (s.term + W64 1)
               (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) (transferCtx campaignTransfer) y])
-          G') $$ []
+          (G' (o ++ [campMsg (decide (campaignTransfer = campaignPreElection)) id (s.term + W64 1)
+              (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) (transferCtx campaignTransfer) y]))) $$ []
     · rw [Hde, Htc]
       imodintro
-      iintro %pvs %y %Hy HG
-      ispecialize Hgv $$ %pvs %y %Hy HG
-      iapply hookGateOpt_congr _ _ r _ _ G' (by rfl) (by rfl) $$ Hgv
+      iintro %pvs %y %o %Hy HG
+      ispecialize Hgv $$ %pvs %y %o %Hy HG
+      iapply hookGateOpt_congr _ _ r _ _ _ (by rfl) (by rfl) $$ Hgv
     simp only [Hty, MsgTimeoutNow]
     wp_auto
     wp_apply raft.wp_load_idC $$ Hphys as Hphys
@@ -599,8 +609,8 @@ theorem stepFollower.wp_proof
     wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
     wp_raft_logC
     try rw [show go_etcd_io.raft.v3.campaignTransfer = #campaignTransfer from rfl]
-    wp_apply wp_raft_hup c r id s campaignTransfer G G' Hnw
-        (fun h => by simp [campaignTransfer, campaignPreElection] at h) Hwf Hfla
+    wp_apply wp_raft_hup c r id s campaignTransfer (G s.outbox) G' Hnw
+        (fun h => by simp [campaignTransfer, campaignPreElection] at h) Hwf Hfla Hpinv
       $$ [$Hphys $HG $Hgbc $Hgsend] as %s' ⟨Hphys, HG, %Hok, %Hpc⟩
     iapply HΦ $$ %GoInterface.nil %s' %false %c
     iframe Hphys
@@ -616,12 +626,13 @@ theorem stepFollower.wp_proof
     isplitr [HG]
     · ipureintro; first | rfl | trivial
     icases HG with (⟨%Hs, HG⟩ | HG)
-    · iright; isplitr
-      · ipureintro; simp [MsgApp, MsgHeartbeat, MsgTimeoutNow]; exact Hs
-      iexact HG
+    · subst Hs
+      iright; isplitr
+      · ipureintro; simp [MsgApp, MsgHeartbeat, MsgTimeoutNow]
+      iidx HG
     · ileft; isplitr
       · ipureintro; simp
-      iexact HG
+      iidx HG
   · -- `MsgUnreachable` (2026-10-13): no arm
     simp only [Hty, MsgUnreachable]
     wp_auto
@@ -637,7 +648,7 @@ theorem stepFollower.wp_proof
     · ipureintro; first | rfl | trivial
     iright; isplitr
     · ipureintro; simp [MsgApp, MsgHeartbeat, MsgTimeoutNow]
-    iexact HG
+    iidx HG
   · -- `MsgSnapStatus` (2026-10-13): no arm
     simp only [Hty, MsgSnapStatus]
     wp_auto
@@ -653,7 +664,7 @@ theorem stepFollower.wp_proof
     · ipureintro; first | rfl | trivial
     iright; isplitr
     · ipureintro; simp [MsgApp, MsgHeartbeat, MsgTimeoutNow]
-    iexact HG
+    iidx HG
 
 end proof
 

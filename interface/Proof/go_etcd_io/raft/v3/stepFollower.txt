@@ -10,7 +10,7 @@ theorem stepFollower.wp_proof [package_sem : Assumptions] (wp_raft_handleAppendE
     raftpb.Message.GetIndex.spec) (wp_GetData : raftpb.Entry.GetData.spec) : stepFollower.spec
   -- `Perennial.EtcdGrove.stepFollower.spec`, unfolded:
   ∀ (c : CfgM) (scfg : CSLists) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM) (ents : List EntryM)
-    (sn : Option SnapshotM) (rs : List Loc) (sv : SnapshotM) (cl : List w8) (G G' : IProp GF),
+    (sn : Option SnapshotM) (rs : List Loc) (sv : SnapshotM) (cl : List w8) (G G' : List Msg → IProp GF),
     m.Type' = MsgVoteResp ∨
         m.Type' = MsgProp ∨
           m.Type' = MsgApp ∨
@@ -50,111 +50,138 @@ theorem stepFollower.wp_proof [package_sem : Assumptions] (wp_raft_handleAppendE
                           SnapScopeIf id sv scfg ∧
                             s.role = PRole.follower ∧ s.votes = ∅ ∧ m.From' ≠ id ∧ s.gh.ns = false ∧ s.gh.tr = none) →
                     (m.Type' = MsgProp ∨ m.Type' = MsgReadIndex ∨ m.Type' = MsgTransferLeader → rs = []) →
-                      ⊢
-                        ∀ Φ,
-                          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                              "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-                                "Hm" ∷
-                                    msgIn ml (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
-                                      { msg := m, ents := ents, snap := sn, ctx := cl, resps := rs } ∗
-                                  "#Hcert" ∷ rcvSrc s.gh.sn m.Type' sn ∗
-                                    "HG" ∷ G ∗
-                                      "Hgapp" ∷
-                                          (⌜m.Type' = MsgApp⌝ -∗
-                                            ∀ s1 mm,
-                                              ⌜HandleAppResult id
-                                                    { term := s.term, vote := s.vote, lead := m.From', role := s.role,
-                                                      votes := s.votes, outbox := s.outbox, stepfn := s.stepfn,
-                                                      ticking := s.ticking, progress := s.progress, log := s.log,
-                                                      logst := s.logst, prvals := s.prvals, prevote := s.prevote,
-                                                      gh := s.gh, rd := s.rd, lt := s.lt, pci := s.pci,
-                                                      isLearner := s.isLearner, sdr := s.sdr, cq := s.cq }
-                                                    m ents (sendMsgs s1 [mm])⌝ -∗
-                                                G -∗ HookGateOpt s.gh.tr r (sendOutGate id s1 c MsgAppResp [mm]) G') ∗
-                                        "Hghb" ∷
-                                            (⌜m.Type' = MsgHeartbeat⌝ -∗
-                                              G -∗
-                                                HookGateOpt s.gh.tr r
-                                                  (sendOutGate id
-                                                    (have __src :=
-                                                      { term := s.term, vote := s.vote, lead := m.From', role := s.role,
-                                                        votes := s.votes, outbox := s.outbox, stepfn := s.stepfn,
-                                                        ticking := s.ticking, progress := s.progress, log := s.log,
-                                                        logst := s.logst, prvals := s.prvals, prevote := s.prevote,
-                                                        gh := s.gh, rd := s.rd, lt := s.lt, pci := s.pci,
-                                                        isLearner := s.isLearner, sdr := s.sdr, cq := s.cq };
-                                                    { term := __src.term, vote := __src.vote, lead := __src.lead,
-                                                      role := __src.role, votes := __src.votes, outbox := __src.outbox,
-                                                      stepfn := __src.stepfn, ticking := __src.ticking,
-                                                      progress := __src.progress, log := __src.log,
-                                                      logst :=
-                                                        have __src := s.logst;
-                                                        { prev := __src.prev, sents := __src.sents, uents := __src.uents,
-                                                          committed := plogCommitTo s.logst.committed m.Commit',
-                                                          applied := __src.applied, snap := __src.snap,
-                                                          inprogress := __src.inprogress, applying := __src.applying,
-                                                          unpersisted := __src.unpersisted, stored := __src.stored,
-                                                          apsize := __src.apsize, apmax := __src.apmax,
-                                                          storage := __src.storage, ksn := __src.ksn, fl := __src.fl,
-                                                          sip := __src.sip, lent := __src.lent, sapp := __src.sapp,
-                                                          aps := __src.aps, sat := __src.sat, sxt := __src.sxt,
-                                                          stb := __src.stb, sdt := __src.sdt, sn := __src.sn,
-                                                          sg := __src.sg, dtk := __src.dtk },
-                                                      prvals := __src.prvals, prevote := __src.prevote, gh := __src.gh,
-                                                      rd := __src.rd, lt := __src.lt, pci := __src.pci,
-                                                      isLearner := __src.isLearner, sdr := __src.sdr, cq := __src.cq })
-                                                    c MsgHeartbeatResp
-                                                    [have __src :=
-                                                        Msg.plain MsgType.heartbeatResp id m.From' s.term false;
-                                                      { ty := __src.ty, src := __src.src, dst := __src.dst,
-                                                        term := __src.term, reject := __src.reject, index := __src.index,
-                                                        logterm := __src.logterm, commit := __src.commit,
-                                                        rejecthint := __src.rejecthint, entries := __src.entries,
-                                                        cl := __src.cl, al := __src.al, ctx := cl }])
-                                                  G') ∗
-                                          "Hgfwd" ∷
-                                              (⌜m.Type' = MsgProp ∨
-                                                    m.Type' = MsgReadIndex ∨ m.Type' = MsgTransferLeader⌝ -∗
-                                                G -∗ HookGateOpt s.gh.tr r none G) ∗
-                                            "Hgcamp" ∷
-                                                (⌜m.Type' = MsgTimeoutNow⌝ -∗
-                                                  G -∗
-                                                    HookGate s.gh.tr r (NodeEvOf (W64 1) id (becomeCandidate id s) c)
-                                                      G') ∗
-                                              "#Hgvote" ∷
-                                                □
-                                                  (⌜m.Type' = MsgTimeoutNow⌝ -∗
-                                                    ∀ pvs y,
-                                                      ⌜y ∈ c.voters⌝ -∗
-                                                        G' -∗
-                                                          HookGateOpt s.gh.tr r
-                                                            (sendOutGate id
-                                                              (have __src := becomeCandidate id s;
-                                                              { term := __src.term, vote := __src.vote,
-                                                                lead := __src.lead, role := __src.role,
-                                                                votes := __src.votes, outbox := __src.outbox,
-                                                                stepfn := __src.stepfn, ticking := __src.ticking,
-                                                                progress := __src.progress, log := __src.log,
-                                                                logst := __src.logst, prvals := pvs,
-                                                                prevote := __src.prevote, gh := __src.gh, rd := __src.rd,
-                                                                lt := __src.lt, pci := __src.pci,
-                                                                isLearner := __src.isLearner, sdr := __src.sdr,
-                                                                cq := __src.cq })
-                                                              c (if y = id then vrespW32 false else vreqW32 false)
-                                                              [campMsg false id (s.term + W64 1)
-                                                                  (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents))
-                                                                  campaignTransfer y])
-                                                            G') -∗
-                            (▷
-                                ∀ err s' dropped c',
-                                  ownRaftPhysCV c' c'.voters r id s' ∗
-                                      ⌜FollowerStepResultC c scfg id s m ents sv dropped s' c' cl⌝ ∗
-                                        (if dropped = true then
-                                            typedPointsto (globalAddr ErrProposalDropped) err DFrac.discard
-                                          else ⌜err = GoInterface.nil⌝) ∗
-                                          (⌜m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat ∨ m.Type' = MsgTimeoutNow⌝ ∗ G' ∨
-                                            ⌜m.Type' ≠ MsgApp ∧
-                                                  m.Type' ≠ MsgHeartbeat ∧ (m.Type' = MsgTimeoutNow → s' = s)⌝ ∗
-                                              G) -∗
-                                    Φ (intoVal err)) -∗
-                              WP (((intoVal (functions stepFollower [])) (intoVal r)) (intoVal ml)) {{ Φ }}
+                      PermInv G' →
+                        IdxFree s.gh.tr G →
+                          ⊢
+                            ∀ Φ,
+                              isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                                  "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+                                    "Hm" ∷
+                                        msgIn ml (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
+                                          { msg := m, ents := ents, snap := sn, ctx := cl, resps := rs } ∗
+                                      "#Hcert" ∷ rcvSrc s.gh.sn m.Type' sn ∗
+                                        "HG" ∷ G s.outbox ∗
+                                          "Hgapp" ∷
+                                              (⌜m.Type' = MsgApp⌝ -∗
+                                                ∀ s1 mm,
+                                                  ⌜HandleAppResult id
+                                                        { term := s.term, vote := s.vote, lead := m.From', role := s.role,
+                                                          votes := s.votes, outbox := s.outbox, stepfn := s.stepfn,
+                                                          ticking := s.ticking, progress := s.progress, log := s.log,
+                                                          logst := s.logst, prvals := s.prvals, prevote := s.prevote,
+                                                          gh := s.gh, rd := s.rd, lt := s.lt, pci := s.pci,
+                                                          isLearner := s.isLearner, sdr := s.sdr, cq := s.cq }
+                                                        m ents (sendMsgs s1 [mm])⌝ -∗
+                                                    G s.outbox -∗
+                                                      HookGateOpt s.gh.tr r (sendOutGate id s1 c MsgAppResp [mm])
+                                                        (G' (sendMsgs s1 [mm]).outbox)) ∗
+                                            "Hghb" ∷
+                                                (⌜m.Type' = MsgHeartbeat⌝ -∗
+                                                  G s.outbox -∗
+                                                    HookGateOpt s.gh.tr r
+                                                      (sendOutGate id
+                                                        (have __src :=
+                                                          { term := s.term, vote := s.vote, lead := m.From',
+                                                            role := s.role, votes := s.votes, outbox := s.outbox,
+                                                            stepfn := s.stepfn, ticking := s.ticking,
+                                                            progress := s.progress, log := s.log, logst := s.logst,
+                                                            prvals := s.prvals, prevote := s.prevote, gh := s.gh,
+                                                            rd := s.rd, lt := s.lt, pci := s.pci,
+                                                            isLearner := s.isLearner, sdr := s.sdr, cq := s.cq };
+                                                        { term := __src.term, vote := __src.vote, lead := __src.lead,
+                                                          role := __src.role, votes := __src.votes,
+                                                          outbox := __src.outbox, stepfn := __src.stepfn,
+                                                          ticking := __src.ticking, progress := __src.progress,
+                                                          log := __src.log,
+                                                          logst :=
+                                                            have __src := s.logst;
+                                                            { prev := __src.prev, sents := __src.sents,
+                                                              uents := __src.uents,
+                                                              committed := plogCommitTo s.logst.committed m.Commit',
+                                                              applied := __src.applied, snap := __src.snap,
+                                                              inprogress := __src.inprogress, applying := __src.applying,
+                                                              unpersisted := __src.unpersisted, stored := __src.stored,
+                                                              apsize := __src.apsize, apmax := __src.apmax,
+                                                              storage := __src.storage, ksn := __src.ksn, fl := __src.fl,
+                                                              sip := __src.sip, lent := __src.lent, sapp := __src.sapp,
+                                                              aps := __src.aps, sat := __src.sat, sxt := __src.sxt,
+                                                              stb := __src.stb, sdt := __src.sdt, sn := __src.sn,
+                                                              sg := __src.sg, dtk := __src.dtk },
+                                                          prvals := __src.prvals, prevote := __src.prevote,
+                                                          gh := __src.gh, rd := __src.rd, lt := __src.lt,
+                                                          pci := __src.pci, isLearner := __src.isLearner,
+                                                          sdr := __src.sdr, cq := __src.cq })
+                                                        c MsgHeartbeatResp
+                                                        [have __src :=
+                                                            Msg.plain MsgType.heartbeatResp id m.From' s.term false;
+                                                          { ty := __src.ty, src := __src.src, dst := __src.dst,
+                                                            term := __src.term, reject := __src.reject,
+                                                            index := __src.index, logterm := __src.logterm,
+                                                            commit := __src.commit, rejecthint := __src.rejecthint,
+                                                            entries := __src.entries, cl := __src.cl, al := __src.al,
+                                                            ctx := cl }])
+                                                      (G'
+                                                        (s.outbox ++
+                                                          [have __src :=
+                                                              Msg.plain MsgType.heartbeatResp id m.From' s.term false;
+                                                            { ty := __src.ty, src := __src.src, dst := __src.dst,
+                                                              term := __src.term, reject := __src.reject,
+                                                              index := __src.index, logterm := __src.logterm,
+                                                              commit := __src.commit, rejecthint := __src.rejecthint,
+                                                              entries := __src.entries, cl := __src.cl, al := __src.al,
+                                                              ctx := cl }]))) ∗
+                                              "Hgfwd" ∷
+                                                  (⌜m.Type' = MsgProp ∨
+                                                        m.Type' = MsgReadIndex ∨ m.Type' = MsgTransferLeader⌝ -∗
+                                                    ∀ out,
+                                                      ⌜∀ (x : Msg), x ∈ out → x.ty.traced = false⌝ -∗
+                                                        G s.outbox -∗ HookGateOpt s.gh.tr r none (G (s.outbox ++ out))) ∗
+                                                "Hgcamp" ∷
+                                                    (⌜m.Type' = MsgTimeoutNow⌝ -∗
+                                                      G s.outbox -∗
+                                                        HookGate s.gh.tr r (NodeEvOf (W64 1) id (becomeCandidate id s) c)
+                                                          (G' s.outbox)) ∗
+                                                  "#Hgvote" ∷
+                                                    □
+                                                      (⌜m.Type' = MsgTimeoutNow⌝ -∗
+                                                        ∀ pvs y o,
+                                                          ⌜y ∈ c.voters⌝ -∗
+                                                            G' o -∗
+                                                              HookGateOpt s.gh.tr r
+                                                                (sendOutGate id
+                                                                  (have __src := becomeCandidate id s;
+                                                                  { term := __src.term, vote := __src.vote,
+                                                                    lead := __src.lead, role := __src.role,
+                                                                    votes := __src.votes, outbox := __src.outbox,
+                                                                    stepfn := __src.stepfn, ticking := __src.ticking,
+                                                                    progress := __src.progress, log := __src.log,
+                                                                    logst := __src.logst, prvals := pvs,
+                                                                    prevote := __src.prevote, gh := __src.gh,
+                                                                    rd := __src.rd, lt := __src.lt, pci := __src.pci,
+                                                                    isLearner := __src.isLearner, sdr := __src.sdr,
+                                                                    cq := __src.cq })
+                                                                  c (if y = id then vrespW32 false else vreqW32 false)
+                                                                  [campMsg false id (s.term + W64 1)
+                                                                      (plogLast s.logst.prev
+                                                                        (s.logst.sents ++ s.logst.uents))
+                                                                      campaignTransfer y])
+                                                                (G'
+                                                                  (o ++
+                                                                    [campMsg false id (s.term + W64 1)
+                                                                        (plogLast s.logst.prev
+                                                                          (s.logst.sents ++ s.logst.uents))
+                                                                        campaignTransfer y]))) -∗
+                                (▷
+                                    ∀ err s' dropped c',
+                                      ownRaftPhysCV c' c'.voters r id s' ∗
+                                          ⌜FollowerStepResultC c scfg id s m ents sv dropped s' c' cl⌝ ∗
+                                            (if dropped = true then
+                                                typedPointsto (globalAddr ErrProposalDropped) err DFrac.discard
+                                              else ⌜err = GoInterface.nil⌝) ∗
+                                              (⌜m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat ∨ m.Type' = MsgTimeoutNow⌝ ∗
+                                                  G' s'.outbox ∨
+                                                ⌜m.Type' ≠ MsgApp ∧
+                                                      m.Type' ≠ MsgHeartbeat ∧ (m.Type' = MsgTimeoutNow → s' = s)⌝ ∗
+                                                  G s'.outbox) -∗
+                                        Φ (intoVal err)) -∗
+                                  WP (((intoVal (functions stepFollower [])) (intoVal r)) (intoVal ml)) {{ Φ }}

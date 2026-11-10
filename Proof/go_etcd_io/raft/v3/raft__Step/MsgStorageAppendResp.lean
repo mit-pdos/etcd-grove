@@ -95,7 +95,7 @@ theorem wp_Step_MsgStorageAppendResp_none (_P : raft.Step.Postulates (GF := GF) 
         "%Hpk" ∷ ⌜s.role = .preCandidate → PreKeep s s'⌝ ∗
         "%Hrefines" ∷ ⌜StepCD c id B m s [] s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
-        "HG" ∷ stepOut R }} := by
+        "HG" ∷ stepOut R s'.outbox }} := by
   intro Hty Hsn Hle Hstok Hghoff Hwf
   wp_start as H
   iNamed H
@@ -146,6 +146,7 @@ theorem wp_Step_MsgStorageAppendResp_none (_P : raft.Step.Postulates (GF := GF) 
       wp_apply wp_GetSnapshot_none _Q _ _ _ _ _ Hsn $$ [$Hm] as Hm
       try wp_auto
       ihave HG := stepOut_G0 R $$ HG
+      try phys_out
       iapply HΦ $$ %interface.nil %s
       iframe Hphys HG
       ipureintro
@@ -184,6 +185,7 @@ theorem wp_Step_MsgStorageAppendResp_none (_P : raft.Step.Postulates (GF := GF) 
     wp_apply wp_GetSnapshot_none _Q _ _ _ _ _ Hsn $$ [$Hm] as Hm
     try wp_auto
     ihave HG := stepOut_G0 R $$ HG
+    try phys_out
     iapply HΦ $$ %interface.nil %s
     iframe Hphys HG
     ipureintro
@@ -211,6 +213,7 @@ theorem wp_Step_MsgStorageAppendResp_none (_P : raft.Step.Postulates (GF := GF) 
     wp_apply wp_GetSnapshot_none _Q _ _ _ _ _ Hsn $$ [$Hm] as Hm
     try wp_auto
     ihave HG := stepOut_G0 R $$ HG
+    try phys_out
     iapply HΦ $$ %interface.nil %_
     iframe Hphys HG
     ipureintro
@@ -466,7 +469,7 @@ theorem wp_Step_MsgStorageAppendResp_snap (_P : raft.Step.Postulates (GF := GF) 
             { s with logst := ackSnapLog s.logst m s.term sv, progress := prs, prvals := pvs,
                      isLearner := il }) ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
-        "HG" ∷ stepOut R }} := by
+        "HG" ∷ stepOut R s.outbox }} := by
   intro Hty Hhit Hle Hrole Hvotes Hscope Hlt Hstok Hghoff Hwf Hsx Hkx Htr
   wp_start as H
   iNamed H

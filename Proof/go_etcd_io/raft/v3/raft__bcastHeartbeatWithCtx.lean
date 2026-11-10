@@ -70,7 +70,7 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
         "rp" ∷ r_ptr ↦ r ∗
         "cp" ∷ ctx_ptr ↦ ctx ∗
         -- (Q8 stage 1, slice 5) the caller's resource, through each heartbeat's gate
-        "HG" ∷ G ∗
+        "HG" ∷ G (s.outbox ++ ms) ∗
         "%Hms" ∷ ⌜∀ m ∈ ms, HeartbeatOk id (toPState s) m ∧ m.ctx = cl⌝ ∗
         "%Hmm" ∷ ⌜prvalsMatch pvsx = prvalsMatch s.prvals⌝ ∗
         "%Hok" ∷ ⌜PrvalsOk { sendMsgs s ms with prvals := pvsx }⌝ ∗
@@ -81,7 +81,7 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
     $$ [$Htrkf $Htrk r ctx Hrest HG]
   · isplitl [r ctx Hrest HG]
     · iexists []
-      simp only [named]
+      simp only [named, List.append_nil]
       iframe r ctx HG
       isplitr
       · ipureintro; simp
@@ -131,7 +131,9 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
     · -- a peer: one heartbeat
       rw [decide_eq_false Hii]
       wp_auto
-      wp_apply wp_raft_sendHeartbeat _ _ _ _ i ctx cl G Hii (by exact Hicfg) (by exact Htz) $$ [$Hphys HG]
+      wp_apply wp_raft_sendHeartbeat _ _ _ _ i ctx cl
+          (fun cm => G ((s.outbox ++ ms) ++ [Msg.mkV .heartbeat id i s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl]))
+          Hii (by exact Hicfg) (by exact Htz) $$ [$Hphys HG]
         as %cm %pvs' ⟨Hphys, %Hc1, %Hc2, %Hmm', HG⟩
       · iframe Hctx
         -- (Q8 stage 1, slice 5) the caller's gate for this heartbeat, at `s`
@@ -141,10 +143,10 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
         rw [Hmi] at Hb2
         iapply hookGateOpt_congr s.gh.tr _ r
           (sendOutGate id s c MsgHeartbeat
-            [Msg.mkV .heartbeat id i s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl]) _ G ?hg1 ?hg2
+            [Msg.mkV .heartbeat id i s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl]) _ _ ?hg1 ?hg2
         case hg1 => rfl
         case hg2 => rfl
-        iapply Hgate $$ %i %cm %(And.intro Hii Hicfg) %(And.intro Hb.1 Hb2) HG
+        iapply Hgate $$ %i %cm %(s.outbox ++ ms) %(And.intro Hii Hicfg) %(And.intro Hb.1 Hb2) HG
       try wp_auto
       icases ownRaftPhysC_prvals_ok c r id _ $$ Hphys with ⟨%Hok', -, Hphys⟩
       icases ownRaftPhysC_tracker_prvals $$ Hphys with ⟨%tv1, Htrkf, Htrk, Hrest⟩
@@ -154,7 +156,7 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
       iexists tv1, _
       iframe Htrkf Htrk
       iexists ms ++ [Msg.mkV .heartbeat id i s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl]
-      simp only [named]
+      simp only [named, ← List.append_assoc]
       iframe rp cp HG
       isplitr
       · ipureintro
@@ -183,7 +185,9 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
     rfl
   wp_auto
   iapply HΦ $$ %ms %pvsfin
-  iframe Hphys HG
+  iframe Hphys
+  simp only [sendMsgs]
+  iframe HG
   ipureintro
   exact ⟨Hms, Hmm⟩
 

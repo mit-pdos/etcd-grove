@@ -114,6 +114,7 @@ public import Spec.go_etcd_io.raft.v3.raft__becomeFollower
 -- (2026-11-10, Q8 stage 1 slice 9) the three remaining arms' gates
 public import Spec.go_etcd_io.raft.v3.raft__bcastAppend
 public import Proof.go_etcd_io.raft.v3.LemmasStepLeader
+public import Proof.go_etcd_io.raft.v3.TracedSend
 
 @[expose] public section
 
@@ -363,7 +364,8 @@ instance is `stepLeader.untraced` (`TracedUntracedStep.lean`).
 abbrev stepLeader.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (k0 : Nat)
-    (G G' Gp1 Gp2 : IProp GF) (Gc : Bool → w64 → IProp GF),
+    (G G' : List Msg → IProp GF) (Gp1 : IProp GF) (Gp2 : List Msg → IProp GF)
+    (Gc : Bool → w64 → List Msg → IProp GF),
   (m.Type' = MsgVoteResp ∨ m.Type' = MsgBeat ∨
    m.Type' = MsgHeartbeatResp ∨ m.Type' = MsgAppResp ∨
    m.Type' = MsgProp ∨ m.Type' = MsgApp ∨
@@ -422,6 +424,9 @@ abbrev stepLeader.spec : Prop :=
   -- conf-change loop's hook (`traceChangeConfEvent`) is untraced: a traced node proposes no
   -- configuration change (the Draft's P3)
   (m.Type' = MsgProp → s.gh.tr ≠ none → ∀ e ∈ ents, ¬ IsConfEnt e) →
+  -- (2026-11-10, slice 14) the caller's resources indexed by the outbox, ignoring it untraced where
+  -- they reach `maybeSendAppend` (its snapshot fallback, untraced only, queues through no gate)
+  IdxFree s.gh.tr G → IdxFree s.gh.tr Gp2 → (∀ b N, IdxFree s.gh.tr (Gc b N)) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       -- (stage R4) the message, as `Step` received it: its entry pointers owned for a
@@ -434,87 +439,98 @@ abbrev stepLeader.spec : Prop :=
       -- proposal (`appendEntry`'s)
       "#Hrc" ∷ ⧖ k0 ∗
       -- (2026-11-10, Q8 stage 1 slice 8) the caller's resource, through the gates of the arm
-      "HG" ∷ G ∗
+      -- (2026-11-10, slice 14) indexed by the outbox: `G` at `s`'s; a gate's resource after a send at
+      -- the outbox with the message queued
+      "HG" ∷ G s.outbox ∗
       -- `MsgBeat`: `bcastHeartbeat`'s gate, per heartbeat, at `s`
-      "#Hgbeat" ∷ □ (⌜m.Type' = MsgBeat⌝ -∗ ∀ (to cm : w64), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
+      "#Hgbeat" ∷ □ (⌜m.Type' = MsgBeat⌝ -∗ ∀ (to cm : w64) (o : List Msg), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
           ⌜uint.Z cm ≤ uint.Z s.logst.committed ∧
-            uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ -∗ G -∗
+            uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ -∗ G o -∗
         HookGateOpt s.gh.tr r (sendOutGate id s c MsgHeartbeat
-          [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] (hbCtx s.rd.ro)]) G) ∗
+          [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] (hbCtx s.rd.ro)])
+          (G (o ++ [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] (hbCtx s.rd.ro)]))) ∗
       -- `MsgReadIndex`: `sendMsgReadIndexResponse`'s gates (the single voter's response, at no
       -- event; the heartbeats, at the state with the request registered)
-      "Hgriresp" ∷ (⌜m.Type' = MsgReadIndex⌝ -∗ ⌜CfgSingle c id⌝ -∗ G -∗ HookGateOpt s.gh.tr r none G) ∗
+      "Hgriresp" ∷ (⌜m.Type' = MsgReadIndex⌝ -∗ ⌜CfgSingle c id⌝ -∗ ∀ (mm : Msg) (o : List Msg),
+        ⌜mm.ty = .readIndexResp⌝ -∗ G o -∗ HookGateOpt s.gh.tr r none (G (o ++ [mm]))) ∗
       "#Hgrihb" ∷ □ (⌜m.Type' = MsgReadIndex⌝ -∗ ⌜¬ CfgSingle c id⌝ -∗
-        ∀ (to cm : w64), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
+        ∀ (to cm : w64) (o : List Msg), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
           ⌜uint.Z cm ≤ uint.Z s.logst.committed ∧
-            uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ -∗ G -∗
+            uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ -∗ G o -∗
         HookGateOpt s.gh.tr r (sendOutGate id (arriveState id s m ents) c MsgHeartbeat
           [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] []
-            (hbCtx (readonlyAdd s.rd.ro (arriveReq s m ents)))]) G) ∗
+            (hbCtx (readonlyAdd s.rd.ro (arriveReq s m ents)))])
+          (G (o ++ [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] []
+            (hbCtx (readonlyAdd s.rd.ro (arriveReq s m ents)))]))) ∗
       -- `MsgTransferLeader`: `sendTimeoutNow`'s gate (no event) or `sendAppend`'s, at the state with
       -- the transferee recorded
-      "Hgtnow" ∷ (⌜m.Type' = MsgTransferLeader⌝ -∗ G -∗ HookGateOpt s.gh.tr r none G) ∗
-      "Hgxapp" ∷ (⌜m.Type' = MsgTransferLeader⌝ -∗ ∀ mm : Msg,
-          ⌜AppOk id (toPState s) mm ∧ mm.commit = (toPState s).commit ∧ mm.dst = m.From'⌝ -∗ G -∗
-        HookGateOpt s.gh.tr r (sendOutGate id { s with lt := m.From' } c MsgApp [mm]) G) ∗
+      "Hgtnow" ∷ (⌜m.Type' = MsgTransferLeader⌝ -∗ ∀ o : List Msg, G o -∗ HookGateOpt s.gh.tr r none (G o)) ∗
+      "Hgxapp" ∷ (⌜m.Type' = MsgTransferLeader⌝ -∗ ∀ (mm : Msg) (o : List Msg),
+          ⌜AppOk id (toPState s) mm ∧ mm.commit = (toPState s).commit ∧ mm.dst = m.From'⌝ -∗ G o -∗
+        HookGateOpt s.gh.tr r (sendOutGate id { s with lt := m.From' } c MsgApp [mm]) (G (o ++ [mm]))) ∗
       "#Hnosnap" ∷ TrNoSnap s.gh.tr s.logst ∗
       -- `MsgCheckQuorum`: the step-down's `becomeFollower(r.Term, None)` gate
-      "Hgcq" ∷ (⌜m.Type' = MsgCheckQuorum⌝ -∗ G -∗
-        HookGate s.gh.tr r (NodeEvOf (W64 2) id (becomeFollower s s.term (W64 0)) c) G') ∗
+      "Hgcq" ∷ (⌜m.Type' = MsgCheckQuorum⌝ -∗ G s.outbox -∗
+        HookGate s.gh.tr r (NodeEvOf (W64 2) id (becomeFollower s s.term (W64 0)) c) (G' s.outbox)) ∗
       -- (2026-11-10, slice 9) `MsgProp`: `appendEntry`'s `Replicate` gate (one event per normal entry
       -- of the loop's batch, at `s`: no event field reads `pendingConfIndex`) ...
-      "Hgprep" ∷ (⌜m.Type' = MsgProp⌝ -∗ ∀ cs, ccEntsOk ents cs -∗ G -∗
+      "Hgprep" ∷ (⌜m.Type' = MsgProp⌝ -∗ ∀ cs, ccEntsOk ents cs -∗ G s.outbox -∗
         HookGateN s.gh.tr r (NodeEvOf (W64 5) id s c)
           (normalCount (leaderPropConf s ents cs c.joint).1) Gp1) ∗
       -- ... its self-acknowledgement's, at the batch appended ...
       "Hgpack" ∷ (⌜m.Type' = MsgProp⌝ -∗ ∀ cs, ccEntsOk ents cs -∗ Gp1 -∗
         HookGateOpt s.gh.tr r
           (sendOutGate id (propAppended s (leaderPropConf s ents cs c.joint).1) c MsgAppResp
-            [selfAck id (propAppended s (leaderPropConf s ents cs c.joint).1)]) Gp2) ∗
+            [selfAck id (propAppended s (leaderPropConf s ents cs c.joint).1)])
+          (Gp2 (s.outbox ++ [selfAck id (propAppended s (leaderPropConf s ents cs c.joint).1)]))) ∗
       -- ... and `bcastAppend`'s, per peer, there
-      "#Hgpapp" ∷ □ (⌜m.Type' = MsgProp⌝ -∗ ∀ cs (to : w64) (mm : Msg), ccEntsOk ents cs -∗
+      "#Hgpapp" ∷ □ (⌜m.Type' = MsgProp⌝ -∗ ∀ cs (to : w64) (mm : Msg) (o : List Msg), ccEntsOk ents cs -∗
         ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
         ⌜AppOk id (toPState (propAppended s (leaderPropConf s ents cs c.joint).1)) mm ∧
-          mm.commit = s.logst.committed ∧ mm.dst = to⌝ -∗ Gp2 -∗
+          mm.commit = s.logst.committed ∧ mm.dst = to⌝ -∗ Gp2 o -∗
         HookGateOpt s.gh.tr r
-          (sendOutGate id (propAppended s (leaderPropConf s ents cs c.joint).1) c MsgApp [mm]) Gp2) ∗
+          (sendOutGate id (propAppended s (leaderPropConf s ents cs c.joint).1) c MsgApp [mm]) (Gp2 (o ++ [mm]))) ∗
       -- a `MsgHeartbeatResp`'s flow-control `sendAppend` and a rejected `MsgAppResp`'s, to the sender,
       -- at `s` (the `Progress` values no gate reads)
       "Hgsapp" ∷ (⌜m.Type' = MsgHeartbeatResp ∨ (m.Type' = MsgAppResp ∧ m.Reject' = true)⌝ -∗
-        ∀ mm : Msg, ⌜AppOk id (toPState s) mm ∧ mm.commit = s.logst.committed ∧
-          mm.dst = m.From'⌝ -∗ G -∗
-        HookGateOpt s.gh.tr r (sendOutGate id s c MsgApp [mm]) G) ∗
+        ∀ (mm : Msg) (o : List Msg), ⌜AppOk id (toPState s) mm ∧ mm.commit = s.logst.committed ∧
+          mm.dst = m.From'⌝ -∗ G o -∗
+        HookGateOpt s.gh.tr r (sendOutGate id s c MsgApp [mm]) (G (o ++ [mm]))) ∗
       -- `MsgHeartbeatResp`: each read-index response's (no event)
-      "#Hghresp" ∷ □ (⌜m.Type' = MsgHeartbeatResp⌝ -∗ G -∗ HookGateOpt s.gh.tr r none G) ∗
+      "#Hghresp" ∷ □ (⌜m.Type' = MsgHeartbeatResp⌝ -∗ ∀ (mm : Msg) (o : List Msg),
+        ⌜mm.ty = .readIndexResp⌝ -∗ G o -∗ HookGateOpt s.gh.tr r none (G (o ++ [mm]))) ∗
       -- an accepted `MsgAppResp`: `maybeCommit`'s `Commit` gate at each outcome, at the raised `Match`
       -- values (where a traced caller creates the new commit's `isCommitted` before `traceCommit`) ...
       "Hgcommit" ∷ (⌜m.Type' = MsgAppResp ∧ m.Reject' = false⌝ -∗
         ∀ (pvs : GMap w64 Progress) (b : Bool) (N : w64),
         ⌜prvalsMatch pvs = appRespMatch s m.From' m.Index'⌝ -∗
-        ⌜maybeCommitOut c { s with prvals := pvs } b N⌝ -∗ G -∗
-        HookGate s.gh.tr r (NodeEvOf rsmCommit id (commitAt s b N) c) (Gc b N)) ∗
+        ⌜maybeCommitOut c { s with prvals := pvs } b N⌝ -∗ G s.outbox -∗
+        HookGate s.gh.tr r (NodeEvOf rsmCommit id (commitAt s b N) c) (Gc b N s.outbox)) ∗
       -- ... then, after a commit, the release's (a single voter's responses, at no event; otherwise
       -- the `k`-th request's heartbeats, at the state with the first `k` released) ...
-      "#Hgrlresp" ∷ □ (⌜m.Type' = MsgAppResp ∧ m.Reject' = false⌝ -∗ ∀ N : w64, ⌜CfgSingle c id⌝ -∗
-        Gc true N -∗ HookGateOpt s.gh.tr r none (Gc true N)) ∗
+      "#Hgrlresp" ∷ □ (⌜m.Type' = MsgAppResp ∧ m.Reject' = false⌝ -∗ ∀ (N : w64) (mm : Msg) (o : List Msg),
+        ⌜CfgSingle c id⌝ -∗ ⌜mm.ty = .readIndexResp⌝ -∗
+        Gc true N o -∗ HookGateOpt s.gh.tr r none (Gc true N (o ++ [mm]))) ∗
       "#Hgrlhb" ∷ □ (⌜m.Type' = MsgAppResp ∧ m.Reject' = false⌝ -∗ ⌜¬ CfgSingle c id⌝ -∗
-        ∀ (N : w64) (k : Nat) (to cm : w64), ⌜0 < k ∧ k ≤ s.rd.pend.length⌝ -∗
+        ∀ (N : w64) (k : Nat) (to cm : w64) (o : List Msg), ⌜0 < k ∧ k ≤ s.rd.pend.length⌝ -∗
         ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
         ⌜uint.Z cm ≤ uint.Z N ∧
-          uint.Z cm ≤ uint.Z ((appRespMatch s m.From' m.Index' !! to).getD (W64 0))⌝ -∗ Gc true N -∗
+          uint.Z cm ≤ uint.Z ((appRespMatch s m.From' m.Index' !! to).getD (W64 0))⌝ -∗ Gc true N o -∗
         HookGateOpt s.gh.tr r (sendOutGate id (commitAt s true N) c MsgHeartbeat
           [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] []
-            (hbCtx (readonlyRelease s.rd.ro id N (s.rd.pend.take k)))]) (Gc true N)) ∗
+            (hbCtx (readonlyRelease s.rd.ro id N (s.rd.pend.take k)))])
+          (Gc true N (o ++ [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] []
+            (hbCtx (readonlyRelease s.rd.ro id N (s.rd.pend.take k)))]))) ∗
       -- ... the `MsgApp`s (`bcastAppend`, `sendAppend`, the `maybeSendAppend` loop), at the outcome's
       -- state ...
       "#Hgaapp" ∷ □ (⌜m.Type' = MsgAppResp ∧ m.Reject' = false⌝ -∗
-        ∀ (b : Bool) (N to : w64) (mm : Msg), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
+        ∀ (b : Bool) (N to : w64) (mm : Msg) (o : List Msg), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
         ⌜AppOk id (toPState (commitAt s b N)) mm ∧ mm.commit = (commitAt s b N).logst.committed ∧
-          mm.dst = to⌝ -∗ Gc b N -∗
-        HookGateOpt s.gh.tr r (sendOutGate id (commitAt s b N) c MsgApp [mm]) (Gc b N)) ∗
+          mm.dst = to⌝ -∗ Gc b N o -∗
+        HookGateOpt s.gh.tr r (sendOutGate id (commitAt s b N) c MsgApp [mm]) (Gc b N (o ++ [mm]))) ∗
       -- ... and a caught-up transferee's `MsgTimeoutNow` (no event)
-      "#Hgatnow" ∷ □ (⌜m.Type' = MsgAppResp ∧ m.Reject' = false⌝ -∗ ∀ (b : Bool) (N : w64),
-        Gc b N -∗ HookGateOpt s.gh.tr r none (Gc b N)) }}
+      "#Hgatnow" ∷ □ (⌜m.Type' = MsgAppResp ∧ m.Reject' = false⌝ -∗ ∀ (b : Bool) (N : w64) (o : List Msg),
+        Gc b N o -∗ HookGateOpt s.gh.tr r none (Gc b N o)) }}
     (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #ml))
   {{ (err : GoInterface) (s' : NState) (dropped : Bool), RET #err;
       ownRaftPhysCV c c.voters r id s' ∗
@@ -524,13 +540,13 @@ abbrev stepLeader.spec : Prop :=
        else ⌜err = interface.nil⌝) ∗
       -- `G'` after a quorum check's step-down; (slice 9) `Gp2` after an appended proposal; `Gc b N`
       -- when an accepted `MsgAppResp` reached `maybeCommit`, with its outcome; else `G`
-      ((⌜m.Type' = MsgCheckQuorum ∧ s'.role = .follower⌝ ∗ G') ∨
-       (⌜m.Type' = MsgProp ∧ dropped = false⌝ ∗ Gp2) ∨
+      ((⌜m.Type' = MsgCheckQuorum ∧ s'.role = .follower⌝ ∗ G' s'.outbox) ∨
+       (⌜m.Type' = MsgProp ∧ dropped = false⌝ ∗ Gp2 s'.outbox) ∨
        (∃ (b : Bool) (N : w64), ⌜m.Type' = MsgAppResp ∧ m.Reject' = false ∧
           ∃ pvs : GMap w64 Progress, prvalsMatch pvs = appRespMatch s m.From' m.Index' ∧
-            maybeCommitOut c { s with prvals := pvs } b N⌝ ∗ Gc b N) ∨
+            maybeCommitOut c { s with prvals := pvs } b N⌝ ∗ Gc b N s'.outbox) ∨
        (⌜¬ (m.Type' = MsgCheckQuorum ∧ s'.role = .follower) ∧
-          ¬ (m.Type' = MsgProp ∧ dropped = false)⌝ ∗ G)) }}
+          ¬ (m.Type' = MsgProp ∧ dropped = false)⌝ ∗ G s'.outbox)) }}
 
 
 end spec

@@ -34201,3 +34201,58 @@ the sends in `NGhost` (the caller's resource would still not be linked to it).
 
 No ghost change; no client-visible change (`raft.Step.spec`'s closing wand and the tick specs' are
 raft-internal); no axiom or `sorry`.
+
+## Q8 stage 1 (slice 14): the gates' resources indexed by the outbox (2026-11-10 · trace-check, Q8 stage 1 slice 14; decided by the coordinator (the indexing, raft-internal) and the agent (its form) under the user's delegation · branch `trace-check-q8s14`; DRAFT until trace-check's Freeze)
+
+**What.** Slice 13's finding taken as recommended: wherever a function may queue messages whose number
+or order its caller cannot predict, the caller's resource is a family indexed by raft's abstract outbox,
+`G : List Msg → IProp GF`, read as "the resource at the outbox queued so far" (absolute: the whole
+outbox, not the messages since the call). The conventions, uniform across the specs:
+- the precondition holds `G s.outbox`; a send's gate goes from `G o` (any outbox `o` before the send)
+  to `G (o ++ [mm])`; a gate at a point where the outbox is known names it (`G s.outbox -∗ HookGate …
+  (G' s.outbox)` for a node event; `G' (sendMsgs s1 [mm]).outbox` for `handleAppendEntries`' reply);
+  the postcondition gives the family at the outbox of the state returned (`G s'.outbox`; the
+  broadcasts' `G ({ sendMsgs s ms with prvals := pvs } : NState).outbox`);
+- a send of an untraced type: the read-index responses' gates are `∀ mm o, ⌜mm.ty = .readIndexResp⌝ -∗
+  G o -∗ … (G (o ++ [mm]))`, a follower's forward `∀ out, ⌜∀ x ∈ out, x.ty.traced = false⌝ -∗ …
+  (G (s.outbox ++ out))` (what a traced caller needs: those messages leave `pendAbs` unchanged); a
+  `MsgTimeoutNow` is not in the abstract outbox (`G o` to `G o`);
+- `sendHeartbeat`'s `Q` is indexed by the heartbeat's commit (`Q : w64 → IProp`, the gate's `cm`).
+Changed (spec and proof; every untraced instance `X.untraced` keeps its statement, from constant
+families): `sendHeartbeat`, `bcastHeartbeatWithCtx`, `bcastHeartbeat`, `maybeSendAppend`, `sendAppend`,
+`bcastAppend`, `sendMsgReadIndexResponse`, `releasePendingReadIndexMessages`, `handleAppendEntries`
+(`G'`), `campaign`, `hup` (`G`), `stepFollower`, `stepCandidate`, `stepLeader`; `StepG` (`G0`, `G1`,
+`GE`, `Gp2`, `Gc` families; `G`, `Gf`, `Gb1`, `Gb2`, `Gp1`, between hooks that queue nothing, stay
+`IProp`), `stepOut R o`, `stepClose` at `stepOut R s'.outbox`, the bundles in `LemmasStepGates.lean`.
+`send`, `sendTimeoutNow`, `handleHeartbeat`, `appendEntry`, `becomeLeader`, `becomeFollower`,
+`becomeCandidate`, `maybeCommit` are unchanged: their `Q` is any resource, which the caller instantiates
+at the outbox it knows.
+
+**Two pure side conditions on a family**, premises of the specs whose proofs need them (and, for
+`Step`, a conjunct `StepGOk s.gh.tr R` of `stepGates`, so `raft.Step.spec`'s text is unchanged):
+- `IdxFree tr G` (`TracedSend.lean`: untraced, `G o = G o'`): `maybeSendAppend`'s snapshot fallback,
+  reached only untraced (`TrNoSnap`), queues its message through no gate (`maybeSendSnapshot` stays
+  untraced by design, P2), and a step function's `MsgSnap` arm (untraced only) likewise; so every
+  family reaching them ignores its index when untraced. A traced caller has it vacuously
+  (`IdxFree.of_some`); an untraced one from a constant family (`IdxFree.const`). Rejected: a gate for
+  the fallback (one more gate at every level for an untraced-only path); a disjunctive postcondition
+  (`G (s.outbox ++ ms) ∨ (untraced ∗ ∃ o, G o)`, threaded through every caller).
+- `PermInv G` (`G o = G o'` for `o ≡ₚ o'`): `campaign` sends its votes in the sorted voters' order but
+  its result (`campaignState`, which `HupOkC`, `StepC.campaign` and the protocol's step lemmas read)
+  names them with its own vote's response first; raft's abstract outbox is the queues up to
+  permutation anyway (`outboxRel`, `ownRaftPhysC_outbox`). So `campaign`, `hup`, and the families a
+  campaign ends in (`stepFollower`'s and `stepCandidate`'s `G'`, `Step`'s `GE`) are order-insensitive.
+  Consequence for the traced bundle (piece 2): a traced caller's `GE` family must ignore order (its
+  share's pending list equal to the outbox's traced messages up to permutation), and its closing wand
+  needs a law re-ordering the share (`simNode`'s list; `simInv` reads it only as a bag, `BagRep`, and by
+  membership) to reach `SimIdle`'s `P = pendAbs C (toPState s').outbox`. Rejected: changing
+  `campaignState`'s order (every protocol lemma about a campaign); making only `campaign` existential
+  in its index (`∃ o, ⌜o ≡ₚ …⌝ ∗ G o`, propagated through `hup`, the step functions and `stepOut`).
+
+**Helpers**: `idx_eq`, the tactic `iidx H` (a resource at an outbox written another way:
+`(sendMsgs s l).outbox`, `s.outbox ++ l` and `{ s with … }.outbox` are equal but not syntactically, and
+`iframe`/`iexact` match syntactically), `idx_perm`, `physG_eq`, `hookGateOpt_congrQ`,
+`hookGate_congrQ` (`TracedMsg.lean`, `TracedSend.lean`).
+
+No ghost change; no client-visible change (every changed spec is raft-internal; `raft.Step.spec`, the
+tick specs and the node API keep their text, `Link.lean` unchanged); no axiom or `sorry`.

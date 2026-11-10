@@ -213,14 +213,17 @@ theorem wp_stepLeader_noop
     (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (ents : List EntryM) (ctx : List w8) (sn : Option SnapshotM) (rs : List Loc) (dq dqe : DFrac) (cap : Bool)
     (Hty : m.Type' = MsgVoteResp ∨ m.Type' = MsgApp ∨
-      m.Type' = MsgHeartbeat ∨ m.Type' = MsgPreVoteResp ∨ m.Type' = MsgReadIndexResp) :
+      m.Type' = MsgHeartbeat ∨ m.Type' = MsgPreVoteResp ∨ m.Type' = MsgReadIndexResp)
+    (G : List Msg → IProp GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
-        "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, ctx, rs⟩ }}
+        "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, ctx, rs⟩ ∗
+        -- (2026-11-10, slice 14) the caller's resource, untouched, at the outbox
+        "HG" ∷ G s.outbox }}
       (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
-        ownRaftPhysCV c c.voters r id s' ∗ ⌜err = interface.nil⌝ ∗
+        ownRaftPhysCV c c.voters r id s' ∗ G s'.outbox ∗ ⌜err = interface.nil⌝ ∗
         ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ }} := by
-  wp_start as ⟨Hphys, Hm⟩
+  wp_start as ⟨Hphys, Hm, HG⟩
   wp_auto
   wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hm] as Hm
   have Hres : LeaderNonpropResultC c id s m ents ctx s := Or.inl ⟨Hty, rfl⟩
@@ -244,6 +247,8 @@ theorem wp_stepLeader_noop
     wp_raft_logC
     iapply HΦ
     iframe Hphys
+    isplitl [HG]
+    · iidx HG
     ipureintro
     exact ⟨rfl, Hres⟩
   · wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hm] as Hm
@@ -253,6 +258,8 @@ theorem wp_stepLeader_noop
         wp_auto <;> wp_join_done
     iapply HΦ
     iframe Hphys
+    isplitl [HG]
+    · iidx HG
     ipureintro
     exact ⟨rfl, Hres⟩
 
@@ -294,14 +301,16 @@ theorem wp_stepLeader_rest0
     (wp_GetFrom : raftpb.Message.GetFrom.spec (GF := GF) (hG := hG))
     (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (ents : List EntryM) (ctx : List w8) (sn : Option SnapshotM) (rs : List Loc) (dq dqe : DFrac) (cap : Bool)
-    (Hty : m.Type' = MsgForgetLeader ∨ m.Type' = MsgTimeoutNow) :
+    (Hty : m.Type' = MsgForgetLeader ∨ m.Type' = MsgTimeoutNow) (G : List Msg → IProp GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
-        "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, ctx, rs⟩ }}
+        "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, ctx, rs⟩ ∗
+        -- (2026-11-10, slice 14) the caller's resource, untouched, at the outbox
+        "HG" ∷ G s.outbox }}
       (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
-        ownRaftPhysCV c c.voters r id s' ∗ ⌜err = interface.nil⌝ ∗
+        ownRaftPhysCV c c.voters r id s' ∗ G s'.outbox ∗ ⌜err = interface.nil⌝ ∗
         ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ }} := by
-  wp_start as ⟨Hphys, Hm⟩
+  wp_start as ⟨Hphys, Hm, HG⟩
   wp_auto
   have Hres : LeaderNonpropResultC c id s m ents ctx s :=
     rest_res_self c id s m ents ctx (by rcases Hty with h | h <;> simp [h])
@@ -311,6 +320,8 @@ theorem wp_stepLeader_rest0
     wp_auto
     iapply HΦ
     iframe Hphys
+    isplitl [HG]
+    · iidx HG
     ipureintro
     exact ⟨rfl, Hres⟩
   · simp only [Hl, MsgTimeoutNow]
@@ -328,6 +339,8 @@ theorem wp_stepLeader_rest0
       wp_raft_logC
       iapply HΦ
       iframe Hphys
+      isplitl [HG]
+      · iidx HG
       ipureintro
       exact ⟨rfl, Hres⟩
     · wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hm] as Hm
@@ -335,6 +348,8 @@ theorem wp_stepLeader_rest0
       wp_auto
       iapply HΦ
       iframe Hphys
+      isplitl [HG]
+      · iidx HG
       ipureintro
       exact ⟨rfl, Hres⟩
 
@@ -348,14 +363,17 @@ theorem wp_stepLeader_report
     (wp_GetFrom : raftpb.Message.GetFrom.spec (GF := GF) (hG := hG))
     (wp_GetReject : raftpb.Message.GetReject.spec (GF := GF) (hG := hG))
     (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM) (ents : List EntryM)
-    (ctx : List w8) (sn : Option SnapshotM) (rs : List Loc) (dq dqe : DFrac) (cap : Bool) (Hty : m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus) :
+    (ctx : List w8) (sn : Option SnapshotM) (rs : List Loc) (dq dqe : DFrac) (cap : Bool) (Hty : m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus)
+    (G : List Msg → IProp GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
-        "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, ctx, rs⟩ }}
+        "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, ctx, rs⟩ ∗
+        -- (2026-11-10, slice 14) the caller's resource, untouched, at the outbox
+        "HG" ∷ G s.outbox }}
       (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
-        ownRaftPhysCV c c.voters r id s' ∗ ⌜err = interface.nil⌝ ∗
+        ownRaftPhysCV c c.voters r id s' ∗ G s'.outbox ∗ ⌜err = interface.nil⌝ ∗
         ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ }} := by
-  wp_start as ⟨Hphys, Hm⟩
+  wp_start as ⟨Hphys, Hm, HG⟩
   have Hty' : m.Type' = MsgForgetLeader ∨ m.Type' = MsgTimeoutNow ∨ m.Type' = MsgUnreachable ∨
       m.Type' = MsgSnapStatus ∨ m.Type' = MsgTransferLeader := by
     rcases Hty with h | h <;> simp [h]
@@ -384,6 +402,8 @@ theorem wp_stepLeader_report
     wp_raft_logC
     iapply HΦ $$ %interface.nil %s
     iframe Hphys
+    isplitl [HG]
+    · iidx HG
     ipureintro
     exact ⟨rfl, Hres0⟩
   simp only [Option.getD_some]
@@ -431,6 +451,8 @@ theorem wp_stepLeader_report
     iapply HΦ $$ %interface.nil %_
     rw [rest_prvals s]
     iframe Hphys
+    isplitl [HG]
+    · iidx HG
     ipureintro
     exact ⟨rfl, rest_res c id s m ents ctx _ [] _ Hty' (fun _ h => absurd h List.not_mem_nil)
       (prvalsMatch_insert_same _ _ p _ Hpvs Hpm)⟩
@@ -445,6 +467,8 @@ theorem wp_stepLeader_report
       ihave Hphys := ownRaftPhys_ins_id c r id s s.prvals m.From' p Hpvs $$ Hphys
       iapply HΦ $$ %interface.nil %s
       iframe Hphys
+      isplitl [HG]
+      · iidx HG
       ipureintro
       exact ⟨rfl, Hres0⟩
     rw [Hsn]
@@ -500,6 +524,8 @@ theorem wp_stepLeader_report
     iapply HΦ $$ %interface.nil %_
     rw [rest_prvals s]
     iframe Hphys
+    isplitl [HG]
+    · iidx HG
     ipureintro
     refine ⟨rfl, rest_res c id s m ents ctx _ [] _ Hty' (fun _ h => absurd h List.not_mem_nil) ?_⟩
     rw [prvalsMatch_insert_same (<[m.From' := p']> s.prvals) m.From' p' { p' with paused := true }
@@ -521,22 +547,22 @@ theorem wp_stepLeader_transfer
     (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM) (ents : List EntryM)
     (ctx : List w8) (sn : Option SnapshotM) (rs : List Loc) (dq dqe : DFrac) (cap : Bool)
     (Hty : m.Type' = MsgTransferLeader) (Hlead : s.role = .leader) (Htz : s.term ≠ W64 0)
-    (G : IProp GF) :
+    (G : List Msg → IProp GF) (Hidx : IdxFree s.gh.tr G) :
     -- (raft-final, 2026-10-29, U9: until then leader transfer on, `Hxo : s.gh.xf = false`)
     -- (Q8 stage 1, slice 8; until then the premise `s.gh.tr = none`) the two sends' gates, at the
     -- state with the transferee recorded: `sendTimeoutNow`'s (no event) and `sendAppend`'s
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
         "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, ctx, rs⟩ ∗
-        "HG" ∷ G ∗
-        "Hgtnow" ∷ (G -∗ HookGateOpt s.gh.tr r none G) ∗
-        "Hgxapp" ∷ (∀ mm : Msg, ⌜AppOk id (toPState s) mm ∧ mm.commit = (toPState s).commit ∧
-            mm.dst = m.From'⌝ -∗ G -∗
-          HookGateOpt s.gh.tr r (sendOutGate id { s with lt := m.From' } c MsgApp [mm]) G) ∗
+        "HG" ∷ G s.outbox ∗
+        "Hgtnow" ∷ (∀ o : List Msg, G o -∗ HookGateOpt s.gh.tr r none (G o)) ∗
+        "Hgxapp" ∷ (∀ (mm : Msg) (o : List Msg), ⌜AppOk id (toPState s) mm ∧
+            mm.commit = (toPState s).commit ∧ mm.dst = m.From'⌝ -∗ G o -∗
+          HookGateOpt s.gh.tr r (sendOutGate id { s with lt := m.From' } c MsgApp [mm]) (G (o ++ [mm]))) ∗
         "#Hnosnap" ∷ TrNoSnap s.gh.tr s.logst }}
       (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
-        ownRaftPhysCV c c.voters r id s' ∗ ⌜err = interface.nil⌝ ∗
-        ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ ∗ G }} := by
+        ownRaftPhysCV c c.voters r id s' ∗ G s'.outbox ∗ ⌜err = interface.nil⌝ ∗
+        ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ }} := by
   wp_start as ⟨Hphys, Hm, HG, Hgtnow, Hgxapp, #Hnosnap⟩
   have Hty' : m.Type' = MsgForgetLeader ∨ m.Type' = MsgTimeoutNow ∨ m.Type' = MsgUnreachable ∨
       m.Type' = MsgSnapStatus ∨ m.Type' = MsgTransferLeader := by simp [Hty]
@@ -564,7 +590,9 @@ theorem wp_stepLeader_transfer
     wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
     wp_raft_logC
     iapply HΦ $$ %interface.nil %s
-    iframe Hphys HG
+    iframe Hphys
+    isplitl [HG]
+    · iidx HG
     ipureintro
     exact ⟨rfl, rest_res_self c id s m ents ctx Hty'⟩
   | some pr =>
@@ -591,7 +619,9 @@ theorem wp_stepLeader_transfer
     wp_apply raft.wp_load_idC $$ Hphys as Hphys
     wp_raft_logC
     iapply HΦ $$ %interface.nil %s
-    iframe Hphys HG
+    iframe Hphys
+    isplitl [HG]
+    · iidx HG
     ipureintro
     exact ⟨rfl, rest_res_self c id s m ents ctx Hty'⟩
   wp_auto
@@ -646,7 +676,9 @@ theorem wp_stepLeader_transfer
     subst Hv
     wp_auto
     iapply HΦ $$ %interface.nil %s
-    iframe Hphys HG
+    iframe Hphys
+    isplitl [HG]
+    · iidx HG
     ipureintro
     exact ⟨rfl, rest_res_self c id s m ents ctx Hty'⟩
   subst Hv
@@ -662,7 +694,9 @@ theorem wp_stepLeader_transfer
     ihave Hphys := ownRaftPhysC_eq c r id _
       { sendMsgs { s with lt := W64 0 } [] with prvals := s.prvals } (by cases s; simp [sendMsgs])
       $$ Hphys
-    iframe Hphys HG
+    iframe Hphys
+    isplitl [HG]
+    · iidx HG
     ipureintro
     exact ⟨rfl, Hres0 _⟩
   rw [decide_eq_false Hself]
@@ -685,8 +719,8 @@ theorem wp_stepLeader_transfer
   wp_if_destruct
   · -- caught up: `MsgTimeoutNow` now
     ihave Hphys := ownRaftPhysC_eq c r id _ { s with lt := m.From' } (by cases s; simp_all) $$ Hphys
-    ispecialize Hgtnow $$ HG
-    wp_apply wp_raft_sendTimeoutNow c r id { s with lt := m.From' } m.From' G Hself
+    ispecialize Hgtnow $$ %s.outbox HG
+    wp_apply wp_raft_sendTimeoutNow c r id { s with lt := m.From' } m.From' (G s.outbox) Hself
       (by first | exact Htz | exact Hnz | simpa using Htz | simpa using Hnz | simp_all) $$ [$Hphys $Hgtnow]
       as ⟨Hphys, HG⟩
     wp_apply raft.wp_load_idC $$ Hphys as Hphys
@@ -695,29 +729,33 @@ theorem wp_stepLeader_transfer
     ihave Hphys := ownRaftPhysC_eq c r id _
       { sendMsgs { s with lt := m.From' } [] with prvals := s.prvals } (by cases s; simp [sendMsgs])
       $$ Hphys
-    iframe Hphys HG
+    iframe Hphys
+    isplitl [HG]
+    · iidx HG
     ipureintro
     exact ⟨rfl, Hres0 _⟩
   · -- behind: an append
     ihave Hphys := ownRaftPhysC_eq c r id _ { s with lt := m.From' } (by cases s; simp_all) $$ Hphys
-    ihave Hga : ∀ mm : Msg, ⌜AppOk id (toPState ({ s with lt := m.From' } : NState)) mm ∧
-          mm.commit = (toPState ({ s with lt := m.From' } : NState)).commit ∧ mm.dst = m.From'⌝ -∗ G -∗
+    ihave Hga : ∀ (mm : Msg) (o : List Msg), ⌜AppOk id (toPState ({ s with lt := m.From' } : NState)) mm ∧
+          mm.commit = (toPState ({ s with lt := m.From' } : NState)).commit ∧ mm.dst = m.From'⌝ -∗ G o -∗
         HookGateOpt ({ s with lt := m.From' } : NState).gh.tr r
-          (sendOutGate id { s with lt := m.From' } c MsgApp [mm]) G $$ [Hgxapp]
-    · iintro %mm %Hmm HG
-      ispecialize Hgxapp $$ %mm %Hmm HG
-      iapply hookGateOpt_congr _ _ r _ _ G (by rfl) (by rfl) $$ Hgxapp
+          (sendOutGate id { s with lt := m.From' } c MsgApp [mm]) (G (o ++ [mm])) $$ [Hgxapp]
+    · iintro %mm %o %Hmm HG
+      ispecialize Hgxapp $$ %mm %o %Hmm HG
+      iapply hookGateOpt_congr _ _ r _ _ _ (by rfl) (by rfl) $$ Hgxapp
     ihave #Hns : TrNoSnap (GF := GF) ({ s with lt := m.From' } : NState).gh.tr
         ({ s with lt := m.From' } : NState).logst $$ []
     · iexact Hnosnap
     wp_apply wp_raft_sendAppend c r id { s with lt := m.From' } m.From' G Hself (by exact Hfcfg)
       (by exact Hlead) (by first | exact Htz | exact Hnz | simpa using Htz | simpa using Hnz | simp_all)
-      $$ [$Hphys $Hga $HG $Hns] as %ms %pvs ⟨Hphys, %Hms, %Hmm, HG⟩
+      Hidx $$ [$Hphys $Hga $HG $Hns] as %ms %pvs ⟨Hphys, %Hms, %Hmm, HG⟩
     iapply HΦ $$ %interface.nil %_
     ihave Hphys := ownRaftPhysC_eq c r id _
       { sendMsgs { s with lt := m.From' } ms with prvals := pvs } (by cases s; simp [sendMsgs])
       $$ Hphys
-    iframe Hphys HG
+    iframe Hphys
+    isplitl [HG]
+    · iidx HG
     ipureintro
     exact ⟨rfl, rest_res c id s m ents ctx _ ms pvs Hty' Hms Hmm⟩
 
@@ -728,20 +766,21 @@ theorem wp_stepLeader_beat
         (wp_GetType : raftpb.Message.GetType.spec (GF := GF) (hG := hG))
     (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM) (ents : List EntryM)
     (ctx : List w8) (sn : Option SnapshotM) (rs : List Loc) (dq dqe : DFrac) (cap : Bool) (Hty : m.Type' = MsgBeat) (Hlead : s.role = .leader) (Htz : s.term ≠ W64 0)
-    (G : IProp GF) :
+    (G : List Msg → IProp GF) :
     -- (Q8 stage 1, slice 8; until then the premise `s.gh.tr = none`) `bcastHeartbeat`'s gate
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
         "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, ctx, rs⟩ ∗
-        "#Hgate" ∷ □ (∀ (to cm : w64), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
+        "#Hgate" ∷ □ (∀ (to cm : w64) (o : List Msg), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
           ⌜uint.Z cm ≤ uint.Z s.logst.committed ∧
-            uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ -∗ G -∗
+            uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ -∗ G o -∗
           HookGateOpt s.gh.tr r (sendOutGate id s c MsgHeartbeat
-            [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] (hbCtx s.rd.ro)]) G) ∗
-        "HG" ∷ G }}
+            [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] (hbCtx s.rd.ro)])
+            (G (o ++ [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] (hbCtx s.rd.ro)]))) ∗
+        "HG" ∷ G s.outbox }}
       (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
-        ownRaftPhysCV c c.voters r id s' ∗ ⌜err = interface.nil⌝ ∗
-        ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ ∗ G }} := by
+        ownRaftPhysCV c c.voters r id s' ∗ G s'.outbox ∗ ⌜err = interface.nil⌝ ∗
+        ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ }} := by
   wp_start as ⟨Hphys, Hm, #Hgate, HG⟩
   wp_auto
   wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hm] as Hm
@@ -777,19 +816,20 @@ theorem wp_stepLeader_hbresp
     (Hclen : ctx = [] ∨ 8 ≤ ctx.length)
     (Hcb : ctx ≠ [] → uint.Z (leToU64 (ctx.take 8))
             ≤ uint.Z s.rd.ro.confirmed + (s.rd.ro.pending.length : Int))
-    (G : IProp GF) :
+    (G : List Msg → IProp GF) (Hidx : IdxFree s.gh.tr G) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
         "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, ctx, rs⟩ ∗
-        "HG" ∷ G ∗
-        "Hgapp" ∷ (∀ mm : Msg, ⌜AppOk id (toPState s) mm ∧ mm.commit = s.logst.committed ∧
-            mm.dst = m.From'⌝ -∗ G -∗
-          HookGateOpt s.gh.tr r (sendOutGate id s c MsgApp [mm]) G) ∗
-        "#Hgresp" ∷ □ (G -∗ HookGateOpt s.gh.tr r none G) ∗
+        "HG" ∷ G s.outbox ∗
+        "Hgapp" ∷ (∀ (mm : Msg) (o : List Msg), ⌜AppOk id (toPState s) mm ∧
+            mm.commit = s.logst.committed ∧ mm.dst = m.From'⌝ -∗ G o -∗
+          HookGateOpt s.gh.tr r (sendOutGate id s c MsgApp [mm]) (G (o ++ [mm]))) ∗
+        "#Hgresp" ∷ □ (∀ (mm : Msg) (o : List Msg), ⌜mm.ty = .readIndexResp⌝ -∗ G o -∗
+          HookGateOpt s.gh.tr r none (G (o ++ [mm]))) ∗
         "#Hnosnap" ∷ TrNoSnap s.gh.tr s.logst }}
       (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
-        ownRaftPhysCV c c.voters r id s' ∗ ⌜err = interface.nil⌝ ∗
-        ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ ∗ G }} := by
+        ownRaftPhysCV c c.voters r id s' ∗ G s'.outbox ∗ ⌜err = interface.nil⌝ ∗
+        ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ }} := by
   wp_start as ⟨Hphys, Hm, HG, Hgapp, #Hgresp, #Hnosnap⟩
   wp_auto
   wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hm] as Hm
@@ -849,19 +889,21 @@ theorem wp_stepLeader_hbresp
   -- `if pr.Match < r.raftLog.lastIndex() || pr.State == StateProbe { r.sendAppend(m.From) }`,
   -- joined
   wp_join iprop(∃ (ms : List Msg) (pvs : GMap w64 Progress),
+      "HG" ∷ G ({ sendMsgs s ms with prvals := pvs } : NState).outbox ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id { sendMsgs s ms with prvals := pvs } ∗
       "%Hms" ∷ ⌜ReplSends id s ms⌝ ∗
       "%Hmm" ∷ ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ ∗
-      "m" ∷ m_ptr ↦ ml ∗ "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, ctx, rs⟩ ∗ "r" ∷ r_ptr ↦ r ∗ "pr" ∷ pr_ptr ↦ pr ∗
-      "HG" ∷ G) at next
+      "m" ∷ m_ptr ↦ ml ∗ "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, ctx, rs⟩ ∗ "r" ∷ r_ptr ↦ r ∗ "pr" ∷ pr_ptr ↦ pr) at next
     with [Hphys m Hm r pr HG Hgapp] as HR
   · -- (slice 9) the append's gate at the state the call sees (`Progress` values apart: `rfl`)
-    ihave Hga : ∀ mm : Msg, ⌜AppOk id (toPState ({ s with prvals := pvs1 } : NState)) mm ∧
+    ihave Hga : ∀ (mm : Msg) (o : List Msg), ⌜AppOk id (toPState ({ s with prvals := pvs1 } : NState)) mm ∧
           mm.commit = (toPState ({ s with prvals := pvs1 } : NState)).commit ∧ mm.dst = m.From'⌝ -∗
-        G -∗ HookGateOpt ({ s with prvals := pvs1 } : NState).gh.tr r
-          (sendOutGate id { s with prvals := pvs1 } c MsgApp [mm]) G $$ [Hgapp]
-    · iintro %mm %Hmm HG
-      iapply hookGateOpt_congr _ _ r _ _ G (by rfl) (by rfl) $$ (Hgapp $$ %mm %Hmm HG)
+        G o -∗ HookGateOpt ({ s with prvals := pvs1 } : NState).gh.tr r
+          (sendOutGate id { s with prvals := pvs1 } c MsgApp [mm]) (G (o ++ [mm])) $$ [Hgapp]
+    · iintro %mm %o %Hmm HG
+      iapply hookGateOpt_congr _ _ r _ _ _ (by rfl) (by rfl) $$ (Hgapp $$ %mm %o %Hmm HG)
+    ihave HG : G ({ s with prvals := pvs1 } : NState).outbox $$ [HG]
+    · iidx HG
     ihave #Hns : TrNoSnap (GF := GF) ({ s with prvals := pvs1 } : NState).gh.tr
         ({ s with prvals := pvs1 } : NState).logst $$ []
     · iexact Hnosnap
@@ -873,9 +915,11 @@ theorem wp_stepLeader_hbresp
     · -- behind
       wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
       wp_apply wp_raft_sendAppend c r id _ m.From' G Hself (by exact Hfcfg) (by exact Hlead) (by first | exact Htz | exact Hnz | simpa using Htz | simpa using Hnz | simp_all)
-        $$ [$Hphys $Hga $HG $Hns] as %ms %pvs ⟨Hphys, %Hms, %Hmm, HG⟩
+        (by exact Hidx) $$ [$Hphys $Hga $HG $Hns] as %ms %pvs ⟨Hphys, %Hms, %Hmm, HG⟩
       wp_join_done
       iexists ms, pvs
+      isplitl [HG]
+      · iidx HG
       iframe
       ipureintro
       exact ⟨(replSends_prvals id s pvs1 ms).1 Hms, Hmm.trans Hmm1⟩
@@ -888,9 +932,11 @@ theorem wp_stepLeader_hbresp
     · -- probing
       wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
       wp_apply wp_raft_sendAppend c r id _ m.From' G Hself (by exact Hfcfg) (by exact Hlead) (by first | exact Htz | exact Hnz | simpa using Htz | simpa using Hnz | simp_all)
-        $$ [$Hphys $Hga $HG $Hns] as %ms %pvs ⟨Hphys, %Hms, %Hmm, HG⟩
+        (by exact Hidx) $$ [$Hphys $Hga $HG $Hns] as %ms %pvs ⟨Hphys, %Hms, %Hmm, HG⟩
       wp_join_done
       iexists ms, pvs
+      isplitl [HG]
+      · iidx HG
       iframe
       ipureintro
       exact ⟨(replSends_prvals id s pvs1 ms).1 Hms, Hmm.trans Hmm1⟩
@@ -898,10 +944,13 @@ theorem wp_stepLeader_hbresp
       wp_join_done
       iexists [], pvs1
       rw [sendMsgs_nil_prvals]
+      isplitl [HG]
+      · iidx HG
       iframe
       ipureintro
       exact ⟨fun _ h => absurd h List.not_mem_nil, Hmm1⟩
   iNamed HR
+  clear Hidx
   generalize Hs1 : ({ sendMsgs s ms with prvals := pvs } : NState) = s1 at *
   have Hs1rd : s1.rd = s.rd := by rw [← Hs1]; simp [sendMsgs]
   -- `if r.readOnly.option != ReadOnlySafe || len(m.Context) == 0 { return nil }`
@@ -971,13 +1020,16 @@ theorem wp_stepLeader_hbresp
     exact Hrd.2.1 q Hq'
   -- `for _, rs := range rss { ... }`: each confirmed request answered, in order
   ihave IH : iprop(∃ (n : w64) (rv : Loc),
+      "HG" ∷ G (readRespondAll id s3 (qs.take (sint.Z n).toNat)).outbox ∗
       "i" ∷ i_ptr ↦ n ∗ "rs" ∷ rs_ptr ↦ rv ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (qs.length : Int)⌝ ∗
-      "Hphys" ∷ ownRaftPhysCV c c.voters r id (readRespondAll id s3 (qs.take (sint.Z n).toNat)) ∗
-      "HG" ∷ G)
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id (readRespondAll id s3 (qs.take (sint.Z n).toNat)))
     $$ [i rs Hphys HG]
   · iexists W64 0, zero_val Loc
     rw [show (sint.Z (W64 0)).toNat = 0 from rfl, List.take_zero]
+    isplitl [HG]
+    · iapply idx_eq _ ?_ $$ HG
+      rw [← Hs3]; rfl
     iframe
     ipureintro
     ((try clear HcurT); (try clear Htz); word)
@@ -1034,6 +1086,9 @@ theorem wp_stepLeader_hbresp
           (readRespondAll id s3 (qs.take (sint.Z (n + W64 1)).toNat)) $$ [Hphys]
       · rw [show (sint.Z (n + W64 1)).toNat = (sint.Z n).toNat + 1 by (try clear HcurT); (try clear Htz); word, Hgrow, Hstep]
         iexact Hphys
+      ihave HG : G (readRespondAll id s3 (qs.take (sint.Z (n + W64 1)).toNat)).outbox $$ [HG]
+      · rw [show (sint.Z (n + W64 1)).toNat = (sint.Z n).toNat + 1 by (try clear HcurT); (try clear Htz); word, Hgrow, Hstep]
+        iidx HG
       wp_for_post
       iframe
       iexists n + W64 1, p
@@ -1048,7 +1103,8 @@ theorem wp_stepLeader_hbresp
       try rw [decide_eq_false (fun h => Hloc (Or.inl h))]
       try wp_auto
       wp_apply wp_raft_send c r id cur resp (readIndexRespMsg mm rv.index') (e :: es) none [] []
-          [absMsgFrom .readIndexResp (readIndexRespMsg mm rv.index') id cur.term (e :: es) []] G
+          [absMsgFrom .readIndexResp (readIndexRespMsg mm rv.index') id cur.term (e :: es) []]
+          (G (cur.outbox ++ [absMsgFrom .readIndexResp (readIndexRespMsg mm rv.index') id cur.term (e :: es) []]))
           (Or.inl rfl)
           (Or.inr (Or.inl ⟨.readIndexResp, Or.inr (Or.inr (Or.inl rfl)), rfl, rfl,
             fun h => Hloc (Or.inr h), HcurT, rfl⟩))
@@ -1059,10 +1115,11 @@ theorem wp_stepLeader_hbresp
       · isplitr
         · iapply tsSrc_ne; exact (fun h => by simp [readIndexRespMsg, MsgSnap] at h)
         -- (slice 9) the response's gate, at no event
-        iapply hookGateOpt_congr s.gh.tr _ r none _ G ?hr1 ?hr2
+        iapply hookGateOpt_congr s.gh.tr _ r none _ _ ?hr1 ?hr2
         case hr1 => exact HcurTr.symm
         case hr2 => rfl
-        iapply Hgresp $$ HG
+        iapply Hgresp $$ %(absMsgFrom .readIndexResp (readIndexRespMsg mm rv.index') id cur.term (e :: es) [])
+          %cur.outbox %rfl HG
       have Hstep : readRespond id cur q =
           sendMsgs cur [absMsgFrom .readIndexResp (readIndexRespMsg mm rv.index') id cur.term
             (e :: es) []] := by
@@ -1073,6 +1130,9 @@ theorem wp_stepLeader_hbresp
           (readRespondAll id s3 (qs.take (sint.Z (n + W64 1)).toNat)) $$ [Hphys]
       · rw [show (sint.Z (n + W64 1)).toNat = (sint.Z n).toNat + 1 by (try clear HcurT); (try clear Htz); word, Hgrow, Hstep]
         iexact Hphys
+      ihave HG : G (readRespondAll id s3 (qs.take (sint.Z (n + W64 1)).toNat)).outbox $$ [HG]
+      · rw [show (sint.Z (n + W64 1)).toNat = (sint.Z n).toNat + 1 by (try clear HcurT); (try clear Htz); word, Hgrow, Hstep]
+        iidx HG
       wp_for_post
       iframe
       iexists n + W64 1, p
@@ -1101,23 +1161,26 @@ theorem wp_stepLeader_readindex
     (ctx : List w8) (sn : Option SnapshotM) (rs : List Loc) (dq dqe : DFrac) (cap : Bool)
     (Hty : m.Type' = MsgReadIndex) (Hlead : s.role = .leader) (Hnz : s.term ≠ W64 0)
     (Hne : ents ≠ [])
-    (G : IProp GF) :
+    (G : List Msg → IProp GF) :
     -- (Q8 stage 1, slice 8; until then the premise `s.gh.tr = none`) `sendMsgReadIndexResponse`'s
     -- gates
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
         "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, ctx, rs⟩ ∗
-        "HG" ∷ G ∗
-        "Hgresp" ∷ (⌜CfgSingle c id⌝ -∗ G -∗ HookGateOpt s.gh.tr r none G) ∗
-        "#Hgate" ∷ □ (⌜¬ CfgSingle c id⌝ -∗ ∀ (to cm : w64), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
+        "HG" ∷ G s.outbox ∗
+        "Hgresp" ∷ (⌜CfgSingle c id⌝ -∗ ∀ (mm : Msg) (o : List Msg), ⌜mm.ty = .readIndexResp⌝ -∗ G o -∗
+          HookGateOpt s.gh.tr r none (G (o ++ [mm]))) ∗
+        "#Hgate" ∷ □ (⌜¬ CfgSingle c id⌝ -∗ ∀ (to cm : w64) (o : List Msg), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
           ⌜uint.Z cm ≤ uint.Z s.logst.committed ∧
-            uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ -∗ G -∗
+            uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ -∗ G o -∗
           HookGateOpt s.gh.tr r (sendOutGate id (arriveState id s m ents) c MsgHeartbeat
             [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] []
-              (hbCtx (readonlyAdd s.rd.ro (arriveReq s m ents)))]) G) }}
+              (hbCtx (readonlyAdd s.rd.ro (arriveReq s m ents)))])
+            (G (o ++ [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] []
+              (hbCtx (readonlyAdd s.rd.ro (arriveReq s m ents)))]))) }}
       (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
-        ownRaftPhysCV c c.voters r id s' ∗ ⌜err = interface.nil⌝ ∗
-        ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ ∗ G }} := by
+        ownRaftPhysCV c c.voters r id s' ∗ G s'.outbox ∗ ⌜err = interface.nil⌝ ∗
+        ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ }} := by
   wp_start as ⟨Hphys, Hm, HG, Hgresp, #Hgate⟩
   wp_auto
   wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hm] as Hm
@@ -1157,7 +1220,9 @@ theorem wp_stepLeader_readindex
       iexists sn, ctx, rs
       iexact Hm
     iapply HΦ
-    iframe Hphys HG
+    iframe Hphys
+    isplitl [HG]
+    · iidx HG
     ipureintro
     exact ⟨rfl, Or.inr (Or.inr (Or.inr (Or.inl ⟨Hty, Or.inl ⟨Hb', rfl⟩⟩)))⟩
   · -- `sendMsgReadIndexResponse(r, m)`
@@ -1210,42 +1275,46 @@ theorem wp_stepLeader_appresp
       (∀ t0, plogTermAt s.logst.prev (s.logst.sents ++ s.logst.uents) (W64 1) = some t0 →
         uint.Z t0 ≤ 1))
     (ents : List EntryM) (ctx : List w8) (sn : Option SnapshotM) (rs : List Loc) (dq dqe : DFrac) (cap : Bool)
-    (G : IProp GF) (Gc : Bool → w64 → IProp GF) :
+    (G : List Msg → IProp GF) (Gc : Bool → w64 → List Msg → IProp GF)
+    (HiG : IdxFree s.gh.tr G) (HiC : ∀ b N, IdxFree s.gh.tr (Gc b N)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
         "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, ctx, rs⟩ ∗
-        "HG" ∷ G ∗
-        "Hgrej" ∷ (⌜m.Reject' = true⌝ -∗ ∀ mm : Msg, ⌜AppOk id (toPState s) mm ∧
-            mm.commit = s.logst.committed ∧ mm.dst = m.From'⌝ -∗ G -∗
-          HookGateOpt s.gh.tr r (sendOutGate id s c MsgApp [mm]) G) ∗
+        "HG" ∷ G s.outbox ∗
+        "Hgrej" ∷ (⌜m.Reject' = true⌝ -∗ ∀ (mm : Msg) (o : List Msg), ⌜AppOk id (toPState s) mm ∧
+            mm.commit = s.logst.committed ∧ mm.dst = m.From'⌝ -∗ G o -∗
+          HookGateOpt s.gh.tr r (sendOutGate id s c MsgApp [mm]) (G (o ++ [mm]))) ∗
         "Hgcommit" ∷ (⌜m.Type' = MsgAppResp ∧ m.Reject' = false⌝ -∗
           ∀ (pvs : GMap w64 Progress) (b : Bool) (N : w64),
           ⌜prvalsMatch pvs = appRespMatch s m.From' m.Index'⌝ -∗
-          ⌜maybeCommitOut c { s with prvals := pvs } b N⌝ -∗ G -∗
-          HookGate s.gh.tr r (NodeEvOf rsmCommit id (commitAt s b N) c) (Gc b N)) ∗
-        "#Hgrlresp" ∷ □ (⌜m.Type' = MsgAppResp ∧ m.Reject' = false⌝ -∗ ∀ N : w64, ⌜CfgSingle c id⌝ -∗
-          Gc true N -∗ HookGateOpt s.gh.tr r none (Gc true N)) ∗
+          ⌜maybeCommitOut c { s with prvals := pvs } b N⌝ -∗ G s.outbox -∗
+          HookGate s.gh.tr r (NodeEvOf rsmCommit id (commitAt s b N) c) (Gc b N s.outbox)) ∗
+        "#Hgrlresp" ∷ □ (⌜m.Type' = MsgAppResp ∧ m.Reject' = false⌝ -∗ ∀ (N : w64) (mm : Msg) (o : List Msg),
+          ⌜CfgSingle c id⌝ -∗ ⌜mm.ty = .readIndexResp⌝ -∗
+          Gc true N o -∗ HookGateOpt s.gh.tr r none (Gc true N (o ++ [mm]))) ∗
         "#Hgrlhb" ∷ □ (⌜m.Type' = MsgAppResp ∧ m.Reject' = false⌝ -∗ ⌜¬ CfgSingle c id⌝ -∗
-          ∀ (N : w64) (k : Nat) (to cm : w64), ⌜0 < k ∧ k ≤ s.rd.pend.length⌝ -∗
+          ∀ (N : w64) (k : Nat) (to cm : w64) (o : List Msg), ⌜0 < k ∧ k ≤ s.rd.pend.length⌝ -∗
           ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
           ⌜uint.Z cm ≤ uint.Z N ∧
-            uint.Z cm ≤ uint.Z ((appRespMatch s m.From' m.Index' !! to).getD (W64 0))⌝ -∗ Gc true N -∗
+            uint.Z cm ≤ uint.Z ((appRespMatch s m.From' m.Index' !! to).getD (W64 0))⌝ -∗ Gc true N o -∗
           HookGateOpt s.gh.tr r (sendOutGate id (commitAt s true N) c MsgHeartbeat
             [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] []
-              (hbCtx (readonlyRelease s.rd.ro id N (s.rd.pend.take k)))]) (Gc true N)) ∗
+              (hbCtx (readonlyRelease s.rd.ro id N (s.rd.pend.take k)))])
+            (Gc true N (o ++ [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] []
+              (hbCtx (readonlyRelease s.rd.ro id N (s.rd.pend.take k)))]))) ∗
         "#Hgaapp" ∷ □ (⌜m.Type' = MsgAppResp ∧ m.Reject' = false⌝ -∗
-          ∀ (b : Bool) (N to : w64) (mm : Msg), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
+          ∀ (b : Bool) (N to : w64) (mm : Msg) (o : List Msg), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
           ⌜AppOk id (toPState (commitAt s b N)) mm ∧ mm.commit = (commitAt s b N).logst.committed ∧
-            mm.dst = to⌝ -∗ Gc b N -∗
-          HookGateOpt s.gh.tr r (sendOutGate id (commitAt s b N) c MsgApp [mm]) (Gc b N)) ∗
-        "#Hgatnow" ∷ □ (⌜m.Type' = MsgAppResp ∧ m.Reject' = false⌝ -∗ ∀ (b : Bool) (N : w64),
-          Gc b N -∗ HookGateOpt s.gh.tr r none (Gc b N)) ∗
+            mm.dst = to⌝ -∗ Gc b N o -∗
+          HookGateOpt s.gh.tr r (sendOutGate id (commitAt s b N) c MsgApp [mm]) (Gc b N (o ++ [mm]))) ∗
+        "#Hgatnow" ∷ □ (⌜m.Type' = MsgAppResp ∧ m.Reject' = false⌝ -∗ ∀ (b : Bool) (N : w64) (o : List Msg),
+          Gc b N o -∗ HookGateOpt s.gh.tr r none (Gc b N o)) ∗
         "#Hnosnap" ∷ TrNoSnap s.gh.tr s.logst }}
       (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         ownRaftPhysCV c c.voters r id s' ∗
         ((∃ (b : Bool) (N : w64), ⌜m.Reject' = false ∧
             ∃ pvs : GMap w64 Progress, prvalsMatch pvs = appRespMatch s m.From' m.Index' ∧
-              maybeCommitOut c { s with prvals := pvs } b N⌝ ∗ Gc b N) ∨ G) ∗
+              maybeCommitOut c { s with prvals := pvs } b N⌝ ∗ Gc b N s'.outbox) ∨ G s'.outbox) ∗
         ⌜err = interface.nil⌝ ∗
         ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ }} := by
   wp_start as ⟨Hphys, Hm, HG, Hgrej, Hgcommit, #Hgrlresp, #Hgrlhb, #Hgaapp, #Hgatnow, #Hnosnap⟩
@@ -1388,7 +1457,7 @@ theorem wp_stepLeader_appresp
       iapply HΦ $$ %interface.nil %{ s with prvals := pvs2 }
       iframe Hphys
       isplitl [HG]
-      · iright; iexact HG
+      · iright; iidx HG
       ipureintro
       refine ⟨rfl, Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨Hty, Or.inr (Or.inr ⟨Hfdom, Hrej,
         p.matched, pvs2, s.logst.committed, [], [], Hx, Hmm2, Or.inl rfl,
@@ -1504,6 +1573,7 @@ theorem wp_stepLeader_appresp
     -- committed), `hb` its heartbeats
     wp_join iprop(∃ (n : w64) (s2 : NState) (hb ms : List Msg) (pvs4 : GMap w64 Progress)
         (bc : Bool) (Nc : w64),
+        "HGc" ∷ Gc bc Nc ({ sendMsgs (sendMsgs s2 hb) ms with prvals := pvs4 } : NState).outbox ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id { sendMsgs (sendMsgs s2 hb) ms with prvals := pvs4 } ∗
         "%Hn" ∷ ⌜n = s.logst.committed ∨ CommitOkC c (toPState { s with prvals := pvs3 }) n⌝ ∗
         "%Hs2" ∷ ⌜if n = s.logst.committed then
@@ -1523,12 +1593,12 @@ theorem wp_stepLeader_appresp
         "m" ∷ m_ptr ↦ ml ∗ "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, ctx, rs⟩ ∗ "r" ∷ r_ptr ↦ r ∗ "pr" ∷ pr_ptr ↦ pr ∗
         -- (slice 9) the commit's outcome and the gate's resource
         "%HbN" ∷ ⌜n = (commitAt s bc Nc).logst.committed⌝ ∗
-        "%Hout" ∷ ⌜maybeCommitOut c { s with prvals := pvs3 } bc Nc⌝ ∗ "HGc" ∷ Gc bc Nc) at next
+        "%Hout" ∷ ⌜maybeCommitOut c { s with prvals := pvs3 } bc Nc⌝) at next
       with [Hphys m Hm r pr HG Hgcommit] as HJ
-    · wp_apply wp_raft_maybeCommit c r id { s with prvals := pvs3 } Gc Hlead $$ [$Hphys HG Hgcommit]
+    · wp_apply wp_raft_maybeCommit c r id { s with prvals := pvs3 } (fun b N => Gc b N s.outbox) Hlead $$ [$Hphys HG Hgcommit]
         as %b %N ⟨%Hout, Hphys, %HN, HGc⟩
       · iintro %b %N %Hout
-        iapply hookGate_congr _ _ r _ _ (Gc b N) (by rfl) (by cases b <;> rfl) $$
+        iapply hookGate_congr _ _ r _ _ (Gc b N s.outbox) (by rfl) (by cases b <;> rfl) $$
           (Hgcommit $$ %(And.intro (by first | trivial | exact Hty) (by first | trivial | rfl | exact Hrej)) %pvs3 %b %N %HmA %Hout HG)
       cases b <;> simp only [Bool.false_eq_true, ↓reduceIte]
       · -- not committed: `r.id != m.From && pr.CanBumpCommit(r.raftLog.committed)`
@@ -1545,6 +1615,8 @@ theorem wp_stepLeader_appresp
           ihave Hphys := ownRaftPhysC_eq c r id _
             { sendMsgs (sendMsgs { s with logst := { s.logst with committed := s.logst.committed } }
                 [] ) [] with prvals := pvs3 } (by simp [sendMsgs]) $$ Hphys
+          isplitl [HGc]
+          · iidx HGc
           iframe
           ipureintro
           exact ⟨Or.inl rfl, by simp, fun _ h => absurd h List.not_mem_nil, rfl, rfl, Hout⟩
@@ -1569,18 +1641,23 @@ theorem wp_stepLeader_appresp
             ihave Hphys := ownRaftPhysC_eq c r id _
               { sendMsgs (sendMsgs { s with logst := { s.logst with committed := s.logst.committed } }
                   []) [] with prvals := pvs3 } (by simp [sendMsgs]) $$ Hphys
+            isplitl [HGc]
+            · iidx HGc
             iframe
             ipureintro
             exact ⟨Or.inl rfl, by simp, fun _ h => absurd h List.not_mem_nil, rfl, rfl, Hout⟩
           · wp_auto
             wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
-            wp_apply wp_raft_sendAppend c r id _ m.From' (Gc false N) (Ne.symm Hsame) (by exact Hfcfg)
-              (by exact Hlead) (by first | exact Htz | exact Hnz | simpa using Htz | simpa using Hnz | simp_all) $$ [$Hphys $HGc]
+            ihave HGc : Gc false N ({ s with prvals := pvs3 } : NState).outbox $$ [HGc]
+            · iidx HGc
+            wp_apply wp_raft_sendAppend c r id { s with prvals := pvs3 } m.From' (Gc false N) (Ne.symm Hsame) (by exact Hfcfg)
+              (by exact Hlead) (by first | exact Htz | exact Hnz | simpa using Htz | simpa using Hnz | simp_all)
+              (HiC false N) $$ [$Hphys $HGc]
               as %ms %pvs4 ⟨Hphys, %Hms, %Hmm4, HGc⟩
             · isplitr
-              · iintro %mm %Hmm HG
-                iapply hookGateOpt_congr _ _ r _ _ (Gc false N) (by rfl) (by rfl) $$
-                  (Hgaapp $$ %(And.intro (by first | trivial | exact Hty) (by first | trivial | rfl | exact Hrej)) %false %N %m.From' %mm %(And.intro (Ne.symm Hsame) Hfcfg) %Hmm HG)
+              · iintro %mm %o %Hmm HG
+                iapply hookGateOpt_congr _ _ r _ _ _ (by rfl) (by rfl) $$
+                  (Hgaapp $$ %(And.intro (by first | trivial | exact Hty) (by first | trivial | rfl | exact Hrej)) %false %N %m.From' %mm %o %(And.intro (Ne.symm Hsame) Hfcfg) %Hmm HG)
               iexact Hnosnap
             wp_join_done
             iexists s.logst.committed,
@@ -1588,6 +1665,8 @@ theorem wp_stepLeader_appresp
             ihave Hphys := ownRaftPhysC_eq c r id _
               { sendMsgs (sendMsgs { s with logst := { s.logst with committed := s.logst.committed } }
                   []) ms with prvals := pvs4 } (by simp [sendMsgs]) $$ Hphys
+            isplitl [HGc]
+            · iidx HGc
             iframe
             ipureintro
             refine ⟨Or.inl rfl, by simp, ?_, Hmm4, rfl, Hout⟩
@@ -1599,6 +1678,8 @@ theorem wp_stepLeader_appresp
         have HNne : N ≠ s.logst.committed := by
           intro h; have := HcN.1; rw [h] at this; simp [toPState] at this
         wp_auto
+        ihave HGc : Gc true N ({ s with prvals := pvs3, logst := { s.logst with committed := N } } : NState).outbox $$ [HGc]
+        · iidx HGc
         wp_apply wp_releasePendingReadIndexMessages c r id
             { s with prvals := pvs3, logst := { s.logst with committed := N } } (Gc true N) Hlead Hnz
             (fun _ => HcN.2.2.1) Hrdp $$ [$Hphys $HGc]
@@ -1606,13 +1687,13 @@ theorem wp_stepLeader_appresp
         · -- (slice 9) the release's gates, at the committed state
           isplitr
           · imodintro
-            iintro %Hsg HG
-            iapply hookGateOpt_congr _ _ r _ _ (Gc true N) (by rfl) (by rfl) $$
-              (Hgrlresp $$ %(And.intro (by first | trivial | exact Hty) (by first | trivial | rfl | exact Hrej)) %N %Hsg HG)
+            iintro %Hsg %mm %o %Hmt HG
+            iapply hookGateOpt_congr _ _ r _ _ _ (by rfl) (by rfl) $$
+              (Hgrlresp $$ %(And.intro (by first | trivial | exact Hty) (by first | trivial | rfl | exact Hrej)) %N %mm %o %Hsg %Hmt HG)
           · imodintro
-            iintro %Hns %k %to %cm %Hk %Hto %Hcm HG
-            iapply hookGateOpt_congr _ _ r _ _ (Gc true N) (by rfl) (by rfl) $$
-              (Hgrlhb $$ %(And.intro (by first | trivial | exact Hty) (by first | trivial | rfl | exact Hrej)) %Hns %N %k %to %cm %Hk %Hto
+            iintro %Hns %k %to %cm %o %Hk %Hto %Hcm HG
+            iapply hookGateOpt_congr _ _ r _ _ _ (by rfl) (by rfl) $$
+              (Hgrlhb $$ %(And.intro (by first | trivial | exact Hty) (by first | trivial | rfl | exact Hrej)) %Hns %N %k %to %cm %o %Hk %Hto
                 %(And.intro Hcm.1 (by rw [← HmA]; exact Hcm.2)) HG)
         rcases HR with ⟨Hsg, rfl⟩ | ⟨Hns, hb, pvsR, rfl, Hhb, HmmR⟩
         · -- (2026-10-14) the leader is the single voter: each answered at once
@@ -1628,7 +1709,14 @@ theorem wp_stepLeader_appresp
                 (pendReqs { s with logst := { s.logst with committed := N } }) with
               prvals := pvs3 }
             (by rw [← Hpv]; rfl) $$ Hphys
-          wp_apply wp_raft_bcastAppend c r id _ (Gc true N) (by exact Hf.2.1.trans Hlead) (by first | exact Htz | exact Hnz | simpa using Htz | simpa using Hnz | simp_all) $$ [$Hphys $HGc]
+          ihave HGc : Gc true N ({ readRespondAll id
+                { s with logst := { s.logst with committed := N }, rd := { s.rd with pend := [] } }
+                (pendReqs { s with logst := { s.logst with committed := N } }) with
+              prvals := pvs3 } : NState).outbox $$ [HGc]
+          · iapply idx_eq _ ?_ $$ HGc
+            exact congrArg NState.outbox Hpv
+          wp_apply wp_raft_bcastAppend c r id _ (Gc true N) (by exact Hf.2.1.trans Hlead) (by first | exact Htz | exact Hnz | simpa using Htz | simpa using Hnz | simp_all)
+            (by first | exact HiC true N | (rw [readRespondAll_gh]; exact HiC true N) | (show IdxFree (readRespondAll _ _ _).gh.tr _; rw [readRespondAll_gh]; exact HiC true N)) $$ [$Hphys $HGc]
             as %ms %pvs4 ⟨Hphys, %Hms, %Hmm4, HGc⟩
           · -- (slice 9) the `MsgApp`s' gate, at the committed state (the responses apart)
             obtain ⟨o, rd', Hrr⟩ := readRespondAll_eq id
@@ -1637,9 +1725,9 @@ theorem wp_stepLeader_appresp
             rw [Hrr]
             isplitr
             · imodintro
-              iintro %to %mm %Hto %Hmm HG
-              iapply hookGateOpt_congr _ _ r _ _ (Gc true N) (by rfl) (by rfl) $$
-                (Hgaapp $$ %(And.intro (by first | trivial | exact Hty) (by first | trivial | rfl | exact Hrej)) %true %N %to %mm %Hto %Hmm HG)
+              iintro %to %mm %o %Hto %Hmm HG
+              iapply hookGateOpt_congr _ _ r _ _ _ (by rfl) (by rfl) $$
+                (Hgaapp $$ %(And.intro (by first | trivial | exact Hty) (by first | trivial | rfl | exact Hrej)) %true %N %to %mm %o %Hto %Hmm HG)
             iapply trNoSnap_logst _ _ _ _ (by rfl) (by rfl) (by rfl) $$ Hnosnap
           wp_join_done
           iexists N, readRespondAll id
@@ -1651,6 +1739,8 @@ theorem wp_stepLeader_appresp
                 (pendReqs { s with logst := { s.logst with committed := N } })) []) ms with
               prvals := pvs4 }
             (by simp [sendMsgs]) $$ Hphys
+          isplitl [HGc]
+          · iidx HGc
           iframe
           ipureintro
           refine ⟨Or.inr HcN, ?_, fun m' hm => replACS_proper _ _ _ _ ?_ ?_ ?_ ?_ ?_ (Hms m' hm) ?_,
@@ -1661,13 +1751,14 @@ theorem wp_stepLeader_appresp
               | exact Or.inr ⟨Hsg, rfl, trivial⟩
               | exact Or.inr ⟨Hsg, trivial, trivial⟩
           all_goals first | rfl | (rw [readRespondAll_progress]) | (rw [readRespondAll_gh]) | simp only [toPState, Hf.1, Hf.2.2]
-        wp_apply wp_raft_bcastAppend c r id _ (Gc true N) (by exact Hlead) (by first | exact Htz | exact Hnz | simpa using Htz | simpa using Hnz | simp_all) $$ [$Hphys $HGc]
+        wp_apply wp_raft_bcastAppend c r id _ (Gc true N) (by exact Hlead) (by first | exact Htz | exact Hnz | simpa using Htz | simpa using Hnz | simp_all)
+          (by first | exact HiC true N | (simp only [sendMsgs, releasedState]; exact HiC true N)) $$ [$Hphys $HGc]
           as %ms %pvs4 ⟨Hphys, %Hms, %Hmm4, HGc⟩
         · isplitr
           · imodintro
-            iintro %to %mm %Hto %Hmm HG
-            iapply hookGateOpt_congr _ _ r _ _ (Gc true N) (by rfl) (by rfl) $$
-              (Hgaapp $$ %(And.intro (by first | trivial | exact Hty) (by first | trivial | rfl | exact Hrej)) %true %N %to %mm %Hto %Hmm HG)
+            iintro %to %mm %o %Hto %Hmm HG
+            iapply hookGateOpt_congr _ _ r _ _ _ (by rfl) (by rfl) $$
+              (Hgaapp $$ %(And.intro (by first | trivial | exact Hty) (by first | trivial | rfl | exact Hrej)) %true %N %to %mm %o %Hto %Hmm HG)
           iapply trNoSnap_logst _ _ _ _ (by rfl) (by rfl) (by rfl) $$ Hnosnap
         wp_join_done
         iexists N, releasedState id { s with logst := { s.logst with committed := N } }, hb, ms,
@@ -1676,6 +1767,9 @@ theorem wp_stepLeader_appresp
           { sendMsgs (sendMsgs (releasedState id { s with logst := { s.logst with committed := N } })
               hb) ms with prvals := pvs4 }
           (by simp [sendMsgs, releasedState]) $$ Hphys
+        isplitl [HGc]
+        · iapply idx_eq _ ?_ $$ HGc
+          simp [sendMsgs, releasedState]
         iframe
         ipureintro
         refine ⟨Or.inr HcN, ?_, fun m' hm => replACS_proper _ _ _ _ rfl rfl rfl rfl rfl (Hms m' hm) rfl,
@@ -1713,11 +1807,11 @@ theorem wp_stepLeader_appresp
     wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
     -- `if r.id != m.From { for r.maybeSendAppend(m.From, false) {} }`, joined
     wp_join iprop(∃ (ms' : List Msg) (pvs5 : GMap w64 Progress),
+        "HGc" ∷ Gc bc Nc ({ sendMsgs (sendMsgs s2 hb) (ms ++ ms') with prvals := pvs5 } : NState).outbox ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id { sendMsgs (sendMsgs s2 hb) (ms ++ ms') with prvals := pvs5 } ∗
         "%Hms'" ∷ ⌜ReplSends id sc ms'⌝ ∗
         "%Hmm5" ∷ ⌜prvalsMatch pvs5 = prvalsMatch pvs4⌝ ∗
-        "m" ∷ m_ptr ↦ ml ∗ "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, ctx, rs⟩ ∗ "r" ∷ r_ptr ↦ r ∗
-        "HGc" ∷ Gc bc Nc) at next
+        "m" ∷ m_ptr ↦ ml ∗ "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, ctx, rs⟩ ∗ "r" ∷ r_ptr ↦ r) at next
       with [Hphys m Hm r HGc] as HJ
     · by_cases Hsame : id = m.From'
       · simp only [eq_true Hsame, _root_.decide_true]
@@ -1731,12 +1825,13 @@ theorem wp_stepLeader_appresp
       simp only [Hsame, decide_false, Bool.not_false]
       wp_auto
       ihave IH : iprop(∃ (ms' : List Msg) (pvs5 : GMap w64 Progress),
+          "HGc" ∷ Gc bc Nc ({ sendMsgs (sendMsgs s2 hb) (ms ++ ms') with prvals := pvs5 } : NState).outbox ∗
           "Hphys" ∷ ownRaftPhysCV c c.voters r id
             { sendMsgs (sendMsgs s2 hb) (ms ++ ms') with prvals := pvs5 } ∗
           "%Hms'" ∷ ⌜ReplSends id sc ms'⌝ ∗
           "%Hmm5" ∷ ⌜prvalsMatch pvs5 = prvalsMatch pvs4⌝ ∗
-          "m" ∷ m_ptr ↦ ml ∗ "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, ctx, rs⟩ ∗ "r" ∷ r_ptr ↦ r ∗
-          "HGc" ∷ Gc bc Nc) $$ [Hphys m Hm r HGc]
+          "m" ∷ m_ptr ↦ ml ∗ "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, ctx, rs⟩ ∗ "r" ∷ r_ptr ↦ r)
+          $$ [Hphys m Hm r HGc]
       · iexists [], pvs4
         rw [List.append_nil]
         iframe
@@ -1746,19 +1841,20 @@ theorem wp_stepLeader_appresp
       wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
       wp_apply wp_raft_maybeSendAppend c r id _ m.From' false (Gc bc Nc) (Ne.symm Hsame)
           (by show m.From' ∈ domSet s2.progress; rw [Hs2p]; exact Hfcfg)
-          (by show s2.role = .leader; rw [Hs2r]; exact Hlead) (by show s2.term ≠ W64 0; rw [Hs2f.2.1]; exact Hnz) $$ [$Hphys $HGc]
+          (by show s2.role = .leader; rw [Hs2r]; exact Hlead) (by show s2.term ≠ W64 0; rw [Hs2f.2.1]; exact Hnz)
+          (by show IdxFree s2.gh.tr (Gc bc Nc); rw [Hs2gh]; exact HiC bc Nc) $$ [$Hphys $HGc]
         as %b %ms'' %pvs'' ⟨Hphys, %Hms'', %Hmm'', HGc⟩
       · -- (slice 9) the `MsgApp`'s gate, at the commit outcome's state (`s2`'s header)
         isplitr
-        · iintro %mm %Hmm HG
+        · iintro %mm %o %Hmm HG
           have Hmm' : AppOk id (toPState (commitAt s bc Nc)) mm ∧
               mm.commit = (commitAt s bc Nc).logst.committed ∧ mm.dst = m.From' :=
             ⟨(appOk_hdr id _ _ mm HhdT HhdL).1 Hmm.1,
               by rw [Hmm.2.1]; exact congrArg LogState.committed HhdL, Hmm.2.2⟩
-          iapply hookGateOpt_congr _ _ r _ _ (Gc bc Nc) ?hg1 ?hg2
+          iapply hookGateOpt_congr _ _ r _ _ _ ?hg1 ?hg2
           case hg1 => exact (congrArg NGhost.tr Hs2gh).symm
           case hg2 => exact (sendOutGate_hdr id _ _ c MsgApp [mm] HhdT HhdV HhdL HhdR).symm
-          iapply Hgaapp $$ %(And.intro (by first | trivial | exact Hty) (by first | trivial | rfl | exact Hrej)) %bc %Nc %m.From' %mm %(And.intro (Ne.symm Hsame) Hfcfg) %Hmm' HG
+          iapply Hgaapp $$ %(And.intro (by first | trivial | exact Hty) (by first | trivial | rfl | exact Hrej)) %bc %Nc %m.From' %mm %o %(And.intro (Ne.symm Hsame) Hfcfg) %Hmm' HG
         iapply trNoSnap_logst s.gh.tr _ s.logst _ ?t1 ?t2 ?t3
         case t1 => exact (congrArg NGhost.tr Hs2gh).symm
         case t2 => show s.logst.prev = s2.logst.prev; rw [Hs2f.2.2.1]
@@ -1778,18 +1874,22 @@ theorem wp_stepLeader_appresp
         { sendMsgs (sendMsgs s2 hb) (ms ++ (ms' ++ ms'')) with prvals := pvs'' }
         (by simp [sendMsgs, List.append_assoc]) $$ Hphys
       cases b
-      · cleanup_bool_decide
+      · simp only [if_decide_bool_eq_true, if_decide_bool_eq_false, if_decide_eq, if_decide_true_eq_false, if_decide_false_eq_true, _root_.decide_true, decide_false, Bool.false_eq_true, ↓reduceIte, ite_true, ite_false]
         isplitr
         · itrivial
         iexists ms' ++ ms'', pvs''
+        isplitl [HGc]
+        · iidx HGc
         iframe
         ipureintro
         exact ⟨Hms3, Hmm''.trans Hmm5⟩
-      · cleanup_bool_decide
+      · simp only [if_decide_bool_eq_true, if_decide_bool_eq_false, if_decide_eq, if_decide_true_eq_false, if_decide_false_eq_true, _root_.decide_true, decide_false, Bool.false_eq_true, ↓reduceIte, ite_true, ite_false]
         wp_auto
         wp_for_post
         iframe
         iexists ms' ++ ms'', pvs''
+        isplitl [HGc]
+        · iidx HGc
         iframe
         ipureintro
         exact ⟨Hms3, Hmm''.trans Hmm5⟩
@@ -1829,11 +1929,14 @@ theorem wp_stepLeader_appresp
           wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
           wp_raft_logC
           wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
-          wp_apply wp_raft_sendTimeoutNow c r id _ m.From' (Gc bc Nc) Hfid (by show s2.term ≠ W64 0; rw [Hs2f.2.1]; exact Hnz) $$ [$Hphys HGc] as ⟨Hphys, HGc⟩
+          wp_apply wp_raft_sendTimeoutNow c r id _ m.From'
+              (Gc bc Nc ({ sendMsgs (sendMsgs s2 hb) (ms ++ ms') with prvals := pvs5 } : NState).outbox)
+              Hfid (by show s2.term ≠ W64 0; rw [Hs2f.2.1]; exact Hnz) $$ [$Hphys HGc] as ⟨Hphys, HGc⟩
           · -- (slice 9) at no event
-            iapply hookGateOpt_congr s.gh.tr _ r none none (Gc bc Nc) ?hg1 rfl
+            iapply hookGateOpt_congr s.gh.tr _ r none none _ ?hg1 rfl
             case hg1 => exact (congrArg NGhost.tr Hs2gh).symm
-            iapply Hgatnow $$ %(And.intro (by first | trivial | exact Hty) (by first | trivial | rfl | exact Hrej)) %bc %Nc HGc
+            iapply Hgatnow $$ %(And.intro (by first | trivial | exact Hty) (by first | trivial | rfl | exact Hrej)) %bc %Nc
+              %(({ sendMsgs (sendMsgs s2 hb) (ms ++ ms') with prvals := pvs5 } : NState).outbox) HGc
           wp_join_done
         · wp_join_done
       · rw [decide_eq_false Hft]
@@ -1932,7 +2035,7 @@ theorem wp_stepLeader_appresp
       iapply HΦ $$ %interface.nil %{ s with prvals := pvs2 }
       iframe Hphys
       isplitl [HG]
-      · iright; iexact HG
+      · iright; iidx HG
       ipureintro
       refine ⟨rfl, Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨Hty, Or.inr (Or.inl ⟨Hfdom, Hrej, [], pvs2, ?_,
         fun _ h => absurd h List.not_mem_nil, Hmm2⟩)⟩))))⟩
@@ -1958,17 +2061,17 @@ theorem wp_stepLeader_appresp
       generalize Hpvs3 : (<[m.From' := progressBecomeProbe p2]> pvs2 : GMap w64 Progress) = pvs3
       wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
       wp_apply wp_raft_sendAppend c r id _ m.From' G Hself (by exact Hfcfg) (by exact Hlead) (by first | exact Htz | exact Hnz | simpa using Htz | simpa using Hnz | simp_all)
-        $$ [$Hphys $HG Hgrej] as %ms %pvs ⟨Hphys, %Hms, %Hmm, HG⟩
+        (by exact HiG) $$ [$Hphys $HG Hgrej] as %ms %pvs ⟨Hphys, %Hms, %Hmm, HG⟩
       · isplitl [Hgrej]
-        · iintro %mm %Hmm HG
-          iapply hookGateOpt_congr _ _ r _ _ G (by rfl) (by rfl) $$ (Hgrej $$ %mm %Hmm HG)
+        · iintro %mm %o %Hmm HG
+          iapply hookGateOpt_congr _ _ r _ _ _ (by rfl) (by rfl) $$ (Hgrej $$ %mm %o %Hmm HG)
         iexact Hnosnap
       ihave Hphys := ownRaftPhysC_eq c r id _ { sendMsgs s ms with prvals := pvs }
         (by simp [sendMsgs]) $$ Hphys
       iapply HΦ $$ %interface.nil %{ sendMsgs s ms with prvals := pvs }
       iframe Hphys
       isplitl [HG]
-      · iright; iexact HG
+      · iright; iidx HG
       ipureintro
       refine ⟨rfl, Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨Hty, Or.inr (Or.inl ⟨Hfdom, Hrej, ms, pvs, rfl,
         (replSends_prvals id s _ ms).1 Hms, ?_⟩)⟩))))⟩
@@ -1982,17 +2085,17 @@ theorem wp_stepLeader_appresp
       generalize Hpvs3 : (<[m.From' := p2]> pvs2 : GMap w64 Progress) = pvs3
       wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
       wp_apply wp_raft_sendAppend c r id _ m.From' G Hself (by exact Hfcfg) (by exact Hlead) (by first | exact Htz | exact Hnz | simpa using Htz | simpa using Hnz | simp_all)
-        $$ [$Hphys $HG Hgrej] as %ms %pvs ⟨Hphys, %Hms, %Hmm, HG⟩
+        (by exact HiG) $$ [$Hphys $HG Hgrej] as %ms %pvs ⟨Hphys, %Hms, %Hmm, HG⟩
       · isplitl [Hgrej]
-        · iintro %mm %Hmm HG
-          iapply hookGateOpt_congr _ _ r _ _ G (by rfl) (by rfl) $$ (Hgrej $$ %mm %Hmm HG)
+        · iintro %mm %o %Hmm HG
+          iapply hookGateOpt_congr _ _ r _ _ _ (by rfl) (by rfl) $$ (Hgrej $$ %mm %o %Hmm HG)
         iexact Hnosnap
       ihave Hphys := ownRaftPhysC_eq c r id _ { sendMsgs s ms with prvals := pvs }
         (by simp [sendMsgs]) $$ Hphys
       iapply HΦ $$ %interface.nil %{ sendMsgs s ms with prvals := pvs }
       iframe Hphys
       isplitl [HG]
-      · iright; iexact HG
+      · iright; iidx HG
       ipureintro
       refine ⟨rfl, Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨Hty, Or.inr (Or.inl ⟨Hfdom, Hrej, ms, pvs, rfl,
         (replSends_prvals id s _ ms).1 Hms, ?_⟩)⟩))))⟩

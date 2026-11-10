@@ -73,7 +73,7 @@ theorem wp_Step_MsgVote_le (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
-        "HG" ∷ stepOut R }} := by
+        "HG" ∷ stepOut R s'.outbox }} := by
   intro Hty Hto Hterm Hfnz Hle0 Hwf
   by_cases Hlt : uint.Z m.Term' < uint.Z s.term
   · exact wp_Step_MsgVote_lt _P PB c r id s ml m ents R sn ctx rs Hty Hto Hterm Hfnz Hlt Hwf

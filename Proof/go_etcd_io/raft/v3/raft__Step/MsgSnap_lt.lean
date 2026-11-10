@@ -64,7 +64,7 @@ theorem wp_Step_MsgSnap_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hng" ∷ ⌜s'.gh = s.gh⌝ ∗
         -- (2026-10-20, D22 S-c) nothing changes
         "%Hsf" ∷ ⌜SnapStep m s s' ∧ SnapLogStep sv m s s'⌝ ∗
-        "HG" ∷ stepOut R }} := by
+        "HG" ∷ stepOut R s'.outbox }} := by
   intro Hty Hto Hterm Hwf Hlt Htr
   wp_start as H
   iNamed H
@@ -102,6 +102,7 @@ theorem wp_Step_MsgSnap_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   wp_drive _Q
   wp_raft_logC
   ihave HG := stepOut_G0 R $$ HG
+  try phys_out
   iapply HΦ $$ %interface.nil %s
   iframe Hphys HG
   ipureintro

@@ -95,7 +95,7 @@ theorem wp_Step_MsgSnap (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hng" ∷ ⌜s'.gh = s.gh⌝ ∗
         -- (2026-10-20, D22 S-c) what is kept of the state, and the term
         "%Hsf" ∷ ⌜SnapStep m s s' ∧ SnapLogStep sv m s s'⌝ ∗
-        "HG" ∷ stepOut R }} := by
+        "HG" ∷ stepOut R s'.outbox }} := by
   intro Hty Hto Hterm Hfnz Hfid Hwf Hscope Hsn Hscl Hnl Hvotes Htr
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
   · exact wp_Step_MsgSnap_gt _P _Q c r id s ml m sn ctx rs ents R scfg sv Hnsf Hty Hto Hterm Hfnz Hfid
@@ -105,6 +105,7 @@ theorem wp_Step_MsgSnap (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       iapply wp_Step_MsgSnap_lt _P _Q c r id s ml m sn ctx rs ents R sv scfg Hty Hto Hterm Hwf Hlt Htr $$ [$Hpkg $Hphys $Hm $HG $Hgates]
       inext
       iintro %err %s' ⟨Hphys, %Hwf', %Href, %Herr, %Hng, %Hsf, HG⟩
+      try phys_out
       iapply HΦ $$ %err %s' %c
       iframe Hphys HG
       ipureintro

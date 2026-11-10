@@ -76,7 +76,7 @@ theorem wp_Step_MsgPreVoteResp_gt (_P : raft.Step.Postulates (GF := GF) (hG := h
         "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
-        "HG" ∷ stepOut R }} := by
+        "HG" ∷ stepOut R s'.outbox }} := by
   intro Hty Hto Hterm Hgt Hnw Hwf
   have Hn17 : decide (m.Type' = W32 17) = false := decide_eq_false (by rw [Hty]; w32_ne)
   have Hn5 : decide (m.Type' = W32 5) = false := decide_eq_false (by rw [Hty]; w32_ne)
@@ -153,8 +153,9 @@ theorem wp_Step_MsgPreVoteResp_gt (_P : raft.Step.Postulates (GF := GF) (hG := h
   have hlead : preLead m = W64 0 := preLead_none (by rw [Hty]; w32_ne) (by rw [Hty]; w32_ne)
     (by rw [Hty]; w32_ne)
   ihave Hgb := preGate_bf c r id s m R.G0 R.G1 _ hbf hlead $$ Hgpre HG
-  wp_apply _P.becomeFollower c r id s m.Term' _ R.G1 (Int.le_of_lt Hgt) (fun _ => rfl) $$ [$Hphys $Hgb]
+  wp_apply _P.becomeFollower c r id s m.Term' _ (R.G1 s.outbox) (Int.le_of_lt Hgt) (fun _ => rfl) $$ [$Hphys $Hgb]
     as %pvs ⟨Hphys, HG⟩
+  phys_idx HG
   -- the type switch: none of its cases, so `r.step(m)`
   wp_gets
   rw [Hty]
@@ -175,7 +176,7 @@ theorem wp_Step_MsgPreVoteResp_gt (_P : raft.Step.Postulates (GF := GF) (hG := h
       m.Type' sn $$ []
   · iapply rcvSrc_ne; notsnap_tac
   gates_fol
-  wp_apply _P.stepFollower c ∅ r id _ ml m ents sn rs (zero_val _) ctx R.G1 R.GE
+  wp_apply _P.stepFollower c ∅ r id { becomeFollower s m.Term' (W64 0) with prvals := pvs } ml m ents sn rs (zero_val _) ctx R.G1 R.GE
       (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne)) (by intro Hc; first | (exfalso; rcases Hc with Hc | Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne)) | (exfalso; rcases Hc with Hc | Hc | Hc <;> simp_all [MsgApp, MsgHeartbeat, MsgSnap]) | simp_all [becomeFollower, resetTo, resetTo0])
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -183,7 +184,7 @@ theorem wp_Step_MsgPreVoteResp_gt (_P : raft.Step.Postulates (GF := GF) (hG := h
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-    (by notfwd_tac) $$ [$Hphys Hm $Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+    (by notfwd_tac) Hgok.1 Hgok.2.1 $$ [$Hphys Hm $Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
   · rw [ite_eq_right Hnp]; iexact Hm
   ihave HG := stepOut_or R _ _ $$ HGo
   obtain ⟨rfl, rfl, rfl⟩ := followerStepResult_prevoteresp _ _ _ _ _ _ _ _ _ Hty Hres
@@ -191,6 +192,7 @@ theorem wp_Step_MsgPreVoteResp_gt (_P : raft.Step.Postulates (GF := GF) (hG := h
   icases Herrn with %Herrn
   subst Herrn
   try wp_auto
+  try phys_out
   iapply HΦ $$ %interface.nil %_
   iframe Hphys HG
   ipureintro

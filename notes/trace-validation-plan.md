@@ -749,6 +749,32 @@ vote response without a win, the ignored types) can be proved path by path from
 `trCapB_hookGateRecv`, `lineEffect_*` and the `FxPres*` facts; then the ticks' traced corollaries over
 the bundle. Not started: any path's proof (piece 3), the ticks' traced corollaries (piece 4). Checked (branch at its base `b21eeb5bd5` plus this slice): full `lake build` green (13789 jobs; `TracedRaftStep.lean`, added during it, built after); `etc/tcb-report.py --check` (806 axioms, 4 `sorry`s, unchanged) and all 53 collections `--reuse --check`, none updated; `interface/` differs in three proof files only (`raft__Step`, `raft__tickElection`, `raft__tickHeartbeat`: `stepClose`'s new `ents ctx` arguments); `etc/api-check.py` 0 errors; `--layout` 0 new; `etc/gen-link.py --raft` unchanged.
 
+**Q8 stage 1 (slice 14), 2026-11-10 (branch `trace-check-q8s14`): the gates' resources indexed by the
+outbox; slice 13's broadcast blocker removed; the traced bundle's paths not yet proved.** Decided by the
+coordinator (the indexing) and the agent (its form) (`notes/decisions.md`, "Q8 stage 1 (slice 14)").
+Done (task 1): every function that may queue messages its caller cannot predict takes the caller's
+resource as a family over raft's abstract outbox (`G : List Msg → IProp`; precondition `G s.outbox`, a
+send's gate from `G o` to `G (o ++ [mm])`, postcondition at the returned state's outbox): `sendHeartbeat`
+(`Q` by the commit), `bcastHeartbeat(WithCtx)`, `maybeSendAppend`, `sendAppend`, `bcastAppend`,
+`sendMsgReadIndexResponse`, `releasePendingReadIndexMessages`, `handleAppendEntries`, `campaign`, `hup`,
+`stepFollower`, `stepCandidate`, `stepLeader` (and their internal lemmas), `StepG` (`G0`, `G1`, `GE`,
+`Gp2`, `Gc` families), `stepOut R o`, `stepClose` at `stepOut R s'.outbox`; two pure side conditions,
+`IdxFree` (untraced: the family ignores its index, for `maybeSendAppend`'s snapshot fallback and the
+`MsgSnap` arms, untraced only) and `PermInv` (order-insensitive, for `campaign`, whose result orders its
+messages its own way), passed to `Step` as `stepGates`' conjunct `StepGOk`. Every untraced instance keeps
+its statement (constant families); `raft.Step.spec`, the tick specs, the node API and `Link.lean`
+unchanged. **Not done:** task 2, `stepBundle_traced` path by path (single-reply paths, then broadcasts),
+and task 3 (`raft.Step.traced`, the ticks' traced corollaries). What task 2 now needs beyond the gates'
+own laws (`trCapB_hookGate*`, `trCapB_hookGateRecv`, `lineEffect_*`, the `FxPres*` facts): the traced
+families defined as "the capability with its share's pending list the outbox's traced messages", up to
+order for `GE` (`PermInv`), and a **share re-ordering law** (`simNode`'s list permuted under `simInv`,
+which reads it as a bag) for the closing wand to reach `SimIdle`'s exact `P = pendAbs C (toPState
+s').outbox` after a campaign. Checked (branch at its base `7640e3e1e9` plus this slice): full `lake build`
+green (13790 jobs); `etc/tcb-report.py --check` (806 axioms, 4 `sorry`s, unchanged) and all 53
+collections `--reuse --check`, none updated; `interface/` differs in the fourteen changed specs' proof
+files only (their gates and resources); `etc/api-check.py` 0 errors; `--layout` 0 new; `etc/gen-link.py
+--raft` unchanged.
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its

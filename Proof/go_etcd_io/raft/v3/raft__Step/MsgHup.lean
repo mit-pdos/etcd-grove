@@ -71,7 +71,7 @@ theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
-        "HG" ∷ stepOut R }} := by
+        "HG" ∷ stepOut R s'.outbox }} := by
   intro Hty Hterm Hnowrap Htc Hwf Hfla
   wp_start as ⟨Hphys, Hm, HG, Hgates⟩
   icases msgPtsC_nn _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
@@ -111,7 +111,7 @@ theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     | ihave Hhg := hupGates_type c r id s _ _ _ (hupType_pre Hpv) $$ Hhg
     | ihave Hhg := hupGates_type c r id s _ _ _ (hupType_el Hpv) $$ Hhg
     iunfold hupGates at Hhg
-    wp_apply _P.hup c r id s _ R.G1 R.GE Hnowrap ?Hpvt Hwf Hfla $$ [$Hphys $HG Hhg]
+    wp_apply _P.hup c r id s _ (R.G1 s.outbox) R.GE Hnowrap ?Hpvt Hwf Hfla Hgok.1 $$ [$Hphys $HG Hhg]
       as %s' ⟨Hphys, HGo, %Hok, -⟩
     case Hpvt =>
       first
@@ -120,7 +120,7 @@ theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
             have := congrArg List.length h
             simp [campaignPreElection] at this
     · iexact Hhg
-    ihave HG := stepOut_hup R _ $$ HGo
+    ihave HG := stepOut_hup R $$ HGo
     have Hok0 := Hok
     have HCD := stepCD_hup (B := B) (m := m) Hok Hnowrap Hlogf
     have Hpc := fun h => HupGuard.precand Hok.2.2.2.2 h
@@ -138,6 +138,7 @@ theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       rcases Hhg with rfl | ⟨-, -, Hsn, Hno, -⟩
       · exact .inl ⟨h, rfl, rfl, rfl, fun h => h, Int.le_refl _⟩
       · exact .inr ⟨Hty, Hl, Hsn, Hno, Hlogf.1 Hsn, Hlogf.2.1, Hlogf.2.2⟩⟩, Hsrb⟩
+    try phys_out
     iapply HΦ $$ %interface.nil %s'
     iframe Hphys HG
     ipureintro

@@ -168,7 +168,7 @@ registered (`arriveState`) and with its context. Until slice 6 the premise `s.gh
 0), now `sendMsgReadIndexResponse.untraced`'s (`TracedUntracedSend.lean`). -/
 abbrev sendMsgReadIndexResponse.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
-    (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (G : IProp GF),
+    (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (G : List Msg → IProp GF),
   s.role = .leader →
   -- (2026-10-29, stage U7) the term past `0` that `send` stamps (`SentMsgShape`)
   s.term ≠ W64 0 →
@@ -178,19 +178,24 @@ abbrev sendMsgReadIndexResponse.spec : Prop :=
       "#Hm" ∷ msgOwn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
       -- (2026-11-09, Q8 stage 1 slice 6; until then, stage 0, the premise `s.gh.tr = none`) the
       -- caller's resource, through the gates below
-      "HG" ∷ G ∗
-      -- the forwarded response's hook gate (a single voter), at no event
-      "Hgresp" ∷ (⌜CfgSingle c id⌝ -∗ G -∗ HookGateOpt s.gh.tr r none G) ∗
+      -- (2026-11-10, slice 14) indexed by the outbox, from `G o` before a send to `G` with the
+      -- message queued
+      "HG" ∷ G s.outbox ∗
+      -- the forwarded response's hook gate (a single voter), at no event: a `MsgReadIndexResp`
+      "Hgresp" ∷ (⌜CfgSingle c id⌝ -∗ ∀ (mm : Msg) (o : List Msg), ⌜mm.ty = .readIndexResp⌝ -∗ G o -∗
+        HookGateOpt s.gh.tr r none (G (o ++ [mm]))) ∗
       -- the heartbeats' hook gates (otherwise), at the state with the request registered
-      "#Hgate" ∷ □ (⌜¬ CfgSingle c id⌝ -∗ ∀ (to cm : w64), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
+      "#Hgate" ∷ □ (⌜¬ CfgSingle c id⌝ -∗ ∀ (to cm : w64) (o : List Msg), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
           ⌜uint.Z cm ≤ uint.Z s.logst.committed ∧
-            uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ -∗ G -∗
+            uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ -∗ G o -∗
         HookGateOpt s.gh.tr r (sendOutGate id (arriveState id s m ents) c MsgHeartbeat
           [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] []
-            (hbCtx (readonlyAdd s.rd.ro (arriveReq s m ents)))]) G) }}
+            (hbCtx (readonlyAdd s.rd.ro (arriveReq s m ents)))])
+          (G (o ++ [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] []
+            (hbCtx (readonlyAdd s.rd.ro (arriveReq s m ents)))]))) }}
     (App (App (Val #(functions sendMsgReadIndexResponse [])) (Val #r)) (Val #ml))
   {{ (s' : NState), RET #();
-      ownRaftPhysCV c c.voters r id s' ∗ ⌜SendRIResult c id s m ents s'⌝ ∗ G }}
+      ownRaftPhysCV c c.voters r id s' ∗ ⌜SendRIResult c id s m ents s'⌝ ∗ G s'.outbox }}
 
 end spec
 

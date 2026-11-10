@@ -16,7 +16,7 @@ theorem sendMsgReadIndexResponse.wp_proof [package_sem : Assumptions] (wp_IsSing
     sendMsgReadIndexResponse.spec
   -- `Perennial.EtcdGrove.sendMsgReadIndexResponse.spec`, unfolded:
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM)
-    (ctx : List w8) (rs : List Loc) (G : IProp GF),
+    (ctx : List w8) (rs : List Loc) (G : List Msg → IProp GF),
     s.role = PRole.leader →
       s.term ≠ W64 0 →
         ents ≠ [] →
@@ -25,20 +25,29 @@ theorem sendMsgReadIndexResponse.wp_proof [package_sem : Assumptions] (wp_IsSing
               isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
                   "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
                     "#Hm" ∷ msgOwn ml DFrac.discard { msg := m, ents := ents, snap := sn, ctx := ctx, resps := rs } ∗
-                      "HG" ∷ G ∗
-                        "Hgresp" ∷ (⌜CfgSingle c id⌝ -∗ G -∗ HookGateOpt s.gh.tr r none G) ∗
+                      "HG" ∷ G s.outbox ∗
+                        "Hgresp" ∷
+                            (⌜CfgSingle c id⌝ -∗
+                              ∀ mm o,
+                                ⌜mm.ty = MsgType.readIndexResp⌝ -∗ G o -∗ HookGateOpt s.gh.tr r none (G (o ++ [mm]))) ∗
                           "#Hgate" ∷
                             □
                               (⌜¬CfgSingle c id⌝ -∗
-                                ∀ to cm,
+                                ∀ to cm o,
                                   ⌜to ≠ id ∧ to ∈ s.progress.domSet⌝ -∗
                                     ⌜uint.Z cm ≤ uint.Z s.logst.committed ∧
                                           uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ -∗
-                                      G -∗
+                                      G o -∗
                                         HookGateOpt s.gh.tr r
                                           (sendOutGate id (arriveState id s m ents) c MsgHeartbeat
                                             [Msg.mkV MsgType.heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] []
                                                 (hbCtx (readonlyAdd s.rd.ro (arriveReq s m ents)))])
-                                          G) -∗
-                (▷ ∀ s', ownRaftPhysCV c c.voters r id s' ∗ ⌜SendRIResult c id s m ents s'⌝ ∗ G -∗ Φ (intoVal ())) -∗
+                                          (G
+                                            (o ++
+                                              [Msg.mkV MsgType.heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) []
+                                                  [] (hbCtx (readonlyAdd s.rd.ro (arriveReq s m ents)))]))) -∗
+                (▷
+                    ∀ s',
+                      ownRaftPhysCV c c.voters r id s' ∗ ⌜SendRIResult c id s m ents s'⌝ ∗ G s'.outbox -∗
+                        Φ (intoVal ())) -∗
                   WP (((intoVal (functions sendMsgReadIndexResponse [])) (intoVal r)) (intoVal ml)) {{ Φ }}

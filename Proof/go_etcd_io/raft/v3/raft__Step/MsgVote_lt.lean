@@ -78,7 +78,7 @@ theorem wp_Step_MsgVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
-        "HG" ∷ stepOut R }} := by
+        "HG" ∷ stepOut R s'.outbox }} := by
   intro Hty Hto Hterm Hfnz Hlt0 Hwf
   wp_start as ⟨Hphys, Hm, HG, Hgates⟩
   icases msgPtsC_nn _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
@@ -137,6 +137,7 @@ theorem wp_Step_MsgVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   wp_raft_logC
   -- nothing was sent and nothing changed: dropping is `StepC.refl`
   ihave HG := stepOut_G0 R $$ HG
+  try phys_out
   iapply HΦ $$ %interface.nil %s
   iframe Hphys HG
   ipureintro

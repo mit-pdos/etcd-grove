@@ -11,7 +11,7 @@ theorem releasePendingReadIndexMessages.wp_proof [package_sem : Assumptions]
     (wp_sendMsgReadIndexResponse : sendMsgReadIndexResponse.spec) :
     releasePendingReadIndexMessages.spec
   -- `Perennial.EtcdGrove.releasePendingReadIndexMessages.spec`, unfolded:
-  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (G : IProp GF),
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (G : List Msg → IProp GF),
     s.role = PRole.leader →
       s.term ≠ W64 0 →
         (s.rd.pend ≠ [] → plogTermAt s.logst.prev (s.logst.sents ++ s.logst.uents) s.logst.committed = some s.term) →
@@ -20,17 +20,21 @@ theorem releasePendingReadIndexMessages.wp_proof [package_sem : Assumptions]
               ∀ Φ,
                 isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
                     "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-                      "HG" ∷ G ∗
-                        "#Hgresp" ∷ □ (⌜CfgSingle c id⌝ -∗ G -∗ HookGateOpt s.gh.tr r none G) ∗
+                      "HG" ∷ G s.outbox ∗
+                        "#Hgresp" ∷
+                            □
+                              (⌜CfgSingle c id⌝ -∗
+                                ∀ mm o,
+                                  ⌜mm.ty = MsgType.readIndexResp⌝ -∗ G o -∗ HookGateOpt s.gh.tr r none (G (o ++ [mm]))) ∗
                           "#Hgate" ∷
                             □
                               (⌜¬CfgSingle c id⌝ -∗
-                                ∀ k to cm,
+                                ∀ k to cm o,
                                   ⌜0 < k ∧ k ≤ s.rd.pend.length⌝ -∗
                                     ⌜to ≠ id ∧ to ∈ s.progress.domSet⌝ -∗
                                       ⌜uint.Z cm ≤ uint.Z s.logst.committed ∧
                                             uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ -∗
-                                        G -∗
+                                        G o -∗
                                           HookGateOpt s.gh.tr r
                                             (sendOutGate id
                                               { term := s.term, vote := s.vote, lead := s.lead, role := s.role,
@@ -51,8 +55,16 @@ theorem releasePendingReadIndexMessages.wp_proof [package_sem : Assumptions]
                                                   (hbCtx
                                                     (readonlyRelease s.rd.ro id s.logst.committed
                                                       (List.take k s.rd.pend)))])
-                                            G) -∗
-                  (▷ ∀ s', ownRaftPhysCV c c.voters r id s' ∗ ⌜ReleaseResult c id s s'⌝ ∗ G -∗ Φ (intoVal ())) -∗
+                                            (G
+                                              (o ++
+                                                [Msg.mkV MsgType.heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0)
+                                                    [] []
+                                                    (hbCtx
+                                                      (readonlyRelease s.rd.ro id s.logst.committed
+                                                        (List.take k s.rd.pend)))]))) -∗
+                  (▷
+                      ∀ s',
+                        ownRaftPhysCV c c.voters r id s' ∗ ⌜ReleaseResult c id s s'⌝ ∗ G s'.outbox -∗ Φ (intoVal ())) -∗
                     WP ((intoVal (functions releasePendingReadIndexMessages [])) (intoVal r)) {{ Φ }}
 
 def relState (id : w64) (s : NState) (k : Nat) : NState :=

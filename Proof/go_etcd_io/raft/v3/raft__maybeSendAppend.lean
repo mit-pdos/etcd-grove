@@ -97,6 +97,8 @@ local macro "msa_fetch" : tactic => `(tactic| (
       isplitl [Hphys]
       · iapply ownRaftPhysC_eq c r id _ _ ?_ $$ Hphys
         cases s; rfl
+      ihave HG : G (({ sendMsgs s [] with prvals := s.prvals } : NState).outbox) $$ [HG]
+      · iidx HG
       iframe HG
       ipureintro
       exact ⟨fun _ h => (nomatch h), rfl⟩
@@ -124,6 +126,8 @@ local macro "msa_fetch" : tactic => `(tactic| (
         as %b %ms' %pvs' ⟨Hphys, %Hms', %Hmm'⟩
       · iframe
         try iexact Hcompact
+      ihave HG : G ({ sendMsgs s ms' with prvals := pvs' } : NState).outbox $$ [HG]
+      · rw [Hidx Htr ({ sendMsgs s ms' with prvals := pvs' } : NState).outbox s.outbox]; iexact HG
       iapply HΦ
       iframe
       ipureintro
@@ -205,11 +209,12 @@ local macro "msa_send" : tactic => `(tactic| (
         ⟨Herr1.1, by unfold plogLastIndexZ; simp only [List.length_append]; push_cast; omega⟩
         (by rw [Hn1]; exact Hpkgpre)
   ihave Hg := Hgate $$
-    %(Msg.mk .app id to s.term false (p.next - W64 1) pterm lvc.committed' (W64 0) es_e)
+    %(Msg.mk .app id to s.term false (p.next - W64 1) pterm lvc.committed' (W64 0) es_e) %s.outbox
     %(And.intro Happ (And.intro Hlvc.1 rfl)) HG
   wp_apply wp_raft_send c r id s «$a0_ptr»
       ⟨W32 3, to, 0, 0, pterm, p.next - W64 1, lvc.committed', 0, false, 0⟩ es_e none [] []
-      [Msg.mk .app id to s.term false (p.next - W64 1) pterm lvc.committed' (W64 0) es_e] G
+      [Msg.mk .app id to s.term false (p.next - W64 1) pterm lvc.committed' (W64 0) es_e]
+      (G (s.outbox ++ [Msg.mk .app id to s.term false (p.next - W64 1) pterm lvc.committed' (W64 0) es_e]))
       (Or.inl rfl) (Or.inr (Or.inl ⟨.app, Or.inl rfl, rfl, rfl, Hto, Htz, rfl⟩))
       (fun h => absurd h (by simp [MsgSnap])) (fun _ => ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩)
       rfl (fun _ h => absurd h (by simp only; decide)) $$ [Hphys Hm Hg] as ⟨Hphys, HG⟩
@@ -248,18 +253,20 @@ local macro "msa_send" : tactic => `(tactic| (
   isplitl [Hphys]
   · iapply ownRaftPhysC_eq c r id _ _ ?_ $$ Hphys
     rfl
-  iframe HG
-  ipureintro
-  constructor
-  · intro m Hm
+  isplitr
+  · ipureintro
+    intro m Hm
     simp only [List.mem_singleton] at Hm
     subst Hm
     exact ⟨Or.inl Happ, fun _ => Hlvc.1, (fun h => nomatch h), (fun h => nomatch h)⟩
-  · show prvalsMatch _ = _
+  isplitr
+  · ipureintro
+    show prvalsMatch _ = _
     rw [GMap.insert_insert]
     refine prvalsMatch_insert_same _ _ p _ Hpvs ?_
     simp only [progressSentCommit, progressSentEntries]
-    split <;> (try split) <;> rfl))
+    split <;> (try split) <;> rfl
+  iidx HG))
 
 set_option hygiene false in
 /-- Everything after the `||`'s three arms (Rocq's one `;`-chained script), from the
@@ -276,6 +283,8 @@ local macro "msa_tail" : tactic => `(tactic| (
       isplitl [Hphys]
       · iapply ownRaftPhysC_eq c r id _ _ ?_ $$ Hphys
         cases s; rfl
+      ihave HG : G (({ sendMsgs s [] with prvals := s.prvals } : NState).outbox) $$ [HG]
+      · iidx HG
       iframe HG
       ipureintro
       exact ⟨fun _ h => (nomatch h), rfl⟩
@@ -319,7 +328,7 @@ theorem raft.maybeSendAppend.wp_proof
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.maybeSendAppend.spec (GF := GF) (hG := hG) := by
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
-  intro c r id s to sendIfEmpty G Hto Hcfg Hlead Htz
+  intro c r id s to sendIfEmpty G Hto Hcfg Hlead Htz Hidx
   -- (Q8 stage 1, slice 6) the gate's type as the message literal's
   rw [show (MsgApp : w32) = W32 3 from rfl]
   wp_start as Hpre
@@ -355,9 +364,10 @@ theorem raft.maybeSendAppend.wp_proof
     isplitl [Hphys]
     · iapply ownRaftPhysC_eq c r id _ _ ?_ $$ Hphys
       cases s; rfl
+    ihave HG : G (({ sendMsgs s [] with prvals := s.prvals } : NState).outbox) $$ [HG]
+    · iidx HG
     iframe HG
     ipureintro
-
     exact ⟨fun _ h => (nomatch h), rfl⟩
   -- not paused, so not in `StateSnapshot` -- `SentEntries`' first premise
   have Hnosnap : p.state ≠ .snapshot := by
@@ -419,6 +429,8 @@ theorem raft.maybeSendAppend.wp_proof
     wp_auto
     wp_apply wp_raft_maybeSendSnapshot c r id s to pr Hto Hlk Htz (by tr_none) $$ [$Hphys $Hcompact]
       as %b %ms' %pvs' ⟨Hphys, %Hms', %Hmm'⟩
+    ihave HG : G ({ sendMsgs s ms' with prvals := pvs' } : NState).outbox $$ [HG]
+    · rw [Hidx Htr ({ sendMsgs s ms' with prvals := pvs' } : NState).outbox s.outbox]; iexact HG
     iapply HΦ
     iframe
     ipureintro
@@ -463,6 +475,8 @@ theorem raft.maybeSendAppend.wp_proof
         isplitl [Hphys]
         · iapply ownRaftPhysC_eq c r id _ _ ?_ $$ Hphys
           cases s; rfl
+        ihave HG : G (({ sendMsgs s [] with prvals := s.prvals } : NState).outbox) $$ [HG]
+        · iidx HG
         iframe HG
         ipureintro
         exact ⟨fun _ h => (nomatch h), rfl⟩

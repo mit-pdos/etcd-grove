@@ -120,7 +120,7 @@ theorem raft.campaign.wp_proof
     (wp_slices_Sort : slices.«Sort».spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.campaign.spec (GF := GF) (hG := hG) := by
-  intro c r id s t G0 G Hrole Hid_cfg Hnowrap Hpv
+  intro c r id s t G0 G Hrole Hid_cfg Hnowrap Hpv Hpinv
   -- the voters of either half, named: everything below is about that set
   obtain ⟨cfg, hV⟩ : ∃ cfg, c.voters = cfg := ⟨_, rfl⟩
   -- every `send` below carries `Term + 1`; `send` panics on a zero term,
@@ -147,7 +147,7 @@ theorem raft.campaign.wp_proof
         { campRoleState id s (decide (t = campaignPreElection)) with prvals := pvs } ∗
       "term" ∷ term_ptr ↦ (s.term + W64 1) ∗
       "voteMsg" ∷ voteMsg_ptr ↦ vreqW32 (decide (t = campaignPreElection)) ∗
-      "r" ∷ r_ptr ↦ r ∗ "t" ∷ t_ptr ↦ t ∗ "HG" ∷ G) with [Hphys term voteMsg r t HG Hgbc]
+      "r" ∷ r_ptr ↦ r ∗ "t" ∷ t_ptr ↦ t ∗ "HG" ∷ G s.outbox) with [Hphys term voteMsg r t HG Hgbc]
   · simp only [campaignPreElection, ↓reduceIte]
     imod Hgbc $$ HG with HG
     wp_apply wp_raft_becomePreCandidate _ _ _ _ Hrole Hid_cfg
@@ -162,7 +162,7 @@ theorem raft.campaign.wp_proof
   · have Hif' : ¬ t = campaignPreElection := Hif
     simp only [Hif', ↓reduceIte]
     ihave Hg := Hgbc $$ HG
-    wp_apply wp_raft_becomeCandidate _ _ _ _ G Hrole Hnowrap Hid_cfg $$ [$Hphys $Hg] as %pvs ⟨Hphys, HG⟩
+    wp_apply wp_raft_becomeCandidate _ _ _ _ (G s.outbox) Hrole Hnowrap Hid_cfg $$ [$Hphys $Hg] as %pvs ⟨Hphys, HG⟩
     try wp_auto
     wp_apply raft.wp_load_TermC $$ Hphys as Hphys
     isplitr
@@ -276,8 +276,12 @@ theorem raft.campaign.wp_proof
         (sendMsgs { campRoleState id s pre with prvals := pvs }
           ((xs.take (sint.Z n).toNat).map (campMsg pre id (s.term + W64 1)
             (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) (transferCtx t)))) ∗
-      "HG" ∷ G) $$ [i id Hphys HG]
+      "HG" ∷ G (s.outbox ++ (xs.take (sint.Z n).toNat).map (campMsg pre id (s.term + W64 1)
+            (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) (transferCtx t)))) $$ [i id Hphys HG]
   · iexists W64 0, zero_val w64
+    ihave HG : G (s.outbox ++ (xs.take (sint.Z (W64 0)).toNat).map (campMsg pre id (s.term + W64 1)
+            (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) (transferCtx t))) $$ [HG]
+    · iidx HG
     iframe
     ipureintro
     word
@@ -292,7 +296,8 @@ theorem raft.campaign.wp_proof
     · iframe; ipureintro; exact Hy
     have Hylt : (sint.Z n).toNat < xs.length := (List.getElem?_eq_some_iff.1 Hy).1
     have Hyc : y ∈ c.voters := by rw [hV]; exact (Hmem y).1 (List.mem_of_getElem? Hy)
-    ihave Hg := Hgsend $$ %pvs %y %Hyc HG
+    ihave Hg := Hgsend $$ %pvs %y %(s.outbox ++ (xs.take (sint.Z n).toNat).map (campMsg pre id (s.term + W64 1)
+            (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) (transferCtx t))) %Hyc HG
     -- `y` has not been visited yet: `xs` has no duplicates
     have Hgrow : xs.take (sint.Z (n + W64 1)).toNat = xs.take (sint.Z n).toNat ++ [y] := by
       rw [show (sint.Z (n + W64 1)).toNat = (sint.Z n).toNat + 1 by word, List.take_add_one, Hy]
@@ -328,7 +333,11 @@ theorem raft.campaign.wp_proof
       have Hns1 : ∀ {P : Prop}, P → mtypeOf (vrespW32 pre) ≠ some MsgType.snap :=
         fun _ => by cases pre <;> decide
       wp_apply wp_raft_send _ _ _ _ «$a0_ptr» _ [] none [] []
-          [Msg.plain (vrespTy pre) y y (s.term + W64 1) false] G
+          [Msg.plain (vrespTy pre) y y (s.term + W64 1) false]
+          (G ((s.outbox ++ (xs.take (sint.Z n).toNat).map (campMsg pre y (s.term + W64 1)
+            (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) (transferCtx t))) ++
+            [campMsg pre y (s.term + W64 1) (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents))
+              (transferCtx t) y]))
           (Or.inl rfl)
           (Or.inl ⟨vrespTy pre,
             by cases pre <;> simp [vrespW32],
@@ -362,6 +371,10 @@ theorem raft.campaign.wp_proof
       · rw [Hgrow, List.map_append, ← sendMsgs_app]
         simp only [List.map_cons, List.map_nil, campMsg, ↓reduceIte]
         iexact Hphys
+      ihave HG : G (s.outbox ++ (xs.take (sint.Z (n + W64 1)).toNat).map (campMsg pre y (s.term + W64 1)
+            (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) (transferCtx t))) $$ [HG]
+      · rw [Hgrow, List.map_append, ← List.append_assoc, List.map_singleton]
+        iexact HG
       wp_auto
       wp_for_post
       iframe
@@ -414,7 +427,11 @@ theorem raft.campaign.wp_proof
       have Hns2 : ∀ {P : Prop}, P → mtypeOf (vreqW32 pre) ≠ some MsgType.snap :=
         fun _ => by cases pre <;> decide
       wp_apply wp_raft_send _ _ _ _ «$a0_ptr» _ [] none (transferCtx t) []
-          [campReq pre id y (s.term + W64 1) lastID (transferCtx t)] G
+          [campReq pre id y (s.term + W64 1) lastID (transferCtx t)]
+          (G ((s.outbox ++ (xs.take (sint.Z n).toNat).map (campMsg pre id (s.term + W64 1)
+            (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) (transferCtx t))) ++
+            [campMsg pre id (s.term + W64 1) (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents))
+              (transferCtx t) y]))
           (Or.inl rfl)
           (Or.inl ⟨vreqTy pre,
             by cases pre <;> simp [vreqW32],
@@ -444,6 +461,10 @@ theorem raft.campaign.wp_proof
       · rw [Hgrow, List.map_append, ← sendMsgs_app]
         simp only [List.map_cons, List.map_nil, campMsg, Hyid, ↓reduceIte, ← HlastID]
         iexact Hphys
+      ihave HG : G (s.outbox ++ (xs.take (sint.Z (n + W64 1)).toNat).map (campMsg pre id (s.term + W64 1)
+            (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) (transferCtx t))) $$ [HG]
+      · rw [Hgrow, List.map_append, ← List.append_assoc, List.map_singleton]
+        iexact HG
       wp_auto
       wp_for_post
       iframe
@@ -480,11 +501,17 @@ theorem raft.campaign.wp_proof
           (elements (cfg \ {[id]})).map (fun d => campReq pre id d (s.term + W64 1)
             (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) (transferCtx t))))
       (List.Perm.append_left _ Hmap.symm) $$ Hphys
-    iframe HG
-    iapply ownRaftPhysC_eq $$ Hphys
-    cases pre
-    · rfl
-    · rw [Hprecl rfl]; rfl
+    isplitl [Hphys]
+    · iapply ownRaftPhysC_eq $$ Hphys
+      cases pre
+      · rfl
+      · rw [Hprecl rfl]; rfl
+    iapply idx_perm G Hpinv ?hp $$ HG
+    case hp =>
+      refine (List.Perm.append_left _ Hmap).trans (List.Perm.of_eq ?_)
+      cases pre
+      · rfl
+      · rw [Hprecl rfl]; rfl
 
 end proof
 
