@@ -8,6 +8,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.newWatchableStore
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__syncWatchersLoop
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__syncVictimsLoop
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewWatchableLemmas
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewWatchableAt
 
 @[expose] public section
 
@@ -43,10 +44,68 @@ theorem mvcc.New.wp_proof
     (hSWL : mvcc.watchableStore.syncWatchersLoop.spec (GF := GF) (hG := hG))
     (hSVL : mvcc.watchableStore.syncVictimsLoop.spec (GF := GF) (hG := hG)) :
     mvcc.New.spec (GF := GF) (hG := hG) := by
-  -- B3 Prove (mvccfull's Freeze, 2026-11-10): over `newWatchableStore.spec`'s restated pre; the
-  -- closer `wsCloserM … r.crev` from `storeCloserM` and the stop channel's closer, as the fresh proof
-  -- (commit `ae30739dde`, this file) made `wsCloser`.
-  sorry
+  intro _ lg b le cfg d γb γl P rd0 γi γok γtag M Perm R r Ls hk Pre Q Post X Y dq
+  wp_start as ⟨%Hpre, #Hpkg, Hsess, Hbtr, Hkcr, Hreg, Himg, Hrcpt, #Hnd, Hrg, Hwt1, Hwt2, Hsrm, Hrts, Hlrd,
+    #Hlessor, Hro, Hlo, %Hpend, Hifresh, Hok0, Hcert0, Hfin, Hcrv, Hres, Hsup⟩
+  ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
+  · iPkgInit
+  wp_auto
+  wp_apply (hNew _ b le cfg d γb γl P rd0 γi γok γtag M Perm R r Ls hk Pre Q Post X Y dq)
+    $$ [$Hsess $Hbtr $Hkcr $Hreg $Himg $Hrcpt $Hnd $Hrg $Hwt1 $Hwt2 $Hsrm $Hrts $Hlrd $Hlessor $Hro
+      $Hlo $Hifresh $Hok0 $Hcert0 $Hfin $Hcrv $Hres $Hsup]
+    as %s ⟨%st, %γ, %Hγ, #Hws, Hro, #Hhook, Htw, Hok, Hreaders,
+    ⟨%stc, #Hstc, Hstop⟩, Hsclose, Hfrag, Hret, #HcpIs, Hwg, #Hwreg, Hnc, Hlo, Hrb, Hlc⟩
+  · iframe #; ipureintro; exact ⟨Hpre, Hpend⟩
+  (try wp_auto)
+  imod sync.init_WaitGroup mvcc.wsWgWGN (mvcc.wsWgAddr s) $$ Hwg with ⟨%γwg, #HisWg, Hctr, Hwaiters⟩
+  wp_apply mvcc.wp_wsWg_Add2_init s γwg $$ [$Hctr $Hwaiters] as ⟨Hctr, Hwaiters⟩
+  · iframe #
+  imod ownTokAuth_alloc (GF := GF) with ⟨%γd, Hauth⟩
+  imod ownTokAuth_add 2 γd 0 $$ Hauth with ⟨Hauth, Hdone⟩
+  icases (ownToks_add 1 1 γd).1 $$ Hdone with ⟨Hd1, Hd2⟩
+  -- (R-D1) the closer's claim on the loops' readers
+  imod token_alloc (GF := GF) with ⟨%γw, Hγw⟩
+  imod inv_alloc mvcc.wsWgN ⊤ (mvcc.wsWgInv st γ.st γwg γd γw) $$ [Hctr Hauth] with #Hinv
+  · inext
+    iunfold mvcc.wsWgInv
+    iexists W32 2, 0 + 2, 0
+    iframe Hctr Hauth
+    isplitr
+    · ipureintro; exact ⟨by decide, rfl⟩
+    ileft
+    rw [List.replicate_zero]
+    iapply BigSepL.bigSepL_nil_intro
+    iempintro
+  have hN : 2 ≤ mvcc.nReaders - mvcc.nJobRd (some d) := by
+    have := mvcc.nReaders_val
+    have := mvcc.nJobRd_le (some d)
+    omega
+  icases mvcc.slots_take2 _ _ hN $$ Hreaders with ⟨Hr1, Hr2, Hreaders⟩
+  (try wp_auto)
+  wp_apply wp_fork $$ [Hr1 Hd1]
+  · wp_apply hSWL s st γ $$ [$Hws $Hr1 Hd1]
+    · iunfold mvcc.wsDone
+      iexists γwg, γd, γw
+      iframe HisWg Hinv Hd1
+    itrivial
+  (try wp_auto)
+  wp_apply wp_fork $$ [Hr2 Hd2]
+  · wp_apply hSVL s st γ $$ [$Hws $Hr2 Hd2]
+    · iunfold mvcc.wsDone
+      iexists γwg, γd, γw
+      iframe HisWg Hinv Hd2
+    itrivial
+  (try wp_auto)
+  iapply HΦ
+  iexists st, γ
+  iframe Hws Hro Hhook Htw Hok Hreaders Hfrag Hret HcpIs Hwreg Hnc Hlo Hrb Hlc
+  isplitr
+  · ipureintro; exact Hγ
+  iapply mvcc.wsCloserM_of s st γ.st r.crev stc
+  iframe Hstc Hstop Hsclose
+  iunfold mvcc.wsWaiter
+  iexists γwg, γd, γw
+  iframe HisWg Hinv Hwaiters Hγw
 
 end proof
 
