@@ -30,6 +30,9 @@ sort_StringSlice__Sort:
 # the lessor (server/v3/lease), as the server's `Link.lean` links it (`etc/link-lean-first-server.txt`)
 lease_lessor__GetLease:
 lease_lessor__Lookup:
+lease_lessor__Attach:
+lease_lessor__Detach:
+lease_lessor__SetRangeDeleter:
 lease_lessor__Stop:
 heap_up:
 heap_down:
@@ -113,7 +116,7 @@ runner__genRange: runner__genKey runner__genEnd choose pick
 runner__genSubs: choose runner__genKey inRange runner__newVal runner__genLease runner__genEnd runner__genRange
 runner__newMember: =mvcc.api.mvccApi_mvccImage_fresh_law_holds runner__open
 runner__newVal: choose itoa
-runner__open: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds =mvcc.api.mvccApi_mvccW_alloc_law_holds =mvcc.api.mvccApi_etcdStorage_open_law_holds =mvcc.api.mvccApi_backendRest_open_law_holds =mvcc.api.mvccApi_mvccClosed_rest_law_holds runner__openBackend noCluster__Version lease_NewLessor =mvcc.api.mvccApi_New_wp_proof backend__SetTxPostLockInsideApplyHook check traceutil_TODO runner__checkLeases
+runner__open: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds =mvcc.api.mvccApi_mvccW_alloc_law_holds =mvcc.api.mvccApi_etcdStorage_open_law_holds =mvcc.api.mvccApi_backendRest_open_law_holds =mvcc.api.mvccApi_mvccClosed_rest_law_holds runner__openBackend noCluster__Version lease_NewLessor =mvcc.api.mvccApi_New_wp_proof backend__SetTxPostLockInsideApplyHook check traceutil_TODO runner__checkLeases =mvcc.api.mvccApi_mvccReaders_split_law_holds lease_lessor__GetLease lease_lessor__Attach lease_lessor__Detach lease_lessor__SetRangeDeleter
 runner__openBackend: backend_New
 runner__readOne: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds pick+W inBounds traceutil_TODO history__snapshot choose runner__genRange context_TODO checkRangeAt =mvcc.api.mvccApi_NewReadOnlyTxnWrite_wp_api check runner__checkStoreRange
 runner__restart: =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccReaders_split_law_holds runner__stopReaders runner__endEpoch runner__shut runner__open runner__startEpoch runner__startReaders

@@ -49,12 +49,15 @@ public import Proof.go_etcd_io.etcd.server.v3.lease.NewLessor
 public import Proof.go_etcd_io.etcd.server.v3.lease.leasesByExpiry__Len
 public import Proof.go_etcd_io.etcd.server.v3.lease.leasesByExpiry__Less
 public import Proof.go_etcd_io.etcd.server.v3.lease.leasesByExpiry__Swap
+public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__Attach
+public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__Detach
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__GetLease
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__Grant
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__Leases
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__Lookup
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__Recover
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__Revoke
+public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__SetRangeDeleter
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__Stop
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__initAndRecover
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__isPrimary
@@ -228,6 +231,18 @@ theorem lease.lessor.wp_Lookup :
 theorem lease.Lease.wp_Keys :
     EtcdGrove.lease.Lease.Keys.spec (GF := GF) (hG := hG) :=
   EtcdGrove.lease.Lease.Keys.wp_proof
+
+theorem lease.lessor.wp_Attach :
+    EtcdGrove.lease.lessor.Attach.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.lease.lessor.Attach.wp_proof
+
+theorem lease.lessor.wp_Detach :
+    EtcdGrove.lease.lessor.Detach.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.lease.lessor.Detach.wp_proof
+
+theorem lease.lessor.wp_SetRangeDeleter :
+    EtcdGrove.lease.lessor.SetRangeDeleter.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.lease.lessor.SetRangeDeleter.wp_proof
 
 theorem history.wp_changesAt :
     EtcdGrove.mvccfull.history.changesAt.spec (GF := GF) (hG := hG) :=
@@ -408,7 +423,7 @@ theorem runner.wp_checkLeases :
 
 theorem runner.wp_open [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.mvccfull.runner.open.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.mvccfull.runner.open.wp_proof mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds mvcc.api.mvccApi_mvccW_alloc_law_holds mvcc.api.mvccApi_etcdStorage_open_law_holds mvcc.api.mvccApi_backendRest_open_law_holds mvcc.api.mvccApi_mvccClosed_rest_law_holds runner.wp_openBackend noCluster.wp_Version lease.wp_NewLessor mvcc.api.mvccApi_New_wp_proof backend.backend.wp_SetTxPostLockInsideApplyHook wp_check traceutil.wp_TODO runner.wp_checkLeases
+  EtcdGrove.mvccfull.runner.open.wp_proof mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds mvcc.api.mvccApi_mvccW_alloc_law_holds mvcc.api.mvccApi_etcdStorage_open_law_holds mvcc.api.mvccApi_backendRest_open_law_holds mvcc.api.mvccApi_mvccClosed_rest_law_holds runner.wp_openBackend noCluster.wp_Version lease.wp_NewLessor mvcc.api.mvccApi_New_wp_proof backend.backend.wp_SetTxPostLockInsideApplyHook wp_check traceutil.wp_TODO runner.wp_checkLeases mvcc.api.mvccApi_mvccReaders_split_law_holds lease.lessor.wp_GetLease lease.lessor.wp_Attach lease.lessor.wp_Detach lease.lessor.wp_SetRangeDeleter
 
 theorem runner.wp_newMember [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.mvccfull.runner.newMember.spec (GF := GF) (hG := hG) :=
