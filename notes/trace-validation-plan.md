@@ -1175,6 +1175,8 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   covers one message, not two equal-content ones). **Recommended: (a)**, in an amendment A3 (with a
   review round) (`notes/decisions.md`, "Q8
   stage 1 (slice 19b)").
+  **Taken by the coordinator (the freeze being delegated to it), pending the user's veto: (a)**, as
+  amendment A3 (a review round, then the re-freeze `trace-check-frozen-a3`).
 - **Q16 (2026-11-10, amendment A2's reviews a2-r3, a2-r4): an `"app"` append request's entries,
   unpinned for `MsgsUniq`.** A receive line logs an append request's entry count only
   (`Line.isAppendEntriesRequest`), so after an `"app"` send line with entries `MsgsUniq` needs every
