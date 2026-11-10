@@ -26,6 +26,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__SetTxPostL
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__Close
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.TODO
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RwLensLaws
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LessorApplyLaws
 
 @[expose] public section
 
@@ -618,11 +619,14 @@ theorem runner.restore.wp_proof
         (backend.rbPart (mvccrand.rcKB γB bnb gx (limOf cfg)).γB (· = leaseName)) $$ []
     · have hln : leaseName = go!"lease" := rfl
       rw [hln]
-      iunfold lessorApplyOk at HapplyOk
-      iapply HapplyOk $$ %(mvccrand.rcKB γB bnb gx (limOf cfg)) %(mvccW gx) %iprop(True) %f1
-        %(lease.lessorBeOn v1.lp (mvccrand.rcKB γB bnb gx (limOf cfg)).be)
+      iapply lessorApplyOk_at v1.lp (mvccrand.rcKB γB bnb gx (limOf cfg)) (mvccW gx) iprop(True) f1
+        (lease.lessorBeOn v1.lp (mvccrand.rcKB γB bnb gx (limOf cfg)).be)
+      isplitr; iexact HapplyOk
+      isplitr
       · simp only [mvccrand.rcKB_P, mvccrand.rcKB_γB, mvccrand.rcKB_be]; iexact Hnisb
+      isplitr
       · simp only [mvccrand.rcKB_γB]; iexact HhkRO
+      isplitr
       · ipureintro; exact Hf1
       · iapply rwLens_refl
     ihave Hrbn' := backend.rbOwnIn_part γB _ _ $$ Hrbn
