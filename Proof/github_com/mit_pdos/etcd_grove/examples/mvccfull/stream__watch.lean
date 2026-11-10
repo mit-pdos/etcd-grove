@@ -1,7 +1,12 @@
-/- Lean-first (no Rocq counterpart). The proof of `stream.watch`: Draft, to come (`sorry`).
+/- Lean-first (no Rocq counterpart). The proof of `stream.watch` (proved).
 
-The callees in call order: `genKey`, `genEnd` `choose`, `pick` (the
-start's weights), `context.TODO`, `Watch` (through `shapes.law`), `check`.
+The callees in call order: the `regs` counter (`ctrInv`), `genKey`, `genEnd`, `choose`, `pick`
+(the start's weights; `revHi_acc` or `WatchLemmas.cmpLo_acc_lt` for the start's bound), the filter
+closures (each its `filterSpec`, over mvcc's `evIs`), `s.mu`, `revLo_acc`, `context.TODO`, `Watch`
+(through `shapes.law`) with `WatchLemmas.register_au'`'s update, `revHi_acc` at the registered
+state's revision, `check`s, the watcher's position (floating in `[revLo + 1, revHi + 1]`, or at its
+start, nothing received: `recvEvs_fresh'`), the map and the order slice, `s.mu`'s release with the
+new entry (`watcherOwn'`, its fragment in `regLock`).
 -/
 module
 
@@ -465,8 +470,53 @@ theorem stream.watch.wp_proof
   iintro %v ⟨%hv, w, %wv, «$r0», %Hwv⟩
   subst hv
   (try wp_auto)
-  trace_state
-  sorry
+  obtain ⟨hwk, hwe, Hok⟩ := Hwv
+  wp_apply wp_mapInsert $$ [$Hwm] as Hwm
+  rw [show <[id := wpl]> (GMap.fmap Reg.wp W) =
+      GMap.fmap Reg.wp (<[id := regOf wpl kk e endk st flt (watchLo σ st) k]> W) by
+    rw [GMap.fmap_insert]; rfl]
+  (try wp_auto)
+  wp_apply wp_slice_literal
+  (try wp_auto)
+  isplitr
+  · ipureintro; rfl
+  iintro %isl ⟨Hisl, -⟩
+  (try wp_auto)
+  wp_apply +noauto wp_slice_append $$ [$Hids $Hcap $Hisl] as %osl' ⟨Hids, Hcap, -⟩
+  (try wp_auto)
+  wp_apply sync.Mutex.wp_Unlock (sF go!"mu" T.s) (smuInv T)
+    $$ [$Hmu $Hlocked Hwm Hord Hids Hcap Hevl Hreg Hrcv0 Hwats «$r0»]
+  · iunfold smuInv
+    iexists rs, <[id := regOf wpl kk e endk st flt (watchLo σ st) k]> W, Hl, P
+    iunfold smuBody
+    iframe
+    iframe #
+    isplitr
+    · ipureintro
+      have hnin : id ∉ ids := fun h => by have := (Hids.2 id).1 h; rw [hWid] at this; cases this
+      refine ⟨List.nodup_append.2 ⟨Hids.1, List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩, ?_⟩, fun id' => ?_⟩
+      · intro a ha b hb; rw [List.mem_singleton] at hb; subst hb; exact fun h => hnin (h ▸ ha)
+      · rw [List.mem_append, List.mem_singleton, Hids.2 id']
+        by_cases he : id' = id
+        · subst he; rw [GMap.lookup_insert]; simp
+        · rw [GMap.lookup_insert_ne _ _ (Ne.symm he)]; simp [he]
+    isplitr
+    · ipureintro; exact ⟨rcvKnown'_insert Hknown.1 _ _, Hknown.2⟩
+    iapply BigSepM.bigSepM_insert hWid
+    iframe
+    iunfold watcherOwn'
+    iexists wv
+    simp only [regOf]
+    rw [hwk, hwe]
+    iframe
+    iframe #
+    ipureintro; exact Hok
+  (try wp_auto)
+  iapply HΦ
+  iunfold regOwn
+  iframe
+  iapply (epRd_split T.ep q).2
+  iframe
 
 end proof
 
