@@ -747,11 +747,14 @@ abbrev Txn.End.contract (ty : go.GoType) (v : val) : Prop :=
 
 /-! ### `WatchStream` -/
 
-/-- **`Watch(ctx, 0, key, end, startRev, fcs...)`** (the id the stream's; a start revision not
-negative): an empty range, `ErrEmptyWatcherRange`, the update back; else the caller's update over
-the store's state (unchanged) and the stream's: closed, unchanged (`ErrEmptyWatcherRange`); open, a
-watcher registered under a fresh id, of the range, filtered by `fs`, from `watchLo σ startRev`,
-after the `k` responses sent so far, live. -/
+/-- **`Watch(ctx, 0, key, end, startRev, fcs...)`** (the id the stream's; a start
+revision not negative): an empty range (`end` non-empty and `key ≥ end`), `ErrEmptyWatcherRange`
+and `-1`, with no update needed; else the caller's update over the store's state (unchanged) and
+the stream's: closed, unchanged (`ErrEmptyWatcherRange`); open, a watcher registered under a fresh
+id, of the range, filtered by `fs`, from `watchLo σ startRev`, after the `k` responses sent so far,
+live. The update is asked only for a non-empty range (`⌜empty⌝ ∨ au`: the range check is `Watch`'s
+first statement, before the lock, `watcher.go` l.118-120; mvccfull's Freeze, 2026-11-10: until then
+`au` was asked always and handed back unused on an empty range). -/
 abbrev WatchStream.Watch.contract (ty : go.GoType) (v : val) : Prop :=
   ∀ (γ : MvccName) (ι : WsName) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key endk fcs : GoSlice) (kk e : List w8) (fs : List (EvM → Bool)) (startRev : w64)
@@ -767,12 +770,12 @@ abbrev WatchStream.Watch.contract (ty : go.GoType) (v : val) : Prop :=
   {{ pkgInit ∗ isMvccWatchStream (interface.mkOk ty v) γ ι ∗ mvccReaders γ 1 ∗
       (⌜ctx = interface.mk context.todoCtx.ty #(zero_val context.todoCtx)⌝ ∨
         (context.isContext ctx cd ∗ trace.spanCtxOk ctx)) ∗
-      key ↦*□ kk ∗ endk ↦*□ e ∗ filtersImpl fcs fs ∗ ⌜0 ≤ sint.Z startRev⌝ ∗ au }}
+      key ↦*□ kk ∗ endk ↦*□ e ∗ filtersImpl fcs fs ∗ ⌜0 ≤ sint.Z startRev⌝ ∗
+      (⌜e ≠ [] ∧ ¬ go.GoStringLt kk e⌝ ∨ au) }}
     (App (App (App (App (App (App (Val #(methods ty go!"Watch" v)) (Val #(GoInterface.ok ctx)))
       (Val #(W64 0))) (Val #key)) (Val #endk)) (Val #startRev)) (Val #fcs))
   {{ (id : w64) (err : GoInterface), RET (PairV #id #err); mvccReaders γ 1 ∗
-      ((⌜e ≠ [] ∧ ¬ go.GoStringLt kk e ∧ id = W64 (-1)⌝ ∗ globalAddr ErrEmptyWatcherRange ↦□ err ∗
-          au) ∨
+      ((⌜e ≠ [] ∧ ¬ go.GoStringLt kk e ∧ id = W64 (-1)⌝ ∗ globalAddr ErrEmptyWatcherRange ↦□ err) ∨
        (⌜e = [] ∨ go.GoStringLt kk e⌝ ∗ ∃ (σ : MvccState) (S : StreamState), Q σ S id ∗
           (if S.closed then globalAddr ErrEmptyWatcherRange ↦□ err
            else ⌜err = GoInterface.nil⌝))) }}

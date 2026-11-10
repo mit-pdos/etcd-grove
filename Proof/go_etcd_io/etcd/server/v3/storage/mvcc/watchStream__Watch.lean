@@ -81,11 +81,11 @@ theorem mvcc.watchStream.Watch.wp_proof (hspan : trace.SpanFromContext.spec (GF 
     · assumption
     · split at Hif <;> exact absurd Hif (by decide)
   rotate_left
-  -- `key ≥ end`: the empty range, the update untouched
+  -- `key ≥ end`: the empty range, no update needed
   iapply HΦ
   iframe Hrt
   ileft
-  iframe Heer Hau
+  iframe Heer
   ipureintro
   have hl : ¬ endk.len = W64 0 := by intro h0; simp [h0] at hlen
   have hc : ¬ bytes.compareResult kk e = W64 (-1) := by intro h0; simp [h0] at Hif
@@ -95,6 +95,12 @@ theorem mvcc.watchStream.Watch.wp_proof (hspan : trace.SpanFromContext.spec (GF 
   -- the single-key case
   have hne : e = [] ∨ go.GoStringLt kk e := Or.inl hne0
   all_goals
+    -- a non-empty range: the update is the one given
+    icases Hau with (%Hemp | Hau)
+    · exfalso
+      rcases hne with h | h
+      · exact Hemp.1 h
+      · exact Hemp.2 h
     irename : (end_ptr ↦ endk : IProp GF) => Hendp
     wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, HR⟩
     iunfold mvcc.watchStreamInv at HR
