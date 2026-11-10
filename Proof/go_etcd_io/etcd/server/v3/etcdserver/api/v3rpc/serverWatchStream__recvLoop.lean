@@ -490,7 +490,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
                 ⌜σ.pending = none ∧ i.lo = mvcc.api.watchLo σ c.startRev ∧
                   i.rg = mvcc.watchRangeOf (if c.key = [] then [W8 0] else c.key)
                     (if c.rangeEnd = [W8 0] then [] else c.rangeEnd) es2 c.startRev id'⌝)) $$ [Hwres]
-        · icases Hwres with (⟨-, #Hge, -⟩ | ⟨%Hrng0, %σ, %S, HQ, Herr⟩)
+        · icases Hwres with (⟨-, #Hge⟩ | ⟨%Hrng0, %σ, %S, HQ, Herr⟩)
           · ileft; iexact Hge
           iunfold v3rpc.watchQ at HQ
           by_cases hcl : S.closed = true
