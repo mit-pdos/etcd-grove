@@ -52,6 +52,30 @@ theorem runM_succ_same (ks : List GoString) (ops : List OpM) (n : Nat) (o : OpM)
   unfold histAfter
   simp only [hP, ↓reduceIte]
 
+/-- **A grant's model step**: the history and the compaction revision unchanged, the id appended
+to the live and the granted leases. -/
+theorem runM_succ_grant (ks : List GoString) (ops : List OpM) (n : Nat) (o : OpM)
+    (ho : ops[n]? = some o) (hk : o.kind = kGrant) :
+    histAt ks ops (n + 1) = histAt ks ops n ∧ cmpAfter ks ops (n + 1) = cmpAfter ks ops n ∧
+      leasesAfter ks ops (n + 1) = leasesAfter ks ops n ++ [o.id] ∧
+      grantedAfter ks ops (n + 1) = grantedAfter ks ops n ++ [o.id] := by
+  unfold histAt cmpAfter leasesAfter grantedAfter
+  rw [runM_succ ks ops n o ho]
+  have hP : (opPend ks (runM ks ops n) o).chs = [] := by
+    unfold opPend; rw [hk]; simp
+  unfold opStep
+  rw [hk]
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · show histAfter _ _ = _; unfold histAfter; simp only [hP, ↓reduceIte]
+  · simp
+  · simp
+  · simp
+
+theorem σOf_succ_grant (ks : List GoString) (ops : List OpM) (n : Nat) (o : OpM)
+    (ho : ops[n]? = some o) (hk : o.kind = kGrant) : σOf ks ops (n + 1) = σOf ks ops n := by
+  obtain ⟨h1, h2, -, -⟩ := runM_succ_grant ks ops n o ho hk
+  unfold σOf; rw [h1, h2]
+
 end model
 
 section lemmas

@@ -37,6 +37,7 @@ public import Spec.go_etcd_io.etcd.server.v3.lease.lessor__Revoke
 public import Spec.go_etcd_io.etcd.server.v3.lease.lessor__Lookup
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.WriterLemmas
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.ApplyLemmas
+public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.LeaseRecLemmas
 public import Perennial.Spec.sync.atomic.Int64__Add
 
 @[expose] public section
@@ -178,7 +179,162 @@ theorem runner.apply.wp_proof
   by_cases hk3 : o.kind = W64 3
   · -- a grant
     simp only [hk3, _root_.decide_true]
-    sorry
+    obtain ⟨hid0, hidg⟩ := hvgrant hk3
+    have hinv := runM_inv ks ops hlogOk v.ops
+    obtain ⟨-, -, -, ⟨hLsub, -, hgpos, -⟩, -⟩ := hinv
+    iunfold memCore at Hmc
+    icases Hmc with ⟨#Hid, #Hhook, HhookOk, Hpath, Hbe, Hle, Hkv, Hrev, Hcmp, Hleases, %Hvops,
+      Hinc, Hopen, Hback, #Hhk, Hrdrs, Hbk, Hles, %HU⟩
+    iunfold hookOk at HhookOk
+    icases HhookOk with ⟨%Hfnil, #Hhrun⟩
+    iunfold bkKeep at Hbk
+    icases Hbk with ⟨%HbkP, #Hisb, #Hsc, Hbf, Hoh, HRT, Htoks, Hcen⟩
+    ihave ⟨Hles, Hlbk⟩ := lessorW_backend v.ι.kv v.bk f v.lp _ v.U _ Hfnil $$ [$Hles $Hisb $Hhk]
+    iunfold lessorW at Hles
+    icases Hles with ⟨%rd, %r, #Hlpkg, #Hlinv, #Hlcfg, #Hguard, #Hrevoc, #Hlok, Hlrd, Hlo, Hrvk, Hever,
+      #Hreq, Hrdo, Hdel, Hlbe, Hrb, %Hrecs, Hstop⟩
+    -- one write-back token
+    obtain ⟨k1, rfl⟩ : ∃ k1, k = k1 + 1 := ⟨k - 1, by have := hgk hk3; omega⟩
+    icases ownToks_add_1 1 k1 v.bk.γB.wb $$ Htoks with ⟨Htoks, Hwb⟩
+    ihave Hwb := (backend.wbTok_toks v.bk.γB).2 $$ Hwb
+    ihave #Hgr := lease.leaseGranted_of_guard (mvccLeases v.ι.kv) (fun _ => iprop(True)) o.id $$ [Hguard]
+    · iframe #; imodintro; itrivial
+    wp_auto
+    rw [hid]
+    have hnin : o.id ∉ leasesAfter ks ops v.ops := by
+      intro h; have := hidg _ (hLsub.subset h); omega
+    have hninU : o.id ∉ v.U := by
+      intro h; have := hidg _ (HU _ h); omega
+    wp_apply (wp_Grant v.lp (mvccLeases v.ι.kv) o.id (W64 3600) (leasesAfter ks ops v.ops)
+      (pendItems (σOf ks ops v.ops).log []) iprop(True) f (backend.wbTok v.bk.γB)
+      (lease.lessorBeOn v.lp v.bk.be) (apply.bkRT v.bk) (backend.rbPart v.bk.γB (· = leaseName)) r
+      (hookPre mp (W64 ((v.ops + 1 : Nat) : Int)) s0)
+      iprop(True ∗ hookPost mp (W64 ((v.ops + 1 : Nat) : Int)))
+      (hookPost mp (W64 ((v.ops + 1 : Nat) : Int))) v.U)
+      $$ [Hlbk Hlo Hrvk Hwb Hlbe HRT Hrb Happ Hsav Hever]
+      as %l %err ⟨HRT, Hlbe, Hres⟩
+    · iframe Hlinv Hlcfg Hlbk Hlo Hrvk Hwb Hlbe HRT Hrb Hgr Hever
+      isplitl [Happ Hsav]
+      · iunfold srvApi.csContractA
+        isplitl
+        · iunfold hookPre; iframe; ipureintro; omega
+        isplitl
+        · iapply Hhrun
+        iintro HQ
+        imodintro
+        iexact HQ
+      iright; ipureintro; exact hninU
+    icases Hres with (⟨%Hbad, -⟩ | ⟨%Hok, Hlo, Hrvk, Hpost, -, -, Hmt⟩)
+    · exfalso
+      rcases Hbad.2 with h | h | h
+      · rw [h] at hid0; exact absurd hid0 (by decide)
+      · have : sint.Z (W64 3600) = 3600 := by word
+        omega
+      · exact hnin h
+    obtain ⟨rfl, -, -, -, -⟩ := Hok
+    icases Hmt with ⟨%mt, -, -, Hrb, Hever, HreqN⟩
+    wp_auto
+    wp_apply wp_check
+    · ipureintro; rfl
+    (try wp_auto)
+    iunfold hookPost at Hpost
+    icases Hpost with ⟨Happ, Hsav⟩
+    wp_apply wp_checkHook x mp (W64 ((v.ops + 1 : Nat) : Int)) $$ [$Hsav] as Hsav
+    icases Hleases with ⟨%lsl, Hlf, Hlsl, Hlcap⟩
+    (try wp_auto)
+    wp_apply wp_slice_literal
+    isplitr
+    · ipureintro; rfl
+    iintro %osl ⟨Hosl, -⟩
+    (try wp_auto)
+    wp_apply wp_slice_append $$ [$Hlsl $Hlcap $Hosl] as %lsl' ⟨Hlsl, Hlcap, -⟩
+    (try wp_auto)
+    -- the store's revision: unchanged
+    iunfold incW at Hinc
+    icases Hinc with ⟨#Hisinc, Hret, Hσw, Hbw⟩
+    ihave #Hmv : isMvcc v.kv v.ι.kv $$ []
+    · iunfold isInc at Hisinc; icases Hisinc with ⟨-, #H⟩; iexact H
+    ihave %Hkvs := hsh.1 v.kv v.ι.kv $$ Hmv
+    obtain ⟨kty, kvv, hkveq, -, -, hKRev, -⟩ := Hkvs
+    ihave #Hmv' : isMvcc (interface.mkOk kty kvv) v.ι.kv $$ []
+    · rw [← hkveq]; iexact Hmv
+    rw [hkveq]
+    have hR1 : mvccReaders (GF := GF) v.ι.kv nw ⊣⊢ mvccReaders v.ι.kv (nw - 1) ∗ mvccReaders v.ι.kv 1 := by
+      have := hRdSplit v.ι.kv (nw - 1) 1; rwa [Nat.sub_add_cancel hnw] at this
+    icases hR1.1 $$ Hrdrs with ⟨Hrdrs, Hr1⟩
+    ihave Hau := read_au hpers ks γh i mp m v.ι (interface.mkOk kty kvv) qw (σOf ks ops v.ops)
+      $$ [Hret Hσw]
+    · iframe #; iframe
+    wp_apply (hKRev v.ι.kv (fun σ' => iprop(⌜σ' = σOf ks ops v.ops⌝ ∗ ghostVar v.ι.ret qw () ∗
+        ghostVar m.σ (1 : Qp).half (σOf ks ops v.ops)))) $$ [Hr1 Hau]
+      as %rv ⟨Hr1, %σr, ⟨%Hσr, Hret, Hσw⟩, %Hrv⟩
+    · iframe #; iframe
+    subst Hσr Hrv
+    (try wp_auto)
+    wp_apply wp_check
+    · ipureintro; simp [σOf_rev]
+    (try wp_auto)
+    rw [← hkveq]
+    ihave Hrdrs := hR1.2 $$ [$Hrdrs $Hr1]
+    obtain ⟨hg1, hg2, hg3, hg4⟩ := runM_succ_grant ks ops v.ops o hov hk3
+    have hσ1 := σOf_succ_grant ks ops v.ops o hov hk3
+    have hrv1 : revAfter ks ops (v.ops + 1) = revAfter ks ops v.ops := by
+      unfold revAfter MSt.rev; unfold histAt at hg1; rw [hg1]
+    iapply HΦ
+    iframe Hrd
+    isplitl [Hlead]
+    · unfold leadPre leadPost compsAt
+      cases lead
+      · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
+      · simp only [↓reduceIte]
+        have hc : (runM ks ops (v.ops + 1)).comps = (runM ks ops v.ops).comps := by
+          rw [runM_succ ks ops v.ops o hov]; unfold opStep; rw [hk3]; simp
+        rw [hg1, hc]; iexact Hlead
+    iexists { v with ops := v.ops + 1, U := v.U ++ [o.id] }, k1
+    isplitr
+    · ipureintro; exact ⟨⟨rfl, rfl, rfl, rfl, rfl⟩, rfl, by omega⟩
+    iunfold memW
+    iframe Hops
+    isplitl [Happ Hsav]
+    · iexists _, _; iunfold hookPre; iframe; ipureintro
+      have : sint.Z (W64 ((v.ops + 1 : Nat) : Int)) = v.ops + 1 := by word
+      refine ⟨Int.le_refl _, by omega, by simp only; omega⟩
+    iunfold memCore
+    dsimp only
+    rw [hσ1, hrv1, hg2, hg3, hg4]
+    have hLid : ∀ l ∈ leasesAfter ks ops v.ops, 0 ≤ sint.Z l ∧ sint.Z l < sint.Z o.id := by
+      intro l hl
+      have hg := hLsub.subset hl
+      exact ⟨by have := hgpos _ hg; omega, hidg _ hg⟩
+    have hrecs' := leaseRecsOk_grant r (leasesAfter ks ops v.ops) o.id (lease.grantTTL mt (W64 3600))
+      Hrecs hLid hid0 (by have := lease.grantTTL_ge mt (W64 3600); have : sint.Z (W64 3600) = 3600 := by word
+                          omega)
+    ihave #HreqN := HreqN
+    iframe Hid Hhook
+    isplitr
+    · iunfold hookOk; iframe #; ipureintro; exact Hfnil
+    iframe Hpath Hbe Hle Hkv Hrev Hcmp Hopen Hback Hhk Hrdrs
+    isplitl [Hlf Hlsl Hlcap]
+    · iexists lsl'; iframe
+    isplitr
+    · ipureintro; exact hvl
+    isplitl [Hret Hσw Hbw]
+    · iunfold incW; iframe; iframe #
+    isplitl [Hbf Hoh HRT Htoks Hcen]
+    · iunfold bkKeep; iframe; iframe #; ipureintro; exact HbkP
+    isplitl
+    · iunfold lessorW
+      iexists rd, _
+      iframe
+      iframe #
+      isplitr
+      · imodintro; iapply BigSepL.bigSepL_nil.2; itrivial
+      ipureintro; exact hrecs'
+    ipureintro
+    intro id hid'
+    rcases List.mem_append.1 hid' with h | h
+    · exact List.mem_append_left _ (HU _ h)
+    · exact List.mem_append_right _ h
   simp only [hk3, _root_.decide_false]
   (try wp_auto)
   by_cases hk4 : o.kind = W64 4
