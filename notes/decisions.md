@@ -34661,3 +34661,72 @@ self-acknowledgement (`lineEffect_selfAck`).
 
 No axiom, no `sorry`, no frozen statement changed (`TracedCap.lean` untouched); not client-visible
 (`stepBundle_traced.on` and the new files are raft-internal).
+
+## Q8 stage 1 (slice 18b): the receive paths of the traced types; stale messages, ignored responses and a same-term vote request; the commit-raising receives need the bundle to take raft's message facts (2026-11-10 · trace-check, Q8 stage 1 slice 18b; decided by the agent under the user's delegation · branch `trace-check-q8s18b`; DRAFT until trace-check's Freeze)
+
+**What** (`TracedRaftStepRecv.lean`, new; `TracedRaftStep.lean`, `TracedPin.lean` untouched, another
+branch's). The receive paths of `stepBundle_traced.on`, in a file of their own, beside slice 18a's local
+paths.
+
+**The common pieces.** Every receive path starts with the receive hook: its gate is
+`trCapB_hookGateRecv` at the event `recvGate` names (`recvGate_traced`, with a frame for raft's ghost
+state), the phase step `PhaseStepR` (whose `recvPred` clause is `recvLine_pred`: the event's parse is the
+message line, matching the token's message by type) and the facts `FxPresR` at `recvPhantoms`. The
+share is pinned with the trace directory (`trCapB_pinDir`: `trCapB_pinMem` with the voters `tn.voters`, so
+that the token's `msgAbs` is at the capability's voters, `traceDir_agree`). The event's `TraceEv.Ok`
+needs the node's commit and last index below `traceNumBound`: `ownRaftGhost_traceBound` (never used
+before), run inside the gate's update (`ownStepGhost_traceOk`). A gate whose resource no path reaches,
+or whose type guard the message's type refutes, is closed by `iguard_false` (`followerGates_false`,
+`candidateGates_false`, `leaderGates_false`). A path's resources are a constant family (`staleR`,
+`ignR`, `voteR`): raft's ghost state and the capability at the pinned phase after the line, `False`
+elsewhere; the close reads `StepEnd` and relates the end state by the idle relation.
+
+**Two premises found needed** (stated in `stepBundle_traced.onR`, `.on` plus them; `onR_of_on`; for the
+coordinator to fold into `.on`): (1) `s.role ≠ .preCandidate`: every receive line's state match
+(`stateMatches_node`) needs it (the specification has no pre-candidate with pre-vote off), and neither
+the capability nor raft's ghost state records that a node with `prevote = false` never becomes one
+(raft's `becomePreCandidate` runs only under `r.preVote`); (2) `TrRecvShape m ents`: a heartbeat carries
+no entries (its line logs the entry count, `isAER_heartbeat`), a heartbeat response does not reject
+(`respLine`), a vote request is not from its destination (its answer's skipped send line,
+`lineEffect_skipResp`'s `src ≠ dst`): the token's specification message records none of them (`msgAbs`);
+raft sends only such messages, and `isRaftMsg`'s `SentMsgShape` has the third; the first two would be
+added there. Rejected: deriving (1) from `NStateWf` or the ghost mode (neither states it).
+
+**Proved**: `stepBundle_traced_staleRecv` (`StaleRecv`, every traced type at a lower term: raft ignores
+it, the specification refuses a request with the phantom, `fxPresR_staleReq`, and drops a response,
+`fxPresR_staleResp`; `LowSend` refuted by pre-vote and check-quorum off); `stepBundle_traced_ignResp`
+(`IgnResp`: `MsgAppResp`/`MsgHeartbeatResp` at a follower or candidate, `MsgVoteResp` at a follower or
+leader, at the node's term: raft ignores it, the specification records it with `respSrv` in fields the
+role's `SimServerR` does not read, `simServerR_respSrv`; `SpecInv` by `specInv_congr_v`/`_m`,
+`specInv_respSrv`; the end state `s` by `ignResp_end`); `stepBundle_traced_voteReq` (`VoteReq`: `MsgVote`
+at the node's term: the receive line is `HandleRequestVoteRequest`, `simFx_voteReq` from
+`specInv_handleRequestVoteRequest`, the answer canonical and pinned by its type; raft decides as the
+specification does, `voteGrant_iff` from `sim_vote_grant`; the answer's send line is skipped by the
+specification at a phase without the idle relation, `VPin`; `voteEnd_simIdle` relates `VoteEnd`'s state
+to the phase after the line). `#print axioms` of the three: no `sorryAx`.
+
+**Finding (blocks the commit-raising receives; the bundle's statement, not frozen): raft's message facts
+are not in the bundle.** A follower's (or candidate's) `MsgHeartbeat` and accepted `MsgApp` raise the
+commit index in the receive line's effect (`hbSrv`, `doneSrv`). `FxPresR` must then give the receiver's
+`srvFacts` at the raised index: `isCommitted γ (es.take c')` and `commitIn γ es (W64 c') (W64 term)`. Their
+only source is the received message's raft facts (`isMessage`: a heartbeat's `leadFull`, `commitIn`,
+`isCommitted`, its `isAcked` bound; an append's `leadPrefix`, `commitIn`, `isCommitted`), moved with
+`commitIn_move` as raft's own proof does (`Protocol/Refinement.lean`); the frozen `msgFacts` deliberately
+omits them (review round 5's E2: "from raft's own message facts, which `raft.Step` receives with the
+message"). `raft.Step.spec` has them (`#Hmsg`, from `isRaftMsg`); `stepBundle_traced.on` does not.
+Options: (a) the bundle takes `isMessageC γ (absMsg ty m ents ctx)` for a traced type (persistent; the
+node API has it from `isRaftMsg`); (b) the bundle takes the persistent facts already moved (heavier, the
+caller cannot name the receiver's records). **Recommended: (a)**. The FxPresR proof also needs the
+receiver's records `es` to be raft's log (the pinned server's log is `logAbs` of raft's: `logAbs`'s
+injectivity) and raft's acknowledgement history for `isAcked` (the ghost state lent in the gate, from
+which the moved facts are made persistent before `FxPresR`, which is `□`).
+
+**Not done, unblocked** (exact): a higher-term message of any traced type (the receive line's
+`UpdateTerm` changes the receiver's term, so its `srvFacts`' `commitIn` is needed at the new term, from
+raft's ghost; then `Step`'s preamble `BecomeFollower` line, skipped by `bfCond`, `PhaseStepBF`); a
+candidate's `MsgVoteResp` without a win or a loss (the tally: `SimServerR`'s candidate clause after
+`recordVote` against `respSrv`'s `SetIds.add`, both sorted); the broadcasts after a receive (leader
+`MsgAppResp` accepted/rejected, `MsgHeartbeatResp`, a won `MsgVoteResp`). `hookGateOpt_fupd_recv` is a
+copy of `TracedRaftStepLocal.lean`'s `hookGateOpt_fupd` (this module does not import it): dedupe.
+
+No axiom, no `sorry`, no frozen statement changed (`TracedCap.lean` untouched); not client-visible.
