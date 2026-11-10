@@ -270,7 +270,7 @@ theorem Run.wp_proof
     · iPkgInit
     isplitl
     · iPkgInit
-    ipureintro; exact ⟨hksn, Hlg, hopsN.1, hopsN.2, hkl⟩
+    ipureintro; exact ⟨hksn, hopsN.1, hopsN.2, hkl⟩
   -- the members' files
   rw [show filePathsM cfgN = memberPathM cfgN.Prefix' 0 :: memberPathM cfgN.Prefix' 1 ::
     (List.range' 1 (sint.nat cfgN.Ops')).map (buildPathM cfgN.Prefix') from rfl]

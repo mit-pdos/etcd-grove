@@ -95,7 +95,7 @@ theorem runner.apply.wp_proof
   ihave #Hctx := Hctx
   ihave #Hctx2 := Hctx
   iunfold writerCtx at Hctx2
-  icases Hctx2 with ⟨#Hrn, #Hrcfg, %Hrmix, #Hrsh, #Hpkb, #Hpks, #Hpkl, #Hpkt, %Hkslen, ⟨%lg, #Hlg, %Hlg0⟩,
+  icases Hctx2 with ⟨#Hrn, #Hrcfg, %Hrmix, #Hrsh, #Hpkb, #Hpks, #Hpkl, #Hpkt, %Hkslen, ⟨%lg, #Hlg, #Hlg0⟩,
     -, -, -, #Hcrev, #Hccomp, -, -, %HOps⟩
   ihave #Hrn2 := Hrn
   iunfold rnCtx at Hrn2

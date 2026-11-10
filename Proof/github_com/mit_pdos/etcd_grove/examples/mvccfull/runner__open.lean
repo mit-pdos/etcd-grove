@@ -83,7 +83,7 @@ theorem runner.open.wp_proof
   ihave #HctxK : writerCtx x ks cfg wr h γh $$ []
   · iexact Hctx
   iunfold writerCtx at Hctx
-  icases Hctx with ⟨#Hrn, #Hcfg, %Hmix, #Hrds, #Hpb, #Hps, #Hpl, #Hpt, %Hksl, ⟨%lg, #Hlg, %Hlgn⟩,
+  icases Hctx with ⟨#Hrn, #Hcfg, %Hmix, #Hrds, #Hpb, #Hps, #Hpl, #Hpt, %Hksl, ⟨%lg, #Hlg, #Hlgn⟩,
     -, -, -, -, -, -, -, %HOpsB⟩
   iunfold rnCtx at Hrn
   icases Hrn with ⟨#Hpkg, #Hpm, #Hkeys, %Hkne, #HrH, #Hhist, #Hcfgp, -⟩
@@ -131,8 +131,6 @@ theorem runner.open.wp_proof
       Hrvk, Hrdo, -, Hbeon, #Happly, Hstop, #HreqN, -, -⟩
   · rw [mvccrand.rcKB_P, mvccrand.rcKB_γB, mvccrand.rcKB_be]
     iframe #; iframe
-    isplitr
-    · ipureintro; exact Hlgn
     isplitr
     · ipureintro; exact hck
     isplitr

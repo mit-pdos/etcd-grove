@@ -738,7 +738,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     -- lessor gives the boot its tracked buckets idle (`rbOwnIn ⊤`)
     iunfold backend.rbOwn at Hrbo
     iframe Hopen Hwl Hrbo
-    isplitr; · ipureintro; exact Hlgnn
+    isplitr; · iright; iexact Hzlg
     isplitr; · ipureintro; exact Hckok
     isplitr; · ipureintro; simp
     imodintro; rw [List.map_nil]; iapply BigSepL.bigSepL_nil.2; itrivial

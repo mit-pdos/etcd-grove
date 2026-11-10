@@ -126,7 +126,11 @@ boot fact; 2026-11-01, E: so the bucket it creates is among the backend's ghost 
 Why it is true of the Go code (`newLessor`, `initAndRecover`, `runLoop`, at the etcd pin):
 * `newLessor` allocates the lessor (its maps, `expiredC` a channel of 16, `stopC`, `doneC`), sets
   the configuration's fields (a zero `leaseRevokeRate` defaulted to 1000: so a positive rate, given
-  a non-negative one, `lessorCfg`; audit B4b, 2026-10-18), then `initAndRecover`:
+  a non-negative one, `lessorCfg`; audit B4b, 2026-10-18; and the logger `lg` as given, which the
+  pre asks to be nil or a zap logger, `zapLoggerOk`, and `lessorCfg` keeps: the lessor logs only
+  under `le.lg != nil` (`lessor.go:759,797`), and a non-nil zero `&zap.Logger{}` panics in its
+  `Debug`; the user's decision of 2026-11-07, sweep B3-2: until then the pre asked only
+  `lg ≠ null`), then `initAndRecover`:
   `b.BatchTx()`'s `LockOutsideApply` (no hook: the backend open, `bOpen`), `UnsafeCreateLeaseBucket`,
   `MustUnsafeGetAllLeases` (it decodes every record of the `Lease` bucket, a panic on an
   undecodable one: the bucket is empty, a part of any bucket set `S` containing `lease`,
@@ -224,7 +228,8 @@ abbrev lease.NewLessor.spec : Prop :=
   S go!"lease" → mvcc.leaseParams d.P →
   backend.bktEnts ((r.lookup go!"lease").getD ∅) = recs.map lease.leaseRecEnc →
   (∀ x ∈ recs, sint.Z (reqOf x.1) ≤ sint.Z x.2.1) → Lr.Perm (recs.map (·.1)) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ ⌜lg ≠ null⌝ ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
+      (⌜lg = null⌝ ∨ zapLoggerOk lg) ∗
       ⌜ckptEffectsOk⌝ ∗ ⌜0 ≤ sint.Z cfg.leaseRevokeRate'⌝ ∗ lease.clusterOk cl ∗
       backend.isBackend d.γB d.P W Pk d.be ∗ backend.bOpen d.γB qo ∗ backend.wbTok d.γB ∗
       backend.rbPart d.γB S r ∗ □ ([∗list] id ∈ recs.map (·.1), GA id) }}

@@ -298,7 +298,7 @@ def writerCtx (x : Loc) (ks : List GoString) (cfg : Config) (wr : List w64) (h :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil ∗
     ⌜∀ k ∈ ks, (k.length : Int) < 2 ^ 63 - 1⌝ ∗
-    (∃ lg : Loc, rF go!"lg" x ↦□ lg ∗ ⌜lg ≠ null⌝) ∗
+    (∃ lg : Loc, rF go!"lg" x ↦□ lg ∗ zapLoggerOk lg) ∗
     (∃ wo : List w64, cfg.Mix'.Op' ↦*□ wo) ∗ (∃ wc : List w64, cfg.Mix'.CompactAt' ↦*□ wc) ∗
     (∃ ws : List w64, cfg.Mix'.Step' ↦*□ ws) ∗
     ctrInv (readersN .@ "revisions") (rF go!"revisions" x) ∗

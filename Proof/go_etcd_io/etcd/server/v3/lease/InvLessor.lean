@@ -26,6 +26,7 @@ public import Perennial.Ghost.GhostMap
 public import Perennial.Ghost.SavedProp
 public import Perennial.Ghost.MonoList
 public import Perennial.Proof.ThreadPool
+public import Spec.go_uber_org.zap.Defs
 
 @[expose] public section
 
@@ -962,13 +963,16 @@ instance clusterOk_persistent (cl : GoInterface) : Persistent (clusterOk (GF := 
 and nothing writes after (`minLeaseTTL`, `checkpointPersist`, `cluster` with its contract,
 `checkpointInterval`, `lg`, `leaseRevokeRate`, positive: `Promote` indexes the sorted leases'
 first when there are at least `leaseRevokeRate` of them, so a rate below `1` with no lease panics;
-audit B4b, 2026-10-18). -/
+audit B4b, 2026-10-18). (2026-11-10, the user's decision of 2026-11-07, sweep B3-2) The logger
+`lg` is nil or a zap logger (`zapLoggerOk`): the lessor logs only through `le.lg != nil` guards
+(`scheduleCheckpointIfNeeded`, `findDueScheduledCheckpoints`, `lessor.go:759,797`), and a non-nil
+zero `&zap.Logger{}` panics in its `Debug`; until then `lg` was unconstrained. -/
 def lessorCfg (lp : Loc) : IProp GF :=
   iprop(∃ (mt : w64) (cpp : Bool) (cl : GoInterface) (ci : _root_.Perennial.time.Duration)
       (lg : Loc) (rr : w64),
     lF go!"minLeaseTTL" lp ↦□ mt ∗ lF go!"checkpointPersist" lp ↦□ cpp ∗
     lF go!"cluster" lp ↦□ cl ∗ clusterOk cl ∗
-    lF go!"checkpointInterval" lp ↦□ ci ∗ lF go!"lg" lp ↦□ lg ∗
+    lF go!"checkpointInterval" lp ↦□ ci ∗ lF go!"lg" lp ↦□ lg ∗ (⌜lg = null⌝ ∨ zapLoggerOk lg) ∗
     lF go!"leaseRevokeRate" lp ↦□ rr ∗ ⌜0 < sint.Z rr⌝)
 
 set_option synthInstance.maxHeartbeats 200000 in

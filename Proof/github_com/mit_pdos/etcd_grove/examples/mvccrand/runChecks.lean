@@ -147,7 +147,7 @@ theorem runChecks.wp_proof
   · rw [rcKB_P, rcKB_γB, rcKB_be]
     iframe Hcl Hisb Hoh Hw1
     isplitr
-    · ipureintro; exact Hlg
+    · iright; iexact Hlgz
     isplitr
     · ipureintro; exact hckpt
     isplitr
