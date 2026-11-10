@@ -7,8 +7,9 @@
 # an external device with no delay. A synced one-byte file 00; pwrite 07 at OFF; writeback started
 # without waiting (sync_file_range -w); the journal commits every second. After 4 s, copies of both
 # devices' backing files are the crash: the journal's writes are in its copy, the data's are not.
-# The copy is recovered (e2fsck with the journal copy) and its size and bytes printed.
+# The copy is recovered (c_recover: a kernel mount with the journal copy, as a boot) and its size and bytes printed.
 set -u
+. "$(dirname "$0")/../fs-config/mkfs-mount.sh"
 D=${1:?workdir}
 OFF=${2:-4096}
 mkdir -p "$D/mnt" "$D/mnt2"
@@ -40,7 +41,7 @@ sudo sysctl -q vm.dirty_writeback_centisecs="$OLD"
 python3 -c 'import time; time.sleep(8)'
 sudo umount "$D/mnt"; sudo dmsetup remove f3delay; sudo losetup -d "$DL" "$JL"
 DL2=$(sudo losetup --find --show "$DI.crash"); JL2=$(sudo losetup --find --show "$JI.crash")
-sudo e2fsck -fy -j "$JL2" "$DL2" >/dev/null 2>&1
+c_recover "$DL2" journal_path="$JL2"
 echo "crash image: size $(sudo debugfs -R 'stat /f' "$DL2" 2>/dev/null | awk '/Size:/ {print $NF; exit}'); extents: $(sudo debugfs -R 'ex /f' "$DL2" 2>/dev/null | tail -n +2 | tr -s ' ' | tr '\n' ';')"
 sudo mount -o journal_path="$JL2" "$DL2" "$D/mnt2"
 F2=$D/mnt2/f

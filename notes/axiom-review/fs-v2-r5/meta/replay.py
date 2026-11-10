@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """fs-v2-r5 (b): replay a dm-log-writes log onto a copy of the base image, stop at every flush or
-FUA entry (and at the end), recover the image there as a reboot would (e2fsck replays the journal),
+FUA entry (and at the end), recover the image there as a reboot would (a kernel mount replays the journal),
 mount it read-only, and check the tree against the model's journal order for the scenario
 (metaops.go). Marks (put after a call returned) say which calls a crash point comes after.
 
@@ -43,9 +43,11 @@ def snapshot(work, k):
     snap = os.path.join(wd, 'snap.img')
     sh('cp', '--sparse=always', work, snap)
     lo = sh('losetup', '--find', '--show', snap).strip()
-    r = subprocess.run(['e2fsck', '-fy', lo], capture_output=True, text=True)
     mnt = os.path.join(wd, 'snapmnt')
     os.makedirs(mnt, exist_ok=True)
+    # recover as a boot does: a kernel mount (journal replay, orphan cleanup), not e2fsck
+    sh('mount', '-t', 'ext4', lo, mnt)
+    sh('umount', mnt)
     sh('mount', '-t', 'ext4', '-o', 'ro', lo, mnt)
     tree = {}
     for dp, dns, fns in os.walk(mnt):
@@ -60,7 +62,7 @@ def snapshot(work, k):
                 tree[os.path.normpath(os.path.join(rel, fn))] = g.read(64)
     sh('umount', mnt)
     sh('losetup', '-d', lo)
-    return tree, r.returncode
+    return tree, 0
 
 
 def ops():

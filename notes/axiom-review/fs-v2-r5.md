@@ -324,3 +324,40 @@ grow-sync: 61 crash points (every logged write), 4 distinct images, 0 violations
 recovered: size 1, block 65536 on disk:  00 07 00 00
 after write5000: size 5001, bytes 0-3:  00 00 00 00      (and likewise for the five others)
 ```
+
+## Dispositions (2026-11-10, fork F2; `19a6667efc` and the commit adding this section)
+
+- **A1** fixed. NoTear's "source buffer present" assumption is gone (`NoTear.lean`'s docstring,
+  `BootNoTear.lean`, `examples/osfs/semantics/notear.go`). The justification is what C does: a
+  `pwrite`'s landed prefix ends at its end, at a file page boundary, or where the source crosses a
+  page. Two named assumptions remain: (1) a *program* assumption, each `pwrite`'s buffer address ≡
+  its offset (mod 4096), which minibolt meets (its `WriteAt`s write `make([]byte, 4096)` and
+  `make([]byte, 16384)` buffers, or the 4096-byte second half of one, at page-multiple offsets;
+  go1.27.3's size classes 44 and 59 align those objects to 4096 and 8192,
+  `internal/runtime/gc/sizeclasses.go`, and every page-multiple class up to 32 KiB has a "min
+  align" of at least 4096); (2) a *machine* assumption, no source page is unmapped while the copy
+  is inside it (a migration between two of the copy's loads; not excluded by Linux; not seen in
+  this round's 3·10⁶ aligned writes under forced compaction). "minibolt fills its pages" is gone.
+  A model premise on source addresses was not taken: the model's heap addresses are not the
+  machine's, so it would be no more checkable than the stated assumption.
+- **S1** done: `Follows` is `y < x ∧ ∃ ex, log[x]? = some ex ∧ y < ex.start`; `MetaOp.locks` and
+  `MetaOp.crossRename` are gone (no proof used them; dropping them only allows more crashes).
+  `Tree.lean`'s docstring says Linux's extra orderings are not modelled.
+- **S2** done: a successful directory `fsync` commits every logged entry (`OsState.commitAll`,
+  `ext4_force_commit` for a file that is not regular); `MetaOp.dirs`, `lastTouch`, `Needed` and
+  `OsState.commitThrough` are gone. `Tests.lean`'s `dirsync_new_dir` and `crash_overlap` reproved.
+- **D1** fixed: the helpers recover crash images as a boot does (`fs-config/mkfs-mount.sh`'s
+  `c_recover`: a kernel mount, journal replay and orphan cleanup, then an unmount), never with
+  `e2fsck -fy`: `fs-config/crash.sh`, `fs-v2-f3/{f3,ordered,delay}.sh`, `fs-v2-r5/meta/replay.py`.
+  Rerun on C with them (results unchanged from those recorded):
+  - `crash.sh`: `append-new` size 4097, byte 4096 `00` (the new block unwritten); `empty-write`
+    size 1 reading `00`; `append-end` size 1; `keep-size` size 4097 reading `00`; `shrink-grow` size
+    100; `append-new` with `dioread_lock` (the contrast) size 4096. All allowed by durable zeros.
+  - `ordered.sh`: `append-alloc` size 2 `00 00`, with a stale tail `00 07`; `append-gap` `00 00 00
+    09` with or without one; `append-new` size 1; `truncate` 4096 zeros; `falloc` 8192 zeros.
+  - `f3.sh`: truncate, write and falloc all read zeros past the recovered size.
+  - `meta.sh`: segdir 26, dirswap 22, crashlog 28, replace 22, overlap 22, xrename 17 crash points;
+    0 violations.
+- Every osfs result rebuilt (Fs `Tests`, `Crash`, `AdequacyS`, `Proof.os.CrashStSpec`, crashlog
+  `Results`, walfs `Results`/`SegLogResults`/`DirSwapResults`, bboltfs `Link`/`Results`); top-level
+  statements unchanged.

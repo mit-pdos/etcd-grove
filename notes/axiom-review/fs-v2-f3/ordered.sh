@@ -38,7 +38,7 @@ if [ "${STALE:-0}" = 1 ]; then
   mv "$IMG.pre" "$IMG"
   LOOP=$(sudo losetup --find --show "$IMG")
   if [ "$FS" = ext4 ]; then
-    sudo e2fsck -fy "$LOOP" >/dev/null 2>&1
+    c_recover "$LOOP"
     BLK=$(sudo debugfs -R "bmap /f 0" "$LOOP" 2>/dev/null | tail -1)
     echo "$FS: start: block 0 at $BLK: raw $(sudo dd if="$IMG" bs=4096 skip="$BLK" count=1 2>/dev/null | od -An -tx1 -N2)"
   fi
@@ -64,7 +64,7 @@ sudo sysctl -q vm.dirty_writeback_centisecs="$OLD"
 sudo umount "$D/mnt"; sudo losetup -d "$LOOP"
 LOOP2=$(sudo losetup --find --show "$IMG.crash")
 if [ "$FS" = ext4 ]; then
-  sudo e2fsck -fy "$LOOP2" >/dev/null 2>&1
+  c_recover "$LOOP2"
   SZ=$(sudo debugfs -R 'stat /f' "$LOOP2" 2>/dev/null | awk '/Size:/ {print $NF; exit}')
   echo "$FS: crash image: size $SZ; extents: $(sudo debugfs -R 'ex /f' "$LOOP2" 2>/dev/null | tail -n +2 | tr -s ' ' | tr '\n' ';')"
   for L in 0 1; do

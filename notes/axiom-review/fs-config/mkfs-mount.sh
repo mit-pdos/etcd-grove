@@ -12,6 +12,11 @@
 #                              (commit=N) or what an experiment contrasts with C (dioread_lock),
 #                              which the experiment then says
 #   c_check DIR [--allow OPT]  check.sh: exits 1 unless DIR (and this process) is C
+#   c_recover DEV [OPTS]       recovers a crash image as a boot does: a kernel mount (journal
+#                              replay, orphan cleanup) and an unmount, so that debugfs then reads the
+#                              recovered image (never `e2fsck -fy`, which can repair what the kernel
+#                              would keep); OPTS as for c_mount (journal_path=… for an external
+#                              journal)
 c_mkfs() {
   local img=${1:?image} size=${2:-1G}
   rm -f "$img"; truncate -s "$size" "$img"
@@ -26,3 +31,9 @@ c_mount() {
   sudo chmod 777 "$dir"
 }
 c_check() { "$(dirname "${BASH_SOURCE[0]}")/check.sh" "$@"; }
+c_recover() {
+  local dev=${1:?device} opts=${2:-} dir
+  dir=$(mktemp -d)
+  if [ -n "$opts" ]; then sudo mount -t ext4 -o "$opts" "$dev" "$dir"; else sudo mount -t ext4 "$dev" "$dir"; fi
+  sudo umount "$dir"; rmdir "$dir"
+}

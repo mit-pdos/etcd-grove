@@ -1,7 +1,7 @@
 #!/bin/bash
 # fs-v2-r5 (b): run one metaops scenario on a filesystem of configuration C behind dm-log-writes,
 # then replay.py rebuilds the disk at every flush/FUA point of the log (the states a crash can
-# leave on a device that honours flushes), recovers each with e2fsck, and checks it against the
+# leave on a device that honours flushes), recovers each by a kernel mount (as a boot), and checks it against the
 # model's journal order.
 # Usage: meta.sh WORKDIR SCENARIO [MOUNTOPTS (default commit=1)] [SLEEP]
 set -u

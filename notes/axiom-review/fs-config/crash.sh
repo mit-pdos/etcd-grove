@@ -3,7 +3,7 @@
 # the interleaving where ext4 has committed metadata (sizes, extents) whose data is still in
 # flight. A dm table maps the journal's blocks linearly and every other block through dm-delay
 # (writes held $DELAY ms; reads and flushes pass), so commits reach the backing file at once and
-# data does not; a copy of the backing file taken then is the crash, and e2fsck replays it.
+# data does not; a copy of the backing file taken then is the crash, and c_recover replays it (a kernel mount, as a boot).
 #
 # Usage: crash.sh WORKDIR SCENARIO [MOUNTOPTS]
 # Scenarios (each from a synced file f; the outcome the Fs v2 crash rule allows in brackets):
@@ -41,7 +41,7 @@ if [ "$SC" = append-end ]; then
   xfs_io -c "sync_range -abw 0 0" "$F0"
   sudo cp "$IMG" "$IMG.pre"; sudo umount "$D/mnt"; sudo losetup -d "$L"
   mv "$IMG.pre" "$IMG"; L=$(sudo losetup --find --show "$IMG")
-  sudo e2fsck -fy "$L" >/dev/null 2>&1
+  c_recover "$L"
   B=$(sudo debugfs -R "bmap /f 0" "$L" 2>/dev/null | tail -1)
   echo "start: size $(sudo debugfs -R 'stat /f' "$L" 2>/dev/null | awk '/Size:/ {print $NF; exit}'), block $B on disk: $(sudo dd if="$IMG" bs=4096 skip="$B" count=1 2>/dev/null | od -An -tx1 -N3)"
 fi
@@ -84,7 +84,7 @@ sudo cp "$IMG" "$IMG.crash"
 sudo sysctl -q vm.dirty_writeback_centisecs="$OLD"
 sudo umount "$D/mnt"; sudo dmsetup remove cdelay; sudo losetup -d "$L"
 L2=$(sudo losetup --find --show "$IMG.crash")
-sudo e2fsck -fy "$L2" >/dev/null 2>&1
+c_recover "$L2"
 echo "crash image: size $(sudo debugfs -R 'stat /f' "$L2" 2>/dev/null | awk '/Size:/ {print $NF; exit}'); extents: $(sudo debugfs -R 'ex /f' "$L2" 2>/dev/null | tail -n +2 | tr -s ' ' | tr '\n' ';')"
 c_mount "$L2" "$D/mnt2"
 F2=$D/mnt2/f

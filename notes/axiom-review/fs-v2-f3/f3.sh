@@ -12,7 +12,7 @@
 # 2. pwrite 07 at offset 1 (in the same block), not synced.
 # 3. sync_file_range writes the data page back without committing the journal (commit=300 keeps
 #    the periodic commit away): on disk, the block holds 00 07 and the inode's size is 1.
-# 4. The crash: a copy of the image taken while mounted, then the journal replayed (e2fsck).
+# 4. The crash: a copy of the image taken while mounted, then the journal replayed (c_recover: a kernel mount, as a boot).
 # 5. The copy mounted, the file extended, bytes 0-3 read.
 set -u
 D=${1:?workdir}
@@ -37,7 +37,7 @@ sudo cp "$IMG" "$IMG.crash"
 sudo umount "$D/mnt"; sudo losetup -d "$LOOP"
 LOOP2=$(sudo losetup --find --show "$IMG.crash")
 if [ "$FS" = ext4 ]; then
-  sudo e2fsck -fy "$LOOP2" >/dev/null 2>&1   # replays the journal
+  c_recover "$LOOP2"
   BLK=$(sudo debugfs -R "bmap /f 0" "$LOOP2" 2>/dev/null | tail -1)
   SZ=$(sudo debugfs -R 'stat /f' "$LOOP2" 2>/dev/null | awk '/Size:/ {print $NF; exit}')
   RAW=$(sudo dd if="$IMG.crash" bs=4096 skip="$BLK" count=1 2>/dev/null | od -An -tx1 -N2)
