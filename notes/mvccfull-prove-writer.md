@@ -44,10 +44,12 @@ With these, `writeSub`, `write`, `gen` and `txn` are proved without `sorry`.
   `lessorW` holds a reader slot, not the pool) gives; and lease has no law from `Leases()`'s post to
   the owner's live set in `leaseOwn`. Fix: the spec (or `lessorW`) carries the pool and a token;
   lease adds that law.
-- **`runner.compact`**: `mvcc.api.KV.Compact.contract` gives no `ch ≠ chan.nil` in its
-  ErrCompacted and success branches, which the tester checks (`compactChanOk` is met by a nil
-  channel, whose receive blocks). Fix: the contract says `ch ≠ nil` there (true of mvcc: both paths
-  `make` the channel). A proof modulo that fact was started (CompactLemmas).
+- **`runner.compact`: proved but for four `sorry`s, two gaps of the frozen mvcc API** (each in the
+  ErrCompacted and the success branch; `7700669085`, `CompactLemmas.lean`): (1) `KV.Compact.contract`
+  gives no `ch ≠ chan.nil`, which the tester checks (`compactChanOk` is met by a nil channel, whose
+  receive blocks); (2) `compactChanOk`'s receive returns an arbitrary value, and the code's `<-ch`
+  takes its `Fst`. Fix (mvcc's API, the user's): `ch ≠ nil` in both branches, and the receive's
+  result a pair. Everything else proved (`compact_au`, the bounds, the hook, the history).
 
 ## Modules added (the writer's own)
 
