@@ -10,7 +10,7 @@ require (
 	google.golang.org/protobuf v1.36.11
 )
 
-replace go.etcd.io/raft/v3 => github.com/upamanyus/etcd/v3 v3.0.0-20261020071933-99cb9e2d98d4
+replace go.etcd.io/raft/v3 => github.com/upamanyus/etcd/v3 v3.0.0-20261110054355-3e3ed2d29742
 
 // The driver and the vendored porcupine (third_party/porcupine/UPSTREAM.md), as translated.
 replace (
