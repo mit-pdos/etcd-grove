@@ -258,6 +258,25 @@ theorem trCapB_pin (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM
   isplitr; · ipureintro; exact Hnn
   ipureintro; exact ⟨rfl, rfl, rfl, HΦ⟩
 
+/-- `trCapB_pin` with the node among the pinned voters (review a2-r5's 1: `fxPres_heartbeat_pin`'s
+`id ∈ C0` from the capability, not by unfolding it). -/
+theorem trCapB_pinMem (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (b : Bool)
+    (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ : Option TraceEv → Prop) :
+    trCapB (GF := GF) (some γd) γ r id c b Φ Λ ⊢
+      ∃ (C0 : List w64) (cs0 : ServerC) (P0 : List Etcdraft.Msg), ⌜Φ C0 cs0 P0 ∧ id ∈ C0⌝ ∗
+        trCapB (some γd) γ r id c b (fun C cs P => C = C0 ∧ cs = cs0 ∧ P = P0 ∧ Φ C cs P) Λ := by
+  iintro H
+  iunfold trCapB at H
+  icases H with ⟨%tn, %C, %tl, %cs, %P, #Hdir, %Hpf, #Htl, #Hlg, %Hnn, #Hinv, #Hrinv, Hnode, Hbt, %HΦ⟩
+  iexists C, cs, P
+  isplitr; · ipureintro; exact ⟨HΦ, Hpf.2.2.2⟩
+  iunfold trCapB
+  iexists tn, C, tl, cs, P
+  iframe Hdir Htl Hlg Hinv Hrinv Hnode Hbt
+  isplitr; · ipureintro; exact Hpf
+  isplitr; · ipureintro; exact Hnn
+  ipureintro; exact ⟨rfl, rfl, rfl, HΦ⟩
+
 /-- **The traced family**: the capability (booted `b`) in the phase `Φs` of the server, its share's
 pending list the outbox's traced messages up to order (`PhaseAt`). -/
 def trFam (tr : Option GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (b : Bool)

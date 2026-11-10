@@ -263,7 +263,7 @@ def AppSliceOf (σ : Etcdraft.State) (m : Etcdraft.Msg) : Prop :=
 theorem appSlices_iff (σ : Etcdraft.State) :
     AppSlices σ ↔ ∀ m ∈ σ.messages.domain ++ σ.pendingMessages.domain, AppSliceOf σ m := Iff.rfl
 
-/-- A message with no entries, or not an append request, has its clause. -/
+/-- A message with no entries has its clause. -/
 theorem appSliceOf_nil (σ : Etcdraft.State) (m : Etcdraft.Msg) (h : m.entries = []) : AppSliceOf σ m := by
   intro _ _ _ _ _ _ k e he; rw [h] at he; simp at he
 

@@ -252,12 +252,12 @@ theorem phaseStepB_heartbeat_pin (id : w64) (c : CfgM) (s : NState) (o : List Ms
     bt bc bl (by show uint.Z cm < 2 ^ 63; omega)
 
 /-- **The heartbeat's facts' premises at the pinned idle phase** (`fxPres_heartbeat`'s `hlead`): the
-idle server is a leader of the node's term, its commit index the node's, at least the heartbeat's. -/
+idle server is a leader of the node's term, its commit index the node's, at least the heartbeat's (the
+bound only: the gate gives it, review a2-r5's 2). -/
 theorem heartbeat_lead (s : NState) (C0 : List w64) (cs0 : ServerC) (P0 : List Etcdraft.Msg) (o : List Msg)
     (id to cm : w64) (cl : List w8) (ma0 : Etcdraft.Msg)
     (hma : TraceSim.msgAbs C0 C0.length (Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl) = some ma0)
-    (hlead : s.role = .leader)
-    (hcm : uint.Z cm = min (uint.Z s.logst.committed) (uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0)))) :
+    (hlead : s.role = .leader) (hcm : uint.Z cm ≤ uint.Z s.logst.committed) :
     ∀ C cs P, PinAt s C0 cs0 P0 o C cs P →
       cs.state = Etcdraft.leader ∧ ma0.term = cs.currentTerm ∧ ma0.commitIndex ≤ cs.commitIndex := by
   rintro C cs P ⟨rfl, rfl, -, ⟨a, rfl, hR, -⟩, -⟩
@@ -456,12 +456,11 @@ theorem stepBundle_traced_localNoLine : stepBundle_traced.on (GF := GF) (hG := h
 
 /-- **A leader's heartbeat line's facts at the pinned idle phases** (`fxPres_heartbeat` with
 `pinAt_step`, `heartbeat_lead`): what the `MsgBeat` path's heartbeat gate needs besides its phase step
-`phaseStepB_heartbeat_pin`. -/
+`phaseStepB_heartbeat_pin`; `id ∈ C0` from `trCapB_pinMem`. -/
 theorem fxPres_heartbeat_pin (γ : RaftNames) (id : w64) (E : TraceEv → Prop) (s : NState) (o : List Msg)
     (to cm : w64) (cl : List w8) (C0 : List w64) (cs0 : ServerC) (P0 : List Etcdraft.Msg) (ma0 : Etcdraft.Msg)
     (hma : TraceSim.msgAbs C0 C0.length (Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl) = some ma0)
-    (hC0 : id ∈ C0) (hlead : s.role = .leader)
-    (hcm : uint.Z cm = min (uint.Z s.logst.committed) (uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0)))) :
+    (hC0 : id ∈ C0) (hlead : s.role = .leader) (hcm : uint.Z cm ≤ uint.Z s.logst.committed) :
     ⊢ FxPres (GF := GF) γ id E (PinAt s C0 cs0 P0 o)
       (PinAt s C0 cs0 (P0 ++ [ma0]) (o ++ [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl])) := by
   have hma' := hma

@@ -34461,11 +34461,13 @@ transcribes): append requests are created only by `appendEntriesInRangeToPeer` (
 `Ready` and the receive handlers create none. A server's log changes only by `Replicate` (appends),
 `ConflictAppendEntriesRequest`/`NoConflictAppendEntriesRequest`/`HandleSnapshotRequest` (reached
 through `AcceptAppendEntriesRequest`, a follower only) and `Restart` (which makes it a follower); a
-leader never becomes one again in its term (`BecomeLeader` needs a candidate, a candidacy a new term),
-and a candidate has no append request of its term out (`CandS`). So `simFx` gains the pure clause
+step-down, a term change or a restart makes the clause below vacuous, and at `BecomeLeader` it holds
+vacuously since a candidate has no append request of its term out (`CandS`, which also covers a
+restart back to an earlier term: review a2-r5). So `simFx` gains the pure clause
 `AppSlices σ`: while `i` leads term `T`, every in-flight append request of term `T` from `i` carries at
-each position the entry of `i`'s log at that index. It is inductive (a new request is a slice; the log
-only grows in the term; stepping down makes the clause vacuous) and it is all a send needs: the
+each position the entry of `i`'s log at that index. It is inductive with `CandS` (a new request is a slice; the log
+only grows while leading; stepping down makes the clause vacuous; `BecomeLeader` by `CandS`; checked by
+reading, review a2-r5, not yet by preservation lemmas) and it is all a send needs: the
 coordinator's suggested pairwise half (any two term-`T` requests agree) is not needed, since
 `MsgsUniq` is itself the invariant and a send only adds pairs with the new request, whose sender leads
 its term, so both sides are slices of one log (`pinned_of_slices`). Kept as a clause of `simFx`
@@ -34483,5 +34485,8 @@ there needs every voter's `srvFacts` of the bootstrap log (its records, commit c
 ghost state at the cluster's allocation, not a small lemma; the new clauses hold trivially there (empty
 bags).
 
-**Open.** The heartbeat gate's exact commit (slice 16; slice 17's); `simFx` at the initial state (layer
-B's allocation); the path proofs themselves. Reviews: `notes/trace-validation-reviews/a2-r1.md` … `a2-r6.md`.
+**Open.** The heartbeat gate's exact commit (slice 16; slice 17's; `heartbeat_lead` and
+`fxPres_heartbeat_pin` need only its bound); `simFx` at the initial state (layer B's allocation);
+`AppSlices`' preservation lemmas for the callers' lines (`Replicate`, `BecomeLeader`, step-downs, a
+follower's receives; a2-r5) and an `"app"` counterpart of `heartbeat_lead` for `fxPres_app`'s `hlead`;
+the path proofs themselves. Reviews: `notes/trace-validation-reviews/a2-r1.md` … `a2-r6.md`.

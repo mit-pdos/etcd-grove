@@ -818,11 +818,12 @@ def MsgsShape (σ : Etcdraft.State) : Prop :=
 
 /-- **A leader's append requests of its term are slices of its log** (amendment A2, Q16; the notes'
 `AppSlices`): while server `i` leads term `T`, every append request in flight of term `T` from `i`
-carries, at each of its positions, the entry of `i`'s log at that index. Inductive: only the term's
-leader sends append requests of its term, from its log (`appendEntriesInRangeToPeer`); a leader's log
-only grows within its term (`Replicate`; truncations, `ConflictAppendEntriesRequest` and a snapshot's,
-happen at followers only); a candidate has none of its term out (`CandS`), and a leader steps down
-for good in its term. With it, a new append request of the leader matches no other in-flight request
+carries, at each of its positions, the entry of `i`'s log at that index. Inductive with `SpecInv`'s
+`CandS`: only a leader sends append requests, from its log (`appendEntriesInRangeToPeer`); a leader's
+log only grows while it leads (`Replicate`; truncations, `ConflictAppendEntriesRequest` and a
+snapshot's, happen at followers only); a step-down, a term change or a restart makes the clause
+vacuous; and at `BecomeLeader` it holds vacuously, a candidate having no append request of its term out
+(`CandS`), whatever happened in that term before (a restart may return to an earlier term). With it, a new append request of the leader matches no other in-flight request
 differing from it in its entries (which its line logs by count only). -/
 def AppSlices (σ : Etcdraft.State) : Prop :=
   ∀ m ∈ σ.messages.domain ++ σ.pendingMessages.domain, m.type = .appendEntriesRequest →
