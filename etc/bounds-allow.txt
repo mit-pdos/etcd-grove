@@ -67,3 +67,10 @@ spec-rev ^Spec/github_com/mit_pdos/etcd_grove/examples/mvccfull/runner__(end|gen
 # The writer lends each incarnation's shares to its epoch's streams and gathers them back (`epochTok`
 # per stream, `shares_split`/`shares_join`): the owner of the lending.
 stock ^Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/WriterShares\.lean$
+# mvccfull's readers' epoch stock, by its owner (mvccfull F1 Prove, 2026-11-10): the writer lends an
+# epoch's `n = 2 * cfg.Readers` readers their parts (`rdStock`: `n` history reader slots, `n` store
+# reader tokens per member, the retirement-token and `kv` shares), `Readers.lean` defines the stock
+# and its split into the readers' parts at `q / n` (`rdStock_split`), and `startReaders`, which starts
+# the `n` goroutines, hands one part to each and lends the stock to the readers' wait group, whose
+# `Wait` (`stopReaders`) returns it whole. The count is the tester's configuration, fixed by `Run`.
+stock ^Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/(Readers|runner__startReaders)\.lean$
