@@ -6,28 +6,64 @@ theorem raft.tickHeartbeat.wp_proof [package_sem : Assumptions] (wp_raft_Step : 
     (wp_raft_abortLeaderTransfer : raft.abortLeaderTransfer.spec) (wp_MessageType_Enum :
     raftpb.MessageType.Enum.spec) : raft.tickHeartbeat.spec
   -- `Perennial.EtcdGrove.raft.tickHeartbeat.spec`, unfolded:
-  ∀ (c : CfgM) (md : GMode) (γ : RaftNames) (r : Loc) (id : w64) (s : NState),
+  ∀ (c : CfgM) (md : GMode) (γ : RaftNames) (r : Loc) (id : w64) (s : NState) (R : StepG GF)
+    (Gm Gout : NState → IProp GF),
     NStateWf s →
       md.Guard s →
-        s.gh.tr = none →
-          ⊢
-            ∀ Φ,
-              isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                  "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗ "Hghost" ∷ ownStepGhost γ md c id s -∗
-                (▷
-                    ∀ s',
-                      "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
-                          "Hghost" ∷ ownStepGhost γ md c id s' ∗
-                            "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
-                              "%Hcm" ∷
-                                  ⌜uint.Z s.logst.committed ≤ uint.Z s'.logst.committed ∧
-                                      PVoteLe (toPState s) (toPState s')⌝ ∗
-                                "%Htick" ∷ ⌜TickStep s s'⌝ -∗
-                        Φ (intoVal ())) -∗
-                  WP
-                    ((intoVal
-                        (methods raft.ty.PointerType
-                          go!"tickHeartbeat"
-                          (intoVal r)))
-                      (intoVal ()))
-                    {{ Φ }}
+        ⊢
+          ∀ Φ,
+            (isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+                  "Hghost" ∷ ownStepGhost γ md c id s ∗
+                    "HG" ∷ R.G ∗
+                      "Hgcq" ∷
+                          (⌜s.cq = true⌝ -∗
+                            stepGates c r id s (tickMsg MsgCheckQuorum id) [] none [] [] (ghostIn γ md c id s R) ∗
+                              stepClose γ md c id (tickMsg MsgCheckQuorum id) s R Gm) ∗
+                        "Hskip" ∷ (R.G ={⊤}=∗ Gm s) ∗
+                          "Hgbeat" ∷
+                            ∀ s1 s2,
+                              ⌜s2.gh = s.gh ∧
+                                    s2.role = PRole.leader ∧
+                                      (s2 = s1 ∨
+                                        s2 =
+                                          { term := s1.term, vote := s1.vote, lead := s1.lead, role := s1.role,
+                                            votes := s1.votes, outbox := s1.outbox, stepfn := s1.stepfn,
+                                            ticking := s1.ticking, progress := s1.progress, log := s1.log,
+                                            logst := s1.logst, prvals := s1.prvals, prevote := s1.prevote, gh := s1.gh,
+                                            rd := s1.rd, pci := s1.pci, isLearner := s1.isLearner, sdr := s1.sdr,
+                                            cq := s1.cq })⌝ -∗
+                                Gm s1 ={⊤}=∗
+                                  ∃ R2,
+                                    R2.G ∗
+                                      stepGates c r id s2 (tickMsg MsgBeat id) [] none [] [] (ghostIn γ md c id s2 R2) ∗
+                                        stepClose γ md c id (tickMsg MsgBeat id) s2 R2 Gout) -∗
+              (▷
+                  ∀ s',
+                    "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
+                        "Hghost" ∷ ownStepGhost γ md c id s' ∗
+                          "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
+                            "%Hcm" ∷
+                                ⌜uint.Z s.logst.committed ≤ uint.Z s'.logst.committed ∧
+                                    PVoteLe (toPState s) (toPState s')⌝ ∗
+                              "%Htick" ∷ ⌜TickStep s s'⌝ ∗
+                                "HG" ∷
+                                  ((∃ s1,
+                                      ⌜s' = s1 ∨
+                                            s' =
+                                              { term := s1.term, vote := s1.vote, lead := s1.lead, role := s1.role,
+                                                votes := s1.votes, outbox := s1.outbox, stepfn := s1.stepfn,
+                                                ticking := s1.ticking, progress := s1.progress, log := s1.log,
+                                                logst := s1.logst, prvals := s1.prvals, prevote := s1.prevote,
+                                                gh := s1.gh, rd := s1.rd, pci := s1.pci, isLearner := s1.isLearner,
+                                                sdr := s1.sdr, cq := s1.cq }⌝ ∗
+                                        Gm s1) ∨
+                                    Gout s') -∗
+                      Φ (intoVal ())) -∗
+                WP
+                  ((intoVal
+                      (methods raft.ty.PointerType
+                        go!"tickHeartbeat"
+                        (intoVal r)))
+                    (intoVal ()))
+                  {{ Φ }}

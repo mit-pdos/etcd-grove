@@ -34076,3 +34076,69 @@ clients are raft's node API, which keeps its statements); no ghost change; no ax
 **Not done (slice 11).** Piece 2 (`raft.Step.traced` at `HasLC.hasLC`: building `stepGates` and
 `stepClose` from `trCapB` and raft's ghost) and piece 3 (`tickElection`/`tickHeartbeat` gated): see the
 plan's paragraph.
+
+## Q8 stage 1 (slice 12): `Step`'s closing resource at the end state; the ticks one spec for both modes; `raft.Step.traced` needs the end state pinned (2026-11-10 · trace-check, Q8 stage 1 slice 12; decided by the agent under the user's delegation · branch `trace-check-q8s12`; DRAFT until trace-check's Freeze)
+
+**`Gout` at the end state.** `raft.Step.spec`'s caller resource after the step is `Gout : NState → IProp GF`,
+given at the state `Step` returns (`"HG" ∷ Gout s'`), and `stepClose γ md c id m s R Gout` gives `Gout s'`
+for the end state `s'` it is handed. `Step`'s proof already called the closing wand at the state it
+returns, in every branch but the snapshot acknowledgement's (closed at `s`, now at the acknowledged
+state). Why: with `Gout` fixed before the step, a caller's resources after `Step` cannot mention the
+state `Step` returns, so a traced caller could not keep its capability's phase about raft's state
+(`SimIdle C s'`), and a tick's second step could not get its gates at the first's end state. The
+untraced instance passes `fun _ => emp` (`raft.Step.untraced`, statement unchanged).
+
+**The ticks, one spec for both modes** (`raft.tickElection.spec`, `raft.tickHeartbeat.spec`), in place
+of stage 0's `s.gh.tr = none`:
+- the local message a tick steps is named, `tickMsg ty id` (`LemmasStepGates.lean`, with its `@[simp]`
+  projections), so that the specs can state `Step`'s gates for it;
+- `tickElection`: `R.G`, `stepGates … s (tickMsg MsgHup id) … (ghostIn … s R)`, `stepClose … Gout`; back
+  `(⌜s' = s⌝ ∗ R.G) ∨ Gout s'` (no campaign: nothing changed);
+- `tickHeartbeat`: two steps. The quorum check's gates and closing wand at `s` under `⌜s.cq = true⌝`,
+  ending in the caller's `Gm` at its end state; `"Hskip"` (`R.G ={⊤}=∗ Gm s`) when no quorum check runs;
+  the heartbeat's resources, gates and closing wand produced by the caller from `Gm s1` at the state
+  `s2` the first part left (`"Hgbeat"`: `∀ s1 s2, ⌜s2.gh = s.gh ∧ s2.role = .leader ∧ (s2 = s1 ∨ s2 =
+  { s1 with lt := W64 0 })⌝ -∗ Gm s1 ={⊤}=∗ ∃ R2, …`: the abort of a leader transfer, which no hook
+  traces, between them), ending in `Gout`; back `(∃ s1, ⌜s' = s1 ∨ s' = { s1 with lt := W64 0 }⌝ ∗ Gm s1)
+  ∨ Gout s'`. The second step's resources are existential (`∃ R2`), not a parameter: they are about a
+  state the caller learns only then (the untraced instance's are raft's ghost at `s2`). Rejected: one
+  bundle for both steps (the second's gates would be at a state the caller cannot name); `Gm` fixed
+  (the caller could not relate it to `s1`).
+- Untraced instances `raft.tickElection.untraced`, `raft.tickHeartbeat.untraced`
+  (`TracedUntracedTick.lean`, the statements before slice 12) from `untracedR` (raft's ghost state in
+  every resource after the first, the caller's `emp`) and `stepBundle_none` (the gates and the closing
+  wand from the struct's nil logger, `TracedUntracedRaftStep.lean`); `RawNode.Tick` takes them with a
+  `have` (its spec unchanged, `Link.lean` unchanged).
+
+**`raft.Step.traced` (piece 2) is not derivable from `raft.Step.spec` as it stands: the closing wand
+does not pin the end state.** A traced caller holds, after the path's last line, the capability in the
+phase that line's effect leads to: a description of the TLA server after the whole handler (a receive
+line's effect is the handler's: the vote recorded, the progress updated, the reply pending), which it
+must state as `SimIdle C ŝ` for the state `ŝ` raft will be in. Raft's hook runs at the handler's start
+and raft mutates the state after it (`poll`'s vote record, `MaybeUpdate`, `maybeCommit`), so `ŝ` is a
+prediction, and the closing wand learns of the end state only `StepCD … s recv s'` (`StepC`, a
+relation with `refl`/`trans`/`drain`: not a function). So `Gout s'` cannot be produced from the
+capability at `ŝ` without `ŝ = s'` (up to what `SimIdle` reads). **Recommended (raft-internal, not
+client-visible):** the closing wand also receives the code's exact end state on the traced paths, a
+definition `StepEnd c id m ents s s'` in `LemmasStepGates.lean` (per type and role, in the gates' own
+states: the vote request's answer `sendMsgs (preState s m pvs) [vrespMsgOf …]`, a vote response's
+`{ preState … with votes := recordVote … }` or the win's `becomeLeader` chain, `HandleAppResult`'s
+state with the reply, `commitAt s b N` with `appRespMatch`, a heartbeat's reply state, …; `True` on the
+untraced types), which each branch lemma already knows and passes to `gate_close`. Rejected:
+state-indexed gate resources (the mutation follows the hook, so the index would be the hook's state,
+not the end state); a functional model of all of `Step` (only the traced paths need it). Until then
+the traced corollary has no statement to prove; the pieces that do not depend on it (each line's
+`PhaseStep*`/`FxPres*` at the gates' states, the receive line's gate from the token) can proceed.
+
+**`appliedTo`, one spec for both modes.** Its stage-0 premise `s.gh.tr = none` was used only by its
+automatic leave (the `MsgProp` of an empty `ConfChangeV2` stepped through `wp_Step_MsgProp`), a
+configuration change, which a traced node never proposes (P3; its configuration is the voters', never
+joint). So the premise narrows to `c.autoLeave = true → s.gh.tr = none`, and `raft.Step.spec`'s
+application-acknowledgement premise to `m.Type' = MsgStorageApplyResp → ents ≠ [] → c.autoLeave = true →
+s.gh.tr = none`. No separate untraced instance: the new premise follows from `s.gh.tr = none` at each
+caller (`appliedSnap`, `Step`'s branch, `raft.Step.untraced`). `appliedSnap` keeps `s.gh.tr = none`: it
+runs only for a snapshot, which a traced node never has (P2), and its tracker rebuild's hook
+(`switchToConfig`) is not gated.
+
+No ghost change; no client-visible change (`raft.Step.spec`, the tick specs and `appliedTo`'s are
+raft-internal; the node API keeps its statements); no axiom or `sorry`.

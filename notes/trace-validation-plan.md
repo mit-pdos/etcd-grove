@@ -696,6 +696,31 @@ receipt fit (`readyFits`, for `ownRaftGhost_traceBound`); piece 3, `tickElection
 `Step`'s gates for `MsgHup`/`MsgCheckQuorum`/`MsgBeat` (two steps in one tick: the second's gates at the
 first's unnamed end state), with untraced instances; then `appliedTo`/`appliedSnap` gated and the node API.
 
+**Q8 stage 1 (slice 12), 2026-11-10 (branch `trace-check-q8s12`): `Step`'s closing resource at the end
+state; piece 3 done (the ticks one spec for both modes); `appliedTo` gated; piece 2 (`raft.Step.traced`)
+found not derivable as `Step`'s spec stands.** Decided by the agent (`notes/decisions.md`, "Q8 stage 1
+(slice 12)"). Done: (1) `raft.Step.spec`'s `Gout : NState → IProp GF`, given at the state `Step` returns
+(`stepClose` gives `Gout s'`; the snapshot acknowledgement's branch now closes at the state it returns).
+(2) `raft.tickElection.spec` and `raft.tickHeartbeat.spec` take `Step`'s gates for their local messages
+(`tickMsg`, `LemmasStepGates.lean`): `tickElection` one bundle at `s`, back `(⌜s' = s⌝ ∗ R.G) ∨ Gout s'`;
+`tickHeartbeat` the quorum check's bundle at `s` under `s.cq = true` ending in `Gm`, `"Hskip"` (`R.G ={⊤}=∗
+Gm s`), and the heartbeat's bundle produced from `Gm s1` at the state `s2` after the transfer abort
+(`∃ R2`), back `(∃ s1, … ∗ Gm s1) ∨ Gout s'`; untraced instances `raft.tickElection.untraced`,
+`raft.tickHeartbeat.untraced` (`TracedUntracedTick.lean`, from `untracedR`/`stepBundle_none`), which
+`RawNode.Tick` takes. (3) `appliedTo`'s premise narrowed to its automatic leave (`c.autoLeave = true →
+s.gh.tr = none`), `Step`'s acknowledgement premise with it; `appliedSnap` keeps `s.gh.tr = none` (P2).
+No ghost change; no client-visible change; no axiom or `sorry`. **Finding (piece 2):** a traced caller's
+last gate leaves the capability in a phase about the TLA server after the whole handler, i.e. about the
+state raft will reach, which raft reaches only after mutations that follow the hook (vote record,
+progress update, commit); the closing wand learns only `StepCD … s recv s'`, a relation that does not
+pin `s'`, so `Gout s'` cannot be produced. **Next (piece 2, recommended):** give `stepClose` the code's
+exact end state on the traced paths (`StepEnd c id m ents s s'`, per type and role in the gates' own
+states, `True` on untraced types; each branch lemma passes it to `gate_close`); then state
+`raft.Step.traced` with `trCapB … (fun C => SimIdle C s)` in and `SimIdle C s'` out, the token of the
+received message, and the node's premises (`TrOk`, `termLB`, `readyFits`), and build its gates per path
+(`trCapB_hookGate*`, a receive-line gate from `trCap_fire_recv` still to write, `lineEffect_*`, the
+`FxPres*` facts from raft's ghost); then the ticks' traced corollaries over it and the node API. Checked (branch at its base `8ebee7832f` plus this slice): full `lake build` green (13788 jobs); `etc/tcb-report.py --check` (806 axioms, 4 `sorry`s, unchanged) and all 53 collections `--reuse --check`, none updated; `interface/` differs in four proof files only (`raft__Step`: `Gout` at the end state and the narrowed acknowledgement premise; `raft__appliedTo`: its premise; `raft__tickElection`, `raft__tickHeartbeat`: their gated specs); `etc/api-check.py` 0 errors; `--layout` 0 new; `etc/gen-link.py --raft` unchanged.
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its
