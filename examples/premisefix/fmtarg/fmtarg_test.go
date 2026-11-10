@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
+	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -93,7 +94,7 @@ func TestMethodCalled(t *testing.T) {
 // methodSet ei.ty !! "Format" = none) implements fmt.Formatter, so fmt calls their Error method:
 // the standard library's errors the proofs see, grpc's *status.Error (from status.Error and from
 // status.FromContextError(...).Err()), rpctypes' EtcdError (client side, from rpctypes.Error) and
-// the context errors.
+// the context errors, and bcrypt.GenerateFromPassword's errors.
 func TestNoFormatter(t *testing.T) {
 	ft := reflect.TypeOf((*fmt.Formatter)(nil)).Elem()
 	cctx, cancel := context.WithCancel(context.Background())
@@ -110,6 +111,8 @@ func TestNoFormatter(t *testing.T) {
 		rpctypes.Error(rpctypes.ErrGRPCCompacted),
 		rpctypes.ErrNoLeader,
 		dctx.Err(),
+		// bcrypt.GenerateFromPassword's two errors
+		bcrypt.ErrPasswordTooLong, bcrypt.InvalidCostError(99),
 	}
 	for _, e := range errs {
 		if reflect.TypeOf(e).Implements(ft) {
@@ -122,6 +125,12 @@ func TestNoFormatter(t *testing.T) {
 	}
 	if _, ok := rpctypes.Error(rpctypes.ErrGRPCNoLeader).(rpctypes.EtcdError); !ok {
 		t.Errorf("rpctypes.Error(ErrGRPCNoLeader) is %T, not rpctypes.EtcdError", rpctypes.Error(rpctypes.ErrGRPCNoLeader))
+	}
+	if _, err := bcrypt.GenerateFromPassword(make([]byte, 73), bcrypt.MinCost); err != bcrypt.ErrPasswordTooLong {
+		t.Errorf("GenerateFromPassword of 73 bytes: %v", err)
+	}
+	if _, err := bcrypt.GenerateFromPassword([]byte("p"), 99); reflect.TypeOf(err) != reflect.TypeOf(bcrypt.InvalidCostError(0)) {
+		t.Errorf("GenerateFromPassword at cost 99: %T", err)
 	}
 	if !errors.Is(dctx.Err(), context.DeadlineExceeded) {
 		t.Errorf("deadline context's Err is %v", dctx.Err())
