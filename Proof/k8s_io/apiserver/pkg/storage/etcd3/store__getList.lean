@@ -57,7 +57,124 @@ theorem store.getList.wp_proof
   (try wp_auto)
   wp_apply _root_.Perennial.time.wp_Now as %t0 -
   (try wp_auto)
-  sorry
+  cases recur
+  · -- not recursive: `Get` at the revision
+    have hc0 : lo.Continue' = [] := hrc rfl
+    (try wp_auto)
+    rw [method_unfold (t := go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty)
+      (m := go!"Get")]
+    wp_call
+    (try wp_auto)
+    wp_apply (wp_kGetAt (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
+        (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty) #c.kc))
+        c.ms c.V ci cd kp (go_etcd_io.etcd.client.v3.kubernetes.GetOptions.mk lo.Revision') Q hkp
+        hrev) $$ [HQ]
+      as %gresp %gerr Hget
+    · iframe #
+      iexact HQ
+    (try wp_auto)
+    wp_apply (wp_RecordEtcdRequest go!"get" c.gr _ _ (by decide) Hutf.1 Hutf.2) $$ []
+    (try wp_auto)
+    wp_if_destruct
+    all_goals (try wp_auto)
+    all_goals
+      wp_apply wp_slice_literal
+      isplitr
+      · ipureintro; rfl
+      iintro %asl ⟨Hasl, -⟩
+      (try wp_auto)
+      wp_apply (wp_rse Obj sp c) $$ [Htt] as Htt
+      · iframe #
+        iexact Htt
+      (try wp_auto)
+      (try wp_if_destruct) <;> (try wp_auto) <;> (
+        iapply HΦ
+        iframe Htt
+        icases Hget with (⟨%Hge, %σ, #HQσ, %Hσ, #Hkv⟩ | ⟨%Hge, %Hce', #Hse, #Hcl', #Hrs⟩)
+        · ileft
+          isplitr
+          · ipureintro; exact Hge
+          iexists σ
+          iframe HQσ
+          isplitr
+          · ipureintro; exact Hσ.2.1
+          simp only [listRespIs, hc0, ↓reduceIte, Bool.false_eq_true, pageKvsL_key]
+          generalize mvcc.findKey kp (σ.at (σ.readRev lo.Revision')).kvs = fk
+          cases fk with
+          | none =>
+            iunfold kubernetes.kvOut at Hkv
+            icases Hkv with %Hn
+            (try (exfalso; contradiction))
+            all_goals
+              isplitr
+              · ipureintro; exact ⟨Hσ.1, rfl⟩
+              rw [show List.replicate (go.arrayLiteralSize []).toNat (zero_val Loc) = [] from rfl]
+              iexists []
+              isplitl [Hasl]
+              · iexact Hasl
+              simp only [Option.toList]
+              iapply BigSepL2.bigSepL2_nil.2
+              iempintro
+          | some v =>
+            iunfold kubernetes.kvOut at Hkv
+            icases Hkv with ⟨%Hn, #Hv⟩
+            (try (exfalso; contradiction))
+            all_goals
+              isplitr
+              · ipureintro; exact ⟨Hσ.1, rfl⟩
+              iexists [gresp.KV']
+              isplitl [Hasl]
+              · iexact Hasl
+              simp only [Option.toList]
+              iapply BigSepL2.bigSepL2_cons.2
+              iframe Hv
+              iapply BigSepL2.bigSepL2_nil.2
+              iempintro
+        · iright
+          isplitr
+          · ipureintro; exact Hge
+          iunfold readErrIs
+          iunfold kClientErr
+          iunfold rangeErrSound at Hrs
+          iframe #
+          ipureintro; exact ⟨Hge, Hce'⟩)
+  · -- recursive: `List`
+    (try wp_auto)
+    rw [method_unfold (t := go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty)
+      (m := go!"List")]
+    wp_call
+    (try wp_auto)
+    wp_apply (wp_kList (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
+        (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty) #c.kc))
+        c.ms c.V ci cd kp lo Q hkp hct hrev hlim) $$ [HQ]
+      as %resp %lerr Hlist
+    · iframe #
+      iexact HQ
+    (try wp_auto)
+    wp_apply (wp_RecordEtcdRequest go!"list" c.gr _ _ (by decide) Hutf.1 Hutf.2) $$ []
+    (try wp_auto)
+    wp_apply (wp_rse Obj sp c) $$ [Htt] as Htt
+    · iframe #
+      iexact Htt
+    (try wp_auto)
+    wp_if_destruct <;> (try wp_auto) <;> (
+      iapply HΦ
+      iframe Htt
+      icases Hlist with (⟨%Hle, %σ, #HQσ, %Hσ, Hresp⟩ | ⟨%Hle, %Hce', #Hse, #Hcl', #Hrs⟩)
+      · ileft
+        isplitr
+        · ipureintro; exact Hle
+        iexists σ
+        iframe HQσ Hresp
+        ipureintro; exact Hσ.1
+      · iright
+        isplitr
+        · ipureintro; exact Hle
+        iunfold readErrIs
+        iunfold kClientErr
+        iunfold rangeErrSound at Hrs
+        iframe #
+        ipureintro; exact ⟨Hle, Hce'⟩)
 
 end proof
 

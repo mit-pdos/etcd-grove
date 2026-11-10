@@ -362,6 +362,44 @@ def pageKvsL (s : KVStore) (kp : GoString) (recur : Bool) (start : GoString) (l 
   let sc := s.kvs.filter fun v => kInScope kp recur v.key && !decide (go.GoStringLt v.key start)
   (if l = 0 then sc else sc.take l, sc.length)
 
+/-- In a key-sorted list (`KVStore.kvs_sorted`), the key-values of the key `k` are the one
+`findKey` finds, or none. -/
+theorem filter_key_eq_findKey (k : GoString) :
+    ∀ (s : List EtcdKv), s.Pairwise etcdKvLess →
+      s.filter (fun v => decide (v.key = k)) = (mvcc.findKey k s).toList
+  | [], _ => by simp [mvcc.findKey]
+  | w :: ws, hs => by
+    rw [List.pairwise_cons] at hs
+    rw [findKey_cons]
+    by_cases hw : w.key = k
+    · have hnil : ws.filter (fun v => decide (v.key = k)) = [] := by
+        rw [List.filter_eq_nil_iff]
+        intro y hy hyk
+        have hlt := hs.1 y hy
+        unfold etcdKvLess at hlt
+        simp only [decide_eq_true_eq] at hyk
+        rw [hw, hyk] at hlt
+        exact go.goStringLt_irrefl _ hlt
+      simp [hw, hnil]
+    · simp only [List.filter_cons, hw, decide_false, Bool.false_eq_true, ↓reduceIte]
+      exact filter_key_eq_findKey k ws hs.2
+
+/-- **A non-recursive list's page** (`getList`'s `Get` branch, from the key itself with `Count` at
+most one): the key's key-value in the store, or none. -/
+theorem pageKvsL_key (s : KVStore) (kp : GoString) :
+    pageKvsL s kp false kp 1 =
+      ((mvcc.findKey kp s.kvs).toList, (mvcc.findKey kp s.kvs).toList.length) := by
+  have hf : s.kvs.filter (fun v => kInScope kp false v.key && !decide (go.GoStringLt v.key kp)) =
+      s.kvs.filter (fun v => decide (v.key = kp)) := by
+    apply List.filter_congr
+    intro v _
+    by_cases hv : v.key = kp
+    · simp [kInScope, hv, go.goStringLt_irrefl]
+    · simp [kInScope, hv]
+  unfold pageKvsL
+  simp only [hf, filter_key_eq_findKey kp s.kvs (KVStore.kvs_sorted s)]
+  cases mvcc.findKey kp s.kvs <;> rfl
+
 /-- `getList`'s answer (Draft §3.5): a page of `σ`'s store at `σ.readRev rev`, the response's
 revision `σ`'s. -/
 def listRespIs (resp : go_etcd_io.etcd.client.v3.kubernetes.ListResponse) (σ : KVState)

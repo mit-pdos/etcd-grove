@@ -170,6 +170,31 @@ reader token from `storeListOk`'s pool).
 after a Go test (`examples/k8s7e2attack`) that the derived context of `context.Background()` has a
 `nil` `Done()`; B3 as recommended; B4 as recommended (`Client.GetAt.spec` a hypothesis until 7c-3).
 
+**Blocker found in the last third, after B1-B4 (2026-11-10; stop, for etcd-grove-81):**
+- **B5 (a later page's `ErrFutureRev`: `GetList.spec` and `pagesOk` are not provable from their
+  premises).** A page after the first reads at the first page's revision `R` (`store.go:893-898`)
+  with `P`'s update; if it fails with `ErrFutureRev`, `pagedChunks` yields
+  `listReadError`'s `NewTooLargeResourceVersionError` (`store.go:888-890`, `:923-930`) and `GetList`
+  returns it (`store.go:821-823`). `getList.spec` (proved) gives for that read only `readErrIs c R
+  (fun _ => P) err`, so `listReadError` gives `tooLargeErrIs e ∗ ∃ σ', □ P σ' ∗ ⌜σ'.rev < R⌝`. The
+  Draft's `pagesOk` admits `tooLargeErrIs e` only with `o = none` (the first page), and `GetList`'s
+  post only when `Q`'s state `σ` has `σ.rev < R`, while the first page succeeded with `R ≤ σ.rev`.
+  Nothing in the premises rules the case out: `Q R σ ∗ P σ' ⊢ ⌜kvSameHist σ σ'⌝` allows either
+  state's changes to be a prefix of the other's, so `σ'` may be shorter than `σ`; `tooLargeErrIs` is
+  a `*StorageError`, not `unkErr`, so `listErr` does not cover it. (Real etcd cannot answer so: the
+  later read is linearizable, so it is served at a state extending `σ`. The premise does not say so.)
+  Options: (a) the later pages' update is given after the first page's, knowing its state: `P :
+  KVState → KVState → IProp GF`, the premise `□ ∀ R σ, □ Q R σ -∗ |==> □ [∧list] x ∈ c.ms, ⌜P σ =
+  fun _ => iprop(True)⌝ ∨ kvReadAu x.γr.kv (P σ)`, and `∀ R σ σ', Q R σ ∗ P σ σ' ⊢ ⌜kvSameHist σ σ'
+  ∧ σ.rev ≤ σ'.rev⌝` (7e-4: `P σ` fires at a log state that extends the recorded `σ`, checked inside
+  the update with `γ.r`'s record of `σ`); same change in `pagedChunks.spec`/`pagesOk`. (b) Keep the
+  premises and admit the outcome: `listErr` (or `GetList`'s and `pagesOk`'s error case) gains
+  `tooLargeErrIs err` for a later page; but the driver's `errIs`/`refine_list` read a too-large
+  error as the model's `ETooLarge` (needs `σ.rev < n`), so 7e-3c/7e-4 change too. (c) Keep the
+  entailment form with `Q R σ ∗ P σ' ⊢ ⌜kvSameHist σ σ' ∧ σ.rev ≤ σ'.rev⌝`: not producible by 7e-4,
+  since `P σ'` cannot know it fired after `Q`'s state (an entailment over all pairs). Recommended:
+  (a).
+
 ## 0. Summary
 
 | # | Item | Status | Producer |

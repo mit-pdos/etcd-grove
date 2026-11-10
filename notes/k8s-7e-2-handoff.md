@@ -44,6 +44,21 @@ names `rpctypesInit`). `etc/gen-init.py --check` passes.
   false = some k ∧ (pathPrefix ++ k).length ≤ opKeyMax`, for `GetCurrentResourceVersion`) proved. Not
   linked (no new trusted spec is linked yet; the last third links them).
 
+## Fifth session (2026-11-10): `getList` proved; stopped at B5
+- `store.getList` proved (no `sorry`; both branches; `Client.List.spec`/`Client.GetAt.spec` premises
+  of the proof only). Pure lemmas in `ListDefs`: `filter_key_eq_findKey` (on a key-sorted list,
+  `filter (key = k)` is `(findKey k s).toList`) and `pageKvsL_key` (the non-recursive page is the
+  key's key-value). Built capped (`/shared/tmp/k8s-7e-2/b15.log`, 7347 jobs, green).
+- Stopped at **B5** (Draft, "Blocker found in the last third, after B1-B4"): a later page's
+  `ErrFutureRev` makes `GetList.spec`/`pagesOk` unprovable from the Draft's premises. Not started:
+  `pagedChunks`, `GetList`, the driver's `DecodeListItem`/`UpdateList`/`driver_listContractOk`,
+  links, interfaces.
+- `getList` patterns: the interface call `s.client.Kubernetes.List` resolves with `rw
+  [method_unfold (t := go.GoType.PointerType kubernetes.Client.ty) (m := go!"List")]; wp_call`; the
+  `[]*KeyValue{…}` literal with `wp_apply wp_slice_literal`; the empty literal's `List.replicate
+  (go.arrayLiteralSize []).toNat _` is `[]` by `rfl`; Iris lemmas `BigSepL2.bigSepL2_nil`/`_cons`
+  (`.2` with `iapply`), `iempintro`; `generalize e = x` (no `at`) generalizes the Iris context too.
+
 ## Last third, after 81's decisions on B1-B4 (2026-11-09, same session)
 Done: B2's Go test (`examples/k8s7e2attack/tracing_test.go`, passes: noop and SDK tracer); B2's
 restatement (`ctxNeverDone` moved to `Proof/k8s_io/component_base/tracing/Defs.lean`;
