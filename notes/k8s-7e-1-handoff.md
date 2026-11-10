@@ -313,9 +313,19 @@ done") did not see this step. Every way to carry it changes exported vocabulary 
 - Cost either way: `etcdRangeSpecM` asks `(⌜v3rpc.rangeCheck o ≠ none⌝ -∗ □ ∀ d, Ψe d)`, so the k8s
   reads must show `rangeCheck o = none` for their requests (sort/limit/revision checks: a pure lemma).
 
-### Next, in order (after 81 decides)
+### (A) approved by etcd-grove-81 (2026-11-10, in `questions.md`)
 
-1. The registration (A or B), then the chain above the interceptor: `kVClient.Range.spec`,
+Conditions: the Freeze report confirms that no closed theorem's text changes because of it and that the
+trust base is unchanged; affected `interface/` files regenerated (`etc/gen-interface.py`, check which
+API lists include `KVService`/`etcdstart`/`cache` modules); a pure lemma `rangeCheck o = none` for the
+k8s reads (the store's Get/List requests). Not started: the ninth session stopped at its context budget
+right after the decision.
+
+### Next, in order (the next agent starts here)
+
+1. The registration (A): `kvRegsAt` (`KVService.lean:634`), `kvRegs_range`, `etcd_kv_served(_with)`'s
+   conclusion (`Results.lean` ~2430-2480: keep `H2` instead of weakening it), `etcdstart`'s `etcdKVAt`/
+   `etcdKVAt_eq`/`etcdKVAt_regs` (`examples/lib/etcdstart/Served.lean`), `kvRegs_one`; then the chain above the interceptor: `kVClient.Range.spec`,
    `retryKVClient.Range.spec` (a binder `Ψe`, post `… ∗ (⌜err ≠ nil⌝ -∗ ifcErrOut
    "/etcdserverpb.KV/Range" addr Ψe err)`); `kv.Do.specG` (`doRunGen`'s range case `attemptPre … Qr
    Ψr`, `Ψr` with a default; post gains the outcome when `o.t = 1 ∧ err ≠ nil`); `kv.Get.specG`;
