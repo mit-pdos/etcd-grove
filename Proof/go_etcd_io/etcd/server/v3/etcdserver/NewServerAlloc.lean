@@ -147,8 +147,7 @@ its boot token and its snapshot directory. The pure premises (D21e (A),
 plan's 2.3, the user's (C):) in a cluster that grants leases (`lg`), the KV invariant takes the KV
 state's ghost variable whole and no client's `etcdKV` is returned; at `lg = false` as before.
 (2026-11-09, raft-entsize [r3a]/[r3a']: the boot premises as one `BootCore`, which adds the bound
-on the boot entries, `bootDataOk`; the allocation still passes `maxData = none`, until blockers (a)
-and (b).) -/
+on the boot entries, `bootDataOk`, from which (2026-11-10) the allocation passes `maxData = some 2^30`.) -/
 theorem srvClusterBoot_alloc (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (xs : w64 → GName) (reg : GName)
     (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (Hrb2 : receiptBound GF + boot.length ≤ 2 ^ 61)
@@ -227,8 +226,11 @@ theorem srvClusterBoot_alloc (ps : List w64) (ctxs : List (List w8)) (boot : Lis
   ihave ⟨Hwns, Hfs⟩ := (BigSepL.bigSepL_sep_eqv (PROP := IProp GF)).1 $$ Hrest
   imod (snapDirs_alloc (GF := GF) ps Hnd) with ⟨%sl, Hsd⟩
   -- the node API's cluster from the bootstrap log, proposals not duplicated
-  imod (cluster_alloc (GF := GF) srvClusterN ps ctxs boot false sl none ⊤ Hrb Hne Hnd Hnz
-      (by omega) (fun _ => HB) (fun _ h => by cases h) (fun _ h => by cases h)) $$ [Hmarsh]
+  -- (raft-entsize §2) the cluster's bound on proposed data, `2^30`, met by the boot entries
+  -- (`BootCore`'s `bootDataOk`)
+  imod (cluster_alloc (GF := GF) srvClusterN ps ctxs boot false sl (some (2 ^ 30)) ⊤ Hrb Hne Hnd Hnz
+      (by omega) (fun _ => HB) (fun _ h => by cases h; omega)
+      (fun _ h e he => by cases h; have := Hbc.data e he; unfold bootCtxMax at this; omega)) $$ [Hmarsh]
     with ⟨%cl, ⟨%Hdup, %Hcsl, %Hbl, %Hmd⟩, Hops, Hctxs, #Hst, Hdec, #Hca0, Hsm, Hslots, Hboots⟩
   · rw [if_neg hbne]; iexact Hmarsh
   isimp only [hbne, ↓reduceIte] at Hboots

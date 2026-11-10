@@ -2122,8 +2122,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 view of the auth history, `authHistView`) at the start
 chain with auth on; with `server_member_alloc_on`, what `server_new_auth_on`'s caller allocates.
 (2026-11-09, raft-entsize [r3a]/[r3a']: the boot premises as one `BootCore`, which adds the bound
-on the boot entries, `bootDataOk`; the allocation still passes `maxData = none`, until blockers (a)
-and (b).) -/
+on the boot entries, `bootDataOk`, from which (2026-11-10) the allocation passes `maxData = some 2^30`.) -/
 theorem server_cluster_alloc_on (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (xs : w64 → GName) (reg : GName)
     (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (Hrb2 : receiptBound GF + boot.length ≤ 2 ^ 61)

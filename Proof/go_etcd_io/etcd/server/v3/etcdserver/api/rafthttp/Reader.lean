@@ -148,7 +148,9 @@ theorem streamSent_msgFrame (N : NetPayload GF) (γw : GName) (rid : w64)
 /-- **`dec.decode()`** of the reader's decoder (through the `decoder` interface), having decoded the
 chain `fr` (to `s`), knowing that what it reads is a stream's bytes (`HK`): a frame of the codec from
 `s`, the message decoded from it (owned, without responses), and what is known of the bytes read;
-or an error (whose `Error()` returns). -/
+or an error (whose `Error()` returns). (raft-entsize §4, 2026-11-10) The message at its decoded
+content, of bounded size when the payload says so (`N.Sz`) but for a link heartbeat: on the message
+stream by D1 (`readBytesLimit`), on the msgappv2 stream by D2 (the decoder's). -/
 theorem wp_stream_decode
     (hMsg : rafthttp.messageDecoder.decode.spec (GF := GF) (hG := hG))
     (hV2 : rafthttp.msgAppV2Decoder.decode.spec (GF := GF) (hG := hG))
@@ -162,9 +164,10 @@ theorem wp_stream_decode
       (App (Val #(methods ei.ty go!"decode" ei.v)) (Val #()))
     {{ (ml : Loc) (err : GoInterface), RET (PairV #ml #err); http.errStrOk err ∗
         ∃ (rs' : List w8) (s' : (ty.codec N.Sz pid lid).S), Rd rs' ∗ decOwn N.Sz lid pid ty dec r s' ∗
-          (⌜err = GoInterface.nil⌝ -∗ ∃ (w : MsgWire) (bs : List w8) (st : MsgSt),
-            ⌜(ty.codec N.Sz pid lid).F s w bs s' ∧ rs' = chainBytes fr ++ bs ∧ wireOf st = w ∧
-              st.resps = []⌝ ∗ □ B rs' ∗ msgPtsC ml (DFrac.own 1) (DFrac.own 1) true st) }} := by
+          (⌜err = GoInterface.nil⌝ -∗ ∃ (w : MsgWire) (bs : List w8) (c : MsgC),
+            ⌜(ty.codec N.Sz pid lid).F s w bs s' ∧ rs' = chainBytes fr ++ bs ∧ wireOf c.model = w ∧
+              c.resps = [] ∧ c.csUfNil ∧ (N.Sz → ¬ isHB c.model.msg → msgSizeOk c)⌝ ∗ □ B rs' ∗
+            msgPtsCC ml (DFrac.own 1) (DFrac.own 1) true c) }} := by
   cases ty with
   | msgAppV2 =>
     simp only [decOwn, StreamTy.codec] at Hfr ⊢
@@ -188,7 +191,11 @@ theorem wp_stream_decode
       iframe
       ipureintro; rfl
     simp only [v2Codec]
-    iexact Hok
+    iintro %Hnil
+    ihave ⟨%w, %bs, %c, %H, #HB, Hm⟩ := Hok $$ %Hnil
+    iexists w, bs, c
+    iframe HB Hm
+    ipureintro; exact H
   | message =>
     simp only [decOwn, StreamTy.codec] at Hfr ⊢
     iintro %Φ ⟨#Hpkg, Hdec, #Hrf, HRd, #HK⟩ HΦ
@@ -211,12 +218,13 @@ theorem wp_stream_decode
       iframe #
       ipureintro; rfl
     iintro %Hnil
-    ihave ⟨%bs, %st, %Hb, #HB, Hm⟩ := Hok $$ %Hnil
-    iexists (wireOf st), msgFrame bs, st
+    ihave ⟨%bs, %c, %Hb, #HB, Hm⟩ := Hok $$ %Hnil
+    iexists (wireOf c.model), msgFrame bs, c
     iframe HB Hm
     ipureintro
     have hl : bs.length < 2 ^ 63 := by have := Hb.2.1; omega
-    exact ⟨MsgFrameOf.of_wire Hb.2.2.1 Hb.2.2.2 hl, Hb.1, rfl, Hb.2.2.1.1⟩
+    exact ⟨MsgFrameOf.of_wire Hb.2.2.1 Hb.2.2.enc hl, Hb.1, rfl, Hb.2.2.resps, Hb.2.2.2.2.1,
+      fun _ _ => Hb.2.2.sizeOk (by have := Hb.2.1; omega)⟩
 
 /-- The reader's decoder is an interface value (`dec.decode` resolves its method). -/
 theorem decOwn_ok (Sz : Prop) (lid pid : w64) (ty : StreamTy) (dec r : GoInterface)

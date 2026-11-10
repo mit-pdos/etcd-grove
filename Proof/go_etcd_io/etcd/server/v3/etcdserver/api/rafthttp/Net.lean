@@ -205,10 +205,16 @@ instance netSnapRecv_persistent (γd : GName) (st : MsgSt) :
 /-- **A message received by member `id`** at `ml`: a fresh copy, owned with its entries' slots
 and capacity, of a message `st` sent into the network to `id`, with its bundle; (D22 S-i) a
 `MsgSnap`'s database saved in `id`'s snapshot directory `γd` (`netSnapRecv`). (2026-10-22, D38a)
-Unmarshalled from the wire, the copy has no responses (the wire carries none: `MsgMarshals`). -/
+Unmarshalled from the wire, the copy has no responses (the wire carries none: `MsgMarshals`).
+(raft-entsize §4, 2026-11-10) The copy is owned at a content `c` (`msgPtsCC`) of the message's wire
+fields with no responses and no unknown fields in its snapshot's conf state (until then
+`msgPtsC ml 1 1 true st'` with `wireEq st st'` and no responses, the same by `msgPtsC_iff_CC`), of
+bounded size when the payload says so (`N.Sz`), but for a `MsgSnap`: what `stepIn_intro` takes. -/
 def netRecv (γn : NetNames GF) (id : w64) (γd : GName) (ml : Loc) : IProp GF :=
-  iprop(∃ st st' : MsgSt, msgPtsC ml (DFrac.own 1) (DFrac.own 1) true st' ∗
-    ⌜wireEq st st' ∧ st.msg.To' = id ∧ st'.resps = []⌝ ∗ (□ γn.N.P st) ∗ γn.N.O st ∗ netSnapRecv γd st)
+  iprop(∃ (st : MsgSt) (c : MsgC), msgPtsCC ml (DFrac.own 1) (DFrac.own 1) true c ∗
+    ⌜c.model = ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ ∧ c.csUfNil ∧ st.msg.To' = id ∧
+      (γn.N.Sz → st.msg.Type' ≠ MsgSnap → msgSizeOk c)⌝ ∗
+    (□ γn.N.P st) ∗ γn.N.O st ∗ netSnapRecv γd st)
 
 /-- **The receiver's `Raft`** (`rafthttp.Raft`, persistent): `Process` of a received message with
 a context the node API takes, given one of the receiver's resources `R` (back after the call),

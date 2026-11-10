@@ -307,6 +307,12 @@ def isHB (m : MessageM) : Prop := m.Type' = MsgHeartbeat ∧ m.From' = 0 ∧ m.T
 
 instance (m : MessageM) : Decidable (isHB m) := by unfold isHB; infer_instance
 
+/-- A message of the link heartbeat's wire content is a link heartbeat. -/
+theorem isHB_of_wire {st : MsgSt} (h : wireOf st = hbWire) : isHB st.msg := by
+  have h1 := congrArg MsgWire.msg h
+  simp only [wireOf, hbWire] at h1
+  simp [isHB, h1]
+
 /-- **A message the msgappv2 encoder may be given** on the connection from `frm` to `to`: one that
 marshals, and either `linkHeartbeatMessage` or an `MsgApp` of raft's shape (`AppShape`, D38a)
 between them (the stream's writer sends only those: `peer.pick`, `streamWriter.run`). -/
@@ -472,7 +478,7 @@ theorem V2Compat.short {Sz : Prop} {frm to : w64} {cs : V2St} {n : Nat} {pre : L
       List.Forall₂ EntEnc ents ebs ∧ ebs.length = n ∧ pre = ebs.take pre.length ∧
       rest ++ z = entFrames (ebs.drop pre.length) ++ u64Be c ++ z' ∧
       V2Frame Sz frm to cs (shortWire frm to cs ents c) (shortBytes ebs c)
-        ⟨cs.term, cs.index + W64 n⟩ := by
+        ⟨cs.term, cs.index + W64 n⟩ ∧ EntsSz Sz ebs := by
   obtain ⟨w, bs, cs', z, z', hF, heq⟩ := h
   rcases hF.tag with ⟨rfl, -⟩ | ⟨ebs, rfl, hw, hf, hen, hc, hsz⟩ | ⟨st, mbs, rfl, -⟩
   · simp at heq
@@ -483,7 +489,7 @@ theorem V2Compat.short {Sz : Prop} {frm to : w64} {cs : V2St} {n : Nat} {pre : L
     obtain ⟨hpre, hrest⟩ := entFrames_prefix hp (Forall₂_EntEnc_len hf) (by omega) hr
     have hlen : w.ents.length = n := by rw [hf.length_eq, hebs]
     refine ⟨w.ents, ebs, w.msg.Commit', z, z', hf, hebs, hpre, by simpa using hrest,
-      Or.inr (Or.inl ⟨ebs, rfl, hf, hen, ?_, ?_, hsz⟩)⟩
+      Or.inr (Or.inl ⟨ebs, rfl, hf, hen, ?_, ?_, hsz⟩), hsz⟩
     · simp only [shortBytes, shortWire, hf.length_eq]
     · simp only [shortWire, hlen]
   · simp only [List.cons_append, List.cons.injEq] at heq
@@ -536,8 +542,8 @@ theorem V2Compat.short_end {Sz : Prop} {frm to : w64} {cs : V2St} {n : Nat} {pre
     (h8 : c8.length = 8) (hd : List.Forall₂ EntEnc dents pre) :
     ∃ c : w64, c8 = u64Be c ∧
       V2Frame Sz frm to cs (shortWire frm to cs dents c) (shortBytes pre c)
-        ⟨cs.term, cs.index + W64 n⟩ := by
-  obtain ⟨ents, ebs, c, z, z', hf, hln, hpre, hr, hF⟩ := h.short hn hp (by omega)
+        ⟨cs.term, cs.index + W64 n⟩ ∧ EntsSz Sz pre := by
+  obtain ⟨ents, ebs, c, z, z', hf, hln, hpre, hr, hF, hsz⟩ := h.short hn hp (by omega)
   have hpe : pre = ebs := by rw [hpre, hl, ← hln, List.take_length]
   subst hpe
   rw [hl, ← hln, List.drop_length] at hr
@@ -545,7 +551,7 @@ theorem V2Compat.short_end {Sz : Prop} {frm to : w64} {cs : V2St} {n : Nat} {pre
   obtain ⟨h1, -⟩ := append8_eq h8 (u64Be_length _) hr
   have := Forall₂_EntEnc_inj hf hd
   subst this
-  exact ⟨c, h1, hF⟩
+  exact ⟨c, h1, hF, hsz⟩
 
 /-- The decoder's entries slice, filled one more. -/
 theorem list_set_snoc_replicate {α : Type} (ps : List α) (z p : α) (k : Nat) (hk : 0 < k) :
@@ -563,6 +569,36 @@ theorem Forall₂_EntEnc_snoc {es : List EntryM} {bs : List (List w8)} {e : Entr
 theorem entFrames_snoc (bs : List (List w8)) (b : List w8) :
     entFrames (bs ++ [b]) = entFrames bs ++ (u64Be (W64 b.length) ++ b) := by
   rw [entFrames_append]; simp [entFrames]
+
+/-- **The entries' contents of a frame are the decoded ones** (raft-entsize §4): contents with valid
+unknown fields of which the frame's encodings are the encodings (`EntsSz`'s) are the contents each
+encoding was decoded to, when each decoded content is the only one (`proto.Unmarshal`'s D2). -/
+theorem ents_eq_of_uniq {ecs ecs' : List EntryC} {ebs : List (List w8)}
+    (h : List.Forall₂ (fun (c : EntryC) (b : List w8) => ufWire entrySchema c.uf ∧ b = entryEncC c)
+      ecs' ebs)
+    (hu : List.Forall₂ (fun (e : EntryC) (b : List w8) =>
+      ∀ c₁ : EntryC, ufWire entrySchema c₁.uf → b = entryEncC c₁ → c₁ = e) ecs ebs) :
+    ecs' = ecs := by
+  induction h generalizing ecs with
+  | nil => cases hu; rfl
+  | cons hx _ ih =>
+    cases hu with
+    | cons hy hr => rw [hy _ hx.1 hx.2, ih hr]
+
+theorem Forall₂_snoc {α β : Type} {R : α → β → Prop} {xs : List α} {ys : List β} {a : α} {b : β}
+    (h : List.Forall₂ R xs ys) (hab : R a b) : List.Forall₂ R (xs ++ [a]) (ys ++ [b]) := by
+  induction h with
+  | nil => exact .cons hab .nil
+  | cons hx _ ih => exact .cons hx ih
+
+/-- **A message content with no header bytes is of bounded size when its entries are**: no unknown
+fields, context or snapshot, no responses (an AppEntries frame's decoded message). -/
+theorem msgSizeOk_of_ents (f : MsgFC) (hu : f.uf = []) (hc : f.context = none)
+    (hs : f.snapshot = none) (he : ∀ e ∈ f.entries, entBytes e ≤ 2 ^ 31)
+    (hsum : (f.entries.map (fun e => entBytes e + 64)).sum ≤ 2 ^ 36) :
+    msgSizeOk (.mk f []) := by
+  refine ⟨rfl, ?_, he, hsum⟩
+  simp [hdrBytes, MsgC.f, hu, hc, hs, optSnapSize]
 
 end model
 
@@ -679,6 +715,53 @@ theorem ents_enc : ∀ (els : List Loc) (ecs : List EntryC), (∀ e ∈ ecs, ent
     have h1 := entryEncC_ok e hu hs1
     ipureintro
     exact .cons ⟨h1.1, by rw [h1.2]; exact hs1, e, rfl, hu, rfl⟩ h2
+
+/-- A fresh cell, frozen, is a set optional field. -/
+theorem optCell_alloc {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (p : Loc) (v : V) :
+    (p ↦ v : IProp GF) ⊢ |==> optCell p (some v) := by
+  iintro H
+  imod (typedPointsto_dfractional (GF := GF) p v).dfractional_persist _ $$ H with #H
+  imodintro
+  simp only [optCell]
+  iexact H
+
+/-- **A freshly allocated `*pb.Message` at a content** (raft-entsize §4: `msgPtsC_of_struct_uf`'s
+content form): its hidden fields zero, its pointer fields at the content's presences, its `Entries`
+a slice of entries frozen at the content's (elements at `dqe`, the capacity when `cap`), its
+`Snapshot` and `Context` at the content's, no responses, and no unknown fields. -/
+theorem msgPtsCC_of_struct [go_etcd_io.raft.v3.Assumptions] (l : Loc) (v : raftpb.Message) (dqe : DFrac) (cap : Bool)
+    (els : List Loc) (f : MsgFC) (E : CoPset) (Hu : v.unknownFields' = slice.nil) (Hf : f.uf = []) :
+    (l ↦ v ∗ optCell v.Type' f.type ∗ optCell v.To' f.to ∗ optCell v.From' f.frm ∗
+      optCell v.Term' f.term ∗ optCell v.LogTerm' f.logTerm ∗ optCell v.Index' f.index ∗
+      optCell v.Commit' f.commit ∗ optCell v.Vote' f.vote ∗ optCell v.Reject' f.reject ∗
+      optCell v.RejectHint' f.rejectHint ∗
+      v.Entries' ↦*{dqe} els ∗ ([∗list] p;e ∈ els;f.entries, entRoC p e) ∗
+      (if cap then ownSliceCap Loc v.Entries' (DFrac.own 1) else emp) ∗
+      snapOptCC v.Snapshot' (DFrac.own 1) f.snapshot ∗ bytesC v.Context' f.context ∗
+      v.Responses' ↦* ([] : List Loc) : IProp GF) ⊢
+      |={E}=> msgPtsCC l (DFrac.own 1) dqe cap (.mk f []) := by
+  iintro ⟨Hl, #cTy, #cTo, #cFr, #cTe, #cLt, #cIx, #cCo, #cVo, #cRj, #cRh, Hes, #Hents, Hes_cap,
+    Hsn, #Hcs, Hrs⟩
+  ihave %Hnn := typedPointsto_not_null $$ Hl
+  icases typedPointsto_split _ _ _ $$ Hl with Hl
+  simp only [TypedPointsto.typedPointstoDef]
+  icases Hl with ⟨state, Ty, To, From, Term, LogTerm, Index, Entries, Commit, Vote, Snapshot,
+    Reject, RejectHint, Context, Responses, unknownFields, sizeCache, -⟩
+  rw [Hu]
+  ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
+  · iapply ownSlice_nil
+  imod pbMsg_alloc raftpb.Message l v.state' v.sizeCache' slice.nil [] E (ufWire_nil _) $$
+    [state sizeCache unknownFields Hnil] with #Hpb
+  · iframe
+  imodintro
+  unfold msgPtsCC
+  iexists v.Type', v.To', v.From', v.Term', v.LogTerm', v.Index', v.Commit', v.Vote', v.Reject',
+    v.RejectHint', v.Entries', els, v.Snapshot', v.Context', v.Responses'
+  simp only [MsgC.f, MsgC.resps, List.map_nil, Hf]
+  isplitr
+  · ipureintro; exact Hnn
+  iframe
+  iframe cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh Hents Hcs Hpb
 
 end preds
 

@@ -34,10 +34,9 @@ abbrev rafthttp.messageDecoder.decode.spec : Prop :=
       go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.messageDecoder.ty @!! go!"decode")) (Val #()))
   {{ (ml : Loc) (err : GoInterface), RET (PairV #ml #err); http.errStrOk err ∗
       ∃ rs' : List w8, Rd rs' ∗
-        (⌜err = GoInterface.nil⌝ -∗ ∃ (bs : List w8) (st : MsgSt),
-          ⌜rs' = rs ++ msgFrame bs ∧ bs.length ≤ 536870912 ∧ MsgWireOk st bs ∧
-            MsgEnc st bs⌝ ∗
-          □ B rs' ∗ msgPtsC ml (DFrac.own 1) (DFrac.own 1) true st) }}
+        (⌜err = GoInterface.nil⌝ -∗ ∃ (bs : List w8) (c : MsgC),
+          ⌜rs' = rs ++ msgFrame bs ∧ bs.length ≤ 536870912 ∧ MsgDecC c bs⌝ ∗
+          □ B rs' ∗ msgPtsCC ml (DFrac.own 1) (DFrac.own 1) true c) }}
 
 end spec
 

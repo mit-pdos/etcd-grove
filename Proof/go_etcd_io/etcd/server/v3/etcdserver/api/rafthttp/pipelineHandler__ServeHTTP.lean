@@ -18,6 +18,7 @@ public import Spec.go_etcd_io.etcd.client.pkg.v3.types.ID__String
 public import Spec.go_etcd_io.etcd.client.pkg.v3.types.ID__String_ptr
 public import Spec.github_com.prometheus.client_golang.prometheus.CounterVec__WithLabelValues
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetFrom
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.MsgRead
 
 @[expose] public section
 
@@ -164,17 +165,18 @@ theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
           have Hue : uerr = GoInterface.nil := Hok ⟨c0, by rw [hc0m]; exact Hst.1.1, hc0u, hc0b⟩
           subst Hue
           ihave ⟨%c', Hm', %Hw0'⟩ := Hdec $$ %rfl
+          -- (raft-entsize §4) D2: the decoded content is the sender's, of bounded size when `Sz`
           have hcc : c' = c0 := Hw0'.2.2.2 c0 (by rw [hc0m]; exact Hst.1.1) hc0u hc0b
-          ihave Hm' := msgPtsCC_msgPtsC _ _ _ _ _ (hcc ▸ hc0cs) $$ Hm'
-          have Hw' : MsgWireOk c'.model R.body := by rw [hcc, hc0m]; exact Hst.1
-          clear Hw0' hcc
-          generalize c'.model = m' at Hw' ⊢
+          subst hcc
+          clear Hw0'
+          icases msgPtsCC_read m_ptr true c' hc0cs $$ Hm' with ⟨Hm', Hback⟩
+          rw [hc0m]
           wp_auto
           -- `receivedBytes.WithLabelValues(types.ID(m.GetFrom()).String()).Add(float64(len(b)))`
           ihave %Hsllen := ownSlice_len _ _ _ $$ Hsl
-          wp_apply hGetFrom.1 m_ptr _ _ _ m' $$ [$Hm'] as Hm'
+          wp_apply hGetFrom.1 m_ptr _ _ _ st $$ [$Hm'] as Hm'
           haveI : go.NotInterface go.uint64 := ⟨by unfold go.uint64; trivial⟩
-          wp_apply hIDString m'.msg.From' as %fs %Hfs
+          wp_apply hIDString st.msg.From' as %fs %Hfs
           wp_apply wp_slice_literal (V := GoString) [fs]
           isplitr
           · ipureintro; rfl
@@ -206,14 +208,16 @@ theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
             iunfold doneNilCtx
             imodintro
             iapply wp_todoCtx_Done'
+          ihave Hm' := Hback $$ Hm'
           wp_apply HProc $$ %todoCtxVal %bgCd %m_ptr [$HRs HO Hm'] as %perr ⟨#Hperr, HRs⟩
           · iframe #
             iunfold netRecv
-            iexists st, m'
+            iexists st, c'
             iframe Hm' HO HP
             isplitr
             · ipureintro
-              refine ⟨pbMessage_wire_eq Hst.1 Hw', ?_, Hw'.1⟩
+              refine ⟨by rw [hc0m]; exact MsgSt.eq_of_wire rfl Hst.2.2.2.2.1, hc0cs, ?_,
+                fun hs _ => hc0sz hs⟩
               rw [Hst.2.2.1, Hhost]; exact Hhvok.2
             iunfold netSnapRecv
             iintro %h; exact absurd h Hst.2.2.2.1

@@ -121,13 +121,11 @@ theorem rafthttp.messageDecoder.decodeLimit.wp_proof
         ihave ⟨%c, Hm, %Hw⟩ := Hdec $$ %rfl
         have hcc : c = c0 := Hw.2.2.2 c0 (by rw [hc0m]; exact Hw0.1) hc0u hc0b
         subst hcc
-        ihave Hm := msgPtsCC_msgPtsC _ _ _ _ _ hc0cs $$ Hm
-        iexists ys2, c.model
+        iexists ys2, c
         iframe Hm HB2
         ipureintro
-        refine ⟨?_, ?_, by rw [hc0m]; exact Hw0, c, rfl, hc0u, hc0cs, hc0b⟩
-        · exact Hframe
-        · rw [hl2]; word
+        refine ⟨Hframe, by rw [hl2]; word, by rw [hc0m]; exact Hw0, hc0u, hc0cs, hc0b, Hw.2.1,
+          fun c₁ h1 h2 h3 => (Hw.2.2.2 c₁ h1 h2 h3).symm⟩
   · cases err with
     | nil => exact absurd rfl Herr
     | ok ei =>

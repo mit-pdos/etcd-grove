@@ -790,11 +790,11 @@ def srvClusterOk (γ : ServerRaftNames) : IProp GF :=
     ⌜γ.raft.cl.bootLen = γ.raft.boot.length⌝ ∗
     -- (2026-11-04, the restart plan's R2b-3d gap 3) the boot members' peer URLs (`bootURLsOk`)
     ⌜bootURLsOk γ.raft.boot⌝ ∗
-    -- (raft-entsize §2, 2026-11-09; INTERIM) the cluster states no bound on proposed data (the
-    -- allocations pass `cluster_alloc`'s `md = none`): the node API's size premises hold vacuously.
-    -- Removed (becoming `= some 2^30`) when rafthttp's receive row (the size of a received message,
-    -- for `stepIn_intro`) and the `MaxSizePerMsg ≤ 2^20` bound at the server's `StartNode` land.
-    ⌜γ.raft.cl.maxData = none⌝)
+    -- (raft-entsize §2, 2026-11-10) the cluster's bound on proposed data, `2^30` (`cluster_alloc`'s
+    -- `md`): what the node API's size premises (`Propose`'s data, `ReadIndex`'s context,
+    -- `stepIn_intro`'s received message) are checked against; until then (2026-11-09, interim)
+    -- `maxData = none`
+    ⌜γ.raft.cl.maxData = some (2 ^ 30)⌝)
 
 instance srvClusterOk_persistent (γ : ServerRaftNames) : Persistent (srvClusterOk (GF := GF) γ) := by
   unfold srvClusterOk; infer_instance

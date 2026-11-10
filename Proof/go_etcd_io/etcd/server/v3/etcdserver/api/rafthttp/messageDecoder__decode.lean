@@ -42,8 +42,8 @@ theorem rafthttp.messageDecoder.decode.wp_proof
   iexists rs'
   iframe HRd
   iintro %Hnil
-  ihave ⟨%bs, %st, %Hb, #HB, Hm⟩ := Hok $$ %Hnil
-  iexists bs, st
+  ihave ⟨%bs, %c, %Hb, #HB, Hm⟩ := Hok $$ %Hnil
+  iexists bs, c
   iframe Hm HB
   ipureintro
   exact ⟨Hb.1, by have := Hb.2.1; simpa using this, Hb.2.2⟩

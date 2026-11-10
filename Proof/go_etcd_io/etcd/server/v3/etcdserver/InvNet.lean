@@ -64,7 +64,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **A delivered message is what `node.Step` takes** (see the file header; 2026-10-27: the node
 API's `stepIn`; 2026-10-30, the repair: by `stepIn_intro` from the sender's `sentMsg` and the
 credits alone, snapshots included): at the node `γ.id` whose network payload is the server's. The
-receiver's copy is the message's wire fields with no responses (`netRecv`); (2026-11-01, J8a) a
+receiver's copy is the message's wire fields with no responses, at its content, of bounded size
+when the cluster bounds proposed data (`netRecv`, raft-entsize §4); (2026-11-01, J8a) a
 `MsgSnap`'s snapshot saved in the member's directory `γd` (`netSnapRecv`) is local to it
 (`snapLocalMsg`). -/
 theorem stepIn_of_recv (γn : NetNames GF) (γ : RNNames) (HN : γn.N = srvNet γ.node)
@@ -80,12 +81,9 @@ theorem stepIn_of_recv (γn : NetNames GF) (γ : RNNames) (HN : γn.N = srvNet �
   icases Hcl with ⟨-, -, -, -, -, -, -, %Hcsl⟩
   iunfold netRecv at Hr
   simp only [srvNet]
-  icases Hr with ⟨%st, %st', Hm, %Hw, #HP, HO, #HS⟩
-  obtain ⟨⟨Hmsg, Hents, Hsnap, Hctx⟩, Hto, Hrs'⟩ := Hw
+  icases Hr with ⟨%st, %cm, Hm, %Hw, #HP, HO, #HS⟩
+  obtain ⟨Hcm, Hcs, Hto, Hsz⟩ := Hw
   icases HP with ⟨%sid, #Hrm⟩
-  have Hst' : st' = ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ := by
-    cases st; cases st'; simp_all
-  rw [Hst']
   ihave #Hloc : snapLocalMsg γ.node.cl γ.id st $$ []
   · iapply snapLocalMsg_intro
     imodintro
@@ -98,11 +96,10 @@ theorem stepIn_of_recv (γn : NetNames GF) (γ : RNNames) (HN : γn.N = srvNet �
     iapply (nodeSnapLocal_of_elem γ.node.cl γ.id γd (by rw [Hcsl.1]; exact Hd))
     iunfold snapSaved at Hsav
     iexact Hsav
-  -- (raft-entsize §2) the copy's content form; the cluster states no bound on proposed data
-  -- (`srvClusterOk`'s, interim: rafthttp's receive gives the size fact once it does)
-  icases msgPtsC_msgPtsCC _ _ _ _ _ $$ Hm with ⟨%cm, Hm, %Hcm⟩
-  iapply stepIn_intro γ.node.cl srvClusterN γ.id ml sid st cm Hto Hcm.1 Hcm.2
-    (fun b h => by simp [Hcsl.2.2.2] at h)
+  -- (raft-entsize §4) the copy at its content, of bounded size in a cluster with a bound on
+  -- proposed data (the server's payload: `srvNet.Sz`)
+  iapply stepIn_intro γ.node.cl srvClusterN γ.id ml sid st cm Hto Hcm Hcs
+    (fun b h => Hsz (by simp [h]))
   iframe Hrm Hm HO Hloc
 
 end lemmas

@@ -18,6 +18,7 @@ public import Spec.google_golang_org.protobuf.proto.ClonePb
 public import Spec.go_etcd_io.etcd.pkg.v3.pbutil.MustUnmarshalMessagePb
 public import Spec.encoding.binary.ReadUint64
 public import Perennial.Proof.encoding.binary.Results
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.MsgRead
 
 @[expose] public section
 
@@ -120,7 +121,6 @@ theorem rafthttp.msgAppV2Decoder.decode.wp_proof
     have hcs : c'.csUfNil := by
       have h := Heqv.2.2 (by first | rfl | (simp only [pbMessageC_marshals, MsgMarshals, Hchbm.1]; rfl) | simp [pbMessageC_marshals, MsgMarshals, Hchbm.1])
       rw [h]; exact Hchbm.2
-    ihave Hl' := msgPtsCC_msgPtsC _ _ _ _ _ hcs $$ Hl'
     rw [Hchbm.1] at Heqv
     (try wp_auto)
     iapply HΦ
@@ -133,17 +133,18 @@ theorem rafthttp.msgAppV2Decoder.decode.wp_proof
       iexists buf, s8, s1, zs, x8, [W8 0]
       iframe; iframe #; iframe %
     iintro -
-    iexists hbWire, [W8 0], c'.model
+    iexists hbWire, [W8 0], c'
     iframe Hl' HB
     ipureintro
-    exact ⟨hF0, rfl, Heqv.1.1.symm, Heqv.1.2 rfl⟩
+    exact ⟨hF0, rfl, Heqv.1.1.symm, MsgC.resps_nil_of_model (Heqv.1.2 rfl), hcs,
+      fun _ hn => absurd (isHB_of_wire Heqv.1.1.symm) hn⟩
   · -- AppEntries
     wp_auto
     try rw [show _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgApp =
       #((W32 3 : _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType)) from rfl]
     haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
     wp_apply wp_Enum (W32 3) as %pty Hpty
-    imod cellRO_alloc $$ Hpty with #cTy
+    imod optCell_alloc $$ Hpty with #cTy
     (try wp_auto)
     -- the count
     wp_apply Hrf $$ %s8 %x8 %(rs ++ [W8 1]) [$Hs8s $HRd] as %n0 %err ⟨%c8, Hs8s, HRd, #HB8, %Hc8, #HerrS⟩
@@ -163,38 +164,41 @@ theorem rafthttp.msgAppV2Decoder.decode.wp_proof
     simp only [List.append_nil]
     rw [show leToU64 (u64Be (W64 n)).reverse = W64 n from beToU64_u64Be _]
     (try wp_auto)
-    imod cellRO_alloc $$ «$v1» with #cFr
-    imod cellRO_alloc $$ «$v2» with #cTo
-    imod cellRO_alloc $$ «$v3» with #cTe
-    imod cellRO_alloc $$ «$v4» with #cLt
-    imod cellRO_alloc $$ «$v5» with #cIx
+    imod optCell_alloc $$ «$v1» with #cFr
+    imod optCell_alloc $$ «$v2» with #cTo
+    imod optCell_alloc $$ «$v3» with #cTe
+    imod optCell_alloc $$ «$v4» with #cLt
+    imod optCell_alloc $$ «$v5» with #cIx
     wp_apply wp_slice_make2 (V := Loc) $$ [] as %esl ⟨Hesl, Hcap⟩
     · ipureintro; word
     (try wp_auto)
     have hnn : sint.nat (W64 n) = n := by unfold sint.nat; word
     rw [hnn]
     -- the entries
-    ihave HI : (∃ (j : Nat) (pre : List (List w8)) (des : List EntryM) (ps : List Loc)
-        (zs' x8' : List w8),
+    ihave HI : (∃ (j : Nat) (pre : List (List w8)) (des : List EntryM) (ecs : List EntryC)
+        (ps : List Loc) (zs' x8' : List w8),
         "i" ∷ i_ptr ↦ W64 j ∗
         "HRd" ∷ Rd (rs ++ W8 1 :: (u64Be (W64 n) ++ entFrames pre)) ∗
         "Hesl" ∷ esl ↦* (ps ++ List.replicate (n - j) (zero_val Loc)) ∗
-        "Hents" ∷ ([∗list] p;e ∈ ps;des, entRO p e) ∗
+        "Hents" ∷ ([∗list] p;e ∈ ps;ecs, entRoC p e) ∗
         "Hindex" ∷ dec.[go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.msgAppV2Decoder, go!"index"] ↦ (cst.index + W64 j) ∗
         "Hbufs" ∷ buf ↦* zs' ∗ "Hbufc" ∷ ownSliceCap w8 buf (DFrac.own 1) ∗
         "Hs8s" ∷ s8 ↦* x8' ∗
         "%Hinv" ∷ ⌜x8'.length = 8 ∧ j ≤ n ∧ pre.length = j ∧ ps.length = j ∧
-          List.Forall₂ EntEnc des pre⌝ : IProp GF) $$ [i HRd Hesl Hindex Hbufs Hbufc Hs8s]
-    · iexists 0, [], [], [], zs, u64Be (W64 n)
+          List.Forall₂ EntEnc des pre ∧ des = ecs.map EntryC.model ∧
+          List.Forall₂ (fun (e : EntryC) (b : List w8) =>
+            ∀ c₁ : EntryC, ufWire entrySchema c₁.uf → b = entryEncC c₁ → c₁ = e) ecs pre⌝ : IProp GF)
+        $$ [i HRd Hesl Hindex Hbufs Hbufc Hs8s]
+    · iexists 0, [], [], [], [], zs, u64Be (W64 n)
       simp only [entFrames, List.append_nil, List.nil_append, Nat.sub_zero]
       rw [show cst.index + W64 ((0 : Nat) : Int) = cst.index by word]
       iframe
       isplitr
       · iapply BigSepL2.bigSepL2_nil.2; iempintro
       ipureintro
-      exact ⟨u64Be_length _, Nat.zero_le _, rfl, rfl, .nil⟩
+      exact ⟨u64Be_length _, Nat.zero_le _, rfl, rfl, .nil, rfl, .nil⟩
     wp_for HI
-    obtain ⟨Hx8', Hjn, Hprel, Hpsl, Hdes⟩ := Hinv
+    obtain ⟨Hx8', Hjn, Hprel, Hpsl, Hdes, Hdesm, Huniq⟩ := Hinv
     wp_if_destruct
     · -- the `j`-th entry
       have hj : j < n := by
@@ -299,24 +303,23 @@ theorem rafthttp.msgAppV2Decoder.decode.wp_proof
           ec trivial (by simpa using hecu) trivial (by simpa using hecb)
         simp only [pbEntryC_ty, pbEntryC_blank, pbEntryC_decC, pbEntryC_modelOf, pbEntryC_C] at wpUE
         wp_apply wpUE $$ [$Hbm $«$r0»] as ⟨Hbm, #Hc1, %Hc1u⟩
-        ihave He1 : entRO «$r0_ptr» e0 $$ [Hc1]
-        · rw [← hecm]; iapply entRoC_entRO $$ Hc1
         (try wp_auto)
         ihave Hbufs := ownSlice_rejoin buf zs' eb (W64 sz) hbnd (by rw [hebl, hszn]) $$ [Hb0 Hbm Hbr]
         · rw [show zs'.take (sint.nat (W64 0)) = [] from rfl]; iframe
         wp_for_post
         iframe
-        iexists (j + 1), pre ++ [eb], des ++ [e0], ps ++ [«$r0_ptr»], (eb ++ zs'.drop (sint.nat (W64 sz))), u64Be (W64 sz)
+        iexists (j + 1), pre ++ [eb], des ++ [e0], ecs ++ [ec], ps ++ [«$r0_ptr»], (eb ++ zs'.drop (sint.nat (W64 sz))), u64Be (W64 sz)
         rw [show W64 ((j + 1 : Nat) : Int) = W64 j + W64 1 by word,
           show cst.index + (W64 j + W64 1) = cst.index + W64 j + W64 1 by word,
           show n - (j + 1) = n - j - 1 by omega, entFrames_snoc, hebl]
         simp only [List.append_assoc] at *
         iframe
         isplitr
-        · iapply BigSepL2.bigSepL2_nil.2; iempintro
+        · iapply BigSepL2.bigSepL2_singleton.2; iexact Hc1
         ipureintro
         refine ⟨u64Be_length _, by omega, by simp [Hprel], by simp [Hpsl],
-          Forall₂_EntEnc_snoc Hdes He0⟩
+          Forall₂_EntEnc_snoc Hdes He0, by simp [Hdesm, hecm],
+          Forall₂_snoc Huniq (fun c₁ h1 h2 => Hc1u c₁ trivial (by simpa using h1) (by simpa using h2))⟩
       · -- a large entry: read into a fresh slice
         wp_apply wp_slice_make2 (V := w8) $$ [] as %mb ⟨Hbm, -⟩
         · ipureintro; word
@@ -363,22 +366,21 @@ theorem rafthttp.msgAppV2Decoder.decode.wp_proof
           ec trivial (by simpa using hecu) trivial (by simpa using hecb)
         simp only [pbEntryC_ty, pbEntryC_blank, pbEntryC_decC, pbEntryC_modelOf, pbEntryC_C] at wpUE
         wp_apply wpUE $$ [$Hbm $«$r0»] as ⟨Hbm, #Hc1, %Hc1u⟩
-        ihave He1 : entRO «$r0_ptr» e0 $$ [Hc1]
-        · rw [← hecm]; iapply entRoC_entRO $$ Hc1
         (try wp_auto)
         wp_for_post
         iframe
-        iexists (j + 1), pre ++ [eb], des ++ [e0], ps ++ [«$r0_ptr»], zs', u64Be (W64 sz)
+        iexists (j + 1), pre ++ [eb], des ++ [e0], ecs ++ [ec], ps ++ [«$r0_ptr»], zs', u64Be (W64 sz)
         rw [show W64 ((j + 1 : Nat) : Int) = W64 j + W64 1 by word,
           show cst.index + (W64 j + W64 1) = cst.index + W64 j + W64 1 by word,
           show n - (j + 1) = n - j - 1 by omega, entFrames_snoc, hebl]
         simp only [List.append_assoc] at *
         iframe
         isplitr
-        · iapply BigSepL2.bigSepL2_nil.2; iempintro
+        · iapply BigSepL2.bigSepL2_singleton.2; iexact Hc1
         ipureintro
         refine ⟨u64Be_length _, by omega, by simp [Hprel], by simp [Hpsl],
-          Forall₂_EntEnc_snoc Hdes He0⟩
+          Forall₂_EntEnc_snoc Hdes He0, by simp [Hdesm, hecm],
+          Forall₂_snoc Huniq (fun c₁ h1 h2 => Hc1u c₁ trivial (by simpa using h1) (by simpa using h2))⟩
     · -- all entries read: the commit index
       have hjn : j = n := by
         have : sint.Z (W64 (j : Int)) = j := by word
@@ -397,7 +399,7 @@ theorem rafthttp.msgAppV2Decoder.decode.wp_proof
       rw [show rs ++ W8 1 :: (u64Be (W64 j) ++ entFrames pre) ++ c8 =
         rs ++ (W8 1 :: (u64Be (W64 j) ++ entFrames pre ++ c8)) by simp]
       ihave %Hce := HC $$ %(W8 1 :: (u64Be (W64 j) ++ entFrames pre ++ c8)) HBc
-      obtain ⟨c, rfl, Hfr⟩ := Hce.short_end hn (Forall₂_EntEnc_len Hdes) Hprel hc8 Hdes
+      obtain ⟨c, rfl, Hfr, Hsz⟩ := Hce.short_end hn (Forall₂_EntEnc_len Hdes) Hprel hc8 Hdes
       wp_auto
       iapply wp_fupd
       wp_apply encoding.binary.wp_BigEndian_Uint64 s8 (u64Be c) (DFrac.own 1) []
@@ -406,19 +408,19 @@ theorem rafthttp.msgAppV2Decoder.decode.wp_proof
       simp only [List.append_nil]
       rw [show leToU64 (u64Be c).reverse = c from beToU64_u64Be _]
       (try wp_auto)
-      imod cellRO_alloc $$ «$r0» with #cCo
-      ihave #Hnilb := ownSlice_nil (V := w8) (GF := GF) DFrac.discard
-      imod msgPtsC_of_struct m_ptr (⟨zero_val _, pty, «$v2_ptr», «$v1_ptr», «$v3_ptr», «$v4_ptr»,
+      imod optCell_alloc $$ «$r0» with #cCo
+      -- (raft-entsize §4) the message at its content: a fresh header, the decoded entries' contents
+      imod msgPtsCC_of_struct m_ptr (⟨zero_val _, pty, «$v2_ptr», «$v1_ptr», «$v3_ptr», «$v4_ptr»,
           «$v5_ptr», esl, «$r0_ptr», null, null, null, null, slice.nil, slice.nil, slice.nil, 0⟩ :
           raftpb.Message) (DFrac.own 1) true ps
-          ⟨⟨W32 3, to, frm, cst.term, cst.term, cst.index, c, 0, false, 0⟩, des, none, [], []⟩ ⊤ rfl
+          ⟨some (W32 3), some to, some frm, some cst.term, some cst.term, some cst.index, ecs, some c,
+            none, none, none, none, none, []⟩ ⊤ rfl rfl
           $$ [m Hesl Hcap Hents] with Hmsg
-      · simp only [↓reduceIte, snapOpt]
+      · simp only [↓reduceIte]
         iframe m Hesl Hcap Hents
         iframe #
-        repeat (first
-          | (isplitr; · (iunfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩))
-          | (iunfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩))
+        simp only [optCell, snapOptCC, bytesC]
+        repeat (isplitr; · ipureintro; trivial)
         iapply ownSlice_nil
       imodintro
       iapply HΦ
@@ -434,7 +436,11 @@ theorem rafthttp.msgAppV2Decoder.decode.wp_proof
       iexists shortWire frm to cst des c, shortBytes pre c, _
       iframe Hmsg HBc
       ipureintro
-      refine ⟨Hfr, by simp [shortBytes, Hprel, List.append_assoc], rfl, rfl⟩
+      refine ⟨Hfr, by simp [shortBytes, Hprel, List.append_assoc], by subst Hdesm; rfl, rfl,
+        by simp [MsgC.csUfNil, MsgC.f], fun hs _ => ?_⟩
+      obtain ⟨ecs', h1, h2, h3⟩ := Hsz hs
+      obtain rfl := ents_eq_of_uniq h1 Huniq
+      exact msgSizeOk_of_ents _ rfl rfl rfl h2 h3
   · -- App: the length, then the message
     wp_auto
     ihave Hbr := wp_ReadUint64 r size_ptr _ iprop(Rd (rs ++ [W8 2]))
@@ -485,21 +491,22 @@ theorem rafthttp.msgAppV2Decoder.decode.wp_proof
         at wpU
       (try wp_auto)
       wp_apply wpU $$ [$Hmb $m] as ⟨Hmb, Hm', -⟩
-      ihave Hm' : msgPtsC m_ptr (DFrac.own 1) (DFrac.own 1) true st0 $$ [Hm']
-      · rw [← hc0m]; iapply msgPtsCC_msgPtsC _ _ _ _ c0 hc0cs $$ Hm'
+      -- read through half of it (`msgPtsCC_read`), keeping the content
+      icases msgPtsCC_read m_ptr true c0 hc0cs $$ Hm' with ⟨Hm', Hback⟩
+      rw [hc0m]
       (try wp_auto)
-      wp_apply wp_GetTerm.1 m_ptr (DFrac.own 1) (DFrac.own 1) true st0 $$ [$Hm'] as Hm'
+      wp_apply wp_GetTerm.1 m_ptr dqh dqh false st0 $$ [$Hm'] as Hm'
       (try wp_auto)
-      wp_apply wp_GetIndex.1 m_ptr (DFrac.own 1) (DFrac.own 1) true st0 $$ [$Hm'] as Hm'
+      wp_apply wp_GetIndex.1 m_ptr dqh dqh false st0 $$ [$Hm'] as Hm'
       (try wp_auto)
       ihave ⟨%es, %els, HEs, Hes, #Hents, Hclose⟩ :=
-        msgPtsC_ents_acc m_ptr (DFrac.own 1) (DFrac.own 1) true st0 $$ Hm'
+        msgPtsC_ents_acc m_ptr dqh dqh false st0 $$ Hm'
       ihave %Hesl := ownSlice_len _ _ _ $$ Hes
       ihave %Hel := BigSepL2.bigSepL2_length $$ Hents
       (try wp_auto)
       wp_join iprop(∃ ix : w64, dec_ptr ↦ dec ∗ dec.[go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.msgAppV2Decoder, go!"index"] ↦ ix ∗
           ⌜ix = lastIdx (wireOf st0)⌝ ∗
-          m_ptr.[raftpb.Message, go!"Entries"] ↦ es ∗ es ↦* els) with [dec Hindex HEs Hes l]
+          m_ptr.[raftpb.Message, go!"Entries"] ↦{dqh} es ∗ es ↦*{dqh} els) with [dec Hindex HEs Hes l]
           as ⟨%ix, dec, Hindex, %Hix, HEs, Hes⟩
       · (try wp_auto)
         · have hlen : 0 < sint.Z es.len := Hif
@@ -513,7 +520,7 @@ theorem rafthttp.msgAppV2Decoder.decode.wp_proof
           ihave #Hep := BigSepL2.bigSepL2_lookup Hp He $$ Hents
           (try wp_auto)
           rw [if_pos (sint_sub_one_bounds hlen)]
-          wp_apply (wp_load_slice_index (V := Loc) es _ els (DFrac.own 1) p
+          wp_apply (wp_load_slice_index (V := Loc) es _ els dqh p
             (sint_sub_one_bounds hlen).1) $$ [Hes] as Hes
           · iframe; ipureintro; rw [sint_sub_one_toNat hlen]; exact Hp
           (try wp_auto)
@@ -533,6 +540,7 @@ theorem rafthttp.msgAppV2Decoder.decode.wp_proof
       (try wp_auto)
       subst Hix
       ihave Hm' := Hclose $$ HEs Hes
+      ihave Hm' := Hback $$ Hm'
       iapply HΦ
       isplitr
       · iapply http.errStrOk_nil
@@ -543,11 +551,11 @@ theorem rafthttp.msgAppV2Decoder.decode.wp_proof
         iexists buf, s8, s1, zs, x8, [W8 2]
         iframe; iframe #; iframe %
       iintro -
-      iexists _, _, st0
+      iexists _, _, c0
       iframe Hm' HBb
       ipureintro
-      refine ⟨?_, ?_, rfl, Hw0.1⟩
-      · exact Hfr
+      refine ⟨Hfr, ?_, by rw [hc0m], MsgC.resps_nil_of_model (by rw [hc0m]; exact Hw0.1),
+        hc0cs, fun hs _ => hc0sz hs⟩
       · simp [msgFrame, hyl]
     · cases err with
       | nil => exact absurd rfl Herr

@@ -126,6 +126,40 @@ instance swMsgBound_persistent (ml : Loc) (st : MsgSt) :
 
 end defs
 
+/-- **`bs` decodes to the content `c`** (raft-entsize §4, 2026-11-10: `proto.Unmarshal`'s D1 and D2
+at a message): `c` is a wire content of `bs` whose unknown fields are valid and whose snapshot's conf
+state has none, of which `bs` is the encoding, at most twice as large as `bs` (D1), and the one
+content that marshals, with valid unknown fields, of which `bs` is the encoding (D2): what the
+message decoders give of the message they decode. -/
+def MsgDecC [GooseExts] (c : MsgC) (bs : List w8) : Prop :=
+  MsgWireOk c.model bs ∧ (∀ q ∈ c.levels, ufWire q.1 q.2) ∧ c.csUfNil ∧ bs = msgEncC c ∧
+    msgSize c ≤ 2 * bs.length ∧
+    ∀ c₀ : MsgC, MsgMarshals c₀.model → (∀ q ∈ c₀.levels, ufWire q.1 q.2) → bs = msgEncC c₀ → c₀ = c
+
+/-- A content whose model has no responses has none. -/
+theorem MsgC.resps_nil_of_model [GooseExts] {c : MsgC} (h : c.model.resps = []) : c.resps = [] := by
+  simpa [MsgC.model] using h
+
+/-- A message of another's wire fields with no responses is that one's fields with none. -/
+theorem MsgSt.eq_of_wire [GooseExts] {st st0 : MsgSt} (hw : wireOf st0 = wireOf st) (hr : st.resps = []) :
+    st = ⟨st0.msg, st0.ents, st0.snap, st0.ctx, []⟩ := by
+  cases st; cases st0
+  simp only [wireOf, MsgWire.mk.injEq] at hw
+  simp_all
+
+theorem MsgDecC.enc [GooseExts] {c : MsgC} {bs : List w8} (h : MsgDecC c bs) : MsgEnc c.model bs :=
+  ⟨c, rfl, h.2.1, h.2.2.1, h.2.2.2.1⟩
+
+/-- A decoded content has no responses (it marshals). -/
+theorem MsgDecC.resps [GooseExts] {c : MsgC} {bs : List w8} (h : MsgDecC c bs) : c.resps = [] :=
+  MsgC.resps_nil_of_model h.1.1
+
+/-- A content decoded from at most `2^29` bytes (rafthttp's `readBytesLimit`) is of bounded size
+(D1's factor 2). -/
+theorem MsgDecC.sizeOk [GooseExts] {c : MsgC} {bs : List w8} (h : MsgDecC c bs)
+    (hl : bs.length ≤ 2 ^ 29) : msgSizeOk c :=
+  msgSizeOk_of_size c (by have := h.2.2.2.2.1; omega) h.resps
+
 section lemmas
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]

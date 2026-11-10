@@ -71,23 +71,80 @@ timeout 12000 flock /shared/tmp/etcd-grove-build.lock systemd-run --scope -q -p 
   included) green: `/shared/tmp/ptm-cp3/entsize/b1-rafthttp.log` (targets `b1-targets.txt`).
 - Forms decided: in `questions.md` (untracked, worktree).
 
+## Done (part B, the rest; 2026-11-10, uncommitted)
+
+- `Codec.lean`: `MsgDecC c bs` (D1 and D2 at a message: `MsgWireOk c.model bs`, valid unknown fields,
+  `csUfNil`, `bs = msgEncC c`, `msgSize c ≤ 2·|bs|`, the one such content), with `MsgDecC.enc`,
+  `.resps`, `.sizeOk` (`|bs| ≤ 2^29 → msgSizeOk c`); `MsgC.resps_nil_of_model`, `MsgSt.eq_of_wire`.
+- `messageDecoder.decodeLimit`/`decode` posts: `∃ bs c, ⌜… ∧ MsgDecC c bs⌝ ∗ □ B rs' ∗ msgPtsCC ml 1 1 true c`
+  (was `∃ bs st, MsgWireOk st bs ∧ MsgEnc st bs ∗ msgPtsC … st`).
+- `MsgAppV2.lean`: `V2Compat.short`/`short_end` also give `EntsSz Sz` of the frame's encodings;
+  `ents_eq_of_uniq` (EntsSz's contents are the decoded ones, by D2's uniqueness), `Forall₂_snoc`,
+  `msgSizeOk_of_ents`, `isHB_of_wire`, `optCell_alloc`, `msgPtsCC_of_struct` (content form of
+  `msgPtsC_of_struct_uf`). No `entFrames` injectivity lemma was needed: `short_end` already identifies
+  the frame's encodings with `pre` (`entFrames_prefix`).
+- `msgAppV2Decoder.decode` post: `∃ w bs c, ⌜V2Frame … ∧ … ∧ wireOf c.model = w ∧ c.resps = [] ∧
+  c.csUfNil ∧ (Sz → ¬isHB c.model.msg → msgSizeOk c)⌝ ∗ □ B rs' ∗ msgPtsCC ml 1 1 true c`. Heartbeat:
+  the clone's content (size vacuous); App: `MustUnmarshalMessagePb`'s `c0` (`MsgEncSz`'s), read through
+  `msgPtsCC_read`; AppEntries: the loop tracks the decoded contents `ecs` (`entRoC`) and each one's
+  uniqueness, the header built by `msgPtsCC_of_struct` (`uf = []`, no context/snapshot).
+- `wp_stream_decode` (`Reader.lean`): the same content post at `N.Sz` (message stream: `MsgDecC.sizeOk`
+  with `readBytesLimit`).
+- `netRecv` (`Net.lean`) in content form: `∃ st c, msgPtsCC ml 1 1 true c ∗ ⌜c.model = ⟨st…, []⟩ ∧
+  c.csUfNil ∧ st.msg.To' = id ∧ (γn.N.Sz → st.msg.Type' ≠ MsgSnap → msgSizeOk c)⌝ ∗ □ P st ∗ O st ∗
+  netSnapRecv γd st`. Producers: `decodeLoop` (the content kept through `msgPtsCC_read`, `¬isHB` from
+  the heartbeat check), `pipelineHandler` (D2: the sender's `MsgEncSz` content), `snapshotHandler`
+  (a `MsgSnap`: `msgPtsC_msgPtsCC`, size vacuous). Consumers: `EtcdServer.Process` (reads through
+  `msgPtsCC_read`, rebuilds), `stepIn_of_recv` (passes `Hsz` to `stepIn_intro`; no longer uses the
+  interim `maxData = none`).
+- Targeted build (all rafthttp Spec/Proof modules, `InvNet`, `EtcdServer__Process`) green:
+  `/shared/tmp/ptm-cp3/entsize/b2-rafthttp.log` (targets `b2-targets.txt`). The server's `Link.lean`
+  and the rest are for the full build.
+
+## Done (step 2: the server's `maxData = some 2^30`; 2026-11-10, uncommitted)
+
+- `srvClusterOk`'s interim `⌜γ.raft.cl.maxData = none⌝` is now `⌜γ.raft.cl.maxData = some (2 ^ 30)⌝`.
+- `srvClusterBoot_alloc` (`NewServerAlloc.lean`) and its twin (`NewServerAllocOn.lean`) pass
+  `cluster_alloc … (some (2 ^ 30))`: `2^30 ≤ 2^31`, and the boot entries' data from `Hbc.data`
+  (`bootDataOk`, `+ 64 ≤ 2^27`).
+- `raftPropose` (`InvRequest.lean`) gains `⌜data.length ≤ 2 ^ 27⌝` (after `⌜data ≠ []⌝`), discharged in
+  `processInternalRaftRequestOnce` from the `MaxRequestBytes` check (`Hif`) and `etcdMaxRequestBytesOk`;
+  `NodeBridge` passes it to `node.Propose`'s premise, and the read context's 8 bytes (`beBytes_length`)
+  to `ReadIndex`'s.
+- `stepIn_of_recv` no longer reads the interim conjunct (step 1's `netRecv` size fact).
+- Targeted build green (7321 jobs): `/shared/tmp/ptm-cp3/entsize/s2-switch.log` (targets
+  `s2-targets.txt`: the leaves of `srvClusterOk`/`raftPropose`/the allocations' users, `NodeBridge`,
+  `processInternalRaftRequestOnce`, `InvNet`).
+
+## Step 3's start checks (2026-11-10)
+
+1. [r3c]'s snapshot bound is derivable from existing facts (no world assumption): the envelope is
+   raft's `MsgSnap`, handed out at a content with `sentOk` (`c.f.uf = []` for a `MsgSnap`, `csUfNil`)
+   and `SentMsgShape` (`ents = []`, `ctx = []`, no responses); the server replaces its snapshot by the
+   struct literals' (`Data` nil; `Snapshot`/`SnapshotMetadata` allocated by `pbMsg_alloc … []` in
+   `ownSnapM_of_struct`/`smPts_of_struct`, `InvPb.lean:680/:704`, which must also return their `pbMsg … []`
+   as `msgOwn_of_struct_uf` does); the conf state a clone of `epCsVoters`'s (`csPts`: no unknown fields,
+   at most `2^20` ids); scalars by a `varintSize ≤ 10` lemma. Work: carry the content (`msgOut`, not
+   `msgOwn`) from `processMessages` to `createMergedSnapshotMessage`, a content-form `msgOwn_store_Snapshot`,
+   the size computation, then `swMsgBound` threaded `createSnapBody` ← `snapshotSender.send` ←
+   `peer.sendSnap` ← `Transport.SendSnapshot` ← `sendMergedSnap`.
+2. The heartbeat clone in `streamWriter.run` needs a trust change on every route found: the message
+   stream encodes it with `messageEncoder` (`proto.MarshalPb` needs `msgSize c < 2^48`, frozen stage A),
+   and its content is the global's, of which `linkHeartbeatMessage_init` gives only `msgOwn … hbSt`
+   (the unknown fields' length is inside `pbMsg`'s invariant, which only `proto.*` axioms open).
+   Options (reported to etcd-grove-81, STOP): (H1) translate the initializer (drop
+   `"!linkHeartbeatMessage"` from `Code/…/rafthttp.toml`, regenerate, a `gen-init.py` `SPECIAL` step
+   proving it by a content-form struct lemma, `rafthttpInit`'s heartbeat fact in content form): the
+   axiom goes (−1); (H2) restate `linkHeartbeatMessage_init` to give the exact content (`msgRoC … hbC`,
+   `uf = []`); (H3) a heartbeat-only bound axiom (not recommended).
+3. `sendMsg_of_netBundle`'s `¬Sz` case (`swMsgBound_phys`): no trust change needed: make `netBundle`
+   carry `msgSizeOk c` unconditionally (the server's producers have `maxData = some 2^30` from
+   `srvClusterOk`), or the payload's `Sz`; a form decision of this stage.
+
 ## Next, in order
 
-1. B, the rest: (a) `netRecv` → `∃ st c, msgPtsCC ml 1 1 true c ∗ ⌜c.model = ⟨st.msg, st.ents,
-   st.snap, st.ctx, []⟩ ∧ c.csUfNil ∧ st.msg.To' = id ∧ (γn.N.Sz → st.msg.Type' ≠ MsgSnap →
-   msgSizeOk c)⌝ ∗ □ P st ∗ O st ∗ netSnapRecv γd st` (replaces `wireEq st st'`, same meaning by
-   `msgPtsC_iff_CC`); `stepIn_of_recv` passes the size fact (`srvNet.Sz := maxData ≠ none`);
-   `Process` reads through `msgPtsCC_read`. (b) `messageDecoder.decodeLimit`/`decode` posts: the
-   decoded content (`msgPtsCC`, D2's `c = c0`, D1's `msgSize c ≤ 2·|bs|`); with
-   `|bs| ≤ readBytesLimit = 2^29`, `msgSizeOk_of_size`. (c) `msgAppV2Decoder.decode` post: the content,
-   with `Sz → ¬isHB → msgSizeOk c`; App frame: D2 against `MsgEncSz`'s content; AppEntries frame: a
-   new `msgPtsCC_of_struct` (as raft's `msgPtsC_of_struct_uf`, entries `entRoC` at the decoded
-   contents, header `uf = []`), the loop tracking the decoded contents and
-   `MustUnmarshalMessagePb`'s uniqueness, so they are `EntsSz`'s (needs `entFrames` injective to
-   match the frame's `ebs` with `pre`); hdrBytes 0. (d) `wp_stream_decode`, `decodeLoop` (reads via
-   `msgPtsCC_read`, builds `netRecv`), `pipelineHandler` (D2's `c' = c0` and `MsgEncSz`'s size),
-   `snapshotHandler` (a `MsgSnap`: the size fact vacuous).
-2. The server switch to `maxData = some 2^30` (drop `srvClusterOk`'s interim `maxData = none`; the
+1. (done: B, the rest, above.)
+2. (done, above) The server switch to `maxData = some 2^30` (drop `srvClusterOk`'s interim `maxData = none`; the
    allocations discharge raft's boot-data premise from `BootCore`'s `bootDataOk`; `raftPropose ≤ 2^27`
    and the read context's 8 bytes).
 3. The users of `swMsgBound_phys` (Transport `sendMsg_of_netBundle`; `streamWriter.run`'s heartbeat
