@@ -70,7 +70,8 @@ theorem raft.hup.wp_proof
     isplitl [HG]
     · ileft; iframe HG; ipureintro; rfl
     ipureintro
-    exact ⟨⟨Hwf, fun _ => .refl _, ⟨rfl, Int.le_refl _, by omega, rfl, rfl⟩, fun _ => rfl, .inl rfl⟩,
+    exact ⟨⟨Hwf, fun _ => .refl _, ⟨rfl, Int.le_refl _, by omega, rfl, rfl⟩, fun _ => rfl,
+      .inl ⟨fun h => h.1 Hrl, rfl⟩⟩,
       fun _ => .inl (by first | rfl | simp_all)⟩
   · -- not a leader
     have Hnl : stateW64 s.role ≠ W64 2 := by
@@ -97,13 +98,16 @@ theorem raft.hup.wp_proof
         isplitl [HG]
         · ileft; iframe HG; ipureintro; rfl
         ipureintro
-        exact ⟨⟨Hwf, fun _ => .refl _, ⟨rfl, Int.le_refl _, by omega, rfl, rfl⟩, fun _ => rfl, .inl rfl⟩,
+        exact ⟨⟨Hwf, fun _ => .refl _, ⟨rfl, Int.le_refl _, by omega, rfl, rfl⟩, fun _ => rfl,
+          .inl ⟨fun h => h.2.2.2 ((Hhc.1 rfl)), rfl⟩⟩,
           fun _ => .inl (by first | rfl | simp_all)⟩
       | false =>
       wp_auto
       wp_apply raft.wp_load_idC $$ Hphys as Hphys
       wp_apply raft.wp_load_TermC $$ Hphys as Hphys
       wp_raft_logC
+      have HC : HupCampaigns c id s := ⟨Hrl, Hin, Hsn, fun h => by simpa using Hhc.2 h⟩
+      ispecialize Hgbc $$ %HC
       wp_apply wp_raft_campaign _ _ _ _ _ G0 G Hrl Hin Hnowrap Hpv Hpinv $$ [$Hphys $HG $Hgbc $Hgsend]
         as %peers %pvs ⟨%Hpeers, Hphys, HG⟩
       iapply HΦ
@@ -113,7 +117,7 @@ theorem raft.hup.wp_proof
       ipureintro
       refine ⟨⟨nstateWf_prvals _ _ (nstateWf_campaignState _ _ _ _ _),
         fun _ => stepC_campaignState c _ _ _ _ _ Hrl Hin Hnowrap Hpeers _, ?_, fun h => absurd Hin h,
-        .inr ⟨Hrl, Hin, Hsn, fun h => by simpa using Hhc.2 h, _, peers, pvs, _, Hpeers, rfl⟩⟩, ?_⟩
+        .inr ⟨HC, _, peers, pvs, _, fun h => (Hpv (of_decide_eq_true h)).1, Hpeers, rfl⟩⟩, ?_⟩
       rotate_left
       · -- (2026-10-17) a pre-candidate only by a pre-election
         intro h
@@ -135,7 +139,8 @@ theorem raft.hup.wp_proof
       isplitl [HG]
       · ileft; iframe HG; ipureintro; rfl
       ipureintro
-      exact ⟨⟨Hwf, fun _ => .refl _, ⟨rfl, Int.le_refl _, by omega, rfl, rfl⟩, fun _ => rfl, .inl rfl⟩,
+      exact ⟨⟨Hwf, fun _ => .refl _, ⟨rfl, Int.le_refl _, by omega, rfl, rfl⟩, fun _ => rfl,
+        .inl ⟨fun h => of_decide_eq_false Hb.symm ⟨h.2.1, h.2.2.1⟩, rfl⟩⟩,
         fun _ => .inl (by first | rfl | simp_all)⟩
 
 end proof

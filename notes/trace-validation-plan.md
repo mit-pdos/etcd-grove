@@ -896,6 +896,24 @@ stale: log matching below the commit from the ghost; accepted: the new log's rec
 round, `commitIn` at the new term by `commitIn_agree`, `LeaderComplete` for `specInv_updateTerm`, the
 preamble's `BecomeFollower` line skipped), the leader's `MsgAppResp`/`MsgHeartbeatResp`. Checked (branch at `trace-check` `bb336f50f2` plus this slice): full `lake build` green (13797 jobs); `etc/tcb-report.py --check` (806 axioms, 4 `sorry`s, unchanged) and all 53 collections `--reuse --check`, none updated; `interface/` unchanged (regenerated: no file differs; the changed modules are not on `etc/api/raft.txt`); `etc/api-check.py` 0 errors; `--layout` 0 new; `etc/gen-link.py --raft` unchanged.
 
+**Q8 stage 1 (slice 19a), 2026-11-10 (branch `trace-check-q8s19a`): `hup`'s result exclusive;
+`MsgHup` at a follower or candidate and `raft.tickElection.traced` proved; `MsgProp`'s records
+decided.** Decided by the coordinator (slice 18a's option (a)) and the agent (the rest)
+(`notes/decisions.md`, "Q8 stage 1 (slice 19a)"). `HupCampaigns c id s` names the campaign's
+conditions; `HupGuard` is exclusive (`(¬HupCampaigns ∧ s' = s) ∨ (HupCampaigns ∧ ∃ pre …)`, a
+pre-campaign only with pre-vote on); `"Hgbc"` (in `hup`'s spec and `hupGates`) is premised by
+`HupCampaigns`; untraced, `RawNode`, node and tick statements unchanged. `TracedRaftStepHup.lean`: the
+`BecomeCandidate` line (`phaseStepB_becomeCandidate`, `fxPres_timeout`), the vote request and self-vote
+(`phaseStepB_campMsg`, `fxPres_plain`), `stepBundle_traced_hup`, `stepBundle_hup_R`,
+`raft.tickElection.tracedTriple`/`.traced`; both ticks now have traced corollaries. **`MsgProp` at a
+leader, decided, not proved**: the proposal's records are created by the `Replicate` lines' facts
+update, `stepClose` taking raft's ghost state back at `s` or the proposal's appended state (raft-
+internal; changing `ownLogGhost` would be client-visible, creating the records in `Step` would split the
+ghost state it hands the caller). Left: that relaxation, the `Replicate` facts, the self-acknowledgement
+(`lineEffect_selfAck`), the appends (`fxPres_app`, `app_lead`). `Commit` is not on `MsgProp`'s path (it
+follows the self-acknowledgement's receipt). (The coordinator wrote this paragraph at the merge: the
+branch's own plan commit had copied slice 19b's.)
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its

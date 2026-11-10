@@ -822,7 +822,7 @@ theorem stepCD_hup {c : CfgM} {id : w64} {m : MessageM} {s s' : NState}
   refine ⟨Hok.2.1 B, fun Adm dec g hc hd => ⟨g.cidx, .inl rfl, ?_⟩⟩
   change StepR Adm dec id B (rOf s g) [] (rOf s' g)
   obtain ⟨-, -, ⟨Hl, -⟩, -, Hg⟩ := Hok
-  rcases Hg with rfl | ⟨Hnl, Hin, Hsn, Hno, pre, peers, pvs, cl, Hperm, rfl⟩
+  rcases Hg with ⟨-, rfl⟩ | ⟨⟨Hnl, Hin, Hsn, Hno⟩, pre, peers, pvs, cl, -, Hperm, rfl⟩
   · exact .refl _
   have Hrole : (campaignState id s pre peers cl).role ≠ .leader := by
     cases pre <;> simp [campaignState, sendMsgs, becomePrecandidate, becomeCandidate]

@@ -237,11 +237,12 @@ caller's constant families have both (`StepGOk.const`). -/
 def StepGOk (tr : Option GName) (R : StepG GF) : Prop :=
   PermInv R.GE ∧ IdxFree tr R.G1 ∧ IdxFree tr R.GE ∧ IdxFree tr R.Gp2 ∧ ∀ b N, IdxFree tr (R.Gc b N)
 
-/-- `raft.hup.spec`'s gates (its `"Hgbc"`, `"#Hgsend"`), at `G0` and `G`. -/
+/-- `raft.hup.spec`'s gates (its `"Hgbc"`, `"#Hgsend"`), at `G0` and `G`; `"Hgbc"` given the
+campaign's conditions (2026-11-10, slice 19a). -/
 def hupGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (t : CampaignType) (G0 : IProp GF)
     (G : List Msg → IProp GF) : IProp GF :=
   iprop(
-      "Hgbc" ∷ (G0 -∗ if t = campaignPreElection then iprop(|={⊤}=> G s.outbox)
+      "Hgbc" ∷ (⌜HupCampaigns c id s⌝ -∗ G0 -∗ if t = campaignPreElection then iprop(|={⊤}=> G s.outbox)
         else HookGate s.gh.tr r (NodeEvOf (W64 1) id (becomeCandidate id s) c) (G s.outbox)) ∗
       "#Hgsend" ∷ □ (∀ (pvs : GMap w64 Progress) (y : w64) (o : List Msg), ⌜y ∈ c.voters⌝ -∗ G o -∗
         HookGateOpt s.gh.tr r
