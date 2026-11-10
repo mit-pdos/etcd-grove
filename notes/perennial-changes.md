@@ -2050,3 +2050,33 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
   `s[:i]`, `s[i+len(sep):]`, `true` at the first occurrence `i`; `s`, `""`, `false` if none) is a
   candidate general addition to Perennial's `strings`.
 - **Status.** Recorded only.
+
+## `func.forRange` (range over a function) has no WP rule (2026-11-10, k8s 7e-2, branch `k8s-7e`)
+
+- **Missing.** Perennial defines `func.forRange n` (`Perennial/Golang/Defn/Loop.lean`, Go 1.23's
+  `for k, v := range f`) but proves no WP rule for it; `doFor` has `wp_for`.
+- **Needed by.** `store.GetList`'s `for chunk, chunkErr := range chunks`
+  (`k8s.io/apiserver/pkg/storage/etcd3/store.go:829`).
+- **Workaround here.** A local, proved lemma `wp_forRange2` (`n = 2`) in
+  `Proof/k8s_io/apiserver/pkg/storage/etcd3/ForRange.lean`: the caller proves the iterator's WP for
+  an abstract yield `GoFunc` holding a token `Tok` (forRange's `state` cell at `0` and its `exit`
+  cell untouched), with the yield's spec (the body's outcome `executeVal`/`continueVal` gives `Tok`
+  back and `true`; `breakVal`/`returnVal r` gives `Done bv` and `false`); after the iterator returns
+  with `Tok` or `Done bv`, the loop's outcome follows. Bodies that panic are not covered. Plus
+  `wp_app_recV` (a closure argument as a `GoFunc` value). No axiom.
+- **Proposed change.** The same rule in `Perennial/Golang/Theory/Loop.lean` for `n = 0, 1, 2`, with
+  a sealed postcondition in `wp_for`'s style and a panicking-body case; a `wp_for_range` tactic.
+- **Status.** Candidate; not started in Perennial.
+
+## `reflect.Kind` is an axiomatized type: `v.Kind() != reflect.Slice` cannot step (2026-11-10, k8s 7e-2)
+
+- **Missing.** Perennial's `reflect` translation declares `Kind` (Go: `type Kind uint`) as an
+  axiomatized type (`axiom Kind : Type`, `Kind.underlying` an axiom), so `GoOp GoEquals reflect.Kind.ty`
+  has no semantics; the trusted `reflect.Value.Kind.spec` (this repository) returns `#(W64 23)`.
+- **Needed by.** `store.GetList`'s `if err != nil || v.Kind() != reflect.Slice` (`store.go:780`).
+- **Workaround here.** `store.GetList.wp_proof` takes the instance premise
+  `[go.IsStrictlyComparable reflect.Kind.underlying w64]` (a hypothesis of the proof, not an axiom;
+  linking it into a closed result needs a decision: a trust-boundary fact here, or the change below).
+- **Proposed change.** Translate `reflect.Kind` as `type Kind uint` (it is a plain named integer
+  type), so its comparison is the translated one; or a reflect model fact stating the underlying.
+- **Status.** Recorded; decision pending (k8s 7e-2 report).

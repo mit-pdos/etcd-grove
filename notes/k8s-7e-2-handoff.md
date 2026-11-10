@@ -1,4 +1,4 @@
-# k8s 7e-2 handoff (2026-11-09, branch `k8s-7e`, worktree `/shared/etcd-grove-k8s7d`)
+# k8s 7e-2 handoff (2026-11-10, branch `k8s-7e`, worktree `/shared/etcd-grove-k8s7d`)
 
 Read `notes/k8s-7e-2-draft.md` (with its "Corrections (2026-11-09)" and the two "Forms settled at
 Prove" paragraphs) and `questions.md` (the 7e-2 sections). Scratch and logs:
@@ -43,6 +43,31 @@ names `rpctypesInit`). `etc/gen-init.py --check` passes.
 - `interpretListError` (pre `kClientErr`) and `store.listReadError` (premise `∃ k, prepareKeyM rp rp
   false = some k ∧ (pathPrefix ++ k).length ≤ opKeyMax`, for `GetCurrentResourceVersion`) proved. Not
   linked (no new trusted spec is linked yet; the last third links them).
+
+## Seventh session (2026-11-10): `GetList` proved
+Rules: `/shared/tmp/coord-81/common-rules.md`. Decisions: `questions.md` (7e-2, seventh session).
+- Done (no `sorry`; built capped, `/shared/tmp/k8s-7e-2/b21.log`, 7369 jobs):
+  - `ForRange.lean`: `wp_forRange2` (local, proved; candidate Perennial addition in
+    `notes/perennial-changes.md`), `wp_app_recV`.
+  - `ListPages.lean` (pure): `scopeL`, `fromL`, `fromL_kp`, `fromL_next` (a page's last key and
+    `"\x00"`), `goStringLt_append_zero`, `LAgree`/`chunkL_agree`, `kListL_agree`, `kListL_final`
+    (the list at a `break`), `kListL_total`, `page0_full`, `pageKvsL_prefix`, `pageKvsL_more_ne`,
+    `prepareKeyM_ne_nil`, `scopeL_prefix`, `chunkL_take_add`.
+  - Forms (decided by the agent, `questions.md`): `pagesOk` stronger (a `false` yield gives
+    `threadTok -∗ Φ #()`; the end premise only after a page without more, `pageMore`, new in
+    `ListDefs`); `appendChunk.spec` post gains `lr = true → n = 0 → full st`;
+    `Spec/.../store__GetList.lean` = Draft §2 + G1/G2 + `ctxNeverDone (ok ci)` + B5 (a).
+  - `store.GetList.wp_proof` takes `[go.IsStrictlyComparable reflect.Kind.underlying w64]`
+    (`reflect.Kind` is axiomatized in Perennial; decision needed before linking).
+- GetList proof structure: `wp_post_named` names the code after the loop (`K`); `HkP` = `Fin ∧ Ret`
+  (the post-loop continuation after a `break`, and after a `return`), carried in the loop invariant `J`
+  (given to `pagesOk`), with `Tok` from `wp_forRange2`; the page yield names its post `Ψb`.
+- **Next, in order:** the driver's `decoder.DecodeListItem`, `versioner.UpdateList`,
+  `driver_listContractOk` (Draft §6); links (`etc/gen-link.py`) and interfaces; STOP before linking
+  trusted specs or touching `etc/tcb-baseline.txt`/collections.
+- Pitfalls: `iassert` does not exist (use `ihave H : (P) $$ [...]`); `swap`, `by_contra` absent;
+  `cases h : x.f'` substitutes only where the goal already shows `x.f'`; a long proof needs
+  `set_option maxHeartbeats 8000000 in`; `iunfold A B` takes one name (use `unfold A B` on the goal).
 
 ## Sixth session (2026-11-10, after B5 (a)): `pagedChunks` proved; next `GetList`
 Read the Draft's B5 decision and `questions.md` (B5, and "Forms decided by the agent"; rules:
