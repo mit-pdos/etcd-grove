@@ -291,6 +291,25 @@ func TestKindLenCapIsNil(t *testing.T) {
 	t.Logf("Set(MakeSlice(0,0)) empties a non-empty list: `IsNil = some bool` cannot prove finalizeList")
 }
 
+// reflect.Kind is `type Kind uint` (8 bytes at the pin, amd64): `==` on Kinds is the equality of
+// their numbers, the fact Spec/reflect/KindCompare.lean states (a trust-boundary axiom).
+func TestKindIsUint(t *testing.T) {
+	kt := reflect.TypeOf(reflect.Slice)
+	if kt.Kind() != reflect.Uint || kt.Size() != 8 {
+		t.Errorf("reflect.Kind: kind %v size %d", kt.Kind(), kt.Size())
+	}
+	if reflect.Kind(23) != reflect.Slice || uint(reflect.Slice) != 23 {
+		t.Errorf("reflect.Slice is not 23")
+	}
+	for a := reflect.Kind(0); a < 40; a++ {
+		for b := reflect.Kind(0); b < 40; b++ {
+			if (a == b) != (uint(a) == uint(b)) {
+				t.Errorf("Kind == differs from uint == at %d %d", a, b)
+			}
+		}
+	}
+}
+
 func TestMakeSlice(t *testing.T) {
 	rt := reflect.TypeOf([]driver.Obj(nil))
 	for _, nm := range [][2]int{{0, 0}, {0, 1}, {3, 3}, {2, 2048}} {

@@ -7,8 +7,8 @@ the token unchanged.
 Faithful: at the pinned toolchain (go1.27.3) the JSONv2 experiment is on by default
 (`internal/buildcfg/exp.go`, `JSONv2: true`), so `json.Marshal` is `v2_encode.go`'s
 `jsonv2.Marshal(v, DefaultOptionsV1())`, not `encode.go`'s encoder; on that path it marshals a
-struct of two strings and an `int64` without error (invalid UTF-8 is replaced, never an error; no `MarshalJSON` methods, no cycles, no unsupported types), and
-deterministically, into a fresh buffer (`v2/arshal.go`'s `bytes.Clone`), so its output is a function
+struct of two strings and an `int64` without error (invalid UTF-8 is replaced, never an error; no
+`MarshalJSON` methods, no cycles, no unsupported types), and deterministically, into a fresh buffer (`v2/arshal.go`'s `bytes.Clone`), so its output is a function
 of the two varying fields (`TestMarshalToken`, run at go1.27.3). The
 trust boundary (stage 7e-2, `notes/k8s-7e-2-draft.md` §5.4, attacked T14): an axiom,
 `Proof/encoding/json/Marshal.lean`. Lean-first (no Rocq counterpart).

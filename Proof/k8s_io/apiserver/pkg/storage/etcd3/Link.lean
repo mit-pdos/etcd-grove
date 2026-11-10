@@ -17,9 +17,11 @@ public import Proof.k8s_io.apimachinery.pkg.util.wait.ContextForChannel
 public import Proof.k8s_io.apiserver.pkg.storage.EncodeContinue
 public import Proof.k8s_io.apimachinery.pkg.conversion.EnforcePtr
 public import Proof.k8s_io.apiserver.pkg.audit.GetAuditIDTruncated
+public import Proof.k8s_io.apimachinery.pkg.api.errors.HasStatusCause
 public import Proof.strings.HasSuffix
 public import Proof.go_etcd_io.etcd.client.v3.IsOptsWithFromKey
 public import Proof.go_etcd_io.etcd.client.v3.IsOptsWithPrefix
+public import Proof.k8s_io.apimachinery.pkg.api.errors.IsTimeout
 public import Proof.k8s_io.apiserver.pkg.storage.IsTooLargeResourceVersion
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.NewCompactor
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.NewDefaultLeaseManagerConfig
@@ -40,6 +42,8 @@ public import Proof.k8s_io.apiserver.pkg.storage.Preconditions__Check
 public import Proof.k8s_io.apiserver.pkg.storage.PrepareContinueToken
 public import Proof.k8s_io.apiserver.pkg.storage.PrepareKey
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.metrics.RecordEtcdRequest
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.metrics.RecordListLatency
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.metrics.RecordStorageListMetrics
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp__GetResponseRange
 public import Proof.k8s_io.apiserver.pkg.storage.SelectionPredicate__Empty
 public import Proof.k8s_io.apiserver.pkg.storage.SelectionPredicate__Matches
@@ -79,6 +83,7 @@ public import Proof.k8s_io.apiserver.pkg.storage.etcd3.getNewItemFunc
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.getTypeName
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.growSlice
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.interpretListError
+public import Proof.encoding.json.Marshal
 public import Proof.k8s_io.apimachinery.pkg.labels.Set__Get
 public import Proof.k8s_io.apimachinery.pkg.labels.Set__Has
 public import Proof.k8s_io.apimachinery.pkg.api.meta.Accessor
@@ -93,10 +98,16 @@ public import Proof.path.lazybuf__append
 public import Proof.path.lazybuf__index
 public import Proof.path.lazybuf__string
 public import Proof.google_golang_org.protobuf.proto.Clone
+public import Proof.reflect.KindCompare
 public import Proof.reflect.New
+public import Proof.reflect.Type__Elem
 public import Proof.reflect.ValueOf
 public import Proof.reflect.Value__Addr
+public import Proof.reflect.Value__Cap
 public import Proof.reflect.Value__Interface
+public import Proof.reflect.Value__IsNil
+public import Proof.reflect.Value__Kind
+public import Proof.reflect.Value__Len
 public import Proof.reflect.Value__Set
 public import Proof.reflect.Value__Type
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.refreshOnError
@@ -134,18 +145,7 @@ public import Proof.go_etcd_io.etcd.client.v3.Compare
 public import Perennial.Proof.time.Link
 public import Spec.go_etcd_io.etcd.client.v3.kubernetes.Client__GetAt
 public import Spec.go_etcd_io.etcd.client.v3.kubernetes.Client__List
-public import Spec.k8s_io.apimachinery.pkg.api.errors.HasStatusCause
-public import Spec.k8s_io.apimachinery.pkg.api.errors.IsTimeout
-public import Spec.k8s_io.apiserver.pkg.storage.etcd3.metrics.RecordListLatency
-public import Spec.k8s_io.apiserver.pkg.storage.etcd3.metrics.RecordStorageListMetrics
 public import Spec.k8s_io.utils.clock.RealClock__After
-public import Spec.encoding.json.Marshal
-public import Spec.reflect.KindCompare
-public import Spec.reflect.Type__Elem
-public import Spec.reflect.Value__Cap
-public import Spec.reflect.Value__IsNil
-public import Spec.reflect.Value__Kind
-public import Spec.reflect.Value__Len
 public import Proof.fmt.Link
 public import Proof.go_etcd_io.etcd.client.v3.Link
 public import Proof.go_etcd_io.etcd.client.v3.kubernetes.Link
@@ -264,6 +264,10 @@ theorem reflect.Value.wp_Type :
     EtcdGrove.reflect.Value.Type.spec (GF := GF) (hG := hG) :=
   EtcdGrove.reflect.Value.Type.wp_proof
 
+theorem reflect.Type.wp_Elem :
+    EtcdGrove.reflect.Type.Elem.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.reflect.Type.Elem.wp_proof
+
 theorem reflect.wp_New :
     EtcdGrove.reflect.New.spec (GF := GF) (hG := hG) :=
   EtcdGrove.reflect.New.wp_proof
@@ -272,9 +276,21 @@ theorem reflect.Value.wp_Interface :
     EtcdGrove.reflect.Value.Interface.spec (GF := GF) (hG := hG) :=
   EtcdGrove.reflect.Value.Interface.wp_proof
 
+theorem reflect.Value.wp_Cap :
+    EtcdGrove.reflect.Value.Cap.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.reflect.Value.Cap.wp_proof
+
+theorem reflect.Value.wp_Len :
+    EtcdGrove.reflect.Value.Len.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.reflect.Value.Len.wp_proof
+
 theorem reflect.Value.wp_Set :
     EtcdGrove.reflect.Value.Set.spec (GF := GF) (hG := hG) :=
   EtcdGrove.reflect.Value.Set.wp_proof
+
+theorem reflect.wp_KindCompare :
+    EtcdGrove.reflect.KindCompare.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.reflect.KindCompare.wp_proof
 
 theorem reflect.wp_ValueOf :
     EtcdGrove.reflect.ValueOf.spec (GF := GF) (hG := hG) :=
@@ -283,6 +299,14 @@ theorem reflect.wp_ValueOf :
 theorem reflect.Value.wp_Addr :
     EtcdGrove.reflect.Value.Addr.spec (GF := GF) (hG := hG) :=
   EtcdGrove.reflect.Value.Addr.wp_proof
+
+theorem reflect.Value.wp_IsNil :
+    EtcdGrove.reflect.Value.IsNil.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.reflect.Value.IsNil.wp_proof
+
+theorem reflect.Value.wp_Kind :
+    EtcdGrove.reflect.Value.Kind.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.reflect.Value.Kind.wp_proof
 
 end links
 
@@ -321,13 +345,33 @@ theorem wait.wp_ContextForChannel :
     EtcdGrove.wait.ContextForChannel.spec (GF := GF) (hG := hG) :=
   EtcdGrove.wait.ContextForChannel.wp_proof
 
+theorem encoding.json.wp_Marshal :
+    EtcdGrove.encoding.json.Marshal.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.encoding.json.Marshal.wp_proof
+
+theorem storage.wp_EncodeContinue :
+    EtcdGrove.storage.EncodeContinue.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.storage.EncodeContinue.wp_proof encoding.json.wp_Marshal
+
 theorem audit.wp_GetAuditIDTruncated :
     EtcdGrove.audit.GetAuditIDTruncated.spec (GF := GF) (hG := hG) :=
   EtcdGrove.audit.GetAuditIDTruncated.wp_proof
 
+theorem apierrors.wp_HasStatusCause :
+    EtcdGrove.apierrors.HasStatusCause.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apierrors.HasStatusCause.wp_proof
+
 theorem strings.wp_HasSuffix :
     EtcdGrove.strings.HasSuffix.spec (GF := GF) (hG := hG) :=
   EtcdGrove.strings.HasSuffix.wp_proof
+
+theorem apierrors.wp_IsTimeout :
+    EtcdGrove.apierrors.IsTimeout.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apierrors.IsTimeout.wp_proof
+
+theorem storage.wp_IsTooLargeResourceVersion :
+    EtcdGrove.storage.IsTooLargeResourceVersion.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.storage.IsTooLargeResourceVersion.wp_proof apierrors.wp_IsTimeout apierrors.wp_HasStatusCause
 
 theorem wait.channelContext.wp_Done :
     EtcdGrove.wait.channelContext.Done.spec (GF := GF) (hG := hG) :=
@@ -405,6 +449,10 @@ theorem storage.Preconditions.wp_Check :
     EtcdGrove.storage.Preconditions.Check.spec (GF := GF) (hG := hG) :=
   EtcdGrove.storage.Preconditions.Check.wp_proof apimeta.wp_Accessor storage.wp_NewInvalidObjError fmt.wp_SprintfNamed
 
+theorem storage.wp_PrepareContinueToken :
+    EtcdGrove.storage.PrepareContinueToken.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.storage.PrepareContinueToken.wp_proof storage.wp_EncodeContinue
+
 theorem strings.wp_Contains :
     EtcdGrove.strings.Contains.spec (GF := GF) (hG := hG) :=
   EtcdGrove.strings.Contains.wp_proof
@@ -416,6 +464,14 @@ theorem storage.wp_PrepareKey :
 theorem metrics.wp_RecordEtcdRequest :
     EtcdGrove.metrics.RecordEtcdRequest.spec (GF := GF) (hG := hG) :=
   EtcdGrove.metrics.RecordEtcdRequest.wp_proof
+
+theorem metrics.wp_RecordListLatency :
+    EtcdGrove.metrics.RecordListLatency.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.metrics.RecordListLatency.wp_proof
+
+theorem metrics.wp_RecordStorageListMetrics :
+    EtcdGrove.metrics.RecordStorageListMetrics.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.metrics.RecordStorageListMetrics.wp_proof
 
 theorem storage.SelectionPredicate.wp_ShardingEnabled :
     EtcdGrove.storage.SelectionPredicate.ShardingEnabled.spec (GF := GF) (hG := hG) :=
@@ -521,9 +577,17 @@ theorem fields.Set.wp_Get :
     EtcdGrove.fields.Set.Get.spec (GF := GF) (hG := hG) :=
   EtcdGrove.fields.Set.Get.wp_proof
 
+theorem wp_getNewItemFunc :
+    EtcdGrove.k8s.getNewItemFunc.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.getNewItemFunc.wp_proof reflect.Value.wp_Type reflect.Type.wp_Elem reflect.wp_New reflect.Value.wp_Interface
+
 theorem wp_getTypeName :
     EtcdGrove.k8s.getTypeName.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s.getTypeName.wp_proof reflect.wp_TypeOf
+
+theorem wp_growSlice :
+    EtcdGrove.k8s.growSlice.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.growSlice.wp_proof reflect.Value.wp_Cap reflect.Value.wp_Len reflect.Value.wp_Type reflect.Value.wp_Set
 
 theorem wp_interpretListError :
     EtcdGrove.k8s.interpretListError.spec (GF := GF) (hG := hG) :=
@@ -609,6 +673,14 @@ theorem store.wp_processListItem :
     EtcdGrove.k8s.store.processListItem.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s.store.processListItem.wp_proof reflect.wp_ValueOf reflect.Value.wp_Set
 
+theorem store.wp_appendChunk :
+    EtcdGrove.k8s.store.appendChunk.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.store.appendChunk.wp_proof store.wp_processListItem wp_growSlice reflect.Value.wp_Len
+
+theorem store.wp_finalizeList :
+    EtcdGrove.k8s.store.finalizeList.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.store.finalizeList.wp_proof reflect.Value.wp_IsNil reflect.Value.wp_Type reflect.Value.wp_Set storage.SelectionPredicate.wp_SetShardInfoOnList
+
 theorem store.wp_updateState :
     EtcdGrove.k8s.store.updateState.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s.store.updateState.wp_proof
@@ -635,29 +707,8 @@ variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [ctxDescs : EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
 variable (h_Client__GetAt : EtcdGrove.kubernetes.Client.GetAt.spec (GF := GF) (hG := hG))
 variable (h_Client__List : EtcdGrove.kubernetes.Client.List.spec (GF := GF) (hG := hG))
-variable (h_HasStatusCause : EtcdGrove.apierrors.HasStatusCause.spec (GF := GF) (hG := hG))
-variable (h_IsTimeout : EtcdGrove.apierrors.IsTimeout.spec (GF := GF) (hG := hG))
-variable (h_RecordListLatency : EtcdGrove.metrics.RecordListLatency.spec (GF := GF) (hG := hG))
-variable (h_RecordStorageListMetrics : EtcdGrove.metrics.RecordStorageListMetrics.spec (GF := GF) (hG := hG))
 variable (h_clock_RealClock__After : EtcdGrove.clock.RealClock.After.spec (GF := GF) (hG := hG))
-variable (h_json_Marshal : EtcdGrove.encoding.json.Marshal.spec (GF := GF) (hG := hG))
-variable (h_reflect_KindCompare : EtcdGrove.reflect.KindCompare.spec (GF := GF) (hG := hG))
-variable (h_reflect_Type__Elem : EtcdGrove.reflect.Type.Elem.spec (GF := GF) (hG := hG))
-variable (h_reflect_Value__Cap : EtcdGrove.reflect.Value.Cap.spec (GF := GF) (hG := hG))
-variable (h_reflect_Value__IsNil : EtcdGrove.reflect.Value.IsNil.spec (GF := GF) (hG := hG))
-variable (h_reflect_Value__Kind : EtcdGrove.reflect.Value.Kind.spec (GF := GF) (hG := hG))
-variable (h_reflect_Value__Len : EtcdGrove.reflect.Value.Len.spec (GF := GF) (hG := hG))
 
-
-include h_json_Marshal in
-theorem storage.wp_EncodeContinue :
-    EtcdGrove.storage.EncodeContinue.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.storage.EncodeContinue.wp_proof h_json_Marshal
-
-include h_HasStatusCause h_IsTimeout in
-theorem storage.wp_IsTooLargeResourceVersion :
-    EtcdGrove.storage.IsTooLargeResourceVersion.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.storage.IsTooLargeResourceVersion.wp_proof h_IsTimeout h_HasStatusCause
 
 include h_clock_RealClock__After in
 theorem compactor.wp_runCompactLoop :
@@ -669,25 +720,10 @@ theorem wp_NewCompactor :
     EtcdGrove.k8s.NewCompactor.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s.NewCompactor.wp_proof (compactor.wp_runCompactLoop h_clock_RealClock__After) compactor.wp_runWatchLoop
 
-include h_json_Marshal in
-theorem storage.wp_PrepareContinueToken :
-    EtcdGrove.storage.PrepareContinueToken.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.storage.PrepareContinueToken.wp_proof (storage.wp_EncodeContinue h_json_Marshal)
-
 include h_clock_RealClock__After in
 theorem wp_StartCompactorPerEndpoint :
     EtcdGrove.k8s.StartCompactorPerEndpoint.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s.StartCompactorPerEndpoint.wp_proof (wp_NewCompactor h_clock_RealClock__After) v3.Client.wp_Endpoints klog.wp_V klog.Verbose.wp_Infof
-
-include h_reflect_Type__Elem in
-theorem wp_getNewItemFunc :
-    EtcdGrove.k8s.getNewItemFunc.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s.getNewItemFunc.wp_proof reflect.Value.wp_Type h_reflect_Type__Elem reflect.wp_New reflect.Value.wp_Interface
-
-include h_reflect_Value__Cap h_reflect_Value__Len in
-theorem wp_growSlice :
-    EtcdGrove.k8s.growSlice.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s.growSlice.wp_proof h_reflect_Value__Cap h_reflect_Value__Len reflect.Value.wp_Type reflect.Value.wp_Set
 
 include h_Client__GetAt h_Client__List in
 theorem store.wp_getList :
@@ -699,20 +735,10 @@ theorem store.wp_pagedChunks :
     EtcdGrove.k8s.store.pagedChunks.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s.store.pagedChunks.wp_proof (store.wp_getList h_Client__GetAt h_Client__List) store.wp_listReadError
 
-include h_reflect_Value__Cap h_reflect_Value__Len in
-theorem store.wp_appendChunk :
-    EtcdGrove.k8s.store.appendChunk.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s.store.appendChunk.wp_proof store.wp_processListItem (wp_growSlice h_reflect_Value__Cap h_reflect_Value__Len) h_reflect_Value__Len
-
-include h_reflect_Value__IsNil in
-theorem store.wp_finalizeList :
-    EtcdGrove.k8s.store.finalizeList.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s.store.finalizeList.wp_proof h_reflect_Value__IsNil reflect.Value.wp_Type reflect.Value.wp_Set storage.SelectionPredicate.wp_SetShardInfoOnList
-
-include h_Client__GetAt h_Client__List h_RecordListLatency h_RecordStorageListMetrics h_json_Marshal h_reflect_KindCompare h_reflect_Type__Elem h_reflect_Value__Cap h_reflect_Value__IsNil h_reflect_Value__Kind h_reflect_Value__Len in
+include h_Client__GetAt h_Client__List in
 theorem store.wp_GetList :
     EtcdGrove.k8s.store.GetList.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s.store.GetList.wp_proof h_reflect_KindCompare store.wp_prepareKey (store.wp_pagedChunks h_Client__GetAt h_Client__List) (store.wp_appendChunk h_reflect_Value__Cap h_reflect_Value__Len) (store.wp_finalizeList h_reflect_Value__IsNil) store.wp_validateMinimumResourceVersion wp_shouldStream (wp_getNewItemFunc h_reflect_Type__Elem) storage.wp_ValidateListOptions (storage.wp_PrepareContinueToken h_json_Marshal) conversion.wp_EnforcePtr h_reflect_Value__Kind h_reflect_Value__Len h_RecordStorageListMetrics h_RecordListLatency tracing.wp_Start tracing.Span.wp_End «attribute».wp_String «attribute».wp_Int audit.wp_GetAuditIDTruncated
+  EtcdGrove.k8s.store.GetList.wp_proof reflect.wp_KindCompare store.wp_prepareKey (store.wp_pagedChunks h_Client__GetAt h_Client__List) store.wp_appendChunk store.wp_finalizeList store.wp_validateMinimumResourceVersion wp_shouldStream wp_getNewItemFunc storage.wp_ValidateListOptions storage.wp_PrepareContinueToken conversion.wp_EnforcePtr reflect.Value.wp_Kind reflect.Value.wp_Len metrics.wp_RecordStorageListMetrics metrics.wp_RecordListLatency tracing.wp_Start tracing.Span.wp_End «attribute».wp_String «attribute».wp_Int audit.wp_GetAuditIDTruncated
 
 end links_pending
 

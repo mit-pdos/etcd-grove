@@ -56,6 +56,31 @@ axiom value_into_val_typed [reflect.Assumptions] :
     IntoValTypedUnderlying (GF := GF) _root_.Perennial.reflect.Value
       _root_.Perennial.reflect.Value.underlying
 
+/-- **`reflect.Type`'s values are distinct as values** (the trust boundary, stage 7e-2): Go's
+`reflect.Type` is an interface type, whose values Perennial's `GoInterface` represents injectively;
+an axiom because Perennial axiomatizes `Type` (`notes/perennial-changes.md`, "`reflect.Type` in a
+struct field"). -/
+axiom type_intoVal_inj : go.IntoValInj _root_.Perennial.reflect.Type'
+
+/-- **A `reflect.Type` is held in memory as a value** (stage 7e-2, after etcd-grove-81's review of
+2026-11-10): the heap points-to of its value (`heapTypedPointsto`), so it names the heap instance
+`hG` and `intoVal`, as every real instance does (not an axiom: an axiom of type
+`TypedPointsto reflect.Type'` would depend on `GF` alone and claim one points-to for every heap,
+the defect the review found in `value_typed_pointsto`). Of higher priority than Goose's generated
+`Type'_typed_pointsto`, a `sorry` (the two coexist, and a struct elaborated against the generated one,
+client-go's `Reflector.expectedType`, keeps it: `notes/perennial-changes.md`). -/
+instance (priority := high) type_typed_pointsto : TypedPointsto (GF := GF) _root_.Perennial.reflect.Type' :=
+  heapTypedPointsto _root_.Perennial.reflect.Type' type_intoVal_inj.intoVal_inj
+
+/-- **A `reflect.Type` is allocated, loaded and stored as a value** (the trust boundary): Perennial's
+alloc/load/store triples of the heap points-to at `Type`'s underlying type, which Perennial
+axiomatizes (in Go an interface type, for which Perennial proves them). Replaces the generated
+`Type'_into_val_typed`, a `sorry`. -/
+@[instance high]
+axiom type_into_val_typed [reflect.Assumptions] :
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.reflect.Type'
+      _root_.Perennial.reflect.Type'.underlying
+
 /-- `v` is the addressable `reflect.Value` of the `T` at `p`. -/
 opaque reflElem (v : _root_.Perennial.reflect.Value) (T : go.GoType) (p : Loc) : Prop
 
