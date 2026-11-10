@@ -489,12 +489,14 @@ def withPreL (x : Input) (uid rv : Bool) (c : Obj) (hasC : Bool) : Input :=
   else x
 
 /-- `minRV(m, d, c, hasC)`: a `Get`'s minimum resource version for the draw `m` and the offset
-`d` (the comparisons unsigned, as Go's on `uint64`). -/
+`d` (the comparisons unsigned, as Go's on `uint64`). Empty when the cached object's resource
+version is at least `2 ^ 62` (the driver's bound, so that every string parses below `2 ^ 63`). -/
 def minRVL (m d : w64) (c : Obj) (hasC : Bool) : GoString :=
   if m < 30 then []
   else if m < 45 then rvBytes 0
   else if m < 55 then rvBytes 1
   else if !hasC then []
+  else if W64 (2 ^ 62) ≤ c.ResourceVersion' then []
   else if m < 84 then rvBytes c.ResourceVersion'
   else if m < 98 then (if c.ResourceVersion' ≤ d then rvBytes 1 else rvBytes (c.ResourceVersion' - d))
   else rvBytes (c.ResourceVersion' + d)

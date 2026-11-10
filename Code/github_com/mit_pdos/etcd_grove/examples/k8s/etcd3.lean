@@ -5269,6 +5269,7 @@ noncomputable def minRV.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "r")) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "d"))))
   (App (App (Val (GoInstruction (FuncResolve rvBytes []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -5300,6 +5301,15 @@ noncomputable def minRV.impl [GooseExts] [GoGlobalContext] : val :=
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "m")) (Val #(W64 84)))))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "r"))
   (App (App (Val (GoInstruction (FuncResolve rvBytes []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGe go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "r")) (Val #(W64 4611686018427387904)))))
+  (Let "$r0" (Val #(go!""))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -5359,7 +5369,7 @@ noncomputable def minRV.impl [GooseExts] [GoGlobalContext] : val :=
     an Exact list at resource version 0 and resolves RVs relative to the store's current one; the
     driver makes it a legacy list, and its RVs are relative to the cached object (minRV).
 
-    go: k8setcd3.go:1346:6 -/
+    go: k8setcd3.go:1352:6 -/
 noncomputable def genList.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "in"
@@ -5667,7 +5677,7 @@ noncomputable def genList.impl [GooseExts] [GoGlobalContext] : val :=
     object and ignoreNotFound (not with a no-op) 15% each, and a tryUpdate rejecting a random node a
     quarter; a Get ignores "not found" half the time, with a minimum (minRV).
 
-    go: k8setcd3.go:1414:6 -/
+    go: k8setcd3.go:1420:6 -/
 noncomputable def genFrom.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "id"
@@ -6238,7 +6248,7 @@ noncomputable def genFrom.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "keys") (Var "$r0"))))))))))))
   (App (Val (GoInstruction (GoLoad Input.ty))) (Var "$res0"))))))))
 
-/-- go: k8setcd3.go:1502:6 -/
+/-- go: k8setcd3.go:1508:6 -/
 noncomputable def newCache.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType cache.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType cache.ty)))) (Val #())))
@@ -6254,7 +6264,7 @@ noncomputable def newCache.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- get returns client id's cached object, if any.
 
-    go: k8setcd3.go:1507:17 -/
+    go: k8setcd3.go:1513:17 -/
 noncomputable def cache.get.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "id"
@@ -6296,7 +6306,7 @@ noncomputable def cache.get.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- put makes o client id's cached object.
 
-    go: k8setcd3.go:1515:17 -/
+    go: k8setcd3.go:1521:17 -/
 noncomputable def cache.put.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "id"
@@ -6319,7 +6329,7 @@ noncomputable def cache.put.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Gen picks client id's next operation at random (genFrom of a random number and the client's
     cached object).
 
-    go: k8setcd3.go:1523:6 -/
+    go: k8setcd3.go:1529:6 -/
 noncomputable def Gen.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tbl"
   (Lam "id"
@@ -6355,7 +6365,7 @@ noncomputable def Gen.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- errOut is a call's error as an output.
 
-    go: k8setcd3.go:1532:6 -/
+    go: k8setcd3.go:1538:6 -/
 noncomputable def errOut.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "err"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc Output.ty))) (App (Val (GoInstruction (GoZeroVal Output.ty))) (Val #())))
@@ -6449,7 +6459,7 @@ noncomputable def errOut.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- preconditions is an input's preconditions (nil if none).
 
-    go: k8setcd3.go:1554:6 -/
+    go: k8setcd3.go:1560:6 -/
 noncomputable def preconditions.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "in"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.storage.Preconditions.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.storage.Preconditions.ty)))) (Val #())))
@@ -6504,7 +6514,7 @@ noncomputable def preconditions.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- cachedObj is an input's cached object, a new copy (nil if none).
 
-    go: k8setcd3.go:1571:6 -/
+    go: k8setcd3.go:1577:6 -/
 noncomputable def cachedObj.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "in"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Val #())))
@@ -6535,7 +6545,7 @@ noncomputable def cachedObj.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- listOut is a List's output: the list it returned.
 
-    go: k8setcd3.go:1580:6 -/
+    go: k8setcd3.go:1586:6 -/
 noncomputable def listOut.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "l"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc Output.ty))) (App (Val (GoInstruction (GoZeroVal Output.ty))) (Val #())))
@@ -6573,7 +6583,7 @@ noncomputable def listOut.impl [GooseExts] [GoGlobalContext] : val :=
 /-- call runs one operation through the store s: its output (the object it left in a fresh out, the
     list it left in a fresh list, or its error).
 
-    go: k8setcd3.go:1591:6 -/
+    go: k8setcd3.go:1597:6 -/
 noncomputable def call.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "in"
@@ -6726,7 +6736,7 @@ noncomputable def call.impl [GooseExts] [GoGlobalContext] : val :=
     proof's linearization point compares the store's answer at a read with, the rest of the output
     following from them. An answer with a name becomes the client's cached object in tbl.
 
-    go: k8setcd3.go:1626:6 -/
+    go: k8setcd3.go:1632:6 -/
 noncomputable def Apply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "tbl"
@@ -6786,7 +6796,7 @@ noncomputable def Apply.impl [GooseExts] [GoGlobalContext] : val :=
     operations, and returns porcupine's verdict against Model from the store st0 with its history
     h0.
 
-    go: k8setcd3.go:1642:6 -/
+    go: k8setcd3.go:1648:6 -/
 noncomputable def Check.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "st0"
@@ -6863,7 +6873,7 @@ noncomputable def Check.impl [GooseExts] [GoGlobalContext] : val :=
     through the client cli (non-canonical data, as a store with an older codec left: D30g) and
     returns the model's store st with it, or false if the put failed or did not make revision rv.
 
-    go: k8setcd3.go:1652:6 -/
+    go: k8setcd3.go:1658:6 -/
 noncomputable def seedOne.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cli"
   (Lam "st"
@@ -6959,7 +6969,7 @@ noncomputable def seedOne.impl [GooseExts] [GoGlobalContext] : val :=
     store after them with its history (the empty store, then each seed's), or false if a put failed
     or made another revision.
 
-    go: k8setcd3.go:1667:6 -/
+    go: k8setcd3.go:1673:6 -/
 noncomputable def seed.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cli"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc mstore.ty))) (App (Val (GoInstruction (GoZeroVal mstore.ty))) (Val #())))
@@ -7064,7 +7074,7 @@ noncomputable def seed.impl [GooseExts] [GoGlobalContext] : val :=
 /-- noStreaming turns the store's EtcdRangeStream feature off (lists take the paginated path,
     pagedChunks; notes/k8s-7e-scope.md, Q7e-5), or returns false.
 
-    go: k8setcd3.go:1682:6 -/
+    go: k8setcd3.go:1688:6 -/
 noncomputable def noStreaming.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -7083,7 +7093,7 @@ noncomputable def noStreaming.impl [GooseExts] [GoGlobalContext] : val :=
     Check; it panics if porcupine finds the history illegal. An error from a step before Check ends
     Main without a check.
 
-    go: k8setcd3.go:1694:6 -/
+    go: k8setcd3.go:1700:6 -/
 noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "clients"
   (Lam "ops"
@@ -7262,7 +7272,7 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
 /-- clusterConfig is MainCluster's three-member cluster (examples/lib/cluster3): its own token, names
     and addresses, not the other examples', so that their tests can run at once.
 
-    go: k8setcd3.go:1733:6 -/
+    go: k8setcd3.go:1739:6 -/
 noncomputable def clusterConfig.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config.ty))) (Val #())))
@@ -7297,7 +7307,7 @@ noncomputable def clusterConfig.impl [GooseExts] [GoGlobalContext] : val :=
     makes the store and runs Check; it panics if porcupine finds the history illegal. An error from a
     step before Check ends MainCluster without a check.
 
-    go: k8setcd3.go:1749:6 -/
+    go: k8setcd3.go:1755:6 -/
 noncomputable def MainCluster.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "clients"
   (Lam "ops"
@@ -7473,7 +7483,7 @@ noncomputable def MainCluster.impl [GooseExts] [GoGlobalContext] : val :=
     KeepAliveTime/KeepAliveTimeout); a write that fails is kept pending by the model (it takes
     effect later or never).
 
-    go: k8setcd3.go:1788:6 -/
+    go: k8setcd3.go:1794:6 -/
 noncomputable def MainPartition.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "clients"
   (Lam "ops"
