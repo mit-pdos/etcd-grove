@@ -48,7 +48,11 @@ at a node that is not a voter. The old statement, `raft.hup.specS`, had no calle
 **One spec for both trace modes** (2026-11-10, trace-check Q8 stage 1 slice 7): `campaign`'s gates
 (`raft.campaign.spec`), at `s`, used only if `hup` campaigns; the caller's resource comes back as
 `G0` with the state unchanged (no campaign: nothing is traced) or as `G` (a campaign). Until slice 7
-the premise `s.gh.tr = none` (stage 0), now `raft.hup.untraced`'s (`TracedUntracedStep.lean`). -/
+the premise `s.gh.tr = none` (stage 0), now `raft.hup.untraced`'s (`TracedUntracedStep.lean`).
+(2026-11-10, slice 19a) `campaign`'s first gate (`"Hgbc"`) given the campaign's conditions
+(`HupCampaigns`), so that a caller's resource after it can record them: with `HupGuard` exclusive, a
+traced caller's close tells the campaign from nothing done at `s' = s` (`notes/decisions.md`, "Q8 stage 1
+(slice 19a)"). -/
 abbrev raft.hup.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (t : CampaignType) (G0 : IProp GF)
     (G : List Msg → IProp GF),
@@ -68,7 +72,8 @@ abbrev raft.hup.spec : Prop :=
       -- (2026-11-10, Q8 stage 1 slice 7; until then, stage 0, the premise `s.gh.tr = none`)
       -- `campaign`'s gates, the caller's resource through them
       "HG" ∷ G0 ∗
-      "Hgbc" ∷ (G0 -∗ if t = campaignPreElection then iprop(|={⊤}=> G s.outbox)
+      -- (2026-11-10, slice 19a) asked only when it campaigns (`HupCampaigns`, `HupGuard` exclusive)
+      "Hgbc" ∷ (⌜HupCampaigns c id s⌝ -∗ G0 -∗ if t = campaignPreElection then iprop(|={⊤}=> G s.outbox)
         else HookGate s.gh.tr r (NodeEvOf (W64 1) id (becomeCandidate id s) c) (G s.outbox)) ∗
       "#Hgsend" ∷ □ (∀ (pvs : GMap w64 Progress) (y : w64) (o : List Msg), ⌜y ∈ c.voters⌝ -∗ G o -∗
         HookGateOpt s.gh.tr r
