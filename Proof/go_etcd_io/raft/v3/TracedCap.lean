@@ -22,12 +22,12 @@ that every field `makeTracingMessage` writes is pinned but `Vote` (`SendEvOf`: s
 `Msg` has no vote, and no fact reads it). New lemmas, the premise's discharge from a state's and a
 message's numbers: `nodeEvOf_ok`/`_okBoot` (with `nodeEvOf_numsBelow`/`_confsWithin`), `ccEvOf_ok`/
 `_okBoot` (`ccEvOf_numsBelow`/`_confsWithin`), `sendEvOf_ok` (`sendEvOf_numsBelow`/`_confsWithin`,
-`sendEvt_inScope`, `recvEvt_inScope`: a send and a receive line alike, `sendGate`/`recvGate`),
-`evtNames_inScope`. `trCapB`'s configuration `c` is the voters' throughout, raft's own only once the
-node's bootstrap is over (A1's second repair, a docstring: during the bootstrap raft's grows from
-empty, and the bootstrap lines' gate takes the two apart, `trCapB_hookGate_bf`). The Draft's traced
-statements on the capability (`TracedHooksDraft.lean`) take the same premise; no other statement here
-changed.
+`sendEvt_inScope`, `recvEvt_inScope`: a send and a receive line alike, `sendGate`/`recvGate`; the
+message's numbers as one new definition, `Msg.NumsBelow`), `evtNames_inScope`. `trCapB`'s
+configuration `c` is always the voters', raft's own whenever raft's tracker holds all the voters, not
+while it grows from empty in `newRaft` and `Bootstrap` (A1's second repair, a docstring; the bootstrap
+lines' gate takes the two apart, `trCapB_hookGate_bf`). The Draft's traced statements on the capability
+(`TracedHooksDraft.lean`) take the same premise; no other statement here changed.
 -/
 module
 
@@ -417,8 +417,9 @@ theorem recvEvt_inScope (ty : MsgType) (evt : w64) (h : recvEvt ty = some evt) :
   cases ty <;> simp only [recvEvt, Option.some.injEq, reduceCtorEq] at h <;> subst h <;> decide
 
 /-- **A message's numbers below `K`**: the ones its traced form carries (`MsgEvOf`'s, `TraceEv.NumsBelow`
-reads). A received message's are not its receiver's to prove (a rejected `MsgAppResp` also relays the
-received `MsgApp`'s index): owed by the Prove phase, as a fact the send line records of the message. -/
+reads). A received message's are not its receiver's to prove (a `MsgApp`'s index is of its sender's
+log, not the receiver's): owed by the Prove phase, as a fact the send line records of the message
+(`notes/decisions.md`, "Amendment A1"). -/
 def Msg.NumsBelow (K : Nat) (m : Msg) : Prop :=
   uint.nat m.term < K ∧ m.entries.length < K ∧ uint.nat m.logterm < K ∧ uint.nat m.index < K ∧
   uint.nat m.commit < K ∧ uint.nat m.rejecthint < K
@@ -839,8 +840,8 @@ theorem simFx_violated (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (hs
 one, the node's share `(cs, P)` with the function's phase `Φ C cs P` (`C` the voters, the
 configuration `c` their permutation with no outgoing half, the node one of them: review round 1's
 F4), the node's logger and its contract, and the simulation's invariant. `c` is only this pure
-clause, always the voters': raft's own whenever raft's tracker holds all the voters (which `b = true`
-implies), not while it grows from empty in `newRaft` and `Bootstrap` (amendment A1: the bootstrap
+clause, always the voters': raft's own whenever raft's tracker holds all the voters (the gates
+require it once `b = true`: `trCapB_hookGate_bf`'s `hcC`), not while it grows from empty in `newRaft` and `Bootstrap` (amendment A1: the bootstrap
 lines' events are of raft's configuration, their law's bound of the capability's,
 `trCapB_hookGate_bf`; `trCapB_cfg` re-keys it). -/
 def trCapB (tr : Option GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (b : Bool)

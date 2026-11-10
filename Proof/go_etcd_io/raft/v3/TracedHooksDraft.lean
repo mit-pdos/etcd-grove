@@ -29,7 +29,8 @@ the outcome, where Go logs the line, and its postcondition gives the outcome `ma
 `TracedCap.lean`, which this file imports, so that the hook-path specs can state their traced case.)
 
 (Amendment A1, 2026-11-09, the rest of Q13's re-freeze: `MsgEvOf` pins the traced message's
-`rejectHint`, so `raft.send.tracedSpec`'s premise is dischargeable, `sendEvOf_ok`; the capability's
+`rejectHint`, so `raft.send.tracedSpec`'s premise is dischargeable (`sendEvOf_ok`) from the state's
+numbers and, for a reply, the received message's (owed by the Prove phase); the capability's
 configuration is the voters' during a node's bootstrap, apart from raft's, `trCapB`'s docstring and
 `trCapB_hookGate_bf`. No statement in this file changed.)
 

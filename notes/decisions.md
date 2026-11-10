@@ -33746,7 +33746,13 @@ of the one gate says. *The bootstrap law over the configuration the line carries
 received message's numbers are not its receiver's to prove (the bags' `msgAbs` drops `rejectHint`, and a
 rejected `MsgAppResp` relays the received `MsgApp`'s index), so the intended source is a persistent,
 trace-mode-gated fact the send line records of the message (it proves `Msg.NumsBelow` for its own
-premise) and the receive line reads back; no law changes for it. Decided here, built in the Prove phase.
+premise) and the receive line reads back; no law changes for it. The carrier (review a1-r2's 1): raft's
+message facts `isMessage γ m` (`Protocol/GhostState.lean`, the persistent `#Hmsg` `raft.Step` receives
+with the message), a conjunct `⌜m.NumsBelow traceNumBound⌝` gated on the trace mode; that changes
+`isMessage`'s body (raft's ghost, not the Draft), and its senders' proofs then prove it. A reply that
+relays a received number (a rejected `MsgAppResp`'s index, a vote response's term) gets it from there,
+so `raft.send.tracedSpec`'s premise for such replies waits on the same fact. Decided here, built in the
+Prove phase; it needs no amendment of the frozen statements.
 `TraceEv.ok_mono`/`okBoot_mono` dropped (unused once the bootstrap bound is at `|cC|`).
 
 **Open (owed by the bootstrap clause's work, layer B):** the routing itself, `newRaft`'s and
