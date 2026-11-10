@@ -27,7 +27,13 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccfull.Assumpt
 theorem buildPath.wp_proof
     (wp_itoa : itoa.spec (GF := GF) (hG := hG)) :
     buildPath.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro pfx n hn
+  wp_start
+  wp_auto
+  wp_apply wp_itoa n hn
+  simp only [buildPathM]
+  iapply HΦ
+  itrivial
 
 end proof
 

@@ -25,7 +25,26 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccfull.Assumpt
 
 theorem choose.wp_proof :
     choose.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro n
+  wp_start
+  wp_auto
+  wp_if_destruct
+  · iapply HΦ
+    ipureintro; refine ⟨by decide, fun h => by word, fun _ => rfl⟩
+  · wp_apply github_com.goose_lang.primitive.wp_RandomUint64 as %r _
+    have hn : 0 < sint.Z n := by word
+    rw [if_neg (show ¬ uint.Z n = 0 by intro h; word)]
+    wp_auto
+    iapply HΦ
+    ipureintro
+    have hu : (r % n).toNat < n.toNat := by
+      rw [BitVec.toNat_umod]; exact Nat.mod_lt _ (by word)
+    have hn2 : n.toNat < 2 ^ 63 := by word
+    have hz : sint.Z (r % n) = ((r % n).toNat : Int) := by word
+    have hzn : sint.Z n = (n.toNat : Int) := by word
+    refine ⟨?_, fun _ => ?_, fun h => absurd h (by omega)⟩
+    · rw [hz]; omega
+    · rw [hz, hzn]; omega
 
 end proof
 
