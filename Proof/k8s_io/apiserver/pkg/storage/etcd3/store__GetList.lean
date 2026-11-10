@@ -40,6 +40,8 @@ set_option linter.unusedSectionVars false
 set_option synthInstance.maxSize 4096
 set_option synthInstance.maxHeartbeats 400000
 set_option maxRecDepth 16384
+set_option pp.deepTerms true
+set_option pp.maxSteps 100000000
 
 noncomputable section
 
@@ -495,7 +497,79 @@ theorem store.GetList.wp_proof
   · -- a page
     sorry
   · -- an error
-    sorry
+    iintro !> %o %i %e HJ Herr
+    simp only
+    icases HJ with ⟨%wr, %lkp, %lkb, %hmv, %cnt, %nev, %m, %e0, %chE, %chv, %sl, %st, HTok, Hk,
+      «$res0», withRev, lastKey, #Hlkb, hasMore, count, numFetched, numEvald, err, chunk, chunkErr, v,
+      Hip, Hits, Ho⟩
+    ihave %Hene : ⌜e ≠ GoInterface.nil⌝ $$ [Herr]
+    · icases Herr with (⟨#Htl, -⟩ | #Hle)
+      · ihave %Hp := apierrors.tooLargeErrIs_ptr e $$ Htl
+        obtain ⟨l, rfl⟩ := Hp
+        ipureintro; nofun
+      · iunfold listErr at Hle
+        icases Hle with (#Hu | ⟨%st', #Ha, -⟩)
+        · iapply unkErr_ne c e $$ Hu
+        · iunfold apierrors.apiErrAt at Ha
+          icases Ha with ⟨%l, %Hl, -⟩
+          ipureintro; rw [Hl]; nofun
+    ihave %Hnn : ⌜0 ≤ sint.Z (W64 (m : Int)) ∧ 0 ≤ sint.Z nev⌝ $$ [Ho]
+    · cases o with
+      | none =>
+        simp only
+        icases Ho with %Ho
+        obtain ⟨-, -, rfl, -, rfl⟩ := Ho
+        ipureintro; exact ⟨by decide, by decide⟩
+      | some x =>
+        obtain ⟨σ, R⟩ := x
+        simp only
+        icases Ho with ⟨#HQσ, %Ho⟩
+        obtain ⟨-, -, Hpg, -, -⟩ := Ho
+        obtain ⟨-, hRle, -, -, -, hm, -, -, -, hnev, -⟩ := Hpg
+        ihave %Hwf := (hQ _ σ) $$ HQσ
+        have hsc : (scopeL (σ.at (uint.nat R)) (c.pathPrefix ++ k) opts.Recursive').length <
+            2 ^ 41 := by
+          have h1 := (Hwf.2.2 (uint.nat R) hRle).1
+          have h2 : (scopeL (σ.at (uint.nat R)) (c.pathPrefix ++ k) opts.Recursive').length ≤
+              (σ.at (uint.nat R)).kvs.length := List.length_filter_le _ _
+          omega
+        ipureintro
+        exact ⟨by word, hnev⟩
+    obtain ⟨ei, rfl⟩ : ∃ ei, e = GoInterface.ok ei := by
+      cases e with
+      | nil => exact absurd rfl Hene
+      | ok ei => exact ⟨ei, rfl⟩
+    iapply Hy $$ %_ %_ %_ [] HTok
+    · ipureintro; exact ⟨by simp, by simp⟩
+    wp_auto
+    unfold forRangePost
+    iright
+    isplitr
+    · ipureintro; exact Or.inr ⟨_, rfl, by simp⟩
+    iintro HD
+    iexists false
+    isplitr
+    · ipureintro; rfl
+    iintro Htt
+    isplitr
+    · ipureintro; simp
+    iright; iright
+    iexists #()
+    iframe HD
+    rw [hHkP]
+    icases Hk with ⟨-, Hret⟩
+    iapply Hret $$ %_ %_ %_ %_ %_ «$res0» numFetched numEvald v Hip Hits Htt %Hnn
+    icases Herr with (⟨#Htl, %Ho0, %σ, #HQσ, %Hlt⟩ | #Hle)
+    · iright
+      iexists σ
+      iframe HQσ Htl
+      ipureintro
+      have h0 : ¬ uint.Z R0 = 0 := by
+        intro h
+        have : uint.nat R0 = 0 := by word
+        omega
+      rw [if_neg h0]; exact Hlt
+    · ileft; iexact Hle
   · -- the end: after a page with more, `f` does not return
     iintro %σ %R %i HJ %Hpm
     simp only
