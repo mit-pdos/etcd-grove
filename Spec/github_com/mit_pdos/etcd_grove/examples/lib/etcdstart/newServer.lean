@@ -1,5 +1,5 @@
 /-
-`newServer(name, peer, client, cluster, token, retention, snapCount, catchUp, lg)` (`examples/lib/etcdstart/etcdstart.go`; 2026-10-22, D33):
+`newServer(name, peer, client, cluster, token, retention, snapCount, catchUp, lg)` (`examples/lib/etcdstart/common.go`; 2026-10-22, D33):
 member `name` of a new cluster with token `token` built -- its configuration (as putget's, putget3's
 and their followers' were) and `etcdserver.NewServer`. Lean-first (no Rocq counterpart).
 

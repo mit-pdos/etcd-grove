@@ -210,7 +210,7 @@ neither call happens. In a granting cluster with the feature on, `Grant` on a pr
 schedules a checkpoint (`le.cp != nil`, `lessor.go:318-321, 753-770`) and after
 `checkpointInterval` (300 s by default) the loop proposes `LeaseCheckpoint` through `raftRequest`
 (`server.go:394-406`): outside the verified request path, so the premise then has content. The
-examples leave the feature off (`examples/lib/etcdstart/etcdstart.go:96`: `le.cp == nil`, nothing is ever
+examples leave the feature off (`examples/lib/etcdstart/common.go:96`: `le.cp == nil`, nothing is ever
 proposed), so for `examples/etcd/leasegrant` it holds vacuously. Pending: the `axiom` skill's review of
 this restatement (the lease-grant plan). (Until D21 M2, 2026-10-19, it had a sibling, `transportEffectsOk`,
 the transport's goroutines' effects, now the network contract: `rafthttp/Net.lean`.) -/
@@ -234,7 +234,7 @@ which `Hraft`'s `ConfigValid` needs). Until then the last came only from the exa
 (2026-11-03, the final whole-`bootOk` review's S2: until then also `TickMs ≠ 0`, for `Hraft`'s
 `heartbeat ≠ 0`, false of Go at `TickMs = 2 ^ 58`, where the wrapping heartbeat is `0`; `Hraft` now
 states the heartbeat Go computes, true at every `TickMs`, and `NewServer`, which starts the ticker,
-takes its sign, `raftNode.bootCfg`.) The examples' configuration (`examples/lib/etcdstart/etcdstart.go`)
+takes its sign, `raftNode.bootCfg`.) The examples' configuration (`examples/lib/etcdstart/common.go`)
 meets all. (Sweep repairs 1, R1-2, L4, 2026-11-07: until then also `cfg.Logger' ≠ null`, which a
 zero `&zap.Logger{}` meets and on which `bootstrap` panics at its first log line; the logger is now
 `zapLoggerOk cfg.Logger'` in the contracts' preconditions, an `IProp`.) -/
