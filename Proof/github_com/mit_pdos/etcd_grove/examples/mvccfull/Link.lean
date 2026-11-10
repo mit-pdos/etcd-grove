@@ -494,9 +494,9 @@ theorem runner.wp_gen :
     EtcdGrove.mvccfull.runner.gen.spec (GF := GF) (hG := hG) :=
   EtcdGrove.mvccfull.runner.gen.wp_proof wp_pick runner.wp_genKey runner.wp_newVal runner.wp_genLease runner.wp_genEnd wp_choose runner.wp_genSubs runner.wp_genRange
 
-theorem runner.wp_begin :
+theorem runner.wp_begin [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.mvccfull.runner.begin.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.mvccfull.runner.begin.wp_proof history.wp_snapshot wp_copyState
+  EtcdGrove.mvccfull.runner.begin.wp_proof mvcc.api.mvccApi_persistent_law_holds history.wp_snapshot wp_copyState
 
 theorem runner.wp_checkHook :
     EtcdGrove.mvccfull.runner.checkHook.spec (GF := GF) (hG := hG) :=
