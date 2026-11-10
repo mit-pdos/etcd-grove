@@ -215,3 +215,31 @@ Trust-base changes so far for the Freeze list: `perRPCCredsOk` (narrowed), `grpc
   driver's `Main`/`MainCluster`/`MainPartition` already have (`hnr`).
 - `rangeReply_state_at` (§2.4): likely no `receiptBound` (the revision-0 lemma takes the log's facts
   from `rangeReplyOk` itself, `%Hlk`; `rangeAns_st` uses the certificate instead). Not yet written.
+
+## Step 2 review (etcd-grove-81, 2026-11-10; in `questions.md`): accepted; §2 decisions
+
+- `waitRetryBackoff.spec` restatement approved (post `clientErrOk err ∗ ⌜err = nil ∨ errDesc err ∉
+  handlerDescs⌝`), **conditional on an axiom-skill attack** (read-only subagent, scratch
+  `/shared/tmp/k8s7e1/attack-wrb/`; launched by the eighth session) and a cheap Go test; refuted: STOP.
+  On the Freeze list.
+- `refreshToken`: the interceptor's error outcome holds under `kvMethod method ∧ ∀ a ∈ addr,
+  noRefusalAt a`; `Client.Get`/`List` and the store's read path take `∀ x ∈ ms, noRefusalAt x.addr`
+  (the driver's `hnr` discharges it). STOP if it reaches a closed theorem.
+- §2.4 stays a STOP if `receiptBound` is needed.
+
+## Next, in order (the next agent starts here)
+
+0. Read the attack's result (`/shared/tmp/k8s7e1/attack-wrb/`, and the session's report); if it was
+   not finished, rerun it (brief: the target, `ctxOk`'s three cases, every return path of
+   `retry_interceptor.go:317-374` at the pin 673da07c8f, a Go test of `contextErrToGRPCErr`'s
+   `Message()`/`%T`). Not refuted: restate `Spec/go_etcd_io/etcd/client/v3/waitRetryBackoff.lean`.
+1. Merge lean once premise-fixes-4 has landed (raft-entsize was in land.sh at the time); full build.
+2. §2 (Draft `notes/k8s-7e-1-draft.md`): `attemptPre` takes `Ψe` (`InvKVConn.lean:1278`);
+   `etcdInterceptorOk` (`InvKVConn.lean:1326`) takes `Ψe` and its error side gains
+   `⌜kvMethod method ∧ ∀ a ∈ addr, noRefusalAt a⌝ -∗ ⌜errDesc err ∈ handlerDescs⌝ -∗ Ψe (errDesc err)`;
+   the interceptor's proof (`Client__unaryClientInterceptor.lean`: the one-attempt case ~173-195, the
+   loop invariant `IHL` ~197 gains the outcome for `lastErr`, the wait error ~227 from the restated
+   `waitRetryBackoff`, the refresh branch ~430 unreachable via `Hnr` and `shouldRefreshToken`'s post,
+   the context-error branches from `ctxOk`/`ContextReadErrs.descs`); `ContextError`, `rangeErrOut` in
+   `rangeCallOut`/`kv.Get.specM`/`client_range_any`; callers' mechanical edits.
+3. §3.1, §3.2, step 6 as listed above ("Next, in order (the Draft's §6 steps 3-7)", items 3-5).
