@@ -130,6 +130,27 @@ theorem apply_close_same (ks : List GoString) (γh : HistNames) (ops : List OpM)
   iapply memCore_succ_same ks γh ops i mp m f v qw nw k h hl
   iexact Hmc
 
+/-- **`apply`'s close after an operation's own function** (`txn`, `compact`): the member's record
+with the hook's counters at the operation's index (run or not). -/
+theorem memW_of_core (ks : List GoString) (γh : HistNames) (ops : List OpM) (i : Nat)
+    (mp : Loc) (m : MemberNames) (f : GoFunc) (v : MemS) (qw : Qp) (nw k : Nat) (n : Nat) (s0 : w64)
+    (hv : v.ops = n + 1) (h38 : n < 2 ^ 38) (_hs : sint.Z s0 < sint.Z (W64 ((n + 1 : Nat) : Int))) :
+    memCore (GF := GF) ks γh ops i mp m f v qw nw k ∗
+        (hookPost mp (W64 ((n + 1 : Nat) : Int)) ∨ hookPre mp (W64 ((n + 1 : Nat) : Int)) s0) ∗
+        mF go!"ops" mp ↦ (W64 ((n + 1 : Nat) : Int)) ⊢
+      memW ks γh ops i mp m f v qw nw k := by
+  have hz : sint.Z (W64 ((n + 1 : Nat) : Int)) = n + 1 := by word
+  iintro ⟨Hmc, Hh, Hops⟩
+  iunfold memW
+  rw [hv]
+  iframe Hops Hmc
+  icases Hh with (Hh | Hh)
+  · iunfold hookPost at Hh
+    icases Hh with ⟨Ha, Hs⟩
+    iexists _, _; iunfold hookPre; iframe; ipureintro
+    exact ⟨Int.le_refl _, by omega, by omega⟩
+  · iexists _, _; iframe; ipureintro; exact ⟨by omega, by omega⟩
+
 end lemmas
 
 end mvccfull

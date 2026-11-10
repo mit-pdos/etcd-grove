@@ -97,6 +97,7 @@ theorem runner.apply.wp_proof
   iunfold rnCtx at Hrn2
   icases Hrn2 with ⟨#Hpkg, #Hpkm, #Hks, %Hksne, #HH, #Hhist, #Hcfg, -⟩
   ihave #Hop := Hop
+  ihave #HopF := Hop
   iunfold memW at Hmw
   icases Hmw with ⟨Hops, ⟨%a0, %s0, Hhk, %Ha0⟩, Hmc⟩
   iunfold opIs at Hop
@@ -159,7 +160,19 @@ theorem runner.apply.wp_proof
   by_cases hk2 : o.kind = W64 2
   · -- a transaction
     simp only [hk2, _root_.decide_true]
-    sorry
+    (try wp_auto)
+    wp_apply (wp_txn x ks cfg wr h γh ops i mp m f v qw nw k p o lead
+        (W64 ((v.ops + 1 : Nat) : Int)) s0 hov hk2 hlogOk hnw h38 rfl hsa)
+      $$ [Hrd Hmc Happ Hsav Hlead] as ⟨Hrd, Hlead, Hhk, %v', %Hv', Hmc⟩
+    · iframe; iframe #; iunfold hookPre; iframe; ipureintro; omega
+    (try wp_auto)
+    iapply HΦ
+    iframe Hrd Hlead
+    iexists v', k
+    isplitr
+    · ipureintro; exact ⟨Hv'.1, Hv'.2, by omega⟩
+    iapply memW_of_core ks γh ops i mp m f v' qw nw k v.ops s0 Hv'.2 hn38 hsa
+    iframe
   simp only [hk2, _root_.decide_false]
   (try wp_auto)
   by_cases hk3 : o.kind = W64 3
@@ -177,7 +190,19 @@ theorem runner.apply.wp_proof
   by_cases hk5 : o.kind = W64 5
   · -- a compaction
     simp only [hk5, _root_.decide_true]
-    sorry
+    (try wp_auto)
+    wp_apply (wp_compact x ks cfg wr h γh ops i mp m f v qw nw k p o lead
+        (W64 ((v.ops + 1 : Nat) : Int)) s0 hov hk5 hlogOk h38 rfl hsa)
+      $$ [Hmc Happ Hsav Hlead] as ⟨Hlead, Hhk, %v', %Hv', Hmc⟩
+    · iframe; iframe #; iunfold hookPre; iframe; ipureintro; omega
+    (try wp_auto)
+    iapply HΦ
+    iframe Hrd Hlead
+    iexists v', k
+    isplitr
+    · ipureintro; exact ⟨Hv'.1, Hv'.2, by omega⟩
+    iapply memW_of_core ks γh ops i mp m f v' qw nw k v.ops s0 Hv'.2 hn38 hsa
+    iframe
   simp only [hk5, _root_.decide_false]
   (try wp_auto)
   by_cases hk6 : o.kind = W64 6
