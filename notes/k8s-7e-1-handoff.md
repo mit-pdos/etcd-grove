@@ -446,3 +446,61 @@ package init, required by `ClientConn.Invoke` through `isPkgInit grpc`; else a d
    pfx, both with prefix `pfx`); `Client__List: ?` out of both link files; `HList` out of
    MainLinked/Results/Adequacy.
 3. Merge lean (premise-fixes-4, -5), step 6 (Freeze).
+
+### K1 attack decided (etcd-grove-81, 2026-11-10; in `questions.md`): EnableTracing bound approved
+
+- Check done: no translated code writes `grpc.EnableTracing` (grep of `Code/`, `GeneratedProof/`,
+  `TrustedCode/`, the parts: only its name declaration, `Code/google_golang_org/grpc.lean:962`; etcd's
+  `embed`/logging, which set it in Go, are not translated).
+- `TestDefaultNoRace` is in `examples/k8s/etcd3/kvsown_test.go` and in `etc/gates.sh` (9d, `-race`; 4s).
+  **`TestTracingRace`** (the reason for the bound; not in the repo, it needs `golang.org/x/net/trace`):
+  `/shared/tmp/k8s7e1/attack-kvs/kvs_test.go`, output `tracing.out`: with `grpc.EnableTracing = true`,
+  grpc's client trace keeps every reply (`stream.go` `csAttempt.recvMsg`:
+  `LazyLog(&payload{sent: false, msg: m})`) and formats it lazily (`trace.go:125-130`) when
+  `/debug/requests` is rendered: a race with the caller's `resp.Kvs[j] = nil`. etcd sets the flag in
+  `embed.Config.SetupGlobalLoggers` at log level debug and in grpc-proxy `--debug`.
+
+### STOP (twelfth session, for etcd-grove-81): where the EnableTracing cell comes from
+
+grpc is translated names-only: its `initialize'` runs no `GlobalAlloc` (only the `X.init` axioms of the
+variables with initializers and the `init.<k>`s), and `EnableTracing` (`var EnableTracing bool`, no
+initializer) has no `X.init`, so no step of grpc's init allocates its cell. A ghost-only axiom
+(`⊢ |==> globalAddr EnableTracing ↦□ false`) is unsound in this model: `wp_alloc` may return
+`globalAddr EnableTracing` for an ordinary `new` while the cell is unallocated (`wp_GlobalAlloc`'s
+angelic check shows global addresses are ordinary fresh locations), giving two points-tos. So the fact
+must be the post of a step of grpc's init. Options:
+- (a) recommended: a trust-boundary axiom of `grpc/Init.lean` (generated: a `SPECIAL['google_golang_org.grpc']`
+  entry in `etc/gen-init.py`) on grpc's FIRST untranslated variable initializer (`DefaultBackoffConfig.init`,
+  taken out of `opaqueInitsOk`), post `globalAddr EnableTracing ↦ false`, docstring: Go allocates every
+  package variable, zero-valued, before the first initializer runs (`var EnableTracing bool`, `trace.go:33`
+  at v1.84.0), and grpc's names-only translation has no `GlobalAlloc` for it, so the allocation is
+  attributed to the first step of the package's initialization; persisted in `finish`; grpc's fact
+  (`cache/v3/Base.lean`'s `grpc_is_pkg_init_inst`, now `True`) becomes `grpcInit := globalAddr
+  EnableTracing ↦□ false`; a program that writes it needs the cell exclusively, which no one has.
+- (b) a translator-side fix (goose emitting `GlobalAlloc` for names-only variables): a Perennial change,
+  general, but not for this stage.
+
+### K1 implementation plan (the next agent; after 81 decides the cell's source)
+
+Trusted (Freeze list): `InvGrpc.lean` `ProtoMsgT.RepSat`'s post `T.send ls m ∗ T.recv l m ∗ T.recvOwn l m`;
+`grpcInvokerOk`'s success post `∃ m', Rep.recv out m' ∗ Rep.recvOwn out m' ∗ Φ m'`; docstring of both
+names the bounds (EnableTracing false from grpc's init; grpc's default proto codec; no stats handler or
+interceptor keeping the reply; reply types protobuf-go v2 generated code; `TestDefaultNoRace`).
+Decide whether `StreamMsgT.RepSat` (`InvGrpcStream.lean:156`) follows (not needed for k8s: leave it).
+`pbRangeResponse` (`PerTypeKV.lean`): `recvOwn l m := ∃ sl ps, Kvs field ↦□ sl ∗ sl ↦* ps` (or keyed on
+the same `sl`/`ps` as `recv`: better make `rangeRespMsg` existentially fix `sl`, `ps` and let `recvOwn`
+say `sl ↦* ps` for THOSE: e.g. `recvOwn l m := ∃ sl ps, structFieldRef … Kvs l ↦□ sl ∗ sl ↦* ps ∗
+txn.kvsIs ps m.kvs`, and drop `sl ↦*□ ps` from `rangeRespMsg`; consumers combine the two `Kvs ↦□` to
+equate `sl`). Then:
+1. 17 `*_repSat` proofs (PerTypeKV/KVRest/Lease/Auth, PerTypeWatch, PerTypeLeaseKeepAlive): frame the
+   default `True`; `pbRangeResponseT_repSat` keeps `Hsl` owned (no `ownSlice_persist`).
+2. Chain statements with `Rep.recv out m' ∗ Φ m'` gain `Rep.recvOwn out m'`: `EtcdInvoke.lean:69,94,117`
+   (`etcdInterceptorOk*`), `InvKVConn.lean:1395,1440`; their proofs move it along.
+3. `kVClient.Range`/`retryKVClient.Range`/`kv.Do`/`kv.Get` (`Spec/.../kv__Get.lean`), `rangeCallOut`,
+   `client_range_any`, client `Results.lean:2662,2935,2989` (EXPORTED statements: list in the Freeze
+   report) gain the owned cells next to `rangeRespMsg`.
+4. Consumers that load `Kvs` (26 files mention `rangeRespMsg`: `grep -rln rangeRespMsg Proof Spec`):
+   persist the cells where they read them (`ownSlice_persist`), or keep them owned (`Client.List`).
+5. Then `Client.List`'s proof (plan above, `srvRangeOk_page`), `HList` out.
+
+Size: about 40 files; a full day's work with targeted builds. Budget it before starting.

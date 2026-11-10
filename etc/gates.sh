@@ -177,5 +177,14 @@ else
   echo "k8s client error types: FAILED"; tail -20 "$tmp/cet.log"; fail=1
 fi
 
+# 9d. k8s 7e-1's owned reply Kvs (recvOwn, decided by etcd-grove-81): no race on the reply's Kvs
+# array after Invoke, with retries, in the default configuration (EnableTracing off)
+if (cd examples/k8s/etcd3 && GOWORK=off go test -race -count=1 -timeout 10m \
+    -run '^TestDefaultNoRace$' . > "$tmp/kvo.log" 2>&1); then
+  echo "k8s owned reply Kvs: ok"
+else
+  echo "k8s owned reply Kvs: FAILED"; tail -20 "$tmp/kvo.log"; fail=1
+fi
+
 [ "$fail" = 0 ] && echo "gates: all passed" || echo "gates: FAILED"
 exit $fail
