@@ -103,7 +103,6 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.LessorDerive
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildAlloc
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildGap
 public import Perennial.Proof.time
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.FloatToInt
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__MemberID
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Leader
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Term
@@ -275,8 +274,6 @@ set_option maxRecDepth 100000 in
 set_option pp.maxSteps 200000 in
 set_option maxHeartbeats 0 in
 theorem NewServer.wp_proofG (on cmp : Bool)
-    -- `int64(f)`'s semantics (`FloatToInt.lean`: a hypothesis on the semantics, as `go.Semantics`)
-    [Float64ToInt64Semantics]
     (h0 : zap.Logger.Error.spec (GF := GF) (hG := hG))
     (h1 : zap.Error.spec (GF := GF) (hG := hG))
     (h2 : zap.Logger.Info.spec (GF := GF) (hG := hG))
@@ -637,6 +634,11 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   · iPkgInit
   wp_apply h22 $$ [$minTTL] as %secs minTTL
   wp_apply h23 as %ceil -
+  (try wp_auto)
+  -- `int64(math.Ceil(...))`: Perennial's float-to-integer conversion, an arbitrary `int64`
+  -- (`Float64Semantics.convert_float64_to_integer`; until 2026-11-10 the repository's own
+  -- `Float64ToInt64Semantics`, which contradicted it: premise fixes 1)
+  wp_apply wp_ArbitraryInt as %minTTLsecs -
   (try wp_auto)
   ihave #Hfg' := Hfg
   iunfold isFeatureGate at Hfg'
@@ -2606,8 +2608,6 @@ theorem NewServer.wp_proofG (on cmp : Bool)
 
 /-- **`NewServer` with auth on or off** (`NewServer.specM`), the compaction mode off. -/
 theorem NewServer.wp_proofM (on : Bool)
-    -- `int64(f)`'s semantics (`FloatToInt.lean`: a hypothesis on the semantics, as `go.Semantics`)
-    [Float64ToInt64Semantics]
     (h0 : zap.Logger.Error.spec (GF := GF) (hG := hG))
     (h1 : zap.Error.spec (GF := GF) (hG := hG))
     (h2 : zap.Logger.Info.spec (GF := GF) (hG := hG))
@@ -2749,8 +2749,6 @@ theorem NewServer.wp_proofM (on : Bool)
     (fun h => nomatch h) (fun h => nomatch h) (fun h => nomatch h) (fun h => nomatch h)
 
 theorem NewServer.wp_proof
-    -- `int64(f)`'s semantics (`FloatToInt.lean`: a hypothesis on the semantics, as `go.Semantics`)
-    [Float64ToInt64Semantics]
     (h0 : zap.Logger.Error.spec (GF := GF) (hG := hG))
     (h1 : zap.Error.spec (GF := GF) (hG := hG))
     (h2 : zap.Logger.Info.spec (GF := GF) (hG := hG))
