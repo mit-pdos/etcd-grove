@@ -1,9 +1,9 @@
 /-
 mvccfull's writer: the operation log's model facts (pure). Lean-first (no Rocq counterpart).
 
-`Writer.lean` states them (`logOk_once`, `logOk_hist`, `runM_mono`, `logOk_leases`,
-`logOk_recover`); this module proves them (`*_holds`, the same statements) from one invariant of the
-model along a valid log (`MInv`, `runM_inv`): each revision of the history is the tester's model
+Over the model alone (`LogModel.lean`), the facts the writer's proofs use (`logOk_once`,
+`logOk_hist`, `runM_mono`, `logOk_leases`, `logOk_recover`; `Writer.lean` imports this module), from
+one invariant of the model along a valid log (`MInv`, `runM_inv`): each revision of the history is the tester's model
 (`pendOf`) of its own changes from the revision before, and the store's state at it; the store's
 log is well formed, changes each key once per revision, and is reachable; the live leases are a
 sublist of the granted ids, which increase; every key of the last state is on no lease or a live
@@ -13,7 +13,7 @@ write transaction, `subsOk`'s order: `txn_good`).
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.WriterShares
+public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.LogModel
 
 @[expose] public section
 
@@ -694,11 +694,15 @@ theorem nodup_of_sorted {ks : List GoString} (hks : ks.Pairwise go.GoStringLt) :
 
 /-! ## The statements of `Writer.lean` -/
 
-theorem logOk_once_holds (ks : List GoString) (hks : ks.Pairwise go.GoStringLt) (ops : List OpM)
+/-- **Every revision of a valid log changes each key at most once** (`genSubs`' rule, a put or a
+delete of one key, a revoke's distinct keys). (Pure; proved.) -/
+theorem logOk_once (ks : List GoString) (hks : ks.Pairwise go.GoStringLt) (ops : List OpM)
     (h : logOk ks ops) (n : Nat) : onceUpToAll (σOf ks ops n).notifiedLog :=
   ((runM_inv ks ops h n).2.2.2.2 (nodup_of_sorted hks)).1
 
-theorem logOk_hist_holds (ks : List GoString) (hks : ks.Pairwise go.GoStringLt) (ops : List OpM)
+/-- **The store state of a member is reachable, and the history covers it** (`revOk` at every
+revision: `histOkM` against the history at any later count). (Pure; proved.) -/
+theorem logOk_hist (ks : List GoString) (hks : ks.Pairwise go.GoStringLt) (ops : List OpM)
     (h : logOk ks ops) (n n' : Nat) (hn : n ≤ n') (_hn' : n' ≤ ops.length) :
     histAt ks ops n <+: histAt ks ops n' ∧ histOkM ks (σOf ks ops n) (histAt ks ops n') ∧
       MvccReachable (σOf ks ops n) := by
@@ -722,13 +726,18 @@ theorem logOk_hist_holds (ks : List GoString) (hks : ks.Pairwise go.GoStringLt) 
       rw [List.getD_eq_getElem?_getD, logOfHist_getElem?, he]; rfl
     rw [hgd]; exact hee
 
-theorem runM_mono_holds (ks : List GoString) (ops : List OpM) (n n' : Nat) (hn : n ≤ n') :
+/-- **The model only grows along the log**: the revision, the compaction revision (both
+monotone: `Restore`'s premise from the follower to the builder's later count) and the history as a
+prefix. (Pure; proved.) -/
+theorem runM_mono (ks : List GoString) (ops : List OpM) (n n' : Nat) (hn : n ≤ n') :
     revAfter ks ops n ≤ revAfter ks ops n' ∧ cmpAfter ks ops n ≤ cmpAfter ks ops n' ∧
       (σOf ks ops n).log <+: (σOf ks ops n').log :=
   ⟨revAfter_mono ks ops n n' hn, cmpAfter_mono ks ops n n' hn,
     (runM_hs_prefix ks ops n n' hn).map _⟩
 
-theorem logOk_leases_holds (ks : List GoString) (hks : ∀ k ∈ ks, (k.length : Int) < 2 ^ 63 - 1)
+/-- **The live leases are granted, increasing, positive**, and every key of the state is on no
+lease or a live one (`New.specR`'s and `Restore`'s item premise, the key short). (Pure; proved.) -/
+theorem logOk_leases (ks : List GoString) (hks : ∀ k ∈ ks, (k.length : Int) < 2 ^ 63 - 1)
     (ops : List OpM) (h : logOk ks ops) (n : Nat) :
     (leasesAfter ks ops n).Pairwise (fun a b => sint.Z a < sint.Z b) ∧
     (∀ id ∈ leasesAfter ks ops n, 0 < sint.Z id ∧ id ∈ grantedAfter ks ops n) ∧
@@ -770,7 +779,10 @@ theorem logOk_leases_holds (ks : List GoString) (hks : ∀ k ∈ ks, (k.length :
         · exact absurd h hz
         · exact h
 
-theorem logOk_recover_holds (ks : List GoString) (ops : List OpM) (h : logOk ks ops) (n n' : Nat)
+/-- **`Recover`'s premise on the ids** (the follower's lessor at its count `n`, recovering the
+builder's records at the leader's count `n' ≥ n`): a lease live at `n'` that was granted by `n` is
+live at `n` (an id is never granted twice, so it was not revoked in between). (Pure; proved.) -/
+theorem logOk_recover (ks : List GoString) (ops : List OpM) (h : logOk ks ops) (n n' : Nat)
     (hn : n ≤ n') :
     ∀ id ∈ leasesAfter ks ops n', id ∈ grantedAfter ks ops n → id ∈ leasesAfter ks ops n := by
   obtain ⟨k, rfl⟩ := Nat.exists_eq_add_of_le hn

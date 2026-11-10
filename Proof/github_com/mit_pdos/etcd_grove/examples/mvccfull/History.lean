@@ -25,6 +25,7 @@ the read lock. So:
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.Pending
+public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.MvccCountable
 public import Perennial.Proof.sync.RWMutexGuard
 public import Perennial.Ghost.MonoList
 public import Perennial.Ghost.GhostVar
@@ -55,30 +56,6 @@ instance kvRec.countable : Pos.Countable kvRec :=
 
 instance change.countable : Pos.Countable change :=
   .ofInjective (fun c => Pos.Countable.encode (c.del', c.key', c.kv'))
-    (fun a b h => by
-      have h := Pos.encode_inj h
-      cases a; cases b
-      simp only [Prod.mk.injEq] at h
-      obtain ⟨h1, h2, h3⟩ := h
-      subst h1 h2 h3; rfl)
-
-/-- A change of mvcc's log as a tuple (its tag, key, value, lease). -/
-def encChange : Change → Bool × GoString × GoString × w64
-  | .put k v l => (false, k, v, l)
-  | .del k => (true, k, [], W64 0)
-
-theorem encChange_inj : ∀ a b : Change, encChange a = encChange b → a = b
-  | .put _ _ _, .put _ _ _, h => by simp only [encChange, Prod.mk.injEq] at h; obtain ⟨-, rfl, rfl, rfl⟩ := h; rfl
-  | .del _, .del _, h => by simp only [encChange, Prod.mk.injEq] at h; obtain ⟨-, rfl, -⟩ := h; rfl
-  | .put _ _ _, .del _, h => by simp [encChange] at h
-  | .del _, .put _ _ _, h => by simp [encChange] at h
-
-instance change_api_countable : Pos.Countable Change :=
-  .ofInjective (fun c => Pos.Countable.encode (encChange c))
-    (fun a b h => encChange_inj a b (Pos.encode_inj h))
-
-instance mvccState_countable : Pos.Countable MvccState :=
-  .ofInjective (fun σ => Pos.Countable.encode (σ.log, σ.crev, σ.pending))
     (fun a b h => by
       have h := Pos.encode_inj h
       cases a; cases b

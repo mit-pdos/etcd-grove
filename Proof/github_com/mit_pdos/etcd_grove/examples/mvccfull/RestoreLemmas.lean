@@ -26,9 +26,6 @@ namespace mvccfull
 
 open Iris Iris.BI Iris.ProofMode github_com.mit_pdos.etcd_grove.examples.mvccfull mvcc mvcc.api
 
-/- `Members.lean`'s ghost variables' instances (`Writer.lean`'s note). -/
-attribute [local instance high] mvccfull.mvccState_countable mvccfull.change_api_countable
-
 section lemmas
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
