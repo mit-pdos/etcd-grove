@@ -120,7 +120,6 @@ public import RaftWitness.Proof.go_etcd_io.raft.v3.pbEntryID
 public import RaftWitness.Proof.google_golang_org.protobuf.proto.CloneConfState
 public import RaftWitness.Proof.google_golang_org.protobuf.proto.CloneEntry
 public import RaftWitness.Proof.google_golang_org.protobuf.proto.CloneSnapshot
-public import RaftWitness.Proof.google_golang_org.protobuf.proto.EqualConfState
 public import RaftWitness.Proof.google_golang_org.protobuf.proto.MarshalConfChange
 public import RaftWitness.Proof.google_golang_org.protobuf.proto.MarshalConfChangeV2
 public import RaftWitness.Proof.google_golang_org.protobuf.proto.SizeEntry
@@ -281,6 +280,10 @@ public import RaftWitness.Proof.go_etcd_io.raft.v3.raftpb.WitnessHardState__GetL
 public import RaftWitness.Proof.go_etcd_io.raft.v3.raftpb.WitnessHardState__GetReplicationSet
 public import RaftWitness.Proof.go_etcd_io.raft.v3.raftpb.WitnessHardState__GetReplicationSetOutgoing
 public import RaftWitness.Proof.go_etcd_io.raft.v3.raftpb.WitnessHardState__GetState
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raftpb.boolOf
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raftpb.confStatesEqual
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raftpb.idsEqual
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raftpb.uint64Of
 public import RaftWitness.Proof.crypto.rand.Int
 public import RaftWitness.Proof.go_etcd_io.raft.v3.readOnly__AckedIndex
 public import RaftWitness.Proof.go_etcd_io.raft.v3.readOnly__addRequest
@@ -982,13 +985,25 @@ theorem raft.wp_switchToConfig [StorageModel GF] :
     raft.switchToConfig.spec (GF := GF) (hG := hG) :=
   raft.switchToConfig.wp_proof wp_traceConfChangeEvent tracker.ProgressTracker.wp_ConfState raft.wp_maybeCommit raft.wp_bcastAppend tracker.ProgressTracker.wp_Visit raft.wp_maybeSendAppend quorum.JointConfig.wp_IDs raft.wp_abortLeaderTransfer raft.wp_becomeFollower tracker.Epoch.wp_HasWitness
 
-theorem proto.wp_EqualConfState :
-    proto.EqualConfState.spec (GF := GF) (hG := hG) :=
-  proto.EqualConfState.wp_proof
+theorem raftpb.wp_idsEqual :
+    raftpb.idsEqual.spec (GF := GF) (hG := hG) :=
+  raftpb.idsEqual.wp_proof
+
+theorem raftpb.wp_boolOf :
+    raftpb.boolOf.spec (GF := GF) (hG := hG) :=
+  raftpb.boolOf.wp_proof
+
+theorem raftpb.wp_uint64Of :
+    raftpb.uint64Of.spec (GF := GF) (hG := hG) :=
+  raftpb.uint64Of.wp_proof
+
+theorem raftpb.wp_confStatesEqual :
+    raftpb.confStatesEqual.spec (GF := GF) (hG := hG) :=
+  raftpb.confStatesEqual.wp_proof raftpb.wp_idsEqual raftpb.wp_boolOf raftpb.wp_uint64Of
 
 theorem raftpb.ConfState.wp_Equivalent :
     raftpb.ConfState.Equivalent.spec (GF := GF) (hG := hG) :=
-  raftpb.ConfState.Equivalent.wp_proof proto.wp_CloneConfState slices.wp_Sort raftpb.ConfState.wp_GetAutoLeave proto.wp_EqualConfState
+  raftpb.ConfState.Equivalent.wp_proof proto.wp_CloneConfState slices.wp_Sort raftpb.ConfState.wp_GetAutoLeave raftpb.wp_confStatesEqual
 
 theorem wp_assertConfStatesEquivalent [StorageModel GF] :
     assertConfStatesEquivalent.spec (GF := GF) (hG := hG) :=
