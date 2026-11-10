@@ -411,3 +411,38 @@ So no proved statement can hand out the slice owned. Options in the report.
    `srvRangeOk_page`), `Client__List: ?` out of both link files, `HList` out of MainLinked/Results/Adequacy.
 2. Drop `clientErrPlain` from the driver's `call`/`Apply`/`Check`/`Main*` (step 6).
 3. Merge lean (premise-fixes-4, -5 if landed), step 6 (Freeze).
+
+## Twelfth session (2026-11-10): K1 attack (checkpoint, STOP), clientErrPlain dropped, `srvRangeOk_page`
+
+Decisions of etcd-grove-81 recorded in `questions.md` ("after the eleventh session's STOP"): guard form and
+the eleventh session's forms accepted; K1 approved on conditions (attack first); K2 rejected.
+
+Done:
+- `a2ab4bc685`: `clientErrPlain` dropped from the driver's `call`/`Apply`/`Check`/`Main*` specs; `Calls`'
+  `clientErr_notTooLarge`/`unkErr_errIs`/`listErr_errIs` use `clientErrPlain_holds`; Adequacy passes
+  nothing. Targeted build green (Adequacy, Results).
+- `kubernetes/ListPage.lean` (new, pure): `pageOp`, `rangeWireOf_page`, `inRange_page`,
+  **`srvRangeOk_page`** (the server's answer to List's range and its total count are `pageKvsL`'s);
+  `prefix_not_lt` moved here from the store's `ListPages` (which imports it). Built.
+
+**K1 attack (read-only subagent; Go test `/shared/tmp/k8s7e1/attack-kvs/`)**: NOT REFUTED in etcd's
+default configuration (proto.Unmarshal resets, `Reset()` is `*x = RangeResponse{}`, repeated message
+fields append to a nil slice: fresh array; retries reset; binary log copies bytes; bytes fields copied
+out of the pool; no late decode; etcd's chain keeps nothing; `TestDefaultNoRace` passes under -race).
+**But** with `grpc.EnableTracing = true` grpc keeps every reply (`stream.go` `LazyLog(&payload{msg: m})`)
+and formats it later on `/debug/requests`: a data race with `appendChunk`'s writes (reproduced,
+`TestTracingRace`, `tracing.out`). etcd sets it at log level debug (`embed/config_logging.go:234`) and in
+grpc-proxy `--debug`. Bounds to name: EnableTracing false; default proto codec; no stats handler or
+interceptor keeping `InPayload.Payload`; protobuf-go v2 generated reply (no custom Unmarshal). STOP for
+81: how to state the EnableTracing bound (recommended: a persistent `EnableTracing ↦□ false` from grpc's
+package init, required by `ClientConn.Invoke` through `isPkgInit grpc`; else a docstring bound).
+
+### Next, in order (after 81's decision)
+1. K1: `RepSat`'s post and `grpcInvokerOk`'s success post gain `Rep.recvOwn out m'`; every `RepSat` proof
+   frames `True` (default); `pbRangeResponseT.recvOwn` := the owned `Kvs` cells, `rangeRespMsg` loses
+   `sl ↦*□ ps`; persistent readers take it from `recvOwn` or persist it; the EnableTracing bound as decided.
+2. `Client.List` proof (`client_range_any` with `[withRangeM (prefixRangeEnd pfx), withLimitM lim,
+   withRevM rev]`, `rangeReply_state_at`, `srvRangeOk_page` via `rangeWireOf_page`; start = Continue or
+   pfx, both with prefix `pfx`); `Client__List: ?` out of both link files; `HList` out of
+   MainLinked/Results/Adequacy.
+3. Merge lean (premise-fixes-4, -5), step 6 (Freeze).

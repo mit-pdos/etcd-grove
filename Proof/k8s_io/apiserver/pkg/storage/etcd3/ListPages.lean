@@ -13,6 +13,7 @@ Lean-first (no Rocq counterpart).
 module
 
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.ListDefs
+public import Proof.go_etcd_io.etcd.client.v3.kubernetes.ListPage
 
 @[expose] public section
 
@@ -69,15 +70,6 @@ theorem goStringLt_append_zero :
       have hbx : ¬ b = x := fun h => hxb h.symm
       simp only [hxb, hbx, false_and, or_false]
       omega
-
-theorem prefix_not_lt : ∀ (a b : GoString), a <+: b → ¬ go.GoStringLt b a
-  | [], _, _ => go.goStringLt_not_nil _
-  | x :: xs, b, h => by
-    obtain ⟨t, rfl⟩ := h
-    rw [List.cons_append, go.goStringLt_cons_iff]
-    rintro (h | ⟨-, h⟩)
-    · exact Int.lt_irrefl _ h
-    · exact prefix_not_lt xs (xs ++ t) (List.prefix_append _ _) h
 
 theorem fromL_kp (s : KVStore) (kp : GoString) (recur : Bool) :
     fromL s kp recur kp = scopeL s kp recur := by
