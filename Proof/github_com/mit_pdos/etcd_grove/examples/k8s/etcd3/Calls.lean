@@ -175,6 +175,54 @@ theorem unkErr_errIs (hse : storageErrTyOk) (hpl : clientErrPlain (sem := sem)) 
     · rw [hc] at ht; exact ht.elim
     · rw [hc] at he; exact he.elim
 
+/-- **A list's error is `EOther`** (`listErr`): the client's (`unkErr_errIs`), or the 410
+`*StatusError` `interpretListError` makes, with no causes (so no too-large one), not a sentinel. -/
+theorem listErr_errIs (hse : storageErrTyOk) (hpl : clientErrPlain (sem := sem)) (c : StoreCfg GF DObj)
+    (hc : c.S = driverSpec) (err : GoInterface) :
+    isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗
+      listErr c err ⊢ errIs err otherL := by
+  iintro ⟨#Hpkg, #He⟩
+  iunfold listErr at He
+  icases He with (#Hu | ⟨%st, #Hw, %Hst⟩)
+  · iapply unkErr_errIs hse hpl c hc err
+    iframe #
+  ihave #Hi : (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.drvInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hpkg
+  ihave ⟨%lD, %lU, #HD, #HU, -, -⟩ := drvInit_sents $$ Hi
+  iunfold errIs
+  iright; iright; iright; iright; iright
+  isplitr
+  · ipureintro; rfl
+  isplitr
+  · iunfold notTooLarge
+    iexists (apierrors.ApiErrView.status st [])
+    isplitr
+    · iexact Hw
+    ipureintro
+    simp [apierrors.tooLargeV, apierrors.causeIn]
+  iexists _, _
+  iframe HD HU
+  iunfold apierrors.apiErrAt at Hw
+  icases Hw with ⟨%l, %hl, -⟩
+  ipureintro
+  subst hl
+  have hne : k8s_io.apimachinery.pkg.api.errors.StatusError.ty ≠ _root_.Perennial.errors.errorString.ty := by
+    intro ht
+    unfold k8s_io.apimachinery.pkg.api.errors.StatusError.ty _root_.Perennial.errors.errorString.ty at ht
+    simp only [go.GoType.Named.injEq] at ht
+    exact absurd ht.1 (by decide)
+  refine ⟨?_, ?_, _, rfl, ?_, ?_⟩
+  · simp [interface.mkOk, hne]
+  · simp [interface.mkOk, hne]
+  · intro ht
+    simp only [seTy, go.GoType.PointerType.injEq] at ht
+    unfold k8s_io.apimachinery.pkg.api.errors.StatusError.ty k8s_io.apiserver.pkg.storage.StorageError.ty at ht
+    simp only [go.GoType.Named.injEq] at ht
+    exact absurd ht.1 (by decide)
+  · intro ht
+    simp only [go.GoType.PointerType.injEq] at ht
+    exact absurd ht hne
+
 /-- A sentinel (`errors.New`'s `*errorString`) is seen as a plain error: no `APIStatus`, a leaf
 (its method set is `Error` only). -/
 theorem sentV_plain [_root_.Perennial.errors.Assumptions]
