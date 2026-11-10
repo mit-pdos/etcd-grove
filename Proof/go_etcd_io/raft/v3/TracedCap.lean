@@ -953,8 +953,9 @@ abbrev trCap_fire.statement : Prop :=
 allows is a line matching `m` (its parse's `recvPred`), not bootstrap-named, with, for every server
 `a` the share stands for, an effect consuming `m` into phase `Φ'`, its replies pending: raft's `P'` in
 the node's share, the phantoms `ph a` (the specification's replies raft does not send, review round
-2's A6; a function of the receiving server, amendment A2: `phantomOf` for a lower-term request, none
-otherwise) among the phantoms, through intermediate states of the shape `Mid`. -/
+2's A6; a function of the receiving server before the line, amendment A2, chosen by the caller: the
+intended instance is `recvPhantoms m`, `phantomOf` for a lower-term request and none otherwise) among
+the phantoms, through intermediate states of the shape `Mid`. -/
 def PhaseStepR (id : w64) (c : CfgM) (m : Etcdraft.Msg) (E : TraceEv → Prop) (Mid : Etcdraft.Server → Prop)
     (ph : Etcdraft.Server → List Etcdraft.Msg)
     (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) : Prop :=
