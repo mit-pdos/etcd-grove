@@ -535,14 +535,31 @@ Done (commits on `k8s-7e`):
   So far the only exported statement change of K1 besides the trusted ones; the plan's other Results
   (2935/2989/3161) keep `rangeRespMsg`.
 
-Next, in order:
-1. The full build's remaining breakages (first full build after K1: `/shared/tmp/k8s7e1/full1.log.raw`);
-   `kubernetes/Client__Get.lean` matches `#Hm` on `client_range_any`'s post: make it `Hm` and `imod
-   rangeRespMsgO_persist _ _ $$ Hm with #Hm` after `subst Herr` (a WP goal there).
-2. `Client.List` proof (handoff "Next, in order (after 81's decision)" item 2): Get's proof is the model;
-   `client_range_any` with `[withRangeM (prefixRangeEnd pfx), withLimitM opts.Limit', withRevM opts.Revision']`
-   (`rangeWireOf_page`), `rangeReply_state_at`, `srvRangeOk_page`; the reply's `rangeRespKvsOwn` gives
-   `resp.Kvs' ↦* ps` owned for `listRespIs` (kvsIs → `[∗list]` by `kvsIs` lookup); specs needed: `WithRange`,
-   `WithLimit`, `WithRev`, `GetPrefixRangeEnd`; the `if opts.Continue != ""` branch (start = Continue or pfx).
-   Then `Client__List: ?` out of both link files, `HList` out of MainLinked/Results/Adequacy.
-3. Merge lean, step 6, Freeze (as before).
+Then (same session):
+- `19390bf319`: `ServerKVGet` and kubernetes `Client.Get` persist the owned reply. **Full build green** after
+  K1 (13795 jobs, `/shared/tmp/k8s7e1/full2.log`). `etc/tcb-report.py --check` (before `Client.List`): the
+  only difference from the baseline is NEW `axiom Perennial.google_golang_org.grpc.DefaultBackoffConfig_init`
+  (expected; baseline not yet updated).
+- `91d9a21fcf`: **`kubernetes.Client.List` proved** (`Proof/go_etcd_io/etcd/client/v3/kubernetes/Client__List.lean`,
+  no sorry; local lemmas `rangeCheck_page`, `sepL2_of_kvsIs`; the `if Continue != ""` branch handled by
+  `generalize hstart` + `all_goals`); linked: `etc/link-lean-first-k8s.txt` gains `WithRange`, `getPrefix`,
+  `GetPrefixRangeEnd`, `Client__List: WithRev WithLimit WithRange GetPrefixRangeEnd`; `Client__List: @` in
+  `k8s-etcd3`/`k8setcd3`; the three Links regenerated (`--k8s`, `--k8s-etcd3`, `--k8setcd3`). `HList` gone
+  from MainLinked/Results/Adequacy: `git diff lean` of `Adequacy.lean` is empty, of `MainLinked.lean` only
+  `wp_noStreaming` (7e-4's), of `Results.lean` only the header prose. Targeted build green (the three
+  Links, MainLinked, Results, Adequacy).
+
+Next, in order (the next agent starts here):
+1. Merge lean (at `ef6bc4663b`: premise-fixes-2, premise-fixes-3, raft-entsize; premise-fixes-4/-5 not
+   landed yet as of this session): conflicts expected in notes (one copy of each Last-updated entry,
+   status-history append only), tcb files (take lean's, re-update after the build), maybe
+   `etc/gen-init.py` (raft-entsize's rafthttp SPECIAL; keep both, then `etc/gen-init.py --check`).
+2. Full build; `etc/tcb-report.py --check --update` and the collections (`--collection ... --check --update`
+   for those that move); expected tcb diff vs lean: + `DefaultBackoffConfig_init`, plus what 7e-2/7e-4 add
+   (their accepted Freeze packages); `opaqueInitsOk` (grpc) loses `DefaultBackoffConfig.init` from its list.
+3. Step 6 (Draft §6), then checkpoint (iii), the Freeze package: full `etc/gates.sh`; regenerate interfaces
+   (`etc/gen-interface.py`, client and grpc API changes: `RepSat`, `grpcInvokerOk`, `client_range_any`,
+   `pbRangeResponse`); the report lists the trusted-text changes (grpc Init `DefaultBackoffConfig_init` +
+   `grpcInit`; `RepSat`; `grpcInvokerOk`), the exported statement changes (`client_range_any`'s post
+   `rangeRespMsgO`; `etcdInterceptorOk(M)`/EtcdInvoke posts carry `Rep.recvOwn`), and that no closed
+   theorem's text changes beyond losing Hpl/HGetAt/HList.
