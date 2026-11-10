@@ -7,9 +7,10 @@ cluster's `bootstrappedRaft.newRaftNode` (`bootstrap.go`) are specified over, be
 * **The contracts** on the names-only callees and on what Perennial does not model, persistent
   triples the specs take in their preconditions (as `isServerBuilt` takes the names-only parts'
   contracts, `clusterVersionOk`): `NewRaftLoggerZap` (`zap_raft.go`, names-only: some logger
-  interface, `rnLoggerZapOk`); raft's `SetLogger` (translated with its body, but its globals
-  `raftLogger`/`raftLoggerMu` are allocated by raft's package initializer and their ownership
-  dropped, `Init.lean`, so the write is not provable: `rnSetLoggerOk`); `contention.NewTimeoutDetector`
+  interface, `rnLoggerZapOk`); (until premise-fixes-4, 2026-11-10, raft's `SetLogger` too,
+  `rnSetLoggerOk`, false in the model: raft's initializer dropped its globals; since, raft keeps
+  `raftLoggerMu` owning `raftLogger` in `isInitialized` and proves `SetLogger.spec`, a callee of
+  `newRaftNode`'s proof); `contention.NewTimeoutDetector`
   (names-only: `isRNTimeoutDetector`, `rnTimeoutDetectorOk`); `time.NewTicker` (`isRNTicker`;
   since 2026-11-03 no contract: Perennial's proved specs of `NewTicker` and `Ticker.Stop` are
   callees of `newRaftNode`'s proof, `isRNTicker_of_time`; until then `rnTickerOk`); the server's package
@@ -104,15 +105,6 @@ def rnLoggerZapOk : IProp GF :=
 
 instance rnLoggerZapOk_persistent : Persistent (rnLoggerZapOk (GF := GF)) := by
   unfold rnLoggerZapOk; infer_instance
-
-/-- **raft's `SetLogger(l)`** (a contract: the ownership of its globals is not kept by raft's
-package initializer). -/
-def rnSetLoggerOk : IProp GF :=
-  iprop(□ ∀ l : GoInterface, {{ True }} (App (Val (@! go_etcd_io.raft.v3.SetLogger)) (Val #l))
-    {{ RET #(); True }})
-
-instance rnSetLoggerOk_persistent : Persistent (rnSetLoggerOk (GF := GF)) := by
-  unfold rnSetLoggerOk; infer_instance
 
 /-- **`contention.NewTimeoutDetector(d)`** (names-only): a detector meeting `isRNTimeoutDetector`. -/
 def rnTimeoutDetectorOk : IProp GF :=

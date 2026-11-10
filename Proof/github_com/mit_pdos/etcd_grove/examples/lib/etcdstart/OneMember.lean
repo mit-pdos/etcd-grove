@@ -101,7 +101,7 @@ def premises (name peer client : GoString)
         γ.boot = LogEntry.toEntries boot 0⌝ -∗
       letI : MemStorReg GF := ⟨γ.reg⟩; bootstrapContract cfg U γ id ctxs N (dir1 peer id)) ∗
     bootMarshal [id] ctxs (LogEntry.toEntries boot 0) ∗
-    rnLoggerZapOk ∗ rnSetLoggerOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk ∗
+    rnLoggerZapOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk ∗
     v3rpc.runsNoRequireLeader)
 
 instance premises_persistent (name peer client : GoString) (N : Nat) (id : w64)

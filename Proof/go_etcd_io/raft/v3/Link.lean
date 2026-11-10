@@ -50,6 +50,7 @@ public import Proof.go_etcd_io.raft.v3.RawNode__TransferLeader
 public import Proof.go_etcd_io.raft.v3.RawNode__acceptReady
 public import Proof.go_etcd_io.raft.v3.RawNode__readyWithoutAccept
 public import Proof.go_etcd_io.raft.v3.RestartNode
+public import Proof.go_etcd_io.raft.v3.SetLogger
 public import Proof.go_etcd_io.raft.v3.SoftState__equal
 public import Proof.go_etcd_io.raft.v3.StartNode
 public import Proof.go_etcd_io.raft.v3.assertConfStatesEquivalent
@@ -1424,6 +1425,10 @@ theorem wp_getProgressCopy [StorageModel GF] :
 theorem wp_getStatus [StorageModel GF] :
     getStatus.spec (GF := GF) (hG := hG) :=
   getStatus.wp_proof wp_getBasicStatus wp_getProgressCopy tracker.Config.wp_Clone
+
+theorem wp_SetLogger :
+    SetLogger.spec (GF := GF) (hG := hG) :=
+  SetLogger.wp_proof
 
 theorem quorum.mapAckIndexer.wp_AckedIndex :
     quorum.mapAckIndexer.AckedIndex.spec (GF := GF) (hG := hG) :=

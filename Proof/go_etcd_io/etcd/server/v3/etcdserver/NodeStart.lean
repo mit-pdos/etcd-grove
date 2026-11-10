@@ -32,7 +32,7 @@ the allocation and contracts of before the node API):
   `RaftState.init`; the fresh registered `MemoryStorage` as `NewMemoryStorage` leaves it; the
   peers and their contexts; the WAL's durability invariant, the loop's view at the start and its
   token (`wal.bootOk_start`);
-* the contracts (`rnLoggerZapOk`, `rnSetLoggerOk`, `rnTimeoutDetectorOk`, `rnNewStorageOk`,
+* the contracts (`rnLoggerZapOk`, `rnTimeoutDetectorOk`, `rnNewStorageOk`,
   `rnClusterOk` on names-only callees; `rnRaftStatusOk` the invariant of the package globals
   `raftStatus`/`raftStatusMu`);
 * the installer's, given when the server exists (since unit N1 of the server-construction unit,
@@ -393,7 +393,7 @@ abbrev NodeStartSpec : Prop :=
         "Hboot" ∷ (nodeBoot γr.cl srvClusterN ps ctxs cv.ID' ∗ raftState γr.cl cv.ID' RaftState.init ∗
           nodeVacant γr.cl cv.ID') ∗
         -- the names-only contracts
-        "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
+        "#Hzap" ∷ rnLoggerZapOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
         "#Hrs" ∷ rnRaftStatusOk ∗ "#Hns" ∷ rnNewStorageOk ∗
         "#Hcl" ∷ rnClusterOk cl ∗
         -- (2026-11-03, R2b-1 stage 3c) the WAL's durability (`wal.bootOk_start`): its invariant, the

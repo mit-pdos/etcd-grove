@@ -48,7 +48,7 @@ abbrev newRaftNode.spec : Prop :=
     (ms : Loc) (γs : MemStorNames) (key : GName) (wal : WalNames) (cv : raftNodeConfig),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       -- the contracts (`InvNodeStart.lean`; 2026-11-03: `rnTickerOk E` gone, the ticker proved)
-      rnLoggerZapOk ∗ rnSetLoggerOk ∗ rnTimeoutDetectorOk ∗
+      rnLoggerZapOk ∗ rnTimeoutDetectorOk ∗
       -- (2026-11-03: until then the implication `cv.lg' ≠ null →`) a logger; (S2: until then the
       -- implication `heartbeat ≠ 0`) a positive heartbeat (2026-11-03 to 2026-11-05, the user's
       -- S1: also `⌜E.T = iprop(True)⌝`, ticks carrying nothing, which `isRNTicker` now says)
