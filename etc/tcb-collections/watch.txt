@@ -129,6 +129,8 @@ axiom trace.SpanFromContext.wp_proof
 axiom trace.WithAttributes.wp_proof
 axiom traceutil.Tracer.Start.wp_proof
 axiom v3rpc.isClientCtxErr.wp_proof
+axiom v3rpc.pbWatchRequestT_reg
+axiom v3rpc.pbWatchResponseT_reg
 axiom verify.Verify.wp_proof
 axiom zap.Duration.wp_proof
 axiom zap.Error.wp_proof
