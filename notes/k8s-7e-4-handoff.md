@@ -383,8 +383,7 @@ Decided by etcd-grove-81: option 1 (translate featuregate's interfaces). What st
 (`goose/util/autotypes.go`); featuregate's toml imported nothing, and `MutableFeatureGate`'s methods
 name `context.Context`, `*pflag.FlagSet`, and `MutableVersionedFeatureGate`'s `*version.Version`.
 
-Done on branch **`k8s-7e-4-pflag`** (`e2f5d1e5c0`, one commit on `k8s-7e`'s `cce393d353`; not merged
-into `k8s-7e` pending the decision; patch also at `/shared/tmp/k8s-7e-4/noStreaming-pflag.patch`):
+Done (`39bad66370` on `k8s-7e`, cherry-picked from the deleted branch `k8s-7e-4-pflag`):
 - `featuregate.toml`: `imports = ["!*", "context", "github.com/spf13/pflag",
   "k8s.io/apimachinery/pkg/util/version"]`; `github.com/spf13/pflag` added to project
   k8s-apiserver names only (`Code/github_com/spf13/pflag.toml`, lean root `github.com/spf13=`, owned
@@ -397,10 +396,11 @@ into `k8s-7e` pending the decision; patch also at `/shared/tmp/k8s-7e-4/noStream
 - Built capped: pflag/featuregate `Init`, etcd3/cacher `Base`, `noStreaming`'s spec (`fg1.log`,
   `fg2.log`). Not yet built: the 1692 modules importing featuregate (`etc/importers.py --count`).
 
-**The stop**: pflag's package `Init` (generated) brings a **new trust-boundary axiom**
+**Approved by etcd-grove-81 under the user's delegation (2026-11-10)**: the new axiom below (importing
+pflag does not panic in Go; every Go test linking featuregate shows it), and the instance move to
+`etcd3/Base` as a form. pflag's package `Init` (generated) brings a **new trust-boundary axiom**
 `github_com.spf13.pflag.opaqueInitsOk` (its three untranslated variable initializers `ErrHelp`,
 `CommandLine`, `Usage` run without panicking; the standard generated shape, 117 others exist).
 featuregate's `initialize'` now runs pflag's (Go does too). No Perennial/translator change, no trusted
-text. To continue if approved: `git merge --ff-only k8s-7e-4-pflag` (or cherry-pick), build the driver
-capped, then step 4 (the Link) with `noStreaming`'s line (callees none: it takes `featureGateOk`
+text. Next: build featuregate's importers capped, then step 4 (the Link) with `noStreaming`'s line (callees none: it takes `featureGateOk`
 from the package inits).
