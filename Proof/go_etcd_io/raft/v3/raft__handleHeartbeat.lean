@@ -15,7 +15,7 @@ public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetCommit
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetContext
 public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
 public import Proof.go_etcd_io.raft.v3.LemmasSendRB
-public import Proof.go_etcd_io.raft.v3.TracedUntraced
+public import Proof.go_etcd_io.raft.v3.TracedSend
 
 @[expose] public section
 
@@ -40,9 +40,7 @@ theorem raft.handleHeartbeat.wp_proof
     (wp_GetContext : raftpb.Message.GetContext.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.handleHeartbeat.spec (GF := GF) (hG := hG) := by
-  -- (Q8 stage 1, slice 5) `send`'s untraced instance (`TracedUntraced.lean`)
-  have wp_raft_send := raft.send.untraced wp_raft_send
-  intro c r id s ml dq dqe cap m ents sn cl rs Hcommit Hfrom Htz Htr
+  intro c r id s ml dq dqe cap m ents sn cl rs G G' Hcommit Hfrom Htz
   wp_start as H
   iNamed H
   wp_auto
@@ -72,13 +70,25 @@ theorem raft.handleHeartbeat.wp_proof
   have Hok : ∀ s' : NState, s'.term ≠ W64 0 → SendOk id s' ⟨W32 9, m.From', 0, 0, 0, 0, 0, 0, false, 0⟩ [] cl
       [{ Msg.plain .heartbeatResp id m.From' s'.term false with ctx := cl }] := fun s' hs' =>
     Or.inr (Or.inl ⟨.heartbeatResp, Or.inr (Or.inr (Or.inr rfl)), rfl, rfl, Hfrom, hs', rfl⟩)
-  wp_apply wp_raft_send c r id _ «$a0_ptr» _ [] none cl [] _ (Or.inl rfl) (Hok _ (by first | exact Htz | simpa using Htz | simp_all))
+  ihave Hgate := Hgate $$ HG
+  have Hns : s.gh.tr ≠ none → mtypeOf (W32 9) ≠ some MsgType.snap := fun _ => by decide
+  wp_apply wp_raft_send c r id
+    { s with logst := { s.logst with committed := plogCommitTo s.logst.committed m.Commit' } }
+    «$a0_ptr» _ [] none cl [] _ G' (Or.inl rfl) (Hok _ (by first | exact Htz | simpa using Htz | simp_all))
     (fun h => absurd h (by simp [MsgSnap]))
-      (fun h => absurd h (by simp [MsgApp])) rfl (by tr_none) $$ [$Hphys $Hr] as Hphys
-  · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
+      (fun h => absurd h (by simp [MsgApp])) rfl Hns $$ [Hphys $Hr Hgate] as ⟨Hphys, HG'⟩
+  · isplitl [Hphys]
+    · iexact Hphys
+    isplitr
+    · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
+    iapply hookGateOpt_congr s.gh.tr _ r
+      (sendOutGate id { s with logst :=
+            { s.logst with committed := plogCommitTo s.logst.committed m.Commit' } } c MsgHeartbeatResp
+          [{ Msg.plain .heartbeatResp id m.From' s.term false with ctx := cl }]) _ G' rfl (by rfl)
+    iexact Hgate
   try wp_auto
   iapply HΦ
-  iframe Hm
+  iframe Hm HG'
   iapply ownRaftPhysC_eq c r id _ (heartbeatResult id s m cl) (by cases s; rfl) $$ Hphys
 
 end proof

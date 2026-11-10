@@ -17,6 +17,7 @@ public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetFrom
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetTerm
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetReject
 public import Proof.go_etcd_io.raft.v3.TracedUntraced
+public import Proof.go_etcd_io.raft.v3.TracedUntracedStep
 public import Proof.go_etcd_io.raft.v3.TracedUntracedSend
 
 @[expose] public section
@@ -73,6 +74,9 @@ theorem stepCandidate.wp_proof
   have wp_raft_bcastAppend := raft.bcastAppend.untraced wp_raft_bcastAppend
   have wp_raft_becomeLeader := raft.becomeLeader.untraced wp_raft_becomeLeader
   have wp_raft_becomeFollower := raft.becomeFollower.untraced wp_raft_becomeFollower
+  -- (Q8 stage 1, slice 7) the handlers' untraced instances (`TracedUntracedStep.lean`)
+  have wp_raft_handleAppendEntries := raft.handleAppendEntries.untraced wp_raft_handleAppendEntries
+  have wp_raft_handleHeartbeat := raft.handleHeartbeat.untraced wp_raft_handleHeartbeat
   intro c scfg r id s ml m ents sn rs sv cl Hty Hterm Hrole Happ Hhb Hpvnw Hsnap Htr
   wp_start as H
   iNamed H

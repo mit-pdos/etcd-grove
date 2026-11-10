@@ -15,6 +15,7 @@ public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetEntries
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetIndex
 public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetData
 public import Proof.go_etcd_io.raft.v3.TracedUntraced
+public import Proof.go_etcd_io.raft.v3.TracedUntracedStep
 
 @[expose] public section
 
@@ -76,6 +77,9 @@ theorem stepFollower.wp_proof
     stepFollower.spec (GF := GF) (hG := hG) := by
   -- (Q8 stage 1, slice 5) `send`'s untraced instance (`TracedUntraced.lean`)
   have wp_raft_send := raft.send.untraced wp_raft_send
+  -- (Q8 stage 1, slice 7) the handlers' untraced instances (`TracedUntracedStep.lean`)
+  have wp_raft_handleAppendEntries := raft.handleAppendEntries.untraced wp_raft_handleAppendEntries
+  have wp_raft_handleHeartbeat := raft.handleHeartbeat.untraced wp_raft_handleHeartbeat
   intro c scfg r id s ml m ents sn rs sv cl Hty Hri Hstz Hprop Happ Hhb Hrest Hsnap Hnors Htr
   wp_start as H
   iNamed H

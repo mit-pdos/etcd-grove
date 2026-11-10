@@ -37,11 +37,19 @@ raft v3.7 (2026-10-15, stage R4): `m` is a `*pb.Message` (`ml`), taken as `stepF
 `stepCandidate` pass it, a received message (`msgIn ml □`: its entries read-only, the `Entries`
 slice's capacity owned, which `maybeAppend` may adopt) and not given back; read through its
 getters (`logSliceFromMsgApp`); every reply shares `m`'s `From` cell (`To: m.From`, read-only).
+
+One spec for both trace modes (2026-11-10, trace-check Q8 stage 1 slice 7): the caller's resource `G`
+goes through the reply's hook gate (`send`'s `HookGateOpt`, its `SendAppendEntriesResponse` event at
+the state the reply is sent from) and comes back as `G'`. Which exit is taken, hence the state and
+the reply, is the function's: the gate is for every state `s1` and reply `mm` whose send ends in a
+`HandleAppResult` (`∀ s1 mm`, as `maybeSendAppend`'s `MsgApp` gate). Until slice 7 the premise
+`s.gh.tr = none` (stage 0), now `raft.handleAppendEntries.untraced`'s (`TracedUntracedStep.lean`).
 -/
 module
 
 public import Proof.go_etcd_io.raft.v3.InvRaftPhys
 public import Proof.go_etcd_io.raft.v3.Plog
+public import Proof.go_etcd_io.raft.v3.TracedMsg
 
 @[expose] public section
 
@@ -142,7 +150,7 @@ Not needed, and so not premises: `m.From ≠
 abbrev raft.handleAppendEntries.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (ml : Loc) (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8)
-    (rs : List Loc),
+    (rs : List Loc) (G G' : IProp GF),
   PlogWf (entryID.mk m.LogTerm' m.Index') ents →
   uint.Z m.Index' + (ents.length : Int) + 1 < 2^64 →
   (let ls := s.logst
@@ -161,16 +169,17 @@ abbrev raft.handleAppendEntries.spec : Prop :=
   s.role ≠ .leader →
   -- (2026-10-29, stage U7) the term past `0` that `send` stamps (`SentMsgShape`)
   s.term ≠ W64 0 →
-  -- (2026-11-09, Q8 stage 0 of `notes/trace-validation-plan.md`) an untraced node: its trace
-  -- hooks see a nil logger (`TraceLoggerOkS`); stage 1 replaces this premise by the traced
-  -- capability (`trCapB s.gh.tr …`, `TracedHooksDraft.lean`)
-  s.gh.tr = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-      "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
+      "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
+      -- (2026-11-10, Q8 stage 1 slice 7; until then, stage 0, the premise `s.gh.tr = none`) the
+      -- caller's resource, through the reply's hook gate, for the exit taken
+      "HG" ∷ G ∗
+      "Hgate" ∷ (∀ (s1 : NState) (mm : Msg), ⌜HandleAppResult id s m ents (sendMsgs s1 [mm])⌝ -∗
+        G -∗ HookGateOpt s.gh.tr r (sendOutGate id s1 c MsgAppResp [mm]) G') }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"handleAppendEntries")) (Val #ml))
   {{ (s' : NState), RET #();
-      ownRaftPhysCV c c.voters r id s' ∗ ⌜HandleAppResult id s m ents s'⌝ }}
+      ownRaftPhysCV c c.voters r id s' ∗ ⌜HandleAppResult id s m ents s'⌝ ∗ G' }}
 
 end spec
 
