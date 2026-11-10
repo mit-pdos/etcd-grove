@@ -34058,3 +34058,22 @@ hashing and lifts it; (2) B3 is done in mvccfull's F1, one spec of `New`'s resto
 tester and the restart plan (`notes/restart-plan.md`'s B3 row says so); (3) crc32 enters F2 as a
 marked local trust-boundary spec (`Sum32` an opaque function of the bytes written), attacked with
 the `axiom` skill, and proposed to Perennial's standard library.
+
+## mvccfull F1's Freeze: the five-row list as drafted, the receipt kept, the lease part lent (2026-11-10 · the user · branch `worktree-mvcc-full-tester`)
+
+**What it was.** After Draft, two review rounds, Probe (every named risk proved) and the axiom attack
+on `NewLessor.specR` (`notes/axiom-review/mvccfull-newlessor-specR.md`), the Freeze list of
+`notes/mvccfull-proof-plan.md` ("The Freeze list so far") was put to the user with two open
+questions. **Decision (the user: "Go ahead and do this", taken as the recommended options):** freeze
+the list as drafted: (1) `mvcc.New`/`NewStore` on any image (`New.specR`/`NewStore.specR` replace
+`New.spec`/`NewStore.spec`; the internal chain likewise); (2) `lease.NewLessor.specR` replaces
+`NewLessor.spec` (one axiom), **keeping the receipt `⧖ |recs|` in the post** (option (a): its source
+is the proved `initAndRecover.spec`'s post; the axiom adds only `newLessor`'s names-only wrapper);
+(3) `errVars2.law` replaces `errVars.law`; (4) `pick.specW` (the tester's); (5) `Watch.contractR`
+replaces `Watch.contract`. **`New`'s spec lends the lessor's owner part** `lease.leaseOwn γl [] ∅`
+(given back), so `server_kv_backend`, `server_kv_watchable`, `server_kv_backend_hooks` and
+`mvccApi_New`/`NewStore_wp_proof` gain it in pre and post (the conditional-lease alternative not
+taken). Not taken: the backend strengthening `rtHeldDlsLaw` (`backend/RtHeldDls.lean`, kept as a
+prototype). The API `NewStore.specR`'s glue (review round 2's S3/S4) is written in Prove: that spec
+is frozen pending it. Proving `NewLessor`/`Stop` is a separate, later track (it changes nothing in
+the tester's proof).
