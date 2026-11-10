@@ -31,6 +31,24 @@ etcd-grove-81 says so.
    (`ansOf_otherL`). **`readQ`'s commit condition is `σ.rev = R` only** (a `Get` below its minimum answers
    `ETooLarge`, committed at `R` too); its `n` parameter is unused, to drop with `call`/`Apply`.
 
+## Forms decided (accepted by etcd-grove-81, 2026-11-10, all five)
+
+1. `Refine`: `ItemRel`/`PairRel` → `KRel` over 7e-3c's `PairRelH`; `mkObj` moved to `Refine`
+   (`crObjL`/`mkObj`, premises `crFits`/`inFits`).
+2. Store: `KvNext` gains `KvExt`; `k8sAu1`/`k8sAuRW` COMM gain `KeysIn c.pfx σ σ'` (hypotheses `hk` of
+   `k8sAu1_kvAu1`/`k8sAuRW_kvAu1`/`k8sAusRW_kvAu1`). Accepted on condition that every consumer outside
+   the driver builds: checked 2026-11-10 with `etc/importers.py` (`--uses KvNext/k8sAu1/k8sAuRW/
+   k8sAu1_kvAu1/k8sAusRW_kvAu1/StepOk` on `Updates.lean`, and on the store's write specs): outside the
+   store's own package and the driver, the only importers are the compactor's `MainLinked`/`Adequacy`/
+   `Results` (plus list-path specs that do not use them); targeted capped build of
+   `compactor.Results`, `cacher.Link`, `etcd3.Link`: green, 7952 jobs (`/shared/tmp/k8s-7e-4/imp.log`).
+3. `Inv`: `InOk` grown (workload key, UID/node/app < 256, RV < 2^63, the list's match/prefix/limit/
+   `prepareKeyM`); `KOk` over `HSt` (`KRelH`, history length, `kvWfHist`, `keysOk`); `CfgD c` premise of
+   the update lemmas; `RevOk`'s history clause; `histOwn` in `Inv` renamed `shistOwn`.
+4. `readQ`: a `Get` commits at the prophesied revision whatever its minimum (`n` unused until
+   `call`/`Apply`).
+5. The list read updates moved from step 2 to the start of step 3.
+
 ## Next, in order
 
 1. **Lists in `InvSteps`** (new): `listCall`/`list_read_au`/`list_maker`, as `getCall`/`get_read_au`/
