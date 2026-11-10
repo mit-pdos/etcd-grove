@@ -132,9 +132,9 @@ def peerStop (Rh : RaftHttp GF) (pid : w64) (R : IProp GF) (p : Loc) : IProp GF 
 /-- **A message for the peer `pid` of the member `lid`** (what `peer.send` takes; stage 6b): read-only,
 marshalable, for `pid`, not a snapshot, without responses, with its bundle; a `MsgApp` of raft's
 shape from `lid` (what the msgappv2 stream encodes: `V2EncOk`); its wire content, of size below
-`2^47` bytes (`swMsgBound`: `swMsgBound_phys`, the user's choice in stage 6d, restated over the
-content in stage A of the per-type models), and (raft-entsize §4) of bounded size when the payload
-says so (`msgSzC`: one content for both). -/
+`2^47` bytes, and (raft-entsize §4) of bounded size when the payload says so (`msgSzC`: one content
+for both; derived from the sender's content since raft-entsize, which deleted the trust-boundary
+axiom `swMsgBound_phys`, stage 6d's bound restated in stage A of the per-type models). -/
 def peerMsg (Rh : RaftHttp GF) (lid pid : w64) (ml : Loc) : IProp GF :=
   iprop(∃ st : MsgSt, msgOwn ml DFrac.discard st ∗ msgSzC Rh.γn.N.Sz ml st ∗ □ Rh.γn.N.P st ∗
     Rh.γn.N.O st ∗
@@ -183,31 +183,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-
-/-- **The trust boundary: no raft message's encoding reaches `2^47` bytes** (2026-10-24, rafthttp
-stage 6d, the user's choice; **restated in stage A of the per-type models**, 2026-11-07, over the
-wire content: a read-only message is frozen at a wire content of its model whose size is below
-`2^47` bytes, `swMsgBound`; until then, its address's encoding below `2^50` bytes). Meant as a
-physical fact, like `netProcSlots`: no machine holds a message that large. The stream writer sums
-the sizes of up to 2049 messages into an `int` it adds to a prometheus counter, whose `Add` panics
-on a negative value; the sum stays below `2^62`. (Stage 6's choice (3), a panicking `Add` the
-writer's goroutine may reach, is not provable: Perennial's `wp_fork` asks a goroutine not to
-panic.) Not derivable in the logic, which can allocate a slice of any `w64` length.
-
-**Warning: this axiom is false, and tracked as such** (raft-entsize deletes it, deriving the bound
-from raft's `out_size`): the "physical" justification fails under aliasing, since a message's
-entries may share one object (`msgPtsC`'s entries are read-only), so `2^18` references to one
-`2^32`-byte entry encode to about `2^50` bytes held in about 4 GiB of memory (the per-type
-Scope's review, revision 2). It is **inconsistent in the logic in general** (the stage A re-Freeze
-review): the logic can allocate a slice of any `w64` length, so a program that allocates an
-oversized (or aliased) message without responses and freezes it through the proved `pbMsg_alloc`
-refutes it. The premise `st.resps = []` (which every user has, `MsgMarshals`) only removes one
-refutation, a `nil` response: `swMsgBound` freezes every response at a content (`msgRoC`, a non-nil,
-read-only pointer), which `msgOwn` does not own. raft-entsize deletes the axiom in the same landing. The content it gives has a snapshot
-`ConfState` without unknown fields (`MsgC.csUfNil`): the sender's fact, since `msgOwn`'s `csPts`
-(raft's) fixes them to none. -/
-axiom swMsgBound_phys (ml : Loc) (st : MsgSt) (h : st.resps = []) :
-    msgOwn (GF := GF) ml DFrac.discard st ⊢ swMsgBound ml st
 
 /-- **A message in the network's bundle is one the transport's `Send` takes** (stage 6d): the
 bundle's facts (`netBundle`), and its encoding's bound: (raft-entsize §4, 2026-11-10) one content

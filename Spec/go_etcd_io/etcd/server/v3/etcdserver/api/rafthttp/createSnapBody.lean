@@ -28,7 +28,7 @@ the envelope's frame (of an encoding `bs` of `st`) followed by a complete stream
 message's reader (`snapPre`, `snapPhi`), whose `Close` returns (it closes the merged message's
 reader). The encoding into a `bytes.Buffer` does not fail, so its `lg.Panic` is not reached.
 (raft-entsize [r3c], 2026-11-10) The message frozen at a content below `2^47` bytes (`msgSzC False`),
-from the caller (until then the trust boundary `swMsgBound_phys`). -/
+from the caller (until then the trust boundary `swMsgBound_phys`, since deleted). -/
 abbrev rafthttp.createSnapBody.spec : Prop :=
   ∀ (lg m ml : Loc) (rc : GoInterface) (st : MsgSt) (Φ : List w8 → Prop),
   lg ≠ null → MsgMarshals st →

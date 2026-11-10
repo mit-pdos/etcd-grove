@@ -176,6 +176,22 @@ next (touches `InvPb`, pbMsg's unknown fields): merge lean again after it.
 - PITFALL: the disk (/shared) was full once (2026-11-10): a python rewrite truncated
   `InvSnapSend.lean` to 0 bytes. Check `git diff --stat` after edits if `df` is low.
 
+## Done (step 3, parts 3-4: the heartbeat, route H1, and the axiom's deletion; 2026-11-10)
+
+- `Code/…/rafthttp.toml`: `!linkHeartbeatMessage` removed; regenerated (`etc/goose.py --project etcd
+  --perennial /shared/perennial-ddc0f0acc`, WITHOUT `GOWORK=off`: etcd's source needs its go.work).
+- `etc/gen-init.py` rafthttp SPECIAL: the custom axiom gone; `alloc_types` and `before` steps (Enum's
+  4-line proof inlined, since raft's `Proof/…/raftpb/MessageType__Enum` is not importable; the literal
+  frozen by `hbMsg_init`). Imports `Spec…MessageType__Enum`, rafthttp `MsgAppV2`.
+- `rafthttpInit`'s heartbeat conjunct: `(msgOwn … hbSt ∗ pbMsg raftpb.Message … [])` (one conjunct,
+  so other files' patterns are unchanged). Form decided: not `msgRoC … hbC` because `msgRoC` is fixed
+  at `HasLC.hasLC` and `BaseApply`'s instances are `hlc`-generic; `hbMsg_msgRoC` gives the content
+  (model `hbSt`, `csUfNil`, no responses, `msgSizeOk`).
+- `MsgAppV2.lean`: `hbC`, `msgPtsCC_pbMsg`, `msgPtsCC_freeze`, `hbMsg_init`, `hbMsg_msgRoC`.
+- `streamWriter.run`'s `run_hb`: the clone `c' = chb` (Clone's exactness), frozen at its content
+  (`msgPtsCC_freeze`, `msgPtsCC_persist`), `msgSzC` from `msgSizeOk`. The decoder: `hbMsg_msgRoC`.
+- `swMsgBound_phys` and `msgSzC_of_swMsgBound` deleted (`swMsgBound` itself stays: `msgSzC_swMsgBound`).
+
 ## Next: (old design notes of [r3c], done above)
 
 `pbMsg T l uf` is the content's unknown fields by fiat (`msgPtsC_msgPtsCC_uf` builds a content with

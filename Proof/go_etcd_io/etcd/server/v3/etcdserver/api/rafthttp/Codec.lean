@@ -113,8 +113,8 @@ def msgFrame (bs : List w8) : List w8 := u64Be (W64 bs.length) ++ bs
 raft-entsize is to derive from its `out_size`): the frozen message `ml` holds a wire content of
 `st` whose size is below `2^47` bytes. What the encoders size and marshal (`proto.Size`,
 `MarshalAppend`, `MustMarshalMessage` take the content), and what bounds the sizes the stream
-writer sums (2049 of them stay below `2^62`). Given today by the trust-boundary axiom
-`swMsgBound_phys` (`Transport.lean`). The content's snapshot `ConfState` has no unknown fields
+writer sums (2049 of them stay below `2^62`). Derived from the sender's content (`msgSzC`,
+raft-entsize; until then the trust-boundary axiom `swMsgBound_phys`). The content's snapshot `ConfState` has no unknown fields
 (`MsgC.csUfNil`, the sender's fact: raft's `csPts` fixes them to none), what the receiver's decoded
 message needs (`MsgEnc`). -/
 def swMsgBound (ml : Loc) (st : MsgSt) : IProp GF :=

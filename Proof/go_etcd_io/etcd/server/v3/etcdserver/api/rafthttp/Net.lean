@@ -152,8 +152,8 @@ message, a `MsgSnap` with a snapshot of index `i`, with its bundle (read-only fo
 complete streams are bbolt images of some `D` (`boltImage`) with the payload's certificate
 `N.img i D` (for the server, `srvImage`: the committed state through `i`). (raft-entsize [r3c],
 2026-11-10) Frozen at a content below `2^47` bytes (`msgSzC False`, `swMsgBound`'s meaning): what
-the envelope's encoder needs (`createSnapBody`), derived by the sender (until then
-`swMsgBound_phys`'s). -/
+the envelope's encoder needs (`createSnapBody`), derived by the sender
+(`createMergedSnapshotMessage`; until then the deleted axiom `swMsgBound_phys`'s). -/
 def netSnapBundle (N : NetPayload GF) (ml : Loc) (rc : GoInterface) : IProp GF :=
   iprop(∃ (st : MsgSt) (sn : SnapshotM) (D : backend.Data), msgOwn ml DFrac.discard st ∗
     msgSzC False ml st ∗

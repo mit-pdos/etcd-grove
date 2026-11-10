@@ -164,17 +164,6 @@ theorem msgSzC_mono {Sz Sz' : Prop} (h : Sz' → Sz) (ml : Loc) (st : MsgSt) :
   iframe Hc
   ipureintro; exact ⟨H.1, H.2.1, H.2.2.1, fun h' => H.2.2.2 (h h')⟩
 
-/-- A bounded message's content is one for the encoders under a condition that does not hold. -/
-theorem msgSzC_of_swMsgBound {Sz : Prop} (h : ¬Sz) (ml : Loc) (st : MsgSt) :
-    swMsgBound (GF := GF) ml st ⊢ msgSzC Sz ml st := by
-  iintro H
-  iunfold swMsgBound at H
-  icases H with ⟨%c, #Hc, %H⟩
-  iunfold msgSzC
-  iexists c
-  iframe Hc
-  ipureintro; exact ⟨H.1, H.2.1, H.2.2, fun h' => absurd h' h⟩
-
 end szc
 
 /-! ## Indices -/
