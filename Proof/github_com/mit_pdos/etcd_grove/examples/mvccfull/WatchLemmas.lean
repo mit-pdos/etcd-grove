@@ -227,6 +227,53 @@ theorem register_au' (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG))
     simp only [regOf, Bool.false_eq_true, ↓reduceIte]
     iexact Hfrag
 
+/-- **The compaction floor is small** (`watch`'s start from `cmpLo`): `cmpLo`'s load gives a value
+at most the compaction revision, which a reachable store keeps at most its revision, below
+`revHi < 2 ^ 62`. In the shape of `Int64.Load`'s premise. -/
+theorem cmpLo_acc_lt (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG))
+    (hreach : mvcc.api.mvccState_reachable.law (GF := GF) (hG := hG))
+    (ks : List GoString) (γh : HistNames) (i : Nat) (mp : Loc) (m : MemberNames)
+    (ι : IncNames) (kv : GoInterface) (q : Qp) :
+    incLive (GF := GF) ks γh i mp m ι kv q ⊢
+      |={⊤,∅}=> ∃ v : w64, sync.atomic.ownInt64 (mF go!"cmpLo" mp) (DFrac.own 1) v ∗
+        ⌜sint.Z v < 2 ^ 62⌝ ∗
+        (sync.atomic.ownInt64 (mF go!"cmpLo" mp) (DFrac.own 1) v ={∅,⊤}=∗
+          incLive ks γh i mp m ι kv q) := by
+  haveI := hpers.2.2.2.2.2.1
+  haveI : ∀ kv γ, Persistent (isMvcc (GF := GF) kv γ) := hpers.1
+  haveI : Timeless (memberInv (GF := GF) ks γh mp m ι) := by
+    unfold memberInv memberState; infer_instance
+  haveI : Persistent (isInc (GF := GF) ks γh i mp m ι kv) := by unfold isInc; infer_instance
+  iintro Hlive
+  iunfold incLive at Hlive
+  icases Hlive with ⟨#Hinc, Hret⟩
+  ihave #Hinc' := Hinc
+  iunfold isInc at Hinc'
+  icases Hinc' with ⟨#Hmi, #Hkv⟩
+  iinv Hmi with >Hm Hclm
+  icases memberInv_live ks γh mp m ι q $$ [$Hret $Hm] with ⟨Hret, Hm⟩
+  iunfold memberState at Hm
+  icases Hm with ⟨%σ, %b, %Hl, Hσ, Hgσ, Ha1, Ha2, Ha3, Ha4, Hbnd, Hmr, Hmc, Hmn, #Hlb, %Hok⟩
+  icases (persistent_entails_right (hreach kv ι.kv σ)) $$ [$Hkv $Hσ] with ⟨%Hr, -, Hσ⟩
+  have hb := reach_bounds σ Hr.1
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ ⊤ \ ↑(memberN i) from Std.LawfulSet.empty_subset)
+  iintro Hcl2
+  iexists b.2.2.1
+  iframe Ha3
+  isplitr
+  · ipureintro
+    obtain ⟨-, -, h3, h4, -, h6, -⟩ := Hok
+    omega
+  iintro Ha3
+  imod Hcl2 with -
+  imod Hclm $$ [Hσ Hgσ Ha1 Ha2 Ha3 Ha4 Hbnd Hmr Hmc Hmn] with -
+  · inext; iunfold memberInv; ileft; iunfold memberState
+    iexists σ, b, Hl; iframe; iframe #; ipureintro; exact Hok
+  imodintro
+  iunfold incLive
+  iframe
+  iframe #
+
 end ghost
 
 end mvccfull
