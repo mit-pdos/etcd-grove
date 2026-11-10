@@ -298,6 +298,7 @@ Add each new module (its `Proof.*` name) and, for a changed statement, its impor
 list (`/shared/tmp/k8s-7e-2/build4.log`, 2026-11-09).
 
 ## 7e-4 Draft: where it starts (2026-11-10, eighth session)
+**7e-4 has its own handoff now: `notes/k8s-7e-4-handoff.md` (steps 1 and most of 2 done).**
 7e-3c is done (`refine_list`, no `sorry`). 7e-4 is next: Draft (specs and statements, proofs `sorry`
 except listed glue) -> Review -> Freeze package (a hard stop for etcd-grove-81) -> Prove. The closed
 theorems' text is unchanged (Scope §7); any change to it, to a trusted text or to an exported

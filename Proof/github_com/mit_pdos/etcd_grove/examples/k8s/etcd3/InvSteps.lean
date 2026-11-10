@@ -59,16 +59,16 @@ variable [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- The model's step of a boxed input and output is the pending model's of the input and the
 output's answer. -/
-theorem step_box (g0 : GSt) (S : linkv.PSet GSt Input) (x : Input) (y : Output) :
+theorem step_box (g0 : HSt) (S : linkv.PSet HSt Input) (x : Input) (y : Output) :
     (k8setcd3S (GF := GF) g0).M.step S (boxIn x, boxOut y) =
       (linkv.pSeq (kSpec g0)).step S (x, ansOf y) :=
   linkv.pM_step _ _ _ _ _ _ (decOp_box (sem := sem) (package_sem := package_sem) x y)
 
-theorem run_snoc (g0 : GSt) (h : List OpV) (S S' : linkv.PSet GSt Input) (a : OpV)
+theorem run_snoc (g0 : HSt) (h : List OpV) (S S' : linkv.PSet HSt Input) (a : OpV)
     (h1 : run (k8setcd3S (GF := GF) g0).M (linkv.pInit (kSpec g0)) h = some S)
     (h2 : (k8setcd3S (GF := GF) g0).M.step S a = some S') :
     run (k8setcd3S (GF := GF) g0).M (linkv.pInit (kSpec g0)) (h ++ [a]) = some S' := by
-  suffices H : ∀ (s0 : linkv.PSet GSt Input) (l : List OpV),
+  suffices H : ∀ (s0 : linkv.PSet HSt Input) (l : List OpV),
       run (k8setcd3S (GF := GF) g0).M s0 (l ++ [a]) =
         (run (k8setcd3S (GF := GF) g0).M s0 l).bind ((k8setcd3S (GF := GF) g0).M.step · a) by
     rw [H, h1]; exact h2
@@ -85,7 +85,7 @@ theorem run_snoc (g0 : GSt) (h : List OpV) (S S' : linkv.PSet GSt Input) (a : Op
 
 /-- The store's model's answer on an input, at the instance's state: an answer (never
 `EOther`). -/
-theorem kStep_ans {c : StoreCfg GF DObj} {g0 : GSt} {S : linkv.PSet GSt Input} {σ : KVState}
+theorem kStep_ans {c : StoreCfg GF DObj} {g0 : HSt} {S : linkv.PSet HSt Input} {σ : KVState}
     {M : GMap Nat Input} {nx : Nat} (H : KOk c g0 S σ M nx) (hr : σ.rev + 2 < 2 ^ 63)
     (eD eU : GoInterface) (x : Input) (hx : InOk x)
     (hk : x.Kind' = W64 0 ∨ x.Kind' = W64 1 ∨ x.Kind' = W64 2 ∨ uint.nat (minOf x) ≤ σ.rev) :
@@ -146,13 +146,13 @@ theorem revOwn_elem (γ : KNames) (σ : KVState) :
 
 /-- The state, seen in the history. -/
 theorem histOwn_seen (c : StoreCfg GF DObj) (σ : KVState) :
-    histOwn (GF := GF) c σ ⊢ histOwn c σ ∗ kvSeen c.γh σ := by
+    shistOwn (GF := GF) c σ ⊢ shistOwn c σ ∗ kvSeen c.γh σ := by
   iintro H
-  iunfold histOwn at H
+  iunfold shistOwn at H
   icases H with ⟨Hh, #Ho⟩
   ihave ⟨Hh, #Hs⟩ := histAuth_seen c.γh σ $$ Hh
   iframe Hs
-  iunfold histOwn
+  iunfold shistOwn
   iframe Hh Ho
 
 /-- **The history follows a step of etcd's state**, a step that changes the store's items at one
@@ -161,14 +161,14 @@ comes back (`revSeen`). -/
 theorem histOwn_next (c : StoreCfg GF DObj) (σ σ' : KVState) (hn : KvNext σ σ')
     (hw : kvWf c σ) (hw' : kvWf c σ') (hr' : σ'.rev + 2 < 2 ^ 63)
     (hK : ∃ K, ∀ k, k ≠ K → (c.abs σ').items k = (c.abs σ).items k) :
-    histOwn (GF := GF) c σ ⊢ |==> (histOwn c σ' ∗ revSeen c.γh σ σ') := by
+    shistOwn (GF := GF) c σ ⊢ |==> (shistOwn c σ' ∗ revSeen c.γh σ σ') := by
   iintro H
-  iunfold histOwn at H
+  iunfold shistOwn at H
   icases H with ⟨Hh, #Ho⟩
   imod (histAuth_next c.γh σ σ' hn (by omega) hw.1 hw'.1) $$ Hh with ⟨Hh, #Hs⟩
   imodintro
   iframe Hs
-  iunfold histOwn
+  iunfold shistOwn
   iframe Hh
   rcases hn with he | ⟨hrv, hnew⟩
   · subst he
@@ -197,8 +197,8 @@ server's; H-rr1); the step's entry comes back. -/
 theorem inv_next (γ : KNames) (c : StoreCfg GF DObj) (σ σ' : KVState) (hn : KvNext σ σ')
     (hw : kvWf c σ) (hw' : kvWf c σ') (hr : kvRoom σ)
     (hK : ∃ K, ∀ k, k ≠ K → (c.abs σ').items k = (c.abs σ).items k) :
-    revOwn (GF := GF) γ σ ∗ histOwn c σ ⊢
-      |==> (revOwn γ σ' ∗ histOwn c σ' ∗ ⌜σ'.rev + 2 < 2 ^ 63⌝ ∗ revSeen c.γh σ σ') := by
+    revOwn (GF := GF) γ σ ∗ shistOwn c σ ⊢
+      |==> (revOwn γ σ' ∗ shistOwn c σ' ∗ ⌜σ'.rev + 2 < 2 ^ 63⌝ ∗ revSeen c.γh σ σ') := by
   have hr' : σ'.rev + 2 < 2 ^ 63 := by
     unfold kvRoom at hr
     rcases hn with he | ⟨hrv, -⟩
@@ -225,8 +225,8 @@ theorem kStep_oneKey (c : StoreCfg GF DObj) (eD eU : GoInterface) (x : Input) (�
 
 /-- **`lintest`'s update, committed** at the output `y` (see the file header): the history
 grows by the operation, the continuation is left. -/
-theorem linU_commit (γ : KNames) (g0 : GSt) (x : Input) (y : Output) (Φ : val → IProp GF)
-    (h : List OpV) (S S' : linkv.PSet GSt Input)
+theorem linU_commit (γ : KNames) (g0 : HSt) (x : Input) (y : Output) (Φ : val → IProp GF)
+    (h : List OpV) (S S' : linkv.PSet HSt Input)
     (hr : run (k8setcd3S (GF := GF) g0).M (linkv.pInit (kSpec g0)) h = some S)
     (hst : (k8setcd3S (GF := GF) g0).M.step S (boxIn x, boxOut y) = some S') :
     ghostVar γ.h (1 : Qp).half h ∗ linU γ g0 (boxIn x) Φ ⊢
@@ -355,12 +355,12 @@ theorem versionAt_of_chg (c : StoreCfg GF DObj) (r : w64) (hr0 : r ≠ W64 0) (c
 
 /-- The history's facts at the state `σ`: seen, its revisions changing one key each. -/
 theorem histOwn_one (c : StoreCfg GF DObj) (σ : KVState) :
-    histOwn (GF := GF) c σ ⊢ histOwn c σ ∗ oneKeyRevs c σ.rev := by
+    shistOwn (GF := GF) c σ ⊢ shistOwn c σ ∗ oneKeyRevs c σ.rev := by
   iintro H
-  iunfold histOwn at H
+  iunfold shistOwn at H
   icases H with ⟨Hh, #Ho⟩
   iframe Ho
-  iunfold histOwn
+  iunfold shistOwn
   iframe Hh Ho
 
 /-- **An item of a state seen is a cached object**: its key-value's revision changed its key only,
@@ -481,7 +481,7 @@ theorem ansOk_read (c : StoreCfg GF DObj) (σ : KVState) (hw : kvWf c σ) (K : G
   iframe Hs Ho Hr
 
 /-- **A `Create` whose prophecy says it answers** (see the file header). -/
-theorem create_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
+theorem create_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVNames)
     (eD eU : GoInterface) (x : Input) (hx : InOk x) (hk : x.Kind' = W64 0)
     (Φ : val → IProp GF) :
     kInv γ c g0 γk ∗ linU γ g0 (boxIn x) Φ ⊢
@@ -553,7 +553,7 @@ theorem create_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames
 
 /-- **A `Delete` or `GuaranteedUpdate` whose prophecy says it answers** (see the file header):
 the store's step is the model's on the input (`hstep`). -/
-theorem rw_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
+theorem rw_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVNames)
     (eD eU : GoInterface) (x : Input) (hx : InOk x) (hk : x.Kind' = W64 1 ∨ x.Kind' = W64 2)
     (step : KSt DObj → KSt DObj)
     (hstep : ∀ ks, step ks = (kStep eD eU x ks).1) (γt : GName) (Φ : val → IProp GF) :
@@ -658,7 +658,7 @@ theorem rw_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
 
 /-- **A write whose prophecy says `EOther`, its pending effect** (`Create`; see the file header):
 at the store's firing the pending write `n ↦ x` takes effect, its token consumed. -/
-theorem pend_au1 (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
+theorem pend_au1 (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVNames)
     (eD eU : GoInterface) (n : Nat) (x : Input) (hk : x.Kind' = W64 0) :
     kInv γ c g0 γk ∗ pendTok γ n x ⊢
       k8sAu1 γk c (fun s => (s.create (E := Empty) (mkeyL x.Key') (mkObj x) 0).1)
@@ -714,7 +714,7 @@ theorem pend_au1 (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
 
 /-- **A write whose prophecy says `EOther`, its pending effect** (`Delete`, `GuaranteedUpdate`):
 where the store hands the token, the pending write `n ↦ x` takes effect. -/
-theorem pend_rw (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
+theorem pend_rw (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVNames)
     (eD eU : GoInterface) (n : Nat) (x : Input) (step : KSt DObj → KSt DObj)
     (hstep : ∀ ks, step ks = (kStep eD eU x ks).1) :
     kInv γ c g0 γk ⊢ k8sAuRW γk c step (pendTok γ n x) (fun _ => iprop(True)) := by
@@ -804,7 +804,7 @@ theorem kStep_err4 (eD eU : GoInterface) (x : Input) (ks : KSt DObj) (hk : x.Kin
 
 /-- **A write whose prophecy says `EOther`** (see the file header): `lintest`'s update commits
 at once, the write pending (`kOk_errW`), with the pending write's token. -/
-theorem write_err_commit (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
+theorem write_err_commit (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVNames)
     (x : Input) (hx : InOk x) (hw : isWriteL x = true) (Φ : val → IProp GF) :
     kInv γ c g0 γk ∗ linU γ g0 (boxIn x) Φ ⊢
       |={⊤}=> ∃ n : Nat, contAt g0 x errOutL Φ ∗ pendTok γ n x := by
@@ -836,7 +836,7 @@ theorem write_err_commit (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : 
   iexact Htok
 
 /-- **A `Get` whose prophecy says `EOther`**: `lintest`'s update commits at once (`kOk_errR`). -/
-theorem read_err_commit (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
+theorem read_err_commit (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVNames)
     (x : Input) (hw : isWriteL x = false) (Φ : val → IProp GF) :
     kInv γ c g0 γk ∗ linU γ g0 (boxIn x) Φ ⊢ |={⊤}=> contAt g0 x errOutL Φ := by
   have HE := drvE_mask_top
@@ -872,7 +872,7 @@ abbrev plainQ (c : StoreCfg GF DObj) : KVState → IProp GF :=
   fun σ => iprop(⌜kvWf c σ ∧ σ.rev + 2 < 2 ^ 63⌝)
 
 /-- **A read of the store's states** (a `Get` whose prophecy says `EOther`). -/
-theorem plain_read_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames) :
+theorem plain_read_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVNames) :
     kInv γ c g0 γk ⊢ kvReadAu γk (plainQ c) := by
   have Hm := drvInvN_mask'
   iintro #Hinv
@@ -918,7 +918,7 @@ theorem plain_read_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVN
 first firing at a state of revision `R`, `lintest`'s update commits with the model's output
 there and the commit bit records the state; a later firing at revision `R` sees the same state
 (the revisions' map). -/
-theorem get_read_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
+theorem get_read_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVNames)
     (eD eU : GoInterface) (γc γt γp : GName) (x : Input) (hx : InOk x) (hk : x.Kind' = W64 3)
     (R : w64) (Φ : val → IProp GF) :
     kInv γ c g0 γk ∗ getCall γ c g0 eD eU γc γt γp x Φ ∗ dghostVar γp DFrac.discard (some R) ⊢
@@ -1043,7 +1043,7 @@ theorem get_read_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNam
 
 /-- **The maker `Get` takes** (a `Get` whose prophecy says it answers): for the pair the client
 prophesies, the revision recorded (`γp`) and each member's read update for it. -/
-theorem get_maker (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (ms : List (client.SrvAt GF))
+theorem get_maker (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (ms : List (client.SrvAt GF))
     (eD eU : GoInterface) (γc γt γp : GName) (x : Input) (hx : InOk x) (hk : x.Kind' = W64 3)
     (Φ : val → IProp GF) :
     □ ([∗list] sv ∈ ms, kInv γ c g0 sv.γr.kv) ∗ getCall γ c g0 eD eU γc γt γp x Φ ∗
@@ -1066,7 +1066,7 @@ theorem get_maker (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (ms : List (cl
     hsv) $$ Hinvs
 
 /-- **The maker of plain reads** (a `Get` whose prophecy says `EOther`). -/
-theorem plain_maker (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt)
+theorem plain_maker (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt)
     (ms : List (client.SrvAt GF)) :
     □ ([∗list] sv ∈ ms, kInv γ c g0 sv.γr.kv) ⊢
       (iprop(∀ (R m : w64), |==> □ [∧list] sv ∈ ms,
@@ -1085,7 +1085,7 @@ theorem plain_maker (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt)
 
 /-- **`Apply` takes the continuation** after the reply: the commit bit holds `σ`, so the call
 invariant is on its committed side, its continuation still there (`Apply` holds the token). -/
-theorem getCall_take (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (eD eU : GoInterface)
+theorem getCall_take (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (eD eU : GoInterface)
     (γc γt γp : GName) (x : Input) (Φ : val → IProp GF) (σ : KVState) :
     getCall γ c g0 eD eU γc γt γp x Φ ∗ dghostVar γc DFrac.discard (some σ) ∗
       dghostVar γt (DFrac.own 1) () ∗ £ 1 ⊢
