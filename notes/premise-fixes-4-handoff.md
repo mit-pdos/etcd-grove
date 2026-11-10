@@ -77,7 +77,9 @@ Build: `flock /shared/tmp/etcd-grove-build.lock systemd-run --scope -q -p Memory
   fact: taken from `statusErrOk`); fixed; full build green (`/shared/tmp/premise-fixes-4/build8.log`).
 - Interfaces: all five API lists regenerate to no change; `gen-init --check` ok; gates
   (`/shared/tmp/premise-fixes-4/gates.log`): build, links, tcb (845 axioms, 4 sorries, = baseline),
-  53 collections match, goose, gen-init ok, the rest see the log.
+  53 collections match, goose, gen-init, model-param, pbschema, issues, errdesc, bounds, mode, api,
+  import-all, premisefix ok; errorf-wrap failed on cache `Base.lean` (`wp_Errorf_errStrOk`), reviewed
+  and added to REVIEWED (rerun alone: ok). A full gates rerun is left to `etc/land.sh`.
 
 ## Next, in order
 

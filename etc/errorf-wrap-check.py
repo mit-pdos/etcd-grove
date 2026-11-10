@@ -22,6 +22,8 @@ REVIEWED = {
     'Proof/k8s_io/client_go/listers/apps/v1/ErrorfLabels.lean': 'post True',
     'Proof/k8s_io/client_go/tools/cache/ErrorfSet.lean': 'post True',
     'Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Errorf.lean': 'premise (W8 37) ∉ format',
+    # premise-fixes-4: `wp_Errorf_errStrOk` (post: some `Error()` string, no `Format` method)
+    'Proof/go_etcd_io/etcd/cache/v3/Base.lean': 'premise ArgsWf: no argument is an error, so Go wraps nothing and returns errors.New(s)',
 }
 
 MODEL = re.compile(r'@! (_root_\.)?Perennial\.fmt\.Errorf\b')
