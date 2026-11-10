@@ -210,6 +210,8 @@ next (touches `InvPb`, pbMsg's unknown fields): merge lean again after it.
   `flock … systemd-run … env … timeout 14000 bash etc/gates.sh`. Note: model-param-check takes over an
   hour (main run and selftest). Everything before it passed in gates2 (build, links, tcb 844 axioms
   5 sorries, collections 53, goose 40, gen-init 223).
+- `gates3.log`: **gates: all passed** (EXIT 0), including model-param, pbschema, entsize, the
+  joint-landing selftest and check, api, bounds. STOP before `etc/land.sh` (etcd-grove-81 says when).
 
 ## Next: (old design notes of [r3c], done above)
 
