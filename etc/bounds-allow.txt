@@ -74,3 +74,9 @@ stock ^Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/WriterShares\.lean
 # the `n` goroutines, hands one part to each and lends the stock to the readers' wait group, whose
 # `Wait` (`stopReaders`) returns it whole. The count is the tester's configuration, fixed by `Run`.
 stock ^Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/(Readers|runner__startReaders)\.lean$
+# mvccfull's entry point, the owner of the run's history lock and of its incarnations' shares (F1
+# Prove, 2026-11-10): `Run` allocates the history's `RWMutex` and makes its reader handles
+# (`RunLemmas`' `hist_allocF`: `1 + 2·Readers + 2·Streams` of the lock's slots, bounded by
+# `runCfgOk`), and lends each member's per-stream `epochTok`s to its first epoch (`memW_lend`, at the
+# reverse `memW_gather`'s shares), as `WriterShares` does at a restart.
+stock ^Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/(Run|RunLemmas)\.lean$
