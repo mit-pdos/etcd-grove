@@ -408,6 +408,57 @@ def listRespIs (resp : go_etcd_io.etcd.client.v3.kubernetes.ListResponse) (σ : 
   iprop(⌜resp.Revision' = W64 (σ.rev : Int) ∧ resp.Count' = W64 (pg.2 : Int)⌝ ∗
     ∃ ps, resp.Kvs' ↦* ps ∗ [∗list] q;kv ∈ ps;pg.1, txn.kvIs q kv)
 
+/-- **The pages** (Draft §3.5): page `0` reads from `kp` with limit `lim0`; page `i + 1` from page
+`i`'s last key and `"\x00"` (`store.go:903`), with the limit doubled up to `maxLimit` (10000,
+`store.go:907-915`). -/
+def pagesL (s : KVStore) (kp : GoString) (recur : Bool) (lim0 : Nat) : Nat → GoString × Nat
+  | 0 => (kp, lim0)
+  | i + 1 =>
+    let p := pagesL s kp recur lim0 i
+    ((((pageKvsL s kp recur p.1 (if recur then p.2 else 1)).1.getLast?.map EtcdKv.key).getD p.1) ++
+        [W8 0],
+      if p.2 < 10000 then min (2 * p.2) 10000 else p.2)
+
+/-- **A chunk value of page `i`** (`listChunk`, `store.go:873-878`) of the store `s` read at `R`. -/
+def chunkIs (ch : k8s_io.apiserver.pkg.storage.etcd3.listChunk) (s : KVStore) (kp : GoString)
+    (recur : Bool) (lim0 : Nat) (R : w64) (i : Nat) : IProp GF :=
+  let p := pagesL s kp recur lim0 i
+  let pg := pageKvsL s kp recur p.1 (if recur then p.2 else 1)
+  iprop(ch.revision' ↦□ R ∗
+    ⌜ch.count' = W64 (pg.2 : Int) ∧ ch.hasMore' = decide (pg.1.length < pg.2)⌝ ∗
+    ∃ ps, ch.kvs' ↦* ps ∗ [∗list] q;kv ∈ ps;pg.1, txn.kvIs q kv)
+
+/-- **`f` iterates the pages** (Draft §3.5, with B5's `P σ`; a one-shot, as `f` owns the cells it
+mutates): for any `yield` and consumer invariant `J` (`J o i` before page `i`, `o` the first page's
+state and revision once known), `f(yield)` calls `yield(page 0, nil)` with the state `σ` `Q` fired
+at and `R` (`σ`'s revision, or `rev0`), then `yield(page i+1, nil)` while `yield` returned `true`
+and page `i` had more, each page of `σ`'s store at `R`; or `yield(zero, e)` once, on an error
+(`listReadError`'s: too large only at the first page). The thread token is lent for the reads. -/
+def pagesOk (c : StoreCfg GF Obj) (f : GoFunc) (kp : GoString) (recur : Bool) (rev0 lim0 : w64)
+    (Q : w64 → KVState → IProp GF) (P : KVState → KVState → IProp GF) : IProp GF :=
+  iprop(∀ (y : GoFunc) (J : Option (KVState × w64) → Nat → IProp GF) (Φ : val → IProp GF),
+    threadTok -∗
+    (∀ R, |==> □ [∧list] x ∈ c.ms, ⌜Q R = fun _ => iprop(True)⌝ ∨ kvReadAu x.γr.kv (Q R)) -∗
+    (□ ∀ R σ, □ Q R σ -∗
+      |==> □ [∧list] x ∈ c.ms, ⌜P σ = fun _ => iprop(True)⌝ ∨ kvReadAu x.γr.kv (P σ)) -∗
+    J none 0 -∗
+    (□ ∀ (σ : KVState) (R : w64) (i : Nat) (ch : k8s_io.apiserver.pkg.storage.etcd3.listChunk),
+        J (if i = 0 then none else some (σ, R)) i -∗
+        (if i = 0 then iprop(□ Q (W64 (σ.rev : Int)) σ ∗
+            ⌜R = (if uint.Z rev0 = 0 then W64 (σ.rev : Int) else rev0) ∧ uint.nat R ≤ σ.rev⌝)
+         else iprop(True)) -∗
+        chunkIs ch (σ.at (uint.nat R)) kp recur (limN lim0) R i -∗
+        WP (App (App (Val #y) (Val #ch)) (Val #GoInterface.nil))
+          {{ v, ∃ b : Bool, ⌜v = #b⌝ ∗ J (some (σ, R)) (i + 1) }}) -∗
+    (□ ∀ (o : Option (KVState × w64)) (i : Nat) (e : GoInterface), J o i -∗
+        ((apierrors.tooLargeErrIs e ∗ ⌜o = none⌝ ∗
+            ∃ σ : KVState, □ Q (W64 (σ.rev : Int)) σ ∗ ⌜σ.rev < uint.nat rev0⌝) ∨ listErr c e) -∗
+        WP (App (App (Val #y)
+            (Val #(zero_val k8s_io.apiserver.pkg.storage.etcd3.listChunk))) (Val #e))
+          {{ v, ∃ b : Bool, ⌜v = #b⌝ ∗ (threadTok -∗ Φ #()) }}) -∗
+    (∀ o i, J o i -∗ threadTok -∗ Φ #()) -∗
+    WP (App (Val #f) (Val #y)) {{ Φ }})
+
 end defs
 
 end k8s
