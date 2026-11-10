@@ -34152,5 +34152,16 @@ From the round-2 premise attack on `etcd_partition_safe` (`/shared/tmp/coord-81/
   which `reqAt` (the server sees the client's path) denied. rafthttp's callers' paths are constants.
 - **`fmt.argOk`.** Its `Error()` disjunct requires no `Format` method, its `String()` disjunct no
   `Format` and no `Error` (Go calls `Format` in place of either, and `Error` in place of `String`).
+  Its callers (option A, approved): `http.errStrOk`, cache's `errStrOk`, `statusErrOk` and
+  `isEtcdProgressNotifier`'s error clause carry `⌜methodSet _.ty !! go!"Format" = none⌝`, and so does
+  `errLeaf` (a fifth conjunct). Producers prove it from the method sets (`fmt.methodSet_none`, tactic
+  `fmt_method_none`), from Perennial's `context.isInit` (`ContextReadErrs.errs_strong`; the premise
+  `ContextReadErrs` itself unchanged, over `errVarLeafW`/`ctxDeadlineLeafW`), or by stepping into
+  Perennial's `errors.New`/`fmt.Errorf`. Three trusted statements gain it, minimal form (not
+  `e.ty = EtcdError.ty`, which k8s-7e's 7e-2 brings): the posts of `rpctypes.ErrCompacted_init` and
+  `ErrFutureRev_init` (through `etc/gen-init.py`) with `rpctypesInit`'s two conjuncts, and
+  `bcrypt.GenerateFromPassword.spec`'s error clause. The Go test `examples/premisefix/fmtarg`'s
+  `TestNoFormatter` checks that none of those errors (the std errors, grpc's `*status.Error`,
+  `rpctypes.EtcdError`, the context errors, bcrypt's two) implements `fmt.Formatter`.
 - **Go tests** first, each passing at go1.27.3: `examples/premisefix/{httpmux,httppath,fmtarg}`, run
   by gates step 9.

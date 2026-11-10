@@ -388,10 +388,13 @@ abbrev rpctypesInit : IProp GF :=
   iprop((∃ e : GoInterfaceOk,
       globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrFutureRev ↦□ GoInterface.ok e ∗
       -- (k8s etcd3 7c) its description
-      ⌜errDesc (GoInterface.ok e) = futureRevDesc⌝) ∗
+      ⌜errDesc (GoInterface.ok e) = futureRevDesc⌝ ∗
+      -- (premise-fixes-4) no `Format` method: `fmt` prints it through `Error()`
+      ⌜methodSet e.ty !! go!"Format" = none⌝) ∗
     (∃ e : GoInterfaceOk,
       globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrCompacted ↦□ GoInterface.ok e ∗
-      errorStringSpec e ∗ ⌜errDesc (GoInterface.ok e) = compactedDesc⌝) ∗
+      errorStringSpec e ∗ ⌜errDesc (GoInterface.ok e) = compactedDesc⌝ ∗
+      ⌜methodSet e.ty !! go!"Format" = none⌝) ∗
     □ (∀ e : GoInterfaceOk,
       globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrFutureRev ↦□ GoInterface.ok e -∗
       errorStringSpec e) ∗
