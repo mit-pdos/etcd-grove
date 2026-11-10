@@ -66,19 +66,24 @@ Build: `flock /shared/tmp/etcd-grove-build.lock systemd-run --scope -q -p Memory
   add `∗ ⌜methodSet e.ty !! go!"Format" = none⌝` (rpctypes posts), `∧ methodSet ei.ty !! go!"Format" = none`
   (bcrypt's error clause). See the full build log `/shared/tmp/premise-fixes-4/build6.log`.
 
+## State at checkpoint (c) (third agent, 2026-11-10)
+
+- Next 1 done (5b31cdc2c7): `rpctypes.ErrCompacted_init`/`ErrFutureRev_init` (gen-init custom posts,
+  pat `%F@`), `rpctypesInit`'s two conjuncts, `bcrypt.GenerateFromPassword.spec`'s error clause carry
+  the Format fact; `WatchResponse__Err`, `UserAdd` use it; decisions entry extended.
+- Lean merged (f4e98c54f9, 55b49f0b24); STATUS "Last updated" entry added (the S1 + S2 entry moved to
+  `status-history.md`, appended: 19128 lines, lean 19127).
+- The full build then failed only in k8s `compactor__getCompactRev` (`fmt_args_ok` needs the Format
+  fact: taken from `statusErrOk`); fixed; full build green (`/shared/tmp/premise-fixes-4/build8.log`).
+- Interfaces: all five API lists regenerate to no change; `gen-init --check` ok; gates
+  (`/shared/tmp/premise-fixes-4/gates.log`): build, links, tcb (845 axioms, 4 sorries, = baseline),
+  53 collections match, goose, gen-init ok, the rest see the log.
+
 ## Next, in order
 
-1. APPROVED (etcd-grove-81, 2026-11-10; minimal form, not `e.ty = EtcdError.ty`; see questions.md): the
-   trust-text edits above; `rpctypesInit` gains the two Format facts (gen-init `finish`),
-   `WatchResponse__Err` lines 70/86 use them; `UserAdd` lines 61-63/171-173 pass `hF`.
-2. The full build (build6.log, then k8s etcd3 `parseRV`/`decoder__Decode` fixed and rebuilt) fails only
-   in `WatchResponse__Err` and `EtcdServer__UserAdd` (and their dependents, not built).
-3. Merge lean (f4e98c54f9 or later; raft-entsize touches rafthttp); STATUS "Last updated" entry (ten
-   newest; move the oldest to `notes/status-history.md`, append-only, check `wc -l`).
-4. Full build; regenerate interfaces (all `etc/api/*.txt`, `LAKE_OPTS=--packages=...`);
-   `etc/gen-init.py --check`; `etc/gates.sh`; `etc/tcb-report.py --check` (no axiom added; texts of the
-   approved axioms change) and every collection `--check` (`--reuse`); checkpoint (c) report; stop
-   before `etc/land.sh`.
+1. Wait for etcd-grove-81's go after the checkpoint (c) report; merge lean again if it moved
+   (raft-entsize touches rafthttp), rebuild, gates; then `etc/land.sh` (with
+   `LAKE_PACKAGES=/shared/tmp/manifest-ddc.json`).
 
 Closed statements changed (fix 1, permitted): every etcd closed theorem lost `rnSetLoggerOk` from its
 premises (via `etcdstart.commonPremises`, `etcdstart.premises`, `cluster3.premises`, putget3/auth/
