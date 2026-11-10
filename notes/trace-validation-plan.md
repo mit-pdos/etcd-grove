@@ -1088,7 +1088,8 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   `LineEffect`'s single match). **Recommended: (a)**, folded into amendment A2 (same files, one review
   round, one re-freeze). Not taken: a frozen definition.
   **Taken by the coordinator (the freeze being delegated to it), pending the user's veto: (a)**, folded
-  into amendment A2 before its re-freeze (one review round covering Q14 and Q15).
+  into amendment A2 before its re-freeze (one review round covering Q14 and Q15). **Done** on branch
+  `trace-check-a2` (`MsgsShape`, `canonMsg`; `fxPres_heartbeat`).
 - **Q14 (2026-11-10, Q8 stage 1 slice 15): a receive line's phantom replies, unpinned in the frozen
   `FxPresR`.** `FxPresR` (`TracedCap.lean`, frozen at `trace-check-frozen-a1`) asks the specification
   state's facts after the line for every result `(a', P', Pph)` its `LineEffect` admits; the phases pin
@@ -2019,16 +2020,14 @@ capability forms of `appendEntry`/`becomeLeader` (the term log and the entry rec
 owed items a1-r2 lists (a received message's numbers through a trace-gated conjunct of raft's
 `isMessage`, the receipt bound, the bootstrap routing gates).
 
-**Amendment A2 (2026-11-10, branch `trace-check-a2`; Q14 (a), pending the user's veto).** `PhaseStepR`,
-`FxPresR` and `trCap_fire_recv.statement` take the phantoms as a function `ph` of the receiving server
-before the line (`P' ++ ph a`); checked first against `State.receive`: the only replies raft does not
-send (pre-vote, check-quorum off) are the refusals of lower-term requests, `phantomOf a m`. The law and
-the gate `trCapB_hookGateRecv` re-proved, nothing else frozen changed (`notes/decisions.md`, "Amendment A2
-(Q14)"). Sufficiency (`TracedRecvPhantom.lean`): the phantom's `TermsLe`/`msgFacts` step slice 15 found
-blocked now goes through (`simFx_congr`, `simFx_send_plain`), and the stale request's line step is
-proved at one state (`simFx_staleReqLine`), **but only given `RespCanon`**: review a2-r1 found that the
-uniqueness of the bags after any response cannot follow from the frozen `simFx` (F1, the first
-sufficiency lemma vacuous; F2, open as Q15, recommended (a): a canonical-message clause `MsgCanon` in `simFx`, amendment A3;
-a2-r2's T1-1 widened it from the responses-only `RespCanon`).
-Reviews `a2-r1.md`, `a2-r2.md`. So the re-freeze `trace-check-frozen-a2` fixes the phantoms, but the
-receive gates stay blocked on Q15.
+**Amendment A2 (2026-11-10, branch `trace-check-a2`; Q14 (a) and Q15 (a), pending the user's veto).**
+(Q14) `PhaseStepR`, `FxPresR` and `trCap_fire_recv.statement` take the phantoms as a function `ph` of the
+receiving server before the line (`P' ++ ph a`); checked first against `State.receive`: the only
+replies raft does not send (pre-vote, check-quorum off) are the refusals of lower-term requests,
+`phantomOf a m`. (Q15) `simFx` gains `MsgsShape` (every message in flight canonical in the fields its
+line does not log), checked first to hold of every message the specification, raft (`msgAbs`), the
+phantoms and the bootstrap can put in flight. The laws and the gate re-proved, nothing else frozen
+changed (`notes/decisions.md`, "Amendment A2 (Q14, Q15)"). Sufficiency (`TracedRecvPhantom.lean`):
+`fxPresR_staleReq` (a lower-term request's receive line) and `fxPres_heartbeat` (a heartbeat's send
+line), proved. Left: an `"app"` send line's entries' agreement for `MsgsUniq` (`msgFacts`' records),
+the heartbeat gate's exact commit (slice 16). Reviews `a2-r1.md` … `a2-r4.md`.

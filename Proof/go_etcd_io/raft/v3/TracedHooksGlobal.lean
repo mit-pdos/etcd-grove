@@ -670,7 +670,7 @@ theorem fxPresReady (γ : RaftNames) (id : w64) (E : TraceEv → Prop)
   iframe Htbl
   iunfold simFx at Hfx
   icases Hfx with ⟨#Hall, #Hm, %hp⟩
-  obtain ⟨hsi, hq, hu⟩ := hp
+  obtain ⟨hsi, hq, hu, hsh⟩ := hp
   iunfold simFx
   isplitl []
   · iunfold allFacts at Hall
@@ -687,13 +687,15 @@ theorem fxPresReady (γ : RaftNames) (id : w64) (E : TraceEv → Prop)
   · iintro !> %m %hm
     iapply Hm $$ %m %(ready_msgs_sub σ (idAbs id) m hm)
   ipureintro
-  refine ⟨TraceSpecInv.specInv_ready hsi, ?_, ?_⟩
+  refine ⟨TraceSpecInv.specInv_ready hsi, ?_, ?_, ?_⟩
   · exact quorumLogF_congr σ _ rfl
       (fun k => by rw [ready_s]; split <;> subst_vars <;> rfl)
       (fun k => by rw [ready_s]; split <;> subst_vars <;> rfl)
       (fun k => by rw [ready_s]; split <;> subst_vars <;> rfl) hq
   · intro ln m1 m2 h1 h2 hp1 hp2
     exact hu ln m1 m2 (ready_msgs_sub σ _ m1 h1) (ready_msgs_sub σ _ m2 h2) hp1 hp2
+  · intro x hx
+    exact hsh x (ready_msgs_sub σ _ x hx)
 
 /-- **The global step's law for a `Ready` line** (`trCap_fire_ready.statement`). -/
 theorem trCap_fire_ready : trCap_fire_ready.statement (GF := GF) := by
@@ -894,7 +896,7 @@ theorem trCap_fire_recv : trCap_fire_recv.statement (GF := GF) := by
     ihave #Hfσc := Hfσ
     iunfold simFx at Hfσc
     icases Hfσc with ⟨-, -, %hfx⟩
-    have huq : MsgsUniq σ := hfx.2.2
+    have huq : MsgsUniq σ := hfx.2.2.1
     icases keep_pure (simFx_violated γ C σ hsrv) $$ [$Htbl $Hfσ] with ⟨⟨Htbl, -⟩, %hv⟩
     have hsrv' : (withNode σ (idAbs id) a' (fun b => b.without m) (fun b => List.foldl Etcdraft.Bag.with b (P' ++ (ph (σ.s (idAbs id)))))).server =
         confAbs C := hsrv

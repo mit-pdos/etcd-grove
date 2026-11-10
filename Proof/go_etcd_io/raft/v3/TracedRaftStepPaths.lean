@@ -15,18 +15,16 @@ a message type or a role that is not this path's. The closing wand reads the end
 (`localNoLine_end`: unchanged, or the forward queued) and re-orders the share (`trFam_idle`).
 
 **Not yet here**: every path of a traced type starts with a receive line, whose gate needs the line's
-`FxPresR` (since amendment A2 at the phantoms `ph a` of the receiving server, `recvPhantoms`; its step
-on a lower-term request, `simFx_staleReqLine`, `TracedRecvPhantom.lean`, needs the bags' responses
-canonical, which the frozen `simFx` does not hold: plan, Q15); the local paths with lines (`MsgHup` at
-a non-leader, `MsgBeat`/`MsgProp` at a leader) need each line's `FxPres`.
+`FxPresR` (since amendment A2 at the phantoms `ph a` of the receiving server, `recvPhantoms`; proved for a
+lower-term request, `fxPresR_staleReq`, `TracedRecvPhantom.lean`); the local paths with lines (`MsgHup`
+at a non-leader, `MsgBeat`/`MsgProp` at a leader) need each line's `FxPres`.
 
 (2026-11-10, slice 16, `notes/decisions.md`, "Q8 stage 1 (slice 16)") **A send line's phase step** at
-the idle server (`phaseStepB_send`, the heartbeat's `phaseStepB_heartbeat`). **Blocked**: every send
-line's `FxPres`, so all three local paths with lines (each sends): the frozen `simFx`'s `MsgsUniq`
-cannot be re-established for a new message, since nothing in `simFx` fixes the fields a receive line
-does not log (a heartbeat's `prevLogIndex`, an append request's `matchIndex`, ...), so an in-flight
-message differing from the new one only there is consistent with `simFx` and breaks `MsgsUniq` (plan,
-Q15). And the heartbeat's gate gives its commit only bounded, the line needs it exact.
+the idle server (`phaseStepB_send`, the heartbeat's `phaseStepB_heartbeat`). Slice 16 found every send
+line's `FxPres` blocked on the frozen `simFx`'s `MsgsUniq` (plan, Q15); amendment A2 adds the shape
+clause `MsgsShape` to `simFx`, and the heartbeat's `FxPres` is proved (`fxPres_heartbeat`,
+`TracedRecvPhantom.lean`, at phases keeping the share's server and adding the heartbeat). Still open:
+the heartbeat's gate gives its commit only bounded, the line needs it exact.
 -/
 module
 

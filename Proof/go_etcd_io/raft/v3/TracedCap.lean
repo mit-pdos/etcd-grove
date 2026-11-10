@@ -782,6 +782,39 @@ def MsgsUniq (σ : Etcdraft.State) : Prop :=
     m1 ∈ σ.messages.domain ++ σ.pendingMessages.domain → m2 ∈ σ.messages.domain ++ σ.pendingMessages.domain →
     recvPred ln m1 = true → recvPred ln m2 = true → m1 = m2
 
+/-- **A message's canonical form** (amendment A2, Q15): the fields its type's receive line logs (the
+specification's `LoglineIs*`, `recvPred`), the others at the values the specification's constructors
+(and raft's, `msgAbs`) give them: a vote request its term, last log term and index; a vote response its
+term and grant; an append request its subtype, term, previous index and term, entries and commit, a
+heartbeat (subtype `"heartbeat"`) its subtype, term and commit only (no previous entry, no entries); an
+append response its subtype, term, success and, when a successful `"app"` response, its match index
+(else 0); always the source and destination. -/
+def canonMsg (x : Etcdraft.Msg) : Etcdraft.Msg :=
+  match x.type with
+  | .requestVoteRequest | .preVoteRequest =>
+    { type := x.type, term := x.term, lastLogTerm := x.lastLogTerm, lastLogIndex := x.lastLogIndex,
+      source := x.source, dest := x.dest }
+  | .requestVoteResponse | .preVoteResponse =>
+    { type := x.type, term := x.term, voteGranted := x.voteGranted, source := x.source, dest := x.dest }
+  | .appendEntriesRequest =>
+    if x.subtype = "heartbeat" then
+      { type := x.type, subtype := x.subtype, term := x.term, commitIndex := x.commitIndex,
+        source := x.source, dest := x.dest }
+    else
+      { type := x.type, subtype := x.subtype, term := x.term, prevLogIndex := x.prevLogIndex,
+        prevLogTerm := x.prevLogTerm, entries := x.entries, commitIndex := x.commitIndex,
+        source := x.source, dest := x.dest }
+  | .appendEntriesResponse =>
+    { type := x.type, subtype := x.subtype, term := x.term, success := x.success,
+      matchIndex := if x.success && x.subtype != "heartbeat" then x.matchIndex else 0,
+      source := x.source, dest := x.dest }
+
+/-- **Every message in flight in its canonical form** (amendment A2, Q15; the notes' `MsgsDet`, "the
+other fields constant"): with it, two messages a line matches are equal (`MsgsUniq`) once the fields it
+logs agree, which a new message's line can then re-establish. -/
+def MsgsShape (σ : Etcdraft.State) : Prop :=
+  ∀ x ∈ σ.messages.domain ++ σ.pendingMessages.domain, canonMsg x = x
+
 /-- **A message's facts** (review round 2's A3): an append request carries its source's leadership of
 its term (`isLeader`: raft sends one only while leading), its entries' records after its previous
 entry (`logRecs`, their indices within `w64`); any other message carries no entries. (Review round
@@ -814,7 +847,7 @@ specification invariant `SpecInv` (`TraceSimSpecInv.lean`: with it
 stated), `QuorumLogInv`'s fact and the bags' uniqueness. -/
 def simFx (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) : IProp GF :=
   iprop(allFacts γ C σ ∗ (□ ∀ m, ⌜m ∈ σ.messages.domain ++ σ.pendingMessages.domain⌝ → msgFacts γ C m) ∗
-    ⌜TraceSpecInv.SpecInv σ ∧ QuorumLogF σ ∧ MsgsUniq σ⌝)
+    ⌜TraceSpecInv.SpecInv σ ∧ QuorumLogF σ ∧ MsgsUniq σ ∧ MsgsShape σ⌝)
 
 instance simFx_persistent (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) :
     Persistent (simFx (GF := GF) γ C σ) := by
