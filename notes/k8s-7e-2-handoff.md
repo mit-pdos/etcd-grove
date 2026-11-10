@@ -296,3 +296,28 @@ systemd-run --scope -q -p MemoryMax=64G lake build --packages=/shared/tmp/manife
 Add each new module (its `Proof.*` name) and, for a changed statement, its importers
 (`etc/importers.py --uses NAME FILE --leaves`). Last green: 7685 jobs, with `etcd3.shouldStream`, `etcd3.getNewItemFunc`, `etcd3.growSlice` added to the
 list (`/shared/tmp/k8s-7e-2/build4.log`, 2026-11-09).
+
+## 7e-4 Draft: where it starts (2026-11-10, eighth session)
+7e-3c is done (`refine_list`, no `sorry`). 7e-4 is next: Draft (specs and statements, proofs `sorry`
+except listed glue) -> Review -> Freeze package (a hard stop for etcd-grove-81) -> Prove. The closed
+theorems' text is unchanged (Scope §7); any change to it, to a trusted text or to an exported
+statement is a hard stop. Check of record: targeted builds (no full build or tcb until 7e-4's end).
+- Done: `workloadKeys`' `wksD` is 7e-0's four keys (`cd58a359b6`; the proof builds unchanged).
+- Order, bottom up (what the full build of 2026-11-10 showed broken, and what imports it):
+  1. `Refine.lean`: `KRel` over `ItemRelH`/`PairRelH` (whole object, `RefineList.lean`; ideally
+     `KRel ks g` as `KRelS` of the store's `absK`); `outOf` on the 17-field `Output` (`objOutL` of
+     `o.toObj rv`, `errOutL`, `tooLargeL` for `.tooLarge`); `refine_create` with `splitKeyL`, node,
+     app (`DObj` from `x`), `refine_delete`/`refine_update` with `rejects` on the node and `updGo`'s
+     new fields, `refine_get` with `ETooLarge`. Pure lemmas: prove them.
+  2. `Inv.lean`/`InvSteps.lean`: `kInv` gains the history (`KRelH`, from M2's read log via
+     `stateAt`), `encIn` the new input fields; the commits extend `hist` at each bumping write.
+  3. `Calls.lean` (`GenIn` with `refine_list`'s premises: `Match' ∈ {0,1,2}`, `"/objs/" <+:
+     ListKey'`, `0 ≤ Limit'`; `errIs`), `call`/`errOut` with lists and `ETooLarge`, `Apply`.
+  4. The generator: `genFrom` (Go now: `pick`, `workloadNodes`/`workloadApps`, `genList`) with new
+     callee specs; `Gen`, `Seed` (revisions 1-3 in the history), `Check`, `Main*`.
+  5. The driver `Link.lean` (`etc/gen-link.py --k8setcd3`; new callees of `step`, `closure`,
+     `Model`, `mlist`; `Model`'s callers give `h0 ↦*□`), `Adequacy`, `Results`.
+  6. Discharge the Scope §5 premises (`KRelH`, `kvKeysShort`'s count, `GetList`'s `uint.Z n < 2^63`,
+     `P σ` with `kvSameHist`) from the driver; none may reach a closed theorem.
+  Then the Freeze package: the statement diff, the new trusted specs (none expected beyond 7e-2's),
+  every caller's glue, the unfold list; STOP.
