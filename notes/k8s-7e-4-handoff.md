@@ -375,3 +375,32 @@ axiomatized: `MutableVersionedFeatureGate.underlying` is an axiom, its instances
 load has no `IntoValTyped GoInterface` instance and the method call no method set; `featureGateOk`'s `Set` triple
 (`methods g.ty "Set" g.v`) cannot be reached. The WIP proof (everything up to that load: `featuresInit`,
 `featureInit`, the two gates agree) is at `/shared/tmp/k8s-7e-4/noStreaming.wip.lean` (not in the tree).
+
+## Eighth session (2026-11-10): noStreaming via option 1; stopped at a new axiom
+
+Decided by etcd-grove-81: option 1 (translate featuregate's interfaces). What stopped goose: its
+`translate_types` translates a type only if every package its definition names is imported
+(`goose/util/autotypes.go`); featuregate's toml imported nothing, and `MutableFeatureGate`'s methods
+name `context.Context`, `*pflag.FlagSet`, and `MutableVersionedFeatureGate`'s `*version.Version`.
+
+Done on branch **`k8s-7e-4-pflag`** (`e2f5d1e5c0`, one commit on `k8s-7e`'s `cce393d353`; not merged
+into `k8s-7e` pending the decision; patch also at `/shared/tmp/k8s-7e-4/noStreaming-pflag.patch`):
+- `featuregate.toml`: `imports = ["!*", "context", "github.com/spf13/pflag",
+  "k8s.io/apimachinery/pkg/util/version"]`; `github.com/spf13/pflag` added to project
+  k8s-apiserver names only (`Code/github_com/spf13/pflag.toml`, lean root `github.com/spf13=`, owned
+  `github_com/spf13`). goose then translates `MutableFeatureGate`, `MutableVersionedFeatureGate`
+  (interfaces) and `FeatureSpec` (struct); the `*WithLogger` interfaces and `featureGate` stay
+  axiomatized. `etc/goose.py --check --project k8s-apiserver` clean, `etc/gen-init.py --check` clean.
+- version's `IsPkgInit` instance moved from `cacher/Base` to `etcd3/Base` (featuregate's instance
+  needs it), pflag's instance added there, `Perennial.Proof.context.Base` imported.
+- `noStreaming.wp_proof` proved against `featureGateOk`'s `Set` triple unchanged (lean-check clean).
+- Built capped: pflag/featuregate `Init`, etcd3/cacher `Base`, `noStreaming`'s spec (`fg1.log`,
+  `fg2.log`). Not yet built: the 1692 modules importing featuregate (`etc/importers.py --count`).
+
+**The stop**: pflag's package `Init` (generated) brings a **new trust-boundary axiom**
+`github_com.spf13.pflag.opaqueInitsOk` (its three untranslated variable initializers `ErrHelp`,
+`CommandLine`, `Usage` run without panicking; the standard generated shape, 117 others exist).
+featuregate's `initialize'` now runs pflag's (Go does too). No Perennial/translator change, no trusted
+text. To continue if approved: `git merge --ff-only k8s-7e-4-pflag` (or cherry-pick), build the driver
+capped, then step 4 (the Link) with `noStreaming`'s line (callees none: it takes `featureGateOk`
+from the package inits).
