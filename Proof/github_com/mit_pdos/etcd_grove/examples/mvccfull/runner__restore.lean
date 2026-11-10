@@ -27,6 +27,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__Close
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.TODO
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RwLensLaws
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LessorApplyLaws
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiLaws
 
 @[expose] public section
 
@@ -347,10 +348,8 @@ theorem runner.restore.wp_proof
     · iunfold isInc at Hisinc1; icases Hisinc1 with ⟨-, #H⟩; iexact H
     ihave %Hkvs := hsh.1 v1.kv v1.ι.kv $$ Hmv1
     obtain ⟨kty, kvv, hkveq, hKR, hKW, hKRev, hKFR, -, -, -, -, -, hKRest, -, -⟩ := Hkvs
-    haveI : ∀ rd γ, Persistent (mvccDeleter (GF := GF) rd γ) := by
-      intro rd γ; unfold mvccDeleter; infer_instance
     ihave #Hdel : mvccDeleter rd v1.ι.kv $$ []
-    · iunfold mvccDeleter
+    · iapply api.mvccDeleter_intro
       isplitr
       · ipureintro; rw [← hrd]; nofun
       iintro !> %q' %B %P %Pre %Q %fh %R
@@ -442,7 +441,7 @@ theorem runner.restore.wp_proof
       isplitr
       · ipureintro; left; rfl
       isplitr
-      · iunfold api.hookRun; simp only [↓reduceIte]; iintro _; imodintro; itrivial
+      · iapply (api.hookRun_nil _ _ _).2; iintro _; imodintro; itrivial
       isplitr
       · iintro _; itrivial
       ipureintro; exact hitems

@@ -24,6 +24,10 @@ importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState
 # mvcc over etcd's backend (the design "mvcc's API over its storage abstraction", approved by the
 # user, 2026-11-06): etcd's backend as one storage, its open, image and snapshot
 importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend
+# (mvccfull's Probe, 2026-11-09) the laws of `hookRun` and `mvccDeleter` for clients (vocabulary:
+# no function's spec file, `etc/gen-interface.py --layout` skips it)
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiLaws
+vocab Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiLaws
 
 ## The API's vocabulary, still in the internals (to move to a vocabulary module)
 importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Model
