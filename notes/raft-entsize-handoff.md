@@ -192,6 +192,19 @@ next (touches `InvPb`, pbMsg's unknown fields): merge lean again after it.
   (`msgPtsCC_freeze`, `msgPtsCC_persist`), `msgSzC` from `msgSizeOk`. The decoder: `hbMsg_msgRoC`.
 - `swMsgBound_phys` and `msgSzC_of_swMsgBound` deleted (`swMsgBound` itself stays: `msgSzC_swMsgBound`).
 
+## Done (steps 4-5: lean merged, full build, tcb; 2026-11-10)
+
+- lean `de9c19e020` (per-type stage A) merged (`25c0d42fcf`): conflicts in `etc/gates.sh` (the
+  joint-landing check runs for real again, selftest kept) and `Transport.lean` (the axiom stays deleted).
+- STATUS entry at the front; three oldest Last-updated entries appended to `status-history.md`.
+- Full build green, 13633 jobs (`/shared/tmp/ptm-cp3/entsize/full1.log`).
+- tcb (`--check --update`, lean's files as the base): baseline and 16 collections: −swMsgBound_phys
+  (17 files), −linkHeartbeatMessage_init (14), +sorry out_size (16). Nothing else.
+- Gates: `/shared/tmp/ptm-cp3/entsize/gates1.log` (LAKE_PACKAGES=/shared/tmp/manifest-ddc.json
+  PERENNIAL_CHECKOUT=/shared/perennial-ddc0f0acc, under the build lock). Then STOP before land.sh.
+- If lean moves (premise-fixes-1 touches `InvPb`): merge it again, rebuild, redo the tcb update from
+  lean's files, rerun the gates.
+
 ## Next: (old design notes of [r3c], done above)
 
 `pbMsg T l uf` is the content's unknown fields by fiat (`msgPtsC_msgPtsCC_uf` builds a content with
