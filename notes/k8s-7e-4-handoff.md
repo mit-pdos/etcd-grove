@@ -288,3 +288,31 @@ Edit loop: `LAKE_OPTS=--packages=/shared/tmp/manifest-ddc.json python3 etc/lean-
 - `decide` instance mismatch after `simp` (goals `decide p = decide p`): finish with `congr`.
 - `linkv.` prefixes: `linkv.MStore.put`, `linkv.mStep`, `linkv.runOps`, `linkv.MOp.run`.
 - `(kSpec g0).step x c` does not `rw` as `kstepL x c`: `rw [show (kSpec g0).step x c = … from h]`.
+
+## Sixth session (2026-11-10): minRV's bound, genList, genFrom
+
+**Decided by etcd-grove-81 under the user's delegation (2026-11-10): option 1 for minRV's bound.**
+Done (`d8b5f357c1`): the driver's Go `minRV` returns `""` when `r >= 1<<62` (right after `r :=
+c.ResourceVersion`, with a comment: the proof's bound, unreachable in a real run); the driver's Go tests
+pass under the 32G cap (`GOWORK=off go test -count=1 -v .` in `examples/k8s/etcd3`, 85s; every cluster test
+in its own process as the tests arrange, `/shared/tmp/k8s-7e-4/gotest-minrv.log`); re-translated with
+`etc/goose.py --project k8s-apiserver` (only `minRV.impl` changed), `--check` clean; `minRVL` gains the
+branch `W64 (2^62) ≤ c.ResourceVersion' → []`, `minRV.wp_proof` follows.
+
+Done, each built capped (`b15`-`b19.log`):
+- `Calls.minRVL_ok` (`∃ k, parseRVD (minRVL m d c hasC) = some k ∧ uint.Z k < 2^63` for `uint.Z d ≤
+  2^61`), `Calls.parseRVD_rvBytes` (`421ebd4f7e`).
+- `workloadNodes`/`workloadApps` specs (`wndD`, `wapD`) and proofs (`421ebd4f7e`).
+- `genList.spec` (form decided): premises `x.Key' ∈ wkKeysL`, UID/Node/App `< 256`, `Val ≤ 2^20`, `Match ∈
+  {0,1,2}`, `0 ≤ Limit`; post `GenIn y ∧ y.UseCached' = x.UseCached'`; proof with `wp_join`s abstracting
+  the record (`LK x y`) after the list key, the field selector and the app (`70fb05744a`).
+- `genFrom` proved (spec unchanged); new callees `workloadNodes`, `workloadApps`, `genList`; dropped
+  `minRVL_parse` (`f1c7b49a23`). **Link step: `genFrom`'s line gains `workloadNodes workloadApps genList`;
+  new lines `genList` (splitKey storeKey pick workloadNodes workloadApps minRV parseRV),
+  `workloadNodes`, `workloadApps`.**
+
+Pitfalls: `irename H => H'` (not `into`); `wp_join`'s `with [..]` hands only those hypotheses to the cases
+(include every pointer the bound `if` reads, e.g. `fs`); `assumption`/`decide` near huge `uint.Z` goals hit
+max recursion (use `exact h` / `simp only []; decide`); `split_ifs` does not exist (`repeat' split`).
+
+Next: Seed (8-field `Obj`, `HSt` with revisions 1-3), Check's spec and proof, Main*.
