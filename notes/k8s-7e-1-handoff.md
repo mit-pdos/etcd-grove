@@ -563,3 +563,27 @@ Next, in order (the next agent starts here):
    `grpcInit`; `RepSat`; `grpcInvokerOk`), the exported statement changes (`client_range_any`'s post
    `rangeRespMsgO`; `etcdInterceptorOk(M)`/EtcdInvoke posts carry `Rep.recvOwn`), and that no closed
    theorem's text changes beyond losing Hpl/HGetAt/HList.
+
+## Fourteenth session (2026-11-10): lean merged, full build, tcb, Freeze package
+
+- `a645781811`: lean `ef6bc4663b` (premise-fixes-2, premise-fixes-3, raft-entsize) merged, **no
+  conflicts**; `etc/gen-init.py --check` clean.
+- Full build green, **13811 jobs** (`/shared/tmp/k8s7e1/full3.log`).
+- `etc/tcb-report.py --check`: the only difference was NEW `grpc.DefaultBackoffConfig_init` (approved);
+  `--check --update`; 13 collections took the same one line (cachekv, compactkv, k8scompactor,
+  k8setcd3, leasecatchup, leaseexpiry, leasekv, linkv3p, linkvtxn, m2, putget, putget3, watchkv).
+  Interfaces regenerated: only `etcdstart/Served.txt` changed. Commit `a8360265f4`.
+- **The Freeze package: `notes/k8s-7e-freeze.md`** (closed theorems' statements = lean's, checked
+  also on the 43728 constants reachable from their types; trusted-text changes; tcb +22/−0; exported
+  statements; bounds allow-list; gates).
+- STATUS "Last updated": k8s 7e entry added, the oldest (mvcc API merge) moved to status-history.
+- Gates: `flock /shared/tmp/etcd-grove-build.lock systemd-run --scope -q -p MemoryMax=64G env
+  TMPDIR=/shared/tmp LAKE_PACKAGES=/shared/tmp/manifest-ddc.json
+  PERENNIAL_CHECKOUT=/shared/perennial-ddc0f0acc timeout 14000 bash etc/gates.sh`
+  → `/shared/tmp/k8s7e1/gates1.log` (result below).
+
+Next: etcd-grove-81's review of the Freeze package; when lean moves (premise-fixes-4, -5), merge it
+again (pf4: rnSetLoggerOk out of the premise bags, no-Format facts in statusErrOk/errStrOk/context
+errors/http-fmt axioms; pf5: ctxDone in ctxErrs/ctxQuiet, keySized dropped; expect conflicts in
+ClientErr/InvGrpc/context predicates and the tcb files), full build, tcb `--check --update`, gates
+again; then land.sh only on 81's go.
