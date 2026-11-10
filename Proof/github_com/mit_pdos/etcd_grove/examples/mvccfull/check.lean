@@ -1,11 +1,9 @@
-/- Lean-first (no Rocq counterpart). The proof of `check` (the condition holds, so no panic): Draft, to come. -/
+/- Lean-first (no Rocq counterpart). The proof of `check`: the condition holds, so no panic. -/
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccfull.check
 
 @[expose] public section
-
-set_option linter.iris.style.nameCheck false
 
 noncomputable section
 
@@ -23,9 +21,12 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccfull.Assumptions]
 
-theorem check.wp_proof :
-    check.spec (GF := GF) (hG := hG) := by
-  sorry
+theorem check.wp_proof : check.spec (GF := GF) (hG := hG) := by
+  intro ok msg
+  wp_start as %Hok
+  subst Hok
+  wp_auto
+  iapply HΦ; itrivial
 
 end proof
 

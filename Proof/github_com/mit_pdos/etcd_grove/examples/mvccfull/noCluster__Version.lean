@@ -30,7 +30,11 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 theorem noCluster.Version.wp_proof :
     noCluster.Version.spec (GF := GF) (hG := hG) := by
-  sorry
+  wp_start
+  wp_auto
+  iapply HΦ
+  ipureintro; rfl
+
 
 end proof
 
