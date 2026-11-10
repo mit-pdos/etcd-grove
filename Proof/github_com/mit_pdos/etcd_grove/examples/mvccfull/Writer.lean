@@ -77,6 +77,8 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccfull.FilePaths
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.StopLaws
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.BkRTLaws
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.WbTokLaws
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.NewKLaws
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.ClientLaws
 
 @[expose] public section
 
@@ -823,12 +825,11 @@ theorem inc_open_backend [ThreadBoundLe GF (2 ^ 28)] (hopen : etcdStorage_open.l
       backend.wbTok γB ∗ backend.wbTok γB := by
   intro bk
   have hT : threadBound GF ≤ backend.rdPoolN :=
-    ThreadBoundLe.le_of (2 ^ 28) (Nat.le_of_eq (by unfold backend.rdPoolN; rfl))
+    ThreadBoundLe.le_of (2 ^ 28) (Nat.le_of_eq backend.rdPoolN_val.symm)
   iintro ⟨#Hks, Hreg, Himg, Hbf, Hnew⟩
-  iunfold backend.newPostK at Hnew
-  icases Hnew with ⟨#Hb, #Hsc, Hk, Hv, Hh, Hrb, Hrd, Hdl, Hfk, Hsr⟩
-  iunfold backend.bFresh at Hk
-  icases Hk with ⟨Hwb, Ho⟩
+  icases backend.newPostK_named γB (mvccrand.rcP lim) (fun _ => mvccW gx) (fun _ => iprop(True))
+    backend.bFresh be D $$ Hnew with ⟨#Hb, #Hsc, Hk, Hv, Hh, Hrb, Hrd, Hdl, Hfk, Hsr⟩
+  icases (backend.bFresh_eq γB).1 $$ Hk with ⟨Hwb, Ho⟩
   icases (backend.bOpen_one_pool γB).1 $$ Ho with ⟨Hoh, Hpl, Hos⟩
   imod backend.rdToks_pool hT ⊤ γB (mvccrand.rcP lim) be $$ Hrd with ⟨#Hpool, Hrs⟩
   obtain ⟨n2, hn2⟩ : ∃ n2, backend.rdStockN = n2 + 2 :=
@@ -853,7 +854,7 @@ theorem inc_open_backend [ThreadBoundLe GF (2 ^ 28)] (hopen : etcdStorage_open.l
   ihave #Hsup := wbStock_supply γB $$ Hstock
   ihave Hnp : backend.newPostKP (GF := GF) γB (mvccrand.rcP lim) (fun _ => mvccW gx)
       (fun _ => iprop(True)) (fun _ => iprop(True)) be D $$ [Hv Hh Hrb Hrs Hdl Hfk Hsr]
-  · iunfold backend.newPostKP
+  · iapply backend.newPostKP_intro
     isplitr; iexact Hb
     isplitr; iexact Hsc
     isplitr; itrivial
