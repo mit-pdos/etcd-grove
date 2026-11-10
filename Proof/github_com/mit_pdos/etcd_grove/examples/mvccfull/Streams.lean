@@ -103,13 +103,15 @@ def Reg.mt (x : Reg) : change → Bool := matchesM x.filter x.endNil x.key x.e
 watcher of the stream is in the registry (no other: `Watch` registers no empty range, which the
 tester's empty watch relies on, see the report), each entry a watcher of its range, filtered by its
 filter's predicates, from its `lo`, after its `k` responses; live unless cancelled by the
-registrar, and cancelled only once marked. -/
+registrar, and cancelled only once marked; every id of the cancel record registered (so a new
+registration's fresh id has no cancel to account for). -/
 def regOk' (S : StreamState) (W : GMap w64 Reg) (C : List w64) : Prop :=
   (∀ id wi, S.ws !! id = some wi → (W !! id).isSome) ∧
-  ∀ id x, W !! id = some x → ∃ wi, S.ws !! id = some wi ∧
+  (∀ id x, W !! id = some x → ∃ wi, S.ws !! id = some wi ∧
     wi.rg = ⟨x.key, if x.endNil then none else some x.e, x.start, id⟩ ∧
     wi.fs = filterFs x.filter ∧ wi.lo = x.lo ∧ wi.k = x.k ∧
-    (id ∉ C → wi.live = true) ∧ (id ∈ C → x.cm = true)
+    (id ∉ C → wi.live = true) ∧ (id ∈ C → x.cm = true)) ∧
+  (∀ id ∈ C, (W !! id).isSome)
 
 /-- **Every response but the stream's progress was for a registered watcher** (`receive` checks
 it): so a watcher registered later has received nothing before. -/
@@ -260,14 +262,15 @@ def epCtx (E : Ep) : IProp GF :=
 
 /-- **The stream's invariant** (see the file header). Its registry facts (`regOk'`) hold while the
 receiver runs: once it has stopped (the stream closed and drained), `endEpoch` may deposit the
-receiver's `wsRecv` in their place (the second branch), since its `Cancel` on the closed stream
+receiver's `wsRecv` in their place (the second branch, the stream closed: the registrar, whose
+half of the closed flag is `false`, rules it out), since its `Cancel` on the closed stream
 makes a watcher not live without a cancel mark (`Cancel` commits `S.cancel id` closed or not); the
 receiver, which holds its `wsRecv`, rules that branch out (`excl.law`). -/
 def streamInv (σs : StreamNames) : IProp GF :=
   iprop(∃ (S : StreamState) (W : GMap w64 Reg) (C : List w64),
     wsState σs.ws S ∗ ghostVar σs.cl (1 : Qp).half S.closed ∗
     ghostMapAuth σs.reg (1 : Qp).half W ∗ ghostVar σs.cn (1 : Qp).half C ∗
-    (⌜regOk' S W C⌝ ∨ ∃ rs : List WResp, wsRecv σs.ws rs))
+    (⌜regOk' S W C⌝ ∨ ⌜S.closed = true⌝ ∗ ∃ rs : List WResp, wsRecv σs.ws rs))
 
 /-- **A registered watcher under `s.mu`** (see the file header): its struct, its range's slices
 (read-only), the stream's sent count at its registration, and `watcherOk`. -/
@@ -380,7 +383,7 @@ theorem recv_facts (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG))
   iinv Hsinv with >Hsi Hsclose
   iunfold streamInv at Hsi
   icases Hsi with ⟨%S, %W', %C, HS, Hcl, Hreg', Hcn, Hor⟩
-  icases Hor with (%HregOk | ⟨%rs', Hwr'⟩)
+  icases Hor with (%HregOk | ⟨%Hcl1, %rs', Hwr'⟩)
   rotate_left
   · iexfalso
     ihave Hf := (hexcl.2.2.1 T.σs.ws rs rs') $$ [$Hrcv $Hwr']

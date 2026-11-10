@@ -149,7 +149,7 @@ theorem stream.receive.wp_proof
       (r.id ∉ C → wi.live = true) ∧ (r.id ∈ C → x.cm = true) := by
     intro hne
     obtain ⟨x, hx⟩ := Option.isSome_iff_exists.1 (HregOk.1 _ _ (Option.get_mem (hid hne)))
-    obtain ⟨wi, hwi, h⟩ := HregOk.2 _ _ hx
+    obtain ⟨wi, hwi, h⟩ := HregOk.2.1 _ _ hx
     exact ⟨wi, x, hwi, hx, h⟩
   icases wats_regs Hl rs T.σs.ws W $$ Hwats with ⟨Hwats, %HWr⟩
   have hjr : (rs ++ [r])[rs.length]? = some r := by simp
@@ -291,7 +291,7 @@ theorem stream.receive.wp_proof
             (sint.nat wv.rev') (sint.nat wv.index') (sint.Z r.rev) = none := by
         intro hst hcn
         obtain ⟨hen, hkk, hfl, -, -, -, hlo1, -, -, -, hcm, hstk, -, -⟩ := Hok
-        obtain ⟨wi, hwi, hrg, hfs, hlo, hk, hlive, hcmC⟩ := HregOk.2 wid x hx
+        obtain ⟨wi, hwi, hrg, hfs, hlo, hk, hlive, hcmC⟩ := HregOk.2.1 wid x hx
         have hnC : wid ∉ C := fun hC => by have := hcmC hC; rw [← hcm, hcn] at this; cases this
         have hprog := recv_prog' T.ep.ks σ S (rs ++ [r]) Hlx Hro Hhx Honce hwf hnl rs.length r hjr he
           hc wid x wi hwi hrg hfs hlo wv.end' hen hkk hlo1

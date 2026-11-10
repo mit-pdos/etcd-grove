@@ -34,8 +34,9 @@ namespace mvccfull
 open Iris Iris.BI Iris.ProofMode github_com.mit_pdos.etcd_grove.examples.mvccfull mvcc mvcc.api
 
 theorem regOk'_start : regOk' wsStart (∅ : GMap w64 Reg) [] := by
-  refine ⟨fun id wi h => ?_, fun id x h => ?_⟩
+  refine ⟨fun id wi h => ?_, fun id x h => ?_, fun id h => ?_⟩
   · simp [wsStart] at h
+  · simp at h
   · simp at h
 
 theorem rcvKnown'_start : rcvKnown' [] (∅ : GMap w64 Reg) := by
@@ -150,6 +151,9 @@ theorem close_au (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG)) (σs : 
   iunfold streamInv at Hi
   icases Hi with ⟨%S, %W, %C, HS, HScl, Hreg, Hcn, Hok⟩
   ihave %Hc := ghostVar_agree σs.cl _ _ _ _ $$ HScl Hcl
+  icases Hok with (%Hok | ⟨%Hcl1, Hwr⟩)
+  rotate_left
+  · exfalso; rw [Hc] at Hcl1; cases Hcl1
   iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (⊤ \ ↑mvccN) \ ↑streamN from
     Std.LawfulSet.empty_subset)
   iintro Hclose2
@@ -161,17 +165,18 @@ theorem close_au (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG)) (σs : 
   isplit
   · iintro ⟨HS, -⟩
     imod Hclose2 with -
-    imod Hclose $$ [HS HScl Hreg Hcn Hok] with -
-    · inext; iunfold streamInv; iexists S, W, C; iframe
+    imod Hclose $$ [HS HScl Hreg Hcn] with -
+    · inext; iunfold streamInv; iexists S, W, C; iframe; ileft; ipureintro; exact Hok
     imodintro
     iframe
   · iintro HS
     imod ghostVar_update_halves true σs.cl _ _ $$ HScl Hcl with ⟨HScl, Hcl⟩
     imod Hclose2 with -
-    imod Hclose $$ [HS HScl Hreg Hcn Hok] with -
+    imod Hclose $$ [HS HScl Hreg Hcn] with -
     · inext; iunfold streamInv
       iexists S.close, W, C
       iframe
+      ileft; ipureintro; exact Hok
     imodintro
     iexact Hcl
 
@@ -241,7 +246,7 @@ theorem watch_closed_au (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG))
     icases HS with ⟨-, HS⟩
     imod Hclose2 with -
     imod Hclose $$ [HS HScl Hreg Hcn Hok] with -
-    · inext; iunfold streamInv; iexists S, W, C; rw [Hc]; iframe
+    · inext; iunfold streamInv; iexists S, W, C; rw [Hc]; simp only [↓reduceIte]; iframe
     imod Hclm $$ [Hσ Hmrest] with -
     · inext; iunfold memberInv; ileft; iunfold memberState; iexists σ, b, Hl; iframe
     imodintro
@@ -292,7 +297,10 @@ theorem cancel_closed_au (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG))
       have hcl : (S.cancel id).closed = S.closed := by
         unfold StreamState.cancel; split <;> rfl
       rw [hcl]
+      iframe HS HScl Hreg Hcn
+      iright
       iframe
+      ipureintro; exact Hc
     imodintro
     iframe
     ipureintro; exact Hc
