@@ -36,11 +36,11 @@ request's term, has the request's previous entry when it is below its commit ind
 `appStale` does not look; the leader's full log reaches the follower's commit index, `commitIn_ackInF`,
 and agrees with the follower's log up to it, `commit_in_leader`). The ghost state is unchanged. -/
 theorem ownRaftGhost_appStaleMatch (γ : RaftNames) (id : w64) (s : PState) (m : Msg) {md : Bool} :
-    m.ty = .app → m.term = s.term → s.base = base0 → PlogWf base0 s.log →
+    m.ty = .app → uint.Z s.term ≤ uint.Z m.term → s.base = base0 → PlogWf base0 s.log →
     uint.Z m.index < uint.Z s.commit →
     ⊢ isMessage (GF := GF) γ m -∗ ownRaftGhost γ id s md ={⊤}=∗
       ownRaftGhost γ id s md ∗ ⌜plogTermAt base0 s.log m.index = some m.logterm⌝ := by
-  intro Hty Hterm Hbase Hw Hlt
+  intro Hty Hle Hbase Hw Hlt
   iintro #Hm Hown
   iunfold ownRaftGhost at Hown
   icases Hown with ⟨%γs, %V, %πc, %kl, H⟩
@@ -65,25 +65,24 @@ theorem ownRaftGhost_appStaleMatch (γ : RaftNames) (id : w64) (s : PState) (m :
     rw [full_term_at _ _ _ _ HfL.1 hr.1]; exact HlL.1
   simp only [List.nil_append]
   rw [Hbase]
-  rw [Hterm]
   unfold raftLogInv raftLogInvBody
   iinv Hli with ⟨%P, HP, Hjust, >Htbl, Hwt, Hpo⟩ Hclose
-  icases commitIn_ackInF γ m.src s.term bL l fpL s.log s.commit s.term (Int.le_refl _)
+  icases commitIn_ackInF γ m.src m.term bL l fpL s.log s.commit s.term Hle
     $$ Htbl HlpL HlfL Hcom with ⟨Htbl, #HackInF⟩
   iunfold ackInF at HackInF
   have hnn := uint_Z_nonneg m.index
   icases HackInF with (%H0 | ⟨%X, #HX, %HXl⟩)
   · exfalso; omega
   have HXlen : plogLastIndexZ base0 X = X.length := by unfold plogLastIndexZ; rw [base0_index]; simp
-  icases persistent_entails_right (commit_in_leader γ s.log X s.commit s.term s.term Hw Hcl (Int.le_refl _)
+  icases persistent_entails_right (commit_in_leader γ s.log X s.commit s.term m.term Hw Hcl Hle
       (fun _ => by rw [← HXlen]; exact HXl)) $$ [$Htbl $Hr $Hcom $HX] with ⟨%Hag, Htbl, -⟩
   imod Hclose $$ [HP Hjust Htbl Hpo Hwt] with -
   · inext
     iexists P
     iframe
-  ihave #HLm : leadFull γ s.term (fpL ++ l) $$ []
+  ihave #HLm : leadFull γ m.term (fpL ++ l) $$ []
   · iunfold leadFull; iexists m.src, bL, l, fpL; iframe HlpL HlfL; ipureintro; rfl
-  ihave %HXL := leadFull_agree γ s.term X (fpL ++ l) m.index
+  ihave %HXL := leadFull_agree γ m.term X (fpL ++ l) m.index
     (plogTermAt_in_range _ _ _ ⟨by rw [base0_index]; exact hnn, by omega⟩) (by rw [HfullL]; rfl) $$ HX HLm
   imodintro
   isplitl
@@ -462,7 +461,7 @@ theorem stepBundle_traced_folAppStale : stepBundle_traced.on (GF := GF) (hG := h
       iunfold ownStepGhost at Hgh
       icases Hgh with ⟨Hg, Hr⟩
       imod ownRaftGhost_appStaleMatch γ id (toPState s) (absMsg .app m ents ctx) rfl
-        (by show m.Term' = s.term; exact hterm) hs0.1 hwB hstl $$ Hm Hg with ⟨Hg, %Hmt0⟩
+        (by show uint.Z s.term ≤ uint.Z m.Term'; rw [hterm]; exact Int.le_refl _) hs0.1 hwB hstl $$ Hm Hg with ⟨Hg, %Hmt0⟩
       imodintro
       have hreT : γ.reTrace.isSome := by rw [← Hnl.2.1, htr]; rfl
       have hnb : (absMsg .app m ents).NumsBelow traceNumBound := hok .app hmty hreT htrd
