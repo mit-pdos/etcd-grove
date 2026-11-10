@@ -89,7 +89,8 @@ theorem stepLeader.wp_proof
   have wp_raft_send := raft.send.untraced wp_raft_send
   have wp_raft_maybeCommit := raft.maybeCommit.untraced wp_raft_maybeCommit
   intro c r id s ml m ents sn ctx rs k0 G G' Hty Hlead Htz Hfrom0 Hself Hprop Hrdnz Hri Hhr Hack Htr
-  iintro %Φ ⟨#Hinit, Hphys, Hm, Hcc, #Hrc, HG, #Hgbeat, Hgriresp, #Hgrihb, Hgcq⟩ HΦ
+  iintro %Φ ⟨#Hinit, Hphys, Hm, Hcc, #Hrc, HG, #Hgbeat, Hgriresp, #Hgrihb, Hgtnow, Hgxapp, #Hnosnap,
+    Hgcq⟩ HΦ
   -- (2026-10-25, T-M M2c) a leader need not be a voter (removed without `StepDownOnRemoval`); until
   -- then `ownRaftPhys`'s `Hvoter` said it was, and the proposal, heartbeat-response and
   -- append-response paths read it
@@ -255,22 +256,14 @@ theorem stepLeader.wp_proof
       r id s ml m ents ctx sn rs _ _ _ (Or.inr Hty) $$ [Hphys Hm] HΦ0
     iframe
     iexact Hinit
-  ·
-    -- an arm without a gate: `G` framed
-    ihave HΦ0 : iprop(▷ ∀ (err : GoInterface) (s' : NState),
-        ownRaftPhysCV c c.voters r id s' ∗ ⌜err = interface.nil⌝ ∗
-        ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ -∗ Φ #err) $$ [HΦG HG]
-    · inext
-      iintro %err %s' ⟨Hphys, %Herr, %Hres⟩
-      iapply HΦG $$ %err %s'
-      iframe Hphys HG
-      ipureintro; exact ⟨Herr, Hres⟩
+  · ispecialize Hgtnow $$ %Hty
+    ispecialize Hgxapp $$ %Hty
     iapply wp_stepLeader_transfer c wp_raft_sendAppend wp_raft_sendTimeoutNow
       wp_raftLog_lastIndex wp_raft_abortLeaderTransfer wp_GetType wp_GetFrom
-      r id s ml m ents ctx sn rs _ _ _ Hty Hlead (Htz (Or.inr Hty))
-      (Htr (Or.inr (Or.inr (Or.inr Hty)))) $$ [Hphys Hm] HΦ0
+      r id s ml m ents ctx sn rs _ _ _ Hty Hlead (Htz (Or.inr Hty)) G
+      $$ [Hphys Hm HG Hgtnow Hgxapp] HΦG
     iframe
-    iexact Hinit
+    iframe Hinit Hnosnap
   · exact absurd Hty Hcq
   ·
     -- an arm without a gate: `G` framed
@@ -306,7 +299,7 @@ theorem stepLeader.wp_proof
       wp_GetContext wp_GetTo r id s ml m ents ctx sn rs _ _ _ Hty Hlead
       (Hrdnz (Or.inl Hty)).2
       (Hself (Or.inl Hty)) Hvne (Hrdnz (Or.inl Hty)).1 Hclen Hcb
-      (Htr (Or.inr (Or.inr (Or.inl Hty)))) $$ [Hphys Hm] HΦ0
+      (Htr (Or.inr (Or.inr Hty))) $$ [Hphys Hm] HΦ0
     iframe
     iexact Hinit
   ·

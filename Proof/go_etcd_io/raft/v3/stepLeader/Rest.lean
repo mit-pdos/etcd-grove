@@ -521,19 +521,23 @@ theorem wp_stepLeader_transfer
     (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM) (ents : List EntryM)
     (ctx : List w8) (sn : Option SnapshotM) (rs : List Loc) (dq dqe : DFrac) (cap : Bool)
     (Hty : m.Type' = MsgTransferLeader) (Hlead : s.role = .leader) (Htz : s.term ≠ W64 0)
-    (Htr : s.gh.tr = none) :
+    (G : IProp GF) :
     -- (raft-final, 2026-10-29, U9: until then leader transfer on, `Hxo : s.gh.xf = false`)
+    -- (Q8 stage 1, slice 8; until then the premise `s.gh.tr = none`) the two sends' gates, at the
+    -- state with the transferee recorded: `sendTimeoutNow`'s (no event) and `sendAppend`'s
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
-        "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, ctx, rs⟩ }}
+        "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, ctx, rs⟩ ∗
+        "HG" ∷ G ∗
+        "Hgtnow" ∷ (G -∗ HookGateOpt s.gh.tr r none G) ∗
+        "Hgxapp" ∷ (∀ mm : Msg, ⌜AppOk id (toPState s) mm ∧ mm.commit = (toPState s).commit ∧
+            mm.dst = m.From'⌝ -∗ G -∗
+          HookGateOpt s.gh.tr r (sendOutGate id { s with lt := m.From' } c MsgApp [mm]) G) ∗
+        "#Hnosnap" ∷ TrNoSnap s.gh.tr s.logst }}
       (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         ownRaftPhysCV c c.voters r id s' ∗ ⌜err = interface.nil⌝ ∗
-        ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ }} := by
-  -- (Q8 stage 1, slice 5) the untraced instance (`TracedUntraced.lean`)
-  have wp_raft_sendTimeoutNow := raft.sendTimeoutNow.untraced wp_raft_sendTimeoutNow
-  -- (Q8 stage 1, slice 6) the untraced instance (`TracedUntracedSend.lean`)
-  have wp_raft_sendAppend := raft.sendAppend.untraced wp_raft_sendAppend
-  wp_start as ⟨Hphys, Hm⟩
+        ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ ∗ G }} := by
+  wp_start as ⟨Hphys, Hm, HG, Hgtnow, Hgxapp, #Hnosnap⟩
   have Hty' : m.Type' = MsgForgetLeader ∨ m.Type' = MsgTimeoutNow ∨ m.Type' = MsgUnreachable ∨
       m.Type' = MsgSnapStatus ∨ m.Type' = MsgTransferLeader := by simp [Hty]
   have Hres0 : ∀ lt', LeaderNonpropResultC c id s m ents ctx
@@ -560,7 +564,7 @@ theorem wp_stepLeader_transfer
     wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
     wp_raft_logC
     iapply HΦ $$ %interface.nil %s
-    iframe Hphys
+    iframe Hphys HG
     ipureintro
     exact ⟨rfl, rest_res_self c id s m ents ctx Hty'⟩
   | some pr =>
@@ -587,7 +591,7 @@ theorem wp_stepLeader_transfer
     wp_apply raft.wp_load_idC $$ Hphys as Hphys
     wp_raft_logC
     iapply HΦ $$ %interface.nil %s
-    iframe Hphys
+    iframe Hphys HG
     ipureintro
     exact ⟨rfl, rest_res_self c id s m ents ctx Hty'⟩
   wp_auto
@@ -605,7 +609,7 @@ theorem wp_stepLeader_transfer
         lastLeadTransferee_ptr ↦ s.lt ∗ «$res0_ptr» ↦ interface.nil ∗
         ownRaftPhysCV c c.voters r id { s with lt := W64 0 }) ∨
       (⌜v = returnVal #()⌝ ∗ «$res0_ptr» ↦ interface.nil ∗ ownRaftPhysCV c c.voters r id s)))
-      at next with [-HΦ]
+      at next with [-HΦ HG Hgtnow Hgxapp]
   · by_cases Hlt0 : s.lt = W64 0
     · -- none in progress
       rw [decide_eq_true Hlt0]
@@ -642,7 +646,7 @@ theorem wp_stepLeader_transfer
     subst Hv
     wp_auto
     iapply HΦ $$ %interface.nil %s
-    iframe Hphys
+    iframe Hphys HG
     ipureintro
     exact ⟨rfl, rest_res_self c id s m ents ctx Hty'⟩
   subst Hv
@@ -658,7 +662,7 @@ theorem wp_stepLeader_transfer
     ihave Hphys := ownRaftPhysC_eq c r id _
       { sendMsgs { s with lt := W64 0 } [] with prvals := s.prvals } (by cases s; simp [sendMsgs])
       $$ Hphys
-    iframe Hphys
+    iframe Hphys HG
     ipureintro
     exact ⟨rfl, Hres0 _⟩
   rw [decide_eq_false Hself]
@@ -680,24 +684,40 @@ theorem wp_stepLeader_transfer
   ihave Hphys := Hlogback $$ Hlog
   wp_if_destruct
   · -- caught up: `MsgTimeoutNow` now
-    wp_apply wp_raft_sendTimeoutNow c r id _ m.From' Hself (by first | exact Htz | exact Hnz | simpa using Htz | simpa using Hnz | simp_all) (by tr_none) $$ [$Hphys] as Hphys
+    ihave Hphys := ownRaftPhysC_eq c r id _ { s with lt := m.From' } (by cases s; simp_all) $$ Hphys
+    ispecialize Hgtnow $$ HG
+    wp_apply wp_raft_sendTimeoutNow c r id { s with lt := m.From' } m.From' G Hself
+      (by first | exact Htz | exact Hnz | simpa using Htz | simpa using Hnz | simp_all) $$ [$Hphys $Hgtnow]
+      as ⟨Hphys, HG⟩
     wp_apply raft.wp_load_idC $$ Hphys as Hphys
     wp_raft_logC
     iapply HΦ $$ %interface.nil %_
     ihave Hphys := ownRaftPhysC_eq c r id _
       { sendMsgs { s with lt := m.From' } [] with prvals := s.prvals } (by cases s; simp [sendMsgs])
       $$ Hphys
-    iframe Hphys
+    iframe Hphys HG
     ipureintro
     exact ⟨rfl, Hres0 _⟩
   · -- behind: an append
-    wp_apply wp_raft_sendAppend c r id _ m.From' Hself (by exact Hfcfg) (by exact Hlead) (by first | exact Htz | exact Hnz | simpa using Htz | simpa using Hnz | simp_all)
-      (by tr_none) $$ [$Hphys] as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
+    ihave Hphys := ownRaftPhysC_eq c r id _ { s with lt := m.From' } (by cases s; simp_all) $$ Hphys
+    ihave Hga : ∀ mm : Msg, ⌜AppOk id (toPState ({ s with lt := m.From' } : NState)) mm ∧
+          mm.commit = (toPState ({ s with lt := m.From' } : NState)).commit ∧ mm.dst = m.From'⌝ -∗ G -∗
+        HookGateOpt ({ s with lt := m.From' } : NState).gh.tr r
+          (sendOutGate id { s with lt := m.From' } c MsgApp [mm]) G $$ [Hgxapp]
+    · iintro %mm %Hmm HG
+      ispecialize Hgxapp $$ %mm %Hmm HG
+      iapply hookGateOpt_congr _ _ r _ _ G (by rfl) (by rfl) $$ Hgxapp
+    ihave #Hns : TrNoSnap (GF := GF) ({ s with lt := m.From' } : NState).gh.tr
+        ({ s with lt := m.From' } : NState).logst $$ []
+    · iexact Hnosnap
+    wp_apply wp_raft_sendAppend c r id { s with lt := m.From' } m.From' G Hself (by exact Hfcfg)
+      (by exact Hlead) (by first | exact Htz | exact Hnz | simpa using Htz | simpa using Hnz | simp_all)
+      $$ [$Hphys $Hga $HG $Hns] as %ms %pvs ⟨Hphys, %Hms, %Hmm, HG⟩
     iapply HΦ $$ %interface.nil %_
     ihave Hphys := ownRaftPhysC_eq c r id _
       { sendMsgs { s with lt := m.From' } ms with prvals := pvs } (by cases s; simp [sendMsgs])
       $$ Hphys
-    iframe Hphys
+    iframe Hphys HG
     ipureintro
     exact ⟨rfl, rest_res c id s m ents ctx _ ms pvs Hty' Hms Hmm⟩
 

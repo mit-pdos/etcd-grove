@@ -333,10 +333,11 @@ caller.)
 (2026-11-10, Q8 stage 1 slice 8 of `notes/trace-validation-plan.md`) **One spec for both modes, for
 the arms gated so far**: in place of stage 0's premise `s.gh.tr = none`, the caller's resource `G`
 through the gates of `MsgBeat` (`bcastHeartbeat`'s per-heartbeat gate, `G` to `G`), `MsgReadIndex`
-(`sendMsgReadIndexResponse`'s two gates, `G` to `G`) and `MsgCheckQuorum` (`becomeFollower`'s gate
-on a step-down, `G` to `G'`); `G'` back after a step-down, else `G`. The arms with a send or a commit
-line at a state the spec does not yet name (`MsgProp`, `MsgAppResp`, `MsgHeartbeatResp`,
-`MsgTransferLeader`) keep the premise, now on their type (`notes/decisions.md`, "Q8 stage 1 (slice
+(`sendMsgReadIndexResponse`'s two gates, `G` to `G`), `MsgTransferLeader` (`sendTimeoutNow`'s or
+`sendAppend`'s, `G` to `G`, with `TrNoSnap`) and `MsgCheckQuorum` (`becomeFollower`'s gate on a
+step-down, `G` to `G'`); `G'` back after a step-down, else `G`. The arms with a send or a commit
+line at a state the spec does not yet name (`MsgProp`, `MsgAppResp`, `MsgHeartbeatResp`) keep the
+premise, now on their type (`notes/decisions.md`, "Q8 stage 1 (slice
 8)"). The untraced instance is `stepLeader.untraced` (`TracedUntracedStep.lean`). -/
 abbrev stepLeader.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
@@ -398,8 +399,7 @@ abbrev stepLeader.spec : Prop :=
   -- (2026-11-09, Q8 stage 0 of `notes/trace-validation-plan.md`) an untraced node: its trace
   -- hooks see a nil logger (`TraceLoggerOkS`); (2026-11-10, slice 8) only for the arms not yet
   -- gated
-  (m.Type' = MsgProp ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp ∨
-    m.Type' = MsgTransferLeader → s.gh.tr = none) →
+  (m.Type' = MsgProp ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp → s.gh.tr = none) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       -- (stage R4) the message, as `Step` received it: its entry pointers owned for a
@@ -429,6 +429,13 @@ abbrev stepLeader.spec : Prop :=
         HookGateOpt s.gh.tr r (sendOutGate id (arriveState id s m ents) c MsgHeartbeat
           [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] []
             (hbCtx (readonlyAdd s.rd.ro (arriveReq s m ents)))]) G) ∗
+      -- `MsgTransferLeader`: `sendTimeoutNow`'s gate (no event) or `sendAppend`'s, at the state with
+      -- the transferee recorded
+      "Hgtnow" ∷ (⌜m.Type' = MsgTransferLeader⌝ -∗ G -∗ HookGateOpt s.gh.tr r none G) ∗
+      "Hgxapp" ∷ (⌜m.Type' = MsgTransferLeader⌝ -∗ ∀ mm : Msg,
+          ⌜AppOk id (toPState s) mm ∧ mm.commit = (toPState s).commit ∧ mm.dst = m.From'⌝ -∗ G -∗
+        HookGateOpt s.gh.tr r (sendOutGate id { s with lt := m.From' } c MsgApp [mm]) G) ∗
+      "#Hnosnap" ∷ TrNoSnap s.gh.tr s.logst ∗
       -- `MsgCheckQuorum`: the step-down's `becomeFollower(r.Term, None)` gate
       "Hgcq" ∷ (⌜m.Type' = MsgCheckQuorum⌝ -∗ G -∗
         HookGate s.gh.tr r (NodeEvOf (W64 2) id (becomeFollower s s.term (W64 0)) c) G') }}
