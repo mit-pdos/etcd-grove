@@ -262,6 +262,42 @@ theorem leadPost_end (γh : HistNames) (ks : List GoString) (ops : List OpM) (n 
   · simp only [Bool.false_eq_true, ↓reduceIte]; iintro -; itrivial
   · simp only [↓reduceIte]; rw [hh, hc]
 
+theorem apply_zip_disc (ms : List GoMap) (Hs : List HRev) :
+    ms.zip ((Hs.map Prod.fst).zip (List.replicate Hs.length DFrac.discard)) =
+      (ms.zip Hs).map (fun x => (x.1, (x.2.1, DFrac.discard))) := by
+  induction ms generalizing Hs with
+  | nil => simp
+  | cons m ms ih =>
+    cases Hs with
+    | nil => simp
+    | cons e Hs => simp [List.replicate_succ, ih]
+
+/-- The history's snapshot as `checkRangeAt`'s states. -/
+theorem apply_statesAt_hist (ms : List GoMap) (Hs : List HRev) :
+    statesP (GF := GF) ms Hs ⊢ statesAt ms (Hs.map Prod.fst) (List.replicate Hs.length DFrac.discard) := by
+  unfold statesP statesAt
+  iintro ⟨%h, H⟩
+  rw [apply_zip_disc, BigSepL.bigSepL_map]
+  isplitr
+  · ipureintro; simp [h]
+  iexact H
+
+/-- The history's states match the store's at every revision of the member's log. -/
+theorem apply_hist_match (ks : List GoString) (hks : ks.Pairwise go.GoStringLt) (ops : List OpM)
+    (hok : logOk ks ops) (n : Nat) (hn : n ≤ ops.length) (Hs' : List HRev)
+    (hp : histAt ks ops n <+: Hs') :
+    ∀ r : Nat, r < (σOf ks ops n).log.length →
+      ∃ M, (Hs'.map Prod.fst)[r]? = some M ∧ stMatch ks M (stateAt (σOf ks ops n).log r) := by
+  intro r hr
+  obtain ⟨-, ⟨-, hH⟩, -⟩ := logOk_hist ks hks ops hok n n (Nat.le_refl _) hn
+  rw [σOf_notified] at hH
+  obtain ⟨e, he, hrev⟩ := hH r hr
+  obtain ⟨t, rfl⟩ := hp
+  have hlt : r < (histAt ks ops n).length := by
+    have := List.getElem?_eq_some_iff.1 he; exact this.1
+  refine ⟨e.1, ?_, hrev.1⟩
+  rw [List.getElem?_map, List.getElem?_append_left hlt, he]; rfl
+
 end lemmas
 
 end mvccfull

@@ -741,7 +741,143 @@ theorem runner.apply.wp_proof
   by_cases hk7 : o.kind = W64 7
   · -- a read
     simp only [hk7, _root_.decide_true]
-    sorry
+    iunfold runnerKeys at Hks
+    icases Hks with ⟨%keys, #Hkeys, #Hksl, %Hsorted, %Hksne2⟩
+    iunfold memCore at Hmc
+    icases Hmc with ⟨#Hid, #Hhook, HhookOk, Hpath, Hbe, Hle, Hkv, Hrev, Hcmp, Hleases, %Hvops,
+      Hinc, Hopen, Hback, #Hhk, Hrdrs, Hbk, Hles, %HU⟩
+    iunfold incW at Hinc
+    icases Hinc with ⟨#Hisinc, Hret, Hσw, Hbw⟩
+    ihave #Hmv : isMvcc v.kv v.ι.kv $$ []
+    · iunfold isInc at Hisinc; icases Hisinc with ⟨-, #H⟩; iexact H
+    ihave %Hkvs := hsh.1 v.kv v.ι.kv $$ Hmv
+    obtain ⟨kty, kvv, hkveq, hKR, -⟩ := Hkvs
+    obtain ⟨-, -, hreach⟩ := logOk_hist ks Hsorted ops hlogOk v.ops v.ops (Nat.le_refl _) Hvops
+    obtain ⟨hl2, hc1, hcr⟩ := reach_bounds _ hreach
+    have hhl : 2 ≤ (histAt ks ops v.ops).length ∧ (histAt ks ops v.ops).length ≤ v.ops + 2 :=
+      runM_hs_len ks ops v.ops
+    have hσl : (σOf ks ops v.ops).log.length = (histAt ks ops v.ops).length := by
+      simp [σOf, logOfHist]
+    have hcmpA : (σOf ks ops v.ops).crev = cmpAfter ks ops v.ops := rfl
+    have hrevlt : (revAfter ks ops v.ops : Int) < 2 ^ 40 := by
+      have : (σOf ks ops v.ops).rev = (σOf ks ops v.ops).log.length - 1 := rfl
+      have := σOf_rev ks ops v.ops
+      omega
+    have hrZ : sint.Z (W64 (revAfter ks ops v.ops : Int)) = revAfter ks ops v.ops := by word
+    have hcZ : sint.Z (W64 (cmpAfter ks ops v.ops)) = cmpAfter ks ops v.ops := by
+      have : cmpAfter ks ops v.ops ≤ revAfter ks ops v.ops := by rw [← hcmpA, ← σOf_rev]; omega
+      have : -1 ≤ cmpAfter ks ops v.ops := by rw [← hcmpA]; omega
+      word
+    have hR1 : mvccReaders (GF := GF) v.ι.kv nw ⊣⊢ mvccReaders v.ι.kv (nw - 1) ∗ mvccReaders v.ι.kv 1 := by
+      have := hRdSplit v.ι.kv (nw - 1) 1; rwa [Nat.sub_add_cancel hnw] at this
+    icases hR1.1 $$ Hrdrs with ⟨Hrdrs, Hr1⟩
+    (try wp_auto)
+    wp_apply wp_traceTODO $$ [$Hpkt] as %trc ⟨%Htrc, Htrco⟩
+    (try wp_auto)
+    ihave Hau := read_au hpers ks γh i mp m v.ι v.kv qw (σOf ks ops v.ops) $$ [Hret Hσw]
+    · iframe #; iframe
+    rw [hkveq]
+    wp_apply (hKR v.ι.kv (W32 1) trc true (fun σ => iprop(⌜σ = σOf ks ops v.ops⌝ ∗
+        ghostVar v.ι.ret qw () ∗ ghostVar m.σ (1 : Qp).half (σOf ks ops v.ops))))
+      $$ [Hr1 Htrco Hau] as %tx ⟨Htrco, %σr, Htx, %Hσr, Hret, Hσw⟩
+    · iframe #; iframe; ipureintro; exact Htrc
+    subst Hσr
+    ihave %Htxs := hsh.2.2.1 tx v.ι.kv trc (.read (σOf ks ops v.ops)) $$ Htx
+    obtain ⟨tty, tv, htx, hTRev, hTFR, hTRange, -, -, -, hTEnd⟩ := Htxs
+    subst htx
+    (try wp_auto)
+    wp_apply (hTRev v.ι.kv trc (.read (σOf ks ops v.ops))) $$ [Htx] as Htx
+    · iframe #; iframe
+    (try wp_auto)
+    wp_apply wp_check
+    · ipureintro; simp [MTxn.state, σOf_rev]
+    (try wp_auto)
+    wp_apply (hTFR v.ι.kv trc (.read (σOf ks ops v.ops))) $$ [Htx] as Htx
+    · iframe #; iframe
+    (try wp_auto)
+    wp_apply wp_check
+    · ipureintro; simp [σOf]
+    (try wp_auto)
+    -- `tr.Range(…)` of the op's request
+    ihave ⟨#Hqk, -⟩ := (github_com.mit_pdos.etcd_grove.examples.mvccfull.rangeReq.rangeReq_access_load_key
+      (p.[op, go!"q"]) ov.q' DFrac.discard).access_strict $$ Hfq
+    ihave ⟨#Hqe, -⟩ := (github_com.mit_pdos.etcd_grove.examples.mvccfull.rangeReq.rangeReq_access_load_end
+      (p.[op, go!"q"]) ov.q' DFrac.discard).access_strict $$ Hfq
+    ihave ⟨#Hqro, -⟩ := (github_com.mit_pdos.etcd_grove.examples.mvccfull.rangeReq.rangeReq_access_load_ro
+      (p.[op, go!"q"]) ov.q' DFrac.discard).access_strict $$ Hfq
+    iunfold rangeIs at Hoq
+    icases Hoq with ⟨#Hqks, #Hqes, %Hqp⟩
+    wp_apply wp_ctxTODO
+    (try wp_auto)
+    ihave #Hctxr : mvcc.rangeCtx true todoCtxVal
+        ({ Values := GMap.empty, Deadline := none, Done_gn := ⟨0, 0⟩, PDone := iprop(True) } :
+          context.ContextDesc (IProp GF)) $$ []
+    · simp only [mvcc.rangeCtx, ↓reduceIte]; ileft; iapply mvcc.doneNil_todo
+    wp_apply (hTRange v.ι.kv trc true (.read (σOf ks ops v.ops)) todoCtxVal _ true ov.q'.key' ov.q'.end'
+        o.q.key o.q.e ov.q'.ro') $$ [Htx Htrco Hqks Hqes]
+      as %rr' %err ⟨%Hrn, Htx, Htrco, Hout, -, %Hlwf⟩
+    · iframe #; iframe
+    (try wp_auto)
+    -- `checkRangeAt(x.keys, x.h.snapshot(), …)`
+    icases leadPre_lb γh ks ops v.ops lead $$ Hlead with ⟨Hlead, #Hlb⟩
+    iunfold runnerH at HH
+    (try wp_auto)
+    wp_apply wp_snapshot h γh (histAt ks ops v.ops) $$ [$Hrd $Hlb]
+      as %s ⟨Hrd, %ms, %Hs', ⟨%Hpre, %H2⟩, %Hscap, #Hlb', #Hms, #Hst⟩
+    ihave %Hmlen : ⌜ms.length = Hs'.length⌝ $$ [Hst]
+    · iunfold statesP at Hst; icases Hst with ⟨%H, -⟩; ipureintro; exact H
+    ihave #HstAt := apply_statesAt_hist ms Hs' $$ Hst
+    have hle : (histAt ks ops v.ops).length ≤ Hs'.length := Hpre.length_le
+    have hmatch := apply_hist_match ks Hsorted ops hlogOk v.ops Hvops Hs' Hpre
+    have hne : (σOf ks ops v.ops).log ≠ [] := by
+      intro h0; have := congrArg List.length h0; simp only [List.length_nil] at this; omega
+    have hcurlt : sint.nat (W64 (revAfter ks ops v.ops : Int)) < ms.length := by
+      have : sint.nat (W64 (revAfter ks ops v.ops : Int)) =
+        (sint.Z (W64 (revAfter ks ops v.ops : Int))).toNat := rfl
+      rw [this, hrZ]
+      have : (σOf ks ops v.ops).rev = (σOf ks ops v.ops).log.length - 1 := rfl
+      have := σOf_rev ks ops v.ops
+      omega
+    have hM : ∀ r : Nat, sint.Z (W64 (cmpAfter ks ops v.ops)) ≤ (r : Int) →
+        r ≤ sint.nat (W64 (revAfter ks ops v.ops : Int)) →
+        ∃ M, (Hs'.map Prod.fst)[r]? = some M ∧ stMatch ks M (stateAt (σOf ks ops v.ops).log r) := by
+      intro r _ hr
+      have : sint.nat (W64 (revAfter ks ops v.ops : Int)) =
+        (sint.Z (W64 (revAfter ks ops v.ops : Int))).toNat := rfl
+      rw [this, hrZ] at hr
+      have : (σOf ks ops v.ops).rev = (σOf ks ops v.ops).log.length - 1 := rfl
+      have := σOf_rev ks ops v.ops
+      exact hmatch r (by omega)
+    have hrr : (MTxn.read (σOf ks ops v.ops)).readRev = W64 (revAfter ks ops v.ops : Int) := by
+      simp only [MTxn.readRev, σOf_rev]
+    have hrl : (MTxn.read (σOf ks ops v.ops)).readLog = (σOf ks ops v.ops).log := rfl
+    have hcs : (MTxn.read (σOf ks ops v.ops)).state.crev = sint.Z (W64 (cmpAfter ks ops v.ops)) := by
+      rw [hcZ]; rfl
+    rw [hrr, hrl, hcs] at *
+    have hLog : txn.LogOk (σOf ks ops v.ops).log :=
+      txn.LogOk.of_cert ⟨Hlwf.1, by omega, Hlwf.2⟩ hne
+    (try wp_auto)
+    wp_apply (wp_checkRangeAt keys ks DFrac.discard s DFrac.discard ms (Hs'.map Prod.fst)
+        (List.replicate Hs'.length DFrac.discard) (W64 (revAfter ks ops v.ops : Int))
+        (W64 (cmpAfter ks ops v.ops)) _ o.q.key o.q.e DFrac.discard DFrac.discard rr' err
+        (σOf ks ops v.ops).log Hsorted hLog (by rw [hrZ]; omega) hcurlt hM)
+      $$ [Hksl Hms HstAt Hout Hqks Hqes] as -
+    · rw [hcZ]; iframe #; iframe; ipureintro; exact Hrn rfl
+    (try wp_auto)
+    wp_apply (end_readT hTEnd v.ι.kv trc (σOf ks ops v.ops)) $$ [Htx] as Hr1
+    · iframe #; iframe
+    (try wp_auto)
+    ihave Hrdrs := hR1.2 $$ [$Hrdrs $Hr1]
+    rw [← hkveq]
+    ihave Hinc : incW ks γh i mp m v.ι v.kv qw (σOf ks ops v.ops) v.b $$ [Hret Hσw Hbw]
+    · iunfold incW; iframe; iframe #
+    iapply HΦ
+    iframe Hrd
+    iapply apply_close_same ks γh ops i mp m f v qw nw k lead s0
+      (runM_succ_same ks ops v.ops o hov (Or.inr (Or.inl hk7))) hvl hn38 hsa'
+    iframe
+    iunfold memCore; dsimp only; iframe; iframe #
+    ipureintro; exact ⟨Hvops, HU⟩
   simp only [hk7, _root_.decide_false]
   (try wp_auto)
   -- the leases' check
