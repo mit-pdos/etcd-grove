@@ -1,8 +1,8 @@
-/- Lean-first (no Rocq counterpart). The proof of `runner.compact`: proved but for the two `ch ≠ nil` checks (a gap of the frozen mvcc API).
+/- Lean-first (no Rocq counterpart). The proof of `runner.compact`: the channel's facts from `compactChan.law` (`ApiCompactChan`).
 
 The outline: the three cases on `m.cmp`, `m.rev` (`σOf`'s, the writer's half); `cmpHi.Store`
 (`incW`); `KV.Compact.contract` (its update at the incarnation's invariant, `compactTo`, the bounds
-`cmpLo ≤ crev ≤ cmpHi`; the hook at `a`; the storage's commit request `True`); `compactChanOk`'s
+`cmpLo ≤ crev ≤ cmpHi`; the hook at `a`; the storage's commit request `True`); `compactChanRecv`'s
 receive; `cmpLo.Store`; `history.addComp` and the counter for the leader.
 -/
 module
@@ -10,6 +10,7 @@ module
 public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccfull.runner__compact
 public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccfull.history__addComp
 public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccfull.check
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiCompactChan
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.TODO
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.CompactLemmas
 public import Perennial.Spec.sync.atomic.Int64__Add
@@ -40,6 +41,7 @@ theorem runner.compact.wp_proof
     (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
     (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG))
     (hev : mvcc.api.errVars.law (GF := GF) (hG := hG))
+    (hcc : mvcc.api.compactChan.law (GF := GF) (hG := hG))
     (wp_traceTODO : traceutil.TODO.spec (GF := GF) (hG := hG))
     (wp_check : check.spec (GF := GF) (hG := hG))
     (wp_addComp : history.addComp.spec (GF := GF) (hG := hG)) :
@@ -48,8 +50,6 @@ theorem runner.compact.wp_proof
   haveI := isInc_persistent hpers
   haveI := hpers.1
   haveI := hpers.2.2.2.1
-  haveI : ∀ ch, Persistent (compactChanOk (GF := GF) ch) := by
-    intro ch; unfold compactChanOk; infer_instance
   haveI : ∀ N l, Persistent (ctrInv (GF := GF) N l) := by intro N l; unfold ctrInv; infer_instance
   wp_start as ⟨#Hctx, #Hop, Hc, Hpre, Hlead⟩
   ihave #Hctx2 := Hctx
@@ -93,7 +93,9 @@ theorem runner.compact.wp_proof
   ihave #Hmv : isMvcc v.kv v.ι.kv $$ []
   · iunfold isInc at Hinc; icases Hinc with ⟨-, #H⟩; iexact H
   ihave %Hkvs := hsh.1 v.kv v.ι.kv $$ Hmv
-  obtain ⟨kty, kvv, hkv, -, -, -, -, -, -, -, hKC, -⟩ := Hkvs
+  obtain ⟨kty, kvv, hkv, -⟩ := Hkvs
+  ihave %hKC := hcc kty kvv v.ι.kv $$ [Hmv]
+  · rw [← hkv]; iexact Hmv
   iunfold hookOk at Hhok
   icases Hhok with ⟨%Hfnil, #Hrun⟩
   ihave #Hreq : storageReq (etcdStorage v.bk) iprop(True) iprop(True) iprop(True) $$ []
@@ -149,9 +151,8 @@ theorem runner.compact.wp_proof
     ihave %Hag := typedPointsto_agree_wand _ _ _ _ _ $$ Herr HeCmp
     subst Hag
     (try wp_auto)
-    have hchn : ch ≠ chan.nil := by
-      -- SPEC GAP (frozen mvcc API): KV.Compact.contract gives no ch ≠ nil (notes/mvccfull-prove-writer.md)
-      sorry
+    iunfold compactChanRecv at Hch
+    icases Hch with ⟨%hchn, #Hch⟩
     wp_apply wp_check
     · ipureintro; simp [hchn]
     (try wp_auto)
@@ -159,13 +160,10 @@ theorem runner.compact.wp_proof
     iapply (wp_wand (Φ := fun w => iprop(⌜w = executeVal⌝ ∗ ch_ptr ↦ ch))) $$ [ch]
     · (try wp_auto)
       rcases Bool.eq_false_or_eq_true ov.wait' with hw | hw <;> rw [hw]
-      · iunfold compactChanOk at Hch
-        (try wp_auto)
+      · (try wp_auto)
         wp_apply Hch
-        iintro %r -
-        -- SPEC GAP (frozen mvcc API): `compactChanOk`'s receive returns any value, not the
-        -- receive's pair, so `<-ch` (its `Fst`) is not provable (notes/mvccfull-prove-writer.md)
-        sorry
+        iintro %ok -
+        (try wp_auto); iframe; ipureintro; rfl
       · (try wp_auto); iframe; ipureintro; rfl
     iintro %w ⟨%hw, ch⟩
     subst hw
@@ -340,9 +338,8 @@ theorem runner.compact.wp_proof
   · exfalso; have := hrv; omega
   obtain ⟨rfl, -, -⟩ := Hc
   (try wp_auto)
-  have hchn : ch ≠ chan.nil := by
-    -- SPEC GAP (frozen mvcc API): KV.Compact.contract gives no ch ≠ nil (notes/mvccfull-prove-writer.md)
-    sorry
+  iunfold compactChanRecv at Hch
+  icases Hch with ⟨%hchn, #Hch⟩
   wp_apply wp_check
   · ipureintro; simp [hchn]
   (try wp_auto)
@@ -414,13 +411,10 @@ theorem runner.compact.wp_proof
   iapply (wp_wand (Φ := fun w => iprop(⌜w = executeVal⌝ ∗ ch_ptr ↦ ch))) $$ [ch]
   · (try wp_auto)
     rcases Bool.eq_false_or_eq_true ov.wait' with hw | hw <;> rw [hw]
-    · iunfold compactChanOk at Hch
-      (try wp_auto)
+    · (try wp_auto)
       wp_apply Hch
-      iintro %r -
-      -- SPEC GAP (frozen mvcc API): `compactChanOk`'s receive returns any value, not the
-      -- receive's pair, so `<-ch` (its `Fst`) is not provable (notes/mvccfull-prove-writer.md)
-      sorry
+      iintro %ok -
+      (try wp_auto); iframe; ipureintro; rfl
     · (try wp_auto); iframe; ipureintro; rfl
   iintro %w ⟨%hw, ch⟩
   subst hw

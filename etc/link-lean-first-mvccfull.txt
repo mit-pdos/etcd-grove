@@ -105,7 +105,7 @@ runner__checkAll: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_
 runner__checkHook: check
 runner__checkLeases: history__snapshot lease_lessor__GetLease check lease_lessor__Leases lease_lessor__Lookup lease_Lease__Keys =_root_.Perennial.sort.wp_Strings
 runner__checkStoreRange: =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_errVars_law_holds check inBounds history__snapshot checkRangeAt
-runner__compact: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_errVars_law_holds traceutil_TODO check history__addComp
+runner__compact: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_errVars_law_holds =mvcc.api.mvccApi_compactChan_law_holds traceutil_TODO check history__addComp
 runner__end: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds history__snapshot check history__appendRev
 runner__endEpoch: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds =mvcc.api.mvccApi_errVars_law_holds =mvcc.api.mvccApi_mvccReaders_split_law_holds stream__complete =_root_.Perennial.time.wp_Sleep context_TODO runner__genKey check
 runner__gen: pick runner__genKey runner__newVal runner__genLease runner__genEnd choose runner__genSubs runner__genRange

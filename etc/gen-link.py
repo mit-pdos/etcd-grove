@@ -678,7 +678,9 @@ EXTRA_VARS["--mvccrand"] = ("variable [mvcc_sem : go_etcd_io.etcd.server.v3.stor
 NAMESPACED["--mvccfull"] = "mvccfull"
 EXTRA_IMPORTS["--mvccfull"] = ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults",
                                "Perennial.Proof.sort.Link", "Perennial.Proof.time.Link",
-                               "Proof.sort.SortAnyLess"]
+                               "Proof.sort.SortAnyLess",
+                               # (F1 Prove, 2026-11-10) `Compact`'s channel made (`compactChan.law`)
+                               "Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiCompactChanResults"]
 EXTRA_VARS["--mvccfull"] = EXTRA_VARS["--mvccrand"]
 # The section variables a mode's specs take at `HasLC.hasLC` only (the sections after the first,
 # whose heap is at `HasLC.hasLC`): k8s etcd3's, the context errors' descriptions, which the

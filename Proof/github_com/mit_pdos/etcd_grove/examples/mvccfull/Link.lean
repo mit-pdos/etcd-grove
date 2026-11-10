@@ -127,6 +127,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 public import Perennial.Proof.sort.Link
 public import Perennial.Proof.time.Link
 public import Proof.sort.SortAnyLess
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiCompactChanResults
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Link
 
 @[expose] public section
@@ -555,7 +556,7 @@ theorem lease.lessor.wp_Revoke [go_etcd_io.etcd.cache.v3.Assumptions] :
 
 theorem runner.wp_compact [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.mvccfull.runner.compact.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.mvccfull.runner.compact.wp_proof mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_errVars_law_holds traceutil.wp_TODO wp_check history.wp_addComp
+  EtcdGrove.mvccfull.runner.compact.wp_proof mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_errVars_law_holds mvcc.api.mvccApi_compactChan_law_holds traceutil.wp_TODO wp_check history.wp_addComp
 
 theorem runner.wp_apply [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.mvccfull.runner.apply.spec (GF := GF) (hG := hG) :=
