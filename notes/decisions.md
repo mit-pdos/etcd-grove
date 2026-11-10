@@ -34190,3 +34190,21 @@ independent review).
 Trust base: `ErrTransactionConflict_init` → `metrics.errorsNewVarsInit`, `value_typed_pointsto` →
 `value_intoVal_inj`; count unchanged. Gates: step 9 (premise-fixes-1's text, skipped when the
 examples module holds no premisefix package) and 9b (each Go module under `examples/premisefix`).
+
+## The lessor's logger: nil or a zap logger (`NewLessor`, `lessorCfg`) (2026-11-10 · the user's decision of 2026-11-07, via etcd-grove-82 · landed directly on `lean`, `dbe4904326`)
+
+Sweep B3-2 (`notes/axiom-review/lessor-methods.md`) refuted `lessor.Promote` and
+`lessor.scheduleCheckpointIfNeeded` on the Go side: `NewLessor.spec` asked only `⌜lg ≠ null⌝` and
+`lessorCfg` kept `lg` unconstrained, so a lessor over a non-nil zero `&zap.Logger{}` passed the
+premises, and a scheduled checkpoint's `le.lg.Debug` (`lessor.go:760`) panicked in zap's
+`Logger.check` (`logger.go:331`), reached through the proved `Grant` and `Checkpoint` and through
+`Promote`. The user's decision (`notes/STATUS.md`, "Axiom sweep batch 3", the decisions list):
+`NewLessor`'s pre and `lessorCfg` carry `⌜lg = null⌝ ∨ zapLoggerOk lg`. Every use of `le.lg` in
+`lessor.go` is under `le.lg != nil` (`:759`, `:797`; `newLessor` only stores it, `:240`), so a nil
+logger is safe and the disjunction is the exact condition; the two axioms' statements are unchanged
+and now true of the code (their docstrings say why). The callers already had `zapLoggerOk` of
+their logger: mvccrand's `runChecks` and mvccfull's `Run` from `zap.NewNop()`'s spec (mvccfull's
+`writerCtx` now keeps `zapLoggerOk lg` in place of `lg ≠ null`), the server's `NewServer` from its
+pre's `#Hzlg : zapLoggerOk cfg.Logger'`; so no exported result gains a premise. zap's own
+`Logger.{Debug,Info,...}` axioms still ask only `l ≠ null` (sweep repairs 1's zap-zero repair,
+still open); the lessor's two axioms are names-only and do not go through them.
