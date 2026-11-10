@@ -12,6 +12,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.schema.UnsafeCreateMetaBuck
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__restore
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreNC
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.CmpSteps
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewStoreR
 
 @[expose] public section
 
@@ -149,21 +150,18 @@ theorem mvcc.ownToks_ones (γ : GName) : ∀ (n : Nat),
     iapply mvcc.ownToks_ones γ n
     iexact Hn
 
+/-- `NewStore` over a backend holding an image (B3, mvccfull's Freeze, 2026-11-10): the proof is
+`NewStoreR.lean`'s (the resumed compaction inside `restore()` is a callee, `compactLockfree`). -/
 theorem mvcc.NewStore.wp_proof
     (hNop : zap.NewNop.spec (GF := GF) (hG := hG))
     (hNewIdx : mvcc.newTreeIndex.spec (GF := GF) (hG := hG))
     (hFifo : schedule.NewFIFOScheduler.spec (GF := GF) (hG := hG))
     (hHash : mvcc.NewHashStorage.spec (GF := GF) (hG := hG))
     (hMeta : schema.UnsafeCreateMetaBucket.spec (GF := GF) (hG := hG))
-    (hRestore : mvcc.store.restore.spec (GF := GF) (hG := hG)) :
-    mvcc.NewStore.spec (GF := GF) (hG := hG) := by
-  -- B3 Prove (mvccfull's Freeze, 2026-11-10): `mvcc.NewStore.spec` is now over a backend holding an
-  -- image (`restoreImageM`, the records `r`, the lessor's owner part lent, the resumed compaction).
-  -- The proof of the fresh statement is at commit `ae30739dde` (this file): its batch session and
-  -- `store.restore` call at `ns = false` carry over, with `NewStoreSess.lean`'s session contract, the
-  -- registration fixed after `restore()` (`storeSess_fix`) and `store.Restore`'s image vocabulary
-  -- (`RestoreVocab.lean`), as in `notes/mvccfull-proof-plan.md`'s "Draft: B3's internal chain".
-  sorry
+    (hRestore : mvcc.store.restore.spec (GF := GF) (hG := hG))
+    (hCLF : mvcc.store.compactLockfree.spec (GF := GF) (hG := hG)) :
+    mvcc.NewStore.spec (GF := GF) (hG := hG) :=
+  mvcc.NewStore.wp_proofR hNop hNewIdx hFifo hHash hMeta hRestore hCLF
 
 end proof
 
