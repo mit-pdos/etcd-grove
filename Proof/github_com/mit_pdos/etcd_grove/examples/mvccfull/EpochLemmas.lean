@@ -283,6 +283,41 @@ theorem inc_watchable (E : Ep) :
         (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #s⌝ := by
   sorry
 
+/-- **A stream after its registrar's end** (`endEpoch`, after `regDone.Wait()`): its handles, the
+receiver's wait group, and the registrar's resources back. -/
+def epochStream1 (E : Ep) (q : Qp) (s : Loc) : IProp GF :=
+  iprop(∃ T : Strm, ⌜T.ep = E ∧ T.s = s⌝ ∗ streamCtx T ∗
+    sync.join.ownAdder (sF go!"recvDone" s) (W32 1) iprop(True ∗ ∃ rs, rcvOwn T q.half rs) ∗
+    ∃ C, regOwn T q.half C)
+
+/-- An open stream's handles, kept. -/
+theorem epochStream_ctx (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG)) (E : Ep) (q : Qp)
+    (s : Loc) :
+    epochStream (GF := GF) E q s ⊢
+      epochStream E q s ∗ ∃ T : Strm, ⌜T.ep = E ∧ T.s = s⌝ ∗ streamCtx T := by
+  iintro H
+  iunfold epochStream at H
+  icases H with ⟨%T, %hT, Hctx, Ha, Hb⟩
+  haveI := streamCtx_persistent hpers T
+  icases Hctx with #Hctx
+  isplitl
+  · iunfold epochStream; iexists T; iframe; iframe #; ipureintro; exact hT
+  · iexists T; iframe #; ipureintro; exact hT
+
+/-- A stream's handles, kept, after its registrar's end. -/
+theorem epochStream1_ctx (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG)) (E : Ep)
+    (q : Qp) (s : Loc) :
+    epochStream1 (GF := GF) E q s ⊢
+      epochStream1 E q s ∗ ∃ T : Strm, ⌜T.ep = E ∧ T.s = s⌝ ∗ streamCtx T := by
+  iintro H
+  iunfold epochStream1 at H
+  icases H with ⟨%T, %hT, Hctx, Ha, Hb⟩
+  haveI := streamCtx_persistent hpers T
+  icases Hctx with #Hctx
+  isplitl
+  · iunfold epochStream1; iexists T; iframe; iframe #; ipureintro; exact hT
+  · iexists T; iframe #; ipureintro; exact hT
+
 end ghost
 
 end mvccfull
