@@ -193,7 +193,24 @@ Done (each commit built capped, `/shared/tmp/k8s-7e-4/b10.log`, `b12.log`):
   before `tbl.put`; the old proof took the literal). **Add `objOf` to `Apply`'s line of
   `etc/link-lean-first-k8s-etcd3.txt` at the Link step.**
 
-Next: step 3 (generator, Check, Main*).
+Step 3 (generator, Check, Main*): **stopped for a decision (reported to etcd-grove-81)**.
+- What is broken (capped build `/shared/tmp/k8s-7e-4/b13.log`): `genFrom` (Go now draws a node and an
+  app, calls `workloadNodes`/`workloadApps` and `genList`: new callee specs needed, none exist yet),
+  `Seed` (8-field `Obj`, `HSt` with revisions 1-3 in the history, `histOwn`), `Spec/.../Check.lean`
+  (`g0 : GSt` -> `HSt`, as `Apply.spec`; also `Apply.spec`'s new premises: `c.di`, `c.vi`,
+  `clientErrPlain`, `threadBound`, `rangeStreamOff`), then `Check`'s proof and `Main*`.
+- **The decision: `InOk`'s `uint.Z n < 2^63` for `minRV`'s strings** (Scope §5: "`GetList`'s
+  `uint.Z n < 2^63` (from `minRV`)"). `minRV(m, d, c, true)` returns `rvBytes(r)`, `rvBytes(r - d)` or
+  `rvBytes(r + d)` with `r` the cached object's resource version and `d ≤ 200`. Nothing bounds `r`
+  enough: `cachedObjOk` gives only `r ≠ 0` and a `versionAt` witness; the store's states give
+  `σ.rev + 2 < 2^63` (`kvRoom`), so `r + d < 2^63` is not derivable. Options:
+  (1) recommended: the driver's Go `minRV` returns `""` when `r >= 1<<62` (after `r :=
+  c.ResourceVersion`; unreachable in any real run), so every string it returns parses below `2^62 +
+  200`; no invariant changes; needs the Go edit, the Go tests, re-translation, `minRV.spec`'s
+  `minRVL`;
+  (2) `kInv` bounds the revision by the operation count (`Check`'s `clients * ops < 2^60`), through
+  `lintest`'s invariant: no Go change, much more proof;
+  (3) a premise: not allowed (it would reach the closed results).
 
 ## Forms decided (accepted by etcd-grove-81, 2026-11-10, all five)
 
