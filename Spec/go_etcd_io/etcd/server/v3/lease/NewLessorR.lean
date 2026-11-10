@@ -8,27 +8,20 @@ Not yet an axiom: at the Freeze switch it replaces the axiom `lease.NewLessor.wp
 `specR`; the original a theorem from it), which also settles the bounds gate (review round 1's F2:
 the copied `replicate … actualMaxReaders`).
 
-**Open for the user (review round 1's F1): the receipt `⧖ |recs|`.** The post's `lessorInv` holds
-`lessorMu`'s `⧖ (size M)` (`InvLessor.lean`), so at the recovered map (`M = recMap (recs.zip ls)`)
-this axiom gives out the receipt `⧖ recs.length`, which the original (at `M = ∅`, `⧖ 0`) never did.
-Two options:
-* **(a) Keep it**, the docstring arguing that `initAndRecover`'s loop (`lessor.go:815-830`) runs one
-  iteration per record, and that its translation, proved as `lessor.initAndRecover.spec`, earns
-  `⧖ recs.length` that way (its post's receipt): the axiom claims those counted steps of a
-  names-only call. The per-lease allocations (`make(chan struct{})` for `revokec`, the zero
-  `RWMutex` of `&Lease{}`, inside `leaseOwn`'s closers) named as allocations.
-* **(b) Take it in the pre**: `⧖ recs.length` (persistent) added to the precondition, beside
-  `□ ([∗list] id ∈ recs.map (·.1), GA id)`; the post's `lessorInv` then holds the caller's receipt.
-  Who could supply it: **the tester's writer** (`runner.open`) — the records are its live leases
-  (`Writer.lean`'s `leaseRecsOk`: `recs.map (·.1) = L`), each granted by one `Grant` operation of
-  its log, so `recs.length` is at most the operations it ran; it would hold a receipt of that count
-  (earned one per operation of its loop, as the store's `⧖ (logCh …)` per revision) and carry it
-  across `shut`/`open`; **the server's restart** (R2d'b) — the records are the image's lease
-  bucket, each lease granted by an entry applied at a revision of the image's history `L`, so
-  `recs.length ≤ logCh L` would follow from the image's receipt `⧖ (logCh L)` (`mvccStorageFor`'s,
-  `dbImageR`'s) given that law of the image (`ImageLeases.lean`: the records are the snapshot
-  table's), or from the apply loop's receipt of the entries applied before the snapshot.
-  (b) makes the axiom claim no step count; its cost is that law at the server.
+**The receipt `⧖ |recs|`** (review round 1's F1; settled by the axiom review,
+`notes/axiom-review/mvccfull-newlessor-specR.md`: kept). The post's `lessorInv` holds `lessorMu`'s
+`⧖ (size M)` (`InvLessor.lean`), so at the recovered map (`M = recMap (recs.zip ls)`) this axiom
+gives out the receipt `⧖ recs.length`, which the original (at `M = ∅`, `⧖ 0`) never did. Its source
+is the translated code: `NewLessor` → `newLessor` → `initAndRecover`, and the proved
+`lessor.initAndRecover.spec` (`Spec/.../lease/lessor__initAndRecover.lean`) has `⧖ recs.length` in
+its post with no receipt in its pre (its proof starts from `preceipt_zero` and raises the receipt
+once per iteration of the recovery loop, `lessor.go:815-830`: `wp_raise_receipt`). So the receipt
+is what the translation of the same Go code proves; the axiom adds only `newLessor`'s names-only
+wrapper (its fields, the reader slots, the `runLoop` goroutine), not the step count. The per-lease
+allocations (`make(chan struct{})` for `revokec`, the zero `RWMutex` of `&Lease{}`, inside
+`leaseOwn`'s closers) are `initAndRecover`'s too. (The alternative, the receipt in the pre, would be
+strictly weaker for clients and cost the server a law, `recs.length ≤ logCh L` of the image, for no
+soundness.)
 -/
 module
 
