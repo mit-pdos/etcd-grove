@@ -1967,3 +1967,11 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
 - **Proposed (general).** Port `atomic_update_wand` to Iris-Lean (upstream of Perennial's pin), with
   `rocq_alias`; then drop the local copy.
 - **Status.** Recorded only.
+
+## `cleanup_bool_decide`'s `decide_true` became ambiguous, and the macro's `try` hides it (2026-11-10, trace-check Q8 slice 14)
+
+In `Proof/go_etcd_io/raft/v3/stepLeader/Rest.lean`, Perennial's `cleanup_bool_decide` macro stopped
+rewriting anything: the name `decide_true` it uses now resolves ambiguously (Lean's `decide_true` and
+Iris-Lean's `BI.decide_true`, both in scope there), and the macro wraps the rewrite in `try`, so the
+failure is silent. Worked around locally in that file. General fix to propose: qualify the lemma
+name in the macro (`_root_.decide_true`), and consider failing loudly instead of `try`.
