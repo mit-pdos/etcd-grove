@@ -1027,6 +1027,20 @@ in their final requests), from `notes/specs-only/verify/` `repair2-client`, `rep
 `repair4-lease`, `repair4-raft-crash`, `repair5-crash`. Spec paths are under `Spec/go_etcd_io/etcd/`
 unless they start otherwise. The specs are written to each choice except D6 (open) and D7 (pending).
 
+### The user's answers (2026-11-10)
+
+- **The end goal:** an adequacy theorem with no axioms for a porcupine linearizability test at the
+  client boundary (`examples/etcd/txnlin`), **with crashes**. Intermediate specs (D1-D3, D5, D6,
+  the vocabulary of D32, D8's `leaseexpiry`) are the coordinator's to settle with the snippets.
+- **D7/D31: accepted** — a created directory entry is durable at its file's first sync (ext4/xfs),
+  provided a Go snippet illustrates why the assumption is needed.
+- **D32: accepted** if it is what ext4 guarantees: a rename within one directory is atomic across a
+  crash.
+- **D4, 2.8:** explanations requested (given in the session; pending the user's answer).
+- **Trust boundaries:** every trusted spec on the goal's path is ultimately to be proved or replaced
+  by a justifiable trusted model; where no reasonable model exists, or the Go features a library
+  uses would be hard to support, escalate with a concrete example.
+
 ### Needs your approval
 
 New client-visible ghost state, or a change to an API or decision you approved.
