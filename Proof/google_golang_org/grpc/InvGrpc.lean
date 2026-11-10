@@ -40,6 +40,18 @@ ClientConn__Invoke.lean`) of any method is the chain (`chainWP`, as grpc compose
 `invoke`, which makes one attempt (`grpcInvokerOk`: a run of the handler served for a registered
 method, or an error); an attempt's call options are scalar or `grpc.Peer(p)` options
 (`grpcOptOk`, `grpcPeerOpt`), whose buffers `*p` (`grpcPeerBuf`) the attempt writes.
+
+**Per-type message models** (stage A, the Scope's R and V for `ProtoMsg`, revisions 4 to 6; moved
+here from the prototype's `grpc/PerType.lean`, CP2; today's `ProtoMsg` and the trusted grpc specs
+stay until CP3): `ProtoMsgT`, a `ProtoMsg` with its normalizing store (`tree`, `Store.lean`); the
+role-split registries `grpcReqModelOf` (a method's request) and `grpcRepModelOf` (its reply), keyed
+on the Go type, taking the heap's instances (`hG`; `ProtoMsg GF` mentions no heap, so an
+`hG`-independent registry would equate models across heaps) and `go.Semantics`; and what a
+registration must prove: `ProtoMsgT.ReqSat` (from a `blank`, with the request's `wireLen` below
+`grpcMsgMax`, the store gives `recv` and `recvOwn`) and `ProtoMsgT.RepSat` (from an `own`, what a
+failed attempt leaves, no `wireLen` premise, the store gives `recv`), each with the laws that make
+its resources satisfiable: `blank` the zero struct (`BlankZero`), `own` any struct (`OwnAny`),
+`send` at `nil` false.
 -/
 module
 
@@ -49,6 +61,7 @@ public import Proof.go_etcd_io.etcd.client.v3.ClientErr
 public import GeneratedProof.google_golang_org.grpc.peer
 public import Proof.google_golang_org.grpc.metadata.Outgoing
 public import Code.google_golang_org.grpc.credentials
+public import Proof.google_golang_org.protobuf.proto.Store
 
 @[expose] public section
 
@@ -86,8 +99,9 @@ structure ProtoMsg (GF : BundledGFunctors) where
   /-- **An upper bound on the length of the encoding** (`proto.Size`) of every message `send`
   holds at `m`, counting a submessage at each reference (as protobuf-go's `Size` does). Read it
   against `send`: every wire field must be pinned by `send`. Scope: the unknown fields of the
-  messages `send` holds field by field (inside `txnReqAt`, `createReqSend`, `userOptsAt`,
-  `ownPermW`) are not pinned; translated code never sets unknown fields (`SetUnknown` is not
+  messages `send` holds field by field (inside `txnReqAt` at every nested level, `createReqSend`,
+  `userOptsAt`, `ownPermW`, the Lease replies' headers and `LeaseStatus` elements, and the watch
+  stream's outer, cancel and progress messages) are not pinned; translated code never sets unknown fields (`SetUnknown` is not
   translated; requests are struct literals), so the bound is claimed for messages without them
   (the whole-struct sends pin them; the rest is to come, `notes/decisions.md`, "The encoded-size
   bound at grpc's send side"). `grpcMsgMax` or more: no bound known (the default; responses),
@@ -689,19 +703,70 @@ theorem srvChainWP_of_ok (ics : List GoFunc) (Rs : List (IProp GF)) (ci : GoInte
         iapply (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ R => R) (x := R) (xs := Rs)).2
         iframe
 
+end defs
+
+/-! ## Per-type message models: the stores and the role-split registries (stage A, CP2) -/
+
+section pertype
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+/-- A unary method's message model with its normalizing store. -/
+structure ProtoMsgT (GF : BundledGFunctors) extends ProtoMsg GF where
+  tree : M → VTree
+
+/-- **`own` is any struct** of the type at some Lean representation (the one the store's type is). -/
+def OwnAny (ty : go.GoType) (own : Loc → IProp GF) : Prop :=
+  ∃ (V : Type) (_ : ZeroVal V) (_ : TypedPointsto (GF := GF) V) (_ : IntoValTyped (GF := GF) V ty),
+    ∀ l, own l ⊣⊢ ∃ v : V, l ↦ v
+
+/-- **A request model is satisfiable** (`[v5]`). -/
+def ProtoMsgT.ReqSat (T : ProtoMsgT GF) : Prop :=
+  BlankZero T.ty T.blank ∧ OwnAny T.ty T.own ∧ (∀ m, T.send null m ⊢ False) ∧
+  ∀ (ls l : Loc) (m : T.M),
+    T.send ls m ∗ ⌜T.wireLen m < grpcMsgMax⌝ ∗ T.blank l ⊢
+      WP (storeInto T.ty l (T.tree m)) {{ _v, T.send ls m ∗ T.recv l m ∗ T.recvOwn l m }}
+
+/-- **A reply model is satisfiable** (`[v5]`): no `wireLen` premise. -/
+def ProtoMsgT.RepSat (T : ProtoMsgT GF) : Prop :=
+  BlankZero T.ty T.blank ∧ OwnAny T.ty T.own ∧ (∀ m, T.send null m ⊢ False) ∧
+  ∀ (ls l : Loc) (m : T.M),
+    T.send ls m ∗ T.own l ⊢ WP (storeInto T.ty l (T.tree m)) {{ _v, T.send ls m ∗ T.recv l m }}
+
+/-- **The registry of request models** (`[v5]`: split by role). -/
+opaque grpcReqModelOf {hlc : HasLC} (GF : BundledGFunctors) [GooseExts] [GooseSemantics] [GooseInterp]
+    [GoGlobalContext] [hG : HeapGS hlc GF] [go.Semantics] : go.GoType → Option (ProtoMsgT GF)
+
+/-- **The registry of reply models**. -/
+opaque grpcRepModelOf {hlc : HasLC} (GF : BundledGFunctors) [GooseExts] [GooseSemantics] [GooseInterp]
+    [GoGlobalContext] [hG : HeapGS hlc GF] [go.Semantics] : go.GoType → Option (ProtoMsgT GF)
+
+end pertype
+
+section method
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
 /-- **A method a server registers**: its full name (`"/etcdserverpb.KV/Put"`), its message
-types, its spec, the generated handler its `ServiceDesc`'s `MethodDesc` holds
-(`etcdserverpb._KV_Put_Handler`), and the service value registered with the `ServiceDesc`
-(`RegisterKVServer(s, srv)`'s `srv`, as `any`). -/
-structure GrpcMethod (GF : BundledGFunctors) where
+types (registered, stage A: the request's model is the one `grpcReqModelOf` registers for its Go
+type, the reply's the one `grpcRepModelOf` registers), its spec, the generated handler its
+`ServiceDesc`'s `MethodDesc` holds (`etcdserverpb._KV_Put_Handler`), and the service value
+registered with the `ServiceDesc` (`RegisterKVServer(s, srv)`'s `srv`, as `any`). -/
+structure GrpcMethod (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] where
   name : GoString
-  Req : ProtoMsg GF
-  Rep : ProtoMsg GF
-  spec : GrpcSpecMd Req Rep
+  Req : ProtoMsgT GF
+  Rep : ProtoMsgT GF
+  spec : GrpcSpecMd Req.toProtoMsg Rep.toProtoMsg
   handler : val
   srv : GoInterface
+  reqReg : grpcReqModelOf GF Req.ty = some Req
+  repReg : grpcRepModelOf GF Rep.ty = some Rep
 
-end defs
+end method
 
 /-! ## The opaque facts about grpc's runtime -/
 
@@ -1224,9 +1289,16 @@ accepts, whose dynamic type is then not `*errors.errorString` (an `errorString` 
 
 Since 2026-10-30 (the axiom review `txn-nested-wire`) the request's encoding is below `grpcMsgMax`
 (`Req.wireLen`): grpc marshals before it checks a size, and the codec's allocation panics above
-Go's `maxAlloc`. -/
+Go's `maxAlloc`.
+
+Since stage A of the per-type models (2026-11-07, `notes/per-type-blockers.md`) the request's and
+the reply's models are the ones registered for their Go types (`grpcReqModelOf`,
+`grpcRepModelOf`): a caller cannot choose a model of its own, and each registered model's
+`ProtoMsgT.ReqSat`/`RepSat` is proved. -/
 def grpcInvokerOk (conn : Loc) (addrs : List GoString) (inv : GoFunc) : IProp GF :=
-  iprop(□ ∀ (method : GoString) (Req Rep : ProtoMsg GF) (Spec : GrpcSpecMd Req Rep) (m : Req.M)
+  iprop(□ ∀ (method : GoString) (Req Rep : ProtoMsgT GF)
+      (_ : grpcReqModelOf GF Req.ty = some Req) (_ : grpcRepModelOf GF Rep.ty = some Rep)
+      (Spec : GrpcSpecMd Req.toProtoMsg Rep.toProtoMsg) (m : Req.M)
       (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF) (ctx : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF))
       (inp out : Loc) (opts : GoSlice) (vs : List GoInterface) (ps : List Loc),
@@ -1322,10 +1394,11 @@ theorem grpcInvokerOk_of_wp (conn : Loc) (addr : List GoString) (inv inv' : GoFu
     grpcInvokerOk conn addr inv' := by
   iintro ⟨#Hinv, #Hw⟩
   unfold grpcInvokerOk
-  iintro !> %method %Req %Rep %Spec %m %Φ %Ψe %ctx %cd %inp %out %opts %vs %ps
+  iintro !> %method %Req %Rep %hreq %hrep %Spec %m %Φ %Ψe %ctx %cd %inp %out %opts %vs %ps
   iintro %Ψ !> Hpre HΨ
   iapply Hw
-  iapply Hinv $$ Hpre HΨ
+  iapply Hinv $$ %method %Req %Rep %hreq %hrep %Spec %m %Φ %Ψe %ctx %cd %inp %out %opts %vs %ps %Ψ
+    Hpre HΨ
 
 end client
 

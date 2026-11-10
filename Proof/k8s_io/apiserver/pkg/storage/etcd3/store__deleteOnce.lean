@@ -104,9 +104,12 @@ theorem store.deleteOnce.wp_proof
   · iframe #
     iexact Hau'
   (try wp_auto)
-  wp_apply wp_txnError as %te -
+  icases (k8s_io.apiserver.pkg.storage.etcd3.statusErrOk_split derr _ _ _) $$ Hdel with ⟨#Hse0, Hdel⟩
+  wp_apply wp_txnError as %te Hte
+  ihave #Hse := Hte $$ Hse0
   (try wp_auto)
   wp_apply (wp_RecordEtcdRequest go!"delete" c.gr _ _ (by decide) Hutf.1 Hutf.2)
+  · iexact Hse
   (try wp_auto)
   icases Hdel with (⟨%Hde, %σ, ⟨Hres, #Hfs, %HAσ⟩, %Hσ, Hkvo⟩ | ⟨%Hde, %Hdce, #Hdse, #Hdcl⟩)
   · subst Hde

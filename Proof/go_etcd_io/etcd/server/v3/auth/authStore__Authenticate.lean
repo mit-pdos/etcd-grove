@@ -179,7 +179,7 @@ theorem auth.authStore.Authenticate.wp_core
         iexists tok, _
         iframe Hrl
         isplitr
-        · ipureintro; rfl
+        · ipureintro; exact ⟨rfl, rfl⟩
         iframe Htok Hev
         ipureintro; exact ⟨sta, Hl, by simp [Hur.1]⟩
       · wp_apply h_redactToken _ as %fp -
@@ -215,7 +215,7 @@ theorem auth.authStore.Authenticate.wp_core
         iexists tok, _
         iframe Hrl
         isplitr
-        · ipureintro; rfl
+        · ipureintro; exact ⟨rfl, rfl⟩
         iframe Htok Hev
         ipureintro; exact ⟨sta, Hl, by simp [Hur.1]⟩
   · (try wp_auto)
@@ -297,7 +297,7 @@ theorem auth.authStore.Authenticate.wp_core
         iexists tok, _
         iframe Hrl
         isplitr
-        · ipureintro; rfl
+        · ipureintro; exact ⟨rfl, rfl⟩
         iframe Htok Hev
         ipureintro; exact ⟨sta, Hl, by simp [Hur.1]⟩
       · wp_apply h_redactToken _ as %fp -
@@ -333,7 +333,7 @@ theorem auth.authStore.Authenticate.wp_core
         iexists tok, _
         iframe Hrl
         isplitr
-        · ipureintro; rfl
+        · ipureintro; exact ⟨rfl, rfl⟩
         iframe Htok Hev
         ipureintro; exact ⟨sta, Hl, by simp [Hur.1]⟩
 

@@ -24,7 +24,8 @@ variable [sem : go.Semantics]
 /-- **`enc.encode(m)`** of a frozen message `st` that marshals, to the encoder's writer `wi` at the
 bytes `h`, permitted to write the frame of any encoding of `st` (and its length prefix): the frame
 of an encoding of `st` is written, or an error is returned (the writer at some bytes); (2026-10-24,
-stage 7d) none if the writer never fails (`writerAtF true`). -/
+stage 7d) none if the writer never fails (`writerAtF true`); (stage A of the per-type models) its
+wire content, bounded (`swMsgBound`: `proto.Size` and `MustMarshalMessage` take it). -/
 abbrev rafthttp.messageEncoder.encode.spec : Prop :=
   ∀ (enc : Loc) (wi : GoInterfaceOk) (ml : Loc) (st : MsgSt) (Wr A : List w8 → IProp GF)
     (h : List w8) (nf : Bool),
@@ -32,14 +33,15 @@ abbrev rafthttp.messageEncoder.encode.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
       enc.[go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.messageEncoder, go!"w"] ↦□
         GoInterface.ok wi ∗
-      writerAtF nf wi Wr A ∗ Wr h ∗ msgOwn ml DFrac.discard st ∗
-      □ (∀ bs : List w8, ⌜MsgWireOk st bs ∧ bs.length < 2 ^ 63⌝ -∗
+      writerAtF nf wi Wr A ∗ Wr h ∗ msgOwn ml DFrac.discard st ∗ swMsgBound ml st ∗
+      □ (∀ bs : List w8, ⌜MsgWireOk st bs ∧ MsgEnc st bs ∧ bs.length < 2 ^ 63⌝ -∗
           A (h ++ u64Be (W64 bs.length)) ∗ A (h ++ msgFrame bs)) }}
     (App (Val (enc @!! go.GoType.PointerType
       go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.messageEncoder.ty @!! go!"encode")) (Val #ml))
   {{ (err : GoInterface), RET #err; http.errStrOk err ∗ ⌜nf = true → err = GoInterface.nil⌝ ∗
       ∃ h' : List w8, Wr h' ∗
-        (⌜err = GoInterface.nil⌝ -∗ ∃ bs : List w8, ⌜MsgWireOk st bs ∧ bs.length < 2 ^ 63 ∧ h' = h ++ msgFrame bs⌝) }}
+        (⌜err = GoInterface.nil⌝ -∗ ∃ bs : List w8, ⌜MsgWireOk st bs ∧ MsgEnc st bs ∧ bs.length < 2 ^ 63 ∧
+          h' = h ++ msgFrame bs⌝) }}
 
 end spec
 

@@ -73,7 +73,9 @@ theorem store.getList.wp_proof
     · iframe #
       iexact HQ
     (try wp_auto)
+    icases (k8s_io.apiserver.pkg.storage.etcd3.statusErrOk_split gerr _ _ _) $$ Hget with ⟨#Hse, Hget⟩
     wp_apply (wp_RecordEtcdRequest go!"get" c.gr _ _ (by decide) Hutf.1 Hutf.2) $$ []
+    · iexact Hse
     (try wp_auto)
     wp_if_destruct
     all_goals (try wp_auto)
@@ -151,7 +153,9 @@ theorem store.getList.wp_proof
     · iframe #
       iexact HQ
     (try wp_auto)
+    icases (k8s_io.apiserver.pkg.storage.etcd3.statusErrOk_split lerr _ _ _) $$ Hlist with ⟨#Hse, Hlist⟩
     wp_apply (wp_RecordEtcdRequest go!"list" c.gr _ _ (by decide) Hutf.1 Hutf.2) $$ []
+    · iexact Hse
     (try wp_auto)
     wp_apply (wp_rse Obj sp c) $$ [Htt] as Htt
     · iframe #

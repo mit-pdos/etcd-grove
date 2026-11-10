@@ -46,7 +46,7 @@ theorem wp_clusterConfig : EtcdGrove.k8s_etcd3.clusterConfig.spec (GF := GF) (hG
 `Spec/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/MainCluster.lean`), under the semantic
 premises of its callees' linked results (`Main`'s, and the three-member cluster's), and the decided
 pending hypotheses `Client.GetAt`/`Client.List` (7c-3's), which the store's `GetList` takes. -/
-theorem wp_MainCluster [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics]
+theorem wp_MainCluster [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     (h_Client__GetAt : EtcdGrove.kubernetes.Client.GetAt.spec (GF := GF) (hG := hG))
     (h_Client__List : EtcdGrove.kubernetes.Client.List.spec (GF := GF) (hG := hG)) :
@@ -63,7 +63,7 @@ theorem wp_MainCluster [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64
 `Spec/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/MainPartition.lean`), under the semantic
 premises of its callees' linked results (`MainCluster`'s, and the cluster's `Partitioner`), and the
 pending hypotheses `Client.GetAt`/`Client.List`. -/
-theorem wp_MainPartition [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics]
+theorem wp_MainPartition [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     (h_Client__GetAt : EtcdGrove.kubernetes.Client.GetAt.spec (GF := GF) (hG := hG))
     (h_Client__List : EtcdGrove.kubernetes.Client.List.spec (GF := GF) (hG := hG)) :

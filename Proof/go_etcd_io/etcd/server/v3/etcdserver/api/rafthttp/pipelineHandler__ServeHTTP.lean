@@ -93,7 +93,7 @@ theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
         iunfold pipeReq at Hpr0
         icases Hpr0 with ⟨%st0, %Hst0, -, -⟩
         wp_apply Haddr $$ [$HR0]
-        · ipureintro; rw [← Hhvok.2, ← Hhost]; exact Hst0.2.2.2.2
+        · ipureintro; rw [← Hhvok.2, ← Hhost]; exact Hst0.2.2.2.2.2
         ihave #Hio : isPkgInit (PROP := IProp GF) pkg_id.io $$ []
         · iPkgInit
         ihave #Heof0 := io.eof_of_init $$ Hio
@@ -155,12 +155,20 @@ theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
           icases Hpr with ⟨%st, %Hst, #HP, #Hdep⟩
           wp_auto
           -- `proto.Unmarshal(b, &m)`: the body is an encoding, so it decodes
-          have hU := hUnmarshal pbMessage sl R.body (DFrac.own 1) m_ptr
-          simp only [pbMessage_ty, pbMessage_blank, pbMessage_wire] at hU
+          have hU := hUnmarshal pbMessageC pbMessageC_reg sl R.body (DFrac.own 1) m_ptr
+          simp only [pbMessageC_ty, pbMessageC_blank, pbMessageC_dec, pbMessageC_wire,
+            pbMessageC_modelOf, pbMessageC_C, pbMessageC_marshals, pbMessageC_ufValid,
+            pbMessageC_size, pbEncC_pbMessageC] at hU
           wp_apply hU $$ [$Hsl $m] as %uerr ⟨Hsl, %Hok, Hdec⟩
-          have Hue : uerr = GoInterface.nil := Hok ⟨st, Hst.1⟩
+          obtain ⟨c0, hc0m, hc0u, hc0cs, hc0b⟩ := Hst.2.1
+          have Hue : uerr = GoInterface.nil := Hok ⟨c0, by rw [hc0m]; exact Hst.1.1, hc0u, hc0b⟩
           subst Hue
-          ihave ⟨%m', Hm', %Hw'⟩ := Hdec $$ %rfl
+          ihave ⟨%c', Hm', %Hw0'⟩ := Hdec $$ %rfl
+          have hcc : c' = c0 := Hw0'.2.2.2 c0 (by rw [hc0m]; exact Hst.1.1) hc0u hc0b
+          ihave Hm' := Hm' $$ %(hcc ▸ hc0cs)
+          have Hw' : MsgWireOk c'.model R.body := by rw [hcc, hc0m]; exact Hst.1
+          clear Hw0' hcc
+          generalize c'.model = m' at Hw' ⊢
           wp_auto
           -- `receivedBytes.WithLabelValues(types.ID(m.GetFrom()).String()).Add(float64(len(b)))`
           ihave %Hsllen := ownSlice_len _ _ _ $$ Hsl
@@ -206,9 +214,9 @@ theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
             isplitr
             · ipureintro
               refine ⟨pbMessage_wire_eq Hst.1 Hw', ?_, Hw'.1⟩
-              rw [Hst.2.1, Hhost]; exact Hhvok.2
+              rw [Hst.2.2.1, Hhost]; exact Hhvok.2
             iunfold netSnapRecv
-            iintro %h; exact absurd h Hst.2.2.1
+            iintro %h; exact absurd h Hst.2.2.2.1
           iunfold nodeErr at Hperr
           icases Hperr with (%Hpn | #Hps | #Hpc)
           · -- `nil`: `204`

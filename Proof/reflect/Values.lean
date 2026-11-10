@@ -15,8 +15,10 @@ repository states the reasoning principles as axioms, here and in the specs of
 `Spec/reflect/{New,Value__Addr,Value__Type,Value__Interface}.lean` and
 `Spec/k8s_io/apimachinery/pkg/conversion/EnforcePtr.lean`:
 
-- the two instances, as axioms of higher priority than the generated `sorry`s (a `reflect.Value`
-  is a value like any other: allocated, loaded, stored); they hold of the real `Value`, a struct;
+- the two instances, of higher priority than the generated `sorry`s (a `reflect.Value` is a value
+  like any other: allocated, loaded, stored): the points-to is the heap's (`heapTypedPointsto`), from
+  the axiom `value_intoVal_inj` (`intoVal` is injective), and `value_into_val_typed` an axiom; they
+  hold of the real `Value`, a struct;
 - `reflElem v T p`: `v` is the addressable `reflect.Value` of the `T` at `p` (what
   `conversion.EnforcePtr` of a `*T` gives); `reflPtr w T p`: `w` is the `Value` of the pointer
   `p : *T`; `reflType rt T`: `rt` is the `reflect.Type` of `T`. Opaque: the specs say what they
@@ -46,9 +48,20 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- **A `reflect.Value` is a value** (the trust boundary; see the file header). -/
-@[instance high]
-axiom value_typed_pointsto : TypedPointsto (GF := GF) _root_.Perennial.reflect.Value
+/-- **`reflect.Value`'s `intoVal` is injective** (the trust boundary; see the file header): two
+`Value`s with the same GooseLang value are equal. True of the real `Value`, a struct (type, pointer,
+flags) that its representation determines. (premise-fixes-3, 2026-11-10: replaces the axiom
+`value_typed_pointsto`, which Lean elaborated as `{GF} → TypedPointsto Value`, independent of the
+heap instance `hG`: one points-to for every ghost heap. The points-to is now the heap's, as for the
+basic types: `heapTypedPointsto`.) -/
+axiom value_intoVal_inj [_root_.Perennial.reflect.Assumptions] :
+    go.IntoValInj _root_.Perennial.reflect.Value
+
+/-- **A `reflect.Value` is a value**: its points-to is the heap's (`heapTypedPointsto`), as for
+the basic types (`typedPointsto_loc`). -/
+noncomputable instance (priority := high) value_typed_pointsto [_root_.Perennial.reflect.Assumptions] :
+    TypedPointsto (GF := GF) _root_.Perennial.reflect.Value :=
+  heapTypedPointsto _root_.Perennial.reflect.Value (value_intoVal_inj (GF := GF)).intoVal_inj
 
 /-- **A `reflect.Value` is allocated, loaded and stored as a value** (the trust boundary). -/
 @[instance high]

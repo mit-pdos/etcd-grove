@@ -581,6 +581,8 @@ def bootstrapRestartContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfi
       mvcc.api.mvccImage D (kvModel γk A) (crevOf γk A) u) -∗
     {{ -- (sweep repairs 1, L4) a zap logger (`bootstrapContract`'s)
         zapLoggerOk cfg.Logger' ∗
+        -- (premise fixes 1) the feature gate (`bootstrapContract`'s)
+        (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
         -- (sweep repairs 1, B4) `ETCD_VERIFY` off (`bootstrapContract`'s)
         envVerifyOff ∗
         bootCfgRO cfg U ∗ memStorRegAuth M ∗

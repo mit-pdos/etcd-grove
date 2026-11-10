@@ -9204,6 +9204,11 @@ configuration `goose_adequacy` speaks of).
 
 ## `int64(f)`: a hypothesis class, not an axiom over every semantics (2026-10-18)
 
+*Superseded in part* (2026-11-10, "Premise fixes 1" below): the class `Float64ToInt64Semantics` itself
+contradicted Perennial once Perennial gained its own float-to-integer rule (`08d191151`); it is deleted.
+The general point (a missing fact as a hypothesis class, not an axiom) stands, with the caveat that
+every such class must be re-checked against `go.Semantics` at each Perennial pin.
+
 **2026-10-18 · adopted (branch `raft-retarget`; the axiom audit's first false axiom,
 `notes/audit.md`)**
 
@@ -34045,3 +34050,72 @@ the other examples', and decided its shape:
   `backend.Close`'s precondition: the backend's whole open token, from the server's census
   (`stop_census_open`) over the store's `mvccClosed` with every reader token (the goroutines give
   theirs back through the wait group) and the open token's shares `rc_open` used to drop.
+
+## Premise fixes 1: closed theorems' premises false of Go or of Perennial (2026-11-10 · etcd-grove-81's stage, from the read-only premise attack · branch `premise-fixes-1`)
+
+A read-only attack on `etcd_putget_safe`'s premises (each finding confirmed by an independent
+verifier; evidence in `/shared/tmp/premise-attack/`) found three ways the closed theorems were
+vacuous. Each fix narrows or removes a premise; no closed theorem gains one.
+
+1. **`Float64ToInt64Semantics` deleted.** The class asserted `int64(f)` steps to an uninterpreted
+   function of `f`; Perennial `08d191151` added `Float64Semantics.convert_float64_to_integer`
+   (an arbitrary value of the integer type) for the same instruction. Both are
+   `IsGoStepPureDet` equations, so with `go.Semantics` the class proved `False`
+   (`FloatFalse.lean`). Its three users needed nothing of the value: they take Perennial's arbitrary
+   `int64` (`wp_ArbitraryInt`). **The sweep** of the other hypothesis classes on the semantics
+   (`UntypedIntToFloat64Semantics`, `MutexLitSemantics`, `DialWithBalancerBody`, `log.NewModel`,
+   `os`'s `FieldAssumptions`, the method-set classes, `ContextReadErrs`, `ContextErrsClient`,
+   `ApiDeps`) found no rule of the pinned Perennial or of the generated assumptions on the same
+   instruction, function or method; the method-set classes are theorems of the generated
+   assumptions. (Lesson: a hypothesis class on the semantics needs re-checking at every Perennial
+   pin bump; the gate the attack proposed, deriving `False` mechanically, is not built.)
+2. **`bootstrapContract` takes the feature gate** (`nil`, or `isFeatureGate`), as
+   `storage.openPre` already did: `newBackend` asks a non-`nil` gate for `NonBlockingDefrag` and
+   `featuregate` panics on an unregistered feature (`examples/premisefix/bootfg`). The other free
+   configuration fields `bootstrap` reads lead to an error or to `bootOk` (`MaxLearners`,
+   `BackendBatchInterval` (a non-positive interval only spins the commit timer), `BackendFreelistType`,
+   `UnsafeNoFsync` (out of the WAL's API: no crash in the closed theorems), `MaxRequestBytes`,
+   `PreVote`, `PeerTLSInfo` (bad files: an error), `BootstrapTimeout`); `MemoryMlock`'s failure is
+   `storage.dbOpensOk`'s, by its docstring.
+3. **`bootMarshal` over the object `Bootstrap` builds** (`bootConfChange`: `Type`/`NodeId` set, `Id`
+   `nil`, no unknown fields; and the contexts non-empty, since an empty one's bytes depend on the
+   slice being `nil`): stated over `ownConfChange`, it covered objects Go marshals to other bytes
+   (`examples/premisefix/confchange`). **`pbMsg`'s unknown fields** are none or `proto.Unmarshal`'s
+   leftovers (`pbUnknownOk`, opaque `pbUnmarshalLeft`; considered: requiring `uf = []` in the
+   Marshal axioms' preconditions, which would have threaded a new fact through raft's API specs from
+   every caller): the `proto.MarshalConfChange(V2)` round trips are false for arbitrary bytes, true
+   for these. The axiom texts are unchanged; what `pbMsg` means is narrowed, which every producer
+   (struct allocation, the `Unmarshal` and `Clone` axioms) meets in Go.
+   *Merged with per-type models stage A* (lean `de9c19e020`): in the main tree `pbMsg` already
+   carries `ufWire (pbSchemaOf …) uf` (the decoder's leftovers at the type's schema), the same
+   narrowing made precise, so `pbUnknownOk`/`pbUnmarshalLeft` were dropped there; RaftWitness keeps
+   them.
+
+## Premise fixes 3: `reflect.Value`'s points-to is the heap's; `RecordEtcdRequest` takes `statusErrOk` (2026-11-10 · decided by etcd-grove-81 under the user's delegation · branch `premise-fixes-3`)
+
+Two defects in trust-boundary statements the closed k8s results rest on (found by etcd-grove-81's
+independent review).
+
+1. `reflectM.value_typed_pointsto` (`Proof/reflect/Values.lean`) was an axiom of type
+   `TypedPointsto reflect.Value`, which Lean elaborated as `{GF} → TypedPointsto Value` with no
+   heap instance `hG`: one points-to for every ghost heap, unrelated to the heap's. It is now an
+   instance, `heapTypedPointsto reflect.Value value_intoVal_inj.intoVal_inj`, the form of the basic
+   types' (`typedPointsto_loc`), over one new axiom `value_intoVal_inj [reflect.Assumptions] :
+   go.IntoValInj reflect.Value` (true of the real `Value`, a struct its representation
+   determines). No importer needed a change (they reach `reflect.Assumptions` through their
+   package's `Assumptions`).
+2. `metrics.RecordEtcdRequest.spec` returned for every `err`. Go's (`metrics.go:217-223` at the
+   apiserver pin `9c4ec15b8038`) calls `errorReason(err)` for a non-nil `err`, registered metrics or
+   not, and `errorReason` (`225-243`) calls grpc's `status.FromError`, which calls `GRPCStatus()`:
+   a typed-nil `*status.Error` panics (`examples/premisefix/recordetcdrequest`, own Go module). The
+   spec now takes `statusErrOk err`. For `txnError`'s result to have it, `ErrTransactionConflict`'s
+   init axiom, which gave some error, is restated as what Go has, `errors.New("transaction
+   conflict")` (`metrics.go:42`, checked by the Go test: message, `*errors.errorString`, `Error` its
+   only method), in gen-init.py's `newvars` form (`errorsNewVarsInit`, `errorsNewVarInitC`);
+   `metricsInit` is `errorsNewVar ErrTransactionConflict "transaction conflict"`; `txnError`'s post
+   is `statusErrOk err -∗ statusErrOk e` (`errorString_statusErrOk`, etcd3's `Base.lean`); the five
+   call sites take the client's `statusErrOk` from its post (`statusErrOk_split`).
+
+Trust base: `ErrTransactionConflict_init` → `metrics.errorsNewVarsInit`, `value_typed_pointsto` →
+`value_intoVal_inj`; count unchanged. Gates: step 9 (premise-fixes-1's text, skipped when the
+examples module holds no premisefix package) and 9b (each Go module under `examples/premisefix`).

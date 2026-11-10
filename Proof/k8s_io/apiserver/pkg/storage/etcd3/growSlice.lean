@@ -37,7 +37,7 @@ theorem growSlice.wp_proof
     (wp_Type : reflect.Value.Type.spec (GF := GF) (hG := hG))
     (wp_Set : reflect.Value.Set.spec (GF := GF) (hG := hG)) :
     growSlice.spec (GF := GF) (hG := hG) := by
-  intro Obj S L vp v p s os mx szs zs hmx
+  intro _ _ Obj S L vp v p s os mx szs zs hmx
   wp_start as ⟨#Hlc, %hv, Hp, Hit, #Hz⟩
   ihave #Pr : isPkgInit (PROP := IProp GF) pkg_id.reflect $$ []
   · iPkgInit

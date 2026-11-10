@@ -190,9 +190,12 @@ theorem store.Create.wp_proof
       · iframe #
         iexact Hau'
       (try wp_auto)
-      wp_apply wp_txnError as %te -
+      icases (k8s_io.apiserver.pkg.storage.etcd3.statusErrOk_split perr _ _ _) $$ Hput with ⟨#Hse0, Hput⟩
+      wp_apply wp_txnError as %te Hte
+      ihave #Hse := Hte $$ Hse0
       (try wp_auto)
       wp_apply (wp_RecordEtcdRequest go!"create" c.gr _ _ (by decide) Hutf.1 Hutf.2)
+      · iexact Hse
       (try wp_auto)
       icases Hput with (⟨%Hpe, %σ, ⟨HΨ, %Hwfσ, -⟩, %Hσ, Hkvo⟩ | ⟨%Hpe, %Hpce, #Hpse, #Hpcl⟩)
       · -- the transaction ran at σ

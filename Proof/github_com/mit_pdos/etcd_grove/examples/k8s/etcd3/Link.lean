@@ -617,7 +617,7 @@ theorem wp_Check :
     EtcdGrove.k8s_etcd3.Check.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.Check.wp_proof lintest.wp_Run lintest.wp_CounterClock wp_Model wp_newCache wp_Gen (wp_Apply h_Client__GetAt h_Client__List)
 
-theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.k8s_etcd3.Main.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.Main.wp_proof zap.wp_NewNop etcdstart.wp_StartServer etcdstart.wp_Serve kubernetes.wp_New wp_seed wp_noStreaming k8s.wp_New k8s.wp_NewDefaultLeaseManagerConfig wp_newObj runtime.wp_Encode codec.wp_Encode versioner.wp_UpdateObject versioner.wp_PrepareObjectForStorage versioner.wp_ObjectResourceVersion versioner.wp_ParseResourceVersion identity.wp_TransformFromStorage identity.wp_TransformToStorage decoder.wp_Decode runtime.wp_SetZeroValue Obj.wp_GetUID Obj.wp_GetResourceVersion (wp_Check h_Client__GetAt h_Client__List) mvcc.api.mvccApi_names_nonempty_law_holds
 

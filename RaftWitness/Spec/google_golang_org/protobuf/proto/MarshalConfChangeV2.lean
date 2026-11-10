@@ -39,7 +39,14 @@ encoding of every populated field and the unknown fields, and `proto.Unmarshal` 
 `ConfChangeV2` yields the same populated fields (proto2 presence: an unset scalar decodes unset and
 reads as `0`, as `CCV2M` records it; `Context`'s bytes are the same, a `nil` and an empty one both
 `[]`). No pure encoder is claimed (the bytes depend on which fields are set, which `CCV2M`
-forgets): the round trip is the postcondition. -/
+forgets): the round trip is the postcondition. (Premise fixes 1, 2026-11-10) The round trip
+holds for the unknown fields an object of the verified programs can hold, which `pbMsg` now
+constrains (`pbUnknownOk`: none, or what `proto.Unmarshal` left, which a re-decode puts back
+among the unknown fields), not for arbitrary bytes: a record of the message's own field number and
+wire type overrides that field, and garbage does not decode (the premise attack; Go:
+`examples/premisefix/confchange`, `TestRoundTripArbitraryUnknownFails` and
+`TestRoundTripUnmarshalLeftovers`). Until then `pbMsg` admitted any bytes and this axiom was false
+of `ProtoReflect().SetUnknown`'s objects (which no translated code makes). -/
 abbrev proto.MarshalConfChangeV2.spec : Prop :=
   ∀ (p : Loc) (dq : DFrac) (m : CCV2M),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗ ownCCV2 p dq m }}

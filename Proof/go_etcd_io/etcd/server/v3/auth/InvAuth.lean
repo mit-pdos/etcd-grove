@@ -2764,7 +2764,7 @@ def authenticated (M : AuthMode) (hs : List AuthState) (username : GoString) (re
     (err : GoInterface) : IProp GF :=
   iprop(⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∨
     (⌜err = GoInterface.nil⌝ ∗ ∃ (tok : GoString) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse),
-      resp ↦ v ∗ ⌜v.Token' = tok⌝ ∗ tokOk M tok username ∗ enabledVerdict M true ∗
+      resp ↦ v ∗ ⌜v.Token' = tok ∧ v.unknownFields' = slice.nil⌝ ∗ tokOk M tok username ∗ enabledVerdict M true ∗
       ⌜∃ sta : AuthState, histLast M hs sta ∧ (sta.users.lookup username).isSome⌝))
 
 /-- `err` is `nil` or one of the error variables the request side returns. -/

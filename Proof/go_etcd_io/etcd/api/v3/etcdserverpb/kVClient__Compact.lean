@@ -4,6 +4,7 @@ counterpart).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.client.v3.PerTypeKVRest
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.kVClient__Compact
 public import Spec.google_golang_org.grpc.StaticMethod
 public import Spec.google_golang_org.grpc.ClientConn__Invoke
@@ -53,8 +54,9 @@ theorem kVClient.Compact.wp_proof
   ihave Hblank : pbCompactionResponse (GF := GF) |>.blank «$r0_ptr» $$ [«$r0»]
   · simp only [pbCompactionResponse]
     iexact «$r0»
-  have hI := etcdConn_InvokeMd wp_Invoke conn addr go!"/etcdserverpb.KV/Compact" pbCompactionRequest pbCompactionResponse Spec ⟨req.Revision', req.Physical'⟩ Q ctx cd inp «$r0_ptr» copts
+  have hI := etcdConn_InvokeMd wp_Invoke conn addr go!"/etcdserverpb.KV/Compact" pbCompactionRequestT pbCompactionResponseT pbCompactionRequestT_reg pbCompactionResponseT_reg Spec ⟨req.Revision', req.Physical'⟩ Q ctx cd inp «$r0_ptr» copts
     ([sm] ++ vs)
+  simp only [pbCompactionRequestT, pbCompactionResponseT] at hI
   rw [show (pbCompactionRequest (GF := GF)).ty = etcdserverpb.CompactionRequest.ty from rfl,
     show (pbCompactionResponse (GF := GF)).ty = etcdserverpb.CompactionResponse.ty from rfl] at hI
   ihave Hpre := reqPre_scalar_app conn _ addr [sm] vs _ Hsms $$ Hpre

@@ -1,6 +1,6 @@
 /-
-The trust boundary: `proto.Size` of any message type at the bytes (names-only; the message types
-are `PbType`s, `InvProto.lean`).
+The trust boundary: `proto.SizePb.spec` (names-only; registered message types at their wire content,
+`InvProto.lean`; per-type models, stage A, CP2).
 -/
 module
 

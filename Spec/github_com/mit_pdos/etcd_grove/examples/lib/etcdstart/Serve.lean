@@ -1,5 +1,5 @@
 /-
-`Serve(s, addr)` (`examples/lib/etcdstart/etcdstart.go`; 2026-10-22, D33): a started member's gRPC API served
+`Serve(s, addr)` (`examples/lib/etcdstart/common.go`; 2026-10-22, D33): a started member's gRPC API served
 on a listener at `addr` -- `v3rpc.Server(s, nil, nil, grpc.KeepaliveEnforcementPolicy(...))` (the
 clients' keepalive pings allowed every 5s, as etcd's `embed`; since 2026-10-23,
 `notes/client-timeouts-plan.md` D-T5, as linkv3p's `startMember` since D28), `net.Listen("tcp",

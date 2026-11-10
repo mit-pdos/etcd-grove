@@ -24,7 +24,6 @@ public import Spec.math.rand.Float64
 public import Spec.time.Duration__Seconds_ptr
 public import Spec.k8s_io.apimachinery.pkg.api.errors.IsTooManyRequests
 public import Spec.k8s_io.apimachinery.pkg.api.errors.IsInternalError
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.FloatToInt
 
 @[expose] public section
 
@@ -112,7 +111,7 @@ local macro "ret_seen" : tactic => `(tactic| (
     iright
     iexact Hseen))
 
-theorem Reflector.watch.wp_proof [Float64ToInt64Semantics]
+theorem Reflector.watch.wp_proof
     (wp_handleWatch : handleWatch.spec (GF := GF) (hG := hG))
     (wp_LastSyncResourceVersion : Reflector.LastSyncResourceVersion.spec (GF := GF) (hG := hG))
     (wp_setLastSyncResourceVersion : Reflector.setLastSyncResourceVersion.spec (GF := GF) (hG := hG))
@@ -206,6 +205,10 @@ theorem Reflector.watch.wp_proof [Float64ToInt64Semantics]
     wp_apply (wp_Seconds_ptr _ mx) $$ [$Htime $Hmx] as %f3 Hmx
     (try wp_auto)
     wp_apply (wp_Seconds_ptr _ mn) $$ [$Htime $Hmn] as %f4 Hmn
+    (try wp_auto)
+    -- the timeout's `int64(...)` of a `float64`: an arbitrary `int64` (Perennial's
+    -- `Float64Semantics.convert_float64_to_integer`)
+    wp_apply wp_ArbitraryInt as %tos -
     (try wp_auto)
     wp_apply (wp_LastSyncResourceVersion r (rvStr w0) u) $$ [$Hpkg $Hown] as Hown
     (try wp_auto)

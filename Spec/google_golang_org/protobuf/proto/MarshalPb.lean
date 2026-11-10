@@ -1,6 +1,8 @@
 /-
-`proto.Marshal` of any message type at the bytes: the trust boundary (`google.golang.org/protobuf`
-is names-only), stated over a `PbType` (`InvProto.lean`). Lean-first.
+`proto.Marshal` of a registered message type at its wire content (per-type models, stage A; the
+stage A prototype's `pbutil/PerTypeMarshal.lean`, made the trust boundary in CP2): over a registered
+pair (`pbModelOf`, `InvProto.lean`). Next to today's `proto.MarshalPb.spec` (CP3 rewires the
+users). Lean-first.
 -/
 module
 
@@ -21,19 +23,24 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- `proto.Marshal(m)` of a read-only-for-good `*T` holding `m`, a message that `marshals`, returns
-a fresh slice of its encoding, an encoding of `m`, and `nil`.
+/-- **`proto.Marshal(m)` of a frozen `*T` of a registered type holding the wire content `c`**, which
+marshals and whose size is below `2^48` (Go's `maxAlloc`): a fresh slice of its encoding
+`pbEncC I c`, and `nil`. What the encoding is comes from the generic `pbEncC_ok` (a theorem from
+the instance's encoder axiom), not from this spec.
 
-Against protobuf-go v1.36.11 (`proto/encode.go`): `Marshal` fails only on a missing required field,
-invalid UTF-8 in a proto3 string or a message changed while it is encoded, which the instance's
-`marshals` and `ro` exclude; an empty encoding is a non-nil empty slice. -/
+Against protobuf-go v1.36.12 (`proto/encode.go:105`, `:174`): `Marshal` sizes, allocates and
+appends the encoding (`internal/impl/encode.go`); it fails only on a missing required field,
+invalid UTF-8 in a proto3 string or a message changed while it is encoded, which `marshals` and
+the frozen `roC` exclude; an allocation above `maxAlloc` panics, which the size premise excludes;
+an empty encoding is a non-nil empty slice. -/
 abbrev proto.MarshalPb.spec : Prop :=
-  ∀ (T : PbType GF) (l : Loc) (m : T.M), T.marshals m →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗ T.ro l m }}
+  ∀ (I : PbTypeC GF), pbModelOf GF I.data.ty = some I →
+  ∀ (l : Loc) (c : I.data.C), I.data.marshals (I.data.modelOf c) → I.data.size c < 2 ^ 48 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗ I.data.roC l c }}
     (App (Val (@! google_golang_org.protobuf.proto.Marshal))
-      (Val #(interface.mkOk (go.GoType.PointerType T.ty) #l)))
+      (Val #(interface.mkOk (go.GoType.PointerType I.data.ty) #l)))
   {{ (d : GoSlice), RET (PairV #d #(GoInterface.nil));
-      d ↦* pbEnc T.ty l ∗ ownSliceCap w8 d (DFrac.own 1) ∗ ⌜T.wire m (pbEnc T.ty l)⌝ }}
+      d ↦* pbEncC I c ∗ ownSliceCap w8 d (DFrac.own 1) }}
 
 end spec
 

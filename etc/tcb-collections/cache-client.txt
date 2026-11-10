@@ -105,6 +105,16 @@ axiom mvcc.kvHasher.Hash.wp_proof
 axiom mvcc.kvHasher.WriteKeyValue.wp_proof
 axiom mvcc.newKVHasher.wp_proof
 axiom netListenerAt
+axiom pbCompactionRequestT_reg
+axiom pbCompactionResponseT_reg
+axiom pbDeleteRangeRequestT_reg
+axiom pbDeleteRangeResponseT_reg
+axiom pbPutRequestT_reg
+axiom pbPutResponseT_reg
+axiom pbRangeRequestT_reg
+axiom pbRangeResponseT_reg
+axiom pbTxnRequestT_reg
+axiom pbTxnResponseT_reg
 axiom promSrvMetrics
 axiom prometheus.CounterVec.WithLabelValues.wp_proof
 axiom prometheus.HistogramVec.WithLabelValues.wp_proof
@@ -133,6 +143,8 @@ axiom traceutil.Trace.LogWithStepThreshold.wp_proof
 axiom traceutil.Tracer.Start.wp_proof
 axiom txn.RangeSecObserve.wp_proof
 axiom v3rpc.isClientCtxErr.wp_proof
+axiom v3rpc.pbWatchRequestT_reg
+axiom v3rpc.pbWatchResponseT_reg
 axiom verify.Verify.wp_proof
 axiom zap.Duration.wp_proof
 axiom zap.Error.wp_proof

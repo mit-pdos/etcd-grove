@@ -132,6 +132,7 @@ axiom context.WithCancelBackground.wp_proof
 axiom context.WithValue.wp_proof
 axiom dataDirFresh
 axiom encoding.json.Unmarshal.wp_proof
+axiom entryEncC_ok
 axiom envVerifyOffTok
 axiom errors.AsLeaf.wp_proof
 axiom errors.IsCtxErr.wp_proof
@@ -198,13 +199,15 @@ axiom membership.membersOf_decode
 axiom membership.setIsLearnerMetric.wp_proof
 axiom metadata.FromIncomingContext.wp_proof
 axiom monitorFileDescriptor.wp_proof
+axiom msgEncC_ok
 axiom mvcc.hashStorage.Store.wp_proof
 axiom mvcc.kvHasher.Hash.wp_proof
 axiom mvcc.kvHasher.WriteKeyValue.wp_proof
 axiom mvcc.newKVHasher.wp_proof
 axiom newCorruptionChecker.wp_proof
 axiom os.Rename.wp_proof
-axiom pbEnc_ok
+axiom pbEntryC_reg
+axiom pbMessageC_reg
 axiom pbutil.MustUnmarshalMessage.wp_proof
 axiom probing.NewHandler.wp_proof
 axiom probing.NewProber.wp_proof

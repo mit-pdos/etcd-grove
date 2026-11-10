@@ -1125,7 +1125,9 @@ transactions, `notes/txn-nested.md`); the decoded copy denotes the same transact
 (`txn.txnRequestIs`: the txn package's model of the server's request) and is as protobuf decodes it
 (`txnWireOk`: each delete's `RangeEnd`, at every depth, `nil` or not empty, an empty `bytes` field
 being decoded as `nil`; fewer than `2 ^ 63` deletes per branch, at every depth, each at least a byte
-of the message). -/
+of the message). Its `wireLen` (`txnWireLen`) is claimed for messages whose nested levels have no
+unknown fields: only the outer struct's are pinned (`send`), the nested levels' are neither pinned
+nor counted (`ProtoMsg.wireLen`'s scope). -/
 def pbTxnRequest : ProtoMsg GF where
   ty := etcdserverpb.TxnRequest.ty
   M := TxnModel
@@ -1323,7 +1325,9 @@ contract's premise, `grpcInvokerOk`), it returns
   about whether, or how often, the handler ran, nor about `out`. -/
 def etcdInterceptorOk (ic : GoFunc) : IProp GF :=
   iprop(□ ∀ (conn : Loc) (addr : List GoString) (ics : List GoFunc) (dopts : List GoInterface)
-      (inv : GoFunc) (method : GoString) (Req Rep : ProtoMsg GF) (Spec : GrpcSpecMd Req Rep)
+      (inv : GoFunc) (method : GoString) (Req Rep : ProtoMsgT GF)
+      (_ : grpcReqModelOf GF Req.ty = some Req) (_ : grpcRepModelOf GF Rep.ty = some Rep)
+      (Spec : GrpcSpecMd Req.toProtoMsg Rep.toProtoMsg)
       (m : Req.M) (Φ : Rep.M → IProp GF) (ctx : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF)) (inp out : Loc) (opts : GoSlice)
       (vs : List GoInterface),
@@ -1365,7 +1369,9 @@ def modePre (md : AttemptMode) (method : GoString) (addr : List GoString) (vs : 
 `etcdInterceptorOkW` (`.write`). -/
 def etcdInterceptorOkM (md : AttemptMode) (ic : GoFunc) : IProp GF :=
   iprop(□ ∀ (conn : Loc) (addr : List GoString) (ics : List GoFunc) (dopts : List GoInterface)
-      (inv : GoFunc) (method : GoString) (Req Rep : ProtoMsg GF) (Spec : GrpcSpecMd Req Rep)
+      (inv : GoFunc) (method : GoString) (Req Rep : ProtoMsgT GF)
+      (_ : grpcReqModelOf GF Req.ty = some Req) (_ : grpcRepModelOf GF Rep.ty = some Rep)
+      (Spec : GrpcSpecMd Req.toProtoMsg Rep.toProtoMsg)
       (m : Req.M) (Φ : Rep.M → IProp GF) (ctx : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF)) (inp out : Loc) (opts : GoSlice)
       (vs : List GoInterface),
@@ -1402,9 +1408,10 @@ theorem etcdInterceptorOkM_split (ic : GoFunc) :
   isplitl []
   · ihave #H0 := H $$ %AttemptMode.any
     unfold etcdInterceptorOkM etcdInterceptorOk
-    iintro !> %conn %addr %ics %dopts %inv %method %Req %Rep %Spec %m %Φ %ctx %cd %inp %out %opts
-      %vs %Ψ !> ⟨#Hgc, #Hinv, #Hrpc, #Hpre, #Hctx, Hsend, Hblank, #Hopts, #Hok, #Hsz⟩ HΨ
-    iapply H0 $$ [Hsend Hblank] HΨ
+    iintro !> %conn %addr %ics %dopts %inv %method %Req %Rep %hreq %hrep %Spec %m %Φ %ctx %cd %inp
+      %out %opts %vs %Ψ !> ⟨#Hgc, #Hinv, #Hrpc, #Hpre, #Hctx, Hsend, Hblank, #Hopts, #Hok, #Hsz⟩ HΨ
+    iapply H0 $$ %conn %addr %ics %dopts %inv %method %Req %Rep %hreq %hrep %Spec %m %Φ %ctx %cd
+      %inp %out %opts %vs %Ψ [Hsend Hblank] HΨ
     unfold modePre
     iframe #
     iframe

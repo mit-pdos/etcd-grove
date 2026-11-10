@@ -1,7 +1,8 @@
 /-
 Lean-first (no Rocq counterpart).
 
-The proof of `txnError`: `err`, or the metrics package's `ErrTransactionConflict` (`metricsInit`).
+The proof of `txnError`: `err`, or the metrics package's `ErrTransactionConflict` (`metricsInit`, an
+`errors.New` error: `statusErrOk` by `errorString_statusErrOk`), or `nil`.
 -/
 module
 
@@ -33,16 +34,21 @@ theorem txnError.wp_proof : txnError.spec (GF := GF) (hG := hG) := by
   wp_start
   ihave #Pm : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3.metrics $$ []
   · iPkgInit
-  ihave #Hm : (k8s_io.apiserver.pkg.storage.etcd3.metricsInit : IProp GF) $$ []
+  ihave #Hm : (EtcdGrove.errorsNewVar (GF := GF)
+      k8s_io.apiserver.pkg.storage.etcd3.metrics.ErrTransactionConflict go!"transaction conflict") $$ []
   · iapply isPkgInit_access $$ Pm
-  icases Hm with ⟨%e, #He⟩
+  iunfold EtcdGrove.errorsNewVar at Hm
+  icases Hm with ⟨%x, #Hx, #HM⟩
   wp_auto
   cases err with
   | ok ei =>
     wp_auto
-    iapply HΦ; itrivial
+    iapply HΦ; iintro #H; iexact H
   | nil =>
-    cases succeeded <;> wp_auto <;> (iapply HΦ; itrivial)
+    cases succeeded <;> wp_auto
+    · iapply HΦ; iintro -
+      iapply k8s_io.apiserver.pkg.storage.etcd3.errorString_statusErrOk x _ $$ HM
+    · iapply HΦ; iintro #H; iexact H
 
 end proof
 

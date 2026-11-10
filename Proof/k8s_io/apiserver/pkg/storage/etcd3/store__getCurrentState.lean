@@ -90,7 +90,9 @@ theorem store.getCurrentState.wp_proof
   · iframe #
     iexact Hmk
   (try wp_auto)
+  icases (k8s_io.apiserver.pkg.storage.etcd3.statusErrOk_split gerr _ _ _) $$ Hget with ⟨#Hse, Hget⟩
   wp_apply (wp_RecordEtcdRequest verb c.gr _ _ hverb Hutf.1 Hutf.2)
+  · iexact Hse
   icases Hget with (⟨%Hgerr, %σ, #HR, %Hσ, #Hkv⟩ | ⟨%Hgerr, %Hgce, #Hgse, #Hgcl⟩)
   · subst Hgerr
     obtain ⟨hrevσ, hb, hvals⟩ := Hσ

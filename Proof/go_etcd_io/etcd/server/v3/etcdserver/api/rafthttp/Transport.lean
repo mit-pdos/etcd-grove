@@ -131,12 +131,14 @@ def peerStop (Rh : RaftHttp GF) (pid : w64) (R : IProp GF) (p : Loc) : IProp GF 
 
 /-- **A message for the peer `pid` of the member `lid`** (what `peer.send` takes; stage 6b): read-only,
 marshalable, for `pid`, not a snapshot, without responses, with its bundle; a `MsgApp` of raft's
-shape from `lid` (what the msgappv2 stream encodes: `V2EncOk`); its encoding below `2^50` bytes
-(`swMsgBound`: `swMsgBound_phys`, the user's choice in stage 6d). -/
+shape from `lid` (what the msgappv2 stream encodes: `V2EncOk`); its wire content, of size below
+`2^47` bytes (`swMsgBound`: `swMsgBound_phys`, the user's choice in stage 6d, restated over the
+content in stage A of the per-type models). -/
 def peerMsg (Rh : RaftHttp GF) (lid pid : w64) (ml : Loc) : IProp GF :=
-  iprop(∃ st : MsgSt, msgOwn ml DFrac.discard st ∗ □ Rh.γn.N.P st ∗ Rh.γn.N.O st ∗
+  iprop(∃ st : MsgSt, msgOwn ml DFrac.discard st ∗ swMsgBound ml st ∗ □ Rh.γn.N.P st ∗
+    Rh.γn.N.O st ∗
     ⌜MsgMarshals st ∧ st.msg.To' = pid ∧ st.msg.Type' ≠ MsgSnap ∧ st.resps = [] ∧
-      (st.msg.Type' = MsgApp → AppShape st ∧ st.msg.From' = lid) ∧ swMsgBound ml⌝)
+      (st.msg.Type' = MsgApp → AppShape st ∧ st.msg.From' = lid)⌝)
 
 /-- What the remote `g`'s mutex guards: `paused` (J8a-7, 2026-11-01: the fork's
 `goose-lean-remotepause`, a remote paused by a flag as a peer). -/
@@ -168,9 +170,10 @@ def remoteStop (Rh : RaftHttp GF) (pid : w64) (R : IProp GF) (g : Loc) : IProp G
 /-- **A message the member `lid` sends** (what `Transport.Send` takes; stage 6c): `peerMsg`'s but
 for its recipient, `Send`'s routing (by `To`). -/
 def sendMsg (Rh : RaftHttp GF) (lid : w64) (ml : Loc) : IProp GF :=
-  iprop(∃ st : MsgSt, msgOwn ml DFrac.discard st ∗ □ Rh.γn.N.P st ∗ Rh.γn.N.O st ∗
+  iprop(∃ st : MsgSt, msgOwn ml DFrac.discard st ∗ swMsgBound ml st ∗ □ Rh.γn.N.P st ∗
+    Rh.γn.N.O st ∗
     ⌜MsgMarshals st ∧ st.msg.Type' ≠ MsgSnap ∧ st.resps = [] ∧
-      (st.msg.Type' = MsgApp → AppShape st ∧ st.msg.From' = lid) ∧ swMsgBound ml⌝)
+      (st.msg.Type' = MsgApp → AppShape st ∧ st.msg.From' = lid)⌝)
 
 end defs
 
@@ -180,16 +183,30 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **The trust boundary: no raft message's encoding reaches `2^50` bytes** (2026-10-24, rafthttp
-stage 6d, the user's choice): the encoding of a read-only message is below `2^50` bytes (a
-petabyte; `swMsgBound`), a physical fact, like `netProcSlots`: no machine holds a message that
-large. The stream writer sums the sizes of up to 2049 messages into an `int` it adds to a
-prometheus counter, whose `Add` panics on a negative value; the sum stays below `2^62`. (Stage 6's
-choice (3), a panicking `Add` the writer's goroutine may reach, is not provable: Perennial's
-`wp_fork` asks a goroutine not to panic.) Not derivable in the logic, which can allocate a slice of
-any `w64` length: `pbEnc_ok` bounds the encoding by `2^63` only (an `int`, Go's semantics). -/
-axiom swMsgBound_phys (ml : Loc) (st : MsgSt) :
-    msgOwn (GF := GF) ml DFrac.discard st ⊢ ⌜swMsgBound ml⌝
+/-- **The trust boundary: no raft message's encoding reaches `2^47` bytes** (2026-10-24, rafthttp
+stage 6d, the user's choice; **restated in stage A of the per-type models**, 2026-11-07, over the
+wire content: a read-only message is frozen at a wire content of its model whose size is below
+`2^47` bytes, `swMsgBound`; until then, its address's encoding below `2^50` bytes). Meant as a
+physical fact, like `netProcSlots`: no machine holds a message that large. The stream writer sums
+the sizes of up to 2049 messages into an `int` it adds to a prometheus counter, whose `Add` panics
+on a negative value; the sum stays below `2^62`. (Stage 6's choice (3), a panicking `Add` the
+writer's goroutine may reach, is not provable: Perennial's `wp_fork` asks a goroutine not to
+panic.) Not derivable in the logic, which can allocate a slice of any `w64` length.
+
+**Warning: this axiom is false, and tracked as such** (raft-entsize deletes it, deriving the bound
+from raft's `out_size`): the "physical" justification fails under aliasing, since a message's
+entries may share one object (`msgPtsC`'s entries are read-only), so `2^18` references to one
+`2^32`-byte entry encode to about `2^50` bytes held in about 4 GiB of memory (the per-type
+Scope's review, revision 2). It is **inconsistent in the logic in general** (the stage A re-Freeze
+review): the logic can allocate a slice of any `w64` length, so a program that allocates an
+oversized (or aliased) message without responses and freezes it through the proved `pbMsg_alloc`
+refutes it. The premise `st.resps = []` (which every user has, `MsgMarshals`) only removes one
+refutation, a `nil` response: `swMsgBound` freezes every response at a content (`msgRoC`, a non-nil,
+read-only pointer), which `msgOwn` does not own. raft-entsize deletes the axiom (stage A landed ahead of it, the user's decision of 2026-11-09; until then this false axiom is on lean, as its earlier form was). The content it gives has a snapshot
+`ConfState` without unknown fields (`MsgC.csUfNil`): the sender's fact, since `msgOwn`'s `csPts`
+(raft's) fixes them to none. -/
+axiom swMsgBound_phys (ml : Loc) (st : MsgSt) (h : st.resps = []) :
+    msgOwn (GF := GF) ml DFrac.discard st ⊢ swMsgBound ml st
 
 /-- **A message in the network's bundle is one the transport's `Send` takes** (stage 6d): the
 bundle's facts (`netBundle`), and its encoding's bound (`swMsgBound_phys`). -/
@@ -198,12 +215,12 @@ theorem sendMsg_of_netBundle (Rh : RaftHttp GF) (lid : w64) (ml : Loc) :
   iintro Hb
   iunfold netBundle at Hb
   icases Hb with ⟨%st, #Hm, #HP, HO, %H⟩
-  ihave %Hbd := swMsgBound_phys ml st $$ Hm
+  ihave #Hbd := swMsgBound_phys ml st H.2.1 $$ Hm
   iunfold sendMsg
   iexists st
   iframe; iframe #
   ipureintro
-  exact ⟨H.2.1, H.1, H.2.1, H.2.2, Hbd⟩
+  exact ⟨H.2.1, H.1, H.2.1, H.2.2⟩
 
 /-- A started peer's stream writers (what the stream handler's `Get` gives). -/
 theorem peerStreams_of_peerOk (Rh : RaftHttp GF) (lid pid : w64) (γd : GName) (R : IProp GF)
@@ -222,7 +239,7 @@ theorem pipeMsg_of_peerMsg (Rh : RaftHttp GF) (lid pid : w64) (ml : Loc) :
     peerMsg Rh lid pid ml ⊢ pipeMsg Rh pid ml := by
   iintro Hpm
   iunfold peerMsg at Hpm
-  icases Hpm with ⟨%st, Hm, #HP, HO, %H⟩
+  icases Hpm with ⟨%st, Hm, #Hb, #HP, HO, %H⟩
   iunfold pipeMsg
   iexists st
   iframe; iframe #
@@ -233,28 +250,28 @@ theorem swMsg_message_of_peerMsg (Rh : RaftHttp GF) (lid pid : w64) (ml : Loc) :
     peerMsg Rh lid pid ml ⊢ swMsg Rh .message lid pid ml := by
   iintro Hpm
   iunfold peerMsg at Hpm
-  icases Hpm with ⟨%st, Hm, #HP, HO, %H⟩
+  icases Hpm with ⟨%st, Hm, #Hb, #HP, HO, %H⟩
   iunfold swMsg
   iexists st
   iframe; iframe #
   ipureintro
-  exact ⟨H.1, H.2.1, H.2.2.1, H.2.2.2.1, fun h => absurd h (by decide), H.2.2.2.2.2⟩
+  exact ⟨H.1, H.2.1, H.2.2.1, H.2.2.2.1, fun h => absurd h (by decide)⟩
 
 /-- A peer's `MsgApp` (its type known of the message's state) is the msgappv2 stream's. -/
 theorem swMsg_v2_of_peerMsg (Rh : RaftHttp GF) (lid pid : w64) (ml : Loc) (st : MsgSt)
     (Hm : MsgMarshals st ∧ st.msg.To' = pid ∧ st.msg.Type' ≠ MsgSnap ∧ st.resps = [] ∧
-      (st.msg.Type' = MsgApp → AppShape st ∧ st.msg.From' = lid) ∧ swMsgBound ml)
+      (st.msg.Type' = MsgApp → AppShape st ∧ st.msg.From' = lid))
     (hty : st.msg.Type' = MsgApp) :
-    ⊢ msgOwn ml DFrac.discard st -∗ □ Rh.γn.N.P st -∗ Rh.γn.N.O st -∗
+    ⊢ msgOwn ml DFrac.discard st -∗ swMsgBound ml st -∗ □ Rh.γn.N.P st -∗ Rh.γn.N.O st -∗
       swMsg Rh .msgAppV2 lid pid ml := by
-  iintro Hm' #HP HO
+  iintro Hm' #Hb #HP HO
   iunfold swMsg
   iexists st
   iframe; iframe #
   ipureintro
-  obtain ⟨hmar, hto, hns, hrs, happ, hb⟩ := Hm
+  obtain ⟨hmar, hto, hns, hrs, happ⟩ := Hm
   obtain ⟨hsh, hfr⟩ := happ hty
-  exact ⟨hmar, hto, hns, hrs, fun _ => ⟨hmar, Or.inr ⟨hty, hsh, hfr, hto⟩⟩, hb⟩
+  exact ⟨hmar, hto, hns, hrs, fun _ => ⟨hmar, Or.inr ⟨hty, hsh, hfr, hto⟩⟩⟩
 
 end lemmas
 

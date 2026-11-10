@@ -83,7 +83,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 variable [NaInvG GF]
 
 /-- **`Main` does not panic** (`Link.lean`'s `k8s_etcd3.wp_Main`). -/
-theorem k8setcd3_Main [go_etcd_io.etcd.cache.v3.Assumptions] [Float64ToInt64Semantics]
+theorem k8setcd3_Main [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [ContextReadErrs (GF := GF) (hG := hG)]
     (h_Client__GetAt : kubernetes.Client.GetAt.spec (GF := GF) (hG := hG))
     (h_Client__List : kubernetes.Client.List.spec (GF := GF) (hG := hG)) :
@@ -91,7 +91,7 @@ theorem k8setcd3_Main [go_etcd_io.etcd.cache.v3.Assumptions] [Float64ToInt64Sema
   k8s_etcd3.wp_Main h_Client__GetAt h_Client__List
 
 /-- **`MainCluster` does not panic** (`MainLinked.lean`'s `k8s_etcd3.wp_MainCluster`). -/
-theorem k8setcd3_MainCluster [go_etcd_io.etcd.cache.v3.Assumptions] [Float64ToInt64Semantics]
+theorem k8setcd3_MainCluster [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [ContextReadErrs (GF := GF) (hG := hG)]
     (h_Client__GetAt : kubernetes.Client.GetAt.spec (GF := GF) (hG := hG))
     (h_Client__List : kubernetes.Client.List.spec (GF := GF) (hG := hG)) :
@@ -99,7 +99,7 @@ theorem k8setcd3_MainCluster [go_etcd_io.etcd.cache.v3.Assumptions] [Float64ToIn
   k8s_etcd3.wp_MainCluster h_Client__GetAt h_Client__List
 
 /-- **`MainPartition` does not panic** (`MainLinked.lean`'s `k8s_etcd3.wp_MainPartition`). -/
-theorem k8setcd3_MainPartition [go_etcd_io.etcd.cache.v3.Assumptions] [Float64ToInt64Semantics]
+theorem k8setcd3_MainPartition [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [ContextReadErrs (GF := GF) (hG := hG)]
     (h_Client__GetAt : kubernetes.Client.GetAt.spec (GF := GF) (hG := hG))
     (h_Client__List : kubernetes.Client.List.spec (GF := GF) (hG := hG)) :
@@ -120,7 +120,7 @@ theorem k8s_etcd3_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [k8s_io.apiserver.pkg.storage.etcd3.Assumptions] [k8s_io.apimachinery.pkg.runtime.Assumptions]
     [k8s_io.apimachinery.pkg.runtime.schema.Assumptions] [k8s_io.apiserver.pkg.storage.Assumptions]
     [k8s_io.apiserver.pkg.storage.value.Assumptions]
-    [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC k8setcd3GF, ContextReadErrs (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
     (Hpl : ∀ hG : HeapGS .hasLC k8setcd3GF,
@@ -165,7 +165,7 @@ theorem k8s_etcd3_cluster_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [k8s_io.apiserver.pkg.storage.etcd3.Assumptions] [k8s_io.apimachinery.pkg.runtime.Assumptions]
     [k8s_io.apimachinery.pkg.runtime.schema.Assumptions] [k8s_io.apiserver.pkg.storage.Assumptions]
     [k8s_io.apiserver.pkg.storage.value.Assumptions]
-    [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC k8setcd3GF, ContextReadErrs (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
     (Hpl : ∀ hG : HeapGS .hasLC k8setcd3GF,
@@ -210,7 +210,7 @@ theorem k8s_etcd3_partition_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [k8s_io.apiserver.pkg.storage.etcd3.Assumptions] [k8s_io.apimachinery.pkg.runtime.Assumptions]
     [k8s_io.apimachinery.pkg.runtime.schema.Assumptions] [k8s_io.apiserver.pkg.storage.Assumptions]
     [k8s_io.apiserver.pkg.storage.value.Assumptions]
-    [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC k8setcd3GF, ContextReadErrs (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
     (Hpl : ∀ hG : HeapGS .hasLC k8setcd3GF,

@@ -94,7 +94,7 @@ theorem v3rpc.newStreamInterceptor.wp_proof
   iapply HΦ
   iframe Hgr Hlg
   unfold srvStreamInterceptorOk
-  iintro !> %Req %Rep %Up %Dn %γ %ci %cd %srv %st %info %h %Ψ HR #Hss #Hinfo Hk
+  iintro !> %Req %Rep %hreq %hrep %Up %Dn %γ %ci %cd %srv %st %info %h %Ψ HR #Hss #Hinfo Hk
   iunfold streamInterceptorCall
   wp_auto
   wp_apply wp_with_defer as %defer defer
@@ -109,7 +109,7 @@ theorem v3rpc.newStreamInterceptor.wp_proof
   ipersist info
   wp_join (Q := fun v => iprop((⌜v = executeVal⌝ ∗ «$res0_ptr» ↦ GoInterface.nil ∗
       ((∀ (st' : GoInterface) (cd' : context.ContextDesc (IProp GF)),
-          srvRawStreamIs st' γ Req Rep Up Dn ci cd' -∗
+          srvRawStreamIs st' γ Req.toStreamMsg Rep.toStreamMsg Up Dn ci cd' -∗
           WP (streamHandlerCall #h #srv #st')
             {{ v, ∃ err : GoInterface, ⌜v = #err⌝ ∗ (True -∗ Ψ v) }}) ∧
         (True -∗ ∀ err : GoInterface, ⌜err ≠ GoInterface.nil⌝ -∗ Ψ #err))) ∨

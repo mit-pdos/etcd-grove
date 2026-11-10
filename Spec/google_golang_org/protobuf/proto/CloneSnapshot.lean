@@ -31,7 +31,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 holding `s`, owned, its metadata and conf state fresh too (a deep copy); of a nil `*pb.Snapshot`
 (an invalid message), a nil `*pb.Snapshot`.
 
-Against protobuf-go v1.36.11: `Clone` merges into a new message, recursively for message fields
+Against protobuf-go v1.36.12: `Clone` merges into a new message, recursively for message fields
 (`mergeMessage` allocates the destination's `Metadata`, then its `ConfState`), copying bytes
 (`Data`) and repeated scalars (the conf state's lists: `append` onto the empty destination) and
 the unknown fields; it only reads the source. "If the top-level message is invalid, it returns

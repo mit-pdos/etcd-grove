@@ -31,7 +31,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `proto.Equal(cs1, cs2)` of two `*pb.ConfState`s holding `c1` and `c2`, each with its
 `AutoLeave` set (`csPts _ _ _ true`), is `true` iff `c1 = c2`.
 
-Against protobuf-go v1.36.11 (`proto/equal.go`, `internal/impl/equal.go`): two valid messages
+Against protobuf-go v1.36.12 (`proto/equal.go`, `internal/impl/equal.go`): two valid messages
 are equal iff they have the same populated known fields with equal values and equal unknown
 fields; repeated fields are equal iff of the same length with equal elements (`nil` and empty
 alike); an optional `bool` is populated iff its pointer is set. Both `AutoLeave`s are set (the

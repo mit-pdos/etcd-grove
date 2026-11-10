@@ -31,7 +31,7 @@ trivial extension (`common/TrivialExt.lean`; the proofs are generic over the ext
   time-receipt bounds; it also gives `n + 7 ≤ backend.wbInit`, the backend's write-back budget
   `bootstrap`'s contract takes, since 2026-11-01 derived instead of assumed);
 * the semantics: `go.Semantics`, the package assumptions (`putgetc`'s, the cache's), and the
-  model classes the proofs take (`Float64ToInt64Semantics`, `DialWithBalancerBody`,
+  model classes the proofs take (`DialWithBalancerBody`,
   `log.NewModel`; the method-set facts, `v3rpc.ServerMethodSets`, `errors.AsTarget` of
   `rpctypes.EtcdError`, `ErrorStringLeaf`, `RpctypesEtcdErrorMethods`, are theorems of the
   package assumptions), and `ContextReadErrs` (`context.Canceled`'s and `DeadlineExceeded`'s method
@@ -121,7 +121,7 @@ thread is stuck; no thread has ended in a panic. -/
 theorem etcd_compacted_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.compacted.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC putgetcGF, ContextReadErrs (GF := putgetcGF) (hG := heapAtC hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC putgetcGF, ContextErrsClient (GF := putgetcGF) (hG := heapAtC hG lctx))
