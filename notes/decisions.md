@@ -34853,7 +34853,7 @@ not client-visible (`stepBundle_traced.on`, `TrRecvShape` and the new module are
 `_`s in `stepBundle_traced_beat`'s `intro` and three arguments (and the `isMessageC` conjunct's
 discharge) in `raft.tickHeartbeat.traced`'s call; `TracedPin.lean` untouched.
 
-## Amendment A3 (Q17): not made — no fact of `simFx` can carry a candidate's vote responses; the phantom refusals defeat it (2026-11-10 · trace-check, Q17 (a) taken by the coordinator pending the user's veto; the finding the agent's · branch `trace-check-a3`; amends nothing: the Draft at tag `trace-check-frozen-a2` is unchanged)
+## Amendment A3 (Q17): `SimServerR`'s candidate tally relaxed (option (d)); the clause of option (a) found false, the phantom refusals defeating any fact of `simFx` (2026-11-10 · trace-check, Q17 (a) then (d) taken by the coordinator pending the user's veto; the finding and the form the agent's · branch `trace-check-a3`; amends the frozen Draft, tag `trace-check-frozen-a2`, in `SimServerR` only; DRAFT until the re-freeze)
 
 **Why.** Slice 19b (Q17): raft records a voter's first vote response of a term only (`RecordVote`,
 `tracker.go`); the specification's `HandleRequestVoteResponse` adds the voter to `votesGranted` on every
@@ -34930,7 +34930,45 @@ bootstrap state's bags are empty.
 - (b) a bundle premise (the node API cannot supply it) and (c) the tokens alone (at most once per
   message, not per voter and term), as Q17 said.
 
-No Lean file changed; nothing frozen or client-visible changed.
+(Before (d) was taken this entry ended: no Lean file changed. Superseded by what follows.)
+
+**(d) taken, the amendment made** (the coordinator, pending the user's veto). `TraceSim.lean`:
+`TallyGranted votes g` (`∃ L, g = SetIds.mk L ∧` every voter raft counts granting is in `L` `∧` every
+voter of `L` is one raft heard from), and `SimServerR`'s candidate clause is `a.votesResponded =
+SetIds.mk (raft's voters) ∧ TallyGranted s.votes a.votesGranted` (was: both equalities). Nothing else
+frozen changes (`SimIdle`'s text, `simFx`, the laws untouched); not client-visible (`TraceSim.lean` is not
+on `etc/api/raft.txt`).
+
+**Checked first: nothing needs the equality.** `SimServerR` is read only in the raft directory's
+`TraceSim*`/`Traced*` files (layer C, `Reach`, the trace build and acceptance, `simInv`/`SimRun` work on
+specification states and never mention it). In those, the tally conjunct is read by `not_responded`
+(the responded equality, kept), `simServerR_toC` (transported through `toC`), `sim_campaign`,
+`sim_recordVote` and slice 19a's `simServerR_becomeCandidate` (re-proved, the empty tally:
+`tallyGranted_empty`); every other lemma passes it through. In the specification `votesGranted` is
+read by `BecomeLeader`'s guard (`isQuorum`; fired only by raft's `BecomeLeader` line,
+`becomeLeaderIfLogged`), by `Timeout`'s guard under pre-vote only (off), by `CandS` (`SpecInv`: an
+unpersisted candidate's empty tally, re-proved for the response, `specInv_respCand`), by `Server.eq`
+(the deduplication of identical states, no branching) and by `Reach`'s length bound
+(specification-internal); never by a line's state check (`Line.stateMatches`: term, role, vote, log
+length, commit, configuration) nor by an invariant (`Invariants.lean`). So the specification's larger
+tally changes no action a line fires: a win's `BecomeLeader` gets its quorum from raft's
+(`tallyGranted_quorum`, `isQuorum` monotone on duplicate-free subsets), a loss's step-down
+(`StepDownToFollower`) reads no tally, and a pending response fires nothing more.
+
+**Re-proved.** `sim_recordVote` without the premise `s.votes !! src = none` (a known voter's response:
+raft unchanged, the specification's `votesResponded` unchanged by the idempotent `SetIds.add`, its
+`votesGranted` at most gaining a responded voter); `sim_campaign` and slice 19a's
+`simServerR_becomeCandidate` (`TracedRaftStepHup.lean`, one line: `tallyGranted_empty`).
+
+**Sufficiency** (`TracedRecvVoteResp.lean`, new): a candidate's `MsgVoteResp` of its term leaving the
+election pending, granting or refusing, from a voter raft has or has not heard from:
+`simServerR_respSrv_cand` (the idle relation after raft's `recordVote` and the specification's
+`respSrv`), `specInv_respCand` (`CandS`: a granted response of an unpersisted candidate's term is not in
+`messages`), `simFx_respCand`, `fxPresR_voteRespCand` (`FxPresR` at `recvPhantoms`, none) and
+`phaseStepR_voteRespCand` (`PhaseStepR` from the pinned idle phase at `s` to the one at `{ s with votes :=
+recordVote … }`, by `lineEffect_resp`). Not done: the path proof itself (the bundle's `MsgVoteResp`
+arm: `poll`'s pending, won and lost branches, the won one with `tallyGranted_quorum` and the
+`BecomeLeader`/appends lines, the lost one with the step-down line).
 
 ## Q8 stage 1 (slice 19a): `hup`'s result exclusive; `MsgHup` at a follower or candidate and `tickElection`'s traced corollary proved; where a proposal's records are created (2026-11-10 · trace-check, Q8 stage 1 slice 19a; `HupGuard` exclusive decided by the coordinator (slice 18a's option (a)), its form and the rest by the agent under the user's delegation · branch `trace-check-q8s19a`; DRAFT until trace-check's Freeze)
 

@@ -1205,6 +1205,8 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   phantom lists, the clause over raft's messages only (every law changes); (f) a fact on raft's
   refusals (rejected: raft alone cannot prove it). **Recommended: (d)**, as a re-scoped A3. For the user
   (or the coordinator, if the delegation covers `SimServerR`).
+  **Taken by the coordinator (the freeze being delegated to it), pending the user's veto: (d), as
+  amendment A3.** **Done** on branch `trace-check-a3` (`TallyGranted`; `notes/decisions.md`, "Amendment A3 (Q17)").
 - **Q16 (2026-11-10, amendment A2's reviews a2-r3, a2-r4): an `"app"` append request's entries,
   unpinned for `MsgsUniq`.** A receive line logs an append request's entry count only
   (`Line.isAppendEntriesRequest`), so after an `"app"` send line with entries `MsgsUniq` needs every
@@ -2195,7 +2197,8 @@ callers' lines (`Replicate`, `BecomeLeader`, step-downs, a follower's receives);
 of `heartbeat_lead` for `fxPres_app`'s `hlead`; a `trFam`/`PinAt` pin-and-unpin pair for the path
 proofs. Reviews `a2-r1.md` … `a2-r6.md`.
 
-**Amendment A3 (2026-11-10, branch `trace-check-a3`; Q17 (a), pending the user's veto): not made.**
+**Amendment A3 (2026-11-10, branch `trace-check-a3`; Q17 (a), then (d), pending the user's veto).**
+First, (a) not made:
 Checked first in the transcription, the clause `VoteRespUniq` of `simFx` is false in a reachable
 state: a lower-term `MsgVote`, which raft ignores, gets the specification's phantom refusal at the
 receiver's current term (Q14's `phantomOf`), so a voter's phantom refusal and its real grant to the
@@ -2205,3 +2208,13 @@ the same message, and a received refusal carries no raft fact, so a refusal's re
 out the grant still in flight, after which the grant's line diverges. Nothing changed in Lean; no review
 round (no amended statement). Q17 re-opened with options (d) (relax `SimServerR`'s candidate tally,
 recommended), (e) (`Fx` given the phantom lists) and (f) (rejected).
+Then (d), taken by the coordinator: `SimServerR`'s candidate tally relaxed to `votesResponded` = raft's
+voters and `TallyGranted` (raft's granting voters ⊆ `votesGranted` ⊆ `votesResponded`), nothing else
+frozen changed. Checked first that nothing reads the equality: in the specification `votesGranted` gates
+only `BecomeLeader` (fired by raft's line; `tallyGranted_quorum`), pre-vote's `Timeout` (off) and
+`CandS`; no line's state check, invariant, layer C or acceptance file reads it. Re-proved: `sim_recordVote`
+for any response, the campaign's empty tally (`tallyGranted_empty`, also in slice 19a's
+`simServerR_becomeCandidate`). Sufficiency (`TracedRecvVoteResp.lean`): a candidate's pending
+`MsgVoteResp` of its term, granting or refusing, known voter or not: `phaseStepR_voteRespCand`,
+`fxPresR_voteRespCand`, `specInv_respCand`. Left: the bundle's `MsgVoteResp` path (pending, won, lost).
+Reviews `a3-r1.md` ….
