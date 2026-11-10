@@ -946,7 +946,7 @@ theorem server_kv_backend (lg : Loc) (le : GoInterface)
           mvcc.api.backendRest d.γB d.P K d.be D ∗
           backend.rdTok d.γB d.P d.be ∗ backend.rdTok d.γB d.P d.be }} := by
   iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hhk, HPKP, Hreg, Hw1, Hw2, #Hsup, Hos, Hlrd, #Hle, Hro⟩ HΦ
-  ihave #Hsz := mvcc.keySized_at (GF := GF) d.P $$ []
+  ihave #Hsz := mvcc.keySized_at (GF := GF) d.P
   imod (mvcc.api.mvccApi_mvccImage_fresh_law_holds D hk hsch hfin) with #Him
   imod (mvcc.api.mvccApi_etcdStorage_open_law_holds d Pk K D mvcc.api.mvccStart.log
       mvcc.api.mvccStart.crev false hP hlp hcm) $$ [Hsz Him HPKP Hreg Hw1 Hw2 Hsup Hos]
@@ -1005,7 +1005,7 @@ theorem server_kv_watchable (lg : Loc) (le : GoInterface)
           mvcc.api.backendRest d.γB d.P K d.be D ∗
           backend.rdTok d.γB d.P d.be ∗ backend.rdTok d.γB d.P d.be }} := by
   iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hhk, HPKP, Hreg, Hw1, Hw2, #Hsup, Hos, Hlrd, #Hle, Hro⟩ HΦ
-  ihave #Hsz := mvcc.keySized_at (GF := GF) d.P $$ []
+  ihave #Hsz := mvcc.keySized_at (GF := GF) d.P
   imod (mvcc.api.mvccApi_mvccImage_fresh_law_holds D hk hsch hfin) with #Him
   imod (mvcc.api.mvccApi_etcdStorage_open_law_holds d Pk K D mvcc.api.mvccStart.log
       mvcc.api.mvccStart.crev false hP hlp hcm) $$ [Hsz Him HPKP Hreg Hw1 Hw2 Hsup Hos]

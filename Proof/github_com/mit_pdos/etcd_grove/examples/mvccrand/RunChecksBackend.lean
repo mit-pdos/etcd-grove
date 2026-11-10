@@ -240,7 +240,7 @@ theorem rc_open (hfresh : mvccImage_fresh.law (GF := GF)) (hopen : etcdStorage_o
   have hT : threadBound GF ≤ backend.rdPoolN :=
     ThreadBoundLe.le_of (2 ^ 28) (Nat.le_of_eq (by unfold backend.rdPoolN; rfl))
   iintro ⟨Hreg, Hnew⟩
-  ihave #Hks := mvcc.keySized_all (GF := GF) $$ []
+  ihave #Hks := mvcc.keySized_all (GF := GF)
   iunfold backend.newPostK at Hnew
   icases Hnew with ⟨#Hb, #Hsc, Hk, Hv, Hh, Hrb, Hrd, Hdl, Hfk, Hsr⟩
   iunfold backend.bFresh at Hk
