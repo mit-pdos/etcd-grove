@@ -239,6 +239,29 @@ theorem memW_of_core (ks : List GoString) (γh : HistNames) (ops : List OpM) (i 
     exact ⟨Int.le_refl _, by omega, by omega⟩
   · iexists _, _; iframe; ipureintro; exact ⟨by omega, by omega⟩
 
+/-- **`end`'s history part from the operation's** (the follower's lower bound at the next count is
+the history after the revision). -/
+theorem leadPre_end (γh : HistNames) (ks : List GoString) (ops : List OpM) (n : Nat) (lead : Bool)
+    (P : PendM) (hh : histAt ks ops (n + 1) = histAfter (histAt ks ops n) P) :
+    leadPre (GF := GF) γh ks ops n lead ⊢
+      if lead then histW γh (histAt ks ops n) (compsAt ks ops n)
+      else monoListLbOwn γh.l (histAfter (histAt ks ops n) P) := by
+  unfold leadPre
+  cases lead
+  · simp only [Bool.false_eq_true, ↓reduceIte]; rw [hh]
+  · simp only [↓reduceIte]; iintro H; iexact H
+
+/-- **The operation's history part back from `end`'s.** -/
+theorem leadPost_end (γh : HistNames) (ks : List GoString) (ops : List OpM) (n : Nat) (lead : Bool)
+    (P : PendM) (hh : histAt ks ops (n + 1) = histAfter (histAt ks ops n) P)
+    (hc : compsAt ks ops (n + 1) = compsAt ks ops n) :
+    (if lead then histW (GF := GF) γh (histAfter (histAt ks ops n) P) (compsAt ks ops n)
+      else iprop(True)) ⊢ leadPost γh ks ops n lead := by
+  unfold leadPost
+  cases lead
+  · simp only [Bool.false_eq_true, ↓reduceIte]; iintro -; itrivial
+  · simp only [↓reduceIte]; rw [hh, hc]
+
 end lemmas
 
 end mvccfull
