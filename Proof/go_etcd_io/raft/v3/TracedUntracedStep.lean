@@ -10,6 +10,8 @@ module
 public import Proof.go_etcd_io.raft.v3.TracedUntraced
 public import Spec.go_etcd_io.raft.v3.raft__handleHeartbeat
 public import Spec.go_etcd_io.raft.v3.raft__handleAppendEntries
+public import Spec.go_etcd_io.raft.v3.raft__campaign
+public import Spec.go_etcd_io.raft.v3.raft__hup
 
 @[expose] public section
 
@@ -105,6 +107,93 @@ theorem raft.handleAppendEntries.untraced (h : raft.handleAppendEntries.spec (GF
   iapply HΦ $$ %s'
   iframe Hphys
   ipureintro; exact Hres
+
+/-- The untraced gates of `campaign` (and `hup`): the role change's and every send's, from the struct's
+nil logger, `G0 := G := emp`. -/
+theorem campaignGates_none (c : CfgM) (r : Loc) (id : w64) (s : NState) (t : CampaignType)
+    (tl : GoInterface) (htr : s.gh.tr = none) (Htlok : TraceLoggerOk tl) :
+    (r.[raft, go!"traceLogger"] ↦□ tl : IProp GF) ⊢
+      (iprop(emp) -∗ if t = campaignPreElection then iprop(|={⊤}=> (emp : IProp GF))
+        else HookGate s.gh.tr r (NodeEvOf (W64 1) id (becomeCandidate id s) c) iprop(emp)) ∗
+      □ (∀ (pvs : GMap w64 Progress) (y : w64), ⌜y ∈ c.voters⌝ -∗ iprop(emp) -∗
+        HookGateOpt s.gh.tr r
+          (sendOutGate id { campRoleState id s (decide (t = campaignPreElection)) with prvals := pvs } c
+            (if y = id then vrespW32 (decide (t = campaignPreElection))
+             else vreqW32 (decide (t = campaignPreElection)))
+            [campMsg (decide (t = campaignPreElection)) id (s.term + W64 1)
+              (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) (transferCtx t) y]) iprop(emp)) := by
+  iintro #Htl
+  rw [htr]
+  isplitl
+  · iintro -
+    split
+    · imodintro; iempintro
+    · iapply hookGate_none r _ tl iprop(emp) Htlok
+      iframe Htl
+  · imodintro
+    iintro %pvs %y %_ -
+    iapply hookGateOpt_none r _ tl iprop(emp) Htlok
+    iframe Htl
+
+/-- `raft.campaign.spec` at an untraced node (the statement before slice 7). -/
+abbrev raft.campaign.untracedTriple : Prop :=
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (t : CampaignType),
+  s.role ≠ .leader →
+  id ∈ c.voters →
+  uint.Z s.term + 1 < 2 ^ 64 →
+  (t = campaignPreElection → s.prevote = true ∧ uint.Z s.term + 1 ≤ uint.Z s.gh.tc) →
+  s.gh.tr = none →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"campaign")) (Val #t))
+  {{ (peers : List w64) (pvs : GMap w64 Progress), RET #();
+      ⌜peers ≡ₚ elements (c.voters \ {[id]})⌝ ∗
+      ownRaftPhysCV c c.voters r id
+        { campaignState id s (decide (t = campaignPreElection)) peers (transferCtx t)
+            with prvals := pvs } }}
+
+/-- `raft.campaign.spec`'s untraced instance. -/
+theorem raft.campaign.untraced (h : raft.campaign.spec (GF := GF) (hG := hG)) :
+    raft.campaign.untracedTriple (GF := GF) (hG := hG) := by
+  intro c r id s t Hrole Hid Hnw Hpv htr
+  iintro %Φ ⟨#Hpkg, Hphys⟩ HΦ
+  icases ownRaftPhysC_traceLogger c r id s htr $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
+  icases campaignGates_none c r id s t tl htr Htlok $$ Htl with ⟨Hgbc, #Hgsend⟩
+  iapply h c r id s t iprop(emp) iprop(emp) Hrole Hid Hnw Hpv $$ [Hphys Hgbc]
+  · iframe Hpkg Hphys Hgbc Hgsend
+  inext
+  iintro %peers %pvs ⟨%Hp, Hphys, -⟩
+  iapply HΦ $$ %peers %pvs
+  iframe Hphys
+  ipureintro; exact Hp
+
+/-- `raft.hup.spec` at an untraced node (the statement before slice 7). -/
+abbrev raft.hup.untracedTriple : Prop :=
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (t : CampaignType),
+  uint.Z s.term + 1 < 2 ^ 64 →
+  (t = campaignPreElection → s.prevote = true ∧ uint.Z s.term + 1 ≤ uint.Z s.gh.tc) →
+  NStateWf s →
+  uint.Z s.logst.fl ≤ uint.Z s.logst.applied →
+  s.gh.tr = none →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"hup")) (Val #t))
+  {{ (s' : NState), RET #();
+      ownRaftPhysCV c c.voters r id s' ∗ ⌜HupOkC c id s s'⌝ ∗
+      ⌜s'.role = .preCandidate → s'.role = s.role ∨ t = campaignPreElection⌝ }}
+
+/-- `raft.hup.spec`'s untraced instance. -/
+theorem raft.hup.untraced (h : raft.hup.spec (GF := GF) (hG := hG)) :
+    raft.hup.untracedTriple (GF := GF) (hG := hG) := by
+  intro c r id s t Hnw Hpv Hwf Hfla htr
+  iintro %Φ ⟨#Hpkg, Hphys⟩ HΦ
+  icases ownRaftPhysC_traceLogger c r id s htr $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
+  icases campaignGates_none c r id s t tl htr Htlok $$ Htl with ⟨Hgbc, #Hgsend⟩
+  iapply h c r id s t iprop(emp) iprop(emp) Hnw Hpv Hwf Hfla $$ [Hphys Hgbc]
+  · iframe Hpkg Hphys Hgbc Hgsend
+  inext
+  iintro %s' ⟨Hphys, -, %H1, %H2⟩
+  iapply HΦ $$ %s'
+  iframe Hphys
+  ipureintro; exact ⟨H1, H2⟩
 
 end untraced
 

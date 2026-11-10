@@ -101,6 +101,14 @@ theorem normalCount_stamp (tm li : w64) (ents : List EntryM) :
     normalCount (ents.mapIdx (stamp tm li)) = normalCount ents :=
   normalCount_mapIdx ents _ (fun _ _ => rfl)
 
+/-- (Q8 stage 1, slice 7) A send's gate reads nothing an earlier send changes (the event's header):
+the gate at the state with messages queued is the gate at the state before. -/
+theorem sendOutGate_sendMsgs (id : w64) (s : NState) (ms : List Msg) (c : CfgM) (ty : w32)
+    (out : List Msg) : sendOutGate id (sendMsgs s ms) c ty out = sendOutGate id s c ty out := rfl
+
+/-- ... and the ghost (the trace mode) is the state's. -/
+theorem sendMsgs_gh (s : NState) (ms : List Msg) : (sendMsgs s ms).gh = s.gh := rfl
+
 end pure
 
 section gates

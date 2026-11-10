@@ -77,6 +77,7 @@ theorem stepCandidate.wp_proof
   -- (Q8 stage 1, slice 7) the handlers' untraced instances (`TracedUntracedStep.lean`)
   have wp_raft_handleAppendEntries := raft.handleAppendEntries.untraced wp_raft_handleAppendEntries
   have wp_raft_handleHeartbeat := raft.handleHeartbeat.untraced wp_raft_handleHeartbeat
+  have wp_raft_campaign := raft.campaign.untraced wp_raft_campaign
   intro c scfg r id s ml m ents sn rs sv cl Hty Hterm Hrole Happ Hhb Hpvnw Hsnap Htr
   wp_start as H
   iNamed H

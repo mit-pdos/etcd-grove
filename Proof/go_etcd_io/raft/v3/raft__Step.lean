@@ -682,7 +682,7 @@ theorem raft.Step.wp_proof
   -- (Q8 stage 1, slice 5) `send`'s untraced instance (`TracedUntraced.lean`)
   have wp_raft_send := raft.send.untraced wp_raft_send
   have P : raft.Step.Postulates (GF := GF) (hG := hG) :=
-    ⟨wp_raft_hup, raft.becomeFollower.untraced wp_raft_becomeFollower, wp_voteRespMsgType, wp_raft_send, wp_stepCandidate,
+    ⟨raft.hup.untraced wp_raft_hup, raft.becomeFollower.untraced wp_raft_becomeFollower, wp_voteRespMsgType, wp_raft_send, wp_stepCandidate,
      wp_stepFollower, wp_stepLeader, traceReceiveMessage.untraced wp_traceReceiveMessage, wp_raftLog_lastEntryID,
      wp_raftLog_isUpToDate, wp_raftLog_stableTo, wp_raft_appliedTo, wp_raft_appliedSnap,
      wp_raft_reduceUncommittedSize, wp_entsSize, wp_payloadsSize⟩
