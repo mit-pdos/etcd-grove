@@ -59,7 +59,7 @@ theorem runner.write.wp_proof
     ⟨%wc, #Hwc⟩, ⟨%ws, #Hws⟩, #Hcrv, #Hccp, #Hcrs, #Hcrt, %Hops⟩
   ihave #Hrn2 := Hrn
   iunfold rnCtx at Hrn2
-  icases Hrn2 with ⟨#Hpkg, #Hpm, -, -, -, -, #Hcfgx, -⟩
+  icases Hrn2 with ⟨#Hpkg, #Hpm, #Hrk, -, -, -, #Hcfgx, -⟩
   ihave #Hms : runnerMs x mp0 mp1 $$ [Hown]
   · iunfold writerOwn at Hown; icases Hown with ⟨#H, -⟩; iexact H
   ihave #Hms2 := Hms
@@ -100,6 +100,8 @@ theorem runner.write.wp_proof
     iframe
     ipureintro; exact ⟨List.prefix_refl _, by omega⟩
   have hft : ¬ ((#false : val) = #true) := fun h => Bool.false_ne_true (go.intoVal_inj h)
+  ihave %Hsorted : ⌜ks.Pairwise go.GoStringLt⌝ $$ []
+  · iunfold runnerKeys at Hrk; icases Hrk with ⟨%keys, -, -, %H, -⟩; ipureintro; exact H
   wp_for HI
   icases writerOwn_ops x ks cfg h γ mp0 mp1 f0 f1 opsA vA0 vA1 nvA nbA qA qsA $$ Hown
     with ⟨%HopsA, Hops0f, Hops1f, Hback⟩
@@ -111,14 +113,134 @@ theorem runner.write.wp_proof
   by_cases hc : (vA0.ops : Int) < sint.Z cfg.Ops'
   · -- an iteration
     have hc' : sint.Z (W64 (vA0.ops : Int)) < sint.Z cfg.Ops' := by rw [hOpsZ]; exact hc
-    simp only [hc', decide_true, ↓reduceIte]
+    simp only [hc', _root_.decide_true, ↓reduceIte]
     wp_auto
     wp_apply wp_pick cfg.Mix'.Step' ws DFrac.discard (W64 6) $$ [$Hpkg $Hws] as %sw ⟨-, %Hsw⟩
     have hft : ¬ ((#false : val) = #true) := fun h => Bool.false_ne_true (go.intoVal_inj h)
     by_cases h0 : sw = W64 0
-    · simp only [h0, _root_.decide_true]
+    · -- the leader's step: a new operation, appended to the log, applied
+      simp only [h0, _root_.decide_true]
       (try wp_auto)
-      sorry
+      have hlt : opsA.length < (sint.Z cfg.Ops').toNat := by omega
+      icases writerOwn_leader x ks cfg h γ mp0 mp1 f0 f1 opsA vA0 vA1 nvA nbA qA qsA hlt $$ Hown
+        with ⟨%qwl, %nwl, %kl, Hlog, Hctrs, HhW, Hrd, Hm0, %Hl, Hbackl⟩
+      obtain ⟨hnw, hkl, hv0, hv1⟩ := Hl
+      iunfold memW at Hm0
+      icases Hm0 with ⟨Ho0, Hh0, Hc0⟩
+      iunfold memCore at Hc0
+      icases Hc0 with ⟨Hid, Hhook, Hhok, Hpath, Hbe, Hle, Hkvf, Hrevf, Hcmpf,
+        ⟨%lsl, Hlsl, Hlsv, Hlcap⟩, %Hvle, HincW, Hopen, Hmb, Hhis, Hrds, Hbk, HlW, %HU⟩
+      iunfold writerCtrs at Hctrs
+      icases Hctrs with ⟨%nl, Hnl, Hvals, Hbuilds, %Hnl⟩
+      iunfold logOwn at Hlog
+      icases Hlog with ⟨%gsl, %ps, Hlx, Hlps, Hlcap2, %Hlp, #Hopis⟩
+      have hreach := (logOk_hist ks Hsorted opsA Hlp.2 vA0.ops vA0.ops (Nat.le_refl _) (by omega)).2.2
+      obtain ⟨-, hcr1, hcr2⟩ := reach_bounds _ hreach
+      rw [σOf_rev] at hcr2
+      have hhl := runM_hs_len ks opsA vA0.ops
+      have hrev2 : (runM ks opsA vA0.ops).rev + 2 < 2 ^ 63 := by
+        unfold MSt.rev; omega
+      -- SPEC GAP (frozen spec): `gen` needs `nextLease + 1 < 2 ^ 63`; `writerCtrs` bounds
+      -- `nextLease` only from below (`notes/mvccfull-prove-writer.md`)
+      have hnl1 : sint.Z nl + 1 < 2 ^ 63 := by
+        sorry
+      have hgr : ∀ id ∈ (runM ks opsA vA0.ops).granted, sint.Z id ≤ sint.Z nl := by
+        rw [hv0]; exact Hnl.2
+      have hnvZ : sint.Z (W64 (nvA : Int)) = (nvA : Int) := by
+        have : nvA < 2 ^ 62 := by omega
+        word
+      wp_apply (wp_gen x ks cfg wr h γ.h mp0 (runM ks opsA vA0.ops) lsl nl (W64 (nvA : Int))
+          Hnl.1 hnl1 hgr (by rw [hnvZ]; omega) (by rw [hnvZ]; omega) hrev2 hcr1 hcr2)
+        $$ [$Hctx $Hrevf $Hcmpf $Hlsl $Hlsv $Hnl $Hvals]
+        as %pp ⟨Hrevf, Hcmpf, Hlsl, Hlsv, %o, %nl', %nv', #Hop, Hnl, Hvals, %Hg⟩
+      obtain ⟨hvalid, hnl', hnv1, hnv2⟩ := Hg
+      (try wp_auto)
+      wp_apply wp_slice_literal
+      isplitr
+      · ipureintro; rfl
+      iintro %osl ⟨Hosl, Hocap⟩
+      (try wp_auto)
+      wp_apply wp_slice_append $$ [$Hlps $Hlcap2 $Hosl] as %gsl' ⟨Hlps, Hlcap2, -⟩
+      (try wp_auto)
+      -- the log at `opsA ++ [o]`
+      have hlok' : logOk ks (opsA ++ [o]) := logOk_snoc ks opsA o Hlp.2 (by rw [← hv0]; exact hvalid)
+      have hrs : runM ks (opsA ++ [o]) vA0.ops = runM ks opsA vA0.ops :=
+        runM_snoc ks opsA o vA0.ops (by omega)
+      ihave Hm0 : memW ks γ.h (opsA ++ [o]) 0 mp0 γ.m0 f0 vA0 qwl nwl kl $$
+          [Ho0 Hh0 Hid Hhook Hhok Hpath Hbe Hle Hkvf Hrevf Hcmpf Hlsl Hlsv Hlcap HincW Hopen Hmb
+            Hhis Hrds Hbk HlW]
+      · iapply memW_snoc ks γ.h opsA o 0 mp0 γ.m0 f0 vA0 qwl nwl kl (by omega)
+        iunfold memW; iframe Ho0 Hh0
+        iunfold memCore
+        dsimp only
+        iframe Hid Hhook Hhok Hpath Hbe Hle Hkvf Hrevf Hcmpf HincW Hopen Hmb Hhis Hrds Hbk HlW
+        isplitl [Hlsl Hlsv Hlcap]
+        · iexists lsl; iframe
+        ipureintro; exact ⟨Hvle, HU⟩
+      ihave Hlead : leadPre γ.h ks (opsA ++ [o]) vA0.ops true $$ [HhW]
+      · unfold leadPre histAt compsAt; simp only [↓reduceIte]; rw [hrs, hv0]; iexact HhW
+      have hoo : (opsA ++ [o])[vA0.ops]? = some o := by rw [hv0]; simp
+      wp_apply (wp_apply x ks cfg wr h γ.h (opsA ++ [o]) 0 mp0 γ.m0 f0 vA0 qwl nwl kl pp o true
+          hoo hlok' hnw (fun _ => by omega) (by simp; omega)) $$ [$Hctx $Hrd $Hop $Hm0 $Hlead]
+        as ⟨Hrd, Hpost, %vB0, %kB, %HvB, Hm0⟩
+      ihave HhW : histW γ.h (histAt ks (opsA ++ [o]) (opsA.length + 1))
+          (compsAt ks (opsA ++ [o]) (opsA.length + 1)) $$ [Hpost]
+      · irevert Hpost
+        unfold leadPost; simp only [↓reduceIte]; rw [← hv0]
+        iintro H; iexact H
+      ihave Hlog : logOwn x ks (opsA ++ [o]) $$ [Hlx Hlps Hlcap2]
+      · iunfold logOwn; iexists gsl', ps ++ [pp]; iframe
+        isplitr
+        · ipureintro; exact ⟨by simp [Hlp.1], hlok'⟩
+        rw [List.zip_append (by rw [Hlp.1])]
+        iapply BigSepL.bigSepL_append.2
+        iframe #
+        simp only [List.zip_cons_cons, List.zip_nil_right]
+        iapply BigSepL.bigSepL_singleton.2
+        iexact Hop
+      -- the counters
+      have hnv'0 : 0 ≤ sint.Z nv' := by omega
+      have hnvw : W64 (((sint.Z nv').toNat : Nat) : Int) = nv' := by
+        have : (((sint.Z nv').toNat : Nat) : Int) = sint.Z nv' := by omega
+        rw [this]; word
+      have hgra : grantedAfter ks (opsA ++ [o]) (opsA ++ [o]).length =
+          (if o.kind = kGrant then (runM ks opsA vA0.ops).granted ++ [o.id]
+            else (runM ks opsA vA0.ops).granted) := by
+        unfold grantedAfter
+        rw [show (opsA ++ [o]).length = vA0.ops + 1 by simp; omega,
+          runM_succ ks (opsA ++ [o]) vA0.ops o hoo, hrs]
+        rfl
+      ihave Hctrs : writerCtrs x ks (opsA ++ [o]) (sint.Z nv').toNat nbA $$ [Hnl Hvals Hbuilds]
+      · iunfold writerCtrs; iexists nl'; rw [hnvw]; iframe
+        ipureintro
+        rw [hgra]
+        rcases hnl' with rfl | ⟨hgk, hid, rfl⟩
+        · refine ⟨Hnl.1, fun id hid => ?_⟩
+          by_cases hk : o.kind = kGrant
+          · rw [if_pos hk] at hid
+            rcases List.mem_append.1 hid with h1 | h1
+            · exact hgr id h1
+            · -- SPEC GAP (frozen spec): `gen`'s post allows a grant that leaves `nextLease`
+              -- (`nl' = nl`), whose id `writerCtrs` cannot bound (`notes/mvccfull-prove-writer.md`)
+              sorry
+          · rw [if_neg hk] at hid; exact hgr id hid
+        · have hnl1' : sint.Z (nl + W64 1) = sint.Z nl + 1 := by word
+          refine ⟨by omega, fun id hid' => ?_⟩
+          rw [if_pos hgk] at hid'
+          rcases List.mem_append.1 hid' with h1 | h1
+          · have := hgr id h1; omega
+          · simp at h1; subst h1; rw [hid]; exact Int.le_refl _
+      ihave Hown := Hbackl $$ %o %vB0 %kB %((sint.Z nv').toNat) Hlog Hctrs HhW Hrd Hm0 %HvB
+      (try wp_auto)
+      wp_for_post
+      iframe
+      iexists opsA ++ [o], vB0, vA1, (sint.Z nv').toNat, nbA, qA, qsA
+      iframe
+      ipureintro
+      refine ⟨Hi.1.trans (List.prefix_append _ _), ?_⟩
+      simp only [List.length_append, List.length_singleton]
+      have : ((sint.Z nv').toNat : Int) ≤ (nvA : Int) + 3 := by rw [hnvZ] at hnv2; omega
+      omega
     rw [decide_eq_false h0]
     (try wp_auto)
     by_cases h1 : sw = W64 1
@@ -136,7 +258,7 @@ theorem runner.write.wp_proof
       by_cases hlt : vA1.ops < vA0.ops
       · have hlt' : sint.Z (W64 (vA1.ops : Int)) < sint.Z (W64 (vA0.ops : Int)) := by
           rw [hv0Z, hv1Z']; exact_mod_cast hlt
-        simp only [hlt', decide_true]
+        simp only [hlt', _root_.decide_true]
         (try wp_auto)
         icases writerOwn_follower x ks cfg h γ mp0 mp1 f0 f1 opsA vA0 vA1 nvA nbA qA qsA hlt $$ Hown
           with ⟨%gsl, %ps, %pp, %o, %qwf, %nwf, %kf, Hlogf, Hlps, %Hf, #Hop, Hm1, Hrd, #Hlbf, Hbackf⟩
@@ -201,7 +323,7 @@ theorem runner.write.wp_proof
       by_cases hlt : vA1.ops < vA0.ops
       · have hlt' : sint.Z (W64 (vA1.ops : Int)) < sint.Z (W64 (vA0.ops : Int)) := by
           rw [hv0Z, hv1Z']; exact_mod_cast hlt
-        simp only [hlt', decide_true]
+        simp only [hlt', _root_.decide_true]
         (try wp_auto)
         wp_apply (wp_restore x ks cfg wr h γ mp0 mp1 f0 f1 opsA vA0 vA1 nvA nbA qA qsA hlt
             hopen hclose hckpt hlim hbl) $$ [$Hctx $Hks $Henv $Htok $Hown]
@@ -292,7 +414,7 @@ theorem runner.write.wp_proof
     by_cases hlt : vA1.ops < vA0.ops
     · have hlt' : sint.Z (W64 (vA1.ops : Int)) < sint.Z (W64 (vA0.ops : Int)) := by
         rw [hOpsZ, hv1Z']; exact_mod_cast hlt
-      simp only [hlt', decide_true, ↓reduceIte]
+      simp only [hlt', _root_.decide_true, ↓reduceIte]
       (try wp_auto)
       icases writerOwn_follower x ks cfg h γ mp0 mp1 f0 f1 opsA vA0 vA1 nvA nbA qA qsA hlt $$ Hown
         with ⟨%gsl, %ps, %pp, %o, %qwf, %nwf, %kf, Hlogf, Hlps, %Hf, #Hop, Hm1, Hrd, #Hlbf, Hbackf⟩
