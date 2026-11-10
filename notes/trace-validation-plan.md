@@ -571,6 +571,36 @@ definitions moved to `LemmasCampaign.lean`), `hup` (`campaign`'s gates; `(⌜s' 
 message's numbers through a trace-gated conjunct of `isMessage`, the receipt bound); then the node
 API (`RawNode`, `node.run`, `newRaft` traced). Checked (`trace-check` at `b5b17cfc4a`, merged): full `lake build` green (13783 jobs); `etc/tcb-report.py --check` (806 axioms, 4 `sorry`s, unchanged) and all 53 collections `--reuse --check`, none updated; `interface/` differs in the four gated specs' proof files only (`raft__campaign`, `raft__handleAppendEntries`, `raft__handleHeartbeat`, `raft__hup`: their specs, and `campaign`'s message definitions gone from its proof file); `etc/api-check.py` 0 errors; `--layout` 0 new, six fixed (`campMsg` … `vrespW32`, dropped from `etc/api/raft-layout.txt`); `etc/gen-link.py --raft` unchanged.
 
+**Q8 stage 1 (slice 8), 2026-11-10 (branch `trace-check-q8s8`): the step functions one spec for
+both modes; `raft.Step`'s traced arms not started.** Decided by the agent (`notes/decisions.md`, "Q8
+stage 1 (slice 8)"). Done, each with its `X.untraced` instance (`TracedUntracedStep.lean`, the
+statement before slice 8; `raft.Step`'s bundle, `wp_Step_MsgProp` and `raft.appliedTo` take them, call
+sites unchanged): (1) `stepCandidate`: one gate per arm, premised on the arm (`becomeFollower` then the
+handler's reply for a `MsgApp`/`MsgHeartbeat`; the vote win's `becomeLeader` chain and `bcastAppend`;
+the pre-vote win's `campaign` gates; a loss's `becomeFollower`), `G'` back exactly when a gate ran
+(tagged by `JQuorum ∨ JLost` of the tally, `poll`'s `iff`). **The win's split (round 6's F2):** the
+`BecomeLeader` gate is premised on the win's quorum, which `stepCandidate` has from `poll`, so a traced
+`Step` holding raft's ghost open in `G` registers the win inside the gate, before the hook's line
+creates the term log: neither `WinsOk`/`TermsOk` relaxed nor a converse added to `CandVoteRespResultC`
+(the converse is the result's tag). (2) `stepFollower`: the handlers' reply gates at the state with the
+sender as leader, the forwards' send gate at no event (`G` back), `MsgTimeoutNow`'s `hup` gates.
+(3) `stepLeader`: gated for `MsgBeat`, `MsgReadIndex`, `MsgTransferLeader`, `MsgCheckQuorum` (their
+helpers take `bcastHeartbeat`'s, `sendMsgReadIndexResponse`'s, `sendTimeoutNow`'s/`sendAppend`'s with
+`TrNoSnap`, `becomeFollower`'s gates); `MsgProp`, `MsgAppResp`, `MsgHeartbeatResp` keep `s.gh.tr = none`,
+now premised on their type. A `MsgSnap` stays untraced (`handleSnapshot`'s premise, P2). No ghost
+change; no client-visible change; no axiom or `sorry`. **Not done:** `stepLeader`'s three arms
+(`appendEntry`'s and `bcastAppend`'s gates for a proposal; `maybeCommit`'s per-outcome gate with the
+new commit's `isCommitted` created before `traceCommit`, and the sends at the states after
+`MaybeUpdate`/`MaybeDecrTo` and `releasePendingReadIndexMessages`, for `MsgAppResp`; the flow-control
+`sendAppend` and the read-index responses for `MsgHeartbeatResp`), `raft.Step`'s traced arms (step 2:
+`trCapB` in and out, the gates from raft's ghost through the `trCap_fire*` laws, the `isMessage`
+trace-gated conjunct for a received message's numbers, the receipt bound), `tickElection`/
+`tickHeartbeat` (step 3). Checked (`trace-check` at `1b6fb4fac0`, already merged): full `lake build`
+green (13783 jobs); `etc/tcb-report.py --check` (806 axioms, 4 `sorry`s, unchanged) and all 53
+collections `--reuse --check`, none updated; `interface/` differs in the three step functions' proof
+files only (their specs); `etc/api-check.py` 0 errors; `--layout` 0 new; `etc/gen-link.py --raft`
+unchanged.
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its

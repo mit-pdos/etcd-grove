@@ -170,12 +170,12 @@ structure raft.Step.Postulates : Prop where
   becomeFollower : raft.becomeFollower.untracedTriple (GF := GF) (hG := hG)
   voteRespMsgType : voteRespMsgType.spec (GF := GF) (hG := hG)
   send : raft.send.untracedTriple (GF := GF) (hG := hG)
-  stepCandidate : stepCandidate.spec (GF := GF) (hG := hG)
+  stepCandidate : stepCandidate.untracedTriple (GF := GF) (hG := hG)
   /-- A `MsgVoteResp` falls through `Step`'s type switch to `r.step(m)`, which is any
   of the three depending on the role -- on `m.Term > r.Term` the term preamble has
   already run `becomeFollower`. -/
-  stepFollower : stepFollower.spec (GF := GF) (hG := hG)
-  stepLeader : stepLeader.spec (GF := GF) (hG := hG)
+  stepFollower : stepFollower.untracedTriple (GF := GF) (hG := hG)
+  stepLeader : stepLeader.untracedTriple (GF := GF) (hG := hG)
   traceReceiveMessage : traceReceiveMessage.untracedTriple (GF := GF) (hG := hG)
   lastEntryID : raftLog.lastEntryID.spec (GF := GF) (hG := hG)
   isUpToDate : raftLog.isUpToDate.spec (GF := GF) (hG := hG)

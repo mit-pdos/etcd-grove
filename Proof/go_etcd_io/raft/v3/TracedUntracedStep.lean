@@ -12,6 +12,9 @@ public import Spec.go_etcd_io.raft.v3.raft__handleHeartbeat
 public import Spec.go_etcd_io.raft.v3.raft__handleAppendEntries
 public import Spec.go_etcd_io.raft.v3.raft__campaign
 public import Spec.go_etcd_io.raft.v3.raft__hup
+public import Spec.go_etcd_io.raft.v3.stepCandidate
+public import Spec.go_etcd_io.raft.v3.stepFollower
+public import Spec.go_etcd_io.raft.v3.stepLeader
 
 @[expose] public section
 
@@ -194,6 +197,306 @@ theorem raft.hup.untraced (h : raft.hup.spec (GF := GF) (hG := hG)) :
   iapply HΦ $$ %s'
   iframe Hphys
   ipureintro; exact ⟨H1, H2⟩
+
+/-- `stepCandidate.spec` at an untraced node (the statement before slice 8). -/
+abbrev stepCandidate.untracedTriple : Prop :=
+  ∀ (c : CfgM) (scfg : CSLists) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
+    (ents : List EntryM) (sn : Option SnapshotM) (rs : List Loc) (sv : SnapshotM) (cl : List w8),
+  (m.Type' = MsgVoteResp ∨ m.Type' = MsgProp ∨
+   m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat ∨
+   (m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp ∨
+    m.Type' = MsgCheckQuorum) ∨
+   m.Type' = MsgSnap ∨ m.Type' = MsgPreVoteResp ∨
+   m.Type' = MsgReadIndex ∨
+   (m.Type' = MsgReadIndexResp ∨ m.Type' = MsgForgetLeader ∨ m.Type' = MsgTransferLeader ∨
+    m.Type' = MsgTimeoutNow ∨ m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus)) →
+  (m.Type' = MsgVoteResp ∨ m.Type' = MsgApp ∨
+   m.Type' = MsgHeartbeat ∨ m.Type' = MsgSnap →
+   m.Term' = s.term ∧ m.Term' ≠ W64 0) →
+  s.role = .candidate ∨ s.role = .preCandidate →
+  (m.Type' = MsgApp →
+     PlogWf (entryID.mk m.LogTerm' m.Index') ents ∧
+     uint.Z m.Index' + (ents.length : Int) + 1 < 2^64 ∧
+     (let ls := s.logst
+      let es := ls.sents ++ ls.uents
+      uint.Z ls.committed ≤ uint.Z m.Index' →
+      PlogMatches ls.prev es (entryID.mk m.LogTerm' m.Index') →
+      plogFindConflict ls.prev es ents = W64 0 ∨
+      uint.Z ls.committed < uint.Z (plogFindConflict ls.prev es ents)) ∧
+     m.From' ≠ id) →
+  (m.Type' = MsgHeartbeat →
+     uint.Z m.Commit' ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) ∧
+     m.From' ≠ id) →
+  (s.role = .preCandidate → m.Type' = MsgPreVoteResp →
+   uint.Z s.term + 1 < 2 ^ 64) →
+  (m.Type' = MsgSnap →
+     sn = some sv ∧ scfg = sv.Metadata'.ConfState'.lists ∧
+     SnapScopeIf id sv scfg ∧ m.From' ≠ id ∧
+     s.gh.ns = false) →
+  s.gh.tr = none →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+      "Hm" ∷ msgIn ml (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
+               ⟨m, ents, sn, cl, rs⟩ ∗
+      "#Hcert" ∷ rcvSrc s.gh.sn m.Type' sn }}
+    (App (App (Val #(functions stepCandidate [])) (Val #r)) (Val #ml))
+  {{ (err : GoInterface) (s' : NState) (dropped : Bool) (c' : CfgM), RET #err;
+      ownRaftPhysCV c' c'.voters r id s' ∗
+      ⌜CandidateStepResultC c scfg id s m ents sv dropped s' c' cl⌝ ∗
+      (if dropped then globalAddr ErrProposalDropped ↦□ err
+       else ⌜err = interface.nil⌝) }}
+
+/-- `stepCandidate.spec`'s untraced instance: every gate from the struct's nil logger, `G := emp`. -/
+theorem stepCandidate.untraced (h : stepCandidate.spec (GF := GF) (hG := hG)) :
+    stepCandidate.untracedTriple (GF := GF) (hG := hG) := by
+  intro c scfg r id s ml m ents sn rs sv cl Hty Hterm Hrole Happ Hhb Hpvnw Hsnap htr
+  iintro %Φ ⟨#Hpkg, Hphys, Hm, #Hcert⟩ HΦ
+  icases ownRaftPhysC_traceLogger c r id s htr $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
+  iapply h c scfg r id s ml m ents sn rs sv cl iprop(emp) iprop(emp) iprop(emp) iprop(emp) iprop(emp)
+    Hty Hterm Hrole Happ Hhb Hpvnw
+    (fun hs => let ⟨a, b, c', d, e⟩ := Hsnap hs; ⟨a, b, c', d, e, htr⟩) $$ [Hphys Hm]
+  · iframe Hpkg Hphys Hm Hcert
+    rw [htr]
+    isplitr
+    · iempintro
+    isplitr
+    · iintro %_ -
+      iapply hookGate_none r _ tl iprop(emp) Htlok
+      iframe Htl
+    isplitr
+    · iintro %_ %pvs %s1 %mm %_ -
+      iapply hookGateOpt_none r _ tl iprop(emp) Htlok
+      iframe Htl
+    isplitr
+    · iintro %_ %pvs -
+      iapply hookGateOpt_none r _ tl iprop(emp) Htlok
+      iframe Htl
+    isplitr
+    · iintro %_ -
+      iapply hookGate_none r _ tl iprop(emp) Htlok
+      iframe Htl
+    isplitr
+    · iintro -
+      iapply hookGateN_none r _ 1 tl iprop(emp) Htlok
+      iframe Htl
+    isplitr
+    · iintro -
+      iapply hookGateOpt_none r _ tl iprop(emp) Htlok
+      iframe Htl
+    isplitr
+    · imodintro
+      iintro %_ %pvs %to %mm %_ %_ -
+      iapply hookGateOpt_none r _ tl iprop(emp) Htlok
+      iframe Htl
+    isplitr
+    · iapply trNoSnap_none
+    isplitr
+    · iintro %_ -
+      iapply hookGate_none r _ tl iprop(emp) Htlok
+      iframe Htl
+    isplitr
+    · imodintro
+      iintro %_ %pvs %y %_ -
+      iapply hookGateOpt_none r _ tl iprop(emp) Htlok
+      iframe Htl
+    · iintro %_ -
+      iapply hookGate_none r _ tl iprop(emp) Htlok
+      iframe Htl
+  inext
+  iintro %err %s' %dropped %c' ⟨Hphys, %Hres, Herr, -⟩
+  iapply HΦ $$ %err %s' %dropped %c'
+  iframe Hphys Herr
+  ipureintro; exact Hres
+
+/-- `stepFollower.spec` at an untraced node (the statement before slice 8). -/
+abbrev stepFollower.untracedTriple : Prop :=
+  ∀ (c : CfgM) (scfg : CSLists) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
+    (ents : List EntryM) (sn : Option SnapshotM) (rs : List Loc) (sv : SnapshotM) (cl : List w8),
+  (m.Type' = MsgVoteResp ∨ m.Type' = MsgProp ∨
+   m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat ∨
+   (m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp ∨
+    m.Type' = MsgCheckQuorum) ∨
+   m.Type' = MsgSnap ∨ m.Type' = MsgPreVoteResp ∨
+   m.Type' = MsgReadIndex ∨
+   (m.Type' = MsgReadIndexResp ∨ m.Type' = MsgForgetLeader ∨ m.Type' = MsgTransferLeader ∨
+    m.Type' = MsgTimeoutNow ∨ m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus)) →
+  (m.Type' = MsgReadIndex → m.Term' = W64 0 ∧ s.lead ≠ id) →
+  (m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat ∨ m.Type' = MsgSnap → s.term ≠ W64 0) →
+  (m.Type' = MsgProp →
+     (m.From' = W64 0 ∨ m.From' = id) ∧
+     m.Term' = W64 0 ∧
+     s.lead ≠ id) →
+  (m.Type' = MsgApp →
+     PlogWf (entryID.mk m.LogTerm' m.Index') ents ∧
+     uint.Z m.Index' + (ents.length : Int) + 1 < 2^64 ∧
+     (let ls := s.logst
+      let es := ls.sents ++ ls.uents
+      uint.Z ls.committed ≤ uint.Z m.Index' →
+      PlogMatches ls.prev es (entryID.mk m.LogTerm' m.Index') →
+      plogFindConflict ls.prev es ents = W64 0 ∨
+      uint.Z ls.committed < uint.Z (plogFindConflict ls.prev es ents)) ∧
+     m.From' ≠ id ∧
+     s.role ≠ .leader) →
+  (m.Type' = MsgHeartbeat →
+     uint.Z m.Commit' ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) ∧
+     m.From' ≠ id) →
+  (m.Type' = MsgTransferLeader ∨ m.Type' = MsgTimeoutNow →
+     (m.Type' = MsgTransferLeader → (s.lead = W64 0 ∨ (m.Term' = W64 0 ∧ s.lead ≠ id)) ∧
+        ents = [] ∧ cl = [] ∧
+        (s.lead ≠ W64 0 → (s.gh.xw !! (s.lead, s.term)).isSome)) ∧
+     (m.Type' = MsgTimeoutNow → uint.Z s.term + 1 < 2 ^ 64 ∧ NStateWf s ∧
+       uint.Z s.logst.fl ≤ uint.Z s.logst.applied)) →
+  (m.Type' = MsgSnap →
+     sn = some sv ∧ scfg = sv.Metadata'.ConfState'.lists ∧
+     SnapScopeIf id sv scfg ∧ s.role = .follower ∧ s.votes = ∅ ∧ m.From' ≠ id ∧
+     s.gh.ns = false) →
+  (m.Type' = MsgProp ∨ m.Type' = MsgReadIndex ∨ m.Type' = MsgTransferLeader → rs = []) →
+  s.gh.tr = none →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+      "Hm" ∷ msgIn ml (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
+               ⟨m, ents, sn, cl, rs⟩ ∗
+      "#Hcert" ∷ rcvSrc s.gh.sn m.Type' sn }}
+    (App (App (Val #(functions stepFollower [])) (Val #r)) (Val #ml))
+  {{ (err : GoInterface) (s' : NState) (dropped : Bool) (c' : CfgM), RET #err;
+      ownRaftPhysCV c' c'.voters r id s' ∗
+      ⌜FollowerStepResultC c scfg id s m ents sv dropped s' c' cl⌝ ∗
+      (if dropped then globalAddr ErrProposalDropped ↦□ err
+       else ⌜err = interface.nil⌝) }}
+
+/-- `stepFollower.spec`'s untraced instance: every gate from the struct's nil logger, `G := emp`. -/
+theorem stepFollower.untraced (h : stepFollower.spec (GF := GF) (hG := hG)) :
+    stepFollower.untracedTriple (GF := GF) (hG := hG) := by
+  intro c scfg r id s ml m ents sn rs sv cl Hty Hri Hstz Hprop Happ Hhb Hrest Hsnap Hnors htr
+  iintro %Φ ⟨#Hpkg, Hphys, Hm, #Hcert⟩ HΦ
+  icases ownRaftPhysC_traceLogger c r id s htr $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
+  iapply h c scfg r id s ml m ents sn rs sv cl iprop(emp) iprop(emp)
+    Hty Hri Hstz Hprop Happ Hhb Hrest
+    (fun hs => let ⟨a, b, c', d, e, f, g⟩ := Hsnap hs; ⟨a, b, c', d, e, f, g, htr⟩) Hnors $$ [Hphys Hm]
+  · iframe Hpkg Hphys Hm Hcert
+    rw [htr]
+    isplitr
+    · iempintro
+    isplitr
+    · iintro %_ %s1 %mm %_ -
+      iapply hookGateOpt_none r _ tl iprop(emp) Htlok
+      iframe Htl
+    isplitr
+    · iintro %_ -
+      iapply hookGateOpt_none r _ tl iprop(emp) Htlok
+      iframe Htl
+    isplitr
+    · iintro %_ -
+      iapply hookGateOpt_none r _ tl iprop(emp) Htlok
+      iframe Htl
+    isplitr
+    · iintro %_ -
+      iapply hookGate_none r _ tl iprop(emp) Htlok
+      iframe Htl
+    · imodintro
+      iintro %_ %pvs %y %_ -
+      iapply hookGateOpt_none r _ tl iprop(emp) Htlok
+      iframe Htl
+  inext
+  iintro %err %s' %dropped %c' ⟨Hphys, %Hres, Herr, -⟩
+  iapply HΦ $$ %err %s' %dropped %c'
+  iframe Hphys Herr
+  ipureintro; exact Hres
+
+/-- `stepLeader.spec` at an untraced node (the statement before slice 8). -/
+abbrev stepLeader.untracedTriple : Prop :=
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
+    (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (k0 : Nat),
+  (m.Type' = MsgVoteResp ∨ m.Type' = MsgBeat ∨
+   m.Type' = MsgHeartbeatResp ∨ m.Type' = MsgAppResp ∨
+   m.Type' = MsgProp ∨ m.Type' = MsgApp ∨
+   m.Type' = MsgHeartbeat ∨ m.Type' = MsgPreVoteResp ∨
+   m.Type' = MsgReadIndex ∨
+   (m.Type' = MsgReadIndexResp ∨ m.Type' = MsgForgetLeader ∨ m.Type' = MsgTimeoutNow ∨
+    m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus ∨ m.Type' = MsgTransferLeader ∨
+    m.Type' = MsgCheckQuorum)) →
+  s.role = .leader →
+  (m.Type' = MsgBeat ∨ m.Type' = MsgTransferLeader → s.term ≠ W64 0) →
+  (m.Type' = MsgAppResp → m.From' ≠ W64 0) →
+  (m.Type' = MsgHeartbeatResp ∨ (m.Type' = MsgAppResp ∧ m.Reject' = true) →
+   m.From' ≠ id) →
+  (m.Type' = MsgProp →
+   ents ≠ [] ∧
+   (ents.length : Int) < 2^61 ∧
+   s.term ≠ W64 0) →
+  (m.Type' = MsgHeartbeatResp ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgReadIndex →
+   RdOk c.voters s.rd ∧ s.term ≠ W64 0) →
+  (m.Type' = MsgReadIndex → ents ≠ []) →
+  (m.Type' = MsgHeartbeatResp →
+   (ctx = [] ∨ 8 ≤ ctx.length) ∧
+   (ctx ≠ [] → uint.Z (leToU64 (ctx.take 8))
+                 ≤ uint.Z s.rd.ro.confirmed + (s.rd.ro.pending.length : Int)) ∧
+   c.voters ≠ ∅) →
+  (m.Type' = MsgAppResp →
+    (m.Reject' = false → uint.Z m.Index' ≤ uint.Z (logLast s.logst)) ∧
+    (m.Reject' = true → s.gh.ns = true →
+      2 ≤ uint.Z m.Index' ∧ 1 ≤ uint.Z m.RejectHint' ∧ uint.Z m.RejectHint' ≤ uint.Z m.Index' ∧
+      (∀ t0, plogTermAt s.logst.prev (s.logst.sents ++ s.logst.uents) (W64 1) = some t0 →
+        uint.Z t0 ≤ 1))) →
+  s.gh.tr = none →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+      "Hm" ∷ msgIn ml (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
+               ⟨m, ents, sn, ctx, rs⟩ ∗
+      "Hcc" ∷ (⌜m.Type' = MsgProp⌝ -∗ ∃ cs, ccEntsOk ents cs) ∗
+      "#Hrc" ∷ ⧖ k0 }}
+    (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #ml))
+  {{ (err : GoInterface) (s' : NState) (dropped : Bool), RET #err;
+      ownRaftPhysCV c c.voters r id s' ∗
+      (⌜m.Type' = MsgProp ∧ dropped = false⌝ -∗ ⧖ (k0 + ents.length)) ∗
+      ⌜LeaderStepResultC c id s m ents dropped s' ctx⌝ ∗
+      (if dropped then globalAddr ErrProposalDropped ↦□ err
+       else ⌜err = interface.nil⌝) }}
+
+/-- `stepLeader.spec`'s untraced instance: every gate from the struct's nil logger, `G := emp`. -/
+theorem stepLeader.untraced (h : stepLeader.spec (GF := GF) (hG := hG)) :
+    stepLeader.untracedTriple (GF := GF) (hG := hG) := by
+  intro c r id s ml m ents sn ctx rs k0 Hty Hlead Htz Hfrom0 Hself Hprop Hrdnz Hri Hhr Hack htr
+  iintro %Φ ⟨#Hpkg, Hphys, Hm, Hcc, #Hrc⟩ HΦ
+  icases ownRaftPhysC_traceLogger c r id s htr $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
+  iapply h c r id s ml m ents sn ctx rs k0 iprop(emp) iprop(emp)
+    Hty Hlead Htz Hfrom0 Hself Hprop Hrdnz Hri Hhr Hack (fun _ => htr) $$ [Hphys Hm Hcc]
+  · iframe Hpkg Hphys Hm Hcc Hrc
+    rw [htr]
+    isplitr
+    · iempintro
+    isplitr
+    · imodintro
+      iintro %_ %to %cm %_ %_ -
+      iapply hookGateOpt_none r _ tl iprop(emp) Htlok
+      iframe Htl
+    isplitr
+    · iintro %_ %_ -
+      iapply hookGateOpt_none r _ tl iprop(emp) Htlok
+      iframe Htl
+    isplitr
+    · imodintro
+      iintro %_ %_ %to %cm %_ %_ -
+      iapply hookGateOpt_none r _ tl iprop(emp) Htlok
+      iframe Htl
+    isplitr
+    · iintro %_ -
+      iapply hookGateOpt_none r _ tl iprop(emp) Htlok
+      iframe Htl
+    isplitr
+    · iintro %_ %mm %_ -
+      iapply hookGateOpt_none r _ tl iprop(emp) Htlok
+      iframe Htl
+    isplitr
+    · iapply trNoSnap_none
+    · iintro %_ -
+      iapply hookGate_none r _ tl iprop(emp) Htlok
+      iframe Htl
+  inext
+  iintro %err %s' %dropped ⟨Hphys, Hrc', %Hres, Herr, -⟩
+  iapply HΦ $$ %err %s' %dropped
+  iframe Hphys Hrc' Herr
+  ipureintro; exact Hres
 
 end untraced
 

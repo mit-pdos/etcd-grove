@@ -87,10 +87,10 @@ theorem stepLeader.wp_proof
     stepLeader.spec (GF := GF) (hG := hG) := by
   -- (Q8 stage 1, slice 5) `send`'s untraced instance (`TracedUntraced.lean`)
   have wp_raft_send := raft.send.untraced wp_raft_send
-  have wp_raft_becomeFollower := raft.becomeFollower.untraced wp_raft_becomeFollower
   have wp_raft_maybeCommit := raft.maybeCommit.untraced wp_raft_maybeCommit
-  intro c r id s ml m ents sn ctx rs k0 Hty Hlead Htz Hfrom0 Hself Hprop Hrdnz Hri Hhr Hack Htr
-  iintro %Φ ⟨#Hinit, Hphys, Hm, Hcc, #Hrc⟩ HΦ
+  intro c r id s ml m ents sn ctx rs k0 G G' Hty Hlead Htz Hfrom0 Hself Hprop Hrdnz Hri Hhr Hack Htr
+  iintro %Φ ⟨#Hinit, Hphys, Hm, Hcc, #Hrc, HG, #Hgbeat, Hgriresp, #Hgrihb, Hgtnow, Hgxapp, #Hnosnap,
+    Hgcq⟩ HΦ
   -- (2026-10-25, T-M M2c) a leader need not be a voter (removed without `StepDownOnRemoval`); until
   -- then `ownRaftPhys`'s `Hvoter` said it was, and the proposal, heartbeat-response and
   -- append-response paths read it
@@ -103,7 +103,7 @@ theorem stepLeader.wp_proof
       wp_UnmarshalConfChange wp_UnmarshalConfChangeV2 wp_ConfChange_AsV2 wp_ConfChangeV2_AsV2
       wp_fmt_Sprintf wp_traceChangeConfEvent wp_GetType wp_Entry_GetType
       wp_Entry_GetData wp_EntryType_Enum wp_DescribeConfChange r id s ml m ents sn ctx rs cs k0 Hp
-      Hne Hsmall Hnz Hlead Htr $$ [Hphys Hm]
+      Hne Hsmall Hnz Hlead (Htr (Or.inl Hp)) $$ [Hphys Hm]
     · iframe
       iframe Hinit Hcc Hrc
     inext
@@ -113,103 +113,268 @@ theorem stepLeader.wp_proof
     isplitl [Hrc']
     · iintro %Hd
       iapply Hrc' $$ %Hd.2
+    isplitr [HG]
+    · ipureintro
+      simp only [LeaderStepResultC, Hp, ↓reduceIte]
+      exact Hres
+    iright
+    iframe HG
     ipureintro
-    simp only [LeaderStepResultC, Hp, ↓reduceIte]
-    exact Hres
+    rintro ⟨h, _⟩
+    rw [Hp] at h; exact absurd h (by simp [MsgProp, MsgCheckQuorum])
   ihave HΦ' : iprop(▷ ∀ (err : GoInterface) (s' : NState),
       ownRaftPhysCV c c.voters r id s' ∗ ⌜err = interface.nil⌝ ∗
-      ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ -∗ Φ #err) $$ [HΦ]
+      ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ ∗
+      ((⌜m.Type' = MsgCheckQuorum ∧ s'.role = .follower⌝ ∗ G') ∨
+       (⌜¬ (m.Type' = MsgCheckQuorum ∧ s'.role = .follower)⌝ ∗ G)) -∗ Φ #err) $$ [HΦ]
   · inext
-    iintro %err %s' ⟨Hphys, %Herr, %Hres⟩
+    iintro %err %s' ⟨Hphys, %Herr, %Hres, HR⟩
     iapply HΦ $$ %err %s' %false
     iframe Hphys
     isplitr
     · iintro %Hd; exact absurd Hd.1 Hp
-    isplitr
+    isplitr [HR]
     · ipureintro
       simp only [LeaderStepResultC, Hp, ↓reduceIte]
       exact ⟨trivial, Hres⟩
+    isplitr [HR]
     · simp only [Bool.false_eq_true, ↓reduceIte]
       ipureintro; exact Herr
+    iexact HR
+  by_cases Hcq : m.Type' = MsgCheckQuorum
+  · -- (2026-10-17) `MsgCheckQuorum`
+    ispecialize Hgcq $$ %Hcq
+    iapply wp_stepLeader_checkQuorum c wp_ProgressTracker_QuorumActive wp_ProgressTracker_Visit
+      wp_raft_becomeFollower wp_GetType r id s ml m ents ctx sn rs _ _ _ Hcq G G' $$ [Hphys Hm HG Hgcq]
+    · iframe
+      iexact Hinit
+    inext
+    iintro %err %s' ⟨Hphys, %Herr, %Hres, HR⟩
+    iapply HΦ' $$ %err %s'
+    iframe Hphys
+    isplitr [HR]
+    · ipureintro; exact Herr
+    isplitr [HR]
+    · ipureintro; exact Hres
+    icases HR with (⟨%Hs, HG⟩ | ⟨%Hs, HG⟩)
+    · iright
+      iframe HG
+      ipureintro
+      rintro ⟨_, h⟩
+      subst Hs; rw [Hlead] at h; exact absurd h (by decide)
+    · ileft
+      iframe HG
+      ipureintro
+      obtain ⟨pvs, rfl⟩ := Hs
+      exact ⟨Hcq, rfl⟩
+  -- the other arms keep `G`
+  ihave HΦG : iprop(▷ ∀ (err : GoInterface) (s' : NState),
+      ownRaftPhysCV c c.voters r id s' ∗ ⌜err = interface.nil⌝ ∗
+      ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ ∗ G -∗ Φ #err) $$ [HΦ']
+  · inext
+    iintro %err %s' ⟨Hphys, %Herr, %Hres, HG⟩
+    iapply HΦ' $$ %err %s'
+    iframe Hphys
+    isplitr [HG]
+    · ipureintro; exact Herr
+    isplitr [HG]
+    · ipureintro; exact Hres
+    iright
+    iframe HG
+    ipureintro
+    exact fun h => Hcq h.1
   rcases Hty with Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty |
     Hty | Hty | Hty
   rotate_right 7
-  · iapply wp_stepLeader_noop c wp_GetType wp_GetFrom r id s ml m ents ctx sn rs _ _ _
-      (Or.inr (Or.inr (Or.inr (Or.inr Hty)))) $$ [Hphys Hm] HΦ'
+  ·
+    -- an arm without a gate: `G` framed
+    ihave HΦ0 : iprop(▷ ∀ (err : GoInterface) (s' : NState),
+        ownRaftPhysCV c c.voters r id s' ∗ ⌜err = interface.nil⌝ ∗
+        ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ -∗ Φ #err) $$ [HΦG HG]
+    · inext
+      iintro %err %s' ⟨Hphys, %Herr, %Hres⟩
+      iapply HΦG $$ %err %s'
+      iframe Hphys HG
+      ipureintro; exact ⟨Herr, Hres⟩
+    iapply wp_stepLeader_noop c wp_GetType wp_GetFrom r id s ml m ents ctx sn rs _ _ _
+      (Or.inr (Or.inr (Or.inr (Or.inr Hty)))) $$ [Hphys Hm] HΦ0
     iframe
     iexact Hinit
-  · iapply wp_stepLeader_rest0 c wp_GetType wp_GetFrom r id s ml m ents ctx sn rs _ _ _
-      (Or.inl Hty) $$ [Hphys Hm] HΦ'
+  ·
+    -- an arm without a gate: `G` framed
+    ihave HΦ0 : iprop(▷ ∀ (err : GoInterface) (s' : NState),
+        ownRaftPhysCV c c.voters r id s' ∗ ⌜err = interface.nil⌝ ∗
+        ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ -∗ Φ #err) $$ [HΦG HG]
+    · inext
+      iintro %err %s' ⟨Hphys, %Herr, %Hres⟩
+      iapply HΦG $$ %err %s'
+      iframe Hphys HG
+      ipureintro; exact ⟨Herr, Hres⟩
+    iapply wp_stepLeader_rest0 c wp_GetType wp_GetFrom r id s ml m ents ctx sn rs _ _ _
+      (Or.inl Hty) $$ [Hphys Hm] HΦ0
     iframe
     iexact Hinit
-  · iapply wp_stepLeader_rest0 c wp_GetType wp_GetFrom r id s ml m ents ctx sn rs _ _ _
-      (Or.inr Hty) $$ [Hphys Hm] HΦ'
+  ·
+    -- an arm without a gate: `G` framed
+    ihave HΦ0 : iprop(▷ ∀ (err : GoInterface) (s' : NState),
+        ownRaftPhysCV c c.voters r id s' ∗ ⌜err = interface.nil⌝ ∗
+        ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ -∗ Φ #err) $$ [HΦG HG]
+    · inext
+      iintro %err %s' ⟨Hphys, %Herr, %Hres⟩
+      iapply HΦG $$ %err %s'
+      iframe Hphys HG
+      ipureintro; exact ⟨Herr, Hres⟩
+    iapply wp_stepLeader_rest0 c wp_GetType wp_GetFrom r id s ml m ents ctx sn rs _ _ _
+      (Or.inr Hty) $$ [Hphys Hm] HΦ0
     iframe
     iexact Hinit
-  · iapply wp_stepLeader_report c wp_Progress_BecomeProbe wp_GetType wp_GetFrom wp_GetReject
-      r id s ml m ents ctx sn rs _ _ _ (Or.inl Hty) $$ [Hphys Hm] HΦ'
+  ·
+    -- an arm without a gate: `G` framed
+    ihave HΦ0 : iprop(▷ ∀ (err : GoInterface) (s' : NState),
+        ownRaftPhysCV c c.voters r id s' ∗ ⌜err = interface.nil⌝ ∗
+        ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ -∗ Φ #err) $$ [HΦG HG]
+    · inext
+      iintro %err %s' ⟨Hphys, %Herr, %Hres⟩
+      iapply HΦG $$ %err %s'
+      iframe Hphys HG
+      ipureintro; exact ⟨Herr, Hres⟩
+    iapply wp_stepLeader_report c wp_Progress_BecomeProbe wp_GetType wp_GetFrom wp_GetReject
+      r id s ml m ents ctx sn rs _ _ _ (Or.inl Hty) $$ [Hphys Hm] HΦ0
     iframe
     iexact Hinit
-  · iapply wp_stepLeader_report c wp_Progress_BecomeProbe wp_GetType wp_GetFrom wp_GetReject
-      r id s ml m ents ctx sn rs _ _ _ (Or.inr Hty) $$ [Hphys Hm] HΦ'
+  ·
+    -- an arm without a gate: `G` framed
+    ihave HΦ0 : iprop(▷ ∀ (err : GoInterface) (s' : NState),
+        ownRaftPhysCV c c.voters r id s' ∗ ⌜err = interface.nil⌝ ∗
+        ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ -∗ Φ #err) $$ [HΦG HG]
+    · inext
+      iintro %err %s' ⟨Hphys, %Herr, %Hres⟩
+      iapply HΦG $$ %err %s'
+      iframe Hphys HG
+      ipureintro; exact ⟨Herr, Hres⟩
+    iapply wp_stepLeader_report c wp_Progress_BecomeProbe wp_GetType wp_GetFrom wp_GetReject
+      r id s ml m ents ctx sn rs _ _ _ (Or.inr Hty) $$ [Hphys Hm] HΦ0
     iframe
     iexact Hinit
-  · iapply wp_stepLeader_transfer c wp_raft_sendAppend wp_raft_sendTimeoutNow
+  · ispecialize Hgtnow $$ %Hty
+    ispecialize Hgxapp $$ %Hty
+    iapply wp_stepLeader_transfer c wp_raft_sendAppend wp_raft_sendTimeoutNow
       wp_raftLog_lastIndex wp_raft_abortLeaderTransfer wp_GetType wp_GetFrom
-      r id s ml m ents ctx sn rs _ _ _ Hty Hlead (Htz (Or.inr Hty)) Htr $$ [Hphys Hm] HΦ'
+      r id s ml m ents ctx sn rs _ _ _ Hty Hlead (Htz (Or.inr Hty)) G
+      $$ [Hphys Hm HG Hgtnow Hgxapp] HΦG
+    iframe
+    iframe Hinit Hnosnap
+  · exact absurd Hty Hcq
+  ·
+    -- an arm without a gate: `G` framed
+    ihave HΦ0 : iprop(▷ ∀ (err : GoInterface) (s' : NState),
+        ownRaftPhysCV c c.voters r id s' ∗ ⌜err = interface.nil⌝ ∗
+        ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ -∗ Φ #err) $$ [HΦG HG]
+    · inext
+      iintro %err %s' ⟨Hphys, %Herr, %Hres⟩
+      iapply HΦG $$ %err %s'
+      iframe Hphys HG
+      ipureintro; exact ⟨Herr, Hres⟩
+    iapply wp_stepLeader_noop c wp_GetType wp_GetFrom r id s ml m ents ctx sn rs _ _ _
+      (Or.inl Hty) $$ [Hphys Hm] HΦ0
     iframe
     iexact Hinit
-  · -- (2026-10-17) `MsgCheckQuorum`
-    iapply wp_stepLeader_checkQuorum c wp_ProgressTracker_QuorumActive wp_ProgressTracker_Visit
-      wp_raft_becomeFollower wp_GetType r id s ml m ents ctx sn rs _ _ _ Hty Htr $$ [Hphys Hm] HΦ'
+  · ihave #Hgb := Hgbeat $$ %Hty
+    iapply wp_stepLeader_beat c wp_raft_bcastHeartbeat wp_GetType r id s ml m ents ctx sn rs
+      _ _ _ Hty Hlead (Htz (Or.inl Hty)) G $$ [Hphys Hm HG] HΦG
     iframe
-    iexact Hinit
-  · iapply wp_stepLeader_noop c wp_GetType wp_GetFrom r id s ml m ents ctx sn rs _ _ _
-      (Or.inl Hty) $$ [Hphys Hm] HΦ'
-    iframe
-    iexact Hinit
-  · iapply wp_stepLeader_beat c wp_raft_bcastHeartbeat wp_GetType r id s ml m ents ctx sn rs
-      _ _ _ Hty Hlead (Htz (Or.inl Hty)) Htr $$ [Hphys Hm] HΦ'
-    iframe
-    iexact Hinit
+    iframe Hinit Hgb
   · obtain ⟨Hclen, Hcb, Hvne⟩ := Hhr Hty
+    -- an arm without a gate: `G` framed
+    ihave HΦ0 : iprop(▷ ∀ (err : GoInterface) (s' : NState),
+        ownRaftPhysCV c c.voters r id s' ∗ ⌜err = interface.nil⌝ ∗
+        ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ -∗ Φ #err) $$ [HΦG HG]
+    · inext
+      iintro %err %s' ⟨Hphys, %Herr, %Hres⟩
+      iapply HΦG $$ %err %s'
+      iframe Hphys HG
+      ipureintro; exact ⟨Herr, Hres⟩
     iapply wp_stepLeader_hbresp c wp_raft_sendAppend wp_raftLog_lastIndex wp_readOnly_recvAck
       wp_readOnly_maybeAdvance wp_raft_responseToReadIndexReq wp_raft_send wp_GetType wp_GetFrom
       wp_GetContext wp_GetTo r id s ml m ents ctx sn rs _ _ _ Hty Hlead
       (Hrdnz (Or.inl Hty)).2
-      (Hself (Or.inl Hty)) Hvne (Hrdnz (Or.inl Hty)).1 Hclen Hcb Htr $$ [Hphys Hm] HΦ'
+      (Hself (Or.inl Hty)) Hvne (Hrdnz (Or.inl Hty)).1 Hclen Hcb
+      (Htr (Or.inr (Or.inr Hty))) $$ [Hphys Hm] HΦ0
     iframe
     iexact Hinit
-  · iapply wp_stepLeader_appresp c wp_raft_sendAppend wp_raft_maybeSendAppend
+  ·
+    -- an arm without a gate: `G` framed
+    ihave HΦ0 : iprop(▷ ∀ (err : GoInterface) (s' : NState),
+        ownRaftPhysCV c c.voters r id s' ∗ ⌜err = interface.nil⌝ ∗
+        ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ -∗ Φ #err) $$ [HΦG HG]
+    · inext
+      iintro %err %s' ⟨Hphys, %Herr, %Hres⟩
+      iapply HΦG $$ %err %s'
+      iframe Hphys HG
+      ipureintro; exact ⟨Herr, Hres⟩
+    iapply wp_stepLeader_appresp c wp_raft_sendAppend wp_raft_maybeSendAppend
       wp_raft_bcastAppend wp_raft_maybeCommit wp_releasePendingReadIndexMessages
       wp_Progress_MaybeUpdate wp_Progress_MaybeDecrTo wp_Progress_BecomeProbe
       wp_Progress_BecomeReplicate wp_Progress_CanBumpCommit wp_Inflights_FreeLE
       wp_raftLog_findConflictByTerm wp_raftLog_lastIndex wp_raftLog_firstIndex
       wp_raft_sendTimeoutNow wp_GetType wp_GetFrom wp_GetReject wp_GetIndex wp_GetRejectHint
       wp_GetLogTerm r id s ml m Hty Hlead (Hfrom0 Hty) (fun Hr => Hself (Or.inr ⟨Hty, Hr⟩))
-      (Hrdnz (Or.inr (Or.inl Hty))).2 (Hrdnz (Or.inr (Or.inl Hty))).1.2.2 (Hack Hty).1 (fun h => (Hack h).2) ents ctx sn rs _ _ _ Htr
-      $$ [Hphys Hm] HΦ'
+      (Hrdnz (Or.inr (Or.inl Hty))).2 (Hrdnz (Or.inr (Or.inl Hty))).1.2.2 (Hack Hty).1 (fun h => (Hack h).2) ents ctx sn rs _ _ _
+      (Htr (Or.inr (Or.inl Hty)))
+      $$ [Hphys Hm] HΦ0
     iframe
     iexact Hinit
   · exact absurd Hty Hp
-  · iapply wp_stepLeader_noop c wp_GetType wp_GetFrom r id s ml m ents ctx sn rs _ _ _
-      (Or.inr (Or.inl Hty)) $$ [Hphys Hm] HΦ'
+  ·
+    -- an arm without a gate: `G` framed
+    ihave HΦ0 : iprop(▷ ∀ (err : GoInterface) (s' : NState),
+        ownRaftPhysCV c c.voters r id s' ∗ ⌜err = interface.nil⌝ ∗
+        ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ -∗ Φ #err) $$ [HΦG HG]
+    · inext
+      iintro %err %s' ⟨Hphys, %Herr, %Hres⟩
+      iapply HΦG $$ %err %s'
+      iframe Hphys HG
+      ipureintro; exact ⟨Herr, Hres⟩
+    iapply wp_stepLeader_noop c wp_GetType wp_GetFrom r id s ml m ents ctx sn rs _ _ _
+      (Or.inr (Or.inl Hty)) $$ [Hphys Hm] HΦ0
     iframe
     iexact Hinit
-  · iapply wp_stepLeader_noop c wp_GetType wp_GetFrom r id s ml m ents ctx sn rs _ _ _
-      (Or.inr (Or.inr (Or.inl Hty))) $$ [Hphys Hm] HΦ'
+  ·
+    -- an arm without a gate: `G` framed
+    ihave HΦ0 : iprop(▷ ∀ (err : GoInterface) (s' : NState),
+        ownRaftPhysCV c c.voters r id s' ∗ ⌜err = interface.nil⌝ ∗
+        ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ -∗ Φ #err) $$ [HΦG HG]
+    · inext
+      iintro %err %s' ⟨Hphys, %Herr, %Hres⟩
+      iapply HΦG $$ %err %s'
+      iframe Hphys HG
+      ipureintro; exact ⟨Herr, Hres⟩
+    iapply wp_stepLeader_noop c wp_GetType wp_GetFrom r id s ml m ents ctx sn rs _ _ _
+      (Or.inr (Or.inr (Or.inl Hty))) $$ [Hphys Hm] HΦ0
     iframe
     iexact Hinit
-  · iapply wp_stepLeader_noop c wp_GetType wp_GetFrom r id s ml m ents ctx sn rs _ _ _
-      (Or.inr (Or.inr (Or.inr (Or.inl Hty)))) $$ [Hphys Hm] HΦ'
+  ·
+    -- an arm without a gate: `G` framed
+    ihave HΦ0 : iprop(▷ ∀ (err : GoInterface) (s' : NState),
+        ownRaftPhysCV c c.voters r id s' ∗ ⌜err = interface.nil⌝ ∗
+        ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ -∗ Φ #err) $$ [HΦG HG]
+    · inext
+      iintro %err %s' ⟨Hphys, %Herr, %Hres⟩
+      iapply HΦG $$ %err %s'
+      iframe Hphys HG
+      ipureintro; exact ⟨Herr, Hres⟩
+    iapply wp_stepLeader_noop c wp_GetType wp_GetFrom r id s ml m ents ctx sn rs _ _ _
+      (Or.inr (Or.inr (Or.inr (Or.inl Hty)))) $$ [Hphys Hm] HΦ0
     iframe
     iexact Hinit
-  · iapply wp_stepLeader_readindex c
+  · ispecialize Hgriresp $$ %Hty
+    ihave #Hgr := Hgrihb $$ %Hty
+    iapply wp_stepLeader_readindex c
       wp_raft_committedEntryInCurrentTerm wp_sendMsgReadIndexResponse wp_GetType
       r id s ml m ents ctx sn rs _ _ _ Hty Hlead
-      (Hrdnz (Or.inr (Or.inr Hty))).2 (Hri Hty) Htr $$ [Hphys Hm] HΦ'
+      (Hrdnz (Or.inr (Or.inr Hty))).2 (Hri Hty) G $$ [Hphys Hm HG Hgriresp] HΦG
     iframe
-    iexact Hinit
+    iframe Hinit Hgr
 
 end proof
 

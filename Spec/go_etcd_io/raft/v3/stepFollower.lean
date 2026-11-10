@@ -156,10 +156,22 @@ of its ids: `SnapScope`, `CSLists.Has`; in A3 non-joint with any voters; until t
 `c`, its voters `c.incoming`), after which the node is at the snapshot's configuration if
 `restore` installed it (`SnapCfgOk`). (The statement on `ownRaftPhys`, `specS`, had no caller
 and is gone.)
+
+(2026-11-10, Q8 stage 1 slice 8 of `notes/trace-validation-plan.md`) **One spec for both modes**, in
+place of stage 0's premise `s.gh.tr = none`: the caller's resource `G` goes through the gates of the
+arm that runs, each conditioned on its type (`notes/decisions.md`, "Q8 stage 1 (slice 8)"): a
+`MsgApp`'s or a `MsgHeartbeat`'s reply gate (`G` to `G'`, as the handlers' specs', at the state with
+the sender as leader); a forward to the leader (`MsgProp`, `MsgReadIndex`, `MsgTransferLeader`: no
+traced type) the send's gate at no event (`G` back to `G`, the logger field); a `MsgTimeoutNow`'s
+campaign `hup`'s gates (`G` to `G'`). It gives back `G'` for those three types (a `MsgTimeoutNow`
+that does not campaign gives `G`, at `s' = s`, as `hup`'s), else `G`. A `MsgSnap` only untraced
+(`handleSnapshot`'s premise; the Draft's P2). The untraced instance is `stepFollower.untraced`
+(`TracedUntracedStep.lean`).
 -/
 abbrev stepFollower.spec : Prop :=
   ∀ (c : CfgM) (scfg : CSLists) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
-    (ents : List EntryM) (sn : Option SnapshotM) (rs : List Loc) (sv : SnapshotM) (cl : List w8),
+    (ents : List EntryM) (sn : Option SnapshotM) (rs : List Loc) (sv : SnapshotM) (cl : List w8)
+    (G G' : IProp GF),
   (m.Type' = MsgVoteResp ∨ m.Type' = MsgProp ∨
    m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat ∨
    (m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp ∨
@@ -212,13 +224,12 @@ abbrev stepFollower.spec : Prop :=
      sn = some sv ∧ scfg = sv.Metadata'.ConfState'.lists ∧
      SnapScopeIf id sv scfg ∧ s.role = .follower ∧ s.votes = ∅ ∧ m.From' ≠ id ∧
      -- (2026-10-19, D21 M3) outside the no-snapshot mode
-     s.gh.ns = false) →
+     s.gh.ns = false ∧
+     -- (2026-11-10, Q8 stage 1 slice 8; until then, stage 0, of every message) untraced
+     -- (`handleSnapshot`'s premise: a traced node receives no snapshot, the Draft's P2)
+     s.gh.tr = none) →
   -- (2026-10-22, D38a) a message forwarded to the leader has no responses (`send`'s premise)
   (m.Type' = MsgProp ∨ m.Type' = MsgReadIndex ∨ m.Type' = MsgTransferLeader → rs = []) →
-  -- (2026-11-09, Q8 stage 0 of `notes/trace-validation-plan.md`) an untraced node: its trace
-  -- hooks see a nil logger (`TraceLoggerOkS`); stage 1 replaces this premise by the traced
-  -- capability (`trCapB s.gh.tr …`, `TracedHooksDraft.lean`)
-  s.gh.tr = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       -- (stage R4) the message, as `Step` received it (its `Context` holding `cl`: what a
@@ -227,13 +238,42 @@ abbrev stepFollower.spec : Prop :=
                ⟨m, ents, sn, cl, rs⟩ ∗
       -- (D22 S-b′3; U8 v2: pinned at the node's storage names, `rcvSrc`) a `MsgSnap`'s snapshot
       -- certified (`handleSnapshot`'s; `rcvSrc_ne` for any other type)
-      "#Hcert" ∷ rcvSrc s.gh.sn m.Type' sn }}
+      "#Hcert" ∷ rcvSrc s.gh.sn m.Type' sn ∗
+      -- (2026-11-10, Q8 stage 1 slice 8; until then, stage 0, the premise `s.gh.tr = none`) the
+      -- caller's resource, through the gates of the arm that runs
+      "HG" ∷ G ∗
+      -- a `MsgApp`: `handleAppendEntries`'s reply gate, at the state with the sender as leader
+      "Hgapp" ∷ (⌜m.Type' = MsgApp⌝ -∗ ∀ (s1 : NState) (mm : Msg),
+        ⌜HandleAppResult id { s with lead := m.From' } m ents (sendMsgs s1 [mm])⌝ -∗
+        G -∗ HookGateOpt s.gh.tr r (sendOutGate id s1 c MsgAppResp [mm]) G') ∗
+      -- a `MsgHeartbeat`: `handleHeartbeat`'s, at that state with the commit moved
+      "Hghb" ∷ (⌜m.Type' = MsgHeartbeat⌝ -∗ G -∗ HookGateOpt s.gh.tr r
+        (sendOutGate id { ({ s with lead := m.From' } : NState) with
+            logst := { s.logst with committed := plogCommitTo s.logst.committed m.Commit' } }
+          c MsgHeartbeatResp [{ Msg.plain .heartbeatResp id m.From' s.term false with ctx := cl }]) G') ∗
+      -- a forward to the leader: the send's gate, at no event (none of the three types is traced)
+      "Hgfwd" ∷ (⌜m.Type' = MsgProp ∨ m.Type' = MsgReadIndex ∨ m.Type' = MsgTransferLeader⌝ -∗ G -∗
+        HookGateOpt s.gh.tr r none G) ∗
+      -- a `MsgTimeoutNow`: `hup(campaignTransfer)`'s gates (the `BecomeCandidate` line, then each
+      -- vote message, at the candidate's state)
+      "Hgcamp" ∷ (⌜m.Type' = MsgTimeoutNow⌝ -∗ G -∗
+        HookGate s.gh.tr r (NodeEvOf (W64 1) id (becomeCandidate id s) c) G') ∗
+      "#Hgvote" ∷ □ (⌜m.Type' = MsgTimeoutNow⌝ -∗
+        ∀ (pvs : GMap w64 Progress) (y : w64), ⌜y ∈ c.voters⌝ -∗ G' -∗
+        HookGateOpt s.gh.tr r
+          (sendOutGate id { becomeCandidate id s with prvals := pvs } c
+            (if y = id then vrespW32 false else vreqW32 false)
+            [campMsg false id (s.term + W64 1) (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents))
+              campaignTransfer y]) G') }}
     (App (App (Val #(functions stepFollower [])) (Val #r)) (Val #ml))
   {{ (err : GoInterface) (s' : NState) (dropped : Bool) (c' : CfgM), RET #err;
       ownRaftPhysCV c' c'.voters r id s' ∗
       ⌜FollowerStepResultC c scfg id s m ents sv dropped s' c' cl⌝ ∗
       (if dropped then globalAddr ErrProposalDropped ↦□ err
-       else ⌜err = interface.nil⌝) }}
+       else ⌜err = interface.nil⌝) ∗
+      -- `G'` after a reply or a campaign; else `G` (a `MsgTimeoutNow` without a campaign at `s`)
+      ((⌜m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat ∨ m.Type' = MsgTimeoutNow⌝ ∗ G') ∨
+       (⌜m.Type' ≠ MsgApp ∧ m.Type' ≠ MsgHeartbeat ∧ (m.Type' = MsgTimeoutNow → s' = s)⌝ ∗ G)) }}
 
 end spec
 
