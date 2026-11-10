@@ -1,9 +1,8 @@
 /-
 Lean-first (no Rocq counterpart). **`raft.Step`'s traced bundle on the receive paths of the traced
 message types** (2026-11-10, trace-check Q8 stage 1 slice 18b, `notes/decisions.md`, "Q8 stage 1
-(slice 18b)"): proofs of `stepBundle_traced.on`'s receive paths (`TracedRaftStep.lean`), with the
-premises found needed stated as hypotheses (`stepBundle_traced.onR`, below; to be folded into
-`stepBundle_traced.on`).
+(slice 18b)"): proofs of `stepBundle_traced.on`'s receive paths (`TracedRaftStep.lean`; the premises
+slice 18b found needed, `s.role ≠ .preCandidate` and `TrRecvShape`, folded into it by slice 19b).
 
 Every path of a traced type starts with the receive hook, whose gate is the receive line's
 (`trCapB_hookGateRecv`): its phase step `PhaseStepR` at the pinned idle phase (`trCapB_pinDir`: the
@@ -19,7 +18,7 @@ receive path:
   fit (`ownRaftGhost_traceBound`), for the event's `TraceEv.Ok`;
 - `hookGateOpt_frame`: a resource framed into a hook gate's result.
 
-**Proved paths** (`stepBundle_traced.onR`):
+**Proved paths** (`stepBundle_traced.on`):
 - the stale messages (`StaleRecv`, `stepBundle_traced_staleRecv`): the receive line, which the
   specification answers by the phantom refusal for a request (`fxPresR_staleReq`) and drops for a
   response (`fxPresR_staleResp`); raft ignores both (pre-vote and check-quorum off);
@@ -51,16 +50,6 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3 TraceSim
 
 section pure
 variable [GooseExts]
-
-/-- **What a traced receive's line reads of the physical message beyond its specification message**
-(premise of the receive paths, the node API's: raft never sends otherwise, `handleHeartbeat` and
-`bcastHeartbeat`): a heartbeat carries no entries (the line logs the entry count, the specification's
-heartbeat has none) and a heartbeat response does not reject (the specification's is a success); and a
-vote request is not from its destination (its response's send line, skipped by the specification, is
-of a message to another node: `lineEffect_skipResp`; `isRaftMsg`'s `SentMsgShape` states it). -/
-def TrRecvShape (m : MessageM) (ents : List EntryM) : Prop :=
-  (m.Type' = MsgHeartbeat → ents = []) ∧ (m.Type' = MsgHeartbeatResp → m.Reject' = false) ∧
-    (m.Type' = MsgVote → m.From' ≠ m.To')
 
 /-- A receive event's type, by the message's: the event constants of `recvEvt`, with the shape the
 line's parse needs (`TrRecvShape`). -/
@@ -1103,44 +1092,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- **`stepBundle_traced.on` with the receive paths' two further premises** (found needed by this
-slice; to be folded into `stepBundle_traced.on`, `TracedRaftStep.lean`, which another branch owns):
-- the node is no pre-candidate (`s.role ≠ .preCandidate`): with pre-vote off raft never becomes one
-  (`becomePreCandidate` runs only under `r.preVote`), but neither the capability nor raft's ghost state
-  records it, and every receive line's state match (`stateMatches_node`) needs it, the specification
-  having no pre-candidate role while pre-vote is off;
-- the message's shape the receive line's parse reads (`TrRecvShape`: a heartbeat without entries, a
-  heartbeat response not rejecting), which its specification message does not record.
-Both are the node API's to supply (the first from a traced node's configuration, the second from the
-transport's `isRaftMsg`, whose `SentMsgShape` would carry it). -/
-abbrev stepBundle_traced.onR (Path : NState → MessageM → Prop) : Prop :=
-  ∀ (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM)
-    (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (γd : GName)
-    (Λ : Option TraceEv → Prop),
-  Path s m →
-  -- (slice 18b) the receive paths' premises
-  s.role ≠ .preCandidate → TrRecvShape m ents →
-  s.gh.tr = some γd →
-  s.prevote = false → s.cq = false → StepEndTy m.Type' → NStateWf s →
-  (m.Type' = MsgHup ∨ m.Type' = MsgBeat ∨ m.Type' = MsgProp → m.Term' = W64 0) →
-  (m.Type' = MsgHup → s.role ≠ .leader) →
-  (∀ ty, mtypeOf m.Type' = some ty → ty.traced = true → m.To' = id) →
-  uint.Z s.term + 1 < traceNumBound → uint.Z m.Term' < traceNumBound →
-  (∀ ty, mtypeOf m.Type' = some ty → MsgTrOk γ (absMsg ty m ents ctx)) →
-  receiptBound GF + γ.reBoot.length ≤ traceNumBound →
-  -- (slice 18a) no learners; the tracker's peers the configuration's
-  c.learners = ∅ → domSet s.progress ⊆ c.voters ∪ c.learners →
-  (trCapB s.gh.tr γ r id c true (fun C => SimIdle C s) Λ ∗ recvTokOf γd m ents ctx ∗
-      TrNoSnap s.gh.tr s.logst : IProp GF) ⊢
-    |={⊤}=> ∃ R : StepG GF, R.G ∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) ∗
-      stepClose γ md c id m ents ctx s R
-        (fun s' => trCapB s.gh.tr γ r id c true (fun C => SimIdle C s') (stepLastEv Λ))
-
-/-- `stepBundle_traced.on` gives `onR` (the latter has more premises). -/
-theorem stepBundle_traced.onR_of_on {Path : NState → MessageM → Prop}
-    (h : stepBundle_traced.on (GF := GF) (hG := hG) Path) : stepBundle_traced.onR (GF := GF) (hG := hG) Path :=
-  fun γ md c r id s m ents sn ctx rs γd Λ hp _ _ => h γ md c r id s m ents sn ctx rs γd Λ hp
-
 /-- **A stale message of a traced type** (`Step`'s `m.Term < r.Term` arm). -/
 def StaleRecv (s : NState) (m : MessageM) : Prop :=
   StaleMsg s m ∧ ∃ ty, mtypeOf m.Type' = some ty ∧ ty.traced = true
@@ -1176,8 +1127,8 @@ theorem idlePin_term (s : NState) (C0 : List w64) (cs0 : ServerC) (P0 : List Etc
 
 /-- **`raft.Step`'s traced bundle on the stale messages of a traced type**: the receive line (the
 specification's phantom refusal of a request, the drop of a response), nothing else. -/
-theorem stepBundle_traced_staleRecv : stepBundle_traced.onR (GF := GF) (hG := hG) StaleRecv := by
-  intro γ md c r id s m ents sn ctx rs γd Λ hp hnpc hsh htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit hlrn hdom
+theorem stepBundle_traced_staleRecv : stepBundle_traced.on (GF := GF) (hG := hG) StaleRecv := by
+  intro γ md c r id s m ents sn ctx rs γd Λ hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit hlrn hdom hnpc hsh
   obtain ⟨hst, ty, hmty, htrd⟩ := hp
   obtain ⟨evt, hevt, hev⟩ := recvEvTy_of ty m ents hmty htrd hsh
   have hto' : m.To' = id := hto ty hmty htrd
@@ -1187,7 +1138,7 @@ theorem stepBundle_traced_staleRecv : stepBundle_traced.onR (GF := GF) (hG := hG
   have hnhup : m.Type' ≠ MsgHup := fun h => by rw [h] at hmty; cases hmty
   have hnpv : m.Type' ≠ MsgPreVote := fun h => by
     rw [h] at hmty; cases hmty; cases htrd
-  iintro ⟨Hcap, Htok, #Hnosnap⟩
+  iintro ⟨Hcap, ⟨Htok, #Hmsg⟩, #Hnosnap⟩
   have hmt2 : mtypeOf m.Type' = some ty ∧ ty.traced = true := ⟨hmty, htrd⟩
   iunfold recvTokOf at Htok
   icases Htok $$ %ty %hmt2 with ⟨%tn, %k, %ma, #Hdir, %hma, Htok⟩
@@ -1321,8 +1272,8 @@ def ignR (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NSta
 
 /-- **`raft.Step`'s traced bundle on a response a role does not handle, at the node's term**: the
 receive line (the specification records it, `respSrv`), nothing else. -/
-theorem stepBundle_traced_ignResp : stepBundle_traced.onR (GF := GF) (hG := hG) IgnResp := by
-  intro γ md c r id s m ents sn ctx rs γd Λ hp hnpc hsh htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit hlrn hdom
+theorem stepBundle_traced_ignResp : stepBundle_traced.on (GF := GF) (hG := hG) IgnResp := by
+  intro γ md c r id s m ents sn ctx rs γd Λ hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit hlrn hdom hnpc hsh
   have hp' := hp
   obtain ⟨hterm, ty, hmty, hresp, hrole⟩ := hp'
   have htrd : ty.traced = true := by rcases hresp with rfl | rfl | rfl <;> rfl
@@ -1341,7 +1292,7 @@ theorem stepBundle_traced_ignResp : stepBundle_traced.onR (GF := GF) (hG := hG) 
   -- every type a gate guards on, but the responses' own where a role handles them
   obtain ⟨hnA, hnH, hnP, hnRI, hnTL, hnTN, hnB, hnCQ, hnPVR, hnV, hnPV, hnHup⟩ := resp_ne hTy
   have hmt2 : mtypeOf m.Type' = some ty ∧ ty.traced = true := ⟨hmty, htrd⟩
-  iintro ⟨Hcap, Htok, #Hnosnap⟩
+  iintro ⟨Hcap, ⟨Htok, #Hmsg⟩, #Hnosnap⟩
   iunfold recvTokOf at Htok
   icases Htok $$ %ty %hmt2 with ⟨%tn, %k, %ma, #Hdir, %hma, Htok⟩
   rw [msgAbs_absMsg_ctx] at hma
@@ -1554,8 +1505,8 @@ def voteR (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NSt
 /-- **`raft.Step`'s traced bundle on a vote request of the node's term**: the receive line (the
 specification's grant decision, `HandleRequestVoteRequest`), then the answer's send line, which the
 specification skips; raft's decision is the specification's (`voteEnd_simIdle`). -/
-theorem stepBundle_traced_voteReq : stepBundle_traced.onR (GF := GF) (hG := hG) VoteReq := by
-  intro γ md c r id s m ents sn ctx rs γd Λ hp hnpc hsh htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit hlrn hdom
+theorem stepBundle_traced_voteReq : stepBundle_traced.on (GF := GF) (hG := hG) VoteReq := by
+  intro γ md c r id s m ents sn ctx rs γd Λ hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit hlrn hdom hnpc hsh
   obtain ⟨hTy, hterm⟩ := hp
   have hmty : mtypeOf m.Type' = some .vote := by rw [hTy]; rfl
   have htrd : MsgType.traced .vote = true := rfl
@@ -1569,7 +1520,7 @@ theorem stepBundle_traced_voteReq : stepBundle_traced.onR (GF := GF) (hG := hG) 
   have hvt : vrespTyOf m = MsgVoteResp := by simp [vrespTyOf, hTy]
   obtain ⟨hnA, hnH, hnP, hnRI, hnTL, hnTN, hnB, hnCQ, hnPVR, hnVR, hnHR, hnAR, hnPV, hnHup⟩ := vote_ne hTy
   have hmt2 : mtypeOf m.Type' = some .vote ∧ MsgType.traced .vote = true := ⟨hmty, htrd⟩
-  iintro ⟨Hcap, Htok, #Hnosnap⟩
+  iintro ⟨Hcap, ⟨Htok, #Hmsg⟩, #Hnosnap⟩
   iunfold recvTokOf at Htok
   icases Htok $$ %MsgType.vote %hmt2 with ⟨%tn, %k, %ma, #Hdir, %hma, Htok⟩
   rw [msgAbs_absMsg_ctx] at hma
