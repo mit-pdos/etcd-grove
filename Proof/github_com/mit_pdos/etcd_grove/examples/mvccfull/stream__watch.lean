@@ -303,6 +303,55 @@ theorem stream.watch.wp_proof
         · ipureintro; rfl
         simp only [List.zip_nil_left]
         iapply BigSepL.bigSepL_nil.2; itrivial
+  iintro %v ⟨%hv, w, «$r0», %fcsl, fcs, #Hflts⟩
+  subst hv
+  wp_auto
+  ihave %Hsh := hsh.2.2.2 T.ws T.ep.ι.kv T.σs.ws $$ Hws
+  obtain ⟨tyW, vW, hwsv, hWatch, -, -, -, -, -, -⟩ := Hsh
+  ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
+  · iPkgInit
+  wp_apply sync.Mutex.wp_Lock _ _ $$ [$Hmu] as ⟨Hlocked, HL⟩
+  iunfold smuInv at HL
+  icases HL with ⟨%rs, %W, %Hl, %P, HB⟩
+  iunfold smuBody at HB
+  icases HB with ⟨Hwm, ⟨%osl, %ids, Hord, Hids, Hcap, %Hids⟩, Hevl, Hreg, Hrcv0, #Hlb, %Hknown, Hwats⟩
+  (try wp_auto)
+  wp_apply_core sync.atomic.Int64.wp_Load (mF go!"revLo" T.ep.mp) (DFrac.own 1) $$ [] [-]
+  · iPkgInit
+  imod revLo_acc T.ep.ks T.ep.γh T.ep.i T.ep.mp T.ep.m T.ep.ι T.ep.kv q $$ Hlive
+    with ⟨%lo, Hlo, Hcl2⟩
+  imodintro
+  inext
+  iexists lo
+  iframe Hlo
+  iintro Hlo
+  imod Hcl2 $$ Hlo with ⟨Hlive, %nn, #Hnn, %Hlon⟩
+  imodintro
+  (try wp_auto)
+  wp_apply wp_ctxTODO
+  (try wp_auto)
+  iunfold incLive at Hlive
+  icases Hlive with ⟨-, Hret⟩
+  have hkne : kk ≠ [] := Hkne kk Hkk
+  rw [hwsv]
+  (try wp_auto)
+  wp_apply (hWatch T.ep.ι.kv T.σs.ws todoCtxVal
+      { Values := GMap.empty, Deadline := none, Done_gn := ⟨0, 0⟩, PDone := iprop(True) }
+      ksl endk fcsl kk e (filterFs flt) st (regQ' T q W wpl kk e endk st flt nn))
+    $$ [Hrdr Hret Hcl Hreg] as %id %err ⟨Hrdr, Hres⟩
+  · ihave #Hws2 : isMvccWatchStream (interface.mkOk tyW vW) T.ep.ι.kv T.σs.ws $$ []
+    · rw [← hwsv]; iexact Hws
+    iframe #
+    iframe Hrdr
+    isplitl []
+    · ileft; ipureintro; rfl
+    isplitl []
+    · ipureintro; exact Hst.1
+    iright
+    iapply (register_au' hpers hreach T q W wpl kk e endk st flt nn hkne)
+    iframe
+    iframe #
+  trace_state
   sorry
 
 end proof
