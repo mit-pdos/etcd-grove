@@ -2074,9 +2074,10 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
   axiomatized type (`axiom Kind : Type`, `Kind.underlying` an axiom), so `GoOp GoEquals reflect.Kind.ty`
   has no semantics; the trusted `reflect.Value.Kind.spec` (this repository) returns `#(W64 23)`.
 - **Needed by.** `store.GetList`'s `if err != nil || v.Kind() != reflect.Slice` (`store.go:780`).
-- **Workaround here.** `store.GetList.wp_proof` takes the instance premise
-  `[go.IsStrictlyComparable reflect.Kind.underlying w64]` (a hypothesis of the proof, not an axiom;
-  linking it into a closed result needs a decision: a trust-boundary fact here, or the change below).
+- **Workaround here.** `store.GetList.wp_proof` takes the hypothesis `reflect.KindCompare.spec`
+  (`Spec/reflect/KindCompare.lean`: `go.IsStrictlyComparable reflect.Kind.underlying w64`), pending
+  in the etcd3 `Link` (not an axiom; a closed result needs a decision: a trust-boundary fact here, or
+  the change below).
 - **Proposed change.** Translate `reflect.Kind` as `type Kind uint` (it is a plain named integer
   type), so its comparison is the translated one; or a reflect model fact stating the underlying.
 - **Status.** Recorded; decision pending (k8s 7e-2 report).
