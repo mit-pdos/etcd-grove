@@ -981,7 +981,7 @@ still FAILED on mvccfull's own 9 new matches (from before the Freeze; the tester
 ## F1 landed (2026-11-10)
 
 Landed on `lean` from `worktree-mvcc-full-tester` (the closed theorem at `432b996e31`; merged with
-`lean` at `de9c19e020`, per-type stage A, with one repair: v3rpc's `serverWatchStream.recvLoop`,
+`lean` at `de9c19e020`, per-type stage A, and at `f4e98c54f9`, premise fixes 1-3, with one repair: v3rpc's `serverWatchStream.recvLoop`,
 whose case split still expected `Watch`'s old empty-range post, which handed back the update).
 
 **Results.** `mvccfull_adequate` (`examples/mvccfull/Adequacy.lean`) and `Results.lean`'s

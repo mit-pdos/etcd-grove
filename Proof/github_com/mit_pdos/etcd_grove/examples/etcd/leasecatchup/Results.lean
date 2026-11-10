@@ -46,7 +46,7 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup.Assumptions]
 
 /-- **`Main` does not panic** (`MainLinked.lean`'s `etcd_leasecatchup.wp_Main`). -/
-theorem leasecatchup_Main [go_etcd_io.etcd.cache.v3.Assumptions] [Float64ToInt64Semantics]
+theorem leasecatchup_Main [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     etcd_leasecatchup.Main.spec (GF := GF) (hG := hG) :=
   etcd_leasecatchup.wp_Main
@@ -62,7 +62,7 @@ variable [go_gctx : GoGlobalContext]
 theorem etcd_leasecatchup_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC leasecatchupGF,
       ContextReadErrs (GF := leasecatchupGF) (hG := heapAtLcu hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC leasecatchupGF,

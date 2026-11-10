@@ -29,6 +29,8 @@ REVIEWED = {
     'Spec/google_golang_org/grpc/status/Error.lean':
         '*status.Error: Error() formats its fixed status, GRPCStatus() returns it, Is is proto.Equal',
     'Spec/google_golang_org/grpc/status/Code.lean': 'statusErrOk a premise only',
+    'Spec/k8s_io/apiserver/pkg/storage/etcd3/metrics/RecordEtcdRequest.lean':
+        'statusErrOk a premise only (no description or code in its post)',
     'Spec/errors/IsStatusErr.lean':
         'a leaf: == compares values, Is answers true only for an equal description (grpcErrMethodsOk)',
     'Spec/fmt/ErrorfWrap.lean':

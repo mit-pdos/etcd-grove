@@ -1,5 +1,5 @@
 /-
-`NewMember(name, peer, peerAddr, client, cluster, token, snapCount, catchUp, lg)` (`examples/lib/etcdstart/etcdstart.go`;
+`NewMember(name, peer, peerAddr, client, cluster, token, snapCount, catchUp, lg)` (`examples/lib/etcdstart/common.go`;
 2026-10-22, D33): member `name` of a new cluster built and its raft handler served -- `newServer`,
 `net.Listen` at the peer address, `go http.Serve(l, s.RaftHandler())`; what putget3's, linkv3's and
 linkv3p's `startMember`s did before `Start`. Lean-first (no Rocq counterpart).

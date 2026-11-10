@@ -73,7 +73,7 @@ include h_After in
 `Spec/github_com/mit_pdos/etcd_grove/examples/k8s/compactor/Main.lean`), under the semantic premises
 of its callees' linked results (as `compactwatch`'s) and the named hypothesis of
 `clock.RealClock.After` (`time.After(d)`: a channel some time is sent on). -/
-theorem k8s_compactor.wp_Main [Float64ToInt64Semantics]
+theorem k8s_compactor.wp_Main
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     k8s_compactor.Main.spec (GF := GF) (hG := hG) :=
   k8s_compactor.Main.wp_proof zap.NewNop.wp_proof etcdstart.wp_StartCompactingServer
@@ -91,7 +91,7 @@ include h_After in
 premises of its callees' linked results (`Main`'s, and the three-member cluster's) and the named
 hypothesis of `clock.RealClock.After`. -/
 theorem k8s_compactor.wp_MainPartition [go_etcd_io.etcd.cache.v3.Assumptions]
-    [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     k8s_compactor.MainPartition.spec (GF := GF) (hG := hG) :=
   k8s_compactor.MainPartition.wp_proof zap.NewNop.wp_proof k8s_compactor.wp_clusterConfig
     cluster3.wp_StartCluster cluster3.wp_NewClient cluster3.wp_Partitioner context.wp_ErrAny

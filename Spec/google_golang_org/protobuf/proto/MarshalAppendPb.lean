@@ -28,7 +28,7 @@ holding the wire content `c`**, which marshals, with the result's length below `
 encoding (`pbEncC I c`) to `b` and returns the result and `nil`; if it fits `b`'s capacity, in `b`'s
 array (the same pointer and capacity).
 
-Against protobuf-go v1.36.11 (`proto/encode.go:153`, `:174`): `MarshalAppend` is `Marshal`
+Against protobuf-go v1.36.12 (`proto/encode.go:153`, `:174`): `MarshalAppend` is `Marshal`
 appending to `b` (Go's `append`: in place within the capacity); the premise is the Scope's
 (`[v6]` §4, unchanged from revision 5), keeping the grown allocation below `maxAlloc`. -/
 abbrev proto.MarshalAppendPb.spec : Prop :=

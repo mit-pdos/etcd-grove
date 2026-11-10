@@ -94,8 +94,8 @@ axiom reflect.TypeOf.wp_proof
 axiom reflect.Value.Addr.wp_proof
 axiom reflect.Value.Interface.wp_proof
 axiom reflect.Value.Type.wp_proof
+axiom reflectM.value_intoVal_inj
 axiom reflectM.value_into_val_typed
-axiom reflectM.value_typed_pointsto
 axiom resolver.EtcdManualResolver.Close.wp_proof
 axiom resolver.EtcdManualResolver.SetEndpoints.wp_proof
 axiom resolver.New.wp_proof

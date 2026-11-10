@@ -259,7 +259,7 @@ axiom Perennial.k8s_io.apiserver.pkg.endpoints.request.opaqueInitsOk
 axiom Perennial.k8s_io.apiserver.pkg.features.init_0_ok
 axiom Perennial.k8s_io.apiserver.pkg.features.opaqueInitsOk
 axiom Perennial.k8s_io.apiserver.pkg.storage.etcd3.klogWrapper_toLoggerV2
-axiom Perennial.k8s_io.apiserver.pkg.storage.etcd3.metrics.ErrTransactionConflict_init
+axiom Perennial.k8s_io.apiserver.pkg.storage.etcd3.metrics.errorsNewVarsInit
 axiom Perennial.k8s_io.apiserver.pkg.storage.etcd3.metrics.opaqueInitsOk
 axiom Perennial.k8s_io.apiserver.pkg.storage.feature.DefaultFeatureSupportChecker_init
 axiom Perennial.k8s_io.apiserver.pkg.storage.feature.opaqueInitsOk
@@ -593,7 +593,6 @@ axiom proto.CloneConfState.wp_proof
 axiom proto.CloneEntry.wp_proof
 axiom proto.ClonePb.wp_proof
 axiom proto.CloneSnapshot.wp_proof
-axiom proto.EqualConfState.wp_proof
 axiom proto.Marshal.wp_proof
 axiom proto.MarshalAppendPb.wp_proof
 axiom proto.MarshalConfChange.wp_proof

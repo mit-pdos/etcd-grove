@@ -1,5 +1,5 @@
 /-
-`StartCompactingServer(name, peerAddr, clientAddr, retention, lg)` (`examples/lib/etcdstart/etcdstart.go`;
+`StartCompactingServer(name, peerAddr, clientAddr, retention, lg)` (`examples/lib/etcdstart/common.go`;
 M2, 2026-10-27, `notes/m2-plan.md`): `StartServer` with the auto-compactor on, in revision mode,
 keeping `retention` revisions -- `newServer` with that retention, `s.Start()`; `putgetc`'s start.
 Lean-first (no Rocq counterpart).

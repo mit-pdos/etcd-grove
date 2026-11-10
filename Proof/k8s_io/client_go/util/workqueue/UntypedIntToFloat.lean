@@ -12,7 +12,7 @@ typed integer (`Float64Semantics.convert_int_to_float64`, `FloatOps.int64ToFloat
 uninterpreted function of the integer (floats are opaque in the model; the limiter's spec needs
 nothing of the value).
 
-A **hypothesis class** on the semantics in use, like `EtcdGrove.Float64ToInt64Semantics`, not an
+A **hypothesis class** on the semantics in use, like Perennial's `go.Semantics`, not an
 axiom: the results that need it take it as an instance argument (`etc/gen-link.py`'s
 `SEM_PREMISES`). The general fix (Goose folding the constant conversion, or the step in
 Perennial's `UntypedIntSemantics`) is for Perennial (`notes/perennial-changes.md`).

@@ -84,14 +84,14 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.partition.A
 variable [NaInvG GF]
 
 /-- **`Main` does not panic, for every schedule** (`Link.lean`'s `etcd_partition.wp_Main`). -/
-theorem linkv3p_Main [go_etcd_io.etcd.cache.v3.Assumptions] [Float64ToInt64Semantics]
+theorem linkv3p_Main [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     etcd_partition.Main.spec (GF := GF) (hG := hG) :=
   etcd_partition.wp_Main
 
 /-- **`MainWatch` does not panic, for every schedule** (`Link.lean`'s `etcd_partition.wp_MainWatch`; W4
 of `notes/watch-cut-plan.md`). -/
-theorem linkv3p_MainWatch [go_etcd_io.etcd.cache.v3.Assumptions] [Float64ToInt64Semantics]
+theorem linkv3p_MainWatch [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     etcd_partition.MainWatch.spec (GF := GF) (hG := hG) :=
   etcd_partition.wp_MainWatch
@@ -107,7 +107,7 @@ variable [go_gctx : GoGlobalContext]
 theorem etcd_partition_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.partition.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
     -- (2026-10-24, rafthttp stage 6d) `*peer` implements `Pausable` (the partitioner's `CutPeer`)
     (Hctx : ∀ hG : HeapGS .hasLC linkvGF, ContextReadErrs (GF := linkvGF) (hG := linkvHeapAt hG lctx))
@@ -149,7 +149,7 @@ theorem etcd_partition_watch_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
-    [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
     -- (2026-10-24, rafthttp stage 6d) `*peer` implements `Pausable` (the partitioner's `CutPeer`)
     (Hctx : ∀ hG : HeapGS .hasLC linkvGF, ContextReadErrs (GF := linkvGF) (hG := linkvHeapAt hG lctx))

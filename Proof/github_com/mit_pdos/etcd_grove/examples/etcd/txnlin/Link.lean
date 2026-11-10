@@ -419,7 +419,7 @@ theorem wp_Check :
     EtcdGrove.etcd_txnlin.Check.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcd_txnlin.Check.wp_proof lintest.wp_Run lintest.wp_CounterClock wp_Model wp_Gen wp_Apply
 
-theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.etcd_txnlin.Main.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcd_txnlin.Main.wp_proof zap.wp_NewNop etcdstart.wp_StartServer etcdstart.wp_Serve etcdstart.wp_NewClient wp_Check mvcc.api.mvccApi_names_nonempty_law_holds
 

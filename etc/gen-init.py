@@ -629,15 +629,18 @@ runs its variables' untranslated initializers (`http.go`); the trust-boundary ax
 # `Proof/k8s_io/apiserver/pkg/storage/etcd3/Base.lean`.
 _K3 = 'k8s_io.apiserver.pkg.storage.etcd3'
 SPECIAL[_K3 + '.metrics'] = dict(
-    doc='''Its fact (`metricsInit`, `storage/etcd3/Base.lean`): `ErrTransactionConflict` holds some
-error. Its initializer runs its variables' untranslated initializers (`metrics.go`); the
-trust-boundary axiom `ErrTransactionConflict_init` states the one the fact reads
-(`errors.New("transaction conflict")`), `opaqueInitsOk` the others.''',
-    custom={'ErrTransactionConflict': dict(
-        doc='/-- `ErrTransactionConflict = errors.New("transaction conflict")` (`metrics.go`): an error. -/',
-        post='∃ e : GoInterface, globalAddr ErrTransactionConflict ↦ e', pat='⟨%e@, H@⟩')},
-    finish=['ipersist HErrTransactionConflict'] + FIN_PRE[:7] + [
-            'imodintro', 'iexists _', 'iexact HErrTransactionConflict'],
+    doc='''Its fact (`metricsInit`, `storage/etcd3/Base.lean`): `ErrTransactionConflict` holds an
+`errors.New("transaction conflict")` error (`EtcdGrove.errorsNewVar`). Its initializer runs its
+variables' untranslated initializers (`metrics.go`); the trust-boundary axiom `errorsNewVarsInit`
+states the one the fact reads (`metrics.go:42` at the apiserver pin `9c4ec15b8038`; checked by
+`examples/premisefix/recordetcdrequest`), `opaqueInitsOk` the others.''',
+    # (premise fixes 3, 2026-11-10, decided by etcd-grove-81) `errors.New`, as Go has it (it was a
+    # custom axiom giving some error): `txnError`'s result is then one grpc's `status` accepts
+    # (`statusErrOk`), which `metrics.RecordEtcdRequest` needs
+    newvars=dict(ErrTransactionConflict="transaction conflict"),
+    finish=['ipersist HErrTransactionConflict'] + FIN_PRE + [
+            'unfold k8s_io.apiserver.pkg.storage.etcd3.metricsInit EtcdGrove.errorsNewVar',
+            'iexists _', 'iframe HErrTransactionConflict', 'iexact MErrTransactionConflict'],
 )
 
 # KEP-6404 (2026-10-26): the watch cache's metrics; their facts are in

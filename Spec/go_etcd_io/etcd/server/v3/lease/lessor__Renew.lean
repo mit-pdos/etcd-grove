@@ -51,9 +51,11 @@ only if `remainingTTL > 0`; the only checkpointer is `NewServer`'s, which propos
 **Its assumption**: that proposal bypasses the proposers' workload (`apply.rqOk` admits no
 `LeaseCheckpoint`, D14h); it is covered by the checkpointer's premise `ckptEffectsOk`
 (`etcdserver/InvBoot.lean`), which `NewLessor` takes and every closed result carries, whose
-docstring names this call too (widened 2026-11-01, approved by the user). It is not exercised today: the server's grant guard is
-`False` (`srvGrantGuard`), so every lessor of the closed results has no lease and `Renew`
-returns before it reads `cp`. The lease-grant work must revisit this contract. -/
+docstring names this call too (widened 2026-11-01, approved by the user). It is not exercised by the closed results: in a cluster that grants
+no lease (the server's grant guard `False`, `srvGrantGuard`) the lessor has no lease and `Renew`
+returns before it reads `cp`; in one that grants leases (`examples/etcd/leasegrant`, ...) the
+examples leave the `LeaseCheckpoint` feature off (`examples/lib/etcdstart/common.go:96`), so `cp` is
+`nil` and `Renew` never calls it. -/
 abbrev lease.lessor.Renew.spec : Prop :=
   ∀ (lp : Loc) (γl : GName) (id : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ lessorInv lp γl ∗

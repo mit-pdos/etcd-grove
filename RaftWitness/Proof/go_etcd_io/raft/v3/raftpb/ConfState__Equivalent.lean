@@ -3,7 +3,8 @@ Proof of `Spec/go_etcd_io/raft/v3/raftpb/ConfState__Equivalent.lean`. Port of th
 `Proof/go_etcd_io/raft/v3/raftpb/ConfState__Equivalent.lean` to raft v3.7: `Equivalent` now
 clones both sides (`proto.Clone`, the trust boundary), sorts the clones' four id slices in place
 (the closure `s` calls `slices.Sort`), makes their `AutoLeave` explicit, and compares them with
-`proto.Equal` (the trust boundary, replacing `reflect.DeepEqual`). The argument is the old one:
+`confStatesEqual` (premise fixes 2, the raft fork's fourth fix: field by field; until then `proto.Equal`,
+the trust boundary, which also compared unknown fields). The argument is the old one:
 sorted permutations of each other are equal (`sorted_perm_eq`), so the sorted clones hold one
 record; nil-ness of the slices no longer matters (`proto.Equal` treats a nil and an empty repeated
 field alike), so the old proof's `append([]uint64(nil), s...)` lemmas are gone.
@@ -14,7 +15,7 @@ public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.ConfState__Equivalent
 public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.ConfState__GetAutoLeave
 public import RaftWitness.Spec.slices.Sort
 public import RaftWitness.Spec.google_golang_org.protobuf.proto.CloneConfState
-public import RaftWitness.Spec.google_golang_org.protobuf.proto.EqualConfState
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.confStatesEqual
 
 @[expose] public section
 
@@ -74,7 +75,7 @@ theorem raftpb.ConfState.Equivalent.wp_proof
     (wp_proto_CloneConfState : proto.CloneConfState.spec (GF := GF) (hG := hG))
     (wp_slices_Sort : slices.«Sort».spec (GF := GF) (hG := hG))
     (wp_ConfState_GetAutoLeave : raftpb.ConfState.GetAutoLeave.spec (GF := GF) (hG := hG))
-    (wp_proto_EqualConfState : proto.EqualConfState.spec (GF := GF) (hG := hG)) :
+    (wp_confStatesEqual : raftpb.confStatesEqual.spec (GF := GF) (hG := hG)) :
     raftpb.ConfState.Equivalent.spec (GF := GF) (hG := hG) := by
   intro p q c1 c2 dq1 dq2 Hperm Hbd Hal Hwe
   wp_start as ⟨H1, H2⟩
@@ -225,7 +226,7 @@ theorem raftpb.ConfState.Equivalent.wp_proof
     simp only [csStage, ↓reduceIte]
     icases S1 with ⟨%c1', S1, %Hs1⟩
     icases S2 with ⟨%c2', S2, %Hs2⟩
-    wp_apply wp_proto_EqualConfState p1 p2 _ _ c1' c2' $$ [$S1 $S2] as %b ⟨S1, S2, %Hb⟩
+    wp_apply wp_confStatesEqual p1 p2 _ _ c1' c2' true true $$ [$S1 $S2] as %b ⟨S1, S2, %Hb⟩
     have Hbt : b = true := Hb.2 (sortedOf_eq Hperm Hal Hwe Hs1 Hs2)
     subst Hbt
     wp_auto

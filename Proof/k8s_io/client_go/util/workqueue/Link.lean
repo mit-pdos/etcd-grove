@@ -165,7 +165,7 @@ theorem wp_DefaultQueue :
     EtcdGrove.workqueue.DefaultQueue.spec (GF := GF) (hG := hG) :=
   EtcdGrove.workqueue.DefaultQueue.wp_proof
 
-theorem TypedItemExponentialFailureRateLimiter.wp_When [EtcdGrove.Float64ToInt64Semantics] [EtcdGrove.UntypedIntToFloat64Semantics] :
+theorem TypedItemExponentialFailureRateLimiter.wp_When [EtcdGrove.UntypedIntToFloat64Semantics] :
     EtcdGrove.workqueue.TypedItemExponentialFailureRateLimiter.When.spec (GF := GF) (hG := hG) :=
   EtcdGrove.workqueue.TypedItemExponentialFailureRateLimiter.When.wp_proof time.Duration.wp_Nanoseconds_ptr math.wp_Pow
 
@@ -177,7 +177,7 @@ theorem TypedItemExponentialFailureRateLimiter.wp_NumRequeues :
     EtcdGrove.workqueue.TypedItemExponentialFailureRateLimiter.NumRequeues.spec (GF := GF) (hG := hG) :=
   EtcdGrove.workqueue.TypedItemExponentialFailureRateLimiter.NumRequeues.wp_proof
 
-theorem wp_NewTypedItemExponentialFailureRateLimiter [EtcdGrove.Float64ToInt64Semantics] [EtcdGrove.UntypedIntToFloat64Semantics] :
+theorem wp_NewTypedItemExponentialFailureRateLimiter [EtcdGrove.UntypedIntToFloat64Semantics] :
     EtcdGrove.workqueue.NewTypedItemExponentialFailureRateLimiter.spec (GF := GF) (hG := hG) :=
   EtcdGrove.workqueue.NewTypedItemExponentialFailureRateLimiter.wp_proof TypedItemExponentialFailureRateLimiter.wp_When TypedItemExponentialFailureRateLimiter.wp_Forget TypedItemExponentialFailureRateLimiter.wp_NumRequeues
 
@@ -221,11 +221,11 @@ theorem TypedBucketRateLimiter.wp_NumRequeues :
     EtcdGrove.workqueue.TypedBucketRateLimiter.NumRequeues.spec (GF := GF) (hG := hG) :=
   EtcdGrove.workqueue.TypedBucketRateLimiter.NumRequeues.wp_proof
 
-theorem wp_DefaultTypedControllerRateLimiter [EtcdGrove.Float64ToInt64Semantics] [EtcdGrove.UntypedIntToFloat64Semantics] :
+theorem wp_DefaultTypedControllerRateLimiter [EtcdGrove.UntypedIntToFloat64Semantics] :
     EtcdGrove.workqueue.DefaultTypedControllerRateLimiter.spec (GF := GF) (hG := hG) :=
   EtcdGrove.workqueue.DefaultTypedControllerRateLimiter.wp_proof wp_NewTypedItemExponentialFailureRateLimiter rate.wp_NewLimiter wp_NewTypedMaxOfRateLimiter TypedBucketRateLimiter.wp_When TypedBucketRateLimiter.wp_Forget TypedBucketRateLimiter.wp_NumRequeues
 
-theorem wp_DefaultTypedItemBasedRateLimiter [EtcdGrove.Float64ToInt64Semantics] [EtcdGrove.UntypedIntToFloat64Semantics] :
+theorem wp_DefaultTypedItemBasedRateLimiter [EtcdGrove.UntypedIntToFloat64Semantics] :
     EtcdGrove.workqueue.DefaultTypedItemBasedRateLimiter.spec (GF := GF) (hG := hG) :=
   EtcdGrove.workqueue.DefaultTypedItemBasedRateLimiter.wp_proof wp_NewTypedItemExponentialFailureRateLimiter
 
