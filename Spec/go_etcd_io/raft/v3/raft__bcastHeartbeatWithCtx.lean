@@ -60,9 +60,11 @@ abbrev raft.bcastHeartbeatWithCtx.spec : Prop :=
       -- gate, at `s`: what a heartbeat's event reads of the state no send changes)
       -- (2026-11-10, slice 14) `G` indexed by the outbox (`o`, before the heartbeat; after it, `o` with
       -- the heartbeat queued): the caller's resource follows the messages queued
+      -- (2026-11-10, slice 17) at the commit `min(committed, Match of to)` exactly (until then its
+      -- two bounds)
       "#Hgate" ∷ □ (∀ (to cm : w64) (o : List Msg), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
-          ⌜uint.Z cm ≤ uint.Z s.logst.committed ∧
-            uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ -∗ G o -∗
+          ⌜uint.Z cm = min (uint.Z s.logst.committed)
+            (uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0)))⌝ -∗ G o -∗
         HookGateOpt s.gh.tr r (sendOutGate id s c MsgHeartbeat
           [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl])
           (G (o ++ [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl]))) ∗

@@ -93,7 +93,13 @@ theorem raft.sendHeartbeat.wp_proof
     simp only [prvalsMatch, GMap.fmap_eq, GMap.lookup_fmap, Hpvs, Option.map_some,
       Option.getD_some]
     omega
-  ihave Hgate := Hgate $$ %cm %(And.intro Hcm1 Hcm2)
+  -- (slice 17) the gate is given the commit exactly, `min(Match, committed)`
+  have Hcmeq : uint.Z cm = min (uint.Z s.logst.committed)
+      (uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))) := by
+    simp only [prvalsMatch, GMap.fmap_eq, GMap.lookup_fmap, Hpvs, Option.map_some,
+      Option.getD_some]
+    rw [← Hlv1]; omega
+  ihave Hgate := Hgate $$ %cm %Hcmeq
   wp_apply wp_raft_send c r id s «$a0_ptr» _ [] none cl [] _ (Q cm) (Or.inl rfl) Hok
     (fun h => absurd h (by simp [MsgSnap]))
       (fun h => absurd h (by simp [MsgApp])) rfl (fun _ h => absurd h (by simp only; decide))

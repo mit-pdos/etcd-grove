@@ -208,9 +208,15 @@ local macro "msa_send" : tactic => `(tactic| (
         (p.next - W64 1) es_e Hlwf (by simp only [List.length_append]; push_cast; omega)
         ⟨Herr1.1, by unfold plogLastIndexZ; simp only [List.length_append]; push_cast; omega⟩
         (by rw [Hn1]; exact Hpkgpre)
+  -- (slice 17) and the peer's `Match` is at most the index it is sent from (`PrOk`'s `Match < Next`
+  -- outside `StateSnapshot`)
+  have Hmatch : uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0)) ≤ uint.Z (p.next - W64 1) := by
+    simp only [prvalsMatch, GMap.fmap_eq, GMap.lookup_fmap, Hpvs, Option.map_some, Option.getD_some]
+    exact Hpok0.1.match_le_prev Hnosnap
   ihave Hg := Hgate $$
     %(Msg.mk .app id to s.term false (p.next - W64 1) pterm lvc.committed' (W64 0) es_e) %s.outbox
-    %(And.intro Happ (And.intro Hlvc.1 rfl)) HG
+    %(⟨Happ, Hlvc.1, rfl, Hmatch⟩ : AppOk id (toPState s)
+        (Msg.mk .app id to s.term false (p.next - W64 1) pterm lvc.committed' (W64 0) es_e) ∧ _ ∧ _ ∧ _) HG
   wp_apply wp_raft_send c r id s «$a0_ptr»
       ⟨W32 3, to, 0, 0, pterm, p.next - W64 1, lvc.committed', 0, false, 0⟩ es_e none [] []
       [Msg.mk .app id to s.term false (p.next - W64 1) pterm lvc.committed' (W64 0) es_e]
@@ -413,7 +419,7 @@ theorem raft.maybeSendAppend.wp_proof
         ipureintro
         rcases Hc with Hc | Hnot
         · cases Hc
-        obtain ⟨h1, h2, -, -⟩ := Hpok.1
+        obtain ⟨h1, h2, -, -, -⟩ := Hpok.1
         have Hll := (show LogNoWrap s.logst from Hnw).logLast_Z
         intro Hz
         apply Hnot

@@ -91,11 +91,11 @@ abbrev releasePendingReadIndexMessages.spec : Prop :=
       "#Hgresp" ∷ □ (⌜CfgSingle c id⌝ -∗ ∀ (mm : Msg) (o : List Msg), ⌜mm.ty = .readIndexResp⌝ -∗ G o -∗
         HookGateOpt s.gh.tr r none (G (o ++ [mm]))) ∗
       -- the `k`-th request's heartbeats' hook gates (otherwise), at the state with the first `k`
-      -- requests released
+      -- requests released ((2026-11-10, slice 17) at the exact commit, `min(committed, Match of to)`)
       "#Hgate" ∷ □ (⌜¬ CfgSingle c id⌝ -∗ ∀ (k : Nat) (to cm : w64) (o : List Msg), ⌜0 < k ∧ k ≤ s.rd.pend.length⌝ -∗
           ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
-          ⌜uint.Z cm ≤ uint.Z s.logst.committed ∧
-            uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ -∗ G o -∗
+          ⌜uint.Z cm = min (uint.Z s.logst.committed)
+            (uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0)))⌝ -∗ G o -∗
         HookGateOpt s.gh.tr r (sendOutGate id
             { s with rd := { s.rd with pend := [],
                                        ro := readonlyRelease s.rd.ro id s.logst.committed (s.rd.pend.take k) } }

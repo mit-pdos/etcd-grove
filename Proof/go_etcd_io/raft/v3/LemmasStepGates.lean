@@ -315,7 +315,8 @@ def candidateGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (
         ∀ (pvs : GMap w64 Progress) (to : w64) (mm : Msg) (o : List Msg),
         ⌜to ≠ id ∧ to ∈ domSet ({ becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') } with prvals := pvs } : NState).progress⌝ -∗
         ⌜AppOk id (toPState { becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') } with prvals := pvs }) mm ∧
-          mm.commit = (toPState { becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') } with prvals := pvs }).commit ∧ mm.dst = to⌝ -∗
+          mm.commit = (toPState { becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') } with prvals := pvs }).commit ∧ mm.dst = to ∧
+          uint.Z ((prvalsMatch pvs !! to).getD (W64 0)) ≤ uint.Z mm.index⌝ -∗
         G' o -∗
         HookGateOpt s.gh.tr r (sendOutGate id { becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') } with prvals := pvs } c MsgApp [mm])
           (G' (o ++ [mm]))) ∗
@@ -345,8 +346,8 @@ def leaderGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ent
     (Gc : Bool → w64 → List Msg → IProp GF) : IProp GF :=
   iprop(
       "#Hgbeat" ∷ □ (⌜m.Type' = MsgBeat⌝ -∗ ∀ (to cm : w64) (o : List Msg), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
-          ⌜uint.Z cm ≤ uint.Z s.logst.committed ∧
-            uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ -∗ G o -∗
+          ⌜uint.Z cm = min (uint.Z s.logst.committed)
+            (uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0)))⌝ -∗ G o -∗
         HookGateOpt s.gh.tr r (sendOutGate id s c MsgHeartbeat
           [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] (hbCtx s.rd.ro)])
           (G (o ++ [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] (hbCtx s.rd.ro)]))) ∗
@@ -354,8 +355,8 @@ def leaderGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ent
         ⌜mm.ty = .readIndexResp⌝ -∗ G o -∗ HookGateOpt s.gh.tr r none (G (o ++ [mm]))) ∗
       "#Hgrihb" ∷ □ (⌜m.Type' = MsgReadIndex⌝ -∗ ⌜¬ CfgSingle c id⌝ -∗
         ∀ (to cm : w64) (o : List Msg), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
-          ⌜uint.Z cm ≤ uint.Z s.logst.committed ∧
-            uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ -∗ G o -∗
+          ⌜uint.Z cm = min (uint.Z s.logst.committed)
+            (uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0)))⌝ -∗ G o -∗
         HookGateOpt s.gh.tr r (sendOutGate id (arriveState id s m ents) c MsgHeartbeat
           [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] []
             (hbCtx (readonlyAdd s.rd.ro (arriveReq s m ents)))])
@@ -363,7 +364,8 @@ def leaderGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ent
             (hbCtx (readonlyAdd s.rd.ro (arriveReq s m ents)))]))) ∗
       "Hgtnow" ∷ (⌜m.Type' = MsgTransferLeader⌝ -∗ ∀ o : List Msg, G o -∗ HookGateOpt s.gh.tr r none (G o)) ∗
       "Hgxapp" ∷ (⌜m.Type' = MsgTransferLeader⌝ -∗ ∀ (mm : Msg) (o : List Msg),
-          ⌜AppOk id (toPState s) mm ∧ mm.commit = (toPState s).commit ∧ mm.dst = m.From'⌝ -∗ G o -∗
+          ⌜AppOk id (toPState s) mm ∧ mm.commit = (toPState s).commit ∧ mm.dst = m.From' ∧
+            uint.Z ((prvalsMatch s.prvals !! m.From').getD (W64 0)) ≤ uint.Z mm.index⌝ -∗ G o -∗
         HookGateOpt s.gh.tr r (sendOutGate id { s with lt := m.From' } c MsgApp [mm]) (G (o ++ [mm]))) ∗
       "#Hnosnap" ∷ TrNoSnap s.gh.tr s.logst ∗
       "Hgcq" ∷ (⌜m.Type' = MsgCheckQuorum⌝ -∗ G s.outbox -∗
@@ -379,12 +381,13 @@ def leaderGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ent
       "#Hgpapp" ∷ □ (⌜m.Type' = MsgProp⌝ -∗ ∀ cs (to : w64) (mm : Msg) (o : List Msg), ccEntsOk ents cs -∗
         ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
         ⌜AppOk id (toPState (propAppended s (leaderPropConf s ents cs c.joint).1)) mm ∧
-          mm.commit = s.logst.committed ∧ mm.dst = to⌝ -∗ Gp2 o -∗
+          mm.commit = s.logst.committed ∧ mm.dst = to ∧
+          uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0)) ≤ uint.Z mm.index⌝ -∗ Gp2 o -∗
         HookGateOpt s.gh.tr r
           (sendOutGate id (propAppended s (leaderPropConf s ents cs c.joint).1) c MsgApp [mm]) (Gp2 (o ++ [mm]))) ∗
       "Hgsapp" ∷ (⌜m.Type' = MsgHeartbeatResp ∨ (m.Type' = MsgAppResp ∧ m.Reject' = true)⌝ -∗
         ∀ (mm : Msg) (o : List Msg), ⌜AppOk id (toPState s) mm ∧ mm.commit = s.logst.committed ∧
-          mm.dst = m.From'⌝ -∗ G o -∗
+          mm.dst = m.From' ∧ uint.Z ((prvalsMatch s.prvals !! m.From').getD (W64 0)) ≤ uint.Z mm.index⌝ -∗ G o -∗
         HookGateOpt s.gh.tr r (sendOutGate id s c MsgApp [mm]) (G (o ++ [mm]))) ∗
       "#Hghresp" ∷ □ (⌜m.Type' = MsgHeartbeatResp⌝ -∗ ∀ (mm : Msg) (o : List Msg),
         ⌜mm.ty = .readIndexResp⌝ -∗ G o -∗ HookGateOpt s.gh.tr r none (G (o ++ [mm]))) ∗
@@ -399,8 +402,8 @@ def leaderGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ent
       "#Hgrlhb" ∷ □ (⌜m.Type' = MsgAppResp ∧ m.Reject' = false⌝ -∗ ⌜¬ CfgSingle c id⌝ -∗
         ∀ (N : w64) (k : Nat) (to cm : w64) (o : List Msg), ⌜0 < k ∧ k ≤ s.rd.pend.length⌝ -∗
         ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
-        ⌜uint.Z cm ≤ uint.Z N ∧
-          uint.Z cm ≤ uint.Z ((appRespMatch s m.From' m.Index' !! to).getD (W64 0))⌝ -∗ Gc true N o -∗
+        ⌜uint.Z cm = min (uint.Z N)
+          (uint.Z ((appRespMatch s m.From' m.Index' !! to).getD (W64 0)))⌝ -∗ Gc true N o -∗
         HookGateOpt s.gh.tr r (sendOutGate id (commitAt s true N) c MsgHeartbeat
           [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] []
             (hbCtx (readonlyRelease s.rd.ro id N (s.rd.pend.take k)))])
@@ -409,7 +412,7 @@ def leaderGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ent
       "#Hgaapp" ∷ □ (⌜m.Type' = MsgAppResp ∧ m.Reject' = false⌝ -∗
         ∀ (b : Bool) (N to : w64) (mm : Msg) (o : List Msg), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
         ⌜AppOk id (toPState (commitAt s b N)) mm ∧ mm.commit = (commitAt s b N).logst.committed ∧
-          mm.dst = to⌝ -∗ Gc b N o -∗
+          mm.dst = to ∧ uint.Z ((appRespMatch s m.From' m.Index' !! to).getD (W64 0)) ≤ uint.Z mm.index⌝ -∗ Gc b N o -∗
         HookGateOpt s.gh.tr r (sendOutGate id (commitAt s b N) c MsgApp [mm]) (Gc b N (o ++ [mm]))) ∗
       "#Hgatnow" ∷ □ (⌜m.Type' = MsgAppResp ∧ m.Reject' = false⌝ -∗ ∀ (b : Bool) (N : w64) (o : List Msg),
         Gc b N o -∗ HookGateOpt s.gh.tr r none (Gc b N o)))

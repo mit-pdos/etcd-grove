@@ -56,7 +56,9 @@ commit `cm` the function computes (with its two bounds), and gets `Q` back. Unti
 `s.gh.tr = none` (stage 0), now `raft.sendHeartbeat.untraced`'s (`TracedUntraced.lean`). (2026-11-10,
 slice 14) `Q` is indexed by the heartbeat's commit `cm`, which the gate is given and the postcondition
 names: a broadcast's caller indexes its resource by the messages queued so far (`notes/decisions.md`,
-"Q8 stage 1 (slice 14)"). -/
+"Q8 stage 1 (slice 14)"). (2026-11-10, slice 17) The gate is given `cm` exactly, `min(committed, Match of to)`
+(until then only its two bounds): the trace's heartbeat line checks the commit it carries
+(`notes/decisions.md`, "Q8 stage 1 (slice 17)"). -/
 abbrev raft.sendHeartbeat.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (to : w64) (ctx : GoSlice)
     (cl : List w8) (Q : w64 → IProp GF),
@@ -67,10 +69,10 @@ abbrev raft.sendHeartbeat.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "#Hctx" ∷ ctx ↦*□ cl ∗
-      -- (2026-11-09, Q8 stage 1 slice 5) `send`'s hook's gate, at the heartbeat's commit `cm` (its
-      -- two bounds)
-      "Hgate" ∷ (∀ cm : w64, ⌜uint.Z cm ≤ uint.Z s.logst.committed ∧
-          uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ -∗
+      -- (2026-11-09, Q8 stage 1 slice 5) `send`'s hook's gate, at the heartbeat's commit `cm`
+      -- ((2026-11-10, slice 17) exactly `min(committed, Match)`; until then its two bounds)
+      "Hgate" ∷ (∀ cm : w64, ⌜uint.Z cm = min (uint.Z s.logst.committed)
+          (uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0)))⌝ -∗
         HookGateOpt s.gh.tr r (sendOutGate id s c MsgHeartbeat
           [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl]) (Q cm)) }}
     (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"sendHeartbeat"))

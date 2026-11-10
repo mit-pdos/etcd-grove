@@ -138,7 +138,7 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
       · iframe Hctx
         -- (Q8 stage 1, slice 5) the caller's gate for this heartbeat, at `s`
         iintro %cm %Hb
-        have Hb2 := Hb.2
+        have Hb2 := Hb
         simp only at Hb2
         rw [Hmi] at Hb2
         iapply hookGateOpt_congr s.gh.tr _ r
@@ -146,7 +146,7 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
             [Msg.mkV .heartbeat id i s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl]) _ _ ?hg1 ?hg2
         case hg1 => rfl
         case hg2 => rfl
-        iapply Hgate $$ %i %cm %(s.outbox ++ ms) %(And.intro Hii Hicfg) %(And.intro Hb.1 Hb2) HG
+        iapply Hgate $$ %i %cm %(s.outbox ++ ms) %(And.intro Hii Hicfg) %Hb2 HG
       try wp_auto
       icases ownRaftPhysC_prvals_ok c r id _ $$ Hphys with ⟨%Hok', -, Hphys⟩
       icases ownRaftPhysC_tracker_prvals $$ Hphys with ⟨%tv1, Htrkf, Htrk, Hrest⟩
