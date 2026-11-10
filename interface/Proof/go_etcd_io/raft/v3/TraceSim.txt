@@ -47,9 +47,6 @@ def TraceSim.evConv (e : TraceEv) : Etcdraft.Event :=
       if (e.propCC.isNone && e.propMatch.isNone && e.propNext.isNone) = true then none
       else some { cc := Option.map TraceSim.ccConv e.propCC } }
 
-def traceNumBound : Nat :=
-  2 ^ 61
-
 theorem TraceSim.simEvents_snoc_boot (n n' : Nat) (hn : n' ≤ n) (L : List TraceEv) (e : TraceEv) (h
     : TraceSim.SimEvents n L) (he : TraceEv.OkBoot n' e) (hbn : Etcdraft.isBootstrapName
     (TraceSim.gsStr e.name) = true) (hun : ∀ (i : Etcdraft.ID), Etcdraft.parseID (TraceSim.gsStr

@@ -33966,3 +33966,60 @@ No ghost change; no axiom or `sorry`.
 
 **Not done (slice 9).** `raft.Step`'s traced arms (piece 2) and `tickElection`/`tickHeartbeat` (piece
 3, which call `Step`): see the plan's "Q8 stage 1 (slice 9)" for the precise remainder.
+
+## Q8 stage 1 (slice 10): a traced message's numbers carried where it leaves raft (`isMessageC`), the node's outbox in `NsLink`; the receipt-bound law (2026-11-10 · trace-check, Q8 stage 1 slice 10; decided by the agent under the user's delegation · branch `trace-check-q8s10`; DRAFT until trace-check's Freeze)
+
+**What (piece 1 of the slice, the ghost change).** Amendment A1 named raft's message facts as the
+carrier of a received message's numbers (`Msg.NumsBelow traceNumBound`, which a receive line's
+`TraceEv.Ok` reads and the bags' `msgAbs` cannot give: it drops `rejectHint`). Done:
+- `traceNumBound` and `Msg.NumsBelow` moved verbatim from `TraceSim.lean`/`TracedCap.lean` to
+  `Protocol/Model.lean` (same names, same bodies: no Draft statement changed), with
+  `MsgType.traced` (the six types `sendEvt`/`recvEvt` log; `sendEvt_traced`, `recvEvt_traced`) and
+  `Msg.TrOk m := m.ty.traced = true → m.NumsBelow traceNumBound`.
+- `MsgTrOk γ m := γ.reTrace.isSome → m.TrOk` (`Protocol/GhostState.lean`), a conjunct of
+  **`isMessageC`** (the facts a message carries on the network, `isRaftMsg`'s), not of
+  `isMessage`; `isMessageC_trOk` reads it, `isMessageC_intro` takes it.
+- `NsLink γ s` (in `ghostRest`) gains `s.gh.tr = γ.reTrace` (the node's trace mode is the
+  cluster's, as its no-snapshot mode) and `OutTr γ s` (traced, every message of the node's outbox
+  is `TrOk`); `NsLink.step` keeps it across a step given `OutTrStep s s'` (traced: every new outbox
+  message was in the old outbox or is `TrOk`), `NsLink.trace_none`.
+- The step helpers that rebuild `ghostRest` (`ghost_stepCD`, `ghost_stepCDS`, Base's
+  `ghost_step_md`/`_md0`/`_static0`/`_static0'`, `finish_branch*`) take `OutTrStep s s'`, by default
+  `outtr_tac` (from the context's `s.gh.tr = none`, or a kept/drained outbox), so `raft.Step`'s
+  untraced branches are unchanged; `ghost_step_snapack` from its kept protocol state;
+  `ghostRest_keep` takes the trace mode kept and the outbox drained (defaults); `ownStepGhost_congr`
+  the trace mode kept (default).
+- The `Ready` exits (`outboxRelP_isRaftMsg(_gen)`, `outboxRelP_isRaftMsgs(_ns)`, `self_pending`) take
+  the outbox's `MsgTrOk`: `readyWithoutAccept` from `NsLink`'s `OutTr` (traced-ready), `acceptReady`
+  from its stage-0 `γ.reTrace = none`; `sentMsg_replaceSnapshot` (a `MsgSnap`, untraced type) by
+  `MsgTrOk.of_untraced`; `Bootstrap`, `RestartNode`, `rawNode_applyCC_reseal` (now with
+  `γ.reTrace = none`) build `NsLink` untraced.
+- **The receipt-bound law** `ownRaftGhost_traceBound` (`StepGhostMode.lean`): given `receiptBound GF +
+  γ.reBoot.length ≤ traceNumBound` (`readyFits`' bound), the node's last index and commit index are
+  below `traceNumBound` (`ownRaftGhost_lastRec`, `lastRec_receipt`, `preceipt_lt`, `LogOk`;
+  `ownRaftGhost_logOk` made public in `StepGhostMode`).
+
+**Why `isMessageC`, not `isMessage` (the plan's wording; the "cleanest equivalent" the task allowed).**
+`isMessage` is what the protocol's own outbox keeps (`outMsgOk` in `ownRaftGhost`) and what every
+protocol step lemma (`Refinement.lean`'s ~40 `ownRaftGhost_step_*`, `StepR`'s, `StepCF`'s) produces
+for the messages it sends. A conjunct there would have to be proved by each, from bounds the
+protocol does not have: indices are receipt-bounded (`lastRec`) but **terms are not** (a failed
+election raises the term with no entry; only the `RawNode`'s budget, `termLB`, bounds them), and a
+`StepC` run's `trans`/`drain` cannot be given a premise covering every message sent on the way (a
+drained one is in no final outbox). This is exactly why the snapshot certificate already lives in
+`isMessageC` (`GhostState.lean`'s "Certified messages" header): attached where the message leaves raft,
+read where it enters. The numbers follow it: the traced `raft.Step` proves `Msg.NumsBelow` of every
+message it sends anyway (the send line's `TraceEv.Ok`, `sendEvOf_ok`), records it in the outbox
+(`OutTrStep`, kept in `NsLink`'s `OutTr`), and the `Ready` exit attaches it (`isMessageC`); a receiving
+`RawNode` reads it from `isRaftMsg` and hands it to `raft.Step` (a premise of the traced spec, slice
+11). Rejected: the conjunct in `isMessage` with per-constructor premises (the `trans`/`drain` problem
+and ~40 step lemmas); a protocol-level term invariant (a new invariant for a bound only the node layer
+can supply); a pure premise on `raft.Step` alone (no sender-side carrier: every layer would need new
+plumbing in traced mode).
+
+**Client-visible?** `isRaftMsg`'s text is unchanged; `isMessageC`'s body (raft-internal,
+`GhostState.lean`) gains the gated conjunct; untraced clients (every cluster today, `reTrace = none`)
+see it vacuous. No closed statement changes.
+
+**Not done (pieces 2-4 of the slice).** `raft.Step` gated (its spec still takes `s.gh.tr = none` and the
+`X.untraced` instances), `raft.Step.traced`, `tickElection`/`tickHeartbeat`: see the plan's paragraph.

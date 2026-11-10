@@ -142,6 +142,9 @@ def RaftBatch : Type :=
 def raftLogInv [ReceiptGS GF] [InvGS GF] (γ : RaftNames) : IProp GF :=
   inv (raftLogN γ) (raftLogInvBody γ)
 
+def MsgTrOk (γ : RaftNames) (m : Msg) : Prop :=
+  γ.reTrace.isSome = true → m.TrOk
+
 def readStateRaw (γ : RaftNames) (st : ReadStateM) : IProp GF :=
   iprop(∃ c, ⌜st.RequestCtx' = c⌝ ∗ readOk γ c st.Index')
 
@@ -151,6 +154,8 @@ def LogOk (s : PState) : Prop :=
 theorem ownEvs_vote [ReceiptGS GF] (γ : RaftNames) (id T T' : w64) (acks : GMap (w64 × w64) Unit) (d
     : Bool) (F : List EntryM) : uint.Z T ≤ uint.Z T' → ⊢ ownEvs γ id T acks -∗ ([∗map] k ↦ _u ∈
     acks, iprop(∀ x, hist γ F k.fst k.snd (vbnd T' d))) ==∗ ownEvs γ id T' acks ∗ voteEv γ id T' d F
+
+theorem isMessageC_trOk [ReceiptGS GF] (γ : RaftNames) (m : Msg) : isMessageC γ m ⊢ ⌜MsgTrOk γ m⌝
 
 theorem promFrag_persistent [ReceiptGS GF] (γ : RaftNames) (id : w64) (p : Prom) : Persistent
     (promFrag γ id p)
@@ -602,6 +607,8 @@ def PromFresh (W : DurMaps) : Prom → Prop :=
   | Prom.ack T i => True
   | Prom.camp T F k => W.camps !! T = none
 
+theorem MsgTrOk.of_untraced (γ : RaftNames) {m : Msg} (h : m.ty.traced = false) : MsgTrOk γ m
+
 theorem msgCert_timeless [ReceiptGS GF] (γ : RaftNames) (m : Msg) : Timeless (msgCert γ m)
 
 def votesTbl [ReceiptGS GF] (γ : RaftNames) : IProp GF :=
@@ -656,8 +663,8 @@ theorem lcmOwn_commit [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s s
     : s.role = Role.leader → s'.role = Role.leader → s'.term = s.term → s'.commit = n → uint.Z
     s.commit ≤ uint.Z n → lcmOwn γ id s ⊢ |==> (lcmOwn γ id s' ∗ cmtLb γ id s.term n)
 
-theorem isMessageC_intro [ReceiptGS GF] (γ : RaftNames) (m : Msg) : ⊢ isMessage γ m -∗ msgCert γ m
-    -∗ isMessageC γ m
+theorem isMessageC_intro [ReceiptGS GF] (γ : RaftNames) (m : Msg) (Htr : MsgTrOk γ m) : ⊢ isMessage
+    γ m -∗ msgCert γ m -∗ isMessageC γ m
 
 theorem outMsgOk_pend [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PState) (πc : List
     Prom) (W : DurMaps) (m : Msg) (Hp : m.dst ≠ id → OutPend id s πc) : □ (durFrags γ id W -∗
@@ -1164,6 +1171,8 @@ def VoteHistOk (voted : GMap w64 w64) (s : PState) : Prop :=
 def readReq (γ : RaftNames) (c : List w8) (Lc : List EntryM) : IProp GF :=
   iprop(∃ γq, c ↪[γ.reReads]□ (γq, Lc) ∗ isCommitted γ Lc)
 
+theorem MsgTrOk.of_none {γ : RaftNames} (h : γ.reTrace = none) (m : Msg) : MsgTrOk γ m
+
 theorem lcmOwn_mono [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s s' : PState) : (s'.role
     = Role.leader → s.role = Role.leader ∧ s'.term = s.term) → (s'.role ≠ Role.leader → s.role =
     Role.leader → uint.Z s.term < uint.Z s'.term) → uint.Z s.term ≤ uint.Z s'.term → uint.Z s.commit
@@ -1197,7 +1206,7 @@ theorem isMessage_free [ReceiptGS GF] (γ : RaftNames) (m : Msg) : MsgFree m.ty 
     γ m
 
 def isMessageC [ReceiptGS GF] (γ : RaftNames) (m : Msg) : IProp GF :=
-  iprop(isMessage γ m ∗ msgCert γ m)
+  iprop(isMessage γ m ∗ msgCert γ m ∗ ⌜MsgTrOk γ m⌝)
 
 theorem leaderWit_persistent (γ : RaftNames) (id : w64) (s : PState) : Persistent (leaderWit γ id s)
 

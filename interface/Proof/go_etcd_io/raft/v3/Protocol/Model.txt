@@ -116,6 +116,9 @@ inductive MsgType : Type
   | MsgType.readIndex : MsgType
   | MsgType.readIndexResp : MsgType
 
+def Msg.TrOk (m : Msg) : Prop :=
+  m.ty.traced = true → Msg.NumsBelow traceNumBound m
+
 theorem PlogWf_wfR (b : entryID) (es : List EntryM) : PlogWf b es → PlogWfR b es
 
 theorem pappend.proj_outbox (s : PState) (es : List EntryM) : (pappend s es).outbox = s.outbox
@@ -127,6 +130,9 @@ def instInhabitedCSLists.default : CSLists :=
 
 def w64Max (x y : w64) : w64 :=
   if uint.Z y < uint.Z x then x else y
+
+def traceNumBound : Nat :=
+  2 ^ 61
 
 theorem conflict_end (b : entryID) (es : List EntryM) (prev : entryID) (ents : List EntryM) (d :
     Nat) (e : EntryM) (Hwf : PlogWf prev ents) (Hm : PlogMatches b es prev) (Hd : ents[d]? = some e)
@@ -376,6 +382,11 @@ theorem padoptLeader.proj_commit (s : PState) (src : w64) : (padoptLeader s src)
 
 theorem padoptLeader.proj_term (s : PState) (src : w64) : (padoptLeader s src).term = s.term
 
+def Msg.NumsBelow (K : Nat) (m : Msg) : Prop :=
+  uint.nat m.term < K ∧
+    m.entries.length < K ∧
+      uint.nat m.logterm < K ∧ uint.nat m.index < K ∧ uint.nat m.commit < K ∧ uint.nat m.rejecthint < K
+
 theorem PlogWfR_wf (b : entryID) (es : List EntryM) : PlogWfR b es → plogLastIndexZ b es < 2 ^ 64 →
     PlogWf b es
 
@@ -485,6 +496,16 @@ theorem readonlyAdvance_acks (r : ReadOnly) (a : GMap w64 w64) (N : w64) : reado
     (uint.nat (N - r.confirmed)) r.pending, acks := a, confirmed := N }, List.take (uint.nat (N -
     r.confirmed)) r.pending)
 
+def MsgType.traced : MsgType → Bool :=
+  match x✝ with
+  | MsgType.app => true
+  | MsgType.appResp => true
+  | MsgType.vote => true
+  | MsgType.voteResp => true
+  | MsgType.heartbeat => true
+  | MsgType.heartbeatResp => true
+  | x => false
+
 inductive Role : Type
   | Role.follower : Role
   | Role.candidate : Role
@@ -510,6 +531,8 @@ def occStep (L : List (List w8)) : Option (List w8) → List (List w8) :=
 
 def instInhabitedRole : Inhabited Role :=
   { default := instInhabitedRole.default }
+
+theorem Msg.trOk_of_untraced {m : Msg} (h : m.ty.traced = false) : m.TrOk
 
 def readonlyPosition (r : ReadOnly) : w64 :=
   r.confirmed + W64 ↑r.pending.length
