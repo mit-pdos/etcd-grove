@@ -342,3 +342,36 @@ Plan:
 4. `Check.spec`: `g0 : HSt`, the history slice `h0` as `Model.spec`'s, Apply's new premises (`c.di`,
    `c.vi`, `clientErrPlain (sem := sem)`, `threadBound GF ≤ 2^30-1`, `rangeStreamOff`), size
    `g0.st.items.length + g0.hist.length < 2^60`. Then its proof, Main*.
+
+## Seventh session (2026-11-10): Seed, Check, Main*; stopped at noStreaming's proof
+
+Done, each committed (`10fdf09041`..`1c69569e62`); `Seed`, `seedOne`, `seed` lean-check clean; `Check`, `Main`,
+`MainCluster`, `MainPartition` built capped (`/shared/tmp/k8s-7e-4/c1.log`, `m2.log`, `m3.log`; filtered builds:
+`/shared/tmp/k8s-7e-4/build.sh LOG targets...`, which keeps only errors: /shared is near full, an unfiltered log
+was 52 MB):
+- `Seed.lean`: keys `kA = ns-1/pod-1`, `kB = ns-2/pod-2`; `seedObj k`/`seedItem k rv` (the Go's object, namespace and
+  name by `splitKeyL`), `v0 k = encodeWith tagV0 (seedObj k)`; `dA`/`dB` (the store objects; `splitKeyL_kA/kB` by
+  `decide`), `dec_v0A/B` (the driver codec reads `v0` as `(d, false)`), `seedKvs`/`σs2_at_kvs` (the key-values at every
+  revision ≤ 3, via `kvNext_step`/`kvNext_at`), `st1`/`st2`/`st3`, **`g0s : HSt := ⟨st3, [st1, st2, st3]⟩`**,
+  `krelS_st1/2/3`, `seed_krel : KRelH g0s σs2` (no `c` now), `g0s_len`, `seed_keys`, `seed_wfHist`, `seed_wf`;
+  `kInv_seed` with `shistOwn` and the 3-part `RevOk`.
+- `seedOne.spec`: binder `rv`; post `storeOwn s' ⟨setItemL g.items (seedItem k rv), rv⟩ ∗ ⌜rv = W64 (σ.rev+1) ∧
+  kvRevFits (σ.rev+1)⌝`; proof takes `wp_splitKey`.
+- `seed.spec`: `RET (PairV (PairV #s' #hsl) #ok)`, post `storeOwn s' g0s.st ∗ ∃ hs, hsl ↦*□ hs ∗ [∗list] x;g ∈
+  hs;g0s.hist, storeOwn x g` (what `Model`/`Check` take).
+- `Check.spec`: `g0 : HSt`, `hsl hs`, Apply's premises (`c.di`, `c.vi`, `clientErrPlain`, `threadBound ≤ 2^30-1`),
+  `rangeStreamOff` in the pre, size `g0.st.items.length + g0.hist.length < 2^60`; proof adapted (`threadTok` goes
+  through `Apply`).
+- `Main*.spec`: + `clientErrPlain (sem := sem) →` after `storageErrTyOk` (the decided pending hypothesis);
+  proofs take `wp_noStreaming`, discharge `New`'s new premises (`utf8Valid` ×2, `threadBound`, `prepareKeyM`).
+- `Spec/.../noStreaming.lean` (the 7e-2 Draft's form: post `if b then rangeStreamOff else True`).
+
+**Link step additions**: `seedOne` + `splitKey`; `Main`/`MainCluster`/`MainPartition` + `noStreaming`; a `noStreaming`
+line.
+
+**Blocker (reported to etcd-grove-81): `noStreaming`'s proof.** Go loads `utilfeature.DefaultMutableFeatureGate`
+(type `featuregate.MutableVersionedFeatureGate`) and calls `Set` on it. That type is not translated (goose leaves it
+axiomatized: `MutableVersionedFeatureGate.underlying` is an axiom, its instances `sorry -- axiomatized type`), so the
+load has no `IntoValTyped GoInterface` instance and the method call no method set; `featureGateOk`'s `Set` triple
+(`methods g.ty "Set" g.v`) cannot be reached. The WIP proof (everything up to that load: `featuresInit`,
+`featureInit`, the two gates agree) is at `/shared/tmp/k8s-7e-4/noStreaming.wip.lean` (not in the tree).
