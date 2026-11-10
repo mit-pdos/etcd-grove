@@ -1053,6 +1053,19 @@ unless they start otherwise. The specs are written to each choice except D6 (ope
   only the etcd client porcupine test without axioms, so fixes off its path are deferred.
   `msgsFit`: explanation requested (given in the session).
 
+- **The end theorem's program (2026-11-10):** multiple members, **individual members crash**; a new
+  test case, not yet written (txnlin has one member; `examples/etcd/partition` runs three in one
+  process, so a crash kills all). Semantics: Perennial's distributed language (`DistLang`,
+  `goose_dist_crash_adequacy`: a node crashes alone and reruns its boot program; the network and
+  other nodes are unchanged). This replaces the whole-program crash design of K6 (generations of
+  the one process, the `*_gen` laws for cluster resources, net/http protocol families).
+
+- **The new test (2026-11-10):** (1) the network as **trusted operational models at grpc's and
+  net/http's APIs** (Perennial extensions over the network between nodes, no TCP model beneath;
+  justified by grpc's and net/http's documented behavior), not translations; (2) the **client node
+  never crashes**; (3) **random reconfigurations** during the test (members added, removed,
+  promoted), so the raft membership fixes and join specs are back in scope.
+
 ### Needs your approval
 
 New client-visible ghost state, or a change to an API or decision you approved.
