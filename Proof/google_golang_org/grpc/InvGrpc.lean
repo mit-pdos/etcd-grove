@@ -1117,29 +1117,35 @@ abbrev interceptorCall (ic : GoFunc) (ctx method req reply cc : val) (inv : GoFu
   App (App (App (App (App (App (App (Val #ic) (Val ctx)) (Val method)) (Val req)) (Val reply))
     (Val cc)) (Val #inv)) (Val opts)
 
-/-- **A context that is never done and whose `Err()` returns `nil`** (persistent; the vertical
-slice's unit V2): `context.TODO()` and `context.Background()` (an `emptyCtx`: `Done()` is `nil`,
-`Err()` is `nil`), and value contexts over them (`valueCtx` delegates `Done` and `Err` to its
-parent: `withVersion`'s metadata context). Not an `isContext` (whose `Done()` is a channel). -/
+/-- **A context that is never done: its `Done()` returns the nil channel and its `Err()` returns
+`nil`** (persistent; the vertical slice's unit V2): `context.TODO()` and `context.Background()` (an
+`emptyCtx`: `Done()` is `nil`, `Err()` is `nil`), and value contexts over them (`valueCtx` delegates
+`Done` and `Err` to its parent: `withVersion`'s metadata context). Not an `isContext` (whose `Done()`
+is a channel). (Premise fixes 5, 2026-11-10, approved by etcd-grove-81) With `Done()`: until then
+only `Err()` was stated, so the axioms taking `ctxOk` that select on `ctx.Done()`
+(`waitRetryBackoff`, grpc's `Invoke` and `NewStream`) covered a context whose `Done()` panics or is
+closed while `Err()` is `nil`, on which Go panics (`notes/axiom-review/ctxok-done.md`). -/
 def ctxQuiet (ci : GoInterfaceOk) : IProp GF :=
-  iprop(□ ∀ Φ : val → IProp GF, ▷ Φ #(GoInterface.nil) -∗
-    WP (App (Val #(methods ci.ty go!"Err" ci.v)) (Val #())) {{ Φ }})
+  iprop((□ ∀ Φ : val → IProp GF, ▷ Φ #chan.nil -∗
+      WP (App (Val #(methods ci.ty go!"Done" ci.v)) (Val #())) {{ Φ }}) ∗
+    □ ∀ Φ : val → IProp GF, ▷ Φ #(GoInterface.nil) -∗
+      WP (App (Val #(methods ci.ty go!"Err" ci.v)) (Val #())) {{ Φ }})
 
 instance ctxQuiet_persistent (ci : GoInterfaceOk) : Persistent (ctxQuiet (GF := GF) ci) := by
   unfold ctxQuiet; infer_instance
 
-/-- **A context whose `Err()` follows Go's contract, with client errors** (persistent; 2026-11-04,
+/-- **The `Err()` half of `ctxErrs`: Go's contract of `Err()`, with client errors** (persistent; 2026-11-04,
 K4 of `notes/k8s-compactor-plan.md`, the user's approval): `Err()` returns `nil`, or, once the
 context is done (`ContextClosed cd.Done_gn`), a non-nil error; a non-nil error means it is done, and
 is a client error grpc's `status` accepts (`clientErr`, `statusErrOk`, `errCellOk`: true of
 `context.Canceled` and `DeadlineExceeded`, the only errors Go lets `Err()` return), whose
 description is not a handler's (`handlerDescs`; k8s etcd3 7c, HS-5 (a), approved by the user
 2026-11-06 via etcd-grove-82: grpc returns `status.FromContextError(ctx.Err())`, which keeps the
-message, so an attempt's error would carry it with no handler run). Nothing about `Done()`. The client's `ctxErrClient` has this body (`ctxErrClient_eq_errs`). It is what a context
+message, so an attempt's error would carry it with no handler run). The client's `ctxErrClient` has this body (`ctxErrClient_eq_errs`); `ctxErrs` adds `Done()`'s (`ctxDone`, premise fixes 5). It is what a context
 outside Perennial's model meets: k8s's `wait.ContextForChannel(stopCh)` (a `channelContext`, whose
 `Done()` is `stopCh` and whose `Err()` is `Canceled` once `stopCh` is closed; not an `isContext`,
 whose `parentCancelCtx` finds a `*cancelCtx`). -/
-def ctxErrs (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) : IProp GF :=
+def ctxErrsErr (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) : IProp GF :=
   iprop(□ ∀ (cl : Broadcast) (Φ : val → IProp GF),
     (match cl with
      | .Done => context.ContextClosed cd.Done_gn
@@ -1154,6 +1160,44 @@ def ctxErrs (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) : IProp G
         ⌜err = interface.nil ∨ go_etcd_io.etcd.cache.v3.errDesc err ∉ handlerDescs⌝ -∗ Φ #err) -∗
     WP (App (Val #(methods ci.ty go!"Err" ci.v)) (Val #())) {{ Φ }})
 
+instance ctxErrsErr_persistent (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
+    Persistent (ctxErrsErr (GF := GF) ci cd) := by
+  unfold ctxErrsErr; infer_instance
+
+/-- **`ch` is a Done channel of a context described by `cd`** (persistent; premise fixes 5,
+2026-11-10, approved by etcd-grove-81): the nil channel (a receive from it never proceeds), or a
+broadcast channel (only ever closed; `isBroadcastChanInternal`, whose done flag holds once it is
+closed) whose done flag means the context is done (`ContextClosed cd.Done_gn`; then `Err()` is not
+`nil`, `ctxErrsErr`'s `.Done` case). Go's contract: "If Done is closed, Err returns a non-nil
+error". -/
+def ctxDoneCh (cd : context.ContextDesc (IProp GF)) (ch : GoChan) : IProp GF :=
+  iprop(⌜ch = chan.nil⌝ ∨ ∃ (γ : ChanNames) (γi : BroadcastInternalNames) (Q : IProp GF),
+    isBroadcastChanInternal ch γ γi Q ∗
+    □ (dghostVar γi.doneGn DFrac.discard true -∗ context.ContextClosed cd.Done_gn))
+
+instance ctxDoneCh_persistent (cd : context.ContextDesc (IProp GF)) (ch : GoChan) :
+    Persistent (ctxDoneCh (GF := GF) cd ch) := by
+  unfold ctxDoneCh; infer_instance
+
+/-- **A context's `Done()` returns, without panicking, a Done channel** (`ctxDoneCh`; persistent;
+premise fixes 5). -/
+def ctxDone (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) : IProp GF :=
+  iprop(□ ∀ Φ : val → IProp GF, ▷ (∀ ch : GoChan, ctxDoneCh cd ch -∗ Φ #ch) -∗
+    WP (App (Val #(methods ci.ty go!"Done" ci.v)) (Val #())) {{ Φ }})
+
+instance ctxDone_persistent (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
+    Persistent (ctxDone (GF := GF) ci cd) := by
+  unfold ctxDone; infer_instance
+
+/-- **A context that follows Go's contract, with client errors** (persistent; 2026-11-04, K4 of
+`notes/k8s-compactor-plan.md`): its `Done()` returns a Done channel (`ctxDone`: nil, or one whose
+closing means the context is done; premise fixes 5, 2026-11-10, approved by etcd-grove-81: until
+then nothing about `Done()`, `notes/axiom-review/ctxok-done.md`), and its `Err()` follows Go's
+contract with client errors (`ctxErrsErr`). It is what a context outside Perennial's model meets:
+k8s's `wait.ContextForChannel(stopCh)` (`chanCtx_ok`). -/
+def ctxErrs (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) : IProp GF :=
+  iprop(ctxDone ci cd ∗ ctxErrsErr ci cd)
+
 instance ctxErrs_persistent (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
     Persistent (ctxErrs (GF := GF) ci cd) := by
   unfold ctxErrs; infer_instance
@@ -1165,7 +1209,8 @@ to every call), or (2026-11-04) one whose `Err()` follows Go's contract with cli
 client interceptor accept any: the trust boundary's contracts below (`grpcInvokerOk`; the
 client's `withVersion`, `waitRetryBackoff`) are stated for `ctxOk`, true of Go's quiet contexts as
 of the others (a `nil` `Done()` channel never fires; grpc turns a done context's error into a
-status error, `status.FromContextError`, and `waitRetryBackoff` likewise, `contextErrToGRPCErr`);
+status error, `status.FromContextError`, and `waitRetryBackoff` likewise, `contextErrToGRPCErr`;
+since premise fixes 5 each case states `Done()`, which these select on);
 the client's token fetch (`getToken`, `refreshToken`) also takes `ctxErrClient` (its
 `ContextError`). -/
 def ctxOk (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) : IProp GF :=

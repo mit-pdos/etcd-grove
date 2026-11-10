@@ -20,8 +20,9 @@ readers, one of its reader tokens (`mvccReaders`, of which `New` gives `mvccRead
 `2 ^ 28`): `Readers + 2 ≤ 2 ^ 28`; the writer's lease grants spend one of the backend's `2 ^ 40 - 1` write-back tokens
 each, the store's receipt-paid supply as many as there are receipts: `Ops < 2 ^ 38` and
 `receiptBound ≤ 2 ^ 38`), the thread bound of the backend's reader pool (`2 ^ 28`), the lessor's
-checkpoint premise (`ckptEffectsOk`, `lease.NewLessor.spec`'s) and the store's key-count assumption
-(`keySized`, `etcdStorage_open.law`'s), and `dbOpenOk` (`Open_kv`'s environment premise).
+checkpoint premise (`ckptEffectsOk`, `lease.NewLessor.spec`'s), and `dbOpenOk` (`Open_kv`'s
+environment premise). (Premise fixes 5, 2026-11-10) The store's key-count premise `keySized`
+(`etcdStorage_open.law`'s) is proved (`mvcc.keySized_all`), no longer a premise here.
 -/
 module
 
@@ -55,7 +56,6 @@ abbrev runChecks.spec : Prop :=
   ckptEffectsOk → backend.dbOpenOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccrand ∗
       backend.fileHolds cfg.Path' ∅ ∗
-      □ (∀ (γB : backend.BNames) (P : backend.BParams) (b : Loc), keySized γB P b) ∗
       -- (R8, 2026-11-08, the second `lean` merge) the main thread's token, for `backend.New`'s
       -- first read transaction (begin-tok, `notes/begin-tok-plan.md`)
       threadTok ∗

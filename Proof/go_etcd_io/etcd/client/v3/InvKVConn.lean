@@ -1493,10 +1493,10 @@ instance ctxErrClient_persistent (ci : GoInterfaceOk) (cd : context.ContextDesc 
     Persistent (ctxErrClient ci cd) := by
   unfold ctxErrClient; infer_instance
 
-/-- `ctxErrClient` is `ctxOk`'s third case, `ctxErrs` (grpc's, which this file's definition
-predates). -/
+/-- `ctxErrClient` is the `Err()` half of `ctxOk`'s third case, `ctxErrsErr` (grpc's, which this
+file's definition predates; premise fixes 5: `ctxErrs` adds `Done()`'s, `ctxDone`). -/
 theorem ctxErrClient_eq_errs (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
-    ctxErrClient (GF := GF) ci cd = ctxErrs ci cd := rfl
+    ctxErrClient (GF := GF) ci cd = ctxErrsErr ci cd := rfl
 
 namespace client
 

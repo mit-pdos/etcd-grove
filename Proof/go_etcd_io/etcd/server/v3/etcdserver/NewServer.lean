@@ -469,6 +469,8 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     ipureintro; exact ⟨rfl, Herr⟩
   subst Herr
   iNamed Hb
+  -- (premise fixes 5) the Key bucket's size bound, proved (until then `bootOk`'s `#Hsz`)
+  ihave #Hsz := mvcc.keySized_at (GF := GF) d.P $$ []
   -- (2026-11-03, the WAL's API) the opened WAL's parts (its records, metadata and the purge's right
   -- are not used yet: R2b-1's stage 4)
   -- (R2b-1 stage 3c) the WAL's durability allocated over the fresh records (`wal.bootOk_start`)

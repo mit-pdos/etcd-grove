@@ -132,7 +132,7 @@ theorem compactor.runWatchLoop.wp_proof
   · iPkgInit
   ihave #Ppb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb $$ []
   · iPkgInit
-  ihave ⟨#Hctx, #Hce⟩ := chanCtx_ok wp_Err EtcdGrove.rpctypesEtcdError_asTarget sc γs γi iprop(True)
+  ihave ⟨#Hctx, #Hce⟩ := chanCtx_ok wp_Done wp_Err EtcdGrove.rpctypesEtcdError_asTarget sc γs γi iprop(True)
     $$ [Pw Hint]
   · iframe #
   imod chanCtx_watch wp_Done wp_Err sc γs γi $$ [Pw Hint] with ⟨%γdn, #Hwctx⟩

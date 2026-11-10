@@ -414,7 +414,7 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- tokens (`N` for the entries, seven for the construction) and the open token (`bootLeft`),
     -- not every token (`bFresh`: false after `bootstrap`'s own two write-backs; the bound is the
     -- contract's premise, `N + 7 + bootWB ≤ wbInit`, until then the post's `%HN`); and what
-    -- `bootstrap` adds: the store's registration right, `keySized` (`bootBackend_of_bootLeft`
+    -- `bootstrap` adds: the store's registration right (`bootBackend_of_bootLeft`
     -- turns `newPostK` into the resources `NewServer` uses)
     "Hnew" ∷ backend.newPostK d.γB d.P (fun _ => mvcc.api.mvccW d.gx)
       (fun γB => batchLockInv γA (metaTM γB d.P)) (bootLeft N) d.be D ∗
@@ -424,9 +424,8 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- `D` holds the last commit's)
     "%Hm0" ∷ ⌜metaIs D γA.m0⌝ ∗
     "%HD" ∷ ⌜mvcc.keyView (backend.vData d.P (D, ⟨∅, W64 0⟩)) ∅⌝ ∗
-    -- (D22 J1a, 2026-10-26: of every backend at these parameters, for the snapshot path's backends;
-    -- until then of `d` only) the Key bucket's size bound (no bbolt file holds `2 ^ 62` keys)
-    "#Hsz" ∷ □ (∀ (γB : backend.BNames) (b : Loc), mvcc.keySized γB d.P b) ∗
+    -- (premise fixes 5, 2026-11-10) no `#Hsz`: the Key bucket's size bound `mvcc.keySized` is proved
+    -- (`mvcc.keySized_at`, from bbolt's `rtxSnap_size`); until then assumed here (D22 J1a)
     "Hlate" ∷ mvcc.api.mvccWReg d.gx ∗
     -- (D22, 2026-10-23: the backend over every bucket; a widening of the fresh data directory's
     -- facts, until then the opaque tokens `bkFresh d.γB "lease"`, `"auth"`, `"alarm"`) every rest

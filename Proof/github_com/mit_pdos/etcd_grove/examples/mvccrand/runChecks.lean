@@ -75,7 +75,7 @@ theorem runChecks.wp_proof
   haveI := fun kv γ => hpers.1 kv γ
   haveI := fun ws γ ι => hpers.2.1 ws γ ι
   haveI := fun B f => hpers.2.2.2.1 B f
-  wp_start as ⟨Hfile, #Hks, Htok, #Hvoff⟩
+  wp_start as ⟨Hfile, Htok, #Hvoff⟩
   haveI : ThreadBoundLe GF (2 ^ 29) := ⟨ThreadBoundLe.le_of (2 ^ 28) (by omega)⟩
   wp_auto
   wp_apply wp_NewNop as %lg #Hlgz
@@ -112,8 +112,8 @@ theorem runChecks.wp_proof
     have : sint.nat cfg.Ops' = (sint.Z cfg.Ops').toNat := rfl
     omega
   imod rc_open hfresh hopen hrest hCR γB b gx bc.BatchLimit' (sint.nat cfg.Ops' + 2) hm
-    $$ [Hks Hreg Hnew] with Hbk
-  · iframe Hks Hreg Hnew
+    $$ [Hreg Hnew] with Hbk
+  · iframe Hreg Hnew
   iunfold rcBk at Hbk
   icases Hbk with ⟨Hsf, #Hisb, Hhk, Hrbo, Hoh, Hor, Hrt, Hwm, #Hsc, Hcen⟩
   icases ownToks_add_1 2 (sint.nat cfg.Ops') γB.wb $$ Hwm with ⟨Hwops, Hw2⟩
