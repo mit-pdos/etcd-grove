@@ -178,6 +178,23 @@ Notes for the proof (`Apply.lean`, 426 lines, every branch calls `wp_call`):
   listQ c γ γc`, `PL := listP`, `listQ_pure`, `listQP_pure`; after the reply `listCall_take`, then
   `cache_tail` with `lOut_name` (no cache put).
 
+## Fifth session (2026-11-10): `Apply` proved
+
+Done (each commit built capped, `/shared/tmp/k8s-7e-4/b10.log`, `b12.log`):
+- `readQ` drops its unused `n` (`Inv`, `InvSteps`); `plainL c γ σ` (`listQ` without the commit bit) with
+  `plainL_pure`, `plainLP_pure`, `plainL_read_au`, `plainL_maker`, `plainL_makerP` (`InvSteps`): a
+  list whose prophecy says `EOther` (committed before the call by `read_err_commit`) and every
+  non-list call pass `QL := fun _ σ => plainL c γ σ`, `PL := listP` (`d4826966a1`).
+- `Apply.lean` proved on the restated `Apply.spec` (`34fed219e4`): `threadTok` is curried into the
+  continuation (`Φt := fun v => threadTok -∗ Φ v`, `hfin`), so `linU`/`contAt`/the call invariants
+  are unchanged; `CfgD c` from `hc`, `hpfx`, `hrp`; five kinds; a `Get` with an `EOther` prophecy
+  that answers contradicts `kStep_get_ne4`; a list with one contradicts `lOut_ans`.
+- Form decided: `Apply.wp_proof` takes a new callee `objOf.spec` (Go `Apply` calls `objOf(out)`
+  before `tbl.put`; the old proof took the literal). **Add `objOf` to `Apply`'s line of
+  `etc/link-lean-first-k8s-etcd3.txt` at the Link step.**
+
+Next: step 3 (generator, Check, Main*).
+
 ## Forms decided (accepted by etcd-grove-81, 2026-11-10, all five)
 
 1. `Refine`: `ItemRel`/`PairRel` → `KRel` over 7e-3c's `PairRelH`; `mkObj` moved to `Refine`
