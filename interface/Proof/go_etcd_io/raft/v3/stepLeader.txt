@@ -34,7 +34,7 @@ theorem stepLeader.wp_proof [package_sem : Assumptions] (wp_raft_bcastHeartbeat 
     stepLeader.spec
   -- `Perennial.EtcdGrove.stepLeader.spec`, unfolded:
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM)
-    (ctx : List w8) (rs : List Loc) (k0 : Nat) (G G' : IProp GF),
+    (ctx : List w8) (rs : List Loc) (k0 : Nat) (G G' Gp1 Gp2 : IProp GF) (Gc : Bool → w64 → IProp GF),
     m.Type' = MsgVoteResp ∨
         m.Type' = MsgBeat ∨
           m.Type' = MsgHeartbeatResp ∨
@@ -72,7 +72,7 @@ theorem stepLeader.wp_proof [package_sem : Assumptions] (wp_raft_bcastHeartbeat 
                                       ∀ (t0 : w64),
                                         plogTermAt s.logst.prev (s.logst.sents ++ s.logst.uents) (W64 1) = some t0 →
                                           uint.Z t0 ≤ 1)) →
-                        (m.Type' = MsgProp ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp → s.gh.tr = none) →
+                        (m.Type' = MsgProp → s.gh.tr ≠ none → ∀ (e : EntryM), e ∈ ents → ¬IsConfEnt e) →
                           ⊢
                             ∀ Φ,
                               isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
@@ -142,11 +142,163 @@ theorem stepLeader.wp_proof [package_sem : Assumptions] (wp_raft_bcastHeartbeat 
                                                                   G) ∗
                                                       "#Hnosnap" ∷ TrNoSnap s.gh.tr s.logst ∗
                                                         "Hgcq" ∷
-                                                          (⌜m.Type' = MsgCheckQuorum⌝ -∗
-                                                            G -∗
-                                                              HookGate s.gh.tr r
-                                                                (NodeEvOf (W64 2) id (becomeFollower s s.term (W64 0)) c)
-                                                                G') -∗
+                                                            (⌜m.Type' = MsgCheckQuorum⌝ -∗
+                                                              G -∗
+                                                                HookGate s.gh.tr r
+                                                                  (NodeEvOf (W64 2) id (becomeFollower s s.term (W64 0))
+                                                                    c)
+                                                                  G') ∗
+                                                          "Hgprep" ∷
+                                                              (⌜m.Type' = MsgProp⌝ -∗
+                                                                ∀ cs,
+                                                                  ccEntsOk ents cs -∗
+                                                                    G -∗
+                                                                      HookGateN s.gh.tr r (NodeEvOf (W64 5) id s c)
+                                                                        (normalCount
+                                                                          (leaderPropConf s ents cs c.joint).fst)
+                                                                        Gp1) ∗
+                                                            "Hgpack" ∷
+                                                                (⌜m.Type' = MsgProp⌝ -∗
+                                                                  ∀ cs,
+                                                                    ccEntsOk ents cs -∗
+                                                                      Gp1 -∗
+                                                                        HookGateOpt s.gh.tr r
+                                                                          (sendOutGate id
+                                                                            (propAppended s
+                                                                              (leaderPropConf s ents cs c.joint).fst)
+                                                                            c MsgAppResp
+                                                                            [selfAck id
+                                                                                (propAppended s
+                                                                                  (leaderPropConf s ents cs
+                                                                                      c.joint).fst)])
+                                                                          Gp2) ∗
+                                                              "#Hgpapp" ∷
+                                                                  □
+                                                                    (⌜m.Type' = MsgProp⌝ -∗
+                                                                      ∀ cs to mm,
+                                                                        ccEntsOk ents cs -∗
+                                                                          ⌜to ≠ id ∧ to ∈ s.progress.domSet⌝ -∗
+                                                                            ⌜AppOk id
+                                                                                    (toPState
+                                                                                      (propAppended s
+                                                                                        (leaderPropConf s ents cs
+                                                                                            c.joint).fst))
+                                                                                    mm ∧
+                                                                                  mm.commit = s.logst.committed ∧
+                                                                                    mm.dst = to⌝ -∗
+                                                                              Gp2 -∗
+                                                                                HookGateOpt s.gh.tr r
+                                                                                  (sendOutGate id
+                                                                                    (propAppended s
+                                                                                      (leaderPropConf s ents cs
+                                                                                          c.joint).fst)
+                                                                                    c MsgApp [mm])
+                                                                                  Gp2) ∗
+                                                                "Hgsapp" ∷
+                                                                    (⌜m.Type' = MsgHeartbeatResp ∨
+                                                                          m.Type' = MsgAppResp ∧ m.Reject' = true⌝ -∗
+                                                                      ∀ mm,
+                                                                        ⌜AppOk id (toPState s) mm ∧
+                                                                              mm.commit = s.logst.committed ∧
+                                                                                mm.dst = m.From'⌝ -∗
+                                                                          G -∗
+                                                                            HookGateOpt s.gh.tr r
+                                                                              (sendOutGate id s c MsgApp [mm]) G) ∗
+                                                                  "#Hghresp" ∷
+                                                                      □
+                                                                        (⌜m.Type' = MsgHeartbeatResp⌝ -∗
+                                                                          G -∗ HookGateOpt s.gh.tr r none G) ∗
+                                                                    "Hgcommit" ∷
+                                                                        (⌜m.Type' = MsgAppResp ∧ m.Reject' = false⌝ -∗
+                                                                          ∀ pvs b N,
+                                                                            ⌜prvalsMatch pvs =
+                                                                                  appRespMatch s m.From' m.Index'⌝ -∗
+                                                                              ⌜maybeCommitOut c
+                                                                                    { term := s.term, vote := s.vote,
+                                                                                      lead := s.lead, role := s.role,
+                                                                                      votes := s.votes,
+                                                                                      outbox := s.outbox,
+                                                                                      stepfn := s.stepfn,
+                                                                                      ticking := s.ticking,
+                                                                                      progress := s.progress,
+                                                                                      log := s.log, logst := s.logst,
+                                                                                      prvals := pvs, prevote := s.prevote,
+                                                                                      gh := s.gh, rd := s.rd, lt := s.lt,
+                                                                                      pci := s.pci,
+                                                                                      isLearner := s.isLearner,
+                                                                                      sdr := s.sdr, cq := s.cq }
+                                                                                    b N⌝ -∗
+                                                                                G -∗
+                                                                                  HookGate s.gh.tr r
+                                                                                    (NodeEvOf rsmCommit id
+                                                                                      (commitAt s b N) c)
+                                                                                    (Gc b N)) ∗
+                                                                      "#Hgrlresp" ∷
+                                                                          □
+                                                                            (⌜m.Type' = MsgAppResp ∧ m.Reject' = false⌝ -∗
+                                                                              ∀ N,
+                                                                                ⌜CfgSingle c id⌝ -∗
+                                                                                  Gc true N -∗
+                                                                                    HookGateOpt s.gh.tr r none
+                                                                                      (Gc true N)) ∗
+                                                                        "#Hgrlhb" ∷
+                                                                            □
+                                                                              (⌜m.Type' = MsgAppResp ∧
+                                                                                    m.Reject' = false⌝ -∗
+                                                                                ⌜¬CfgSingle c id⌝ -∗
+                                                                                  ∀ N k to cm,
+                                                                                    ⌜0 < k ∧ k ≤ s.rd.pend.length⌝ -∗
+                                                                                      ⌜to ≠ id ∧
+                                                                                            to ∈ s.progress.domSet⌝ -∗
+                                                                                        ⌜uint.Z cm ≤ uint.Z N ∧
+                                                                                              uint.Z cm ≤
+                                                                                                uint.Z
+                                                                                                  ((appRespMatch s m.From'
+                                                                                                          m.Index' !!
+                                                                                                        to).getD
+                                                                                                    (W64 0))⌝ -∗
+                                                                                          Gc true N -∗
+                                                                                            HookGateOpt s.gh.tr r
+                                                                                              (sendOutGate id
+                                                                                                (commitAt s true N) c
+                                                                                                MsgHeartbeat
+                                                                                                [Msg.mkV MsgType.heartbeat
+                                                                                                    id to s.term false
+                                                                                                    (W64 0) (W64 0) cm
+                                                                                                    (W64 0) [] []
+                                                                                                    (hbCtx
+                                                                                                      (readonlyRelease
+                                                                                                        s.rd.ro id N
+                                                                                                        (List.take k
+                                                                                                          s.rd.pend)))])
+                                                                                              (Gc true N)) ∗
+                                                                          "#Hgaapp" ∷
+                                                                              □
+                                                                                (⌜m.Type' = MsgAppResp ∧
+                                                                                      m.Reject' = false⌝ -∗
+                                                                                  ∀ b N to mm,
+                                                                                    ⌜to ≠ id ∧ to ∈ s.progress.domSet⌝ -∗
+                                                                                      ⌜AppOk id
+                                                                                              (toPState (commitAt s b N))
+                                                                                              mm ∧
+                                                                                            mm.commit =
+                                                                                                (commitAt s b
+                                                                                                      N).logst.committed ∧
+                                                                                              mm.dst = to⌝ -∗
+                                                                                        Gc b N -∗
+                                                                                          HookGateOpt s.gh.tr r
+                                                                                            (sendOutGate id
+                                                                                              (commitAt s b N) c MsgApp
+                                                                                              [mm])
+                                                                                            (Gc b N)) ∗
+                                                                            "#Hgatnow" ∷
+                                                                              □
+                                                                                (⌜m.Type' = MsgAppResp ∧
+                                                                                      m.Reject' = false⌝ -∗
+                                                                                  ∀ b N,
+                                                                                    Gc b N -∗
+                                                                                      HookGateOpt s.gh.tr r none
+                                                                                        (Gc b N)) -∗
                                 (▷
                                     ∀ err s' dropped,
                                       ownRaftPhysCV c c.voters r id s' ∗
@@ -156,6 +308,26 @@ theorem stepLeader.wp_proof [package_sem : Assumptions] (wp_raft_bcastHeartbeat 
                                                   typedPointsto (globalAddr ErrProposalDropped) err DFrac.discard
                                                 else ⌜err = GoInterface.nil⌝) ∗
                                                 (⌜m.Type' = MsgCheckQuorum ∧ s'.role = PRole.follower⌝ ∗ G' ∨
-                                                  ⌜¬(m.Type' = MsgCheckQuorum ∧ s'.role = PRole.follower)⌝ ∗ G) -∗
+                                                  ⌜m.Type' = MsgProp ∧ dropped = false⌝ ∗ Gp2 ∨
+                                                    (∃ b N,
+                                                        ⌜m.Type' = MsgAppResp ∧
+                                                              m.Reject' = false ∧
+                                                                ∃ pvs,
+                                                                  prvalsMatch pvs = appRespMatch s m.From' m.Index' ∧
+                                                                    maybeCommitOut c
+                                                                      { term := s.term, vote := s.vote, lead := s.lead,
+                                                                        role := s.role, votes := s.votes,
+                                                                        outbox := s.outbox, stepfn := s.stepfn,
+                                                                        ticking := s.ticking, progress := s.progress,
+                                                                        log := s.log, logst := s.logst, prvals := pvs,
+                                                                        prevote := s.prevote, gh := s.gh, rd := s.rd,
+                                                                        lt := s.lt, pci := s.pci,
+                                                                        isLearner := s.isLearner, sdr := s.sdr,
+                                                                        cq := s.cq }
+                                                                      b N⌝ ∗
+                                                          Gc b N) ∨
+                                                      ⌜¬(m.Type' = MsgCheckQuorum ∧ s'.role = PRole.follower) ∧
+                                                            ¬(m.Type' = MsgProp ∧ dropped = false)⌝ ∗
+                                                        G) -∗
                                         Φ (intoVal err)) -∗
                                   WP (((intoVal (functions stepLeader [])) (intoVal r)) (intoVal ml)) {{ Φ }}

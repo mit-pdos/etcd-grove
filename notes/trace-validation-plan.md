@@ -601,6 +601,38 @@ collections `--reuse --check`, none updated; `interface/` differs in the three s
 files only (their specs); `etc/api-check.py` 0 errors; `--layout` 0 new; `etc/gen-link.py --raft`
 unchanged.
 
+**Q8 stage 1 (slice 9), 2026-11-10 (branch `trace-check-q8s9`): `stepLeader` gated in every arm;
+`raft.Step`'s traced arms not started.** Decided by the agent (`notes/decisions.md`, "Q8 stage 1 (slice
+9)"). Done: `stepLeader.spec` has no trace-mode premise left. (1) `MsgProp`: `appendEntry`'s `Replicate`
+gate (one event per normal entry of the conf-change loop's batch, `∀ cs` decoded changes) and
+self-acknowledgement gate, `G` → `Gp1` → `Gp2`, then `bcastAppend`'s per-peer gate, `Gp2` to `Gp2`;
+`Gp2` back when appended. (2) `MsgAppResp`: a rejection's `sendAppend` gate at `s`; an acceptance's
+`maybeCommit` gate per outcome (`Hgcommit`, for every `Progress` map with the raised `Match` values
+`appRespMatch` and every `(b, N)` of `maybeCommitOut` there: where a traced caller creates the new
+commit's `isCommitted` before `traceCommit`), `G` to `Gc b N`, then at `commitAt s b N` the release's
+gates (single voter: responses at no event; else the `k`-th request's heartbeats), the `MsgApp`s'
+(`bcastAppend`, `sendAppend`, the `maybeSendAppend` loop) and the transferee's `MsgTimeoutNow` (no
+event), `Gc b N` to `Gc b N`; the result says whether `maybeCommit` ran, with its outcome (it depends
+on the sender's `Progress`, which the caller does not name). (3) `MsgHeartbeatResp`: the flow-control
+`sendAppend` gate at `s` (shared with a rejection's, `Hgsapp`) and the read-index responses' (no event),
+`G` to `G`. The intermediate states are named in `LemmasStepLeader.lean` (`propAppended`,
+`appRespMatch`, `commitAt`, with header lemmas `sendOutGate_hdr`, `appOk_hdr`, `trNoSnap_logst` and the
+congruences `hookGate_congr`, `hookGateN_congr`). One new premise, on a raft-internal spec: a traced
+node proposes no configuration change (`MsgProp → s.gh.tr ≠ none → ∀ e ∈ ents, ¬ IsConfEnt e`, P3: the
+conf-change loop's `traceChangeConfEvent` stays untraced). `stepLeader.untraced` keeps its statement;
+`raft.Step` and `raft.appliedTo` unchanged. No ghost change; no client-visible change; no axiom or
+`sorry`. **Not done:** (a) `raft.Step`'s traced arms (step 2): its spec still takes `s.gh.tr = none`
+and every callee through the `X.untraced` instances (`raft.Step.Postulates`); the receive hook
+(`traceReceiveMessage`, `recvGate`) needs the receive line's law (`trCap_fire_recv`, `PhaseStepR`,
+`FxPresR`) at `Step`'s entry, each arm the step functions' gates built from `trCapB` and raft's ghost
+(the lines' `PhaseStepB` from `TraceSimMatch.lean`'s `lineEffect_*`, the `FxPresUT` facts from the
+term log, records, commit certificate, vote table: the Prove phase's simulation, with the Draft's
+A4/C4 blocker for the `Commit` line's `QuorumLogInv`), the received message's numbers through a
+trace-gated conjunct of `isMessage` (`Protocol/GhostState.lean`, every producer's proof: about 19
+files) and the receipt bound to `traceNumBound` (`readyFits` gives `receiptBound + bootLen ≤ 2^61`, the
+law owed); (b) `tickElection`/`tickHeartbeat` (step 3), which call `raft.Step` and follow its gated
+form. Checked (`trace-check` at `cdbf0f5660`, the branch's base, no newer commit to merge): full `lake build` green (13784 jobs); `etc/tcb-report.py --check` (806 axioms, 4 `sorry`s, unchanged) and all 53 collections `--reuse --check`, none updated; `interface/` differs in `stepLeader`'s proof file only (its spec); `etc/api-check.py` 0 errors; `--layout` 0 new; `etc/gen-link.py --raft` unchanged.
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its
