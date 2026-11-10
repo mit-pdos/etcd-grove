@@ -8,6 +8,7 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccfull.runner__openBackend
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.New
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.HooksLaws
 
 @[expose] public section
 
@@ -83,10 +84,7 @@ theorem runner.openBackend.wp_proof
         show limOf cfg = _
         unfold limOf
         simp only [hb, ↓reduceIte, hdl]
-      · iunfold backend.hooksOk
-        iintro !> %γ %b %t _ _
-        iunfold backend.hooksSpec
-        ileft; ipureintro; exact hhooks
+      · rw [hhooks]; iapply backend.hooksOk_nil
     icases Hr with (⟨%b, %γB, %Hr, Hnew, -, Hbf, Htok⟩ | %Hpan)
     rotate_left
     · exact absurd hdbo Hpan.1

@@ -22,6 +22,8 @@ importable Proof.go_etcd_io.etcd.server.v3.storage.backend.ClientLaws
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.NewKLaws
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.StopLaws
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.WbTokLaws
+# (mvccfull's F1 repair round 2, 2026-11-10) the constructor's hooks premise at no hooks
+importable Proof.go_etcd_io.etcd.server.v3.storage.backend.HooksLaws
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.CommitLemmas
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.DelKeys
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.HooksLoeb
