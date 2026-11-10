@@ -31,6 +31,37 @@ etcd-grove-81 says so.
    (`ansOf_otherL`). **`readQ`'s commit condition is `σ.rev = R` only** (a `Get` below its minimum answers
    `ETooLarge`, committed at `R` too); its `n` parameter is unused, to drop with `call`/`Apply`.
 
+5. **Lists in `InvSteps`** (second session, no `sorry`, built capped with `Cache`, 7350 jobs,
+   `/shared/tmp/k8s-7e-4/b1.log`): `listOutDriver_err`, `lOut_ans` (a list never answers `EOther`),
+   `listCall` (as `getCall`, output `lOut x σ`, no `ansOk`), `listQ c γ γc R σ` (`kvWf ∧ kvWfHist ∧
+   kvKeysShort ∧ room`, `γ.r`'s element of `σ`, the commit bit at `R`), `listP σ σ' :=
+   ⌜kvSameHist σ σ' ∧ σ.rev ≤ σ'.rev⌝`, `listQ_pure`/`listQP_pure` (`GetList`'s two premises),
+   `revOwn_ext`, `list_read_au` (commits with `kOk_list`), `list_later_au` (from `RevOk`'s last clause),
+   `list_maker`, `list_makerP`, `listCall_take`.
+
+## Stopped at step 2: `errOut`'s `ETooLarge` (second session, 2026-11-10; reported to etcd-grove-81)
+
+Go `errOut` now calls `storage.IsTooLargeResourceVersion(err)` on every error that is not a
+not-found/exists/invalid `*StorageError`, before the sentinel test. Its spec needs a view
+(`apierrors.apiErrAt err w`). Views exist for: the too-large `*StatusError` (`tooLargeErrIs`), the
+410 `*StatusError` of `listErr` (`.status st []`, `tooLargeV` false), and the sentinels
+(`*errorString`: `.plain` from `errors`' method sets, provable). Not for:
+- **(A) the client's errors** (`unkErr`'s/`kClientErr`'s `clientErr`): nothing says their type is
+  outside `APIStatus`'s type set. Scope §5 assigns this to 7c-3 (not landed).
+- **(B) `storage.InternalError`** (`unkErr`'s second branch: `NewInternalError` of a transformer
+  error): it has `Unwrap() error` (`errors.go:232`), so it is no leaf and no view fits; its inner
+  error is unconstrained (`transformerOk`'s `TransformToStorage` may fail with any `errStrOk` error;
+  `NewInternalError.spec`'s post is `True`). New finding, not in the Scope.
+Recommended: (A) as the Scope says, via 7c-3 (until then a named pending hypothesis, which reaches
+the closed results as `Client.List`/`Client.GetAt` already do); (B) an `ObjSpec` field `trErr` for the
+transformer's errors (as `encErr`), `transformerOk`'s error branches conditioned on it,
+`NewInternalError`'s post `ie.err' = ei`, `unkErr`'s branch `∃ ie, err = mkOk InternalError ie ∧
+c.S.trErr ie.err'`; the driver's `trErr` is `False`. Both change exported statements: 81 decides.
+Planned forms, not yet made: `errIs` on `errOutL`, with `(tooLargeErrIs err ∗ ⌜y = tooLargeL⌝)` and the
+`EOther` case carrying `∃ w, apiErrAt err w ∗ ⌜tooLargeV w = false⌝`; `GenIn x := InOk x ∧ kind ≤ 4 ∧
+Val ≤ 2^20 ∧ CachedNoRV x`; `call`/`Apply` take `threadTok` (lintest's `applySpec` lends it) and
+`⌜threadBound GF ≤ 2^30-1⌝`; `callPre`/`callAt` gain the list kind (`listQ`/`listP`-shaped `QL`, `PL`).
+
 ## Forms decided (accepted by etcd-grove-81, 2026-11-10, all five)
 
 1. `Refine`: `ItemRel`/`PairRel` → `KRel` over 7e-3c's `PairRelH`; `mkObj` moved to `Refine`
@@ -51,7 +82,7 @@ etcd-grove-81 says so.
 
 ## Next, in order
 
-1. **Lists in `InvSteps`** (new): `listCall`/`list_read_au`/`list_maker`, as `getCall`/`get_read_au`/
+1. ~~Lists in `InvSteps`~~ (done, item 5 above). Was: `listCall`/`list_read_au`/`list_maker`, as `getCall`/`get_read_au`/
    `get_maker`, with `lOut x σ` for `(kStep …).2`, `lOut_name` for `ansOk` (a list caches nothing),
    `kOk_list` for the commit. The first page's `Q R σ` must give `kvWf c σ ∧ kvWfHist c σ ∧ kvKeysShort σ`
    (`H.wf`, `H.hwf`, `keysOk_short σ H.keys`) and record `σ` in `γ.r` (`revOwn_elem`). The later pages'

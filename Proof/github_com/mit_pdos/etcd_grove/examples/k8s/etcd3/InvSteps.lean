@@ -1152,8 +1152,8 @@ theorem lOut_ans (x : Input) (σ : KVState) (hx : InOk x) (hk4 : x.Kind' = W64 4
   simp only
   by_cases hlt : σ.rev < uint.nat n
   · simp [hlt, tooLargeL, errOutL]
-  · rw [if_neg hlt]
-    refine if_neg ?_
+  · rw [ite_eq_right hlt]
+    refine ite_eq_right ?_
     rw [listOutDriver_err]
     decide
 
