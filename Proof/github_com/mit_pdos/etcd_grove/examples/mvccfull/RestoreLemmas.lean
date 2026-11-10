@@ -12,6 +12,7 @@ the history's lower bound is the writer's (covering `σb`).
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.WriterShares
+public import Proof.go_etcd_io.etcd.server.v3.lease.GuardLaws
 
 @[expose] public section
 
@@ -249,8 +250,7 @@ theorem bigSepL_mem_or {A B : Type} [DecidableEq A] (U : List A) (key : B → A)
     · ihave #H := bigSepL_mem_or U key Φ recs $$ HU
       iexact H
 
-/-- **Every id is granted under the guard `True`** (unfolds `lease.leaseGranted`: a missing law of
-lease, `leaseGranted_of_guard`). -/
+/-- **Every id is granted under the guard `True`** (`lease.leaseGranted_of_guard`). -/
 theorem granted_list (γl : GName) : ∀ l : List w64,
     lease.lessorGuard (GF := GF) γl (fun _ => iprop(True)) ⊢
       □ ([∗list] id ∈ l, lease.leaseGranted γl id)
@@ -260,7 +260,8 @@ theorem granted_list (γl : GName) : ∀ l : List w64,
     imodintro
     iapply BigSepL.bigSepL_cons.2
     isplitl
-    · iunfold lease.leaseGranted; iexists (fun _ => iprop(True)); iframe #
+    · iapply lease.leaseGranted_of_guard γl (fun _ => iprop(True)) x
+      iframe #
       imodintro; itrivial
     · ihave #H := granted_list γl l $$ Hg
       iexact H
