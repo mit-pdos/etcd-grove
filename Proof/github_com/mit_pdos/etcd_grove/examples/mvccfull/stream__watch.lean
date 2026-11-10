@@ -205,7 +205,104 @@ theorem stream.watch.wp_proof
   iintro %v ⟨%hv, w, s, Hlive, %st, «$r0», %Hst⟩
   subst hv
   wp_auto
-  trace_state
+  -- the filters
+  wp_bind (If _ _ _)
+  iapply (wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗ w_ptr ↦ wpl ∗
+      wpl ↦ (watcher.mk ksl endk flt st 0 0 0 false false false) ∗
+      ∃ fcs : GoSlice, fcs_ptr ↦ fcs ∗ filtersImpl (GF := GF) fcs (filterFs flt)))) $$ [w «$r0» fcs]
+  · wp_if_destruct
+    · (try wp_auto)
+      wp_apply wp_slice_literal
+      rw [recv_eq_func_mk]
+      (try wp_auto)
+      isplitr
+      · ipureintro; rfl
+      iintro %osl ⟨Hosl, -⟩
+      (try wp_auto)
+      ihave Hnil : (slice.nil ↦* ([] : List GoFunc) : IProp GF) $$ []
+      · iapply ownSlice_nil
+      ihave Hnilc : ownSliceCap GoFunc slice.nil (DFrac.own 1) $$ []
+      · iapply ownSliceCap_nil
+      wp_apply +noauto wp_slice_append $$ [$Hnil $Hnilc $Hosl] as %fsl ⟨Hfsl, -, -⟩
+      imod ownSlice_persist _ _ _ $$ Hfsl with #Hfsl
+      (try wp_auto)
+      generalize hf : (func.mk BAnon (BNamed "e") _ : GoFunc) = f at *
+      iframe
+      isplitr
+      · ipureintro; rfl
+      iunfold filtersImpl
+      rw [show filterFs (W64 1) = [fun ev => !ev.del] from by simp [filterFs]]
+      iexists [f]
+      simp only [List.nil_append]
+      iframe #
+      isplitr
+      · ipureintro; rfl
+      simp only [List.zip_cons_cons, List.zip_nil_left]
+      iapply BigSepL.bigSepL_singleton.2
+      · iunfold filterSpec
+        iintro !> %e %ev %Φ' !> Hev HΦ'
+        rw [← hf, ← recv_eq_func_mk]
+        iunfold evIs at Hev
+        icases Hev with ⟨%pp, %qq, %st', %uf, %sc, %Hnn, #Hept, -, -⟩
+        iStructNamedSuffix Hept "E"
+        wp_auto
+        iapply HΦ'
+        ipureintro
+        unfold evType
+        cases ev.del <;> rfl
+    · (try wp_auto)
+      wp_if_destruct
+      · (try wp_auto)
+        wp_apply wp_slice_literal
+        rw [recv_eq_func_mk]
+        (try wp_auto)
+        isplitr
+        · ipureintro; rfl
+        iintro %osl ⟨Hosl, -⟩
+        (try wp_auto)
+        ihave Hnil : (slice.nil ↦* ([] : List GoFunc) : IProp GF) $$ []
+        · iapply ownSlice_nil
+        ihave Hnilc : ownSliceCap GoFunc slice.nil (DFrac.own 1) $$ []
+        · iapply ownSliceCap_nil
+        wp_apply +noauto wp_slice_append $$ [$Hnil $Hnilc $Hosl] as %fsl ⟨Hfsl, -, -⟩
+        imod ownSlice_persist _ _ _ $$ Hfsl with #Hfsl
+        (try wp_auto)
+        generalize hf : (func.mk BAnon (BNamed "e") _ : GoFunc) = f at *
+        iframe
+        isplitr
+        · ipureintro; rfl
+        iunfold filtersImpl
+        rw [show filterFs (W64 2) = [fun ev => ev.del] from by simp [filterFs]]
+        iexists [f]
+        simp only [List.nil_append]
+        iframe #
+        isplitr
+        · ipureintro; rfl
+        simp only [List.zip_cons_cons, List.zip_nil_left]
+        iapply BigSepL.bigSepL_singleton.2
+        · iunfold filterSpec
+          iintro !> %e %ev %Φ' !> Hev HΦ'
+          rw [← hf, ← recv_eq_func_mk]
+          iunfold evIs at Hev
+          icases Hev with ⟨%pp, %qq, %st', %uf, %sc, %Hnn, #Hept, -, -⟩
+          iStructNamedSuffix Hept "E"
+          wp_auto
+          iapply HΦ'
+          ipureintro
+          unfold evType
+          cases ev.del <;> rfl
+      · iframe
+        iunfold filtersImpl
+        rw [show filterFs flt = [] from by unfold filterFs; rw [if_neg ‹¬flt = W64 1›, if_neg Hif]]
+        rw [show (zero_val GoSlice) = slice.nil from rfl]
+        iexists []
+        ihave #Hnil : (slice.nil ↦*□ ([] : List GoFunc) : IProp GF) $$ []
+        · iapply ownSlice_nil
+        iframe #
+        isplitr
+        · ipureintro; rfl
+        simp only [List.zip_nil_left]
+        iapply BigSepL.bigSepL_nil.2; itrivial
   sorry
 
 end proof
