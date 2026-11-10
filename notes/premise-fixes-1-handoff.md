@@ -29,14 +29,21 @@ systemd-run --scope -q -p MemoryMax=64G lake --packages=/shared/tmp/manifest-ddc
    `[]` or what `proto.Unmarshal` leaves (`pbUnmarshalLeft`, opaque), which makes the Marshal
    round-trip axioms true. Go test `examples/premisefix/confchange`.
 4. `ckptEffectsOk`'s docstring citation.
+5. **`csPts` fixes a conf state's unknown fields to `[]`** (etcd-grove-81's review, 2026-11-10):
+   false of a decoded `MsgSnap` (`proto.UnmarshalPb` at `pbMessage`, reached by every etcd closed
+   theorem through rafthttp's decoders). Go test `examples/premisefix/confstate`. STOPPED before
+   Lean: raft's `appliedSnap`/`newRaft` no-panic (`assertConfStatesEquivalent` → `Equivalent` →
+   `proto.Equal`) needs the received conf state's unknown fields empty, which nothing in the model
+   gives; options reported to etcd-grove-81 (recommended: a raft-fork change so `Equivalent`
+   ignores unknown fields). Do not edit rafthttp's decoders (the raft-entsize agent owns them).
 
 ## Status (2026-11-10)
 
 Done and committed: fix 1 (`c87acade60`), fix 2 (`0427e0b867`), fix 4 (`01e666e510`), fix 3
 (`00e0cbcf74`); each built targeted (fix 1: all 431 importers; fixes 2/3: the changed proofs).
 Then: interface regenerated (raft's), the full build and `etc/gates.sh` passed (2026-11-10: trust
-base 809 axioms / 4 sorries unchanged, 53 collections match, premisefix Go tests ok). Waiting for
-etcd-grove-81's review of the trust-base changes; then merge lean and `etc/land.sh` when told.
+base 809 axioms / 4 sorries unchanged, 53 collections match, premisefix Go tests ok). Fixes 1-4 approved by etcd-grove-81; the
+protobuf docstrings fixed (form only). Waiting for etcd-grove-81's decision on fix 5; then merge lean and `etc/land.sh` when told.
 Open questions: `questions.md`.
 
 ## Pitfalls
