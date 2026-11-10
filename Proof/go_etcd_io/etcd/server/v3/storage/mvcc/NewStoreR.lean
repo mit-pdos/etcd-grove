@@ -164,6 +164,13 @@ def mvcc.nsFin (s : Loc) (γ : mvcc.StoreNames) (d : mvcc.KBReal) (r : mvcc.CmpR
     mvcc.writerReg s γ ∗ mvcc.storeRT γ ∗ mvcc.idxReader ti γ.idx ∗
     ghostVar γ.wsd (1 : Qp).half.half () ∗ mvcc.slotFr γ ∗ mvcc.resumeBackM d r hk dq Post Y)
 
+/-- A resource out of `n` copies. -/
+theorem mvcc.nsr_rep_take1 (Q : IProp GF) (n : Nat) (h : 1 ≤ n) :
+    ([∗list] _x ∈ List.replicate n (), Q) ⊢ Q ∗ [∗list] _x ∈ List.replicate (n - 1) (), Q := by
+  obtain ⟨m, rfl⟩ : ∃ m, n = m + 1 := ⟨n - 1, by omega⟩
+  rw [Nat.add_sub_cancel, List.replicate_succ]
+  exact BigSepL.bigSepL_cons.1
+
 /-- A token back. -/
 theorem mvcc.nsr_ownToks_back (γ : GName) (n : Nat) (h : 1 ≤ n) :
     ownToks (GF := GF) γ (n - 1) ∗ ownToks γ 1 ⊢ ownToks γ n := by
@@ -575,7 +582,11 @@ theorem mvcc.NewStore.wp_proofR
       iprop(mvcc.storeRT γ ∗ mvcc.restoreRegM d) (mvcc.kbRecs γ.kb γ.bucket r) r $$ []
   · iapply HcrT
     ipureintro; exact ⟨hγb, hγk, rfl⟩
-  icases mvcc.nsr_slot_take _ $$ Hrts with ⟨Hrt1, Hrts⟩
+  icases mvcc.nsr_rep_take1 _ _ (by omega) $$ Hrts with ⟨Hrt1, Hrts⟩
+  ihave #HpCr : mvcc.crevPermAt (GF := GF) γ r.crev $$ []
+  · icases HpC with (%h | #Hp)
+    · rw [h]; iapply mvcc.crevPermAt_none
+    · iapply mvcc.crevPermAt_of γ Perm r.crev; iframe HcpIs Hp
   ihave Hnc : mvcc.kbRecs (GF := GF) γ.kb γ.bucket r $$ [Hnc]
   · rw [hγk, hγb]; iexact Hnc
   -- the watchable store's deposit: half and a quarter kept, a quarter for the compaction's lag
@@ -592,8 +603,335 @@ theorem mvcc.NewStore.wp_proofR
       (DFrac.own 1) (DFrac.own 1) (DFrac.own (1 : Qp).half) ([[], []] ++ R) ents r
       iprop(mvcc.storeRT γ ∗ mvcc.restoreRegM d) (mvcc.kbRecs γ.kb γ.bucket r)
       (mvcc.nsRevQ «$r0_ptr» γ r ([[], []] ++ R) ents ti) -∗
-      |={⊤}=> mvcc.nsReady «$r0_ptr» γ d r ([[], []] ++ R) ti $$ []
-  · sorry
+      |={⊤}=> mvcc.nsReady «$r0_ptr» γ d r ([[], []] ++ R) ti
+      $$ [HiwNR Hil Hc1 Hc2 Hauth HauthR Htoks Hwv1 Hwv2 Hwk HviewW HviewP Hcres Hrg Hmrest HvalsL HbkT
+        Hlrd HYa HwY Hrcv1 HXa HFla HcurWi HcurRev HcurPool HcurF HrstF HrstR Htka Htkoa Htkwa Htkra
+        Hrts fifoSched stopc HcuR HcuM Hright Hcmp0 Hjc1 Hsrm Hq0 HsStop Hstop Hwr HwM HwsdL]
+  · iintro HD
+    iunfold mvcc.restoreDone at HD
+    icases HD with ⟨⟨Hrt, Hreg⟩, Hnc, -, HQ, HcurA, HcmA, Hfb, Hfidx⟩
+    iunfold mvcc.nsRevQ at HQ
+    icases HQ with ⟨HrevMu, HcurB, HcmB, HV⟩
+    iunfold mvcc.nsRevV at HV
+    icases HV with ⟨HvR, #Hti, Hird, #Hrc⟩
+    ihave %Hrclt := preceipt_lt _ $$ Hrc
+    have hsmall : ([[], []] ++ R).length + 3 ≤ 2 ^ 63 := by have := hlen.2; omega
+    have hx : (W64 r.finRev : w64) = r.fin.getD (W64 (-1)) := by
+      rw [← mvcc.CmpRecs.finRev_getD, mvcc.W64_sint']
+    -- the restored log's certificate
+    ihave #Hcert : mvcc.idxCert (GF := GF) γ.idx ([[], []] ++ R) $$ []
+    · iunfold mvcc.idxWriterLb at Hiwlb
+      icases Hiwlb with ⟨#Hhlb, -, -⟩
+      iunfold mvcc.idxCert
+      rw [← mvcc.histShape_nil]
+      iframe Hhlb Hllb0 Hrc
+      ipureintro
+      exact ⟨hR.2.1.prefix, by have := hR.2.2.1; omega, hR.2.2.2.2⟩
+    -- the backend's contract at the records, the registration fixed
+    ihave Hw : (mvcc.restoreFixM d γ -∗ mvcc.storeBackendTR (GoInterface.ok bi) «$r0_ptr» γ P r)
+        $$ [HbkT]
+    · iapply HbkT; ipureintro; exact ⟨hγb, hγk, rfl⟩
+    imod mvcc.storeSess_fix _ _ γ P d r $$ [$Hreg $Hw] with HbkR
+    iunfold mvcc.storeBackendTR at HbkR
+    ihave #HbkN := mvcc.isKeyBackendGR_ncFalse _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ $$ HbkR
+    -- the writer's index handle with its receipt
+    ihave Hiw : mvcc.idxWriter (GF := GF) γ.idx ([[], []] ++ R) [] $$ [HiwNR]
+    · iapply (mvcc.idxWriter_split _ _ _).2
+      iframe HiwNR
+      simp only [List.length_nil, Nat.add_zero]
+      iexact Hrc
+    -- the writer's loan (off: the records are none, the no-compaction token) and, on, the records'
+    -- write right
+    ihave Hloan : mvcc.writerLoan (GF := GF) γ ∗
+        (if mvcc.kbCmpM γ.kb then mvcc.kbMWf γ.kb γ.bucket else iprop(True)) $$ [Hnc HvalsL]
+    · iunfold mvcc.writerLoan
+      cases hcm : d.cm
+      · have hnc : ¬ mvcc.kbCmpM γ.kb := fun h => by rw [hcmγ, hcm] at h; cases h
+        obtain ⟨hre, -⟩ := hoff hcm
+        subst hre
+        simp only [hnc, ↓reduceIte]
+        isplitl
+        · isplitl
+          · iapply (mvcc.kbNoCmp_split _ _).2
+            rw [mvcc.kbRecs_empty] at *
+            iframe Hnc
+            rw [hγk]
+            ihave Hv := HvalsL $$ []
+            · ipureintro; first | exact hcm | rfl | trivial
+            simp only [mvcc.CmpRecs.empty, mvcc.recBytes, Option.map_none] at *
+            iexact Hv
+          iapply (show mvcc.kbNoDelOff (GF := GF) γ.kb ⊢ mvcc.kbNoDel γ.kb from by
+            unfold mvcc.kbNoDelOff; rw [if_neg hnc]) $$ [Hnd]
+          rw [hγk]; iexact Hnd
+        itrivial
+      · have hon : mvcc.kbCmpM γ.kb := hcmγ.2 hcm
+        simp only [hon, ↓reduceIte]
+        isplitl []
+        · itrivial
+        iapply mvcc.kbRecs_MWf $$ Hnc
+    icases Hloan with ⟨Hloan, Hmw⟩
+    -- the writer's state at `L'`
+    ihave Hrtk : mvcc.wrState (GF := GF) γ (2 ^ 63 - 3 - ([[], []] ++ R).length) ([[], []] ++ R)
+        $$ [Htoks Hloan]
+    · unfold mvcc.wrState
+      iframe Hloan Htoks
+      ipureintro; exact hlen.2
+    ihave HY : mvcc.slotY γ ([[], []] ++ R) $$ [HYa Hrcv1 HwY]
+    · unfold mvcc.slotY mvcc.pndW; rw [hγapi, hγw]
+      iexists r.crev
+      icases HYa with ⟨HYa1, HYa2⟩
+      iframe HYa1 HYa2 HwY
+      iapply mvcc.rcvW_intro; iexact Hrcv1
+    ihave Hlrd : lease.lessorRdOf γ.leases $$ [Hlrd]
+    · rw [hγl]; iexact Hlrd
+    ihave HL : mvcc.writerL «$r0_ptr» γ $$ [Hauth Hiw Hc1 Hwv1 HcurA Hlrd HY Hrtk]
+    · iunfold mvcc.writerL
+      iexists ([[], []] ++ R), 2 ^ 63 - 3 - ([[], []] ++ R).length
+      simp only [named]
+      iframe Hauth Hiw Hc1 Hwv1 HcurA Hlrd HY Hrtk
+      iframe #
+      ipureintro
+      exact ⟨by omega, by simp⟩
+    -- the batch lock's resource at `L'`, its registration pending
+    ihave HviewW := mvcc.bucketViewL_image γ d hkγ _ _ hlb r ents hcut hoff hcge $$ [HviewW]
+    · iframe HviewW Hclbc Hcert
+    ihave HviewP := mvcc.bucketViewL_image γ d hkγ _ _ hlb r ents hcut hoff hcge $$ [HviewP]
+    · iframe HviewP Hclbc Hcert
+    ihave HwPin : mvcc.wrPin (GF := GF) γ ([[], []] ++ R) $$ [HviewP]
+    · iunfold mvcc.wrPin; iexact HviewP
+    ihave HW : mvcc.writerRes «$r0_ptr» γ $$ [Hwk Hwv2 HviewW Hcres HwPin]
+    · iunfold mvcc.writerRes
+      iexists ([[], []] ++ R)
+      simp only [named]
+      iunfold mvcc.writerKey
+      iframe Hwk Hwv2 HviewW Hcres HwPin
+      iframe #
+      ipureintro; simp
+    ihave Hrg : mvcc.kbRegRight (GF := GF) γ.kb $$ [Hrg]
+    · rw [hγk]; iexact Hrg
+    imod mvcc.writerReg_allocP «$r0_ptr» γ ⊤ $$ [Hrg HW] with #HrgI
+    · iframe Hrg HW
+    -- the writer's invariant
+    imod (inv_alloc mvcc.writerN ⊤ (mvcc.writerInvBody «$r0_ptr» γ))
+      $$ [HL HcurWi HFla] with #Hwi
+    · inext; iunfold mvcc.writerInvBody; ileft
+      iexists γ.phys, _; rw [mvcc.StoreNames.withPhys_self]; iframe HcurWi; ileft
+      isplitl [HFla]
+      · unfold mvcc.slotFl; rw [hγapi]; iexact HFla
+      ileft; iframe HL
+      iexact HrgI
+    ihave #Hwi : mvcc.writerInv «$r0_ptr» γ $$ []
+    · iunfold mvcc.writerInv; iexact Hwi
+    -- the readers' pool: every slot but the one lent to the compaction `restore()` resumes
+    have hk1 : 1 ≤ mvcc.nReaders - mvcc.nJobRd (some d) := by omega
+    ihave Hird := mvcc.rep_nReaders _ $$ Hird
+    icases mvcc.rep_sub _ (mvcc.nJobRd (some d)) _ (by omega) $$ Hird with ⟨Hird, -⟩
+    icases mvcc.nsr_rep_take1 _ _ hk1 $$ Hird with ⟨Hird1, Hird⟩
+    icases mvcc.rep_sub _ (mvcc.nJobRd (some d)) _ (by omega) $$ Hrts with ⟨Hrts, HjRT⟩
+    rw [show mvcc.nReaders - 1 - mvcc.nJobRd (some d) = mvcc.nReaders - mvcc.nJobRd (some d) - 1
+      by omega]
+    ihave Hslots := mvcc.idxSlots_of γ (⟨GoInterface.ok bi, ti, sc, stopc⟩ : mvcc.StoreObjs) _
+      $$ [Hird Hrts]
+    · iframe Hird Hrts
+    imod (inv_alloc mvcc.poolN ⊤ iprop(∃ (p : mvcc.PhysNames) (o : mvcc.StoreObjs),
+        mvcc.curAt (γ.withPhys p) (DFrac.own (1 : Qp).half.half.half) o ∗
+          mvcc.poolBody (γ.withPhys p) o))
+      $$ [Htka Htkoa Htkwa Htkra Hslots HcurPool] with #Hpool
+    · inext
+      iexists γ.phys, _
+      rw [mvcc.StoreNames.withPhys_self]
+      iframe HcurPool
+      iunfold mvcc.poolBody
+      iexists mvcc.nReaders - mvcc.nJobRd (some d) - 1, 0, 0, mvcc.nJobRd (some d) + 1
+      rw [List.replicate_zero]
+      iframe Htka Htkoa Htkwa Htkra Hslots
+      isplitl []
+      · iapply BigSepL.bigSepL_nil_intro; iempintro
+      isplitl []
+      · iapply BigSepL.bigSepL_nil_intro; iempintro
+      ipureintro; omega
+    ihave #Hpool : mvcc.readerPool γ $$ []
+    · iunfold mvcc.readerPool; iexact Hpool
+    -- `s.revMu` made a lock at the restored log, with the compaction revision's lag
+    ihave Hsplit : mvcc.idxLogAuth γ.idx (mvcc.revQ γ 1) ([[], []] ++ R) ∗
+        (if γ.watchQ then mvcc.logQ γ ([[], []] ++ R) else iprop(True)) $$ [Hil]
+    · have hq := (monoListAuthOwn_fractional (GF := GF) γ.idx.log ([[], []] ++ R)).fractional
+        (1 : Qp).half.half (1 : Qp).half.half
+      rw [Qp.half_add_half] at hq
+      cases hwq : γ.watchQ
+      · simp only [mvcc.revQ, hwq, Bool.false_eq_true, ↓reduceIte]; iframe Hil
+      · simp only [mvcc.revQ, mvcc.logQ, mvcc.idxLogAuth, hwq, ↓reduceIte]; iapply hq.1 $$ Hil
+    icases Hsplit with ⟨Hil, HlogQ⟩
+    ihave HvR : mvcc.bucketView (GF := GF) γ (1 : Qp).half (mvcc.bucketOfEnts ents) $$ [HvR]
+    · iapply mvcc.bucketViewC_bucketView $$ HvR
+    ihave HvR := mvcc.bucketViewL_image γ d hkγ _ _ hlb r ents hcut hoff hcge $$ [HvR]
+    · iframe HvR Hclbc Hcert
+    ihave Hlag : mvcc.revLag (GF := GF) γ 1 r.crev r.finRev ∗
+        (if r.finRev = r.crev then ghostVar γ.wsd (1 : Qp).half.half () else iprop(True)) $$ [HwsdL]
+    · iunfold mvcc.revLag
+      by_cases hfc : r.finRev = r.crev
+      · simp only [hfc, ↓reduceIte]
+        iframe HwsdL
+        ipureintro; exact ⟨⟨hcge, Int.le_refl _⟩, trivial⟩
+      · simp only [hfc, ↓reduceIte]
+        iframe HwsdL
+        ipureintro; exact hfb
+    icases Hlag with ⟨Hlag, Hlr⟩
+    ihave HcmB : («$r0_ptr».[store, go!"compactMainRev"] ↦{DFrac.own (1 : Qp).half}
+        (W64 r.finRev : w64) : IProp GF) $$ [HcmB]
+    · rw [hx]; iexact HcmB
+    have hevs : (mvcc.evsOf (([[], []] ++ R) ++ [[]])).length =
+        (mvcc.evsOf ([[], []] ++ R)).length := by
+      rw [mvcc.evsOf_append ([[], []] ++ R) []]; simp [mvcc.evsOfRev]
+    ihave #Hnv : mvcc.idxNevLb (GF := GF) γ.idx ([[], []] ++ R) $$ []
+    · iunfold mvcc.idxWriterLb at Hiwlb
+      icases Hiwlb with ⟨-, #Hn, -⟩
+      iunfold mvcc.idxNevLb
+      rw [← hevs]; iexact Hn
+    imod sync.init_RWMutex (mvcc.revMuInv «$r0_ptr» γ) (mvcc.revMuAddr «$r0_ptr»)
+      $$ [HcurB Hc2 HvR HauthR Hil HcmB HcuR Hlag HXa HrstR HcurRev] HrevMu with Hrevs
+    · inext
+      iapply (mvcc.revMuInv_closeL «$r0_ptr» γ γ 1)
+      isplitr [HrstR HcurRev]
+      rotate_left
+      · iunfold mvcc.revMuTok; iframe HrstR
+        isplitl
+        · iexists _; iexact HcurRev
+        ipureintro; rw [mvcc.StoreNames.withPhys_self]
+      iunfold mvcc.revMuBodyL
+      iexists ([[], []] ++ R), 2 ^ 63 - 3 - ([[], []] ++ R).length, r.crev, r.finRev
+      simp only [named]
+      iframe HcurB Hc2 HvR HauthR Hil HcmB HcuR Hlag
+      iframe #
+      isplitl []
+      · iunfold mvcc.certOk; rw [hγok]; iexact HokC
+      isplitl []
+      · ipureintro; simp
+      isplitl []
+      · ipureintro; omega
+      isplitl []
+      · ipureintro; exact ⟨hcge, hcl⟩
+      unfold mvcc.slotX; rw [hγapi]; iexact HXa
+    icases sync.ownRWMutex_slots_guard _ _ $$ Hrevs with ⟨Hrevs, #Hrevg⟩
+    -- the write right's invariant and the registration (on); the objects' facts
+    imod mvcc.physCmp_alloc «$r0_ptr» γ $$ [$Hmrest $Hmw $HrgI] with #HmwP
+    ihave #Hpay : mvcc.stopPayAt γ.sx γ.sch (⟨GoInterface.ok bi, ti, sc, stopc⟩ : mvcc.StoreObjs) $$ []
+    · iunfold mvcc.stopPayAt; rw [hγsx, hγs]; iframe Hx Hpi
+    ihave #Hph : mvcc.physOk «$r0_ptr» γ (⟨GoInterface.ok bi, ti, sc, stopc⟩ : mvcc.StoreObjs) $$ []
+    · iunfold mvcc.physOk
+      iexists P, iprop(True)
+      simp only [named]
+      iframe #
+      isplitl []
+      · imodintro; itrivial
+      ipureintro; rw [hγcm]; exact hcmγ
+    ihave Hfs : mvcc.fieldShareAt «$r0_ptr» γ ((1 : Qp).half + (1 : Qp).half)
+        (⟨GoInterface.ok bi, ti, sc, stopc⟩ : mvcc.StoreObjs) $$ [Hfb Hfidx fifoSched stopc HrstF HcurF]
+    · rw [Qp.half_add_half]
+      iunfold mvcc.fieldShareAt
+      simp only [named]
+      iframe HrstF HcurF Hph
+      iunfold mvcc.storeFields
+      iframe Hfb Hfidx fifoSched stopc
+    icases (mvcc.fieldShareAt_split «$r0_ptr» γ _ _ _).1 $$ Hfs with ⟨Hfm, Hfr⟩
+    ihave Hfm := mvcc.fieldShare_of_at «$r0_ptr» γ _ _ $$ Hfm
+    have h4 := (mvcc.fieldShareAt_split (GF := GF) «$r0_ptr» γ (1 : Qp).half.half (1 : Qp).half.half
+      (⟨GoInterface.ok bi, ti, sc, stopc⟩ : mvcc.StoreObjs)).1
+    rw [Qp.half_add_half] at h4
+    icases h4 $$ Hfr with ⟨Hfc, Hfw⟩
+    ihave Hfw := mvcc.fieldShare_of_at «$r0_ptr» γ _ _ $$ Hfw
+    -- the store
+    ihave #Hlessor1 : mvcc.isLessor (lease.lessorIface lp) γ.leases $$ []
+    · rw [hγl]; iexact Hlessor0
+    ihave #Hc0 := mvcc.nsr_idxCert_init γ.idx R $$ Hcert
+    ihave #Hs : mvcc.isStore «$r0_ptr» γ $$ []
+    · iunfold mvcc.isStore
+      iexists (lease.lessorIface lp), lg', cfg2, hp
+      simp only [named]
+      iframe #
+      ipureintro; exact ⟨Hlgnn, Hcfg2, Hrb0⟩
+    -- `s.mu`'s resource with the lag
+    ihave Hmu' : mvcc.muInvLag (GF := GF) «$r0_ptr» γ r.crev r.finRev $$ [HcmA HcuM HwM]
+    · iunfold mvcc.muInvLag
+      simp only [named]
+      isplitl [HcmA]
+      · rw [hx]; iexact HcmA
+      iframe HcuM
+      isplitl [HwM]
+      · rw [hγapi]; iexact HwM
+      isplitl []
+      · iunfold mvcc.crevSafe
+        iexists ([[], []] ++ R)
+        iframe Hcert
+        ipureintro; exact hcl
+      iframe HpCr
+      ipureintro; exact hfb
+    -- the right, by the mode
+    ihave #HscN : mvcc.isStopChan (GF := GF) stopc $$ []
+    · iunfold mvcc.isStopChan; iexists γstop; iexact Hstop0
+    ihave Hjob : mvcc.compactTok (GF := GF) γ r.crev $$ [Hcmp0 HjRT Hsrm Hjc1]
+    · iunfold mvcc.compactTok
+      isplitl [Hcmp0]
+      · iexists r.crev
+        rw [hγi]
+        iframe Hcmp0
+        ipureintro; exact Int.le_refl _
+      isplitl [HjRT Hsrm]
+      · iapply mvcc.compactJobResM_of
+        unfold mvcc.storeRT
+        rw [hγk]
+        iframe HjRT Hsrm
+      iexists (r.finRev, (⟨W64 0, W64 0⟩ : mvcc.Rev))
+      isplitl [Hjc1]
+      · iapply mvcc.jobCur_intro; iexact Hjc1
+      ipureintro; exact hfb.2
+    ihave Hcq : mvcc.compactQueue (GF := GF) γ r.crev $$ [Hq0 Hjob]
+    · iunfold mvcc.compactQueue
+      iexists [n₀], p₀, iprop(True), mvcc.compactTok γ r.crev
+      rw [hγs, List.singleton_append]
+      iframe Hq0 Hp0 Hjob
+      iintro ⟨-, H⟩
+      iexact H
+    ihave HrightM : |={⊤}=> (mvcc.storeCloserM (GF := GF) «$r0_ptr» γ r.crev ∗
+        (if d.cm then iprop(True) else mvcc.crevUB γ.idx (1 : Qp).half (-1)))
+        $$ [Hright Hcq Hfc Hstop HsStop]
+    · cases hcm : d.cm
+      · have hnc : ¬ mvcc.kbCmpM γ.kb := fun h => by rw [hcmγ, hcm] at h; cases h
+        obtain ⟨hre, -⟩ := hoff hcm
+        subst hre
+        rw [mvcc.CmpRecs.crev_empty] at *
+        simp only [Bool.false_eq_true, ↓reduceIte]
+        imodintro
+        iframe Hright
+        iapply (mvcc.storeCloserM_off _ _ _ hnc).2
+        iunfold mvcc.storeCloser
+        iexists _
+        iframe Hcq Hfc HscN
+        isplitl [Hstop]
+        · iunfold mvcc.stopCloser; iexists γstop; iexact Hstop
+        rw [hγs]; iexact HsStop
+      · have hon : mvcc.kbCmpM γ.kb := hcmγ.2 hcm
+        simp only [↓reduceIte]
+        have h8 := (mvcc.fieldShareAt_split (GF := GF) «$r0_ptr» γ mvcc.q8 mvcc.q8
+          (⟨GoInterface.ok bi, ti, sc, stopc⟩ : mvcc.StoreObjs)).1
+        rw [mvcc.q8_add] at h8
+        icases h8 $$ Hfc with ⟨HfsC, HfsJ⟩
+        imod mvcc.storeStopR_alloc «$r0_ptr» γ _ ⊤ $$ HfsJ HscN with #HsR
+        imodintro
+        isplitl
+        · iapply (mvcc.storeCloserM_on _ _ _ hon).2
+          iapply (mvcc.compactRightR_iff _ _ _).2
+          iframe Hright Hcq
+          iexists _
+          iframe HfsC HscN HsR
+          isplitl [Hstop]
+          · iunfold mvcc.stopCloser; iexists γstop; iexact Hstop
+          rw [hγs]; iexact HsStop
+        itrivial
+    imod HrightM with ⟨HrightM, Hcrf⟩
+    imodintro
+    iunfold mvcc.nsReady
+    iframe Hs Hmu' Hwr Hfm HrightM Hcrf Hfw Hrevs Hcert HlogQ HrgI Hrt Hird1 HpCr Hlr
   -- the resume: `compactLockfree` at the scheduled record, else nothing
   ihave HCt : mvcc.slotFr (GF := GF) γ $$ [HCt]
   · iunfold mvcc.slotFr; rw [hγapi]; iexact HCt
