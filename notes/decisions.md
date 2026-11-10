@@ -34852,3 +34852,82 @@ not client-visible (`stepBundle_traced.on`, `TrRecvShape` and the new module are
 `etc/api/raft.txt`). The other branch's files: `TracedRaftStepLocal.lean` gets only the new premises'
 `_`s in `stepBundle_traced_beat`'s `intro` and three arguments (and the `isMessageC` conjunct's
 discharge) in `raft.tickHeartbeat.traced`'s call; `TracedPin.lean` untouched.
+
+## Amendment A3 (Q17): not made — no fact of `simFx` can carry a candidate's vote responses; the phantom refusals defeat it (2026-11-10 · trace-check, Q17 (a) taken by the coordinator pending the user's veto; the finding the agent's · branch `trace-check-a3`; amends nothing: the Draft at tag `trace-check-frozen-a2` is unchanged)
+
+**Why.** Slice 19b (Q17): raft records a voter's first vote response of a term only (`RecordVote`,
+`tracker.go`); the specification's `HandleRequestVoteResponse` adds the voter to `votesGranted` on every
+granting response; `sim_recordVote` needs `s.votes !! m.From' = none`. Q17 (a) proposed a pure clause
+`VoteRespUniq` of `simFx`: while `i` is a candidate of `T`, no vote response of term `T` to `i` in flight
+from a server of `i`'s `votesResponded`, at most one from any other.
+
+**Checked first, and found false** (so not made, as the task allowed: "if the clause as stated is not
+inductive, find the right form, or stop and report alternatives"). Vote responses are created by
+`RequestVote(i, i)` (the self-vote), `HandleRequestVoteRequest` (an answer, `Reply`: the request
+consumed), and the phantom of a lower-term vote request (Q14's `recvPhantoms`, `phantomOf a m`: a
+refusal **of the receiver's current term**, `term := a.currentTerm`). Raft ignores a lower-term `MsgVote`
+(`raft.go`'s `case m.GetTerm() < r.Term`: only `MsgPreVote` is answered), so the phantom is never
+sent, but it is in the specification's bag. A reachable run, three bootstrapped voters `1, 2, 3` (term
+`1`), pre-vote and check-quorum off:
+- `2` leads term `2` and replicates its empty entry to `1` only (`1`, `2` ahead of `3`).
+- `3` campaigns at `3`; `1` steps to `3` (refusing, `3`'s log behind); `1` campaigns at `4` (its
+  `MsgVote(4)` to `2` delayed) and, timing out, at `5` (`MsgVote(5)` to `2`, delayed too).
+- `3` grants `1`'s `MsgVote(4)`, then times out and campaigns at `5`; `2` (still leading term `2`)
+  receives `3`'s `MsgVote(5)`: term `5`, no vote, no leader (`becomeFollower(5, None)`), refusal (`3`'s
+  log behind).
+- `2` receives `1`'s stale `MsgVote(4)`: raft ignores it; the receive line's specification step
+  (`fxPresR_staleReq`) puts the phantom refusal `(5, 2→1, false)` in flight.
+- `2` receives `1`'s `MsgVote(5)`: no vote, no leader, `1`'s log as up to date as its own: **grant**
+  `(5, 2→1, true)`.
+Now `1` is a candidate of `5`, `2 ∉ votesResponded(1)`, and two vote responses of term `5` from `2` to
+`1` are in flight: the clause's "at most one" is false in a reachable state.
+
+**No form of the clause over `σ` works** (nor any fact of `simFx`, which reads only `γ`, `C`, `σ`).
+In that state raft's `1` will only ever receive the grant. But the receive line of a refusal from `2`
+at `5` to `1` (`"ReceiveRequestVoteResponse"`, not granted) matches the phantom copy, and after it the
+specification has `2 ∈ votesResponded(1) \ votesGranted(1)` with the grant still in flight; receiving
+the grant afterwards is the step where raft (which then knows `2`) and the specification (which adds `2`
+to `votesGranted`) diverge. A fact `Inv σ` that `sim_recordVote`'s caller can use must be false after
+that refusal's line; then that line's `FxPresR` (at the phases of a candidate of `5` with no answer from
+`2`: raft's `1` here exactly) must refute the state before it, which is reachable, so `simFx` and
+`votesTbl` hold there with raft's real ghost state; the only other facts the path has are raft's state
+of `1` (consistent with it) and the received message's `isMessageC`, which for a refusal is `True`
+(`isMessage`'s `.voteResp` case, `Protocol/GhostState.lean`). What makes the step impossible — the
+refusal is not one of raft's messages (no token), and a voter answers a candidate's term once (one
+`MsgVote` per peer per campaign, at-most-once delivery) — is in layer B's tokens (`simInv`'s `B` against
+`phM`), which `simFx` does not see, and in no raft ghost fact. (Raft's `Step` under duplicated delivery
+can answer one candidate twice in a term, granting, then refusing once a term-`T` leader's append has
+raised the voter's last term: the uniqueness is the transport's, not raft's.)
+
+**Checked as well** (for the alternatives): restarts are the bootstrap's `InitState` lines only (the
+workload logs no `Restart`; a restarted candidate re-campaigns at `T + 1`, its term persisted before
+its requests leave at `Ready`); a candidate never re-campaigns at its own term (`becomeCandidate`
+increments it); duplicate deliveries are not lines of the trace specification (`NextUnreliable`); the
+bootstrap state's bags are empty.
+
+**Alternatives** (plan, Q17, updated; none taken: each changes a frozen statement other than `simFx`):
+- **(d) Relax `SimServerR`'s candidate tally** (`TraceSim.lean`, read by the frozen `SimIdle`): the
+  specification's `votesResponded` raft's voters (as now), raft's granting voters a subset of the
+  specification's `votesGranted`, itself a subset of `votesResponded`. No invariant is then needed: a
+  response from a voter raft already knows leaves raft's tally unchanged and keeps the relation (the
+  specification's `SetIds.add` is an idempotent sorted insertion; a granting one only adds a responded
+  voter to `votesGranted`); a win gives the specification's `BecomeLeader` its quorum (`isQuorum` is
+  monotone on duplicate-free subsets of the configuration); a loss's step-down reads no tally; a
+  pending response has no further line. The specification's `votesGranted` is still reached by its own
+  actions, so `SpecInv` is unaffected. Small: the tally conjunct is read by a few lemmas
+  (`sim_recordVote`, the self-vote, `voteEnd_simIdle`, the won vote's `BecomeLeader` gate).
+  **Recommended.**
+- **(e) Give `simFx` the phantom lists** (`simInv`'s `Fx σ` becomes `Fx σ phP phM`; `FxPres`, `FxPresR`,
+  `FxPresReady`, `FxPresBF`, `FxPresU` and the laws carry them: a send adds to raft's part, a receive
+  line's `ph a` to the phantoms), with the clause over raft's messages only: for a candidate `i` of `T`
+  and a voter `j`, raft's term-`T` requests from `i` to `j`, plus raft's term-`T` responses from `j` to
+  `i`, plus `[j ∈ votesResponded(i)]`, at most one. Inductive by the same reading (a request consumed by
+  its answer; the self-vote; `Timeout` with no message of the new term out), but every law's statement
+  and proof change, and `campaign`'s send lines must show the request is the first to that peer.
+- **(f) Raft's refusals carry a fact** (the voter's answer to the candidate's term in an agreement map,
+  in `isMessage`'s refusal case): raft's protocol cannot prove the agreement (the duplicated-delivery
+  run above), so it needs layer B anyway. Rejected.
+- (b) a bundle premise (the node API cannot supply it) and (c) the tokens alone (at most once per
+  message, not per voter and term), as Q17 said.
+
+No Lean file changed; nothing frozen or client-visible changed.

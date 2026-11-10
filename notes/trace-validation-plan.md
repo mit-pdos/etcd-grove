@@ -1177,6 +1177,16 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   stage 1 (slice 19b)").
   **Taken by the coordinator (the freeze being delegated to it), pending the user's veto: (a)**, as
   amendment A3 (a review round, then the re-freeze `trace-check-frozen-a3`).
+  **(a) found false, A3 not made (2026-11-10, branch `trace-check-a3`)**: a lower-term vote request's
+  phantom refusal (Q14) is of the receiver's current term, so a reachable state has a candidate's
+  voter's phantom refusal and its real grant in flight together; and no fact of `simFx` (a function of
+  `σ`) can tell the phantom from raft's messages, so none makes the tally step provable (counterexample
+  run and argument: `notes/decisions.md`, "Amendment A3 (Q17)"). New options, each beyond `simFx`: (d)
+  relax `SimServerR`'s candidate tally to raft's granting voters ⊆ the specification's `votesGranted` ⊆
+  `votesResponded` = raft's voters (no invariant needed; a few lemmas); (e) `simInv`'s `Fx` given the
+  phantom lists, the clause over raft's messages only (every law changes); (f) a fact on raft's
+  refusals (rejected: raft alone cannot prove it). **Recommended: (d)**, as a re-scoped A3. For the user
+  (or the coordinator, if the delegation covers `SimServerR`).
 - **Q16 (2026-11-10, amendment A2's reviews a2-r3, a2-r4): an `"app"` append request's entries,
   unpinned for `MsgsUniq`.** A receive line logs an append request's entry count only
   (`Line.isAppendEntriesRequest`), so after an `"app"` send line with entries `MsgsUniq` needs every
@@ -2166,3 +2176,14 @@ allocation); the heartbeat gate's exact commit (slice 17); `AppSlices`' preserva
 callers' lines (`Replicate`, `BecomeLeader`, step-downs, a follower's receives); an `"app"` counterpart
 of `heartbeat_lead` for `fxPres_app`'s `hlead`; a `trFam`/`PinAt` pin-and-unpin pair for the path
 proofs. Reviews `a2-r1.md` … `a2-r6.md`.
+
+**Amendment A3 (2026-11-10, branch `trace-check-a3`; Q17 (a), pending the user's veto): not made.**
+Checked first in the transcription, the clause `VoteRespUniq` of `simFx` is false in a reachable
+state: a lower-term `MsgVote`, which raft ignores, gets the specification's phantom refusal at the
+receiver's current term (Q14's `phantomOf`), so a voter's phantom refusal and its real grant to the
+same candidate's term can be in flight together (a three-voter run, `notes/decisions.md`, "Amendment A3
+(Q17)"). No fact of `simFx` repairs it: `simFx` reads only `σ`, where the phantom and a real refusal are
+the same message, and a received refusal carries no raft fact, so a refusal's receive line cannot rule
+out the grant still in flight, after which the grant's line diverges. Nothing changed in Lean; no review
+round (no amended statement). Q17 re-opened with options (d) (relax `SimServerR`'s candidate tally,
+recommended), (e) (`Fx` given the phantom lists) and (f) (rejected).
