@@ -8,8 +8,20 @@
 package fmtarg
 
 import (
+	"context"
+	"errors"
 	"fmt"
+	"io"
+	"net"
+	"net/http"
+	"net/url"
+	"reflect"
 	"testing"
+	"time"
+
+	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type boom struct{}
@@ -73,5 +85,45 @@ func TestMethodCalled(t *testing.T) {
 	// %w (Errorf): Error with Format calls Format too
 	if !panics(func() { _ = fmt.Errorf("%w", errWithFormat{}) }) {
 		t.Errorf("Errorf %%w of an error with Format: no panic")
+	}
+}
+
+// TestNoFormatter: none of the error types the proofs' error predicates describe (http.errStrOk,
+// cache's errStrOk, statusErrOk, isEtcdProgressNotifier's error clause; each assumes
+// methodSet ei.ty !! "Format" = none) implements fmt.Formatter, so fmt calls their Error method:
+// the standard library's errors the proofs see, grpc's *status.Error (from status.Error and from
+// status.FromContextError(...).Err()), rpctypes' EtcdError (client side, from rpctypes.Error) and
+// the context errors.
+func TestNoFormatter(t *testing.T) {
+	ft := reflect.TypeOf((*fmt.Formatter)(nil)).Elem()
+	cctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	dctx, dcancel := context.WithDeadline(context.Background(), time.Unix(0, 0))
+	defer dcancel()
+	errs := []error{io.EOF, io.ErrUnexpectedEOF, errors.New("x"), fmt.Errorf("%w", io.EOF),
+		&url.Error{}, &net.OpError{}, http.ErrBodyReadAfterClose, http.ErrHandlerTimeout,
+		context.Canceled, context.DeadlineExceeded, &net.DNSError{}, &net.AddrError{}, net.ErrClosed,
+		status.Error(codes.Unavailable, "m"),
+		status.FromContextError(cctx.Err()).Err(),
+		status.FromContextError(dctx.Err()).Err(),
+		rpctypes.Error(rpctypes.ErrGRPCNoLeader),
+		rpctypes.Error(rpctypes.ErrGRPCCompacted),
+		rpctypes.ErrNoLeader,
+		dctx.Err(),
+	}
+	for _, e := range errs {
+		if reflect.TypeOf(e).Implements(ft) {
+			t.Errorf("%T implements fmt.Formatter", e)
+		}
+	}
+	// the grpc and rpctypes errors are of the types the specs name
+	if _, ok := status.Error(codes.Unavailable, "m").(interface{ GRPCStatus() *status.Status }); !ok {
+		t.Errorf("status.Error: no GRPCStatus")
+	}
+	if _, ok := rpctypes.Error(rpctypes.ErrGRPCNoLeader).(rpctypes.EtcdError); !ok {
+		t.Errorf("rpctypes.Error(ErrGRPCNoLeader) is %T, not rpctypes.EtcdError", rpctypes.Error(rpctypes.ErrGRPCNoLeader))
+	}
+	if !errors.Is(dctx.Err(), context.DeadlineExceeded) {
+		t.Errorf("deadline context's Err is %v", dctx.Err())
 	}
 }
