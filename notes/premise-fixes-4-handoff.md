@@ -70,7 +70,8 @@ Build: `flock /shared/tmp/etcd-grove-build.lock systemd-run --scope -q -p Memory
 
 1. On approval: the trust-text edits above; `rpctypesInit` gains the two Format facts (gen-init `finish`),
    `WatchResponse__Err` lines 70/86 use them; `UserAdd` lines 61-63/171-173 pass `hF`.
-2. Fix any remaining failures of the full build (build6.log).
+2. The full build (build6.log, then k8s etcd3 `parseRV`/`decoder__Decode` fixed and rebuilt) fails only
+   in `WatchResponse__Err` and `EtcdServer__UserAdd` (and their dependents, not built).
 3. Merge lean (f4e98c54f9 or later; raft-entsize touches rafthttp); STATUS "Last updated" entry (ten
    newest; move the oldest to `notes/status-history.md`, append-only, check `wc -l`).
 4. Full build; regenerate interfaces (all `etc/api/*.txt`, `LAKE_OPTS=--packages=...`);

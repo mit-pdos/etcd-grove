@@ -46,7 +46,12 @@ theorem decoder.Decode.wp_proof (wp_decodeObj : decodeObj.spec (GF := GF) (hG :=
     imodintro
     iintro %e %he
     cases he
-    iexact HsD
+    isplitr
+    · iexact HsD
+    · have hF := go.method_set_is
+        (t := go.GoType.PointerType _root_.Perennial.errors.errorString.ty) go!"Format"
+      simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at hF
+      ipureintro; exact hF
   | some nv =>
     rcases nv with ⟨n', u', v'⟩
     rw [hdec] at Hd
