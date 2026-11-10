@@ -55,7 +55,7 @@ stock ^Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/(RunChecksWorld|ru
 # registrar's and receiver's `epRd`), one per stream, counted by `cfg.Streams` (bounded by `Run`'s
 # `runCfgOk`); `startEpoch` takes them, `endEpoch` gives them back, and `WriterShares` splits and
 # joins them with the writer's shares.
-stock ^Spec/github_com/mit_pdos/etcd_grove/examples/mvccfull/runner__endEpoch\.lean$
+stock ^(Spec|Proof)/github_com/mit_pdos/etcd_grove/examples/mvccfull/runner__(start|end)Epoch\.lean$
 stock ^Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/WriterShares\.lean$
 
 # mvccfull's writer owns its log and so its model's revisions (F1 Prove, 2026-11-10): the writer's
