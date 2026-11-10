@@ -40,8 +40,6 @@ set_option linter.unusedSectionVars false
 set_option synthInstance.maxSize 4096
 set_option synthInstance.maxHeartbeats 400000
 set_option maxRecDepth 16384
-set_option pp.deepTerms true
-set_option pp.maxSteps 100000000
 
 noncomputable section
 
@@ -955,7 +953,93 @@ theorem store.GetList.wp_proof
           icases Hbv with (⟨%Hbv, v, Hip, hasMore, Hrest⟩ | ⟨%Hbv, HΨ⟩)
           · obtain ⟨rfl, hnf⟩ := Hbv
             (try wp_auto)
-            sorry
+            have hmore : pg.1.length < pg.2 := of_decide_eq_true (Hcc.2 ▸ hhm)
+            have hne : pg.1 ≠ [] := hmne hmore
+            have hFl : ((scopeL (σ.at (uint.nat R)) (c.pathPrefix ++ k) opts.Recursive').drop m).length =
+                pg.1.length + rest.length := by rw [hpg1, List.length_append]
+            have hfrom' : fromL (σ.at (uint.nat R)) (c.pathPrefix ++ k) opts.Recursive'
+                (pagesL (σ.at (uint.nat R)) (c.pathPrefix ++ k) opts.Recursive'
+                  (limN opts.Predicate'.Limit') (i + 1)).1 =
+                (scopeL (σ.at (uint.nat R)) (c.pathPrefix ++ k) opts.Recursive').drop
+                  (m + pg.1.length) := by
+              rw [pagesL, hPL]
+              simp only []
+              rw [hpg]
+              have hl0 : 0 < pg.1.length := List.length_pos_iff.2 hne
+              have hlast : pg.1.getLast? = some ((fromL (σ.at (uint.nat R)) (c.pathPrefix ++ k)
+                  opts.Recursive' PL.1)[pg.1.length - 1]'(by rw [hfrom, hFl]; omega)) := by
+                rw [List.getLast?_eq_getElem?]
+                simp only [hfrom, hpg1]
+                rw [List.getElem_append_left (by omega)]
+                exact List.getElem?_eq_getElem _
+              rw [hlast]
+              simp only [Option.map_some, Option.getD_some]
+              rw [fromL_next _ _ _ _ _ hl0 (by rw [hfrom, hFl]; omega), hfrom, List.drop_drop]
+            have hpm : pageMore (σ.at (uint.nat R)) (c.pathPrefix ++ k) opts.Recursive'
+                (limN opts.Predicate'.Limit') (i + 1 - 1) = true := by
+              simp only [Nat.add_sub_cancel, pageMore, hPL, hpg]
+              exact decide_eq_true hmore
+            have hstm' : st'.more = false := by
+              first | exact Hlr.symm | (rw [← Hlr]; exact hlr)
+            ihave %Hselp : ⌜emp = true → ∀ o, sel o = true⌝ $$ []
+            · iunfold selPredOk at Hsel
+              icases Hsel with ⟨%Hs, -⟩
+              ipureintro; exact Hs.2
+            have hemp : emp = false := by
+              by_cases hi : i = 0
+              · obtain ⟨-, hm0⟩ := hi0 hi
+                subst hm0
+                cases hemp : emp
+                · rfl
+                · exfalso
+                  subst hi
+                  have hst0 : st = ⟨[], none, false, 0⟩ := by rw [hst]; rfl
+                  rw [hst0] at hst'd
+                  have hPL0 : PL = (c.pathPrefix ++ k, limN opts.Predicate'.Limit') := by
+                    rw [← hPL]; rfl
+                  subst hPL0
+                  cases hrec : opts.Recursive'
+                  · rw [hrec] at hpg
+                    simp only [Bool.false_eq_true, ↓reduceIte] at hpg
+                    rw [pageKvsL_key] at hpg
+                    rw [← hpg] at hmore
+                    exact Nat.lt_irrefl _ hmore
+                  · rw [hrec] at hpg hfrom hpg2 hdec
+                    simp only [↓reduceIte] at hpg
+                    have hpg1' := congrArg Prod.fst hpg
+                    rw [pageKvsL_eq, hfrom] at hpg1'
+                    have hdec' : ∀ kv ∈ (scopeL (σ.at (uint.nat R)) (c.pathPrefix ++ k) true).drop 0,
+                        c.S.dec kv.value ≠ none := fun kv h => hdec kv (List.mem_of_mem_drop h)
+                    have hmore' : pg.1.length <
+                        ((scopeL (σ.at (uint.nat R)) (c.pathPrefix ++ k) true).drop 0).length := by
+                      rw [← hpg2]; exact hmore
+                    have hfull := page0_full c.S.dec sel (Hselp hemp) (limN opts.Predicate'.Limit')
+                      _ pg.1 hdec' hpg1'.symm hmore'
+                    rw [hst'd] at hfull
+                    exact hnf hfull
+              · exact (hi1 hi).2.1
+            rw [hΨb]
+            unfold forRangePost
+            ileft
+            isplitr
+            · ipureintro; exact Or.inl rfl
+            iintro HTok'
+            iexists true
+            isplitr
+            · ipureintro; rfl
+            simp only [↓reduceIte]
+            icases Hrest with ⟨Hk, «$res0», withRev, lastKey, count, numFetched, numEvald, err, Hits⟩
+            iexists R, lkp', lkb', true, ch.count', nev + evd, m + pg.1.length, e1, GoInterface.nil,
+              ch, sl', st'
+            iframe
+            isplitl []
+            · iexact Hlkb'
+            iframe HQσ
+            ipureintro
+            refine ⟨by omega, rfl, ⟨hR, hRle, hσb, hRn, hfrom', by omega, hst', hstm', hnf, ?_, ?_⟩,
+              hemp, hpm⟩
+            · rw [hn'2]; word
+            · rw [hn'2]; word
           · subst Hbv
             (try wp_auto)
             iexact HΨ
