@@ -460,8 +460,7 @@ theorem runner.restore.wp_proof
     -- the old backend: its census (`Restore` gave the store's rest back), `Close`
     iunfold bkKeep at Hbk1
     icases Hbk1 with ⟨%HoP, #Hoisb, #Hosc, -, Hooh, HoRT, -, Hocen⟩
-    iunfold apply.bkRT at HoRT
-    icases HoRT with ⟨-, Hoor⟩
+    icases (apply.bkRT_eq _).1 $$ HoRT with ⟨-, Hoor⟩
     iunfold bkCensus at Hocen
     imod Hocen $$ Hoor Hooh Hrest0 with Hone
     ihave #Horeq : backend.commitReq v1.bk.γB v1.bk.P iprop(True) v1.bk.be iprop(True) iprop(True) $$ []

@@ -75,6 +75,7 @@ public import Spec.go_etcd_io.etcd.server.v3.lease.NewLessorR
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.New
 public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccfull.FilePaths
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.StopLaws
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.BkRTLaws
 
 @[expose] public section
 
@@ -715,8 +716,7 @@ theorem inc_census (hCR : mvcc.api.mvccClosed_rest.law (GF := GF)) (γk : MvccNa
   icases Hbk with ⟨%HP, #Hisb, #Hsc, Hbf, Hoh, HRT, -, Hcen⟩
   imod hCR γk 1 _ _ $$ [Hcl Hrd Hmb] with ⟨Hrest, Hmb⟩
   · iframe
-  iunfold apply.bkRT at HRT
-  icases HRT with ⟨-, Hor⟩
+  icases (apply.bkRT_eq bk).1 $$ HRT with ⟨-, Hor⟩
   iunfold bkCensus at Hcen
   imod Hcen $$ Hor Hoh Hrest with Hone
   imodintro
@@ -893,7 +893,7 @@ theorem inc_open_backend [ThreadBoundLe GF (2 ^ 28)] (hopen : etcdStorage_open.l
     simp only [bk, mvccrand.rcKB_P, mvccrand.rcKB_γB, mvccrand.rcKB_be, mvccrand.rcKB_gx]
     iframe #; iframe
     isplitl [Hrt Hor]
-    · iunfold apply.bkRT
+    · iapply (apply.bkRT_eq _).2
       simp only [mvccrand.rcKB_P, mvccrand.rcKB_γB, mvccrand.rcKB_be]
       iframe
     iunfold bkCensus
