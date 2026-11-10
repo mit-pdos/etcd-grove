@@ -11,6 +11,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.Writer
 @[expose] public section
 
 set_option linter.iris.style.nameCheck false
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
@@ -19,6 +20,15 @@ namespace EtcdGrove
 namespace mvccfull
 
 open Iris Iris.BI Iris.ProofMode github_com.mit_pdos.etcd_grove.examples.mvccfull mvcc mvcc.api
+
+section model
+variable [GooseExts]
+
+/-- A member that applied no operation is at the fresh store's state. -/
+theorem σOf_zero (ks : List GoString) (ops : List OpM) : σOf ks ops 0 = mvccStart := by
+  simp only [σOf, histAt, cmpAfter, runM_zero]; rfl
+
+end model
 
 section lemmas
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -57,6 +67,24 @@ theorem lessorRd_of' (lp : Loc) (γl : GName) :
   · iframe Hpin0 Hpin
   subst Heq
   iexact Hrd
+
+/-- A zero `atomic.Int64` is owned at `0`. -/
+theorem ownInt64_of_zero (l : Loc) :
+    (l ↦ (zeroValDef : sync.atomic.Int64) : IProp GF) ⊢ sync.atomic.ownInt64 l (DFrac.own 1) (W64 0) := by
+  rw [sync.atomic.ownInt64_unseal]
+  unfold sync.atomic.ownInt64Def
+  rw [show ({ «_#0'» := zero_val _, «_#1'» := zero_val _, v' := W64 0 } : sync.atomic.Int64) =
+    zeroValDef from rfl]
+
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccfull.Assumptions]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+/-- **A member that applied no operation is the same of every log** (`runM_zero`). -/
+theorem memCore_ops0 (ks : List GoString) (γh : HistNames) (ops ops' : List OpM) (i : Nat) (mp : Loc)
+    (m : MemberNames) (f : GoFunc) (v : MemS) (qw : Qp) (nw k : Nat) (h0 : v.ops = 0) :
+    memCore (GF := GF) ks γh ops i mp m f v qw nw k = memCore ks γh ops' i mp m f v qw nw k := by
+  unfold memCore
+  simp only [h0, σOf, revAfter, cmpAfter, leasesAfter, grantedAfter, histAt, runM_zero, Nat.zero_le]
 
 end lemmas
 
