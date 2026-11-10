@@ -425,3 +425,26 @@ from the package inits).
   k8s_etcd3.clientErrPlain (sem := sem))`, `(HGetAt : ∀ hG, kubernetes.Client.GetAt.spec …)`,
   `(HList : ∀ hG, kubernetes.Client.List.spec …)` after `Hctx`; `k8setcd3_Main*` take
   `h_Client__GetAt h_Client__List`.
+
+### Steps 5 and 6 (eighth session): Freeze package
+
+- Step 5: Scope §5's 7e-4 premises (`Match`/`ListKey`/`Limit` from `genList`, `KRelH` and
+  `kvKeysShort` from `kInv`, `GetList`'s `uint.Z n < 2^63` from `minRV`, the later-page `P σ`) are
+  discharged inside the driver's proofs (`call`, `Apply`, `InvSteps`, `genList`): the closed theorems
+  take no premise beyond the three decided pending hypotheses.
+- Full build under the lock and the 64G cap: green, 13783 jobs (`/shared/tmp/k8s-7e-4/full2.log`). The
+  first full build after the re-translation (`full1.log`) failed only in the driver's `Link` (being
+  edited): nothing outside the driver broke.
+- `etc/tcb-report.py --check --update`: 21 axioms new in the baseline. Ours: `github_com.spf13.pflag.
+  opaqueInitsOk` (approved) and `k8s_io.apimachinery.pkg.util.version.opaqueInitsOk` (existing on
+  lean, now reached: featuregate's initializer runs version's). The other 19 are 7e-2's approved
+  trusted specs, first linked into a result now (`reflect.*`, `apimeta.GetItemsPtr`, `metrics.Record*`,
+  `apierrors.IsTimeout/HasStatusCause`, `encoding.json.Marshal`, `base64.RawURLEncoding_init`,
+  `k8sfeature.featureOff_persistent`, `reflectM.type_*`). No `sorry` change. Collections updated:
+  k8setcd3 (all 21), k8s (16, 7e-2's), k8scompactor (pflag, version, RawURLEncoding_init), and 10 etcd
+  collections (`RawURLEncoding_init`, 7e-2's base64 restatement).
+- Gates run by hand: gen-link (all modes), gen-btree-link, goose `--check` (k8s-apiserver), gen-init,
+  issues, errorf-wrap, errdesc, reader-slot, mode, import-all: ok. **`etc/bounds-check.py --check`
+  fails**: spec-thread +3 in the driver (`call`, `Apply`, `Check`: `threadBound GF ≤ 2^30-1`, accepted
+  forms) and +4 in the etcd3 store (7e-2's `New`, `GetList`, `getList`, `pagedChunks`): needs a
+  decision (allow-list entries, or `threadTok` through the owner) before landing.

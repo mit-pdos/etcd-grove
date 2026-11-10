@@ -31,6 +31,7 @@ axiom NewCluster.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
 axiom NewMaintenance.wp_proof
 axiom Perennial.crypto.tls.opaqueInitsOk
+axiom Perennial.encoding.base64.RawURLEncoding_init
 axiom Perennial.encoding.base64.StdEncoding_init
 axiom Perennial.encoding.base64.opaqueInitsOk
 axiom Perennial.encoding.hex.opaqueInitsOk
@@ -44,6 +45,7 @@ axiom Perennial.github_com.go_logr.logr.opaqueInitsOk
 axiom Perennial.github_com.jonboulle.clockwork.opaqueInitsOk
 axiom Perennial.github_com.prometheus.client_golang.prometheus.initFuncsOk
 axiom Perennial.github_com.prometheus.client_golang.prometheus.opaqueInitsOk
+axiom Perennial.github_com.spf13.pflag.opaqueInitsOk
 axiom Perennial.github_com.xiang90.probing.opaqueInitsOk
 axiom Perennial.go_etcd_io.bbolt.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.api.v3.authpb.initFuncsOk
@@ -256,6 +258,7 @@ axiom Perennial.k8s_io.apimachinery.pkg.runtime.schema.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.util.errors.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.util.runtime.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.util.validation.field.opaqueInitsOk
+axiom Perennial.k8s_io.apimachinery.pkg.util.version.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.util.wait.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.watch.opaqueInitsOk
 axiom Perennial.k8s_io.apiserver.pkg.audit.initFuncsOk
@@ -293,6 +296,9 @@ axiom WithRequireLeader.wp_proof
 axiom addFeatureGateMetrics.wp_proof
 axiom addrUnclaimed
 axiom api.IsCapabilityEnabled.wp_proof
+axiom apierrors.HasStatusCause.wp_proof
+axiom apierrors.IsTimeout.wp_proof
+axiom apimeta.GetItemsPtr.wp_proof
 axiom apply.memberEnc_id_learner
 axiom apply.memberKey_inj
 axiom attribute.Bool.wp_proof
@@ -393,6 +399,7 @@ axiom dataDirAbsent
 axiom dataDirFresh
 axiom dataDirsApart
 axiom dbFileAbsent
+axiom encoding.json.Marshal.wp_proof
 axiom encoding.json.Unmarshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom envVerifyOffTok
@@ -514,6 +521,7 @@ axiom insecure.NewCredentials.wp_proof
 axiom io.MultiReader.wp_proof
 axiom io.Pipe.wp_proof
 axiom io.PipeWriter.CloseWithError.wp_proof
+axiom k8sfeature.featureOff_persistent
 axiom klog.V.wp_proof
 axiom klog.Verbose.Infof.wp_proof
 axiom labels.Everything.wp_proof
@@ -538,6 +546,8 @@ axiom metadata.MD.Get.wp_proof
 axiom metrics.NewEtcdMetricsTracker.wp_proof
 axiom metrics.OperationLatencyTracker.Record.wp_proof
 axiom metrics.RecordEtcdRequest.wp_proof
+axiom metrics.RecordListLatency.wp_proof
+axiom metrics.RecordStorageListMetrics.wp_proof
 axiom monitorFileDescriptor.wp_proof
 axiom mvcc.ReportEventReceived.wp_proof
 axiom mvcc.hashStorage.Store.wp_proof
@@ -604,15 +614,26 @@ axiom rand.Int63n.wp_proof
 axiom rate.Every.wp_proof
 axiom rate.Limiter.Wait.wp_proof
 axiom rate.NewLimiter.wp_proof
+axiom reflect.Append.wp_proof
+axiom reflect.Copy.wp_proof
+axiom reflect.KindCompare.wp_proof
+axiom reflect.MakeSlice.wp_proof
 axiom reflect.New.wp_proof
+axiom reflect.Type.Elem.wp_proof
 axiom reflect.TypeOf.wp_proof
 axiom reflect.Value.Addr.wp_proof
+axiom reflect.Value.Cap.wp_proof
 axiom reflect.Value.Interface.wp_proof
+axiom reflect.Value.IsNil.wp_proof
+axiom reflect.Value.Kind.wp_proof
+axiom reflect.Value.Len.wp_proof
 axiom reflect.Value.Set.wp_proof
 axiom reflect.Value.Type.wp_proof
 axiom reflect.ValueOf.wp_proof
 axiom reflect.Zero.wp_proof
 axiom reflectM.reflNew_pointsto
+axiom reflectM.type_intoVal_inj
+axiom reflectM.type_into_val_typed
 axiom reflectM.value_into_val_typed
 axiom reflectM.value_typed_pointsto
 axiom resolver.EtcdManualResolver.Close.wp_proof
