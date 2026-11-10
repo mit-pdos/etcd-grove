@@ -34338,3 +34338,69 @@ nothing to add until the bundle is proved on every path); the ticks' traced coro
 is `MsgHup`'s campaign, `tickHeartbeat` `MsgBeat`'s broadcast: neither path is proved).
 
 No ghost change; no client-visible change; no frozen statement changed; no axiom or `sorry`.
+
+## Q8 stage 1 (slice 16): a send line's phase step; every send line's facts blocked on the frozen `simFx`'s `MsgsUniq` (2026-11-10 · trace-check, Q8 stage 1 slice 16; decided by the agent under the user's delegation · branch `trace-check-q8s16`; DRAFT until trace-check's Freeze)
+
+**Task**: the local paths of `stepBundle_traced.on` that log lines (`MsgBeat` at a leader, `MsgHup` at a
+follower or candidate, `MsgProp` at a leader), then the ticks' traced corollaries. **None can be proved
+as the frozen Draft stands**: each of the three sends messages (the heartbeats; the vote requests and
+the self-vote's response; the self-acknowledgement and the append requests), and no send line's
+`FxPres` is dischargeable.
+
+**Finding (blocks every send line; frozen definition): `simFx`'s `MsgsUniq` is not re-established by a
+new message.** `FxPres` (`TracedCap.lean`, frozen) asks `simFx γ C σ'` at the state after the line for
+**every** `σ` with `simFx γ C σ` (and the server, pre-vote, check-quorum, `violated` premises). After a
+send, `σ'`'s pending bag holds the new message `m`, and `MsgsUniq σ'` needs every in-flight `m1` that a
+receive line matches together with `m` to be `m`. A receive line logs only some of a message's fields
+(`Line.isAppendEntriesRequest`: no `prevLogIndex`/`prevLogTerm` for a heartbeat, never `lastLog*`,
+`voteGranted`, `success`, `matchIndex`; `isRequestVoteRequest`: never `commitIndex`, `prevLog*`, ...;
+likewise the responses), and nothing in `simFx` fixes the others: `msgFacts` fixes only an append
+request's entries and a non-append message's empty entries; `SpecInv` bounds terms, commit and match
+indices. Counterexample (heartbeat): `σ` with an in-flight `{hb with prevLogIndex := 1}` from the
+leader at its term and commit (its `msgFacts`: the leader's `isLeader` and `logRecs` of `[]`; `DurS`,
+`ReqCommit*`, `PrevOk`, `LogTermsLe` hold) satisfies `simFx`, and the leader's heartbeat `hb` (the
+specification's, `prevLogIndex = 0`) is matched with it by the heartbeat's receive line (checked in Lean
+on concrete messages: `recvPred lnHB hbA = true ∧ recvPred lnHB hbB = true ∧ hbA ≠ hbB` by `decide`;
+not committed). So `MsgsUniq σ'` fails at such a `σ` and `FxPres` is not provable. The same for every
+send (append request: `lastLog*`, `voteGranted`, `success`, `matchIndex`; self-acknowledgement:
+`prevLog*`, `commitIndex`; vote request: `commitIndex`, `prevLog*`, `success`, `matchIndex`; vote
+response: likewise), so for the local paths with lines and the receive paths' replies alike. The
+simulation notes have the missing clause (`notes/trace-validation-sim.md`, `MsgsDet`: "a heartbeat its
+commit, **the other fields constant**"); the frozen `simFx` kept only its pairwise half.
+
+**Options** (plan, Q15): (a) amend `simFx` (and `trCap_fire*`'s proofs, which only carry it) with a
+shape clause `MsgsShape σ`: every message in flight has, in the fields its type's receive line does not
+log, the values the specification's constructors give (a pure predicate per type/subtype; spec actions,
+`Ready`, receives and phantom replies keep it; `msgAbs` gives it for raft's messages), so a sender's
+`FxPres` gets `MsgsUniq σ'` from `MsgsShape σ`, `MsgsUniq σ` and, for an append request, the entries'
+agreement (`AppSlices`, from `msgFacts`' `logRecs` and the leader's term log); (b) `FxPres` given the
+simulation's bag relation (every in-flight message `msgAbs` of a raft message or a phantom), heavier and
+mixing the layers; (c) `MsgsUniq` weakened to the fields a line logs (then the receive line's message is
+not unique, and `LineEffect`'s single-match premise fails). **Recommended: (a)**, as part of amendment
+A2 (the same files, the same review and re-freeze).
+
+**Second gap (raft-internal, not frozen): the heartbeat's commit is only bounded.** `leaderGates`'
+`"#Hgbeat"` (from `raft.sendHeartbeat.spec`'s gate) gives the heartbeat's commit `cm` only `≤ committed`
+and `≤ Match`; the specification's `Heartbeat` sends exactly `min(commitIndex, matchIndex)` and the send
+line checks it (`lineEffect_heartbeat`'s `hcommit`), so a gate for a smaller `cm` has no phase step.
+`sendHeartbeat`'s proof has the equality (`Hmin`, `w64Min_spec`). **Recommended**: strengthen the gate's
+premise to the equality in `sendHeartbeat`, `bcastHeartbeat(WithCtx)`, `leaderGates`' `"#Hgbeat"` (and
+`"#Hgrihb"`, `"#Hgrlhb"` for the read-index heartbeats), raft-internal like slice 14 (the untraced
+instances unchanged); not done here, since the path stays blocked by the finding above. Likewise (checked, not
+fixed) `"#Hgpapp"`'s append requests: `AppOk` does not give `Match ≤ m.Index`, which
+`lineEffect_msgApp` needs (`hmatch`: the specification's `AppendEntries` range); raft sends from
+`pr.Next - 1 ≥ pr.Match`, so the gate's premise can carry it from `maybeSendAppend`'s spec.
+
+**Done** (`TracedRaftStepPaths.lean`): `phaseStepB_send`, a send line's phase step at the idle server
+(`PhaseAt (SimIdleS · s)` from `o` to `o ++ [m]`, the server unchanged, `m`'s specification message
+added), from the line's effect at every server the idle relation admits; `phaseStepB_heartbeat`, its
+heartbeat instance (by `lineEffect_heartbeat`, at the exact commit); `msgAbs_source`. These are what
+each send line of the three paths needs besides its `FxPres`.
+
+**Not done** (exact): the three paths and the ticks' traced corollaries (blocked as above); unblocked
+but unused until then: the node lines' facts (`BecomeCandidate`'s `FxPresU` with the commit
+certificate at the new term, `Replicate`'s with the entry records, `Commit`'s with `quorumLog_commitTo`)
+and the other send lines' phase steps (`lineEffect_requestVote`, `lineEffect_selfVote`,
+`lineEffect_selfAck`, `lineEffect_msgApp` through `phaseStepB_send`).
+
+No ghost change; no client-visible change; no frozen statement changed; no axiom or `sorry`.

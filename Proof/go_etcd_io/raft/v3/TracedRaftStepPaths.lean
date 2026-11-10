@@ -17,10 +17,19 @@ a message type or a role that is not this path's. The closing wand reads the end
 **Not yet here**: every path of a traced type starts with a receive line, whose gate needs the frozen
 `FxPresR`, not dischargeable as stated (its phantom replies are unpinned: plan, Q14); the local paths
 with lines (`MsgHup` at a non-leader, `MsgBeat`/`MsgProp` at a leader) need each line's `FxPres`.
+
+(2026-11-10, slice 16, `notes/decisions.md`, "Q8 stage 1 (slice 16)") **A send line's phase step** at
+the idle server (`phaseStepB_send`, the heartbeat's `phaseStepB_heartbeat`). **Blocked**: every send
+line's `FxPres`, so all three local paths with lines (each sends): the frozen `simFx`'s `MsgsUniq`
+cannot be re-established for a new message, since nothing in `simFx` fixes the fields a receive line
+does not log (a heartbeat's `prevLogIndex`, an append request's `matchIndex`, ...), so an in-flight
+message differing from the new one only there is consistent with `simFx` and breaks `MsgsUniq` (plan,
+Q15). And the heartbeat's gate gives its commit only bounded, the line needs it exact.
 -/
 module
 
 public import Proof.go_etcd_io.raft.v3.TracedFamilies
+public import Proof.go_etcd_io.raft.v3.TracedHooks
 
 @[expose] public section
 
@@ -95,7 +104,82 @@ theorem localNoLine_end {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM
     obtain ⟨scfg, sv, d, c', h⟩ := hc (.inr hr)
     exact .inl (hcand scfg sv d c' h)
 
+/-! ### (2026-11-10, slice 16) A send line's phase step at the idle server
+
+A send line that leaves the sender's server unchanged (a heartbeat, an append request, a vote
+request, the self-acknowledgement, a vote response) moves the traced family at the idle server of
+`s` from outbox `o` to `o ++ [m]`: its effect (`lineEffect_heartbeat`, `lineEffect_msgApp`, ...) adds
+`m`'s specification message to the pending bag and the share. Its facts (`FxPres`) are another
+matter: see `notes/decisions.md`, "Q8 stage 1 (slice 16)". -/
+
 end pure
+
+section sendStep
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- A message's specification counterpart is from its source. -/
+theorem msgAbs_source {C : List w64} {bl : Nat} {m : Msg} {ma : Etcdraft.Msg}
+    (h : TraceSim.msgAbs C bl m = some ma) : ma.source = idAbs m.src := by
+  unfold TraceSim.msgAbs at h
+  cases hty : m.ty <;> simp only [hty] at h <;> cases h <;> rfl
+
+/-- **A send line's phase step at the idle server** (`PhaseAt (SimIdleS · s)` from `o` to
+`o ++ [m]`): the line's events are the node's and not bootstrap-named (`hE`), and at every server
+the idle relation admits, the line's effect leaves the server unchanged and adds `m`'s specification
+message (`heff`, from the line's `lineEffect_*`). -/
+theorem phaseStepB_send (id : w64) (c : CfgM) (s : NState) (E : TraceEv → Prop) (o : List Msg) (m : Msg)
+    (hsrc : m.src = id)
+    (hE : ∀ e, E e → e.nid = decStr id ∧ Etcdraft.isBootstrapName (TraceSim.gsStr e.name) = false)
+    (heff : ∀ (C : List w64) (e : TraceEv) (a : Etcdraft.Server), E e → (elements c.incoming).Perm C →
+      c.outgoing = ∅ → id ∈ C → SimServerR C C.length (toPState s) a → LogShapeOk C.length (toPState s) →
+      uint.Z s.term < 2 ^ 63 → uint.Z s.logst.committed < 2 ^ 63 →
+      uint.Z (plastIndex (toPState s)) < 2 ^ 63 →
+      ∃ ma, TraceSim.msgAbs C C.length m = some ma ∧
+        LineEffect C false e (idAbs id) a a none _root_.id (fun b => b.with ma) (fun _ => False)) :
+    PhaseStepB id c E (PhaseAt (fun C => SimIdleS C s) o) (PhaseAt (fun C => SimIdleS C s) (o ++ [m])) := by
+  rintro C cs P ⟨⟨a0, ha0, hR0, hs, bt, bc, bl⟩, hP⟩ ⟨hin, hout, hC⟩ e he
+  obtain ⟨hnid, hnb⟩ := hE e he
+  refine ⟨hnid, isBootstrapName_bf _ hnb, ?_⟩
+  intro a ha
+  have hR : SimServerR C C.length (toPState s) a := simServerR_toC (ha0.trans ha.symm) hR0
+  obtain ⟨ma, hma, hle⟩ := heff C e a he hin hout hC hR hs bt bc bl
+  refine ⟨a, [ma], ⟨⟨a0, ha0.trans ha.symm, hR0, hs, bt, bc, bl⟩, ?_⟩, ?_, hle⟩
+  · rw [pendAbs_append]
+    have h1 : pendAbs C [m] = [ma] := by simp [pendAbs, hma]
+    rw [h1]
+    exact hP.append_right _
+  · intro x hx
+    simp only [List.mem_singleton] at hx
+    subst hx
+    rw [msgAbs_source hma, hsrc]
+
+/-- **A leader's heartbeat line's phase step** (`MsgBeat`'s `"#Hgbeat"` gate, the `SendAppendEntriesRequest`
+line of a `MsgHeartbeat`), by `lineEffect_heartbeat`, for the commit raft computes, **exactly**
+`min(committed, Match)` (`hcm`). The gate as `leaderGates` states it gives only the two bounds
+(`sendHeartbeat`'s spec): a heartbeat of a smaller commit is not the specification's, whose
+`Heartbeat` sends exactly the minimum (`notes/decisions.md`, "Q8 stage 1 (slice 16)"). -/
+theorem phaseStepB_heartbeat (id : w64) (c : CfgM) (s : NState) (o : List Msg) (to cm : w64) (cl : List w8)
+    (hlead : s.role = .leader) (hne : to ≠ id) (hto : to ∈ elements c.incoming)
+    (hcm : uint.Z cm = min (uint.Z s.logst.committed) (uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0)))) :
+    PhaseStepB id c
+      (SendEvOf (W64 9) id s c (Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl))
+      (PhaseAt (fun C => SimIdleS C s) o)
+      (PhaseAt (fun C => SimIdleS C s) (o ++ [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl])) := by
+  apply phaseStepB_send id c s _ o _ rfl
+    (fun e he => ⟨he.2.1, sendEvOf_notBoot he (by decide) (by decide) (by decide)⟩)
+  intro C e a he hin hout hC hR hs bt bc bl
+  refine ⟨_, rfl, ?_⟩
+  have hmo : matchOf (toPState s) to = (prvalsMatch s.prvals !! to).getD (W64 0) := by
+    simp [matchOf, toPState, hlead]
+  exact lineEffect_heartbeat C e id s c _ a he hin hout hC (hin.mem_iff.1 hto) hR hs hlead rfl rfl hne rfl rfl
+    (by rw [hcm, hmo]; simp only [toPState])
+    bt bc bl (by show uint.Z cm < 2 ^ 63; omega)
+
+end sendStep
 
 section paths
 variable [GooseExts] [GooseSemantics] [GooseInterp]
