@@ -183,5 +183,13 @@ Linked specs changed (`git diff lean --name-status -- Spec/`: 74 added, 47 modif
 
 ## 6. Gates
 
-See the end of `notes/k8s-7e-1-handoff.md` ("Fourteenth session") for the run's result
-(`/shared/tmp/k8s7e1/gates1.log`).
+Against lean `ef6bc4663b` (`/shared/tmp/k8s7e1/gates1.log`): build (13811 jobs), links, tcb (865
+axioms, 5 sorries), collections (53 match), goose (40), gen-init (224) passed; the run was stopped
+before model-param-check when lean moved (premise-fixes-4, then the mvccfull sync). To redo after the
+sync merge (`notes/k8s-7e-1-handoff.md`, "Merge order").
+
+## 7. After the premise-fixes-4 merge (`65c1217456`, not yet built)
+
+One trusted text combines two approved changes: `rpctypes.ErrFutureRev_init`/`ErrCompacted_init`
+(and `rpctypesInit`) carry both pf4's `methodSet e.ty !! "Format" = none` and 7e-2's "an `EtcdError`
+value". The internal lemma `clientErr_statusErrOk_of_leaf` takes both `hT` and `hF`.

@@ -580,10 +580,24 @@ Next, in order (the next agent starts here):
 - Gates: `flock /shared/tmp/etcd-grove-build.lock systemd-run --scope -q -p MemoryMax=64G env
   TMPDIR=/shared/tmp LAKE_PACKAGES=/shared/tmp/manifest-ddc.json
   PERENNIAL_CHECKOUT=/shared/perennial-ddc0f0acc timeout 14000 bash etc/gates.sh`
-  → `/shared/tmp/k8s7e1/gates1.log` (result below).
+  → `/shared/tmp/k8s7e1/gates1.log`: build, links, tcb (865 axioms, 5 sorries), collections (53),
+  goose (40), gen-init (224) passed; then **stopped by this agent** when etcd-grove-81 announced lean
+  `0c3adbf69e` (premise-fixes-4) and the mvccfull sync (the run would be redone anyway).
+- `65c1217456`: lean `0c3adbf69e` (premise-fixes-4) merged, **not built** (81's order). Conflicts:
+  `etc/gen-init.py` rpctypes `ErrFutureRev`/`ErrCompacted` (both conjuncts kept: pf4's no-`Format`, then
+  7e-2's `EtcdError` value; pattern `%D@, %F@, %T@`; `rpctypes/Init.lean` regenerated, `--check` clean),
+  `cache/v3/Base.lean` `rpctypesInit` (the same order), `ErrorsNewOk.lean`
+  (`clientErr_statusErrOk_of_leaf` takes `hT` then `hF`; `eofOk_of_init`, `ctxErrClientAllW_of`,
+  `ChanCtx.lean` pass both), `decoder__Decode.lean` (pf4's `Format` split, ours' `some w'`), notes
+  (STATUS: k8s 7e entry first, then pf4's; the oldest moved to status-history, append only).
 
-Next: etcd-grove-81's review of the Freeze package; when lean moves (premise-fixes-4, -5), merge it
-again (pf4: rnSetLoggerOk out of the premise bags, no-Format facts in statusErrOk/errStrOk/context
-errors/http-fmt axioms; pf5: ctxDone in ctxErrs/ctxQuiet, keySized dropped; expect conflicts in
-ClientErr/InvGrpc/context predicates and the tcb files), full build, tcb `--check --update`, gates
-again; then land.sh only on 81's go.
+**Merge order (etcd-grove-81, 2026-11-10):** GitHub's lean diverged (mvccfull F1, ~200 commits); a
+sync agent merges it into local lean. Do NOT spend a full build on `0c3adbf69e` alone: wait until the
+sync lands on local lean, merge that lean, THEN full build, tcb `--check --update` (+collections),
+interfaces, gates. premise-fixes-5 lands after the sync: merge it too if it is on lean by then (if lean
+moves during the gates, merge again and redo). The Freeze package's §3 counts are against lean
+`ef6bc4663b`; redo them against the merged lean (expected: still only our +22 beyond lean's).
+
+Next: etcd-grove-81's review of the Freeze package; the merge order above (pf5: ctxDone in
+ctxErrs/ctxQuiet, keySized dropped; expect conflicts in context predicates and the tcb files); then
+land.sh only on 81's go.
