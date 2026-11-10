@@ -352,7 +352,166 @@ theorem stream.receive.wp_proof
       ipureintro; exact ⟨Hids, hknown', HevOk⟩
   · rw [decide_eq_false hm]
     wp_auto
-    sorry
+    obtain ⟨wi, x, hwi, hx, hrg, hfs, hlo, hk, hlive, hcmC⟩ := hrS hm
+    have hsame : ∀ id, id ≠ r.id → recvEvs (rs ++ [r]) id = recvEvs rs id :=
+      fun id hne => recvEvs_snoc_ne _ _ _ (Or.inl (Ne.symm hne))
+    rw [Hfl.1]
+    wp_apply (wp_map_lookup1 go_etcd_io.etcd.server.v3.storage.mvcc.WatchID.ty
+      watcher.ty.PointerType T.wm (GMap.fmap Reg.wp W) r.id (DFrac.own 1)) $$ [$Hwm] as Hwm
+    rw [hx]
+    simp only [Option.map_some, Option.getD_some]
+    icases (wats_take' hpx rs r T.σs.ws W r.id x hx hsame) $$ Hwats with ⟨Hwo, Hback⟩
+    iunfold watcherOwn' at Hwo
+    icases Hwo with ⟨%wv, Hwp, #Hk, #He, Hlbk, %Hok⟩
+    icases (typedPointsto_not_null_dup _ _ _) $$ Hwp with ⟨Hwp, %Hwpn⟩
+    have Hok0 := Hok
+    obtain ⟨hen, hkk, hfl, hstart, hst0, hstM, hlo1, hloM, hstlo, hstfl, hcm, hstk, hcpk, Hpos⟩ := Hok
+    have Hposx := wPosOk'_prefix hpx _ _ _ _ Hpos
+    (try wp_auto)
+    rw [decide_eq_false Hwpn]
+    (try wp_auto)
+    wp_apply wp_check
+    · ipureintro; rfl
+    (try wp_auto)
+    rw [Hfl.2.2]
+    by_cases hc : r.compactRev = W64 0
+    · rw [decide_eq_true hc]
+      (try wp_auto)
+      have hrl : sint.nat r.rev < σ.notifiedLog.length := hcr0 hc
+      have hrZ : sint.Z r.rev < Hlx.length := by
+        have : sint.nat r.rev = (sint.Z r.rev).toNat := rfl; omega
+      have hrM : sint.Z r.rev < 2 ^ 63 - 1 := by
+        have : sint.nat r.rev = (sint.Z r.rev).toNat := rfl; omega
+      by_cases he : r.evs = []
+      · -- the watcher's progress
+        rw [decide_eq_true (hlen0.2 he)]
+        have hr0 := hrev0 he hc
+        have h4 := Hro.2.2.2.1 rs.length r r.id wi hjr he hc hwi (Or.inl rfl)
+        rw [hlo] at h4
+        have hstle : sint.Z wv.start' ≤ sint.Z r.rev + 1 := by
+          rw [hstart]
+          by_cases h0 : x.start = W64 0
+          · rw [h0]; have : sint.Z (W64 0) = 0 := rfl; omega
+          · have := hstlo h0
+            have : sint.nat x.start = (sint.Z x.start).toNat := rfl
+            omega
+        have hflle : 0 < sint.Z wv.floatLo' → sint.Z wv.floatLo' ≤ sint.Z r.rev + 1 := by
+          intro hf
+          have h5 := Hpos.2.2.2.2
+          rw [if_pos hf] at h5
+          omega
+        (try wp_auto)
+        wp_bind (If _ _ _)
+        iapply (wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗ w_ptr ↦ x.wp ∗ x.wp ↦ wv ∗
+            ∃ lw : w64, lower_ptr ↦ lw ∗ ⌜sint.Z lw ≤ sint.Z r.rev + 1⌝))) $$ [lower Hwp w]
+        · wp_if_destruct
+          · iframe
+            ipureintro; exact hflle (by have := hst0; rw [← hstart] at this; omega)
+          · iframe
+            ipureintro; exact hstle
+        iintro %v ⟨%hv, w, Hwp, %lw, lower, %Hlw⟩
+        subst hv
+        wp_auto
+        wp_apply wp_check
+        · ipureintro; simp only [decide_eq_true_eq]; rw [Hfl.2.1]; word
+        (try wp_auto)
+        have hsr : recvEvs (rs ++ [r]) r.id = recvEvs rs r.id := recvEvs_snoc_ne _ _ _ (Or.inr he)
+        have hprog := recv_prog' T.ep.ks σ S (rs ++ [r]) Hlx Hro Hhx Honce hwf hnl rs.length r hjr he
+          hc r.id x wi hwi hrg hfs hlo wv.end' hen hkk hlo1 (Or.inl rfl)
+        rw [List.take_of_length_le (by simp), hsr] at hprog
+        have hnone : expNext Hlx (matchesM wv.filter' (decide (wv.end' = slice.nil)) x.key x.e)
+            (sint.nat wv.rev') (sint.nat wv.index') (sint.Z r.rev) = none := by
+          rw [hfl, ← Reg.mt_eq x wv.end' hen]
+          refine covered_none Hlx x.mt x.lo wv _ (sint.Z r.rev) hlo1 Hposx ?_
+          rw [show (sint.Z r.rev).toNat = sint.nat r.rev from rfl, hprog, List.length_map]
+          exact Nat.le_refl _
+        rw [Hfl.2.1]
+        wp_apply (wp_stream_covered T.s T.ep.x T.ep.h T.ep.γh Hlx x.wp wv x.key x.e r.rev _
+            (DFrac.own 1) DFrac.discard DFrac.discard Hposx.1 Hposx.2.1 hrZ hrM hnone)
+          $$ [Hwp Hhr] as ⟨Hwp, -, -, Hhr⟩
+        · iframe Hwp Hhr
+          iframe #
+        (try wp_auto)
+        ihave Hwats := Hback $$ [Hwp Hlbk]
+        · iunfold watcherOwn'
+          iexists wv
+          iframe
+          iframe #
+          ipureintro; exact watcherOk_frame hpx rs r r.id x wv hsr Hok0
+        iapply HΦ
+        iexists Hlx, P'
+        iunfold smuBody
+        iframe
+        iframe #
+        ipureintro; exact ⟨Hids, hknown', HevOk⟩
+      · sorry
+    · -- a compaction response
+      rw [decide_eq_false hc]
+      obtain ⟨he, -, hr0, hcp, hcle⟩ := hcrne hc
+      (try wp_auto)
+      rw [decide_eq_true (hlen0.2 he)]
+      (try wp_auto)
+      rw [Hfl.2.1, hr0]
+      (try wp_auto)
+      wp_apply wp_check
+      · ipureintro; rfl
+      (try wp_auto)
+      rw [Hfl.2.2]
+      (try wp_auto)
+      rw [decide_eq_true (show sint.Z (W64 0) < sint.Z r.compactRev from hcp)]
+      (try wp_auto)
+      wp_apply_core sync.atomic.Int64.wp_Load (mF go!"cmpHi" T.ep.mp) (DFrac.own 1) $$ [] [-]
+      · iPkgInit
+      imod cmpHi_acc T.ep.ks T.ep.γh T.ep.i T.ep.mp T.ep.m T.ep.ι T.ep.kv q _ $$ [$Hlive $Lcrev]
+        with ⟨%vc, Hvc, %Hvcb, Hcl⟩
+      imodintro
+      inext
+      iexists vc
+      iframe
+      iintro Hvc
+      imod Hcl $$ Hvc with Hlive
+      imodintro
+      (try wp_auto)
+      wp_apply wp_check
+      · ipureintro
+        have := Int.self_le_toNat (σ.crev + 1)
+        simp only [decide_eq_true_eq]
+        rw [Hfl.2.2]
+        omega
+      (try wp_auto)
+      wp_apply_core sync.atomic.Int64.wp_Add (rF go!"compacted" T.ep.x) (W64 1) $$ [] [-]
+      · iPkgInit
+      iunfold ctrInv at Ccp
+      iinv Ccp with ⟨%a, >Ha⟩ Hclose
+      all_goals (try exact (fun _ _ => CoPset.mem_full))
+      iapply fupd_mask_intro (show (∅ : CoPset) ⊆ ⊤ \ ↑(sCtrN .@ "compacted") from
+        Std.LawfulSet.empty_subset)
+      iintro Hcl
+      inext
+      iexists a
+      iframe
+      iintro Ha
+      imod Hcl with -
+      imod Hclose $$ [Ha] with -
+      · inext; iexists _; iframe
+      imodintro
+      (try wp_auto)
+      ihave Hwats := Hback $$ [Hwp Hlbk]
+      · iunfold watcherOwn'
+        iexists { wv with compacted' := true }
+        iframe
+        iframe #
+        ipureintro
+        refine ⟨hen, hkk, hfl, hstart, hst0, hstM, hlo1, hloM, hstlo, hstfl, hcm, ?_, ?_, ?_⟩
+        · intro h; have := hstk h; simp; omega
+        · intro _; exact ⟨r, by simp, rfl, hc⟩
+        · rw [recvEvs_snoc_ne _ _ _ (Or.inr he)]; exact Hposx
+      iapply HΦ
+      iexists Hlx, P'
+      iunfold smuBody
+      iframe
+      iframe #
+      ipureintro; exact ⟨Hids, hknown', HevOk⟩
 
 end proof
 
