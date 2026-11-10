@@ -128,3 +128,54 @@ compactor__runWatchLoop: ContextForChannel channelContext__Done channelContext__
 NewCompactor: compactor__runCompactLoop compactor__runWatchLoop
 # (Q1 (c), 2026-11-05) the compactor registry
 StartCompactorPerEndpoint: NewCompactor Client__Endpoints v2_V Verbose__Infof
+#
+# (stage 7e-2, notes/k8s-7e-2-draft.md) the paginated list path, GetList. Pending (`?`): the
+# kubernetes client's List and its Get at a revision (hypotheses until 7e-1/7c-3, never axioms),
+# 7e-2's new trusted specs (the Draft's §5; linked as axioms only after etcd-grove-81's review),
+# and reflect.Kind's comparison (`Spec/reflect/KindCompare.lean`, a decision pending)
+Client__List: ?
+Client__GetAt: ?
+reflect_KindCompare: ?
+reflect_Value__Kind: ?
+reflect_Value__Len: ?
+reflect_Value__Cap: ?
+reflect_Value__IsNil: ?
+reflect_Type__Elem: ?
+json_Marshal: ?
+IsTimeout: ?
+HasStatusCause: ?
+RecordStorageListMetrics: ?
+RecordListLatency: ?
+# restated in 7e-2's first third, linked as axioms already elsewhere (k8setcd3, txn, client)
+reflect_Value__Set:
+reflect_ValueOf:
+errors_IsStatusErr:
+# k8s.io/apiserver/pkg/storage and apimachinery (7e-2)
+ValidateListOptions:
+EncodeContinue: json_Marshal
+PrepareContinueToken: EncodeContinue
+IsTooLargeResourceVersion: IsTimeout HasStatusCause
+NewResourceExpired:
+SelectionPredicate__ShardingEnabled:
+SelectionPredicate__labelFieldEmpty:
+SelectionPredicate__MatchesSharding: SelectionPredicate__ShardingEnabled
+SelectionPredicate__MatchesObjectAttributes: SelectionPredicate__labelFieldEmpty
+SelectionPredicate__Matches: SelectionPredicate__MatchesSharding SelectionPredicate__labelFieldEmpty SelectionPredicate__MatchesObjectAttributes
+SelectionPredicate__Empty: SelectionPredicate__ShardingEnabled SelectionPredicate__labelFieldEmpty
+SelectionPredicate__SetShardInfoOnList: SelectionPredicate__ShardingEnabled
+fields_Set__Get:
+labels_Set__Get:
+labels_Set__Has:
+# k8s.io/apiserver/pkg/storage/etcd3 (7e-2: `store.go`'s list path)
+shouldStream:
+getNewItemFunc: reflect_Value__Type reflect_Type__Elem reflect_New reflect_Value__Interface
+growSlice: reflect_Value__Cap reflect_Value__Len reflect_Value__Type reflect_Value__Set
+store__processListItem: reflect_ValueOf reflect_Value__Set
+store__appendChunk: store__processListItem growSlice reflect_Value__Len
+store__finalizeList: reflect_Value__IsNil reflect_Value__Type reflect_Value__Set SelectionPredicate__SetShardInfoOnList
+store__getResourceSizeEstimator:
+store__getList: Client__List Client__GetAt RecordEtcdRequest store__getResourceSizeEstimator
+interpretListError: NewResourceExpired
+store__listReadError: interpretListError store__GetCurrentResourceVersion NewTooLargeResourceVersionError errors_IsStatusErr
+store__pagedChunks: store__getList store__listReadError
+store__GetList: reflect_KindCompare store__prepareKey store__pagedChunks store__appendChunk store__finalizeList store__validateMinimumResourceVersion shouldStream getNewItemFunc ValidateListOptions PrepareContinueToken EnforcePtr reflect_Value__Kind reflect_Value__Len RecordStorageListMetrics RecordListLatency tracing_Start Span__End attribute_String attribute_Int GetAuditIDTruncated

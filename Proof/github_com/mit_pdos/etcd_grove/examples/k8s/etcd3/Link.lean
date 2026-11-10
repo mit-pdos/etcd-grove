@@ -23,6 +23,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.codec__Enc
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.configEqual
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.decodeObj
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.decoder__Decode
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.decoder__DecodeListItem
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.delItem
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.encodeObj
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.encodeV0
@@ -77,6 +78,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.validateFo
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.versioner__ObjectResourceVersion
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.versioner__ParseResourceVersion
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.versioner__PrepareObjectForStorage
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.versioner__UpdateList
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.versioner__UpdateObject
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.withPre
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.workloadKeys
@@ -321,6 +323,10 @@ theorem wp_closure :
     EtcdGrove.k8s_etcd3.closure.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.closure.wp_proof wp_addConfig wp_mstep wp_removeAt
 
+theorem decoder.wp_DecodeListItem :
+    EtcdGrove.k8s_etcd3.decoder.DecodeListItem.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.decoder.DecodeListItem.wp_proof wp_decodeObj
+
 theorem wp_encodeV0 :
     EtcdGrove.k8s_etcd3.encodeV0.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.encodeV0.wp_proof wp_encodeWith
@@ -416,6 +422,10 @@ theorem wp_newObj :
 theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.k8s_etcd3.Main.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.Main.wp_proof zap.wp_NewNop etcdstart.wp_StartServer etcdstart.wp_Serve kubernetes.wp_New wp_seed k8s.wp_New k8s.wp_NewDefaultLeaseManagerConfig wp_newObj runtime.wp_Encode codec.wp_Encode versioner.wp_UpdateObject versioner.wp_PrepareObjectForStorage versioner.wp_ObjectResourceVersion versioner.wp_ParseResourceVersion identity.wp_TransformFromStorage identity.wp_TransformToStorage decoder.wp_Decode runtime.wp_SetZeroValue Obj.wp_GetUID Obj.wp_GetResourceVersion wp_Check mvcc.api.mvccApi_names_nonempty_law_holds
+
+theorem versioner.wp_UpdateList :
+    EtcdGrove.k8s_etcd3.versioner.UpdateList.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.versioner.UpdateList.wp_proof
 
 end links_hasLC
 

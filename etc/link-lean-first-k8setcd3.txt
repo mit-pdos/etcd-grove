@@ -52,6 +52,9 @@ runtime_Encode: Buffer__Bytes
 SetZeroValue: EnforcePtr reflect_Value__Type reflect_Zero reflect_Value__Set
 codec__Encode: encodeObj Buffer__Write
 decoder__Decode: decodeObj
+# (stage 7e-2) the list contract's decoder and versioner
+decoder__DecodeListItem: decodeObj
+versioner__UpdateList:
 versioner__UpdateObject:
 versioner__PrepareObjectForStorage:
 versioner__ObjectResourceVersion:

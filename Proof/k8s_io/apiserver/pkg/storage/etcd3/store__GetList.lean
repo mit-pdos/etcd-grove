@@ -21,6 +21,7 @@ public import Spec.k8s_io.apiserver.pkg.storage.PrepareContinueToken
 public import Spec.k8s_io.apimachinery.pkg.conversion.EnforcePtr
 public import Spec.reflect.Value__Kind
 public import Spec.reflect.Value__Len
+public import Spec.reflect.KindCompare
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.metrics.RecordStorageListMetrics
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.metrics.RecordListLatency
 public import Spec.k8s_io.component_base.tracing.Start
@@ -84,7 +85,7 @@ def pgFacts [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.server.v3.et
 
 set_option maxHeartbeats 8000000 in
 theorem store.GetList.wp_proof
-    [hKind : go.IsStrictlyComparable _root_.Perennial.reflect.Kind.underlying w64]
+    (wp_KindCompare : reflect.KindCompare.spec (GF := GF) (hG := hG))
     (wp_prepareKey : store.prepareKey.spec (GF := GF) (hG := hG))
     (wp_pagedChunks : store.pagedChunks.spec (GF := GF) (hG := hG))
     (wp_appendChunk : store.appendChunk.spec (GF := GF) (hG := hG))
@@ -105,6 +106,7 @@ theorem store.GetList.wp_proof
     (wp_Int : «attribute».Int.spec (GF := GF) (hG := hG))
     (wp_GetAuditIDTruncated : audit.GetAuditIDTruncated.spec (GF := GF) (hG := hG)) :
     store.GetList.spec (GF := GF) (hG := hG) := by
+  have hKind : go.IsStrictlyComparable _root_.Perennial.reflect.Kind.underlying w64 := wp_KindCompare
   intro _ _ Obj _ sp c L ci cd key opts lx rv0 cont0 rem0 k n sel emp Q P hQ hP
   wp_start as ⟨#Hst, %Hpre, #Hsel, #Hlc, #Hrs, #Hctx, #Hce, #Hnd, Htt, %htb, Hlx, HQ, #HP⟩
   obtain ⟨hk, hkl, hrv, hmatch, hcont, hn63, hlim⟩ := Hpre

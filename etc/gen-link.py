@@ -648,6 +648,10 @@ NA_MODES = {"--porcupine", "--porcupine-dag", "--lintest", "--lintest-counter", 
 # `[StorageModel GF]` are instantiated there.
 LOCAL_INSTANCES = {"--kvreconf": ["raft_kvreconf.kvrStorageModel"],
                    "--kvdurable": ["raft_kvdurable.kdStorageModel"]}
+# The modes whose blocked results take only the pending hypotheses they reach (k8s 7e-2,
+# 2026-11-10: the etcd3 store's list path pends specs the compactor, linked into a closed
+# result, does not reach); the others take every pending hypothesis
+PER_FN_PENDING = {"--k8s-etcd3"}
 # The trusted assumptions a mode's linked proofs need beyond its package's, first (minibolt's: the
 # layouts of `os.file` and `os.fileStat`, which `TrustedCode/os.lean` states and goose cannot
 # emit; `OpenFile`'s and `Stat`'s proofs take them).
@@ -1022,7 +1026,7 @@ variable [sem : go.Semantics]
         if c in blocked:
             # a result of `links_pending`: applied to the pending hypotheses (section variables
             # are not applied automatically)
-            return "(" + result(c) + " " + " ".join(hyp(p) for p in sorted(pending)) + ")"
+            return "(" + result(c) + " " + " ".join(hyp(p) for p in sorted(reach[c])) + ")"
         # a callee's result named like the theorem's last component (`leaseCache.wp_evalCmp`
         # calling `wp_evalCmp`; `bootstrappedRaft.wp_newRaftNode` calling `wp_newRaftNode`,
         # 2026-10-16) would resolve to the theorem itself: qualify it
@@ -1175,6 +1179,15 @@ variable [sem : go.Semantics]
     for fn in order:
         if any(c in blocked for c in callees[fn]):
             blocked.add(fn)
+    # the pending functions each blocked result reaches (k8s 7e-2, 2026-11-10): a result takes
+    # only those as hypotheses, so that adding a pending function does not change the statements of
+    # the results that do not reach it (the compactor's, linked into a closed result)
+    reach = {fn: {fn} for fn in pending}
+    for fn in order:
+        if fn in blocked and fn not in pending:
+            reach[fn] = set().union(*(reach.get(c, set()) for c in callees[fn]))
+    if sys.argv[1] not in PER_FN_PENDING:
+        reach = {fn: set(pending) for fn in reach}
     generic = [fn for fn in order if fn not in haslc and fn not in external and fn not in blocked
                and fn not in reused]
     special = [fn for fn in order if fn in haslc and fn not in external and fn not in blocked
@@ -1208,6 +1221,11 @@ variable [sem : go.Semantics]
             + f"{specref(fn)}.spec{sfx(fn)} (GF := GF) (hG := hG))"
             for fn in sorted(pending))
         names = " ".join(hyp(fn) for fn in sorted(pending))
+        # one `include` of every pending hypothesis for the section; in a `PER_FN_PENDING` mode,
+        # each result includes the hypotheses it reaches
+        per_fn = (sys.argv[1] in PER_FN_PENDING
+                  and any(reach[fn] != set(pending) for fn in later))
+        include_line = "" if per_fn else f"include {names}"
         out.append(f"""/-! The results that reach a function specified but not proved yet (a later unit's):
 its spec is a hypothesis (`h_<fn>`) of each of them. -/
 section links_pending
@@ -1217,9 +1235,10 @@ variable {{GF : BundledGFunctors}} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 {raft_var}variable [package_sem : {assumptions}]
 {em}{LC_EXTRA_VARS.get(sys.argv[1], "")}{hyps}
-include {names}
+{include_line}
 """)
-        out.extend(emit_cache(fn) for fn in later)
+        out.extend((("include " + " ".join(hyp(p) for p in sorted(reach[fn])) + " in\n")
+                    if per_fn else "") + emit_cache(fn) for fn in later)
         out.append("end links_pending\n")
     out.append((f"end {nsd}\n" if nsd else "") + "end EtcdGrove\nend Perennial")
     print("\n".join(out))
