@@ -25,6 +25,10 @@ modules added.
    `sint.Z nl ≤ |ops|` (each grant is one operation; `Run` starts at 0), and `gen`'s post says a
    grant always takes the second disjunct (`o.kind = kGrant → o.id = nl + 1 ∧ nl' = nl + 1`).
 
+3. **`runner.gen`, a compaction at the current revision when `s.rev = 0`.** `gen.spec` does not
+   assume `1 ≤ s.rev`; `CompactAt`'s case 2 sets `o.rev = l.rev`, and `opValid` needs a positive
+   compaction revision. Fix: the premise `1 ≤ s.rev` (`write` meets it: `runM` starts at `hist0`).
+
 ## Not proved (blocked by a frozen spec)
 
 - **`runner.checkLeases`**: `lease.lessor.Leases.spec` needs `threadTok`, `lessorRdPool`,
