@@ -25,6 +25,7 @@ public import Spec.go_etcd_io.etcd.server.v3.lease.lessor__Recover
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__SetTxPostLockInsideApplyHook
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__Close
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.TODO
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RwLensLaws
 
 @[expose] public section
 
@@ -623,7 +624,7 @@ theorem runner.restore.wp_proof
       · simp only [mvccrand.rcKB_P, mvccrand.rcKB_γB, mvccrand.rcKB_be]; iexact Hnisb
       · simp only [mvccrand.rcKB_γB]; iexact HhkRO
       · ipureintro; exact Hf1
-      · iunfold rwLens; iintro !> H; iframe H; iintro H; iexact H
+      · iapply rwLens_refl
     ihave Hrbn' := backend.rbOwnIn_part γB _ _ $$ Hrbn
     ihave Hc1n : memCore ks γ.h ops 1 mp1 γ.m1 f1
         ⟨vb'.path, v1.lp, v1.kv, v0.ops, mvccrand.rcKB γB bnb gx (limOf cfg), v1.ι, U', b4⟩ qw1 nw1
