@@ -21,6 +21,9 @@ public import Proof.go_etcd_io.raft.v3.TracedHooksGlobal
 public import Spec.go_etcd_io.raft.v3.raft__becomeCandidate
 public import Spec.go_etcd_io.raft.v3.raft__becomeFollower
 public import Proof.go_etcd_io.raft.v3.TracedMsg
+public import Proof.go_etcd_io.raft.v3.TracedSend
+public import Spec.go_etcd_io.raft.v3.raft__appendEntry
+public import Spec.go_etcd_io.raft.v3.raft__becomeLeader
 
 @[expose] public section
 
@@ -604,6 +607,433 @@ theorem raft.send.tracedSpec_of_spec (h : raft.send.spec (GF := GF) (hG := hG)) 
     iintro ⟨Hphys, HQ⟩
     iapply HΨ
     iframe Hphys HQ
+
+/-! ### (Q8 stage 1, slice 7) `appendEntry` and `becomeLeader` on the capability
+
+The leader's lines: `BecomeLeader`, then one `Replicate` per normal entry (`traceReplicate`'s loop,
+`TraceFireN`), then the self-acknowledgement's `SendAppendEntriesResponse` (`appendEntry`'s `send`).
+Each line is one law (`trCap_fire_any`), its facts the caller's (`FxPresUT`), chained: a line's facts
+take the previous line's resource (`R1 -∗ FxPresUT … R2`), so that the `BecomeLeader` line's update
+can create the new leader's term log and each `Replicate` line's the record of its entry, which the
+next lines' facts read (`notes/decisions.md`, "Q8 stage 1 (slice 7)"). -/
+
+/-- The event names that are not a bootstrap line's (`InitState` 0, `BecomeFollower` 2,
+`ApplyConfChange` 7). -/
+theorem evtNames_notBoot : ∀ k : Fin evtNames.length, k.val ≠ 0 → k.val ≠ 2 → k.val ≠ 7 →
+    Etcdraft.isBootstrapName (TraceSim.gsStr evtNames[k]) = false := by
+  decide
+
+/-- An event named by `evtNames` at an index other than a bootstrap line's is not a bootstrap line. -/
+theorem evtName_notBoot {k : Nat} {n : GoString} (h : evtNames[k]? = some n) (h0 : k ≠ 0) (h2 : k ≠ 2)
+    (h7 : k ≠ 7) : Etcdraft.isBootstrapName (TraceSim.gsStr n) = false := by
+  obtain ⟨hk, hn⟩ := List.getElem?_eq_some_iff.1 h
+  have := evtNames_notBoot ⟨k, hk⟩ h0 h2 h7
+  simp only [Fin.getElem_fin] at this
+  rw [hn] at this
+  exact this
+
+/-- A node event at a non-bootstrap index is not a bootstrap line. -/
+theorem nodeEvOf_notBoot {evt id : w64} {s : NState} {c : CfgM} {e : TraceEv} (h : NodeEvOf evt id s c e)
+    (h0 : uint.nat evt ≠ 0) (h2 : uint.nat evt ≠ 2) (h7 : uint.nat evt ≠ 7) :
+    Etcdraft.isBootstrapName (TraceSim.gsStr e.name) = false :=
+  evtName_notBoot h.1 h0 h2 h7
+
+/-- A send or receive event is not a bootstrap line. -/
+theorem sendEvOf_notBoot {evt id : w64} {s : NState} {c : CfgM} {m : Msg} {e : TraceEv}
+    (h : SendEvOf evt id s c m e) (h0 : uint.nat evt ≠ 0) (h2 : uint.nat evt ≠ 2) (h7 : uint.nat evt ≠ 7) :
+    Etcdraft.isBootstrapName (TraceSim.gsStr e.name) = false :=
+  evtName_notBoot h.1 h0 h2 h7
+
+/-- `TraceFireN`'s monotonicity. -/
+theorem traceFireN_mono (tr : Option GName) (tl : GoInterface) (E : TraceEv → Prop) :
+    ∀ (n : Nat) (Q Q' : IProp GF), iprop((Q -∗ Q') ∗ TraceFireN tr tl E n Q) ⊢ TraceFireN tr tl E n Q'
+  | 0, Q, Q' => by simp only [TraceFireN]; exact traceFireOpt_mono tr tl none Q Q'
+  | n + 1, Q, Q' => by
+    simp only [TraceFireN]
+    iintro ⟨HW, H⟩
+    iapply traceFire_mono tr tl E (TraceFireN tr tl E n Q) (TraceFireN tr tl E n Q')
+    iframe H
+    iintro H
+    iapply traceFireN_mono tr tl E n Q Q'
+    iframe HW H
+
+/-- `HookGateN`'s monotonicity. -/
+theorem hookGateN_mono (tr : Option GName) (r : Loc) (E : TraceEv → Prop) (n : Nat) (Q Q' : IProp GF) :
+    iprop((Q -∗ Q') ∗ HookGateN tr r E n Q) ⊢ HookGateN tr r E n Q' := by
+  iintro ⟨HW, H⟩
+  iunfold HookGateN at H
+  iunfold HookGateN
+  imod H with ⟨%tl, #Htl, H⟩
+  imodintro
+  iexists tl
+  iframe Htl
+  iapply traceFireN_mono tr tl E n Q Q'
+  iframe HW H
+
+/-- `HookGate`'s monotonicity. -/
+theorem hookGate_mono (tr : Option GName) (r : Loc) (E : TraceEv → Prop) (Q Q' : IProp GF) :
+    iprop((Q -∗ Q') ∗ HookGate tr r E Q) ⊢ HookGate tr r E Q' := by
+  iintro ⟨HW, H⟩
+  iunfold HookGate at H
+  iunfold HookGate
+  imod H with ⟨%tl, #Htl, H⟩
+  imodintro
+  iexists tl
+  iframe Htl
+  iapply traceFire_mono tr tl E Q Q'
+  iframe HW H
+
+/-- `HookGate` is `HookGateN` at one event. -/
+theorem hookGate_n1 (tr : Option GName) (r : Loc) (E : TraceEv → Prop) (Q : IProp GF) :
+    HookGate tr r E Q ⊢ HookGateN tr r E 1 Q := by
+  iintro H
+  iunfold HookGate at H
+  iunfold HookGateN
+  imod H with ⟨%tl, #Htl, H⟩
+  imodintro
+  iexists tl
+  iframe Htl
+  simp only [TraceFireN, TraceFireOpt]
+  iexact H
+
+/-- `HookGate` gives the optional gate at `some E` (the untraced nil logger from `TraceFire`'s). -/
+theorem hookGate_opt (tr : Option GName) (r : Loc) (E : TraceEv → Prop) (Q : IProp GF) :
+    HookGate tr r E Q ⊢ HookGateOpt tr r (some E) Q := by
+  iintro H
+  iunfold HookGate at H
+  iunfold HookGateOpt
+  imod H with ⟨%tl, #Htl, H⟩
+  imodintro
+  iexists tl
+  iframe Htl
+  simp only [TraceFireOpt]
+  cases tr with
+  | none =>
+    simp only [TraceFire]
+    icases H with ⟨%Hok, HQ⟩
+    iframe HQ
+    isplitr
+    · ipureintro; intro _; exact Hok
+    ipureintro; exact Hok
+  | some γd =>
+    iframe H
+    ipureintro; intro h; cases h
+
+/-- The chain of the untraced lines' updates: `Rs j` to `Rs (j + n)`. -/
+theorem fxChain_none (γ : RaftNames) (id : w64) (E : TraceEv → Prop)
+    (Φs : Nat → List w64 → ServerC → List Etcdraft.Msg → Prop) (Rs : Nat → IProp GF) :
+    ∀ (n j : Nat), iprop(Rs j ∗ [∗list] k ∈ List.range' j n,
+        (Rs k -∗ FxPresUT none γ id E (Φs k) (Φs (k + 1)) (Rs (k + 1)))) ⊢ |==> Rs (j + n)
+  | 0, j => by
+    iintro ⟨HR, -⟩
+    imodintro
+    iexact HR
+  | n + 1, j => by
+    rw [List.range'_succ]
+    iintro ⟨HR, H, Hrest⟩
+    simp only [FxPresUT]
+    imod H $$ HR with HR
+    have h := fxChain_none γ id E Φs Rs n (j + 1)
+    rw [show j + 1 + n = j + (n + 1) by omega] at h
+    simp only [FxPresUT] at h
+    iapply h
+    iframe HR Hrest
+
+/-- The traced lines in a row: `n` laws (`trCap_fire_any`), from the phase `Φs j` to `Φs (j + n)`,
+each line's facts taking the previous one's resource. -/
+theorem trCap_fireN (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (tl : GoInterface)
+    (E : TraceEv → Prop) (Φs : Nat → List w64 → ServerC → List Etcdraft.Msg → Prop)
+    (Λ' : Option TraceEv → Prop) (Rs : Nat → IProp GF) (N : Nat)
+    (hps : ∀ k < N, PhaseStepB id c E (Φs k) (Φs (k + 1)))
+    (hnb : ∀ e, E e → Etcdraft.isBootstrapName (TraceSim.gsStr e.name) = false)
+    (hΛ : ∀ e, E e → Λ' (some e)) (hOk : ∀ e, E e → TraceEv.Ok (elements c.incoming).length e) :
+    ∀ (n j : Nat) (b : Bool) (Λ : Option TraceEv → Prop), j + n ≤ N →
+      iprop(trCapB (some γd) γ r id c b (Φs j) Λ ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗ Rs j ∗
+        [∗list] k ∈ List.range' j n,
+          (Rs k -∗ FxPresUT (some γd) γ id E (Φs k) (Φs (k + 1)) (Rs (k + 1)))) ⊢
+      TraceFireN (some γd) tl E n
+        iprop(trCapB (some γd) γ r id c (if n = 0 then b else true) (Φs (j + n))
+          (if n = 0 then Λ else Λ') ∗ Rs (j + n))
+  | 0, j, b, Λ, _ => by
+    simp only [TraceFireN, TraceFireOpt, ↓reduceIte, Nat.add_zero]
+    iintro ⟨Hcap, -, HR, -⟩
+    iframe Hcap HR
+  | n + 1, j, b, Λ, hle => by
+    rw [List.range'_succ]
+    simp only [TraceFireN, Nat.add_one_ne_zero, ↓reduceIte]
+    iintro ⟨Hcap, #Htl, HR, H, Hrest⟩
+    simp only [FxPresUT]
+    ihave Hfx := H $$ HR
+    iapply traceFire_mono (some γd) tl E iprop(trCapB (some γd) γ r id c true (Φs (j + 1)) Λ' ∗ Rs (j + 1))
+    isplitl [Hrest]
+    · iintro ⟨Hcap, HR⟩
+      have h := trCap_fireN γd γ r id c tl E Φs Λ' Rs N hps hnb hΛ hOk n (j + 1) true Λ' (by omega)
+      rw [show j + 1 + n = j + (n + 1) by omega] at h
+      simp only [ite_self, FxPresUT] at h
+      iapply h
+      iframe Hcap Htl HR Hrest
+    iapply trCap_fire_any γd γ r id c tl E b (Φs j) (Φs (j + 1)) Λ Λ' (Rs (j + 1)) (hps j (by omega))
+      (fun _ => hnb) hΛ hOk
+    iframe Hcap Htl Hfx
+
+/-- **`n` lines in a row, either mode** (`traceReplicate`'s gate, `HookGateN`): the logger `tl0` (nil
+when untraced), the capability in phase `Φs 0`, the resource `Rs 0` and the lines' chained facts give
+the gate, whose updates leave the capability in phase `Φs n` (booted once a line has fired) and
+`Rs n`. -/
+theorem trCapB_hookGateN (tr : Option GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM)
+    (tl0 : GoInterface) (E : TraceEv → Prop) (b : Bool)
+    (Φs : Nat → List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ Λ' : Option TraceEv → Prop)
+    (Rs : Nat → IProp GF) (n : Nat)
+    (hps : ∀ k < n, PhaseStepB id c E (Φs k) (Φs (k + 1)))
+    (hnb : ∀ e, E e → Etcdraft.isBootstrapName (TraceSim.gsStr e.name) = false)
+    (hΛ : ∀ e, E e → Λ' (some e)) (hOk : tr.isSome → ∀ e, E e → TraceEv.Ok (elements c.incoming).length e)
+    (hok : tr = none → TraceLoggerOk tl0) :
+    (r.[raft, go!"traceLogger"] ↦□ tl0 ∗ trCapB tr γ r id c b (Φs 0) Λ ∗ Rs 0 ∗
+        ([∗list] k ∈ List.range n, (Rs k -∗ FxPresUT tr γ id E (Φs k) (Φs (k + 1)) (Rs (k + 1)))) :
+        IProp GF) ⊢
+      HookGateN tr r E n iprop(trCapB tr γ r id c (if n = 0 then b else true) (Φs n)
+        (if n = 0 then Λ else Λ') ∗ Rs n) := by
+  rw [List.range_eq_range']
+  cases tr with
+  | none =>
+    simp only [trCapB]
+    iintro ⟨#Hl, -, HR, Hch⟩
+    iunfold HookGateN
+    have h := fxChain_none γ id E Φs Rs n 0
+    rw [Nat.zero_add] at h
+    imod h $$ [$HR $Hch] with HR
+    imodintro
+    iexists tl0
+    iframe Hl
+    iapply traceFireN_of_none rfl tl0 E (hok rfl) _ n
+    iframe HR
+  | some γd =>
+    iintro ⟨-, Hcap, HR, Hch⟩
+    icases trCapB_logger γd γ r id c b (Φs 0) Λ $$ Hcap with ⟨%tl, #Htl, Hcap⟩
+    iunfold HookGateN
+    imodintro
+    iexists tl
+    iframe Htl
+    have h := trCap_fireN γd γ r id c tl E Φs Λ' Rs n hps hnb hΛ (hOk rfl) n 0 b Λ (by omega)
+    rw [Nat.zero_add] at h
+    iapply h
+    iframe Hcap Htl HR Hch
+
+/-- **A message line, either mode** (`send`'s gate at a traced type, `HookGateOpt` at `some E`): as
+`trCapB_hookGate`, the line not a bootstrap line whatever the `booted` flag. -/
+theorem trCapB_hookGateOpt (tr : Option GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM)
+    (tl0 : GoInterface) (E : TraceEv → Prop) (b : Bool)
+    (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ Λ' : Option TraceEv → Prop) (R' : IProp GF)
+    (hps : PhaseStepB id c E Φ Φ')
+    (hnb : ∀ e, E e → Etcdraft.isBootstrapName (TraceSim.gsStr e.name) = false)
+    (hΛ : ∀ e, E e → Λ' (some e)) (hOk : tr.isSome → ∀ e, E e → TraceEv.Ok (elements c.incoming).length e)
+    (hok : tr = none → TraceLoggerOk tl0) :
+    (r.[raft, go!"traceLogger"] ↦□ tl0 ∗ trCapB tr γ r id c b Φ Λ ∗ FxPresUT tr γ id E Φ Φ' R' : IProp GF) ⊢
+      HookGateOpt tr r (some E) iprop(trCapB tr γ r id c true Φ' Λ' ∗ R') := by
+  iintro H
+  iapply hookGate_opt
+  iapply trCapB_hookGate tr γ r id c tl0 E b Φ Φ' Λ Λ' R' hps (fun _ => hnb) hΛ hOk hok $$ H
+
+/-- The self-acknowledgement's gate (`send`'s, at `MsgAppResp`): its one `SendAppendEntriesResponse`
+event. -/
+theorem sendOutGate_selfAck (id : w64) (s : NState) (c : CfgM) :
+    sendOutGate id s c MsgAppResp [selfAck id s] = some (SendEvOf (W64 11) id s c (selfAck id s)) := by
+  unfold sendOutGate
+  have h : (mtypeOf MsgAppResp).bind sendEvt = some (W64 11) := rfl
+  rw [h]
+  simp only [Option.map_some, List.mem_singleton, exists_eq_left]
+
+/-- **`r.appendEntry(es...)` on the capability** (the accept path): one `Replicate` line per normal
+entry of the batch (`normalCount ents`, the phases `Φs 0` to `Φs n`, each line's facts taking the
+previous one's resource: the caller's update creating the entry records, round 6's F1), then the
+self-acknowledgement's `SendAppendEntriesResponse` line (phase `Φs n` to `Φ'`, at the state with the
+batch appended). On the reject path nothing is traced and everything comes back. -/
+theorem raft.appendEntry.traced (h : raft.appendEntry.spec (GF := GF) (hG := hG))
+    (c : CfgM) (r : Loc) (id : w64) (s : NState) (es : GoSlice) (ents : List EntryM) (dq : DFrac)
+    (m : Nat) (γ : RaftNames) (b : Bool) (Φs : Nat → List w64 → ServerC → List Etcdraft.Msg → Prop)
+    (Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ Λ' ΛA : Option TraceEv → Prop)
+    (Rs : Nat → IProp GF) (R' : IProp GF)
+    (hsmall : (ents.length : Int) < 2^61) (hterm : s.term ≠ W64 0)
+    (hps : ∀ k < normalCount ents, PhaseStepB id c (NodeEvOf (W64 5) id s c) (Φs k) (Φs (k + 1)))
+    (hΛ : ∀ e, NodeEvOf (W64 5) id s c e → Λ' (some e))
+    (hOk : s.gh.tr.isSome → ∀ e, NodeEvOf (W64 5) id s c e → TraceEv.Ok (elements c.incoming).length e)
+    (hpsA : PhaseStepB id c (SendEvOf (W64 11) id
+        { s with logst := logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) } c
+        (selfAck id { s with logst := logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }))
+        (Φs (normalCount ents)) Φ')
+    (hΛA : ∀ e, SendEvOf (W64 11) id
+        { s with logst := logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) } c
+        (selfAck id { s with logst := logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }) e →
+        ΛA (some e))
+    (hOkA : s.gh.tr.isSome → ∀ e, SendEvOf (W64 11) id
+        { s with logst := logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) } c
+        (selfAck id { s with logst := logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }) e →
+        TraceEv.Ok (elements c.incoming).length e) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
+        entsPts es dq ents ∗ ⧖ m ∗ trCapB s.gh.tr γ r id c b (Φs 0) Λ ∗ Rs 0 ∗
+        ([∗list] k ∈ List.range (normalCount ents),
+          (Rs k -∗ FxPresUT s.gh.tr γ id (NodeEvOf (W64 5) id s c) (Φs k) (Φs (k + 1)) (Rs (k + 1)))) ∗
+        (Rs (normalCount ents) -∗ FxPresUT s.gh.tr γ id (SendEvOf (W64 11) id
+          { s with logst := logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) } c
+          (selfAck id { s with logst := logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }))
+          (Φs (normalCount ents)) Φ' R') }}
+      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"appendEntry")) (Val #es))
+    {{ (accepted : Bool), RET #accepted;
+        ⧖ (m + ents.length) ∗ ⌜(∀ e ∈ ents, e.Data' = []) → accepted = true⌝ ∗ entsPts es dq ents ∗
+        if accepted then
+          ownRaftPhysCV c c.voters r id
+            (sendMsgs
+              { s with logst := logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }
+              [selfAck id
+                { s with logst := logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }]) ∗
+            trCapB s.gh.tr γ r id c true Φ' ΛA ∗ R'
+        else
+          ownRaftPhysCV c c.voters r id s ∗ trCapB s.gh.tr γ r id c b (Φs 0) Λ ∗ Rs 0 ∗
+            ([∗list] k ∈ List.range (normalCount ents),
+              (Rs k -∗ FxPresUT s.gh.tr γ id (NodeEvOf (W64 5) id s c) (Φs k) (Φs (k + 1)) (Rs (k + 1)))) ∗
+            (Rs (normalCount ents) -∗ FxPresUT s.gh.tr γ id (SendEvOf (W64 11) id
+              { s with logst := logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) } c
+              (selfAck id { s with logst := logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }))
+              (Φs (normalCount ents)) Φ' R') }} := by
+  iintro %Ψ ⟨#Hpkg, Hphys, Hes, #Hrc, Hcap, HR0, Hch, HfxA⟩ HΨ
+  icases trCapB_logger0 c c.voters r id s γ b (Φs 0) Λ $$ [$Hphys $Hcap]
+    with ⟨%tl0, #Htl0, %Hok0, Hphys, Hcap⟩
+  iapply h c r id s es ents dq m
+    iprop(trCapB s.gh.tr γ r id c b (Φs 0) Λ ∗ Rs 0 ∗
+      ([∗list] k ∈ List.range (normalCount ents),
+        (Rs k -∗ FxPresUT s.gh.tr γ id (NodeEvOf (W64 5) id s c) (Φs k) (Φs (k + 1)) (Rs (k + 1)))) ∗
+      (Rs (normalCount ents) -∗ FxPresUT s.gh.tr γ id (SendEvOf (W64 11) id { s with logst := logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) } c (selfAck id { s with logst := logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }))
+        (Φs (normalCount ents)) Φ' R'))
+    iprop((trCapB s.gh.tr γ r id c (if normalCount ents = 0 then b else true) (Φs (normalCount ents))
+        (if normalCount ents = 0 then Λ else Λ') ∗ Rs (normalCount ents)) ∗
+      (Rs (normalCount ents) -∗ FxPresUT s.gh.tr γ id (SendEvOf (W64 11) id { s with logst := logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) } c (selfAck id { s with logst := logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }))
+        (Φs (normalCount ents)) Φ' R'))
+    iprop(trCapB s.gh.tr γ r id c true Φ' ΛA ∗ R') hsmall hterm $$ [Hphys Hes Hcap HR0 Hch HfxA]
+  · iframe Hpkg Hphys Hes Hrc
+    isplitl [Hcap HR0 Hch HfxA]
+    · iapply to_named
+      iframe Hcap HR0 Hch HfxA
+    isplitr
+    · iintro ⟨Hcap, HR0, Hch, HfxA⟩
+      iapply hookGateN_mono s.gh.tr r _ _
+        iprop(trCapB s.gh.tr γ r id c (if normalCount ents = 0 then b else true) (Φs (normalCount ents))
+          (if normalCount ents = 0 then Λ else Λ') ∗ Rs (normalCount ents))
+      isplitl [HfxA]
+      · iintro HG1
+        iframe HG1 HfxA
+      iapply trCapB_hookGateN s.gh.tr γ r id c tl0 _ b Φs Λ Λ' Rs (normalCount ents) hps
+        (fun e he => nodeEvOf_notBoot he (by decide) (by decide) (by decide)) hΛ hOk Hok0
+      iframe Htl0 Hcap HR0 Hch
+    · iintro ⟨⟨Hcap, HRn⟩, HfxA⟩
+      ihave HfxA := HfxA $$ HRn
+      rw [sendOutGate_selfAck]
+      iapply trCapB_hookGateOpt s.gh.tr γ r id c tl0 _ _ (Φs (normalCount ents)) Φ' _ ΛA R' hpsA
+        (fun e he => sendEvOf_notBoot he (by decide) (by decide) (by decide)) hΛA hOkA Hok0
+      iframe Htl0 Hcap HfxA
+  inext
+  iintro %acc ⟨Hrc', %Hemp, Hes, Hif⟩
+  iapply HΨ $$ %acc
+  iframe Hrc' Hes
+  isplitr
+  · ipureintro; exact Hemp
+  cases acc with
+  | true =>
+    simp only [↓reduceIte]
+    icases Hif with ⟨Hphys, Hcap, HR⟩
+    iframe Hphys Hcap HR
+  | false =>
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    icases Hif with ⟨Hphys, Hcap, HR0, Hch, HfxA⟩
+    iframe Hphys Hcap HR0 Hch HfxA
+
+/-- **`r.becomeLeader()` on the capability**: the `BecomeLeader` line (of `becomeLeaderPre`; its facts'
+update is where the new leader's term log is created, round 5's E1), the empty entry's `Replicate`
+line (its facts taking the term log: where the entry's record is created, round 6's F1) and the
+self-acknowledgement's `SendAppendEntriesResponse` (at `becomeLeaderLog`), each by its law, the
+facts chained `R1`, `R2`, `R'`. -/
+theorem raft.becomeLeader.traced (h : raft.becomeLeader.spec (GF := GF) (hG := hG))
+    (c : CfgM) (r : Loc) (id : w64) (s : NState) (γ : RaftNames) (b : Bool)
+    (Φ Φ1 Φ2 Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ Λ1 Λ2 Λ' : Option TraceEv → Prop)
+    (R1 R2 R' : IProp GF)
+    (hrole : s.role ≠ .follower) (hnl : s.role ≠ .leader) (hterm : s.term ≠ W64 0)
+    (hps1 : PhaseStepB id c (NodeEvOf (W64 3) id (becomeLeaderPre id s) c) Φ Φ1)
+    (hΛ1 : ∀ e, NodeEvOf (W64 3) id (becomeLeaderPre id s) c e → Λ1 (some e))
+    (hOk1 : s.gh.tr.isSome → ∀ e, NodeEvOf (W64 3) id (becomeLeaderPre id s) c e →
+      TraceEv.Ok (elements c.incoming).length e)
+    (hps2 : PhaseStepB id c (NodeEvOf (W64 5) id (becomeLeaderPre id s) c) Φ1 Φ2)
+    (hΛ2 : ∀ e, NodeEvOf (W64 5) id (becomeLeaderPre id s) c e → Λ2 (some e))
+    (hOk2 : s.gh.tr.isSome → ∀ e, NodeEvOf (W64 5) id (becomeLeaderPre id s) c e →
+      TraceEv.Ok (elements c.incoming).length e)
+    (hps3 : PhaseStepB id c (SendEvOf (W64 11) id (becomeLeaderLog id s) c
+      (selfAck id (becomeLeaderLog id s))) Φ2 Φ')
+    (hΛ3 : ∀ e, SendEvOf (W64 11) id (becomeLeaderLog id s) c (selfAck id (becomeLeaderLog id s)) e →
+      Λ' (some e))
+    (hOk3 : s.gh.tr.isSome → ∀ e, SendEvOf (W64 11) id (becomeLeaderLog id s) c
+      (selfAck id (becomeLeaderLog id s)) e → TraceEv.Ok (elements c.incoming).length e) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
+        trCapB s.gh.tr γ r id c b Φ Λ ∗
+        FxPresUT s.gh.tr γ id (NodeEvOf (W64 3) id (becomeLeaderPre id s) c) Φ Φ1 R1 ∗
+        (R1 -∗ FxPresUT s.gh.tr γ id (NodeEvOf (W64 5) id (becomeLeaderPre id s) c) Φ1 Φ2 R2) ∗
+        (R2 -∗ FxPresUT s.gh.tr γ id (SendEvOf (W64 11) id (becomeLeaderLog id s) c
+          (selfAck id (becomeLeaderLog id s))) Φ2 Φ' R') }}
+      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"becomeLeader")) (Val #()))
+    {{ (pvs : GMap w64 Progress), RET #();
+        ownRaftPhysCV c c.voters r id { becomeLeader id s with prvals := pvs } ∗
+        ⌜prvalsMatch pvs = resetMatched id (logLast s.logst) s.prvals⌝ ∗
+        trCapB s.gh.tr γ r id c true Φ' Λ' ∗ R' }} := by
+  iintro %Ψ ⟨#Hpkg, Hphys, Hcap, Hfx1, Hfx2, Hfx3⟩ HΨ
+  icases trCapB_logger0 c c.voters r id s γ b Φ Λ $$ [$Hphys $Hcap]
+    with ⟨%tl0, #Htl0, %Hok0, Hphys, Hcap⟩
+  iapply h c r id s
+    iprop(trCapB s.gh.tr γ r id c b Φ Λ ∗
+      FxPresUT s.gh.tr γ id (NodeEvOf (W64 3) id (becomeLeaderPre id s) c) Φ Φ1 R1 ∗
+      (R1 -∗ FxPresUT s.gh.tr γ id (NodeEvOf (W64 5) id (becomeLeaderPre id s) c) Φ1 Φ2 R2) ∗
+      (R2 -∗ FxPresUT s.gh.tr γ id (SendEvOf (W64 11) id (becomeLeaderLog id s) c
+        (selfAck id (becomeLeaderLog id s))) Φ2 Φ' R'))
+    iprop((trCapB s.gh.tr γ r id c true Φ1 Λ1 ∗ R1) ∗
+      (R1 -∗ FxPresUT s.gh.tr γ id (NodeEvOf (W64 5) id (becomeLeaderPre id s) c) Φ1 Φ2 R2) ∗
+      (R2 -∗ FxPresUT s.gh.tr γ id (SendEvOf (W64 11) id (becomeLeaderLog id s) c
+        (selfAck id (becomeLeaderLog id s))) Φ2 Φ' R'))
+    iprop((trCapB s.gh.tr γ r id c true Φ2 Λ2 ∗ R2) ∗
+      (R2 -∗ FxPresUT s.gh.tr γ id (SendEvOf (W64 11) id (becomeLeaderLog id s) c
+        (selfAck id (becomeLeaderLog id s))) Φ2 Φ' R'))
+    iprop(trCapB s.gh.tr γ r id c true Φ' Λ' ∗ R')
+    hrole hnl hterm $$ [Hphys Hcap Hfx1 Hfx2 Hfx3]
+  · iframe Hpkg Hphys
+    isplitl [Hcap Hfx1 Hfx2 Hfx3]
+    · iapply to_named
+      iframe Hcap Hfx1 Hfx2 Hfx3
+    isplitr
+    · iintro ⟨Hcap, Hfx1, Hfx2, Hfx3⟩
+      iapply hookGate_mono s.gh.tr r _ iprop(trCapB s.gh.tr γ r id c true Φ1 Λ1 ∗ R1)
+      isplitl [Hfx2 Hfx3]
+      · iintro HG1
+        iframe HG1 Hfx2 Hfx3
+      iapply trCapB_hookGate s.gh.tr γ r id c tl0 _ b Φ Φ1 Λ Λ1 R1 hps1
+        (fun _ e he => nodeEvOf_notBoot he (by decide) (by decide) (by decide)) hΛ1 hOk1 Hok0
+      iframe Htl0 Hcap Hfx1
+    isplitr
+    · iintro ⟨⟨Hcap, HR1⟩, Hfx2, Hfx3⟩
+      ihave Hfx2 := Hfx2 $$ HR1
+      iapply hookGateN_mono s.gh.tr r _ 1 iprop(trCapB s.gh.tr γ r id c true Φ2 Λ2 ∗ R2)
+      isplitl [Hfx3]
+      · iintro HG2
+        iframe HG2 Hfx3
+      iapply hookGate_n1
+      iapply trCapB_hookGate s.gh.tr γ r id c tl0 _ true Φ1 Φ2 Λ1 Λ2 R2 hps2
+        (fun _ e he => nodeEvOf_notBoot he (by decide) (by decide) (by decide)) hΛ2 hOk2 Hok0
+      iframe Htl0 Hcap Hfx2
+    · iintro ⟨⟨Hcap, HR2⟩, Hfx3⟩
+      ihave Hfx3 := Hfx3 $$ HR2
+      rw [sendOutGate_selfAck]
+      iapply trCapB_hookGateOpt s.gh.tr γ r id c tl0 _ true Φ2 Φ' Λ2 Λ' R' hps3
+        (fun e he => sendEvOf_notBoot he (by decide) (by decide) (by decide)) hΛ3 hOk3 Hok0
+      iframe Htl0 Hcap Hfx3
+  inext
+  iintro %pvs ⟨Hphys, %Hm, Hcap, HR⟩
+  iapply HΨ $$ %pvs
+  iframe Hphys Hcap HR
+  ipureintro; exact Hm
 
 end ghost
 
