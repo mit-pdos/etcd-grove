@@ -131,7 +131,6 @@ axiom proto.CloneConfState.wp_proof
 axiom proto.CloneEntry.wp_proof
 axiom proto.ClonePb.wp_proof
 axiom proto.CloneSnapshot.wp_proof
-axiom proto.EqualConfState.wp_proof
 axiom proto.Marshal.wp_proof
 axiom proto.MarshalAppendPb.wp_proof
 axiom proto.MarshalConfChange.wp_proof
@@ -174,6 +173,7 @@ axiom storage.OpenBackend.wp_proof
 axiom storage.storage.Release.wp_proof
 axiom strconv.FormatUint.wp_proof
 axiom strings.TrimSuffix.wp_proof
+axiom swMsgBound_phys
 axiom time.Duration.Seconds.wp_proof
 axiom time.Time.Unix.wp_proof
 axiom trace.SpanFromContext.wp_proof

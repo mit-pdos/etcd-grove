@@ -116,6 +116,7 @@ axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.disconnectedPe
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.errMemberNotFound_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.errorsNewVarsInit
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.initFuncsOk
+axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.linkHeartbeatMessage_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.linkHeartbeatSize_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.receivedBytes_init
@@ -258,7 +259,7 @@ axiom Perennial.k8s_io.apiserver.pkg.endpoints.request.opaqueInitsOk
 axiom Perennial.k8s_io.apiserver.pkg.features.init_0_ok
 axiom Perennial.k8s_io.apiserver.pkg.features.opaqueInitsOk
 axiom Perennial.k8s_io.apiserver.pkg.storage.etcd3.klogWrapper_toLoggerV2
-axiom Perennial.k8s_io.apiserver.pkg.storage.etcd3.metrics.ErrTransactionConflict_init
+axiom Perennial.k8s_io.apiserver.pkg.storage.etcd3.metrics.errorsNewVarsInit
 axiom Perennial.k8s_io.apiserver.pkg.storage.etcd3.metrics.opaqueInitsOk
 axiom Perennial.k8s_io.apiserver.pkg.storage.feature.DefaultFeatureSupportChecker_init
 axiom Perennial.k8s_io.apiserver.pkg.storage.feature.opaqueInitsOk
@@ -592,7 +593,6 @@ axiom proto.CloneConfState.wp_proof
 axiom proto.CloneEntry.wp_proof
 axiom proto.ClonePb.wp_proof
 axiom proto.CloneSnapshot.wp_proof
-axiom proto.EqualConfState.wp_proof
 axiom proto.Marshal.wp_proof
 axiom proto.MarshalAppendPb.wp_proof
 axiom proto.MarshalConfChange.wp_proof
@@ -664,6 +664,7 @@ axiom strconv.ParseInt.wp_proof
 axiom streamKeyFromCtx.wp_proof
 axiom strings.SplitN.wp_proof
 axiom strings.TrimSuffix.wp_proof
+axiom swMsgBound_phys
 axiom time.Duration.Seconds.wp_proof
 axiom time.Duration.Seconds_ptr.wp_proof
 axiom time.Duration.String_ptr.wp_proof
@@ -725,4 +726,3 @@ axiom zap.Strings.wp_proof
 axiom zap.Uint.wp_proof
 axiom zap.Uint32.wp_proof
 axiom zap.Uint64.wp_proof
-sorry out_size

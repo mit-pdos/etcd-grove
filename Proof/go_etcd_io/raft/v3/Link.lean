@@ -123,7 +123,6 @@ public import Proof.go_etcd_io.raft.v3.pbEntryID
 public import Proof.google_golang_org.protobuf.proto.CloneConfState
 public import Proof.google_golang_org.protobuf.proto.CloneEntry
 public import Proof.google_golang_org.protobuf.proto.CloneSnapshot
-public import Proof.google_golang_org.protobuf.proto.EqualConfState
 public import Proof.google_golang_org.protobuf.proto.MarshalConfChange
 public import Proof.google_golang_org.protobuf.proto.MarshalConfChangeV2
 public import Proof.google_golang_org.protobuf.proto.SizeEntry
@@ -268,6 +267,9 @@ public import Proof.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
 public import Proof.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetTerm
 public import Proof.go_etcd_io.raft.v3.raftpb.Snapshot__GetData
 public import Proof.go_etcd_io.raft.v3.raftpb.Snapshot__GetMetadata
+public import Proof.go_etcd_io.raft.v3.raftpb.boolOf
+public import Proof.go_etcd_io.raft.v3.raftpb.confStatesEqual
+public import Proof.go_etcd_io.raft.v3.raftpb.idsEqual
 public import Proof.crypto.rand.Int
 public import Proof.go_etcd_io.raft.v3.readOnly__AckedIndex
 public import Proof.go_etcd_io.raft.v3.readOnly__addRequest
@@ -665,13 +667,21 @@ theorem tracker.ProgressTracker.wp_ConfState :
     tracker.ProgressTracker.ConfState.spec (GF := GF) (hG := hG) :=
   tracker.ProgressTracker.ConfState.wp_proof quorum.MajorityConfig.wp_Slice
 
-theorem proto.wp_EqualConfState :
-    proto.EqualConfState.spec (GF := GF) (hG := hG) :=
-  proto.EqualConfState.wp_proof
+theorem raftpb.wp_idsEqual :
+    raftpb.idsEqual.spec (GF := GF) (hG := hG) :=
+  raftpb.idsEqual.wp_proof
+
+theorem raftpb.wp_boolOf :
+    raftpb.boolOf.spec (GF := GF) (hG := hG) :=
+  raftpb.boolOf.wp_proof
+
+theorem raftpb.wp_confStatesEqual :
+    raftpb.confStatesEqual.spec (GF := GF) (hG := hG) :=
+  raftpb.confStatesEqual.wp_proof raftpb.wp_idsEqual raftpb.wp_boolOf
 
 theorem raftpb.ConfState.wp_Equivalent :
     raftpb.ConfState.Equivalent.spec (GF := GF) (hG := hG) :=
-  raftpb.ConfState.Equivalent.wp_proof proto.wp_CloneConfState slices.wp_Sort raftpb.ConfState.wp_GetAutoLeave proto.wp_EqualConfState
+  raftpb.ConfState.Equivalent.wp_proof proto.wp_CloneConfState slices.wp_Sort raftpb.ConfState.wp_GetAutoLeave raftpb.wp_confStatesEqual
 
 theorem wp_assertConfStatesEquivalent [StorageModel GF] :
     assertConfStatesEquivalent.spec (GF := GF) (hG := hG) :=

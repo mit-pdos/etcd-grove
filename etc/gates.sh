@@ -153,11 +153,27 @@ fi
 
 # 9. the Go tests behind the closed theorems' premise fixes (examples/premisefix: Go's behavior a
 # premise or trust-boundary axiom was restated to; seconds once the packages are compiled)
-if (cd examples && GOWORK=off go test -count=1 ./premisefix/... > "$tmp/pf.log" 2>&1); then
+# (premise fixes 3: skipped while the examples module holds none, `go test` failing on no packages)
+if [ -z "$(cd examples && GOWORK=off go list ./premisefix/... 2>/dev/null)" ]; then
+  echo "premisefix: none in the examples module"
+elif (cd examples && GOWORK=off go test -count=1 ./premisefix/... > "$tmp/pf.log" 2>&1); then
   echo "premisefix: ok ($(grep -c '^ok' "$tmp/pf.log") packages)"
 else
   echo "premisefix: FAILED"; tail -20 "$tmp/pf.log"; fail=1
 fi
+# 9b. ... and those in a Go module of their own under examples/premisefix (a test that needs a
+# dependency the examples module does not require: premise fixes 3, k8s.io/apiserver), which
+# `./premisefix/...` above skips
+pfn=0
+for m in $(find examples/premisefix -mindepth 2 -name go.mod 2>/dev/null | sort); do
+  d=$(dirname "$m")
+  if (cd "$d" && GOWORK=off go test -count=1 ./... > "$tmp/pfn.log" 2>&1); then
+    pfn=$((pfn + 1))
+  else
+    echo "premisefix $d: FAILED"; tail -20 "$tmp/pfn.log"; fail=1
+  fi
+done
+echo "premisefix (own modules): $pfn ok"
 
 [ "$fail" = 0 ] && echo "gates: all passed" || echo "gates: FAILED"
 exit $fail
