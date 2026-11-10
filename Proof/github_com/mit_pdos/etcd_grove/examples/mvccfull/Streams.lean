@@ -272,6 +272,11 @@ def streamInv (σs : StreamNames) : IProp GF :=
     ghostMapAuth σs.reg (1 : Qp).half W ∗ ghostVar σs.cn (1 : Qp).half C ∗
     (⌜regOk' S W C⌝ ∨ ⌜S.closed = true⌝ ∗ ∃ rs : List WResp, wsRecv σs.ws rs))
 
+/-- **The lock's half of the registry**, with every entry's fragment (so that the registrar, under
+`s.mu` and with the stream's invariant opened, can mark an entry cancelled, `ghost_map_update`). -/
+def regLock (σs : StreamNames) (W : GMap w64 Reg) : IProp GF :=
+  iprop(ghostMapAuth σs.reg (1 : Qp).half W ∗ [∗map] id ↦ x ∈ W, id ↪[σs.reg] x)
+
 /-- **A registered watcher under `s.mu`** (see the file header): its struct, its range's slices
 (read-only), the stream's sent count at its registration, and `watcherOk`. -/
 def watcherOwn' (Hl : List HRev) (rs : List WResp) (ws : WsName) (id : w64) (x : Reg) : IProp GF :=
@@ -286,7 +291,7 @@ def smuBody (T : Strm) (rs : List WResp) (W : GMap w64 Reg) (Hl : List HRev) (P 
     (∃ (osl : GoSlice) (ids : List w64), sF go!"order" T.s ↦ osl ∗ osl ↦* ids ∗
       ownSliceCap w64 osl (DFrac.own 1) ∗ ⌜ids.Nodup ∧ ∀ id, id ∈ ids ↔ (W !! id).isSome⌝) ∗
     sF go!"eventless" T.s ↦ P ∗
-    ghostMapAuth T.σs.reg (1 : Qp).half W ∗ ghostVar T.σs.rcv (1 : Qp).half rs ∗
+    regLock T.σs W ∗ ghostVar T.σs.rcv (1 : Qp).half rs ∗
     monoListLbOwn T.ep.γh.l Hl ∗ ⌜rcvKnown' rs W ∧ eventlessOk rs P⌝ ∗
     [∗map] id ↦ x ∈ W, watcherOwn' Hl rs T.σs.ws id x)
 
@@ -357,8 +362,8 @@ theorem recv_facts (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG))
     (hrok : mvcc.api.wsRecv_ok.law (GF := GF) (hG := hG))
     (T : Strm) (q : Qp) (rs : List WResp) (W : GMap w64 Reg) :
     epLive T.ep q ∗ inv streamN (streamInv T.σs) ∗ isMvccWatchStream T.ws T.ep.ι.kv T.σs.ws ∗
-        wsRecv T.σs.ws rs ∗ ghostMapAuth T.σs.reg (1 : Qp).half W ⊢
-      |={⊤}=> epLive T.ep q ∗ wsRecv T.σs.ws rs ∗ ghostMapAuth T.σs.reg (1 : Qp).half W ∗
+        wsRecv T.σs.ws rs ∗ regLock (GF := GF) T.σs W ⊢
+      |={⊤}=> epLive T.ep q ∗ wsRecv T.σs.ws rs ∗ regLock T.σs W ∗
         ∃ (σ : MvccState) (S : StreamState) (C : List w64), readQ T.ep.ks T.ep.γh T.ep.m σ ∗
           ⌜wsRecvOk σ S rs ∧ (∀ lo, onceUpTo σ.notifiedLog lo σ.crev) ∧ regOk' S W C ∧
             LogWf' σ.notifiedLog ∧ σ.notifiedLog.length < 2 ^ 63⌝ := by
@@ -372,6 +377,8 @@ theorem recv_facts (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG))
     unfold memberInv memberState; infer_instance
   have hm := streamN_apart_memberN T.ep.i
   iintro ⟨Hlive, #Hsinv, #Hws, Hrcv, Hreg⟩
+  iunfold regLock at Hreg
+  icases Hreg with ⟨Hreg, Hfr⟩
   iunfold epLive at Hlive
   iunfold incLive at Hlive
   iunfold isInc at Hlive
@@ -410,6 +417,8 @@ theorem recv_facts (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG))
   · inext; iunfold memberInv; ileft; iunfold memberState
     iexists σ, b, Hl; iframe; iframe #; ipureintro; exact Hok
   imodintro
+  ihave Hreg : regLock T.σs W' $$ [Hreg Hfr]
+  · iunfold regLock; iframe
   iframe Hrcv Hreg
   isplitl [Hret]
   · iunfold epLive; iunfold incLive; iunfold isInc; iframe; iframe #

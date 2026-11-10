@@ -123,6 +123,8 @@ theorem smu_alloc (T : Strm) :
   iexists [], ∅, [], W64 0
   iunfold smuBody
   rw [GMap.fmap_empty]
+  ihave Hreg : regLock T.σs (∅ : GMap w64 Reg) $$ [Hreg]
+  · iunfold regLock; iframe; iapply BigSepM.bigSepM_empty.2; itrivial
   iframe Hwm Hevl Hreg Hrcv Hlb
   isplitl [Hord]
   · iexists slice.nil, []
