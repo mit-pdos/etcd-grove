@@ -201,6 +201,78 @@ theorem writerOwn_ops (x : Loc) (ks : List GoString) (cfg : Config) (h : Loc) (�
   · iexists qw0, nw0, k0; iunfold memW; iframe; ipureintro; exact Hl0
   · iexists qw1, nw1, k1; iunfold memW; iframe; ipureintro; exact Hl1
 
+/-- **Member 0's store, for `checkLeases`**: its `memCore`, the history's reader slot and lower
+bound at its count; and back. -/
+theorem writerOwn_check0 (x : Loc) (ks : List GoString) (cfg : Config) (h : Loc) (γ : FullNames)
+    (mp0 mp1 : Loc) (f0 f1 : GoFunc) (ops : List OpM) (v0 v1 : MemS) (nv nb : Nat) (q qs : Qp) :
+    writerOwn (GF := GF) x ks cfg h γ mp0 mp1 f0 f1 ops v0 v1 nv nb q qs ⊢
+      ∃ (qw : Qp) (nw k : Nat), memCore ks γ.h ops 0 mp0 γ.m0 f0 v0 qw nw k ∗ histRd h γ.h ∗
+        monoListLbOwn γ.h.l (histAt ks ops v0.ops) ∗ ⌜logOk ks ops⌝ ∗
+        (memCore ks γ.h ops 0 mp0 γ.m0 f0 v0 qw nw k -∗ histRd h γ.h -∗
+          writerOwn x ks cfg h γ mp0 mp1 f0 f1 ops v0 v1 nv nb q qs) := by
+  iintro Hown
+  iunfold writerOwn at Hown
+  icases Hown with ⟨Hms, Hreg0, Hreg1, Hlog, Hctrs, HhW, Hrd, %HopsA, %HnbA, Hfiles,
+    ⟨%qw0, %nw0, %k0, Hm0, %Hl0⟩, ⟨%qw1, %nw1, %k1, Hm1, %Hl1⟩, Hss0, Hss1, Hadd⟩
+  iunfold memW at Hm0
+  icases Hm0 with ⟨Ho, Hh, Hc⟩
+  ihave %Hlok : ⌜logOk ks ops⌝ $$ [Hlog]
+  · iunfold logOwn at Hlog; icases Hlog with ⟨%sl, %ps, -, -, -, %Hlp, -⟩; ipureintro; exact Hlp.2
+  icases histW_lb γ.h _ _ $$ HhW with ⟨HhW, #Hlb⟩
+  ihave #Hlb' := monoListLbOwn_le (histAt ks ops v0.ops)
+    (runM_hs_prefix ks ops v0.ops ops.length (by omega)) $$ Hlb
+  iexists qw0, nw0, k0
+  iframe Hc Hrd Hlb'
+  isplitr
+  · ipureintro; exact Hlok
+  iintro Hc Hrd
+  iunfold writerOwn
+  dsimp only
+  iframe Hms Hreg0 Hreg1 Hlog Hctrs HhW Hrd Hfiles Hss0 Hss1 Hadd
+  isplitr
+  · ipureintro; exact HopsA
+  isplitr
+  · ipureintro; exact HnbA
+  isplitl [Ho Hh Hc]
+  · iexists qw0, nw0, k0; iunfold memW; iframe; ipureintro; exact Hl0
+  · iexists qw1, nw1, k1; iframe; ipureintro; exact Hl1
+
+/-- **Member 1's store, for `checkLeases`**: its `memCore`, the history's reader slot and lower
+bound at its count; and back. -/
+theorem writerOwn_check1 (x : Loc) (ks : List GoString) (cfg : Config) (h : Loc) (γ : FullNames)
+    (mp0 mp1 : Loc) (f0 f1 : GoFunc) (ops : List OpM) (v0 v1 : MemS) (nv nb : Nat) (q qs : Qp) :
+    writerOwn (GF := GF) x ks cfg h γ mp0 mp1 f0 f1 ops v0 v1 nv nb q qs ⊢
+      ∃ (qw : Qp) (nw k : Nat), memCore ks γ.h ops 1 mp1 γ.m1 f1 v1 qw nw k ∗ histRd h γ.h ∗
+        monoListLbOwn γ.h.l (histAt ks ops v1.ops) ∗ ⌜logOk ks ops⌝ ∗
+        (memCore ks γ.h ops 1 mp1 γ.m1 f1 v1 qw nw k -∗ histRd h γ.h -∗
+          writerOwn x ks cfg h γ mp0 mp1 f0 f1 ops v0 v1 nv nb q qs) := by
+  iintro Hown
+  iunfold writerOwn at Hown
+  icases Hown with ⟨Hms, Hreg0, Hreg1, Hlog, Hctrs, HhW, Hrd, %HopsA, %HnbA, Hfiles,
+    ⟨%qw0, %nw0, %k0, Hm0, %Hl0⟩, ⟨%qw1, %nw1, %k1, Hm1, %Hl1⟩, Hss0, Hss1, Hadd⟩
+  iunfold memW at Hm1
+  icases Hm1 with ⟨Ho, Hh, Hc⟩
+  ihave %Hlok : ⌜logOk ks ops⌝ $$ [Hlog]
+  · iunfold logOwn at Hlog; icases Hlog with ⟨%sl, %ps, -, -, -, %Hlp, -⟩; ipureintro; exact Hlp.2
+  icases histW_lb γ.h _ _ $$ HhW with ⟨HhW, #Hlb⟩
+  ihave #Hlb' := monoListLbOwn_le (histAt ks ops v1.ops)
+    (runM_hs_prefix ks ops v1.ops ops.length (by omega)) $$ Hlb
+  iexists qw1, nw1, k1
+  iframe Hc Hrd Hlb'
+  isplitr
+  · ipureintro; exact Hlok
+  iintro Hc Hrd
+  iunfold writerOwn
+  dsimp only
+  iframe Hms Hreg0 Hreg1 Hlog Hctrs HhW Hrd Hfiles Hss0 Hss1 Hadd
+  isplitr
+  · ipureintro; exact HopsA
+  isplitr
+  · ipureintro; exact HnbA
+  isplitl [Hm0]
+  · iexists qw0, nw0, k0; iframe; ipureintro; exact Hl0
+  · iexists qw1, nw1, k1; iunfold memW; iframe; ipureintro; exact Hl1
+
 end lemmas
 
 end mvccfull
