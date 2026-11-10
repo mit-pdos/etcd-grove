@@ -60,6 +60,16 @@ theorem bndOk_commit (ks : List GoString) (σ : MvccState) (pend : List Change) 
   · unfold histOkM at h9 ⊢; rw [hcn]; exact h9
   · unfold onceUpToAll at h10 ⊢; rw [hcn]; exact h10
 
+/-- **The lessor's items after the commit are the pending ones.** -/
+theorem pendItems_commit (σ : MvccState) (pend : List Change) :
+    pendItems (commitSt σ pend).log [] = pendItems σ.log pend := by
+  rw [commitSt_log]
+  unfold commitLog
+  by_cases hp : pend = []
+  · subst hp; simp
+  · simp only [hp, ↓reduceIte]
+    rw [pendItems_nil, stateAfter_append]
+
 end model
 
 section lemmas
@@ -230,6 +240,78 @@ theorem endCb_txnEnd {ty : go.GoType} {v : val}
   iapply HΦ
   iframe
   iunfold incW; iframe; iframe #
+
+/-- **A write transaction's begin at a live incarnation** (`KV.Write`): the state unchanged,
+nothing pending (the writer's half pins it at `σf`). -/
+theorem write_au (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG)) (ks : List GoString)
+    (γh : HistNames) (i : Nat) (mp : Loc) (m : MemberNames) (ι : IncNames) (kv : GoInterface)
+    (qw : Qp) (σf : MvccState) (_hpn : σf.pending = none) :
+    isInc (GF := GF) ks γh i mp m ι kv ∗ ghostVar ι.ret qw () ∗ ghostVar m.σ (1 : Qp).half σf ⊢
+      AU <{ ∃∃ (σ : MvccState), mvccState ι.kv σ }> @ ⊤ \ ↑mvccN, ∅
+        <{ ⌜σ.pending = none⌝ ∗ mvccState ι.kv σ,
+           COMM (fun (σ : MvccState) => iprop(⌜σ = σf⌝ ∗ ghostVar ι.ret qw () ∗
+             ghostVar m.σ (1 : Qp).half σf)) σ }> := by
+  haveI := memberInv_timeless hpers ks γh mp m ι
+  have Hm := memberN_mask i
+  unfold isInc
+  iintro ⟨⟨#Hinv, -⟩, Hret, Hσw⟩
+  iauintro
+  unfold atomic_acc
+  iinv Hinv with >Hi Hclose
+  iunfold memberInv at Hi
+  icases Hi with (Hs | Hr)
+  rotate_left
+  · icombine Hret Hr gives %Hq0
+    obtain ⟨Hq, -⟩ := Hq0
+    exfalso
+    have h := Qp.le_iff.mp Hq
+    simp only [Qp.val_add, Qp.val_one] at h
+    have := qw.2
+    grind
+  iunfold memberState at Hs
+  icases Hs with ⟨%σ, %b0, %Hl, Hs, Hσi, Hrest⟩
+  ihave %Hag := ghostVar_agree m.σ _ _ _ _ $$ Hσi Hσw
+  subst Hag
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (⊤ \ ↑mvccN) \ ↑(memberN i) from
+    Std.LawfulSet.empty_subset)
+  iintro Hclose2
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iexists σ
+  iframe Hs
+  isplit
+  · iintro Hs
+    imod Hclose2 with -
+    imod Hclose $$ [Hs Hσi Hrest] with -
+    · inext; iunfold memberInv; ileft; iunfold memberState; iexists σ, b0, Hl; iframe
+    imodintro
+    iframe
+  · iintro ⟨-, Hs⟩
+    imod Hclose2 with -
+    imod Hclose $$ [Hs Hσi Hrest] with -
+    · inext; iunfold memberInv; ileft; iunfold memberState; iexists σ, b0, Hl; iframe
+    imodintro
+    iframe
+    ipureintro; rfl
+
+/-- **A read transaction's `End`** gives the reader token back. -/
+theorem end_readT {ty : go.GoType} {v : val}
+    (hEnd : mvcc.api.Txn.End.contract (GF := GF) (hG := hG) ty v)
+    (γ : MvccName) (trace : Loc) (σ : MvccState) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+        mvccTxn (interface.mkOk ty v) γ trace (.read σ) }}
+      (App (Val #(methods ty go!"End" v)) (Val #()))
+    {{ RET #(); mvccReaders γ 1 }} := by
+  have hB : Nonempty MvccStorage := by
+    refine ⟨etcdStorage ⟨?_, ∅, 0, W64 0, null, ?_, false⟩⟩
+    · constructor <;> first | exact default | (constructor <;> exact default)
+    · exact default
+  obtain ⟨B⟩ := hB
+  iintro %Φ ⟨#Hpkg, Htx⟩ HΦ
+  iapply (hEnd γ trace (.read σ) 1 B iprop(True) iprop(True)) $$ [Htx]
+  · iframe Hpkg Htx
+  inext
+  iintro ⟨Hrdr, -⟩
+  iapply HΦ; iframe
 
 end lemmas
 
