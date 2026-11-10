@@ -19,11 +19,18 @@ Build: `flock /shared/tmp/etcd-grove-build.lock systemd-run --scope -q -p Memory
    `rnSetLoggerOk` deleted; dropped from `newRaftNode`/`bootstrappedRaft.newRaftNode`/`NewServer`'s
    specs, `NodeStart`, `etcdstart.commonPremises`, `OneMember`, putget3/auth/leaseexpiry's bags and
    every `icases Hprem` pattern.
-2. Go tests for fixes 3-5 (`examples/premisefix/{httpmux,httppath,fmtarg}`), passing at go1.27.3.
+   Full build green (d168bb2f5e), interfaces regenerated (raft `Base`, `SetLogger`; etcdstart
+   `Defs`/`OneMember`), tcb baseline and every collection unchanged.
+2. Sweep (fix 2): no other conjunct has the pattern; open items for the coordinator: `mvcc.keySized`
+   (`#Hsz` in `bootstrapContract`'s post, mvccrand's `Hks`: possibly refutable, nothing bounds
+   `rtHeld`'s bucket), `ContextReadErrs`/`ContextErrsClient` (provable but for `descs`: `errDesc`
+   opaque), `#Hmembers` (stronger than `Members.spec`), bboltfs `Hinit_wp`. Checkpoint (a) report.
+3. Go tests for fixes 3-5 (`examples/premisefix/{httpmux,httppath,fmtarg}`), passing at go1.27.3.
 
 ## Next, in order
 
-- checkpoint (a): report fix 1 + the sweep table (fix 2); stop.
+- checkpoint (a) reported; await the coordinator's answer.
+- draft restatements for 3-5: `/shared/tmp/premise-fixes-4/restatements-draft.md`.
 - fixes 3-5: restatements to the coordinator (checkpoint (b)), then implement.
 - fix 6 (docstrings), interfaces, tcb + collections, gates, checkpoint (c).
 
