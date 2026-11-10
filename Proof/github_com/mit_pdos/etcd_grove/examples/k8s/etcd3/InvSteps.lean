@@ -1144,7 +1144,7 @@ theorem listOutDriver_err (x : Input) (R : w64) (a : ListModel.LState w8 (DObj �
 /-- A list never answers `EOther`. -/
 theorem lOut_ans (x : Input) (σ : KVState) (hx : InOk x) (hk4 : x.Kind' = W64 4) :
     ansOf (lOut x σ) = .ok (lOut x σ) := by
-  obtain ⟨-, -, -, hks⟩ := hx.2.2.2.2.2 hk4
+  obtain ⟨-, -, -, hks, -⟩ := hx.2.2.2.2.2 hk4
   obtain ⟨n, hn, -⟩ := hx.2.2.2.2.1
   obtain ⟨k, hk⟩ := Option.isSome_iff_exists.1 hks
   unfold ansOf lOut

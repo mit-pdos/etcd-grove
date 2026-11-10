@@ -22,6 +22,11 @@ public import Spec.k8s_io.apiserver.pkg.storage.etcd3.store__Create
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.store__Delete
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.store__GuaranteedUpdate
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.store__Get
+public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.listOptions
+public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.listOut
+public import Spec.k8s_io.apiserver.pkg.storage.etcd3.store__GetList
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.PredOk
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.ListContract
 public import Perennial.Proof.context.Link
 
 @[expose] public section
@@ -128,6 +133,18 @@ private theorem updObj_cases (x : Input) (o : DObj) :
     · right; simp [DObj.ofObj, updGo, hn]
   · left; rfl
 
+/-- The background context is never done (its `Done` returns `nil`). -/
+private theorem background_neverDone :
+    ⊢ ctxNeverDone (GF := GF) (GoInterface.ok context.backgroundCtxVal) := by
+  unfold ctxNeverDone
+  iexists context.backgroundCtxVal
+  isplitr
+  · ipureintro; rfl
+  imodintro
+  iintro %Φ HΦ
+  wp_apply context.wp_background_Done
+  iapply HΦ
+
 theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
     (wp_objOut : objOut.spec (GF := GF) (hG := hG))
     (wp_storeKey : storeKey.spec (GF := GF) (hG := hG))
@@ -139,12 +156,28 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
     (wp_Create : store.Create.spec (GF := GF) (hG := hG))
     (wp_Delete : store.Delete.spec (GF := GF) (hG := hG))
     (wp_Update : store.GuaranteedUpdate.spec (GF := GF) (hG := hG))
-    (wp_Get : store.Get.spec (GF := GF) (hG := hG)) :
+    (wp_Get : store.Get.spec (GF := GF) (hG := hG))
+    (wp_listOptions : listOptions.spec (GF := GF) (hG := hG))
+    (wp_listOut : listOut.spec (GF := GF) (hG := hG))
+    (wp_GetList : store.GetList.spec (GF := GF) (hG := hG))
+    (wp_Matches : storage.SelectionPredicate.Matches.spec (GF := GF) (hG := hG))
+    (wp_Empty : storage.SelectionPredicate.Empty.spec (GF := GF) (hG := hG))
+    (wp_LM : labelSel.Matches.spec (GF := GF) (hG := hG))
+    (wp_LE : labelSel.Empty.spec (GF := GF) (hG := hG))
+    (wp_FM : fieldSel.Matches.spec (GF := GF) (hG := hG))
+    (wp_FE : fieldSel.Empty.spec (GF := GF) (hG := hG))
+    (wp_GA : getAttrs.spec (GF := GF) (hG := hG))
+    (wp_GetItemsPtr : apimeta.GetItemsPtr.spec (GF := GF) (hG := hG))
+    (wp_MakeSlice : reflect.MakeSlice.spec (GF := GF) (hG := hG))
+    (wp_Copy : reflect.Copy.spec (GF := GF) (hG := hG))
+    (wp_Append : reflect.Append.spec (GF := GF) (hG := hG))
+    (wp_DecodeListItem : decoder.DecodeListItem.spec (GF := GF) (hG := hG))
+    (wp_UpdateList : versioner.UpdateList.spec (GF := GF) (hG := hG)) :
     call.spec (GF := GF) (hG := hG) := by
-  intro _ _ _ sp c eD eU x W _ Φu Q QL PL hc hAs hse hpl htb hkey hpp hx hvl hD1 hQ hQL hQLP
+  intro _ _ _ sp c eD eU x W _ Φu Q QL PL hc hrp hdi hvi hAs hse hpl htb hkey hpp hx hvl hD1 hQ hQL hQLP
   have hkl : (c.pathPrefix ++ storeKeyL x.Key').length ≤ 2 ^ 27 := by
     rw [hpp]; have := wkKeysL_len _ hx.1; simp [mkeyL, storeKeyL]; omega
-  wp_start as ⟨#Hst, #HD, #HU, #Hca, Htt, Hpre⟩
+  wp_start as ⟨#Hst, #HD, #HU, #Hca, #Hrs, Htt, Hpre⟩
   wp_auto
   wp_apply context.wp_Background
   imod client.background_ctx (GF := GF) hAs with ⟨%cd, #Hctx, #Hce⟩
@@ -153,6 +186,73 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
   icases Hi with ⟨-, -, -, #HvD, #HvU⟩
   by_cases h4 : x.Kind' = W64 4
   · -- List
+    isimp only [if_pos h4] at Hpre
+    iunfold listPre at Hpre
+    icases Hpre with ⟨HQm, #HPm⟩
+    obtain ⟨hm, hlk, hlim, hks, hkl4⟩ := hx.2.2.2.2.2 h4
+    obtain ⟨n, hn, hn63⟩ := hx.2.2.2.2.1
+    obtain ⟨k, hk⟩ := Option.isSome_iff_exists.1 hks
+    rw [decide_eq_true h4]
+    wp_auto
+    wp_apply wp_listOptions
+    (try wp_auto)
+    icases (typedPointsto_not_null_dup _ _ _) $$ «$r0» with ⟨Hl0, %Hn0⟩
+    iStructNamed Hl0
+    have e1 : (zero_val github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.ObjList).Items' = slice.nil := rfl
+    have e2 : (zero_val github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.ObjList).ResourceVersion' =
+      (0 : w64) := rfl
+    have e3 : (zero_val github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.ObjList).Continue' = [] := rfl
+    have e4 : (zero_val github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.ObjList).RemainingItemCount' =
+      null := rfl
+    isimp only [e1] at Items
+    isimp only [e2] at ResourceVersion
+    isimp only [e3] at Continue
+    isimp only [e4] at RemainingItemCount
+    ihave Hlist : (driverListSpec (GF := GF)).listAt
+        (interface.mkOk (go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.ObjList.ty)
+          #«$r0_ptr») [] 0 [] none $$ [Items ResourceVersion Continue RemainingItemCount]
+    · unfold ListSpec.listAt ListSpec.listAtItems driverListSpec
+      iexists «$r0_ptr»
+      isplitr
+      · ipureintro; rfl
+      isplitr
+      · ipureintro; exact Hn0
+      iexists slice.nil
+      isplitl [Items]
+      · iexact Items
+      isplitr
+      · iapply (itemsAtD_nil (GF := GF))
+      unfold metaAtD
+      dsimp only
+      iframe ResourceVersion Continue
+      iexists null
+      iframe RemainingItemCount
+      unfold remIs
+      ipureintro; rfl
+    ihave #Hsel := predOk_driver wp_Matches wp_Empty wp_LM wp_LE wp_FM wp_FE wp_GA x $$ Hpkg
+    ihave #Hlc := driver_listContractOk wp_GetItemsPtr wp_MakeSlice wp_Copy wp_Append
+      wp_DecodeListItem wp_UpdateList c hc hdi hvi $$ [Hpkg]
+    · iframe Hpkg; isplitr <;> iPkgInit
+    ihave #Hnd := background_neverDone (GF := GF)
+    have hpre : c.pathPrefix = go!"/registry" := by
+      unfold mkeyL at hpp; exact List.append_cancel_right hpp
+    have hkk := prepareKeyM_eq _ _ _ _ hk
+    wp_apply (wp_GetList DObj sp c driverListSpec context.backgroundCtxVal cd x.ListKey' (listOptsV x)
+        _ 0 [] none k n (selD x) (predEmptyL x) QL PL hQL hQLP) $$ [Hlist Htt HQm] as %err0 ⟨Htt, Hres⟩
+    · rw [hc]
+      iframe #
+      iframe Htt Hlist HQm
+      isplitr
+      · ipureintro
+        refine ⟨by rw [hrp]; exact hk, ?_, hn, ?_, rfl, hn63, hlim⟩
+        · rw [hpre, hkk]; unfold opKeyMax; split <;> simp <;> omega
+        · simp only [listOptsV, matchOptL]
+          split
+          · simp
+          · split <;> simp
+      isplitr
+      · unfold listOptsV; dsimp only; iexact Hsel
+      ipureintro; exact htb
     sorry
   isimp only [if_neg h4] at Hpre
   rw [decide_eq_false h4]

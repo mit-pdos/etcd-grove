@@ -93,13 +93,13 @@ abbrev wkKeysL : List GoString :=
 /-- **An input `Gen` may return**, as far as the model needs: its key one of the workload's, its
 UID, node and app fit an object's, its minimum resource version parses (stage 7b), below `2^63`;
 a list's match one of the three, its key under the resource prefix, its limit not negative (stage
-7e-4: `refine_list`'s and `GetList`'s premises), a key `PrepareKey` takes. -/
+7e-4: `refine_list`'s and `GetList`'s premises), a key `PrepareKey` takes, short (a request's key). -/
 def InOk (x : Input) : Prop :=
   x.Key' ∈ wkKeysL ∧ x.UID'.length < 256 ∧ x.Node'.length < 256 ∧ x.App'.length < 256 ∧
     (∃ n, parseRVD x.MinRV' = some n ∧ uint.Z n < 2 ^ 63) ∧
     (x.Kind' = W64 4 → (x.Match' = W64 0 ∨ x.Match' = W64 1 ∨ x.Match' = W64 2) ∧
       go!"/objs/" <+: x.ListKey' ∧ 0 ≤ sint.Z x.Limit' ∧
-      (k8s.prepareKeyM go!"/objs" x.ListKey' x.Recursive').isSome)
+      (k8s.prepareKeyM go!"/objs" x.ListKey' x.Recursive').isSome ∧ x.ListKey'.length ≤ 2 ^ 20)
 
 theorem wkKeysL_len (k : GoString) (h : k ∈ wkKeysL) : k.length ≤ 11 := by
   simp only [wkKeysL, List.mem_cons, List.not_mem_nil, or_false] at h
@@ -177,7 +177,7 @@ def lOut (x : Input) (σ : KVState) : Output :=
 /-- **On related states a list answers the driver's model** (7e-3c's `refine_list`). -/
 theorem refine_lOut (x : Input) (h : HSt) (σ : KVState) (hrel : KRelH h σ) (hx : InOk x)
     (hk4 : x.Kind' = W64 4) : lOut x σ = mlistL x h := by
-  obtain ⟨hm, hlk, -, hks⟩ := hx.2.2.2.2.2 hk4
+  obtain ⟨hm, hlk, -, hks, -⟩ := hx.2.2.2.2.2 hk4
   obtain ⟨n, hn, -⟩ := hx.2.2.2.2.1
   obtain ⟨k, hk⟩ := Option.isSome_iff_exists.1 hks
   have := refine_list x h σ k n hrel hm hlk hk hn

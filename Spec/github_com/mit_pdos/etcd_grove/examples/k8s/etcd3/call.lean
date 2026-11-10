@@ -14,11 +14,14 @@ precondition on an update (`CachedNoRV`, the scope premise D1 of stage 7b,
 `errors.As`'s target (the client's context lemma). Stage 7e-4: a list (`listPre`: `GetList`'s
 updates, the first page's result at the answer's state), `ETooLarge`, the client's errors no
 `APIStatus` (`clientErrPlain`, pending 7c-3), the thread token lent by `lintest` and the thread
-bound `GetList` needs.
+bound `GetList` needs; for a list, the store's resource prefix, decoder and versioner the driver's
+(`driver_listContractOk`) and the feature gate's `EtcdRangeStream` off (`rangeStreamOff`, from
+`noStreaming`).
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Calls
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Contract
 
 @[expose] public section
 
@@ -48,7 +51,7 @@ abbrev call.spec : Prop :=
     (sp : Loc) (c : StoreCfg GF DObj) (eD eU : GoInterface) (x : Input) (W : IProp GF)
     [Timeless W] (Φ : KVState → IProp GF) (Q : w64 → w64 → KVState → IProp GF)
     (QL : w64 → KVState → IProp GF) (PL : KVState → KVState → IProp GF),
-  c.S = driverSpec →
+  c.S = driverSpec → c.resourcePrefix = go!"/objs" → c.di = decoderI → c.vi = versionerI →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty → storageErrTyOk →
   clientErrPlain (sem := sem) → threadBound GF ≤ 2 ^ 30 - 1 →
   prepareKeyM c.resourcePrefix (storeKeyL x.Key') false = some (storeKeyL x.Key') →
@@ -61,7 +64,7 @@ abbrev call.spec : Prop :=
       isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ k8s.isStore sp c ∗
       globalAddr github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errDeleteRejected ↦□ eD ∗
       globalAddr github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errUpdateRejected ↦□ eU ∗
-      cachedIn c x ∗ threadTok ∗
+      cachedIn c x ∗ rangeStreamOff ∗ threadTok ∗
       (if x.Kind' = W64 4 then listPre c QL PL else callPre c eD eU x W Φ Q) }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.call))
       (Val #(interface.mkOk (go.GoType.PointerType k8s_io.apiserver.pkg.storage.etcd3.store.ty)
