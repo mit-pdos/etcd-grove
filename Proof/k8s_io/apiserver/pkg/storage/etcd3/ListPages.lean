@@ -260,6 +260,131 @@ theorem chunkL_all {α O : Type} (sel : O → Bool) (lim : Nat) (hs : ∀ x, sel
     refine ⟨?_, h2⟩
     rw [h1]; simp only [List.length_cons]; omega
 
+/-! ## A page of the scope, and the list at a `break` -/
+
+/-- A page's key-values are a prefix of the scope from its start, the count all of it. -/
+theorem pageKvsL_prefix (s : KVStore) (kp : GoString) (recur : Bool) (st : GoString) (l : Nat) :
+    fromL s kp recur st = (pageKvsL s kp recur st l).1 ++
+      (fromL s kp recur st).drop (pageKvsL s kp recur st l).1.length ∧
+    (pageKvsL s kp recur st l).2 = (fromL s kp recur st).length := by
+  refine ⟨?_, rfl⟩
+  rw [pageKvsL_eq]
+  by_cases hl : l = 0
+  · simp [hl]
+  · simp only [hl, ↓reduceIte]
+    rw [List.length_take]
+    by_cases h : l ≤ (fromL s kp recur st).length
+    · rw [Nat.min_eq_left h, List.take_append_drop]
+    · rw [Nat.min_eq_right (by omega), List.drop_length, List.append_nil,
+        List.take_of_length_le (by omega)]
+
+/-- The loop state after a page that follows the first `m` key-values of the scope. -/
+theorem chunkL_take_add {α : Type} (sel : Obj × α → Bool) (lim : Nat)
+    (sc pg1 rest : List EtcdKv) (m : Nat) (h : sc.drop m = pg1 ++ rest)
+    (f : List EtcdKv → List (GoString × (Obj × α))) (hf : ∀ a b, f (a ++ b) = f a ++ f b)
+    (st0 : LState w8 (Obj × α)) :
+    chunkL sel lim (chunkL sel lim st0 (f (sc.take m))) (f pg1) =
+      chunkL sel lim st0 (f (sc.take (m + pg1.length))) := by
+  rw [List.take_add, h, List.take_left' rfl, hf, chunkL_append]
+
+theorem drop_add_page (sc pg1 rest : List EtcdKv) (m : Nat) (h : sc.drop m = pg1 ++ rest) :
+    sc.drop (m + pg1.length) = rest := by
+  rw [← List.drop_drop, h, List.drop_left' rfl]
+
+/-- **The list at a `break`**: after a page with the loop state `st'` on the scope read so far,
+when the loop has more, or nothing is left, or the items are full, `kListL` answers `st'`'s items
+and last key, with more iff `st'` has or something is left. -/
+theorem kListL_final (dec : Dec Obj) (sel : Obj → Bool) (lim : Nat) (s : KVStore) (kp : GoString)
+    (recur : Bool) (m : Nat) (pg1 rest : List EtcdKv)
+    (hdrop : (scopeL s kp recur).drop m = pg1 ++ rest)
+    (hdec : ∀ kv ∈ scopeL s kp recur, dec kv.value ≠ none)
+    (st' : LState w8 (Obj × Nat))
+    (hst' : st' = chunkL (fun x => sel x.1) lim ⟨[], none, false, 0⟩
+      (decodedL dec ((scopeL s kp recur).take (m + pg1.length))))
+    (hcase : st'.more = true ∨ rest = [] ∨ (0 < lim ∧ lim ≤ st'.items.length)) :
+    (kListL dec sel lim kp recur s).items = st'.items ∧
+      (kListL dec sel lim kp recur s).last = st'.last ∧
+      (kListL dec sel lim kp recur s).more = decide (st'.more = true ∨ rest ≠ []) := by
+  obtain ⟨h1, h2, h3⟩ := kListL_agree dec sel lim kp recur s
+  have hsc : scopeL s kp recur = (scopeL s kp recur).take (m + pg1.length) ++ rest := by
+    rw [← drop_add_page _ _ _ _ hdrop, List.take_append_drop]
+  have heq : chunkL (fun x => sel x.1) lim ⟨[], none, false, 0⟩ (decodedL dec (scopeL s kp recur)) =
+      chunkL (fun x => sel x.1) lim st' (decodedL dec rest) := by
+    conv => lhs; rw [hsc]
+    rw [decodedL_append', chunkL_append, ← hst']
+  rw [h1, h2, h3, heq]
+  rcases hcase with hm | hr | hf
+  · rw [chunkL_more _ _ _ hm]
+    simp [hm]
+  · subst hr
+    cases hm : st'.more <;> simp [decodedL, chunkL, hm]
+  · cases rest with
+    | nil => cases hm : st'.more <;> simp [decodedL, chunkL, hm]
+    | cons x r =>
+      have hx : x ∈ scopeL s kp recur := by
+        have : x ∈ (scopeL s kp recur).drop m := by rw [hdrop]; simp
+        exact List.mem_of_mem_drop this
+      obtain ⟨d, hd⟩ : ∃ d, dec x.value = some d := Option.ne_none_iff_exists'.1 (hdec x hx)
+      have hD : decodedL dec (x :: r) = (x.key, (d.1, sint.nat x.modRev)) :: decodedL dec r := by
+        simp [decodedL, hd]
+      cases hm : st'.more
+      · rw [hD]
+        simp only [chunkL, hm, Bool.false_eq_true, ↓reduceIte]
+        have hl : lstep (fun x => sel x.1) lim st' (x.key, (d.1, sint.nat x.modRev)) =
+            { st' with total := st'.total + 1, more := true } := by
+          simp only [lstep]; simp [hf.1, hf.2]
+        rw [hl, chunkL_more _ _ _ rfl]
+        simp
+      · rw [chunkL_more _ _ _ hm]
+        simp [hm]
+
+theorem kListL_total (dec : Dec Obj) (sel : Obj → Bool) (lim : Nat) (s : KVStore) (kp : GoString)
+    (recur : Bool) (hdec : ∀ kv ∈ scopeL s kp recur, dec kv.value ≠ none) :
+    (kListL dec sel lim kp recur s).total = (scopeL s kp recur).length := by
+  rw [kListL_eq, loop_total, decodedL_length _ _ hdec]
+
+theorem scopeL_prefix (s : KVStore) (kp : GoString) (recur : Bool) (kv : EtcdKv)
+    (h : kv ∈ scopeL s kp recur) : kp <+: kv.key := by
+  have := (List.mem_filter.1 h).2
+  unfold kInScope at this
+  split at this
+  · exact of_decide_eq_true this
+  · rw [of_decide_eq_true this]; exact List.prefix_refl _
+
+theorem prepareKeyM_ne_nil (rp key k : GoString) (r : Bool) (h : prepareKeyM rp key r = some k) :
+    k ≠ [] := by
+  unfold prepareKeyM at h
+  split at h
+  · simp at h
+  split at h
+  · simp at h
+  split at h
+  · simp at h
+  rename_i h3
+  split at h
+  · simp at h
+    rw [← h.2]; simp
+  · simp at h
+    rw [← h.2]; intro he; exact h3 (Or.inl he)
+
+/-- **The first page with every item selected**: if it has more (it is then the limit's), the
+items are full after it. -/
+theorem page0_full (dec : Dec Obj) (sel : Obj → Bool) (hs : ∀ o, sel o = true) (lim : Nat)
+    (F pg1 : List EtcdKv) (hdec : ∀ kv ∈ F, dec kv.value ≠ none)
+    (hpg1 : pg1 = if lim = 0 then F else F.take lim) (hmore : pg1.length < F.length) :
+    0 < lim ∧ lim ≤ (chunkL (fun x => sel x.1) lim ⟨[], none, false, 0⟩
+      (decodedL dec pg1)).items.length := by
+  have hl0 : lim ≠ 0 := by intro h; rw [h] at hpg1; simp at hpg1; rw [hpg1] at hmore; omega
+  rw [ite_eq_right_iff.2 (fun h => absurd h hl0)] at hpg1
+  have hlen : pg1.length = lim := by rw [hpg1, List.length_take]; rw [hpg1] at hmore; simp at hmore; omega
+  have hd : (decodedL dec pg1).length = lim := by
+    rw [decodedL_length _ _ (fun kv h => hdec kv (by rw [hpg1] at h; exact List.mem_of_mem_take h)),
+      hlen]
+  obtain ⟨h1, -⟩ := chunkL_all (fun x : Obj × Nat => sel x.1) lim (fun x => hs x.1)
+    (decodedL dec pg1) (⟨[], none, false, 0⟩ : LState w8 (Obj × Nat)) rfl (Or.inr (by simp [hd]))
+  refine ⟨by omega, ?_⟩
+  rw [h1]; simp [hd]
+
 end pure
 
 end k8s
