@@ -1070,6 +1070,10 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   a`; the existing `phantomOf` gives it); (b) `FxPresR` given the bag's premises and a chain-determinism
   lemma; (c) `Pph` an argument of `Φ'`. **Recommended: (a)** (the smallest change; the law's proof
   passes `ph a` through unchanged). Not taken: a frozen statement.
+  **Taken by the coordinator (the freeze being delegated to it), pending the user's veto: (a)**, as
+  amendment A2 of the frozen Draft: the amendment on a branch, a spec-reviewer round on it, then a
+  re-freeze (tag `trace-check-frozen-a2`); meanwhile the local paths that log lines go on (they use no
+  receive line).
 - **Q13 (2026-11-09, layer B's exports): amending the frozen laws' event premise.** `mainPure` needs
   per-event facts (`ScopeOk`, `NumsBelow K`, `ConfsWithin 3`, `BootLogsOk`, an event count) that `simInv`
   cannot keep: the frozen `trCap_fire*` laws are generic in their events, four of them admit a
