@@ -63,6 +63,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccfull.Assumpt
 variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
+set_option maxHeartbeats 2000000 in
 theorem runner.apply.wp_proof
     (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
     (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG))
@@ -332,7 +333,166 @@ theorem runner.apply.wp_proof
   by_cases hk1 : o.kind = W64 1
   · -- a delete
     simp only [hk1, _root_.decide_true]
-    sorry
+    iunfold runnerKeys at Hks
+    icases Hks with ⟨%keys, #Hkeys, #Hksl, %Hsorted, %Hksne2⟩
+    ihave %Hksn := ownSlice_len $$ Hksl
+    have hksl : ks.length < 2 ^ 63 := by
+      have : sint.nat keys.len = (sint.Z keys.len).toNat := rfl
+      have := Hksn.1; have : sint.Z keys.len < 2 ^ 63 := by word
+      omega
+    obtain ⟨hlenH, hrevH, hreachH, hLok0, h63H, hmatchH, hpnH, hr40, honceH⟩ :=
+      member_facts ks Hsorted ops hlogOk hksl v.ops (by omega) h38
+    iunfold memCore at Hmc
+    icases Hmc with ⟨#Hid, #Hhook, HhookOk, Hpath, Hbe, Hle, Hkv, Hrev, Hcmp, Hleases, %Hvops,
+      Hinc, Hopen, Hback, #Hhk, Hrdrs, Hbk, Hles, %HU⟩
+    iunfold hookOk at HhookOk
+    icases HhookOk with ⟨%Hfnil, #Hhrun⟩
+    icases leadPre_lb γh ks ops v.ops lead $$ Hlead with ⟨Hlead, #Hlb⟩
+    -- `begin`
+    rw [← σOf_rev]
+    (try wp_auto)
+    wp_apply (wp_begin x ks h γh i mp m v.ι v.kv qw (σOf ks ops v.ops) v.b (histAt ks ops v.ops)
+      hlenH hpnH (by omega)) $$ [Hrd Hrev Hinc] as %pp ⟨Hrd, Hrev, Hinc, Hpp⟩
+    · iframe; iframe #
+    (try wp_auto)
+    -- `m.kv.Write(…)`, the hook run at `i`
+    iunfold incW at Hinc
+    icases Hinc with ⟨#Hisinc, Hret, Hσw, Hbw⟩
+    ihave #Hmv : isMvcc v.kv v.ι.kv $$ []
+    · iunfold isInc at Hisinc; icases Hisinc with ⟨-, #H⟩; iexact H
+    ihave %Hkvs := hsh.1 v.kv v.ι.kv $$ Hmv
+    obtain ⟨kty, kvv, hkveq, -, hKW, -⟩ := Hkvs
+    rw [hkveq]
+    have hR1 : mvccReaders (GF := GF) v.ι.kv nw ⊣⊢ mvccReaders v.ι.kv (nw - 1) ∗ mvccReaders v.ι.kv 1 := by
+      have := hRdSplit v.ι.kv (nw - 1) 1; rwa [Nat.sub_add_cancel hnw] at this
+    icases hR1.1 $$ Hrdrs with ⟨Hrdrs, Hr1⟩
+    wp_apply wp_traceTODO $$ [$Hpkt] as %trc ⟨%Htrn, Htrc⟩
+    (try wp_auto)
+    ihave Hau := write_au hpers ks γh i mp m v.ι (interface.mkOk kty kvv) qw (σOf ks ops v.ops) hpnH
+      $$ [Hret Hσw]
+    · iframe #; iframe
+    wp_apply (hKW v.ι.kv trc true 1 _ iprop(True) (hookPre mp (W64 ((v.ops + 1 : Nat) : Int)) s0)
+        iprop(True ∗ hookPost mp (W64 ((v.ops + 1 : Nat) : Int))) f
+        (fun σ' => iprop(⌜σ' = σOf ks ops v.ops⌝ ∗ ghostVar v.ι.ret qw () ∗
+          ghostVar m.σ (1 : Qp).half (σOf ks ops v.ops))))
+      $$ [Hr1 Htrc Hback Happ Hsav Hau]
+      as %tw ⟨Htrc, Hback, ⟨%σ0, Htw, %Hσ0, Hret, Hσw⟩, -, Hpost⟩
+    · iframe #; iframe
+      isplitr; · ipureintro; exact Htrn
+      isplitl; · iunfold hookPre; iframe; ipureintro; omega
+      iapply Hhrun
+    subst Hσ0
+    icases (persistent_entails_right (hsh.2.2.1 tw v.ι.kv trc (.write (σOf ks ops v.ops) [])))
+      $$ Htw with ⟨%Hsht, Htw⟩
+    obtain ⟨tty, tv, rfl, hTRev, -, -, hTPut, -, -, hTEnd⟩ := Hsht
+    (try wp_auto)
+    iunfold hookPost at Hpost
+    icases Hpost with ⟨Happ, Hsav⟩
+    wp_apply wp_checkHook x mp (W64 ((v.ops + 1 : Nat) : Int)) $$ [$Hsav] as Hsav
+    (try wp_auto)
+    -- `writeRange` of the range's previous values, `writeSub` of the delete
+    have hok0 : pendOk ks (σOf ks ops v.ops) (histAt ks ops v.ops) []
+        ⟨W64 ((histAt ks ops v.ops).length : Int), lastSt (histAt ks ops v.ops), []⟩ :=
+      ⟨rfl, by simpa [applyChanges] using hmatchH⟩
+    ihave #Hnil : (slice.nil ↦*□ ([] : List w8) : IProp GF) $$ []
+    · iapply ownSlice_nil
+    wp_apply (wp_writeRange x ks h γh mp v.ι.kv (interface.mkOk tty tv) trc true (σOf ks ops v.ops) []
+        (histAt ks ops v.ops) pp _ { key' := ov.key', end' := ov.end', ro' := zeroValDef }
+        ⟨o.key, o.e, o.endNil, zeroValDef⟩ hok0 hlenH hrevH hreachH hLok0 h63H)
+      $$ [Hrd Hcmp Htw Htrc Hpp] as ⟨Hrd, Hcmp, Htw, Htrc, Hpp⟩
+    · iframe; iframe #
+      isplitr
+      · iunfold runnerKeys; iexists keys; iframe #; ipureintro; exact ⟨Hsorted, Hksne2⟩
+      iunfold rangeIs; iframe #; ipureintro; simp [hendNil]
+    (try wp_auto)
+    iunfold lessorW at Hles
+    icases Hles with ⟨%rd, %r, #Hlpkg, #Hlinv, #Hlcfg, #Hguard, #Hrevoc, #Hlok, Hlrd, Hlo, Hrvk, Hever,
+      #Hreq, Hrdo, Hdel, Hlbe, Hrb, %Hrecs, Hstop⟩
+    let sm : SubM := ⟨W64 1, o.key, o.e, o.endNil, [], W64 0, ⟨[], [], true, zeroValDef⟩⟩
+    wp_apply (wp_writeSub x ks h γh mp v.ι.kv (interface.mkOk tty tv) trc true (σOf ks ops v.ops) []
+        (histAt ks ops v.ops) pp _ _ sm (leasesAfter ks ops v.ops) hok0 hlenH hrevH hreachH hLok0 h63H
+        (by simp only [List.length_nil]; have := HOps.2.2; omega)
+        ⟨fun h => absurd h (show ¬ (W64 1 : w64) = W64 0 by decide), fun _ c hc => by simp at hc⟩
+        (fun h => absurd h (show ¬ (W64 1 : w64) = W64 0 by decide)) Hkslen)
+      $$ [Hrd Hcmp Htw Htrc Hpp Hlo] as ⟨Hrd, Hcmp, %pend', ⟨%hokP, -, -⟩, Htw, Htrc, Hpp, Hlo⟩
+    · iframe; iframe #
+      isplitr
+      · iunfold runnerKeys; iexists keys; iframe #; ipureintro; exact ⟨Hsorted, Hksne2⟩
+      iunfold subIs; iframe #
+      isplitr
+      · iunfold rangeIs; isplitl; · iapply ownSlice_nil
+        isplitl; · iapply ownSlice_nil
+        ipureintro; exact ⟨rfl, rfl⟩
+      ipureintro; exact ⟨rfl, hendNil, rfl, rfl⟩
+    (try wp_auto)
+    -- `end` at `tw.End`
+    have hop : opPend ks (runM ks ops v.ops) o = subStep ks
+        (⟨W64 ((histAt ks ops v.ops).length : Int), lastSt (histAt ks ops v.ops), []⟩ : PendM) sm := by
+      unfold opPend subStep
+      simp only [hk1, sm, ↓reduceIte]
+      rfl
+    have hcr : cmpAfter ks ops (v.ops + 1) = cmpAfter ks ops v.ops :=
+      (runM_succ_pd ks ops v.ops o hov (Or.inr hk1)).1
+    obtain ⟨hσ1, hh1⟩ := σOf_succ_commit ks ops v.ops o hov _ (by rw [hop]; exact hokP) hcr
+    rw [hop] at hh1
+    obtain ⟨-, hhist1, -⟩ := logOk_hist ks Hsorted ops hlogOk (v.ops + 1) (v.ops + 1) (Nat.le_refl _) hvl
+    have honce1 := logOk_once ks Hsorted ops hlogOk (v.ops + 1)
+    rw [hσ1, hh1] at hhist1
+    rw [hσ1] at honce1
+    have hb1 : sint.Z (W64 ((σOf ks ops v.ops).rev + 1 : Int)) = (σOf ks ops v.ops).rev + 1 := by word
+    have hcrle := commitSt_rev_le (σOf ks ops v.ops) ([] ++ pend')
+      (by rw [← hlenH]; have := runM_hs_len ks ops v.ops; unfold histAt; omega)
+    ihave Hcb := endCb_txnEnd hpers hTEnd ks γh i mp m v.ι (interface.mkOk kty kvv) qw
+      (σOf ks ops v.ops) (v.b.1, W64 ((σOf ks ops v.ops).rev + 1 : Int), v.b.2.2) _ _ trc 1 (etcdStorage v.bk) hpnH
+      hhist1 honce1 (by simp only; rw [hb1]; omega)
+    ihave Hlead := leadPre_end γh ks ops v.ops lead _ hh1 $$ Hlead
+    ihave Hinc : incW ks γh i mp m v.ι (interface.mkOk kty kvv) qw (σOf ks ops v.ops)
+      (v.b.1, W64 ((σOf ks ops v.ops).rev + 1 : Int), v.b.2.2) $$ [Hret Hσw Hbw]
+    · iunfold incW; iframe; iframe #
+    wp_apply (wp_end x ks h γh i mp m v.ι (interface.mkOk kty kvv) qw (σOf ks ops v.ops)
+        (v.b.1, W64 ((σOf ks ops v.ops).rev + 1 : Int), v.b.2.2) (histAt ks ops v.ops)
+        (compsAt ks ops v.ops) pp _ _ _
+        iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+          mvccTxn (interface.mkOk tty tv) v.ι.kv trc
+            (.write (σOf ks ops v.ops) ([] ++ pend')) ∗
+          mvccBackend v.ι.kv 1 (etcdStorage v.bk) iprop(True))
+        (mvccBackend v.ι.kv 1 (etcdStorage v.bk) iprop(True)) lead hokP hlenH hpnH hb1 (by omega))
+      $$ [Hrd Hrev Hkv Hinc Hpp Hlead Hcb Htw Hback] as ⟨Hrd, Hrev, Hkv, Hinc, Hr1, Hback, Hlead⟩
+    · iframe; iframe #
+    (try wp_auto)
+    ihave Hrdrs := hR1.2 $$ [$Hrdrs $Hr1]
+    obtain ⟨-, hlz, hgz, hcz⟩ := runM_succ_pd ks ops v.ops o hov (Or.inr hk1)
+    iapply HΦ
+    iframe Hrd
+    isplitl [Hlead]
+    · iapply leadPost_end γh ks ops v.ops lead _ hh1 hcz; iexact Hlead
+    rw [← hσ1, ← hkveq]
+    iexists { v with ops := v.ops + 1, b := ((W64 ((σOf ks ops (v.ops + 1)).rev : Int),
+      W64 ((σOf ks ops (v.ops + 1)).rev : Int), v.b.2.2) : Bnd) }, k
+    isplitr
+    · ipureintro; exact ⟨⟨rfl, rfl, rfl, rfl, rfl⟩, rfl, by omega⟩
+    iunfold memW
+    iframe Hops
+    isplitl [Happ Hsav]
+    · iexists _, _; iunfold hookPre; iframe; ipureintro
+      have : sint.Z (W64 ((v.ops + 1 : Nat) : Int)) = v.ops + 1 := by word
+      refine ⟨Int.le_refl _, by omega, by simp only; omega⟩
+    iunfold memCore
+    dsimp only
+    rw [← σOf_rev, hcr, hlz, hgz]
+    iframe Hid Hhook
+    isplitr
+    · iunfold hookOk; iframe #; ipureintro; exact Hfnil
+    iframe Hpath Hbe Hle Hkv Hrev Hcmp Hopen Hback Hhk Hrdrs Hleases Hbk Hinc
+    isplitr
+    · ipureintro; exact hvl
+    isplitl
+    · iunfold lessorW
+      iexists rd, r
+      rw [hσ1, pendItems_commit]
+      iframe; iframe #
+      ipureintro; exact Hrecs
+    ipureintro; exact HU
   simp only [hk1, _root_.decide_false]
   (try wp_auto)
   by_cases hk2 : o.kind = W64 2
