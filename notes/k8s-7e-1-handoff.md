@@ -129,6 +129,10 @@ clause unprovable").
   today's `clientErr` conjunct `isLeafError` (`*fmt.wrapError` has `Unwrap`): a bound of the existing
   trusted statements, not only of the new conjunct. etcd's configuration excludes them: `Config.DialOptions`
   empty (required by `Client__dial`/`InvClientNew`), the resolver's service config has no retry policy,
-  etcd's `perRPCCredential` never errs. To check (decision): whether the trusted dial/credentials
+  etcd's `perRPCCredential` never errs. **Checked: `dialOptsAt` admits `.perRPCCreds pc` for any `pc` with
+  `perRPCCredsOk`, whose error may be any non-nil value with a non-handler description**, so path (1)/(2)
+  is open in the trust base as stated (a soundness finding on the existing `grpcInvokerOk`/`cliStreamErr`:
+  their `clientErr`'s `isLeafError` can be false). Recommended: `perRPCCredsOk`'s error clause becomes
+  `err = nil` (etcd's credential returns nil; its proof must then show it). Original question: whether the trusted dial/credentials
   statements (`dialOptsAt`, `perRPCCredsOk`) let a caller install credentials whose error carries a
   status or wraps one; if so, `perRPCCredsOk` should require it not to (etcd's returns nil).
