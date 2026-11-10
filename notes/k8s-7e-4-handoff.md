@@ -315,4 +315,30 @@ Pitfalls: `irename H => H'` (not `into`); `wp_join`'s `with [..]` hands only tho
 (include every pointer the bound `if` reads, e.g. `fs`); `assumption`/`decide` near huge `uint.Z` goals hit
 max recursion (use `exact h` / `simp only []; decide`); `split_ifs` does not exist (`repeat' split`).
 
-Next: Seed (8-field `Obj`, `HSt` with revisions 1-3), Check's spec and proof, Main*.
+Forms decided this session (report at the step-3 checkpoint): (1) `genList.spec` as above (a new
+callee spec; post only `GenIn`, which is all `genFrom`'s post needs); (2) `workloadNodes.spec`/
+`workloadApps.spec` (as `workloadVals.spec`); (3) internal lemmas `Calls.minRVL_ok`,
+`Calls.parseRVD_rvBytes`, `genFrom.wvsD_len/wndD_len/wapD_len`, `genList`'s private `LK`/`lk_genIn`.
+
+### Next: Seed (not started; stopped here for context, 2026-11-10)
+
+What is stale (`b13.log`): `Seed.lean` (keys `a`/`b`, the old 3-field `encodeWith`, `g0s : GSt`,
+`histOwn`), `Spec/.../seedOne.lean` and `seed.lean` (and their proofs), `Spec/.../Check.lean`.
+The Go now (`k8setcd3.go:1655-1684`): `seedOne(cli, st, k, rv)` puts `encodeV0(Obj{Namespace: ns,
+Name: name, Value: "x"})` at `Prefix+storeKey(k)` (`splitKey k`), fails unless the put's revision is
+`rv`, returns `{setItem(st.items, item{k, o with RV rv, canon false}), rv}`; `seed` returns `(s3,
+[]mstore{s1, s2, s3}, ok)` with `s1 = mstore{rv: 1}`, seeds `"ns-1/pod-1"` at 2, `"ns-2/pod-2"` at 3.
+Plan:
+1. `Seed.lean` pure: `v0 k := encodeWith tagV0 ⟨ns, name, "", "x", "", "", 0, false⟩` (check
+   `encodeV0`'s spec for the exact object), `seedOp`, `kvA`/`kvB` at `mkeyL "ns-1/pod-1"`/`"ns-2/pod-2"`,
+   items with 8-field `Obj`; `st1 := ⟨[], 1⟩`, `st2`, `st3`; **`g0s : HSt := ⟨st3, [st1, st2, st3]⟩`**;
+   `seed_krel : KRelH g0s σs2` (current store, `histAtL` at 1..3 against `σs2.at r`, mod revisions
+   `< 2^63`), `seed_wf`, `kvWfHist c σs2`, `keysOk σs2`, `g0s.hist.length = σs2.rev` (3).
+2. `kInv_seed`: `shistOwn c σs2` (`histAuth` + `oneKeyRevs c 3`, from `seedRevs`: every seed change is
+   one key) replaces `histOwn`; `kOk_init σs2 hw hwh hk he hl`.
+3. `seedOne.spec`: add `rv` (`⌜rv = W64 (σ.rev + 1)⌝`-style or the put's revision check), the item
+   `⟨k, ⟨ns, name, "", "x", "", "", rv, false⟩, false⟩`; `seed.spec`'s post: `storeOwn s' g0s.st ∗
+   hsl ↦*□ hs ∗ [∗list] x;g ∈ hs;g0s.hist, storeOwn x g` (what `Model.spec` takes).
+4. `Check.spec`: `g0 : HSt`, the history slice `h0` as `Model.spec`'s, Apply's new premises (`c.di`,
+   `c.vi`, `clientErrPlain (sem := sem)`, `threadBound GF ≤ 2^30-1`, `rangeStreamOff`), size
+   `g0.st.items.length + g0.hist.length < 2^60`. Then its proof, Main*.
