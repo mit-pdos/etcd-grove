@@ -420,6 +420,9 @@ theorem errorString_statusErrOk [EtcdGrove.ErrorStringLeaf] (x : Loc) (msg : GoS
     iexact Hm
   isplitr
   · ipureintro; exact hl
+  isplitr
+  rotate_left
+  · ipureintro; exact EtcdGrove.ErrorStringLeaf.noFormat
   unfold go_etcd_io.etcd.cache.v3.grpcErrMethodsOk
   isplitl
   · iintro %h

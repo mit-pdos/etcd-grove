@@ -38,8 +38,10 @@ theorem fmtErrorOk_argOk (err : GoInterface) :
   | nil => unfold fmtErrorOk; iintro %H; exact H.elim
   | ok ii =>
     unfold fmtErrorOk fmt.argOk
-    iintro ⟨-, #H⟩
-    iright; ileft; iexact H
+    iintro ⟨%h, #H⟩
+    iright; ileft; isplitr
+    · iexact H
+    · ipureintro; exact h.1
 
 omit hos package_sem in
 /-- `fmt.Errorf`'s post gives `fmtErrorOk`. -/

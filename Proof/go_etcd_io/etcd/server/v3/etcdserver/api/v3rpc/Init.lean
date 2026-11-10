@@ -291,7 +291,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   ihave Hpi : (go_etcd_io.etcd.cache.v3.etcdserverpbInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd2
   icases Hpi with ⟨#HSO, #HST, #HDescs⟩
-  ihave ⟨#HCL, -⟩ := EtcdGrove.ContextReadErrs.errs $$ Hd1
+  ihave ⟨#HCL, -⟩ := EtcdGrove.ContextReadErrs.errs_strong $$ Hd1
   ihave #HCD := EtcdGrove.ContextReadErrs.descs $$ Hd1
   ihave #HCP : (∃ e : GoInterfaceOk, globalAddr _root_.Perennial.context.Canceled ↦□ GoInterface.ok e ∗
       ⌜_root_.Perennial.errors.IsPointerError e⌝ : IProp GF) $$ []

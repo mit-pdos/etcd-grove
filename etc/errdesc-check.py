@@ -27,7 +27,8 @@ REVIEWED = {
     'Spec/google_golang_org/grpc/status/FromError.lean':
         'the description and code from a stable Error()/GRPCStatus() (the premise statusErrOk)',
     'Spec/google_golang_org/grpc/status/Error.lean':
-        '*status.Error: Error() formats its fixed status, GRPCStatus() returns it, Is is proto.Equal',
+        '*status.Error: Error() formats its fixed status, GRPCStatus() returns it, Is is proto.Equal; '
+        'no Format method (statusErrOk since premise-fixes-4; examples/premisefix/fmtarg)',
     'Spec/google_golang_org/grpc/status/Code.lean': 'statusErrOk a premise only',
     'Spec/k8s_io/apiserver/pkg/storage/etcd3/metrics/RecordEtcdRequest.lean':
         'statusErrOk a premise only (no description or code in its post)',
@@ -41,10 +42,12 @@ REVIEWED = {
     'Proof/go_etcd_io/etcd/api/v3/v3rpc/rpctypes/ErrDesc.lean:rpctypes.errDesc_etcdError':
         'an EtcdError value: Error() returns its desc field',
     'Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/Init.lean:toGRPCErrorMap_init':
-        "its values are rpctypes' ErrGRPC* (status.Error) values",
+        "its values are rpctypes' ErrGRPC* (status.Error) values, without a Format method "
+        '(examples/premisefix/fmtarg)',
     # rpctypes' initializers (etc/gen-init.py): status.Error values and EtcdError values
     'Proof/go_etcd_io/etcd/api/v3/v3rpc/rpctypes/Init.lean:*':
-        'ErrGRPC*: status.Error values; Err*: EtcdError values (Error() returns desc)',
+        'ErrGRPC*: status.Error values; Err*: EtcdError values (Error() returns desc); neither type '
+        'has a Format method (examples/premisefix/fmtarg)',
 }
 
 AXIOM = re.compile(r'^axiom\s+(\S+)(.*?)(?=^\S)', re.S | re.M)

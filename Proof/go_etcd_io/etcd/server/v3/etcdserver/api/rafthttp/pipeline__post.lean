@@ -63,7 +63,7 @@ theorem rafthttp.pipeline.post.wp_proof
   (try wp_auto)
   wp_apply hNewBuffer d bs $$ [$Hd] as %bf Hbf
   (try wp_auto)
-  wp_apply hCreate lg u go!"/raft" _ (.fixed bs) _ urls uvs lid cid Hlgnn Hu.1 $$ [Hbf $Huvs]
+  wp_apply hCreate lg u go!"/raft" _ (.fixed bs) _ urls uvs lid cid Hlgnn Hu.1 rfl $$ [Hbf $Huvs]
     as %req ⟨%hdrs, Hreq, Hstr, %Hfrom⟩
   · rw [http.bodyHas_fixed]; iexact Hbf
   wp_apply (chan.wp_make2 (V := Unit) (W64 1))

@@ -156,9 +156,13 @@ local macro "status_switch" : tactic => `(tactic| (
       simp only [show sint.nat (W64 (0 + 1)) = 1 by rfl, List.set_cons_succ, List.set_cons_zero,
         fmt.argsOk, fmt.argOk]
       isplitr
-      · iright; iright; iapply id_stringMethodSpec hIDString $$ Htyp
+      · iright; iright; isplitr
+        · iapply id_stringMethodSpec hIDString $$ Htyp
+        · ipureintro; fmt_method_none
       isplitr
-      · iright; iright; iapply id_stringMethodSpec hIDString $$ Htyp
+      · iright; iright; isplitr
+        · iapply id_stringMethodSpec hIDString $$ Htyp
+        · ipureintro; fmt_method_none
       itrivial
     ret_err
   rw [_root_.decide_eq_false (show ¬ rst = W64 404 from h404)]
@@ -356,7 +360,7 @@ theorem rafthttp.streamReader.dial.wp_proof
   -- `http.NewRequest("GET", uu.String(), nil)`: no error
   wp_apply hURLString uu_ptr _ { u with Path' := streamPath ty lid } hu1 hu2 hu3 hu4 hu5 hu6 hu7 hu8 hu9 $$ [$uu] as uu
   ihave Hnb := hNilBody
-  wp_apply hNewRequest go!"GET" _ GoInterface.nil (.fixed []) u.Host' (streamPath ty lid) rfl hhost
+  wp_apply hNewRequest go!"GET" _ GoInterface.nil (.fixed []) u.Host' (streamPath ty lid) rfl hhost (by cases ty <;> rfl)
     (Or.inr rfl) $$ [Hnb] as %req ⟨Hreq, Hstr⟩
   · rw [http.bodyHas_fixed]; iexact Hnb
   (try wp_auto)

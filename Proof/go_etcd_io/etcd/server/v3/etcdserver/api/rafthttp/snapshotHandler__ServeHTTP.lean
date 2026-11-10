@@ -112,9 +112,12 @@ theorem msgPtsC_snapMeta (ml : Loc) (dq dqe : DFrac) (cap : Bool) (st : MsgSt) (
 theorem argOk_of_errStrOk [_root_.Perennial.fmt.Assumptions] (e : GoInterface) :
     http.errStrOk (GF := GF) e ⊢ fmt.argOk e := by
   unfold http.errStrOk
-  iintro (%h | ⟨%ei, %h, #HE, -⟩)
+  iintro (%h | ⟨%ei, %h, #HE, -, %hF⟩)
   · subst h; unfold fmt.argOk; itrivial
-  · subst h; unfold fmt.argOk; iright; ileft; unfold fmt.stringMethodSpec; iexact HE
+  · subst h; unfold fmt.argOk; iright; ileft
+    isplitr
+    · unfold fmt.stringMethodSpec; iexact HE
+    · ipureintro; exact hF
 
 /-- One error whose `Error()` returns is a formatting argument list (`fmt.argsOk`). -/
 theorem argsOk_of_errStrOk [_root_.Perennial.fmt.Assumptions] (e : GoInterface) :

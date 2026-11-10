@@ -44,16 +44,21 @@ instance fmt.stringMethodSpec_persistent (ii : GoInterfaceOk) (m : GoString) :
 
 /-- One argument of `Errorf`/`Printf` that Go formats without panicking or touching memory the
 caller owns: `nil`; a value of a predeclared basic type (`fmt.ArgWf`: Go calls no method of
-it); or a value whose `Error()` or `String()` method has `fmt.stringMethodSpec` (Go calls
-`Error()` for `%w`, and `Error()` or `String()` for `%v`/`%s` of an `error`/`Stringer`; a
-panic in it would be recovered by `fmt`, but the method's effects are what the spec rules
-out). The types are assumed not to implement `fmt.Formatter` (nor `fmt.GoStringer` under
-`%#v`), whose methods Go would call instead; the callers' are `errors.New`'s `*errorString`,
-`fmt.Errorf`'s errors and `time.Duration`, which do not. -/
+it); a value without a `Format` method whose `Error()` has `fmt.stringMethodSpec`; or a value with
+neither a `Format` nor an `Error` method whose `String()` has it (Go calls `Error()` for `%w`, and
+`Error()` or `String()` for `%v`/`%s` of an `error`/`Stringer`, but `Format` in place of either
+when the type has one, and `Error()` in place of `String()` for an `error`: premise-fixes-4,
+2026-11-10, the round-2 premise attack's `fmt-argOk-error-over-string-and-formatter`,
+`examples/premisefix/fmtarg`; until then the disjuncts did not exclude `Format` and `Error`; a
+panic in the method would be recovered by `fmt`, but the method's effects are what the spec rules
+out). The types are assumed not to implement `fmt.GoStringer` under `%#v`; the callers' are
+`errors.New`'s `*errorString`, `fmt.Errorf`'s errors and `time.Duration`, which do not. -/
 def fmt.argOk : GoInterface → IProp GF
   | .nil => iprop(True)
-  | .ok ii => iprop(⌜_root_.Perennial.fmt.ArgWf ii⌝ ∨ fmt.stringMethodSpec ii go!"Error" ∨
-      fmt.stringMethodSpec ii go!"String")
+  | .ok ii => iprop(⌜_root_.Perennial.fmt.ArgWf ii⌝ ∨
+      (fmt.stringMethodSpec ii go!"Error" ∗ ⌜methodSet ii.ty !! go!"Format" = none⌝) ∨
+      (fmt.stringMethodSpec ii go!"String" ∗
+        ⌜methodSet ii.ty !! go!"Format" = none ∧ methodSet ii.ty !! go!"Error" = none⌝))
 
 /-- Every argument is `fmt.argOk`. -/
 def fmt.argsOk : List GoInterface → IProp GF
@@ -84,9 +89,31 @@ abbrev fmt.Errorf.spec : Prop :=
 
 end spec
 
+section methods
+variable [GooseExts] [GoSemanticsFunctions]
+
+/-- A method absent from a type's method set, from the type's `go.MethodSetIs` (premise-fixes-4: for
+`fmt.argOk`'s method facts). -/
+theorem fmt.methodSet_none (t : go.GoType) {ms : List (GoString × Option go.signature)}
+    [go.MethodSetIs t ms] (m : GoString) (h : go.methodSetLookup ms m = none) :
+    methodSet t !! m = none := by
+  have := go.MethodSetIs.method_set_is (t := t) m
+  rw [h] at this
+  exact this
+
+end methods
+
+/-- Proves `methodSet t !! m = none` (or a conjunction of such) for a type `t` with a
+`go.MethodSetIs` instance (premise-fixes-4). -/
+macro "fmt_method_none" : tactic => `(tactic| (
+  repeat' apply And.intro
+  all_goals (apply Perennial.EtcdGrove.fmt.methodSet_none; first | rfl | decide |
+    simp [go.methodSetLookup])))
+
 /-- Proves `fmt.argsOk xs` of a literal argument list (as `wp_slice_literal` builds it): `nil`,
 a `string` or an `int`/`int64`/`uint64` by `fmt.ArgWf`, any other argument by a hypothesis in
-the context giving its `Error()` or `String()` method's `fmt.stringMethodSpec`. -/
+the context giving its `Error()` or `String()` method's `fmt.stringMethodSpec`, and a pure one
+its method facts (no `Format`; for `String()`, no `Error` either; premise-fixes-4). -/
 macro "fmt_args_ok" : tactic => `(tactic| (
   try rw [show sint.nat (W64 (0 + 1)) = 1 by rfl]
   try simp only [List.set_cons_succ, List.set_cons_zero]
@@ -100,8 +127,11 @@ macro "fmt_args_ok" : tactic => `(tactic| (
         | exact .cons_int _ _ _ (.int64 _) .nil
         | exact .cons_int _ _ _ (.int _) .nil
         | exact .cons_int _ _ _ (.uint64 _) .nil)
-    | (iright; ileft; iassumption)
-    | (iright; iright; iassumption))))
+    | (iright; ileft; isplitr; iassumption; ipureintro; assumption)
+    | (iright; ileft; isplitr; iassumption; ipureintro; exact (‹_ ∧ _›).1)
+    | (iright; ileft; isplitr; iassumption; ipureintro; fmt_method_none)
+    | (iright; iright; isplitr; iassumption; ipureintro; assumption)
+    | (iright; iright; isplitr; iassumption; ipureintro; fmt_method_none))))
 
 end EtcdGrove
 end Perennial

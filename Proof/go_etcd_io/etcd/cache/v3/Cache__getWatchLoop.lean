@@ -93,7 +93,10 @@ theorem Cache.getWatchLoop.wp_proof
     isplitr
     · iapply EtcdGrove.time.Duration.String.argOk wp_DurStr
     isplitr
-    · simp only [EtcdGrove.fmt.argOk]; iright; ileft; iexact HeS'
+    · simp only [EtcdGrove.fmt.argOk]; iright; ileft
+      isplitr
+      · iexact HeS'
+      · iapply errStrOk_noFormat; iexact HeS
     itrivial
   -- the backoff: `select` on `ctx.Done()` and `time.After(backoff)`
   wp_apply +noauto HDone as %ch1 %γ1 #Hdone

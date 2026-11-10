@@ -103,7 +103,7 @@ theorem StartMember.wp_proof
   icases etcdstart.memberFreshRes_client _ _ _ _ rfl $$ Hfresh with ⟨Hcaddr, Hfresh⟩
   ihave #Hcom' := Hcom
   iunfold etcdstart.commonPremises at Hcom'
-  icases Hcom' with ⟨-, -, -, -, #Hnrl⟩
+  icases Hcom' with ⟨-, -, -, #Hnrl⟩
   ihave #Hsls : [∗map] k ↦ sl ∈ GMap.insert cfg.Name3' sl₃ (GMap.insert cfg.Name2' sl₂
       (GMap.insert cfg.Name1' sl₁ ∅)), sl ↦*□ initURLs3 cfg k $$ []
   · iapply (BigSepM.bigSepM_insert (by

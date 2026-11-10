@@ -52,15 +52,15 @@ theorem EtcdServer.UserAdd.wp_proof
     rcases err with ei | _
     · wp_auto
       icases Hor with (⟨%ei', %Hei, #Hm⟩ | ⟨%Hnil, -⟩)
-      · obtain ⟨Heq, hl, hIs, hG, hk⟩ := Hei
+      · obtain ⟨Heq, hl, hIs, hG, hF, hk⟩ := Hei
         cases Heq
         iapply HΦ; ileft; iframe HP
         isplitr
         · ipureintro; exact ⟨rfl, by simp⟩
         rcases hk with hp | ⟨hty, hkey⟩
-        · iapply applyErrIs_leaf _ ⟨hp, hl, hIs, hG⟩
+        · iapply applyErrIs_leaf _ ⟨hp, hl, hIs, hG, hF⟩
           iunfold errMsgOk; iexact Hm
-        · iapply applyErrIs_valLeaf _ hl hIs hty hkey hG
+        · iapply applyErrIs_valLeaf _ hl hIs hty hkey hG hF
           iunfold errMsgOk; iexact Hm
       · cases Hnil
     icases Hor with (⟨%ei', %Hei, -⟩ | ⟨-, %hs, Hh⟩)
@@ -162,15 +162,15 @@ theorem EtcdServer.UserAdd.wp_proof
       rcases err with ei | _
       · wp_auto
         icases Hor with (⟨%ei', %Hei, #Hm⟩ | ⟨%Hnil, -⟩)
-        · obtain ⟨Heq, hl, hIs, hG, hk⟩ := Hei
+        · obtain ⟨Heq, hl, hIs, hG, hF, hk⟩ := Hei
           cases Heq
           iapply HΦ; ileft; iframe HP
           isplitr
           · ipureintro; exact ⟨rfl, by simp⟩
           rcases hk with hp | ⟨hty, hkey⟩
-          · iapply applyErrIs_leaf _ ⟨hp, hl, hIs, hG⟩
+          · iapply applyErrIs_leaf _ ⟨hp, hl, hIs, hG, hF⟩
             iunfold errMsgOk; iexact Hm
-          · iapply applyErrIs_valLeaf _ hl hIs hty hkey hG
+          · iapply applyErrIs_valLeaf _ hl hIs hty hkey hG hF
             iunfold errMsgOk; iexact Hm
         · cases Hnil
       icases Hor with (⟨%ei', %Hei, -⟩ | ⟨-, %hs, Hh⟩)

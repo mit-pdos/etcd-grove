@@ -2752,7 +2752,7 @@ theorem bootstrappedBackend.wp_Close :
 
 theorem wp_newRaftNode :
     newRaftNode.spec (GF := GF) (hG := hG) :=
-  newRaftNode.wp_proof _root_.Perennial.time.wp_NewTicker _root_.Perennial.time.Ticker.wp_Stop
+  newRaftNode.wp_proof wp_SetLogger _root_.Perennial.time.wp_NewTicker _root_.Perennial.time.Ticker.wp_Stop
 
 theorem bootstrappedRaft.wp_newRaftNode :
     bootstrappedRaft.newRaftNode.spec (GF := GF) (hG := hG) :=

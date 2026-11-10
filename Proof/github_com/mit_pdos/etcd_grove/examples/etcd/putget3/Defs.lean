@@ -155,7 +155,7 @@ instance bootPremise_persistent (N : Nat) (ps : List w64) (bootLog : List EntryM
 wrapper's trust-boundary contracts and the deployment's
 `runsNoRequireLeader`. -/
 def commonPremises : IProp GF :=
-  iprop(rnLoggerZapOk ∗ rnSetLoggerOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk ∗
+  iprop(rnLoggerZapOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk ∗
     v3rpc.runsNoRequireLeader)
 
 instance commonPremises_persistent : Persistent (commonPremises (GF := GF)) := by

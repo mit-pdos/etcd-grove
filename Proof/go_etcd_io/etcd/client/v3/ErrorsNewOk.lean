@@ -121,6 +121,9 @@ theorem errorsNewOk_of
     iexact Herr
   isplitr
   · ipureintro; exact ErrorStringLeaf.leaf _
+  isplitr
+  rotate_left
+  · ipureintro; exact ErrorStringLeaf.noFormat
   unfold grpcErrMethodsOk
   isplitl
   · iintro %h
@@ -136,7 +139,8 @@ theorem clientErr_statusErrOk_of_leaf (e : GoInterfaceOk) (hl : errors.isLeafErr
       [go.GoType.PointerType google_golang_org.grpc.internal.status.Status.ty]))
     (hty : e.ty ≠ go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
-    (hT : e.ty ∈ clientErrTys) :
+    (hT : e.ty ∈ clientErrTys)
+    (hF : methodSet e.ty !! go!"Format" = none) :
     EtcdGrove.errMsgOk (GF := GF) e ⊢ ⌜clientErr (GoInterface.ok e)⌝ ∗ statusErrOk (GoInterface.ok e) := by
   iintro #Hm
   isplitl
@@ -157,6 +161,9 @@ theorem clientErr_statusErrOk_of_leaf (e : GoInterfaceOk) (hl : errors.isLeafErr
   · iapply EtcdGrove.errMsgOk_msgIs $$ Hm
   isplitr
   · ipureintro; exact hl
+  isplitr
+  rotate_left
+  · ipureintro; exact hF
   unfold grpcErrMethodsOk
   isplitl
   · iintro %h
@@ -184,7 +191,7 @@ theorem eofOk_of_init [_root_.Perennial.io.Assumptions]
       go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty := by
     unfold go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty; nofun
   ihave ⟨%Hc, #Hs⟩ := clientErr_statusErrOk_of_leaf _ hl.2.1 hl.2.2
-    ErrorStringNoGRPCStatus.noGRPCStatus hty hAs (by simp [clientErrTys]) $$ Hm
+    ErrorStringNoGRPCStatus.noGRPCStatus hty hAs (by simp [clientErrTys]) ErrorStringLeaf.noFormat $$ Hm
   unfold eofOk
   iintro !> %err #He
   iunfold eofIs at He
@@ -199,10 +206,11 @@ theorem eofOk_of_init [_root_.Perennial.io.Assumptions]
 theorem ctxErrClientAllW_of [_root_.Perennial.context.Assumptions]
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
+    [_root_.Perennial.context.Assumptions]
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
     isPkgInit (PROP := IProp GF) pkg_id.context ⊢ ctxErrClientAllW := by
   iintro #Hp
-  ihave ⟨#HC, #HD⟩ := EtcdGrove.ContextReadErrs.errs $$ Hp
+  ihave ⟨#HC, #HD⟩ := EtcdGrove.ContextReadErrs.errs_strong $$ Hp
   ihave ⟨#HC2, #HD2⟩ := ContextErrsClient.errs $$ Hp
   iunfold EtcdGrove.errVarLeaf at HC
   icases HC with ⟨%ec, #Hec, %Hlc, #Hmc⟩
@@ -232,8 +240,8 @@ theorem ctxErrClientAllW_of [_root_.Perennial.context.Assumptions]
   have hTd : ed.ty ∈ clientErrTys := by
     cases ed; simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq] at HtyD
     simp [clientErrTys, HtyD.1]
-  ihave ⟨%Hcc, #Hsc⟩ := clientErr_statusErrOk_of_leaf ec Hlc.2.1 Hlc.2.2.1 Htc.1 Htc.2 hAs hTc $$ Hmc
-  ihave ⟨%Hcd, #Hsd⟩ := clientErr_statusErrOk_of_leaf ed Hld.1 Hld.2.1 Htd.1 Htd.2 hAs hTd $$ Hmd
+  ihave ⟨%Hcc, #Hsc⟩ := clientErr_statusErrOk_of_leaf ec Hlc.2.1 Hlc.2.2.1 Htc.1 Htc.2 hAs hTc Hlc.2.2.2.2 $$ Hmc
+  ihave ⟨%Hcd, #Hsd⟩ := clientErr_statusErrOk_of_leaf ed Hld.1 Hld.2.1 Htd.1 Htd.2 hAs hTd Hld.2.2.2.2.2 $$ Hmd
   unfold ctxErrClientAllW
   iintro !> %ctx %cs #Hctx
   unfold ctxErrClient

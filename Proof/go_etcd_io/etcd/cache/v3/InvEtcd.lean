@@ -1148,7 +1148,8 @@ omit EM in
 `progressNotifier` interface): `w.RequestProgress(ctx)` returns some error, with no logical effect,
 whose `Error()`, if it is not `nil`, returns some string (`errorStringSpec`: the run loop prints
 it with `fmt.Printf`'s `%v`; etcd's client returns a context error, a gRPC status error or an
-`rpctypes` error, each an error whose `Error` builds a string). etcd's progress notification shows
+`rpctypes` error, each an error whose `Error` builds a string, and with no `Format` method, so
+that `fmt` calls `Error`: premise-fixes-4, 2026-11-10, `examples/premisefix/fmtarg`). etcd's progress notification shows
 up on the watch streams, where it is already modelled (a progress response of `watchRespOk`). A
 definition, like `isEtcdWatcher`. -/
 def isEtcdProgressNotifier (w : GoInterfaceOk) : IProp GF :=
@@ -1156,7 +1157,8 @@ def isEtcdProgressNotifier (w : GoInterfaceOk) : IProp GF :=
     {{ context.isContext ctx cs }}
       (App (Val #(methods w.ty go!"RequestProgress" w.v)) (Val #(GoInterface.ok ctx)))
     {{ (err : GoInterface), RET #err;
-        □ ∀ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ → errorStringSpec e }})
+        □ ∀ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ →
+          errorStringSpec e ∗ ⌜methodSet e.ty !! go!"Format" = none⌝ }})
 
 omit EM in
 instance isEtcdProgressNotifier_persistent (w : GoInterfaceOk) :

@@ -92,7 +92,7 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
       "Hrst" ∷ raftState γr.cl cv.ID' RaftState.init ∗
       -- the contracts (`InvNodeStart.lean`; 2026-11-03: `rnTickerOk E` gone, `newRaftNode`'s
       -- proof calls the ticker's spec)
-      "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
+      "#Hzap" ∷ rnLoggerZapOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
       "#Hrs" ∷ rnRaftStatusOk ∗ "#Hns" ∷ rnNewStorageOk ∗
       "#Hcl" ∷ rnClusterOk cl }}
     (App (App (App (Val (b @!! go.GoType.PointerType bootstrappedRaft.ty @!! go!"newRaftNode"))

@@ -146,15 +146,15 @@ axiom opaqueInitsOk :
         ErrNoInflightDowngrade.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
-/-- `ErrFutureRev = Error(ErrGRPCFutureRev)` (`error.go`): an `EtcdError` value (k8s etcd3 7e-2, D1: stated, checked by `examples/k8s7e2attack`'s `TestRpctypesErrTypes` at the etcd pin), whose `Error()` returns its description, `ErrGRPCFutureRev`'s (k8s etcd3 7c). -/
+/-- `ErrFutureRev = Error(ErrGRPCFutureRev)` (`error.go`): an `EtcdError`, whose `Error()` returns its description, `ErrGRPCFutureRev`'s (k8s etcd3 7c), with no `Format` method (an `EtcdError`'s method set is `{Code, Error}`: `fmt` prints it through `Error()`; premise-fixes-4), an `EtcdError` value (k8s etcd3 7e-2, D1: stated, checked by `examples/k8s7e2attack`'s `TestRpctypesErrTypes` at the etcd pin). -/
 axiom ErrFutureRev_init :
     {{ (True : IProp GF) }} (App (Val ErrFutureRev.init) (Val #()))
-    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrFutureRev ↦ GoInterface.ok e ∗ go_etcd_io.etcd.cache.v3.errorStringSpec e ∗ ⌜go_etcd_io.etcd.cache.v3.errDesc (GoInterface.ok e) = go_etcd_io.etcd.cache.v3.futureRevDesc⌝ ∗ ⌜∃ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError, GoInterface.ok e = interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x⌝ }}
+    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrFutureRev ↦ GoInterface.ok e ∗ go_etcd_io.etcd.cache.v3.errorStringSpec e ∗ ⌜go_etcd_io.etcd.cache.v3.errDesc (GoInterface.ok e) = go_etcd_io.etcd.cache.v3.futureRevDesc⌝ ∗ ⌜methodSet e.ty !! go!"Format" = none⌝ ∗ ⌜∃ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError, GoInterface.ok e = interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x⌝ }}
 
-/-- `ErrCompacted = Error(ErrGRPCCompacted)` (`error.go`): an `EtcdError` value (k8s etcd3 7e-2, D1: stated, checked by `examples/k8s7e2attack`'s `TestRpctypesErrTypes` at the etcd pin), whose `Error()` returns its description, `ErrGRPCCompacted`'s (k8s etcd3 7c). -/
+/-- `ErrCompacted = Error(ErrGRPCCompacted)` (`error.go`): an `EtcdError`, whose `Error()` returns its description, `ErrGRPCCompacted`'s (k8s etcd3 7c), with no `Format` method (an `EtcdError`'s method set is `{Code, Error}`: `fmt` prints it through `Error()`; premise-fixes-4), an `EtcdError` value (k8s etcd3 7e-2, D1: stated, checked by `examples/k8s7e2attack`'s `TestRpctypesErrTypes` at the etcd pin). -/
 axiom ErrCompacted_init :
     {{ (True : IProp GF) }} (App (Val ErrCompacted.init) (Val #()))
-    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrCompacted ↦ GoInterface.ok e ∗ go_etcd_io.etcd.cache.v3.errorStringSpec e ∗ ⌜go_etcd_io.etcd.cache.v3.errDesc (GoInterface.ok e) = go_etcd_io.etcd.cache.v3.compactedDesc⌝ ∗ ⌜∃ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError, GoInterface.ok e = interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x⌝ }}
+    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrCompacted ↦ GoInterface.ok e ∗ go_etcd_io.etcd.cache.v3.errorStringSpec e ∗ ⌜go_etcd_io.etcd.cache.v3.errDesc (GoInterface.ok e) = go_etcd_io.etcd.cache.v3.compactedDesc⌝ ∗ ⌜methodSet e.ty !! go!"Format" = none⌝ ∗ ⌜∃ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError, GoInterface.ok e = interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x⌝ }}
 
 /-- `ErrGRPCFutureRev = status.Error(codes.OutOfRange, "etcdserver: mvcc: required revision is a future revision")` (`error.go`): with that description (k8s etcd3 7c). -/
 axiom ErrGRPCFutureRev_init :
@@ -316,14 +316,17 @@ class EtcdGrove.RpctypesEtcdErrorMethods [GooseExts] [GoGlobalContext] [GoSemant
   leaf : ∀ v : val, errors.isLeafError ⟨go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty, v⟩
   noGRPCStatus : methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"GRPCStatus" = none
   noIs : methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"Is" = none
+  /-- (premise-fixes-4) nor a `Format` method (`fmt` prints it with its `Error`). -/
+  noFormat : methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"Format" = none
 
 instance EtcdGrove.rpctypesEtcdErrorMethods_inst [GooseExts] [GoGlobalContext] [GoLocalContext]
     [GoSemanticsFunctions] [_root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] :
     EtcdGrove.RpctypesEtcdErrorMethods := by
   have h := fun m => go.method_set_is (t := go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) m
   have hAs := h go!"As"; have hU := h go!"Unwrap"; have hG := h go!"GRPCStatus"; have hIs := h go!"Is"
-  simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at hAs hU hG hIs
-  exact ⟨fun _ => by simp [errors.isLeafError, hAs, hU], hG, hIs⟩
+  have hF := h go!"Format"
+  simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at hAs hU hG hIs hF
+  exact ⟨fun _ => by simp [errors.isLeafError, hAs, hU], hG, hIs, hF⟩
 
 /-- `rpctypes.EtcdError` implements `error` (its `Error` has a value receiver): a target
 `errors.As` accepts. -/
@@ -428,8 +431,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk ErrTooManyOps.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrDuplicateKey.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrInvalidSortOption.init (by mem_tac))
-  wp_apply ErrCompacted_init as ⟨%eErrCompacted, HErrCompacted, #SErrCompacted, %DErrCompacted, %TErrCompacted⟩
-  wp_apply ErrFutureRev_init as ⟨%eErrFutureRev, HErrFutureRev, #SErrFutureRev, %DErrFutureRev, %TErrFutureRev⟩
+  wp_apply ErrCompacted_init as ⟨%eErrCompacted, HErrCompacted, #SErrCompacted, %DErrCompacted, %FErrCompacted, %TErrCompacted⟩
+  wp_apply ErrFutureRev_init as ⟨%eErrFutureRev, HErrFutureRev, #SErrFutureRev, %DErrFutureRev, %FErrFutureRev, %TErrFutureRev⟩
   wp_apply (opaqueInitsOk ErrNoSpace.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrLeaseNotFound.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrLeaseExist.init (by mem_tac))
@@ -534,7 +537,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipureintro
   repeat' (first
     | assumption
-    | exact ⟨EtcdGrove.RpctypesEtcdErrorMethods.leaf, EtcdGrove.RpctypesEtcdErrorMethods.noGRPCStatus, EtcdGrove.RpctypesEtcdErrorMethods.noIs⟩
+    | exact ⟨EtcdGrove.RpctypesEtcdErrorMethods.leaf, EtcdGrove.RpctypesEtcdErrorMethods.noGRPCStatus, EtcdGrove.RpctypesEtcdErrorMethods.noIs, EtcdGrove.RpctypesEtcdErrorMethods.noFormat⟩
     | constructor)
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
