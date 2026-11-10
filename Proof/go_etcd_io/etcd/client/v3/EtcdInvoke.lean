@@ -66,7 +66,7 @@ abbrev etcdConn.Invoke.spec : Prop :=
       (Val #opts))
   {{ (err : GoInterface), RET #err;
       Req.send inp m ∗
-      ((⌜err = GoInterface.nil⌝ ∗ ∃ m' : Rep.M, Rep.recv out m' ∗ Φ m') ∨
+      ((⌜err = GoInterface.nil⌝ ∗ ∃ m' : Rep.M, Rep.recv out m' ∗ Rep.recvOwn out m' ∗ Φ m') ∨
         (⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗ statusErrOk err ∗ errCellOk err)) }}
 
 /-- **`conn.Invoke` on an etcd client's connection, for a metadata-indexed spec** (the auth plan's
@@ -91,7 +91,7 @@ abbrev etcdConn.InvokeMd.spec : Prop :=
       (Val #opts))
   {{ (err : GoInterface), RET #err;
       Req.send inp m ∗
-      ((⌜err = GoInterface.nil⌝ ∗ ∃ m' : Rep.M, Rep.recv out m' ∗ Φ m') ∨
+      ((⌜err = GoInterface.nil⌝ ∗ ∃ m' : Rep.M, Rep.recv out m' ∗ Rep.recvOwn out m' ∗ Φ m') ∨
         (⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗ statusErrOk err ∗ errCellOk err)) }}
 
 /-- **`conn.Invoke` with the caller's error outcome** (k8s 7e-1): `etcdConn.InvokeMd.spec`'s, with
@@ -114,7 +114,7 @@ abbrev etcdConn.InvokeMdE.spec : Prop :=
       (Val #opts))
   {{ (err : GoInterface), RET #err;
       Req.send inp m ∗
-      ((⌜err = GoInterface.nil⌝ ∗ ∃ m' : Rep.M, Rep.recv out m' ∗ Φ m') ∨
+      ((⌜err = GoInterface.nil⌝ ∗ ∃ m' : Rep.M, Rep.recv out m' ∗ Rep.recvOwn out m' ∗ Φ m') ∨
         (⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗ statusErrOk err ∗ errCellOk err ∗
           ifcErrOut method addr Ψe err)) }}
 

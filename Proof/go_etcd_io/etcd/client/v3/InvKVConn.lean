@@ -527,6 +527,41 @@ instance rangeRespMsg_persistent (l : Loc) (m : RangeRespM) :
     Persistent (rangeRespMsg (GF := GF) l m) := by
   unfold rangeRespMsg; infer_instance
 
+/-- **The read-only part of a decoded `*pb.RangeResponse` `l` holding `m`** (k8s 7e-1): `rangeRespMsg`
+but the key-values (its header, `More`, `Count`; `pbRangeResponse.recv`). -/
+def rangeRespRecv (l : Loc) (m : RangeRespM) : IProp GF :=
+  iprop(⌜l ≠ null⌝ ∗ ∃ h : Loc,
+    structFieldRef etcdserverpb.RangeResponse go!"Header" l ↦□ h ∗ hdrFull h m.hdr ∗
+    structFieldRef etcdserverpb.RangeResponse go!"More" l ↦□ m.more ∗
+    structFieldRef etcdserverpb.RangeResponse go!"Count" l ↦□ m.count)
+
+instance rangeRespRecv_persistent (l : Loc) (m : RangeRespM) :
+    Persistent (rangeRespRecv (GF := GF) l m) := by
+  unfold rangeRespRecv; infer_instance
+
+/-- **The owned key-values of a decoded `*pb.RangeResponse` `l` holding `m`** (k8s 7e-1;
+`pbRangeResponse.recvOwn`): its `Kvs` slice (field read-only), whose cells the caller owns
+(Kubernetes' store writes `resp.Kvs[i] = nil`), each element read-only. -/
+def rangeRespKvsOwn (l : Loc) (m : RangeRespM) : IProp GF :=
+  iprop(∃ (sl : GoSlice) (ps : List Loc),
+    structFieldRef etcdserverpb.RangeResponse go!"Kvs" l ↦□ sl ∗ sl ↦* ps ∗ txn.kvsIs ps m.kvs)
+
+/-- **A decoded `*pb.RangeResponse` `l` holding `m`, its `Kvs` cells owned** (k8s 7e-1): what a
+`Range` call returns (`rangeCallOut`); `rangeRespMsgO_persist` gives `rangeRespMsg`. -/
+def rangeRespMsgO (l : Loc) (m : RangeRespM) : IProp GF :=
+  iprop(rangeRespRecv l m ∗ rangeRespKvsOwn l m)
+
+theorem rangeRespMsgO_persist (l : Loc) (m : RangeRespM) :
+    rangeRespMsgO (GF := GF) l m ⊢ |==> rangeRespMsg l m := by
+  unfold rangeRespMsgO rangeRespRecv rangeRespKvsOwn rangeRespMsg
+  iintro ⟨⟨%Hnn, %h, #HH, #Hh, #HM, #HC⟩, %sl, %ps, #HK, Hsl, #Hkvs⟩
+  imod ownSlice_persist _ _ _ $$ Hsl with #Hsl
+  imodintro
+  isplitr
+  · ipureintro; exact Hnn
+  iexists h, sl, ps
+  iframe #
+
 /-- **The `*pb.DeleteRangeResponse` `l` holds the message `m`** (read-only). -/
 def delRespMsg (l : Loc) (m : DelRespM) : IProp GF :=
   iprop(⌜l ≠ null⌝ ∗ ∃ (h : Loc) (sl : GoSlice) (ps : List Loc),
@@ -1028,7 +1063,7 @@ def putCallOut (Q : PutRespM → IProp GF) (resp : Loc) (err : GoInterface) : IP
 
 /-- **What a unary `Range` call returns** to the client (as `putCallOut`). -/
 def rangeCallOut (Q : RangeRespM → IProp GF) (resp : Loc) (err : GoInterface) : IProp GF :=
-  iprop((⌜err = GoInterface.nil⌝ ∗ ∃ m : RangeRespM, rangeRespMsg resp m ∗ Q m) ∨
+  iprop((⌜err = GoInterface.nil⌝ ∗ ∃ m : RangeRespM, rangeRespMsgO resp m ∗ Q m) ∨
     (⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝ ∗ statusErrOk err ∗ errCellOk err))
 
 /-- **What a unary `DeleteRange` call returns** (as `putCallOut`; the vertical slice's unit V2). -/
@@ -1085,8 +1120,9 @@ def pbRangeResponse : ProtoMsg GF where
   ty := etcdserverpb.RangeResponse.ty
   M := RangeRespM
   send := rangeRespMsg
-  recv := rangeRespMsg
+  recv := rangeRespRecv
   recv_persistent _ _ := inferInstance
+  recvOwn := rangeRespKvsOwn
   blank l := iprop(l ↦ (zero_val etcdserverpb.RangeResponse))
   own l := iprop(∃ v : etcdserverpb.RangeResponse, l ↦ v)
   blank_own l := by iintro H; iexists _; iexact H
@@ -1392,7 +1428,7 @@ def etcdInterceptorOk (ic : GoFunc) : IProp GF :=
         #(interface.mkOk (go.GoType.PointerType Req.ty) #inp : GoInterface)
         #(interface.mkOk (go.GoType.PointerType Rep.ty) #out : GoInterface) #conn inv #opts)
     {{ (err : GoInterface), RET #err; Req.send inp m ∗
-        ((⌜err = GoInterface.nil⌝ ∗ ∃ m' : Rep.M, Rep.recv out m' ∗ Φ m') ∨
+        ((⌜err = GoInterface.nil⌝ ∗ ∃ m' : Rep.M, Rep.recv out m' ∗ Rep.recvOwn out m' ∗ Φ m') ∨
           (⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗ statusErrOk err ∗ errCellOk err ∗
             ifcErrOut method addr Ψe err)) }})
 
@@ -1437,7 +1473,7 @@ def etcdInterceptorOkM (md : AttemptMode) (ic : GoFunc) : IProp GF :=
         #(interface.mkOk (go.GoType.PointerType Req.ty) #inp : GoInterface)
         #(interface.mkOk (go.GoType.PointerType Rep.ty) #out : GoInterface) #conn inv #opts)
     {{ (err : GoInterface), RET #err; Req.send inp m ∗
-        ((⌜err = GoInterface.nil⌝ ∗ ∃ m' : Rep.M, Rep.recv out m' ∗ Φ m') ∨
+        ((⌜err = GoInterface.nil⌝ ∗ ∃ m' : Rep.M, Rep.recv out m' ∗ Rep.recvOwn out m' ∗ Φ m') ∨
           (⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗ statusErrOk err ∗ errCellOk err ∗
             ifcErrOut method addr Ψe err)) }})
 

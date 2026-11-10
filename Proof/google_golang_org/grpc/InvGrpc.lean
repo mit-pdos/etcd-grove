@@ -8,7 +8,8 @@ type, in the predicate-transformer style of Grove's urpc (`is_urpc_spec_pred`,
 **Messages** (`ProtoMsg`): a protobuf message type `T` (passed as `*T`) with the model `M` of its
 wire content; `send l m`: the sender's `*T` holding `m`, what the codec needs to marshal it (it
 comes back); `recv l m` (persistent): a decoded `*T` holding `m`, read-only, and `recvOwn l m` what else of it
-the receiver owns (nothing but for a request its handler writes); `blank l`: a zero `*T`
+the receiver owns (nothing but for a request its handler writes, and for a reply whose decoded
+slices its caller writes: k8s 7e-1, `RangeResponse.Kvs`); `blank l`: a zero `*T`
 the receiver owns, into which a reply is decoded. That the codec's copy of a message `send` holds
 at `m` is one `recv` holds at `m` is what an instance asserts: each instance is a trusted wire
 model of its Go type (read it against the type's fields).
@@ -49,7 +50,7 @@ on the Go type, taking the heap's instances (`hG`; `ProtoMsg GF` mentions no hea
 `hG`-independent registry would equate models across heaps) and `go.Semantics`; and what a
 registration must prove: `ProtoMsgT.ReqSat` (from a `blank`, with the request's `wireLen` below
 `grpcMsgMax`, the store gives `recv` and `recvOwn`) and `ProtoMsgT.RepSat` (from an `own`, what a
-failed attempt leaves, no `wireLen` premise, the store gives `recv`), each with the laws that make
+failed attempt leaves, no `wireLen` premise, the store gives `recv` and `recvOwn`), each with the laws that make
 its resources satisfiable: `blank` the zero struct (`BlankZero`), `own` any struct (`OwnAny`),
 `send` at `nil` false.
 -/
@@ -112,7 +113,8 @@ structure ProtoMsg (GF : BundledGFunctors) where
   recv_persistent : ∀ l m, Persistent (recv l m)
   /-- What else of a decoded `*T` holding `m` the receiver owns (exclusive; the auth plan's E3za:
   a handler that writes the decoded request, etcd's `UserAdd` replacing its password by the
-  hash). Nothing by default. -/
+  hash; k8s 7e-1: a caller that writes the decoded reply, Kubernetes' store setting
+  `resp.Kvs[i] = nil`). Nothing by default. -/
   recvOwn : Loc → M → IProp GF := fun _ _ => iprop(True)
   /-- A zero `*T` the receiver owns. -/
   blank : Loc → IProp GF
@@ -729,11 +731,32 @@ def ProtoMsgT.ReqSat (T : ProtoMsgT GF) : Prop :=
     T.send ls m ∗ ⌜T.wireLen m < grpcMsgMax⌝ ∗ T.blank l ⊢
       WP (storeInto T.ty l (T.tree m)) {{ _v, T.send ls m ∗ T.recv l m ∗ T.recvOwn l m }}
 
-/-- **A reply model is satisfiable** (`[v5]`): no `wireLen` premise. -/
+/-- **A reply model is satisfiable** (`[v5]`): no `wireLen` premise. Since k8s 7e-1 (2026-11-10,
+approved by etcd-grove-81) the store gives `recvOwn` too, as for a request: what of the decoded reply
+the caller owns (`grpcInvokerOk`'s success post). -/
 def ProtoMsgT.RepSat (T : ProtoMsgT GF) : Prop :=
   BlankZero T.ty T.blank ∧ OwnAny T.ty T.own ∧ (∀ m, T.send null m ⊢ False) ∧
   ∀ (ls l : Loc) (m : T.M),
-    T.send ls m ∗ T.own l ⊢ WP (storeInto T.ty l (T.tree m)) {{ _v, T.send ls m ∗ T.recv l m }}
+    T.send ls m ∗ T.own l ⊢
+      WP (storeInto T.ty l (T.tree m)) {{ _v, T.send ls m ∗ T.recv l m ∗ T.recvOwn l m }}
+
+/-- A reply model whose `recvOwn` is the default `True` is satisfiable when its store gives `recv`
+(the form of `RepSat` before k8s 7e-1). -/
+theorem ProtoMsgT.repSat_of_recvOwn_true (T : ProtoMsgT GF)
+    (hT : ∀ l m, T.recvOwn l m = iprop(True))
+    (H : BlankZero T.ty T.blank ∧ OwnAny T.ty T.own ∧ (∀ m, T.send null m ⊢ False) ∧
+      ∀ (ls l : Loc) (m : T.M),
+        T.send ls m ∗ T.own l ⊢ WP (storeInto T.ty l (T.tree m)) {{ _v, T.send ls m ∗ T.recv l m }}) :
+    T.RepSat := by
+  obtain ⟨h1, h2, h3, h4⟩ := H
+  refine ⟨h1, h2, h3, fun ls l m => (h4 ls l m).trans (wp_mono fun _ => ?_)⟩
+  rw [hT]
+  iintro ⟨H1, H2⟩
+  isplitl [H1]
+  · iexact H1
+  isplitl [H2]
+  · iexact H2
+  itrivial
 
 /-- **The registry of request models** (`[v5]`: split by role). -/
 opaque grpcReqModelOf {hlc : HasLC} (GF : BundledGFunctors) [GooseExts] [GooseSemantics] [GooseInterp]
@@ -1304,7 +1327,20 @@ claim: no dial option beyond `GrpcDialOpt`'s (`dialOptsAt`), per-RPC credentials
 error (`perRPCCredsOk`: a credentials error carrying a status is returned unchanged, or wrapped with
 `%w`, `http2_client.go:697-702`), and a service config without a retry policy (`grpcResolverAt`:
 an exhausted retry policy wraps the last error, `stream.go:867`). Checked by `examples/k8s/etcd3`'s
-`TestClientErrorTypes`. -/
+`TestClientErrorTypes`.
+
+Since k8s 7e-1 (2026-11-10, approved by etcd-grove-81) a success also gives the caller what the
+reply's model says it owns of the decoded reply (`Rep.recvOwn out m'`; `RepSat` proves the store
+gives it; for `RangeResponse` the `Kvs` slice's cells, which Kubernetes' store overwrites). True of
+grpc-go v1.84 with protobuf-go v2 under these bounds only: `EnableTracing` is false (grpc's package
+fact `grpcInit`, which `ClientConn.Invoke`'s `isPkgInit` carries; with tracing on, grpc keeps every
+reply, `stream.go` `LazyLog(&payload{msg: m})`, and formats it later on `/debug/requests`: a data
+race with the caller's writes, reproduced by the attack's `TestTracingRace`,
+`notes/k8s-7e-1-handoff.md`); grpc's default proto codec (`proto.Unmarshal` resets the reply and
+decodes a repeated message field into a fresh array, bytes fields copied out of the receive buffer);
+no stats handler or interceptor keeping the reply (`InPayload.Payload`; `dialOptsAt` admits none,
+etcd's interceptors keep nothing); reply types protobuf-go v2 generated code (no custom `Unmarshal`).
+Checked by `examples/k8s/etcd3`'s `TestDefaultNoRace` (`-race`, in the gates). -/
 def grpcInvokerOk (conn : Loc) (addrs : List GoString) (inv : GoFunc) : IProp GF :=
   iprop(□ ∀ (method : GoString) (Req Rep : ProtoMsgT GF)
       (_ : grpcReqModelOf GF Req.ty = some Req) (_ : grpcRepModelOf GF Rep.ty = some Rep)
@@ -1320,7 +1356,7 @@ def grpcInvokerOk (conn : Loc) (addrs : List GoString) (inv : GoFunc) : IProp GF
         #(interface.mkOk (go.GoType.PointerType Req.ty) #inp : GoInterface)
         #(interface.mkOk (go.GoType.PointerType Rep.ty) #out : GoInterface) #conn #opts)
     {{ (err : GoInterface), RET #err; Req.send inp m ∗ ([∗list] p ∈ ps, grpcPeerBuf p) ∗
-        ((⌜err = GoInterface.nil⌝ ∗ ∃ m' : Rep.M, Rep.recv out m' ∗ Φ m') ∨
+        ((⌜err = GoInterface.nil⌝ ∗ ∃ m' : Rep.M, Rep.recv out m' ∗ Rep.recvOwn out m' ∗ Φ m') ∨
           (⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗
             go_etcd_io.etcd.cache.v3.errCellOk err ∗ Rep.own out ∗
             ⌜(kvMethod method ∧ ∀ a ∈ addrs, noRefusalAt a) →
