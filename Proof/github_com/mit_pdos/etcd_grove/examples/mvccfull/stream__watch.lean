@@ -146,6 +146,65 @@ theorem stream.watch.wp_proof
   iintro %v ⟨%hv, w, %endk, %e, «$r0», #Hend, %Hend⟩
   subst hv
   wp_auto
+  icases Hwst with ⟨%wst, #Hwst⟩
+  wp_apply (wp_pick _ wst DFrac.discard (W64 3)) $$ [$Hwst] as %sw ⟨-, %Hsw⟩
+  (try wp_auto)
+  -- the start revision
+  wp_bind (If _ _ _)
+  iapply (wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗ w_ptr ↦ wpl ∗ s_ptr ↦ T.s ∗
+      incLive T.ep.ks T.ep.γh T.ep.i T.ep.mp T.ep.m T.ep.ι T.ep.kv q ∗
+      ∃ st : w64, wpl ↦ (watcher.mk ksl endk flt st 0 0 0 false false false) ∗
+        ⌜0 ≤ sint.Z st ∧ sint.Z st < 2 ^ 62 + 3 ∧ (st ≠ W64 0 → 1 ≤ sint.Z st)⌝))) $$ [w s Hlive «$r0»]
+  · wp_if_destruct
+    · -- from any revision up to two past `revHi`
+      (try wp_auto)
+      imod monoNatLbOwn_0 (GF := GF) T.ep.m.rev with #H0
+      wp_apply_core sync.atomic.Int64.wp_Load (mF go!"revHi" T.ep.mp) (DFrac.own 1) $$ [] [-]
+      · iPkgInit
+      imod revHi_acc T.ep.ks T.ep.γh T.ep.i T.ep.mp T.ep.m T.ep.ι T.ep.kv q 0 $$ [$Hlive $H0]
+        with ⟨%vh, Hvh, %Hvhb, Hcl⟩
+      imodintro
+      inext
+      iexists vh
+      iframe Hvh
+      iintro Hvh
+      imod Hcl $$ Hvh with Hlive
+      imodintro
+      (try wp_auto)
+      wp_apply wp_choose as %c %Hc
+      (try wp_auto)
+      iframe
+      ipureintro
+      have h2 : sint.Z (vh + W64 2) = sint.Z vh + 2 := by word
+      have hc := Hc.2.1 (by rw [h2]; omega)
+      rw [h2] at hc
+      (try refine ⟨rfl, ?_⟩); refine ⟨by word, by word, fun _ => by word⟩
+    · wp_if_destruct
+      · -- from the compaction floor (at least `1`)
+        (try wp_auto)
+        wp_apply_core sync.atomic.Int64.wp_Load (mF go!"cmpLo" T.ep.mp) (DFrac.own 1) $$ [] [-]
+        · iPkgInit
+        imod cmpLo_acc_lt hpers hreach T.ep.ks T.ep.γh T.ep.i T.ep.mp T.ep.m T.ep.ι T.ep.kv q $$ Hlive
+          with ⟨%vc, Hvc, %Hvcb, Hcl⟩
+        imodintro
+        inext
+        iexists vc
+        iframe Hvc
+        iintro Hvc
+        imod Hcl $$ Hvc with Hlive
+        imodintro
+        wp_auto
+        wp_if_destruct
+        · iframe
+          ipureintro; (try refine ⟨rfl, ?_⟩); exact ⟨by decide, by decide, fun _ => by decide⟩
+        · iframe
+          ipureintro
+          (try refine ⟨rfl, ?_⟩); refine ⟨by word, by word, fun _ => by word⟩
+      · iframe
+        ipureintro; (try refine ⟨rfl, ?_⟩); exact ⟨by decide, by decide, fun h => absurd rfl h⟩
+  iintro %v ⟨%hv, w, s, Hlive, %st, «$r0», %Hst⟩
+  subst hv
+  wp_auto
   trace_state
   sorry
 
