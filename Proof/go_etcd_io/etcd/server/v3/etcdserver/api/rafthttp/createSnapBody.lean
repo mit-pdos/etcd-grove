@@ -63,6 +63,7 @@ theorem rafthttp.createSnapBody.wp_proof
   -- the envelope's message, bounded: the trust boundary `swMsgBound_phys` (stage A of the
   -- per-type models; raft-entsize is to give it from the sender's bound instead)
   ihave #Hmb := swMsgBound_phys ml st Hms $$ Hml
+  ihave #Hmb := msgSzC_of_swMsgBound (Sz := False) id ml st $$ Hmb
   ihave ⟨#HfM, ⟨%tsz, #HfT, -⟩, %rd, %ri, #HfR, %Hrd, #Hwrap, #Hclose⟩ := hFields m ml rc $$ Hmsg
   wp_auto
   rename_i Φs bp
@@ -73,7 +74,7 @@ theorem rafthttp.createSnapBody.wp_proof
   ihave #Hbpk : isPkgInit (PROP := IProp GF) pkg_id.bytes $$ []
   · iPkgInit
   ihave #Hwr := buffer_writerAtF hWrite bp (fun _ => iprop(True)) $$ Hbpk
-  wp_apply hEnc «$r0_ptr» ⟨go.GoType.PointerType _root_.Perennial.bytes.Buffer.ty, #bp⟩ ml st
+  wp_apply hEnc False «$r0_ptr» ⟨go.GoType.PointerType _root_.Perennial.bytes.Buffer.ty, #bp⟩ ml st
       (bufferM.ownBuffer bp) (fun _ => iprop(True)) [] true Hms $$ [$Hbuf]
     as %err ⟨#Herr, %Hnf, %h', Hbuf, Hok⟩
   · iframe #
@@ -102,7 +103,7 @@ theorem rafthttp.createSnapBody.wp_proof
   iexists bs, ⟨go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.ioutil.ReaderAndCloser.ty,
     #rac⟩
   isplitr
-  · ipureintro; exact ⟨rfl, Hwire, Hwe, Hbl⟩
+  · ipureintro; exact ⟨rfl, Hwire, Hwe.enc, Hbl⟩
   isplitl [Hmr]
   · unfold snapPre snapPhi
     iunfold http.streamHas at Hmr

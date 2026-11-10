@@ -91,11 +91,12 @@ def msgCodec : StreamCodec where
     simp [msgFrame, u64Be_length] at hl
 
 /-- **The msgappv2 stream's codec** on the connection from `frm` to `to`: from the zero state
-(`newMsgAppV2Encoder`'s and `newMsgAppV2Decoder`'s). -/
-def v2Codec (frm to : w64) : StreamCodec where
+(`newMsgAppV2Encoder`'s and `newMsgAppV2Decoder`'s); (raft-entsize §4, 2026-11-10) its frames'
+encodings of bounded size when `Sz` (`V2Frame`). -/
+def v2Codec (Sz : Prop) (frm to : w64) : StreamCodec where
   S := V2St
   init := ⟨W64 0, W64 0⟩
-  F := V2Frame frm to
+  F := V2Frame Sz frm to
   uniq h1 h2 h := V2Frame.unique h1 h2 h
   nonempty h := by
     rcases h with ⟨-, rfl, -⟩ | ⟨_, -, -, -, rfl, -⟩ | ⟨_, _, -, -, -, -, rfl, -⟩ <;> simp
@@ -234,9 +235,10 @@ def StreamTy.endpoint : StreamTy → GoString
   | .msgAppV2 => go!"/raft/stream/msgapp"
   | .message => go!"/raft/stream/message"
 
-/-- The codec of a stream of type `t` from `frm` to `to`. -/
-def StreamTy.codec : StreamTy → w64 → w64 → StreamCodec
-  | .msgAppV2, frm, to => v2Codec frm to
+/-- The codec of a stream of type `t` from `frm` to `to` (raft-entsize §4: the msgappv2 frames'
+encodings of bounded size when `Sz`). -/
+def StreamTy.codec (Sz : Prop) : StreamTy → w64 → w64 → StreamCodec
+  | .msgAppV2, frm, to => v2Codec Sz frm to
   | .message, _, _ => msgCodec
 
 /-- The path of the stream of type `t` read by `rid` (`streamReader.dial`'s
@@ -363,7 +365,7 @@ request's registered connection, from the member owning the request's host to it
 def streamResp (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) (st : w64) (w : List w8) :
     IProp GF :=
   iprop(⌜st = W64 200⌝ → ∃ c : StreamKey, streamReg Rh γk c ∗
-    streamSent (c.2.1.codec (Rh.owner R.host) c.2.2) Rh.γn.N c.1 c.2.2 w)
+    streamSent (c.2.1.codec Rh.γn.N.Sz (Rh.owner R.host) c.2.2) Rh.γn.N c.1 c.2.2 w)
 
 instance streamResp_persistent (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) (st : w64)
     (w : List w8) : Persistent (streamResp Rh R γk st w) := by
@@ -773,8 +775,9 @@ theorem streamSent_compat (C : StreamCodec) (N : NetPayload GF) (γw : GName) (r
 /-- **The msgappv2 decoder's premise** from a stream's bytes. -/
 theorem streamSent_v2Compat (N : NetPayload GF) (γw : GName) (frm to : w64)
     (fr : List (MsgWire × List w8)) (s : V2St) (ys : List w8)
-    (Hfr : Chain (v2Codec frm to) (v2Codec frm to).init fr s) :
-    ⊢ streamSent (v2Codec frm to) N γw to (chainBytes fr ++ ys) -∗ ⌜V2Compat frm to s ys⌝ := by
+    (Hfr : Chain (v2Codec N.Sz frm to) (v2Codec N.Sz frm to).init fr s) :
+    ⊢ streamSent (v2Codec N.Sz frm to) N γw to (chainBytes fr ++ ys) -∗
+      ⌜V2Compat N.Sz frm to s ys⌝ := by
   iintro Hs
   ihave %H := streamSent_compat _ N γw to fr s ys Hfr $$ Hs
   ipureintro

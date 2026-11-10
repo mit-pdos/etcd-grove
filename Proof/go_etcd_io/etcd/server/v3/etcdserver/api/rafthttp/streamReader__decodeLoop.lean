@@ -164,10 +164,10 @@ local macro "dl_rest" T:term : tactic => `(tactic| (
       iframe
       iright; iexact Hcl
     wp_auto_lc 3
-    ihave HI : (∃ (decv : GoInterface) (fr : List (MsgWire × List w8)) (s : (StreamTy.codec $T pid lid).S),
-        "dec" ∷ dec_ptr ↦ decv ∗ "HdecO" ∷ decOwn lid pid $T decv rc s ∗
+    ihave HI : (∃ (decv : GoInterface) (fr : List (MsgWire × List w8)) (s : (StreamTy.codec Rh.γn.N.Sz $T pid lid).S),
+        "dec" ∷ dec_ptr ↦ decv ∗ "HdecO" ∷ decOwn Rh.γn.N.Sz lid pid $T decv rc s ∗
         "Hrr" ∷ http.respReader (raftHttpNet Rh) rc R γk (W64 200) (chainBytes fr) ∗
-        "%Hc" ∷ ⌜Chain (StreamTy.codec $T pid lid) (StreamTy.codec $T pid lid).init fr s⌝ ∗
+        "%Hc" ∷ ⌜Chain (StreamTy.codec Rh.γn.N.Sz $T pid lid) (StreamTy.codec Rh.γn.N.Sz $T pid lid).init fr s⌝ ∗
         "Hrd" ∷ streamRd γw fr.length ∗ "cr" ∷ cr_ptr ↦ cr ∗
         "Hlc1" ∷ £ 1 ∗ "Hlc2" ∷ £ 1 ∗ "Hlc3" ∷ £ 1) $$ [dec HdecO Hrr Hrd cr Hlc1 Hlc2 Hlc3]
     · iexists _, [], _
@@ -180,7 +180,7 @@ local macro "dl_rest" T:term : tactic => `(tactic| (
     irename Hlc3 => Ho3
     (try simp only [_root_.decide_true, ↓reduceIte])
     (try wp_auto)
-    ihave ⟨HdecO, %Hei⟩ := decOwn_ok _ _ _ _ _ _ $$ HdecO
+    ihave ⟨HdecO, %Hei⟩ := decOwn_ok _ _ _ _ _ _ _ $$ HdecO
     obtain ⟨ei, rfl⟩ := Hei
     (try wp_auto)
     ihave #Hrf := respReader_readFullAt (raftHttpNet Rh) (hReadFull _) rc R γk (W64 200)
@@ -369,9 +369,9 @@ theorem rafthttp.streamReader.decodeLoop.wp_proof
     (try wp_auto)
     wp_apply hNewDec _ lid pid as %d Hd
     (try wp_auto)
-    ihave HdecO : decOwn lid pid .msgAppV2
+    ihave HdecO : decOwn Rh.γn.N.Sz lid pid .msgAppV2
         (interface.mkOk (go.GoType.PointerType rafthttp.msgAppV2Decoder.ty) #d) rc
-        (StreamTy.msgAppV2.codec pid lid).init $$ [Hd]
+        (StreamTy.msgAppV2.codec Rh.γn.N.Sz pid lid).init $$ [Hd]
     · simp only [decOwn]
       iexists d
       iframe
@@ -385,9 +385,9 @@ theorem rafthttp.streamReader.decodeLoop.wp_proof
     ipersist r_d
     iclear __d
     (try wp_auto)
-    ihave HdecO : decOwn lid pid .message
+    ihave HdecO : decOwn Rh.γn.N.Sz lid pid .message
         (interface.mkOk (go.GoType.PointerType rafthttp.messageDecoder.ty) #d) rc
-        (StreamTy.message.codec pid lid).init $$ []
+        (StreamTy.message.codec Rh.γn.N.Sz pid lid).init $$ []
     · simp only [decOwn]
       iexists d
       iframe #

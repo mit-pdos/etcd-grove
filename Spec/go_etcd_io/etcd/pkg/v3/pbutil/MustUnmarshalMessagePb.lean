@@ -28,7 +28,9 @@ variable [sem : go.Semantics]
 wire content `c₀` that marshals with valid unknown fields (`pbEncC T c₀`): it does not panic, and
 the `*T` holds, owned, a message at `c₀`'s model (`proto.Unmarshal`'s D2: the decode gives `c₀`
 back, and `c₀` is one the type's `dec` describes, `decOk`; stage A of the per-type models: until
-then of any bytes that are an encoding of some model of any `PbType`). -/
+then of any bytes that are an encoding of some model of any `PbType`); (raft-entsize §4, 2026-11-10)
+at `c₀` itself (the instance's `decC`, from which its `dec` follows: `decC_dec`), which is every
+content of valid unknown fields that the bytes encode (D2). -/
 abbrev pbutil.MustUnmarshalMessagePb.spec : Prop :=
   ∀ (T : PbTypeC GF), pbModelOf GF T.data.ty = some T →
   ∀ (l : Loc) (d : GoSlice) (bs : List w8) (dq : DFrac) (c₀ : T.data.C),
@@ -37,7 +39,9 @@ abbrev pbutil.MustUnmarshalMessagePb.spec : Prop :=
       T.data.blank l }}
     (App (App (Val (@! pbutil.MustUnmarshalMessage))
       (Val #(interface.mkOk (go.GoType.PointerType T.data.ty) #l))) (Val #d))
-  {{ RET #(); d ↦*{dq} bs ∗ T.data.dec l (T.data.modelOf c₀) }}
+  {{ RET #(); d ↦*{dq} bs ∗ T.data.decC l c₀ ∗
+      ⌜∀ c₁ : T.data.C, T.data.marshals (T.data.modelOf c₁) → T.data.ufValid c₁ →
+        bs = pbEncC T c₁ → c₁ = c₀⌝ }}
 
 end spec
 

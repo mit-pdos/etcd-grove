@@ -26,20 +26,22 @@ variable [sem : go.Semantics]
 to write any prefix of a frame of `st`'s content from `cs`: it writes such a frame, leading to a
 state `cs'`, or returns an error (the writer and the encoder at some bytes and state); (stage A of
 the per-type models) its wire content, bounded (`swMsgBound`: the encoder sizes and marshals the
-content and its entries'). -/
+content and its entries'); (raft-entsize §4, 2026-11-10) one content (`msgSzC`), of bounded size
+when `Sz` unless a link heartbeat (whose frame carries no encoding), whose encodings the frame
+carries (`V2Frame Sz`). -/
 abbrev rafthttp.msgAppV2Encoder.encode.spec : Prop :=
-  ∀ (enc : Loc) (wi : GoInterfaceOk) (fs : Loc) (cs : V2St) (frm to : w64) (ml : Loc) (st : MsgSt)
+  ∀ (Sz : Prop) (enc : Loc) (wi : GoInterfaceOk) (fs : Loc) (cs : V2St) (frm to : w64) (ml : Loc) (st : MsgSt)
     (Wr A : List w8 → IProp GF) (h : List w8),
   V2EncOk frm to st →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
       v2EncOwn enc wi fs cs ∗ writerAt wi Wr A ∗ Wr h ∗ msgOwn ml DFrac.discard st ∗
-      swMsgBound ml st ∗ □ (∀ (bs : List w8) (cs' : V2St) (k : Nat), ⌜V2Frame frm to cs (wireOf st) bs cs'⌝ -∗
+      msgSzC (Sz ∧ ¬isHB st.msg) ml st ∗ □ (∀ (bs : List w8) (cs' : V2St) (k : Nat), ⌜V2Frame Sz frm to cs (wireOf st) bs cs'⌝ -∗
           A (h ++ bs.take k)) }}
     (App (Val (enc @!! go.GoType.PointerType
       go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.msgAppV2Encoder.ty @!! go!"encode")) (Val #ml))
   {{ (err : GoInterface), RET #err; http.errStrOk err ∗
       ∃ (h' : List w8) (cs' : V2St), Wr h' ∗ v2EncOwn enc wi fs cs' ∗
-        (⌜err = GoInterface.nil⌝ -∗ ⌜∃ bs, V2Frame frm to cs (wireOf st) bs cs' ∧ h' = h ++ bs⌝) }}
+        (⌜err = GoInterface.nil⌝ -∗ ⌜∃ bs, V2Frame Sz frm to cs (wireOf st) bs cs' ∧ h' = h ++ bs⌝) }}
 
 end spec
 

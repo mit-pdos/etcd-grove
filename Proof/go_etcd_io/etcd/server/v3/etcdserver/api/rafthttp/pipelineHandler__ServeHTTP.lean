@@ -160,7 +160,7 @@ theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
             pbMessageC_modelOf, pbMessageC_C, pbMessageC_marshals, pbMessageC_ufValid,
             pbMessageC_size, pbEncC_pbMessageC] at hU
           wp_apply hU $$ [$Hsl $m] as %uerr ⟨Hsl, %Hok, Hdec⟩
-          obtain ⟨c0, hc0m, hc0u, hc0cs, hc0b⟩ := Hst.2.1
+          obtain ⟨c0, hc0m, hc0u, hc0cs, hc0b, hc0sz⟩ := Hst.2.1
           have Hue : uerr = GoInterface.nil := Hok ⟨c0, by rw [hc0m]; exact Hst.1.1, hc0u, hc0b⟩
           subst Hue
           ihave ⟨%c', Hm', %Hw0'⟩ := Hdec $$ %rfl

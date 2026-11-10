@@ -39,8 +39,8 @@ variable [sem : go.Semantics]
 /-- **The decoder `dec` of a stream of type `ty`** from `pid` to `lid`, reading `r`, at the codec's
 state `s` (exclusive): a `*msgAppV2Decoder` (`v2DecOwn`) or a `*messageDecoder` (its reader,
 read-only). -/
-def decOwn (lid pid : w64) :
-    (ty : StreamTy) → GoInterface → GoInterface → (ty.codec pid lid).S → IProp GF
+def decOwn (Sz : Prop) (lid pid : w64) :
+    (ty : StreamTy) → GoInterface → GoInterface → (ty.codec Sz pid lid).S → IProp GF
   | .msgAppV2, dec, r, s => iprop(∃ d : Loc,
       ⌜dec = interface.mkOk (go.GoType.PointerType rafthttp.msgAppV2Decoder.ty) #d⌝ ∗
       v2DecOwn d r pid lid s)
@@ -101,7 +101,7 @@ theorem stream_known (Rh : RaftHttp GF) (R : http.HReq) (γk γw : GName) (ty : 
     (lid pid : w64) (bs : List w8) (Hown : Rh.owner R.host = pid) (Hpath : R.path ≠ probingPath) :
     ⊢ streamReg Rh γk (γw, ty, lid) -∗
       (□ ∃ w, ⌜bs <+: w⌝ ∗ ((raftHttpNet Rh).proto R.host).resp R γk (W64 200) w) -∗
-      streamSent (ty.codec pid lid) Rh.γn.N γw lid bs := by
+      streamSent (ty.codec Rh.γn.N.Sz pid lid) Rh.γn.N γw lid bs := by
   iintro #Hreg #Hw
   icases Hw with ⟨%w, %Hp, Hr⟩
   simp only [raftHttpNet, raftProto]
@@ -154,16 +154,16 @@ theorem wp_stream_decode
     (hV2 : rafthttp.msgAppV2Decoder.decode.spec (GF := GF) (hG := hG))
     (N : NetPayload GF) (γw : GName) (ty : StreamTy) (lid pid : w64) (dec : GoInterface)
     (ei : GoInterfaceOk) (Hei : dec = GoInterface.ok ei) (r : GoInterface)
-    (Rd B : List w8 → IProp GF) (fr : List (MsgWire × List w8)) (s : (ty.codec pid lid).S)
-    (Hfr : Chain (ty.codec pid lid) (ty.codec pid lid).init fr s) :
+    (Rd B : List w8 → IProp GF) (fr : List (MsgWire × List w8)) (s : (ty.codec N.Sz pid lid).S)
+    (Hfr : Chain (ty.codec N.Sz pid lid) (ty.codec N.Sz pid lid).init fr s) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-        decOwn lid pid ty dec r s ∗ readFullAt r Rd B ∗ Rd (chainBytes fr) ∗
-        □ (∀ bs, B bs -∗ streamSent (ty.codec pid lid) N γw lid bs) }}
+        decOwn N.Sz lid pid ty dec r s ∗ readFullAt r Rd B ∗ Rd (chainBytes fr) ∗
+        □ (∀ bs, B bs -∗ streamSent (ty.codec N.Sz pid lid) N γw lid bs) }}
       (App (Val #(methods ei.ty go!"decode" ei.v)) (Val #()))
     {{ (ml : Loc) (err : GoInterface), RET (PairV #ml #err); http.errStrOk err ∗
-        ∃ (rs' : List w8) (s' : (ty.codec pid lid).S), Rd rs' ∗ decOwn lid pid ty dec r s' ∗
+        ∃ (rs' : List w8) (s' : (ty.codec N.Sz pid lid).S), Rd rs' ∗ decOwn N.Sz lid pid ty dec r s' ∗
           (⌜err = GoInterface.nil⌝ -∗ ∃ (w : MsgWire) (bs : List w8) (st : MsgSt),
-            ⌜(ty.codec pid lid).F s w bs s' ∧ rs' = chainBytes fr ++ bs ∧ wireOf st = w ∧
+            ⌜(ty.codec N.Sz pid lid).F s w bs s' ∧ rs' = chainBytes fr ++ bs ∧ wireOf st = w ∧
               st.resps = []⌝ ∗ □ B rs' ∗ msgPtsC ml (DFrac.own 1) (DFrac.own 1) true st) }} := by
   cases ty with
   | msgAppV2 =>
@@ -173,7 +173,7 @@ theorem wp_stream_decode
     subst Hd
     cases Hei
     (try wp_auto)
-    wp_apply hV2 d r pid lid s Rd B (chainBytes fr) $$ [Hdec HRd]
+    wp_apply hV2 N.Sz d r pid lid s Rd B (chainBytes fr) $$ [Hdec HRd]
       as %ml %err ⟨#Herr, %rs', %s', HRd, Hdec, Hok⟩
     · iframe; iframe #
       iintro !> %ys HB
@@ -219,9 +219,10 @@ theorem wp_stream_decode
     exact ⟨MsgFrameOf.of_wire Hb.2.2.1 Hb.2.2.2 hl, Hb.1, rfl, Hb.2.2.1.1⟩
 
 /-- The reader's decoder is an interface value (`dec.decode` resolves its method). -/
-theorem decOwn_ok (lid pid : w64) (ty : StreamTy) (dec r : GoInterface) (s : (ty.codec pid lid).S) :
-    decOwn (GF := GF) lid pid ty dec r s ⊢
-      decOwn lid pid ty dec r s ∗ ⌜∃ ei, dec = GoInterface.ok ei⌝ := by
+theorem decOwn_ok (Sz : Prop) (lid pid : w64) (ty : StreamTy) (dec r : GoInterface)
+    (s : (ty.codec Sz pid lid).S) :
+    decOwn (GF := GF) Sz lid pid ty dec r s ⊢
+      decOwn Sz lid pid ty dec r s ∗ ⌜∃ ei, dec = GoInterface.ok ei⌝ := by
   cases ty <;>
   · simp only [decOwn]
     iintro ⟨%d, %Hd, H⟩

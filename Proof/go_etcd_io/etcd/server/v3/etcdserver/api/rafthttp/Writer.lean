@@ -89,8 +89,8 @@ def outConnOk (Rh : RaftHttp GF) (ty : StreamTy) (lid pid : w64) (conn : Loc) : 
 
 /-- **The encoder `enc` of a stream of type `ty`** writing to `wi`, at the codec's state `s`
 (exclusive): a `*msgAppV2Encoder` (`v2EncOwn`) or a `*messageEncoder` (its writer, read-only). -/
-def encOwn (lid pid : w64) (fs : Loc) :
-    (ty : StreamTy) → GoInterface → GoInterfaceOk → (ty.codec lid pid).S → IProp GF
+def encOwn (Sz : Prop) (lid pid : w64) (fs : Loc) :
+    (ty : StreamTy) → GoInterface → GoInterfaceOk → (ty.codec Sz lid pid).S → IProp GF
   | .msgAppV2, enc, wi, s => iprop(∃ e : Loc,
       ⌜enc = interface.mkOk (go.GoType.PointerType rafthttp.msgAppV2Encoder.ty) #e⌝ ∗
       v2EncOwn e wi fs s)
@@ -104,10 +104,10 @@ connection registered as `(γw, ty, pid)`; and the right to close `cl`. -/
 def swLive (Rh : RaftHttp GF) (ty : StreamTy) (lid pid : w64) (fs : Loc) (enc fl cl : GoInterface) :
     IProp GF :=
   iprop(∃ (wi : GoInterfaceOk) (a : GoString) (R : http.HReq) (γk γw : GName)
-      (fr : List (MsgWire × List w8)) (s : (ty.codec lid pid).S),
-    ⌜fl = GoInterface.ok wi⌝ ∗ encOwn lid pid fs ty enc wi s ∗
+      (fr : List (MsgWire × List w8)) (s : (ty.codec Rh.γn.N.Sz lid pid).S),
+    ⌜fl = GoInterface.ok wi⌝ ∗ encOwn Rh.γn.N.Sz lid pid fs ty enc wi s ∗
     http.respWriter (raftHttpNet Rh) (GoInterface.ok wi) a R γk (some (W64 200)) (chainBytes fr) ∗
-    ⌜Chain (ty.codec lid pid) (ty.codec lid pid).init fr s⌝ ∗
+    ⌜Chain (ty.codec Rh.γn.N.Sz lid pid) (ty.codec Rh.γn.N.Sz lid pid).init fr s⌝ ∗
     ([∗list] i ↦ f ∈ fr, frameDep Rh.γn.N γw pid i f.1) ∗
     streamReg Rh γk (γw, ty, pid) ∗
     ⌜Rh.owner R.host = lid ∧ R.host = a ∧ R.path = streamPath ty pid⌝ ∗
