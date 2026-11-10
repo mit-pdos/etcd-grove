@@ -4,6 +4,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.seedOne
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.storeKey
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.encodeV0
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.setItem
+public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.splitKey
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Calls
 public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
 public import Perennial.Proof.context.Link
@@ -29,13 +30,17 @@ variable [sem : go.Semantics]
 variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
-theorem seedOne.wp_proof (wp_storeKey : storeKey.spec (GF := GF) (hG := hG))
+theorem seedOne.wp_proof (wp_splitKey : splitKey.spec (GF := GF) (hG := hG))
+    (wp_storeKey : storeKey.spec (GF := GF) (hG := hG))
     (wp_encodeV0 : encodeV0.spec (GF := GF) (hG := hG))
     (wp_setItem : setItem.spec (GF := GF) (hG := hG)) :
     seedOne.spec (GF := GF) (hG := hG) := by
-  intro _ _ cl ms V γs s0 g k σ hAs hms hk hg
+  intro _ _ cl ms V γs s0 g k rv σ hAs hms hk hg
   wp_start as ⟨#Hnc, #Hwo, #Hregs, #Hsi, Hs, #Hst⟩
   wp_auto
+  wp_apply wp_splitKey
+  (try wp_auto)
+  have hsl := splitKeyL_length k
   wp_apply context.wp_Background
   imod client.background_ctx (GF := GF) hAs with ⟨%cd, #Hctx, #Hce⟩
   (try wp_auto)
@@ -50,20 +55,22 @@ theorem seedOne.wp_proof (wp_storeKey : storeKey.spec (GF := GF) (hG := hG))
   ihave #Hidx := client.srvStart_idx ms $$ Hss
   ihave #Hnil := EtcdGrove.optsAt_nil (GF := GF)
   ihave Hau := seed_aus γs ms
-      (.put (linkv.putOp (go!"/registry" ++ storeKeyL k) (encodeWith tagV0 k go!"" go!"x"))) σ
+      (seedOp k) σ
       $$ [Hs]
   · iframe Hsi Hs
   ihave #Hput := client.kvRegs_put ms $$ Hregs
   wp_apply (client.client_Put_st cl ms V context.backgroundCtxVal cd
-      (go!"/registry" ++ storeKeyL k) (encodeWith tagV0 k go!"" go!"x") slice.nil
+      (go!"/registry" ++ storeKeyL k)
+      (encodeWith tagV0 ⟨(splitKeyL k).1, (splitKeyL k).2, go!"", go!"x", go!"", go!"", 0, false⟩)
+      slice.nil
       (fun σ' => iprop(ghostVar γs (1 : Qp).half (kvOpStep
-        (.put (linkv.putOp (go!"/registry" ++ storeKeyL k) (encodeWith tagV0 k go!"" go!"x"))) σ) ∗
+        (seedOp k) σ) ∗
         ⌜σ' = σ⌝))
       (opSizeOk_opPutModel (K := 2 ^ 28) (E := 0) (V := 2 ^ 28) (optsKeep_nil _ _ _)
-        (by simp [storeKeyL]; omega) (by simp [encodeWith]; omega) (by decide)))
+        (by simp [storeKeyL]; omega) (by simp [encodeWith, putF]; omega) (by decide)))
     $$ [Hau] as %resp %err Hout
   · iframe #
-    iexact Hau
+    iExactEq Hau; rfl
   icases Hout with (⟨%Herr, %m, %σ', #Hm, ⟨Hs, %Hσ'⟩, %Hrev⟩ | ⟨%Herr, -⟩)
   · subst Herr
     subst Hσ'
@@ -71,6 +78,15 @@ theorem seedOne.wp_proof (wp_storeKey : storeKey.spec (GF := GF) (hG := hG))
     icases Hm with ⟨%Hrn, %h, %pk, #Hhf, #Hh, #Hpk, -⟩
     iunfold hdrFull at Hh
     icases Hh with ⟨%Hhn, -, -, #Hrevf, -, -⟩
+    wp_auto
+    by_cases hrv : m.hdr.revision ≠ rv
+    · rw [decide_eq_false hrv]
+      wp_auto
+      iapply HΦ
+      ileft
+      ipureintro; rfl
+    replace hrv := Decidable.not_not.1 hrv
+    rw [decide_eq_true hrv]
     wp_auto
     iunfold storeOwn at Hst
     icases Hst with ⟨#Hits, %Hrv⟩
@@ -87,11 +103,9 @@ theorem seedOne.wp_proof (wp_storeKey : storeKey.spec (GF := GF) (hG := hG))
     · iExactEq Hs; rfl
     isplitr
     · iunfold storeOwn
-      simp only
-      rw [← Hrev.1]
+      simp only [seedItem]
       iframe Hout
-      ipureintro; rfl
-    ipureintro; exact Hrev.2
+    ipureintro; exact ⟨hrv ▸ Hrev.1, Hrev.2⟩
   · cases err with
     | nil => exact absurd rfl Herr
     | ok ei =>
