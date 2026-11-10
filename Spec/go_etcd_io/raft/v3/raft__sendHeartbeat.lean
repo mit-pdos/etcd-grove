@@ -53,10 +53,13 @@ else, so `Match` is untouched.
 **One spec for both trace modes** (2026-11-09, trace-check Q8 stage 1 slice 5): the caller gives
 `send`'s hook's gate (`raft.send.spec`'s `HookGateOpt`), at the heartbeat as queued, for whichever
 commit `cm` the function computes (with its two bounds), and gets `Q` back. Until slice 5 the premise
-`s.gh.tr = none` (stage 0), now `raft.sendHeartbeat.untraced`'s (`TracedUntraced.lean`). -/
+`s.gh.tr = none` (stage 0), now `raft.sendHeartbeat.untraced`'s (`TracedUntraced.lean`). (2026-11-10,
+slice 14) `Q` is indexed by the heartbeat's commit `cm`, which the gate is given and the postcondition
+names: a broadcast's caller indexes its resource by the messages queued so far (`notes/decisions.md`,
+"Q8 stage 1 (slice 14)"). -/
 abbrev raft.sendHeartbeat.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (to : w64) (ctx : GoSlice)
-    (cl : List w8) (Q : IProp GF),
+    (cl : List w8) (Q : w64 → IProp GF),
   to ≠ id →
   to ∈ domSet s.progress →
   -- (2026-10-29, stage U7) the term past `0` that `send` stamps (`SentMsgShape`)
@@ -69,7 +72,7 @@ abbrev raft.sendHeartbeat.spec : Prop :=
       "Hgate" ∷ (∀ cm : w64, ⌜uint.Z cm ≤ uint.Z s.logst.committed ∧
           uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ -∗
         HookGateOpt s.gh.tr r (sendOutGate id s c MsgHeartbeat
-          [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl]) Q) }}
+          [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl]) (Q cm)) }}
     (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"sendHeartbeat"))
       (Val #to)) (Val #ctx))
   {{ (cm : w64) (pvs : GMap w64 Progress), RET #();
@@ -78,7 +81,7 @@ abbrev raft.sendHeartbeat.spec : Prop :=
                         (W64 0) (W64 0) cm (W64 0) [] [] cl] with prvals := pvs } ∗
       ⌜uint.Z cm ≤ uint.Z s.logst.committed⌝ ∗
       ⌜uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ ∗
-      ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ ∗ Q }}
+      ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ ∗ Q cm }}
 
 end spec
 

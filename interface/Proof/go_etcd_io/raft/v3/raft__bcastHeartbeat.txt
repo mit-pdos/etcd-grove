@@ -6,7 +6,7 @@ theorem raft.bcastHeartbeat.wp_proof [package_sem : Assumptions] (wp_readOnly_he
     readOnly.heartbeatCtx.spec) (wp_raft_bcastHeartbeatWithCtx : raft.bcastHeartbeatWithCtx.spec) :
     raft.bcastHeartbeat.spec
   -- `Perennial.EtcdGrove.raft.bcastHeartbeat.spec`, unfolded:
-  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (G : IProp GF),
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (G : List Msg → IProp GF),
     s.role = PRole.leader →
       s.term ≠ W64 0 →
         ⊢
@@ -15,17 +15,20 @@ theorem raft.bcastHeartbeat.wp_proof [package_sem : Assumptions] (wp_readOnly_he
                 "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
                   ("#Hgate" ∷
                       □
-                        ∀ to cm,
+                        ∀ to cm o,
                           ⌜to ≠ id ∧ to ∈ s.progress.domSet⌝ -∗
                             ⌜uint.Z cm ≤ uint.Z s.logst.committed ∧
                                   uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ -∗
-                              G -∗
+                              G o -∗
                                 HookGateOpt s.gh.tr r
                                   (sendOutGate id s c MsgHeartbeat
                                     [Msg.mkV MsgType.heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] []
                                         (hbCtx s.rd.ro)])
-                                  G) ∗
-                    "HG" ∷ G -∗
+                                  (G
+                                    (o ++
+                                      [Msg.mkV MsgType.heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] []
+                                          (hbCtx s.rd.ro)]))) ∗
+                    "HG" ∷ G s.outbox -∗
               (▷
                   ∀ ms pvs,
                     ownRaftPhysCV c c.voters r id
@@ -36,7 +39,15 @@ theorem raft.bcastHeartbeat.wp_proof [package_sem : Assumptions] (wp_readOnly_he
                             prvals := pvs, prevote := __src.prevote, gh := __src.gh, rd := __src.rd, lt := __src.lt,
                             pci := __src.pci, isLearner := __src.isLearner, sdr := __src.sdr, cq := __src.cq }) ∗
                         ⌜∀ (m : Msg), m ∈ ms → HeartbeatOk id (toPState s) m ∧ m.ctx = hbCtx s.rd.ro⌝ ∗
-                          ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ ∗ G -∗
+                          ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ ∗
+                            G
+                              (have __src := sendMsgs s ms;
+                                { term := __src.term, vote := __src.vote, lead := __src.lead, role := __src.role,
+                                  votes := __src.votes, outbox := __src.outbox, stepfn := __src.stepfn,
+                                  ticking := __src.ticking, progress := __src.progress, log := __src.log,
+                                  logst := __src.logst, prvals := pvs, prevote := __src.prevote, gh := __src.gh,
+                                  rd := __src.rd, lt := __src.lt, pci := __src.pci, isLearner := __src.isLearner,
+                                  sdr := __src.sdr, cq := __src.cq }).outbox -∗
                       Φ (intoVal ())) -∗
                 WP
                   ((intoVal

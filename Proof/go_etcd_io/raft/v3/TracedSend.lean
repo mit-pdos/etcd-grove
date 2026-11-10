@@ -109,6 +109,34 @@ theorem sendOutGate_sendMsgs (id : w64) (s : NState) (ms : List Msg) (c : CfgM) 
 /-- ... and the ghost (the trace mode) is the state's. -/
 theorem sendMsgs_gh (s : NState) (ms : List Msg) : (sendMsgs s ms).gh = s.gh := rfl
 
+/-- (2026-11-10, Q8 stage 1 slice 14) **An untraced cluster's resource ignores the outbox**: a family
+`G` of caller resources indexed by the outbox (the broadcasts' and the step functions' gates since
+slice 14, `notes/decisions.md`, "Q8 stage 1 (slice 14)") gives the same resource at every index when
+the cluster is untraced. A traced caller indexes its resources by the outbox (the capability's pending
+share is the outbox's traced messages); an untraced one passes a constant family (`IdxFree.const`).
+`maybeSendAppend`'s snapshot fallback, reached only untraced (`TrNoSnap`), queues its messages through
+no gate and needs it. -/
+def IdxFree {α : Type _} (tr : Option GName) (G : List Msg → α) : Prop :=
+  tr = none → ∀ o o' : List Msg, G o = G o'
+
+theorem IdxFree.const {α : Type _} (tr : Option GName) (x : α) : IdxFree tr (fun _ : List Msg => x) :=
+  fun _ _ _ => rfl
+
+theorem IdxFree.of_some {α : Type _} {tr : Option GName} (G : List Msg → α) (h : tr ≠ none) :
+    IdxFree tr G :=
+  fun h' => absurd h' h
+
+/-- (2026-11-10, Q8 stage 1 slice 14) **A resource family indexed by the outbox up to order**: raft's
+abstract outbox is its queues up to permutation (`outboxRel`, `ownRaftPhysC_outbox`), and `campaign`'s
+result names its messages in another order than it sends them (its own vote's response first). A
+caller passes a family that ignores the order: untraced a constant one (`PermInv.const`), traced one
+whose share is the outbox's traced messages up to order. -/
+def PermInv {α : Type _} (G : List Msg → α) : Prop :=
+  ∀ o o' : List Msg, o.Perm o' → G o = G o'
+
+theorem PermInv.const {α : Type _} (x : α) : PermInv (fun _ : List Msg => x) :=
+  fun _ _ _ => rfl
+
 end pure
 
 section gates
@@ -141,6 +169,28 @@ theorem hookGateOpt_congr (tr tr' : Option GName) (r : Loc) (oE oE' : Option (Tr
   subst h1 h2; exact .rfl
 
 end gates
+
+section idx
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
+variable [sem : go.Semantics]
+
+/-- (2026-11-10, Q8 stage 1 slice 14) A resource indexed by the outbox up to order (`PermInv`), at a
+permuted outbox. -/
+theorem idx_perm (G : List Msg → IProp GF) (hG : PermInv G) {o o' : List Msg} (h : o.Perm o') :
+    G o ⊢ G o' := by
+  rw [hG o o' h]
+
+/-- (2026-11-10, Q8 stage 1 slice 14) Raft's struct and a resource indexed by its outbox, at an equal
+state (`ownRaftPhysC_eq` for both). -/
+theorem physG_eq (c : CfgM) (r : Loc) (id : w64) (G : List Msg → IProp GF) {s1 s2 : NState}
+    (h : s1 = s2) :
+    ownRaftPhysCV (GF := GF) c c.voters r id s1 ∗ G s1.outbox ⊢
+      ownRaftPhysCV c c.voters r id s2 ∗ G s2.outbox := by
+  subst h; exact .rfl
+
+end idx
 
 end EtcdGrove
 end Perennial

@@ -97,7 +97,7 @@ theorem raft.handleAppendEntries.untraced (h : raft.handleAppendEntries.spec (GF
   intro c r id s ml m ents sn ctx rs Hwf Hnw Hconf Hfid Hty Hnl Htz htr
   iintro %Φ ⟨#Hpkg, Hphys, Hm⟩ HΦ
   icases ownRaftPhysC_traceLogger c r id s htr $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
-  iapply h c r id s ml m ents sn ctx rs iprop(emp) iprop(emp) Hwf Hnw Hconf Hfid Hty Hnl Htz $$ [Hphys Hm]
+  iapply h c r id s ml m ents sn ctx rs iprop(emp) (fun _ => iprop(emp)) Hwf Hnw Hconf Hfid Hty Hnl Htz $$ [Hphys Hm]
   · iframe Hpkg Hphys Hm
     isplitr
     · iempintro
@@ -118,7 +118,7 @@ theorem campaignGates_none (c : CfgM) (r : Loc) (id : w64) (s : NState) (t : Cam
     (r.[raft, go!"traceLogger"] ↦□ tl : IProp GF) ⊢
       (iprop(emp) -∗ if t = campaignPreElection then iprop(|={⊤}=> (emp : IProp GF))
         else HookGate s.gh.tr r (NodeEvOf (W64 1) id (becomeCandidate id s) c) iprop(emp)) ∗
-      □ (∀ (pvs : GMap w64 Progress) (y : w64), ⌜y ∈ c.voters⌝ -∗ iprop(emp) -∗
+      □ (∀ (pvs : GMap w64 Progress) (y : w64) (o : List Msg), ⌜y ∈ c.voters⌝ -∗ iprop(emp) -∗
         HookGateOpt s.gh.tr r
           (sendOutGate id { campRoleState id s (decide (t = campaignPreElection)) with prvals := pvs } c
             (if y = id then vrespW32 (decide (t = campaignPreElection))
@@ -134,7 +134,7 @@ theorem campaignGates_none (c : CfgM) (r : Loc) (id : w64) (s : NState) (t : Cam
     · iapply hookGate_none r _ tl iprop(emp) Htlok
       iframe Htl
   · imodintro
-    iintro %pvs %y %_ -
+    iintro %pvs %y %o %_ -
     iapply hookGateOpt_none r _ tl iprop(emp) Htlok
     iframe Htl
 
@@ -161,8 +161,9 @@ theorem raft.campaign.untraced (h : raft.campaign.spec (GF := GF) (hG := hG)) :
   iintro %Φ ⟨#Hpkg, Hphys⟩ HΦ
   icases ownRaftPhysC_traceLogger c r id s htr $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
   icases campaignGates_none c r id s t tl htr Htlok $$ Htl with ⟨Hgbc, #Hgsend⟩
-  iapply h c r id s t iprop(emp) iprop(emp) Hrole Hid Hnw Hpv $$ [Hphys Hgbc]
-  · iframe Hpkg Hphys Hgbc Hgsend
+  iapply h c r id s t iprop(emp) (fun _ => iprop(emp)) Hrole Hid Hnw Hpv (PermInv.const _) $$ [Hphys Hgbc]
+  · dsimp only
+    iframe Hpkg Hphys Hgbc Hgsend
   inext
   iintro %peers %pvs ⟨%Hp, Hphys, -⟩
   iapply HΦ $$ %peers %pvs
@@ -190,8 +191,9 @@ theorem raft.hup.untraced (h : raft.hup.spec (GF := GF) (hG := hG)) :
   iintro %Φ ⟨#Hpkg, Hphys⟩ HΦ
   icases ownRaftPhysC_traceLogger c r id s htr $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
   icases campaignGates_none c r id s t tl htr Htlok $$ Htl with ⟨Hgbc, #Hgsend⟩
-  iapply h c r id s t iprop(emp) iprop(emp) Hnw Hpv Hwf Hfla $$ [Hphys Hgbc]
-  · iframe Hpkg Hphys Hgbc Hgsend
+  iapply h c r id s t iprop(emp) (fun _ => iprop(emp)) Hnw Hpv Hwf Hfla (PermInv.const _) $$ [Hphys Hgbc]
+  · dsimp only
+    iframe Hpkg Hphys Hgbc Hgsend
   inext
   iintro %s' ⟨Hphys, -, %H1, %H2⟩
   iapply HΦ $$ %s'
@@ -252,10 +254,13 @@ theorem stepCandidate.untraced (h : stepCandidate.spec (GF := GF) (hG := hG)) :
   intro c scfg r id s ml m ents sn rs sv cl Hty Hterm Hrole Happ Hhb Hpvnw Hsnap htr
   iintro %Φ ⟨#Hpkg, Hphys, Hm, #Hcert⟩ HΦ
   icases ownRaftPhysC_traceLogger c r id s htr $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
-  iapply h c scfg r id s ml m ents sn rs sv cl iprop(emp) iprop(emp) iprop(emp) iprop(emp) iprop(emp)
+  iapply h c scfg r id s ml m ents sn rs sv cl (fun _ => iprop(emp)) (fun _ => iprop(emp)) iprop(emp)
+    iprop(emp) iprop(emp)
     Hty Hterm Hrole Happ Hhb Hpvnw
-    (fun hs => let ⟨a, b, c', d, e⟩ := Hsnap hs; ⟨a, b, c', d, e, htr⟩) $$ [Hphys Hm]
-  · iframe Hpkg Hphys Hm Hcert
+    (fun hs => let ⟨a, b, c', d, e⟩ := Hsnap hs; ⟨a, b, c', d, e, htr⟩)
+    (PermInv.const _) (IdxFree.const _ _) (IdxFree.const _ _) $$ [Hphys Hm]
+  · dsimp only
+    iframe Hpkg Hphys Hm Hcert
     rw [htr]
     isplitr
     · iempintro
@@ -285,7 +290,7 @@ theorem stepCandidate.untraced (h : stepCandidate.spec (GF := GF) (hG := hG)) :
       iframe Htl
     isplitr
     · imodintro
-      iintro %_ %pvs %to %mm %_ %_ -
+      iintro %_ %pvs %to %mm %_ %_ %_ -
       iapply hookGateOpt_none r _ tl iprop(emp) Htlok
       iframe Htl
     isplitr
@@ -296,7 +301,7 @@ theorem stepCandidate.untraced (h : stepCandidate.spec (GF := GF) (hG := hG)) :
       iframe Htl
     isplitr
     · imodintro
-      iintro %_ %pvs %y %_ -
+      iintro %_ %pvs %y %_ %_ -
       iapply hookGateOpt_none r _ tl iprop(emp) Htlok
       iframe Htl
     · iintro %_ -
@@ -370,10 +375,12 @@ theorem stepFollower.untraced (h : stepFollower.spec (GF := GF) (hG := hG)) :
   intro c scfg r id s ml m ents sn rs sv cl Hty Hri Hstz Hprop Happ Hhb Hrest Hsnap Hnors htr
   iintro %Φ ⟨#Hpkg, Hphys, Hm, #Hcert⟩ HΦ
   icases ownRaftPhysC_traceLogger c r id s htr $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
-  iapply h c scfg r id s ml m ents sn rs sv cl iprop(emp) iprop(emp)
+  iapply h c scfg r id s ml m ents sn rs sv cl (fun _ => iprop(emp)) (fun _ => iprop(emp))
     Hty Hri Hstz Hprop Happ Hhb Hrest
-    (fun hs => let ⟨a, b, c', d, e, f, g⟩ := Hsnap hs; ⟨a, b, c', d, e, f, g, htr⟩) Hnors $$ [Hphys Hm]
-  · iframe Hpkg Hphys Hm Hcert
+    (fun hs => let ⟨a, b, c', d, e, f, g⟩ := Hsnap hs; ⟨a, b, c', d, e, f, g, htr⟩) Hnors
+    (PermInv.const _) (IdxFree.const _ _) $$ [Hphys Hm]
+  · dsimp only
+    iframe Hpkg Hphys Hm Hcert
     rw [htr]
     isplitr
     · iempintro
@@ -386,7 +393,7 @@ theorem stepFollower.untraced (h : stepFollower.spec (GF := GF) (hG := hG)) :
       iapply hookGateOpt_none r _ tl iprop(emp) Htlok
       iframe Htl
     isplitr
-    · iintro %_ -
+    · iintro %_ %_ %_ -
       iapply hookGateOpt_none r _ tl iprop(emp) Htlok
       iframe Htl
     isplitr
@@ -394,7 +401,7 @@ theorem stepFollower.untraced (h : stepFollower.spec (GF := GF) (hG := hG)) :
       iapply hookGate_none r _ tl iprop(emp) Htlok
       iframe Htl
     · imodintro
-      iintro %_ %pvs %y %_ -
+      iintro %_ %pvs %y %_ %_ -
       iapply hookGateOpt_none r _ tl iprop(emp) Htlok
       iframe Htl
   inext
@@ -459,33 +466,35 @@ theorem stepLeader.untraced (h : stepLeader.spec (GF := GF) (hG := hG)) :
   intro c r id s ml m ents sn ctx rs k0 Hty Hlead Htz Hfrom0 Hself Hprop Hrdnz Hri Hhr Hack htr
   iintro %Φ ⟨#Hpkg, Hphys, Hm, Hcc, #Hrc⟩ HΦ
   icases ownRaftPhysC_traceLogger c r id s htr $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
-  iapply h c r id s ml m ents sn ctx rs k0 iprop(emp) iprop(emp) iprop(emp) iprop(emp)
-    (fun _ _ => iprop(emp))
-    Hty Hlead Htz Hfrom0 Hself Hprop Hrdnz Hri Hhr Hack (fun _ h => absurd htr h) $$ [Hphys Hm Hcc]
-  · iframe Hpkg Hphys Hm Hcc Hrc
+  iapply h c r id s ml m ents sn ctx rs k0 (fun _ => iprop(emp)) (fun _ => iprop(emp)) iprop(emp)
+    (fun _ => iprop(emp)) (fun _ _ _ => iprop(emp))
+    Hty Hlead Htz Hfrom0 Hself Hprop Hrdnz Hri Hhr Hack (fun _ h => absurd htr h)
+    (IdxFree.const _ _) (IdxFree.const _ _) (fun _ _ => IdxFree.const _ _) $$ [Hphys Hm Hcc]
+  · try dsimp only
+    iframe Hpkg Hphys Hm Hcc Hrc
     rw [htr]
     isplitr
     · iempintro
     isplitr
     · imodintro
-      iintro %_ %to %cm %_ %_ -
+      iintro %_ %to %cm %o %_ %_ -
       iapply hookGateOpt_none r _ tl iprop(emp) Htlok
       iframe Htl
     isplitr
-    · iintro %_ %_ -
+    · iintro %_ %_ %mm %o %_ -
       iapply hookGateOpt_none r _ tl iprop(emp) Htlok
       iframe Htl
     isplitr
     · imodintro
-      iintro %_ %_ %to %cm %_ %_ -
+      iintro %_ %_ %to %cm %o %_ %_ -
       iapply hookGateOpt_none r _ tl iprop(emp) Htlok
       iframe Htl
     isplitr
-    · iintro %_ -
+    · iintro %_ %o -
       iapply hookGateOpt_none r _ tl iprop(emp) Htlok
       iframe Htl
     isplitr
-    · iintro %_ %mm %_ -
+    · iintro %_ %mm %o %_ -
       iapply hookGateOpt_none r _ tl iprop(emp) Htlok
       iframe Htl
     isplitr
@@ -505,16 +514,16 @@ theorem stepLeader.untraced (h : stepLeader.spec (GF := GF) (hG := hG)) :
       iframe Htl
     isplitr
     · imodintro
-      iintro %_ %cs %to %mm _ %_ %_ -
+      iintro %_ %cs %to %mm %o _ %_ %_ -
       iapply hookGateOpt_none r _ tl iprop(emp) Htlok
       iframe Htl
     isplitr
-    · iintro %_ %mm %_ -
+    · iintro %_ %mm %o %_ -
       iapply hookGateOpt_none r _ tl iprop(emp) Htlok
       iframe Htl
     isplitr
     · imodintro
-      iintro %_ -
+      iintro %_ %mm %o %_ -
       iapply hookGateOpt_none r _ tl iprop(emp) Htlok
       iframe Htl
     isplitr
@@ -523,21 +532,21 @@ theorem stepLeader.untraced (h : stepLeader.spec (GF := GF) (hG := hG)) :
       iframe Htl
     isplitr
     · imodintro
-      iintro %_ %N %_ -
+      iintro %_ %N %mm %o %_ %_ -
       iapply hookGateOpt_none r _ tl iprop(emp) Htlok
       iframe Htl
     isplitr
     · imodintro
-      iintro %_ %_ %N %k %to %cm %_ %_ %_ -
+      iintro %_ %_ %N %k %to %cm %o %_ %_ %_ -
       iapply hookGateOpt_none r _ tl iprop(emp) Htlok
       iframe Htl
     isplitr
     · imodintro
-      iintro %_ %b %N %to %mm %_ %_ -
+      iintro %_ %b %N %to %mm %o %_ %_ -
       iapply hookGateOpt_none r _ tl iprop(emp) Htlok
       iframe Htl
     · imodintro
-      iintro %_ %b %N -
+      iintro %_ %b %N %o -
       iapply hookGateOpt_none r _ tl iprop(emp) Htlok
       iframe Htl
   inext

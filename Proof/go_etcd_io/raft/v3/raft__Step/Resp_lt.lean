@@ -66,7 +66,7 @@ theorem wp_Step_Resp_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
-        "HG" ∷ stepOut R }} := by
+        "HG" ∷ stepOut R s'.outbox }} := by
   intro Hty Hterm Hlt Hwf
   wp_start as H
   iNamed H
@@ -101,6 +101,7 @@ theorem wp_Step_Resp_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     wp_drive _Q
     wp_raft_logC
     ihave HG := stepOut_G0 R $$ HG
+    try phys_out
     iapply HΦ $$ %interface.nil %s
     iframe Hphys HG
     ipureintro

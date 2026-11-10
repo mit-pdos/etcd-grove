@@ -327,20 +327,22 @@ theorem wp_stepLeader_prop
     -- (slice 9) the conf-change hook (`traceChangeConfEvent`) is untraced: a traced node proposes no
     -- conf change (the Draft's P3)
     (Hncc : s.gh.tr ≠ none → ∀ e ∈ ents, ¬ IsConfEnt e)
-    (G Gp1 Gp2 : IProp GF) :
+    (G : List Msg → IProp GF) (Gp1 : IProp GF) (Gp2 : List Msg → IProp GF)
+    (HiP : IdxFree s.gh.tr Gp2) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
         msgIn ml (DFrac.own 1) ⟨m, ents, sn, ctx, rs⟩ ∗ ccEntsOk ents cs ∗ ⧖ k0 ∗
-        "HG" ∷ G ∗
-        "Hgrep" ∷ (G -∗ HookGateN s.gh.tr r (NodeEvOf (W64 5) id s c)
+        "HG" ∷ G s.outbox ∗
+        "Hgrep" ∷ (G s.outbox -∗ HookGateN s.gh.tr r (NodeEvOf (W64 5) id s c)
           (normalCount (leaderPropConf s ents cs c.joint).1) Gp1) ∗
         "Hgack" ∷ (Gp1 -∗ HookGateOpt s.gh.tr r
           (sendOutGate id (propAppended s (leaderPropConf s ents cs c.joint).1) c MsgAppResp
-            [selfAck id (propAppended s (leaderPropConf s ents cs c.joint).1)]) Gp2) ∗
-        "#Hgapp" ∷ □ (∀ (to : w64) (mm : Msg), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
+            [selfAck id (propAppended s (leaderPropConf s ents cs c.joint).1)])
+          (Gp2 (s.outbox ++ [selfAck id (propAppended s (leaderPropConf s ents cs c.joint).1)]))) ∗
+        "#Hgapp" ∷ □ (∀ (to : w64) (mm : Msg) (o : List Msg), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
           ⌜AppOk id (toPState (propAppended s (leaderPropConf s ents cs c.joint).1)) mm ∧
-            mm.commit = s.logst.committed ∧ mm.dst = to⌝ -∗ Gp2 -∗
+            mm.commit = s.logst.committed ∧ mm.dst = to⌝ -∗ Gp2 o -∗
           HookGateOpt s.gh.tr r
-            (sendOutGate id (propAppended s (leaderPropConf s ents cs c.joint).1) c MsgApp [mm]) Gp2) ∗
+            (sendOutGate id (propAppended s (leaderPropConf s ents cs c.joint).1) c MsgApp [mm]) (Gp2 (o ++ [mm]))) ∗
         "#Hnosnap" ∷ TrNoSnap s.gh.tr s.logst }}
       (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #ml))
     {{ (err : GoInterface) (s' : NState) (dropped : Bool), RET #err;
@@ -349,7 +351,7 @@ theorem wp_stepLeader_prop
         ⌜LeaderProposeResult id s ents dropped s' c.joint⌝ ∗
         (if dropped then globalAddr ErrProposalDropped ↦□ err
          else ⌜err = interface.nil⌝) ∗
-        (if dropped then G else Gp2) }} := by
+        (if dropped then G s'.outbox else Gp2 s'.outbox) }} := by
   wp_start as ⟨Hphys, Hm, #Hcc, #Hrc, HG, Hgrep, Hgack, #Hgapp, #Hnosnap⟩
   have Htrcc : ∀ {k : Nat} {e : EntryM}, ents[k]? = some e → IsConfEnt e → s.gh.tr = none := by
     intro k e hk he
@@ -681,7 +683,8 @@ theorem wp_stepLeader_prop
       simp only [leaderPropConf]
       rw [propConf_length, Hcslen, Nat.min_self]; exact Hsmall
     wp_apply wp_raft_appendEntry c r id { s with pci := (leaderPropConf s ents cs c.joint).2 } _
-        (leaderPropConf s ents cs c.joint).1 (DFrac.own 1) k0 G Gp1 Gp2 Hlen' Hnz
+        (leaderPropConf s ents cs c.joint).1 (DFrac.own 1) k0 (G s.outbox) Gp1
+        (Gp2 (s.outbox ++ [selfAck id (propAppended s (leaderPropConf s ents cs c.joint).1)])) Hlen' Hnz
         $$ [$Hphys Hes $Hrc $HG Hgrep Hgack]
       as %acc ⟨#Hrc1, -, -, Hphys⟩
     · isplitl [Hes]
@@ -693,7 +696,7 @@ theorem wp_stepLeader_prop
       · iintro HG
         iapply hookGateN_congr _ _ r _ _ _ Gp1 (by rfl) (by rfl) $$ (Hgrep $$ HG)
       iintro HG1
-      iapply hookGateOpt_congr _ _ r _ _ Gp2 (by rfl) (by rfl) $$ (Hgack $$ HG1)
+      iapply hookGateOpt_congr _ _ r _ _ _ (by rfl) (by rfl) $$ (Hgack $$ HG1)
     cases acc <;> simp only [Bool.false_eq_true, ↓reduceIte]
     · -- dropped
       icases Hphys with ⟨Hphys, HG⟩
@@ -710,13 +713,16 @@ theorem wp_stepLeader_prop
       iexact ErrPropDropped
     · icases Hphys with ⟨Hphys, HG2⟩
       wp_auto
-      wp_apply wp_raft_bcastAppend c r id _ Gp2 (by exact Hlead) (by exact Hnz) $$ [$Hphys $HG2]
+      wp_apply wp_raft_bcastAppend c r id _ Gp2 (by exact Hlead) (by exact Hnz) (by exact HiP) $$ [$Hphys HG2]
         as %ms %pvs ⟨Hphys, %Hms, %Hmm, HG2⟩
       · -- (slice 9) `bcastAppend`'s gate, at the appended state
         isplitr
         · imodintro
-          iintro %to %mm %Hto %Hmm HG
-          iapply hookGateOpt_congr _ _ r _ _ Gp2 (by rfl) (by rfl) $$ (Hgapp $$ %to %mm %Hto %Hmm HG)
+          iintro %to %mm %o %Hto %Hmm HG
+          iapply hookGateOpt_congr _ _ r _ _ _ (by rfl) (by rfl) $$ (Hgapp $$ %to %mm %o %Hto %Hmm HG)
+        isplitl [HG2]
+        · iapply idx_eq _ ?_ $$ HG2
+          first | rfl | simp [sendMsgs, propAppended, selfAck]
         iapply trNoSnap_logst _ _ _ _ (by rfl) (by rfl) (by rfl) $$ Hnosnap
       iapply HΦ $$ %interface.nil %_ %false
       iframe Hphys

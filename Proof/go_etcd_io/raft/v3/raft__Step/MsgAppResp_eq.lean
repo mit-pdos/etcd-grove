@@ -78,7 +78,7 @@ theorem wp_Step_MsgAppResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
-        "HG" ∷ stepOut R }} := by
+        "HG" ∷ stepOut R s'.outbox }} := by
   intro Hty Hto Hterm Hteq Hfnz Hrej Hwf
   have Hty3 : m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp ∨
     m.Type' = MsgCheckQuorum :=
@@ -123,7 +123,7 @@ theorem wp_Step_MsgAppResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-      (by notfwd_tac) $$ [$Hphys Hm $Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+      (by notfwd_tac) Hgok.1 Hgok.2.1 $$ [$Hphys Hm $Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
     · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
     ihave HG := stepOut_or R _ _ $$ HGo
     obtain ⟨rfl, rfl, Hs1⟩ := followerStepResult_noop _ _ _ _ _ _ _ _ Hty3 Hres
@@ -132,6 +132,7 @@ theorem wp_Step_MsgAppResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     icases Herrn with %Herrn
     subst Herrn
     wp_auto
+    try phys_out
     iapply HΦ $$ %interface.nil %s
     iframe Hphys HG
     ipureintro
@@ -150,7 +151,7 @@ theorem wp_Step_MsgAppResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-      $$ [$Hphys Hm $Hsrc0 $HG $Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+      Hgok.1 Hgok.2.2.1 Hgok.2.1 $$ [$Hphys Hm $Hsrc0 $HG $Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
     · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
     ihave HG := stepOut_or R _ _ $$ HGo
     obtain ⟨rfl, rfl, Hs1⟩ := candidateStepResult_noop _ _ _ _ _ _ _ _ Hty3 Hres
@@ -159,6 +160,7 @@ theorem wp_Step_MsgAppResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     icases Herrn with %Herrn
     subst Herrn
     wp_auto
+    try phys_out
     iapply HΦ $$ %interface.nil %s
     iframe Hphys HG
     ipureintro
@@ -180,7 +182,7 @@ theorem wp_Step_MsgAppResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ => Hack Hrole Hteq)
-      (by p3_tac) $$ [$Hphys $Hrc00 Hm $HG $Hlg] as %err %s' %dropped ⟨Hphys, -, %Hres, Herrn, HGo⟩
+      (by p3_tac) Hgok.2.1 Hgok.2.2.2.1 Hgok.2.2.2.2 $$ [$Hphys $Hrc00 Hm $HG $Hlg] as %err %s' %dropped ⟨Hphys, -, %Hres, Herrn, HGo⟩
     · isplitl [Hm]
       · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
@@ -191,6 +193,7 @@ theorem wp_Step_MsgAppResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     icases Herrn with %Herrn
     subst Herrn
     wp_auto
+    try phys_out
     iapply HΦ $$ %interface.nil %s'
     iframe Hphys HG
     ipureintro
@@ -208,7 +211,7 @@ theorem wp_Step_MsgAppResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-      $$ [$Hphys Hm $Hsrc0 $HG $Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+      Hgok.1 Hgok.2.2.1 Hgok.2.1 $$ [$Hphys Hm $Hsrc0 $HG $Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
     · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
     ihave HG := stepOut_or R _ _ $$ HGo
     obtain ⟨rfl, rfl, Hs1⟩ := candidateStepResult_noop _ _ _ _ _ _ _ _ Hty3 Hres
@@ -217,6 +220,7 @@ theorem wp_Step_MsgAppResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     icases Herrn with %Herrn
     subst Herrn
     wp_auto
+    try phys_out
     iapply HΦ $$ %interface.nil %s
     iframe Hphys HG
     ipureintro

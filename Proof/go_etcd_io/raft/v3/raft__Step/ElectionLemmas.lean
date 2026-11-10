@@ -226,6 +226,7 @@ macro "wp_lease_check " cx:term : tactic => `(tactic| (
   rotate_left
   · wp_auto
     ihave HG := Perennial.EtcdGrove.stepOut_G0 R $$ HG
+    try phys_out
     iapply HΦ $$ %interface.nil %s
     iframe Hphys HG
     ipureintro
@@ -299,7 +300,7 @@ macro "vote_grant_tail" : tactic => `(tactic| (
   -- preamble (`hnbf`: no step-down)
   ihave Hgv := Perennial.EtcdGrove.vrespGate_vote c r id s m R ∅ s
     (Perennial.EtcdGrove.preState_nobf hnbf ∅) Hty false m.Term' rfl $$ Hgvresp HG
-  wp_apply _P.send c r id s «$a0_ptr» _ [] none [] [] _ R.GE (.inl rfl)
+  wp_apply _P.send c r id s «$a0_ptr» _ [] none [] [] _ (R.GE (sendMsgs s [Msg.plain .voteResp id m.From' m.Term' false]).outbox) (.inl rfl)
       (sendOk_voteResp id s m.From' m.Term' false Hterm
         (Int.le_of_eq (congrArg (fun x : w64 => uint.Z x) Heq0)))
       (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne))
@@ -319,6 +320,7 @@ macro "vote_grant_tail" : tactic => `(tactic| (
   wp_apply raft.wp_store_electionElapsedC $$ Hphys as Hphys
   wp_gets
   wp_apply raft.wp_store_VoteC $$ Hphys as Hphys
+  phys_out
   iapply HΦ $$ %interface.nil %_
   iframe Hphys HG
   ipureintro
@@ -373,7 +375,7 @@ macro "vote_reject_tail" : tactic => `(tactic| (
   -- message's, transported along `m.Term = s.term`
   ihave Hgv := Perennial.EtcdGrove.vrespGate_vote c r id s m R ∅ s
     (Perennial.EtcdGrove.preState_nobf hnbf ∅) Hty true s.term rfl $$ Hgvresp HG
-  wp_apply _P.send c r id s «$a0_ptr» _ [] none [] [] _ R.GE (.inl rfl)
+  wp_apply _P.send c r id s «$a0_ptr» _ [] none [] [] _ (R.GE (sendMsgs s [Msg.plain .voteResp id m.From' s.term true]).outbox) (.inl rfl)
       (sendOk_voteResp id s m.From' s.term true (Heq0 ▸ Hterm)
         (Int.le_refl _))
       (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne))
@@ -385,6 +387,7 @@ macro "vote_reject_tail" : tactic => `(tactic| (
     · iapply tsSrc_ne; exact (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne))
     iexact Hgv
   ihave HG := Perennial.EtcdGrove.stepOut_GE R $$ HG
+  phys_out
   iapply HΦ $$ %interface.nil %_
   iframe Hphys HG
   ipureintro
@@ -457,7 +460,7 @@ macro "prevote_resp_tail " grant:ident : tactic =>
        wp_gets
        wp_apply _P.send c r id s «$a0_ptr»
            ⟨MsgPreVoteResp, m.From', W64 0, m.Term', W64 0, W64 0, W64 0, W64 0, false, W64 0⟩
-           [] none [] [] _ R.GE (Or.inl rfl)
+           [] none [] [] _ (R.GE (sendMsgs s [Msg.plain .preVoteResp id m.From' m.Term' false]).outbox) (Or.inl rfl)
            (Or.inl ⟨.preVoteResp, Or.inr (Or.inr (Or.inr rfl)), mtypeOf_MsgPreVoteResp,
              Hterm,
              fun Hc => by
@@ -474,7 +477,7 @@ macro "prevote_resp_tail " grant:ident : tactic =>
          isplitr
          · iapply tsSrc_ne; exact (fun h => absurd h (by show MsgPreVoteResp ≠ MsgSnap; w32_ne))
          iapply Perennial.EtcdGrove.vrespGate_prevote c r id s m R ∅ s
-           (Perennial.EtcdGrove.preState_nobf hnbf ∅) Hty _ $$ Hgvresp HG
+           (Perennial.EtcdGrove.preState_nobf hnbf ∅) Hty _ false m.Term' rfl $$ Hgvresp HG
        iintro ⟨Hphys, HG⟩)
     | (have _h : $grant = false := rfl
        wp_apply Perennial.EtcdGrove.raft.wp_load_TermC $$ Hphys as Hphys
@@ -493,7 +496,7 @@ macro "prevote_resp_tail " grant:ident : tactic =>
        wp_gets
        wp_apply _P.send c r id s «$a0_ptr»
            ⟨MsgPreVoteResp, m.From', W64 0, s.term, W64 0, W64 0, W64 0, W64 0, true, W64 0⟩
-           [] none [] [] _ R.GE (Or.inl rfl)
+           [] none [] [] _ (R.GE (sendMsgs s [Msg.plain .preVoteResp id m.From' s.term true]).outbox) (Or.inl rfl)
            (Or.inl ⟨.preVoteResp, Or.inr (Or.inr (Or.inr rfl)), mtypeOf_MsgPreVoteResp,
              Hs0,
              fun Hc => by
@@ -509,13 +512,14 @@ macro "prevote_resp_tail " grant:ident : tactic =>
          isplitr
          · iapply tsSrc_ne; exact (fun h => absurd h (by show MsgPreVoteResp ≠ MsgSnap; w32_ne))
          iapply Perennial.EtcdGrove.vrespGate_prevote c r id s m R ∅ s
-           (Perennial.EtcdGrove.preState_nobf hnbf ∅) Hty _ $$ Hgvresp HG
+           (Perennial.EtcdGrove.preState_nobf hnbf ∅) Hty _ true s.term rfl $$ Hgvresp HG
        iintro ⟨Hphys, HG⟩)
     try wp_auto
     -- not a `MsgVote`: no vote recorded
     wp_gets
     try (rw [decide_eq_false (show m.Type' ≠ W32 5 by rw [Hty]; w32_ne)]; wp_auto)
     ihave HG := Perennial.EtcdGrove.stepOut_GE R $$ HG
+    try phys_out
     iapply HΦ $$ %interface.nil %_
     iframe Hphys HG
     ipureintro
@@ -552,7 +556,7 @@ macro "prevote_resp_dispatch" : tactic =>
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
           (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-        (by notfwd_tac) $$ [Hphys Hm Hsrc0 HG Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+        (by notfwd_tac) Hgok.1 Hgok.2.1 $$ [Hphys Hm Hsrc0 HG Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
       · iframe Hphys Hsrc0 HG Hfg; rw [ite_eq_right Hnp]; iexact Hm
       ihave HG := stepOut_or R _ _ $$ HGo
       obtain ⟨rfl, rfl, rfl⟩ := followerStepResult_prevoteresp _ _ _ _ _ _ _ _ _ Hty Hres
@@ -560,6 +564,7 @@ macro "prevote_resp_dispatch" : tactic =>
       icases Herrn with %Herrn
       subst Herrn
       try wp_auto
+      try phys_out
       iapply HΦ $$ %interface.nil %_
       iframe Hphys HG
       ipureintro
@@ -581,7 +586,7 @@ macro "prevote_resp_dispatch" : tactic =>
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
           (fun Hp _ => Hnw Hp)
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-        $$ [Hphys Hm Hsrc0 HG Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+        Hgok.1 Hgok.2.2.1 Hgok.2.1 $$ [Hphys Hm Hsrc0 HG Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
       · iframe Hphys Hsrc0 HG Hcg; rw [ite_eq_right Hnp]; iexact Hm
       ihave HG := stepOut_or R _ _ $$ HGo
       obtain ⟨rfl, rfl, Hwf1, Hst, Hresp, Hft⟩ :=
@@ -591,6 +596,7 @@ macro "prevote_resp_dispatch" : tactic =>
       icases Herrn with %Herrn
       subst Herrn
       try wp_auto
+      try phys_out
       iapply HΦ $$ %interface.nil %s1
       iframe Hphys HG
       ipureintro
@@ -611,7 +617,7 @@ macro "prevote_resp_dispatch" : tactic =>
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-        (by p3_tac) $$ [Hphys Hm HG Hlg] as %err %s' %dropped ⟨Hphys, -, %Hres, Herrn, HGo⟩
+        (by p3_tac) Hgok.2.1 Hgok.2.2.2.1 Hgok.2.2.2.2 $$ [Hphys Hm HG Hlg] as %err %s' %dropped ⟨Hphys, -, %Hres, Herrn, HGo⟩
       · iframe Hphys Hrc00 HG Hlg
         isplitl [Hm]
         · rw [ite_eq_right Hnp]; iexact Hm
@@ -622,6 +628,7 @@ macro "prevote_resp_dispatch" : tactic =>
       icases Herrn with %Herrn
       subst Herrn
       try wp_auto
+      try phys_out
       iapply HΦ $$ %interface.nil %_
       iframe Hphys HG
       ipureintro
@@ -642,7 +649,7 @@ macro "prevote_resp_dispatch" : tactic =>
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
           (fun Hp _ => Hnw Hp)
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-        $$ [Hphys Hm Hsrc0 HG Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+        Hgok.1 Hgok.2.2.1 Hgok.2.1 $$ [Hphys Hm Hsrc0 HG Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
       · iframe Hphys Hsrc0 HG Hcg; rw [ite_eq_right Hnp]; iexact Hm
       ihave HG := stepOut_or R _ _ $$ HGo
       obtain ⟨rfl, rfl, Hwf1, Hst, Hresp, Hft⟩ :=
@@ -652,6 +659,7 @@ macro "prevote_resp_dispatch" : tactic =>
       icases Herrn with %Herrn
       subst Herrn
       try wp_auto
+      try phys_out
       iapply HΦ $$ %interface.nil %s1
       iframe Hphys HG
       ipureintro

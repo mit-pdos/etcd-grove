@@ -47,7 +47,7 @@ the `Progress` `Match` values only for a leader -- hence the premise
 stated: the model does not need it. `SentCommit` moves no `Match`. Each carries the
 context's list `cl` (2026-10-12). -/
 abbrev raft.bcastHeartbeatWithCtx.spec : Prop :=
-  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (ctx : GoSlice) (cl : List w8) (G : IProp GF),
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (ctx : GoSlice) (cl : List w8) (G : List Msg → IProp GF),
   s.role = .leader →
   -- (2026-10-29, stage U7) the term past `0` that `send` stamps (`SentMsgShape`)
   s.term ≠ W64 0 →
@@ -58,18 +58,22 @@ abbrev raft.bcastHeartbeatWithCtx.spec : Prop :=
       -- heartbeats' hook gates, one per heartbeat (to a peer `to`, at a commit `cm` within its
       -- bounds), each taking the caller's resource `G` back to `G` (`raft.sendHeartbeat.spec`'s
       -- gate, at `s`: what a heartbeat's event reads of the state no send changes)
-      "#Hgate" ∷ □ (∀ (to cm : w64), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
+      -- (2026-11-10, slice 14) `G` indexed by the outbox (`o`, before the heartbeat; after it, `o` with
+      -- the heartbeat queued): the caller's resource follows the messages queued
+      "#Hgate" ∷ □ (∀ (to cm : w64) (o : List Msg), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
           ⌜uint.Z cm ≤ uint.Z s.logst.committed ∧
-            uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ -∗ G -∗
+            uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ -∗ G o -∗
         HookGateOpt s.gh.tr r (sendOutGate id s c MsgHeartbeat
-          [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl]) G) ∗
-      "HG" ∷ G }}
+          [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl])
+          (G (o ++ [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl]))) ∗
+      "HG" ∷ G s.outbox }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"bcastHeartbeatWithCtx"))
       (Val #ctx))
   {{ (ms : List Msg) (pvs : GMap w64 Progress), RET #();
       ownRaftPhysCV c c.voters r id { sendMsgs s ms with prvals := pvs } ∗
       ⌜∀ m ∈ ms, HeartbeatOk id (toPState s) m ∧ m.ctx = cl⌝ ∗
-      ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ ∗ G }}
+      ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ ∗
+      G ({ sendMsgs s ms with prvals := pvs } : NState).outbox }}
 
 end spec
 

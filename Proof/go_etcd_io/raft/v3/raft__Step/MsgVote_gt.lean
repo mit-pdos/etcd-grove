@@ -87,7 +87,7 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
-        "HG" ∷ stepOut R }} := by
+        "HG" ∷ stepOut R s'.outbox }} := by
   -- `MessageType.Enum()`'s receiver: `int32` is not an interface (as in `toConfChangeSingle`)
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
   intro Hty Hto Hterm Hfnz Hgt0 Hwf
@@ -146,7 +146,7 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   wp_gets
   have Hgt : uint.Z s.term < uint.Z m.Term' := Hgt0
   bf_gate
-  wp_apply _P.becomeFollower c r id s m.Term' _ R.G1 (Int.le_of_lt Hgt0) (fun _ => rfl) $$ [$Hphys $Hgb]
+  wp_apply _P.becomeFollower c r id s m.Term' _ (R.G1 s.outbox) (Int.le_of_lt Hgt0) (fun _ => rfl) $$ [$Hphys $Hgb]
     as %pvs ⟨Hphys, HG⟩
   -- the type switch: not MsgHup / MsgStorageAppendResp / MsgStorageApplyResp, not
   -- MsgPreVote, but MsgVote
@@ -238,7 +238,7 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         .inl (Int.le_refl _), rfl⟩
     ihave Hgv := vrespGate_vote c r id s m R pvs s1 ((preState_bf' hbf hlead pvs).trans Hs1.symm) Hty
       true s1.term rfl $$ Hgvresp HG
-    wp_apply _P.send c r id s1 «$a0_ptr» resp [] none [] [] _ R.GE (.inl rfl) Hok
+    wp_apply _P.send c r id s1 «$a0_ptr» resp [] none [] [] _ (R.GE (sendMsgs s1 [Msg.plain .voteResp id m.From' s1.term true]).outbox) (.inl rfl) Hok
       (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne))
       (fun h => absurd h (by show MsgVoteResp ≠ MsgApp; w32_ne)) rfl
       (fun _ h => absurd (mtypeOf_Snap _ h) (by show MsgVoteResp ≠ MsgSnap; w32_ne))
@@ -247,6 +247,7 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       · iapply tsSrc_ne; exact (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne))
       iexact Hgv
     ihave HG := stepOut_GE R $$ HG
+    try phys_out
     iapply HΦ $$ %interface.nil %_
     iframe Hphys HG
     ipureintro
@@ -293,7 +294,7 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     -- `send` the granted vote response, then record the vote
     ihave Hgv := vrespGate_vote c r id s m R pvs s1 ((preState_bf' hbf hlead pvs).trans Hs1.symm) Hty
       false m.Term' rfl $$ Hgvresp HG
-    wp_apply _P.send c r id s1 «$a0_ptr» resp [] none [] [] _ R.GE (.inl rfl) Hok
+    wp_apply _P.send c r id s1 «$a0_ptr» resp [] none [] [] _ (R.GE (sendMsgs s1 [Msg.plain .voteResp id m.From' m.Term' false]).outbox) (.inl rfl) Hok
       (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne))
       (fun h => absurd h (by show MsgVoteResp ≠ MsgApp; w32_ne)) rfl
       (fun _ h => absurd (mtypeOf_Snap _ h) (by show MsgVoteResp ≠ MsgSnap; w32_ne))
@@ -310,6 +311,7 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     wp_apply raft.wp_store_electionElapsedC $$ Hphys as Hphys
     wp_gets
     wp_apply raft.wp_store_VoteC $$ Hphys as Hphys
+    try phys_out
     iapply HΦ $$ %interface.nil %_
     iframe Hphys HG
     ipureintro

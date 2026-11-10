@@ -163,7 +163,7 @@ theorem wp_Step_MsgProp
     {{ (err : GoInterface) (s' : NState) (B : Int), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         -- (Q8 stage 1 slice 11) the caller's resource
-        "HG" ∷ stepOut R ∗
+        "HG" ∷ stepOut R s'.outbox ∗
         -- (2026-10-18, D19b stage 5) the bound `B` of the indices the step creates: the log's last
         -- index, or past it by the batch when appended, which the receipt then covers
         "%HBb" ∷ ⌜plogLastIndexZ (toPState s).base (toPState s).log ≤ B ∧
@@ -198,7 +198,7 @@ theorem wp_Step_MsgProp
   rw [decide_eq_false Hnn]
   wp_auto
   iunfold stepGates at Hgates
-  icases Hgates with ⟨Hgrecv, Hgpre, Hglow, Hgvresp, Hghup, Hgstep⟩
+  icases Hgates with ⟨Hgrecv, Hgpre, Hglow, Hgvresp, Hghup, Hgstep, %Hgok⟩
   wp_apply wp_traceReceiveMessage c r id s ml _ ⟨m, _, _, _, _⟩ _
       (fun _ h => (by rw [Hty]; w32_ne : m.Type' ≠ MsgSnap) (mtypeOf_Snap _ h))
     $$ [Hphys Hm Hgrecv HG] as ⟨Hphys, Hm, HG⟩
@@ -229,7 +229,7 @@ theorem wp_Step_MsgProp
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-      (fun _ => Hnors) $$ [$Hphys Hm $Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+      (fun _ => Hnors) Hgok.1 Hgok.2.1 $$ [$Hphys Hm $Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
     · iapply msgIn_prop Hty $$ Hm
     ihave HG := stepOut_or R _ _ $$ HGo
     have Hres0 := Hres
@@ -246,6 +246,7 @@ theorem wp_Step_MsgProp
       cases err
       all_goals
         wp_auto
+        try phys_out
         iapply HΦ
         iframe Hphys HG
         isplitr
@@ -273,6 +274,7 @@ theorem wp_Step_MsgProp
       icases Herrn with %Herrn
       subst Herrn
       wp_auto
+      try phys_out
       iapply HΦ
       iframe Hphys HG
       isplitr
@@ -316,7 +318,7 @@ theorem wp_Step_MsgProp
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-      $$ [$Hphys Hm $Hsrc0 $HG $Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+      Hgok.1 Hgok.2.2.1 Hgok.2.1 $$ [$Hphys Hm $Hsrc0 $HG $Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
     · iapply msgIn_prop Hty $$ Hm
     ihave HG := stepOut_or R _ _ $$ HGo
     have Hres0 := Hres
@@ -330,6 +332,7 @@ theorem wp_Step_MsgProp
     cases err
     all_goals
       wp_auto
+      try phys_out
       iapply HΦ
       iframe Hphys HG
       isplitr
@@ -364,7 +367,7 @@ theorem wp_Step_MsgProp
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-      (fun _ h => Htr h) $$ [$Hphys $Hrc Hm $HG $Hlg] as %err %s' %dropped ⟨Hphys, Hrcl, %Hres, Herrn, HGo⟩
+      (fun _ h => Htr h) Hgok.2.1 Hgok.2.2.2.1 Hgok.2.2.2.2 $$ [$Hphys $Hrc Hm $HG $Hlg] as %err %s' %dropped ⟨Hphys, Hrcl, %Hres, Herrn, HGo⟩
     · isplitl [Hm]
       · iapply msgIn_prop Hty $$ Hm
       · iintro _; iexists cs; iexact Hcc
@@ -396,6 +399,7 @@ theorem wp_Step_MsgProp
         push_cast at Hnw this ⊢
         omega
       ihave #Hrc2 := Hrcl $$ %(And.intro Hty (by simp))
+      try phys_out
       iapply HΦ $$ %_ %_ %(plogLastIndexZ (toPState s).base (toPState s).log + (ents.length : Int))
       iframe Hphys HG
       isplitr
@@ -498,6 +502,7 @@ theorem wp_Step_MsgProp
       all_goals cases err
       all_goals
         wp_auto
+        try phys_out
         iapply HΦ
         iframe Hphys HG
         isplitr
@@ -537,7 +542,7 @@ theorem wp_Step_MsgProp
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-      $$ [$Hphys Hm $Hsrc0 $HG $Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+      Hgok.1 Hgok.2.2.1 Hgok.2.1 $$ [$Hphys Hm $Hsrc0 $HG $Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
     · iapply msgIn_prop Hty $$ Hm
     ihave HG := stepOut_or R _ _ $$ HGo
     have Hres0 := Hres
@@ -551,6 +556,7 @@ theorem wp_Step_MsgProp
     cases err
     all_goals
       wp_auto
+      try phys_out
       iapply HΦ
       iframe Hphys HG
       isplitr

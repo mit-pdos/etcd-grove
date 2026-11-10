@@ -56,10 +56,10 @@ theorem raft.maybeSendAppend.untraced (h : raft.maybeSendAppend.spec (GF := GF) 
   intro c r id s to sie Hto Hcfg Hl Htz htr
   iintro %Φ ⟨#Hpkg, Hphys⟩ HΦ
   icases ownRaftPhysC_traceLogger c r id s htr $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
-  iapply h c r id s to sie iprop(emp) Hto Hcfg Hl Htz $$ [Hphys]
+  iapply h c r id s to sie (fun _ => iprop(emp)) Hto Hcfg Hl Htz (IdxFree.const _ _) $$ [Hphys]
   · iframe Hpkg Hphys
     isplitr
-    · iintro %mm %_ -
+    · iintro %mm %_ %_ -
       rw [htr]
       iapply hookGateOpt_none r _ tl iprop(emp) Htlok
       iframe Htl
@@ -95,10 +95,10 @@ theorem raft.sendAppend.untraced (h : raft.sendAppend.spec (GF := GF) (hG := hG)
   intro c r id s to Hto Hcfg Hl Htz htr
   iintro %Φ ⟨#Hpkg, Hphys⟩ HΦ
   icases ownRaftPhysC_traceLogger c r id s htr $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
-  iapply h c r id s to iprop(emp) Hto Hcfg Hl Htz $$ [Hphys]
+  iapply h c r id s to (fun _ => iprop(emp)) Hto Hcfg Hl Htz (IdxFree.const _ _) $$ [Hphys]
   · iframe Hpkg Hphys
     isplitr
-    · iintro %mm %_ -
+    · iintro %mm %_ %_ -
       rw [htr]
       iapply hookGateOpt_none r _ tl iprop(emp) Htlok
       iframe Htl
@@ -131,11 +131,11 @@ theorem raft.bcastAppend.untraced (h : raft.bcastAppend.spec (GF := GF) (hG := h
   intro c r id s Hl Htz htr
   iintro %Φ ⟨#Hpkg, Hphys⟩ HΦ
   icases ownRaftPhysC_traceLogger c r id s htr $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
-  iapply h c r id s iprop(emp) Hl Htz $$ [Hphys]
+  iapply h c r id s (fun _ => iprop(emp)) Hl Htz (IdxFree.const _ _) $$ [Hphys]
   · iframe Hpkg Hphys
     isplitr
     · imodintro
-      iintro %to %mm %_ %_ -
+      iintro %to %mm %_ %_ %_ -
       rw [htr]
       iapply hookGateOpt_none r _ tl iprop(emp) Htlok
       iframe Htl
@@ -170,17 +170,17 @@ theorem sendMsgReadIndexResponse.untraced (h : sendMsgReadIndexResponse.spec (GF
   intro c r id s ml m ents sn ctx rs Hl Htz Hne htr
   iintro %Φ ⟨#Hpkg, Hphys, #Hm⟩ HΦ
   icases ownRaftPhysC_traceLogger c r id s htr $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
-  iapply h c r id s ml m ents sn ctx rs iprop(emp) Hl Htz Hne $$ [Hphys]
+  iapply h c r id s ml m ents sn ctx rs (fun _ => iprop(emp)) Hl Htz Hne $$ [Hphys]
   · iframe Hpkg Hphys Hm
     isplitr
     · iempintro
     isplitr
-    · iintro %_ -
+    · iintro %_ %_ %_ %_ -
       rw [htr]
       iapply hookGateOpt_none r _ tl iprop(emp) Htlok
       iframe Htl
     imodintro
-    iintro %_ %to %cm %_ %_ -
+    iintro %_ %to %cm %_ %_ %_ -
     rw [htr]
     iapply hookGateOpt_none r _ tl iprop(emp) Htlok
     iframe Htl
@@ -213,18 +213,18 @@ theorem releasePendingReadIndexMessages.untraced
   intro c r id s Hl Htz Hcit Hpne htr
   iintro %Φ ⟨#Hpkg, Hphys⟩ HΦ
   icases ownRaftPhysC_traceLogger c r id s htr $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
-  iapply h c r id s iprop(emp) Hl Htz Hcit Hpne $$ [Hphys]
+  iapply h c r id s (fun _ => iprop(emp)) Hl Htz Hcit Hpne $$ [Hphys]
   · iframe Hpkg Hphys
     isplitr
     · iempintro
     isplitr
     · imodintro
-      iintro %_ -
+      iintro %_ %_ %_ %_ -
       rw [htr]
       iapply hookGateOpt_none r _ tl iprop(emp) Htlok
       iframe Htl
     imodintro
-    iintro %_ %k %to %cm %_ %_ %_ -
+    iintro %_ %k %to %cm %_ %_ %_ %_ -
     rw [htr]
     iapply hookGateOpt_none r _ tl iprop(emp) Htlok
     iframe Htl

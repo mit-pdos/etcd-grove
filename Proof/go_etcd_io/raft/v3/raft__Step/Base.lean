@@ -108,7 +108,7 @@ resource, `R.G0` after the hook), the struct `Hphys` and the message `Hm` lent; 
 traced node's message is no snapshot. -/
 macro "wp_recv_gate " h:term:max : tactic => `(tactic| (
   iunfold Perennial.EtcdGrove.stepGates at Hgates
-  icases Hgates with ⟨Hgrecv, Hgpre, Hglow, Hgvresp, Hghup, Hgstep⟩
+  icases Hgates with ⟨Hgrecv, Hgpre, Hglow, Hgvresp, Hghup, Hgstep, %Hgok⟩
   wp_apply _P.traceReceiveMessage c r id s ml _ ⟨m, _, _, _, _⟩ _ $h $$ [Hphys Hm Hgrecv HG] as ⟨Hphys, Hm, HG⟩
   · iframe Hphys Hm
     iapply Hgrecv; iexact HG))
@@ -118,7 +118,7 @@ set_option hygiene false in
 is raised at the next resolution). -/
 macro "wp_recv_gate_noauto " h:term:max : tactic => `(tactic| (
   iunfold Perennial.EtcdGrove.stepGates at Hgates
-  icases Hgates with ⟨Hgrecv, Hgpre, Hglow, Hgvresp, Hghup, Hgstep⟩
+  icases Hgates with ⟨Hgrecv, Hgpre, Hglow, Hgvresp, Hghup, Hgstep, %Hgok⟩
   wp_apply +noauto _P.traceReceiveMessage c r id s ml _ ⟨m, _, _, _, _⟩ _ $h $$ [Hphys Hm Hgrecv HG]
     as ⟨Hphys, Hm, HG⟩
   · iframe Hphys Hm
@@ -427,6 +427,34 @@ theorem HupGuard.snapRoleBack [GoGlobalContext] [GoSemanticsFunctions] {c : CfgM
   · exact absurd (by rw [hl]; exact Hsn) h2
 
 end u0
+
+/-- (2026-11-10, Q8 stage 1 slice 14) A resource indexed by the outbox (the caller's, `stepOut R`), at
+the outbox of the struct's state (`iframe` matches it syntactically: an outbox written as
+`s.outbox ++ l` and the state's, `(sendMsgs s l).outbox`, differ). -/
+theorem phys_idx {c : CfgM} {r : Loc} {id : w64} (G : List Msg → IProp GF) {s1 : NState}
+    {o : List Msg} :
+    ⊢ ownRaftPhysCV (GF := GF) c c.voters r id s1 -∗ G o -∗ ⌜o = s1.outbox⌝ -∗
+      ownRaftPhysCV c c.voters r id s1 ∗ G s1.outbox := by
+  iintro Hp HG %h
+  subst h
+  iframe
+
+set_option hygiene false in
+/-- (slice 14) `phys_idx` on `Hphys` and `h` (`HG` by default): `h` at the outbox of `Hphys`'s state. -/
+syntax "phys_idx " ident : tactic
+set_option hygiene false in
+macro_rules
+  | `(tactic| phys_idx $h:ident) => `(tactic| (
+    icases Perennial.EtcdGrove.phys_idx _ $$ Hphys $h:ident [] with ⟨Hphys, $h:ident⟩
+    · ipureintro
+      first
+      | rfl
+      | simp only [Perennial.EtcdGrove.sendMsgs, List.append_assoc, List.append_nil]
+      | simp [Perennial.EtcdGrove.sendMsgs]))
+
+set_option hygiene false in
+@[inherit_doc «tacticPhys_idx_»]
+macro "phys_out" : tactic => `(tactic| phys_idx HG)
 
 namespace StepProof
 

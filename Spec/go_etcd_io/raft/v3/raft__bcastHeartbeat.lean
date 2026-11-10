@@ -39,7 +39,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 was; the rest is `bcastHeartbeatWithCtx`'s spec. This is what `stepLeader` does on a
 `MsgBeat`, and the postcondition is the model's `Step.beat`. -/
 abbrev raft.bcastHeartbeat.spec : Prop :=
-  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (G : IProp GF),
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (G : List Msg → IProp GF),
   s.role = .leader →
   -- (2026-10-29, stage U7) the term past `0` that `send` stamps (`SentMsgShape`)
   s.term ≠ W64 0 →
@@ -48,18 +48,21 @@ abbrev raft.bcastHeartbeat.spec : Prop :=
       -- (2026-11-09, Q8 stage 1 slice 5; until then, stage 0, the premise `s.gh.tr = none`) the
       -- heartbeats' hook gates, as `raft.bcastHeartbeatWithCtx.spec`'s, at the read-only object's
       -- context
-      "#Hgate" ∷ □ (∀ (to cm : w64), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
+      -- (2026-11-10, slice 14) indexed by the outbox, as `raft.bcastHeartbeatWithCtx.spec`'s
+      "#Hgate" ∷ □ (∀ (to cm : w64) (o : List Msg), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
           ⌜uint.Z cm ≤ uint.Z s.logst.committed ∧
-            uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ -∗ G -∗
+            uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ -∗ G o -∗
         HookGateOpt s.gh.tr r (sendOutGate id s c MsgHeartbeat
-          [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] (hbCtx s.rd.ro)]) G) ∗
-      "HG" ∷ G }}
+          [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] (hbCtx s.rd.ro)])
+          (G (o ++ [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] (hbCtx s.rd.ro)]))) ∗
+      "HG" ∷ G s.outbox }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"bcastHeartbeat")) (Val #()))
   {{ (ms : List Msg) (pvs : GMap w64 Progress), RET #();
       ownRaftPhysCV c c.voters r id { sendMsgs s ms with prvals := pvs } ∗
       -- each with the read-only object's context (2026-10-12; `nil` without a request)
       ⌜∀ m ∈ ms, HeartbeatOk id (toPState s) m ∧ m.ctx = hbCtx s.rd.ro⌝ ∗
-      ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ ∗ G }}
+      ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ ∗
+      G ({ sendMsgs s ms with prvals := pvs } : NState).outbox }}
 
 end spec
 

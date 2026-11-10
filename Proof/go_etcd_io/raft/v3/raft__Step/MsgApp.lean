@@ -97,7 +97,7 @@ theorem wp_Step_MsgApp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
         -- (D22 S-d3b) a truncation's mark (`AppTrunc`)
         "%Htrunc" ∷ ⌜AppTrunc m ents s s'⌝ ∗
-        "HG" ∷ stepOut R }} := by
+        "HG" ∷ stepOut R s'.outbox }} := by
   intro Hty Hto Hterm Hfnz Hfid Hwf Hpwf Hnw Hconf Hvotes
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
   · exact wp_Step_MsgApp_gt _P _Q c r id s ml m sn ctx rs ents R Hty Hto Hterm Hfnz Hfid Hwf Hpwf Hnw

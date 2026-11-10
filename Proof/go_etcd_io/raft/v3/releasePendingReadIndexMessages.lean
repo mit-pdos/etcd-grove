@@ -170,10 +170,10 @@ theorem releasePendingReadIndexMessages.wp_proof
   obtain ⟨Hl1, Hl2⟩ := Hprl
   by_cases Hsg : CfgSingle c id
   · -- (2026-10-14) the leader is the single voter: each request answered at once
-    ihave Hphys := ownRaftPhysC_eq c r id _
-      (readRespondAll id { s with rd := { s.rd with pend := [] } }
-        ((pendReqs s).take (sint.nat (W64 0))))
-      (by rw [show sint.nat (W64 0) = 0 from rfl, List.take_zero]; rfl) $$ Hphys
+    icases physG_eq c r id G (s2 := readRespondAll id { s with rd := { s.rd with pend := [] } }
+          ((pendReqs s).take (sint.nat (W64 0))))
+        (by rw [show sint.nat (W64 0) = 0 from rfl, List.take_zero]; try rfl) $$ [$Hphys $HG]
+      with ⟨Hphys, HG⟩
     ihave IH : iprop(∃ (n : w64) (mv : Loc),
         "i" ∷ i_ptr ↦ n ∗
         "m" ∷ m_ptr ↦ mv ∗
@@ -181,7 +181,8 @@ theorem releasePendingReadIndexMessages.wp_proof
         "Hphys" ∷ ownRaftPhysCV c c.voters r id
           (readRespondAll id { s with rd := { s.rd with pend := [] } }
             ((pendReqs s).take (sint.nat n))) ∗
-        "HG" ∷ G ∗
+        "HG" ∷ G (readRespondAll id { s with rd := { s.rd with pend := [] } }
+            ((pendReqs s).take (sint.nat n))).outbox ∗
         "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (s.rd.pend.length : Int)⌝) $$ [i m Hpri Hphys HG]
     · iexists W64 0, _
       iframe i m Hpri Hphys HG
@@ -213,10 +214,10 @@ theorem releasePendingReadIndexMessages.wp_proof
       · -- (Q8 stage 1, slice 6) the response's gate (at no event, at the caller's mode); no heartbeat
         iframe HG
         isplitr
-        · iintro %Hs1 HG
-          iapply hookGateOpt_congr s.gh.tr _ r none none G ?hr1 rfl
+        · iintro %Hs1 %mm %o %Hmm HG
+          iapply hookGateOpt_congr s.gh.tr _ r none none _ ?hr1 rfl
           case hr1 => rw [readRespondAll_gh]
-          iapply Hgresp $$ %Hs1 HG
+          iapply Hgresp $$ %Hs1 %mm %o %Hmm HG
         imodintro
         iintro %Hns1
         iexfalso; ipureintro; exact Hns1 Hsg
@@ -226,12 +227,12 @@ theorem releasePendingReadIndexMessages.wp_proof
       iexists n + W64 1, l
       have Hsucc : sint.nat (n + W64 1) = sint.nat n + 1 := by word
       rw [Hsucc]
-      ihave Hphys := ownRaftPhysC_eq c r id _
-        (readRespondAll id { s with rd := { s.rd with pend := [] } }
-          ((pendReqs s).take (sint.nat n + 1)))
-        (by
-          rw [readRespondAll_take_succ id _ _ _ _ (pendReqs_lookup s _ p Hp)]
-          simp only [arriveReq, Hcf.1]) $$ Hphys
+      icases physG_eq c r id G (s2 := readRespondAll id { s with rd := { s.rd with pend := [] } }
+            ((pendReqs s).take (sint.nat n + 1)))
+          (by
+            rw [readRespondAll_take_succ id _ _ _ _ (pendReqs_lookup s _ p Hp)]
+            simp only [arriveReq, Hcf.1]) $$ [$Hphys $HG]
+        with ⟨Hphys, HG⟩
       iframe i m Hpri Hphys HG
       ipureintro
       word
@@ -243,9 +244,9 @@ theorem releasePendingReadIndexMessages.wp_proof
       iframe Hphys HG
       ipureintro
       exact Or.inl ⟨Hsg, rfl⟩
-  ihave Hphys := ownRaftPhysC_eq c r id _
-    { sendMsgs (relState id s (sint.nat (W64 0))) [] with prvals := s.prvals }
-    (by simp [relState, sendMsgs, readonlyRelease]; rfl) $$ Hphys
+  icases physG_eq c r id G (s2 := { sendMsgs (relState id s (sint.nat (W64 0))) [] with prvals := s.prvals })
+      (by simp [relState, sendMsgs, readonlyRelease]; try rfl) $$ [$Hphys $HG]
+    with ⟨Hphys, HG⟩
   -- the loop: after `n` requests, the first `n` are released
   ihave IH : iprop(∃ (n : w64) (mv : Loc) (ms : List Msg) (pvs : GMap w64 Progress),
       "i" ∷ i_ptr ↦ n ∗
@@ -257,7 +258,7 @@ theorem releasePendingReadIndexMessages.wp_proof
          ∃ k, 0 < k ∧ k ≤ sint.nat n ∧
            m'.ctx = hbCtx (readonlyRelease s.rd.ro id s.logst.committed (s.rd.pend.take k))⌝ ∗
       "%Hmm" ∷ ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ ∗
-      "HG" ∷ G ∗
+      "HG" ∷ G ({ sendMsgs (relState id s (sint.nat n)) ms with prvals := pvs } : NState).outbox ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (s.rd.pend.length : Int)⌝) $$ [i m Hpri Hphys HG]
   · iexists W64 0, _, [], s.prvals
     iframe i m Hpri Hphys HG
@@ -289,27 +290,33 @@ theorem releasePendingReadIndexMessages.wp_proof
       · iintro %Hs1
         iexfalso; ipureintro; exact Hsg Hs1
       imodintro
-      iintro %Hns1 %to %cm %Hto %Hcm HG
+      iintro %Hns1 %to %cm %o %Hto %Hcm HG
       have Hcm' : uint.Z cm ≤ uint.Z s.logst.committed ∧
           uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0)) := by
         obtain ⟨h1, h2⟩ := Hcm
         simp only at h2
         rw [Hmm] at h2
         exact ⟨h1, h2⟩
-      iapply hookGateOpt_congr s.gh.tr _ r
+      iapply hookGateOpt_congrQ s.gh.tr _ r
         (sendOutGate id
           { s with rd := { s.rd with pend := [],
                                      ro := readonlyRelease s.rd.ro id s.logst.committed (s.rd.pend.take (sint.nat n + 1)) } }
           c MsgHeartbeat
           [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] []
             (hbCtx (readonlyRelease s.rd.ro id s.logst.committed (s.rd.pend.take (sint.nat n + 1))))])
-        _ G ?hh1 ?hh2
+        _ (G (o ++ [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] []
+            (hbCtx (readonlyRelease s.rd.ro id s.logst.committed (s.rd.pend.take (sint.nat n + 1))))])) _
+        ?hh1 ?hh2 ?hh3
       case hh1 => rfl
       case hh2 =>
         rw [readonlyRelease_take_succ _ _ _ _ _ _ Hp]
         simp only [readonlyArrive, hbCtx_recvAck]
         rfl
-      iapply Hgate $$ %Hns1 %(sint.nat n + 1) %to %cm %(And.intro (Nat.succ_pos (sint.nat n)) Hlt) %Hto %Hcm' HG
+      case hh3 =>
+        rw [readonlyRelease_take_succ _ _ _ _ _ _ Hp]
+        simp only [readonlyArrive, hbCtx_recvAck]
+        rfl
+      iapply Hgate $$ %Hns1 %(sint.nat n + 1) %to %cm %o %(And.intro (Nat.succ_pos (sint.nat n)) Hlt) %Hto %Hcm' HG
     rcases Hres with ⟨Hs1, -⟩ | ⟨-, ms', pvs', rfl, Hms', Hmm'⟩
     · exact absurd Hs1 Hsg
     wp_for_post
@@ -317,10 +324,10 @@ theorem releasePendingReadIndexMessages.wp_proof
     iexists n + W64 1, l, ms ++ ms', pvs'
     have Hsucc : sint.nat (n + W64 1) = sint.nat n + 1 := by word
     rw [Hsucc]
-    ihave Hphys := ownRaftPhysC_eq c r id _
-      { sendMsgs (relState id s (sint.nat n + 1)) (ms ++ ms') with prvals := pvs' }
-      (by simp only [sendMsgs, arriveState, relState, arriveReq,
-            readonlyRelease_take_succ _ _ _ _ _ _ Hp, List.append_assoc]) $$ Hphys
+    icases physG_eq c r id G (s2 := { sendMsgs (relState id s (sint.nat n + 1)) (ms ++ ms') with prvals := pvs' })
+        (by simp only [sendMsgs, arriveState, relState, arriveReq,
+            readonlyRelease_take_succ _ _ _ _ _ _ Hp, List.append_assoc]) $$ [$Hphys $HG]
+      with ⟨Hphys, HG⟩
     iframe i m Hpri Hphys HG
     ipureintro
     refine ⟨?_, Hmm'.trans Hmm, by word, by word⟩

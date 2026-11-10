@@ -273,7 +273,7 @@ theorem raft.sendHeartbeat.untraced (h : raft.sendHeartbeat.spec (GF := GF) (hG 
   intro c r id s to ctx cl Hto Hcfg Htz htr
   iintro %Φ ⟨#Hpkg, Hphys, #Hctx⟩ HΦ
   icases ownRaftPhysC_traceLogger c r id s htr $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
-  iapply h c r id s to ctx cl iprop(emp) Hto Hcfg Htz $$ [Hphys]
+  iapply h c r id s to ctx cl (fun _ => iprop(emp)) Hto Hcfg Htz $$ [Hphys]
   · iframe Hpkg Hphys Hctx
     iintro %cm %_
     rw [htr]
@@ -307,11 +307,11 @@ theorem raft.bcastHeartbeatWithCtx.untraced (h : raft.bcastHeartbeatWithCtx.spec
   intro c r id s ctx cl Hlead Htz htr
   iintro %Φ ⟨#Hpkg, Hphys, #Hctx⟩ HΦ
   icases ownRaftPhysC_traceLogger c r id s htr $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
-  iapply h c r id s ctx cl iprop(emp) Hlead Htz $$ [Hphys]
+  iapply h c r id s ctx cl (fun _ => iprop(emp)) Hlead Htz $$ [Hphys]
   · iframe Hpkg Hphys Hctx
     isplitr
     · imodintro
-      iintro %to %cm %_ %_ -
+      iintro %to %cm %_ %_ %_ -
       rw [htr]
       iapply hookGateOpt_none r _ tl iprop(emp) Htlok
       iframe Htl
@@ -342,11 +342,11 @@ theorem raft.bcastHeartbeat.untraced (h : raft.bcastHeartbeat.spec (GF := GF) (h
   intro c r id s Hlead Htz htr
   iintro %Φ ⟨#Hpkg, Hphys⟩ HΦ
   icases ownRaftPhysC_traceLogger c r id s htr $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
-  iapply h c r id s iprop(emp) Hlead Htz $$ [Hphys]
+  iapply h c r id s (fun _ => iprop(emp)) Hlead Htz $$ [Hphys]
   · iframe Hpkg Hphys
     isplitr
     · imodintro
-      iintro %to %cm %_ %_ -
+      iintro %to %cm %_ %_ %_ -
       rw [htr]
       iapply hookGateOpt_none r _ tl iprop(emp) Htlok
       iframe Htl

@@ -187,7 +187,7 @@ local macro "local_follower" : tactic => `(tactic| (
   wp_apply _P.stepFollower c ∅ r id s ml m ents sn rs (zero_val _) ctx R.G1 R.GE (by ty_cases simp [Hty])
       (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other)
       (by ty_other)
-    (by notfwd_tac) $$ [Hphys Hm Hsrc0 HG Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+    (by notfwd_tac) Hgok.1 Hgok.2.1 $$ [Hphys Hm Hsrc0 HG Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
   · iframe Hphys Hsrc0 HG Hfg
     rw [if_neg (by ty_cases (rw [Hty]; w32_ne))]
     iexact Hm
@@ -199,6 +199,7 @@ local macro "local_follower" : tactic => `(tactic| (
     icases Herrn with %Herrn
     subst Herrn
     wp_auto
+    try phys_out
     iapply HΦ $$ %interface.nil %{ s with lead := W64 0 }
     iframe Hphys HG
     ipureintro
@@ -213,6 +214,7 @@ local macro "local_follower" : tactic => `(tactic| (
     icases Herrn with %Herrn
     subst Herrn
     wp_auto
+    try phys_out
     iapply HΦ $$ %interface.nil %s
     iframe Hphys HG
     ipureintro
@@ -231,7 +233,7 @@ local macro "local_candidate" : tactic => `(tactic| (
       (by ty_other) (by simp [Hrole]) (by ty_other) (by ty_other)
       (fun _ Hc => by ty_cases (rw [Hty] at Hc; exact absurd Hc (by w32_ne)))
       (by ty_other)
-    $$ [Hphys Hm Hsrc0 HG Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+    Hgok.1 Hgok.2.2.1 Hgok.2.1 $$ [Hphys Hm Hsrc0 HG Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
   · iframe Hphys Hsrc0 HG Hcg
     rw [if_neg (by ty_cases (rw [Hty]; w32_ne))]
     iexact Hm
@@ -242,6 +244,7 @@ local macro "local_candidate" : tactic => `(tactic| (
   icases Herrn with %Herrn
   subst Herrn
   wp_auto
+  try phys_out
   iapply HΦ $$ %interface.nil %s
   iframe Hphys HG
   ipureintro
@@ -259,7 +262,7 @@ local macro "local_leader" : tactic => `(tactic| (
   wp_apply _P.stepLeader c r id s ml m ents sn ctx rs 0 R.G1 R.GE R.Gp1 R.Gp2 R.Gc (by ty_cases simp [Hty]) Hrole (by first | (intro _; exact HLT Hrole) | ty_other)
       (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other)
       (by ty_other)
-    (by p3_tac) $$ [Hphys Hm HG Hlg] as %err %s' %dropped ⟨Hphys, -, %Hres, Herrn, HGo⟩
+    (by p3_tac) Hgok.2.1 Hgok.2.2.2.1 Hgok.2.2.2.2 $$ [Hphys Hm HG Hlg] as %err %s' %dropped ⟨Hphys, -, %Hres, Herrn, HGo⟩
   · iframe Hphys Hrc00 HG Hlg
     rw [if_neg (by ty_cases (rw [Hty]; w32_ne))]
     iframe Hm
@@ -271,6 +274,7 @@ local macro "local_leader" : tactic => `(tactic| (
   icases Herrn with %Herrn
   subst Herrn
   wp_auto
+  try phys_out
   iapply HΦ $$ %interface.nil %s'
   iframe Hphys HG
   ipureintro
@@ -289,7 +293,7 @@ local macro "transfer_follower " h:term : tactic => `(tactic| (
       (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other)
       (fun _ => ⟨fun _ => ⟨$h, Hent, Hctx0, Hxo Hrole⟩, fun h' => absurd h' (by rw [Hty]; w32_ne)⟩)
       (by ty_other)
-    (fun _ => Hnors) $$ [Hphys Hm Hsrc0 HG Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+    (fun _ => Hnors) Hgok.1 Hgok.2.1 $$ [Hphys Hm Hsrc0 HG Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
   · iframe Hphys Hsrc0 HG Hfg
     rw [if_neg (by rw [Hty]; w32_ne)]
     iexact Hm
@@ -300,6 +304,7 @@ local macro "transfer_follower " h:term : tactic => `(tactic| (
   icases Herrn with %Herrn
   subst Herrn
   wp_auto
+  try phys_out
   iapply HΦ $$ %interface.nil %s
   iframe Hphys HG
   ipureintro
@@ -318,7 +323,7 @@ local macro "timeout_follower" : tactic => `(tactic| (
       (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other)
       (fun _ => ⟨fun h' => absurd h' (by rw [Hty]; w32_ne), fun _ => ⟨Hnw, Hwf, Hfla⟩⟩)
       (by ty_other)
-    (by notfwd_tac) $$ [Hphys Hm Hsrc0 HG Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+    (by notfwd_tac) Hgok.1 Hgok.2.1 $$ [Hphys Hm Hsrc0 HG Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
   · iframe Hphys Hsrc0 HG Hfg
     rw [if_neg (by rw [Hty]; w32_ne)]
     iexact Hm
@@ -330,6 +335,7 @@ local macro "timeout_follower" : tactic => `(tactic| (
   icases Herrn with %Herrn
   subst Herrn
   wp_auto
+  try phys_out
   iapply HΦ $$ %interface.nil %s1
   iframe Hphys HG
   ipureintro
@@ -377,7 +383,7 @@ theorem wp_Step_MsgLocal (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
-        "HG" ∷ stepOut R }} := by
+        "HG" ∷ stepOut R s'.outbox }} := by
   intro Hty3 Hterm Hwf Hfv
   have Hty5 : m.Type' = MsgForgetLeader ∨ m.Type' = MsgTimeoutNow ∨ m.Type' = MsgUnreachable ∨
       m.Type' = MsgSnapStatus ∨ m.Type' = MsgTransferLeader := by
@@ -477,7 +483,7 @@ theorem wp_Step_MsgTransferLeader (_P : raft.Step.Postulates (GF := GF) (hG := h
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
-        "HG" ∷ stepOut R }} := by
+        "HG" ∷ stepOut R s'.outbox }} := by
   intro Hty Hent Hctx0 Hxo Htr Hlok Hwf Hnors HLT
   have Hty5 : m.Type' = MsgForgetLeader ∨ m.Type' = MsgTimeoutNow ∨ m.Type' = MsgUnreachable ∨
       m.Type' = MsgSnapStatus ∨ m.Type' = MsgTransferLeader := by simp [Hty]
@@ -532,8 +538,9 @@ theorem wp_Step_MsgTransferLeader (_P : raft.Step.Postulates (GF := GF) (hG := h
     iterate 6 (try (wp_gets; rw [Hty]; try wp_auto))
     wp_gets
     bf_gate
-    wp_apply _P.becomeFollower c r id s m.Term' _ R.G1 (by exact Int.le_of_lt Hgt) (fun _ => rfl) $$ [$Hphys $Hgb]
+    wp_apply _P.becomeFollower c r id s m.Term' _ (R.G1 s.outbox) (by exact Int.le_of_lt Hgt) (fun _ => rfl) $$ [$Hphys $Hgb]
       as %pvs ⟨Hphys, HG⟩
+    phys_idx HG
     iterate 6 (try (wp_gets; rw [Hty]; try wp_auto))
     wp_gets
     wp_apply raft.wp_load_stepC $$ Hphys as Hphys
@@ -551,7 +558,7 @@ theorem wp_Step_MsgTransferLeader (_P : raft.Step.Postulates (GF := GF) (hG := h
         (fun _ => ⟨fun _ => ⟨.inl rfl, Hent, Hctx0, fun h => absurd rfl h⟩,
           fun h' => absurd h' (by rw [Hty]; w32_ne)⟩)
         (by ty_other)
-      (fun _ => Hnors) $$ [Hphys Hm Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+      (fun _ => Hnors) Hgok.1 Hgok.2.1 $$ [Hphys Hm Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
     · iframe Hphys Hsrc0
       wp_gets
       rw [if_neg (by rw [Hty]; w32_ne)]
@@ -563,6 +570,7 @@ theorem wp_Step_MsgTransferLeader (_P : raft.Step.Postulates (GF := GF) (hG := h
     icases Herrn with %Herrn
     subst Herrn
     wp_auto
+    try phys_out
     iapply HΦ $$ %interface.nil %{ becomeFollower s m.Term' (W64 0) with prvals := pvs }
     iframe Hphys HG
     ipureintro
@@ -592,6 +600,7 @@ theorem wp_Step_MsgTransferLeader (_P : raft.Step.Postulates (GF := GF) (hG := h
     wp_gets
     wp_raft_logC
     ihave HG := stepOut_G0 R $$ HG
+    try phys_out
     iapply HΦ $$ %interface.nil %s
     iframe Hphys HG
     ipureintro
@@ -645,7 +654,7 @@ theorem wp_Step_MsgTimeoutNow (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
-        "HG" ∷ stepOut R }} := by
+        "HG" ∷ stepOut R s'.outbox }} := by
   intro Hty Hnw Hnwm Hwf Hfla
   have Hty5 : m.Type' = MsgForgetLeader ∨ m.Type' = MsgTimeoutNow ∨ m.Type' = MsgUnreachable ∨
       m.Type' = MsgSnapStatus ∨ m.Type' = MsgTransferLeader := by simp [Hty]
@@ -706,8 +715,9 @@ theorem wp_Step_MsgTimeoutNow (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iterate 6 (try (wp_gets; rw [Hty]; try wp_auto))
     wp_gets
     bf_gate
-    wp_apply _P.becomeFollower c r id s m.Term' _ R.G1 (by exact Int.le_of_lt Hgt) (fun _ => rfl) $$ [$Hphys $Hgb]
+    wp_apply _P.becomeFollower c r id s m.Term' _ (R.G1 s.outbox) (by exact Int.le_of_lt Hgt) (fun _ => rfl) $$ [$Hphys $Hgb]
       as %pvs ⟨Hphys, HG⟩
+    phys_idx HG
     iterate 6 (try (wp_gets; rw [Hty]; try wp_auto))
     wp_gets
     wp_apply raft.wp_load_stepC $$ Hphys as Hphys
@@ -724,7 +734,7 @@ theorem wp_Step_MsgTimeoutNow (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other)
         (fun _ => ⟨fun h' => absurd h' (by rw [Hty]; w32_ne), fun _ => ⟨Hnwm, ⟨rfl, rfl⟩, Hfla⟩⟩)
         (by ty_other)
-      (by notfwd_tac) $$ [Hphys Hm Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+      (by notfwd_tac) Hgok.1 Hgok.2.1 $$ [Hphys Hm Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
     · iframe Hphys Hsrc0
       wp_gets
       rw [if_neg (by rw [Hty]; w32_ne)]
@@ -737,6 +747,7 @@ theorem wp_Step_MsgTimeoutNow (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     icases Herrn with %Herrn
     subst Herrn
     wp_auto
+    try phys_out
     iapply HΦ $$ %interface.nil %s1
     iframe Hphys HG
     ipureintro
@@ -779,6 +790,7 @@ theorem wp_Step_MsgTimeoutNow (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     wp_gets
     wp_raft_logC
     ihave HG := stepOut_G0 R $$ HG
+    try phys_out
     iapply HΦ $$ %interface.nil %s
     iframe Hphys HG
     ipureintro

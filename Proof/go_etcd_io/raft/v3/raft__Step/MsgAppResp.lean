@@ -76,12 +76,13 @@ theorem wp_Step_MsgAppResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
-        "HG" ∷ stepOut R }} := by
+        "HG" ∷ stepOut R s'.outbox }} := by
   intro Hty Hto Hterm Hfnz Hrej Hwf
   wp_start_folded as ⟨Hphys, Hm, HG, Hgates⟩
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
   · wp_apply (wp_Step_Resp_gt _P _Q c r id s ml m sn ctx rs ents R .appResp (.inl ⟨Hty, rfl⟩) Hto Hterm Hgt Hwf)
       $$ [$Hpkg $Hphys $Hm $HG $Hgates] as %err %s' ⟨Hphys, %Hend, %Hwf', %Href, %Herr, %Hfr, %Htm, HG⟩
+    try phys_out
     iapply HΦ $$ %err %s'
     iframe Hphys HG
     ipureintro
@@ -93,6 +94,7 @@ theorem wp_Step_MsgAppResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       wp_apply (wp_Step_MsgAppResp_eq _P _Q c r id s ml m sn ctx rs ents R Hlrd Hack Hty Hto Hterm Hteq Hfnz Hrej
         Hwf)
         $$ [$Hpkg $Hphys $Hm $HG $Hgates] as %err %s' ⟨Hphys, %Hend, %Hwf', %Href, %Herr, %Hfr, %Htm, HG⟩
+      try phys_out
       iapply HΦ $$ %err %s'
       iframe Hphys HG
       ipureintro

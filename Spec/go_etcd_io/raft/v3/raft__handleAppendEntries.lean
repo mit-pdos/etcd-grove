@@ -150,7 +150,7 @@ Not needed, and so not premises: `m.From ≠
 abbrev raft.handleAppendEntries.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (ml : Loc) (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8)
-    (rs : List Loc) (G G' : IProp GF),
+    (rs : List Loc) (G : IProp GF) (G' : List Msg → IProp GF),
   PlogWf (entryID.mk m.LogTerm' m.Index') ents →
   uint.Z m.Index' + (ents.length : Int) + 1 < 2^64 →
   (let ls := s.logst
@@ -175,11 +175,12 @@ abbrev raft.handleAppendEntries.spec : Prop :=
       -- (2026-11-10, Q8 stage 1 slice 7; until then, stage 0, the premise `s.gh.tr = none`) the
       -- caller's resource, through the reply's hook gate, for the exit taken
       "HG" ∷ G ∗
+      -- (2026-11-10, slice 14) `G'` indexed by the outbox, at the reply queued
       "Hgate" ∷ (∀ (s1 : NState) (mm : Msg), ⌜HandleAppResult id s m ents (sendMsgs s1 [mm])⌝ -∗
-        G -∗ HookGateOpt s.gh.tr r (sendOutGate id s1 c MsgAppResp [mm]) G') }}
+        G -∗ HookGateOpt s.gh.tr r (sendOutGate id s1 c MsgAppResp [mm]) (G' (sendMsgs s1 [mm]).outbox)) }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"handleAppendEntries")) (Val #ml))
   {{ (s' : NState), RET #();
-      ownRaftPhysCV c c.voters r id s' ∗ ⌜HandleAppResult id s m ents s'⌝ ∗ G' }}
+      ownRaftPhysCV c c.voters r id s' ∗ ⌜HandleAppResult id s m ents s'⌝ ∗ G' s'.outbox }}
 
 end spec
 

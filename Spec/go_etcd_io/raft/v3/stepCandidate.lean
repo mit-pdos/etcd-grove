@@ -45,6 +45,7 @@ public import Spec.go_etcd_io.raft.v3.raft__handleSnapshot
 public import Spec.go_etcd_io.raft.v3.raft__becomeLeader
 public import Spec.go_etcd_io.raft.v3.raft__bcastAppend
 public import Spec.go_etcd_io.raft.v3.raft__campaign
+public import Proof.go_etcd_io.raft.v3.TracedSend
 public import Proof.go_etcd_io.raft.v3.StepLemmas
 
 @[expose] public section
@@ -181,7 +182,7 @@ receives no snapshot, the Draft's P2). The untraced instance is `stepCandidate.u
 abbrev stepCandidate.spec : Prop :=
   ∀ (c : CfgM) (scfg : CSLists) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (ents : List EntryM) (sn : Option SnapshotM) (rs : List Loc) (sv : SnapshotM) (cl : List w8)
-    (G G' Gf G1 G2 : IProp GF),
+    (G G' : List Msg → IProp GF) (Gf G1 G2 : IProp GF),
   (m.Type' = MsgVoteResp ∨ m.Type' = MsgProp ∨
    m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat ∨
    (m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp ∨
@@ -219,6 +220,10 @@ abbrev stepCandidate.spec : Prop :=
      -- (2026-11-10, Q8 stage 1 slice 8; until then, stage 0, of every message) untraced
      -- (`handleSnapshot`'s premise: a traced node receives no snapshot, the Draft's P2)
      s.gh.tr = none) →
+  -- (2026-11-10, slice 14) the caller's resources indexed by the outbox: `G'` up to order (after a
+  -- campaign, `campaign`'s) and ignoring it untraced (after a win's `bcastAppend`, its snapshot
+  -- fallback), `G` ignoring it untraced (a snapshot, untraced only, is handled through no gate)
+  PermInv G' → IdxFree s.gh.tr G' → IdxFree s.gh.tr G →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       -- (stage R4) the message, as `Step` received it (its `Context` holding `cl`: what the
@@ -230,60 +235,65 @@ abbrev stepCandidate.spec : Prop :=
       "#Hcert" ∷ rcvSrc s.gh.sn m.Type' sn ∗
       -- (2026-11-10, Q8 stage 1 slice 8; until then, stage 0, the premise `s.gh.tr = none`) the
       -- caller's resource, through the gates of the arm that runs
-      "HG" ∷ G ∗
+      -- (2026-11-10, slice 14) indexed by the outbox (`G` at `s`'s; a gate's resource after a send at
+      -- the outbox with the message queued)
+      "HG" ∷ G s.outbox ∗
       -- a `MsgApp` or a `MsgHeartbeat`: `becomeFollower(m.Term, m.From)`'s gate ...
-      "Hgbf" ∷ (⌜m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat⌝ -∗ G -∗
+      "Hgbf" ∷ (⌜m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat⌝ -∗ G s.outbox -∗
         HookGate s.gh.tr r (NodeEvOf (W64 2) id (becomeFollower s s.term m.From') c) Gf) ∗
       -- ... then the reply's (`handleAppendEntries`'s, at the follower state) ...
       "Hgapp" ∷ (⌜m.Type' = MsgApp⌝ -∗ ∀ (pvs : GMap w64 Progress) (s1 : NState) (mm : Msg),
         ⌜HandleAppResult id { becomeFollower s s.term m.From' with prvals := pvs } m ents
           (sendMsgs s1 [mm])⌝ -∗
-        Gf -∗ HookGateOpt s.gh.tr r (sendOutGate id s1 c MsgAppResp [mm]) G') ∗
+        Gf -∗ HookGateOpt s.gh.tr r (sendOutGate id s1 c MsgAppResp [mm]) (G' (sendMsgs s1 [mm]).outbox)) ∗
       -- ... or (`handleHeartbeat`'s, at the follower state with the commit moved)
       "Hghb" ∷ (⌜m.Type' = MsgHeartbeat⌝ -∗ ∀ (pvs : GMap w64 Progress),
         Gf -∗ HookGateOpt s.gh.tr r
           (sendOutGate id { ({ becomeFollower s s.term m.From' with prvals := pvs } : NState) with
               logst := { s.logst with committed := plogCommitTo s.logst.committed m.Commit' } }
             c MsgHeartbeatResp [{ Msg.plain .heartbeatResp id m.From' s.term false with ctx := cl }])
-          G') ∗
+          (G' (s.outbox ++ [{ Msg.plain .heartbeatResp id m.From' s.term false with ctx := cl }]))) ∗
       -- a vote count's win: `becomeLeader`'s `BecomeLeader` gate, given the win's quorum (where a
       -- traced caller registers the win, round 6's F2) ...
       "Hgbl" ∷ (⌜m.Type' = MsgVoteResp ∧ s.role = .candidate ∧
-          JQuorum c (granted (recordVote s.votes m.From' (!m.Reject')))⌝ -∗ G -∗
+          JQuorum c (granted (recordVote s.votes m.From' (!m.Reject')))⌝ -∗ G s.outbox -∗
         HookGate s.gh.tr r (NodeEvOf (W64 3) id (becomeLeaderPre id { s with votes := recordVote s.votes m.From' (!m.Reject') }) c) G1) ∗
       -- ... its empty entry's `Replicate` gate and its self-acknowledgement's ...
       "Hgrep" ∷ (G1 -∗ HookGateN s.gh.tr r (NodeEvOf (W64 5) id (becomeLeaderPre id { s with votes := recordVote s.votes m.From' (!m.Reject') }) c) 1 G2) ∗
       "Hgack" ∷ (G2 -∗ HookGateOpt s.gh.tr r (sendOutGate id (becomeLeaderLog id { s with votes := recordVote s.votes m.From' (!m.Reject') }) c MsgAppResp
-          [selfAck id (becomeLeaderLog id { s with votes := recordVote s.votes m.From' (!m.Reject') })]) G') ∗
+          [selfAck id (becomeLeaderLog id { s with votes := recordVote s.votes m.From' (!m.Reject') })])
+        (G' (s.outbox ++ [selfAck id (becomeLeaderLog id { s with votes := recordVote s.votes m.From' (!m.Reject') })]))) ∗
       -- ... and `bcastAppend`'s, per peer, at the new leader's state
       "#Hgcast" ∷ □ (⌜m.Type' = MsgVoteResp ∧ s.role = .candidate ∧
           JQuorum c (granted (recordVote s.votes m.From' (!m.Reject')))⌝ -∗
-        ∀ (pvs : GMap w64 Progress) (to : w64) (mm : Msg),
+        ∀ (pvs : GMap w64 Progress) (to : w64) (mm : Msg) (o : List Msg),
         ⌜to ≠ id ∧ to ∈ domSet ({ becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') } with prvals := pvs } : NState).progress⌝ -∗
         ⌜AppOk id (toPState { becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') } with prvals := pvs }) mm ∧
           mm.commit = (toPState { becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') } with prvals := pvs }).commit ∧ mm.dst = to⌝ -∗
-        G' -∗
+        G' o -∗
         HookGateOpt s.gh.tr r (sendOutGate id { becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') } with prvals := pvs } c MsgApp [mm])
-          G') ∗
+          (G' (o ++ [mm]))) ∗
       "#Hnosnap" ∷ TrNoSnap s.gh.tr s.logst ∗
       -- a pre-vote count's win: `campaign(campaignElection)`'s gates (the `BecomeCandidate` line,
       -- then each vote message, at the candidate's state)
       "Hgcamp" ∷ (⌜m.Type' = MsgPreVoteResp ∧ s.role = .preCandidate ∧
-          JQuorum c (granted (recordVote s.votes m.From' (!m.Reject')))⌝ -∗ G -∗
-        HookGate s.gh.tr r (NodeEvOf (W64 1) id (becomeCandidate id { s with votes := recordVote s.votes m.From' (!m.Reject') }) c) G') ∗
+          JQuorum c (granted (recordVote s.votes m.From' (!m.Reject')))⌝ -∗ G s.outbox -∗
+        HookGate s.gh.tr r (NodeEvOf (W64 1) id (becomeCandidate id { s with votes := recordVote s.votes m.From' (!m.Reject') }) c) (G' s.outbox)) ∗
       "#Hgvote" ∷ □ (⌜m.Type' = MsgPreVoteResp ∧ s.role = .preCandidate ∧
           JQuorum c (granted (recordVote s.votes m.From' (!m.Reject')))⌝ -∗
-        ∀ (pvs : GMap w64 Progress) (y : w64), ⌜y ∈ c.voters⌝ -∗ G' -∗
+        ∀ (pvs : GMap w64 Progress) (y : w64) (o : List Msg), ⌜y ∈ c.voters⌝ -∗ G' o -∗
         HookGateOpt s.gh.tr r
           (sendOutGate id { becomeCandidate id { s with votes := recordVote s.votes m.From' (!m.Reject') } with prvals := pvs } c
             (if y = id then vrespW32 false else vreqW32 false)
             [campMsg false id (s.term + W64 1) (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents))
-              [] y]) G') ∗
+              [] y])
+          (G' (o ++ [campMsg false id (s.term + W64 1) (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents))
+              [] y]))) ∗
       -- a loss of either count: `becomeFollower(r.Term, None)`'s gate
       "Hglost" ∷ (⌜(m.Type' = MsgVoteResp ∧ s.role = .candidate ∨
             m.Type' = MsgPreVoteResp ∧ s.role = .preCandidate) ∧
-          JLost c (recordVote s.votes m.From' (!m.Reject'))⌝ -∗ G -∗
-        HookGate s.gh.tr r (NodeEvOf (W64 2) id (becomeFollower { s with votes := recordVote s.votes m.From' (!m.Reject') } s.term (W64 0)) c) G') }}
+          JLost c (recordVote s.votes m.From' (!m.Reject'))⌝ -∗ G s.outbox -∗
+        HookGate s.gh.tr r (NodeEvOf (W64 2) id (becomeFollower { s with votes := recordVote s.votes m.From' (!m.Reject') } s.term (W64 0)) c) (G' s.outbox)) }}
     (App (App (Val #(functions stepCandidate [])) (Val #r)) (Val #ml))
   {{ (err : GoInterface) (s' : NState) (dropped : Bool) (c' : CfgM), RET #err;
       ownRaftPhysCV c' c'.voters r id s' ∗
@@ -295,12 +305,12 @@ abbrev stepCandidate.spec : Prop :=
           ((m.Type' = MsgVoteResp ∧ s.role = .candidate ∨
             m.Type' = MsgPreVoteResp ∧ s.role = .preCandidate) ∧
            (JQuorum c (granted (recordVote s.votes m.From' (!m.Reject'))) ∨
-            JLost c (recordVote s.votes m.From' (!m.Reject'))))⌝ ∗ G') ∨
+            JLost c (recordVote s.votes m.From' (!m.Reject'))))⌝ ∗ G' s'.outbox) ∨
        (⌜¬ (m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat ∨
           ((m.Type' = MsgVoteResp ∧ s.role = .candidate ∨
             m.Type' = MsgPreVoteResp ∧ s.role = .preCandidate) ∧
            (JQuorum c (granted (recordVote s.votes m.From' (!m.Reject'))) ∨
-            JLost c (recordVote s.votes m.From' (!m.Reject')))))⌝ ∗ G)) }}
+            JLost c (recordVote s.votes m.From' (!m.Reject')))))⌝ ∗ G s'.outbox)) }}
 
 end spec
 

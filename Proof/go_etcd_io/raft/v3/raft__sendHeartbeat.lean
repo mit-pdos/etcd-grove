@@ -94,7 +94,7 @@ theorem raft.sendHeartbeat.wp_proof
       Option.getD_some]
     omega
   ihave Hgate := Hgate $$ %cm %(And.intro Hcm1 Hcm2)
-  wp_apply wp_raft_send c r id s «$a0_ptr» _ [] none cl [] _ Q (Or.inl rfl) Hok
+  wp_apply wp_raft_send c r id s «$a0_ptr» _ [] none cl [] _ (Q cm) (Or.inl rfl) Hok
     (fun h => absurd h (by simp [MsgSnap]))
       (fun h => absurd h (by simp [MsgApp])) rfl (fun _ h => absurd h (by simp only; decide))
       $$ [$Hphys $Hm Hgate] as ⟨Hphys, HQ⟩

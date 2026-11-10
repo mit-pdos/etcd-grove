@@ -83,7 +83,7 @@ theorem wp_Step_MsgHeartbeat (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
-        "HG" ∷ stepOut R }} := by
+        "HG" ∷ stepOut R s'.outbox }} := by
   intro Hty Hto Hterm Hfnz Hfid Hwf Hcommit Hvotes
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
   · exact wp_Step_MsgHeartbeat_gt _P _Q c r id s ml m sn ctx rs ents R Hty Hto Hterm Hfnz Hfid Hwf

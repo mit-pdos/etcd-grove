@@ -438,7 +438,36 @@ theorem hookGateOpt_none (r : Loc) (oE : Option (TraceEv → Prop)) (tl : GoInte
     iframe HQ
     ipureintro; exact hok
 
+/-- (2026-11-10, Q8 stage 1 slice 14) A hook gate at equal arguments, its resource included (a gate
+whose resource is indexed by an outbox written another way). -/
+theorem hookGateOpt_congrQ (tr tr' : Option GName) (r : Loc) (oE oE' : Option (TraceEv → Prop))
+    (Q Q' : IProp GF) (h1 : tr = tr') (h2 : oE = oE') (h3 : Q = Q') :
+    HookGateOpt tr r oE Q ⊢ HookGateOpt tr' r oE' Q' := by
+  subst h1 h2 h3; exact .rfl
+
+/-- (2026-11-10, Q8 stage 1 slice 14) A node event's hook gate at equal arguments, its resource
+included. -/
+theorem hookGate_congrQ (tr tr' : Option GName) (r : Loc) (E E' : TraceEv → Prop)
+    (Q Q' : IProp GF) (h1 : tr = tr') (h2 : E = E') (h3 : Q = Q') :
+    HookGate tr r E Q ⊢ HookGate tr' r E' Q' := by
+  subst h1 h2 h3; exact .rfl
+
+/-- (2026-11-10, Q8 stage 1 slice 14) A resource indexed by an outbox, at an equal outbox (written as
+another state's: `iframe` matches syntactically). -/
+theorem idx_eq (G : List Msg → IProp GF) {o o' : List Msg} (h : o = o') : G o ⊢ G o' := by
+  subst h; exact .rfl
+
 end gates
+
+/-- (2026-11-10, Q8 stage 1 slice 14) **`iidx H`**: the goal `G o'` from `H : G o`, the outbox `o'`
+equal to `o` by `rfl` or after unfolding `sendMsgs` (a resource indexed by an outbox written as
+another state's; `iframe` matches syntactically). -/
+macro "iidx " h:ident : tactic => `(tactic| (
+  iapply (Perennial.EtcdGrove.idx_eq _ ?_) $$ $h:ident
+  all_goals first
+    | rfl
+    | simp only [Perennial.EtcdGrove.sendMsgs, List.append_assoc, List.append_nil]
+    | simp [Perennial.EtcdGrove.sendMsgs]))
 
 end EtcdGrove
 end Perennial

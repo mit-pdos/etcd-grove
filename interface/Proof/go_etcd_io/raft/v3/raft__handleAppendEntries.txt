@@ -12,7 +12,7 @@ theorem raft.handleAppendEntries.wp_proof [package_sem : Assumptions] (wp_logSli
     : raftpb.MessageType.Enum.spec) : raft.handleAppendEntries.spec
   -- `Perennial.EtcdGrove.raft.handleAppendEntries.spec`, unfolded:
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM)
-    (ctx : List w8) (rs : List Loc) (G G' : IProp GF),
+    (ctx : List w8) (rs : List Loc) (G : IProp GF) (G' : List Msg → IProp GF),
     PlogWf { term' := m.LogTerm', index' := m.Index' } ents →
       uint.Z m.Index' + ↑ents.length + 1 < 2 ^ 64 →
         (have ls := s.logst;
@@ -35,10 +35,12 @@ theorem raft.handleAppendEntries.wp_proof [package_sem : Assumptions] (wp_logSli
                                 "Hgate" ∷
                                   ∀ s1 mm,
                                     ⌜HandleAppResult id s m ents (sendMsgs s1 [mm])⌝ -∗
-                                      G -∗ HookGateOpt s.gh.tr r (sendOutGate id s1 c MsgAppResp [mm]) G') -∗
+                                      G -∗
+                                        HookGateOpt s.gh.tr r (sendOutGate id s1 c MsgAppResp [mm])
+                                          (G' (sendMsgs s1 [mm]).outbox)) -∗
                         (▷
                             ∀ s',
-                              ownRaftPhysCV c c.voters r id s' ∗ ⌜HandleAppResult id s m ents s'⌝ ∗ G' -∗
+                              ownRaftPhysCV c c.voters r id s' ∗ ⌜HandleAppResult id s m ents s'⌝ ∗ G' s'.outbox -∗
                                 Φ (intoVal ())) -∗
                           WP
                             ((intoVal

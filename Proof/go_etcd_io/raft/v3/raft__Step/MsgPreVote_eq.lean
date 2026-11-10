@@ -77,7 +77,7 @@ theorem wp_Step_MsgPreVote_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
-        "HG" ∷ stepOut R }} := by
+        "HG" ∷ stepOut R s'.outbox }} := by
   intro Hty Hto Hterm Hfnz Hfid Heq0 Hwf
   have Hs0 : s.term ≠ W64 0 := Heq0 ▸ Hterm
   -- `MessageType.Enum()`'s receiver: `int32` is not an interface (as in `toConfChangeSingle`)

@@ -67,7 +67,7 @@ theorem raft.bcastAppend.wp_proof
     (wp_ProgressTracker_Visit : tracker.ProgressTracker.Visit.spec (GF := GF) (hG := hG))
     (wp_raft_sendAppend : raft.sendAppend.spec (GF := GF) (hG := hG)) :
     raft.bcastAppend.spec (GF := GF) (hG := hG) := by
-  intro c r id s G Hlead Htz
+  intro c r id s G Hlead Htz Hidx
   wp_start as Hpre
   iNamed Hpre
   wp_auto
@@ -78,7 +78,7 @@ theorem raft.bcastAppend.wp_proof
       (fun _ pvsx => iprop(∃ (ms : List Msg),
         "rp" ∷ r_ptr ↦ r ∗
         -- (Q8 stage 1, slice 6) the caller's resource, through each message's gate
-        "HG" ∷ G ∗
+        "HG" ∷ G (s.outbox ++ ms) ∗
         "%Hms" ∷ ⌜ReplSends id s ms⌝ ∗
         "%Hmm" ∷ ⌜prvalsMatch pvsx = prvalsMatch s.prvals⌝ ∗
         "%Hok" ∷ ⌜PrvalsOk { sendMsgs s ms with prvals := pvsx }⌝ ∗
@@ -89,7 +89,7 @@ theorem raft.bcastAppend.wp_proof
     $$ [$Htrkf $Htrk r Hrest HG]
   · isplitl [r Hrest HG]
     · iexists []
-      simp only [named]
+      simp only [named, List.append_nil]
       iframe r HG
       isplitr
       · ipureintro; intro m Hm; simp at Hm
@@ -137,16 +137,17 @@ theorem raft.bcastAppend.wp_proof
     · -- a peer: `sendAppend` may add `App`s and change `Progress`es
       rw [decide_eq_false Hii]
       wp_auto
-      wp_apply wp_raft_sendAppend _ _ _ _ i G Hii (by exact Hicfg) (by exact Hlead) (by exact Htz)
+      wp_apply wp_raft_sendAppend _ _ _ { sendMsgs s ms with prvals := <[i := p]> pvs0 } i G Hii (by exact Hicfg) (by exact Hlead) (by exact Htz) Hidx
         $$ [$Hphys HG] as %ms' %pvs' ⟨Hphys, %Hms', %Hmm', HG⟩
       · -- (Q8 stage 1, slice 6) the caller's gate for this peer's message, at `s`
         isplitr
-        · iintro %mm %Hmm1 HG
-          iapply hookGateOpt_congr s.gh.tr _ r (sendOutGate id s c MsgApp [mm]) _ G ?hg1 ?hg2
+        · iintro %mm %o %Hmm1 HG
+          iapply hookGateOpt_congr s.gh.tr _ r (sendOutGate id s c MsgApp [mm]) _ _ ?hg1 ?hg2
           case hg1 => rfl
           case hg2 => rfl
-          iapply Hgate $$ %i %mm %(And.intro Hii Hicfg) %(appGate_send_prvals id s ms _ i mm Hmm1) HG
-        iframe HG
+          iapply Hgate $$ %i %mm %o %(And.intro Hii Hicfg) %(appGate_send_prvals id s ms _ i mm Hmm1) HG
+        isplitl [HG]
+        · simp only [sendMsgs]; iexact HG
         iapply trNoSnap_congr s.gh.tr _ s.logst _ ?hn1 ?hn2 $$ Hnosnap
         case hn1 => rfl
         case hn2 => rfl
@@ -159,8 +160,10 @@ theorem raft.bcastAppend.wp_proof
       iexists tv1, _
       iframe Htrkf Htrk
       iexists ms ++ ms'
-      simp only [named]
-      iframe rp HG
+      simp only [named, ← List.append_assoc]
+      iframe rp
+      isplitl [HG]
+      · simp only [sendMsgs]; iexact HG
       isplitr
       · ipureintro
         exact replSends_app id s ms ms' Hms ((replSends_send_prvals id s ms _ ms').1 Hms')
@@ -178,7 +181,9 @@ theorem raft.bcastAppend.wp_proof
   ihave Hphys := Hrest $$ %tvfin %pvsfin Htrkf Htrk %Hok
   wp_auto
   iapply HΦ $$ %ms %pvsfin
-  iframe Hphys HG
+  iframe Hphys
+  simp only [sendMsgs]
+  iframe HG
   ipureintro
   exact ⟨Hms, Hmm⟩
 

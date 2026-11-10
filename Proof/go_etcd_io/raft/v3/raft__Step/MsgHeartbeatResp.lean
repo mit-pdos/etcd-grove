@@ -74,12 +74,13 @@ theorem wp_Step_MsgHeartbeatResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
-        "HG" ∷ stepOut R }} := by
+        "HG" ∷ stepOut R s'.outbox }} := by
   intro Hty Hto Hterm Hfnz Hfid Hwf
   wp_start_folded as ⟨Hphys, Hm, HG, Hgates⟩
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
   · wp_apply (wp_Step_Resp_gt _P _Q c r id s ml m sn ctx rs ents R .heartbeatResp (.inr ⟨Hty, rfl⟩) Hto Hterm
         Hgt Hwf) $$ [$Hpkg $Hphys $Hm $HG $Hgates] as %err %s' ⟨Hphys, %Hend, %Hwf', %Href, %Herr, %Hfr, %Htm, HG⟩
+    try phys_out
     iapply HΦ $$ %err %s'
     iframe Hphys HG
     ipureintro
@@ -88,6 +89,7 @@ theorem wp_Step_MsgHeartbeatResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
   · by_cases Hlt : uint.Z m.Term' < uint.Z s.term
     · wp_apply (wp_Step_Resp_lt _P _Q c r id s ml m sn ctx rs ents R .heartbeatResp (.inr Hty) Hterm Hlt Hwf)
         $$ [$Hpkg $Hphys $Hm $HG $Hgates] as %err %s' ⟨Hphys, %Hend, %Hwf', %Href, %Herr, -, %Hfr, %Htm, HG⟩
+      try phys_out
       iapply HΦ $$ %err %s'
       iframe Hphys HG
       ipureintro
@@ -96,6 +98,7 @@ theorem wp_Step_MsgHeartbeatResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
     · have Hteq : m.Term' = s.term := by word
       wp_apply (wp_Step_MsgHeartbeatResp_eq _P _Q c r id s ml m sn ctx rs ents R Hlrd Hty Hto Hterm Hteq Hfnz
         Hfid Hwf) $$ [$Hpkg $Hphys $Hm $HG $Hgates] as %err %s' ⟨Hphys, %Hend, %Hwf', %Href, %Herr, %Hfr, %Htm, HG⟩
+      try phys_out
       iapply HΦ $$ %err %s'
       iframe Hphys HG
       ipureintro

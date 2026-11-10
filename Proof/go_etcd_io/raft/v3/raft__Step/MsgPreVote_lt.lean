@@ -68,7 +68,7 @@ theorem wp_Step_MsgPreVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
-        "HG" ∷ stepOut R }} := by
+        "HG" ∷ stepOut R s'.outbox }} := by
   intro Hty Hto Hterm Hfnz Hfid Hlt0 Hwf
   have Hn8 : decide (m.Type' = W32 8) = false := decide_eq_false (by rw [Hty]; w32_ne)
   have Hn3 : decide (m.Type' = W32 3) = false := decide_eq_false (by rw [Hty]; w32_ne)
@@ -153,7 +153,7 @@ theorem wp_Step_MsgPreVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
           rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne),
         fun h => absurd h Hfid,
         .inl (Int.le_refl _), rfl⟩)
-  wp_apply _P.send c r id s «$a0_ptr» resp [] none [] [] _ R.GE (Or.inl rfl) Hok
+  wp_apply _P.send c r id s «$a0_ptr» resp [] none [] [] _ (R.GE (sendMsgs s [Msg.plain .preVoteResp id m.From' s.term true]).outbox) (Or.inl rfl) Hok
       (fun h => absurd h (by show MsgPreVoteResp ≠ MsgSnap; w32_ne))
       (fun h => absurd h (by show MsgPreVoteResp ≠ MsgApp; w32_ne))
     rfl (fun _ h => absurd (mtypeOf_Snap _ h) (by show MsgPreVoteResp ≠ MsgSnap; w32_ne))
@@ -164,6 +164,7 @@ theorem wp_Step_MsgPreVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   iintro ⟨Hphys, HG⟩
   ihave HG := stepOut_GE R $$ HG
   wp_auto
+  try phys_out
   iapply HΦ $$ %interface.nil %_
   iframe Hphys HG
   ipureintro

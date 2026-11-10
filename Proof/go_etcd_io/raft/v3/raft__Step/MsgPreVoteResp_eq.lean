@@ -78,7 +78,7 @@ theorem wp_Step_MsgPreVoteResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := h
         "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
-        "HG" ∷ stepOut R }} := by
+        "HG" ∷ stepOut R s'.outbox }} := by
   intro Hty Hto Hterm Hteq Hnw Hwf
   wp_start as ⟨Hphys, Hm, HG, Hgates⟩
   icases msgPtsC_nn _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩

@@ -32,6 +32,7 @@ public import Spec.go_etcd_io.raft.v3.raft__becomeFollower
 public import Spec.go_etcd_io.raft.v3.raft__send
 public import Spec.go_etcd_io.raft.v3.traceReceiveMessage
 public import Proof.go_etcd_io.raft.v3.StepGhostMode
+public import Proof.go_etcd_io.raft.v3.TracedSend
 
 @[expose] public section
 
@@ -208,179 +209,218 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- **The caller's resources through `Step`'s gates** (see the header). -/
+/-- **The caller's resources through `Step`'s gates** (see the header). (2026-11-10, slice 14) Those
+`Step` may end in, and those a broadcast goes through, are indexed by the outbox (`List Msg → IProp`:
+the resource at the outbox the path has queued so far, `notes/decisions.md`, "Q8 stage 1 (slice
+14)"); the others are at an outbox the gates name (`G` before the receive hook, `Gf`, `Gb1`, `Gb2`,
+`Gp1` between two hooks that queue nothing). -/
 structure StepG (GF : BundledGFunctors) where
   G : IProp GF
-  G0 : IProp GF
-  G1 : IProp GF
-  GE : IProp GF
+  G0 : List Msg → IProp GF
+  G1 : List Msg → IProp GF
+  GE : List Msg → IProp GF
   Gf : IProp GF
   Gb1 : IProp GF
   Gb2 : IProp GF
   Gp1 : IProp GF
-  Gp2 : IProp GF
-  Gc : Bool → w64 → IProp GF
+  Gp2 : List Msg → IProp GF
+  Gc : Bool → w64 → List Msg → IProp GF
 
-/-- What `Step` gives back of the caller's resources. -/
-def stepOut (R : StepG GF) : IProp GF :=
-  iprop(R.G0 ∨ R.G1 ∨ R.GE ∨ R.Gp2 ∨ ∃ (b : Bool) (N : w64), R.Gc b N)
+/-- What `Step` gives back of the caller's resources, at the outbox `o` it ended with. -/
+def stepOut (R : StepG GF) (o : List Msg) : IProp GF :=
+  iprop(R.G0 o ∨ R.G1 o ∨ R.GE o ∨ R.Gp2 o ∨ ∃ (b : Bool) (N : w64), R.Gc b N o)
+
+/-- (2026-11-10, slice 14) **What the callees ask of the indexed resources**: untraced, those reaching
+`maybeSendAppend` ignore the outbox (`IdxFree`: its snapshot fallback queues through no gate); after a
+campaign, the order (`PermInv`: `campaign`'s result orders its messages its own way). An untraced
+caller's constant families have both (`StepGOk.const`). -/
+def StepGOk (tr : Option GName) (R : StepG GF) : Prop :=
+  PermInv R.GE ∧ IdxFree tr R.G1 ∧ IdxFree tr R.GE ∧ IdxFree tr R.Gp2 ∧ ∀ b N, IdxFree tr (R.Gc b N)
 
 /-- `raft.hup.spec`'s gates (its `"Hgbc"`, `"#Hgsend"`), at `G0` and `G`. -/
-def hupGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (t : CampaignType) (G0 G : IProp GF) :
-    IProp GF :=
+def hupGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (t : CampaignType) (G0 : IProp GF)
+    (G : List Msg → IProp GF) : IProp GF :=
   iprop(
-      "Hgbc" ∷ (G0 -∗ if t = campaignPreElection then iprop(|={⊤}=> G)
-        else HookGate s.gh.tr r (NodeEvOf (W64 1) id (becomeCandidate id s) c) G) ∗
-      "#Hgsend" ∷ □ (∀ (pvs : GMap w64 Progress) (y : w64), ⌜y ∈ c.voters⌝ -∗ G -∗
+      "Hgbc" ∷ (G0 -∗ if t = campaignPreElection then iprop(|={⊤}=> G s.outbox)
+        else HookGate s.gh.tr r (NodeEvOf (W64 1) id (becomeCandidate id s) c) (G s.outbox)) ∗
+      "#Hgsend" ∷ □ (∀ (pvs : GMap w64 Progress) (y : w64) (o : List Msg), ⌜y ∈ c.voters⌝ -∗ G o -∗
         HookGateOpt s.gh.tr r
           (sendOutGate id { campRoleState id s (decide (t = campaignPreElection)) with prvals := pvs } c
             (if y = id then vrespW32 (decide (t = campaignPreElection))
              else vreqW32 (decide (t = campaignPreElection)))
             [campMsg (decide (t = campaignPreElection)) id (s.term + W64 1)
-              (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) (transferCtx t) y]) G))
+              (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) (transferCtx t) y])
+          (G (o ++ [campMsg (decide (t = campaignPreElection)) id (s.term + W64 1)
+              (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) (transferCtx t) y]))))
 
-/-- `stepFollower.spec`'s gates, at `G` and `G'`. -/
+/-- `stepFollower.spec`'s gates, at `G` and `G'` (2026-11-10, slice 14: indexed by the outbox). -/
 def followerGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
-    (cl : List w8) (G G' : IProp GF) : IProp GF :=
+    (cl : List w8) (G G' : List Msg → IProp GF) : IProp GF :=
   iprop(
       "Hgapp" ∷ (⌜m.Type' = MsgApp⌝ -∗ ∀ (s1 : NState) (mm : Msg),
         ⌜HandleAppResult id { s with lead := m.From' } m ents (sendMsgs s1 [mm])⌝ -∗
-        G -∗ HookGateOpt s.gh.tr r (sendOutGate id s1 c MsgAppResp [mm]) G') ∗
-      "Hghb" ∷ (⌜m.Type' = MsgHeartbeat⌝ -∗ G -∗ HookGateOpt s.gh.tr r
+        G s.outbox -∗ HookGateOpt s.gh.tr r (sendOutGate id s1 c MsgAppResp [mm])
+          (G' (sendMsgs s1 [mm]).outbox)) ∗
+      -- a `MsgHeartbeat`: `handleHeartbeat`'s, at that state with the commit moved
+      "Hghb" ∷ (⌜m.Type' = MsgHeartbeat⌝ -∗ G s.outbox -∗ HookGateOpt s.gh.tr r
         (sendOutGate id { ({ s with lead := m.From' } : NState) with
             logst := { s.logst with committed := plogCommitTo s.logst.committed m.Commit' } }
-          c MsgHeartbeatResp [{ Msg.plain .heartbeatResp id m.From' s.term false with ctx := cl }]) G') ∗
-      "Hgfwd" ∷ (⌜m.Type' = MsgProp ∨ m.Type' = MsgReadIndex ∨ m.Type' = MsgTransferLeader⌝ -∗ G -∗
-        HookGateOpt s.gh.tr r none G) ∗
-      "Hgcamp" ∷ (⌜m.Type' = MsgTimeoutNow⌝ -∗ G -∗
-        HookGate s.gh.tr r (NodeEvOf (W64 1) id (becomeCandidate id s) c) G') ∗
+          c MsgHeartbeatResp [{ Msg.plain .heartbeatResp id m.From' s.term false with ctx := cl }])
+        (G' (s.outbox ++ [{ Msg.plain .heartbeatResp id m.From' s.term false with ctx := cl }]))) ∗
+      -- a forward to the leader: the send's gate, at no event (none of the three types is traced),
+      -- whatever untraced messages it queues
+      "Hgfwd" ∷ (⌜m.Type' = MsgProp ∨ m.Type' = MsgReadIndex ∨ m.Type' = MsgTransferLeader⌝ -∗
+        ∀ out : List Msg, ⌜∀ x ∈ out, x.ty.traced = false⌝ -∗ G s.outbox -∗
+        HookGateOpt s.gh.tr r none (G (s.outbox ++ out))) ∗
+      -- a `MsgTimeoutNow`: `hup(campaignTransfer)`'s gates (the `BecomeCandidate` line, then each
+      -- vote message, at the candidate's state)
+      "Hgcamp" ∷ (⌜m.Type' = MsgTimeoutNow⌝ -∗ G s.outbox -∗
+        HookGate s.gh.tr r (NodeEvOf (W64 1) id (becomeCandidate id s) c) (G' s.outbox)) ∗
       "#Hgvote" ∷ □ (⌜m.Type' = MsgTimeoutNow⌝ -∗
-        ∀ (pvs : GMap w64 Progress) (y : w64), ⌜y ∈ c.voters⌝ -∗ G' -∗
+        ∀ (pvs : GMap w64 Progress) (y : w64) (o : List Msg), ⌜y ∈ c.voters⌝ -∗ G' o -∗
         HookGateOpt s.gh.tr r
           (sendOutGate id { becomeCandidate id s with prvals := pvs } c
             (if y = id then vrespW32 false else vreqW32 false)
             [campMsg false id (s.term + W64 1) (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents))
-              campaignTransfer y]) G'))
+              campaignTransfer y])
+          (G' (o ++ [campMsg false id (s.term + W64 1) (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents))
+              campaignTransfer y]))))
 
-/-- `stepCandidate.spec`'s gates, at `G`, `G'`, `Gf`, `G1`, `G2`. -/
+/-- `stepCandidate.spec`'s gates, at `G`, `G'`, `Gf`, `G1`, `G2` (2026-11-10, slice 14: `G`, `G'` indexed
+by the outbox). -/
 def candidateGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
-    (cl : List w8) (G G' Gf G1 G2 : IProp GF) : IProp GF :=
+    (cl : List w8) (G G' : List Msg → IProp GF) (Gf G1 G2 : IProp GF) : IProp GF :=
   iprop(
-      "Hgbf" ∷ (⌜m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat⌝ -∗ G -∗
+      "Hgbf" ∷ (⌜m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat⌝ -∗ G s.outbox -∗
         HookGate s.gh.tr r (NodeEvOf (W64 2) id (becomeFollower s s.term m.From') c) Gf) ∗
       "Hgapp" ∷ (⌜m.Type' = MsgApp⌝ -∗ ∀ (pvs : GMap w64 Progress) (s1 : NState) (mm : Msg),
         ⌜HandleAppResult id { becomeFollower s s.term m.From' with prvals := pvs } m ents
           (sendMsgs s1 [mm])⌝ -∗
-        Gf -∗ HookGateOpt s.gh.tr r (sendOutGate id s1 c MsgAppResp [mm]) G') ∗
+        Gf -∗ HookGateOpt s.gh.tr r (sendOutGate id s1 c MsgAppResp [mm]) (G' (sendMsgs s1 [mm]).outbox)) ∗
       "Hghb" ∷ (⌜m.Type' = MsgHeartbeat⌝ -∗ ∀ (pvs : GMap w64 Progress),
         Gf -∗ HookGateOpt s.gh.tr r
           (sendOutGate id { ({ becomeFollower s s.term m.From' with prvals := pvs } : NState) with
               logst := { s.logst with committed := plogCommitTo s.logst.committed m.Commit' } }
             c MsgHeartbeatResp [{ Msg.plain .heartbeatResp id m.From' s.term false with ctx := cl }])
-          G') ∗
+          (G' (s.outbox ++ [{ Msg.plain .heartbeatResp id m.From' s.term false with ctx := cl }]))) ∗
       "Hgbl" ∷ (⌜m.Type' = MsgVoteResp ∧ s.role = .candidate ∧
-          JQuorum c (granted (recordVote s.votes m.From' (!m.Reject')))⌝ -∗ G -∗
+          JQuorum c (granted (recordVote s.votes m.From' (!m.Reject')))⌝ -∗ G s.outbox -∗
         HookGate s.gh.tr r (NodeEvOf (W64 3) id (becomeLeaderPre id { s with votes := recordVote s.votes m.From' (!m.Reject') }) c) G1) ∗
       "Hgrep" ∷ (G1 -∗ HookGateN s.gh.tr r (NodeEvOf (W64 5) id (becomeLeaderPre id { s with votes := recordVote s.votes m.From' (!m.Reject') }) c) 1 G2) ∗
       "Hgack" ∷ (G2 -∗ HookGateOpt s.gh.tr r (sendOutGate id (becomeLeaderLog id { s with votes := recordVote s.votes m.From' (!m.Reject') }) c MsgAppResp
-          [selfAck id (becomeLeaderLog id { s with votes := recordVote s.votes m.From' (!m.Reject') })]) G') ∗
+          [selfAck id (becomeLeaderLog id { s with votes := recordVote s.votes m.From' (!m.Reject') })])
+        (G' (s.outbox ++ [selfAck id (becomeLeaderLog id { s with votes := recordVote s.votes m.From' (!m.Reject') })]))) ∗
       "#Hgcast" ∷ □ (⌜m.Type' = MsgVoteResp ∧ s.role = .candidate ∧
           JQuorum c (granted (recordVote s.votes m.From' (!m.Reject')))⌝ -∗
-        ∀ (pvs : GMap w64 Progress) (to : w64) (mm : Msg),
+        ∀ (pvs : GMap w64 Progress) (to : w64) (mm : Msg) (o : List Msg),
         ⌜to ≠ id ∧ to ∈ domSet ({ becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') } with prvals := pvs } : NState).progress⌝ -∗
         ⌜AppOk id (toPState { becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') } with prvals := pvs }) mm ∧
           mm.commit = (toPState { becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') } with prvals := pvs }).commit ∧ mm.dst = to⌝ -∗
-        G' -∗
+        G' o -∗
         HookGateOpt s.gh.tr r (sendOutGate id { becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') } with prvals := pvs } c MsgApp [mm])
-          G') ∗
+          (G' (o ++ [mm]))) ∗
       "#Hnosnap" ∷ TrNoSnap s.gh.tr s.logst ∗
       "Hgcamp" ∷ (⌜m.Type' = MsgPreVoteResp ∧ s.role = .preCandidate ∧
-          JQuorum c (granted (recordVote s.votes m.From' (!m.Reject')))⌝ -∗ G -∗
-        HookGate s.gh.tr r (NodeEvOf (W64 1) id (becomeCandidate id { s with votes := recordVote s.votes m.From' (!m.Reject') }) c) G') ∗
+          JQuorum c (granted (recordVote s.votes m.From' (!m.Reject')))⌝ -∗ G s.outbox -∗
+        HookGate s.gh.tr r (NodeEvOf (W64 1) id (becomeCandidate id { s with votes := recordVote s.votes m.From' (!m.Reject') }) c) (G' s.outbox)) ∗
       "#Hgvote" ∷ □ (⌜m.Type' = MsgPreVoteResp ∧ s.role = .preCandidate ∧
           JQuorum c (granted (recordVote s.votes m.From' (!m.Reject')))⌝ -∗
-        ∀ (pvs : GMap w64 Progress) (y : w64), ⌜y ∈ c.voters⌝ -∗ G' -∗
+        ∀ (pvs : GMap w64 Progress) (y : w64) (o : List Msg), ⌜y ∈ c.voters⌝ -∗ G' o -∗
         HookGateOpt s.gh.tr r
           (sendOutGate id { becomeCandidate id { s with votes := recordVote s.votes m.From' (!m.Reject') } with prvals := pvs } c
             (if y = id then vrespW32 false else vreqW32 false)
             [campMsg false id (s.term + W64 1) (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents))
-              [] y]) G') ∗
+              [] y])
+          (G' (o ++ [campMsg false id (s.term + W64 1) (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents))
+              [] y]))) ∗
       "Hglost" ∷ (⌜(m.Type' = MsgVoteResp ∧ s.role = .candidate ∨
             m.Type' = MsgPreVoteResp ∧ s.role = .preCandidate) ∧
-          JLost c (recordVote s.votes m.From' (!m.Reject'))⌝ -∗ G -∗
-        HookGate s.gh.tr r (NodeEvOf (W64 2) id (becomeFollower { s with votes := recordVote s.votes m.From' (!m.Reject') } s.term (W64 0)) c) G'))
+          JLost c (recordVote s.votes m.From' (!m.Reject'))⌝ -∗ G s.outbox -∗
+        HookGate s.gh.tr r (NodeEvOf (W64 2) id (becomeFollower { s with votes := recordVote s.votes m.From' (!m.Reject') } s.term (W64 0)) c) (G' s.outbox)))
 
-/-- `stepLeader.spec`'s gates, at `G`, `G'`, `Gp1`, `Gp2`, `Gc`. -/
+/-- `stepLeader.spec`'s gates, at `G`, `G'`, `Gp1`, `Gp2`, `Gc` (2026-11-10, slice 14: all but `Gp1` indexed
+by the outbox). -/
 def leaderGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
-    (G G' Gp1 Gp2 : IProp GF) (Gc : Bool → w64 → IProp GF) : IProp GF :=
+    (G G' : List Msg → IProp GF) (Gp1 : IProp GF) (Gp2 : List Msg → IProp GF)
+    (Gc : Bool → w64 → List Msg → IProp GF) : IProp GF :=
   iprop(
-      "#Hgbeat" ∷ □ (⌜m.Type' = MsgBeat⌝ -∗ ∀ (to cm : w64), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
+      "#Hgbeat" ∷ □ (⌜m.Type' = MsgBeat⌝ -∗ ∀ (to cm : w64) (o : List Msg), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
           ⌜uint.Z cm ≤ uint.Z s.logst.committed ∧
-            uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ -∗ G -∗
+            uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ -∗ G o -∗
         HookGateOpt s.gh.tr r (sendOutGate id s c MsgHeartbeat
-          [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] (hbCtx s.rd.ro)]) G) ∗
-      "Hgriresp" ∷ (⌜m.Type' = MsgReadIndex⌝ -∗ ⌜CfgSingle c id⌝ -∗ G -∗ HookGateOpt s.gh.tr r none G) ∗
+          [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] (hbCtx s.rd.ro)])
+          (G (o ++ [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] (hbCtx s.rd.ro)]))) ∗
+      "Hgriresp" ∷ (⌜m.Type' = MsgReadIndex⌝ -∗ ⌜CfgSingle c id⌝ -∗ ∀ (mm : Msg) (o : List Msg),
+        ⌜mm.ty = .readIndexResp⌝ -∗ G o -∗ HookGateOpt s.gh.tr r none (G (o ++ [mm]))) ∗
       "#Hgrihb" ∷ □ (⌜m.Type' = MsgReadIndex⌝ -∗ ⌜¬ CfgSingle c id⌝ -∗
-        ∀ (to cm : w64), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
+        ∀ (to cm : w64) (o : List Msg), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
           ⌜uint.Z cm ≤ uint.Z s.logst.committed ∧
-            uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ -∗ G -∗
+            uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ -∗ G o -∗
         HookGateOpt s.gh.tr r (sendOutGate id (arriveState id s m ents) c MsgHeartbeat
           [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] []
-            (hbCtx (readonlyAdd s.rd.ro (arriveReq s m ents)))]) G) ∗
-      "Hgtnow" ∷ (⌜m.Type' = MsgTransferLeader⌝ -∗ G -∗ HookGateOpt s.gh.tr r none G) ∗
-      "Hgxapp" ∷ (⌜m.Type' = MsgTransferLeader⌝ -∗ ∀ mm : Msg,
-          ⌜AppOk id (toPState s) mm ∧ mm.commit = (toPState s).commit ∧ mm.dst = m.From'⌝ -∗ G -∗
-        HookGateOpt s.gh.tr r (sendOutGate id { s with lt := m.From' } c MsgApp [mm]) G) ∗
+            (hbCtx (readonlyAdd s.rd.ro (arriveReq s m ents)))])
+          (G (o ++ [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] []
+            (hbCtx (readonlyAdd s.rd.ro (arriveReq s m ents)))]))) ∗
+      "Hgtnow" ∷ (⌜m.Type' = MsgTransferLeader⌝ -∗ ∀ o : List Msg, G o -∗ HookGateOpt s.gh.tr r none (G o)) ∗
+      "Hgxapp" ∷ (⌜m.Type' = MsgTransferLeader⌝ -∗ ∀ (mm : Msg) (o : List Msg),
+          ⌜AppOk id (toPState s) mm ∧ mm.commit = (toPState s).commit ∧ mm.dst = m.From'⌝ -∗ G o -∗
+        HookGateOpt s.gh.tr r (sendOutGate id { s with lt := m.From' } c MsgApp [mm]) (G (o ++ [mm]))) ∗
       "#Hnosnap" ∷ TrNoSnap s.gh.tr s.logst ∗
-      "Hgcq" ∷ (⌜m.Type' = MsgCheckQuorum⌝ -∗ G -∗
-        HookGate s.gh.tr r (NodeEvOf (W64 2) id (becomeFollower s s.term (W64 0)) c) G') ∗
-      "Hgprep" ∷ (⌜m.Type' = MsgProp⌝ -∗ ∀ cs, ccEntsOk ents cs -∗ G -∗
+      "Hgcq" ∷ (⌜m.Type' = MsgCheckQuorum⌝ -∗ G s.outbox -∗
+        HookGate s.gh.tr r (NodeEvOf (W64 2) id (becomeFollower s s.term (W64 0)) c) (G' s.outbox)) ∗
+      "Hgprep" ∷ (⌜m.Type' = MsgProp⌝ -∗ ∀ cs, ccEntsOk ents cs -∗ G s.outbox -∗
         HookGateN s.gh.tr r (NodeEvOf (W64 5) id s c)
           (normalCount (leaderPropConf s ents cs c.joint).1) Gp1) ∗
       "Hgpack" ∷ (⌜m.Type' = MsgProp⌝ -∗ ∀ cs, ccEntsOk ents cs -∗ Gp1 -∗
         HookGateOpt s.gh.tr r
           (sendOutGate id (propAppended s (leaderPropConf s ents cs c.joint).1) c MsgAppResp
-            [selfAck id (propAppended s (leaderPropConf s ents cs c.joint).1)]) Gp2) ∗
-      "#Hgpapp" ∷ □ (⌜m.Type' = MsgProp⌝ -∗ ∀ cs (to : w64) (mm : Msg), ccEntsOk ents cs -∗
+            [selfAck id (propAppended s (leaderPropConf s ents cs c.joint).1)])
+          (Gp2 (s.outbox ++ [selfAck id (propAppended s (leaderPropConf s ents cs c.joint).1)]))) ∗
+      "#Hgpapp" ∷ □ (⌜m.Type' = MsgProp⌝ -∗ ∀ cs (to : w64) (mm : Msg) (o : List Msg), ccEntsOk ents cs -∗
         ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
         ⌜AppOk id (toPState (propAppended s (leaderPropConf s ents cs c.joint).1)) mm ∧
-          mm.commit = s.logst.committed ∧ mm.dst = to⌝ -∗ Gp2 -∗
+          mm.commit = s.logst.committed ∧ mm.dst = to⌝ -∗ Gp2 o -∗
         HookGateOpt s.gh.tr r
-          (sendOutGate id (propAppended s (leaderPropConf s ents cs c.joint).1) c MsgApp [mm]) Gp2) ∗
+          (sendOutGate id (propAppended s (leaderPropConf s ents cs c.joint).1) c MsgApp [mm]) (Gp2 (o ++ [mm]))) ∗
       "Hgsapp" ∷ (⌜m.Type' = MsgHeartbeatResp ∨ (m.Type' = MsgAppResp ∧ m.Reject' = true)⌝ -∗
-        ∀ mm : Msg, ⌜AppOk id (toPState s) mm ∧ mm.commit = s.logst.committed ∧
-          mm.dst = m.From'⌝ -∗ G -∗
-        HookGateOpt s.gh.tr r (sendOutGate id s c MsgApp [mm]) G) ∗
-      "#Hghresp" ∷ □ (⌜m.Type' = MsgHeartbeatResp⌝ -∗ G -∗ HookGateOpt s.gh.tr r none G) ∗
+        ∀ (mm : Msg) (o : List Msg), ⌜AppOk id (toPState s) mm ∧ mm.commit = s.logst.committed ∧
+          mm.dst = m.From'⌝ -∗ G o -∗
+        HookGateOpt s.gh.tr r (sendOutGate id s c MsgApp [mm]) (G (o ++ [mm]))) ∗
+      "#Hghresp" ∷ □ (⌜m.Type' = MsgHeartbeatResp⌝ -∗ ∀ (mm : Msg) (o : List Msg),
+        ⌜mm.ty = .readIndexResp⌝ -∗ G o -∗ HookGateOpt s.gh.tr r none (G (o ++ [mm]))) ∗
       "Hgcommit" ∷ (⌜m.Type' = MsgAppResp ∧ m.Reject' = false⌝ -∗
         ∀ (pvs : GMap w64 Progress) (b : Bool) (N : w64),
         ⌜prvalsMatch pvs = appRespMatch s m.From' m.Index'⌝ -∗
-        ⌜maybeCommitOut c { s with prvals := pvs } b N⌝ -∗ G -∗
-        HookGate s.gh.tr r (NodeEvOf rsmCommit id (commitAt s b N) c) (Gc b N)) ∗
-      "#Hgrlresp" ∷ □ (⌜m.Type' = MsgAppResp ∧ m.Reject' = false⌝ -∗ ∀ N : w64, ⌜CfgSingle c id⌝ -∗
-        Gc true N -∗ HookGateOpt s.gh.tr r none (Gc true N)) ∗
+        ⌜maybeCommitOut c { s with prvals := pvs } b N⌝ -∗ G s.outbox -∗
+        HookGate s.gh.tr r (NodeEvOf rsmCommit id (commitAt s b N) c) (Gc b N s.outbox)) ∗
+      "#Hgrlresp" ∷ □ (⌜m.Type' = MsgAppResp ∧ m.Reject' = false⌝ -∗ ∀ (N : w64) (mm : Msg) (o : List Msg),
+        ⌜CfgSingle c id⌝ -∗ ⌜mm.ty = .readIndexResp⌝ -∗
+        Gc true N o -∗ HookGateOpt s.gh.tr r none (Gc true N (o ++ [mm]))) ∗
       "#Hgrlhb" ∷ □ (⌜m.Type' = MsgAppResp ∧ m.Reject' = false⌝ -∗ ⌜¬ CfgSingle c id⌝ -∗
-        ∀ (N : w64) (k : Nat) (to cm : w64), ⌜0 < k ∧ k ≤ s.rd.pend.length⌝ -∗
+        ∀ (N : w64) (k : Nat) (to cm : w64) (o : List Msg), ⌜0 < k ∧ k ≤ s.rd.pend.length⌝ -∗
         ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
         ⌜uint.Z cm ≤ uint.Z N ∧
-          uint.Z cm ≤ uint.Z ((appRespMatch s m.From' m.Index' !! to).getD (W64 0))⌝ -∗ Gc true N -∗
+          uint.Z cm ≤ uint.Z ((appRespMatch s m.From' m.Index' !! to).getD (W64 0))⌝ -∗ Gc true N o -∗
         HookGateOpt s.gh.tr r (sendOutGate id (commitAt s true N) c MsgHeartbeat
           [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] []
-            (hbCtx (readonlyRelease s.rd.ro id N (s.rd.pend.take k)))]) (Gc true N)) ∗
+            (hbCtx (readonlyRelease s.rd.ro id N (s.rd.pend.take k)))])
+          (Gc true N (o ++ [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] []
+            (hbCtx (readonlyRelease s.rd.ro id N (s.rd.pend.take k)))]))) ∗
       "#Hgaapp" ∷ □ (⌜m.Type' = MsgAppResp ∧ m.Reject' = false⌝ -∗
-        ∀ (b : Bool) (N to : w64) (mm : Msg), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
+        ∀ (b : Bool) (N to : w64) (mm : Msg) (o : List Msg), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
         ⌜AppOk id (toPState (commitAt s b N)) mm ∧ mm.commit = (commitAt s b N).logst.committed ∧
-          mm.dst = to⌝ -∗ Gc b N -∗
-        HookGateOpt s.gh.tr r (sendOutGate id (commitAt s b N) c MsgApp [mm]) (Gc b N)) ∗
-      "#Hgatnow" ∷ □ (⌜m.Type' = MsgAppResp ∧ m.Reject' = false⌝ -∗ ∀ (b : Bool) (N : w64),
-        Gc b N -∗ HookGateOpt s.gh.tr r none (Gc b N)))
+          mm.dst = to⌝ -∗ Gc b N o -∗
+        HookGateOpt s.gh.tr r (sendOutGate id (commitAt s b N) c MsgApp [mm]) (Gc b N (o ++ [mm]))) ∗
+      "#Hgatnow" ∷ □ (⌜m.Type' = MsgAppResp ∧ m.Reject' = false⌝ -∗ ∀ (b : Bool) (N : w64) (o : List Msg),
+        Gc b N o -∗ HookGateOpt s.gh.tr r none (Gc b N o)))
 
 /-- The term preamble's gate, for a message not stale: the step-down's `BecomeFollower` line when it
 runs (`PreBF`), else an update; `G0` to `G1`. -/
-def preGate (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (G0 G1 : IProp GF) : IProp GF :=
-  iprop(⌜m.Term' = W64 0 ∨ uint.Z s.term ≤ uint.Z m.Term'⌝ -∗ G0 -∗
-    if PreBF m s then HookGate s.gh.tr r (NodeEvOf (W64 2) id (becomeFollower s m.Term' (preLead m)) c) G1
-    else iprop(|={⊤}=> G1))
+def preGate (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (G0 G1 : List Msg → IProp GF) :
+    IProp GF :=
+  iprop(⌜m.Term' = W64 0 ∨ uint.Z s.term ≤ uint.Z m.Term'⌝ -∗ G0 s.outbox -∗
+    if PreBF m s then HookGate s.gh.tr r (NodeEvOf (W64 2) id (becomeFollower s m.Term' (preLead m)) c) (G1 s.outbox)
+    else iprop(|={⊤}=> G1 s.outbox))
 
 /-- The role's step function's gates, at the state after the preamble (its `Progress` map `pvs`). -/
 def stepFnGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
@@ -398,21 +438,25 @@ def stepGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ents 
     (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (R : StepG GF) : IProp GF :=
   iprop(
       -- the receive hook, at `s`: the receipt's event (`recvGate`; none for a type not traced)
-      "Hgrecv" ∷ (R.G -∗ HookGateOpt s.gh.tr r (recvGate id s c ⟨m, ents, sn, ctx, rs⟩) R.G0) ∗
+      "Hgrecv" ∷ (R.G -∗ HookGateOpt s.gh.tr r (recvGate id s c ⟨m, ents, sn, ctx, rs⟩) (R.G0 s.outbox)) ∗
       -- the term preamble of a message not stale: the step-down's `BecomeFollower` line when it runs
       -- (`PreBF`), else an update; the type switch starts from `G1`
       "Hgpre" ∷ preGate c r id s m R.G0 R.G1 ∗
       -- a stale message's answer, at `s`
       "Hglow" ∷ (⌜m.Term' ≠ W64 0 ∧ uint.Z m.Term' < uint.Z s.term⌝ -∗ ∀ (ty : w32) (mm : Msg),
-        ⌜LowSend id s m ty mm⌝ -∗ R.G0 -∗ HookGateOpt s.gh.tr r (sendOutGate id s c ty [mm]) R.GE) ∗
+        ⌜LowSend id s m ty mm⌝ -∗ R.G0 s.outbox -∗ HookGateOpt s.gh.tr r (sendOutGate id s c ty [mm])
+          (R.GE (s.outbox ++ [mm]))) ∗
       -- a vote request's answer, at the state after the preamble
       "Hgvresp" ∷ (⌜m.Type' = MsgVote ∨ m.Type' = MsgPreVote⌝ -∗ ∀ (pvs : GMap w64 Progress) (rej : Bool),
-        R.G1 -∗ HookGateOpt s.gh.tr r
-          (sendOutGate id (preState s m pvs) c (vrespTyOf m) [vrespMsgOf id (preState s m pvs) m rej]) R.GE) ∗
+        R.G1 s.outbox -∗ HookGateOpt s.gh.tr r
+          (sendOutGate id (preState s m pvs) c (vrespTyOf m) [vrespMsgOf id (preState s m pvs) m rej])
+          (R.GE (s.outbox ++ [vrespMsgOf id (preState s m pvs) m rej]))) ∗
       -- a `MsgHup`'s campaign (`hup`'s gates, at `s`)
-      "Hghup" ∷ (⌜m.Type' = MsgHup⌝ -∗ hupGates c r id s (hupType s) R.G1 R.GE) ∗
+      "Hghup" ∷ (⌜m.Type' = MsgHup⌝ -∗ hupGates c r id s (hupType s) (R.G1 s.outbox) R.GE) ∗
       -- the role's step function's gates, at the state after the preamble
-      "Hgstep" ∷ stepFnGates c r id s m ents ctx R)
+      "Hgstep" ∷ stepFnGates c r id s m ents ctx R ∗
+      -- (2026-11-10, slice 14) what the callees ask of the indexed resources
+      "%Hgok" ∷ ⌜StepGOk s.gh.tr R⌝)
 
 end gates
 
@@ -438,7 +482,7 @@ def stepClose (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : MessageM)
     (ctx : List w8) (s : NState) (R : StepG GF) (Gout : NState → IProp GF) : IProp GF :=
   iprop(∀ (s' : NState) (B : Int) (recv : List Msg),
     ⌜s.gh.tr.isSome → StepCD c id B m s recv s'⌝ -∗ ⌜s.gh.tr.isSome → StepEnd c id m ents ctx s s'⌝ -∗
-    stepOut R -∗
+    stepOut R s'.outbox -∗
     |={⊤}=> ownStepGhost γ md c id s ∗ Gout s' ∗ ⌜OutTrStep s s'⌝)
 
 end close

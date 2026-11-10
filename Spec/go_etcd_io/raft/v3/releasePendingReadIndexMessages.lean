@@ -74,7 +74,7 @@ otherwise each request's heartbeats', the `k`-th request's at the state with the
 (registered) and with that position as their context. Until slice 6 the premise `s.gh.tr = none`
 (stage 0), now `releasePendingReadIndexMessages.untraced`'s (`TracedUntracedSend.lean`). -/
 abbrev releasePendingReadIndexMessages.spec : Prop :=
-  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (G : IProp GF),
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (G : List Msg → IProp GF),
   s.role = .leader →
   s.term ≠ W64 0 →
   (s.rd.pend ≠ [] →
@@ -85,24 +85,28 @@ abbrev releasePendingReadIndexMessages.spec : Prop :=
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       -- (2026-11-09, Q8 stage 1 slice 6; until then, stage 0, the premise `s.gh.tr = none`) the
       -- caller's resource, through the gates below
-      "HG" ∷ G ∗
-      -- each forwarded response's hook gate (a single voter), at no event
-      "#Hgresp" ∷ □ (⌜CfgSingle c id⌝ -∗ G -∗ HookGateOpt s.gh.tr r none G) ∗
+      -- (2026-11-10, slice 14) indexed by the outbox, as `sendMsgReadIndexResponse.spec`'s
+      "HG" ∷ G s.outbox ∗
+      -- each forwarded response's hook gate (a single voter), at no event: a `MsgReadIndexResp`
+      "#Hgresp" ∷ □ (⌜CfgSingle c id⌝ -∗ ∀ (mm : Msg) (o : List Msg), ⌜mm.ty = .readIndexResp⌝ -∗ G o -∗
+        HookGateOpt s.gh.tr r none (G (o ++ [mm]))) ∗
       -- the `k`-th request's heartbeats' hook gates (otherwise), at the state with the first `k`
       -- requests released
-      "#Hgate" ∷ □ (⌜¬ CfgSingle c id⌝ -∗ ∀ (k : Nat) (to cm : w64), ⌜0 < k ∧ k ≤ s.rd.pend.length⌝ -∗
+      "#Hgate" ∷ □ (⌜¬ CfgSingle c id⌝ -∗ ∀ (k : Nat) (to cm : w64) (o : List Msg), ⌜0 < k ∧ k ≤ s.rd.pend.length⌝ -∗
           ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
           ⌜uint.Z cm ≤ uint.Z s.logst.committed ∧
-            uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ -∗ G -∗
+            uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ -∗ G o -∗
         HookGateOpt s.gh.tr r (sendOutGate id
             { s with rd := { s.rd with pend := [],
                                        ro := readonlyRelease s.rd.ro id s.logst.committed (s.rd.pend.take k) } }
             c MsgHeartbeat
           [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] []
-            (hbCtx (readonlyRelease s.rd.ro id s.logst.committed (s.rd.pend.take k)))]) G) }}
+            (hbCtx (readonlyRelease s.rd.ro id s.logst.committed (s.rd.pend.take k)))])
+          (G (o ++ [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] []
+            (hbCtx (readonlyRelease s.rd.ro id s.logst.committed (s.rd.pend.take k)))]))) }}
     (App (Val #(functions releasePendingReadIndexMessages [])) (Val #r))
   {{ (s' : NState), RET #();
-      ownRaftPhysCV c c.voters r id s' ∗ ⌜ReleaseResult c id s s'⌝ ∗ G }}
+      ownRaftPhysCV c c.voters r id s' ∗ ⌜ReleaseResult c id s s'⌝ ∗ G s'.outbox }}
 
 end spec
 

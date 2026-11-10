@@ -56,6 +56,7 @@ public import Spec.go_etcd_io.raft.v3.raft__handleHeartbeat
 public import Spec.go_etcd_io.raft.v3.raft__handleSnapshot
 -- (2026-10-13) `HupOk`, for `MsgTimeoutNow`
 public import Spec.go_etcd_io.raft.v3.raft__hup
+public import Proof.go_etcd_io.raft.v3.TracedSend
 
 @[expose] public section
 
@@ -171,7 +172,7 @@ that does not campaign gives `G`, at `s' = s`, as `hup`'s), else `G`. A `MsgSnap
 abbrev stepFollower.spec : Prop :=
   ∀ (c : CfgM) (scfg : CSLists) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (ents : List EntryM) (sn : Option SnapshotM) (rs : List Loc) (sv : SnapshotM) (cl : List w8)
-    (G G' : IProp GF),
+    (G G' : List Msg → IProp GF),
   (m.Type' = MsgVoteResp ∨ m.Type' = MsgProp ∨
    m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat ∨
    (m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp ∨
@@ -230,6 +231,11 @@ abbrev stepFollower.spec : Prop :=
      s.gh.tr = none) →
   -- (2026-10-22, D38a) a message forwarded to the leader has no responses (`send`'s premise)
   (m.Type' = MsgProp ∨ m.Type' = MsgReadIndex ∨ m.Type' = MsgTransferLeader → rs = []) →
+  -- (2026-11-10, slice 14) the caller's resources indexed by the outbox; after a campaign up to
+  -- order (`hup`'s)
+  PermInv G' →
+  -- ... and `G` ignoring it untraced (a snapshot, untraced only, is handled through no gate)
+  IdxFree s.gh.tr G →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       -- (stage R4) the message, as `Step` received it (its `Context` holding `cl`: what a
@@ -241,30 +247,38 @@ abbrev stepFollower.spec : Prop :=
       "#Hcert" ∷ rcvSrc s.gh.sn m.Type' sn ∗
       -- (2026-11-10, Q8 stage 1 slice 8; until then, stage 0, the premise `s.gh.tr = none`) the
       -- caller's resource, through the gates of the arm that runs
-      "HG" ∷ G ∗
+      -- (2026-11-10, slice 14) indexed by the outbox: `G` at `s`'s, each gate's resource after it at
+      -- the outbox with the message queued
+      "HG" ∷ G s.outbox ∗
       -- a `MsgApp`: `handleAppendEntries`'s reply gate, at the state with the sender as leader
       "Hgapp" ∷ (⌜m.Type' = MsgApp⌝ -∗ ∀ (s1 : NState) (mm : Msg),
         ⌜HandleAppResult id { s with lead := m.From' } m ents (sendMsgs s1 [mm])⌝ -∗
-        G -∗ HookGateOpt s.gh.tr r (sendOutGate id s1 c MsgAppResp [mm]) G') ∗
+        G s.outbox -∗ HookGateOpt s.gh.tr r (sendOutGate id s1 c MsgAppResp [mm])
+          (G' (sendMsgs s1 [mm]).outbox)) ∗
       -- a `MsgHeartbeat`: `handleHeartbeat`'s, at that state with the commit moved
-      "Hghb" ∷ (⌜m.Type' = MsgHeartbeat⌝ -∗ G -∗ HookGateOpt s.gh.tr r
+      "Hghb" ∷ (⌜m.Type' = MsgHeartbeat⌝ -∗ G s.outbox -∗ HookGateOpt s.gh.tr r
         (sendOutGate id { ({ s with lead := m.From' } : NState) with
             logst := { s.logst with committed := plogCommitTo s.logst.committed m.Commit' } }
-          c MsgHeartbeatResp [{ Msg.plain .heartbeatResp id m.From' s.term false with ctx := cl }]) G') ∗
-      -- a forward to the leader: the send's gate, at no event (none of the three types is traced)
-      "Hgfwd" ∷ (⌜m.Type' = MsgProp ∨ m.Type' = MsgReadIndex ∨ m.Type' = MsgTransferLeader⌝ -∗ G -∗
-        HookGateOpt s.gh.tr r none G) ∗
+          c MsgHeartbeatResp [{ Msg.plain .heartbeatResp id m.From' s.term false with ctx := cl }])
+        (G' (s.outbox ++ [{ Msg.plain .heartbeatResp id m.From' s.term false with ctx := cl }]))) ∗
+      -- a forward to the leader: the send's gate, at no event (none of the three types is traced),
+      -- whatever untraced messages it queues
+      "Hgfwd" ∷ (⌜m.Type' = MsgProp ∨ m.Type' = MsgReadIndex ∨ m.Type' = MsgTransferLeader⌝ -∗
+        ∀ out : List Msg, ⌜∀ x ∈ out, x.ty.traced = false⌝ -∗ G s.outbox -∗
+        HookGateOpt s.gh.tr r none (G (s.outbox ++ out))) ∗
       -- a `MsgTimeoutNow`: `hup(campaignTransfer)`'s gates (the `BecomeCandidate` line, then each
       -- vote message, at the candidate's state)
-      "Hgcamp" ∷ (⌜m.Type' = MsgTimeoutNow⌝ -∗ G -∗
-        HookGate s.gh.tr r (NodeEvOf (W64 1) id (becomeCandidate id s) c) G') ∗
+      "Hgcamp" ∷ (⌜m.Type' = MsgTimeoutNow⌝ -∗ G s.outbox -∗
+        HookGate s.gh.tr r (NodeEvOf (W64 1) id (becomeCandidate id s) c) (G' s.outbox)) ∗
       "#Hgvote" ∷ □ (⌜m.Type' = MsgTimeoutNow⌝ -∗
-        ∀ (pvs : GMap w64 Progress) (y : w64), ⌜y ∈ c.voters⌝ -∗ G' -∗
+        ∀ (pvs : GMap w64 Progress) (y : w64) (o : List Msg), ⌜y ∈ c.voters⌝ -∗ G' o -∗
         HookGateOpt s.gh.tr r
           (sendOutGate id { becomeCandidate id s with prvals := pvs } c
             (if y = id then vrespW32 false else vreqW32 false)
             [campMsg false id (s.term + W64 1) (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents))
-              campaignTransfer y]) G') }}
+              campaignTransfer y])
+          (G' (o ++ [campMsg false id (s.term + W64 1) (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents))
+              campaignTransfer y]))) }}
     (App (App (Val #(functions stepFollower [])) (Val #r)) (Val #ml))
   {{ (err : GoInterface) (s' : NState) (dropped : Bool) (c' : CfgM), RET #err;
       ownRaftPhysCV c' c'.voters r id s' ∗
@@ -272,8 +286,8 @@ abbrev stepFollower.spec : Prop :=
       (if dropped then globalAddr ErrProposalDropped ↦□ err
        else ⌜err = interface.nil⌝) ∗
       -- `G'` after a reply or a campaign; else `G` (a `MsgTimeoutNow` without a campaign at `s`)
-      ((⌜m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat ∨ m.Type' = MsgTimeoutNow⌝ ∗ G') ∨
-       (⌜m.Type' ≠ MsgApp ∧ m.Type' ≠ MsgHeartbeat ∧ (m.Type' = MsgTimeoutNow → s' = s)⌝ ∗ G)) }}
+      ((⌜m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat ∨ m.Type' = MsgTimeoutNow⌝ ∗ G' s'.outbox) ∨
+       (⌜m.Type' ≠ MsgApp ∧ m.Type' ≠ MsgHeartbeat ∧ (m.Type' = MsgTimeoutNow → s' = s)⌝ ∗ G s'.outbox)) }}
 
 end spec
 
