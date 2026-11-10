@@ -37,10 +37,10 @@ stock ^Proof/go_etcd_io/etcd/server/v3/etcdserver/InvWatchBuilt\.lean$
 # client-held): the storage abstraction's sealed definitions hold the backend's counted reader slots
 # and open shares the store's pool is built from (`mvccStorageFor`, `storageRest`) and the bridge
 # that makes them from etcd's backend (`etcdStorage_open.law`, `etcdStorage_rest`); the API's proofs
-# build the pool (`RdSupply`'s `rdkPool`) from them at construction (`NewStoreApi`), and give them back
+# build the pool (`RdSupply`'s `rdkPool`) from them at construction (`NewStoreApi`, `NewApi` over `ImageBridge`), and give them back
 # at `Restore` and at the close (`RestoreApi`, `ClosedLaw`).
 stock ^Spec/go_etcd_io/etcd/server/v3/storage/mvcc/(Api|EtcdBackend)\.lean$
-stock ^Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Api/(RdSupply|NewStoreApi|RestoreApi|ClosedLaw)\.lean$
+stock ^Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Api/(RdSupply|NewStoreApi|RestoreApi|ClosedLaw|ImageBridge)\.lean$
 # The randomized mvcc test's history lock, by its owner, the test (`examples/mvccrand`, 2026-11-07):
 # `RunChecksWorld` allocates the history's `RWMutex` and makes its reader handles (`histRd`, at most
 # the lock's slots), `runChecks` hands one to each reader goroutine it forks.
