@@ -16,6 +16,7 @@ unpins (`trFam_unpin`); the close reads `StepEnd`'s `LeaderNonpropResultC` (the 
 module
 
 public import Proof.go_etcd_io.raft.v3.TracedPin
+public import Spec.go_etcd_io.raft.v3.raft__tickHeartbeat
 
 @[expose] public section
 
@@ -345,6 +346,102 @@ theorem stepBundle_traced_beat : stepBundle_traced.on (GF := GF) (hG := hG) Loca
       dsimp only [beatR]
       icases Hout with (H | H | H | H | ⟨%b, %N, H⟩) <;> iexact H
     iapply lineF_close γ md c r id s _ (stepLastEv Λ) hS $$ H
+
+/-- A local message's token: nothing (an untraced type; `recvTokOf` asks only of a traced one). -/
+theorem recvTokOf_untraced (γd : GName) (m : MessageM) (ents : List EntryM) (ctx : List w8)
+    (h : mtypeOf m.Type' = none) : ⊢ recvTokOf (GF := GF) γd m ents ctx := by
+  iunfold recvTokOf
+  iintro %ty %hty
+  rw [h] at hty
+  exact absurd hty.1 (by simp)
+
+/-- **`raft.tickHeartbeat` at a traced leader** (check-quorum off, so no quorum check): the capability
+idle at `s` in, idle at the end state out (`stepBundle_traced_beat` for the heartbeat's `Step`; with no
+heartbeat the capability as it was, the end state's server part `s`'s). What a traced node API supplies:
+the capability and `TrNoSnap`, pre-vote and check-quorum off, the term's and the receipts' bounds, no
+learners. -/
+abbrev raft.tickHeartbeat.tracedTriple : Prop :=
+  ∀ (c : CfgM) (md : GMode) (γ : RaftNames) (r : Loc) (id : w64) (s : NState) (γd : GName)
+    (Λ : Option TraceEv → Prop),
+  NStateWf s → md.Guard s →
+  s.gh.tr = some γd → s.prevote = false → s.cq = false →
+  uint.Z s.term + 1 < traceNumBound → receiptBound GF + γ.reBoot.length ≤ traceNumBound →
+  c.learners = ∅ →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+      "Hghost" ∷ ownStepGhost γ md c id s ∗
+      "Hcap" ∷ trCapB s.gh.tr γ r id c true (fun C => SimIdle C s) Λ ∗
+      "#Hnosnap" ∷ TrNoSnap s.gh.tr s.logst }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"tickHeartbeat")) (Val #()))
+  {{ (s' : NState), RET #();
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
+      "Hghost" ∷ ownStepGhost γ md c id s' ∗
+      "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
+      "%Hcm" ∷ ⌜uint.Z s.logst.committed ≤ uint.Z s'.logst.committed ∧
+        PVoteLe (toPState s) (toPState s')⌝ ∗
+      "%Htick" ∷ ⌜TickStep s s'⌝ ∗
+      "Hcap" ∷ trCapB s.gh.tr γ r id c true (fun C => SimIdle C s') (stepLastEv Λ) }}
+
+/-- `raft.tickHeartbeat.spec`'s traced instance (see `raft.tickHeartbeat.tracedTriple`). -/
+theorem raft.tickHeartbeat.traced (h : raft.tickHeartbeat.spec (GF := GF) (hG := hG)) :
+    raft.tickHeartbeat.tracedTriple (GF := GF) (hG := hG) := by
+  intro c md γ r id s γd Λ Hwf Hpc htr hpv hcq hT hfit hlrn
+  iintro %Φ ⟨#Hinit, Hphys, Hghost, Hcap, #Hnosnap⟩ HΦ
+  icases ownRaftPhysC_dom c r id s $$ Hphys with ⟨%Hsub, Hphys⟩
+  iapply h c md γ r id s (beatR γ md c r id s Λ)
+    (fun s1 => iprop(⌜s1 = s⌝ ∗ trCapB s.gh.tr γ r id c true (fun C => SimIdle C s) Λ))
+    (fun s' => trCapB s.gh.tr γ r id c true (fun C => SimIdle C s') (stepLastEv Λ)) Hwf Hpc
+    $$ [Hphys Hghost Hcap]
+  · iframe Hinit Hphys Hghost
+    isplitl [Hcap]
+    · dsimp only [beatR]; iexact Hcap
+    isplitr
+    · iintro %h; rw [hcq] at h; cases h
+    isplitr
+    · iintro HG
+      imodintro
+      isplitr
+      · ipureintro; rfl
+      dsimp only [beatR]; iexact HG
+    iintro %s1 %s2 %Hs2 ⟨%Hs1, Hc⟩
+    subst s1
+    obtain ⟨hgh, hrole, hs2⟩ := Hs2
+    have hsame : s2.gh = s.gh ∧ s2.prevote = s.prevote ∧ s2.cq = s.cq ∧ s2.term = s.term ∧
+        s2.logst = s.logst ∧ s2.progress = s.progress ∧ (NStateWf s2 ↔ NStateWf s) ∧
+        (fun C => SimIdle C s2) = (fun C => SimIdle C s) := by
+      rcases hs2 with rfl | rfl <;> exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, Iff.rfl, rfl⟩
+    obtain ⟨_, hpv2, hcq2, hT2, hls2, hpr2, hwf2, hS2⟩ := hsame
+    have htr2 : s2.gh.tr = some γd := by rw [hgh]; exact htr
+    have hb : (tickMsg MsgBeat id).Type' = MsgBeat := rfl
+    have hmt : mtypeOf (tickMsg MsgBeat id).Type' = none := rfl
+    ihave Htok := recvTokOf_untraced (GF := GF) γd (tickMsg MsgBeat id) [] [] hmt
+    have hgo := stepBundle_traced_beat (GF := GF) (hG := hG) γ md c r id s2 (tickMsg MsgBeat id) [] none [] []
+      γd Λ ⟨hb, hrole⟩ htr2 (hpv2.trans hpv) (hcq2.trans hcq) (by unfold StepEndTy; simp)
+      (hwf2.2 Hwf) (fun _ => rfl) (fun h => absurd (h.symm.trans hb) (by
+        simp only [MsgHup, MsgBeat]; exact of_decide_eq_true rfl))
+      (fun ty h => by rw [hmt] at h; cases h) (by rw [hT2]; exact hT) (by simp; unfold traceNumBound; omega)
+      (fun ty h => by rw [hmt] at h; cases h) hfit hlrn (by rw [hpr2]; exact Hsub)
+    rw [hS2, hgh, hls2] at hgo
+    iapply hgo
+    iframe Hc Htok Hnosnap
+  inext
+  iintro %s' H
+  iapply HΦ $$ %s'
+  iNamed H
+  iframe Hphys Hghost
+  isplitr
+  · ipureintro; exact Hwf'
+  isplitr
+  · ipureintro; exact Hcm
+  isplitr
+  · ipureintro; exact Htick
+  icases HG with (⟨%s1, %Hs', %Hs1, Hc⟩ | Hc)
+  · subst s1
+    have hS : (fun C => SimIdle C s') = (fun C => SimIdle C s) := by
+      rcases Hs' with rfl | rfl <;> rfl
+    rw [hS]
+    iapply trCapB_monoΛ s.gh.tr γ r id c true _ Λ (stepLastEv Λ) (fun o h => .inl h) $$ Hc
+  · iexact Hc
 
 end gates
 
