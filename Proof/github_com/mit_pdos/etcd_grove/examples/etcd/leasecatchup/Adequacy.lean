@@ -123,7 +123,7 @@ caught up by a snapshot, still lists the lease granted through it). -/
 theorem etcd_leasecatchup_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC leasecatchupGF,
       ContextReadErrs (GF := leasecatchupGF) (hG := heapAtLcu hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC leasecatchupGF,

@@ -151,5 +151,13 @@ else
   echo "import-all: FAILED"; head -20 "$tmp/ia.log"; fail=1
 fi
 
+# 9. the Go tests behind the closed theorems' premise fixes (examples/premisefix: Go's behavior a
+# premise or trust-boundary axiom was restated to; seconds once the packages are compiled)
+if (cd examples && GOWORK=off go test -count=1 ./premisefix/... > "$tmp/pf.log" 2>&1); then
+  echo "premisefix: ok ($(grep -c '^ok' "$tmp/pf.log") packages)"
+else
+  echo "premisefix: FAILED"; tail -20 "$tmp/pf.log"; fail=1
+fi
+
 [ "$fail" = 0 ] && echo "gates: all passed" || echo "gates: FAILED"
 exit $fail

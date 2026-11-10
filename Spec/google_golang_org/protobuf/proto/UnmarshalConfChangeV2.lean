@@ -33,7 +33,7 @@ holds the content, owned (its `Context` a fresh slice, read-only from then on, i
 its own invariant); on any other bytes a non-`nil` error, leaving the message some value. It
 never panics and never retains `d`.
 
-Against protobuf-go v1.36.11 (`proto/decode.go`): `Unmarshal` is `UnmarshalOptions{}.unmarshal`
+Against protobuf-go v1.36.12 (`proto/decode.go`): `Unmarshal` is `UnmarshalOptions{}.unmarshal`
 with `Merge` false, so it first resets the message; every read is bounds-checked
 (`protowire.Consume*` returns an error, never panics) and unknown fields are kept in the hidden
 `unknownFields`; `bytes` fields are copied out of the input (no aliasing: the aliasing option is

@@ -196,8 +196,6 @@ SRV_ASSUMPTIONS = "go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions"
 # (written `[<name as here>]` in its file); its result takes it too, and so does every result
 # linking one that does, here or in an imported Link (its `theorem` line).
 SEM_PREMISES = [
-    # `int64(f)` of a `float64` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/FloatToInt.lean`)
-    "EtcdGrove.Float64ToInt64Semantics",
     # `(*Client).dialWithBalancer`'s body, which the translator cannot produce
     # (`Proof/go_etcd_io/etcd/client/v3/DialWithBalancerBody.lean`)
     "go_etcd_io.etcd.client.v3.DialWithBalancerBody",

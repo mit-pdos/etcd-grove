@@ -29,7 +29,7 @@ content (`eqv` of the models), whose unknown fields are valid, and which is exac
 model marshals (no nested pointers to renew: a `Message`'s responses are deep-copied to fresh
 pointers, so only `eqv` holds of a message with responses).
 
-Against protobuf-go v1.36.11 (`proto/merge.go:41`, `Clone`: a new message of the type, merged
+Against protobuf-go v1.36.12 (`proto/merge.go:41`, `Clone`: a new message of the type, merged
 into): `internal/impl/merge.go:40-80` copies each present field (a nil proto2 field, `isPointer`, is
 skipped, so presence and nil-versus-empty `bytes` are kept: `codec_message.go:136`,
 `merge.go:187-189`), and appends the unknown fields verbatim (`proto/merge.go:105-106`), so

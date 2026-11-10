@@ -26,7 +26,7 @@ def ConfChangeV2M.empty [GooseExts] : ConfChangeV2M := ⟨W32 0, [], []⟩
 
 /-- `proto.Unmarshal` decodes the empty encoding to the message with every field unset (protobuf's
 wire format: a message is a sequence of fields, and the empty sequence sets none; protobuf-go
-v1.36.11 `proto/decode.go`, `unmarshal` resets the message and its loop over the input runs zero
+v1.36.12 `proto/decode.go`, `unmarshal` resets the message and its loop over the input runs zero
 times). Unprovable here: `ccDecodeV2` is opaque. -/
 axiom ccDecodeV2_nil [GooseExts] : ccDecodeV2 [] = some ConfChangeV2M.empty
 

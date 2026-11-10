@@ -28,7 +28,7 @@ marshals and whose size is below `2^48` (Go's `maxAlloc`): a fresh slice of its 
 `pbEncC I c`, and `nil`. What the encoding is comes from the generic `pbEncC_ok` (a theorem from
 the instance's encoder axiom), not from this spec.
 
-Against protobuf-go v1.36.11 (`proto/encode.go:105`, `:174`): `Marshal` sizes, allocates and
+Against protobuf-go v1.36.12 (`proto/encode.go:105`, `:174`): `Marshal` sizes, allocates and
 appends the encoding (`internal/impl/encode.go`); it fails only on a missing required field,
 invalid UTF-8 in a proto3 string or a message changed while it is encoded, which `marshals` and
 the frozen `roC` exclude; an allocation above `maxAlloc` panics, which the size premise excludes;

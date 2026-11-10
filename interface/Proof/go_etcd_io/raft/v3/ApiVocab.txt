@@ -44,6 +44,12 @@ def ccPropArg (γ : RaftNames) (o : ConfChangeIM) : IProp GF :=
             propIs γ (entKey (confChangeEntryType (some o)) bs) Q ∗
               □?γ.dup propAu1 γ (entKey (confChangeEntryType (some o)) bs) Q)
 
+theorem bootConfChange_of_struct [package_sem : Assumptions] (p : Loc) (v : raftpb.ConfChange) (m :
+    ConfChangeM) (E : CoPset) (Hu : v.unknownFields' = slice.nil) (Hi : v.Id' = null) :
+    typedPointsto p v (DFrac.own 1) ∗ typedPointsto v.Type' m.type DFrac.discard ∗ typedPointsto
+    v.NodeId' m.nodeId DFrac.discard ∗ ownSlice v.Context' m.context DFrac.discard ⊢ |={E}=>
+    bootConfChange p (DFrac.own 1) m
+
 def RespType (t : w32) : Prop :=
   t = MsgAppResp ∨ t = MsgVoteResp ∨ t = MsgPreVoteResp
 
@@ -56,6 +62,18 @@ def msgAbs (st : MsgSt) (a : Option Msg) : Prop :=
       ∃ sv,
         mtypeOf st.msg.Type' = some MsgType.snap ∧
           st.snap = some sv ∧ a = some (absSnap st.msg sv sv.Metadata'.ConfState'.lists)
+
+def bootConfChange (p : Loc) (dq : DFrac) (m : ConfChangeM) : IProp GF :=
+  iprop(∃ pt pn cs,
+      ⌜p ≠ null ∧ pt ≠ null ∧ pn ≠ null⌝ ∗
+        typedPointsto (structFieldRef raftpb.ConfChange go!"Type" p) pt dq ∗
+          typedPointsto pt m.type DFrac.discard ∗
+            typedPointsto (structFieldRef raftpb.ConfChange go!"NodeId" p) pn dq ∗
+              typedPointsto pn m.nodeId DFrac.discard ∗
+                typedPointsto (structFieldRef raftpb.ConfChange go!"Id" p) null dq ∗
+                  typedPointsto (structFieldRef raftpb.ConfChange go!"Context" p) cs
+                      dq ∗
+                    ownSlice cs m.context DFrac.discard ∗ pbMsg raftpb.ConfChange p [])
 
 def msgDat (γ : RaftNames) (st : MsgSt) : IProp GF :=
   iprop(□ ∀ sv, ⌜st.msg.Type' = MsgSnap ∧ st.snap = some sv⌝ -∗ snapDataOk γ sv.Metadata'.Index' sv.Data')
@@ -158,14 +176,15 @@ def roleAfter (r : StateType) (ss : Option (w64 × StateType)) : StateType :=
   (Option.map (fun x => x.snd) ss).getD r
 
 def bootMarshal (ps : List w64) (ctxs : List (List w8)) (bootLog : List EntryM) : IProp GF :=
-  iprop(□
-      ∀ k p dq m e x Φ,
-        ownConfChange p dq m -∗
-          (∀ d, ownConfChange p dq m -∗ ownSlice d e.Data' (DFrac.own 1) -∗ Φ (intoVal d, intoVal GoInterface.nil)) -∗
-            WP
-              ((intoVal (functions google_golang_org.protobuf.proto.Marshal []))
-                (intoVal (interface.mkOk raftpb.ConfChange.ty.PointerType (intoVal p))))
-              {{ Φ }})
+  iprop(⌜∀ (c : List w8), c ∈ ctxs → c ≠ []⌝ ∗
+      □
+        ∀ k p dq m e x Φ,
+          bootConfChange p dq m -∗
+            (∀ d, bootConfChange p dq m -∗ ownSlice d e.Data' (DFrac.own 1) -∗ Φ (intoVal d, intoVal GoInterface.nil)) -∗
+              WP
+                ((intoVal (functions google_golang_org.protobuf.proto.Marshal []))
+                  (intoVal (interface.mkOk raftpb.ConfChange.ty.PointerType (intoVal p))))
+                {{ Φ }})
 
 def SentMsgOk (st : MsgSt) : Prop :=
   st.msg.Type' ∈ sentTypes ∧

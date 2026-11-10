@@ -1,6 +1,6 @@
 /-
 `BuildServer(name, peer, client, cluster, token, snapCount, catchUp, lg)`
-(`examples/lib/etcdstart/etcdstart.go`; 2026-11-02, the restart plan's R2a): member `name` of a new cluster
+(`examples/lib/etcdstart/common.go`; 2026-11-02, the restart plan's R2a): member `name` of a new cluster
 with token `token` built, serving nothing -- `newServer` with the auto-compactor off -- for an
 example that keeps its listeners (`examples/etcd/restart`). Lean-first (no Rocq counterpart).
 
