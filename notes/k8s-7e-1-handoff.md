@@ -75,7 +75,7 @@ clause unprovable").
 - If the call answers `ETooLarge`, some firing had `σ.rev < n`: from the client's error (R1's `∃ R σ, □ Q R σ ∗
   σ.rev < n`) or from a data answer at `R < n` (the store's own minimum check: the firing at `σ.rev = R < n`).
 
-### R1, the implementation plan (step 2 of the Draft's §6; not started)
+### R1, the implementation plan (step 2 of the Draft's §6; DONE, `3303ac0745`, checkpoint (i))
 
 1. `ListDefs.lean`: `rangeErrSound o Q err := □ (desc = futureRevDesc -∗ ∃ R σ, □ Q R σ ∗ ⌜σ.rev < sint.nat o⌝)`;
    `readErrIs`'s future clause the same. Then `store__listReadError`, `store__getList` (the two
@@ -87,3 +87,26 @@ clause unprovable").
    splits the answering case on `xs.head? = some tooLargeCode`. The answer `y = tooLargeL` matches
    `kStep`/`lOut` at the committed `σ` by `σ.rev < n`.
 3. Targeted build (checkpoint (i)): the store's `Link`, the driver's `Link`/`Results`.
+
+### R1 as built (`3303ac0745`; targeted builds green: the store's `Link`, the driver's `Link`/`Results`/`MainLinked`/`Adequacy`, every leaf importer)
+
+- Store: `rangeErrSound`, `readErrIs`'s future clause, `listReadError`'s post, `pagesOk`'s error clause:
+  `∃ (R : w64) σ, □ Q R σ ∗ ⌜σ.rev < …⌝`. `GetList`'s post: `∃ (R' : w64) σ, □ Q R' σ ∗
+  ⌜σ.rev < uint.nat n ∨ R' = W64 σ.rev⌝ ∗ (the same tree)` (a too-large answer has `σ.rev < n`, since
+  `listRevL ∈ {0, n}`; an answer has `R' = σ.rev`).
+- Driver (form decided, differs from the plan above): a `Get` never sees `rangeErrSound` (`store.Get`
+  reads at revision 0 and checks the minimum itself), so `readQ`/`getCall` are unchanged. Lists:
+  `listCommitOk x tl R σ := if tl then lOut x σ = tooLargeL else σ.rev = uint.nat R`; `listCall … x tl Φ`
+  records it in place of `σ.rev = R`; `listQ c γ γc x tl R σ`'s commit clause is
+  `⌜listCommitOk x tl R σ⌝ → ∃ σ0, γc ↦□ some σ0 ∗ ⌜lOut x σ0 = lOut x σ⌝`; `Apply` sets
+  `tl := decide (xs.head? = some (W64 6))` (the prophecy's error kind `ETooLarge`); new
+  `lOut_tooLarge`. `call`'s list post: `∃ R, □ QL R σ ∗ ⌜y = tooLargeL ∨ R = W64 σ.rev⌝`.
+
+## Step 3 under way (checkpoint (ii), a HARD STOP)
+
+- Go test `examples/k8s/etcd3/errtypes_test.go` (`TestClientErrorTypes`: every schedule in a child, 6
+  workers incl. deadlines/cancellations, then a closed client; fails on a `%T` outside the four).
+  Log: `/shared/tmp/k8s7e1/errtypes.log`.
+- Axiom attacks (subagents, scratch `/shared/tmp/k8s7e1/attack-{invoker,stream,eof}/`) on
+  `grpcInvokerOk`, `cliStreamErr`, `eofOk` + `status.Error.spec` with the `clientErrTys` conjunct.
+- No Lean for `clientErrTys` until 81 reviews (ii).
