@@ -85,7 +85,9 @@ theorem store.GetCurrentResourceVersion.wp_proof
   · iframe #
     iexact Hau
   (try wp_auto)
+  icases (k8s_io.apiserver.pkg.storage.etcd3.statusErrOk_split gerr _ _ _) $$ Hget with ⟨#Hse, Hget⟩
   wp_apply wp_RecordEtcdRequest $$ []
+  · iexact Hse
   icases Hget with (⟨%Hgerr, %σ, #HQ, %Hσ, -⟩ | ⟨%Hgerr, -, -⟩)
   · -- the client read the state σ
     subst Hgerr

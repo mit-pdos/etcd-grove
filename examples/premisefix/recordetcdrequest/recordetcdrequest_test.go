@@ -62,3 +62,30 @@ func TestRecordEtcdRequestStoreErrorsReturn(t *testing.T) {
 		}
 	}
 }
+
+// ErrTransactionConflict, which txnError returns for a failed comparison, is
+// errors.New("transaction conflict") (metrics.go:42 at the apiserver pin 9c4ec15b8038): what the
+// restated trust-boundary axiom ErrTransactionConflict_init (errorsNewVarInit) says. Its dynamic
+// type is *errors.errorString, a leaf with Error only: no Unwrap, As, Is or GRPCStatus method
+// (EtcdGrove.ErrorStringLeaf), so statusErrOk holds of it.
+func TestErrTransactionConflictIsErrorsNew(t *testing.T) {
+	e := metrics.ErrTransactionConflict
+	if got := e.Error(); got != "transaction conflict" {
+		t.Fatalf("expected the message %q, got %q", "transaction conflict", got)
+	}
+	ty := reflect.TypeOf(e)
+	if want := reflect.TypeOf(errors.New("x")); ty != want {
+		t.Fatalf("expected the dynamic type %v (errors.New's), got %v", want, ty)
+	}
+	if ty.String() != "*errors.errorString" {
+		t.Fatalf("expected *errors.errorString, got %v", ty)
+	}
+	for _, m := range []string{"Unwrap", "As", "Is", "GRPCStatus"} {
+		if _, ok := ty.MethodByName(m); ok {
+			t.Fatalf("expected no %s method on %v", m, ty)
+		}
+	}
+	if ty.NumMethod() != 1 {
+		t.Fatalf("expected Error as the only method of %v, got %d methods", ty, ty.NumMethod())
+	}
+}
