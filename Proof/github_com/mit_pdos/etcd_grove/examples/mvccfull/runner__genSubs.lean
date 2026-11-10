@@ -1,4 +1,4 @@
-/- Lean-first (no Rocq counterpart). The proof of `runner.genSubs`: Draft, to come.
+/- Lean-first (no Rocq counterpart). The proof of `runner.genSubs`: proved.
 
 The outline: `choose(3)` for the count, then per iteration `choose(3)`: `genKey`, the
 checks against the puts and deletes so far (`inRange`), `newVal`, `genLease`; `genKey`, `genEnd`;
@@ -19,6 +19,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccfull.inRange
 
 set_option linter.iris.style.nameCheck false
 set_option linter.deprecated false
+set_option linter.unusedSimpArgs false
 
 noncomputable section
 
@@ -406,7 +407,174 @@ theorem runner.genSubs.wp_proof
               (fun h => absurd h hb1)
             · exact hokb.1 _ (mem_putKeys ha h0)
             · exact hokb.2 _ (by rw [Hds_eq]; exact mem_delsOf ha h1)
-    · sorry
+    · (try wp_auto)
+      wp_if_destruct
+      · -- a range delete
+        wp_apply wp_genKey x ks as %ksl ⟨%kk, Hk, %Hkk⟩
+        · iunfold runnerKeys; iexists keys; iframe #; ipureintro; exact ⟨Hsorted, Hne⟩
+        imod ownSlice_persist $$ Hk with #Hk
+        (try wp_auto)
+        wp_apply wp_genEnd x ks as %esl ⟨%e, He, %He⟩
+        · iunfold runnerKeys; iexists keys; iframe #; ipureintro; exact ⟨Hsorted, Hne⟩
+        imod ownSlice_persist $$ He with #He
+        (try wp_auto)
+        ihave %Hpsn := ownSlice_len $$ Hps
+        ihave HI2 : (∃ (ii : w64) (pv : GoString), "i" ∷ i_ptr ↦ ii ∗ "p" ∷ p_ptr ↦ pv ∗
+            "ok" ∷ ok_ptr ↦ (((putKeys (xs.map Prod.snd)).take (sint.nat ii)).all
+              fun q => !inRangeM (decide (esl = slice.nil)) kk e q) ∗
+            "%Hii" ∷ ⌜0 ≤ sint.Z ii⌝ : IProp GF) $$ [i p ok]
+        · iexists W64 0, _; iframe; ipureintro; decide
+        wp_for HI2
+        by_cases Hlt2 : sint.Z ii < sint.Z psl.len
+        · rw [decide_eq_true Hlt2]; simp only [↓reduceIte]
+          have hil : (sint.Z ii).toNat < (putKeys (xs.map Prod.snd)).length := by
+            have h4 : sint.nat psl.len = (sint.Z psl.len).toNat := rfl
+            have := Hpsn.1; omega
+          have hb : 0 ≤ sint.Z ii ∧ sint.Z ii < sint.Z psl.len := ⟨Hii, Hlt2⟩
+          have hi1 : sint.nat (ii + W64 1) = sint.nat ii + 1 := by
+            have := Hpsn.2; word
+          (try wp_auto)
+          (try simp only [hb, _root_.and_self, ↓reduceIte])
+          wp_apply wp_load_slice_index psl (sint.Z ii) (putKeys (xs.map Prod.snd)) (DFrac.own 1)
+            ((putKeys (xs.map Prod.snd))[(sint.Z ii).toNat]'hil) Hii $$ [Hps] as Hps
+          · iframe; ipureintro; exact List.getElem?_eq_getElem hil
+          (try wp_auto)
+          wp_apply wp_inRange ksl esl kk e _ DFrac.discard DFrac.discard $$ [Hk He] as -
+          · iframe #
+          have hstep := all_take_succ (putKeys (xs.map Prod.snd)) (sint.nat ii) hil
+            (fun q => !inRangeM (decide (esl = slice.nil)) kk e q)
+          have hii : sint.nat ii = (sint.Z ii).toNat := rfl
+          generalize hin : inRangeM (decide (esl = slice.nil)) kk e
+            ((putKeys (xs.map Prod.snd))[(sint.Z ii).toNat]'hil) = bb
+          cases bb
+          · (try wp_auto)
+            wp_for_post
+            iframe
+            iexists ii + W64 1, _
+            iframe
+            rw [hi1, hstep]
+            simp only [hii, hin, Bool.not_false, Bool.and_true]
+            iframe
+            ipureintro; word
+          · (try wp_auto)
+            wp_for_post
+            iframe
+            iexists ii + W64 1, _
+            iframe
+            rw [hi1, hstep]
+            simp only [hii, hin, Bool.not_true, Bool.and_false]
+            iframe
+            ipureintro; word
+        · rw [decide_eq_false Hlt2]; simp only [Bool.false_eq_true, ↓reduceIte]
+          have hall : (putKeys (xs.map Prod.snd)).take (sint.nat ii) = putKeys (xs.map Prod.snd) := by
+            apply List.take_of_length_le
+            have h4 : sint.nat psl.len = (sint.Z psl.len).toNat := rfl
+            have hii : sint.nat ii = (sint.Z ii).toNat := rfl
+            omega
+          rw [hall]
+          (try wp_auto)
+          generalize hokb : ((putKeys (xs.map Prod.snd)).all
+            fun q => !inRangeM (decide (esl = slice.nil)) kk e q) = okb
+          cases okb
+          · (try wp_auto)
+            wp_for_post
+            iframe
+            iexists jj + W64 1, ssl, psl, dsl, xs, ds, nv'
+            iframe; iframe #
+            ipureintro
+            refine ⟨Hds_eq, hok, by omega, fun _ => ?_, by word, by word, hv1, by word⟩
+            by_cases hjz : jj = W64 0
+            · exfalso
+              have hx0 : xs = [] := by
+                subst hjz; exact List.eq_nil_of_length_eq_zero (by have : sint.nat (W64 0) = 0 := rfl; omega)
+              subst hx0
+              simp [putKeys] at hokb
+            · have := hne hjz; omega
+          · (try wp_auto)
+            wp_apply wp_slice_literal
+            isplitr
+            · ipureintro; rfl
+            iintro %dsl1 ⟨Hdsl1, -⟩
+            (try wp_auto)
+            wp_apply wp_slice_append $$ [$Hds $Hdsc $Hdsl1] as %dsl' ⟨Hds, Hdsc, -⟩
+            (try wp_auto)
+            wp_apply wp_slice_literal
+            isplitr
+            · ipureintro; rfl
+            iintro %ssl1 ⟨Hssl1, -⟩
+            (try wp_auto)
+            wp_apply wp_slice_append $$ [$Hss $Hssc $Hssl1] as %ssl' ⟨Hss, Hssc, -⟩
+            (try wp_auto)
+            wp_for_post
+            let b : SubM := ⟨W64 1, kk, e, decide (esl = slice.nil), [], 0, ⟨[], [], true, zeroValDef⟩⟩
+            have h10 : ¬ (W64 1 : w64) = W64 0 := by decide
+            ihave #Hnew : subIs (GF := GF) (subOp.mk (W64 1) ksl esl [] 0 zeroValDef) b $$ []
+            · iunfold subIs
+              iframe #
+              isplitr
+              · iunfold rangeIs
+                isplitr; · iapply ownSlice_nil
+                isplitr; · iapply ownSlice_nil
+                ipureintro; exact ⟨rfl, rfl⟩
+              ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
+            iframe
+            iexists jj + W64 1, ssl', psl, dsl', xs ++ [(_, b)], ds ++ [(_, b)], nv'
+            simp only [List.map_append, List.map_cons, List.map_nil, putKeys_snoc, delsOf_snoc]
+            rw [if_neg h10, List.append_nil]
+            iframe
+            isplitr
+            · iapply BigSepL.bigSepL_snoc.2; iframe #
+            isplitr
+            · iapply BigSepL.bigSepL_snoc.2; iframe #
+            ipureintro
+            simp only [List.all_eq_true, Bool.not_eq_true'] at hokb
+            refine ⟨by rw [if_pos rfl, Hds_eq], ?_,
+              by simp only [List.length_append, List.length_singleton]; rw [hj1n]; omega,
+              fun _ => by simp, by word, by word, hv1, by word⟩
+            refine subsOk_snoc hok (fun h => absurd h h10) (fun h => absurd h h10)
+              (fun _ a ha h0 => hokb _ (mem_putKeys ha h0))
+      · -- a range read
+        (try wp_auto)
+        wp_apply wp_genRange x ks cfg (rv + W64 1) c as %q ⟨%qk, %qe, Hqk, Hqe, %Hqkk, %Hqro⟩
+        · isplitl
+          · iunfold runnerKeys; iexists keys; iframe #; ipureintro; exact ⟨Hsorted, Hne⟩
+          · iunfold runnerRangeMix; iframe #
+        imod ownSlice_persist $$ Hqk with #Hqk
+        imod ownSlice_persist $$ Hqe with #Hqe
+        (try wp_auto)
+        wp_apply wp_slice_literal
+        isplitr
+        · ipureintro; rfl
+        iintro %ssl1 ⟨Hssl1, -⟩
+        (try wp_auto)
+        wp_apply wp_slice_append $$ [$Hss $Hssc $Hssl1] as %ssl' ⟨Hss, Hssc, -⟩
+        (try wp_auto)
+        wp_for_post
+        let b : SubM := ⟨W64 2, [], [], true, [], 0, ⟨qk, qe, decide (q.end' = slice.nil), q.ro'⟩⟩
+        have h20 : ¬ (W64 2 : w64) = W64 0 := by decide
+        have h21 : ¬ (W64 2 : w64) = W64 1 := by decide
+        ihave #Hnew : subIs (GF := GF) (subOp.mk (W64 2) slice.nil slice.nil [] 0 q) b $$ []
+        · iunfold subIs
+          isplitr; · iapply ownSlice_nil
+          isplitr; · iapply ownSlice_nil
+          isplitr
+          · iunfold rangeIs
+            iframe #
+            ipureintro; exact ⟨rfl, rfl⟩
+          ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
+        iframe
+        iexists jj + W64 1, ssl', psl, dsl, xs ++ [(_, b)], ds, nv'
+        simp only [List.map_append, List.map_cons, List.map_nil, putKeys_snoc, delsOf_snoc]
+        rw [if_neg h20, if_neg h21, List.append_nil, List.append_nil]
+        iframe
+        isplitr
+        · iapply BigSepL.bigSepL_snoc.2; iframe #
+        iframe #
+        ipureintro
+        refine ⟨Hds_eq, ?_,
+          by simp only [List.length_append, List.length_singleton]; rw [hj1n]; omega,
+          fun _ => by simp, by word, by word, hv1, by word⟩
+        exact subsOk_snoc hok (fun h => absurd h h20) (fun h => absurd h h20) (fun h => absurd h h21)
   · simp only [Hlt, decide_False_any, decide_True_any, intoVal_eq_iff, decide_eq_self_any, Bool.false_eq_true,
       decide_false, ↓reduceIte]
     imod ownSlice_persist $$ Hss with #Hss
