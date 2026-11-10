@@ -33895,3 +33895,74 @@ three specs' only clients are `raft.Step`'s proof and `raft.appliedTo`'s).
 laws, with the ghost changes the plan lists: the received message's numbers through a trace-gated
 conjunct of `isMessage`, the receipt bound `readyFits`/`receiptBound` for `TraceEv.Ok`'s numbers);
 `tickElection`/`tickHeartbeat` after `Step`.
+
+## Q8 stage 1 (slice 9): `stepLeader`'s last three arms gated; the intermediate states named in a lemma module; `maybeCommit`'s gate run per outcome inside `stepLeader` (2026-11-10 · trace-check, Q8 stage 1 slice 9; decided by the agent under the user's delegation · branch `trace-check-q8s9`; DRAFT until trace-check's Freeze)
+
+**What.** `stepLeader.spec` loses its last trace-mode premise (slice 8's `m.Type' = MsgProp ∨
+MsgAppResp ∨ MsgHeartbeatResp → s.gh.tr = none`): every arm takes its callees' gates from the
+caller's resources. New parameters `Gp1 Gp2 : IProp` (a proposal's chain) and `Gc : Bool → w64 →
+IProp` (an accepted append response's resource after `maybeCommit`'s outcome `(b, N)`); new gates
+`Hgprep`, `Hgpack`, `Hgpapp` (`MsgProp`), `Hgsapp` (the sender's `MsgApp`, a heartbeat response's
+flow control and a rejection's), `Hghresp` (`MsgHeartbeatResp`'s read-index responses, no event),
+`Hgcommit`, `Hgrlresp`, `Hgrlhb`, `Hgaapp`, `Hgatnow` (an accepted `MsgAppResp`). The result's
+resource is four-way: `G'` (a quorum check's step-down), `Gp2` (a proposal appended, `dropped =
+false`), `∃ b N, ⌜…⌝ ∗ Gc b N` (an accepted `MsgAppResp` that reached `maybeCommit`), `G` otherwise.
+
+**The intermediate states, named in `LemmasStepLeader.lean`** (the task's layout constraint: a spec
+file defines nothing but its spec): `propAppended s ents` (the batch appended, stamped),
+`appRespMatch s src index` (the `Match` map after `MaybeUpdate`), `commitAt s b N` (the commit
+outcome's state). Each gate is stated at the state whose *event header* the hook logs (term, vote,
+commit, role, log, configuration); the fields no hook and no gate fact reads (`Progress` values,
+outbox, read-only state, `pendingConfIndex`, transferee) are the caller's `s`'s, so a callee's gate at
+the state it is actually called in is the spec's gate by `rfl` (`hookGateOpt_congr`, and the new
+`hookGate_congr`, `hookGateN_congr`), or, where the state is opaque (the `maybeSendAppend` loop's
+`s2`, after the release), by the header lemmas `sendOutGate_hdr`, `appOk_hdr`, `trNoSnap_logst`.
+Rejected: inline record literals in the spec (slice 6's `releasePendingReadIndexMessages` did so; here
+the same state recurs in five gates); one gate per callee state (the `Progress` values are unknown to
+the caller and no gate reads them).
+
+**`maybeCommit`'s gate per outcome, with the `Match` map, not the `Progress` map.** `Hgcommit`
+quantifies over every `Progress` map `pvs` with `prvalsMatch pvs = appRespMatch s m.From' m.Index'`
+and every outcome `(b, N)` of `maybeCommitOut c { s with prvals := pvs }`: `MaybeUpdate` and the
+state switch (`BecomeReplicate`/`BecomeProbe`/`FreeLE`) move `Progress` fields the caller cannot
+name, but `maybeCommitOut` reads only `Match` (`pvsMatchAt`). This is where a traced caller holding
+raft's ghost creates the new commit's `isCommitted` before `traceCommit` (rounds 5-6), as slice 3's
+`raft.maybeCommit.spec` intended; `stepLeader` runs it at the outcome `maybeCommit` reports.
+
+**The result's tag is the outcome, not a pre-call condition.** Slice 8 tagged `G'` by what the caller
+knows before the call. Whether an accepted `MsgAppResp` reaches `maybeCommit` depends on the sender's
+`Progress` (`MaybeUpdate`'s result, the probe shortcut at `Next = Match + 1`), which the caller does
+not name, so the result says it: `∃ b N, ⌜Reject = false ∧ ∃ pvs, prvalsMatch pvs = appRespMatch … ∧
+maybeCommitOut … b N⌝ ∗ Gc b N`; the `G` disjunct is not exclusive with it (a commit gate that ran with
+nothing else is also a state the caller must accept), and needs not be: the resource says which lines
+ran. Rejected: exposing the shortcut's condition (a `Progress`-level fact in the spec, for no use).
+
+**After the commit, every send at `commitAt s b N`, `Gc b N` to `Gc b N`.** The release's gates (a single
+voter's forwarded responses at no event; otherwise the `k`-th request's heartbeats with their position),
+one persistent `MsgApp` gate for `bcastAppend`, `sendAppend` and the `maybeSendAppend` loop (`to ≠ id`,
+`to ∈ domSet s.progress`), and the caught-up transferee's `MsgTimeoutNow` (no event). A rejection's
+`sendAppend` and a heartbeat response's flow-control `sendAppend` share one gate at `s` (`Hgsapp`), `G`
+to `G`; the read-index responses' gate is persistent (a loop), at no event.
+
+**`MsgProp`: a fixed chain, the conf changes quantified.** `appendEntry`'s `Replicate` gate counts the
+normal entries of the conf-change loop's batch (`normalCount (leaderPropConf s ents cs c.joint).1`),
+which depends on the decoded conf changes `cs` (`Hcc`'s existential): the gates are `∀ cs, ccEntsOk ents
+cs -∗ …` (the decoding is a function, so a caller knows `cs`); the resources `Gp1`, `Gp2` do not depend
+on `cs` (a caller that needs it puts it inside). The `Replicate` gate is stated at `s` (no event field
+reads `pendingConfIndex`), the self-acknowledgement's and `bcastAppend`'s at `propAppended`.
+
+**A new premise: a traced node proposes no configuration change** (`m.Type' = MsgProp → s.gh.tr ≠ none
+→ ∀ e ∈ ents, ¬ IsConfEnt e`, the Draft's P3). The conf-change loop's accepted change calls
+`traceChangeConfEvent`, whose spec stays untraced (`TraceLoggerOk`, the hook not in the Draft's scope);
+the premise is the narrowest that excludes it in traced mode (used only at the accepted-change branch,
+`Htrcc`). `stepLeader.spec`'s clients are raft's `Step` and `appliedTo` only (through
+`stepLeader.untraced`, unchanged): no client-visible change, no question for the user.
+
+**Untraced instance** `stepLeader.untraced` (`TracedUntracedStep.lean`): statement unchanged; the new
+gates from the struct's nil logger (`hookGateN_none`, `hookGateOpt_none`, `hookGate_none`), the new
+resources `emp`.
+
+No ghost change; no axiom or `sorry`.
+
+**Not done (slice 9).** `raft.Step`'s traced arms (piece 2) and `tickElection`/`tickHeartbeat` (piece
+3, which call `Step`): see the plan's "Q8 stage 1 (slice 9)" for the precise remainder.

@@ -459,8 +459,9 @@ theorem stepLeader.untraced (h : stepLeader.spec (GF := GF) (hG := hG)) :
   intro c r id s ml m ents sn ctx rs k0 Hty Hlead Htz Hfrom0 Hself Hprop Hrdnz Hri Hhr Hack htr
   iintro %Φ ⟨#Hpkg, Hphys, Hm, Hcc, #Hrc⟩ HΦ
   icases ownRaftPhysC_traceLogger c r id s htr $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
-  iapply h c r id s ml m ents sn ctx rs k0 iprop(emp) iprop(emp)
-    Hty Hlead Htz Hfrom0 Hself Hprop Hrdnz Hri Hhr Hack (fun _ => htr) $$ [Hphys Hm Hcc]
+  iapply h c r id s ml m ents sn ctx rs k0 iprop(emp) iprop(emp) iprop(emp) iprop(emp)
+    (fun _ _ => iprop(emp))
+    Hty Hlead Htz Hfrom0 Hself Hprop Hrdnz Hri Hhr Hack (fun _ h => absurd htr h) $$ [Hphys Hm Hcc]
   · iframe Hpkg Hphys Hm Hcc Hrc
     rw [htr]
     isplitr
@@ -489,8 +490,55 @@ theorem stepLeader.untraced (h : stepLeader.spec (GF := GF) (hG := hG)) :
       iframe Htl
     isplitr
     · iapply trNoSnap_none
+    isplitr
     · iintro %_ -
       iapply hookGate_none r _ tl iprop(emp) Htlok
+      iframe Htl
+    -- (slice 9) the three remaining arms' gates
+    isplitr
+    · iintro %_ %cs _ -
+      iapply hookGateN_none r _ _ tl iprop(emp) Htlok
+      iframe Htl
+    isplitr
+    · iintro %_ %cs _ -
+      iapply hookGateOpt_none r _ tl iprop(emp) Htlok
+      iframe Htl
+    isplitr
+    · imodintro
+      iintro %_ %cs %to %mm _ %_ %_ -
+      iapply hookGateOpt_none r _ tl iprop(emp) Htlok
+      iframe Htl
+    isplitr
+    · iintro %_ %mm %_ -
+      iapply hookGateOpt_none r _ tl iprop(emp) Htlok
+      iframe Htl
+    isplitr
+    · imodintro
+      iintro %_ -
+      iapply hookGateOpt_none r _ tl iprop(emp) Htlok
+      iframe Htl
+    isplitr
+    · iintro %_ %pvs %b %N %_ %_ -
+      iapply hookGate_none r _ tl iprop(emp) Htlok
+      iframe Htl
+    isplitr
+    · imodintro
+      iintro %_ %N %_ -
+      iapply hookGateOpt_none r _ tl iprop(emp) Htlok
+      iframe Htl
+    isplitr
+    · imodintro
+      iintro %_ %_ %N %k %to %cm %_ %_ %_ -
+      iapply hookGateOpt_none r _ tl iprop(emp) Htlok
+      iframe Htl
+    isplitr
+    · imodintro
+      iintro %_ %b %N %to %mm %_ %_ -
+      iapply hookGateOpt_none r _ tl iprop(emp) Htlok
+      iframe Htl
+    · imodintro
+      iintro %_ %b %N -
+      iapply hookGateOpt_none r _ tl iprop(emp) Htlok
       iframe Htl
   inext
   iintro %err %s' %dropped ⟨Hphys, Hrc', %Hres, Herr, -⟩

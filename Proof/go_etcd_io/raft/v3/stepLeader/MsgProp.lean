@@ -208,6 +208,8 @@ local macro "cc_accept_tail" : tactic => `(tactic| (
     try wp_auto
     wp_apply raft.wp_store_pendingConfIndexC $$ Hphys as Hphys
     -- (2026-11-08) the trace hook: the logger field, and the decoded change, read
+    -- (slice 9) untraced: a traced node proposes no conf change (`Htrcc`, the Draft's P3)
+    have Htr : s.gh.tr = none := Htrcc He_lookup (by first | exact Or.inl H1 | exact Or.inr H2)
     icases ownRaftPhysC_traceLogger _ _ _ _ (by tr_none) $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
     first
     | (ihave Hcci := ownConfChangeI_v1_intro _ _ _ $$ Hown
@@ -297,7 +299,12 @@ body's calls are one slice `es0`; an entry is read by `Entry.GetType`/`GetData` 
 decoded by the `proto.UnmarshalConfChange(V2)` axioms over `ccEntOk`), a refused change's slot
 gets a fresh `&pb.Entry{Type: EntryNormal.Enum()}`, frozen (`entRO_normal_of_struct`); the
 refusal's log line formats the change by `DescribeConfChange` (a trust-boundary axiom);
-`appendEntry` takes the slice as `entsPts` and clones it. -/
+`appendEntry` takes the slice as `entsPts` and clones it.
+
+(2026-11-10, Q8 stage 1 slice 9; until then the premise `s.gh.tr = none`) `appendEntry`'s two gates
+(`G` to `Gp1`: the `Replicate` lines of the loop's batch, at `s`, since no event field reads
+`pendingConfIndex`; `Gp1` to `Gp2`: the self-acknowledgement at `propAppended`) and `bcastAppend`'s
+per-peer gate there, `Gp2` to `Gp2`; `Gp2` back when the batch is appended, `G` when dropped. -/
 theorem wp_stepLeader_prop
     (wp_raft_bcastAppend : raft.bcastAppend.spec (GF := GF) (hG := hG))
     (wp_raft_appendEntry : raft.appendEntry.spec (GF := GF) (hG := hG))
@@ -317,20 +324,38 @@ theorem wp_stepLeader_prop
     (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (cs : List (Option ConfChangeIM)) (k0 : Nat)
     (Hty : m.Type' = MsgProp) (Hne : ents ≠ [])
     (Hsmall : (ents.length : Int) < 2^61) (Hnz : s.term ≠ W64 0) (Hlead : s.role = .leader)
-    (Htr : s.gh.tr = none) :
+    -- (slice 9) the conf-change hook (`traceChangeConfEvent`) is untraced: a traced node proposes no
+    -- conf change (the Draft's P3)
+    (Hncc : s.gh.tr ≠ none → ∀ e ∈ ents, ¬ IsConfEnt e)
+    (G Gp1 Gp2 : IProp GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
-        msgIn ml (DFrac.own 1) ⟨m, ents, sn, ctx, rs⟩ ∗ ccEntsOk ents cs ∗ ⧖ k0 }}
+        msgIn ml (DFrac.own 1) ⟨m, ents, sn, ctx, rs⟩ ∗ ccEntsOk ents cs ∗ ⧖ k0 ∗
+        "HG" ∷ G ∗
+        "Hgrep" ∷ (G -∗ HookGateN s.gh.tr r (NodeEvOf (W64 5) id s c)
+          (normalCount (leaderPropConf s ents cs c.joint).1) Gp1) ∗
+        "Hgack" ∷ (Gp1 -∗ HookGateOpt s.gh.tr r
+          (sendOutGate id (propAppended s (leaderPropConf s ents cs c.joint).1) c MsgAppResp
+            [selfAck id (propAppended s (leaderPropConf s ents cs c.joint).1)]) Gp2) ∗
+        "#Hgapp" ∷ □ (∀ (to : w64) (mm : Msg), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
+          ⌜AppOk id (toPState (propAppended s (leaderPropConf s ents cs c.joint).1)) mm ∧
+            mm.commit = s.logst.committed ∧ mm.dst = to⌝ -∗ Gp2 -∗
+          HookGateOpt s.gh.tr r
+            (sendOutGate id (propAppended s (leaderPropConf s ents cs c.joint).1) c MsgApp [mm]) Gp2) ∗
+        "#Hnosnap" ∷ TrNoSnap s.gh.tr s.logst }}
       (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #ml))
     {{ (err : GoInterface) (s' : NState) (dropped : Bool), RET #err;
         ownRaftPhysCV c c.voters r id s' ∗
         (⌜dropped = false⌝ -∗ ⧖ (k0 + ents.length)) ∗
         ⌜LeaderProposeResult id s ents dropped s' c.joint⌝ ∗
         (if dropped then globalAddr ErrProposalDropped ↦□ err
-         else ⌜err = interface.nil⌝) }} := by
-  -- (Q8 stage 1, slice 6) the untraced instance (`TracedUntracedSend.lean`)
-  have wp_raft_bcastAppend := raft.bcastAppend.untraced wp_raft_bcastAppend
-  have wp_raft_appendEntry := raft.appendEntry.untraced wp_raft_appendEntry
-  wp_start as ⟨Hphys, Hm, #Hcc, #Hrc⟩
+         else ⌜err = interface.nil⌝) ∗
+        (if dropped then G else Gp2) }} := by
+  wp_start as ⟨Hphys, Hm, #Hcc, #Hrc, HG, Hgrep, Hgack, #Hgapp, #Hnosnap⟩
+  have Htrcc : ∀ {k : Nat} {e : EntryM}, ents[k]? = some e → IsConfEnt e → s.gh.tr = none := by
+    intro k e hk he
+    cases htr : s.gh.tr with
+    | none => rfl
+    | some g => exact absurd he (Hncc (by simp [htr]) e (List.mem_of_getElem? hk))
   ihave %Hct := ccEntsOk_types ents cs $$ Hcc
   ihave %Hlv := ccEntsOk_leaveOk ents cs $$ Hcc
   have Hcslen : cs.length = ents.length := (List.Forall₂.length_eq Hct).symm
@@ -376,6 +401,7 @@ theorem wp_stepLeader_prop
     · ipureintro
       exact ⟨cs, Hct, Hlv, by simp⟩
     simp only [↓reduceIte]
+    iframe HG
     iexact ErrPropDropped
   | some pr =>
   obtain ⟨p, Hpvs⟩ : ∃ p, s.prvals !! id = some p := by
@@ -406,6 +432,7 @@ theorem wp_stepLeader_prop
     · ipureintro
       exact ⟨cs, Hct, Hlv, by simp⟩
     simp only [↓reduceIte]
+    iframe HG
     iexact ErrPropDropped
   rw [decide_eq_true Hlt]
   wp_auto
@@ -654,13 +681,22 @@ theorem wp_stepLeader_prop
       simp only [leaderPropConf]
       rw [propConf_length, Hcslen, Nat.min_self]; exact Hsmall
     wp_apply wp_raft_appendEntry c r id { s with pci := (leaderPropConf s ents cs c.joint).2 } _
-        (leaderPropConf s ents cs c.joint).1 (DFrac.own 1) k0 Hlen' Hnz (by tr_none) $$ [$Hphys Hes $Hrc]
+        (leaderPropConf s ents cs c.joint).1 (DFrac.own 1) k0 G Gp1 Gp2 Hlen' Hnz
+        $$ [$Hphys Hes $Hrc $HG Hgrep Hgack]
       as %acc ⟨#Hrc1, -, -, Hphys⟩
-    · iunfold entsPts
-      iexists els
-      iframe Hes Hents
+    · isplitl [Hes]
+      · iunfold entsPts
+        iexists els
+        iframe Hes Hents
+      -- (slice 9) the gates, at the state with `pendingConfIndex` moved (which no event reads)
+      isplitl [Hgrep]
+      · iintro HG
+        iapply hookGateN_congr _ _ r _ _ _ Gp1 (by rfl) (by rfl) $$ (Hgrep $$ HG)
+      iintro HG1
+      iapply hookGateOpt_congr _ _ r _ _ Gp2 (by rfl) (by rfl) $$ (Hgack $$ HG1)
     cases acc <;> simp only [Bool.false_eq_true, ↓reduceIte]
     · -- dropped
+      icases Hphys with ⟨Hphys, HG⟩
       wp_auto
       iapply HΦ $$ %errPropDropped %_ %true
       iframe Hphys
@@ -670,10 +706,18 @@ theorem wp_stepLeader_prop
       · ipureintro
         exact ⟨cs, Hct, Hlv, by simp⟩
       simp only [↓reduceIte]
+      iframe HG
       iexact ErrPropDropped
-    · wp_auto
-      wp_apply wp_raft_bcastAppend c r id _ (by exact Hlead) (by first | exact Htz | exact Hnz | simpa using Htz | simpa using Hnz | simp_all) (by tr_none) $$ [$Hphys]
-        as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
+    · icases Hphys with ⟨Hphys, HG2⟩
+      wp_auto
+      wp_apply wp_raft_bcastAppend c r id _ Gp2 (by exact Hlead) (by exact Hnz) $$ [$Hphys $HG2]
+        as %ms %pvs ⟨Hphys, %Hms, %Hmm, HG2⟩
+      · -- (slice 9) `bcastAppend`'s gate, at the appended state
+        isplitr
+        · imodintro
+          iintro %to %mm %Hto %Hmm HG
+          iapply hookGateOpt_congr _ _ r _ _ Gp2 (by rfl) (by rfl) $$ (Hgapp $$ %to %mm %Hto %Hmm HG)
+        iapply trNoSnap_logst _ _ _ _ (by rfl) (by rfl) (by rfl) $$ Hnosnap
       iapply HΦ $$ %interface.nil %_ %false
       iframe Hphys
       isplitr
@@ -688,7 +732,9 @@ theorem wp_stepLeader_prop
         simp only [Bool.false_eq_true, ↓reduceIte]
         exact ⟨ms, pvs, rfl, Hms, Hmm⟩
       simp only [Bool.false_eq_true, ↓reduceIte]
-      ipureintro; trivial
+      isplitr [HG2]
+      · ipureintro; trivial
+      iexact HG2
 
 
 end proof
