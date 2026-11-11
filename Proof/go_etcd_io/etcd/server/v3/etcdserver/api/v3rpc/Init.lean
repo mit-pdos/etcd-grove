@@ -108,10 +108,10 @@ axiom initFuncsOk :
     ∀ f ∈ ([init.«0»] : List GoString),
     {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
 
-/-- `toGRPCErrorMap = map[error]error{...}` (`util.go`): a map whose values are `rpctypes.ErrGRPC*` errors (and `ErrTooManyRequests`, `ErrMemberNotEnoughStarted`), non-nil. -/
+/-- `toGRPCErrorMap = map[error]error{...}` (`util.go`): a map whose values are `rpctypes.ErrGRPC*` errors (and `ErrTooManyRequests`, `ErrMemberNotEnoughStarted`), non-nil; mvcc's `ErrFutureRev` and `ErrCompacted` (the values of their cells) map to `ErrGRPCFutureRev` and `ErrGRPCCompacted`, and no other key maps to an error with one of those two descriptions, nor has one itself (k8s etcd3 7c: `grpcErrMapOk`), and the two have their `errors.New` descriptions (`kvstore.go:38-39`; k8s etcd3 7c-2 part 2, G2-a); every value is one grpc's `status.FromError` accepts (`statusErrOk`; k8s etcd3 7c, HS-6: the `status.Error`s and the two `EtcdError`s, leaves with only `Code` and `Error`); the value of each variable of `grpcErrKeyGlobals` (the literal's 53 keys) is a key (k8s etcd3 7c-2 part 2, S2: stated as a persistent wand on the variable's persisted cell, asserting no cell of another package). -/
 axiom toGRPCErrorMap_init :
     {{ (True : IProp GF) }} (App (Val toGRPCErrorMap.init) (Val #()))
-    {{ RET #(); ∃ (mp : Loc) (M : GMap GoInterface GoInterface), globalAddr toGRPCErrorMap ↦ mp ∗ mp ↦$□ M ∗ ⌜∀ k v, M !! k = some v → v ≠ GoInterface.nil⌝ }}
+    {{ RET #(); ∃ (mp : Loc) (M : GMap GoInterface GoInterface) (kf kc : GoInterface), globalAddr toGRPCErrorMap ↦ mp ∗ mp ↦$□ M ∗ globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev ↦□ kf ∗ globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted ↦□ kc ∗ □ (∀ (k v : GoInterface), ⌜M !! k = some v⌝ → go_etcd_io.etcd.cache.v3.statusErrOk v) ∗ □ (∀ (g : GoString) (k : GoInterface), ⌜g ∈ grpcErrKeyGlobals⌝ → globalAddr g ↦□ k -∗ ⌜(M !! k).isSome⌝) ∗ ⌜grpcErrMapOk M kf kc⌝ }}
 
 /-- `clientRequests = prometheus.NewCounterVec(..., []string{"type", "client_api_version"})`
 (`metrics.go`): a `*CounterVec` with those label names (`vecLabels`). -/
@@ -280,18 +280,19 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply watchSendLoopWatchStreamDurationPerEvent_init as ⟨%hwatchSendLoopWatchStreamDurationPerEvent, HwatchSendLoopWatchStreamDurationPerEvent, #SwatchSendLoopWatchStreamDurationPerEvent⟩
   wp_apply watchSendLoopControlStreamDuration_init as ⟨%hwatchSendLoopControlStreamDuration, HwatchSendLoopControlStreamDuration, #SwatchSendLoopControlStreamDuration⟩
   wp_apply watchSendLoopProgressDuration_init as ⟨%hwatchSendLoopProgressDuration, HwatchSendLoopProgressDuration, #SwatchSendLoopProgressDuration⟩
-  wp_apply toGRPCErrorMap_init as ⟨%mptoGRPCErrorMap, %MtoGRPCErrorMap, HtoGRPCErrorMap, #StoGRPCErrorMap, %PtoGRPCErrorMap⟩
+  wp_apply toGRPCErrorMap_init as ⟨%mptoGRPCErrorMap, %MtoGRPCErrorMap, %kftoGRPCErrorMap, %kctoGRPCErrorMap, HtoGRPCErrorMap, #StoGRPCErrorMap, #FtoGRPCErrorMap, #CtoGRPCErrorMap, #VtoGRPCErrorMap, #KtoGRPCErrorMap, %PtoGRPCErrorMap⟩
   -- translated initializer of progressReportInterval))
   wp_apply (initFuncsOk init.«0» (by mem_tac))
   ipersist HtoGRPCErrorMap
   ipersist HclientRequests
   ihave Hri : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd22
-  icases Hri with ⟨-, #RCP, -, -, -, -, -, -, ⟨%eNSL, #HNSL, -⟩, -, -, #V0, #V1, #V2, #V3, #V4, #V5, #V6, #V7, #V8, #V9, #V10, #V11, #V12, #V13, #RW0, #RW1, #RW2, #RW3, #RW4, -⟩
+  icases Hri with ⟨-, ⟨%eRCP, #RCPa, #RCPs, -⟩, -, -, -, -, -, -, ⟨%eNSL, #HNSL, -, -, #SNSL⟩, -, -, #V0, #V1, #V2, #V3, #V4, #V5, #V6, #V7, #V8, #V9, #V10, #V11, #V12, #V13, #RW0, #RW1, #RW2, #RW3, #RW4, -⟩
   ihave Hpi : (go_etcd_io.etcd.cache.v3.etcdserverpbInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd2
   icases Hpi with ⟨#HSO, #HST, #HDescs⟩
-  ihave ⟨#HCL, -⟩ := EtcdGrove.ContextReadErrs.errs $$ Hd1
+  ihave ⟨#HCL, -⟩ := EtcdGrove.ContextReadErrs.errs_strong $$ Hd1
+  ihave #HCD := EtcdGrove.ContextReadErrs.descs $$ Hd1
   ihave #HCP : (∃ e : GoInterfaceOk, globalAddr _root_.Perennial.context.Canceled ↦□ GoInterface.ok e ∗
       ⌜_root_.Perennial.errors.IsPointerError e⌝ : IProp GF) $$ []
   · iunfold EtcdGrove.errVarLeaf at HCL
@@ -333,12 +334,15 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   ihave #WEWR := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NEWR
   ihave #WWDI := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NWDI
   -- `rpctypes`'
+  ihave #RCP : iprop(∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrCompacted ↦□ GoInterface.ok e ∗
+      go_etcd_io.etcd.cache.v3.errorStringSpec e) $$ []
+  · iexists eRCP; iframe #
   ihave #MCP := EtcdGrove.v3rpc.msgErrVar_of_spec _ $$ RCP
   ihave #MRW0 := EtcdGrove.v3rpc.msgErrVar_of_spec _ $$ RW0
   ihave #MRW1 := EtcdGrove.v3rpc.msgErrVar_of_spec _ $$ RW1
   ihave #MRW2 := EtcdGrove.v3rpc.msgErrVar_of_spec _ $$ RW2
   ihave #MRW3 := EtcdGrove.v3rpc.msgErrVar_of_spec _ $$ RW3
-  ihave #MRW4 := EtcdGrove.v3rpc.msgErrVar_of_spec _ $$ RW4
+  ihave #MRW4 := EtcdGrove.v3rpc.statusMsgErrVar_of_spec _ $$ RW4
   -- the metrics
   ipersist HstreamFailures
   ipersist HwatchSendLoopWatchStreamDuration
@@ -376,7 +380,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
     exact isPanic_intoVal _
   is_pkg_init_finish
   imodintro
-  unfold v3rpcInit EtcdGrove.v3rpc.watchPkgVars grpcErrMap checkErrVars sortNameMaps ctxCanceledPtr interceptorVars errVarSet EtcdGrove.v3rpc.metricsVars
+  unfold v3rpcInit EtcdGrove.v3rpc.watchPkgVars grpcErrMap checkErrVars sortNameMaps ctxCanceledPtr ctxErrDescs interceptorVars errVarSet EtcdGrove.v3rpc.metricsVars
   iframe #
   ipureintro
   exact PtoGRPCErrorMap

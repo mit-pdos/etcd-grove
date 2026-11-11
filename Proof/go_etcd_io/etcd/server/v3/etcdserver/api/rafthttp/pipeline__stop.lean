@@ -41,7 +41,8 @@ theorem rafthttp.pipeline.stop.wp_proof
   icases Hh with ⟨#Hs, -⟩
   iunfold pipeSenderOk at Hs
   icases Hs with ⟨%tr, %pk, %sc', %ec, %γs', %lg, %urls, %uvs, %lid, %cid, %rt, #Htr, -, -, -,
-    #Hto, #Hlg, %Hlgnn, -, -, #Hlid, -, -, -, -, -⟩
+    #Hto, #Hlg, #Hlgz, -, -, #Hlid, -, -, -, -, -⟩
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgz
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   wp_auto
@@ -64,7 +65,7 @@ theorem rafthttp.pipeline.stop.wp_proof
   iintro %fsl ⟨-, -⟩
   (try wp_auto)
   wp_apply hInfo lg _ _ $$ []
-  · iframe #; ipureintro; exact Hlgnn
+  · iframe #
   (try wp_auto)
   imodintro; iapply HΦ; itrivial
 

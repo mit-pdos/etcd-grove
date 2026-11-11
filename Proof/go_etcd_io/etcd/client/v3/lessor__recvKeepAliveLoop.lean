@@ -51,7 +51,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
   wp_start as ⟨#Hl, #Hstr, #Heof, #Hall, #Htg, #Hdc0, Hpend⟩
   ihave #Hl' := Hl
   iunfold lessorAt at Hl'
-  icases Hl' with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, #Hdc, #Hdcu, #Hsc, #Hscc, #Hlg, %Hlgnn, #Hd,
+  icases Hl' with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, #Hdc, #Hdcu, #Hsc, ⟨#Hscc, #HscO⟩, #Hlg, #Hlgok, #Hd,
     #Hrem, #Hmu, #Honce⟩
   icombine Hdc0 Hdc gives %Hdceq
   subst Hdceq
@@ -106,7 +106,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
         · iframe #
         cases b
         · (try wp_auto)
-          wp_apply wp_ContextError sc scd (GoInterface.ok rei) $$ [] as %err' ⟨%Herr', #Hse', -⟩
+          wp_apply wp_ContextError sc scd (GoInterface.ok rei) $$ [] as %err' ⟨%Herr', #Hse', -, -⟩
           · iframe #; ipureintro; exact fun _ => Hce.2
           (try wp_auto)
           ihave #Hrp : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes $$ []
@@ -153,7 +153,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
               iintro -
               (try wp_auto)
               ihave #HU := Hsce' $$ %Broadcast.Unknown
-              wp_apply HU $$ [] as %e0 - %- - -
+              wp_apply HU $$ [] as %e0 - %- - - -
               (try wp_auto)
               wp_for_post
               (try wp_auto)
@@ -265,7 +265,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
               iintro -
               (try wp_auto)
               ihave #HU := Hsce' $$ %Broadcast.Unknown
-              wp_apply HU $$ [] as %e0 - %- - -
+              wp_apply HU $$ [] as %e0 - %- - - -
               (try wp_auto)
               wp_for_post
               (try wp_auto)
@@ -417,7 +417,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
         · iframe #
         cases b
         · (try wp_auto)
-          wp_apply wp_ContextError sc scd (GoInterface.ok rei) $$ [] as %err' ⟨%Herr', #Hse', -⟩
+          wp_apply wp_ContextError sc scd (GoInterface.ok rei) $$ [] as %err' ⟨%Herr', #Hse', -, -⟩
           · iframe #; ipureintro; exact fun _ => Hce.2
           (try wp_auto)
           ihave #Hrp : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes $$ []
@@ -464,7 +464,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
               iintro -
               (try wp_auto)
               ihave #HU := Hsce' $$ %Broadcast.Unknown
-              wp_apply HU $$ [] as %e0 - %- - -
+              wp_apply HU $$ [] as %e0 - %- - - -
               (try wp_auto)
               wp_for_post
               (try wp_auto)
@@ -576,7 +576,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
               iintro -
               (try wp_auto)
               ihave #HU := Hsce' $$ %Broadcast.Unknown
-              wp_apply HU $$ [] as %e0 - %- - -
+              wp_apply HU $$ [] as %e0 - %- - - -
               (try wp_auto)
               wp_for_post
               (try wp_auto)
@@ -734,7 +734,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
       iintro %fsl ⟨-, -⟩
       (try wp_auto)
       wp_apply wp_Warn lg _ _ $$ []
-      · iframe #; ipureintro; exact Hlgnn
+      · iframe #
       (try wp_auto)
       wp_apply wp_canceledByCaller sc scd _ $$ [] as %b -
       · iframe #
@@ -775,7 +775,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
           iintro -
           (try wp_auto)
           ihave #HU := Hsce' $$ %Broadcast.Unknown
-          wp_apply HU $$ [] as %e0 - %- - -
+          wp_apply HU $$ [] as %e0 - %- - - -
           (try wp_auto)
           wp_for_post
           (try wp_auto)

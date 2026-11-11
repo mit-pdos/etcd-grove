@@ -7,6 +7,7 @@ Go code below.
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvBoot
+public import Spec.go_uber_org.zap.Defs
 
 @[expose] public section
 
@@ -57,7 +58,7 @@ at the etcd pin):
   takes only at `on = true`: with `on = false` it stays disabled.
 * Each write method (the admin requests, `AuthDisable`) takes the batch lock inside the apply
   (`Lock` = `LockInsideApply`: the backend open, a share lent in `mvcc.bkRTx`, and the frozen hook
-  run under `Pk`, `csContract Pk f`), puts into the auth buckets (hook buckets for the readers'
+  run under `Pk`, `srvApi.csContractA Pk f`), puts into the auth buckets (hook buckets for the readers'
   view: unchanged), and unlocks with one write-back (its `Commit` and `AuthEnable`'s
   `ForceCommit` write none back; the backend's specs of `Commit`/`ForceCommit` charge a token, a
   coarser accounting than the code's). Its puts are into tracked buckets (D22, 2026-10-23): each
@@ -78,7 +79,7 @@ at the etcd pin):
   half; `Recover` (names-only) needs both halves, the write lock's and the caller's. Until S7c the
   contract was for `d` only, which `Recover` falsifies.
 * (D22 J1a, 2026-10-26; `notes/decisions.md`, "D22 J1a"; until then S8d's named premise
-  `srvAuthRecoverOk` of `applySnapshot.specSnap`) **`Recover` on a later backend**
+  `srvAuthRecoverOk` of `applySnapshot.specSnapM`) **`Recover` on a later backend**
   (`authRecoverOk stl`): `Recover(ab)` (`store.go:399-418`) takes `beMu`'s write lock to set
   `as.be` (the lock's half of `as.be` and the caller's, `authBeOn stl oldbe`, become the new
   backend's), then a read transaction of the new backend (`ReadTx`'s `RLock`/`RUnlock`: with a
@@ -100,13 +101,20 @@ at the etcd pin):
   (`TestBksRecoverIdleAuthOtherPending`). The store stays disabled, so its contracts above (stated
   for auth off) hold after it, and `RD` names no backend's read right (the checks return before
   reading the backend).
+* (R2b-3d stage 5b, 2026-11-05, the user's decision) **`Close`** (`authCloseOk stl`, persistent):
+  `Close()` (`store.go:327-335`) takes `enabledMu`'s write lock (made by `NewAuthStore`; the lock is
+  only ever held for the length of a method, so no `Close` finds it held for good, and a WP is
+  partial anyway), reads `enabled`, false (the store stays disabled: above), so it does not call the
+  token provider's `disable()`, unlocks and returns `nil`. It reads nothing else and writes nothing,
+  so any number of `Close`s, before or after the other methods, is fine (`TestBksCloseAfterNew`,
+  `notes/axiom-review/auth-close.md`).
 -/
 abbrev auth.NewAuthStore.spec : Prop :=
   ∀ (lg : Loc) (ab tp : GoInterface) (cost : w64) (abl : Loc) (d : mvcc.KBReal)
     (W Pk : IProp GF) (qo : Qp) (S : GoString → Prop) (r : GMap GoString backend.BktData),
   (∀ n, auth.authBkts n → S n) →
   d.P.has mvcc.authBI → d.P.has mvcc.authUsersBI → d.P.has mvcc.authRolesBI →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ ⌜lg ≠ null⌝ ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ zapLoggerOrNil lg ∗
       ⌜tp ≠ GoInterface.nil⌝ ∗ ⌜authRecordsFit⌝ ∗
       ⌜ab = interface.mkOk
         (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authBackend.ty) #abl⌝ ∗
@@ -126,7 +134,7 @@ abbrev auth.NewAuthStore.spec : Prop :=
       ∃ (RD : IProp GF) (stl : Loc), ⌜st = auth.authIface stl⌝ ∗ authBeOn stl d.be ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), RD) ∗
       isReqAuth st RD ∗ authApplyOk stl RD ∗
-      authRecoverOk stl }}
+      authRecoverOk stl ∗ authCloseOk stl }}
 
 end spec
 

@@ -38,21 +38,29 @@ lease (`acLessor C`), in the environment's mode, it sets the snapshot defaults, 
 the pure premise `receiptBound GF ≤ N + 1`); it returns the server's persistent views in the
 mode (`isServerReqM`, at the wait's fresh names, and `isServerReadM`), the store's range check at a
 reader's lower bound (`srvAuthLb`, trivial with auth off), and what `Start`'s goroutines and the
-request path's get (`srvStarted`, at the mode's model state). A new server: the apply thread from
-index `0` (each applied entry takes a write token, which bounds the applied index,
+request path's get (`srvStarted`, at the mode's model state), and (H2, 2026-11-05) the write
+budget with its register set to `GoAttach`'s receipts' name `γg.run`, with `Start`'s reader slot of
+`wgMu` at `γg` (so that the storage-version monitor `Start` attaches runs with a receipt at the
+registered name), and (R2c-4) the right to stop the server (`srvStopRight`, at its raft names
+`ρ.rd.raft.raft`, its member id and the configuration's data directory): `start` makes `stop`,
+on which `run` receives the stop requests, and `done`, whose close announces the stopped server's
+image escrowed for the right's claim (until then `run` never stopped). A new server: the apply
+thread from index `0` (each applied entry takes a write token, which bounds the applied index,
 `srvWTPool_bound`). -/
 abbrev EtcdServer.start.spec : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (C : AuthC) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames) (b : GoInterface)
     (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      ⌜E.authMode = C.mode ∧ acReceiptOk (GF := GF) C ∧ receiptBound GF ≤ N + 1 ∧ ai₀ = W64 0⌝ ∗
+      ⌜E.authMode = C.mode ∧ receiptBound GF ≤ 2 ^ 48 ∧ receiptBound GF ≤ N + 1 ∧ ai₀ = W64 0⌝ ∗
       isServerBuiltC C s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N ∗ acLessor C s }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"start")) (Val #()))
   {{ RET #(); ∃ γw : GName, isServerReqM C.isOn s E { ρ with wait := γw } ∗
       isServerReadM C.isOn s E γr ∗ srvAuthLb s E ∗
       srvStarted s γr ρ Er.RQ (kvStM C.isOn γr.kv) ∗
-      ∃ γp : GName, srvWTPool E γp }}
+      ∃ (γp : WTNames) (γg : GoNames), srvWTPool E γp ∗
+        dghostVar γp.reg DFrac.discard (some γg.run) ∗ srvWgReaderAt s γg ∗
+        ∃ dd : GoString, srvStopRight s E ρ.rd.raft.raft ρ γn.id dd }}
 
 end spec
 

@@ -38,14 +38,14 @@ local macro "notify_nc_clause" : tactic => `(tactic| (
   iapply broadcast_chan_receive _ _ _ _ _ $$ Hbc
   iintro ⟨#HQ, -⟩
   iunfold notified at HQ
-  icases HQ with ⟨%err, #He, #HerrE, #Hor⟩
+  icases HQ with ⟨%err, #He, #HerrE, #HrE, #Hor⟩
   icases Hor with (%Hne | #Hfz)
   · wp_auto
-    iapply HΦ; iunfold readReader; iframe Hrr HerrE; iintro %h; exact absurd h Hne
+    iapply HΦ; iunfold readReader; iframe Hrr HerrE HrE; iintro %h; exact absurd h Hne
   · imod read_frozenOk_readIndexOk γn γr c $$ Hfz Hlb with #Hok
     imod read_frozenOk_served γn γr c k g $$ Hfz Hlb Hidx with #Hsv
     wp_auto
-    iapply HΦ; iunfold readReader; iframe Hrr HerrE; iintro -; iframe Hok Hsv))
+    iapply HΦ; iunfold readReader; iframe Hrr HerrE HrE; iintro -; iframe Hok Hsv))
 
 set_option hygiene false in
 /-- The server's `Done()` case of the final `select`: `ErrStopped`. -/
@@ -60,7 +60,10 @@ local macro "notify_done_clause" : tactic => `(tactic| (
   iintro ⟨-, -⟩
   ihave ⟨%eS, #HeS, #HaS⟩ := errVarLeaf_get _ $$ HStop
   wp_auto
-  iapply HΦ; iunfold readReader; iframe Hrr HaS; iintro %h; cases h))
+  iapply HΦ; iunfold readReader; iframe Hrr HaS
+  isplitr
+  · iunfold readErrIs; iright; iright; ileft; iexact HeS
+  iintro %h; cases h))
 
 theorem read.Read.LinearizableReadNotify.wp_proof
     (hED : context.ErrDone.spec (GF := GF) (hG := hG)) :
@@ -125,6 +128,7 @@ theorem read.Read.LinearizableReadNotify.wp_proof
     iunfold mvcc.doneNil at Hnil
     wp_apply Hnil
     wp_apply HD as %chS #HchS
+    icases HchS with ⟨%QS, #HchS⟩
     iunfold bcastChan at HchS
     icases HchS with ⟨%γS, #HchS⟩
     wp_apply_core chan.wp_select_blocking_nil
@@ -143,6 +147,7 @@ theorem read.Read.LinearizableReadNotify.wp_proof
     iNamed Hcctx'
     wp_apply HDone as %chD %γD #HcD
     wp_apply HD as %chS #HchS
+    icases HchS with ⟨%QS, #HchS⟩
     iunfold bcastChan at HchS
     icases HchS with ⟨%γS, #HchS⟩
     wp_apply_core chan.wp_select_blocking
@@ -170,13 +175,25 @@ theorem read.Read.LinearizableReadNotify.wp_proof
         · ihave #Ha := errVar_applyErrIs _ (GoInterface.ok ce) $$ HCan
           ihave #Ha' : applyErrIs (GF := GF) (GoInterface.ok ce) $$ []
           · iapply Ha; iexists ce; iframe Hcv; ipureintro; rfl
-          iapply HΦ; iunfold readReader; iframe Hrr Ha'; iintro %h; cases h
+          ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
+          · iPkgInit
+          iapply HΦ; iunfold readReader; iframe Hrr Ha'
+          isplitr
+          · iunfold readErrIs; iright; ileft
+            iapply context.isCtxErr_of_Canceled $$ Pctx Hcv
+          iintro %h; cases h
         · icases HDE with ⟨%eD, #HeD, %HDl, #HDm⟩
           icombine Hcv HeD gives %Hce
           cases Hce
-          obtain ⟨hl, hIs, hty, hkey⟩ := HDl
-          ihave #Ha := applyErrIs_valLeaf _ hl hIs hty hkey $$ HDm
-          iapply HΦ; iunfold readReader; iframe Hrr Ha; iintro %h; cases h
+          obtain ⟨hl, hIs, hty, hkey, hG, hF⟩ := HDl
+          ihave #Ha := applyErrIs_valLeaf _ hl hIs hty hkey hG hF $$ HDm
+          ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
+          · iPkgInit
+          iapply HΦ; iunfold readReader; iframe Hrr Ha
+          isplitr
+          · iunfold readErrIs; iright; ileft
+            iapply context.isCtxErr_of_DeadlineExceeded $$ Pctx HeD
+          iintro %h; cases h
     iapply BigAndL.bigAndL_cons.2
     isplit
     · notify_done_clause

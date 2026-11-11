@@ -16,6 +16,8 @@ public import Spec.k8s_io.apiserver.pkg.storage.etcd3.compactor__UpdateCompactRe
 public import Spec.k8s_io.apimachinery.pkg.util.wait.ContextForChannel
 public import Spec.k8s_io.apimachinery.pkg.util.wait.channelContext__Done
 public import Spec.k8s_io.apimachinery.pkg.util.wait.channelContext__Err
+public import Spec.k8s_io.apimachinery.pkg.util.wait.channelContext__Deadline
+public import Spec.k8s_io.apimachinery.pkg.util.wait.channelContext__Value
 public import Spec.k8s_io.utils.clock.RealClock__After
 public import Spec.k8s_io.klog.v2.Errorf
 public import Spec.go_etcd_io.etcd.client.v3.Client__Endpoints
@@ -41,6 +43,8 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
+variable [ctxDescs : EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
 variable [sync_sem : sync.Assumptions]
 variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
@@ -48,6 +52,8 @@ theorem compactor.runCompactLoop.wp_proof
     (wp_ContextForChannel : wait.ContextForChannel.spec (GF := GF) (hG := hG))
     (wp_Done : wait.channelContext.Done.spec (GF := GF) (hG := hG))
     (wp_Err : wait.channelContext.Err.spec (GF := GF) (hG := hG))
+    (wp_Deadline : wait.channelContext.Deadline.spec (GF := GF) (hG := hG))
+    (wp_Value : wait.channelContext.Value.spec (GF := GF) (hG := hG))
     (wp_ClockAfter : clock.RealClock.After.spec (GF := GF) (hG := hG))
     (wp_Compact : Compact.spec (GF := GF) (hG := hG))
     (wp_UpdateCompactRevision : compactor.UpdateCompactRevision.spec (GF := GF) (hG := hG))
@@ -68,7 +74,7 @@ theorem compactor.runCompactLoop.wp_proof
   · iPkgInit
   ihave #Pklog : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.klog.v2 $$ []
   · iPkgInit
-  ihave ⟨#Hctx, #Hce⟩ := chanCtx_ok wp_Err EtcdGrove.rpctypesEtcdError_asTarget sc γs γi iprop(True)
+  ihave ⟨#Hctx, #Hce⟩ := chanCtx_ok wp_Done wp_Err wp_Deadline wp_Value EtcdGrove.rpctypesEtcdError_asTarget sc γs γi iprop(True)
     $$ [Pw Hint]
   · iframe #
   (try wp_auto)

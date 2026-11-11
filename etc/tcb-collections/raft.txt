@@ -20,15 +20,12 @@
 roots ^Proof/go_etcd_io/raft/v3/(Link|Results)\.lean$
 axiom DescribeConfChange.wp_proof
 axiom ccDecodeV2_nil
-axiom context.ErrAny.wp_proof
 axiom fmt.Errorf.wp_proof
 axiom proto.CloneConfState.wp_proof
 axiom proto.CloneEntry.wp_proof
 axiom proto.CloneSnapshot.wp_proof
-axiom proto.EqualConfState.wp_proof
 axiom proto.MarshalConfChange.wp_proof
 axiom proto.MarshalConfChangeV2.wp_proof
 axiom proto.SizeEntry.wp_proof
 axiom proto.UnmarshalConfChange.wp_proof
 axiom proto.UnmarshalConfChangeV2.wp_proof
-axiom raftpb.ConfChangeType.String.wp_proof

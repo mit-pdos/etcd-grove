@@ -9,7 +9,10 @@ errors by `EtcdGrove.ErrorStringLeaf`). Its precondition has the read package's
 registration rights (`EtcdGrove.read.readRegPerm`, decision D16), which it passes on to the read
 package's initializer. (D19r (C), 2026-10-18) And `raftStatusMu` (`raft.go`), initialized here,
 guarding `raftStatus` (`rnRaftStatusOk`; the names-only `init()` registers an `expvar` closure that
-reads `raftStatus` under the mutex).
+reads `raftStatus` under the mutex). (revoke-open, 2026-11-06) And the counter `leaseExpired`
+(`metrics.go`, translated: `prometheus.NewCounter` of a `CounterOpts` literal, the trust-boundary
+axioms `EtcdGrove.prometheus.wp_counterOptsLit` and `NewCounter.wp_proof`), which
+`revokeExpiredLeases` increments.
 -/
 module
 
@@ -69,6 +72,7 @@ public import Proof.go_opentelemetry_io.otel.trace.Init
 public import Proof.go_uber_org.zap.Init
 public import Proof.golang_org.x.crypto.bcrypt.Init
 public import Proof.net.http.Init
+public import Proof.github_com.prometheus.client_golang.prometheus.NewCounter
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -102,7 +106,6 @@ axiom opaqueInitsOk :
     ∀ v ∈ ([«_».init,
         learnerPromoteFailed.init,
         learnerPromoteSucceed.init,
-        leaseExpired.init,
         currentVersion.init,
         currentGoVersion.init,
         fdUsed.init,
@@ -214,6 +217,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := GoFunc) raftStatus _ as HraftStatus
   wp_apply wp_GlobalAlloc (V := _root_.Perennial.sync.Mutex) raftStatusMu _ as HraftStatusMu
+  wp_apply wp_GlobalAlloc (V := GoInterface) leaseExpired _ as HleaseExpired
   wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd57⟩
   wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.golang_org.x.crypto.bcrypt.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
@@ -353,7 +357,11 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply proposalsPending_init as ⟨%mproposalsPending, HproposalsPending, #S0proposalsPending⟩
   wp_apply proposalsFailed_init as ⟨%mproposalsFailed, HproposalsFailed, #S0proposalsFailed⟩
   wp_apply requestDurationSec_init as ⟨%vrequestDurationSec, HrequestDurationSec, #LrequestDurationSec⟩
-  wp_apply (opaqueInitsOk leaseExpired.init (by mem_tac))
+  -- translated initializer of leaseExpired))
+  wp_apply EtcdGrove.prometheus.wp_counterOptsLit as %oLE %HoLE
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ HoLE (by decide) as %cLE ⟨#CLE, -⟩
+  try wp_auto
   wp_apply (opaqueInitsOk currentVersion.init (by mem_tac))
   wp_apply (opaqueInitsOk currentGoVersion.init (by mem_tac))
   wp_apply serverID_init as ⟨%vserverID, HserverID, #LserverID⟩
@@ -377,6 +385,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   ipersist HserverFeatureEnabled
   ipersist HserverID
   ipersist HrequestDurationSec
+  ipersist HleaseExpired
   imod sync.init_Mutex (iprop(∃ f : GoFunc, globalAddr raftStatus ↦ f)) ⊤ (globalAddr raftStatusMu) $$ HraftStatusMu [HraftStatus] with #HRSM
   · inext
     iexists _
@@ -461,7 +470,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   unfold srvInit srvRaftInit srvReqInit srvApplyLoopInit srvErrVars
   iframe #
   ipureintro
-  exact fun x => EtcdGrove.errorString_leaf x
+  first | exact fun x => EtcdGrove.errorString_errLeaf x | exact fun x => EtcdGrove.errorString_leaf x
 
 /-- Perennial's form with the resource (decision D16), from `wp_initialize'_res`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

@@ -5,7 +5,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.put
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.Get
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Put
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.ApiLemmas
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.Trace__AddField
 public import Proof.go_etcd_io.raft.v3.FrameH
 
@@ -20,6 +20,7 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
   go_etcd_io.etcd.server.v3.storage.mvcc
+open mvcc.api (MvccState MTxn MvccName)
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -51,7 +52,7 @@ local macro "put_prev_found" : tactic => `(tactic| (
     imod txn.kvPtrIs_kvIs pk' kv $$ Hpk with #Hkv
     ihave #Hkv0 := Hkv
     iunfold txn.kvIs at Hkv
-    icases Hkv with ⟨%keySl, %valSl, #HkK, #HkKs, #HkC, #HkM, #HkVer, #HkV, #HkVs, #HkL⟩
+    icases Hkv with ⟨%keySl, %valSl, #HkK, #HkKs, #HkC, #HkM, #HkVer, #HkV, #HkVs, #HkL, -⟩
   ))
 
 set_option hygiene false in
@@ -68,13 +69,10 @@ set_option hygiene false in
 /-- The put of value `v` (slice `vsl`, `#HVS`) with lease `l`, the trace field, and the answer
 up to its `PrevKv`, which the caller gives (all ten cases). -/
 local macro "put_reply" vsl:term:max v:term:max l:term:max : tactic => `(tactic| (
-    wp_bind (App (App (App (Val #(methods tyX _ vX)) _) _) _)
-    iapply mvcc.tw_wp3 tyX vX mw go!"Put" (by unfold mvcc.twMethod; simp)
-    iframe Hwrap
-    wp_apply (hPutM trace mw s γ ilog pend puts deletes putSize ksl $vsl k $v $l L)
-      $$ [$(frameH `Htx) $(frameH `Hks) $(frameH `HVS) $(frameH `Hlok)
+    wp_apply (hPutM γ trace te σ pend ksl $vsl k $v $l L)
+      $$ [$(frameH `Htx) $(frameH `Htrc) $(frameH `Hks) $(frameH `HVS) $(frameH `Hlok)
         $(frameH `Hown)]
-      as ⟨Htx, Hown⟩
+      as ⟨Htx, Htrc, Hown⟩
     · ipureintro; exact Hklen
     wp_apply wp_slice_literal
     isplitr
@@ -84,16 +82,11 @@ local macro "put_reply" vsl:term:max v:term:max l:term:max : tactic => `(tactic|
     ipersist RHeader
     ipersist HRevision
     ipersist RPrevKv
-    icases mvcc.isTxnWrite_trace_acc mw s γ trace _ _ _ _ _ $$ Htx with ⟨⟨%te, Htrc⟩, Hback⟩
     wp_apply (hAdd trace te _ _ _) $$ [$(frameH `Htrc) $(frameH `Hfsl)] as ⟨Htrc, -⟩
     · ipureintro
       exact traceutil.fieldsWf_cons_int _ _ _ (.int64 _) _ traceutil.fieldsWf_nil
-    ihave Htx := Hback $$ [Htrc]
-    · iexists te; iexact Htrc
     iapply HΦ
-    iframe Hown
-    isplitl [Htx]
-    · iexists _, _; iexact Htx
+    iframe Hown Htx Htrc
     isplitr [HClusterId HMemberId HRaftTerm HLeaderId]
     rotate_left
     · iunfold txn.respHdrOwn; iexists _; iframe RHeader
@@ -108,12 +101,14 @@ local macro "put_reply" vsl:term:max v:term:max l:term:max : tactic => `(tactic|
 
 set_option linter.unusedSimpArgs false in
 theorem txn.put.wp_proof
+    (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
     (hGet : traceutil.Get.spec (GF := GF) (hG := hG))
-    (hPutM : mvcc.metricsTxnWrite.Put.spec (GF := GF) (hG := hG))
     (hAdd : traceutil.Trace.AddField.spec (GF := GF) (hG := hG)) :
     txn.put.spec (GF := GF) (hG := hG) := by
-  intro trace ctx cd mw s γ ilog pend puts deletes putSize p o prev L tyX vX crev
-  wp_start as ⟨#Hctx, #Hct, Htx, #Hwrap, #Hp, Hprev, %Hneed, #Hlok, Hown⟩
+  intro ctx cd tw γ trace te σ pend p o prev L
+  wp_start as ⟨#Hctx, #Hct, Htx, Htrc, #Hp, Hprev, %Hneed, #Hlok, Hown⟩
+  icases txn.mvccTxn_shape hsh tw γ trace (.write σ pend) $$ Htx with ⟨%Hsh, Htx⟩
+  obtain ⟨tyX, vX, rfl, -, -, -, hPutM, -, -, -⟩ := Hsh
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
   · iPkgInit
   ihave #Hmv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
@@ -133,7 +128,7 @@ theorem txn.put.wp_proof
   ihave %Hhn := typedPointsto_not_null _ _ _ $$ Hhdr
   iStructNamedPrefix Hresp "R"
   iStructNamedPrefix Hhdr "H"
-  generalize hst : txn.pendState ilog pend = st at *
+  generalize hst : txn.pendState σ.log pend = st at *
   subst Ho
   simp only [txn.readsPrev, txn.needsPrev, txn.putChangeOf, txn.putValOf, txn.putLeaseOf,
     txn.putOpOf] at Hneed ⊢

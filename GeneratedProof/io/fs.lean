@@ -2,6 +2,10 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.errors
+public import Perennial.GeneratedProof.internal.oserror
+public import Perennial.GeneratedProof.io
+public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.io.fs
 
@@ -15,82 +19,6 @@ namespace Perennial
 open Iris Iris.BI
 noncomputable section
 namespace io.fs
-
-namespace FS
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : io.fs.Assumptions]
-
-noncomputable instance FS_typed_pointsto :
-    TypedPointsto (GF := GF) io.fs.FS :=
-  sorry -- axiomatized type
-
-noncomputable instance FS_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) io.fs.FS io.fs.FS.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end FS
-
-namespace File
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : io.fs.Assumptions]
-
-noncomputable instance File_typed_pointsto :
-    TypedPointsto (GF := GF) io.fs.File :=
-  sorry -- axiomatized type
-
-noncomputable instance File_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) io.fs.File io.fs.File.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end File
-
-namespace DirEntry
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : io.fs.Assumptions]
-
-noncomputable instance DirEntry_typed_pointsto :
-    TypedPointsto (GF := GF) io.fs.DirEntry :=
-  sorry -- axiomatized type
-
-noncomputable instance DirEntry_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) io.fs.DirEntry io.fs.DirEntry.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end DirEntry
-
-namespace ReadDirFile
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : io.fs.Assumptions]
-
-noncomputable instance ReadDirFile_typed_pointsto :
-    TypedPointsto (GF := GF) io.fs.ReadDirFile :=
-  sorry -- axiomatized type
-
-noncomputable instance ReadDirFile_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) io.fs.ReadDirFile io.fs.ReadDirFile.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end ReadDirFile
 
 namespace PathError
 section def_
@@ -166,44 +94,6 @@ noncomputable instance PathError_access_store_Err (l : Loc) (v : io.fs.PathError
 end def_
 end PathError
 
-namespace GlobFS
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : io.fs.Assumptions]
-
-noncomputable instance GlobFS_typed_pointsto :
-    TypedPointsto (GF := GF) io.fs.GlobFS :=
-  sorry -- axiomatized type
-
-noncomputable instance GlobFS_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) io.fs.GlobFS io.fs.GlobFS.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end GlobFS
-
-namespace ReadDirFS
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : io.fs.Assumptions]
-
-noncomputable instance ReadDirFS_typed_pointsto :
-    TypedPointsto (GF := GF) io.fs.ReadDirFS :=
-  sorry -- axiomatized type
-
-noncomputable instance ReadDirFS_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) io.fs.ReadDirFS io.fs.ReadDirFS.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end ReadDirFS
-
 namespace dirInfo
 section def_
 
@@ -213,91 +103,36 @@ variable [sem : go.Semantics]
 variable [package_sem' : io.fs.Assumptions]
 
 noncomputable instance dirInfo_typed_pointsto :
-    TypedPointsto (GF := GF) io.fs.dirInfo :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) io.fs.dirInfo where
+  typedPointstoDef l v dq := iprop(
+    "fileInfo" ∷ typedPointsto (structFieldRef io.fs.dirInfo go!"fileInfo" l) v.fileInfo' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance dirInfo_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) io.fs.dirInfo io.fs.dirInfo.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) io.fs.dirInfo io.fs.dirInfo.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance dirInfo_access_load_fileInfo (l : Loc) (v : io.fs.dirInfo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef io.fs.dirInfo go!"fileInfo" l) v.fileInfo' dq)
+      (typedPointsto (structFieldRef io.fs.dirInfo go!"fileInfo" l) v.fileInfo' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance dirInfo_access_store_fileInfo (l : Loc) (v : io.fs.dirInfo) (fileInfo' : io.fs.FileInfo) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef io.fs.dirInfo go!"fileInfo" l) v.fileInfo' (DFrac.own 1))
+      (typedPointsto (structFieldRef io.fs.dirInfo go!"fileInfo" l) fileInfo' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with fileInfo' := fileInfo' } : io.fs.dirInfo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end dirInfo
-
-namespace ReadFileFS
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : io.fs.Assumptions]
-
-noncomputable instance ReadFileFS_typed_pointsto :
-    TypedPointsto (GF := GF) io.fs.ReadFileFS :=
-  sorry -- axiomatized type
-
-noncomputable instance ReadFileFS_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) io.fs.ReadFileFS io.fs.ReadFileFS.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end ReadFileFS
-
-namespace ReadLinkFS
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : io.fs.Assumptions]
-
-noncomputable instance ReadLinkFS_typed_pointsto :
-    TypedPointsto (GF := GF) io.fs.ReadLinkFS :=
-  sorry -- axiomatized type
-
-noncomputable instance ReadLinkFS_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) io.fs.ReadLinkFS io.fs.ReadLinkFS.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end ReadLinkFS
-
-namespace StatFS
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : io.fs.Assumptions]
-
-noncomputable instance StatFS_typed_pointsto :
-    TypedPointsto (GF := GF) io.fs.StatFS :=
-  sorry -- axiomatized type
-
-noncomputable instance StatFS_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) io.fs.StatFS io.fs.StatFS.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end StatFS
-
-namespace SubFS
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : io.fs.Assumptions]
-
-noncomputable instance SubFS_typed_pointsto :
-    TypedPointsto (GF := GF) io.fs.SubFS :=
-  sorry -- axiomatized type
-
-noncomputable instance SubFS_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) io.fs.SubFS io.fs.SubFS.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end SubFS
 
 namespace subFS
 section def_
@@ -308,34 +143,53 @@ variable [sem : go.Semantics]
 variable [package_sem' : io.fs.Assumptions]
 
 noncomputable instance subFS_typed_pointsto :
-    TypedPointsto (GF := GF) io.fs.subFS :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) io.fs.subFS where
+  typedPointstoDef l v dq := iprop(
+    "fsys" ∷ typedPointsto (structFieldRef io.fs.subFS go!"fsys" l) v.fsys' dq ∗
+    "dir" ∷ typedPointsto (structFieldRef io.fs.subFS go!"dir" l) v.dir' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance subFS_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) io.fs.subFS io.fs.subFS.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) io.fs.subFS io.fs.subFS.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance subFS_access_load_fsys (l : Loc) (v : io.fs.subFS) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef io.fs.subFS go!"fsys" l) v.fsys' dq)
+      (typedPointsto (structFieldRef io.fs.subFS go!"fsys" l) v.fsys' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance subFS_access_store_fsys (l : Loc) (v : io.fs.subFS) (fsys' : io.fs.FS) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef io.fs.subFS go!"fsys" l) v.fsys' (DFrac.own 1))
+      (typedPointsto (structFieldRef io.fs.subFS go!"fsys" l) fsys' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with fsys' := fsys' } : io.fs.subFS) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance subFS_access_load_dir (l : Loc) (v : io.fs.subFS) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef io.fs.subFS go!"dir" l) v.dir' dq)
+      (typedPointsto (structFieldRef io.fs.subFS go!"dir" l) v.dir' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance subFS_access_store_dir (l : Loc) (v : io.fs.subFS) (dir' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef io.fs.subFS go!"dir" l) v.dir' (DFrac.own 1))
+      (typedPointsto (structFieldRef io.fs.subFS go!"dir" l) dir' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with dir' := dir' } : io.fs.subFS) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end subFS
-
-namespace WalkDirFunc
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : io.fs.Assumptions]
-
-noncomputable instance WalkDirFunc_typed_pointsto :
-    TypedPointsto (GF := GF) io.fs.WalkDirFunc :=
-  sorry -- axiomatized type
-
-noncomputable instance WalkDirFunc_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) io.fs.WalkDirFunc io.fs.WalkDirFunc.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end WalkDirFunc
 
 end io.fs
 end

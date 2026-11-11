@@ -34,10 +34,10 @@ theorem apply.newApplierV3.wp_proof
     (hA : apply.newAuthApplierV3.spec (GF := GF) (hG := hG)) :
     apply.newApplierV3.spec (GF := GF) (hG := hG) := by
   intro opts Hbuq
-  wp_start as -
+  wp_start as #Hlg
   wp_auto
   wp_apply (hB opts) $$ [] as %b ⟨⟨%pb, %Hpb, #Hpbo⟩, #Hb⟩
-  wp_apply (hQ opts.Logger' opts.QuotaBackendBytesCfg' opts.Backend' b Hbuq) $$ []
+  wp_apply (hQ opts.Logger' opts.QuotaBackendBytesCfg' opts.Backend' b Hbuq) $$ [$Hlg]
     as %q ⟨⟨%pq, %Hpq, #Hpqf⟩, #Hq⟩
   wp_apply (hA opts.AuthStore' q opts.Lessor') $$ [] as %p ⟨#Hpaf, #Hpas, #Hple, #HpA, #Hp⟩
   iapply HΦ
@@ -51,7 +51,7 @@ theorem apply.newApplierV3.wp_proof
   · iintro !> %E #Hopts
     ihave #Hok := Hopts
     iunfold apply.backendOptsOk at Hok
-    icases Hok with ⟨-, -, -, #Hle, #Has, -⟩
+    icases Hok with ⟨-, -, -, -, #Hle, #Has, -⟩
     ihave #Hb' := Hb $$ %E Hopts
     ihave #Hq' := Hq $$ %E %.backend Hb'
     simp only [apply.baseChain]
@@ -60,7 +60,7 @@ theorem apply.newApplierV3.wp_proof
   iintro !> %E #Hopts
   ihave #Hok := Hopts
   iunfold apply.backendOptsOk at Hok
-  icases Hok with ⟨-, -, -, #Hle, #Has, -⟩
+  icases Hok with ⟨-, -, -, -, #Hle, #Has, -⟩
   ihave #Hb' := Hb $$ %E Hopts
   ihave #Hq' := Hq $$ %E %.backend Hb'
   ihave #HA := HpA $$ %E Has Hle

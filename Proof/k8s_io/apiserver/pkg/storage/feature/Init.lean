@@ -51,7 +51,7 @@ axiom opaqueInitsOk :
         v3_5_13.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
-/-- `DefaultFeatureSupportChecker = newDefaultFeatureSupportChecker()` (`feature_support_checker.go`): a checker whose `CheckClient` returns (the variable never changes after). -/
+/-- `DefaultFeatureSupportChecker = newDefaultFeatureSupportChecker()` (`feature_support_checker.go`): a checker whose `CheckClient` returns for a constructed client and its context (`checkClientOk`; sweep repairs 1, B5: until then for any arguments) (the variable never changes after). -/
 axiom DefaultFeatureSupportChecker_init :
     {{ (True : IProp GF) }} (App (Val DefaultFeatureSupportChecker.init) (Val #()))
     {{ RET #(); _root_.Perennial.k8s_io.apiserver.pkg.storage.etcd3.checkerInit (GF := GF) }}

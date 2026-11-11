@@ -33,13 +33,16 @@ theorem backend.batchTx.LockOutsideApply.wp_proof
     backend.batchTx.LockOutsideApply.spec (GF := GF) (hG := hG) := by
   intro γ P W Pk b t qo
   wp_start as ⟨#Hb, #Ht, Ho⟩
+  -- (sweep repairs 1, B4) `ETCD_VERIFY` off, the backend's (what the lock check takes)
+  ihave #Hvoff := isBackend_envVerifyOff γ P W Pk b $$ Hb
   unfold bOpen
   icases Ho with ⟨Ho, Hcls⟩
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
-    ⟨%db, %lg, %h, #Hbe, #Hlg, %Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb, %HP⟩
+    ⟨%db, %lg, %h, #Hbe, #Hlg, #Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb, %HP⟩
   · iframe #
   wp_auto
-  wp_apply hValidate
+  wp_apply hValidate $$ []
+  · iframe #
   wp_apply (hlock γ P W Pk b t qo.half) $$ [$Ho] as ⟨%st, Hl, %Hfo, HWR, Ho⟩
   · iframe #
   iapply HΦ

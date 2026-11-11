@@ -42,7 +42,7 @@ theorem DB.close.wp_proof (wp_munmap : DB.munmap.spec (GF := GF) (hG := hG))
   wp_apply wp_Flock fd _ _ d $$ [Hinv Hfd] as %e Hfd
   · iframe; iframe #
   (try wp_auto)
-  wp_apply wp_Close f fd name d $$ [Hinv Hf Hfd] as %err2 Hf
+  wp_apply wp_Close f fd name d $$ [Hinv Hf Hfd] as %err2 ⟨Hf, -⟩
   · iframe; iframe #
   cases err with
   | nil =>

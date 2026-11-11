@@ -13,6 +13,7 @@ cache's `ErrNotReady` (`fmt.Errorf` at init), `ErrUnsupportedRequest` and
 Perennial's own packages state their globals), and `ErrCompacted.Error()` returns some string
 (`errorStringSpec`: it is an `EtcdError`, whose `Error` returns its description), as do the
 cache's `ErrKeyRangeInvalid.Error()` and `ErrUnsupportedRequest.Error()`;
+grpc's `EnableTracing` holds `false` for good (`grpcInit`);
 `clientv3`'s `noPrefixEnd` points for good to a slice holding the byte `0`. Everything here is an assumption about
 package initialization, as in `Proof/go_etcd_io/raft/v3/Base.lean`: nothing proves it from `initialize'`.
 -/
@@ -30,6 +31,8 @@ public import Perennial.Proof.time
 public import Perennial.Proof.io
 public import Perennial.Proof.strings.Base
 public import Proof.k8s_io.utils.third_party.forked.golang.btree.Init
+public import Spec.fmt.ErrorfWrap
+public import Proof.google_golang_org.grpc.status.ErrDesc
 
 @[expose] public section
 
@@ -46,12 +49,7 @@ namespace go_etcd_io.etcd.cache.v3
 
 section desc
 
-/-- **An error's description** (opaque; D29, 2026-10-21): what `rpctypes.ErrorDesc(err)` returns,
-the status message (`status.FromError(err).Message()`), which for an error that is not a status
-error is its `Error()` (`Spec/google_golang_org/grpc/status/FromError.lean`). grpc's `FromError`
-reads the status embedded in the error value, so the description is a function of the error, as
-its code is (`statusCode`); nothing more is said of it. -/
-opaque errDesc [GooseExts] : GoInterface → GoString
+-- `errDesc` (an error's description, D29): `Proof/google_golang_org/grpc/status/ErrDesc.lean` (N1b).
 
 /-- **The refusals** (D29): the descriptions after which the client's retry interceptor sends a
 `nonRepeatable` call (a write) again: the auth errors (`shouldRefreshToken`, then
@@ -66,6 +64,13 @@ theorem mem_refusalDescs_balancer (d : GoString)
     (h : d = go!"there is no address available" ∨ d = go!"there is no connection available") :
     d ∈ refusalDescs := by
   rcases h with rfl | rfl <;> simp [refusalDescs]
+
+/-- **The two read errors' descriptions** (k8s etcd3 stage 7c): `rpctypes.ErrGRPCFutureRev`'s and
+`rpctypes.ErrGRPCCompacted`'s (`error.go:32-33`), which the server's `togRPCError` maps mvcc's
+`ErrFutureRev` and `ErrCompacted` to, and the client's `rpctypes.ErrFutureRev`/`ErrCompacted` carry. -/
+def futureRevDesc : GoString := go!"etcdserver: mvcc: required revision is a future revision"
+
+def compactedDesc : GoString := go!"etcdserver: mvcc: required revision has been compacted"
 
 /-- **An error that is not a refusal** (D29): `nil`, or one whose description is not a refusal's. -/
 def noRefusal [GooseExts] (err : GoInterface) : Prop :=
@@ -155,8 +160,16 @@ end google_golang_org.grpc.metadata
 
 -- `grpc` (names only; `etcdserverpb`'s streams are its generic interfaces, 2026-10-12: the
 -- request path's `RaftKV` names `KV_RangeStreamServer`), before `etcdserverpb`, which imports it
+/-- grpc's package fact (k8s 7e-1, 2026-11-10): `EnableTracing` (`var EnableTracing bool`, `trace.go:33`
+at v1.84.0, no initializer) holds `false` for good. Go allocates it zero-valued before grpc's first
+initializer runs; grpc's generated `Init.lean` takes the cell from the trust-boundary axiom
+`DefaultBackoffConfig_init` and persists it. No translated code writes it; a program that sets it
+(etcd's `embed` at log level debug) gets no proof. Read by the reply-ownership claim of
+`grpcInvokerOk`/`RepSat` (`InvGrpc.lean`): with tracing on, grpc keeps every reply. -/
+abbrev grpcInit : IProp GF := globalAddr google_golang_org.grpc.EnableTracing ↦□ false
+
 instance grpc_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init grpcInit
 instance grpc_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc :=
   build_get_is_pkg_init_wf
@@ -291,30 +304,53 @@ instance errorStringSpec_persistent (e : GoInterfaceOk) :
     Persistent (errorStringSpec (GF := GF) e) := by
   unfold errorStringSpec; infer_instance
 
+/-- **The error value `e`'s `Error()` returns `m`, the same string on every call** (persistent;
+fromerror-stable, 2026-11-06): what `status.FromError` needs to take the string as the error's
+description (`errDesc`): it calls `Error()` on each call, so an `Error()` that reads mutable state
+(`examples/axiomcx/flipdesc`, `notes/axiom-review/invoker-filled.md`) has no one description.
+Stronger than `errorStringSpec` (`errorMsgIs_errorStringSpec`), which the printing paths keep. -/
+def errorMsgIs (e : GoInterfaceOk) (m : GoString) : IProp GF :=
+  iprop(□ ∀ Φ : val → IProp GF, ▷ Φ #m -∗
+    WP (App (Val #(methods e.ty go!"Error" e.v)) (Val #())) {{ Φ }})
+
+instance errorMsgIs_persistent (e : GoInterfaceOk) (m : GoString) :
+    Persistent (errorMsgIs (GF := GF) e m) := by
+  unfold errorMsgIs; infer_instance
+
 /-- **The methods grpc's `status` and Go's `errors.Is` call on the error `e` return**
 (persistent; unit P3a), if `e`'s type has them (both are called through a type assertion):
 `GRPCStatus() *Status` (`status.FromError`/`Code`/`Convert`) and `Is(error) bool`
-(`errors.Is`, for any target). -/
+(`errors.Is`, for any target). (fromerror-stable, 2026-11-06) `GRPCStatus()` returns one fixed
+status `s` (grpc's `*Status` is immutable: `Proto()` clones, nothing exported writes it), so the
+code and message `status.FromError` reads are the error's (`statusCode`, `errDesc`); and `Is`
+returns `true` only for a target with the same description (`errors.IsStatusErr`'s
+post: an `Is` that answered `true` regardless would refute it). -/
 def grpcErrMethodsOk (e : GoInterfaceOk) : IProp GF :=
   iprop((⌜methodSet e.ty !! go!"GRPCStatus" =
       some (go.Signature [] false
         [go.GoType.PointerType google_golang_org.grpc.internal.status.Status.ty])⌝ →
-    □ ∀ Φ : val → IProp GF, ▷ (∀ s : Loc, Φ #s) -∗
+    ∃ s : Loc, □ ∀ Φ : val → IProp GF, ▷ Φ #s -∗
       WP (App (Val #(methods e.ty go!"GRPCStatus" e.v)) (Val #())) {{ Φ }}) ∗
     (⌜methodSet e.ty !! go!"Is" = some (go.Signature [go.error] false [go.bool])⌝ →
-    □ ∀ (target : GoInterface) (Φ : val → IProp GF), ▷ (∀ b : Bool, Φ #b) -∗
+    □ ∀ (target : GoInterface) (Φ : val → IProp GF),
+      ▷ (∀ b : Bool, ⌜b = true → errDesc (GoInterface.ok e) = errDesc target⌝ -∗ Φ #b) -∗
       WP (App (Val #(methods e.ty go!"Is" e.v)) (Val #target)) {{ Φ }}))
 
 /-- **An error grpc's `status` functions accept** (persistent; unit P3a): `nil`, or a leaf error
 (`errors.isLeafError`: no `Unwrap` or `As` method, so `status.FromError`'s and `errors.Is`'s walks
-of its error tree only check it) whose `Error()` returns some string (`errorStringSpec`:
-`FromError` calls it unless the error is a status error) and whose `GRPCStatus()` and `Is`, if it
-has them, return (`grpcErrMethodsOk`). What `status.FromError` (`Spec/google_golang_org/grpc/
+of its error tree only check it) whose `Error()` returns one fixed string (`errorMsgIs`:
+`FromError` calls it unless the error is a status error; fromerror-stable, 2026-11-06: it was any
+string on each call, `errorStringSpec`) and whose `GRPCStatus()` and `Is`, if it has them, behave
+(`grpcErrMethodsOk`). What `status.FromError` (`Spec/google_golang_org/grpc/
 status/FromError.lean`), `status.Code`, `errors.Is` (`Spec/errors/IsStatusErr.lean`), and through
-them `rpctypes.Error` and the client's retry interceptor, need. -/
+them `rpctypes.Error` and the client's retry interceptor, need. No `Format` method
+(premise-fixes-4, 2026-11-10): `fmt` prints it with its `Error` (`fmt.argOk`); grpc's
+`*status.Error`, `rpctypes.EtcdError` and the context errors have none (`examples/premisefix/
+fmtarg`). -/
 def statusErrOk (err : GoInterface) : IProp GF :=
   iprop(□ ∀ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ →
-    errorStringSpec e ∗ ⌜errors.isLeafError e⌝ ∗ grpcErrMethodsOk e)
+    (∃ m : GoString, errorMsgIs e m) ∗ ⌜errors.isLeafError e⌝ ∗ grpcErrMethodsOk e ∗
+    ⌜methodSet e.ty !! go!"Format" = none⌝)
 
 instance statusErrOk_persistent (err : GoInterface) : Persistent (statusErrOk (GF := GF) err) := by
   unfold statusErrOk; infer_instance
@@ -338,13 +374,15 @@ instance grpc_status_get_is_pkg_init_wf_inst :
 /-- **The method set of `rpctypes.EtcdError`** is `{Code, Error}` (`error.go`), as far as
 grpc's and Go's `errors` functions look (Go's typing, which the model lacks: method sets are
 uninterpreted): no `As` or `Unwrap` method (a leaf error), no `GRPCStatus` and no `Is` method
-(unit P3a). -/
+(unit P3a), and no `Format` method (premise-fixes-4: `fmt` prints it with its `Error`). -/
 def rpctypesEtcdErrorTy : Prop :=
   (∀ v : val, errors.isLeafError ⟨go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty, v⟩) ∧
   methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"GRPCStatus" = none ∧
-  methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"Is" = none
+  methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"Is" = none ∧
+  methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"Format" = none
 
-/-- `rpctypes`' package facts: the two errors the store returns; `ErrCompacted.Error()`
+/-- `rpctypes`' package facts: the two errors the store returns (`EtcdError` values, k8s etcd3 7e-2's
+D1, `examples/k8s7e2attack`'s `TestRpctypesErrTypes`); `ErrCompacted.Error()`
 (the watcher's `Compact` puts it in the cancel response) returns some string, and so does
 `ErrFutureRev.Error()` (`WatchResponse.Err` returns it; both are `EtcdError`s, whose `Error`
 returns their description); and (unit P3a: `rpctypes.Error` is translated) the map
@@ -358,10 +396,20 @@ from `auth`'s facts, so that `rpctypes`' initializer proves them) the token keys
 auth plan's E2c). -/
 abbrev rpctypesInit : IProp GF :=
   iprop((∃ e : GoInterfaceOk,
-      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrFutureRev ↦□ GoInterface.ok e) ∗
+      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrFutureRev ↦□ GoInterface.ok e ∗
+      -- (k8s etcd3 7c) its description
+      ⌜errDesc (GoInterface.ok e) = futureRevDesc⌝ ∗
+      -- (premise-fixes-4) no `Format` method: `fmt` prints it through `Error()`
+      ⌜methodSet e.ty !! go!"Format" = none⌝ ∗
+      -- (k8s etcd3 7e-2, D1) an `EtcdError` value (`TestRpctypesErrTypes`)
+      ⌜∃ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError,
+        GoInterface.ok e = interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x⌝) ∗
     (∃ e : GoInterfaceOk,
       globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrCompacted ↦□ GoInterface.ok e ∗
-      errorStringSpec e) ∗
+      errorStringSpec e ∗ ⌜errDesc (GoInterface.ok e) = compactedDesc⌝ ∗
+      ⌜methodSet e.ty !! go!"Format" = none⌝ ∗
+      ⌜∃ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError,
+        GoInterface.ok e = interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x⌝) ∗
     □ (∀ e : GoInterfaceOk,
       globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrFutureRev ↦□ GoInterface.ok e -∗
       errorStringSpec e) ∗
@@ -387,22 +435,36 @@ abbrev rpctypesInit : IProp GF :=
     (∃ e : GoInterfaceOk,
       globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNotSupportedForLearner ↦□
         GoInterface.ok e ∗ ⌜errors.IsPointerError e⌝ ∗
-      ⌜errDesc (GoInterface.ok e) = go!"etcdserver: rpc not supported for learner"⌝) ∗
+      ⌜errDesc (GoInterface.ok e) = go!"etcdserver: rpc not supported for learner"⌝ ∗
+      -- (k8s etcd3 7c, HS-6) grpc's `status.FromError` accepts it
+      statusErrOk (GoInterface.ok e)) ∗
     globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.TokenFieldNameGRPC ↦□ go!"token" ∗
     globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.TokenFieldNameSwagger ↦□ go!"authorization" ∗
     -- (item 8, 2026-10-17: moved here from `v3rpc`'s facts) the `ErrGRPC*` errors the gRPC
     -- service's checks and interceptors return, fixed non-nil errors, and the metadata keys
-    (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCEmptyKey ↦□ GoInterface.ok e) ∗
-    (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCInvalidSortOption ↦□ GoInterface.ok e) ∗
-    (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCValueProvided ↦□ GoInterface.ok e) ∗
-    (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCLeaseProvided ↦□ GoInterface.ok e) ∗
-    (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCTooManyOps ↦□ GoInterface.ok e) ∗
-    (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCDuplicateKey ↦□ GoInterface.ok e) ∗
-    (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCKeyNotFound ↦□ GoInterface.ok e) ∗
-    (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNoSpace ↦□ GoInterface.ok e) ∗
-    (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNotCapable ↦□ GoInterface.ok e) ∗
-    (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCInvalidClientAPIVersion ↦□ GoInterface.ok e) ∗
-    (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNoLeader ↦□ GoInterface.ok e) ∗
+    -- ((k8s etcd3 7c, HS-6) `*status.Error`s, which grpc's `status.FromError` accepts)
+    (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCEmptyKey ↦□ GoInterface.ok e ∗
+      statusErrOk (GoInterface.ok e)) ∗
+    (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCInvalidSortOption ↦□ GoInterface.ok e ∗
+      statusErrOk (GoInterface.ok e)) ∗
+    (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCValueProvided ↦□ GoInterface.ok e ∗
+      statusErrOk (GoInterface.ok e)) ∗
+    (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCLeaseProvided ↦□ GoInterface.ok e ∗
+      statusErrOk (GoInterface.ok e)) ∗
+    (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCTooManyOps ↦□ GoInterface.ok e ∗
+      statusErrOk (GoInterface.ok e)) ∗
+    (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCDuplicateKey ↦□ GoInterface.ok e ∗
+      statusErrOk (GoInterface.ok e)) ∗
+    (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCKeyNotFound ↦□ GoInterface.ok e ∗
+      statusErrOk (GoInterface.ok e)) ∗
+    (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNoSpace ↦□ GoInterface.ok e ∗
+      statusErrOk (GoInterface.ok e)) ∗
+    (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNotCapable ↦□ GoInterface.ok e ∗
+      statusErrOk (GoInterface.ok e)) ∗
+    (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCInvalidClientAPIVersion ↦□ GoInterface.ok e ∗
+      statusErrOk (GoInterface.ok e)) ∗
+    (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNoLeader ↦□ GoInterface.ok e ∗
+      statusErrOk (GoInterface.ok e)) ∗
     (∃ k : GoString, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.MetadataClientAPIVersionKey ↦□ k) ∗
     (∃ k : GoString, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.MetadataRequireLeaderKey ↦□ k) ∗
     (∃ k : GoString, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.MetadataHasLeader ↦□ k) ∗
@@ -416,8 +478,10 @@ abbrev rpctypesInit : IProp GF :=
       errorStringSpec e) ∗
     (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCPermissionDenied ↦□ GoInterface.ok e ∗
       errorStringSpec e) ∗
+    -- (premise-fixes-7, Q1) `ErrGRPCWatchCanceled`, which `watchServer.Watch` returns, also one
+    -- grpc's `status.FromError` accepts
     (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCWatchCanceled ↦□ GoInterface.ok e ∗
-      errorStringSpec e) ∗
+      errorStringSpec e ∗ statusErrOk (GoInterface.ok e)) ∗
     -- (item 1, the client lease, 2026-10-18) `ErrNoLeader`, an `EtcdError` (the client's lease
     -- keep-alive loop compares a stream's error with it)
     (∃ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError,
@@ -427,7 +491,50 @@ abbrev rpctypesInit : IProp GF :=
     -- `getToken` compares `Authenticate`'s error with it)
     (∃ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError,
       globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrAuthNotEnabled ↦□
-        interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x))
+        interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x) ∗
+    -- (k8s etcd3 7c) the server-side errors `togRPCError` maps mvcc's two read errors to, with
+    -- their descriptions
+    (∃ e : GoInterfaceOk,
+      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCFutureRev ↦□ GoInterface.ok e ∗
+      ⌜errDesc (GoInterface.ok e) = futureRevDesc⌝) ∗
+    (∃ e : GoInterfaceOk,
+      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCCompacted ↦□ GoInterface.ok e ∗
+      ⌜errDesc (GoInterface.ok e) = compactedDesc⌝) ∗
+    -- (k8s etcd3 7c, HS-1) the descriptions of the `ErrGRPC*` errors `v3rpc`'s checks and
+    -- interceptors return (`error.go`)
+    (∃ e : GoInterfaceOk,
+      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCEmptyKey ↦□ GoInterface.ok e ∗
+      ⌜errDesc (GoInterface.ok e) = go!"etcdserver: key is not provided"⌝) ∗
+    (∃ e : GoInterfaceOk,
+      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCKeyNotFound ↦□ GoInterface.ok e ∗
+      ⌜errDesc (GoInterface.ok e) = go!"etcdserver: key not found"⌝) ∗
+    (∃ e : GoInterfaceOk,
+      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCValueProvided ↦□ GoInterface.ok e ∗
+      ⌜errDesc (GoInterface.ok e) = go!"etcdserver: value is provided"⌝) ∗
+    (∃ e : GoInterfaceOk,
+      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCLeaseProvided ↦□ GoInterface.ok e ∗
+      ⌜errDesc (GoInterface.ok e) = go!"etcdserver: lease is provided"⌝) ∗
+    (∃ e : GoInterfaceOk,
+      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCTooManyOps ↦□ GoInterface.ok e ∗
+      ⌜errDesc (GoInterface.ok e) = go!"etcdserver: too many operations in txn request"⌝) ∗
+    (∃ e : GoInterfaceOk,
+      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCDuplicateKey ↦□ GoInterface.ok e ∗
+      ⌜errDesc (GoInterface.ok e) = go!"etcdserver: duplicate key given in txn request"⌝) ∗
+    (∃ e : GoInterfaceOk,
+      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCInvalidClientAPIVersion ↦□ GoInterface.ok e ∗
+      ⌜errDesc (GoInterface.ok e) = go!"etcdserver: invalid client api version"⌝) ∗
+    (∃ e : GoInterfaceOk,
+      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCInvalidSortOption ↦□ GoInterface.ok e ∗
+      ⌜errDesc (GoInterface.ok e) = go!"etcdserver: invalid sort option"⌝) ∗
+    (∃ e : GoInterfaceOk,
+      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNoSpace ↦□ GoInterface.ok e ∗
+      ⌜errDesc (GoInterface.ok e) = go!"etcdserver: mvcc: database space exceeded"⌝) ∗
+    (∃ e : GoInterfaceOk,
+      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNoLeader ↦□ GoInterface.ok e ∗
+      ⌜errDesc (GoInterface.ok e) = go!"etcdserver: no leader"⌝) ∗
+    (∃ e : GoInterfaceOk,
+      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNotCapable ↦□ GoInterface.ok e ∗
+      ⌜errDesc (GoInterface.ok e) = go!"etcdserver: not capable"⌝))
 
 instance rpctypes_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes :=
@@ -575,7 +682,8 @@ instance clientv3_get_is_pkg_init_wf_inst :
 (`validateRange`) and `ErrCacheTimeout` (`waitTillRevision`), each a fixed non-nil error;
 `ErrKeyRangeInvalid.Error()` returns some string (`errors.New`'s `*errorString`; `Cache.Watch`
 puts it in a cancel response), and so does `ErrUnsupportedRequest.Error()` (`errors.New`'s too;
-`fmt.Errorf`'s `%w` of it calls it, `fmt.argsOk`). -/
+`fmt.Errorf`'s `%w` of it calls it, `fmt.argsOk`, which since premise-fixes-4 also asks that its
+type, `*errors.errorString`, have no `Format` method). -/
 abbrev cacheInit : IProp GF :=
   iprop((∃ e : GoInterfaceOk, globalAddr ErrNotReady ↦□ GoInterface.ok e) ∗
     (∃ e : GoInterfaceOk, globalAddr ErrUnsupportedRequest ↦□ GoInterface.ok e) ∗
@@ -583,7 +691,7 @@ abbrev cacheInit : IProp GF :=
     (∃ e : GoInterfaceOk, globalAddr ErrCacheTimeout ↦□ GoInterface.ok e) ∗
     □ (∀ e : GoInterfaceOk, globalAddr ErrKeyRangeInvalid ↦□ GoInterface.ok e -∗ errorStringSpec e) ∗
     □ (∀ e : GoInterfaceOk, globalAddr ErrUnsupportedRequest ↦□ GoInterface.ok e -∗
-      errorStringSpec e))
+      errorStringSpec e ∗ ⌜methodSet e.ty !! go!"Format" = none⌝))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 :=
   define_is_pkg_init cacheInit
@@ -598,10 +706,12 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- A non-nil error `err`'s `Error()` returns some string (`errorStringSpec`; persistent): what
-`fmt`'s `%v`/`%w` of it needs (`fmt.argsOk`). -/
+/-- A non-nil error `err`'s `Error()` returns some string (`errorStringSpec`; persistent), and it
+has no `Format` method (premise-fixes-4, 2026-11-10: else `fmt` calls `Format`): what `fmt`'s
+`%v`/`%w` of it needs (`fmt.argsOk`). -/
 def errStrOk (err : GoInterface) : IProp GF :=
-  iprop(□ ∀ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ → errorStringSpec e)
+  iprop(□ ∀ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ →
+    errorStringSpec e ∗ ⌜methodSet e.ty !! go!"Format" = none⌝)
 
 instance errStrOk_persistent (err : GoInterface) : Persistent (errStrOk (GF := GF) err) := by
   unfold errStrOk; infer_instance
@@ -611,31 +721,206 @@ theorem errStrOk_nil : ⊢ errStrOk (GF := GF) GoInterface.nil := by
   iintro !> %e %h
   cases h
 
-theorem errStrOk_ok (e : GoInterfaceOk) : errorStringSpec (GF := GF) e ⊢ errStrOk (GoInterface.ok e) := by
+theorem errStrOk_ok (e : GoInterfaceOk) (hF : methodSet e.ty !! go!"Format" = none) :
+    errorStringSpec (GF := GF) e ⊢ errStrOk (GoInterface.ok e) := by
   unfold errStrOk
   iintro #H !> %e' %h
   cases h
-  iexact H
+  isplitl
+  · iexact H
+  · ipureintro; exact hF
 
 /-- `errStrOk` of `ok e` gives `errorStringSpec e`. -/
 theorem errStrOk_elim (e : GoInterfaceOk) : errStrOk (GF := GF) (GoInterface.ok e) ⊢ errorStringSpec e := by
   unfold errStrOk
   iintro #H
-  iapply H
-  ipureintro; rfl
+  ihave ⟨#Hs, -⟩ := H $$ %e %rfl
+  iexact Hs
+
+/-- `errStrOk` of `ok e`: `e` has no `Format` method. -/
+theorem errStrOk_noFormat (e : GoInterfaceOk) :
+    errStrOk (GF := GF) (GoInterface.ok e) ⊢ ⌜methodSet e.ty !! go!"Format" = none⌝ := by
+  unfold errStrOk
+  iintro #H
+  ihave ⟨-, %hF⟩ := H $$ %e %rfl
+  ipureintro; exact hF
+
+/-- **`errors.New(msg)`'s error is an `errStrOk`** (premise-fixes-4): Perennial's model allocates an
+`*errors.errorString` (as Go does), whose method set (goose's) has no `Format`; its `Error()`
+returns `msg`. -/
+theorem wp_New_errStrOk [_root_.Perennial.errors.Assumptions] (msg : GoString) :
+    {{ (True : IProp GF) }}
+      (App (Val (@! _root_.Perennial.errors.New)) (Val #msg))
+    {{ (err : GoInterfaceOk), RET #(interface.ok err);
+        (□ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
+          WP (App (Val #(methods err.ty go!"Error" err.v)) (Val #())) {{ Φ }}) ∗
+        errStrOk (GoInterface.ok err) }} := by
+  have hF := go.method_set_is
+    (t := go.GoType.PointerType _root_.Perennial.errors.errorString.ty) go!"Format"
+  simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at hF
+  wp_start
+  wp_auto
+  wp_alloc x as Hx
+  iStructNamed Hx
+  ipersist s
+  wp_auto
+  iapply HΦ
+  ihave #HM : (□ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
+      WP (App (Val #(methods (go.GoType.PointerType _root_.Perennial.errors.errorString.ty)
+        go!"Error" #x)) (Val #())) {{ Φ }}) $$ []
+  · imodintro
+    iintro %Φ HΦ
+    rw [method_unfold]
+    wp_auto
+    iexact HΦ
+  isplitr
+  · iexact HM
+  iapply errStrOk_ok _ hF
+  unfold errorStringSpec
+  iintro !> %Φ HΦ
+  iapply HM
+  inext
+  iapply HΦ
+
+/-- **`fmt.Errorf(format, args...)`'s error is an `errStrOk`**, for arguments of predeclared basic
+types (premise-fixes-4): Perennial's model returns `errors.New(format)` (`wp_New_errStrOk`), and so
+does Go for arguments none of which is an error (no `%w` wrapping): an `*errors.errorString`. -/
+theorem wp_Errorf_errStrOk [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
+    (format : GoString) (args_sl : GoSlice) (args : List GoAny)
+    (_hwf : _root_.Perennial.fmt.ArgsWf args) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.fmt ∗ args_sl ↦* args }}
+      (App (App (Val (@! _root_.Perennial.fmt.Errorf)) (Val #format)) (Val #args_sl))
+    {{ (err : GoInterfaceOk), RET #(interface.ok err); errStrOk (GoInterface.ok err) }} := by
+  wp_start as _
+  wp_apply wp_New_errStrOk as %err ⟨-, #Herr⟩
+  iapply HΦ
+  iexact Herr
 
 theorem statusErrOk_nil : ⊢ statusErrOk (GF := GF) GoInterface.nil := by
   unfold statusErrOk
   iintro !> %e %h
   cases h
 
+/-- **A context error wrapped by `%w`** (one or more levels; errorf-wrap, 2026-11-06; persistent):
+`rangeKeys`' `fmt.Errorf("rangeKeys: context cancelled: %w", ctx.Err())` (`kvstore_txn.go:121`) and
+`executeTxn`'s wrapping of it (`txn.go:162`): a chain of `fmt.Errorf` `%w` errors (`fmt.wrapChain`,
+each level the model's error or Go's `*fmt.wrapError`) ending at `context.Canceled`'s or
+`context.DeadlineExceeded`'s value (`context.isCtxErr`). -/
+def ctxWrapErr (err : GoInterface) : IProp GF :=
+  iprop(∃ (pres : List GoString) (c : GoInterface),
+    ⌜pres ≠ []⌝ ∗ EtcdGrove.fmt.wrapChain pres err c ∗ context.isCtxErr c)
+
+instance ctxWrapErr_persistent (err : GoInterface) : Persistent (ctxWrapErr (GF := GF) err) := by
+  unfold ctxWrapErr; infer_instance
+
+/-- **A handler's error, as grpc's server and the prometheus interceptor take it** (errorf-wrap,
+2026-11-06; persistent): one grpc's `status` accepts (`statusErrOk`), or a context error wrapped by
+`%w` (`ctxWrapErr`), which `togRPCError` passes through as it is (`errors.Is` sees the context
+error). Go's server answers the latter with the context error's code (`status.FromContextError`),
+grpc-prometheus's `FromError` with `Unknown`, neither panicking (`notes/axiom-review/errorf-wrap.md`).
+The handler contracts' result (`grpcHandlerOk`, `grpcMethodOk`, `srvInterceptorOk`). -/
+def srvErrOk (err : GoInterface) : IProp GF :=
+  iprop(statusErrOk err ∨ ctxWrapErr err)
+
+instance srvErrOk_persistent (err : GoInterface) : Persistent (srvErrOk (GF := GF) err) := by
+  unfold srvErrOk; infer_instance
+
+theorem srvErrOk_of_statusErrOk (err : GoInterface) :
+    statusErrOk (GF := GF) err ⊢ srvErrOk err := by
+  iintro #H
+  unfold srvErrOk
+  ileft
+  iexact H
+
+theorem srvErrOk_nil : ⊢ srvErrOk (GF := GF) GoInterface.nil := by
+  iapply srvErrOk_of_statusErrOk
+  iapply statusErrOk_nil
+
+/-- **A `%w` of a context error is a `ctxWrapErr`** (`rangeKeys`'). -/
+theorem ctxWrapErr_wrap (ii : GoInterfaceOk) (c : GoInterface) (pre : GoString) :
+    EtcdGrove.fmt.errorfWrapIs (GF := GF) ii c pre -∗ context.isCtxErr c -∗
+      ctxWrapErr (GoInterface.ok ii) := by
+  iintro #Hw #Hc
+  unfold ctxWrapErr
+  iexists [pre], c
+  isplitr
+  · ipureintro; simp
+  iframe Hc
+  rw [EtcdGrove.fmt.wrapChain_cons]
+  iexists ii
+  isplitr
+  · ipureintro; rfl
+  iunfold EtcdGrove.fmt.errorfWrapIs at Hw
+  icases Hw with (#Hm | #Hw)
+  · ileft; iexact Hm
+  · iright; iexists c; iframe Hw; (try rw [EtcdGrove.fmt.wrapChain_nil]); ipureintro; rfl
+
+/-- **A `%w` of a `ctxWrapErr` is one** (`executeTxn`'s wrapping of `rangeKeys`' error). -/
+theorem ctxWrapErr_wrap2 (ii : GoInterfaceOk) (e : GoInterface) (pre : GoString) :
+    EtcdGrove.fmt.errorfWrapIs (GF := GF) ii e pre -∗ ctxWrapErr e -∗
+      ctxWrapErr (GoInterface.ok ii) := by
+  iintro #Hw #He
+  unfold ctxWrapErr
+  icases He with ⟨%pres, %c, -, #Hch, #Hc⟩
+  iexists (pre :: pres), c
+  isplitr
+  · ipureintro; simp
+  iframe Hc
+  rw [EtcdGrove.fmt.wrapChain_cons]
+  iexists ii
+  isplitr
+  · ipureintro; rfl
+  iunfold EtcdGrove.fmt.errorfWrapIs at Hw
+  icases Hw with (#Hm | #Hw)
+  · ileft; iexact Hm
+  · iright; iexists e; iframe Hw Hch
+
+/-- **A `ctxWrapErr`'s `Error()` returns**, as `fmt` needs of a `%w` argument. -/
+theorem ctxWrapErr_stringMethodSpec [_root_.Perennial.fmt.Assumptions] (ii : GoInterfaceOk) :
+    ctxWrapErr (GF := GF) (GoInterface.ok ii) ⊢ EtcdGrove.fmt.stringMethodSpec ii go!"Error" := by
+  iintro #He
+  unfold ctxWrapErr
+  icases He with ⟨%pres, %c, %Hp, #Hch, -⟩
+  cases pres with
+  | nil => exact absurd rfl Hp
+  | cons pre ps =>
+    rw [EtcdGrove.fmt.wrapChain_cons]
+    icases Hch with ⟨%ii', %Hii, Hch⟩
+    cases Hii
+    icases Hch with (#Hm | ⟨%mid, #Hw, -⟩)
+    · iunfold EtcdGrove.fmt.modelErrIs at Hm
+      icases Hm with ⟨-, %s, #Hs⟩
+      unfold EtcdGrove.fmt.stringMethodSpec
+      iintro !> %Φ HΦ
+      iapply Hs
+      inext
+      iapply HΦ
+    · iunfold EtcdGrove.fmt.wrapErrIs at Hw
+      icases Hw with ⟨-, ⟨%s, #Hs⟩, -⟩
+      unfold EtcdGrove.fmt.stringMethodSpec
+      iintro !> %Φ HΦ
+      iapply Hs
+      inext
+      iapply HΦ
+
+/-- A stable `Error()` returns (`errorStringSpec`). -/
+theorem errorMsgIs_errorStringSpec (e : GoInterfaceOk) (m : GoString) :
+    errorMsgIs (GF := GF) e m ⊢ errorStringSpec e := by
+  unfold errorMsgIs errorStringSpec
+  iintro #H !> %Φ HΦ
+  iapply H
+  inext
+  iapply HΦ
+
 /-- An error grpc's `status` accepts has an `Error()` returning some string. -/
 theorem errStrOk_of_statusErrOk (err : GoInterface) :
     statusErrOk (GF := GF) err ⊢ errStrOk err := by
   unfold statusErrOk errStrOk
   iintro #H !> %e %h
-  ihave ⟨#He, -⟩ := H $$ %e %h
-  iexact He
+  ihave ⟨⟨%m, #He⟩, -, -, %hF⟩ := H $$ %e %h
+  isplitl
+  · iapply errorMsgIs_errorStringSpec $$ He
+  · ipureintro; exact hF
 
 /-- The `Error()` of an error with a known message (`errors.wp_New`'s) returns some string. -/
 theorem errorStringSpec_of_msg (e : GoInterfaceOk) (msg : GoString) :
@@ -739,6 +1024,26 @@ theorem errCellOk_ptr (ii : GoInterfaceOk) :
   · ipureintro; exact fun h => absurd h ht
 
 end errstr
+
+section ctxErrStr
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **A context error's `Error()` returns** (`context.wp_isCtxErr_Error`), as `fmt` needs of a
+`%w` argument. -/
+theorem isCtxErr_stringMethodSpec [context.Assumptions] [_root_.Perennial.fmt.Assumptions]
+    (ii : GoInterfaceOk) :
+    context.isCtxErr (GF := GF) (GoInterface.ok ii) ⊢ EtcdGrove.fmt.stringMethodSpec ii go!"Error" := by
+  iintro #He
+  unfold EtcdGrove.fmt.stringMethodSpec
+  iintro !> %Φ HΦ
+  wp_apply (context.wp_isCtxErr_Error (GoInterface.ok ii) ii rfl) $$ He as %s -
+  iapply HΦ
+
+end ctxErrStr
+
 
 end go_etcd_io.etcd.cache.v3
 

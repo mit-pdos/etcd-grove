@@ -45,7 +45,11 @@ a `*cancelCtx`'s `Value` at a key other than `&cancelCtxKey` is its parent's (`c
 `cancelCtx.Value`); grpc's key is its own `mdOutgoingKey{}`. Consistent with the other axioms over
 `outgoingOf` by the convention recorded for them (`notes/axiom-review/withtimeout-outgoing.md`,
 "Remarks"): each returns an existential context, and no spec equates two of them. The general fix,
-a `Value` contract for Perennial's `WithCancel`, is in `notes/perennial-changes.md`. -/
+a `Value` contract for Perennial's `WithCancel`, is in `notes/perennial-changes.md`. Since premise
+fixes 8 (approved by etcd-grove-81) the post also gives the chain form `metadata.outgoingCtxOkC ctx'`:
+`ctx'` is a `*cancelCtx` whose parent `&valCtx{inctx}` is of a type outside `valueSpecialTypes` that
+promotes `inctx.Value`, so the chain is the `cancelCtx` link then the raw `valCtx` link, whose `Value`
+at grpc's key is `inctx`'s (`watchCtx`'s `"#HOut"`, in the WP form by `outgoingCtxOk_of_C`). -/
 abbrev context.WithCancelValCtx.spec : Prop :=
   ∀ (p : Loc) (inctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.context ∗
@@ -58,7 +62,8 @@ abbrev context.WithCancelValCtx.spec : Prop :=
       RET (PairV #(interface.ok ctx') #cancel);
       context.cancelSpec cancel γ' iprop(True) ∗
       context.isContext ctx' { Values := ∅, Deadline := none, Done_gn := γ', PDone := iprop(True) } ∗
-      ⌜metadata.outgoingOf (GoInterface.ok ctx') = metadata.outgoingOf (GoInterface.ok inctx)⌝ }}
+      ⌜metadata.outgoingOf (GoInterface.ok ctx') = metadata.outgoingOf (GoInterface.ok inctx)⌝ ∗
+      metadata.outgoingCtxOkC ctx' }}
 
 end spec
 

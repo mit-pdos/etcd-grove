@@ -16,6 +16,7 @@ names `γa` of the store `NewServer` built).
 -/
 module
 
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartRes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Base
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Defs
@@ -50,9 +51,10 @@ abbrev startServer.spec : Prop :=
   γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://127.0.0.1:23926" ∈ dir id →
   -- (2026-11-03, the final whole-`bootOk` review's M2) the directory names the peers
   rafthttp.bootCfg dir [id] →
-  lg ≠ null →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.diskOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.auth ∗
+      -- (sweep repairs 1, R1-2) the logger a zap logger (until then `lg ≠ null`)
+      zapLoggerOk lg ∗
       threadTok ∗
       (□ ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ' : SrvRaft),
         ⌜cfgOk cfg ∧ urlsOk U ∧ γ'.vs = [id] ∧ γ'.rule = srvRule (W64 0) bootLog ∧
@@ -61,8 +63,9 @@ abbrev startServer.spec : Prop :=
       etcdstart.commonPremises ∗ context.isClosedchanInit ∗
       etcdstart.memberBootOn γ ctxs ρ E₀ Φs id ∗
       netHttpOk γn id ∗
-      -- (2026-11-03, the WAL's API, change 6) the member's WAL directory fresh: a first start
-      walDirFresh (config.walDirOf go!"authkv.etcd" go!"") }}
+      -- (2026-11-03, the WAL's API, change 6; 2026-11-05, hub step 7, its fresh bundle) the
+      -- member's WAL directory fresh: a first start
+      etcdstart.memberFreshRes go!"authkv" {} γn }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.auth.startServer)) (Val #lg))
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
       (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨

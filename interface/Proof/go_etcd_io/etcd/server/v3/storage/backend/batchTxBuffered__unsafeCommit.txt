@@ -24,7 +24,8 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof [go_etcd_io.bbolt.Assumpti
                                   P.BT !! nm = some i → P.HB nm = false → backend.bkOf st.W.bks i = []⌝ ∗
                           (if win = true then backend.thinV γ (backend.sData P st.S) L'
                             else backend.thinV γ (backend.sData P st.S) (backend.vData P (st.C, st.R))) ∗
-                            backend.payIn γ st stop m u ∗ X ∗ backend.commitReq γ P Pk b X Y -∗
+                            ⌜win = true → st.win = true ∧ backend.dlsOk P st L'⌝ ∗
+                              ⌜st.cnt.hw = false⌝ ∗ backend.payIn γ st stop m u ∗ X ∗ backend.commitReq γ P Pk b X Y -∗
           ▷
               ((Y ∗
                   backend.rtRes γ P rt 1 ∗
@@ -33,7 +34,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof [go_etcd_io.bbolt.Assumpti
                         if stop = true then
                           sync.ownMutex (backend.muOf t) ∗
                             typedPointsto (backend.pendOf t) (W64 0) (DFrac.own 1) ∗
-                              backend.bStopped γ ∗ backend.bDBOutG γ P
+                              backend.bStopped γ ∗ backend.bDBOutG γ P ∗ threadTok
                         else
                           ∃ st' db,
                             sync.ownMutex (backend.muOf t) ∗

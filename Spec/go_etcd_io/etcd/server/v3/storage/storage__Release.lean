@@ -6,6 +6,7 @@ boundary (`Proof/.../storage/storage__Release.lean`), why it is true of the Go c
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.InvOpen
+public import Proof.go_etcd_io.etcd.server.v3.storage.WalRecs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Net
 public import Proof.go_etcd_io.raft.v3.InvPb
 
@@ -46,7 +47,17 @@ any `Rm`, the removal facts below `i` given; until J4 the removal fact was `snap
 premise `snapTakenLb γt i` (from which `Rm j = snapTakenLb γt j` followed for `j < i`): a special
 case (`applySnapshot`'s own `Release`, after the open); `snapshot`'s `Release` at the applied index
 has the facts from the applied index instead (J0's `Rm j := snapTakenLb γt j ∨ appliedAtLeast γr
-(j + 1)`). -/
+(j + 1)`).
+
+(Sweep repairs 1, W2, 2026-11-07; the WAL's API, change (4)) The WAL's records start at or above `i`
+(`walBaseLb` of the storage's WAL, from the `SaveSnap` of a record at `i` or above, which precedes
+each `Release` in etcd: `server.go:2152` before `:2156`, and the raft loop's `raft.go:257` before
+its first `notifyc` send, which `applySnapshot` receives before `server.go:1116`). `ReleaseLockTo(i)`
+drops the locks of the segments before the one holding `i` (`wal.go:941-981`: it keeps the last
+segment that starts below `i`), and the server's purge may then remove them; a restart opens at the
+snapshot record of the records' base, at or above `i`, in a kept segment. Until W2 the spec took no
+fact about the WAL, and a `Release` above the base was provable (`notes/axiom-review/wal-tokens.md`,
+attack 10; Go: `examples/sweeprepairs/wal`, `TestW1W2WalPurge`). -/
 abbrev storage.storage.Release.spec : Prop :=
   ∀ (p ss sn mp : Loc) (dq dq' : DFrac) (md : SnapshotMetadataM) (γd : GName)
     (img : w64 → backend.Data → IProp GF) (Rm : w64 → IProp GF),
@@ -54,7 +65,10 @@ abbrev storage.storage.Release.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗
       sn.[raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smOpt mp dq' md ∗
       inv snapDirN (snapDirInv ss γd img Rm) ∗
-      □ (∀ j : w64, ⌜uint.Z j < uint.Z md.Index'⌝ -∗ Rm j) }}
+      □ (∀ j : w64, ⌜uint.Z j < uint.Z md.Index'⌝ -∗ Rm j) ∗
+      walBaseLb (storage.walOf (interface.mkOk
+        (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty) #p))
+        (uint.nat md.Index') }}
     (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty @!!
       go!"Release")) (Val #sn))
   {{ (err : GoInterface), RET #err; sn.[raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗

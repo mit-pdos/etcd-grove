@@ -5,6 +5,10 @@ stopped (`close(s.stopc)`, `<-s.donec`) and the read transaction rolled back
 `Proof/go_etcd_io/etcd/server/v3/storage/backend/snapshot__Close.lean`: `snapOpen` is opaque, so
 the translated body has nothing to be proved over). Lean-first (no Rocq counterpart); the
 vocabulary is `InvSnapshot.lean`.
+
+(2026-11-06, branch `begin-tok`, the user's approval: `notes/begin-tok-plan.md`, Q1/Q3) The post
+`True` became `threadTok`: the token `backend.Snapshot` took, given back when the read
+transaction's reader slot is released and the warning goroutine has exited.
 -/
 module
 
@@ -29,13 +33,13 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
 /-- `s.Close()` of an open snapshot, the whole of it (no share left to read it after): closed
-(`snapOpenQ` consumed), with a nil error. -/
+(`snapOpenQ` consumed), with a nil error; the `threadTok` `Snapshot` took given back. -/
 abbrev backend.snapshot.Close.spec : Prop :=
   ∀ (sp : Loc) (D : Data) (γ : GName),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       snapOpenQ sp D γ 1 }}
     (App (Val (sp @!! go.GoType.PointerType snapshot.ty @!! go!"Close")) (Val #()))
-  {{ RET #GoInterface.nil; True }}
+  {{ RET #GoInterface.nil; threadTok }}
 
 end spec
 

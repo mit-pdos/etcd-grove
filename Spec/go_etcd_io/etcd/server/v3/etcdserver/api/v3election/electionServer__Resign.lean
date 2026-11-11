@@ -47,7 +47,7 @@ abbrev electionServer.Resign.spec : Prop :=
       (⌜lk = null⌝ ∨ leaderKeyAt lk name key rev lease ∗ ⌜name ≠ []⌝ ∗
         ⌜v3rpc.grpcRecvBytesOk (v3rpc.etcdMaxRecvMsgSize maxReq) name ∧
           v3rpc.grpcRecvBytesOk (v3rpc.etcdMaxRecvMsgSize maxReq) key⌝) ∗
-      context.isContext ctx cs ∗ context.isCancelCtxCtx ctx cs }}
+      context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ context.isCancelCtxCtx ctx cs }}
     (App (App (Val (es @!! go.GoType.PointerType electionServer.ty @!! go!"Resign"))
       (Val #(GoInterface.ok ctx))) (Val #req))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);

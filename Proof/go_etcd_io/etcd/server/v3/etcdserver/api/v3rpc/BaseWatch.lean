@@ -43,12 +43,26 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- The package variable `g` holds a fixed error whose `Error()` returns (persistent). -/
+/-- The package variable `g` holds a fixed error whose `Error()` returns (persistent; the cache's
+`errorStringSpec`: the watch server only prints it; fromerror-stable, 2026-11-06: it was `errMsgOk`,
+now a stable `Error()`). -/
 def v3rpc.msgErrVar (g : GoString) : IProp GF :=
-  iprop(∃ e : GoInterfaceOk, globalAddr g ↦□ GoInterface.ok e ∗ errMsgOk e)
+  iprop(∃ e : GoInterfaceOk, globalAddr g ↦□ GoInterface.ok e ∗
+    go_etcd_io.etcd.cache.v3.errorStringSpec e)
 
 instance v3rpc.msgErrVar_persistent (g : GoString) : Persistent (v3rpc.msgErrVar (GF := GF) g) := by
-  unfold v3rpc.msgErrVar errMsgOk; infer_instance
+  unfold v3rpc.msgErrVar; infer_instance
+
+/-- The package variable `g` holds a fixed error whose `Error()` returns and which grpc's
+`status.FromError` accepts (persistent; premise-fixes-7: `ErrGRPCWatchCanceled`, which
+`watchServer.Watch` returns as a stream handler's error, `srvErrOk`). -/
+def v3rpc.statusMsgErrVar (g : GoString) : IProp GF :=
+  iprop(∃ e : GoInterfaceOk, globalAddr g ↦□ GoInterface.ok e ∗
+    go_etcd_io.etcd.cache.v3.errorStringSpec e ∗ go_etcd_io.etcd.cache.v3.statusErrOk (GoInterface.ok e))
+
+instance v3rpc.statusMsgErrVar_persistent (g : GoString) :
+    Persistent (v3rpc.statusMsgErrVar (GF := GF) g) := by
+  unfold v3rpc.statusMsgErrVar; infer_instance
 
 /-- The package variable `g` holds a fixed histogram whose `Observe` returns (persistent). -/
 def v3rpc.histVar (g : GoString) : IProp GF :=
@@ -125,11 +139,7 @@ theorem v3rpc.intervalPool_alloc (E : CoPset) :
   iintro ⟨#Hg, Hs⟩
   imod ownTokAuth_alloc (GF := GF) with ⟨%γl, Ha⟩
   ihave Ht : threadToks (GF := GF) 0 $$ []
-  · unfold threadToks
-    iexists []
-    isplitr
-    · ipureintro; rfl
-    unfold threadTokList; itrivial
+  · iapply threadToks_zero
   imod (inv_alloc v3rpc.intervalN E (v3rpc.intervalPoolInv γl)) $$ [Hs Ht Ha] with #Hi
   · inext
     unfold v3rpc.intervalPoolInv
@@ -151,18 +161,6 @@ theorem v3rpc.errVarLeaf_of_authErrVar (g : GoString) :
   iframe He Hm
   ipureintro; exact Hl
 
-/-- An error whose `Error()` returns (the cache's `errorStringSpec`), as a triple (`errMsgOk`). -/
-theorem v3rpc.errMsgOk_of_errorStringSpec (e : GoInterfaceOk) :
-    go_etcd_io.etcd.cache.v3.errorStringSpec (GF := GF) e ⊢ errMsgOk e := by
-  unfold go_etcd_io.etcd.cache.v3.errorStringSpec errMsgOk
-  iintro #H
-  iintro !> %Φ - HΦ
-  iapply H
-  inext
-  iintro %s
-  iapply HΦ
-  itrivial
-
 /-- An error variable whose `Error()` returns (the cache's `errorStringSpec`), as `msgErrVar`. -/
 theorem v3rpc.msgErrVar_of_spec (g : GoString) :
     (∃ e : GoInterfaceOk, globalAddr g ↦□ GoInterface.ok e ∗
@@ -170,9 +168,16 @@ theorem v3rpc.msgErrVar_of_spec (g : GoString) :
   iintro ⟨%e, #He, #Hs⟩
   unfold v3rpc.msgErrVar
   iexists e
-  iframe He
-  iapply v3rpc.errMsgOk_of_errorStringSpec
-  iexact Hs
+  iframe He Hs
+
+theorem v3rpc.statusMsgErrVar_of_spec (g : GoString) :
+    (∃ e : GoInterfaceOk, globalAddr g ↦□ GoInterface.ok e ∗
+        go_etcd_io.etcd.cache.v3.errorStringSpec (GF := GF) e ∗
+        go_etcd_io.etcd.cache.v3.statusErrOk (GoInterface.ok e)) ⊢ v3rpc.statusMsgErrVar g := by
+  iintro ⟨%e, #He, #Hs, #Ht⟩
+  unfold v3rpc.statusMsgErrVar
+  iexists e
+  iframe He Hs Ht
 
 end defs
 

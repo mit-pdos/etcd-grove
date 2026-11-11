@@ -33,6 +33,7 @@ public import Proof.go_etcd_io.raft.v3.InvNodeChan
 public import Proof.go_etcd_io.raft.v3.ApiVocab
 import all Proof.go_etcd_io.raft.v3.InvNodeChan
 import Proof.go_etcd_io.raft.v3.Protocol.Enter
+import Proof.go_etcd_io.raft.v3.MsgOutIns
 
 @[expose] public section
 
@@ -1651,7 +1652,7 @@ def NodeOk (γ : Cluster) (γn : NodeNames) : Prop :=
 
 /-- The configuration names of a node's `NodeNames` (`Cluster.nodeTab`); (2026-10-29, stage U9a) and its
 `live` name, by which `nodeLive` and `nodeStopped` agree. -/
-abbrev CfgNames := GName × GName × GName × GName × GName × Nat × Nat × Nat × Nat × Nat × Nat
+abbrev CfgNames := GName × GName × GName × GName × GName × Nat × Nat × Nat × Nat × Nat × Nat × GName
 
 /-- (U8 v2, 2026-10-29) with the node's storage names (`NodeNames.sn`), by which the API's
 `nodeAppliedLb`/`snapGiven` (of the node's id) are the floor's and the snapshot hand-out's lower
@@ -1660,7 +1661,10 @@ def cfgNamesOf (γn : NodeNames) : CfgNames :=
   (γn.dlm, γn.cap, γn.ccq, γn.cam, γn.live, γn.sn.ga, γn.sn.gg, γn.sn.gsv, γn.sn.gd, γn.sn.gk,
     -- (2026-11-01, durability stage II(g), approved fix A) the generation of the id's slot, so that
     -- a `nodeRunning` share is at the driver's generation (`api_enter`)
-    γn.gen)
+    γn.gen,
+    -- (2026-11-05, the lease-expiry plan's E2 revision 5) the start tag's name, so that
+    -- `nodeStartTag` is of the node object
+    γn.start)
 
 /-- **Node `n`'s configuration names are `γn`'s** (persistent): its entry of the cluster's table.
 (2026-11-01, durability stage I-2: keyed by the node object, not its id.) -/
@@ -1956,6 +1960,19 @@ def nodeDriver (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) :
         | none => iprop(True)
         | some l => storGiven γn.sn (uint.nat l.snap.Metadata'.Index')))))
 
+/-- (2026-11-05, the lease-expiry plan's E2 revision 5; the tag after the review of 2026-11-05, N1)
+**How the node `n` was started** (persistent): `n`'s entry of the cluster's table names its start
+tag (`NodeNames.start`), which holds `boot`, discarded: `true` if `StartNode` made it (a new cluster's
+bootstrap), `false` if `RestartNode` did. Each start allocates a fresh tag and writes it once; the
+table pins the name per node object (`cfgNamesOf`), so a node has one tag. A write-once record of the
+start, not a fact about the loop's later states. -/
+def nodeStartTag (n : Loc) (γ : Cluster) (boot : Bool) : IProp GF :=
+  iprop(∃ γn : NodeNames, nodeTabOk γ n γn ∗ dghostVar γn.start DFrac.discard boot)
+
+instance nodeStartTag_persistent (n : Loc) (γ : Cluster) (boot : Bool) :
+    Persistent (nodeStartTag (GF := GF) n γ boot) := by
+  unfold nodeStartTag; infer_instance
+
 /-- A sent message's snapshot, if it is a `MsgSnap`, is certified (`snapshotCert`). -/
 def sentSnapCert (γ : Cluster) (N : Namespace) (st : MsgSt) : IProp GF :=
   iprop(⌜st.msg.Type' ≠ MsgSnap⌝ ∨
@@ -2113,13 +2130,28 @@ def readySnap (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeD
       -- index, which starts at the bootstrap log's length
       ⌜(γ.raft.reBoot.length : Int) < uint.Z l.snap.Metadata'.Index'⌝)
 
+/-- (raft-entsize §2, 2026-11-09) **A message a `Ready` hands out** (the draft's `msgOut`): owned at
+`dq` holding `st`, at a content raft pinned, in the handed-out set (`msgOutR`). -/
+def msgOutU (γ : Cluster) (l : Loc) (dq : DFrac) (st : MsgSt) : IProp GF := msgOutR γ.raft l dq st
+
+/-- (raft-entsize §2, 2026-11-09) **A `Ready`'s entries** (the draft's `readyEnts`, persistent): the
+read-only slice `s` of entry objects, each at a content in the handed-out set, holding `es`. -/
+def readyEntsU (γ : Cluster) (s : GoSlice) (es : List EntryM) : IProp GF :=
+  iprop(∃ (els : List Loc) (cs : List EntryC), s ↦*□ els ∗
+    ([∗list] p;c ∈ els;cs, entPtsCC p DFrac.discard c ∗ outEntR γ.raft p c) ∗
+    ⌜cs.map EntryC.model = es⌝)
+
+instance readyEntsU_persistent (γ : Cluster) (s : GoSlice) (es : List EntryM) :
+    Persistent (readyEntsU (GF := GF) γ s es) := by
+  unfold readyEntsU; infer_instance
+
 /-- (open) **The rest of a `Ready`** (the draft's `readyRest`). -/
 def readyRest (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeDriverState)
     (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan)
     (ms : List QMsg) (ss : Option (w64 × StateType)) : IProp GF :=
-  iprop(entsRO rd.Entries' es ∗
+  iprop(readyEntsU γ rd.Entries' es ∗
     rd.Messages' ↦* ms.map QMsg.loc ∗
-    ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st) ∗
+    ([∗list] q ∈ ms, msgOutU γ q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st) ∗
     hsOpt rd.HardState' h ∗ softStateIs rd.SoftState' ss ∗
     ⌜∃ Lx : Int, Lx < 2 ^ 64 ∧
       (∀ e0, es.head? = some e0 → uint.Z e0.Index' + (es.length : Int) ≤ Lx + 1) ∧
@@ -2337,6 +2369,117 @@ theorem readyMsgs_own_split (γ : Cluster) (N : Namespace) (γn : NodeNames)
     · iapply BigSepL.bigSepL_cons.2
       iframe Hl Hls
 
+/-- (raft-entsize §2) **A `Ready`'s entry objects into the handed-out set**, each at its content. -/
+theorem entsOut_insert (γ : Cluster) (E : CoPset) (HE : ↑(raftOutN γ.raft) ⊆ E) :
+    ∀ (ls : List Loc) (es : List EntryM),
+    ⊢ raftOutInv (GF := GF) γ.raft -∗ ([∗list] l;e ∈ ls;es, entRO l e) ={E}=∗
+      ∃ cs : List EntryC, ([∗list] p;c ∈ ls;cs, entPtsCC p DFrac.discard c ∗ outEntR γ.raft p c) ∗
+        ⌜cs.map EntryC.model = es⌝
+  | [], es => by
+    iintro #_ H
+    ihave %He := BigSepL2.bigSepL2_nil_inv_left $$ H
+    subst He
+    imodintro
+    iexists []
+    isplitl
+    · iapply BigSepL2.bigSepL2_nil.2; iempintro
+    · ipureintro; rfl
+  | l :: ls, es => by
+    iintro #Hinv H
+    icases BigSepL2.bigSepL2_cons_inv_left.1 $$ H with ⟨%e, %es', %He, #H1, H⟩
+    subst He
+    icases (entPts_iff_CC l DFrac.discard e).1 $$ H1 with ⟨%c, #Hc, %Hm⟩
+    imod raftOutInv_insert γ.raft (.inr (l, c)) E HE $$ Hinv with #Ho
+    imod entsOut_insert γ E HE ls es' $$ Hinv H with ⟨%cs, H, %Hcs⟩
+    imodintro
+    iexists c :: cs
+    isplitl
+    · iapply BigSepL2.bigSepL2_cons.2
+      iframe H
+      iframe Hc Ho
+    · ipureintro; simp only [List.map_cons, Hcs, Hm]
+
+/-- (raft-entsize §2) **A `Ready`'s entries handed out** (`readyEntsU`), from today's form. -/
+theorem readyEntsU_intro (γ : Cluster) (E : CoPset) (HE : ↑(raftOutN γ.raft) ⊆ E) (s : GoSlice)
+    (es : List EntryM) :
+    ⊢ raftOutInv (GF := GF) γ.raft -∗ entsRO s es ={E}=∗ readyEntsU γ s es := by
+  iintro #Hinv H
+  unfold entsRO entsPts
+  icases H with ⟨%ls, #Hs, #H⟩
+  imod entsOut_insert γ E HE ls es $$ Hinv H with ⟨%cs, #H, %Hcs⟩
+  imodintro
+  unfold readyEntsU
+  iexists ls, cs
+  iframe Hs H
+  ipureintro; exact Hcs
+
+/-- (raft-entsize §2) Entry objects at their contents are today's read-only entries. -/
+theorem entsCC_entRO (γ : Cluster) :
+    ∀ (ls : List Loc) (cs : List EntryC),
+    ([∗list] p;c ∈ ls;cs, entPtsCC (GF := GF) p DFrac.discard c ∗ outEntR γ.raft p c) ⊢
+      [∗list] l;e ∈ ls;cs.map EntryC.model, entRO l e
+  | [], cs => by
+    iintro H
+    ihave %Hc := BigSepL2.bigSepL2_nil_inv_left $$ H
+    subst Hc
+    simp only [List.map_nil]
+    iapply BigSepL2.bigSepL2_nil.2; iempintro
+  | l :: ls, cs => by
+    iintro H
+    icases BigSepL2.bigSepL2_cons_inv_left.1 $$ H with ⟨%c, %cs', %Hc, ⟨H1, -⟩, H⟩
+    subst Hc
+    simp only [List.map_cons]
+    iapply BigSepL2.bigSepL2_cons.2
+    isplitl [H1]
+    · simp only [entRO]
+      iapply (entPts_iff_CC l DFrac.discard c.model).2
+      iexists c
+      iframe H1
+      ipureintro; rfl
+    · iapply entsCC_entRO γ ls cs' $$ H
+
+/-- (raft-entsize §2) A `Ready`'s entries handed out are today's read-only entries. -/
+theorem readyEntsU_entsRO (γ : Cluster) (s : GoSlice) (es : List EntryM) :
+    readyEntsU (GF := GF) γ s es ⊢ entsRO s es := by
+  unfold readyEntsU entsRO entsPts
+  iintro ⟨%ls, %cs, #Hs, #H, %Hcs⟩
+  iexists ls
+  iframe Hs
+  subst Hcs
+  iapply entsCC_entRO γ ls cs $$ H
+
+/-- (raft-entsize §2) **A `Ready`'s messages into the handed-out set**, each at a content raft pins
+(its `snapUf`'s). -/
+theorem msgOuts_insert (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑(raftOutN γ.raft) ⊆ E) :
+    ∀ ms : List QMsg,
+    ⊢ raftOutInv (GF := GF) γ.raft -∗
+      ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st) -∗
+      ([∗list] q ∈ ms, snapUf q.loc q.st) ={E}=∗
+      [∗list] q ∈ ms, msgOutU γ q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st
+  | [] => by
+    iintro #_ - -
+    imodintro
+    iapply (BigSepL.bigSepL_nil (Φ := fun _ (q : QMsg) => iprop(msgOutU (GF := GF) γ q.loc
+      (readyDq q.st) q.st ∗ msgCredits γ N q.st))).2
+    iempintro
+  | q :: ms => by
+    iintro #Hinv H #Hu
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨⟨Ho, Hc⟩, H⟩
+    icases BigSepL.bigSepL_cons.1 $$ Hu with ⟨#Hu1, #Hu⟩
+    imod msgOutR_intro γ.raft q.loc (readyDq q.st) q.st E HE $$ Hinv Ho Hu1 with Ho
+    imod msgOuts_insert γ N E HE ms $$ Hinv H Hu with H
+    imodintro
+    iapply BigSepL.bigSepL_cons.2
+    iframe H Hc
+    unfold msgOutU; iexact Ho
+
+/-- (raft-entsize §2) The cluster's invariant holds the handed-out set's. -/
+theorem clusterInv_out (γ : Cluster) (N : Namespace) :
+    clusterInv (GF := GF) γ N ⊢ raftOutInv γ.raft := by
+  unfold clusterInv
+  iintro ⟨-, #Hc, -⟩
+  iapply raftCommitInv_out $$ Hc
+
 /-- (stage II(g) helper) The batch's fragments release its messages' raft facts. -/
 theorem msgs_of_frags (γ : RaftNames) (id : w64) (W : DurMaps) (ms : List QMsg) :
     ⊢ durFrags (GF := GF) γ id W -∗
@@ -2419,7 +2562,7 @@ theorem api_enter (n : Loc) (γ : Cluster) (N : Namespace) (γn : NodeNames)
   ihave %Hcn := nodeTabOk_agree γ n γ1 γn $$ T1 Htab
   have Hgen : γ1.gen = γn.gen := by
     simp only [cfgNamesOf, Prod.mk.injEq] at Hcn
-    exact Hcn.2.2.2.2.2.2.2.2.2.2
+    exact Hcn.2.2.2.2.2.2.2.2.2.2.1
   iunfold EtcdGrove.nodeLiveRaw at Hl
   icases Hl with ⟨Hlv, Hsl⟩
   ihave Hsl : slotLive γ.raft γn.id q.half γn.gen $$ [Hsl]
@@ -2572,9 +2715,13 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
   | none =>
     iunfold readyDataL at Hdata
     iunfold readyData at Hdata
-    icases Hdata with ⟨#Hce, #Hcom, #Hes, Hout, #Hfz, Hmsgs, Hmo, -, Htks, ⟨%sts, Hsts, Hrs⟩,
+    icases Hdata with ⟨#Hce, #Hcom, #Hes, Hout, #Hfz, Hmsgs, Hmo, #Hsuf, -, Htks, ⟨%sts, Hsts, Hrs⟩,
       ⟨%h, Hhs, %Hp'⟩, #Hhw, -, %Hnull, #Hidx, %Hix⟩
     icases readyMsgs_own_split γ N γn Hγr ms $$ Hmo Htks with ⟨Hmo, #Htl⟩
+    -- (raft-entsize §2) the messages and entries handed out, into the handed-out set
+    ihave #Hoinv := clusterInv_out γ N $$ Hci
+    imod msgOuts_insert γ N ⊤ CoPset.subseteq_top ms $$ Hoinv Hmo Hsuf with Hmo
+    imod readyEntsU_intro γ ⊤ CoPset.subseteq_top rd.Entries' es $$ Hoinv Hes with #HesO
     imod api_committed_lb γ N ⊤ CoPset.subseteq_top (ds ++ ce) $$ Hci [Hcom] with ⟨#Hlb, %HidxOk⟩
     · rw [Hγr]; iexact Hcom
     imod api_readStates γ N ⊤ CoPset.subseteq_top sts $$ Hci [Hrs] with Hrs
@@ -2630,7 +2777,7 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
     · iexists sts; iframe Hsts Hrs
     isplitl [Hes Hout Hmsgs Hmo Hhs]
     · unfold readyRest
-      iframe Hes Hmsgs Hmo Hhs Hss
+      iframe HesO Hmsgs Hmo Hhs Hss
       isplitr
       · ipureintro
         refine ⟨Lx, HLx.1, HLx.2.1, ?_, by rw [← Hγr]; omega⟩
@@ -2684,11 +2831,15 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
   | some l =>
     iunfold readyDataL at Hdata
     iunfold readySnapData at Hdata
-    icases Hdata with ⟨#Hce, #Hcom, #Hes, Hmsgs, Hmo, -, Htks, ⟨%sts, Hsts, Hrs⟩,
+    icases Hdata with ⟨#Hce, #Hcom, #Hes, Hmsgs, Hmo, #Hsuf, -, Htks, ⟨%sts, Hsts, Hrs⟩,
       ⟨%h, Hhs, %Hp'⟩, #Hhw, -, #Hidx, Hsnap, #Hdlv, #Hloc, %Hbl, #HD, -, %Hfacts, Hout⟩
     obtain ⟨Hptr, Hce0, Hpre, Hlt, Hdl, Hpos, H61, Hfl, Hind⟩ := Hfacts
     subst Hce0
     icases readyMsgs_own_split γ N γn Hγr ms $$ Hmo Htks with ⟨Hmo, #Htl⟩
+    -- (raft-entsize §2) the messages and entries handed out, into the handed-out set
+    ihave #Hoinv := clusterInv_out γ N $$ Hci
+    imod msgOuts_insert γ N ⊤ CoPset.subseteq_top ms $$ Hoinv Hmo Hsuf with Hmo
+    imod readyEntsU_intro γ ⊤ CoPset.subseteq_top rd.Entries' es $$ Hoinv Hes with #HesO
     ihave ⟨Hrng, #Hgv⟩ : (∃ (k : Nat) (old : List EntryM), ⌜k ≤ uint.nat l.snap.Metadata'.Index'⌝ ∗
         storLog γn.stor k (DFrac.own 1) old ∗ storEnd γn.stor (k + old.length)) ∗
         storGiven γn.sn (uint.nat l.snap.Metadata'.Index') $$ [Hout]
@@ -2749,7 +2900,7 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
     · iexists sts; iframe Hsts Hrs
     isplitl [Hes Hmsgs Hmo Hhs Hsnap Hrng]
     · unfold readyRest
-      iframe Hes Hmsgs Hmo Hhs Hss
+      iframe HesO Hmsgs Hmo Hhs Hss
       isplitr
       · ipureintro
         refine ⟨Lx, HLx.1, HLx.2.1, ?_, by rw [← Hγr]; omega⟩
@@ -3424,17 +3575,22 @@ theorem perm_elements_listToSet' (l : List w64) (h : l.Nodup) :
 
 /-- **Stepping a sent message** (the draft's `stepIn_intro`). -/
 theorem stepIn_intro_impl (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (src : w64)
-    (st : MsgSt) :
+    (st : MsgSt) (c : MsgC) :
     -- (raft-final, 2026-10-29, U7: the design's §2.5; until then also `NetMsgOk` of a message not a
     -- proposal, no transfer request, and a snapshot's index below `2^61`)
     st.msg.To' = id →
+    -- (raft-entsize §2, 2026-11-09) the content form (the size fact is for the size law's proof)
+    c.model = ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ → c.csUfNil →
+    (∀ b, γ.raft.maxData = some b → st.msg.Type' ≠ MsgSnap → msgSizeOk c) →
     sentMsg (GF := GF) γ N src st ∗
-      msgPtsC ml (DFrac.own 1) (DFrac.own 1) true ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ ∗
+      msgPtsCC ml (DFrac.own 1) (DFrac.own 1) true c ∗
       msgCredits γ N st ∗ snapLocalMsg γ id st ⊢
     |==> stepIn γ N id ml := by
-  intro Hto
+  intro Hto Hc Hcs _
   subst Hto
   iintro ⟨#Hsent, Hm, Htk, #Hloc⟩
+  ihave Hm := msgPtsCC_msgPtsC ml (DFrac.own 1) (DFrac.own 1) true c Hcs $$ Hm
+  rw [Hc]
   icases msgPtsC_nn $$ Hm with ⟨%Hnn, Hm⟩
   ihave %Hbnd : ⌜st.msg.Type' = MsgSnap →
       ∃ sv, st.snap = some sv ∧ uint.Z sv.Metadata'.Index' < 2 ^ 61⌝ $$ []

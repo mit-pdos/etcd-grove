@@ -135,20 +135,22 @@ theorem Run.wp_proof
     (wp_putOther : put.specOther (GF := GF) (hG := hG))
     (wp_Leader : EtcdServer.Leader.spec (GF := GF) (hG := hG))
     (wp_MemberID : EtcdServer.MemberID.spec (GF := GF) (hG := hG))
-    (wp_restartCheck : restartCheck.spec (GF := GF) (hG := hG)) :
+    (wp_restartCheck : restartCheck.spec (GF := GF) (hG := hG))
+    (hne : mvcc.api.names_nonempty.law) (hRS : mvcc.api.mvccReaders_split.law (GF := GF)) :
     Run.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC lg N id₁ id₂ id₃ ps ctxs boot ThB RcB RcN HwbN Hlg Hp Hms hAs
+  intro CS CRE CEC lg N id₁ id₂ id₃ ps ctxs boot ThB RcB RcN HwbN Hp Hms hAs
   obtain ⟨Hbf, Hck, Haf, Hbuq, Hrf, Hdbo⟩ := Hp
   have Htb := ThreadBoundLe.le (GF := GF) (2 ^ 28)
   have Hrb48 := ReceiptBoundLe.le (GF := GF) (2 ^ 48)
-  wp_start as Hres
+  wp_start as ⟨#Hzlg, Hres⟩
+  ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   iunfold runRes at Hres
-  icases Hres with ⟨Ha₁, Ha₂, Ha₃, Hac₁, Hac₂, Hac₃, Hf₁, Hf₂, Hf₃, Htok, Htok2, #Hprem, Hw₁, Hw₂, Hw₃⟩
+  icases Hres with ⟨Hs₁, Hs₂, Hs₃, Htok, Htok2, #Hprem⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#Hb₁, #Hb₂, #Hb₃, #HbR₂, #HbR₃, #Hmarsh, #Hcom⟩
   ihave #Hcom' := Hcom
   iunfold etcdstart.commonPremises at Hcom'
-  icases Hcom' with ⟨-, -, -, -, #Hnrl⟩
+  icases Hcom' with ⟨-, -, -, #Hnrl⟩
   -- `context`'s `closedchan`, from its package's fact
   ihave #Hcci : context.isClosedchanInit (GF := GF) $$ []
   · iapply context.isClosedchanInit_of_init
@@ -231,12 +233,23 @@ theorem Run.wp_proof
     iapply BigSepM.bigSepM_empty.2; itrivial
   -- the ghost state of the cluster and its members (`alloc3`)
   have hblen0 : boot.length = 3 := by rw [Hbf.boot.1, Hbf.perm.length_eq]; rfl
-  imod (etcdstart.alloc3 id₁ id₂ id₃ ps Hbf.perm ctxs boot Hbf.idLow Hbf.idLow0 Hbf.boot Hbf.cc Hbf.urls
+  imod (etcdstart.alloc3 hne id₁ id₂ id₃ ps Hbf.perm ctxs boot Hbf.toBootCore
       (dir3 id₁ id₂ id₃) peerAddr₁ peerAddr₂ peerAddr₃ (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf).1
-      (dir3_host id₁ id₂ id₃) (by omega) (by omega)) $$ Hmarsh Hf₁ Hf₂ Hf₃
+      (dir3_host id₁ id₂ id₃) (by omega) (by omega) name₁ name₂ name₃ (some clientAddr₁)
+      (some clientAddr₂) (some clientAddr₃) .none lease.runCfg_none (by decide))
+      $$ Hmarsh Hs₁ Hs₂ Hs₃
     with ⟨%γ, %reg₁, %reg₂, %reg₃, %ρ₁, %ρ₂, %ρ₃, %E₁, %E₂, %E₃, %Φs, %γn, %Hal,
-    Hmb₁, ⟨#Hnet₁, Hpo₁⟩, Hmb₂, ⟨#Hnet₂, Hpo₂⟩, Hmb₃, ⟨#Hnet₃, Hpo₃⟩, Hetcd⟩
+    Hmb₁, ⟨#Hnet₁, Hfr₁⟩, Hmb₂, ⟨#Hnet₂, Hfr₂⟩, Hmb₃, ⟨#Hnet₃, Hfr₃⟩, Hetcd⟩
+  -- (lease-mono3) the cluster at the mode `none`: the client's `etcdKV`
+  isimp only [ne_eq, not_true_eq_false, decide_false, Bool.false_eq_true, ↓reduceIte] at Hetcd
+  -- the client addresses' listen rights, to `serveClient` and `restartCheck`
+  icases etcdstart.memberFreshRes_client _ _ _ _ rfl $$ Hfr₁ with ⟨Hac₁, Hfr₁⟩
+  icases etcdstart.memberFreshRes_client _ _ _ _ rfl $$ Hfr₂ with ⟨Hac₂, Hfr₂⟩
+  icases etcdstart.memberFreshRes_client _ _ _ _ rfl $$ Hfr₃ with ⟨Hac₃, Hfr₃⟩
   obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog₁, hst₂, hst₃, -⟩ := Hal
+  -- (R2c-4) members 2 and 3 out of compaction mode (their boot bundles'): their stops' scope
+  icases etcdstart.memberBoot_cmp _ _ _ _ _ _ false $$ Hmb₂ with ⟨%hc₂, Hmb₂⟩
+  icases etcdstart.memberBoot_cmp _ _ _ _ _ _ false $$ Hmb₃ with ⟨%hc₃, Hmb₃⟩
   obtain ⟨hn12, hn13, hn23⟩ := etcdstart.id_ne id₁ id₂ id₃ Hbf.idLow Hbf.idLow0
   have hd₁ : go!"http://" ++ peerAddr₁ ∈ dir3 id₁ id₂ id₃ id₁ := by simp [dir3]
   have hd₂ : go!"http://" ++ peerAddr₂ ∈ dir3 id₁ id₂ id₃ id₂ := by simp [dir3, hn12.symm]
@@ -254,7 +267,9 @@ theorem Run.wp_proof
       (dir3 id₁ id₂ id₃) id₁ { γ with reg := reg₁ } ρ₁ E₁ Φs γn
       HwbN hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf) hd₁
         (dir3_dirsOk id₁ id₂ id₃ ps ctxs boot Hbf)
-      ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf Hbuq Hdbo) $$ [Ha₁ Htok Hmb₁ Hpo₁ Hw₁]
+      ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
+      (etcdstart.utf8Keys_insert _ _ _ (by decide) (etcdstart.utf8Keys_insert _ _ _ (by decide)
+        (etcdstart.utf8Keys_insert _ _ _ (by decide) etcdstart.utf8Keys_empty))) Hck Haf Hbuq Hdbo) $$ [Htok Hmb₁ Hfr₁]
     as %m₁ %err₁ Hr₁
   · iframe; iframe #
   icases Hr₁ with (⟨%Herr, Htok⟩ | ⟨%Herr, %s₁, %pl₁, Hup₁, Hst₁⟩)
@@ -265,9 +280,8 @@ theorem Run.wp_proof
     iapply HΦ; itrivial
   subst Herr
   wp_auto
-  iunfold etcdstart.memberUp at Hup₁
-  icases Hup₁ with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf, Hbemu,
-    Hlts, Hlgs, Hrds, Hsts, Hbms, -, HWR, -⟩
+  icases etcdstart.memberUp_served _ _ _ _ _ _ _ $$ Hup₁ with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd,
+    #Hsf, Hgo, Hlg3, Hbemu, HWR, ⟨Hlts, Hlgs, Hrds, Hsts, Hrslots, Hbms⟩, -, -⟩
   iunfold srvGoRes at Hgo
   icases Hgo with ⟨Hwgr, Htok⟩
   wp_apply (wp_startMember N name₂ peerAddr₂ clientAddr₂ (slice.mk peer₂ (W64 1) (W64 1)) pm lg
@@ -277,7 +291,9 @@ theorem Run.wp_proof
       (dir3 id₁ id₂ id₃) id₂ { γ with reg := reg₂ } ρ₂ E₂ Φs γn
       HwbN hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf) hd₂
         (dir3_dirsOk id₁ id₂ id₃ ps ctxs boot Hbf)
-      ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf Hbuq Hdbo) $$ [Ha₂ Htok Hmb₂ Hpo₂ Hw₂]
+      ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
+      (etcdstart.utf8Keys_insert _ _ _ (by decide) (etcdstart.utf8Keys_insert _ _ _ (by decide)
+        (etcdstart.utf8Keys_insert _ _ _ (by decide) etcdstart.utf8Keys_empty))) Hck Haf Hbuq Hdbo) $$ [Htok Hmb₂ Hfr₂]
     as %m₂ %err₂ Hr₂
   · iframe; iframe #
   icases Hr₂ with (⟨%Herr, Htok⟩ | ⟨%Herr, %s₂, %pl₂, Hup₂, Hst₂⟩)
@@ -288,8 +304,8 @@ theorem Run.wp_proof
     iapply HΦ; itrivial
   subst Herr
   wp_auto
-  iunfold etcdstart.memberUp at Hup₂
-  icases Hup₂ with ⟨%E₂', %cfg₂, %γw₂, -, #Hreq₂, -, Hgo₂, -⟩
+  -- (R2c-4) member 2 never serves: what its stop takes, out of its started bundle
+  icases memberUp_stopRes hRS _ _ _ _ _ _ hc₂ $$ Hup₂ with ⟨⟨%E₂', %γw₂, #Hreq₂, Hgo₂⟩, Hsres₂⟩
   iunfold srvGoRes at Hgo₂
   icases Hgo₂ with ⟨-, Htok⟩
   wp_apply (wp_startMember N name₃ peerAddr₃ clientAddr₃ (slice.mk peer₃ (W64 1) (W64 1)) pm lg
@@ -299,7 +315,9 @@ theorem Run.wp_proof
       (dir3 id₁ id₂ id₃) id₃ { γ with reg := reg₃ } ρ₃ E₃ Φs γn
       HwbN hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf) hd₃
         (dir3_dirsOk id₁ id₂ id₃ ps ctxs boot Hbf)
-      ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf Hbuq Hdbo) $$ [Ha₃ Htok Hmb₃ Hpo₃ Hw₃]
+      ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
+      (etcdstart.utf8Keys_insert _ _ _ (by decide) (etcdstart.utf8Keys_insert _ _ _ (by decide)
+        (etcdstart.utf8Keys_insert _ _ _ (by decide) etcdstart.utf8Keys_empty))) Hck Haf Hbuq Hdbo) $$ [Htok Hmb₃ Hfr₃]
     as %m₃ %err₃ Hr₃
   · iframe; iframe #
   icases Hr₃ with (⟨%Herr, Htok⟩ | ⟨%Herr, %s₃, %pl₃, Hup₃, Hst₃⟩)
@@ -310,8 +328,7 @@ theorem Run.wp_proof
     iapply HΦ; itrivial
   subst Herr
   wp_auto
-  iunfold etcdstart.memberUp at Hup₃
-  icases Hup₃ with ⟨%E₃', %cfg₃, %γw₃, -, #Hreq₃, -, Hgo₃, -⟩
+  icases memberUp_stopRes hRS _ _ _ _ _ _ hc₃ $$ Hup₃ with ⟨⟨%E₃', %γw₃, #Hreq₃, Hgo₃⟩, Hsres₃⟩
   iunfold srvGoRes at Hgo₃
   icases Hgo₃ with ⟨-, Htok⟩
   ihave Hgo : srvGoRes s₁ $$ [Hwgr Htok]
@@ -321,9 +338,11 @@ theorem Run.wp_proof
   haveI := Hms
   iunfold memberStop at Hst₁
   icases Hst₁ with ⟨Hm₁, -, -, -⟩
+  ihave #HzlgC : zapLoggerOk cfg.Logger' $$ []
+  · rw [HElg]; iexact Hzlg
   wp_apply (wp_serveClient m₁ s₁ pl₁ clientAddr₁ E { ρ₁ with wait := γw } ρ₁.rd cfg
       (fun cid mid _ => etcdstart.etcdKVAt clientAddr₁ E { ρ₁ with wait := γw } ρ₁.rd cid mid)
-      (by rw [HElg]; exact Hlg) HEtr HEw Hms Hbuq)
+      HEtr HEw Hms Hbuq)
     $$ [Hm₁ Hac₁ Hlg3 Hbemu Hgo HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr ⟨-, Hs⟩
   · iframe; iframe #
     iintro %gs %lis %cid %mid %R Hg
@@ -343,8 +362,9 @@ theorem Run.wp_proof
     rfl $$ Hkv
   -- `NewClient(clientAddr1, lg)` (etcd's default client configuration)
   wp_apply (wp_NewClient clientAddr₁ lg
-      (EtcdGrove.client.srvWEnv R clientAddr₁ [] null null [] null default) Hlg
+      (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ₁.rd false) ρ₁.rd clientAddr₁ [] null null [] null default)
       (by unfold plainEndpoint clientAddr₁; decide) (by omega)) as %cl %cerr Hcl
+  · iframe #
   icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
   rotate_left
   · obtain ⟨Hcerr, -⟩ := Hcfail
@@ -360,7 +380,7 @@ theorem Run.wp_proof
   imod (client.putGetInv_alloc_log ρ₁.rd (kvModel ρ₁.rd.kv (bootEntries (LogEntry.toEntries boot 0)))
       go!"k" go!"v2" ⊤) $$ Hetcd with ⟨%γf, #Hinv⟩
   -- `put(cli, "k0", "v1")`: another key
-  wp_apply (wp_putOther cl clientAddr₁ (EtcdGrove.client.srvWEnv R clientAddr₁ [] null null [] null default)
+  wp_apply (wp_putOther cl clientAddr₁ (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ₁.rd false) ρ₁.rd clientAddr₁ [] null null [] null default)
       E ρ₁.rd γf cid mid go!"k" go!"v2" go!"k0" go!"v1" (by decide)
       (opSizeOk_opPutModel (K := 2) (E := 0) (V := 2) (optsKeep_nil _ _ _) (by decide) (by decide)
         (by decide)) hAs) as %perr -
@@ -385,7 +405,7 @@ theorem Run.wp_proof
   wp_if_destruct
   · -- member 3 leads: member 2 stopped and started again
     wp_apply (wp_restartCheck cl clientAddr₁
-        (EtcdGrove.client.srvWEnv R clientAddr₁ [] null null [] null default) E ρ₁.rd γf cid mid
+        (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ₁.rd false) ρ₁.rd clientAddr₁ [] null null [] null default) E ρ₁.rd γf cid mid
         m₂ s₂ pl₂ ρ₂ N name₂ peerAddr₂ clientAddr₂
         (slice.mk peer₂ (W64 1) (W64 1)) pm lg
         (GMap.insert name₃ (slice.mk peer₃ (W64 1) (W64 1)) (GMap.insert name₂ (slice.mk peer₂ (W64 1) (W64 1))
@@ -394,13 +414,13 @@ theorem Run.wp_proof
         (dir3 id₁ id₂ id₃) id₂ { γ with reg := reg₂ } γn HwbN hst₂
         hvs hrule hboot hblen hb3 hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf) hd₂
         (dir3_dirsOk id₁ id₂ id₃ ps ctxs boot Hbf)
-        ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ (by unfold plainEndpoint clientAddr₂; decide) Hlg Hck Haf
-        Hbuq Hrf Hdbo Hms hAs) $$ [Hst₂ Hac₂ Htok2]
+        ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ (by unfold plainEndpoint clientAddr₂; decide) Hck Haf
+        Hbuq Hrf Hdbo Hms hAs) $$ [Hst₂ Hsres₂ Hac₂ Htok2]
     · iframe; iframe #
     iapply HΦ; itrivial
   · -- member 3 stopped and started again
     wp_apply (wp_restartCheck cl clientAddr₁
-        (EtcdGrove.client.srvWEnv R clientAddr₁ [] null null [] null default) E ρ₁.rd γf cid mid
+        (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ₁.rd false) ρ₁.rd clientAddr₁ [] null null [] null default) E ρ₁.rd γf cid mid
         m₃ s₃ pl₃ ρ₃ N name₃ peerAddr₃ clientAddr₃
         (slice.mk peer₃ (W64 1) (W64 1)) pm lg
         (GMap.insert name₃ (slice.mk peer₃ (W64 1) (W64 1)) (GMap.insert name₂ (slice.mk peer₂ (W64 1) (W64 1))
@@ -409,8 +429,8 @@ theorem Run.wp_proof
         (dir3 id₁ id₂ id₃) id₃ { γ with reg := reg₃ } γn HwbN hst₃
         hvs hrule hboot hblen hb3 hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf) hd₃
         (dir3_dirsOk id₁ id₂ id₃ ps ctxs boot Hbf)
-        ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ (by unfold plainEndpoint clientAddr₃; decide) Hlg Hck Haf
-        Hbuq Hrf Hdbo Hms hAs) $$ [Hm₃ Hsr₃ Hcl₃ Hac₃ Htok2]
+        ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ (by unfold plainEndpoint clientAddr₃; decide) Hck Haf
+        Hbuq Hrf Hdbo Hms hAs) $$ [Hm₃ Hsr₃ Hcl₃ Hsres₃ Hac₃ Htok2]
     · iframe; iframe #
       iunfold memberStop
       iframe

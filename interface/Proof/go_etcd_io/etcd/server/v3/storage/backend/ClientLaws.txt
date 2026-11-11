@@ -67,6 +67,11 @@ theorem backend.hkPut_of_not_HK (γ : backend.BNames) (P : backend.BParams) (n k
 theorem backend.fkOpen_fkV (γ : backend.BNames) (n : Nat) (v : backend.FkVals) : backend.fkOpen γ n
     v ∗ backend.fkV γ true ⊢ backend.fkVR γ (true, n, v)
 
+theorem backend.fkCl_exact (γ : backend.BNames) (P : backend.BParams) (D : backend.Data) :
+    backend.fkCl γ P D ⊣⊢ monoNatAuthOwn γ.fk (Qp.half 1) (backend.fkInit D) ∗ backend.fkdOwn γ
+    (backend.fkVals D) ∗ backend.dlsOwn γ ∅ ∗ backend.fkVR γ (backend.fkWInit P D, backend.fkInit D,
+    backend.fkVals D)
+
 theorem backend.fkWInit_of_wf {P : backend.BParams} {D : backend.Data} (h : backend.fkWfD P D) :
     backend.fkWInit P D = true
 

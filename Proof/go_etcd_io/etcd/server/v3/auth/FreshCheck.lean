@@ -528,7 +528,7 @@ theorem auth.authStore.isRangeOpPermitted.wp_lb
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   iunfold authInv at Hinv
-  icases Hinv with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, -, -, -⟩
+  icases Hinv with ⟨%Hst, -, ⟨%lg, #Hlg, #Hlgnn⟩, -, -, -, -⟩
   ihave %Hle := ownSlice_len _ _ _ $$ He
   have he0 := adt.slice_len_eq_zero Hle
   iunfold cacheRd at Hrd
@@ -554,7 +554,7 @@ theorem auth.authStore.isRangeOpPermitted.wp_lb
     iintro %fsl ⟨-, -⟩
     (try wp_auto)
     wp_apply h_Error
-    · ipureintro; exact Hlgnn
+    · iexact Hlgnn
     (try wp_auto)
     wp_apply sync.RWMutex.wp_RUnlock $$ [$Hlk Hmp HM HgM] as Hrd
     · inext; iunfold cacheP; iexists mp, Mp; iframe Hmp HM Hall HgM
@@ -644,7 +644,7 @@ theorem auth.authStore.isOpPermitted.wp_lb
   icases HeOR' with ⟨%eOR, #HeORa, -⟩
   ihave #Hinv' := Hinv
   iunfold authInv at Hinv'
-  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, -, -, -⟩
+  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, #Hlgnn⟩, -, -, -, -⟩
   wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
@@ -686,7 +686,7 @@ theorem auth.authStore.isOpPermitted.wp_lb
     iintro %fsl ⟨-, -⟩
     (try wp_auto)
     wp_apply h_Warn
-    · ipureintro; exact Hlgnn
+    · iexact Hlgnn
     iapply HΦ
     iunfold authRd
     iframe
@@ -724,7 +724,7 @@ theorem auth.authStore.isOpPermitted.wp_lb
     iintro %fsl ⟨-, -⟩
     (try wp_auto)
     wp_apply h_Error
-    · ipureintro; exact Hlgnn
+    · iexact Hlgnn
     (try wp_auto)
     wp_bind (App (Val #(methods ti.ty go!"RUnlock" ti.v)) (Val #()))
     iapply HRU $$ Htok

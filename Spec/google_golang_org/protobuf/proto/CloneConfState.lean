@@ -30,7 +30,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `proto.Clone(cs)` of a `*pb.ConfState` holding `c` (at any fraction): a fresh `*pb.ConfState`
 holding `c`, owned; of a nil `*pb.ConfState`, a nil one.
 
-Against protobuf-go v1.36.11: the four repeated `uint64` fields are copied into fresh slices
+Against protobuf-go v1.36.12: the four repeated `uint64` fields are copied into fresh slices
 (`mergeUint64Slice`: `append` onto the empty destination's), `AutoLeave` into a fresh cell when
 set (`nil` stays `nil`; either reads as `c.AutoLeave'`), the unknown fields copied (none, as
 `csPts` requires of a conf state); the source is only read. -/

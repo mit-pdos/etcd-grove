@@ -55,19 +55,24 @@ receiver (the Lease service's handler, `v3rpc.leaseHdrAns`) needs it: its lease 
 `TTL` and `Error` read-only; its header's four id fields owned (`txn.respHdrOwn`: the gRPC layer's
 `header.fill` writes them) and its revision read-only, not `0`, a revision the store has reached
 (`srvRevLb`: a certified log longer than it, from which the clients' `etcdReached` follows,
-`v3rpc.etcdReached_of_certOk`); and the lease granted at an index `i` of the lessor's history.
+`v3rpc.etcdReached_of_certOk`); and the lease live in the lessor's history from an index `i`
+(`leaseLiveFrom`; the lease-expiry plan's X2, 2026-11-04: mode-free, until then `leaseGrantedAt`,
+which `lease.srvInv_grantedAt` gives back in the monotone mode), and (the lease-expiry plan's
+S2–S4, Q-S8, 2026-11-05) the lease's request `reqTTL` (`lease.leaseReqIs`). (Review r1 F12,
+2026-11-05: until then also the lease's read-only `ttl` field at least `reqTTL`, E3/R5, which no
+consumer reads since `leaseReqIs`.)
 (The review's M3, 2026-11-02: until then the applied log itself, its certificate and witness, the
 supplier's mechanism.) -/
-def leaseGrantedResp (E : apply.AEnv GF) (resp : Loc) : IProp GF :=
+def leaseGrantedResp (E : apply.AEnv GF) (resp : Loc) (reqTTL : w64) : IProp GF :=
   iprop(∃ (id ttl : w64) (e : GoString) (i : Nat) (h : Loc) (rv : w64),
     structFieldRef etcdserverpb.LeaseGrantResponse go!"Header" resp ↦□ h ∗
     structFieldRef etcdserverpb.ResponseHeader go!"Revision" h ↦□ rv ∗ ⌜rv ≠ W64 0⌝ ∗
-    srvRevLb E.γ (sint.Z rv) ∗
+    srvRevLb E (sint.Z rv) ∗
     txn.respHdrOwn (structFieldRef etcdserverpb.LeaseGrantResponse go!"Header" resp) ∗
     structFieldRef etcdserverpb.LeaseGrantResponse go!"ID" resp ↦□ id ∗ ⌜id ≠ W64 0⌝ ∗
     structFieldRef etcdserverpb.LeaseGrantResponse go!"TTL" resp ↦□ ttl ∗
     structFieldRef etcdserverpb.LeaseGrantResponse go!"Error" resp ↦□ e ∗
-    lease.leaseGrantedAt E.γ.leases i id)
+    ∃ l : Loc, lease.leaseLiveFrom (mvcc.api.mvccLeases E.γ) i id l ∗ lease.leaseReqIs (mvcc.api.mvccLeases E.γ) id reqTTL)
 
 end defs
 

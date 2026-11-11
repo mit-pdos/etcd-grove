@@ -25,17 +25,22 @@ variable [package_sem : go_etcd_io.etcd.pkg.v3.pbutil.Assumptions]
 theorem pbutil.MustUnmarshalMessagePb.wp_proof
     (wp_Unmarshal : proto.UnmarshalPb.spec (GF := GF) (hG := hG)) :
     pbutil.MustUnmarshalMessagePb.spec (GF := GF) (hG := hG) := by
-  intro T l d bs dq m hw
+  intro T hreg l d bs dq c₀ hm hu _hdo hbs
   wp_start as ⟨Hd, Hb⟩
   wp_auto
-  wp_apply wp_Unmarshal T d bs dq l $$ [$Hd $Hb] as %err ⟨Hd, %Hok, Hdec⟩
-  have he : err = GoInterface.nil := Hok ⟨m, hw⟩
+  wp_apply wp_Unmarshal T hreg d bs dq l $$ [$Hd $Hb] as %err ⟨Hd, %Hok, Hdec⟩
+  have he : err = GoInterface.nil := Hok ⟨c₀, hm, hu, hbs⟩
   subst he
   wp_auto
-  ihave ⟨%m', Hm, %Hw'⟩ := Hdec $$ %rfl
+  ihave ⟨%c, Hm, %Hc⟩ := Hdec $$ %rfl
+  obtain ⟨-, -, -, Heq⟩ := Hc
+  have h0 := Heq c₀ hm hu hbs
+  subst h0
   iapply HΦ
   iframe
-  ipureintro; exact Hw'
+  ipureintro
+  intro c₁ hm₁ hu₁ hb₁
+  exact (Heq c₁ hm₁ hu₁ hb₁).symm
 
 end proof
 

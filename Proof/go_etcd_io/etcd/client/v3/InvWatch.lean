@@ -131,6 +131,12 @@ structure WEnv (GF : BundledGFunctors) where
   KV names: every member's KV invariants are at names the same as these (`srvKVFacts`'s `kvSame`),
   and the watches' read updates are of their state variable (`kst`, `wsIs`) -/
   kv : KVNames
+  /-- (strict M1, 2026-11-06) the current member's watch facts as the server gives them to v3rpc
+  (`v3rpc.SrvW`: the store's handle, its peek, the notified log's certified lower bounds `histLb`,
+  the compaction permit `crevOk`; `watchSpec R W`'s) -/
+  W : v3rpc.SrvW GF
+  /-- (strict M1) each member's (`W` is the current one's, `watchConnFacts`) -/
+  memW : Nat → v3rpc.SrvW GF
 
 /-- (D47) the cluster's KV state variable (`KVNames.st`, the KV names' `V.kv.st`). -/
 abbrev WEnv.kst (V : WEnv GF) : GName := V.kv.st
@@ -139,7 +145,7 @@ abbrev WEnv.kst (V : WEnv GF) : GName := V.kv.st
 neither `R` nor `addr` is the same at every member, by definition. A `def`, so that `run`'s
 epoch environment `V0.atIdx i` stays one term (its proof generalizes it). -/
 def WEnv.atIdx (V : WEnv GF) (i : Nat) : WEnv GF :=
-  { V with addr := (V.mem i).1, R := (V.mem i).2 }
+  { V with addr := (V.mem i).1, R := (V.mem i).2, W := V.memW i }
 
 /-- The members' addresses. -/
 def WEnv.addrs (V : WEnv GF) : List GoString := (List.range V.nm).map (fun i => (V.mem i).1)
@@ -150,6 +156,9 @@ def WEnv.idxOf (V : WEnv GF) (a : GoString) : Nat :=
 
 /-- The watch server at an address. -/
 abbrev WEnv.memOf (V : WEnv GF) (a : GoString) : v3rpc.WSrv GF := (V.mem (V.idxOf a)).2
+
+/-- The server's watch facts at an address (strict M1). -/
+abbrev WEnv.memWOf (V : WEnv GF) (a : GoString) : v3rpc.SrvW GF := V.memW (V.idxOf a)
 
 /-- An address of the members is a member's. -/
 theorem WEnv.idxOf_lt (V : WEnv GF) (a : GoString) (h : a ∈ V.addrs) : V.idxOf a < V.nm := by
@@ -167,6 +176,9 @@ theorem WEnv.atIdx_R (V : WEnv GF) (i : Nat) : (V.atIdx i).R = (V.mem i).2 := rf
 theorem WEnv.atIdx_addrs (V : WEnv GF) (i : Nat) : (V.atIdx i).addrs = V.addrs := rfl
 theorem WEnv.atIdx_memOf (V : WEnv GF) (i : Nat) (a : GoString) :
     (V.atIdx i).memOf a = V.memOf a := rfl
+theorem WEnv.atIdx_W (V : WEnv GF) (i : Nat) : (V.atIdx i).W = V.memW i := rfl
+theorem WEnv.atIdx_memWOf (V : WEnv GF) (i : Nat) (a : GoString) :
+    (V.atIdx i).memWOf a = V.memWOf a := rfl
 theorem WEnv.atIdx_atIdx (V : WEnv GF) (i j : Nat) : (V.atIdx i).atIdx j = V.atIdx j := rfl
 
 end envs
@@ -211,9 +223,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- The clients' model at the watcher's server (the KV calls' model; the watch contract's is
-`V.WM`). -/
-abbrev WEnv.EM (V : WEnv GF) : EtcdModel GF := v3rpc.etcdModelOfServer V.R.E
 
 /-! ## The watch contract's model (W3) -/
 
@@ -227,8 +236,9 @@ def stepPure (log : mvcc.Log) (r0 r1 : w64) (pfx : GoString) (evs : List EtcdEv)
 /-- **The watch contract's model, from the watcher's logs** (persistent; W3): a log of `WL`
 gives the model's reached revisions, states and steps at it (plain entailments: the contract's
 facts are built under `□`), and a watched log of the server (sealed and certified, small) is one
-of `WL`, by an update (for the cluster's history, `v3rpc.histLog_of_cert` opens the certificates'
-invariant). -/
+of `WL`, by an update (strict M1: a certified lower bound of the server's notified log,
+`V.W.histLb`, in place of mvcc's sealed and certified `evLog`; for the cluster's history,
+`v3rpc.histWL_of_srv`). -/
 def watchLaws (V : WEnv GF) : IProp GF :=
   iprop((□ ∀ (L : mvcc.Log) (r : w64), V.WL L -∗ ⌜sint.Z r < L.length⌝ -∗
       etcdReached (EM := V.WM) r) ∗
@@ -237,106 +247,80 @@ def watchLaws (V : WEnv GF) : IProp GF :=
       □ etcdState (self := V.WM) r pfx (txn.underPfx pfx (mvcc.stateAt L (sint.Z r).toNat))) ∗
     (□ ∀ (L : mvcc.Log) (r0 r1 : w64) (pfx : GoString) (evs : List EtcdEv), V.WL L -∗
       ⌜stepPure L r0 r1 pfx evs⌝ -∗ EtcdStep (self := V.WM) r0 r1 pfx evs) ∗
-    (□ ∀ L : mvcc.Log, mvcc.evLog V.R.γ.st L -∗ ⌜txn.LogSmall L⌝ ={⊤}=∗ □ V.WL L))
+    (□ ∀ L : mvcc.Log, V.W.histLb L ={⊤}=∗ □ V.WL L))
 
 instance watchLaws_persistent (V : WEnv GF) : Persistent (watchLaws V) := by
   unfold watchLaws; infer_instance
 
-/-- **The server's watched logs** (the watch contract's logs for a client of one server): a
-watched log of the server, small, (2026-10-30, `notes/keylen.md`) its keys short, at the server's
-store names. -/
-def srvWL (R : v3rpc.WSrv GF) (L : mvcc.Log) : IProp GF :=
-  iprop(mvcc.evLog R.γ.st L ∗ ⌜txn.LogSmall L ∧ mvcc.LogPutsLe etcdKeyMax L ∧ R.γ.st = R.E.γ⌝)
+/-- **The server's watched logs** (the watch contract's logs for a client of one server; strict
+M1, the draft's `srvWL2`): the server's certified lower bounds of its notified log (`histLb`),
+whose model facts (well formed, fewer than `2 ^ 63` revisions, small, short keys) are `srvWOk`'s
+law (`srvWLaws`). Until M1: mvcc's `evLog` with `LogSmall`, `LogPutsLe` and `R.γ.st = R.E.γ`. -/
+def srvWL (W : v3rpc.SrvW GF) (L : mvcc.Log) : IProp GF := iprop(□ W.histLb L)
 
-instance srvWL_persistent (R : v3rpc.WSrv GF) (L : mvcc.Log) : Persistent (srvWL R L) := by
+instance srvWL_persistent (W : v3rpc.SrvW GF) (L : mvcc.Log) : Persistent (srvWL W L) := by
   unfold srvWL; infer_instance
 
-/-- **A client of one server** (the watch contract at the server's model). -/
-abbrev srvWEnv (R : v3rpc.WSrv GF) (addr : GoString) (ics : List GoFunc) (conn wc : Loc)
-    (pfx : GoString) (lg : Loc) (kv : KVNames) : WEnv GF :=
-  ⟨R, addr, ics, conn, wc, pfx, lg, v3rpc.etcdModelOfServer R.E, srvWL R, fun _ => (addr, R), 1,
-    kv⟩
+/-- **A client of one server** (the watch contract at the server's model, at its read names `γr`
+in the auth mode off; strict M1: the server's watch facts `W`). -/
+abbrev srvWEnv (R : v3rpc.WSrv GF) (W : v3rpc.SrvW GF) (γr : ReadNames) (addr : GoString)
+    (ics : List GoFunc) (conn wc : Loc) (pfx : GoString) (lg : Loc) (kv : KVNames) : WEnv GF :=
+  ⟨R, addr, ics, conn, wc, pfx, lg, v3rpc.etcdModelOfServer R.E γr false, srvWL W,
+    fun _ => (addr, R), 1, kv, W, fun _ => W⟩
 
 /-! ## The premises about the server and the transport -/
 
-/-- **(S2) A response of watch id `-1` answers a progress request** (persistent; a premise until
-unit W-M2, now a theorem: `srvProgressAllAnswers_holds`). -/
-def srvProgressAllAnswers (R : v3rpc.WSrv GF) : IProp GF :=
-  iprop(□ ∀ (γs : StreamNames) (j : Nat) (m : v3rpc.WatchRespM), v3rpc.mvccOk γs R.γ j m -∗
-    ⌜m.watchId = W64 (-1)⌝ -∗ ∃ i : Nat, v3rpc.upAtW γs i .progress)
+/-- **(S3) A response of an id other than `-1` carries an id the run registered** (persistent;
+strict M1, the draft's `srvEventIdsAssigned2`: from the snapshot's conjunct 1 and its registry
+entries; until M1 `mvcc.idAssigned`, a projection of `mvccOk`'s `mvccExtra`). A statement: its
+proof (`srvEventIdsAssigned_holds`, from `v3rpc.mvccOk`'s `rcvSnap` and the API's `wsRecvOk`) is
+the watch path's next step (`notes/mvcc-migration/clientv3.md`). (S2, `srvProgressAllAnswers`, is
+dropped: the draft's §8.) -/
+def srvEventIdsAssigned (R : v3rpc.WSrv GF) (W : v3rpc.SrvW GF) : IProp GF :=
+  iprop(□ ∀ (r : v3rpc.WRun GF) (j n : Nat) (m : v3rpc.WatchRespM) (x : mvcc.api.WResp),
+    ⌜r.srv = R ∧ r.W = W⌝ -∗ v3rpc.mvccOk r j m -∗ ⌜m.src = some (n, x) ∧ x.id ≠ W64 (-1)⌝ -∗
+    ∃ i : v3rpc.RegInfo, v3rpc.regIs r.γreg x.id i)
 
-/-- **(S3) A response with events carries an id the stream assigned to its watcher** (persistent;
-every create being auto-id, `watchReqOk`; a premise until unit W-M2, now a theorem:
-`srvEventIdsAssigned_holds`). -/
-def srvEventIdsAssigned (R : v3rpc.WSrv GF) : IProp GF :=
-  iprop(□ ∀ (γs : StreamNames) (j : Nat) (m : v3rpc.WatchRespM) (r : mvcc.RespM),
-    v3rpc.mvccOk γs R.γ j m -∗ ⌜m.src = some r ∧ r.evs ≠ []⌝ -∗
-    ∃ (γo : mvcc.WsStreamNames) (γa : GName), streamAuxIs γs (v3rpc.auxOf γo γa) ∗
-      mvcc.idAssigned γo r.id r.w)
-
-instance srvEventIdsAssigned_persistent (R : v3rpc.WSrv GF) :
-    Persistent (srvEventIdsAssigned R) := by
+instance srvEventIdsAssigned_persistent (R : v3rpc.WSrv GF) (W : v3rpc.SrvW GF) :
+    Persistent (srvEventIdsAssigned R W) := by
   unfold srvEventIdsAssigned; infer_instance
 
-/-- **(S2) holds of the verified server** (unit W-M2): `mvccOk`'s `mvccExtra` (the channel's
-progress fact, saved by the handler as its progress request, `v3rpc.progQ`). -/
-theorem srvProgressAllAnswers_holds (R : v3rpc.WSrv GF) : ⊢ srvProgressAllAnswers R := by
-  iunfold srvProgressAllAnswers
-  iintro !> %γs %j %m #Hok %Hid
-  iunfold v3rpc.mvccOk at Hok
-  icases Hok with ⟨%r, %rs, %L, %Hm, -, -, -, #Hx, -, -⟩
-  iunfold v3rpc.mvccExtra at Hx
-  icases Hx with ⟨-, #Hp⟩
-  have hr : r.id = W64 (-1) := by
-    have := congrArg v3rpc.WatchRespM.watchId Hm.1
-    simp only [v3rpc.mvccResp] at this
-    rw [← this]; exact Hid
-  ihave #Hq := Hp $$ %hr
-  iunfold v3rpc.progQ at Hq
-  iexact Hq
+/-- **The laws of the server's watch facts** (persistent; strict M1: `srvWOk`'s laws but the store's
+handle and peek, so the client's member facts stay persistent without mvcc's `persistent.law`):
+`histLb` persistent, prefix-comparable, prefix-closed, its logs well formed, fewer than `2 ^ 63`
+revisions, small and with short keys; `crevOk` persistent. They replace `srvLogsSmall` (mvcc's
+sealed logs small) and the pure conjuncts of `srvWL`. -/
+def srvWLaws (W : v3rpc.SrvW GF) : IProp GF :=
+  iprop((□ ∀ L, W.histLb L -∗ □ W.histLb L) ∗
+    (□ ∀ L L', W.histLb L -∗ W.histLb L' -∗ ⌜L <+: L' ∨ L' <+: L⌝) ∗
+    (□ ∀ L L', ⌜L' <+: L⌝ -∗ W.histLb L -∗ W.histLb L') ∗
+    (□ ∀ L, W.histLb L -∗ ⌜mvcc.LogWf' L ∧ L.length < 2 ^ 63 ∧ txn.LogSmall L ∧
+      mvcc.LogPutsLe etcdKeyMax L⌝) ∗
+    (□ ∀ c, W.crevOk c -∗ □ W.crevOk c))
 
-/-- **(S3) holds of the verified server** (unit W-M2): `mvccOk`'s `mvccExtra` (the registration
-fact the channel's invariant keeps, recorded by the stream's callback at the registration). -/
-theorem srvEventIdsAssigned_holds (R : v3rpc.WSrv GF) : ⊢ srvEventIdsAssigned R := by
-  iunfold srvEventIdsAssigned
-  iintro !> %γs %j %m %r0 #Hok %Hs
-  iunfold v3rpc.mvccOk at Hok
-  icases Hok with ⟨%r, %rs, %L, %Hm, -, -, -, #Hx, -, -⟩
-  iunfold v3rpc.mvccExtra at Hx
-  icases Hx with ⟨#He, -⟩
-  have hr : r = r0 := by
-    have := congrArg v3rpc.WatchRespM.src Hm.1
-    simp only [v3rpc.mvccResp] at this
-    rw [Hs.1] at this; exact (Option.some.inj this).symm
-  subst hr
-  iapply He
-  ipureintro; exact Or.inl Hs.2
+instance srvWLaws_persistent (W : v3rpc.SrvW GF) : Persistent (srvWLaws W) := by
+  unfold srvWLaws; infer_instance
 
-/-- **The server's sealed logs are small** (persistent; the read path's `storeSmall`, unit
-W-M2b: over `mvcc.idxSealed`, the logs the watch events are of). -/
-def srvLogsSmall (R : v3rpc.WSrv GF) : IProp GF :=
-  iprop(□ ∀ log : mvcc.Log, mvcc.idxSealed R.γ.st.idx log -∗ ⌜txn.LogSmall log⌝)
+/-- The watch condition is persistent (v3rpc's `srvOnce` is a `□`). -/
+instance srvOnce_persistent (W : v3rpc.SrvW GF) : Persistent (v3rpc.srvOnce W) := by
+  unfold v3rpc.srvOnce; infer_instance
 
-instance srvLogsSmall_persistent (R : v3rpc.WSrv GF) : Persistent (srvLogsSmall R) := by
-  unfold srvLogsSmall; infer_instance
+/-- `srvWOk` gives its laws. -/
+theorem srvWLaws_of_ok (W : v3rpc.SrvW GF) (wsl : Loc) (N : Namespace) :
+    v3rpc.srvWOk W wsl N ⊢ srvWLaws W := by
+  iunfold v3rpc.srvWOk
+  iintro ⟨-, -, -, -, #H1, #H2, #H3, #H4, #H5⟩
+  iunfold srvWLaws
+  iframe H1 H2 H3 H4 H5
 
-/-- **No revision of the server writes a key twice** (a premise, persistent): every sealed log
-of the server (`mvcc.idxSealed`, unit W-M2b: the logs the watch events are of) that is
-certified (`mvcc.certOk`, D23, 2026-10-20: as a watch event's log is, `mvcc.evLog`; with an
-update at `⊤`, to open the server's invariants that say what the certified logs hold) has each
-revision's keys distinct (`txn.NoDupKeysPerRev`). etcd's check of a transaction's requests lets a
-nested transaction's put and a later sibling's delete of one key through
-(`issues/etcd-txn-check-intervals-sibling.md`); such a revision's put event carries a key-value
-not in the state at its revision, against `rangeWatchEvOk`. The justification is per revision,
-of what the transaction writes: whether the revision is committed yet or only sealed does not
-matter. The recipes' and the cache's transactions never write a key twice: the premise is about
-other writers. -/
-def srvNoDupKeys (R : v3rpc.WSrv GF) : IProp GF :=
-  iprop(□ ∀ log : mvcc.Log, mvcc.idxSealed R.γ.st.idx log -∗ mvcc.certOk R.γ.st log ={⊤}=∗
-    ⌜txn.NoDupKeysPerRev log⌝)
-
-instance srvNoDupKeys_persistent (R : v3rpc.WSrv GF) : Persistent (srvNoDupKeys R) := by
-  unfold srvNoDupKeys; infer_instance
+/-- **A watched log's model facts** (`srvWLaws`' fourth). -/
+theorem srvWLaws_model (W : v3rpc.SrvW GF) (L : mvcc.Log) :
+    srvWLaws W ∗ W.histLb L ⊢ ⌜mvcc.LogWf' L ∧ L.length < 2 ^ 63 ∧ txn.LogSmall L ∧
+      mvcc.LogPutsLe etcdKeyMax L⌝ := by
+  iintro ⟨#Hl, HL⟩
+  iunfold srvWLaws at Hl
+  icases Hl with ⟨-, -, -, #H4, -⟩
+  iapply H4 $$ HL
 
 /-- **`errors.New`'s errors are client errors grpc's `status` accepts** (a package fact of
 `errors`, persistent: an `*errorString` is a leaf error with `Error` only; Perennial's model of
@@ -373,161 +357,182 @@ instance clientWatchVars_persistent : Persistent (clientWatchVars (GF := GF)) :=
 /-- **A member's KV facts** (persistent; D47; G2's follow-up, 2026-10-30: in either auth mode,
 `notes/decisions.md`, "G2's freeze: `srvKVFacts` in either auth mode"): its server's KV core in
 some auth mode (`srvKVCoreM on`: the read view's in its mode, `srvKVCoreM_of_readM`; at read names
-`γr` whose KV state variable is the cluster's, `V.kst`, from the start log `[[], []]`) and the start
-log sealed at its store (`NewStore`'s): what firing a watch's read update at one of its watched logs
+`γr` whose KV state variable is the cluster's, `V.kst`, from the start log `[[], []]`; strict M1: the
+start log's seal at the store, mvcc's `idxSealed`, gone): what firing a watch's read update at one of its watched logs
 needs (`srvKVCoreM_fire`). The mode is existential: the firing holds in both, the watch reads
 nothing else of it, and a premise with the mode free is weaker than one fixing it to
 `V.R.E.authMode.isOn` (the server's read view also takes its mode apart from `E.authMode`,
-`isServerReadM on`). Until then `srvKVInvs`, the auth-off KV invariants: no auth-on member had it. -/
+`isServerReadM on`). Until then `srvKVInvs`, the auth-off KV invariants: no auth-on member had it.
+(Strict M1, 2026-11-06) the member's watch facts are its server's at the same names: its certified
+lower bounds of the notified log the server's (`srvApi.histLb γr on`, so a watched log extends to
+one the read update fires at, `srvKVFacts_fire`) and its compaction permit the server's
+(`srvApi.crevOk γr`, so a compaction response's revision is the cluster's permit,
+`srvKVFacts_cmp`): in place of mvcc's sealed `evLog` and `crevPermAt`. -/
 def srvKVFacts (V : WEnv GF) : IProp GF :=
   iprop(∃ (on : Bool) (γr : ReadNames), srvKVCoreM on V.R.E γr ∗
-    mvcc.idxSealed V.R.E.γ.idx [[], []] ∗
     ⌜γr.kv.st = V.kst ∧ γr.kv.log0 = [[], []] ∧ receiptBound GF ≤ 2 ^ 62⌝ ∗
-    ⌜kvSame γr.kv V.kv⌝)
+    ⌜kvSame γr.kv V.kv⌝ ∗
+    ⌜V.W.histLb = srvApi.histLb γr on V.R.E.γs ∧ V.W.crevOk = srvApi.crevOk γr⌝)
 
 instance srvKVFacts_persistent (V : WEnv GF) : Persistent (srvKVFacts V) := by
   unfold srvKVFacts; infer_instance
 
-/-- **A member's KV facts, from its server's KV core in a mode** (`srvKVCoreM_of_readM`). -/
+/-- **The watch condition of a cluster that never compacts** (`v3rpc.srvOnce`, the client's
+premise in place of `mvcc.watchNoDup`): at the member's watch facts the server's permits
+(`W.crevOk = srvApi.crevOk γr`, `srvKVFacts`' tie), with the compaction mode off, every permitted
+compaction revision is `-1`, and `onceUpTo` below `0` is vacuous. -/
+theorem srvOnce_noCmp (W : v3rpc.SrvW GF) (γr : ReadNames) (hC : W.crevOk = srvApi.crevOk γr)
+    (hcmp : γr.kv.cmp = false) : ⊢ v3rpc.srvOnce W := by
+  unfold v3rpc.srvOnce
+  rw [hC]
+  iintro !> %L %c %lo - Hc
+  iunfold srvApi.crevOk at Hc
+  icases Hc with ⟨-, %h⟩
+  have hc := h hcmp
+  imodintro
+  ipureintro
+  intro r _ hr
+  omega
+
+/-- **A member's KV facts, from its server's KV core in a mode** (`srvKVCoreM_of_readM`), at the
+member's watch facts the server's (strict M1: `hH`, `hC`). -/
 theorem srvKVFacts_intro (V : WEnv GF) (on : Bool) (γr : ReadNames)
-    (hs : kvSame γr.kv V.kv) (hlog : γr.kv.log0 = [[], []]) (hrb : receiptBound GF ≤ 2 ^ 62) :
-    srvKVCoreM on V.R.E γr ∗ mvcc.idxSealed V.R.E.γ.idx [[], []] ⊢ srvKVFacts V := by
-  iintro ⟨#Hc, #H0⟩
+    (hs : kvSame γr.kv V.kv) (hlog : γr.kv.log0 = [[], []]) (hrb : receiptBound GF ≤ 2 ^ 62)
+    (hH : V.W.histLb = srvApi.histLb γr on V.R.E.γs) (hC : V.W.crevOk = srvApi.crevOk γr) :
+    srvKVCoreM on V.R.E γr ⊢ srvKVFacts V := by
+  iintro #Hc
   iunfold srvKVFacts
   iexists on, γr
-  iframe Hc H0
+  iframe Hc
   isplitl
   · ipureintro; exact ⟨hs.1, hlog, hrb⟩
-  ipureintro; exact hs
-
-/-- **The members' store's compaction permit is the cluster's** (C3's watch side, 2026-11-02):
-the member's KV core's `crevPermIs` (`srvKVCoreM_cperm`), at the environment's KV names
-(`kvCmpPermit_same`). -/
-theorem srvKVFacts_cperm (V : WEnv GF) :
-    srvKVFacts V ⊢ mvcc.crevPermIs V.R.E.γ (kvCmpPermit V.kv) := by
-  iintro #H
-  iunfold srvKVFacts at H
-  icases H with ⟨%on, %γr, #Hc, -, -, %Hs⟩
-  rw [← kvCmpPermit_same γr.kv V.kv Hs]
-  iapply srvKVCoreM_cperm on V.R.E γr $$ Hc
+  isplitl
+  · ipureintro; exact hs
+  ipureintro; exact ⟨hH, hC⟩
 
 /-- **… with auth off** (`srvKVFacts_intro … false`): from the auth-off read view's KV invariants
 (`srvKVInvs_of_read`). -/
 theorem srvKVFacts_of_off (V : WEnv GF) (γr : ReadNames)
-    (hs : kvSame γr.kv V.kv) (hlog : γr.kv.log0 = [[], []]) (hrb : receiptBound GF ≤ 2 ^ 62) :
-    srvKVInvs V.R.E γr ∗ mvcc.idxSealed V.R.E.γ.idx [[], []] ⊢ srvKVFacts V := by
+    (hs : kvSame γr.kv V.kv) (hlog : γr.kv.log0 = [[], []]) (hrb : receiptBound GF ≤ 2 ^ 62)
+    (hH : V.W.histLb = srvApi.histLb γr false V.R.E.γs) (hC : V.W.crevOk = srvApi.crevOk γr) :
+    srvKVInvs V.R.E γr ⊢ srvKVFacts V := by
   rw [← srvKVCoreM_false]
-  exact srvKVFacts_intro V false γr hs hlog hrb
+  exact srvKVFacts_intro V false γr hs hlog hrb hH hC
 
-/-- **The watch laws of a client of one server** (`watchLaws` at `etcdModelOfServer`, `srvWL`):
-the server model's facts of a certified log (`etcdReached_of_certOk`, `srvEtcdState`, `srvStep`),
-the conversion the identity but for the keys' bound (2026-10-30, `notes/keylen.md`): from the
-member's KV facts (`srvKVFacts`, `srvKVCoreM_keys`). -/
-theorem watchLaws_srv [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (V : WEnv GF)
-    (hWM : V.WM = v3rpc.etcdModelOfServer V.R.E)
-    (hWL : V.WL = srvWL V.R) (hst : V.R.γ.st = V.R.E.γ) : srvKVFacts V ⊢ watchLaws V := by
-  obtain ⟨R, addr, ics, conn, wc, pfx, lg, WM, WL, mem, nm, kv⟩ := V
-  simp only at hWM hWL hst ⊢
+/-- **A compaction permit of a member's watch facts is the cluster's** (strict M1, in place of
+`srvKVFacts_cperm`): none (`-1`) or `kvCmpPermit` of the cluster's KV names. -/
+theorem srvKVFacts_cmp (V : WEnv GF) (c : Int) :
+    srvKVFacts V ∗ V.W.crevOk c ⊢ ⌜c = -1⌝ ∨ kvCmpPermit V.kv c := by
+  iintro ⟨#Hk, Hc⟩
+  iunfold srvKVFacts at Hk
+  icases Hk with ⟨%on, %γr, -, -, %Hs, %Ht⟩
+  rw [Ht.2]
+  iunfold srvApi.crevOk at Hc
+  icases Hc with ⟨Hc, -⟩
+  rw [kvCmpPermit_same γr.kv V.kv Hs]
+  iexact Hc
+
+/-- **The watch laws of a client of one server** (`watchLaws` at `etcdModelOfServer`, `srvWL`;
+strict M1: over the server's `histLb`, the draft's §8 `watchLaws_srv`): a watched log is a log of
+the server's history (`v3rpc.srvLog_of_histLb`, at the server's tie `W.histLb =
+srvApi.histLb γr on E.γs`, with its model facts from `srvWLaws`), so the model's facts at it are
+`srvLog`'s (`etcdReached_of_nx` of its witnessed extension, `srvEtcdState`, `srvStep`); the
+conversion the identity (`srvWLaws`' persistence). -/
+theorem watchLaws_srv (V : WEnv GF) (on : Bool) (γr : ReadNames)
+    (hWM : V.WM = v3rpc.etcdModelOfServer V.R.E γr on) (hWL : V.WL = srvWL V.W)
+    (hH : V.W.histLb = srvApi.histLb γr on V.R.E.γs) : srvWLaws V.W ⊢ watchLaws V := by
+  obtain ⟨R, addr, ics, conn, wc, pfx, lg, WM, WL, mem, nm, kv, W, memW⟩ := V
+  simp only at hWM hWL hH ⊢
   subst hWM hWL
-  iintro #Hfacts
+  iintro #Hl
+  -- a watched log is a log of the server's history
+  ihave #Hlog : iprop(□ ∀ L : mvcc.Log, srvWL W L -∗ v3rpc.srvLog γr on L) $$ []
+  · iintro !> %L #HL
+    ihave %Hm := srvWLaws_model W L $$ [$Hl HL]
+    · iunfold srvWL at HL; iexact HL
+    iunfold srvWL at HL
+    rw [hH]
+    iapply v3rpc.srvLog_of_histLb γr on R.E.γs L Hm.2.1 Hm.2.2.1 Hm.2.2.2 $$ HL
   iunfold watchLaws
   simp only
   isplitr
   · iintro !> %L %r #HL %h
-    iunfold srvWL at HL
-    icases HL with ⟨#He, -⟩
-    ihave #Hc := mvcc.evLog_certOk _ _ $$ He
-    irevert Hc; rw [hst]; iintro #Hc
-    iapply v3rpc.etcdReached_of_certOk R.E L r h $$ Hc
+    ihave #Hs := Hlog $$ HL
+    iunfold v3rpc.srvLog at Hs
+    icases Hs with ⟨%L', #Hnx, %Hp⟩
+    iapply v3rpc.etcdReached_of_nx R.E γr on L' r
+      (Int.lt_of_lt_of_le h (by exact_mod_cast Hp.1.length_le)) $$ Hnx
   isplitr
   · iintro !> %L %r %pfx #HL %h
-    iunfold srvWL at HL
-    icases HL with ⟨#He, %Hs⟩
-    ihave #Hsl := mvcc.evLog_sealed _ _ $$ He
-    irevert Hsl; rw [hst]; iintro #Hsl
+    ihave #Hs := Hlog $$ HL
     imodintro
     rw [v3rpc.etcdModelOfServer_etcdState]
-    unfold v3rpc.srvEtcdState v3rpc.srvLog
+    unfold v3rpc.srvEtcdState
     iexists L
-    isplitl
-    · iframe Hsl; ipureintro; exact ⟨Hs.1, Hs.2.1⟩
+    iframe Hs
     ipureintro; exact ⟨h.1, h.2, rfl⟩
   isplitr
   · iintro !> %L %r0 %r1 %pfx %evs #HL %h
-    iunfold srvWL at HL
-    icases HL with ⟨#He, %Hs⟩
-    ihave #Hsl := mvcc.evLog_sealed _ _ $$ He
-    ihave #Hc := mvcc.evLog_certOk _ _ $$ He
-    irevert Hsl Hc; rw [hst]; iintro #Hsl #Hc
+    ihave #Hs := Hlog $$ HL
     rw [v3rpc.etcdModelOfServer_EtcdStep]
-    unfold v3rpc.srvStep v3rpc.srvLog
+    unfold v3rpc.srvStep
     iexists L
-    iframe Hsl Hc
-    isplitr
-    · ipureintro; exact ⟨Hs.1, Hs.2.1⟩
+    iframe Hs
     ipureintro; exact h
-  · iintro !> %L #He %Hs
-    ihave #Hsl : mvcc.idxSealed R.E.γ.idx L $$ [He]
-    · rw [← hst]; iapply mvcc.evLog_sealed $$ He
-    ihave #Hc : mvcc.certOk R.E.γ L $$ [He]
-    · rw [← hst]; iapply mvcc.evLog_certOk $$ He
-    iunfold srvKVFacts at Hfacts
-    icases Hfacts with ⟨%on, %γr, #Hcore, #H0, -⟩
-    imod srvKVCoreM_keys on R.E γr [[], []] L (by decide) (mvcc.LogPutsLe.empties _)
-      $$ Hcore H0 Hsl Hc with %Hk
+  · iintro !> %L HL
+    iunfold srvWLaws at Hl
+    icases Hl with ⟨#H1, -⟩
+    ihave #HL' := H1 $$ HL
     imodintro
     imodintro
     iunfold srvWL
-    iframe He
-    ipureintro; exact ⟨Hs, Hk, hst⟩
+    iexact HL'
 
-/-- **A member's facts** (persistent; W3b): its watch-token pool, its logs small, no key written
-twice in a revision, its store's names its environment's, and its watched logs as the contract's
-model sees them (`watchLaws`); and (M2, the storage side; watches across a compaction, D8,
-2026-11-01) its store's fact for watches (`mvcc.watchNoDup`: no compactor, or no revision writing a
-key twice), which the client's create requests carry (`watchUp`). -/
+/-- **A member's facts** (persistent; W3b; strict M1): its server's watch facts' laws
+(`srvWLaws`), the watch condition (`v3rpc.srvOnce`, the client's premise: in place of
+`mvcc.watchNoDup`, the store's fact for watches across a compaction), its watched logs as the
+contract's model sees them (`watchLaws`), its KV facts (`srvKVFacts`). The watch-token pool, the
+logs' smallness (`srvLogsSmall`: `srvWLaws`') and the store-names link (`R.γ.st = R.E.γ`) are gone:
+the API's `Watch` takes no token, and `WSrv` has no store names. -/
 def watchMemberFacts (V : WEnv GF) : IProp GF :=
-  iprop(mvcc.watchTokPool V.R.γ ∗ srvLogsSmall V.R ∗
-    ⌜V.R.γ.st = V.R.E.γ⌝ ∗ watchLaws V ∗ srvKVFacts V ∗ mvcc.watchNoDup V.R.γ.st)
+  iprop(srvWLaws V.W ∗ v3rpc.srvOnce V.W ∗ watchLaws V ∗ srvKVFacts V)
 
 instance watchMemberFacts_persistent (V : WEnv GF) : Persistent (watchMemberFacts V) := by
-  unfold watchMemberFacts; infer_instance
+  unfold watchMemberFacts v3rpc.srvOnce; infer_instance
 
-/-- **The member's fact for watches** (a projection, so no site destructures the facts by
+/-- **The member's watch condition** (a projection, so no site destructures the facts by
 position). -/
-theorem watchMemberFacts_noDup (V : WEnv GF) :
-    watchMemberFacts V ⊢ mvcc.watchNoDup V.R.γ.st := by
+theorem watchMemberFacts_once (V : WEnv GF) :
+    watchMemberFacts V ⊢ v3rpc.srvOnce V.W := by
   iintro #H
   iunfold watchMemberFacts at H
-  icases H with ⟨-, -, -, -, -, #Hf⟩
+  icases H with ⟨-, #Hf, -⟩
   iexact Hf
+
+/-- **The member's watch facts' laws** (a projection). -/
+theorem watchMemberFacts_laws (V : WEnv GF) : watchMemberFacts V ⊢ srvWLaws V.W := by
+  iintro #H
+  iunfold watchMemberFacts at H
+  icases H with ⟨#Hl, -⟩
+  iexact Hl
 
 /-- **The member's KV facts** (a projection). -/
 theorem watchMemberFacts_kv (V : WEnv GF) : watchMemberFacts V ⊢ srvKVFacts V := by
   iintro #H
   iunfold watchMemberFacts at H
-  icases H with ⟨-, -, -, -, #Hk, -⟩
+  icases H with ⟨-, -, -, #Hk⟩
   iexact Hk
 
-/-- **The member's names link** (a projection). -/
-theorem watchMemberFacts_st (V : WEnv GF) : watchMemberFacts V ⊢ ⌜V.R.γ.st = V.R.E.γ⌝ := by
-  iintro #H
-  iunfold watchMemberFacts at H
-  icases H with ⟨-, -, %h, -⟩
-  ipureintro; exact h
-
-/-- **A create request's content, from the member's facts** (M2, the storage side; the client's
-create sites in `watchGRPCStream.run`, each with a token from the pool and, G2, the create's bound
-at the member's mode): a restricted create with a watch token and its bound is `watchUp`'s. -/
+/-- **A create request's content** (G2: the create's bound at the member's mode; strict M1: no
+watch token, no store fact: `watchUp` asks only these): a restricted create with its bound is
+`watchUp`'s. -/
 theorem watchUp_create (V : WEnv GF) (i : Nat) (c : v3rpc.CreateReqM)
     (h : v3rpc.watchReqOk (.create c)) :
-    watchMemberFacts V ∗ mvcc.watchTok V.R.γ ∗ □ auth.authPubLbM V.R.E.authMode c.bound ⊢
-      v3rpc.watchUp V.R i (.create c) := by
-  iintro ⟨#Hm, Ht, #Hb⟩
-  ihave #Hf := watchMemberFacts_noDup V $$ Hm
+    □ auth.authPubLbM (GF := GF) V.R.E.authMode c.bound ⊢ v3rpc.watchUp V.R i (.create c) := by
+  iintro #Hb
   unfold v3rpc.watchUp
   dsimp only
-  iframe Ht Hf Hb
+  iframe Hb
   ipureintro; exact h
 
 /-- **The facts about the servers, the transport and the packages a watcher rests on, but the
@@ -539,32 +544,29 @@ def watchConnFacts (V : WEnv GF) : IProp GF :=
   iprop(grpcConn V.conn V.addrs V.ics [] ∗
     isGrpcStreamsMd (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) V.addrs
       go!"/etcdserverpb.Watch/Watch" (fun a => v3rpc.watchUp (V.memOf a))
-      (fun a md => v3rpc.watchSpec (V.memOf a) (auth.mdTokenOf md)) ∗
+      (fun a md => v3rpc.watchSpec (V.memOf a) (V.memWOf a) (auth.mdTokenOf md)) ∗
     v3rpc.watchDescOk ∗ (□ ∀ i : Nat, ⌜i < V.nm⌝ -∗ watchMemberFacts (V.atIdx i)) ∗
     eofOk ∗ errorsNewOk ∗ ctxErrClientAllW ∗ clientWatchVars ∗
-    ⌜V.pfx ≠ [] ∧ V.addrs.Nodup ∧ ∃ i, i < V.nm ∧ V.mem i = (V.addr, V.R)⌝)
+    ⌜V.pfx ≠ [] ∧ V.addrs.Nodup ∧ ∃ i, i < V.nm ∧ V.mem i = (V.addr, V.R) ∧ V.memW i = V.W⌝)
 
 instance watchConnFacts_persistent (V : WEnv GF) : Persistent (watchConnFacts V) := by
   unfold watchConnFacts; infer_instance
 
 /-- **The current member's facts** (W3b): `V` is at one of its members. -/
 theorem watchConnFacts_cur (V : WEnv GF) :
-    watchConnFacts V ⊢ watchMemberFacts V ∗ ⌜V.R.γ.st = V.R.E.γ ∧ V.pfx ≠ []⌝ := by
+    watchConnFacts V ⊢ watchMemberFacts V ∗ ⌜V.pfx ≠ []⌝ := by
   iintro #H
   iunfold watchConnFacts at H
   icases H with ⟨-, -, -, #Hm, -, -, -, -, %Hp⟩
-  obtain ⟨hp, -, i, hi, he⟩ := Hp
+  obtain ⟨hp, -, i, hi, he, hw⟩ := Hp
   ihave #Hmi := Hm $$ %i %hi
   have hV : V.atIdx i = V := by
-    obtain ⟨R, addr, ics, conn, wc, pfx, lg, WM, WL, mem, nm, kv⟩ := V
-    simp only at he ⊢
-    simp [WEnv.atIdx, he]
+    obtain ⟨R, addr, ics, conn, wc, pfx, lg, WM, WL, mem, nm, kv, W, memW⟩ := V
+    simp only at he hw ⊢
+    simp [WEnv.atIdx, he, hw]
   irevert Hmi; rw [hV]; iintro #Hmi
-  ihave #Hmi' := Hmi
-  iunfold watchMemberFacts at Hmi'
-  icases Hmi' with ⟨-, -, %Hst, -⟩
   iframe Hmi
-  ipureintro; exact ⟨Hst, hp⟩
+  ipureintro; exact hp
 
 /-- **The facts at another member** (W3b): `V`'s, at its member `i`. -/
 theorem watchConnFacts_atIdx (V : WEnv GF) (i : Nat) (hi : i < V.nm) :
@@ -573,11 +575,11 @@ theorem watchConnFacts_atIdx (V : WEnv GF) (i : Nat) (hi : i < V.nm) :
   iunfold watchConnFacts at H
   icases H with ⟨#H1, #H2, #H3, #H4, #H5, #H6, #H7, #H8, %Hp⟩
   iunfold watchConnFacts
-  simp only [WEnv.atIdx_addrs, WEnv.atIdx_memOf, WEnv.atIdx_atIdx]
+  simp only [WEnv.atIdx_addrs, WEnv.atIdx_memOf, WEnv.atIdx_memWOf, WEnv.atIdx_atIdx]
   simp only [WEnv.atIdx]
   iframe #
   ipureintro
-  exact ⟨Hp.1, Hp.2.1, i, hi, rfl⟩
+  exact ⟨Hp.1, Hp.2.1, i, hi, rfl, rfl⟩
 
 /-- **The facts a watcher rests on** (persistent): the stub and `watchConnFacts`. -/
 def watchSrvFacts (V : WEnv GF) : IProp GF :=
@@ -713,7 +715,7 @@ def wsRow (V : WEnv GF) (P : WsPrm GF) : IProp GF :=
   iprop(□ (⌜V.nm = 1⌝ → ∃ (m md : GrpcMd),
     ⌜streamKeyOf m = streamKeyOf (metadata.outgoingOf (GoInterface.ok P.ctx)) ∧
       clientAttemptMdOf V.conn m md⌝ ∗
-    v3rpc.watchAuthed (V.mem 0).2.γ (V.mem 0).2.s (auth.mdTokenOf md) P.n P.key P.ed))
+    v3rpc.watchAuthed (V.mem 0).2.tag (V.mem 0).2.s (auth.mdTokenOf md) P.n P.key P.ed))
 
 instance wsRow_persistent (V : WEnv GF) (P : WsPrm GF) : Persistent (wsRow V P) := by
   unfold wsRow; infer_instance
@@ -783,7 +785,7 @@ theorem watchConnFacts_one (V : WEnv GF) :
   intro h1
   obtain ⟨-, -, i, hi, he⟩ := Hp
   have : i = 0 := by omega
-  subst this; rw [he]
+  subst this; rw [he.1]
 
 /-- **A create's bound at the current member** (G2): what `watchUp` asks of a create. -/
 theorem wsBdOk_cur (V : WEnv GF) (P : WsPrm GF) :
@@ -795,7 +797,7 @@ theorem wsBdOk_cur (V : WEnv GF) (P : WsPrm GF) :
   iunfold wsBdOk at Hb
   icases Hb with ⟨#Hb, -⟩
   ihave #Hi := Hb $$ %i %hi
-  have hR : (V.mem i).2 = V.R := by rw [he]
+  have hR : (V.mem i).2 = V.R := by rw [he.1]
   irevert Hi; rw [hR]; iintro #Hi
   iexact Hi
 
@@ -808,7 +810,7 @@ theorem wsRow_of_authed (V : WEnv GF) (P : WsPrm GF) (tok : Option GoString) (c 
     (hkey : streamKeyOf (metadata.outgoingOf (GoInterface.ok P.ctx)) =
       streamKeyOf (metadata.outgoingOf (GoInterface.ok c))) :
     watchConnFacts V ∗ wsBdOk V P ∗
-      v3rpc.watchAuthed V.R.γ V.R.s tok P.bd P.key P.ed ⊢ wsRow V P := by
+      v3rpc.watchAuthed V.R.tag V.R.s tok P.bd P.key P.ed ⊢ wsRow V P := by
   iintro ⟨#Hc, #Hb, #Ha⟩
   ihave %H1 := watchConnFacts_one V $$ Hc
   iunfold wsBdOk at Hb
@@ -861,14 +863,14 @@ instance wrRO_persistent (l : Loc) (P : WsPrm GF) : Persistent (wrRO l P) := by
 
 /-- **The completeness contract for the `k`th response `run` sends a substream** (persistent;
 K2e-7, D47): unless the watch promises no completeness (`cpl` false), the server-level contract
-(`rawRespOk`, at the dispatching member's store: some store, so that the facts read no member) from
+(`rawRespOk`, at the dispatching member's watch facts: some, so that the facts read no member) from
 the second dispatch cursor's position `k` to `k + 1` (`γh2`), and the caller's
 read update fired at it (`□ P.Q σ`, `watchStateRespOk` at the same positions: `cmpl_step`). -/
 def recvCmpl (V : WEnv GF) (P : WsPrm GF) (k : Int) (v : go_etcd_io.etcd.client.v3.WatchResponse)
     (r : RespModel) : IProp GF :=
   iprop(⌜P.γ.cpl = false⌝ ∨ ∃ h2B h2A : w64, monoListIdxOwn P.γh2 k.toNat h2B ∗
     monoListIdxOwn P.γh2 (k.toNat + 1) h2A ∗
-    (∃ γst : mvcc.StoreNames, rawRespOk γst P.o h2B h2A v r) ∗
+    (∃ γst : v3rpc.SrvW GF, rawRespOk γst P.o h2B h2A v r) ∗
     ∃ σ : KVState, □ P.Q σ ∗ watchStateRespOk P.o σ h2B h2A v r)
 
 instance recvCmpl_persistent (V : WEnv GF) (P : WsPrm GF) (k : Int)
@@ -1016,7 +1018,7 @@ def recvElem (V : WEnv GF) (P : WsPrm GF) (k : Int) (wr : Loc) : IProp GF :=
 predicate `P.Q`; it fires at every response (`recvCmpl`). -/
 def wsAu (P : WsPrm GF) : IProp GF :=
   iprop(□ (AU <{ ∃∃ (σ : KVState), etcdKV P.kv σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-    <{ etcdKV P.kv σ, COMM □ P.Q σ }>))
+    <{ etcdKV P.kv σ ∗ ⌜kvRoom σ⌝, COMM □ P.Q σ }>))
 
 instance wsAu_persistent (P : WsPrm GF) : Persistent (wsAu P) := by
   unfold wsAu; infer_instance
@@ -1066,7 +1068,7 @@ theorem wsIs_row (V : WEnv GF) (P : WsPrm GF) (tok : Option GoString) (c : GoInt
       clientAttemptMdOf V.conn (metadata.outgoingOf (GoInterface.ok c)) md)
     (hkey : streamKeyOf (metadata.outgoingOf (GoInterface.ok P.ctx)) =
       streamKeyOf (metadata.outgoingOf (GoInterface.ok c))) :
-    watchConnFacts V ∗ wsIs V P ∗ v3rpc.watchAuthed V.R.γ V.R.s tok P.bd P.key P.ed ⊢
+    watchConnFacts V ∗ wsIs V P ∗ v3rpc.watchAuthed V.R.tag V.R.s tok P.bd P.key P.ed ⊢
       wsRow V P := by
   iintro ⟨#Hc, #H, #Ha⟩
   iunfold wsIs at H
@@ -1181,7 +1183,7 @@ def respcE (V : WEnv GF) (γep : GName) (k : Int) (p : Loc) : IProp GF :=
   iprop(∃ (e b : Nat) (γs : StreamNames) (γc : GName) (i : Nat) (tok : Option GoString),
     monoListIdxOwn γep e ((γs, b, γc, i, tok) : EpInfo) ∗ monoNatLbOwn γc (k.toNat + 1) ∗
     ⌜b ≤ k.toNat⌝ ∗
-    respcElem γs (v3rpc.watchDn γs (V.mem i).2.γ (V.mem i).2.s tok (V.mem i).2.cid (V.mem i).2.mid)
+    respcElem γs (v3rpc.watchDn γs (V.mem i).2 (V.memW i) tok)
       ((k.toNat - b : Nat) : Int) p)
 
 /-- **`respc`'s producer side, handed back** (D25; with the stream's receive error on `errc`): the
@@ -1288,10 +1290,12 @@ def closingP (V : WEnv GF) (G : WgsPrm GF) (ws : Loc) : IProp GF :=
 /-- **A gRPC watch stream** `G.wgs` of the watcher `G.w` (persistent): the call options and the
 server's facts (`watchSrvFacts`, as the watcher's), its read-only fields, its
 context and `cancel` (callable from anywhere), its channels (`reqc`, `errc`, `closingc` bags;
-`donec` publishing `closeErrPub`). -/
+`donec` publishing `closeErrPub`). Since premise fixes 8 also the context's outgoing metadata, in the
+chain form (`WithCancelValCtx`'s post; `openWatchClient`'s `ctxOk`), beside the call options. -/
 def isWGS (V : WEnv GF) (G : WgsPrm GF) (callSl : GoSlice) : IProp GF :=
-  iprop(⌜G.wgs ≠ null⌝ ∗ (∃ vs : List GoInterface, callSl ↦*□ vs ∗ callOptsOk vs) ∗
-    watchSrvFacts V ∗ ⌜V.lg ≠ null⌝ ∗
+  iprop(⌜G.wgs ≠ null⌝ ∗
+    ((∃ vs : List GoInterface, callSl ↦*□ vs ∗ callOptsOk vs) ∗ metadata.outgoingCtxOkC G.ctx) ∗
+    watchSrvFacts V ∗ zapLoggerOk V.lg ∗
     wgsF G.wgs go!"owner" ↦□ G.w ∗ wgsF G.wgs go!"remote" ↦□ wcIface V.wc ∗
     wgsF G.wgs go!"callOpts" ↦□ callSl ∗
     wgsF G.wgs go!"ctx" ↦□ (interface.ok G.ctx : GoInterface) ∗
@@ -1328,7 +1332,7 @@ def isClientWatcher (V : WEnv GF) (w : Loc) : IProp GF :=
     watcherF w go!"remote" ↦□ wcIface V.wc ∗ watcherF w go!"callOpts" ↦□ callSl ∗
     callSl ↦*□ vs ∗ callOptsOk vs ∗ watcherF w go!"lg" ↦□ V.lg ∗
     sync.isMutex (watcherF w go!"mu") (watcherMu V w callSl) ∗
-    watchSrvFacts V ∗ ⌜V.lg ≠ null ∧ threadBound GF ≤ 2 ^ 31⌝)
+    watchSrvFacts V ∗ zapLoggerOk V.lg ∗ ⌜threadBound GF ≤ 2 ^ 31⌝)
 
 instance isClientWatcher_persistent (V : WEnv GF) (w : Loc) : Persistent (isClientWatcher V w) := by
   unfold isClientWatcher; infer_instance

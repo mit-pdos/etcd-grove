@@ -24,11 +24,12 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
 /-- See the file header. -/
 abbrev closure.spec : Prop :=
-  ∀ (st0 : GSt) (s : GoSlice) (cs : List mcfg) (gs : List GCfg) (dq : DFrac) (n : Nat),
+  ∀ (st0 : HSt) (s : GoSlice) (cs : List mcfg) (gs : List GCfg) (dq : DFrac) (n : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗
       s ↦*{dq} cs ∗ ([∗list] c;g ∈ cs;gs, cfgOwn c g) ∗ ⌜n < 2 ^ 63 ∧ ∀ g ∈ gs, Bounded n g⌝ }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.closure)) (Val #s))

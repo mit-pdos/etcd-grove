@@ -4,7 +4,7 @@
 
 The bugs with a valid failing Go test (format: [README.md](README.md)); the findings without one are in [../nonissues/](../nonissues/INDEX.md).
 
-## Not reported (38)
+## Not reported (49)
 
 | Issue | Blocks proof | Upstream links |
 |---|---|---|
@@ -20,6 +20,7 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [etcdserver: a transaction nested about 5000 deep panics every member, permanently (with --max-txn-ops of 5000 or more)](etcd-txn-nested-depth-apply-panic.md) | yes |  |
 | [watch: a progress notification requested before a watch is created can reach that watch before its events](etcd-watch-progress-before-created.md) | yes | etcd-io/etcd#15220 issue closed; etcd-io/etcd#15237 pr merged; etcd-io/etcd#20229 pr merged |
 | [clientv3: after a reconnect, a watch from a future revision can deliver events below its start revision](etcd-watch-resume-below-start-revision.md) | yes | etcd-io/etcd#20221 issue closed; etcd-io/etcd#20229 pr merged; etcd-io/etcd#20263 pr closed; etcd-io/etcd#15248 pr merged |
+| [apiserver etcd3: GuaranteedUpdate from a cached object that changes nothing ignores a failed resource version precondition](k8s-etcd3-cached-noop-skips-preconditions.md) | yes | kubernetes/kubernetes#82303 pr closed; kubernetes/kubernetes#89828 pr closed |
 | [clientv3/leasing: a transaction answered from the cache takes the wrong branch when it compares a missing key or a lease](leasing-evalcmp-missing-key.md) | yes | etcd-io/etcd#20704 issue closed |
 | [clientv3/leasing: a Get of a key another client has leased ignores the request's options](leasing-get-failed-acquire-options.md) | yes | etcd-io/etcd#20704 issue closed |
 | [clientv3/leasing: a Put or Delete of a key the leasing KV has not cached is applied twice](leasing-modify-uncached-once.md) | yes | etcd-io/etcd#20704 issue closed |
@@ -28,19 +29,29 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [raft: calling `Advance` before applying a conf change, as `Node.Advance` allows, lets two nodes commit different entries at one index](raft-advance-before-applyconfchange.md) | yes | etcd-io/etcd#4203 issue closed; etcd-io/raft#80 issue open; etcd-io/raft#234 issue closed; etcd-io/raft#456 issue open; etcd-io/etcd#12136 issue closed; etcd-io/raft#469 pr open |
 | [raft: a snapshot received while a conf change is being applied leaves a follower with the wrong configuration, or panics](raft-snapshot-during-apply-stale-confchange.md) | yes |  |
 | [raft: after a delayed stale-term message, a new leader sends a snapshot to a follower that is already caught up](raft-stale-term-appresp-index-zero-ack.md) | yes | etcd-io/raft#52 pr merged; etcd-io/raft#148 issue closed; etcd-io/raft#149 pr merged |
+| [bbolt: `Cursor.Last` never returns after deleting every key of a bucket in the same transaction](bbolt-cursor-last-empty-leaves-hang.md) | no | etcd-io/bbolt#734 pr merged; boltdb/bolt#450 issue closed |
+| [bbolt: `Cursor.Prev` returns nil in the middle of a bucket after deletes in the same transaction](bbolt-cursor-prev-empty-leaf.md) | no | etcd-io/bbolt#734 pr merged; boltdb/bolt#450 issue closed |
 | [bbolt: `Get` panics on values committed together whose sizes add up to more than 2 GiB](bbolt-large-values-leaf-unreadable.md) | no | etcd-io/bbolt#931 issue closed; etcd-io/bbolt#182 issue closed |
 | [bbolt: `Put` accepts a value of `MaxValueSize` bytes that `Commit` or `Get` then panics on](bbolt-max-value-size-unusable.md) | no | etcd-io/bbolt#931 issue closed; etcd-io/bbolt#968 pr merged; etcd-io/bbolt#1044 issue closed |
 | [bbolt: on 32-bit platforms every transaction panics with "unaligned 64-bit atomic operation"](bbolt-txstats-unaligned-32bit.md) | no | etcd-io/bbolt#1300 pr merged; etcd-io/bbolt#577 issue closed |
+| [bbolt: a database restored from `Tx.WriteTo` loses both meta pages after two failed commits](bbolt-writeto-meta-parity.md) | no | etcd-io/bbolt#1311 issue open |
 | [server: the alarms gauge counts an alarm activated twice twice, and stays at 1 after it is disarmed](etcd-apply-alarm-gauge-reactivate.md) | no |  |
+| [etcdserver: Grant without an ID fails with "lease already exists" when two members' IDs agree in their low 15 bits](etcd-lease-id-mask-member-prefix.md) | no | etcd-io/etcd#20729 pr merged |
 | [etcdserver: `LeaseTimeToLive` with `Keys` returns key names the caller may not read](etcd-lease-timetolive-keys-toctou.md) | no | etcd-io/etcd#15656 pr merged |
 | [v3rpc: a follower's `LeaseTimeToLive` crashes the member when the leader's peer URL replies without a response header](etcd-leasehttp-timetolive-nil-header-panic.md) | no |  |
 | [leasehttp: a follower's `LeaseTimeToLive` crashes the member when the leader's peer URL answers 200 with an empty body](etcd-leasehttp-timetolive-nil-response-panic.md) | no |  |
+| [mvcc: when every key has been deleted, a follower that has not yet applied a compaction reports a different hash than the leader's compaction hash](etcd-mvcc-compact-hash-empty-keyspace.md) | no | etcd-io/etcd#22517 issue open; etcd-io/etcd#22515 pr open |
+| [mvcc: HashKV of a compacted revision during a snapshot restore reports current revision 1](etcd-mvcc-hashbyrev-restore-rev1.md) | no | etcd-io/etcd#22608 issue closed; etcd-io/etcd#22609 pr merged |
+| [mvcc: after a compaction at revision 0, HashKV of the latest revision returns the hash of revision 0](etcd-mvcc-hashbyrev-zero-stored.md) | no |  |
 | [mvcc: a physical compaction request hangs if the member installs a snapshot while its compaction waits behind another](etcd-restore-pending-compaction-unclosed.md) | no | etcd-io/etcd#11817 pr merged; etcd-io/etcd#10079 pr closed |
+| [mvcc: a member that crashes during a compaction at revision 0 restarts with compact revision -1, and the corruption check then alarms](etcd-restore-scheduled-compact-zero.md) | no | etcd-io/etcd#17780 issue closed |
 | [server: a require-leader stream's context returns a non-nil Err while its Done channel is still open](etcd-stream-interceptor-err-before-done.md) | no | etcd-io/etcd#12196 pr merged; golang/go#75533 issue closed |
+| [etcdserver: a follower killed while persisting a received snapshot cannot restart](etcd-wal-received-snapshot-save-crash-no-restart.md) | no | etcd-io/etcd#19095 pr merged; etcd-io/etcd#19674 issue closed |
 | [clientv3: Watcher.Close can hang forever after the member refuses a watch](etcd-watch-close-hang-refused-create.md) | no | etcd-io/etcd#10131 issue closed; etcd-io/etcd#14296 pr merged |
 | [grpc-go: marshaling a message whose encoding is over 2^48 bytes panics instead of failing with ResourceExhausted](grpc-codec-alloc-before-size-check.md) | no | grpc/grpc-go#9056 issue closed |
 | [client-go: `Indexer.GetIndexers` races with `AddIndexers` (concurrent map read and write)](k8s-clientgo-getindexers-unlocked-map.md) | no |  |
 | [DaemonSet controller creates a second pod on a node after a pod create that is committed but returns an error](k8s-daemonset-ambiguous-create-duplicate-pod.md) | no | kubernetes/kubernetes#86140 pr merged; kubernetes/kubernetes#138181 pr merged; kubernetes/kubernetes#139657 pr open; kubernetes/enhancements#5647 issue open |
+| [apiserver etcd3: a list at a resource version of 2^63 or more returns the current objects instead of a "too large resource version" error](k8s-etcd3-list-exact-rv-above-int64.md) | no |  |
 | [client-go: the exponential failure rate limiter returns a negative delay when the backoff reaches exactly 2^63 ns](k8s-workqueue-exponential-backoff-2to63.md) | no |  |
 | [raft: with `AsyncStorageWrites`, entries applied after a snapshot that includes them diverge the state machine](raft-async-snapshot-during-apply-divergence.md) | no | etcd-io/raft#8 pr merged |
 | [raft: `Status()` reports `AutoLeave: false` in a joint configuration entered with auto-leave](raft-config-clone-autoleave.md) | no |  |
@@ -59,7 +70,7 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [cache: the cache never becomes ready again after a compaction cancels its upstream watch](cache-ready-after-retry.md) | no | etcd-io/etcd#22614 issue open; etcd-io/etcd#22618 pr open; etcd-io/etcd#22408 pr open; etcd-io/etcd#21536 issue closed; etcd-io/etcd#20691 pr merged |
 | [Go: `x.(T)` and `==` fail on an interface value read through a `*I1` to `*I2` conversion](go-itab-reinterpret-assert.md) | no | golang/go#82470 issue open; golang/go#18595 issue closed; golang/go#26094 issue closed |
 
-## Reported by others (21)
+## Reported by others (24)
 
 | Issue | Blocks proof | Upstream links |
 |---|---|---|
@@ -76,19 +87,23 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [clientv3/leasing: after a failed range delete, the leasing KV keeps serving keys etcd deleted](leasing-evictrange-key.md) | yes | etcd-io/etcd#21869 pr closed; etcd-io/etcd#21589 pr closed; etcd-io/etcd#20704 issue closed |
 | [recipes: Barrier.Wait reports the barrier released when its watch closes while the barrier is still held](recipes-barrier-wait-closed-watch.md) | yes | etcd-io/etcd#17198 pr closed |
 | [recipes: Queue.Dequeue panics when its watch closes](recipes-dequeue-closed-watch.md) | yes | etcd-io/etcd#17198 pr closed |
+| [bbolt: `DeleteBucket` leaks a nested bucket's pages when the bucket was written in the same transaction](bbolt-deletebucket-nested-leak.md) | no | etcd-io/bbolt#1305 pr open |
 | [etcdserver: after a member installs a leader's snapshot it refuses every write with "too many requests" until another write commits](etcd-applied-index-stale-after-snapshot.md) | no | etcd-io/etcd#22516 issue open; etcd-io/etcd#22510 pr open; etcd-io/etcd#22528 issue open; etcd-io/etcd#22524 issue open |
 | [auth: re-granting a permission on a range does not change its type when the role has another permission with the same start key](etcd-auth-grant-permission-same-key.md) | no | etcd-io/etcd#21845 pr open |
+| [mvcc: when no key exists at the hashed revision, HashKV depends on how far a running compaction has gone](etcd-mvcc-hashkv-during-compaction-empty-keyspace.md) | no | etcd-io/etcd#22517 issue open; etcd-io/etcd#22515 pr open |
 | [rafthttp: a peer's response with a malformed `X-Server-Version` crashes the member that dialed it](etcd-rafthttp-stream-dial-bad-server-version-panic.md) | no | etcd-io/etcd#21829 pr open; etcd-io/etcd#22261 pr open; etcd-io/etcd#21839 pr merged |
 | [etcdserver: RangeStream sorted by a non-key target without an order returns duplicated and missing keys](etcd-rangestream-sort-none.md) | no | etcd-io/etcd#22615 pr open; etcd-io/etcd#21631 pr merged; etcd-io/etcd@9acc0ebe3 |
+| [etcdserver: a member removed from the cluster crashes on the serializable reads it is still serving](etcd-read-after-backend-close-panic.md) | no | etcd-io/etcd#22189 issue open; etcd-io/etcd#22190 pr open; etcd-io/etcd#7322 issue closed; etcd-io/etcd#17223 issue closed; etcd-io/etcd#14256 issue closed |
 | [mvcc: with more than 512 unsynced watchers, a compacted watcher is sent the compaction response again at every sync](etcd-watch-compacted-resent.md) | no | etcd-io/etcd#22294 issue open; etcd-io/etcd#22295 pr open; etcd-io/etcd#21174 pr closed; etcd-io/etcd#21189 pr closed |
 | [watch: a watch created with the ID of a canceled watch receives the canceled watch's queued events](etcd-watch-id-reuse-stale-events.md) | no | etcd-io/etcd#22673 issue open; etcd-io/etcd#22674 pr open; etcd-io/etcd#21880 pr open; etcd-io/etcd#21065 pr open |
 | [apiserver etcd3: the compactor panics when `compact_rev_key` disappears from etcd](k8s-apiserver-compactor-missing-key-panic.md) | no | kubernetes/kubernetes#139252 issue open; kubernetes/kubernetes#139254 pr open; kubernetes/kubernetes#68172 issue closed |
 | [raft: data race between `MemoryStorage.InitialState` and `MemoryStorage.SetHardState`](raft-memorystorage-initialstate-unlocked.md) | no | etcd-io/raft#545 issue open; etcd-io/raft#547 pr open; etcd-io/raft#441 pr merged |
 
-## Fixed upstream (3)
+## Fixed upstream (4)
 
 | Issue | Blocks proof | Upstream links |
 |---|---|---|
 | [raft: a leader that removed itself answers `ReadOnlySafe` read index requests at once, with a stale index](raft-readindex-removed-leader.md) | yes | etcd-io/raft#534 issue open; etcd-io/raft#536 pr merged; etcd-io/raft@1931ff5be; etcd-io/raft#83 issue open |
 | [raft: a new leader of a configuration reduced to itself answers `ReadOnlySafe` read index with a stale index](raft-readindex-singleton-stale.md) | yes | etcd-io/raft#533 issue closed; etcd-io/raft#535 pr merged; etcd-io/raft@1d3216d84; etcd-io/raft#392 issue closed; etcd-io/raft#397 pr merged; etcd-io/raft#398 pr merged; etcd-io/raft#83 issue open |
+| [mvcc: the Hash RPC reads the store's current revision without a lock, racing with every write](etcd-mvcc-hash-currentrev-race.md) | no | etcd-io/etcd#22608 issue closed; etcd-io/etcd#22609 pr merged |
 | [Go: gc miscompiles a copy between overlapping array views of a named and an unnamed array type](go-overlapping-named-array-copy.md) | no | golang/go#78371 issue closed; golang/go#54467 issue closed; golang/go#55920 issue closed |

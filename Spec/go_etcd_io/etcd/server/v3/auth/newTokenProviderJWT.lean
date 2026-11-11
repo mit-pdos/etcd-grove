@@ -8,6 +8,7 @@ constructor, for `NewTokenProvider`. Lean-first (no Rocq counterpart); the auth 
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.auth.Base
+public import Spec.go_uber_org.zap.Defs
 
 @[expose] public section
 
@@ -35,7 +36,7 @@ or an error; the signing method's type switch only uses checked assertions); the
 `NewTokenProvider`'s contract does not speak of the JWT provider. -/
 abbrev auth.newTokenProviderJWT.spec : Prop :=
   ∀ (lg m : Loc) (mm : GMap GoString GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ m ↦$ mm }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ zapLoggerOrNil lg ∗ m ↦$ mm }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.newTokenProviderJWT)) (Val #lg)) (Val #m))
   {{ (p : Loc) (err : GoInterface), RET (PairV #p #err); True }}
 

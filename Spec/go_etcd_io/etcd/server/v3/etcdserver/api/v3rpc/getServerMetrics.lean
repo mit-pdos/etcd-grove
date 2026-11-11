@@ -27,12 +27,12 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- **`getServerMetrics(metricType, lg)`** with a non-nil logger returns grpc-prometheus's server
+/-- **`getServerMetrics(metricType, lg)`** with a zap logger (premise fixes 6) returns grpc-prometheus's server
 metrics (`promSrvMetrics`): the cached ones, or new ones, registered with prometheus and cached
 (`metricsVars`, from the package's facts). -/
 abbrev v3rpc.getServerMetrics.spec : Prop :=
   ∀ (mt : GoString) (lg : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ ⌜lg ≠ null⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ zapLoggerOk lg }}
     (App (App (Val (@! v3rpc.getServerMetrics)) (Val #mt)) (Val #lg))
   {{ (m : Loc), RET #m; promSrvMetrics m }}
 

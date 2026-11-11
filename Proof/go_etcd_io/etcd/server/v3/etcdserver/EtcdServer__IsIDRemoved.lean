@@ -31,7 +31,7 @@ theorem EtcdServer.IsIDRemoved.wp_proof
   intro γn γd s id x
   wp_start as #Hok
   iunfold srvProcOk at Hok
-  icases Hok with ⟨%l, %c, %st, %γ, #Hlg, %Hlgnn, #Hid, %Hγid, #Hcl, #Hrc, #Hst, %Hstnn, #Hn,
+  icases Hok with ⟨%l, %c, %st, %γ, #Hlg, #Hlgnn, #Hid, %Hγid, #Hcl, #Hrc, #Hst, %Hstnn, #Hn,
     #Hsi, #Hcok, %HN, -⟩
   ihave #Hmpkg : isPkgInit (PROP := IProp GF)
       pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership $$ []

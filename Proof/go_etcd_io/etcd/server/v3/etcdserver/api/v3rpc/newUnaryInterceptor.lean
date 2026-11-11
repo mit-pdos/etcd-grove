@@ -45,20 +45,22 @@ local macro "handler_tail" : tactic => `(tactic| (
   iunfold srvHandlerCall at Hk;
   wp_bind (App (App (Val #h) _) _);
   iapply (wp_wand (Φ := fun v => iprop(∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗
-    (True -∗ Ψ v)))) $$ Hk;
-  iintro %v ⟨%resp, %err, %Hv, HΨ⟩;
+    go_etcd_io.etcd.cache.v3.srvErrOk err ∗ (True -∗ Ψ v)))) $$ Hk;
+  iintro %v ⟨%resp, %err, %Hv, -, HΨ⟩;
   subst Hv;
   wp_auto;
   iapply HΨ;
   itrivial))
 
 set_option hygiene false in
-/-- An early `return nil, err` of the interceptor, from the error continuation of `Hk`. -/
+/-- An early `return nil, err` of the interceptor, from the error continuation of `Hk` (`s`: the
+error's `srvErrOk`). -/
 local macro "error_return" e:term : tactic => `(tactic| (
   icases Hk with ⟨-, Hk⟩;
   iapply Hk $$ [] %(GoInterface.ok $e);
   · itrivial
-  ipureintro; intro h; cases h))
+  · ipureintro; exact ⟨fun h => (by cases h), (by simp only [handlerDescs, List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false, not_or]; assumption)⟩
+  iassumption))
 
 theorem v3rpc.newUnaryInterceptor.wp_proof
     (wp_IsCap : api.IsCapabilityEnabled.spec (GF := GF) (hG := hG))
@@ -82,10 +84,24 @@ theorem v3rpc.newUnaryInterceptor.wp_proof
   icases Hiv with ⟨#HeNS, #HeNC, #HeNL, #HeIV, #HeNoL, ⟨%kv, #Hkv⟩, ⟨%kl, #Hkl⟩, ⟨%hl, #Hhl⟩,
     ⟨%cv, #Hcv, %Hcvl⟩⟩
   iunfold go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.errVarSet at HeNS HeNC HeNL HeIV HeNoL
-  icases HeNC with ⟨%eNC, #HeNC⟩
-  icases HeNL with ⟨%eNL, #HeNL⟩
-  icases HeIV with ⟨%eIV, #HeIV⟩
-  icases HeNoL with ⟨%eNoL, #HeNoL⟩
+  icases HeNC with ⟨%eNC, #HeNC, #SeNC0⟩
+  ihave #SeNC := go_etcd_io.etcd.cache.v3.srvErrOk_of_statusErrOk _ $$ SeNC0
+  icases HeNL with ⟨%eNL, #HeNL, #SeNL0⟩
+  ihave #SeNL := go_etcd_io.etcd.cache.v3.srvErrOk_of_statusErrOk _ $$ SeNL0
+  icases HeIV with ⟨%eIV, #HeIV, #SeIV0⟩
+  ihave #SeIV := go_etcd_io.etcd.cache.v3.srvErrOk_of_statusErrOk _ $$ SeIV0
+  icases HeNoL with ⟨%eNoL, #HeNoL, #SeNoL0⟩
+  ihave #SeNoL := go_etcd_io.etcd.cache.v3.srvErrOk_of_statusErrOk _ $$ SeNoL0
+  -- (k8s etcd3 7c-2 part 2, S7) none of them is a read error
+  ihave #Prt : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes $$ []
+  · iPkgInit
+  ihave ⟨⟨%aNC, #HaNC, %DNC⟩, ⟨%aNL, #HaNL, %DNL⟩, ⟨%aIV, #HaIV, %DIV⟩, ⟨%aNoL, #HaNoL, %DNoL⟩⟩ :=
+    go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.interceptorErrsNotRead $$ Prt
+  icombine HeNC HaNC gives %QNC
+  icombine HeNL HaNL gives %QNL
+  icombine HeIV HaIV gives %QIV
+  icombine HeNoL HaNoL gives %QNoL
+  cases QNC; cases QNL; cases QIV; cases QNoL
   wp_pures
   wp_alloc_auto
   wp_pures
@@ -102,17 +118,19 @@ theorem v3rpc.newUnaryInterceptor.wp_proof
   cases b
   · wp_auto
     icases Hk with ⟨-, Hk⟩
-    iapply Hk $$ HR %(GoInterface.ok eNC)
-    ipureintro; intro h; cases h
+    iapply Hk $$ HR %(GoInterface.ok eNC) [] SeNC
+    ipureintro; exact ⟨fun h => (by cases h), (by simp only [handlerDescs, List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false, not_or]; assumption)⟩
   wp_auto
   irename : (req_ptr ↦ req : IProp GF) => Hreqp
   ipersist Hreqp
   wp_join (Q := fun v => iprop((⌜v = executeVal⌝ ∗ «$res0_ptr» ↦ GoInterface.nil ∗
       «$res1_ptr» ↦ GoInterface.nil ∗
       (WP (srvHandlerCall h #(GoInterface.ok ci) #req)
-          {{ v, ∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗ (True -∗ Ψ v) }} ∧
-        (True -∗ ∀ err : GoInterface, ⌜err ≠ GoInterface.nil⌝ -∗
-          Ψ (PairV #GoInterface.nil #err)))) ∨
+          {{ v, ∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗
+            go_etcd_io.etcd.cache.v3.srvErrOk err ∗ (True -∗ Ψ v) }} ∧
+        (True -∗ ∀ err : GoInterface,
+          ⌜err ≠ GoInterface.nil ∧ go_etcd_io.etcd.cache.v3.errDesc err ∉ handlerDescs⌝ -∗
+          go_etcd_io.etcd.cache.v3.srvErrOk err -∗ Ψ (PairV #GoInterface.nil #err)))) ∨
       ∃ e : GoInterface, ⌜v = returnVal #()⌝ ∗ «$res0_ptr» ↦ GoInterface.nil ∗
         «$res1_ptr» ↦ e ∗ Ψ (PairV #GoInterface.nil #e))) at next with [HR Hk «$res0» «$res1»]
   · wp_apply wp_MemberID s mid $$ []
@@ -139,8 +157,8 @@ theorem v3rpc.newUnaryInterceptor.wp_proof
       isplitr
       · ipureintro; rfl
       icases Hk with ⟨-, Hk⟩
-      iapply Hk $$ HR %(GoInterface.ok eNL)
-      ipureintro; intro h; cases h
+      iapply Hk $$ HR %(GoInterface.ok eNL) [] SeNL
+      ipureintro; exact ⟨fun h => (by cases h), (by simp only [handlerDescs, List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false, not_or]; assumption)⟩
     · wp_auto
       ileft; iframe; ipureintro; rfl
   rename_i v
@@ -151,7 +169,10 @@ theorem v3rpc.newUnaryInterceptor.wp_proof
     iexact HΨ
   subst Hv
   wp_auto
-  wp_apply wp_FromIncoming as %md %ok Hmd
+  ihave #Hlibu := libCtxOk_of_runCtx ci $$ Hrc
+  iunfold context.libCtxOk at Hlibu
+  icases Hlibu with ⟨#Hincu, -, -, -⟩
+  wp_apply (wp_FromIncoming ci) $$ [$Hincu] as %md %ok Hmd
   cases ok
   · iclear Hmd
     wp_auto

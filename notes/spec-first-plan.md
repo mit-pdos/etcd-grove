@@ -41,6 +41,20 @@ Seven steps, in order (renamed 2026-10-28; the notes and commits before then num
 | **Freeze** | -- | the specs fixed: every caller's glue written, the unfold list empty or justified; every new or restated axiom attacked by the `axiom` skill |
 | **Prove** | phase 4 | the remaining proofs, in parallel |
 
+**The order is a gate, not a checklist** (2026-11-05, from the dsverify ablation runs,
+`/shared/dsverify-lab`). Given the phases as text, an agent with idle time while reviewers ran started
+proof agents on every package, wrote "deviation recorded" in its notes, and froze after the proofs:
+each phase left its record, in the wrong order, and the review's repairs and a Probe-sized gap then
+invalidated 23 finished proofs (a cascade three call levels deep). So:
+- **No proof agent before the freeze**, and no function proof beyond Draft's listed glue and Probe's
+  named proofs. The freeze is an annotated tag `stageN-frozen` on the commit with the frozen
+  statements, made when the user freezes; before each batch of proof agents,
+  `git rev-parse -q --verify refs/tags/stageN-frozen` is checked and its output goes in their brief.
+- **Writing a deviation down does not allow it**: proving during Review, or freezing after the
+  proofs, is the skipped phase, recorded.
+- **While Review runs**, the work that may go on alongside it is Test, the axiom attacks, the listed
+  glue, the Probe proofs and the next reviewer bundle; not the remaining proofs.
+
 **Freeze: the axioms attacked first** (the user's, 2026-11-02). Before the user freezes a stage, the
 `axiom` skill runs on every axiom the stage adds or restates (`etc/tcb-report.py --check` lists
 the new ones; a same-name restatement is in the diff of the stage's trust-boundary files): it tries
@@ -73,6 +87,22 @@ every proof `sorry` (or a trust-boundary axiom), `Link.lean` generated. Then pro
 the callers whose bodies only thread state between callees, from the callees' specs. Glue proofs
 are short and are what find a missing frame, a premise the caller cannot give, or a
 postcondition too weak for the caller -- before the callee's expensive proof exists.
+*The glue is a list* (2026-11-05, from the dsverify ablation): the stage plan lists the glue before
+any of it is proved, each entry with its reason. A body is glue only when it decides nothing over
+shared state: it takes no lock, opens no invariant, updates no ghost state and loops over no protocol
+state; it calls its callees and passes their results on. Leaves (getters, pure helpers,
+constructors) are not glue: they wait for Probe or Prove. A Draft agent's brief names the glue it may
+prove; any other proof it finishes is a Prove proof done early. (A run with the gate above but no
+list proved 49 of its 94 functions in Draft as "glue".) The glue is usually a small part of a stage's
+functions; a long list is a sign the line was drawn to prove early.
+*Go first* (2026-11-05, the user's): a stage that changes a top-level program's traffic or its
+model writes the Go side before any Lean statement: the driver's new traffic, the Go copy of the
+model, their tests, and a statistics test that reaches every new outcome (each new error, each new
+path), run against the real code. Draft then writes Lean against Go that is known to run. The
+evidence: phase 7b's driver and stats test (2026-11-05) found the store's cached no-op bug
+(`k8s-etcd3-cached-noop-skips-preconditions`, in `issues/` with branch `k8s-etcd3-7b`) in minutes, before any statement existed;
+found in Prove, it would have been an unprovable frozen statement.
+
 *Invariants written in full* (2026-11-04, the user's): each new or changed invariant's body, not only
 its name, with its ownership (who allocates it, who opens it, which ghost state it holds and who holds
 the other halves) and the laws its clients use. Nothing before Probe checks an invariant's strength
@@ -117,6 +147,12 @@ boundary") is ranked in the same two tiers, judged by the `spec` skill's princip
 it is owned; a new mode redefining the shared predicates in place; laws, not unfolds; a hub naming it
 through a sealed slot), and against the Go code it mirrors.
 
+*Parallel reviewers* (2026-11-05, the user's): a round may review independent targets with one fresh
+reviewer each, at the same time, when the targets share no hub statement (`notes/spec-first-plan.md`,
+"Hubs") and no sealed slot; a hub statement and every slot in it always go to one reviewer, who sees
+both sides of each slot. Rounds are cheap next to the user's decisions and the builds, so this is an
+option for a large stage, not a rule.
+
 *Rounds.* Repairs introduce defects (in the pilot, two of round 2's three blockers came from round 1's
 repairs), so every repair is followed by another round with a fresh reviewer, until a round finds
 nothing in the first tier; each later round is told what the previous repair changed (the diff) and
@@ -138,6 +174,12 @@ with a concrete Go program, which the spec review does not make. `mvcc.kbNoCmp_m
 `lean`, past its review, until `backend-cmp`'s round 6 saw that its antecedent holds for any read
 transaction (take `L := False`); the restatement proposed in its place was refuted by the `axiom`
 skill (direct `Meta` puts; branch `axiom/kbnocmp-metanone`), not by a review.
+**When: in the round that writes it** (2026-11-05, the user's). A new, widened or restated
+trust-boundary statement gets its `axiom` attack in the Draft or repair round that introduces it, in
+parallel with the review, not batched before the freeze: proofs and glue built on it in between are
+lost if it is refuted. (lease-expiry restated `leaseTimeToLive` and widened `NewLessor`'s post, then
+built `Main`'s proof on them for a day before any attack started.) A statement changed again after
+its attack is attacked again, on what changed.
 
 *Cost.* A round took about 9 minutes in the pilot (28-47 tool calls, about 170k tokens), most of it
 the fresh reviewer finding and reading its context (the agent file, `CLAUDE.md`, the targets and what
@@ -202,7 +244,9 @@ so later reviews in the repository start from it.
   same treatment: random call sequences against the real library, checked against the axiom's pure
   model. One refuting trace is what the audit had to find by reading.
 
-**Probe (was phase 3): a few proofs per package.** Prove fully the one or two riskiest bodies of each
+**Probe (was phase 3): a few proofs per package.** The Probe set is named in the stage plan before the
+probes start (2026-11-05, from the dsverify ablation): at most two proofs per package, an easy one and
+a hard one; a proof not on the list waits for the freeze. Prove fully the one or two riskiest bodies of each
 package (most branching, ghost state, concurrency): they check what traces cannot -- invariant
 sufficiency, the ghost design, logical atomicity. *The hard proof is chosen by its invariant* (2026-11-04, the
 user's): the step that must preserve a new or changed invariant in its riskiest case (the concurrent
@@ -234,7 +278,8 @@ an unproved `sorry`, not against `Compact`'s Go body (which reads the context's
 `Value(TraceKey{})`).
 
 **Prove (was phase 4): the remaining proofs**, against frozen specs, in parallel (independent per function,
-which suits agents).
+which suits agents). Each proof agent's brief names the freeze tag (with the gate's output) and the
+functions it proves; it writes no spec: a spec it finds missing or wrong goes in the change log below.
 
 **The change log after the freeze, classified** (2026-10-30, the user's). Every change to a frozen
 statement goes in the stage's change log (old → new, why), as raft-unified's did
@@ -304,6 +349,31 @@ Perennial pin bump and `lean` merge, the same `.olean`s four times, each `lake b
   `flock /shared/tmp/etcd-grove-full-build.lock`, so at most one full build runs on the machine;
   targeted builds (`etc/importers.py --leaves`) and `etc/lean-check.py` do not take the lock.
 
+**Landing takes a lock** (2026-11-05, the user's). The gates and the fast-forward are one step, but
+other sessions moved `lean` in between: on 2026-11-05 a notes-only commit landed while `r2b3`'s
+gates ran, and its fast-forward failed after the full gates. So every landing, notes-only included,
+goes through `etc/land.sh` from the branch's worktree: under `flock /shared/tmp/etcd-grove-land.lock`
+it checks that `lean` is merged, runs `etc/gates.sh` under the full-build lock (skipped when the
+branch changes only `notes/`), and fast-forwards `lean`. A landing that finds the lock taken waits;
+one that finds `lean` moved merges it outside the lock and reruns. No `git merge --ff-only` into
+`lean` by hand.
+
+**The model-param gate is cached** (2026-11-11, `model-param-incr`). Gate 5b's Lean runs
+(`etc/model-param-check.py`: over an hour until rule 7 stopped passing over every constant per
+registration, about 4 minutes since) are cached in `/shared/tmp/model-param-cache/`, shared by
+the worktrees, under a SHA-256 of everything a run depends on (the `.olean`s of its whole import
+closure, the toolchain, the scripts, the manifests: the script's docstring), so a landing that
+changes none of a group's inputs reuses its result; the judging always runs. `--no-cache` for a
+suspicious result (and for CI, if it ever runs this gate).
+
+**The session registry** (2026-11-05, the user's). Sessions under two accounts work on this
+repository and cannot all message each other, so one file says who does what:
+`/shared/etcd-grove-sessions.md`, a table with one row per active session (session name, account,
+worktree, branch, stage, state, next hard stop, updated). A session adds its row when it starts a
+stage, updates it at each hard stop and landing, and removes it when its worktree goes. The
+coordinator reads it before sequencing landings or starting agents; a session about to touch a hub
+(`etc/spec-hubs.py`) checks it for others on the same hub.
+
 **Not covered by testing:** the resource part of a spec (ownership, fractions, invariants,
 atomicity). Only Draft's glue proofs and Probe's sampled proofs check it before Prove.
 
@@ -347,6 +417,18 @@ and each stop cost a round trip with the agent idle. **Hard stops** stay stops:
 - the escalation trigger below; a change to a frozen or top-level statement;
 - anything upstream or a fork change.
 
+**Frozen changes found in a later stage's Draft come in one batch** (2026-11-05, the user's). A
+Draft that reaches into an earlier stage's frozen statements tends to find them one at a time: the
+lease S2–S4 Draft stopped three times in a row (Q-S4 the TTL-agreement law, Q-S6 the
+requested-TTL bound, Q-S8 the grant chain), each a round trip with the agent idle, each found only
+after the previous one was applied. After its Scope is approved, such a Draft applies each further
+change to a frozen statement or exported definition on its branch as a DRAFT, logged old → new with
+its cause, finishes the Draft, and brings the list to the user once; nothing lands before its
+Freeze, so a change the user rejects is a revert on the branch. Trust-base growth still stops at
+once. Before relaying a "frozen statement must change" stop, the coordinator checks the claim
+against the freeze tag: one stop that day (lease-expiry's `∀ SP`, 2026-11-05) was a misread error,
+the frozen spec already quantified.
+
 A scope narrowing around a recorded finding (7b's cached no-op: the traffic avoids it, the bug in
 `issues/`) proceeds: it is recorded and in the batch, not a stop.
 
@@ -356,6 +438,34 @@ the user" decision) to `questions.md` at its worktree's root, with the options, 
 and what depends on the answer, and goes on with what does not; the orchestrator relays the file to
 the user and the answers back by message. It ends its turn only at a hard stop with nothing left that
 does not depend on it.
+
+**A large Draft: pass 1 small, pass 2 wide** (2026-11-06, the user's; from the dsverify skill,
+`5409306`). Pass 1 writes only what more than one package names: the hub statements and slots,
+the invariant bodies, the specs of cross-package functions; no package-internal spec, no glue, no
+proof (a law as a statement, `sorry`). Pass 2's agents are fresh, one per package, never the pass-1
+agent continued, each started as soon as the pass-1 statements its package names build. If one
+agent is drafting most packages, stop it at the interfaces and start the package agents. (The
+dsverify lab: `ablate-craq-spec-3`'s pass 1 drafted nearly everything, Draft 125 min;
+`dryrun-craq-spec-4`, this rule, Draft 39 min with four package agents at once. Its effect on rework
+is not yet measured: revisit when the lab's full run reports.)
+
+**Wait on notifications, not on sleeps** (2026-11-06, the user's; from the dsverify skill,
+`5409306`). A session or agent that waits for another agent, a build or a landing runs it in the
+background and acts when its completion notification arrives; it never waits with `sleep`, an
+`until` loop over a file or a commit, or a fixed timeout, and it does not end its turn just to wait.
+Between notifications it does the work that does not depend on them: the next brief, the review
+bundle, the decisions on requests already filed. (The dsverify lab's `ablate-craq-spec-3`: 49 polls
+and 47 minutes with no agent running while the main session slept; here, the restart agent ended its
+turn twice "waiting" for a subagent, 2026-11-05.)
+
+*Where, and what counts as approved* (2026-11-05, the user's). The stage's worktree and branch are
+made at Scope, not at the freeze, so that `questions.md` is always at the worktree's root (not in a
+session's scratchpad, where no one else finds it). An entry the coordinator or the user's session
+marks **"approved by the user, <date>, via <session>"** (or "vetoed") is the user's decision: every
+agent on the branch acts on it without asking again. (On 2026-11-05 a sub-agent declined approvals
+the user had given in its own session because they reached it relayed, and they were relayed twice.)
+An approval given elsewhere (a dialog, a chat) is copied into `questions.md` in that form by the
+session that received it, before any agent acts on it.
 
 **The escalation trigger**, however small the change looks: a repair or design step that would add a
 spec or predicate family beside an existing one (a second spec of a function for a mode or special
@@ -785,6 +895,25 @@ premises with slots.
    slotted subsystem's later changes leave `NewServer.spec`'s text alone, and did parallel branches
    stop conflicting there (three branches edited `NewServer.lean`/`InvBoot.lean` at once on
    2026-11-03: `lease-grant`, `r2b1-s3`, `snap-auth-on-apply`)?
+   **First check (2026-11-05, `lean` 256dbfc6d9 against 3fe0d5a4ef; slots: the WAL, the raft node,
+   the transport, the compactor; the lease's on `lease-expiry`).** `etc/spec-hubs.py` change counts,
+   11-03 → 11-05: `NewServer.specG` 9 → 24, `bootOk` 58 → 66, `srvBuilt`/`srvBuiltG`/`isServerBuilt`
+   +7 each, `bootstrapContract` 7 → 12, `KVNames` 11 → 18, `AEnv` 16 → 20; `RaftNames` and
+   `StoreNames` unchanged. The hub's rate is not lower yet (about 6 changes a day to `specG`, 4.3 a day
+   to `spec` before), but the 12 commits that changed `Spec/.../NewServer.lean` since 11-03 are mostly the
+   conversion itself: the slots, the bootOk review and the twins (6); a subsystem added through its slot
+   (R2b-1's WAL, 1); comments only (auth stage 3, 1); pre-convention (lease-grant 3b, 1). The compactor's
+   and auth's later stages (Q1 (b)/(c), auth 4-5) left the hub's text alone. **The misses: the restart's
+   stop (R2b-3d, 3 commits)** added `srvStopKeep` inline, then changed its arguments twice (fields of
+   `E`, not a names record: the follow-up under the transport's slot) and put an inline mode clause
+   beside it (`⌜on = false⌝ → srvCleanupOwn`); and the example entry points (hub 4) grew mode twins
+   (`BuildServer.specRestart`/`specStop`, `newServer.specCompact`, `Start{Compacting,Periodic}Server`),
+   step 7 not yet done. Parallel branches still collide: `lease-expiry` (+149 lines in
+   `NewServer.lean`, its lease slot) and `r2b3` both edit the postcondition. `etc/spec-churn.py`'s
+   `STAGES` has no stage since 11-02, so its tables do not measure the hubs yet (add K1, R2b-1, the
+   auth stages, 7b, auth 5 when they freeze). Next: the restart's stop pieces as a slot when R2b-3d next
+   touches the hub; step 7 before the restart's `walFiles`; land `lease-expiry` and `r2b3` one after
+   the other. Re-check after both land.
 6. **Collapse the twins** (2026-11-03, the hub plan's owner; R2b-1's review, suggestion 3).
    **Done** (2026-11-03, branch `hub-twins`, after auth-on's whole branch landed): `specG` written
    out once, `spec := ∀ cmp, specG false cmp` (no wrapper needed: `newServerMode` passes its mode
@@ -826,6 +955,442 @@ premises with slots.
    not an extension of a fresh start. **When:** with the restart contracts' stage 2 (`walFiles`),
    the next change that would thread a start resource through the examples.
 
+#### Step 7 Scope (2026-11-05)
+
+Session etcd-grove-83, branch `hub-step7` (off `lean` fd99415136). Scope only; for the user via
+etcd-grove-82 (hard stop: the Main specs). The questions, with options and recommendations, are in
+the branch's `questions.md`: Q1 (the Mains), Q2 (the twins), Q3 (the premise lists), Q4 (the API
+module and an importable list), and D1-D5 (decided by the agent, pending the user).
+
+**Order assumption.** Written against `lean` plus the four branches landing first:
+- K6, `k8s3m`;
+- `lease-expiry`;
+- `r2b3`;
+- `auth-comp5`.
+
+Draft starts after K6 and lease-expiry land. It merges `lean` again before Prove.
+
+**The bundles** (sealed, `@[no_expose]`, in a new API module
+`Proof/github_com/mit_pdos/etcd_grove/examples/lib/etcdstart/StartRes.lean`, owned by `etcdstart`;
+`import all` only by `etcdstart`'s own proofs, listed in `etc/import-all.txt`; Q4):
+
+```lean
+structure MemberAddrs where      -- the addresses the program listens on for this member
+  peer : Option GoString := none   -- the peer address, served with raft's HTTP protocol
+  client : Option GoString := none -- the client address
+abbrev memberWalDir (name : GoString) : GoString := config.walDirOf (name ++ go!".etcd") go!""
+
+-- what a Main takes per member: program start (startRights' items)
+@[no_expose] def memberStartRes (name : GoString) (a : MemberAddrs) : IProp GF :=
+  walDirFresh (memberWalDir name) ∗
+  (match a.peer with | some p => netAddrFree p ∗ httpProtoFree p | none => emp) ∗
+  (match a.client with | some c => netAddrFree c | none => emp)
+-- what a first-start starter takes: the same, the peer's protocol reserved at the cluster's network
+@[no_expose] def memberFreshRes (name : GoString) (a : MemberAddrs) (γn : NetNames GF) : IProp GF :=
+  walDirFresh (memberWalDir name) ∗
+  (match a.peer with | some p => netAddrFree p ∗ http.httpProtoOwn p (raftProto (netRh γn)) | none => emp) ∗
+  (match a.client with | some c => netAddrFree c | none => emp)
+-- what a restart starter takes: what the stop gave back (restart/stop.spec's post)
+@[no_expose] def memberRestartRes (name : GoString) (a : MemberAddrs) (γn : NetNames GF)
+    (γ : SrvRaft) (ρ : ReqNames) (id : w64) : IProp GF :=
+  srvDiskImage γ ρ id (name ++ go!".etcd") ∗      -- holds srvFiles: walFiles, the backend's file
+  (match a.peer with | some p => netAddrFree p ∗ http.httpProtoOwn p (raftProto (netRh γn)) | none => emp) ∗
+  (match a.client with | some c => netAddrFree c | none => emp)
+```
+
+The addresses are optional (D3) because the closed theorems fix `As`:
+- the one-member examples' `HAs` names only the client address;
+- putget3's names only member 1's client.
+
+A bundle with a mandatory peer would change those theorems.
+
+**Laws** (introduction where callers hold the pieces; narrow eliminations into what the consumer
+takes, each returning the rest of the bundle at a smaller `MemberAddrs`, never the body restated):
+
+| law | statement (Lean-like) | used by |
+|---|---|---|
+| `memberStartRes_intro` | `(ms.flatMap addrsOf ++ Bs).Perm As → (ms.map (memberWalDir ∘ fst)).Perm Ds → ([∗list] a ∈ As, netAddrFree a) ∗ ([∗list] a ∈ As, httpProtoFree a) ∗ ([∗list] d ∈ Ds, walDirFresh d) ⊢ ([∗list] m ∈ ms, memberStartRes m.1 m.2) ∗ [∗list] b ∈ Bs, netAddrFree b` (D2); packaged as `etcd_adequate_members` in `etcdstart/Adequacy.lean` | each example's `Adequacy.lean`, once |
+| `alloc3` (restated) | takes `memberStartRes nᵢ ⟨some aᵢ, cᵢ⟩` for the three members, gives `netHttpOk γn idᵢ ∗ memberFreshRes nᵢ ⟨some aᵢ, cᵢ⟩ γn` (the network's reservation: the start slot into the starter's) | putget3, partition/`cluster3`, restart |
+| `memberStartRes_fresh` | `a.peer = none → memberStartRes n a ⊢ memberFreshRes n a γn` | the one-member Mains |
+| `memberStartRes_client`, `memberFreshRes_client` | `a.client = some c → B n a ⊢ netAddrFree c ∗ B n {a with client := none}` | the Mains (to `Serve`), `cluster3.StartMember`'s client listener, restart |
+| `memberFreshRes_peer`, `memberRestartRes_peer` | `a.peer = some p → B n a γn … ⊢ (netAddrFree p ∗ http.httpProtoOwn p (raftProto (netRh γn))) ∗ B n {a with peer := none} γn …` | `NewMember`, restart's `startMember` (its own peer listener) |
+| `memberFreshRes_boot` | `memberFreshRes n {} γn ⊢ ⌜cfg.DataDir' = n ++ go!".etcd" ∧ cfg.DedicatedWALDir' = go!""⌝ -∗ wal.bootRes cfg` (through `wal.bootRes_intro`) | `newServerMode`, `auth.startServer` |
+| `memberRestartRes_boot` | `memberRestartRes n {} γn γ ρ id ⊢ srvDiskImage γ ρ id (n ++ go!".etcd")`; it becomes the restart contract's input slot when the restart owner defines one (L3) | `BuildServer.specRestart`'s proof |
+| `memberRestartRes_intro` | from `stop`'s pieces (`srvDiskImage`, `netAddrFree p`, `httpProtoOwn p …`) | `restart/stop`'s proof, if its post returns the bundle (the restart owner's call) |
+
+A new start resource then changes:
+- a bundle's sealed body;
+- `startRights` (a trust-base change, a hard stop of its own);
+- the intro;
+- one elimination for its consumer.
+
+It does not change the examples. The restart's next resources (`walFiles`, the backend's file) are
+already inside `srvDiskImage` (R2b-3c's `srvFiles`), so they change no statement of this list.
+
+**The statements that change** (old → new; the full table, with every Main's address and name, is
+in `/shared/tmp/hub7-scope-statements.md`; `wd n` is `memberWalDir n`). TOP marks a statement that a
+closed theorem consumes: the user's hard stop.
+
+- **The one-member Mains (TOP, 12):** putget, watch, txnlin, lease, leasegrant, compactwatch,
+  compacted, cache, k8s/etcd3, k8s/compactor's `Main`, auth, and lease-expiry's `leaseexpiry`. Each
+  goes from `netAddrFree c ∗ … ∗ walDirFresh (config.walDirOf go!"X.etcd" go!"")` to
+  `etcdstart.memberStartRes go!"X" ⟨none, some c⟩`.
+- **putget3's Main (TOP):**
+  - old: `netAddrFree peerAddr₁..₃ ∗ netAddrFree clientAddr₁ ∗ httpProtoFree peerAddr₁..₃ ∗ … ∗
+    walDirFresh (wd name₁..₃)`;
+  - new: `memberStartRes name₁ ⟨some peerAddr₁, some clientAddr₁⟩ ∗ memberStartRes name₂ ⟨some
+    peerAddr₂, none⟩ ∗ memberStartRes name₃ ⟨some peerAddr₃, none⟩`.
+- **partition's `Main` and `MainWatch`, K6's `MainPartition` (TOP, 3):**
+  - old: 9 `netAddrFree` (peers, clients, bridges), 3 `httpProtoFree`, 3 `walDirFresh`;
+  - new: `cluster3.startRes cfg` (D1), or, without D1, the three members' `memberStartRes` with their
+    clients and the bridges' `netAddrFree` inline.
+- **restart's `runRes`** (a def, used by `Run.spec` and `Main.spec`, whose text does not change;
+  draft, no closed theorem): the same as partition without the bridges, as three `memberStartRes`.
+- **`etcdstart`'s starters:**
+  - `walDirFresh (wd name)` → `memberFreshRes name {} γn` in `newServer.spec`, `newServerMode.spec`,
+    `BuildServer.spec`/`specStop`, `StartServer`, `StartCompactingServer` and `StartPeriodicServer`;
+  - `netAddrFree peerAddr ∗ … ∗ http.httpProtoOwn peerAddr (raftProto (netRh γn)) ∗ walDirFresh (wd
+    name)` → `memberFreshRes name ⟨some peerAddr, none⟩ γn` in `NewMember` and `StartMember`;
+  - `srvDiskImage γ ρ id (name ++ go!".etcd")` → `memberRestartRes name {} γn γ ρ id` in
+    `BuildServer.specRestart`;
+  - `newServer.specCompact` is deleted (Q2: proved, used by nothing, not linked);
+  - `Serve` is unchanged: it is the consumer of the client address.
+- **The example-local starters:**
+  - `partition.startMember`, which is `cluster3.StartMember` after K6: `memberFreshRes name ⟨some
+    peerAddr, some client⟩ γn`;
+  - `partition.startCluster`/`cluster3.StartCluster`: `cluster3.startRes cfg`;
+  - `restart.startMember.spec`: `memberFreshRes name ⟨some peerAddr, none⟩ γn`;
+  - `restart.startMember.specRestart`: `memberRestartRes name ⟨some peerAddr, none⟩ γn γ ρ id`;
+  - `restart.stop.spec`'s post: `memberRestartRes …`, with `stop`'s `dd` as `name ++ ".etcd"` (the
+    restart owner's call);
+  - `auth.startServer`: `memberFreshRes go!"authkv" {} γn`.
+- **Unchanged consumers:** `startBridge`/`cluster3.StartBridge`, `restartCheck`, `serveClient` and
+  `net.Listen` keep `netAddrFree addr`.
+
+Counts:
+- 16 Main statements, all TOP (14 on `lean`), and restart's draft `runRes`;
+- 11 `etcdstart` starter statements (10 changed, 1 deleted), 6 example-local ones, and `alloc3`;
+- no closed theorem's text and no trust-base item (`startRights`, `goose_adequacy_start`, the
+  `HAs`/`HDs` lists) changes.
+
+Spec files naming a start resource: 34 on `lean`, 5 after (the consumers).
+
+**How the four branches fit.**
+- **K6 (`k8s3m`), hub request H1:**
+  - `newServer` and `NewMember` take `(cmp : Bool)`: orthogonal to the bundle (other lines of the
+    same statements).
+  - It moves partition's starters into a new `examples/lib/cluster3` (`StartMember`, `StartCluster`,
+    `StartBridge`) and adds `MainPartition`. Those become the bundle's users: `cluster3.StartMember`
+    takes `memberFreshRes`, `cluster3.StartCluster` the cluster bundle (D1, which K6's `Config`
+    record makes natural).
+  - Its `cmp` on `newServer.spec` is what lets Q2 delete `specCompact` instead of merging it.
+  - If K6 lands after step 7, its moved files take the bundles when it merges `lean`. If it does not
+    land, D1 falls back to the inline bridges, and partition's own starters take the bundles.
+- **lease-expiry:**
+  - `lm : lease.Mode` on every starter and `memberBoot … (m := lm)`: other lines; no conflict in
+    meaning.
+  - Its `leaseTTLRowR s ps` post conjunct (H-a: "moves into the lease slot with step 7") moves by D4
+    (a defaulted `fresh` flag on `memberBuilt`/`memberUp`, false from `memberBuiltR`). Its new
+    `leaseexpiry` Main is one more one-member Main (TOP).
+  - If it lands after step 7, it takes the bundle in its Main and D4 waits for it.
+- **The restart (`r2b3`):**
+  - `srvStop.keep` is in `NewServer`'s post and in `BuildServer.specRestart`'s post existential; the
+    transport key `γk` goes inside `memberBuilt`'s `K` (its type gains a `GName`; no example passes
+    `K`). Both are posts or inside `memberBuilt`. Step 7 changes `specRestart`'s precondition only:
+    no textual overlap but the one statement.
+  - `memberRestartRes`'s contents are `stop.spec`'s post as it stands on `lean` and on `r2b3`
+    (`r2b3` does not change `stop`), and `srvDiskImage` already holds `walFiles` (`srvFiles`).
+  - The restart owner decides `stop`'s post (return the bundle or its pieces) and
+    `memberRestartRes_boot`'s target (the restart contract, L3). Their questions.md records no
+    decision against this.
+  - If `r2b3` changes `stop`'s post before step 7's Draft, the bundle follows it.
+- **auth stage 5 (`auth-comp5`):**
+  - `Serve.spec` merged across the modes, still taking `netAddrFree addr`: a consumer, unchanged by
+    step 7, so no conflict.
+  - The auth example's own starter (`auth.startServer`, which calls `NewServer` directly) takes
+    `memberFreshRes` and eliminates it with `memberFreshRes_boot`.
+- The k8s etcd3 sessions (7b, k8s-sorrys) edit `k8s/etcd3`'s `MainDefs`/`Main`. A conflict there is
+  one precondition line.
+
+**The build budget** (`etc/importers.py`, from the sources):
+- The step's edits: about 30 files, rebuilding 132 modules (20.6k lines; 28 `--leaves` targets) with
+  `StartRes` imported directly by the edited specs, or 193 modules (28.3k lines) through `Defs`
+  (166 importers). So Q4 imports it directly.
+- Today a new start resource edits the 33 example spec files, whose importers are 111 modules (17.6k
+  lines). After the step, a body change rebuilds `StartRes` and its `import all` users (about 4), and
+  the intro's change rebuilds `etcdstart/Adequacy`'s 49 importers.
+
+**Surprises found by the Scope.**
+- `newServer.specCompact` is dead: proved, used by nothing, not linked.
+- The closed theorems' address lists are not in member order and differ by example (one-member:
+  client only; putget3: one client). That forces optional addresses (D3) and a permutation intro
+  (D2).
+- `httpProtoFree` cannot go to the starters: the three peers' protocols are reserved together, to
+  form the network invariant (`netHttp_reserve3` in `alloc3`). So the start bundle (`Main`'s) and
+  the fresh bundle (the starters') are two predicates, with `alloc3` between them.
+- `restart.Main.spec`'s text does not change: its resources are behind `runRes`.
+
+#### Step 7 Draft: glue list and probes (2026-11-05)
+
+Scope approved (Q1-Q4 as recommended, the user via etcd-grove-82; D1-D4 accepted by the coordinator).
+The Lean Draft waits for K6 and lease-expiry to land. This list is written against `lean` with
+their files where they move: `cluster3.*` is K6's, `leaseexpiry` is lease-expiry's.
+
+Every entry below re-frames resources an existing proof already passes. None takes a lock, opens an
+invariant, or decides over shared state. The ghost steps involved are the existing `alloc3`
+reservation and new pure entailments.
+
+##### Glue list
+
+**L. The laws** (`etcdstart/StartRes.lean`, new; the bodies unfolded only here):
+- **L1.** `memberStartRes_fresh`, `memberStartRes_client`, `memberFreshRes_client`,
+  `memberFreshRes_peer`, `memberRestartRes_peer`, `memberRestartRes_boot`,
+  `memberRestartRes_intro`.
+  - Unfold, `cases a.peer`/`a.client` at the premise's equation, `iframe`.
+  - The returned bundle is at `{a with … := none}`, whose `match` reduces to `emp`.
+- **L2.** `memberFreshRes_boot`: unfold to `walDirFresh (memberWalDir n)`, then `wal.bootRes_intro`
+  at the two configuration equations, as `newServerMode.lean:113` does today.
+- **L3.** `memberStartRes_intro`:
+  - `BigSepL.bigSepL_perm` on each of `startRights`' three lists (from `hA`, `hD`);
+  - split the appended list (`bigSepL_app`);
+  - regroup `ms.flatMap addrsOf` by member: induction on `ms`, `bigSepL_app` per member, unfold
+    `memberStartRes`;
+  - drop the client addresses' `httpProtoFree` (affine).
+
+  `addrsOf m := m.2.peer.toList ++ m.2.client.toList`; `httpProtoFree` is kept only for the peer
+  part, so the per-member step splits the `httpProtoFree` list the same way and drops the client's.
+- **L4.** `etcd_adequate_members` (`etcdstart/Adequacy.lean`): `etcd_adequate` at `As`, `Ds`, its
+  `Hprog` given `[∗list] m ∈ ms, memberStartRes …` and `[∗list] b ∈ Bs, netAddrFree b`, by L3.
+
+**R. `alloc3`** (`etcdstart/Alloc3.lean`): its three `httpProtoFree aᵢ` come from the start bundles.
+- Unfold `memberStartRes nᵢ ⟨some aᵢ, cᵢ⟩` (inside `etcdstart`).
+- Feed `httpProtoFree aᵢ` to `netHttp_reserve3` as today.
+- Fold `memberFreshRes nᵢ ⟨some aᵢ, cᵢ⟩ γn` from `walDirFresh`, `netAddrFree aᵢ`, the client's
+  token and `netHttp_reserve3`'s `httpProtoOwn aᵢ`.
+
+The statement gains `n₁ n₂ n₃ c₁ c₂ c₃`.
+
+**S. The `etcdstart` starters** (`Proof/.../examples/lib/etcdstart/`; the precondition's
+`Hwdf : walDirFresh …` becomes `Hres : memberFreshRes name {} γn`):
+- **S1.** `newServerMode` takes `memberFreshRes_boot`: `Hres` replaces `Hwdf` at the
+  `wal.bootRes` split. This is the only one that eliminates.
+- **S2.** `newServer` passes `Hres` on to `newServerMode`. `specCompact`'s theorem is deleted.
+- **S3.** `BuildServer.spec`/`specStop`, `StartStop`'s `Start_builtS`: pass `Hres` on to `newServer`
+  unchanged.
+- **S4.** `StartServer`, `StartCompactingServer`, `StartPeriodicServer`: pass `Hres` on to
+  `newServer`/`newServerMode` unchanged.
+- **S5.** `NewMember`: `wp_start` destructs `Hres : memberFreshRes name ⟨some peerAddr, none⟩ γn`.
+  - `memberFreshRes_peer` gives `Haddr` (to `net.Listen`) and `Hpown` (to `http.Serve`); the rest
+    is `memberFreshRes name {} γn`, for `newServer`.
+  - Today `Haddr`, `Hpown` and `Hwdf` are three separate pattern slots.
+- **S6.** `StartMember`: passes `Hres` on to `NewMember`.
+- **S7.** `BuildServer.specRestart` (r2b3's draft, if not `sorry`): `memberRestartRes_boot` turns
+  `Hres` into `srvDiskImage …` for `NewServer`'s restart path.
+
+**E. Example-local starters:**
+- **E1.** `cluster3.StartMember` (K6; partition's `startMember` today), on
+  `memberFreshRes name ⟨some peerAddr, some client⟩ γn`:
+  - `memberFreshRes_client` gives `Hcaddr` (to the client listener `net.Listen`);
+  - the rest goes to `NewMember`.
+- **E2.** `cluster3.StartCluster` (K6; partition's `startCluster` today), on `cluster3.startRes cfg`:
+  - its own unfolding law gives the three member bundles and three bridge tokens (`cluster3`'s API,
+    D1, proved in `cluster3`);
+  - the bridge tokens go to `StartBridge`; the members' bundles go to `alloc3` (R), then
+    `memberFreshRes` to each `StartMember`.
+
+  Today `wp_start` names 17 pieces. There is also the new law `cluster3.startRes_members` (unfold,
+  `iframe`).
+- **E3.** `restart.startMember.spec`: like S5, but the peer listener is its own.
+  `memberFreshRes_peer` gives `Haddr`, `Hpown`; the rest goes to `BuildServer.specStop`.
+- **E4.** `restart.startMember.specRestart`: `memberRestartRes_peer` gives `Haddr`, `Hpown`; the rest
+  goes to `BuildServer.specRestart`.
+- **E5.** `restart.stop`: its post folds by `memberRestartRes_intro` (`srvDiskImage`, `netAddrFree`,
+  `httpProtoOwn`), or it stays three pieces and E6 folds them (the restart owner's call).
+- **E6.** `restart.Run`, on `runRes`'s three `memberStartRes`:
+  - first start: `alloc3` (R), then `memberFreshRes` to each `startMember.spec`, the clients'
+    tokens by `memberFreshRes_client` to `serveClient`/`restartCheck`;
+  - the restart leg: `stop`'s bundle to `startMember.specRestart`.
+- **E7.** `auth.startServer`: `memberFreshRes_boot` at `go!"authkv"`, in place of
+  `wal.bootRes_intro` (`auth/startServer.lean:129`).
+
+**M. The Mains:**
+- **M1. The one-member Mains** (putget, watch, txnlin, lease, leasegrant, compactwatch, compacted,
+  cache, k8s/etcd3, k8s/compactor's `Main`, auth's `Main`/`MainAlloc`, leaseexpiry: 12):
+  - `wp_start` destructs `Hres : memberStartRes name ⟨none, some c⟩` in place of `Haddr`/`Hwdf`;
+  - `memberStartRes_client` gives `Haddr` (kept for `Serve`) and the rest;
+  - `memberStartRes_fresh` makes the rest `memberFreshRes name {} γn` at `alloc1`'s `γn`, for
+    `StartServer`/`StartCompactingServer`/`StartPeriodicServer`/auth's `startServer`;
+  - `txnlin/MainDefs`, `k8s/etcd3/MainDefs` and `k8s/compactor/Inv` only if their helper lemmas name
+    the tokens (check in Draft: today none names them).
+- **M2. putget3:**
+  - `wp_start` names three bundles in place of 10 pieces (`Ha₁..₃`, `Hac`, `Hf₁..₃`, `Hw₁..₃`);
+  - `alloc3` (R) on them;
+  - `memberFreshRes_client` on member 1's bundle for `Serve`;
+  - the three bundles to `StartMember`.
+- **M3. partition `Main`, `MainWatch`; K6's `MainPartition`:** `cluster3.startRes cfg` passed whole to
+  `startCluster`/`cluster3.StartCluster` (pure framing).
+
+**A. The adequacy introductions** (each example's `Adequacy.lean`; `etcdstart/AdequacyStart.lean`
+if a user remains):
+- **A1. The one-member examples (12):**
+  - `etcd_adequate` → `etcd_adequate_members` at `ms := [(name, ⟨none, some c⟩)]`, `Bs := []`, with
+    the theorem's `As := [c]` and `Ds := [config.walDirOf go!"X.etcd" go!""]`;
+  - `hA`, `hD` by `decide` or `List.Perm.refl` after `rfl` on `go!"X" ++ go!".etcd"`;
+  - the `icases` of `Has`/`Hds` (today `bigSepL_cons` twice) become one bundle.
+- **A2. putget3:**
+  - `ms := [(name₁, ⟨some peerAddr₁, some clientAddr₁⟩), (name₂, ⟨some peerAddr₂, none⟩),
+    (name₃, ⟨some peerAddr₃, none⟩)]`;
+  - `hA : [peerAddr₁, clientAddr₁, peerAddr₂, peerAddr₃].Perm putget3Addrs` (a real permutation),
+    and `hD` the identity.
+- **A3. partition (both results) and K6's `MainPartition`:** `cluster3.startRes` by its intro from
+  the member bundles and `Bs := bridges`, the theorem's `linkv3pAddrs` by `hA`.
+- **A4. restart:** no closed theorem yet. When it gets one, as A3 without bridges.
+
+**Order** (each step type-checks against the previous ones; the Mains only after the starters they
+call):
+1. `StartRes.lean`: the definitions and L1, L2.
+2. L3 and L4, the intro and `etcd_adequate_members` (the hard probe's first half).
+3. R (`alloc3`).
+4. S1-S6 bottom-up: `newServerMode`, `newServer`, `BuildServer`, the `Start*Server`s, `NewMember`,
+   `StartMember`.
+5. E7, M1, A1 for putget (the easy probe), then the other 11 one-member examples.
+6. M2, A2 for putget3 (the hard probe's second half).
+7. E1, E2, the `cluster3` bundle and its laws, M3, A3.
+8. S7, E3-E6, coordinated with the restart owner (`r2b3`'s drafts).
+9. `newServer.specCompact` deleted, `Link.lean` regenerated, the interfaces (Q4), the import-all
+   lines.
+
+##### Probes
+
+- **Easy: putget**, `Main` (M1) and its adequacy (A1). It is the smallest path through every
+  fresh-start piece:
+  - the intro at one member;
+  - `memberStartRes_client`, `memberStartRes_fresh`;
+  - `StartServer` → `newServer` → `newServerMode` → `memberFreshRes_boot`.
+
+  It tests that:
+  - the sealed `match` on `Option` reduces in the laws only, never at a caller;
+  - `go!"putget" ++ go!".etcd"` meets the theorem's literal `HDs` entry by `rfl`/`decide`;
+  - the 11 other one-member examples are then mechanical.
+- **Hard: putget3**, the intro (L3, L4, A2) and the `Main` through `alloc3` (R, M2). It is the one
+  proof that tests D2, D3 and the start → fresh step together:
+  - a real permutation of `As`;
+  - members with and without a client;
+  - a bundle unfolded inside `etcdstart` (`alloc3`) and folded back as `memberFreshRes` at the
+    network's `γn`.
+
+  Partition adds only the bridges (D1's `cluster3` wrapper) on top of it, and restart's second
+  bundle is the restart owner's design. Restart is not chosen because its statements are drafts
+  that are still moving on `r2b3`.
+
+**What would make us revise the design:**
+- L3 needs a `Perm` lemma per example, or `hA` cannot be closed by `decide` on the `GoString`
+  literals (the names `peerAddr₁` are abbreviations). Then the intro takes `As` in member order
+  plus an explicit permutation argument, or `etcd_adequate_members` computes `As` and the closed
+  theorems' lists are rewritten. The latter would be a top-level change: back to the user.
+- The per-member split in L3 must unfold the `Option` matches outside `StartRes`. Then
+  `MemberAddrs`' optional fields become two bundle parts (`peerRes`, `clientRes`), each sealed with
+  its own law (D3 revisited).
+- `alloc3` cannot fold `memberFreshRes` without its body. Then the fold needs a law
+  (`memberFreshRes_of_start : memberStartRes … ∗ httpProtoAt p P … ⊢ …`), and `alloc3` does not
+  `import all`.
+- A Main needs a piece of a bundle that no law gives, beyond the client and the peer. Then the
+  elimination list is incomplete; add the law, and check that it is narrow.
+- putget's chain needs the bundle at a `γn` that `alloc1` does not fix. Then `memberFreshRes` drops
+  `γn` when `peer = none`: a separate one-member form, D3 revisited.
+
+##### Step 8 glue list (the restart; 2026-11-05, as drafted and proved)
+
+For the restart track's R2c Scope: the statements step 8 left, and what each proof does with the
+bundles. `run.specStop` and its scope premises are untouched (R2c lifts them); so are
+`restartCheck.spec` and `serveClient.spec` (consumers of the client address, `netAddrFree caddr`).
+
+- **S7.** `etcdstart.BuildServer.specStop` takes `memberFreshRes name {} γn` (in place of
+  `walDirFresh (memberWalDir name)`); `BuildServer.specRestart` takes `memberRestartRes name {} γn γ ρ id`
+  (in place of `srvDiskImage γ ρ id (name ++ ".etcd")`). Both stay drafts without proofs (the restart
+  starter's proofs take them as hypotheses); their posts are unchanged. R2c's proof of `specRestart`
+  gets the image by `memberRestartRes_boot`; `specStop`'s, the WAL's boot slot by `memberFreshRes_boot`
+  (as `newServerMode` does).
+- **E3.** `restart.startMember.spec` takes `memberFreshRes name ⟨some peerAddr, none⟩ γn` (in place of
+  `netAddrFree peerAddr`, `httpProtoOwn peerAddr (raftProto (netRh γn))`, `walDirFresh`):
+  `memberFreshRes_peer` gives the peer listener's pieces, the rest (`memberFreshRes name {} γn`) goes to
+  `specStop`.
+- **E4.** `restart.startMember.specRestart` takes `memberRestartRes name ⟨some peerAddr, none⟩ γn γ ρ id`
+  (in place of `netAddrFree peerAddr`, `srvDiskImage …`, `httpProtoOwn …`): a new law
+  `memberRestartRes_raft` (the image's raft names, `srvDiskImage_raft` through the bundle, D14) gives
+  `ρ.rd.raft.raft = γ`; `memberRestartRes_peer` the peer listener's pieces; the rest goes to
+  `specRestart`.
+- **E5.** `restart.stop.spec`: its data-directory binder `dd` is now the member's name `name`
+  (`memberStop … (name ++ ".etcd")`, the table's row 33, first option, D15); its post is
+  `memberRestartRes name ⟨some peerAddr, none⟩ γn γ ρ id`, folded by `memberRestartRes_intro` from
+  `HardStop`'s image and the listener's close. `restartCheck` passes the bundle from `stop` to
+  `specRestart` whole.
+- **E6.** `restart.runRes` (`Run.spec`'s and `Main.spec`'s precondition, whose text is unchanged) is
+  `memberStartRes nameᵢ ⟨some peerAddrᵢ, some clientAddrᵢ⟩` (i = 1..3) `∗ threadTok ∗ threadTok ∗
+  premises …` (the table's row 17); `Run`'s proof calls `alloc3` (names, `some clientAddrᵢ`), takes each
+  client address's right out by `memberFreshRes_client` (to `serveClient`, `restartCheck`) and passes
+  `memberFreshRes nameᵢ ⟨some peerAddrᵢ, none⟩ γn` to `startMember.spec`. `alloc3Http` is `private`
+  in `Alloc3.lean` (`alloc3`'s proof uses it; no other user, D16).
+- **For R2c's closed theorem** (restart has none yet): `etcd_adequate_members` at the three members
+  `(nameᵢ, ⟨some peerAddrᵢ, some clientAddrᵢ⟩)` and `Bs := []`, `hA` by `decide` against the
+  program's address list, `hD` by `List.Perm.refl _`, then unfold `runRes` (it is not sealed) and
+  frame the three bundles.
+
+##### Where the Draft stands (2026-11-05, Draft complete, Order steps 1-9, proved; ready for Freeze)
+
+Session etcd-grove-83's Draft runs, branch `hub-step7` (lean `080f18c48f` + the Scope notes). Steps
+1-9 are done and proved, with no new `sorry` or axiom (steps 8-9 after merging `lean` at
+`1622b02d13`, the Perennial pin `84d538063`). The Draft is complete and ready for the Freeze.
+
+- **Done, steps 1-6.** `etcdstart/StartRes.lean` (the three bundles, sealed, `etc/import-all.txt`:
+  only `Alloc3` imports it whole), L1-L3; L4 as `etcd_adequate_members` and
+  `etcd_adequate_alloc_members`, in `etcdstart/AdequacyMembers.lean` (D6); R (`alloc3` on the start
+  bundles, over the renamed old one, `alloc3Http`); S1-S6 (`newServerMode` eliminates by
+  `memberFreshRes_boot`, `NewMember` by `memberFreshRes_peer`, the rest pass the bundle on;
+  `newServer.specCompact` deleted, D9); E7 (`auth.startServer`); M1 and A1 for all 12 one-member
+  examples; M2 and A2 for putget3.
+- **Done, step 7.** `cluster3/StartRes.lean`: `cluster3.startRes cfg` (sealed; D1, D11), `members
+  cfg`, `startRes_intro`, `startRes_members`; E1 (`cluster3.StartMember` on `memberFreshRes name
+  ⟨some peerAddr, some client⟩ γn`, its client listener's right by `memberFreshRes_client`); E2
+  (`cluster3.StartCluster` on `startRes cfg`, over `alloc3`); partition's `startCluster` (D12), `Main`,
+  `MainWatch` and K6's `MainPartition` on `cluster3.startRes clusterCfg` (M3); their adequacy (A3:
+  `etcd_adequate_members`/`_alloc_members` at `members clusterCfg` and `Bs := bridges clusterCfg`,
+  `hA` by `decide`, D13). The pass-through `memberFreshRes_intro_peer` is gone.
+- **Done, step 8.** S7, E3-E6 as in "Step 8 glue list" above (D14-D16); `alloc3Http` private.
+- **Done, step 9.** `etc/api/etcdstart.txt` (Q4): the API group (`StartRes`, `Alloc`, `Alloc3`,
+  `Adequacy`, `AdequacyMembers`, `Init`, the starters' specs, the client helpers' specs) and a debt
+  group (13 proof internals the examples import today: `Base`, `Defs`, `OneMember`, `Served`, ...);
+  its interfaces under `interface/` (55 modules; the bundles show as `def (sealed)`, with their laws);
+  `etc/api/etcdstart-layout.txt`, 115 known layout violations (the specs and proofs are in the
+  package's namespace `etcdstart`, as backend's, plus `congr_simp` lemmas and `BuildServer`'s two
+  draft specs); D18-D20. `gates.sh` and CI read every `etc/api/*.txt`.
+- **Frozen** (the user, via etcd-grove-82, 2026-11-05: D1-D20 included; tag `hub-step7-frozen`) and landed.
+  D20 done at the Freeze (the two `memberStartRes_of_lists` helpers private).
+- **Follow-up, D4** (not in this landing): `leaseTTLRowR` into the lease slot (H-a). Handed by
+  etcd-grove-82 to the lease-expiry session (etcd-grove-c9).
+- **What the probes showed** (none of "What would make us revise the design" happened):
+  - the sealed `Option` matches reduce in the laws only: the callers use `rfl` for the premise
+    (`a.client = some c`, `a.peer = none`), and the bundle given back at `{a with client := none}` is
+    accepted where `{}` or `⟨some p, none⟩` is expected (definitional); no caller unfolds a bundle;
+  - the literals: `List.Perm.refl _` closes both of A1's premises, `go!"putget" ++ go!".etcd"`
+    meeting `HDs`'s `go!"putget.etcd"` by definitional unfolding (also through the compactor's
+    `abbrev`s `memberName`/`clientAddr`); one exception: `auth.startServer`'s configuration has the
+    literal data directory `go!"authkv.etcd"`, so `memberFreshRes_boot` needs the name given
+    (`go!"authkv"`), not inferred;
+  - the permutations: putget3's `hA` and A3's (nine addresses, through `clusterCfg`'s fields) are
+    closed by `decide`;
+  - `alloc3` folds `memberFreshRes` by `simp only [memberStartRes, memberFreshRes]` inside `etcdstart`;
+  - the 11 other one-member examples were mechanical (a script: the `Main`'s two lines, the proof's
+    `wp_start` pattern, one `memberStartRes_client` and one `memberStartRes_fresh`, the adequacy's
+    `etcd_adequate_members` call), except three small variants: the compactor's `Main` (its
+    `etcd_adequate_alloc`, hence `etcd_adequate_alloc_members`), `k8s/etcd3` (its adequacy calls
+    `goose_adequacy_start` directly, so it applies `memberStartRes_intro` itself), and auth's
+    literal data directory (above).
+- **Spec files naming a start resource in a statement** (the success measure): 34 before, 5 now,
+  the consumers only (`Serve`, `cluster3.StartBridge`, `restart.restartCheck`/`serveClient`,
+  `net/Listen`), the Scope's target. (Thirteen `Main` files still name `netAddrFree` in prose: their
+  headers and the comment on the bundle say what it holds.)
+
 ### The slot convention (approved 2026-11-03, step 1)
 
 Approved by the user as drafted (draft 1), with the WAL as its first slot.
@@ -862,6 +1427,25 @@ that subsystem converts (step 4), into `<sub>.Names`; until then they stay as th
 
 **Mixing:** a hub mixes inline premises with slots until every subsystem has converted; a slot is
 added only when its subsystem must change the hub anyway.
+
+**Hub changes are requests** (2026-11-05, the user's; from the dsverify skill's `2f67a2c`). A
+stage edits the inside of its own subsystem's slots (their sealed bodies and laws) freely. Any other
+change to a hub, which is a statement `etc/spec-hubs.py` lists with a fan-out of 6 or more
+directories (`NewServer.specG`, `bootOk`, `srvBuilt`/`isServerBuilt`, `bootstrapContract`, the
+`etcdstart` starters, the name and environment records, the apply and snapshot aggregators), is a
+**hub request**. That covers a new slot, conjunct, binder or premise; a conversion into a slot;
+an edit of another subsystem's slot; and an inline clause. The stage does not make it
+directly. It writes the request in its `questions.md` under "Hub requests": the hub, the change
+written out, the caller that needs it, and the alternative inside its own slot. It goes on with a
+marked `sorry` at the step that needs it, and tells the coordinator, who keeps the hub plan. The
+coordinator decides each request against the slot convention and against the other sessions on
+the same hub (the session registry). It answers in that `questions.md` ("accepted / rejected by
+the coordinator, <date>"; one that changes a top-level statement or grows the trust base still goes to
+the user). It also sets the order: the requesting stage then makes the accepted change as a commit
+of its own, and the coordinator tells every other session on that hub to merge it when it lands.
+(The case: the restart's stop added `srvStopKeep` and an inline mode clause to `NewServer`'s
+postcondition over three commits while `lease-expiry` converted the lease into a slot there on
+another branch. The step-5 check counted both, and they collide at landing.)
 
 **Modes generalize, no twins** (2026-11-03, the hub plan's owner): a new mode of a hub (auth on,
 compaction on, a restart) generalizes the one written-out statement with a parameter; it does not

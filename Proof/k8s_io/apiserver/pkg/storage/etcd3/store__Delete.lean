@@ -11,7 +11,6 @@ public import Spec.k8s_io.apiserver.pkg.storage.etcd3.store__Delete
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.store__prepareKey
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.store__conditionalDelete
 public import Spec.k8s_io.apimachinery.pkg.conversion.EnforcePtr
-public import Proof.k8s_io.apiserver.pkg.features.Values
 
 @[expose] public section
 
@@ -35,6 +34,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 theorem store.Delete.wp_proof
@@ -42,21 +42,25 @@ theorem store.Delete.wp_proof
     (wp_EnforcePtr : conversion.EnforcePtr.spec (GF := GF) (hG := hG))
     (wp_condDelete : store.conditionalDelete.spec (GF := GF) (hG := hG)) :
     store.Delete.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ E _ sp c ci cd key out o0 rv0 opts validate vf W _ Φu k hk hkl hopt
-  wp_start as ⟨#Hst, #Hctx, #Hce, Hout, HW, #Hau, #Hval⟩
+  intro _ _ Obj _ E _ sp c ci cd key out o0 rv0 pp pr cx ca opts validate vf W _ Φu k
+  wp_start as ⟨#Hst, %Hpre, #Hctx, #Hce, Hout, #Hpp, Hca, HW, #Hau, #Hval⟩
+  obtain ⟨hk, hkl, hopt⟩ := Hpre
   ihave Hst' := Hst
   iunfold isStore at Hst'
   icases Hst' with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt,
-    #Hkc, #Hcl, #Hone, #Hregs, #Hcon⟩
+    #Hkc, #Hcl, #Hone, #Hregs, #Hcon, -⟩
   iunfold contractOk at Hcon
   icases Hcon with ⟨%Hty, -⟩
   ihave #Pcv : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.conversion $$ []
   · iPkgInit
-  ihave #Pft : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.util.feature $$ []
+  ihave #Pft : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.features $$ []
   · iPkgInit
-  ihave #Hft : (k8s_io.apiserver.pkg.storage.etcd3.featureInit : IProp GF) $$ []
+  -- (sweep repairs 1, B5) the default gate's specs, `features`' fact
+  ihave #Hft : (k8s_io.apiserver.pkg.storage.etcd3.featuresInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Pft
-  icases Hft with ⟨%g, #Hg, #Hen⟩
+  icases Hft with ⟨%g, #Hg, #Hgate⟩
+  iunfold EtcdGrove.k8sfeature.featureGateOk at Hgate
+  icases Hgate with ⟨#Hen, -⟩
   ihave %Hptr := c.S.objAt_ptr out o0 rv0 $$ Hout
   obtain ⟨p, hp, rfl⟩ := Hptr
   (try wp_auto)
@@ -70,19 +74,18 @@ theorem store.Delete.wp_proof
     ipureintro; exact hp
   obtain ⟨rfl, Hv⟩ := Hen'
   (try wp_auto)
-  have hnp : k8s_io.apiserver.pkg.features.AllowUnsafeMalformedObjectDeletion.isPanic = false :=
-    features.AllowUnsafeMalformedObjectDeletion_notPanic
   try wp_pure
   (try wp_auto)
   have hpfx : c.pfx <+: c.pathPrefix ++ k := prepareKeyM_prefix _ _ _ _ _ hk
-  wp_apply Hen as %b
+  wp_apply Hen as %b -
+  · ipureintro; decide
   cases b <;>
   · (try wp_auto)
     (try rw [hopt])
     (try wp_auto)
     wp_apply (wp_condDelete Obj E sp c ci cd (c.pathPrefix ++ k)
-        (interface.mkOk (go.GoType.PointerType c.S.objTy) #p) o0 rv0 v p validate vf W Φu hpfx hkl)
-        $$ [$Hout $HW] as %err Hres
+        (interface.mkOk (go.GoType.PointerType c.S.objTy) #p) o0 rv0 v p pp pr cx ca validate vf W
+        Φu hpfx hkl) $$ [$Hout $Hca $HW] as %err Hres
     · iframe #
       ipureintro; exact Hv
     (try wp_auto)

@@ -7,7 +7,7 @@ theorem sortedOf_eq {c1 c2 c1' c2' : ConfStateM} (hp : c1.lists.Perm c2.lists) (
 
 theorem raftpb.ConfState.Equivalent.wp_proof [package_sem : Assumptions] (wp_proto_CloneConfState :
     proto.CloneConfState.spec) (wp_slices_Sort : slices.Sort.spec) (wp_ConfState_GetAutoLeave :
-    raftpb.ConfState.GetAutoLeave.spec) (wp_proto_EqualConfState : proto.EqualConfState.spec) :
+    raftpb.ConfState.GetAutoLeave.spec) (wp_confStatesEqual : raftpb.confStatesEqual.spec) :
     raftpb.ConfState.Equivalent.spec
   -- `Perennial.EtcdGrove.raftpb.ConfState.Equivalent.spec`, unfolded:
   ∀ (p q : Loc) (c1 c2 : ConfStateM) (dq1 dq2 : DFrac),

@@ -82,7 +82,7 @@ theorem rafthttp.Transport.SendSnapshot.wp_proof
   icases Hri with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -,
     -, -, -, -, -, -, ⟨%enf, #Henf⟩⟩
   iunfold netSnapBundle at Hb
-  icases Hb with ⟨%st, %sn, %D, #Hml, #HP, HO, %Hst', Hrs, #Himg⟩
+  icases Hb with ⟨%st, %sn, %D, #Hml, #Hsw, #HP, HO, %Hst', Hrs, #Himg⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   wp_apply wp_with_defer as %defer defer

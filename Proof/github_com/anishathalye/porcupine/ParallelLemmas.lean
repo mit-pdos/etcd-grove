@@ -57,21 +57,136 @@ theorem longestOwn_persist (l : GoSlice) (n : Nat) :
   iexists ps
   iframe #
 
-/-- Goroutine `i` has written its cell `longest[i]` (`lsl` is `longest`). -/
-def cellDone (lsl : GoSlice) (i : Nat) : IProp GF :=
-  iprop(∃ l : GoSlice, typedPointsto (sliceIndexRef GoSlice (i : Int) lsl) l DFrac.discard ∗
-    longestPers l)
+variable {σ : Type}
 
-instance cellDone_persistent (lsl : GoSlice) (i : Nat) :
-    Persistent (cellDone (GF := GF) lsl i) := by
+/-- `longestLin` made read-only (persistent). -/
+def longestLinP (M : SeqModel σ OpV) (l : GoSlice) (h : List (Op OpV)) : IProp GF :=
+  iprop(∃ (p : Loc) (sl : GoSlice), l ↦*{DFrac.discard} List.replicate h.length p ∗ p ↦□ sl ∗
+    linSlice M h sl)
+
+instance longestLinP_persistent (M : SeqModel σ OpV) (l : GoSlice) (h : List (Op OpV)) :
+    Persistent (longestLinP (GF := GF) M l h) := by
+  unfold longestLinP; infer_instance
+
+/-- What a goroutine's `longest` says of its partition `h`: it holds a linearization of `h`, or
+`h` is not linearizable, or the context is done (`PD`): `checkSingle`'s verdicts, without the
+verdict. -/
+def linCell (M : SeqModel σ OpV) (l : GoSlice) (h : List (Op OpV)) (PD : IProp GF) : IProp GF :=
+  iprop(longestLinP M l h ∨ ⌜¬ Linearizable M h⌝ ∨ □ PD)
+
+instance linCell_persistent (M : SeqModel σ OpV) (l : GoSlice) (h : List (Op OpV)) (PD : IProp GF) :
+    Persistent (linCell (GF := GF) M l h PD) := by
+  unfold linCell; infer_instance
+
+/-- Goroutine `i` has written its cell `longest[i]` (`lsl` is `longest`), with `linCell` of its
+partition (`hs`'s `i`-th). -/
+def cellDone (M : SeqModel σ OpV) (hs : List (List (Op OpV))) (PD : IProp GF) (lsl : GoSlice)
+    (i : Nat) : IProp GF :=
+  iprop(∃ l : GoSlice, typedPointsto (sliceIndexRef GoSlice (i : Int) lsl) l DFrac.discard ∗
+    longestPers l ∗ linCell M l (hs.getD i []) PD)
+
+instance cellDone_persistent (M : SeqModel σ OpV) (hs : List (List (Op OpV))) (PD : IProp GF)
+    (lsl : GoSlice) (i : Nat) : Persistent (cellDone (GF := GF) M hs PD lsl i) := by
   unfold cellDone; infer_instance
 
-variable {σ : Type}
+/-- `checkSingle`'s postcondition, read by its goroutine: `longest` read-only, its `linCell`, and
+the verdict. -/
+theorem checkSingle_post (M : SeqModel σ OpV) (l : GoSlice) (h : List (Op OpV)) (b : Bool)
+    (PD : IProp GF) [Persistent PD] :
+    ((⌜b = true⌝ ∗ longestLin M l h) ∨
+      (⌜b = false⌝ ∗ (⌜¬ Linearizable M h⌝ ∨ □ PD) ∗ longestOwn l h.length)) ⊢
+    |==> (longestPers l ∗ linCell M l h PD ∗
+      (⌜b = true ∧ Linearizable M h⌝ ∨ (⌜b = false⌝ ∗ (⌜¬ Linearizable M h⌝ ∨ □ PD)))) := by
+  iintro (⟨%Hb, Hl⟩ | ⟨%Hb, #Hd, Hlo⟩)
+  · iunfold longestLin at Hl
+    icases Hl with ⟨%p, %sl, Hl, #Hp, #Hsl⟩
+    imod ownSlice_persist l _ _ $$ Hl with #Hl
+    ihave #Hsl2 := Hsl
+    iunfold linSlice at Hsl2
+    icases Hsl2 with ⟨%xs, #Hxs, %Hlin⟩
+    imodintro
+    isplitr
+    · iunfold longestPers
+      iexists List.replicate h.length p
+      iframe Hl
+      iapply (BigSepL.bigSepL_intro (P := iprop(□ (p ↦□ sl ∗ sl ↦*{DFrac.discard} xs) : IProp GF))
+        (fun k x hx => by
+          rw [List.getElem?_replicate] at hx
+          split at hx
+          · cases hx
+            iintro #⟨Hp', Hxs'⟩
+            iright; iexists sl, xs; iframe Hp' Hxs'
+          · cases hx))
+      imodintro; iframe Hp Hxs
+    isplitr
+    · iunfold linCell; ileft; iunfold longestLinP; iexists p, sl; iframe Hl Hp Hsl
+    · ileft; ipureintro
+      exact ⟨Hb, linearizable_of_isLinearization Hlin.2⟩
+  · imod longestOwn_persist l h.length $$ Hlo with #Hlp
+    imodintro
+    iframe Hlp
+    isplitr
+    · iunfold linCell; iright; iexact Hd
+    · iright; iframe Hd; ipureintro; exact Hb
+
+/-- A partition's entry of the info as the computeInfo path builds it: its linearizations, or
+the partition is not linearizable, or the context is done. -/
+def partD (M : SeqModel σ OpV) (h : List (Op OpV)) (PD : IProp GF) (psl : GoSlice) : IProp GF :=
+  iprop(partLins M h psl ∨ ⌜¬ Linearizable M h⌝ ∨ □ PD)
+
+instance partD_persistent (M : SeqModel σ OpV) (h : List (Op OpV)) (PD : IProp GF) (psl : GoSlice) :
+    Persistent (partD (GF := GF) M h PD psl) := by
+  unfold partD; infer_instance
+
+omit [GooseSemantics] [GooseInterp] in
+theorem linearizable_nil (M : SeqModel σ OpV) : Linearizable M ([] : List (Op OpV)) :=
+  ⟨[], List.nodup_nil, fun k => by simp, by simp [vals, run], List.Pairwise.nil⟩
+
+/-- Every partition linearizable: each `partD` is its `partLins`, or the context is done. -/
+theorem partDs_or (M : SeqModel σ OpV) (PD : IProp GF) [Persistent PD] :
+    ∀ (psls : List GoSlice) (f : Nat → List (Op OpV)), (∀ i, Linearizable M (f i)) →
+    ([∗list] i ↦ psl ∈ psls, partD M (f i) PD psl) ⊢
+      □ PD ∨ [∗list] i ↦ psl ∈ psls, partLins M (f i) psl
+  | [], _, _ => by iintro _; iright; iapply BigSepL.bigSepL_nil.2; iempintro
+  | a :: l, f, hall => by
+    iintro H
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨Ha, H⟩
+    icases partDs_or M PD l (fun i => f (i + 1)) (fun i => hall (i + 1)) $$ H with (#HP | H)
+    · ileft; iexact HP
+    iunfold partD at Ha
+    icases Ha with (#Ha | %Hn | #HP)
+    · iright; iapply BigSepL.bigSepL_cons.2; iframe H; iexact Ha
+    · exact absurd (hall 0) Hn
+    · ileft; iexact HP
+
+/-- Cancelling: the token (if still held) mints the Done proposition (`tok_or_pd_persist`, with
+a fact beside the Done proposition). -/
+theorem tok_or_pd_persist' (γ : GName) (φ : Prop) :
+    (dghostVar (GF := GF) γ (DFrac.own 1) () ∨ (□ dghostVar γ DFrac.discard () ∗ ⌜φ⌝)) ⊢
+      |==> □ dghostVar γ DFrac.discard () := by
+  iintro (Htok | ⟨#Hpd, -⟩)
+  · imod dghostVar_persist γ 1 () $$ Htok with #Hpd
+    imodintro; iexact Hpd
+  · imodintro; iexact Hpd
+
+/-- A `[∗list]` of disjunctions with a common persistent left side. -/
+theorem bigSepL_or_left {A : Type} (P : IProp GF) [Persistent P] (Φ : A → IProp GF) (l : List A) :
+    ([∗list] x ∈ l, (P ∨ Φ x)) ⊢ P ∨ [∗list] x ∈ l, Φ x := by
+  induction l with
+  | nil => iintro _; iright; iapply BigSepL.bigSepL_nil.2; iempintro
+  | cons a l ih =>
+    iintro H
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨Ha, H⟩
+    icases ih $$ H with (#HP | H)
+    · ileft; iexact HP
+    icases Ha with (#HP | Ha)
+    · ileft; iexact HP
+    iright; iapply BigSepL.bigSepL_cons.2; iframe
 
 /-- What a verdict `b` sent on `results` carries (see the file header). -/
 def resultP (S : ModelSpec GF σ) (hs : List (List (Theory.Op OpV))) (γt : GName)
     (lsl : GoSlice) (PD : IProp GF) (b : Bool) : IProp GF :=
-  iprop(∃ i : Nat, ⌜i < hs.length⌝ ∗ ghostMapElem γt i (DFrac.own 1) () ∗ cellDone lsl i ∗
+  iprop(∃ i : Nat, ⌜i < hs.length⌝ ∗ ghostMapElem γt i (DFrac.own 1) () ∗ cellDone S.M hs PD lsl i ∗
     (⌜b = true ∧ ∃ h, hs[i]? = some h ∧ Linearizable S.M h⌝ ∨
       (⌜b = false⌝ ∗ (⌜∃ h, hs[i]? = some h ∧ ¬ Linearizable S.M h⌝ ∨ □ PD))))
 

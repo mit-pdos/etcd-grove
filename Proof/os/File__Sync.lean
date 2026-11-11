@@ -4,6 +4,7 @@ fails with `EINTR`.
 -/
 module
 
+public import Proof.os.ErrorOk
 public import Spec.os.File__Sync
 
 @[expose] public section
@@ -45,7 +46,9 @@ theorem os.File.Sync.wp_proof : os.File.Sync.spec (GF := GF) (hG := hG) := by
     rw [show decide ((0 : w64) = W64 0) = true from decide_eq_true rfl]
     simp only [Bool.not_true]
     wp_auto
+    ihave #Hokn := (EtcdGrove.fmtErrorOkOrNil_nil (GF := GF))
     iapply HΦ
+    iframe Hokn
     iframe
     isplitl []
     · isplitl [] <;> iassumption
@@ -55,8 +58,10 @@ theorem os.File.Sync.wp_proof : os.File.Sync.spec (GF := GF) (hG := hG) := by
   · have he0' : ¬ e = W64 0 := he.1
     simp only [decide_eq_false he0', Bool.not_false]
     wp_auto
-    wp_apply os.wp_wrapErrno _ inner name e $$ Hn as %pe
+    wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn as %pe #Hok
+    ihave #Hokn := EtcdGrove.fmtErrorOkOrNil_of _ $$ Hok
     iapply HΦ
+    iframe Hokn
     iframe
     isplitl []
     · isplitl [] <;> iassumption

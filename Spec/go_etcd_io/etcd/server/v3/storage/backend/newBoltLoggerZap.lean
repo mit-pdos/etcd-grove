@@ -9,6 +9,7 @@ through zap (`Fatal`/`Panic` stop the process or panic, as bbolt expects of its 
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.BboltOptions
+public import Spec.go_uber_org.zap.Defs
 
 @[expose] public section
 
@@ -26,13 +27,16 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- `newBoltLoggerZap(bcfg)` (the configuration's logger not nil): a logger bbolt may call. -/
+/-- `newBoltLoggerZap(bcfg)` (the configuration's logger not nil): a logger bbolt may call, a
+`*zapBoltLogger` (`&zapBoltLogger{...}`: its value a location; batch 38.1 of
+`notes/bbolt-proof-plan.md`, user-approved 2026-11-04, for bbolt's `OptsM.ok`'s `loggerPtrOk`). -/
 abbrev backend.newBoltLoggerZap.spec : Prop :=
   ∀ (cfg : BackendConfig),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
-      ⌜cfg.Logger' ≠ Loc.null⌝ }}
+      zapLoggerOk cfg.Logger' }}
     (App (Val (@! newBoltLoggerZap)) (Val #cfg))
-  {{ (l : GoInterface), RET #l; boltLogger l }}
+  {{ (l : GoInterface), RET #l; boltLogger l ∗
+      ⌜∃ lc : Loc, l = interface.mkOk (go.GoType.PointerType zapBoltLogger.ty) #lc⌝ }}
 
 end spec
 

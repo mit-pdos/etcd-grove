@@ -230,6 +230,42 @@ theorem entsPts_elim (s : GoSlice) (dq : DFrac) (es : List EntryM) :
   iunfold entsPts at H
   iexact H
 
+/-- (raft-entsize §2) `msgPtsC_of_struct`, with the fresh message's `pbMsg` (no unknown fields). -/
+theorem msgPtsC_of_struct_uf (l : Loc) (v : raftpb.Message) (dqe : DFrac) (cap : Bool)
+    (els : List Loc) (ms : MsgSt) (E : CoPset) (Hu : v.unknownFields' = slice.nil) :
+    (l ↦ v ∗ cellRO v.Type' ms.msg.Type' ∗ cellRO v.To' ms.msg.To' ∗
+      cellRO v.From' ms.msg.From' ∗ cellRO v.Term' ms.msg.Term' ∗
+      cellRO v.LogTerm' ms.msg.LogTerm' ∗ cellRO v.Index' ms.msg.Index' ∗
+      cellRO v.Commit' ms.msg.Commit' ∗ cellRO v.Vote' ms.msg.Vote' ∗
+      cellRO v.Reject' ms.msg.Reject' ∗ cellRO v.RejectHint' ms.msg.RejectHint' ∗
+      v.Entries' ↦*{dqe} els ∗ ([∗list] p;e ∈ els;ms.ents, entRO p e) ∗
+      (if cap then ownSliceCap Loc v.Entries' (DFrac.own 1) else emp) ∗
+      snapOpt v.Snapshot' (DFrac.own 1) ms.snap ∗ v.Context' ↦*□ ms.ctx ∗
+      v.Responses' ↦* ms.resps : IProp GF) ⊢
+      |={E}=> msgPtsC l (DFrac.own 1) dqe cap ms ∗ pbMsg raftpb.Message l [] := by
+  iintro ⟨Hl, #cTy, #cTo, #cFr, #cTe, #cLt, #cIx, #cCo, #cVo, #cRj, #cRh, Hes, #Hents, Hes_cap,
+    Hsn, #Hcs, Hrs⟩
+  ihave %Hnn := typedPointsto_not_null $$ Hl
+  icases typedPointsto_split _ _ _ $$ Hl with Hl
+  simp only [TypedPointsto.typedPointstoDef]
+  icases Hl with ⟨state, Ty, To, From, Term, LogTerm, Index, Entries, Commit, Vote, Snapshot,
+    Reject, RejectHint, Context, Responses, unknownFields, sizeCache, -⟩
+  rw [Hu]
+  ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
+  · iapply ownSlice_nil
+  imod pbMsg_alloc raftpb.Message l v.state' v.sizeCache' slice.nil [] E (ufWire_nil _) $$ [state sizeCache unknownFields Hnil] with #Hpb
+  · iframe
+  imodintro
+  isplitl
+  · iunfold msgPtsC
+    iexists v.Type', v.To', v.From', v.Term', v.LogTerm', v.Index', v.Commit', v.Vote', v.Reject',
+      v.RejectHint', v.Entries', els, v.Snapshot', v.Context', v.Responses', []
+    isplitr
+    · ipureintro; exact Hnn
+    iframe
+    iframe cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh Hents Hcs Hpb
+  · iexact Hpb
+
 /-- A freshly allocated `*pb.Message` (`&pb.Message{...}`, its hidden fields zero), its pointer
 fields set to cells holding `ms.msg`'s scalars, its `Entries` to a slice of read-only entries
 holding `ms.ents` (elements at `dqe`, the capacity when `cap`), its `Snapshot` to `ms.snap`'s,
@@ -247,26 +283,9 @@ theorem msgPtsC_of_struct (l : Loc) (v : raftpb.Message) (dqe : DFrac) (cap : Bo
       snapOpt v.Snapshot' (DFrac.own 1) ms.snap ∗ v.Context' ↦*□ ms.ctx ∗
       v.Responses' ↦* ms.resps : IProp GF) ⊢
       |={E}=> msgPtsC l (DFrac.own 1) dqe cap ms := by
-  iintro ⟨Hl, #cTy, #cTo, #cFr, #cTe, #cLt, #cIx, #cCo, #cVo, #cRj, #cRh, Hes, #Hents, Hes_cap,
-    Hsn, #Hcs, Hrs⟩
-  ihave %Hnn := typedPointsto_not_null $$ Hl
-  icases typedPointsto_split _ _ _ $$ Hl with Hl
-  simp only [TypedPointsto.typedPointstoDef]
-  icases Hl with ⟨state, Ty, To, From, Term, LogTerm, Index, Entries, Commit, Vote, Snapshot,
-    Reject, RejectHint, Context, Responses, unknownFields, sizeCache, -⟩
-  rw [Hu]
-  ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
-  · iapply ownSlice_nil
-  imod pbMsg_alloc raftpb.Message l v.state' v.sizeCache' slice.nil [] E $$ [state sizeCache unknownFields Hnil] with #Hpb
-  · iframe
-  imodintro
-  iunfold msgPtsC
-  iexists v.Type', v.To', v.From', v.Term', v.LogTerm', v.Index', v.Commit', v.Vote', v.Reject',
-    v.RejectHint', v.Entries', els, v.Snapshot', v.Context', v.Responses', []
-  isplitr
-  · ipureintro; exact Hnn
-  iframe
-  iframe cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh Hents Hcs Hpb
+  iintro H
+  imod msgPtsC_of_struct_uf l v dqe cap els ms E Hu $$ H with ⟨H, -⟩
+  imodintro; iexact H
 
 /-- `msgPtsC_of_struct` for a message raft builds: its entries read-only, no capacity. -/
 theorem msgOwn_of_struct (l : Loc) (v : raftpb.Message) (els : List Loc) (ms : MsgSt) (E : CoPset)
@@ -284,6 +303,27 @@ theorem msgOwn_of_struct (l : Loc) (v : raftpb.Message) (els : List Loc) (ms : M
     Hsn, #Hcs, Hrs⟩
   simp only [msgOwn, msgPts]
   iapply msgPtsC_of_struct l v DFrac.discard false els ms E Hu
+  iframe
+  iframe cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh Hes Hents Hcs
+  simp only [Bool.false_eq_true, ↓reduceIte]; iempintro
+
+/-- (raft-entsize §2) `msgOwn_of_struct`, with the fresh message's `pbMsg` (no unknown fields:
+`snapUfT`'s right disjunct). -/
+theorem msgOwn_of_struct_uf (l : Loc) (v : raftpb.Message) (els : List Loc) (ms : MsgSt) (E : CoPset)
+    (Hu : v.unknownFields' = slice.nil) :
+    (l ↦ v ∗ cellRO v.Type' ms.msg.Type' ∗ cellRO v.To' ms.msg.To' ∗
+      cellRO v.From' ms.msg.From' ∗ cellRO v.Term' ms.msg.Term' ∗
+      cellRO v.LogTerm' ms.msg.LogTerm' ∗ cellRO v.Index' ms.msg.Index' ∗
+      cellRO v.Commit' ms.msg.Commit' ∗ cellRO v.Vote' ms.msg.Vote' ∗
+      cellRO v.Reject' ms.msg.Reject' ∗ cellRO v.RejectHint' ms.msg.RejectHint' ∗
+      v.Entries' ↦*□ els ∗ ([∗list] p;e ∈ els;ms.ents, entRO p e) ∗
+      snapOpt v.Snapshot' (DFrac.own 1) ms.snap ∗ v.Context' ↦*□ ms.ctx ∗
+      v.Responses' ↦* ms.resps : IProp GF) ⊢
+      |={E}=> msgOwn l (DFrac.own 1) ms ∗ pbMsg raftpb.Message l [] := by
+  iintro ⟨Hl, #cTy, #cTo, #cFr, #cTe, #cLt, #cIx, #cCo, #cVo, #cRj, #cRh, #Hes, #Hents,
+    Hsn, #Hcs, Hrs⟩
+  simp only [msgOwn, msgPts]
+  iapply msgPtsC_of_struct_uf l v DFrac.discard false els ms E Hu
   iframe
   iframe cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh Hes Hents Hcs
   simp only [Bool.false_eq_true, ↓reduceIte]; iempintro

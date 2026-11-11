@@ -68,7 +68,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- See the file header. -/
+/-- See the file header.
+The update's commit is told the revision's room (`kvRoom σ`; 2026-11-05, H-rr1). -/
 abbrev watcher.Watch.spec : Prop :=
   ∀ (w : Loc) (V : WEnv GF) (γ : KVNames) (ctx : GoInterfaceOk)
     (ctx_desc : context.ContextDesc (IProp GF)) (key : GoString) (opts_sl : GoSlice)
@@ -81,12 +82,12 @@ abbrev watcher.Watch.spec : Prop :=
         1 ≤ sint.Z rev ∧ watchSizeOk (opWatchModel key opts)⌝ ∗
       □ (⌜V.nm = 1 ∧ 0 < n⌝ → auth.authPubLbM (V.mem 0).2.E.authMode n) ∗
       □ (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-        <{ etcdKV γ σ, COMM □ Q σ }>) }}
+        <{ etcdKV γ σ ∗ ⌜kvRoom σ⌝, COMM □ Q σ }>) }}
     (App (App (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watcher.ty @!!
         go!"Watch")) (Val #(GoInterface.ok ctx))) (Val #key)) (Val #opts_sl))
   {{ (ch : Loc) (γw : EtcdWatchNames), RET #ch;
       isSpsc γw.spsc ch (watchStateElem V.kv γw (opWatchModel key opts).watchNorm Q
-        iprop(□ (⌜V.nm = 1⌝ → watchCheckOk (V.mem 0).2.γ (V.mem 0).2.s V.conn
+        iprop(□ (⌜V.nm = 1⌝ → watchCheckOk (V.mem 0).2.tag (V.mem 0).2.s V.conn
           (GoInterface.ok ctx) n (opWatchModel key opts).key (opWatchModel key opts).base.rangeEnd)))
         (fun _ => iprop(True)) ∗
       spscConsumer γw.spsc ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗

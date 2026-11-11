@@ -8,6 +8,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvSnapshot
+public import Proof.io.Defs
 
 @[expose] public section
 
@@ -25,25 +26,27 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- `newSnapshotReaderCloser(lg, sp)`, of a non-nil logger and half of a snapshot open over bbolt's
+/-- `newSnapshotReaderCloser(lg, sp)`, of a zap logger (premise-fixes-6: until then any non-nil one) and half of a snapshot open over bbolt's
 committed data `D` (`snapOpenQ`, consumed: the goroutine streams it, then closes it): a reader
 whose complete streams are bbolt images of `D` (`readerStreams`, the transport's `SendSnapshot`
-takes it), given for the other half (the caller reads the snapshot's `Size` first: the pipe's
+takes it) whose `Close` returns (`io.rcCloseOk`, which `snap.NewMessage` takes; sweep repairs 1,
+S1, 2026-11-08), both given for the other half (the caller reads the snapshot's `Size` first: the pipe's
 hand-over, `Proof/io/Defs.lean`). The goroutine writes the snapshot into the pipe (`WriteTo`),
 closes the pipe's writer with `WriteTo`'s error (so the reader's stream ends in `io.EOF` only after
 a complete image), which hands it the other half, and closes the whole snapshot; it does not
 panic: an open snapshot's `Close` returns nil (`backend.snapshot.Close.spec`), and only a failed
-close reaches `lg.Panic`. -/
+close reaches `lg.Panic`. (2026-11-06, `notes/begin-tok-plan.md`) The goroutine exits with the
+`threadTok` `snapshot.Close` gives back, and the fork's fresh token is the caller's (`threadTok`). -/
 abbrev newSnapshotReaderCloser.spec : Prop :=
   ∀ (lg sp : Loc) (D : backend.Data) (γ : GName),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ ⌜lg ≠ null⌝ ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ zapLoggerOk lg ∗
       backend.snapOpenQ sp D γ (1 : Qp).half }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.newSnapshotReaderCloser)) (Val #lg))
       (Val #(interface.mkOk
         (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.snapshot.ty) #sp)))
-  {{ (rc : GoInterface), RET #rc;
-      backend.snapOpenQ sp D γ (1 : Qp).half -∗
-        backend.readerStreams rc (fun bs => backend.boltImage bs D) }}
+  {{ (rc : GoInterface), RET #rc; threadTok ∗
+      (backend.snapOpenQ sp D γ (1 : Qp).half -∗
+        backend.readerStreams rc (fun bs => backend.boltImage bs D) ∗ io.rcCloseOk rc) }}
 
 end spec
 

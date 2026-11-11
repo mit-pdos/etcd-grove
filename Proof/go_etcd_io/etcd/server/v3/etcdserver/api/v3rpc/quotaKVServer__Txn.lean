@@ -30,7 +30,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 theorem v3rpc.quotaKVServer.Txn.wp_proof
     (wp_check : v3rpc.quotaAlarmer.check.spec (GF := GF) (hG := hG)) :
     v3rpc.quotaKVServer.Txn.spec (GF := GF) (hG := hG) := by
-  intro Req Rep Spec q s kv S m Φ' ci cd r
+  intro Req Rep Spec q s kv S m Φ' Ψe ci cd r
   wp_start_folded as ⟨#Hq, #Hh, HS, Hqr, #Hctx, #Hrc, #Hr, HSpec⟩
   rw [method_unfold (t := go.GoType.PointerType v3rpc.quotaKVServer.ty) (m := go!"Txn")]
   wp_call
@@ -38,22 +38,18 @@ theorem v3rpc.quotaKVServer.Txn.wp_proof
   icases Hq with ⟨%Hqn, #Hkv, #Hqa⟩
   wp_auto
   wp_apply wp_check _ s ci r (go.GoType.PointerType etcdserverpb.TxnRequest.ty) (Or.inr (Or.inl rfl))
-    $$ [Hqr] as %err Hqr
+    $$ [Hqr] as %err ⟨%Herr, Hqr⟩
   · iframe; iframe #
   cases err with
-  | ok ei =>
-    wp_auto
-    iapply HΦ
-    iframe
-    iintro %Hc
-    cases Hc
+  | ok ei => cases Herr
   | nil =>
     wp_auto
     iunfold grpcHandlerOkMd at Hh
-    wp_apply Hh $$ %m %Φ' %ci %cd %r [HS HSpec] as %resp %err' ⟨HS, Hres⟩
+    wp_apply Hh $$ %m %Φ' %Ψe %ci %cd %r [HS HSpec] as %resp %err' ⟨HS, Hres, Hd, #Hse⟩
     · iframe; iframe #
     iapply HΦ
     iframe
+    iframe Hse
 
 end proof
 

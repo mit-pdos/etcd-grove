@@ -1,5 +1,6 @@
 module
 
+public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.parseRV
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.mget
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.lookup
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.notFound
@@ -23,9 +24,11 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
-theorem mget.wp_proof (wp_lookup : lookup.spec (GF := GF) (hG := hG))
+theorem mget.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
+    (wp_lookup : lookup.spec (GF := GF) (hG := hG))
     (wp_notFound : notFound.spec (GF := GF) (hG := hG))
     (wp_objOut : objOut.spec (GF := GF) (hG := hG)) :
     mget.spec (GF := GF) (hG := hG) := by
@@ -34,35 +37,63 @@ theorem mget.wp_proof (wp_lookup : lookup.spec (GF := GF) (hG := hG))
   unfold storeOwn
   icases Hs with ⟨#Hk, %Hr⟩
   wp_auto
-  wp_apply wp_lookup $$ [$Hk] as %it %ok ⟨-, %Hlk⟩
-  obtain ⟨hit, hok⟩ : it = (lookupL g.items x.Key').1 ∧ ok = (lookupL g.items x.Key').2 := by
-    rw [← Hlk]; exact ⟨rfl, rfl⟩
-  cases ok
-  · have hn : (lookupL g.items x.Key').2 = false := hok.symm
-    cases hi : x.IgnoreNotFound'
-    · (try wp_auto)
-      simp only [hi]
+  wp_apply wp_parseRV as %req %err Hpr
+  cases hp : parseRVD x.MinRV' with
+  | none =>
+    isimp only [hp] at Hpr
+    icases Hpr with ⟨%hne, -⟩
+    cases err with
+    | nil => exact absurd rfl hne
+    | ok i =>
       (try wp_auto)
-      wp_apply wp_notFound
-      have : mgetL x g = notFoundL g.rv x.Key' := by simp [mgetL, hn, hi]
-      rw [this, ← Hr]
-      iapply HΦ
-      (try ipureintro; trivial)
-    · (try wp_auto)
-      simp only [hi]
-      (try wp_auto)
-      have : mgetL x g = zeroOutL := by simp [mgetL, hn, hi]
+      have : mgetL x g = otherL := by simp [mgetL, hp]
       rw [this]
-      simp only [zeroOutL]
+      simp only [otherL, errOutL]
+      iapply HΦ
+      itrivial
+  | some m =>
+    isimp only [hp] at Hpr
+    icases Hpr with ⟨%he, %hm⟩
+    subst he hm
+    (try wp_auto)
+    wp_if_destruct
+    · (try wp_auto)
+      have : mgetL x g = tooLargeL := by
+        simp only [mgetL, hp]; rw [if_pos (by rw [← Hr]; word)]
+      rw [this]
+      simp only [tooLargeL, errOutL]
+      iapply HΦ
+      itrivial
+    have hle : ¬ uint.nat g.rv < uint.nat req := by rw [← Hr]; word
+    wp_apply wp_lookup $$ [$Hk] as %it %ok ⟨-, %Hlk⟩
+    obtain ⟨hit, hok⟩ : it = (lookupL g.items x.Key').1 ∧ ok = (lookupL g.items x.Key').2 := by
+      rw [← Hlk]; exact ⟨rfl, rfl⟩
+    cases ok
+    · have hn : (lookupL g.items x.Key').2 = false := hok.symm
+      cases hi : x.IgnoreNotFound'
+      · (try wp_auto)
+        simp only [hi]
+        (try wp_auto)
+        wp_apply wp_notFound
+        have : mgetL x g = notFoundL g.rv x.Key' := by simp [mgetL, hp, hle, hn, hi]
+        rw [this, ← Hr]
+        iapply HΦ
+        (try ipureintro; trivial)
+      · (try wp_auto)
+        simp only [hi]
+        (try wp_auto)
+        have : mgetL x g = zeroOutL := by simp [mgetL, hp, hle, hn, hi]
+        rw [this]
+        simp only [zeroOutL, errOutL]
+        iapply HΦ
+        (try ipureintro; trivial)
+    · have hn : (lookupL g.items x.Key').2 = true := hok.symm
+      (try wp_auto)
+      wp_apply wp_objOut
+      have : mgetL x g = objOutL it.obj' := by simp [mgetL, hp, hle, hn, hit]
+      rw [this]
       iapply HΦ
       (try ipureintro; trivial)
-  · have hn : (lookupL g.items x.Key').2 = true := hok.symm
-    (try wp_auto)
-    wp_apply wp_objOut
-    have : mgetL x g = objOutL it.obj' := by simp [mgetL, hn, hit]
-    rw [this]
-    iapply HΦ
-    (try ipureintro; trivial)
 
 end proof
 

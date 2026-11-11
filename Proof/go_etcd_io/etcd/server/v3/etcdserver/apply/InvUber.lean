@@ -130,11 +130,11 @@ theorem dispatchCrev_noV3 (c : Chain) (rq : IRRModel) (crev : Int) :
 
 /-- **What a compaction request needs at the log `log`**: `cmpAdmitRev` at its revision; nothing
 for another kind. -/
-def cmpAdmit (kb : Option mvcc.KBReal) (log : mvcc.Log) (rq : IRRModel) : Prop :=
-  dispatchKind rq = .compaction → ∀ r, rq.compaction = some r → cmpAdmitRev kb log r
+def cmpAdmit (log : mvcc.Log) (rq : IRRModel) : Prop :=
+  dispatchKind rq = .compaction → ∀ r, rq.compaction = some r → cmpAdmitRev log r
 
-theorem cmpAdmit_nonCmp (kb : Option mvcc.KBReal) (log : mvcc.Log) (rq : IRRModel)
-    (h : dispatchKind rq ≠ .compaction) : cmpAdmit kb log rq := fun h' => absurd h' h
+theorem cmpAdmit_nonCmp (log : mvcc.Log) (rq : IRRModel)
+    (h : dispatchKind rq ≠ .compaction) : cmpAdmit log rq := fun h' => absurd h' h
 
 /-- What became of an entry in `apply.Apply`. -/
 inductive ApplyOut where
@@ -325,15 +325,20 @@ def dispatchAnswer (rq : IRRModel) (log : mvcc.Log) (skip : Bool) (resp err : Go
   | .clusterVersionSet | .clusterMemberAttrSet | .downgradeInfoSet | .downgradeVersionTest =>
       iprop(⌜resp = GoInterface.nil ∧ err = GoInterface.nil⌝)
   | .authEnable => iprop(∃ r : Loc,
-      ⌜resp = interface.mkOk (go.GoType.PointerType etcdserverpb.AuthEnableResponse.ty) #r⌝)
+      ⌜resp = interface.mkOk (go.GoType.PointerType etcdserverpb.AuthEnableResponse.ty) #r ∧
+        (err = GoInterface.nil → r ≠ null)⌝)
   | .authUserAdd => iprop(∃ r : Loc,
-      ⌜resp = interface.mkOk (go.GoType.PointerType etcdserverpb.AuthUserAddResponse.ty) #r⌝)
+      ⌜resp = interface.mkOk (go.GoType.PointerType etcdserverpb.AuthUserAddResponse.ty) #r ∧
+        (err = GoInterface.nil → r ≠ null)⌝)
   | .authRoleAdd => iprop(∃ r : Loc,
-      ⌜resp = interface.mkOk (go.GoType.PointerType etcdserverpb.AuthRoleAddResponse.ty) #r⌝)
+      ⌜resp = interface.mkOk (go.GoType.PointerType etcdserverpb.AuthRoleAddResponse.ty) #r ∧
+        (err = GoInterface.nil → r ≠ null)⌝)
   | .authUserGrantRole => iprop(∃ r : Loc,
-      ⌜resp = interface.mkOk (go.GoType.PointerType etcdserverpb.AuthUserGrantRoleResponse.ty) #r⌝)
+      ⌜resp = interface.mkOk (go.GoType.PointerType etcdserverpb.AuthUserGrantRoleResponse.ty) #r ∧
+        (err = GoInterface.nil → r ≠ null)⌝)
   | .authRoleGrantPermission => iprop(∃ r : Loc, ⌜resp =
-      interface.mkOk (go.GoType.PointerType etcdserverpb.AuthRoleGrantPermissionResponse.ty) #r⌝)
+      interface.mkOk (go.GoType.PointerType etcdserverpb.AuthRoleGrantPermissionResponse.ty) #r ∧
+        (err = GoInterface.nil → r ≠ null)⌝)
   | _ => iprop(True)
 
 /-- **Without an error the answer does not depend on the trace** (only a compaction's error arm
@@ -383,6 +388,21 @@ theorem grantRes_not_grant (E : AEnv GF) (rq : IRRModel) (o : Outcome) (ar : Loc
 theorem grantRes_null (E : AEnv GF) (rq : IRRModel) (o : Outcome) :
     ⊢ grantRes (GF := GF) E rq o null := by
   unfold grantRes; rw [if_neg (fun h' => h'.2 rfl)]; iintro; itrivial
+
+/-- **A dispatched revocation's answer through `dispatch`'s result `ar`** (the lease-expiry plan's
+X6, 2026-11-04, the user's (a): `grantRes` mirrored): `revokeAnswer` of the result's `Resp` and
+`Err`, for a request dispatched as a revocation; `True` otherwise, and when `ar` is `nil`. -/
+def revokeAnsR (E : AEnv GF) (rq : IRRModel) (ar : Loc) : IProp GF :=
+  if dispatchKind rq = .leaseRevoke ∧ ar ≠ null then
+    iprop(∃ v : Result, ar ↦□ v ∗ revokeAnswer E rq v.Resp' v.Err')
+  else iprop(True)
+
+theorem revokeAnsR_not_revoke (E : AEnv GF) (rq : IRRModel) (ar : Loc)
+    (h : dispatchKind rq ≠ .leaseRevoke) : ⊢ revokeAnsR (GF := GF) E rq ar := by
+  unfold revokeAnsR; rw [if_neg (fun h' => h h'.1)]; iintro; itrivial
+
+theorem revokeAnsR_null (E : AEnv GF) (rq : IRRModel) : ⊢ revokeAnsR (GF := GF) E rq null := by
+  unfold revokeAnsR; rw [if_neg (fun h' => h'.2 rfl)]; iintro; itrivial
 
 /-- **The trace of `dispatch`'s result** `ar` (unit P1b, 2026-10-14): owned (`traceRes`), unless
 the result is `nil` or an error (`raftRequest` reads the trace only of a result without error).
@@ -435,6 +455,18 @@ theorem grantResA_not_grant (E : AEnv GF) (rq : IRRModel) (out : ApplyOut) (ar :
     (h : dispatchKind rq ≠ .leaseGrant) : ⊢ grantResA (GF := GF) E rq out ar := by
   unfold grantResA; split
   · exact grantRes_not_grant E rq _ ar h
+  · iintro; itrivial
+
+/-- `revokeAnsR` over `apply.Apply`'s outcome: a dispatched request's (X6). -/
+def revokeAnsRA (E : AEnv GF) (rq : IRRModel) (out : ApplyOut) (ar : Loc) : IProp GF :=
+  match out with
+  | .dispatched _ _ => revokeAnsR E rq ar
+  | _ => iprop(True)
+
+theorem revokeAnsRA_not_revoke (E : AEnv GF) (rq : IRRModel) (out : ApplyOut) (ar : Loc)
+    (h : dispatchKind rq ≠ .leaseRevoke) : ⊢ revokeAnsRA (GF := GF) E rq out ar := by
+  unfold revokeAnsRA; split
+  · exact revokeAnsR_not_revoke E rq ar h
   · iintro; itrivial
 
 end defs

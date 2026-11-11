@@ -8,6 +8,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__sendMergedSn
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Logger
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__MemberID
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__GoAttach
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.GoAttachTok
 public import Spec.go_etcd_io.etcd.client.pkg.v3.types.ID__String
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message__GetTo
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message__CloseNotify
@@ -56,7 +57,7 @@ theorem EtcdServer.sendMergedSnap.wp_proof
     (hWarn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     EtcdServer.sendMergedSnap.spec (GF := GF) (hG := hG) := by
   intro s mg ml rc lg id stg tr γn S TS lid
-  wp_start as ⟨Hgr, Hlr, #Hlgf, %Hlgnn, #Hidf, #Hinf, #Hstgf, #Hstg, #Htrf, #Htr, #Hmg, Hbun⟩
+  wp_start as ⟨Hgr, Hlr, #Hlgf, #Hlgnn, #Hidf, #Hinf, #Hstgf, #Hstg, #Htrf, #Htr, #Hmg, Hbun⟩
   ihave #Patm : isPkgInit (PROP := IProp GF) pkg_id.sync.atomic $$ []
   · iPkgInit
   (try wp_auto)
@@ -89,7 +90,7 @@ theorem EtcdServer.sendMergedSnap.wp_proof
   · iPkgInit
   -- the log fields
   wp_apply hLg s lg $$ [Hlr] as ⟨-, Hlr⟩
-  · iframe #; iframe Hlr; ipureintro; exact Hlgnn
+  · iframe #; iframe Hlr
   (try wp_auto)
   wp_apply hMID s id $$ []
   · iframe #
@@ -132,15 +133,17 @@ theorem EtcdServer.sendMergedSnap.wp_proof
   ipersist lg
   ipersist s
   wp_apply hInfo _ _ _ $$ []
-  · iframe #; ipureintro; exact Hlgnn
+  · iframe #
   (try wp_auto)
   -- `s.GoAttach(func() { ... })`: the release goroutine, with the fields' capacity for `append`
   iunfold stopChan at Hstg
   icases Hstg with ⟨%γsg, #Hstg⟩
-  wp_apply hGA s _ (ownSliceCap go_uber_org.zap.zapcore.Field _ (DFrac.own 1)) $$ [Hgr Hlr Hfcap]
-    as ⟨Hgr, Hlr⟩
-  · iframe Hgr Hlr Hfcap
-    iintro !> %Φ' Hfcap HΦ'
+  icases srvGoRes_open s $$ Hgr with ⟨%γg, Hgr⟩
+  wp_apply wp_GoAttach_tok hGA s γg _ (ownSliceCap go_uber_org.zap.zapcore.Field _ (DFrac.own 1)) $$ [Hgr Hfcap]
+    as Hgr
+  · iframe Hgr Hfcap
+    iintro !> %Φ' ⟨Hfcap, Hrun⟩ HΦ'
+    ihave HΦ' := goRunning_frame γg _ $$ Hrun HΦ'
     wp_auto_lc 2
     wp_apply hCN mg cc $$ []
     · iframe #
@@ -228,7 +231,7 @@ theorem EtcdServer.sendMergedSnap.wp_proof
       · iframe Hfsl Hfcap Hf4
       (try wp_auto)
       wp_apply hInfo _ _ _ $$ []
-      · iframe #; ipureintro; exact Hlgnn
+      · iframe #
       (try wp_auto)
       iapply HΦ'
       itrivial
@@ -245,7 +248,7 @@ theorem EtcdServer.sendMergedSnap.wp_proof
       iintro ⟨-, -⟩
       (try wp_auto)
       wp_apply hWarn _ _ _ $$ []
-      · iframe #; ipureintro; exact Hlgnn
+      · iframe #
       (try wp_auto)
       iapply HΦ'
       itrivial
@@ -253,6 +256,7 @@ theorem EtcdServer.sendMergedSnap.wp_proof
     itrivial
   (try wp_auto)
   iapply HΦ
+  ihave Hgr := srvGoResAt_close s γg $$ Hgr
   iframe Hgr Hlr
 
 end proof

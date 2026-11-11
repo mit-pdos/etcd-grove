@@ -7,7 +7,6 @@
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots ^Proof/go_etcd_io/etcd/cache/v3/Link\.lean$
 roots \bcache_(New|Get|Watch|Watch_delivery|WaitForRevision|WaitForNextResync|Close)$
-axiom context.Err.wp_proof
 axiom fmt.Errorf.wp_proof
 axiom fmt.Printf.wp_proof
 axiom rpctypes.errDesc_etcdError

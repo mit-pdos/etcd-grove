@@ -13,12 +13,6 @@ def Perennial.github_com.prometheus.client_golang.prometheus.get_isPkgInit_wf_in
 theorem Perennial.go_etcd_io.etcd.server.v3.storage.backend.histSpec_persistent (h : GoInterfaceOk)
     : Persistent (go_etcd_io.etcd.server.v3.storage.backend.histSpec h)
 
-def Perennial.go_etcd_io.bbolt.errors.bboltErrorsInit : IProp GF :=
-  iprop(∃ e,
-      typedPointsto (globalAddr go_etcd_io.bbolt.errors.ErrBucketNotFound) (GoInterface.ok e) DFrac.discard ∗
-        ⌜errors.IsPointerError e ∧
-            errors.isLeafError e ∧ methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool])⌝)
-
 def Perennial.go_etcd_io.etcd.server.v3.storage.backend.get_isPkgInit_wf_inst : GetIsPkgInitWf
     (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend :=
   {
@@ -44,14 +38,6 @@ def Perennial.go_etcd_io.etcd.server.v3.storage.backend.get_isPkgInit_wf_inst : 
 def Perennial.go_etcd_io.etcd.client.pkg.v3.verify.isPkgInit_inst : IsPkgInit (IProp GF)
     pkg_id.go_etcd_io.etcd.client.pkg.v3.verify :=
   { isPkgInitDeps := iprop(isPkgInit pkg_id.fmt ∗ True), isPkgInitDef := iprop(True) }
-
-def Perennial.go_etcd_io.bbolt.get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF)
-    pkg_id.go_etcd_io.bbolt :=
-  {
-    get_is_pkg_init_prop_def := fun get_is_pkg_init =>
-      get_is_pkg_init pkg_id.go_etcd_io.bbolt = isPkgInit pkg_id.go_etcd_io.bbolt ∧
-        GetIsPkgInitProp pkg_id.time get_is_pkg_init ∧
-          GetIsPkgInitProp pkg_id.go_etcd_io.bbolt.internal.common get_is_pkg_init ∧ True }
 
 def Perennial.go_etcd_io.etcd.server.v3.storage.backend.isPkgInit_inst : IsPkgInit (IProp GF)
     pkg_id.go_etcd_io.etcd.server.v3.storage.backend :=
@@ -89,11 +75,13 @@ def Perennial.go_etcd_io.etcd.server.v3.storage.backend.backendInit : IProp GF :
               typedPointsto (globalAddr go_etcd_io.etcd.server.v3.storage.backend.commitSec) (GoInterface.ok h)
                   DFrac.discard ∗
                 go_etcd_io.etcd.server.v3.storage.backend.histSpec h) ∗
-            backend.boltOpenOptionsOk)
-
-def Perennial.go_etcd_io.bbolt.isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.bbolt :=
-  { isPkgInitDeps := iprop(isPkgInit pkg_id.time ∗ isPkgInit pkg_id.go_etcd_io.bbolt.internal.common ∗ True),
-    isPkgInitDef := iprop(True) }
+            backend.boltOpenOptionsOk ∗
+              typedPointsto (globalAddr go_etcd_io.etcd.server.v3.storage.backend.defaultBatchInterval) (W64 100000000)
+                  DFrac.discard ∗
+                typedPointsto (globalAddr go_etcd_io.etcd.server.v3.storage.backend.defaultBatchLimit) (W64 10000)
+                    DFrac.discard ∗
+                  typedPointsto (globalAddr go_etcd_io.etcd.server.v3.storage.backend.InitialMmapSize) (W64 10737418240)
+                    DFrac.discard)
 
 def Perennial.go_etcd_io.etcd.client.pkg.v3.verify.get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF)
     pkg_id.go_etcd_io.etcd.client.pkg.v3.verify :=
@@ -103,27 +91,9 @@ def Perennial.go_etcd_io.etcd.client.pkg.v3.verify.get_isPkgInit_wf_inst : GetIs
           isPkgInit pkg_id.go_etcd_io.etcd.client.pkg.v3.verify ∧
         GetIsPkgInitProp pkg_id.fmt get_is_pkg_init ∧ True }
 
-def Perennial.go_etcd_io.bbolt.errors.isPkgInit_inst : IsPkgInit (IProp GF)
-    pkg_id.go_etcd_io.bbolt.errors :=
-  { isPkgInitDeps := iprop(True), isPkgInitDef := go_etcd_io.bbolt.errors.bboltErrorsInit }
-
-def Perennial.encoding.hex.isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.encoding.hex :=
-  { isPkgInitDeps := iprop(True), isPkgInitDef := iprop(True) }
-
-def Perennial.encoding.hex.get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.encoding.hex :=
-  {
-    get_is_pkg_init_prop_def := fun get_is_pkg_init =>
-      get_is_pkg_init pkg_id.encoding.hex = isPkgInit pkg_id.encoding.hex ∧ True }
-
 def Perennial.github_com.prometheus.client_golang.prometheus.isPkgInit_inst : IsPkgInit (IProp GF)
     pkg_id.github_com.prometheus.client_golang.prometheus :=
   { isPkgInitDeps := iprop(True), isPkgInitDef := iprop(True) }
-
-def Perennial.go_etcd_io.bbolt.errors.get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF)
-    pkg_id.go_etcd_io.bbolt.errors :=
-  {
-    get_is_pkg_init_prop_def := fun get_is_pkg_init =>
-      get_is_pkg_init pkg_id.go_etcd_io.bbolt.errors = isPkgInit pkg_id.go_etcd_io.bbolt.errors ∧ True }
 
 def Perennial.go_etcd_io.etcd.server.v3.storage.backend.histSpec (h : GoInterfaceOk) : IProp GF :=
   iprop(□

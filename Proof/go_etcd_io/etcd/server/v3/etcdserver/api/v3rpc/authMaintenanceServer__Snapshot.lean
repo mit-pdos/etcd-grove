@@ -6,6 +6,7 @@ module
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.authMaintenanceServer__Snapshot
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.authMaintenanceServer__isPermitted
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.togRPCError
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.TogRPCErrorPlain
 
 @[expose] public section
 
@@ -34,7 +35,7 @@ theorem v3rpc.authMaintenanceServer.Snapshot.wp_proof
     (hTog : v3rpc.togRPCError.spec (GF := GF) (hG := hG)) :
     v3rpc.authMaintenanceServer.Snapshot.spec (GF := GF) (hG := hG) := by
   intro p ms aa s E ctx cd sr srv Pin Q
-  wp_start as ⟨#Hams, #Haa, #Hnil, #Hctx, HRD, HPin, #Hsc, #Hin⟩
+  wp_start as ⟨#Hams, #Haa, #Hnil, #Hctx, #Hlib, HRD, HPin, #Hsc, #Hin⟩
   ihave #Hams' := Hams
   iunfold v3rpc.amsIs at Hams'
   icases Hams' with ⟨%Hpn, #Hms, #Haaf⟩
@@ -52,7 +53,7 @@ theorem v3rpc.authMaintenanceServer.Snapshot.wp_proof
   (try wp_auto)
   rcases err with ei | _
   · (try wp_auto)
-    wp_apply hTog $$ [] as %e %He
+    wp_apply (v3rpc.togRPCError_plain hTog) $$ [] as %e ⟨%He, -⟩
     · iframe #
       iapply (v3rpc.srvErrIs_applyErrIs (GoInterface.ok ei) (by intro h; cases h)) $$ Herr
     (try wp_auto)

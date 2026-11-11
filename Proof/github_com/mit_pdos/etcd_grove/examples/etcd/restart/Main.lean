@@ -34,9 +34,10 @@ theorem Main.wp_proof
   wp_start as Hres
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
-  wp_apply wp_NewNop as %lg %Hlg
-  wp_apply (wp_Run lg N id₁ id₂ id₃ ps ctxs boot HwbN Hlg Hp Hms Has) $$ [Hres]
-  · iframe
+  wp_apply wp_NewNop as %lg #Hlgz
+  ihave %Hlg := zapLoggerOk_ne_null lg $$ Hlgz
+  wp_apply (wp_Run lg N id₁ id₂ id₃ ps ctxs boot HwbN Hp Hms Has) $$ [Hres]
+  · iframe; iframe #
   iapply HΦ; itrivial
 
 end proof

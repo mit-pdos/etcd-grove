@@ -40,6 +40,7 @@ theorem txn.kvAt_persist' (p : Loc) (v : EtcdKv) :
     txn.kvAt (GF := GF) p v ⊢ |==> txn.kvIs p v := by
   simp only [txn.kvAt, mvcc.kvPtrIs, ↓reduceIte]
   iintro ⟨%ks, %st, %uf, %sc, #Hk, %vsl, #Hv, Hp⟩
+  icases typedPointsto_not_null_dup _ _ _ $$ Hp with ⟨Hp, %Hnn⟩
   iStructNamed Hp
   ipersist Key
   ipersist CreateRevision
@@ -51,6 +52,7 @@ theorem txn.kvAt_persist' (p : Loc) (v : EtcdKv) :
   unfold txn.kvIs
   iexists ks, vsl
   iframe #
+  ipureintro; exact Hnn
 
 theorem txn.kvsIs_cons' (p : Loc) (ps : List Loc) (v : EtcdKv) (vs : List EtcdKv) :
     txn.kvIs (GF := GF) p v ∗ txn.kvsIs ps vs ⊢ txn.kvsIs (p :: ps) (v :: vs) := by

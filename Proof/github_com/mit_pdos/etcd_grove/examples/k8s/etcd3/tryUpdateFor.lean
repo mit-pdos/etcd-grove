@@ -21,11 +21,12 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
 theorem tryUpdateFor.wp_proof (wp_updated : updated.spec (GF := GF) (hG := hG)) :
     tryUpdateFor.spec (GF := GF) (hG := hG) := by
-  intro inp
+  intro inp hkey
   wp_start as -
   iapply wp_fupd
   (try wp_auto)
@@ -40,9 +41,10 @@ theorem tryUpdateFor.wp_proof (wp_updated : updated.spec (GF := GF) (hG := hG)) 
   obtain ⟨rfl, Hpn, Hrv⟩ := Hx
   wp_pure
   (try wp_auto)
-  wp_apply wp_updated inp p (DFrac.own 1) o.1.1 o.1.2 n $$ [$Hp] as %q %err ⟨-, Hres⟩
-  cases hr : rejects inp.Reject' o.1.2
-  · isimp only [hr, Bool.false_eq_true, ↓reduceIte] at Hres
+  wp_apply wp_updated inp p (DFrac.own 1) (o.toObj n) $$ [$Hp] as %q %err ⟨-, Hres⟩
+  have hnode : (o.toObj n).Node' = o.node := rfl
+  cases hr : rejects inp.HasReject' inp.Reject' o.node
+  · isimp only [hnode, hr, Bool.false_eq_true, ↓reduceIte] at Hres
     icases Hres with ⟨%Herr, Hq⟩
     obtain ⟨rfl, Hqn⟩ := Herr
     (try wp_auto)
@@ -52,13 +54,13 @@ theorem tryUpdateFor.wp_proof (wp_updated : updated.spec (GF := GF) (hG := hG)) 
     · ipureintro; simp
     iunfold objAtD
     iexists q, n
-    simp only [updObj]
+    rw [updObj_toObj inp o n hkey]
     iframe Hq
-    ipureintro; simp [Hqn, Hrv]
-  · isimp only [hr, ↓reduceIte] at Hres
+    ipureintro; exact ⟨rfl, Hqn, Hrv⟩
+  · isimp only [hnode, hr, ↓reduceIte] at Hres
     ihave #Hi : (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.drvInit : IProp GF) $$ []
     · iapply isPkgInit_access $$ Hpkg
-    icases Hi with ⟨-, -, -, -, -, #HeU⟩
+    icases Hi with ⟨-, -, -, -, #HeU⟩
     ihave #Hres := Hres
     ihave %Hne := errVar_ne_nil _ err $$ [$HeU $Hres]
     cases err with

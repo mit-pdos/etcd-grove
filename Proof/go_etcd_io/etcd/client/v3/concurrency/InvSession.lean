@@ -4,7 +4,7 @@
 
 **Options.** A `SessionOption` is a closure on `(*sessionOptions, *zap.Logger)`;
 `sessionOptSpec f g` says that `f` changes options modelled by `o` (`SessionOpts`: the TTL, the
-lease ID, the context) into `g o`, given a non-nil logger; `sessOptsAt sl gs` that the
+lease ID, the context) into `g o`, given a zap logger (`zapLoggerOk`; premise fixes 6: until then a non-nil one); `sessOptsAt sl gs` that the
 read-only slice `sl` holds closures with the transformers `gs`. `NewSession` starts from
 `{ttl: 60, ctx: client.Ctx()}` (`SessionOpts.init`) and applies them in order
 (`sessOptsFold`). `WithTTL(ttl)` keeps the TTL (and logs a warning) unless `ttl > 0`.
@@ -104,11 +104,11 @@ instance (priority := high) session_client_typeRepr_u :
     TypeRepr go_etcd_io.etcd.client.v3.Client.underlying go_etcd_io.etcd.client.v3.Client :=
   go.type_repr_underlying (u := go_etcd_io.etcd.client.v3.Client.underlying)
 
-/-- The `SessionOption` closure `f` changes options modelled by `o` into `g o` (given a non-nil
-logger, which `WithTTL` may warn on). -/
+/-- The `SessionOption` closure `f` changes options modelled by `o` into `g o` (given a zap
+logger, `zapLoggerOk`, which `WithTTL` may warn on; premise fixes 6: until then a non-nil one). -/
 def sessionOptSpec (f : GoFunc) (g : SessionOpts → SessionOpts) : IProp GF :=
   iprop(□ ∀ (p : Loc) (o : SessionOpts) (lg : Loc),
-    {{ p ↦ o.val ∗ ⌜lg ≠ null⌝ }} (App (App (Val #f) (Val #p)) (Val #lg))
+    {{ p ↦ o.val ∗ zapLoggerOk lg }} (App (App (Val #f) (Val #p)) (Val #lg))
     {{ RET #(); p ↦ (g o).val }})
 
 /-- The `[]SessionOption` slice `sl` (read-only) holds closures with the transformers `gs`. -/
@@ -202,7 +202,9 @@ instance sessionDoneChan_persistent (donec : GoChan) (γ : SessionNames) :
   unfold sessionDoneChan; infer_instance
 
 /-- **The session** `s` of the client `client` with the lease `id` (persistent; see the module
-docstring). -/
+docstring).
+Its options' context and its own (`WithCancel` of it) have no outgoing metadata
+(`metadata.outgoingCtxOkC`). -/
 def isSession (s : Loc) (γ : SessionNames) (client : Loc) (id : w64) : IProp GF :=
   iprop(∃ (ops : Loc) (o : SessionOpts) (octx : GoInterfaceOk)
       (ocs : context.ContextDesc (IProp GF)) (ctx : GoInterfaceOk)
@@ -214,10 +216,10 @@ def isSession (s : Loc) (γ : SessionNames) (client : Loc) (id : w64) : IProp GF
     structFieldRef Session go!"cancel" s ↦□ cancel ∗
     structFieldRef Session go!"donec" s ↦□ donec ∗
     ops ↦□ o.val ∗ ⌜o.ctx = GoInterface.ok octx ∧ id ≠ W64 0⌝ ∗ context.isContext octx ocs ∗
-    context.isContext ctx cs ∗ cancelSpec cancel ∗ sessionDoneChan donec γ ∗
+    metadata.outgoingCtxOkC octx ∗ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ cancelSpec cancel ∗ sessionDoneChan donec γ ∗
     isEtcdLeaseClient client)
 
-set_option synthInstance.maxSize 512 in
+set_option synthInstance.maxSize 1024 in
 set_option synthInstance.maxHeartbeats 200000 in
 instance isSession_persistent (s : Loc) (γ : SessionNames) (client : Loc) (id : w64) :
     Persistent (isSession (GF := GF) s γ client id) := by

@@ -13,6 +13,8 @@ def (sealed) nodeSnapLocal (γ : Cluster) (id i : w64) : IProp GF
 
 def (sealed) nodeDriver (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) : IProp GF
 
+theorem Cluster.outObj_persistent (γ : Cluster) (m : Loc) (c : MsgC) : Persistent (γ.outObj m c)
+
 theorem isCommittedLogLb_timeless (γ : Cluster) (l : List LogEntry) : Timeless (isCommittedLogLb γ
     l)
 
@@ -70,6 +72,9 @@ theorem readStateOk_ctx [package_sem : Assumptions] (γ : Cluster) (N : Namespac
     ≤ l'.length → ⊢ readStateOk γ N c idx -∗ isReadCtx γ N c Q -∗ isCommittedLogLb γ l' ={E}=∗ ∃ l,
     ⌜l.length = uint.nat idx⌝ ∗ isCommittedLogLb γ l ∗ ▷ ▷ □ Q (opsOf l)
 
+theorem msgOut_msgOwn [package_sem : Assumptions] (γ : Cluster) (l : Loc) (dq : DFrac) (st : MsgSt)
+    : msgOut γ l dq st ⊢ msgOwn l dq st
+
 theorem readyMsgs_persistent (γ : Cluster) (N : Namespace) (id : w64) (ms : List QMsg) : Persistent
     (readyMsgs γ N id ms)
 
@@ -99,16 +104,24 @@ theorem node.wp_readyRecv [package_sem : Assumptions] (n ch : Loc) (γ : Cluster
     id ∗ nodeDriver n γ N st -∗ (▷ ∀ rd, readyGot n γ N id st rd -∗ Φ (intoVal rd, intoVal true)) -∗
     WP ((chan.receive Ready.ty) (intoVal ch)) {{ Φ }}
 
+theorem readyEnts_persistent (γ : Cluster) (s : GoSlice) (es : List EntryM) : Persistent (readyEnts
+    γ s es)
+
 def (sealed) readCtxAfter (γ : Cluster) (N : Namespace) (c : List w8) (l0 : List LogEntry) : IProp
     GF
 
 def (sealed) ownCommittedOps (γ : Cluster) (ops : List LogEntry) : IProp GF
+
+def (sealed) Cluster.outEnt (γ : Cluster) (e : Loc) (c : EntryC) : IProp GF
 
 theorem Membership.applyChange_addVoter (vs : GSet w64) (cm : ConfChangeM) : cm.type = W32 0 →
     cm.nodeId ∈ vs → (Membership.simple vs).Valid → Membership.applyChange (ConfChangeIM.v1 cm)
     (Membership.simple vs) = some (Membership.simple vs)
 
 def (sealed) isNode (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) : IProp GF
+
+theorem Cluster.outEnt_size [package_sem : Assumptions] (γ : Cluster) (e : Loc) (c : EntryC) (b :
+    Nat) : γ.outEnt e c ⊢ ⌜γ.maxData = some b → entSizeOk c⌝
 
 theorem isReadyChan_persistent (n : Loc) (γ : Cluster) (N : Namespace) (ch : Loc) : Persistent
     (isReadyChan n γ N ch)
@@ -149,6 +162,11 @@ def (sealed) Cluster.snapLoc (γ : Cluster) : w64 → Option GName
 
 def (sealed) nodeVacant (γ : Cluster) (id : w64) : IProp GF
 
+def readyEnts (γ : Cluster) (s : GoSlice) (es : List EntryM) : IProp GF :=
+  iprop(∃ els cs,
+      ownSlice s els DFrac.discard ∗
+        ([∗list] p;c ∈ els;cs, iprop(entPtsCC p DFrac.discard c ∗ γ.outEnt p c)) ∗ ⌜List.map EntryC.model cs = es⌝)
+
 def (sealed) Cluster.bootLen (γ : Cluster) : Nat
 
 theorem readyFits_intro [package_sem : Assumptions] (γ : Cluster) (N : Namespace) : receiptBound GF
@@ -167,8 +185,15 @@ def propErrS (n : Loc) (γ : Cluster) (N : Namespace) (cd : context.ContextDesc 
 theorem ownCommittedOps_lb_prefix (γ : Cluster) (ops l : List LogEntry) : ownCommittedOps γ ops ∗
     isCommittedLogLb γ l ⊢ ⌜opsOf l <+: ops⌝
 
+theorem Cluster.outObj_size [package_sem : Assumptions] (γ : Cluster) (m : Loc) (c : MsgC) (b : Nat)
+    : γ.outObj m c ⊢ ⌜γ.maxData = some b → c.model.msg.Type' ≠ MsgSnap → msgSizeOk c⌝
+
 theorem Membership.simple_valid (vs : GSet w64) : vs ≠ ∅ → ¬W64 0 ∈ vs → GMap.size vs < 2 ^ 62 →
     (Membership.simple vs).Valid
+
+theorem msgOut_size [package_sem : Assumptions] (γ : Cluster) (l : Loc) (dq : DFrac) (st : MsgSt) (b
+    : Nat) : msgOut γ l dq st ⊢ ∃ c, msgPtsCC l dq DFrac.discard false c ∗ ⌜c.model = st ∧
+    (γ.maxData = some b → st.msg.Type' ≠ MsgSnap → msgSizeOk c)⌝
 
 def (sealed) readStateOk (γ : Cluster) (N : Namespace) (c : List w8) (idx : w64) : IProp GF
 
@@ -213,12 +238,15 @@ theorem readyRest_ents_type [package_sem : Assumptions] (γ : Cluster) (N : Name
     h L ms ss ⊢ readyRest γ N id rd st ce es h L ms ss ∗ ⌜∀ (e : EntryM), e ∈ es → uint.Z e.Type' ≤
     2⌝
 
+theorem sentMsg_snap_empty [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (src : w64) (st
+    : MsgSt) : sentMsg γ N src st ⊢ ⌜st.msg.Type' = MsgSnap → st.ents = [] ∧ st.ctx = []⌝
+
 def readyRest (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeDriverState) (ce :
     List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan) (ms : List QMsg) (ss :
     Option (w64 × StateType)) : IProp GF :=
-  iprop(entsRO rd.Entries' es ∗
+  iprop(readyEnts γ rd.Entries' es ∗
       ownSlice rd.Messages' (List.map QMsg.loc ms) (DFrac.own 1) ∗
-        ([∗list] q ∈ ms, iprop(msgOwn q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st)) ∗
+        ([∗list] q ∈ ms, iprop(msgOut γ q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st)) ∗
           hsOpt rd.HardState' h ∗
             softStateIs rd.SoftState' ss ∗
               ⌜∃ Lx,
@@ -255,13 +283,21 @@ theorem msgCredits_intro [package_sem : Assumptions] (γ : Cluster) (N : Namespa
 
 theorem nodeAppliedLb_timeless (γ : Cluster) (K : GName) (k : Nat) : Timeless (nodeAppliedLb γ K k)
 
+def (sealed) Cluster.outObj (γ : Cluster) (m : Loc) (c : MsgC) : IProp GF
+
+def (sealed) Cluster.maxData (γ : Cluster) : Option Nat
+
 theorem nodeErrS_nodeErr [package_sem : Assumptions] (n : Loc) (γ : Cluster) (N : Namespace) (cd :
     context.ContextDesc (IProp GF)) (err : GoInterface) : nodeErrS n γ N cd err ⊢ nodeErr cd err
+
+theorem msgOut_snap [package_sem : Assumptions] (γ : Cluster) (l : Loc) (dq : DFrac) (st : MsgSt) :
+    msgOut γ l dq st ⊢ ∃ c, msgPtsCC l dq DFrac.discard false c ∗ γ.outObj l c ∗ ⌜c.model = st ∧
+    c.csUfNil ∧ (st.msg.Type' = MsgSnap → c.f.uf = [])⌝
 
 def (sealed) snapshotCert (γ : Cluster) (N : Namespace) (k : SnapTrip) : IProp GF
 
 theorem readyMsgs_sent [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (id : w64) (ms :
-    List QMsg) : ([∗list] q ∈ ms, iprop(msgOwn q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st)) ∗
+    List QMsg) : ([∗list] q ∈ ms, iprop(msgOut γ q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st)) ∗
     readyMsgs γ N id ms ⊢ [∗list] q ∈ ms, iprop(msgOwn q.loc (readyDq q.st) q.st ∗ sentMsg γ N id
     q.st ∗ msgCredits γ N q.st)
 
@@ -288,8 +324,16 @@ theorem sentMsg_snapshot (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt)
     MsgSnap → sentMsg γ N src st ⊢ ∃ sv, ⌜st.snap = some sv⌝ ∗ snapshotCert γ N (snapTrip sv
     sv.Metadata'.ConfState'.lists)
 
+theorem readyMsgs_sentC [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (id : w64) (ms :
+    List QMsg) : ([∗list] q ∈ ms, iprop(msgOut γ q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st)) ∗
+    readyMsgs γ N id ms ⊢ [∗list] q ∈ ms, iprop(msgOut γ q.loc (readyDq q.st) q.st ∗ sentMsg γ N id
+    q.st ∗ msgCredits γ N q.st)
+
 theorem ownCommittedOps_timeless (γ : Cluster) (ops : List LogEntry) : Timeless (ownCommittedOps γ
     ops)
+
+theorem readyEnts_entsRO [package_sem : Assumptions] (γ : Cluster) (s : GoSlice) (es : List EntryM)
+    : readyEnts γ s es ⊢ entsRO s es
 
 theorem readyRest_commit_mono [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (id : w64)
     (rd : Ready) (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L
@@ -308,6 +352,9 @@ theorem readyFits_persistent (γ : Cluster) (N : Namespace) : Persistent (readyF
 
 theorem msgCredits_copy [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (st : MsgSt) :
     γ.dup = true → msgCredits γ N st ⊢ □ msgCredits γ N st
+
+theorem msgOut_persist_fupd [package_sem : Assumptions] (γ : Cluster) (l : Loc) (dq : DFrac) (st :
+    MsgSt) (E : CoPset) : msgOut γ l dq st ⊢ |={E}=> msgOut γ l DFrac.discard st
 
 theorem readyRest_facts [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (id : w64) (rd :
     Ready) (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L :
@@ -354,6 +401,9 @@ theorem readyRest_ceInBatch [package_sem : Assumptions] (γ : Cluster) (N : Name
     ≤ st.delivered.length + 1 + j → Option.map LogEntry.ofEntryM es[st.delivered.length + 1 + j -
     uint.nat e0.Index']? = some e⌝ ∗ readyRest γ N id rd st ce es h none ms ss
 
+theorem isCommittedLogLb_small [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (l : List
+    LogEntry) : readyFits γ N ∗ isCommittedLogLb γ l ⊢ ⌜l.length < 2 ^ 61⌝
+
 theorem nodeAppliedLb_mono [package_sem : Assumptions] (γ : Cluster) (K : GName) (k k' : Nat) : k' ≤
     k → nodeAppliedLb γ K k ⊢ nodeAppliedLb γ K k'
 
@@ -374,9 +424,10 @@ def readyLeaderMsgs (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverSt
   iprop(⌜roleAfter st.role ss = StateLeader⌝ -∗ readyMsgs γ N id ms)
 
 theorem stepIn_intro [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc)
-    (src : w64) (st : MsgSt) : st.msg.To' = id → sentMsg γ N src st ∗ msgPtsC ml (DFrac.own 1)
-    (DFrac.own 1) true { msg := st.msg, ents := st.ents, snap := st.snap, ctx := st.ctx, resps := []
-    } ∗ msgCredits γ N st ∗ snapLocalMsg γ id st ⊢ |==> stepIn γ N id ml
+    (src : w64) (st : MsgSt) (c : MsgC) : st.msg.To' = id → c.model = { msg := st.msg, ents :=
+    st.ents, snap := st.snap, ctx := st.ctx, resps := [] } → c.csUfNil → (∀ (b : Nat), γ.maxData =
+    some b → st.msg.Type' ≠ MsgSnap → msgSizeOk c) → sentMsg γ N src st ∗ msgPtsCC ml (DFrac.own 1)
+    (DFrac.own 1) true c ∗ msgCredits γ N st ∗ snapLocalMsg γ id st ⊢ |==> stepIn γ N id ml
 
 theorem isCommittedLogLb_length [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (l : List
     LogEntry) : readyFits γ N ∗ isCommittedLogLb γ l ⊢ ⌜↑l.length + 1 < 2 ^ 64⌝
@@ -384,6 +435,8 @@ theorem isCommittedLogLb_length [package_sem : Assumptions] (γ : Cluster) (N : 
 def (sealed) raftState (γ : Cluster) (id : w64) (S : RaftState) : IProp GF
 
 def (sealed) isCommittedLogLb (γ : Cluster) (l : List LogEntry) : IProp GF
+
+theorem Cluster.outEnt_persistent (γ : Cluster) (e : Loc) (c : EntryC) : Persistent (γ.outEnt e c)
 
 theorem nodeRunning_as_fractional [package_sem : Assumptions] {ioΦ ioq : ProofMode.InOut} (n : Loc)
     (γ : Cluster) (N : Namespace) (q : Qp) : AsFractional (nodeRunning n γ N q) ioΦ (nodeRunning n γ
@@ -408,6 +461,9 @@ theorem Membership.applyChange_valid (o : ConfChangeIM) (m m' : Membership) : m.
 
 theorem isCommittedLogLb_mono (γ : Cluster) (l1 l2 : List LogEntry) : l1 <+: l2 → isCommittedLogLb γ
     l2 ⊢ isCommittedLogLb γ l1
+
+theorem msgOut_discard_persistent (γ : Cluster) (l : Loc) (st : MsgSt) : Persistent (msgOut γ l
+    DFrac.discard st)
 
 theorem Membership.applyChange_removeAbsent (vs : GSet w64) (cm : ConfChangeM) : cm.type = W32 1 →
     cm.nodeId ≠ W64 0 → ¬cm.nodeId ∈ vs → (Membership.simple vs).Valid → Membership.applyChange
@@ -438,6 +494,9 @@ theorem sentMsg_persistent (γ : Cluster) (N : Namespace) (src : w64) (st : MsgS
 theorem sentMsg_shape [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (src : w64) (st :
     MsgSt) : sentMsg γ N src st ⊢ ⌜SentMsgShape st ∧ (st.msg.Type' = MsgSnap → ∃ sv, st.snap = some
     sv ∧ uint.Z sv.Metadata'.Index' < 2 ^ 61)⌝
+
+def msgOut (γ : Cluster) (l : Loc) (dq : DFrac) (st : MsgSt) : IProp GF :=
+  iprop(∃ c, msgPtsCC l dq DFrac.discard false c ∗ ⌜c.model = st ∧ c.sentOk⌝ ∗ γ.outObj l c)
 
 theorem nodeDriver_hardStateCommitted [package_sem : Assumptions] (n : Loc) (γ : Cluster) (N :
     Namespace) (st : NodeDriverState) : nodeDriver n γ N st ⊢ nodeDriver n γ N st ∗ (⌜st.hardState =

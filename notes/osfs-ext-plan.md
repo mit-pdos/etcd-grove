@@ -162,6 +162,18 @@ a byte.
 - **D7:** `Flock` is trivial (single-process spec).
 - **D8 (changed 2026-10-31):** a `Stat` or `pread` racing a change returns a nondeterministic
   answer instead of being stuck. Only mapped loads are stuck on a race.
+- **D9 (2026-11-03, the user's decision; bbolt's D22):** a `pwrite` within one aligned OS page
+  (`off % osPageSize = 0`, at most `osPageSize` bytes) writes all of its data or none in-process,
+  whatever the errno (`PWriteFinish`'s conjunct `off % osPageSize = 0 ∧ data.length ≤ osPageSize
+  → k = 0 ∨ k = data.length`). Linux's buffered `pwrite` does (`Impl.lean`'s header gives the
+  `generic_perform_write` argument), under one new environment hypothesis: `RLIMIT_FSIZE`
+  unlimited or a multiple of the OS page size. The crash relation is unchanged: a crash may still
+  tear such a page on disk (minibolt's premise P1 covers that case). It replaces a run
+  restriction (a "no checksum collision on a torn meta" premise, bbolt's P2), which removed no
+  real execution. `wp_osPWriteFinish` and `os.File.WriteAt.spec` give it (the latter whatever
+  `err`: each `EINTR` attempt writes `0` or all of the same data); `Tests.lean`'s
+  `pwrite_page_not_torn` and `pwrite_two_pages_may_tear` test it. Every result over the extension
+  claims what it claimed (the rule removes behaviours); the crash wrappers ignore the conjunct.
 
 ## Tests of the trusted definitions
 

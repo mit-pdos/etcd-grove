@@ -17,6 +17,229 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `sort.Sort`'s size premise (2026-11-03, mvcc's API, branch `mvcc-api`)
+
+- **Missing.** Perennial's proof of `sort.Sort` (`Perennial/Proof/sort/Sort.lean`, over `pdqsort`)
+  requires at most `2 ^ 62` elements (its heapsort fallback's index arithmetic), a bound no Go
+  program needs (a slice that long cannot exist in memory).
+- **Needed by.** etcd's `sortRangeResults` (`txn/range.go:125`), through every spec that hands it a
+  range's results.
+- **Workaround here.** The size bound is stated once, locally, where a range's results are produced:
+  `stateOk` in mvcc's `Range` contracts (`Spec/go_etcd_io/etcd/server/v3/storage/mvcc/ApiState.lean`),
+  proved from the store's whole-history receipt; not a law of the store's state (the user,
+  2026-11-03: "we're going to ultimately get rid of the explicit size limit assumptions ... by
+  improving perennial itself, so I want those assumptions as local as possible").
+- **Proposed change.** Prove `sort.Sort` without the bound (from the slice's length being an `int`,
+  or the heap indices computed without overflow), then drop `stateOk`'s length conjunct.
+- **Status.** Not started.
+
+### Contexts derived from a parent that is not an `isContext` (2026-11-08, k8s 7f; to be decided in the 7f-4 Draft)
+
+- **Missing.** Two facts about contexts that etcd's require-leader stream handlers need, both
+  general, neither settled yet (`notes/k8s-7f-scope.md`, §3, revision 2):
+  - **(P-RL1)** a `Value` law for `WithCancel` over a general parent: for `k ≠ cancelCtxKeyAny`,
+    `(WP parent.Value(k) {Φ}) -∗ WP child.Value(k) {Φ}`. It needs a premise that the parent's
+    dynamic type is not one Go's `context.value` reads the fields of directly (`*valueCtx`,
+    `*timerCtx`, `withoutCancelCtx`), or a description of such a parent's fields. As first phrased
+    ("the child's `Value` is the parent's", any `isContext` parent) it was false: for
+    `&cancelCtxKey` the child returns itself, and grpc's stream context is a `*valueCtx` chain
+    (the 7f Scope review). `wp_WithCancel_any` already keeps the `ContextDesc`. The require-leader
+    handler may need only a fact about grpc's `metadata.incomingOf`, which is this repository's
+    (a reviewed trust-boundary fact), so P-RL1 may be unnecessary.
+  - **(P-RL2)** derivations (`WithValue`, `WithCancel`/`WithTimeout`) over a parent with a weak
+    contract: its `Done` as `isContext`'s, its `Err` any error after `Done` (etcd's
+    `cancellableContext` returns `ErrGRPCNoLeader`, which `isCtxErr` excludes). Go's child takes
+    `parent.Err()` on the parent's cancellation, so the child has the weak contract too. Natural
+    form: `isContext` generalized over the predicate its errors satisfy.
+- **Needed by.** The require-leader branch of etcd's stream interceptor, which Kubernetes' etcd3
+  store reaches on every watch (`clientv3.WithRequireLeader`), and the Watch and LeaseKeepAlive
+  handlers' derived contexts (`Tracer.Start`, `LeaseRenew`'s `WithTimeout`): stage 7f-4.
+- **Workaround here.** Today the premise `v3rpc.runsNoRequireLeader` excludes the branch; the user
+  decided (2026-11-08) to delete it, so 7f-4 needs these facts, as local lemmas until a Perennial
+  change lands.
+- **Status.** P-RL1 landed (2026-11-08) as `ctxValue`/`ctxValueFrom` (Perennial `ddc0f0acc`; see
+  "Landed", "`Context.Value` at keys other than `&cancelCtxKey`"): `ctxValueFrom parent child`
+  in `WithCancel`'s and the deadline constructors' posts, for any parent with a `ctxValue`; a
+  `*valueCtx` parent (grpc metadata) through `ctxValue_valueCtx` from its fields, which this
+  repository's `WithValue` spec would have to state. P-RL2 not started; the 7f-4 Draft states it.
+
+### Fatal runtime errors are not in the model: `netpollinit` on file-descriptor exhaustion (2026-11-07, the review of `os-init-lean`)
+
+- **Missing.** Go has failures that are neither a panic nor an error result: `fatal error: ...`
+  ends the process (not recoverable). The first file `os` opens (`os.OpenFile` → `newFile` →
+  `poll.FD.Init`) starts the runtime's netpoller; if its `epoll_create1` or `eventfd` fails, e.g.
+  for lack of file descriptors (`ulimit -n` 5 or 6 with soft = hard, so `syscall`'s rlimit raise
+  does not help), Go dies with `fatal error: runtime: netpollinit failed`. This repository's
+  osFsExt `Open` (`GooseLang/Ext/OsFs/Impl.lean`) returns a file or an errno, so a program that
+  opens a file has a proof though Go may die at that call (the adversary's program:
+  `$CLAUDE_JOB_DIR/tmp/rv7/adv/t2/main.go` of session 0d784765). On `lean` before `os-init-lean`
+  too.
+- **Workaround here.** None yet; recorded in the extension's "Soundness discipline" docstring.
+- **Proposed change.** A run-ending outcome a model can take (the model's `Open` may end the run
+  where Go's runtime aborts), and Perennial's docs (`docs/KNOWN_LIMITATIONS.md`) listing the class of
+  fatal runtime errors (`netpollinit`, out of memory, concurrent map writes detected, ...) and how
+  each is modelled. For osFsExt alone: `Open`'s first call may exit the program.
+- **Status.** Open.
+
+### Struct field locations of different struct types at one base address (2026-11-04, bbolt, batch 14)
+
+- **Limitation.** `structFieldRef` is an abstract function of `go.Semantics`
+  (`GoSemanticsFunctions`); only `structFieldRef_plain` ties a field of a *plain* struct to
+  `base + offset`. For a non-plain struct (any with pointer, slice, map or interface fields) nothing
+  relates `l.[T, f]` to `l` or to `l.[T', g]` of another struct type `T'`. So holding `l ↦ v` for a
+  fresh `&node{…}` does not show that `l` is not the location of an object of another struct type
+  whose fields one owns separately (`l.[Bucket, "InBucket"] ↦ …`).
+- **Needed by.** bbolt's writer heap (`Inv/WtxHeap`): one map of objects keyed by location, nodes
+  (owned as whole struct points-tos) and buckets (owned field by field, the root bucket being
+  `tx.root`, a field of `Tx`); a fresh node's location could not be shown to be no bucket's.
+- **Here.** Planned (batch 14 of `notes/bbolt-proof-plan.md`, not yet applied): the heap's objects per kind, nodes
+  and buckets in separate maps, liveness per kind, so a fresh node needs only "no node object at
+  `l`", which the points-to conflict gives.
+- **Proposal.** A law of `go.Semantics` that field locations are tied to their base for every
+  struct type (each field of `T` at `l` is `l + off_T(f)` for some layout offset, offsets of
+  distinct fields distinct, and the first field at `l` itself), or at least that
+  `structFieldRef T f l ≠ structFieldRef T' g l'` unless `l = l'` and the offsets agree; then a
+  whole points-to at `l` excludes every field points-to at `l` of another type with a field at
+  offset 0. Needs a semantics review (trusted base): it constrains every model of `go.Semantics`.
+- **Status.** Not started (proposal only).
+
+### `|==>` binds tighter than `∗` in iris-lean's notation (2026-11-04, bbolt, U5)
+
+- **Limitation.** In Lean's Iris notation `|==> A ∗ B` parses as `(|==> A) ∗ B`, unlike Rocq Iris
+  (where the update extends to the right); `|={E}=>` is not affected. A statement written the
+  Rocq way silently means something weaker.
+- **Needed by.** Every Iris statement here; U5 found one (`Inv/State`'s `st_update`, fixed by
+  parentheses). A grep of bbolt's `Inv/`, `Model/` and `Spec/` finds no other.
+- **Here.** Parenthesize `|==> (A ∗ B)`.
+- **Proposal.** iris-lean: give `|==>` the precedence of Rocq's (or of `|={E}=>`), or a linter
+  warning on `|==> A ∗ B`; a note in Perennial's `IRIS_PROOF_MODE.md` meanwhile.
+- **Status.** Not started.
+
+### `sort.Search`'s spec does not name the evaluated indices (2026-11-04, bbolt's read path, U6)
+
+- **Limitation.** Perennial's `sort.Search` spec gives the result's position (the first index
+  where the predicate holds) but not that a result `< n` was one of the indices the closure was
+  evaluated at, so a closure with a side effect on the evaluated indices (bbolt's `searchPage`
+  sets a captured `exact` flag when the key at the evaluated index equals the sought one) cannot be
+  reasoned about.
+- **Needed by.** bbolt's `Cursor.searchPage`/`search_r` (U6).
+- **Here.** U6 proved a stronger spec from Perennial's translated `sort.Search`
+  (`Proof/go_etcd_io/bbolt/Read/SearchEv.lean`: an invariant indexed by the evaluated indices).
+- **Proposal.** Perennial's `sort.Search` spec with the closure's invariant indexed by the
+  evaluated indices (the result `< n` among them), as U6's.
+- **Status.** Not started.
+
+### `delete` on a named map type has no semantics (2026-11-04, bbolt's freelist, U2)
+
+- **Limitation.** `MapSemantics.delete_map` unfolds `go.delete` only at a literal map type
+  (`[go.MapType key_type elem_type]`), while `len_map` takes any type whose underlying type is a
+  map (`[t ↓u go.MapType ..]`). Goose emits `delete [pidSet.ty]` for `delete(f.freemaps[size],
+  start)` (`pidSet` is `map[common.Pgid]struct{}`), which therefore has no WP.
+- **Needed by.** bbolt's hashmap freelist (`hashMap.delSpan`; `shared.Allocate`, `mergeSpans`).
+- **Here.** `PidSetDeleteUnfold` (`Proof/go_etcd_io/bbolt/internal/freelist/Lemmas/HashDelete.lean`):
+  the literal map type's rule at `pidSet`, taken as a hypothesis by the proofs that need it (an
+  assumption on the semantics, to be discharged by the Perennial change).
+- **Proposal.** Generalize `delete_map` as `len_map` was: any type whose underlying type is a map.
+- **Status.** (2026-11-04) Branch `delete-map-named` of Perennial (`6e6b05af3`, off `lean`
+  `4c8617a9e`, pushed): `delete_map {t ..} [t ↓u go.MapType ..]`, `wp_mapDelete_underlying` (the
+  literal-type `wp_mapDelete` unchanged, derived), test `MapWrapper_delete` in unittest's
+  `NamedMapAssignment.lean`; the touched modules build. Not landed: it changes the trusted
+  semantics (`Perennial/Golang/Defn`), which Perennial's workflow (`AGENTS.md` item 4,
+  `fix-semantics` skill) lands only with the user's sign-off and the trusted-base review. Once it
+  lands: bump the pin and drop `PidSetDeleteUnfold`.
+
+### `strings.ToLower` has no spec (2026-11-04, bbolt's `internal/common`)
+
+- **Limitation.** `strings.ToLower` is names-only in Perennial, with no spec.
+- **Needed by.** bbolt's `common.Verify` (`getEnvVerify` is `strings.ToLower(os.Getenv(...))`,
+  `IsVerificationEnabled` compares with `strings.ToLower(verification)`).
+- **Here.** (2026-11-05, bbolt final wave D, the user approved the new trust) a local
+  trust-boundary axiom, `Spec/strings/ToLower.lean` / `Proof/strings/ToLower.lean`:
+  `{{ True }} strings.ToLower s {{ (r : GoString), RET #r; True }}` (any `hlc`, like
+  `os.Getenv`'s): it returns, without panicking, some string. `Verify` is proved over it and
+  `os.Getenv`'s (`Proof/go_etcd_io/bbolt/internal/common/Lemmas/VerifyNP.lean`).
+- **Proposal.** Perennial provides a translated or specified `strings.ToLower` (pure Go; its ASCII
+  fast path and its `strings.Map(unicode.ToLower, s)` path), at least "returns some string"; then
+  drop the local axiom.
+- **Status.** Not started in Perennial; local axiom in place.
+
+### `sort.SliceIsSorted` and `reflect.DeepEqual` have no spec (2026-11-05, bbolt's `internal/freelist`)
+
+- **Limitation.** Both are names-only in Perennial (they work through reflection: `SliceIsSorted`
+  takes the slice's length with `reflectlite.ValueOf(x).Len()`, `DeepEqual` walks its arguments'
+  dynamic types).
+- **Needed by.** bbolt's hashmap freelist: `hashMap.Init` panics unless its page ids are
+  `sort.SliceIsSorted`; `hashMap.mergeSpans`' `Verify` check panics unless `reflect.DeepEqual`
+  finds its free maps equal (two `map[Pgid]struct{}`).
+- **Here.** (2026-11-05, the user approved the new trust; until then hypotheses of bbolt's
+  `links_pending`) local trust-boundary axioms: `Spec/sort/SliceIsSorted.lean` /
+  `Proof/sort/SliceIsSorted.lean` (on a slice, with a `less` that answers `lt` on indices of the
+  slice and keeps a resource: returns whether no `less(i, i-1)`, calling `less` only on such
+  indices), and `Spec/reflect/DeepEqual.lean` / `Proof/reflect/DeepEqual.lean`
+  (`spec_pgidSet`: on two `map[Pgid]struct{}` held by map points-tos, which are non-nil, returns
+  whether they have the same keys; stated at that one type, as the map points-to is not indexed by
+  the Go type). Each file header says why it is true of Go.
+- **Proposal.** Perennial proves `sort.SliceIsSorted` over a model of `reflectlite.Value.Len` on
+  slices (its loop is plain Go), and gives `reflect.DeepEqual` a spec for maps of comparable
+  scalar keys and `struct{}` values; then drop the local axioms.
+- **Status.** Not started in Perennial; local axioms in place.
+
+### `wp_load`/`wp_store` through a whole-struct points-to (2026-11-04, bbolt's `internal/common`, U1)
+
+- **Limitation.** With `l ↦ v` for a whole struct `v`, `wp_load`/`wp_store` of one field
+  (`l.[S, "f"]`) do not find the field's points-to: the struct points-to must be split by hand
+  (`iStructNamed`) first and recombined after (`typedPointsto_combine`).
+- **Needed by.** U1's accessor proofs (`Proof/go_etcd_io/bbolt/internal/common/`), and every
+  proof that loads one field of a struct it owns whole (U8's `node.childAt`).
+- **Here.** Split and recombine by hand.
+- **Proposal.** An `IntoField`-style search in `wp_load`/`wp_store` that opens a whole-struct
+  points-to at the field and closes it again.
+- **Status.** Not started.
+
+### General lemmas to move to Perennial (2026-11-04, bbolt)
+
+- **U1's `Proof/go_etcd_io/bbolt/internal/common/Lemmas/Bytes.lean`**: byte points-to bounds,
+  byte slices over a byte points-to, persistence; copied from Perennial's
+  `unsafememory/Pages.lean`, an example's module that cannot be imported.
+- **U2's `Proof/go_etcd_io/bbolt/internal/freelist/Lemmas/SliceLen.lean`**: an owned slice of
+  `w64`s has fewer than `2^44` elements (its bytes lie below `maxAddr`).
+- **Proposal.** Move both into Perennial's `Golang/Theory` (with the `Pages.lean` copies'
+  origin), then drop the local copies. **Status.** Not started.
+
+### Heap: allocation returns a meta token (2026-11-03, bbolt's invariant design)
+
+- **Limitation.** GooseLang's allocation specs give the points-to of a fresh location but no
+  `metaToken l ⊤` (iris-lean's `GenHeap` has `metaToken`/`metaInfo`; Iris HeapLang's `wp_alloc`
+  hands out the token). Without it a library cannot attach ghost data to an object it allocates
+  (`metaInfo l N x`: timeless, persistent, agreeing), so a predicate keyed by the object alone
+  (`txBytes tx s b`, `boltBkt tx b n g`) cannot be tied to the ghost names of the object's owner
+  in a pure law; a package fact cannot carry such a registry either (a fixed proposition: a ghost
+  name inside it does not agree between two copies).
+- **Needed by.** bbolt's API (`Spec/go_etcd_io/bbolt/Api.lean`): `txBytes_acc`, `boltTx_fill`,
+  `boltCur_timeless` (the design `bbolt-inv/design.md`, D-C).
+- **Here.** The γ-free predicates take the database's ghost name instead (`txBytes tx γ s b`,
+  `boltBkt tx γ b n g`, `boltCur tx γ c …`, `curAt tx γ …`; decided by the coordinator, 2026-11-03;
+  `notes/decisions.md`, "bbolt's API spec"). The backend carries `γ.db` already.
+- **Proposal.** Every GooseLang allocation spec (`wp_alloc`, `GoAlloc`, composite literals'
+  addresses) also gives `metaToken l ⊤`, as HeapLang's does; a general change, not shaped by
+  bbolt. With it the extra `γ` could be dropped again (an API change then).
+- **Status.** Not started.
+### Thread tokens by level: a goroutine of a counted wait group has no token (2026-11-04, lease-expiry P1)
+
+etcd's `EtcdServer.GoAttach` counts its goroutines in a wait group whose counter bound is the
+thread bound: `Add` deposits the caller's `threadTok` in the group's invariant
+(`Proof/.../etcdserver/InvGoAttach.lean:171-192`), and `fork` makes exactly one token for the new
+thread (`wp_fork_tok`, `GooseLang/Lifting.lean:1806`). So a goroutine started by `GoAttach` holds no
+token, and cannot itself `GoAttach` or call anything that takes `threadTok`, though Go does both:
+`revokeExpiredLeases` (`server.go:860`) calls `ensureLeadership` and `GoAttach`es one goroutine per
+expired lease, round after round. No pool inside this repository fixes it (three tokens for two
+threads; `notes/lease-expiry-plan.md`, review round 2). Proposed general change
+(`notes/bounds-plan.md` D2(b)): split a thread token by level, `threadTok ⊣⊢ [∗ l < L] levelTok l`,
+`fork` giving the new thread all levels; a counted wait group then takes `levelTok 0` (bound `k + p <
+2·threadBound`), and the goroutine keeps levels `≥ 1` to borrow from pools (lock order gives the
+levels). Local workaround: `EtcdServer.revokeExpiredLeases.wp_proof` a marked `sorry` (the user's
+approval, 2026-11-04). Not yet proposed on a Perennial branch.
+
 ### Adequacy that hands the program its extensions' start resources (2026-10-31, kvdurable)
 
 - **Limitation.** None in Perennial: `goose_adequacy` already gives the WP proof
@@ -467,6 +690,18 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   `wp_apply` support atomic specs directly.
 - **Status.** Not started.
 
+### Specs: `fmt`'s `ArgWf` for named non-integer basic types (2026-11-05, k8s etcd3 stage 7b)
+
+- **Missing.** `fmt.wp_Sprintf` admits a named type's argument only when its underlying type is an
+  integer (`IsIntArgType`, with `fmt.NoFmtMethods`); `types.UID` (`type UID string`, no methods) is
+  formatted by `storage.Preconditions.Check` with `%v`.
+- **Workaround here.** `types.UID` added to `fmt.methodlessNamedTypes`, the list of the trust-boundary
+  axiom `fmt.SprintfNamed.wp_proof` (`Spec/fmt/SprintfNamed.lean`), next to `LeaseID`.
+- **Proposed.** `ArgWf` admits a named type with `fmt.NoFmtMethods` whatever its basic underlying
+  type (the output of a non-integer one arbitrary from its directive on, as `SprintfOut.other`); with
+  `NoFmtMethods` from goose's method sets, the list and the axiom go.
+- **Status.** Not started.
+
 ### Specs: `fmt`'s `ArgWf` for a method-less map argument (2026-10-27, client-go informers)
 
 - **Missing.** Perennial's `fmt.Errorf` spec requires each argument well formed (`ArgWf`), which
@@ -622,6 +857,15 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 - **Proposed.** Translate `reflect`'s type declarations (`translate_types`, or `Type` alone: an
   interface type, whose values Perennial represents as any interface's), keeping its functions
   names only. A Perennial change, designed and reviewed on its own.
+- **Two incoherent instances (2026-11-10, k8s 7e-2).** `Proof/reflect/Values.lean` now gives
+  `reflect.Type'` a higher-priority `TypedPointsto` (`type_typed_pointsto`: `heapTypedPointsto` from
+  the axiom `type_intoVal_inj : go.IntoValInj reflect.Type'`, so it depends on `hG` and `intoVal`) and
+  an `IntoValTypedUnderlying` axiom (`type_into_val_typed`), so that `getNewItemFunc` (which
+  allocates a `reflect.Type` cell) no longer reaches the generated `sorry`s. The generated
+  `Type'_typed_pointsto`/`Type'_into_val_typed` still exist, and the reflector's
+  `Reflector.expectedType` field was elaborated against them: the two instances are incoherent
+  (a proof that mixes a struct's `Type'` field with a `Type'` cell would not connect them). Not
+  unsound, but only a fix at the source (above) gives one instance.
 - **Status.** Not started.
 
 ### Goose: a names-only package's constants are values of unknown shape
@@ -776,6 +1020,10 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   as `errors.New.spec` says), so a caller cannot show it differs from a package's error variable.
 - **Needed by.** rafthttp's `checkPostResponse`, whose `fmt.Errorf` errors must not be
   `errMemberRemoved` (`postErr`: `pipeline.post`'s caller reports only that one on `errorc`).
+  (2026-11-04, bbolt U4c) bbolt's `DB.allocate` compares `DB.mmap`'s error (an `fmt.Errorf`
+  error on its error paths) with `ErrMaxSizeReached` (`err == ErrMaxSizeReached`, stuck unless a
+  side's dynamic type is known comparable): `Mmap/Remap`'s `DB.mmap.spec` states its error
+  `errPtrTyped` instead, which `fmt.Errorf.spec`'s post would give with `IsPointerError`.
 - **Workaround here.** None yet: `checkPostResponse` is a spec only. (Stage 5e-3) The stream
   reader's `dial` uses a local trust-boundary spec, `Spec/fmt/ErrorfPlain.lean`: with no `%w` the
   error is an `*errors.errorString` (Go's `Errorf` returns `errors.New(s)`), whose `Error()`
@@ -863,6 +1111,63 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 - **Proposed change.** The field-access instance (`solve_pointsto_access_struct`) at any fraction.
 
 ## Landed
+
+### `Context.Value` at keys other than `&cancelCtxKey`; goose's multi-type type-switch case (landed 2026-11-08, Perennial `f137bdd8a` and `ddc0f0acc`; pin bumped 2026-11-08)
+
+- **Was missing.** (1) Perennial's `context` specs gave `Value` only at `&cancelCtxKey`, and
+  `WithCancel`'s posts dropped the new context's read-only parent field, so no proof could follow
+  `value(c.Context, key)` (sweep repairs 1 B2-F1; k8s 7f P-RL1). (2) goose translated a type-switch
+  case `case T1, ..., Tn:` testing `T1` twice and never `Tn` (`typeSwitchStmt`'s `getCond(i)` over
+  `c.List[1:]`), unsound when the case body panics; found writing (1).
+- **Landed in Perennial.** `f137bdd8a` (fix-semantics Case 35, signed off by the user): `getCond(i +
+  1)`, the semantics test `testTypeSwitchLastType`, the unittest `multiTypeSwitchLast`; only
+  `context.value` and goose's unittest re-translated (no translation in this repository has a
+  multi-type case: the pin bump's `etc/goose.py` changed no file). `ddc0f0acc`
+  (`docs/design/context-value.md`): `Proof/context/CtxValue.lean`, `ctxValue x k R` (`x.Value(k)`
+  and `context.value(x, k)` return a result in `R`), `wp_value`, `ctxValue_Value`, the laws
+  `ctxValue_{background,todo,cancel,timer,valueCtx,other}` (L2/L3 for a key that is not a `*int`,
+  `notIntPtrKey`), and `ctxValueFrom parent ctx'` in the posts of `WithCancel.spec`,
+  `wp_WithCancel_any`, `wp_WithCancel_Background`, `WithDeadlineCause`/`WithDeadline`/`WithTimeout`
+  and the `*_Background` deadline results.
+- **Here.** The pin bump adapted nine destructuring patterns (the posts' new trailing conjunct);
+  no statement changed. B2/B2b (the axioms `context.ValueStartTime`/`ValueKeepAlive`) use it next.
+
+### Package initialization: a monotone package map; `os`'s initializers translated (landed 2026-11-03 to 2026-11-04; used here 2026-11-07)
+
+- **Was missing.** (1) Perennial's `wp_initialize'` theorems returned an arbitrary package map, so a
+  proof here could not keep "this package is initialized" across another initializer: the
+  trust-boundary axiom `initLb_of_spec` (`Proof/runtime/PkgInitExt.lean`, D19e). (2) `os`'s
+  initializer was untranslated: the axioms `os.opaqueInitsOk` (26 variable initializers),
+  `os.initFuncsOk` (`init.0`) and `os.Stderr_init`, which every closed result through raft rests on.
+- **Landed in Perennial.** `1aab4c42b`/`46e5bb5df`: `ownInitializing`'s map is a monotone ghost
+  map, `initLb_of_initSpec` (any proof keeping `ownInitializing g` keeps its lower bound). The
+  goose and standard-library work for `os`: `11ac2f242` (`internal/oserror`, `io/fs`'s variables),
+  `37313e9d3`/`a2a531d4d`/`8b6fcecf7` (unnamed struct types, fix-semantics Case 30;
+  `sync.OnceFunc`/`OnceValue`), `e109f7928`/`350766064` (an imported package's constant emitted
+  as its value, Case 32: `runtime.GOOS` is `"linux"`, so `os` does not import `runtime`),
+  `def87774c` (Case 33, the user's decisions: `syscall`'s `init.0`, the RLIMIT_NOFILE raise, a
+  trusted no-op, `exec` being outside the model; `runtime_envs`/`runtime_args` an arbitrary
+  `[]string`; `Stdin`/`Stdout`'s initializers trusted no-ops, the variables left unallocated, so
+  code using them has no proof; `Stderr`'s allocates the variable with a fresh pointer that is not
+  a `File`, because raft's logger stores `os.Stderr`).
+- **Used here (2026-11-07, branch `os-init-lean`).** `initLb_of_spec` is a theorem
+  (`etc/gen-init.py`: `initLb_of_initSpec`). This repository translates its own `os`, `syscall`,
+  `io/fs` (project bboltfs, `os=` for every project), so Perennial's `os` work is mirrored in the
+  local configurations rather than imported: `Code/{os,syscall,io/fs}.toml` translate the same
+  initializers (and every type, `translate_types`), two new local packages `internal/poll` and
+  `internal/syscall/unix` (Perennial's import Perennial's `syscall`, which must not share a closure
+  with this repository's), the same trusted models in `TrustedCode/{os,syscall}.lean` (with their
+  specs, `Proof/{os,syscall}/Models.lean`), and `etc/gen-init.py` steps for the five initializers.
+  Gone: `os.opaqueInitsOk`, `os.initFuncsOk`, `os.Stderr_init`, `syscall.opaqueInitsOk`,
+  `syscall.initFuncsOk`, `io.fs.opaqueInitsOk`. After the branch's review: `Stderr`'s model stores
+  a `GoPrealloc` address (in `(0, maxAddr)`, no cell; not `Alloc #()`, whose cell a store could
+  overwrite, nor `maxAddr + 1`, which a program walking addresses could tell from Go's), and
+  `arbitraryStrings` may return `nil` or `[]string{}` (Perennial `69236efdb`).
+- **Still open.** `syscall.Errno.Error` is still trusted (`Code/syscall.toml`; an arbitrary
+  string): its body (`errors[e]`, else `"errno " + strconv.Itoa(int(e))`, Go 1.27.3) is now
+  translatable, but its spec (`errno_stringMethodSpec`, `errnoErrOk`) then needs `isPkgInit syscall`
+  for the `errors` table, which reaches bbolt's five `errnoErrOk` users and `os`'s `ErrorOk`/
+  `OpenFile`.
 
 ### `time.isTicker` is forgeable by a struct copy (2026-11-03, branch `ticker-followups`)
 
@@ -1555,6 +1860,82 @@ applying the instance by hand works. Met proving the oracles of porcupine PR #46
 `PorcupineDag/Proof/github_com/anishathalye/porcupine/Oracles.lean`). The general change: the
 field-load automation finding the instance at any fraction.
 
+## A slice literal of map literals (2026-11-06, the mvcc tester)
+
+`wp_slice_literal` (`Perennial/Golang/Theory/Slice.lean`) fixes the elements `l` before the array
+literal's WP runs, so a literal whose elements are themselves allocated by that WP
+(`[]map[string]kvRec{{}, {}}`, `examples/mvccrand`'s `newHistory`: each element a `make1`) cannot
+name them: the metavariable `?l` is created outside the scope of the maps' locations, and `rfl`
+fails. **Worked around locally** (2026-11-06): `wp_slice_literal_ex` in
+`Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/newHistory.lean`, a copy of
+`wp_slice_literal_nonnull`'s proof whose post takes the elements existentially
+(`∃ l, ⌜v = #(array.mk n l)⌝ ∗ …`), under `set_option goose.wp.unfoldSliceLiterals true` and
+Perennial's section variables (`[GoSemanticsFunctions] [go.PreSemantics]`); `newHistory` is proved
+over it. **The general change**: Perennial's `wp_slice_literal`(`_nonnull`) with `∃ l` in the array
+literal's post (the current statements are its instances at a fixed `l`), then delete the local copy.
+
+## `isSpsc`'s invariant at `nroot`; no `chan.wp_len` (2026-11-06, the mvcc tester)
+
+Met proving `examples/mvccrand`'s ticks channel (`WriterRun.lean`, `notes/mvcc-migration/mvccrand.md`):
+Perennial's single-producer channel `isSpsc` keeps its invariant at `nroot`, so a caller that holds
+another invariant open (the tester's, under its own namespace) cannot send on it; and there is no
+`chan.wp_len` wrapper beside `chan.wp_cap`. Local: the tester sends outside its invariant. The
+general changes: `isSpsc` parameterized by its namespace; a `chan.wp_len` lemma.
+## `ownMap` is not `DFractional` (2026-11-04, bbolt batch 34)
+
+Perennial has `ownMap_fractional` (the `Fractional` form at `DFrac.own q`) but no `DFractional`
+instance for `ownMap mref dq m`, so a predicate mixing map points-tos with other `DFractional`
+parts (bbolt's writer heap, `wtxHeap`) cannot get `Fractional` by instance search. Local: the
+private `ownMap_dfractional'` in `Proof/go_etcd_io/bbolt/Inv/WtxHeap.lean` (U5c's proof: through
+`ownMap_unseal` and `heapPointsto_dfractional`, persistence by `ownMap_discarded_persist` /
+`ownMap_persist`), which is general. The general change: that instance next to `ownMap_fractional`.
+
+## `sync.Once`'s spec is fixed to `HasLC.hasLC` (2026-11-04, bbolt batch 38)
+
+Perennial's `sync.Once` spec (`isOnce`, `Once.Do`) is stated at `HasLC.hasLC` only, so a proof
+generic in `hlc` (bbolt's, every internal spec) cannot use it. bbolt's `Open` steps `Do` on an owned
+zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_Do_own`, any
+`hlc`). The general change: an `hlc`-generic `Once` spec in Perennial.
+
+## `sync.Pool`'s `New` may assume a caller-lent resource (2026-11-04, bbolt U11h)
+
+- **Limitation.** `isPool p f P` required a persistent `{{ True }} New() {{ P x }}` at the pool's
+  creation. A `New` closure reading a variable its creator writes again later has no such spec:
+  bbolt's `Open` sets `pagePool.New = func() any { return make([]byte, db.pageSize) }` over its named
+  result `db`, which every `return` writes. The Go code is safe (`New` runs only in `Get`, reached
+  only while the database is open); the spec is too strict.
+- **Needed by.** bbolt's `Open` (`Proof/go_etcd_io/bbolt/Open.lean`, the page pool's `New`).
+- **Workaround here.** None (merged from the local branch `bbolt-pool-new-later`, 2026-11-05: no
+  `sorry` in `Open`): a `Get` caller lends `New` a
+  lease `poolR γbq N P` (U11i), and `New` borrows a fraction of `db`'s cell from `Open`'s protocol
+  `Open/PoolNew.dpProt` for its whole read, depositing `P` (saved under a name, the borrow in a
+  ghost map) as collateral; `Open`'s last write collects every fraction around one of its own
+  steps (`wp_step_fupd`), refuting a borrow still out by its lease and the whole token (U11j).
+- **Proposed change.** Perennial branch `pool-new-later` (`/home/ubuntu/perennial`, commit
+  `3b91c3ee1`, off the pin `b3e996d84`): `isPool p f R P` with
+  `newSpec f R P := ⌜f = nil⌝ ∨ {{ R }} f() {{ x, P x ∗ R }}`; `Get` takes and returns `R`; `Put`
+  and `init_Pool` take the parameter; `R := True` is the old spec (`newSpec_of_true`);
+  `init_Pool` consumes the pool's points-to, so the spec can be chosen after `Pool{New: f}` is
+  stored. No model or trusted change. With `sync.isPool_respec` (`c6d352196`: an `isPool` with
+  another `New` spec `R'` for which `newSpec f R' P` holds), so that a pool can serve a family of
+  lenders (`∀ Q, isPool p f (R Q) P`; `Open/PoolNew.init_Pool_all`).
+- **Status.** Landed (3dd730372, Perennial `lean`'s merge of `pool-new-later`). bbolt-v2 pins
+  `c6d352196` (its pin `b3e996d84` plus the two pool commits, in `lean`'s history); the catch-up
+  to `lean` (3dd730372 and later) comes with the merge of bbolt-v2 into this repository's `lean`.
+
+## `struct_wp_alloc_pos` in `Golang/Theory` (bbolt maintainer 13, 2026-11-04)
+
+- **Need.** A struct allocated by Go is at a positive address (`GoPrealloc` gives it:
+  `wp_GoPrealloc_pos`), which a byte view (`BytesView`) needs; `struct_wp_alloc` keeps only
+  `l ≠ null`. bbolt's `Tx.init` allocates the transaction's meta copy, which `writeMeta` views as
+  bytes.
+- **Where it is now.** `struct_wp_alloc_pos` exists only in Perennial's test example
+  (`Proof/github_com/mit_pdos/perennial/goose/testdata/examples/unsafememory/Meta.lean`).
+- **Workaround.** A copy in `Proof/go_etcd_io/bbolt/Txn/MetaAlloc.lean` (`bbolt.struct_wp_alloc_pos`,
+  `Meta.wp_alloc_pos` for `common.Meta`).
+- **Proposed change.** Move `struct_wp_alloc_pos` to `Perennial/Golang/Theory/Auto.lean` (beside
+  `struct_alloc_fields'`); ideally have the generated proofs give `T.wp_alloc_pos` per struct. Not
+  started.
 ### Prophecies in Lean only: `withProph` and `goose_adequacy_withProph` (2026-11-02)
 
 - **Missing.** A proof that needs a prophecy variable the Go code does not have (the etcd3 store's
@@ -1611,3 +1992,145 @@ field-load automation finding the instance at any fraction.
   `poolOpen γc q`, `initC`, `borrowC`, `giveBackC`, `cancel` and `reclaim`. It is a proved library
   addition (tier 3) that adds nothing to the trusted base. `land.sh prepare` passed and the trusted
   review recorded OK. **Landed** (the user's push, 2026-11-04: Perennial `lean` `e3ceb1520`); the pin moved to it the same day (branch `r2b3`).
+
+## `fmt.Errorf`'s model can be unfolded to learn facts false of Go (2026-11-06, k8s etcd3 7c-2, branch `k8s-etcd3-7c`)
+
+- **The gap.** Perennial's model of `fmt.Errorf` (`Perennial/TrustedCode/fmt.lean:19-28`) is
+  `errors.New(format)`: it ignores the arguments and does not model `%w`. The spec
+  (`fmt.wp_Errorf`, `Spec/fmt/Errorf.lean`) deliberately promises only a non-nil error whose
+  `Error()` returns some string, with no type. But nothing stops a client proof from unfolding the
+  model (`wp_start` on a call of `Errorf`) and learning facts that are false of Go, where a `%w`
+  format returns a `*fmt.wrapError`:
+  - its type (`*errors.errorString`);
+  - that it is a leaf (no `Unwrap`), and so `statusErrOk`;
+  - that `errors.Is(err, target)` is false for the wrapped error;
+  - that its message is the format string.
+- **Where it bit here.** `Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Errorf.lean`'s
+  `wp_Errorf_errorfIs` (since 2026-10-12, unit 3b; `notes/decisions.md`, "`fmt.Errorf`'s `%w`
+  errors: the model's body, not the axiom"). It is used for `rangeKeys`' and `executeTxn`'s `%w`
+  errors (`kvstore_txn.go:121`; `txn.go:162, 174, 182`), which then reach `applyErrIs` (a leaf
+  with `statusErrOk`, since k8s etcd3 7c-2 part 1) through `applyErrIs_errorf`. False of Go for a
+  cancelled context: reported to etcd-grove-82, 2026-11-06; the local fix is k8s etcd3 7c-2's.
+- **Proposed (general; record only, nothing changed in Perennial).** When the format contains `%w`,
+  `Errorf`'s model returns an opaque error, so that no proof can reason about it beyond the spec;
+  or it models `%w`: a `*fmt.wrapError` with `Unwrap`, its message the formatted string, with a
+  spec that states the wrapped errors. Without `%w` the present model (`errors.New`) is faithful
+  up to the message's formatting.
+- **Status.** Recorded only.
+
+## `iframe` over a large `List.replicate` materializes the list (2026-11-06, revoke-open)
+
+- **What happened.** A bare `iframe` in revoke-open's `NewServer.lean` (the goal two `[∗list] _ ∈
+  List.replicate srvRevokePoolN ()` conjuncts, `2 ^ 28 - 1` copies each) tried every hypothesis of
+  the context against them; on a big-list hypothesis whose element did not match, the unifier
+  unfolded `[∗list]` and built `List.replicate (2 ^ 28 - 1) ()` element by element: 80 GB of RSS
+  after 36 minutes before it was killed (a normal compile of the file peaks at 5.4–5.8 GB).
+- **Local workaround.** Frame explicitly (`isplitl [H]; · iexact H; · iexact H'`); never a bare
+  `iframe`, or any search over the whole context, where a `[∗list]` over a large replicate is in
+  scope.
+- **Proposed (general; record only, nothing changed in Perennial).** `iframe`'s candidate matching
+  should not unfold big separating lists: match a `[∗list]` hypothesis against a `[∗list]` goal only
+  syntactically (same list term, same element up to reducible unfolding), or with the unifier at
+  reducible transparency, so that a mismatch fails fast instead of reducing `List.replicate n` for a
+  literal `n`.
+- **Status.** Recorded only.
+
+## `wp_apply` of a hypothesis spec can give up silently, leaving a `sorry` (2026-11-06, revoke-open)
+
+- **What happened.** In revoke-open's `EtcdServer__revokeExpiredLeases.lean`, `wp_apply hWR stl
+  E.RD (GoInterface.ok ctx)` (a callee spec taken as a hypothesis, `authStore.WithRoot`'s) failed
+  without an error: the declaration only got the warning "declaration uses sorry". A proof author
+  who reads errors only would take it for done; `etc/tcb-report.py` and the build's sorry warnings
+  catch it.
+- **Local workaround.** `wp_bind (App (Val _) (Val #(GoInterface.ok ctx)))`, then `iapply hWR …
+  $$ [IRD] …`.
+- **Proposed (general; record only, nothing changed in Perennial).** When `wp_apply` cannot use the
+  term it is given, it should fail with an error naming the mismatch, never close the goal with an
+  admitted proof.
+- **Status.** Recorded only; not reduced to a minimal example.
+
+## `strings.Cut` has no model (2026-11-08, k8s 7e-3b)
+
+- **What happened.** Perennial's `strings` translates `Cut` names-only (no body, no spec). The k8s
+  etcd3 driver's `splitKey` called it.
+- **Local workaround.** The driver (our test code) splits the key with a byte loop instead; no spec
+  or axiom added.
+- **Proposed (general; record only).** A model of `strings.Cut` (a translated body, or a spec:
+  `s[:i]`, `s[i+len(sep):]`, `true` at the first occurrence `i`; `s`, `""`, `false` if none) is a
+  candidate general addition to Perennial's `strings`.
+- **Status.** Recorded only.
+
+## `func.forRange` (range over a function) has no WP rule (2026-11-10, k8s 7e-2, branch `k8s-7e`)
+
+- **Missing.** Perennial defines `func.forRange n` (`Perennial/Golang/Defn/Loop.lean`, Go 1.23's
+  `for k, v := range f`) but proves no WP rule for it; `doFor` has `wp_for`.
+- **Needed by.** `store.GetList`'s `for chunk, chunkErr := range chunks`
+  (`k8s.io/apiserver/pkg/storage/etcd3/store.go:829`).
+- **Workaround here.** A local, proved lemma `wp_forRange2` (`n = 2`) in
+  `Proof/k8s_io/apiserver/pkg/storage/etcd3/ForRange.lean`: the caller proves the iterator's WP for
+  an abstract yield `GoFunc` holding a token `Tok` (forRange's `state` cell at `0` and its `exit`
+  cell untouched), with the yield's spec (the body's outcome `executeVal`/`continueVal` gives `Tok`
+  back and `true`; `breakVal`/`returnVal r` gives `Done bv` and `false`); after the iterator returns
+  with `Tok` or `Done bv`, the loop's outcome follows. Bodies that panic are not covered. Plus
+  `wp_app_recV` (a closure argument as a `GoFunc` value). No axiom.
+- **Proposed change.** The same rule in `Perennial/Golang/Theory/Loop.lean` for `n = 0, 1, 2`, with
+  a sealed postcondition in `wp_for`'s style and a panicking-body case; a `wp_for_range` tactic.
+- **Status.** Candidate; not started in Perennial.
+
+## `reflect.Kind` is an axiomatized type: `v.Kind() != reflect.Slice` cannot step (2026-11-10, k8s 7e-2)
+
+- **Missing.** Perennial's `reflect` translation declares `Kind` (Go: `type Kind uint`) as an
+  axiomatized type (`axiom Kind : Type`, `Kind.underlying` an axiom), so `GoOp GoEquals reflect.Kind.ty`
+  has no semantics; the trusted `reflect.Value.Kind.spec` (this repository) returns `#(W64 23)`.
+- **Needed by.** `store.GetList`'s `if err != nil || v.Kind() != reflect.Slice` (`store.go:780`).
+- **Workaround here.** `store.GetList.wp_proof` takes the hypothesis `reflect.KindCompare.spec`
+  (`Spec/reflect/KindCompare.lean`: `go.IsStrictlyComparable reflect.Kind.underlying w64`), a
+  trust-boundary axiom since 2026-11-10 (`Proof/reflect/KindCompare.lean`, decided by etcd-grove-81
+  after the review; Go test `TestKindIsUint`, `examples/k8s7e2attack/attack_test.go`). The change
+  below would remove it.
+- **Proposed change.** Translate `reflect.Kind` as `type Kind uint` (it is a plain named integer
+  type), so its comparison is the translated one; or a reflect model fact stating the underlying.
+- **Status.** Recorded; not started in Perennial (the axiom here stands in for it).
+
+## An `RWMutex` can be made a lock only unlocked (2026-11-10, mvccfull F1's B3)
+
+- **What happened.** `mvcc.NewStore` locks `s.mu` while the store is still private memory and, in
+  compaction mode, `restore()` resumes a compaction (`compactLockfree`) before the deferred
+  `s.mu.Unlock()`. That call takes the store (`isStore`), whose `s.mu` must be a lock
+  (`isRWMutexGuard`); but `sync.init_RWMutex` takes an unlocked `RWMutex` (`zero_val`) and its
+  resource `▷ P 1`, which `NewStore` has only after `restore()` (the index it publishes, the fixed
+  registration).
+- **Local workaround.** `Proof/go_etcd_io/etcd/server/v3/storage/mvcc/RWMutexWLocked.lean`:
+  `init_RWMutex_wlocked P rw : rw ↦ rwW ={E}=∗ ownRWMutexWLocked rw P ∗ [∗list] … ownRWMutex rw P`
+  (every slot), from the write-locked memory `plain.wp_Lock` leaves; `P 1` is given at the unlock
+  (`RWMutex.wp_Unlock_guard`). Proved over Perennial's sealed RWMutex internals
+  (`rwmutex.ownRWMutexInvariant_unseal`, `isRWMutex_unseal`, `isLock_unseal`, `ownLock_unseal`,
+  `isMutex_unseal`, `ownMutex_unseal`, the guard's `invSt`), mirroring `rwmutex.init_RWMutex` at the
+  protocol's `Locked`/`IsLocked` state, with `init_lock_locked` for the inner `Mutex`. No axiom.
+- **Proposed (general).** `sync.init_RWMutex_wlocked` (and `init_Mutex_locked`) in Perennial, next to
+  `init_RWMutex`: a lock made by its holder.
+- **Status.** Local lemma; to be proposed.
+
+## `Int64.Load` with the fraction chosen inside the update (2026-11-10, mvccfull F1 Prove)
+
+- **Missing.** `sync.atomic.Int64.Load.spec` (and `LoadInt64.spec`) quantify the fraction `dq` before
+  the atomic update; a caller whose fraction is known only once it opens its invariant (the update's
+  `∃ dq x, ownInt64 u dq x ∗ …`) cannot use them, although their proofs open the update before the
+  load and would prove the stronger form unchanged.
+- **Needed by.** mvccfull's `inBounds.spec` (frozen): `check(v <= hi.Load())` with the caller's
+  accessor picking the fraction.
+- **Workaround here.** `Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/AtomicLoad.lean`:
+  `wp_LoadInt64_ex`, `wp_Int64_Load_ex`, Perennial's two proofs re-run with `∃ dq` inside the
+  update (`wp_load_bytes_typed`, the struct field). No axiom.
+- **Proposed (general).** State `LoadInt64`/`Int64.Load` (and the other atomic loads) with the
+  fraction inside the update, the current form a corollary.
+- **Status.** Local lemma; to be proposed.
+
+## `GoStringLe` as the negation of the converse `GoStringLt` (2026-11-10, mvccfull F1 Prove)
+
+- **Missing.** `go.GoStringLe a b ↔ ¬ go.GoStringLt b a`, a general fact about Perennial's string
+  order.
+- **Workaround here.** `goStringLe_iff_not_lt` in
+  `Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/inRange.lean`.
+- **Proposed (general).** The lemma next to `GoStringLe`'s definition in Perennial.
+- **Status.** Local lemma; to be proposed.

@@ -9,6 +9,7 @@ module
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.configEqual
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.storeEqual
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.inputEqual
+public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.histEqual
 
 @[expose] public section
 
@@ -28,24 +29,33 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
 theorem configEqual.wp_proof (wp_storeEqual : storeEqual.spec (GF := GF) (hG := hG))
-    (wp_inputEqual : inputEqual.spec (GF := GF) (hG := hG)) :
+    (wp_inputEqual : inputEqual.spec (GF := GF) (hG := hG))
+    (wp_histEqual : histEqual.spec (GF := GF) (hG := hG)) :
     configEqual.spec (GF := GF) (hG := hG) := by
   intro a b ga gb
   wp_start as ⟨#Ha, #Hb⟩
   unfold cfgOwn
-  icases Ha with ⟨#Hast, #Hap⟩
-  icases Hb with ⟨#Hbst, #Hbp⟩
+  icases Ha with ⟨#Hast, #Hah, #Hap, %Hal⟩
+  icases Hb with ⟨#Hbst, #Hbh, #Hbp, %Hbl⟩
   ihave %Hla := ownSlice_len $$ Hap
   ihave %Hlb := ownSlice_len $$ Hbp
   wp_auto
-  wp_apply wp_storeEqual a.st' b.st' ga.st gb.st $$ [$Hast $Hbst]
+  wp_apply wp_storeEqual a.st' b.st' ga.st.st gb.st.st $$ [$Hast $Hbst]
   wp_if_destruct
   · have Hst := Hif; clear Hif
     wp_if_destruct
     · have Heq := Hif; clear Hif
+      wp_apply wp_histEqual a.hist' b.hist' ga.st.hist gb.st.hist $$ [$Hah $Hbh]
+      · ipureintro; exact ⟨Hal, Hbl⟩
+      wp_if_destruct
+      rotate_left
+      · rw [decide_eq_false (fun h => Hif (by subst h; rfl))]
+        iapply HΦ; itrivial
+      have Hhist := Hif; clear Hif
       rename_i iu_ptr
       irename : (iu_ptr ↦ zero_val w64 : IProp GF) => Hiu
       ihave HI : (∃ (i j : w64),
@@ -97,9 +107,9 @@ theorem configEqual.wp_proof (wp_storeEqual : storeEqual.spec (GF := GF) (hG := 
           have := Hi.2.2
           rwa [← h1, List.take_length, h1, ← h2, List.take_length] at this
         have hg : ga = gb := by
-          cases ga; cases gb
-          simp only [linkv.PCfg.mk.injEq] at heq Hst ⊢
-          exact ⟨Hst, heq⟩
+          obtain ⟨⟨s1, h1'⟩, p1⟩ := ga; obtain ⟨⟨s2, h2'⟩, p2⟩ := gb
+          simp only [linkv.PCfg.mk.injEq, HSt.mk.injEq] at heq Hst Hhist ⊢
+          exact ⟨⟨Hst, Hhist⟩, heq⟩
         rw [decide_eq_true hg]
         iapply HΦ; itrivial
     · rw [decide_eq_false (fun h => Hif (by subst h; word))]

@@ -31,7 +31,7 @@ theorem Session.Close.wp_proof (hO : Session.Orphan.spec (GF := GF) (hG := hG)) 
   ihave #Hs' := Hs
   iunfold isSession at Hs'
   icases Hs' with ⟨%ops, %o, %octx, %ocs, %ctx, %cs, %cancel, %donec, #HC, #HO, #HI, #Hx, #Hcn,
-    #HD, #Hops, %Ho, #Hoctx, #Hctx, #Hcancel, #Hdone, #Hlease⟩
+    #HD, #Hops, %Ho, #Hoctx, #HoctxC, #Hctx, #HctxC, #Hcancel, #Hdone, #Hlease⟩
   (try wp_auto)
   wp_apply hO s γ client id $$ [$Hs] as #Hsd
   (try wp_auto)
@@ -40,14 +40,15 @@ theorem Session.Close.wp_proof (hO : Session.Orphan.spec (GF := GF) (hG := hG)) 
   rw [hoc]
   iStructNamed Hops
   (try wp_auto)
-  wp_apply context.wp_WithTimeout $$ [$Hoctx] as %tctx %tγ %tcancel %d ⟨#Htc, #Htctx⟩
+  wp_apply context.wp_WithTimeout $$ [$Hoctx] as %tctx %tγ %tcancel %d ⟨#Htc, #Htctx, #Htfrom⟩
   (try wp_auto)
   unfold isEtcdLeaseClient
   icases Hlease with ⟨%l, #Hlf, #Hl⟩
   unfold isEtcdLease
   icases Hl with ⟨-, -, #HRev⟩
   (try wp_auto)
-  wp_apply HRev $$ [$Htctx] as %resp %err -
+  ihave #HtC := metadata.outgoingCtxOkC_from octx tctx $$ [$Htfrom $HoctxC]
+  wp_apply HRev $$ [$Htctx $HtC] as %resp %err -
   (try wp_auto)
   wp_apply Htc
   (try wp_auto)

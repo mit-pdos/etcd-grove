@@ -31,7 +31,7 @@ waiters `notified`. -/
 abbrev read.notifier.notify.spec : Prop :=
   ∀ (nc : Loc) (γn : NeedNames) (γr : ReadNames) (err : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read ∗
-      notifierOwn nc γn γr ∗ applyErrIs err ∗ (⌜err = GoInterface.nil⌝ -∗ frozenOk γn γr) }}
+      notifierOwn nc γn γr ∗ applyErrIs err ∗ readErrIs err ∗ (⌜err = GoInterface.nil⌝ -∗ frozenOk γn γr) }}
     (App (Val (nc @!! go.GoType.PointerType notifier.ty @!! go!"notify")) (Val #err))
   {{ RET #(); True }}
 

@@ -42,7 +42,7 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
     (hAS : EtcdServer.AuthStore.spec (GF := GF) (hG := hG)) :
     EtcdServer.LeaseTimeToLive.spec (GF := GF) (hG := hG) := by
   intro Hpeers s E ρ γr γl ctx cd r dq v n m
-  wp_start as ⟨#Hq, #Hr, #Hau, #Hlb, #Hlr, #Hpub, #Hmlb, #Hctx, HRD, #Hpool, Htok, %Hbound, Hreq⟩
+  wp_start as ⟨#Hq, #Hr, #Hau, #Hlb, #Hlr, #Hpub, #Hmlb, #Hctx, #Hlib, HRD, #Hpool, Htok, %Hbound, Hreq⟩
   ihave ⟨%st, %cca, #Has, #Hreqa, #Hreqb, #Hcca, #HLb⟩ := leaseCheckSetup s E n $$ [$Hau $Hlb $Hpub]
   iunfold isAuthStoreLeaseLb at HLb
   icases HLb with ⟨%ai, %Hai, #HEn, #HRev, -, -, -⟩
@@ -50,10 +50,23 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
   ihave #Hap : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth $$ []
   · iPkgInit
   ihave ⟨-, ⟨%eOR, #HOR, #HORe⟩⟩ := leaseCheckErrs $$ Hap
+  ihave #Hlp : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease $$ []
+  · iPkgInit
+  -- `auth.ErrAuthOldRevision`, an auth package error variable
+  ihave #HORv : authErrVarIs (GF := GF) (GoInterface.ok eOR) $$ []
+  · ihave Hai : (go_etcd_io.etcd.server.v3.auth.authInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hap
+    icases Hai with ⟨-, -, -, #HORa, -⟩
+    ihave #Haa := apply.authErrVar_authApplyErrIs go_etcd_io.etcd.server.v3.auth.ErrAuthOldRevision
+      (by simp [go_etcd_io.etcd.server.v3.auth.authErrMsgs]) (GoInterface.ok eOR) $$ HORa []
+    · iexists eOR; iframe HOR; ipureintro; rfl
+    iunfold authApplyErrIs at Haa
+    icases Haa with ⟨-, #Hv⟩
+    iexact Hv
   ihave #Htx : mvcc.txnCtx (GF := GF) ctx cd $$ []
   · iunfold mvcc.txnCtx; iright; iexact Hctx
   (try wp_auto)
-  wp_apply (hReq s E ctx cd) $$ [$HRD] as %err ⟨HRD, #Hout⟩
+  wp_apply (hReq s E ctx cd) $$ [$HRD] as %err ⟨HRD, #Hout, #Hav⟩
   · iframe #
   ihave #Hout' := Hout
   iunfold authedOutB at Hout'
@@ -65,7 +78,9 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
     iframe HRD Htok Hreq
     iright
     iframe Herr
-    ipureintro; exact ⟨rfl, by intro h; cases h⟩
+    isplitr
+    · ipureintro; exact ⟨rfl, by intro h; cases h⟩
+    iapply authErrVarIs_leaseNotFound_absurd $$ [$Hap $Hlp $Hav]
   (try wp_auto)
   ihave ⟨Hreq, %Hrn⟩ := typedPointsto_not_null_dup _ _ _ $$ Hreq
   iStructNamed Hreq
@@ -86,8 +101,12 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
       iapply HΦ
       iframe HRD Htok Hreq
       iright
+      iunfold authApplyErrIs at He1
+      icases He1 with ⟨#He1, #He1v⟩
       iframe He1
-      ipureintro; exact ⟨rfl, by intro h; cases h⟩
+      isplitr
+      · ipureintro; exact ⟨rfl, by intro h; cases h⟩
+      iapply authErrVarIs_leaseNotFound_absurd $$ [$Hap $Hlp $He1v]
     icases Hok $$ %rfl with ⟨#Hrv, #Hchk⟩
     (try wp_auto)
     ihave Hreq : r ↦{dq} v $$ [state ID Keys unknownFields sizeCache]
@@ -95,10 +114,10 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
       simp only [TypedPointsto.typedPointstoDef, hK]
       iframe
     -- `resp, err := s.leaseTimeToLive(ctx, r)`
-    wp_apply (hTTL Hpeers s E ρ γr γl ctx cd r dq v) $$ [$Htok $Hreq] as %resp %err2
+    wp_apply (hTTL Hpeers s E ρ γr γl ctx cd r dq v m) $$ [$Htok $Hreq] as %resp %err2
         ⟨Htok, Hreq, Hres⟩
     · iframe #; ipureintro; exact Hbound
-    icases Hres with (⟨%He2, %w, Hw, %Hh, %Hid, Hhv⟩ | ⟨%Hn, #He2⟩)
+    icases Hres with (⟨%He2, %w, Hw, %Hh, %Hid, Hhv, #Hf⟩ | ⟨%Hn, #He2, #Hnf⟩)
     · subst He2
       (try wp_auto)
       ihave ⟨Hreq, -⟩ := typedPointsto_not_null_dup _ _ _ $$ Hreq
@@ -126,7 +145,7 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
         · ipureintro; rfl
         iframe Hout
         isplitl [Hw Hhv]
-        · iexists w; iframe Hw Hhv; ipureintro; exact ⟨Hh, Hid⟩
+        · iexists w; iframe Hw Hhv Hf; ipureintro; exact ⟨Hh, Hid⟩
         (try simp only [↓reduceIte]); iexact Hchk
       | true =>
         (try wp_auto)
@@ -144,7 +163,7 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
           · ipureintro; rfl
           iframe Hout
           isplitl [Hw Hhv]
-          · iexists w; iframe Hw Hhv; ipureintro; exact ⟨Hh, Hid⟩
+          · iexists w; iframe Hw Hhv Hf; ipureintro; exact ⟨Hh, Hid⟩
           (try simp only [↓reduceIte]); iexact Hchk
         · -- `return nil, auth.ErrAuthOldRevision`
           (try wp_auto)
@@ -152,14 +171,16 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
           iframe HRD Htok Hreq
           iright
           iframe HORe
-          ipureintro; exact ⟨rfl, by intro h; cases h⟩
+          isplitr
+          · ipureintro; exact ⟨rfl, by intro h; cases h⟩
+          iapply authErrVarIs_leaseNotFound_absurd $$ [$Hap $Hlp $HORv]
     · obtain ⟨rfl, Hne⟩ := Hn
       rcases err2 with ei | _
       · (try wp_auto)
         iapply HΦ
         iframe HRD Htok Hreq
         iright
-        iframe He2
+        iframe He2 Hnf
         ipureintro; exact ⟨rfl, Hne⟩
       · exact absurd rfl Hne
   | false =>
@@ -168,10 +189,10 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
     · iapply typedPointsto_combine _ _ _ Hrn
       simp only [TypedPointsto.typedPointstoDef, hK]
       iframe
-    wp_apply (hTTL Hpeers s E ρ γr γl ctx cd r dq v) $$ [$Htok $Hreq] as %resp %err2
+    wp_apply (hTTL Hpeers s E ρ γr γl ctx cd r dq v m) $$ [$Htok $Hreq] as %resp %err2
         ⟨Htok, Hreq, Hres⟩
     · iframe #; ipureintro; exact Hbound
-    icases Hres with (⟨%He2, %w, Hw, %Hh, %Hid, Hhv⟩ | ⟨%Hn, #He2⟩)
+    icases Hres with (⟨%He2, %w, Hw, %Hh, %Hid, Hhv, #Hf⟩ | ⟨%Hn, #He2, #Hnf⟩)
     · subst He2
       (try wp_auto)
       ihave ⟨Hreq, -⟩ := typedPointsto_not_null_dup _ _ _ $$ Hreq
@@ -190,7 +211,7 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
       · ipureintro; rfl
       iframe Hout
       isplitl [Hw Hhv]
-      · iexists w; iframe Hw Hhv; ipureintro; exact ⟨Hh, Hid⟩
+      · iexists w; iframe Hw Hhv Hf; ipureintro; exact ⟨Hh, Hid⟩
       (try simp only [↓reduceIte, Bool.false_eq_true]); itrivial
     · obtain ⟨rfl, Hne⟩ := Hn
       rcases err2 with ei | _
@@ -198,7 +219,7 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
         iapply HΦ
         iframe HRD Htok Hreq
         iright
-        iframe He2
+        iframe He2 Hnf
         ipureintro; exact ⟨rfl, Hne⟩
       · exact absurd rfl Hne
 

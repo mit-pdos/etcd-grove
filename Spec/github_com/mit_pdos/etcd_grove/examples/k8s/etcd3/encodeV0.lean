@@ -22,14 +22,15 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
 /-- See the file header. -/
 abbrev encodeV0.spec : Prop :=
-  ∀ (name val : GoString),
+  ∀ (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 }}
-    (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.encodeV0)) (Val #name)) (Val #val))
-  {{ (sl : GoSlice), RET #sl; sl ↦* encodeWith tagV0 name val }}
+    (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.encodeV0)) (Val #v))
+  {{ (sl : GoSlice), RET #sl; sl ↦* encodeWith tagV0 v }}
 
 end spec
 

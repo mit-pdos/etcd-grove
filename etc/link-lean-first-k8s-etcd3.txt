@@ -38,11 +38,19 @@ PrepareKey: HasSuffix strings_Contains fmt_Errorf
 NewKeyNotFoundError:
 NewKeyExistsError:
 NewInternalError:
-Preconditions__Check:
+# (stage 7b) the preconditions: meta.Accessor (proved from its body), fmt.Sprintf with two
+# types.UIDs (the trust boundary, `Spec/fmt/SprintfNamed.lean`), NewInvalidObjError
+meta_Accessor:
+fmt_SprintfNamed:
+NewInvalidObjError:
+Preconditions__Check: meta_Accessor NewInvalidObjError fmt_SprintfNamed
+# (stage 7b) a minimum resource version above the read's: apimachinery's NewTimeoutError (its body)
+NewTimeoutError:
+NewTooLargeResourceVersionError: NewTimeoutError
 #
 # k8s.io/apiserver/pkg/storage/etcd3 (`store.go`)
 store__prepareKey: PrepareKey
-store__validateMinimumResourceVersion:
+store__validateMinimumResourceVersion: NewTooLargeResourceVersionError
 getTypeName: TypeOf
 txnError:
 store__Get: store__prepareKey store__validateMinimumResourceVersion NewKeyNotFoundError tracing_Start Span__AddEvent Span__End attribute_String attribute_Int GetAuditIDTruncated OperationLatencyTracker__Record Client__Get
@@ -51,11 +59,12 @@ store__stateFromEtcdResponse: NewKeyNotFoundError reflect_New reflect_Value__Add
 store__getCurrentState: store__stateFromEtcdResponse RecordEtcdRequest Client__Get
 refreshOnError:
 store__deleteOnce: store__stateFromEtcdResponse txnError RecordEtcdRequest v2_V Verbose__Infof Client__OptimisticDelete
-store__conditionalDelete: store__getCurrentState store__deleteOnce refreshOnError
+store__getStateFromObject:
+store__conditionalDelete: store__getCurrentState store__getStateFromObject Preconditions__Check store__deleteOnce refreshOnError
 store__Delete: store__prepareKey EnforcePtr store__conditionalDelete
 store__updateState:
 store__updateOnce: store__stateFromEtcdResponse txnError RecordEtcdRequest NewInternalError Span__AddEvent attribute_String attribute_Int v2_V Verbose__Infof Client__OptimisticPut
-store__GuaranteedUpdate: store__prepareKey getTypeName EnforcePtr store__getCurrentState Preconditions__Check store__updateState store__updateOnce refreshOnError tracing_Start Span__AddEvent Span__End attribute_String attribute_Int GetAuditIDTruncated
+store__GuaranteedUpdate: store__prepareKey getTypeName EnforcePtr store__getCurrentState store__getStateFromObject Preconditions__Check store__updateState store__updateOnce refreshOnError tracing_Start Span__AddEvent Span__End attribute_String attribute_Int GetAuditIDTruncated
 # (KEP-6404, notes/kep-6404-plan.md step 2) the watch cache's getCurrentRV
 store__GetCurrentResourceVersion: store__prepareKey RecordEtcdRequest Client__Get fmt_Errorf
 #
@@ -74,7 +83,7 @@ Client__Ctx:
 newLeaseManager:
 newDefaultLeaseManager: newLeaseManager
 defaultListErrorAggregatorFactory:
-corruptObjErrAggregatorFactory:
+corruptObjErrAggregatorFactory: defaultListErrorAggregatorFactory
 newStorageKeyReverseFunc:
 NewDefaultLeaseManagerConfig:
 etcd3_New: newDefaultLeaseManager defaultListErrorAggregatorFactory corruptObjErrAggregatorFactory newStorageKeyReverseFunc NewEtcdMetricsTracker path_Join TrimSuffix Client__Ctx TypeOf
@@ -107,13 +116,68 @@ clock_RealClock__After: ?
 ContextForChannel:
 channelContext__Done:
 channelContext__Err:
+channelContext__Deadline:
+channelContext__Value:
 # k8s.io/apiserver/pkg/storage/etcd3 (`compact.go`)
 Compact: Version v3_Compare OpPut OpGet strconv_FormatInt strconv_ParseInt ResponseOp__GetResponseRange Client__Endpoints v2_V Verbose__Infof
 compactor__CompactRevision:
 compactor__UpdateCompactRevision:
 compactor__Stop:
-compactor__runCompactLoop: ContextForChannel channelContext__Done channelContext__Err clock_RealClock__After Compact compactor__UpdateCompactRevision Client__Endpoints v2_Errorf
+compactor__runCompactLoop: ContextForChannel channelContext__Done channelContext__Err channelContext__Deadline channelContext__Value clock_RealClock__After Compact compactor__UpdateCompactRevision Client__Endpoints v2_Errorf
 compactor__getCompactRev: strconv_ParseInt fmt_Errorf
 compactor__fromWatchResponse: WatchResponse__Err strconv_ParseInt
-compactor__runWatchLoop: ContextForChannel channelContext__Done channelContext__Err =_root_.Perennial.time.wp_After compactor__getCompactRev compactor__UpdateCompactRevision WithRev watcher__Watch compactor__fromWatchResponse Client__Endpoints v2_Errorf
+compactor__runWatchLoop: ContextForChannel channelContext__Done channelContext__Err channelContext__Deadline channelContext__Value =_root_.Perennial.time.wp_After compactor__getCompactRev compactor__UpdateCompactRevision WithRev watcher__Watch compactor__fromWatchResponse Client__Endpoints v2_Errorf
 NewCompactor: compactor__runCompactLoop compactor__runWatchLoop
+# (Q1 (c), 2026-11-05) the compactor registry
+StartCompactorPerEndpoint: NewCompactor Client__Endpoints v2_V Verbose__Infof
+#
+# (stage 7e-2, notes/k8s-7e-2-draft.md) the paginated list path, GetList, over the kubernetes
+# client's List (a hypothesis until 7e-1, proved since: `kubernetes/Client__List.lean`; its Get at a
+# revision is `Client.Get`'s since 7e-1).
+# 7e-2's new trusted specs (the Draft's §5) and reflect.Kind's comparison
+# (`Spec/reflect/KindCompare.lean`): axioms, after etcd-grove-81's review (2026-11-10)
+Client__List: @
+reflect_KindCompare:
+reflect_Value__Kind:
+reflect_Value__Len:
+reflect_Value__Cap:
+reflect_Value__IsNil:
+reflect_Type__Elem:
+json_Marshal:
+IsTimeout:
+HasStatusCause:
+RecordStorageListMetrics:
+RecordListLatency:
+# restated in 7e-2's first third, linked as axioms already elsewhere (k8setcd3, txn, client)
+reflect_Value__Set:
+reflect_ValueOf:
+errors_IsStatusErr:
+# k8s.io/apiserver/pkg/storage and apimachinery (7e-2)
+ValidateListOptions:
+EncodeContinue: json_Marshal
+PrepareContinueToken: EncodeContinue
+IsTooLargeResourceVersion: IsTimeout HasStatusCause
+NewResourceExpired:
+SelectionPredicate__ShardingEnabled:
+SelectionPredicate__labelFieldEmpty:
+SelectionPredicate__MatchesSharding: SelectionPredicate__ShardingEnabled
+SelectionPredicate__MatchesObjectAttributes: SelectionPredicate__labelFieldEmpty
+SelectionPredicate__Matches: SelectionPredicate__MatchesSharding SelectionPredicate__labelFieldEmpty SelectionPredicate__MatchesObjectAttributes
+SelectionPredicate__Empty: SelectionPredicate__ShardingEnabled SelectionPredicate__labelFieldEmpty
+SelectionPredicate__SetShardInfoOnList: SelectionPredicate__ShardingEnabled
+fields_Set__Get:
+labels_Set__Get:
+labels_Set__Has:
+# k8s.io/apiserver/pkg/storage/etcd3 (7e-2: `store.go`'s list path)
+shouldStream:
+getNewItemFunc: reflect_Value__Type reflect_Type__Elem reflect_New reflect_Value__Interface
+growSlice: reflect_Value__Cap reflect_Value__Len reflect_Value__Type reflect_Value__Set
+store__processListItem: reflect_ValueOf reflect_Value__Set
+store__appendChunk: store__processListItem growSlice reflect_Value__Len
+store__finalizeList: reflect_Value__IsNil reflect_Value__Type reflect_Value__Set SelectionPredicate__SetShardInfoOnList
+store__getResourceSizeEstimator:
+store__getList: Client__List Client__Get RecordEtcdRequest store__getResourceSizeEstimator
+interpretListError: NewResourceExpired
+store__listReadError: interpretListError store__GetCurrentResourceVersion NewTooLargeResourceVersionError errors_IsStatusErr
+store__pagedChunks: store__getList store__listReadError
+store__GetList: reflect_KindCompare store__prepareKey store__pagedChunks store__appendChunk store__finalizeList store__validateMinimumResourceVersion shouldStream getNewItemFunc ValidateListOptions PrepareContinueToken EnforcePtr reflect_Value__Kind reflect_Value__Len RecordStorageListMetrics RecordListLatency tracing_Start Span__End attribute_String attribute_Int GetAuditIDTruncated

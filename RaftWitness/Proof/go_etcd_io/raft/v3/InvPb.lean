@@ -172,14 +172,34 @@ def cellRO {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (p : Loc) (v : V)
 /-- The namespace of the hidden-field invariants. -/
 def pbN : Namespace := nroot.@"protobuf"
 
+/-- **Unknown fields `proto.Unmarshal` leaves in a `T`** (opaque, the trust boundary; premise fixes
+1, 2026-11-10): the records of the decoded bytes that protobuf-go's decoder did not take as one of
+`T`'s fields (an unknown field number, or a known one at another wire type; protobuf-go treats
+proto2's closed enums as open, so an undeclared enum value decodes into its field). The decoder classifies each record by itself, so decoding a message's known fields followed
+by such records gives the same known fields again: what makes the `proto.Marshal` round trips
+(`proto.MarshalConfChange.wp_proof`, ...) true of objects `proto.Unmarshal` made
+(`examples/premisefix/confchange`, `TestRoundTripUnmarshalLeftovers`). Only the `proto.*` axioms
+produce it. -/
+opaque pbUnmarshalLeft (T : Type) (uf : List w8) : Prop
+
+/-- **The unknown fields a protobuf object of the verified programs can hold** (premise fixes 1,
+2026-11-10): none (a struct the program built, `pbMsg_alloc`), or what `proto.Unmarshal` left
+(`pbUnmarshalLeft`; a clone copies them). Never arbitrary bytes: only `ProtoReflect().SetUnknown`,
+which no translated code calls, sets other ones, and with arbitrary bytes `proto.Marshal`'s output
+decodes to other fields or not at all (the premise attack on `proto.MarshalConfChange.wp_proof`,
+`examples/premisefix/confchange`, `TestRoundTripArbitraryUnknownFails`). -/
+def pbUnknownOk (T : Type) (uf : List w8) : Prop := uf = [] ∨ pbUnmarshalLeft T uf
+
 /-- **The hidden fields** of the protobuf object at `l` of Go type `T` (the Lean struct of a
 generated message), its unknown fields' bytes `uf`: an invariant only the `proto.*` axioms take
-(see the file header). -/
+(see the file header), and (premise fixes 1, 2026-11-10) the unknown fields ones a program's object
+can hold (`pbUnknownOk`; until then any bytes, for which the `proto.Marshal` round-trip axioms were
+false). -/
 def pbMsg (T : Type) (l : Loc) (uf : List w8) : IProp GF :=
-  inv pbN iprop(∃ (st : google_golang_org.protobuf.internal.impl.MessageState) (sc : w32)
+  iprop(⌜pbUnknownOk T uf⌝ ∗ inv pbN iprop(∃ (st : google_golang_org.protobuf.internal.impl.MessageState) (sc : w32)
       (us : GoSlice),
     l.[T, go!"state"] ↦ st ∗ l.[T, go!"sizeCache"] ↦ sc ∗ l.[T, go!"unknownFields"] ↦ us ∗
-      us ↦* uf)
+      us ↦* uf))
 
 instance cellRO_persistent {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (p : Loc) (v : V) :
     Persistent (cellRO (GF := GF) p v) := by
@@ -449,11 +469,14 @@ theorem cellRO_alloc {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (p : Lo
 
 /-- The hidden fields of a protobuf object made into its invariant (once, at allocation). -/
 theorem pbMsg_alloc (T : Type) (l : Loc) (st : google_golang_org.protobuf.internal.impl.MessageState)
-    (sc : w32) (us : GoSlice) (uf : List w8) (E : CoPset) :
+    (sc : w32) (us : GoSlice) (uf : List w8) (E : CoPset)
+    (Huf : pbUnknownOk T uf := by exact Or.inl rfl) :
     (l.[T, go!"state"] ↦ st ∗ l.[T, go!"sizeCache"] ↦ sc ∗ l.[T, go!"unknownFields"] ↦ us ∗
       us ↦* uf : IProp GF) ⊢ |={E}=> pbMsg T l uf := by
   iintro ⟨H1, H2, H3, H4⟩
   unfold pbMsg
+  isplitr
+  · ipureintro; exact Huf
   iapply inv_alloc
   inext
   iexists st, sc, us

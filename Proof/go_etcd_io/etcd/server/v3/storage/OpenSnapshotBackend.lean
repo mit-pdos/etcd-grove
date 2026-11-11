@@ -49,7 +49,7 @@ theorem storage.OpenSnapshotBackend.wp_proof
     (wp_BackendPath : config.ServerConfig.BackendPath.spec (GF := GF) (hG := hG))
     (wp_OpenBackend : storage.OpenBackend.spec (GF := GF) (hG := hG)) :
     storage.OpenSnapshotBackend.spec (GF := GF) (hG := hG) := by
-  intro cfg ss sn mp hk dq dq' md P D W Pk K
+  intro _ cfg ss sn mp hk dq dq' md P D W Pk K
   wp_start as ⟨#Hss, Hmdp, Hsm, Hf, Hpo, Hpre⟩
   ihave #Hraftpb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
   · iPkgInit
@@ -88,8 +88,10 @@ theorem storage.OpenSnapshotBackend.wp_proof
       · ipureintro; rfl
       iintro %sl ⟨Hsl, -⟩
       wp_apply wp_Errorf $$ [$Hfmt $Hsl Hok] as %e -
-      · simp only [EtcdGrove.fmt.argsOk]
-        iframe Hok
+      · fmt_args_intro
+        isplitl [Hok]
+        · fmt_arg_method; iexact Hok
+        · itrivial
       iapply HΦ
       iframe Hmdp Hsm
       iright
@@ -106,8 +108,10 @@ theorem storage.OpenSnapshotBackend.wp_proof
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
     wp_apply wp_Errorf $$ [$Hfmt $Hsl Hok] as %e -
-    · simp only [EtcdGrove.fmt.argsOk]
-      iframe Hok
+    · fmt_args_intro
+      isplitl [Hok]
+      · fmt_arg_method; iexact Hok
+      · itrivial
     iapply HΦ
     iframe Hmdp Hsm
     iright

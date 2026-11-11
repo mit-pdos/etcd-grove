@@ -35,7 +35,7 @@ theorem watchGRPCStream.close.wp_proof
   intro V G callSl
   wp_start as #Hg
   iunfold isWGS at Hg
-  icases Hg with ⟨%Hgnn, #Hcv, #Hsf, %Hlg', #Howner, #Hremote, #Hcallo, #Hctx, #Hckey, #Hcancel,
+  icases Hg with ⟨%Hgnn, #Hcv, #Hsf, #Hlg', #Howner, #Hremote, #Hcallo, #Hctx, #Hckey, #Hcancel,
     #Hreqc, #Hrespc, #Hdonec, #Herrc, #Hclosingc, #Hglg, #HisCtx, #Hcspec, #Hbreq, #Hberr, #Hbcl,
     #Hbdone, -⟩
   iunfold watchSrvFacts at Hsf
@@ -86,14 +86,14 @@ theorem watchGRPCStream.close.wp_proof
             icases Heof $$ %e He with ⟨%Hc, -⟩
             ipureintro; exact Hc.2
         wp_auto
-        wp_apply wp_ContextError G.ctx G.cd e $$ [] as %err' ⟨-, #Hse', -⟩
+        wp_apply wp_ContextError G.ctx G.cd e $$ [] as %err' ⟨-, #Hse', -, -⟩
         · iframe #
           ipureintro; intro _; exact Hce
         iapply HΦ; iexact Hse'
       · itrivial
     · iapply BigAndL.bigAndL_nil.2; itrivial
   · wp_auto
-    wp_apply wp_ContextError G.ctx G.cd GoInterface.nil $$ [] as %err' ⟨-, #Hse', -⟩
+    wp_apply wp_ContextError G.ctx G.cd GoInterface.nil $$ [] as %err' ⟨-, #Hse', -, -⟩
     · iframe #
       isplitr
       · ipureintro; intro h; exact absurd rfl h

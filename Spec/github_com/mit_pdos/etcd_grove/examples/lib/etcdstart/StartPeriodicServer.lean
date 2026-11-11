@@ -1,5 +1,5 @@
 /-
-`StartPeriodicServer(name, peerAddr, clientAddr, period, lg)` (`examples/lib/etcdstart/etcdstart.go`;
+`StartPeriodicServer(name, peerAddr, clientAddr, period, lg)` (`examples/lib/etcdstart/common.go`;
 periodic mode, 2026-11-02): `StartServer` with the auto-compactor on, in periodic mode, keeping the
 revisions of the last `period` -- `newServerMode` in periodic mode at that period, `s.Start()`;
 `putgetc`'s start. Lean-first (no Rocq counterpart).
@@ -11,6 +11,7 @@ shorter one busy-loops) and the cluster's retention `0` (`NewServer`'s premise i
 -/
 module
 
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartRes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Defs
 
 @[expose] public section
@@ -36,7 +37,7 @@ abbrev StartPeriodicServer.spec : Prop :=
     (lg : Loc)
     (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString) (id : w64)
     (γ : SrvRaft) (ρ : ReqNames) (E₀ : apply.AEnv GF)
-    (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF),
+    (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF) (lm : lease.Mode),
   threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   -- (2026-11-03, the whole-`bootOk` review, A) the write budget `bootstrap`'s own write-backs leave
   N + 7 + bootWB ≤ backend.wbInit →
@@ -47,26 +48,29 @@ abbrev StartPeriodicServer.spec : Prop :=
   -- (2026-11-02, the backend-auth-split stage, Q8) the member's name valid UTF-8, `bootPremise`'s
   -- condition on the initial cluster's names
   utf8Valid name →
-  lg ≠ null → 10 ≤ sint.Z period → ρ.rd.kv.cret = 0 →
+  10 ≤ sint.Z period → ρ.rd.kv.cret = 0 →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.diskOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
+      -- (sweep repairs 1, R1-2) the logger a zap logger (until then `lg ≠ null`)
+      zapLoggerOk lg ∗
       threadTok ∗
       -- (M2's item 15, stage B3) at `N` write tokens (`N + N` from M2 until then: `N` more, the
       -- compaction's write-back stock)
       bootPremise N [id] bootLog ctxs dir name name (urls1 name peerAddr client) id ∗ commonPremises ∗
       context.isClosedchanInit ∗
       -- (M2, the storage side, N1) the member's boot bundle in compaction mode
-      memberBoot γ ctxs ρ E₀ Φs id true ∗
+      memberBoot γ ctxs ρ E₀ Φs id true lm ∗
       -- (2026-10-24, rafthttp stage 6d; until then the member's network slot) the network's HTTP
       -- side for it
       netHttpOk γn id ∗
-      -- (2026-11-03, the WAL's API, change 6) the member's WAL directory fresh: a first start
-      walDirFresh (config.walDirOf (name ++ go!".etcd") go!"") }}
+      -- (2026-11-03, the WAL's API, change 6; 2026-11-05, hub step 7, its start bundle) the
+      -- member's WAL directory fresh: a first start
+      memberFreshRes name {} γn }}
     (App (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartPeriodicServer))
       (Val #name)) (Val #peerAddr)) (Val #client)) (Val #period)) (Val #lg))
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
-      (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨ (⌜err = GoInterface.nil⌝ ∗ memberUp s ρ E₀ lg γn id) }}
+      (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨ (⌜err = GoInterface.nil⌝ ∗ memberUp s ρ E₀ lg γn id lm) }}
 
 end spec
 

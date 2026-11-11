@@ -38,7 +38,7 @@ abbrev raftNode.ReadIndex.spec : Prop :=
       srvRdFresh E.γr.raft (beBytes id) }}
     (App (App (Val (r @!! go.GoType.PointerType raftNode.ty @!! go!"ReadIndex"))
       (Val #(GoInterface.ok ctx))) (Val #sl))
-  {{ (err : GoInterface), RET #err; applyErrIs err ∗
+  {{ (err : GoInterface), RET #err; applyErrIs err ∗ nodeReadErrIs err ∗
       (⌜err = GoInterface.nil⌝ -∗ □ E.RQ id n Qr) }}
 
 end spec

@@ -14,7 +14,7 @@ theorem backend.backend.begin.wp_proof [go_etcd_io.bbolt.Assumptions] [go_uber_o
             backend.beginCtx b ∗
               (sync.ownRWMutex (backend.bF go!"mu" b) fun q =>
                   typedPointsto (backend.bF go!"db" b) db (DFrac.own q)) ∗
-                backend.ownDB db γd D ∗ if w = true then backend.wrTok γd else True) -∗
+                backend.ownDB db γd D ∗ if w = true then backend.wrTok γd else threadTok) -∗
           (▷
               ∀ tx,
                 ((sync.ownRWMutex (backend.bF go!"mu" b) fun q =>

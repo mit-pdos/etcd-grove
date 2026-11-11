@@ -390,7 +390,7 @@ private theorem wp_RestartNode_impl
     (wp_node_run : node.run.spec (GF := GF) (hG := hG)) :
     EtcdGrove.RestartNode.spec (GF := GF) (hG := hG) := by
   unfold EtcdGrove.RestartNode.spec
-  intro γ N c cv lok si σ csm a m Q F H1 H2 H3 H4 H5 H6 H7 H8 H9 Happ Ha1 Ha2 Hboot Hcs
+  intro γ N c cv lok si σ csm a m Q F H1 H2 H3 H4 H5 H6 H7 H8 H9 _ Happ Ha1 Ha2 Hboot Hcs
   wp_start as ⟨Hc, #Hlg, #Hcl, Hvac, #Hfits, HAU, #Hconf, Hrs⟩
   iunfold EtcdGrove.isCluster at Hcl
   ihave #Hcl' := Hcl
@@ -953,6 +953,10 @@ private theorem wp_RestartNode_impl
   icases dghostVar_halves _ _ $$ Hreq with ⟨Hreq1, Hreq2⟩
   icases dghostVar_halves _ _ $$ Hlive with ⟨Hlive1, Hlive2⟩
   icases dghostVar_halves _ _ $$ Hdur with ⟨Hdur1, Hdur2⟩
+  -- (2026-11-05, the lease-expiry plan's E2 revision 5) the start tag: `RestartNode`'s
+  -- (discarded, then dropped: the post does not need it)
+  imod dghostVar_alloc (GF := GF) false with ⟨%gstart, Hstart⟩
+  imod dghostVar_persist gstart 1 _ $$ Hstart with -
   ihave Hgen : slotLive (GF := GF) γ.raft cv.ID' ((1 : Qp).half + (1 : Qp).half) gen $$ [Hgen]
   · rw [Qp.half_add_half]; iexact Hgen
   icases ((slotLive_fractional (GF := GF) γ.raft cv.ID' gen).fractional (1 : Qp).half
@@ -987,7 +991,8 @@ private theorem wp_RestartNode_impl
                           live := glive
                           gen := gen
                           dur := gdur
-                          bw := gbw }
+                          bw := gbw
+                          start := gstart }
   have Hnok : NodeOk γ γn := ⟨rfl, rfl, rfl⟩
   have Hdy : γn.mode.isDyn = true := HdynOk γn Hnok
   -- the node's table entry, while its struct is owned whole

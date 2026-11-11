@@ -21,5 +21,34 @@ sealed Proof.go_etcd_io.etcd.server.v3.etcdserver.WalApi
 # directory slot, sealed; callers use their laws only.
 sealed Proof.go_etcd_io.etcd.server.v3.etcdserver.RaftNodeApi
 sealed Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Net
+
+# (2026-11-04, the lease-expiry plan's Part C) the lease subsystem's boot and server slots, sealed;
+# callers use their laws only.
+sealed Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseApi
+
+# (2026-11-04, the lease-expiry plan's Part C, option (a)) the running server's lease premise
+# (`lease.runCfg`) and the open cases of a granting cluster, sealed; the boot slot's module relates
+# the two slots.
+sealed Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseRun
+allow Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseRun Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseApi
+
 # (K1 of `notes/k8s-compactor-plan.md`, 2026-11-04) the compactor's configuration slot.
 sealed Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.BootCfg
+# (2026-11-05, the restart plan's R2b-3d; hub request H1) the stop's slot in the boot hub: what
+# `NewServer` keeps for the server's stop, sealed; callers use its laws only.
+sealed Proof.go_etcd_io.etcd.server.v3.etcdserver.StopApi
+
+# (2026-11-05, hub plan step 7) the members' start bundles (`memberStartRes`, `memberFreshRes`,
+# `memberRestartRes`), sealed; callers use their laws only. The cluster's allocation (`alloc3`) turns
+# start bundles into fresh ones.
+sealed Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartRes
+allow Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartRes Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Alloc3
+# (2026-11-05, hub plan step 7's E2, D1) the cluster's start bundle (`cluster3.startRes`), sealed;
+# its laws are in its own module, so no module imports it whole.
+sealed Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartRes
+# (2026-11-06, R2c review round 2's N2) the right to stop a server (`srvStopRight`), sealed: only
+# the package's proofs that make it (`start`) and open it (`HardStop`) see its body; clients use
+# `srvStopRight_dd`.
+sealed Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRestart
+allow Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRestart Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__start
+allow Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRestart Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__HardStop

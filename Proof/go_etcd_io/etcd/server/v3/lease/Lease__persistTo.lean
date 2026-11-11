@@ -47,7 +47,7 @@ theorem lease.Lease.persistTo.wp_proof
   icases Htx with ⟨%Lk, #HLock, #HUnsafePut, #HUnlock⟩
   (try wp_auto)
   wp_bind (App (Val #(methods tx.ty go!"LockInsideApply" tx.v)) (Val #()))
-  iapply HLock $$ [Hcs HT HR] [-]
+  iapply HLock $$ %f %Pre %Q %Post %(rfl) [Hcs HT HR] [-]
   · iframe Hcs HT HR
   inext
   iintro HLk

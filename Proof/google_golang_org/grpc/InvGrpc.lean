@@ -8,7 +8,8 @@ type, in the predicate-transformer style of Grove's urpc (`is_urpc_spec_pred`,
 **Messages** (`ProtoMsg`): a protobuf message type `T` (passed as `*T`) with the model `M` of its
 wire content; `send l m`: the sender's `*T` holding `m`, what the codec needs to marshal it (it
 comes back); `recv l m` (persistent): a decoded `*T` holding `m`, read-only, and `recvOwn l m` what else of it
-the receiver owns (nothing but for a request its handler writes); `blank l`: a zero `*T`
+the receiver owns (nothing but for a request its handler writes, and for a reply whose decoded
+slices its caller writes: k8s 7e-1, `RangeResponse.Kvs`); `blank l`: a zero `*T`
 the receiver owns, into which a reply is decoded. That the codec's copy of a message `send` holds
 at `m` is one `recv` holds at `m` is what an instance asserts: each instance is a trusted wire
 model of its Go type (read it against the type's fields).
@@ -40,14 +41,30 @@ ClientConn__Invoke.lean`) of any method is the chain (`chainWP`, as grpc compose
 `invoke`, which makes one attempt (`grpcInvokerOk`: a run of the handler served for a registered
 method, or an error); an attempt's call options are scalar or `grpc.Peer(p)` options
 (`grpcOptOk`, `grpcPeerOpt`), whose buffers `*p` (`grpcPeerBuf`) the attempt writes.
+
+**Per-type message models** (stage A, the Scope's R and V for `ProtoMsg`, revisions 4 to 6; moved
+here from the prototype's `grpc/PerType.lean`, CP2; today's `ProtoMsg` and the trusted grpc specs
+stay until CP3): `ProtoMsgT`, a `ProtoMsg` with its normalizing store (`tree`, `Store.lean`); the
+role-split registries `grpcReqModelOf` (a method's request) and `grpcRepModelOf` (its reply), keyed
+on the Go type, taking the heap's instances (`hG`; `ProtoMsg GF` mentions no heap, so an
+`hG`-independent registry would equate models across heaps) and `go.Semantics`; and what a
+registration must prove: `ProtoMsgT.ReqSat` (from a `blank`, with the request's `wireLen` below
+`grpcMsgMax`, the store gives `recv` and `recvOwn`) and `ProtoMsgT.RepSat` (from an `own`, what a
+failed attempt leaves, no `wireLen` premise, the store gives `recv` and `recvOwn`), each with the laws that make
+its resources satisfiable: `blank` the zero struct (`BlankZero`), `own` any struct (`OwnAny`),
+`send` at `nil` false.
 -/
 module
 
 public import Perennial.Proof.context
+public import Proof.go_opentelemetry_io.otel.trace.Defs
+public import Proof.context.LibKeys
+public import Proof.context.LibKeysChain
 public import Proof.go_etcd_io.etcd.client.v3.ClientErr
 public import GeneratedProof.google_golang_org.grpc.peer
 public import Proof.google_golang_org.grpc.metadata.Outgoing
 public import Code.google_golang_org.grpc.credentials
+public import Proof.google_golang_org.protobuf.proto.Store
 
 @[expose] public section
 
@@ -85,8 +102,9 @@ structure ProtoMsg (GF : BundledGFunctors) where
   /-- **An upper bound on the length of the encoding** (`proto.Size`) of every message `send`
   holds at `m`, counting a submessage at each reference (as protobuf-go's `Size` does). Read it
   against `send`: every wire field must be pinned by `send`. Scope: the unknown fields of the
-  messages `send` holds field by field (inside `txnReqAt`, `createReqSend`, `userOptsAt`,
-  `ownPermW`) are not pinned; translated code never sets unknown fields (`SetUnknown` is not
+  messages `send` holds field by field (inside `txnReqAt` at every nested level, `createReqSend`,
+  `userOptsAt`, `ownPermW`, the Lease replies' headers and `LeaseStatus` elements, and the watch
+  stream's outer, cancel and progress messages) are not pinned; translated code never sets unknown fields (`SetUnknown` is not
   translated; requests are struct literals), so the bound is claimed for messages without them
   (the whole-struct sends pin them; the rest is to come, `notes/decisions.md`, "The encoded-size
   bound at grpc's send side"). `grpcMsgMax` or more: no bound known (the default; responses),
@@ -97,7 +115,8 @@ structure ProtoMsg (GF : BundledGFunctors) where
   recv_persistent : ∀ l m, Persistent (recv l m)
   /-- What else of a decoded `*T` holding `m` the receiver owns (exclusive; the auth plan's E3za:
   a handler that writes the decoded request, etcd's `UserAdd` replacing its password by the
-  hash). Nothing by default. -/
+  hash; k8s 7e-1: a caller that writes the decoded reply, Kubernetes' store setting
+  `resp.Kvs[i] = nil`). Nothing by default. -/
   recvOwn : Loc → M → IProp GF := fun _ _ => iprop(True)
   /-- A zero `*T` the receiver owns. -/
   blank : Loc → IProp GF
@@ -115,14 +134,41 @@ abbrev GrpcSpec (Req Rep : ProtoMsg GF) : Type := Req.M → (Rep.M → IProp GF)
 values). -/
 abbrev GrpcMd : Type := Option (GoString → Option (List GoString))
 
-/-- **A method's spec at the call's metadata** (the auth plan's E3zb): `Spec md m Φ` is what a
-caller asking `m` with an attempt whose handler sees the metadata `md` must give. A plain spec
-(`GrpcSpec`) is one for every metadata (`GrpcSpec.md`). -/
-abbrev GrpcSpecMd (Req Rep : ProtoMsg GF) : Type := GrpcMd → GrpcSpec Req Rep
+/-- **The error descriptions only a handler makes** (k8s etcd3 stage 7c, `notes/k8s-etcd3-plan.md`,
+"7c-1"): grpc forwards a status the server sends unchanged and never makes one of these itself, so
+an attempt's error with one of them is the handler's own, with the handler's error outcome
+(`grpcInvokerOk`): the two read errors', mvcc's future revision and compacted revision as
+`togRPCError` maps them (k8s etcd3 7c-2 part 2, S7). -/
+def handlerDescs : List GoString :=
+  [go_etcd_io.etcd.cache.v3.futureRevDesc, go_etcd_io.etcd.cache.v3.compactedDesc]
 
-/-- A plain spec, at every metadata. -/
+/-- A handler's success holds its error outcome vacuously. -/
+theorem handlerErr_nil (Ψe : GoString → IProp GF) :
+    ⊢ (⌜GoInterface.nil ≠ GoInterface.nil ∧
+        go_etcd_io.etcd.cache.v3.errDesc GoInterface.nil ∈ handlerDescs⌝ -∗
+      Ψe (go_etcd_io.etcd.cache.v3.errDesc GoInterface.nil)) := by
+  iintro %h
+  exact absurd rfl h.1
+
+/-- A caller's error outcome at every description holds at every error. -/
+theorem handlerErr_all (Ψe : GoString → IProp GF) (err : GoInterface) :
+    (□ ∀ d, Ψe d) ⊢ (⌜err ≠ GoInterface.nil ∧ go_etcd_io.etcd.cache.v3.errDesc err ∈ handlerDescs⌝ -∗
+      Ψe (go_etcd_io.etcd.cache.v3.errDesc err)) := by
+  iintro #H -
+  iapply H
+
+/-- **A method's spec at the call's metadata, with an error outcome** (the auth plan's E3zb; the
+error outcome since k8s etcd3 stage 7c, `notes/k8s-etcd3-plan.md`, "7c-1"): `Spec md m Φ Ψ` is
+what a caller asking `m` with an attempt whose handler sees the metadata `md` must give, for the
+handler to answer some `m'` with `Φ m'`, or to fail with an error of description `d` (`errDesc`)
+with `Ψ d`. A plain spec (`GrpcSpec`) is one for every metadata whose caller gives every error's
+`Ψ` (`GrpcSpec.md`). -/
+abbrev GrpcSpecMd (Req Rep : ProtoMsg GF) : Type :=
+  GrpcMd → Req.M → (Rep.M → IProp GF) → (GoString → IProp GF) → IProp GF
+
+/-- A plain spec, at every metadata: its caller gives every error's continuation. -/
 abbrev GrpcSpec.md {Req Rep : ProtoMsg GF} (Spec : GrpcSpec Req Rep) : GrpcSpecMd Req Rep :=
-  fun _ => Spec
+  fun _ m Φ Ψ => iprop(Spec m Φ ∗ □ ∀ d, Ψ d)
 
 /-- **The prefix of etcd's Go package paths** (`go.etcd.io/etcd/`). -/
 def etcdPkgPrefix : GoString := go!"go.etcd.io/etcd/"
@@ -133,21 +179,53 @@ etcd's own packages (`go.etcd.io/etcd/...`, e.g. `traceutil.TraceKey`) returns `
 server context carries grpc's values (metadata, peer, stream) and those of the stats handlers
 and interceptors in front of the handler (etcd's `v3rpc` interceptors, otelgrpc's), none under
 such a key. What the server's handlers rely on: a request's context carries no trace
-(`traceutil.ctxTraceIs ci none`, `v3rpc.srvCall`). -/
+(`traceutil.ctxTraceIs ci none`, `v3rpc.srvCall`). And (2026-11-06, the fix of
+`trace.SpanFromContext`'s axiom, `notes/axiom-review/otel-spanfromcontext-todo.md`) its span is a
+span (`trace.spanCtxOk`): grpc's own contexts store none under otel's `currentSpanKey` (an
+unexported key of otel's `trace` package, set only by `trace.ContextWithSpan`), nor do etcd's
+interceptors; otelgrpc's stats handler (`otelgrpc.NewServerHandler`, `TagRPC`) stores the span
+its tracer's `Start` returns (an SDK span, or the no-op tracer's `Span`, over the remote parent
+`ContextWithRemoteSpanContext` stores, a `nonRecordingSpan`), each a span whose `End`,
+`AddEvent` and `RecordError` return. And (premise-fixes-7, 2026-11-11) its library values are
+well formed (`context.libCtxOk`, `Proof/context/LibKeys.lean`): grpc's server stores under
+`mdIncomingKey{}` the `MD` its transport read from the stream's headers (`transportMD`), under
+`peerKey{}` the transport's `*Peer` (`transportPeer`), nothing under `mdOutgoingKey{}` (only
+`NewOutgoingContext`/`AppendToOutgoingContext` store there, which no server code here calls on a
+run's context), and under otel's `currentSpanKey` nothing or otelgrpc's span (`otelSpan`). -/
 def grpcRunCtx (ci : GoInterfaceOk) : IProp GF :=
-  iprop(□ ∀ (n : GoString) (x : val) (Φ : val → IProp GF), ⌜etcdPkgPrefix <+: n⌝ →
+  iprop((□ ∀ (n : GoString) (x : val) (Φ : val → IProp GF), ⌜etcdPkgPrefix <+: n⌝ →
     ▷ Φ #GoInterface.nil -∗
     WP (App (Val #(methods ci.ty go!"Value" ci.v))
-      (Val #(interface.mkOk (go.GoType.Named n []) x : GoInterface))) {{ Φ }})
+      (Val #(interface.mkOk (go.GoType.Named n []) x : GoInterface))) {{ Φ }}) ∗
+    trace.spanCtxOk ci ∗ context.libCtxOk ci)
 
 instance grpcRunCtx_persistent (ci : GoInterfaceOk) : Persistent (grpcRunCtx (GF := GF) ci) := by
   unfold grpcRunCtx; infer_instance
+
+/-- **A run's context has a span-key fact** (`grpcRunCtx`'s second part): what
+`trace.SpanFromContext` needs of it. -/
+theorem spanCtxOk_of_runCtx (ci : GoInterfaceOk) :
+    grpcRunCtx (GF := GF) ci ⊢ trace.spanCtxOk ci := by
+  iintro #H
+  iunfold grpcRunCtx at H
+  icases H with ⟨-, #H, -⟩
+  iexact H
+
+/-- **A run's context's library values are well formed** (`grpcRunCtx`'s third part). -/
+theorem libCtxOk_of_runCtx (ci : GoInterfaceOk) :
+    grpcRunCtx (GF := GF) ci ⊢ context.libCtxOk ci := by
+  iintro #H
+  iunfold grpcRunCtx at H
+  icases H with ⟨-, -, #H⟩
+  iexact H
 
 /-- **A service method `h` meets `Spec` with the per-run resource `S`** (persistent; see the file
 header; unit P3b: the registered service's method, which the generated handler calls below the
 interceptors, `grpcMethodOk`; until P3b it was what grpc ran): a call, given `S`, the context the
 runtime made for the run (`isContext`, `grpcRunCtx`), the decoded request `r` at `m` and
-`Spec m Φ`, returns `S` and, on success, a response at some `m'` with `Φ m'`. -/
+`Spec m Φ`, returns `S` and, on success, a response at some `m'` with `Φ m'`; on failure, an
+error grpc's server handles (`srvErrOk`: a `status` error, or a `fmt.Errorf` `%w` chain to a
+context error, which the server maps to `Canceled`/`DeadlineExceeded`). -/
 def grpcHandlerOk {Req Rep : ProtoMsg GF} (h : val) (S : IProp GF) (Spec : GrpcSpec Req Rep) :
     IProp GF :=
   iprop(∀ (m : Req.M) (Φ : Rep.M → IProp GF) (ci : GoInterfaceOk)
@@ -155,7 +233,8 @@ def grpcHandlerOk {Req Rep : ProtoMsg GF} (h : val) (S : IProp GF) (Spec : GrpcS
     {{ S ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ Req.recv r m ∗ Spec m Φ }}
       (App (App (Val h) (Val #(GoInterface.ok ci))) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        S ∗ (⌜err = GoInterface.nil⌝ -∗ ∃ m' : Rep.M, Rep.send resp m' ∗ Φ m') }})
+        S ∗ (⌜err = GoInterface.nil⌝ -∗ ∃ m' : Rep.M, Rep.send resp m' ∗ Φ m') ∗
+        go_etcd_io.etcd.cache.v3.srvErrOk err }})
 
 instance grpcHandlerOk_persistent {Req Rep : ProtoMsg GF} (h : val) (S : IProp GF)
     (Spec : GrpcSpec Req Rep) : Persistent (grpcHandlerOk h S Spec) := by
@@ -166,21 +245,52 @@ E3zb): as `grpcHandlerOk`, the run's request precondition at its context's incom
 (`metadata.incomingOf`). A plain spec's is `grpcHandlerOk` (`grpcHandlerOk_md`). -/
 def grpcHandlerOkMd {Req Rep : ProtoMsg GF} (h : val) (S : IProp GF) (Spec : GrpcSpecMd Req Rep) :
     IProp GF :=
-  iprop(∀ (m : Req.M) (Φ : Rep.M → IProp GF) (ci : GoInterfaceOk)
+  iprop(∀ (m : Req.M) (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF) (ci : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF)) (r : Loc),
     {{ S ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ Req.recv r m ∗
-        Spec (metadata.incomingOf (GoInterface.ok ci)) m Φ }}
+        Spec (metadata.incomingOf (GoInterface.ok ci)) m Φ Ψe }}
       (App (App (Val h) (Val #(GoInterface.ok ci))) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        S ∗ (⌜err = GoInterface.nil⌝ -∗ ∃ m' : Rep.M, Rep.send resp m' ∗ Φ m') }})
+        S ∗ (⌜err = GoInterface.nil⌝ -∗ ∃ m' : Rep.M, Rep.send resp m' ∗ Φ m') ∗
+        (⌜err ≠ GoInterface.nil ∧ go_etcd_io.etcd.cache.v3.errDesc err ∈ handlerDescs⌝ -∗
+          Ψe (go_etcd_io.etcd.cache.v3.errDesc err)) ∗ go_etcd_io.etcd.cache.v3.srvErrOk err }})
 
 instance grpcHandlerOkMd_persistent {Req Rep : ProtoMsg GF} (h : val) (S : IProp GF)
     (Spec : GrpcSpecMd Req Rep) : Persistent (grpcHandlerOkMd h S Spec) := by
   unfold grpcHandlerOkMd; infer_instance
 
 theorem grpcHandlerOk_md {Req Rep : ProtoMsg GF} (h : val) (S : IProp GF)
-    (Spec : GrpcSpec Req Rep) : grpcHandlerOk h S Spec ⊣⊢ grpcHandlerOkMd h S (GrpcSpec.md Spec) :=
-  .rfl
+    (Spec : GrpcSpec Req Rep) : grpcHandlerOk h S Spec ⊣⊢ grpcHandlerOkMd h S (GrpcSpec.md Spec) := by
+  constructor
+  · iintro #Hh
+    unfold grpcHandlerOkMd
+    iintro %m %Φ %Ψe %ci %cd %r !> %Ψ ⟨HS, Hctx, Hrc, Hr, HSpec, #Hall⟩ HΨ
+    iunfold grpcHandlerOk at Hh
+    iapply Hh $$ %m %Φ %ci %cd %r [HS Hctx Hrc Hr HSpec]
+    · iframe
+    inext
+    iintro %resp %err ⟨HS, Hok, #Hse⟩
+    iapply HΨ
+    iframe
+    isplitl
+    · iintro %_
+      iapply Hall
+    · iexact Hse
+  · iintro #Hh
+    unfold grpcHandlerOk
+    iintro %m %Φ %ci %cd %r !> %Ψ ⟨HS, Hctx, Hrc, Hr, HSpec⟩ HΨ
+    iunfold grpcHandlerOkMd at Hh
+    iapply Hh $$ %m %Φ %(fun _ => iprop(True)) %ci %cd %r [HS Hctx Hrc Hr HSpec]
+    · simp only [GrpcSpec.md]
+      iframe
+      imodintro
+      iintro %_
+      itrivial
+    inext
+    iintro %resp %err ⟨HS, Hok, -, #Hse⟩
+    iapply HΨ
+    iframe
+    iexact Hse
 
 /-- **A service method `h` that writes its request meets `Spec` with `S`** (persistent; the auth
 plan's E3za): as `grpcHandlerOk`, also given what the run owns of the decoded request
@@ -192,7 +302,8 @@ def grpcHandlerOwnOk {Req Rep : ProtoMsg GF} (h : val) (S : IProp GF) (Spec : Gr
     {{ S ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ Req.recv r m ∗ Req.recvOwn r m ∗ Spec m Φ }}
       (App (App (Val h) (Val #(GoInterface.ok ci))) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        S ∗ (⌜err = GoInterface.nil⌝ -∗ ∃ m' : Rep.M, Rep.send resp m' ∗ Φ m') }})
+        S ∗ (⌜err = GoInterface.nil⌝ -∗ ∃ m' : Rep.M, Rep.send resp m' ∗ Φ m') ∗
+        go_etcd_io.etcd.cache.v3.srvErrOk err }})
 
 instance grpcHandlerOwnOk_persistent {Req Rep : ProtoMsg GF} (h : val) (S : IProp GF)
     (Spec : GrpcSpec Req Rep) : Persistent (grpcHandlerOwnOk h S Spec) := by
@@ -202,13 +313,15 @@ instance grpcHandlerOwnOk_persistent {Req Rep : ProtoMsg GF} (h : val) (S : IPro
 (persistent): as `grpcHandlerOwnOk`, at the run's metadata. -/
 def grpcHandlerOwnOkMd {Req Rep : ProtoMsg GF} (h : val) (S : IProp GF)
     (Spec : GrpcSpecMd Req Rep) : IProp GF :=
-  iprop(∀ (m : Req.M) (Φ : Rep.M → IProp GF) (ci : GoInterfaceOk)
+  iprop(∀ (m : Req.M) (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF) (ci : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF)) (r : Loc),
     {{ S ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ Req.recv r m ∗ Req.recvOwn r m ∗
-        Spec (metadata.incomingOf (GoInterface.ok ci)) m Φ }}
+        Spec (metadata.incomingOf (GoInterface.ok ci)) m Φ Ψe }}
       (App (App (Val h) (Val #(GoInterface.ok ci))) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        S ∗ (⌜err = GoInterface.nil⌝ -∗ ∃ m' : Rep.M, Rep.send resp m' ∗ Φ m') }})
+        S ∗ (⌜err = GoInterface.nil⌝ -∗ ∃ m' : Rep.M, Rep.send resp m' ∗ Φ m') ∗
+        (⌜err ≠ GoInterface.nil ∧ go_etcd_io.etcd.cache.v3.errDesc err ∈ handlerDescs⌝ -∗
+          Ψe (go_etcd_io.etcd.cache.v3.errDesc err)) ∗ go_etcd_io.etcd.cache.v3.srvErrOk err }})
 
 instance grpcHandlerOwnOkMd_persistent {Req Rep : ProtoMsg GF} (h : val) (S : IProp GF)
     (Spec : GrpcSpecMd Req Rep) : Persistent (grpcHandlerOwnOkMd h S Spec) := by
@@ -220,9 +333,9 @@ theorem grpcHandlerOkMd_own {Req Rep : ProtoMsg GF} (h : val) (S : IProp GF)
     grpcHandlerOkMd h S Spec ⊢ grpcHandlerOwnOkMd h S Spec := by
   iintro #Hh
   unfold grpcHandlerOwnOkMd
-  iintro %m %Φ %ci %cd %r !> %Ψ ⟨HS, #Hctx, #Hrc, #Hr, -, HSpec⟩ HΨ
+  iintro %m %Φ %Ψe %ci %cd %r !> %Ψ ⟨HS, #Hctx, #Hrc, #Hr, -, HSpec⟩ HΨ
   iunfold grpcHandlerOkMd at Hh
-  iapply Hh $$ %m %Φ %ci %cd %r [HS HSpec] HΨ
+  iapply Hh $$ %m %Φ %Ψe %ci %cd %r [HS HSpec] HΨ
   iframe; iframe #
 
 /-- A method that does not write its request meets the spec of one that may. -/
@@ -240,8 +353,37 @@ theorem grpcHandlerOk_own {Req Rep : ProtoMsg GF} (h : val) (S : IProp GF)
 `kv.Compact`, 2026-11-01; as `grpcHandlerOk_md`). -/
 theorem grpcHandlerOwnOk_md {Req Rep : ProtoMsg GF} (h : val) (S : IProp GF)
     (Spec : GrpcSpec Req Rep) :
-    grpcHandlerOwnOk h S Spec ⊣⊢ grpcHandlerOwnOkMd h S (GrpcSpec.md Spec) :=
-  .rfl
+    grpcHandlerOwnOk h S Spec ⊣⊢ grpcHandlerOwnOkMd h S (GrpcSpec.md Spec) := by
+  constructor
+  · iintro #Hh
+    unfold grpcHandlerOwnOkMd
+    iintro %m %Φ %Ψe %ci %cd %r !> %Ψ ⟨HS, Hctx, Hrc, Hr, Hown, HSpec, #Hall⟩ HΨ
+    iunfold grpcHandlerOwnOk at Hh
+    iapply Hh $$ %m %Φ %ci %cd %r [HS Hctx Hrc Hr Hown HSpec]
+    · iframe
+    inext
+    iintro %resp %err ⟨HS, Hok, #Hse⟩
+    iapply HΨ
+    iframe
+    isplitl
+    · iintro %_
+      iapply Hall
+    · iexact Hse
+  · iintro #Hh
+    unfold grpcHandlerOwnOk
+    iintro %m %Φ %ci %cd %r !> %Ψ ⟨HS, Hctx, Hrc, Hr, Hown, HSpec⟩ HΨ
+    iunfold grpcHandlerOwnOkMd at Hh
+    iapply Hh $$ %m %Φ %(fun _ => iprop(True)) %ci %cd %r [HS Hctx Hrc Hr Hown HSpec]
+    · simp only [GrpcSpec.md]
+      iframe
+      imodintro
+      iintro %_
+      itrivial
+    inext
+    iintro %resp %err ⟨HS, Hok, -, #Hse⟩
+    iapply HΨ
+    iframe
+    iexact Hse
 
 /-- An owning service method meeting `Spec` with `S` meets it with more (as `grpcHandlerOk_frame`). -/
 theorem grpcHandlerOwnOk_frame {Req Rep : ProtoMsg GF} (h : val) (S R : IProp GF)
@@ -277,8 +419,8 @@ theorem grpcHandlerOkMd_frame {Req Rep : ProtoMsg GF} (h : val) (S R : IProp GF)
     grpcHandlerOkMd h S Spec ⊢ grpcHandlerOkMd h iprop(S ∗ R) Spec := by
   iintro #Hh
   unfold grpcHandlerOkMd
-  iintro %m %Φ %ci %cd %r !> %Ψ ⟨⟨HS, HR⟩, #Hctx, #Hrc, #Hr, HSpec⟩ HΨ
-  iapply Hh $$ %m %Φ %ci %cd %r [HS HSpec]
+  iintro %m %Φ %Ψe %ci %cd %r !> %Ψ ⟨⟨HS, HR⟩, #Hctx, #Hrc, #Hr, HSpec⟩ HΨ
+  iapply Hh $$ %m %Φ %Ψe %ci %cd %r [HS HSpec]
   · iframe; iframe #
   inext
   iintro %resp %err ⟨HS, Hres⟩
@@ -345,12 +487,19 @@ instance grpcSrvChain_persistent (ics : List GoFunc) (ui : GoFunc) :
 /-- **grpc's `dec` for a call whose request is at `m`** (persistent; part of the trusted
 runtime: the codec's unmarshaling of the request's bytes): called on a zero `*T` the caller owns
 (`Req.blank`) of the method's request type, it decodes the request into it (`Req.recv l m`: the
-decoded copy, read-only; `Req.recvOwn l m`: what the caller still owns of it) or fails. -/
+decoded copy, read-only; `Req.recvOwn l m`: what the caller still owns of it) or fails, with an
+error `status.FromError` accepts (`statusErrOk`; k8s etcd3 7c, HS-6: `serverStream.RecvMsg`'s
+`*status.Error`s and the raw `io.ErrUnexpectedEOF` of its second `recv`, a leaf). That holds for
+`Server.Serve`'s HTTP/2 transport only, the one `grpc.start` covers: under `ServeHTTP`,
+`mapRecvMsgError` returns a raw `transport.ConnectionError`, not a leaf
+(`notes/axiom-review/hs6.md`). -/
 def grpcDecOk (dec : GoFunc) (Req : ProtoMsg GF) (m : Req.M) : IProp GF :=
   iprop(∀ l : Loc, {{ Req.blank l }}
       (App (Val #dec) (Val #(interface.mkOk (go.GoType.PointerType Req.ty) #l : GoInterface)))
     {{ (err : GoInterface), RET #err;
-        (⌜err = GoInterface.nil⌝ ∗ Req.recv l m ∗ Req.recvOwn l m) ∨ ⌜err ≠ GoInterface.nil⌝ }})
+        (⌜err = GoInterface.nil⌝ ∗ Req.recv l m ∗ Req.recvOwn l m) ∨
+          (⌜err ≠ GoInterface.nil ∧ go_etcd_io.etcd.cache.v3.errDesc err ∉ handlerDescs⌝ ∗
+            go_etcd_io.etcd.cache.v3.statusErrOk err) }})
 
 instance grpcDecOk_persistent (dec : GoFunc) (Req : ProtoMsg GF) (m : Req.M) :
     Persistent (grpcDecOk dec Req m) := by
@@ -362,7 +511,9 @@ theorem grpcDecOk_ty (dec : GoFunc) (Req : ProtoMsg GF) (m : Req.M) (T : go.GoTy
     grpcDecOk (GF := GF) dec Req m ⊢ iprop(∀ l : Loc, {{ Req.blank l }}
       (App (Val #dec) (Val #(interface.mkOk (go.GoType.PointerType T) #l : GoInterface)))
     {{ (err : GoInterface), RET #err;
-        (⌜err = GoInterface.nil⌝ ∗ Req.recv l m ∗ Req.recvOwn l m) ∨ ⌜err ≠ GoInterface.nil⌝ }}) := by
+        (⌜err = GoInterface.nil⌝ ∗ Req.recv l m ∗ Req.recvOwn l m) ∨
+          (⌜err ≠ GoInterface.nil ∧ go_etcd_io.etcd.cache.v3.errDesc err ∉ handlerDescs⌝ ∗
+            go_etcd_io.etcd.cache.v3.statusErrOk err) }}) := by
   subst hT; unfold grpcDecOk; exact .rfl
 
 /-- **The method handler `mh` with the service `srv`, under the chain `ics`, meets `Spec` with
@@ -379,7 +530,8 @@ def grpcMethodOk {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface) (ics : L
       (methodHandlerCall mh #srv #(GoInterface.ok ci) dec ui)
     {{ (resp err : GoInterface), RET (PairV #resp #err); S ∗
         (⌜err = GoInterface.nil⌝ -∗ ∃ (l : Loc) (m' : Rep.M),
-          ⌜resp = interface.mkOk (go.GoType.PointerType Rep.ty) #l⌝ ∗ Rep.send l m' ∗ Φ m') }})
+          ⌜resp = interface.mkOk (go.GoType.PointerType Rep.ty) #l⌝ ∗ Rep.send l m' ∗ Φ m') ∗
+        go_etcd_io.etcd.cache.v3.srvErrOk err }})
 
 instance grpcMethodOk_persistent {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface)
     (ics : List GoFunc) (S : IProp GF) (Spec : GrpcSpec Req Rep) :
@@ -392,14 +544,16 @@ E3zb): as `grpcMethodOk`, the run's request precondition at its context's incomi
 `grpcMethodOk` (`grpcMethodOk_md`). -/
 def grpcMethodOkMd {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface) (ics : List GoFunc)
     (S : IProp GF) (Spec : GrpcSpecMd Req Rep) : IProp GF :=
-  iprop(∀ (m : Req.M) (Φ : Rep.M → IProp GF) (ci : GoInterfaceOk)
+  iprop(∀ (m : Req.M) (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF) (ci : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF)) (dec ui : GoFunc),
     {{ S ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req m ∗ grpcSrvChain ics ui ∗
-        Spec (metadata.incomingOf (GoInterface.ok ci)) m Φ }}
+        Spec (metadata.incomingOf (GoInterface.ok ci)) m Φ Ψe }}
       (methodHandlerCall mh #srv #(GoInterface.ok ci) dec ui)
     {{ (resp err : GoInterface), RET (PairV #resp #err); S ∗
         (⌜err = GoInterface.nil⌝ -∗ ∃ (l : Loc) (m' : Rep.M),
-          ⌜resp = interface.mkOk (go.GoType.PointerType Rep.ty) #l⌝ ∗ Rep.send l m' ∗ Φ m') }})
+          ⌜resp = interface.mkOk (go.GoType.PointerType Rep.ty) #l⌝ ∗ Rep.send l m' ∗ Φ m') ∗
+        (⌜err ≠ GoInterface.nil ∧ go_etcd_io.etcd.cache.v3.errDesc err ∈ handlerDescs⌝ -∗
+          Ψe (go_etcd_io.etcd.cache.v3.errDesc err)) ∗ go_etcd_io.etcd.cache.v3.srvErrOk err }})
 
 instance grpcMethodOkMd_persistent {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface)
     (ics : List GoFunc) (S : IProp GF) (Spec : GrpcSpecMd Req Rep) :
@@ -408,8 +562,37 @@ instance grpcMethodOkMd_persistent {Req Rep : ProtoMsg GF} (mh : val) (srv : GoI
 
 theorem grpcMethodOk_md {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface) (ics : List GoFunc)
     (S : IProp GF) (Spec : GrpcSpec Req Rep) :
-    grpcMethodOk mh srv ics S Spec ⊣⊢ grpcMethodOkMd mh srv ics S (GrpcSpec.md Spec) :=
-  .rfl
+    grpcMethodOk mh srv ics S Spec ⊣⊢ grpcMethodOkMd mh srv ics S (GrpcSpec.md Spec) := by
+  constructor
+  · iintro #Hh
+    unfold grpcMethodOkMd
+    iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨HS, Hctx, Hrc, Hd, Hch, HSpec, #Hall⟩ HΨ
+    iunfold grpcMethodOk at Hh
+    iapply Hh $$ %m %Φ %ci %cd %dec %ui [HS Hctx Hrc Hd Hch HSpec]
+    · iframe
+    inext
+    iintro %resp %err ⟨HS, Hok, #Hse⟩
+    iapply HΨ
+    iframe
+    isplitl
+    · iintro %_
+      iapply Hall
+    · iexact Hse
+  · iintro #Hh
+    unfold grpcMethodOk
+    iintro %m %Φ %ci %cd %dec %ui !> %Ψ ⟨HS, Hctx, Hrc, Hd, Hch, HSpec⟩ HΨ
+    iunfold grpcMethodOkMd at Hh
+    iapply Hh $$ %m %Φ %(fun _ => iprop(True)) %ci %cd %dec %ui [HS Hctx Hrc Hd Hch HSpec]
+    · simp only [GrpcSpec.md]
+      iframe
+      imodintro
+      iintro %_
+      itrivial
+    inext
+    iintro %resp %err ⟨HS, Hok, -, #Hse⟩
+    iapply HΨ
+    iframe
+    iexact Hse
 
 /-- **The interceptor `ic` is transparent, with its per-run resource `R`, for requests with
 `Q`** (persistent; unit P3b: what etcd's `newUnaryInterceptor` and `newLogUnaryInterceptor`
@@ -424,9 +607,10 @@ def srvInterceptorOk (ic : GoFunc) (R : IProp GF) (Q : GoInterface → IProp GF)
       (info : Loc) (h : GoFunc) (Ψ : val → IProp GF),
     R -∗ context.isContext ci cd -∗ grpcRunCtx ci -∗ srvInfoIs info -∗ □ Q req -∗
     (WP (srvHandlerCall h #(GoInterface.ok ci) #req)
-        {{ v, ∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗ (R -∗ Ψ v) }} ∧
-      (R -∗ ∀ err : GoInterface, ⌜err ≠ GoInterface.nil⌝ -∗
-        Ψ (PairV #GoInterface.nil #err))) -∗
+        {{ v, ∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗ go_etcd_io.etcd.cache.v3.srvErrOk err ∗ (R -∗ Ψ v) }} ∧
+      (R -∗ ∀ err : GoInterface,
+        ⌜err ≠ GoInterface.nil ∧ go_etcd_io.etcd.cache.v3.errDesc err ∉ handlerDescs⌝ -∗
+        go_etcd_io.etcd.cache.v3.srvErrOk err -∗ Ψ (PairV #GoInterface.nil #err))) -∗
     WP (srvInterceptorCall ic #(GoInterface.ok ci) #req #info h) {{ Ψ }})
 
 instance srvInterceptorOk_persistent (ic : GoFunc) (R : IProp GF) (Q : GoInterface → IProp GF) :
@@ -459,10 +643,11 @@ theorem srvChainWP_of_ok (ics : List GoFunc) (Rs : List (IProp GF)) (ci : GoInte
     srvInterceptorsOk Q ics Rs ∗ ([∗list] R ∈ Rs, R) ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗
       srvInfoIs info ∗ □ Q req ∗
       (WP (srvHandlerCall h #(GoInterface.ok ci) #req)
-          {{ v, ∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗
+          {{ v, ∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗ go_etcd_io.etcd.cache.v3.srvErrOk err ∗
             (([∗list] R ∈ Rs, R) -∗ Ψ v) }} ∧
-        (([∗list] R ∈ Rs, R) -∗ ∀ err : GoInterface, ⌜err ≠ GoInterface.nil⌝ -∗
-          Ψ (PairV #GoInterface.nil #err))) ⊢
+        (([∗list] R ∈ Rs, R) -∗ ∀ err : GoInterface,
+          ⌜err ≠ GoInterface.nil ∧ go_etcd_io.etcd.cache.v3.errDesc err ∉ handlerDescs⌝ -∗
+          go_etcd_io.etcd.cache.v3.srvErrOk err -∗ Ψ (PairV #GoInterface.nil #err))) ⊢
     srvChainWP #info ics h #(GoInterface.ok ci) #req Ψ := by
   induction ics generalizing Rs Ψ with
   | nil =>
@@ -475,8 +660,8 @@ theorem srvChainWP_of_ok (ics : List GoFunc) (Rs : List (IProp GF)) (ci : GoInte
       unfold srvChainWP
       icases H with ⟨H, -⟩
       iapply (wp_mono (Φ := fun v => iprop(∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗
-        (([∗list] R ∈ ([] : List (IProp GF)), R) -∗ Ψ v)))) $$ H
-      iintro %v ⟨%resp, %err, -, HΨ⟩
+        go_etcd_io.etcd.cache.v3.srvErrOk err ∗ (([∗list] R ∈ ([] : List (IProp GF)), R) -∗ Ψ v)))) $$ H
+      iintro %v ⟨%resp, %err, -, -, HΨ⟩
       iapply HΨ
       iapply BigSepL.bigSepL_nil.2
       itrivial
@@ -498,53 +683,128 @@ theorem srvChainWP_of_ok (ics : List GoFunc) (Rs : List (IProp GF)) (ci : GoInte
       isplit
       · iapply Hh'
         iapply (ih Rs (fun v => iprop(∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗
-          (R -∗ Ψ v))))
+          go_etcd_io.etcd.cache.v3.srvErrOk err ∗ (R -∗ Ψ v))))
         iframe #
         iframe
         isplit
         · icases H with ⟨H, -⟩
           iapply (wp_mono (Φ := fun v => iprop(∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗
-            (([∗list] R ∈ R :: Rs, R) -∗ Ψ v)))) $$ H
-          iintro %v ⟨%resp, %err, %Hv, HΨ⟩
+            go_etcd_io.etcd.cache.v3.srvErrOk err ∗ (([∗list] R ∈ R :: Rs, R) -∗ Ψ v)))) $$ H
+          iintro %v ⟨%resp, %err, %Hv, #Hse, HΨ⟩
           iexists resp, err
           isplitr
           · ipureintro; exact Hv
+          iframe Hse
           iintro HRs'
           iexists resp, err
           isplitr
           · ipureintro; exact Hv
+          iframe Hse
           iintro HR'
           iapply HΨ
           iapply (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ R => R) (x := R) (xs := Rs)).2
           iframe
         · icases H with ⟨-, H⟩
-          iintro HRs' %err %Herr
+          iintro HRs' %err %Herr #Hse
           iexists GoInterface.nil, err
           isplitr
           · ipureintro; rfl
+          iframe Hse
           iintro HR'
-          iapply H $$ [HR' HRs'] %err %Herr
+          iapply H $$ [HR' HRs'] %err %Herr Hse
           iapply (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ R => R) (x := R) (xs := Rs)).2
           iframe
       · icases H with ⟨-, H⟩
-        iintro HR' %err %Herr
-        iapply H $$ [HR' HRs] %err %Herr
+        iintro HR' %err %Herr #Hse
+        iapply H $$ [HR' HRs] %err %Herr Hse
         iapply (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ R => R) (x := R) (xs := Rs)).2
         iframe
 
+end defs
+
+/-! ## Per-type message models: the stores and the role-split registries (stage A, CP2) -/
+
+section pertype
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+/-- A unary method's message model with its normalizing store. -/
+structure ProtoMsgT (GF : BundledGFunctors) extends ProtoMsg GF where
+  tree : M → VTree
+
+/-- **`own` is any struct** of the type at some Lean representation (the one the store's type is). -/
+def OwnAny (ty : go.GoType) (own : Loc → IProp GF) : Prop :=
+  ∃ (V : Type) (_ : ZeroVal V) (_ : TypedPointsto (GF := GF) V) (_ : IntoValTyped (GF := GF) V ty),
+    ∀ l, own l ⊣⊢ ∃ v : V, l ↦ v
+
+/-- **A request model is satisfiable** (`[v5]`). -/
+def ProtoMsgT.ReqSat (T : ProtoMsgT GF) : Prop :=
+  BlankZero T.ty T.blank ∧ OwnAny T.ty T.own ∧ (∀ m, T.send null m ⊢ False) ∧
+  ∀ (ls l : Loc) (m : T.M),
+    T.send ls m ∗ ⌜T.wireLen m < grpcMsgMax⌝ ∗ T.blank l ⊢
+      WP (storeInto T.ty l (T.tree m)) {{ _v, T.send ls m ∗ T.recv l m ∗ T.recvOwn l m }}
+
+/-- **A reply model is satisfiable** (`[v5]`): no `wireLen` premise. Since k8s 7e-1 (2026-11-10,
+approved by etcd-grove-81) the store gives `recvOwn` too, as for a request: what of the decoded reply
+the caller owns (`grpcInvokerOk`'s success post). -/
+def ProtoMsgT.RepSat (T : ProtoMsgT GF) : Prop :=
+  BlankZero T.ty T.blank ∧ OwnAny T.ty T.own ∧ (∀ m, T.send null m ⊢ False) ∧
+  ∀ (ls l : Loc) (m : T.M),
+    T.send ls m ∗ T.own l ⊢
+      WP (storeInto T.ty l (T.tree m)) {{ _v, T.send ls m ∗ T.recv l m ∗ T.recvOwn l m }}
+
+/-- A reply model whose `recvOwn` is the default `True` is satisfiable when its store gives `recv`
+(the form of `RepSat` before k8s 7e-1). -/
+theorem ProtoMsgT.repSat_of_recvOwn_true (T : ProtoMsgT GF)
+    (hT : ∀ l m, T.recvOwn l m = iprop(True))
+    (H : BlankZero T.ty T.blank ∧ OwnAny T.ty T.own ∧ (∀ m, T.send null m ⊢ False) ∧
+      ∀ (ls l : Loc) (m : T.M),
+        T.send ls m ∗ T.own l ⊢ WP (storeInto T.ty l (T.tree m)) {{ _v, T.send ls m ∗ T.recv l m }}) :
+    T.RepSat := by
+  obtain ⟨h1, h2, h3, h4⟩ := H
+  refine ⟨h1, h2, h3, fun ls l m => (h4 ls l m).trans (wp_mono fun _ => ?_)⟩
+  rw [hT]
+  iintro ⟨H1, H2⟩
+  isplitl [H1]
+  · iexact H1
+  isplitl [H2]
+  · iexact H2
+  itrivial
+
+/-- **The registry of request models** (`[v5]`: split by role). -/
+opaque grpcReqModelOf {hlc : HasLC} (GF : BundledGFunctors) [GooseExts] [GooseSemantics] [GooseInterp]
+    [GoGlobalContext] [hG : HeapGS hlc GF] [go.Semantics] : go.GoType → Option (ProtoMsgT GF)
+
+/-- **The registry of reply models**. -/
+opaque grpcRepModelOf {hlc : HasLC} (GF : BundledGFunctors) [GooseExts] [GooseSemantics] [GooseInterp]
+    [GoGlobalContext] [hG : HeapGS hlc GF] [go.Semantics] : go.GoType → Option (ProtoMsgT GF)
+
+end pertype
+
+section method
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
 /-- **A method a server registers**: its full name (`"/etcdserverpb.KV/Put"`), its message
-types, its spec, the generated handler its `ServiceDesc`'s `MethodDesc` holds
-(`etcdserverpb._KV_Put_Handler`), and the service value registered with the `ServiceDesc`
-(`RegisterKVServer(s, srv)`'s `srv`, as `any`). -/
-structure GrpcMethod (GF : BundledGFunctors) where
+types (registered, stage A: the request's model is the one `grpcReqModelOf` registers for its Go
+type, the reply's the one `grpcRepModelOf` registers), its spec, the generated handler its
+`ServiceDesc`'s `MethodDesc` holds (`etcdserverpb._KV_Put_Handler`), and the service value
+registered with the `ServiceDesc` (`RegisterKVServer(s, srv)`'s `srv`, as `any`). -/
+structure GrpcMethod (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] where
   name : GoString
-  Req : ProtoMsg GF
-  Rep : ProtoMsg GF
-  spec : GrpcSpecMd Req Rep
+  Req : ProtoMsgT GF
+  Rep : ProtoMsgT GF
+  spec : GrpcSpecMd Req.toProtoMsg Rep.toProtoMsg
   handler : val
   srv : GoInterface
+  reqReg : grpcReqModelOf GF Req.ty = some Req
+  repReg : grpcRepModelOf GF Rep.ty = some Rep
 
-end defs
+end method
 
 /-! ## The opaque facts about grpc's runtime -/
 
@@ -628,8 +888,17 @@ instance isGrpcRpcMd_persistent {Req Rep : ProtoMsg GF} (addr name : GoString)
   unfold isGrpcRpcMd; infer_instance
 
 theorem isGrpcRpc_md {Req Rep : ProtoMsg GF} (addr name : GoString) (Spec : GrpcSpec Req Rep) :
-    isGrpcRpc addr name Spec ⊣⊢ isGrpcRpcMd addr name (GrpcSpec.md Spec) :=
-  .rfl
+    isGrpcRpc addr name Spec ⊣⊢ isGrpcRpcMd addr name (GrpcSpec.md Spec) := by
+  unfold isGrpcRpc isGrpcRpcMd
+  constructor
+  · iintro ⟨%mh, %srv, %ics, %S, #Hs, #Hm⟩
+    iexists mh, srv, ics, S
+    iframe Hs
+    iapply (grpcMethodOk_md mh srv ics S Spec).1 $$ Hm
+  · iintro ⟨%mh, %srv, %ics, %S, #Hs, #Hm⟩
+    iexists mh, srv, ics, S
+    iframe Hs
+    iapply (grpcMethodOk_md mh srv ics S Spec).2 $$ Hm
 
 /-- **The method `name` of every server at `addrs` meets `Spec`** (persistent; D27): what a call
 on a connection to `addrs` needs, wherever grpc's balancer sends the attempt. Reducible, by
@@ -674,10 +943,10 @@ theorem isGrpcRpcs_md {Req Rep : ProtoMsg GF} (addrs : List GoString) (name : Go
   | nil => exact .rfl
   | cons a rest ih =>
     cases rest with
-    | nil => exact .rfl
+    | nil => unfold isGrpcRpcs isGrpcRpcsMd; exact isGrpcRpc_md a name Spec
     | cons b bs =>
       unfold isGrpcRpcs isGrpcRpcsMd
-      exact ⟨sep_mono .rfl ih.1, sep_mono .rfl ih.2⟩
+      exact ⟨sep_mono (isGrpcRpc_md a name Spec).1 ih.1, sep_mono (isGrpcRpc_md a name Spec).2 ih.2⟩
 
 /-- One address's registration is the registrations at the one-element list. -/
 theorem isGrpcRpcs_singleton {Req Rep : ProtoMsg GF} (addr name : GoString)
@@ -729,18 +998,18 @@ theorem isGrpcRpc_mono {Req Rep : ProtoMsg GF} (addr name : GoString)
 /-- A method meeting the metadata-indexed `Spec` meets a stronger `Spec'`. -/
 theorem grpcMethodOkMd_mono {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface)
     (ics : List GoFunc) (S : IProp GF) (Spec Spec' : GrpcSpecMd Req Rep)
-    (h : ∀ md m Φ, Spec' md m Φ ⊢ Spec md m Φ) :
+    (h : ∀ md m Φ Ψe, Spec' md m Φ Ψe ⊢ Spec md m Φ Ψe) :
     grpcMethodOkMd mh srv ics S Spec ⊢ grpcMethodOkMd mh srv ics S Spec' := by
   iintro #Hm
   unfold grpcMethodOkMd
-  iintro %m %Φ %ci %cd %dec %ui !> %Ψ ⟨HS, Hctx, Hrc, Hd, Hch, HSpec⟩ HΨ
-  iapply Hm $$ %m %Φ %ci %cd %dec %ui [HS Hctx Hrc Hd Hch HSpec] HΨ
+  iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨HS, Hctx, Hrc, Hd, Hch, HSpec⟩ HΨ
+  iapply Hm $$ %m %Φ %Ψe %ci %cd %dec %ui [HS Hctx Hrc Hd Hch HSpec] HΨ
   iframe
-  iapply (h _ m Φ) $$ HSpec
+  iapply (h _ m Φ Ψe) $$ HSpec
 
 /-- A registration with the metadata-indexed `Spec` is one with a stronger `Spec'`. -/
 theorem isGrpcRpcMd_mono {Req Rep : ProtoMsg GF} (addr name : GoString)
-    (Spec Spec' : GrpcSpecMd Req Rep) (h : ∀ md m Φ, Spec' md m Φ ⊢ Spec md m Φ) :
+    (Spec Spec' : GrpcSpecMd Req Rep) (h : ∀ md m Φ Ψe, Spec' md m Φ Ψe ⊢ Spec md m Φ Ψe) :
     isGrpcRpcMd addr name Spec ⊢ isGrpcRpcMd addr name Spec' := by
   iintro #H
   iunfold isGrpcRpcMd at H
@@ -749,6 +1018,33 @@ theorem isGrpcRpcMd_mono {Req Rep : ProtoMsg GF} (addr name : GoString)
   iexists mh, srv, ics, S
   iframe Hs
   iapply (grpcMethodOkMd_mono mh srv ics S Spec Spec' h) $$ Hm
+
+/-- A method meeting the metadata-indexed `Spec` meets a `Spec'` that gives `Spec` after an update
+(`Spec` is only the method triple's precondition, where an update is eliminated). -/
+theorem grpcMethodOkMd_mono_upd {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface)
+    (ics : List GoFunc) (S : IProp GF) (Spec Spec' : GrpcSpecMd Req Rep)
+    (h : ∀ md m Φ Ψe, Spec' md m Φ Ψe ⊢ |==> Spec md m Φ Ψe) :
+    grpcMethodOkMd mh srv ics S Spec ⊢ grpcMethodOkMd mh srv ics S Spec' := by
+  iintro #Hm
+  unfold grpcMethodOkMd
+  iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨HS, Hctx, Hrc, Hd, Hch, HSpec⟩ HΨ
+  ihave HSpec := (h _ m Φ Ψe) $$ HSpec
+  imod HSpec
+  iapply Hm $$ %m %Φ %Ψe %ci %cd %dec %ui [HS Hctx Hrc Hd Hch HSpec] HΨ
+  iframe
+
+/-- A registration with the metadata-indexed `Spec` is one with a `Spec'` that gives `Spec` after an
+update. -/
+theorem isGrpcRpcMd_mono_upd {Req Rep : ProtoMsg GF} (addr name : GoString)
+    (Spec Spec' : GrpcSpecMd Req Rep) (h : ∀ md m Φ Ψe, Spec' md m Φ Ψe ⊢ |==> Spec md m Φ Ψe) :
+    isGrpcRpcMd addr name Spec ⊢ isGrpcRpcMd addr name Spec' := by
+  iintro #H
+  iunfold isGrpcRpcMd at H
+  icases H with ⟨%mh, %srv, %ics, %S, #Hs, #Hm⟩
+  unfold isGrpcRpcMd
+  iexists mh, srv, ics, S
+  iframe Hs
+  iapply (grpcMethodOkMd_mono_upd mh srv ics S Spec Spec' h) $$ Hm
 
 /-- A served method handler that meets the metadata-indexed `Spec` registers it. -/
 theorem isGrpcRpcMd_intro {Req Rep : ProtoMsg GF} (addr name : GoString) (mh : val)
@@ -859,27 +1155,73 @@ abbrev interceptorCall (ic : GoFunc) (ctx method req reply cc : val) (inv : GoFu
   App (App (App (App (App (App (App (Val #ic) (Val ctx)) (Val method)) (Val req)) (Val reply))
     (Val cc)) (Val #inv)) (Val opts)
 
-/-- **A context that is never done and whose `Err()` returns `nil`** (persistent; the vertical
-slice's unit V2): `context.TODO()` and `context.Background()` (an `emptyCtx`: `Done()` is `nil`,
-`Err()` is `nil`), and value contexts over them (`valueCtx` delegates `Done` and `Err` to its
-parent: `withVersion`'s metadata context). Not an `isContext` (whose `Done()` is a channel). -/
+/-- **A context's `Deadline()` returns** (persistent; premise fixes 8, N1, approved by
+etcd-grove-81): some time and flag, without panicking. grpc's client calls it on every call
+(`stream.go:520,586`), and its transport on the call's child context, which delegates to it
+(`http2_client.go:573,619,1312`). Any value will do: grpc only compares it with the clock
+(`time.Until`, `Time.After`), and a deadline in the past ends the attempt with a status error, as for
+an `isContext` with a deadline. -/
+def ctxDeadline (ci : GoInterfaceOk) : IProp GF :=
+  iprop(□ ∀ Φ : val → IProp GF, ▷ (∀ (t : _root_.Perennial.time.Time) (b : Bool), Φ (PairV #t #b)) -∗
+    WP (App (Val #(methods ci.ty go!"Deadline" ci.v)) (Val #())) {{ Φ }})
+
+instance ctxDeadline_persistent (ci : GoInterfaceOk) : Persistent (ctxDeadline (GF := GF) ci) := by
+  unfold ctxDeadline; infer_instance
+
+/-- **A context `context.WithCancel` can take as a parent outside Perennial's model** (persistent;
+premise fixes 8, N2 and N3, approved by etcd-grove-81). Go's `propagateCancel` (go1.27.3
+`context.go`), once the parent's `Done()` is not nil, calls `parentCancelCtx(parent)`, which calls
+`parent.Value(&cancelCtxKey)` and dereferences the result if it is a `*cancelCtx` (a nil one panics:
+`TestClientCallCtxPanics`' `errsNilCancelCtx`), then type-asserts `parent.(afterFuncer)` and calls its
+`AfterFunc` if that succeeds; `Cause(parent)` calls `Value(&cancelCtxKey)` too. So: `Value` at
+`&cancelCtxKey` returns something that is not a `*cancelCtx` (`parentCancelCtx` and `Cause` find
+none), and the dynamic type is not in `afterFuncer`'s type set (the assertion fails: Goose's
+`type_assert2_interface_step` decides it by `typeSetContains`, which `go_type_set` evaluates from the
+type's method set; Go's own rule, an `AfterFunc` of another signature does not satisfy it). Then
+`propagateCancel` starts its goroutine, which only calls `Done()`, `Err()` and `Cause` (`ctxDone`,
+`ctxErrsErr`, this). -/
+def ctxWithCancelOk (ci : GoInterfaceOk) : IProp GF :=
+  iprop(EtcdGrove.context.valueAt ci _root_.Perennial.context.cancelCtxKeyAny
+      (fun v => ∀ vi : GoInterfaceOk, v = GoInterface.ok vi →
+        vi.ty ≠ go.GoType.PointerType _root_.Perennial.context.cancelCtx.ty) ∗
+    ⌜go.typeSetContains ci.ty _root_.Perennial.context.afterFuncer.ty = false⌝)
+
+instance ctxWithCancelOk_persistent (ci : GoInterfaceOk) :
+    Persistent (ctxWithCancelOk (GF := GF) ci) := by
+  unfold ctxWithCancelOk; infer_instance
+
+/-- **A context that is never done: its `Done()` returns the nil channel and its `Err()` returns
+`nil`** (persistent; the vertical slice's unit V2): `context.TODO()` and `context.Background()` (an
+`emptyCtx`: `Done()` is `nil`, `Err()` is `nil`), and value contexts over them (`valueCtx` delegates
+`Done` and `Err` to its parent: `withVersion`'s metadata context). Not an `isContext` (whose `Done()`
+is a channel). (Premise fixes 5, 2026-11-10, approved by etcd-grove-81) With `Done()`: until then
+only `Err()` was stated, so the axioms taking `ctxOk` that select on `ctx.Done()`
+(`waitRetryBackoff`, grpc's `Invoke` and `NewStream`) covered a context whose `Done()` panics or is
+closed while `Err()` is `nil`, on which Go panics (`notes/axiom-review/ctxok-done.md`). (Premise
+fixes 8, N1, approved by etcd-grove-81) With `Deadline()` (`ctxDeadline`), which grpc calls on every
+call. No `Value`/`AfterFunc` clause: with a nil `Done()`, `propagateCancel` returns at once. -/
 def ctxQuiet (ci : GoInterfaceOk) : IProp GF :=
-  iprop(□ ∀ Φ : val → IProp GF, ▷ Φ #(GoInterface.nil) -∗
-    WP (App (Val #(methods ci.ty go!"Err" ci.v)) (Val #())) {{ Φ }})
+  iprop((□ ∀ Φ : val → IProp GF, ▷ Φ #chan.nil -∗
+      WP (App (Val #(methods ci.ty go!"Done" ci.v)) (Val #())) {{ Φ }}) ∗
+    (□ ∀ Φ : val → IProp GF, ▷ Φ #(GoInterface.nil) -∗
+      WP (App (Val #(methods ci.ty go!"Err" ci.v)) (Val #())) {{ Φ }}) ∗
+    ctxDeadline ci)
 
 instance ctxQuiet_persistent (ci : GoInterfaceOk) : Persistent (ctxQuiet (GF := GF) ci) := by
   unfold ctxQuiet; infer_instance
 
-/-- **A context whose `Err()` follows Go's contract, with client errors** (persistent; 2026-11-04,
+/-- **The `Err()` half of `ctxErrs`: Go's contract of `Err()`, with client errors** (persistent; 2026-11-04,
 K4 of `notes/k8s-compactor-plan.md`, the user's approval): `Err()` returns `nil`, or, once the
 context is done (`ContextClosed cd.Done_gn`), a non-nil error; a non-nil error means it is done, and
 is a client error grpc's `status` accepts (`clientErr`, `statusErrOk`, `errCellOk`: true of
-`context.Canceled` and `DeadlineExceeded`, the only errors Go lets `Err()` return). Nothing about
-`Done()`. The client's `ctxErrClient` has this body (`ctxErrClient_eq_errs`). It is what a context
+`context.Canceled` and `DeadlineExceeded`, the only errors Go lets `Err()` return), whose
+description is not a handler's (`handlerDescs`; k8s etcd3 7c, HS-5 (a), approved by the user
+2026-11-06 via etcd-grove-82: grpc returns `status.FromContextError(ctx.Err())`, which keeps the
+message, so an attempt's error would carry it with no handler run). The client's `ctxErrClient` has this body (`ctxErrClient_eq_errs`); `ctxErrs` adds `Done()`'s (`ctxDone`, premise fixes 5). It is what a context
 outside Perennial's model meets: k8s's `wait.ContextForChannel(stopCh)` (a `channelContext`, whose
 `Done()` is `stopCh` and whose `Err()` is `Canceled` once `stopCh` is closed; not an `isContext`,
 whose `parentCancelCtx` finds a `*cancelCtx`). -/
-def ctxErrs (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) : IProp GF :=
+def ctxErrsErr (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) : IProp GF :=
   iprop(□ ∀ (cl : Broadcast) (Φ : val → IProp GF),
     (match cl with
      | .Done => context.ContextClosed cd.Done_gn
@@ -890,8 +1232,49 @@ def ctxErrs (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) : IProp G
          | _ => if err = interface.nil then iprop(True)
                 else context.ContextClosed cd.Done_gn) -∗
         ⌜clientErr err⌝ -∗ go_etcd_io.etcd.cache.v3.statusErrOk err -∗
-        go_etcd_io.etcd.cache.v3.errCellOk err -∗ Φ #err) -∗
+        go_etcd_io.etcd.cache.v3.errCellOk err -∗
+        ⌜err = interface.nil ∨ go_etcd_io.etcd.cache.v3.errDesc err ∉ handlerDescs⌝ -∗ Φ #err) -∗
     WP (App (Val #(methods ci.ty go!"Err" ci.v)) (Val #())) {{ Φ }})
+
+instance ctxErrsErr_persistent (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
+    Persistent (ctxErrsErr (GF := GF) ci cd) := by
+  unfold ctxErrsErr; infer_instance
+
+/-- **`ch` is a Done channel of a context described by `cd`** (persistent; premise fixes 5,
+2026-11-10, approved by etcd-grove-81): the nil channel (a receive from it never proceeds), or a
+broadcast channel (only ever closed; `isBroadcastChanInternal`, whose done flag holds once it is
+closed) whose done flag means the context is done (`ContextClosed cd.Done_gn`; then `Err()` is not
+`nil`, `ctxErrsErr`'s `.Done` case). Go's contract: "If Done is closed, Err returns a non-nil
+error". -/
+def ctxDoneCh (cd : context.ContextDesc (IProp GF)) (ch : GoChan) : IProp GF :=
+  iprop(⌜ch = chan.nil⌝ ∨ ∃ (γ : ChanNames) (γi : BroadcastInternalNames) (Q : IProp GF),
+    isBroadcastChanInternal ch γ γi Q ∗
+    □ (dghostVar γi.doneGn DFrac.discard true -∗ context.ContextClosed cd.Done_gn))
+
+instance ctxDoneCh_persistent (cd : context.ContextDesc (IProp GF)) (ch : GoChan) :
+    Persistent (ctxDoneCh (GF := GF) cd ch) := by
+  unfold ctxDoneCh; infer_instance
+
+/-- **A context's `Done()` returns, without panicking, a Done channel** (`ctxDoneCh`; persistent;
+premise fixes 5). -/
+def ctxDone (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) : IProp GF :=
+  iprop(□ ∀ Φ : val → IProp GF, ▷ (∀ ch : GoChan, ctxDoneCh cd ch -∗ Φ #ch) -∗
+    WP (App (Val #(methods ci.ty go!"Done" ci.v)) (Val #())) {{ Φ }})
+
+instance ctxDone_persistent (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
+    Persistent (ctxDone (GF := GF) ci cd) := by
+  unfold ctxDone; infer_instance
+
+/-- **A context that follows Go's contract, with client errors** (persistent; 2026-11-04, K4 of
+`notes/k8s-compactor-plan.md`): its `Done()` returns a Done channel (`ctxDone`: nil, or one whose
+closing means the context is done; premise fixes 5, 2026-11-10, approved by etcd-grove-81: until
+then nothing about `Done()`, `notes/axiom-review/ctxok-done.md`), and its `Err()` follows Go's
+contract with client errors (`ctxErrsErr`). It is what a context outside Perennial's model meets:
+k8s's `wait.ContextForChannel(stopCh)` (`chanCtx_ok`). (Premise fixes 8, N1-N3, approved by
+etcd-grove-81) And its `Deadline()` returns (`ctxDeadline`), and `WithCancel` can take it as a parent
+(`ctxWithCancelOk`: `Value(&cancelCtxKey)` is no `*cancelCtx`, no `AfterFunc`). -/
+def ctxErrs (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) : IProp GF :=
+  iprop(ctxDone ci cd ∗ ctxErrsErr ci cd ∗ ctxDeadline ci ∗ ctxWithCancelOk ci)
 
 instance ctxErrs_persistent (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
     Persistent (ctxErrs (GF := GF) ci cd) := by
@@ -904,23 +1287,36 @@ to every call), or (2026-11-04) one whose `Err()` follows Go's contract with cli
 client interceptor accept any: the trust boundary's contracts below (`grpcInvokerOk`; the
 client's `withVersion`, `waitRetryBackoff`) are stated for `ctxOk`, true of Go's quiet contexts as
 of the others (a `nil` `Done()` channel never fires; grpc turns a done context's error into a
-status error, `status.FromContextError`, and `waitRetryBackoff` likewise, `contextErrToGRPCErr`);
+status error, `status.FromContextError`, and `waitRetryBackoff` likewise, `contextErrToGRPCErr`;
+since premise fixes 5 each case states `Done()`, which these select on);
 the client's token fetch (`getToken`, `refreshToken`) also takes `ctxErrClient` (its
-`ContextError`). -/
+`ContextError`). (Premise fixes 8, approved by etcd-grove-81) In every case, its outgoing
+metadata is grpc's (`metadata.outgoingCtxOkC`, the chain form, `Proof/context/LibKeysChain.lean`):
+grpc reads it on every call (`stream.go:322,513`, `http2_client.go:579,940`), and etcd's
+`withVersion` itself. -/
 def ctxOk (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) : IProp GF :=
-  iprop(context.isContext ci cd ∨ ctxQuiet ci ∨ ctxErrs ci cd)
+  iprop((context.isContext ci cd ∨ ctxQuiet ci ∨ ctxErrs ci cd) ∗ metadata.outgoingCtxOkC ci)
 
 instance ctxOk_persistent (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
     Persistent (ctxOk (GF := GF) ci cd) := by
   unfold ctxOk; infer_instance
 
 theorem ctxOk_of_isContext (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
-    context.isContext (GF := GF) ci cd ⊢ ctxOk ci cd := by
-  iintro #H; unfold ctxOk; ileft; iexact H
+    context.isContext (GF := GF) ci cd ∗ metadata.outgoingCtxOkC ci ⊢ ctxOk ci cd := by
+  iintro ⟨#H, #Ho⟩; unfold ctxOk; iframe Ho; ileft; iexact H
 
 theorem ctxOk_of_errs (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
-    ctxErrs (GF := GF) ci cd ⊢ ctxOk ci cd := by
-  iintro #H; unfold ctxOk; iright; iright; iexact H
+    ctxErrs (GF := GF) ci cd ∗ metadata.outgoingCtxOkC ci ⊢ ctxOk ci cd := by
+  iintro ⟨#H, #Ho⟩; unfold ctxOk; iframe Ho; iright; iright; iexact H
+
+theorem ctxOk_of_quiet (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
+    ctxQuiet (GF := GF) ci ∗ metadata.outgoingCtxOkC ci ⊢ ctxOk ci cd := by
+  iintro ⟨#H, #Ho⟩; unfold ctxOk; iframe Ho; iright; ileft; iexact H
+
+/-- `ctxOk`'s outgoing-metadata clause. -/
+theorem ctxOk_outgoingC (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
+    ctxOk (GF := GF) ci cd ⊢ metadata.outgoingCtxOkC ci := by
+  iintro #H; unfold ctxOk; icases H with ⟨-, #Ho⟩; iexact Ho
 
 /-- **A method of etcd's KV service** (`/etcdserverpb.KV/Range`, `Put`, `DeleteRange`, `Txn`,
 `Compact`: the full method names grpc sends; 2026-10-23). -/
@@ -999,7 +1395,8 @@ metadata-indexed, `GrpcSpecMd`: a plain spec is `GrpcSpec.md`), returns
   answered, and `out` holds the reply's copy of its response (`Rep.recv out m'`) with the run's `Φ m'`;
 * an error: a client error (`clientErr`: a leaf error, possibly an `EtcdError`; a gRPC status error)
   that grpc's `status` accepts (`statusErrOk`), and `out` back (`Rep.own`); nothing about whether
-  the handler ran.
+  the handler ran, except (k8s etcd3 7c-1) for an error whose description only a handler makes
+  (`handlerDescs`): the caller's error outcome `Ψe` at it, which the handler's run gave.
 
 Since 2026-10-19 (D21 M6, D21j, the user's choice) the request's precondition is ordinary (until
 then `□ ▷ Spec m Φ`, persistent): an attempt delivers the request to at most one run of the
@@ -1027,24 +1424,64 @@ accepts, whose dynamic type is then not `*errors.errorString` (an `errorString` 
 
 Since 2026-10-30 (the axiom review `txn-nested-wire`) the request's encoding is below `grpcMsgMax`
 (`Req.wireLen`): grpc marshals before it checks a size, and the codec's allocation panics above
-Go's `maxAlloc`. -/
+Go's `maxAlloc`.
+
+Since stage A of the per-type models (2026-11-07, `notes/per-type-blockers.md`) the request's and
+the reply's models are the ones registered for their Go types (`grpcReqModelOf`,
+`grpcRepModelOf`): a caller cannot choose a model of its own, and each registered model's
+`ProtoMsgT.ReqSat`/`RepSat` is proved.
+
+Since k8s 7e-1 (2026-11-10, approved by etcd-grove-81) the error's dynamic type is one of
+`clientErrTys` (through `clientErr`): `*status.Error` (`toRPCErr`, `status.Error`,
+`status.FromContextError`), `*errors.errorString` (`io.EOF`), and the two other types of the list,
+which no attempt returns. True of grpc-go v1.84 under etcd's configuration only, the bounds of this
+claim: no dial option beyond `GrpcDialOpt`'s (`dialOptsAt`), per-RPC credentials that return no
+error (`perRPCCredsOk`: a credentials error carrying a status is returned unchanged, or wrapped with
+`%w`, `http2_client.go:697-702`), and a service config without a retry policy (`grpcResolverAt`:
+an exhausted retry policy wraps the last error, `stream.go:867`). The evidence for this
+attempt-level claim is `examples/k8s7e1attack` (the axiom-skill attack programs): `invoker`'s
+`TestTypes` calls the bare invoker the way etcd's interceptor gets it and requires `nil` or
+`*status.Error` for a server status, a context canceled or expired before or during the attempt, a
+closed and a refused connection (and prints the out-of-bounds cases: a credentials error carrying a
+status, or wrapping one, and an exhausted retry policy, which `retrycx` shows for a stream);
+`eof` shows `io.EOF`'s and `status.Error`'s types. `examples/k8s/etcd3`'s `TestClientErrorTypes` (gates
+9c) observes only the client's results, after `ContextError` and `rpctypes.Error` have converted the
+attempt's error: evidence for the post-processed types (`clientErr`), not for this claim.
+
+Since k8s 7e-1 (2026-11-10, approved by etcd-grove-81) a success also gives the caller what the
+reply's model says it owns of the decoded reply (`Rep.recvOwn out m'`; `RepSat` proves the store
+gives it; for `RangeResponse` the `Kvs` slice's cells, which Kubernetes' store overwrites). True of
+grpc-go v1.84 with protobuf-go v2 under these bounds only: `EnableTracing` is false (grpc's package
+fact `grpcInit`, which `ClientConn.Invoke`'s `isPkgInit` carries; with tracing on, grpc keeps every
+reply, `stream.go` `LazyLog(&payload{msg: m})`, and formats it later on `/debug/requests`: a data
+race with the caller's writes, reproduced by the attack's `TestTracingRace`,
+`notes/k8s-7e-1-handoff.md`); grpc's default proto codec (`proto.Unmarshal` resets the reply and
+decodes a repeated message field into a fresh array, bytes fields copied out of the receive buffer);
+no stats handler or interceptor keeping the reply (`InPayload.Payload`; `dialOptsAt` admits none,
+etcd's interceptors keep nothing); reply types protobuf-go v2 generated code (no custom `Unmarshal`).
+Checked by `examples/k8s/etcd3`'s `TestDefaultNoRace` (`-race`, in the gates). -/
 def grpcInvokerOk (conn : Loc) (addrs : List GoString) (inv : GoFunc) : IProp GF :=
-  iprop(□ ∀ (method : GoString) (Req Rep : ProtoMsg GF) (Spec : GrpcSpecMd Req Rep) (m : Req.M)
-      (Φ : Rep.M → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+  iprop(□ ∀ (method : GoString) (Req Rep : ProtoMsgT GF)
+      (_ : grpcReqModelOf GF Req.ty = some Req) (_ : grpcRepModelOf GF Rep.ty = some Rep)
+      (Spec : GrpcSpecMd Req.toProtoMsg Rep.toProtoMsg) (m : Req.M)
+      (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF) (ctx : GoInterfaceOk)
+      (cd : context.ContextDesc (IProp GF))
       (inp out : Loc) (opts : GoSlice) (vs : List GoInterface) (ps : List Loc),
     {{ isGrpcRpcsMd addrs method Spec ∗
-        ▷ (∀ md, ⌜grpcAttemptMd conn (GoInterface.ok ctx) md⌝ -∗ Spec md m Φ) ∗
+        ▷ (∀ md, ⌜grpcAttemptMd conn (GoInterface.ok ctx) md⌝ -∗ Spec md m Φ Ψe) ∗
         ctxOk ctx cd ∗ Req.send inp m ∗ ⌜Req.wireLen m < grpcMsgMax⌝ ∗
         Rep.own out ∗ opts ↦*□ vs ∗ ⌜∀ v ∈ vs, grpcOptOk ps v⌝ ∗ ([∗list] p ∈ ps, grpcPeerBuf p) }}
       (invokerCall inv #(GoInterface.ok ctx) #method
         #(interface.mkOk (go.GoType.PointerType Req.ty) #inp : GoInterface)
         #(interface.mkOk (go.GoType.PointerType Rep.ty) #out : GoInterface) #conn #opts)
     {{ (err : GoInterface), RET #err; Req.send inp m ∗ ([∗list] p ∈ ps, grpcPeerBuf p) ∗
-        ((⌜err = GoInterface.nil⌝ ∗ ∃ m' : Rep.M, Rep.recv out m' ∗ Φ m') ∨
+        ((⌜err = GoInterface.nil⌝ ∗ ∃ m' : Rep.M, Rep.recv out m' ∗ Rep.recvOwn out m' ∗ Φ m') ∨
           (⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗
             go_etcd_io.etcd.cache.v3.errCellOk err ∗ Rep.own out ∗
             ⌜(kvMethod method ∧ ∀ a ∈ addrs, noRefusalAt a) →
-              go_etcd_io.etcd.cache.v3.noRefusal err⌝)) }})
+              go_etcd_io.etcd.cache.v3.noRefusal err⌝ ∗
+            (⌜go_etcd_io.etcd.cache.v3.errDesc err ∈ handlerDescs⌝ -∗
+              Ψe (go_etcd_io.etcd.cache.v3.errDesc err)))) }})
 
 instance grpcInvokerOk_persistent (conn : Loc) (addrs : List GoString) (inv : GoFunc) :
     Persistent (grpcInvokerOk (GF := GF) conn addrs inv) := by
@@ -1060,8 +1497,12 @@ def credsMapIs (mp : Loc) (cm : GrpcMd) : IProp GF :=
     ⌜cm = (some fun k => (m !! k).map fun v => [v]) ∧ ∀ k v, m !! k = some v → metadata.lowerKey k⌝)
 
 /-- **The per-RPC credentials `pc` return metadata meeting `Q`** (persistent; the auth plan's C1,
-2026-10-28): each call of `pc.GetRequestMetadata(ctx, uri...)` that returns no error returns a map
-whose metadata `cm` has `□ Q cm` (what grpc sends with an attempt, `connCredsOk`); and
+2026-10-28): each call of `pc.GetRequestMetadata(ctx, uri...)` returns no error (k8s 7e-1,
+2026-11-10, a soundness fix decided by etcd-grove-81: it allowed any error whose description is not a
+handler's, but grpc-go v1.84 returns a credentials error that carries a status, or wraps one with
+`%w`, unchanged as the attempt's (`http2_client.go:697-702`), a `*fmt.wrapError` or the caller's own
+type: neither a leaf nor of `clientErrTys`, so `grpcInvokerOk`/`cliStreamErr` overclaimed under such
+credentials; etcd's `perRPCCredential` returns `nil`), and, a map whose metadata `cm` has `□ Q cm` (what grpc sends with an attempt, `connCredsOk`); and
 `pc.RequireTransportSecurity()` can be called (grpc calls it at the dial to refuse credentials that
 need a secure transport on an insecure one; C1's review, F4). -/
 def perRPCCredsOk (pc : GoInterface) (Q : GrpcMd → IProp GF) : IProp GF :=
@@ -1071,7 +1512,8 @@ def perRPCCredsOk (pc : GoInterface) (Q : GrpcMd → IProp GF) : IProp GF :=
           google_golang_org.grpc.credentials.PerRPCCredentials.ty go!"GetRequestMetadata")))
         (Val #pc)) (Val #ctx)) (Val #sl))
     {{ (mp : Loc) (err : GoInterface), RET (PairV #mp #err);
-        ⌜err = GoInterface.nil⌝ -∗ ∃ cm, credsMapIs mp cm ∗ □ Q cm }}) ∗
+        ⌜err = GoInterface.nil⌝ ∗
+        (⌜err = GoInterface.nil⌝ -∗ ∃ cm, credsMapIs mp cm ∗ □ Q cm) }}) ∗
     □ {{ True }}
       (App (App (Val (GoInstruction (MethodResolve
           google_golang_org.grpc.credentials.PerRPCCredentials.ty go!"RequireTransportSecurity")))
@@ -1120,10 +1562,11 @@ theorem grpcInvokerOk_of_wp (conn : Loc) (addr : List GoString) (inv inv' : GoFu
     grpcInvokerOk conn addr inv' := by
   iintro ⟨#Hinv, #Hw⟩
   unfold grpcInvokerOk
-  iintro !> %method %Req %Rep %Spec %m %Φ %ctx %cd %inp %out %opts %vs %ps
+  iintro !> %method %Req %Rep %hreq %hrep %Spec %m %Φ %Ψe %ctx %cd %inp %out %opts %vs %ps
   iintro %Ψ !> Hpre HΨ
   iapply Hw
-  iapply Hinv $$ Hpre HΨ
+  iapply Hinv $$ %method %Req %Rep %hreq %hrep %Spec %m %Φ %Ψe %ctx %cd %inp %out %opts %vs %ps %Ψ
+    Hpre HΨ
 
 end client
 

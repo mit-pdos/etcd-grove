@@ -40,6 +40,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvAuthServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvLease
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseCheck
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Base
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StopReaders
 
 @[expose] public section
 
@@ -114,16 +115,17 @@ theorem utf8Keys_insert (M : GMap GoString GoSlice) (n : GoString) (sl : GoSlice
   · exact hM k h'
 
 /-- **`bootstrap`'s configuration conditions at either start** (`bootCfgOk`; 2026-11-03, the
-whole-`bootOk` review, C) from the fields a configuration literal sets: a logger, the default quota,
+whole-`bootOk` review, C) from the fields a configuration literal sets: the default quota,
 batch limit and bootstrap defragmentation (zero), raft's `10` ticks (2026-11-03, the boot premises:
-the clock no longer `bootCfgOk`'s; `raftNode.bootCfg_of` takes it). -/
+the clock no longer `bootCfgOk`'s; `raftNode.bootCfg_of` takes it; sweep repairs 1, R1-2: the logger
+no longer `bootCfgOk`'s, `zapLoggerOk` in `bootstrap`'s contract). -/
 theorem bootCfgOk_of (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
-    (hlg : cfg.Logger' ≠ null) (hq : cfg.QuotaBackendBytes' = W64 0)
+    (hq : cfg.QuotaBackendBytes' = W64 0)
     (hbl : cfg.BackendBatchLimit' = W64 0)
     (hdf : cfg.BootstrapDefragThresholdMegabytes' = W64 0)
     (het : cfg.ElectionTicks' = W64 10) : bootCfgOk cfg := by
   have hl : storage.openLimit cfg = W64 10000 := by unfold storage.openLimit; rw [if_pos hbl]
-  refine ⟨hlg, storage.openMmapOk_of_quota_zero cfg hq, ?_, ?_, hdf, ?_⟩
+  refine ⟨storage.openMmapOk_of_quota_zero cfg hq, ?_, ?_, hdf, ?_⟩
   · rw [hl]; decide
   · rw [hl]; decide
   · rw [het]; decide
@@ -195,51 +197,62 @@ theorem bootPremise_of (N : Nat) (ps : List w64) (bootLog : List EntryM) (ctxs :
 
 /-- **The premises shared by the members** (see the file header). -/
 def commonPremises : IProp GF :=
-  iprop(rnLoggerZapOk ∗ rnSetLoggerOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk ∗
+  iprop(rnLoggerZapOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk ∗
     v3rpc.runsNoRequireLeader)
 
 instance commonPremises_persistent : Persistent (commonPremises (GF := GF)) := by
   unfold commonPremises; infer_instance
 
-/-- **The stand-in apply environment** (`NewServer.spec`'s `E₀`): the store's index names, its
-certificate map and the revisions' map, and (M2, the storage side, review round 2's N1) the member's
-compaction mode (`cmp`, `false` by default); `envAgree` reads nothing else. -/
-def env₀ (idx : mvcc.IdxNames) (cok rev : GName) (cmp : Bool := false) : apply.AEnv GF :=
-  { s := null,
-    γ := { idx := idx, bucket := 0, clog := 0, leases := 0, revs := 0, hook := 0, hookFn := 0,
-           kb := none, cmeta := 0, fin := 0, sch := ⟨0, 0, 0⟩, cok := cok, watchQ := false },
-    P := iprop(True), f := #(), RD := iprop(True), γrev := rev, authMode := .off,
+/-- **The stand-in apply environment** (`NewServer.spec`'s `E₀`): the server's names of the store's
+state `γs`, the revisions' map `rev`, the store's witness `Nx` and (M2, the storage side, review
+round 2's N1) the member's compaction mode (`cmp`, `false` by default); `envAgree` reads nothing
+else. (R9, 2026-11-07, the `lean` merge: until then the store's index names and certificate map,
+`idx`/`cok`, gone with mvcc's internals; the store's name `γm` is any, `envAgree` does not read it.) -/
+def env₀ (γm : mvcc.api.MvccName) (γs : srvApi.KVSNames) (rev : GName) (Nx : mvcc.Log → IProp GF)
+    (cmp : Bool := false) : apply.AEnv GF :=
+  { kv := GoInterface.nil, γ := γm, γs := γs, Nx := Nx, Pk := fun _ => iprop(True),
+    f := func.nil, RD := iprop(True), γrev := rev, authMode := .off,
     FS := iprop(True), ciC := fun _ _ => True, RO := fun _ => iprop(True), RW := iprop(True),
-    γbe := 0, cmp := cmp }
+    γbe := 0, Cp := fun _ => iprop(True), BkTie := fun _ => iprop(True), cmp := cmp }
 
-theorem env₀_cmp (idx : mvcc.IdxNames) (cok rev : GName) (cmp : Bool) :
-    (env₀ (GF := GF) idx cok rev cmp).cmp = cmp := rfl
+theorem env₀_cmp (γm : mvcc.api.MvccName) (γs : srvApi.KVSNames) (rev : GName)
+    (Nx : mvcc.Log → IProp GF) (cmp : Bool) :
+    (env₀ (GF := GF) γm γs rev Nx cmp).cmp = cmp := rfl
 
 /-- **What member `id`'s `NewServer` takes of the ghost state** (its pure facts, the cluster's
 resources at its names, its share): `NewServer.spec`'s precondition but the network's and the
 premises'; and (M2, the storage side, review round 2's N1, the approval's item 12) the member's
-compaction mode `cmp` (default `false`), recorded as the stand-in's (`E₀.cmp = cmp`). -/
+compaction mode `cmp` (default `false`), recorded as the stand-in's (`E₀.cmp = cmp`); (the
+lease-expiry plan's X2, 2026-11-04, the user's (a)) the member's lease mode `m` (default `none`), the
+mode of its lease subsystem's sealed premise (`lease.runCfg`), which each example picks. -/
 def memberBoot (γ : SrvRaft) (ctxs : List (List w8))
     (ρ : ReqNames) (E₀ : apply.AEnv GF) (Φs : w64 → w64 → List w8 → GName → IProp GF) (id : w64)
-    (cmp : Bool := false) : IProp GF :=
+    (cmp : Bool := false) (m : lease.Mode := .none) : IProp GF :=
   iprop(⌜ρ.rd.raft = ⟨γ, [], W64 0⟩ ∧
       ρ.rd.kv.c0 = W64 0 ∧ ρ.rd.kv.ch0 = apply.alarmChain false false false ∧
-      ρ.rd.kv.log0 = [[], []] ∧ ρ.rd.kv.cok = E₀.γ.cok ∧
+      ρ.rd.kv.log0 = [[], []] ∧
       ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧ Φs ρ.ids.pfx = srvFloorFact E₀ ∧ E₀.cmp = cmp ∧
       ρ.rd.kv.cmp = cmp ∧
+      -- (R9, 2026-11-07, the `lean` merge) the stand-in's store witness the server's at the read
+      -- names (`NewServer.specG`'s premise)
+      E₀.Nx = srvApi.kvNx ρ.rd false ∧
       -- (2026-11-02, the lease-grant plan's D2) `NewServer`'s premise on a cluster that grants
-      -- leases (the open cases, `srvGrantOpen`): `alloc1`'s names grant none
-      (ρ.rd.kv.lg = true → lease.leasesNoExpiry ∧ srvGrantOpen (GF := GF))⌝ ∗
+      -- leases (the open cases, `srvGrantOpen`): `alloc1`'s names grant none; (2026-11-04, the
+      -- lease-expiry plan's Part C) as the lease subsystem's sealed premise, (X2) at the mode `m`
+      lease.runCfg (GF := GF) ρ.rd.kv.lm m⌝ ∗
     -- (2026-10-27, the server port) the node API's boot token of the member and the server's raft
     -- invariant (until then raft's ghost state, its committed bootstrap log and the term budget)
     (nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ raftState γ.cl id RaftState.init ∗
       nodeVacant γ.cl id) ∗ srvRaftLogInv ρ.rd.raft ∗
     idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts ∗
-    idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γ.idx ∗ idNoZero ρ.ids ∗
+    idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γs.slog ∗ idNoZero ρ.ids ∗
     srvPropMint ρ.rd.raft ρ.ids ∗ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
     idShare ρ.ids ∗ idWaitTok ρ.ids ∗
-    mvcc.idxFresh E₀.γ.idx ∗
-    ghostMapAuth E₀.γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗
+    -- (R9, 2026-11-07, the `lean` merge; `NewServer.specG`'s) the server's names of the store's
+    -- state fresh (until then mvcc's `idxFresh E₀.γ.idx`) and the read names' certificate map
+    -- (until then the store's, `ρ.rd.kv.cok = E₀.γ.cok`)
+    srvApi.newServerStoreFreshA E₀.γs ∗
+    ghostMapAuth ρ.rd.kv.cok 1 (∅ : GMap w64 mvcc.Log) ∗
     ghostMapAuth E₀.γrev 1 (∅ : GMap w64 Unit) ∗
     srvReadNamesFreshNK ρ.rd ∗ kvInv ρ.rd.raft ρ.rd.kv ∗
     -- (2026-10-27, the server port) the member's storage registry, empty, at the names' (`SrvRaft.reg`;
@@ -253,27 +266,38 @@ def memberBoot (γ : SrvRaft) (ctxs : List (List w8))
 `Main` keeps before `newServer` takes the bundle; `newServer` gives it to `NewServer.spec`'s
 premise). -/
 theorem memberBoot_cmp (γ : SrvRaft) (ctxs : List (List w8)) (ρ : ReqNames) (E₀ : apply.AEnv GF)
-    (Φs : w64 → w64 → List w8 → GName → IProp GF) (id : w64) (cmp : Bool) :
-    memberBoot γ ctxs ρ E₀ Φs id cmp ⊢ ⌜E₀.cmp = cmp⌝ ∗ memberBoot γ ctxs ρ E₀ Φs id cmp := by
+    (Φs : w64 → w64 → List w8 → GName → IProp GF) (id : w64) (cmp : Bool) (m : lease.Mode := .none) :
+    memberBoot γ ctxs ρ E₀ Φs id cmp m ⊢ ⌜E₀.cmp = cmp⌝ ∗ memberBoot γ ctxs ρ E₀ Φs id cmp m := by
   iintro H
   iunfold memberBoot at H
   icases H with ⟨%Hρ, Hr⟩
   isplitr
-  · ipureintro; exact Hρ.2.2.2.2.2.2.2.1
+  · ipureintro; exact Hρ.2.2.2.2.2.2.1
   iunfold memberBoot
   isplitr
   · ipureintro; exact Hρ
   iexact Hr
 
-/-- **The lessor's reader side** (persistent; the closed lease example, 2026-11-02,
-`notes/lease-ex-plan.md`): `NewServer`'s `srvLessorRd` and `lessorRdPool`, which the served lease
-reads take (`raftLeaseRead_server`). -/
-def srvLeaseRd (s : Loc) (E : apply.AEnv GF) : IProp GF :=
-  iprop(srvLessorRd s E.γ.leases ∗ lease.lessorRdPool E.γ.leases)
+/-- **The lease subsystem's part of the built server, at the lease mode `m`** (persistent; the
+closed lease example, 2026-11-02, `notes/lease-ex-plan.md`): (the lease-expiry plan's X2,
+2026-11-04, the user's (a)) `NewServer`'s `lease.srvInv` at `m`, at some auth mode; until then its
+reader side only (`srvLessorRd`, `lessorRdPool`), which the served lease reads take
+(`raftLeaseRead_server`, `srvLeaseRd_lessorRd`), and which the monotone mode's grant takes whole
+(`v3rpc.lessorGrantOkL_server`). -/
+def srvLeaseRd (s : Loc) (E : apply.AEnv GF) (m : lease.Mode) : IProp GF :=
+  iprop(∃ on : Bool, lease.srvInv on s E m)
 
-instance srvLeaseRd_persistent (s : Loc) (E : apply.AEnv GF) :
-    Persistent (srvLeaseRd (GF := GF) s E) := by
+instance srvLeaseRd_persistent (s : Loc) (E : apply.AEnv GF) (m : lease.Mode) :
+    Persistent (srvLeaseRd (GF := GF) s E m) := by
   unfold srvLeaseRd; infer_instance
+
+/-- **The lessor's reader side, from `srvLeaseRd`** (what it was until X2). -/
+theorem srvLeaseRd_lessorRd (s : Loc) (E : apply.AEnv GF) (m : lease.Mode) :
+    srvLeaseRd (GF := GF) s E m ⊢
+      srvLessorRd s (mvcc.api.mvccLeases E.γ) ∗ lease.lessorRdPool (mvcc.api.mvccLeases E.γ) := by
+  unfold srvLeaseRd
+  iintro ⟨%on, #H⟩
+  iapply lease.srvInv_lessorRd on s E m $$ H
 
 /-- **A member built** (`newServer`'s success): the server `s` built by `NewServer` with the
 request names `ρ` at an apply environment `E` agreeing with the stand-in `E₀`, auth off, from a
@@ -285,14 +309,15 @@ monitors off, `lgMu`'s reader slot of the downgrade monitor), and what `NewServe
 transport's `Send`, `srvTrKey`, under `γk`, one of the transport's reader tokens, `srvTrTok`, and
 what `http.Serve`'s request goroutines borrow, `srvServeRes`, until the peer address is served:
 `served`). (2026-11-02, the restart plan) The apply thread's starting state `ai₀ at₀ c₀ x₀`, a
-first start's (`0` and the boot store) unless given: a restarted member's (`Restart.lean`).
-(2026-11-04, the restart plan's R2b-3d) And `K` of the raft wrapper's names and the configuration,
-`True` unless given: what `NewServer` kept for the stop, `memberBuiltS`'s. -/
+first start's (`0` and the boot store) unless given: a restarted member's (`Restart.lean`). (The
+lease-expiry plan's X2, 2026-11-04) The lease subsystem at the member's lease mode `m` (default
+`none`; `memberBoot`'s). (2026-11-04, the restart plan's R2b-3d) And what `NewServer` kept for the
+stop (its slot, `srvStop.keep`) at the raft wrapper's names, the configuration, the apply
+environment and the transport key's name, which `Start` hands `run` (2026-11-05, R2c-3: until then a
+parameter `K`, `True` unless given, and `memberBuiltS` the member with the slot). -/
 def memberBuilt (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
     (id : w64) (N : Nat) (served : Bool) (ai₀ at₀ c₀ : w64 := W64 0)
-    (x₀ : apply.ApplyKV := bootKV)
-    (K : RNNames → go_etcd_io.etcd.server.v3.config.ServerConfig → apply.AEnv GF → IProp GF :=
-      fun _ _ _ => iprop(True)) :
+    (x₀ : apply.ApplyKV := bootKV) (m : lease.Mode := .none) :
     IProp GF :=
   iprop(∃ (γA : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
       (γrn : RNNames) (b : GoInterface) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
@@ -300,12 +325,12 @@ def memberBuilt (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn
     ⌜envAgree E E₀ ∧ E.authOn = false ∧ cfg.Logger' = lg ∧ cfg.TracerOptions' = slice.nil ∧
       cfg.WatchProgressNotifyInterval' = 0⌝ ∗
     srvWatchBuilt s E ∗
-    isServerBuilt s γA ci TM E ρ ρ.rd (srvEr ρ E₀ ai₀ c₀ x₀ id (srvTrKey γn γk))
+    isServerBuilt s γA ci TM E ρ ρ.rd (srvEr ρ E₀ ai₀ c₀ x₀ id (srvTrKey γn γk) (srvTrStopK γk))
       γrn b ai₀ at₀ c₀ x₀ N ∗
     srvServeBuilt s E cfg 64 ∗ srvSVRes s E ∗ srvMonitorsOff s ∗ srvLgReader s ∗
     srvReadyCloser s ∗ srvNetMember γn s id τ ∗ srvTrTok γn τ ∗
     (if served then True else [∗list] _x ∈ List.replicate http.httpProcSlots (), srvServeRes γn τ) ∗
-    srvWatchReaders s E 64 ∗ srvLeaseRd s E ∗ K γrn cfg E)
+    srvWatchReaders s E 64 ∗ srvLeaseRd s E m ∗ srvStop.keep s cfg E γrn γk)
 
 /-- **What the partitioner takes of a member** (2026-10-24, rafthttp stage 6d): its place in the
 network (`srvNetMember`, with its transport `τ`) and one of its transport's reader tokens
@@ -313,29 +338,91 @@ network (`srvNetMember`, with its transport `τ`) and one of its transport's rea
 def srvPeerCtl (γn : NetNames GF) (s : Loc) (id : w64) : IProp GF :=
   iprop(∃ τ : SrvTr GF, srvNetMember γn s id τ ∗ srvTrTok γn τ)
 
+/-- **The read loop's reader slots a started member keeps** (revoke-open F.1, 2026-11-06): the
+server's count, `srvStartReadN` (`start_gives_views`'s; review round 1, S2: until then this body
+spelled the server's arithmetic). Named, with its law `one_le_memberReadN`, so that the consumers
+of `memberUp`'s and `kvServeStocks`'s stocks do not restate the count. An alias of the server's name,
+deliberately (review round 2, N7): the hub's vocabulary, so that `memberUp`'s consumers name nothing
+of the server; a change of the server's count is a change of `srvStartReadN` alone. -/
+def memberReadN : Nat := srvStartReadN
+
+/-- What the consumers take of the read loop's slots: at least one (each splits off one gRPC slot,
+`client.etcdGrpcSlots_of_started`'s `N ≤ M`): the server's law. -/
+theorem one_le_memberReadN : 1 ≤ memberReadN := one_le_srvStartReadN
+
 /-- **A member started** (`Start`'s success from `memberBuilt`): the server `s` started with its
 request names `ρ` (the wait registry's `γw`) at an apply environment `E` agreeing with the stand-in
 `E₀`, auth off, built from a configuration `cfg` with the logger `lg`, no tracer options and no
 progress-notify interval; what `Start` returns (the request and read views, the `GoAttach`
 resources with the thread token, a `lgMu` reader slot, the read loop's readers) and what
 `NewServer` left for serving (`srvServeBuilt`'s resources, two of its `lgMu` slots spent on
-`Start`; the watchable store's readers), and its place in the network `γn`. -/
+`Start`; the watchable store's readers), and its place in the network `γn`; (the lease-expiry
+plan's X2, 2026-11-04) the lease subsystem at the member's lease mode `m` (default `none`);
+(2026-11-05, the restart plan's R2c-4) and `Start`'s right to stop the server (`srvStopRight`, at
+`E`, the member id `id` and the configuration's data directory), at the environment of the
+serving stocks a stop request hands back. -/
 def memberUp (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
-    (id : w64) : IProp GF :=
+    (id : w64) (m : lease.Mode := .none) : IProp GF :=
   iprop(∃ (E : apply.AEnv GF) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γw : GName),
     ⌜envAgree E E₀ ∧ E.authOn = false ∧ cfg.Logger' = lg ∧ cfg.TracerOptions' = slice.nil ∧
       cfg.WatchProgressNotifyInterval' = 0⌝ ∗
     isServerReq s E { ρ with wait := γw } ∗ isServerRead s E ρ.rd ∗ srvGoRes s ∗ srvLgReader s ∗
-    ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
-      srvReadReader s ρ.rd) ∗
+    ([∗list] _x ∈ List.replicate memberReadN (), srvReadReader s ρ.rd) ∗
     srvWatchBuilt s E ∗ srvServeFacts s E cfg ∗
     srvBemuReader s ∗
     ([∗list] _x ∈ List.replicate 64 (), srvLeadTimeReader s) ∗
     ([∗list] _x ∈ List.replicate (64 - 2) (), srvLgReader s) ∗
     ([∗list] _x ∈ List.replicate 64 (), E.RD) ∗
-    ([∗list] _x ∈ List.replicate 64 (), mvcc.storeReader E.s E.γ) ∗
+    ([∗list] _x ∈ List.replicate 64 (), mvcc.api.mvccReaders E.γ 1) ∗
     ([∗list] _x ∈ List.replicate 64 (), srvBemuReader s) ∗
-    srvPeerCtl γn s id ∗ srvWatchReaders s E 64 ∗ srvLeaseRd s E)
+    srvPeerCtl γn s id ∗ srvWatchReaders s E 64 ∗ srvLeaseRd s E m ∗
+    (∃ dd : GoString, srvStopRight s E ρ.rd.raft.raft ρ id dd))
+
+open Iris.ProofMode in
+/-- **`n` single reader tokens of the store are `n` of them** (`mvccReaders_split.law`; R9, the `lean`
+merge: what `memberUp`'s serving stock of single tokens gives the stop's census). -/
+theorem mvccReaders_join (hRS : mvcc.api.mvccReaders_split.law (GF := GF))
+    (γ : mvcc.api.MvccName) :
+    ∀ n, ([∗list] _x ∈ List.replicate (n + 1) (), mvcc.api.mvccReaders (GF := GF) γ 1) ⊢
+      mvcc.api.mvccReaders γ (n + 1)
+  | 0 => by
+    rw [List.replicate_succ]
+    iintro H
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨H1, -⟩
+    iexact H1
+  | n + 1 => by
+    iintro H
+    rw [List.replicate_succ]
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨H1, H⟩
+    iapply (hRS γ (n + 1) 1).2
+    iframe H1
+    iapply mvccReaders_join hRS γ n $$ H
+
+/-- **A started member that will not serve, split for its stop** (R2c review F4, 2026-11-06): the
+request view and the `GoAttach` resources (what `AppliedIndex()` and the goroutines need), and what a
+stop request takes of it: the right to stop it (`srvStopRight`) at its apply environment `E`, which
+has auth off and `E₀`'s compaction mode, with its unused serving stocks (`srvStopReaders`). The rest
+of `memberUp` (its serving stocks' other parts) is dropped. -/
+theorem memberUp_stop (hRS : mvcc.api.mvccReaders_split.law (GF := GF)) (s : Loc) (ρ : ReqNames)
+    (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF) (id : w64) (m : lease.Mode) :
+    memberUp (GF := GF) s ρ E₀ lg γn id m ⊢
+      (∃ (E : apply.AEnv GF) (γw : GName), isServerReq s E { ρ with wait := γw } ∗ srvGoRes s) ∗
+      ∃ (E : apply.AEnv GF) (dd : GoString), srvStopRight s E ρ.rd.raft.raft ρ id dd ∗
+        ⌜E.authOn = false ∧ E.cmp = E₀.cmp⌝ ∗ srvStopReaders E := by
+  iintro Hup
+  iunfold memberUp at Hup
+  icases Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, -, Hgo, -, -, -, -, -, -, -, -, Hsts, -, -, HWR, -,
+    %dd, Hr⟩
+  isplitl [Hgo]
+  · iexists E, γw
+    iframe Hreq Hgo
+  iexists E, dd
+  iframe Hr
+  isplitr
+  · ipureintro; exact ⟨HEc.2.1, HEc.1.2.2.2⟩
+  iapply srvStopReaders_intro hRS s E
+  iframe HWR
+  iapply mvccReaders_join hRS E.γ 63 $$ Hsts
 
 /-- **The Lease service `v3rpc.Server` registered** (persistent; the closed lease example,
 2026-11-02): its unary methods among the registrations `regs` (`leaseRegs`), on the
@@ -363,7 +450,7 @@ def grpcUp (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs :
       (regs sregs : List (GoString × val × GoInterface)),
     ⌜C.A = v3rpc.srvKVAns s E ρ γr (W64 0) [] .none ∧ C.E = E ∧
       (∀ x ∈ v3rpc.kvRegs q, x ∈ regs) ∧ v3rpc.watchSReg pw ∈ sregs ∧
-      R.s = s ∧ R.E = E ∧ R.wsl = C.wsl ∧ R.γ = C.γ⌝ ∗
+      R.s = s ∧ R.E = E ∧ R.wsl = C.wsl ∧ R.tag = C.tag⌝ ∗
     v3rpc.grpcCfgOk s C ∗
     grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗
     v3rpc.quotaKVServerAt q
@@ -375,7 +462,7 @@ def grpcUp (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs :
     srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
     srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorOk is iprop(True) ∗
     srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
-    ([∗list] _x ∈ List.replicate 64 (), mvcc.watchReader C.wsl E.s C.γ) ∗
+    mvcc.api.mvccReaders E.γ 64 ∗
     netListenerAt lis addr ∗ grpcLeaseUp s C.A regs)
 
 /-- **What member `id`'s `NewServer` takes of the ghost state, with auth on** (the auth plan's
@@ -387,22 +474,29 @@ def memberBootOn (γ : SrvRaft) (ctxs : List (List w8))
     (cmp : Bool := false) : IProp GF :=
   iprop(⌜ρ.rd.raft = ⟨γ, [], W64 0⟩ ∧
       ρ.rd.kv.c0 = W64 0 ∧ ρ.rd.kv.ch0 = apply.alarmChain true false false ∧
-      ρ.rd.kv.log0 = [[], []] ∧ ρ.rd.kv.cok = E₀.γ.cok ∧
+      ρ.rd.kv.log0 = [[], []] ∧
       ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧ Φs ρ.ids.pfx = srvFloorFact E₀ ∧ E₀.cmp = cmp ∧
       ρ.rd.kv.cmp = cmp ∧
+      -- (R9, 2026-11-07, the `lean` merge) the stand-in's store witness the server's at the read
+      -- names (`NewServer.specG`'s premise)
+      E₀.Nx = srvApi.kvNx ρ.rd true ∧
       -- (2026-11-02, the lease-grant plan's D2) `NewServer`'s premise on a cluster that grants
-      -- leases (the open cases, `srvGrantOpen`): `alloc1`'s names grant none
-      (ρ.rd.kv.lg = true → lease.leasesNoExpiry ∧ srvGrantOpen (GF := GF)) ∧
+      -- leases (the open cases, `srvGrantOpen`): `alloc1`'s names grant none; (2026-11-04, the
+      -- lease-expiry plan's Part C) as the lease subsystem's sealed premise at some mode
+      (∃ m : lease.Mode, lease.runCfg (GF := GF) ρ.rd.kv.lm m) ∧
       -- (the lease-grant stage, 2.13) `NewServer.specM true`'s: auth on grants none
       ρ.rd.kv.lg = false⌝ ∗
     (nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ raftState γ.cl id RaftState.init ∗
       nodeVacant γ.cl id) ∗ srvRaftLogInv ρ.rd.raft ∗
     idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts ∗
-    idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γ.idx ∗ idNoZero ρ.ids ∗
+    idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γs.slog ∗ idNoZero ρ.ids ∗
     srvPropMint ρ.rd.raft ρ.ids ∗ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
     idShare ρ.ids ∗ idWaitTok ρ.ids ∗
-    mvcc.idxFresh E₀.γ.idx ∗
-    ghostMapAuth E₀.γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗
+    -- (R9, 2026-11-07, the `lean` merge; `NewServer.specG`'s) the server's names of the store's
+    -- state fresh (until then mvcc's `idxFresh E₀.γ.idx`) and the read names' certificate map
+    -- (until then the store's, `ρ.rd.kv.cok = E₀.γ.cok`)
+    srvApi.newServerStoreFreshA E₀.γs ∗
+    ghostMapAuth ρ.rd.kv.cok 1 (∅ : GMap w64 mvcc.Log) ∗
     ghostMapAuth E₀.γrev 1 (∅ : GMap w64 Unit) ∗
     srvReadNamesFreshNK ρ.rd ∗ kvInvM true ρ.rd.raft ρ.rd.kv srvAuthSt0 ∗
     ghostMapAuth γ.reg 1 (∅ : GMap Loc MemStorNamesRec) ∗
@@ -416,7 +510,7 @@ theorem memberBootOn_cmp (γ : SrvRaft) (ctxs : List (List w8)) (ρ : ReqNames) 
   iunfold memberBootOn at H
   icases H with ⟨%Hρ, Hr⟩
   isplitr
-  · ipureintro; exact Hρ.2.2.2.2.2.2.2.1
+  · ipureintro; exact Hρ.2.2.2.2.2.2.1
   iunfold memberBootOn
   isplitr
   · ipureintro; exact Hρ
@@ -425,7 +519,7 @@ theorem memberBootOn_cmp (γ : SrvRaft) (ctxs : List (List w8)) (ρ : ReqNames) 
 /-- **A member started with auth on** (the auth plan's E3zb, 2026-10-28; `memberUp`'s, from
 `NewServer.specM true` and `Start.spec` at `.on γa`): at an apply environment in the mode `.on γa`, the
 request and read views in the mode (`isServerReqM true`, `isServerReadM true`) and the store's range
-check at a reader's lower bound (`srvAuthLb`), what `Serve.specOn` takes; otherwise as `memberUp`. -/
+check at a reader's lower bound (`srvAuthLb`), what `Serve.spec` takes at `E.authOn`; otherwise as `memberUp`. -/
 def memberUpOn (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
     (id : w64) (γa : auth.AuthNames) : IProp GF :=
   iprop(∃ (E : apply.AEnv GF) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γw : GName),
@@ -433,14 +527,13 @@ def memberUpOn (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn 
       cfg.WatchProgressNotifyInterval' = 0⌝ ∗
     isServerReqM true s E { ρ with wait := γw } ∗ isServerReadM true s E ρ.rd ∗ srvAuthLb s E ∗
     srvGoRes s ∗ srvLgReader s ∗
-    ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
-      srvReadReader s ρ.rd) ∗
+    ([∗list] _x ∈ List.replicate memberReadN (), srvReadReader s ρ.rd) ∗
     srvWatchBuilt s E ∗ srvServeFacts s E cfg ∗
     srvBemuReader s ∗
     ([∗list] _x ∈ List.replicate 64 (), srvLeadTimeReader s) ∗
     ([∗list] _x ∈ List.replicate (64 - 2) (), srvLgReader s) ∗
     ([∗list] _x ∈ List.replicate 64 (), E.RD) ∗
-    ([∗list] _x ∈ List.replicate 64 (), mvcc.storeReader E.s E.γ) ∗
+    ([∗list] _x ∈ List.replicate 64 (), mvcc.api.mvccReaders E.γ 1) ∗
     ([∗list] _x ∈ List.replicate 64 (), srvBemuReader s) ∗
     srvPeerCtl γn s id ∗ srvWatchReaders s E 64 ∗
     -- (authkv's Main, 2026-10-30) the TLS fallback off (`ClientCertAuthEnabled` the
@@ -457,7 +550,7 @@ def grpcUpOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs
       (svcs : List GoString) (regs sregs : List (GoString × val × GoInterface)),
     ⌜C.A = v3rpc.srvKVAnsOn s E ρ γr (W64 0) [] .none 0 none ∧ C.E = E ∧
       (∀ x ∈ v3rpc.kvRegs q, x ∈ regs) ∧ (∀ x ∈ v3rpc.authRegs pa, x ∈ regs) ∧
-      v3rpc.watchSReg pw ∈ sregs ∧ R.s = s ∧ R.E = E ∧ R.wsl = C.wsl ∧ R.γ = C.γ⌝ ∗
+      v3rpc.watchSReg pw ∈ sregs ∧ R.s = s ∧ R.E = E ∧ R.wsl = C.wsl ∧ R.tag = C.tag⌝ ∗
     v3rpc.grpcCfgOk s C ∗
     grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗
     v3rpc.quotaKVServerAt q
@@ -470,8 +563,112 @@ def grpcUpOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs
     srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
     srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorOk is iprop(True) ∗
     srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
-    ([∗list] _x ∈ List.replicate 64 (), mvcc.watchReader C.wsl E.s C.γ) ∗
+    mvcc.api.mvccReaders E.γ 64 ∗
     netListenerAt lis addr)
+
+
+/-- **What `v3rpc.Server` and `Listen` return, in the auth mode `on`** (the auth component's stage 5;
+`grpcUp`'s and `grpcUpOn`'s, what `Serve.spec` gives the caller's ghost step): at the KV answers in
+the mode (`srvKVAnsM on … 0 none`), with the Auth service's registrations and the Lease service's
+(`grpcLeaseUp`). `grpcUpM_false` and `grpcUpM_true` give `grpcUp` and `grpcUpOn`. -/
+def grpcUpM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs : Loc)
+    (lis : GoInterface) (addr : GoString) (cid mid : w64) (R : v3rpc.WSrv GF) : IProp GF :=
+  iprop(∃ (C : v3rpc.GrpcCfg GF) (q p pw pa : Loc) (il im iu ims is : GoFunc)
+      (svcs : List GoString) (regs sregs : List (GoString × val × GoInterface)),
+    ⌜C.A = v3rpc.srvKVAnsM on s E ρ γr (W64 0) [] .none 0 none ∧ C.E = E ∧
+      (∀ x ∈ v3rpc.kvRegs q, x ∈ regs) ∧ (∀ x ∈ v3rpc.authRegs pa, x ∈ regs) ∧
+      v3rpc.watchSReg pw ∈ sregs ∧ R.s = s ∧ R.E = E ∧ R.wsl = C.wsl ∧ R.tag = C.tag⌝ ∗
+    v3rpc.grpcCfgOk s C ∗
+    grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗
+    v3rpc.quotaKVServerAt q
+      ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩ s ∗
+    v3rpc.kvServerIs p s C.A cid mid C.n ∗
+    v3rpc.authServerIs pa s ∗
+    v3rpc.isWatchServer pw R ∗
+    (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk il (srvLgReader s) Q) ∗
+    (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk im iprop(True) Q) ∗
+    srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
+    srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorOk is iprop(True) ∗
+    srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
+    mvcc.api.mvccReaders E.γ 64 ∗
+    netListenerAt lis addr ∗ grpcLeaseUp s C.A regs)
+
+open Iris.ProofMode in
+/-- **`grpcUpM` with auth off is `grpcUp`** (a bridge): the configuration, the `*kvServer` and the
+Lease service moved to the off answers (`grpcCfgOk_A`, `kvServerIs_mono`, `leaseServerAt_revR`,
+through `raftKV_srvKVAnsM_false`); the Auth service dropped. -/
+theorem grpcUpM_false (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs : Loc)
+    (lis : GoInterface) (addr : GoString) (cid mid : w64) (R : v3rpc.WSrv GF) :
+    grpcUpM false s E ρ γr gs lis addr cid mid R ⊢ grpcUp s E ρ γr gs lis addr cid mid R := by
+  iintro H
+  iunfold grpcUpM at H
+  icases H with ⟨%C, %q, %p, %pw, %pa, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC, #Hc,
+    Hn, #Hq, #Hk, -, #Hw, #Hil, #Him, #Hiu, #Hims, #His, Hlg, Hbe, Hgo, Hrds, Hlis, #Hlu⟩
+  obtain ⟨hA, hE, hkv, -, hw, h6, h7, h8, h9⟩ := HC
+  have hk : v3rpc.raftKV s C.A ⊢ v3rpc.raftKV s (v3rpc.srvKVAns s E ρ γr (W64 0) [] .none) := by
+    rw [hA]; exact v3rpc.raftKV_srvKVAnsM_false s E ρ γr (W64 0) [] .none
+  have hR : C.A.revR = (v3rpc.srvKVAns (GF := GF) s E ρ γr (W64 0) [] .none).revR := by
+    rw [hA]; rfl
+  iunfold grpcUp
+  iexists { C with A := v3rpc.srvKVAns s E ρ γr (W64 0) [] .none }, q, p, pw, il, im, iu, ims, is,
+    svcs, regs, sregs
+  isplitr
+  · ipureintro; exact ⟨rfl, hE, hkv, hw, h6, h7, h8, h9⟩
+  isplitr
+  · iapply v3rpc.grpcCfgOk_A s C _ hk $$ Hc
+  ihave #Hk' := v3rpc.kvServerIs_mono p s C.A _ cid mid C.n hR hk $$ Hk
+  iframe; iframe #
+  have hl : ∀ pl lcid lmid, v3rpc.leaseServerAt (GF := GF) pl s C.A lcid lmid =
+      v3rpc.leaseServerAt pl s (v3rpc.srvKVAns s E ρ γr (W64 0) [] .none) lcid lmid :=
+    fun pl lcid lmid => v3rpc.leaseServerAt_revR pl s _ _ lcid lmid hR
+  unfold grpcLeaseUp
+  simp only [hl]
+  iexact Hlu
+
+open Iris.ProofMode in
+/-- **`grpcUpM` with auth on is `grpcUpOn`** (a bridge): the configuration and the `*kvServer`
+moved to the on answers (through `raftKV_srvKVAnsM_true`); the Lease service dropped. -/
+theorem grpcUpM_true (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs : Loc)
+    (lis : GoInterface) (addr : GoString) (cid mid : w64) (R : v3rpc.WSrv GF) :
+    grpcUpM true s E ρ γr gs lis addr cid mid R ⊢ grpcUpOn s E ρ γr gs lis addr cid mid R := by
+  iintro H
+  iunfold grpcUpM at H
+  icases H with ⟨%C, %q, %p, %pw, %pa, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC, #Hc,
+    Hn, #Hq, #Hk, #Has, #Hw, #Hil, #Him, #Hiu, #Hims, #His, Hlg, Hbe, Hgo, Hrds, Hlis, -⟩
+  obtain ⟨hA, hE, hkv, hau, hw, h6, h7, h8, h9⟩ := HC
+  have hk : v3rpc.raftKV s C.A ⊢
+      v3rpc.raftKV s (v3rpc.srvKVAnsOn s E ρ γr (W64 0) [] .none 0 none) := by
+    rw [hA]; exact v3rpc.raftKV_srvKVAnsM_true s E ρ γr (W64 0) [] .none 0 none
+  have hR : C.A.revR = (v3rpc.srvKVAnsOn (GF := GF) s E ρ γr (W64 0) [] .none 0 none).revR := by
+    rw [hA]; rfl
+  iunfold grpcUpOn
+  iexists { C with A := v3rpc.srvKVAnsOn s E ρ γr (W64 0) [] .none 0 none }, q, p, pw, pa, il, im,
+    iu, ims, is, svcs, regs, sregs
+  isplitr
+  · ipureintro; exact ⟨rfl, hE, hkv, hau, hw, h6, h7, h8, h9⟩
+  isplitr
+  · iapply v3rpc.grpcCfgOk_A s C _ hk $$ Hc
+  ihave #Hk' := v3rpc.kvServerIs_mono p s C.A _ cid mid C.n hR hk $$ Hk
+  iframe; iframe #
+
+
+open Iris.ProofMode in
+/-- **An auth-off server's views in its mode** (what `Serve.spec` takes of an auth-off member,
+`memberUp`'s): auth off, the mode not `.any`, the views at `E.authOn` and the store's range check
+(`srvAuthLb_off`). -/
+theorem serveViews_off (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) :
+    isServerReq s E ρ ∗ isServerRead s E γr ⊢
+      ⌜E.authOn = false ∧ E.authMode ≠ .any⌝ ∗ isServerReqM E.authOn s E ρ ∗
+        isServerReadM E.authOn s E γr ∗ srvAuthLb s E := by
+  iintro ⟨#Hq, #Hd⟩
+  ihave %hon := isServerReq_authOn s E ρ $$ Hq
+  ihave #Hlb := srvAuthLb_off s E ρ $$ Hq
+  have hM : E.authMode = .off := by
+    unfold apply.AEnv.authOn at hon
+    cases hM : E.authMode <;> simp_all [auth.AuthMode.isOn]
+  rw [hon, isServerReqM_false, isServerReadM_false]
+  iframe #
+  ipureintro; exact ⟨rfl, by rw [hM]; simp⟩
 
 end defs
 

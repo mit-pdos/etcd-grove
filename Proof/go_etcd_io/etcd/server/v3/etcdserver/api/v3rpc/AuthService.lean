@@ -86,45 +86,45 @@ instance authHistAuT_persistent (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     Persistent (authHistAuT s E ρ tok rq Q) := by
   unfold authHistAuT; infer_instance
 
-/-- **etcd's spec of `Auth.UserAdd`** (see the file header). -/
+/-- **etcd's spec of `Auth.UserAdd`** (see the file header). (DRAFT, k8s etcd3 7c-1b, HS-4: the caller's error outcome at every description, `□ ∀ d, Ψe d`: no information on an error) -/
 def etcdUserAddSpec (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
     GrpcSpecMd (GF := GF) pbAuthUserAddRequest pbAuthUserAddResponse :=
-  fun md (m : UserAddW) (Φ : Unit → IProp GF) =>
-    iprop(∃ Q : List auth.AuthState → IProp GF, ⌜m.name.length ≤ backend.maxKeySize⌝ ∗
+  fun md (m : UserAddW) (Φ : Unit → IProp GF) (Ψe : GoString → IProp GF) =>
+    iprop((□ ∀ d, Ψe d) ∗ ∃ Q : List auth.AuthState → IProp GF, ⌜m.name.length ≤ backend.maxKeySize⌝ ∗
       □ (∀ um : apply.UserAddModel, ⌜um.name = m.name ∧ um.noPassword = false ∧ um.pwSure⌝ →
         authHistAuT s E ρ (auth.mdTokenOf md) (irrUserAdd um) Q) ∗
       (userAddReplied s E ρ (auth.mdTokenOf md) m.name Q -∗ Φ ()))
 
-/-- **etcd's spec of `Auth.UserGrantRole`** (see the file header). -/
+/-- **etcd's spec of `Auth.UserGrantRole`** (see the file header). (DRAFT, k8s etcd3 7c-1b, HS-4: the caller's error outcome at every description, `□ ∀ d, Ψe d`: no information on an error) -/
 def etcdUserGrantRoleSpec (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
     GrpcSpecMd (GF := GF) pbAuthUserGrantRoleRequest pbAuthUserGrantRoleResponse :=
-  fun md (ur : GoString × GoString) (Φ : Unit → IProp GF) =>
-    iprop(∃ Q : List auth.AuthState → IProp GF, ⌜ur.1.length ≤ backend.maxKeySize⌝ ∗
+  fun md (ur : GoString × GoString) (Φ : Unit → IProp GF) (Ψe : GoString → IProp GF) =>
+    iprop((□ ∀ d, Ψe d) ∗ ∃ Q : List auth.AuthState → IProp GF, ⌜ur.1.length ≤ backend.maxKeySize⌝ ∗
       authHistAuT s E ρ (auth.mdTokenOf md) (irrUserGrantRole ur.1 ur.2) Q ∗
       (adminReplied s E ρ (auth.mdTokenOf md) (irrUserGrantRole ur.1 ur.2) Q -∗ Φ ()))
 
-/-- **etcd's spec of `Auth.RoleAdd`** (see the file header). -/
+/-- **etcd's spec of `Auth.RoleAdd`** (see the file header). (DRAFT, k8s etcd3 7c-1b, HS-4: the caller's error outcome at every description, `□ ∀ d, Ψe d`: no information on an error) -/
 def etcdRoleAddSpec (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
     GrpcSpecMd (GF := GF) pbAuthRoleAddRequest pbAuthRoleAddResponse :=
-  fun md (name : GoString) (Φ : Unit → IProp GF) =>
-    iprop(∃ Q : List auth.AuthState → IProp GF, ⌜name.length ≤ backend.maxKeySize⌝ ∗
+  fun md (name : GoString) (Φ : Unit → IProp GF) (Ψe : GoString → IProp GF) =>
+    iprop((□ ∀ d, Ψe d) ∗ ∃ Q : List auth.AuthState → IProp GF, ⌜name.length ≤ backend.maxKeySize⌝ ∗
       authHistAuT s E ρ (auth.mdTokenOf md) (irrRoleAdd name) Q ∗
       (adminReplied s E ρ (auth.mdTokenOf md) (irrRoleAdd name) Q -∗ Φ ()))
 
-/-- **etcd's spec of `Auth.RoleGrantPermission`** (see the file header). -/
+/-- **etcd's spec of `Auth.RoleGrantPermission`** (see the file header). (DRAFT, k8s etcd3 7c-1b, HS-4: the caller's error outcome at every description, `□ ∀ d, Ψe d`: no information on an error) -/
 def etcdRoleGrantPermissionSpec (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
     GrpcSpecMd (GF := GF) pbAuthRoleGrantPermissionRequest pbAuthRoleGrantPermissionResponse :=
-  fun md (nw : GoString × auth.PermW) (Φ : Unit → IProp GF) =>
-    iprop(∃ Q : List auth.AuthState → IProp GF, ⌜nw.1.length ≤ backend.maxKeySize⌝ ∗
+  fun md (nw : GoString × auth.PermW) (Φ : Unit → IProp GF) (Ψe : GoString → IProp GF) =>
+    iprop((□ ∀ d, Ψe d) ∗ ∃ Q : List auth.AuthState → IProp GF, ⌜nw.1.length ≤ backend.maxKeySize⌝ ∗
       authHistAuT s E ρ (auth.mdTokenOf md) (irrRoleGrantPermission nw.1 (some nw.2)) Q ∗
       (adminReplied s E ρ (auth.mdTokenOf md) (irrRoleGrantPermission nw.1 (some nw.2)) Q -∗
         Φ ()))
 
-/-- **etcd's spec of `Auth.AuthEnable`** (see the file header). -/
+/-- **etcd's spec of `Auth.AuthEnable`** (see the file header). (DRAFT, k8s etcd3 7c-1b, HS-4: the caller's error outcome at every description, `□ ∀ d, Ψe d`: no information on an error) -/
 def etcdAuthEnableSpec (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
     GrpcSpecMd (GF := GF) pbAuthEnableRequest pbAuthEnableResponse :=
-  fun md (_ : Unit) (Φ : Unit → IProp GF) =>
-    iprop(∃ Q : List auth.AuthState → IProp GF,
+  fun md (_ : Unit) (Φ : Unit → IProp GF) (Ψe : GoString → IProp GF) =>
+    iprop((□ ∀ d, Ψe d) ∗ ∃ Q : List auth.AuthState → IProp GF,
       authHistAuT s E ρ (auth.mdTokenOf md) irrAuthEnable Q ∗
       (adminReplied s E ρ (auth.mdTokenOf md) irrAuthEnable Q -∗ Φ ()))
 
@@ -183,13 +183,45 @@ theorem authWrapOut_admin (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : G
         (⌜err = GoInterface.nil⌝ -∗ adminReplied s E ρ (auth.ctxTokenOf (GoInterface.ok ctx)) rq Q) := by
   iintro H
   iunfold authWrapOut at H
-  icases H with (⟨%He, H⟩ | ⟨%Hr, %e0, %He0, H⟩)
+  icases H with (⟨%He, H⟩ | ⟨%Hr, -, %e0, %He0, H⟩)
   · subst He
     iapply (adminOutOn_reply s E ρ ctx rq Q F T resp GoInterface.nil) $$ H
   · ihave ⟨Hs, -⟩ := adminOutOn_reply s E ρ ctx rq Q F T null e0 $$ H
     iframe Hs
     iintro %He
     exact absurd He Hr.2
+
+/-- **An admin request's answer without an error is a response, not `nil`** (`adminOutOn`'s
+`appliedOkM`, `dispatchAnswer_admin_nn`). -/
+theorem adminOutOn_nn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+    (rq : apply.IRRModel) (F : mvcc.Log)
+    (Qh : apply.HeaderModel → List EntryModel → IProp GF) (T : go.GoType) (l : Loc)
+    (hT : adminRespTy (apply.dispatchKind rq) = some T) :
+    adminOutOn s E ρ ctx rq F Qh T l GoInterface.nil ⊢ ⌜l ≠ null⌝ := by
+  iintro H
+  iunfold adminOutOn at H
+  icases H with ⟨-, -, H⟩
+  icases H with (⟨-, %hm, %rq', %L, %Hw, -, Hap, -⟩ | ⟨%He, -⟩)
+  · iunfold appliedOkM at Hap
+    icases Hap with ⟨%x, %x', %o, %skip, -, Hans, -⟩
+    have hT' : adminRespTy (apply.dispatchKind rq') = some T := by rw [Hw.2.2.1]; exact hT
+    iapply (dispatchAnswer_admin_nn rq' x.log skip null o T l hT') $$ Hans
+  · exact absurd rfl He
+
+/-- **The `AuthServer`'s answer to an admin request is not `nil` without an error.** -/
+theorem authWrapOut_admin_nn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+    (rq : apply.IRRModel) (Qh : apply.HeaderModel → List EntryModel → IProp GF)
+    (F : mvcc.Log) (T : go.GoType) (resp : Loc) (err : GoInterface)
+    (hT : adminRespTy (apply.dispatchKind rq) = some T) :
+    authWrapOut (adminOutOn s E ρ ctx rq F Qh T) resp err ⊢
+      ⌜err = GoInterface.nil → resp ≠ null⌝ := by
+  iintro H
+  iunfold authWrapOut at H
+  icases H with (⟨%He, H⟩ | ⟨%Hr, -⟩)
+  · subst He
+    ihave %Hn := adminOutOn_nn s E ρ ctx rq F Qh T resp hT $$ H
+    ipureintro; intro _; exact Hn
+  · ipureintro; intro He; exact absurd He Hr.2
 
 end lemmas
 

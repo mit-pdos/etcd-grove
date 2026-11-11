@@ -23,6 +23,7 @@ public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Init
 public import Proof.go_etcd_io.etcd.client.v3.Init
 public import Proof.k8s_io.utils.third_party.forked.golang.btree.initialize
 public import Perennial.Proof.context.NewErrorString
+public import Perennial.Proof.errors.NewVar
 public import Proof.fmt.Link
 public import Proof.runtime.PkgInitExt
 
@@ -97,7 +98,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
       $$ [] as %eNR -
   · isplitl
     · iapply ownSlice_nil
-    unfold EtcdGrove.fmt.argsOk; itrivial
+    fmt_args_intro; itrivial
   ipersist HErrUnsupportedRequest
   ipersist HErrKeyRangeInvalid
   ipersist HErrCacheTimeout
@@ -125,8 +126,10 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   icombine HErrUnsupportedRequest He gives %Heq
   simp only [interface.mkOk, GoInterface.ok.injEq] at Heq
   subst Heq
-  iapply (errorStringSpec_of_msg _ go!"cache: unsupported request parameters")
-  iexact MUR
+  isplitr
+  · iapply (errorStringSpec_of_msg _ go!"cache: unsupported request parameters")
+    iexact MUR
+  · ipureintro; fmt_method_none
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

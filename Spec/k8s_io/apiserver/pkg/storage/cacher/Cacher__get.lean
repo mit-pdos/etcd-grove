@@ -9,6 +9,7 @@ element. Lean-first (no Rocq counterpart).
 module
 
 public import Proof.k8s_io.apiserver.pkg.storage.cacher.DefsWC
+public import Proof.k8s_io.apiserver.pkg.audit.CtxKeys
 
 @[expose] public section
 
@@ -36,7 +37,8 @@ abbrev Cacher.get.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.cacher ∗
       structFieldRef Cacher go!"watchCache" cp ↦□ wc ∗ isWC wc γ Ψ ∗
       wcGetOk wc parseRV ctxPre curRV ∗ ctxPre ctx ∗
-      sync.ownRWMutex (structFieldRef watchCache go!"RWMutex" wc) (wcLockP wc γ) }}
+      sync.ownRWMutex (structFieldRef watchCache go!"RWMutex" wc) (wcLockP wc γ) ∗
+      k8sctx.spanCtx ctx }}
     (App (App (App (Val (cp @!! go.GoType.PointerType Cacher.ty @!! go!"get")) (Val #ctx))
       (Val #key)) (Val #rvs))
   {{ (obj : GoInterface) (ex : Bool) (rv : w64) (err : GoInterface),

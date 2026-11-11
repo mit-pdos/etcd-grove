@@ -47,6 +47,8 @@ theorem lease.lessor.Attach.wp_proof : lease.lessor.Attach.spec (GF := GF) (hG :
   iunfold leaseClosers at Hcls
   icases Hcls with ⟨%lp', %γga, %γcl, %C, %im', #Hp, %HC, Him', HI', %HIL, %HIS, Hcs,
     %γr, %hs, %Sm, #Hpr, Ho, %Hlast, HSo⟩
+  obtain ⟨T, Hlast⟩ := Hlast
+  obtain ⟨Tl, Hlastl⟩ := Hlastl
   icases lessorAuth_pin γl 1 lp lp' L0 M γga γcl $$ [$Ha $Hp] with ⟨%Hlp', Hcl, Hback⟩
   subst Hlp'
   ihave ⟨%Him_eq, Him⟩ := ptsto_halves_combine (lF go!"itemMap" lp) im im' $$ [$Him $Him']
@@ -115,18 +117,32 @@ theorem lease.lessor.Attach.wp_proof : lease.lessor.Attach.spec (GF := GF) (hG :
     subst Hr
     ihave %Hh := monoListAuthOwn_agree γr.1 _ _ hs hsl $$ Ho Hhl
     obtain ⟨-, rfl⟩ := Hh
-    have hCM : C = M := by
-      rw [Hlast] at Hlastl; injection Hlastl with h; injection h
+    have hCMT : C = M ∧ T = Tl := by
+      rw [Hlast] at Hlastl
+      simp only [Option.some.injEq, Prod.mk.injEq, true_and] at Hlastl
+      exact Hlastl
+    have hCM : C = M := hCMT.1
     iapply fupd_wp
-    imod hist_append_set γl γr hs Sm (M, insertAll I ys id) l S (insertAll S ys ()) ⊤
-      (fun _ _ => CoPset.mem_full)
+    imod hist_append_set γl γr hs Sm (M, I, Tl) (M, insertAll I ys id, Tl) l S (insertAll S ys ()) ⊤
+      (fun _ _ => CoPset.mem_full) Hlastl (fun hT => tieSub_items M I _ Tl hT)
       (fun hok hh hS => setsOk_items Hlastl hok hh HMl hS (itemsFor_attach I id S ys)
         (fun id' hne it => attach_other I id id' ys Hxs0 hne it)
         (fun h => itemKeysShort_insertAll I ys id h Hshort))
       (fun _ => histMono_snoc Hlastl (fun _ h => by subst hCM; exact h))
+      (histOnce_items Hlastl)
+      (fun x hx => by
+        rcases hx with hx | ⟨it, hx⟩
+        · exact Or.inl hx
+        · dsimp only at hx
+          rw [insertAll_lookup] at hx
+          split at hx
+          · cases hx
+            have hMl' : M.lookup id = some l := HMl
+            left; show (M.lookup id).isSome; rw [hMl']; rfl
+          · exact Or.inr ⟨it, hx⟩)
       $$ [$Hrdi $Hpr $Ho $Hhl $HSo $Hel] with ⟨Ho, Hhl, HSo, Hel⟩
     imodintro
-    have hlast' : (hs ++ [(M, insertAll I ys id)]).getLast? = some (M, insertAll I ys id) := by
+    have hlast' : (hs ++ [(M, insertAll I ys id, Tl)]).getLast? = some (M, insertAll I ys id, Tl) := by
       simp
     icases ownMap_halves_split sm (insertAll S ys ()) $$ HSm with ⟨HSm, HSm'⟩
     icases ptsto_halves_split (lsF go!"itemSet" l) sm $$ Hsm with ⟨Hsm, Hsm'⟩
@@ -146,7 +162,7 @@ theorem lease.lessor.Attach.wp_proof : lease.lessor.Attach.spec (GF := GF) (hG :
       iframe Hsz Hls
       isplitr
       · ipureintro; exact HL
-      iframe Hpr; ipureintro; exact hlast'
+      iframe Hpr; ipureintro; exact ⟨_, hlast'⟩
     iapply HΦ
     iframe Hxs
     iunfold leaseOwn
@@ -176,9 +192,9 @@ theorem lease.lessor.Attach.wp_proof : lease.lessor.Attach.spec (GF := GF) (hG :
       iframe Hsm' HSm'
       ipureintro
       exact itemsFor_attach I id S ys HSI
-    iexists γr, hs ++ [(M, insertAll I ys id)], Sm.insert l (insertAll S ys ())
+    iexists γr, hs ++ [(M, insertAll I ys id, Tl)], Sm.insert l (insertAll S ys ())
     iframe Hpr Ho HSo
-    ipureintro; rw [hCM]; exact hlast'
+    ipureintro; rw [hCM]; exact ⟨_, hlast'⟩
 
 end proof
 

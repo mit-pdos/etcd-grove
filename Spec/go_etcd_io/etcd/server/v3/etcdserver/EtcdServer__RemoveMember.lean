@@ -6,6 +6,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthGuard
+public import Proof.context.LibKeys
 
 @[expose] public section
 
@@ -38,7 +39,7 @@ abbrev EtcdServer.RemoveMember.spec : Prop :=
     (id : w64) (Pin Pm : IProp GF) (Qm : GoInterface → IProp GF)
     (Qin : GoSlice → GoInterface → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvAuthAt s E ∗ srvAdminNilOk s E ∗ mvcc.txnCtx ctx cd ∗ E.RD ∗ Pin ∗ Pm ∗
+      srvAuthAt s E ∗ srvAdminNilOk s E ∗ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗ E.RD ∗ Pin ∗ Pm ∗
       mayRemoveOk s id Pm Qm ∗ configureRemoveOk s E ctx id Pin Qm Qin }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"RemoveMember"))
       (Val #(GoInterface.ok ctx))) (Val #id))

@@ -1,12 +1,12 @@
 /-
-`Main(clients, ops, sched)` (`examples/etcd/partition/etcd_partition.go`; the partition plan's S3b, 2026-10-20):
-three etcd members started in process and served (`startMember`, on linkv3p's names and ports), a
-bridge to each member's client address (`startBridge`, etcd's test bridge), three clients (etcd's
-default retries) each connected to all three bridges (`newClient`; failover since 2026-10-21, D27), the partitioner forked on the schedule `sched` (`go
-partitioner(srvs, brs, sched)`: the links between members cut and mended, and the links between
+`Main(clients, ops, sched)` (`examples/etcd/partition/linkv3p.go`; the partition plan's S3b, 2026-10-20):
+three etcd members started in process and served (`cluster3.StartMember`, on linkv3p's names and ports), a
+bridge to each member's client address (`cluster3.StartBridge`, etcd's test bridge), three clients (etcd's
+default retries) each connected to all three bridges (`cluster3.NewClient`; failover since 2026-10-21, D27), the partitioner forked on the schedule `sched` (`go
+cluster3.Partitioner(srvs, brs, sched)`: the links between members cut and mended, and the links between
 each client and its member blackholed, unblackholed or dropped, as its steps say, any steps;
 `notes/client-cut-plan.md`), and `Check(clis, clients, ops, 0)` (linkvtxn's KV workload since 2026-10-20, linkv's
-before; each operation through a random member), with a panic if porcupine reports the history `Illegal`. Lean-first (no Rocq
+before; each operation through one of the clients, to the member grpc's balancer picks), with a panic if porcupine reports the history `Illegal`. Lean-first (no Rocq
 counterpart).
 
 **The triple:** from the package's `isPkgInit`, the right to listen on the nine addresses
@@ -23,6 +23,7 @@ assumptions, as putget3's.
 -/
 module
 
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartRes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.Defs
 public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
 
@@ -48,10 +49,9 @@ abbrev Main.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
     [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
     [ContextErrsClient (GF := GF) (hG := hG)]
-    -- (2026-10-24, rafthttp stage 6d) `*peer` implements `Pausable` (the partitioner's `CutPeer`)
     (N : Nat) (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (clients ops : w64) (sched : GoSlice)
-    (steps : List github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step),
+    (steps : List github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step),
   BootFacts id₁ id₂ id₃ ps ctxs boot →
   threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   -- (2026-11-03, the whole-`bootOk` review, A) the write budget `bootstrap`'s own write-backs leave
@@ -62,17 +62,11 @@ abbrev Main.spec : Prop :=
   0 ≤ sint.Z clients → sint.Z clients < 2 ^ 31 → 0 ≤ sint.Z ops →
   sint.Z clients * sint.Z ops < 2 ^ 60 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.partition ∗
-      netAddrFree (GF := GF) peerAddr₁ ∗ netAddrFree (GF := GF) peerAddr₂ ∗
-      netAddrFree (GF := GF) peerAddr₃ ∗ netAddrFree (GF := GF) clientAddr₁ ∗
-      netAddrFree (GF := GF) clientAddr₂ ∗ netAddrFree (GF := GF) clientAddr₃ ∗
-      netAddrFree (GF := GF) bridgeAddr₁ ∗ netAddrFree (GF := GF) bridgeAddr₂ ∗
-      netAddrFree (GF := GF) bridgeAddr₃ ∗
-      httpProtoFree (GF := GF) peerAddr₁ ∗ httpProtoFree (GF := GF) peerAddr₂ ∗
-      httpProtoFree (GF := GF) peerAddr₃ ∗ sched ↦*□ steps ∗ threadTok ∗ premises N id₁ id₂ id₃ ps ctxs boot ∗
-      -- (2026-11-03, the WAL's API, change 6) the members' WAL directories fresh
-      walDirFresh (config.walDirOf (name₁ ++ go!".etcd") go!"") ∗
-      walDirFresh (config.walDirOf (name₂ ++ go!".etcd") go!"") ∗
-      walDirFresh (config.walDirOf (name₃ ++ go!".etcd") go!"") }}
+      -- (2026-11-05, hub step 7, D1) the cluster's start bundle: each member's (its WAL directory
+      -- fresh, its peer and client addresses free, the peer's HTTP protocol unregistered) and the
+      -- bridges' addresses free
+      cluster3.startRes (GF := GF) clusterCfg ∗
+      sched ↦*□ steps ∗ threadTok ∗ premises N id₁ id₂ id₃ ps ctxs boot }}
     (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.partition.Main)) (Val #clients))
       (Val #ops)) (Val #sched))
   {{ (r : GoString), RET #r; ⌜r = go!"Ok" ∨ r = go!"Unknown"⌝ }}

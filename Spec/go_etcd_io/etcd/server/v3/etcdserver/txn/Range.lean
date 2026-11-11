@@ -4,12 +4,12 @@ Lean-first; see `InvRange.lean`, `RangeModel.lean`.
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.InvRange
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRange
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.ApiVocab
 
 @[expose] public section
 
 set_option linter.unusedSectionVars false
+set_option linter.unusedVariables false
 
 noncomputable section
 
@@ -17,7 +17,8 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3.etcdserver.txn
-  go_etcd_io.etcd.api.v3
+  go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.storage.mvcc
+open mvcc.api (MvccState MTxn MvccReachable MvccName MvccStorage mvccN mvccLeases)
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -26,40 +27,37 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-/-- `Range(ctx, lg, kv, r, withTotalCount)` on the store `kv`: a read transaction of a
-committed log `log` pinned between the caller's certificate `log₀` and its `m` revision tokens
-(`store.Read`), at its last revision `rev`, and `rangeResult` there; the trace is not `nil`.
-Premises: a valid sort target, and the sort's premise (`sortOk`) on every log the read may
-see. At a context never canceled (`nd`: `neverDone`), no context error (2026-10-12: for the
-apply package's backend, at `context.TODO()`, whose errors `errors.Is` takes). 2026-10-12 (the
-request path's unit 3b): the sort's premise is asked of the logs the read may see that are
-certified (`idxCert`: the server's readers know only that the store's certified logs are small),
-and a success's response header has its id fields owned (`rangeHdr`).
-2026-10-14 (unit P1b): the context's trace `ot` (`ctxTraceIs`) and its ownership taken
-(`EnsureTrace`); the trace returned owned, the context's if it had a non-empty one.
-2026-10-14 (unit T1): the log read is certified by the store's caller (`certOk`). -/
+local notation "pkgInit" => isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn
+
+/-- **`Range(ctx, lg, kv, r, withTotalCount)`**: a read transaction at the state `σ` of the
+caller's update (`Q σ`), and `rangeResult` there (the sort's premise from `Txn.Range`'s
+`stateOk`). Callers: the apply thread (its `Q` pins `σ.log`
+to its log), the server's read path (its `Q` gives the floor and its model of `σ.log`). The logger
+nil or a zap logger (`EnsureTrace`'s; the sort's `lg.Panic` is unreachable at a valid sort target;
+premise fixes 6, for `lg ≠ null`).
+
+(Strict M1, 2026-11-05: restated over mvcc's API as `notes/mvcc-api-clients/TxnSpecs.lean`
+drafts it, frozen; `notes/mvcc-api-clients/clients-txn.md`.) -/
 abbrev txn.Range.spec : Prop :=
-  ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (lg : Loc) (kv : GoInterface)
-    (s : Loc) (γ : mvcc.StoreNames) (r : Loc) (o : OpFull) (withTotal : Bool) (m : Nat)
-    (log₀ : mvcc.Log) (ot : Option Loc) (te : Bool),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
-      txn.isKV kv s γ ∗ mvcc.storeReader s γ ∗ ownToks γ.revs m ∗ mvcc.idxCert γ.idx log₀ ∗
-      txn.rangeRequestIs r o ∗ mvcc.txnCtx ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗
-      (if nd then mvcc.neverDone cd else iprop(True)) ∗ ⌜lg ≠ null⌝ ∗ ⌜txn.validSortTarget o⌝ ∗
-      (□ ∀ log : mvcc.Log, ⌜log₀ <+: log ∧ log.length + m + 3 ≤ 2 ^ 63⌝ -∗
-        mvcc.idxCert γ.idx log -∗ ⌜txn.sortOk o log⌝) }}
+  ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (lg : Loc)
+    (kv : GoInterface) (γ : MvccName) (r : Loc) (o : OpFull) (withTotal : Bool) (ot : Option Loc)
+    (te : Bool) (Q : MvccState → IProp GF),
+  {{ pkgInit ∗ mvcc.api.isMvcc kv γ ∗ mvcc.api.mvccReaders γ 1 ∗
+      txn.rangeRequestIs r o ∗ mvcc.txnCtx ctx cd ∗
+      traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗
+      (if nd then mvcc.neverDone cd else iprop(True)) ∗ zapLoggerOrNil lg ∗ ⌜txn.validSortTarget o⌝ ∗
+      txn.readAU γ Q }}
     (App (App (App (App (App (Val (@! txn.Range)) (Val #(GoInterface.ok ctx))) (Val #lg)) (Val #kv))
       (Val #r)) (Val #withTotal))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-      mvcc.storeReader s γ ∗ ownToks γ.revs m ∗ ⌜trace ≠ null⌝ ∗
-      (∃ te' : Bool, traceutil.ownTrace trace te') ∗ ⌜∀ t0, ot = some t0 → te = false → trace = t0⌝ ∗
-      ∃ (log : mvcc.Log) (rev : w64) (crev : Int), mvcc.idxCert γ.idx log ∗ mvcc.certOk γ log ∗
-        mvcc.crevLb γ.idx crev ∗
-        ⌜log₀ <+: log ∧ log.length + m + 3 ≤ 2 ^ 63 ∧ log ≠ [] ∧
-          rev = W64 ((log.length : Int) - 1) ∧ -1 ≤ crev ∧ crev ≤ sint.Z rev⌝ ∗
-        txn.rangeResult resp err log rev crev o withTotal ∗ txn.rangeHdr resp err ∗
-        ⌜nd = true → err = GoInterface.nil ∨ sint.Z rev < sint.Z o.base.rev ∨
-          sint.Z (mvcc.rangeRev rev o.base.rev) < crev⌝ }}
+      mvcc.api.mvccReaders γ 1 ∗
+      ⌜trace ≠ null⌝ ∗ (∃ te' : Bool, traceutil.ownTrace trace te') ∗
+      ⌜∀ t0, ot = some t0 → te = false → trace = t0⌝ ∗
+      ∃ σ : MvccState, Q σ ∗ ⌜txn.Reach σ⌝ ∗
+        txn.rangeResult resp err σ.log (W64 (σ.rev : Int)) σ.crev o withTotal ∗
+        txn.rangeHdr resp err ∗
+        ⌜nd = true → err = GoInterface.nil ∨ sint.Z (W64 (σ.rev : Int)) < sint.Z o.base.rev ∨
+          sint.Z (mvcc.rangeRev (W64 (σ.rev : Int)) o.base.rev) < σ.crev⌝ }}
 
 end spec
 

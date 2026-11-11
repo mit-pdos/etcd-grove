@@ -41,7 +41,7 @@ theorem backend.backend.run.wp_proof
   intro γ P W Pk b sc dc γsc γdc u d
   wp_start as ⟨#Hb, #Hsc, #Hbi, Hdcp, Hrt, Hq, Hus⟩
   icases isBackend_b γ P W Pk b $$ Hb with
-    ⟨%t, %rt, %db, %lg, #Ht, #Hrt, #Hlg, %Hlgn, #Hmi, #Hbe, #Hm, #Hrg, #Hmug, #Hisdb, #Hci, %HP⟩
+    ⟨%t, %rt, %db, %lg, #Ht, #Hrt, #Hlg, #Hlgn, #Hmi, #Hbe, #Hm, #Hrg, #Hmug, #Hisdb, #Hci, %HP⟩
   unfold isStopChansAt
   icases Hsc with ⟨#Hscf, #Hdcf, #Hscb, #Hdcb, #Hinv⟩
   ihave #Hscc := ownBroadcastChan_is_chan _ _ _ _ $$ Hscb
@@ -102,6 +102,10 @@ theorem backend.backend.run.wp_proof
         · simp only [Bool.false_eq_true, ↓reduceIte]
           rw [vData_free P st Hfo.1.1 Hfo.1.2.2.1 Hfo.1.2.2.2.1]
           iapply thinV_refl
+        isplitr
+        · ipureintro; intro h; cases h
+        isplitr
+        · ipureintro; exact Hfo.1.2.2.2.2
         unfold payIn
         rw [if_neg (by decide), if_neg (by decide), if_pos rfl]
         iframe Hus Hlb
@@ -151,7 +155,7 @@ theorem backend.backend.run.wp_proof
     -- (2026-11-04, R2b-3d stage 3) `Close`'s caller's request, served by the stop's commit
     iunfold stopReq at Hrq
     icases Hrq with ⟨%X, %Y, HX, #Hreq, Hrq⟩
-    wp_apply (hCS γ P W Pk b t X Y) $$ [$Hhalf $Hq $HX] as ⟨#Hbs, Hout, HY⟩
+    wp_apply (hCS γ P W Pk b t X Y) $$ [$Hhalf $Hq $HX] as ⟨#Hbs, Hout, HY, Htok⟩
     · iframe #
     wp_for_post
     wp_apply (_root_.Perennial.time.Timer.wp_Stop tm) $$ [] as %bb -
@@ -168,7 +172,7 @@ theorem backend.backend.run.wp_proof
       iunfold bDoneEsc
       iexact Hesc
     iapply HΦ
-    itrivial
+    iexact Htok
   · iapply BigAndL.bigAndL_nil.2
     itrivial
 

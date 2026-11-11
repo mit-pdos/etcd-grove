@@ -54,7 +54,7 @@ theorem traceutil.Trace.AddField.wp_proof
     cases b
     · (try wp_auto)
       iunfold traceutil.ownTrace at Ht
-      icases Ht with ⟨%v, %ss, Ht, Hfs0, Hss, Hcap, Hsf, %He⟩
+      icases Ht with ⟨%v, %ss, Ht, Hfs0, Hss, Hcap, Hsf, %He, #Hlz⟩
       iunfold traceutil.ownFields at Hfs0
       icases Hfs0 with ⟨%ffs, Hffs, Hfcap, %Hfwf⟩
       (try wp_auto)
@@ -83,6 +83,7 @@ theorem traceutil.Trace.AddField.wp_proof
         iframe Ht
         (try simp only)
         iframe
+        (try iframe Hlz)
         ipureintro; exact He
       ipureintro; constructor <;> word
     · (try wp_auto)

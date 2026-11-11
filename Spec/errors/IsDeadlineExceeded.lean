@@ -35,14 +35,18 @@ variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.errors.Assumptions]
 
 /-- `errors.Is(err, target)` for `target` the value of `context.DeadlineExceeded` and an `err`
-in an error tree: some boolean. -/
+in an error tree: `true` only if some error of the tree is `target` or an `Is` method of the tree
+said so (`M`), as `errors.Is.spec`'s third conjunct (Go's `errors.is` compares each error of the
+walk with `==` and asks its `Is` method; k8s etcd3 7c-2 part 2, G1-a′, 2026-11-06: until then
+some boolean). -/
 abbrev errors.IsDeadlineExceeded.spec : Prop :=
   ∀ (S : GoInterface → Prop) (M : GoInterfaceOk → Prop) (err target : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.errors ∗
       globalAddr _root_.Perennial.context.DeadlineExceeded ↦□ target ∗
       _root_.Perennial.errors.errorIsTree (GF := GF) S M target ∗ ⌜S err⌝ }}
     (App (App (Val (@! _root_.Perennial.errors.Is)) (Val #err)) (Val #target))
-  {{ (b : Bool), RET #b; True }}
+  {{ (b : Bool), RET #b;
+      ⌜b = true → ∃ ii : GoInterfaceOk, S (GoInterface.ok ii) ∧ (GoInterface.ok ii = target ∨ M ii)⌝ }}
 
 end spec
 

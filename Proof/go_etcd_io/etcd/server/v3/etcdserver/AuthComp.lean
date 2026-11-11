@@ -7,7 +7,7 @@ instance rather than a twin shape (`notes/decisions.md`, "The auth component").
 * `AuthC`: `auth.AuthMode` without `.any`, which no server spec admits;
 * sealed: `acRes` (the apply thread's auth part, today's `kvAuthM`), `acInv`, `acTok`, `acPub`,
   `acRead`, `acLessor`, `acCost`, `acSnapKit`, `acSnapOk`;
-* public (pure, read outside the slot): `acBkts`, `acImg`, `acOpenQ`, `acModesOk`, `acReceiptOk`,
+* public (pure, read outside the slot): `acBkts`, `acImg`, `acOpenQ`, `acModesOk`,
   `restSetC`;
 * the laws: the bridges to today's mode-indexed names (stage 2 rewrites with them, then deletes
   them), the opening laws with auth on (`acRes_on`, ...: `srvEntryStep`'s on case, a departure
@@ -107,13 +107,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-
-/-- **The receipt counter's bound the component needs**: none off; on, `receiptBound GF ≤ 2^48`
-(the apply loop mints a receipt per entry). -/
-def acReceiptOk (C : AuthC) : Prop :=
-  match C with
-  | .off => True
-  | .on _ => receiptBound GF ≤ 2 ^ 48
 
 /-- **The apply thread's auth part at the latest auth state `st`**, through the uber-applier `ua`:
 off, the store's field (`srvAuthApplyRes`); on, the base applier's auth layer and the auth resource
@@ -425,7 +418,7 @@ theorem acSnapOk_intro (C : AuthC) (s ast : Loc) (E : apply.AEnv GF) (γr : Read
     have h := snapAuthResM_on s ast E γr A' γa hC
     rw [hC] at h
     iapply h
-    iframe Ha Hk Hl
+    iframe Ha Hk
 
 /-! ### Backend change -/
 

@@ -1,6 +1,6 @@
 /-
 `raftpb.MessageType.String` (`raftpb/raft.pb.go`, protoc-gen-go; names-only in the translation,
-`Code/go_etcd_io/raft/v3/raftpb.toml`): the trust boundary, as `ConfChangeType.String`'s. Its
+`Code/go_etcd_io/raft/v3/raftpb.toml`): the trust boundary (as `ConfChangeType.String`'s was until premise fixes 7). Its
 `String()` returns some string (protoimpl's enum name or the number); rafthttp's stream reader logs
 a dropped message's type (2026-10-23, rafthttp stage 5c).
 -/

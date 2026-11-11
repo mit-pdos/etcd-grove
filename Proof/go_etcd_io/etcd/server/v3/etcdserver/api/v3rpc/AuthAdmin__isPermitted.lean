@@ -35,11 +35,11 @@ theorem v3rpc.AuthAdmin.isPermitted.wp_proof
     (hAS : EtcdServer.AuthStore.spec (GF := GF) (hG := hG)) :
     v3rpc.AuthAdmin.isPermitted.spec (GF := GF) (hG := hG) := by
   intro aa s E ctx cd
-  wp_start as ⟨#Haa, #Hnil, #Hctx, HRD⟩
+  wp_start as ⟨#Haa, #Hnil, #Hctx, #Hlib, HRD⟩
   iunfold v3rpc.authAdminIs at Haa
   icases Haa with ⟨%Hann, #Hag, #Hau⟩
   iunfold srvAuthAt at Hau
-  icases Hau with ⟨%st, %cca, %P, %f, #Has, #Hreq, #Hreqb, #Hcca, #Hast⟩
+  icases Hau with ⟨%st, %cca, #Has, #Hreq, #Hreqb, #Hcca, #Hast⟩
   iunfold srvAdminNilOk at Hnil
   icases Hnil with ⟨%st2, #Has2, #Hnil⟩
   icombine Has Has2 gives %Heq
@@ -55,8 +55,9 @@ theorem v3rpc.AuthAdmin.isPermitted.wp_proof
   · iPkgInit
   (try wp_auto)
   wp_apply (hAI s (GoInterface.ok ai) E.RD E.authMode cca ctx cd)
-    $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr, #Hb⟩
+    $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr0, #Hb, -⟩
   · iframe #
+  ihave #Herr := authApplyErrIs_apply _ $$ Herr0
   (try wp_auto)
   rcases err with ei | _
   · (try wp_auto)

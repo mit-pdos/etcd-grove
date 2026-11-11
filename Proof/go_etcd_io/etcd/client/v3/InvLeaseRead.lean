@@ -67,7 +67,9 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **The `*pb.LeaseTimeToLiveResponse` `l` holds the message `m`** (read-only; its `Keys` some
-slice). -/
+slice). A documented limit (the stage A Freeze review's L2): as `pbLeaseTimeToLiveResponse`'s
+`send`, it holds the `Keys` slice but not its elements, so a handler that overwrites an element
+while grpc marshals the reply is outside the model. -/
 def leaseTTLRespMsg (l : Loc) (m : LeaseTTLRespM) : IProp GF :=
   iprop(⌜l ≠ null⌝ ∗ ∃ (h : Loc) (ks : GoSlice),
     structFieldRef etcdserverpb.LeaseTimeToLiveResponse go!"Header" l ↦□ h ∗ hdrFull h m.hdr ∗

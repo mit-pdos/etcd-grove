@@ -484,7 +484,7 @@ theorem v3rpc.checkRequestOp_of
     · iapply isPkgInit_access $$ Hpkg
     icases Hinit with ⟨-, ⟨-, -, -, -, -, -, #HeN⟩, -, -⟩
     iunfold go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.errVarSet at HeN
-    icases HeN with ⟨%eN, #HeN⟩
+    icases HeN with ⟨%eN, #HeN, #SeN⟩
     wp_auto
     iapply HΦ
     simp only [v3rpc.opCheck, v3rpc.checkRes, txn.errVarIs, v3rpc.CheckErr.var]
@@ -506,8 +506,8 @@ theorem v3rpc.checkTxnRequest_loeb
   · iapply isPkgInit_access $$ Hpkg
   icases Hinit with ⟨-, ⟨#HeK, -, -, -, #HeT, -, -⟩, -, -⟩
   iunfold go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.errVarSet at HeK HeT
-  icases HeK with ⟨%eK, #HeK⟩
-  icases HeT with ⟨%eT, #HeT⟩
+  icases HeK with ⟨%eK, #HeK, #SeK⟩
+  icases HeT with ⟨%eT, #HeT, #SeT⟩
   iunfold v3rpc.txnReqIs at Hr
   icases Hr with ⟨%Hrn, %csl, %ssl, %fsl, %cps, %sps, %fps, #Hc, #Hcs, #Hcm, #Hs, #Hss, #Hsm,
     #Hf, #Hfs, #Hfm⟩

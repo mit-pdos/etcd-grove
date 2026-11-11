@@ -62,9 +62,9 @@ local macro "rci_defers" : tactic => `(tactic| (
 
 set_option hygiene false in
 /-- A return with the error variable `e` (`ErrLeaderChanged`, `ErrTimeout`, `ErrStopped`). -/
-local macro "rci_ret_err" Ha:ident : tactic => `(tactic| (
+local macro "rci_ret_err" Ha:ident Hr:ident : tactic => `(tactic| (
   rci_defers
-  iapply HΦ; iframe HLR $Ha:ident; iintro %h; cases h))
+  iapply HΦ; iframe HLR $Ha:ident $Hr:ident; iintro %h; cases h))
 
 set_option hygiene false in
 /-- A new request after `firstCommitInTermNotifier` or `retryTimer.C` (the first-commit channel
@@ -76,13 +76,13 @@ local macro "rci_resend" fcN:term:max : tactic => `(tactic| (
   (try wp_auto)
   wp_apply HNR $$ HN1 as %rid' Hfr'
   wp_apply wp_mapInsert go.uint64 mref _ rid' () $$ Hm as Hm
-  wp_apply hSRI r γr RQ LR NR rid' n Qr F $$ [HLR Hfr'] as %err' ⟨HLR, #HaE', HRQ'⟩
+  wp_apply hSRI r γr RQ LR NR rid' n Qr F $$ [HLR Hfr'] as %err' ⟨HLR, #HaE', #HrE', HRQ'⟩
   · iframe #; iframe HLR Hfr'
   cases err' with
   | ok ei' =>
     wp_auto
     rci_defers
-    iapply HΦ; iframe HLR HaE'; iintro %h; cases h
+    iapply HΦ; iframe HLR HaE' HrE'; iintro %h; cases h
   | nil =>
     ihave #HRQ'' := HRQ' $$ %rfl
     wp_auto
@@ -127,6 +127,12 @@ theorem read.Read.requestCurrentIndex.wp_proof
   ihave ⟨%eStop, #HeStop, #HaStop⟩ := errVarLeaf_get _ $$ HStop
   ihave ⟨%eLC, #HeLC, #HaLC⟩ := errVarLeaf_get _ $$ HLCh
   ihave ⟨%eTO, #HeTO, #HaTO⟩ := errVarLeaf_get _ $$ HTO
+  ihave #HrStop : readLoopErrIs (GoInterface.ok eStop) $$ []
+  · iunfold readLoopErrIs; ileft; iunfold readErrIs; iright; iright; ileft; iexact HeStop
+  ihave #HrLC : readLoopErrIs (GoInterface.ok eLC) $$ []
+  · iunfold readLoopErrIs; ileft; iunfold readErrIs; iright; iright; iright; ileft; iexact HeLC
+  ihave #HrTO : readLoopErrIs (GoInterface.ok eTO) $$ []
+  · iunfold readLoopErrIs; ileft; iunfold readErrIs; iright; iright; iright; iright; iexact HeTO
   ihave #Ptime : isPkgInit (PROP := IProp GF) pkg_id.time $$ []
   · iPkgInit
   wp_auto
@@ -136,18 +142,18 @@ theorem read.Read.requestCurrentIndex.wp_proof
   imod HN0
   wp_apply HNR $$ [$HN0] as %rid0 Hfr0
   wp_apply wp_mapInsert go.uint64 mref _ rid0 () $$ [$Hm] as Hm
-  wp_apply hSRI r γr RQ LR NR rid0 n Qr F $$ [HLR Hfr0] as %err0 ⟨HLR, #HaE0, HRQ0⟩
+  wp_apply hSRI r γr RQ LR NR rid0 n Qr F $$ [HLR Hfr0] as %err0 ⟨HLR, #HaE0, #HrE0, HRQ0⟩
   · iframe #; iframe HLR Hfr0
   cases err0 with
   | ok ei0 =>
     wp_auto
     iapply HΦ
-    iframe HLR HaE0
+    iframe HLR HaE0 HrE0
     iintro %h; cases h
   | nil =>
   ihave #HRQ0' := HRQ0 $$ %rfl
   wp_auto
-  wp_apply HLg $$ [$HLR] as %lg ⟨%Hlg, HLR⟩
+  wp_apply HLg $$ [$HLR] as %lg ⟨#Hlg, HLR⟩
   wp_apply HRT as %d -
   wp_apply time.wp_NewTimer as %et %etc %γet #Het
   wp_apply time.wp_NewTimer as %rt %rtc %γrt #Hrt
@@ -214,7 +220,7 @@ theorem read.Read.requestCurrentIndex.wp_proof
         iintro ⟨-, -⟩
         wp_auto
         wp_apply HIncF
-        rci_ret_err HaLC
+        rci_ret_err HaLC HrLC
       · iapply BigAndL.bigAndL_nil.2; itrivial
     · wp_auto
       iunfold srvReadStateOk at Hrs
@@ -242,7 +248,7 @@ theorem read.Read.requestCurrentIndex.wp_proof
         iintro %fs ⟨-, -⟩
         (try wp_auto)
         wp_apply hW lg _ _ $$ []
-        · iframe #; ipureintro; exact Hlg
+        · iframe #
         (try wp_auto)
         wp_apply HIncS
         (try wp_auto)
@@ -262,6 +268,8 @@ theorem read.Read.requestCurrentIndex.wp_proof
         iframe HLR
         isplitr
         · iapply applyErrIs_nil
+        isplitr
+        · iunfold readLoopErrIs; ileft; iapply readErrIs_nil
         iintro -; iframe Hwit; ipureintro; exact Hle
   -- `<-leaderChangedNotifier`
   iapply BigAndL.bigAndL_cons.2
@@ -276,7 +284,7 @@ theorem read.Read.requestCurrentIndex.wp_proof
     iintro ⟨-, -⟩
     wp_auto
     wp_apply HIncF
-    rci_ret_err HaLC
+    rci_ret_err HaLC HrLC
   -- `<-firstCommitInTermNotifier`
   iapply BigAndL.bigAndL_cons.2
   isplit
@@ -292,7 +300,7 @@ theorem read.Read.requestCurrentIndex.wp_proof
     wp_apply HFC $$ [$HLR] as %fcn ⟨#Hfcn, HLR⟩
     (try wp_auto)
     wp_apply hI lg _ _ $$ []
-    · iframe #; ipureintro; exact Hlg
+    · iframe #
     rci_resend fcn
   -- `<-retryTimer.C`
   iapply BigAndL.bigAndL_cons.2
@@ -316,7 +324,7 @@ theorem read.Read.requestCurrentIndex.wp_proof
     iintro %fs ⟨-, -⟩
     (try wp_auto)
     wp_apply hW lg _ _ $$ []
-    · iframe #; ipureintro; exact Hlg
+    · iframe #
     rci_resend fc
   -- `<-errorTimer.C`
   iapply BigAndL.bigAndL_cons.2
@@ -340,10 +348,10 @@ theorem read.Read.requestCurrentIndex.wp_proof
     iintro %fs ⟨-, -⟩
     (try wp_auto)
     wp_apply hW lg _ _ $$ []
-    · iframe #; ipureintro; exact Hlg
+    · iframe #
     (try wp_auto)
     wp_apply HIncS
-    rci_ret_err HaTO
+    rci_ret_err HaTO HrTO
   -- `<-r.server.Stopping()`
   iapply BigAndL.bigAndL_cons.2
   isplit
@@ -356,7 +364,7 @@ theorem read.Read.requestCurrentIndex.wp_proof
     iapply stop_chan_receive _ _ _ _ _ $$ Hstc
     iintro ⟨-, -⟩
     wp_auto
-    rci_ret_err HaStop
+    rci_ret_err HaStop HrStop
   iapply BigAndL.bigAndL_nil.2
   itrivial
 

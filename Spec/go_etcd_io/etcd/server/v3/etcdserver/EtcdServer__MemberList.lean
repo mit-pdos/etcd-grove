@@ -7,6 +7,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthGuard
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__Members
+public import Proof.context.LibKeys
 @[expose] public section
 
 set_option linter.unusedSectionVars false
@@ -38,7 +39,7 @@ abbrev EtcdServer.MemberList.spec : Prop :=
     (cd : context.ContextDesc (IProp GF)) (r : Loc) (lin : Bool) (dq : DFrac) (c : w64)
     (g : GName) (Q : List EntryModel → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerReq s E ρ ∗ isServerRead s E γr ∗ mvcc.txnCtx ctx cd ∗ E.RD ∗
+      isServerReq s E ρ ∗ isServerRead s E γr ∗ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗ E.RD ∗
       structFieldRef etcdserverpb.MemberListRequest go!"Linearizable" r ↦{dq} lin ∗
       srvReadReader s γr ∗ committedAtLeast γr c ∗ savedPredOwn g DFrac.discard Q ∗
       kvDep γr.kv Q }}

@@ -2,23 +2,24 @@ module github.com/mit-pdos/etcd-grove/examples/k8s/etcd3
 
 go 1.27.1
 
-replace go.etcd.io/etcd/api/v3 => github.com/upamanyus/etcd/api/v3 v3.0.0-20261103162249-673da07c8fab
+replace go.etcd.io/etcd/api/v3 => github.com/upamanyus/etcd/api/v3 v3.0.0-20261111181426-71f99a4bf417
 
-replace go.etcd.io/etcd/client/pkg/v3 => github.com/upamanyus/etcd/client/pkg/v3 v3.0.0-20261103162249-673da07c8fab
+replace go.etcd.io/etcd/client/pkg/v3 => github.com/upamanyus/etcd/client/pkg/v3 v3.0.0-20261111181426-71f99a4bf417
 
-replace go.etcd.io/etcd/client/v3 => github.com/upamanyus/etcd/client/v3 v3.0.0-20261103162249-673da07c8fab
+replace go.etcd.io/etcd/client/v3 => github.com/upamanyus/etcd/client/v3 v3.0.0-20261111181426-71f99a4bf417
 
-replace go.etcd.io/etcd/pkg/v3 => github.com/upamanyus/etcd/pkg/v3 v3.0.0-20261103162249-673da07c8fab
+replace go.etcd.io/etcd/pkg/v3 => github.com/upamanyus/etcd/pkg/v3 v3.0.0-20261111181426-71f99a4bf417
 
-replace go.etcd.io/etcd/server/v3 => github.com/upamanyus/etcd/server/v3 v3.0.0-20261103162249-673da07c8fab
+replace go.etcd.io/etcd/server/v3 => github.com/upamanyus/etcd/server/v3 v3.0.0-20261111181426-71f99a4bf417
 
-replace go.etcd.io/raft/v3 => github.com/upamanyus/etcd/v3 v3.0.0-20261028061729-565c2bda9e6d
+replace go.etcd.io/raft/v3 => github.com/upamanyus/etcd/v3 v3.0.0-20261110053807-d2c16c558247
 
 require (
 	github.com/anishathalye/porcupine v1.3.1
 	github.com/goose-lang/primitive v0.2.2-0.20260212023729-cb7f52217e65
 	github.com/mit-pdos/etcd-grove/examples v0.0.0-00010101000000-000000000000
 	github.com/mit-pdos/etcd-grove/examples/lib/lintest v0.0.0-00010101000000-000000000000
+	go.etcd.io/etcd/api/v3 v3.8.0-alpha.0
 	go.etcd.io/etcd/client/pkg/v3 v3.8.0-alpha.0
 	go.etcd.io/etcd/client/v3 v3.8.0-alpha.0
 	go.etcd.io/etcd/server/v3 v3.8.0-alpha.0
@@ -56,6 +57,7 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.31.0 // indirect
 	github.com/jonboulle/clockwork v0.5.0 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
+	github.com/mit-pdos/etcd-grove/third_party/bridge v0.0.0-00010101000000-000000000000 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_golang v1.25.0 // indirect
@@ -67,7 +69,6 @@ require (
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xiang90/probing v0.0.0-20221125231312-a49e3df8f510 // indirect
 	go.etcd.io/bbolt v1.5.0 // indirect
-	go.etcd.io/etcd/api/v3 v3.8.0-alpha.0 // indirect
 	go.etcd.io/etcd/pkg/v3 v3.8.0-alpha.0 // indirect
 	go.etcd.io/raft/v3 v3.7.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
@@ -112,6 +113,8 @@ require (
 replace github.com/anishathalye/porcupine => ../../../third_party/porcupine
 
 replace github.com/mit-pdos/etcd-grove/examples/lib/lintest => ../../lib/lintest
+
+replace github.com/mit-pdos/etcd-grove/third_party/bridge => ../../../third_party/bridge
 
 // the examples' shared start (examples/lib/etcdstart), in the examples' module
 replace github.com/mit-pdos/etcd-grove/examples => ../..

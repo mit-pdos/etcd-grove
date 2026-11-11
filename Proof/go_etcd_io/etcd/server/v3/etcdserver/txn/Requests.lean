@@ -403,7 +403,9 @@ instance txnRequestIsW_persistent (rt : Loc) (t : TxnModelW) :
 
 /-! ## The responses -/
 
-/-- The `*mvccpb.KeyValue` `l` holds `v` (its fields, read-only; as the cache's `kvValAt`). -/
+/-- The `*mvccpb.KeyValue` `l` holds `v` (its fields, read-only; as the cache's `kvValAt`), and
+`l` is not `nil` (the fields' points-tos do not say it: a caller branching on `KV == nil` needs it;
+the last conjunct, so that a pattern naming the fields before it is unchanged). -/
 def kvIs (l : Loc) (v : EtcdKv) : IProp GF :=
   iprop(∃ keySl valSl : GoSlice,
     structFieldRef mvccpb.KeyValue go!"Key" l ↦□ keySl ∗ keySl ↦*□ v.key ∗
@@ -411,7 +413,7 @@ def kvIs (l : Loc) (v : EtcdKv) : IProp GF :=
     structFieldRef mvccpb.KeyValue go!"ModRevision" l ↦□ v.modRev ∗
     structFieldRef mvccpb.KeyValue go!"Version" l ↦□ v.version ∗
     structFieldRef mvccpb.KeyValue go!"Value" l ↦□ valSl ∗ valSl ↦*□ v.value ∗
-    structFieldRef mvccpb.KeyValue go!"Lease" l ↦□ v.lease)
+    structFieldRef mvccpb.KeyValue go!"Lease" l ↦□ v.lease ∗ ⌜l ≠ null⌝)
 
 instance kvIs_persistent (l : Loc) (v : EtcdKv) : Persistent (kvIs (GF := GF) l v) := by
   unfold kvIs; infer_instance

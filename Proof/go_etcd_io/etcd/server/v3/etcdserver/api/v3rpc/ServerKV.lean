@@ -18,7 +18,7 @@ transaction's gets within the txn package's model, `txnInModel`), what a success
 serializable; `txnReadAns`/`txnAppliedAns`: a read-only transaction run at a certified log, or a
 writing one applied by the apply thread), what an error is (the apply's or the proposal's for
 the writes, any for the reads), every resource of the call back with each answer but the id
-credit a write consumed; `KV().Rev()` needs the store's reader slots (`revR`), which `fill`
+credit a write consumed; `KV().Rev()` needs a reader token of the store (`revR`), which `fill`
 never uses on these answers since their revision is not `0`.
 
 **What the server's answers give the handler** (`kvAnswer`): the response header's four id
@@ -29,6 +29,7 @@ take (`srvErrIs`, from `applyErrIs`: `srvErrIs_of_applyErrIs`).
 -/
 module
 
+public import Proof.context.ReqKeys
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ModeSpecs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvKV
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Put
@@ -41,11 +42,11 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__MemberID
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Term
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Leader
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__ID
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Rev
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.CheckLemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.CheckPure
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.CheckShape
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ReaderSpecs
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVStoreCore
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.ApiLemmas
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.KVWrite
 @[expose] public section
@@ -79,7 +80,7 @@ theorem srvErrIs_of_applyErrIs (err : GoInterface) (hne : err ≠ GoInterface.ni
   isplitr
   · iexact H
   ihave #Hkm : iprop(errKeyMsg err) $$ []
-  · iunfold applyErrIs at H; icases H with ⟨-, #Hkm⟩; iexact Hkm
+  · iunfold applyErrIs at H; icases H with ⟨-, #Hkm, -⟩; iexact Hkm
   iunfold errKeyMsg at Hkm
   icases Hkm with (%Hn | ⟨%Hsafe, %ei, %Hei, #Hm⟩)
   · exact absurd Hn hne
@@ -88,19 +89,21 @@ theorem srvErrIs_of_applyErrIs (err : GoInterface) (hne : err ≠ GoInterface.ni
   iexists ei
   isplitr
   · ipureintro; exact Hei
-  iunfold errMsgOk at Hm
-  iexact Hm
+  iapply errMsgOk_triple $$ Hm
 
 /-- **What one call of the server's write path needs** (`EtcdServer.Put`/`DeleteRange`): the
 request's context (a `context.Context` value with Perennial's `isContext`), one id credit (for
 `reqIDGen.Next()`), a reader slot of `s.leadTimeMu` (`parseProposeCtxErr` read-locks it; given
 back with the answer). The context carries no trace (`traceutil.ctxTraceIs ci none`, unit P1b,
 2026-10-14: `EtcdServer.Range`/`Txn` take the context's trace, `EnsureTrace` makes theirs; a
-gRPC handler's context has no `TraceKey` value). -/
+gRPC handler's context has no `TraceKey` value), and (the trace fix, 2026-11-07) a span-key fact
+(`trace.spanCtxOk`, which the server's write paths take; a run context's, `spanCtxOk_of_runCtx`),
+and (premise-fixes-8) its library values well formed (`context.libCtxOk`, which `AuthInfoFromCtx`
+takes; a run context's, `libCtxOk_of_runCtx`). -/
 def srvCall (s : Loc) (ρ : ReqNames) (ctx : GoInterface) : IProp GF :=
   iprop(∃ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)), ⌜ctx = GoInterface.ok ci⌝ ∗
-    context.isContext ci cd ∗ traceutil.ctxTraceIs ci none ∗ idCred ρ.ids 1 ∗
-    srvLeadTimeReader s)
+    context.isContext ci cd ∗ context.libCtxOk ci ∗ trace.spanCtxOk ci ∗ context.startTimeOk ci ∗
+    traceutil.ctxTraceIs ci none ∗ idCred ρ.ids 1 ∗ srvLeadTimeReader s)
 
 /-- `putAppliedOk` but the caller's reader slot: the answer's facts (the vertical slice's unit
 V1: what the client learns of the response; `client/v3/Results.lean`'s `etcd_putRunOk`), with
@@ -114,8 +117,9 @@ def putApplied (E : apply.AEnv GF) (γw : ReadNames) (F : mvcc.Log) (o : OpFull)
     ⌜apply.applyStep (apply.withHeader (irrPut o) hm) true x x' (.dispatched (.applied l false) skip) ∧
       r = W64 (x.log.length : Int) ∧ F <+: x.log ∧ 2 ≤ x.log.length ∧ x.log.length + 4 ≤ 2 ^ 63⌝ ∗
     apply.putOutcomeIs x.log o resp GoInterface.nil (.applied l false) ∗
-    mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γw x'.log ∗
-    mvcc.certOk E.γ x'.log ∗ Q (kvStateOf x.log))
+    srvApi.kvLogLb E.γs x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γw x'.log ∗
+    E.Nx x'.log ∗ ⧖ (mvcc.logCh x'.log) ∗ ⌜mvcc.LogWf' x'.log ∧ x'.log.length + 3 ≤ 2 ^ 63⌝ ∗
+    Q (kvStateOf x.log))
 
 /-- **A successful `Put` of `o`** (`EtcdServer.Put`'s success, at the handler's level): the
 request with the server's header (`hm`) was dispatched by the apply thread at the KV state `x`
@@ -143,8 +147,9 @@ def deleteApplied (E : apply.AEnv GF) (γw : ReadNames) (F : mvcc.Log) (o : OpFu
       r = W64 ((mvcc.writeRev x.log (txn.delChanges (mvcc.stateAfter x.log) op') : Nat) : Int) ∧
       F <+: x.log ∧ 2 ≤ x.log.length ∧ x.log.length + 4 ≤ 2 ^ 63⌝ ∗
     apply.deleteOutcomeIs x.log op' resp GoInterface.nil (.applied l false) ∗
-    mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γw x'.log ∗
-    mvcc.certOk E.γ x'.log ∗ Q (kvStateOf x.log))
+    srvApi.kvLogLb E.γs x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γw x'.log ∗
+    E.Nx x'.log ∗ ⧖ (mvcc.logCh x'.log) ∗ ⌜mvcc.LogWf' x'.log ∧ x'.log.length + 3 ≤ 2 ^ 63⌝ ∗
+    Q (kvStateOf x.log))
 
 /-- **A successful `DeleteRange` of `o`**: as `putAppliedOk`, for the request the proposed data
 decode to (`rq'`, whose delete `op'` is `o` unless its range end is `[0]`, `irrWireOf`); the
@@ -199,8 +204,8 @@ def txnInModel (cs : List CmpModel) (ts es : List ReqOp) : Prop :=
   ∀ t, txnModelOf cs ts es = some t → txn.txnReadonly t = true →
     ∀ o : OpFull, TxnOp.get o ∈ t.thenOps ++ t.elseOps → o.base.rev = W64 0 ∧ ¬ txn.cutEarly o
 
-/-- **A successful `Range` of `o`, at the handler's level, in the auth mode `on`** (persistent;
-`rangeReadOk` but the header's fields, which `hdrW` takes): the txn package's answer at a certified
+/-- **A successful `Range` of `o`, at the handler's level, in the auth mode `on`**
+(`rangeReadOk` but the header's fields, which `hdrW` takes): the txn package's answer at a certified
 log of at least two revisions, the header's revision `r` its last, after the read index unless
 serializable, the log extending the log applied through an index at least `c` (`readLogOk`,
 2026-10-13, unit 4b), the log extending the floor `F` (the vertical slice's unit V2), and
@@ -208,8 +213,9 @@ serializable, the log extending the log applied through an index at least `c` (`
 component's stage 4) of a committed raft log at which the read's update gave `□ Q`. -/
 def rangeAnsOkM (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log)
     (o : OpFull) (resp : Loc) (r : w64) (Q : List EntryModel → IProp GF) : IProp GF :=
-  iprop(∃ log : mvcc.Log, mvcc.idxCert E.γ.idx log ∗ mvcc.certOk E.γ log ∗
-    ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ r = W64 ((log.length : Int) - 1) ∧ F <+: log⌝ ∗
+  iprop(∃ log : mvcc.Log, srvApi.kvLogLb E.γs log ∗ E.Nx log ∗ ⧖ (mvcc.logCh log) ∗
+    ⌜mvcc.LogWf' log ∧ 2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ r = W64 ((log.length : Int) - 1) ∧
+      F <+: log⌝ ∗
     (if o.base.serializable then iprop(True) else readLogOk γr c log) ∗
     (if o.base.serializable then iprop(True) else
       ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModelM on γr.kv L = log⌝ ∗ □ Q L) ∗
@@ -220,8 +226,9 @@ def rangeAnsOkM (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F :
 `rangeAnsOkM`'s). -/
 def txnReadAnsM (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log)
     (t : TxnModel) (Q : List EntryModel → IProp GF) (resp : Loc) (r : w64) : IProp GF :=
-  iprop(∃ log : mvcc.Log, mvcc.idxCert E.γ.idx log ∗ mvcc.certOk E.γ log ∗
-    ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ r = W64 ((log.length : Int) - 1) ∧ F <+: log⌝ ∗
+  iprop(∃ log : mvcc.Log, srvApi.kvLogLb E.γs log ∗ E.Nx log ∗ ⧖ (mvcc.logCh log) ∗
+    ⌜mvcc.LogWf' log ∧ 2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ r = W64 ((log.length : Int) - 1) ∧
+      F <+: log⌝ ∗
     (if txn.txnSerializable t then iprop(True) else readLogOk γr c log) ∗
     (if txn.txnSerializable t then iprop(True) else
       ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModelM on γr.kv L = log⌝ ∗ □ Q L) ∗
@@ -257,8 +264,9 @@ def txnAppliedAns (E : apply.AEnv GF) (γw : ReadNames) (F : mvcc.Log) (t : TxnM
       -- (linkv-txn stage B1, 2026-10-20) the ranges run
       skip = false⌝ ∗
     apply.txnOutcomeIs x.log t' skip resp GoInterface.nil (.applied l false) ∗
-    mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γw x'.log ∗
-    mvcc.certOk E.γ x'.log ∗ Q (kvStateOf x.log))
+    srvApi.kvLogLb E.γs x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γw x'.log ∗
+    E.Nx x'.log ∗ ⧖ (mvcc.logCh x'.log) ∗ ⌜mvcc.LogWf' x'.log ∧ x'.log.length + 3 ≤ 2 ^ 63⌝ ∗
+    Q (kvStateOf x.log))
 
 /-- **A client's update, deposited with a call** (2026-10-14, unit T1; 2026-10-15, unit T2: over
 the whole state): none, a write's update for the KV operation `o` with result `Q` (`kvOpAu`: a
@@ -317,7 +325,7 @@ def kvDepPre (d : KVDep GF) : KVReq → Prop
 (the vertical slice's unit V2) and the client's deposit `d` (2026-10-14, unit T1). -/
 def srvKVAns (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
     (F : mvcc.Log) (d : KVDep GF) : KVAns GF where
-  call ctx := iprop(srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ kvDepOwn ρ γr d ∗ mvcc.idxCert E.γ.idx F)
+  call ctx := iprop(srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ kvDepOwn ρ γr d ∗ srvApi.kvLogLb E.γs F)
   pre q := (match q with
     | .txn cs ts es => txnInModel cs ts es
     | _ => True) ∧ kvDepPre d q
@@ -335,7 +343,13 @@ def srvKVAns (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c 
     | .range _ => iprop(idCred ρ.ids 1 ∗ srvLeadTimeReader s)
     | .txn cs ts es => iprop(srvLeadTimeReader s ∗ ∃ t, ⌜txnModelOf cs ts es = some t⌝ ∗
         if txn.txnReadonly t then idCred ρ.ids 1 else txnErrOk E ρ F t e))
-  revR := mvcc.storeReader E.s E.γ
+  revR := mvcc.api.mvccReaders E.γ 1
+
+/-- **The empty floor** (strict M1: a call's floor `srvApi.kvLogLb E.γs F` at `F = []`, minted
+from nothing, in place of mvcc's `idxCert_nil`). -/
+theorem kvLogLb_nil (γs : srvApi.KVSNames) : ⊢ |==> srvApi.kvLogLb (GF := GF) γs [] := by
+  unfold srvApi.kvLogLb
+  exact monoListLbOwn_nil _
 
 open Iris.ProofMode in
 /-- A put's permit (`putPermit`) from its deposit. -/
@@ -386,6 +400,13 @@ instance kvServerAt_persistent (p s : Loc) (A : KVAns GF) (cid mid n : w64) :
     Persistent (kvServerAt p s A cid mid n) := by
   unfold kvServerAt; infer_instance
 
+/-- `kvServerAt` reads its answer only through the KV's `Rev()` resources (`hdrIs`): any answer with
+the same `revR` (the off, on and mode answers', whatever the parameters). -/
+theorem kvServerAt_revR (p s : Loc) (A A' : KVAns GF) (cid mid n : w64) (hR : A.revR = A'.revR) :
+    kvServerAt (GF := GF) p s A cid mid n = kvServerAt p s A' cid mid n := by
+  unfold kvServerAt hdrIs
+  rw [hR]
+
 theorem kvServerIs_of_at (p s : Loc) (A : KVAns GF) (cid mid n : w64) :
     kvServerAt (GF := GF) p s A cid mid n ∗ raftKV s A ⊢ kvServerIs p s A cid mid n := by
   iintro ⟨#Hat, #HKV⟩
@@ -398,14 +419,14 @@ theorem kvServerIs_of_at (p s : Loc) (A : KVAns GF) (cid mid n : w64) :
 end defs
 
 /-- A revision at a log of `NewStore`'s two revisions at least, and room: not `0`. -/
-theorem w64_rev_ne_zero (n : Nat) (h1 : 1 ≤ n) (h2 : n + 4 ≤ 2 ^ 63) : W64 (n : Int) ≠ W64 0 := by
+theorem w64_rev_ne_zero (n : Nat) (h1 : 1 ≤ n) (h2 : n + 3 ≤ 2 ^ 63) : W64 (n : Int) ≠ W64 0 := by
   intro h
   have := congrArg (fun w : w64 => uint.Z w) h
   word
 
 /-- The delete's revision (`writeRev`) at such a log: at least `1`. -/
 theorem writeRev_ne_zero (log : mvcc.Log) (pend : List mvcc.Change) (h1 : 2 ≤ log.length)
-    (h2 : log.length + 4 ≤ 2 ^ 63) : W64 ((mvcc.writeRev log pend : Nat) : Int) ≠ W64 0 := by
+    (h2 : log.length + 3 ≤ 2 ^ 63) : W64 ((mvcc.writeRev log pend : Nat) : Int) ≠ W64 0 := by
   apply w64_rev_ne_zero
   · unfold mvcc.writeRev; split <;> omega
   · unfold mvcc.writeRev; split <;> omega

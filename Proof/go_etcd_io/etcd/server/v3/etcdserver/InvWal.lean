@@ -24,6 +24,7 @@ durable state. A failed `Save` is I/O (`¬ storage.walSaveOk`, the user's choice
 module
 
 public import Proof.go_etcd_io.raft.v3.NodeApiVocab
+public import Proof.go_etcd_io.raft.v3.InvNodeRule
 public import Perennial.Ghost.MonoList
 public import Proof.go_etcd_io.etcd.server.v3.storage.WalRecs
 
@@ -295,6 +296,9 @@ loop's "not stopped" token `ok`, the stop's claim and the apply thread's token (
 invariant once the stop took the records; round 2 review F4: each thread rules the taken state out
 with its token). -/
 structure WalNames where
+  /-- (Sweep repairs 1, W2) the WAL's location, which `rnDurInv` pins: what the snapshot batch's
+  `notifyc` payload names (`rnApSnap`'s `walBaseLb`), where the raft wrapper is not at hand. -/
+  loc : Loc
   view : GName
   cm : GName
   ok : GName
@@ -385,6 +389,49 @@ def ViewOk (v : WalView) (σ : StorContents) : Prop :=
   StorageHolds v.S σ ∧ σ.hs = v.hs ∧ σ.b ≤ v.l.length ∧ v.l.length ≤ σ.commit ∧
     DurAgrees v.S v.l ∧ (∀ m, v.pend = some m → σ.commit < uint.nat m.Index')
 
+/-- (R2d, Q14 (a), 2026-11-06; DRAFT) **The records' snapshot certificate** (persistent): the
+records `σ` start at index `0`, or their snapshot is the snapshot of no data at their base
+(`walSaveSnap`'s `SnapshotM.mk [] m`), valid in the cluster `cl` (`snapshotValid`). What a restart's
+`MemoryStorage` needs to attach to raft at the records' base (`restartStorage`, R2d-6; Q14), carried
+from the two `SaveSnap`s (`rnDur_saveSnap_au`, `rnDur_ownSnap_au`) to the stop's image
+(`rnDur_take`). -/
+def walSnapCert (cl : Cluster) (σ : StorContents) : IProp GF :=
+  iprop(⌜σ.b = 0⌝ ∨ ∃ m : SnapshotMetadataM,
+    ⌜σ.snap = some (SnapshotM.mk [] m) ∧ uint.nat m.Index' = σ.b⌝ ∗
+      snapshotValid cl (SnapshotM.mk [] m))
+
+instance walSnapCert_persistent (cl : Cluster) (σ : StorContents) :
+    Persistent (walSnapCert (GF := GF) cl σ) := by
+  unfold walSnapCert; infer_instance
+
+instance walSnapCert_timeless (cl : Cluster) (σ : StorContents) :
+    Timeless (walSnapCert (GF := GF) cl σ) := by
+  unfold walSnapCert; infer_instance
+
+/-- The fresh records' certificate: at index `0`. -/
+theorem walSnapCert_fresh (cl : Cluster) : ⊢ walSnapCert (GF := GF) cl walFresh := by
+  iintro; iunfold walSnapCert; ileft; ipureintro; rfl
+
+/-- `Save` keeps the certificate (it keeps the base and the snapshot). -/
+theorem walSnapCert_save (cl : Cluster) (σ : StorContents) (h : HardStateM) (es : List EntryM) :
+    walSnapCert (GF := GF) cl (walSave σ h es) = walSnapCert cl σ := rfl
+
+/-- `SaveSnap(m)` keeps the certificate, given the certificate of the snapshot it records. -/
+theorem walSnapCert_saveSnap (cl : Cluster) (σ : StorContents) (m : SnapshotMetadataM) :
+    walSnapCert (GF := GF) cl σ ∗ snapshotValid cl (SnapshotM.mk [] m) ⊢
+      walSnapCert cl (walSaveSnap σ m) := by
+  iintro ⟨Hc, #Hv⟩
+  unfold walSaveSnap
+  by_cases hlt : uint.nat m.Index' < σ.b
+  · rw [if_pos hlt]; iexact Hc
+  · rw [if_neg hlt]
+    iunfold walSnapCert
+    iright
+    iexists m
+    iframe Hv
+    ipureintro
+    exact ⟨rfl, rfl⟩
+
 /-- (R2b-1, round 3) **The records as the view says**: at no pending snapshot, records `σ`
 holding the durable state, between whose base and commit the handed log ends (round 2 review F3:
 the handed log, not the committed one; `σ.b ≤ |l|` is what the stop's image needs, `|l| ≤
@@ -392,10 +439,11 @@ the handed log, not the committed one; `σ.b ≤ |l|` is what the stop's image n
 `m` whose `Save` is pending, records `walSaveSnap σ m` of such records `σ` (the apply thread's own
 snapshot is then below their base and changes nothing). Either way the records' hard state is the
 view's. -/
-def walAsViewed (w : Loc) (v : WalView) : IProp GF :=
-  iprop(∃ σ : StorContents, walRecs w (recsOf v σ) ∗ ⌜ViewOk v σ⌝)
+def walAsViewed (cl : Cluster) (w : Loc) (v : WalView) : IProp GF :=
+  iprop(∃ σ : StorContents, walRecs w (recsOf v σ) ∗ ⌜ViewOk v σ⌝ ∗ walSnapCert cl (recsOf v σ))
 
-instance walAsViewed_timeless (w : Loc) (v : WalView) : Timeless (walAsViewed (GF := GF) w v) := by
+instance walAsViewed_timeless (cl : Cluster) (w : Loc) (v : WalView) :
+    Timeless (walAsViewed (GF := GF) cl w v) := by
   unfold walAsViewed; infer_instance
 
 /-- (R2b-1, round 4; round 2 review F1-F5, round 3 H1, M1; 2026-11-03: no failed state, a failed
@@ -406,57 +454,86 @@ of it), the handed log as a monotone list (`walCommitLb`'s authority), and the r
 says (`walAsViewed`; the loop's `Save` moves the records and the view in one step, the apply
 thread's own snapshot moves the records only). The node's durable state (`raftState`) is the
 loop's own, beside its view half (`rnLoopTokP`), not the invariant's. -/
-def rnDurInv (ν : WalNames) (w : Loc) : IProp GF :=
-  inv rnDurN iprop((∃ v : WalView, ghostVar ν.view (1 : Qp).half v ∗
-      monoListAuthOwn ν.cm 1 v.l ∗ walAsViewed w v) ∨
-    (token ν.stop ∗ token ν.app ∗ token ν.ok))
+def rnDurInv (cl : Cluster) (ν : WalNames) (w : Loc) : IProp GF :=
+  iprop(⌜ν.loc = w⌝ ∗ inv rnDurN iprop((∃ v : WalView, ghostVar ν.view (1 : Qp).half v ∗
+      monoListAuthOwn ν.cm 1 v.l ∗ walAsViewed cl w v) ∨
+    (token ν.stop ∗ token ν.app ∗ token ν.ok)))
 
-instance rnDurInv_persistent (ν : WalNames) (w : Loc) : Persistent (rnDurInv (GF := GF) ν w) := by
+instance rnDurInv_persistent (cl : Cluster) (ν : WalNames) (w : Loc) :
+    Persistent (rnDurInv (GF := GF) cl ν w) := by
   unfold rnDurInv; infer_instance
 
 /-- (2026-11-03, R2b-1 stage 3c) **The view at the start**: the node's durable state at
 `RaftState.init` (`StartNode`'s), the fresh records' hard state, nothing pending, nothing handed. -/
 abbrev walView0 : WalView := ⟨RaftState.init, hsZero, none, []⟩
 
-/-- (2026-11-03, R2b-1 stage 3c) **The durability's ghost state allocated** over a fresh WAL
-(`walFresh`, what `bootstrap` gives a first start): the invariant at the start's view (the fresh
-records hold `RaftState.init`, `walFresh_holds`), the loop's half of the view with its "not failed"
-token, the stop's claim, the apply thread's token, and the handed log's lower bound at `[]`. -/
-theorem rnDur_alloc (w : Loc) :
-    walRecs (GF := GF) w walFresh ⊢
-      |={⊤}=> ∃ ν : WalNames, rnDurInv ν w ∗ ghostVar ν.view (1 : Qp).half walView0 ∗
-        token ν.ok ∗ token ν.stop ∗ token ν.app ∗ walCommitLb ν [] := by
-  iintro Hr
-  imod (ghostVar_alloc (GF := GF) walView0) with ⟨%γv, Hv⟩
-  imod (mono_list_own_alloc (GF := GF) ([] : List LogEntry)) with ⟨%γc, Hca, #Hcl⟩
+/-- (restart S3 item 4, 2026-11-11) **The view a restart starts at holds of its records**: the node's
+durable state `S` held by the records `σ` (`StorageHolds`, the restart's AU's), a committed log `l`
+ending between their base and their commit that the durable log agrees with, the records' own hard
+state, nothing pending. -/
+theorem viewOk_restart (S : RaftState) (σ : StorContents) (l : List LogEntry)
+    (hS : StorageHolds S σ) (hb : σ.b ≤ l.length) (hc : l.length ≤ σ.commit) (ha : DurAgrees S l) :
+    ViewOk ⟨S, σ.hs, none, l⟩ σ :=
+  ⟨hS, rfl, hb, hc, ha, fun _ h => by cases h⟩
+
+/-- (restart S3 item 4, 2026-11-11; generalizing `rnDur_alloc`) **The durability's ghost state
+allocated over records `σ` at a view `v` they describe** (`ViewOk`, nothing pending): the invariant
+at `v` with the records' snapshot certificate, the loop's half of the view with its "not failed"
+token, the stop's claim, the apply thread's token, and the handed log's lower bound at `v.l`. A
+first start's is `walFresh` at `walView0` (`rnDur_alloc`); a restart's, the records `walRead`
+returned at `⟨S, σ.hs, none, l₀⟩` (`viewOk_restart`; the records' source is W4's). -/
+theorem rnDur_alloc_view (cl : Cluster) (w : Loc) (σ : StorContents) (v : WalView)
+    (hv : ViewOk v σ) (hp : v.pend = none) :
+    walRecs (GF := GF) w σ ∗ walSnapCert cl σ ⊢
+      |={⊤}=> ∃ ν : WalNames, rnDurInv cl ν w ∗ ghostVar ν.view (1 : Qp).half v ∗
+        token ν.ok ∗ token ν.stop ∗ token ν.app ∗ walCommitLb ν v.l := by
+  iintro ⟨Hr, #Hc⟩
+  imod (ghostVar_alloc (GF := GF) v) with ⟨%γv, Hv⟩
+  imod (mono_list_own_alloc (GF := GF) v.l) with ⟨%γc, Hca, #Hcl⟩
   imod (token_alloc (GF := GF)) with ⟨%γo, Ho⟩
   imod (token_alloc (GF := GF)) with ⟨%γs, Hs⟩
   imod (token_alloc (GF := GF)) with ⟨%γa, Ha⟩
-  icases (ghostVar_split_half γv 1 walView0).1 $$ Hv with ⟨Hv1, Hv2⟩
-  imod (inv_alloc rnDurN ⊤ iprop((∃ v : WalView, ghostVar γv (1 : Qp).half v ∗
-      monoListAuthOwn γc 1 v.l ∗ walAsViewed w v) ∨
+  icases (ghostVar_split_half γv 1 v).1 $$ Hv with ⟨Hv1, Hv2⟩
+  have hr : recsOf v σ = σ := by unfold recsOf; rw [hp]
+  imod (inv_alloc rnDurN ⊤ iprop((∃ v' : WalView, ghostVar γv (1 : Qp).half v' ∗
+      monoListAuthOwn γc 1 v'.l ∗ walAsViewed cl w v') ∨
     (token γs ∗ token γa ∗ token γo))) $$ [Hv1 Hca Hr] with #Hinv
   · inext
     ileft
-    iexists walView0
+    iexists v
     iframe Hv1
     isplitl [Hca]
     · iexact Hca
     iunfold walAsViewed
-    iexists walFresh
-    simp only [walView0, recsOf]
-    iframe Hr
+    iexists σ
+    rw [hr]
+    iframe Hr Hc
     ipureintro
-    unfold ViewOk
-    refine ⟨walFresh_holds, rfl, Nat.le_refl _, Nat.zero_le _, ?_, ?_⟩
-    · intro i e _ he; simp at he
-    · intro m hm; simp at hm
+    exact hv
   imodintro
-  iexists ⟨γv, γc, γo, γs, γa⟩
+  iexists ⟨w, γv, γc, γo, γs, γa⟩
   iunfold rnDurInv
   iframe Hinv Hv2 Ho Hs Ha
+  isplitr
+  · ipureintro; rfl
   iunfold walCommitLb
   iexact Hcl
+
+/-- (2026-11-03, R2b-1 stage 3c) **The durability's ghost state allocated** over a fresh WAL
+(`walFresh`, what `bootstrap` gives a first start): the invariant at the start's view (the fresh
+records hold `RaftState.init`, `walFresh_holds`), the loop's half of the view with its "not failed"
+token, the stop's claim, the apply thread's token, and the handed log's lower bound at `[]`.
+(Restart S3 item 4: `rnDur_alloc_view` at `walView0`.) -/
+theorem rnDur_alloc (cl : Cluster) (w : Loc) :
+    walRecs (GF := GF) w walFresh ⊢
+      |={⊤}=> ∃ ν : WalNames, rnDurInv cl ν w ∗ ghostVar ν.view (1 : Qp).half walView0 ∗
+        token ν.ok ∗ token ν.stop ∗ token ν.app ∗ walCommitLb ν [] := by
+  iintro Hr
+  ihave #Hc := walSnapCert_fresh (GF := GF) cl
+  iapply rnDur_alloc_view cl w walFresh walView0
+    ⟨walFresh_holds, rfl, Nat.le_refl _, Nat.zero_le _, fun i e _ he => by simp at he,
+      fun m hm => by simp at hm⟩ rfl
+  iframe Hr Hc
 
 /-- (2026-11-03, R2b-1 stage 4) **A `Save` from the view `v` to `v'`** (pure): from any records
 `σ` the view describes (`ViewOk`), the batch `(h, es)` is in `Save`'s case (`WalSaveOk`) and the
@@ -469,9 +546,9 @@ def WalSaveStep (v v' : WalView) (h : HardStateM) (es : List EntryM) : Prop :=
 (`walSave_spec`): from the loop's view `v` (its half) and its "not stopped" token (`ν.ok`, which
 rules out the stop's taken state), a `Save` moving the view to `v'` (`WalSaveStep`): the loop's half
 at `v'`, the token back and the handed log's lower bound at `v'.l`. -/
-theorem rnDur_save_au (ν : WalNames) (w : Loc) (v v' : WalView) (h : HardStateM)
+theorem rnDur_save_au (cl : Cluster) (ν : WalNames) (w : Loc) (v v' : WalView) (h : HardStateM)
     (es : List EntryM) (Hst : WalSaveStep v v' h es) :
-    rnDurInv (GF := GF) ν w -∗ ghostVar ν.view (1 : Qp).half v -∗ token ν.ok -∗
+    rnDurInv (GF := GF) cl ν w -∗ ghostVar ν.view (1 : Qp).half v -∗ token ν.ok -∗
       AU <{ ∃∃ (σ : StorContents), walRecs w σ ∗ ⌜WalSaveOk σ es⌝ }> @ ⊤, ∅
         <{ walRecs w (walSave σ h es),
           COMM ghostVar ν.view (1 : Qp).half v' ∗ token ν.ok ∗ walCommitLb ν v'.l }> := by
@@ -480,6 +557,7 @@ theorem rnDur_save_au (ν : WalNames) (w : Loc) (v v' : WalView) (h : HardStateM
   iauintro
   unfold atomic_acc
   iunfold rnDurInv at Hinv
+  icases Hinv with ⟨-, #Hinv⟩
   iinv Hinv with >Hi Hclose
   icases Hi with (⟨%v0, Hv0, Hcm, Hw⟩ | ⟨-, -, Hok'⟩)
   rotate_left
@@ -488,7 +566,7 @@ theorem rnDur_save_au (ν : WalNames) (w : Loc) (v v' : WalView) (h : HardStateM
   have Hvv : v = v0 := Hag.2
   subst Hvv
   iunfold walAsViewed at Hw
-  icases Hw with ⟨%σ, Hr, %Hok0⟩
+  icases Hw with ⟨%σ, Hr, %Hok0, #Hc⟩
   obtain ⟨Hsok, Hok1⟩ := Hstep σ Hok0
   isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
   iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
@@ -501,7 +579,7 @@ theorem rnDur_save_au (ν : WalNames) (w : Loc) (v v' : WalView) (h : HardStateM
   · iintro ⟨Hr, -⟩
     imod Hmask with -
     imod Hclose $$ [Hv0 Hcm Hr] with -
-    · inext; ileft; iexists v; iframe Hv0 Hcm; iunfold walAsViewed; iexists σ; iframe Hr
+    · inext; ileft; iexists v; iframe Hv0 Hcm; iunfold walAsViewed; iexists σ; iframe Hr Hc
       ipureintro; exact Hok0
     imodintro
     iframe Hv Hok
@@ -514,8 +592,8 @@ theorem rnDur_save_au (ν : WalNames) (w : Loc) (v v' : WalView) (h : HardStateM
       iexists walSave (recsOf v σ) h es
       have hr : recsOf v' (walSave (recsOf v σ) h es) = walSave (recsOf v σ) h es := by
         unfold recsOf; rw [Hpn]
-      rw [hr]
-      iframe Hr
+      rw [hr, walSnapCert_save]
+      iframe Hr Hc
       ipureintro; exact Hok1
     imodintro
     iframe Hv Hok
@@ -682,18 +760,23 @@ theorem walSnapSteps_ready (st : NodeDriverState) (ce : List LogEntry) (es : Lis
 
 /-- (2026-11-03, R2b-1 stage 4) **The raft loop's `SaveSnap` of a received snapshot, as the WAL
 contract's atomic update** (`walSaveSnap_spec`): the view's half moves to the snapshot pending. -/
-theorem rnDur_saveSnap_au (ν : WalNames) (w : Loc) (v : WalView) (m : SnapshotMetadataM)
+theorem rnDur_saveSnap_au (cl : Cluster) (ν : WalNames) (w : Loc) (v : WalView) (m : SnapshotMetadataM)
     (Hst : WalSnapStep v m) :
-    rnDurInv (GF := GF) ν w -∗ ghostVar ν.view (1 : Qp).half v -∗ token ν.ok -∗
+    rnDurInv (GF := GF) cl ν w -∗ ghostVar ν.view (1 : Qp).half v -∗ token ν.ok -∗
+      -- (R2d, Q14 (a), DRAFT) the received snapshot's WAL record valid (`srv_snapshotValid_record`)
+      snapshotValid cl (SnapshotM.mk [] m) -∗
       AU <{ ∃∃ (σ : StorContents), walRecs w σ ∗
             ⌜uint.nat m.Index' = σ.b → m.Term' = σ.base.term'⌝ }> @ ⊤, ∅
         <{ walRecs w (walSaveSnap σ m),
-          COMM ghostVar ν.view (1 : Qp).half { v with pend := some m } ∗ token ν.ok }> := by
+          COMM ghostVar ν.view (1 : Qp).half { v with pend := some m } ∗ token ν.ok ∗
+            -- (sweep repairs 1, W2) the records start at or above the snapshot's index
+            walBaseLb w (uint.nat m.Index') }> := by
   obtain ⟨Hpn, Hstep⟩ := Hst
-  iintro #Hinv Hv Hok
+  iintro #Hinv Hv Hok #Hsv
   iauintro
   unfold atomic_acc
   iunfold rnDurInv at Hinv
+  icases Hinv with ⟨-, #Hinv⟩
   iinv Hinv with >Hi Hclose
   icases Hi with (⟨%v0, Hv0, Hcm, Hw⟩ | ⟨-, -, Hok'⟩)
   rotate_left
@@ -702,7 +785,7 @@ theorem rnDur_saveSnap_au (ν : WalNames) (w : Loc) (v : WalView) (m : SnapshotM
   have Hvv : v = v0 := Hag.2
   subst Hvv
   iunfold walAsViewed at Hw
-  icases Hw with ⟨%σ, Hr, %Hok0⟩
+  icases Hw with ⟨%σ, Hr, %Hok0, #Hc⟩
   obtain ⟨Hsok, Hok1⟩ := Hstep σ Hok0
   have hr0 : recsOf v σ = σ := by unfold recsOf; rw [Hpn]
   rw [hr0]
@@ -718,11 +801,12 @@ theorem rnDur_saveSnap_au (ν : WalNames) (w : Loc) (v : WalView) (m : SnapshotM
     imod Hmask with -
     imod Hclose $$ [Hv0 Hcm Hr] with -
     · inext; ileft; iexists v; iframe Hv0 Hcm; iunfold walAsViewed; iexists σ
-      rw [hr0]; iframe Hr
+      rw [hr0]; iframe Hr Hc
       ipureintro; exact Hok0
     imodintro
     iframe Hv Hok
   · iintro Hr
+    icases walRecs_saveSnap_baseLb w σ m $$ Hr with ⟨Hr, #Hblb⟩
     imod Hmask with -
     imod (ghostVar_update_halves { v with pend := some m } ν.view v v) $$ Hv Hv0 with ⟨Hv, Hv0⟩
     imod Hclose $$ [Hv0 Hcm Hr] with -
@@ -733,9 +817,12 @@ theorem rnDur_saveSnap_au (ν : WalNames) (w : Loc) (v : WalView) (m : SnapshotM
       iexists σ
       simp only [recsOf]
       iframe Hr
+      isplitr
+      rotate_left
+      · iapply walSnapCert_saveSnap; iframe Hc Hsv
       ipureintro; exact Hok1
     imodintro
-    iframe Hv Hok
+    iframe Hv Hok Hblb
 
 /-- (2026-11-03, R2b-1 stage 5) **The apply thread's own snapshot is a WAL step** (pure): a snapshot
 at an index of a handed log `l` (a prefix of the view's, `walCommitLb`), at the term `l` has there:
@@ -800,17 +887,22 @@ theorem walOwnSnapStep (v : WalView) (σ : StorContents) (md : SnapshotMetadataM
 /-- (2026-11-03, R2b-1 stage 5) **The apply thread's own `SaveSnap`, as the WAL contract's atomic
 update** (`walSaveSnap_spec`): with its token (`ν.app`, which rules out the stop's taken state) and a
 handed log `l` it learned (`walCommitLb`) holding the snapshot's index at its term. -/
-theorem rnDur_ownSnap_au (ν : WalNames) (w : Loc) (md : SnapshotMetadataM) (l : List LogEntry)
+theorem rnDur_ownSnap_au (cl : Cluster) (ν : WalNames) (w : Loc) (md : SnapshotMetadataM) (l : List LogEntry)
     (e : LogEntry) (Hpos : 0 < uint.nat md.Index') (He : l[uint.nat md.Index' - 1]? = some e)
     (Ht : e.term = md.Term') :
-    rnDurInv (GF := GF) ν w -∗ token ν.app -∗ walCommitLb ν l -∗
+    rnDurInv (GF := GF) cl ν w -∗ token ν.app -∗ walCommitLb ν l -∗
+      -- (R2d, Q14 (a), DRAFT) the snapshot's WAL record valid (`srv_snap_make`'s, of no data)
+      snapshotValid cl (SnapshotM.mk [] md) -∗
       AU <{ ∃∃ (σ : StorContents), walRecs w σ ∗
             ⌜uint.nat md.Index' = σ.b → md.Term' = σ.base.term'⌝ }> @ ⊤, ∅
-        <{ walRecs w (walSaveSnap σ md), COMM token ν.app }> := by
-  iintro #Hinv Ha #Hlb
+        <{ walRecs w (walSaveSnap σ md), COMM token ν.app ∗
+          -- (sweep repairs 1, W2) the records start at or above the snapshot's index
+          walBaseLb w (uint.nat md.Index') }> := by
+  iintro #Hinv Ha #Hlb #Hsv
   iauintro
   unfold atomic_acc
   iunfold rnDurInv at Hinv
+  icases Hinv with ⟨-, #Hinv⟩
   iinv Hinv with >Hi Hclose
   icases Hi with (⟨%v, Hv, Hcm, Hw⟩ | ⟨-, Ha', -⟩)
   rotate_left
@@ -818,7 +910,7 @@ theorem rnDur_ownSnap_au (ν : WalNames) (w : Loc) (md : SnapshotMetadataM) (l :
   iunfold walCommitLb at Hlb
   ihave %Hpv := mono_list_auth_lb_valid ν.cm 1 v.l l $$ Hcm Hlb
   iunfold walAsViewed at Hw
-  icases Hw with ⟨%σ, Hr, %Hok0⟩
+  icases Hw with ⟨%σ, Hr, %Hok0, #Hc⟩
   obtain ⟨Hpre, σ', Hσ', Hok1⟩ := walOwnSnapStep v σ md l e Hpv.2 Hpos He Ht Hok0
   isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
   iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
@@ -831,18 +923,22 @@ theorem rnDur_ownSnap_au (ν : WalNames) (w : Loc) (md : SnapshotMetadataM) (l :
   · iintro ⟨Hr, -⟩
     imod Hmask with -
     imod Hclose $$ [Hv Hcm Hr] with -
-    · inext; ileft; iexists v; iframe Hv Hcm; iunfold walAsViewed; iexists σ; iframe Hr
+    · inext; ileft; iexists v; iframe Hv Hcm; iunfold walAsViewed; iexists σ; iframe Hr Hc
       ipureintro; exact Hok0
     imodintro
     iframe Ha
   · iintro Hr
+    icases walRecs_saveSnap_baseLb w _ md $$ Hr with ⟨Hr, #Hblb⟩
     imod Hmask with -
     imod Hclose $$ [Hv Hcm Hr] with -
     · inext; ileft; iexists v; iframe Hv Hcm; iunfold walAsViewed; iexists σ'
       rw [Hσ']; iframe Hr
+      isplitr
+      rotate_left
+      · iapply walSnapCert_saveSnap; iframe Hc Hsv
       ipureintro; exact Hok1
     imodintro
-    iframe Ha
+    iframe Ha Hblb
 
 /-- (2026-11-03, R2b-1 stage 6; the draft's `rnDurTake_stmt`, round 4) **The stop takes the records
 out** (`onStop`, the loop idle, its view at no pending snapshot): with the stop's claim, the apply
@@ -850,16 +946,21 @@ thread's token (which `stopped` brings), the loop's view half and its token, the
 view's durable state (the loop's own, `raftState`), between whose base and commit the handed log
 ends. The invariant is left in its taken state.
 
-(Round 3 review M2, still open for `raftNode.stop.specStop`: the order is at the view's handed log
+(Round 3 review M2, still open for `raftNode.stop.spec`: the order is at the view's handed log
 `v.l`, the stop's post at the apply side's `pre ++ A` (`rnApplyTok γ A`); equating them needs every
 sent batch received.) -/
-theorem rnDur_take (ν : WalNames) (w : Loc) (v : WalView) (hp : v.pend = none) :
-    rnDurInv (GF := GF) ν w -∗ token ν.stop -∗ token ν.app -∗
+theorem rnDur_take (cl : Cluster) (ν : WalNames) (w : Loc) (v : WalView) (hp : v.pend = none) :
+    rnDurInv (GF := GF) cl ν w -∗ token ν.stop -∗ token ν.app -∗
       ghostVar ν.view (1 : Qp).half v -∗ token ν.ok ={⊤}=∗
       ∃ σ : StorContents, walRecs w σ ∗
-        ⌜StorageHolds v.S σ ∧ σ.b ≤ v.l.length ∧ v.l.length ≤ σ.commit⌝ := by
+        ⌜StorageHolds v.S σ ∧ σ.b ≤ v.l.length ∧ v.l.length ≤ σ.commit ∧
+          -- (S1) the records' hard state the view's, and the durable log agreeing with the handed log
+          σ.hs = v.hs ∧ DurAgrees v.S v.l⌝ ∗
+        -- (R2d, Q14 (a), DRAFT) the records' snapshot certificate
+        walSnapCert cl σ := by
   iintro #Hinv Hs Ha Hv Hok
   iunfold rnDurInv at Hinv
+  icases Hinv with ⟨-, #Hinv⟩
   iinv Hinv with >Hi Hclose
   icases Hi with (⟨%v0, Hv0, -, Hw⟩ | ⟨-, -, Hok'⟩)
   rotate_left
@@ -868,17 +969,17 @@ theorem rnDur_take (ν : WalNames) (w : Loc) (v : WalView) (hp : v.pend = none) 
   have Hvv : v = v0 := Hag.2
   subst Hvv
   iunfold walAsViewed at Hw
-  icases Hw with ⟨%σ, Hr, %Hok0⟩
+  icases Hw with ⟨%σ, Hr, %Hok0, #Hc⟩
   imod Hclose $$ [Hs Ha Hok] with -
   · inext; iright; iframe Hs Ha Hok
   imodintro
   iexists σ
   have hr : recsOf v σ = σ := by unfold recsOf; rw [hp]
   rw [hr]
-  iframe Hr
+  iframe Hr Hc
   ipureintro
-  obtain ⟨Hh, -, Hb, Hc, -, -⟩ := Hok0
-  exact ⟨Hh, Hb, Hc⟩
+  obtain ⟨Hh, Hhs, Hb, Hc, Hag, -⟩ := Hok0
+  exact ⟨Hh, Hb, Hc, Hhs, Hag⟩
 
 end defs
 

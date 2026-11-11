@@ -58,13 +58,16 @@ theorem Main.wp_proof
     (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (wp_Leases : lessor.Leases.spec (GF := GF) (hG := hG))
-    (wp_TimeToLive : lessor.TimeToLive.spec (GF := GF) (hG := hG)) :
+    (wp_TimeToLive : lessor.TimeToLive.spec (GF := GF) (hG := hG))
+    (hne : mvcc.api.names_nonempty.law) :
     Main.spec (GF := GF) (hG := hG) := by
   intro CS CRE CEC N id ctxs boot Hbf Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo HlP Hms hAs
-  wp_start as ⟨Haddr, Htok, #Hprem, Hwdf⟩
+  wp_start as ⟨Hstart, Htok, #Hprem⟩
+  -- (hub step 7) the client address's listen right, out of the member's start bundle (to `Serve`)
+  icases etcdstart.memberStartRes_client _ _ _ rfl $$ Hstart with ⟨Haddr, Hstart⟩
   iunfold premises at Hprem
   iunfold etcdstart.premises at Hprem
-  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Hsetlg, #Htd, #Hns, #Hnrl⟩
+  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Htd, #Hns, #Hnrl⟩
   -- `Main`'s premises in the shared start's form
   ihave #Hb := etcdstart.bootPremise_of N [id] (LogEntry.toEntries boot 0) ctxs (leasekvDir id)
       go!"leasekv" go!"leasekv"
@@ -88,12 +91,13 @@ theorem Main.wp_proof
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_NewNop as %lg %Hlg
+  wp_apply wp_NewNop as %lg #Hlgz
+  ihave %Hlg := zapLoggerOk_ne_null lg $$ Hlgz
   (try wp_auto)
   -- the ghost state `NewServer` takes (`alloc1`)
   have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
-  imod (etcdstart.alloc1 id ctxs boot Hbf.idLow Hbf.boot Hbf.cc Hbf.urls (leasekvDir id) (dirOne_member id _)
-      (by omega) (by omega) false 0 false (fun h => by cases h)) $$ Hmarsh
+  imod (etcdstart.alloc1 hne id ctxs boot Hbf (leasekvDir id) (dirOne_member id _)
+      (by omega) (by omega) false 0 .none .none lease.runCfg_none) $$ Hmarsh
     with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, -⟩
   obtain ⟨hvs, hrule, hboot, hγn1, hγn2, -, -, -, hlg0⟩ := Hal
   have hblen : (LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
@@ -101,13 +105,15 @@ theorem Main.wp_proof
   -- `StartServer("leasekv", peerAddr, clientAddr, lg)`
   have Hdirok : netDirOk (leasekvDir id) :=
     dirOne_ok id _ (by intro h; apply Hbf.idLow; rw [h]; decide) (by decide)
+  -- (hub step 7) no peer address: the start bundle is the fresh bundle at the network `γn`
+  ihave Hfresh := etcdstart.memberStartRes_fresh _ _ γn rfl $$ Hstart
   wp_apply (wp_StartServer N go!"leasekv" go!"127.0.0.1:23946" go!"127.0.0.1:23936" lg
-      (LogEntry.toEntries boot 0) ctxs (leasekvDir id) id γ ρ E₀ Φs γn Htb Hrb48 HrbN HwbN hvs
+      (LogEntry.toEntries boot 0) ctxs (leasekvDir id) id γ ρ E₀ Φs γn .none Htb Hrb48 HrbN HwbN hvs
       hrule hboot hblen hγn1 hγn2 Hdirok
-      (by simp [leasekvDir, etcdstart.dir1, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb Hwdf]
+      (by simp [leasekvDir, etcdstart.dir1, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) Hck Haf Hbuq Hdbo) $$ [Htok Hmb Hfresh]
     as %srv %err Hr
   · iframe; iframe #
-  icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup⟩)
+  icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup, -⟩)
   · cases err with
     | nil => exact absurd rfl Herr
     | ok ei => ?_
@@ -115,9 +121,8 @@ theorem Main.wp_proof
     iapply HΦ; itrivial
   subst Herr
   wp_auto
-  iunfold etcdstart.memberUp at Hup
-  icases Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf,
-    Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms, -, HWR, HLR⟩
+  icases etcdstart.memberUp_served _ _ _ _ _ _ _ $$ Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd,
+    #Hsf, Hgo, Hlg3, Hbemu, HWR, ⟨Hlts, Hlgs, Hrds, Hsts, Hrslots, Hbms⟩, -, HLR⟩
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HEc
   -- `go holdToken()`: the forked goroutine never returns; its token stays with `Main`
   ihave #Plk : isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.lease $$ []
@@ -129,14 +134,22 @@ theorem Main.wp_proof
   -- `Serve(s, clientAddr)`, with etcd's KV calls and lease reads registered at the address; the
   -- forked goroutine's token goes into the one gRPC slot
   haveI := Hms
+  ihave ⟨%HsvOff, #HreqM, #HrdM, #Hlb⟩ := etcdstart.serveViews_off srv E { ρ with wait := γw } ρ.rd
+    $$ []
+  · iframe #
+  ihave #HzlgC : zapLoggerOk cfg.Logger' $$ []
+  · rw [HElg]; iexact Hlgz
   wp_apply (wp_Serve srv go!"127.0.0.1:23936" E { ρ with wait := γw } ρ.rd cfg
-      (fun _ _ _ => client.etcdLeaseReadAt (GF := GF) go!"127.0.0.1:23936")
-      (by rw [HElg]; exact Hlg) HEtr HEw Hms Hbuq)
+      (fun _ _ _ => client.etcdLeaseReadAt (GF := GF) go!"127.0.0.1:23936"))
     $$ [Haddr Hlg3 Hbemu Hgo HWR Hlts Hlgs Hrds Hsts Hrslots Hbms HLR Htok2] as %serr Hs
   · iframe; iframe #
+    isplitr
+    · ipureintro; exact ⟨HEtr, HEw, Hms, Hbuq, HsvOff.2⟩
     iintro %gs %lis %cid %mid %R Hg
+    rw [HsvOff.1]
+    ihave Hg := etcdstart.grpcUpM_false _ _ _ _ _ _ _ _ _ _ $$ Hg
     imod (etcdstart.kv_lease_served_false srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23936" cid
-      mid R Hrb48 (by omega) Hrf HlP rfl hlg0) $$ [Hg Hlts Hlgs Hrds Hsts Hrslots Hbms HLR Htok2]
+      mid R Hrb48 (by omega) Hrf HlP rfl (by rw [KVNames.lg_eq, hlg0]; rfl)) $$ [Hg Hlts Hlgs Hrds Hsts Hrslots Hbms HLR Htok2]
       with ⟨Htk, -, #Hlr⟩
     · unfold etcdstart.kvServeStocks
       iframe; iframe #
@@ -153,8 +166,9 @@ theorem Main.wp_proof
   icases Hlr with ⟨#Hrttl, #Hrls⟩
   -- `NewClient(clientAddr, lg)`
   wp_apply (wp_NewClient go!"127.0.0.1:23936" lg
-      (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23936" [] null null [] null default) Hlg
+      (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ.rd false) ρ.rd go!"127.0.0.1:23936" [] null null [] null default)
       (by unfold plainEndpoint; decide) (by omega)) as %cl %cerr Hcl
+  · iframe #
   icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
   rotate_left
   · obtain ⟨Hcerr, -⟩ := Hcfail

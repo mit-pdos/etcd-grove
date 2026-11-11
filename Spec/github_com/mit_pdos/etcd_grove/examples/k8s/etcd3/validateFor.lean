@@ -1,7 +1,7 @@
 /- Lean-first (no Rocq counterpart).
 
-`validateFor(reject)` (k8s_etcd3.go): a `Delete`'s `validateDeletion`, its closure's spec
-(`validateD`: `nil`, or `errDeleteRejected`'s error on an object of value `reject`).
+`validateFor(rejects, reject)` (k8setcd3.go): a `Delete`'s `validateDeletion`, its closure's spec
+(`validateD`: `nil`, or `errDeleteRejected`'s error on an object on the node `reject` if `rejects`).
 -/
 module
 
@@ -23,14 +23,15 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
 /-- See the file header. -/
 abbrev validateFor.spec : Prop :=
-  ∀ (reject : GoString),
+  ∀ (has : Bool) (reject : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 }}
-    (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.validateFor)) (Val #reject))
-  {{ (vf : GoFunc), RET #vf; validateD reject vf }}
+    (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.validateFor)) (Val #has)) (Val #reject))
+  {{ (vf : GoFunc), RET #vf; validateD has reject vf }}
 
 end spec
 

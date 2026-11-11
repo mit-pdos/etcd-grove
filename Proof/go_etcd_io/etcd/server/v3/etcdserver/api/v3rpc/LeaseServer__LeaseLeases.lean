@@ -10,6 +10,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer__LeaseLeases
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.togRPCError
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.TogRPCErrorPlain
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.header__fill
 public import Perennial.Spec.errors.Is
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerKV
@@ -34,6 +35,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 theorem v3rpc.LeaseServer.LeaseLeases.wp_proof
     (hIs : _root_.Perennial.errors.Is.spec (GF := GF) (hG := hG))
@@ -41,7 +43,7 @@ theorem v3rpc.LeaseServer.LeaseLeases.wp_proof
     (hFill : v3rpc.header.fill.spec (GF := GF) (hG := hG)) :
     v3rpc.LeaseServer.LeaseLeases.spec (GF := GF) (hG := hG) := by
   intro p s A cid mid E γl S ci cd r n m
-  wp_start as ⟨#Hls, #HL, HS, HR, #Hctx, #Hpub, #Hllb⟩
+  wp_start as ⟨#Hls, #HL, HS, HR, #Hctx, #Hlib, #Hpub, #Hllb⟩
   ihave #Hls' := Hls
   iunfold v3rpc.leaseServerAt at Hls'
   icases Hls' with ⟨%Hpn, #Hhdr, #Hle, -⟩
@@ -70,7 +72,7 @@ theorem v3rpc.LeaseServer.LeaseLeases.wp_proof
     iunfold leasesRespIs at Hresp
     icases Hresp with ⟨%w, Hw, Hh, Hlist⟩
     iunfold srvHeaderAt at Hh
-    icases Hh with ⟨%hv, %log, Hhv, #Hcert, %Hlog⟩
+    icases Hh with ⟨%hv, %log, Hhv, #Hcert, -, -, %Hlog⟩
     ihave %Hh := typedPointsto_not_null _ _ _ $$ Hhv
     wp_auto
     -- `ls.hdr.fill(resp.Header)`
@@ -88,7 +90,9 @@ theorem v3rpc.LeaseServer.LeaseLeases.wp_proof
     ihave ⟨HR, %dq', Hrev, %Hrr⟩ := v3rpc.hdrRev_out A.revR w.Header' hv.Revision' r' $$ [Hkeep Hout]
     · iframe
     (try wp_auto)
+    ihave #HSn := go_etcd_io.etcd.cache.v3.srvErrOk_nil (GF := GF)
     iapply HΦ
+    iframe HSn
     iframe HS HR
     iunfold v3rpc.leaseLeasesOut
     ileft
@@ -108,8 +112,8 @@ theorem v3rpc.LeaseServer.LeaseLeases.wp_proof
     iframe Hrev
     iframe #
     ipureintro
-    refine ⟨Hlog.1, fun h0 => ?_⟩
-    rw [← Hlog.2.2.2]; exact Hrr (by rw [Hlog.2.2.2]; exact h0)
+    refine ⟨Hlog.2.1, fun h0 => ?_⟩
+    rw [← Hlog.2.2.2.2]; exact Hrr (by rw [Hlog.2.2.2.2]; exact h0)
   · obtain ⟨rfl, Hen, HaOn⟩ := Hn
     cases err with
     | nil => exact absurd rfl Hen
@@ -124,10 +128,11 @@ theorem v3rpc.LeaseServer.LeaseLeases.wp_proof
       cases b1 with
       | false =>
         wp_auto
-        wp_apply hTog $$ [] as %e %He
+        wp_apply (v3rpc.togRPCError_plain hTog) $$ [] as %e ⟨%He, #HSn⟩
         · iapply srvErrIs_of_applyErrIs _ Hen $$ Hae
         (try wp_auto)
         iapply HΦ
+        iframe HSn
         iframe HS HR
         iunfold v3rpc.leaseLeasesOut
         iright
@@ -166,7 +171,9 @@ theorem v3rpc.LeaseServer.LeaseLeases.wp_proof
           ihave ⟨HR, %dq', Hrev, -⟩ := v3rpc.hdrRev_out A.revR «$v0_ptr» _ r' $$ [Hkeep Hout]
           · iframe
           (try wp_auto)
+          ihave #HSn := go_etcd_io.etcd.cache.v3.srvErrOk_nil (GF := GF)
           iapply HΦ
+          iframe HSn
           iframe HS HR
           iunfold v3rpc.leaseLeasesOut
           ileft

@@ -28,6 +28,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- An auth info's fields (`authInfoIs`) are its struct points-to, read-only (as
 `EtcdServer__doSerialize.lean`'s `authInfoIs_ptsto`). -/
@@ -48,14 +49,15 @@ theorem v3rpc.serverWatchStream.isWatchPermitted.wp_proof
     (hAI : EtcdServer.AuthInfoFromCtx.spec (GF := GF) (hG := hG))
     (hAS : EtcdServer.AuthStore.spec (GF := GF) (hG := hG)) :
     v3rpc.serverWatchStream.isWatchPermitted.spec (GF := GF) (hG := hG) := by
-  intro sws r wcr ks es k e dk de n
-  wp_start as ⟨#Hs, HRD, #HaLb, #Hpub, Hk, #Hks, He, #Hes, %Hkl⟩
+  intro sws r Up Dn st ci cd wcr ks es k e dk de n
+  wp_start as ⟨Hs, HRD, #HaLb, #Hpub, Hk, #Hks, He, #Hes, %Hkl⟩
   iunfold v3rpc.swsIs at Hs
-  icases Hs with ⟨%Hnn, -, -, -, -, -, -, #Hag, #Hst, -, -, -, -, -, -, #Hok, #Hstr, -⟩
+  icases Hs with ⟨%Hnn, -, -, -, -, -, -, -, #Hag, #Hst, -, -, -, -, -, -, #Hok, #Hstr, -⟩
   iunfold v3rpc.watchSrvOk at Hok
-  icases Hok with ⟨-, -, -, ⟨%st, %cca, %P, %f, #Has, #Hreq, #Hreqb, #Hcca, #Has2⟩, -⟩
+  icases Hok with ⟨-, ⟨%sta, %cca, %P, %f, %BT, #Has, #Hreq, #Hreqb, #Hcca, #Has2⟩, -⟩
   iunfold v3rpc.srvStreamIs at Hstr
-  icases Hstr with ⟨%si, %Hsi, -, -, #Hctx, #Hic, -⟩
+  icases Hstr with ⟨%si, %Hsi, -, -, #Hctx, #Hic, #Hrc⟩
+  ihave #Hlib := libCtxOk_of_runCtx ci $$ Hrc
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
   · iPkgInit
   iunfold apply.isAuthStore at Has2
@@ -69,10 +71,11 @@ theorem v3rpc.serverWatchStream.isWatchPermitted.wp_proof
   wp_apply Hctx
   (try wp_auto)
   wp_apply (hAI r.srv.s _ r.srv.E.RD r.srv.E.authMode cca
-      r.ci r.cd) $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr, #Hb⟩
+      ci cd) $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr0, #Hb, -⟩
   · iframe #
     iunfold mvcc.txnCtx
     iright; iexact Hic
+  ihave #Herr := authApplyErrIs_apply _ $$ Herr0
   (try wp_auto)
   rcases err with _ | ei
   · (try wp_auto)
@@ -107,7 +110,7 @@ theorem v3rpc.serverWatchStream.isWatchPermitted.wp_proof
     iunfold principalBoundI
     ileft; ipureintro; rfl
   · ihave #Hap := authInfoIs_pointsto a user rev $$ Hau
-    ihave #Hpb := principalBound_of_ctxBoundOrTLS_gate r.srv.s r.srv.E.authMode (GoInterface.ok r.ci) a user rev $$ [$Hb $Hau]
+    ihave #Hpb := principalBound_of_ctxBoundOrTLS_gate r.srv.s r.srv.E.authMode (GoInterface.ok ci) a user rev $$ [$Hb $Hau]
     iunfold authInfoIs at Hau
     icases Hau with ⟨%Hann, -, -⟩
     (try wp_auto)

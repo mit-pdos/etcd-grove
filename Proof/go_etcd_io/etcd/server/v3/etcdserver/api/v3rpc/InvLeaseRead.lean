@@ -15,7 +15,7 @@ and the handler's `fill` after it), both given back, at any context and lower bo
 store's published index) and `m` (the lessor's history `γl`); their answers are the server's
 (`ttlAns`, `leasesAns`): on success the response with the key check's verdict, on an error an
 `applyErrIs` error. The server meets it with `S := E.RD ∗ threadTok` and
-`R := mvcc.storeReader E.s E.γ`.
+`R := mvcc.api.mvccReaders E.γ 1`.
 
 **The handlers' answers** (`leaseTTLOut`, `leaseLeasesOut`): the server's response with its header
 filled (`leaseHdrDone`, `leasesHdrDone`) and the server's verdicts carried through; on the
@@ -49,23 +49,34 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-! ## The server's answers -/
 
 /-- **The server's `LeaseTimeToLive` answer** to the request `v` at the context `ctx`, with the
 lower bounds `n`, `m`: `nil` and a fresh response about the asked lease (`ID`) with its header (owned), the request
 authenticated (`authedOutB`) and, if it asks for the keys, the key check's verdict; or `nil` and an
-`applyErrIs` error (`EtcdServer.LeaseTimeToLive.spec`'s). -/
+`applyErrIs` error (`EtcdServer.LeaseTimeToLive.spec`'s). What the answer says of the lessor `γl`
+under the lease-TTL row (`leaseTTLRow s γl`; the lease-expiry plan's E3, 2026-11-05): the response's
+`GrantedTTL` is the lease's TTL at an index `≥ m`, or the lease is absent from `m` on; an error
+`errors.Is` finds to be `ErrLeaseNotFound` (`errIsTrue`) means it is absent from `m` on. -/
 def ttlAns (s : Loc) (E : apply.AEnv GF) (γl : GName) (ctx : GoInterfaceOk) (n m : Nat)
     (v : etcdserverpb.LeaseTimeToLiveRequest) (resp : Loc) (err : GoInterface) : IProp GF :=
   iprop((⌜err = GoInterface.nil⌝ ∗
       (∃ w : etcdserverpb.LeaseTimeToLiveResponse, resp ↦ w ∗ ⌜w.Header' ≠ null⌝ ∗
-        ⌜w.ID' = v.ID'⌝ ∗ ∃ hv : etcdserverpb.ResponseHeader, w.Header' ↦ hv) ∗
+        ⌜w.ID' = v.ID'⌝ ∗ (∃ hv : etcdserverpb.ResponseHeader, w.Header' ↦ hv) ∗
+        □ (leaseTTLRow s γl -∗
+            (∃ i : Nat, ⌜m ≤ i⌝ ∗ lease.leaseTTLAt γl i v.ID' w.GrantedTTL') ∨
+            lease.leaseAbsentFrom γl m v.ID')) ∗
       authedOutB s E.authMode (GoInterface.ok ctx) GoInterface.nil ∗
       (if v.Keys' then leaseCheckFrom s E (GoInterface.ok ctx) n
           (fun info => leaseKeysVerdictFrom E.authMode n info γl m v.ID' .read)
         else iprop(True))) ∨
-    (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err))
+    (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
+      □ (∀ e : GoInterfaceOk,
+          globalAddr go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound ↦□ GoInterface.ok e -∗
+          errIsTrue err (GoInterface.ok e) -∗ leaseTTLRow s γl -∗
+          lease.leaseAbsentFrom γl m v.ID')))
 
 /-- **The server's `LeaseLeases` answer** at the context `ctx`, with the lower bounds `n`, `m`:
 `nil` and the listing of the ids `ids` of the lessor at an index `i ≥ m` (the response owned, its
@@ -85,7 +96,7 @@ def leasesAns (s : Loc) (E : apply.AEnv GF) (γl : GName) (ctx : GoInterfaceOk) 
 def lessorTTLOk (s : Loc) (E : apply.AEnv GF) (γl : GName) (S R : IProp GF) : IProp GF :=
   iprop(∀ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (dq : DFrac)
       (v : etcdserverpb.LeaseTimeToLiveRequest) (n m : Nat),
-    {{ S ∗ R ∗ context.isContext ci cd ∗ auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m ∗
+    {{ S ∗ R ∗ context.isContext ci cd ∗ context.libCtxOk ci ∗ auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m ∗
         r ↦{dq} v }}
       (App (App (Val (srvM s go!"LeaseTimeToLive")) (Val #(GoInterface.ok ci))) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ R ∗ r ↦{dq} v ∗
@@ -94,7 +105,7 @@ def lessorTTLOk (s : Loc) (E : apply.AEnv GF) (γl : GName) (S R : IProp GF) : I
 /-- **The server's `LeaseLeases`** (one conjunct of `raftLeaseRead`). -/
 def lessorLeasesOk (s : Loc) (E : apply.AEnv GF) (γl : GName) (S R : IProp GF) : IProp GF :=
   iprop(∀ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (n m : Nat),
-    {{ S ∗ R ∗ context.isContext ci cd ∗ auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m }}
+    {{ S ∗ R ∗ context.isContext ci cd ∗ context.libCtxOk ci ∗ auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m }}
       (App (App (Val (srvM s go!"LeaseLeases")) (Val #(GoInterface.ok ci))) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ R ∗
         leasesAns s E γl ci n m resp err }})
@@ -128,19 +139,23 @@ def leaseHdrDone (h : Loc) (cid mid : w64) : IProp GF :=
     structFieldRef etcdserverpb.ResponseHeader go!"Revision" h ↦{dq} r)
 
 /-- **`LeaseLeases`' header after the handler's `fill`** (owned): `leaseHdrDone`'s, its revision
-`r` the last of a log the server certified (`newHeader()`'s), unless that was `0` (then the local
+`r` the last of a log the server certified (`newHeader()`'s: a floor of its committed log,
+`srvApi.kvLogLb`), unless that was `0` (then the local
 `Rev()`'s). -/
 def leasesHdrDone (E : apply.AEnv GF) (h : Loc) (cid mid : w64) : IProp GF :=
   iprop(hdrFilled h cid mid ∗ ∃ (dq : DFrac) (r : w64) (log : mvcc.Log),
     structFieldRef etcdserverpb.ResponseHeader go!"Revision" h ↦{dq} r ∗
-    mvcc.idxCert E.γ.idx log ∗
+    srvApi.kvLogLb E.γs log ∗
     ⌜log ≠ [] ∧ (W64 ((log.length : Int) - 1) ≠ W64 0 → r = W64 ((log.length : Int) - 1))⌝)
 
 /-- **`LeaseServer.LeaseTimeToLive`'s answer** to the request `v` at the context `ctx`, with the
 lower bounds `n`, `m`: a response (owned) about the asked lease (`ID`) with its header filled, and
 either the server's (`ttlAns`'s
 verdict) or, on the server's `ErrLeaseNotFound`, the handler's own (`{Header, ID: v.ID, TTL: -1}`,
-the rest zero: no keys); or `nil` and a non-nil error. -/
+the rest zero: no keys); or `nil` and a non-nil error. Under the lease-TTL row (`leaseTTLRow s γl`;
+the lease-expiry plan's E3, 2026-11-05): the server's response's `GrantedTTL` is the lease's TTL at an
+index `≥ m`, or the lease is absent from `m` on; the handler's own (TTL `-1`) means it is absent from
+`m` on. -/
 def leaseTTLOut (s : Loc) (E : apply.AEnv GF) (γl : GName) (ctx : GoInterfaceOk) (n m : Nat)
     (v : etcdserverpb.LeaseTimeToLiveRequest) (cid mid : w64) (resp : Loc) (err : GoInterface) :
     IProp GF :=
@@ -149,9 +164,13 @@ def leaseTTLOut (s : Loc) (E : apply.AEnv GF) (γl : GName) (ctx : GoInterfaceOk
       ((authedOutB s E.authMode (GoInterface.ok ctx) GoInterface.nil ∗
           (if v.Keys' then leaseCheckFrom s E (GoInterface.ok ctx) n
               (fun info => leaseKeysVerdictFrom E.authMode n info γl m v.ID' .read)
-            else iprop(True))) ∨
-        ⌜w = { (zeroValDef : etcdserverpb.LeaseTimeToLiveResponse) with
-          Header' := w.Header', ID' := v.ID', TTL' := W64 (-1) }⌝)) ∨
+            else iprop(True)) ∗
+          □ (leaseTTLRow s γl -∗
+              (∃ i : Nat, ⌜m ≤ i⌝ ∗ lease.leaseTTLAt γl i v.ID' w.GrantedTTL') ∨
+              lease.leaseAbsentFrom γl m v.ID')) ∨
+        (⌜w = { (zeroValDef : etcdserverpb.LeaseTimeToLiveResponse) with
+          Header' := w.Header', ID' := v.ID', TTL' := W64 (-1) }⌝ ∗
+          □ (leaseTTLRow s γl -∗ lease.leaseAbsentFrom γl m v.ID')))) ∨
     ⌜resp = null ∧ err ≠ GoInterface.nil⌝)
 
 /-- **`LeaseServer.LeaseLeases`' answer** at the context `ctx`, with the lower bounds `n`, `m`: a

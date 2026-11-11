@@ -48,9 +48,7 @@ Goose translates them names-only, so each `X.init` is an axiom of the translatio
 runs them at program start, and etcd starts, so each returns without panicking.
 Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
 axiom opaqueInitsOk :
-    ∀ v ∈ ([ErrGRPCCompacted.init,
-        ErrGRPCFutureRev.init,
-        ErrGRPCLeaseNotFound.init,
+    ∀ v ∈ ([ErrGRPCLeaseNotFound.init,
         ErrGRPCLeaseExist.init,
         ErrGRPCLeaseTTLTooLarge.init,
         ErrGRPCMemberExist.init,
@@ -148,15 +146,25 @@ axiom opaqueInitsOk :
         ErrNoInflightDowngrade.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
-/-- `ErrFutureRev = Error(ErrGRPCFutureRev)` (`error.go`): an `EtcdError`, whose `Error()` returns its description. -/
+/-- `ErrFutureRev = Error(ErrGRPCFutureRev)` (`error.go`): an `EtcdError`, whose `Error()` returns its description, `ErrGRPCFutureRev`'s (k8s etcd3 7c), with no `Format` method (an `EtcdError`'s method set is `{Code, Error}`: `fmt` prints it through `Error()`; premise-fixes-4), an `EtcdError` value (k8s etcd3 7e-2, D1: stated, checked by `examples/k8s7e2attack`'s `TestRpctypesErrTypes` at the etcd pin). -/
 axiom ErrFutureRev_init :
     {{ (True : IProp GF) }} (App (Val ErrFutureRev.init) (Val #()))
-    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrFutureRev ↦ GoInterface.ok e ∗ go_etcd_io.etcd.cache.v3.errorStringSpec e }}
+    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrFutureRev ↦ GoInterface.ok e ∗ go_etcd_io.etcd.cache.v3.errorStringSpec e ∗ ⌜go_etcd_io.etcd.cache.v3.errDesc (GoInterface.ok e) = go_etcd_io.etcd.cache.v3.futureRevDesc⌝ ∗ ⌜methodSet e.ty !! go!"Format" = none⌝ ∗ ⌜∃ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError, GoInterface.ok e = interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x⌝ }}
 
-/-- `ErrCompacted = Error(ErrGRPCCompacted)` (`error.go`): an `EtcdError`, whose `Error()` returns its description. -/
+/-- `ErrCompacted = Error(ErrGRPCCompacted)` (`error.go`): an `EtcdError`, whose `Error()` returns its description, `ErrGRPCCompacted`'s (k8s etcd3 7c), with no `Format` method (an `EtcdError`'s method set is `{Code, Error}`: `fmt` prints it through `Error()`; premise-fixes-4), an `EtcdError` value (k8s etcd3 7e-2, D1: stated, checked by `examples/k8s7e2attack`'s `TestRpctypesErrTypes` at the etcd pin). -/
 axiom ErrCompacted_init :
     {{ (True : IProp GF) }} (App (Val ErrCompacted.init) (Val #()))
-    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrCompacted ↦ GoInterface.ok e ∗ go_etcd_io.etcd.cache.v3.errorStringSpec e }}
+    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrCompacted ↦ GoInterface.ok e ∗ go_etcd_io.etcd.cache.v3.errorStringSpec e ∗ ⌜go_etcd_io.etcd.cache.v3.errDesc (GoInterface.ok e) = go_etcd_io.etcd.cache.v3.compactedDesc⌝ ∗ ⌜methodSet e.ty !! go!"Format" = none⌝ ∗ ⌜∃ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError, GoInterface.ok e = interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x⌝ }}
+
+/-- `ErrGRPCFutureRev = status.Error(codes.OutOfRange, "etcdserver: mvcc: required revision is a future revision")` (`error.go`): with that description (k8s etcd3 7c). -/
+axiom ErrGRPCFutureRev_init :
+    {{ (True : IProp GF) }} (App (Val ErrGRPCFutureRev.init) (Val #()))
+    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCFutureRev ↦ GoInterface.ok e ∗ ⌜go_etcd_io.etcd.cache.v3.errDesc (GoInterface.ok e) = go_etcd_io.etcd.cache.v3.futureRevDesc⌝ }}
+
+/-- `ErrGRPCCompacted = status.Error(codes.OutOfRange, "etcdserver: mvcc: required revision has been compacted")` (`error.go`): with that description (k8s etcd3 7c). -/
+axiom ErrGRPCCompacted_init :
+    {{ (True : IProp GF) }} (App (Val ErrGRPCCompacted.init) (Val #()))
+    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCCompacted ↦ GoInterface.ok e ∗ ⌜go_etcd_io.etcd.cache.v3.errDesc (GoInterface.ok e) = go_etcd_io.etcd.cache.v3.compactedDesc⌝ }}
 
 /-- `errStringToError = map[string]error{...}` (`error.go`): a map whose values are `ErrGRPC*` errors, `status.Error(...)`s: `*status.Error`s, leaf errors whose `Error()`, `GRPCStatus()` and `Is` return. -/
 axiom errStringToError_init :
@@ -178,10 +186,10 @@ axiom ErrAuthOldRevision_init :
     {{ (True : IProp GF) }} (App (Val ErrAuthOldRevision.init) (Val #()))
     {{ RET #(); ∃ x : EtcdError, globalAddr ErrAuthOldRevision ↦ interface.mkOk EtcdError.ty #x ∗ ⌜x.desc' = go!"etcdserver: revision of auth store is old"⌝ }}
 
-/-- `ErrGRPCNotSupportedForLearner = status.Error(codes.FailedPrecondition, "etcdserver: rpc not supported for learner")` (`error.go`): a `*status.Error`, a pointer error, with that description (D29). -/
+/-- `ErrGRPCNotSupportedForLearner = status.Error(codes.FailedPrecondition, "etcdserver: rpc not supported for learner")` (`error.go`): a `*status.Error`, a pointer error, with that description (D29), which grpc's `status.FromError` accepts (`statusErrOk`; k8s etcd3 7c, HS-6). -/
 axiom ErrGRPCNotSupportedForLearner_init :
     {{ (True : IProp GF) }} (App (Val ErrGRPCNotSupportedForLearner.init) (Val #()))
-    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCNotSupportedForLearner ↦ GoInterface.ok e ∗ ⌜errors.IsPointerError e⌝ ∗ ⌜go_etcd_io.etcd.cache.v3.errDesc (GoInterface.ok e) = go!"etcdserver: rpc not supported for learner"⌝ }}
+    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCNotSupportedForLearner ↦ GoInterface.ok e ∗ ⌜errors.IsPointerError e⌝ ∗ ⌜go_etcd_io.etcd.cache.v3.errDesc (GoInterface.ok e) = go!"etcdserver: rpc not supported for learner"⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk (GoInterface.ok e) }}
 
 /-- `ErrNoLeader = Error(ErrGRPCNoLeader)` (`error.go`): an `EtcdError`. -/
 axiom ErrNoLeader_init :
@@ -203,60 +211,60 @@ axiom TokenFieldNameSwagger_init :
     {{ (True : IProp GF) }} (App (Val TokenFieldNameSwagger.init) (Val #()))
     {{ RET #(); globalAddr TokenFieldNameSwagger ↦ go!"authorization" }}
 
-/-- `ErrGRPCEmptyKey = status.Error(...)` (`error.go`): a non-nil error. -/
+/-- `ErrGRPCEmptyKey = status.Error(codes.InvalidArgument, "etcdserver: key is not provided")` (`error.go`): a `*status.Error`, which grpc's `status.FromError` accepts (`statusErrOk`; k8s etcd3 7c, HS-6), with that description (k8s etcd3 7c). -/
 axiom ErrGRPCEmptyKey_init :
     {{ (True : IProp GF) }} (App (Val ErrGRPCEmptyKey.init) (Val #()))
-    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCEmptyKey ↦ GoInterface.ok e }}
+    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCEmptyKey ↦ GoInterface.ok e ∗ go_etcd_io.etcd.cache.v3.statusErrOk (GoInterface.ok e) ∗ ⌜go_etcd_io.etcd.cache.v3.errDesc (GoInterface.ok e) = go!"etcdserver: key is not provided"⌝ }}
 
-/-- `ErrGRPCInvalidSortOption = status.Error(...)` (`error.go`): a non-nil error. -/
+/-- `ErrGRPCInvalidSortOption = status.Error(codes.InvalidArgument, "etcdserver: invalid sort option")` (`error.go`): a `*status.Error`, which grpc's `status.FromError` accepts (`statusErrOk`; k8s etcd3 7c, HS-6), with that description (k8s etcd3 7c). -/
 axiom ErrGRPCInvalidSortOption_init :
     {{ (True : IProp GF) }} (App (Val ErrGRPCInvalidSortOption.init) (Val #()))
-    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCInvalidSortOption ↦ GoInterface.ok e }}
+    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCInvalidSortOption ↦ GoInterface.ok e ∗ go_etcd_io.etcd.cache.v3.statusErrOk (GoInterface.ok e) ∗ ⌜go_etcd_io.etcd.cache.v3.errDesc (GoInterface.ok e) = go!"etcdserver: invalid sort option"⌝ }}
 
-/-- `ErrGRPCValueProvided = status.Error(...)` (`error.go`): a non-nil error. -/
+/-- `ErrGRPCValueProvided = status.Error(codes.InvalidArgument, "etcdserver: value is provided")` (`error.go`): a `*status.Error`, which grpc's `status.FromError` accepts (`statusErrOk`; k8s etcd3 7c, HS-6), with that description (k8s etcd3 7c). -/
 axiom ErrGRPCValueProvided_init :
     {{ (True : IProp GF) }} (App (Val ErrGRPCValueProvided.init) (Val #()))
-    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCValueProvided ↦ GoInterface.ok e }}
+    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCValueProvided ↦ GoInterface.ok e ∗ go_etcd_io.etcd.cache.v3.statusErrOk (GoInterface.ok e) ∗ ⌜go_etcd_io.etcd.cache.v3.errDesc (GoInterface.ok e) = go!"etcdserver: value is provided"⌝ }}
 
-/-- `ErrGRPCLeaseProvided = status.Error(...)` (`error.go`): a non-nil error. -/
+/-- `ErrGRPCLeaseProvided = status.Error(codes.InvalidArgument, "etcdserver: lease is provided")` (`error.go`): a `*status.Error`, which grpc's `status.FromError` accepts (`statusErrOk`; k8s etcd3 7c, HS-6), with that description (k8s etcd3 7c). -/
 axiom ErrGRPCLeaseProvided_init :
     {{ (True : IProp GF) }} (App (Val ErrGRPCLeaseProvided.init) (Val #()))
-    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCLeaseProvided ↦ GoInterface.ok e }}
+    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCLeaseProvided ↦ GoInterface.ok e ∗ go_etcd_io.etcd.cache.v3.statusErrOk (GoInterface.ok e) ∗ ⌜go_etcd_io.etcd.cache.v3.errDesc (GoInterface.ok e) = go!"etcdserver: lease is provided"⌝ }}
 
-/-- `ErrGRPCTooManyOps = status.Error(...)` (`error.go`): a non-nil error. -/
+/-- `ErrGRPCTooManyOps = status.Error(codes.InvalidArgument, "etcdserver: too many operations in txn request")` (`error.go`): a `*status.Error`, which grpc's `status.FromError` accepts (`statusErrOk`; k8s etcd3 7c, HS-6), with that description (k8s etcd3 7c). -/
 axiom ErrGRPCTooManyOps_init :
     {{ (True : IProp GF) }} (App (Val ErrGRPCTooManyOps.init) (Val #()))
-    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCTooManyOps ↦ GoInterface.ok e }}
+    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCTooManyOps ↦ GoInterface.ok e ∗ go_etcd_io.etcd.cache.v3.statusErrOk (GoInterface.ok e) ∗ ⌜go_etcd_io.etcd.cache.v3.errDesc (GoInterface.ok e) = go!"etcdserver: too many operations in txn request"⌝ }}
 
-/-- `ErrGRPCDuplicateKey = status.Error(...)` (`error.go`): a non-nil error. -/
+/-- `ErrGRPCDuplicateKey = status.Error(codes.InvalidArgument, "etcdserver: duplicate key given in txn request")` (`error.go`): a `*status.Error`, which grpc's `status.FromError` accepts (`statusErrOk`; k8s etcd3 7c, HS-6), with that description (k8s etcd3 7c). -/
 axiom ErrGRPCDuplicateKey_init :
     {{ (True : IProp GF) }} (App (Val ErrGRPCDuplicateKey.init) (Val #()))
-    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCDuplicateKey ↦ GoInterface.ok e }}
+    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCDuplicateKey ↦ GoInterface.ok e ∗ go_etcd_io.etcd.cache.v3.statusErrOk (GoInterface.ok e) ∗ ⌜go_etcd_io.etcd.cache.v3.errDesc (GoInterface.ok e) = go!"etcdserver: duplicate key given in txn request"⌝ }}
 
-/-- `ErrGRPCKeyNotFound = status.Error(...)` (`error.go`): a non-nil error. -/
+/-- `ErrGRPCKeyNotFound = status.Error(codes.InvalidArgument, "etcdserver: key not found")` (`error.go`): a `*status.Error`, which grpc's `status.FromError` accepts (`statusErrOk`; k8s etcd3 7c, HS-6), with that description (k8s etcd3 7c). -/
 axiom ErrGRPCKeyNotFound_init :
     {{ (True : IProp GF) }} (App (Val ErrGRPCKeyNotFound.init) (Val #()))
-    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCKeyNotFound ↦ GoInterface.ok e }}
+    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCKeyNotFound ↦ GoInterface.ok e ∗ go_etcd_io.etcd.cache.v3.statusErrOk (GoInterface.ok e) ∗ ⌜go_etcd_io.etcd.cache.v3.errDesc (GoInterface.ok e) = go!"etcdserver: key not found"⌝ }}
 
-/-- `ErrGRPCNoSpace = status.Error(...)` (`error.go`): a non-nil error. -/
+/-- `ErrGRPCNoSpace = status.Error(codes.ResourceExhausted, "etcdserver: mvcc: database space exceeded")` (`error.go`): a `*status.Error`, which grpc's `status.FromError` accepts (`statusErrOk`; k8s etcd3 7c, HS-6), with that description (k8s etcd3 7c). -/
 axiom ErrGRPCNoSpace_init :
     {{ (True : IProp GF) }} (App (Val ErrGRPCNoSpace.init) (Val #()))
-    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCNoSpace ↦ GoInterface.ok e }}
+    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCNoSpace ↦ GoInterface.ok e ∗ go_etcd_io.etcd.cache.v3.statusErrOk (GoInterface.ok e) ∗ ⌜go_etcd_io.etcd.cache.v3.errDesc (GoInterface.ok e) = go!"etcdserver: mvcc: database space exceeded"⌝ }}
 
-/-- `ErrGRPCNotCapable = status.Error(...)` (`error.go`): a non-nil error. -/
+/-- `ErrGRPCNotCapable = status.Error(codes.FailedPrecondition, "etcdserver: not capable")` (`error.go`): a `*status.Error`, which grpc's `status.FromError` accepts (`statusErrOk`; k8s etcd3 7c, HS-6), with that description (k8s etcd3 7c). -/
 axiom ErrGRPCNotCapable_init :
     {{ (True : IProp GF) }} (App (Val ErrGRPCNotCapable.init) (Val #()))
-    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCNotCapable ↦ GoInterface.ok e }}
+    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCNotCapable ↦ GoInterface.ok e ∗ go_etcd_io.etcd.cache.v3.statusErrOk (GoInterface.ok e) ∗ ⌜go_etcd_io.etcd.cache.v3.errDesc (GoInterface.ok e) = go!"etcdserver: not capable"⌝ }}
 
-/-- `ErrGRPCInvalidClientAPIVersion = status.Error(...)` (`error.go`): a non-nil error. -/
+/-- `ErrGRPCInvalidClientAPIVersion = status.Error(codes.InvalidArgument, "etcdserver: invalid client api version")` (`error.go`): a `*status.Error`, which grpc's `status.FromError` accepts (`statusErrOk`; k8s etcd3 7c, HS-6), with that description (k8s etcd3 7c). -/
 axiom ErrGRPCInvalidClientAPIVersion_init :
     {{ (True : IProp GF) }} (App (Val ErrGRPCInvalidClientAPIVersion.init) (Val #()))
-    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCInvalidClientAPIVersion ↦ GoInterface.ok e }}
+    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCInvalidClientAPIVersion ↦ GoInterface.ok e ∗ go_etcd_io.etcd.cache.v3.statusErrOk (GoInterface.ok e) ∗ ⌜go_etcd_io.etcd.cache.v3.errDesc (GoInterface.ok e) = go!"etcdserver: invalid client api version"⌝ }}
 
-/-- `ErrGRPCNoLeader = status.Error(...)` (`error.go`): a non-nil error. -/
+/-- `ErrGRPCNoLeader = status.Error(codes.Unavailable, "etcdserver: no leader")` (`error.go`): a `*status.Error`, which grpc's `status.FromError` accepts (`statusErrOk`; k8s etcd3 7c, HS-6), with that description (k8s etcd3 7c). -/
 axiom ErrGRPCNoLeader_init :
     {{ (True : IProp GF) }} (App (Val ErrGRPCNoLeader.init) (Val #()))
-    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCNoLeader ↦ GoInterface.ok e }}
+    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCNoLeader ↦ GoInterface.ok e ∗ go_etcd_io.etcd.cache.v3.statusErrOk (GoInterface.ok e) ∗ ⌜go_etcd_io.etcd.cache.v3.errDesc (GoInterface.ok e) = go!"etcdserver: no leader"⌝ }}
 
 /-- `MetadataClientAPIVersionKey = "client-api-version"` (`metadatafields.go`): a string. -/
 axiom MetadataClientAPIVersionKey_init :
@@ -293,10 +301,10 @@ axiom ErrGRPCPermissionDenied_init :
     {{ (True : IProp GF) }} (App (Val ErrGRPCPermissionDenied.init) (Val #()))
     {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCPermissionDenied ↦ GoInterface.ok e ∗ go_etcd_io.etcd.cache.v3.errorStringSpec e }}
 
-/-- `ErrGRPCWatchCanceled = status.Error(codes.Canceled, "etcdserver: watch canceled")` (`error.go`): a `*status.Error`, whose `Error()` returns. -/
+/-- `ErrGRPCWatchCanceled = status.Error(codes.Canceled, "etcdserver: watch canceled")` (`error.go`): a `*status.Error`, whose `Error()` returns, which grpc's `status.FromError` accepts (`statusErrOk`; premise-fixes-7: `watchServer.Watch` returns it). -/
 axiom ErrGRPCWatchCanceled_init :
     {{ (True : IProp GF) }} (App (Val ErrGRPCWatchCanceled.init) (Val #()))
-    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCWatchCanceled ↦ GoInterface.ok e ∗ go_etcd_io.etcd.cache.v3.errorStringSpec e }}
+    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCWatchCanceled ↦ GoInterface.ok e ∗ go_etcd_io.etcd.cache.v3.errorStringSpec e ∗ go_etcd_io.etcd.cache.v3.statusErrOk (GoInterface.ok e) }}
 
 end go_etcd_io.etcd.api.v3.v3rpc.rpctypes
 end opaqueInits
@@ -308,14 +316,17 @@ class EtcdGrove.RpctypesEtcdErrorMethods [GooseExts] [GoGlobalContext] [GoSemant
   leaf : ∀ v : val, errors.isLeafError ⟨go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty, v⟩
   noGRPCStatus : methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"GRPCStatus" = none
   noIs : methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"Is" = none
+  /-- (premise-fixes-4) nor a `Format` method (`fmt` prints it with its `Error`). -/
+  noFormat : methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"Format" = none
 
 instance EtcdGrove.rpctypesEtcdErrorMethods_inst [GooseExts] [GoGlobalContext] [GoLocalContext]
     [GoSemanticsFunctions] [_root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] :
     EtcdGrove.RpctypesEtcdErrorMethods := by
   have h := fun m => go.method_set_is (t := go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) m
   have hAs := h go!"As"; have hU := h go!"Unwrap"; have hG := h go!"GRPCStatus"; have hIs := h go!"Is"
-  simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at hAs hU hG hIs
-  exact ⟨fun _ => by simp [errors.isLeafError, hAs, hU], hG, hIs⟩
+  have hF := h go!"Format"
+  simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at hAs hU hG hIs hF
+  exact ⟨fun _ => by simp [errors.isLeafError, hAs, hU], hG, hIs, hF⟩
 
 /-- `rpctypes.EtcdError` implements `error` (its `Error` has a value receiver): a target
 `errors.As` accepts. -/
@@ -348,21 +359,21 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iapply wp_fupd
   wp_apply (_root_.Perennial.google_golang_org.grpc.status.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (_root_.Perennial.google_golang_org.grpc.codes.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  wp_apply ErrGRPCEmptyKey_init as ⟨%eErrGRPCEmptyKey, HErrGRPCEmptyKey⟩
-  wp_apply ErrGRPCKeyNotFound_init as ⟨%eErrGRPCKeyNotFound, HErrGRPCKeyNotFound⟩
-  wp_apply ErrGRPCValueProvided_init as ⟨%eErrGRPCValueProvided, HErrGRPCValueProvided⟩
-  wp_apply ErrGRPCLeaseProvided_init as ⟨%eErrGRPCLeaseProvided, HErrGRPCLeaseProvided⟩
-  wp_apply ErrGRPCTooManyOps_init as ⟨%eErrGRPCTooManyOps, HErrGRPCTooManyOps⟩
-  wp_apply ErrGRPCDuplicateKey_init as ⟨%eErrGRPCDuplicateKey, HErrGRPCDuplicateKey⟩
-  wp_apply ErrGRPCInvalidClientAPIVersion_init as ⟨%eErrGRPCInvalidClientAPIVersion, HErrGRPCInvalidClientAPIVersion⟩
-  wp_apply ErrGRPCInvalidSortOption_init as ⟨%eErrGRPCInvalidSortOption, HErrGRPCInvalidSortOption⟩
-  wp_apply (opaqueInitsOk ErrGRPCCompacted.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrGRPCFutureRev.init (by mem_tac))
-  wp_apply ErrGRPCNoSpace_init as ⟨%eErrGRPCNoSpace, HErrGRPCNoSpace⟩
+  wp_apply ErrGRPCEmptyKey_init as ⟨%eErrGRPCEmptyKey, HErrGRPCEmptyKey, #SErrGRPCEmptyKey, %DErrGRPCEmptyKey⟩
+  wp_apply ErrGRPCKeyNotFound_init as ⟨%eErrGRPCKeyNotFound, HErrGRPCKeyNotFound, #SErrGRPCKeyNotFound, %DErrGRPCKeyNotFound⟩
+  wp_apply ErrGRPCValueProvided_init as ⟨%eErrGRPCValueProvided, HErrGRPCValueProvided, #SErrGRPCValueProvided, %DErrGRPCValueProvided⟩
+  wp_apply ErrGRPCLeaseProvided_init as ⟨%eErrGRPCLeaseProvided, HErrGRPCLeaseProvided, #SErrGRPCLeaseProvided, %DErrGRPCLeaseProvided⟩
+  wp_apply ErrGRPCTooManyOps_init as ⟨%eErrGRPCTooManyOps, HErrGRPCTooManyOps, #SErrGRPCTooManyOps, %DErrGRPCTooManyOps⟩
+  wp_apply ErrGRPCDuplicateKey_init as ⟨%eErrGRPCDuplicateKey, HErrGRPCDuplicateKey, #SErrGRPCDuplicateKey, %DErrGRPCDuplicateKey⟩
+  wp_apply ErrGRPCInvalidClientAPIVersion_init as ⟨%eErrGRPCInvalidClientAPIVersion, HErrGRPCInvalidClientAPIVersion, #SErrGRPCInvalidClientAPIVersion, %DErrGRPCInvalidClientAPIVersion⟩
+  wp_apply ErrGRPCInvalidSortOption_init as ⟨%eErrGRPCInvalidSortOption, HErrGRPCInvalidSortOption, #SErrGRPCInvalidSortOption, %DErrGRPCInvalidSortOption⟩
+  wp_apply ErrGRPCCompacted_init as ⟨%eErrGRPCCompacted, HErrGRPCCompacted, %DErrGRPCCompacted⟩
+  wp_apply ErrGRPCFutureRev_init as ⟨%eErrGRPCFutureRev, HErrGRPCFutureRev, %DErrGRPCFutureRev⟩
+  wp_apply ErrGRPCNoSpace_init as ⟨%eErrGRPCNoSpace, HErrGRPCNoSpace, #SErrGRPCNoSpace, %DErrGRPCNoSpace⟩
   wp_apply (opaqueInitsOk ErrGRPCLeaseNotFound.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCLeaseExist.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCLeaseTTLTooLarge.init (by mem_tac))
-  wp_apply ErrGRPCWatchCanceled_init as ⟨%eErrGRPCWatchCanceled, HErrGRPCWatchCanceled, #SErrGRPCWatchCanceled⟩
+  wp_apply ErrGRPCWatchCanceled_init as ⟨%eErrGRPCWatchCanceled, HErrGRPCWatchCanceled, #SErrGRPCWatchCanceled, #TErrGRPCWatchCanceled⟩
   wp_apply (opaqueInitsOk ErrGRPCMemberExist.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCPeerURLExist.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCMemberNotEnoughStarted.init (by mem_tac))
@@ -392,10 +403,10 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply ErrGRPCInvalidAuthToken_init as ⟨%eErrGRPCInvalidAuthToken, HErrGRPCInvalidAuthToken, #SErrGRPCInvalidAuthToken⟩
   wp_apply (opaqueInitsOk ErrGRPCInvalidAuthMgmt.init (by mem_tac))
   wp_apply ErrGRPCAuthOldRevision_init as ⟨%eErrGRPCAuthOldRevision, HErrGRPCAuthOldRevision, #SErrGRPCAuthOldRevision⟩
-  wp_apply ErrGRPCNoLeader_init as ⟨%eErrGRPCNoLeader, HErrGRPCNoLeader⟩
+  wp_apply ErrGRPCNoLeader_init as ⟨%eErrGRPCNoLeader, HErrGRPCNoLeader, #SErrGRPCNoLeader, %DErrGRPCNoLeader⟩
   wp_apply (opaqueInitsOk ErrGRPCNotLeader.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCLeaderChanged.init (by mem_tac))
-  wp_apply ErrGRPCNotCapable_init as ⟨%eErrGRPCNotCapable, HErrGRPCNotCapable⟩
+  wp_apply ErrGRPCNotCapable_init as ⟨%eErrGRPCNotCapable, HErrGRPCNotCapable, #SErrGRPCNotCapable, %DErrGRPCNotCapable⟩
   wp_apply (opaqueInitsOk ErrGRPCStopped.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCTimeout.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCTimeoutDueToLeaderFail.init (by mem_tac))
@@ -403,7 +414,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk ErrGRPCTimeoutWaitAppliedIndex.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCUnhealthy.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCCorrupt.init (by mem_tac))
-  wp_apply ErrGRPCNotSupportedForLearner_init as ⟨%eErrGRPCNotSupportedForLearner, HErrGRPCNotSupportedForLearner, %PErrGRPCNotSupportedForLearner, %DErrGRPCNotSupportedForLearner⟩
+  wp_apply ErrGRPCNotSupportedForLearner_init as ⟨%eErrGRPCNotSupportedForLearner, HErrGRPCNotSupportedForLearner, %PErrGRPCNotSupportedForLearner, %DErrGRPCNotSupportedForLearner, #SErrGRPCNotSupportedForLearner⟩
   wp_apply (opaqueInitsOk ErrGRPCBadLeaderTransferee.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCWrongDowngradeVersionFormat.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCInvalidDowngradeTargetVersion.init (by mem_tac))
@@ -420,8 +431,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk ErrTooManyOps.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrDuplicateKey.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrInvalidSortOption.init (by mem_tac))
-  wp_apply ErrCompacted_init as ⟨%eErrCompacted, HErrCompacted, #SErrCompacted⟩
-  wp_apply ErrFutureRev_init as ⟨%eErrFutureRev, HErrFutureRev, #SErrFutureRev⟩
+  wp_apply ErrCompacted_init as ⟨%eErrCompacted, HErrCompacted, #SErrCompacted, %DErrCompacted, %FErrCompacted, %TErrCompacted⟩
+  wp_apply ErrFutureRev_init as ⟨%eErrFutureRev, HErrFutureRev, #SErrFutureRev, %DErrFutureRev, %FErrFutureRev, %TErrFutureRev⟩
   wp_apply (opaqueInitsOk ErrNoSpace.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrLeaseNotFound.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrLeaseExist.init (by mem_tac))
@@ -499,6 +510,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HTokenFieldNameSwagger
   ipersist HErrFutureRev
   ipersist HErrCompacted
+  ipersist HErrGRPCFutureRev
+  ipersist HErrGRPCCompacted
   ipersist HerrStringToError
   ipersist HErrUserEmpty
   ipersist HErrInvalidAuthToken
@@ -522,8 +535,10 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   unfold go_etcd_io.etcd.cache.v3.rpctypesInit
   iframe #
   ipureintro
-  refine ⟨by assumption, ?_, by assumption, by assumption, by assumption, by assumption, by assumption⟩
-  exact ⟨EtcdGrove.RpctypesEtcdErrorMethods.leaf, EtcdGrove.RpctypesEtcdErrorMethods.noGRPCStatus, EtcdGrove.RpctypesEtcdErrorMethods.noIs⟩
+  repeat' (first
+    | assumption
+    | exact ⟨EtcdGrove.RpctypesEtcdErrorMethods.leaf, EtcdGrove.RpctypesEtcdErrorMethods.noGRPCStatus, EtcdGrove.RpctypesEtcdErrorMethods.noIs, EtcdGrove.RpctypesEtcdErrorMethods.noFormat⟩
+    | constructor)
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

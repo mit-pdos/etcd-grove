@@ -28,6 +28,11 @@ both sides' lines whole: merges that did grew the header to 1.1 MB).
 
 ## Branches
 
+Land a branch on `lean` with `etc/land.sh` from its worktree (notes-only branches too): it takes the
+landing lock, checks `lean` is merged, runs `etc/gates.sh` and fast-forwards `lean`, so no other
+landing moves `lean` in between (`notes/spec-first-plan.md`, "Landing takes a lock"). Record your
+session in `/shared/etcd-grove-sessions.md` (same file, "The session registry").
+
 Delete a branch once its work is merged into `lean` (or wherever it was merged): the
 local branch (`git branch -d <branch>`, which refuses one that is not merged), its remote
 copy if it was pushed (`git push origin --delete <branch>`), and its worktree if it had
@@ -275,6 +280,12 @@ only what the specs on it need (`notes/decisions.md`, "Predicate indices"). In p
   (`Proof/go_etcd_io/raft/v3/ProjSimps.lean`); the command refuses a function whose
   body branches.
 
+**Large contexts.** Never use a bare `iframe` (or any search over the whole context) when a
+goal or hypothesis holds a `[∗list]` over `List.replicate n` with a large `n`: the unifier
+materializes the list (revoke-open, 2026-11-06: 80 GB). Don't `unfold` a definition across a
+goal or context that size either; convert locally through a lemma. Frame explicitly
+(`isplitl [H]` / `iexact`).
+
 ## The Goose translations
 
 `Code/` and `GeneratedProof/` hold Goose translations by the pinned Perennial's
@@ -436,4 +447,5 @@ full. An edit to a proof in an imported module (its `Inv*` or lemma files) does 
 modules importing it stale: Lake rebuilds an importer only when the imported module's public
 `.olean` changes, and a proof's body is not part of it (measured: a proof edited, and lines
 inserted above it, in `InvReadylog`, left its 60 importers up to date). Changing a statement or
-a definition does rebuild the importers.
+a definition does rebuild the importers, and so does replacing a `sorry` by a proof: the public
+`.olean` changes (the theorem no longer mentions `sorryAx`), unlike an edit to a finished proof.

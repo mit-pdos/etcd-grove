@@ -6,10 +6,9 @@ def backend.bStopView (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp 
     backend.Data) : IProp GF :=
   iprop(W ∗
       Pk ∗
-        backend.viewAt γ (backend.sData P D) ∗
-          backend.pvHalf γ (backend.sData P D) ∗
-            backend.hkOwn γ (backend.hkData P D) ∗
-              backend.rbOwn γ (backend.rbData P D) ∗ backend.ckHalf γ (backend.fkVals D) ∗ ∃ R, backend.fkRd γ P (D, R))
+        (∃ X, backend.viewAtD γ P (backend.sData P D) X ∗ backend.dlsOwn γ X) ∗
+          backend.hkOwn γ (backend.hkData P D) ∗
+            backend.rbOwn γ (backend.rbData P D) ∗ backend.fkdOwn γ (backend.fkVals D) ∗ ∃ R, backend.fkRd γ P (D, R))
 
 def backend.isStopChansE (γ : backend.BNames) (P : backend.BParams) (b : Loc) : IProp GF :=
   iprop(∃ W Pk, backend.isBackend γ P W Pk b ∗ backend.isStopChans γ P W Pk b)

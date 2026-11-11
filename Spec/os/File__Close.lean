@@ -8,6 +8,7 @@ is any error; the `*File` keeps its name (`Name` still works). Proved in
 module
 
 public import Proof.os.Base
+public import Spec.fmt.ErrorOk
 
 @[expose] public section
 
@@ -32,7 +33,8 @@ abbrev os.File.Close.spec : Prop :=
   {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name (DFrac.own 1) ∗
       osFd (GF := GF) fd (DFrac.own 1) d }}
     (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Close")) (Val #()))
-  {{ (err : GoInterface), RET #err; os.ownFile f (-1 : w64) name (DFrac.own 1) }}
+  {{ (err : GoInterface), RET #err; os.ownFile f (-1 : w64) name (DFrac.own 1) ∗
+      fmtErrorOkOrNil err }}
 
 end spec
 

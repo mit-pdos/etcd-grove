@@ -26,15 +26,18 @@ watchable store): the last revision of a committed log, which extends the initia
 revision is at least `1`: `isStore`'s certificate); with a lent fraction of the committed log's
 authority (`logLent`, unit W-K: `progressIfSync`'s, under `s.mu`), that log. Of a store that may be compacted
 (`storeReaderC`; 2026-10-13, unit 6a); the readers' statement (`storeReader`) is `specR`
-(`spec_R`, `ReaderSpecs.lean`). -/
+(`spec_R`, `ReaderSpecs.lean`). (Stage 2 of the mvcc API, 2026-11-05) the caller's read callback
+(`readCb`, `store.Read`'s) runs at the read, its result `F log` returned: `WatchStream.Rev`'s
+update fires there. -/
 abbrev mvcc.watchableStore.rev.spec : Prop :=
-  ∀ (s st : Loc) (γ : mvcc.WsNames) (oa : Option (Qp × mvcc.Log)),
+  ∀ (s st : Loc) (γ : mvcc.WsNames) (oa : Option (Qp × mvcc.Log)) (F : mvcc.Log → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isWatchableStore s st γ ∗ mvcc.storeReaderC st γ.st ∗ mvcc.logLent γ.st.idx oa }}
+      mvcc.isWatchableStore s st γ ∗ mvcc.storeReaderC st γ.st ∗ mvcc.logLent γ.st.idx oa ∗
+      mvcc.readCb γ.st F }}
     (App (Val (s @!! go.GoType.PointerType watchableStore.ty @!! go!"rev")) (Val #()))
   {{ (r : w64), RET #r; mvcc.storeReaderC st γ.st ∗ mvcc.logLent γ.st.idx oa ∗
       ∃ log : mvcc.Log, mvcc.idxCert γ.st.idx log ∗ ⌜log ≠ [] ∧ r = W64 ((log.length : Int) - 1) ∧
-        2 ≤ log.length ∧ log.length < 2 ^ 63 ∧ ∀ q L, oa = some (q, L) → log = L⌝ }}
+        2 ≤ log.length ∧ log.length < 2 ^ 63 ∧ ∀ q L, oa = some (q, L) → log = L⌝ ∗ F log }}
 
 end spec
 

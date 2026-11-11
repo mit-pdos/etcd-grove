@@ -17,6 +17,7 @@ module
 
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Updates
 public import Proof.k8s_io.apiserver.pkg.storage.Defs
+public import Proof.k8s_io.apiserver.pkg.audit.CtxKeys
 
 @[expose] public section
 
@@ -33,6 +34,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 /-- See the file header. -/
@@ -47,7 +49,7 @@ abbrev store.Create.spec : Prop :=
   c.S.storedSizeOk o →
   c.S.parseRV rv = some (W64 0) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isStore sp c ∗
-      ctxOk ci cd ∗ ctxErrClient ci cd ∗ c.S.objAt obj o rv ∗ c.S.objAt out o0 rv0 ∗
+      ctxOk ci cd ∗ ctxErrClient ci cd ∗ k8sctx.k8sCtxOk ci ∗ c.S.objAt obj o rv ∗ c.S.objAt out o0 rv0 ∗
       ([∧list] x ∈ c.ms, k8sAu1 x.γr.kv c
         (fun s => (s.create (E := Empty) (c.pathPrefix ++ k) o 0).1) Φ) }}
     (App (App (App (App (App (Val (sp @!! go.GoType.PointerType

@@ -8,6 +8,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.newWatchableStore
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__syncWatchersLoop
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__syncVictimsLoop
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewWatchableLemmas
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewWatchableAt
 
 @[expose] public section
 
@@ -43,15 +44,18 @@ theorem mvcc.New.wp_proof
     (hSWL : mvcc.watchableStore.syncWatchersLoop.spec (GF := GF) (hG := hG))
     (hSVL : mvcc.watchableStore.syncVictimsLoop.spec (GF := GF) (hG := hG)) :
     mvcc.New.spec (GF := GF) (hG := hG) := by
-  intro _ lg b le cfg kb γb γl P f rd0 γi γok γtag Perm Hcfg0 hboot
-  wp_start as ⟨Hbk, Hbv, Hncmp, #Hnd, Hrg, Hwt1, Hwt2, Hsrm, Htie, Hrts, Hlrd, #Hlessor, Hro, Hifresh, Hok0⟩
+  intro _ lg b le cfg d γb γl P rd0 γi γok γtag M Perm R r Ls hk Pre Q Post X Y dq
+  wp_start as ⟨%Hpre, #Hzl, #Hpkg, Hsess, Hbtr, Hkcr, Hreg, Himg, Hrcpt, #Hnd, Hrg, Hwt1, Hwt2, Hsrm, Hrts, Hlrd,
+    #Hlessor, Hro, Hlo, %Hpend, Hifresh, Hok0, Hcert0, Hfin, Hcrv, Hres, Hsup⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   wp_auto
-  wp_apply (hNew _ _ _ _ _ _ _ _ f _ γi γok γtag Perm Hcfg0 hboot)
-    $$ [$Hbk $Hbv $Hncmp $Hnd $Hrg $Hwt1 $Hwt2 $Hsrm $Htie $Hrts $Hlrd $Hlessor $Hro $Hifresh $Hok0]
-    as %s ⟨%st, %γ, %Hγ, #Hws, Hro, #Hhook, Hww, Htw, Hok, Hreaders,
-    ⟨%stc, #Hstc, Hstop⟩, Hsclose, Hcr, Hfrag, Hret, #HcpIs, Hwg⟩
+  wp_apply (hNew _ b le cfg d γb γl P rd0 γi γok γtag M Perm R r Ls hk Pre Q Post X Y dq)
+    $$ [$Hsess $Hbtr $Hkcr $Hreg $Himg $Hrcpt $Hnd $Hrg $Hwt1 $Hwt2 $Hsrm $Hrts $Hlrd $Hlessor $Hro
+      $Hlo $Hifresh $Hok0 $Hcert0 $Hfin $Hcrv $Hres $Hsup]
+    as %s ⟨%st, %γ, %Hγ, #Hws, Hro, #Hhook, Htw, Hok, Hreaders,
+    ⟨%stc, #Hstc, Hstop⟩, Hsclose, Hfrag, Hret, #HcpIs, Hwg, #Hwreg, Hnc, Hlo, Hrb, Hlc⟩
+  · iframe #; ipureintro; exact ⟨Hpre, Hpend⟩
   (try wp_auto)
   imod sync.init_WaitGroup mvcc.wsWgWGN (mvcc.wsWgAddr s) $$ Hwg with ⟨%γwg, #HisWg, Hctr, Hwaiters⟩
   wp_apply mvcc.wp_wsWg_Add2_init s γwg $$ [$Hctr $Hwaiters] as ⟨Hctr, Hwaiters⟩
@@ -72,9 +76,9 @@ theorem mvcc.New.wp_proof
     rw [List.replicate_zero]
     iapply BigSepL.bigSepL_nil_intro
     iempintro
-  have hN : 2 ≤ backend.rdStockN - mvcc.nJobRd kb := by
-    have := backend.rdStockN_val
-    have := mvcc.nJobRd_le kb
+  have hN : 2 ≤ mvcc.nReaders - mvcc.nJobRd (some d) := by
+    have := mvcc.nReaders_val
+    have := mvcc.nJobRd_le (some d)
     omega
   icases mvcc.slots_take2 _ _ hN $$ Hreaders with ⟨Hr1, Hr2, Hreaders⟩
   (try wp_auto)
@@ -94,11 +98,10 @@ theorem mvcc.New.wp_proof
   (try wp_auto)
   iapply HΦ
   iexists st, γ
-  iframe Hws Hro Hhook Hww Htw Hok Hreaders Hcr Hfrag Hret HcpIs
+  iframe Hws Hro Hhook Htw Hok Hreaders Hfrag Hret HcpIs Hwreg Hnc Hlo Hrb Hlc
   isplitr
   · ipureintro; exact Hγ
-  iunfold mvcc.wsCloser
-  iexists stc
+  iapply mvcc.wsCloserM_of s st γ.st r.crev stc
   iframe Hstc Hstop Hsclose
   iunfold mvcc.wsWaiter
   iexists γwg, γd, γw

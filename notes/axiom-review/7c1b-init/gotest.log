@@ -1,0 +1,11 @@
+=== RUN   TestAxiomReview7c1bInit
+    axiomreview_test.go:61: toGRPCErrorMap has 53 entries
+    axiomreview_test.go:92: mvcc descs: "mvcc: required revision is a future revision" "mvcc: required revision has been compacted"
+    axiomreview_test.go:99: togRPCError(rpctypes.EtcdError "etcdserver: mvcc: required revision is a future revision") = code Unknown desc "etcdserver: mvcc: required revision is a future revision"
+    axiomreview_test.go:99: togRPCError(rpctypes.EtcdError "etcdserver: mvcc: required revision has been compacted") = code Unknown desc "etcdserver: mvcc: required revision has been compacted"
+    axiomreview_test.go:99: togRPCError(*errors.errorString "etcdserver: mvcc: required revision is a future revision") = code Unknown desc "etcdserver: mvcc: required revision is a future revision"
+    axiomreview_test.go:99: togRPCError(*status.Error "rpc error: code = OutOfRange desc = etcdserver: mvcc: required revision is a future revision") = code Unknown desc "rpc error: code = OutOfRange desc = etcdserver: mvcc: required revision is a future revision"
+    axiomreview_test.go:99: togRPCError(*status.Error "rpc error: code = OutOfRange desc = etcdserver: mvcc: required revision has been compacted") = code Unknown desc "rpc error: code = OutOfRange desc = etcdserver: mvcc: required revision has been compacted"
+--- PASS: TestAxiomReview7c1bInit (0.00s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc	0.013s

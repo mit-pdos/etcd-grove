@@ -6,6 +6,7 @@ module
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer__Compact
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthAdmin__isPermitted
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.togRPCError
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.TogRPCErrorPlain
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.header__fill
 
 @[expose] public section
@@ -36,7 +37,7 @@ theorem v3rpc.kvServer.Compact.wp_proof
     (hFill : v3rpc.header.fill.spec (GF := GF) (hG := hG)) :
     v3rpc.kvServer.Compact.spec (GF := GF) (hG := hG) := by
   intro p s A cid mid n aa E ctx cd r Pin Q
-  wp_start as ⟨#Hsrv, #Haaf, #Haa, #Hnil, #Hctx, HRD, HPin, #Hin⟩
+  wp_start as ⟨#Hsrv, #Haaf, #Haa, #Hnil, #Hctx, #Hlib, HRD, HPin, #Hin⟩
   ihave #Hsrv' := Hsrv
   iunfold v3rpc.kvServerIs at Hsrv'
   icases Hsrv' with ⟨%Hpn, #Hhdr, #Hkv, #Hn, -⟩
@@ -49,12 +50,13 @@ theorem v3rpc.kvServer.Compact.wp_proof
   (try wp_auto)
   rcases err with ei | _
   · (try wp_auto)
-    wp_apply hTog $$ [] as %e %He
+    wp_apply (v3rpc.togRPCError_plain hTog) $$ [] as %e ⟨%He, #HSe⟩
     · iframe #
       iapply (v3rpc.srvErrIs_applyErrIs (GoInterface.ok ei) (by intro h; cases h)) $$ Herr
     (try wp_auto)
     iapply HΦ
     iframe HRD
+    iframe HSe
     iunfold v3rpc.compactOut
     iright
     isplitr
@@ -76,6 +78,9 @@ theorem v3rpc.kvServer.Compact.wp_proof
       (try wp_auto)
       iapply HΦ
       iframe HRD
+      isplitl
+      rotate_left
+      · iapply go_etcd_io.etcd.cache.v3.srvErrOk_nil
       iunfold v3rpc.compactOut
       ileft
       isplitr
@@ -91,11 +96,12 @@ theorem v3rpc.kvServer.Compact.wp_proof
       | nil => exact absurd rfl Hen
       | ok ei =>
         (try wp_auto)
-        wp_apply hTog $$ [] as %e %He
+        wp_apply (v3rpc.togRPCError_plain hTog) $$ [] as %e ⟨%He, #HSe⟩
         · iframe #
         (try wp_auto)
         iapply HΦ
         iframe HRD
+        iframe HSe
         iunfold v3rpc.compactOut
         iright
         isplitr

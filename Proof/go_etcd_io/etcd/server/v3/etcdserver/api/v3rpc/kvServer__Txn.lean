@@ -7,6 +7,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer__Txn
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkTxnRequest
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkIntervals
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.togRPCError
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.TogRPCErrorPlain
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.header__fill
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.CheckLemmas
 
@@ -77,6 +78,7 @@ theorem v3rpc.kvServer.Txn.wp_proof
   cases hc : v3rpc.txnCheck (sint.Z n) cs ts es with
   | some e =>
     simp only [v3rpc.checkRes]
+    ihave #HSe := v3rpc.checkErr_srvErrOk e err $$ Hpkg Herr
     iunfold txn.errVarIs at Herr
     icases Herr with ⟨%ee, #Hee, %Herr⟩
     subst Herr
@@ -85,6 +87,7 @@ theorem v3rpc.kvServer.Txn.wp_proof
     rw [show v3rpc.txnAllCheck (sint.Z n) cs ts es = some e by unfold v3rpc.txnAllCheck; rw [hc]]
     dsimp only
     iframe Hcall
+    iframe HSe
     iunfold v3rpc.checkOut
     iunfold txn.errVarIs
     iframe #
@@ -98,6 +101,7 @@ theorem v3rpc.kvServer.Txn.wp_proof
     · iframe #; ipureintro; exact Hdc.1
     cases hts : v3rpc.ivCheck ts with
     | none =>
+      ihave #HSe := v3rpc.checkErr_srvErrOk .duplicateKey e1 $$ Hpkg Hiv1
       iunfold txn.errVarIs at Hiv1
       icases Hiv1 with ⟨%ee, #Hee, %He1⟩
       subst He1
@@ -106,6 +110,7 @@ theorem v3rpc.kvServer.Txn.wp_proof
       rw [v3rpc.txnAllCheck_ts hc hts]
       dsimp only
       iframe Hcall
+      iframe HSe
       iunfold v3rpc.checkOut
       iunfold txn.errVarIs
       iframe #
@@ -118,6 +123,7 @@ theorem v3rpc.kvServer.Txn.wp_proof
       · iframe #; ipureintro; exact Hdc.2
       cases hes : v3rpc.ivCheck es with
       | none =>
+        ihave #HSe := v3rpc.checkErr_srvErrOk .duplicateKey e2 $$ Hpkg Hiv2
         iunfold txn.errVarIs at Hiv2
         icases Hiv2 with ⟨%ee, #Hee, %He2⟩
         subst He2
@@ -126,6 +132,7 @@ theorem v3rpc.kvServer.Txn.wp_proof
         rw [v3rpc.txnAllCheck_es hc hts hes]
         dsimp only
         iframe Hcall
+        iframe HSe
         iunfold v3rpc.checkOut
         iunfold txn.errVarIs
         iframe #
@@ -140,7 +147,7 @@ theorem v3rpc.kvServer.Txn.wp_proof
           exact ⟨hc, v3rpc.txnModelDepthOk_of_check hc Hmx, by simp [v3rpc.intervalsOk, hts],
             by simp [v3rpc.intervalsOk, hes], Hpre⟩
         iunfold v3rpc.kvAnswer at Hans
-        icases Hans with (⟨%Hok, %h, %rv, #Hhf, Hw, Hrev, HA⟩ | ⟨#Hse, HA⟩)
+        icases Hans with (⟨%Hok, %h, %rv, #Hhf, Hw, Hrev, HA⟩ | ⟨#Hse, #Hmp, HA⟩)
         · obtain ⟨He, Hrn⟩ := Hok
           subst He
           wp_auto
@@ -150,6 +157,9 @@ theorem v3rpc.kvServer.Txn.wp_proof
           iapply HΦ
           rw [v3rpc.txnAllCheck_ok hc hts hes]
           dsimp only
+          isplitl
+          rotate_left
+          · iapply go_etcd_io.etcd.cache.v3.srvErrOk_nil
           iunfold v3rpc.kvOut
           ileft
           isplitr
@@ -164,17 +174,20 @@ theorem v3rpc.kvServer.Txn.wp_proof
           | nil => exact absurd rfl Hen
           | ok ei =>
             wp_auto
-            wp_apply hTog $$ [] as %e %He
+            wp_apply hTog (A.errP (.txn cs ts es)) _ $$ [] as %e ⟨%He, #HSe, #Hgo⟩
             · iframe #
             iapply HΦ
             rw [v3rpc.txnAllCheck_ok hc hts hes]
             dsimp only
+            iframe HSe
             iunfold v3rpc.kvOut
             iright
             isplitr
             · ipureintro; exact ⟨rfl, He⟩
-            iexists _
-            iexact HA
+            iexists (GoInterface.ok ei)
+            isplitr
+            · ipureintro; exact Hen
+            iframe HA Hgo
 
 end proof
 

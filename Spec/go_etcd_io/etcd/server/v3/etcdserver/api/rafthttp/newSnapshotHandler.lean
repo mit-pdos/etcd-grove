@@ -21,7 +21,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **`newSnapshotHandler(t, r, ss, cid)`** of a transport whose logger is set and whose member
+/-- **`newSnapshotHandler(t, r, ss, cid)`** of a transport whose logger is a zap logger and whose member
 `lid` owns `a`, `r` its `Raft` (borrowing `Rs` per call), the snapshotter `ss` and its directory,
 `addRemoteFromRequest` of the transport returning: a snapshot handler of `a` (`snapHandlerOk`; as
 `newPipelineHandler`'s; 2026-10-25, stage 7e: was a handler of the snapshot path, lending `R` and
@@ -30,8 +30,8 @@ abbrev rafthttp.newSnapshotHandler.spec : Prop :=
   ∀ (Rh : RaftHttp GF) (a : GoString) (γd : GName) (Rs : IProp GF) (t : Loc) (r : GoInterface)
     (ss : Loc) (cid : go_etcd_io.etcd.client.pkg.v3.types.ID) (lg : Loc) (lid : w64)
     (Rm : w64 → IProp GF),
-  lg ≠ null → Rh.owner a = lid →
-  {{ t.[rafthttp.Transport, go!"Logger"] ↦□ lg ∗ t.[rafthttp.Transport, go!"ID"] ↦□ lid ∗
+  Rh.owner a = lid →
+  {{ t.[rafthttp.Transport, go!"Logger"] ↦□ lg ∗ zapLoggerOk lg ∗ t.[rafthttp.Transport, go!"ID"] ↦□ lid ∗
       □ netRaftOk Rh.γn lid γd Rs r ∗
       snap.isSnapshotter ss ∗ inv snapDirN (snapDirInv ss γd Rh.γn.N.img Rm) ∗
       □ (∀ (r' : Loc) (R' : http.HReq) (rd : GoInterface),

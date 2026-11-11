@@ -38,6 +38,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 /-- `cli.Get(ctx, key)` (no options) by a client whose `KV` field is a `*kv` of etcd's KV `γ`, with
@@ -157,7 +158,8 @@ theorem compactor.getCompactRev.wp_proof
     iunfold kvErr at Hke
     icases Hke with ⟨-, #Hse, -⟩
     iunfold go_etcd_io.etcd.cache.v3.statusErrOk at Hse
-    ihave ⟨#HeS, -⟩ := Hse $$ %ei %rfl
+    ihave ⟨⟨%em, #HeS0⟩, -, -, %HF⟩ := Hse $$ %ei %rfl
+    ihave #HeS := go_etcd_io.etcd.cache.v3.errorMsgIs_errorStringSpec _ _ $$ HeS0
     ihave #HeS' : EtcdGrove.fmt.stringMethodSpec ei go!"Error" $$ []
     · rw [show EtcdGrove.fmt.stringMethodSpec ei go!"Error" =
         go_etcd_io.etcd.cache.v3.errorStringSpec ei from rfl]

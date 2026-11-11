@@ -38,9 +38,10 @@ theorem StartCompactingServer.wp_proof
     (wp_newServerMode : newServerMode.spec (GF := GF) (hG := hG))
     (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG)) :
     StartCompactingServer.spec (GF := GF) (hG := hG) := by
-  intro CS N name peerAddr client retention lg bootLog ctxs dir id γ ρ E₀ Φs γn Htb Hrb48 HrbN HwbN
-    hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps Hname8 Hlg Hret Hcret Hck Haf Hbuq Hdbo
-  wp_start as ⟨Htok, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hwdf⟩
+  intro CS N name peerAddr client retention lg bootLog ctxs dir id γ ρ E₀ Φs γn lm Htb Hrb48 HrbN HwbN
+    hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps Hname8 Hret Hcret Hck Haf Hbuq Hdbo
+  wp_start as ⟨#Hzlg, Htok, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hfresh⟩
+  ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
   · iPkgInit
   (try wp_auto)
@@ -74,16 +75,16 @@ theorem StartCompactingServer.wp_proof
       (W64 281474976710656) (slice.mk peer (W64 1) (W64 1)) pm
       lg
       (GMap.insert name (slice.mk peer (W64 1) (W64 1)) ∅) (fun _ => [httpURL peerAddr])
-      (urls1 name peerAddr client) [id] bootLog ctxs dir id γ ρ E₀ Φs γn true Htb Hrb48 HrbN HwbN
+      (urls1 name peerAddr client) [id] bootLog ctxs dir id γ ρ E₀ Φs γn true lm Htb Hrb48 HrbN HwbN
       hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps ⟨rfl, rfl, ⟨_, rfl⟩, rfl⟩
-      (utf8Keys_insert _ _ _ Hname8 utf8Keys_empty) Hlg
+      (utf8Keys_insert _ _ _ Hname8 utf8Keys_empty)
       (if h : retention = W64 0 then v3compactor.bootCfg_off _ _ _ _ h
        else v3compactor.bootCfg_revision _ _ (by
          have : sint.Z retention ≠ 0 := fun h0 => h (by word)
          omega) Hcret) Hck Haf Hbuq
-      Hdbo) $$ [Htok Hmb Hwdf] as %s %err Hres
+      Hdbo) $$ [Htok Hmb Hfresh] as %s %err Hres
   · iframe; iframe #
-  icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb⟩)
+  icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb, -⟩)
   · -- `newServer` failed: the error returned, with the thread token
     cases err with
     | nil => exact absurd rfl Herr
@@ -93,7 +94,7 @@ theorem StartCompactingServer.wp_proof
   subst Herr
   wp_auto
   -- `s.Start()`
-  wp_apply (wp_Start_built wp_Start s ρ E₀ lg γn id N _ HrbN) $$ [Hmb Htok] as Hup
+  wp_apply (wp_Start_built wp_Start s ρ E₀ lg γn id N _ HrbN lm Hrb48) $$ [Hmb Htok] as Hup
   · iframe
   (try wp_auto)
   iapply HΦ

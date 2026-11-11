@@ -39,6 +39,42 @@ def grantOutOkA (c : Chain) (rq : IRRModel) (v3 : Bool) (T : List w64) (out : Ap
   | .dispatched o _ => grantOutOk c rq v3 T o
   | _ => True
 
+/-- `revokeIds` over `apply.Apply`'s outcome (the lease-expiry plan's X7): a dispatched request's. -/
+def revokeIdsA (rq : IRRModel) (v3 : Bool) (out : ApplyOut) (L : List w64) : List w64 :=
+  match out with
+  | .dispatched o _ => revokeIds rq v3 o L
+  | _ => L
+
+/-- `revokeRest` over `apply.Apply`'s outcome: a dispatched request's. -/
+def revokeRestA (T : List w64) (rq : IRRModel) (v3 : Bool) (out : ApplyOut) (r : RestM) : RestM :=
+  match out with
+  | .dispatched o _ => revokeRest T rq v3 o r
+  | _ => r
+
+theorem revokeIdsA_nonRevoke (rq : IRRModel) (v3 : Bool) (out : ApplyOut) (L : List w64)
+    (h : dispatchKind rq ≠ .leaseRevoke) : revokeIdsA rq v3 out L = L := by
+  unfold revokeIdsA; split
+  · exact revokeIds_nonRevoke _ _ _ _ h
+  · rfl
+
+theorem revokeRestA_nonRevoke (T : List w64) (rq : IRRModel) (v3 : Bool) (out : ApplyOut)
+    (r : RestM) (h : dispatchKind rq ≠ .leaseRevoke) : revokeRestA T rq v3 out r = r := by
+  unfold revokeRestA; split
+  · exact revokeRest_nonRevoke _ _ _ _ _ h
+  · rfl
+
+theorem revokeIdsA_not_dispatched (rq : IRRModel) (v3 : Bool) (out : ApplyOut) (L : List w64)
+    (h : ∀ o sk, out ≠ .dispatched o sk) : revokeIdsA rq v3 out L = L := by
+  cases out with
+  | dispatched o sk => exact absurd rfl (h o sk)
+  | _ => rfl
+
+theorem revokeRestA_not_dispatched (T : List w64) (rq : IRRModel) (v3 : Bool) (out : ApplyOut)
+    (r : RestM) (h : ∀ o sk, out ≠ .dispatched o sk) : revokeRestA T rq v3 out r = r := by
+  cases out with
+  | dispatched o sk => exact absurd rfl (h o sk)
+  | _ => rfl
+
 theorem grantIdsA_not_dispatched (rq : IRRModel) (v3 : Bool) (out : ApplyOut) (L : List w64)
     (h : ∀ o sk, out ≠ .dispatched o sk) : grantIdsA rq v3 out L = L := by
   cases out with
@@ -91,6 +127,48 @@ theorem grantRestA_leases (c : Chain) (t : w64) (rq : IRRModel) (v3 : Bool) (out
     · refine ⟨f, ?_⟩
       unfold grantRest grantIds
       rw [if_neg hc, if_neg hc]
+
+/-- **`grantRestA_leases` with what `f'` is** (the lease-expiry plan's S2–S4, Q-S6 (A-ii)): `f` on
+`T`, and the record's TTL `t` at an id the grant added. -/
+theorem grantRestA_leasesF (c : Chain) (t : w64) (rq : IRRModel) (v3 : Bool) (out : ApplyOut)
+    (f : w64 → w64) (T : List w64) (R : RestM) (hgo : grantOutOkA c rq v3 T out) :
+    ∃ f' : w64 → w64, grantRestA t rq v3 out (restLeasesWith f T R) =
+      restLeasesWith f' (grantIdsA rq v3 out T) R ∧ (∀ id ∈ T, f' id = f id) ∧
+      ∀ id ∈ grantIdsA rq v3 out T, id ∉ T → f' id = t := by
+  cases out with
+  | skipped => exact ⟨f, rfl, fun _ _ => rfl, fun id h hn => absurd h hn⟩
+  | rejected => exact ⟨f, rfl, fun _ _ => rfl, fun id h hn => absurd h hn⟩
+  | dispatched o sk =>
+    simp only [grantRestA, grantIdsA, grantOutOkA] at hgo ⊢
+    by_cases hc : dispatchKind rq = .leaseGrant ∧ v3 = true
+    · cases hgl : rq.leaseGrant with
+      | none =>
+        refine ⟨f, by rw [grantRest_none _ _ _ _ _ hgl, grantIds_none _ _ _ _ hgl], fun _ _ => rfl, ?_⟩
+        intro id h hn; rw [grantIds_none _ _ _ _ hgl] at h; exact absurd h hn
+      | some g =>
+        obtain ⟨hk, hv⟩ := hc
+        subst hv
+        cases o with
+        | rejected e =>
+          refine ⟨f, by rw [grantRest_rejected, grantIds_rejected], fun _ _ => rfl, ?_⟩
+          intro id h hn; rw [grantIds_rejected] at h; exact absurd h hn
+        | applied l ns =>
+          have hok := (hgo hk rfl g hgl).1 ⟨l, ns, rfl⟩
+          refine ⟨updFn f g.id t, ?_, ?_, ?_⟩
+          · rw [grantRest_applied _ _ g _ _ _ hk hgl, grantIds_applied _ g _ _ _ hk hgl]
+            exact restLeasesWith_snoc f T g.id t R hok.2.2.2
+          · intro id hid
+            have : id ≠ g.id := fun h => hok.2.2.2 (h ▸ hid)
+            simp [updFn, this]
+          · intro id h hn
+            rw [grantIds_applied _ g _ _ _ hk hgl] at h
+            rcases List.mem_append.1 h with h | h
+            · exact absurd h hn
+            · simp at h; subst h; simp [updFn]
+    · refine ⟨f, ?_, fun _ _ => rfl, ?_⟩
+      · unfold grantRest grantIds
+        rw [if_neg hc, if_neg hc]
+      · intro id h hn; unfold grantIds at h; rw [if_neg hc] at h; exact absurd h hn
 
 theorem grantIdsA_none (rq : IRRModel) (v3 : Bool) (out : ApplyOut) (L : List w64)
     (h : rq.leaseGrant = none) : grantIdsA rq v3 out L = L := by

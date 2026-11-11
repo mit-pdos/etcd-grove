@@ -519,6 +519,7 @@ class LeaseRevokeRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalC
   set_sizeCache : ∀ (x : LeaseRevokeRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet LeaseRevokeRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : LeaseRevokeRequest)))
   method_set : go.MethodSetIs LeaseRevokeRequest.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType LeaseRevokeRequest.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetID", (some (go.signature.Signature [] false [go.int64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_GetID_unfold : MethodUnfold (go.GoType.PointerType LeaseRevokeRequest.ty) go!"GetID" LeaseRevokeRequest.GetID.impl
 
 attribute [instance] LeaseRevokeRequest.TypeAssumptions.type_repr
   LeaseRevokeRequest.TypeAssumptions.underlying
@@ -532,6 +533,7 @@ attribute [instance] LeaseRevokeRequest.TypeAssumptions.type_repr
   LeaseRevokeRequest.TypeAssumptions.set_sizeCache
   LeaseRevokeRequest.TypeAssumptions.method_set
   LeaseRevokeRequest.TypeAssumptions.ptr_method_set
+  LeaseRevokeRequest.TypeAssumptions.ptr_GetID_unfold
 
 class LeaseRevokeResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LeaseRevokeResponse.underlying LeaseRevokeResponse

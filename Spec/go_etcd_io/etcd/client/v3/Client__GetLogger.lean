@@ -22,12 +22,12 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `client.GetLogger()` (`c.lg.Load()`): some non-nil logger. -/
+/-- `client.GetLogger()` (`c.lg.Load()`): a zap logger (`zapLoggerOk`; premise fixes 6: until then some non-nil logger). -/
 abbrev Client.GetLogger.spec : Prop :=
   ∀ (cl : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isClientLogger cl }}
     (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"GetLogger")) (Val #()))
-  {{ (lg : Loc), RET #lg; ⌜lg ≠ null⌝ }}
+  {{ (lg : Loc), RET #lg; zapLoggerOk lg }}
 
 end spec
 

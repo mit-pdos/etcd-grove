@@ -1,5 +1,5 @@
 /-
-`Run(lg)` (`examples/etcd/restart/etcd_restart.go`; the restart plan's R2a, 2026-11-02; DRAFT): three
+`Run(lg)` (`examples/etcd/restart/restart3.go`; the restart plan's R2a, 2026-11-02; DRAFT): three
 members started, member 1's gRPC API served and a client of it, a `Put` of `k`, a follower stopped
 (member 3, or member 2 if member 3 leads), `NPuts` more `Put`s, the follower started again on its
 data directory and its gRPC API served, a client of it, a `Get` of `k`, and a panic unless the
@@ -43,19 +43,14 @@ def runPure (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (b
   ckptEffectsOk ∧ authRecordsFit ∧ apply.backendUnderQuota ∧ grpcRepliesFit ∧ storage.diskOk
 
 /-- `Run`'s and `Main`'s resources (putget3's `Main`'s, with all three client addresses and a
-second thread token). -/
+second thread token): each member's start bundle (`etcdstart.memberStartRes`, at its peer and its
+client address; hub step 8, E6). -/
 def runRes (N : Nat) (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8))
     (boot : List LogEntry) : IProp GF :=
-  iprop(netAddrFree (GF := GF) peerAddr₁ ∗ netAddrFree (GF := GF) peerAddr₂ ∗
-    netAddrFree (GF := GF) peerAddr₃ ∗ netAddrFree (GF := GF) clientAddr₁ ∗
-    netAddrFree (GF := GF) clientAddr₂ ∗ netAddrFree (GF := GF) clientAddr₃ ∗
-    httpProtoFree (GF := GF) peerAddr₁ ∗ httpProtoFree (GF := GF) peerAddr₂ ∗
-    httpProtoFree (GF := GF) peerAddr₃ ∗ threadTok ∗ threadTok ∗
-    premises N id₁ id₂ id₃ ps ctxs boot ∗
-    -- (2026-11-03, the WAL's API, change 6) the members' WAL directories fresh
-    walDirFresh (config.walDirOf (name₁ ++ go!".etcd") go!"") ∗
-    walDirFresh (config.walDirOf (name₂ ++ go!".etcd") go!"") ∗
-    walDirFresh (config.walDirOf (name₃ ++ go!".etcd") go!""))
+  iprop(etcdstart.memberStartRes (GF := GF) name₁ ⟨some peerAddr₁, some clientAddr₁⟩ ∗
+    etcdstart.memberStartRes (GF := GF) name₂ ⟨some peerAddr₂, some clientAddr₂⟩ ∗
+    etcdstart.memberStartRes (GF := GF) name₃ ⟨some peerAddr₃, some clientAddr₃⟩ ∗
+    threadTok ∗ threadTok ∗ premises N id₁ id₂ id₃ ps ctxs boot)
 
 /-- See the file header. -/
 abbrev Run.spec : Prop :=
@@ -67,10 +62,12 @@ abbrev Run.spec : Prop :=
     [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)] [ReceiptBoundLe GF (N + 1)],
   -- (2026-11-03, the whole-`bootOk` review, A) the write budget `bootstrap`'s own write-backs leave
   N + 7 + bootWB ≤ backend.wbInit →
-  lg ≠ null → runPure id₁ id₂ id₃ ps ctxs boot →
+  runPure id₁ id₂ id₃ ps ctxs boot →
   v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.restart ∗
+      -- (sweep repairs 1, R1-2) the logger a zap logger (until then `lg ≠ null`)
+      zapLoggerOk lg ∗
       runRes N id₁ id₂ id₃ ps ctxs boot }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.restart.Run)) (Val #lg))
   {{ RET #(); True }}

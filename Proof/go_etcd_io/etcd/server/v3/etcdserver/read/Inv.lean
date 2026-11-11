@@ -108,10 +108,10 @@ def frozenOk (γn : NeedNames) (γr : ReadNames) : IProp GF :=
     srvReadWit γr.raft (readQs gs) ci)
 
 /-- **What the close of a notifier `nc` tells every waiter** (persistent): its error, stored
-before the close for good (`nc.err ↦□`), one the gRPC layer can take (`applyErrIs`), and, if
-`nil`, the loop's answer (`frozenOk`). -/
+before the close for good (`nc.err ↦□`), one the gRPC layer can take (`applyErrIs`), which one
+(`readErrIs`; k8s etcd3 7c-2 part 2, S3b), and, if `nil`, the loop's answer (`frozenOk`). -/
 def notified (nc : Loc) (γn : NeedNames) (γr : ReadNames) : IProp GF :=
-  iprop(∃ err : GoInterface, ncErrAddr nc ↦□ err ∗ applyErrIs err ∗
+  iprop(∃ err : GoInterface, ncErrAddr nc ↦□ err ∗ applyErrIs err ∗ readErrIs err ∗
     (⌜err ≠ GoInterface.nil⌝ ∨ frozenOk γn γr))
 
 /-- **A channel closed (never sent on) whose close tells `Q`** (persistent; Perennial's broadcast
@@ -210,11 +210,12 @@ instance readInv_persistent (γr : ReadNames) (F : List EntryModel → KVState) 
 
 /-! ## The server, as the read loop sees it (`server`) -/
 
-/-- The method `m` of the server value `si` returns a channel that is closed, never sent on, with
-no content (the stop, done, leader-change and first-commit channels). -/
+/-- The method `m` of the server value `si` returns a channel that is closed, never sent on, its
+close announcing some `Q` the caller does not use (the done channel: R2c-4, until then with no
+content; its close announces the stopped server's image, `srvDoneInv`). -/
 def srvChanOk (si : GoInterfaceOk) (m : GoString) : IProp GF :=
   iprop(□ {{ True }} (App (Val #(methods si.ty m si.v)) (Val #()))
-    {{ (ch : Loc), RET #ch; bcastChan ch iprop(True) }})
+    {{ (ch : Loc), RET #ch; ∃ Q : IProp GF, bcastChan ch Q }})
 
 /-- The method `m` of the server value `si`, with the caller's resource `LR` (given back), returns
 a channel that is closed, never sent on, with no content (the leader-change and first-commit
@@ -241,7 +242,7 @@ def srvDoneOk (srv : GoInterface) : IProp GF :=
   sent on, with no content (`bcastChan`; `Stopping()`'s buffered, `stopChan`: 2026-10-13, unit 4c);
   the last two with the caller's resource `LR` (given back: they read-lock a notifier; 2026-10-13,
   unit 4b);
-* `Logger()`: a non-nil `*zap.Logger`, for the caller's resource `LR` (the server's `lgMu` reader
+* `Logger()`: a zap logger (`zapLoggerOk`; premise fixes 6), for the caller's resource `LR` (the server's `lgMu` reader
   slot: `EtcdServer.Logger` read-locks it; and the two notifiers' reader slots), given back;
 * `AppliedIndex()`: an index the applied index has reached (`appliedAtLeast`);
 * `ApplyWait(d)`: a channel closed once the applied index has reached `d`: its close tells some `Q`
@@ -258,7 +259,7 @@ def isReadServer (srv : GoInterface) (γr : ReadNames) (LR NR : IProp GF) : IPro
     srvStopOk si go!"Stopping" ∗ srvChanOkR si go!"LeaderChanged" LR ∗
     srvChanOkR si go!"FirstCommitInTermNotify" LR ∗
     □ ({{ LR }} (App (Val #(methods si.ty go!"Logger" si.v)) (Val #()))
-      {{ (l : Loc), RET #l; ⌜l ≠ null⌝ ∗ LR }}) ∗
+      {{ (l : Loc), RET #l; zapLoggerOk l ∗ LR }}) ∗
     □ ({{ True }} (App (Val #(methods si.ty go!"AppliedIndex" si.v)) (Val #()))
       {{ (i : w64), RET #i; appliedAtLeast γr i }}) ∗
     □ (∀ d : w64, {{ True }} (App (Val #(methods si.ty go!"ApplyWait" si.v)) (Val #d))
@@ -304,6 +305,38 @@ def isReadStateC (c : Loc) (γ : ServerRaftNames)
     (RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF) : IProp GF :=
   iprop(∃ γc : ChanNames, isChanBag γc c (V := go_etcd_io.raft.v3.ReadState) (srvReadStateOk γ RQ))
 
+/-- **The error of raft's `ReadIndex`** (k8s etcd3 7c-2 part 2, S3b, 2026-11-06): raft's
+`nodeErr` (`nil`, raft's `ErrStopped`, or the context's `Err()`), the context's error as
+`context.isCtxErr`. -/
+def nodeReadErrIs (err : GoInterface) : IProp GF :=
+  iprop(⌜err = GoInterface.nil⌝ ∨ (globalAddr go_etcd_io.raft.v3.ErrStopped ↦□ err : IProp GF) ∨
+    context.isCtxErr err)
+
+instance nodeReadErrIs_persistent (err : GoInterface) :
+    Persistent (nodeReadErrIs (GF := GF) err) := by
+  unfold nodeReadErrIs; infer_instance
+
+/-- **The errors of the read loop's `sendReadIndex` and `requestCurrentIndex`** (S3b): those
+`LinearizableReadNotify` returns (`readErrIs`), or raft's `ErrStopped`, on which the loop returns
+(`isStopped`). -/
+def readLoopErrIs (err : GoInterface) : IProp GF :=
+  iprop(readErrIs err ∨ (globalAddr go_etcd_io.raft.v3.ErrStopped ↦□ err : IProp GF))
+
+instance readLoopErrIs_persistent (err : GoInterface) :
+    Persistent (readLoopErrIs (GF := GF) err) := by
+  unfold readLoopErrIs; infer_instance
+
+theorem readLoopErrIs_of_node (err : GoInterface) :
+    nodeReadErrIs (GF := GF) err ⊢ readLoopErrIs err := by
+  iintro #H
+  iunfold nodeReadErrIs at H
+  iunfold readLoopErrIs
+  iunfold readErrIs
+  icases H with (%H | #H | #H)
+  · ileft; ileft; ipureintro; exact H
+  · iright; iexact H
+  · ileft; iright; ileft; iexact H
+
 /-- **The `raftInterface` value `rf`** (persistent; unit 4b discharges it for the server's
 `raftNode`, as `raftPropose`): `ReadState()` returns a channel of answered read states
 (`isReadStateC`); `ReadIndex(ctx, rctx)`, with the big-endian bytes of an id read-only and a
@@ -326,7 +359,7 @@ def isReadRaft (rf : GoInterface) (γr : ReadNames)
           srvRdFresh γr.raft (beBytes id) }}
         (App (App (Val #(methods ri.ty go!"ReadIndex" ri.v)) (Val #(GoInterface.ok ctx)))
           (Val #sl))
-      {{ (err : GoInterface), RET #err; applyErrIs err ∗
+      {{ (err : GoInterface), RET #err; applyErrIs err ∗ nodeReadErrIs err ∗
           (⌜err = GoInterface.nil⌝ -∗ □ RQ id n Qr) }}))
 
 instance srvReadStateOk_persistent (γ : ServerRaftNames)

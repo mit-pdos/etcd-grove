@@ -1,5 +1,5 @@
 /-
-`MainWatch(nw, nops, sched)` (`examples/etcd/partition/etcd_partition.go`; W4 of `notes/watch-cut-plan.md`,
+`MainWatch(nw, nops, sched)` (`examples/etcd/partition/linkv3p.go`; W4 of `notes/watch-cut-plan.md`,
 2026-10-22): watchkv's workload over linkv3p's cluster under partitions. The writers' `nw * nops`
 puts picked (`genAll`); the cluster started (`startCluster`: three members, a bridge to each,
 three clients each of every bridge); a prefix watch on `wk/` from revision `1` through the first
@@ -18,6 +18,7 @@ premises are the client watcher's.
 -/
 module
 
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartRes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.Defs
 public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
 
@@ -44,7 +45,7 @@ abbrev MainWatch.spec : Prop :=
     [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
     [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (N : Nat) (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry) (nw nops : w64) (sched : GoSlice)
-    (steps : List github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step),
+    (steps : List github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step),
   BootFacts id₁ id₂ id₃ ps ctxs boot →
   threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   -- (2026-11-03, the whole-`bootOk` review, A) the write budget `bootstrap`'s own write-backs leave
@@ -55,18 +56,12 @@ abbrev MainWatch.spec : Prop :=
   0 ≤ sint.Z nw → sint.Z nw < 2 ^ 31 → 0 ≤ sint.Z nops →
   sint.Z nw * sint.Z nops < 2 ^ 62 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.partition ∗
-      netAddrFree (GF := GF) peerAddr₁ ∗ netAddrFree (GF := GF) peerAddr₂ ∗
-      netAddrFree (GF := GF) peerAddr₃ ∗ netAddrFree (GF := GF) clientAddr₁ ∗
-      netAddrFree (GF := GF) clientAddr₂ ∗ netAddrFree (GF := GF) clientAddr₃ ∗
-      netAddrFree (GF := GF) bridgeAddr₁ ∗ netAddrFree (GF := GF) bridgeAddr₂ ∗
-      netAddrFree (GF := GF) bridgeAddr₃ ∗
-      httpProtoFree (GF := GF) peerAddr₁ ∗ httpProtoFree (GF := GF) peerAddr₂ ∗
-      httpProtoFree (GF := GF) peerAddr₃ ∗ sched ↦*□ steps ∗ threadTok ∗
-      premises N id₁ id₂ id₃ ps ctxs boot ∗
-      -- (2026-11-03, the WAL's API, change 6) the members' WAL directories fresh
-      walDirFresh (config.walDirOf (name₁ ++ go!".etcd") go!"") ∗
-      walDirFresh (config.walDirOf (name₂ ++ go!".etcd") go!"") ∗
-      walDirFresh (config.walDirOf (name₃ ++ go!".etcd") go!"") }}
+      -- (2026-11-05, hub step 7, D1) the cluster's start bundle: each member's (its WAL directory
+      -- fresh, its peer and client addresses free, the peer's HTTP protocol unregistered) and the
+      -- bridges' addresses free
+      cluster3.startRes (GF := GF) clusterCfg ∗
+      sched ↦*□ steps ∗ threadTok ∗
+      premises N id₁ id₂ id₃ ps ctxs boot }}
     (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.partition.MainWatch))
       (Val #nw)) (Val #nops)) (Val #sched))
   {{ (r : w64), RET #r; ⌜r = W64 0 ∨ r = W64 1 ∨ r = W64 2⌝ }}

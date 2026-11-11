@@ -34,7 +34,7 @@ record's `Data'` is the bytes; the clone's `Data` is a fresh slice holding them,
 hides, read-only, as every entry's bytes are); the original is untouched. (Until D6 the record
 held the slice, and the clone was stated as `e` with a fresh `Data' := d'` holding the bytes.)
 
-Against protobuf-go v1.36.11 (`proto/merge.go`: `Clone` is `Merge` into a new message of the
+Against protobuf-go v1.36.12 (`proto/merge.go`: `Clone` is `Merge` into a new message of the
 same type; `internal/impl/merge.go`): every populated scalar field is copied into a fresh
 pointer, a `bytes` field is copied (`mergeBytes`: `append(emptyBuf[:], src...)`, so the copy's
 slice is fresh and holds the same bytes; a nil one stays nil, which holds no bytes either), the

@@ -6,6 +6,7 @@ module
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer__DeleteRange
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkDeleteRequest
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.togRPCError
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.TogRPCErrorPlain
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.header__fill
 
 @[expose] public section
@@ -48,12 +49,14 @@ theorem v3rpc.kvServer.DeleteRange.wp_proof
   cases hc : v3rpc.deleteCheck o with
   | some e =>
     simp only [v3rpc.checkRes]
+    ihave #HSe := v3rpc.checkErr_srvErrOk e err $$ Hpkg Herr
     iunfold txn.errVarIs at Herr
     icases Herr with ⟨%ee, #Hee, %Herr⟩
     subst Herr
     wp_auto
     iapply HΦ
     iframe Hcall
+    iframe HSe
     iunfold v3rpc.checkOut
     iunfold txn.errVarIs
     iframe #
@@ -66,7 +69,7 @@ theorem v3rpc.kvServer.DeleteRange.wp_proof
     wp_apply HPut $$ [Hcall] as %resp %err' Hans
     · iframe; iframe #; ipureintro; exact ⟨hc, Hpre⟩
     iunfold v3rpc.kvAnswer at Hans
-    icases Hans with (⟨%Hok, %h, %rv, #Hhf, Hw, Hrev, HA⟩ | ⟨#Hse, HA⟩)
+    icases Hans with (⟨%Hok, %h, %rv, #Hhf, Hw, Hrev, HA⟩ | ⟨#Hse, #Hmp, HA⟩)
     · obtain ⟨He, Hrn⟩ := Hok
       subst He
       wp_auto
@@ -74,6 +77,9 @@ theorem v3rpc.kvServer.DeleteRange.wp_proof
       · iframe; iframe #
       wp_auto
       iapply HΦ
+      isplitl
+      rotate_left
+      · iapply go_etcd_io.etcd.cache.v3.srvErrOk_nil
       iunfold v3rpc.kvOut
       ileft
       isplitr
@@ -88,15 +94,18 @@ theorem v3rpc.kvServer.DeleteRange.wp_proof
       | nil => exact absurd rfl Hen
       | ok ei =>
         wp_auto
-        wp_apply hTog $$ [] as %e %He
+        wp_apply hTog (A.errP (.deleteRange o)) _ $$ [] as %e ⟨%He, #HSe, #Hgo⟩
         · iframe #
         iapply HΦ
+        iframe HSe
         iunfold v3rpc.kvOut
         iright
         isplitr
         · ipureintro; exact ⟨rfl, He⟩
-        iexists _
-        iexact HA
+        iexists (GoInterface.ok ei)
+        isplitr
+        · ipureintro; exact Hen
+        iframe HA Hgo
 
 end proof
 

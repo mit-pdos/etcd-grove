@@ -59,6 +59,18 @@ abbrev srvSnapCountAddr (s : Loc) : Loc := srvCfgFieldAddr s go!"SnapshotCount"
 abbrev srvSnapCatchUpAddr (s : Loc) : Loc := srvCfgFieldAddr s go!"SnapshotCatchUpEntries"
 end addrs
 
+/-- **The read loop's reader slots `start` hands on** (revoke-open review round 1, S2, 2026-11-06):
+`read.mux`'s `actualMaxReaders` less the revocation's outer pool's `srvRevokePoolN`, which `start`
+keeps (`srvStarted`'s and `srvStartReaders`' count, `start_gives_views`'s). Named here, where the
+slots are owned, so that a change of the revocation's pool changes this body and no exported text;
+the members' stocks are written with it (`etcdstart.memberReadN`). -/
+def srvStartReadN : Nat := Int.toNat sync.rwmutex.actualMaxReaders - srvRevokePoolN
+
+/-- At least one slot (each consumer splits off one gRPC slot). -/
+theorem one_le_srvStartReadN : 1 ≤ srvStartReadN := by
+  unfold srvStartReadN
+  rw [sync.rwmutex.actualMaxReaders_unseal]; simp only [srvRevokePoolN, backend.rdPoolN]; omega
+
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -69,10 +81,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **`isServer`'s fields but `w`** (persistent): `srvFieldsAt` without `s.w` (which `start` sets). -/
 def srvFieldsBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (v : SrvFields) : IProp GF :=
-  iprop(srvLgAddr s ↦□ v.lg ∗ ⌜v.lg ≠ null⌝ ∗
-      ⌜E.P = batchLockInv γ TM ∧ E.f = v.hook⌝ ∗ ⌜srvEnvOk s γ ci E v.cluster⌝ ∗
+  iprop(srvLgAddr s ↦□ v.lg ∗ zapLoggerOk v.lg ∗
+      ⌜E.Pk = (fun _ => batchLockInv γ TM) ∧ v.hook = #E.f ∧ E.f ≠ func.nil⌝ ∗ ⌜srvEnvOk s γ ci E v.cluster⌝ ∗
       hookSpec γ ci TM v.hook ∗
-      srvLessorAddr s ↦□ v.lessor ∗ lessorOk v.lessor ∗
+      srvLessorAddr s ↦□ v.lessor ∗ lessorOk E.lg E.authMode.isOn v.lessor ∗
       srvFirstCommitAddr s ↦□ v.firstCommit ∗ srvAlarmStoreAddr s ↦□ v.alarmStore ∗
       srvClusterAddr s ↦□ v.cluster ∗ membership.isRaftCluster v.cluster ∗
       srvQuotaAddr s ↦□ v.quota ∗
@@ -113,18 +125,13 @@ instance srvReqBuilt_persistent (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v
 /-- **`isServerRead`'s fields but `read`, `applyWait`, `leaderChanged`, `stopping`** (persistent;
 `srvReadFieldsAt` without them and without the indices' invariants). -/
 def srvReadBuilt (s : Loc) (E : apply.AEnv GF) (v : ReadFields) : IProp GF :=
-  iprop(srvKVAddr s ↦□ v.kv ∗ txn.isKV v.kv E.s E.γ ∗
-    E.s.[go_etcd_io.etcd.server.v3.storage.mvcc.store, go!"ReadView"] ↦□
-      (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.readView.ty)
-        #v.rv : GoInterface) ∗
-    mvcc.isReadView v.rv E.s E.γ ∗
-    srvLessorAddr s ↦□ v.lessor ∗ apply.isApplyLessor v.lessor E.s E.γ E.P E.f E.RO E.RW ∗
-    srvAuthStoreAddr s ↦□ v.auth ∗ apply.isAuthStore v.auth E.γ E.P E.f E.RD E.authMode E.RW ∗
-    srvLgAddr s ↦□ v.lg ∗ ⌜v.lg ≠ null⌝ ∗
+  iprop(srvKVAddr s ↦□ v.kv ∗ □ mvcc.api.isMvcc v.kv E.γ ∗ ⌜v.kv = E.kv⌝ ∗
+    srvLessorAddr s ↦□ v.lessor ∗ apply.isApplyLessor v.lessor E.γ E.Pk E.f E.BkTie E.RO E.RW ∗
+    srvAuthStoreAddr s ↦□ v.auth ∗ apply.isAuthStore v.auth E.Pk E.f E.BkTie E.RD E.authMode E.RW ∗
+    srvLgAddr s ↦□ v.lg ∗ zapLoggerOk v.lg ∗
     srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ v.wad ∗
     inv srvN (∃ t : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t) ∗
-    storeSmall E.γ ∗
-    (∃ log₀ : mvcc.Log, mvcc.idxCert E.γ.idx log₀ ∗
+    (∃ log₀ : mvcc.Log, srvApi.kvLogLb E.γs log₀ ∗
       ⌜2 ≤ log₀.length ∧ mvcc.LogPutsLe etcdKeyMax log₀⌝) ∗
     srvFirstCommitAddr s ↦□ v.fc)
 
@@ -149,8 +156,9 @@ raft's `MsgSnap`s (2026-10-30, the repair: snapshots allowed; until then it neve
 raft sent no `MsgSnap`). -/
 def srvApplyAllBuilt (s : Loc) (γr : ReadNames) : IProp GF :=
   iprop(∃ msc : Loc, rnMsgSnapCAddr (srvRAddr s) ↦□ msc ∗
-    -- (2026-10-31, S1) the raft node's bag (`isRNMsgSnapC`; until then any `P`)
-    (∃ γm : RNNames, ⌜γm.node = γr.raft.raft⌝ ∗ isRNMsgSnapC γm msc) ∗
+    -- (2026-10-31, S1) the raft node's bag (`isRNMsgSnapC`; until then any `P`); (R2d'a A7,
+    -- 2026-11-06, DRAFT) its node's id the server's member id (`isServerApplyAll`'s)
+    (∃ γm : RNNames, ⌜γm.node = γr.raft.raft⌝ ∗ srvMemberIDAddr s ↦□ γm.id ∗ isRNMsgSnapC γm msc) ∗
     -- (D22 S-h, 2026-10-20) `s.inflightSnapshots`'s invariant
     srvInflight s ∗
     -- (2026-10-31, S1) the started transport, of the server's network
@@ -204,9 +212,11 @@ def applyBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : app
     (γr : ReadNames) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV) : IProp GF :=
   iprop(∃ (st₀ : ApplyState) (a t : w64) (f : Bool),
     applyThread γ st₀ ∗ ⌜loopOk γ st₀ ai₀ ∧ c₀ = ciEff γ st₀.k⌝ ∗ applyBackend γ ci b ∗
-    ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗ srvBeOwn s E ∗
+    ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvBeOwn s E ∗
     (∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗ apply.applyKV E ua x₀) ∗
     revAuth E x₀.log ∗ srvAuthApplyRes s E ∗
+    -- (2026-11-04, the lease-expiry plan's step 2) the lessor's range deleter (`srvApplyKV`'s)
+    (∃ rd : GoFunc, lease.rdOwn (mvcc.api.mvccLeases E.γ) rd ∗ mvcc.api.mvccDeleter rd E.γ) ∗
     srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRun γr ai₀ c₀ [] x₀ ∗ srvRest E γr [] ∗
     srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f)
 
@@ -235,7 +245,15 @@ def isServerBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
     "#Hrn" ∷ isRaftNode Er γn (srvRAddr s) ∗
     -- (D43 M3, 2026-10-25) in raft's dynamic mode a fresh start: no entry replayed
     "%HEr" ∷ ⌜Er.C = srvC ρ E ai₀ c₀ x₀ ∧ Er.γr = γr ∧
-      (uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0)⌝ ∗
+      (uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0) ∧
+      -- (R2d'a A6, DRAFT) a first start: the restart point's backend log `γn.a0` empty
+      γn.a0 = []⌝ ∗
+    -- (R2d'a A7, A10 item 5, 2026-11-06; DRAFT, approved by 82) no merged snapshot sent at a new
+    -- raft term while the replay window is pending (`srvWinPend`; corrected 2026-11-07: false
+    -- whenever the restarted member is later elected and snapshots a follower, its `n` free; R2d'b
+    -- restates it, R2s removes it; with row 3 false on most restarts, the restart meaning is vacuous
+    -- until R2d'b; free at a first start, `srvWinPend_first`)
+    "Hwpend" ∷ srvWinPend s γr γn ∗
     -- (2026-10-30, the repair) the apply side's half of the node's running token
     "Hrunh" ∷ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half) ∗
     -- (2026-10-31) the WAL's open token: the apply side's half (its disk snapshot's `SaveSnap`, which
@@ -244,11 +262,12 @@ def isServerBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
     "Hwth" ∷ rnWalTokA γn (srvRAddr s) (1 : Qp).half ∗ "Hwtl" ∷ rnWalTokL γn (srvRAddr s) ∗
     "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
     -- (2026-11-02, the lease-grant plan's D2) in a cluster that grants leases, the open
-    -- cases (`srvGrantOpen`, `NewServer`'s precondition)
-    "%Hslg" ∷ ⌜γr.kv.lg = true → lease.leasesNoExpiry ∧ srvGrantOpen (GF := GF)⌝ ∗
+    -- cases (`srvGrantOpen`, `NewServer`'s precondition); (2026-11-04, the lease-expiry plan's
+    -- Part C) as the lease subsystem's sealed premise at some mode (`lease.runCfg`)
+    "%Hslg" ∷ ⌜∃ m : lease.Mode, lease.runCfg (GF := GF) γr.kv.lm m⌝ ∗
     -- the request path's read names (2026-10-14, unit C2a)
     "%Hρrd" ∷ ⌜ρ.rd = γr⌝ ∗
-    -- (J8b, 2026-11-01) the server's member id is the raft node's (`applyAll.specSnap`'s member id
+    -- (J8b, 2026-11-01) the server's member id is the raft node's (`applyAll.specSnapM`'s member id
     -- against the snapshot payload's `nodeSnapLocal … γn.id`)
     "#Hmid" ∷ srvMemberIDAddr s ↦□ γn.id ∗
     -- (2026-11-02, the cluster-rows stage) the member id a voter (the monitors' permission,
@@ -266,6 +285,8 @@ def isServerBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
     -- (the backend-auth-split stage, 2026-11-02) within the backend's pool of readers (`2 ^ 28`;
     -- until then `2 ^ 31`, `GoAttach`'s)
     "%Hbound" ∷ ⌜threadBound GF ≤ backend.rdPoolN⌝ ∗
+    -- (revoke-open, 2026-11-06) what `NewServer` built for the revocation
+    "#Hrvkb" ∷ srvRevokeBuilt s E ∗
     -- the fields `start` sets
     "Hw" ∷ (∃ w : GoInterface, srvWAddr s ↦ w) ∗
     "Haw" ∷ (∃ aw : GoInterface, srvApplyWaitAddr s ↦ aw) ∗
@@ -298,34 +319,34 @@ def isServerBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
     -- (2026-10-26, D22 J1a) what the snapshot path takes of the construction, for `run`
     "Hsnapb" ∷ srvSnapBoot s ci E γr γ)
 
-/-- **What `start` hands to `Start`'s goroutines** (not persistent): a reader slot of `wgMu` (for
-`Start`'s `GoAttach`es), the read loop's precondition with its resources (`srvReadLR`), and the
-reader slots left over for request goroutines: `s.read.mux`'s (`srvReadReader`), `s.wgMu`'s
+/-- **What `start` hands to `Start`'s goroutines** (not persistent): the read loop's precondition
+with its resources (`srvReadLR`), and the reader slots left over for request goroutines: `s.read.mux`'s (`srvReadReader`), `s.wgMu`'s
 (`srvWgReader`), `s.leaderChanged`'s; and (2026-10-16, stage R7b) that the request path's read
 names are `γr` (`isServerBuilt`'s premise, which the read server's discharge takes,
-`isReadServer_of_server`). -/
+`isReadServer_of_server`). (H2, 2026-11-05) `Start`'s own reader slot of `wgMu` is in `start`'s
+post, at the protocol's names. -/
 def srvStarted (s : Loc) (γr : ReadNames) (ρ : ReqNames) (RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF)
     (F : List EntryModel → KVState := kvStOff γr.kv) : IProp GF :=
   iprop("%Hρrd" ∷ ⌜ρ.rd = γr⌝ ∗
-    "Hgo" ∷ srvWgReader s ∗
     "Hrl" ∷ (∃ r : Loc, srvReadAddr s ↦□ r ∗
       isReadLoopPre r γr RQ (srvReadLR s) (idCred ρ.ids 1) F) ∗
     "HLR" ∷ srvReadLR s ∗
     "#HNR" ∷ □ (|==> idCred ρ.ids 1) ∗
-    "Hrds" ∷ ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
-      srvReadReader s γr) ∗
-    "Hwgs" ∷ ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 2) (),
-      srvWgReader s) ∗
+    "Hrds" ∷ ([∗list] _x ∈ List.replicate srvStartReadN (), srvReadReader s γr) ∗
+    "Hwgs" ∷ ([∗list] _x ∈ List.replicate
+      (Int.toNat sync.rwmutex.actualMaxReaders - 2 - srvRevokePoolN) (), srvWgReader s) ∗
     "Hlcs" ∷ ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 1) (),
       ∃ n : Loc, srvLeaderChangedAddr s ↦□ n ∗ notifyReader n))
 
 /-- **`Start`'s reader slots** (its post's; the auth component's stage 2, 2026-11-04, named once so
 that `Start`'s merged spec and its corollaries share one count of the stocks): the read loop's
-lock's `actualMaxReaders` slots and the wait group's lock's but two. -/
+lock's `actualMaxReaders` slots and the wait group's lock's but two, less (revoke-open, 2026-11-06)
+the revocation's outer pool's `srvRevokePoolN` of each (`start` carves it; the read loop's count
+`srvStartReadN`, review round 1). -/
 def srvStartReaders (s : Loc) (γr : ReadNames) : IProp GF :=
-  iprop(([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
-      srvReadReader s γr) ∗
-    ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 2) (), srvWgReader s))
+  iprop(([∗list] _x ∈ List.replicate srvStartReadN (), srvReadReader s γr) ∗
+    ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 2 - srvRevokePoolN) (),
+      srvWgReader s))
 
 end defs
 
@@ -369,31 +390,37 @@ theorem replicate_map (P Q R : IProp GF) [Persistent R] (M : Nat) (h : R ∗ P �
 zero `wg` and `wgMu`, and the fields the protocol reads, the protocol (`srvGoAttachOk`), the
 closer's token (`run`'s shutdown's) and the reader slots of `wgMu`. -/
 theorem goAttach_init (s ch : Loc) (γch : ChanNames) (c : GoInterface) (l : Loc)
-    (hbound : threadBound GF ≤ 2 ^ 31) (hl : l ≠ null) :
+    (hbound : 2 * threadBound GF ≤ 2 ^ 31) :
     ⊢ srvStoppingAddr' s ↦□ ch -∗ ownStopChan ch γch iprop(True) .Pending -∗
       srvWgAddr s ↦ (zero_val sync.WaitGroup) -∗ srvWgMuAddr s ↦ (zero_val sync.RWMutex) -∗
-      srvCtxAddr s ↦□ c -∗ srvLgAddr s ↦□ l ={⊤}=∗
+      srvCtxAddr s ↦□ c -∗ srvLgAddr s ↦□ l -∗ zapLoggerOk l -∗ raftPool (srvLgReader s) ={⊤}=∗
       ∃ γ : GoNames, srvGoAttachOk s γ ∗ token γ.close ∗
-        [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), srvWgReader s := by
-  iintro #Hchf Hch Hwg HwgMu #Hctx #Hlg
+        [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+          srvWgReaderAt s γ := by
+  iintro #Hchf Hch Hwg HwgMu #Hctx #Hlg #Hlz #HrP
   unfold ownStopChan
   icases Hch with ⟨%γchi, #Hint, Hflag⟩
   imod sync.init_WaitGroup goAttachWGN (srvWgAddr s) $$ Hwg with ⟨%γwg, #Hiswg, Hctr, Hwait⟩
   imod ghostVar_alloc true with ⟨%γb, Hb⟩
   icases ghostVar_halves γb true $$ Hb with ⟨Hb1, Hb2⟩
   imod token_alloc with ⟨%γclose, Hclose⟩
+  imod token_alloc with ⟨%γwt, Hwt⟩
   imod ownTokAuth_alloc with ⟨%γrun, Hrun⟩
-  ihave H0 := threadToks_zero (GF := GF)
-  let γ : GoNames := ⟨γb, γclose, γwg, γrun, γch, γchi⟩
-  imod inv_alloc goAttachN ⊤ (goAttachInv γ) $$ [Hb2 Hctr Hrun H0 Hwait] with #Hinv
+  imod ownTokAuth_alloc with ⟨%γpend, Hpend⟩
+  ihave H0 := levelToks_zero (GF := GF) 0
+  ihave H1 := levelToks_zero (GF := GF) 1
+  let γ : GoNames := ⟨γb, γclose, γwg, γrun, γch, γchi, γwt, γpend⟩
+  imod inv_alloc goAttachN ⊤ (goAttachInv γ) $$ [Hb2 Hctr Hrun Hpend H0 H1 Hwait Hwt] with #Hinv
   · inext
     iunfold goAttachInv
-    iexists true, (W32 0), 0
-    iframe Hb2 Hctr Hrun H0
+    iexists true, (W32 0), 0, 0, DFrac.own 1
+    iframe Hb2 Hctr Hrun Hpend H0 H1
     isplitr
     · ipureintro; constructor <;> simp
+    isplitr
+    · ipureintro; exact Or.inl rfl
     iright
-    iframe Hwait
+    iframe Hwait Hwt
     ipureintro; rfl
   imod sync.init_RWMutex (wgMuP γ) (srvWgMuAddr s) $$ [Hb1 Hflag] HwgMu with Hslots
   · inext
@@ -408,16 +435,13 @@ theorem goAttach_init (s ch : Loc) (γch : ChanNames) (c : GoInterface) (l : Loc
   · iunfold srvGoAttachOk
     iexists ch, c
     iframe #
-    isplitr
-    · ipureintro; exact hl
     ipureintro; exact hbound
   imodintro
   iexists γ
   iframe Hok Hclose
   iapply replicate_map _ _ (srvGoAttachOk s γ) $$ [$Hok $Hslots]
   iintro ⟨#Hok', Hslot⟩
-  iunfold srvWgReader
-  iexists γ
+  iunfold srvWgReaderAt
   iframe Hok' Hslot
 
 end lemmas

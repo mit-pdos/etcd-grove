@@ -41,7 +41,7 @@ theorem v3rpc.checkDeleteRequest.wp_proof :
   wp_auto
   wp_if_destruct
   · iunfold go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.errVarSet at HeK
-    icases HeK with ⟨%ee, #HeK⟩
+    icases HeK with ⟨%ee, #HeK, #See⟩
     wp_auto
     iapply HΦ
     have hk : k = [] := by

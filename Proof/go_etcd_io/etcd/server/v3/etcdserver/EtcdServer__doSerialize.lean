@@ -51,7 +51,7 @@ theorem EtcdServer.doSerialize.wp_proof
     (hStep : traceutil.Trace.Step.spec (GF := GF) (hG := hG)) :
     EtcdServer.doSerialize.spec (GF := GF) (hG := hG) := by
   intro s E ρ γr ctx cd chk get G Q C t e
-  wp_start as ⟨#Hsrv, #Hrd, #Hctx, #Hct, #Hchk, #Hget, HG, Htrc, Hard⟩
+  wp_start as ⟨#Hsrv, #Hrd, #Hctx, #Hlib, #Hct, #Hchk, #Hget, HG, Htrc, Hard⟩
   ihave ⟨⟨%v, #Hv⟩, #HsrvB⟩ := (isServerReqM_split _ _ _ _).1 $$ Hsrv
   iunfold srvReqFieldsAtM at Hv
   icases Hv with ⟨-, -, -, -, -, -, -, -, #Hcca, -, -,
@@ -59,7 +59,7 @@ theorem EtcdServer.doSerialize.wp_proof
   iunfold isServerReadM at Hrd
   icases Hrd with ⟨%w, #Hw⟩
   iunfold srvReadFieldsAtM at Hw
-  icases Hw with ⟨-, -, -, -, -, -, -, -, #Has2, #Hauth, -⟩
+  icases Hw with ⟨-, -, -, -, -, -, -, #Has2, #Hauth, -⟩
   ihave #Ptu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
   · iPkgInit
   ihave Hinit : (srvInit : IProp GF) $$ []
@@ -126,6 +126,10 @@ theorem EtcdServer.doSerialize.wp_proof
       icases Hauth with ⟨%ai0, %Hst, -, -, -, -, -, -, #HRev, -⟩
       icases Hinit with ⟨-, ⟨-, -, -, -, ⟨-, -, -, -, -, -, -, #HOld, -⟩⟩, -⟩
       ihave ⟨%eOld, #HeOld, #HaOld⟩ := errVarLeaf_get _ $$ HOld
+      ihave #HaOldA : authApplyErrIs (GoInterface.ok eOld) $$ []
+      · iapply apply.errVarLeaf_authApplyErrIs _
+          (by simp [go_etcd_io.etcd.server.v3.auth.authErrMsgs]) _ $$ HOld
+        iexists eOld; iframe HeOld; ipureintro; rfl
       rw [Heq, Hst]
       wp_auto
       wp_if_destruct
@@ -150,7 +154,7 @@ theorem EtcdServer.doSerialize.wp_proof
           iright
           isplitr
           · ipureintro; intro h; cases h
-          iframe HaOld; iright; iexact HQ
+          iframe HaOldA; iright; iexact HQ
 
 end proof
 

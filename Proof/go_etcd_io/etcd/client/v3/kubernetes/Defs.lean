@@ -18,8 +18,11 @@ answer as a function of the state `σ` the update fired at.
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Calls
+public import Proof.go_etcd_io.etcd.client.v3.kubernetes.Base
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
@@ -50,13 +53,19 @@ theorem clientTxn_size {cs : List (linkv.MCmp GoString GoString)}
       opDeleteModel, opFold, OpFull.getInit, OpFull.deleteInit, OpFull.newOp, OpModel.zero] <;>
     omega
 
-/-- `Get`'s range on the wire: `OpGet(key, WithRev(0), WithLimit(1))`. -/
-abbrev getKey1Op (key : GoString) : OpFull :=
-  txn.rangeOpOf key [] (W64 0) (W64 1) (W32 0) (W32 0) false false false (W64 0) (W64 0) (W64 0)
+/-- `Get`'s range on the wire: `OpGet(key, WithRev(rev), WithLimit(1))`. -/
+abbrev getKey1Op (key : GoString) (rev : w64) : OpFull :=
+  txn.rangeOpOf key [] rev (W64 1) (W32 0) (W32 0) false false false (W64 0) (W64 0) (W64 0)
     (W64 0)
 
-theorem rangeWireOf_getKey1 (key : GoString) :
-    rangeWireOf (opGetModel key [withRevM (W64 0), withLimitM (W64 1)]) = getKey1Op key := rfl
+theorem rangeWireOf_getKey1 (key : GoString) (rev : w64) :
+    rangeWireOf (opGetModel key [withRevM rev, withLimitM (W64 1)]) = getKey1Op key rev := rfl
+
+/-- `Get`'s range passes the server's check (`v3rpc.rangeCheck`) for a non-empty key. -/
+theorem rangeCheck_getKey1 (key : GoString) (rev : w64) (hk : key ≠ []) :
+    v3rpc.rangeCheck (getKey1Op key rev) = none := by
+  unfold v3rpc.rangeCheck
+  simp [txn.rangeOpOf, hk, v3rpc.sortOrderKnown, v3rpc.sortTargetKnown]
 
 /-- The first element of a filter is `find?`'s. -/
 theorem filter_take_one {α : Type} (p : α → Bool) (l : List α) :
@@ -70,11 +79,11 @@ theorem filter_take_one {α : Type} (p : α → Bool) (l : List α) :
 
 /-- **`Get`'s range selects the key's first key-value** (pure; with `WithLimit(1)` the server
 reads two and returns one, `More` if there were two). -/
-theorem srvRangeOk_getKey1 (key : GoString) (s kvs : List EtcdKv) (more : Bool)
-    (h : txn.srvRangeOk (getKey1Op key) s kvs more) :
+theorem srvRangeOk_getKey1 (key : GoString) (rev : w64) (s kvs : List EtcdKv) (more : Bool)
+    (h : txn.srvRangeOk (getKey1Op key rev) s kvs more) :
     kvs = (findKey key s).toList := by
   obtain ⟨L, hsort, -, hkvs⟩ := h
-  have hpre : txn.srvPre (getKey1Op key) s = (s.filter (fun v => decide (v.key = key))).take 2 := by
+  have hpre : txn.srvPre (getKey1Op key rev) s = (s.filter (fun v => decide (v.key = key))).take 2 := by
     have hr : txn.kvRead false = id := by funext v; simp [txn.kvRead]
     unfold txn.srvPre
     simp [txn.rangeLimitOf, txn.hasRevFilters, txn.isDefaultOrd, mvcc.limitOf, mvcc.takeLimit,
@@ -85,19 +94,19 @@ theorem srvRangeOk_getKey1 (key : GoString) (s kvs : List EtcdKv) (more : Bool)
     apply List.filter_eq_self.2
     intro v _
     simp [kvFilterOk]
-  have hord : (getKey1Op key).effSortOrder = W64 0 := by
+  have hord : (getKey1Op key rev).effSortOrder = W64 0 := by
     simp [OpFull.effSortOrder]
-  have hL : L = txn.srvPre (getKey1Op key) s := by
+  have hL : L = txn.srvPre (getKey1Op key rev) s := by
     obtain ⟨-, -, -, h4⟩ := hsort
     exact h4 (by rw [hord]; decide) (by rw [hord]; decide)
-  have hid : txn.respKv (getKey1Op key) = id := by funext v; simp [txn.respKv]
+  have hid : txn.respKv (getKey1Op key rev) = id := by funext v; simp [txn.respKv]
   rw [hkvs, hL, hpre, hid, List.map_id]
   unfold txn.srvTrunc txn.srvMore
   have hf := filter_take_one (fun v : EtcdKv => decide (v.key = key)) s
   unfold findKey
   rw [← hf]
   generalize s.filter (fun v => decide (v.key = key)) = F
-  have h1 : sint.Z (getKey1Op key).base.limit = 1 := by
+  have h1 : sint.Z (getKey1Op key rev).base.limit = 1 := by
     simp only [getKey1Op, txn.rangeOpOf]; decide
   rw [h1]
   match F with
@@ -172,12 +181,13 @@ def kvOut (p : Loc) (kv : Option EtcdKv) : IProp GF :=
 instance kvOut_persistent (p : Loc) (kv : Option EtcdKv) : Persistent (kvOut (GF := GF) p kv) := by
   unfold kvOut; cases kv <;> infer_instance
 
-/-- **A response's key-value pointer is not `nil`** (`sorry`). The server's response predicate
-`txn.kvIs` does not say it (its field points-tos do not imply it), and the store branches on
-`KV == nil`. `notes/k8s-etcd3-plan.md`, "From the etcd client proof", request 3: `txn.kvIs`
-carrying `⌜l ≠ null⌝` (from the struct's typed points-to, `txn.kvAt_persist'`) proves it. -/
+/-- **A response's key-value pointer is not `nil`**: the server's response predicate `txn.kvIs`
+carries it (from the struct's typed points-to, `txn.kvAt_persist'`), and the store branches on
+`KV == nil` (`notes/k8s-etcd3-plan.md`, "From the etcd client proof", request 3). -/
 theorem kvIs_ne_null (l : Loc) (v : EtcdKv) : txn.kvIs (GF := GF) l v ⊢ ⌜l ≠ null⌝ := by
-  sorry
+  unfold txn.kvIs
+  iintro ⟨%ks, %vs, -, -, -, -, -, -, -, -, %Hn⟩
+  ipureintro; exact Hn
 
 /-- A key-value as a response's `KV` (`kvIs_ne_null`). -/
 theorem kvOut_some (l : Loc) (v : EtcdKv) : txn.kvIs (GF := GF) l v ⊢ kvOut l (some v) := by
@@ -188,6 +198,74 @@ theorem kvOut_some (l : Loc) (v : EtcdKv) : txn.kvIs (GF := GF) l v ⊢ kvOut l 
   · ipureintro; exact Hn
   · iexact H
 
+open client Iris.ProofMode in
+/-- **What a linearizable range's reply says, at any revision** (k8s 7e-1, the Draft's §2.4;
+`rangeReply_state_bnd` at `o.base.rev = 0`): the client's read update fired at a state `σ` (`□ Q
+σ`) whose store at the revision read (`σ.readRev`, at most `σ.rev`) gives the reply's key-values
+and count, whose revision is the reply's header revision, and which is below `2 ^ 63`. Without
+`receiptBound`: the log's facts come from the reply itself. -/
+theorem rangeReply_state_at (E : apply.AEnv GF) (γr : ReadNames) (c cid mid : w64) (o : OpFull)
+    (F : mvcc.Log) (Q : KVState → IProp GF) (m : RangeRespM) (hs : o.base.serializable = false) :
+    rangeReplyOk E γr c F o cid mid Q m ⊢
+      ∃ σ : KVState, □ Q σ ∗
+        ⌜txn.srvRangeOk o (σ.at (σ.readRev o.base.rev)).kvs m.kvs m.more ∧
+          m.count = txn.srvCount o (σ.at (σ.readRev o.base.rev)).kvs true ∧
+          m.hdr.revision = W64 (σ.rev : Int) ∧ σ.readRev o.base.rev ≤ σ.rev ∧ kvRevFits σ.rev ∧
+          ∀ v ∈ σ.kvs, v.value.length ≤ etcdKeyMax⌝ := by
+  iintro #H
+  iunfold rangeReplyOk at H
+  icases H with ⟨%l, -, %Hlk, %Hl, -, #HQ⟩
+  simp only [hs, Bool.false_eq_true, ↓reduceIte]
+  obtain ⟨hlen, hlen', hrev, -, -, hle, hcount, hsel, -⟩ := Hl
+  have h2 : sint.Z (W64 ((l.length : Int) - 1)) = (l.length : Int) - 1 := by word
+  have hn : sint.nat (W64 ((l.length : Int) - 1)) = l.length - 1 := by unfold sint.nat; word
+  have hRR : (kvStateOf l).readRev o.base.rev =
+      sint.nat (mvcc.rangeRev m.hdr.revision o.base.rev) := by
+    unfold KVState.readRev mvcc.rangeRev
+    rw [kvStateOf_rev, hrev]
+    by_cases h0 : sint.Z o.base.rev ≤ 0
+    · simp only [h0, ↓reduceIte]; rw [hn]
+    · simp only [h0, ↓reduceIte]
+  have hRle : sint.nat (mvcc.rangeRev m.hdr.revision o.base.rev) ≤ l.length - 1 := by
+    have hle' : sint.Z o.base.rev ≤ (l.length : Int) - 1 := by rw [hrev, h2] at hle; exact hle
+    unfold mvcc.rangeRev; rw [hrev]
+    by_cases h0 : sint.Z o.base.rev ≤ 0
+    · simp only [h0, ↓reduceIte]; exact hn ▸ Nat.le_refl _
+    · simp only [h0, ↓reduceIte]
+      show (sint.Z o.base.rev).toNat ≤ l.length - 1
+      omega
+  iexists kvStateOf l
+  iframe HQ
+  ipureintro
+  rw [hRR, kvStateOf_at_kvs l _ hRle]
+  refine ⟨hsel, hcount, ?_, ?_, ?_, ?_⟩
+  · rw [hrev, kvStateOf_rev]
+    congr 1
+    omega
+  · rw [kvStateOf_rev]; exact hRle
+  · unfold kvRevFits; rw [kvStateOf_rev]; omega
+  · rw [kvStateOf_kvs]; exact mvcc.stateAfter_vals Hlk
+
+open client Iris.ProofMode in
+/-- **A linearizable range's future-revision error** (k8s 7e-1, the Draft's §2.5): the read's
+update fired at a state below the revision asked. -/
+theorem rangeErrReply_future (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log)
+    (o : OpFull) (Q : KVState → IProp GF) (hs : o.base.serializable = false) :
+    rangeErrReply E γr c F o Q (rangeFutureAt o) ⊢
+      ∃ σ : KVState, □ Q σ ∗ ⌜(σ.rev : Int) < sint.Z o.base.rev⌝ := by
+  iintro #H
+  iunfold rangeErrReply at H
+  icases H with ⟨%l, %crev, -, -, -, -, %Hl, -, #HQ⟩
+  simp only [hs, Bool.false_eq_true, ↓reduceIte]
+  obtain ⟨-, hlen, hlen', -, -, hfut⟩ := Hl
+  unfold rangeFutureAt at hfut
+  have h2 : sint.Z (W64 ((l.length : Int) - 1)) = (l.length : Int) - 1 := by word
+  iexists kvStateOf l
+  iframe HQ
+  ipureintro
+  rw [kvStateOf_rev]
+  omega
+
 /-- The one key-value of a list, if it has exactly one (`len(Kvs) == 1`). -/
 def single {α : Type} : List α → Option α
   | [v] => some v
@@ -196,5 +274,103 @@ def single {α : Type} : List α → Option α
 end defs
 
 end kubernetes
+
+/-! ## The store's list vocabulary the client's `List`/`Get` are stated in (moved from the
+store's `ListDefs.lean`, k8s 7e-1, the Draft's §3.2; namespace `k8s` kept) -/
+
+namespace k8s
+
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver
+
+section pure
+variable [GooseExts]
+
+/-- **A list's scope** (`store.go:1081-1100`): recursive, the keys under the prepared prefix `kp`
+(`kubernetes.Client.List`'s range `[kp, GetPrefixRangeEnd kp)`, `client.go:59-73`); not recursive,
+the key `kp` itself (`kubernetes.Client.Get`, `client.go:47-57`). -/
+def kInScope (kp : GoString) (recur : Bool) (k : GoString) : Bool :=
+  if recur then decide (kp <+: k) else decide (k = kp)
+/-- A list's limit as a count (`opts.Predicate.Limit`; none for `≤ 0`). -/
+def limN (l : w64) : Nat := if 0 < sint.Z l then sint.nat l else 0
+
+end pure
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **A range error's future-revision soundness** (B4, decided by etcd-grove-81: the future half
+only): an error whose description is `ErrFutureRev`'s (`errDesc`, D29) means the state the read's
+update fired at is below the revision `o` asked, whatever revision `R` the update was made for
+(7e-1's R1: the client makes its update for the prophesied response revision, never resolved on an
+error, so `R` is unrelated to `σ.rev`). What `Client.List`/`Client.Get` give. -/
+def rangeErrSound (o : w64) (Q : w64 → KVState → IProp GF) (err : GoInterface) : IProp GF :=
+  iprop(□ (⌜go_etcd_io.etcd.cache.v3.errDesc err = go_etcd_io.etcd.cache.v3.futureRevDesc⌝ -∗
+      ∃ (R : w64) (σ : KVState), □ Q R σ ∗ ⌜σ.rev < sint.nat o⌝))
+
+instance rangeErrSound_persistent o Q err : Persistent (rangeErrSound (GF := GF) o Q err) := by
+  unfold rangeErrSound; infer_instance
+
+/-- **A page of a list read** (Draft §3.5) in the store `s`, from `start` with limit `l`: the first
+`l` key-values of the scope from `start` (all for `l = 0`), and the count of the scope from
+`start`. -/
+def pageKvsL (s : KVStore) (kp : GoString) (recur : Bool) (start : GoString) (l : Nat) :
+    List EtcdKv × Nat :=
+  let sc := s.kvs.filter fun v => kInScope kp recur v.key && !decide (go.GoStringLt v.key start)
+  (if l = 0 then sc else sc.take l, sc.length)
+
+/-- In a key-sorted list (`KVStore.kvs_sorted`), the key-values of the key `k` are the one
+`findKey` finds, or none. -/
+theorem filter_key_eq_findKey (k : GoString) :
+    ∀ (s : List EtcdKv), s.Pairwise etcdKvLess →
+      s.filter (fun v => decide (v.key = k)) = (mvcc.findKey k s).toList
+  | [], _ => by simp [mvcc.findKey]
+  | w :: ws, hs => by
+    rw [List.pairwise_cons] at hs
+    rw [findKey_cons]
+    by_cases hw : w.key = k
+    · have hnil : ws.filter (fun v => decide (v.key = k)) = [] := by
+        rw [List.filter_eq_nil_iff]
+        intro y hy hyk
+        have hlt := hs.1 y hy
+        unfold etcdKvLess at hlt
+        simp only [decide_eq_true_eq] at hyk
+        rw [hw, hyk] at hlt
+        exact go.goStringLt_irrefl _ hlt
+      simp [hw, hnil]
+    · simp only [List.filter_cons, hw, decide_false, Bool.false_eq_true, ↓reduceIte]
+      exact filter_key_eq_findKey k ws hs.2
+
+/-- **A non-recursive list's page** (`getList`'s `Get` branch, from the key itself with `Count` at
+most one): the key's key-value in the store, or none. -/
+theorem pageKvsL_key (s : KVStore) (kp : GoString) :
+    pageKvsL s kp false kp 1 =
+      ((mvcc.findKey kp s.kvs).toList, (mvcc.findKey kp s.kvs).toList.length) := by
+  have hf : s.kvs.filter (fun v => kInScope kp false v.key && !decide (go.GoStringLt v.key kp)) =
+      s.kvs.filter (fun v => decide (v.key = kp)) := by
+    apply List.filter_congr
+    intro v _
+    by_cases hv : v.key = kp
+    · simp [kInScope, hv, go.goStringLt_irrefl]
+    · simp [kInScope, hv]
+  unfold pageKvsL
+  simp only [hf, filter_key_eq_findKey kp s.kvs (KVStore.kvs_sorted s)]
+  cases mvcc.findKey kp s.kvs <;> rfl
+
+/-- `getList`'s answer (Draft §3.5): a page of `σ`'s store at `σ.readRev rev`, the response's
+revision `σ`'s. -/
+def listRespIs (resp : go_etcd_io.etcd.client.v3.kubernetes.ListResponse) (σ : KVState)
+    (kp : GoString) (recur : Bool) (rev lim : w64) (start : GoString) : IProp GF :=
+  let pg := pageKvsL (σ.at (σ.readRev rev)) kp recur start (if recur then limN lim else 1)
+  iprop(⌜resp.Revision' = W64 (σ.rev : Int) ∧ resp.Count' = W64 (pg.2 : Int)⌝ ∗
+    ∃ ps, resp.Kvs' ↦* ps ∗ [∗list] q;kv ∈ ps;pg.1, txn.kvIs q kv)
+
+
+end defs
+
+end k8s
+
 end EtcdGrove
 end Perennial

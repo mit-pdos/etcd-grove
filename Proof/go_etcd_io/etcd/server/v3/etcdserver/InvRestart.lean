@@ -3,14 +3,15 @@
 2026-11-02, `notes/restart-plan.md`). Lean-first (no Rocq counterpart).
 
 R2a states what the example (`examples/etcd/restart`) needs of the server at a stop and a restart, over
-the predicates named here. Their content is the later sub-steps': each is an `opaque` placeholder
-until then, so that no statement over them can be proved by unfolding them.
+the predicates named here. Their content is the later sub-steps' (R2a: `opaque` placeholders; since
+defined: the stop's in R2b-2 and R2c, the image in R2c).
 
-* `srvStopRight s γ ρ id dd` (exclusive): the right to stop the server `s` of member `id` of the
-  cluster `γ`, started at the request names `ρ` (`HardStop`). R2b-2 (2026-11-02): defined, the
-  stop channel, `done` with the image escrowed (`srvDoneInv`) and the escrow's claim; `Start`
-  gives it (`start` makes the channels), from `srvDataDir s dd`, which `NewServer` gives.
-  (Until then opaque and `NewServer`'s, without `ρ`.)
+* `srvStopRight s E γ ρ id dd` (exclusive): the right to stop the server `s` (apply environment
+  `E`) of member `id` of the cluster `γ`, started at the request names `ρ` (`HardStop`). R2b-2 (2026-11-02): defined, the
+  stop channel (at the stop request, `srvStopReq`, R2c-2), `done` with the image escrowed
+  (`srvDoneInv`) and the escrow's claim; `Start` gives it (`start` makes the channels, at the
+  slot's `DataDir` field, `srvStop.dataDirField`). Sealed (R2c review F5): its law for clients is
+  `srvStopRight_dd`. (Until R2b-2 opaque and `NewServer`'s, without `ρ`.)
 * `srvDiskImage γ ρ id dd` (exclusive): member `id`'s data directory, as its last incarnation's stop
   left it, that incarnation's request names `ρ` recorded: raft's hard state, log and last snapshot
   record (the WAL), the backend's buckets at its consistent index, the member and cluster ids. R2c
@@ -41,6 +42,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvStart
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvBoot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvImage
 public import Spec.go_etcd_io.raft.v3.Api
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseRestartStor
 
 @[expose] public section
 
@@ -99,15 +101,16 @@ def v3ConfStateIs (D : backend.Data) (cs : ConfStateM) : Prop :=
 /-- **Member `id`'s data directory as its last stop left it, at that incarnation's request names
 `ρ`** (DRAFT, R2c; see the file header and `notes/restart-plan.md`, "R2c: the image's content"):
 - raft's part (the WAL): the id vacant (`node.Stop`'s `nodeVacant`), the node's durable state
-  `S` (`raftState`, which the stopped raft loop held), and the WAL's records `σ` holding it
-  (`StorageHolds`, what `RestartNode`'s update checks);
+  `S` (`raftState`, which the stopped raft loop held), and the WAL's records `σ` holding it, in the
+  WAL's slot (`wal.stopImage`, in `WalApi.lean` since the Freeze 1 review's F5; R2d review F7:
+  with the order below and the snapshot certificate);
 - the backend's part (the bbolt file): `D` is the image of a committed prefix `A` of the server's
   log through the consistent index `i` (`imageAt`, the snapshot path's certificate, `dbImage`'s
   content at the stopped incarnation's names), its stored term `t` (`metaIs`);
-- between them: the WAL's snapshot at or below the backend's index, the backend's index at or
-  below the WAL's commit (etcd's order: a snapshot is of the applied state, an entry is applied
-  after the `Save` of its commit), so that `bootstrap` keeps the file (`recoverSnapshot` opens a
-  `.snap.db` only when the file's index is below the snapshot's);
+- between them (in the WAL's slot): the WAL's snapshot at or below the backend's index, so that
+  `bootstrap` keeps the file (`recoverSnapshot` opens a `.snap.db` only when the file's index is
+  below the snapshot's), and the backend's index at or below the WAL's commit (the raft loop saves
+  every batch it handed to apply before it stops; `wal.stopImage`);
 - the configuration point raft restarts with: `bootstrap` replaces the WAL snapshot's `ConfState`
   by the backend's (`buildConfStateFromV3store`, `v3ConfStateIs`): every conf state it can build is the
   membership at `i`; `RestartNode` takes any point from the storage's base to its commit;
@@ -125,16 +128,25 @@ def v3ConfStateIs (D : backend.Data) (cs : ConfStateM) : Prop :=
 compaction mode at records of the committed log's compaction revision. **Open, the restart path's
 (RESTART-RCPT, `notes/image-cmp-plan.md`):** in compaction mode a restart restores the image, whose
 `restoreRcptM` needs the image's KV log's receipt `⧖ (logCh (kvModel ρ.rd.kv A))`, which `dbImage`
-carries and this predicate does not yet.) -/
+carries and this predicate does not yet.) (R6, 2026-11-07, the `lean` merge: the backend's part
+over mvcc's API, as `dbImage`'s since strict M1: the server's parts `imageRestAt`, the state reachable
+and short `imageStOk`, and mvcc's `mvccImage` of the KV model's history at its compaction revision
+(the receipt inside), in place of `imageAt`'s key image `keyImageM` and `IdxWf`, mvcc's internals;
+which also settles RESTART-RCPT's receipt.) -/
 def srvDiskImage (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) : IProp GF :=
   iprop(∃ (S : RaftState) (σ : StorContents) (i : w64) (A : List EntryModel)
       (D : backend.Data) (m : Membership) (M : GMap Loc MemStorNamesRec),
-    nodeVacant γ.cl id ∗ raftState γ.cl id S ∗ ⌜StorageHolds S σ⌝ ∗
+    nodeVacant γ.cl id ∗ raftState γ.cl id S ∗
     ⌜ρ.rd.raft.raft = γ ∧ ρ.rd.kv.c0 = W64 0⌝ ∗ srvRLogLb ρ.rd.raft A ∗
     ⌜uint.Z i = uint.Z ρ.rd.raft.ai0 + A.length ∧
-      imageAt ρ.rd.kv γ.boot i (ρ.rd.raft.pre ++ A) A D⌝ ∗
-    ⌜σ.b ≤ uint.nat i ∧ uint.nat i ≤ σ.commit ∧ γ.cl.bootLen ≤ uint.nat i⌝ ∗
+      imageRestAt ρ.rd.kv γ.boot i (ρ.rd.raft.pre ++ A) D ∧
+      imageStOk (kvModel ρ.rd.kv A) (crevOf ρ.rd.kv A)⌝ ∗
+    (∃ u : Bool, mvcc.api.mvccImage D (kvModel ρ.rd.kv A) (crevOf ρ.rd.kv A) u) ∗
+    ⌜γ.cl.bootLen ≤ uint.nat i⌝ ∗
     confAt γ.cl (uint.nat i) m ∗ ⌜∀ cs, v3ConfStateIs D cs → confStateIs cs m⌝ ∗
+    -- (R2d review F7, 2026-11-06; DRAFT) the WAL's slot: `StorageHolds S σ`, `σ.b ≤ i ≤ σ.commit`
+    -- and the records' snapshot certificate (Q14 (a); its margin, a static cluster, in its docstring)
+    wal.stopImage γ.cl S σ i ∗
     (letI : MemStorReg GF := ⟨γ.reg⟩; memStorRegAuth M) ∗
     srvFiles dd id σ D ∗ backend.pathOwn (config.backendPathOf dd))
 
@@ -143,7 +155,7 @@ theorem srvDiskImage_raft (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoStri
     srvDiskImage (GF := GF) γ ρ id dd ⊢ ⌜ρ.rd.raft.raft = γ⌝ ∗ srvDiskImage γ ρ id dd := by
   refine (persistent_entails_left ?_).trans sep_comm.1
   unfold srvDiskImage
-  iintro ⟨%S, %σ, %i, %A, %D, %m, %M, -, -, -, %Hρ, -⟩
+  iintro ⟨%S, %σ, %i, %A, %D, %m, %M, -, -, %Hρ, -⟩
   ipureintro; exact Hρ.1
 
 /-- **The server `s`'s data directory is `dd`, its WAL in it** (persistent; R2b-2): the
@@ -172,6 +184,17 @@ def srvBootApplied (ρ : ReqNames) : IProp GF :=
 instance srvBootApplied_persistent (ρ : ReqNames) : Persistent (srvBootApplied (GF := GF) ρ) := by
   unfold srvBootApplied; infer_instance
 
+/-- **The boot evidence from an applied index** (R2c review F4): an index the server applied at
+least, past the bootstrap log. -/
+theorem srvBootApplied_of_applied (ρ : ReqNames) (v : w64)
+    (h : ρ.rd.raft.raft.boot.length ≤ uint.nat v) :
+    appliedAtLeast ρ.rd v ⊢ srvBootApplied (GF := GF) ρ := by
+  unfold srvBootApplied
+  iintro H
+  iexists v
+  iframe H
+  ipureintro; exact h
+
 /-- A reader's view of the server holds the applied index's invariant (`AppliedIndex()`'s
 premise). -/
 theorem isServerRead_applied (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
@@ -180,7 +203,7 @@ theorem isServerRead_applied (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
   iunfold isServerRead at H
   icases H with ⟨%v, H⟩
   iunfold srvReadFieldsAt at H
-  icases H with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hai, -⟩
+  icases H with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hai, -⟩
   iexact Hai
 
 /-- The namespace of the stopped server's escrowed image (R2b-2). -/
@@ -197,64 +220,110 @@ instance srvDoneInv_persistent (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : G
     (c : GName) : Persistent (srvDoneInv (GF := GF) γ ρ id dd c) := by
   unfold srvDoneInv; infer_instance
 
-/-- **The right to stop the started server `s`** (DRAFT, R2b-2; see the file header): `s.stop` (a
-channel a stop request is sent on, carrying evidence that the server applied the bootstrap log,
-`srvBootApplied`: R2b-2 review F2; `run` receives it), and
+/-- **The stop's scope** (2026-11-05, the restart plan's R2c-2; the user's Q2 (b)): the
+configurations whose server `run`'s deferred shutdown can stop with an image: auth off (with auth
+on, `Cleanup`'s auth closer is the apply thread's, not threaded; and a restart's image after
+`AuthEnable` is the open gap H) and no compaction mode (`apply.cmpOwn` is both what `kv.Close`
+takes and what the image's observation reads; and the image lacks the compaction-mode receipt,
+RESTART-RCPT). No compactor follows from the latter (`NewServer` makes one only in compaction mode,
+`srvStop.censusPart`). Carried in the stop request (`srvStopReq`), not in `run`'s precondition, so
+that every started server's `run` has one spec. -/
+def srvStop.scope (E : apply.AEnv GF) : Prop := E.authOn = false ∧ E.cmp = false
+
+/-- **The stop's serving readers** (R2c-4): the store's reader tokens a member's serving stocks
+hold (the API's and the watch server's, `64 + 64`), which the stop request returns for the backend's
+`Close` (`mvccClosed_rest.law`); named here, by the stop's owner, so that a client of the stop
+request names no count (`etc/bounds-check.py`). (The `lean` merge, 2026-11-06, the reader tokens:
+until then `64 + 64` of mvcc's `storeReader`s, retired by `storeReaders_retire`.) -/
+abbrev srvStopReaders (E : apply.AEnv GF) : IProp GF :=
+  mvcc.api.mvccReaders E.γ (64 + 64)
+
+/-- **A stop request** (2026-11-05, R2c-2; what `HardStop` sends on `s.stop` and `run` receives):
+evidence that the server at the request names `ρ` applied the bootstrap log (`srvBootApplied`,
+R2b-2 review F2), the stop's scope at the server's apply environment `E` (`srvStop.scope`), and the
+server's data directory `dd` with no dedicated WAL directory (`srvDataDir`, which the image names:
+the scope's other half), and (R2c-4, F-e) the store's readers of the serving stocks the server no
+longer uses (`srvServeBuilt`'s 64 request readers and `srvWatchReaders`' 64 watch readers,
+`mvcc.watchReader_storeReader`): with the slot's and the apply thread's, every reader of the store,
+for the backend's `Close` (gap 4's census); the sender stopped serving first. Until R2c-2 the
+request carried only `srvBootApplied ρ`, and `run.specStop` took the scope as premises; until R2c-4
+the readers were `run.specStop`'s (`srvShutdownPre`), which a serving member cannot give at its
+start. -/
+def srvStopReq (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (dd : GoString) : IProp GF :=
+  iprop(srvBootApplied ρ ∗ ⌜srvStop.scope E⌝ ∗ srvDataDir s dd ∗ srvStopReaders E)
+
+/-- The stop request names only the request names' read side (`ρ.rd`): the same at the wait
+registry `start` makes (R2c-4). -/
+theorem srvStopReq_wait (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (w : GName) (dd : GoString) :
+    srvStopReq (GF := GF) s E { ρ with wait := w } dd = srvStopReq s E ρ dd := rfl
+
+/-- **A stop request made** (R2c review F4): the boot evidence, the scope, the data directory and
+the serving readers. -/
+theorem srvStopReq_intro (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (dd : GoString)
+    (hsc : srvStop.scope E) :
+    srvBootApplied ρ ∗ srvDataDir s dd ∗ srvStopReaders E ⊢ srvStopReq (GF := GF) s E ρ dd := by
+  unfold srvStopReq
+  iintro ⟨#Hb, #Hdd, Hr⟩
+  iframe Hb Hdd Hr
+  ipureintro; exact hsc
+
+/-- The escrow names only the request names' read side (`ρ.rd`) (R2c-4). -/
+theorem srvDoneInv_wait (γ : SrvRaft) (ρ : ReqNames) (w : GName) (id : w64) (dd : GoString)
+    (c : GName) : srvDoneInv (GF := GF) γ { ρ with wait := w } id dd c = srvDoneInv γ ρ id dd c :=
+  rfl
+
+/-- **The right to stop the started server `s`** (R2b-2; defined in R2c-2; see the file header): `s.stop` (a
+channel a stop request is sent on, `srvStopReq` at the server's apply environment `E`: R2c-2; until
+then the request carried `srvBootApplied ρ` only; `run` receives it), and
 `s.done`, whose close announces the image escrowed for the claim `c` (`srvDoneInv`), with the claim.
 `start` makes both channels, so `Start` gives the right (R2b-2: until then `NewServer`, in the
-draft). The data directory `dd` is the configuration's `DataDir` (R2c review F2). -/
-def srvStopRight (s : Loc) (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) : IProp GF :=
+draft). The data directory `dd` is the configuration's `DataDir` (R2c review F2; R2c-2: the right
+records the field, so that a holder who knows the directory, `srvDataDir`, learns `dd`). Sealed (R2c
+review F5, 2026-11-06; round 2's N2): a client sees the name and its law `srvStopRight_dd`; the
+package's two proofs that make and open it, `start`'s and `HardStop`'s, `import all` this module
+(`etc/import-all.txt`). -/
+@[no_expose] def srvStopRight (s : Loc) (E : apply.AEnv GF) (γ : SrvRaft) (ρ : ReqNames) (id : w64)
+    (dd : GoString) : IProp GF :=
   iprop(∃ (stc dnc : Loc) (γst γd : ChanNames) (c : GName),
-    srvStopAddr s ↦□ stc ∗ isChanBag γst stc (V := Unit) (fun _ => srvBootApplied ρ) ∗
+    srvStopAddr s ↦□ stc ∗ isChanBag γst stc (V := Unit) (fun _ => srvStopReq s E ρ dd) ∗
     srvDoneAddr s ↦□ dnc ∗ ownBroadcastChan dnc γd (srvDoneInv γ ρ id dd c) .Unknown ∗
-    token c)
+    token c ∗ srvCfgFieldAddr s go!"DataDir" ↦□ dd)
 
-/-- (DRAFT, R2b-2/R2b-3) **What `Cleanup` closes besides the apply thread's resources** (opaque
-until R2b-3): the auth store's closer (its token provider's `tpAdmin`, for `authStore.Close`). (The
-lessor's stop right moved to `srvStopKeep`, 2026-11-04.) The KV store's closer and the backend's (`srvKVCloserW`,
-`bOpen ½`, `pathOwn`, in `srvSnapRes`) come back from the apply thread, through `sched.Stop`'s last
-job's post (R2b-2 review F3). -/
-opaque srvCleanupOwn (s : Loc) : IProp GF
+/-- The stop right's data directory is the server's (`srvDataDir`'s). -/
+theorem srvStopRight_dd (s : Loc) (E : apply.AEnv GF) (γ : SrvRaft) (ρ : ReqNames) (id : w64)
+    (dd dd' : GoString) :
+    srvStopRight (GF := GF) s E γ ρ id dd ∗ srvDataDir s dd' ⊢
+      ⌜dd = dd'⌝ ∗ srvStopRight s E γ ρ id dd := by
+  unfold srvStopRight srvDataDir
+  iintro ⟨⟨%stc, %dnc, %γst, %γd, %c, #Hs, #Hb, #Hd, Hdn, Hc, #Hdd⟩, #Hdd', -⟩
+  icombine Hdd Hdd' gives %Heq
+  isplitr
+  · ipureintro; exact Heq
+  iexists stc, dnc, γst, γd, c
+  iframe Hs Hb Hd Hdn Hc Hdd
 
-/-- (2026-11-05, R2b-3d gap 4) **The store's readers `NewServer` keeps for the stop**: of the
-`rdStockN - nJobRd` readers `NewStore` gives, all but the watch loops' (`wsLoopN`), the request
-goroutines' and the watch service's run slots' (64 each, `memberUp`'s serving stocks), the
-compactor's, the storage version monitor's and the apply thread's retired ones, and the apply
-thread's own (`apply.kvOwn`). Until then `NewServer` dropped them. With every other reader,
-`storeReaders_retire` and `storeRTs_shares` give the backend's `Close` the stock's shares of its
-open token, as `NewServer`'s own error path does (R-D1). -/
-abbrev srvKeepRdN (γst : mvcc.StoreNames) : Nat :=
-  backend.rdStockN - mvcc.nJobRd γst.kb - mvcc.wsLoopN - 64 - 64 - 1 - 1 - 1 - 1
+/-- (R2b-2's draft; defined 2026-11-05, R2b-3d stage 5b) **What `Cleanup` closes besides the apply
+thread's resources**: the server's auth store with its `Close` (`authCloseOk`, `NewAuthStore`'s
+with auth off, the user's decision: `notes/axiom-review/auth-close.md`), what `Cleanup`'s closer is
+(`authCloser` at no resource). Auth off only, `restart3`'s mode: with auth on, the closer is the
+apply thread's, at the token provider's admin share (`authCloser_of_inv`). (The lessor's stop right
+is in the stop's slot, `srvStop.keep`; the KV store's closer and the backend's come back from the apply thread through
+`sched.Stop`'s last job's post, R2b-2 review F3.) -/
+def srvCleanupOwn (s : Loc) : IProp GF :=
+  iprop(∃ stl : Loc, srvAuthStoreAddr s ↦□ auth.authIface stl ∗ authCloseOk stl)
 
-/-- (R2b-2's draft; defined 2026-11-04, R2b-3d) **What `NewServer` keeps for the stop**, at the
-raft wrapper's names `γn` and the configuration's WAL directory `wdir`: the claim on the raft loop's
-stop escrow (`rnStopClaim`, `newRaftNode`'s), the storage registry's authority (`bootOk`'s: the
-image hands it to the restart, R2c review F3), the lessor's stop right (`NewLessor`'s, for
-`Cleanup`), and the WAL's directory, the configuration's (`bootstrap`'s `walOpened`: the stop
-image's `srvFiles` names the WAL's files by the data directory), and (2026-11-05) the store `st`'s
-readers it does not hand out (`srvKeepRdN`). -/
-def srvStopKeep (s : Loc) (γn : RNNames) (wdir : GoString) (st : Loc) (γst : mvcc.StoreNames) :
-    IProp GF :=
-  iprop(rnStopClaim γn ∗
-    (letI : MemStorReg GF := ⟨γn.node.reg⟩; ∃ M : GMap Loc MemStorNamesRec, memStorRegAuth M) ∗
-    (∃ lp : Loc, srvLessorAddr s ↦□ lease.lessorIface lp ∗ lease.lessorStopTok lp) ∗
-    (∃ st : GoInterface, rnStorageAddr (srvRAddr s) ↦□ st ∗ ⌜walDirOf (storage.walOf st) = wdir⌝) ∗
-    -- (2026-11-05, R2b-3d gap 4) the store's readers it does not hand out (`srvKeepRdN`), for the
-    -- backend's `Close` (every reader of the store back, `storeReaders_retire`)
-    ([∗list] _x ∈ List.replicate (srvKeepRdN γst) (), mvcc.storeReader st γst) ∗
-    -- (2026-11-05) the compactor's reader (`srvCompactR`'s) when the server runs no compactor:
-    -- with one, the compactor's run keeps it
-    (∃ cp : GoInterface, srvCompactorAddr s ↦□ cp ∗
-      ((⌜cp = GoInterface.nil⌝ ∗ mvcc.storeReader st γst) ∨ ⌜cp ≠ GoInterface.nil⌝)))
+instance srvCleanupOwn_persistent (s : Loc) : Persistent (srvCleanupOwn (GF := GF) s) := by
+  unfold srvCleanupOwn; infer_instance
 
-/-- **What `run`'s shutdown needs besides `isServerRun`** (DRAFT, R2b-2; `run.specStop`; restated
-2026-11-04, R2b-3d, over `srvStopKeep`): what `NewServer` kept for the stop, at the data
-directory's WAL directory with no dedicated one (the scope), the data directory (`srvDataDir`, which
-the image names) and what `Cleanup` closes besides (`srvCleanupOwn`). Its sources (R2b-2 review F3):
-`NewServer` keeps `srvStopKeep`, `start` hands it to `run`. -/
-def srvShutdownPre (s : Loc) (γn : RNNames) (dd : GoString) (st : Loc) (γst : mvcc.StoreNames) :
-    IProp GF :=
-  iprop(srvStopKeep s γn (config.walDirOf dd "") st γst ∗ srvDataDir s dd ∗ srvCleanupOwn s)
+/-- (2026-11-05, R2b-3d gap 4) **The store's reader tokens `NewServer` keeps for the stop**: of
+the `mvccReaderN` tokens `mvcc.New` gives, all but the request goroutines' and the watch service's
+run slots' (64 each, `memberUp`'s serving stocks), the compactor's and the apply thread's
+(`apply.applyTok`). With every other token, `mvccClosed_rest.law` gives the backend's `Close` the
+storage's shares of its open token, as `NewServer`'s own error path does (R-D1). (The `lean` merge,
+2026-11-06, the reader tokens: until then of mvcc's `storeReader`s, `rdStockN - nJobRd -
+wsLoopN - 64 - 64 - 1 - 1 - 1 - 1`, the monitor's and the apply thread's backend readers retired
+among them; those are now the two counted slots `etcdStorage_open.law` hands the server.) -/
+abbrev srvKeepRdN : Nat := mvcc.api.mvccReaderN - 64 - 64 - 1 - 1
 
 end defs
 
@@ -266,26 +335,18 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [MemStorReg GF]
 
-/-- **The `MemoryStorage` `bootstrappedWAL.MemoryStorage` rebuilds** (opaque, DRAFT R2c, R2d's to
-define): `NewMemoryStorage`, then `ApplySnapshot` of the WAL's snapshot record at `σ.b` with the
-conf state `cs`, `SetHardState(σ.hs)`, `Append(σ.ents)`. R2d defines it in raft's storage
-vocabulary (`memLog`, `memEnd`, `memStorMeta`, `memStorFresh` at the snapshot) and proves from it
-`RestartNode`'s `restartStorage`, as kvdurable's `kd_restartStorage`. -/
-opaque memStorRestarted (ms : Loc) (γs : MemStorNames) (σ : StorContents) (cs : ConfStateM) :
-    IProp GF
+-- `memStorRestarted` (the `MemoryStorage` `bootstrappedWAL.MemoryStorage` rebuilds from the WAL's
+-- records `σ` and the backend's conf state `cs`): defined in `BaseRestartStor.lean` (restart S3,
+-- 2026-11-11, D2 (b)) as that method's proved post (`bootstrappedWAL__MemoryStorage.lean`); until
+-- then an opaque here.
 
 /-- **The real backend's batch-lock resource, as a restart's `bootstrap` leaves it** (2026-11-03,
-the whole-`bootOk` review, T1-B, option B3): `mvcc.lateWB`'s arms, the unregistered one with the
-client's halves of the backend's exact ghosts at some values (`backend.pvckOwn`), not the empty ones
-of a first start (`pvckEmpty`, false here: the `Key` bucket holds the stopped member's revisions,
-and after a compaction its compaction keys are set; measured, `etc/spec-test/bootstrap/`). A
-restart's `NewStore` (R2d) learns the values under the lock. Nothing on the restart path uses it
-yet: `lateWD`, `KBReal.snap`, `kbBoot` take a backend `bootstrap` opened to carry `lateWB`, so R2d
-merges the two (B1: `lateWB`'s arm at `pvckOwn`, `NewStore` deriving `pvckEmpty` by agreement) when
-the two contracts merge. -/
-def lateWBR (gx : GName) (γB : backend.BNames) : IProp GF :=
-  iprop((dghostVar gx (DFrac.own (1 : Qp).half) (none : Option (Loc × mvcc.StoreNames)) ∗
-      backend.pvckOwn γB) ∨ mvcc.lateWR gx)
+the whole-`bootOk` review, T1-B, option B3; DRAFT, R2d's). (The `lean` merge, 2026-11-06: the
+store's write invariant of mvcc's API, `mvcc.api.mvccW gx`, as a first start's; until then `lean`'s
+F2 arms, `mvcc.lateWB`'s unregistered arm at the backend's exact compaction ghosts `pvckOwn` or
+`mvcc.lateWR`, gone with F2. A restart's store over a non-empty history needs the API's `New` over
+`mvccStorageFor B Pk L c u` at any `(L, c, u)`: `notes/mvcc-client-merge-plan.md`, risk 5.) -/
+def lateWBR (gx : GName) (_γB : backend.BNames) : IProp GF := mvcc.api.mvccW gx
 
 /-- **The bootstrapped record of a restart** (DRAFT, R2c; `bootOk`'s restart case, L3): `bootOk`
 with the changes marked `[R2c]`: no peers (so `RestartNode`), the storage rebuilt from the WAL's
@@ -323,7 +384,7 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
     -- (D22 S-i, 2026-10-19) the snapshotter (`bootstrapSnapshot`'s `snap.New(lg, cfg.SnapDir())`,
     -- its fields set once), which the transport's snapshot handler and `applySnapshot` use
     "#Hss" ∷ snap.isSnapshotter bs.ss' ∗
-    -- `b.raft`: `NodeStartSpec`'s premises
+    -- `b.raft`: the raft configuration (as `bootOk`'s, but `RestartNode`'s path: no peers)
     -- (2026-11-03, S2: until then `heartbeat ≠ 0`) the heartbeat as Go computes it
     -- (`bootstrap.go:574`, wrapping)
     "%Hraft" ∷ ⌜bv.lg' ≠ null ∧ bv.heartbeat' = cfg.TickMs' * W64 1000000 ∧
@@ -359,7 +420,7 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
     -- (D43 M5e, 2026-10-26, the user's decision) its logger, read-only, not nil
     -- (`bootstrapClusterWithWAL`'s `NewCluster` sets `lg` from the configuration's logger): what
     -- `AddMember` and `RemoveMember` log through, `applyConfChange`'s
-    "#Hclg" ∷ (∃ lgc : Loc, membership.rcLgAddr bc.cl' ↦□ lgc ∗ ⌜lgc ≠ null⌝) ∗
+    "#Hclg" ∷ (∃ lgc : Loc, membership.rcLgAddr bc.cl' ↦□ lgc ∗ zapLoggerOk lgc) ∗
     -- (audit B4a, 2026-10-18) its `versionChanged` field, owned (the cluster not yet shared):
     -- `NewServer`'s `SetVersionChangedNotifier` writes it without the lock, and the cluster's
     -- apply contract `Hisc` (whose `SetVersion` reads it) is for after, the field read-only
@@ -422,7 +483,7 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
     -- (J8a-4, 2026-11-01, the user's decision: `notes/decisions.md`, "J8a-4") the meta reads of a
     -- backend the apply thread opens (`applySnapshot`'s `OpenSnapshotBackend`) at the protocol's
     -- names `π`, over an image whose meta keys are `π.m0`, at its fresh keys and payment rights
-    -- (they come back): what `applySnapshot.specSnap` takes
+    -- (they come back): what `applySnapshot.specSnapM` takes
     "#HmetaSnap" ∷ □ (∀ (π : ApplyPhys) (γB : backend.BNames) (P : backend.BParams) (D : backend.Data),
         ⌜ciKeys P ∧ metaIs D π.m0 ∧ π.bwb = γB.wb ∧ π.bopn = γB.opn⌝ -∗
         backend.hkOwn γB (backend.hkData P D) -∗ backend.bFresh γB -∗
@@ -458,7 +519,7 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
     -- `isBackend` names the apply protocol's batch lock), over the image's data `D`, the stopped
     -- file; (2026-11-03, the whole-`bootOk` review) `N + 7` write-back tokens and the open token
     -- (`bootLeft`, A), the batch lock's resource `lateWBR` (T1-B); and what `bootstrap` adds: the
-    -- store's registration right, `keySized`
+    -- store's registration right
     "Hnew" ∷ backend.newPostK d.γB d.P (fun γB => lateWBR d.gx γB)
       (fun γB => batchLockInv γA (metaTM γB d.P)) (bootLeft N) d.be D ∗
     -- [R2c] the file is the image (`srvDiskImage`), at the consistent index `i`
@@ -467,9 +528,8 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
     -- `γA.m0` (what `#Hmeta`'s reads return and `batchLockInv γA`'s mirror starts at; a restart's
     -- `D` holds the last commit's)
     "%Hm0" ∷ ⌜metaIs D γA.m0 ∧ γA.m0.1 = i⌝ ∗
-    -- (D22 J1a, 2026-10-26: of every backend at these parameters, for the snapshot path's backends;
-    -- until then of `d` only) the Key bucket's size bound (no bbolt file holds `2 ^ 62` keys)
-    "#Hsz" ∷ □ (∀ (γB : backend.BNames) (b : Loc), mvcc.keySized γB d.P b) ∗
+    -- (premise fixes 5, 2026-11-10) no `#Hsz`: the Key bucket's size bound `mvcc.keySized` is proved
+    -- (`mvcc.keySized_at`, from bbolt's `rtxSnap_size`); until then assumed here (D22 J1a)
     "Hlate" ∷ mvcc.lateReg d.gx ∗
     -- (D22 S-j2, 2026-10-20; an environment assumption the user approved, "D22's environment
     -- assumptions approved") the backend file's directory entry is the server's: nothing else
@@ -498,13 +558,14 @@ and client URLs may differ, `publishV3`, `server.go:1828`, updating them once a 
 started). As a first start's, the contract may always return an error, after which `restart3`
 does nothing more: it does not promise the restart succeeds (R2c review, second tier 6).
 (#7-cmp's Freeze: `imageAt` by the mode, in place; the compaction-mode receipt, RESTART-RCPT, as
-`srvDiskImage`'s.) -/
+`srvDiskImage`'s.) (R6, 2026-11-07: the image as `srvDiskImage`'s, over mvcc's API: the store's part,
+`mvccImage` at some image names `γk` and log `A`, with the server's parts; until then `imageAt`
+inside the pure premise.) -/
 def bootstrapRestartContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs)
     (γ : SrvRaft) (id : w64) (N : Nat) (dir : w64 → List GoString) : IProp GF :=
   iprop(□ ∀ (σ : StorContents) (i : w64) (L : List EntryModel) (D : backend.Data)
       (M : GMap Loc MemStorNamesRec),
-    ⌜(∃ (γk : KVNames) (A : List EntryModel), γk.c0 = W64 0 ∧ imageAt γk γ.boot i L A D) ∧
-      σ.b ≤ uint.nat i ∧ uint.nat i ≤ σ.commit ∧ γ.cl.bootLen ≤ uint.nat i ∧
+    ⌜σ.b ≤ uint.nat i ∧ uint.nat i ≤ σ.commit ∧ γ.cl.bootLen ≤ uint.nat i ∧
       bootCfgOk cfg ∧ cfg.ForceNewCluster' = false ∧ cfg.DedicatedWALDir' = (go!"" : GoString) ∧
       -- (2026-11-03, the final whole-`bootOk` review's M1) bbolt opens the backend file (else
       -- `newBackend`'s `lg.Panic`)
@@ -512,7 +573,16 @@ def bootstrapRestartContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfi
       N + 7 + bootWB ≤ backend.wbInit ∧
       (∀ f, ((restModel (W64 0) γ.boot L).mem.lookup f).map apply.MemberM.peerURLs =
         ((memBoot γ.boot).lookup f).map apply.MemberM.peerURLs)⌝ -∗
-    {{ bootCfgRO cfg U ∗ memStorRegAuth M ∗
+    (∃ (γk : KVNames) (A : List EntryModel) (u : Bool),
+      ⌜γk.c0 = W64 0 ∧ imageRestAt γk γ.boot i L D ∧ imageStOk (kvModel γk A) (crevOf γk A)⌝ ∗
+      mvcc.api.mvccImage D (kvModel γk A) (crevOf γk A) u) -∗
+    {{ -- (sweep repairs 1, L4) a zap logger (`bootstrapContract`'s)
+        zapLoggerOk cfg.Logger' ∗
+        -- (premise fixes 1) the feature gate (`bootstrapContract`'s)
+        (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
+        -- (sweep repairs 1, B4) `ETCD_VERIFY` off (`bootstrapContract`'s)
+        envVerifyOff ∗
+        bootCfgRO cfg U ∗ memStorRegAuth M ∗
         srvFiles cfg.DataDir' id σ D ∗ backend.pathOwn (config.backendPathOf cfg.DataDir') }}
       (App (Val (@! bootstrap)) (Val #cfg))
     {{ (b : Loc) (err : GoInterface), RET (PairV #b #err);
@@ -521,11 +591,38 @@ def bootstrapRestartContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfi
 end boot
 
 /-- **A restarted incarnation's names agree with the stopped one's where the cluster sees them**
-(see the file header). -/
+(see the file header): raft's names, the KV names wherever the KV invariant reads them
+(`kvCongr`, R2d-1, Q8 (a), 2026-11-06: so the restarted member reuses the cluster's `kvInv`,
+`kvInv_restartNames`; until then the state's variable, the model and `c0` only), and the claims'
+map and prefix of the request ids. -/
 def restartNames [GooseExts] (ρ ρ' : ReqNames) : Prop :=
-  ρ'.rd.raft = ρ.rd.raft ∧ ρ'.rd.kv.st = ρ.rd.kv.st ∧ kvModel ρ'.rd.kv = kvModel ρ.rd.kv ∧
-    ρ'.rd.kv.c0 = ρ.rd.kv.c0 ∧
+  ρ'.rd.raft = ρ.rd.raft ∧ kvCongr ρ.rd.kv ρ'.rd.kv ∧
     ρ'.ids.issued = ρ.ids.issued ∧ ρ'.ids.pfx = ρ.ids.pfx
+
+/-- The restarted names' state variable is the stopped one's. -/
+theorem restartNames_st [GooseExts] {ρ ρ' : ReqNames} (h : restartNames ρ ρ') :
+    ρ'.rd.kv.st = ρ.rd.kv.st := h.2.1.1.symm
+
+/-- The restarted names' KV model is the stopped one's. -/
+theorem restartNames_kvModel [GooseExts] {ρ ρ' : ReqNames} (h : restartNames ρ ρ') :
+    kvModel ρ'.rd.kv = kvModel ρ.rd.kv := by
+  obtain ⟨-, h2, h3, h4, -⟩ := h.2.1
+  funext L; unfold kvModel; rw [h2, h3, h4]
+
+section restartKV
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
+/-- **A restarted member reuses the cluster's KV invariant** (R2d-1, Q8 (a), the Scope's easy
+probe): `kvInv` reads only the fields `restartNames` keeps (`kvCongr`, `kvInv_congr`). -/
+theorem kvInv_restartNames (γs : ServerRaftNames) {ρ ρ' : ReqNames} (h : restartNames ρ ρ') :
+    kvInv (GF := GF) γs ρ'.rd.kv = kvInv γs ρ.rd.kv :=
+  (kvInv_congr γs _ _ h.2.1).symm
+
+end restartKV
 
 end EtcdGrove
 end Perennial

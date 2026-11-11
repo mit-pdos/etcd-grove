@@ -55,7 +55,7 @@ abbrev EtcdServer.snapshot.spec : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (γw : GName) (b : GoInterface) (ep : Loc)
     (st : ApplyState) (ai at' : w64) (cs : Loc) (a t : w64) (x : apply.ApplyKV) (toDisk : Bool)
-    (ms : Loc) (γs : MemStorNames) (nk : GName) (sl : w64) (γp : GName) (ua : GoInterface) (q : Qp)
+    (ms : Loc) (γs : MemStorNames) (nk : GName) (sl : w64) (γp : WTNames) (ua : GoInterface) (q : Qp)
     (γn : RNNames),
   loopOk γ st ai → uint.Z ai ≤ uint.Z (ciEff γ st.k) → storage.releaseOk →
   -- (2026-10-31, the snapshot track: what `snapshotCert_make` takes) an entry applied, the voters
@@ -73,19 +73,22 @@ abbrev EtcdServer.snapshot.spec : Prop :=
       srvSnapStor ms γs γr nk ai at' ∗ srvSnapDisk s γr ∗ appliedAtLeast γr ai ∗
       -- (2026-10-31) `ep.confState` the voters', the entry at `ai` frozen at `at'`
       epCsCfg γr cs ∗ srvFrozenTerm γs ai at' ∗
-      (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗ srvWTPool E γp ∗
+      (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ □ mvcc.api.isMvcc kv E.γ ∗ ⌜kv = E.kv⌝) ∗ srvWTPool E γp ∗
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗
       srvApplyKVCore s E γw x ua ∗
       -- (2026-10-31) the WAL open (the apply thread's share of it); (2026-11-03, R2b-1 stage 5) with
       -- its token, and the log handed at the WAL's `Save`s at least `ai` long (`raftAdvancedC`'s)
-      rnWalTokA γn (srvRAddr s) q ∗ rnWalHanded γn (uint.nat ai) }}
+      rnWalTokA γn (srvRAddr s) q ∗ rnWalHanded γn (uint.nat ai) ∗
+      -- (strict M1, 2026-11-06) the thread's token, `KV.Commit.contract`'s; (R4, 2026-11-07) with a
+      -- reader token of the store, the commit's too (`apply.applyTok`)
+      apply.applyTok E }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"snapshot")) (Val #ep))
       (Val #toDisk))
   {{ RET #(); ∃ st' : ApplyState, srvSnapState s ep ms γs ai ai ∗ srvSnapFrozen γs (uint.nat ai) ∗
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
       applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKVCore s E γw x ua ∗
-      rnWalTokA γn (srvRAddr s) q ∗
+      rnWalTokA γn (srvRAddr s) q ∗ apply.applyTok E ∗
       ⌜loopOk γ st' ai ∧ ciEff γ st'.k = ciEff γ st.k⌝ }}
 
 end spec

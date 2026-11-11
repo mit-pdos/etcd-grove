@@ -54,7 +54,7 @@ theorem postErr_errorString (st : w64) (x xR : Loc) (m mR : GoString) (hm : m �
   iright; iright
   iexists ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩
   isplitr
-  · ipureintro; exact ⟨rfl, errorString_leaf x⟩
+  · ipureintro; exact ⟨rfl, errorString_errLeaf x⟩
   imodintro
   iintro %eR #HeR
   icombine Hg HeR gives %Heq
@@ -75,7 +75,7 @@ local macro "zap_log" : tactic => `(tactic| (
     | "zap.String" => (wp_apply hZString as %_ -)
     | (wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field); isplitr; (ipureintro; rfl);
        iintro %_ ⟨-, -⟩)
-    | "Error" => (wp_apply hError lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
+    | "Error" => (wp_apply hError lg _ _ $$ []; (iframe #))
     | wp_auto)))
 
 set_option maxRecDepth 8000 in
@@ -92,8 +92,9 @@ theorem rafthttp.checkPostResponse.wp_proof
     (hURLString : http.URLStringAny_spec (GF := GF))
     (hReqURL : http.reqURL_spec (GF := GF)) :
     rafthttp.checkPostResponse.spec (GF := GF) (hG := hG) := by
-  intro lg resp st rd b bs req R to Hd Hlgnn
-  wp_start as ⟨Hresp, Hb, Hreq⟩
+  intro lg resp st rd b bs req R to Hd
+  wp_start as ⟨#Hlgz, Hresp, Hb, Hreq⟩
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgz
   -- the errors' facts and cells (rafthttp's)
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -171,7 +172,7 @@ theorem rafthttp.checkPostResponse.wp_proof
     iintro %asl ⟨Hasl, -⟩
     wp_apply hErrorf _ _ _ _ (by decide) $$ [Hasl] as %x ⟨-, %msg, #Hc, %Hpre, #HE⟩
     · iframe #; iframe Hasl
-      simp only [fmt.argsOk, fmt.argOk]
+      fmt_args_intro; simp only [fmt.argOkAt]
       isplitr
       · ileft; ipureintro
         apply fmt.argWf_of_argsWf
@@ -220,8 +221,8 @@ theorem rafthttp.checkPostResponse.wp_proof
   iintro %asl ⟨Hasl, -⟩
   wp_apply hErrorf _ _ _ _ (by decide) $$ [Hasl] as %x ⟨-, %msg, #Hc, %Hpre, #HE⟩
   · iframe #; iframe Hasl
-    simp only [show sint.nat (W64 (0 + 1)) = 1 by rfl, List.set_cons_succ, List.set_cons_zero,
-      fmt.argsOk, fmt.argOk]
+    simp only [show sint.nat (W64 (0 + 1)) = 1 by rfl, List.set_cons_succ, List.set_cons_zero]
+    fmt_args_intro; simp only [fmt.argOkAt]
     isplitr
     · ileft; ipureintro
       apply fmt.argWf_of_argsWf

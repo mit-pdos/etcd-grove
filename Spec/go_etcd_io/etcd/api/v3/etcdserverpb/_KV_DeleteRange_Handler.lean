@@ -36,7 +36,7 @@ come back, and on success the response (as `any`) is at some `m'` with `Φ m'`. 
 abbrev etcdserverpb._KV_DeleteRange_Handler.spec : Prop :=
   ∀ (Req Rep : ProtoMsg GF) (Spec : GrpcSpecMd Req Rep) (srv : GoInterfaceOk) (S : IProp GF)
     (ics : List GoFunc) (Rs : List (IProp GF)) (Q : GoInterface → IProp GF) (m : Req.M)
-    (Φ : Rep.M → IProp GF)
+    (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF)
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (dec ui : GoFunc),
   Req.ty = etcdserverpb.DeleteRangeRequest.ty → Rep.ty = etcdserverpb.DeleteRangeResponse.ty →
   go.typeSetContains srv.ty etcdserverpb.KVServer.ty = true →
@@ -46,12 +46,14 @@ abbrev etcdserverpb._KV_DeleteRange_Handler.spec : Prop :=
       (□ ∀ l : Loc, Req.recv l m -∗
         Q (interface.mkOk (go.GoType.PointerType etcdserverpb.DeleteRangeRequest.ty) #l)) ∗
       S ∗ ([∗list] R ∈ Rs, R) ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req m ∗
-      grpcSrvChain ics ui ∗ Spec (metadata.incomingOf (GoInterface.ok ci)) m Φ }}
+      grpcSrvChain ics ui ∗ Spec (metadata.incomingOf (GoInterface.ok ci)) m Φ Ψe }}
     (methodHandlerCall (@! etcdserverpb._KV_DeleteRange_Handler) #(GoInterface.ok srv)
       #(GoInterface.ok ci) dec ui)
   {{ (resp err : GoInterface), RET (PairV #resp #err); S ∗ ([∗list] R ∈ Rs, R) ∗
       (⌜err = GoInterface.nil⌝ -∗ ∃ (l : Loc) (m' : Rep.M),
-        ⌜resp = interface.mkOk (go.GoType.PointerType Rep.ty) #l⌝ ∗ Rep.send l m' ∗ Φ m') }}
+        ⌜resp = interface.mkOk (go.GoType.PointerType Rep.ty) #l⌝ ∗ Rep.send l m' ∗ Φ m') ∗
+      (⌜err ≠ GoInterface.nil ∧ go_etcd_io.etcd.cache.v3.errDesc err ∈ handlerDescs⌝ -∗
+        Ψe (go_etcd_io.etcd.cache.v3.errDesc err)) ∗ go_etcd_io.etcd.cache.v3.srvErrOk err }}
 
 end spec
 

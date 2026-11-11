@@ -13,6 +13,8 @@ asks a question of the trusted file itself.
   file with exactly the contents the page cache had at the sync; a crash
   after an unsynced write may keep the old byte or the new one; a byte lost by a failed sync
   stays lost across a later successful sync, until it is written again.
+* A `pwrite` within one aligned OS page is all-or-nothing in-process (bbolt D22): a torn one is
+  no step; a write over two pages may still write a prefix.
 -/
 module
 
@@ -217,6 +219,44 @@ successful sync, unless it is written again in between. -/
 theorem lost_survives_sync (f : OsFile) (i : Nat) (hd : f.dirty i = true) :
     ((f.syncFailed (fun _ => False)).synced (fun _ => False)).lost i = true := by
   simp [OsFile.syncFailed, OsFile.synced, hd]
+
+/-! ## A write within one aligned OS page is all-or-nothing (bbolt D22) -/
+
+/-- A torn write of one aligned OS page (`0 < k < data.length`) is no `PWriteFinish` step,
+whatever the errno. -/
+theorem pwrite_page_not_torn (st st' : OsState) (t : Nat) (p : GoString) (off : Nat)
+    (data : List w8) (k : Nat) (e : w64)
+    (hinfl : st.inflight !! t = some ⟨p, .write off data⟩) (hoff : off % osPageSize = 0)
+    (hlen : data.length ≤ osPageSize) (hk0 : 0 < k) (hk : k < data.length) :
+    ¬ IsOsStep "PWriteFinish" (osTokV t) st (osRes (#(W64 k)) e) st' := by
+  simp only [IsOsStep]
+  rintro ⟨t', p', off', data', f, k', e', hv, hinfl', -, hk', -, hal, -, he⟩
+  have htt : t' = t := by injection hv with hv; exact (extVal_inj hv).symm
+  subst htt
+  rw [hinfl] at hinfl'
+  simp only [Option.some.injEq, OsChange.mk.injEq, OsChangeKind.write.injEq] at hinfl'
+  obtain ⟨-, rfl, rfl⟩ := hinfl'
+  have hkk : W64 k = W64 k' := by
+    injection he with he; injection he with he; exact go.intoVal_inj he
+  have hk4 : k' ≤ osPageSize := by omega
+  have hkk' : k = k' := by
+    have h1 := congrArg BitVec.toNat hkk
+    simp only [W64, BitVec.toNat_ofInt] at h1
+    unfold osPageSize at hlen hk4
+    omega
+  subst hkk'
+  rcases hal ⟨hoff, hlen⟩ with h | h <;> omega
+
+/-- A write over two OS pages may stop after the first: writing 4096 of 8192 bytes at offset 0,
+with an errno, is a `PWriteFinish` step. -/
+theorem pwrite_two_pages_may_tear (st : OsState) (t : Nat) (p : GoString) (data : List w8)
+    (f : OsFile) (hinfl : st.inflight !! t = some ⟨p, .write 0 data⟩) (hf : st.file p = some f)
+    (hlen : data.length = 8192) :
+    ∃ st', IsOsStep "PWriteFinish" (osTokV t) st (osRes (#(W64 4096)) (W64 5)) st' := by
+  simp only [IsOsStep]
+  refine ⟨_, t, p, 0, data, f, 4096, W64 5, rfl, hinfl, hf, by omega, .inr (by decide),
+    fun h => ?_, rfl, rfl⟩
+  unfold osPageSize at h; omega
 
 end OsFsTests
 end Perennial

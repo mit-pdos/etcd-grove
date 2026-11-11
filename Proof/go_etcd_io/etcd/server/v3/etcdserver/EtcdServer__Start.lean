@@ -7,6 +7,7 @@ module
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Start
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__start
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__GoAttach
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.GoAttachTok
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Logger
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__adjustTicks
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__publishV3
@@ -70,12 +71,12 @@ theorem EtcdServer.Start.wp_proof
   icases isServerBuiltC_mid C s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N $$ Hb with ⟨Hb, #HmidS, %HmidcS⟩
   wp_auto
   wp_apply hStart s γ ci TM C E ρ γr Er γn b ai₀ at₀ c₀ x₀ N $$ [Hb Hnil]
-    as ⟨%γw, #Hreq, #Hrd, #Hlb, Hst, %γp, #Hwp⟩
+    as ⟨%γw, #Hreq, #Hrd, #Hlb, Hst, %γp, %γg, #Hwp, #Hreg, Hgo, Hright⟩
   · iframe #; iframe Hb Hnil; ipureintro; exact ⟨hm, hRB, Hrb, Hai0⟩
   iunfold srvStarted at Hst
   iNamed Hst
-  ihave Hgr : srvGoRes s $$ [Hgo Htok]
-  · iunfold srvGoRes; iframe Hgo Htok
+  ihave Hgr : srvGoResAt s γg $$ [Hgo Htok]
+  · iunfold srvGoResAt; iframe Hgo Htok
   ipersist s
   ihave #Hreq' := (isServerReqM_split C.isOn s E _).1 $$ Hreq
   icases Hreq' with ⟨⟨%vq, #Hvq⟩, -⟩
@@ -86,74 +87,88 @@ theorem EtcdServer.Start.wp_proof
   iunfold isServerReadM at Hrd'
   icases Hrd' with ⟨%vd, #Hvd⟩
   iunfold srvReadFieldsAtM at Hvd
-  icases Hvd with ⟨-, -, -, -, -, -, -, -, -, -, #Hlgf, %Hlgn, -, -, -, -, -, -, -, -, -, -, -,
+  icases Hvd with ⟨-, -, -, -, -, -, -, -, -, #Hlgf, #Hlgn, -, -, -, -, -, -, -, -, -, -,
     #Hstpf, -⟩
+  -- (premise-fixes-6) the server's logger a zap logger (the monitors' and `adjustTicks`'s)
+  ihave #HlgOk : srvLoggerOk s $$ []
+  · iunfold srvLoggerOk; iexists vd.lg; iframe Hlgf Hlgn
   -- `func() { s.adjustTicks() }`
-  wp_apply hGA s _ iprop(True) $$ [Hgr Hlg] as ⟨Hgr, Hlg⟩
-  · iframe Hgr Hlg
+  wp_apply wp_GoAttach_tok hGA s γg _ iprop(True) $$ [Hgr] as Hgr
+  · iframe Hgr
     isplitr
     · itrivial
-    iintro !> %Φ' - HΦ'
+    iintro !> %Φ' ⟨-, Hrun⟩ HΦ'
+    ihave HΦ' := goRunning_frame γg _ $$ Hrun HΦ'
     wp_auto
-    wp_apply hAdj s
+    wp_apply hAdj C.isOn s E { wait := γw, rd := ρ.rd } $$ []
+    · iframe #
     iapply HΦ'
     try itrivial
   -- `func() { s.publishV3(s.Cfg.ReqTimeout()) }`, with the right to close `readych`
-  wp_apply hGA s _ (srvReadyCloser s) $$ [Hgr Hlg Hrc] as ⟨Hgr, Hlg⟩
-  · iframe Hgr Hlg Hrc
-    iintro !> %Φ' Hrc HΦ'
+  wp_apply wp_GoAttach_tok hGA s γg _ (srvReadyCloser s) $$ [Hgr Hrc] as Hgr
+  · iframe Hgr Hrc
+    iintro !> %Φ' ⟨Hrc, Hrun⟩ HΦ'
+    ihave HΦ' := goRunning_frame γg _ $$ Hrun HΦ'
     wp_auto
     wp_apply hReqT (structFieldRef EtcdServer go!"Cfg" s) vq.electionTicks vq.tickMs $$ [] as %d -
     · iframe #
     wp_apply hPub C.isOn s _ E { wait := γw, rd := ρ.rd } $$ [Hrc]
-    · iframe #; iframe Hrc; iapply srvMonitorPermitM_of C.isOn s E { wait := γw, rd := ρ.rd } γn.id HmidcS; iframe Hreq HmidS
+    · iframe #; iframe Hrc; iapply srvMonitorPermitM_of C.isOn s E { wait := γw, rd := ρ.rd } γn.id HmidcS; iframe Hreq HlgOk HmidS
     iapply HΦ'
     try itrivial
   -- `s.purgeFile`
-  wp_apply hGA s _ iprop(True) $$ [Hgr Hlg] as ⟨Hgr, Hlg⟩
-  · iframe Hgr Hlg
+  wp_apply wp_GoAttach_tok hGA s γg _ iprop(True) $$ [Hgr] as Hgr
+  · iframe Hgr
     isplitr
     · itrivial
-    iintro !> %Φ' - HΦ'
-    wp_apply hPurge s
+    iintro !> %Φ' ⟨-, Hrun⟩ HΦ'
+    ihave HΦ' := goRunning_frame γg _ $$ Hrun HΦ'
+    wp_apply hPurge C.isOn s E γr $$ []
+    · iframe #
     iapply HΦ'
     try itrivial
   -- `func() { monitorFileDescriptor(s.Logger(), s.stopping) }`
-  wp_apply hGA s _ (srvLgReader s) $$ [Hgr Hlg Hlgm] as ⟨Hgr, Hlg⟩
-  · iframe Hgr Hlg Hlgm
-    iintro !> %Φ' HL HΦ'
+  wp_apply wp_GoAttach_tok hGA s γg _ (srvLgReader s) $$ [Hgr Hlgm] as Hgr
+  · iframe Hgr Hlgm
+    iintro !> %Φ' ⟨HL, Hrun⟩ HΦ'
+    ihave HΦ' := goRunning_frame γg _ $$ Hrun HΦ'
     wp_auto
-    wp_apply hLg s vd.lg $$ [HL] as ⟨%Hlg', -⟩
-    · iframe #; iframe HL; ipureintro; exact Hlgn
+    wp_apply hLg s vd.lg $$ [HL] as ⟨#Hlg', -⟩
+    · iframe #; iframe HL
     wp_apply hMFD $$ []
-    · iframe #; ipureintro; exact Hlg'
+    · iframe #
     iapply HΦ'
     try itrivial
   -- `s.monitorClusterVersions`, `s.monitorStorageVersion`
-  wp_apply hGA s _ iprop(True) $$ [Hgr Hlg] as ⟨Hgr, Hlg⟩
-  · iframe Hgr Hlg
+  wp_apply wp_GoAttach_tok hGA s γg _ iprop(True) $$ [Hgr] as Hgr
+  · iframe Hgr
     isplitr
     · itrivial
-    iintro !> %Φ' - HΦ'
+    iintro !> %Φ' ⟨-, Hrun⟩ HΦ'
+    ihave HΦ' := goRunning_frame γg _ $$ Hrun HΦ'
     wp_apply hMCV C.isOn s E { wait := γw, rd := ρ.rd } $$ []
-    · iframe #; iapply srvMonitorPermitM_of C.isOn s E { wait := γw, rd := ρ.rd } γn.id HmidcS; iframe Hreq HmidS
+    · iframe #; iapply srvMonitorPermitM_of C.isOn s E { wait := γw, rd := ρ.rd } γn.id HmidcS; iframe Hreq HlgOk HmidS
     iapply HΦ'
     try itrivial
-  wp_apply hGA s _ (srvSVRes s E) $$ [Hgr Hlg Hsv] as ⟨Hgr, Hlg⟩
-  · iframe Hgr Hlg Hsv
-    iintro !> %Φ' HL HΦ'
-    wp_apply hMSV C.isOn s E { wait := γw, rd := ρ.rd } γp $$ [HL]
-    · iframe #; iframe HL
+  -- (H2, 2026-11-05) with its receipt at `γg`, the budget's registered name
+  wp_apply wp_GoAttach_tok hGA s γg _ (srvSVRes s E) $$ [Hgr Hsv] as Hgr
+  · iframe Hgr Hsv
+    iintro !> %Φ' ⟨HL, Hrun⟩ HΦ'
+    iunfold goRunning at Hrun
+    wp_apply hMSV C.isOn s E { wait := γw, rd := ρ.rd } γp γg.run $$ [HL Hrun] as Hrun
+    · iframe #; iframe HL Hrun
     iapply HΦ'
-    try itrivial
+    iunfold goRunning
+    iexact Hrun
   -- `s.read.LinearizableReadLoop`, verified
   icases Hrl with ⟨%rd, #Hrdf, #Hrlp⟩
   wp_auto
-  wp_apply hGA s _ iprop(isReadLoopPre rd γr Er.RQ (srvReadLR s) (idCred ρ.ids 1) (kvStM C.isOn γr.kv) ∗
+  wp_apply wp_GoAttach_tok hGA s γg _ iprop(isReadLoopPre rd γr Er.RQ (srvReadLR s) (idCred ρ.ids 1) (kvStM C.isOn γr.kv) ∗
       srvReadLR s ∗
-      □ (|==> idCred ρ.ids 1)) $$ [Hgr Hlg HLR] as ⟨Hgr, Hlg⟩
-  · iframe Hgr Hlg HLR Hrlp HNR
-    iintro !> %Φ' ⟨#Hpre, HL, #HN⟩ HΦ'
+      □ (|==> idCred ρ.ids 1)) $$ [Hgr HLR] as Hgr
+  · iframe Hgr HLR Hrlp HNR
+    iintro !> %Φ' ⟨⟨#Hpre, HL, #HN⟩, Hrun⟩ HΦ'
+    ihave HΦ' := goRunning_frame γg _ $$ Hrun HΦ'
     ihave #Hpread : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read $$ []
     · iPkgInit
     wp_apply hRL rd γr Er.RQ (srvReadLR s) (idCred ρ.ids 1) $$ [HL]
@@ -164,35 +179,39 @@ theorem EtcdServer.Start.wp_proof
   -- (audit B4a) off: `srvMonitorsOff`
   iunfold srvMonitorsOff at Hoff
   icases Hoff with ⟨#Hcct, #Hdct, %fg, #Hfgf, #Hfgo⟩
-  wp_apply hGA s _ iprop(True) $$ [Hgr Hlg] as ⟨Hgr, Hlg⟩
-  · iframe Hgr Hlg
+  wp_apply wp_GoAttach_tok hGA s γg _ iprop(True) $$ [Hgr] as Hgr
+  · iframe Hgr
     isplitr
     · itrivial
-    iintro !> %Φ' - HΦ'
+    iintro !> %Φ' ⟨-, Hrun⟩ HΦ'
+    ihave HΦ' := goRunning_frame γg _ $$ Hrun HΦ'
     wp_apply hKVH s $$ []
     · iframe #
     iapply HΦ'
     try itrivial
-  wp_apply hGA s _ iprop(True) $$ [Hgr Hlg] as ⟨Hgr, Hlg⟩
-  · iframe Hgr Hlg
+  wp_apply wp_GoAttach_tok hGA s γg _ iprop(True) $$ [Hgr] as Hgr
+  · iframe Hgr
     isplitr
     · itrivial
-    iintro !> %Φ' - HΦ'
+    iintro !> %Φ' ⟨-, Hrun⟩ HΦ'
+    ihave HΦ' := goRunning_frame γg _ $$ Hrun HΦ'
     wp_apply hCH s fg $$ []
     · iframe #
     iapply HΦ'
     try itrivial
-  wp_apply hGA s _ (srvLgReader s) $$ [Hgr Hlg Hlgd] as ⟨Hgr, Hlg⟩
-  · iframe Hgr Hlg Hlgd
-    iintro !> %Φ' HL HΦ'
+  wp_apply wp_GoAttach_tok hGA s γg _ (srvLgReader s) $$ [Hgr Hlgd] as Hgr
+  · iframe Hgr Hlgd
+    iintro !> %Φ' ⟨HL, Hrun⟩ HΦ'
+    ihave HΦ' := goRunning_frame γg _ $$ Hrun HΦ'
     wp_apply hDG s vd.lg $$ [HL]
     · iframe #; iframe HL
     iapply HΦ'
     try itrivial
+  ihave Hgr := srvGoResAt_close s γg $$ Hgr
   iapply HΦ
   iexists γw
   iunfold srvStartReaders
-  iframe Hreq Hrd Hlb Hgr Hlg Hrds Hwgs Hlcs
+  iframe Hreq Hrd Hlb Hgr Hlg Hrds Hwgs Hlcs Hright
 
 end proof
 

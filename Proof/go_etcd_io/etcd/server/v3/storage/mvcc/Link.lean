@@ -29,6 +29,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeSetScheduledCom
 public import Proof.encoding.binary.bigEndian__PutUint64
 public import Proof.encoding.binary.bigEndian__Uint64
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.eventBatch__add
+public import Proof.fmt.ErrorfWrap
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.generation__isEmpty
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.generation__isRecreatedAt
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.generation__walk
@@ -214,7 +215,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem binary.bigEndian.wp_PutUint64 :
@@ -361,18 +361,6 @@ theorem zap.Logger.wp_Info :
     zap.Logger.Info.spec (GF := GF) (hG := hG) :=
   zap.Logger.Info.wp_proof
 
-theorem mvcc.wp_ReportEventReceived :
-    mvcc.ReportEventReceived.spec (GF := GF) (hG := hG) :=
-  mvcc.ReportEventReceived.wp_proof
-
-theorem mvcc.wp_UnsafeSetFinishedCompact :
-    mvcc.UnsafeSetFinishedCompact.spec (GF := GF) (hG := hG) :=
-  mvcc.UnsafeSetFinishedCompact.wp_proof mvcc.wp_NewRevBytes mvcc.wp_RevToBytes
-
-theorem mvcc.wp_SetFinishedCompact :
-    mvcc.SetFinishedCompact.spec (GF := GF) (hG := hG) :=
-  mvcc.SetFinishedCompact.wp_proof mvcc.wp_UnsafeSetFinishedCompact
-
 theorem mvcc.wp_UnsafeSetScheduledCompact :
     mvcc.UnsafeSetScheduledCompact.spec (GF := GF) (hG := hG) :=
   mvcc.UnsafeSetScheduledCompact.wp_proof mvcc.wp_NewRevBytes mvcc.wp_RevToBytes
@@ -381,17 +369,53 @@ theorem mvcc.wp_SetScheduledCompact :
     mvcc.SetScheduledCompact.spec (GF := GF) (hG := hG) :=
   mvcc.SetScheduledCompact.wp_proof mvcc.wp_UnsafeSetScheduledCompact
 
-theorem mvcc.eventBatch.wp_add :
-    mvcc.eventBatch.add.spec (GF := GF) (hG := hG) :=
-  mvcc.eventBatch.add.wp_proof
+theorem traceutil.wp_TODO :
+    traceutil.TODO.spec (GF := GF) (hG := hG) :=
+  traceutil.TODO.wp_proof
+
+theorem mvcc.generation.wp_walk :
+    mvcc.generation.walk.spec (GF := GF) (hG := hG) :=
+  mvcc.generation.walk.wp_proof
 
 theorem mvcc.generation.wp_isRecreatedAt :
     mvcc.generation.isRecreatedAt.spec (GF := GF) (hG := hG) :=
   mvcc.generation.isRecreatedAt.wp_proof mvcc.generation.wp_isEmpty
 
-theorem mvcc.generation.wp_walk :
-    mvcc.generation.walk.spec (GF := GF) (hG := hG) :=
-  mvcc.generation.walk.wp_proof
+theorem mvcc.keyIndex.wp_doCompact :
+    mvcc.keyIndex.doCompact.spec (GF := GF) (hG := hG) :=
+  mvcc.keyIndex.doCompact.wp_proof mvcc.generation.wp_walk mvcc.generation.wp_isRecreatedAt
+
+theorem mvcc.keyIndex.wp_compact :
+    mvcc.keyIndex.compact.spec (GF := GF) (hG := hG) :=
+  mvcc.keyIndex.compact.wp_proof mvcc.keyIndex.wp_isEmpty zap.wp_String zap.Logger.wp_Panic mvcc.keyIndex.wp_doCompact mvcc.generation.wp_isEmpty
+
+theorem mvcc.treeIndex.wp_Compact [go_etcd_io.etcd.cache.v3.Assumptions] :
+    mvcc.treeIndex.Compact.spec (GF := GF) (hG := hG) :=
+  mvcc.treeIndex.Compact.wp_proof zap.wp_Int64 zap.Logger.wp_Info btree.BTree.wp_Clone btree.BTree.wp_Ascend mvcc.keyIndex.wp_compact mvcc.keyIndex.wp_isEmpty btree.BTree.wp_Delete zap.Logger.wp_Panic
+
+theorem mvcc.wp_newKVHasher :
+    mvcc.newKVHasher.spec (GF := GF) (hG := hG) :=
+  mvcc.newKVHasher.wp_proof
+
+theorem mvcc.kvHasher.wp_WriteKeyValue :
+    mvcc.kvHasher.WriteKeyValue.spec (GF := GF) (hG := hG) :=
+  mvcc.kvHasher.WriteKeyValue.wp_proof
+
+theorem mvcc.wp_UnsafeSetFinishedCompact :
+    mvcc.UnsafeSetFinishedCompact.spec (GF := GF) (hG := hG) :=
+  mvcc.UnsafeSetFinishedCompact.wp_proof mvcc.wp_NewRevBytes mvcc.wp_RevToBytes
+
+theorem mvcc.kvHasher.wp_Hash :
+    mvcc.kvHasher.Hash.spec (GF := GF) (hG := hG) :=
+  mvcc.kvHasher.Hash.wp_proof
+
+theorem zap.wp_Duration :
+    zap.Duration.spec (GF := GF) (hG := hG) :=
+  zap.Duration.wp_proof
+
+theorem zap.wp_Uint32 :
+    zap.Uint32.spec (GF := GF) (hG := hG) :=
+  zap.Uint32.wp_proof
 
 theorem go_humanize.wp_Bytes :
     go_humanize.Bytes.spec (GF := GF) (hG := hG) :=
@@ -401,13 +425,25 @@ theorem mvcc.hashStorage.wp_Store :
     mvcc.hashStorage.Store.spec (GF := GF) (hG := hG) :=
   mvcc.hashStorage.Store.wp_proof
 
-theorem mvcc.keyIndex.wp_doCompact :
-    mvcc.keyIndex.doCompact.spec (GF := GF) (hG := hG) :=
-  mvcc.keyIndex.doCompact.wp_proof mvcc.generation.wp_walk mvcc.generation.wp_isRecreatedAt
+theorem traceutil.Trace.wp_Step :
+    traceutil.Trace.Step.spec (GF := GF) (hG := hG) :=
+  traceutil.Trace.Step.wp_proof
 
-theorem mvcc.keyIndex.wp_compact :
-    mvcc.keyIndex.compact.spec (GF := GF) (hG := hG) :=
-  mvcc.keyIndex.compact.wp_proof mvcc.keyIndex.wp_isEmpty zap.wp_String zap.Logger.wp_Panic mvcc.keyIndex.wp_doCompact mvcc.generation.wp_isEmpty
+theorem mvcc.wp_ReportEventReceived :
+    mvcc.ReportEventReceived.spec (GF := GF) (hG := hG) :=
+  mvcc.ReportEventReceived.wp_proof
+
+theorem mvcc.wp_SetFinishedCompact :
+    mvcc.SetFinishedCompact.spec (GF := GF) (hG := hG) :=
+  mvcc.SetFinishedCompact.wp_proof mvcc.wp_UnsafeSetFinishedCompact
+
+theorem mvcc.eventBatch.wp_add :
+    mvcc.eventBatch.add.spec (GF := GF) (hG := hG) :=
+  mvcc.eventBatch.add.wp_proof
+
+theorem fmt.wp_ErrorfWrap :
+    fmt.ErrorfWrap.spec (GF := GF) (hG := hG) :=
+  fmt.ErrorfWrap.wp_proof
 
 theorem mvcc.keyIndex.wp_findGeneration :
     mvcc.keyIndex.findGeneration.spec (GF := GF) (hG := hG) :=
@@ -420,14 +456,6 @@ theorem mvcc.keyIndex.wp_get :
 theorem mvcc.keyIndex.wp_keep :
     mvcc.keyIndex.keep.spec (GF := GF) (hG := hG) :=
   mvcc.keyIndex.keep.wp_proof mvcc.keyIndex.wp_isEmpty mvcc.keyIndex.wp_doCompact mvcc.generation.wp_isEmpty
-
-theorem mvcc.kvHasher.wp_Hash :
-    mvcc.kvHasher.Hash.spec (GF := GF) (hG := hG) :=
-  mvcc.kvHasher.Hash.wp_proof
-
-theorem mvcc.kvHasher.wp_WriteKeyValue :
-    mvcc.kvHasher.WriteKeyValue.spec (GF := GF) (hG := hG) :=
-  mvcc.kvHasher.WriteKeyValue.wp_proof
 
 theorem mvcc.watcherGroup.wp_contains :
     mvcc.watcherGroup.contains.spec (GF := GF) (hG := hG) :=
@@ -453,10 +481,6 @@ theorem mvcc.storeTxnCommon.wp_FirstRev :
     mvcc.storeTxnCommon.FirstRev.spec (GF := GF) (hG := hG) :=
   mvcc.storeTxnCommon.FirstRev.wp_proof
 
-theorem traceutil.Trace.wp_Step :
-    traceutil.Trace.Step.spec (GF := GF) (hG := hG) :=
-  traceutil.Trace.Step.wp_proof
-
 theorem mvcc.storeTxnCommon.wp_Rev :
     mvcc.storeTxnCommon.Rev.spec (GF := GF) (hG := hG) :=
   mvcc.storeTxnCommon.Rev.wp_proof
@@ -468,10 +492,6 @@ theorem mvcc.wp_sliceCapWithLimit :
 theorem mvcc.wp_newWatcherGroup :
     mvcc.newWatcherGroup.spec (GF := GF) (hG := hG) :=
   mvcc.newWatcherGroup.wp_proof adt.wp_NewIntervalTree
-
-theorem traceutil.wp_TODO :
-    traceutil.TODO.spec (GF := GF) (hG := hG) :=
-  traceutil.TODO.wp_proof
 
 theorem mvcc.watcherGroup.wp_size :
     mvcc.watcherGroup.size.spec (GF := GF) (hG := hG) :=
@@ -517,10 +537,6 @@ theorem mvcc.wp_newWatcherBatch :
     mvcc.newWatcherBatch.spec (GF := GF) (hG := hG) :=
   mvcc.newWatcherBatch.wp_proof mvcc.watcherGroup.wp_watcherSetByKey mvcc.watcherBatch.wp_add
 
-theorem mvcc.wp_newKVHasher :
-    mvcc.newKVHasher.spec (GF := GF) (hG := hG) :=
-  mvcc.newKVHasher.wp_proof
-
 theorem mvcc.wp_newMetricsTxnRead :
     mvcc.newMetricsTxnRead.spec (GF := GF) (hG := hG) :=
   mvcc.newMetricsTxnRead.wp_proof
@@ -541,18 +557,6 @@ theorem schema.bucket.wp_String :
     schema.bucket.String.spec (GF := GF) (hG := hG) :=
   schema.bucket.String.wp_proof schema.bucket.wp_Name
 
-theorem mvcc.treeIndex.wp_Compact [go_etcd_io.etcd.cache.v3.Assumptions] :
-    mvcc.treeIndex.Compact.spec (GF := GF) (hG := hG) :=
-  mvcc.treeIndex.Compact.wp_proof zap.wp_Int64 zap.Logger.wp_Info btree.BTree.wp_Clone btree.BTree.wp_Ascend mvcc.keyIndex.wp_compact mvcc.keyIndex.wp_isEmpty btree.BTree.wp_Delete zap.Logger.wp_Panic
-
-theorem zap.wp_Duration :
-    zap.Duration.spec (GF := GF) (hG := hG) :=
-  zap.Duration.wp_proof
-
-theorem zap.wp_Uint32 :
-    zap.Uint32.spec (GF := GF) (hG := hG) :=
-  zap.Uint32.wp_proof
-
 theorem mvcc.treeIndex.wp_Keep [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.treeIndex.Keep.spec (GF := GF) (hG := hG) :=
   mvcc.treeIndex.Keep.wp_proof btree.BTree.wp_Ascend mvcc.keyIndex.wp_keep
@@ -566,7 +570,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.wp_ChanBufLen :
@@ -609,9 +612,53 @@ theorem mvcc.store.wp_restore [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.store.restore.spec (GF := GF) (hG := hG) :=
   mvcc.store.restore.wp_proof mvcc.store.wp_setupMetricsReporter mvcc.wp_NewRevBytes mvcc.wp_RevToBytes mvcc.wp_UnsafeReadFinishedCompact mvcc.wp_UnsafeReadScheduledCompact mvcc.wp_restoreIntoIndex mvcc.wp_restoreChunk mvcc.wp_BytesToRev zap.wp_Int64 zap.Logger.wp_Info zap.wp_String zap.wp_Error zap.Logger.wp_Warn
 
+theorem mvcc.store.wp_checkPrevCompactionCompleted :
+    mvcc.store.checkPrevCompactionCompleted.spec (GF := GF) (hG := hG) :=
+  mvcc.store.checkPrevCompactionCompleted.wp_proof mvcc.wp_UnsafeReadScheduledCompact mvcc.wp_UnsafeReadFinishedCompact
+
+theorem schedule.job.wp_Do :
+    schedule.job.Do.spec (GF := GF) (hG := hG) :=
+  schedule.job.Do.wp_proof
+
+theorem schedule.wp_NewJob :
+    schedule.NewJob.spec (GF := GF) (hG := hG) :=
+  schedule.NewJob.wp_proof schedule.job.wp_Do
+
+theorem schedule.fifo.wp_Schedule :
+    schedule.fifo.Schedule.spec (GF := GF) (hG := hG) :=
+  schedule.fifo.Schedule.wp_proof
+
+theorem schedule.Scheduler.wp_Schedule :
+    schedule.Scheduler.Schedule.spec (GF := GF) (hG := hG) :=
+  schedule.Scheduler.Schedule.wp_proof schedule.fifo.wp_Schedule
+
+theorem mvcc.store.wp_compactBarrier :
+    mvcc.store.compactBarrier.spec (GF := GF) (hG := hG) :=
+  mvcc.store.compactBarrier.wp_proof context.wp_Err schedule.wp_NewJob schedule.Scheduler.wp_Schedule
+
+theorem mvcc.store.wp_updateCompactRev :
+    mvcc.store.updateCompactRev.spec (GF := GF) (hG := hG) :=
+  mvcc.store.updateCompactRev.wp_proof schedule.wp_NewJob mvcc.store.wp_compactBarrier schedule.Scheduler.wp_Schedule mvcc.wp_SetScheduledCompact
+
+theorem time.Time.wp_Unix :
+    time.Time.Unix.spec (GF := GF) (hG := hG) :=
+  time.Time.Unix.wp_proof
+
+theorem mvcc.store.wp_scheduleCompaction [go_etcd_io.etcd.cache.v3.Assumptions] :
+    mvcc.store.scheduleCompaction.spec (GF := GF) (hG := hG) :=
+  mvcc.store.scheduleCompaction.wp_proof mvcc.treeIndex.wp_Compact binary.bigEndian.wp_PutUint64 mvcc.wp_newKVHasher mvcc.wp_BytesToRev mvcc.kvHasher.wp_WriteKeyValue mvcc.wp_UnsafeSetFinishedCompact mvcc.kvHasher.wp_Hash zap.wp_Int64 zap.wp_Duration zap.wp_Int' zap.wp_Uint32 zap.wp_String go_humanize.wp_Bytes zap.Logger.wp_Info mvcc.wp_RevToBytes time.Time.wp_Unix
+
+theorem mvcc.store.wp_compact [go_etcd_io.etcd.cache.v3.Assumptions] :
+    mvcc.store.compact.spec (GF := GF) (hG := hG) :=
+  mvcc.store.compact.wp_proof schedule.wp_NewJob context.wp_Err mvcc.store.wp_compactBarrier mvcc.store.wp_scheduleCompaction zap.wp_Error zap.Logger.wp_Warn mvcc.hashStorage.wp_Store zap.Logger.wp_Info schedule.Scheduler.wp_Schedule traceutil.Trace.wp_Step
+
+theorem mvcc.store.wp_compactLockfree [go_etcd_io.etcd.cache.v3.Assumptions] :
+    mvcc.store.compactLockfree.spec (GF := GF) (hG := hG) :=
+  mvcc.store.compactLockfree.wp_proof mvcc.store.wp_checkPrevCompactionCompleted mvcc.store.wp_updateCompactRev traceutil.wp_TODO mvcc.store.wp_compact
+
 theorem mvcc.wp_NewStore [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.NewStore.spec (GF := GF) (hG := hG) :=
-  mvcc.NewStore.wp_proof zap.wp_NewNop mvcc.wp_newTreeIndex schedule.wp_NewFIFOScheduler mvcc.wp_NewHashStorage schema.wp_UnsafeCreateMetaBucket mvcc.store.wp_restore
+  mvcc.NewStore.wp_proof zap.wp_NewNop mvcc.wp_newTreeIndex schedule.wp_NewFIFOScheduler mvcc.wp_NewHashStorage schema.wp_UnsafeCreateMetaBucket mvcc.store.wp_restore mvcc.store.wp_compactLockfree
 
 theorem mvcc.wp_kvsToEvents :
     mvcc.kvsToEvents.spec (GF := GF) (hG := hG) :=
@@ -695,7 +742,7 @@ theorem mvcc.treeIndex.wp_Revisions [go_etcd_io.etcd.cache.v3.Assumptions] :
 
 theorem mvcc.storeTxnCommon.wp_rangeKeys [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.storeTxnCommon.rangeKeys.spec (GF := GF) (hG := hG) :=
-  mvcc.storeTxnCommon.rangeKeys.wp_proof mvcc.treeIndex.wp_CountRevisions mvcc.treeIndex.wp_Range mvcc.treeIndex.wp_Revisions mvcc.wp_sliceCapWithLimit mvcc.wp_NewRevBytes mvcc.wp_RevToBytes traceutil.Trace.wp_Step proto.wp_Unmarshal
+  mvcc.storeTxnCommon.rangeKeys.wp_proof mvcc.treeIndex.wp_CountRevisions mvcc.treeIndex.wp_Range mvcc.treeIndex.wp_Revisions mvcc.wp_sliceCapWithLimit mvcc.wp_NewRevBytes mvcc.wp_RevToBytes traceutil.Trace.wp_Step proto.wp_Unmarshal fmt.wp_ErrorfWrap
 
 theorem mvcc.storeTxnCommon.wp_Range [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.storeTxnCommon.Range.spec (GF := GF) (hG := hG) :=
@@ -793,22 +840,6 @@ theorem mvcc.readView.wp_Rev :
     mvcc.readView.Rev.spec (GF := GF) (hG := hG) :=
   mvcc.readView.Rev.wp_proof traceutil.wp_TODO mvcc.store.wp_Read mvcc.storeTxnCommon.wp_Rev mvcc.metricsTxnWrite.wp_End
 
-theorem schedule.job.wp_Do :
-    schedule.job.Do.spec (GF := GF) (hG := hG) :=
-  schedule.job.Do.wp_proof
-
-theorem schedule.wp_NewJob :
-    schedule.NewJob.spec (GF := GF) (hG := hG) :=
-  schedule.NewJob.wp_proof schedule.job.wp_Do
-
-theorem schedule.fifo.wp_Schedule :
-    schedule.fifo.Schedule.spec (GF := GF) (hG := hG) :=
-  schedule.fifo.Schedule.wp_proof
-
-theorem schedule.Scheduler.wp_Schedule :
-    schedule.Scheduler.Schedule.spec (GF := GF) (hG := hG) :=
-  schedule.Scheduler.Schedule.wp_proof schedule.fifo.wp_Schedule
-
 theorem schedule.fifo.wp_Stop :
     schedule.fifo.Stop.spec (GF := GF) (hG := hG) :=
   schedule.fifo.Stop.wp_proof
@@ -829,37 +860,9 @@ theorem mvcc.store.wp_Commit :
     mvcc.store.Commit.spec (GF := GF) (hG := hG) :=
   mvcc.store.Commit.wp_proof
 
-theorem mvcc.store.wp_checkPrevCompactionCompleted :
-    mvcc.store.checkPrevCompactionCompleted.spec (GF := GF) (hG := hG) :=
-  mvcc.store.checkPrevCompactionCompleted.wp_proof mvcc.wp_UnsafeReadScheduledCompact mvcc.wp_UnsafeReadFinishedCompact
-
-theorem mvcc.store.wp_compactBarrier :
-    mvcc.store.compactBarrier.spec (GF := GF) (hG := hG) :=
-  mvcc.store.compactBarrier.wp_proof context.wp_Err schedule.wp_NewJob schedule.Scheduler.wp_Schedule
-
-theorem mvcc.store.wp_updateCompactRev :
-    mvcc.store.updateCompactRev.spec (GF := GF) (hG := hG) :=
-  mvcc.store.updateCompactRev.wp_proof schedule.wp_NewJob mvcc.store.wp_compactBarrier schedule.Scheduler.wp_Schedule mvcc.wp_SetScheduledCompact
-
-theorem time.Time.wp_Unix :
-    time.Time.Unix.spec (GF := GF) (hG := hG) :=
-  time.Time.Unix.wp_proof
-
-theorem mvcc.store.wp_scheduleCompaction [go_etcd_io.etcd.cache.v3.Assumptions] :
-    mvcc.store.scheduleCompaction.spec (GF := GF) (hG := hG) :=
-  mvcc.store.scheduleCompaction.wp_proof mvcc.treeIndex.wp_Compact binary.bigEndian.wp_PutUint64 mvcc.wp_newKVHasher mvcc.wp_BytesToRev mvcc.kvHasher.wp_WriteKeyValue mvcc.wp_UnsafeSetFinishedCompact mvcc.kvHasher.wp_Hash zap.wp_Int64 zap.wp_Duration zap.wp_Int' zap.wp_Uint32 zap.wp_String go_humanize.wp_Bytes zap.Logger.wp_Info mvcc.wp_RevToBytes time.Time.wp_Unix
-
-theorem mvcc.store.wp_compact [go_etcd_io.etcd.cache.v3.Assumptions] :
-    mvcc.store.compact.spec (GF := GF) (hG := hG) :=
-  mvcc.store.compact.wp_proof schedule.wp_NewJob context.wp_Err mvcc.store.wp_compactBarrier mvcc.store.wp_scheduleCompaction zap.wp_Error zap.Logger.wp_Warn mvcc.hashStorage.wp_Store zap.Logger.wp_Info schedule.Scheduler.wp_Schedule traceutil.Trace.wp_Step
-
 theorem mvcc.store.wp_Compact [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.store.Compact.spec (GF := GF) (hG := hG) :=
   mvcc.store.Compact.wp_proof mvcc.store.wp_checkPrevCompactionCompleted mvcc.store.wp_updateCompactRev traceutil.Trace.wp_Step mvcc.store.wp_compact
-
-theorem mvcc.store.wp_compactLockfree [go_etcd_io.etcd.cache.v3.Assumptions] :
-    mvcc.store.compactLockfree.spec (GF := GF) (hG := hG) :=
-  mvcc.store.compactLockfree.wp_proof mvcc.store.wp_checkPrevCompactionCompleted mvcc.store.wp_updateCompactRev traceutil.wp_TODO mvcc.store.wp_compact
 
 theorem mvcc.store.wp_Restore [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.store.Restore.spec (GF := GF) (hG := hG) :=

@@ -104,7 +104,7 @@ theorem errorsNewOk_of
   · ipureintro
     refine ⟨by simp, hAs, fun ii h => ?_⟩
     cases h
-    refine ⟨ErrorStringLeaf.leaf _, ?_⟩
+    refine ⟨ErrorStringLeaf.leaf _, ?_, by simp [clientErrTys]⟩
     unfold errors.AsTypeTyped
     have hu : underlying go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty =
         go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.underlying := go.is_underlying
@@ -116,13 +116,14 @@ theorem errorsNewOk_of
   iintro !> %e %he
   cases he
   isplitr
-  · unfold errorStringSpec
-    iintro !> %Ψ HΨ
-    iapply Herr
-    inext
-    iapply HΨ
+  · iexists msg
+    unfold errorMsgIs
+    iexact Herr
   isplitr
   · ipureintro; exact ErrorStringLeaf.leaf _
+  isplitr
+  rotate_left
+  · ipureintro; exact ErrorStringLeaf.noFormat
   unfold grpcErrMethodsOk
   isplitl
   · iintro %h
@@ -137,14 +138,16 @@ theorem clientErr_statusErrOk_of_leaf (e : GoInterfaceOk) (hl : errors.isLeafErr
     (hG : methodSet e.ty !! go!"GRPCStatus" ≠ some (go.Signature [] false
       [go.GoType.PointerType google_golang_org.grpc.internal.status.Status.ty]))
     (hty : e.ty ≠ go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
-    (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
+    (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
+    (hT : e.ty ∈ clientErrTys)
+    (hF : methodSet e.ty !! go!"Format" = none) :
     EtcdGrove.errMsgOk (GF := GF) e ⊢ ⌜clientErr (GoInterface.ok e)⌝ ∗ statusErrOk (GoInterface.ok e) := by
   iintro #Hm
   isplitl
   · ipureintro
     refine ⟨hAs, fun ii h => ?_⟩
     cases h
-    refine ⟨hl, ?_⟩
+    refine ⟨hl, ?_, hT⟩
     unfold errors.AsTypeTyped
     have hu : underlying go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty =
         go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.underlying := go.is_underlying
@@ -155,16 +158,12 @@ theorem clientErr_statusErrOk_of_leaf (e : GoInterfaceOk) (hl : errors.isLeafErr
   iintro !> %e' %he
   cases he
   isplitr
-  · unfold errorStringSpec
-    iintro !> %Ψ HΨ
-    iunfold EtcdGrove.errMsgOk at Hm
-    iapply Hm $$ [] [HΨ]
-    · itrivial
-    inext
-    iintro %msg -
-    iapply HΨ
+  · iapply EtcdGrove.errMsgOk_msgIs $$ Hm
   isplitr
   · ipureintro; exact hl
+  isplitr
+  rotate_left
+  · ipureintro; exact hF
   unfold grpcErrMethodsOk
   isplitl
   · iintro %h
@@ -192,7 +191,7 @@ theorem eofOk_of_init [_root_.Perennial.io.Assumptions]
       go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty := by
     unfold go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty; nofun
   ihave ⟨%Hc, #Hs⟩ := clientErr_statusErrOk_of_leaf _ hl.2.1 hl.2.2
-    ErrorStringNoGRPCStatus.noGRPCStatus hty hAs $$ Hm
+    ErrorStringNoGRPCStatus.noGRPCStatus hty hAs (by simp [clientErrTys]) ErrorStringLeaf.noFormat $$ Hm
   unfold eofOk
   iintro !> %err #He
   iunfold eofIs at He
@@ -204,12 +203,13 @@ theorem eofOk_of_init [_root_.Perennial.io.Assumptions]
   iexact Hs
 
 /-- **Every context's `Err()` returns client errors** (see the file header). -/
-theorem ctxErrClientAllW_of (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
+theorem ctxErrClientAllW_of [_root_.Perennial.context.Assumptions]
+    (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
     isPkgInit (PROP := IProp GF) pkg_id.context ⊢ ctxErrClientAllW := by
   iintro #Hp
-  ihave ⟨#HC, #HD⟩ := EtcdGrove.ContextReadErrs.errs $$ Hp
+  ihave ⟨#HC, #HD⟩ := EtcdGrove.ContextReadErrs.errs_strong $$ Hp
   ihave ⟨#HC2, #HD2⟩ := ContextErrsClient.errs $$ Hp
   iunfold EtcdGrove.errVarLeaf at HC
   icases HC with ⟨%ec, #Hec, %Hlc, #Hmc⟩
@@ -221,8 +221,26 @@ theorem ctxErrClientAllW_of (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := h
   icombine Hec Hec' gives %Heqc
   icombine Hed Hed' gives %Heqd
   cases Heqc; cases Heqd
-  ihave ⟨%Hcc, #Hsc⟩ := clientErr_statusErrOk_of_leaf ec Hlc.2.1 Hlc.2.2 Htc.1 Htc.2 hAs $$ Hmc
-  ihave ⟨%Hcd, #Hsd⟩ := clientErr_statusErrOk_of_leaf ed Hld.1 Hld.2.1 Htd.1 Htd.2 hAs $$ Hmd
+  -- (k8s etcd3 7c-2 part 2, S7) their descriptions, neither read error's
+  ihave ⟨⟨%ec3, #Hec3, %Hdc⟩, ⟨%ed3, #Hed3, %Hdd⟩⟩ := EtcdGrove.ContextReadErrs.descs $$ Hp
+  icombine Hec Hec3 gives %Heqc3
+  icombine Hed Hed3 gives %Heqd3
+  subst Heqc3; subst Heqd3
+  -- (k8s 7e-1) their dynamic types, from `context`'s package fact
+  ihave #Hci : (_root_.Perennial.context.isInit : IProp GF) $$ []
+  · iapply _root_.Perennial.context.isInit_access $$ Hp
+  iNamed Hci
+  icases HCanceledCell with ⟨%xc, #Hxc, -⟩
+  icombine Hec Hxc gives %HtyC
+  icombine Hed HDeadlineExceededTy gives %HtyD
+  have hTc : ec.ty ∈ clientErrTys := by
+    cases ec; simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq] at HtyC
+    simp [clientErrTys, HtyC.1]
+  have hTd : ed.ty ∈ clientErrTys := by
+    cases ed; simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq] at HtyD
+    simp [clientErrTys, HtyD.1]
+  ihave ⟨%Hcc, #Hsc⟩ := clientErr_statusErrOk_of_leaf ec Hlc.2.1 Hlc.2.2.1 Htc.1 Htc.2 hAs hTc Hlc.2.2.2.2 $$ Hmc
+  ihave ⟨%Hcd, #Hsd⟩ := clientErr_statusErrOk_of_leaf ed Hld.1 Hld.2.1 Htd.1 Htd.2 hAs hTd Hld.2.2.2.2.2 $$ Hmd
   unfold ctxErrClientAllW
   iintro !> %ctx %cs #Hctx
   unfold ctxErrClient
@@ -237,6 +255,7 @@ theorem ctxErrClientAllW_of (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := h
     · ipureintro; exact ⟨hAs, fun ii h => by cases h⟩
     · iapply statusErrOk_nil
     · iapply go_etcd_io.etcd.cache.v3.errCellOk_nil
+    · ipureintro; left; rfl
   · icombine Hv Hec gives %Heq
     subst Heq
     iapply HΦ $$ Hpost
@@ -246,6 +265,8 @@ theorem ctxErrClientAllW_of (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := h
       rw [Hx]
       iapply go_etcd_io.etcd.cache.v3.errCellOk_of_cell x _
         (by simp [go_etcd_io.etcd.cache.v3.clientErrMsgs]) $$ Hcell
+    · ipureintro; right; simp only [handlerDescs, List.mem_cons, List.mem_singleton, List.not_mem_nil,
+        or_false, not_or, Hdc, Hdd]; decide
   · icombine Hv Hed gives %Heq
     subst Heq
     iapply HΦ $$ Hpost
@@ -253,6 +274,8 @@ theorem ctxErrClientAllW_of (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := h
     · iexact Hsd
     · -- (D37) `DeadlineExceeded` is of no `*errorString` type
       iapply go_etcd_io.etcd.cache.v3.errCellOk_of_ty ed (Hnd ed rfl)
+    · ipureintro; right; simp only [handlerDescs, List.mem_cons, List.mem_singleton, List.not_mem_nil,
+        or_false, not_or, Hdc, Hdd]; decide
 
 end proofs
 

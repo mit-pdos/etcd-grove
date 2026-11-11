@@ -30,7 +30,7 @@ theorem EtcdServer.AuthInfoFromCtx.wp_proof
     (hAS : EtcdServer.AuthStore.spec (GF := GF) (hG := hG)) :
     EtcdServer.AuthInfoFromCtx.spec (GF := GF) (hG := hG) := by
   intro s st RD M cca ctx cd
-  wp_start as ⟨#Hst, #Hauth, #Hbd, #Hcca, #Hctx, Hrd⟩
+  wp_start as ⟨#Hst, #Hauth, #Hbd, #Hcca, #Hctx, #Hlib, Hrd⟩
   ihave #Hauth' := Hauth
   iunfold isReqAuth at Hauth'
   icases Hauth' with ⟨%ai, %Hai, -, #HFromTLS⟩
@@ -40,13 +40,13 @@ theorem EtcdServer.AuthInfoFromCtx.wp_proof
   · iframe #
   subst Hai
   wp_auto
-  wp_apply HFromCtx $$ %ctx %cd [Hrd] as %a %err ⟨Hrd, Ha, Herr, #Hb⟩
+  wp_apply HFromCtx $$ %ctx %cd [Hrd] as %a %err ⟨Hrd, Ha, Herr, #Hb, #Hae⟩
   · iframe; iframe #
   wp_if_destruct
   · cases err with
     | ok ei =>
       wp_auto
-      iapply HΦ; iframe Hrd Ha Herr
+      iapply HΦ; iframe Hrd Ha Herr Hae
       iintro !> %h
       iunfold ctxBoundOrTLS; ileft; iapply Hb; ipureintro; exact h
     | nil =>
@@ -56,7 +56,8 @@ theorem EtcdServer.AuthInfoFromCtx.wp_proof
         iapply HΦ; iframe Hrd; isplitr
         · iunfold authInfoOpt; ileft; ipureintro; rfl
         isplitr
-        · iapply applyErrIs_nil
+        · iapply authApplyErrIs_nil
+        iframe Hae
         iintro !> -
         iunfold ctxBoundOrTLS; ileft
         iunfold auth.ctxBound; ileft; ipureintro; rfl
@@ -68,11 +69,14 @@ theorem EtcdServer.AuthInfoFromCtx.wp_proof
         wp_apply HFromTLS $$ %ctx %cd [] as %a' Ha'
         · iframe #
         iapply HΦ; iframe Hrd Ha'; isplitr
-        · iapply applyErrIs_nil
+        · iapply authApplyErrIs_nil
+        isplitr
+        rotate_left
+        · iintro !> -; iunfold authErrVarIs; ileft; ipureintro; rfl
         iintro !> -
         iunfold ctxBoundOrTLS
         iunfold srvTLSId; iright; iexact Hcca
-  · iapply HΦ; iframe Hrd Ha Herr
+  · iapply HΦ; iframe Hrd Ha Herr Hae
     iintro !> %h
     iunfold ctxBoundOrTLS; ileft; iapply Hb; ipureintro; exact h
 

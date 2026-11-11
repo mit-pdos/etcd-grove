@@ -29,18 +29,6 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Assumptions]
 
-/-- An entry's fields, read-only. -/
-theorem entry_fields_disc (l : Loc) (v : entry) :
-    (l ↦□ v : IProp GF) ⊢ l.[entry, go!"key"] ↦□ v.key' ∗ l.[entry, go!"r"] ↦□ v.r' := by
-  iintro #H
-  icases (AccessStrict.access_strict (A := l.[entry, go!"key"] ↦□ v.key')
-      (A' := l.[entry, go!"key"] ↦□ v.key') (P := l ↦□ v)) $$ H with ⟨H1, -⟩
-  icases (AccessStrict.access_strict (A := l.[entry, go!"r"] ↦□ v.r')
-      (A' := l.[entry, go!"r"] ↦□ v.r') (P := l ↦□ v)) $$ H with ⟨H2, -⟩
-  isplitl [H1]
-  · iexact H1
-  · iexact H2
-
 theorem storeEqual.wp_proof (wp_vrEqual : vrEqual.spec (GF := GF) (hG := hG)) :
     storeEqual.spec (GF := GF) (hG := hG) := by
   intro a b ga gb

@@ -5,6 +5,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseRead
+public import Proof.context.LibKeys
 
 @[expose] public section
 
@@ -27,7 +28,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`s.LeaseLeases(ctx, r)`**, any goroutine, at a context, with the server's read-side facts and
-its header's (`srvHeaderFacts`, a reader's slots of the store: `newHeader.spec`'s), the key check's
+its header's (`srvHeaderFacts`, a thread token and a reader token of the store: `newHeader.spec`'s;
+R6, 2026-11-07: until then the thread token alone), the key check's
 resources (`checkLeaseLeases.spec`'s: the auth store and lessor at lower bounds `n`, `m`, their
 readers, a thread token; an execution of at most `2^62` steps, for `Leases()`' sort): on `nil`, the ids `ids` of the leases of the lease map at a lessor index `i`
 no older than `m` (`leaseIdsAt`: all of them, each once), the response listing them with a fresh
@@ -41,14 +43,13 @@ abbrev EtcdServer.LeaseLeases.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γl : GName) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (r : Loc) (mid cid : w64) (n m : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerReadM E.authOn s E γr ∗ srvHeaderFacts s cid mid ∗ mvcc.storeReader E.s E.γ ∗
+      isServerReadM E.authOn s E γr ∗ srvHeaderFacts s cid mid ∗ threadTok ∗ mvcc.api.mvccReaders E.γ 1 ∗
       srvAuthAt s E ∗ srvAuthLeaseLb s E ∗ srvLessorRd s γl ∗ auth.authPubLbM E.authMode n ∗
-      lease.lessorLb γl m ∗ context.isContext ctx cd ∗ E.RD ∗ lease.lessorRdPool γl ∗ threadTok ∗
+      lease.lessorLb γl m ∗ context.isContext ctx cd ∗ context.libCtxOk ctx ∗ E.RD ∗ lease.lessorRdPool γl ∗
       ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗ ⌜receiptBound GF ≤ 2 ^ 62⌝ }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"LeaseLeases"))
       (Val #(GoInterface.ok ctx))) (Val #r))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); mvcc.storeReader E.s E.γ ∗ E.RD ∗
-      threadTok ∗
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); threadTok ∗ mvcc.api.mvccReaders E.γ 1 ∗ E.RD ∗
       ((⌜err = GoInterface.nil⌝ ∗ ∃ (i : Nat) (ids : List w64), ⌜m ≤ i⌝ ∗
           lease.leaseIdsAt γl i ids ∗ leasesRespIs E resp cid mid ids ∗
           leaseCheckFrom s E (GoInterface.ok ctx) n (fun info => iprop([∗list] id ∈ ids,

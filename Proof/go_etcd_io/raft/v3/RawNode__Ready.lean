@@ -64,7 +64,7 @@ theorem RawNode.Ready.wp_proof
   · iframe Hss0 Hss
   subst Hsseq
   iapply HΦ $$ %rd %ce %es %ms %sts %h %steps %L %ss0 %W
-  iframe Hss Hce Hcommitted Hents Hmsgs Hmsgs_cap Hmsgs_own Hcr Happ Hrs Hrs_ok Hhard Hhsw
+  iframe Hss Hce Hcommitted Hents Hmsgs Hmsgs_cap Hmsgs_own Hmsgs_uf Hcr Happ Hrs Hrs_ok Hhard Hhsw
     Hsnapz Hfrz Hdk Hlive
   isplitl [Hrn]
   · iExactEq Hrn; rfl

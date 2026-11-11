@@ -44,7 +44,7 @@ def snapSenderOk (Rh : RaftHttp GF) (pid : w64) (s : Loc) : IProp GF :=
     s.[rafthttp.snapshotSender, go!"status"] ↦□ ps ∗ s.[rafthttp.snapshotSender, go!"r"] ↦□ r ∗
     s.[rafthttp.snapshotSender, go!"errorc"] ↦□ ec ∗
     s.[rafthttp.snapshotSender, go!"stopc"] ↦□ sc ∗
-    tr.[rafthttp.Transport, go!"Logger"] ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
+    tr.[rafthttp.Transport, go!"Logger"] ↦□ lg ∗ zapLoggerOk lg ∗
     tr.[rafthttp.Transport, go!"URLs"] ↦□ urls ∗ urls ↦*□ uvs ∗
     tr.[rafthttp.Transport, go!"pipelineRt"] ↦□ rt ∗ http.roundTripperOk (raftHttpNet Rh) rt ∗
     pickerOk pk (peerURL Rh pid) ∗ peerStatusOk ps ∗ netRaftOk Rh.γn lid γd R r ∗
@@ -60,9 +60,11 @@ instance snapSenderOk_persistent (Rh : RaftHttp GF) (pid : w64) (s : Loc) :
 /-- **A snapshot message for the peer `pid`** (D22 S-i's `netSnapBundle`, the message to `pid`): the
 raft message `ml`, a `MsgSnap` of a snapshot `sn` to `pid`, read-only for good, with its bundle,
 and the right to read the merged message's reader `rc`, whose complete streams are bbolt images
-of some `D` with the payload's certificate at the snapshot's index. What `send` takes. -/
+of some `D` with the payload's certificate at the snapshot's index. What `send` takes.
+(raft-entsize [r3c]) Frozen at a content below `2^47` bytes (`msgSzC False`, `netSnapBundle`'s). -/
 def snapBundleTo (N : NetPayload GF) (pid : w64) (ml : Loc) (rc : GoInterface) : IProp GF :=
   iprop(∃ (st : MsgSt) (sn : SnapshotM) (D : backend.Data), msgOwn ml DFrac.discard st ∗
+    msgSzC False ml st ∗
     (□ N.P st) ∗ N.O st ∗
     ⌜st.msg.Type' = MsgSnap ∧ st.snap = some sn ∧ st.resps = [] ∧ st.msg.To' = pid⌝ ∗
     backend.readerStreams rc (fun bs => backend.boltImage bs D) ∗
@@ -149,7 +151,7 @@ theorem snapPostErr_errorString (x xR : Loc) (m mR : GoString) (hm : m ≠ mR) :
   iright; iright
   iexists ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩
   isplitr
-  · ipureintro; exact ⟨rfl, errorString_leaf x⟩
+  · ipureintro; exact ⟨rfl, errorString_errLeaf x⟩
   imodintro
   iintro %eR #HeR
   icombine Hg HeR gives %Heq

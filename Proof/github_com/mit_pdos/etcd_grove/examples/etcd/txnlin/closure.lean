@@ -58,7 +58,7 @@ theorem closure.wp_proof (wp_addConfig : addConfig.spec (GF := GF) (hG := hG))
       "Hwcap" ∷ ownSliceCap mcfg sw (DFrac.own 1) ∗
       "#Hocs" ∷ ([∗list] c;g ∈ ocs;ogs, cfgOwn c g) ∗
       "#Hwcs" ∷ ([∗list] c;g ∈ wcs;wgs, cfgOwn c g) ∗
-      "%Hinv" ∷ ⌜CloInv gs n ogs wgs⌝ : IProp GF) $$ [out Ho Hocap work Hw Hwcap]
+      "%Hinv" ∷ ⌜CloInv gs n ogs wgs ∧ CfgSorted ogs⌝ : IProp GF) $$ [out Ho Hocap work Hw Hwcap]
   · iexists (slice.mk osl (W64 (go.arrayLiteralSize [])) (W64 (go.arrayLiteralSize []))), w,
       [], cs, [], gs
     iframe
@@ -67,8 +67,9 @@ theorem closure.wp_proof (wp_addConfig : addConfig.spec (GF := GF) (hG := hG))
       iempintro
     isplitl []
     · iexact Hcs
-    ipureintro; exact cloInv_init gs n Hb
+    ipureintro; exact ⟨cloInv_init gs n Hb, List.Pairwise.nil⟩
   wp_for HI
+  obtain ⟨Hinv, Hsort⟩ := Hinv
   ihave %Hwl := ownSlice_len $$ Hw
   ihave %Hwlen := BigSepL2.bigSepL2_length $$ Hwcs
   ihave %Hol := ownSlice_len $$ Ho
@@ -102,6 +103,7 @@ theorem closure.wp_proof (wp_addConfig : addConfig.spec (GF := GF) (hG := hG))
       simp [subslice]]
     wp_auto
     wp_apply wp_addConfig so ocs ogs d h $$ [$Ho $Hocap $Hocs $Hd] as %so' %ocs' ⟨Ho, Hocap, #Hocs'⟩
+    · ipureintro; exact Hsort
     ihave %Hol' := ownSlice_len $$ Ho
     ihave %Holen' := BigSepL2.bigSepL2_length $$ Hocs'
     rw [length_addConfigL] at Holen'
@@ -119,10 +121,10 @@ theorem closure.wp_proof (wp_addConfig : addConfig.spec (GF := GF) (hG := hG))
       · iexact Hocs'
       isplitl []
       · iexact Hwc
-      ipureintro; exact cloInv_skip gs n ogs wg h Hinv hm
+      ipureintro; exact ⟨cloInv_skip gs n ogs wg h Hinv hm, Hsort⟩
     · rw [if_neg hm] at Holen'
       have hlen : so'.len ≠ so.len := by intro he; rw [he] at Hol'; word
-      rw [show addConfigL ogs h = ogs ++ [h] from if_neg hm, decide_eq_false hlen]
+      rw [decide_eq_false hlen]
       have Hhb : Bounded n h := (Hinv.1 h (by simp)).2
       unfold cfgOwn
       icases Hd with ⟨#Hds, #Hdp⟩
@@ -189,7 +191,7 @@ theorem closure.wp_proof (wp_addConfig : addConfig.spec (GF := GF) (hG := hG))
         rw [hj]
         wp_for_post
         iframe
-        iexists so', sw', ocs', wc ++ ncs, ogs ++ [h], wg ++ succsUpTo h h.pend.length
+        iexists so', sw', ocs', wc ++ ncs, addConfigL ogs h, wg ++ succsUpTo h h.pend.length
         iframe
         isplitl []
         · iexact Hocs'
@@ -202,7 +204,10 @@ theorem closure.wp_proof (wp_addConfig : addConfig.spec (GF := GF) (hG := hG))
           isplit
           · iexact Hwc
           · iexact Hn
-        ipureintro; exact cloInv_add gs n Hn ogs wg h Hinv hm
+        ipureintro
+        refine ⟨cloInv_congr gs n _ _ _ (fun g' => ?_) (cloInv_add gs n Hn ogs wg h Hinv hm),
+          sorted_addConfigL ogs h Hsort⟩
+        simp only [mem_addConfigL, List.mem_append, List.mem_singleton]
   · have Hz : ¬ 0 < sint.Z sw.len := by
       have h0 : sint.Z (W64 0) = 0 := rfl
       rw [h0] at Hif; exact Hif

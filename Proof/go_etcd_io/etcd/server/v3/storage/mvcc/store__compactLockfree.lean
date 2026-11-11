@@ -9,6 +9,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__checkPrevCompac
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__updateCompactRev
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.TODO
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__compact
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.CmpCb
 
 @[expose] public section
 
@@ -34,22 +35,27 @@ theorem mvcc.store.compactLockfree.wp_proof
     (h2 : traceutil.TODO.spec (GF := GF) (hG := hG))
     (h3 : mvcc.store.compact.spec (GF := GF) (hG := hG)) :
     mvcc.store.compactLockfree.spec (GF := GF) (hG := hG) := by
-  intro s γ rev c cp P hk Pre Q Post log hcmp hr1 hlag
-  wp_start as ⟨#Hs, Hmu, Hright, #HpermR, #HcertC, %HrevC, Hctx, HRTok, #HsupM, Hwr⟩
+  intro s γ rev cp P hk Pre Q Post dq X Y hcmp hlt h1r
+  wp_start as ⟨#Hs, Hmu, Hright, #HpermR, Hctx, HRTok, #HsupM, Hwr, Hfr, HX, #Hreq⟩
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
   · iPkgInit
   (try wp_auto)
   -- `s.b`, read through the right's closer's eighth (M2, the storage side, item 17)
-  icases mvcc.compactRightR_take s γ c $$ Hright with ⟨%o, Hfs, Hq, Hrclose⟩
+  icases mvcc.compactRightR_take s γ (sint.Z rev) $$ Hright with ⟨%o, Hfs, Hq, Hrclose⟩
   wp_apply (h0 s γ mvcc.q8 o hcmp) $$ [$HRTok $Hfs] as %pcc ⟨Hfs, HRTok⟩
   · iframe #
   ihave Hright := Hrclose $$ Hfs Hq
   (try wp_auto)
-  wp_apply (h1 s γ rev c cp P hk Pre Q Post log hcmp hr1 hlag) $$ [$Hmu $Hright $Hctx $HRTok $Hwr] as %ch %prev %err ⟨HRTok, Hhook, Hwr, Hres⟩
-  · iframe #; ipureintro; exact HrevC
+  -- the compaction revision is already `rev`: the identity step, `s.mu`'s deposit ghost the excluder
+  ihave Hcb := mvcc.cmpCb_refl (GF := GF) γ (sint.Z rev) cp
+  wp_apply (h1 s γ rev (sint.Z rev) cp P hk dq Pre Q Post iprop(ghostVar γ.wr 1 () ∗ mvcc.slotFr γ) iprop(True)
+      iprop(True) iprop(False) X Y hcmp (fun _ => Int.le_refl _) h1r (mvcc.wr_frozen_excl γ)
+      (mvcc.wrFr_restoring_excl γ))
+    $$ [$Hmu $Hright $Hctx $HRTok $Hwr $Hfr $Hcb $HX] as %ch %prev %err ⟨HRTok, Hhook, ⟨Hwr, Hfr⟩, Hres⟩
+  · iframe #
   (try wp_auto)
-  icases Hres with (⟨⟨%Herr, %Hch, %Hprev, %Hlt, %Hle'⟩, Hmu, Hright, HPost, #Hjob, Hlag⟩ |
-    ⟨⟨%Hle, %Hcp, %Hprev⟩, ⟨%ec, #Hec, %Herr⟩, Hmu, Hright, HPre, #Hch⟩)
+  icases Hres with (⟨⟨%Herr, %Hch, %Hprev, %Hlt, %Hle'⟩, Hmu, Hright, HPost, #Hjob, Hlag, -, HY⟩ |
+    ⟨⟨%Hle, %Hcp, %Hprev⟩, -⟩ | ⟨-, -, -, -, -, Hf, -⟩)
   · subst Herr
     (try wp_auto)
     wp_apply h2 as %t ⟨%Ht, Htrc⟩
@@ -60,24 +66,16 @@ theorem mvcc.store.compactLockfree.wp_proof
     ihave Hright := Hrclose $$ Hfs Hq
     (try wp_auto)
     iapply HΦ
-    iframe HRTok Hhook Hwr
-    ileft
-    iframe Hmu HPost Hch' Hlag
+    iframe HRTok Hhook Hwr Hfr
+    iframe Hmu HPost Hch' Hlag HY
     isplitr
-    · ipureintro; exact ⟨rfl, Hlt, Hle'⟩
+    · ipureintro; rfl
     iframe Hright
     iunfold mvcc.compactJobPre at Hjob
     icases Hjob with ⟨-, -, -, #Hlb, -, -⟩
     iexact Hlb
-  · subst Herr
-    (try wp_auto)
-    iapply HΦ
-    iframe HRTok Hhook Hwr
-    iright
-    iframe Hmu Hright HPre Hch
-    isplitr
-    · ipureintro; exact ⟨Hle, Hcp⟩
-    iexists ec; iframe Hec; ipureintro; rfl
+  · exfalso; omega
+  · iexfalso; iexact Hf
 
 end proof
 

@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -19,8 +20,9 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
-	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
 	"github.com/mit-pdos/etcd-grove/examples/etcd/txnlin"
+	"github.com/mit-pdos/etcd-grove/examples/lib/cluster3"
+	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
 	"github.com/mit-pdos/etcd-grove/examples/lib/lintest"
 	"github.com/mit-pdos/etcd-grove/third_party/bridge"
 )
@@ -74,11 +76,11 @@ func inChild(t *testing.T, name string) bool {
 }
 
 // isolate returns the steps that, after delay, cut member m from the two others.
-func isolate(delay time.Duration, m int) []Step {
-	var steps []Step
+func isolate(delay time.Duration, m int) []cluster3.Step {
+	var steps []cluster3.Step
 	for o := 0; o < 3; o++ {
 		if o != m {
-			steps = append(steps, Step{Delay: delay, Kind: PeerCut, A: m, B: o})
+			steps = append(steps, cluster3.Step{Delay: delay, Kind: cluster3.PeerCut, A: m, B: o})
 			delay = 0
 		}
 	}
@@ -86,11 +88,11 @@ func isolate(delay time.Duration, m int) []Step {
 }
 
 // heal returns the steps that, after delay, mend member m's links to the two others.
-func heal(delay time.Duration, m int) []Step {
-	var steps []Step
+func heal(delay time.Duration, m int) []cluster3.Step {
+	var steps []cluster3.Step
 	for o := 0; o < 3; o++ {
 		if o != m {
-			steps = append(steps, Step{Delay: delay, Kind: PeerMend, A: m, B: o})
+			steps = append(steps, cluster3.Step{Delay: delay, Kind: cluster3.PeerMend, A: m, B: o})
 			delay = 0
 		}
 	}
@@ -126,7 +128,7 @@ func TestMainRun(t *testing.T) {
 		return
 	}
 	t.Chdir(t.TempDir())
-	var sched []Step
+	var sched []cluster3.Step
 	for m := 0; m < 3; m++ {
 		delay := time.Duration(0)
 		if m == 0 {
@@ -134,11 +136,11 @@ func TestMainRun(t *testing.T) {
 		}
 		sched = append(sched, isolate(delay, m)...)
 		if m == 0 {
-			sched = append(sched, Step{Kind: ClientBlackhole, A: 2})
+			sched = append(sched, cluster3.Step{Kind: cluster3.ClientBlackhole, A: 2})
 		}
 		sched = append(sched, heal(3*time.Second, m)...)
 		if m == 0 {
-			sched = append(sched, Step{Kind: ClientUnblackhole, A: 2}, Step{Kind: ClientDrop, A: 1})
+			sched = append(sched, cluster3.Step{Kind: cluster3.ClientUnblackhole, A: 2}, cluster3.Step{Kind: cluster3.ClientDrop, A: 1})
 		}
 	}
 	start := time.Now()
@@ -148,7 +150,7 @@ func TestMainRun(t *testing.T) {
 	if !ok {
 		t.Fatal("the cluster did not start")
 	}
-	go partitioner(srvs, brs, sched)
+	go cluster3.Partitioner(srvs, brs, sched)
 	r := Check(clis, 3, 150, 0)
 	if r == porcupine.Illegal {
 		panic("linkv3p: porcupine found the history not linearizable")
@@ -242,15 +244,15 @@ func cutSetup(t *testing.T, eps func(i int) []string) ([]*etcdserver.EtcdServer,
 	var brs []bridge.Bridge
 	var clis []*clientv3.Client
 	for i := 0; i < 3; i++ {
-		s, err := startMember([]string{"linkv3p-1", "linkv3p-2", "linkv3p-3"}[i], peer[i],
-			peerAddrs[i], clientAddrs[i], cluster, lg)
+		s, err := cluster3.StartMember([]string{"linkv3p-1", "linkv3p-2", "linkv3p-3"}[i], peer[i],
+			peerAddrs[i], clientAddrs[i], cluster, "linkv3p", SnapCount, SnapCatchUp, lg)
 		if err != nil {
 			t.Fatal(err)
 		}
 		srvs = append(srvs, s)
 	}
 	for i := 0; i < 3; i++ {
-		br, err := startBridge(bridgeAddrs[i], clientAddrs[i])
+		br, err := cluster3.StartBridge(bridgeAddrs[i], clientAddrs[i])
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -264,51 +266,63 @@ func cutSetup(t *testing.T, eps func(i int) []string) ([]*etcdserver.EtcdServer,
 		clis = append(clis, cli)
 	}
 	for i, cli := range clis {
-		deadline := time.Now().Add(30 * time.Second)
-		for {
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			_, err := cli.Get(ctx, "warmup")
-			cancel()
-			if err == nil {
-				break
-			}
-			if time.Now().After(deadline) {
-				t.Fatalf("client %d: %v", i+1, err)
-			}
-			time.Sleep(100 * time.Millisecond)
-		}
+		warmUp(t, i, cli)
 	}
 	return srvs, brs, clis
 }
 
+// warmUp waits until client i (cli) serves a Get (cutSetup).
+func warmUp(t *testing.T, i int, cli *clientv3.Client) {
+	t.Helper()
+	deadline := time.Now().Add(30 * time.Second)
+	for {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		_, err := cli.Get(ctx, "warmup")
+		cancel()
+		if err == nil {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("client %d: %v", i+1, err)
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+}
+
 // cutRun runs linkvtxn's workload (3 workers of n operations each, each operation after a pause
-// of pause) through the clients clis, each operation through one picked at random, with the
-// partitioner on sched and, if control is not nil, control on its own goroutine (given the
+// of pause) through the clients clis, each operation through the one pick returns (given whether
+// the operation is a read: a Get or a List), or if pick is nil through one picked at random, with
+// the partitioner on sched and, if control is not nil, control on its own goroutine (given the
 // operations so far and the time since the run's start); it checks porcupine's verdict is Ok and
 // returns the operations.
 func cutRun(t *testing.T, srvs []*etcdserver.EtcdServer, brs []bridge.Bridge,
-	clis []*clientv3.Client, sched []Step, n int, pause time.Duration,
-	control func(snap func() []cutOp, since func() time.Duration)) []cutOp {
+	clis []*clientv3.Client, sched []cluster3.Step, n int, pause time.Duration,
+	pick func(read bool) int, control func(snap func() []cutOp, since func() time.Duration)) []cutOp {
 	t.Helper()
 	var mu sync.Mutex
 	var ops []cutOp
 	t0 := time.Now()
 	apply := func(input any) any {
 		time.Sleep(pause)
-		mu.Lock()
-		i := rand.Intn(len(clis))
-		mu.Unlock()
+		kind := input.(txnlin.Input).Kind
+		read := kind == txnlin.KGet || kind == txnlin.KList
+		var i int
+		if pick != nil {
+			i = pick(read)
+		} else {
+			mu.Lock()
+			i = rand.Intn(len(clis))
+			mu.Unlock()
+		}
 		start := time.Since(t0)
 		out := txnlin.Apply(clis[i], input)
 		end := time.Since(t0)
-		kind := input.(txnlin.Input).Kind
 		mu.Lock()
-		ops = append(ops, cutOp{i, start, end, out.(txnlin.Output).Err,
-			kind == txnlin.KGet || kind == txnlin.KList})
+		ops = append(ops, cutOp{i, start, end, out.(txnlin.Output).Err, read})
 		mu.Unlock()
 		return out
 	}
-	go partitioner(srvs, brs, sched)
+	go cluster3.Partitioner(srvs, brs, sched)
 	if control != nil {
 		snap := func() []cutOp {
 			mu.Lock()
@@ -322,7 +336,7 @@ func cutRun(t *testing.T, srvs []*etcdserver.EtcdServer, brs []bridge.Bridge,
 		t.Fatalf("got %v", r)
 	}
 	t.Logf("the run took %v", time.Since(t0))
-	nOk, nErr := [3]int{}, [3]int{}
+	nOk, nErr := make([]int, len(clis)), make([]int, len(clis))
 	nReadErr := 0
 	for _, op := range ops {
 		if op.err {
@@ -340,9 +354,17 @@ func cutRun(t *testing.T, srvs []*etcdserver.EtcdServer, brs []bridge.Bridge,
 			nTimedOut++
 		}
 	}
-	t.Logf("operations per client: succeeded %v, failed %v (%d of the failures reads, %d of them "+
-		"request timeouts)", nOk, nErr, nReadErr, nTimedOut)
-	if nOk[0]+nOk[1]+nOk[2] == 0 {
+	nOkAll, nErrAll := 0, 0
+	for i := range clis {
+		nOkAll += nOk[i]
+		nErrAll += nErr[i]
+	}
+	// a failed write (here: any failed operation but a Get or a List) stays pending in porcupine's
+	// model to the end of the history, and the check's memory grows with how many overlap
+	t.Logf("operations per client: succeeded %v, failed %v (%d of the failures reads, %d failed "+
+		"writes; %d of the failures request timeouts)", nOk, nErr, nReadErr, nErrAll-nReadErr,
+		nTimedOut)
+	if nOkAll == 0 {
 		t.Fatalf("every operation failed")
 	}
 	// every member stays reachable through some client's bridge or comes back (a read held by a
@@ -393,13 +415,13 @@ func TestClientCuts(t *testing.T) {
 	// the drops first, while every worker runs; then the blackhole, which soon holds every worker
 	// (each picks client 1 sooner or later), so the run outlasts it however fast operations are
 	const blackholeAt, unblackholeAt = 100 * time.Millisecond, 3100 * time.Millisecond
-	sched := []Step{
-		{Delay: 20 * time.Millisecond, Kind: ClientDrop, A: 1},
-		{Delay: 30 * time.Millisecond, Kind: ClientDrop, A: 1},
-		{Delay: blackholeAt - 50*time.Millisecond, Kind: ClientBlackhole, A: 0},
-		{Delay: unblackholeAt - blackholeAt, Kind: ClientUnblackhole, A: 0},
+	sched := []cluster3.Step{
+		{Delay: 20 * time.Millisecond, Kind: cluster3.ClientDrop, A: 1},
+		{Delay: 30 * time.Millisecond, Kind: cluster3.ClientDrop, A: 1},
+		{Delay: blackholeAt - 50*time.Millisecond, Kind: cluster3.ClientBlackhole, A: 0},
+		{Delay: unblackholeAt - blackholeAt, Kind: cluster3.ClientUnblackhole, A: 0},
 	}
-	ops := cutRun(t, srvs, brs, clis, sched, 600, 0, nil)
+	ops := cutRun(t, srvs, brs, clis, sched, 600, 0, nil, nil)
 	var cut1, okAfter1 bool
 	for _, op := range ops {
 		// cut: a write failed, or a read held by the blackhole (retried once it ended)
@@ -450,6 +472,19 @@ func TestClientCuts(t *testing.T) {
 // operation started after members 2 and 3 were cut (its return to member 1); and no read failed
 // before its request timeout (cutRun). 3 workers of 12000 operations, each after a 2ms pause, so
 // the run outlasts both phases. It runs in a child process (inChild), as TestMainRun.
+//
+// Writes skip member 1 while it is blackholed: from the start until 1s after the unblackhole,
+// every operation but a Get or a List (a put, a delete, a transaction) goes through a fourth
+// client, of members 2 and 3's bridges only, and the reads through the three clients above, so
+// the failover is shown by reads (held to their request timeout on member 1's dead connection, as
+// a write would be: the timeout is the caller's context, the balancer's pick the same for every
+// call). A write that fails stays pending in porcupine's model to the end of the history, and the
+// check's memory grows with how many overlap: with writes on member 1's connection too, 7-10 of
+// them failed in the first phase and the check took 9 to more than 32 GiB
+// (notes/txnlin-perf-plan.md, "(2): TestFailover's workload"). Writes failing at a blackhole are
+// TestClientCuts' and TestWriteOnce's. After that second, writes go through the three clients
+// again, so the cut of members 2 and 3 fails the writes in flight on their connections, and the
+// return to member 1 is shown by writes and reads alike.
 func TestFailover(t *testing.T) {
 	// an operation the blackhole stalled: one that failed (at its request timeout, or at the
 	// keepalive close), or a read held longer than a request timeout; the run's other operations
@@ -459,6 +494,23 @@ func TestFailover(t *testing.T) {
 		return
 	}
 	srvs, brs, clis := cutSetup(t, func(int) []string { return bridgeAddrs })
+	// the writes' client while member 1 is blackholed (clis[3]): members 2 and 3 only
+	cli23, err := etcdstart.NewClients(bridgeAddrs[1:], zap.NewNop())
+	if err != nil {
+		t.Fatal(err)
+	}
+	warmUp(t, 3, cli23)
+	var writesAway atomic.Bool
+	writesAway.Store(true)
+	var pmu sync.Mutex
+	pick := func(read bool) int {
+		if !read && writesAway.Load() {
+			return 3
+		}
+		pmu.Lock()
+		defer pmu.Unlock()
+		return rand.Intn(3)
+	}
 	var cmu sync.Mutex
 	var unblackholeAt, cutAt time.Duration
 	control := func(snap func() []cutOp, since func() time.Duration) {
@@ -482,7 +534,7 @@ func TestFailover(t *testing.T) {
 			}
 			var served [3]bool
 			for _, op := range ops {
-				if !op.err && op.start > lastFail {
+				if !op.err && op.start > lastFail && op.cli < 3 {
 					served[op.cli] = true
 				}
 			}
@@ -494,7 +546,10 @@ func TestFailover(t *testing.T) {
 		unblackholeAt = since()
 		cmu.Unlock()
 		brs[0].Unblackhole()
-		time.Sleep(3 * time.Second)
+		// the writes back on the three clients once the unblackhole's connection closes are past
+		time.Sleep(time.Second)
+		writesAway.Store(false)
+		time.Sleep(2 * time.Second)
 		brs[1].Blackhole()
 		brs[2].Blackhole()
 		brs[1].DropConnections()
@@ -503,7 +558,8 @@ func TestFailover(t *testing.T) {
 		cutAt = since()
 		cmu.Unlock()
 	}
-	ops := cutRun(t, srvs, brs, clis, nil, 12000, 2*time.Millisecond, control)
+	ops := cutRun(t, srvs, brs, append(clis[:3:3], cli23), nil, 12000, 2*time.Millisecond, pick,
+		control)
 	cmu.Lock()
 	ub, ct := unblackholeAt, cutAt
 	cmu.Unlock()
@@ -541,6 +597,9 @@ func TestFailover(t *testing.T) {
 	}
 	var okAfter, okBack [3]int
 	for _, op := range ops {
+		if op.cli == 3 { // the writes' client while member 1 is blackholed
+			continue
+		}
 		if !op.err && op.start > lastFail && op.end < ub {
 			okAfter[op.cli]++
 		}
@@ -861,7 +920,7 @@ func TestMainWatch(t *testing.T) {
 		return
 	}
 	t.Chdir(t.TempDir())
-	var sched []Step
+	var sched []cluster3.Step
 	for m := 0; m < 3; m++ {
 		delay := time.Duration(0)
 		if m == 0 {
@@ -869,11 +928,11 @@ func TestMainWatch(t *testing.T) {
 		}
 		sched = append(sched, isolate(delay, m)...)
 		if m == 0 {
-			sched = append(sched, Step{Kind: ClientBlackhole, A: 2})
+			sched = append(sched, cluster3.Step{Kind: cluster3.ClientBlackhole, A: 2})
 		}
 		sched = append(sched, heal(3*time.Second, m)...)
 		if m == 0 {
-			sched = append(sched, Step{Kind: ClientUnblackhole, A: 2}, Step{Kind: ClientDrop, A: 1})
+			sched = append(sched, cluster3.Step{Kind: cluster3.ClientUnblackhole, A: 2}, cluster3.Step{Kind: cluster3.ClientDrop, A: 1})
 		}
 	}
 	start := time.Now()

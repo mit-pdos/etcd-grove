@@ -1,21 +1,49 @@
 # Project bboltfs's `os` (etc/goose.py), not Perennial's (`Perennial.Code.os`, which trusts
-# nothing; the two must never be in one import closure): what minibolt (examples/osfs/bboltfs) uses.
+# nothing; the two must never be in one import closure): every project translates with `os=`
+# (2026-11-03: raft, etcd, bbolt, raft-witness, k8s-apiserver, k8s-daemonset, so that bbolt's
+# `os.FileMode` fields translate; k8s-compactor since), and minibolt (examples/osfs/bboltfs) and
+# bbolt call its models.
 # The flags, and `File` (`struct{ *file }`) as it is; `FileInfo`, `FileMode` and `PathError` are
 # aliases of io/fs's (Code/io/fs.toml).
 translate = ["!*", "O_RDONLY", "O_WRONLY", "O_RDWR", "O_APPEND", "O_CREATE", "O_EXCL", "O_SYNC",
   "O_TRUNC", "File", "FileInfo", "FileMode", "PathError",
   # real Go over the trusted layouts of `file` and `fileStat` (`return f.name`, `return fs.size`)
   "File.Name", "fileStat.Size",
+  # (2026-11-07) the package-level variable initializers and `init` (what importing `os` runs), as
+  # Perennial's os.toml (its fix-semantics Case 33): the `errors.New` errors, `checkWrapErr`,
+  # `dirBufPool`'s `sync.Pool` literal, io/fs's error variables, `lstat = Lstat`, the `var _ fs.X =
+  # dirFS("")` assertions, `checkPidfdOnce = sync.OnceValue(checkPidfd)`, `Interrupt`/`Kill`,
+  # internal/poll's `ErrNoDeadline`/`ErrDeadlineExceeded` and `CopyFileRange`/`Splice` function
+  # values, and `init.0` (`Args = runtime_args()` unless `runtime.GOOS` is "windows", a constant goose
+  # emits as its value). `Stdin`, `Stdout`, `Stderr` and `runtime_args` are trusted (below).
+  "ErrProcessDone", "errProcessReleased", "ErrNoHandle",
+  "errWriteAtInAppendMode", "errPathEscapes", "errPatternHasSeparator",
+  "checkWrapErr", "dirBufPool",
+  "ErrInvalid", "ErrPermission", "ErrExist", "ErrNotExist", "ErrClosed",
+  "_", "lstat", "checkPidfdOnce",
+  "Interrupt", "Kill",
+  "ErrNoDeadline", "ErrDeadlineExceeded", "errNoDeadline", "errDeadlineExceeded",
+  "pollCopyFileRange", "pollSplice",
+  "Args", "init.0",
   # real Go over OpenFile (`return OpenFile(name, O_RDONLY, 0)`); the error type of Rename
   "Open", "LinkError"]
 # what the models use: errors.New, io.EOF, fs.PathError and FileInfo, syscall.Errno
-imports = ["!*", "errors", "io", "io/fs", "syscall"]
-# The functions and methods minibolt calls, modeled by the Linux file extension osFsExt
-# (TrustedCode/os.lean, GooseLang/Ext/OsFs/Impl.lean); `file` (its `poll.FD`) and `fileStat` (its
+imports = ["!*", "errors", "io", "io/fs", "syscall", "sync", "internal/poll"]
+# The functions and methods minibolt calls, modeled by the Linux file extension fsExt
+# (TrustedCode/os.lean, GooseLang/Ext/Fs/Impl.lean); `file` (its `poll.FD`) and `fileStat` (its
 # `syscall.Stat_t`) with the layouts the models need.
 trusted = ["file", "fileStat", "OpenFile", "File.WriteAt", "File.ReadAt", "File.Stat",
   "File.Truncate", "File.Sync", "File.Close", "File.Fd",
-  # the namespace, for the WAL's calls (examples/osfs/walfs, notes/walfs-ext-plan.md)
+  # the directory tree, for the WAL's calls (examples/osfs/walfs, notes/walfs-ext-plan.md)
   "Rename", "Remove", "Mkdir", "File.Readdirnames",
   # the file offset, for the segment's sequential I/O (examples/osfs/walfs's seglog.go)
-  "File.Seek", "File.Write", "File.Read"]
+  "File.Seek", "File.Write", "File.Read",
+  # (2026-11-07) what the initializer runs that is not translated, the user's decisions (Perennial
+  # fix-semantics Case 33; TrustedCode/os.lean): `runtime_args` (a linkname, no Go body) an
+  # arbitrary `[]string`; `Stdin`/`Stdout` do nothing (variables not allocated); `Stderr` allocates
+  # its variable and stores an arbitrary in-range address with no cell, not reserved (`GoPrealloc`).
+  "runtime_args", "Stdin", "Stdout", "Stderr"]
+
+# (2026-11-07) every type declaration goose supports, as Perennial's: the `var _ I = ...`
+# assertions convert to interface types
+translate_types = true

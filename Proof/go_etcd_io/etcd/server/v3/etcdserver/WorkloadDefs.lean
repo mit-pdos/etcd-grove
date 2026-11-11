@@ -30,6 +30,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVModelDefs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Lemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.HistoryLaws
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.ApiVocab
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.LogLemmas
 
 @[expose] public section
@@ -102,9 +103,9 @@ def txnShape (t : TxnModel) : Prop :=
   ∀ (s0 : List EtcdKv) (r : w64), s0.Pairwise etcdKvLess →
     OpsIG true s0 r s0 (t.branch (txnOk s0 t))
 
-theorem TxnPre_of (log : Log) (t : TxnModel) (hs : txnShape t) (hm : txnSmall log t) :
-    TxnPre log t :=
-  ⟨hm.1, OpsOk_of true _ _ _ _ (hs _ _ (stateAfter_sorted log)), hm.2⟩
+theorem TxnPre_of (log : Log) (t : TxnModel) (hs : txnShape t) (_hm : txnSmall log t) :
+    TxnPreA log t :=
+  OpsOk_of true _ _ _ _ (hs _ _ (stateAfter_sorted log))
 
 /-! ### A transaction's shape from its run's keys -/
 
@@ -233,8 +234,12 @@ def rqSmall (log : mvcc.Log) (rq : apply.IRRModel) : Prop :=
   match apply.dispatchKind rq with
   | .put => apply.putOk log
   | .deleteRange => ∀ o, rq.deleteRange = some o → apply.delOk log o
-  | .range => ∀ o, rq.range = some o → log.length + 3 ≤ 2 ^ 63 ∧ txn.sortOk o log
+  | .range => ∀ o, rq.range = some o → log.length + 3 ≤ 2 ^ 63
   | .txn => ∀ t, rq.txn = some t → txn.txnSmall log t
+  -- (the lease-expiry plan's X6, 2026-11-04) a revocation commits its deletions at one revision;
+  -- (the `lean` merge, R6, 2026-11-07) and the lessor's sort of the keys it deletes takes the state's
+  -- size (`apply.rqOk`'s revocation arm, R2's `revokeSize`)
+  | .leaseRevoke => apply.putOk log ∧ (mvcc.stateAfter log).length ≤ 2 ^ 62
   | _ => True
 
 /-- **The size clauses hold at a small log** (D19c's move, 2026-10-18): a log with a revision
@@ -251,43 +256,45 @@ theorem rqSmall_of_small (log : mvcc.Log) (rq : apply.IRRModel)
     | exact trivial
     | (unfold apply.putOk; omega)
     | (intro o _; unfold apply.delOk; omega)
-    | (intro o _; exact ⟨by omega, fun _ => hls⟩)
+    | (intro o _; omega)
     | (intro t _; exact ⟨h4, hls⟩)
+    | (exact ⟨by unfold apply.putOk; omega,
+        by have := (txn.stateBound_stateAfter log (by omega) (by omega)).1; omega⟩)
 
 /-- **The shape of `rq`** (see the file header): `dispatchOk` whatever the auth mode, and its
 premise at every log at which the size clauses hold, in a cluster that grants leases or not (`lg`,
 the lease-grant stage's B1/B2 commit 3, 2026-11-02: `rqOk lg`; at `lg = false` what it was). -/
-def rqShape (lg : Bool) (rq : apply.IRRModel) : Prop :=
-  (∀ on, apply.dispatchOk on rq) ∧ ∀ log, rqSmall log rq → apply.rqOk lg log rq
+def rqShape (lm : lease.Mode) (rq : apply.IRRModel) : Prop :=
+  (∀ on, apply.dispatchOk on rq) ∧ ∀ log, rqSmall log rq → apply.rqOk lm log rq
 
 /-- **What the KV invariant keeps of a committed entry** (D19c): a normal entry with data
 decodes to a request with an id, of a good shape; a conf change has the id `0` (raft's
 bootstrap's: `srvCCPolicy`). -/
-def entryShape [GooseExts] (lg : Bool) (m : EntryModel) : Prop :=
+def entryShape [GooseExts] (lm : lease.Mode) (m : EntryModel) : Prop :=
   (m.typ = W32 0 → m.data = [] ∨ ∃ rq, apply.irrDecode m.data = some rq ∧
-      (∃ id, apply.irrId rq = some id) ∧ rqShape lg rq) ∧
+      (∃ id, apply.irrId rq = some id) ∧ rqShape lm rq) ∧
     (m.typ ≠ W32 0 → ccIdOf m.data = W64 0)
 
 /-- Every entry of a log has a good shape. -/
-def logShape [GooseExts] (lg : Bool) (L : List EntryModel) : Prop := ∀ m ∈ L, entryShape lg m
+def logShape [GooseExts] (lm : lease.Mode) (L : List EntryModel) : Prop := ∀ m ∈ L, entryShape lm m
 
 /-- **A shape in a cluster that grants none is one in any** (`apply.rqOk_of_false`; the lease-grant
 stage's §2.8). -/
-theorem rqShape_mono (lg : Bool) (rq : apply.IRRModel) (h : rqShape false rq) : rqShape lg rq :=
-  ⟨h.1, fun log hs => apply.rqOk_of_false lg log rq (h.2 log hs)⟩
+theorem rqShape_mono (lm : lease.Mode) (rq : apply.IRRModel) (h : rqShape .none rq) : rqShape lm rq :=
+  ⟨h.1, fun log hs => apply.rqOk_of_false lm log rq (h.2 log hs)⟩
 
-theorem entryShape_mono [GooseExts] (lg : Bool) (m : EntryModel) (h : entryShape false m) :
-    entryShape lg m := by
+theorem entryShape_mono [GooseExts] (lm : lease.Mode) (m : EntryModel) (h : entryShape .none m) :
+    entryShape lm m := by
   refine ⟨fun ht => ?_, h.2⟩
   rcases h.1 ht with hd | ⟨rq, hdec, hid, hs⟩
   · exact Or.inl hd
-  · exact Or.inr ⟨rq, hdec, hid, rqShape_mono lg rq hs⟩
+  · exact Or.inr ⟨rq, hdec, hid, rqShape_mono lm rq hs⟩
 
-theorem logShape_mono [GooseExts] (lg : Bool) (L : List EntryModel) (h : logShape false L) :
-    logShape lg L := fun m hm => entryShape_mono lg m (h m hm)
+theorem logShape_mono [GooseExts] (lm : lease.Mode) (L : List EntryModel) (h : logShape .none L) :
+    logShape lm L := fun m hm => entryShape_mono lm m (h m hm)
 
-theorem logShape_append [GooseExts] (lg : Bool) (A B : List EntryModel) :
-    logShape lg (A ++ B) ↔ logShape lg A ∧ logShape lg B := by
+theorem logShape_append [GooseExts] (lm : lease.Mode) (A B : List EntryModel) :
+    logShape lm (A ++ B) ↔ logShape lm A ∧ logShape lm B := by
   unfold logShape
   simp only [List.mem_append]
   constructor
@@ -317,7 +324,7 @@ theorem rqShape_of_plain (rq : apply.IRRModel) (h : plainCover rq)
     (hk : apply.dispatchKind rq ≠ .range ∧ apply.dispatchKind rq ≠ .txn ∧
       apply.dispatchKind rq ≠ .clusterVersionSet ∧ apply.dispatchKind rq ≠ .authUserAdd ∧
       apply.dispatchKind rq ≠ .authRoleAdd ∧ apply.dispatchKind rq ≠ .leaseCheckpoint) :
-    rqShape false rq := by
+    rqShape .none rq := by
   refine ⟨dispatchOk_of_plain rq h, fun log hs => ?_⟩
   unfold rqSmall at hs
   unfold apply.rqOk
@@ -328,13 +335,13 @@ theorem rqShape_of_plain (rq : apply.IRRModel) (h : plainCover rq)
 /-- **The shape of a covered transaction request** from its transaction's shape. -/
 theorem rqShape_of_txn (rq : apply.IRRModel) (h : plainCover rq)
     (hk : apply.dispatchKind rq = .txn) (ht : ∀ t, rq.txn = some t → txn.txnShape t) :
-    rqShape false rq := by
+    rqShape .none rq := by
   refine ⟨dispatchOk_of_plain rq h, fun log hs => ?_⟩
   unfold rqSmall at hs
   unfold apply.rqOk
   rw [hk] at hs ⊢
   intro t ht'
-  exact txn.TxnPre_of log t (ht t ht') (hs t ht')
+  exact ⟨txn.TxnPre_of log t (ht t ht') (hs t ht'), (hs t ht').1⟩
 
 end EtcdGrove
 end Perennial

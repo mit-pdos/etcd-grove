@@ -345,3 +345,24 @@ counted, and the specs that consume them (mvcc's `New`, `NewStore`, `newWatchabl
 `SnapApplyOpts`) are restated over `List.replicate rdStockN`: a slot count in specs between the
 owner and the adequacy theorem, against the rule here. Cleanup: the owner (the backend, or mvcc's
 store pool) turns the stock into a handle those specs take instead of the count.
+
+## Known gap: the backend's open snapshots and read transactions (2026-11-06, etcd-grove-82)
+
+Found by the `authSchemaSrv` count review (`notes/axiom-review/authrdn-count.md`, revoke-open), not
+pursued there. `backend.backend.Snapshot.wp_proof`
+(`Proof/go_etcd_io/etcd/server/v3/storage/backend/backend__Snapshot.lean:66`) and
+`bbolt.DB.Begin_kv.wp_proof` (`Proof/go_etcd_io/bbolt/DB__Begin_kv.lean:24`) bound neither the open
+snapshots nor the read transactions, and no backend spec takes a thread bound: a standalone triple
+(not through `NewServer`, whose closed theorems run at most `2 ^ 28` threads) at `threadBound >
+2 ^ 30` could open `2 ^ 30` of them and reach bbolt's `mmaplock` `RUnlock` fatal (`sync: RUnlock of
+unlocked RWMutex`) after a remap. Reaching it in Go takes about `2 ^ 30` goroutines, the
+idealization every bound here rests on, but this plan wants the bound owned by the backend's
+invariant (a `threadTok` per open snapshot or transaction), not left to it. An `axiom` run is to be
+assigned by etcd-grove-82 after revoke-open lands.
+
+(2026-11-06) The `axiom` run: `notes/axiom-review/backend-snapshot-begin.md`. The gap is real, and
+needs no goroutines and no `T > 2 ^ 30` for `Begin_kv`: **`bbolt.DB.Begin_kv` is refuted** (branch
+`axiom/backend-snapshot-begin`). One goroutine holds `2 ^ 30` read transactions, a pending `Close` and one
+`Rollback` give the fatal in Go in 4 minutes, and the Lean triple is proved from the axioms.
+`backend.Snapshot` is Stuck on the Go side (a live goroutine per snapshot, about 4 TiB at `2 ^ 30`). The
+proposed fix is `bbolt-spec-decisions.md`'s D1, a `threadTok` per read transaction and per snapshot.

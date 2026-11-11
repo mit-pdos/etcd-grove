@@ -32,7 +32,7 @@ trivial extension (`common/TrivialExt.lean`; the proofs are generic over the ext
   time-receipt bounds; it also gives `n + 7 ≤ backend.wbInit`, the backend's write-back budget
   `bootstrap`'s contract takes, since 2026-11-01 derived instead of assumed);
 * the semantics: `go.Semantics`, the package assumptions (`compactkv`'s, the cache's), and the
-  model classes the proofs take (`Float64ToInt64Semantics`, `DialWithBalancerBody`,
+  model classes the proofs take (`DialWithBalancerBody`,
   `log.NewModel`; the method-set facts, `v3rpc.ServerMethodSets`, `errors.AsTarget` of
   `rpctypes.EtcdError`, `ErrorStringLeaf`, `RpctypesEtcdErrorMethods`, are theorems of the
   package assumptions), and `ContextReadErrs` (`context.Canceled`'s and `DeadlineExceeded`'s method
@@ -43,10 +43,24 @@ trivial extension (`common/TrivialExt.lean`; the proofs are generic over the ext
 * (until 2026-10-20 also two marked hypotheses, false under the then Perennial pin,
   `EofFromIoInit` and `ClosedchanFromContextInit`: `io.EOF` and `context`'s `closedchan` now come
   from their packages' facts, `v3rpc.eofVar_of_init` and `context.isClosedchanInit_of_init`).
+
+**Why the opaque premises hold of this program** (finding k8s-misc-3, round 3, 2026-11-11; an
+argument from the Go program `examples/etcd/compactwatch/compactkv.go`, not a proof):
+* `ckptEffectsOk`: no lease is granted (the program `Put`s, `Compact`s, `Get`s and `Watch`es only),
+  and the member's feature gate is etcd's default (`LeaseCheckpoint` off). It holds vacuously.
+* `authRecordsFit`: no request touches auth, so the auth store has no record.
+* `apply.backendUnderQuota`: the default 2 GiB quota against five puts of `k1`..`k5` with the value
+  `"v"`, under compaction (the auto-compactor at retention 1, and the client's compactions).
+* `grpcRepliesFit`: the replies are `Put`/`Compact` headers, point `Get`s of one short key, and the
+  final watch of `k5`, which delivers at most the rounds' few revisions or a compaction error. All
+  are a few hundred bytes.
+* `storage.diskOk`: an environment premise. It holds of a working local disk with the data directory
+  `compactkv.etcd` used by this process alone (as `dataDirsAbsent` requires); nothing in the program
+  makes it false.
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Adequacy
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.AdequacyMembers
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.MainLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.PkgTable
 public import Proof.runtime.Start
@@ -122,7 +136,7 @@ thread is stuck; no thread has ended in a panic. -/
 theorem etcd_compactwatch_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC compactkvGF, ContextReadErrs (GF := compactkvGF) (hG := heapAtCkv hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC compactkvGF, ContextErrsClient (GF := compactkvGF) (hG := heapAtCkv hG lctx))
@@ -132,8 +146,10 @@ theorem etcd_compactwatch_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (HNs : prometheus.namesUnclaimed compactkvProgram compactkvNames)
     (HAs : addrsUnclaimed compactkvProgram [go!"127.0.0.1:23794"])
-    -- (2026-11-03, the WAL's API, change 6) the member's WAL directory holds no WAL at start
-    (HDs : walDirsAbsent compactkvProgram [config.walDirOf go!"compactkv.etcd" go!""])
+    -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the member's data directory, fresh at start (`dataDirsAbsent`)
+    (HDs : dataDirsAbsent compactkvProgram [go!"compactkv.etcd"])
+    -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
+    (HEnv : verifyEnvOff compactkvProgram)
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC compactkvGF,
       ⊢ etcd_compactwatch.premises (GF := compactkvGF) (hG := heapAtCkv hG lctx) n id ctxs boot)
@@ -145,9 +161,11 @@ theorem etcd_compactwatch_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
-  refine etcd_adequate (GF := compactkvGF) github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.initialize'
+  refine etcd_adequate_members (GF := compactkvGF) (hAsLit := by decide) (HEnv := HEnv) github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.Main) #())
-    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) [go!"127.0.0.1:23794"] (by decide) [config.walDirOf go!"compactkv.etcd" go!""] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
+    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) [go!"127.0.0.1:23794"] (by decide) [go!"compactkv.etcd"] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩)
+    -- (hub step 7) the one member's start bundle: its client address, its data directory
+    [(go!"compactkv", ⟨none, some go!"127.0.0.1:23794"⟩)] [] (List.Perm.refl _) (List.Perm.refl _) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
     n κs t2 σ2 Hsteps fun hG HN HT => ?_
   letI : HeapGS .hasLC compactkvGF := heapAtCkv hG lctx
   haveI := Hctx hG
@@ -155,12 +173,11 @@ theorem etcd_compactwatch_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   unfold progOk
   refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.wp_initialize' _ github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.getIsPkgInit_wf, ?_⟩
   ihave #Hprem' := Hprem hG
-  iintro #Hinit Htok ⟨Has, -, Hds⟩
-  icases BigSepL.bigSepL_cons.1 $$ Hds with ⟨Hwd, -⟩
-  icases BigSepL.bigSepL_cons.1 $$ Has with ⟨Haddr, -⟩
-  have hM := etcd_compactwatch.wp_Main (GF := compactkvGF) n id ctxs boot Hbf (by rw [HT]; omega)
+  iintro #Hinit Htok ⟨Hms, -⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hms with ⟨Hstart, -⟩
+  have hM := etcd_compactwatch.wp_Main (GF := compactkvGF) n id ctxs boot Hbf (by rw [HT]; word)
     (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
-  wp_apply hM $$ [Haddr Htok Hwd]
+  wp_apply hM $$ [Hstart Htok]
   · iframe; iframe #
   ipureintro
   rfl

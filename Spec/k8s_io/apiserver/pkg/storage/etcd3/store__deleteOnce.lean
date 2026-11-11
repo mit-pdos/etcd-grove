@@ -5,11 +5,11 @@
 
 One attempt at deleting the prepared key `key`: `OptimisticDelete(key, origState.rev,
 GetOnFailure: true)` through the client, with the caller's updates at the members (`k8sAuRW`,
-D30n: the linearization point hands the caller's token `W`) and `origState` the store's reading
-`s` of the key-value `kv0` at a state `σ0` the read fired at (`rdFacts`), which
-`validateDeletion` passed (`validate`). A key-value at `s`'s mod revision has `kv0`'s value
-(the caller's history, D30j), so the transaction is the model's `delete` when it succeeds. Its
-outcomes:
+D30n: the linearization point hands the caller's token `W`) and `origState` a state `s` at a mod
+revision (not `0`) from a read or from the cached object (`stFrom`, stage 7b), on which the
+preconditions (`pre`) and `validateDeletion` (`validate`) passed. A key-value at `s`'s mod revision
+has `s`'s object (the caller's history, D30j, `stFrom_item`), so the transaction is the model's
+`delete` when it succeeds. Its outcomes:
 
 - an error of the client (the update fired at most once);
 - success: the update fired as the write at `σ`, `out` the deleted object at the next revision (the
@@ -38,6 +38,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 /-- See the file header. -/
@@ -45,26 +46,26 @@ abbrev store.deleteOnce.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (Obj : Type) [DecidableEq Obj] (E : Type) [KUserErr E] (sp : Loc) (c : StoreCfg GF Obj) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (key : GoString) (out : GoInterface) (o0 : Obj)
-    (rv0 : GoString) (st : Loc) (s : OState Obj) (σ0 : KVState) (kv0 : EtcdKv)
-    (v : _root_.Perennial.reflect.Value) (p : Loc) (validate : Obj → Nat → Option E)
-    (W : IProp GF) (Φ : KVState → IProp GF),
+    (rv0 : GoString) (st : Loc) (s : OState Obj)
+    (v : _root_.Perennial.reflect.Value) (p : Loc) (pre : Obj → Nat → Bool)
+    (validate : Obj → Nat → Option E) (W : IProp GF) (Φ : KVState → IProp GF),
   c.pfx <+: key → key.length ≤ opKeyMax →
-  mvcc.findKey key σ0.kvs = some kv0 →
-  stOfKv c kv0 s →
+  s.rev ≠ W64 0 →
+  pre s.o (uint.nat s.rev) = true →
   validate s.o (uint.nat s.rev) = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isStore sp c ∗
-      ctxOk ci cd ∗ ctxErrClient ci cd ∗ ownState c st s ∗ c.S.objAt out o0 rv0 ∗
-      ⌜reflectM.reflElem v c.S.objTy p⌝ ∗ rdFacts c σ0 ∗ W ∗
-      ([∗list] x ∈ c.ms, k8sAuRW x.γr.kv c (delStep key validate) W Φ) }}
+      ctxOk ci cd ∗ ctxErrClient ci cd ∗ ownState c st s ∗ stFrom c key s ∗
+      c.S.objAt out o0 rv0 ∗ ⌜reflectM.reflElem v c.S.objTy p⌝ ∗ W ∗
+      ([∗list] x ∈ c.ms, k8sAuRW x.γr.kv c (delStep key pre validate) W Φ) }}
     (App (App (App (App (App (App (Val (sp @!! go.GoType.PointerType
       k8s_io.apiserver.pkg.storage.etcd3.store.ty @!! go!"deleteOnce")) (Val #(GoInterface.ok ci)))
       (Val #key)) (Val #out)) (Val #st)) (Val #v)) (Val #false))
   {{ (st' : Loc) (ok : Bool) (err : GoInterface), RET (PairV (PairV #st' #ok) #err);
       (unkErr c err ∗ ∃ o rv, c.S.objAt out o rv) ∨
       (⌜ok = true ∧ err = GoInterface.nil⌝ ∗ ∃ σ, Φ σ ∗
-        respIs c ((c.abs σ).delete key (fun _ _ => none) validate).2 err out) ∨
-      (⌜ok = false⌝ ∗ c.S.objAt out o0 rv0 ∗ ∃ σ, rdFacts c σ ∗ stAt c key σ st' err ∗
-        (if stepHand c (delStep key validate) σ then Φ σ else W)) }}
+        respIs c ((c.abs σ).delete key pre validate).2 err out) ∨
+      (⌜ok = false⌝ ∗ c.S.objAt out o0 rv0 ∗ ∃ σ, rdFacts c σ ∗ stAt c key false σ st' err ∗
+        (if stepHand c (delStep key pre validate) σ then Φ σ else W)) }}
 
 end spec
 

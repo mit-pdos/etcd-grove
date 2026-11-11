@@ -66,9 +66,10 @@ theorem restartCheck.wp_proof
     restartCheck.spec (GF := GF) (hG := hG) := by
   intro CS CRE CEC cl ep V E₁ γr γf cid mid m s pl ρ N name peerAddr caddr peer cluster lg M iu
     Uok ps bootLog ctxs dir id γ γn ThB RcB RcN HwbN Hst hvs hrule hboot hblen hb3 Hγn1 Hγn2 Hdirok Hdir Hdirps HU
-    Hpe Hlg Hck Haf Hbuq Hrf Hdbo Hms hAs
-  wp_start as ⟨Hmst, #Hcl, #Hregs, #Hinv, Hca, Htok, #Hpeer, #Hclu, #Hsls, #HbR, #Hcom,
+    Hpe Hck Haf Hbuq Hrf Hdbo Hms hAs
+  wp_start as ⟨#Hzlg, Hmst, Hmsr, #Hcl, #Hregs, #Hinv, Hca, Htok, #Hpeer, #Hclu, #Hsls, #HbR, #Hcom,
     #Hcci, #Hnet⟩
+  ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   ihave #Pcli : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
@@ -83,7 +84,7 @@ theorem restartCheck.wp_proof
   · iPkgInit
   (try wp_auto)
   -- `stop(m)`
-  wp_apply (wp_stop m s pl γ id peerAddr γn ρ (name ++ go!".etcd")) $$ [Hmst] as ⟨Himg, Hpa, Hpown⟩
+  wp_apply (wp_stop m s pl γ id peerAddr γn ρ name) $$ [Hmst Hmsr] as Hrr
   · iframe; ipureintro; rw [hboot]; exact hb3
   (try wp_auto)
   -- the puts of `k ↦ v2`: once one returned `nil`, the put's flag
@@ -125,8 +126,8 @@ theorem restartCheck.wp_proof
   -- the stopped member started again
   have Hu : Uok ⟨[etcdstart.httpURL peerAddr], [etcdstart.httpURL caddr], M, iu⟩ := HU
   wp_apply (wp_startMemberR N name peerAddr caddr peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ γn
-      HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps Hu Hlg Hck Haf Hbuq Hdbo)
-    $$ [Hpa Htok Himg Hpown] as %mR %err Hr
+      HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps Hu Hck Haf Hbuq Hdbo)
+    $$ [Htok Hrr] as %mR %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, %sR, %plR, %ρ', %E₀', %Hρ', Hup, Hst⟩)
   · cases err with
@@ -136,21 +137,22 @@ theorem restartCheck.wp_proof
     iapply HΦ; itrivial
   subst Herr
   wp_auto
-  iunfold etcdstart.memberUp at Hup
-  icases Hup with ⟨%E', %cfg, %γw, %HEc, #Hreq', #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf, Hbemu,
-    Hlts, Hlgs, Hrds, Hsts, Hbms, -, HWR, -⟩
+  icases etcdstart.memberUp_served _ _ _ _ _ _ _ $$ Hup with ⟨%E', %cfg, %γw, %HEc, #Hreq', #Hrd,
+    #Hsf, Hgo, Hlg3, Hbemu, HWR, ⟨Hlts, Hlgs, Hrds, Hsts, Hrslots, Hbms⟩, -, -⟩
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HEc
   iunfold memberStop at Hst
   icases Hst with ⟨HmR, -, -, -⟩
   ihave #Hcm := Hcom
   iunfold etcdstart.commonPremises at Hcm
-  icases Hcm with ⟨-, -, -, -, #Hnrl⟩
+  icases Hcm with ⟨-, -, -, #Hnrl⟩
   -- `serveClient(mR, client)`, with etcd's KV calls registered at the address
   haveI := Hms
   have Hrb48 := ReceiptBoundLe.le (GF := GF) (2 ^ 48)
+  ihave #HzlgC : zapLoggerOk cfg.Logger' $$ []
+  · rw [HElg]; iexact Hzlg
   wp_apply (wp_serveClient mR sR plR caddr E' { ρ' with wait := γw } ρ'.rd cfg
       (fun cid mid _ => etcdstart.etcdKVAt caddr E' { ρ' with wait := γw } ρ'.rd cid mid)
-      (by rw [HElg]; exact Hlg) HEtr HEw Hms Hbuq)
+      HEtr HEw Hms Hbuq)
     $$ [HmR Hca Hlg3 Hbemu Hgo HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr ⟨-, Hs⟩
   · iframe; iframe #
     iintro %gs %lis %cid' %mid' %R Hg
@@ -171,8 +173,9 @@ theorem restartCheck.wp_proof
   -- `NewClient(client, lg)`
   have Htb := ThreadBoundLe.le (GF := GF) (2 ^ 28)
   wp_apply (wp_NewClient caddr lg
-      (EtcdGrove.client.srvWEnv R caddr [] null null [] null default) Hlg Hpe (by omega))
+      (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E γr false) γr caddr [] null null [] null default) Hpe (by omega))
     as %clR %cerr Hcl'
+  · iframe #
   icases Hcl' with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
   rotate_left
   · obtain ⟨Hcerr, -⟩ := Hcfail
@@ -190,12 +193,12 @@ theorem restartCheck.wp_proof
     as %gctx %gcd %gcancel ⟨#Hgcancel, #Hgctx, #Hgce, -⟩
   (try wp_auto)
   -- `cliR.Get(gctx, "k")`, under the client's invariant at the restarted member's names
-  obtain ⟨-, Hst', -⟩ := Hρ'
+  have Hst' := restartNames_st Hρ'
   ihave #HinvR : client.putGetInv ρ'.rd γf go!"k" go!"v2" $$ []
   · rw [putGetInv_st ρ'.rd γr (by rw [Hst', Hst]) γf]
     iexact Hinv
   imod monoNatLbOwn_0 (GF := GF) ρ'.rd.committed with #Hc0
-  imod mvcc.idxCert_nil (GF := GF) E'.γ.idx with #HF0
+  imod v3rpc.kvLogLb_nil (GF := GF) E'.γs with #HF0
   ihave #Hnil : optsAt (GF := GF) slice.nil [] $$ []
   · iunfold optsAt
     iexists ([] : List GoFunc)

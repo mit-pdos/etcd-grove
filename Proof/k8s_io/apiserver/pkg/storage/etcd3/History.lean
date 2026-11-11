@@ -3,12 +3,15 @@ Lean-first (no Rocq counterpart).
 
 # The store's history, kept by its caller (D30j's local option)
 
-The store's specs read etcd's key-values through `kvSeen γh σ` (`Store.lean`): every key-value of
-the state, at its mod revision, is in the ghost map `γh`, read-only. The caller that hands the
-store its updates keeps the map's authority with etcd's state (`histAuth γh σ`): every entry at a
-revision at most the state's (`HistOk`), and the state seen. At each step of etcd's state that
-the updates report (`KvNext`, `Updates.lean`), it extends the map with the new key-values, all at
-the new revision, so none was there (`histAuth_next`).
+The store's specs read etcd's key-values through `kvSeen γh σ` (`Store.lean`): the ghost map `γh`
+holds, read-only, each revision's changes (`Changes`: the keys it wrote, with `some` of the value,
+and the keys it deleted, with `none`), and every key-value of the state is among the changes of
+its mod revision. The caller that hands the store its updates keeps the map's authority with
+etcd's state (`histAuth γh σ`): every entry at a revision at most the state's (`HistOk`), and the
+state seen. At each step of etcd's state that the updates report (`KvNext`, `Updates.lean`), it
+adds the step's changes (`chgOf σ σ'`) at the new revision, where nothing was (`histAuth_next`),
+and the entry comes back (`revSeen`): a deleted object's witness (stage 7b), and, for every other
+key, the proof that the revision did not change it.
 -/
 module
 
@@ -29,9 +32,67 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 
+open Classical in
+/-- **The changes of a step from `σ` to `σ'`**: the key-values of `σ'` not in `σ` (`some` of the
+value), then the keys of `σ` that `σ'` lacks (`none`). -/
+def chgOf (σ σ' : KVState) : Changes :=
+  (σ'.kvs.filter (fun v => decide (v ∉ σ.kvs))).map (fun v => (v.key, some v.value)) ++
+  ((σ.kvs.filter (fun v => decide (∀ w ∈ σ'.kvs, w.key ≠ v.key))).map EtcdKv.key).map
+    (fun k => (k, (none : Option GoString)))
+
+open Classical in
+/-- A new key-value is among the changes. -/
+theorem chgOf_new (σ σ' : KVState) (v : EtcdKv) (h1 : v ∈ σ'.kvs) (h2 : v ∉ σ.kvs) :
+    (v.key, some v.value) ∈ chgOf σ σ' :=
+  List.mem_append_left _ (List.mem_map.2 ⟨v, List.mem_filter.2 ⟨h1, by simpa using h2⟩, rfl⟩)
+
+open Classical in
+/-- A deleted key is among the changes, with `none`. -/
+theorem chgOf_del (σ σ' : KVState) (k : GoString) (h1 : ∃ v ∈ σ.kvs, v.key = k)
+    (h2 : ∀ v ∈ σ'.kvs, v.key ≠ k) : (k, (none : Option GoString)) ∈ chgOf σ σ' := by
+  obtain ⟨v, hv, rfl⟩ := h1
+  refine List.mem_append_right _ (List.mem_map.2 ⟨v.key, List.mem_map.2 ⟨v,
+    List.mem_filter.2 ⟨hv, ?_⟩, rfl⟩, rfl⟩)
+  simpa using h2
+
+open Classical in
+/-- **A key the step did not change**: a key among the changes has a new key-value in `σ'` or
+was deleted. -/
+theorem chgOf_keys (σ σ' : KVState) (k : GoString) (x : Option GoString)
+    (h : (k, x) ∈ chgOf σ σ') :
+    (∃ v ∈ σ'.kvs, v ∉ σ.kvs ∧ v.key = k) ∨ ((∃ v ∈ σ.kvs, v.key = k) ∧ ∀ v ∈ σ'.kvs, v.key ≠ k) := by
+  simp only [chgOf, List.mem_append, List.map_map, List.mem_map, List.mem_filter,
+    Function.comp_def, Prod.mk.injEq] at h
+  rcases h with ⟨v, ⟨hv, hn⟩, rfl, -⟩ | ⟨v, ⟨hv, hd⟩, rfl, -⟩
+  · exact Or.inl ⟨v, hv, by simpa using hn, rfl⟩
+  · exact Or.inr ⟨⟨v, hv, rfl⟩, by simpa using hd⟩
+
+open Classical in
+/-- The changes of a step between sorted states have distinct keys. -/
+theorem chgOf_nodup (σ σ' : KVState) (hs0 : σ.kvs.Pairwise etcdKvLess)
+    (hs : σ'.kvs.Pairwise etcdKvLess) : ((chgOf σ σ').map Prod.fst).Nodup := by
+  have hp' : (σ'.kvs.map EtcdKv.key).Nodup := by
+    have hp : (σ'.kvs.map EtcdKv.key).Pairwise go.GoStringLt := List.pairwise_map.2 hs
+    exact hp.imp (fun h e => by subst e; exact go.goStringLt_irrefl _ h)
+  have hp0 : (σ.kvs.map EtcdKv.key).Nodup := by
+    have hp : (σ.kvs.map EtcdKv.key).Pairwise go.GoStringLt := List.pairwise_map.2 hs0
+    exact hp.imp (fun h e => by subst e; exact go.goStringLt_irrefl _ h)
+  unfold chgOf
+  rw [List.map_append, List.nodup_append]
+  refine ⟨?_, ?_, ?_⟩
+  · rw [List.map_map]
+    exact hp'.sublist (List.filter_sublist.map _)
+  · rw [List.map_map, List.map_map]
+    exact hp0.sublist (List.filter_sublist.map _)
+  · intro a ha b hb hab
+    simp only [List.map_map, List.mem_map, List.mem_filter, Function.comp_def] at ha hb
+    obtain ⟨v, ⟨hv, -⟩, rfl⟩ := ha
+    obtain ⟨w, ⟨-, hw⟩, rfl⟩ := hb
+    exact (of_decide_eq_true hw) v hv hab
+
 /-- The history's entries are at revisions at most the state's. -/
-def HistOk (H : GMap (GoString × w64) GoString) (σ : KVState) : Prop :=
-  ∀ k r v, H !! (k, r) = some v → uint.nat r ≤ σ.rev
+def HistOk (H : GMap w64 Changes) (σ : KVState) : Prop :=
+  ∀ r ch, H !! r = some ch → uint.nat r ≤ σ.rev
 
 /-- **The history's authority at etcd's state `σ`** (see the file header). -/
 def histAuth (γh : GName) (σ : KVState) : IProp GF :=
@@ -52,103 +113,75 @@ theorem histAuth_seen (γh : GName) (σ : KVState) :
   iframe HA Hs
   ipureintro; exact Hok
 
-/-- Key-values at the revision `r`, none there, with distinct keys, added. -/
-theorem hist_ins (γh : GName) (r : w64) (l : List EtcdKv) :
-    ∀ (H : GMap (GoString × w64) GoString), (∀ v ∈ l, v.modRev = r) →
-    (l.map EtcdKv.key).Nodup → (∀ v ∈ l, H !! (v.key, r) = none) →
-    ghostMapAuth (GF := GF) γh 1 H ⊢ |==> ∃ H', ghostMapAuth γh 1 H' ∗
-      ([∗list] v ∈ l, ghostMapElem γh (v.key, v.modRev) DFrac.discard v.value) ∗
-      ⌜∀ kr x, H' !! kr = some x → H !! kr = some x ∨ kr.2 = r⌝ := by
-  induction l with
-  | nil =>
-    intro H _ _ _
-    iintro HA
-    imodintro
-    iexists H
-    iframe HA
-    isplitl []
-    · iempintro
-    ipureintro; exact fun _ _ h => Or.inl h
-  | cons v l ih =>
-    intro H hm hnd hfr
-    have hv := hm v List.mem_cons_self
-    have hnd' := List.nodup_cons.1 hnd
-    iintro HA
-    imod ghost_map_insert_persist (v.key, r) v.value (hfr v List.mem_cons_self) $$ HA
-      with ⟨HA, #He⟩
-    have hfr' : ∀ w ∈ l, (H.insert (v.key, r) v.value) !! (w.key, r) = none := by
-      intro w hw
-      have hk : v.key ≠ w.key := fun e => hnd'.1 (e ▸ List.mem_map_of_mem hw)
-      rw [GMap.lookup_insert_ne _ _ (fun e => hk (Prod.mk.inj e).1)]
-      exact hfr w (List.mem_cons_of_mem _ hw)
-    imod (ih (H.insert (v.key, r) v.value) (fun w hw => hm w (List.mem_cons_of_mem _ hw))
-      hnd'.2 hfr') $$ HA with ⟨%H', HA, Hl, %Hh⟩
-    imodintro
-    iexists H'
-    iframe HA
-    isplitl [Hl]
-    · iapply (BigSepL.bigSepL_cons (PROP := IProp GF)).2
-      rw [hv]
-      iframe He Hl
-    ipureintro
-    intro kr x hx
-    rcases Hh kr x hx with h | h
-    · by_cases e : (v.key, r) = kr
-      · subst e; exact Or.inr rfl
-      · rw [GMap.lookup_insert_ne _ _ e] at h
-        exact Or.inl h
-    · exact Or.inr h
+/-- **The step from `σ` to `σ'`, recorded** (persistent): when `σ'` is at the next revision, its
+changes are the history's entry there. -/
+def revSeen (γh : GName) (σ σ' : KVState) : IProp GF :=
+  iprop(□ (⌜σ'.rev = σ.rev + 1⌝ → ghostMapElem γh (W64 ((σ'.rev : Nat) : Int)) DFrac.discard
+    (chgOf σ σ')))
 
-open Classical in
-/-- **The history follows a step of etcd's state** (see the file header): sorted (distinct
-keys), its revision fitting a word. -/
+instance revSeen_persistent (γh : GName) (σ σ' : KVState) :
+    Persistent (revSeen (GF := GF) γh σ σ') := by
+  unfold revSeen; infer_instance
+
+/-- **The history follows a step of etcd's state** (see the file header): both states sorted
+(distinct keys), the new revision fitting a word; the step's entry comes back. -/
 theorem histAuth_next (γh : GName) (σ σ' : KVState) (hn : KvNext σ σ') (hr : σ'.rev < 2 ^ 64)
-    (hs : σ'.kvs.Pairwise etcdKvLess) :
-    histAuth (GF := GF) γh σ ⊢ |==> histAuth γh σ' := by
-  rcases hn with rfl | ⟨hrev, hnew⟩
-  · iintro H; imodintro; iexact H
+    (hs0 : σ.kvs.Pairwise etcdKvLess) (hs : σ'.kvs.Pairwise etcdKvLess) :
+    histAuth (GF := GF) γh σ ⊢ |==> (histAuth γh σ' ∗ revSeen γh σ σ') := by
+  rcases hn with rfl | ⟨hrev, hnew, -⟩
+  · iintro H
+    imodintro
+    iframe H
+    iunfold revSeen
+    imodintro
+    iintro %hk
+    exfalso; omega
   iintro H
   iunfold histAuth at H
   icases H with ⟨%H, HA, %Hok, #Hs⟩
   have hR : uint.nat (W64 ((σ'.rev : Nat) : Int)) = σ'.rev := by
     simp only [W64, uint.nat, BitVec.toNat_ofInt]; omega
-  let l := σ'.kvs.filter (fun v => decide (v ∉ σ.kvs))
-  have hmem : ∀ v, v ∈ l ↔ v ∈ σ'.kvs ∧ v ∉ σ.kvs := fun v => by simp [l]
-  have hm : ∀ v ∈ l, v.modRev = W64 ((σ'.rev : Nat) : Int) := by
-    intro v hv
-    obtain ⟨h1, h2⟩ := (hmem v).1 hv
-    rcases hnew v h1 with h | h
-    · exact absurd h h2
-    · exact h
-  have hnd : (l.map EtcdKv.key).Nodup := by
-    have hp : (l.map EtcdKv.key).Pairwise go.GoStringLt := List.pairwise_map.2 (hs.filter _)
-    exact hp.imp (fun h e => by subst e; exact go.goStringLt_irrefl _ h)
-  have hfr : ∀ v ∈ l, H !! (v.key, W64 ((σ'.rev : Nat) : Int)) = none := by
-    intro v _
-    cases h : H !! (v.key, W64 ((σ'.rev : Nat) : Int)) with
+  have hfr : H !! W64 ((σ'.rev : Nat) : Int) = none := by
+    cases h : H !! W64 ((σ'.rev : Nat) : Int) with
     | none => rfl
     | some x =>
-      have := Hok _ _ _ h
+      have := Hok _ _ h
       omega
-  imod (hist_ins γh (W64 ((σ'.rev : Nat) : Int)) l H hm hnd hfr) $$ HA with ⟨%H', HA, #Hl, %Hh⟩
+  have hnd := chgOf_nodup σ σ' hs0 hs
+  imod ghost_map_insert_persist (W64 ((σ'.rev : Nat) : Int)) (chgOf σ σ') hfr $$ HA
+    with ⟨HA, #He⟩
   imodintro
-  iunfold histAuth
-  iexists H'
-  iframe HA
-  isplitr
-  · ipureintro
-    intro k r v hv
-    rcases Hh _ _ hv with h | h
-    · have := Hok _ _ _ h; omega
-    · simp only at h; rw [h]; omega
-  iunfold kvSeen
-  imodintro
-  iintro %v %hv
-  by_cases hin : v ∈ σ.kvs
-  · iunfold kvSeen at Hs
-    iapply Hs
-    ipureintro; exact hin
-  · iapply (BigSepL.bigSepL_mem ((hmem v).2 ⟨hv, hin⟩)) $$ Hl
+  isplitl [HA]
+  · iunfold histAuth
+    iexists (H.insert (W64 ((σ'.rev : Nat) : Int)) (chgOf σ σ'))
+    iframe HA
+    isplitr
+    · ipureintro
+      intro r ch hv
+      by_cases e : W64 ((σ'.rev : Nat) : Int) = r
+      · subst e; omega
+      · rw [GMap.lookup_insert_ne _ _ e] at hv
+        have := Hok _ _ hv; omega
+    iunfold kvSeen
+    imodintro
+    iintro %v %hv
+    by_cases hin : v ∈ σ.kvs
+    · iunfold kvSeen at Hs
+      iapply Hs
+      ipureintro; exact hin
+    · have hm : v.modRev = W64 ((σ'.rev : Nat) : Int) := by
+        rcases hnew v hv with h | h
+        · exact absurd h hin
+        · exact h
+      iexists (chgOf σ σ')
+      rw [hm]
+      iframe He
+      ipureintro
+      exact ⟨chgOf_new σ σ' v hv hin, hnd⟩
+  · iunfold revSeen
+    imodintro
+    iintro %-
+    iexact He
 
 end defs
 

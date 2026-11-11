@@ -5,6 +5,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseRead
+public import Proof.context.LibKeys
 
 @[expose] public section
 
@@ -39,7 +40,13 @@ through it (its contract states nothing of the keys), so a key attached in betwe
 unchecked (`issues/etcd-lease-timetolive-keys-toctou.md`). The revision re-check
 (`ErrAuthOldRevision` unless the auth revision is still the check's) is not stated
 (`checkLeaseRenew.spec`'s margin). Under the deployment premise `leasePeersOk`
-(`leaseTimeToLive`'s). -/
+(`leaseTimeToLive`'s). **What the answer says of the lessor `γl`** at the lower bound `m`, under the
+lease-TTL row (`leaseTTLRow s γl`): `leaseTimeToLive`'s (the lease-expiry plan's E3, 2026-11-05): a
+response's `GrantedTTL` is the lease's TTL at an index `≥ m`, or the lease is absent from `m` on; an
+error `errors.Is` finds to be `lease.ErrLeaseNotFound` (`errIsTrue`) means it is absent from `m` on.
+The wrapper's own errors (`requireAuthInfo`'s, `checkLeaseTimeToLive`'s, `auth.ErrAuthOldRevision`)
+are auth package error variables, leaves holding errors other than `ErrLeaseNotFound`'s, for which
+`errIsTrue` is false (`authErrVarIs_not_leaseNotFound`). -/
 abbrev EtcdServer.LeaseTimeToLive.spec : Prop :=
   leasePeersOk →
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (γl : GName)
@@ -48,7 +55,7 @@ abbrev EtcdServer.LeaseTimeToLive.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗
       srvAuthAt s E ∗ srvAuthLeaseLb s E ∗ srvLessorRd s γl ∗ auth.authPubLbM E.authMode n ∗
-      lease.lessorLb γl m ∗ context.isContext ctx cd ∗ E.RD ∗ lease.lessorRdPool γl ∗ threadTok ∗
+      lease.lessorLb γl m ∗ context.isContext ctx cd ∗ context.libCtxOk ctx ∗ E.RD ∗ lease.lessorRdPool γl ∗ threadTok ∗
       ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗ r ↦{dq} v }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"LeaseTimeToLive"))
       (Val #(GoInterface.ok ctx))) (Val #r))
@@ -56,12 +63,19 @@ abbrev EtcdServer.LeaseTimeToLive.spec : Prop :=
       threadTok ∗ r ↦{dq} v ∗
       ((⌜err = GoInterface.nil⌝ ∗
           (∃ w : etcdserverpb.LeaseTimeToLiveResponse, resp ↦ w ∗ ⌜w.Header' ≠ null⌝ ∗
-            ⌜w.ID' = v.ID'⌝ ∗ ∃ hv : etcdserverpb.ResponseHeader, w.Header' ↦ hv) ∗
+            ⌜w.ID' = v.ID'⌝ ∗ (∃ hv : etcdserverpb.ResponseHeader, w.Header' ↦ hv) ∗
+            □ (leaseTTLRow s γl -∗
+                (∃ i : Nat, ⌜m ≤ i⌝ ∗ lease.leaseTTLAt γl i v.ID' w.GrantedTTL') ∨
+                lease.leaseAbsentFrom γl m v.ID')) ∗
           authedOutB s E.authMode (GoInterface.ok ctx) GoInterface.nil ∗
           (if v.Keys' then leaseCheckFrom s E (GoInterface.ok ctx) n
               (fun info => leaseKeysVerdictFrom E.authMode n info γl m v.ID' .read)
             else iprop(True))) ∨
-       (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }}
+       (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
+          □ (∀ e : GoInterfaceOk,
+              globalAddr go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound ↦□ GoInterface.ok e -∗
+              errIsTrue err (GoInterface.ok e) -∗ leaseTTLRow s γl -∗
+              lease.leaseAbsentFrom γl m v.ID'))) }}
 
 end spec
 

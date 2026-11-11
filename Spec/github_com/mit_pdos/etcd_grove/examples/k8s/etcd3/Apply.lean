@@ -1,25 +1,28 @@
 /- Lean-first (no Rocq counterpart).
 
-`Apply(s, input)` (k8s_etcd3.go): one operation through the store `s`, logically atomic against
+`Apply(s, tbl, input)` (k8s_etcd3.go): one operation through the store `s`, logically atomic against
 the driver's model (`k8setcd3S g0`: `pM (kSpec g0) decOp`, from the seeded store `g0`), in the
 form `lintest`'s `applySpec` takes for the closure `Check` passes,
-`func(input any) any { return Apply(s, input) }`:
+`func(input any) any { return Apply(s, tbl, input) }`:
 
-  `{{ kInOk i }} <<{ ∀∀ S, kState γ g0 S }>> Apply(s, i) @@ drvE
+  `{{ kInOk i ∗ threadTok }} <<{ ∀∀ S, kState γ g0 S }>> Apply(s, i) @@ drvE
      <<{ ∃∃ S' o, kState γ g0 S' ∗ ⌜(k8setcd3S g0).M.step S (i, o) = some S'⌝ }>>
-     {{ RET #o; ioOk i o }}`
+     {{ RET #o; ioOk i o ∗ threadTok }}`
 
 over the library's state `kState γ g0 S` (the history's ghost variable, whose other half is in the
 instance's invariant `kInv γ c g0 γr.kv` at each member: `Proof/.../k8setcd3/Inv.lean`). The input
-is one `Gen` may return (`kInOk`).
+is one `Gen` may return (`kInOk c`: its cached object one of the store's); an answer with a name
+becomes the client's cached object in the table `tbl` (`isCache c tbl`, stage 7b).
 
 Premises: the store `s` (`isStore sp c`) holds the driver's objects (`c.S = driverSpec`) under
-the driver's prefixes (`"/registry"`, `"/objs"`), the packages' facts, and `errors.As`'s target
-(the client's context lemma).
+the driver's prefixes (`"/registry"`, `"/objs"`), decoder and versioner, the packages' facts, and
+`errors.As`'s target (the client's context lemma). Stage 7e-4: the thread bound and the goroutine's `threadTok` (lent by
+`lintest`) `GetList` needs, and the feature gate's `EtcdRangeStream` off (`rangeStreamOff`).
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Calls
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Contract
 
 @[expose] public section
 
@@ -38,6 +41,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
 /-- See the file header. -/
@@ -45,19 +49,22 @@ abbrev Apply.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     [k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
-    (γ : KNames) (sp : Loc) (c : StoreCfg GF DObj) (g0 : GSt),
+    (γ : KNames) (sp tbl : Loc) (c : StoreCfg GF DObj) (g0 : HSt),
   c.S = driverSpec → c.pathPrefix = go!"/registry" → c.resourcePrefix = go!"/objs" →
+  c.di = decoderI → c.vi = versionerI →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty → storageErrTyOk →
+  threadBound GF ≤ 2 ^ 30 - 1 → (∀ x ∈ c.ms, noRefusalAt x.addr) →
   ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 -∗
     isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 -∗
     k8s.isStore sp c -∗ ([∗list] sv ∈ c.ms, kInv γ c g0 sv.γr.kv) -∗ ⌜c.ms ≠ []⌝ -∗
+    isCache c tbl -∗ rangeStreamOff -∗
     iprop(∀ i : GoInterface,
-      {{ kInOk i }} <<{ ∀∀ S, kState γ g0 S }>>
-        (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Apply))
+      {{ kInOk c i ∗ threadTok }} <<{ ∀∀ S, kState γ g0 S }>>
+        (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Apply))
           (Val #(interface.mkOk (go.GoType.PointerType
-            k8s_io.apiserver.pkg.storage.etcd3.store.ty) #sp))) (Val #i)) @@ drvE
+            k8s_io.apiserver.pkg.storage.etcd3.store.ty) #sp))) (Val #tbl)) (Val #i)) @@ drvE
       <<{ ∃∃ S' o, kState γ g0 S' ∗ ⌜(k8setcd3S (GF := GF) g0).M.step S (i, o) = some S'⌝ }>>
-      {{ RET #o; (k8setcd3S (GF := GF) g0).ioOk i o }})
+      {{ RET #o; (k8setcd3S (GF := GF) g0).ioOk i o ∗ threadTok }})
 
 end spec
 

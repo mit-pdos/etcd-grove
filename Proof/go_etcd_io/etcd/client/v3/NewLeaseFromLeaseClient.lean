@@ -49,7 +49,7 @@ theorem NewLeaseFromLeaseClient.wp_proof
     (try wp_auto)
     rw [decide_eq_false Hcnn]
     (try wp_auto)
-    wp_apply wp_GetLogger c $$ [] as %lg %Hlgnn
+    wp_apply wp_GetLogger c $$ [] as %lg #Hlgok
     · iframe #
     (try wp_auto)
     wp_apply context.wp_Background
@@ -58,7 +58,7 @@ theorem NewLeaseFromLeaseClient.wp_proof
     ihave #Hctxp : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
     · iPkgInit
     iapply wp_fupd
-    wp_apply HWC $$ [] as %sctx %γs %scancel ⟨#Hscan, #Hsctx⟩
+    wp_apply HWC $$ [] as %sctx %γs %scancel ⟨#Hscan, #Hsctx, -, #HsctxO⟩
     (try wp_auto)
     ipersist donec
     ipersist stopCtx
@@ -88,11 +88,10 @@ theorem NewLeaseFromLeaseClient.wp_proof
     unfold lessorAtS
     iexists dc, γd, sctx, _, lg, _, γr, rlc, sl
     iframe #
-    ipureintro; exact Hlgnn
   · (try wp_auto)
     rw [decide_eq_false Hcnn]
     (try wp_auto)
-    wp_apply wp_GetLogger c $$ [] as %lg %Hlgnn
+    wp_apply wp_GetLogger c $$ [] as %lg #Hlgok
     · iframe #
     (try wp_auto)
     wp_apply context.wp_Background
@@ -101,7 +100,7 @@ theorem NewLeaseFromLeaseClient.wp_proof
     ihave #Hctxp : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
     · iPkgInit
     iapply wp_fupd
-    wp_apply HWC $$ [] as %sctx %γs %scancel ⟨#Hscan, #Hsctx⟩
+    wp_apply HWC $$ [] as %sctx %γs %scancel ⟨#Hscan, #Hsctx, -, #HsctxO⟩
     (try wp_auto)
     ipersist donec
     ipersist stopCtx
@@ -131,7 +130,6 @@ theorem NewLeaseFromLeaseClient.wp_proof
     unfold lessorAtS
     iexists dc, γd, sctx, _, lg, _, γr, rlc, sl
     iframe #
-    ipureintro; exact Hlgnn
 
 end proof
 

@@ -62,10 +62,11 @@ theorem read.Read.sendReadIndex.wp_proof
   ipersist Hsl
   wp_apply context.wp_Background
   wp_apply HRT as %d -
-  wp_apply hWT d $$ [] as %cctx %cd %cancel ⟨#Hcancel, #Hcctx⟩
+  wp_apply hWT d $$ [] as %cctx %cd %cancel ⟨#Hcancel, #Hcctx, -⟩
   · iframe #
-  wp_apply HRI $$ %cctx %cd %sl %id %n %Qr [Hfr] as %err ⟨#HerrE, Hrq⟩
+  wp_apply HRI $$ %cctx %cd %sl %id %n %Qr [Hfr] as %err ⟨#HerrE, #HnE, Hrq⟩
   · iframe #; iframe Hfr
+  ihave #HlE := readLoopErrIs_of_node err $$ HnE
   (try wp_auto)
   wp_apply Hcancel
   wp_apply read_wp_Is_var hIs err eR HlR as %b -
@@ -74,7 +75,7 @@ theorem read.Read.sendReadIndex.wp_proof
   · cases err with
     | ok ei =>
       wp_auto
-      wp_apply HLg $$ [HLR] as %lg ⟨%Hlg, HLR⟩
+      wp_apply HLg $$ [HLR] as %lg ⟨#Hlg, HLR⟩
       · iexact HLR
       wp_apply hZE as %f -
       wp_apply wp_slice_literal
@@ -83,21 +84,21 @@ theorem read.Read.sendReadIndex.wp_proof
       iintro %fs ⟨-, -⟩
       (try wp_auto)
       wp_apply hW lg _ _ $$ []
-      · iframe #; ipureintro; exact Hlg
+      · iframe #
       iunfold go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec at HcFs
       icases HcFs with ⟨#HInc, -⟩
       (try wp_auto)
       wp_apply HInc
       (try wp_auto)
       iapply HΦ
-      iframe HLR HerrE Hrq
+      iframe HLR HerrE HlE Hrq
     | nil =>
       wp_auto
       iapply HΦ
-      iframe HLR HerrE Hrq
+      iframe HLR HerrE HlE Hrq
   · wp_auto
     iapply HΦ
-    iframe HLR HerrE Hrq
+    iframe HLR HerrE HlE Hrq
 
 end proof
 

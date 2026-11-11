@@ -25,6 +25,7 @@ none of its own (its thread bound, `threadBound GF + 3 ≤ 2 ^ 31`, follows from
 -/
 module
 
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartRes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.cache.Defs
 public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
 
@@ -61,9 +62,10 @@ abbrev Main.spec : Prop :=
   0 ≤ sint.Z nw → sint.Z nw < 2 ^ 31 → 0 ≤ sint.Z nops →
   sint.Z nw * sint.Z nops < 2 ^ 62 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.cache ∗
-      netAddrFree (GF := GF) go!"127.0.0.1:23873" ∗ threadTok ∗ premises N id ctxs boot ∗
-      -- (2026-11-03, the WAL's API, change 6) the member's WAL directory fresh
-      walDirFresh (config.walDirOf go!"cachekv.etcd" go!"") }}
+      -- (2026-11-05, hub step 7) the member's start bundle: its WAL directory fresh and the right
+      -- to listen on its client address (`netAddrFree`, which program start gives once: D19d)
+      etcdstart.memberStartRes (GF := GF) go!"cachekv" ⟨none, some go!"127.0.0.1:23873"⟩ ∗
+      threadTok ∗ premises N id ctxs boot }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.cache.Main)) (Val #nw))
       (Val #nops))
   {{ (r : w64), RET #r; ⌜r = W64 0 ∨ r = W64 1 ∨ r = W64 2 ∨ r = W64 3⌝ }}

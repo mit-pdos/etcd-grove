@@ -159,7 +159,7 @@ theorem kv_get_km (api : Loc) (γ : KMNames) (dup : Bool) (pfx : GoString) (hpfx
         rw [← hkv] at Hw
         have h1 := zip_getElem?_snd _ _ i e He
         ihave Hkw := Hall $$ %i %e.2 %w %h1 %Hw
-        unfold kvValAt; iunfold txn.kvIs at Hkw; iexact Hkw
+        iapply kvValAt_of_kvIs; iexact Hkw
       · unfold getRespKvs
         iexists ksl
         iframe Hksl
@@ -232,13 +232,13 @@ theorem isEtcdKVE_of_km (api : Loc) (γ : KMNames) (dup : Bool) (pfx : GoString)
       isEtcdKVE (EM := etcdModelOfKV γ) (kvIfaceOf api) pfx := by
   iintro ⟨#Pc, #Hkv, #Hinv, #Hall⟩
   unfold isEtcdKVE
-  iintro !> %ctx %cs %key %sl %gs %lo %Φ !> ⟨#Hctx, #Hopts, #Hlo, %Hpre⟩ HΦ
+  iintro !> %ctx %cs %key %sl %gs %lo %Φ !> ⟨#Hctx, #HctxO, #Hopts, #Hlo, %Hpre⟩ HΦ
   obtain ⟨Hnp, Ht, Hx, Hss, Hlin, Hsz⟩ := Hpre
   ihave #Hsi : sortNamesIf (GF := GF) (opGetModel key gs).base.sortSet $$ []
   · rw [Hss]; unfold sortNamesIf; simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
   iunfold ctxErrClientAll at Hall
   ihave #Hce := Hall $$ %ctx %cs Hctx
-  ihave #Hok := ctxOk_of_isContext ctx cs $$ Hctx
+  ihave #Hok := ctxOk_of_isContext ctx cs $$ [$Hctx $HctxO]
   ihave #Hor := optsAt_res sl gs iprop(True) $$ Hopts
   iapply (kv_get_km api γ dup pfx hpfx ctx cs key sl gs iprop(True) lo Hnp Ht Hx Hlin Hsz)
     $$ [] [HΦ]

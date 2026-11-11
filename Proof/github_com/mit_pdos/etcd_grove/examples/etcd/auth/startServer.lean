@@ -14,6 +14,7 @@ module
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.auth.startServer
 public import Spec.go_etcd_io.etcd.server.v3.features.NewDefaultServerFeatureGate
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ModeSpecs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Served
 
 @[expose] public section
 
@@ -43,14 +44,15 @@ theorem startServer.wp_proof
     (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG)) :
     startServer.spec (GF := GF) (hG := hG) := by
   intro CS N lg bootLog ctxs dir id γ ρ E₀ Φs γn Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2
-    Hdirok Hdir Hdirps Hlg Hck Haf Hbuq Hdbo
-  wp_start as ⟨Htok, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hwdf⟩
+    Hdirok Hdir Hdirps Hck Haf Hbuq Hdbo
+  wp_start as ⟨#Hzlg, Htok, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hfresh⟩
+  ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   iunfold etcdstart.commonPremises at Hcom
-  icases Hcom with ⟨#Hzap, #Hsetlg, #Htd, #Hns, #Hnrl⟩
+  icases Hcom with ⟨#Hzap, #Htd, #Hns, #Hnrl⟩
   iunfold etcdstart.memberBootOn at Hmb
   icases Hmb with ⟨%Hρ, Hnboot, #Hsrl, #Hidc, #Hidk, #HNZ0, #Hpmint, #Hrdctx,
     Hids, Hwtok, Hidx, Hcok, Hrev, Hnk, #Hkvinv, Hreg, %γd, %Hsloc, Hsdir⟩
-  obtain ⟨hraft, hc0, hch, hlog, hcok, hpfx, hΦs, hcmp0, hkcmp, hslg, hlgf⟩ := Hρ
+  obtain ⟨hraft, hc0, hch, hlog, hpfx, hΦs, hcmp0, hkcmp, hNx, hslg, hlgf⟩ := Hρ
   ihave #Pfeat : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.features $$ []
   · iPkgInit
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
@@ -88,27 +90,31 @@ theorem startServer.wp_proof
   letI : MemStorReg GF := ⟨γ.reg⟩
   have hblen' : γ.boot.length ≤ 2 ^ 60 := by rw [hboot]; exact hblen
   -- `NewServer(cfg)` with auth on
+  -- (sweep repairs 1, B4) `ETCD_VERIFY` off, from the member's fresh bundle
+  icases etcdstart.memberFreshRes_verify _ _ _ $$ Hfresh with ⟨#Hvoff, Hfresh⟩
   wp_apply (wp_NewServer _ ⟨[etcdstart.httpURL go!"127.0.0.1:23926"],
         [etcdstart.httpURL go!"127.0.0.1:23916"],
         GMap.insert go!"authkv" (slice.mk peer (W64 1) (W64 1)) ∅,
         fun _ => [etcdstart.httpURL go!"127.0.0.1:23926"]⟩
-      γ id ctxs ρ E₀ N Φs γn dir γd hraft (by rw [hboot]; exact hrule) hc0 hch hlog hcok hkcmp
-      Hlg ⟨by simp, by simp [mvcc.rangeLimitMax]⟩
+      γ id ctxs ρ E₀ N Φs γn dir γd .none hraft (by rw [hboot]; exact hrule) hc0 hch hlog hkcmp
+      ⟨by simp, by simp [mvcc.rangeLimitMax]⟩
       (by simp [v3rpc.etcdMaxRequestBytesOk, v3rpc.etcdMaxRecvMsgSize, v3rpc.grpcOverheadBytes])
       v3rpc.maxTxnOpsOk_default (v3compactor.bootCfg_off _ _ _ _ (by first | rfl | simp))
-      (fun h => absurd h (by decide)) hcmp0 Htb Hrb48 HrbN
+      (fun h => absurd h (by decide)) hcmp0 hNx Htb Hrb48 HrbN
       hblen' hpfx hΦs ⟨fgp, Hfgp, rfl⟩ Hdirok
       (etcdstart.peerURLsDir_httpURL dir id _ Hdirok Hdir)
       -- (2026-11-03, the final whole-`bootOk` review) the raft node's and the transport's slots: the
       -- literal's clock, the directory of the peers
       (raftNode.bootCfg_of _ rfl) (by rw [hvs]; exact Hdirps)
-      (fun _ => ⟨rfl, by word, by word⟩) (fun _ => hlgf)
+      (fun _ => ⟨rfl, by word, by word⟩)
+      -- (2026-11-04, the lease-expiry plan's Part C) the lease slot: auth on grants no lease
+      (lease.bootCfg_none _ _ (by simpa [KVNames.lg_eq] using hlgf) Hck)
       -- (2026-11-03, the whole-`bootOk` review) `bootstrap`'s configuration conditions, from the
       -- literal, and the write budget
-      (etcdstart.bootCfgOk_of _ Hlg rfl rfl rfl rfl)
+      (etcdstart.bootCfgOk_of _ rfl rfl rfl rfl)
       ⟨rfl, etcdstart.discoveryZero_len, etcdstart.utf8Keys_insert _ _ _ (by decide) etcdstart.utf8Keys_empty⟩
       HwbN)
-    $$ [Htok Hnboot Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hsdir Hwdf] as %srv %err Hres
+    $$ [Htok Hnboot Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hsdir Hfresh] as %srv %err Hres
   · iframe
     iframe #
     isplitr
@@ -124,19 +130,17 @@ theorem startServer.wp_proof
       iexact Hsls
     isplitl [Hreg]
     · iunfold memStorRegAuth; iexact Hreg
-    -- the WAL's slot (`wal.bootRes`), from the member's fresh WAL directory
-    isplitl [Hwdf]
-    · iapply wal.bootRes_intro _ _ _ rfl rfl; iexact Hwdf
+    -- the WAL's slot (`wal.bootRes`), from the member's fresh bundle
+    isplitl [Hfresh]
+    · iapply etcdstart.memberFreshRes_boot go!"authkv" _ _ rfl rfl; iexact Hfresh
     isplitr; · ipureintro; exact ⟨Hγn1, Hγn2⟩
     isplitr; · ipureintro; exact Hsloc
-    isplitr; · ipureintro; exact Hck
     isplitr; · ipureintro; exact Haf
     isplitr; · ipureintro; exact Hbuq
     isplitr; · ipureintro; exact Hdbo
-    isplitr; · ipureintro; exact hslg
     ipureintro; exact storage.openMmapOk_of_quota_zero _ rfl
   icases Hres with (⟨⟨%Hsn, %Herr⟩, Htok⟩ | ⟨%Herr, Htok, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %HE, #Hwb,
-    Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, -, HWR, #HLnil, #Hcca, #HBF, -, -⟩)
+    Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, -, HWR, #Hlsrv, -, #Hcca, #HBF, Hkeep⟩)
   · -- `NewServer` failed: the error returned, with the thread token
     cases err with
     | nil => exact absurd rfl Herr
@@ -146,13 +150,13 @@ theorem startServer.wp_proof
   subst Herr
   wp_auto
   -- (the lease-grant plan's D1) the lessor finds no lease, auth being on
-  ihave #HLnil := HLnil $$ %(by trivial)
+  ihave #HLnil := lease.srvInv_lessorNil true srv E .none rfl $$ Hlsrv
   obtain ⟨hagree, -, hγa⟩ := HE
   obtain ⟨γa, hγa⟩ := hγa trivial
   -- what `Start` takes: the built part with auth on (at the boot state `x₀` and the read loop's
   -- environment `Er`, named once), the monitors off
   obtain ⟨x₀, hx₀⟩ : ∃ x, x = bootKVOf true := ⟨_, rfl⟩
-  obtain ⟨Er, hEr⟩ : ∃ Er, Er = srvErM true ρ E₀ (W64 0) (W64 0) x₀ id (srvTrKey γn γk) := ⟨_, rfl⟩
+  obtain ⟨Er, hEr⟩ : ∃ Er, Er = srvErM true ρ E₀ (W64 0) (W64 0) x₀ id (srvTrKey γn γk) (srvTrStopK γk) := ⟨_, rfl⟩
   ihave Hsb : isServerBuiltOn srv γA ci TM E ρ ρ.rd Er γrn b (W64 0) (W64 0) (W64 0) x₀ N
       $$ [Hbuilt Hgap]
   · subst hEr hx₀
@@ -176,7 +180,9 @@ theorem startServer.wp_proof
   have hL := acLessor_on (GF := GF) (.on γa) γa rfl srv
   dsimp only [AuthC.isOn] at hB
   rw [isServerBuiltM_true] at hB
-  ihave Hsb := hB.1 $$ Hsb
+  ihave Hsb := hB.1 $$ [Hsb Hkeep]
+  · iframe Hsb
+    iapply (srvStop.slot_intro (γk := γk) (Er := Er) (h := by rw [hEr]; rfl)) $$ Hkeep
   ihave #HLnil := hL.2 $$ HLnil
   have h' := wp_Start srv γA ci TM (.on γa) E ρ ρ.rd Er γrn b (W64 0) (W64 0) (W64 0) x₀ N
   simp only [AuthC.isOn] at h'
@@ -191,8 +197,14 @@ theorem startServer.wp_proof
   iright
   isplitr; · ipureintro; rfl
   iexists γa
-  iunfold etcdstart.memberUpOn
-  iexists E, _, γw
+  have hon : E.authOn = true := by unfold apply.AEnv.authOn; rw [hγa]; rfl
+  ihave #Hreq' : isServerReqM E.authOn srv E { ρ with wait := γw } $$ []
+  · rw [hon]; iexact Hreq
+  ihave #Hrd' : isServerReadM E.authOn srv E ρ.rd $$ []
+  · rw [hon]; iexact Hrd
+  iclear Hreq Hrd
+  iapply etcdstart.memberUpOn_intro _ _ _ _ _ _ _ E _ γw
+  unfold etcdstart.kvServeStocks
   iframe
   iframe #
   isplitr

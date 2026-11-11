@@ -12,12 +12,12 @@
 
 * corollary ^Proof/go_etcd_io/etcd/server/v3/etcdserver/ModeSpecs\.lean::
 lit-mode bridge ::[\w.']*_(false|true|off|on|of_on|onPart|nil_on|of_false)::
-* pair ^(Spec|Proof)/github_com/mit_pdos/etcd_grove/examples/lib/etcdstart/Serve\.lean::
+lit-mode bridge ^Proof/go_etcd_io/etcd/client/v3/KVServiceOn\.lean::etcdRangeSpecE_M::  # (k8s 7e-1, registration (A), etcd-grove-81 2026-11-10) the client-side Range registration `etcdRangeSpecE` (auth off) gives the server's `etcdRangeSpecM false`: a bridge at its literal, as etcdRangeSpecM_false
 
 match-mode flag ::(hdrBoundM|infoBoundM|infoBoundTM|authnArM|authnAnsM|pubAfterM|appliedPubM|kvTieM|authFloorAt)::
 lit-mode flag ::(hdrBoundM|infoBoundM|pubAfterM|kvTieM)(\s*\(\w+\s*:=\s*\w+\))* (true|false)$
 
-match-mode model ::(kvAppliedM|entryOkM|kvNameTiesM|kvRunM|srvImageM|kvInvM|kvStM|srvKVCoreM|logShapeM|kvModelM|kvCertInvM|resultΨM|modelOutM|adminTieM|adminDoneM|reqPropOkM|putPermitM|deletePermitM|authHistTie|kvLogsPubM)::
+match-mode model ::(kvAppliedM|entryOkM|kvNameTiesM|kvRunM|srvImageM|kvInvM|kvStM|srvKVCoreM|logShapeM|kvModelM|kvCertInvM|resultΨM|modelOutM|adminTieM|adminDoneM|reqPropOkM|putPermitM|deletePermitM|authHistTie|kvLogsPubM|kvNxM)::
 
 # the resource rows and the mode-level vocabulary still over `on`/`M` (stage 3: over the slot,
 # or left over `M` as the auth package's verdict vocabulary)
@@ -94,7 +94,6 @@ lit-mode unmoved ^Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__Authenti
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/AdminOn\.lean::  # 3
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/AppliedOn\.lean::  # 1
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/ApplyAllSnap\.lean::  # 1
-lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/ApplyAllSnapOn\.lean::  # 1
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/ApplyNormalOn\.lean::  # 2
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/AuthnOn\.lean::  # 2
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__Authenticate\.lean::  # 1
@@ -106,20 +105,21 @@ lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/NewServerAllocOn\.l
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/ReadOn\.lean::  # 7
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/ReqOn\.lean::  # 12
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/RunOn\.lean::  # 3
-lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/ServerOn\.lean::  # 7
+lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/ServerOn\.lean::  # 3 (the other 4 moved to ServerOnDefs.lean)
+lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/ServerOnDefs\.lean::(kvLogsPubM|kvLogsPubM_iff|srvKVInvsM_uberOn)::  # 4, moved from ServerOn.lean (mvcc-api, 2026-11-07)
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/SnapApplyDefs\.lean::  # 1
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/SnapApplyNames\.lean::  # 2
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/StartOn\.lean::  # 5
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/UberKit\.lean::  # 1
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/AuthService\.lean::  # 1
-lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/Results\.lean::  # 8
+lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/Results\.lean::  # 6
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/ServerKV\.lean::  # 3
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/ServerKVOn\.lean::  # 3
 lit-mode unmoved ^Proof/go_etcd_io/etcd/client/v3/AuthnServedOn\.lean::  # 2
-lit-mode unmoved ^Proof/go_etcd_io/etcd/client/v3/ServeFromStartOn\.lean::  # 2
-lit-mode unmoved ^Proof/go_etcd_io/etcd/client/v3/ServedOn\.lean::  # 9
 lit-mode unmoved ^Proof/go_etcd_io/etcd/client/v3/WatchLawsHist\.lean::  # 1
+lit-mode model ^Proof/go_etcd_io/etcd/client/v3/WatchFire\.lean::srvKVCoreM_someNx::kvModelM (true|false)$  # 2 (mvcc-api, 2026-11-07): the mode-generic lemma's `cases on`, each branch naming the KV model at its case's mode
 lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/lib/etcdstart/Defs\.lean::  # 3
+lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/lib/etcdstart/WatchSrv\.lean::srvWOk_of_readOn::  # 1 (R9, 2026-11-07): the auth-on twin of `srvWOk_of_read`, as `memberUpOn`; moves with the read views (`isServerReadM`) in stage 3
 lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/MainServe\.lean::  # 3
 lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/WorkEnv\.lean::  # 1
 lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/startServer\.lean::  # 3

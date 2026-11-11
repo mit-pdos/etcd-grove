@@ -41,7 +41,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 good shapes whose ids are claimed meets `entryWaitOk` (a normal entry's request's id claimed for
 its data; a conf change's id `0`, which no request claims). -/
 theorem batchWaitOk_of_work (ρ : ReqNames) (E : apply.AEnv GF) (L : List EntryModel)
-    {lg : Bool} (hs : logShape lg L) (hcl : ccLogOk ρ.raft.raft L)
+    {lm : lease.Mode} (hs : logShape lm L) (hcl : ccLogOk ρ.raft.raft L)
     (ha : attrLogOk ρ.raft.raft.cfg L) :
     ⊢ ([∗list] m ∈ L, entryClaim ρ.ids m) -∗ idNoZero ρ.ids -∗ srvRLogLb ρ.raft L -∗
       batchWaitOk ρ E L := by
@@ -135,17 +135,17 @@ theorem clusterWorkloadOk_of (ρ : ReqNames) (E : apply.AEnv GF) :
     exact ⟨hd, ht⟩
   iunfold kvInv at Hkv
   iinv Hkv with >Hi Hclose
-  icases Hi with ⟨%L', HL', Hσ, %Hok, #Hw⟩
+  icases Hi with ⟨%L', HL', Hσ, %Hok, #Hw, HG⟩
   imod srvRLog_lb ρ.raft (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
     L' L $$ Hr HL' HL with ⟨HL', %Hp⟩
   ihave %HLi := srvRLogLb_idx ρ.raft L $$ HL
-  imod Hclose $$ [HL' Hσ] with -
-  · inext; iexists L'; iframe HL' Hσ Hw; ipureintro; exact Hok
+  imod Hclose $$ [HL' Hσ HG] with -
+  · inext; iexists L'; iframe HL' Hσ Hw HG; ipureintro; exact Hok
   iunfold kvWork at Hw
   icases Hw with ⟨%Hsh, #Hcl⟩
   obtain ⟨Hsh, Hccl, -, -, Hatt⟩ := Hsh
   -- (2026-10-27) the committed log's entries are the server's log's or fillers
-  have hshL : logShape ρ.kv.lg L := by
+  have hshL : logShape ρ.kv.lm L := by
     intro m hm
     rcases srv_entry_src _ L L' HLi Hp.2.2 m hm with ⟨ht, hd⟩ | ⟨ht, hd⟩ | ⟨m', hm', he⟩
     · exact ⟨fun _ => .inl hd, fun h => absurd ht h⟩
@@ -201,9 +201,9 @@ theorem rnEnvOk_of_cluster (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64
     (hdec : γw.node.rule = srvRule ρ.rd.kv.c0 γw.node.boot)
     -- (2026-10-24, rafthttp stage 6d) the member's id, its messages' sender, and the transport's
     -- `Send`'s borrow
-    (id : w64) (S : IProp GF) (hid : γw.id = id) :
+    (id : w64) (S ST : IProp GF) (hid : γw.id = id) :
     kvInv (GF := GF) ρ.raft ρ.kv ∗ srvRaftLogInv ρ.raft ∗ clusterWorkloadOk ρ E ⊢
-      rnEnvOk (srvEr ρ E ai₀ c₀ x₀ id S) γw := by
+      rnEnvOk (srvEr ρ E ai₀ c₀ x₀ id S ST) γw := by
   iintro ⟨#Hkv, #Hr, #Hwl⟩
   unfold rnEnvOk srvEr
   simp only
@@ -217,12 +217,21 @@ theorem rnEnvOk_of_cluster (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64
   · iexact Hr
   isplitr
   · iintro !> %m %st ⟨#Hmo, #Hrm, Hc, %Hns⟩
+    -- (raft-entsize §4) the content the bundle carries, of bounded size under a data bound
+    ihave %Hshm := (letI := srvStor (GF := GF) γw.node;
+      sentMsg_shape (GF := GF) γw.node.cl srvClusterN γw.id st) $$ Hrm
+    ihave %Hmd := srvRaftLogInv_maxData ρ.raft $$ Hr
+    ihave #Hcc := (letI := srvStor (GF := GF) γw.node;
+      msgOut_netContent γw.node.cl m st (2 ^ 30) (by rw [hraft]; exact Hmd) Hns
+        Hshm.1.2.2.2.2.2.2.2) $$ Hmo
+    -- (raft-entsize §2) today's form of the handed-out message (the bundle's)
+    ihave #Hmo := (letI := srvStor (GF := GF) γw.node; msgOut_msgOwn γw.node.cl m DFrac.discard st) $$ Hmo
     rw [hraft, hid] at *
     isplitl [Hc]
     · -- (D21 stage M1) the bundle a receiver's `Step` takes
       iunfold srvMsgNet
       iexists st
-      iframe Hmo Hrm Hc
+      iframe Hmo Hrm Hc Hcc
     iunfold srvMsgNoSnap
     iexists st
     iframe Hmo
@@ -252,7 +261,7 @@ theorem rnEnvOk_of_cluster (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64
 /-- **`start`'s construction premise from `NewServer`'s built part and the residual**
 (`srvBuilt`, `srvBuildGap`, `InvBuild.lean`): the rows the built part has without their KV parts
 completed with its own (the uber-applier's field and contracts into `#Hfb` and `Happ`, `srv.kv`
-and its read view and `storeSmall` into `#Hrdb`), and the residual's snapshot contract. -/
+and its store handle into `#Hrdb`), and the residual's snapshot contract. -/
 theorem isServerBuilt_of_gap (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
     (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) :
@@ -260,13 +269,13 @@ theorem isServerBuilt_of_gap (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
       isServerBuilt s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N := by
   unfold srvBuilt srvBuildGap isServerBuilt
   iintro ⟨⟨#Hci, ⟨%v, #Hfb⟩, #Hreqb, ⟨%vr, #Hrdb⟩, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci',
-      #Hrn, %HEr, Hrunh, Hwth, Hwtl, %Hdisk, %Hslg, %Hρrd, #Hmid, %Hmidc, #HmetaSnap, Hloop, Hsend, Happly, Hrdone, #Hcci, #Hwci, Hw, Haw, Hdone, Hstop, Hstopping,
+      #Hrn, %HEr, Hwpend, Hrunh, Hwth, Hwtl, %Hdisk, %Hslg, %Hρrd, #Hmid, %Hmidc, #HmetaSnap, Hloop, Hsend, Happly, Hrdone, #Hcci, #Hwci, Hw, Haw, Hdone, Hstop, Hstopping,
       Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr,
-      ⟨%kv, %rv, #Hkv, #HisKV, #Hrv, #HisRV⟩, HWB, #Hsmall, #HNR, #Hcv, %Hbound,
+      ⟨%kv, #Hkv, #HisKV, %HkvE⟩, HWB, #HNR, #Hcv, %Hbound, #Hrvkb,
       ⟨%ua, Hua, #Hfor, Hakv⟩, Hwtok, Hsnapb⟩, Hsnap⟩
-  iframe Hci Hreqb Hrunb Hsab Hai Hkvi Hti Hci' Hrn HNR Hcv Hcci Hwci Hmid HmetaSnap
+  iframe Hci Hreqb Hrunb Hsab Hai Hkvi Hti Hci' Hrn HNR Hcv Hcci Hwci Hmid HmetaSnap Hrvkb
   iframe Hloop Hsend Happly Hrdone Hw Haw Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg
-  iframe HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hsnap Hwtok Hsnapb Hcrun Hrunh Hwth Hwtl
+  iframe HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hsnap Hwtok Hsnapb Hcrun Hwpend Hrunh Hwth Hwtl
   isplitr
   · unfold srvFieldsBuiltNA
     iexists v
@@ -274,9 +283,10 @@ theorem isServerBuilt_of_gap (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
     iframe Hfb
   isplitr
   · unfold srvReadBuiltNK
-    iexists { vr with kv := kv, rv := rv }
+    iexists { vr with kv := kv }
     unfold srvReadBuilt
-    iframe Hkv HisKV Hrv HisRV Hsmall Hrdb
+    iframe Hkv HisKV Hrdb
+    ipureintro; exact HkvE
   isplitr
   · ipureintro; exact HEr
   isplitr
@@ -290,9 +300,9 @@ theorem isServerBuilt_of_gap (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
   isplitr
   · ipureintro; exact Hbound
   unfold applyBuiltNA applyBuilt
-  icases Happ with ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hbo, Hra, Har, Hao, Hal, Hkr, Hfs⟩
+  icases Happ with ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hrdk, Hbo, Hra, Har, Hrdat, Hao, Hal, Hkr, Hfs⟩
   iexists st₀, a, t, f
-  iframe Hth Hbe Hca Hlg Hbm Hbo Hra Har Hao Hal Hkr Hfs
+  iframe Hth Hbe Hca Hlg Hbm Hrdk Hbo Hra Har Hrdat Hao Hal Hkr Hfs
   isplitr
   · ipureintro; exact Hok
   iexists ua

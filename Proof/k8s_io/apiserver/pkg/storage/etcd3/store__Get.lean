@@ -21,6 +21,7 @@ public import Spec.k8s_io.apiserver.pkg.audit.GetAuditIDTruncated
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker__Record
 public import Spec.go_etcd_io.etcd.client.v3.kubernetes.Client__Get
 public import Perennial.Proof.time.Link
+public import Proof.go_etcd_io.etcd.client.v3.kubernetes.GetLatest
 
 @[expose] public section
 
@@ -44,6 +45,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 theorem store.Get.wp_proof
@@ -59,11 +61,13 @@ theorem store.Get.wp_proof
     (wp_Record : metrics.OperationLatencyTracker.Record.spec (GF := GF) (hG := hG))
     (wp_kGet : kubernetes.Client.Get.spec (GF := GF) (hG := hG)) :
     store.Get.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ sp c ci cd key opts out o0 rv0 k Q hk hkl hrv hQ
-  wp_start as ⟨#Hst, #Hctx, #Hce, Hout, Hau⟩
+  intro _ _ Obj _ sp c ci cd key opts out o0 rv0 k n Q hQ
+  wp_start as ⟨#Hst, %Hpre, #Hctx, #Hce, #Hk8, Hout, Hau⟩
+  obtain ⟨hk, hkl, hrv⟩ := Hpre
+  ihave #Hst0 := Hst
   iunfold isStore at Hst
   icases Hst with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc,
-    #Hcl, #Hone, #Hregs, #Hcon⟩
+    #Hcl, #Hone, #Hregs, #Hcon, -⟩
   ihave #Ptr : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.component_base.tracing $$ []
   · iPkgInit
   ihave #Pat : isPkgInit (PROP := IProp GF) pkg_id.go_opentelemetry_io.otel.«attribute» $$ []
@@ -93,7 +97,11 @@ theorem store.Get.wp_proof
   rw [hk] at Hpk
   obtain ⟨rfl, rfl⟩ := Hpk
   (try wp_auto)
-  wp_apply wp_GetAuditIDTruncated as %aid -
+  ihave #Hk8a := Hk8
+  iunfold k8sctx.k8sCtxOk at Hk8a
+  icases Hk8a with ⟨#Haud, -, -⟩
+  wp_apply wp_GetAuditIDTruncated ci $$ [] as %aid -
+  · iframe #
   wp_apply wp_String as %kv0 -
   wp_apply wp_String as %kv1 -
   (try wp_auto)
@@ -104,7 +112,7 @@ theorem store.Get.wp_proof
   isplitr
   · ipureintro; rfl
   iintro %asl ⟨Hasl, -⟩
-  wp_apply wp_Start ci cd _ _ $$ [] as %ci' %spn ⟨%Hspn, #Hctx', #Hce'⟩
+  wp_apply wp_Start ci cd _ _ $$ [] as %ci' %spn ⟨%Hspn, #Hctx', #Hce', -⟩
   · iframe #
   (try wp_auto)
   wp_apply _root_.Perennial.time.wp_Now as %t0 -
@@ -113,7 +121,7 @@ theorem store.Get.wp_proof
     (m := go!"Get")]
   wp_call
   (try wp_auto)
-  wp_apply (wp_kGet (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
+  wp_apply (kubernetes.Client.Get.latest wp_kGet (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty) #c.kc))
       c.ms c.V ci' cd (c.pathPrefix ++ k) (zero_val _) Q rfl) $$ [Hau]
     as %resp %gerr Hget
@@ -134,11 +142,50 @@ theorem store.Get.wp_proof
     · iframe #
       ipureintro; exact Hspn
     (try wp_auto)
-    rw [hrv]
-    wp_apply wp_validateMin sp _
+    wp_apply wp_validateMin Obj sp c opts.ResourceVersion' n resp.Revision' $$ []
+      as %verr Hverr
+    · iframe Hst0 #
+      ipureintro; exact hrv
+    have hσn : uint.nat (W64 (σ.rev : Int)) = σ.rev := by
+      have := kvRevFits.lt hb.1
+      word
+    by_cases hlt : uint.nat resp.Revision' < uint.nat n
+    · -- the minimum resource version is above the state's revision
+      rw [if_pos hlt]
+      icases persistent_entails_left (apierrors.tooLargeErrIs_ptr verr) $$ Hverr with
+        ⟨Hverr, %Hptr⟩
+      obtain ⟨l, rfl⟩ := Hptr
+      (try wp_auto)
+      wp_apply wp_End spn _ $$ []
+      · iframe #
+        ipureintro; exact Hspn
+      (try wp_auto)
+      iapply HΦ
+      iright
+      iexists σ
+      iframe HQ
+      have hg : (c.abs σ).get (E := Empty) (c.pathPrefix ++ k) (uint.nat n)
+          opts.IgnoreNotFound' = .err (.tooLarge (uint.nat n) σ.rev) := by
+        unfold KSt.get
+        have hr : (c.abs σ).rv = σ.rev := rfl
+        rw [hrevσ, hσn] at hlt
+        rw [ite_eq_left (by rw [hr]; exact hlt), hr]
+      rw [hg]
+      simp only [respIs]
+      isplitl [Hverr]
+      · iexact Hverr
+      iexists o0, rv0
+      iexact Hout
+    rw [if_neg hlt]
+    icases Hverr with %Hverr
+    subst Hverr
+    have hle : ¬ (uint.nat n > (c.abs σ).rv) := by
+      show ¬ (uint.nat n > σ.rev)
+      rw [hrevσ, hσn] at hlt
+      omega
     (try wp_auto)
     iunfold contractOk at Hcon
-    icases Hcon with ⟨-, #Henc, #Hver, #Htr, #Hdec, #Hzero⟩
+    icases Hcon with ⟨-, #Henc, #Hver, #Htr, #Hdec, #Hzero, -⟩
     cases hf : mvcc.findKey (c.pathPrefix ++ k) σ.kvs with
     | none =>
       iunfold kubernetes.kvOut at Hkv
@@ -159,11 +206,10 @@ theorem store.Get.wp_proof
           iright
           iexists σ
           iframe HQ
-          have hg : (c.abs σ).get (E := Empty) (c.pathPrefix ++ k) 0 false =
+          have hg : (c.abs σ).get (E := Empty) (c.pathPrefix ++ k) (uint.nat n) false =
               .err (.notFound (c.pathPrefix ++ k) σ.rev) := by
             unfold KSt.get
-            rw [hn]
-            simp only [gt_iff_lt, Nat.not_lt_zero, ↓reduceIte, Bool.false_eq_true]
+            rw [ite_eq_right hle, hn]
             rfl
           rw [hg]
           simp only [respIs, storageErrIs]
@@ -187,10 +233,10 @@ theorem store.Get.wp_proof
           iright
           iexists σ
           iframe HQ
-          have hg : (c.abs σ).get (E := Empty) (c.pathPrefix ++ k) 0 true = .zero := by
+          have hg : (c.abs σ).get (E := Empty) (c.pathPrefix ++ k) (uint.nat n) true = .zero := by
             unfold KSt.get
-            rw [hn]
-            simp
+            rw [ite_eq_right hle, hn]
+            rfl
           rw [hg]
           simp only [respIs]
           iframe Hout
@@ -242,11 +288,10 @@ theorem store.Get.wp_proof
       iright
       iexists σ
       iframe HQ
-      have hg : (c.abs σ).get (E := Empty) (c.pathPrefix ++ k) 0 opts.IgnoreNotFound' =
+      have hg : (c.abs σ).get (E := Empty) (c.pathPrefix ++ k) (uint.nat n) opts.IgnoreNotFound' =
           .obj o (uint.nat v.modRev) := by
         unfold KSt.get
-        rw [hit]
-        simp
+        rw [ite_eq_right hle, hit]
       rw [hg]
       simp only [respIs]
       rw [W64_uint_nat]
@@ -257,7 +302,8 @@ theorem store.Get.wp_proof
     | ok ei =>
       (try wp_auto)
       iunfold go_etcd_io.etcd.cache.v3.statusErrOk at Hgse
-      ihave ⟨#Hes, -, -⟩ := Hgse $$ %ei %rfl
+      ihave ⟨⟨%em, #Hes0⟩, -, -⟩ := Hgse $$ %ei %rfl
+      ihave #Hes := go_etcd_io.etcd.cache.v3.errorMsgIs_errorStringSpec _ _ $$ Hes0
       iunfold go_etcd_io.etcd.cache.v3.errorStringSpec at Hes
       wp_apply Hes as %estr
       wp_apply wp_String as %kve -

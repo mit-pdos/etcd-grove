@@ -5,7 +5,7 @@ lessor (2026-10-13, unit 9 of the backend). Lean-first (no Rocq counterpart); se
 
 `lessorOk_of_lessorInv`: the lessor at `lp` (`lease.lessorInv`, its configuration and its
 `expiredC` at the server's grant guard, `lease.lessorExpiredC`, D19n, the lease-grant plan's D1)
-meets `lessorOk`,
+meets `lessorOk` at that guard,
 from the specs of `Promote` and
 `Demote` (trust-boundary axioms: float arithmetic, a float-to-integer conversion and `sort.Sort`;
 the close of `demotec`) and the proof of `ExpiredLeasesC`.
@@ -71,8 +71,9 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **The server's lessor contract, of the real lessor** at `lp`, (its grant guard the server's,
-`srvGrantGuard lg on`: the lease-grant plan's D1; until then `False`, D45): the guard refutes the
-expired slices' payload, so the bag is of `False` (`isChanBag_iff`, review M1). -/
+`srvGrantGuard lg on`: the lease-grant plan's D1; until then `False`, D45): `expiredC`'s payload is
+`lessorOk`'s (the lease-expiry plan's X4, 2026-11-04: until then the guard refuted it and the bag was
+of `False`, `isChanBag_iff`, review M1). -/
 theorem lessorOk_of_lessorInv
     (hPromote : lease.lessor.Promote.spec (GF := GF) (hG := hG))
     (hDemote : lease.lessor.Demote.spec (GF := GF) (hG := hG))
@@ -80,7 +81,7 @@ theorem lessorOk_of_lessorInv
     (lp : Loc) (γl : GName) (lg on : Bool) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
       lease.lessorInv lp γl ∗ lease.lessorCfg lp ∗ lease.lessorExpiredC lp (srvGrantGuard lg on) ⊢
-      lessorOk (lease.lessorIface lp) := by
+      lessorOk lg on (lease.lessorIface lp) := by
   iintro ⟨#Hpkg, #Hinv, #Hcfg, #Hexp⟩
   iunfold lessorOk
   iexists (interface.mk (go.GoType.PointerType lease.lessor.ty) #lp)
@@ -100,8 +101,7 @@ theorem lessorOk_of_lessorInv
     iintro %c !> ⟨%γc, #Hb⟩
     iapply HΦ
     iexists γc
-    iapply (isChanBag_iff γc c _ _ (fun _ => srvGrantGuard_expired lg on)
-      (fun _ => false_elim)) $$ Hb
+    iexact Hb
 
 end proof
 

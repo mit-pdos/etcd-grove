@@ -35,11 +35,11 @@ theorem v3rpc.AuthAdmin.requireAuthInfo.wp_proof
     (hAS : EtcdServer.AuthStore.spec (GF := GF) (hG := hG)) :
     v3rpc.AuthAdmin.requireAuthInfo.spec (GF := GF) (hG := hG) := by
   intro aa s E ctx cd
-  wp_start as ⟨#Haa, #Hctx, HRD⟩
+  wp_start as ⟨#Haa, #Hctx, #Hlib, HRD⟩
   iunfold v3rpc.authAdminIs at Haa
   icases Haa with ⟨%Hann, #Hag, #Hau⟩
   iunfold srvAuthAt at Hau
-  icases Hau with ⟨%st, %cca, %P, %f, #Has, #Hreq, #Hreqb, #Hcca, #Hast⟩
+  icases Hau with ⟨%st, %cca, #Has, #Hreq, #Hreqb, #Hcca, #Hast⟩
   iunfold apply.isAuthStore at Hast
   icases Hast with ⟨%ai, %Hai, -, -, -, -, -, #HEn, -⟩
   subst Hai
@@ -70,8 +70,9 @@ theorem v3rpc.AuthAdmin.requireAuthInfo.wp_proof
   · (try wp_auto)
     ihave %Hon := enabledVerdict_true_isOn E.authMode $$ Hb
     wp_apply (hAI s (GoInterface.ok ai) E.RD E.authMode cca ctx cd)
-      $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr, #Hbnd⟩
+      $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr0, #Hbnd, -⟩
     · iframe #
+    ihave #Herr := authApplyErrIs_apply _ $$ Herr0
     -- auth on here (`Hon`): the binding's gate open
     ihave #Hbnd : ctxBoundOrTLS s E.authMode (GoInterface.ok ctx) a $$ []
     · iapply Hbnd; ipureintro; exact Hon

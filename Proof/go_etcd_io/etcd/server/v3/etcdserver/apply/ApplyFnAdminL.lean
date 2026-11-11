@@ -57,7 +57,8 @@ merge, 2026-10-30; persistent): `ua` is the uber-applier `p`, whose `Apply` meth
 `uberApplier.Apply.adminSpecL`'s triple at the base applier's admin steps `W`/`Own` and its
 latest-state family `L` (what `uberAuthStepsL` gives with that triple, `uberAdmC_of`); the
 family's lending (`adminSpecL`'s premise) a pure premise of the triple. In the method form
-`apply.Apply.spec` calls it in. -/
+`apply.Apply.spec` calls it in. (Strict M1, 2026-11-06: at `adminSpecL`'s restated resources,
+`kvOwnPre` and the thread's token, the token and a reader token back.) -/
 def apply.uberAdmC (ua : GoInterface) (E : apply.AEnv GF) (W : IProp GF)
     (Own : auth.AuthNames → List auth.AuthState → IProp GF) (L : List auth.AuthState → IProp GF) :
     IProp GF :=
@@ -65,14 +66,15 @@ def apply.uberAdmC (ua : GoInterface) (E : apply.AEnv GF) (W : IProp GF)
     □ ∀ (x : apply.ApplyKV) (r : Loc) (rq : apply.IRRModel) (skip v3 : Bool)
       (Pre Q Post : IProp GF) (γa : auth.AuthNames) (hs : List auth.AuthState),
     {{ ⌜∀ h, Own γa h ∗ W ⊢ L h ∗ (L h -∗ Own γa h ∗ W)⌝ ∗
-        apply.irrWrapperIs r rq skip ∗ apply.uberOwn E p x.chain ∗ apply.kvOwn E x.log ∗
-        apply.cPre v3 E.P E.f Pre Q Post ∗
+        apply.irrWrapperIs r rq skip ∗ apply.uberOwn E p x.chain ∗
+        apply.kvOwnPre v3 E x.log Pre Q Post ∗ apply.applyTok E ∗
         ⌜E.authMode = .on γa ∧ apply.adminKindOk rq ∧ apply.dispatchOk E.authOn rq ∧
           receiptBound GF ≤ 2 ^ 48⌝ ∗ ⌜skip = true → rq.txn.isSome = true⌝ ∗
         ⌜x.chain = apply.baseChain E.authOn⌝ ∗
         Own γa hs ∗ ⧗ 1 ∗ W ∗ (if v3 then apply.adminExtraG E γa rq hs Pre else iprop(True)) }}
       (App (App (Val (p @!! go.GoType.PointerType uberApplier.ty @!! go!"Apply")) (Val #r)) (Val #v3))
-    {{ (ar : Loc), RET #ar; ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut),
+    {{ (ar : Loc), RET #ar; apply.applyTok E ∗ apply.bkRTOf E ∗
+      ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut),
         apply.uberOwn E p x'.chain ∗ apply.kvOwn E x'.log ∗ apply.cPost v3 Pre Post ∗
         ⌜apply.applyStep rq v3 x x' out ∧ (out = .rejected ∨ ∃ o, out = .dispatched o skip)⌝ ∗
         ⌜(out = .rejected → apply.needAdminPermission rq = true ∧ apply.adminRejL E.authMode hs rq) ∧
@@ -89,7 +91,9 @@ instance apply.uberAdmC_persistent (ua : GoInterface) (E : apply.AEnv GF) (W : I
 the admin check at the latest state** (see the file header): `Apply.adminSpec`'s triple with
 `uberAuthStepsL`, the current chain the base one and the authority family lending `L`
 (`hsplit`); its postcondition but for `applyAuthRes`, with a rejected entry's check refused at the
-latest state and a dispatched one's passed. -/
+latest state and a dispatched one's passed. (Strict M1, 2026-11-06: as `Apply.kvSpecL`, the apply
+thread's KV resources `kvOwnPre` in place of the hook's triple, `Pre` and `applyKV`; the thread's
+token in and back with a reader token of the backend.) -/
 abbrev apply.Apply.adminSpecL : Prop :=
   ∀ (lg e : Loc) (m : EntryModel) (ua w : GoInterface) (v3 : Bool) (E : apply.AEnv GF)
     (Pre Q Post : IProp GF) (x : apply.ApplyKV) (rq : apply.IRRModel) (id : w64) (RD : IProp GF)
@@ -98,19 +102,18 @@ abbrev apply.Apply.adminSpecL : Prop :=
     (L : List auth.AuthState → IProp GF),
   (∀ h, Own γa h ∗ W ⊢ L h ∗ (L h -∗ Own γa h ∗ W)) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      apply.uberAdmC ua E W Own L ∗ waitOk w RD K G ∗ RD ∗ K ot id ∗ ⌜lg ≠ null⌝ ∗ entryAt e m ∗
-      (if v3 then iprop(□ ({{ E.P ∗ Pre }} (App (Val E.f) (Val #())) {{ RET #(); Q }}) ∗
-          (Q ={⊤}=∗ E.P ∗ Post))
-       else iprop(True)) ∗ Pre ∗
-      apply.applyKV E ua x ∗
+      apply.uberAdmC ua E W Own L ∗ waitOk w RD K G ∗ RD ∗ K ot id ∗ zapLoggerOk lg ∗ entryAt e m ∗
+      (∃ p : Loc, ⌜ua = interface.mkOk (go.GoType.PointerType uberApplier.ty) #p⌝ ∗
+        apply.uberOwn E p x.chain ∗ apply.kvOwnPre v3 E x.log Pre Q Post ∗ apply.cmpOwn E x.crev) ∗
+      apply.applyTok E ∗
       ⌜apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id ∧ apply.adminKindOk rq ∧
         apply.dispatchOk E.authOn rq ∧ E.authMode = .on γa ∧ receiptBound GF ≤ 2 ^ 48⌝ ∗
       ⌜x.chain = apply.baseChain E.authOn⌝ ∗
       Own γa hs ∗ ⧗ 1 ∗ W ∗ (if v3 then apply.adminExtraG E γa rq hs Pre else iprop(True)) }}
     (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.Apply))
       (Val #lg)) (Val #e)) (Val #ua)) (Val #w)) (Val #v3))
-  {{ (ar : Loc) (id' : w64), RET (PairV #ar #id'); RD ∗
-      (if v3 then iprop(Post ∨ Pre) else Pre) ∗ apply.resultErrOk ar ∗ apply.resTrace ar ∗
+  {{ (ar : Loc) (id' : w64), RET (PairV #ar #id'); apply.applyTok E ∗ apply.bkRTOf E ∗
+      RD ∗ (if v3 then iprop(Post ∨ Pre) else Pre) ∗ apply.resultErrOk ar ∗ apply.resTrace ar ∗
       ⌜id' = id⌝ ∗
       ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), apply.applyKV E ua x' ∗
         ⌜apply.applyStep rq v3 x x' out⌝ ∗
@@ -143,10 +146,10 @@ theorem apply.uberAdmC_of (hUA : apply.uberApplier.Apply.adminSpecL (GF := GF) (
   isplitr
   · ipureintro; exact Hua
   iintro !> %x %r %rq %skip %v3 %Pre %Q %Post %γa %hs
-  wp_start_folded as ⟨%hsplit, #Hwr, Hown, Hkv, Hcs, %Hp1, %Hp2, %Hch, Ho, Hrc, HW, Hx⟩
+  wp_start_folded as ⟨%hsplit, #Hwr, Hown, Hkv, Htt, %Hp1, %Hp2, %Hch, Ho, Hrc, HW, Hx⟩
   wp_apply (hUA E p opts x r rq skip v3 Pre Q Post W γa hs Own L hsplit)
-      $$ [Hown Hkv Hcs Ho Hrc HW Hx] as %ar HQ
-  · iframe # Hown Hkv Hcs Ho Hrc HW Hx
+      $$ [Hown Hkv Htt Ho Hrc HW Hx] as %ar HQ
+  · iframe # Hown Hkv Htt Ho Hrc HW Hx
     isplitr
     · ipureintro; exact Hp1
     isplitr
@@ -158,48 +161,37 @@ theorem apply.uberAdmC_of (hUA : apply.uberApplier.Apply.adminSpecL (GF := GF) (
 theorem apply.Apply.wp_adminL (hA : apply.Apply.spec (GF := GF) (hG := hG)) :
     apply.Apply.adminSpecL (GF := GF) (hG := hG) := by
   intro lg e m ua w v3 E Pre Q Post x rq id RD K G ot W γa hs Own L hsplit
-  wp_start_folded as ⟨#Hfor, #Hwok, HRD, HK, %Hlg, #He, Hhook, HPre, Hkv, %Hprem, %Hch, Ho, Hrc, HW, Hx⟩
+  wp_start_folded as ⟨#Hfor, #Hwok, HRD, HK, #Hlg, #He, Hkv, Htt, %Hprem, %Hch, Ho, Hrc, HW, Hx⟩
   obtain ⟨Hdec, Hid, Hadm, Hdk, Hmode, Hrb⟩ := Hprem
   iunfold apply.uberAdmC at Hfor
   icases Hfor with ⟨%p, %Hua, #Htr⟩
-  iunfold apply.applyKV at Hkv
   icases Hkv with ⟨%p', %Hua', Hown, Hkv, Hco⟩
   subst Hua
   have := apply.mkOk_ptr_inj _ _ _ Hua'
   subst this
-  ihave Hcs : iprop(apply.cPre v3 E.P E.f Pre Q Post) $$ [Hhook HPre]
-  · cases v3
-    · simp only [apply.cPre, Bool.false_eq_true, ↓reduceIte]
-      iexact HPre
-    · simp only [apply.cPre, ↓reduceIte, mvcc.csContract]
-      icases Hhook with ⟨#Htr, Hup⟩
-      iframe HPre Hup
-      imodintro
-      iexact Htr
   wp_apply (hA lg e m (interface.mkOk (go.GoType.PointerType uberApplier.ty) #p) w v3 rq id RD K G ot
-      iprop(apply.uberOwn E p x.chain ∗ apply.kvOwn E x.log ∗ apply.cPre v3 E.P E.f Pre Q Post ∗
+      iprop(apply.uberOwn E p x.chain ∗ apply.kvOwnPre v3 E x.log Pre Q Post ∗ apply.applyTok E ∗
         Own γa hs ∗ ⧗ 1 ∗ W ∗ (if v3 then apply.adminExtraG E γa rq hs Pre else iprop(True)))
-      (fun sk ar => iprop(∃ (x' : apply.ApplyKV) (out : apply.ApplyOut),
+      (fun sk ar => iprop(apply.applyTok E ∗ apply.bkRTOf E ∗
+        ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut),
         apply.uberOwn E p x'.chain ∗ apply.kvOwn E x'.log ∗ apply.cPost v3 Pre Post ∗
         ⌜apply.applyStep rq v3 x x' out ∧ (out = .rejected ∨ ∃ o, out = .dispatched o sk)⌝ ∗
         ⌜(out = .rejected → apply.needAdminPermission rq = true ∧ apply.adminRejL E.authMode hs rq) ∧
           (∀ o, out = .dispatched o sk → apply.adminPassL E.authMode hs rq)⌝ ∗
         apply.resTrace ar ∗ apply.applyResultIs rq v3 x.log ar out ∗ W ∗
         apply.adminOut Own γa E.authMode hs rq v3 ar out ∗ apply.adminRejErr ar out)))
-      $$ [HRD HK Hown Hkv Hcs Ho Hrc HW Hx] as %ar %id' ⟨HRD, %Hid', Hout⟩
-  · iframe # HRD HK Hown Hkv Hcs Ho Hrc HW Hx
-    isplitr
-    · ipureintro; exact Hlg
+      $$ [HRD HK Hown Hkv Htt Ho Hrc HW Hx] as %ar %id' ⟨HRD, %Hid', Hout⟩
+  · iframe # HRD HK Hown Hkv Htt Ho Hrc HW Hx
     isplitr
     · ipureintro; exact ⟨Hdec, Hid⟩
     iexists ⟨go.GoType.PointerType uberApplier.ty, #p⟩
     isplitr
     · ipureintro; rfl
     iintro !> %r %sk
-    wp_start_folded as ⟨#Hwr, %Hskt, Hown, Hkv, Hcs, Ho, Hrc, HW, Hx⟩
+    wp_start_folded as ⟨#Hwr, %Hskt, Hown, Hkv, Htt, Ho, Hrc, HW, Hx⟩
     wp_apply Htr $$ %x %r %rq %sk %v3 %Pre %Q %Post %γa %hs
-        [Hown Hkv Hcs Ho Hrc HW Hx] as %ar HQ
-    · iframe # Hown Hkv Hcs Ho Hrc HW Hx
+        [Hown Hkv Htt Ho Hrc HW Hx] as %ar HQ
+    · iframe # Hown Hkv Htt Ho Hrc HW Hx
       isplitr
       · ipureintro; exact hsplit
       isplitr
@@ -209,11 +201,11 @@ theorem apply.Apply.wp_adminL (hA : apply.Apply.spec (GF := GF) (hG := hG)) :
       ipureintro; exact Hch
     iapply HΦ; iexact HQ
   subst Hid'
-  icases Hout with (⟨%sk, ⟨%x', %out, Hown, Hkv, HPP, %Hst, %Hlat, Htr, Hres, HW, Hdone, HRE⟩, Hwv⟩ |
-    ⟨%Hnil, HG, Hown, Hkv, Hcs, Ho, Hrc, HW, Hx⟩)
+  icases Hout with (⟨%sk, ⟨Htt, Hrt, %x', %out, Hown, Hkv, HPP, %Hst, %Hlat, Htr, Hres, HW, Hdone, HRE⟩, Hwv⟩ |
+    ⟨%Hnil, HG, Hown, Hkv, Htt, Ho, Hrc, HW, Hx⟩)
   · ihave ⟨#Hok, Hres⟩ := apply.applyResultIs_resultErrOk rq v3 x.log ar out $$ Hres
     iapply HΦ
-    iframe HRD
+    iframe Htt Hrt HRD
     isplitl [HPP]
     · iapply cPost_if; iexact HPP
     iframe Hok Htr
@@ -239,10 +231,11 @@ theorem apply.Apply.wp_adminL (hA : apply.Apply.spec (GF := GF) (hG := hG)) :
     · iright; iexact HG
   · obtain ⟨Har, hns⟩ := Hnil
     subst Har
+    ihave ⟨Hkv, Hrt, HPre⟩ := apply.kvOwnPre_kvOwn v3 E x.log Pre Q Post $$ Hkv
     iapply HΦ
-    iframe HRD
-    isplitl [Hcs]
-    · iapply cPost_if; iapply apply.cPost_of_pre; iapply apply.cPre_pre; iexact Hcs
+    iframe Htt Hrt HRD
+    isplitl [HPre]
+    · iapply cPost_if; iapply apply.cPost_of_pre; iexact HPre
     isplitr
     · iunfold apply.resultErrOk; ileft; ipureintro; rfl
     isplitr

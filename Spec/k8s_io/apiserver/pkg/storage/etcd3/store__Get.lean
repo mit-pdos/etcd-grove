@@ -9,19 +9,22 @@ prophesies (D30n: made once, `kubernetes.Client.Get`'s), so that the caller can 
 at the state the answer comes from. Its answer is `correctness.Model`'s `get` (`KSt.get`) at the
 state `σ` the update for `σ`'s pair fired at (`□ Q (W64 σ.rev) (modAt key σ) σ`), as the error
 and object it leaves (`respIs`): the object at its mod revision,
-the zero object (`IgnoreNotFound`), or a `*StorageError` "not found" at the state's revision. Or
-an error of the client, the object `out` holding something.
+the zero object (`IgnoreNotFound`), a `*StorageError` "not found" at the state's revision, or,
+when the minimum resource version `opts.ResourceVersion` (parsed by the versioner as `n`) is above
+the state's revision, a `*apierrors.StatusError` (`NewTooLargeResourceVersionError`). Or an error
+of the client, the object `out` holding something.
 
 The caller's update gives a state that is the store's (`Q R m σ ⊢ kvWf c σ`: every value under the
 prefix decodes, D30i), so decoding never fails. For now the key is valid (`PrepareKey` succeeds:
-the model's `checkKey`), and `opts.ResourceVersion` is `""` (no minimum: a minimum's check builds
-its error through apimachinery's names-only `NewTimeoutError`).
+the model's `checkKey`), and `opts.ResourceVersion` parses (`""` parses as `0`, no minimum; stage
+7b: before, only `""`).
 -/
 module
 
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Store
 public import Spec.go_etcd_io.etcd.client.v3.kubernetes.Client__Get
 public import Proof.k8s_io.apiserver.pkg.storage.Defs
+public import Proof.k8s_io.apiserver.pkg.audit.CtxKeys
 
 @[expose] public section
 
@@ -38,6 +41,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 /-- See the file header. -/
@@ -46,13 +50,12 @@ abbrev store.Get.spec : Prop :=
     (Obj : Type) [DecidableEq Obj] (sp : Loc) (c : StoreCfg GF Obj) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (key : GoString)
     (opts : k8s_io.apiserver.pkg.storage.GetOptions) (out : GoInterface) (o0 : Obj) (rv0 : GoString)
-    (k : GoString) (Q : w64 → w64 → KVState → IProp GF),
-  prepareKeyM c.resourcePrefix key false = some k →
-  (c.pathPrefix ++ k).length ≤ opKeyMax →
-  opts.ResourceVersion' = [] →
+    (k : GoString) (n : w64) (Q : w64 → w64 → KVState → IProp GF),
   (∀ R m σ, Q R m σ ⊢ ⌜kvWf c σ⌝) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isStore sp c ∗
-      ctxOk ci cd ∗ ctxErrClient ci cd ∗ c.S.objAt out o0 rv0 ∗
+      ⌜prepareKeyM c.resourcePrefix key false = some k ∧ (c.pathPrefix ++ k).length ≤ opKeyMax ∧
+        c.S.parseRV opts.ResourceVersion' = some n⌝ ∗
+      ctxOk ci cd ∗ ctxErrClient ci cd ∗ k8sctx.k8sCtxOk ci ∗ c.S.objAt out o0 rv0 ∗
       (∀ R m, |==> □ [∧list] x ∈ c.ms, ⌜Q R m = fun _ => iprop(True)⌝ ∨
         kvReadAu x.γr.kv (Q R m)) }}
     (App (App (App (App (Val (sp @!! go.GoType.PointerType
@@ -61,7 +64,8 @@ abbrev store.Get.spec : Prop :=
   {{ (err : GoInterface), RET #err;
       (unkErr c err ∗ ∃ o rv, c.S.objAt out o rv) ∨
       (∃ σ : KVState, □ Q (W64 (σ.rev : Int)) (kubernetes.modAt (c.pathPrefix ++ k) σ) σ ∗
-        respIs (E := Empty) c ((c.abs σ).get (c.pathPrefix ++ k) 0 opts.IgnoreNotFound') err out) }}
+        respIs (E := Empty) c ((c.abs σ).get (c.pathPrefix ++ k) (uint.nat n) opts.IgnoreNotFound')
+          err out) }}
 
 end spec
 

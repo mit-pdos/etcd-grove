@@ -49,7 +49,7 @@ theorem watchCache.waitUntilFreshLocked.wp_proof
   intro wc γ Ψ ctx rv
   -- `time.Duration`'s methods resolve (its underlying `int64` is not an interface)
   haveI : go.NotInterface go.int64 := ⟨by unfold go.int64; trivial⟩
-  wp_start as ⟨#Hwc, Hrl, HP⟩
+  wp_start as ⟨#Hwc, Hrl, HP, #Hsvn⟩
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   unfold isWC
@@ -154,7 +154,8 @@ theorem watchCache.waitUntilFreshLocked.wp_proof
       wp_if_destruct
       · -- the timeout: `NewTooLargeResourceVersionError`
         (try wp_auto)
-        wp_apply (wp_TooLarge _ _ _) $$ [] as %err %Herr
+        wp_apply (wp_TooLarge _ _ _) $$ [] as %err HerrT
+        icases (apierrors.tooLargeErrIs_ptr err) $$ HerrT with %Herr
         wp_for_post
         (try wp_auto)
         (try rw [decide_eq_true hpos])
@@ -191,7 +192,7 @@ theorem watchCache.waitUntilFreshLocked.wp_proof
           iexists st'
           unfold wcLockPSt
           iframe
-          ipureintro; intro h; exact absurd h Herr
+          ipureintro; intro h; obtain ⟨_, rfl⟩ := Herr; cases h
       · -- wait
         (try wp_auto)
         ihave #Hlw := sync.rlocker_isLockerWith (structFieldRef watchCache go!"RWMutex" wc) (wcLockP wc γ) $$ Psync

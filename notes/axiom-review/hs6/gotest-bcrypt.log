@@ -1,0 +1,9 @@
+=== RUN   TestErrorMethods
+    bcrypt_test.go:24: too long: *errors.errorString true methods [Error]
+    bcrypt_test.go:25: cost 32: bcrypt.InvalidCostError methods [Error]
+--- PASS: TestErrorMethods (0.00s)
+=== RUN   TestNoOtherError
+    bcrypt_test.go:54: no error for any password of 0..72 bytes
+--- PASS: TestNoOtherError (2.31s)
+PASS
+ok  	hs6bcrypt	2.310s

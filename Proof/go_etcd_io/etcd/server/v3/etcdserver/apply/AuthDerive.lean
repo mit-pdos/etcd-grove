@@ -37,6 +37,7 @@ namespace EtcdGrove
 namespace apply
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3 go_etcd_io.etcd.api.v3
+open srvApi (csContractA)
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -49,43 +50,44 @@ reads `u.Roles` of an axiomatized `authpb.User`) and the admin requests, each a 
 (`AuthEnable`, `AuthDisable`, `Authenticate`, the user and role requests: their write side is not
 translated), with the write right `RW` of the auth buckets (D22, 2026-10-23), admitted in the mode
 `M` only (`adminAdmitted`, the auth plan's E2i: in the mode `on` vacuous, `isAuthStoreAdmin_on`). -/
-def isAuthStoreAdmin (st : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f : val)
+def isAuthStoreAdmin (st : GoInterface) (Pk : mvcc.KBReal → IProp GF) (f : GoFunc) (BT : mvcc.KBReal → IProp GF)
     (RW : IProp GF) (M : auth.AuthMode) : IProp GF :=
   iprop(∃ ai : GoInterfaceOk, ⌜st = GoInterface.ok ai⌝ ∗
     □ (∀ (u r : GoString),
       {{ ⌜adminAdmitted M⌝ }} (App (App (Val #(methods ai.ty go!"HasRole" ai.v)) (Val #u)) (Val #r))
       {{ (b : Bool), RET #b; True }}) ∗
-    □ (∀ (Pre Q Post : IProp GF),
-      {{ ⌜adminAdmitted M⌝ ∗ ⌜M.isOn = true⌝ ∗ mvcc.csContract P f Pre Q Post ∗ mvcc.storeWT γ ∗
-          mvcc.storeRT γ ∗ RW }}
+    □ (∀ (B : mvcc.KBReal) (Pre Q Post : IProp GF),
+      {{ ⌜adminAdmitted M⌝ ∗ ⌜M.isOn = true⌝ ∗ csContractA (Pk B) f Pre Q Post ∗ bkWT B ∗
+          bkRT B ∗ BT B ∗ RW }}
         (App (Val #(methods ai.ty go!"AuthEnable" ai.v)) (Val #()))
-      {{ (err : GoInterface), RET #err; (Post ∨ Pre) ∗ mvcc.storeRT γ ∗ applyErrIs err ∗ RW }}) ∗
-    □ (∀ (Pre Q Post : IProp GF),
-      {{ ⌜adminAdmitted M⌝ ∗ mvcc.csContract P f Pre Q Post ∗ mvcc.storeWT γ ∗ mvcc.storeRT γ ∗ RW }}
+      {{ (err : GoInterface), RET #err; (Post ∨ Pre) ∗ bkRT B ∗ BT B ∗ applyErrIs err ∗ RW }}) ∗
+    □ (∀ (B : mvcc.KBReal) (Pre Q Post : IProp GF),
+      {{ ⌜adminAdmitted M⌝ ∗ csContractA (Pk B) f Pre Q Post ∗ bkWT B ∗ bkRT B ∗ BT B ∗ RW }}
         (App (Val #(methods ai.ty go!"AuthDisable" ai.v)) (Val #()))
-      {{ RET #(); (Post ∨ Pre) ∗ mvcc.storeRT γ ∗ RW }}) ∗
-    □ (∀ (ctx : GoInterface) (name pw : GoString) (Pre Q Post : IProp GF),
-      {{ ⌜adminAdmitted M⌝ ∗ mvcc.csContract P f Pre Q Post ∗ mvcc.storeWT γ ∗ mvcc.storeRT γ ∗ RW }}
+      {{ RET #(); (Post ∨ Pre) ∗ bkRT B ∗ BT B ∗ RW }}) ∗
+    □ (∀ (ctx : GoInterface) (name pw : GoString) (B : mvcc.KBReal) (Pre Q Post : IProp GF),
+      {{ ⌜adminAdmitted M⌝ ∗ csContractA (Pk B) f Pre Q Post ∗ bkWT B ∗ bkRT B ∗ BT B ∗ RW }}
         (App (App (App (Val #(methods ai.ty go!"Authenticate" ai.v)) (Val #ctx)) (Val #name))
           (Val #pw))
-      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ mvcc.storeRT γ ∗
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ bkRT B ∗ BT B ∗
           respHdrOk etcdserverpb.AuthenticateResponse resp ∗ applyErrIs err ∗ RW }}) ∗
-    authReqContractN ai go!"UserAdd" etcdserverpb.AuthUserAddResponse γ P f RW auth.userAddReqIs M ∗
-    authReqContract ai go!"UserDelete" etcdserverpb.AuthUserDeleteResponse γ P f RW M ∗
-    authReqContract ai go!"UserChangePassword" etcdserverpb.AuthUserChangePasswordResponse γ P f RW M ∗
-    authReqContract ai go!"UserGrantRole" etcdserverpb.AuthUserGrantRoleResponse γ P f RW M ∗
-    authReqContract ai go!"UserGet" etcdserverpb.AuthUserGetResponse γ P f RW M ∗
-    authReqContract ai go!"UserRevokeRole" etcdserverpb.AuthUserRevokeRoleResponse γ P f RW M ∗
-    authReqContractN ai go!"RoleAdd" etcdserverpb.AuthRoleAddResponse γ P f RW authRoleAddIs M ∗
-    authReqContract ai go!"RoleGrantPermission" etcdserverpb.AuthRoleGrantPermissionResponse γ P f RW M ∗
-    authReqContract ai go!"RoleGet" etcdserverpb.AuthRoleGetResponse γ P f RW M ∗
-    authReqContract ai go!"RoleRevokePermission" etcdserverpb.AuthRoleRevokePermissionResponse γ P f RW M ∗
-    authReqContract ai go!"RoleDelete" etcdserverpb.AuthRoleDeleteResponse γ P f RW M ∗
-    authReqContract ai go!"UserList" etcdserverpb.AuthUserListResponse γ P f RW M ∗
-    authReqContract ai go!"RoleList" etcdserverpb.AuthRoleListResponse γ P f RW M)
+    authReqContractN ai go!"UserAdd" etcdserverpb.AuthUserAddResponse Pk f BT RW auth.userAddReqIs M ∗
+    authReqContract ai go!"UserDelete" etcdserverpb.AuthUserDeleteResponse Pk f BT RW M ∗
+    authReqContract ai go!"UserChangePassword" etcdserverpb.AuthUserChangePasswordResponse Pk f BT RW M ∗
+    authReqContract ai go!"UserGrantRole" etcdserverpb.AuthUserGrantRoleResponse Pk f BT RW M ∗
+    authReqContract ai go!"UserGet" etcdserverpb.AuthUserGetResponse Pk f BT RW M ∗
+    authReqContract ai go!"UserRevokeRole" etcdserverpb.AuthUserRevokeRoleResponse Pk f BT RW M ∗
+    authReqContractN ai go!"RoleAdd" etcdserverpb.AuthRoleAddResponse Pk f BT RW authRoleAddIs M ∗
+    authReqContract ai go!"RoleGrantPermission" etcdserverpb.AuthRoleGrantPermissionResponse Pk f BT RW M ∗
+    authReqContract ai go!"RoleGet" etcdserverpb.AuthRoleGetResponse Pk f BT RW M ∗
+    authReqContract ai go!"RoleRevokePermission" etcdserverpb.AuthRoleRevokePermissionResponse Pk f BT RW M ∗
+    authReqContract ai go!"RoleDelete" etcdserverpb.AuthRoleDeleteResponse Pk f BT RW M ∗
+    authReqContract ai go!"UserList" etcdserverpb.AuthUserListResponse Pk f BT RW M ∗
+    authReqContract ai go!"RoleList" etcdserverpb.AuthRoleListResponse Pk f BT RW M)
 
-instance isAuthStoreAdmin_persistent (st : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF)
-    (f : val) (RW : IProp GF) (M : auth.AuthMode) : Persistent (isAuthStoreAdmin st γ P f RW M) := by
+instance isAuthStoreAdmin_persistent (st : GoInterface) (Pk : mvcc.KBReal → IProp GF) (f : GoFunc)
+    (BT : mvcc.KBReal → IProp GF) (RW : IProp GF) (M : auth.AuthMode) :
+    Persistent (isAuthStoreAdmin st Pk f BT RW M) := by
   unfold isAuthStoreAdmin authReqContract authReqContractN; infer_instance
 
 end defs
@@ -164,17 +166,15 @@ theorem authErrIs_authApplyErrIs (err : GoInterface) :
   rcases Hg with rfl | rfl | rfl | rfl | rfl <;>
     simp [go_etcd_io.etcd.server.v3.auth.authErrMsgs]
 
-/-- **One of the auth package's error variables, as the checks' contracts state its error**
-(`authApplyErrIs`; the auth plan's E3j): from its package fact (`authErrVar`). -/
-theorem authErrVar_authApplyErrIs (g : GoString)
+/-- **One of the auth package's error variables, from its `errVarLeaf` fact, as the checks'
+contracts state its error** (`authApplyErrIs`; k8s etcd3 7c-2 part 2, S3a: `doSerialize`'s
+`ErrAuthOldRevision`). -/
+theorem errVarLeaf_authApplyErrIs (g : GoString)
     (hg : g ∈ (go_etcd_io.etcd.server.v3.auth.authErrMsgs).map Prod.fst) (err : GoInterface) :
-    go_etcd_io.etcd.server.v3.auth.authErrVar (GF := GF) g ⊢
+    errVarLeaf (GF := GF) g ⊢
       (∃ e : GoInterfaceOk, globalAddr g ↦□ GoInterface.ok e ∗ ⌜err = GoInterface.ok e⌝) -∗
       authApplyErrIs err := by
-  iintro #HX #Herr
-  ihave #Hv : errVarLeaf (GF := GF) g $$ []
-  · iunfold go_etcd_io.etcd.server.v3.auth.authErrVar at HX
-    iunfold errVarLeaf; iunfold errLeaf; iunfold errMsgOk; iexact HX
+  iintro #Hv #Herr
   ihave #Happ := errVar_applyErrIs g err $$ Hv Herr
   iunfold authApplyErrIs
   iframe Happ
@@ -190,6 +190,19 @@ theorem authErrVar_authApplyErrIs (g : GoString)
   iframe Hge
   ipureintro
   exact ⟨⟨hg, hl⟩, He⟩
+
+/-- **One of the auth package's error variables, as the checks' contracts state its error**
+(`authApplyErrIs`; the auth plan's E3j): from its package fact (`authErrVar`). -/
+theorem authErrVar_authApplyErrIs (g : GoString)
+    (hg : g ∈ (go_etcd_io.etcd.server.v3.auth.authErrMsgs).map Prod.fst) (err : GoInterface) :
+    go_etcd_io.etcd.server.v3.auth.authErrVar (GF := GF) g ⊢
+      (∃ e : GoInterfaceOk, globalAddr g ↦□ GoInterface.ok e ∗ ⌜err = GoInterface.ok e⌝) -∗
+      authApplyErrIs err := by
+  iintro #HX #Herr
+  ihave #Hv : errVarLeaf (GF := GF) g $$ []
+  · iunfold go_etcd_io.etcd.server.v3.auth.authErrVar at HX
+    iunfold errVarLeaf; iunfold errLeaf; iunfold errMsgOk; iexact HX
+  iapply errVarLeaf_authApplyErrIs g hg err $$ Hv Herr
 
 /-- **An admin operation's error** (`auth.authErrOf`, the model's `AuthErr`) **as the checks'
 contracts state it** (`authApplyErrIs`; the auth plan's E3j): each `AuthErr`'s variable is one of
@@ -308,11 +321,11 @@ theorem isAuthStore_of_authInv
     (hAdmin : auth.authStore.IsAdminPermitted.spec (GF := GF) (hG := hG))
     (hEn : auth.authStore.IsAuthEnabled.spec (GF := GF) (hG := hG))
     (hRev : auth.authStore.Revision.spec (GF := GF) (hG := hG))
-    (st : Loc) (R : IProp GF) (M : auth.AuthMode) (γ : mvcc.StoreNames) (P : IProp GF) (f : val)
+    (st : Loc) (R : IProp GF) (M : auth.AuthMode) (Pk : mvcc.KBReal → IProp GF) (f : GoFunc) (BT : mvcc.KBReal → IProp GF)
     (RW : IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R M ∗
-      isAuthStoreAdmin (auth.authIface st) γ P f RW M ⊢
-      isAuthStore (auth.authIface st) γ P f (auth.authRd st R M) M RW := by
+      isAuthStoreAdmin (auth.authIface st) Pk f BT RW M ⊢
+      isAuthStore (auth.authIface st) Pk f BT (auth.authRd st R M) M RW := by
   iintro ⟨#Hpkg, #Hinv, #Hadm⟩
   iunfold isAuthStoreAdmin at Hadm
   icases Hadm with ⟨%ai', %Hai', #HHas, #HAE, #HAD, #HAu, #H1, #H2, #H3, #H4, #H5, #H6, #H7, #H8,
@@ -414,9 +427,9 @@ theorem isAuthStore_of_authInv
 
 /-- **`isAuthStoreAdmin` in the mode `on`** (the auth plan's E2i): vacuous (`adminAdmitted`), so
 of any store `st`, its interface's methods unconstrained. -/
-theorem isAuthStoreAdmin_on (ai : GoInterfaceOk) (γ : mvcc.StoreNames) (P : IProp GF) (f : val)
+theorem isAuthStoreAdmin_on (ai : GoInterfaceOk) (Pk : mvcc.KBReal → IProp GF) (f : GoFunc) (BT : mvcc.KBReal → IProp GF)
     (RW : IProp GF) (γa : auth.AuthNames) :
-    ⊢ isAuthStoreAdmin (GF := GF) (GoInterface.ok ai) γ P f RW (.on γa) := by
+    ⊢ isAuthStoreAdmin (GF := GF) (GoInterface.ok ai) Pk f BT RW (.on γa) := by
   have h := adminAdmitted_on γa
   iunfold isAuthStoreAdmin
   iexists ai
@@ -432,6 +445,31 @@ theorem isAuthStoreAdmin_on (ai : GoInterfaceOk) (γ : mvcc.StoreNames) (P : IPr
     | (iintro ⟨%Ha, -⟩; exact absurd Ha h)
 
 end proof
+
+section laws
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **`IsAuthEnabled` of a store `st` the contract names by its pointer** (revoke-open review round
+1, S3, 2026-11-06): `isAuthStore`'s `IsAuthEnabled` clause at the concrete method, the shape
+`auth.authStore.WithRoot.spec` takes (so that the server's caller does not open the contract). -/
+theorem isAuthStore_isAuthEnabled (st : Loc) (Pk : mvcc.KBReal → IProp GF) (f : GoFunc)
+    (BT : mvcc.KBReal → IProp GF) (RD : IProp GF) (M : auth.AuthMode) (RW : IProp GF) :
+    isAuthStore (auth.authIface st) Pk f BT RD M RW ⊢
+      □ ({{ RD }} (App (Val (st @!! go.GoType.PointerType auth.authStore.ty @!! go!"IsAuthEnabled"))
+          (Val #()))
+        {{ (b : Bool), RET #b; RD ∗ auth.enabledVerdict M b }}) := by
+  iintro #H
+  iunfold isAuthStore at H
+  icases H with ⟨%ai, %Hai, -, -, -, -, -, #HEn, -⟩
+  have Hai' : ai = interface.mk (go.GoType.PointerType auth.authStore.ty) #st := by
+    unfold auth.authIface at Hai; cases Hai; rfl
+  subst Hai'
+  iexact HEn
+
+end laws
 
 end apply
 end EtcdGrove

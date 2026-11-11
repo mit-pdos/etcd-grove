@@ -6,6 +6,7 @@ boundary (`Proof/.../membership/RaftCluster__Recover.lean`), why it is true of t
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRest
+public import Spec.go_uber_org.zap.Defs
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.RdPool
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendBridge
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Defs
@@ -67,6 +68,7 @@ abbrev membership.RaftCluster.Recover.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api ∗
       membership.isRaftCluster c ∗ clusterBeOn c d.be ∗
+      (∃ lgc : Loc, membership.rcLgAddr c ↦□ lgc ∗ zapLoggerOk lgc) ∗
       backend.isBackend d.γB d.P W Pk d.be ∗ backend.bkRPool d.γB d.P d.be ∗ threadTok ∗
       backend.rbOwnIn d.γB membership.clusterBkts r ∗
       membership.clusterMem c mem }}

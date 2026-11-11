@@ -153,7 +153,8 @@ theorem lease.lessor.Leases.wp_proof
   icases HR with ⟨%lm, %im, %M, %I', %rd0, %L', Hlm, HM, Him, HI, Hrdf, Ha, Hg, %HL, #Hsz, #Hls, Hx,
     %γr, %hs, #Hpr, Hhl, %Hlast⟩
   -- the reader's view: the history's last snapshot, at an index no earlier than `m`
-  icases lockHist_at γl γr _ hs (M, I') m Hlast $$ [$Hlb $Hpr $Hhl] with ⟨Hhl, %Hm, #Hat⟩
+  obtain ⟨Tq, Hlast⟩ := Hlast
+  icases lockHist_at γl γr _ hs (M, I', Tq) m Hlast $$ [$Hlb $Hpr $Hhl] with ⟨Hhl, %Hm, #Hat⟩
   ihave %Hszlt := preceipt_lt _ $$ Hsz
   -- the leases' `ID` facts, from their `leaseMeta`s
   iunfold lessorExtra at Hx
@@ -191,7 +192,7 @@ theorem lease.lessor.Leases.wp_proof
     · iunfold lessorExtra; iexists dc, np, h, hx, cp, bl; iframe
     iexists γr, hs
     iframe Hpr Hhl
-    ipureintro; exact Hlast
+    ipureintro; exact ⟨Tq, Hlast⟩
   -- the slot back, for the token (`Less` reads the clock with it)
   iapply fupd_wp
   imod Hback $$ [Hrd] with Htt
@@ -222,7 +223,7 @@ theorem lease.lessor.Leases.wp_proof
     · ipureintro; exact Hm
     iapply (leaseMapAt_perm γl _ Hp.symm)
     iunfold leaseMapAt
-    iexists (M, I')
+    iexists (M, I', Tq)
     iframe Hat
     ipureintro; exact ⟨Hnd, Hpairs⟩
   iapply (BigSepL.bigSepL_perm (PROP := IProp GF)

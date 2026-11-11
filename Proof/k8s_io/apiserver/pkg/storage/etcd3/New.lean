@@ -21,7 +21,6 @@ public import Spec.strings.TrimSuffix
 public import Spec.go_etcd_io.etcd.client.v3.Client__Ctx
 public import Spec.reflect.TypeOf
 public import Perennial.Proof.strings.HasPrefix
-public import Proof.k8s_io.apiserver.pkg.features.Values
 
 @[expose] public section
 
@@ -45,6 +44,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 theorem New.wp_proof
@@ -58,13 +58,16 @@ theorem New.wp_proof
     (wp_Ctx : Client.Ctx.spec (GF := GF) (hG := hG))
     (wp_TypeOf : reflect.TypeOf.spec (GF := GF) (hG := hG)) :
     New.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ S kc cl ms V γh cmp codec nf nlf rkf pfx0 rp gr vi ti di lmc hp hrp hrp1
+  intro _ _ Obj _ S kc cl ms V γh cmp codec nf nlf rkf pfx0 rp gr vi ti di lmc hp hrp hrp1 hu1 hu2 htb hpk
   wp_start as ⟨#Hkc, #Hnc, #Hwo, #Hregs, ⟨%cx, #Hcx⟩, #Hcon, #Hnf⟩
-  ihave #Pft : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.util.feature $$ []
+  ihave #Pft : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.features $$ []
   · iPkgInit
-  ihave #Hft : (k8s_io.apiserver.pkg.storage.etcd3.featureInit : IProp GF) $$ []
+  -- (sweep repairs 1, B5) the default gate's specs, `features`' fact
+  ihave #Hft : (k8s_io.apiserver.pkg.storage.etcd3.featuresInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Pft
-  icases Hft with ⟨%g, #Hg, #Hen⟩
+  icases Hft with ⟨%g, #Hg, #Hgate⟩
+  iunfold EtcdGrove.k8sfeature.featureGateOk at Hgate
+  icases Hgate with ⟨#Hen, -⟩
   ihave #Hkc' := Hkc
   iStructNamed Hkc'
   ihave #Psf : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.feature $$ []
@@ -106,15 +109,14 @@ theorem New.wp_proof
   rw [decide_eq_true hrp]
   wp_auto
   -- the list error aggregator: the default, or (by the feature gate) the corrupt-object one
-  have hnp : k8s_io.apiserver.pkg.features.AllowUnsafeMalformedObjectDeletion.isPanic = false :=
-    features.AllowUnsafeMalformedObjectDeletion_notPanic
   try wp_pure
   (try wp_auto)
-  wp_apply Hen as %b
+  wp_apply Hen as %b -
+  · ipureintro; decide
   cases b
   case' true =>
     (try wp_auto)
-    wp_apply wp_cea as %fa -
+    wp_apply wp_cea as %fa #Hfa
   all_goals
     (try wp_auto)
     wp_apply wp_rk as %rkf' -
@@ -148,10 +150,39 @@ theorem New.wp_proof
       (try wp_auto)
       irename : («$r0_ptr» ↦ (_ : k8s_io.apiserver.pkg.storage.etcd3.store) : IProp GF) => Hsto
       icases (typedPointsto_not_null_dup _ _ _) $$ Hsto with ⟨Hst, %Hsn⟩
-      ipersist Hst
-      ihave #Hst' := Hst
-      iStructNamed Hst'
-      wp_apply Chk
+      iStructNamed Hst
+      -- (stage 7e-2, #15) `collectorMux`'s reader tokens in a pool guarding `resourceSizeEstimator ↦ nil`
+      imod (sync.init_RWMutex_threadPool (rseNilR «$r0_ptr») storePoolN _ (by omega)) $$
+        [resourceSizeEstimator] collectorMux with ⟨%γp, -, #Hpool⟩
+      · iunfold rseNilR
+        inext
+        iexact resourceSizeEstimator
+      ipersist client
+      ipersist codec
+      ipersist versioner
+      ipersist transformer
+      ipersist pathPrefix
+      ipersist groupResource
+      ipersist watcher
+      ipersist leaseManager
+      ipersist decoder
+      ipersist listErrAggrFactory
+      ipersist resourcePrefix
+      ipersist newListFunc
+      ipersist compactor
+      ipersist metricsTracker
+      -- (sweep repairs 1, B5) `CheckClient(c.Ctx(), c, …)`: the constructed client and its context
+      wp_apply Chk $$ []
+      · icases EtcdGrove.isNewClient_ctxOk _ _ _ $$ Hnc with ⟨⟨%cx', #Hcx', %Hcxn⟩, #HF⟩
+        iunfold EtcdGrove.clientCheckFields at HF
+        icases HF with ⟨⟨%mp, #Hmp, %Hmpn⟩, ⟨%mu, #Hmu, %Hmun⟩⟩
+        icombine Hcx Hcx' gives %Hcxe
+        iunfold k8s_io.apiserver.pkg.storage.etcd3.checkClientOk
+        iexists kc, cl, mp, mu, _, cx
+        iframe #
+        ipureintro
+        refine ⟨rfl, rfl, ?_, Hmpn, Hmun⟩
+        first | (rw [Hcxe]; exact Hcxn) | (rw [Hcxe.2]; exact Hcxn) | exact Hcxe ▸ Hcxn
       (try wp_auto)
       iapply HΦ
       isplitr
@@ -160,8 +191,26 @@ theorem New.wp_proof
       iunfold isStore
       simp only
       iframe #
-      ipureintro
-      exact ⟨Hsn, Hlt⟩
+      isplitr
+      · ipureintro; exact Hsn
+      isplitr
+      · ipureintro; exact Hlt
+      iunfold storeListOk
+      iexists _, γp
+      isplitr
+      · iexact listErrAggrFactory
+      isplitr
+      · first
+        | iexact Hfa
+        | (iunfold aggrFactoryOk
+           iintro !> %Ψ HΨ
+           wp_apply wp_dla as %ag Hag
+           iapply HΨ $$ Hag)
+      isplitr
+      · iexact Hpool
+      isplitr
+      · ipureintro; exact ⟨hu1, hu2⟩
+      ipureintro; exact hpk
 
 end proof
 

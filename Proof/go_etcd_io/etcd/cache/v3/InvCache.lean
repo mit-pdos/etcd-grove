@@ -1467,7 +1467,8 @@ def isCacheFields (c : Loc) (cf : CacheFields) (γr : ReadyNames) (γd : DemuxNa
     "#HisWatcher" ∷ isEtcdWatcher cf.watcher cf.pfx ∗
     "#Hictx" ∷ cacheICtxAddr c ↦□ GoInterface.ok cf.ictx ∗
     "#HisICtx" ∷ (∃ ics : context.ContextDesc (IProp GF),
-      context.isContext cf.ictx ics ∗ context.isCancelCtxCtx cf.ictx ics) ∗
+      context.isContext cf.ictx ics ∗ metadata.outgoingCtxOkC cf.ictx ∗
+        context.isCancelCtxCtx cf.ictx ics) ∗
     "#Hclock" ∷ cacheClockAddr c ↦□ GoInterface.ok cf.clock ∗
     "#HisClock" ∷ isClock cf.clock ∗
     "#HisWg" ∷ sync.isWaitGroup (cacheWgAddr c) cf.γwg cacheWgWGN ∗
@@ -1611,7 +1612,7 @@ theorem cacheGetErr_ne_nil (cf : CacheFields) (r0 : w64) (s : context.ContextDes
   icases Hci with ⟨-, -, ⟨%eKR, #HeKR⟩, ⟨%eCT, #HeCT⟩, -⟩
   ihave Hri : (rpctypesInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hrpc
-  icases Hri with ⟨⟨%eFR, #HeFR⟩, -, -⟩
+  icases Hri with ⟨⟨%eFR, #HeFR, -⟩, -, -⟩
   unfold cacheGetErr
   icases Herr with (⟨%h, -⟩ | %h | ⟨-, #H⟩ | %h | ⟨-, #H, -⟩ | ⟨-, #H⟩ | ⟨%st, -, #Hse, %Hno⟩)
   · ipureintro; exact h

@@ -6,10 +6,6 @@ Lean-first; see `TxnRun.lean`, `InvTxn.lean`.
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.InvTxn
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Rev
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Changes
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__Rev
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__Changes
 
 @[expose] public section
 
@@ -93,6 +89,19 @@ theorem srvOp_get (s0 : List EtcdKv) (r : w64) (s : List EtcdKv) (o : OpFull) :
 theorem pendState_append (ilog : mvcc.Log) (pend cs : List mvcc.Change) :
     pendState ilog (pend ++ cs) = mvcc.applyChanges (W64 (ilog.length : Int)) (pendState ilog pend) cs := by
   unfold pendState; rw [applyChanges_append]
+
+/-- A branch of gets runs with no change. -/
+theorem srvOps_gets_nil (s0 : List EtcdKv) (r : w64) :
+    ∀ (s : List EtcdKv) (ops : List TxnOp), (∀ op ∈ ops, opIsGet op = true) →
+      (srvOps s0 r s ops).1 = []
+  | _, [], _ => rfl
+  | s, op :: ops, h => by
+    cases op with
+    | get o =>
+      rw [srvOps_cons, srvOp_get]
+      simp only [List.nil_append, applyChanges_nil']
+      exact srvOps_gets_nil s0 r s ops (fun op hop => h op (by simp [hop]))
+    | _ => have := h _ (List.mem_cons.2 (Or.inl rfl)); simp [opIsGet] at this
 
 theorem putTxnOp_ne_get (o o' : OpFull) : TxnOp.get o' ≠ putTxnOp o := by
   unfold putTxnOp; split <;> (try split) <;> simp
@@ -259,118 +268,6 @@ theorem leasesKnown_delete (L : List w64) (r : w64) (s : List EtcdKv) (o : OpFul
   intro v hv
   exact (List.mem_filter.1 hv).1
 
-/-- **The log `executeTxn`'s transaction reads is small** (D19c's move, 2026-10-18): a write
-transaction's by its time receipts (`mvcc.isTxnWrite_small`: its changes, committed and pending,
-are fewer than `receiptBound GF ≤ 2 ^ 48`), the read-only wrapper's by the caller's premise. So
-the gets' sorts meet their premise (`sortSmall`) without one on the run. -/
-theorem txnViewIs_small (tw : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind)
-    (ro : Bool) (ilog : mvcc.Log) (pend : List mvcc.Change) (crev : Int) (hk : KindIs ro ilog pend kind)
-    (hro : ro = true → LogSmall ilog) :
-    txnViewIs (GF := GF) tw s γ trace kind crev ro ⊢
-      ⌜LogSmall kind.readLog⌝ ∗ txnViewIs tw s γ trace kind crev ro := by
-  apply persistent_entails_right
-  cases ro
-  · unfold KindIs at hk
-    simp only [Bool.false_eq_true, ↓reduceIte] at hk
-    obtain ⟨puts, deletes, putSize, rfl⟩ := hk
-    unfold txnViewIs
-    simp only [Bool.false_eq_true, ↓reduceIte]
-    iintro ⟨%mw, %tyX, %vX, %h, #Hw, Htx⟩
-    ihave Htx : mvcc.isTxnWrite mw s γ trace ilog pend puts deletes putSize crev $$ [Htx]
-    · simp only [mvcc.isTxn]; iexact Htx
-    icases mvcc.isTxnWrite_small mw s γ trace ilog pend puts deletes putSize crev _ $$ Htx
-      with ⟨%h1, -⟩
-    ipureintro
-    unfold LogSmall logChanges
-    simp only [mvcc.TxnKind.readLog]
-    simp only [mvcc.logCh] at h1
-    simp only [List.map_append, List.sum_append, List.map_cons, List.map_nil, List.sum_cons,
-      List.sum_nil]
-    omega
-  · unfold KindIs at hk
-    simp only [↓reduceIte] at hk
-    obtain ⟨-, rev, rfl⟩ := hk
-    iintro -
-    ipureintro
-    exact hro rfl
-
-/-- **A transaction's compaction revision is at most the revision it reads at** (M2, S1;
-`isTxn_crev`, `isTxnRead_crev`). -/
-theorem txnViewIs_crev (tw : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind)
-    (crev : Int) (ro : Bool) :
-    txnViewIs (GF := GF) tw s γ trace kind crev ro ⊢
-      ⌜crev ≤ sint.Z kind.readRev⌝ ∗ txnViewIs tw s γ trace kind crev ro := by
-  apply persistent_entails_right
-  cases ro
-  · unfold txnViewIs
-    simp only [Bool.false_eq_true, ↓reduceIte]
-    iintro ⟨%mw, %tyX, %vX, %h, #Hw, Htx⟩
-    icases isTxn_crev mw s γ kind crev $$ Htx with ⟨%Hc, -⟩
-    ipureintro; exact Hc
-  · unfold txnViewIs
-    simp only [↓reduceIte]
-    iintro ⟨%trw, %log, %rev, %h, Hro⟩
-    obtain ⟨-, rfl⟩ := h
-    iunfold mvcc.isRoTxnWrite at Hro
-    icases Hro with ⟨%mw, -, Htx⟩
-    ihave %Hc := mvcc.isTxnRead_crev mw s γ trace log rev crev iprop(True) $$ Htx
-    ipureintro; exact Hc.2
-
-/-- **`executeTxn`'s transaction, by kind**: the kind's facts, its read state the pending one
-(for the read-only wrapper, the committed one). -/
-theorem txnWriteIs_kind (tw : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (ro : Bool)
-    (ilog : mvcc.Log) (pend : List mvcc.Change) (crev : Int) :
-    txnWriteIs (GF := GF) tw s γ trace ro ilog pend crev ⊢ ∃ kind : mvcc.TxnKind, txnViewIs tw s γ trace kind crev ro ∗
-      ⌜KindIs ro ilog pend kind ∧ KindOk kind ∧ kindState kind = pendState ilog pend ∧
-        ilog ≠ [] ∧ ilog.length < 2 ^ 63⌝ := by
-  unfold txnWriteIs
-  iintro ⟨%kind, Hv, %Hk⟩
-  iexists kind
-  cases ro
-  · unfold KindIs at Hk
-    simp only [Bool.false_eq_true, ↓reduceIte] at Hk
-    obtain ⟨puts, deletes, putSize, rfl⟩ := Hk
-    unfold txnViewIs
-    simp only [Bool.false_eq_true, ↓reduceIte]
-    icases Hv with ⟨%mw, %tyX, %vX, %h, #Hw, Htx⟩
-    icases isTxn_kindOk mw s γ _ crev $$ Htx with ⟨%Hok, Htx⟩
-    simp only [mvcc.isTxn]
-    icases isTxnWrite_facts mw s γ ilog pend puts deletes putSize crev $$ Htx with ⟨%Hf, Htx⟩
-    isplitl
-    · iexists mw, tyX, vX; iframe Htx Hw; ipureintro; exact h
-    ipureintro
-    exact ⟨⟨puts, deletes, putSize, rfl⟩, Hok, kindState_write ilog pend puts deletes putSize Hf.1 Hf.2,
-      Hf.1, by have := Hf.2; omega⟩
-  · unfold KindIs at Hk
-    simp only [↓reduceIte] at Hk
-    obtain ⟨rfl, rev, rfl⟩ := Hk
-    unfold txnViewIs
-    simp only [↓reduceIte]
-    icases Hv with ⟨%trw, %log, %rev', %h, Hro⟩
-    obtain ⟨h1, h2⟩ := h
-    cases h2
-    icases isRoTxnWrite_pure trw s γ ilog rev crev $$ Hro with ⟨Hro, %Hp⟩
-    isplitl
-    · iexists trw, ilog, rev; iframe Hro; ipureintro; exact ⟨h1, rfl⟩
-    ipureintro
-    obtain ⟨hok, hne, hrev⟩ := Hp
-    refine ⟨⟨rfl, rev, rfl⟩, kindOk_read ilog rev ⟨hok, hne, hrev⟩, ?_, hne, ?_⟩
-    · unfold kindState
-      simp only [mvcc.TxnKind.readLog, mvcc.TxnKind.readRev]
-      rw [hrev, stateAt_lastRev ilog hne (Nat.le_of_lt hok.len)]
-      rfl
-    · exact hok.len
-
-/-- A transaction of a kind and the kind's facts make `executeTxn`'s. -/
-theorem txnWriteIs_of_view (tw : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (ro : Bool)
-    (ilog : mvcc.Log) (pend : List mvcc.Change) (crev : Int) (kind : mvcc.TxnKind) (h : KindIs ro ilog pend kind) :
-    txnViewIs (GF := GF) tw s γ trace kind crev ro ⊢ txnWriteIs tw s γ trace ro ilog pend crev := by
-  unfold txnWriteIs
-  iintro Hv
-  iexists kind
-  iframe Hv
-  ipureintro; exact h
-
 /-- **A range of a transaction at its own revision** (revision `0`) at a context never canceled:
 no error, the response the client's `rangeKvsOk` of the selection (up to `leaseZ`), the count
 the range's. -/
@@ -395,7 +292,7 @@ theorem rangeResult_txn (resp : Loc) (err : GoInterface) (log : mvcc.Log) (rev :
   unfold rangeResult
   iintro (⟨%H, -⟩ | ⟨%H, #He⟩ | ⟨%H, %kvs, %more, #Hresp, %Hok⟩ | ⟨%H, %ec, -, %He⟩)
   · rw [hrev0, h00] at H; omega
-  · ihave %Hne := mvcc.errorfIs_ne_nil err $$ He
+  · ihave %Hne := mvcc.rangeKeysErr_ne_nil err $$ He
     exact absurd herr' Hne
   · rw [hRR] at Hok
     rw [hRR]
@@ -411,159 +308,6 @@ theorem rangeResult_txn (resp : Loc) (err : GoInterface) (log : mvcc.Log) (rev :
   · rw [herr'] at He; cases He
 
 end iris
-
-/-! ## `executeTxn`'s transaction: `Rev` and `Changes` -/
-
-section wp
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
-
-/-- `executeTxn`'s transaction is an interface value with a dynamic type. -/
-theorem txnWriteIs_ok (tw : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (ro : Bool)
-    (ilog : mvcc.Log) (pend : List mvcc.Change) (crev : Int) :
-    txnWriteIs (GF := GF) tw s γ trace ro ilog pend crev ⊢ ⌜∃ twi : GoInterfaceOk, tw = GoInterface.ok twi⌝ := by
-  unfold txnWriteIs txnViewIs
-  iintro ⟨%kind, H, -⟩
-  cases ro
-  · simp only [Bool.false_eq_true, ↓reduceIte]
-    icases H with ⟨%mw, %tyX, %vX, %h, -⟩
-    ipureintro; exact ⟨_, h⟩
-  · simp only [↓reduceIte]
-    icases H with ⟨%trw, %log, %rev, %h, -⟩
-    ipureintro; exact ⟨_, h.1⟩
-
-/-- **`Rev()` of `executeTxn`'s transaction**: the committed log's last revision. -/
-theorem wp_txnWrite_Rev (hRev : mvcc.metricsTxnWrite.Rev.spec (GF := GF) (hG := hG))
-    (hRoRev : mvcc.txnReadWrite.Rev.spec (GF := GF) (hG := hG))
-    (twi : GoInterfaceOk) (s : Loc) (γ : mvcc.StoreNames) (ro : Bool) (ilog : mvcc.Log)
-    (pend : List mvcc.Change) (crev : Int) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-        txnWriteIs (GoInterface.ok twi) s γ trace ro ilog pend crev }}
-      (App (Val #(methods twi.ty go!"Rev" twi.v)) (Val #()))
-    {{ RET #(W64 ((ilog.length : Int) - 1)); txnWriteIs (GoInterface.ok twi) s γ trace ro ilog pend crev }} := by
-  wp_start_folded as ⟨Htw⟩
-  iunfold txnWriteIs at Htw
-  icases Htw with ⟨%kind, Hv, %Hk⟩
-  cases ro
-  · unfold KindIs at Hk
-    simp only [Bool.false_eq_true, ↓reduceIte] at Hk
-    obtain ⟨puts, deletes, putSize, rfl⟩ := Hk
-    iunfold txnViewIs at Hv
-    simp only [Bool.false_eq_true, ↓reduceIte]
-    icases Hv with ⟨%mw, %tyX, %vX, %h, #Hw, Htx⟩
-    cases twi with
-    | mk ty v =>
-    simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq] at h
-    obtain ⟨rfl, rfl⟩ := h
-    iapply mvcc.tw_wp1 ty v mw go!"Rev" (by unfold mvcc.twMethod; simp)
-    iframe Hw
-    iapply (hRev trace mw s γ (.write ilog pend puts deletes putSize)) $$ [Htx]
-    · iframe Htx Hpkg
-    inext
-    iintro Htx
-    simp only [mvcc.TxnKind.beginRev]
-    iapply HΦ
-    iunfold txnWriteIs
-    iexists _
-    isplitl
-    · icases txnViewIs_wrap ty v mw s γ (.write ilog pend puts deletes putSize) crev $$ Hw with ⟨-, Hb⟩
-      iapply Hb $$ Htx
-    · ipureintro; exact ⟨puts, deletes, putSize, rfl⟩
-  · unfold KindIs at Hk
-    simp only [↓reduceIte] at Hk
-    obtain ⟨rfl, rev', rfl⟩ := Hk
-    iunfold txnViewIs at Hv
-    simp only [↓reduceIte]
-    icases Hv with ⟨%trw, %log, %rev, %h, Hro⟩
-    obtain ⟨h, h2⟩ := h
-    cases h2
-    cases twi with
-    | mk ty v =>
-    simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq] at h
-    obtain ⟨rfl, rfl⟩ := h
-    iapply (hRoRev trace trw s γ ilog rev') $$ [Hro]
-    · iframe Hro Hpkg
-    inext
-    iintro ⟨Hro, %Hr⟩
-    rw [← Hr.2]
-    iapply HΦ
-    iunfold txnWriteIs
-    iexists _
-    isplitl
-    · iapply (txnViewIs_ro trw s γ ilog rev' crev).2 $$ Hro
-    · ipureintro; exact ⟨rfl, rev', rfl⟩
-
-/-- **`Changes()` of `executeTxn`'s transaction**: as many as the pending changes. -/
-theorem wp_txnWrite_Changes (hCh : mvcc.metricsTxnWrite.Changes.spec (GF := GF) (hG := hG))
-    (hRoCh : mvcc.txnReadWrite.Changes.spec (GF := GF) (hG := hG))
-    (twi : GoInterfaceOk) (s : Loc) (γ : mvcc.StoreNames) (ro : Bool) (ilog : mvcc.Log)
-    (pend : List mvcc.Change) (crev : Int) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-        txnWriteIs (GoInterface.ok twi) s γ trace ro ilog pend crev }}
-      (App (Val #(methods twi.ty go!"Changes" twi.v)) (Val #()))
-    {{ (chs : GoSlice), RET #chs; ⌜sint.nat chs.len = pend.length ∧ 0 ≤ sint.Z chs.len⌝ ∗
-        txnWriteIs (GoInterface.ok twi) s γ trace ro ilog pend crev }} := by
-  wp_start_folded as ⟨Htw⟩
-  iunfold txnWriteIs at Htw
-  icases Htw with ⟨%kind, Hv, %Hk⟩
-  cases ro
-  · unfold KindIs at Hk
-    simp only [Bool.false_eq_true, ↓reduceIte] at Hk
-    obtain ⟨puts, deletes, putSize, rfl⟩ := Hk
-    iunfold txnViewIs at Hv
-    simp only [Bool.false_eq_true, ↓reduceIte]
-    icases Hv with ⟨%mw, %tyX, %vX, %h, #Hw, Htx⟩
-    cases twi with
-    | mk ty v =>
-    simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq] at h
-    obtain ⟨rfl, rfl⟩ := h
-    iapply mvcc.tw_wp1 ty v mw go!"Changes" (by unfold mvcc.twMethod; simp)
-    iframe Hw
-    iapply (hCh trace mw s γ ilog pend puts deletes putSize) $$ [Htx]
-    · simp only [mvcc.isTxn] at *; iframe Htx Hpkg
-    inext
-    iintro %chs %ps ⟨Hchs, Hkvs, %Hps, Htx⟩
-    ihave %Hl := ownSlice_len _ _ _ $$ Hchs
-    ihave Htx := mvcc.isTxnWrite_join mw s γ ilog pend puts deletes putSize chs ps crev $$ [$Htx $Hchs $Hkvs]
-    iapply HΦ
-    isplitl []
-    · ipureintro; rw [← Hps]; exact ⟨Hl.1.symm, Hl.2⟩
-    iunfold txnWriteIs
-    iexists _
-    isplitl
-    · icases txnViewIs_wrap ty v mw s γ (.write ilog pend puts deletes putSize) crev $$ Hw with ⟨-, Hb⟩
-      iapply Hb
-      simp only [mvcc.isTxn]; iexact Htx
-    · ipureintro; exact ⟨puts, deletes, putSize, rfl⟩
-  · unfold KindIs at Hk
-    simp only [↓reduceIte] at Hk
-    obtain ⟨rfl, rev', rfl⟩ := Hk
-    iunfold txnViewIs at Hv
-    simp only [↓reduceIte]
-    icases Hv with ⟨%trw, %log, %rev, %h, Hro⟩
-    obtain ⟨h, h2⟩ := h
-    cases h2
-    cases twi with
-    | mk ty v =>
-    simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq] at h
-    obtain ⟨rfl, rfl⟩ := h
-    iapply (hRoCh trw) $$ []
-    · iframe Hpkg
-    inext
-    iintro -
-    iapply HΦ
-    isplitl []
-    · ipureintro; exact ⟨rfl, by decide⟩
-    iunfold txnWriteIs
-    iexists _
-    isplitl
-    · iapply (txnViewIs_ro trw s γ ilog rev' crev).2 $$ Hro
-    · ipureintro; exact ⟨rfl, rev', rfl⟩
-
-end wp
 
 end txn
 end EtcdGrove

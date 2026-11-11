@@ -188,7 +188,7 @@ theorem srvErrIs_applyErrIs (err : GoInterface) (hne : err ≠ GoInterface.nil) 
   isplitr
   · iexact H
   ihave #Hkm : iprop(errKeyMsg err) $$ []
-  · iunfold applyErrIs at H; icases H with ⟨-, #Hkm⟩; iexact Hkm
+  · iunfold applyErrIs at H; icases H with ⟨-, #Hkm, -⟩; iexact Hkm
   iunfold errKeyMsg at Hkm
   icases Hkm with (%Hn | ⟨%Hsafe, %ei, %Hei, #Hm⟩)
   · exact absurd Hn hne
@@ -197,8 +197,7 @@ theorem srvErrIs_applyErrIs (err : GoInterface) (hne : err ≠ GoInterface.nil) 
   iexists ei
   isplitr
   · ipureintro; exact Hei
-  iunfold errMsgOk at Hm
-  iexact Hm
+  iapply errMsgOk_triple $$ Hm
 
 end defs
 

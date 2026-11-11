@@ -32,9 +32,9 @@ theorem backend.batchTxBuffered.UnsafeSeqPut.wp_proof
     (hBuf : backend.txWriteBuffer.putSeq.spec (GF := GF) (hG := hG)) :
     backend.batchTxBuffered.UnsafeSeqPut.spec (GF := GF) (hG := hG) := by
   intro γ P W Pk b t st bk bi key value kb vb Hhas Hk0 Hk1 Hlt Hp Hhk Hrb Hfk Hsb
-  wp_start as ⟨#Hb, #Ht, Hl, #Hbk, #Hkey, #Hval, Hpvp⟩
+  wp_start as ⟨#Hb, #Ht, Hl, #Hbk, #Hkey, #Hval⟩
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
-    ⟨%db0, %lg, %h, #Hbe, #Hlg, %Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb, %HP⟩
+    ⟨%db0, %lg, %h, #Hbe, #Hlg, #Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb, %HP⟩
   · iframe #
   unfold batchLocked batchLockedAt batchPhys
   icases Hl with ⟨%t', %db, #Ht', Hown, ⟨%hk, Htxf, Hpend, Hdel, HW, Hhkf, Hhk, Hdb', Hwtx, #Htxdb, Hmu⟩,
@@ -51,24 +51,17 @@ theorem backend.batchTxBuffered.UnsafeSeqPut.wp_proof
   icases Hw with ⟨Htxf, Hpend, Hwtx⟩
   ihave %Hbb := batchGhostAt_bound γ P st false HP Hwf $$ Hg
   have Hlen : (bkOf st.W.bks bi.id).length < bufBound := by have := Hbb bi.id; omega
-  ihave Hhkp := hkPut_other γ P bi.name kb st.S Hhk
-  ihave Hrbp := rbPut_other γ P bi.name st.S Hrb
-  ihave Hfkp := fkPut_other γ bi.name kb Hfk
-  ihave Hckp := ckPut_other γ bi.name kb st.S Hfk
-  imod batchGhost_step_put γ P (st := st) (st' := (st.put bi kb vb true)) rfl rfl rfl
-    (pend_succ_nat Hwf Hp) (fun i => put_W_le st bi kb vb true i) bi.name kb
-    (hkData_put_other st bi kb vb true) (rbData_put_other st bi kb vb true)
-    (fun h => sData_put_hook (S := st.S) kb vb h) (fun h => fkVals_put_other (S := st.S) vb h)
-    (fun _ => fkOkG_put true HP Hhas Hfk) (fun h => absurd h Hfk)
-    (fun _ => ⟨bi.id, Hhas⟩) (BSess.put_S_other st bi kb vb true)
-    $$ Hg Hhkp Hrbp Hfkp Hpvp Hckp
-    with ⟨Hg, -, -, -, Hpvp, -⟩
   wp_apply (hBuf (wbOf t) st.W bk bi key value kb vb Hlen Hlt) $$ [$HW] as HW
   · iframe #
   iapply HΦ
-  iframe Hpvp
   iexists t, db
   iframe Ht' Hown
+  ihave Hg := batchGhost_step γ P (st := st) (st' := (st.put bi kb vb true)) rfl rfl rfl
+    (pend_succ_nat Hwf Hp) (fun i => put_W_le st bi kb vb true i)
+    (hkData_put_other st bi kb vb true Hhk)
+    (rbData_put_other st bi kb vb true Hrb) (fkOkG_put true HP Hhas Hfk) (fkVals_put true Hfk) rfl
+    (fun L _ hd => dlsW_step (dlsS_put true (fun h1 _ => (Hsb h1).2))
+      (dlsOk_put true (fun h1 _ => (Hsb h1).2)) rfl rfl hd) $$ Hg
   iframe Hg
   isplitl
   · iexists hk
@@ -76,7 +69,7 @@ theorem backend.batchTxBuffered.UnsafeSeqPut.wp_proof
     iframe
     iframe #
   · ipureintro
-    exact sessWf_put HP Hwf Hhas (by simpa using Hlt) Hp Hsb
+    exact sessWf_put HP Hwf Hhas (by simpa using Hlt) Hp (fun h => (Hsb h).1)
 
 end proof
 

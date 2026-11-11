@@ -1,0 +1,101 @@
+// What a unary method handler's dec (grpc's serverStream.RecvMsg, stream.go:1890-1966) returns
+// when the client's request stream is malformed, under grpc.Server.Serve (http2Server).
+package hs6probe
+
+import (
+	"bytes"
+	"context"
+	"fmt"
+	"io"
+	"net"
+	"testing"
+	"time"
+
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/hpack"
+	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/emptypb"
+)
+
+type leafInfo struct {
+	typ        string
+	msg        string
+	hasUnwrap  bool
+	isEOFUnexp bool
+}
+
+func classify(err error) leafInfo {
+	_, u1 := err.(interface{ Unwrap() error })
+	_, u2 := err.(interface{ Unwrap() []error })
+	return leafInfo{typ: fmt.Sprintf("%T", err), msg: err.Error(), hasUnwrap: u1 || u2,
+		isEOFUnexp: err == io.ErrUnexpectedEOF}
+}
+
+func run(t *testing.T, name string, data []byte) {
+	got := make(chan leafInfo, 1)
+	desc := grpc.ServiceDesc{
+		ServiceName: "probe.P",
+		HandlerType: (*any)(nil),
+		Methods: []grpc.MethodDesc{{MethodName: "M", Handler: func(srv any, ctx context.Context, dec func(any) error, _ grpc.UnaryServerInterceptor) (any, error) {
+			err := dec(new(emptypb.Empty))
+			if err == nil {
+				got <- leafInfo{typ: "<nil>"}
+				return new(emptypb.Empty), nil
+			}
+			got <- classify(err)
+			return nil, err
+		}}},
+	}
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := grpc.NewServer()
+	s.RegisterService(&desc, struct{}{})
+	go s.Serve(lis)
+	defer s.Stop()
+
+	c, err := net.Dial("tcp", lis.Addr().String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Close()
+	c.Write([]byte(http2.ClientPreface))
+	fr := http2.NewFramer(c, c)
+	fr.WriteSettings()
+	var hb bytes.Buffer
+	enc := hpack.NewEncoder(&hb)
+	for _, f := range [][2]string{{":method", "POST"}, {":scheme", "http"}, {":path", "/probe.P/M"},
+		{":authority", "x"}, {"content-type", "application/grpc"}, {"te", "trailers"}} {
+		enc.WriteField(hpack.HeaderField{Name: f[0], Value: f[1]})
+	}
+	fr.WriteHeaders(http2.HeadersFrameParam{StreamID: 1, BlockFragment: hb.Bytes(), EndHeaders: true})
+	fr.WriteData(1, true, data)
+	go func() { // drain the server's frames
+		for {
+			if _, err := fr.ReadFrame(); err != nil {
+				return
+			}
+		}
+	}()
+	select {
+	case li := <-got:
+		t.Logf("%s: dec returned %s %q (Unwrap method: %v, == io.ErrUnexpectedEOF: %v)", name, li.typ, li.msg, li.hasUnwrap, li.isEOFUnexp)
+	case <-time.After(5 * time.Second):
+		t.Fatalf("%s: handler not reached", name)
+	}
+}
+
+func TestDecErrors(t *testing.T) {
+	empty := []byte{0, 0, 0, 0, 0} // one complete empty message
+	run(t, "one message", empty)
+	run(t, "no message", []byte{})
+	run(t, "partial first header", []byte{0, 0})
+	run(t, "partial first body", []byte{0, 0, 0, 0, 3, 1})
+	run(t, "message + partial second header", append(append([]byte{}, empty...), 0, 0))
+	run(t, "message + partial second body", append(append([]byte{}, empty...), 0, 0, 0, 0, 3, 1))
+	run(t, "message + oversized second", append(append([]byte{}, empty...), 0, 0x7f, 0xff, 0xff, 0xff))
+	run(t, "message + bad payload format", append(append([]byte{}, empty...), 7, 0, 0, 0, 0))
+	run(t, "two messages", append(append([]byte{}, empty...), empty...))
+	run(t, "bad proto", []byte{0, 0, 0, 0, 1, 0xff})
+}

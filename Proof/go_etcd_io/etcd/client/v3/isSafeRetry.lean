@@ -52,7 +52,7 @@ theorem isSafeRetry.wp_proof
   · iPkgInit
   ihave Hri : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hrpc
-  icases Hri with ⟨-, -, -, -, -, -, -, -, ⟨%eL, #HeL, %HeLp, %HdL⟩, -⟩
+  icases Hri with ⟨-, -, -, -, -, -, -, -, ⟨%eL, #HeL, %HeLp, %HdL, -⟩, -⟩
   iunfold retryOptsAt at Ho
   icases Ho with ⟨%ov, #Hov, #Hovk⟩
   iunfold retryOptsPol at Hpol
@@ -96,9 +96,9 @@ theorem isSafeRetry.wp_proof
     · ipureintro; rfl
     iintro %fsl ⟨Hfsl, -⟩
     wp_auto
-    wp_apply wp_GetLogger c $$ [$Hlg] as %lg %Hlgn
+    wp_apply wp_GetLogger c $$ [$Hlg] as %lg #Hlgn
     wp_apply wp_Warn lg _ _ $$ []
-    · iframe #; ipureintro; exact Hlgn
+    · iframe #
     iapply HΦ; ipureintro; intro h; cases h
   · wp_auto
     wp_if_destruct
@@ -117,9 +117,9 @@ theorem isSafeRetry.wp_proof
     · ipureintro; rfl
     iintro %fsl ⟨Hfsl, -⟩
     wp_auto
-    wp_apply wp_GetLogger c $$ [$Hlg] as %lg %Hlgn
+    wp_apply wp_GetLogger c $$ [$Hlg] as %lg #Hlgn
     wp_apply wp_Warn lg _ _ $$ []
-    · iframe #; ipureintro; exact Hlgn
+    · iframe #
     iapply HΦ; ipureintro; intro h; cases h
 
 end proof

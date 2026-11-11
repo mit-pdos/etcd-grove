@@ -20,27 +20,29 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
 theorem validateFor.wp_proof : validateFor.spec (GF := GF) (hG := hG) := by
-  intro reject
+  intro has reject
   wp_start as -
   iapply wp_fupd
   (try wp_auto)
+  ipersist rejects
   ipersist reject
   imodintro
   iapply HΦ
   iunfold validateD
   imodintro
-  iintro %ctx %p %name %vl %n %Ψ Hp HΨ
+  iintro %ctx %p %v %Ψ Hp HΨ
   icases (typedPointsto_not_null_dup _ _ _) $$ Hp with ⟨Hp, %Hpn⟩
   wp_pure
   wp_pure
   iStructNamed Hp
   (try wp_auto)
-  wp_if_destruct
-  · have hr : rejects [] vl = false := rfl
-    ihave Hp : p ↦ Obj.mk name vl n $$ [Name Value ResourceVersion]
+  cases hh : has
+  · have hr : rejects false reject v.Node' = false := rfl
+    ihave Hp : p ↦ v $$ [Namespace Name UID Value Node App ResourceVersion Annotated]
     · iapply typedPointsto_combine p _ _ Hpn
       simp only [TypedPointsto.typedPointstoDef]
       iframe
@@ -49,14 +51,14 @@ theorem validateFor.wp_proof : validateFor.spec (GF := GF) (hG := hG) := by
     rw [hr]
     simp only [Bool.false_eq_true, ↓reduceIte]
     ipureintro; trivial
-  · have hne := Hif
-    (try wp_auto)
-    wp_if_destruct
-    · have hr : rejects reject vl = true := by simp [rejects, hne, Hif]
+  · (try wp_auto)
+    by_cases hn : v.Node' = reject
+    · have hr : rejects true reject v.Node' = true := by simp [rejects, hn]
+      rw [decide_eq_true hn]
       ihave #Hi : (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.drvInit : IProp GF) $$ []
       · iapply isPkgInit_access $$ Hpkg
-      icases Hi with ⟨-, -, -, -, ⟨%eD, #HeD, -⟩, -⟩
-      ihave Hp : p ↦ Obj.mk name vl n $$ [Name Value ResourceVersion]
+      icases Hi with ⟨-, -, -, ⟨%eD, #HeD, -⟩, -⟩
+      ihave Hp : p ↦ v $$ [Namespace Name UID Value Node App ResourceVersion Annotated]
       · iapply typedPointsto_combine p _ _ Hpn
         simp only [TypedPointsto.typedPointstoDef]
         iframe
@@ -65,8 +67,9 @@ theorem validateFor.wp_proof : validateFor.spec (GF := GF) (hG := hG) := by
       rw [hr]
       simp only [↓reduceIte]
       iexact HeD
-    · have hr : rejects reject vl = false := by simp [rejects, Hif]
-      ihave Hp : p ↦ Obj.mk name vl n $$ [Name Value ResourceVersion]
+    · have hr : rejects true reject v.Node' = false := by simp [rejects, hn]
+      rw [decide_eq_false hn]
+      ihave Hp : p ↦ v $$ [Namespace Name UID Value Node App ResourceVersion Annotated]
       · iapply typedPointsto_combine p _ _ Hpn
         simp only [TypedPointsto.typedPointstoDef]
         iframe

@@ -40,7 +40,7 @@ public import GeneratedProof.k8s_io.component_base.tracing
 public import GeneratedProof.k8s_io.klog.v2
 public import GeneratedProof.k8s_io.utils.clock
 public import GeneratedProof.net.http
-public import Perennial.GeneratedProof.os
+public import GeneratedProof.os
 public import GeneratedProof.path
 public import Perennial.GeneratedProof.reflect
 public import Perennial.GeneratedProof.strconv

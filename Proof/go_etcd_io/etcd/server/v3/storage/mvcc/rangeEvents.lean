@@ -34,7 +34,7 @@ theorem mvcc.rangeEvents.wp_proof
     (hRevTo : mvcc.RevToBytes.spec (GF := GF) (hG := hG))
     (hKvs : mvcc.kvsToEvents.spec (GF := GF) (hG := hG)) :
     mvcc.rangeEvents.spec (GF := GF) (hG := hG) := by
-  intro lg b γ Wr P f q log minRev maxRev g W RT WT NC Wi Dep Cmp PutOk Rb Bt MW SR SRh PV PVx CK qc c
+  intro lg b γ Wr P f q log minRev maxRev g W RT WT NC Wi Dep Cmp PutOk Rb Bt MW SR SRh qc c
   wp_start as ⟨#Hbk, Hrt, Hcu, Hview, #Hcert, Hg, %Hrng⟩
   ihave %Hwf : ⌜mvcc.LogWf' log ∧ log.length < 2 ^ 63 ∧ ∀ cs ∈ log, cs.length < 2 ^ 63⌝ $$ [Hcert]
   · iunfold mvcc.idxCert at Hcert
@@ -73,15 +73,16 @@ theorem mvcc.rangeEvents.wp_proof
   · isplitl []
     · iapply mvcc.bucketLog_thin; iexact Hbl
     · iexact Hthin0
-  -- the snapshot misses no key of the scanned revisions (at or above the compaction revision)
+  -- the snapshot has every entry above the compaction revision, and every entry of the scanned
+  -- revisions when revision `c` changes each key once (or no compaction)
   obtain ⟨hwf0, hlen0, hcs0⟩ := Hwf
   have hlo' : sint.nat minRev < 2 ^ 63 := by
     have : sint.Z minRev < 2 ^ 63 := by word
     show (sint.Z minRev).toNat < 2 ^ 63; omega
-  icases mvcc.snapThin_scan γ qc c log m' (sint.nat minRev) hwf0 hlen0 hcs0 Hrng.2.2.2.1
-      (by have hz : ((sint.nat minRev : Nat) : Int) = sint.Z minRev := by
-            show ((sint.Z minRev).toNat : Int) = sint.Z minRev; have := Hrng.1; omega
-          rw [hz]; exact Hrng.2.2.2.2.1) hlo' Hrng.2.2.2.2.2 $$ [$Hcu $Hthin $Hcert] with ⟨Hcu, %Hagree⟩
+  have hz : ((sint.nat minRev : Nat) : Int) = sint.Z minRev := by
+    show ((sint.Z minRev).toNat : Int) = sint.Z minRev; have := Hrng.1; omega
+  icases mvcc.snapThin_scan_full γ qc c log m' (sint.nat minRev) hwf0 hlen0 hcs0 Hrng.2.2.2.1
+      hlo' $$ [$Hcu $Hthin $Hcert] with ⟨Hcu, %Hagree⟩
   ihave #Hthin' := Hthin
   iunfold mvcc.snapThin at Hthin'
   icases Hthin' with ⟨%Hsub, -⟩
@@ -114,18 +115,41 @@ theorem mvcc.rangeEvents.wp_proof
     have := mvcc.bucketRange_logEnts log hwf hlen hcs _ _ hlo hhi
     rw [mvcc.W64_sint_nat _ Hrng.1, mvcc.W64_sint_nat _ h1] at this
     exact this
-  -- the snapshot's scan is the bucket's (it agrees from `minRev` on)
+  -- the snapshot's scan is the bucket's, filtered to the snapshot's entries (`P`)
+  let P : mvcc.KvEnt → Bool := fun e => decide (m' !! e.pair.1 = some e.pair.2)
   have hbr' : mvcc.bucketRange m' (mvcc.revBytes ⟨minRev, 0⟩ false)
       (mvcc.revBytes ⟨maxRev, 0⟩ false) =
-      (mvcc.logEnts log (sint.nat minRev) (sint.nat maxRev)).map mvcc.KvEnt.pair := by
-    rw [mvcc.bucketRange_eq_of_agree (mvcc.bucketMap log) m' _ _ Hsub (fun k v h1 h2 =>
-      Hagree k v h1 (by rw [mvcc.W64_sint_nat _ Hrng.1]; exact h2))]
-    exact hbr
+      ((mvcc.logEnts log (sint.nat minRev) (sint.nat maxRev)).filter P).map mvcc.KvEnt.pair := by
+    rw [mvcc.bucketRange_sub (mvcc.bucketMap log) m' _ _ Hsub, hbr, List.filter_map]; rfl
+  -- the scanned entries are the bucket's, from `minRev` on
+  have hent : ∀ e ∈ mvcc.logEnts log (sint.nat minRev) (sint.nat maxRev),
+      mvcc.bucketMap log !! e.pair.1 = some e.pair.2 ∧
+        go.GoStringLe (mvcc.revBytes ⟨minRev, 0⟩ false) e.pair.1 := by
+    intro e he
+    obtain ⟨-, hmem⟩ := (mvcc.bucketRange_eq_iff (mvcc.bucketMap log)
+      (mvcc.revBytes ⟨minRev, 0⟩ false) (mvcc.revBytes ⟨maxRev, 0⟩ false) _).1 rfl
+    have hm : (e.pair.1, e.pair.2) ∈ mvcc.bucketRange (mvcc.bucketMap log)
+        (mvcc.revBytes ⟨minRev, 0⟩ false) (mvcc.revBytes ⟨maxRev, 0⟩ false) := by
+      rw [hbr]; exact List.mem_map_of_mem he
+    obtain ⟨h1, h2, -⟩ := (hmem _ _).1 hm
+    exact ⟨h1, h2⟩
+  have hP : (∀ e ∈ mvcc.logEnts log (sint.nat minRev) (sint.nat maxRev), c < sint.Z e.rev.main →
+        P e = true) ∧
+      ((c = -1 ∨ mvcc.oneChangePerKeyAt log c) →
+        ∀ e ∈ mvcc.logEnts log (sint.nat minRev) (sint.nat maxRev), P e = true) := by
+    refine ⟨fun e he hc => ?_, fun hnd e he => ?_⟩
+    · obtain ⟨h1, -⟩ := hent e he
+      exact decide_eq_true (Hagree.1 _ _ e.rev e.tomb h1 rfl hc)
+    · obtain ⟨h1, h2⟩ := hent e he
+      exact decide_eq_true (Hagree.2 hnd (by rw [hz]; exact Hrng.2.2.2.2) _ _ h1
+        (by rw [mvcc.W64_sint_nat _ Hrng.1]; exact h2))
   iunfold mvcc.rangeVals at Hkv
   rw [hbr']
-  wp_apply (hKvs lg g W ks vs (mvcc.logEnts log (sint.nat minRev) (sint.nat maxRev)) Rd Tok)
+  wp_apply (hKvs lg g W ks vs ((mvcc.logEnts log (sint.nat minRev) (sint.nat maxRev)).filter P)
+      Rd Tok)
     $$ [$Hg $Hkv $Hrc $Htok] as %evs ⟨Hg, Htok, %ps, Hevs, Hcap, %Hps, Hdone⟩
-  · ipureintro; exact mvcc.logEnts_bounds log hlen hcs _ _ hhi
+  · ipureintro
+    exact fun e he => mvcc.logEnts_bounds log hlen hcs _ _ hhi e (List.mem_filter.1 he).1
   (try wp_auto)
   -- (by hand: `wp_apply` aborts here)
   wp_bind (App (Val #(methods rt.ty _ rt.v)) (Val #()))
@@ -134,17 +158,11 @@ theorem mvcc.rangeEvents.wp_proof
   inext
   iintro Hrt
   (try wp_auto)
-  have hev : mvcc.entsEvents W (mvcc.logEnts log (sint.nat minRev) (sint.nat maxRev)) =
-      (mvcc.logEvents log (sint.nat minRev) (sint.nat maxRev)).filter
-        (fun ev => mvcc.wgCovers W ev.kv.key) := by
-    unfold mvcc.entsEvents; rw [mvcc.logEnts_events log hwf hlen hcs _ _ hhi]
-  rw [hev] at Hps
-  rw [hev]
   ihave Hview : mvcc.bucketViewL γ q log $$ [Hview]
   · iunfold mvcc.bucketViewL; iexists m0; iframe Hview; iexact Hbl
   iapply HΦ
   iframe
-  ipureintro; exact Hps
+  ipureintro; exact ⟨hP, Hps⟩
 
 end proof
 

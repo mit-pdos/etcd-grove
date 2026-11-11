@@ -8,6 +8,7 @@ public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.Get
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.Trace__IsEmpty
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.newTrace
 public import Spec.context.WithValue
+public import Proof.go_opentelemetry_io.otel.trace.SpanCtxLaws
 
 @[expose] public section
 
@@ -36,7 +37,7 @@ local macro "et_new" : tactic => `(tactic| (
   (try wp_auto)
   wp_apply hWV ctx ⟨go_etcd_io.etcd.pkg.v3.traceutil.TraceKey.ty,
       #(zero_val go_etcd_io.etcd.pkg.v3.traceutil.TraceKey)⟩ _ $$ []
-    as %c ⟨%Hcnn, -, -, %c', %vs, %Hc, %Hinc, #Htx, #Hic, #Htr, -⟩
+    as %c ⟨%Hcnn, -, -, %c', %vs, %Hc, %Hinc, #Htx, #Hic, #Htr, -, #Hdel⟩
   · iframe #; ipureintro; right; right; right; left; rfl
   subst Hc
   (try wp_auto)
@@ -55,8 +56,22 @@ local macro "et_new" : tactic => `(tactic| (
   iexists vs
   isplitr
   · iapply Htx $$ Hctr
-  iintro Hi
-  iapply Hic $$ Hi))
+  isplitr
+  · iintro Hi
+    iapply Hic $$ Hi
+  isplitr
+  · iintro !> #Hsp
+    have hk : go_etcd_io.etcd.pkg.v3.traceutil.TraceKey.ty ≠
+        go_opentelemetry_io.otel.trace.traceContextKeyType.ty := by
+      simp [go_etcd_io.etcd.pkg.v3.traceutil.TraceKey.ty,
+        go_opentelemetry_io.otel.trace.traceContextKeyType.ty]
+    iapply (trace.spanCtxOk_valueCtx (GF := GF) ctx ⟨go_etcd_io.etcd.pkg.v3.traceutil.TraceKey.ty,
+        #(zero_val go_etcd_io.etcd.pkg.v3.traceutil.TraceKey)⟩ c' _ hk)
+    iframe Hdel Hsp
+  iintro !> #Hlib
+  iapply (context.libCtxOk_of_valueWand (GF := GF) ctx c' ⟨go_etcd_io.etcd.pkg.v3.traceutil.TraceKey.ty,
+      #(zero_val go_etcd_io.etcd.pkg.v3.traceutil.TraceKey)⟩ _
+      (by context_libKeys_ne [go_etcd_io.etcd.pkg.v3.traceutil.TraceKey.ty])) $$ Hdel Hlib))
 
 theorem traceutil.EnsureTrace.wp_proof
     (hGet : traceutil.Get.spec (GF := GF) (hG := hG))
@@ -65,7 +80,7 @@ theorem traceutil.EnsureTrace.wp_proof
     (hWV : context.WithValue.spec (GF := GF) (hG := hG)) :
     traceutil.EnsureTrace.spec (GF := GF) (hG := hG) := by
   intro ctx cd o e lg op fields
-  wp_start as ⟨#Hctr, #Hctx, Ho, Hf⟩
+  wp_start as ⟨#Hctr, #Hctx, Ho, Hf, #Hlz⟩
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit
   wp_auto
@@ -97,7 +112,11 @@ theorem traceutil.EnsureTrace.wp_proof
         cases cd; rfl
       rw [hcd]
       iframe Hctr
-      iintro Hi; iexact Hi
+      isplitr
+      · iintro Hi; iexact Hi
+      isplitr
+      · iintro !> #Hsp; iexact Hsp
+      iintro !> #Hlib; iexact Hlib
     · et_new
   | none =>
     (try wp_auto)

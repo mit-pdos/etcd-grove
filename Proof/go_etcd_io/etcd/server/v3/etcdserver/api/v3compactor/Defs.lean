@@ -8,7 +8,7 @@ skeleton").
 `New` receives:
 - `revGetterOk RevLb rg R`: `rg.Rev()`, with the caller's resource `R` (the store's `Rev` needs a
   reader slot), returns a non-negative revision the store has reached (`RevLb`, the caller's
-  lower-bound predicate: the server's is `revLb`, over mvcc's index certificates; the server passes
+  lower-bound predicate: the server's is `revLb`, over its committed log's floors; the server passes
   `srv.kv`).
 - `compactableOk c P R`: `c.Compact(ctx, &CompactionRequest{Revision: r})`, with `R`, returns for
   every `r` with `P r`, with an error `errors.Is` can test (`errTreeOk`). **`P` is the guarantee
@@ -39,12 +39,14 @@ module
 
 public import Proof.github_com.jonboulle.clockwork.Defs
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.CompactReq
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvIndex
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVStoreCore
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Base
 public import Perennial.Proof.context
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Defs
+public import Proof.go_opentelemetry_io.otel.trace.Defs
 public import Perennial.Proof.sync.RWMutexGuard
 public import Perennial.Ghost.DGhostVar
+public import Proof.context.LibKeys
 
 @[expose] public section
 
@@ -89,12 +91,14 @@ variable [sem : go.Semantics]
 
 /-! ### The environment -/
 
-/-- The store has reached revision `r`: an index certificate of a log of `r + 1` revisions or more
-(revision `0` is the empty store's). -/
-def revLb (γi : mvcc.IdxNames) (r : Int) : IProp GF :=
-  iprop(∃ log : mvcc.Log, mvcc.idxCert γi log ∗ ⌜r ≤ (log.length : Int) - 1⌝)
+/-- The store has reached revision `r`: a floor of the server's committed log (`srvApi.kvLogLb`) of
+`r + 1` revisions or more (revision `0` is the empty store's). (The `origin/lean` merge: over the
+server's floor, in place of mvcc's internal index certificate `idxCert`.) -/
+def revLb (γs : srvApi.KVSNames) (r : Int) : IProp GF :=
+  iprop(∃ log : mvcc.Log, srvApi.kvLogLb γs log ∗ ⌜r ≤ (log.length : Int) - 1⌝)
 
-instance revLb_persistent (γi : mvcc.IdxNames) (r : Int) : Persistent (revLb (GF := GF) γi r) := by
+instance revLb_persistent (γs : srvApi.KVSNames) (r : Int) :
+    Persistent (revLb (GF := GF) γs r) := by
   unfold revLb; infer_instance
 
 /-- **The revision getter** (`RevGetter`, the server's `srv.kv`): `Rev()`, given and giving back the
@@ -104,8 +108,8 @@ than any revision `n` the caller knows the store had reached (the revision never
 periodic mode's `0 < r` rests on it, `periodic.go` having no `rev <= 0` check). -/
 def revGetterOk (RevLb : Int → IProp GF) (rg : GoInterface) (R : IProp GF) : IProp GF :=
   iprop(∃ ri : GoInterfaceOk, ⌜rg = GoInterface.ok ri⌝ ∗
-    □ (∀ n : Int, {{ R ∗ □ RevLb n }} (App (Val #(methods ri.ty go!"Rev" ri.v)) (Val #()))
-        {{ (v : w64), RET #v; R ∗ □ RevLb (sint.Z v) ∗ ⌜n ≤ sint.Z v ∧ 0 ≤ sint.Z v⌝ }}))
+    □ (∀ n : Int, {{ R ∗ threadTok ∗ □ RevLb n }} (App (Val #(methods ri.ty go!"Rev" ri.v)) (Val #()))
+        {{ (v : w64), RET #v; R ∗ threadTok ∗ □ RevLb (sint.Z v) ∗ ⌜n ≤ sint.Z v ∧ 0 ≤ sint.Z v⌝ }}))
 
 instance revGetterOk_persistent (RevLb : Int → IProp GF) (rg : GoInterface) (R : IProp GF) :
     Persistent (revGetterOk (GF := GF) RevLb rg R) := by
@@ -126,16 +130,19 @@ instance errTreeOk_persistent (err : GoInterface) : Persistent (errTreeOk (GF :=
 /-- **The compactable** (`Compactable`, the server): `Compact(ctx, req)`, for a request at a
 permitted revision (`P r`) and a context carrying no trace (`traceutil.ctxTraceIs ctx none`: the
 server's `Compact` reads `ctx.Value(TraceKey{})`, `traceutil.EnsureTrace`; the compactor's own
-`WithCancel(Background())` carries none), given and giving back the caller's resource `R` (what
+`WithCancel(Background())` carries none), its library values well formed (`context.libCtxOk`,
+premise-fixes-8: the server's `Compact` reads its auth info), given and giving back the caller's resource `R` (what
 the server's proposal path consumes per request: `R` is the server's to define), returns a response
 and an error `errors.Is` can test. (Until M2's freeze test, 2026-10-28, any context:
 `notes/decisions.md`, "The compactor's contract after the freeze".) -/
 def compactableOk (c : GoInterface) (P : Int → IProp GF) (R : IProp GF) : IProp GF :=
   iprop(∃ ci : GoInterfaceOk, ⌜c = GoInterface.ok ci⌝ ∗
     □ (∀ (r : Int) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (p : Loc),
-        {{ P r ∗ R ∗ context.isContext ctx cd ∗ traceutil.ctxTraceIs ctx none ∗ compactReqIs p r }}
+        {{ P r ∗ R ∗ threadTok ∗ context.isContext ctx cd ∗ trace.spanCtxOk ctx ∗ context.libCtxOk ctx ∗
+            traceutil.ctxTraceIs ctx none ∗
+            compactReqIs p r }}
           (App (App (Val #(methods ci.ty go!"Compact" ci.v)) (Val #(GoInterface.ok ctx))) (Val #p))
-        {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); R ∗ errTreeOk err }}))
+        {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); R ∗ threadTok ∗ errTreeOk err }}))
 
 instance compactableOk_persistent (c : GoInterface) (P : Int → IProp GF) (R : IProp GF) :
     Persistent (compactableOk (GF := GF) c P R) := by
@@ -245,7 +252,7 @@ the clock's contract, the mutex's writer guard. -/
 def isPeriodic (pc : Loc) (E : CompactEnv GF) (period : Int) : IProp GF :=
   iprop(∃ (lg : Loc) (clk : GoInterface) (pd : time.Duration) (ctx : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF)) (γctx : context.ContextNames) (cancel : GoFunc),
-    structFieldRef v3compactor.Periodic go!"lg" pc ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
+    structFieldRef v3compactor.Periodic go!"lg" pc ↦□ lg ∗ zapLoggerOk lg ∗
     structFieldRef v3compactor.Periodic go!"clock" pc ↦□ clk ∗
     clockwork.clockOk clockwork.realClock clk ∗
     structFieldRef v3compactor.Periodic go!"period" pc ↦□ pd ∗ ⌜sint.Z pd = period ∧ 10 ≤ period⌝ ∗
@@ -253,12 +260,12 @@ def isPeriodic (pc : Loc) (E : CompactEnv GF) (period : Int) : IProp GF :=
     structFieldRef v3compactor.Periodic go!"c" pc ↦□ E.c ∗
     structFieldRef v3compactor.Periodic go!"ctx" pc ↦□ GoInterface.ok ctx ∗
     context.isContext ctx cd ∗
-    traceutil.ctxTraceIs ctx none ∗
+    traceutil.ctxTraceIs ctx none ∗ trace.spanCtxOk ctx ∗ context.libCtxOk ctx ∗
     structFieldRef v3compactor.Periodic go!"cancel" pc ↦□ cancel ∗
     context.cancelSpec cancel γctx iprop(True) ∗
     sync.isRWMutexGuard (structFieldRef v3compactor.Periodic go!"mu" pc) (perPausedInv pc))
 
-set_option synthInstance.maxSize 512 in
+set_option synthInstance.maxSize 1024 in
 instance isPeriodic_persistent (pc : Loc) (E : CompactEnv GF) (period : Int) :
     Persistent (isPeriodic (GF := GF) pc E period) := by
   unfold isPeriodic; infer_instance
@@ -281,7 +288,7 @@ def revPausedInv (rc : Loc) : IProp GF :=
 def isRevision (rc : Loc) (E : CompactEnv GF) (ret : Int) : IProp GF :=
   iprop(∃ (lg : Loc) (clk : GoInterface) (rt : w64) (ctx : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF)) (γctx : context.ContextNames) (cancel : GoFunc),
-    structFieldRef v3compactor.Revision go!"lg" rc ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
+    structFieldRef v3compactor.Revision go!"lg" rc ↦□ lg ∗ zapLoggerOk lg ∗
     structFieldRef v3compactor.Revision go!"clock" rc ↦□ clk ∗
     clockwork.clockOk clockwork.realClock clk ∗
     structFieldRef v3compactor.Revision go!"retention" rc ↦□ rt ∗ ⌜sint.Z rt = ret⌝ ∗
@@ -289,12 +296,12 @@ def isRevision (rc : Loc) (E : CompactEnv GF) (ret : Int) : IProp GF :=
     structFieldRef v3compactor.Revision go!"c" rc ↦□ E.c ∗
     structFieldRef v3compactor.Revision go!"ctx" rc ↦□ GoInterface.ok ctx ∗
     context.isContext ctx cd ∗
-    traceutil.ctxTraceIs ctx none ∗
+    traceutil.ctxTraceIs ctx none ∗ trace.spanCtxOk ctx ∗ context.libCtxOk ctx ∗
     structFieldRef v3compactor.Revision go!"cancel" rc ↦□ cancel ∗
     context.cancelSpec cancel γctx iprop(True) ∗
     sync.isMutex (structFieldRef v3compactor.Revision go!"mu" rc) (revPausedInv rc))
 
-set_option synthInstance.maxSize 512 in
+set_option synthInstance.maxSize 1024 in
 instance isRevision_persistent (rc : Loc) (E : CompactEnv GF) (ret : Int) :
     Persistent (isRevision (GF := GF) rc E ret) := by
   unfold isRevision; infer_instance

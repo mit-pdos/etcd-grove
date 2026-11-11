@@ -25,6 +25,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 theorem defaultListErrorAggregatorFactory.wp_proof : defaultListErrorAggregatorFactory.spec (GF := GF) (hG := hG) := by
@@ -33,7 +34,15 @@ theorem defaultListErrorAggregatorFactory.wp_proof : defaultListErrorAggregatorF
   wp_alloc a as Ha
   wp_auto
   iapply HΦ
-  itrivial
+  iunfold freshAggr
+  iexists ⟨go.GoType.PointerType k8s_io.apiserver.pkg.storage.etcd3.abortOnFirstError.ty, #a⟩
+  isplitr
+  · ipureintro; rfl
+  iintro %Φ' HΦ'
+  wp_method_call
+  wp_call
+  wp_auto
+  iexact HΦ'
 
 end proof
 

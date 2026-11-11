@@ -10,7 +10,8 @@ transaction) and the writer's contract (`writerOk w Wr`) at the bytes `bs₀` wr
 post: some bytes `bs` appended (`WriteTo` calls only `w.Write`), at least one `Write` call having
 returned (D22 S-h, 2026-10-20: its first action is the first meta page's `Write`, the transaction's
 `WriteFlag` being `0`, which etcd never sets), and, if the error is nil, `bs` a bbolt image of `D`
-(`boltImage`). The count it returns is not specified (the sender only logs it).
+(`boltImage`: a file `fileHolds` accepts, so every entry of `D` within `bboltEntryMax`, as every
+`Put` keeps it). The count it returns is not specified (the sender only logs it).
 -/
 module
 

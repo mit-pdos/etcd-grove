@@ -2,6 +2,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer__leaseKeepAlive
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.togRPCError
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.TogRPCErrorPlain
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.header__fill
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.isClientCtxErr
 public import Perennial.Spec.errors.Is
@@ -66,7 +67,7 @@ local macro "ka_log_ret" lbl:term:max : tactic => `(tactic| (
       iintro %fs -
       wp_auto
       wp_apply hZW lg _ _ $$ []
-      · iframe #; ipureintro; exact Hlg
+      · iframe #
       wp_apply wp_slice_literal (V := GoString) [$lbl, go!"lease-keepalive"]
       isplitr
       · ipureintro; rfl
@@ -89,7 +90,7 @@ local macro "ka_log_ret" lbl:term:max : tactic => `(tactic| (
       iintro %fs -
       wp_auto
       wp_apply hZD lg _ _ $$ []
-      · iframe #; ipureintro; exact Hlg
+      · iframe #
       wp_for_post
       iapply HΦ
       iframe; iframe #))
@@ -161,7 +162,7 @@ theorem v3rpc.LeaseServer.leaseKeepAlive.wp_proof
   wp_start as ⟨#Hls, #HRn, #Hst, #Hspec, #HUp, Hrt, Hstt, HS, HR⟩
   ihave #Hls' := Hls
   iunfold v3rpc.leaseServerAt at Hls'
-  icases Hls' with ⟨%Hpn, #Hhdr, #Hle, %lg, %Hlg, #Hlgf⟩
+  icases Hls' with ⟨%Hpn, #Hhdr, #Hle, %lg, #Hlg, #Hlgf⟩
   ihave #Hst' := Hst
   iunfold srvStreamIs at Hst'
   icases Hst' with ⟨%si, %Hsi, #HRecv, #HSend, #HCtx, #Hctxis, #Hrunctx⟩
@@ -188,6 +189,7 @@ theorem v3rpc.LeaseServer.leaseKeepAlive.wp_proof
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   ihave #Hctx2 := Hctxis
+  ihave #Hlibk := libCtxOk_of_runCtx ci $$ Hrunctx
   iNamed Hctx2
   ihave #HErrU := HErr $$ %Broadcast.Unknown
   wp_auto
@@ -285,7 +287,7 @@ theorem v3rpc.LeaseServer.leaseKeepAlive.wp_proof
           ka_send (W64 0)
         | false =>
           wp_auto
-          wp_apply hTog $$ [] as %e -
+          wp_apply (v3rpc.togRPCError_plain hTog) $$ [] as %e -
           · iapply srvErrIs_of_applyErrIs _ Hne $$ Hae
           (try wp_auto)
           wp_for_post
@@ -300,7 +302,7 @@ theorem v3rpc.LeaseServer.leaseKeepAlive.wp_proof
       (_root_.Perennial.errors.treeTyped_pointer eofE _ HeofL.1.1) $$ [] as %b ⟨-, %Hb2, -⟩
     · iframe #
       isplitl
-      · iapply _root_.Perennial.errors.errorIsTree_leaf eofE _ _ HeofL.1.2.1 HeofL.1.2.2
+      · iapply _root_.Perennial.errors.errorIsTree_leaf eofE _ _ HeofL.1.2.1 HeofL.1.2.2.1
       · ipureintro; rfl
     have hb : b = true := Hb2 _ rfl HeofL.1.1 rfl
     subst hb

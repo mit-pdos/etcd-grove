@@ -86,7 +86,7 @@ theorem lessor.TimeToLive.wp_proof
     | nil => exact absurd rfl Hne
     | ok ei =>
       wp_auto
-      wp_apply wp_ContextError ctx cd (GoInterface.ok ei) $$ [$Hse] as %err' ⟨%Herr', #Hse', -⟩
+      wp_apply wp_ContextError ctx cd (GoInterface.ok ei) $$ [$Hse] as %err' ⟨%Herr', #Hse', -, -⟩
       · iframe #; ipureintro; exact fun _ => Hce'
       iapply HΦ
       iright

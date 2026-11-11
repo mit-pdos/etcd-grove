@@ -139,6 +139,12 @@ instance snapMade_persistent (γ : Cluster) (s : SnapRec) :
     Persistent (snapMade (GF := GF) γ s) := by
   unfold snapMade; exact ApiImpl.snapMadeU_persistent γ s
 
+/-- (R2d, Q14, 2026-11-06) No later credit to open an invariant holding it (a WAL record's
+certificate in the server's durability invariant, `walSnapCert`). -/
+instance snapMade_timeless (γ : Cluster) (s : SnapRec) :
+    Timeless (snapMade (GF := GF) γ s) := by
+  unfold snapMade; exact ApiImpl.snapMadeU_timeless γ s
+
 -- (2026-11-01, durability stage I-7) `nodeFounder` and `nodeJoin` deleted: allocation and
 -- `joinAuth_join` give the id's durable state at `RaftState.init` and its vacant slot
 -- (`raftState`, `nodeVacant`, `InvNode.lean`) in their place.
@@ -160,6 +166,25 @@ instance nodeBoot_persistent (γ : Cluster) (N : Namespace) (vs : List w64) (ctx
     (id : w64) : Persistent (nodeBoot (GF := GF) γ N vs ctxs id) := by
   unfold nodeBoot; exact ApiImpl.nodeBootU_persistent γ N vs ctxs id
 
+/-- (2026-11-05, the lease-expiry plan's E2 revision 5) **The node `n` of the cluster `γ` was made
+by `StartNode`** (persistent): `n` is the node of `id` in `γ` (`isNode`), `γ` was bootstrapped with
+the voters `vs` (`nodeBoot`), and `StartNode` made `n` (its start tag `true`, `nodeStartTag`): `StartNode.spec`'s
+precondition is an empty storage, so its log began as the bootstrap log. `RestartNode` tags its node
+`false`, so gives no such fact, even on an empty storage (etcd's join without a WAL). -/
+@[no_expose] def nodeStartedFresh (n : Loc) (γ : Cluster) (N : Namespace) (vs : List w64)
+    (ctxs : List (List w8)) (id : w64) : IProp GF :=
+  iprop(isNode n γ N id ∗ nodeBoot γ N vs ctxs id ∗ ⌜id ∈ vs⌝ ∗
+    ApiImpl.nodeStartTag n γ true)
+
+instance nodeStartedFresh_persistent (n : Loc) (γ : Cluster) (N : Namespace) (vs : List w64)
+    (ctxs : List (List w8)) (id : w64) :
+    Persistent (nodeStartedFresh (GF := GF) n γ N vs ctxs id) := by
+  unfold nodeStartedFresh
+  haveI := ApiImpl.nodeStartTag_persistent (GF := GF) n γ true
+  haveI := nodeBoot_persistent (GF := GF) γ N vs ctxs id
+  haveI := isNode_persistent (GF := GF) n γ N id
+  infer_instance
+
 open Classical in
 /-- **A new cluster of the voters `vs`** (§3 of the decision switch; until U9, 2026-10-29,
 `cluster_alloc_dec`, the name `cluster_alloc` being the static cluster's; until the switch
@@ -180,25 +205,30 @@ none (raft keeps the bootstrap log in every node's log, which a newcomer's empty
 hold). The term budget, backed by time receipts (`receiptBound`), is the cluster's; so (U9) are the
 read requests' credits, and leader transfer is on in every cluster. -/
 theorem cluster_alloc (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (dup : Bool) (sl : w64 → Option GName) (E : CoPset) :
+    (dup : Bool) (sl : w64 → Option GName)
+    -- (raft-entsize §2, 2026-11-09) the bound on proposed data (`Cluster.maxData`): at most `2^31`,
+    -- and met by the bootstrap log's entries (both vacuous at `none`)
+    (md : Option Nat) (E : CoPset) :
     receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → W64 0 ∉ vs → (vs.length : Int) < 2 ^ 62 →
     (boot ≠ [] → BootLog vs ctxs boot) →
+    (∀ b, md = some b → b ≤ 2 ^ 31) →
+    (∀ b, md = some b → ∀ e ∈ boot, e.data.length ≤ b) →
     ⊢ (if boot = [] then emp else bootMarshal (GF := GF) vs ctxs (LogEntry.toEntries boot 0)) ={E}=∗
-      ∃ γ, ⌜γ.dup = dup ∧ γ.snapLoc = sl ∧ γ.bootLen = boot.length⌝ ∗ ownCommittedOps (GF := GF) γ boot ∗
+      ∃ γ, ⌜γ.dup = dup ∧ γ.snapLoc = sl ∧ γ.bootLen = boot.length ∧ γ.maxData = md⌝ ∗ ownCommittedOps (GF := GF) γ boot ∗
         ownReadCtxs γ ∅ ∗ isCluster γ N ∗ ownConfDecisions γ ∅ ∗
         confAt γ 0 (Membership.simple (GMap.listToSet vs)) ∗ ownSnapsMade γ [] ∗
         ([∗list] id ∈ vs, raftState γ id RaftState.init ∗ nodeVacant γ id) ∗
         if boot = [] then joinAuth γ (GMap.listToSet vs)
         else isCommittedLogLb γ boot ∗ [∗list] id ∈ vs, nodeBoot γ N vs ctxs id := by
-  intro Hrb Hne Hnd Hnz Hlen HB
+  intro Hrb Hne Hnd Hnz Hlen HB Hmd HmdB
   unfold ownCommittedOps ownReadCtxs isCluster ownConfDecisions confAt ownSnapsMade
-    joinAuth nodeBoot Cluster.dup Cluster.snapLoc Cluster.bootLen isCommittedLogLb raftState
-    nodeVacant
+    joinAuth nodeBoot Cluster.dup Cluster.snapLoc Cluster.bootLen Cluster.maxData isCommittedLogLb
+    raftState nodeVacant
   by_cases hb : boot = []
   · subst hb
     rw [if_pos rfl]
     iintro -
-    imod ApiImpl.cluster_alloc_dec_impl (GF := GF) N vs dup sl E Hrb Hne Hnd Hnz Hlen
+    imod ApiImpl.cluster_alloc_dec_impl (GF := GF) N vs dup sl E md Hmd Hrb Hne Hnd Hnz Hlen
       with ⟨%γ, %Hd, Hops, Hctx, #Hcl, Hdec, #Hca, Hsm, Hja, Hfs⟩
     imodintro
     iexists γ
@@ -207,7 +237,8 @@ theorem cluster_alloc (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (b
     ipureintro; exact Hd
   · simp only [hb, ↓reduceIte]
     iintro Hm
-    imod ApiImpl.cluster_alloc_boot_impl (GF := GF) N vs ctxs boot dup sl E Hrb Hne Hnd Hnz Hlen (HB hb)
+    imod ApiImpl.cluster_alloc_boot_impl (GF := GF) N vs ctxs boot dup sl E md Hmd HmdB Hrb Hne Hnd
+      Hnz Hlen (HB hb)
       $$ Hm with ⟨%γ, %Hd, Hops, Hctx, #Hcl, Hdec, #Hca, Hsm, #Hlb, Hbs⟩
     icases (BigSepL.bigSepL_sep_eqv (Φ := fun _ id => ApiImpl.nodeBootU (GF := GF) γ N vs ctxs id)
       (Ψ := fun _ id => iprop(ApiImpl.raftStateU (GF := GF) γ id RaftState.init ∗
@@ -553,6 +584,22 @@ def snapshotValid (γ : Cluster) (sv : SnapshotM) : IProp GF :=
 instance snapshotValid_persistent (γ : Cluster) (sv : SnapshotM) :
     Persistent (snapshotValid (GF := GF) γ sv) := by
   unfold snapshotValid; infer_instance
+
+/-- (R2d, Q17 F6, 2026-11-06) No later credit to open an invariant holding it (the server's WAL
+durability invariant holds a record's certificate, `walSnapCert`). -/
+instance snapshotValid_timeless (γ : Cluster) (sv : SnapshotM) :
+    Timeless (snapshotValid (GF := GF) γ sv) := by
+  unfold snapshotValid; infer_instance
+
+/-- (R2d, Q17 F6) **A valid snapshot's data is one the client made** (its registry `S`). -/
+theorem ownSnapsMade_snapshotValid_data (γ : Cluster) (S : List SnapRec) (sv : SnapshotM) :
+    ownSnapsMade (GF := GF) γ S ∗ snapshotValid γ sv ⊢ ⌜∃ r ∈ S, r.data = sv.Data'⌝ := by
+  iintro ⟨Hown, #Hsv⟩
+  unfold snapshotValid
+  icases Hsv with ⟨%l, %m, -, -, #Hmade, -⟩
+  ihave %Hin := snapMade_elem γ S _ $$ [$Hown $Hmade]
+  ipureintro
+  exact ⟨_, Hin, rfl⟩
 
 /-! ## The storage contract at the node API (U8 v2, 2026-10-29; candidate 17 rev 3 §2) -/
 

@@ -66,14 +66,14 @@ theorem Election.Leader.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG
     (hWFC : EtcdGrove.WithFirstCreate.spec (GF := GF) (hG := hG)) :
     Election.Leader.spec (GF := GF) (hG := hG) := by
   intro e s γ client id pfx ctx cs lo
-  wp_start as ⟨#He, #Hctx, #Hlo⟩
+  wp_start as ⟨#He, #Hctx, #HctxC, #Hlo⟩
   ihave #He' := He
   iunfold isElection at He'
   icases He' with ⟨#Hes, #Hepfx, ⟨%Hpfx, %Hpl⟩, #Hsess, #Hcl⟩
   wp_auto
   wp_apply hCl s γ client id $$ [$Hpkg $Hsess]
   iunfold isEtcdMutexClient at Hcl
-  icases Hcl with ⟨%kv, %wt, %cctx, %ccs, #HKVf, -, -, -, #HKV, -, -, -⟩
+  icases Hcl with ⟨%kv, %wt, %cctx, %ccs, #HKVf, -, -, -, -, #HKV, -, -, -⟩
   (try wp_auto)
   ihave #Hcv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
@@ -82,7 +82,7 @@ theorem Election.Leader.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG
   iunfold isEtcdKV at HKV
   ihave #HG := HKV $$ %ctx %cs %pfx %slf %(withTopM (W64 2) (W64 1)) %lo
   wp_apply HG $$ [] as %gresp %gerr #Hgres
-  · iframe Hctx Hslf Hlo
+  · iframe Hctx HctxC Hslf Hlo
     ipureintro
     exact ⟨ownerOp_not_panics pfx, ownerOp_t pfx, ownerOp_size Hpl⟩
   iunfold kvGetResult at Hgres

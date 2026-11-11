@@ -36,10 +36,24 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 
 /-- **The server's `LeaseGrant` at the lessor's history** (see the file header): `lessorGrantOk`
 and, on success, the response's lease granted at an index of the
-lessor `E.γ.leases`'s history. `lessorGrantOkG` at that success fact (the hub plan's "no twin
+lessor `(mvcc.api.mvccLeases E.γ)`'s history. `lessorGrantOkG` at that success fact (the hub plan's "no twin
 triples", 2026-11-03: until then the same triple written out). -/
 abbrev lessorGrantOkL (s : Loc) (E : apply.AEnv GF) (S : IProp GF) : IProp GF :=
-  lessorGrantOkG s E S (fun id => iprop(∃ i : Nat, lease.leaseGrantedAt E.γ.leases i id))
+  lessorGrantOkG s E S (fun _ id => iprop(∃ i : Nat, lease.leaseGrantedAt (mvcc.api.mvccLeases E.γ) i id))
+
+/-- **The lease live in the lessor's history from some index**: the grant contract's success fact
+with no lease mode (the lease-expiry plan's X2, 2026-11-04: what the reply carries in every mode,
+`leaseGrantedResp`'s `leaseLiveFrom`); (the lease-expiry plan's S2–S4, Q-S8, 2026-11-05) and the
+lease's request, the request `m`'s TTL `m.1` (`lease.leaseReqIs`). (Review r1 F12, 2026-11-05:
+until then also the lease's read-only `ttl` field at least `m.1`, E3/R5, which no consumer reads
+since `leaseReqIs`.) -/
+def grantLiveG (E : apply.AEnv GF) : w64 × w64 → w64 → IProp GF :=
+  fun m id => iprop(∃ (i : Nat) (l : Loc), lease.leaseLiveFrom (mvcc.api.mvccLeases E.γ) i id l ∗
+    lease.leaseReqIs (mvcc.api.mvccLeases E.γ) id m.1)
+
+instance grantLiveG_persistent (E : apply.AEnv GF) (m : w64 × w64) (id : w64) :
+    Persistent (grantLiveG (GF := GF) E m id) := by
+  unfold grantLiveG; infer_instance
 
 end defs
 

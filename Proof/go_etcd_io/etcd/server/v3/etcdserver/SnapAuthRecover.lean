@@ -408,7 +408,7 @@ after `Recover`, the store on the new backend (`authBeOn`), the apply thread's a
 `A'`'s state, and **the old backend's open share** (after an update: its release, for the close
 goroutine; decision 3c; its reader slots stay the realization's, R4's F1). -/
 abbrev authRecoverOn.spec : Prop :=
-  ∀ (ast abl lg : Loc) (dO dn : mvcc.KBReal) (W Pk PkO : IProp GF) (f : GoFunc) (fO : val)
+  ∀ (ast abl lg : Loc) (dO dn : mvcc.KBReal) (W Pk PkO : IProp GF) (f : GoFunc) (fO : GoFunc)
     (r : GMap GoString backend.BktData) (γa : auth.AuthNames) (R RD : IProp GF) (E : apply.AEnv GF)
     (γr : ReadNames) (A A' : List EntryModel) (sa : auth.AuthState),
   E.authMode = .on γa →
@@ -427,7 +427,7 @@ abbrev authRecoverOn.spec : Prop :=
     (App (Val (ast @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty @!!
       go!"Recover")) (Val #(authBkIface abl)))
   {{ RET #(); |={⊤}=> (authBeOn ast dn.be ∗
-      authApplyResB (.on γa) ast (srvAuthAtLog γr.kv srvAuthSt0 A') dn Pk #f RD ∗
+      authApplyResB (.on γa) ast (srvAuthAtLog γr.kv srvAuthSt0 A') dn Pk f RD ∗
       backend.bOpen dO.γB authOpenQ) }}
 
 end premise
@@ -532,8 +532,8 @@ theorem authRecoverOn_glue (hRec : auth.authStore.Recover.spec (GF := GF) (hG :=
     iunfold ablOn at Habl
     icases Habl with ⟨#H1, #H2⟩
     iframe Hbe H1 H2; ipureintro; exact Hlg
-  ihave #Hw := auth.authWBackendOk_of_R (authBkIface abl) (.on γa) Pk #f (auth.authWTok γc) $$ HwR
-  iexists hs ++ (srvHist γr.kv A').drop hs.length, Pk, #f, γc, authBkIface abl
+  ihave #Hw := auth.authWBackendOk_of_R (authBkIface abl) (.on γa) Pk f (auth.authWTok γc) $$ HwR
+  iexists hs ++ (srvHist γr.kv A').drop hs.length, Pk, f, γc, authBkIface abl
   -- the fuel at the image's base: its admin entries, never paid for with receipts
   isplitl [Hown Hfu]
   · iunfold auth.authOwnFu
@@ -583,7 +583,7 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **The server's auth store with its snapshot clause** (persistent; auth on; decision 8:
-`NewServer`, `bootOk` and `isServerRunOn` carry it, as they do `#HmetaSnap`): the store its
+`NewServer`, `bootOk` and `isServerRunC` carry it, as they do `#HmetaSnap`): the store its
 `authStore` field holds, its invariant at its backend's read resource `R`, the snapshot clause at
 `R`, and the apply environment's reader resource `RD` the checks' `authRd` over `R`. (Until this
 round the draft took the invariant and the clause at `RD` itself: a bug of the draft, `authInv`'s
@@ -599,10 +599,11 @@ instance srvAuthSnapOk_persistent (s : Loc) (γa : auth.AuthNames) (RD : IProp G
   unfold srvAuthSnapOk; infer_instance
 
 /-- **The image's auth facts by the auth mode** (F9, the user's decision of 2026-11-03: one
-`specSnap` over `E.authMode`): `off`, lean's `hauthb` (the auth buckets at `authBoot`/empty); `on`,
-the auth buckets in the table, the image's auth buckets holding the state after its log `A'`, which
-extends the applied log `A`, below raft's bound (`snapRecv_imageOn`'s); `any`, nothing (excluded by
-the specs' `E.authMode ≠ .any`). -/
+spec, `applySnapshot.specSnapM`, over `E.authMode`): `off`, lean's `hauthb` (the auth buckets at `authBoot`/empty); `on`,
+the auth buckets in the table, the image's auth buckets holding the state after its log `A'`, below
+raft's bound (`snapRecv_imageOn`'s); `any`, nothing (excluded by the specs' `E.authMode ≠ .any`).
+(The lease-expiry plan's S2–S4, review r2 S2, DRAFT 2026-11-06: the `on` arm no longer repeats
+`A <+: A'`, a premise of `specSnapM` in every mode.) -/
 def snapAuthImgM (M : auth.AuthMode) (γr : ReadNames) (P : backend.BParams) (D : backend.Data)
     (A A' : List EntryModel) : Prop :=
   match M with
@@ -611,12 +612,12 @@ def snapAuthImgM (M : auth.AuthMode) (γr : ReadNames) (P : backend.BParams) (D 
       ((backend.rbData P D).lookup go!"authRoles").getD ∅ = ∅
   | .on _ => (P.has mvcc.authBI ∧ P.has mvcc.authUsersBI ∧ P.has mvcc.authRolesBI) ∧
       authBucketsAt (srvAuthAtLog γr.kv srvAuthSt0 A') (backend.rbData P D) ∧
-      A <+: A' ∧ A'.length < 2 ^ 61
+      A'.length < 2 ^ 61
   | .any => True
 
 /-- **The rest model's buckets after the snapshot's entries `A'`, by the mode** (F9; S8d's named
-premise): the image's rest buckets (with the lessor's and the alarm store's emptied by their
-`Recover`); with auth on, all but the auth ones (the rest model does not model the admin writes:
+premise): the image's rest buckets, the lessor's and the alarm store's aside (the lease bucket
+the records', `imageLeasesAt`; the alarm bucket empty); with auth on, all but the auth ones (the rest model does not model the admin writes:
 its auth buckets stay `authBoot`). -/
 def snapRestImgM (on : Bool) (γr : ReadNames) (P : backend.BParams) (D : backend.Data)
     (A' : List EntryModel) : Prop :=
@@ -628,13 +629,14 @@ def snapRestImgM (on : Bool) (γr : ReadNames) (P : backend.BParams) (D : backen
       (<[go!"alarm" := ∅]> (<[go!"lease" := ∅]> (backend.rbData P D))).lookup n
 
 /-- **The auth store's `Recover` facts, by the mode** (F9): `off`, lean's `authRecoverOk`; `on`,
-the store's invariant at the server's read resource with the snapshot clause (`srvAuthSnapOk`) and
-the image's committed log (`srvRLogLb … A'`); `any`, nothing (excluded by the specs). -/
+the store's invariant at the server's read resource with the snapshot clause (`srvAuthSnapOk`);
+`any`, nothing (excluded by the specs). (Review r2 S2, DRAFT 2026-11-06: the `on` arm no longer
+repeats the image's committed log `srvRLogLb … A'`, a pre of `specSnapM` in every mode.) -/
 def snapAuthResM (M : auth.AuthMode) (s ast : Loc) (RD : IProp GF) (γr : ReadNames)
     (A' : List EntryModel) : IProp GF :=
   match M with
   | .off => authRecoverOk ast
-  | .on γa => iprop(srvAuthSnapOk s γa RD ∗ srvRLogLb γr.raft A')
+  | .on γa => srvAuthSnapOk s γa RD
   | .any => iprop(True)
 
 instance snapAuthResM_persistent (M : auth.AuthMode) (s ast : Loc) (RD : IProp GF)
@@ -643,15 +645,14 @@ instance snapAuthResM_persistent (M : auth.AuthMode) (s ast : Loc) (RD : IProp G
   cases M <;> unfold snapAuthResM <;> infer_instance
 
 /-- **`applySnapshot.specSnapM`'s auth facts in the mode `on`**, from `srvSnapRO`'s row
-(`authSnapKitM`) and the image's committed log. -/
+(`authSnapKitM`). -/
 theorem snapAuthResM_on (s ast : Loc) (E : apply.AEnv GF) (γr : ReadNames) (A' : List EntryModel)
     (γa : auth.AuthNames) (hM : E.authMode = .on γa) :
-    srvAuthStoreAddr s ↦□ auth.authIface ast ∗ authSnapKitM E.authMode ast E.RD ∗
-      srvRLogLb γr.raft A' ⊢ snapAuthResM E.authMode s ast E.RD γr A' := by
+    srvAuthStoreAddr s ↦□ auth.authIface ast ∗ authSnapKitM E.authMode ast E.RD ⊢
+      snapAuthResM E.authMode s ast E.RD γr A' := by
   rw [hM]
   simp only [authSnapKitM, snapAuthResM]
-  iintro ⟨#Ha, ⟨%R, #Hi, #Hs, %Hrd⟩, #Hl⟩
-  iframe Hl
+  iintro ⟨#Ha, ⟨%R, #Hi, #Hs, %Hrd⟩⟩
   iunfold srvAuthSnapOk
   iexists ast, R
   iframe Ha Hi Hs

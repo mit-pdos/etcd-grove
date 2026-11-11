@@ -4,6 +4,7 @@ The proof of `Spec/os/File__Close.lean`: a store of -1 to the fd field, and `wp_
 module
 
 public import Spec.os.File__Close
+public import Proof.os.ErrorOk
 
 @[expose] public section
 
@@ -37,14 +38,18 @@ theorem os.File.Close.wp_proof : os.File.Close.spec (GF := GF) (hG := hG) := by
   by_cases he : e = W64 0
   · rw [decide_eq_true he]
     wp_auto
+    ihave #Hokn := (EtcdGrove.fmtErrorOkOrNil_nil (GF := GF))
     iapply HΦ
+    iframe Hokn
     iexists inner
     iframe
     isplitl [] <;> iassumption
   · rw [decide_eq_false he]
     wp_auto
-    wp_apply os.wp_wrapErrno _ inner name e $$ Hn as %pe
+    wp_apply os.wp_wrapErrno_ok _ inner name e he $$ Hn as %pe #Hok
+    ihave #Hokn := EtcdGrove.fmtErrorOkOrNil_of _ $$ Hok
     iapply HΦ
+    iframe Hokn
     iexists inner
     iframe
     isplitl [] <;> iassumption

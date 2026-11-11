@@ -72,7 +72,7 @@ theorem RealPodControl.createPods.wp_proof
       [Hsl] as %e ⟨-, -⟩
     · isplitr
       · iexact Hsl
-      unfold fmt.argsOk; itrivial
+      fmt_args_intro; itrivial
     iapply HΦ
     isplitl [Hm Hmd Hpback]
     · iapply Hpback $$ Hm Hmd
@@ -96,7 +96,7 @@ theorem RealPodControl.createPods.wp_proof
         [Hsl] as %e ⟨-, -⟩
       · isplitr
         · iexact Hsl
-        unfold fmt.argsOk; itrivial
+        fmt_args_intro; itrivial
       iapply HΦ
       isplitl [Hm Hmd Hpback]
       · iapply Hpback $$ Hm
@@ -149,7 +149,10 @@ theorem RealPodControl.createPods.wp_proof
         icases Herr with ⟨%sp, %st, %herr, #Hsp, %hst⟩
         subst herr
         wp_auto
-        wp_apply (wp_HasStatusCause _ _) as %b _
+        wp_apply (wp_HasStatusCause _ _) $$ [] as %b _
+        · iunfold apierrors.apiErrOk; ileft; iexists sp, st; isplitr
+          · ipureintro; rfl
+          · iexact Hsp
         iunfold recorderOk at Hrec
         icases Hrec with ⟨%i, %hi, #HEv⟩
         cases b
@@ -209,9 +212,9 @@ theorem RealPodControl.createPods.wp_proof
           iintro Hq HΨ'
           wp_pures
           wp_auto
-          have hA := wp_Accessor .daemonSets l
-          simp only [apimeta.apiPtrTy] at hA
-          wp_apply hA
+          have hty : go.typeSetContains (go.GoType.PointerType k8s_io.api.apps.v1.DaemonSet.ty)
+              k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty = true := by go_type_set
+          wp_apply (wp_Accessor ⟨go.GoType.PointerType k8s_io.api.apps.v1.DaemonSet.ty, #l⟩ hty)
           wp_apply (dsAt_GetName wp_GetName l _ dd) $$ [Hds] as Hds
           · iexact Hds
           ihave Hqo : objAt (interface.mkOk (go.GoType.PointerType k8s_io.api.core.v1.Pod.ty) #q)
@@ -265,7 +268,10 @@ theorem RealPodControl.createPods.wp_proof
           icases Herr with ⟨%sp, %st, %herr, #Hsp, %hst⟩
           subst herr
           wp_auto
-          wp_apply (wp_HasStatusCause _ _) as %b _
+          wp_apply (wp_HasStatusCause _ _) $$ [] as %b _
+          · iunfold apierrors.apiErrOk; ileft; iexists sp, st; isplitr
+            · ipureintro; rfl
+            · iexact Hsp
           iunfold recorderOk at Hrec
           icases Hrec with ⟨%i, %hi, #HEv⟩
           cases b

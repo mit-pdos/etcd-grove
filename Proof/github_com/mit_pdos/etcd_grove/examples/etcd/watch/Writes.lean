@@ -184,7 +184,7 @@ theorem wk_write_au (γk : KVNames) (γc : GName) (P : List (GoString × GoStrin
     · inext; iexists σ; iframe; ipureintro; exact HW
     imodintro
     iempintro
-  · iintro Hσ
+  · iintro ⟨Hσ, -⟩
     imod Hclose2 with -
     have hch := kvOpStep_put_changes k v σ
     imod (monoListAuthOwn_update (kvOpStep (.put (txn.putOpOf k v (W64 0) false false false))
@@ -256,7 +256,7 @@ theorem wk_read_au (γk : KVNames) (γc : GName) (P : List (GoString × GoString
     · inext; iexists σ; iframe; ipureintro; exact HW
     imodintro
     iempintro
-  · iintro Hσ
+  · iintro ⟨Hσ, -⟩
     imod Hclose2 with -
     imod Hclose $$ [Hσ Hc] with -
     · inext; iexists σ; iframe; ipureintro; exact HW

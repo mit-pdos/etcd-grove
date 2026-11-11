@@ -36,6 +36,12 @@ class ErrorStringLeaf [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] : Pro
       ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, v⟩
   noIs : methodSet (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) !! go!"Is" ≠
     some (go.Signature [go.error] false [go.bool])
+  /-- (k8s etcd3 7c, HS-6) nor a `GRPCStatus` method (what grpc's `status.FromError` would call). -/
+  noGRPC : methodSet (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) !!
+    go!"GRPCStatus" = none
+  /-- (premise-fixes-4) nor a `Format` method (`fmt` prints it with its `Error`). -/
+  noFormat : methodSet (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) !!
+    go!"Format" = none
 
 /-- An `errors.New` error (a `*errorString`) is a leaf pointer error without an `Is` method. -/
 theorem errorString_leaf [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] [ErrorStringLeaf]
@@ -48,6 +54,23 @@ theorem errorString_leaf [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] [E
         some (go.Signature [go.error] false [go.bool]) :=
   ⟨⟨_, _, rfl, rfl⟩, ErrorStringLeaf.leaf _, ErrorStringLeaf.noIs⟩
 
+/-- An `errors.New` error is a leaf pointer error without an `Is`, a `GRPCStatus` (the server's
+`errLeaf`; k8s etcd3 7c, HS-6) or a `Format` method (premise-fixes-4). -/
+theorem errorString_errLeaf [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] [ErrorStringLeaf]
+    (x : Loc) :
+    _root_.Perennial.errors.IsPointerError
+        ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩ ∧
+      _root_.Perennial.errors.isLeafError
+        ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩ ∧
+      methodSet (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) !! go!"Is" ≠
+        some (go.Signature [go.error] false [go.bool]) ∧
+      methodSet (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) !!
+        go!"GRPCStatus" = none ∧
+      methodSet (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) !!
+        go!"Format" = none :=
+  ⟨⟨_, _, rfl, rfl⟩, ErrorStringLeaf.leaf _, ErrorStringLeaf.noIs, ErrorStringLeaf.noGRPC,
+    ErrorStringLeaf.noFormat⟩
+
 /-- `ErrorStringLeaf` holds: `*errorString`'s method set (goose's `ptr_method_set`) is `Error`
 only. -/
 instance errorStringLeaf_inst [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
@@ -55,8 +78,9 @@ instance errorStringLeaf_inst [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   have h := fun m =>
     go.method_set_is (t := go.GoType.PointerType _root_.Perennial.errors.errorString.ty) m
   have hAs := h go!"As"; have hU := h go!"Unwrap"; have hIs := h go!"Is"
-  simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at hAs hU hIs
-  exact ⟨fun _ => by simp [_root_.Perennial.errors.isLeafError, hAs, hU], by simp [hIs]⟩
+  have hG := h go!"GRPCStatus"; have hF := h go!"Format"
+  simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at hAs hU hIs hG hF
+  exact ⟨fun _ => by simp [_root_.Perennial.errors.isLeafError, hAs, hU], by simp [hIs], hG, hF⟩
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -75,18 +99,17 @@ abbrev errorsNewVarInit (init : val) (X msg : GoString) : Prop :=
           go!"Error" #x)) (Val #())) {{ Φ }} }}
 
 /-- The `Error()` of an error whose message is known (`errors.New`'s, `context.wp_New_errorString`)
-returns some string, as a triple (the form of the server's `errMsgOk`, the lease's and auth's
-error-variable facts). -/
+returns one string on every call (the form of the server's `errMsgOk`, the lease's and auth's
+error-variable facts; fromerror-stable, 2026-11-06: it was a triple returning some string, which
+`status.FromError` cannot take as the error's description). -/
 theorem errorMsg_triple (ty : go.GoType) (v : val) (msg : GoString) :
     iprop(□ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
       WP (App (Val #(methods ty go!"Error" v)) (Val #())) {{ Φ }}) ⊢
-    {{ (True : IProp GF) }} (App (Val #(methods ty go!"Error" v)) (Val #()))
-      {{ (m : GoString), RET #m; True }} := by
-  iintro #H %Φ !> - HΦ
-  iapply H
-  inext
-  iapply HΦ
-  itrivial
+    ∃ m : GoString, □ ∀ Φ : val → IProp GF, ▷ Φ #m -∗
+      WP (App (Val #(methods ty go!"Error" v)) (Val #())) {{ Φ }} := by
+  iintro #H
+  iexists msg
+  iexact H
 
 /-- **`X` holds an `errors.New(msg)` error** (persistent; a package fact): a fixed `*errorString`
 whose `Error()` returns `msg`. What `errorsNewVarInit` gives, made persistent. -/

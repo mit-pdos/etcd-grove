@@ -5,6 +5,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.auth.Base
+public import Spec.go_uber_org.zap.Defs
 
 @[expose] public section
 
@@ -24,10 +25,11 @@ variable [sem : go.Semantics]
 /-- `decomposeOpts(lg, optstr)`: the token type, the first of `optstr`'s comma-separated fields
 (`strings.Split`), with an owned map of the other fields' `key=value` pairs; or an error (a field
 that is not one `key=value` pair, or a key given twice), not `nil`, only if there is more than one
-field. -/
+field. The logger is nil or a zap logger (`zapLoggerOrNil`; premise fixes 6): each error is
+logged under `lg != nil`. -/
 abbrev auth.decomposeOpts.spec : Prop :=
   ∀ (lg : Loc) (optstr : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ ⌜lg ≠ null⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ zapLoggerOrNil lg }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.decomposeOpts)) (Val #lg)) (Val #optstr))
   {{ (tt : GoString) (m : Loc) (err : GoInterface), RET (PairV (PairV #tt #m) #err);
       (⌜err = GoInterface.nil⌝ ∗ ⌜tt = (_root_.Perennial.strings.split optstr go!",").head!⌝ ∗

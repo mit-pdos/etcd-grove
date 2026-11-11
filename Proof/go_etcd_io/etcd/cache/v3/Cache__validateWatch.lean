@@ -49,9 +49,10 @@ theorem Cache.validateWatch.wp_proof
   ihave Hci : (cacheInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hci with ⟨-, ⟨%eUR, #HeURp⟩, ⟨%eKR, #HeKR⟩, -, -, #HUR⟩
+  ihave ⟨#HeUR', %HfUR⟩ := HUR $$ HeURp
   ihave #HeUR : EtcdGrove.fmt.stringMethodSpec eUR go!"Error" $$ []
   · rw [show EtcdGrove.fmt.stringMethodSpec eUR go!"Error" = errorStringSpec eUR from rfl]
-    iapply HUR; iexact HeURp
+    iexact HeUR'
   ihave #Hcl : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
   wp_auto
@@ -61,7 +62,7 @@ theorem Cache.validateWatch.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
-    wp_apply wp_Errorf $$ [$Hsl] as %e ⟨-, #HeS⟩
+    wp_apply wp_Errorf $$ [$Hsl] as %e ⟨-, #HeS, %_⟩
     · fmt_args_ok
     iapply HΦ
     have hu : o.watchUnsupported = true := by simp [OpModel.watchUnsupported, ← Hif]
@@ -79,7 +80,7 @@ theorem Cache.validateWatch.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
-    wp_apply wp_Errorf $$ [$Hsl] as %e ⟨-, #HeS⟩
+    wp_apply wp_Errorf $$ [$Hsl] as %e ⟨-, #HeS, %_⟩
     · fmt_args_ok
     iapply HΦ
     have hu : o.watchUnsupported = true := by simp [OpModel.watchUnsupported, ← Hif]
@@ -97,7 +98,7 @@ theorem Cache.validateWatch.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
-    wp_apply wp_Errorf $$ [$Hsl] as %e ⟨-, #HeS⟩
+    wp_apply wp_Errorf $$ [$Hsl] as %e ⟨-, #HeS, %_⟩
     · fmt_args_ok
     iapply HΦ
     have hu : o.watchUnsupported = true := by simp [OpModel.watchUnsupported, ← Hif]
@@ -115,7 +116,7 @@ theorem Cache.validateWatch.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
-    wp_apply wp_Errorf $$ [$Hsl] as %e ⟨-, #HeS⟩
+    wp_apply wp_Errorf $$ [$Hsl] as %e ⟨-, #HeS, %_⟩
     · fmt_args_ok
     iapply HΦ
     have hu : o.watchUnsupported = true := by simp [OpModel.watchUnsupported, ← Hif]
@@ -133,7 +134,7 @@ theorem Cache.validateWatch.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
-    wp_apply wp_Errorf $$ [$Hsl] as %e ⟨-, #HeS⟩
+    wp_apply wp_Errorf $$ [$Hsl] as %e ⟨-, #HeS, %_⟩
     · fmt_args_ok
     iapply HΦ
     have hu : o.watchUnsupported = true := by simp [OpModel.watchUnsupported, ← Hif]

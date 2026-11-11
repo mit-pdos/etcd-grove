@@ -80,7 +80,10 @@ translate = ["!*", "AuthInfo",
   "authStore.GenTokenPrefix",
   # (R2b-3c part 2, 2026-11-04) the store's `Close`, which the server's `Cleanup` calls (the
   # provider's `disable`, as `AuthDisable`)
-  "authStore.Close"]
+  "authStore.Close",
+  # (revoke-open pass 2, 2026-11-06) the root context the server's lease revocation runs under
+  # (`s.authStore.WithRoot(s.ctx)`); proved in the auth-off case only, its `IsAuthEnabled` branch
+  "authStore.WithRoot"]
 imports = ["!*", "bytes", "context", "errors", "fmt", "sort", "strconv", "strings", "time", "sync", "sync/atomic",
   "go.uber.org/zap", "google.golang.org/grpc/metadata", "golang.org/x/crypto/bcrypt",
   "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/authpb",

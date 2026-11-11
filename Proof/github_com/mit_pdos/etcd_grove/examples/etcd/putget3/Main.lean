@@ -122,10 +122,11 @@ theorem Main.wp_proof
     (wp_NewClient : etcdstart.NewClient.spec (GF := GF) (hG := hG))
     (wp_Background : context.Background.spec (GF := GF) (hG := hG))
     (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
-    (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG)) :
+    (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
+    (hne : mvcc.api.names_nonempty.law) :
     Main.spec (GF := GF) (hG := hG) := by
   intro CS CRE CEC N id₁ id₂ id₃ ps ctxs boot Hbf Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms hAs
-  wp_start as ⟨Ha₁, Ha₂, Ha₃, Hac, Hf₁, Hf₂, Hf₃, Htok, #Hprem, Hw₁, Hw₂, Hw₃⟩
+  wp_start as ⟨Hs₁, Hs₂, Hs₃, Htok, #Hprem⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#Hb₁, #Hb₂, #Hb₃, #Hmarsh, #Hcom⟩
   -- `Main`'s premises in the shared start's form
@@ -148,7 +149,7 @@ theorem Main.wp_proof
   · iunfold etcdstart.commonPremises; iunfold etcd_putget3.commonPremises at Hcom; iexact Hcom
   ihave #Hcom' := Hcom
   iunfold etcd_putget3.commonPremises at Hcom'
-  icases Hcom' with ⟨-, -, -, -, #Hnrl⟩
+  icases Hcom' with ⟨-, -, -, #Hnrl⟩
   -- `context`'s `closedchan`, from its package's fact
   ihave #Hcci : context.isClosedchanInit (GF := GF) $$ []
   · iapply context.isClosedchanInit_of_init
@@ -174,7 +175,8 @@ theorem Main.wp_proof
     github_com.mit_pdos.etcd_grove.examples.etcd.putget3.clientAddr,
     github_com.mit_pdos.etcd_grove.examples.etcd.putget3.clientAddr2,
     github_com.mit_pdos.etcd_grove.examples.etcd.putget3.clientAddr3]
-  wp_apply wp_NewNop as %lg %Hlg
+  wp_apply wp_NewNop as %lg #Hlgz
+  ihave %Hlg := zapLoggerOk_ne_null lg $$ Hlgz
   (try wp_auto)
   -- the peer URLs and the initial cluster's map, read-only from here on (D19r (F))
   wp_apply wp_slice_literal
@@ -237,11 +239,17 @@ theorem Main.wp_proof
     iapply BigSepM.bigSepM_empty.2; itrivial
   -- the ghost state of the cluster and its members (`alloc3`)
   have hblen0 : boot.length = 3 := by rw [Hbf.boot.1, Hbf.perm.length_eq]; rfl
-  imod (etcdstart.alloc3 id₁ id₂ id₃ ps Hbf.perm ctxs boot Hbf.idLow Hbf.idLow0 Hbf.boot Hbf.cc Hbf.urls
+  imod (etcdstart.alloc3 hne id₁ id₂ id₃ ps Hbf.perm ctxs boot Hbf.toBootCore
       (dir3 id₁ id₂ id₃) peerAddr₁ peerAddr₂ peerAddr₃ (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf).1
-      (dir3_host id₁ id₂ id₃) (by omega) (by omega)) $$ Hmarsh Hf₁ Hf₂ Hf₃
+      (dir3_host id₁ id₂ id₃) (by omega) (by omega) name₁ name₂ name₃ (some clientAddr₁) none none
+      .none lease.runCfg_none (by decide))
+      $$ Hmarsh Hs₁ Hs₂ Hs₃
     with ⟨%γ, %reg₁, %reg₂, %reg₃, %ρ₁, %ρ₂, %ρ₃, %E₁, %E₂, %E₃, %Φs, %γn, %Hal,
-    Hmb₁, ⟨#Hnet₁, Hpo₁⟩, Hmb₂, ⟨#Hnet₂, Hpo₂⟩, Hmb₃, ⟨#Hnet₃, Hpo₃⟩, Hetcd⟩
+    Hmb₁, ⟨#Hnet₁, Hfr₁⟩, Hmb₂, ⟨#Hnet₂, Hfr₂⟩, Hmb₃, ⟨#Hnet₃, Hfr₃⟩, Hetcd⟩
+  -- (lease-mono3) the cluster at the mode `none`: the client's `etcdKV`
+  isimp only [ne_eq, not_true_eq_false, decide_false, Bool.false_eq_true, ↓reduceIte] at Hetcd
+  -- (hub step 7) member 1's client address's listen right, out of its fresh bundle (to `Serve`)
+  icases etcdstart.memberFreshRes_client _ _ _ _ rfl $$ Hfr₁ with ⟨Hac, Hfr₁⟩
   obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog₁, -⟩ := Hal
   obtain ⟨hn12, hn13, hn23⟩ := etcdstart.id_ne id₁ id₂ id₃ Hbf.idLow Hbf.idLow0
   have hd₁ : go!"http://" ++ peerAddr₁ ∈ dir3 id₁ id₂ id₃ id₁ := by simp [dir3]
@@ -257,12 +265,12 @@ theorem Main.wp_proof
         (GMap.insert name₁ (slice.mk peer₁ (W64 1) (W64 1)) ∅))) initURLs3
       (etcdstart.urls3 name₁ name₂ name₃ initURLs3 peerAddr₁ clientAddr₁) ps
       (LogEntry.toEntries boot 0) ctxs
-      (dir3 id₁ id₂ id₃) id₁ { γ with reg := reg₁ } ρ₁ E₁ Φs γn Htb Hrb48 HrbN HwbN
+      (dir3 id₁ id₂ id₃) id₁ { γ with reg := reg₁ } ρ₁ E₁ Φs γn .none Htb Hrb48 HrbN HwbN
       hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf) hd₁
       (dir3_dirsOk id₁ id₂ id₃ ps ctxs boot Hbf) ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
       (etcdstart.utf8Keys_insert _ _ _ (by decide) (etcdstart.utf8Keys_insert _ _ _ (by decide)
-        (etcdstart.utf8Keys_insert _ _ _ (by decide) etcdstart.utf8Keys_empty))) Hlg Hck Haf
-      Hbuq Hdbo) $$ [Ha₁ Htok Hmb₁ Hpo₁ Hw₁] as %s₁ %err₁ Hr₁
+        (etcdstart.utf8Keys_insert _ _ _ (by decide) etcdstart.utf8Keys_empty))) Hck Haf
+      Hbuq Hdbo) $$ [Hfr₁ Htok Hmb₁] as %s₁ %err₁ Hr₁
   · iframe; iframe #
     iExactEq Hq₁; rfl
   icases Hr₁ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₁⟩)
@@ -273,9 +281,8 @@ theorem Main.wp_proof
     iapply HΦ; itrivial
   subst Herr
   wp_auto
-  iunfold etcdstart.memberUp at Hup₁
-  icases Hup₁ with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf, Hbemu,
-    Hlts, Hlgs, Hrds, Hsts, Hbms, -, HWR, -⟩
+  icases etcdstart.memberUp_served _ _ _ _ _ _ _ $$ Hup₁ with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd,
+    #Hsf, Hgo, Hlg3, Hbemu, HWR, ⟨Hlts, Hlgs, Hrds, Hsts, Hrslots, Hbms⟩, -, -⟩
   iunfold srvGoRes at Hgo
   icases Hgo with ⟨Hwgr, Htok⟩
   wp_apply (wp_StartMember N name₂ peerAddr₂ clientAddr₂ go!"putget3"
@@ -284,12 +291,12 @@ theorem Main.wp_proof
         (GMap.insert name₁ (slice.mk peer₁ (W64 1) (W64 1)) ∅))) initURLs3
       (etcdstart.urls3 name₁ name₂ name₃ initURLs3 peerAddr₂ clientAddr₂) ps
       (LogEntry.toEntries boot 0) ctxs
-      (dir3 id₁ id₂ id₃) id₂ { γ with reg := reg₂ } ρ₂ E₂ Φs γn Htb Hrb48 HrbN HwbN
+      (dir3 id₁ id₂ id₃) id₂ { γ with reg := reg₂ } ρ₂ E₂ Φs γn .none Htb Hrb48 HrbN HwbN
       hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf) hd₂
       (dir3_dirsOk id₁ id₂ id₃ ps ctxs boot Hbf) ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
       (etcdstart.utf8Keys_insert _ _ _ (by decide) (etcdstart.utf8Keys_insert _ _ _ (by decide)
-        (etcdstart.utf8Keys_insert _ _ _ (by decide) etcdstart.utf8Keys_empty))) Hlg Hck Haf
-      Hbuq Hdbo) $$ [Ha₂ Htok Hmb₂ Hpo₂ Hw₂] as %s₂ %err₂ Hr₂
+        (etcdstart.utf8Keys_insert _ _ _ (by decide) etcdstart.utf8Keys_empty))) Hck Haf
+      Hbuq Hdbo) $$ [Hfr₂ Htok Hmb₂] as %s₂ %err₂ Hr₂
   · iframe; iframe #
     iExactEq Hq₂; rfl
   icases Hr₂ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₂⟩)
@@ -300,8 +307,8 @@ theorem Main.wp_proof
     iapply HΦ; itrivial
   subst Herr
   wp_auto
-  iunfold etcdstart.memberUp at Hup₂
-  icases Hup₂ with ⟨%E', %cfg', %γw', -, -, -, Hgo₂, -⟩
+  icases etcdstart.memberUp_served _ _ _ _ _ _ _ $$ Hup₂ with
+    ⟨%E', %cfg', %γw', -, -, -, -, Hgo₂, -⟩
   iunfold srvGoRes at Hgo₂
   icases Hgo₂ with ⟨-, Htok⟩
   wp_apply (wp_StartMember N name₃ peerAddr₃ clientAddr₃ go!"putget3"
@@ -310,12 +317,12 @@ theorem Main.wp_proof
         (GMap.insert name₁ (slice.mk peer₁ (W64 1) (W64 1)) ∅))) initURLs3
       (etcdstart.urls3 name₁ name₂ name₃ initURLs3 peerAddr₃ clientAddr₃) ps
       (LogEntry.toEntries boot 0) ctxs
-      (dir3 id₁ id₂ id₃) id₃ { γ with reg := reg₃ } ρ₃ E₃ Φs γn Htb Hrb48 HrbN HwbN
+      (dir3 id₁ id₂ id₃) id₃ { γ with reg := reg₃ } ρ₃ E₃ Φs γn .none Htb Hrb48 HrbN HwbN
       hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf) hd₃
       (dir3_dirsOk id₁ id₂ id₃ ps ctxs boot Hbf) ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
       (etcdstart.utf8Keys_insert _ _ _ (by decide) (etcdstart.utf8Keys_insert _ _ _ (by decide)
-        (etcdstart.utf8Keys_insert _ _ _ (by decide) etcdstart.utf8Keys_empty))) Hlg Hck Haf
-      Hbuq Hdbo) $$ [Ha₃ Htok Hmb₃ Hpo₃ Hw₃] as %s₃ %err₃ Hr₃
+        (etcdstart.utf8Keys_insert _ _ _ (by decide) etcdstart.utf8Keys_empty))) Hck Haf
+      Hbuq Hdbo) $$ [Hfr₃ Htok Hmb₃] as %s₃ %err₃ Hr₃
   · iframe; iframe #
     iExactEq Hq₃; rfl
   icases Hr₃ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₃⟩)
@@ -326,8 +333,8 @@ theorem Main.wp_proof
     iapply HΦ; itrivial
   subst Herr
   wp_auto
-  iunfold etcdstart.memberUp at Hup₃
-  icases Hup₃ with ⟨%E'', %cfg'', %γw'', -, -, -, Hgo₃, -⟩
+  icases etcdstart.memberUp_served _ _ _ _ _ _ _ $$ Hup₃ with
+    ⟨%E'', %cfg'', %γw'', -, -, -, -, Hgo₃, -⟩
   iunfold srvGoRes at Hgo₃
   icases Hgo₃ with ⟨-, Htok⟩
   ihave Hgo : srvGoRes s₁ $$ [Hwgr Htok]
@@ -335,12 +342,20 @@ theorem Main.wp_proof
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HEc
   -- `Serve(s, clientAddr)`, with etcd's KV calls registered at the address
   haveI := Hms
+  ihave ⟨%HsvOff, #HreqM, #HrdM, #Hlb⟩ := etcdstart.serveViews_off s₁ E { ρ₁ with wait := γw } ρ₁.rd
+    $$ []
+  · iframe #
+  ihave #HzlgC : zapLoggerOk cfg.Logger' $$ []
+  · rw [HElg]; iexact Hlgz
   wp_apply (wp_Serve s₁ clientAddr₁ E { ρ₁ with wait := γw } ρ₁.rd cfg
-      (fun cid mid _ => etcdstart.etcdKVAt clientAddr₁ E { ρ₁ with wait := γw } ρ₁.rd cid mid)
-      (by rw [HElg]; exact Hlg) HEtr HEw Hms Hbuq)
+      (fun cid mid _ => etcdstart.etcdKVAt clientAddr₁ E { ρ₁ with wait := γw } ρ₁.rd cid mid))
     $$ [Hac Hlg3 Hbemu Hgo HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
   · iframe; iframe #
+    isplitr
+    · ipureintro; exact ⟨HEtr, HEw, Hms, Hbuq, HsvOff.2⟩
     iintro %gs %lis %cid %mid %R Hg
+    rw [HsvOff.1]
+    ihave Hg := etcdstart.grpcUpM_false _ _ _ _ _ _ _ _ _ _ $$ Hg
     iapply (etcdstart.kv_served s₁ E { ρ₁ with wait := γw } ρ₁.rd gs lis clientAddr₁ cid mid R Hrb48 Hrf rfl)
     unfold etcdstart.kvServeStocks
     iframe; iframe #
@@ -356,8 +371,9 @@ theorem Main.wp_proof
     rfl $$ Hkv
   -- `NewClient(clientAddr, lg)` (etcd's default client configuration)
   wp_apply (wp_NewClient clientAddr₁ lg
-      (EtcdGrove.client.srvWEnv R clientAddr₁ [] null null [] null default) Hlg
+      (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ₁.rd false) ρ₁.rd clientAddr₁ [] null null [] null default)
       (by unfold plainEndpoint clientAddr₁; decide) (by omega)) as %cl %cerr Hcl
+  · iframe #
   icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
   rotate_left
   · obtain ⟨Hcerr, -⟩ := Hcfail
@@ -378,7 +394,7 @@ theorem Main.wp_proof
   rw [kvModelSt_boot _ (fun _ _ => True) _ _ (srvBootLogOk_of_BootLog _ _ _ Hbf.boot)]
   imod (client.putGetInv_alloc_log ρ₁.rd (kvModel ρ₁.rd.kv (bootEntries (LogEntry.toEntries boot 0))) go!"k" go!"v" ⊤)
     $$ Hetcd with ⟨%γf, #Hinv⟩
-  imod mvcc.idxCert_nil (GF := GF) E.γ.idx with #HF0
+  imod v3rpc.kvLogLb_nil (GF := GF) E.γs with #HF0
   ihave #Hnil : optsAt (GF := GF) slice.nil [] $$ []
   · iunfold optsAt
     iexists ([] : List GoFunc)

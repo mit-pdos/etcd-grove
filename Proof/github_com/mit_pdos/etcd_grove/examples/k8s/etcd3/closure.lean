@@ -11,6 +11,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.closure
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.addConfig
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.mstep
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.removeAt
+public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.advance
 
 @[expose] public section
 
@@ -30,10 +31,12 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
 theorem closure.wp_proof (wp_addConfig : addConfig.spec (GF := GF) (hG := hG))
-    (wp_mstep : mstep.spec (GF := GF) (hG := hG)) (wp_removeAt : removeAt.spec (GF := GF) (hG := hG)) :
+    (wp_mstep : mstep.spec (GF := GF) (hG := hG)) (wp_removeAt : removeAt.spec (GF := GF) (hG := hG))
+    (wp_advance : advance.spec (GF := GF) (hG := hG)) :
     closure.spec (GF := GF) (hG := hG) := by
   intro st0 s cs gs dq n
   wp_start as ⟨Hs, #Hcs, %Hn, %Hb⟩
@@ -124,8 +127,10 @@ theorem closure.wp_proof (wp_addConfig : addConfig.spec (GF := GF) (hG := hG))
       have hlen : so'.len ≠ so.len := by intro he; rw [he] at Hol'; word
       rw [show addConfigL ogs h = ogs ++ [h] from if_neg hm, decide_eq_false hlen]
       have Hhb : Bounded n h := (Hinv.1 h (by simp)).2
-      unfold cfgOwn
-      icases Hd with ⟨#Hds, #Hdp⟩
+      ihave #Hd' : cfgOwn (GF := GF) d h $$ [Hd]
+      · iexact Hd
+      isimp only [cfgOwn] at Hd'
+      icases Hd' with ⟨#Hds, #Hdh, #Hdp, %Hdhl⟩
       ihave %Hpl := ownSlice_len $$ Hdp
       wp_auto
       rename_i iu_ptr
@@ -154,35 +159,37 @@ theorem closure.wp_proof (wp_addConfig : addConfig.spec (GF := GF) (hG := hG))
         · isplit
           · iexact Hdp
           · ipureintro; exact Hx_lookup
-        wp_apply wp_mstep x d.st' h.st $$ [$Hds] as %nk %o ⟨#Hnk, -⟩
+        have hwr : isWriteL x = true := Hhb.2.2 x (List.mem_of_getElem? Hx_lookup)
+        wp_apply wp_mstep x d.st' h.st.st $$ [$Hds] as %nk %o ⟨#Hnk, -⟩
         · ipureintro; unfold Bounded at Hhb; omega
         wp_apply wp_removeAt d.pend' h.pend DFrac.discard j $$ [$Hdp] as %np ⟨-, Hnp, -⟩
         · ipureintro; exact Hb'
         ipersist Hnp
-        wp_apply wp_slice_literal (l := [(⟨nk, np⟩ : mcfg)])
+        wp_apply wp_advance d h nk (mstepL x h.st.st).1 np (removeAtL h.pend (sint.nat j))
+          $$ [$Hd $Hnk $Hnp] as %c' #Hc'
+        · ipureintro; unfold Bounded at Hhb; omega
+        wp_apply wp_slice_literal (l := [c'])
         isplitr
         · ipureintro; rfl
         iintro %lsl ⟨Hl1, _⟩
         wp_apply wp_slice_append $$ [$Hw $Hwcap $Hl1] as %sw'' ⟨Hw, Hwcap, -⟩
         wp_for_post
         iframe
-        iexists j + W64 1, _, _, sw'', ncs ++ [⟨nk, np⟩]
+        iexists j + W64 1, _, _, sw'', ncs ++ [c']
         rw [List.append_assoc]
         iframe
-        have hsucc : succAt h (sint.nat j) = ⟨(mstepL x h.st).1, removeAtL h.pend (sint.nat j)⟩ := by
+        have hsucc : succAt h (sint.nat j) =
+            ⟨advanceL h.st (mstepL x h.st.st).1, removeAtL h.pend (sint.nat j)⟩ := by
           have hx : pendAt h (sint.nat j) = x := by
             rw [pendAt_eq h _ (by word)]
             exact Option.some.inj ((List.getElem?_eq_getElem (by word)).symm.trans Hx_lookup)
-          simp only [succAt, hx]
+          simp only [succAt, hx, kstepL_write x h.st hwr]
         rw [show sint.nat (j + W64 1) = sint.nat j + 1 by word, succsUpTo_succ, hsucc]
         isplitl []
         · iapply (BigSepL2.bigSepL2_snoc (Φ := fun _ c g => cfgOwn (GF := GF) c g)).2
           isplit
           · iexact Hn
-          · unfold cfgOwn
-            isplit
-            · iexact Hnk
-            · iexact Hnp
+          · iexact Hc'
         ipureintro; word
       · -- the inner loop's end: `h` is in `out`, its successors in `work`
         have hj : sint.nat j = h.pend.length := by word
@@ -193,11 +200,9 @@ theorem closure.wp_proof (wp_addConfig : addConfig.spec (GF := GF) (hG := hG))
         iframe
         isplitl []
         · iexact Hocs'
-        unfold cfgOwn
         isplitl []
         · iapply (BigSepL2.bigSepL2_append
-            (Φ := fun _ (c : mcfg) (g : GCfg) =>
-              iprop(storeOwn c.st' g.st ∗ c.pend' ↦*□ g.pend : IProp GF))
+            (Φ := fun _ (c : mcfg) (g : GCfg) => cfgOwn (GF := GF) c g)
             (Or.inl (by omega))).2
           isplit
           · iexact Hwc

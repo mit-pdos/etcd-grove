@@ -31,7 +31,7 @@ trivial extension (`common/TrivialExt.lean`; the proofs are generic over the ext
   time-receipt bounds; it also gives `n + 7 ≤ backend.wbInit`, the backend's write-back budget
   `bootstrap`'s contract takes, since 2026-11-01 derived instead of assumed);
 * the semantics: `go.Semantics`, the package assumptions (`putgetc`'s, the cache's), and the
-  model classes the proofs take (`Float64ToInt64Semantics`, `DialWithBalancerBody`,
+  model classes the proofs take (`DialWithBalancerBody`,
   `log.NewModel`; the method-set facts, `v3rpc.ServerMethodSets`, `errors.AsTarget` of
   `rpctypes.EtcdError`, `ErrorStringLeaf`, `RpctypesEtcdErrorMethods`, are theorems of the
   package assumptions), and `ContextReadErrs` (`context.Canceled`'s and `DeadlineExceeded`'s method
@@ -45,7 +45,7 @@ trivial extension (`common/TrivialExt.lean`; the proofs are generic over the ext
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Adequacy
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.AdequacyMembers
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.compacted.MainLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.compacted.PkgTable
 public import Proof.runtime.Start
@@ -121,7 +121,7 @@ thread is stuck; no thread has ended in a panic. -/
 theorem etcd_compacted_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.compacted.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC putgetcGF, ContextReadErrs (GF := putgetcGF) (hG := heapAtC hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC putgetcGF, ContextErrsClient (GF := putgetcGF) (hG := heapAtC hG lctx))
@@ -131,8 +131,10 @@ theorem etcd_compacted_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (HNs : prometheus.namesUnclaimed putgetcProgram putgetcNames)
     (HAs : addrsUnclaimed putgetcProgram [go!"127.0.0.1:23791"])
-    -- (2026-11-03, the WAL's API, change 6) the member's WAL directory holds no WAL at start
-    (HDs : walDirsAbsent putgetcProgram [config.walDirOf go!"putgetc.etcd" go!""])
+    -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the member's data directory, fresh at start (`dataDirsAbsent`)
+    (HDs : dataDirsAbsent putgetcProgram [go!"putgetc.etcd"])
+    -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
+    (HEnv : verifyEnvOff putgetcProgram)
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putgetcGF,
       ⊢ etcd_compacted.premises (GF := putgetcGF) (hG := heapAtC hG lctx) n id ctxs boot)
@@ -144,9 +146,11 @@ theorem etcd_compacted_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
-  refine etcd_adequate (GF := putgetcGF) github_com.mit_pdos.etcd_grove.examples.etcd.compacted.initialize'
+  refine etcd_adequate_members (GF := putgetcGF) (hAsLit := by decide) (HEnv := HEnv) github_com.mit_pdos.etcd_grove.examples.etcd.compacted.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.etcd.compacted.Main) #())
-    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) [go!"127.0.0.1:23791"] (by decide) [config.walDirOf go!"putgetc.etcd" go!""] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
+    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) [go!"127.0.0.1:23791"] (by decide) [go!"putgetc.etcd"] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩)
+    -- (hub step 7) the one member's start bundle: its client address, its data directory
+    [(go!"putgetc", ⟨none, some go!"127.0.0.1:23791"⟩)] [] (List.Perm.refl _) (List.Perm.refl _) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
     n κs t2 σ2 Hsteps fun hG HN HT => ?_
   letI : HeapGS .hasLC putgetcGF := heapAtC hG lctx
   haveI := Hctx hG
@@ -154,12 +158,11 @@ theorem etcd_compacted_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   unfold progOk
   refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.etcd.compacted.wp_initialize' _ github_com.mit_pdos.etcd_grove.examples.etcd.compacted.getIsPkgInit_wf, ?_⟩
   ihave #Hprem' := Hprem hG
-  iintro #Hinit Htok ⟨Has, -, Hds⟩
-  icases BigSepL.bigSepL_cons.1 $$ Hds with ⟨Hwd, -⟩
-  icases BigSepL.bigSepL_cons.1 $$ Has with ⟨Haddr, -⟩
-  have hM := etcd_compacted.wp_Main (GF := putgetcGF) n id ctxs boot Hbf (by rw [HT]; omega)
+  iintro #Hinit Htok ⟨Hms, -⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hms with ⟨Hstart, -⟩
+  have hM := etcd_compacted.wp_Main (GF := putgetcGF) n id ctxs boot Hbf (by rw [HT]; word)
     (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
-  wp_apply hM $$ [Haddr Htok Hwd]
+  wp_apply hM $$ [Hstart Htok]
   · iframe; iframe #
   ipureintro
   rfl

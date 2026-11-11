@@ -27,7 +27,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `proto.Size(m)` of a `*pb.Message` holding `ms` (at any fractions, with or without its entries'
 capacity) returns some `int` at least `0`, the message back.
 
-Against protobuf-go v1.36.11 (`proto/size.go`, `internal/impl/encode.go:118-129`): `Size` is the
+Against protobuf-go v1.36.12 (`proto/size.go`, `internal/impl/encode.go:118-129`): `Size` is the
 length of the wire encoding, a non-negative `int`; it reads the message (its entries, snapshot,
 context and responses) and stores the size cache atomically: a write to the hidden fields only,
 which the hidden-field invariant (`pbMsg`, inside `msgPtsC`) owns. -/

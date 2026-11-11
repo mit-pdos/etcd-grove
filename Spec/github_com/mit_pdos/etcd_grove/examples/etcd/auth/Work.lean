@@ -51,14 +51,15 @@ abbrev Work.spec : Prop :=
     (cl : Loc) (who : GoString) (V : WEnv GF) (s : Loc) (E : apply.AEnv GF)
     (ρ : ReqNames) (cid mid : w64) (γa : auth.AuthNames) (Lset : List EntryModel) (n : Nat),
   who ∈ principals → E.authMode = .on γa →
-  V.addr = go!"127.0.0.1:23916" ∧ V.mem = (fun _ => (V.addr, V.R)) ∧ V.nm = 1 ∧ V.R.s = s ∧
+  V.addr = go!"127.0.0.1:23916" ∧ V.mem = (fun _ => (V.addr, V.R)) ∧ V.memW = (fun _ => V.W) ∧
+    V.nm = 1 ∧ V.R.s = s ∧
     V.R.E = E ∧ V.kst = ρ.kv.st →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.auth ∗
       isNewClient cl [go!"127.0.0.1:23916"] V ∗ watchAddrFacts V ∗
       clientTokAt cl [go!"127.0.0.1:23916"] (akTokP γa who) ∗
       akKVOn go!"127.0.0.1:23916" s E ρ cid mid ∗ □ (srvTLSId s -∗ False) ∗
-      akHistInv ρ.kv ∗ akAuthFixed γa ρ Lset n ∗ auth.modeTag V.R.γ.tag (.on γa) }}
+      akHistInv ρ.kv ∗ akAuthFixed γa ρ Lset n ∗ auth.modeTag V.R.tag (.on γa) }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.auth.Work)) (Val #cl))
       (Val #who))
   {{ RET #(); True }}

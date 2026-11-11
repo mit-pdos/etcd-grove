@@ -8,6 +8,7 @@ from a context carrying no trace), and the response's header at the store's revi
 -/
 module
 
+public import Proof.go_opentelemetry_io.otel.trace.SpanCtxLaws
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Compact
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.Tracer__Start
 public import Spec.go_opentelemetry_io.otel.trace.WithAttributes
@@ -25,8 +26,7 @@ public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.Trace__LogIfLong
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.Trace__AddField
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest__GetPhysical
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest__GetRevision
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Rev
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.KVWrite
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVStoreCore
 
 @[expose] public section
 
@@ -57,9 +57,9 @@ theorem isServerReq_cmp (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
 /-- The readers' view holds a certificate of the store's first two revisions (`srvReadFieldsAt`). -/
 theorem isServerRead_log0 (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
     isServerRead (GF := GF) s E γr ⊢
-      ∃ log₀ : mvcc.Log, mvcc.idxCert E.γ.idx log₀ ∗ ⌜2 ≤ log₀.length⌝ := by
+      ∃ log₀ : mvcc.Log, srvApi.kvLogLb E.γs log₀ ∗ ⌜2 ≤ log₀.length⌝ := by
   unfold isServerRead srvReadFieldsAt
-  iintro ⟨%v, ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%l, #H, %Hl⟩, -⟩⟩
+  iintro ⟨%v, ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%l, #H, %Hl⟩, -⟩⟩
   iexists l
   iframe H
   ipureintro; exact Hl.1
@@ -68,12 +68,12 @@ theorem isServerRead_log0 (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
 theorem isServerRead_kvInvs (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
     isServerRead (GF := GF) s E γr ⊢ srvKVInvs E γr := by
   unfold isServerRead srvReadFieldsAt
-  iintro ⟨%v, ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #H, -⟩⟩
+  iintro ⟨%v, ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #H, -⟩⟩
   iexact H
 
 /-- **`Compact`'s request is a compaction of a good shape** with no range end `[0]`. -/
 theorem irrCompaction_shape (rev : w64) :
-    rqShape false (irrCompaction rev) ∧ irrNoZeroEnd (irrCompaction rev) := by
+    rqShape .none (irrCompaction rev) ∧ irrNoZeroEnd (irrCompaction rev) := by
   have hk : apply.dispatchKind (irrCompaction rev) = .compaction := by
     simp [apply.dispatchKind, irrCompaction, apply.irrEmpty]
   refine ⟨⟨fun on => ⟨by rw [hk]; decide, fun h => by rw [hk] at h; cases h⟩, fun log _ => ?_⟩,
@@ -146,22 +146,27 @@ set_option hygiene false in
 /-- A compaction's response `Hrsp` with its header `Hhdr` (both owned): the store's revision
 (`s.kv.Rev()`) into the header, the trace's field (`Hown0`), up to the deferred calls. -/
 local macro "compact_ok_tail" : tactic => `(tactic| (
-  -- `s.kv.Rev()`: the store's revision
-  ihave %Hkvok := txn.isKV_ok _ E.s E.γ $$ Hkv
-  obtain ⟨kty, kvv, Hkveq⟩ := Hkvok
-  ihave ⟨#Hko0, #Hs⟩ := txn.isKV_kvOver _ E.s E.γ $$ Hkv
-  ihave #Hko : mvcc.kvOver (interface.mkOk kty kvv) E.s $$ []
-  · rw [← Hkveq]; iexact Hko0
-  ihave #Pmv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
-  · iPkgInit
+  -- `s.kv.Rev()`: `KV.Rev.contract` at the handle's dynamic type, at the store invariant's read
+  -- update from the readers' first floor (two revisions: the client's `kv.Compact`, 2026-11-01)
+  ihave %Hsh := hshL.1 v.kv E.γ $$ Hkv
+  obtain ⟨kty, kvv, Hkveq, -, -, hRevC, -⟩ := Hsh
   rw [Hkveq]
-  imod ownToks_0 (GF := GF) E.γ.revs with Hnone
-  wp_bind (App (Val #(methods kty _ kvv)) _)
-  iapply mvcc.kvOver_rev_wp kty kvv E.s
-  iframe Hko
-  -- (the client's `kv.Compact`, 2026-11-01) at the readers' first certificate, two revisions
-  wp_apply hRevS E.s v.rv E.γ 0 logS $$ [Hrdr Hnone] as %rev ⟨Hrdr, -, %log, #Hlc, -, %Hl⟩
-  · iframe #; iframe
+  ihave HAU := srvApi.au_read (Nx := E.Nx) (Cp := E.Cp) Hp Hr E.kv E.γ E.γs logS $$ HkS Hc0
+  ihave #Hkv' : mvcc.api.isMvcc (interface.mkOk kty kvv) E.γ $$ []
+  · rw [← Hkveq, Hkveq0]; iexact Hkv
+  wp_apply (hRevC E.γ (srvApi.kvReadAtG E.Nx E.Cp E.γs logS)) $$ [Hmr HAU]
+    as %rev ⟨Hmr, %σ, Hrdq, %Hrev⟩
+  · iframe #; iframe Hmr
+    iunfold srvApi.auRead at HAU
+    iexact HAU
+  iunfold srvApi.kvReadAtG at Hrdq
+  icases Hrdq with ⟨%Hpre, #Hlc, -, -, -⟩
+  have Hlen2 : 2 ≤ σ.log.length := by have := Hpre.length_le; omega
+  have Hrevv : rev = W64 ((σ.log.length : Int) - 1) := by
+    rw [Hrev, mvcc.api.MvccState.rev]
+    show W64 ((σ.log.length - 1 : Nat) : Int) = W64 ((σ.log.length : Int) - 1)
+    congr 1
+    omega
   (try wp_auto)
   -- `trace.AddField(response_revision)`
   wp_apply wp_slice_literal
@@ -184,17 +189,17 @@ local macro "compact_ok_post" : tactic => `(tactic| (
   ihave ⟨Hrsp, %Hrplnn⟩ := typedPointsto_not_null_dup _ _ _ $$ Hrsp
   iStructNamed Hrsp
   iapply HΦ
-  iframe Hlt Hlr Hrd Hrdr
+  iframe Hlt Hlr Hrd Hmr
   iunfold compactOutIs
   ileft
   isplitr
   · ipureintro; exact ⟨rfl, Hrplnn⟩
-  iexists _, _, log
+  iexists _, _, σ.log
   iframe Hhdr Hlc
   isplitl
   · iexact Header
   ipureintro
-  exact ⟨Hl.2.2.1, by have := Hl.1.length_le; omega, by simp [Hl.2.2.2]⟩))
+  exact ⟨by intro h; rw [h] at Hlen2; simp at Hlen2, Hlen2, by simp [Hrevv]⟩))
 
 set_option maxRecDepth 20000 in
 set_option maxHeartbeats 4000000 in
@@ -212,13 +217,23 @@ theorem EtcdServer.Compact.wp_proof
     (hSetStart : traceutil.Trace.SetStartTime.spec (GF := GF) (hG := hG))
     (hInsert : traceutil.Trace.InsertStep.spec (GF := GF) (hG := hG))
     (hLogIfLong : traceutil.Trace.LogIfLong.spec (GF := GF) (hG := hG))
-    (hRevS : mvcc.store.Rev.spec (GF := GF) (hG := hG))
+    (Hp : mvcc.api.persistent.law (GF := GF)) (Hr : mvcc.api.mvccState_reachable.law (GF := GF))
+    (hshL : mvcc.api.shapes.law (GF := GF))
     (hAddField : traceutil.Trace.AddField.spec (GF := GF) (hG := hG)) :
     EtcdServer.Compact.spec (GF := GF) (hG := hG) := by
   have hPIRRO := EtcdServer.processInternalRaftRequestOnce.spec_off hPIRRO0
   intro s E ρ ctx cd p r Hr1
-  wp_start as ⟨#Hsrv, %Hcmp, #Hsrd, Hlt, Hlr, Hrd, Hrdr, #Hcred, #Hctx, #Htrc, #Hlb, Hreq⟩
+  haveI := Hp.1
+  wp_start as ⟨#Hsrv, %Hcmp, #Hsrd, Hlt, Hlr, Hrd, Hmr, #Hcred, #Hctx, #Hlib, #Hspc, #Htrc, #Hlb, Hreq⟩
   ihave ⟨%logS, #Hc0, %HlogS⟩ := isServerRead_log0 s E ρ.rd $$ Hsrd
+  -- the store invariant (the readers' view's KV invariants), for `s.kv.Rev()`
+  ihave #Hkvi := isServerRead_kvInvs s E ρ.rd $$ Hsrd
+  iunfold srvKVInvs at Hkvi
+  icases Hkvi with ⟨-, -, -, #HkS, %Hwit, -⟩
+  haveI := Hwit.2.2.1.1
+  haveI := Hwit.2.2.1.2.1
+  haveI := Hwit.2.2.1.2.2.1
+  haveI := Hwit.2.2.1.2.2.2
   -- (Perennial 25bd32450) the named results are allocated before the defer frame
   wp_auto
   wp_apply wp_with_defer as %defer defer
@@ -259,9 +274,11 @@ theorem EtcdServer.Compact.wp_proof
   iintro %osl ⟨-, -⟩
   (try wp_auto)
   -- the span, over the caller's context (which carries no trace: `Htrc`, kept by `Start`)
-  wp_apply hStart tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp⟩
+  wp_apply hStart tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp, #Hspw, -, #Hlibw⟩
   · iframe #; iunfold mvcc.txnCtx; iright; iexact Hctx
   ihave #Hctx1 := Hctx1w $$ Hctx
+  ihave #Hlib1 := Hlibw $$ Hlib
+  ihave #Hspc1 := Hspw $$ Hspc
   ihave #Htrc1 := Hctr1 $$ %none Htrc
   iunfold trace.isSpan at Hsp
   icases Hsp with ⟨%si, %Hsi, #HEnd, -, -⟩
@@ -274,20 +291,24 @@ theorem EtcdServer.Compact.wp_proof
   iunfold isServerRead at Hsrd'
   icases Hsrd' with ⟨%v, #Hf⟩
   iunfold srvReadFieldsAt at Hf
-  icases Hf with ⟨-, -, #HkvA, #Hkv, #HrvA, #Hrv, -, -, -, -, #Hlgf, %Hlgn, -⟩
+  icases Hf with ⟨-, -, #HkvA, #Hkv, %Hkveq0, -, -, -, -, #Hlgf, #Hlgn, -⟩
   wp_apply hLogger s v.lg $$ [Hlr] as ⟨-, Hlr⟩
-  · iframe #; iframe Hlr; ipureintro; exact Hlgn
+  · iframe #; iframe Hlr
   (try wp_auto)
   -- the trace: a new one (the context carries none)
   wp_apply hEnsure ctx1 _ none false v.lg _ slice.nil $$ []
-    as %ctx2 %trc ⟨⟨%Htrcnn, -⟩, Hown0, #Hct2, %Hinc2, %vs2, #Hctx2t, Hctx2w⟩
+    as %ctx2 %trc ⟨⟨%Htrcnn, -⟩, Hown0, #Hct2, %Hinc2, %vs2, #Hctx2t, Hctx2w, #Hspw2, #Hlibw2⟩
   · iframe Hctx1t
     isplitr
     · iexact Htrc1
     isplitr
     · unfold traceutil.ownTraceOpt; itrivial
-    iapply traceutil.ownFields_nil
+    isplitr
+    · iapply traceutil.ownFields_nil
+    iapply zapLoggerOk_orNil; iexact Hlgn
   ihave #Hctx2 := Hctx2w $$ Hctx1
+  ihave #Hspc2 := Hspw2 $$ Hspc1
+  ihave #Hlib2 := Hlibw2 $$ Hlib1
   (try wp_auto)
   -- `&pb.InternalRaftRequest{Compaction: r}`, read-only but for its header; the request's revision,
   -- read-only from here on (the caller gave it)
@@ -351,7 +372,9 @@ theorem EtcdServer.Compact.wp_proof
   ihave ⟨%Hkcmp, -⟩ := isServerReq_cmp s E ρ $$ Hsrv
   have hcp := compactPropOk_irrCompaction rv.Revision' (by rw [Hrv.1]; exact Hr1)
   have hsh := irrCompaction_shape rv.Revision'
-  imod mvcc.idxCert_nil (GF := GF) E.γ.idx with #HcF0
+  imod monoListLbOwn_nil (GF := GF) E.γs.slog with #HcF00
+  ihave #HcF0 : srvApi.kvLogLb E.γs [] $$ []
+  · iunfold srvApi.kvLogLb; iexact HcF00
   wp_apply hPIRRO s E ρ ctx2 _ «$a1_ptr» (irrCompaction rv.Revision') (fun _ => iprop(True)) []
       rfl (irrDepthOk_of_compactPropOk hcp)
       (by simp [apply.dispatchKind, irrCompaction, apply.irrEmpty]) $$ [Hlt Hrd Header] as %res %err ⟨Hlt, Hrd, Hres⟩
@@ -422,7 +445,7 @@ theorem EtcdServer.Compact.wp_proof
           wp_apply HEnd
           (try wp_auto)
           iapply HΦ
-          iframe Hlt Hlr Hrd Hrdr
+          iframe Hlt Hlr Hrd Hmr
           iunfold compactOutIs
           iright
           isplitr
@@ -494,7 +517,7 @@ theorem EtcdServer.Compact.wp_proof
           wp_apply HEnd
           (try wp_auto)
           iapply HΦ
-          iframe Hlt Hlr Hrd Hrdr
+          iframe Hlt Hlr Hrd Hmr
           iunfold compactOutIs
           iright
           isplitr
@@ -510,7 +533,7 @@ theorem EtcdServer.Compact.wp_proof
       wp_apply HEnd
       (try wp_auto)
       iapply HΦ
-      iframe Hlt Hlr Hrd Hrdr
+      iframe Hlt Hlr Hrd Hmr
       iunfold compactOutIs
       iright
       isplitr
@@ -521,3 +544,4 @@ end proof
 
 end EtcdGrove
 end Perennial
+

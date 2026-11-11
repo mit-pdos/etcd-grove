@@ -362,6 +362,43 @@ theorem kvRaftOfOn_append (c₀ : w64) (ch : apply.Chain) (s₀ : auth.AuthState
     kvRaftOfOn c₀ ch s₀ (A ++ B) = kvRaftOfOn c₀ ch (kvRaftOfOn c₀ ch s₀ A) B := by
   unfold kvRaftOfOn; exact List.foldl_append
 
+-- (strict M1, 2026-11-06) moved here from `KVApplyOn`/`KVReadOn`, below `KVStoreLaws`
+-- (`restoreArgs_holds` takes the model's prefix lemmas in both modes)
+/-- **A mode-`on` entry grows the log by at most one revision** (`kvEntry_grow`'s counterpart). -/
+theorem kvEntryOn_grow (c₀ : w64) (ch : apply.Chain) (s : auth.AuthState × mvcc.Log)
+    (m : EntryModel) :
+    (kvEntryOn c₀ ch s m).2 = s.2 ∨ ∃ cs, (kvEntryOn c₀ ch s m).2 = s.2 ++ [cs] := by
+  unfold kvEntryOn
+  split
+  · split
+    · split
+      · left; rfl
+      · split
+        · left; rfl
+        · exact kvEntry_grow c₀ ch [] s.2 m
+    · left; rfl
+  · exact kvEntry_grow c₀ ch [] s.2 m
+
+/-- **The mode-`on` model's log extends the start's** (`kvRaftOf_extends`'s counterpart). -/
+theorem kvRaftOfOn_extends (c₀ : w64) (ch : apply.Chain) (s₀ : auth.AuthState × mvcc.Log)
+    (A : List EntryModel) : s₀.2 <+: (kvRaftOfOn c₀ ch s₀ A).2 := by
+  induction A generalizing s₀ with
+  | nil => exact List.prefix_refl _
+  | cons m A ih =>
+    show s₀.2 <+: (kvRaftOfOn c₀ ch (kvEntryOn c₀ ch s₀ m) A).2
+    refine List.IsPrefix.trans ?_ (ih _)
+    rcases kvEntryOn_grow c₀ ch s₀ m with h | ⟨cs, h⟩
+    · rw [h]; exact List.prefix_refl _
+    · rw [h]; exact List.prefix_append _ _
+
+/-- **The mode-`on` model is monotone in the raft log** (`kvRaftOf_prefix`'s counterpart). -/
+theorem kvRaftOfOn_prefix (c₀ : w64) (ch : apply.Chain) (s₀ : auth.AuthState × mvcc.Log)
+    (A B : List EntryModel) (h : A <+: B) :
+    (kvRaftOfOn c₀ ch s₀ A).2 <+: (kvRaftOfOn c₀ ch s₀ B).2 := by
+  obtain ⟨D, rfl⟩ := h
+  rw [kvRaftOfOn_append]
+  exact kvRaftOfOn_extends _ _ _ _
+
 theorem kvRaftOfOn_snoc (c₀ : w64) (ch : apply.Chain) (s₀ : auth.AuthState × mvcc.Log)
     (A : List EntryModel) (m : EntryModel) :
     kvRaftOfOn c₀ ch s₀ (A ++ [m]) = kvEntryOn c₀ ch (kvRaftOfOn c₀ ch s₀ A) m := by
@@ -673,13 +710,13 @@ theorem detLogOn_last (c₀ : w64) (ch : apply.Chain) (s₀ : auth.AuthState × 
 excludes every admin kind, or an admitted admin request with an id). -/
 def entryShapeOn (m : EntryModel) : Prop :=
   (m.typ = W32 0 → m.data = [] ∨ ∃ rq, apply.irrDecode m.data = some rq ∧
-      (∃ id, apply.irrId rq = some id) ∧ (rqShape false rq ∨ apply.adminKindOk rq)) ∧
+      (∃ id, apply.irrId rq = some id) ∧ (rqShape .none rq ∨ apply.adminKindOk rq)) ∧
     (m.typ ≠ W32 0 → ccIdOf m.data = W64 0)
 
 /-- Every entry of a log has a good shape in the mode `on`. -/
 def logShapeOn (L : List EntryModel) : Prop := ∀ m ∈ L, entryShapeOn m
 
-theorem entryShapeOn_of_entryShape (m : EntryModel) (h : entryShape false m) :
+theorem entryShapeOn_of_entryShape (m : EntryModel) (h : entryShape .none m) :
     entryShapeOn m := by
   refine ⟨fun ht => ?_, h.2⟩
   rcases h.1 ht with h | ⟨rq, hd, hid, hs⟩
@@ -784,7 +821,7 @@ theorem kvWorkOn_of_kvWork (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel)
   iintro ⟨%h, #H⟩
   iframe H
   ipureintro
-  exact ⟨fun m hm => entryShapeOn_of_entryShape m (hlg ▸ h.1 m hm), h.2⟩
+  exact ⟨fun m hm => entryShapeOn_of_entryShape m (KVNames.lm_of_lg_false hlg ▸ h.1 m hm), h.2⟩
 
 /-! ### A client's view of the auth history (the auth-mode merge's 5b, 2026-10-29) -/
 
@@ -858,14 +895,16 @@ log and determinate at the state it is applied at, every entry above the start's
 and the other half of the state's ghost variable at the state of `L`'s mode-`on` model; the start's
 chain the base chain with auth **enabled** and no alarm, the start log not empty; the workload
 facts (`kvWorkOn`); (5b) the other half of the auth history along `L` (`authHistView`); (the
-auth-on pair's F8) the cluster's auth mode on (`SrvRaft.authOn`, `kvInvOn_authOn`). -/
+auth-on pair's F8) the cluster's auth mode on (`SrvRaft.authOn`, `kvInvOn_authOn`); (2026-11-05,
+H-rr1) the start and requested logs' size facts (`kvLogSmall`, as `kvInv`'s). -/
 def kvInvOn (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState) : IProp GF :=
   inv kvN iprop(∃ L : List EntryModel,
     srvRLog γ L ∗ ghostVar γk.st (1 : Qp).half (kvStateOf (kvModelOn γk st₀ L)) ∗
     monoListAuthOwn γk.hist (1 : Qp).half (admStates γk st₀ L) ∗
     ⌜plainLogOn L ∧ detLogOn γk.c0 γk.ch0 (st₀, γk.log0) L ∧ srvIdxOkW γ.ai0 L ∧
       uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
-      γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ [] ∧ γ.raft.authOn = true⌝ ∗
+      γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ [] ∧ γ.raft.authOn = true ∧
+      kvLogSmall γk L⌝ ∗
     kvWorkOn γ.raft γk L)
 
 instance kvInvOn_persistent (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState) :
@@ -947,7 +986,7 @@ theorem kvInvOn_authOn (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.Auth
   · inext; iexists L; iframe HL Hσ Hh Hw; ipureintro; exact Hok
   imodintro
   ipureintro
-  exact Hok.2.2.2.2.2.2
+  exact Hok.2.2.2.2.2.2.1
 
 /-- **The KV invariant's cluster runs auth off** (the auth-on pair's F8; `kvInvOn_authOn`'s). -/
 theorem kvInv_authOn (γ : ServerRaftNames) (γk : KVNames) :
@@ -955,12 +994,12 @@ theorem kvInv_authOn (γ : ServerRaftNames) (γk : KVNames) :
   iintro #Hinv
   iunfold kvInv at Hinv
   iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
-  imod Hclose $$ [HL Hσ] with -
-  · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
+  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw, HG⟩
+  imod Hclose $$ [HL Hσ HG] with -
+  · inext; iexists L; iframe HL Hσ Hw HG; ipureintro; exact Hok
   imodintro
   ipureintro
-  exact Hok.2.2.2.2.2.2.2
+  exact Hok.2.2.2.2.2.2.2.1
 
 /-- **The member's KV invariant in the mode `on` ties the cluster's mode to it**. -/
 theorem kvInvM_authOn (on : Bool) (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState) :
@@ -977,7 +1016,8 @@ the history's half at the start's state. So
 theorem kvInvOn_alloc (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState) (E : CoPset)
     (hch : γk.ch0 = apply.alarmChain true false false) (hlog : γk.log0 ≠ [])
     (hlk : mvcc.LogPutsLe etcdKeyMax γk.log0)
-    (hc : uint.Z γk.c0 ≤ uint.Z γ.ai0) (hao : γ.raft.authOn = true) :
+    (hc : uint.Z γk.c0 ≤ uint.Z γ.ai0) (hao : γ.raft.authOn = true)
+    (hl0 : γk.log0.length ≤ 2 ^ 61) :
     ⊢ srvRLog (GF := GF) γ [] -∗ ghostVar γk.st (1 : Qp).half (kvStateOf γk.log0) -∗
       monoListAuthOwn γk.hist (1 : Qp).half [st₀] ={E}=∗ kvInvOn γ γk st₀ := by
   iintro HL Hσ Hh
@@ -994,7 +1034,7 @@ theorem kvInvOn_alloc (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
   · rw [show admStates γk st₀ [] = [st₀] from rfl]; iexact Hh
   isplitr
   · ipureintro
-    refine ⟨fun m hm => by simp at hm, detLogOn_nil _ _ _, ?_, hc, hch, hlog, hao⟩
+    refine ⟨fun m hm => by simp at hm, detLogOn_nil _ _ _, ?_, hc, hch, hlog, hao, hl0, by simp⟩
     intro n m hm; simp at hm
   · iunfold kvWorkOn
     isplitr

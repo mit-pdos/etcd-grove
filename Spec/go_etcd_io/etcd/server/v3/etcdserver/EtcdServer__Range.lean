@@ -7,6 +7,8 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthClass
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReqOn
+public import Proof.context.LibKeys
 
 @[expose] public section
 
@@ -39,7 +41,8 @@ txn package's answer at a certified log of at least two revisions, after the rea
 serializable, the header's id fields owned, a linearizable one at the mode's model of a committed
 raft log `L` at which the deposit gave `□ Q L` (`rangeReadOkM`). Failure: no response and an error
 the gRPC layer can take (`applyErrIs`: the read loop's, the auth store's, mvcc's `ErrFutureRev`, or
-the context's). Its clients take it at `E.authOn` (the auth component's stage 4 deleted the two
+the context's), and which (`rangeErrOut`, k8s etcd3 7c-2 part 2, S3: mvcc's `ErrFutureRev` and
+`ErrCompacted` with the read's facts at the error, `rangeErrAt`). Its clients take it at `E.authOn` (the auth component's stage 4 deleted the two
 modes' former specs). -/
 abbrev EtcdServer.Range.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
@@ -48,9 +51,9 @@ abbrev EtcdServer.Range.spec : Prop :=
   E.authMode ≠ .any →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ srvAuthLb s E ∗
-      auth.authPubLbM E.authMode n ∗ srvRdCall s E γr c ∗ context.isContext ctx cd ∗
+      auth.authPubLbM E.authMode n ∗ srvRdCall s E γr c ∗ context.isContext ctx cd ∗ context.libCtxOk ctx ∗
       traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ txn.rangeRequestIs r o ∗ ⌜txn.validSortTarget o⌝ ∗
-      kvDep γr.kv Q (kvStM E.authOn γr.kv) ∗ mvcc.idxCert E.γ.idx F }}
+      kvDep γr.kv Q (kvStM E.authOn γr.kv) ∗ srvApi.kvLogLb E.γs F }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Range"))
       (Val #(GoInterface.ok ctx))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvRdCall s E γr c ∗
@@ -59,7 +62,8 @@ abbrev EtcdServer.Range.spec : Prop :=
             infoBoundM E.authOn s E (GoInterface.ok ctx) info ∗
             (if o.base.serializable then iprop(True) else authFloorAt E.authMode γr c m)) ∗
           rangeReadOkM E.authOn E γr c F o resp Q) ∨
-       (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }}
+       (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
+          rangeErrOut E.authOn E γr c F o Q err)) }}
 
 end spec
 

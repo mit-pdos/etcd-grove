@@ -14,6 +14,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.step
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.addConfig
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.closure
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.configEqual
+public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.histOf
 
 @[expose] public section
 
@@ -34,11 +35,12 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
 include sem package_sem in
 /-- `Step`'s verdict and next state, from `closure`'s result `out` on `stepAllL gs x y`. -/
-theorem step_result (g0 : GSt) (gs out : List GCfg) (S : linkv.PSet GSt Input) (x : Input)
+theorem step_result (g0 : HSt) (gs out : List GCfg) (S : linkv.PSet HSt Input) (x : Input)
     (y : Output) (hS : GOk g0 gs S) (hc : ClosureOk g0 (stepAllL gs x y) out)
     (hcl : GClosed g0 out) :
     ((linkv.pM (kSpec g0) decOp).step S (boxIn x, boxOut y)).isSome = decide (out ≠ []) ∧
@@ -64,12 +66,14 @@ theorem step_result (g0 : GSt) (gs out : List GCfg) (S : linkv.PSet GSt Input) (
 theorem Model.wp_proof (wp_step : step.spec (GF := GF) (hG := hG))
     (wp_addConfig : addConfig.spec (GF := GF) (hG := hG))
     (wp_closure : closure.spec (GF := GF) (hG := hG))
-    (wp_configEqual : configEqual.spec (GF := GF) (hG := hG)) :
+    (wp_configEqual : configEqual.spec (GF := GF) (hG := hG))
+    (wp_histOf : histOf.spec (GF := GF) (hG := hG)) :
     Model.spec (GF := GF) (hG := hG) := by
-  intro s0 g0
-  wp_start as ⟨#Hs0, %Hlen0⟩
+  intro s0 hsl hs g0
+  wp_start as ⟨#Hs0, #Hh0, #Hhs, %Hlen0⟩
   wp_auto
   ipersist st0
+  ipersist h0
   wp_func_lits
   wp_auto
   iapply HΦ
@@ -83,7 +87,9 @@ theorem Model.wp_proof (wp_step : step.spec (GF := GF) (hG := hG))
     simp only [k8setcd3S]
     iintro !> %Φ' _ HΦ'
     wp_auto
-    wp_apply wp_slice_literal (V := mcfg) (l := [(⟨s0, slice.nil⟩ : mcfg)])
+    wp_apply wp_histOf hsl hs g0.hist DFrac.discard $$ [$Hh0 $Hhs] as %hh ⟨-, #Hhh⟩
+    (try wp_auto)
+    wp_apply wp_slice_literal (V := mcfg) (l := [(⟨s0, slice.nil, hh⟩ : mcfg)])
     isplitr
     · ipureintro; rfl
     iintro %sl0 ⟨Hsl, _⟩
@@ -91,7 +97,7 @@ theorem Model.wp_proof (wp_step : step.spec (GF := GF) (hG := hG))
     wp_auto
     iapply HΦ'
     unfold stRepB
-    iexists _, [(⟨s0, slice.nil⟩ : mcfg)], [gInit g0]
+    iexists _, [(⟨s0, slice.nil, hh⟩ : mcfg)], [gInit g0]
     isplitr
     · ipureintro
       exact ⟨rfl, gok_init g0, fun g hg => by
@@ -104,7 +110,11 @@ theorem Model.wp_proof (wp_step : step.spec (GF := GF) (hG := hG))
     ihave Hn2 := ownSlice_nil (V := Input) (GF := GF) DFrac.discard
     isplit
     · iexact Hs0
+    isplit
+    · iexact Hhh
+    isplit
     · iexact Hn2
+    · ipureintro; omega
   isplitr
   · ipureintro; exact ⟨trivial, nofun⟩
   isplitr
@@ -114,8 +124,8 @@ theorem Model.wp_proof (wp_step : step.spec (GF := GF) (hG := hG))
     simp only [k8setcd3S]
     iintro %k %v %S %i %o
     iintro !> %Φ' ⟨%Hk, #Hrep, %Hio⟩ HΦ'
-    have Hn : k + g0.items.length + 1 + 1 < 2 ^ 63 := by omega
-    generalize hn : k + g0.items.length + 1 = n at Hn ⊢
+    have Hn : k + g0.st.items.length + g0.hist.length + 1 + 1 < 2 ^ 63 := by omega
+    generalize hn : k + g0.st.items.length + g0.hist.length + 1 = n at Hn ⊢
     ihave #Hrep0 := Hrep
     iunfold stRepB at Hrep
     obtain ⟨x, y, rfl, rfl⟩ := Hio
@@ -162,7 +172,7 @@ theorem Model.wp_proof (wp_step : step.spec (GF := GF) (hG := hG))
       wp_apply wp_step c g x y $$ [$Hc] as %r %rcs ⟨Hr, #Hrcs⟩
       · ipureintro
         unfold Bounded at Hgb
-        constructor <;> omega
+        refine ⟨by omega, by omega, by omega⟩
       ihave %Hrl := ownSlice_len $$ Hr
       ihave %Hrlen := BigSepL2.bigSepL2_length $$ Hrcs
       have Htake : (gs.take (sint.nat (j + W64 1))).foldl (stepOneL x y) [] =
@@ -263,7 +273,7 @@ theorem Model.wp_proof (wp_step : step.spec (GF := GF) (hG := hG))
       | none => itrivial
       | some S' =>
         simp only [k8setcd3S]
-        rw [show k + 1 + g0.items.length + 1 = n + 1 by omega]
+        rw [show k + 1 + g0.st.items.length + g0.hist.length + 1 = n + 1 by omega]
         unfold stRepB
         iexists out, ocs, ogs
         isplitl []

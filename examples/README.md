@@ -33,6 +33,7 @@ names).
 | `etcd/cache` | `cachekv` | `watch` read through etcd's cache, its `Get` and progress notifications checked | `etcd_cache_safe` |
 | `etcd/lease` | `leasekv` | the client's lease reads (`Leases`, `TimeToLive`) | `etcd_lease_safe` |
 | `etcd/leasegrant` | `leasegrant` | a lease granted, then listed: the listing has it (three-member cluster test of amendment (E)'s failure answers) | `etcd_leasegrant_safe` |
+| `etcd/leaseexpiry` | -- | a lease of the minimum TTL granted, polled until not found, then listed: the listing does not have it (no proof yet: `notes/lease-expiry-plan.md`) | -- |
 | `etcd/auth` | `authkv` | authentication: users, roles, permissions, tokens | (in progress) |
 | `etcd/txnlin` | `linkvtxn` | porcupine over the KV API with transactions, as etcd's robustness tester drives it | `etcd_txnlin_safe` |
 | `etcd/partition` | `linkv3p` | `txnlin` on three members under network partitions, and a watch | `etcd_partition_safe` |
@@ -44,7 +45,7 @@ names).
 |---|---|---|---|
 | `k8s/etcd3` | `k8setcd3` | porcupine over Kubernetes' etcd3 storage backend | `k8s_etcd3_safe` |
 | `k8s/daemonset` | `k8sdaemonset` | a DaemonSet controller over an API-server model | – |
-| `k8s/compactor` | – | Kubernetes' etcd compactor as API servers run it: three compactors and a writer on one member compacting only at its clients' requests (K3, K4 of `notes/k8s-compactor-plan.md`) | `k8s_compactor_safe` |
+| `k8s/compactor` | – | Kubernetes' etcd compactor as API servers run it: five API servers (three compactors of their own, two sharing one) and a writer on one member compacting only at its clients' requests (K3, K4 of `notes/k8s-compactor-plan.md`), and on three members under network partitions, any schedule (`MainPartition`, K6) | `k8s_compactor_safe`, `k8s_compactor_partition_safe` |
 
 ## `bbolt/`: bbolt (`go.etcd.io/bbolt`, the fork with its bodies; the part `Bbolt/`)
 
@@ -75,6 +76,9 @@ names).
 | `goose/prophkv` | (new) | `GetAny` reads a map twice and returns one answer, chosen at random afterwards: a plain logically atomic spec over a prophecy patch (`etc/proph-patches/prophkv/`) | `goose_prophkv_safe` |
 
 `axiomcx/` holds counterexamples to trust-boundary axioms (`notes/axiom-review/`), not examples.
+`premisefix/` holds the Go tests of premise fixes 1 (2026-11-10): Go's behavior that a closed theorem's
+premise or a trust-boundary axiom was restated to (`bootfg`: `bootstrap`'s feature gate; `confchange`:
+`proto.Marshal` of a raft conf change); `etc/gates.sh` runs them.
 
 The raft key-value stores repeat their harness (`check.go`, `cluster.go`, `kv.go`): each is a
 separately verified package. Sharing it would be a package of its own with its spec (a follow-up

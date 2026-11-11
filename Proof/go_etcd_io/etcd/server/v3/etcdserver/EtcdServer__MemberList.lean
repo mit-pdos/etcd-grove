@@ -31,7 +31,7 @@ theorem EtcdServer.MemberList.wp_proof
     (hMem : membership.RaftCluster.Members.spec (GF := GF) (hG := hG)) :
     EtcdServer.MemberList.spec (GF := GF) (hG := hG) := by
   intro s E ρ γr ctx cd r lin dq c g Q
-  wp_start as ⟨#Hq, #Hr, #Hctx, HRD, Hlin, Hrr, #Hc, #HsQ, #HdQ⟩
+  wp_start as ⟨#Hq, #Hr, #Hctx, #Hlib, HRD, Hlin, Hrr, #Hc, #HsQ, #HdQ⟩
   ihave #Hau : srvAuthAt s E $$ []
   · iapply (srvAuthAt_of_views s E ρ γr); iframe #
   ihave #Hr' := Hr
@@ -55,7 +55,7 @@ theorem EtcdServer.MemberList.wp_proof
   (try wp_auto)
   cases lin
   · (try wp_auto)
-    wp_apply (hReq s E ctx cd) $$ [$HRD] as %err ⟨HRD, #Hout⟩
+    wp_apply (hReq s E ctx cd) $$ [$HRD] as %err ⟨HRD, #Hout, -⟩
     · iframe #
     ihave #Hout := authedOut_of_authedOutB _ _ _ _ $$ Hout
     iunfold authedOut at Hout
@@ -87,7 +87,7 @@ theorem EtcdServer.MemberList.wp_proof
     ispecialize HRN $$ %ctx %cd %c %g %Q
     wp_apply HRN $$ [$Hrr] as %err Herr
     · iframe #
-    icases Herr with ⟨Hrr, #Herr, Hri⟩
+    icases Herr with ⟨Hrr, #Herr, #HrdE, Hri⟩
     (try wp_auto)
     rcases err with ei | _
     · (try wp_auto)
@@ -99,7 +99,7 @@ theorem EtcdServer.MemberList.wp_proof
     · (try wp_auto)
       ihave Hri' : (readIndexOk γr c ∗ readServed γr c g) $$ [Hri]
       · iapply Hri; ipureintro; rfl
-      wp_apply (hReq s E ctx cd) $$ [$HRD] as %err2 ⟨HRD, #Hout⟩
+      wp_apply (hReq s E ctx cd) $$ [$HRD] as %err2 ⟨HRD, #Hout, -⟩
       · iframe #
       ihave #Hout := authedOut_of_authedOutB _ _ _ _ $$ Hout
       iunfold authedOut at Hout

@@ -56,6 +56,14 @@ copy to each end. Served by `grpc.serveStream` from `grpcStreamServerAt addr ics
 axiomatized token of the server's construction, beside the unary `grpcServerAt`), obtaining
 `grpcServesStream`; `isGrpcStreamMd addr name Up Spec` is what a client needs (`isGrpcStream`, its
 instance at a spec that ignores the metadata, the form of a registration with no auth).
+
+**Per-type message models** (stage A; moved here from the prototype's `grpc/PerType.lean`, CP2;
+today's `StreamMsg` and the trusted stream specs stay until CP3): `StreamMsgT`, a `StreamMsg` with
+its normalizing store; the role-split registries `streamReqModelOf` (a stream's request, checked
+against `StreamMsgT.ReqSat`) and `streamRepModelOf` (its reply, checked against
+`StreamMsgT.RepSat`: a reply's `wireLen` is `grpcMsgMax` by default, so it must not take the
+request's `wireLen` premise, `[v6]` §5 item 2); both `Sat`s the `own` form (`OwnAny`), with `send`
+at `nil` false.
 -/
 module
 
@@ -112,6 +120,60 @@ structure StreamMsg (GF : BundledGFunctors) where
   own : Loc → IProp GF
 
 attribute [instance] StreamMsg.cnt
+
+end defs
+
+/-! ## Per-type message models: the stores and the role-split registries (stage A, CP2) -/
+
+section pertype
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+/-- A stream's message model with its normalizing store. -/
+structure StreamMsgT (GF : BundledGFunctors) extends StreamMsg GF where
+  tree : M → VTree
+
+/-- **A stream request's store gives its decoded model** (the `own` form; with the request's
+`wireLen` below `grpcMsgMax`, as `ReqSat`: `createReqOwn` needs the key's length bound). -/
+def StreamMsgT.ReqStore (T : StreamMsgT GF) : Prop :=
+  ∀ (ls l : Loc) (m : T.M),
+    T.send ls m ∗ ⌜T.wireLen m < grpcMsgMax⌝ ∗ T.own l ⊢
+      WP (storeInto T.ty l (T.tree m)) {{ _v, T.send ls m ∗ T.recv l m }}
+
+/-- **A stream reply's store gives its decoded model** (no `wireLen` premise: a reply's `wireLen`
+is `grpcMsgMax` by default, which would make the premise false). -/
+def StreamMsgT.RepStore (T : StreamMsgT GF) : Prop :=
+  ∀ (ls l : Loc) (m : T.M),
+    T.send ls m ∗ T.own l ⊢ WP (storeInto T.ty l (T.tree m)) {{ _v, T.send ls m ∗ T.recv l m }}
+
+/-- **A stream request model is satisfiable** (`[v5]`, the `own` form, with the request's bound). -/
+def StreamMsgT.ReqSat (T : StreamMsgT GF) : Prop :=
+  OwnAny T.ty T.own ∧ (∀ m, T.send null m ⊢ False) ∧ T.ReqStore
+
+/-- **A stream reply model is satisfiable** (`[v5]`, the `own` form). -/
+def StreamMsgT.RepSat (T : StreamMsgT GF) : Prop :=
+  OwnAny T.ty T.own ∧ (∀ m, T.send null m ⊢ False) ∧ T.RepStore
+
+/-- **The registry of stream request models** (`[v6]` §5 item 2: split by role; a registration's
+`Sat` is `StreamMsgT.ReqSat`). -/
+opaque streamReqModelOf {hlc : HasLC} (GF : BundledGFunctors) [GooseExts] [GooseSemantics]
+    [GooseInterp] [GoGlobalContext] [hG : HeapGS hlc GF] [go.Semantics] :
+    go.GoType → Option (StreamMsgT GF)
+
+/-- **The registry of stream reply models** (a registration's `Sat` is `StreamMsgT.RepSat`). -/
+opaque streamRepModelOf {hlc : HasLC} (GF : BundledGFunctors) [GooseExts] [GooseSemantics]
+    [GooseInterp] [GoGlobalContext] [hG : HeapGS hlc GF] [go.Semantics] :
+    go.GoType → Option (StreamMsgT GF)
+
+end pertype
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
 
 /-! ## The stream's ghost state -/
 
@@ -278,7 +340,9 @@ instance streamErr_persistent (err : GoInterface) : Persistent (streamErr (GF :=
 /-- **An error of the client's end** (persistent): a non-nil stream error that is a client error
 (`clientErr`: a leaf, possibly an `EtcdError`) grpc's `status` accepts (`statusErrOk`): a gRPC status
 error, a context error, or `io.EOF` (a `SendMsg` on a stream the server ended), as the unary
-attempt's errors (`grpcInvokerOk`). -/
+attempt's errors (`grpcInvokerOk`). Since k8s 7e-1 (2026-11-10, approved by etcd-grove-81) its
+dynamic type is one of `clientErrTys` (through `clientErr`), with the bounds `grpcInvokerOk` names:
+no dial option beyond `GrpcDialOpt`'s, per-RPC credentials that return no error, no retry policy. -/
 def cliStreamErr (err : GoInterface) : IProp GF :=
   iprop(⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗
     streamErr err)
@@ -317,7 +381,9 @@ abbrev msgAny (T : go.GoType) (l : Loc) : GoInterface :=
 passes to a stream handler. `RecvMsg(&out)` into an owned message (`Req.own out`) decodes the next
 request into it (`Req.recv out m`, owned) with the client's content `Up i m` for its position `i`
 (the receiver's token grown), or returns `io.EOF` once the client closed the up queue after the
-requests received (`upClosed`), or another error (`out` back owned); `SendMsg(&l)` of a message
+requests received (`upClosed`), or another error (`out` back owned), a status error
+(`statusErrOk`: grpc's `serverStream.RecvMsg` returns `io.EOF` or `toRPCErr`'s, a `*status.Error`;
+premise fixes 7, `examples/premisefix/ctxvalue` `TestRealStreamErrors`); `SendMsg(&l)` of a message
 `Rep.send l m` (given back) with the handler's content `Dn j m` for its position `j` grows the
 sender's token, or fails, the message delivered or not (the token at the old or the new list);
 `Context()` returns the run's context `ci` (`isContext ci cd`, `grpcRunCtx ci`). -/
@@ -333,8 +399,8 @@ def srvRawStreamIs (st : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF
             srvRecvTok (Req := Req) γ (L ++ [m])) ∨
           (eofIs err ∗ ⌜err ≠ GoInterface.nil⌝ ∗ srvRecvTok (Req := Req) γ L ∗
             upClosed (Req := Req) γ L ∗ Req.own out) ∨
-          (⌜err ≠ GoInterface.nil⌝ ∗ streamErr err ∗ srvRecvTok (Req := Req) γ L ∗
-            Req.own out) }}) ∗
+          (⌜err ≠ GoInterface.nil⌝ ∗ streamErr err ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗
+            srvRecvTok (Req := Req) γ L ∗ Req.own out) }}) ∗
     □ (∀ (L : List Rep.M) (l : Loc) (m : Rep.M),
       {{ srvSendTok (Rep := Rep) γ L ∗ Rep.send l m ∗ Dn L.length m }}
         (App (Val #(methods si.ty go!"SendMsg" si.v)) (Val #(msgAny Rep.ty l)))
@@ -357,7 +423,8 @@ interface, `notes/grpc-stream-spec.md` §2a): the interface value `st` (the gene
 `Watch_WatchServer`, grpc's `BidiStreamingServer[Req, Res]` holding a
 `*GenericServerStream[Req, Res]`), whose `Recv()` returns the next request (`Req.recv`, owned)
 with the client's content `Up i m` and the receiver's token grown, or `io.EOF` once the client
-closed the up queue after the requests received (`upClosed`), or another error; whose `Send(l)` of
+closed the up queue after the requests received (`upClosed`), or another error, a status error
+(`statusErrOk`, the raw end's); whose `Send(l)` of
 a message `Rep.send l m` with the handler's content `Dn j m` for its position `j` grows the
 sender's token (or fails, the message delivered or not: the token at the old or the new list);
 and whose `Context()` returns the run's context `ci` (`isContext ci cd`, grpc's run context
@@ -374,7 +441,8 @@ def srvStreamIs (st : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF)
             srvRecvTok (Req := Req) γ (L ++ [m])) ∨
           (eofIs err ∗ ⌜err ≠ GoInterface.nil⌝ ∗ srvRecvTok (Req := Req) γ L ∗
             upClosed (Req := Req) γ L) ∨
-          (⌜err ≠ GoInterface.nil⌝ ∗ streamErr err ∗ srvRecvTok (Req := Req) γ L) }}) ∗
+          (⌜err ≠ GoInterface.nil⌝ ∗ streamErr err ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗
+            srvRecvTok (Req := Req) γ L) }}) ∗
     □ (∀ (L : List Rep.M) (l : Loc) (m : Rep.M),
       {{ srvSendTok (Rep := Rep) γ L ∗ Rep.send l m ∗ Dn L.length m }}
         (App (Val #(methods si.ty go!"Send" si.v)) (Val #l))
@@ -521,7 +589,7 @@ theorem srvStreamIs_of_raw {Req Rep : StreamMsg GF} (V W : Type) [ZeroVal V]
     isplitr
     · ipureintro; rfl
     icases Hres with (⟨%Herr, %mm, Hr, HUp, Htok⟩ | ⟨#Heof, %Hne, Htok, #Hcl, -⟩ |
-      ⟨%Hne, #Hse, Htok, -⟩)
+      ⟨%Hne, #Hse, #Hso, Htok, -⟩)
     · subst Herr
       simp only [↓reduceIte]
       iapply HΦ
@@ -669,14 +737,16 @@ instance streamSpecOk_persistent {Rep : StreamMsg GF} (Spec : StreamSpec Rep) :
 resource `S`** (persistent; the stream analogue of `grpcHandlerOk`): a call `h(st)` on a wrapped
 server end (`srvStreamIs`, both tokens at `[]`), given `S` and the specification at the run's
 incoming metadata, `Spec (incomingOf ci) γ Dn` (metadata-indexed, as `grpcStreamMethodOk`; G2,
-2026-10-30), returns (nothing promised: the run's resources need not come back, see the file
-header). -/
+2026-10-30), returns (the run's resources need not come back, see the file header) an error grpc's `status.FromError` takes (`srvErrOk`: grpc's `processStreamingRPC` and the
+prometheus interceptor's reporter call it on the handler's error; premise fixes 7,
+`examples/premisefix/ctxvalue` `TestStreamHandlerErrorPanics`). -/
 def grpcStreamHandlerOk {Req Rep : StreamMsg GF} (h : val) (S : IProp GF)
     (Up : Nat → Req.M → IProp GF) (Spec : GrpcMd → StreamSpec Rep) : IProp GF :=
   iprop(□ ∀ (γ : StreamNames) (Dn : Nat → Rep.M → IProp GF) (ci : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF)) (st : GoInterface) (Φ : val → IProp GF),
     Spec (metadata.incomingOf (GoInterface.ok ci)) γ Dn -∗ S -∗ srvStreamIs st γ Req Rep Up Dn ci cd -∗ srvRecvTok (Req := Req) γ [] -∗
-    srvSendTok (Rep := Rep) γ [] -∗ streamAuxTok γ -∗ ▷ (∀ err : GoInterface, Φ #err) -∗
+    srvSendTok (Rep := Rep) γ [] -∗ streamAuxTok γ -∗
+    ▷ (∀ err : GoInterface, go_etcd_io.etcd.cache.v3.srvErrOk err -∗ Φ #err) -∗
     WP (App (Val h) (Val #st)) {{ Φ }})
 
 instance grpcStreamHandlerOk_persistent {Req Rep : StreamMsg GF} (h : val) (S : IProp GF)
@@ -724,18 +794,24 @@ descriptor possibly another: grpc-prometheus wraps `ss` in a counting `monitored
 whose `Context()` is `ss.Context()`; etcd's `newStreamInterceptor` passes `ss` unchanged when the
 client does not require a leader, `runsNoRequireLeader`; G2, 2026-10-30: until then the handler's
 context was any, which a metadata-indexed stream spec cannot use) and returns its result, or returns a non-nil error without calling `h`; `R` comes back either way. The caller
-gives both continuations (`∧`: one is taken). The handler returns an `error` value: a
-deferred-call wrapper needs this, as `srvInterceptorOk` does. -/
+gives both continuations (`∧`: one is taken). The handler returns an `error` value (a
+deferred-call wrapper needs this, as `srvInterceptorOk` does) that grpc's `status` takes
+(`srvErrOk`, premise fixes 7: grpc-prometheus's reporter calls `status.FromError` on it), and so is
+an early error. -/
 def srvStreamInterceptorOk (ic : GoFunc) (R : IProp GF) : IProp GF :=
-  iprop(□ ∀ (Req Rep : StreamMsg GF) (Up : Nat → Req.M → IProp GF) (Dn : Nat → Rep.M → IProp GF)
+  iprop(□ ∀ (Req Rep : StreamMsgT GF) (_ : streamReqModelOf GF Req.ty = some Req)
+      (_ : streamRepModelOf GF Rep.ty = some Rep) (Up : Nat → Req.M → IProp GF)
+      (Dn : Nat → Rep.M → IProp GF)
       (γ : StreamNames) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
       (srv st : GoInterface) (info : Loc) (h : GoFunc) (Ψ : val → IProp GF),
-    R -∗ srvRawStreamIs st γ Req Rep Up Dn ci cd -∗ srvStreamInfoIs info -∗
+    R -∗ srvRawStreamIs st γ Req.toStreamMsg Rep.toStreamMsg Up Dn ci cd -∗ srvStreamInfoIs info -∗
     ((∀ (st' : GoInterface) (cd' : context.ContextDesc (IProp GF)),
-        srvRawStreamIs st' γ Req Rep Up Dn ci cd' -∗
+        srvRawStreamIs st' γ Req.toStreamMsg Rep.toStreamMsg Up Dn ci cd' -∗
         WP (streamHandlerCall #h #srv #st')
-          {{ v, ∃ err : GoInterface, ⌜v = #err⌝ ∗ (R -∗ Ψ v) }}) ∧
-      (R -∗ ∀ err : GoInterface, ⌜err ≠ GoInterface.nil⌝ -∗ Ψ #err)) -∗
+          {{ v, ∃ err : GoInterface, ⌜v = #err⌝ ∗ go_etcd_io.etcd.cache.v3.srvErrOk err ∗
+            (R -∗ Ψ v) }}) ∧
+      (R -∗ ∀ err : GoInterface, ⌜err ≠ GoInterface.nil⌝ -∗ go_etcd_io.etcd.cache.v3.srvErrOk err -∗
+        Ψ #err)) -∗
     WP (streamInterceptorCall ic #srv #st #info h) {{ Ψ }})
 
 instance srvStreamInterceptorOk_persistent (ic : GoFunc) (R : IProp GF) :
@@ -763,17 +839,21 @@ instance srvStreamInterceptorsOk_persistent (ics : List GoFunc) (Rs : List (IPro
 server end, an `info`, and both continuations of the handler's call (on any server end of the
 same stream with the same context, its result with the resources back; or an early error with
 them back), the chain's call meets `Ψ`. -/
-theorem srvStreamChainWP_of_ok (ics : List GoFunc) (Rs : List (IProp GF)) (Req Rep : StreamMsg GF)
+theorem srvStreamChainWP_of_ok (ics : List GoFunc) (Rs : List (IProp GF)) (Req Rep : StreamMsgT GF)
+    (hreq : streamReqModelOf GF Req.ty = some Req) (hrep : streamRepModelOf GF Rep.ty = some Rep)
     (Up : Nat → Req.M → IProp GF) (Dn : Nat → Rep.M → IProp GF) (γ : StreamNames)
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (srv st : GoInterface)
     (info : Loc) (h : val) (Ψ : val → IProp GF) :
-    srvStreamInterceptorsOk ics Rs ∗ ([∗list] R ∈ Rs, R) ∗ srvRawStreamIs st γ Req Rep Up Dn ci cd ∗
+    srvStreamInterceptorsOk ics Rs ∗ ([∗list] R ∈ Rs, R) ∗
+      srvRawStreamIs st γ Req.toStreamMsg Rep.toStreamMsg Up Dn ci cd ∗
       srvStreamInfoIs info ∗
       ((∀ (st' : GoInterface) (cd' : context.ContextDesc (IProp GF)),
-          srvRawStreamIs st' γ Req Rep Up Dn ci cd' -∗
+          srvRawStreamIs st' γ Req.toStreamMsg Rep.toStreamMsg Up Dn ci cd' -∗
           WP (streamHandlerCall h #srv #st')
-            {{ v, ∃ err : GoInterface, ⌜v = #err⌝ ∗ (([∗list] R ∈ Rs, R) -∗ Ψ v) }}) ∧
-        (([∗list] R ∈ Rs, R) -∗ ∀ err : GoInterface, ⌜err ≠ GoInterface.nil⌝ -∗ Ψ #err)) ⊢
+            {{ v, ∃ err : GoInterface, ⌜v = #err⌝ ∗ go_etcd_io.etcd.cache.v3.srvErrOk err ∗
+              (([∗list] R ∈ Rs, R) -∗ Ψ v) }}) ∧
+        (([∗list] R ∈ Rs, R) -∗ ∀ err : GoInterface, ⌜err ≠ GoInterface.nil⌝ -∗
+          go_etcd_io.etcd.cache.v3.srvErrOk err -∗ Ψ #err)) ⊢
     srvStreamChainWP #info ics h #srv #st Ψ := by
   induction ics generalizing Rs Ψ st ci cd with
   | nil =>
@@ -787,8 +867,9 @@ theorem srvStreamChainWP_of_ok (ics : List GoFunc) (Rs : List (IProp GF)) (Req R
       icases H with ⟨H, -⟩
       ihave H := H $$ %st %cd Hst
       iapply (wp_mono (Φ := fun v => iprop(∃ err : GoInterface, ⌜v = #err⌝ ∗
+        go_etcd_io.etcd.cache.v3.srvErrOk err ∗
         (([∗list] R ∈ ([] : List (IProp GF)), R) -∗ Ψ v)))) $$ H
-      iintro %v ⟨%err, %Hv, HΨ⟩
+      iintro %v ⟨%err, %Hv, -, HΨ⟩
       iapply HΨ
       iapply BigSepL.bigSepL_nil.2
       itrivial
@@ -806,11 +887,12 @@ theorem srvStreamChainWP_of_ok (ics : List GoFunc) (Rs : List (IProp GF)) (Req R
       unfold srvStreamChainWP
       iintro %h' #Hh'
       iunfold srvStreamInterceptorOk at Hic
-      iapply Hic $$ %Req %Rep %Up %Dn %γ %ci %cd %srv %st %info %h' %Ψ HR Hst Hinfo
+      iapply Hic $$ %Req %Rep %hreq %hrep %Up %Dn %γ %ci %cd %srv %st %info %h' %Ψ HR Hst Hinfo
       isplit
       · iintro %st' %cd' #Hst'
         iapply Hh'
-        iapply (ih (Rs := Rs) (Ψ := fun v => iprop(∃ err : GoInterface, ⌜v = #err⌝ ∗ (R -∗ Ψ v)))
+        iapply (ih (Rs := Rs) (Ψ := fun v => iprop(∃ err : GoInterface, ⌜v = #err⌝ ∗
+          go_etcd_io.etcd.cache.v3.srvErrOk err ∗ (R -∗ Ψ v)))
           (st := st') (ci := ci) (cd := cd'))
         iframe #
         iframe
@@ -819,32 +901,37 @@ theorem srvStreamChainWP_of_ok (ics : List GoFunc) (Rs : List (IProp GF)) (Req R
           iintro %st'' %cd'' #Hst''
           ihave H := H $$ %st'' %cd'' Hst''
           iapply (wp_mono (Φ := fun v => iprop(∃ err : GoInterface, ⌜v = #err⌝ ∗
+            go_etcd_io.etcd.cache.v3.srvErrOk err ∗
             (([∗list] R ∈ R :: Rs, R) -∗ Ψ v)))) $$ H
-          iintro %v ⟨%err, %Hv, HΨ⟩
+          iintro %v ⟨%err, %Hv, #Hse, HΨ⟩
           iexists err
           isplitr
           · ipureintro; exact Hv
+          iframe Hse
           iintro HRs'
           iexists err
           isplitr
           · ipureintro; exact Hv
+          iframe Hse
           iintro HR'
           iapply HΨ
           iapply (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ R => R) (x := R)
             (xs := Rs)).2
           iframe
         · icases H with ⟨-, H⟩
-          iintro HRs' %err %Herr
+          iintro HRs' %err %Herr #Hse
           iexists err
           isplitr
           · ipureintro; rfl
+          iframe Hse
           iintro HR'
-          iapply H $$ [HR' HRs'] %err %Herr
+          iapply H $$ [HR' HRs'] %err %Herr Hse
           iapply (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ R => R) (x := R) (xs := Rs)).2
           iframe
       · icases H with ⟨-, H⟩
-        iintro HR' %err %Herr
-        iapply H $$ [HR' HRs] %err %Herr
+        iintro HR' %err %Herr #Hse
+        iapply H $$ [HR' HRs] %err %Herr Hse
+
         iapply (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ R => R) (x := R) (xs := Rs)).2
         iframe
 
@@ -865,8 +952,9 @@ is satisfiable per stream (`streamSpecOk`, at every metadata), and a run, given 
 the metadata `md` its context carries (`metadata.incomingOf ci`: what the client's attempt
 delivered; G2, 2026-10-30, as the unary `grpcHandlerOkMd`), `S`, the run's context,
 a fresh raw server end of the stream (`srvRawStreamIs`, both tokens at `[]`) and grpc's `info`,
-through the chain, terminates or not, promising nothing (`S` is not returned: the run keeps it,
-see the file header). -/
+through the chain, terminates or not, returning an error grpc's `status` takes (`srvErrOk`:
+`processStreamingRPC` calls `status.FromError` on it; premise fixes 7) and nothing else (`S` is
+not returned: the run keeps it, see the file header). -/
 def grpcStreamMethodOk {Req Rep : StreamMsg GF} (mh : val) (srv : GoInterface) (ics : List GoFunc)
     (S : IProp GF) (Up : Nat → Req.M → IProp GF) (Spec : GrpcMd → StreamSpec Rep) : IProp GF :=
   iprop((□ ∀ md, streamSpecOk (Spec md)) ∗
@@ -875,7 +963,8 @@ def grpcStreamMethodOk {Req Rep : StreamMsg GF} (mh : val) (srv : GoInterface) (
       Spec (metadata.incomingOf (GoInterface.ok ci)) γ Dn -∗ S -∗ srvRawStreamIs st γ Req Rep Up Dn ci cd -∗
       srvRecvTok (Req := Req) γ [] -∗ srvSendTok (Rep := Rep) γ [] -∗ streamAuxTok γ -∗
       srvStreamInfoIs info -∗
-      srvStreamChainWP #info ics mh #srv #st (fun _ => iprop(True)))
+      srvStreamChainWP #info ics mh #srv #st
+        (fun v => iprop(∃ err : GoInterface, ⌜v = #err⌝ ∗ go_etcd_io.etcd.cache.v3.srvErrOk err)))
 
 /-- **`grpcStreamMethodOk` with the slot pool** (persistent; 2026-10-18): as `grpcStreamMethodOk`,
 and a run is also given the runtime's pool of `S` (`grpcSlotPool S`), to return its copy to
@@ -890,7 +979,8 @@ def grpcStreamMethodOkR {Req Rep : StreamMsg GF} (mh : val) (srv : GoInterface)
       Spec (metadata.incomingOf (GoInterface.ok ci)) γ Dn -∗ S -∗ grpcSlotPool S -∗ srvRawStreamIs st γ Req Rep Up Dn ci cd -∗
       srvRecvTok (Req := Req) γ [] -∗ srvSendTok (Rep := Rep) γ [] -∗ streamAuxTok γ -∗
       srvStreamInfoIs info -∗
-      srvStreamChainWP #info ics mh #srv #st (fun _ => iprop(True)))
+      srvStreamChainWP #info ics mh #srv #st
+        (fun v => iprop(∃ err : GoInterface, ⌜v = #err⌝ ∗ go_etcd_io.etcd.cache.v3.srvErrOk err)))
 
 instance grpcStreamMethodOkR_persistent {Req Rep : StreamMsg GF} (mh : val) (srv : GoInterface)
     (ics : List GoFunc) (S : IProp GF) (Up : Nat → Req.M → IProp GF) (Spec : GrpcMd → StreamSpec Rep) :
@@ -917,16 +1007,19 @@ its message types, the client's content of its requests, its stream specificatio
 metadata the stream may carry (G2; a plain one: `fun _ => spec`), the
 generated handler its `ServiceDesc`'s `StreamDesc` holds (`etcdserverpb._Watch_Watch_Handler`),
 and the service value registered with the `ServiceDesc`. -/
-structure GrpcStreamMethod (GF : BundledGFunctors) where
+structure GrpcStreamMethod (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] where
   name : GoString
-  Req : StreamMsg GF
-  Rep : StreamMsg GF
+  Req : StreamMsgT GF
+  Rep : StreamMsgT GF
   Up : Nat → Req.M → IProp GF
-  spec : GrpcMd → StreamSpec Rep
+  spec : GrpcMd → StreamSpec Rep.toStreamMsg
   handler : val
   srv : GoInterface
+  reqReg : streamReqModelOf GF Req.ty = some Req
+  repReg : streamRepModelOf GF Rep.ty = some Rep
 
 end defs
+
 
 /-! ## The opaque facts about grpc's runtime (streams) -/
 

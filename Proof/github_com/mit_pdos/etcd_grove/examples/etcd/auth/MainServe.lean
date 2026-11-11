@@ -118,6 +118,7 @@ theorem ak_served_kv (addr : GoString) (gs q p pa s : Loc) (lis : GoInterface)
 /-- **etcd's server, started for authkv: its watch service** (see the file header): watchkv's
 `wk_served_nd`'s watch half, with the members' KV facts from the read view with auth on. -/
 theorem ak_served_watch [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+    (Hp : mvcc.api.persistent.law (GF := GF))
     (V : client.WEnv GF) (addr : GoString) (pw s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
     (ims is : GoFunc) (sregs : List (GoString × val × GoInterface)) (nw : Nat)
     (hV : V.addr = addr) (hE : V.R.E = E) (hp : V.pfx ≠ []) (hst : kvSame γr.kv V.kv)
@@ -129,39 +130,50 @@ theorem ak_served_watch [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assum
       (@! go_etcd_io.etcd.api.v3.etcdserverpb._Watch_Watch_Handler : val),
       interface.mkOk (go.GoType.PointerType
         go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty) #pw) ∈ sregs)
-    (hWM : V.WM = v3rpc.etcdModelOfServer V.R.E) (hWL : V.WL = client.srvWL V.R)
-    (hoff : V.R.E.γ.cm = false) :
+    -- (R9, the `lean` merge) the watch contract at the server's model and watch facts
+    (hWM : V.WM = v3rpc.etcdModelOfServer V.R.E γr true) (hWL : V.WL = client.srvWL V.W)
+    (hH : V.W.histLb = srvApi.histLb γr true V.R.E.γs) (hC : V.W.crevOk = srvApi.crevOk γr) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isServerReadM true s E γr ∗ v3rpc.isWatchServer pw V.R ∗
+        v3rpc.srvWOk V.W V.R.wsl v3rpc.wsN ∗
         srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorOk is iprop(True) ∗
         grpcStreamServerAt addr [ims, is] sregs ∗
-        ([∗list] _x ∈ List.replicate nw (), v3rpc.watchRunSlot V.R) ∗ client.eofOk ⊢
-      |={⊤}=> watchAddrFacts V ∗ auth.modeTag V.R.γ.tag E.authMode := by
-  iintro ⟨#Ppb, #Pv, #Hrd, #Hws, #Hims, #His, Hss, Hwslots, #Heof⟩
-  ihave #Htag : auth.modeTag V.R.γ.tag E.authMode $$ []
+        ([∗list] _x ∈ List.replicate nw (), v3rpc.watchRunSlot V.R V.W) ∗ client.eofOk ⊢
+      |={⊤}=> watchAddrFacts V ∗ auth.modeTag V.R.tag E.authMode := by
+  haveI := v3rpc.srvWOk_persistent Hp V.W V.R.wsl v3rpc.wsN
+  iintro ⟨#Ppb, #Pv, #Hrd, #Hws, #HW, #Hims, #His, Hss, Hwslots, #Heof⟩
+  ihave #Htag : auth.modeTag V.R.tag E.authMode $$ []
   · iunfold v3rpc.isWatchServer at Hws
-    icases Hws with ⟨-, -, -, -, -, -, -, -, #Hok⟩
+    icases Hws with ⟨-, -, -, -, -, -, -, -, -, #Hok⟩
     iunfold v3rpc.watchSrvOk at Hok
-    icases Hok with ⟨-, -, -, -, -, -, #Ht, -⟩
+    icases Hok with ⟨-, -, -, #Ht, -⟩
     rw [← hE]; iexact Ht
-  imod (v3rpc.etcd_watch_served_chain addr pw V.R ims is sregs nw hset hwreg) $$ [Hss Hwslots]
+  imod (v3rpc.etcd_watch_served_chain addr pw V.R V.W ims is sregs nw hset hwreg) $$ [Hss Hwslots]
     with #Hst
   · iframe; iframe #
-  ihave ⟨%Hlink, #H0⟩ := client.isWatchServer_start pw V.R $$ Hws
-  ihave #Htok := client.watchTokPool_of_server pw V.R $$ Hws
-  ihave #Hsm := client.srvLogsSmall_of_receipts V.R Hlink hrb
-  ihave #Hnc := v3rpc.isWatchServer_watchNoDup_env pw V.R hoff $$ Hws
   ihave #Hcore := srvKVCoreM_of_readM true s E γr $$ Hrd
-  ihave #Hkf := client.srvKVFacts_intro V true γr hst hlog hrb $$ [Hcore H0]
-  · rw [← Hlink, hE]; iframe #
-  ihave #Hlaws := client.watchLaws_srv V hWM hWL Hlink $$ Hkf
+  ihave #Hkf := client.srvKVFacts_intro V true γr hst hlog hrb hH hC $$ [Hcore]
+  · rw [hE]; iframe #
+  ihave #Hwl := client.srvWLaws_of_ok V.W V.R.wsl v3rpc.wsN $$ HW
+  ihave #Hlaws := client.watchLaws_srv V true γr hWM hWL hH $$ Hwl
+  -- auth on: the cluster never compacts (`srvKVInvsOn`'s mode)
+  ihave %Hcm : ⌜γr.kv.cmp = false⌝ $$ []
+  · iunfold isServerReadM at Hrd
+    icases Hrd with ⟨%v, Hrd⟩
+    iunfold srvReadFieldsAtM at Hrd
+    icases Hrd with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hkvi, -⟩
+    ihave #Hon := srvKVInvsM_true s E γr $$ Hkvi
+    iunfold srvKVInvsOn at Hon
+    icases Hon with ⟨-, -, -, -, -, -, -, %Hm⟩
+    ipureintro; exact Hm.1
+  ihave #Honce := client.srvOnce_noCmp V.W γr hC Hcm
   imodintro
   iframe Htag
   unfold watchAddrFacts
   rw [hV]
   iframe #
-  ipureintro; exact ⟨Hlink, hp⟩
+  ipureintro; exact hp
 
 end served
 

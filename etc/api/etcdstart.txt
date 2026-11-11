@@ -1,0 +1,67 @@
+# etcdstart's importable modules (hub plan step 9, Q4 approved by the user via etcd-grove-82,
+# 2026-11-05): what proofs outside `examples/lib/etcdstart` may import (`etc/api-check.py
+# etc/api/etcdstart.txt --check`). Every other module of the package is internal; in particular the
+# members' start bundles (`StartRes`: `memberStartRes`, `memberFreshRes`, `memberRestartRes`) are
+# sealed, their bodies reachable only with `import all`, which rule 1 forbids outside the package and
+# `etc/import-all.txt` limits inside it. What each importable module exposes, as a client sees it, is
+# `etc/gen-interface.py`'s output under `interface/`.
+#
+# Started 2026-11-05 from what clients imported then and its public-import closure, in two groups:
+# the API, and debt (proof internals the examples reach today, to be taken out of the list: a law in
+# an API module instead, or the client's import dropped). Adding a module here is an API change:
+# review its interface.
+
+inside Proof/github_com/mit_pdos/etcd_grove/examples/lib/etcdstart/
+inside Spec/github_com/mit_pdos/etcd_grove/examples/lib/etcdstart/
+exempt (^|/)(Link|MainLinked|Results|Adequacy\w*)\.lean$
+root github_com.mit_pdos.etcd_grove.examples.lib.etcdstart
+
+## The API
+# the members' start bundles (sealed) and their laws
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartRes
+# the cluster's allocation (one member, three members) and the closed theorems' adequacy
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Alloc
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Alloc3
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Adequacy
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.AdequacyMembers
+# the package's initialization
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Init
+# the starters' specs
+importable Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.BuildServer
+importable Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewMember
+importable Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMember
+importable Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartServer
+importable Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartCompactingServer
+importable Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartPeriodicServer
+importable Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Serve
+# the examples' client helpers' specs
+importable Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Attempted
+importable Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Check
+importable Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Collect
+importable Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.CompactRev
+importable Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Gen
+importable Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.GenAll
+importable Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.MaxRev
+importable Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewClient
+importable Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewClients
+importable Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Writer
+# the watch path's facts for the examples' watch clients (R9, the `lean` merge, 2026-11-07): the
+# server's side of the watch path from a member's read view (`WatchSrv`), the watch condition of a
+# compacting member from its writers' plan (`OnceUpTo`)
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WatchSrv
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.OnceUpTo
+
+## Debt: proof internals the examples import today
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Base
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.CollectPlan
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Defs
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.OneMember
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.RespChan
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Restart
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Served
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.ServedLease
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Start
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartStop
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WatchBase
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WritesF
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WritesKM

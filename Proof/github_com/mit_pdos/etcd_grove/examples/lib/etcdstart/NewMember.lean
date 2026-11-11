@@ -41,18 +41,22 @@ theorem NewMember.wp_proof
     (wp_RaftHandler : EtcdServer.RaftHandler.spec (GF := GF) (hG := hG)) :
     NewMember.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client token snapCount catchUp peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ E₀ Φs
-    γn Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU HU8 Hlg Hck Haf Hbuq
+    γn cmp lm Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU HU8 Hck Haf Hbuq
     Hdbo
-  wp_start as ⟨Haddr, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hpown, Hwdf⟩
+  wp_start as ⟨#Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hfresh⟩
+  ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
+  -- the peer address's listen right and raft protocol, out of the fresh bundle (to `net.Listen` and
+  -- `http.Serve`); the rest to `newServer`
+  icases memberFreshRes_peer _ _ _ _ rfl $$ Hfresh with ⟨⟨Haddr, Hpown⟩, Hfresh⟩
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
   · iPkgInit
   (try wp_auto)
   -- `newServer(name, peer, client, cluster, token, 0, snapCount, catchUp, lg)`: the compactor off
   wp_apply (wp_newServer N name peerAddr client token (W64 0) snapCount catchUp peer cluster lg M iu Uok ps bootLog
-      ctxs dir id γ ρ E₀ Φs γn Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU HU8 Hlg
-      (by decide) Hck Haf Hbuq Hdbo) $$ [Htok Hmb Hwdf] as %s %err Hres
+      ctxs dir id γ ρ E₀ Φs γn cmp lm Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU HU8
+      (by decide) Hck Haf Hbuq Hdbo) $$ [Htok Hmb Hfresh] as %s %err Hres
   · iframe; iframe #
-  icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb⟩)
+  icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb, -⟩)
   · -- `newServer` failed: the error returned
     cases err with
     | nil => exact absurd rfl Herr
@@ -76,7 +80,7 @@ theorem NewMember.wp_proof
   iunfold memberBuilt at Hmb
   simp only [Bool.false_eq_true, ↓reduceIte]
   icases Hmb with ⟨%γA, %ci, %TM, %E, %γrn, %b, %cfg, %γk, %τ, %HE, #Hwb, Hsb, Hserve, Hsv, #Hoff,
-    Hlgm, Hrc, #Hnm, Htokp, HServeR, HWR, #Hlr⟩
+    Hlgm, Hrc, #Hnm, Htokp, HServeR, HWR, #Hlr, Hkeep⟩
   -- (2026-10-24, rafthttp stage 6d) the listener serves the peer address with the raft protocol
   -- (the program start's reservation)
   imod (http.register lis peerAddr (raftProto (netRh γn))) $$ Hlis Hpown with Hlis

@@ -306,7 +306,7 @@ theorem rangeOutcomeIs_errIs (log : mvcc.Log) (o : OpFull) (resp : Loc) (err : G
     · icases Hv with ⟨-, -, -, -, #HF, -⟩
       iapply errVar_applyErrIs _ _ $$ HF
       iexists ef; iframe Hef; ipureintro; exact Herr
-    · ihave %Hen := mvcc.errorfIs_ne_nil err $$ Hef
+    · ihave %Hen := mvcc.rangeKeysErr_ne_nil err $$ Hef
       exfalso
       rcases Hne with h | h | h
       · exact Hen h
@@ -404,6 +404,18 @@ theorem cmpAnswerIs_split [go_etcd_io.etcd.server.v3.etcdserver.apply.Assumption
     ipureintro
     unfold cmpOutcome
     simp [hc]
+
+/-- A revocation's answer's error (the lease-expiry plan's X7: back with the revocation arm). -/
+theorem revokeOutcomeIs_errIs (resp : Loc) (err : GoInterface) (oc : Outcome) :
+    go_etcd_io.etcd.server.v3.etcdserver.apply.applyErrVars (GF := GF) ⊢
+      revokeOutcomeIs resp err oc -∗ applyErrIs err := by
+  iintro #Hv H
+  rcases oc with k | ⟨log', ns⟩ <;> simp only [revokeOutcomeIs]
+  · icases H with ⟨-, H⟩
+    iapply rejErrIs_errIs _ k err ?_ $$ Hv H
+    iintro - %h; exact h.elim
+  · icases H with ⟨-, H, -⟩
+    iexact H
 
 end errIs
 

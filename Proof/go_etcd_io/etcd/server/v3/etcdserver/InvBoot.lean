@@ -51,6 +51,8 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.HooksLoeb
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__Snapshot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Net
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.TransportState
+public import Spec.go_uber_org.zap.Defs
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.TransportFull
 public import Perennial.Ghost.GhostMap
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.URLs
 public import Proof.go_etcd_io.etcd.server.v3.storage.InvOpen
@@ -208,7 +210,7 @@ neither call happens. In a granting cluster with the feature on, `Grant` on a pr
 schedules a checkpoint (`le.cp != nil`, `lessor.go:318-321, 753-770`) and after
 `checkpointInterval` (300 s by default) the loop proposes `LeaseCheckpoint` through `raftRequest`
 (`server.go:394-406`): outside the verified request path, so the premise then has content. The
-examples leave the feature off (`examples/lib/etcdstart/etcdstart.go:96`: `le.cp == nil`, nothing is ever
+examples leave the feature off (`examples/lib/etcdstart/common.go:96`: `le.cp == nil`, nothing is ever
 proposed), so for `examples/etcd/leasegrant` it holds vacuously. Pending: the `axiom` skill's review of
 this restatement (the lease-grant plan). (Until D21 M2, 2026-10-19, it had a sibling, `transportEffectsOk`,
 the transport's goroutines' effects, now the network contract: `rafthttp/Net.lean`.) -/
@@ -223,8 +225,7 @@ and of `NewServer.spec`. -/
 opaque authRecordsFit : Prop
 
 /-- **The configurations `bootstrap`'s contracts cover, at either start** (2026-11-03, the
-whole-`bootOk` review, C): a logger (`bootstrap` logs through `cfg.Logger` from its first line,
-`bootstrap.go:64`: nil panics), a quota bbolt can map (`storage.openMmapOk`: `newBackend` panics
+whole-`bootOk` review, C): a quota bbolt can map (`storage.openMmapOk`: `newBackend` panics
 otherwise), a batch limit the backend's model admits (`openLimit cfg` positive and at most `2 ^ 57`:
 `bootOk`'s `Hbe`, `d.P.Wf`; Go takes any `BackendBatchLimit`, `storage/backend.go:36-41`), no
 bootstrap defragmentation (`BootstrapDefragThresholdMegabytes = 0`, `bootstrap.go:267-272`: `Defrag`
@@ -233,10 +234,12 @@ which `Hraft`'s `ConfigValid` needs). Until then the last came only from the exa
 (2026-11-03, the final whole-`bootOk` review's S2: until then also `TickMs ≠ 0`, for `Hraft`'s
 `heartbeat ≠ 0`, false of Go at `TickMs = 2 ^ 58`, where the wrapping heartbeat is `0`; `Hraft` now
 states the heartbeat Go computes, true at every `TickMs`, and `NewServer`, which starts the ticker,
-takes its sign, `raftNode.bootCfg`.) The examples' configuration (`examples/lib/etcdstart/etcdstart.go`)
-meets all. -/
+takes its sign, `raftNode.bootCfg`.) The examples' configuration (`examples/lib/etcdstart/common.go`)
+meets all. (Sweep repairs 1, R1-2, L4, 2026-11-07: until then also `cfg.Logger' ≠ null`, which a
+zero `&zap.Logger{}` meets and on which `bootstrap` panics at its first log line; the logger is now
+`zapLoggerOk cfg.Logger'` in the contracts' preconditions, an `IProp`.) -/
 def bootCfgOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : Prop :=
-  cfg.Logger' ≠ null ∧ storage.openMmapOk cfg ∧
+  storage.openMmapOk cfg ∧
     0 < sint.Z (storage.openLimit cfg) ∧ sint.Z (storage.openLimit cfg) ≤ 2 ^ 57 ∧
     cfg.BootstrapDefragThresholdMegabytes' = W64 0 ∧
     1 < sint.Z cfg.ElectionTicks'
@@ -273,16 +276,15 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- `b.raft`: `NodeStartSpec`'s premises
     -- (2026-11-03, S2: until then `heartbeat ≠ 0`, false at `TickMs = 2 ^ 58`) the heartbeat as Go
     -- computes it (`time.Duration(cfg.TickMs) * time.Millisecond`, `bootstrap.go:563`, wrapping)
-    "%Hraft" ∷ ⌜bv.lg' ≠ null ∧ bv.heartbeat' = cfg.TickMs' * W64 1000000 ∧
-      ConfigValid cv ∧ cv.Logger' = interface.ok lok ∧
-      cv.Storage' = memStorIface bv.storage' ∧
-      sint.Z cv.MaxInflightMsgs' < 2 ^ 62 ∧
-      cv.DisableProposalForwarding' = false ∧ cv.ReadOnlyOption' = W64 0 ∧
-      cv.DisableConfChangeValidation' = false ∧
-      (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) ∧
-      cv.AsyncStorageWrites' = false ∧ cv.Applied' = W64 0 ∧
-      cv.ID' = id ∧
-      ps = pv.map Peer.ID' ∧ ps ≠ [] ∧ ps.Nodup ∧ W64 0 ∉ ps ∧
+    -- (2026-11-05: until then `rnStartCfg`'s conjuncts spelled out) the configuration and the
+    -- peers (`rnStartCfg`), this node's id, the peers distinct, non-zero, this node among them,
+    -- the cluster's voters, and the bootstrap log theirs
+    -- (premise-fixes-6) the wrapper's logger the configuration's (`bootstrapRaft`'s
+    -- `lg: cfg.Logger`, `bootstrap.go:546,557`), so a zap logger by the contracts' precondition
+    -- (`newRaftNode` logs through it; until then only `rnStartCfg`'s `bv.lg' ≠ null`)
+    "%Hraft" ∷ ⌜rnStartCfg bv cv lok pv ps ∧ bv.heartbeat' = cfg.TickMs' * W64 1000000 ∧
+      bv.lg' = cfg.Logger' ∧
+      cv.ID' = id ∧ ps.Nodup ∧ W64 0 ∉ ps ∧
       cv.ID' ∈ ps ∧ γ.vs = ps ∧ srvBootLogOk ps γ.boot⌝ ∗
     "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
     "#Hreg" ∷ memStorReg bv.storage' γs ∗
@@ -303,10 +305,10 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- the cluster
     "#Hcl" ∷ rnClusterOk bc.cl' ∗ "#Hrc" ∷ membership.isRaftCluster bc.cl' ∗
     "#Hcid" ∷ membership.clusterCid bc.cl' cid ∗ "%Hid" ∷ ⌜bc.nodeID' = id⌝ ∗
-    -- (D43 M5e, 2026-10-26, the user's decision) its logger, read-only, not nil
-    -- (`NewClusterFromURLsMap` sets `lg` from the configuration's logger): what `AddMember` and
-    -- `RemoveMember` log through, `applyConfChange`'s
-    "#Hclg" ∷ (∃ lgc : Loc, membership.rcLgAddr bc.cl' ↦□ lgc ∗ ⌜lgc ≠ null⌝) ∗
+    -- (D43 M5e, 2026-10-26, the user's decision) its logger, read-only, a zap logger (sweep
+    -- repairs 1, L4: until then only not nil) (`NewClusterFromURLsMap` sets `lg` from the
+    -- configuration's logger): what `AddMember` and `RemoveMember` log through, `applyConfChange`'s
+    "#Hclg" ∷ (∃ lgc : Loc, membership.rcLgAddr bc.cl' ↦□ lgc ∗ zapLoggerOk lgc) ∗
     -- (audit B4a, 2026-10-18) its `versionChanged` field, owned (the cluster not yet shared):
     -- `NewServer`'s `SetVersionChangedNotifier` writes it without the lock, and the cluster's
     -- apply contract `Hisc` (whose `SetVersion` reads it) is for after, the field read-only
@@ -377,7 +379,7 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- (J8a-4, 2026-11-01, the user's decision: `notes/decisions.md`, "J8a-4") the meta reads of a
     -- backend the apply thread opens (`applySnapshot`'s `OpenSnapshotBackend`) at the protocol's
     -- names `π`, over an image whose meta keys are `π.m0`, at its fresh keys and payment rights
-    -- (they come back): what `applySnapshot.specSnap` takes
+    -- (they come back): what `applySnapshot.specSnapM` takes
     "#HmetaSnap" ∷ □ (∀ (π : ApplyPhys) (γB : backend.BNames) (P : backend.BParams) (D : backend.Data),
         ⌜ciKeys P ∧ metaIs D π.m0 ∧ π.bwb = γB.wb ∧ π.bopn = γB.opn⌝ -∗
         backend.hkOwn γB (backend.hkData P D) -∗ backend.bFresh γB -∗
@@ -416,9 +418,9 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- tokens (`N` for the entries, seven for the construction) and the open token (`bootLeft`),
     -- not every token (`bFresh`: false after `bootstrap`'s own two write-backs; the bound is the
     -- contract's premise, `N + 7 + bootWB ≤ wbInit`, until then the post's `%HN`); and what
-    -- `bootstrap` adds: the store's registration right, `keySized` (`bootBackend_of_bootLeft`
+    -- `bootstrap` adds: the store's registration right (`bootBackend_of_bootLeft`
     -- turns `newPostK` into the resources `NewServer` uses)
-    "Hnew" ∷ backend.newPostK d.γB d.P (fun γB => mvcc.lateWB d.gx γB)
+    "Hnew" ∷ backend.newPostK d.γB d.P (fun _ => mvcc.api.mvccW d.gx)
       (fun γB => batchLockInv γA (metaTM γB d.P)) (bootLeft N) d.be D ∗
     -- (2026-11-01, the user's decision, "bootOk's boot metadata") the boot data's meta keys are the
     -- protocol's initial ones: the consistent index and term stored in `D`'s `Meta` bucket are
@@ -426,10 +428,9 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- `D` holds the last commit's)
     "%Hm0" ∷ ⌜metaIs D γA.m0⌝ ∗
     "%HD" ∷ ⌜mvcc.keyView (backend.vData d.P (D, ⟨∅, W64 0⟩)) ∅⌝ ∗
-    -- (D22 J1a, 2026-10-26: of every backend at these parameters, for the snapshot path's backends;
-    -- until then of `d` only) the Key bucket's size bound (no bbolt file holds `2 ^ 62` keys)
-    "#Hsz" ∷ □ (∀ (γB : backend.BNames) (b : Loc), mvcc.keySized γB d.P b) ∗
-    "Hlate" ∷ mvcc.lateReg d.gx ∗
+    -- (premise fixes 5, 2026-11-10) no `#Hsz`: the Key bucket's size bound `mvcc.keySized` is proved
+    -- (`mvcc.keySized_at`, from bbolt's `rtxSnap_size`); until then assumed here (D22 J1a)
+    "Hlate" ∷ mvcc.api.mvccWReg d.gx ∗
     -- (D22, 2026-10-23: the backend over every bucket; a widening of the fresh data directory's
     -- facts, until then the opaque tokens `bkFresh d.γB "lease"`, `"auth"`, `"alarm"`) every rest
     -- bucket of the fresh file empty (absent or empty), the membership's three present
@@ -503,12 +504,32 @@ does otherwise) and a budget `bootstrap`'s own write-backs leave (`N + 7 + bootW
 I/O, where it would otherwise panic: bbolt opens the backend file (`storage.dbOpensOk`,
 `newBackend`'s `lg.Panic` on `OpenBackend`'s goroutine) and the WAL is created
 (`storage.walCreateOk`, `bootstrapNewWAL`'s `lg.Panic`); its other I/O failures return an error or
-call `lg.Fatal`, which does not return (`zap.Logger.Fatal.spec`). -/
+call `lg.Fatal`, which does not return (`zap.Logger.Fatal.spec`). (Sweep repairs 1, R1-2, L4,
+2026-11-07) With a zap logger (`zapLoggerOk cfg.Logger'`): `bootstrap` logs through it from its first
+line (`bootstrap.go:64`, `:92`), and on a zero `&zap.Logger{}` panics; until then the contract
+covered any non-nil logger (`bootCfgOk`'s `cfg.Logger' ≠ null`), so it was false of Go there and
+every closed theorem assuming it held vacuously on that account. (Premise fixes 1, 2026-11-10) With
+the feature gate `nil` or a feature gate (`isFeatureGate`, which answers `NonBlockingDefrag`, as
+`storage.openPre`): `newBackend` (`storage/backend.go:50-51`) asks a non-`nil` gate for it, and
+`featuregate` panics on an unregistered feature; until then the contract covered every gate, so it
+was false of Go there (the premise attack; `examples/premisefix/bootfg`, `featuregate.New`'s empty
+gate panics in `bootstrap`). The other configuration fields `bootstrap` reads and no precondition
+fixes (`MaxLearners`, `BackendBatchInterval`, `BackendFreelistType`, `UnsafeNoFsync`,
+`MaxRequestBytes`, `PreVote`, `PeerTLSInfo`, `BootstrapTimeout`) make it return an error or do
+what `bootOk` says, and `MemoryMlock`'s failure is `storage.dbOpensOk`'s. -/
 def bootstrapContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs)
     (γ : SrvRaft) (id : w64) (ctxs : List (List w8)) (N : Nat) (dir : w64 → List GoString) :
     IProp GF :=
   iprop(□ ({{ ⌜bootCfgOk cfg ∧ bootCfgFresh cfg U ∧ N + 7 + bootWB ≤ backend.wbInit ∧
           storage.dbOpensOk ∧ storage.walCreateOk⌝ ∗
+        -- (sweep repairs 1, L4) a zap logger
+        zapLoggerOk cfg.Logger' ∗
+        -- (premise fixes 1) the feature gate `nil` or one that answers `NonBlockingDefrag`
+        -- (`storage.openPre`'s)
+        (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
+        -- (sweep repairs 1, B4) `ETCD_VERIFY` off: its backend's lock checks return (`bootOk`'s
+        -- `isBackend` carries it)
+        envVerifyOff ∗
         bootCfgRO cfg U ∗ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
         wal.bootRes cfg }}
       (App (Val (@! bootstrap)) (Val #cfg))
@@ -618,6 +639,33 @@ and its transport exist, so its `S` is this key, of a name `NewServer` allocates
 (`srvSendKey_alloc`) and fixes once the transport is started (`srvSendKey_fix`). -/
 def srvTrKey (γn : NetNames GF) (γk : GName) : IProp GF :=
   iprop(∃ x : SrvKey, ghostMapElem γk () DFrac.discard x ∗ trTok γn x.2.1 (SrvKey.trN x))
+
+/-- (2026-11-05, R2b-3d stage 5c) **The right to stop the keyed server's transport** (the server's
+raft environment's `ST`, as `srvTrKey` is its `S`, for the same reason: the environment is built
+before the server): the transport of the server the key `γk` names, live (`srvTrStop`). The apply
+thread hands it over at the shutdown, with the key's server (`srvTrKeyOf`, `srvTrStopK_of`). -/
+def srvTrStopK (γk : GName) : IProp GF :=
+  iprop(∃ x : SrvKey, ghostMapElem γk () DFrac.discard x ∗ srvTrStop x.1)
+
+/-- (R2b-3d stage 5c) **The key `γk` names the server `s`** (persistent; `NewServer` posts it). -/
+def srvTrKeyOf (s : Loc) (γk : GName) : IProp GF :=
+  iprop(∃ x : SrvKey, ghostMapElem γk () DFrac.discard x ∗ ⌜x.1 = s⌝)
+
+instance srvTrKeyOf_persistent (s : Loc) (γk : GName) :
+    Persistent (srvTrKeyOf (GF := GF) s γk) := by
+  unfold srvTrKeyOf; infer_instance
+
+/-- The stop right of the keyed server's transport, from the server's (the shutdown's). -/
+theorem srvTrStopK_of (s : Loc) (γk : GName) :
+    srvTrKeyOf (GF := GF) s γk ∗ srvTrStop s ⊢ srvTrStopK γk := by
+  iintro ⟨#Hk, Hs⟩
+  iunfold srvTrKeyOf at Hk
+  icases Hk with ⟨%x, #Hx, %Hxs⟩
+  iunfold srvTrStopK
+  iexists x
+  iframe Hx
+  rw [Hxs]
+  iexact Hs
 
 /-- The key's name, allocated, the transport's names not yet fixed. -/
 theorem srvSendKey_alloc :
@@ -757,6 +805,56 @@ instance lessorCkptOk_persistent (l : GoInterface) : Persistent (lessorCkptOk (G
   unfold lessorCkptOk; infer_instance
 
 end transport
+
+section transportStop
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+/-- (2026-11-05, R2b-3d stage 5c) **The server's transport, its `Stop` taking the keyed server's
+stop right** (`srvTrStopK γk`): the key fixed to the server `s` and its transport `t` (`srvSendKey_fix`),
+`t` installed in `s`'s raft wrapper; the right names `t` (the key's and the field's agreement), and
+`Stop_live` takes its live right at any names. -/
+theorem netTransport_srvTrStop
+    (hPeerStop : rafthttp.peer.stop.spec (GF := GF) (hG := hG))
+    (hRemoteStop : rafthttp.remote.stop.spec (GF := GF) (hG := hG))
+    (γn : NetNames GF) (lid : w64) (γk : GName) (x : SrvKey) (s t : Loc) (hs : x.1 = s)
+    (ht : x.2.1 = t) (T TS : IProp GF) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
+        ghostMapElem γk () DFrac.discard x ∗
+        srvTransportAddr s ↦□ srvTrIface t ∗ netTransport γn lid (transportIface t) T TS ⊢
+      netTransport γn lid (transportIface t) T (srvTrStopK γk) := by
+  iintro ⟨#Hpkg, #Hkx, #Ht, #Htr⟩
+  iunfold netTransport at Htr
+  icases Htr with ⟨%ti, %Hti, #Hsend, -, #Hsnap⟩
+  iunfold netTransport
+  iexists ti
+  isplitr
+  · ipureintro; exact Hti
+  iframe Hsend Hsnap
+  unfold transportIface interface.mkOk at Hti
+  cases Hti
+  iintro !> %Φ !> HS HΦ
+  iunfold srvTrStopK at HS
+  icases HS with ⟨%x', #Hx', HS⟩
+  ihave %Hxx := ghostMapElem_agree () γk DFrac.discard DFrac.discard _ _ $$ Hkx Hx'
+  subst Hxx
+  rw [hs]
+  iunfold srvTrStop at HS
+  icases HS with ⟨%t', %γn', %c, %rs, #Ht', Hl⟩
+  icombine Ht Ht' gives %Heq
+  have Heq' : t = t' := by
+    unfold srvTrIface interface.mkOk at Heq
+    simp only [GoInterface.ok.injEq, GoInterfaceOk.mk.injEq] at Heq
+    exact go.intoVal_inj Heq.2
+  subst Heq'
+  wp_apply (rafthttp.Transport.Stop_live hPeerStop hRemoteStop γn' t c rs) $$ [Hl]
+  · iexact Hl
+  iapply HΦ; itrivial
+
+end transportStop
 
 end EtcdGrove
 end Perennial

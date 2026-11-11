@@ -37,9 +37,10 @@ theorem StartServer.wp_proof
     (wp_newServer : newServer.spec (GF := GF) (hG := hG))
     (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG)) :
     StartServer.spec (GF := GF) (hG := hG) := by
-  intro CS N name peerAddr client lg bootLog ctxs dir id γ ρ E₀ Φs γn Htb Hrb48 HrbN HwbN hvs hrule
-    hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps Hname8 Hlg Hck Haf Hbuq Hdbo
-  wp_start as ⟨Htok, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hwdf⟩
+  intro CS N name peerAddr client lg bootLog ctxs dir id γ ρ E₀ Φs γn lm Htb Hrb48 HrbN HwbN hvs hrule
+    hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps Hname8 Hck Haf Hbuq Hdbo
+  wp_start as ⟨#Hzlg, Htok, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hfresh⟩
+  ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
   · iPkgInit
   (try wp_auto)
@@ -71,12 +72,12 @@ theorem StartServer.wp_proof
   wp_apply (wp_newServer N name peerAddr client name (W64 0) (W64 10000) (W64 281474976710656)
       (slice.mk peer (W64 1) (W64 1)) pm lg
       (GMap.insert name (slice.mk peer (W64 1) (W64 1)) ∅) (fun _ => [httpURL peerAddr])
-      (urls1 name peerAddr client) [id] bootLog ctxs dir id γ ρ E₀ Φs γn Htb Hrb48 HrbN HwbN
+      (urls1 name peerAddr client) [id] bootLog ctxs dir id γ ρ E₀ Φs γn false lm Htb Hrb48 HrbN HwbN
       hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps ⟨rfl, rfl, ⟨_, rfl⟩, rfl⟩
-      (utf8Keys_insert _ _ _ Hname8 utf8Keys_empty) Hlg (by decide) Hck Haf Hbuq
-      Hdbo) $$ [Htok Hmb Hwdf] as %s %err Hres
+      (utf8Keys_insert _ _ _ Hname8 utf8Keys_empty) (by decide) Hck Haf Hbuq
+      Hdbo) $$ [Htok Hmb Hfresh] as %s %err Hres
   · iframe; iframe #
-  icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb⟩)
+  icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb, #Httl, -⟩)
   · -- `newServer` failed: the error returned, with the thread token
     cases err with
     | nil => exact absurd rfl Herr
@@ -86,12 +87,13 @@ theorem StartServer.wp_proof
   subst Herr
   wp_auto
   -- `s.Start()`
-  wp_apply (wp_Start_built wp_Start s ρ E₀ lg γn id N _ HrbN) $$ [Hmb Htok] as Hup
+  wp_apply (wp_Start_built wp_Start s ρ E₀ lg γn id N _ HrbN lm Hrb48) $$ [Hmb Htok] as Hup
   · iframe
   (try wp_auto)
   iapply HΦ
   iright
   iframe
+  iframe Httl
   ipureintro; rfl
 
 end proof

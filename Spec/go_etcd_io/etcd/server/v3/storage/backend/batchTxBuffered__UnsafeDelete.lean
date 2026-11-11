@@ -35,20 +35,25 @@ compaction key (`fkKey`, the M2 storage plan's items 27/29, 2026-10-30: the back
 values from the open, `fkOkG`; only mvcc writes them, and never deletes one). (Until
 question 2, 2026-10-29: not in a safe-range bucket, an owned key only; a Draft `specC` had this
 statement beside it, with a premise `dlIs` at a safe-range key that nothing used: review round 12,
-R12-1.) In a non-hook bucket with the client's half of the physical view (`pvPut`, F2's stage 1,
-2026-11-02), given back at the new contents. -/
+R12-1.) In a safe-range bucket (the user's decision, 2026-11-04, probe M2: a snapshot's observation
+knows the safe-range bucket exactly), with the client's half of the deleted entries (`dlPut`: inside
+`fkOwn`), given back updated, and an entry of the writer's contents the readers see (so that the
+deleted entries stay the logical view's: the compaction deletes what its range read of the
+committed data returned). -/
 abbrev backend.batchTxBuffered.UnsafeDelete.spec : Prop :=
   ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (st : BSess)
     (bk : GoInterface) (bi : BucketInfo) (key : GoSlice) (kb : GoString) (dk : DFrac) (own : Bool),
   P.has bi → sint.Z st.pend + 1 < 2 ^ 58 → P.hk bi.name kb = false → ¬ fkKey bi.name kb →
+  (P.SB bi.name = true → (sData P st.S).lookup (bi.name, kb) ≠ none →
+    (vData P (st.C, st.R)).lookup (bi.name, kb) ≠ none) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗
       bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st ∗ isBucket bk bi ∗
       (if own then key ↦*{dk} kb else txBytes st.tx key kb) ∗
-      rbPut γ P bi.name st.S ∗ pvPut γ P bi.name st.S }}
+      rbPut γ P bi.name st.S ∗ dlPut γ P bi.name }}
     (App (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"UnsafeDelete")) (Val #bk)) (Val #key))
   {{ RET #(); batchLocked γ P b (st.del bi kb) ∗
       (if own then key ↦*{dk} kb else txBytes st.tx key kb) ∗ rbPut γ P bi.name (st.del bi kb).S ∗
-      pvPut γ P bi.name (st.del bi kb).S }}
+      dlPut γ P bi.name }}
 
 end spec
 

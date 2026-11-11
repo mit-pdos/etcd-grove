@@ -7,7 +7,7 @@ counterpart).
 (`schema.MustUnsafePutLease`: one `tx.UnsafePut(Lease, ...)`) and unlocks. `leaseBackend b P f`
 is that much of the backend `b` (an interface the lessor holds): `BatchTx()` returns a batch
 transaction whose `LockInsideApply()`, under the batch lock's critical-section contract
-`mvcc.csContract P f Pre Q Post` (the lock's invariant `P`, the post-lock hook `f`: the apply
+`srvApi.csContractA P g Pre Q Post` (the lock's invariant `P`, the post-lock hook `g`, of value `f`: the apply
 package's environment), for a write-back token `T` and a lent open share `R` of the backend
 (2026-10-17, unit N4, D14f: the real backend's `Unlock` spends a write-back, its `LockInsideApply`
 needs the backend open), gives a token `Lk (Post ∗ R)` that `UnsafePut` into the `Lease` bucket
@@ -19,11 +19,13 @@ was for the store before `BackendBridge.lean`): not yet proved of the real backe
 
 `lessorBackend lp P f`: the lessor's `b` is such a backend (`newLessor` sets it; `Recover`,
 names-only, replaces it under the lessor's lock: D22 receiver epochs, S7c, the field half the
-lock's, half its user's, `lessorBeOn`, which the write token lends).
+lock's, half its user's, `lessorBeOn`, which the lent part `Ln` lends: the lease-grant stage, 2.12,
+2026-11-02; until then the write token).
 
 `lessorExpiredC lp GA`: the lessor's `expiredC` (read-only), the channel `ExpiredLeasesC`
 returns, of slices of leases each of which met the lessor's grant guard `GA` (D19n, 2026-10-18:
-the expiry loop sends only non-empty slices of leases of its map; until then no logical content);
+the expiry loop sends only non-empty slices of leases of its map; until then no logical content;
+the lease-expiry plan's X3, 2026-11-04: the slice and each lease's `ID` read-only, `expiredLeases`);
 a server whose guard is `False` receives nothing from it. (The lease-grant plan, 2026-11-02, D1)
 A slice is sent only once a lease has expired, so each also refutes the deployment premise
 `leasesNoExpiry` (no lease granted in the run expires before the run ends): a server whose guard
@@ -34,6 +36,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
 public import Perennial.Golang.Theory.Chan.Idioms.Bag
 public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseRecord
+public import Proof.go_etcd_io.etcd.server.v3.lease.MvccShapes
 
 @[expose] public section
 
@@ -73,6 +76,8 @@ refutes it. `NewServer` takes it (gated on the cluster granting leases, `KVNames
 S1) for its apply thread, the one place a grant is minted. -/
 opaque leasesNoExpiry : Prop
 
+-- `Mode`: `InvLessor.lean` (moved 2026-11-04, X7 option (iii): `KVNames` and `AEnv` name it).
+
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -80,15 +85,16 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **The batch transaction `tx`** as the lessor's writes use it (persistent): `LockInsideApply()`
-under the critical-section contract gives the lock's token `Lk Post`; `UnsafePut` into the
+under the critical-section contract (over mvcc's API's `hookRun`, `csContractA`, at the hook `g`
+whose value `f` is: strict M1, 2026-11-05, so that a `nil` hook is the caller's view shift) gives the lock's token `Lk Post`; `UnsafePut` into the
 `Lease` bucket (the value of `schema.Lease`) of an 8-byte key (a lease's id: unit N4, 2026-10-17;
 an empty key is fatal in the real backend) keeps it and puts the entry into the tracked buckets
 `Rb` holds (L3c); `Unlock()` gives `Post`. -/
 def leaseBatchTx (tx : GoInterfaceOk) (P : IProp GF) (f : val) (T R : IProp GF)
     (Rb : GMap GoString backend.BktData → IProp GF := fun _ => iprop(True)) : IProp GF :=
   iprop(∃ Lk : IProp GF → IProp GF,
-    □ (∀ (Pre Q Post : IProp GF),
-      {{ mvcc.csContract P f Pre Q Post ∗ T ∗ R }}
+    □ (∀ (g : GoFunc) (Pre Q Post : IProp GF), ⌜f = #g⌝ →
+      {{ srvApi.csContractA P g Pre Q Post ∗ T ∗ R }}
         (App (Val #(methods tx.ty go!"LockInsideApply" tx.v)) (Val #()))
       {{ RET #(); Lk iprop(Post ∗ R) }}) ∗
     □ (∀ (R : IProp GF) (bk : GoInterface) (key val : GoSlice) (kb vb : GoString)
@@ -123,7 +129,9 @@ fraction of the lessor's `b` field at `b` (D22 receiver epochs, S7c, 2026-10-23:
 longer read-only, `Recover` replaces it; until then `lF "b" lp ↦□ b`, which that store refutes):
 the writes read `le.b` under the lessor's lock, holding it. (The lease-grant stage, 2.12,
 2026-11-02) The lent part is apart from the write token `T`, which the write spends: `Grant` and
-`Checkpoint` give `Ln` back; until then the token lent the field and was spent with it.) -/
+`Checkpoint` give `Ln` back; until then the token lent the field and was spent with it.) (The
+mvcc merge, 2026-11-06: this branch's coordinator had fixed the same give-back by a lens in the lent
+open share `R`; `lean`'s `Ln` kept, the server on `lean` being written against it.) -/
 def lessorBackend (lp : Loc) (P : IProp GF) (f : val) (T Ln R : IProp GF)
     (Rb : GMap GoString backend.BktData → IProp GF := fun _ => iprop(True)) : IProp GF :=
   iprop(∃ b : GoInterface, leaseBackend b P f T R Rb ∗
@@ -143,12 +151,44 @@ def lessorBeOn (lp be : Loc) : IProp GF :=
     (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
       #be : GoInterface))
 
-/-- The lessor's `expiredC` (persistent): read-only, a channel of slices of leases, some lease of
-each meeting the grant guard `GA` (D19n), (the lease-grant plan's D1, 2026-11-02) each sent only
-once a lease has expired, so refuting `leasesNoExpiry`. -/
+/-- (the lease-expiry plan's X3, 2026-11-04) **A slice of expired leases `ls`**, as the lessor's
+expiry loop sends it on `expiredC` (`revokeExpiredLeases`, `lessor.go:640-660` at the etcd pin):
+read-only, its elements `ps` non-empty (`if len(ls) != 0`), each a non-null `*Lease` of the lessor's
+map whose `ID` (never written after `NewLease`) is read-only at `id`, with the grant guard `GA id`
+(every lease of the map was granted under it, `lessorAuth`'s `leaseGranted`). What the server's
+`revokeExpiredLeases` reads (`curLease.ID`). -/
+def expiredLeases (GA : w64 → IProp GF) (ls : GoSlice) : IProp GF :=
+  iprop(∃ ps : List Loc, ⌜ps ≠ []⌝ ∗ ls ↦*□ ps ∗
+    [∗list] p ∈ ps, ⌜p ≠ null⌝ ∗ ∃ id : w64, lsF go!"ID" p ↦□ id ∗ GA id)
+
+instance expiredLeases_persistent (GA : w64 → IProp GF) [∀ id, Persistent (GA id)] (ls : GoSlice) :
+    Persistent (expiredLeases GA ls) := by
+  unfold expiredLeases; infer_instance
+
+/-- **What a reader of an expired slice reads** (revoke-open review round 1, S1, 2026-11-06; the
+server's `revokeExpiredLeases`): the slice's elements, read-only, each a non-null lease with its `ID`
+read-only. -/
+theorem expiredLeases_read (GA : w64 → IProp GF) (ls : GoSlice) :
+    expiredLeases GA ls ⊢
+      ∃ ps : List Loc, ls ↦*□ ps ∗ [∗list] p ∈ ps, ⌜p ≠ null⌝ ∗ ∃ id : w64, lsF go!"ID" p ↦□ id := by
+  iintro H
+  iunfold expiredLeases at H
+  icases H with ⟨%ps, -, Hls, Hps⟩
+  iexists ps
+  iframe Hls
+  iapply (BigSepL.bigSepL_mono_of_forall (fun {_ _} => by
+    iintro ⟨%Hp, %id, Hid, -⟩
+    isplitr
+    · ipureintro; exact Hp
+    iexists id; iexact Hid)) $$ Hps
+
+/-- The lessor's `expiredC` (persistent): read-only, a channel of slices of leases each meeting the
+grant guard `GA` (D19n; the lease-expiry plan's X3, 2026-11-04: the slice's elements, read-only,
+with their `ID`s, `expiredLeases`; until then only "some lease of each meets `GA`"), (the lease-grant
+plan's D1, 2026-11-02) each sent only once a lease has expired, so refuting `leasesNoExpiry`. -/
 def lessorExpiredC (lp : Loc) (GA : w64 → IProp GF) : IProp GF :=
   iprop(∃ (c : GoChan) (γc : ChanNames), lF go!"expiredC" lp ↦□ c ∗
-    isChanBag γc c (V := GoSlice) (fun _ => iprop(⌜¬ leasesNoExpiry⌝ ∗ ∃ id : w64, GA id)))
+    isChanBag γc c (V := GoSlice) (fun ls => iprop(⌜¬ leasesNoExpiry⌝ ∗ expiredLeases GA ls)))
 
 instance lessorExpiredC_persistent (lp : Loc) (GA : w64 → IProp GF) :
     Persistent (lessorExpiredC (GF := GF) lp GA) := by
@@ -161,6 +201,29 @@ axiom lessorStopTok (lp : Loc) : IProp GF
 @[instance] axiom lessorStopTok_timeless (lp : Loc) : Timeless (lessorStopTok (GF := GF) lp)
 
 end defs
+
+section ttl
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
+
+/-- **A lease granted asked for a positive TTL has a positive TTL in the history** (the lease-expiry
+plan's R5, 2026-11-04): from `lessor.Grant`'s success (`leaseLiveFrom`, its `ttl` field at
+`grantTTL`). -/
+theorem leaseGrant_ttl (γl : GName) (m : Nat) (id : w64) (l : Loc) (mt ttl : w64) (E : CoPset)
+    (hE : ↑lessorRdN ⊆ E) :
+    lessorRdInv (GF := GF) γl ∗ leaseLiveFrom γl m id l ∗ lsF go!"ttl" l ↦□ grantTTL mt ttl ⊢
+      |={E}=> ∃ (i : Nat) (t : w64), ⌜m ≤ i ∧ sint.Z ttl ≤ sint.Z t⌝ ∗ leaseTTLAt γl i id t := by
+  iintro H
+  imod leaseLiveFrom_ttl γl m id l _ E hE $$ H with ⟨%i, %hi, #Ht⟩
+  imodintro
+  iexists i, grantTTL mt ttl
+  iframe Ht
+  ipureintro; exact ⟨hi, grantTTL_ge mt ttl⟩
+
+end ttl
 
 end lease
 end EtcdGrove

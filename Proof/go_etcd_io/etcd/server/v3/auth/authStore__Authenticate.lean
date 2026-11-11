@@ -27,7 +27,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.auth auth go_etcd_io.
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
@@ -43,13 +43,13 @@ theorem auth.authStore.Authenticate.wp_core
     (h_String : zap.String.spec (GF := GF) (hG := hG))
     (h_Check : zap.Logger.Check.spec (GF := GF) (hG := hG))
     (h_Write : zapcore.CheckedEntry.Write.spec (GF := GF) (hG := hG))
-    (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : val) (T F : IProp GF)
+    (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T F : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF) (ctx : GoInterface) (username password : GoString)
     (be : AuthBackend) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
         enabledRd st M ∗ authOwn M hs ∗
         (aF go!"be" st ↦{DFrac.own (1 : Qp).half} be ∗ authWBackendOk be M P f T) ∗ T ∗ F ∗
-        mvcc.csContract P f Pre Q Post ∗ authnCtx M ctx }}
+        srvApi.csContractA P f Pre Q Post ∗ authnCtx M ctx }}
       (App (App (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"Authenticate"))
         (Val #ctx)) (Val #username)) (Val #password))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ enabledRd st M ∗
@@ -68,7 +68,7 @@ theorem auth.authStore.Authenticate.wp_core
   · iPkgInit
   ihave #Hinv' := Hinv
   iunfold authInv at Hinv'
-  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, ⟨%tp, #Htp, #Htpok⟩, -, -⟩
+  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, #Hlgnn⟩, -, ⟨%tp, #Htp, #Htpok⟩, -, -⟩
   iunfold tokenProviderOk at Htpok
   icases Htpok with ⟨%Atp, %tpi, %Htpi, -, -, -, -, #HAssign, -⟩
   subst Htpi
@@ -153,8 +153,10 @@ theorem auth.authStore.Authenticate.wp_core
       · exact absurd rfl Hne
       (try wp_auto)
       (try wp_auto)
-      wp_apply h_Check as %ce -
-      · ipureintro; exact Hlgnn
+      -- (sweep repairs 1, R1-2) at `DebugLevel` (`W8 (-1)`), below `DPanicLevel`
+      wp_apply h_Check as %ce Hce
+      · iframe #
+        ipureintro; exact ⟨_, rfl, by decide⟩
       (try wp_auto)
       wp_if_destruct
       · -- no entry to write
@@ -176,7 +178,7 @@ theorem auth.authStore.Authenticate.wp_core
         iexists tok, _
         iframe Hrl
         isplitr
-        · ipureintro; rfl
+        · ipureintro; exact ⟨rfl, rfl⟩
         iframe Htok Hev
         ipureintro; exact ⟨sta, Hl, by simp [Hur.1]⟩
       · wp_apply h_redactToken _ as %fp -
@@ -190,8 +192,10 @@ theorem auth.authStore.Authenticate.wp_core
         · ipureintro; rfl
         iintro %fsl ⟨-, -⟩
         (try wp_auto)
-        wp_apply h_Write
-        · ipureintro; exact Hif
+        icases Hce with (%Hcn | Hce)
+        · exact absurd Hcn Hif
+        wp_apply h_Write $$ [Hce]
+        · iframe #; iexact Hce
         (try wp_auto)
         irename «$r0» => Hrl
         generalize «$r0_ptr» = rl at *
@@ -210,7 +214,7 @@ theorem auth.authStore.Authenticate.wp_core
         iexists tok, _
         iframe Hrl
         isplitr
-        · ipureintro; rfl
+        · ipureintro; exact ⟨rfl, rfl⟩
         iframe Htok Hev
         ipureintro; exact ⟨sta, Hl, by simp [Hur.1]⟩
   · (try wp_auto)
@@ -266,8 +270,10 @@ theorem auth.authStore.Authenticate.wp_core
       · exact absurd rfl Hne
       (try wp_auto)
       (try wp_auto)
-      wp_apply h_Check as %ce -
-      · ipureintro; exact Hlgnn
+      -- (sweep repairs 1, R1-2) at `DebugLevel` (`W8 (-1)`), below `DPanicLevel`
+      wp_apply h_Check as %ce Hce
+      · iframe #
+        ipureintro; exact ⟨_, rfl, by decide⟩
       (try wp_auto)
       wp_if_destruct
       · -- no entry to write
@@ -289,7 +295,7 @@ theorem auth.authStore.Authenticate.wp_core
         iexists tok, _
         iframe Hrl
         isplitr
-        · ipureintro; rfl
+        · ipureintro; exact ⟨rfl, rfl⟩
         iframe Htok Hev
         ipureintro; exact ⟨sta, Hl, by simp [Hur.1]⟩
       · wp_apply h_redactToken _ as %fp -
@@ -303,8 +309,10 @@ theorem auth.authStore.Authenticate.wp_core
         · ipureintro; rfl
         iintro %fsl ⟨-, -⟩
         (try wp_auto)
-        wp_apply h_Write
-        · ipureintro; exact Hif
+        icases Hce with (%Hcn | Hce)
+        · exact absurd Hcn Hif
+        wp_apply h_Write $$ [Hce]
+        · iframe #; iexact Hce
         (try wp_auto)
         irename «$r0» => Hrl
         generalize «$r0_ptr» = rl at *
@@ -323,7 +331,7 @@ theorem auth.authStore.Authenticate.wp_core
         iexists tok, _
         iframe Hrl
         isplitr
-        · ipureintro; rfl
+        · ipureintro; exact ⟨rfl, rfl⟩
         iframe Htok Hev
         ipureintro; exact ⟨sta, Hl, by simp [Hur.1]⟩
 

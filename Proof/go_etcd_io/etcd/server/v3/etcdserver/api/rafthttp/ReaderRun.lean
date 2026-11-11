@@ -86,7 +86,7 @@ instance srDial_persistent (Rh : RaftHttp GF) (pid : w64) (ty : StreamTy) (cr : 
 the context. -/
 def srFixed0 (Rh : RaftHttp GF) (lid pid : w64) (γd : GName) (cr : Loc) : IProp GF :=
   iprop(∃ (lg tr ps : Loc) (rc pc : GoChan) (γr γp : ChanNames),
-    cr.[rafthttp.streamReader, go!"lg"] ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
+    cr.[rafthttp.streamReader, go!"lg"] ↦□ lg ∗ zapLoggerOk lg ∗
     cr.[rafthttp.streamReader, go!"peerID"] ↦□ pid ∗
     cr.[rafthttp.streamReader, go!"tr"] ↦□ tr ∗ tr.[rafthttp.Transport, go!"ID"] ↦□ lid ∗
     cr.[rafthttp.streamReader, go!"status"] ↦□ ps ∗ peerStatusOk ps ∗
@@ -163,7 +163,7 @@ theorem wp_Is_errStrOk (hIs : errors.Is.spec (GF := GF) (hG := hG)) (err target 
     {{ (b : Bool), RET #b; True }} := by
   iintro %Φ ⟨#Hpkg, #He⟩ HΦ
   iunfold http.errStrOk at He
-  icases He with (%Hn | ⟨%ei, %Hei, -, #Htree⟩)
+  icases He with (%Hn | ⟨%ei, %Hei, -, #Htree, -⟩)
   · subst Hn
     wp_apply hIs (· = GoInterface.nil) (fun _ => False) GoInterface.nil target Htgt
       (fun _ _ h => by cases h) $$ [] as %b -

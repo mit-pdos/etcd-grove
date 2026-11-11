@@ -33,7 +33,7 @@ abbrev Mutex.Unlock.spec : Prop :=
   ∀ (m s : Loc) (γ : SessionNames) (client : Loc) (id : w64) (pfx : GoString) (st : MutexSt)
     (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (lo : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isMutex m s γ client id pfx ∗ mutexState m st ∗
-      context.isContext ctx cs ∗ etcdReached lo }}
+      context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ etcdReached lo }}
     (App (Val (m @!! go.GoType.PointerType Mutex.ty @!! go!"Unlock")) (Val #(GoInterface.ok ctx)))
   {{ (err : GoInterface), RET #err;
       (⌜err = GoInterface.nil⌝ ∗ ∃ R : w64, mutexState m (MutexSt.released st.hdr) ∗

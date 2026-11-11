@@ -26,7 +26,15 @@ outEqual: vrEqual resEqual kvsOf resOf
 storeEqual: vrEqual
 configEqual: storeEqual inputEqual
 removeAt:
-addConfig: configEqual
+cmpInt:
+cmpStr:
+cmpTOp: cmpInt cmpStr
+cmpCmp: cmpInt cmpStr
+cmpInput: cmpInt cmpStr cmpCmp cmpTOp
+cmpVR: cmpStr cmpInt
+cmpStore: cmpInt cmpStr cmpVR
+cmpConfig: cmpStore cmpInt cmpInput
+addConfig: cmpConfig
 closure: addConfig mstep removeAt
 step: isWrite mstep outEqual
 txnlin_Model: step addConfig closure configEqual
@@ -87,4 +95,4 @@ etcdstart_StartServer: @
 etcdstart_Serve: @
 etcdstart_NewClient: @
 zap_NewNop:
-txnlin_Main: zap_NewNop etcdstart_StartServer etcdstart_Serve etcdstart_NewClient txnlin_Check
+txnlin_Main: zap_NewNop etcdstart_StartServer etcdstart_Serve etcdstart_NewClient txnlin_Check =mvcc.api.mvccApi_names_nonempty_law_holds

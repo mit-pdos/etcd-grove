@@ -10,11 +10,14 @@ import (
 	"testing"
 	"time"
 
+	"go.etcd.io/etcd/client/pkg/v3/types"
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"go.etcd.io/etcd/server/v3/etcdserver/api/membership"
 	"go.uber.org/zap"
 	"k8s.io/apiserver/pkg/storage/etcd3"
 	"k8s.io/utils/clock"
 
+	"github.com/mit-pdos/etcd-grove/examples/lib/cluster3"
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
 )
 
@@ -82,7 +85,7 @@ func startMember(t *testing.T, name, peer, client string) *clientv3.Client {
 	return cli
 }
 
-// TestHistory runs Main's workload (the writer, three API servers) on a member of its own, with a
+// TestHistory runs Main's workload (the writer, the API servers) on a member of its own, with a
 // watch of compact_rev_key registered before the first round, and checks what Main cannot state in terms
 // of the specs:
 //
@@ -131,15 +134,16 @@ func TestHistory(t *testing.T) {
 
 	go writer(cli)
 	var wg sync.WaitGroup
-	for i := 0; i < servers; i++ {
+	for i := 0; i < servers+sharedServers; i++ {
 		c, err := etcdstart.NewClient(addr, zap.NewNop())
 		if err != nil {
 			t.Fatal(err)
 		}
 		defer c.Close()
+		shared := i >= servers
 		wg.Add(1)
 		go func() {
-			apiserver(c)
+			apiserver(c, shared)
 			wg.Done()
 		}()
 	}
@@ -263,4 +267,118 @@ func firstLines(s, prefix string, n int) string {
 		ls = ls[:n]
 	}
 	return strings.Join(ls, "\n")
+}
+
+// TestShared checks that the shared servers share: StartCompactorPerEndpoint on two clients of one
+// endpoint returns one compactor, and a new one after it is stopped (Stop unregisters it).
+func TestShared(t *testing.T) {
+	addr := "127.0.0.1:23978"
+	cli := startMember(t, "k8scompactors", "127.0.0.1:23988", addr)
+	defer cli.Close()
+	cli2, err := etcdstart.NewClient(addr, zap.NewNop())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cli2.Close()
+	c1 := etcd3.StartCompactorPerEndpoint(cli, interval)
+	c2 := etcd3.StartCompactorPerEndpoint(cli2, interval)
+	if c1 != c2 {
+		t.Fatalf("two compactors for one endpoint")
+	}
+	c1.Stop()
+	c2.Stop()
+	c3 := etcd3.StartCompactorPerEndpoint(cli2, interval)
+	defer c3.Stop()
+	if c3 == c1 {
+		t.Fatalf("a stopped compactor still registered")
+	}
+}
+
+// TestMainPartition runs MainPartition once, in a fresh data directory, with a schedule that,
+// after a few rounds, isolates each member in turn while the API servers run (a peer cut both ways to the two others,
+// then mended), blackholes one member's bridge during the first isolation and drops another's
+// connections as it ends; then it asks the cluster MainPartition left running whether the
+// compactors ran: compact_rev_key holds a positive revision.
+func TestMainPartition(t *testing.T) {
+	t.Chdir(t.TempDir())
+	cfg := clusterConfig()
+	var sched []cluster3.Step
+	for m := 0; m < 3; m++ {
+		for o := 0; o < 3; o++ {
+			if o != m {
+				sched = append(sched, cluster3.Step{Delay: 0, Kind: cluster3.PeerCut, A: m, B: o})
+			}
+		}
+		if m == 0 {
+			sched = append(sched, cluster3.Step{Kind: cluster3.ClientBlackhole, A: 2})
+		}
+		first := true
+		for o := 0; o < 3; o++ {
+			if o != m {
+				d := time.Duration(0)
+				if first {
+					d = 60 * time.Millisecond
+					first = false
+				}
+				sched = append(sched, cluster3.Step{Delay: d, Kind: cluster3.PeerMend, A: m, B: o})
+			}
+		}
+		if m == 0 {
+			sched = append(sched, cluster3.Step{Kind: cluster3.ClientUnblackhole, A: 2},
+				cluster3.Step{Kind: cluster3.ClientDrop, A: 1})
+		}
+		sched = append(sched, cluster3.Step{Delay: 20 * time.Millisecond})
+	}
+	// a few rounds before the first cut (a round records the revision the next one compacts at)
+	sched[0].Delay = 150 * time.Millisecond
+	start := time.Now()
+	MainPartition(sched)
+	t.Logf("MainPartition took %v", time.Since(start))
+
+	cli, err := cluster3.NewClient(cfg, zap.NewNop())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cli.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	resp, err := cli.Get(ctx, compactRevKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(resp.Kvs) != 1 {
+		t.Fatalf("MainPartition's compactors did not write %s", compactRevKey)
+	}
+	v, err := strconv.ParseInt(string(resp.Kvs[0].Value), 10, 64)
+	if err != nil || v <= 0 {
+		t.Fatalf("%s holds %q, want a positive revision", compactRevKey, resp.Kvs[0].Value)
+	}
+	t.Logf("%s = %d (version %d), store at %d", compactRevKey, v, resp.Kvs[0].Version,
+		resp.Header.Revision)
+}
+
+// TestMemberIDs checks the premise on the member ids etcd computes for MainPartition's cluster
+// (from the peer URLs and the cluster token; examples/etcd/partition's TestMemberIDs): their 16
+// low bits are distinct and not 0. It prints the ids in the order bootstrap sorts them (the proof's
+// BootFacts).
+func TestMemberIDs(t *testing.T) {
+	cfg := clusterConfig()
+	urls, err := types.NewURLsMap(cfg.Name1 + "=http://" + cfg.Peer1 + "," + cfg.Name2 + "=http://" +
+		cfg.Peer2 + "," + cfg.Name3 + "=http://" + cfg.Peer3)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cl, err := membership.NewClusterFromURLsMap(zap.NewNop(), cfg.Token, urls)
+	if err != nil {
+		t.Fatal(err)
+	}
+	seen := map[uint64]bool{}
+	for _, id := range cl.MemberIDs() {
+		low := uint64(id) & 0xffff
+		t.Logf("member %x (%s): low 16 bits %#x", uint64(id), cl.Member(id).Name, low)
+		if low == 0 || seen[low] {
+			t.Fatalf("member %x: low 16 bits %#x zero or repeated", uint64(id), low)
+		}
+		seen[low] = true
+	}
 }

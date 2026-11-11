@@ -20,12 +20,16 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
 theorem Output_eq_iff (a b : Output) : a = b ↔
-    a.Err' = b.Err' ∧ a.ErrKey' = b.ErrKey' ∧ a.ErrRV' = b.ErrRV' ∧ a.Name' = b.Name' ∧
-    a.Value' = b.Value' ∧ a.RV' = b.RV' := by
-  cases a; cases b; simp [and_assoc]
+    a.Err' = b.Err' ∧ a.ErrKey' = b.ErrKey' ∧ a.ErrRV' = b.ErrRV' ∧
+    a.Namespace' = b.Namespace' ∧ a.Name' = b.Name' ∧ a.UID' = b.UID' ∧ a.Value' = b.Value' ∧
+    a.Node' = b.Node' ∧ a.App' = b.App' ∧ a.RV' = b.RV' ∧ a.Items' = b.Items' ∧
+    a.ListRV' = b.ListRV' ∧ a.Continue' = b.Continue' ∧ a.HasRemaining' = b.HasRemaining' ∧
+    a.Remaining' = b.Remaining' ∧ a.WEvents' = b.WEvents' ∧ a.WFailed' = b.WFailed' := by
+  cases a; cases b; simp
 
 theorem outEqual.wp_proof : outEqual.spec (GF := GF) (hG := hG) := by
   intro a b

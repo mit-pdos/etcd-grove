@@ -83,6 +83,10 @@ translate = ["!*", "EtcdServer.Logger", "EtcdServer.isLeader", "EtcdServer.Membe
   # (R-D1, 2026-11-04) the record's close on `NewServer`'s error paths (bootstrap.go): until then
   # a trusted triple of `bootOk` (`#Hclose`), false (a second `Close` panics)
   "bootstrappedServer.Close", "bootstrappedStorage.Close", "bootstrappedBackend.Close",
+  # (restart S3, D2 (b), 2026-11-11) the restarted raft storage (bootstrap.go): `MemoryStorage`
+  # rebuilds it from the WAL's records over raft's proved `MemoryStorage` methods, so the restart
+  # contract's `memStorRestarted` is that method's post, not a trusted definition
+  "bootstrappedWAL.MemoryStorage",
   # the client lease (item 1, branch `lease-client`): v3_server.go's lease grant and revoke
   "EtcdServer.LeaseGrant", "EtcdServer.LeaseRevoke", "EtcdServer.requireAuthInfo",
   # the lease-keys plan's Part B (2026-10-31): the lease API's key checks (v3_server.go); their
@@ -132,7 +136,14 @@ translate = ["!*", "EtcdServer.Logger", "EtcdServer.isLeader", "EtcdServer.Membe
   "releaseDelayAfterSnapshot",
   # (D43 M5e, 2026-10-26) the membership change's application (server.go), over the cluster's
   # proved writers, raft's `ApplyConfChange`, the transport's `AddPeer`/`RemovePeer`
-  "EtcdServer.applyConfChange", "raftNode.ApplyConfChange", "raftNodeConfig.ApplyConfChange"]
+  "EtcdServer.applyConfChange", "raftNode.ApplyConfChange", "raftNodeConfig.ApplyConfChange",
+  # (revoke-open pass 2, 2026-11-06) the expired-lease counter `revokeExpiredLeases` increments
+  # (metrics.go): its initializer, `prometheus.NewCounter` of a `CounterOpts` literal
+  "leaseExpired",
+  # (revoke-open pass 2, 2026-11-06) run's expiry arm (server.go): the round's goroutine, its
+  # leadership check and a `LeaseRevoke` per lease in goroutines of their own; until then names
+  # only, run's open premise `srvRevokeOpen`
+  "EtcdServer.revokeExpiredLeases", "maxPendingRevokes"]
 imports = ["!*", "context", "io", "errors", "encoding/json", "fmt", "net/http", "sync", "sync/atomic", "time", "go.uber.org/zap", "github.com/dustin/go-humanize", "google.golang.org/protobuf/proto", "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/client/pkg/v3/types", "go.etcd.io/etcd/pkg/v3/contention", "go.etcd.io/etcd/pkg/v3/idutil", "go.etcd.io/etcd/pkg/v3/notify", "go.etcd.io/etcd/pkg/v3/pbutil", "go.etcd.io/etcd/pkg/v3/wait", "go.etcd.io/etcd/server/v3/auth", "go.etcd.io/etcd/server/v3/config", "go.etcd.io/etcd/server/v3/etcdserver/api/membership", "go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp", "go.etcd.io/etcd/server/v3/etcdserver/api/snap", "go.etcd.io/etcd/server/v3/etcdserver/api/v2stats", "go.etcd.io/etcd/server/v3/etcdserver/api/v3alarm", "go.etcd.io/etcd/server/v3/etcdserver/api/v3compactor", "go.etcd.io/etcd/server/v3/etcdserver/apply", "go.etcd.io/etcd/server/v3/etcdserver/cindex", "go.etcd.io/etcd/server/v3/etcdserver/errors", "go.etcd.io/etcd/server/v3/etcdserver/read", "go.etcd.io/etcd/server/v3/lease", "go.etcd.io/etcd/server/v3/storage", "go.etcd.io/etcd/server/v3/storage/backend", "go.etcd.io/etcd/server/v3/storage/mvcc", "go.etcd.io/raft/v3", "go.etcd.io/raft/v3/raftpb", "strconv", "go.opentelemetry.io/otel/attribute", "go.opentelemetry.io/otel/trace", "go.etcd.io/etcd/pkg/v3/traceutil", "go.etcd.io/etcd/pkg/v3/featuregate", "go.etcd.io/etcd/server/v3/features", "go.etcd.io/etcd/server/v3/etcdserver/txn", "go.etcd.io/etcd/server/v3/etcdserver/api", "github.com/prometheus/client_golang/prometheus", "go.etcd.io/etcd/pkg/v3/schedule", "go.etcd.io/etcd/api/v3/version", "github.com/Masterminds/semver/v3", "log", "go.etcd.io/etcd/client/pkg/v3/logutil", "go.etcd.io/etcd/server/v3/storage/wal", "math", "go.etcd.io/etcd/server/v3/etcdserver/api/etcdhttp/types", "golang.org/x/crypto/bcrypt", "encoding/base64", "go.etcd.io/etcd/server/v3/lease/leasehttp"]
 
 # translate the definitions of all type declarations goose supports

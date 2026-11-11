@@ -15,6 +15,7 @@ public import Proof.go_uber_org.zap.NewNop
 public import Perennial.Proof.context.Link
 public import Proof.context.Link
 public import Proof.context.WithTimeoutBackground
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 
 @[expose] public section
 
@@ -38,14 +39,13 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.putget.Assumptions]
 
 /-- **The adequacy example's `Main` does not panic** (see the file header;
-`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/putget/Main.lean`), under the semantic premises of
-its callees' linked results: `int64(f)` of a `float64` (`Float64ToInt64Semantics`, the server's)
-and the client's `dialWithBalancer` body (`DialWithBalancerBody`). -/
-theorem etcd_putget.wp_Main [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/putget/Main.lean`), under the semantic premise of
+its callees' linked results: the client's `dialWithBalancer` body (`DialWithBalancerBody`). -/
+theorem etcd_putget.wp_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     etcd_putget.Main.spec (GF := GF) (hG := hG) :=
   etcd_putget.Main.wp_proof zap.NewNop.wp_proof etcdstart.wp_StartServer etcdstart.wp_Serve
     etcdstart.wp_NewClient context.wp_Background context.WithTimeoutBackground.wp_proof
-    context.wp_ErrAny
+    context.wp_ErrAny mvcc.api.mvccApi_names_nonempty_law_holds
 
 end results
 

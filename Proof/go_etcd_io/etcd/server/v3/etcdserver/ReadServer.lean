@@ -72,7 +72,7 @@ theorem isReadServer_of_serverM (on : Bool)
   iunfold isServerReadM at Hsrd
   icases Hsrd with ⟨%w, #Hw⟩
   iunfold srvReadFieldsAtM at Hw
-  icases Hw with ⟨-, -, -, -, -, -, -, -, -, -, #Hlgf, %Hlgn, -, -, -, -, #Hainv, -, -, #Hawf, #Haw,
+  icases Hw with ⟨-, -, -, -, -, -, -, -, -, #Hlgf, #Hlgn, -, -, -, #Hainv, -, -, #Hawf, #Haw,
     #Hlcf, #Hfcf, #Hstf, #Hst, -⟩
   iunfold isReadServer
   -- `Done()`
@@ -87,7 +87,10 @@ theorem isReadServer_of_serverM (on : Bool)
     · iframe #
     iapply HΦ
     iunfold srvDoneChan at Hdone
+    icases Hdone with ⟨%γdn, %Qdn, #Hdone⟩
+    iexists Qdn
     iunfold bcastChan
+    iexists γdn
     iexact Hdone
   iexists ⟨go.GoType.PointerType EtcdServer.ty, #s⟩
   isplitr
@@ -141,11 +144,10 @@ theorem isReadServer_of_serverM (on : Bool)
   · iintro !> %Φ !> HLR HΦ
     iunfold srvReadLR at HLR
     icases HLR with ⟨Hlg, Hlc, Hfc⟩
-    wp_apply hLg s w.lg $$ [Hlg] as ⟨%Hnn, Hlg⟩
-    · iframe #; iframe Hlg; ipureintro; exact Hlgn
+    wp_apply hLg s w.lg $$ [Hlg] as ⟨#Hnn, Hlg⟩
+    · iframe #; iframe Hlg
     iapply HΦ
-    isplitr
-    · ipureintro; exact Hnn
+    iframe Hnn
     iunfold srvReadLR
     iframe
   -- `AppliedIndex()`

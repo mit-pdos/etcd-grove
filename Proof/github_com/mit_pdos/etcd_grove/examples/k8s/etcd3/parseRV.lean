@@ -19,6 +19,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
 theorem bytesBE_take_succ (s : GoString) (i : Nat) (b : w8) (h : s[i]? = some b) :
@@ -99,7 +100,12 @@ theorem parseRV.wp_proof : parseRV.spec (GF := GF) (hG := hG) := by
   imodintro
   iintro %e %he
   cases he
-  iexact HsB
+  isplitr
+  · iexact HsB
+  · have hF := go.method_set_is
+      (t := go.GoType.PointerType _root_.Perennial.errors.errorString.ty) go!"Format"
+    simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at hF
+    ipureintro; exact hF
 
 
 end proof

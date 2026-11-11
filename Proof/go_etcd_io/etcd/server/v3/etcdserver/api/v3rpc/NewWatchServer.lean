@@ -42,7 +42,7 @@ theorem v3rpc.NewWatchServer.wp_proof
     (hSet : v3rpc.SetProgressReportInterval.spec (GF := GF) (hG := hG)) :
     v3rpc.NewWatchServer.spec (GF := GF) (hG := hG) := by
   intro s E γ wsl lg0 m d
-  wp_start as ⟨#Hok, #Hkv, #Hids, #Hlg, #Hm, #Hd, %Hdb⟩
+  wp_start as ⟨#Hok, #Hkv, #Hids, #Hlg, #Hlg0z, #Hm, #Hd, %Hdb⟩
   iunfold v3rpc.srvIdsOk at Hids
   icases Hids with ⟨#HCl, #HMid⟩
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
@@ -76,17 +76,17 @@ theorem v3rpc.NewWatchServer.wp_proof
   ipersist ag
   ihave #Hok' := Hok
   iunfold v3rpc.watchSrvOk at Hok'
-  icases Hok' with ⟨-, -, -, -, #Hv, -⟩
-  wp_join iprop(srv_ptr ↦ «$r0_ptr» ∗ ∃ lg : Loc, ⌜lg ≠ null⌝ ∗
+  icases Hok' with ⟨-, -, #Hv, -, -⟩
+  wp_join iprop(srv_ptr ↦ «$r0_ptr» ∗ ∃ lg : Loc, zapLoggerOk lg ∗
       typedPointsto (structFieldRef v3rpc.watchServer go!"lg" «$r0_ptr») lg (DFrac.own 1)) with [lg srv]
-    as ⟨srv, %lg, %Hlg, lgf⟩
-  · wp_apply hNop as %l %Hl
+    as ⟨srv, %lg, #Hlgz, lgf⟩
+  · wp_apply hNop as %l #Hlz
     (try wp_auto)
     wp_join_done
     iframe
-    ipureintro; exact Hl
+    iexact Hlz
   · iframe
-    ipureintro; exact Hif
+    iapply zapLoggerOrNil_ok _ Hif; iexact Hlg0z
   ipersist lgf
   (try wp_auto)
   -- (J8a-3) the adjusted interval is local: `s.Cfg` is only read
@@ -105,7 +105,7 @@ theorem v3rpc.NewWatchServer.wp_proof
         iintro %zsl ⟨-, -⟩
         (try wp_auto)
         wp_apply (hWarn lg _ _)
-        · ipureintro; exact Hlg
+        · iexact Hlgz
         simp only [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.minWatchProgressInterval]
         (try wp_auto)
         wp_join_done
@@ -128,7 +128,7 @@ theorem v3rpc.NewWatchServer.wp_proof
     · ipureintro; rfl
     iunfold v3rpc.isWatchServer
     iframe #
-    ipureintro; exact ⟨Hpn, Hlg⟩
+    ipureintro; exact Hpn
   · (try wp_auto)
     iapply HΦ
     iexists «$r0_ptr», lg, cid, mid
@@ -136,7 +136,7 @@ theorem v3rpc.NewWatchServer.wp_proof
     · ipureintro; rfl
     iunfold v3rpc.isWatchServer
     iframe #
-    ipureintro; exact ⟨Hpn, Hlg⟩
+    ipureintro; exact Hpn
 
 end proof
 

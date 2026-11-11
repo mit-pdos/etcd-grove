@@ -1,5 +1,5 @@
 /-
-`Main()` (`examples/etcd/restart/etcd_restart.go`; the restart plan's R2a, 2026-11-02; DRAFT): `Run` with
+`Main()` (`examples/etcd/restart/restart3.go`; the restart plan's R2a, 2026-11-02; DRAFT): `Run` with
 no logging (`zap.NewNop()`). Lean-first (no Rocq counterpart).
 
 **The triple:** `Run.spec`'s, at the logger `zap.NewNop` returns.

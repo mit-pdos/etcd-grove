@@ -16,8 +16,10 @@ Its answers are fixed, not parameters: what the client's specs (`etcdLeaseGrantS
 (`leaseGrantAns`, `leaseRevokeAns`): an error `togRPCError` can take (`srvErrIs`), or a non-nil
 response whose header (`leaseHdrAns`) has its four id fields owned (`hdrW`: the handler's
 `fill` writes them) and its revision `r` read-only, not `0` and reached
-(`etcdReached (EM := etcdModelOfServer E) r`: the applier's `newHeader()` reads `KV.Rev()`, at
-least `1`, the revision of a log the apply thread certified); a grant's response also has its
+(`srvRevLb E r`: the applier's `newHeader()` reads `KV.Rev()`, at least `1`, the revision of a
+log the server witnessed, `E.Nx`, with a floor of its committed log; strict M1: the server's fact,
+which the client turns into its model's `etcdReached` at the server's tie of `E.Nx`, in place of
+`etcdReached (EM := etcdModelOfServer E) r` over mvcc's `certOk`); a grant's response also has its
 `ID` read-only and not `NoLease` (`0`), its `TTL` and `Error` read-only.
 
 **Why the lease ID's guarantee is the contract's**: nothing above the call touches the response's
@@ -42,6 +44,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvQuota
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ClientModel
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.CompactMode
 
 @[expose] public section
 
@@ -82,9 +85,10 @@ instance leaseGrantReqIs_persistent (r : Loc) (m : w64 × w64) :
   unfold leaseGrantReqIs; infer_instance
 
 /-- **The decoded `*pb.LeaseRevokeRequest` `r`** of `ID` `id` (read-only;
-`pbLeaseRevokeRequest.recv`). -/
+`pbLeaseRevokeRequest.recv`). Not `null` (the lease-expiry plan's X6, as amendment (H) for the
+grant: the generated handler decodes into its own fresh allocation). -/
 def leaseRevokeReqIs (r : Loc) (id : w64) : IProp GF :=
-  iprop(structFieldRef etcdserverpb.LeaseRevokeRequest go!"ID" r ↦□ id)
+  iprop(⌜r ≠ null⌝ ∗ structFieldRef etcdserverpb.LeaseRevokeRequest go!"ID" r ↦□ id)
 
 instance leaseRevokeReqIs_persistent (r : Loc) (id : w64) :
     Persistent (leaseRevokeReqIs (GF := GF) r id) := by
@@ -98,7 +102,7 @@ file header): a header whose id fields are owned (`hdrW`) and whose revision is 
 def leaseHdrAns (E : apply.AEnv GF) (hf : Loc) : IProp GF :=
   iprop(∃ (h : Loc) (r : w64), hf ↦□ h ∗ hdrW h ∗ ⌜r ≠ W64 0⌝ ∗
     structFieldRef etcdserverpb.ResponseHeader go!"Revision" h ↦□ r ∗
-    etcdReached (EM := etcdModelOfServer E) r)
+    srvRevLb E (sint.Z r))
 
 /-- **A grant's fields** (read-only): the lease ID, not `NoLease`, the TTL, the error string. -/
 def leaseGrantFields (resp : Loc) : IProp GF :=
@@ -137,22 +141,30 @@ def lessorGrantOk (s : Loc) (E : apply.AEnv GF) (S : IProp GF) : IProp GF :=
 /-- **The server's `LeaseGrant` with a success fact `G`** (the lease-grant plan's amendment (F2)):
 `lessorGrantOk`'s triple whose post also gives, on success, the response's `ID` with `G` of it.
 `raftLessor`'s conjunct is it at `G := True` (`lessorGrantOkG_true`); the server's at the lessor's
-history is it at `G id := ∃ i, leaseGrantedAt E.γ.leases i id` (`lessorGrantOkL`). -/
-def lessorGrantOkG (s : Loc) (E : apply.AEnv GF) (S : IProp GF) (G : w64 → IProp GF) :
-    IProp GF :=
+history is it at `G id := ∃ i, leaseGrantedAt (mvcc.api.mvccLeases E.γ) i id` (`lessorGrantOkL`). The request
+filter `R` (the lease-expiry plan's E3, 2026-11-04; `True` by default): the requests the contract
+covers, by their `(TTL, ID)`; in the revocable lease mode those with `ID = 0` only
+(`EtcdServer.LeaseGrant.spec`'s premise there). (2026-11-05, the lease-expiry plan's E3/R5: the
+granted TTL) `G` takes the request `m` before the id: the live fact `grantLiveG` bounds the lease's
+TTL by the request's. -/
+def lessorGrantOkG (s : Loc) (E : apply.AEnv GF) (S : IProp GF) (G : w64 × w64 → w64 → IProp GF)
+    (R : w64 × w64 → Prop := fun _ => True) : IProp GF :=
   iprop(∀ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (m : w64 × w64),
     {{ S ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ leaseGrantReqIs r m ∗
-        leaseGrantReqIdOwn r m.2 }}
+        leaseGrantReqIdOwn r m.2 ∗ ⌜R m⌝ }}
       (App (App (Val (srvM s go!"LeaseGrant")) (Val #(GoInterface.ok ci))) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ leaseGrantAns E resp err ∗
         (⌜err ≠ GoInterface.nil⌝ ∨ ∃ id : w64,
-          structFieldRef etcdserverpb.LeaseGrantResponse go!"ID" resp ↦□ id ∗ G id) }})
+          structFieldRef etcdserverpb.LeaseGrantResponse go!"ID" resp ↦□ id ∗ G m id) }})
 
 instance lessorGrantOkG_persistent (s : Loc) (E : apply.AEnv GF) (S : IProp GF)
-    (G : w64 → IProp GF) : Persistent (lessorGrantOkG s E S G) := by
+    (G : w64 × w64 → w64 → IProp GF) (R : w64 × w64 → Prop) :
+    Persistent (lessorGrantOkG s E S G R) := by
   unfold lessorGrantOkG; infer_instance
 
-/-- **The server's `LeaseRevoke`** (one conjunct of `raftLessor`). -/
+/-- **The server's `LeaseRevoke`** (one conjunct of `raftLessor`). Discharged only mode-gated, in
+a cluster that revokes leases (`lessorRevokeOk_of_server`, the lease-expiry plan's X6): the ungated
+form stays an undischarged premise of the client results. -/
 def lessorRevokeOk (s : Loc) (E : apply.AEnv GF) (S : IProp GF) : IProp GF :=
   iprop(∀ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (id : w64),
     {{ S ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ leaseRevokeReqIs r id }}
@@ -184,7 +196,7 @@ revision read-only, not `0` and reached. -/
 def leaseHdrOut (E : apply.AEnv GF) (cid mid : w64) (hf : Loc) : IProp GF :=
   iprop(∃ (h : Loc) (r : w64), hf ↦□ h ∗ hdrFilled h cid mid ∗ ⌜r ≠ W64 0⌝ ∗
     structFieldRef etcdserverpb.ResponseHeader go!"Revision" h ↦□ r ∗
-    etcdReached (EM := etcdModelOfServer E) r)
+    srvRevLb E (sint.Z r))
 
 /-- **`LeaseServer.LeaseGrant`'s answer**: the server's response with its header filled, or `nil`
 and a non-nil error. -/
@@ -206,7 +218,7 @@ def leaseRevokeOut (E : apply.AEnv GF) (cid mid : w64) (resp : Loc) (err : GoInt
 
 /-- **The `*LeaseServer` `p`** that `NewLeaseServer(s)` built (persistent; see the file header):
 its header (`hdrIs`, at the KV parameters `A` `newHeader` was given), `le` the server `s`, and (the
-keep-alive stage, 2026-11-01: its loop logs) `lg` some non-nil logger (the configuration's, or
+keep-alive stage, 2026-11-01: its loop logs) `lg` a zap logger (premise fixes 6: the configuration's, or
 `zap.NewNop()`'s). -/
 def leaseServerAt (p s : Loc) (A : KVAns GF) (cid mid : w64) : IProp GF :=
   iprop(⌜p ≠ null⌝ ∗
@@ -214,12 +226,19 @@ def leaseServerAt (p s : Loc) (A : KVAns GF) (cid mid : w64) : IProp GF :=
       s A cid mid ∗
     structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer go!"le" p ↦□
       (interface.mkOk (go.GoType.PointerType EtcdServer.ty) #s : GoInterface) ∗
-    ∃ lg : Loc, ⌜lg ≠ null⌝ ∗
+    ∃ lg : Loc, zapLoggerOk lg ∗
       structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer go!"lg" p ↦□ lg)
 
 instance leaseServerAt_persistent (p s : Loc) (A : KVAns GF) (cid mid : w64) :
     Persistent (leaseServerAt p s A cid mid) := by
   unfold leaseServerAt; infer_instance
+
+/-- **The `*LeaseServer` at other answers** (the auth component's stage 5): its header reads them
+only through `revR`. -/
+theorem leaseServerAt_revR (p s : Loc) (A A' : KVAns GF) (cid mid : w64) (hR : A.revR = A'.revR) :
+    leaseServerAt (GF := GF) p s A cid mid = leaseServerAt p s A' cid mid := by
+  unfold leaseServerAt hdrIs
+  rw [hR]
 
 /-- **The `*quotaLeaseServer` `q`** over the service value `ls` and the server `s` (persistent):
 its embedded `LeaseServer` `ls`, its quota alarmer (`quotaAlarmerAt`). -/
@@ -248,13 +267,13 @@ open Iris.ProofMode
 /-- **`raftLessor`'s grant contract is `lessorGrantOkG` at `True`** (the lease-grant plan's (F2)):
 a success's response has its `ID` (`leaseGrantFields`). -/
 theorem lessorGrantOkG_true (s : Loc) (E : apply.AEnv GF) (S : IProp GF) :
-    lessorGrantOk s E S ⊢ lessorGrantOkG s E S (fun _ => iprop(True)) := by
+    lessorGrantOk s E S ⊢ lessorGrantOkG s E S (fun _ _ => iprop(True)) := by
   iintro #H
   iunfold lessorGrantOk at H
   iunfold lessorGrantOkG
-  iintro %ci %cd %r %m !> %Φ Hpre HΦ
-  wp_apply H $$ [Hpre] as %resp %err ⟨HS, Hans⟩
-  · iexact Hpre
+  iintro %ci %cd %r %m !> %Φ ⟨HS0, Hctx, Hrc, Hreq, Hid, -⟩ HΦ
+  wp_apply H $$ [HS0 Hctx Hrc Hreq Hid] as %resp %err ⟨HS, Hans⟩
+  · iframe
   iapply HΦ
   iframe HS
   iunfold leaseGrantAns at Hans
@@ -283,12 +302,25 @@ theorem lessorGrantOkG_true (s : Loc) (E : apply.AEnv GF) (S : IProp GF) :
 
 /-- **`raftLessor`'s grant conjunct as `lessorGrantOkG` at `True`** (the lease-grant plan's (F2)). -/
 theorem raftLessor_grantG (s : Loc) (E : apply.AEnv GF) (S : IProp GF) :
-    raftLessor s E S ⊢ lessorGrantOkG s E S (fun _ => iprop(True)) := by
+    raftLessor s E S ⊢ lessorGrantOkG s E S (fun _ _ => iprop(True)) := by
   iintro #HL
   iunfold raftLessor at HL
   icases HL with ⟨#HG, -⟩
   iapply lessorGrantOkG_true
   iexact HG
+
+/-- **A lease answer's revision is reached in the server's model** (strict M1): the header's
+`srvRevLb E r` (`leaseHdrAns`'s) gives `etcdReached` in `etcdModelOfServer E γr on` at the server's
+tie of its witness, `E.Nx = srvApi.kvNx γr on` (`srvKVInvs`', `srvKVCoreM`'s). -/
+theorem etcdReached_of_srvRevLb (E : apply.AEnv GF) (γr : ReadNames) (on : Bool) (r : w64)
+    (hNx : E.Nx = srvApi.kvNx γr on) :
+    srvRevLb E (sint.Z r) ⊢ etcdReached (EM := etcdModelOfServer E γr on) r := by
+  iintro #H
+  iunfold srvRevLb at H
+  icases H with ⟨%log, -, #Hnx, %Hlt⟩
+  ihave #Hkn : srvApi.kvNx γr on log $$ [Hnx]
+  · rw [← hNx]; iexact Hnx
+  iapply etcdReached_of_nx E γr on log r Hlt $$ Hkn
 
 end lemmas
 

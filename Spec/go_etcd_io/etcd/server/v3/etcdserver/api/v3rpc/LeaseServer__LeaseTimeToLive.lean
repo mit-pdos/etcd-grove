@@ -6,6 +6,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvLeaseRead
+public import Proof.context.LibKeys
 
 @[expose] public section
 
@@ -27,6 +28,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`ls.LeaseTimeToLive(ctx, r)`** on the `*LeaseServer` `ls` over the server `s`
 (`leaseServerAt`), whose lease reads meet the contract `raftLeaseRead s E γl S A.revR`, with the
@@ -44,12 +46,12 @@ abbrev v3rpc.LeaseServer.LeaseTimeToLive.spec : Prop :=
     (dq : DFrac) (v : etcdserverpb.LeaseTimeToLiveRequest) (n m : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       v3rpc.leaseServerAt p s A cid mid ∗ v3rpc.raftLeaseRead s E γl S A.revR ∗ S ∗ A.revR ∗
-      context.isContext ci cd ∗ auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m ∗
+      context.isContext ci cd ∗ context.libCtxOk ci ∗ auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m ∗
       r ↦{dq} v }}
     (App (App (Val (p @!! go.GoType.PointerType v3rpc.LeaseServer.ty @!! go!"LeaseTimeToLive"))
       (Val #(GoInterface.ok ci))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ A.revR ∗ r ↦{dq} v ∗
-      v3rpc.leaseTTLOut s E γl ci n m v cid mid resp err }}
+      v3rpc.leaseTTLOut s E γl ci n m v cid mid resp err ∗ go_etcd_io.etcd.cache.v3.srvErrOk err }}
 
 end spec
 

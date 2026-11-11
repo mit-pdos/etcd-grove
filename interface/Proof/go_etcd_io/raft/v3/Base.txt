@@ -40,10 +40,6 @@ def Perennial.go_etcd_io.raft.v3.raftpb_is_pkg_init_inst : IsPkgInit (IProp GF)
                     isPkgInit pkg_id.google_golang_org.protobuf.runtime.protoimpl ∗ True),
     isPkgInitDef := iprop(True) }
 
-def Perennial.go_etcd_io.raft.v3.reflect_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF)
-    pkg_id.reflect :=
-  { get_is_pkg_init_prop_def := fun get_is_pkg_init => get_is_pkg_init pkg_id.reflect = isPkgInit pkg_id.reflect ∧ True }
-
 def Perennial.go_etcd_io.raft.v3.isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.raft.v3 :=
   {
     isPkgInitDeps :=
@@ -74,14 +70,6 @@ def Perennial.go_etcd_io.raft.v3.isLockedRand (lr : Loc) : IProp GF :=
 def Perennial.go_etcd_io.raft.v3.IsNewError (e : GoInterface) : Prop :=
   ∃ t p, e = interface.mkOk t.PointerType (intoVal p)
 
-def Perennial.go_etcd_io.raft.v3.os_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.os :=
-  {
-    isPkgInitDeps :=
-      iprop(isPkgInit pkg_id.io.fs ∗
-          isPkgInit pkg_id.sync ∗
-            isPkgInit pkg_id.syscall ∗ isPkgInit pkg_id.internal.poll ∗ isPkgInit pkg_id.errors ∗ True),
-    isPkgInitDef := iprop(∃ f, typedPointsto (globalAddr os.Stderr) f DFrac.discard) }
-
 def Perennial.go_etcd_io.raft.v3.quorum_is_pkg_init_inst : IsPkgInit (IProp GF)
     pkg_id.go_etcd_io.raft.v3.quorum :=
   {
@@ -98,9 +86,6 @@ def Perennial.go_etcd_io.raft.v3.protobuf_pragma_is_pkg_init_inst : IsPkgInit (I
 theorem Perennial.go_etcd_io.raft.v3.isInitialized_access [package_sem : Assumptions] : isPkgInit
     pkg_id.go_etcd_io.raft.v3 ⊢ isInitialized
 
-def Perennial.go_etcd_io.raft.v3.reflect_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.reflect :=
-  { isPkgInitDeps := iprop(True), isPkgInitDef := iprop(True) }
-
 def Perennial.go_etcd_io.raft.v3.protoimpl_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF)
     pkg_id.google_golang_org.protobuf.runtime.protoimpl :=
   {
@@ -108,16 +93,6 @@ def Perennial.go_etcd_io.raft.v3.protoimpl_get_is_pkg_init_wf_inst : GetIsPkgIni
       get_is_pkg_init pkg_id.google_golang_org.protobuf.runtime.protoimpl =
           isPkgInit pkg_id.google_golang_org.protobuf.runtime.protoimpl ∧
         GetIsPkgInitProp pkg_id.google_golang_org.protobuf.internal.impl get_is_pkg_init ∧ True }
-
-def Perennial.go_etcd_io.raft.v3.os_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.os :=
-  {
-    get_is_pkg_init_prop_def := fun get_is_pkg_init =>
-      get_is_pkg_init pkg_id.os = isPkgInit pkg_id.os ∧
-        GetIsPkgInitProp pkg_id.io.fs get_is_pkg_init ∧
-          GetIsPkgInitProp pkg_id.sync get_is_pkg_init ∧
-            GetIsPkgInitProp pkg_id.syscall get_is_pkg_init ∧
-              GetIsPkgInitProp pkg_id.internal.poll get_is_pkg_init ∧
-                GetIsPkgInitProp pkg_id.errors get_is_pkg_init ∧ True }
 
 theorem Perennial.go_etcd_io.raft.v3.isLockedRand_persistent (lr : Loc) : Persistent (isLockedRand
     lr)
@@ -266,8 +241,12 @@ def Perennial.go_etcd_io.raft.v3.isInitialized : IProp GF :=
                                                           ∃ e,
                                                             typedPointsto (globalAddr ErrSnapOutOfDate) e DFrac.discard) ∗
                                                         "#ErrSnapOODNew" ∷
-                                                          errorsNewVar ErrSnapOutOfDate
-                                                            go!"requested index is older than the existing snapshot")
+                                                            errorsNewVar ErrSnapOutOfDate
+                                                              go!"requested index is older than the existing snapshot" ∗
+                                                          "#HloggerMu" ∷
+                                                            sync.isMutex (globalAddr raftLoggerMu)
+                                                              iprop(∃ l,
+                                                                  typedPointsto (globalAddr raftLogger) l (DFrac.own 1)))
 
 def Perennial.go_etcd_io.raft.v3.protoreflect_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF)
     pkg_id.google_golang_org.protobuf.reflect.protoreflect :=

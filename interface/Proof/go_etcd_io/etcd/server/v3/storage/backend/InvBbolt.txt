@@ -47,6 +47,8 @@ axiom backend.ownWTxG_fill (tx b : Loc) (γ : backend.DBNames) (D S : backend.Da
     f', typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"FillPercent" b) f' (DFrac.own 1)
     -∗ backend.ownWTxG tx γ D S G
 
+def (sealed) backend.dbOpenOk : Prop
+
 axiom backend.ownWTxG_live (tx : Loc) (γ : backend.DBNames) (D S : backend.Data) (G : GoString →
     Nat) : backend.ownWTxG tx γ D S G ⊢ backend.txLive tx 1 ∗ (backend.txLive tx 1 -∗
     backend.ownWTxG tx γ D S G)
@@ -102,6 +104,9 @@ theorem backend.ownWTx_live (tx : Loc) (γ : backend.DBNames) (D S : backend.Dat
 
 def backend.seekIdx (es : List backend.Ent) (k : GoString) : Nat :=
   (List.takeWhile (fun e => decide (backend.strLt e.fst k)) es).length
+
+axiom backend.rtxSnap_size (tx : Loc) (D : backend.Data) : backend.rtxSnap tx D ⊢ ⌜∀ (n : GoString)
+    (m : backend.BktData), D !! n = some m → GMap.size m < 2 ^ 61⌝
 
 axiom backend.dbFile_timeless (db : Loc) (path : GoString) : Timeless (backend.dbFile db path)
 

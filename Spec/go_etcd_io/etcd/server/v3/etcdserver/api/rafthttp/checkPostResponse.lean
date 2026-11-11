@@ -21,13 +21,12 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **`checkPostResponse`** of a response of status `st`: an error of `postErr st` (`nil` for a
-`204`). -/
+`204`). Of a zap logger (premise fixes 6: it logs the errors). -/
 abbrev rafthttp.checkPostResponse.spec : Prop :=
   ∀ (lg resp : Loc) (st : w64) (rd : GoInterface) (b : GoSlice) (bs : List w8) (req : Loc)
     (R : http.HReq) (to : go_etcd_io.etcd.client.pkg.v3.types.ID)
     (Hd : List (GoString × GoString) → Prop),
-  lg ≠ null →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ zapLoggerOk lg ∗
       http.respAt resp st rd Hd ∗ b ↦* bs ∗ http.reqOwn req R }}
     (App (App (App (App (App (Val (@! rafthttp.checkPostResponse)) (Val #lg)) (Val #resp))
       (Val #b)) (Val #req)) (Val #to))

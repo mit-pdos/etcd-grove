@@ -12,8 +12,8 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.NewRevBytes
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.RevToBytes
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.Trace__Step
 public import Spec.google_golang_org.protobuf.proto.Unmarshal
+public import Spec.fmt.ErrorfWrap
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BucketLemmas
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Errorf
 
 @[expose] public section
 
@@ -45,7 +45,8 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
     (hNew : mvcc.NewRevBytes.spec (GF := GF) (hG := hG))
     (hRevTo : mvcc.RevToBytes.spec (GF := GF) (hG := hG))
     (hStep : traceutil.Trace.Step.spec (GF := GF) (hG := hG))
-    (hUnm : proto.Unmarshal.spec (GF := GF) (hG := hG)) :
+    (hUnm : proto.Unmarshal.spec (GF := GF) (hG := hG))
+    (hWrap : fmt.ErrorfWrap.spec (GF := GF) (hG := hG)) :
     mvcc.storeTxnCommon.rangeKeys.spec (GF := GF) (hG := hG) := by
   intro txc s trace ti rt dq m R γ kn log rev ctx cd todo key endk k e ro qm qc c lc te dqi Htrnn
   wp_start as ⟨#Hs, HsT, HtxcT, HtraceT, #Hrdr, HRr, %HsubT, #Hlc, %Hlcp, Hkn, %Hklog, %HneT, %Hrv,
@@ -665,14 +666,48 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
                 iintro ⟨-, #Hclosed⟩
                 (try wp_auto)
                 ihave #HE := HErr $$ %Broadcast.Done
-                wp_apply HE $$ [$Hclosed] as %cerr %Hne -
+                wp_apply HE $$ [$Hclosed] as %cerr %Hne #Hce0
+                ihave #Hce : context.isCtxErr cerr $$ [Hce0]
+                · iapply (by rw [if_neg Hne] <;> exact .rfl :
+                    (if cerr = GoInterface.nil then (iprop(True) : IProp GF) else context.isCtxErr cerr) ⊢
+                      context.isCtxErr cerr) $$ Hce0
+                obtain ⟨ci, rfl⟩ : ∃ ci, cerr = GoInterface.ok ci := by
+                  cases cerr with
+                  | nil => exact absurd rfl Hne
+                  | ok ci => exact ⟨ci, rfl⟩
                 (try wp_auto)
                 wp_apply wp_slice_literal
                 isplitr
                 · ipureintro; rfl
                 iintro %asl ⟨Hasl, -⟩
                 (try wp_auto)
-                wp_apply mvcc.wp_Errorf_errorfIs $$ [$Hasl] as %e' #He'
+                -- `%w` of the context's error: no fact from Perennial's model (errorf-wrap)
+                ihave #Hcs := go_etcd_io.etcd.cache.v3.isCtxErr_stringMethodSpec ci $$ Hce
+                rw [show (go!"rangeKeys: context cancelled: %w" : GoString) = go!"rangeKeys: context cancelled: " ++ go!"%w" from rfl]
+                wp_apply (hWrap go!"rangeKeys: context cancelled: " _ ci (DFrac.own 1) (by decide))
+                  $$ [$Hasl $Hcs] as %e0 ⟨-, #Hw, %Hpre⟩
+                ihave #He' : mvcc.rangeKeysErr (GoInterface.ok e0) $$ []
+                · iunfold mvcc.rangeKeysErr
+                  isplitl
+                  · iunfold mvcc.ctxErrorf
+                    iapply go_etcd_io.etcd.cache.v3.ctxWrapErr_wrap $$ Hw Hce
+                  isplitr
+                  · ipureintro; exact Hpre
+                  iexists e0
+                  iunfold EtcdGrove.fmt.errorfWrapIs at Hw
+                  icases Hw with (#HM | #HW)
+                  · iunfold EtcdGrove.fmt.modelErrIs at HM
+                    icases HM with ⟨-, %s, #HE⟩
+                    iexists s
+                    isplitr
+                    · ipureintro; rfl
+                    iexact HE
+                  · iunfold EtcdGrove.fmt.wrapErrIs at HW
+                    icases HW with ⟨-, ⟨%s, #HE⟩, -⟩
+                    iexists s
+                    isplitr
+                    · ipureintro; rfl
+                    iexact HE
                 (try wp_auto)
                 wp_for_post
                 (try wp_auto)

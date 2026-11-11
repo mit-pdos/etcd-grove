@@ -29,7 +29,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Ass
 theorem v3compactor.newRevision.wp_proof :
     v3compactor.newRevision.spec (GF := GF) (hG := hG) := by
   intro lg clk ret E
-  wp_start as ⟨%Hlgnn, #Hclk⟩
+  wp_start as ⟨#Hlgnn, #Hclk⟩
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -45,7 +45,7 @@ theorem v3compactor.newRevision.wp_proof :
   iapply wp_fupd
   wp_apply _root_.Perennial.context.wp_Background
   -- `WithCancel(Background())`, carrying no trace (M2's freeze repair)
-  wp_apply traceutil.wp_WithCancelBackground_noTrace as %ctx %γctx %cancel ⟨#Hcs, #Hctx, #Htr⟩
+  wp_apply traceutil.wp_WithCancelBackground_noTrace as %ctx %γctx %cancel ⟨#Hcs, #Hctx, #Htr, #Hspc, -, #Hclib⟩
   ipersist lg
   ipersist clock
   ipersist retention
@@ -60,8 +60,6 @@ theorem v3compactor.newRevision.wp_proof :
     γctx, cancel
   iframe
   iframe #
-  isplitr
-  · ipureintro; exact Hlgnn
   ipureintro; rfl
 
 end proof

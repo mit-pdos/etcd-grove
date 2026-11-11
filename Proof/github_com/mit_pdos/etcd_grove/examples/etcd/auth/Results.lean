@@ -63,7 +63,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.auth.Assump
 (`server_new_auth_on`, with its named premises) and `Start.spec` (`server_Start`) at the auth slot's
 `on γa`. (The auth component's stage 3, 2026-11-04: until then `Start.specOn`, `server_Start_on`,
 which also took `ErrorStringLeaf`.) -/
-theorem authkv_startServer [EtcdGrove.Float64ToInt64Semantics]
+theorem authkv_startServer
     (hValid : auth.ValidSpec (GF := GF) (hG := hG)) (hD22 : ⊢ authSchemaSrv (GF := GF)) :
     etcd_auth.startServer.spec (GF := GF) (hG := hG) :=
   etcd_auth.startServer.wp_proof etcdstart.features.wp_NewDefaultServerFeatureGate
@@ -74,10 +74,10 @@ hypothesis on the semantics every client-building `Main` has (`DialWithBalancerB
 `newUserClient`'s `clientv3.New`; watchkv's, cachekv's, ...), and the member's start with auth on
 (`authkv_startServer`, 2026-10-30: `Link.lean` links only `.spec`s): its named premises
 (`isValidSimpleToken`'s spec `auth.ValidSpec`, D22's `authSchemaSrv`) and hypotheses on the
-semantics (`Float64ToInt64Semantics`, `ErrorStringLeaf`). `Main.spec`'s named workload premises
+semantics (`ErrorStringLeaf`). `Main.spec`'s named workload premises
 include `grpcRepliesFit` (2026-10-31, `grpc.start`'s: the replies' encoded size). -/
 theorem authkv_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
-    [EtcdGrove.Float64ToInt64Semantics] [EtcdGrove.ErrorStringLeaf]
+    [EtcdGrove.ErrorStringLeaf]
     (hValid : auth.ValidSpec (GF := GF) (hG := hG)) (hD22 : ⊢ authSchemaSrv (GF := GF)) :
     etcd_auth.Main.spec (GF := GF) (hG := hG) :=
   etcd_auth.wp_Main (authkv_startServer hValid hD22)

@@ -28,9 +28,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 theorem txn.compareToPath.wp_proof
     (hCmps : txn.applyCompares.spec (GF := GF) (hG := hG)) :
     txn.compareToPath.spec (GF := GF) (hG := hG) := by
-  intro trace mw s γ log rev rt t crev
+  intro tw γ trace te σ rt t
   iloeb as IH generalizing %rt %t
-  wp_start as ⟨Htx, #Ht⟩
+  wp_start as ⟨Htx, Htrc, %Hreach, #Ht⟩
   iunfold txn.txnRequestIs at Ht
   icases Ht with ⟨%Hnn, Hf⟩
   iunfold txn.txnFieldsIs at Hf
@@ -38,14 +38,15 @@ theorem txn.compareToPath.wp_proof
   wp_auto
   wp_apply (wp_slice_make2 (V := Bool) (W64 1)) as %sl ⟨Hsl, Hcap⟩
   · ipureintro; decide
-  wp_apply (hCmps trace mw s γ log rev csl cps t.cmps) $$ [$Htx $Hcs $Hcm] as Htx
+  wp_apply (hCmps tw γ trace te σ csl cps t.cmps) $$ [$Htx $Htrc $Hcs $Hcm] as ⟨Htx, Htrc⟩
+  · ipureintro; exact Hreach
   ihave %Hsll := ownSlice_len _ _ _ $$ Hsl
   simp only [List.length_replicate] at Hsll
   rw [ite_eq_left (by constructor <;> word)]
-  wp_apply (wp_store_slice_index sl (sint.Z (W64 0)) _ (t.cmps.all (cmpHolds (mvcc.stateAfter log))))
+  wp_apply (wp_store_slice_index sl (sint.Z (W64 0)) _ (t.cmps.all (cmpHolds (mvcc.stateAfter σ.log))))
     $$ [$Hsl] as Hsl
   · ipureintro; constructor <;> simp
-  generalize hok : t.cmps.all (cmpHolds (mvcc.stateAfter log)) = ok
+  generalize hok : t.cmps.all (cmpHolds (mvcc.stateAfter σ.log)) = ok
   rw [show (List.replicate 1 (zero_val Bool)).set 0 ok = [ok] from rfl]
   rw [ite_eq_left (by constructor <;> word)]
   wp_apply (wp_load_slice_index sl (sint.Z (W64 0)) [ok] (DFrac.own 1) ok (by decide)) $$ [$Hsl] as Hsl
@@ -71,9 +72,10 @@ theorem txn.compareToPath.wp_proof
   ihave %Hosl := ownSlice_len _ _ _ $$ Hos
   ihave IHl : (∃ (n : w64) (pv : Loc) (cur : GoSlice), "i" ∷ i_ptr ↦ n ∗ "op" ∷ op_ptr ↦ pv ∗
       "txnPath" ∷ txnPath_ptr ↦ cur ∗
-      "Hsl" ∷ cur ↦* (ok :: txn.opsPath (mvcc.stateAfter log) ((t.branch ok).take (sint.nat n))) ∗
-      "Hcap" ∷ ownSliceCap Bool cur (DFrac.own 1) ∗ "Htx" ∷ mvcc.isTxnRead mw s γ trace log rev crev ∗
-      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ sint.Z osl.len⌝ : IProp GF) $$ [i op txnPath Hsl Hcap Htx]
+      "Hsl" ∷ cur ↦* (ok :: txn.opsPath (mvcc.stateAfter σ.log) ((t.branch ok).take (sint.nat n))) ∗
+      "Hcap" ∷ ownSliceCap Bool cur (DFrac.own 1) ∗ "Htx" ∷ mvcc.api.mvccTxn tw γ trace (.read σ) ∗
+      "Htrc" ∷ traceutil.ownTrace trace te ∗
+      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ sint.Z osl.len⌝ : IProp GF) $$ [i op txnPath Hsl Hcap Htx Htrc]
   · iexists W64 0, _, sl
     iframe
     ipureintro; exact ⟨by decide, Hosl.2⟩
@@ -87,9 +89,9 @@ theorem txn.compareToPath.wp_proof
     · iframe Hos; ipureintro; exact Hp_lookup
     ihave ⟨%op, %Hop, #Hp⟩ := txn.requestOpsIs_elem ops_ps _ _ p Hp_lookup $$ Hops
     have htake : ∀ op', (t.branch ok)[sint.nat n]? = some op' →
-        txn.opsPath (mvcc.stateAfter log) ((t.branch ok).take (sint.nat (n + W64 1))) =
-          txn.opsPath (mvcc.stateAfter log) ((t.branch ok).take (sint.nat n)) ++
-            txn.opPath (mvcc.stateAfter log) op' := by
+        txn.opsPath (mvcc.stateAfter σ.log) ((t.branch ok).take (sint.nat (n + W64 1))) =
+          txn.opsPath (mvcc.stateAfter σ.log) ((t.branch ok).take (sint.nat n)) ++
+            txn.opPath (mvcc.stateAfter σ.log) op' := by
       intro op' h'
       rw [show sint.nat (n + W64 1) = sint.nat n + 1 by word]
       exact txn.opsPath_take_succ _ _ _ _ h'
@@ -108,8 +110,9 @@ theorem txn.compareToPath.wp_proof
         iunfold txn.txnFieldsIs
         iexists csl', ssl', fsl', cps', sps', fps'
         iframe #
-      wp_apply IH $$ %r %{ cmps := cs, thenOps := ts, elseOps := es } [$Htx $Hrq]
-        as %nsl ⟨Htx, Hnsl, Hncap⟩
+      wp_apply IH $$ %r %{ cmps := cs, thenOps := ts, elseOps := es } [$Htx $Htrc $Hrq]
+        as %nsl ⟨Htx, Htrc, Hnsl, Hncap⟩
+      · ipureintro; exact Hreach
       wp_apply (wp_slice_append cur _ nsl _ (DFrac.own 1)) $$ [$Hsl $Hcap $Hnsl] as %cur' ⟨Hsl, Hcap, -⟩
       wp_for_post
       iframe
@@ -135,7 +138,7 @@ theorem txn.compareToPath.wp_proof
     have hn : sint.nat n = (t.branch ok).length := by rw [← Hopl]; have := Hosl.1; word
     rw [hn, List.take_length]
     iapply HΦ
-    iframe Htx Hcap
+    iframe Htx Htrc Hcap
     unfold txn.txnPath txn.txnOk
     rw [hok]
     iexact Hsl

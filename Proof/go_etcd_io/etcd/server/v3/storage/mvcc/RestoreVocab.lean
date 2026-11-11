@@ -16,6 +16,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreRecs
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreCut
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvIndexRestore
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Compact
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.LockArm
 
 @[expose] public section
 
@@ -90,31 +91,32 @@ compaction-key write right (`kbRecs_MW`: a compacting store's `mwInv` keeps it, 
 resumed `updateCompactRev` writes through it) and, held unmoved, the license to read the records
 (`metaReadSpecR`). mvcc's assumed backend has no records vocabulary: only `r = empty`. -/
 def mvcc.kbRecs (kb : Option mvcc.KBReal) (γb : GName) (r : mvcc.CmpRecs) : IProp GF :=
-  if r = mvcc.CmpRecs.empty then mvcc.kbNoCmp kb γb
+  if r = mvcc.CmpRecs.empty then mvcc.kbNoCmpF kb γb
   else match kb with
     | none => iprop(False)
-    | some d => iprop(∃ n : Nat, backend.fkOwn d.γB n ∗
+    | some d => iprop(∃ n : Nat, backend.fkFlag d.γB n ∗
         backend.fkOpenD d.γB n (mvcc.recBytes r.fin, mvcc.recBytes r.sched))
 
-/-- No record is today's no-compaction token. -/
+/-- No record is the no-compaction flag (`kbNoCmpF`; M3, 2026-11-06: the flag alone, the values
+being the store's tracked compaction's). -/
 theorem mvcc.kbRecs_empty (kb : Option mvcc.KBReal) (γb : GName) :
-    mvcc.kbRecs (GF := GF) kb γb mvcc.CmpRecs.empty = mvcc.kbNoCmp kb γb := by
+    mvcc.kbRecs (GF := GF) kb γb mvcc.CmpRecs.empty = mvcc.kbNoCmpF kb γb := by
   unfold mvcc.kbRecs; simp
 
-/-- **The records are the write right** (`restore` gives it back as `kbMW`, as today's
-`kbNoCmp_MW`). -/
-theorem mvcc.kbRecs_MW (kb : Option mvcc.KBReal) (γb : GName) (r : mvcc.CmpRecs) :
-    mvcc.kbRecs (GF := GF) kb γb r ⊢ mvcc.kbMW kb γb := by
+/-- **The records are the write right's flag part** (`restore` gives it back for the write right's
+invariant, `mwInv`; M3, 2026-11-06: until then the whole right `kbMW`, whose values' halves are now
+the tracked compaction's). -/
+theorem mvcc.kbRecs_MWf (kb : Option mvcc.KBReal) (γb : GName) (r : mvcc.CmpRecs) :
+    mvcc.kbRecs (GF := GF) kb γb r ⊢ mvcc.kbMWf kb γb := by
   unfold mvcc.kbRecs
   split
-  · exact mvcc.kbNoCmp_MW kb γb
+  · exact mvcc.kbNoCmpF_MWf kb γb
   · cases kb with
     | none => iintro H; iexfalso; iexact H
     | some d =>
-      unfold mvcc.kbMW
+      simp only [mvcc.kbMWf, backend.fkFlag]
       iintro ⟨%n, H, -⟩
-      iexists n
-      iexact H
+      iexists n; iexact H
 
 /-- **`storeBackendT` with the records**: `NC` the records' `kbRecs … r`. -/
 def mvcc.storeBackendTR (b : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (P : IProp GF)
@@ -122,8 +124,7 @@ def mvcc.storeBackendTR (b : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (P : 
   mvcc.isKeyBackendGR b (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ)
     (mvcc.kbRecs γ.kb γ.bucket r) r (mvcc.storePutOk γ) (mvcc.delKey γ) (mvcc.storeW s γ)
     (mvcc.kbWi γ.kb) iprop(True) (mvcc.storeCmp γ) P (mvcc.hookFn γ) (mvcc.storeReq γ) (mvcc.storeRb γ)
-    (mvcc.storeBt γ) (mvcc.kbSR γ.kb) (mvcc.kbSRh γ.kb) (mvcc.kbMW γ.kb γ.bucket) (mvcc.kbHookNil γ.kb)
-    (mvcc.storePV γ) (mvcc.storePVx γ) (mvcc.storeCK γ)
+    (mvcc.storeBt γ) (mvcc.kbSR γ.kb) (mvcc.kbSRh γ.kb) (mvcc.kbMWv γ.kb γ.bucket) (mvcc.kbHookNilAt γ.kb)
 
 theorem mvcc.storeBackendTR_empty (b : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (P : IProp GF) :
     mvcc.storeBackendTR (GF := GF) b s γ P mvcc.CmpRecs.empty = mvcc.storeBackendT b s γ P := by
@@ -169,13 +170,17 @@ theorem mvcc.restoreRegM_fix (d' : mvcc.KBReal) (γ : mvcc.StoreNames) :
 pre's `kbViewC (some d') γb' 1 (bucketMap L') ∗ kbNoCmp (some d') γb'`): off, the whole `Key`
 bucket at the log `L'` and no record; on, a view of the image's entries `ents` of the job's shape
 at the records' revision `r.crev`, the records with the write right (`kbRecs`: the client's half of
-the compaction-key flag, which the walk holds from `OpenBackend`'s `fkCl`), the compaction keys
-well formed (`fkVM`, the merged ghost), and the image's pure facts. -/
+the compaction-key flag, which the walk holds from `OpenBackend`'s `fkCl`) and, with them (M3,
+2026-11-06), the client's halves of the compaction keys' values at the records' bytes and of the
+deleted entries at none (`kbVals`, `fkCl_exact`: what `Restore`'s tracked compaction pins), the
+compaction keys well formed (`fkVM`, the merged ghost), and the image's pure facts. -/
 def mvcc.restoreImageM (d' : mvcc.KBReal) (γb' : GName) (L : mvcc.Log) (r : mvcc.CmpRecs) :
     IProp GF :=
   if d'.cm then
     iprop(∃ ents : List mvcc.KvEnt, mvcc.kbViewC (some d') γb' 1 (mvcc.bucketOfEnts ents) ∗
-      mvcc.kbRecs (some d') γb' r ∗ backend.fkVM d'.γB true ∗
+      (mvcc.kbRecs (some d') γb' r ∗
+        mvcc.kbVals (some d') (mvcc.recBytes r.fin, mvcc.recBytes r.sched) ∅) ∗
+      backend.fkVM d'.γB true ∗
       ⌜mvcc.recsOk L r ∧ mvcc.recsPos r ∧ mvcc.entsCutAt L r.crev ents⌝)
   else iprop(mvcc.kbViewC (some d') γb' 1 (mvcc.bucketMap L) ∗ mvcc.kbNoCmp (some d') γb' ∗
     ⌜r = mvcc.CmpRecs.empty⌝)
@@ -234,6 +239,105 @@ theorem mvcc.cmOff_true (d : mvcc.KBReal) (hcm : d.cm = false) :
 theorem mvcc.restoreRcptM_off (d' : mvcc.KBReal) (L : mvcc.Log) (h : d'.cm = false) :
     mvcc.restoreRcptM (GF := GF) d' L = iprop(True) := by
   unfold mvcc.restoreRcptM; simp [h]
+
+/-- **The restore's ghost step** (`KV.Restore.contract`'s update, 2026-11-06; in place of the
+placeholders of the takeover's, the switch's and the finish's slots): fired by `store.Restore`'s
+takeover, from `s.revMu`'s slot and the writer's part of the API's view at the committed log `L`
+(at whatever compaction revisions they hold) to both at the restored log `L'` and compaction
+revision `c'`, the notified log's lower bound at `L'` minted, with the caller's `R`; and the
+committed log is a prefix of `L'`, the compaction revision at most `c'` (the client's: its state's
+history extends to the restored one, its compaction revision is not lowered).
+The API's `Restore` makes it from the client's atomic update (the view's and the compaction
+authority's other parts, the notified log's authority), at the update's mask (`⊤ \ ↑mvccN`: the
+takeover holds the writer's invariant, `writerN`, inside it, open). -/
+def mvcc.restoreCb (γ : mvcc.StoreNames) (L' : mvcc.Log) (c' : Int) (R : IProp GF) : IProp GF :=
+  iprop(∀ (L : mvcc.Log) (c cy : Int), (mvcc.slotX γ 1 L c ∗
+      mvcc.api.absPart γ.api (1 : Qp).half.half L cy ∗
+      mvcc.api.pndPart γ.api (mvcc.pndW γ) none -∗ |={⊤ \ ↑(nroot .@ "mvcc")}=>
+    ⌜L <+: L' ∧ c ≤ c'⌝ ∗ mvcc.slotX γ 1 L' c' ∗ mvcc.api.absPart γ.api (1 : Qp).half.half L' c' ∗
+      mvcc.api.pndPart γ.api (mvcc.pndW γ) none ∗ mvcc.api.nlLb γ.api L' ∗ R))
+
+/-- **The resumed compaction's context** (`KV.Restore.contract`'s, 2026-11-06; in place of
+`resumeHookM`, which allowed only an unset hook and no commit): when the image's records resume a
+compaction (`r.resumes`), the caller's run of the new backend's post-lock hook under its batch lock
+(a set hook `f`, frozen: `bkHookIs`, with its contract from `Pre` to `Post`; or the hook at `nil` at
+the share `dq`, with the caller's view shift) and its commit request from `X` to `Y` on the new
+backend `d'`. Given at the new backend only (the store's new names are allocated inside
+`Restore`); `resumeCtxM_lock` makes the lock context at any names over `d'`. -/
+def mvcc.resumeCtxM (d' : mvcc.KBReal) (r : mvcc.CmpRecs) (P : IProp GF) (hk : Option val)
+    (Pre Q Post : IProp GF) (dq : DFrac) (X Y : IProp GF) : IProp GF :=
+  if r.resumes then
+    iprop(X ∗ mvcc.kbReq (some d') X Y ∗
+      match hk with
+      | some f => iprop(mvcc.bkHookIs d'.γB f ∗ mvcc.csContract P f Pre Q Post)
+      | none => iprop(mvcc.kbHookNilAt (some d') dq ∗ Pre ∗ (P ∗ Pre ={⊤}=∗ P ∗ Post)))
+  else iprop(True)
+
+/-- **What the resumed compaction gives back**: `Post`, the commit's `Y` and, for the hook at `nil`,
+its share. -/
+def mvcc.resumeBackM (d' : mvcc.KBReal) (r : mvcc.CmpRecs) (hk : Option val) (dq : DFrac)
+    (Post Y : IProp GF) : IProp GF :=
+  if r.resumes then
+    iprop(Post ∗ Y ∗
+      match hk with
+      | some _ => iprop(True)
+      | none => mvcc.kbHookNilAt (some d') dq)
+  else iprop(True)
+
+theorem mvcc.resumeCtxM_no (d' : mvcc.KBReal) (r : mvcc.CmpRecs) (P : IProp GF) (hk : Option val)
+    (Pre Q Post : IProp GF) (dq : DFrac) (X Y : IProp GF) (h : r.resumes = false) :
+    mvcc.resumeCtxM (GF := GF) d' r P hk Pre Q Post dq X Y = iprop(True) := by
+  unfold mvcc.resumeCtxM; simp [h]
+
+theorem mvcc.resumeBackM_no (d' : mvcc.KBReal) (r : mvcc.CmpRecs) (hk : Option val) (dq : DFrac)
+    (Post Y : IProp GF) (h : r.resumes = false) :
+    mvcc.resumeBackM (GF := GF) d' r hk dq Post Y = iprop(True) := by
+  unfold mvcc.resumeBackM; simp [h]
+
+/-- The resumed compaction's lock context at names `γ'` over the new backend, with the batch lock's
+invariant recorded there (`hookP`). -/
+theorem mvcc.resumeCtxM_lock (γ' : mvcc.StoreNames) (d' : mvcc.KBReal) (r : mvcc.CmpRecs)
+    (P : IProp GF) (hk : Option val) (Pre Q Post : IProp GF) (dq : DFrac) (X Y : IProp GF)
+    (hk' : γ'.kb = some d') (hr : r.resumes = true) :
+    mvcc.resumeCtxM (GF := GF) d' r P hk Pre Q Post dq X Y ∗ mvcc.hookP γ' P ⊢
+      mvcc.lockCtxM γ' P hk Pre Q Post dq ∗ X ∗ mvcc.storeReq γ' X Y := by
+  unfold mvcc.resumeCtxM
+  simp only [hr, ↓reduceIte]
+  iintro ⟨⟨HX, #Hreq, Hh⟩, #Hhp⟩
+  iframe HX
+  isplitl [Hh]
+  · cases hk with
+    | some f =>
+      rw [mvcc.lockCtxM_some]
+      icases Hh with ⟨#Hf, Hcs⟩
+      iframe Hcs
+      iunfold mvcc.hookOk
+      iframe Hhp
+      simp only [mvcc.hookFn, hk', mvcc.kbHookIs]
+      iexact Hf
+    | none =>
+      rw [mvcc.lockCtxM_none]
+      icases Hh with ⟨Hnil, HPre, Hvs⟩
+      rw [hk']
+      iframe Hhp Hnil HPre Hvs
+  · simp only [mvcc.storeReq, hk']
+    iexact Hreq
+
+theorem mvcc.resumeBackM_of (γ' : mvcc.StoreNames) (d' : mvcc.KBReal) (r : mvcc.CmpRecs)
+    (P : IProp GF) (hk : Option val) (dq : DFrac) (Post Y : IProp GF)
+    (hk' : γ'.kb = some d') (hr : r.resumes = true) :
+    mvcc.lockBackM (GF := GF) γ' P hk dq ∗ Post ∗ Y ⊢ mvcc.resumeBackM d' r hk dq Post Y := by
+  unfold mvcc.resumeBackM
+  simp only [hr, ↓reduceIte]
+  iintro ⟨Hb, HP, HY⟩
+  iframe HP HY
+  cases hk with
+  | some f => itrivial
+  | none =>
+    rw [mvcc.lockBackM_none] at *
+    icases Hb with ⟨-, Hn⟩
+    rw [hk'] at *
+    iexact Hn
 
 end vocab
 

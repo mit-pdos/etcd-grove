@@ -22,12 +22,17 @@ mustInt64orLeaseID: mustInt64
 v3_Compare: Cmp__Clone Cmp__ensureCompare mustInt64 mustInt64orLeaseID
 WithRev:
 WithLimit:
+WithRange:
+getPrefix:
+GetPrefixRangeEnd: getPrefix
 v3_WithLease:
 ResponseOp__GetResponseRange:
 #
 # client/v3/kubernetes (`client.go`)
 kvFromTxnResponse: ResponseOp__GetResponseRange
 Client__Get: WithRev WithLimit
+# (k8s 7e-1) List: a hypothesis until 7e-1
+Client__List: WithRev WithLimit WithRange GetPrefixRangeEnd
 Client__OptimisticPut: v3_WithLease OpPut OpGet ModRevision v3_Compare kvFromTxnResponse
 Client__OptimisticDelete: OpDelete OpGet ModRevision v3_Compare kvFromTxnResponse
 # the constructor (stage 6e): `New(cfg)`, over the client's (`@`)

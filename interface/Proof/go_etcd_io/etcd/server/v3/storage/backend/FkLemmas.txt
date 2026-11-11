@@ -2,6 +2,9 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
+theorem backend.fkVals_delBucket {st : backend.BSess} {bi : backend.BucketInfo} (hn : ∀ (k :
+    GoString), ¬backend.fkKey bi.name k) : backend.fkVals (st.delBucket bi).S = backend.fkVals st.S
+
 theorem backend.fkAbsD_delete {S : backend.Data} {n : GoString} (h : backend.fkAbsD S) :
     backend.fkAbsD (GMap.delete n S)
 
@@ -11,9 +14,6 @@ theorem backend.fkAbsB_wbAdd {P : backend.BParams} {B : GMap w64 (List backend.E
 
 theorem backend.fkAbsSt_create {P : backend.BParams} {st : backend.BSess} {bi : backend.BucketInfo}
     (h : backend.fkAbsSt P st) : backend.fkAbsSt P (st.create bi)
-
-theorem backend.fkVals_eq_of_dget {S S' : backend.Data} (h : ∀ (n k : GoString), backend.fkKey n k →
-    backend.dget S' n k = backend.dget S n k) : backend.fkVals S' = backend.fkVals S
 
 theorem backend.fkInit_wf {P : backend.BParams} {D : backend.Data} (h : backend.fkWInit P D = true)
     : backend.fkWfD P D
@@ -38,6 +38,10 @@ theorem backend.fkOk_wb {P : backend.BParams} {st : backend.BSess} (f : Nat) (w 
 theorem backend.fkAbsSt_setHw {P : backend.BParams} {st : backend.BSess} (x : Bool) (h :
     backend.fkAbsSt P st) : backend.fkAbsSt P (st.setHw x)
 
+theorem backend.fkVals_put {st : backend.BSess} {bi : backend.BucketInfo} {k x : GoString} (seq :
+    Bool) (hk : ¬backend.fkKey bi.name k) : backend.fkVals (st.put bi k x seq).S = backend.fkVals
+    st.S
+
 theorem backend.fkWfB_wbAdd {P : backend.BParams} {B : GMap w64 (List backend.Ent)} {n : GoString}
     {id : w64} {k v : GoString} (hP : P.Wf) (h : backend.fkWfB P B) (hid : P.BT !! n = some id) (hv
     : backend.fkKey n k → P.FV v) : backend.fkWfB P (backend.wbAdd B id (k, v))
@@ -61,9 +65,6 @@ theorem backend.fkWfB_wbMerge {P : backend.BParams} {W R : GMap w64 (List backen
 theorem backend.fkValD_put {S : backend.Data} {n k : GoString} {v : backend.FkVals} (x : GoString)
     (h : backend.fkValD v S) (hk : ¬backend.fkKey n k) : backend.fkValD v <[n := <[k :=
     x]>(backend.bktOf S n)]>S
-
-theorem backend.sData_delete_hook {P : backend.BParams} {S : backend.Data} {n : GoString} (h : P.HB
-    n = true) : backend.sData P (GMap.delete n S) = backend.sData P S
 
 theorem backend.fkWfD_of_abs (P : backend.BParams) {D : backend.Data} (h : backend.fkAbsD D) :
     backend.fkWfD P D
@@ -126,18 +127,12 @@ theorem backend.fkOkG_create {P : backend.BParams} {st : backend.BSess} {bi : ba
 
 theorem backend.fkValD_fkVals (D : backend.Data) : backend.fkValD (backend.fkVals D) D
 
-theorem backend.fkVals_put_other {S : backend.Data} {n k : GoString} (v : GoString) (hk :
-    ¬backend.fkKey n k) : backend.fkVals <[n := <[k := v]>(backend.bktOf S n)]>S = backend.fkVals S
-
 theorem backend.fkWfD_put {P : backend.BParams} {S : backend.Data} {n k : GoString} (v : GoString)
     (h : backend.fkWfD P S) (hv : backend.fkKey n k → P.FV v) : backend.fkWfD P <[n := <[k :=
     v]>(backend.bktOf S n)]>S
 
 theorem backend.fkAbsB_bksReset (P : backend.BParams) (B : GMap w64 (List backend.Ent)) :
     backend.fkAbsB P (backend.bksReset B)
-
-theorem backend.fkVals_delete_other {S : backend.Data} {n : GoString} (hk : ∀ (k : GoString),
-    ¬backend.fkKey n k) : backend.fkVals (GMap.delete n S) = backend.fkVals S
 
 theorem backend.dget_insert (S : backend.Data) (n n' k : GoString) (b : backend.BktData) :
     backend.dget (<[n := b]>S) n' k = if n = n' then b !! k else backend.dget S n' k
@@ -149,12 +144,8 @@ theorem backend.fkOk_commit {P : backend.BParams} {st : backend.BSess} {C' : bac
 theorem backend.fkOkG_wb {P : backend.BParams} {st : backend.BSess} (f : Nat) (g : backend.FkG) (h :
     backend.fkOkG P f g st) : backend.fkOkG P f g (backend.wbSt P st)
 
-theorem backend.sData_insert_hook {P : backend.BParams} {S : backend.Data} {n : GoString} (x :
-    backend.BktData) (h : P.HB n = true) : backend.sData P <[n := x]>S = backend.sData P S
-
-theorem backend.sData_put_hook {P : backend.BParams} {S : backend.Data} {n : GoString} (k v :
-    GoString) (h : P.HB n = true) : backend.sData P <[n := <[k := v]>(backend.bktOf S n)]>S =
-    backend.sData P S
+theorem backend.fkVals_del {st : backend.BSess} {bi : backend.BucketInfo} {k : GoString} (hk :
+    ¬backend.fkKey bi.name k) : backend.fkVals (st.del bi k).S = backend.fkVals st.S
 
 theorem backend.fkValSt_put {P : backend.BParams} {st : backend.BSess} {bi : backend.BucketInfo} {k
     x : GoString} {v : backend.FkVals} (seq : Bool) (hP : P.Wf) (hbi : P.has bi) (hk :
@@ -170,13 +161,6 @@ theorem backend.fkAbsSt_commit {P : backend.BParams} {st : backend.BSess} {C' : 
     Loc} {cnt' : backend.BCnt} (h : backend.fkAbsSt P st) (hC : C' = st.S ∨ C' = st.C) :
     backend.fkAbsSt P (backend.commitSt st C' tx' cnt')
 
-theorem backend.sData_eq_of_dget {P : backend.BParams} {S S' : backend.Data} (h : ∀ (n : GoString),
-    P.HB n = false → ∀ (k : GoString), backend.dget S' n k = backend.dget S n k) : backend.sData P
-    S' = backend.sData P S
-
-theorem backend.fkVals_del_other {S : backend.Data} {n k : GoString} (hk : ¬backend.fkKey n k) :
-    backend.fkVals <[n := GMap.delete k (backend.bktOf S n)]>S = backend.fkVals S
-
 theorem backend.fkOkG_put {P : backend.BParams} {st : backend.BSess} {bi : backend.BucketInfo} {k v
     : GoString} (seq : Bool) (hP : P.Wf) (hbi : P.has bi) (hk : ¬backend.fkKey bi.name k) (f : Nat)
     (g : backend.FkG) (h : backend.fkOkG P f g st) : backend.fkOkG P f g (st.put bi k v seq)
@@ -186,6 +170,9 @@ theorem backend.fkValSt_wb {P : backend.BParams} {st : backend.BSess} {v : backe
 
 theorem backend.fkOkG_setHw {P : backend.BParams} {st : backend.BSess} (x : Bool) (f : Nat) (g :
     backend.FkG) (h : backend.fkOkG P f g st) : backend.fkOkG P f g (st.setHw x)
+
+theorem backend.fkVals_of_fkValD {v : backend.FkVals} {D : backend.Data} (h : backend.fkValD v D) :
+    backend.fkVals D = v
 
 theorem backend.fkValD_create {S : backend.Data} {n : GoString} {v : backend.FkVals} (h :
     backend.fkValD v S) : backend.fkValD v (if S !! n = none then <[n := ∅]>S else S)
@@ -209,10 +196,6 @@ theorem backend.fkWfRv_vOf {P : backend.BParams} {rv : backend.RView} {bi : back
     v : GoString} (h : backend.fkWfRv P rv) (hbi : P.has bi) (hk : backend.fkKey bi.name kb) (hv :
     backend.vOf P rv bi.name kb = some v) : P.FV v
 
-theorem backend.fkVals_insert_other {S : backend.Data} {n : GoString} (x : backend.BktData) (h : ∀
-    (k : GoString), backend.fkKey n k → x !! k = backend.bktOf S n !! k) : backend.fkVals <[n :=
-    x]>S = backend.fkVals S
-
 theorem backend.fkValSt_del {P : backend.BParams} {st : backend.BSess} {bi : backend.BucketInfo} {k
     : GoString} {v : backend.FkVals} (hk : ¬backend.fkKey bi.name k) (h : backend.fkValSt P v st) :
     backend.fkValSt P v (st.del bi k)
@@ -233,8 +216,8 @@ theorem backend.fkAbsD_put {S : backend.Data} {n k : GoString} (v : GoString) (h
 theorem backend.fkOkRv_of {P : backend.BParams} {st : backend.BSess} {f : Nat} {w : Bool} (h :
     backend.fkOk P f w st) : backend.fkOkRv P f w (st.C, st.R)
 
-theorem backend.fkVals_create (S : backend.Data) (n : GoString) : backend.fkVals (if S !! n = none
-    then <[n := ∅]>S else S) = backend.fkVals S
+theorem backend.fkVals_create {st : backend.BSess} {bi : backend.BucketInfo} : backend.fkVals
+    (st.create bi).S = backend.fkVals st.S
 
 theorem backend.fkOkG_putFk {P : backend.BParams} {st : backend.BSess} {bi : backend.BucketInfo} {k
     v : GoString} (seq : Bool) (hP : P.Wf) (hbi : P.has bi) (hv : P.FV v) (f : Nat) (g :
@@ -243,9 +226,6 @@ theorem backend.fkOkG_putFk {P : backend.BParams} {st : backend.BSess} {bi : bac
 theorem backend.fkOkG_del {P : backend.BParams} {st : backend.BSess} {bi : backend.BucketInfo} {k :
     GoString} (hk : ¬backend.fkKey bi.name k) (f : Nat) (g : backend.FkG) (h : backend.fkOkG P f g
     st) : backend.fkOkG P f g (st.del bi k)
-
-theorem backend.sData_create (P : backend.BParams) (S : backend.Data) (n : GoString) : backend.sData
-    P (if S !! n = none then <[n := ∅]>S else S) = backend.sData P S
 
 theorem backend.fkOkG_commit {P : backend.BParams} {st : backend.BSess} {C' : backend.Data} {tx' :
     Loc} {cnt' : backend.BCnt} (hC : C' = st.S ∨ C' = st.C) (f : Nat) (g : backend.FkG) (h :

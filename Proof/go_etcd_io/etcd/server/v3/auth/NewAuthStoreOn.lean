@@ -66,7 +66,7 @@ end ghost
 section lemmas
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
@@ -198,12 +198,12 @@ theorem slots_rd (n : Nat) (st : Loc) (R : IProp GF) (γa : AuthNames) :
 /-- **The admin side's write resource at the backend `be` the store's field holds** (the auth
 plan's E2i, 2026-10-26: `newAuthStore_on`'s post, so that the server's `authBeOn` can name the
 backend; `authWR` forgets it, `authWRAt_authWR`). -/
-def authWRAt (st : Loc) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF)
+def authWRAt (st : Loc) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
     (be : AuthBackend) : IProp GF :=
   iprop((aF go!"be" st ↦{DFrac.own (1 : Qp).half} be ∗ authWBackendOk be M P f T) ∗ T ∗
     enabledHalf st M ∗ cacheHalf st M)
 
-theorem authWRAt_authWR (st : Loc) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF)
+theorem authWRAt_authWR (st : Loc) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
     (be : AuthBackend) : authWRAt (GF := GF) st M P f T be ⊢ authWR st M P f T := by
   iintro H
   iunfold authWRAt at H
@@ -227,7 +227,7 @@ end lemmas
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
@@ -241,18 +241,19 @@ theorem newAuthStore_on
     (h_metrics : auth.authStore.setupMetricsReporter.spec (GF := GF) (hG := hG))
     (h_refresh : auth.authStore.refreshRangePermCache.spec (GF := GF) (hG := hG))
     (lg : Loc) (ab tp : GoInterface) (cost : w64) (bi : GoInterfaceOk) (γa : AuthNames)
-    (γc : AuthBkNames) (R P : IProp GF) (f : val) (T A Pre Q Post : IProp GF) (hs : List AuthState)
+    (γc : AuthBkNames) (R P : IProp GF) (f : GoFunc) (T A Pre Q Post : IProp GF)
+    (hs : List AuthState)
     (stl : AuthState) (hlast : hs.getLast? = some stl) (hfit : permsFit stl)
     (hempty : ∃ s ∈ hs, s.users = ∅)
     -- (R-D2, 2026-11-04) the readers handed out, each with its ticket for the store's currency
     (N : Nat) (hN : N ≤ Int.toNat sync.rwmutex.actualMaxReaders) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ ⌜lg ≠ null⌝ ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ zapLoggerOk lg ∗
         ⌜ab = GoInterface.ok bi⌝ ∗ authBackendOk ab R (.on γa) γc ∗
         authBkCur γa (1 : Qp).half γc ∗ authCur γc 1 ∗
         authWBackendOkR ab (.on γa) P f T ∗
         □ ({{ T }} (App (Val #(methods bi.ty go!"CreateAuthBuckets" bi.v)) (Val #()))
           {{ RET #(); T }}) ∗
-        T ∗ mvcc.csContract P f Pre Q Post ∗ tokenProviderOkA tp (.on γa) A ∗ A ∗
+        T ∗ srvApi.csContractA P f Pre Q Post ∗ tokenProviderOkA tp (.on γa) A ∗ A ∗
         authOwn (.on γa) hs ∗ authStoreInit γa hs stl ∗ capNext (.on γa) hs (bump stl) }}
       (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.NewAuthStore)) (Val #lg))
         (Val #ab)) (Val #tp)) (Val #cost))
@@ -266,10 +267,11 @@ theorem newAuthStore_on
         authRdTotal γa N ∗
         ([∗list] _x ∈ List.replicate N (),
           enabledRd stp (.on γa) ∗ cacheRd stp (.on γa) ∗ beRd stp R (.on γa)) }} := by
-  wp_start as ⟨%Hlg, %Hab, #Hrdok, Hbk, Hcu, #HwokR, #HCreate, HT, Hcs, #HtpA, HA, Hown, Hcur, #Hcn⟩
+  wp_start as ⟨#Hlgz, %Hab, #Hrdok, Hbk, Hcu, #HwokR, #HCreate, HT, Hcs, #HtpA, HA, Hown, Hcur, #Hcn⟩
   iunfold authStoreInit at Hcur
   icases Hcur with ⟨Hcur, Hrq, #Hcl, Hpub, Hrdt, ⟨%b0, Hfe⟩, %v0, Hfc⟩
   ihave #Hwok := authWBackendOk_of_R _ (.on γa) P f T $$ HwokR
+  ihave %Hlg := zapLoggerOk_ne_null lg $$ Hlgz
   subst Hab
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -298,7 +300,7 @@ theorem newAuthStore_on
     iintro %fsl ⟨-, -⟩
     (try wp_auto)
     wp_apply h_Warn
-    · ipureintro; exact Hlg
+    · iexact Hlgz
     (try wp_auto)
     simp only [_root_.Perennial.golang_org.x.crypto.bcrypt.DefaultCost]
     (try wp_auto)
@@ -319,7 +321,7 @@ theorem newAuthStore_on
       iintro %fsl ⟨-, -⟩
       (try wp_auto)
       wp_apply h_Warn
-      · ipureintro; exact Hlg
+      · iexact Hlgz
       (try wp_auto)
       simp only [_root_.Perennial.golang_org.x.crypto.bcrypt.DefaultCost]
       (try wp_auto)
@@ -480,7 +482,7 @@ theorem newAuthStore_on
     isplitr
     · ipureintro; exact Hstnn
     isplitr
-    · iexists lg; iframe lg; ipureintro; exact Hlg
+    · iexists lg; iframe lg; iexact Hlgz
     iexists tp; iframe tokenProvider
     iapply tokenProviderOk_of_A $$ HtpA
   -- `if enabled { as.tokenProvider.enable() }`: the provider's admin resource kept

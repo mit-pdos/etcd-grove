@@ -1,7 +1,7 @@
 /- Lean-first (no Rocq counterpart).
 
-`decodeObj(data)` (k8s_etcd3.go): either tag's encoding back (`decodeD`): the name and value, and
-whether the data decoded.
+`decodeObj(data)` (k8setcd3.go): either tag's encoding back (`decodeD`: the object's fields, its
+resource version `0`), and whether the data decoded.
 -/
 module
 
@@ -23,6 +23,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
 /-- See the file header. -/
@@ -31,10 +32,10 @@ abbrev decodeObj.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗
       sl ↦*{dq} d }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.decodeObj)) (Val #sl))
-  {{ (name val : GoString) (ok : Bool), RET (PairV (PairV #name #val) #ok);
+  {{ (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj) (ok : Bool), RET (PairV #v #ok);
       sl ↦*{dq} d ∗
       ⌜match decodeD d with
-        | some (n, v) => ok = true ∧ name = n ∧ val = v
+        | some w => ok = true ∧ v = w
         | none => ok = false⌝ }}
 
 end spec

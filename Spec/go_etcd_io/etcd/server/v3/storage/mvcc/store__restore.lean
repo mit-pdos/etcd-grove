@@ -5,6 +5,7 @@ Lean-first (no Rocq counterpart); see `InvStore.lean`.
 -/
 module
 
+public import Spec.go_uber_org.zap.Defs
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.IdxPriv
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchSync
@@ -27,8 +28,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- `s.restore()` over a backend whose `Key` bucket holds the entries `ents` of the restored log
-`L' = [[], []] ++ R` (`restoreLogOk R`: every revision of `R` with changes, the log well formed, no
-lease) a compaction job left at the restored revision, with the image's compaction records `r`
+`L' = [[], []] ++ R` (`restoreLogOk R`: every revision of `R` with changes, the log well formed) a
+compaction job left at the restored revision, with the image's compaction records `r`
 (M2, the storage side, item 18, 2026-10-30), read-only: `NewStore` restores the empty bucket
 (the branch `ns`: `R = []`, no record, over the backend's contract), `store.Restore` a snapshot's
 (the restore plan's R4, R5c; M2's item 15: any restored log, the empty one with a record
@@ -67,7 +68,11 @@ entries (`nonissues/etcd-unsafe-range-limit-buffer.md`).
 * **The resumed compaction** (`resumeK`): if the records resume one (`CmpRecs.resumes`),
   `compactLockfree` at the scheduled record, from what `restore` has then (`restoreDone`), as the
   caller provides it; `restore` ends in the caller's `Fin`.
-* **No lease** is attached (`keyToLease` stays empty: no entry has a lease).
+* **The leases** (out of `NewStore`'s branch, 2026-11-06): `keyToLease` is built from the entries
+  (`restoreChunk`: `ktlApply`), then each key attached to its lease through the lessor (`isLessor le
+  γl`, from the owner's `leaseOwn γl Ls ∅`): each restored item's lease live (`∈ Ls`) and its key
+  short, so `Attach` returns `nil`; the owner's map becomes the restored state's (`pendItems L' []`).
+  `NewStore`'s branch restores the empty log: nothing to attach, no lessor needed.
 
 At no record, the whole bucket, `RevP0 = RevP` and `Fin` the post, today's text before item 18
 (`store.restore.specNC`, `store.restore.specNC_of_spec`). -/
@@ -76,26 +81,25 @@ abbrev mvcc.store.restore.spec : Prop :=
     (HF : val → IProp GF) (RT WT W Wi Dep NC : IProp GF) (Cmp : Prop)
     (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop)
     (Rb : GMap GoString backend.BktData → IProp GF)
-    (Bt : GoInterfaceOk → IProp GF) (MW SR SRh : IProp GF)
-    (PV : mvcc.Bucket → IProp GF) (PVx : Prop) (CK : backend.FkVals → IProp GF)
+    (Bt : GoInterfaceOk → IProp GF) (MW : backend.FkVals → backend.VData → IProp GF) (SR SRh : IProp GF)
     (dqb dqi : DFrac)
     (R : mvcc.Log) (RevP0 RevP RevK RevQ : IProp GF) (dqc dql : DFrac) (q1 q2 : Qp)
-    (r : mvcc.CmpRecs) (ents : List mvcc.KvEnt) (Fin : IProp GF) (ns : Bool),
+    (r : mvcc.CmpRecs) (ents : List mvcc.KvEnt) (Fin : IProp GF) (ns : Bool) (γl : GName)
+    (Ls : List w64),
   mvcc.restoreLogOk R → q1 + q2 = 1 → mvcc.recsOk ([[], []] ++ R) r → (ns = true → R = []) →
     (∀ x, r.fin = some x → dqc • dql = DFrac.own 1) →
     mvcc.entsCutAt ([[], []] ++ R) r.crev ents →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       s.[store, go!"b"] ↦{dqb} b ∗
       (if ns then mvcc.isKeyBackendGR b (mvcc.bucketView γ) RT WT NC r PutOk (mvcc.delKey γ) W Wi Dep
-        Cmp P HF (Rb := Rb) (Bt := Bt) (SR := SR) (SRh := SRh) (MW := MW) (PV := PV) (PVx := PVx)
-        (CK := CK) else iprop(True)) ∗
+        Cmp P HF (Rb := Rb) (Bt := Bt) (SR := SR) (SRh := SRh) (MW := MW) else iprop(True)) ∗
       RT ∗ NC ∗ mvcc.restoreViewR b γ RT q ns (mvcc.bucketOfEnts ents) NC r ∗
       s.[store, go!"kvindex"] ↦{dqi}
         (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
       mvcc.ownIdxPriv ti [] ∗ mvcc.idxLockGAt γ.idx (mvcc.evsOf (([[], []] ++ R) ++ [[]])).length r.crev ∗
       mvcc.idxWriterLb γ.idx ([[], []] ++ R) ∗
       s.[store, go!"le"] ↦□ le ∗ s.[store, go!"lg"] ↦□ lg ∗
-      ⌜lg ≠ null⌝ ∗
+      zapLoggerOk lg ∗
       s.[store, go!"currentRev"] ↦{DFrac.own q1} (W64 1 : w64) ∗
       s.[store, go!"compactMainRev"] ↦{dqc} (W64 (-1) : w64) ∗ RevP0 ∗
       mvcc.revFinW s dql r.fin RevP0 RevP ∗
@@ -109,9 +113,13 @@ abbrev mvcc.store.restore.spec : Prop :=
       mvcc.resumeK s r
         (mvcc.restoreDone s b ti q1 dqb dqi dqc ([[], []] ++ R) ents r RT NC RevQ) Fin ∗
       (⌜ents = mvcc.logEnts ([[], []] ++ R) 0 ([[], []] ++ R).length⌝ ∨
-        ⧖ (mvcc.logCh ([[], []] ++ R))) }}
+        ⧖ (mvcc.logCh ([[], []] ++ R))) ∗
+      (if ns then iprop(True) else iprop(mvcc.isLessor le γl ∗ lease.leaseOwn γl Ls ∅ ∗
+        ⌜∀ it lid, (mvcc.pendItems ([[], []] ++ R) []).lookup it = some lid →
+          lid ∈ Ls ∧ (it.Key'.length : Int) < 2 ^ 63 - 1⌝)) }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"restore")) (Val #()))
-  {{ RET #GoInterface.nil; Fin }}
+  {{ RET #GoInterface.nil; Fin ∗
+      (if ns then iprop(True) else lease.leaseOwn γl Ls (mvcc.pendItems ([[], []] ++ R) [])) }}
 
 end spec
 

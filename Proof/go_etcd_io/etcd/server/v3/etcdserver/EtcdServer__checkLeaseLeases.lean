@@ -36,7 +36,7 @@ theorem EtcdServer.checkLeaseLeases.wp_proof
     (hK : lease.Lease.Keys.spec (GF := GF) (hG := hG)) :
     EtcdServer.checkLeaseLeases.spec (GF := GF) (hG := hG) := by
   intro s E γl ctx cd sl ls dq n m
-  wp_start as ⟨#Hau, #Hlb, #Hlr, #Hpub, #Hctx, HRD, Htok, %Hbound, Hsl, #Hls⟩
+  wp_start as ⟨#Hau, #Hlb, #Hlr, #Hpub, #Hctx, #Hlib, HRD, Htok, %Hbound, Hsl, #Hls⟩
   ihave ⟨%st, %cca, #Has, #Hreq, #Hreqb, #Hcca, #HLb⟩ := leaseCheckSetup s E n $$ [$Hau $Hlb $Hpub]
   iunfold isAuthStoreLeaseLb at HLb
   icases HLb with ⟨%ai, %Hai, #HEn, #HRev, #HAdm, -, #HRng⟩
@@ -77,8 +77,9 @@ theorem EtcdServer.checkLeaseLeases.wp_proof
   ihave %HaOn := enabledVerdictFrom_true_isOn E.authMode n $$ Hen
   (try wp_auto)
   -- `authInfo, err := s.AuthInfoFromCtx(ctx)`
-  wp_apply (hAI s _ E.RD E.authMode cca ctx cd) $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr, #Hb⟩
+  wp_apply (hAI s _ E.RD E.authMode cca ctx cd) $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr0, #Hb, -⟩
   · iframe #
+  ihave #Herr := authApplyErrIs_apply _ $$ Herr0
   (try wp_auto)
   rcases err with ei | _
   · (try wp_auto)

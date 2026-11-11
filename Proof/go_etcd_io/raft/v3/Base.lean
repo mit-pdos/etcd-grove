@@ -15,6 +15,7 @@ files (`strings`, `math`, `bytes`, `log`, `io`, `errors`).
 module
 
 public import Perennial.Proof.strconv.Base
+public import Proof.reflect.PkgInit
 public import Code.go_etcd_io.raft.v3
 public import GeneratedProof.go_etcd_io.raft.v3
 public import GeneratedProof.go_etcd_io.raft.v3.raftpb
@@ -34,10 +35,8 @@ public import Perennial.Proof.crypto.rand
 public import Perennial.Proof.bytes
 public import Perennial.Proof.log
 public import Perennial.Proof.io
-public import Perennial.Proof.io.fs.Base
-public import Perennial.Proof.syscall.Base
-public import Perennial.Proof.internal.poll.Base
 public import Perennial.Proof.errors
+public import Proof.os.PkgInit
 
 @[expose] public section
 
@@ -59,12 +58,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `reflect`, names-only (`raftpb`'s `ConfState.Equivalent` calls `reflect.DeepEqual`,
-the axiom `Spec/reflect_DeepEqual.lean`). -/
-instance reflect_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.reflect :=
-  define_is_pkg_init iprop(True)
-instance reflect_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.reflect :=
-  build_get_is_pkg_init_wf
+-- (`reflect`'s instance: `Proof/reflect/PkgInit.lean`, shared)
 
 /-- protobuf-go's packages, names-only (raft v3.7's `raftpb` is protobuf-go v2: its messages
 hold `protoimpl`'s state, `raft` and `raftpb` call `proto.Clone`/`Marshal`/`Unmarshal`/
@@ -127,13 +121,7 @@ instance confchange_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.raft.v3.confchange :=
   build_get_is_pkg_init_wf
 
-/-- `os`, names-only: its initialization is not modelled (its variables' initializers are
-opaque, `Init.lean`), so this is what that initialization is assumed to give: `Stderr`
-holds a fixed `*File`, which raft's initializer loads (`defaultLogger`). -/
-instance os_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.os :=
-  define_is_pkg_init iprop(∃ f : Loc, typedPointsto (globalAddr os.Stderr) f DFrac.discard)
-instance os_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.os :=
-  build_get_is_pkg_init_wf
+-- (`os`'s instance: `Proof/os/PkgInit.lean`, shared with bbolt)
 
 /-- `globalRand` is the package-level `*lockedRand` behind
 `raft.resetRandomizedElectionTimeout`. Its one field, `mu`, is a `sync.Mutex` that
@@ -167,7 +155,7 @@ def IsNewError (e : GoInterface) : Prop :=
 path compares against (each a non-nil interface value installed by the package
 initializer; a proof that reads one needs the points-to, the load being through
 `GlobalVarAddr`, and the disequality, to decide `err == ErrX` when `err` is `nil`), the
-global RNG, and `emptyState`. -/
+global RNG, `emptyState`, and the logger's mutex. -/
 def isInitialized : IProp GF :=
   iprop(∃ (errStopped errCompacted errUnavailable errSnapUnavail errPropDropped : GoInterface)
       (globalRand' : Loc) (localMsgs responseMsgs : GoArray Bool 23)
@@ -244,7 +232,13 @@ def isInitialized : IProp GF :=
     -- (D22 J4b, 2026-10-27) and as the `errors.New` error it is, for the server's `snapshot`'s
     -- `errors.Is(err, raft.ErrSnapOutOfDate)` (a leaf error)
     "#ErrSnapOODNew" ∷ EtcdGrove.errorsNewVar ErrSnapOutOfDate
-      go!"requested index is older than the existing snapshot")
+      go!"requested index is older than the existing snapshot" ∗
+    -- (premise-fixes-4, 2026-11-10) `raftLoggerMu` (`logger.go`), a mutex owning `raftLogger`,
+    -- which `SetLogger` writes and `getLogger` reads under it (until then the initializer dropped
+    -- both, and the server took `SetLogger`'s triple as a premise, `rnSetLoggerOk`, false in the
+    -- model: nothing owned the globals)
+    "#HloggerMu" ∷ sync.isMutex (globalAddr raftLoggerMu)
+      iprop(∃ l : GoInterface, (globalAddr raftLogger ↦ l : IProp GF)))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.raft.v3 :=
   define_is_pkg_init isInitialized

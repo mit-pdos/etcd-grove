@@ -200,7 +200,7 @@ local macro "piro_tail" : tactic => `(tactic| (
     wp_apply hTO (structFieldRef EtcdServer go!"Cfg" s) v.electionTicks v.tickMs $$ [] as %tmo -
     · iframe #
     (try wp_auto)
-    wp_apply context.wp_WithTimeout ctx cd tmo $$ [] as %cctx %γc %cancel %dl ⟨#Hcancel, #Hcctx⟩
+    wp_apply context.wp_WithTimeout ctx cd tmo $$ [] as %cctx %γc %cancel %dl ⟨#Hcancel, #Hcctx, -⟩
     · iframe #
     (try wp_auto)
     wp_apply hSp ctx cd $$ [] as %sp #Hsp
@@ -246,6 +246,11 @@ local macro "piro_tail" : tactic => `(tactic| (
       · iunfold mvcc.txnCtx; iright; iexact Hcctx
       isplitr
       · ipureintro; exact Hbsne (by simp [apply.withHeader])
+      isplitr
+      · -- (raft-entsize §3) the `MaxRequestBytes` check
+        ipureintro
+        unfold v3rpc.etcdMaxRequestBytesOk v3rpc.etcdMaxRecvMsgSize v3rpc.grpcOverheadBytes at Hmrbv
+        word
       iframe HlcP
       iunfold srvPropArg
       iframe Hpf Hau Hqi
@@ -288,7 +293,7 @@ local macro "piro_tail" : tactic => `(tactic| (
         iNamed Hcctx'
         wp_apply HDone as %chD %γD #HcD
         iunfold srvDoneChan at Hdonec
-        icases Hdonec with ⟨%γdn, #Hdn⟩
+        icases Hdonec with ⟨%γdn, %Qdn, #Hdn⟩
         (try wp_auto)
         ihave #Hho' := Hho
         iunfold isHandoff at Hho'
@@ -363,19 +368,23 @@ local macro "piro_tail" : tactic => `(tactic| (
             rotate_left
             · unfold pubAfterM; itrivial
             iunfold resultIsW at Hri
-            icases Hri with ⟨%Hnn, %y, %y', %out, %Hst, Hr1, Hr2, Hr3, Hr4, Hr5, Hr6⟩
+            icases Hri with ⟨%Hnn, %y, %y', %out, %Hst, Hr1, Hr2, Hr3, Hr4, Hr5, #Hr8, %Hr9, Hg, Hv⟩
             iunfold resPostM
             isplitr
             · ipureintro; exact Hnn
             iexists y, y', out
-            iframe Hr1 Hr2 Hr3 Hr4 Hr5 Hr6
+            iframe Hr1 Hr2 Hr3 Hr4 Hr5 Hr8 Hg Hv
             isplitr
             · ipureintro
               refine ⟨Hst.1, Hst.2.1, Hst.2.2.2, ?_⟩
               show kvModel ρ.kv _ = _
               rw [Hst.2.2.1]; exact hlbw
             simp only [adminTieM, authnArM]
-            isplit <;> itrivial
+            isplitr
+            · itrivial
+            isplitr
+            · itrivial
+            ipureintro; exact Hr9
           · -- the mode on: `resultΨOn`, the mode-`on` model and the auth layer's verdict
             rw [resultΨM_true]
             iunfold resultΨOn at Hres
@@ -425,12 +434,12 @@ local macro "piro_tail" : tactic => `(tactic| (
               · ipureintro; exact ⟨het, by rw [Hdd]; exact Hbsne (by simp [apply.withHeader]), hdecw⟩
               rw [htk]; iexact HpA
             iunfold resultIsWOn at Hri
-            icases Hri with ⟨%Hnn, %y, %y', %out, %Hst, Hr1, Hr2, Hr3, Hr4, Hr5, #Hr6, Hr7, Hr8⟩
+            icases Hri with ⟨%Hnn, %y, %y', %out, %Hst, Hr1, Hr2, Hr3, Hr4, Hr5, #Hr6, Hr7, #Hr8, %Hr9, Hg, Hv⟩
             iunfold resPostM
             isplitr
             · ipureintro; exact Hnn
             iexists y, y', out
-            iframe Hr1 Hr2 Hr3 Hr4 Hr5 Hr8
+            iframe Hr1 Hr2 Hr3 Hr4 Hr5 Hg Hv
             isplitr
             · ipureintro
               refine ⟨Hst.1, Hst.2.1, Hst.2.2.2.1, st, ?_, Hst.2.2.2.2⟩
@@ -440,7 +449,8 @@ local macro "piro_tail" : tactic => `(tactic| (
             · simp only [adminTieM, hlbw]
               iexact Hr6
             -- (C1's A3) an `Authenticate`'s response
-            iexact Hr7
+            iframe Hr7 Hr8
+            ipureintro; exact Hr9
         iapply BigAndL.bigAndL_cons.2
         isplit
         · -- the context done: give up
@@ -520,7 +530,7 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
   -- the proof is over the mode as a variable `on` (it cases on it at the handoff's receipt)
   have hPE := hPE s E ρ
   generalize E.authOn = on at hPE ⊢
-  wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hirr, Hok, ⟨%h0, Hhdr⟩, #HF⟩
+  wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hlib, #Hspc, #Hirr, Hok, ⟨%h0, Hhdr⟩, #HF⟩
   wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave ⟨⟨%v, #Hv⟩, #HsrvB⟩ := (isServerReqM_split _ _ _ _).1 $$ Hsrv
@@ -607,9 +617,10 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
         (try wp_auto)
         wp_if_destruct
         · wp_apply EtcdServer.AuthInfoFromCtx.wpM on hAuth s E v.auth v.cca ctx cd $$ [Hard]
-            as %au %aerr ⟨Hard, Hau, #HaE, #Hab⟩
+            as %au %aerr ⟨Hard, Hau, #HaE0, #Hab⟩
           · iframe Hard; iframe #
             iunfold mvcc.txnCtx; iright; iexact Hctx
+          ihave #HaE := authApplyErrIs_apply _ $$ HaE0
           (try wp_auto)
           cases aerr with
           | ok aei =>

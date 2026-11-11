@@ -57,6 +57,9 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 variable [cx_sem : github_com.mit_pdos.etcd_grove.examples.axiomcx.bboltnan.Assumptions]
+/- (2026-11-06, `notes/begin-tok-plan.md`) `bbolt.Open_kv`'s restated premise: fewer than `2 ^ 29`
+live threads. The counterexample does not depend on it (one thread, no read transaction). -/
+variable [ThreadBoundLe GF (2 ^ 29)]
 
 /-- `Run(path)` returns, from a new file at `path` (`fileHolds path ∅`). -/
 abbrev Run.spec : Prop :=
@@ -94,7 +97,7 @@ theorem Run.wp_proof
   · rcases err with ei | _
     · wp_auto
       iapply HΦ; itrivial
-    · exact absurd rfl Herr
+    · exact absurd rfl Herr.1
   subst Herr
   wp_auto
   -- `db.Begin(true)`

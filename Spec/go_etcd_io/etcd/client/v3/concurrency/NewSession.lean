@@ -34,7 +34,7 @@ abbrev NewSession.spec : Prop :=
     (pctx : GoInterfaceOk) (pcs : context.ContextDesc (IProp GF)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isEtcdSessionClient client cctx ∗ sessOptsAt sl gs ∗
       ⌜(sessOptsFold gs (SessionOpts.init cctx)).ctx = GoInterface.ok pctx⌝ ∗
-      context.isContext pctx pcs ∗ context.isCancelCtxCtx pctx pcs }}
+      context.isContext pctx pcs ∗ context.isCancelCtxCtx pctx pcs ∗ metadata.outgoingCtxOkC pctx }}
     (App (App (Val (@! go_etcd_io.etcd.client.v3.concurrency.NewSession)) (Val #client)) (Val #sl))
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
       ⌜s = null ∧ err ≠ GoInterface.nil⌝ ∨

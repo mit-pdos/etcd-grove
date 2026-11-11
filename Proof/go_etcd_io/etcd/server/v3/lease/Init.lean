@@ -28,6 +28,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.schema.Init
 public import Proof.go_uber_org.zap.Init
 public import Proof.errors.NewVarCell
 public import Perennial.Proof.context.NewErrorString
+public import Perennial.Proof.errors.NewVar
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -188,7 +189,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe #
   dsimp only
   iframe #
-  repeat (first | (isplitl []; · (ipureintro; exact EtcdGrove.errorString_leaf _)) | (ipureintro; exact EtcdGrove.errorString_leaf _))
+  repeat (first | (isplitl []; · (ipureintro; first | exact EtcdGrove.errorString_errLeaf _ | exact EtcdGrove.errorString_leaf _)) | (ipureintro; first | exact EtcdGrove.errorString_errLeaf _ | exact EtcdGrove.errorString_leaf _))
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

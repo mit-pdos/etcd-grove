@@ -39,6 +39,7 @@ theorem watchRequest.toPB.wp_proof : watchRequest.toPB.spec (GF := GF) (hG := hG
   irename : (ow ↦ (_ : etcdserverpb.WatchRequest_CreateRequest) : IProp GF) => How
   irename : (cr ↦ (_ : etcdserverpb.WatchCreateRequest) : IProp GF) => Hcr
   ihave %Hcrn := typedPointsto_not_null _ _ _ $$ Hcr
+  ihave %Hpn := typedPointsto_not_null _ _ _ $$ Hp
   iStructNamed Hp
   iStructNamed How
   iStructNamed Hcr
@@ -50,6 +51,8 @@ theorem watchRequest.toPB.wp_proof : watchRequest.toPB.spec (GF := GF) (hG := hG
   iapply HΦ
   iframe
   unfold v3rpc.watchReqSend v3rpc.oneofCreate v3rpc.createReqSend
+  isplitl []
+  · ipureintro; exact Hpn
   iexists _
   iframe #
   iexists cr

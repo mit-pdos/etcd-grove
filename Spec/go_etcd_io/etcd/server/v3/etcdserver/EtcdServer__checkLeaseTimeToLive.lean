@@ -5,6 +5,7 @@ Part B (2026-10-31), vocabulary `LeaseCheck.lean`.
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseCheck
+public import Proof.context.LibKeys
 
 @[expose] public section
 
@@ -36,19 +37,21 @@ live threads): on `nil`, auth disabled at a state no older than `n`, or the
 request's principal an admin at one or allowed to read (`IsRangePermitted(k, [])`) every key of the
 lease `id` at a lessor index no older than `m` (`leaseKeysVerdictFrom`; none if `id` was not live
 there), and the returned revision the auth store's at a state no older than `n` (what
-`LeaseTimeToLive`'s re-check compares); on an error, an error the gRPC layer can take. The keys are the local lessor's: what `LeaseTimeToLive` then
+`LeaseTimeToLive`'s re-check compares); on an error, an error the gRPC layer can take, one of the
+auth package's error variables (`authApplyErrIs`; the lease-expiry plan's E3, 2026-11-05: what
+tells it apart from `lease.ErrLeaseNotFound`). The keys are the local lessor's: what `LeaseTimeToLive` then
 returns comes from another lookup, possibly on the leader (`issues/etcd-lease-timetolive-keys-toctou.md`). -/
 abbrev EtcdServer.checkLeaseTimeToLive.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (γl : GName) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (id : w64) (n m : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvAuthAt s E ∗ srvAuthLeaseLb s E ∗ srvLessorRd s γl ∗ auth.authPubLbM E.authMode n ∗
-      lease.lessorLb γl m ∗ mvcc.txnCtx ctx cd ∗ E.RD ∗ lease.lessorRdPool γl ∗ threadTok ∗
+      lease.lessorLb γl m ∗ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗ E.RD ∗ lease.lessorRdPool γl ∗ threadTok ∗
       ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"checkLeaseTimeToLive"))
       (Val #(GoInterface.ok ctx))) (Val #id))
   {{ (rev : w64) (err : GoInterface), RET (PairV #rev #err); E.RD ∗ threadTok ∗
-      applyErrIs err ∗
+      authApplyErrIs err ∗
       (∀ _ : err = GoInterface.nil, auth.revisionVerdictFrom E.authMode n rev ∗
         leaseCheckFrom s E (GoInterface.ok ctx) n
           (fun info => leaseKeysVerdictFrom E.authMode n info γl m id .read)) }}

@@ -67,8 +67,57 @@ variables' cells could make it), so as an axiom the entailment could be used to 
 (`v3rpc`'s `context.Canceled` fact, until then the premise `ContextCanceledPtr`, follows.) -/
 class EtcdGrove.ContextReadErrs : Prop where
   errs : isPkgInit (PROP := IProp GF) pkg_id.context ⊢
-    EtcdGrove.errVarLeaf _root_.Perennial.context.Canceled ∗
-      go_etcd_io.etcd.server.v3.etcdserver.read.ctxDeadlineLeaf
+    EtcdGrove.errVarLeafW _root_.Perennial.context.Canceled ∗
+      go_etcd_io.etcd.server.v3.etcdserver.read.ctxDeadlineLeafW
+  /-- The two errors' gRPC descriptions (k8s etcd3 7c-2 part 2, S1, HS-2): neither is a status
+  error, so `errDesc` is its `Error()`, `"context canceled"` and `"context deadline exceeded"`
+  (`context.go`). How to read it (premise-fixes-4, the round-2 premise attack's H1): as a hypothesis
+  for every `hG`, at the unit resource, the entailment is of every resource satisfying `isPkgInit
+  context`, and `isPkgInit` is persistent fragments only, valid at any location; so it holds only if
+  `errDesc` of `*errorString` at every location whose `s` is `"context canceled"` is that string
+  (and likewise of `deadlineExceededError`), not only at the location this run's initializer
+  allocates. That is the per-execution claim Go makes of the values themselves (`errDesc` is opaque:
+  `status.FromError` of a non-status error is its `Error()`); this repository neither proves nor
+  refutes it (`notes/STATUS.md`, the unproved bag items). -/
+  descs : isPkgInit (PROP := IProp GF) pkg_id.context ⊢
+    (∃ e : GoInterface, globalAddr _root_.Perennial.context.Canceled ↦□ e ∗
+        ⌜go_etcd_io.etcd.cache.v3.errDesc e = go!"context canceled"⌝) ∗
+      (∃ d : GoInterface, globalAddr _root_.Perennial.context.DeadlineExceeded ↦□ d ∗
+        ⌜go_etcd_io.etcd.cache.v3.errDesc d = go!"context deadline exceeded"⌝)
+
+/-- `ContextReadErrs.errs` with the two errors' `Format` facts (premise-fixes-4: `errVarLeaf`,
+`ctxDeadlineLeaf`): neither has a `Format` method, from Perennial's `context.isInit` (`Canceled`'s
+value is a `*errors.errorString`, `EtcdGrove.ErrorStringLeaf`; `DeadlineExceeded`'s a
+`deadlineExceededError`, whose method set goose emits). -/
+theorem EtcdGrove.ContextReadErrs.errs_strong [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
+    [_root_.Perennial.context.Assumptions] [_root_.Perennial.errors.Assumptions] :
+    isPkgInit (PROP := IProp GF) pkg_id.context ⊢
+      EtcdGrove.errVarLeaf _root_.Perennial.context.Canceled ∗
+        go_etcd_io.etcd.server.v3.etcdserver.read.ctxDeadlineLeaf := by
+  iintro #Hp
+  ihave ⟨#HC, #HD⟩ := EtcdGrove.ContextReadErrs.errs $$ Hp
+  ihave Hci : (_root_.Perennial.context.isInit : IProp GF) $$ []
+  · iapply _root_.Perennial.context.isInit_access $$ Hp
+  iNamed Hci
+  icases HCanceledCell with ⟨%x, #Hx, -⟩
+  iunfold EtcdGrove.errVarLeafW at HC
+  icases HC with ⟨%e, #He, %Hl, #Hm⟩
+  icombine He Hx gives %Heq
+  icases HD with ⟨%d, #Hd, %Hdl, #Hdm⟩
+  icombine Hd HDeadlineExceededTy gives %Heq2
+  have hF : methodSet e.ty !! go!"Format" = none := by
+    cases Heq; exact EtcdGrove.ErrorStringLeaf.noFormat
+  have hF2 : methodSet d.ty !! go!"Format" = none := by
+    cases Heq2
+    have h := go.method_set_is (t := _root_.Perennial.context.deadlineExceededError.ty) go!"Format"
+    simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at h
+    exact h
+  isplitl
+  · iunfold EtcdGrove.errVarLeaf
+    iexists e; iframe He Hm
+    ipureintro; exact ⟨Hl.1, Hl.2.1, Hl.2.2.1, Hl.2.2.2, hF⟩
+  · iexists d; iframe Hd Hdm
+    ipureintro; exact ⟨Hdl.1, Hdl.2.1, Hdl.2.2.1, Hdl.2.2.2.1, Hdl.2.2.2.2, hF2⟩
 
 end ctxFacts
 
@@ -170,7 +219,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   icases Hri with ⟨%_, %_, %_, %_, %_, %_, %_, %_, %_, %_, Hrr⟩
   iNamed Hrr
   ihave #LRS := EtcdGrove.errVarLeaf_of_newVar _ _ $$ ErrStoppedNew
-  ihave ⟨#LCC, #LDL⟩ := EtcdGrove.ContextReadErrs.errs $$ Hd2
+  ihave ⟨#LCC, #LDL⟩ := EtcdGrove.ContextReadErrs.errs_strong $$ Hd2
   iframe Hown
   imodintro
   isplitr

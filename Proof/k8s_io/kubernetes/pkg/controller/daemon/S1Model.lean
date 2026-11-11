@@ -109,7 +109,7 @@ theorem dsPodOn_dsPod {K Op u n : GoString} {o : Obj} (h : dsPodOn K Op u n o) :
 /-! ## The accounting invariant -/
 
 /-- The version of the latest `ADDED` change at key `k` (the current incarnation's creation). -/
-def addedRv (l : List Change) (k : Key) : Option Nat :=
+def addedRv (l : List Change) (k : apimodel.Key) : Option Nat :=
   (l.filter (fun c => decide (c.typ = .added ∧ c.obj.key = k))).getLast?.map (fun c => c.rv.toNat)
 
 /-- The pods' group resource. -/
@@ -123,7 +123,7 @@ def recCovers (rc : Option consistency.Rec) (c : Nat) : Prop :=
 /-- **The accounting invariant** of the DaemonSet `u` (see the file header): each of its stored
 pods was added at a version seen by the informer for good (`≤ L`), or covered by the owner's
 record, or is pending. -/
-def acct (σ : St) (u : GoString) (L : Nat) (rc : Option consistency.Rec) (P : Key → Nat → Prop) : Prop :=
+def acct (σ : St) (u : GoString) (L : Nat) (rc : Option consistency.Rec) (P : apimodel.Key → Nat → Prop) : Prop :=
   ∀ k o, σ.pods.objs !! k = some o → dsPod u o →
     ∃ c, addedRv σ.pods.log k = some c ∧ (c ≤ L ∨ recCovers rc c ∨ P k c)
 
@@ -136,7 +136,7 @@ def readyPods (rc : Option consistency.Rec) (L' : Nat) : Prop :=
 /-- **`EnsureReady` succeeding**: the record goes, and every pod it covered is now at most the
 store's version `L'` (`L ≤ L'`: the bound only grows). -/
 theorem acct_ensureReady (σ : St) (u : GoString) (L L' : Nat) (rc : Option consistency.Rec)
-    (P : Key → Nat → Prop)
+    (P : apimodel.Key → Nat → Prop)
     (h : acct σ u L rc P) (hL : L ≤ L') (hr : readyPods rc L') : acct σ u L' none P := by
   intro k o hk hu
   obtain ⟨c, hc, hcase⟩ := h k o hk hu
@@ -331,7 +331,7 @@ theorem ambiguous_create_breaks_S1 (K Op u n ns : GoString) (d : kd.core.Pod) (f
     · simp [σ0, St.empty] at h1
     · cases hr
     · exact h3.elim
-  · show (∅ : GMap Key Obj) = tableAt σ1.pods.log σ0.rev.toNat
+  · show (∅ : GMap apimodel.Key Obj) = tableAt σ1.pods.log σ0.rev.toNat
     rw [hlog1]
     simp [tableAt, replay, σ0, St.empty]
   · refine Or.inr (Or.inr ⟨?_, ⟨t2, rfl, rfl⟩⟩)

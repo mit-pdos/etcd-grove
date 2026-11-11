@@ -31,7 +31,7 @@ theorem Client.GetLogger.wp_proof : Client.GetLogger.spec (GF := GF) (hG := hG) 
     (clientLgAddr cl) (DFrac.own 1))
   · iPkgInit
   unfold isClientLogger
-  iinv Hlg with ⟨%lg, >Hp, >%Hnn⟩ Hclose
+  iinv Hlg with ⟨%lg, >Hp, #Hok⟩ Hclose
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
   inext
@@ -40,11 +40,11 @@ theorem Client.GetLogger.wp_proof : Client.GetLogger.spec (GF := GF) (hG := hG) 
   iintro Hp
   imod Hmask with -
   imod Hclose $$ [Hp] with -
-  · inext; iexists lg; iframe; ipureintro; exact Hnn
+  · inext; iexists lg; iframe Hp; iexact Hok
   imodintro
   wp_auto
   iapply HΦ
-  ipureintro; exact Hnn
+  iexact Hok
 
 
 end proof

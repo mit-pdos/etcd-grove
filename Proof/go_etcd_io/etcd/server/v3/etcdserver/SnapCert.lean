@@ -93,13 +93,15 @@ theorem srv_snap_cert (γr : ReadNames) (A : List EntryModel) (ai at' : w64) (c 
   -- registered in the cluster's registry
   iinv Hreg with >Hb Hclose
   all_goals first | exact (fun _ _ => CoPset.mem_full) | skip
-  icases Hb with ⟨%S, Hown⟩
+  ihave Hb := srvSnapsReg_elim _ $$ Hb
+  icases Hb with ⟨%S, Hown, %HSd⟩
   imod snapshotCert_make γr.raft.raft.cl srvClusterN (⊤ \ ↑srvSnapsN) (srvLE γr.raft A) ai at' []
       (Membership.simple γr.raft.raft.cfg) c S srvClusterN_snapsN hl hlt Hok hcs
     $$ Hc Hl Ha Hown with ⟨Hown, #Hcert⟩
   imod Hclose $$ [Hown] with -
   · inext
-    iexists S ++ [⟨(srvLE γr.raft A).length, Membership.simple γr.raft.raft.cfg, []⟩]
+    iapply srvSnapsReg_insert _ S ⟨(srvLE γr.raft A).length, Membership.simple γr.raft.raft.cfg, []⟩
+      HSd rfl
     iexact Hown
   imodintro
   iframe Hl
@@ -174,7 +176,9 @@ theorem wp_srv_createSnapshot
     {{ (snap : Loc) (err : GoInterface), RET (PairV #snap #err); memSnapLb γs (uint.nat ai) ∗
         ((⌜err = interface.nil⌝ ∗ ∃ c : ConfStateM,
             ⌜confStateIs c (Membership.simple γr.raft.raft.cfg)⌝ ∗
-            ownSnapV snap (DFrac.own 1) (memSnapMade ai at' c [])) ∨
+            ownSnapV snap (DFrac.own 1) (memSnapMade ai at' c []) ∗
+            -- (R2d, Q14 (a)) its certificate, for the WAL record's (`rnDur_ownSnap_au`)
+            snapshotValid γr.raft.raft.cl (memSnapMade ai at' c [])) ∨
          ⌜snap = null ∧ err = eood⌝) }} := by
   iintro %Φ ⟨#Hpkg, Hstor, #Hecs, #Hft, #Hlb0, #Heood⟩ HΦ
   iunfold srvSnapStor at Hstor
@@ -212,7 +216,7 @@ theorem wp_srv_createSnapshot
     isplitr
     · ipureintro; exact Herr
     iexists c
-    iframe Hsn
+    iframe Hsn HSV
     ipureintro; exact Hcs
   · iright
     ipureintro; exact Herr

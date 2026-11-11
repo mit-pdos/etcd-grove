@@ -85,13 +85,6 @@ instance k8s_io_apimachinery_pkg_util_naming_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.naming :=
   build_get_is_pkg_init_wf
 
-instance k8s_io_apimachinery_pkg_util_version_is_pkg_init_inst :
-    IsPkgInit (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.version :=
-  define_is_pkg_init iprop(True)
-instance k8s_io_apimachinery_pkg_util_version_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.version :=
-  build_get_is_pkg_init_wf
-
 instance k8s_io_client_go_features_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.k8s_io.client_go.features :=
   define_is_pkg_init iprop(True)

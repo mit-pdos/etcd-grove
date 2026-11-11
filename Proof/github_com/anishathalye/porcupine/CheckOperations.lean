@@ -31,7 +31,7 @@ theorem CheckOperations.wp_proof
   intro σ S m sl ops dq
   wp_start as ⟨#Hcci, #Hm, Hsl, #Hio, %Hops⟩
   wp_auto
-  wp_apply wp_checkOperations σ S m sl ops dq false (W64 0) $$ [$Hsl] as %r %info %Hr
+  wp_apply wp_checkOperations σ S m sl ops dq false (W64 0) $$ [$Hsl] as %r %info ⟨%Hr, -⟩
   · iframe #; ipureintro; exact Hops
   iapply HΦ
   ipureintro

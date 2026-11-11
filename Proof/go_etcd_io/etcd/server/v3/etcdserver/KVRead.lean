@@ -55,14 +55,15 @@ theorem readWitAt_mono (γr : ReadNames) (Q : List EntryModel → IProp GF) (g :
 
 variable [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- **A served read's lower bound** (as `readIndexOk_logR`, at the round's read index): a certified
-log `logR` extending the reader's `log₀`, read after the read index (`readLogOk γr c logR`), and
+/-- **A served read's lower bound** (as `readIndexOk_logR`, at the round's read index): a log
+`logR` of the store's committed history (`kvLogLb`; strict M1: mvcc's `idxCert` until 2026-11-06)
+extending the reader's `log₀`, read after the read index (`readLogOk γr c logR`), and
 what the read will know of it (`readWitAt`). -/
 theorem readServed_logR (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (g : GName)
     (Q : List EntryModel → IProp GF) (log₀ : mvcc.Log) :
     ⊢ srvAppliedInv s E γr -∗ readServed γr c g -∗ savedPredOwn g DFrac.discard Q -∗
-      mvcc.idxCert E.γ.idx log₀ ={⊤}=∗
-      ∃ logR : mvcc.Log, mvcc.idxCert E.γ.idx logR ∗ ⌜log₀ <+: logR⌝ ∗ readLogOk γr c logR ∗
+      srvApi.kvLogLb E.γs log₀ ={⊤}=∗
+      ∃ logR : mvcc.Log, srvApi.kvLogLb E.γs logR ∗ ⌜log₀ <+: logR⌝ ∗ readLogOk γr c logR ∗
         readWitAt γr Q g logR := by
   iintro #Hinv #Hsv #HQ #Hc0
   iunfold readServed at Hsv
@@ -101,22 +102,26 @@ theorem lc_join6 : ⊢ £ 1 -∗ £ 1 -∗ £ 1 -∗ £ 1 -∗ £ 1 -∗ £ 1 -�
   iapply (lc_split (n := 2) (m := 1)).2; iframe H3
   iapply (lc_split (n := 1) (m := 1)).2; iframe H1 H2
 
-/-- **A served read's result at the log it read** (`l`, certified, extending the lower bound):
-`l` is the KV model of a committed raft log `L` through an index at least the round's read
-index, and raft's witness gives the client's `□ Q L` (three credits: two for raft's witness,
-one for the saved predicate's agreement; 2026-10-27: six, `srvReadWit`'s five). -/
+/-- **A served read's result at the log it read** (`l`, with the store's witness `E.Nx l`,
+extending the lower bound): `l` is the KV model of a committed raft log `L` through an index at
+least the round's read index, and raft's witness gives the client's `□ Q L` (three credits: two for
+raft's witness, one for the saved predicate's agreement; 2026-10-27: six, `srvReadWit`'s five).
+(Strict M1, 2026-11-06: the witness `E.Nx l`, which `srvKVInvs` ties to `kvNxOff`, in place of
+mvcc's `certOk`.) -/
 theorem readWit_fire (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (Q : List EntryModel → IProp GF)
     (g : GName) (l : mvcc.Log) :
-    ⊢ srvAppliedInv s E γr -∗ srvKVInvs E γr -∗ readWitAt γr Q g l -∗ mvcc.certOk E.γ l -∗ £ 6
+    ⊢ srvAppliedInv s E γr -∗ srvKVInvs E γr -∗ readWitAt γr Q g l -∗ E.Nx l -∗ £ 6
       ={⊤}=∗ ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModel γr.kv L = l⌝ ∗ □ Q L := by
-  iintro #Hainv #Hkvi #Hw #Hc Hlc
+  iintro #Hainv #Hkvi Hw Hc Hlc
   iunfold srvKVInvs at Hkvi
-  icases Hkvi with ⟨-, #HcI, -, %Hcok, -⟩
+  icases Hkvi with ⟨-, -, -, -, -, %HNx, -⟩
+  rw [HNx]
+  ihave #Hc := Hc
+  ihave #Hw := Hw
   iunfold readWitAt at Hw
   icases Hw with ⟨%ci, %ci₀, %L₀, %gs, %k, %Hp, #HL, #HW, #HQ⟩
   imod appliedLogAt_kvLogAt s E γr ci₀ L₀ $$ Hainv HL with #HkL
-  imod kv_read_log γr E.γ Hcok ⊤ (fun _ _ => CoPset.mem_full) ci₀ L₀ l Hp.2.2 $$ HcI HkL Hc
-    with ⟨%A, #HA, %HAp⟩
+  imod kv_read_log γr ⊤ ci₀ L₀ l Hp.2.2 $$ HkL Hc with ⟨%A, #HA, %HAp⟩
   iunfold srvReadWit at HW
   icases (lc_split (n := 5) (m := 1)).1 $$ Hlc with ⟨Hlc2, Hlc1⟩
   imod HW $$ %A HA %(by omega) Hlc2 with #HQs

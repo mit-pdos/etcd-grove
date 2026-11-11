@@ -20,11 +20,12 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
 theorem versioner.PrepareObjectForStorage.wp_proof  :
     versioner.PrepareObjectForStorage.spec (GF := GF) (hG := hG) := by
-  intro p name val rv
+  intro p v
   wp_start as Hp
   (try wp_auto)
   iapply HΦ

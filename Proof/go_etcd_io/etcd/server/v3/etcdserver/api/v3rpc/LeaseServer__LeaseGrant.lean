@@ -6,6 +6,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer__LeaseGrant
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.togRPCError
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.TogRPCErrorPlain
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.header__fill
 
 @[expose] public section
@@ -33,15 +34,15 @@ theorem v3rpc.LeaseServer.LeaseGrant.wp_proof
     (hTog : v3rpc.togRPCError.spec (GF := GF) (hG := hG))
     (hFill : v3rpc.header.fill.spec (GF := GF) (hG := hG)) :
     v3rpc.LeaseServer.LeaseGrant.spec (GF := GF) (hG := hG) := by
-  intro p s A cid mid E S G ci cd r m
-  wp_start as ⟨#Hls, #HL, HS, #Hctx, #Hrc, #Hr, Hid⟩
+  intro p s A cid mid E S G R ci cd r m
+  wp_start as ⟨#Hls, #HL, HS, #Hctx, #Hrc, #Hr, Hid, %HR⟩
   ihave #Hls' := Hls
   iunfold v3rpc.leaseServerAt at Hls'
   icases Hls' with ⟨%Hpn, #Hhdr, #Hle, -⟩
   iunfold v3rpc.lessorGrantOkG at HL
   wp_auto
   wp_apply HL $$ [HS Hid] as %resp %err ⟨HS, Hans, Hg⟩
-  · iframe; iframe #
+  · iframe; iframe #; try (ipureintro; exact HR)
   iunfold v3rpc.leaseGrantAns at Hans
   icases Hans with (⟨%Hok, Hh, #Hf⟩ | #Hse)
   · obtain ⟨He, Hrn⟩ := Hok
@@ -57,7 +58,9 @@ theorem v3rpc.LeaseServer.LeaseGrant.wp_proof
     wp_apply hFill $$ [Hw Hin] as ⟨Hfd, %rv', -⟩
     · iframe; iframe #
     wp_auto
+    ihave #HSn := go_etcd_io.etcd.cache.v3.srvErrOk_nil (GF := GF)
     iapply HΦ
+    iframe HSn
     iframe HS Hg
     iunfold v3rpc.leaseGrantOut
     ileft
@@ -77,9 +80,10 @@ theorem v3rpc.LeaseServer.LeaseGrant.wp_proof
     | nil => exact absurd rfl Hen
     | ok ei =>
       wp_auto
-      wp_apply hTog $$ [] as %e %He
+      wp_apply (v3rpc.togRPCError_plain hTog) $$ [] as %e ⟨%He, #HSn⟩
       · iframe #
       iapply HΦ
+      iframe HSn
       iframe HS
       isplitl []
       · iunfold v3rpc.leaseGrantOut

@@ -31,7 +31,7 @@ theorem txn.WarnOfExpensiveReadOnlyRangeRequest.wp_proof
     (hGen : txn.warnOfExpensiveGenericRequest.spec (GF := GF) (hG := hG)) :
     txn.WarnOfExpensiveReadOnlyRangeRequest.spec (GF := GF) (hG := hG) := by
   intro lg d now req resp err P
-  wp_start as ⟨%Hlg, #Hs, HP, Hresp⟩
+  wp_start as ⟨#Hlg, #Hs, HP, Hresp⟩
   ihave #Hpp : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
   · iPkgInit
   ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
@@ -66,7 +66,7 @@ theorem txn.WarnOfExpensiveReadOnlyRangeRequest.wp_proof
     iexists _; iframe resp rangeResponse HP
   (try wp_auto)
   wp_apply hGen
-  · iframe Hs; ipureintro; exact Hlg
+  · iframe Hs; iexact Hlg
   iapply HΦ
   iexact HP
 

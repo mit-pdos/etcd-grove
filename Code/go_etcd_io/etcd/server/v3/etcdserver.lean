@@ -269,15 +269,14 @@ axiom HealthInterval [GooseExts] [GoGlobalContext] : val
 
 axiom purgeFileInterval [GooseExts] [GoGlobalContext] : val
 
-axiom maxSnapDBFiles [GooseExts] [GoGlobalContext] : val
-
 @[reducible] noncomputable def maxInFlightMsgSnap [GooseExts] [GoGlobalContext] : val :=
   #(16 : Int)
 
 @[reducible] noncomputable def releaseDelayAfterSnapshot [GooseExts] [GoGlobalContext] : val :=
   #(W64 30000000000)
 
-axiom maxPendingRevokes [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def maxPendingRevokes [GooseExts] [GoGlobalContext] : val :=
+  #(16 : Int)
 
 axiom recommendedMaxRequestBytes [GooseExts] [GoGlobalContext] : val
 
@@ -366,8 +365,6 @@ axiom requestDurationSec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def leaseExpired [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.leaseExpired"
-
-axiom leaseExpired.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def currentVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.currentVersion"
@@ -706,6 +703,48 @@ noncomputable def bootstrappedRaft.newRaftNode.impl [GooseExts] [GoGlobalContext
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (Pair (Var "n") (Var "$r0")))))))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftNode.ty)))) (Var "$res0"))))))))
+
+/-- go: bootstrap.go:741:29 -/
+noncomputable def bootstrappedWAL.MemoryStorage.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "wal"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "wal" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType bootstrappedWAL.ty)))) (Var "wal"))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.raft.v3.NewMemoryStorage []))) (Val #())) (Val #()))
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty)))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (App (Val (GoInstruction (StructFieldRef bootstrappedWAL.ty go!"ents"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedWAL.ty)))) (Var "wal"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))]))) (Val #())) (Var "$a0"))) (Val #(W64 0))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (App (Val (GoInstruction (StructFieldRef bootstrappedWAL.ty go!"ents"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedWAL.ty)))) (Var "wal"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty) go!"Append"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty)))) (Var "s"))) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (App (Val (GoInstruction (StructFieldRef bootstrappedWAL.ty go!"st"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedWAL.ty)))) (Var "wal")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Val UntypedNil))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (App (Val (GoInstruction (StructFieldRef bootstrappedWAL.ty go!"st"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedWAL.ty)))) (Var "wal"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty) go!"SetHardState"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty)))) (Var "s"))) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (App (Val (GoInstruction (StructFieldRef bootstrappedWAL.ty go!"snapshot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedWAL.ty)))) (Var "wal")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (Val UntypedNil))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (App (Val (GoInstruction (StructFieldRef bootstrappedWAL.ty go!"snapshot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedWAL.ty)))) (Var "wal"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty) go!"ApplySnapshot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty)))) (Var "s"))) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty)))) (Pair (Var "s") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty)))) (Var "$res0"))))))
 
 /-- go: interface.go:22:22 -/
 noncomputable def EtcdServer.ApplyWait.impl [GooseExts] [GoGlobalContext] : val :=
@@ -1553,7 +1592,7 @@ noncomputable def raftNode.ReadState.impl [GooseExts] [GoGlobalContext] : val :=
 /-- NewServer creates a new EtcdServer from the supplied configuration. The
     configuration is considered static for the lifetime of the EtcdServer.
 
-    go: server.go:299:6 -/
+    go: server.go:295:6 -/
 noncomputable def NewServer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Let "srv" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType EtcdServer.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType EtcdServer.ty)))) (Val #())))
@@ -2005,7 +2044,7 @@ noncomputable def NewServer.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType bootstrappedServer.ty)))) (Pair (Var "b") (Var "$r0"))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
-/-- go: server.go:448:22 -/
+/-- go: server.go:444:22 -/
 noncomputable def EtcdServer.Logger.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -2033,7 +2072,7 @@ noncomputable def EtcdServer.Logger.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- FeatureEnabled returns true if the feature is enabled by the etcd server, false otherwise.
 
-    go: server.go:460:22 -/
+    go: server.go:456:22 -/
 noncomputable def EtcdServer.FeatureEnabled.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "f"
@@ -2055,7 +2094,7 @@ noncomputable def EtcdServer.FeatureEnabled.impl [GooseExts] [GoGlobalContext] :
     Start must be non-blocking; any long-running server functionality
     should be implemented in goroutines.
 
-    go: server.go:534:22 -/
+    go: server.go:530:22 -/
 noncomputable def EtcdServer.Start.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -2124,7 +2163,7 @@ noncomputable def EtcdServer.Start.impl [GooseExts] [GoGlobalContext] : val :=
     modify a server's fields after it has been sent to Start.
     This function is just used for testing.
 
-    go: server.go:551:22 -/
+    go: server.go:547:22 -/
 noncomputable def EtcdServer.start.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -2267,7 +2306,7 @@ noncomputable def EtcdServer.start.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (Var "lg") (Var "$r0")))))))))
   (Val #()))))
 
-/-- go: server.go:632:22 -/
+/-- go: server.go:627:22 -/
 noncomputable def EtcdServer.Cluster.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -2282,7 +2321,7 @@ noncomputable def EtcdServer.Cluster.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.Cluster.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.Cluster.ty))) (Var "$res0"))))))
 
-/-- go: server.go:651:22 -/
+/-- go: server.go:646:22 -/
 noncomputable def EtcdServer.RaftHandler.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -2300,7 +2339,7 @@ noncomputable def EtcdServer.RaftHandler.impl [GooseExts] [GoGlobalContext] : va
 /-- Process takes a raft message and applies it to the server's raft state
     machine, respecting any timeout of the given context.
 
-    go: server.go:705:22 -/
+    go: server.go:700:22 -/
 noncomputable def EtcdServer.Process.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -2381,7 +2420,7 @@ noncomputable def EtcdServer.Process.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (Var "lg") (Var "$r0")))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
 
-/-- go: server.go:729:22 -/
+/-- go: server.go:724:22 -/
 noncomputable def EtcdServer.IsIDRemoved.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "id"
@@ -2398,7 +2437,7 @@ noncomputable def EtcdServer.IsIDRemoved.impl [GooseExts] [GoGlobalContext] : va
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
-/-- go: server.go:731:22 -/
+/-- go: server.go:726:22 -/
 noncomputable def EtcdServer.ReportUnreachable.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "id"
@@ -2413,7 +2452,7 @@ noncomputable def EtcdServer.ReportUnreachable.impl [GooseExts] [GoGlobalContext
 /-- ReportSnapshot reports snapshot sent status to the raft state machine,
     and clears the used snapshot from the snapshot store.
 
-    go: server.go:735:22 -/
+    go: server.go:730:22 -/
 noncomputable def EtcdServer.ReportSnapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "id"
@@ -2428,7 +2467,7 @@ noncomputable def EtcdServer.ReportSnapshot.impl [GooseExts] [GoGlobalContext] :
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftNode.ty) go!"ReportSnapshot"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"r"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))) (Var "$a0")) (Var "$a1")))))))))
   (Val #())))))
 
-/-- go: server.go:757:22 -/
+/-- go: server.go:752:22 -/
 noncomputable def EtcdServer.run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -2688,10 +2727,123 @@ noncomputable def EtcdServer.run.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (Var "lg") (Var "$r0"))))))))))
   (Val #()))))
 
+/-- go: server.go:855:22 -/
+noncomputable def EtcdServer.revokeExpiredLeases.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam "leases"
+  (Seq (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))
+  (Let "leases" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lease.ty))))) (Var "leases"))
+  (App (Val doExecute)
+  (Let "$a0" (Lam BAnon
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"Logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #()))
+  (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val maxPendingRevokes)))
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lease.ty))))) (Var "leases"))
+  (Let "curLease" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lease.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lease.ty)))) (Val #())))
+  (App (App (Val (slice.forRange (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lease.ty))) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Lam "lid"
+  (Seq (App (Val exceptionDo)
+  (Let "lid" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "lid"))
+  (App (Val doExecute)
+  (Let "$a0" (Lam BAnon
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"ctx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthStore.ty go!"WithRoot"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthStore.ty))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"authStore"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))) (Var "$a0")))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.Context.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.int64))) (Var "lid"))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"ID")) (ElementExpression go.int64 (Var "$v0")))]))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"LeaseRevoke"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "lerr" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Fst (App (Val (chan.receive (go.GoType.StructType []))) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Var "c")))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "lerr")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty go!"Inc"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty))) (App (Val (GoInstruction (GlobalVarAddr leaseExpired))) (Val #())))) (Val #())))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"failed to revoke lease"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"lease-id"))
+  (Let "$a1" (Let "$a0" (Val #(go!"%016x"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.int64 go.any))) (App (Val (GoInstruction (GoLoad go.int64))) (Var "lid")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.String []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl1" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "lerr"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Error []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Warn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))) (Var "$a0")) (Var "$a1")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "lerr") (Var "$r1")))))))
+  (App (Val doExecute)
+  (Var "$r0")))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))
+  (Val #())))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"GoAttach"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Var "$a0"))))))
+  (Val #())))
+  (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [go.int64] false []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.FunctionType (go.signature.Signature [go.int64] false []))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lease.ty go!"ID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lease.ty)))) (Var "curLease"))))
+  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [go.int64] false []))))) (Var "f")) (Var "$a0"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [go.int64] false []))))) (Pair (Var "f") (Var "$r0")))))))))
+  (Let "$ch0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Var "c"))
+  (Let "$v0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.StructType [])))) (LiteralValue []))
+  (Let "$ch1" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"stopping"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none [(CommClause (SendCase (go.GoType.StructType []) (Var "$ch0") (Var "$v0")) (App (Val doExecute)
+  (Val #()))),
+  (CommClause (RecvCase (go.GoType.StructType []) (Var "$ch1")) (Lam "$recvVal"
+  (App (Val doReturn)
+  (Val #()))))]))))))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lease.ty)))) (Pair (Var "curLease") (Var "$value"))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Pair (Var "c") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"ensureLeadership"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"Ignore the lease revoking request because current member isn't a leader"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"local-member-id"))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"MemberID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #()))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Uint64 []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Warn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))) (Var "$a0")) (Var "$a1"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (Var "lg") (Var "$r0"))))))))
+  (Val #())))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"GoAttach"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Var "$a0")))))))
+  (Val #()))))
+
 /-- Cleanup removes allocated objects by EtcdServer.NewServer in
     situation that EtcdServer::Start was not called (that takes care of cleanup).
 
-    go: server.go:948:22 -/
+    go: server.go:943:22 -/
 noncomputable def EtcdServer.Cleanup.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -2734,7 +2886,7 @@ noncomputable def EtcdServer.Cleanup.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
   (Val #()))))
 
-/-- go: server.go:984:22 -/
+/-- go: server.go:979:22 -/
 noncomputable def EtcdServer.applyAll.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ep"
@@ -2809,7 +2961,7 @@ noncomputable def EtcdServer.applyAll.impl [GooseExts] [GoGlobalContext] : val :
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"applySnapshot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Var "$a0")) (Var "$a1"))))))))))
   (Val #())))))
 
-/-- go: server.go:1026:22 -/
+/-- go: server.go:1021:22 -/
 noncomputable def EtcdServer.applySnapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ep"
@@ -3229,7 +3381,7 @@ noncomputable def EtcdServer.applySnapshot.impl [GooseExts] [GoGlobalContext] : 
   (Val #())))))))))
   (Val #())))))
 
-/-- go: server.go:1186:22 -/
+/-- go: server.go:1181:22 -/
 noncomputable def EtcdServer.NewUberApplier.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -3264,7 +3416,7 @@ noncomputable def EtcdServer.NewUberApplier.impl [GooseExts] [GoGlobalContext] :
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions.ty))) (Pair (Var "opts") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.UberApplier.ty))) (Var "$res0"))))))
 
-/-- go: server.go:1205:6 -/
+/-- go: server.go:1200:6 -/
 noncomputable def verifyConsistentIndexIsLatest.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "snapshot"
   (Lam "cindex"
@@ -3295,7 +3447,7 @@ noncomputable def verifyConsistentIndexIsLatest.impl [GooseExts] [GoGlobalContex
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.verify.Verify []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
   (Val #()))))
 
-/-- go: server.go:1215:22 -/
+/-- go: server.go:1210:22 -/
 noncomputable def EtcdServer.applyEntries.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ep"
@@ -3387,7 +3539,7 @@ noncomputable def EtcdServer.applyEntries.impl [GooseExts] [GoGlobalContext] : v
   (Val #()))))))))
   (Val #())))))
 
-/-- go: server.go:1241:22 -/
+/-- go: server.go:1236:22 -/
 noncomputable def EtcdServer.ForceSnapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -3398,7 +3550,7 @@ noncomputable def EtcdServer.ForceSnapshot.impl [GooseExts] [GoGlobalContext] : 
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"forceDiskSnapshot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Var "$r0")))))))
   (Val #()))))
 
-/-- go: server.go:1245:22 -/
+/-- go: server.go:1240:22 -/
 noncomputable def EtcdServer.snapshotIfNeededAndCompactRaftLog.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ep"
@@ -3433,7 +3585,7 @@ noncomputable def EtcdServer.snapshotIfNeededAndCompactRaftLog.impl [GooseExts] 
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "shouldSnapshotToDisk") (Var "$r0"))))))))))
   (Val #()))))
 
-/-- go: server.go:1256:22 -/
+/-- go: server.go:1251:22 -/
 noncomputable def EtcdServer.shouldSnapshotToDisk.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ep"
@@ -3449,7 +3601,7 @@ noncomputable def EtcdServer.shouldSnapshotToDisk.impl [GooseExts] [GoGlobalCont
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
-/-- go: server.go:1260:22 -/
+/-- go: server.go:1255:22 -/
 noncomputable def EtcdServer.shouldSnapshotToMemory.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ep"
@@ -3465,7 +3617,7 @@ noncomputable def EtcdServer.shouldSnapshotToMemory.impl [GooseExts] [GoGlobalCo
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
-/-- go: server.go:1268:22 -/
+/-- go: server.go:1263:22 -/
 noncomputable def EtcdServer.isLeader.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -3482,7 +3634,7 @@ noncomputable def EtcdServer.isLeader.impl [GooseExts] [GoGlobalContext] : val :
 
 /-- HardStop stops the server without coordination with other members in the cluster.
 
-    go: server.go:1344:22 -/
+    go: server.go:1339:22 -/
 noncomputable def EtcdServer.HardStop.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -3504,7 +3656,7 @@ noncomputable def EtcdServer.HardStop.impl [GooseExts] [GoGlobalContext] : val :
 /-- StoppingNotify returns a channel that receives an empty struct
     when the server is being stopped.
 
-    go: server.go:1388:22 -/
+    go: server.go:1383:22 -/
 noncomputable def EtcdServer.StoppingNotify.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -3519,7 +3671,7 @@ noncomputable def EtcdServer.StoppingNotify.impl [GooseExts] [GoGlobalContext] :
   (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (Var "$res0"))))))
 
-/-- go: server.go:1390:22 -/
+/-- go: server.go:1385:22 -/
 noncomputable def EtcdServer.checkMembershipOperationPermission.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -3570,7 +3722,7 @@ noncomputable def EtcdServer.checkMembershipOperationPermission.impl [GooseExts]
   (Val #())))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
-/-- go: server.go:1470:22 -/
+/-- go: server.go:1465:22 -/
 noncomputable def EtcdServer.RemoveMember.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -3645,7 +3797,7 @@ noncomputable def EtcdServer.RemoveMember.impl [GooseExts] [GoGlobalContext] : v
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
-/-- go: server.go:1698:22 -/
+/-- go: server.go:1693:22 -/
 noncomputable def EtcdServer.MemberList.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -3711,7 +3863,7 @@ noncomputable def EtcdServer.MemberList.impl [GooseExts] [GoGlobalContext] : val
   (Val #()))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
-/-- go: server.go:1711:22 -/
+/-- go: server.go:1706:22 -/
 noncomputable def EtcdServer.setCommittedIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "v"
@@ -3723,7 +3875,7 @@ noncomputable def EtcdServer.setCommittedIndex.impl [GooseExts] [GoGlobalContext
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Uint64.ty) go!"Store"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"committedIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))) (Var "$a0")))))))
   (Val #()))))
 
-/-- go: server.go:1715:22 -/
+/-- go: server.go:1710:22 -/
 noncomputable def EtcdServer.getCommittedIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -3738,7 +3890,7 @@ noncomputable def EtcdServer.getCommittedIndex.impl [GooseExts] [GoGlobalContext
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0"))))))
 
-/-- go: server.go:1719:22 -/
+/-- go: server.go:1714:22 -/
 noncomputable def EtcdServer.setAppliedIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "v"
@@ -3750,7 +3902,7 @@ noncomputable def EtcdServer.setAppliedIndex.impl [GooseExts] [GoGlobalContext] 
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Uint64.ty) go!"Store"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"appliedIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))) (Var "$a0")))))))
   (Val #()))))
 
-/-- go: server.go:1723:22 -/
+/-- go: server.go:1718:22 -/
 noncomputable def EtcdServer.getAppliedIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -3765,7 +3917,7 @@ noncomputable def EtcdServer.getAppliedIndex.impl [GooseExts] [GoGlobalContext] 
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0"))))))
 
-/-- go: server.go:1727:22 -/
+/-- go: server.go:1722:22 -/
 noncomputable def EtcdServer.setTerm.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "v"
@@ -3777,7 +3929,7 @@ noncomputable def EtcdServer.setTerm.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Uint64.ty) go!"Store"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"term"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))) (Var "$a0")))))))
   (Val #()))))
 
-/-- go: server.go:1731:22 -/
+/-- go: server.go:1726:22 -/
 noncomputable def EtcdServer.getTerm.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -3792,7 +3944,7 @@ noncomputable def EtcdServer.getTerm.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0"))))))
 
-/-- go: server.go:1735:22 -/
+/-- go: server.go:1730:22 -/
 noncomputable def EtcdServer.setLead.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "v"
@@ -3804,7 +3956,7 @@ noncomputable def EtcdServer.setLead.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Uint64.ty) go!"Store"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"lead"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))) (Var "$a0")))))))
   (Val #()))))
 
-/-- go: server.go:1739:22 -/
+/-- go: server.go:1734:22 -/
 noncomputable def EtcdServer.getLead.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -3824,7 +3976,7 @@ noncomputable def EtcdServer.getLead.impl [GooseExts] [GoGlobalContext] : val :=
     read-only requests (leader is not able to respond any read-only requests
     as long as linearizable semantic is required)
 
-    go: server.go:1751:22 -/
+    go: server.go:1746:22 -/
 noncomputable def EtcdServer.FirstCommitInTermNotify.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -3839,7 +3991,7 @@ noncomputable def EtcdServer.FirstCommitInTermNotify.impl [GooseExts] [GoGlobalC
   (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (Var "$res0"))))))
 
-/-- go: server.go:1763:22 -/
+/-- go: server.go:1758:22 -/
 noncomputable def EtcdServer.MemberID.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -3854,7 +4006,7 @@ noncomputable def EtcdServer.MemberID.impl [GooseExts] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Var "$res0"))))))
 
-/-- go: server.go:1765:22 -/
+/-- go: server.go:1760:22 -/
 noncomputable def EtcdServer.Leader.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -3869,7 +4021,7 @@ noncomputable def EtcdServer.Leader.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Var "$res0"))))))
 
-/-- go: server.go:1767:22 -/
+/-- go: server.go:1762:22 -/
 noncomputable def EtcdServer.Lead.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -3884,7 +4036,7 @@ noncomputable def EtcdServer.Lead.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0"))))))
 
-/-- go: server.go:1769:22 -/
+/-- go: server.go:1764:22 -/
 noncomputable def EtcdServer.CommittedIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -3899,7 +4051,7 @@ noncomputable def EtcdServer.CommittedIndex.impl [GooseExts] [GoGlobalContext] :
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0"))))))
 
-/-- go: server.go:1771:22 -/
+/-- go: server.go:1766:22 -/
 noncomputable def EtcdServer.AppliedIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -3914,7 +4066,7 @@ noncomputable def EtcdServer.AppliedIndex.impl [GooseExts] [GoGlobalContext] : v
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0"))))))
 
-/-- go: server.go:1773:22 -/
+/-- go: server.go:1768:22 -/
 noncomputable def EtcdServer.Term.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -3929,7 +4081,7 @@ noncomputable def EtcdServer.Term.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0"))))))
 
-/-- go: server.go:1879:22 -/
+/-- go: server.go:1874:22 -/
 noncomputable def EtcdServer.sendMergedSnap.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "merged"
@@ -4031,7 +4183,7 @@ noncomputable def EtcdServer.sendMergedSnap.impl [GooseExts] [GoGlobalContext] :
     applies them to the current state of the EtcdServer.
     The given entries should not be empty.
 
-    go: server.go:1922:22 -/
+    go: server.go:1917:22 -/
 noncomputable def EtcdServer.apply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "es"
@@ -4204,7 +4356,7 @@ noncomputable def EtcdServer.apply.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- applyEntryNormal applies an EntryNormal type raftpb request to the EtcdServer
 
-    go: server.go:1975:22 -/
+    go: server.go:1970:22 -/
 noncomputable def EtcdServer.applyEntryNormal.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "e"
@@ -4347,7 +4499,7 @@ noncomputable def EtcdServer.applyEntryNormal.impl [GooseExts] [GoGlobalContext]
 /-- applyConfChange applies a ConfChange to the server. It is only
     invoked with a ConfChange that has already passed through Raft
 
-    go: server.go:2037:22 -/
+    go: server.go:2032:22 -/
 noncomputable def EtcdServer.applyConfChange.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "cc"
@@ -4587,7 +4739,7 @@ noncomputable def EtcdServer.applyConfChange.impl [GooseExts] [GoGlobalContext] 
 
 /-- TODO: non-blocking snapshot
 
-    go: server.go:2113:22 -/
+    go: server.go:2108:22 -/
 noncomputable def EtcdServer.snapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ep"
@@ -4720,7 +4872,7 @@ noncomputable def EtcdServer.snapshot.impl [GooseExts] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (Var "lg") (Var "$r0")))))))))))
   (Val #())))))
 
-/-- go: server.go:2167:22 -/
+/-- go: server.go:2162:22 -/
 noncomputable def EtcdServer.compactRaftLog.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "snapi"
@@ -4790,7 +4942,7 @@ noncomputable def EtcdServer.compactRaftLog.impl [GooseExts] [GoGlobalContext] :
 
 /-- CutPeer drops messages to the specified peer.
 
-    go: server.go:2201:22 -/
+    go: server.go:2196:22 -/
 noncomputable def EtcdServer.CutPeer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "id"
@@ -4820,7 +4972,7 @@ noncomputable def EtcdServer.CutPeer.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- MendPeer recovers the message dropping behavior of the given peer.
 
-    go: server.go:2209:22 -/
+    go: server.go:2204:22 -/
 noncomputable def EtcdServer.MendPeer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "id"
@@ -4848,7 +5000,7 @@ noncomputable def EtcdServer.MendPeer.impl [GooseExts] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport.ty)))) (Pair (Var "tr") (Var "$r0")))))))))))))))
   (Val #()))))
 
-/-- go: server.go:2220:22 -/
+/-- go: server.go:2215:22 -/
 noncomputable def EtcdServer.ClusterVersion.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -4873,7 +5025,7 @@ noncomputable def EtcdServer.ClusterVersion.impl [GooseExts] [GoGlobalContext] :
   (Val #()))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)))) (Var "$res0"))))))
 
-/-- go: server.go:2387:22 -/
+/-- go: server.go:2382:22 -/
 noncomputable def EtcdServer.parseProposeCtxErr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "err"
@@ -4975,7 +5127,7 @@ noncomputable def EtcdServer.parseProposeCtxErr.impl [GooseExts] [GoGlobalContex
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0")))))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
 
-/-- go: server.go:2420:22 -/
+/-- go: server.go:2415:22 -/
 noncomputable def EtcdServer.KV.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -4990,7 +5142,7 @@ noncomputable def EtcdServer.KV.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty))) (Var "$res0"))))))
 
-/-- go: server.go:2421:22 -/
+/-- go: server.go:2416:22 -/
 noncomputable def EtcdServer.Backend.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -5016,7 +5168,7 @@ noncomputable def EtcdServer.Backend.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"bemu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))) (Val #())))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (Var "$res0"))))))
 
-/-- go: server.go:2427:22 -/
+/-- go: server.go:2422:22 -/
 noncomputable def EtcdServer.AuthStore.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -5031,7 +5183,7 @@ noncomputable def EtcdServer.AuthStore.impl [GooseExts] [GoGlobalContext] : val 
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthStore.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthStore.ty))) (Var "$res0"))))))
 
-/-- go: server.go:2429:22 -/
+/-- go: server.go:2424:22 -/
 noncomputable def EtcdServer.restoreAlarms.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -5081,7 +5233,7 @@ noncomputable def EtcdServer.restoreAlarms.impl [GooseExts] [GoGlobalContext] : 
     the etcdserver waitgroup.
     The passed function should interrupt on s.StoppingNotify().
 
-    go: server.go:2441:22 -/
+    go: server.go:2436:22 -/
 noncomputable def EtcdServer.GoAttach.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "f"
@@ -5139,7 +5291,7 @@ noncomputable def EtcdServer.GoAttach.impl [GooseExts] [GoGlobalContext] : val :
 
 /-- IsLearner returns if the local member is raft learner
 
-    go: server.go:2465:22 -/
+    go: server.go:2460:22 -/
 noncomputable def EtcdServer.IsLearner.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -5156,7 +5308,7 @@ noncomputable def EtcdServer.IsLearner.impl [GooseExts] [GoGlobalContext] : val 
 
 /-- IsMemberExist returns if the member with the given id exists in cluster.
 
-    go: server.go:2470:22 -/
+    go: server.go:2465:22 -/
 noncomputable def EtcdServer.IsMemberExist.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "id"
@@ -5173,7 +5325,7 @@ noncomputable def EtcdServer.IsMemberExist.impl [GooseExts] [GoGlobalContext] : 
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
-/-- go: server.go:2483:22 -/
+/-- go: server.go:2478:22 -/
 noncomputable def EtcdServer.getTxPostLockInsideApplyHook.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -9939,6 +10091,13 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd_debugging"))
+  (Let "$v1" (Val #(go!"server"))
+  (Let "$v2" (Val #(go!"lease_expired_total"))
+  (Let "$v3" (Val #(go!"The total number of expired leases."))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.CounterOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3")))]))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewCounter []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -9972,7 +10131,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val currentVersion.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val leaseExpired.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr leaseExpired))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val requestDurationSec.init) (Val #()))))))
   (App (Val doExecute)
@@ -10113,6 +10272,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.golang_org.x.crypto.bcrypt.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc leaseExpired _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc raftStatusMu _root_.Perennial.sync.Mutex.ty)) (Val #()))))))
   (App (Val doExecute)
@@ -10518,6 +10679,7 @@ class bootstrappedWAL.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   set_meta : ∀ (x : bootstrappedWAL) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedWAL.underlying go!"meta") (PairV #x #y) (Val #(({ x with meta' := y } : bootstrappedWAL)))
   method_set : go.MethodSetIs bootstrappedWAL.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType bootstrappedWAL.ty) [(go!"AppendAndCommitEntries", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))] false []))), (go!"CommitedEntries", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))]))), (go!"MemoryStorage", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty)]))), (go!"NewConfigChangeEntries", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))])))]
+  ptr_MemoryStorage_unfold : MethodUnfold (go.GoType.PointerType bootstrappedWAL.ty) go!"MemoryStorage" bootstrappedWAL.MemoryStorage.impl
 
 attribute [instance] bootstrappedWAL.TypeAssumptions.type_repr
   bootstrappedWAL.TypeAssumptions.underlying
@@ -10537,6 +10699,7 @@ attribute [instance] bootstrappedWAL.TypeAssumptions.type_repr
   bootstrappedWAL.TypeAssumptions.set_meta
   bootstrappedWAL.TypeAssumptions.method_set
   bootstrappedWAL.TypeAssumptions.ptr_method_set
+  bootstrappedWAL.TypeAssumptions.ptr_MemoryStorage_unfold
 
 abbrev CorruptionChecker [GooseExts] : Type := GoInterface
 
@@ -11515,6 +11678,7 @@ class EtcdServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   ptr_raftRequest_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"raftRequest" EtcdServer.raftRequest.impl
   ptr_requireAuthInfo_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"requireAuthInfo" EtcdServer.requireAuthInfo.impl
   ptr_restoreAlarms_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"restoreAlarms" EtcdServer.restoreAlarms.impl
+  ptr_revokeExpiredLeases_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"revokeExpiredLeases" EtcdServer.revokeExpiredLeases.impl
   ptr_run_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"run" EtcdServer.run.impl
   ptr_sendMergedSnap_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"sendMergedSnap" EtcdServer.sendMergedSnap.impl
   ptr_setAppliedIndex_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"setAppliedIndex" EtcdServer.setAppliedIndex.impl
@@ -11718,6 +11882,7 @@ attribute [instance] EtcdServer.TypeAssumptions.type_repr
   EtcdServer.TypeAssumptions.ptr_raftRequest_unfold
   EtcdServer.TypeAssumptions.ptr_requireAuthInfo_unfold
   EtcdServer.TypeAssumptions.ptr_restoreAlarms_unfold
+  EtcdServer.TypeAssumptions.ptr_revokeExpiredLeases_unfold
   EtcdServer.TypeAssumptions.ptr_run_unfold
   EtcdServer.TypeAssumptions.ptr_sendMergedSnap_unfold
   EtcdServer.TypeAssumptions.ptr_setAppliedIndex_unfold

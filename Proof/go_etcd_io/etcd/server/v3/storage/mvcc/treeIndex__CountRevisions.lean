@@ -42,6 +42,7 @@ theorem mvcc.treeIndex.CountRevisions.wp_proof
   wp_start as ⟨#Hti, Hrd, Hkn, Hcu, %Hcb, %Hrev, #Hkey, #Hend, #Herr⟩
   iunfold mvcc.isTreeIndex at Hti
   iNamed Hti
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgnn
   iunfold mvcc.idxReader at Hrd
   icases Hrd with ⟨%t', #Htree', Hrd⟩
   icombine Htree Htree' gives %Ht'

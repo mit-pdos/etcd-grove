@@ -47,7 +47,7 @@ theorem backend.newPostK_pool (hT : threadBound GF ≤ backend.rdPoolN) (E : CoP
     backend.BNames) (P : backend.BParams) (W Pk K : backend.BNames → IProp GF) (b : Loc) (D :
     backend.Data) : backend.newPostK γ P W Pk K b D ⊢ |={E}=> backend.newPostKP γ P W Pk K b D
 
-theorem backend.rdStockN_val : backend.rdStockN = 805306239
+theorem backend.rdStockN_val : backend.rdStockN = 536870783
 
 def backend.rdStock (γ : backend.BNames) (P : backend.BParams) (b : Loc) : IProp GF :=
   [∗list] _x ∈ List.replicate backend.rdStockN (), backend.rdTok γ P b
@@ -98,7 +98,7 @@ theorem backend.newPostKP_named (γ : backend.BNames) (P : backend.BParams) (W P
     P D ∗ "HnSr" ∷ backend.srSlot b
 
 def backend.authRdN : Nat :=
-  2 ^ 7
+  backend.rdPoolN + 2 ^ 7
 
 def backend.rdAuth (γ : backend.BNames) (P : backend.BParams) (b : Loc) : IProp GF :=
   [∗list] _x ∈ List.replicate backend.authRdN (), backend.rdTok γ P b

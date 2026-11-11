@@ -53,6 +53,7 @@ requests carry ghost bounds `0`, whose content the registration's `Up` gives (`k
 -/
 module
 
+public import Proof.context.ReqKeys
 public import Proof.go_etcd_io.etcd.client.v3.InvLease
 public import Proof.go_etcd_io.etcd.client.v3.InvRetry
 public import Proof.google_golang_org.grpc.InvGrpcStream
@@ -154,10 +155,13 @@ instance ctxErrTargets_persistent : Persistent (ctxErrTargets (GF := GF)) := by
 
 /-! ## Keep-alives -/
 
-/-- A keep-alive's context (`ka.ctxs`'s element): a context. -/
+/-- A keep-alive's context (`ka.ctxs`'s element): a context, whose keep-alive key answers a context
+pointer (`keepAliveOk`, sweep repairs 1, B2b: `lessor.KeepAlive` stores only `WithValue(ctx,
+keepAliveCtxKey{}, &ctx)`), and (premise fixes 8) whose outgoing metadata is grpc's (WP form:
+`closeRequireLeader` calls `FromOutgoingContext` on it). -/
 def kaCtxOk (c : GoInterface) : IProp GF :=
   iprop(∃ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)), ⌜c = GoInterface.ok ci⌝ ∗
-    context.isContext ci cd)
+    context.isContext ci cd ∗ context.keepAliveOk ci ∗ metadata.outgoingCtxOk ci)
 
 instance kaCtxOk_persistent (c : GoInterface) : Persistent (kaCtxOk (GF := GF) c) := by
   unfold kaCtxOk; infer_instance
@@ -228,8 +232,9 @@ def lessorAt (l : Loc) (addr : List GoString) : IProp GF :=
   iprop(∃ (dc : GoChan) (γd : ChanNames) (sc : GoInterfaceOk)
       (scd : context.ContextDesc (IProp GF)) (lg : Loc) (d : time.Duration) (γr : GName),
     lsF go!"donec" l ↦□ dc ∗ ownBroadcastChan dc γd (iprop(True) : IProp GF) .Unknown ∗
-    lsF go!"stopCtx" l ↦□ GoInterface.ok sc ∗ context.isContext sc scd ∗
-    lsF go!"lg" l ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
+    lsF go!"stopCtx" l ↦□ GoInterface.ok sc ∗
+    (context.isContext sc scd ∗ metadata.outgoingCtxOkC sc) ∗
+    lsF go!"lg" l ↦□ lg ∗ zapLoggerOk lg ∗
     lsF go!"firstKeepAliveTimeout" l ↦□ d ∗
     lessorRemoteAt l addr ∗
     sync.isMutex (lsF go!"mu" l) (lessorInv l γr) ∗
@@ -298,7 +303,7 @@ theorem errAuthNotEnabled_of_init :
   iintro #Hp
   ihave Hi : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hp
-  icases Hi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%x, #Hx⟩⟩
+  icases Hi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%x, #Hx⟩, -⟩
   iexists x
   iexact Hx
 

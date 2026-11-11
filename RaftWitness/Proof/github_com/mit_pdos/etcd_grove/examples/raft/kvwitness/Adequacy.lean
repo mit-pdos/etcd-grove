@@ -16,7 +16,7 @@ against the store's model -- and panics unless the answer is `Ok`. So no panic m
 never rejects the store's trace.
 
 It follows from Perennial's `goose_adequacy` (through `examples/lib/etcdstart/Adequacy.lean`'s `init_adequate`), as the register's and the counter's
-(`lintest/counter/Adequacy.lean`): the trivial extension (`common/TrivialExt.lean`; the proofs are generic over the extensions), a
+(`lintest/counter/Adequacy.lean`): the trivial extension (`examples/lib/etcdstart/TrivialExt.lean`; the proofs are generic over the extensions), a
 concrete ghost-state bundle `kvGF`, the bounds `N = n + 1` (time receipts) and `T = n + 2`
 (threads, `Proof/runtime/Threads.lean`), the package initialization (`Init.lean`; `context`'s
 `isClosedchanInit`, which `Main.spec` takes, from `context`'s `isPkgInit`,
@@ -38,8 +38,12 @@ The same for `MainWitness()` (2026-10-21, W4: the cluster of two voters and a wi
 - **The Go semantics** is a parameter, as in every Perennial result: `GoGlobalContext`,
   `GoLocalContext`, `go.Semantics`, the package assumptions `raft_kvwitness.Assumptions` (every name's
   translated body or Perennial's trusted model, the struct layouts, recursively for the
-  imports), and raft's initialization premises: `context`'s two method-set facts
-  (`ErrorStringIsError`, `DeadlineExceededIsError`) and the model of `log.New` (`log.NewModel`).
+  imports), and the model of `log.New` (the class `log.NewModel`, `Proof/log/NewModel.lean`), which
+  raft's initialization needs. These are the theorems' only hypotheses besides `Main`'s spec (in
+  `kv_adequate_of`; `AdequacyLinked.lean` discharges it) and the execution's length. (Until the
+  2026-11-11 round-3 docs fix, this header also listed `context`'s two method-set facts
+  `ErrorStringIsError` and `DeadlineExceededIsError`. They are no longer hypotheses and no longer
+  exist; `context.isClosedchanInit` comes from `context`'s package fact, as said above.)
 -/
 module
 
@@ -130,11 +134,6 @@ def pkgInitTable : List (GoString × IProp GF) :=
    (pkg_id.cmp, isPkgInit pkg_id.cmp),
    (pkg_id.math, isPkgInit pkg_id.math),
    (pkg_id.io, isPkgInit pkg_id.io),
-   (pkg_id.io.fs, isPkgInit pkg_id.io.fs),
-   (pkg_id.syscall, isPkgInit pkg_id.syscall),
-   (pkg_id.internal.poll, isPkgInit pkg_id.internal.poll),
-   (pkg_id.internal.syscall.unix, isPkgInit pkg_id.internal.syscall.unix),
-   (pkg_id.internal.oserror, isPkgInit pkg_id.internal.oserror),
    (pkg_id.errors, isPkgInit pkg_id.errors),
    (pkg_id.go_etcd_io.raft.v3.raftpb, isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb),
    (pkg_id.google_golang_org.protobuf.proto, isPkgInit pkg_id.google_golang_org.protobuf.proto),
@@ -160,6 +159,11 @@ def pkgInitTable : List (GoString × IProp GF) :=
    (pkg_id.bytes, isPkgInit pkg_id.bytes),
    (pkg_id.time, isPkgInit pkg_id.time),
    (pkg_id.os, isPkgInit pkg_id.os),
+   (pkg_id.io.fs, isPkgInit pkg_id.io.fs),
+   (pkg_id.syscall, isPkgInit pkg_id.syscall),
+   (pkg_id.internal.poll, isPkgInit pkg_id.internal.poll),
+   (pkg_id.internal.syscall.unix, isPkgInit pkg_id.internal.syscall.unix),
+   (pkg_id.internal.oserror, isPkgInit pkg_id.internal.oserror),
    (pkg_id.log, isPkgInit pkg_id.log)]
 
 /-- `get_is_pkg_init` for the store's program: a package's entry in `pkgInitTable`. -/
@@ -199,8 +203,8 @@ answers `Ok` on the trace of the randomized test against the 3-node cluster (see
 header), so porcupine answered `Ok` in every interleaving and every choice of the scheduler.
 
 Parametric in the Go semantics: any `go.Semantics` at the state's local context, any package
-assumptions (the translated bodies behind the store's and its imports' names), `context`'s
-method-set facts and the model of `log.New`. No instance is assumed for the ghost state: the
+assumptions (the translated bodies behind the store's and its imports' names) and the model of
+`log.New`. No instance is assumed for the ghost state: the
 bundle `kvGF` provides iris-lean's non-atomic invariants (`NaInvG`). -/
 theorem kv_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvwitness.Assumptions]

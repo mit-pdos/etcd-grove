@@ -69,13 +69,15 @@ def srvPeersCover (γs : ServerRaftNames) (lid : w64) (_A : List EntryModel) (pr
 
 /-- **The in-memory members stay among the boot configuration's** (D43 M5e: what keeps
 `AddMember`'s bound, `size ≤ 2 ^ 62`): the members of the rest model at the applied log are
-members of raft's boot configuration, of fewer than `2 ^ 61` members (2026-10-31, the snapshot
+members of raft's boot configuration, of at most `2 ^ 20` members (raft-entsize [r3c],
+2026-11-09: the directory's bound, `NewServer`'s `Hdirps`, kept by static membership, D3; what
+bounds the merged snapshot's conf state; 2026-10-31 to then fewer than `2 ^ 61`, the snapshot
 track: what certifying a snapshot takes, `SnapListsOk`; until then at most `2 ^ 62`), and
 (2026-11-02, the cluster-rows stage) every voter is one of them (`srvMemCover`: what makes an
 attribute request of a voter's id a member's, `UpdateAttributes`' premise). -/
 def srvMemOk (γs : ServerRaftNames) (c0 : w64) (A : List EntryModel) : Prop :=
   (∀ k, ((restModel c0 γs.raft.boot (γs.pre ++ A)).mem !! k).isSome = true → k ∈ γs.raft.cfg) ∧
-    GMap.size γs.raft.cfg < 2 ^ 61 ∧ srvMemCover γs c0 A
+    GMap.size γs.raft.cfg ≤ 2 ^ 20 ∧ srvMemCover γs c0 A
 
 /-- A normal entry keeps the members' ids. -/
 theorem restEntry_normal_memKeys (c0 : w64) (m : EntryModel) (r : apply.RestM) (ht : m.typ = W32 0)
@@ -317,7 +319,7 @@ theorem memBoot_cover (bootLog : List EntryM) (e : EntryM) (he : e ∈ bootLog) 
 /-- **The rest model's members at the start of a new cluster** are the boot peers (`srvBootLogOk`). -/
 theorem srvMemOk_boot (γs : ServerRaftNames) (c0 : w64)
     (ps : List w64) (hpre : γs.pre = []) (hcfg : γs.raft.cfg = GMap.listToSet ps)
-    (hnd : ps.Nodup) (hlen : (ps.length : Int) < 2 ^ 61) (hb : srvBootLogOk ps γs.raft.boot) :
+    (hnd : ps.Nodup) (hlen : ps.length ≤ 2 ^ 20) (hb : srvBootLogOk ps γs.raft.boot) :
     srvMemOk γs c0 [] := by
   unfold srvMemOk
   rw [hpre, List.append_nil, restModel_nil, hcfg]
@@ -428,9 +430,19 @@ def srvApRes (s : Loc) (γr : ReadNames) (A : List EntryModel) : IProp GF :=
       (prs : trIds),
     srvBeHooksAddr s ↦□ bh ∗ storage.isBackendHooks bh ix lgh ∗
     srvTransportAddr s ↦□ srvTrIface tl ∗ srvMemberIDAddr s ↦□ lid ∗
-    srvClusterAddr s ↦□ cl ∗ membership.rcLgAddr cl ↦□ lgc ∗ ⌜lgc ≠ null⌝ ∗
+    srvClusterAddr s ↦□ cl ∗ membership.rcLgAddr cl ↦□ lgc ∗ zapLoggerOk lgc ∗
     membership.rcCidAddr cl ↦□ cid ∗ ccMembRes γr.raft cl tl lid prs ∗
     ⌜srvPeersCover γr.raft lid A prs ∧ srvMemOk γr.raft γr.kv.c0 A⌝ ∗ srvDynLog γr.raft lid)
+
+/-- (2026-11-05, R2b-3d stage 5c) **The right to stop the server `s`'s transport** (the server's
+raft environment's `ST`, `srvErM`): the transport in `s`'s raft wrapper, live (`trLive`, what
+`Transport.Stop_live` takes), at any names. The apply thread holds it (`srvApRes`'s `ccMembRes`)
+and hands it to `raftNode.stop` at the shutdown (`srvApRes_trStop`); `NewServer` proves the
+transport's `Stop` from it (`netTransport_srvTrStop`). Until then the environment's `ST` was
+`False` (D43 M5e: "asked of no one", the shutdown not yet reached). -/
+def srvTrStop (s : Loc) : IProp GF :=
+  iprop(∃ (t : Loc) (γn : NetNames GF) (c : TrN GF) (rs : trIds),
+    srvTransportAddr s ↦□ srvTrIface t ∗ trLive γn t c rs)
 
 end defs
 
@@ -441,18 +453,30 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- (2026-10-31, #11) **Fewer than `2^61` voters** (`srvMemOk`'s bound), the resource kept. -/
-theorem srvApRes_cfg_size (s : Loc) (γr : ReadNames) (A : List EntryModel) :
-    srvApRes (GF := GF) s γr A ⊢ srvApRes s γr A ∗ ⌜GMap.size γr.raft.raft.cfg < 2 ^ 61⌝ := by
+/-- (R2b-3d stage 5c) **The transport's stop right, from the apply thread's resources** (at the
+shutdown: the rest is dropped). -/
+theorem srvApRes_trStop (s : Loc) (γr : ReadNames) (A : List EntryModel) :
+    srvApRes (GF := GF) s γr A ⊢ srvTrStop s := by
   unfold srvApRes
-  iintro ⟨%bh, %ix, %lgh, %tl, %lid, %cl, %lgc, %cid, %prs, #H1, #H2, #H3, #H4, #H5, #H6, %H7, #H8,
+  iintro ⟨%bh, %ix, %lgh, %tl, %lid, %cl, %lgc, %cid, %prs, -, -, #H3, -, -, -, -, -,
+    Hmr, -, -⟩
+  unfold ccMembRes
+  icases Hmr with ⟨-, %γn, %c, %ps, -, Hl, -⟩
+  unfold srvTrStop
+  iexists tl, γn, c, prs
+  iframe H3 Hl
+
+/-- (2026-10-31, #11) **At most `2^20` voters** (`srvMemOk`'s bound; raft-entsize [r3c],
+2026-11-09: until then fewer than `2^61`), the resource kept. -/
+theorem srvApRes_cfg_size (s : Loc) (γr : ReadNames) (A : List EntryModel) :
+    srvApRes (GF := GF) s γr A ⊢ srvApRes s γr A ∗ ⌜GMap.size γr.raft.raft.cfg ≤ 2 ^ 20⌝ := by
+  unfold srvApRes
+  iintro ⟨%bh, %ix, %lgh, %tl, %lid, %cl, %lgc, %cid, %prs, #H1, #H2, #H3, #H4, #H5, #H6, #H7, #H8,
     Hmr, %Hp, #Hd⟩
   isplitl
   · iexists bh, ix, lgh, tl, lid, cl, lgc, cid, prs
-    iframe H1 H2 H3 H4 H5 H6 H8 Hd
+    iframe H1 H2 H3 H4 H5 H6 H7 H8 Hd
     iframe
-    isplitr
-    · ipureintro; exact H7
     ipureintro; exact Hp
   ipureintro; exact Hp.2.2.1
 
@@ -460,14 +484,12 @@ theorem srvApRes_cfg_size (s : Loc) (γr : ReadNames) (A : List EntryModel) :
 theorem srvApRes_cover (s : Loc) (γr : ReadNames) (A : List EntryModel) :
     srvApRes (GF := GF) s γr A ⊢ srvApRes s γr A ∗ ⌜srvMemCover γr.raft γr.kv.c0 A⌝ := by
   unfold srvApRes
-  iintro ⟨%bh, %ix, %lgh, %tl, %lid, %cl, %lgc, %cid, %prs, #H1, #H2, #H3, #H4, #H5, #H6, %H7, #H8,
+  iintro ⟨%bh, %ix, %lgh, %tl, %lid, %cl, %lgc, %cid, %prs, #H1, #H2, #H3, #H4, #H5, #H6, #H7, #H8,
     Hmr, %Hp, #Hd⟩
   isplitl
   · iexists bh, ix, lgh, tl, lid, cl, lgc, cid, prs
-    iframe H1 H2 H3 H4 H5 H6 H8 Hd
+    iframe H1 H2 H3 H4 H5 H6 H7 H8 Hd
     iframe
-    isplitr
-    · ipureintro; exact H7
     ipureintro; exact Hp
   ipureintro; exact Hp.2.2.2
 
@@ -483,131 +505,118 @@ theorem srvApRes_normal (s : Loc) (γr : ReadNames) (A : List EntryModel) (m : E
     (ht : m.typ = W32 0) :
     srvApRes (GF := GF) s γr A ⊢ srvApRes s γr (A ++ [m]) := by
   unfold srvApRes
-  iintro ⟨%bh, %ix, %lgh, %tl, %lid, %cl, %lgc, %cid, %prs, #H1, #H2, #H3, #H4, #H5, #H6, %H7, #H8,
+  iintro ⟨%bh, %ix, %lgh, %tl, %lid, %cl, %lgc, %cid, %prs, #H1, #H2, #H3, #H4, #H5, #H6, #H7, #H8,
     Hmr, %Hp, #Hd⟩
   iexists bh, ix, lgh, tl, lid, cl, lgc, cid, prs
   iframe Hmr
   iframe #
   ipureintro
-  refine ⟨H7, Hp.1, ?_, Hp.2.2.1, srvMemCover_normal _ _ A m ht Hp.2.2.2⟩
+  refine ⟨Hp.1, ?_, Hp.2.2.1, srvMemCover_normal _ _ A m ht Hp.2.2.2⟩
   intro k hk
   rw [← List.append_assoc, restModel_append, restEntry_normal_memKeys _ _ _ ht] at hk
   exact Hp.2.1 k hk
 
-/-- The store's reader's token, lent from the apply thread's applier state (its sole writer's,
-`mvcc.writerOwn_rt`). -/
-theorem srvApplyKV_rt (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV) :
-    srvApplyKV (GF := GF) s E γw x ⊢
-      mvcc.storeRT E.γ ∗ (mvcc.storeRT E.γ -∗ srvApplyKV s E γw x) := by
-  iintro H
-  iunfold srvApplyKV at H
-  icases H with ⟨%ua, Hua, #Hap, Hkv, Hbo, Hrest⟩
-  iunfold apply.applyKV at Hkv
-  icases Hkv with ⟨%p, %Hp, Hu, Ho, Hco⟩
-  iunfold apply.kvOwn at Ho
-  icases Ho with ⟨Hsr, Hsw, Hll, Hrd, Hwo⟩
-  icases mvcc.writerOwn_rt E.γ $$ Hwo with ⟨Hrt, Hwo⟩
-  iframe Hrt
-  iintro Hrt
-  ihave Hwo := Hwo $$ Hrt
-  iunfold srvApplyKV
-  iexists ua
-  isplitl [Hua]
-  · iexact Hua
-  isplitr
-  · iexact Hap
-  isplitl [Hu Hsr Hsw Hll Hrd Hwo Hco]
-  · iunfold apply.applyKV
-    iexists p
-    iframe Hu
-    isplitr
-    · ipureintro; exact Hp
-    iunfold apply.kvOwn
-    iframe
-  isplitl [Hbo]
-  · iexact Hbo
-  iexact Hrest
-
-/-- `srvApplyKV_ua_rt` with the current backend's reader pool lent too (2026-11-02, the
-backend-auth-split stage: for `applyConfChange`, which takes `backend.bkRPool`). -/
+/-- **The uber-applier, the current backend's reader pool and the apply thread's reader token,
+lent** (2026-11-02, the backend-auth-split stage: for `applyConfChange`, which takes
+`backend.bkRPool` and `apply.bkRT d`). (Strict M1, 2026-11-06: the reader token is the apply
+thread's own of the tie's backend `d`, in `srvBeOwn`; until then mvcc's `storeRT`, in the sole
+writer's `writerOwn`.) -/
 theorem srvApplyKV_ua_rt_pool (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV) :
-    srvApplyKV (GF := GF) s E γw x ⊢ ∃ (ua : GoInterface) (d : mvcc.KBReal), ⌜E.γ.kb = some d⌝ ∗
-      srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗ mvcc.storeRT E.γ ∗
+    srvApplyKV (GF := GF) s E γw x ⊢ ∃ (ua : GoInterface) (d : mvcc.KBReal),
+      ⌜E.BkTie = srvBkTie d⌝ ∗
+      srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗ apply.bkRT d ∗
       backend.bkRPool d.γB d.P d.be ∗ srvBeRO d ∗
-      (srvUberApplyAddr s ↦ ua -∗ mvcc.storeRT E.γ -∗ backend.bkRPool d.γB d.P d.be -∗
+      (srvUberApplyAddr s ↦ ua -∗ apply.bkRT d -∗ backend.bkRPool d.γB d.P d.be -∗
         srvApplyKV s E γw x) := by
   iintro H
   iunfold srvApplyKV at H
   icases H with ⟨%ua, Hua, #Hap, Hkv, Hbo, Hrest⟩
-  icases srvBeOwn_pool s E $$ Hbo with ⟨%d, %Hd, #Hbro, Hpl, Hbo⟩
-  iunfold apply.applyKV at Hkv
-  icases Hkv with ⟨%p, %Hp, Hu, Ho, Hco⟩
-  iunfold apply.kvOwn at Ho
-  icases Ho with ⟨Hsr, Hsw, Hll, Hrd, Hwo⟩
-  icases mvcc.writerOwn_rt E.γ $$ Hwo with ⟨Hrt, Hwo⟩
+  icases srvBeOwn_pool s E $$ Hbo with ⟨%d, %Hd, #Hbro, Hpl, Hrt, Hbo⟩
   iexists ua, d
-  iframe Hua Hrt Hpl Hbro
+  iframe Hua Hpl Hbro Hrt
   isplitr
   · ipureintro; exact Hd
   isplitr
   · iexact Hap
   iintro Hua Hrt Hpl
-  ihave Hwo := Hwo $$ Hrt
-  ihave Hbo := Hbo $$ Hpl
+  ihave Hbo := Hbo $$ Hpl Hrt
   iunfold srvApplyKV
   iexists ua
   isplitl [Hua]
   · iexact Hua
   isplitr
   · iexact Hap
-  isplitl [Hu Hsr Hsw Hll Hrd Hwo Hco]
-  · iunfold apply.applyKV
-    iexists p
-    iframe Hu
-    isplitr
-    · ipureintro; exact Hp
-    iunfold apply.kvOwn
-    iframe
+  isplitl [Hkv]
+  · iexact Hkv
   isplitl [Hbo]
   · iexact Hbo
   iexact Hrest
 
-/-- `srvApplyKV_ua` and `srvApplyKV_rt` at once. -/
-theorem srvApplyKV_ua_rt (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV) :
-    srvApplyKV (GF := GF) s E γw x ⊢ ∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗
-      apply.applierFor ua E ∗ mvcc.storeRT E.γ ∗
-      (srvUberApplyAddr s ↦ ua -∗ mvcc.storeRT E.γ -∗ srvApplyKV s E γw x) := by
+/-- **The apply thread's backend's frozen post-lock hook** (R8, 2026-11-07, for `applyConfChange`'s
+member writes, whose restated contracts take it in place of `mvcc.hookOk`): the KV resources'
+`hookIs` of the tie's backend (`kvBk`), kept. -/
+theorem applyKV_hookRO (E : apply.AEnv GF) (ua : GoInterface) (x : apply.ApplyKV)
+    (d : mvcc.KBReal) (hd : E.BkTie = srvBkTie d) :
+    apply.applyKV (GF := GF) E ua x ⊢ apply.applyKV E ua x ∗ backend.plHookRO d.γB E.f := by
+  iintro Hkv
+  iunfold apply.applyKV at Hkv
+  icases Hkv with ⟨%p, %Hpe, Huo, Hko, Hcmp⟩
+  iunfold apply.kvOwn at Hko
+  icases Hko with ⟨Hsw, Hbk, Hll, Hrd⟩
+  iunfold apply.kvBk at Hbk
+  icases Hbk with ⟨%B, Hmb, #Hhk, Htie⟩
+  ihave %HB : ⌜B = d⌝ $$ [Htie]
+  · rw [hd]; iunfold srvBkTie at Htie; iexact Htie
+  subst HB
+  isplitl [Huo Hcmp Hsw Hll Hrd Hmb]
+  · iunfold apply.applyKV
+    iexists p
+    isplitr
+    · ipureintro; exact Hpe
+    iframe Huo Hcmp
+    iunfold apply.kvOwn
+    iframe Hsw Hll Hrd
+    iunfold apply.kvBk
+    iexists B
+    iframe Hmb Hhk
+    rw [hd]; iunfold srvBkTie; ipureintro; rfl
+  rw [← mvcc.api.etcdStorage_hookIs]
+  iexact Hhk
+
+/-- The frozen hook (`applyKV_hookRO`), from the apply thread's applier state. -/
+theorem srvApplyKV_hookRO (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
+    (d : mvcc.KBReal) (hd : E.BkTie = srvBkTie d) :
+    srvApplyKV (GF := GF) s E γw x ⊢ srvApplyKV s E γw x ∗ backend.plHookRO d.γB E.f := by
   iintro H
   iunfold srvApplyKV at H
-  icases H with ⟨%ua, Hua, #Hap, Hkv, Hbo, Hrest⟩
-  iunfold apply.applyKV at Hkv
-  icases Hkv with ⟨%p, %Hp, Hu, Ho, Hco⟩
-  iunfold apply.kvOwn at Ho
-  icases Ho with ⟨Hsr, Hsw, Hll, Hrd, Hwo⟩
-  icases mvcc.writerOwn_rt E.γ $$ Hwo with ⟨Hrt, Hwo⟩
-  iexists ua
-  iframe Hua Hrt
-  isplitr
-  · iexact Hap
-  iintro Hua Hrt
-  ihave Hwo := Hwo $$ Hrt
+  icases H with ⟨%ua, Hua, #Hap, Hkv, Hrest⟩
+  ihave ⟨Hkv, #Hh⟩ := applyKV_hookRO E ua x d hd $$ Hkv
+  iframe Hh
   iunfold srvApplyKV
   iexists ua
   isplitl [Hua]
   · iexact Hua
   isplitr
   · iexact Hap
-  isplitl [Hu Hsr Hsw Hll Hrd Hwo Hco]
-  · iunfold apply.applyKV
-    iexists p
-    iframe Hu
-    isplitr
-    · ipureintro; exact Hp
-    iunfold apply.kvOwn
-    iframe
-  isplitl [Hbo]
-  · iexact Hbo
+  isplitl [Hkv]
+  · iexact Hkv
   iexact Hrest
+
+/-- **The uber-applier and the apply thread's reader token, lent** (for a normal entry's `Apply`,
+which takes the token in `kvOwnPre` and gives it back as `apply.bkRTOf E`, `bkRTOf_srv`). -/
+theorem srvApplyKV_ua_rt (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV) :
+    srvApplyKV (GF := GF) s E γw x ⊢ ∃ (ua : GoInterface) (d : mvcc.KBReal),
+      ⌜E.BkTie = srvBkTie d⌝ ∗
+      srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗ apply.bkRT d ∗
+      (srvUberApplyAddr s ↦ ua -∗ apply.bkRT d -∗ srvApplyKV s E γw x) := by
+  iintro H
+  icases srvApplyKV_ua_rt_pool s E γw x $$ H with ⟨%ua, %d, %Hd, Hua, #Hap, Hrt, Hpl, -, Hk⟩
+  iexists ua, d
+  iframe Hua Hap Hrt
+  isplitr
+  · ipureintro; exact Hd
+  iintro Hua Hrt
+  iapply Hk $$ Hua Hrt Hpl
 
 /-- A conf change in the scope keeps the members among the boot configuration's. -/
 theorem ccRest_memKeys (v3 : Bool) (cm : ConfChangeM) (r : apply.RestM) (S : GSet w64)
@@ -707,7 +716,7 @@ theorem srvApRes_cc (s : Loc) (γr : ReadNames) (A : List EntryModel) (m : Entry
         (prs : trIds),
         srvBeHooksAddr s ↦□ bh ∗ storage.isBackendHooks bh ix lgh ∗
         srvTransportAddr s ↦□ srvTrIface tl ∗ srvMemberIDAddr s ↦□ lid ∗
-        srvClusterAddr s ↦□ cl ∗ membership.rcLgAddr cl ↦□ lgc ∗ ⌜lgc ≠ null⌝ ∗
+        srvClusterAddr s ↦□ cl ∗ membership.rcLgAddr cl ↦□ lgc ∗ zapLoggerOk lgc ∗
         membership.rcCidAddr cl ↦□ cid ∗ ccMembRes γs cl tl lid prs ∗
         ⌜(cm.type = W32 0 → cm.nodeId ≠ lid → cm.nodeId ∈ prs) ∧
           (cm.type = W32 1 → cm.nodeId ≠ lid) ∧
@@ -721,14 +730,12 @@ theorem srvApRes_cc (s : Loc) (γr : ReadNames) (A : List EntryModel) (m : Entry
   iintro ⟨H, -⟩
   unfold srvApRes
   icases H with ⟨%bh, %ix, %lgh, %tl, %lid, %cl, %lgc, %cid, %prs, #H1, #H2, #H3, #H4, #H5, #H6,
-    %H7, #H8, Hmr, %Hp, #Hd⟩
+    #H7, #H8, Hmr, %Hp, #Hd⟩
   iunfold srvDynLog at Hd
   icases Hd with %Hl
   obtain ⟨h0, hin, -⟩ := hok
   iexists bh, ix, lgh, tl, lid, cl, lgc, cid, prs
-  iframe H1 H2 H3 H4 H5 H6 H8 Hmr
-  isplitr
-  · ipureintro; exact H7
+  iframe H1 H2 H3 H4 H5 H6 H7 H8 Hmr
   isplitr
   · ipureintro
     refine ⟨fun _ hne => Hp.1 _ hin hne, fun h1 => ?_, fun _ => ?_, Hl⟩
@@ -758,7 +765,7 @@ theorem srvApRes_cc (s : Loc) (γr : ReadNames) (A : List EntryModel) (m : Entry
   iframe #
   iunfold srvDynLog
   ipureintro
-  exact ⟨H7, ⟨Hp.1, hmem⟩, Hl⟩
+  exact ⟨⟨Hp.1, hmem⟩, Hl⟩
 
 end lemmas
 

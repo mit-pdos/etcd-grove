@@ -1,0 +1,157 @@
+# mvcc's importable modules (stage 1 of the API proof, 2026-11-03): what proofs outside mvcc's
+# tree may import (`etc/api-check.py etc/api/mvcc.txt --check`). Every other module of the tree is
+# internal. What each importable module exposes is `etc/gen-interface.py`'s output under
+# `interface/`.
+#
+# Started from what clients imported on 2026-11-03 and its public-import closure. The API is the
+# first group (`notes/mvcc-api-candidate.md`; frozen with its clients' specs,
+# `notes/mvcc-api-clients/`). The second group is the vocabulary the API's statements are written
+# in, still defined in the internals (the names the clients' drafts use, their §11 answers): to be
+# moved into a vocabulary module the internals import (raft's `NodeApiVocab` pattern), so that the
+# API seals the rest. The last group is debt: internals today's clients import, to be taken out of
+# the list when the clients move onto the API (migration M1, all at once). Adding a module here is
+# an API change: review its interface.
+
+inside Proof/go_etcd_io/etcd/server/v3/storage/mvcc/
+inside Spec/go_etcd_io/etcd/server/v3/storage/mvcc/
+exempt (^|/)(Link|MainLinked|Results|Adequacy\w*)\.lean$
+# the Go package's module path: a spec's name is the file's path below it (`__` as `.`)
+root go_etcd_io.etcd.server.v3.storage.mvcc
+
+## The API
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState
+# mvcc over etcd's backend (the design "mvcc's API over its storage abstraction", approved by the
+# user, 2026-11-06): etcd's backend as one storage, its open, image and snapshot
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend
+# (mvccfull's Probe, 2026-11-09) the laws of `hookRun` and `mvccDeleter` for clients (vocabulary:
+# no function's spec file, `etc/gen-interface.py --layout` skips it)
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiLaws
+vocab Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiLaws
+# (mvccfull's Prove, 2026-11-10) `Compact`'s channel made: `compactChan.law` (no function's spec)
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiCompactChan
+vocab Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiCompactChan
+
+## The API's vocabulary, still in the internals (to move to a vocabulary module)
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Model
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.Ghost
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.LogLemmas
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvIndex
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BucketLemmas
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.LeaseItems
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Hist
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRange
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchBatch
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchGroup
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchStore
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchStream
+# (2026-11-06, M4) the internal specs' vocabulary their importable specs publicly import: the
+# transactions' and the stream's ghost steps, the read and write callbacks, the deleter's calls, the
+# watch model
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.WatchModel
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.WatchPos
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RdCalls
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.StreamSteps
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.StreamLog
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.TxnSteps
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.ReadCbC
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.WriteCtx
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.WsTxnSteps
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.SentInv
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.StreamGhost
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiGhost
+
+## Debt: what today's clients import (gone at migration M1)
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendBridge
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendRecs
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendRecsSnap
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Base
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BucketRange
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.CmpRecs
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.CutDefs
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Compact
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.CompactIdx
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.CompactNoDup
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ContractLaws
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Defs
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ErrLaws
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Errorf
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.HashDefs
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.IdxPriv
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Image
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Init
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InstanceLaws
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvCompact
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvIndexCut
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvIndexRestore
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvRestore
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvRoTxn
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchSync
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.KVView
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Lemmas
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.LockArm
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.M2StorageDraftIndex
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.M2StorageDraftRestore
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.M2StorageDraftSealed
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.PlainRWMutex
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewStoreSess
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ReaderSpecs
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreChunks
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreCut
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreImageOpen
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreModel
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreMoves
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreRecs
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreVocab
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RevBytes
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RevOrder
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.SyncModel
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.WatchRecv
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.WsCloserR
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.BytesToRev
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.New
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.NewReadOnlyTxnWrite
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ReportEventReceived
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeReadFinishedCompact
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeReadScheduledCompact
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Changes
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__DeleteRange
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__End
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__FirstRev
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Put
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Range
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Rev
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.readView__FirstRev
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.readView__Range
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.readView__Rev
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnCommon__Range
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnRead__End
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__End
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__Range
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Close
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Commit
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Compact
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__HashStorage
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Read
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Restore
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Rev
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Write
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__restore
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__Changes
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__End
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__Range
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__Rev
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__Cancel
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__Chan
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__Close
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__RequestProgress
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__RequestProgressAll
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__Rev
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__Watch
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStoreTxnWrite__End
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Close
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__NewWatchStream
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Restore
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Write
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__rev

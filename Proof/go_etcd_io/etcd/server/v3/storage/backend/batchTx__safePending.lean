@@ -30,7 +30,7 @@ theorem backend.batchTx.safePending.wp_proof :
   intro γ P W Pk b t u
   wp_start as ⟨#Hb, #Ht, Hopn, Hu⟩
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
-    ⟨%db0, %lg, %h, #Hbe, #Hlg, %Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb0, %HP⟩
+    ⟨%db0, %lg, %h, #Hbe, #Hlg, #Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb0, %HP⟩
   · iframe #
   wp_auto
   wp_apply wp_with_defer as %defer defer

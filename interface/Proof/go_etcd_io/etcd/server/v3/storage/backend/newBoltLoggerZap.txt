@@ -7,6 +7,13 @@ axiom backend.newBoltLoggerZap.wp_proof : backend.newBoltLoggerZap.spec
   ∀ (cfg : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ ⌜cfg.Logger' ≠ null⌝ -∗
-          (▷ ∀ l, backend.boltLogger l -∗ Φ (intoVal l)) -∗
+        isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ zapLoggerOk cfg.Logger' -∗
+          (▷
+              ∀ l,
+                backend.boltLogger l ∗
+                    ⌜∃ lc,
+                        l =
+                          interface.mkOk go_etcd_io.etcd.server.v3.storage.backend.zapBoltLogger.ty.PointerType
+                            (intoVal lc)⌝ -∗
+                  Φ (intoVal l)) -∗
             WP ((intoVal (functions go_etcd_io.etcd.server.v3.storage.backend.newBoltLoggerZap [])) (intoVal cfg)) {{ Φ }}

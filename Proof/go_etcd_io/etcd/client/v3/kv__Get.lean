@@ -32,15 +32,15 @@ theorem kv.Get.wp_generic
     (wp_Do : kv.Do.specG (GF := GF) (hG := hG))
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     kv.Get.specG (GF := GF) (hG := hG) := by
-  intro api conn addr ci cd key sl gs R Sr Qr
+  intro api conn addr ci cd key sl gs R Sr Qr Ψr
   wp_start as ⟨#Hkv, #Hctx, #Hce, #Hopts, HR, #Hsn, %Hnp, #Hrpc, #Hrun, %Hsz⟩
   obtain ⟨Hnp, Ht⟩ := Hnp
   wp_auto
   wp_apply (opGet_res wp_NewOp key sl gs R) $$ [$HR] as %opv ⟨#Hat, HR⟩
   · iframe #; ipureintro; exact Hnp
-  wp_apply wp_Do api conn addr ci cd opv (opGetModel key gs) (fun _ _ _ => iprop(False))
-      (fun _ => iprop(True)) Sr Qr (fun _ _ _ => iprop(False)) (fun _ => iprop(True)) $$ []
-    as %r %err Hout
+  wp_apply wp_Do api conn addr ci cd opv (opGetModel key gs) (fun _ _ _ _ => iprop(False))
+      (fun _ => iprop(True)) Sr Qr (fun _ _ _ _ => iprop(False)) (fun _ => iprop(True)) Ψr $$ []
+    as %r %err ⟨Heo, Hout⟩
   · iframe #
     isplitl []; rotate_left
     · ipureintro; exact Hsz
@@ -58,21 +58,28 @@ theorem kv.Get.wp_generic
   icases Hout' with (⟨%Herr, Hm⟩ | ⟨%Herr, #Hse, #Hcl⟩)
   · subst Herr
     ihave #Hse0 := go_etcd_io.etcd.cache.v3.statusErrOk_nil (GF := GF)
-    wp_apply wp_ContextError ci cd GoInterface.nil $$ [$Hse0] as %err' ⟨%Herr', -⟩
+    wp_apply wp_ContextError ci cd GoInterface.nil $$ [$Hse0] as %err' ⟨%Herr', -, -⟩
     · iframe #; ipureintro; exact fun h => (h rfl).elim
     obtain ⟨H1, -⟩ := Herr'
     rw [H1 rfl]
     iapply HΦ
+    isplitr
+    · iintro %h; exact absurd rfl h.1
     iframe HR
     unfold rangeCallOut
     ileft
     iframe
     ipureintro; rfl
   · obtain ⟨Hne, Hce', Hnull⟩ := Herr
-    wp_apply wp_ContextError ci cd err $$ [$Hse] as %err' ⟨%Herr', #Hse', #Hclw⟩
+    wp_apply wp_ContextError ci cd err $$ [$Hse] as %err' ⟨%Herr', #Hse', #Hclw, %Hd'⟩
     · iframe #; ipureintro; exact fun _ => Hce'
     ihave #Hcl' := Hclw $$ Hcl
     iapply HΦ
+    isplitl [Heo]
+    · iintro %h
+      iapply (ifcErrOut_desc _ _ _ _ _ (Hd' Hne))
+      iapply Heo
+      ipureintro; exact ⟨Ht, Hne, h.2⟩
     iframe HR
     unfold rangeCallOut
     iright
@@ -91,22 +98,33 @@ theorem kv.Get.wp_members
   iunfold isKV at Hkv
   icases Hkv with ⟨#Hobj, #Hregs⟩
   icases (kvObjAt_conn api (ms.map SrvAt.addr)).1 $$ Hobj with ⟨%conn, #Hobj⟩
-  iapply (wp_Get api conn (ms.map SrvAt.addr) ci cd key sl gs R (GrpcSpec.md (kvRangeSpec ms))
-    (rangeAns ms c F (rangeWireOf (opGetModel key gs)) Q)) $$ [HR] HΦ
-  iframe #
-  iframe HR
-  isplitl []
-  · ipureintro; exact Hnp
-  isplitl []
-  · iapply (isGrpcRpcs_md _ _ _).1; iapply (kvRegs_rpcRange ms) $$ Hregs
-  isplitl []; rotate_left
-  · ipureintro; exact Hsz
-  imodintro
+  iapply (wp_Get api conn (ms.map SrvAt.addr) ci cd key sl gs R (kvRangeSpecE ms)
+    (rangeAns ms c F (rangeWireOf (opGetModel key gs)) Q)
+    (rangeErrΨ ms c F (rangeWireOf (opGetModel key gs)) Q)) $$ [HR]
+  · iframe #
+    iframe HR
+    isplitl []
+    · ipureintro; exact Hnp
+    isplitl []
+    · iapply (kvRegs_rpcRangeE ms) $$ Hregs
+    isplitl []; rotate_left
+    · ipureintro; exact Hsz
+    imodintro
+    inext
+    unfold attemptPre
+    iintro %md -
+    iapply (rangeSpecE_of ms c F (rangeWireOf (opGetModel key gs)) Q md)
+    iframe Hk Hrun
   inext
-  iapply (attemptPre_md conn (GoInterface.ok ci) (kvRangeSpec ms) (rangeWireOf (opGetModel key gs))
-    (rangeAns ms c F (rangeWireOf (opGetModel key gs)) Q))
-  iapply (rangeSpec_of ms c F (rangeWireOf (opGetModel key gs)) Q)
-  iframe Hk Hrun
+  iintro %resp %err ⟨Heo, HR, Hout⟩
+  iapply HΦ
+  iframe HR Hout
+  iintro %hs
+  unfold rangeErrOut
+  iintro %h
+  iapply (rangeErrΨ_of_ifc ms c F _ Q err h.2)
+  iapply Heo
+  ipureintro; exact ⟨h.1, hs⟩
 
 theorem kv.Get.wp_proof
     (wp_NewOp : NewOp.spec (GF := GF) (hG := hG))
@@ -136,29 +154,30 @@ theorem kv.Get.wp_proof
         rangeCallOut (rangeStOk (rangeWireOf (opGetModel key gs)) Q) r.get' err := by
       unfold doOut; rw [Ht]; simp only [↓reduceIte]
     rw [← Heq]; iexact Hout
-  iunfold rangeCallOut at Hout'
+  imod rangeCallOut_persist _ _ _ $$ Hout' with Hout'
+  iunfold rangeCallOutP at Hout'
   icases Hout' with (⟨%Herr, Hm⟩ | ⟨%Herr, #Hse, #Hcl⟩)
   · subst Herr
     ihave #Hse0 := go_etcd_io.etcd.cache.v3.statusErrOk_nil (GF := GF)
-    wp_apply wp_ContextError ci cd GoInterface.nil $$ [$Hse0] as %err' ⟨%Herr', -⟩
+    wp_apply wp_ContextError ci cd GoInterface.nil $$ [$Hse0] as %err' ⟨%Herr', -, -⟩
     · iframe #; ipureintro; exact fun h => (h rfl).elim
     obtain ⟨H1, -⟩ := Herr'
     rw [H1 rfl]
     iapply HΦ
     iframe HR
     iapply rangeCallOut_st
-    unfold rangeCallOut
+    unfold rangeCallOutP
     ileft
     iframe
     ipureintro; rfl
   · obtain ⟨Hne, Hce', Hnull⟩ := Herr
-    wp_apply wp_ContextError ci cd err $$ [$Hse] as %err' ⟨%Herr', #Hse', #Hclw⟩
+    wp_apply wp_ContextError ci cd err $$ [$Hse] as %err' ⟨%Herr', #Hse', #Hclw, -⟩
     · iframe #; ipureintro; exact fun _ => Hce'
     ihave #Hcl' := Hclw $$ Hcl
     iapply HΦ
     iframe HR
     iapply rangeCallOut_st
-    unfold rangeCallOut
+    unfold rangeCallOutP
     iright
     iframe #
     ipureintro

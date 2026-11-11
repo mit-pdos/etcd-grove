@@ -233,7 +233,7 @@ theorem putAu_round (γ : ReadNames) (γf γl γv : GName) (keys : List GoString
     · inext; iexists σ, n, L; iframe Hσ Hmn HL Hrv; ipureintro; exact Hok
     imodintro
     itrivial
-  · iintro Hσ
+  · iintro ⟨Hσ, -⟩
     imod Hmask with -
     obtain ⟨Hstep, Hpre, Hlen, r0, Hr0, Hr0le⟩ :=
       roundsOk_put keys val σ L i k hk (by omega) Hok.2
@@ -287,7 +287,7 @@ theorem getAu_round (γ : ReadNames) (γf γl γv : GName) (keys : List GoString
     · inext; iexists σ, n, L; iframe Hσ Hmn HL Hrv; ipureintro; exact Hok
     imodintro
     itrivial
-  · iintro Hσ
+  · iintro ⟨Hσ, -⟩
     imod Hmask with -
     imod Hclose $$ [Hσ Hmn HL Hrv] with -
     · inext; iexists σ, n, L; iframe Hσ Hmn HL Hrv; ipureintro; exact Hok
@@ -330,7 +330,7 @@ theorem getAtAu_round (γ : ReadNames) (γf γl γv : GName) (keys : List GoStri
     · inext; iexists σ, n, L; iframe Hσ Hmn HL Hrv; ipureintro; exact Hok
     imodintro
     itrivial
-  · iintro Hσ
+  · iintro ⟨Hσ, -⟩
     imod Hmask with -
     imod Hclose $$ [Hσ Hmn HL Hrv] with -
     · inext; iexists σ, n, L; iframe Hσ Hmn HL Hrv; ipureintro; exact Hok
@@ -366,7 +366,7 @@ theorem oneValAu (γ : ReadNames) (γf γl γv : GName) (keys : List GoString) (
     · inext; iexists σ, n, L; iframe Hσ Hmn HL Hrv; ipureintro; exact Hok
     imodintro
     itrivial
-  · iintro Hσ
+  · iintro ⟨Hσ, -⟩
     imod Hmask with -
     imod Hclose $$ [Hσ Hmn HL Hrv] with -
     · inext; iexists σ, n, L; iframe Hσ Hmn HL Hrv; ipureintro; exact Hok
@@ -404,7 +404,7 @@ theorem getRevAu_round (γ : ReadNames) (γf γl γv : GName) (keys : List GoStr
     · inext; iexists σ, n, L; iframe Hσ Hmn HL Hrv; ipureintro; exact Hok
     imodintro
     itrivial
-  · iintro Hσ
+  · iintro ⟨Hσ, -⟩
     imod Hmask with -
     imod Hclose $$ [Hσ Hmn HL Hrv] with -
     · inext; iexists σ, n, L; iframe Hσ Hmn HL Hrv; ipureintro; exact Hok

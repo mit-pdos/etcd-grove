@@ -37,7 +37,7 @@ theorem backend.batchTxBuffered.CommitAndStop.wp_proof
   intro γ P W Pk b t X Y
   wp_start as ⟨#Hb, #Ht, Ho, Hq, HX, #Hreq⟩
   icases isBackend_b γ P W Pk b $$ Hb with
-    ⟨%t2, %rt, %db1, %lg2, #Ht2, #Hrt, #-, %-, #Hmi, #-, #-, #Hrg, #-, #-, #Hci, %HP⟩
+    ⟨%t2, %rt, %db1, %lg2, #Ht2, #Hrt, #-, #-, #Hmi, #-, #-, #Hrg, #-, #-, #Hci, %HP⟩
   wp_auto
   wp_method_call
   wp_call
@@ -54,6 +54,10 @@ theorem backend.batchTxBuffered.CommitAndStop.wp_proof
     · simp only [Bool.false_eq_true, ↓reduceIte]
       rw [vData_free P st Hfo.1.1 Hfo.1.2.2.1 Hfo.1.2.2.2.1]
       iapply thinV_refl
+    isplitr
+    · ipureintro; intro h; cases h
+    isplitr
+    · ipureintro; exact Hfo.1.2.2.2.2
     unfold payIn
     simp only [↓reduceIte]
     isplitl [Ho Hq]
@@ -62,7 +66,7 @@ theorem backend.batchTxBuffered.CommitAndStop.wp_proof
       · iexact Hq
     iexact HX
   try simp only [↓reduceIte]
-  icases Hpost with ⟨Hown, Hpend, #Hbs, Hout⟩
+  icases Hpost with ⟨Hown, Hpend, #Hbs, Hout, Htok⟩
   wp_method_call
   wp_call
   wp_auto
@@ -71,7 +75,7 @@ theorem backend.batchTxBuffered.CommitAndStop.wp_proof
     iright
     iframe
   iapply HΦ
-  iframe Hbs HY
+  iframe Hbs HY Htok
   -- (R2b-3c part 2) the stopped lock's client resources go with the database
   unfold bDBOut
   iframe Hout HWv HWR

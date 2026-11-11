@@ -4,8 +4,10 @@ module
 public import Perennial.Proof.ProofPrelude
 public import ManualProof.os
 public import Perennial.GeneratedProof.errors
+public import GeneratedProof.internal.poll
 public import Perennial.GeneratedProof.io
 public import GeneratedProof.io.fs
+public import Perennial.GeneratedProof.sync
 public import GeneratedProof.syscall
 public import Perennial.Golang.Theory
 public import Code.os
@@ -21,25 +23,6 @@ open Iris Iris.BI
 noncomputable section
 namespace os
 
-namespace readdirMode
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : os.Assumptions]
-
-noncomputable instance readdirMode_typed_pointsto :
-    TypedPointsto (GF := GF) os.readdirMode :=
-  sorry -- axiomatized type
-
-noncomputable instance readdirMode_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) os.readdirMode os.readdirMode.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end readdirMode
-
 namespace dirInfo
 section def_
 
@@ -49,34 +32,87 @@ variable [sem : go.Semantics]
 variable [package_sem' : os.Assumptions]
 
 noncomputable instance dirInfo_typed_pointsto :
-    TypedPointsto (GF := GF) os.dirInfo :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) os.dirInfo where
+  typedPointstoDef l v dq := iprop(
+    "mu" ∷ typedPointsto (structFieldRef os.dirInfo go!"mu" l) v.mu' dq ∗
+    "buf" ∷ typedPointsto (structFieldRef os.dirInfo go!"buf" l) v.buf' dq ∗
+    "nbuf" ∷ typedPointsto (structFieldRef os.dirInfo go!"nbuf" l) v.nbuf' dq ∗
+    "bufp" ∷ typedPointsto (structFieldRef os.dirInfo go!"bufp" l) v.bufp' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance dirInfo_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) os.dirInfo os.dirInfo.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) os.dirInfo os.dirInfo.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance dirInfo_access_load_mu (l : Loc) (v : os.dirInfo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.dirInfo go!"mu" l) v.mu' dq)
+      (typedPointsto (structFieldRef os.dirInfo go!"mu" l) v.mu' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance dirInfo_access_store_mu (l : Loc) (v : os.dirInfo) (mu' : sync.Mutex) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.dirInfo go!"mu" l) v.mu' (DFrac.own 1))
+      (typedPointsto (structFieldRef os.dirInfo go!"mu" l) mu' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : os.dirInfo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance dirInfo_access_load_buf (l : Loc) (v : os.dirInfo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.dirInfo go!"buf" l) v.buf' dq)
+      (typedPointsto (structFieldRef os.dirInfo go!"buf" l) v.buf' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance dirInfo_access_store_buf (l : Loc) (v : os.dirInfo) (buf' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.dirInfo go!"buf" l) v.buf' (DFrac.own 1))
+      (typedPointsto (structFieldRef os.dirInfo go!"buf" l) buf' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with buf' := buf' } : os.dirInfo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance dirInfo_access_load_nbuf (l : Loc) (v : os.dirInfo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.dirInfo go!"nbuf" l) v.nbuf' dq)
+      (typedPointsto (structFieldRef os.dirInfo go!"nbuf" l) v.nbuf' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance dirInfo_access_store_nbuf (l : Loc) (v : os.dirInfo) (nbuf' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.dirInfo go!"nbuf" l) v.nbuf' (DFrac.own 1))
+      (typedPointsto (structFieldRef os.dirInfo go!"nbuf" l) nbuf' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with nbuf' := nbuf' } : os.dirInfo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance dirInfo_access_load_bufp (l : Loc) (v : os.dirInfo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.dirInfo go!"bufp" l) v.bufp' dq)
+      (typedPointsto (structFieldRef os.dirInfo go!"bufp" l) v.bufp' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance dirInfo_access_store_bufp (l : Loc) (v : os.dirInfo) (bufp' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.dirInfo go!"bufp" l) v.bufp' (DFrac.own 1))
+      (typedPointsto (structFieldRef os.dirInfo go!"bufp" l) bufp' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with bufp' := bufp' } : os.dirInfo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end dirInfo
-
-namespace timeout
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : os.Assumptions]
-
-noncomputable instance timeout_typed_pointsto :
-    TypedPointsto (GF := GF) os.timeout :=
-  sorry -- axiomatized type
-
-noncomputable instance timeout_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) os.timeout os.timeout.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end timeout
 
 namespace SyscallError
 section def_
@@ -87,34 +123,53 @@ variable [sem : go.Semantics]
 variable [package_sem' : os.Assumptions]
 
 noncomputable instance SyscallError_typed_pointsto :
-    TypedPointsto (GF := GF) os.SyscallError :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) os.SyscallError where
+  typedPointstoDef l v dq := iprop(
+    "Syscall" ∷ typedPointsto (structFieldRef os.SyscallError go!"Syscall" l) v.Syscall' dq ∗
+    "Err" ∷ typedPointsto (structFieldRef os.SyscallError go!"Err" l) v.Err' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance SyscallError_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) os.SyscallError os.SyscallError.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) os.SyscallError os.SyscallError.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance SyscallError_access_load_Syscall (l : Loc) (v : os.SyscallError) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.SyscallError go!"Syscall" l) v.Syscall' dq)
+      (typedPointsto (structFieldRef os.SyscallError go!"Syscall" l) v.Syscall' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance SyscallError_access_store_Syscall (l : Loc) (v : os.SyscallError) (Syscall' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.SyscallError go!"Syscall" l) v.Syscall' (DFrac.own 1))
+      (typedPointsto (structFieldRef os.SyscallError go!"Syscall" l) Syscall' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Syscall' := Syscall' } : os.SyscallError) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance SyscallError_access_load_Err (l : Loc) (v : os.SyscallError) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.SyscallError go!"Err" l) v.Err' dq)
+      (typedPointsto (structFieldRef os.SyscallError go!"Err" l) v.Err' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance SyscallError_access_store_Err (l : Loc) (v : os.SyscallError) (Err' : GoError) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.SyscallError go!"Err" l) v.Err' (DFrac.own 1))
+      (typedPointsto (structFieldRef os.SyscallError go!"Err" l) Err' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Err' := Err' } : os.SyscallError) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end SyscallError
-
-namespace processStatus
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : os.Assumptions]
-
-noncomputable instance processStatus_typed_pointsto :
-    TypedPointsto (GF := GF) os.processStatus :=
-  sorry -- axiomatized type
-
-noncomputable instance processStatus_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) os.processStatus os.processStatus.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end processStatus
 
 namespace Process
 section def_
@@ -163,34 +218,87 @@ variable [sem : go.Semantics]
 variable [package_sem' : os.Assumptions]
 
 noncomputable instance ProcAttr_typed_pointsto :
-    TypedPointsto (GF := GF) os.ProcAttr :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) os.ProcAttr where
+  typedPointstoDef l v dq := iprop(
+    "Dir" ∷ typedPointsto (structFieldRef os.ProcAttr go!"Dir" l) v.Dir' dq ∗
+    "Env" ∷ typedPointsto (structFieldRef os.ProcAttr go!"Env" l) v.Env' dq ∗
+    "Files" ∷ typedPointsto (structFieldRef os.ProcAttr go!"Files" l) v.Files' dq ∗
+    "Sys" ∷ typedPointsto (structFieldRef os.ProcAttr go!"Sys" l) v.Sys' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance ProcAttr_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) os.ProcAttr os.ProcAttr.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) os.ProcAttr os.ProcAttr.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance ProcAttr_access_load_Dir (l : Loc) (v : os.ProcAttr) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.ProcAttr go!"Dir" l) v.Dir' dq)
+      (typedPointsto (structFieldRef os.ProcAttr go!"Dir" l) v.Dir' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ProcAttr_access_store_Dir (l : Loc) (v : os.ProcAttr) (Dir' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.ProcAttr go!"Dir" l) v.Dir' (DFrac.own 1))
+      (typedPointsto (structFieldRef os.ProcAttr go!"Dir" l) Dir' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Dir' := Dir' } : os.ProcAttr) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ProcAttr_access_load_Env (l : Loc) (v : os.ProcAttr) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.ProcAttr go!"Env" l) v.Env' dq)
+      (typedPointsto (structFieldRef os.ProcAttr go!"Env" l) v.Env' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ProcAttr_access_store_Env (l : Loc) (v : os.ProcAttr) (Env' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.ProcAttr go!"Env" l) v.Env' (DFrac.own 1))
+      (typedPointsto (structFieldRef os.ProcAttr go!"Env" l) Env' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Env' := Env' } : os.ProcAttr) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ProcAttr_access_load_Files (l : Loc) (v : os.ProcAttr) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.ProcAttr go!"Files" l) v.Files' dq)
+      (typedPointsto (structFieldRef os.ProcAttr go!"Files" l) v.Files' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ProcAttr_access_store_Files (l : Loc) (v : os.ProcAttr) (Files' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.ProcAttr go!"Files" l) v.Files' (DFrac.own 1))
+      (typedPointsto (structFieldRef os.ProcAttr go!"Files" l) Files' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Files' := Files' } : os.ProcAttr) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ProcAttr_access_load_Sys (l : Loc) (v : os.ProcAttr) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.ProcAttr go!"Sys" l) v.Sys' dq)
+      (typedPointsto (structFieldRef os.ProcAttr go!"Sys" l) v.Sys' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ProcAttr_access_store_Sys (l : Loc) (v : os.ProcAttr) (Sys' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.ProcAttr go!"Sys" l) v.Sys' (DFrac.own 1))
+      (typedPointsto (structFieldRef os.ProcAttr go!"Sys" l) Sys' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Sys' := Sys' } : os.ProcAttr) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end ProcAttr
-
-namespace Signal
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : os.Assumptions]
-
-noncomputable instance Signal_typed_pointsto :
-    TypedPointsto (GF := GF) os.Signal :=
-  sorry -- axiomatized type
-
-noncomputable instance Signal_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) os.Signal os.Signal.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end Signal
 
 namespace ProcessState
 section def_
@@ -201,12 +309,67 @@ variable [sem : go.Semantics]
 variable [package_sem' : os.Assumptions]
 
 noncomputable instance ProcessState_typed_pointsto :
-    TypedPointsto (GF := GF) os.ProcessState :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) os.ProcessState where
+  typedPointstoDef l v dq := iprop(
+    "pid" ∷ typedPointsto (structFieldRef os.ProcessState go!"pid" l) v.pid' dq ∗
+    "status" ∷ typedPointsto (structFieldRef os.ProcessState go!"status" l) v.status' dq ∗
+    "rusage" ∷ typedPointsto (structFieldRef os.ProcessState go!"rusage" l) v.rusage' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance ProcessState_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) os.ProcessState os.ProcessState.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) os.ProcessState os.ProcessState.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance ProcessState_access_load_pid (l : Loc) (v : os.ProcessState) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.ProcessState go!"pid" l) v.pid' dq)
+      (typedPointsto (structFieldRef os.ProcessState go!"pid" l) v.pid' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ProcessState_access_store_pid (l : Loc) (v : os.ProcessState) (pid' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.ProcessState go!"pid" l) v.pid' (DFrac.own 1))
+      (typedPointsto (structFieldRef os.ProcessState go!"pid" l) pid' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pid' := pid' } : os.ProcessState) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ProcessState_access_load_status (l : Loc) (v : os.ProcessState) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.ProcessState go!"status" l) v.status' dq)
+      (typedPointsto (structFieldRef os.ProcessState go!"status" l) v.status' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ProcessState_access_store_status (l : Loc) (v : os.ProcessState) (status' : syscall.WaitStatus) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.ProcessState go!"status" l) v.status' (DFrac.own 1))
+      (typedPointsto (structFieldRef os.ProcessState go!"status" l) status' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with status' := status' } : os.ProcessState) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ProcessState_access_load_rusage (l : Loc) (v : os.ProcessState) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.ProcessState go!"rusage" l) v.rusage' dq)
+      (typedPointsto (structFieldRef os.ProcessState go!"rusage" l) v.rusage' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ProcessState_access_store_rusage (l : Loc) (v : os.ProcessState) (rusage' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.ProcessState go!"rusage" l) v.rusage' (DFrac.own 1))
+      (typedPointsto (structFieldRef os.ProcessState go!"rusage" l) rusage' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with rusage' := rusage' } : os.ProcessState) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end ProcessState
@@ -311,12 +474,16 @@ variable [sem : go.Semantics]
 variable [package_sem' : os.Assumptions]
 
 noncomputable instance noReadFrom_typed_pointsto :
-    TypedPointsto (GF := GF) os.noReadFrom :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) os.noReadFrom where
+  typedPointstoDef l v dq := iprop(
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance noReadFrom_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) os.noReadFrom os.noReadFrom.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) os.noReadFrom os.noReadFrom.underlying := by
+  solve_into_val_typed_struct
 
 end def_
 end noReadFrom
@@ -330,12 +497,50 @@ variable [sem : go.Semantics]
 variable [package_sem' : os.Assumptions]
 
 noncomputable instance fileWithoutReadFrom_typed_pointsto :
-    TypedPointsto (GF := GF) os.fileWithoutReadFrom :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) os.fileWithoutReadFrom where
+  typedPointstoDef l v dq := iprop(
+    "noReadFrom" ∷ typedPointsto (structFieldRef os.fileWithoutReadFrom go!"noReadFrom" l) v.noReadFrom' dq ∗
+    "File" ∷ typedPointsto (structFieldRef os.fileWithoutReadFrom go!"File" l) v.File' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance fileWithoutReadFrom_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) os.fileWithoutReadFrom os.fileWithoutReadFrom.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) os.fileWithoutReadFrom os.fileWithoutReadFrom.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance fileWithoutReadFrom_access_load_noReadFrom (l : Loc) (v : os.fileWithoutReadFrom) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.fileWithoutReadFrom go!"noReadFrom" l) v.noReadFrom' dq)
+      (typedPointsto (structFieldRef os.fileWithoutReadFrom go!"noReadFrom" l) v.noReadFrom' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance fileWithoutReadFrom_access_store_noReadFrom (l : Loc) (v : os.fileWithoutReadFrom) (noReadFrom' : os.noReadFrom) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.fileWithoutReadFrom go!"noReadFrom" l) v.noReadFrom' (DFrac.own 1))
+      (typedPointsto (structFieldRef os.fileWithoutReadFrom go!"noReadFrom" l) noReadFrom' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with noReadFrom' := noReadFrom' } : os.fileWithoutReadFrom) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance fileWithoutReadFrom_access_load_File (l : Loc) (v : os.fileWithoutReadFrom) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.fileWithoutReadFrom go!"File" l) v.File' dq)
+      (typedPointsto (structFieldRef os.fileWithoutReadFrom go!"File" l) v.File' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance fileWithoutReadFrom_access_store_File (l : Loc) (v : os.fileWithoutReadFrom) (File' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.fileWithoutReadFrom go!"File" l) v.File' (DFrac.own 1))
+      (typedPointsto (structFieldRef os.fileWithoutReadFrom go!"File" l) File' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with File' := File' } : os.fileWithoutReadFrom) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end fileWithoutReadFrom
@@ -349,12 +554,16 @@ variable [sem : go.Semantics]
 variable [package_sem' : os.Assumptions]
 
 noncomputable instance noWriteTo_typed_pointsto :
-    TypedPointsto (GF := GF) os.noWriteTo :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) os.noWriteTo where
+  typedPointstoDef l v dq := iprop(
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance noWriteTo_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) os.noWriteTo os.noWriteTo.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) os.noWriteTo os.noWriteTo.underlying := by
+  solve_into_val_typed_struct
 
 end def_
 end noWriteTo
@@ -368,53 +577,53 @@ variable [sem : go.Semantics]
 variable [package_sem' : os.Assumptions]
 
 noncomputable instance fileWithoutWriteTo_typed_pointsto :
-    TypedPointsto (GF := GF) os.fileWithoutWriteTo :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) os.fileWithoutWriteTo where
+  typedPointstoDef l v dq := iprop(
+    "noWriteTo" ∷ typedPointsto (structFieldRef os.fileWithoutWriteTo go!"noWriteTo" l) v.noWriteTo' dq ∗
+    "File" ∷ typedPointsto (structFieldRef os.fileWithoutWriteTo go!"File" l) v.File' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance fileWithoutWriteTo_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) os.fileWithoutWriteTo os.fileWithoutWriteTo.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) os.fileWithoutWriteTo os.fileWithoutWriteTo.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance fileWithoutWriteTo_access_load_noWriteTo (l : Loc) (v : os.fileWithoutWriteTo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.fileWithoutWriteTo go!"noWriteTo" l) v.noWriteTo' dq)
+      (typedPointsto (structFieldRef os.fileWithoutWriteTo go!"noWriteTo" l) v.noWriteTo' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance fileWithoutWriteTo_access_store_noWriteTo (l : Loc) (v : os.fileWithoutWriteTo) (noWriteTo' : os.noWriteTo) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.fileWithoutWriteTo go!"noWriteTo" l) v.noWriteTo' (DFrac.own 1))
+      (typedPointsto (structFieldRef os.fileWithoutWriteTo go!"noWriteTo" l) noWriteTo' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with noWriteTo' := noWriteTo' } : os.fileWithoutWriteTo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance fileWithoutWriteTo_access_load_File (l : Loc) (v : os.fileWithoutWriteTo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.fileWithoutWriteTo go!"File" l) v.File' dq)
+      (typedPointsto (structFieldRef os.fileWithoutWriteTo go!"File" l) v.File' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance fileWithoutWriteTo_access_store_File (l : Loc) (v : os.fileWithoutWriteTo) (File' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.fileWithoutWriteTo go!"File" l) v.File' (DFrac.own 1))
+      (typedPointsto (structFieldRef os.fileWithoutWriteTo go!"File" l) File' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with File' := File' } : os.fileWithoutWriteTo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end fileWithoutWriteTo
-
-namespace dirFS
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : os.Assumptions]
-
-noncomputable instance dirFS_typed_pointsto :
-    TypedPointsto (GF := GF) os.dirFS :=
-  sorry -- axiomatized type
-
-noncomputable instance dirFS_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) os.dirFS os.dirFS.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end dirFS
-
-namespace newFileKind
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : os.Assumptions]
-
-noncomputable instance newFileKind_typed_pointsto :
-    TypedPointsto (GF := GF) os.newFileKind :=
-  sorry -- axiomatized type
-
-noncomputable instance newFileKind_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) os.newFileKind os.newFileKind.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end newFileKind
 
 namespace unixDirent
 section def_
@@ -425,12 +634,84 @@ variable [sem : go.Semantics]
 variable [package_sem' : os.Assumptions]
 
 noncomputable instance unixDirent_typed_pointsto :
-    TypedPointsto (GF := GF) os.unixDirent :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) os.unixDirent where
+  typedPointstoDef l v dq := iprop(
+    "parent" ∷ typedPointsto (structFieldRef os.unixDirent go!"parent" l) v.parent' dq ∗
+    "name" ∷ typedPointsto (structFieldRef os.unixDirent go!"name" l) v.name' dq ∗
+    "typ" ∷ typedPointsto (structFieldRef os.unixDirent go!"typ" l) v.typ' dq ∗
+    "info" ∷ typedPointsto (structFieldRef os.unixDirent go!"info" l) v.info' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance unixDirent_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) os.unixDirent os.unixDirent.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) os.unixDirent os.unixDirent.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance unixDirent_access_load_parent (l : Loc) (v : os.unixDirent) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.unixDirent go!"parent" l) v.parent' dq)
+      (typedPointsto (structFieldRef os.unixDirent go!"parent" l) v.parent' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance unixDirent_access_store_parent (l : Loc) (v : os.unixDirent) (parent' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.unixDirent go!"parent" l) v.parent' (DFrac.own 1))
+      (typedPointsto (structFieldRef os.unixDirent go!"parent" l) parent' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with parent' := parent' } : os.unixDirent) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance unixDirent_access_load_name (l : Loc) (v : os.unixDirent) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.unixDirent go!"name" l) v.name' dq)
+      (typedPointsto (structFieldRef os.unixDirent go!"name" l) v.name' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance unixDirent_access_store_name (l : Loc) (v : os.unixDirent) (name' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.unixDirent go!"name" l) v.name' (DFrac.own 1))
+      (typedPointsto (structFieldRef os.unixDirent go!"name" l) name' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with name' := name' } : os.unixDirent) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance unixDirent_access_load_typ (l : Loc) (v : os.unixDirent) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.unixDirent go!"typ" l) v.typ' dq)
+      (typedPointsto (structFieldRef os.unixDirent go!"typ" l) v.typ' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance unixDirent_access_store_typ (l : Loc) (v : os.unixDirent) (typ' : io.fs.FileMode) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.unixDirent go!"typ" l) v.typ' (DFrac.own 1))
+      (typedPointsto (structFieldRef os.unixDirent go!"typ" l) typ' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with typ' := typ' } : os.unixDirent) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance unixDirent_access_load_info (l : Loc) (v : os.unixDirent) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.unixDirent go!"info" l) v.info' dq)
+      (typedPointsto (structFieldRef os.unixDirent go!"info" l) v.info' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance unixDirent_access_store_info (l : Loc) (v : os.unixDirent) (info' : io.fs.FileInfo) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.unixDirent go!"info" l) v.info' (DFrac.own 1))
+      (typedPointsto (structFieldRef os.unixDirent go!"info" l) info' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with info' := info' } : os.unixDirent) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end unixDirent
@@ -444,12 +725,33 @@ variable [sem : go.Semantics]
 variable [package_sem' : os.Assumptions]
 
 noncomputable instance rawConn_typed_pointsto :
-    TypedPointsto (GF := GF) os.rawConn :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) os.rawConn where
+  typedPointstoDef l v dq := iprop(
+    "file" ∷ typedPointsto (structFieldRef os.rawConn go!"file" l) v.file' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance rawConn_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) os.rawConn os.rawConn.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) os.rawConn os.rawConn.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance rawConn_access_load_file (l : Loc) (v : os.rawConn) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.rawConn go!"file" l) v.file' dq)
+      (typedPointsto (structFieldRef os.rawConn go!"file" l) v.file' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance rawConn_access_store_file (l : Loc) (v : os.rawConn) (file' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.rawConn go!"file" l) v.file' (DFrac.own 1))
+      (typedPointsto (structFieldRef os.rawConn go!"file" l) file' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with file' := file' } : os.rawConn) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end rawConn
@@ -463,34 +765,36 @@ variable [sem : go.Semantics]
 variable [package_sem' : os.Assumptions]
 
 noncomputable instance Root_typed_pointsto :
-    TypedPointsto (GF := GF) os.Root :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) os.Root where
+  typedPointstoDef l v dq := iprop(
+    "root" ∷ typedPointsto (structFieldRef os.Root go!"root" l) v.root' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance Root_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) os.Root os.Root.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) os.Root os.Root.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance Root_access_load_root (l : Loc) (v : os.Root) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.Root go!"root" l) v.root' dq)
+      (typedPointsto (structFieldRef os.Root go!"root" l) v.root' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Root_access_store_root (l : Loc) (v : os.Root) (root' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.Root go!"root" l) v.root' (DFrac.own 1))
+      (typedPointsto (structFieldRef os.Root go!"root" l) root' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with root' := root' } : os.Root) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end Root
-
-namespace rootFS
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : os.Assumptions]
-
-noncomputable instance rootFS_typed_pointsto :
-    TypedPointsto (GF := GF) os.rootFS :=
-  sorry -- axiomatized type
-
-noncomputable instance rootFS_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) os.rootFS os.rootFS.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end rootFS
 
 namespace root
 section def_
@@ -501,34 +805,104 @@ variable [sem : go.Semantics]
 variable [package_sem' : os.Assumptions]
 
 noncomputable instance root_typed_pointsto :
-    TypedPointsto (GF := GF) os.root :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) os.root where
+  typedPointstoDef l v dq := iprop(
+    "name" ∷ typedPointsto (structFieldRef os.root go!"name" l) v.name' dq ∗
+    "mu" ∷ typedPointsto (structFieldRef os.root go!"mu" l) v.mu' dq ∗
+    "fd" ∷ typedPointsto (structFieldRef os.root go!"fd" l) v.fd' dq ∗
+    "refs" ∷ typedPointsto (structFieldRef os.root go!"refs" l) v.refs' dq ∗
+    "closed" ∷ typedPointsto (structFieldRef os.root go!"closed" l) v.closed' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance root_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) os.root os.root.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) os.root os.root.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance root_access_load_name (l : Loc) (v : os.root) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.root go!"name" l) v.name' dq)
+      (typedPointsto (structFieldRef os.root go!"name" l) v.name' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance root_access_store_name (l : Loc) (v : os.root) (name' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.root go!"name" l) v.name' (DFrac.own 1))
+      (typedPointsto (structFieldRef os.root go!"name" l) name' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with name' := name' } : os.root) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance root_access_load_mu (l : Loc) (v : os.root) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.root go!"mu" l) v.mu' dq)
+      (typedPointsto (structFieldRef os.root go!"mu" l) v.mu' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance root_access_store_mu (l : Loc) (v : os.root) (mu' : sync.Mutex) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.root go!"mu" l) v.mu' (DFrac.own 1))
+      (typedPointsto (structFieldRef os.root go!"mu" l) mu' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : os.root) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance root_access_load_fd (l : Loc) (v : os.root) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.root go!"fd" l) v.fd' dq)
+      (typedPointsto (structFieldRef os.root go!"fd" l) v.fd' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance root_access_store_fd (l : Loc) (v : os.root) (fd' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.root go!"fd" l) v.fd' (DFrac.own 1))
+      (typedPointsto (structFieldRef os.root go!"fd" l) fd' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with fd' := fd' } : os.root) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance root_access_load_refs (l : Loc) (v : os.root) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.root go!"refs" l) v.refs' dq)
+      (typedPointsto (structFieldRef os.root go!"refs" l) v.refs' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance root_access_store_refs (l : Loc) (v : os.root) (refs' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.root go!"refs" l) v.refs' (DFrac.own 1))
+      (typedPointsto (structFieldRef os.root go!"refs" l) refs' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with refs' := refs' } : os.root) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance root_access_load_closed (l : Loc) (v : os.root) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.root go!"closed" l) v.closed' dq)
+      (typedPointsto (structFieldRef os.root go!"closed" l) v.closed' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance root_access_store_closed (l : Loc) (v : os.root) (closed' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.root go!"closed" l) v.closed' (DFrac.own 1))
+      (typedPointsto (structFieldRef os.root go!"closed" l) closed' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with closed' := closed' } : os.root) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end root
-
-namespace errSymlink
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : os.Assumptions]
-
-noncomputable instance errSymlink_typed_pointsto :
-    TypedPointsto (GF := GF) os.errSymlink :=
-  sorry -- axiomatized type
-
-noncomputable instance errSymlink_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) os.errSymlink os.errSymlink.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end errSymlink
 
 namespace File
 section def_

@@ -41,7 +41,7 @@ theorem watchGRPCStream.newWatcherStreamBufLogger.wp_proof
     (wp_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
     watchGRPCStream.newWatcherStreamBufLogger.spec (GF := GF) (hG := hG) := by
   intro wgs ws lg key ed nowf
-  wp_start as ⟨#Hlg, %Hlgn, #Hkey, #Hend, #Hnowf⟩
+  wp_start as ⟨#Hlg, #Hlgn, #Hkey, #Hend, #Hnowf⟩
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   wp_auto
@@ -67,7 +67,7 @@ theorem watchGRPCStream.newWatcherStreamBufLogger.wp_proof
     iintro %fsl ⟨-, -⟩
     wp_auto
     wp_apply wp_Info $$ []
-    · iframe #; ipureintro; exact Hlgn
+    · iframe #
     iapply HΦ'
     iunfold wsLogA
     iframe

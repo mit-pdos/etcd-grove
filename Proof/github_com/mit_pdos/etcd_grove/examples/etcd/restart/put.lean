@@ -48,7 +48,7 @@ theorem put.wp_proof
   wp_apply (client.wp_WithTimeout_bg hWT wp_ErrAny hAs _) $$ []
     as %pctx %pcd %pcancel ⟨#Hpcancel, #Hpctx, #Hpce, -⟩
   (try wp_auto)
-  imod mvcc.idxCert_nil (GF := GF) E.γ.idx with #HF0
+  imod v3rpc.kvLogLb_nil (GF := GF) E.γs with #HF0
   ihave #Hnil : optsAt (GF := GF) slice.nil [] $$ []
   · iunfold optsAt
     iexists ([] : List GoFunc)
@@ -87,7 +87,7 @@ theorem put.wp_proofOther
   wp_apply (client.wp_WithTimeout_bg hWT wp_ErrAny hAs _) $$ []
     as %pctx %pcd %pcancel ⟨#Hpcancel, #Hpctx, #Hpce, -⟩
   (try wp_auto)
-  imod mvcc.idxCert_nil (GF := GF) E.γ.idx with #HF0
+  imod v3rpc.kvLogLb_nil (GF := GF) E.γs with #HF0
   ihave #Hnil : optsAt (GF := GF) slice.nil [] $$ []
   · iunfold optsAt
     iexists ([] : List GoFunc)

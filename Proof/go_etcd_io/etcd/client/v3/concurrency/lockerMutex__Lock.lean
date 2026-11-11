@@ -31,14 +31,14 @@ theorem lockerMutex.Lock.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := h
     (hCtx : Client.Ctx.spec (GF := GF) (hG := hG)) (hLock : Mutex.Lock.spec (GF := GF) (hG := hG)) :
     lockerMutex.Lock.spec (GF := GF) (hG := hG) := by
   intro lm m s γ client id pfx st cctx ccs lo
-  wp_start as ⟨Hlm, #Hm, Hst, #Hcc, #Hctx, #Hcan, #Hlo⟩
+  wp_start as ⟨Hlm, #Hm, Hst, #Hcc, #Hctx, #HctxC, #Hcan, #Hlo⟩
   ihave #Hm' := Hm
   iunfold isMutex at Hm'
   icases Hm' with ⟨#Hms, -, -, #Hsess, -⟩
   wp_auto
   wp_apply hCl s γ client id $$ [$Hpkg $Hsess]
   wp_apply hCtx client (GoInterface.ok cctx) $$ [$Hcc]
-  wp_apply hLock m s γ client id pfx st cctx ccs lo $$ [$Hpkg $Hm $Hst $Hctx $Hcan $Hlo]
+  wp_apply hLock m s γ client id pfx st cctx ccs lo $$ [$Hpkg $Hm $Hst $Hctx $HctxC $Hcan $Hlo]
     as %err Hres
   icases Hres with (⟨%Herr, Hok⟩ | ⟨#Hexp, %st', %R, Hst', -⟩ | ⟨%Hne, %st', Hst'⟩)
   · subst Herr

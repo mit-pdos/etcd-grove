@@ -378,7 +378,7 @@ instance srvMintInv_persistent (ρ : ReqNames) : Persistent (srvMintInv (GF := G
 
 /-- The server's `done` channel (closed when it stops; receiving gives nothing). -/
 def srvDoneChan (ch : GoChan) : IProp GF :=
-  iprop(∃ γ : ChanNames, ownBroadcastChan ch γ iprop(True) .Unknown)
+  iprop(∃ (γ : ChanNames) (Q : IProp GF), ownBroadcastChan ch γ Q .Unknown)
 
 instance srvDoneChan_persistent (ch : GoChan) : Persistent (srvDoneChan (GF := GF) ch) := by
   unfold srvDoneChan; infer_instance
@@ -501,15 +501,17 @@ token of the revision the step appended, if it appended one (`revMinted`, unit V
 write ran at a log extending the proposer's floor `F` (`apply.kvFloorOk`); and (unit W-M3) the log
 the entry met is `lb` (`x.log`, which the raft request's result ties to the raft prefix the
 proposal's update fired at) and the log after is certified (`certOk`); and (linkv-txn stage B1,
-2026-10-20) the ranges were run (`skip = false`: the apply thread found the id registered). -/
+2026-10-20) the ranges were run (`skip = false`: the apply thread found the id registered); (strict
+M1, 2026-11-06) the log after's receipt, well formed and short (`resultIsW`'s). -/
 def appliedOk (E : apply.AEnv GF) (γr : ReadNames) (rq' : apply.IRRModel) (F : mvcc.Log)
     (resp : GoInterface) (lb : mvcc.Log) :
     IProp GF :=
   iprop(∃ (x x' : apply.ApplyKV) (o : apply.Outcome) (skip : Bool),
     ⌜apply.applyStep rq' true x x' (.dispatched o skip) ∧ apply.kvFloorOk rq' true F x.log o ∧
       x.log = lb ∧ skip = false⌝ ∗
-    apply.dispatchAnswer rq' x.log skip resp GoInterface.nil null o ∗ mvcc.idxCert E.γ.idx x'.log ∗
-    revMinted E x.log x'.log ∗ appliedWit γr x'.log ∗ mvcc.certOk E.γ x'.log)
+    apply.dispatchAnswer rq' x.log skip resp GoInterface.nil null o ∗ srvApi.kvLogLb E.γs x'.log ∗
+    revMinted E x.log x'.log ∗ appliedWit γr x'.log ∗ E.Nx x'.log ∗
+    ⧖ (mvcc.logCh x'.log) ∗ ⌜mvcc.LogWf' x'.log ∧ x'.log.length + 3 ≤ 2 ^ 63⌝)
 
 /-- **The apply thread's answer to `rq'` carried the error `err`** (`result.Err`): the result
 `ar` of applying `rq'` (`resultIs`), whose `Err` is `err`. -/

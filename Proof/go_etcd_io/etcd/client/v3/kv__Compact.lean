@@ -101,7 +101,7 @@ theorem kv.Compact.wp_proof
     | nil => exact absurd rfl Hne
     | ok ei =>
       wp_auto
-      wp_apply wp_ContextError ci cd (GoInterface.ok ei) $$ [$Hse] as %err' ⟨%Herr', #Hse', #Hclw⟩
+      wp_apply wp_ContextError ci cd (GoInterface.ok ei) $$ [$Hse] as %err' ⟨%Herr', #Hse', #Hclw, -⟩
       · iframe #; ipureintro; exact fun _ => Hce'
       ihave #Hcl' := Hclw $$ Hcl
       iapply HΦ

@@ -30,14 +30,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 until then the generic triple of the methods that leave the log, over the write right `E.RW`.) -/
 abbrev apply.applierV3Corrupt.LeaseGrant.spec : Prop :=
   ∀ (E : AEnv GF) (c : apply.Chain) (inner : GoInterface) (p r : Loc) (rq : IRRModel) (g : LeaseGrantModel)
-    (log : mvcc.Log) (T : List w64) (rs : apply.RestM) (Pre Q Post : IProp GF)
+    (log : mvcc.Log) (T : List w64) (rs : apply.RestM) (U : List w64) (Pre Q Post : IProp GF)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.corruptIs p inner ∗
-      apply.grantPre E (.corrupt c) (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p) info r rq g log T rs
+      apply.applyTok E ∗ apply.grantPre E (.corrupt c) (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p) info r rq g log T rs U
         Pre Q Post }}
     (App (Val (p @!! go.GoType.PointerType applierV3Corrupt.ty @!! go!"LeaseGrant")) (Val #r))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); ∃ o : apply.Outcome,
-      apply.grantPost E (.corrupt c) (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p) rq g log T rs
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); apply.applyTok E ∗ ∃ o : apply.Outcome,
+      apply.grantPost E (.corrupt c) (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p) rq g log T rs U
         Pre Post resp err o }}
 
 end spec

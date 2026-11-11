@@ -1,13 +1,15 @@
 /-
-`stop(m)` (`examples/etcd/restart/etcd_restart.go`; the restart plan's R2a, 2026-11-02; DRAFT): the
+`stop(m)` (`examples/etcd/restart/restart3.go`; the restart plan's R2a, 2026-11-02; DRAFT): the
 member's server stopped (`HardStop`), then its peer listener closed. Lean-first (no Rocq
 counterpart).
 
-**The triple:** from a stoppable member (`memberStop`, at the request names `ρ` its stop right
-records) of a cluster whose bootstrap log has at most `NBoot` entries (`stop` waits until the
+**The triple:** from a stoppable member (`memberStop`, at the request names `ρ`, with (R2c-4) what
+its stop takes of the started member, `memberStopRes`: the right to stop the server and the
+store's readers of the serving stocks it never used) of a cluster whose bootstrap log has at most `NBoot` entries (`stop` waits until the
 member applied `NBoot`, the evidence `HardStop` takes, R2b-2 review F2), the member's data directory as the stop left it, recording `ρ` (`srvDiskImage`, R2c), its peer address and the right to serve it with the member's raft
-protocol back (`http.ListenerClose_spec`'s draft boundary), so that the member can be started
-again there. (R2b-2, 2026-11-02: until then also the request view `isServerReq`, which
+protocol back (`http.ListenerClose_spec`'s draft boundary), as the member's restart bundle
+(`etcdstart.memberRestartRes`, hub step 8's E5, its data directory `name ++ ".etcd"`), so that the
+member can be started again there. (R2b-2, 2026-11-02: until then also the request view `isServerReq`, which
 `HardStop` no longer takes.)
 -/
 module
@@ -34,12 +36,12 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.restart.Ass
 /-- See the file header. -/
 abbrev stop.spec : Prop :=
   ∀ (m s : Loc) (pl : GoInterface) (γ : SrvRaft) (id : w64) (peerAddr : GoString)
-    (γn : NetNames GF) (ρ : ReqNames) (dd : GoString),
+    (γn : NetNames GF) (ρ : ReqNames) (name : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.restart ∗
-      memberStop m s pl γ id peerAddr γn ρ dd ∗ ⌜γ.boot.length ≤ 3⌝ }}
+      memberStop m s pl γ id peerAddr γn ρ (name ++ go!".etcd") ∗ memberStopRes s ρ id ∗
+      ⌜γ.boot.length ≤ 3⌝ }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.restart.stop)) (Val #m))
-  {{ RET #(); srvDiskImage γ ρ id dd ∗ netAddrFree (GF := GF) peerAddr ∗
-      http.httpProtoOwn peerAddr (raftProto (netRh γn)) }}
+  {{ RET #(); etcdstart.memberRestartRes name ⟨some peerAddr, none⟩ γn γ ρ id }}
 
 end spec
 

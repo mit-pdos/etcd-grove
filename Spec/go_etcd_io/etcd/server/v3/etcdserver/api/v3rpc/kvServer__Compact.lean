@@ -6,6 +6,7 @@ vocabulary `v3rpc/InvAuthAdmin.lean` and `v3rpc/InvKV.lean`.
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvAuthAdmin
+public import Proof.context.LibKeys
 
 @[expose] public section
 
@@ -39,12 +40,12 @@ abbrev v3rpc.kvServer.Compact.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       v3rpc.kvServerIs p s A cid mid n ∗
       structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer go!"aa" p ↦□ aa ∗
-      v3rpc.authAdminIs aa s E ∗ srvAdminNilOk s E ∗ mvcc.txnCtx ctx cd ∗ E.RD ∗ Pin ∗
+      v3rpc.authAdminIs aa s E ∗ srvAdminNilOk s E ∗ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗ E.RD ∗ Pin ∗
       v3rpc.compactOk s E A Pin (GoInterface.ok ctx) r Q }}
     (App (App (Val (p @!! go.GoType.PointerType v3rpc.kvServer.ty @!! go!"Compact"))
       (Val #(GoInterface.ok ctx))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); E.RD ∗
-      v3rpc.compactOut A cid mid Pin Q resp err }}
+      v3rpc.compactOut A cid mid Pin Q resp err ∗ go_etcd_io.etcd.cache.v3.srvErrOk err }}
 
 end spec
 

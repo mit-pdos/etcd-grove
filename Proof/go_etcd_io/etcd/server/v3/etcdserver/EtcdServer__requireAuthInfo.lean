@@ -31,9 +31,9 @@ theorem EtcdServer.requireAuthInfo.wp_proof
     (hAI : EtcdServer.AuthInfoFromCtx.spec (GF := GF) (hG := hG)) :
     EtcdServer.requireAuthInfo.spec (GF := GF) (hG := hG) := by
   intro s E ctx cd
-  wp_start as ⟨#Hau, #Hctx, HRD⟩
+  wp_start as ⟨#Hau, #Hctx, #Hlib, HRD⟩
   iunfold srvAuthAt at Hau
-  icases Hau with ⟨%st, %cca, %P, %f, #Has, #Hreq, #Hreqb, #Hcca, #Hast⟩
+  icases Hau with ⟨%st, %cca, #Has, #Hreq, #Hreqb, #Hcca, #Hast⟩
   iunfold apply.isAuthStore at Hast
   icases Hast with ⟨%ai, %Hai, -, -, -, -, -, #HEn, -⟩
   subst Hai
@@ -44,6 +44,9 @@ theorem EtcdServer.requireAuthInfo.wp_proof
   · (try wp_auto)
     iapply HΦ
     iframe HRD
+    isplitr
+    rotate_left
+    · iunfold authErrVarIs; ileft; ipureintro; rfl
     iunfold authedOutB
     isplitr
     · iapply applyErrIs_nil
@@ -59,8 +62,9 @@ theorem EtcdServer.requireAuthInfo.wp_proof
   · (try wp_auto)
     ihave %Hon := enabledVerdict_true_isOn E.authMode $$ Hb
     wp_apply (hAI s (GoInterface.ok ai) E.RD E.authMode cca ctx cd)
-      $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr, #Hbnd⟩
+      $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr0, #Hbnd, #Hae⟩
     · iframe #
+    ihave #Herr := authApplyErrIs_apply _ $$ Herr0
     -- auth on here (`Hon`): the binding's gate open
     ihave #Hbnd : ctxBoundOrTLS s E.authMode (GoInterface.ok ctx) a $$ []
     · iapply Hbnd; ipureintro; exact Hon
@@ -69,6 +73,9 @@ theorem EtcdServer.requireAuthInfo.wp_proof
     · (try wp_auto)
       iapply HΦ
       iframe HRD
+      isplitr
+      rotate_left
+      · iapply Hae; ipureintro; exact Hon
       iunfold authedOutB
       isplitr
       · iexact Herr
@@ -89,9 +96,15 @@ theorem EtcdServer.requireAuthInfo.wp_proof
         icases Hainit with ⟨#HUE, -⟩
         ihave #HUEl := errVarLeaf_authErrVar _ $$ HUE
         ihave ⟨%eUE, #HeUE, #HaUE⟩ := errVarLeaf_get _ $$ HUEl
+        ihave #HaaUE := apply.authErrVar_authApplyErrIs go_etcd_io.etcd.server.v3.auth.ErrUserEmpty
+          (by simp [go_etcd_io.etcd.server.v3.auth.authErrMsgs]) (GoInterface.ok eUE) $$ HUE
+          [HeUE]
+        · iexists eUE; iframe HeUE; ipureintro; rfl
+        iunfold authApplyErrIs at HaaUE
+        icases HaaUE with ⟨-, #HvUE⟩
         (try wp_auto)
         iapply HΦ
-        iframe HRD
+        iframe HRD HvUE
         iunfold authedOutB
         isplitr
         · iexact HaUE
@@ -108,6 +121,9 @@ theorem EtcdServer.requireAuthInfo.wp_proof
         (try wp_auto)
         iapply HΦ
         iframe HRD
+        isplitr
+        rotate_left
+        · iunfold authErrVarIs; ileft; ipureintro; rfl
         iunfold authedOutB
         isplitr
         · iapply applyErrIs_nil

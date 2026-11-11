@@ -1,6 +1,7 @@
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.decodeObj
+public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.getField
 
 @[expose] public section
 
@@ -19,14 +20,70 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
-theorem decodeObj.wp_proof : decodeObj.spec (GF := GF) (hG := hG) := by
+set_option hygiene false in
+/-- One `getField` of `decodeObj` at the index `j` (`sint.Z j = i`, within the data); a failing read
+is `decodeD d = none`, by `hdn` (the earlier reads' equations); the next goal has the field `f`,
+the index `j'` (`sint.Z j' = i'`) and `hf : getFieldD d i = some (f, i')`. -/
+local macro "get_field " j:term:max i:term:max hf:ident f:ident j':ident i':ident hj':ident :
+    tactic => `(tactic| (
+  wp_apply wp_getField sl dq d $j (by first | word | omega) (by first | word | omega) $$ [Hs] as %$f %$j' %okf ⟨Hs, %Hg⟩
+  · iframe Hs
+  rw [show sint.nat $j = $i by first | word | omega] at Hg
+  cases $hf:ident : getFieldD d $i
+  case none =>
+    rw [$hf:ident] at Hg
+    subst Hg
+    (try wp_auto)
+    iapply HΦ
+    iframe Hs
+    ipureintro
+    have hdn : decodeD d = none := by
+      unfold decodeD
+      rw [if_neg hnl, if_neg hbad]
+      simp only [*]
+    rw [hdn]
+  rename_i p
+  obtain ⟨_, $i'⟩ := p
+  rw [$hf:ident] at Hg
+  obtain ⟨rfl, rfl, $hj':ident⟩ := Hg
+  obtain ⟨hjeq, _, _⟩ := getFieldD_some _ _ _ _ $hf:ident
+  have := hjeq.symm
+  clear hjeq
+  (try wp_auto)))
+
+set_option hygiene false in
+/-- The end of `decodeObj`: the value is the rest of the data, from the index `j5` (`= i5`). -/
+local macro "finish_decode" : tactic => `(tactic| (
+  have hj5n : sint.nat j5 = i5 := by first | word | omega
+  rw [if_pos (show 0 ≤ sint.Z j5 ∧ sint.Z j5 ≤ sint.Z sl.len ∧ sint.Z sl.len ≤ sint.Z sl.cap by
+    first | word | omega)]
+  icases (ownSlice_slice j5 sl.len sl dq d (by first | word | omega)).1 $$ Hs with ⟨A, B, C⟩
+  wp_apply wp_bytes_to_string _ _ dq $$ [B] as B
+  · iexact B
+  ihave Hs := (ownSlice_slice j5 sl.len sl dq d (by first | word | omega)).2 $$ [A B C]
+  · iframe A B C
+  (try wp_auto)
+  iapply HΦ
+  iframe Hs
+  ipureintro
+  have hdec : decodeD d = some ⟨ns, name, uid, d.drop i5, node, app, 0, false⟩ := by
+    unfold decodeD; rw [if_neg hnl, if_neg hbad]; simp only [h1, h2, h3, h4, h5]
+  rw [hdec]
+  refine ⟨rfl, ?_⟩
+  unfold subslice
+  rw [hj5n, show sint.nat sl.len = d.length by first | word | omega, List.take_of_length_le (by simp)]))
+
+theorem decodeObj.wp_proof (wp_getField : getField.spec (GF := GF) (hG := hG)) :
+    decodeObj.spec (GF := GF) (hG := hG) := by
   intro sl dq d
   wp_start as Hs
   ihave %Hl := ownSlice_len $$ Hs
   ihave %Hwf := ownSlice_wf $$ Hs
   (try wp_auto)
+  have hlen : (d.length : Int) = sint.Z sl.len := by rw [Hl.1]; word
   wp_if_destruct
   · -- too short
     (try wp_auto)
@@ -48,174 +105,43 @@ theorem decodeObj.wp_proof : decodeObj.spec (GF := GF) (hG := hG) := by
   have hsub : subslice 0 3 d = d.take 3 := by
     unfold subslice; simp
   simp only [hsub]
-  have hnl : ¬ d.length < 4 := by word
-  by_cases hv1 : d.take 3 = tagV1
-  · have hd1 : decide (d.take 3 = go!"v1:") = true := by simp only [decide_eq_true_eq]; exact hv1
-    rw [hd1]
+  have hnl : ¬ d.length < 3 := by word
+  by_cases hbad : d.take 3 ≠ tagV1 ∧ d.take 3 ≠ tagV0
+  · rw [decide_eq_false (show ¬ d.take 3 = go!"v1:" from hbad.1)]
     (try wp_auto)
-    rw [if_pos (show 0 ≤ sint.Z (W64 3) ∧ sint.Z (W64 3) < sint.Z sl.len by word)]
-    have h3 : d[(sint.Z (W64 3)).toNat]? = some (d.getD 3 (W8 0)) := by
-      rw [show (sint.Z (W64 3)).toNat = 3 from rfl, List.getD_eq_getElem?_getD]
-      rw [List.getElem?_eq_getElem (by word)]
-      rfl
-    wp_apply wp_load_slice_index sl (sint.Z (W64 3)) d dq _ (by word) $$ [$Hs] as Hs
-    · ipureintro; exact h3
-    (try wp_auto)
-    (try wp_auto)
-    have hnb : uint.Z (d.getD 3 (W8 0)) < 256 := by
-      have := (d.getD 3 (W8 0)).isLt; simp only [uint.Z]; omega
-    have hlen : (d.length : Int) = sint.Z sl.len := by rw [Hl.1]; word
-    have hcap := Hwf.2
-    have htagok : ¬ (d.take 3 ≠ tagV1 ∧ d.take 3 ≠ tagV0) := fun h => h.1 hv1
-    have hhi : sint.Z (W64 4 + W64 (uint.Z (d.getD 3 (W8 0)))) = 4 + uint.Z (d.getD 3 (W8 0)) := by
-      word
-    wp_if_destruct
-    · -- the name runs past the data
-      (try wp_auto)
-      iapply HΦ
-      iframe Hs
-      ipureintro
-      have : decodeD d = none := by
-        unfold decodeD
-        rw [if_neg hnl, if_neg htagok, if_pos (by simp only [uint.Z] at hhi hnb; word)]
-      rw [this]
-    · rw [if_pos (show 0 ≤ sint.Z (W64 4) ∧ sint.Z (W64 4) ≤ sint.Z (W64 4 + W64 (uint.Z (d.getD 3 (W8 0)))) ∧
-        sint.Z (W64 4 + W64 (uint.Z (d.getD 3 (W8 0)))) ≤ sint.Z sl.cap by word)]
-      have hb1 : 0 ≤ sint.Z (W64 4) ∧ sint.Z (W64 4) ≤ sint.Z (W64 4 + W64 (uint.Z (d.getD 3 (W8 0)))) ∧
-          sint.Z (W64 4 + W64 (uint.Z (d.getD 3 (W8 0)))) ≤ sint.Z sl.len := by word
-      icases (ownSlice_slice (W64 4) (W64 4 + W64 (uint.Z (d.getD 3 (W8 0)))) sl dq d hb1).1 $$ Hs
-        with ⟨A, B, C⟩
-      wp_apply wp_bytes_to_string _ _ dq $$ [$B] as B
-      ihave Hs := (ownSlice_slice (W64 4) (W64 4 + W64 (uint.Z (d.getD 3 (W8 0)))) sl dq d hb1).2
-        $$ [A B C]
-      · (try rw [show sint.nat (W64 4) = 4 from rfl])
-        iframe A B C
-      (try wp_auto)
-      rw [if_pos (show 0 ≤ sint.Z (W64 4 + W64 (uint.Z (d.getD 3 (W8 0)))) ∧
-          sint.Z (W64 4 + W64 (uint.Z (d.getD 3 (W8 0)))) ≤ sint.Z sl.len ∧
-          sint.Z sl.len ≤ sint.Z sl.cap by word)]
-      have hb2 : 0 ≤ sint.Z (W64 4 + W64 (uint.Z (d.getD 3 (W8 0)))) ∧
-          sint.Z (W64 4 + W64 (uint.Z (d.getD 3 (W8 0)))) ≤ sint.Z sl.len ∧
-          sint.Z sl.len ≤ sint.Z sl.len := by word
-      icases (ownSlice_slice (W64 4 + W64 (uint.Z (d.getD 3 (W8 0)))) sl.len sl dq d hb2).1 $$ Hs
-        with ⟨A, B, C⟩
-      wp_apply wp_bytes_to_string _ _ dq $$ [$B] as B
-      ihave Hs := (ownSlice_slice (W64 4 + W64 (uint.Z (d.getD 3 (W8 0)))) sl.len sl dq d hb2).2
-        $$ [A B C]
-      · (try rw [show sint.nat (W64 4) = 4 from rfl])
-        iframe A B C
-      (try wp_auto)
-      iapply HΦ
-      iframe Hs
-      ipureintro
-      have hn4 : sint.nat (W64 4 + W64 (uint.Z (d.getD 3 (W8 0)))) = 4 + (d.getD 3 (W8 0)).toNat := by
-        simp only [uint.Z] at hhi; word
-      have hdec : decodeD d = some ((d.drop 4).take (d.getD 3 (W8 0)).toNat,
-          d.drop (4 + (d.getD 3 (W8 0)).toNat)) := by
-        unfold decodeD
-        rw [if_neg hnl, if_neg htagok, if_neg (by simp only [uint.Z] at hhi hnb; word)]
-      rw [hdec]
-      refine ⟨rfl, ?_, ?_⟩
-      · rw [hn4]
-        unfold subslice
-        rw [List.drop_take]
-        congr 1
-        omega
-      · rw [hn4, show sint.nat sl.len = d.length by word]
-        unfold subslice
-        rw [List.take_of_length_le (by omega)]
-  by_cases hv0 : d.take 3 = tagV0
-  · have hd1 : decide (d.take 3 = go!"v1:") = false := by simp only [decide_eq_false_iff_not]; exact hv1
-    have hd0 : decide (d.take 3 = go!"v0:") = true := by simp only [decide_eq_true_eq]; exact hv0
-    rw [hd1]
-    (try wp_auto)
-    rw [hd0]
-    (try wp_auto)
-    rw [if_pos (show 0 ≤ sint.Z (W64 3) ∧ sint.Z (W64 3) < sint.Z sl.len by word)]
-    have h3 : d[(sint.Z (W64 3)).toNat]? = some (d.getD 3 (W8 0)) := by
-      rw [show (sint.Z (W64 3)).toNat = 3 from rfl, List.getD_eq_getElem?_getD]
-      rw [List.getElem?_eq_getElem (by word)]
-      rfl
-    wp_apply wp_load_slice_index sl (sint.Z (W64 3)) d dq _ (by word) $$ [$Hs] as Hs
-    · ipureintro; exact h3
-    (try wp_auto)
-    (try wp_auto)
-    have hnb : uint.Z (d.getD 3 (W8 0)) < 256 := by
-      have := (d.getD 3 (W8 0)).isLt; simp only [uint.Z]; omega
-    have hlen : (d.length : Int) = sint.Z sl.len := by rw [Hl.1]; word
-    have hcap := Hwf.2
-    have htagok : ¬ (d.take 3 ≠ tagV1 ∧ d.take 3 ≠ tagV0) := fun h => h.2 hv0
-    have hhi : sint.Z (W64 4 + W64 (uint.Z (d.getD 3 (W8 0)))) = 4 + uint.Z (d.getD 3 (W8 0)) := by
-      word
-    wp_if_destruct
-    · -- the name runs past the data
-      (try wp_auto)
-      iapply HΦ
-      iframe Hs
-      ipureintro
-      have : decodeD d = none := by
-        unfold decodeD
-        rw [if_neg hnl, if_neg htagok, if_pos (by simp only [uint.Z] at hhi hnb; word)]
-      rw [this]
-    · rw [if_pos (show 0 ≤ sint.Z (W64 4) ∧ sint.Z (W64 4) ≤ sint.Z (W64 4 + W64 (uint.Z (d.getD 3 (W8 0)))) ∧
-        sint.Z (W64 4 + W64 (uint.Z (d.getD 3 (W8 0)))) ≤ sint.Z sl.cap by word)]
-      have hb1 : 0 ≤ sint.Z (W64 4) ∧ sint.Z (W64 4) ≤ sint.Z (W64 4 + W64 (uint.Z (d.getD 3 (W8 0)))) ∧
-          sint.Z (W64 4 + W64 (uint.Z (d.getD 3 (W8 0)))) ≤ sint.Z sl.len := by word
-      icases (ownSlice_slice (W64 4) (W64 4 + W64 (uint.Z (d.getD 3 (W8 0)))) sl dq d hb1).1 $$ Hs
-        with ⟨A, B, C⟩
-      wp_apply wp_bytes_to_string _ _ dq $$ [$B] as B
-      ihave Hs := (ownSlice_slice (W64 4) (W64 4 + W64 (uint.Z (d.getD 3 (W8 0)))) sl dq d hb1).2
-        $$ [A B C]
-      · (try rw [show sint.nat (W64 4) = 4 from rfl])
-        iframe A B C
-      (try wp_auto)
-      rw [if_pos (show 0 ≤ sint.Z (W64 4 + W64 (uint.Z (d.getD 3 (W8 0)))) ∧
-          sint.Z (W64 4 + W64 (uint.Z (d.getD 3 (W8 0)))) ≤ sint.Z sl.len ∧
-          sint.Z sl.len ≤ sint.Z sl.cap by word)]
-      have hb2 : 0 ≤ sint.Z (W64 4 + W64 (uint.Z (d.getD 3 (W8 0)))) ∧
-          sint.Z (W64 4 + W64 (uint.Z (d.getD 3 (W8 0)))) ≤ sint.Z sl.len ∧
-          sint.Z sl.len ≤ sint.Z sl.len := by word
-      icases (ownSlice_slice (W64 4 + W64 (uint.Z (d.getD 3 (W8 0)))) sl.len sl dq d hb2).1 $$ Hs
-        with ⟨A, B, C⟩
-      wp_apply wp_bytes_to_string _ _ dq $$ [$B] as B
-      ihave Hs := (ownSlice_slice (W64 4 + W64 (uint.Z (d.getD 3 (W8 0)))) sl.len sl dq d hb2).2
-        $$ [A B C]
-      · (try rw [show sint.nat (W64 4) = 4 from rfl])
-        iframe A B C
-      (try wp_auto)
-      iapply HΦ
-      iframe Hs
-      ipureintro
-      have hn4 : sint.nat (W64 4 + W64 (uint.Z (d.getD 3 (W8 0)))) = 4 + (d.getD 3 (W8 0)).toNat := by
-        simp only [uint.Z] at hhi; word
-      have hdec : decodeD d = some ((d.drop 4).take (d.getD 3 (W8 0)).toNat,
-          d.drop (4 + (d.getD 3 (W8 0)).toNat)) := by
-        unfold decodeD
-        rw [if_neg hnl, if_neg htagok, if_neg (by simp only [uint.Z] at hhi hnb; word)]
-      rw [hdec]
-      refine ⟨rfl, ?_, ?_⟩
-      · rw [hn4]
-        unfold subslice
-        rw [List.drop_take]
-        congr 1
-        omega
-      · rw [hn4, show sint.nat sl.len = d.length by word]
-        unfold subslice
-        rw [List.take_of_length_le (by omega)]
-  · have hd1 : decide (d.take 3 = go!"v1:") = false := by simp only [decide_eq_false_iff_not]; exact hv1
-    have hd0 : decide (d.take 3 = go!"v0:") = false := by
-      simp only [decide_eq_false_iff_not]; exact hv0
-    rw [hd1]
-    (try wp_auto)
-    rw [hd0]
+    rw [decide_eq_false (show ¬ d.take 3 = go!"v0:" from hbad.2)]
     (try wp_auto)
     iapply HΦ
     iframe Hs
     ipureintro
     have : decodeD d = none := by
       unfold decodeD
-      rw [if_neg hnl, if_pos ⟨hv1, hv0⟩]
+      rw [if_neg hnl, if_pos hbad]
     rw [this]
+  -- either tag takes the same path
+  by_cases hv1 : d.take 3 = go!"v1:"
+  · rw [decide_eq_true hv1]
+    (try wp_auto)
+    get_field (W64 3) 3 h1 ns j1 i1 hj1
+    get_field j1 i1 h2 name j2 i2 hj2
+    get_field j2 i2 h3 uid j3 i3 hj3
+    get_field j3 i3 h4 node j4 i4 hj4
+    get_field j4 i4 h5 app j5 i5 hj5
+    finish_decode
+  · rw [decide_eq_false hv1]
+    (try wp_auto)
+    have hv0 : d.take 3 = go!"v0:" := by
+      by_cases h : d.take 3 = go!"v0:"
+      · exact h
+      · exact absurd ⟨hv1, h⟩ hbad
+    rw [decide_eq_true hv0]
+    (try wp_auto)
+    get_field (W64 3) 3 h1 ns j1 i1 hj1
+    get_field j1 i1 h2 name j2 i2 hj2
+    get_field j2 i2 h3 uid j3 i3 hj3
+    get_field j3 i3 h4 node j4 i4 hj4
+    get_field j4 i4 h5 app j5 i5 hj5
+    finish_decode
 
 end proof
 

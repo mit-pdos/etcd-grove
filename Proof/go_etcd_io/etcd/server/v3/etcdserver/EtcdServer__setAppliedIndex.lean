@@ -24,10 +24,54 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- In either auth mode (E3p): the invariant's body is the mode's (`srvAppliedBodyM`). -/
+/-- In either auth mode (E3p): the invariant's body is the mode's (`srvAppliedBodyM`); (R2d-4) a
+replay's store below the ghost applied index keeps the invariant (the atomic may lag). -/
 theorem EtcdServer.setAppliedIndex.wp_proof :
     EtcdServer.setAppliedIndex.spec (GF := GF) (hG := hG) := by
-  intro s E γr v v' L
+  intro s E γr v v' L rep
+  cases rep
+  case true =>
+    -- (R2d-4) a replay below the ghost applied index: the atomic store only
+    simp only [↓reduceIte]
+    wp_start as ⟨#Hinv, Hown, %hle⟩
+    ihave #Hatomic : isPkgInit (PROP := IProp GF) pkg_id.sync.atomic $$ []
+    · iPkgInit
+    wp_auto
+    wp_apply_core sync.atomic.Uint64.wp_Store (srvAppliedIndexAddr s) v' $$ [] [HΦ Hown]
+    · iexact Hatomic
+    ihave #Hinv' := Hinv
+    iunfold srvAppliedInvM at Hinv'
+    iinv Hinv' with Hi Hclose
+    iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
+    iintro Hmask
+    inext
+    iunfold srvAppliedBodyM at Hi
+    icases Hi with ⟨%vat, %v0, %L0, %M, %p, Hv, Hauth, HM, Hp, %HMk, #HL0, #Hc0, #Hkl⟩
+    iexists vat
+    iframe Hv
+    iintro Hv
+    imod Hmask with -
+    iunfold srvAppliedOwn at Hown
+    icases Hown with ⟨Hown, Hpo⟩
+    ihave %Hag := monoNatAuthOwn_agree γr.applied _ _ _ _ $$ Hown Hauth
+    have hv0 : v0 = v := by
+      have h2 := Hag.2
+      unfold uint.nat at h2
+      exact (BitVec.eq_of_toNat_eq h2).symm
+    subst hv0
+    imod Hclose $$ [Hv Hauth HM Hp] with -
+    · inext
+      iunfold srvAppliedBodyM
+      iexists v', v0, L0, M, p
+      iframe Hv Hauth HM Hp HL0 Hc0 Hkl
+      ipureintro
+      exact ⟨hle, HMk.2⟩
+    imodintro
+    wp_auto
+    iapply HΦ
+    iunfold srvAppliedOwn
+    iframe Hown Hpo
+  simp only [Bool.false_eq_true, ↓reduceIte]
   wp_start as ⟨#Hinv, Hpre, #Hc, #Hpub⟩
   iunfold srvAppliedPre at Hpre
   icases Hpre with ⟨Hown, Hpo, #HLv', %hv⟩

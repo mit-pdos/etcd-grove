@@ -128,8 +128,8 @@ theorem applyErrIs_of_ctxErr (cd : context.ContextDesc (IProp GF)) (err : GoInte
     · icases HDE with ⟨%eD, #HeD, %HDl, #HDm⟩
       icombine Hcv HeD gives %Hce
       cases Hce
-      obtain ⟨hl, hIs, hty, hkey⟩ := HDl
-      iapply applyErrIs_valLeaf _ hl hIs hty hkey $$ HDm
+      obtain ⟨hl, hIs, hty, hkey, hG, hF⟩ := HDl
+      iapply applyErrIs_valLeaf _ hl hIs hty hkey hG hF $$ HDm
 
 /-- **The error of a `node` call that hands a message to `run`** (`nodeErr`: `nil`, `ErrStopped`,
 or the context's), as the gRPC layer takes it (`applyErrIs`). -/
@@ -153,6 +153,29 @@ theorem applyErrIs_of_nodeErr (cd : context.ContextDesc (IProp GF)) (err : GoInt
     subst Heq
     iexact Ha
   · iapply applyErrIs_of_ctxErr cd err $$ Hpkg Hcerr
+
+/-- **The error of raft's `ReadIndex`, identified** (`nodeReadErrIs`; k8s etcd3 7c-2 part 2, S3b):
+`nil`, raft's `ErrStopped`, or a done context's error (`context.isCtxErr`, from `context`'s
+initializer). -/
+theorem nodeReadErrIs_of_nodeErr (cd : context.ContextDesc (IProp GF)) (err : GoInterface) :
+    ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver -∗
+      nodeErr cd err -∗ nodeReadErrIs err := by
+  iintro #Hpkg #Herr
+  ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
+  · iPkgInit
+  iunfold nodeErr at Herr
+  iunfold nodeReadErrIs
+  icases Herr with (%Hnil | #Hstop | #Hcerr)
+  · ileft; ipureintro; exact Hnil
+  · iunfold errStopped at Hstop
+    icases Hstop with ⟨#He, -⟩
+    iright; ileft; iexact He
+  · iunfold ctxErr at Hcerr
+    icases Hcerr with ⟨-, -, -, #Hval⟩
+    iunfold ctxErrVal at Hval
+    icases Hval with ⟨-, (#Hc | #Hd)⟩
+    · iright; iright; iapply context.isCtxErr_of_Canceled $$ Pctx Hc
+    · iright; iright; iapply context.isCtxErr_of_DeadlineExceeded $$ Pctx Hd
 
 /-- **A proposal's own result is one the gRPC layer can take**: raft's `stepErr` (`nil` or
 `ErrProposalDropped`), by the server's package facts (`srvErrVars`' `errVarLeaf` of raft's
@@ -362,6 +385,13 @@ theorem raftPropose_of_isNode (E : RNEnv GF) (γ : RNNames)
     iunfold srvClusterOk at Hcl
     icases Hcl with ⟨-, -, -, -, %H, -⟩
     ipureintro; exact H
+  ihave %Hmd : ⌜E.γr.raft.raft.cl.maxData = some (2 ^ 30)⌝ $$ []
+  · ihave #Hcl := Hinv
+    iunfold srvRaftLogInv at Hcl
+    icases Hcl with ⟨-, #Hcl, -⟩
+    iunfold srvClusterOk at Hcl
+    icases Hcl with ⟨-, -, -, -, -, -, -, -, -, -, %H⟩
+    ipureintro; exact H
   iunfold raftPropose
   iexists ⟨go.GoType.PointerType node.ty, #γ.nl⟩
   isplitr
@@ -370,7 +400,7 @@ theorem raftPropose_of_isNode (E : RNEnv GF) (γ : RNNames)
   · iexact Hinv
   isplitr
   · iapply srvPropWits_of E.γr.raft $$ Hinv
-  iintro !> %ctx %cd %dsl %data %Q %Φ !> ⟨#Hctx, #Hdata, %Hne, Harg, Hlc⟩ HΦ
+  iintro !> %ctx %cd %dsl %data %Q %Φ !> ⟨#Hctx, #Hdata, %Hne, %Hlen, Harg, Hlc⟩ HΦ
   ihave #Hnctx := txnCtx_nodeCtx ctx cd $$ Hctx
   iunfold srvPropArg at Harg
   icases Harg with ⟨Hfr, Hau, #HQinv⟩
@@ -382,6 +412,9 @@ theorem raftPropose_of_isNode (E : RNEnv GF) (γ : RNNames)
   wp_apply wp_Propose γ.nl E.γr.raft.raft.cl srvClusterN γ.id dsl data ctx cd $$ [Hapi]
     as %err #Herr
   · iframe #
+    -- (raft-entsize §3) the cluster's bound on proposed data (`2^30`), above the server's `2^27`
+    isplitr
+    · ipureintro; intro b h; rw [Hmd] at h; cases h; omega
     rw [Hdup]
     iexact Hapi
   iapply HΦ
@@ -493,6 +526,11 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
   · iunfold srvClusterOk at Hcl
     icases Hcl with ⟨#H, -⟩
     iexact H
+  -- (raft-entsize §3) the cluster's bound on proposed data (`srvClusterOk`)
+  ihave %Hmd : ⌜γ.node.cl.maxData = some (2 ^ 30)⌝ $$ []
+  · iunfold srvClusterOk at Hcl
+    icases Hcl with ⟨-, -, -, -, -, -, -, -, -, -, %H⟩
+    ipureintro; exact H
   iunfold isRaftNodeIfc
   iexists ⟨go.GoType.PointerType node.ty, #γ.nl⟩
   isplitr
@@ -514,12 +552,22 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
     icases Hbusy with ⟨Hbusy, HrS⟩
     iunfold rnAdvReceipt at Hrcpt
     iunfold rnCfgAt at Hcv
+    iunfold rnView at Hcv
     iunfold srvCfgView at Hcv
     icases Hcv with ⟨%v, Hcfg, %Hok⟩
+    -- (R2d'a A6) the view is over the ghost log, of which the log handed out is a prefix
     have Hnc : NoConfChangeIn (srvLE γ.srv (d ++ ce)) v.applied (srvLE γ.srv (d ++ ce)).length := by
       have h := Hok.2.1
-      simp only [srvLE, List.length_map] at h ⊢
-      exact h
+      have e : (([] : List EntryModel) ++ rnGhost γ (d ++ ce)).map EntryModel.toLE =
+          srvLE γ.srv (d ++ ce) ++
+            (γ.a0.drop (γ.pre ++ (d ++ ce)).length).map EntryModel.toLE := by
+        simp [rnGhost, srvLE]
+      have el : (([] : List EntryModel) ++ rnGhost γ (d ++ ce)).length =
+          (srvLE γ.srv (d ++ ce) ++
+            (γ.a0.drop (γ.pre ++ (d ++ ce)).length).map EntryModel.toLE).length := by
+        rw [← e, List.length_map]
+      rw [e, el] at h
+      exact NoConfChangeIn_prefix _ _ _ h
     ihave #Hsk := skippedIn_noConf γ.node.cl (srvLE γ.srv (d ++ ce)) v.applied _ Hnc
     wp_apply (wp_Advance γ.nl γ.node.cl srvClusterN γ.id
         ⟨memStorIface γ.ms, srvLE γ.srv (d ++ ce), p, some (es.map EntryModel.toM, none), γ.key, S, r⟩
@@ -536,6 +584,7 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
         · iExactEq Hdrv; rfl
         iframe HrS
         iunfold rnCfgAt
+        iunfold rnView
         iunfold srvCfgView
         iexists v
         iframe Hcfg
@@ -550,8 +599,13 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
     iintro !> %d %A' %es %p %l %S %r %Φ !> ⟨Hbusy, Hrc, #Hcert, Hrun⟩ HΦ
     iunfold rnBusyS at Hbusy
     icases Hbusy with ⟨⟨Hdrv, HrS⟩, Hcv, %Hsn⟩
-    obtain ⟨hA', hd, hdl, hpos, h61⟩ := Hsn
+    obtain ⟨hA', hd, hdl, hpos, h61, hwa⟩ := Hsn
     iunfold rnCfgAt at Hcv
+    -- (R2d'a A6) at a restart, the snapshot at or above the backend's log (R2d'a's A8,
+    -- derived since S1, `rnRestartOk_winAbove`, recorded at the receive: `rnBusyS`'s pure, R2d'a task 4)
+    have Hab : γ.a0 = [] ∨ γ.a0.length ≤ uint.nat l.snap.Metadata'.Index' :=
+      hwa.imp_right Nat.le_of_lt
+    iunfold rnView at Hcv
     iunfold srvCfgView at Hcv
     icases Hcv with ⟨%v, Hcfg, %Hok⟩
     obtain ⟨hva, -, W, hW, -, -, hW0, hWs⟩ := Hok
@@ -569,6 +623,19 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
       have h := hd.length_le
       simp only [srvLE, strip, List.length_map] at h
       omega
+    -- (R2d'a A6) the ghost log before within the snapshot, and at the snapshot the log handed out
+    have hgd : (([] : List EntryModel) ++ rnGhost γ d).length ≤
+        uint.nat l.snap.Metadata'.Index' := by
+      simp only [rnGhost, List.nil_append, List.length_append, List.length_drop]
+      simp only [List.length_append] at hld
+      rcases Hab with h | h
+      · rw [h]; simp only [List.length_nil]; omega
+      · omega
+    have hgA : rnGhost γ A' = γ.pre ++ A' := by
+      unfold rnGhost
+      rcases Hab with h | h
+      · rw [h]; simp
+      · rw [List.drop_eq_nil_of_le (by omega), List.append_nil]
     -- the voters' membership at every index of the snapshot's committed log (D3)
     have Hsimp : ∀ k, k ≤ ls.length →
         srvRaftLogInv (GF := GF) E.γr.raft ∗ isCommittedLogLb γ.node.cl ls ⊢
@@ -610,10 +677,13 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
         · iExactEq Hdrv; rfl
         iframe HrS
         iunfold rnCfgAt
+        iunfold rnView
+        rw [hgA]
         iunfold srvCfgView
         iexists ⟨uint.nat l.snap.Metadata'.Index', m⟩
         iframe Hcfg
         ipureintro
+        rw [List.nil_append]
         have hm : m = Membership.simple γ.node.cfg := Hm'.trans Hms
         subst hm
         refine ⟨by simp only [List.length_map]; omega, ?_, γ.node.cfg, rfl, fun _ h => h,
@@ -661,10 +731,14 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
     wp_apply wp_ReadIndex γ.nl γ.node.cl srvClusterN γ.id sl (beBytes id)
       (srvReadQ E.γr.raft Qr) ctx cd $$ [] as %err #Herr
     · iframe #
+      -- (raft-entsize §3) the read context's 8 bytes, within the cluster's bound (`2^30`)
+      ipureintro; intro b h; rw [Hmd] at h; cases h; rw [beBytes_length]; omega
+    ihave #Herr' := nodeErrS_nodeErr _ _ _ cd err $$ Herr
     iapply HΦ
     isplitr
-    · ihave #Herr' := nodeErrS_nodeErr _ _ _ cd err $$ Herr
-      iapply applyErrIs_of_nodeErr cd err $$ Hpkg Herr'
+    · iapply applyErrIs_of_nodeErr cd err $$ Hpkg Herr'
+    isplitr
+    · iapply nodeReadErrIs_of_nodeErr cd err $$ Hpkg Herr'
     · iintro %_
       rw [HRQ]
       iunfold srvRQ

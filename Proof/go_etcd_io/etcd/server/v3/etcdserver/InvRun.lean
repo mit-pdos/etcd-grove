@@ -1,39 +1,15 @@
 /-
-**The server's apply loop, `run`** (`server.go`): the shared vocabulary of `run`'s and `start`'s
-specs. Lean-first (the request path's unit 4c, 2026-10-13); see `notes/decisions.md`, "The
-server's goroutines: the FIFO scheduler as a chain of saved postconditions, the construction
-premise".
-
-**The raft contract's apply side** (`srvC`, what `E.C` is for the server: `RNEnv.C`, which every
-`Ready`'s committed entries carry, `rnApP`): the log `L` the raft wrapper hands the apply side,
-from the node's start, is the committed entries after the applied index `ai₀` the server started
-at, consecutive (`srvIdxOk`: entry `n` has index `ai₀ + 1 + n`, a normal entry or a v1 conf
-change, no index past `2 ^ 64 - 1`); each normal entry's id is claimed for its data and a conf
-change's is no KV request's (`batchWaitOk`: the claims of `batchCommitted`); and, a premise on
-the workload rather than on raft, the log's entries have good shapes (`logShape L`: every
-normal entry decodes to a request with an id that meets its premise wherever the size clauses
-hold; D19c's move, 2026-10-18: until then `entriesOk c₀ L x₀`, the premises themselves at every
-state a run of the log from `x₀` reaches, whose size clauses the server's construction took as a
-premise, `clusterLogBound`; the apply thread now checks them at the log it meets).
-
-**The apply thread's resources at the log `A`** (`applyRes`: one definition, chained from job to
-job through the FIFO scheduler: a job's `Prev` is the previous job's `Post`): `ep`'s applied
-index, term and conf state, the snapshot state, the protocol's state, the backend, the applying
-index, the reader slots (logger, `bemu`, `wgMu`), the KV at `x`, the applied index's half and the
-applied log; the applied index is `ai₀ + |A|`, the KV state is reached from `x₀` by a run of `A`,
-and the consistent index is still `c₀` or both it and `c₀` are at most the applied index
-(`ciJ`), so that a batch above the applied index meets the same `batchStep`s from either.
+**Two pieces of `run`'s premise** (`server.go`), Lean-first: the restart-only `srvWinPend` (R2d'a A7,
+`isServerRunC`'s `Hwpend`) and the disk snapshot's storage from the snapshot bundle
+(`srvSnapDisk_of_RO`). Until 2026-11-07 this file held `isServerRun`, `run`'s mode-off premise,
+deleted with `RunOn.lean`'s `isServerRunOn` once `isServerRunC` (`AuthCompRows.lean`) stopped
+using them (R2d'a swap batch 5; the hub owner's call). The vocabulary (`applyRes`, `applyStart`,
+`srvMetaSnap`, ...) is `InvRunRes.lean`'s, the lease subsystem's premise (`lease.runCfg`)
+`LeaseRun.lean`'s (2026-11-04, the lease-expiry plan's Part C, option (a)).
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplyAll
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvGoAttach
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftLoop
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapRO
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapTake
-public import Perennial.Proof.context
-public import Perennial.Ghost.Token
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Defs
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseRun
 
 @[expose] public section
 
@@ -46,128 +22,6 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
 
-/-! ## The log raft hands the apply side (pure) -/
-
--- `srvIdxOk`: `KVModelDefs.lean` (2026-10-14, unit T1: the raft contract states it).
-
-/-- The consistent index `c` (the protocol's, `ciEff`) relative to the one the apply thread
-started at, `c₀`, at the applied index `ai`: unchanged, or both at most `ai`. -/
-def ciJ (c c₀ ai : w64) : Prop :=
-  c = c₀ ∨ (uint.Z c₀ ≤ uint.Z ai ∧ uint.Z c ≤ uint.Z ai)
-
-/-- A batch after the log `A`: its indices are above `ai₀ + |A|`. -/
-theorem srvIdxOk_batch_above [GooseExts] (ai₀ ai : w64) (A B : List EntryModel) (h : srvIdxOk ai₀ (A ++ B))
-    (hai : uint.Z ai = uint.Z ai₀ + A.length) :
-    ∀ m ∈ B, uint.Z ai < uint.Z m.index := by
-  intro m hm
-  obtain ⟨n, hn⟩ := List.getElem?_of_mem hm
-  have := (h.2 (A.length + n) m (by rw [List.getElem?_append_right (by omega)]; simpa using hn)).1
-  push_cast at this
-  omega
-
-/-- A non-empty batch after the log `A` counts up from `ai + 1` (`entriesFrom`). -/
-theorem srvIdxOk_batch_from [GooseExts] (ai₀ ai : w64) (A B : List EntryModel) (h : srvIdxOk ai₀ (A ++ B))
-    (hai : uint.Z ai = uint.Z ai₀ + A.length) (hne : B ≠ []) :
-    entriesFrom (ai + 1) B ∧ uint.Z (ai + 1) = uint.Z ai + 1 := by
-  have h1 : uint.Z ai₀ + 1 + (A.length : Int) + (B.length : Int) < 2 ^ 64 := by
-    have := h.1; rw [List.length_append] at this; push_cast at this; omega
-  have hB : (0 : Int) < B.length := by
-    have := List.length_pos_iff.mpr hne; omega
-  have hai0 : 0 ≤ uint.Z ai₀ := by word
-  have hai1 : uint.Z (ai + 1) = uint.Z ai + 1 := by
-    have : uint.Z ai + 1 < 2 ^ 64 := by omega
-    word
-  have e1 : 0 < uint.Z (ai + 1) := by omega
-  have e2 : uint.Z (ai + 1) + B.length < 2 ^ 64 := by omega
-  refine ⟨⟨e1, e2, fun n m hm => ?_⟩, hai1⟩
-  have hidx : (A ++ B)[A.length + n]? = some m := by
-    rw [List.getElem?_append_right (by omega)]; simpa using hm
-  have := h.2 (A.length + n) m hidx
-  push_cast at this
-  have e3 : uint.Z m.index = uint.Z (ai + 1) + n := by omega
-  exact ⟨e3, this.2⟩
-
-/-- The applied index after a non-empty batch: its last index. -/
-theorem srvIdxOk_batch_last [GooseExts] (ai₀ ai : w64) (A B : List EntryModel) (h : srvIdxOk ai₀ (A ++ B))
-    (hai : uint.Z ai = uint.Z ai₀ + A.length) :
-    max (uint.Z ai) (((B.getLast?).map (fun m => uint.Z m.index)).getD 0) =
-      uint.Z ai₀ + (A ++ B).length := by
-  rcases List.eq_nil_or_concat B with hB | ⟨L, b, rfl⟩
-  · subst hB
-    have : (0 : Int) ≤ uint.Z ai := by word
-    simp only [List.append_nil] at hai ⊢
-    rw [show ([] : List EntryModel).getLast? = none from rfl]
-    simp only [Option.map_none, Option.getD_none]
-    omega
-  · have hidx : (A ++ L ++ [b])[A.length + L.length]? = some b := by simp
-    have := (h.2 (A.length + L.length) b (by simp only [List.append_assoc, List.concat_eq_append] at hidx ⊢; exact hidx)).1
-    have hai0 : (0 : Int) ≤ uint.Z ai := by word
-    simp only [List.concat_eq_append, List.getLast?_append, List.getLast?_singleton,
-      Option.some_or, Option.map_some, Option.getD_some, List.length_append,
-      List.length_singleton] at this ⊢
-    push_cast at this ⊢
-    omega
-
-/-- `batchStep` depends on the consistent index only through the comparison with the entry's
-index. -/
-theorem batchStep_congr (c c' : w64) (m : EntryModel)
-    (h : uint.Z c < uint.Z m.index ↔ uint.Z c' < uint.Z m.index) :
-    batchStep c m = batchStep c' m := by
-  funext x x'
-  unfold batchStep
-  have : decide (uint.Z c < uint.Z m.index) = decide (uint.Z c' < uint.Z m.index) :=
-    decide_eq_decide.mpr h
-  rw [this]
-
-theorem ciJ_iff (c c₀ ai : w64) (hJ : ciJ c c₀ ai) (m : EntryModel)
-    (hm : uint.Z ai < uint.Z m.index) :
-    uint.Z c < uint.Z m.index ↔ uint.Z c₀ < uint.Z m.index := by
-  rcases hJ with rfl | ⟨h1, h2⟩
-  · exact Iff.rfl
-  · constructor <;> intro <;> omega
-
-theorem entriesStep_congr (c c' : w64) (L : List EntryModel)
-    (h : ∀ m ∈ L, (uint.Z c < uint.Z m.index ↔ uint.Z c' < uint.Z m.index))
-    (x x' : apply.ApplyKV) :
-    entriesStep c L x x' → entriesStep c' L x x' := by
-  induction L generalizing x with
-  | nil => simp [entriesStep]
-  | cons m L ih =>
-    have hm := batchStep_congr c c' m (h m (List.mem_cons_self ..))
-    rintro ⟨x1, h1, h2⟩
-    exact ⟨x1, hm ▸ h1, ih (fun m' hm' => h m' (List.mem_cons_of_mem _ hm')) x1 h2⟩
-
-theorem entriesStep_append' (c : w64) (A B : List EntryModel) (x₀ x x' : apply.ApplyKV)
-    (h1 : entriesStep c A x₀ x) (h2 : entriesStep c B x x') : entriesStep c (A ++ B) x₀ x' := by
-  induction A generalizing x₀ with
-  | nil => simp only [entriesStep] at h1; subst h1; simpa using h2
-  | cons m A ih =>
-    obtain ⟨x1, hm, hr⟩ := h1
-    exact ⟨x1, hm, ih x1 hr⟩
-
-theorem unapplied_all (ai : w64) (L : List EntryModel) (h : ∀ m ∈ L, uint.Z ai < uint.Z m.index) :
-    unapplied ai L = L := by
-  unfold unapplied
-  rw [List.filter_eq_self]
-  intro m hm; simpa using h m hm
-
-/-- `ciJ` after a batch (the applied index grows; the consistent index unchanged or the larger of
-itself and the new applied index). -/
-theorem ciJ_step (c c' c₀ ai ai' : w64) (hJ : ciJ c c₀ ai) (hle : uint.Z ai ≤ uint.Z ai')
-    (hc : c' = c ∨ uint.Z c' = max (uint.Z c) (uint.Z ai')) : ciJ c' c₀ ai' := by
-  unfold ciJ at *
-  rcases hc with rfl | hc
-  · rcases hJ with h | ⟨h1, h2⟩
-    · left; exact h
-    · right; omega
-  · rcases hJ with rfl | ⟨h1, h2⟩
-    · by_cases hlt : uint.Z c ≤ uint.Z ai'
-      · right; omega
-      · left; apply BitVec.eq_of_toNat_eq; unfold uint.Z at hc hlt; omega
-    · right; omega
-
-/-! ## The server's `E.C` and the apply thread's resources -/
-
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -176,371 +30,58 @@ variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **The raft contract's apply side, for the server** (`E.C`; see the file header): the log
-after `ai₀`, consecutive, each entry's id claimed, meeting the KV's premises from `x₀` at the
-consistent index `c₀`. -/
--- 2026-10-14 (unit T1): the log `L` is committed (`srvRLogLb ρ.raft L`), raft's committed log's.
-def srvC (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV)
-    (L : List EntryModel) : IProp GF :=
-  iprop(⌜srvIdxOk ai₀ L ∧ logShape ρ.kv.lg L⌝ ∗ batchWaitOk ρ E L ∗ srvRLogLb ρ.raft L)
+open go_etcd_io.raft.v3 in
+/-- (R2d'a A7, `Hwpend`; A10 item 5, 2026-11-06; DRAFT, approved by 82 as hub owner, the narrowed
+text) **No merged snapshot sent at a new raft term while the replay window is pending**, a
+restart-only premise: a token `γwp` held while the window is open, and with it, for a batch's raft
+term `rt` above the restored `HardState` term `γn.t0` (`rnRtOk`) and a log of length `n` inside the
+restart point's backend log `γn.a0`, the `MsgSnap` this member sent and the bag hands `applyAll` is
+not at `rt` (`server.go:1018-1020`'s guard fails, so no merge inside the window).
 
-instance srvC_persistent (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV)
-    (L : List EntryModel) : Persistent (srvC (GF := GF) ρ E ai₀ c₀ x₀ L) := by
-  unfold srvC; infer_instance
+What it was meant to exclude: the restarted incarnation elected at a term `T' > T₀` while raft is
+still handing out the replay, then sending a `MsgSnap` at `T'`. **What it excludes (corrected
+2026-11-07, `notes/decisions.md`, "R2d'a's disclosure corrected (2026-11-07)"): every `MsgSnap`
+this member sends at a committed term above `T₀`, at any time in the incarnation**: `n` is free
+(`n = 0` meets the guard) and the token is never consumed. So it is false of every restarted run
+(`a0 ≠ []`) in which the member is later elected and snapshots a lagging follower. R2d'b restates
+it with `n` tied to the replay; R2s REMOVES it by following the merged snapshot in the ghost. The
+runs below, found first (review of R2d'a, finding 3), are a small part of the false ones. The trace: a replay over 1 MB is split into several `Ready`s by
+`MaxCommittedSizePerReady` (unset in etcd, so `MaxSizePerMsg`, 1 MB); a snapshot inside the window
+compacts the raft log (e.g. the forced one a replayed `ClusterVersionSet` triggers, at Go's applied
+index above `SnapshotCatchUpEntries`); the member is elected above `t0` mid-replay; a lagging
+follower gets a `MsgSnap` at the new term, which `server.go:1018` merges inside the window. Go is
+correct there; the premise is a scope restriction of the proof model. The Go probe
+(`notes/restart-probe/`: 0 runs with etcd's drained handout, 2-3% with a slow one) understates it:
+its handout is by entry count, not bytes, so it never splits a replay the way 1 MB does
+(`notes/restart-plan.md`, "Hwpend: the Go probe and the narrowing"). A batch at `rt ≤ T₀` needs no
+premise: this incarnation's `MsgSnap`s are above `T₀` (`rnSnapMsg`). **R2e's closed theorem must
+not carry it**; it gets an `axiom`-skill attack before R2d'b's Freeze (target: a former leader that
+sent a `MsgSnap` at `rt` and restarted with its first window batch at `rt`; `sentMsg` is persistent
+and keyed by member id, not incarnation). **At a first start (`γn.a0 = []`) it is free**: the guard
+`n < |a0|` never holds, so a token gives it (`srvWinPend_first`). -/
+def srvWinPend (s : Loc) (γr : ReadNames) (γn : RNNames) : IProp GF :=
+  letI := srvStor (GF := GF) γr.raft.raft
+  iprop(∃ γwp : GName, token γwp ∗
+    □ (∀ (rt : w64) (n : Nat), token γwp -∗ ⌜n < γn.a0.length ∧ uint.Z γn.t0 < uint.Z rt⌝ -∗
+        rnRtOk γn rt n -∗
+        ∀ (id : w64) (m : Loc) (st : MsgSt),
+          srvMemberIDAddr s ↦□ id -∗ msgOwn m (DFrac.own 1) st -∗
+            sentMsg γr.raft.raft.cl srvClusterN id st -∗
+            ⌜st.msg.Type' = MsgSnap → st.msg.Term' ≠ rt⌝ ∗ msgOwn m (DFrac.own 1) st ∗ token γwp))
 
-/-- **A batch after `A` is committed entry by entry** (2026-10-14, unit C2a): its indices are
-consecutive (`srvIdxOk`), so the committed index past its last index (`committedLast`, what raft's
-batch carries) is past each. -/
-theorem batchCommittedIdx_of_last (γr : ReadNames) (ai₀ : w64) (A ce : List EntryModel)
-    (h : srvIdxOk ai₀ (A ++ ce)) :
-    committedLast (GF := GF) γr ce ⊢ batchCommittedIdx γr ce := by
-  rcases List.eq_nil_or_concat ce with hce | ⟨L, b, rfl⟩
-  · subst hce
-    iintro -
-    iunfold batchCommittedIdx
-    iintro !> %m %hm
-    exact absurd hm List.not_mem_nil
-  · have hl : (L.concat b).getLast? = some b := by simp
-    unfold committedLast
-    rw [hl]
-    iintro #Hl
-    iunfold batchCommittedIdx
-    iintro !> %m %hm
-    obtain ⟨n, hn⟩ := List.getElem?_of_mem hm
-    have hlen : n < L.length + 1 := by
-      have := (List.getElem?_eq_some_iff.mp hn).1; simpa using this
-    have h1 := (h.2 (A.length + n) m (by
-      rw [List.getElem?_append_right (by omega)]; simpa using hn)).1
-    have h2 := (h.2 (A.length + L.length) b (by simp)).1
-    iapply committedAtLeast_le γr b.index m.index (by push_cast at h1 h2; omega) $$ Hl
-
-/-- The names and values the apply thread's resources are stated over (fixed for `run`; D22
-receiver epochs, S7f, 2026-10-23: `γ`, `E` and `b` are the start's, the current backend's are
-`applyRes`'s `ApplyBe`). -/
-structure ApplyCtx (GF : BundledGFunctors) where
-  s : Loc
-  ep : Loc
-  γ : ApplyNames
-  ci : Loc
-  b : GoInterface
-  E : apply.AEnv GF
-  γr : ReadNames
-  ai₀ : w64
-  c₀ : w64
-  x₀ : apply.ApplyKV
-  /-- the server's wait's registered ids (`ρ.wait`: the apply thread's `IsRegistered`) -/
-  γw : GName
-  /-- (D19i part 1) the raft wrapper's `MemoryStorage` and its names (`srvSnapState`) -/
-  ms : Loc
-  γs : MemStorNames
-  /-- (2026-10-19, D21 M3) the write budget's counter (`srvWTPool`) -/
-  wt : GName
-  /-- (D22 receiver epochs, S7f) the request path's names (`isServer`'s) -/
-  ρ : ReqNames
-  /-- (2026-11-03, R2b-1 stage 5) the raft wrapper's names (its WAL's, `rnWalTokA`) -/
-  rn : RNNames
-
-/-- **The apply thread's current backend** (D22 receiver epochs, S7f, 2026-10-23): the protocol's
-names at its physical names, its batch lock's meta-keys resource, the apply environment on it and
-the backend's interface value (`ci.be`). `run`'s loop invariant holds them per batch (`applyRes`):
-`applySnapshot` moves them. -/
-structure ApplyBe (GF : BundledGFunctors) where
-  γ : ApplyNames
-  TM : MetaCI → IProp GF
-  E : apply.AEnv GF
-  b : GoInterface
-
-/-- **The apply thread's KV ghost state at the committed raft log `A`** (2026-10-14, unit T1):
-`kvApplied`, with the model's start index and consistent index the apply thread's. -/
-def kvRun (γr : ReadNames) (ai₀ c₀ : w64) (A : List EntryModel) (x : apply.ApplyKV) : IProp GF :=
-  iprop(kvApplied γr.raft γr.kv A x ∗ ⌜γr.kv.c0 = c₀ ∧ γr.raft.ai0 = ai₀⌝)
-
-/-- **The apply thread's resources at the log `A`** (see the file header; the one place the
-chain's resource is defined: `run`'s loop invariant and its jobs' `Prev`/`Post`). -/
-def applyRes (C : ApplyCtx GF) (A : List EntryModel) : IProp GF :=
-  iprop(∃ (B : ApplyBe GF) (st : ApplyState) (ai at' a t : w64) (cs : Loc) (x : apply.ApplyKV),
-    -- (D22 receiver epochs, S7f, 2026-10-23) the current backend `B`, at the start's logical names,
-    -- with the server's view at it
-    ⌜beSucc C.γ C.E B.γ B.E⌝ ∗ isServer C.s B.γ C.ci B.TM B.E C.ρ C.γr ∗
-    epAppliedIAddr C.ep ↦ ai ∗ epAppliedTAddr C.ep ↦ at' ∗ epConfState C.ep cs ∗ epCsAt C.ρ.raft A cs ∗
-    srvSnapState C.s C.ep C.ms C.γs ai (W64 0) ∗ applyThread B.γ st ∗ applyBackend B.γ C.ci B.b ∗ ciApplying C.ci a t ∗
-    srvLgReader C.s ∗ srvBemuReaderAt C.s C.E.γbe ∗ srvWgReader C.s ∗ srvApplyKV C.s B.E C.γw x ∗
-    srvAppliedOwn C.γr ai ∗ appliedLogAt C.γr ai x.log ∗ kvRun C.γr C.ai₀ C.c₀ A x ∗
-    srvRest B.E C.γr A ∗ srvApRes C.s C.γr A ∗
-    -- (2026-10-31, #11) what the snapshot takes: the KV at the backend, the WAL's apply-side half
-    (∃ kv : GoInterface, srvKVAddr C.s ↦□ kv ∗ txn.isKV kv B.E.s B.E.γ) ∗
-    rnWalTokA C.rn (srvRAddr C.s) (1 : Qp).half ∗
-    -- (2026-10-19, D21 M3) the write tokens taken through `ai`, the storage's cap; (D22 J5,
-    -- 2026-10-26) a count `w` of the tokens taken (until J8b, 2026-11-01, at least the applied
-    -- index, which no proof read and a snapshot's jump breaks)
-    (∃ w : Nat, srvWTTaken C.wt w) ∗
-    -- (D22 J1b, 2026-10-31) what each snapshot install takes and gives back, at the current backend
-    srvSnapOwn C.s C.ci B.E C.γr B.γ ai ∗
-    ⌜loopOk B.γ st ai ∧ uint.Z ai = uint.Z C.ai₀ + A.length ∧ ciJ (ciEff B.γ st.k) C.c₀ ai ∧
-      -- (2026-10-31, the snapshot track: #11's S1) the consistent index at least the applied one
-      uint.Z ai ≤ uint.Z (ciEff B.γ st.k) ∧
-      -- (D22 S-h, 2026-10-20; S-0's amendment) `ep.appliedt` the last applied entry's term
-      lastTermIs A at'⌝)
-
-/-- **The compactor** (`s.compactor`, persistent: what `run` uses): nil (the compactor off,
-`AutoCompactionRetention = 0`), or a compactor with the frozen contract of the spec-first pilot
-(`v3compactor.compactorOk`: its `Stop`, `Pause`, `Resume`, and its `Run` from a run token and a
-run precondition; M2, `notes/m2-plan.md`, S4). `run` pauses and resumes it (persistent triples);
-`start` runs it once (`compactorRun`). -/
-def compactorOk (c : GoInterface) : IProp GF :=
-  iprop(⌜c = GoInterface.nil⌝ ∨ ∃ (T P : IProp GF), v3compactor.compactorOk c T P)
-
-instance compactorOk_persistent (c : GoInterface) : Persistent (compactorOk (GF := GF) c) := by
-  unfold compactorOk; infer_instance
-
-/-- **The compactor's run, once** (M2, S4; not persistent): what `start`'s `s.compactor.Run()`
-spends: nil, or (auth off) the compactor's contract with its run token `T` and how to make its run
-precondition `P` from the server's views, which `start` builds (`NewServer` makes the token, from
-`v3compactor.New`, and the wand: `P` is `v3compactor.runPre` of the server's `Rev` and `Compact`,
-whose contracts need the request and read views, `CompactEnv.lean`; the wand holds the rest, the
-reader slots the compactor's calls borrow). -/
-def compactorRun (s : Loc) (E : apply.AEnv GF) (c : GoInterface) : IProp GF :=
-  iprop(⌜c = GoInterface.nil⌝ ∨ ⌜E.authOn = false⌝ ∗ ∃ (T P : IProp GF),
-    v3compactor.compactorOk c T P ∗ T ∗
-    (∀ ρ : ReqNames, isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerReq s E ρ ∗ isServerRead s E ρ.rd ∗ idCred ρ.ids 1 -∗ |={⊤}=> P))
-
-/-- The run's contract is the compactor's. -/
-theorem compactorRun_ok (s : Loc) (E : apply.AEnv GF) (c : GoInterface) :
-    compactorRun (GF := GF) s E c ⊢ compactorOk c := by
-  iintro H
-  iunfold compactorRun at H
-  iunfold compactorOk
-  icases H with (%H | ⟨-, %T, %P, #Hc, -, -⟩)
-  · ileft; ipureintro; exact H
-  · iright; iexists T, P; iexact Hc
-
-/-- **The raft storage's snapshot when `run` starts** (`*raft.MemoryStorage`; not persistent: the
-snapshot changes once the server takes one; since D17d, 2026-10-18, proved by `NewServer` from the
-storage's application token, `rnSnapOnce_of_tok`, until then a trust-boundary contract):
-`Snapshot()` returns the snapshot the server started from, read-only (raft's `ownSnapM` at `□`:
-raft's `MemoryStorage.Snapshot` spec hands out a fresh clone, owned, which nothing writes), of
-index `ai₀` and term `at₀`, with its metadata and conf-state pointers allocated (`pm`, `cs`:
-`run` reads `sn.Metadata.ConfState` directly, and its "empty confstate" `panic` is not reached;
-nor its `lg.Panic`, the error being nil: a construction premise, see `notes/STATUS.md`). Since
-stage R6 of the raft v3.7 retarget (2026-10-16) over raft's record; until then field by field
-(`optU64`), with the conf-state pointer's non-nilness stated; until stage R8b (2026-10-16) the
-pointers were non-nil by the conf state having a voter (`Voters' ≠ []`), which a new cluster's
-fresh `MemoryStorage` (an empty conf state, allocated by raft's `EnsureSnapshot`) does not meet:
-`run` uses only the pointers. (2026-10-31, #11) With the storage's invariant at the node `nid` of the
-cluster `cl` (`memStorInv`, at the registry `rg`; persistent), which `NewServer` allocated: what
-`CreateSnapshot` and `Compact` take (`srvSnapStor`). -/
-def rnSnapOnce (rg : GName) (cl : Cluster) (nk : GName) (ms : Loc) (γs : MemStorNames) (ai₀ at₀ : w64) :
-    IProp GF :=
-  iprop(∀ Φ : val → IProp GF,
-    ▷ (∀ (sn pm cs : Loc) (sv : SnapshotM),
-      ⌜sv.Metadata'.Index' = ai₀ ∧ sv.Metadata'.Term' = at₀ ∧ pm ≠ null ∧ cs ≠ null⌝ -∗
-      ownSnapM sn DFrac.discard sv -∗
-      sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦□ pm -∗
-      pm.[go_etcd_io.raft.v3.raftpb.SnapshotMetadata, go!"ConfState"] ↦□ cs -∗
-      -- (D19i part 1) the conf state read-only for good (`ep.confState`'s first value), and
-      -- (2026-10-30, the repair: raft's two-writer `MemoryStorage` specs, R1) the storage's
-      -- "no snapshot taken yet" token back (`memSnapNone`, under which `Snapshot()` answers the
-      -- empty snapshot; until then the application's snapshot token `memSnapTok`)
-      epCsOk cs -∗ memSnapNone γs -∗
-      (letI : MemStorReg GF := ⟨rg⟩; memStorInv ms γs cl nk) -∗
-      Φ (PairV #sn #(GoInterface.nil))) -∗
-    WP (App (Val (ms @!! go.GoType.PointerType go_etcd_io.raft.v3.MemoryStorage.ty @!! go!"Snapshot"))
-      (Val #())) {{ Φ }})
-
-/-- The values of the server's fields `run` reads (besides the apply thread's and the raft
-wrapper's). -/
-structure RunFields where
-  errorc : Loc
-  stop : Loc
-  done : Loc
-  cancel : GoFunc
-  compactor : GoInterface
-  stats : Loc
-  leaderChanged : Loc
-
-section addrsR
-variable [GoSemanticsFunctions]
-abbrev srvErrorcAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"errorc" s
-abbrev srvStopAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"stop" s
-abbrev srvCancelAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"cancel" s
-abbrev srvCompactorAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"compactor" s
-abbrev srvStatsAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"stats" s
-abbrev srvLeadTimeMuAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"leadTimeMu" s
-end addrsR
-
-/-- **`run`'s view of the server** at the fields' values `v` (persistent): `errorc` (a channel of
-errors on which nothing is sent: a bag with predicate `False`, D19m, 2026-10-18: its senders are
-`stopWithDelay`, which `apply` never asks for, and the transport's peers, which report nothing
-there: `rafthttp.Transport.Start`'s axiom, D21 M2),
-`stop` (the unit channel `HardStop` sends on, a bag with predicate `SP`: `False` by default, the
-runs covered calling neither `Stop` nor `HardStop`, D19m; R2b-2, 2026-11-02: `True` for a server
-that may be stopped, `run.specStop`), `done`, `cancel` (the server
-context's cancel function, `WithCancel`'s), the compactor, the stats, the leader-change notifier,
-`leadTimeMu`'s write side, the committed index's invariant, `GoAttach`'s protocol. -/
-def srvRunFieldsAt (s : Loc) (γr : ReadNames) (γg : GoNames) (γcx : context.ContextNames)
-    (v : RunFields) (SP : IProp GF := iprop(False)) : IProp GF :=
-  iprop(srvErrorcAddr s ↦□ v.errorc ∗
-      (∃ γe : ChanNames, isChanBag γe v.errorc (V := GoInterface) (fun _ => iprop(False))) ∗
-    srvStopAddr s ↦□ v.stop ∗
-      (∃ γst : ChanNames, isChanBag γst v.stop (V := Unit) (fun _ => SP)) ∗
-    srvDoneAddr s ↦□ v.done ∗
-    srvCancelAddr s ↦□ v.cancel ∗ context.cancelSpec v.cancel γcx iprop(True) ∗
-    srvCompactorAddr s ↦□ v.compactor ∗ compactorOk v.compactor ∗
-    srvStatsAddr s ↦□ v.stats ∗
-    srvLeaderChangedAddr s ↦□ v.leaderChanged ∗ isNotifier v.leaderChanged ∗
-    sync.isRWMutexGuard (srvLeadTimeMuAddr s) (leadTimeP s) ∗
-    srvCommittedInv s γr ∗ srvGoAttachOk s γg)
-
-instance srvRunFieldsAt_persistent (s : Loc) (γr : ReadNames) (γg : GoNames)
-    (γcx : context.ContextNames) (v : RunFields) (SP : IProp GF) :
-    Persistent (srvRunFieldsAt (GF := GF) s γr γg γcx v SP) := by
-  unfold srvRunFieldsAt; infer_instance
-
-/-- **The apply thread's resources when `run` starts** (at the snapshot's index `ai₀`, the KV at
-`x₀`, the protocol at `st₀` with the consistent index `c₀`), but `ep`, which `run` makes: what
-`applyRes []` is once `ep` is built. -/
-def applyStart (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : apply.AEnv GF)
-    (γr : ReadNames) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV) (γw : GName) : IProp GF :=
-  iprop(∃ (st₀ : ApplyState) (a t : w64) (f : Bool),
-    applyThread γ st₀ ∗ ⌜loopOk γ st₀ ai₀ ∧ c₀ = ciEff γ st₀.k⌝ ∗ applyBackend γ ci b ∗
-    ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗ srvWgReader s ∗ srvApplyKV s E γw x₀ ∗
-    srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRun γr ai₀ c₀ [] x₀ ∗ srvRest E γr [] ∗
-    srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f ∗
-    -- (D22 J1b, 2026-10-31) what each snapshot install takes and gives back
-    srvSnapOwn s ci E γr γ ai₀)
-
-/-- (J8b, 2026-11-01) **The meta reads of the backends the apply thread opens** at the apply names
-`γ`: `bootOk`'s `#HmetaSnap` (J8a-4) by name, which `NewServer` passes to `run` through `start`'s
-construction premise (`srvBuilt`, `isServerBuilt`, `isServerRun`'s `#HmetaSnap`) for
-`applyAll.specSnap`'s premise of the same text. -/
-def srvMetaSnap (γ : ApplyNames) : IProp GF :=
-  iprop(□ (∀ (π : ApplyPhys) (γB : backend.BNames) (P : backend.BParams) (D : backend.Data),
-        ⌜ciKeys P ∧ metaIs D π.m0 ∧ π.bwb = γB.wb ∧ π.bopn = γB.opn⌝ -∗
-        backend.hkOwn γB (backend.hkData P D) -∗ backend.bFresh γB -∗
-        backend.hkOwn γB (backend.hkData P D) ∗ backend.bFresh γB ∗
-        □ ∀ (W : IProp GF) (b : Loc),
-          backend.isBackend γB P W (batchLockInv (γ.withPh π) (metaTM γB P)) b -∗
-          isMetaBackend (interface.mkOk (go.GoType.PointerType
-            go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b) (⊤ \ ↑applyN)
-            (readView (γ.withPh π))))
-
-instance srvMetaSnap_persistent (γ : ApplyNames) : Persistent (srvMetaSnap (GF := GF) γ) := by
-  unfold srvMetaSnap; infer_instance
-
-/-- `srvMetaSnap` at the next backend's names: `beSucc` keeps the logical names, and the premise
-names only `γ.withPh π`. -/
-theorem srvMetaSnap_withPh (γ : ApplyNames) (ph : ApplyPhys) :
-    srvMetaSnap (GF := GF) (γ.withPh ph) = srvMetaSnap γ := by
-  unfold srvMetaSnap; rfl
-
-/-- (open, the lease-grant plan's D2, 2026-11-02) **A snapshot payload's job in a cluster that
-grants leases** (`KVNames.lg = true`; `run_job_snap`'s statement there): the obligation `run` takes
-as `isServerRun`'s `%Hslg` (from `NewServer`'s precondition) instead of proving it. `applyAll.specSnap`
-takes a cluster that grants none: its lessor is monotone, and `Recover` (the snapshot's restore)
-takes a revocable one; besides, the snapshot's image then has leases (`specSnap`'s `hlease` is
-false). It quantifies over every apply context, so it covers a member of a multi-member cluster,
-which a leader may send a snapshot (a lagging follower, `raft.go`'s `maybeSendSnapshot`): it is not
-vacuous outside the single-member examples, and restoring a snapshot with leases is a stage of its
-own. Sealed (`srvGrantOpen`); `run` opens it with `srvGrantOpen_snap`. -/
-def runSnapLgOkBody : Prop :=
-  ∀ (C : ApplyCtx GF) (A A' : List EntryModel) (apL : Loc) (es : GoSlice) (sn : Loc)
-    (sv : SnapshotM) (rac nc : GoChan) (γs : schedule.SchedNames) (γnc : NotifyNames)
-    (γn : RNNames) (rt : w64),
-  uint.nat C.ai₀ = 0 → uint.Z C.c₀ ≤ uint.Z C.ai₀ → γn.pre = [] →
-  γn.node = C.γr.raft.raft → C.ρ.raft = C.γr.raft →
-  C.γr.raft.pre = γn.pre → C.γs = γn.γs → C.γw = C.ρ.wait →
-  A.length < A'.length →
-  (γn.pre ++ A').length = uint.nat sv.Metadata'.Index' →
-  uint.Z sv.Metadata'.Index' < 2 ^ 61 →
-  (γn.node.boot.length : Int) ≤ uint.Z sv.Metadata'.Index' →
-  C.γr.kv.lg = true →
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-        isServerApplyAll C.s C.γr ∗ srvMemberIDAddr C.s ↦□ γn.id ∗ srvMetaSnap C.γ ∗
-        taEntriesAddr apL ↦□ es ∗ es ↦*□ ([] : List Loc) ∗
-        taSnapshotAddr apL ↦□ sn ∗ ownSnapM sn DFrac.discard sv ∗
-        (letI := srvStor (GF := GF) γn.node; iprop(
-          snapshotCert γn.node.cl srvClusterN (snapTrip sv sv.Metadata'.ConfState'.lists) ∗
-          nodeSnapLocal γn.node.cl γn.id sv.Metadata'.Index')) ∗
-        taNotifycAddr apL ↦□ nc ∗ isNotify2 γnc nc iprop(True) iprop(True) ∗ notifyRcvN γnc 0 ∗
-        taRaftAdvancedCAddr apL ↦□ rac ∗
-        rnAdvChan rac (letI := srvStor (GF := GF) γn.node
-          iprop(nodeAppliedLb γn.node.cl γn.key (γn.pre ++ A').length ∗
-            nodeCommitLb γn.node.cl γn.key (γn.pre ++ A').length ∗
-            srvFrozenAt γn.γs (γn.pre ++ A').length ∗ srvFrozenBelow γn.γs (γn.pre ++ A').length ∗
-            rnWalHanded γn (γn.pre ++ A').length)) ∗
-        taRaftTermAddr apL ↦□ rt ∗ rnRtOk γn rt (rnLogOf γn A').length ∗
-        schedule.schedRunning γs ∗ applyRes C A ∗ srvWTPool C.E C.wt ∗ srvRLogLb C.ρ.raft A' }}
-      (App (App (Val (C.s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #C.ep))
-        (Val #apL))
-    {{ RET #(); schedule.schedRunning γs ∗ applyRes C A' }}
-
-/-- (review S4, 2026-11-02; the lease-grant plan's B1/B2 commit 1, 2026-11-02: the bundle, until then
-`runSnapLgOk`, the snapshot case alone) **The open cases of a lease-granting cluster, by name**: what
-`NewServer`'s precondition names (`%Hslg`, gated on `lg = true`), sealed so that the statement a
-client reads is a name, not the triples. Each case is a named field, opened by its law: the
-snapshot job's triple (`runSnapLgOkBody`; `srvGrantOpen_snap` is how `run` uses it); the later
-commits of the lease-grant plan add the grant's open cases as further fields. A cluster that
-grants none discharges the gated premise by its `lg = false`; the open cases are in the trust base
-of the lease-granting results only (`srvGrantOpen_open`, `EtcdServer__run.lean`). -/
-@[no_expose] def srvGrantOpen : Prop := runSnapLgOkBody (GF := GF)
-
-/-- The bundle's snapshot field (`run_job_snap`'s premise at `lg = true`). -/
-theorem srvGrantOpen_snap : srvGrantOpen (GF := GF) → runSnapLgOkBody (GF := GF) := id
-
-/-- **What `run` needs** (see `Spec/.../EtcdServer__run.lean`; named conjuncts): the apply
-thread's view, `applyAll`'s, the raft wrapper (its node contract over the server's `E.C`), `run`'s
-fields, the ticks; the snapshot's contract once; the raft wrapper's loop, apply and done tokens
-at the empty log; the committed index's writer half; the right to close `done` (whose close
-announces `DQ`: `True` by default; R2b-2, 2026-11-02: the stopped server's image, escrowed,
-`srvDoneInv`, for `run.specStop`) and `stopping`; the stop requests' predicate `SP`
-(`srvRunFieldsAt`'s);
-the apply thread's resources at the start; `run`'s own logger slot; the write budget (D19b: the
-receipt-backed `srvWTPool`, until then `N` write tokens). -/
-def isServerRun (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
-    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
-    (γg : GoNames) (γcx : context.ContextNames) (γd : ChanNames) (v : RunFields)
-    (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV)
-    (SP : IProp GF := iprop(False)) (DQ : IProp GF := iprop(True)) : IProp GF :=
-  iprop("#Hsrv" ∷ isServer s γ ci TM E ρ γr ∗
-    "#Hsa" ∷ isServerApplyAll s γr ∗
-    -- (J8b, 2026-11-01) the server's member id is the raft node's (`isServerBuilt`'s)
-    "#Hmid" ∷ srvMemberIDAddr s ↦□ γn.id ∗
-    -- (J8b, 2026-11-01) the meta reads of the backends a snapshot opens (`bootOk`'s `#HmetaSnap`)
-    "#HmetaSnap" ∷ srvMetaSnap γ ∗
-    "#Hrn" ∷ isRaftNode Er γn (srvRAddr s) ∗
-    -- (D43 M3, 2026-10-25) in raft's dynamic mode a fresh start: no entry replayed
-    "%HEr" ∷ ⌜Er.C = srvC ρ E ai₀ c₀ x₀ ∧ Er.γr = γr ∧
-      (uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0)⌝ ∗
-    -- (2026-10-30, the repair) the apply side's half of the node's running token
-    "Hrunh" ∷ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half) ∗
-    -- (2026-10-31) the WAL's open token: the apply side's half (its disk snapshot's `SaveSnap`, which
-    -- `run` gives the raft loop with `raftNode.stop`) and the loop's (`raftNode.start`'s); the disk
-    -- cooperating (`storage.diskOk`, `NewServer`'s premise)
-    "Hwth" ∷ rnWalTokA γn (srvRAddr s) (1 : Qp).half ∗ "Hwtl" ∷ rnWalTokL γn (srvRAddr s) ∗
-    "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
-    -- (2026-11-02, the lease-grant plan's D2) in a cluster that grants leases, the open
-    -- cases (`srvGrantOpen`, `NewServer`'s precondition)
-    "%Hslg" ∷ ⌜γr.kv.lg = true → lease.leasesNoExpiry ∧ srvGrantOpen (GF := GF)⌝ ∗
-    -- (2026-10-31, #11) the KV the snapshot commits (`start`'s `srvReadBuilt`)
-    "#Hkvf" ∷ (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗
-    "#Hrf" ∷ srvRunFieldsAt s γr γg γcx v SP ∗
-    "Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce γn.node.reg γn.node.cl γn.key ms γn.γs ai₀ at₀) ∗
-    "Hloop" ∷ rnLoopTok γn [] ∗ "Hsend" ∷ Er.S ∗ "Happly" ∷ rnApplyTok γn [] ∗ "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗
-    "Hcomm" ∷ (∃ c : w64, srvCommittedOwn γr c) ∗
-    "Hdc" ∷ ownBroadcastChan v.done γd DQ .Pending ∗
-    "Hclose" ∷ token γg.close ∗
-    "Hstart" ∷ applyStart s γ ci b E γr ai₀ c₀ x₀ ρ.wait ∗
-    "Hlr" ∷ srvLgReader s ∗
-    -- (2026-10-19, D21 M3) with its counter, the apply thread's tokens taken through `ai₀`
-    "#HWB" ∷ (∃ γp : GName, srvWTPool E γp ∗ srvWTAt γp ai₀) ∗
-    -- (2026-10-26, D22 J1a) what the snapshot path takes of the construction (`SnapRO.lean`): its
-    -- persistent bundle; (D22 J1b, 2026-10-31) the counter's authority and the stocks in `applyStart`
-    "#Hsnapb" ∷ (∃ γt : GName, srvSnapRO s ci E γr γt) ∗
-    -- (J8a-3, 2026-11-01) the two configuration fields `start` writes, read-only from then on:
-    -- with `srvSnapRO`'s rebuild, the whole configuration read-only (`specSnap`'s `srvCfgAddr s ↦□`)
-    "#Hsncfg" ∷ (∃ sc scu : w64, srvCfgFieldAddr s go!"SnapshotCount" ↦□ sc ∗
-      srvCfgFieldAddr s go!"SnapshotCatchUpEntries" ↦□ scu))
+/-- (R2d'a A10 item 5) **At a first start `srvWinPend` is free**: with the backend's log empty the
+guard `n < |a0|` never holds, so any token gives it (`NewServer` allocates one). -/
+theorem srvWinPend_first (s : Loc) (γr : ReadNames) (γn : RNNames) (h : γn.a0 = []) (γwp : GName) :
+    token γwp ⊢ srvWinPend (GF := GF) s γr γn := by
+  iintro Ht
+  iunfold srvWinPend
+  iexists γwp
+  iframe Ht
+  imodintro
+  iintro %rt %n - %hn
+  exfalso
+  rw [h] at hn
+  exact Nat.not_lt_zero _ hn.1
 
 end defs
 
@@ -562,7 +103,7 @@ theorem srvSnapDisk_of_RO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γ
   iintro ⟨#Hro, #Hrn⟩
   iunfold srvSnapRO at Hro
   icases Hro with ⟨%cfg, %ss, %hk, %lgh, %stp, %γd, %idm, %al, %ast, %lp, %cl, %ps, %dir, %d, %Hp,
-    #HL, #HD, #HF, #HFg, #HQ, #HW, #HSs, #HSi, #HH, #HHi, #HSt, #HM, #Hinv, -⟩
+    #HL, #Hzl, #HD, #HF, #HFg, #Hvo, #HQ, #HW, #HSs, #HSi, #HH, #HHi, #HSt, #HM, #Hinv, -⟩
   iunfold isRaftNode at Hrn
   iNamed Hrn
   icombine HSt Hst gives %Heq
@@ -570,7 +111,7 @@ theorem srvSnapDisk_of_RO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γ
   iexists stp, ss, γd, srvImageM γr.raft.raft.authOn γr.raft.raft, srvSnapRm γt γr
   iframe HSt Hinv
   isplitr
-  · ipureintro; exact Hp.2.2.1
+  · ipureintro; exact Hp.2.1
   isplitr
   · rw [Heq]; iexact Hsti
   iintro !> %j #Hj

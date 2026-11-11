@@ -39,7 +39,7 @@ theorem backend.batchTxBuffered.Commit.wp_proof
   unfold bOpen
   icases Ho with ⟨Ho, Hcls⟩
   icases isBackend_b γ P W Pk b $$ Hb with
-    ⟨%t2, %rt, %db1, %lg2, #Ht2, #Hrt, #-, %-, #Hmi, #-, #-, #Hrg, #-, #-, #Hci, %HP⟩
+    ⟨%t2, %rt, %db1, %lg2, #Ht2, #Hrt, #-, #-, #Hmi, #-, #-, #Hrg, #-, #-, #Hci, %HP⟩
   wp_auto
   wp_method_call
   wp_call
@@ -55,6 +55,10 @@ theorem backend.batchTxBuffered.Commit.wp_proof
     · simp only [Bool.false_eq_true, ↓reduceIte]
       rw [vData_free P st Hfo.1.1 Hfo.1.2.2.1 Hfo.1.2.2.2.1]
       iapply thinV_refl
+    isplitr
+    · ipureintro; intro h; cases h
+    isplitr
+    · ipureintro; exact Hfo.1.2.2.2.2
     unfold payIn
     rw [if_neg (by decide), if_pos rfl]
     iframe Htok

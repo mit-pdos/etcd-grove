@@ -9,7 +9,17 @@
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots (k8s\.wp_Compact$|k8s\.compactor\.wp_|k8s\.wp_NewCompactor$)
 axiom Client.Endpoints.wp_proof
+axiom backend.dbFile
+axiom backend.isDB
+axiom backend.ownDB
+axiom backend.ownWTxG
+axiom backend.rBkt
+axiom backend.rtxSnap
+axiom backend.rtxStats
+axiom backend.txDB
+axiom backend.txLive
 axiom context.WithCancelValCtx.wp_proof
+axiom envVerifyOffTok
 axiom errors.IsStatusErr.wp_proof
 axiom fmt.Errorf.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
@@ -30,6 +40,16 @@ axiom grpcWrotePeer
 axiom klog.Errorf.wp_proof
 axiom klog.V.wp_proof
 axiom klog.Verbose.Infof.wp_proof
+axiom pbCompactionRequestT_reg
+axiom pbCompactionResponseT_reg
+axiom pbDeleteRangeRequestT_reg
+axiom pbDeleteRangeResponseT_reg
+axiom pbPutRequestT_reg
+axiom pbPutResponseT_reg
+axiom pbRangeRequestT_reg
+axiom pbRangeResponseT_reg
+axiom pbTxnRequestT_reg
+axiom pbTxnResponseT_reg
 axiom proto.Clone.wp_proof
 axiom rpctypes.errDesc_etcdError
 axiom status.Error.wp_proof
@@ -38,6 +58,8 @@ axiom strconv.FormatInt.wp_proof
 axiom strconv.ParseInt.wp_proof
 axiom streamKeyFromCtx.wp_proof
 axiom time.Time.IsZero.wp_proof
+axiom v3rpc.pbWatchRequestT_reg
+axiom v3rpc.pbWatchResponseT_reg
 axiom zap.Duration.wp_proof
 axiom zap.Error.wp_proof
 axiom zap.Int'.wp_proof

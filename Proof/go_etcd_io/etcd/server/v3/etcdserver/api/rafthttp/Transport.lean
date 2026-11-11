@@ -66,7 +66,7 @@ def trFixed (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF
   iprop(∃ (lg ls ss : Loc) (urls : GoSlice) (uvs : List net.url.URL)
       (cid : go_etcd_io.etcd.client.pkg.v3.types.ID) (r : GoInterface) (ec : GoChan)
       (srt prt : GoInterface) (drf : w64) (pp sp : GoInterface),
-    t.[rafthttp.Transport, go!"Logger"] ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
+    t.[rafthttp.Transport, go!"Logger"] ↦□ lg ∗ zapLoggerOk lg ∗
     t.[rafthttp.Transport, go!"ID"] ↦□ lid ∗
     t.[rafthttp.Transport, go!"URLs"] ↦□ urls ∗ urls ↦*□ uvs ∗
     t.[rafthttp.Transport, go!"ClusterID"] ↦□ cid ∗
@@ -96,7 +96,7 @@ def peerLockInv (p : Loc) : IProp GF :=
 /-- **A started peer `p` of `pid` at the member `lid`** (persistent): see the file header. -/
 def peerOk (Rh : RaftHttp GF) (lid pid : w64) (γd : GName) (R : IProp GF) (p : Loc) : IProp GF :=
   iprop(∃ (lg ps pk cw2 cw1 pl ss cr2 cr1 : Loc) (r : GoInterface) (rc pc : GoChan),
-    p.[rafthttp.peer, go!"lg"] ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
+    p.[rafthttp.peer, go!"lg"] ↦□ lg ∗ zapLoggerOk lg ∗
     p.[rafthttp.peer, go!"localID"] ↦□ lid ∗ p.[rafthttp.peer, go!"id"] ↦□ pid ∗
     p.[rafthttp.peer, go!"r"] ↦□ r ∗ netRaftOk Rh.γn lid γd R r ∗
     p.[rafthttp.peer, go!"status"] ↦□ ps ∗ peerStatusOk ps ∗
@@ -131,12 +131,15 @@ def peerStop (Rh : RaftHttp GF) (pid : w64) (R : IProp GF) (p : Loc) : IProp GF 
 
 /-- **A message for the peer `pid` of the member `lid`** (what `peer.send` takes; stage 6b): read-only,
 marshalable, for `pid`, not a snapshot, without responses, with its bundle; a `MsgApp` of raft's
-shape from `lid` (what the msgappv2 stream encodes: `V2EncOk`); its encoding below `2^50` bytes
-(`swMsgBound`: `swMsgBound_phys`, the user's choice in stage 6d). -/
+shape from `lid` (what the msgappv2 stream encodes: `V2EncOk`); its wire content, of size below
+`2^47` bytes, and (raft-entsize §4) of bounded size when the payload says so (`msgSzC`: one content
+for both; derived from the sender's content since raft-entsize, which deleted the trust-boundary
+axiom `swMsgBound_phys`, stage 6d's bound restated in stage A of the per-type models). -/
 def peerMsg (Rh : RaftHttp GF) (lid pid : w64) (ml : Loc) : IProp GF :=
-  iprop(∃ st : MsgSt, msgOwn ml DFrac.discard st ∗ □ Rh.γn.N.P st ∗ Rh.γn.N.O st ∗
+  iprop(∃ st : MsgSt, msgOwn ml DFrac.discard st ∗ msgSzC Rh.γn.N.Sz ml st ∗ □ Rh.γn.N.P st ∗
+    Rh.γn.N.O st ∗
     ⌜MsgMarshals st ∧ st.msg.To' = pid ∧ st.msg.Type' ≠ MsgSnap ∧ st.resps = [] ∧
-      (st.msg.Type' = MsgApp → AppShape st ∧ st.msg.From' = lid) ∧ swMsgBound ml⌝)
+      (st.msg.Type' = MsgApp → AppShape st ∧ st.msg.From' = lid)⌝)
 
 /-- What the remote `g`'s mutex guards: `paused` (J8a-7, 2026-11-01: the fork's
 `goose-lean-remotepause`, a remote paused by a flag as a peer). -/
@@ -149,7 +152,7 @@ J8a-7, 2026-11-01, `Pause` stopped the pipeline and `Resume` restarted it, so a 
 to be paused, `CutPeer`'s premise) and lock. -/
 def remoteOk (Rh : RaftHttp GF) (lid pid : w64) (R : IProp GF) (g : Loc) : IProp GF :=
   iprop(∃ (lg ps pl : Loc),
-    g.[rafthttp.remote, go!"lg"] ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
+    g.[rafthttp.remote, go!"lg"] ↦□ lg ∗ zapLoggerOk lg ∗
     g.[rafthttp.remote, go!"localID"] ↦□ lid ∗ g.[rafthttp.remote, go!"id"] ↦□ pid ∗
     g.[rafthttp.remote, go!"status"] ↦□ ps ∗ peerStatusOk ps ∗
     g.[rafthttp.remote, go!"pipeline"] ↦□ pl ∗ pipeHandleOk Rh pl pid R ∗
@@ -168,9 +171,10 @@ def remoteStop (Rh : RaftHttp GF) (pid : w64) (R : IProp GF) (g : Loc) : IProp G
 /-- **A message the member `lid` sends** (what `Transport.Send` takes; stage 6c): `peerMsg`'s but
 for its recipient, `Send`'s routing (by `To`). -/
 def sendMsg (Rh : RaftHttp GF) (lid : w64) (ml : Loc) : IProp GF :=
-  iprop(∃ st : MsgSt, msgOwn ml DFrac.discard st ∗ □ Rh.γn.N.P st ∗ Rh.γn.N.O st ∗
+  iprop(∃ st : MsgSt, msgOwn ml DFrac.discard st ∗ msgSzC Rh.γn.N.Sz ml st ∗ □ Rh.γn.N.P st ∗
+    Rh.γn.N.O st ∗
     ⌜MsgMarshals st ∧ st.msg.Type' ≠ MsgSnap ∧ st.resps = [] ∧
-      (st.msg.Type' = MsgApp → AppShape st ∧ st.msg.From' = lid) ∧ swMsgBound ml⌝)
+      (st.msg.Type' = MsgApp → AppShape st ∧ st.msg.From' = lid)⌝)
 
 end defs
 
@@ -180,49 +184,44 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **The trust boundary: no raft message's encoding reaches `2^50` bytes** (2026-10-24, rafthttp
-stage 6d, the user's choice): the encoding of a read-only message is below `2^50` bytes (a
-petabyte; `swMsgBound`), a physical fact, like `netProcSlots`: no machine holds a message that
-large. The stream writer sums the sizes of up to 2049 messages into an `int` it adds to a
-prometheus counter, whose `Add` panics on a negative value; the sum stays below `2^62`. (Stage 6's
-choice (3), a panicking `Add` the writer's goroutine may reach, is not provable: Perennial's
-`wp_fork` asks a goroutine not to panic.) Not derivable in the logic, which can allocate a slice of
-any `w64` length: `pbEnc_ok` bounds the encoding by `2^63` only (an `int`, Go's semantics). -/
-axiom swMsgBound_phys (ml : Loc) (st : MsgSt) :
-    msgOwn (GF := GF) ml DFrac.discard st ⊢ ⌜swMsgBound ml⌝
-
 /-- **A message in the network's bundle is one the transport's `Send` takes** (stage 6d): the
-bundle's facts (`netBundle`), and its encoding's bound (`swMsgBound_phys`). -/
+bundle's facts (`netBundle`), and its encoding's bound: (raft-entsize §4, 2026-11-10) one content
+for both (`msgSzC`): the bundle's content, below `2^47` bytes by its size (`msgSize_lt_of_ok`). -/
 theorem sendMsg_of_netBundle (Rh : RaftHttp GF) (lid : w64) (ml : Loc) :
     netBundle Rh.γn.N lid ml ⊢ sendMsg Rh lid ml := by
   iintro Hb
   iunfold netBundle at Hb
-  icases Hb with ⟨%st, #Hm, #HP, HO, %H⟩
-  ihave %Hbd := swMsgBound_phys ml st $$ Hm
+  icases Hb with ⟨%st, #Hm, #HP, HO, %H, %c, #Hc, %Hcs⟩
+  ihave #Hbd : msgSzC Rh.γn.N.Sz ml st $$ []
+  · iunfold msgSzC
+    iexists c
+    iframe Hc
+    ipureintro
+    exact ⟨Hcs.1, Hcs.2.1, msgSize_lt_of_ok c Hcs.2.2, fun _ => Hcs.2.2⟩
   iunfold sendMsg
   iexists st
   iframe; iframe #
   ipureintro
-  exact ⟨H.2.1, H.1, H.2.1, H.2.2, Hbd⟩
+  exact ⟨H.2.1, H.1, H.2.1, H.2.2⟩
 
 /-- A started peer's stream writers (what the stream handler's `Get` gives). -/
 theorem peerStreams_of_peerOk (Rh : RaftHttp GF) (lid pid : w64) (γd : GName) (R : IProp GF)
     (p : Loc) : peerOk Rh lid pid γd R p ⊢ peerStreams Rh lid pid p := by
   iintro #H
   iunfold peerOk at H
-  icases H with ⟨%lg, %ps, %pk, %cw2, %cw1, %pl, %ss, %cr2, %cr1, %r, %rc, %pc, #Hlg, %Hlgnn, -, -, -,
+  icases H with ⟨%lg, %ps, %pk, %cw2, %cw1, %pl, %ss, %cr2, %cr1, %r, %rc, %pc, #Hlg, #Hlgz, -, -, -,
     -, -, -, -, -, #Hw2, #Hf2, #Hw1, #Hf1, -⟩
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgz
   iunfold peerStreams
   iexists lg, cw2, cw1, R, R
   iframe #
-  ipureintro; exact Hlgnn
 
 /-- A peer's message is the pipeline's. -/
 theorem pipeMsg_of_peerMsg (Rh : RaftHttp GF) (lid pid : w64) (ml : Loc) :
     peerMsg Rh lid pid ml ⊢ pipeMsg Rh pid ml := by
   iintro Hpm
   iunfold peerMsg at Hpm
-  icases Hpm with ⟨%st, Hm, #HP, HO, %H⟩
+  icases Hpm with ⟨%st, Hm, #Hb, #HP, HO, %H⟩
   iunfold pipeMsg
   iexists st
   iframe; iframe #
@@ -233,28 +232,28 @@ theorem swMsg_message_of_peerMsg (Rh : RaftHttp GF) (lid pid : w64) (ml : Loc) :
     peerMsg Rh lid pid ml ⊢ swMsg Rh .message lid pid ml := by
   iintro Hpm
   iunfold peerMsg at Hpm
-  icases Hpm with ⟨%st, Hm, #HP, HO, %H⟩
+  icases Hpm with ⟨%st, Hm, #Hb, #HP, HO, %H⟩
   iunfold swMsg
   iexists st
   iframe; iframe #
   ipureintro
-  exact ⟨H.1, H.2.1, H.2.2.1, H.2.2.2.1, fun h => absurd h (by decide), H.2.2.2.2.2⟩
+  exact ⟨H.1, H.2.1, H.2.2.1, H.2.2.2.1, fun h => absurd h (by decide)⟩
 
 /-- A peer's `MsgApp` (its type known of the message's state) is the msgappv2 stream's. -/
 theorem swMsg_v2_of_peerMsg (Rh : RaftHttp GF) (lid pid : w64) (ml : Loc) (st : MsgSt)
     (Hm : MsgMarshals st ∧ st.msg.To' = pid ∧ st.msg.Type' ≠ MsgSnap ∧ st.resps = [] ∧
-      (st.msg.Type' = MsgApp → AppShape st ∧ st.msg.From' = lid) ∧ swMsgBound ml)
+      (st.msg.Type' = MsgApp → AppShape st ∧ st.msg.From' = lid))
     (hty : st.msg.Type' = MsgApp) :
-    ⊢ msgOwn ml DFrac.discard st -∗ □ Rh.γn.N.P st -∗ Rh.γn.N.O st -∗
+    ⊢ msgOwn ml DFrac.discard st -∗ msgSzC Rh.γn.N.Sz ml st -∗ □ Rh.γn.N.P st -∗ Rh.γn.N.O st -∗
       swMsg Rh .msgAppV2 lid pid ml := by
-  iintro Hm' #HP HO
+  iintro Hm' #Hb #HP HO
   iunfold swMsg
   iexists st
   iframe; iframe #
   ipureintro
-  obtain ⟨hmar, hto, hns, hrs, happ, hb⟩ := Hm
+  obtain ⟨hmar, hto, hns, hrs, happ⟩ := Hm
   obtain ⟨hsh, hfr⟩ := happ hty
-  exact ⟨hmar, hto, hns, hrs, fun _ => ⟨hmar, Or.inr ⟨hty, hsh, hfr, hto⟩⟩, hb⟩
+  exact ⟨hmar, hto, hns, hrs, fun _ => ⟨hmar, Or.inr ⟨hty, hsh, hfr, hto⟩⟩⟩
 
 end lemmas
 

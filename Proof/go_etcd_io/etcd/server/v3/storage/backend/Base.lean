@@ -1,8 +1,8 @@
 /-
 Package initialization instances for etcd's backend (`server/v3/storage/backend`, translated
 with bodies: `Code/go_etcd_io/etcd/server/v3/storage/backend.toml`) and the packages it imports
-that no lower proof module provides: bbolt and its `errors` (names and types only; bbolt imports `time` and its `internal/common`, whose instance is `Proof/go_etcd_io/bbolt/internal/common/Init.lean`), `encoding/hex`
-(a standard-library package Perennial does not translate: names only, here),
+that no lower proof module provides (bbolt's and `encoding/hex`'s are
+`Proof/go_etcd_io/bbolt/PkgInit.lean`):
 `client/pkg/v3/verify` and prometheus's `client_golang/prometheus` (names only). The others are
 the cache's (`cache/v3/Base.lean`: `zap`) and Perennial's (`bytes`, `errors`, `fmt`, `math`,
 `sort`, `sync`, `sync/atomic`, `time`).
@@ -13,7 +13,8 @@ instance's well-formedness needs those of every package it imports.
 
 As in those, the package facts are assumptions about package initialization, not proved from
 `initialize'`; they are `True`, but for bbolt's `errors` (`bboltErrorsInit`: `ErrBucketNotFound`,
-an `errors.New` error) and the backend's (`backendInit`: the commit's prometheus histograms),
+an `errors.New` error) and the backend's (`backendInit`: the commit's prometheus histograms, and
+its defaults),
 2026-10-12, the backend's unit 2.
 -/
 module
@@ -30,7 +31,7 @@ public import Perennial.Proof.sort
 public import Perennial.Proof.sync
 public import Perennial.Proof.sync.atomic
 public import Perennial.Proof.time
-public import Proof.go_etcd_io.bbolt.internal.common.Init
+public import Proof.go_etcd_io.bbolt.PkgInit
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.BboltOptsDefs
 
 @[expose] public section
@@ -50,41 +51,8 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-namespace encoding.hex
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.encoding.hex :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.encoding.hex :=
-  build_get_is_pkg_init_wf
-
-end encoding.hex
-
-namespace go_etcd_io.bbolt
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.bbolt :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.bbolt :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.bbolt
-
-namespace go_etcd_io.bbolt.errors
-
-/-- bbolt's `errors` package facts: `ErrBucketNotFound` (`errors.New("bucket not found")`, which
-`DeleteBucket` returns and the backend compares with `errors.Is`) is a fixed `errors.New` error: a
-pointer error, a leaf of an error tree, with no `Is` method (`*errorString` has only `Error`;
-the model's method sets are uninterpreted, so this is stated, as `apply`'s `errLeaf`). -/
-abbrev bboltErrorsInit : IProp GF :=
-  iprop(∃ e : GoInterfaceOk, globalAddr ErrBucketNotFound ↦□ GoInterface.ok e ∗
-    ⌜_root_.Perennial.errors.IsPointerError e ∧ _root_.Perennial.errors.isLeafError e ∧
-      methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool])⌝)
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.bbolt.errors :=
-  define_is_pkg_init bboltErrorsInit
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.bbolt.errors :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.bbolt.errors
+-- (`encoding/hex`'s, bbolt's and bbolt `errors`' instances, `bboltErrorsInit`:
+-- `Proof/go_etcd_io/bbolt/PkgInit.lean`)
 
 namespace go_etcd_io.etcd.client.pkg.v3.verify
 
@@ -122,13 +90,19 @@ instance histSpec_persistent (h : GoInterfaceOk) : Persistent (histSpec (GF := G
 
 /-- The backend's package facts: the commit's histograms of `metrics.go` (`rebalanceSec`,
 `spillSec`, `writeSec`, `commitSec`), each a fixed interface value whose `Observe` returns; and
-(item 8, 2026-10-17: until then a premise of `New`) `boltOpenOptions` (`boltOpenOptionsOk`). -/
+(item 8, 2026-10-17: until then a premise of `New`) `boltOpenOptions` (`boltOpenOptionsOk`); and
+(2026-11-07, for `DefaultBackendConfig`'s loads) the defaults of `backend.go`, which nothing writes
+after the initializer: `defaultBatchInterval = 100 * time.Millisecond`, `defaultBatchLimit = 10000`,
+`InitialMmapSize = 10 * 1024 * 1024 * 1024`. -/
 abbrev backendInit : IProp GF :=
   iprop((∃ h : GoInterfaceOk, globalAddr rebalanceSec ↦□ GoInterface.ok h ∗ histSpec h) ∗
     (∃ h : GoInterfaceOk, globalAddr spillSec ↦□ GoInterface.ok h ∗ histSpec h) ∗
     (∃ h : GoInterfaceOk, globalAddr writeSec ↦□ GoInterface.ok h ∗ histSpec h) ∗
     (∃ h : GoInterfaceOk, globalAddr commitSec ↦□ GoInterface.ok h ∗ histSpec h) ∗
-    EtcdGrove.backend.boltOpenOptionsOk)
+    EtcdGrove.backend.boltOpenOptionsOk ∗
+    globalAddr defaultBatchInterval ↦□ (W64 100000000) ∗
+    globalAddr defaultBatchLimit ↦□ (W64 10000) ∗
+    globalAddr InitialMmapSize ↦□ (W64 10737418240))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend :=
   define_is_pkg_init backendInit

@@ -32,7 +32,15 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.callPut
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.callTxn
 public import Proof.go_etcd_io.etcd.client.v3.cloneCompare
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.closure
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.cmpCmp
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.cmpConfig
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.cmpInput
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.cmpInt
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.cmpOf
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.cmpStore
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.cmpStr
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.cmpTOp
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.cmpVR
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.cmpsFor
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.cmpsOf
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.configEqual
@@ -76,6 +84,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.withKVs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.withRes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.workloadKeys
 public import Proof.go_uber_org.zap.NewNop
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 public import Proof.context.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Link
@@ -166,25 +175,41 @@ theorem v3.wp_WithRange :
     EtcdGrove.WithRange.spec (GF := GF) (hG := hG) :=
   EtcdGrove.WithRange.wp_proof
 
-theorem wp_vrEqual :
-    EtcdGrove.etcd_txnlin.vrEqual.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.etcd_txnlin.vrEqual.wp_proof
+theorem wp_cmpInt :
+    EtcdGrove.etcd_txnlin.cmpInt.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcd_txnlin.cmpInt.wp_proof
 
-theorem wp_storeEqual :
-    EtcdGrove.etcd_txnlin.storeEqual.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.etcd_txnlin.storeEqual.wp_proof wp_vrEqual
+theorem wp_cmpStr :
+    EtcdGrove.etcd_txnlin.cmpStr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcd_txnlin.cmpStr.wp_proof
 
-theorem wp_inputEqual :
-    EtcdGrove.etcd_txnlin.inputEqual.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.etcd_txnlin.inputEqual.wp_proof
+theorem wp_cmpVR :
+    EtcdGrove.etcd_txnlin.cmpVR.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcd_txnlin.cmpVR.wp_proof wp_cmpStr wp_cmpInt
 
-theorem wp_configEqual :
-    EtcdGrove.etcd_txnlin.configEqual.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.etcd_txnlin.configEqual.wp_proof wp_storeEqual wp_inputEqual
+theorem wp_cmpStore :
+    EtcdGrove.etcd_txnlin.cmpStore.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcd_txnlin.cmpStore.wp_proof wp_cmpInt wp_cmpStr wp_cmpVR
+
+theorem wp_cmpCmp :
+    EtcdGrove.etcd_txnlin.cmpCmp.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcd_txnlin.cmpCmp.wp_proof wp_cmpInt wp_cmpStr
+
+theorem wp_cmpTOp :
+    EtcdGrove.etcd_txnlin.cmpTOp.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcd_txnlin.cmpTOp.wp_proof wp_cmpInt wp_cmpStr
+
+theorem wp_cmpInput :
+    EtcdGrove.etcd_txnlin.cmpInput.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcd_txnlin.cmpInput.wp_proof wp_cmpInt wp_cmpStr wp_cmpCmp wp_cmpTOp
+
+theorem wp_cmpConfig :
+    EtcdGrove.etcd_txnlin.cmpConfig.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcd_txnlin.cmpConfig.wp_proof wp_cmpStore wp_cmpInt wp_cmpInput
 
 theorem wp_addConfig :
     EtcdGrove.etcd_txnlin.addConfig.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.etcd_txnlin.addConfig.wp_proof wp_configEqual
+  EtcdGrove.etcd_txnlin.addConfig.wp_proof wp_cmpConfig
 
 theorem wp_vrOf :
     EtcdGrove.etcd_txnlin.vrOf.spec (GF := GF) (hG := hG) :=
@@ -273,6 +298,22 @@ theorem wp_removeAt :
 theorem wp_closure :
     EtcdGrove.etcd_txnlin.closure.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcd_txnlin.closure.wp_proof wp_addConfig wp_mstep wp_removeAt
+
+theorem wp_vrEqual :
+    EtcdGrove.etcd_txnlin.vrEqual.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcd_txnlin.vrEqual.wp_proof
+
+theorem wp_storeEqual :
+    EtcdGrove.etcd_txnlin.storeEqual.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcd_txnlin.storeEqual.wp_proof wp_vrEqual
+
+theorem wp_inputEqual :
+    EtcdGrove.etcd_txnlin.inputEqual.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcd_txnlin.inputEqual.wp_proof
+
+theorem wp_configEqual :
+    EtcdGrove.etcd_txnlin.configEqual.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcd_txnlin.configEqual.wp_proof wp_storeEqual wp_inputEqual
 
 theorem wp_workloadKeys :
     EtcdGrove.etcd_txnlin.workloadKeys.spec (GF := GF) (hG := hG) :=
@@ -378,9 +419,9 @@ theorem wp_Check :
     EtcdGrove.etcd_txnlin.Check.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcd_txnlin.Check.wp_proof lintest.wp_Run lintest.wp_CounterClock wp_Model wp_Gen wp_Apply
 
-theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.etcd_txnlin.Main.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.etcd_txnlin.Main.wp_proof zap.wp_NewNop etcdstart.wp_StartServer etcdstart.wp_Serve etcdstart.wp_NewClient wp_Check
+  EtcdGrove.etcd_txnlin.Main.wp_proof zap.wp_NewNop etcdstart.wp_StartServer etcdstart.wp_Serve etcdstart.wp_NewClient wp_Check mvcc.api.mvccApi_names_nonempty_law_holds
 
 end links_hasLC
 

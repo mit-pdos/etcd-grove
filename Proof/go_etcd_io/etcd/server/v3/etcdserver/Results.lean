@@ -98,7 +98,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NoSpaceDeadAdminOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AppliedOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.UberOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AdminEntryOn
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyAllSnapOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyAllSnap
 
 @[expose] public section
 
@@ -193,8 +193,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **The apply loop implements the client model over the committed entries** (`s.applyEntries
 (ep, ap)`, linked): the consistent-index protocol kept (`loopOk`, `ep.appliedi` advanced to the
 last entry), and the apply thread's KV taken from `x` to `x'` by `entriesStep c (unapplied ai ms)`
-(`c` the consistent index at the start), under the entries' shapes (`logShape`). -/
-theorem applyEntries_model : EtcdServer.applyEntries.spec (GF := GF) (hG := hG) :=
+(`c` the consistent index at the start), under the entries' shapes (`logShape`). (R2d'a swap batch
+3, 2026-11-06) At a restart point: `applyEntries.specBatch` is the restart form (Go's rows at Go's
+log, the ghost rows at `ghostOf rp A`, `kvBatchR`, `srvRestR`), in place of the first-start form,
+its instance at `rp = RestartPt.first`, `g = ai`; stronger at every caller with `ai0 ≤ ciEff` (every
+existing caller). -/
+theorem applyEntries_model [go_etcd_io.etcd.cache.v3.Assumptions] : EtcdServer.applyEntries.spec (GF := GF) (hG := hG) :=
   EtcdServer.wp_applyEntries
 
 /-- **The apply loop's step** (`s.applyAll(ep, ap)`, linked; the request path's unit 4b):
@@ -205,7 +209,11 @@ x'.log`), the applied index's waiters through `ai'` released (`applyWait.Trigger
 no-snapshot contract (`ap.snapshot = nil`) and the snapshot, compaction and merged-snapshot
 contracts. (2026-10-26) Under `ErrorStringLeaf`: the compaction (`compactRaftLog`, proved since)
 decides `errors.Is(err, raft.ErrCompacted)` of an `errors.New` error. (The auth component's stage 2, 2026-11-04) In both auth modes: the
-batch over the component `C`, the snapshot payload `specSnapM` (its off corollary deleted in stage 3: no caller used it). -/
+batch over the component `C`, the snapshot payload `specSnapM` (its off corollary deleted in stage 3: no caller used it). (R2d'a swap
+batches 2-3, 2026-11-06) Both at a restart point: the batch `specBatch` the restart form (the ghost
+rows at `ghostOf rp`, `kvBatchR`, `srvRestR`, the window's `winNoMergedSendR` over a borrowed `T`,
+`srvSnapBagN`), in place of the first-start form, its instance at `rp = RestartPt.first`, `g = ai`,
+`T = True`, given `srvSnapBagN` (which `run` supplies) and `ai0 ≤ ciEff` (every existing caller). -/
 theorem applyAll_model [go_etcd_io.etcd.cache.v3.Assumptions] : EtcdServer.applyAll.spec (GF := GF) (hG := hG) :=
   EtcdServer.wp_applyAll
 
@@ -216,8 +224,12 @@ ahead since unit C2a, 2026-10-14, `srvAppliedPre`, `applied_predeposit`); `apply
 (linked) does it for every entry, so its result's index has the KV's log after the batch; and the
 log applied through an index is unique. Together with `range_linearizable`: a linearizable read at
 the committed index `c` returns the state of a log extending the one applied through some index
-`ci₀ ≥ c`, and that log is exactly the apply thread's after the entry at `ci₀`. -/
-theorem applied_log_at :
+`ci₀ ≥ c`, and that log is exactly the apply thread's after the entry at `ci₀`. (R2d'a swap batch 3,
+2026-11-06) `apply.spec` is the restart form (`apply.specAt (· ≠ .any)`: the applied index `g` the
+ghost's, `appliedLogAt γr g'` after), in place of the first-start form, its instance at
+`rp = RestartPt.first`, `g = f0 - 1`; stronger at every caller with `ai0 ≤ ciEff` (every existing
+caller). -/
+theorem applied_log_at [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdServer.setAppliedIndex.spec (GF := GF) (hG := hG) ∧
     EtcdServer.apply.spec (GF := GF) (hG := hG) ∧
     ∀ (γr : ReadNames) (i : w64) (L L' : mvcc.Log),
@@ -460,7 +472,7 @@ through `m.index` (`srvAppliedPre`), the witness the result carries. (D22 S8d, 2
 `applyEntryNormal`'s premise, `notes/decisions.md`.) (2026-11-02, the cluster-rows stage, the
 user's approval: the voters members of the rest state at `A`, `srvMemCover`, which `dispatch`'s
 `restReqOk` needs of a member attributes request; the apply loop's `srvApRes` holds it.) -/
-theorem request_delivered (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+theorem request_delivered [go_etcd_io.etcd.cache.v3.Assumptions] (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (b : GoInterface) (e : Loc) (m : EntryModel)
     (st : ApplyState) (v3 : Bool) (x : apply.ApplyKV) (γr : ReadNames) (rq : apply.IRRModel)
     (id : w64) (t : GName) (v : w64) (A : List EntryModel) (hne : m.data ≠ [])
@@ -468,20 +480,20 @@ theorem request_delivered (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServer s γ ci TM E ρ γr ∗ entryWaitOk ρ E m ∗ waitRegd ρ.wait id t ∗ entryAt e m ∗
         applyThread γ st ∗ applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗
-        srvApplyKV s E ρ.wait x ∗ mvcc.storeWT E.γ ∗ srvFS s ∗
+        mvcc.api.mvccReaders E.γ 1 ∗ srvApplyKV s E ρ.wait x ∗ srvWT E ∗ srvFS s ∗
         srvAppliedOwn γr v ∗ appliedLogAt γr v x.log ∗ committedAtLeast γr m.index ∗
         kvApplied γr.raft γr.kv A x ∗ srvRest E γr A ∗
         ⌜srvMemCover γr.raft γr.kv.c0 A⌝ ∗ srvRLogLb γr.raft (A ++ [m]) ∗
         ⌜uint.Z v = uint.Z γr.raft.ai0 + A.length ∧ v3 = decide (uint.Z γr.kv.c0 < uint.Z m.index)⌝ ∗
         ⌜uint.Z m.index = uint.Z v + 1⌝ ∗
-        ⌜st.pending = false ∧ entryOk false x m ∧ m.typ = W32 0⌝ ∗
+        ⌜st.pending = false ∧ entryOk .none x m ∧ m.typ = W32 0⌝ ∗
         (if v3 then iprop(ciApplying ci m.index m.term ∗
             ⌜m.index = st.p + 1 ∧ uint.Z st.p < uint.Z m.index ∧
               uint.Z (ciEff γ st.k) < uint.Z m.index ∧ stLoaded γ st = st⌝)
          else iprop(True)) }}
       (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyEntryNormal"))
         (Val #e)) (Val #v3))
-    {{ RET #(); applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗ srvFS s ∗
+    {{ RET #(); applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvFS s ∗
         (∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), srvApplyKV s E ρ.wait x' ∗
           ⌜entryStep m v3 x x' out⌝ ∗ (⌜out.waived = false⌝ ∨ waitGone ρ.wait id t) ∗
           srvAppliedPre γr v m.index x'.log ∗ kvApplied γr.raft γr.kv (A ++ [m]) x' ∗
@@ -489,13 +501,25 @@ theorem request_delivered (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
         (if v3 then iprop(ciApplying ci m.index m.term ∗
             ∃ eff : w64, applyThread γ ⟨m.index, m.index, eff, false⟩)
          else applyThread γ st) }} := by
-  iintro %Φ ⟨#Hpkg, #Hsrv, #Hewo, #Hreg, #He, Hst, Hbe, Hlr, Hgr, HKV, Hwt, Hfs, Hao, #HLv, #Hcm, Hka,
+  cases v3
+  · -- (R2d'a, Q23 (a)) vacuous: the KV invariant's `c0 ≤ ai0` puts the entry, after the applied
+    -- index, above `c0`
+    iintro %Φ ⟨#Hpkg, #Hsrv, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, %HkA, %Hvi, -, -⟩ -
+    imod isServerM_c0_le false s γ ci TM E ρ γr $$ [] with %Hc0
+    · rw [isServerM_false]; iexact Hsrv
+    exfalso
+    have h1 := HkA.2
+    rw [decide_eq_true (show uint.Z γr.kv.c0 < uint.Z m.index by omega)] at h1
+    cases h1
+  have hAEN := EtcdServer.applyEntryNormal.spec_off EtcdServer.wp_applyEntryNormal
+      s γ ci TM E ρ b e m st true x γr (some t) v A [] (restModel γr.kv.c0 γr.raft.raft.boot [])
+  simp only [↓reduceIte] at hAEN ⊢
+  iintro %Φ ⟨#Hpkg, #Hsrv, #Hewo, #Hreg, #He, Hst, Hbe, Hlr, Hgr, Hmr, HKV, Hwt, Hfs, Hao, #HLv, #Hcm, Hka,
     HRS, %Hmc, #HAm, %HkA, %Hvi, %Hpo, Hv3⟩ HΦ
   imod authOn_false_of_off s γ ci TM E ρ γr ρ.wait x A $$ [$Hsrv $HKV $Hka] with ⟨%hoff, HKV, Hka⟩
-  iapply (EtcdServer.applyEntryNormal.spec_off EtcdServer.wp_applyEntryNormal
-      s γ ci TM E ρ b e m st v3 x γr (some t) v A hoff)
-    $$ [Hst Hbe Hlr Hgr HKV Hwt Hfs Hv3 Hao Hka HRS]
-  · iframe Hst Hbe Hlr Hgr HKV Hwt Hfs Hv3 Hao Hka HRS
+  iapply (hAEN hoff)
+    $$ [Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hv3 Hao Hka HRS]
+  · iframe Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hv3 Hao Hka HRS
     iframe #
     isplitr
     · iunfold entryRegd
@@ -508,11 +532,13 @@ theorem request_delivered (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
       iunfold waitRegdOpt
       iframe Hreg
       iintro %h; cases h
-    ipureintro; exact ⟨Hmc, HkA, Hvi, Hpo.1, entryOk_of_false _ _ _ Hpo.2.1, Hpo.2.2⟩
+    ipureintro
+    exact ⟨Hmc, ⟨HkA.1, of_decide_eq_true HkA.2.symm⟩, Hvi, Hpo.1, entryOk_of_false _ _ _ Hpo.2.1,
+      Hpo.2.2⟩
   inext
-  iintro ⟨Hbe, Hlr, Hgr, Hfs, ⟨%x', %out, HKV, %Hstep, #Hdel, Hpre, Hka, HRS⟩, Hpost⟩
+  iintro ⟨Hbe, Hlr, Hgr, Hmr, Hfs, ⟨%x', %out, HKV, %Hstep, #Hdel, Hpre, Hka, HRS⟩, Hpost⟩
   iapply HΦ
-  iframe Hbe Hlr Hgr Hfs Hpost
+  iframe Hbe Hlr Hgr Hmr Hfs Hpost
   iexists x', out
   iframe HKV Hpre Hka HRS
   isplitr
@@ -625,13 +651,13 @@ theorem range_linearizable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
     (ot : Option Loc) (te : Bool) (F : mvcc.Log)
     (hlin : o.base.serializable = false) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-        isServerReq s E ρ ∗ isServerRead s E γr ∗ srvRdCall s E γr c ∗ context.isContext ctx cd ∗
+        isServerReq s E ρ ∗ isServerRead s E γr ∗ srvRdCall s E γr c ∗ context.isContext ctx cd ∗ context.libCtxOk ctx ∗
         traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ txn.rangeRequestIs r o ∗ ⌜txn.validSortTarget o⌝ ∗
-        mvcc.idxCert E.γ.idx F }}
+        srvApi.kvLogLb E.γs F }}
       (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Range"))
         (Val #(GoInterface.ok ctx))) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvRdCall s E γr c ∗
-        ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ log : mvcc.Log, mvcc.idxCert E.γ.idx log ∗
+        ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ log : mvcc.Log, srvApi.kvLogLb E.γs log ∗
             ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ F <+: log⌝ ∗ readIndexOk γr c ∗
             (∃ (ci₀ : w64) (L₀ : mvcc.Log), ⌜uint.Z c ≤ uint.Z ci₀⌝ ∗ appliedLogAt γr ci₀ L₀ ∗
               ⌜L₀ <+: log⌝) ∗
@@ -639,7 +665,7 @@ theorem range_linearizable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
               txn.rangeResult resp GoInterface.nil log (W64 ((log.length : Int) - 1)) crev o true) ∗
             txn.respHdrOwn (structFieldRef etcdserverpb.RangeResponse go!"Header" resp)) ∨
          (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }} := by
-  iintro %Φ ⟨#Hp, #Hq, #Hd, Hrc, #Hctx, Hct, Hot, #Hr, %Hv, #HF⟩ HΦ
+  iintro %Φ ⟨#Hp, #Hq, #Hd, Hrc, #Hctx, #Hlib, Hct, Hot, #Hr, %Hv, #HF⟩ HΦ
   -- `Range.spec` at the off view (the mode is off, the floor `0`)
   ihave %hon := isServerReq_authOff s E ρ $$ Hq
   ihave #HaLb := srvAuthLb_off s E ρ $$ Hq
@@ -666,15 +692,18 @@ theorem range_linearizable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
   · ileft
     iunfold rangeReadOk at H
     simp only [hlin, Bool.false_eq_true, ↓reduceIte]
-    icases H with ⟨%log, #Hc, -, %Hl, #Hrl, -, #Hres, Hown⟩
+    icases H with ⟨%log, #Hc, -, -, %Hl, #Hrl, -, #Hres, Hown⟩
     iunfold readLogOk at Hrl
     icases Hrl with ⟨#Hri, #Hlog⟩
     isplitr
     · ipureintro; exact Hok
     iexists log
     iframe Hc Hri Hlog Hres Hown
-    ipureintro; exact Hl
-  · iright; iexact H
+    ipureintro; exact Hl.2
+  · iright
+    icases H with ⟨%Hn, #He, -⟩
+    iframe He
+    ipureintro; exact Hn
 
 /-- **`range_serializable`** (see the section header): in the client model's terms, for a
 request whose sort is not cut early (a serializable one's whole answer: it takes no read index;
@@ -684,19 +713,19 @@ theorem range_serializable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
     (ot : Option Loc) (te : Bool) (F : mvcc.Log)
     (hcut : ¬ txn.cutEarly o) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-        isServerReq s E ρ ∗ isServerRead s E γr ∗ srvRdCall s E γr c ∗ context.isContext ctx cd ∗
+        isServerReq s E ρ ∗ isServerRead s E γr ∗ srvRdCall s E γr c ∗ context.isContext ctx cd ∗ context.libCtxOk ctx ∗
         traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ txn.rangeRequestIs r o ∗ ⌜txn.validSortTarget o⌝ ∗
-        mvcc.idxCert E.γ.idx F }}
+        srvApi.kvLogLb E.γs F }}
       (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Range"))
         (Val #(GoInterface.ok ctx))) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvRdCall s E γr c ∗
-        ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ log : mvcc.Log, mvcc.idxCert E.γ.idx log ∗
+        ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ log : mvcc.Log, srvApi.kvLogLb E.γs log ∗
             ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63⌝ ∗
             (∃ crev : Int,
               txn.rangeResultClient resp GoInterface.nil log (W64 ((log.length : Int) - 1)) crev o true) ∗
             txn.respHdrOwn (structFieldRef etcdserverpb.RangeResponse go!"Header" resp)) ∨
          (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }} := by
-  iintro %Φ ⟨#Hp, #Hq, #Hd, Hrc, #Hctx, Hct, Hot, #Hr, %Hv, #HF⟩ HΦ
+  iintro %Φ ⟨#Hp, #Hq, #Hd, Hrc, #Hctx, #Hlib, Hct, Hot, #Hr, %Hv, #HF⟩ HΦ
   ihave %Hset := txn.rangeRequestIs_sortSet r o $$ Hr
   -- `Range.spec` at the off view (the mode is off, the floor `0`)
   ihave %hon := isServerReq_authOff s E ρ $$ Hq
@@ -723,17 +752,20 @@ theorem range_serializable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
   icases H with (⟨%Hok, -, H⟩ | H)
   · ileft
     iunfold rangeReadOk at H
-    icases H with ⟨%log, #Hcert, -, %Hlen, -, -, #Hres, Hown⟩
+    icases H with ⟨%log, #Hcert, -, -, %Hlen, -, -, #Hres, Hown⟩
     isplitr
     · ipureintro; exact Hok
     iexists log
     iframe Hcert Hown
     isplitr
-    · ipureintro; exact ⟨Hlen.1, Hlen.2.1⟩
+    · ipureintro; exact ⟨Hlen.2.1, Hlen.2.2.1⟩
     icases Hres with ⟨%crev, #Hres⟩
     iexists crev
     iapply txn.rangeResult_client _ _ _ _ crev o true Hset hcut $$ Hres
-  · iright; iexact H
+  · iright
+    icases H with ⟨%Hn, #He, -⟩
+    iframe He
+    ipureintro; exact Hn
 
 /-- **`txn_readonly`** (see the section header). -/
 theorem txn_readonly (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
@@ -742,16 +774,16 @@ theorem txn_readonly (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNa
     (hro : txn.txnReadonly t = true) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReq s E ρ ∗ isServerRead s E γr ∗ srvLeadTimeReader s ∗ idCred ρ.ids 1 ∗
-        srvRdCall s E γr c ∗ context.isContext ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗
+        srvRdCall s E γr c ∗ context.isContext ctx cd ∗ context.libCtxOk ctx ∗ trace.spanCtxOk ctx ∗ traceutil.ctxTraceIs ctx ot ∗
         traceutil.ownTraceOpt ot te ∗ txn.txnRequestIs r t ∗
-        ⌜txn.txnGetsOk t⌝ ∗ mvcc.idxCert E.γ.idx F }}
+        ⌜txn.txnGetsOk t⌝ ∗ srvApi.kvLogLb E.γs F }}
       (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Txn"))
         (Val #(GoInterface.ok ctx))) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         srvLeadTimeReader s ∗ srvRdCall s E γr c ∗ idCred ρ.ids 1 ∗
         ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ txnReadOk E γr c F t (fun _ => iprop(True)) resp) ∨
          (⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }} := by
-  iintro %Φ ⟨#Hp, #Hq, #Hd, Hlt, Hcr, Hrc, #Hctx, Hct, Hot, #Hr, %Hg, #HF⟩ HΦ
+  iintro %Φ ⟨#Hp, #Hq, #Hd, Hlt, Hcr, Hrc, #Hctx, #Hlib, #Hspc, Hct, Hot, #Hr, %Hg, #HF⟩ HΦ
   ihave %hon := isServerReq_authOn s E ρ $$ Hq
   have hM : E.authMode = .off := by
     unfold apply.AEnv.authOn at hon
@@ -787,8 +819,8 @@ theorem txn_applied (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNam
     (hw : txn.txnReadonly t = false) (hd : apply.txnDepthOk t) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReq s E ρ ∗ isServerRead s E γr ∗ srvLeadTimeReader s ∗ idCred ρ.ids 1 ∗
-        srvRdCall s E γr c ∗ context.isContext ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗
-        traceutil.ownTraceOpt ot te ∗ txn.txnRequestIs r t ∗ mvcc.idxCert E.γ.idx F ∗
+        srvRdCall s E γr c ∗ context.isContext ctx cd ∗ context.libCtxOk ctx ∗ trace.spanCtxOk ctx ∗ traceutil.ctxTraceIs ctx ot ∗
+        traceutil.ownTraceOpt ot te ∗ txn.txnRequestIs r t ∗ srvApi.kvLogLb E.γs F ∗
         txnPermit ρ.kv t Q }}
       (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Txn"))
         (Val #(GoInterface.ok ctx))) (Val #r))
@@ -796,7 +828,7 @@ theorem txn_applied (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNam
         srvLeadTimeReader s ∗ srvRdCall s E γr c ∗
         ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ txnAppliedOk E ρ.rd F t Q resp) ∨
          (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗ txnErrOk E ρ F t err)) }} := by
-  iintro %Φ ⟨#Hp, #Hq, #Hd, Hlt, Hcr, Hrc, #Hctx, Hct, Hot, #Hr, #HF, Hnp⟩ HΦ
+  iintro %Φ ⟨#Hp, #Hq, #Hd, Hlt, Hcr, Hrc, #Hctx, #Hlib, #Hspc, Hct, Hot, #Hr, #HF, Hnp⟩ HΦ
   ihave %hon := isServerReq_authOn s E ρ $$ Hq
   imod txnPermitM_false ρ.raft ρ.kv (hdrBoundM false s E (GoInterface.ok ctx)) t Q $$ Hnp with Hnp
   have hT := EtcdServer.wp_Txn s E ρ γr c ctx cd r t Q (fun _ => iprop(True)) ot te F 0
@@ -848,9 +880,10 @@ backend's proof and bbolt's key-value contract) makes what the apply thread star
 store as the txn package's `isKV`, its reader slots, the sole writer of the initial log, and a
 supply of `N` write tokens (`txn.storeWTs`, the backend's write-back tokens: `applyEntries`
 spends one per entry). The premises are the backend creator's (the backend's constructor is not
-proved): the backend made for the real instance, its post-lock hook set for good, **`keySized`**
-(fewer than `2 ^ 62` entries of the `Key` bucket in any state a read transaction holds: a
-genuine assumption, nothing in etcd bounds a bucket's size), the clients' view of the empty
+proved): the backend made for the real instance, its post-lock hook set for good (until premise
+fixes 5, 2026-11-10, also `keySized`, fewer than `2 ^ 62` entries of the `Key` bucket in any state a
+read transaction holds, assumed; now proved, `mvcc.keySized_at`, from bbolt's address-space bound
+`backend.rtxSnap_size`), the clients' view of the empty
 `Key` bucket, the lock resource's registration right, `N + 2` write-back tokens (`NewStore`
 spends two) and a reader token per reader slot; and, since the merge with the store's compaction
 (unit 5a, 2026-10-13), `NewStore`'s premise on its configuration (`mvcc.batchLimitOk`:
@@ -871,158 +904,155 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- **The apply thread's KV over the real backend**: `NewStore` on a fresh backend of the real
-instance `d` gives a store `s` of that instance (`γ.kb = some d`) that is the txn package's
-`isKV`, with its reader slots, the sole writer of `NewStore`'s log `[[], []]` and `N` write
-tokens: with the store's lessor's leases (none in the empty state), the apply thread's
-`apply.kvOwn` and `applyEntries`' write budget, for a server whose environment is the store's.
-(F2's Freeze, stage 2; review round 2's T2-1) Of a backend `bootstrap` opened (`d.snap = false`:
-`NewStore`'s scope); off compaction mode the instance's ties are nothing (`kbTieInit_off`). -/
+/-- **The apply thread's KV over the real backend** (restated over mvcc's API, R8, 2026-11-07;
+until then over mvcc's internals, `txn.isKV`/`soleWriter` at a non-compacting instance): `NewStore`
+on a fresh backend of the real instance `d` (in compaction mode, `bridgeParams`/`leaseParams`; its
+data the empty history's image: no key, no compaction recorded), its storage opened at `mvccStart`
+(`etcdStorage_open.law`, `mvccImage_fresh.law`), gives a store of the API (`isMvcc` at `*store`), at
+`mvccStart`, open, with the backend's whole share at the batch lock `Pk` and the hook `f` frozen
+(`hookIs`), its reader tokens and range deleter, the client's rest (`backendRest`) and two counted
+reader slots. (mvccfull's Freeze, 2026-11-10) The lessor's owner part with no lease
+(`lease.leaseOwn γl [] ∅`, `NewLessor`'s post) is lent and given back: `NewStore` on any image
+re-attaches the restored keys' leases through it. -/
 theorem server_kv_backend (lg : Loc) (le : GoInterface)
     (cfg : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig)
-    (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (hcm : d.cm = false) (hs : d.snap = false)
-    (γb γl : GName) (Pk : IProp GF)
-    (f : GoFunc) (hf : f ≠ func.nil) (rd0 : GoFunc) (N : Nat) (hcfg : mvcc.batchLimitOk cfg.CompactionBatchLimit')
+    (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (hlp : mvcc.leaseParams d.P) (hcm : d.cm = true)
+    (Pk K : backend.BNames → IProp GF) (D : backend.Data)
+    (hk : ∀ k, backend.dget D mvcc.keyName k = none)
+    (hsch : backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName mvcc.schedKeyBytes = none)
+    (hfin : backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName mvcc.finKeyBytes = none)
+    (γl : GName) (f : GoFunc) (rd0 : GoFunc) (hcfg : mvcc.batchLimitOk cfg.CompactionBatchLimit')
     (hrb : receiptBound GF ≤ 2 ^ 48) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-        backend.isBackend d.γB d.P (mvcc.lateWB d.gx d.γB) Pk d.be ∗ backend.plHookRO d.γB f ∗
-        mvcc.keySized d.γB d.P d.be ∗
-        -- (the backend-compaction stage) the deletable-keys registration, unfixed: the store fixes it
-        -- where its compaction mode is chosen (today's stores never compact: `dlNoDel`)
-        backend.dlInit d.γB ∗
-        mvcc.bkView d.γB 1 (∅ : mvcc.Bucket) ∗ mvcc.bkNoCmp d.γB ∗ mvcc.lateReg d.gx ∗
-        ownToks d.γB.wb (N + 2) ∗
-        ([∗list] _x ∈ List.replicate backend.rdStockN (),
-          mvcc.bkRTx d.γB d.P d.be) ∗
-        lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 }}
+        -- (premise-fixes-6) the logger nil or a zap logger (mvcc's `NewStore`, approved D2b)
+        zapLoggerOrNil lg ∗
+        backend.plHookRO d.γB f ∗
+        backend.newPostKP d.γB d.P (fun _ => mvcc.api.mvccW d.gx) Pk K d.be D ∗
+        mvcc.api.mvccWReg d.gx ∗ backend.wbTok d.γB ∗ backend.wbTok d.γB ∗
+        □ (⧗ 1 ={⊤}=∗ backend.wbTok d.γB) ∗
+        ([∗list] _x ∈ List.replicate (backend.rdStockN - 2) (), backend.bOpen d.γB backend.rdOpen) ∗
+        lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 ∗ lease.leaseOwn γl [] ∅ }}
       (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.NewStore)) (Val #lg))
         (Val #(interface.mkOk
           (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be)))
         (Val #le)) (Val #cfg))
-    {{ (s : Loc), RET #s; ∃ γ : mvcc.StoreNames,
-        ⌜γ.bucket = γb ∧ γ.leases = γl ∧ γ.kb = some d⌝ ∗
-        txn.isKV (interface.mkOk (go.GoType.PointerType
-          go_etcd_io.etcd.server.v3.storage.mvcc.store.ty) #s) s γ ∗ mvcc.hookIs γ Pk #f ∗
-        ghostMapAuth γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗
-        ([∗list] _x ∈ List.replicate backend.rdStockN (),
-          mvcc.storeReader s γ) ∗
-        txn.soleWriter γ [[], []] ∗ txn.storeWTs γ N ∗ mvcc.storeCloser s γ }} := by
-  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hhk, #Hsz, Hdl, Hv, Hncmp, Hrg, Hw, Hrts, Hlrd, #Hle, Hro⟩ HΦ
-  rw [show N + 2 = (N + 1) + 1 by omega]
-  icases ownToks_add_1 1 (N + 1) d.γB.wb $$ Hw with ⟨Hw, Hw1⟩
-  icases ownToks_add_1 1 N d.γB.wb $$ Hw with ⟨Hw, Hw2⟩
-  -- (question 5's core stage, part (1)) this store does not compact (`hcm`): no slot, no supply, no
-  -- reader kept back (`cmOff_res`)
-  obtain ⟨-, hj, -, -, hsr⟩ := mvcc.cmOff_res (GF := GF) d hcm
-  ihave Hsrm : mvcc.kbSRM (GF := GF) (some d) $$ []
-  · iapply hsr.2; itrivial
-  iapply wp_fupd
-  ihave Htie := mvcc.kbTieInit_off (GF := GF) d hcm
-  wp_apply (mvcc_NewStore_backend lg le cfg d hP hs γb γl Pk f hf rd0 hcfg hrb (fun _ => iprop(True)))
-      $$ [Hdl Hv Hncmp Hrg Hw1 Hw2 Hsrm Htie Hrts Hlrd Hro]
-    as %s ⟨%γ, %Hγ, #Hst, -, Hcok, Hhk', -, Hrds, Htoks, #Hc, Hcl, -, Hright, -, -⟩
-  · iframe #; iframe Hdl Hv Hncmp Hrg Hrts Hlrd Hro Hsrm
+    {{ (s : Loc), RET #s;
+        ∃ γ : mvcc.api.MvccName, ⌜mvcc.api.mvccLeases γ = γl⌝ ∗
+          mvcc.api.isMvcc (interface.mkOk (go.GoType.PointerType
+            go_etcd_io.etcd.server.v3.storage.mvcc.store.ty) #s) γ ∗
+          mvcc.api.mvccState γ mvcc.api.mvccStart ∗ mvcc.api.mvccOpen γ ∗
+          mvcc.api.mvccBackend γ 1 (mvcc.api.etcdStorage d) (Pk d.γB) ∗
+          mvcc.api.hookIs (mvcc.api.etcdStorage d) f ∗
+          mvcc.api.mvccReaders γ mvcc.api.mvccReaderN ∗
+          (∃ rd : GoFunc, lease.rdOwn γl rd ∗ mvcc.api.mvccDeleter rd γ) ∗
+          mvcc.api.backendRest d.γB d.P K d.be D ∗
+          backend.rdTok d.γB d.P d.be ∗ backend.rdTok d.γB d.P d.be ∗
+          lease.leaseOwn γl [] ∅ }} := by
+  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hzl, #Hhk, HPKP, Hreg, Hw1, Hw2, #Hsup, Hos, Hlrd, #Hle, Hro, Hlo⟩ HΦ
+  ihave #Hsz := mvcc.keySized_at (GF := GF) d.P
+  imod (mvcc.api.mvccApi_mvccImage_fresh_law_holds D hk hsch hfin) with #Him
+  imod (mvcc.api.mvccApi_etcdStorage_open_law_holds d Pk K D mvcc.api.mvccStart.log
+      mvcc.api.mvccStart.crev false hP hlp hcm) $$ [Hsz Him HPKP Hreg Hw1 Hw2 Hsup Hos]
+    with ⟨Hsto, Hrest, Hrt1, Hrt2⟩
+  · iframe Hsz Him HPKP Hreg Hw1 Hw2 Hsup Hos
+  rw [← mvcc.api.etcdStorage_val d]
+  haveI : ReceiptBoundLe GF (2 ^ 48) := ⟨hrb⟩
+  -- (mvccfull's Freeze, 2026-11-10) the spec on any image, at the fresh one; the lessor's owner part
+  -- (no lease) lent and given back
+  iapply (mvcc.api.mvccApi_NewStore_wp_proof lg le cfg (mvcc.api.etcdStorage d) (Pk d.γB) γl rd0
+      mvcc.api.mvccStart false [] (DFrac.own 1) func.nil iprop(True) iprop(True) iprop(True)
+      iprop(True) iprop(True))
+    $$ [Hsto Hlrd Hro Hlo]
+  · iframe Hpkg Hbpkg Hsch Hzl Hsto Hlrd Hle Hro Hlo
     isplitr
-    · iintro !> %h; rw [hcm] at h; cases h
-    unfold backend.wbTok
-    iframe Hw1 Hw2
-  rw [hj, Nat.sub_zero]
-  -- the apply thread's store is never compacted (the compaction is not in the server's model):
-  -- the compaction right's half given up, the readers those of a never-compacted store (as the
-  -- watchable store's `newWatchableStore` does)
-  imod mvcc.crevFrozen_alloc γ ⊤ $$ Hright with #Hfrz
-  ihave Hrds := mvcc.storeReaders_of s γ _ $$ Hrds
-  imodintro
+    · ipureintro; exact ⟨hcfg, .start, rfl⟩
+    isplitr
+    · ipureintro; intro it lid hl; rw [mvcc.api.pendItems_mvccStart] at hl; cases hl
+    simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
+  inext
+  iintro %s ⟨%γ, %Hγ, #Hkv, Hst, Hop, HB, Hrds, Hdel, Hlo, -, -⟩
   iapply HΦ
   iexists γ
+  first | rw [mvcc.api.pendItems_mvccStart] | rw [show mvcc.pendItems [[], []] [] = ∅ from mvcc.api.pendItems_mvccStart]
+  iframe Hkv Hst Hop HB Hrds Hdel Hrest Hrt1 Hrt2 Hlo
   isplitr
-  · ipureintro; exact ⟨Hγ.1, Hγ.2.1, Hγ.2.2.1⟩
-  iframe Hhk' Hrds Hcl Hcok
-  isplitr
-  · iunfold txn.isKV; ileft; iframe Hst; isplitr; · ipureintro; rfl
-    ipureintro; exact Hγ.2.2.2
-  isplitl [Htoks]
-  · iapply txn.soleWriter_of_NewStore γ hrb; iframe Htoks Hc
-  unfold txn.storeWTs
-  rw [Hγ.2.2.1]
-  iexact Hw
+  · ipureintro; exact Hγ
+  rw [mvcc.api.etcdStorage_hookIs]
+  iexact Hhk
 
-/-- **The server's KV over the real backend: `mvcc.New`'s watchable store** (unit N4, D14a/b):
-`mvcc.New` on a fresh backend of the real instance `d`, before the post-lock hook is installed
-(the store's contract names the backend's hook slot, `storeBackend`), gives the KV rows of the
-server's construction premise for the watchable store `ws` over its inner store `st`: the txn
-package's `isKV` (the watchable store), the inner store's read view (the watchable store points
-it at itself), the KV's writer at `NewStore`'s log `[[], []]` (`kvWriter`: the sole writer and
-the writer's half of the notified log), `N` write tokens, the recorded batch-lock invariant
-(`hookInit`: `hookIs` once the server freezes the hook, `hookIs_of_init`), the certificate map's
-authority; and the watch side's (the watchable store, its watch tokens, its readers but the two
-loops', the right to close it). The index's names `γi` and the map `γok` are the caller's (D13a).
-(F2's Freeze, stage 2) Of a backend `bootstrap` opened (`d.snap = false`: `NewStore`'s scope, as
-`server_kv_backend`); off compaction mode the instance's ties are nothing. -/
+/-- **The server's KV over the real backend: `mvcc.New`'s watchable store** (restated over mvcc's
+API, R8, 2026-11-07; until then over mvcc's internals, `txn.isKV`/`kvWriter`/`isWatchableStore` at a
+non-compacting instance): as `server_kv_backend`, for `New` (`isMvcc` at `*watchableStore`). -/
 theorem server_kv_watchable (lg : Loc) (le : GoInterface)
     (cfg : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig)
-    (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (hcm : d.cm = false) (hs : d.snap = false)
-    (γb γl : GName) (Pk : IProp GF) (f : val)
-    (rd0 : GoFunc) (N : Nat) (γi : mvcc.IdxNames) (γok : GName) (M : auth.AuthMode) (hcfg : mvcc.batchLimitOk cfg.CompactionBatchLimit')
+    (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (hlp : mvcc.leaseParams d.P) (hcm : d.cm = true)
+    (Pk K : backend.BNames → IProp GF) (D : backend.Data)
+    (hk : ∀ k, backend.dget D mvcc.keyName k = none)
+    (hsch : backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName mvcc.schedKeyBytes = none)
+    (hfin : backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName mvcc.finKeyBytes = none)
+    (γl : GName) (f : GoFunc) (rd0 : GoFunc) (hcfg : mvcc.batchLimitOk cfg.CompactionBatchLimit')
     (hrb : receiptBound GF ≤ 2 ^ 48) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-        backend.isBackend d.γB d.P (mvcc.lateWB d.gx d.γB) Pk d.be ∗ mvcc.keySized d.γB d.P d.be ∗
-        -- (the backend-compaction stage) the deletable-keys registration, unfixed: the store fixes it
-        -- where its compaction mode is chosen (today's stores never compact: `dlNoDel`)
-        backend.dlInit d.γB ∗
-        mvcc.bkView d.γB 1 (∅ : mvcc.Bucket) ∗ mvcc.bkNoCmp d.γB ∗ mvcc.lateReg d.gx ∗
-        ownToks d.γB.wb (N + 2) ∗
-        ([∗list] _x ∈ List.replicate backend.rdStockN (),
-          mvcc.bkRTx d.γB d.P d.be) ∗
-        lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 ∗
-        mvcc.idxFresh γi ∗ ghostMapAuth γok 1 (∅ : GMap w64 mvcc.Log) }}
+        -- (premise-fixes-6) the logger nil or a zap logger (mvcc's `NewStore`, approved D2b)
+        zapLoggerOrNil lg ∗
+        backend.plHookRO d.γB f ∗
+        backend.newPostKP d.γB d.P (fun _ => mvcc.api.mvccW d.gx) Pk K d.be D ∗
+        mvcc.api.mvccWReg d.gx ∗ backend.wbTok d.γB ∗ backend.wbTok d.γB ∗
+        □ (⧗ 1 ={⊤}=∗ backend.wbTok d.γB) ∗
+        ([∗list] _x ∈ List.replicate (backend.rdStockN - 2) (), backend.bOpen d.γB backend.rdOpen) ∗
+        lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 ∗ lease.leaseOwn γl [] ∅ }}
       (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.New)) (Val #lg))
         (Val #(interface.mkOk
           (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be)))
         (Val #le)) (Val #cfg))
-    {{ (ws : Loc), RET #(interface.mkOk
-          (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #ws);
-        ∃ (st : Loc) (γw : mvcc.WsNames),
-        ⌜γw.st.bucket = γb ∧ γw.st.leases = γl ∧ γw.st.kb = some d ∧ γw.st.idx = γi ∧
-          γw.st.cok = γok⌝ ∗
-        txn.isKV (interface.mkOk (go.GoType.PointerType
-          go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #ws) st γw.st ∗
-        (∃ rv : Loc, st.[go_etcd_io.etcd.server.v3.storage.mvcc.store, go!"ReadView"] ↦□
-            (interface.mkOk (go.GoType.PointerType
-              go_etcd_io.etcd.server.v3.storage.mvcc.readView.ty) #rv : GoInterface) ∗
-          mvcc.isReadView rv st γw.st) ∗
-        mvcc.hookInit γw.st Pk f ∗ txn.kvWriter st γw.st [[], []] ∗ txn.storeWTs γw.st N ∗
-        ghostMapAuth γw.st.cok 1 (∅ : GMap w64 mvcc.Log) ∗
-        mvcc.isWatchableStore ws st γw ∗ mvcc.watchToks γw (2 ^ 63 - 3) ∗
-        ([∗list] _x ∈ List.replicate (backend.rdStockN - 2) (),
-          mvcc.watchReader ws st γw) ∗
-        mvcc.wsCloser ws st γw.st ∗ (∃ rd : GoFunc, lease.rdOwn γl rd ∗ mvcc.rdIs rd ws st γw) ∗ auth.modeTag γw.tag M }} := by
-  iintro %Φ Hpre HΦ
-  iapply (server_kv_watchable_of mvcc.wp_New backend.backend.wp_ConcurrentReadTx
-      backend.backend.wp_ReadTx backend.backend.wp_BatchTx backend.backend.wp_ForceCommit
-      backend.backend.wp_Size backend.backend.wp_SizeInUse
-      backend.concurrentReadTx.wp_RLock backend.concurrentReadTx.wp_RUnlock
-      backend.concurrentReadTx.wp_UnsafeRange backend.readTx.wp_RLock backend.readTx.wp_RUnlock
-      backend.readTx.wp_UnsafeRange backend.batchTxBuffered.wp_LockInsideApply
-      backend.batchTxBuffered.wp_LockOutsideApply backend.batchTxBuffered.wp_UnsafeSeqPut
-      backend.batchTxBuffered.wp_Unlock backend.batchTxBuffered.wp_UnsafeRange
-      backend.batchTxBuffered.wp_UnsafeCreateBucket
-      backend.batchTxBuffered.wp_UnsafeDelete schema.bucket.wp_ID schema.bucket.wp_Name
-      schema.bucket.wp_IsSafeRangeBucket lg le cfg d hP γb γl Pk f rd0 N γi γok M hcfg hrb hs) $$ [Hpre]
-  · iexact Hpre
+    {{ (s : Loc), RET #(interface.mkOk
+          (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #s);
+        ∃ γ : mvcc.api.MvccName, ⌜mvcc.api.mvccLeases γ = γl⌝ ∗
+          mvcc.api.isMvcc (interface.mkOk (go.GoType.PointerType
+            go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #s) γ ∗
+          mvcc.api.mvccState γ mvcc.api.mvccStart ∗ mvcc.api.mvccOpen γ ∗
+          mvcc.api.mvccBackend γ 1 (mvcc.api.etcdStorage d) (Pk d.γB) ∗
+          mvcc.api.hookIs (mvcc.api.etcdStorage d) f ∗
+          mvcc.api.mvccReaders γ mvcc.api.mvccReaderN ∗
+          (∃ rd : GoFunc, lease.rdOwn γl rd ∗ mvcc.api.mvccDeleter rd γ) ∗
+          mvcc.api.backendRest d.γB d.P K d.be D ∗
+          backend.rdTok d.γB d.P d.be ∗ backend.rdTok d.γB d.P d.be ∗
+          lease.leaseOwn γl [] ∅ }} := by
+  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hzl, #Hhk, HPKP, Hreg, Hw1, Hw2, #Hsup, Hos, Hlrd, #Hle, Hro, Hlo⟩ HΦ
+  ihave #Hsz := mvcc.keySized_at (GF := GF) d.P
+  imod (mvcc.api.mvccApi_mvccImage_fresh_law_holds D hk hsch hfin) with #Him
+  imod (mvcc.api.mvccApi_etcdStorage_open_law_holds d Pk K D mvcc.api.mvccStart.log
+      mvcc.api.mvccStart.crev false hP hlp hcm) $$ [Hsz Him HPKP Hreg Hw1 Hw2 Hsup Hos]
+    with ⟨Hsto, Hrest, Hrt1, Hrt2⟩
+  · iframe Hsz Him HPKP Hreg Hw1 Hw2 Hsup Hos
+  rw [← mvcc.api.etcdStorage_val d]
+  haveI : ReceiptBoundLe GF (2 ^ 48) := ⟨hrb⟩
+  -- (mvccfull's Freeze, 2026-11-10) the spec on any image, at the fresh one; the lessor's owner part
+  -- (no lease) lent and given back
+  iapply (mvcc.api.mvccApi_New_wp_proof lg le cfg (mvcc.api.etcdStorage d) (Pk d.γB) γl rd0
+      mvcc.api.mvccStart false [] (DFrac.own 1) func.nil iprop(True) iprop(True) iprop(True)
+      iprop(True) iprop(True))
+    $$ [Hsto Hlrd Hro Hlo]
+  · iframe Hpkg Hbpkg Hsch Hzl Hsto Hlrd Hle Hro Hlo
+    isplitr
+    · ipureintro; exact ⟨hcfg, .start, rfl⟩
+    isplitr
+    · ipureintro; intro it lid hl; rw [mvcc.api.pendItems_mvccStart] at hl; cases hl
+    simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
   inext
-  -- (question 5's core stage, part (1)) `d` does not compact (`hcm`): it is the store's instance
-  have hd : ({ d with cm := false } : mvcc.KBReal) = d := by cases d; cases hcm; rfl
-  rw [hd]
-  iintro %ws ⟨%st, %γw, %Hγ, H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, -, Hrd, H11⟩
+  iintro %s ⟨%γ, %Hγ, #Hkv, Hst, Hop, HB, Hrds, Hdel, Hlo, -, -⟩
   iapply HΦ
-  iexists st, γw
-  iframe
-  ipureintro; exact ⟨Hγ.1, Hγ.2.1, Hγ.2.2.1, Hγ.2.2.2.1, Hγ.2.2.2.2.1⟩
+  iexists γ
+  first | rw [mvcc.api.pendItems_mvccStart] | rw [show mvcc.pendItems [[], []] [] = ∅ from mvcc.api.pendItems_mvccStart]
+  iframe Hkv Hst Hop HB Hrds Hdel Hrest Hrt1 Hrt2 Hlo
+  isplitr
+  · ipureintro; exact Hγ
+  rw [mvcc.api.etcdStorage_hookIs]
+  iexact Hhk
 
 /-- **The consistent index's pre-commit hook over the real backend** (unit 7, 2026-10-13): on
 the real backend's batch transaction, in the hook's window (`hookPre`), the consistent index's
@@ -1098,68 +1128,46 @@ theorem backend_server_hooks (γA : ApplyNames) (ci : Loc) (γ : backend.BNames)
     backend.batchTxBuffered.wp_UnsafePut backend.batchTxBuffered.wp_UnsafeRange schema.bucket.wp_ID
     schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket γA ci γ P W b bh lgh hP hH
 
-/-- **The apply thread's KV over the real backend, its hooks the server's** (unit 8,
-2026-10-13): `server_kv_backend` with the backend's hooks' contract derived
-(`backend_server_hooks`) rather than assumed: the backend made for the real instance `d` with
-the server's `BackendHooks` `bh` over the consistent index `ci` (`isBackendNH`, the creator's:
-the backend's constructor is not proved), the hooks' resource the server's batch-lock resource
-`batchLockInv γA (metaTM d.γB d.P)`; `bh` as `NewBackendHooks` makes it (`isBackendHooks`), the
-consistent index (`isCI`) and the apply thread's invariant (`consInv`); and the parameters'
-facts (`ciKeys`, `hooksParams`). The lessor is the real one at `lp` (`lease.lessorInv`: mvcc's
-`isLessor` derived from its proofs, `lease.isLessor_of_lessorInv`; unit 8), with a reader slot of
-its lock for the store. The other premises are `server_kv_backend`'s (with, F2's stage 2, its scope
-`d.snap = false`). -/
-theorem server_kv_backend_hooks (lg lp : Loc)
+/-- **The apply thread's KV over the real backend, its batch lock the server's** (restated over
+mvcc's API, R8, 2026-11-07): `server_kv_backend` at the batch lock of the apply protocol
+(`batchLockInv γA (metaTM γB d.P)`); the backend's hooks are the server's by `backend_server_hooks`. -/
+theorem server_kv_backend_hooks (lg : Loc) (le : GoInterface) (γA : ApplyNames)
     (cfg : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig)
-    (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (hcm : d.cm = false) (hs : d.snap = false)
-    (hci : ciKeys d.P)
-    (hH : storage.hooksParams d.P) (γb γl : GName) (γA : ApplyNames) (ci bh lgh : Loc)
-    (f : GoFunc) (hf : f ≠ func.nil) (rd0 : GoFunc) (N : Nat) (hcfg : mvcc.batchLimitOk cfg.CompactionBatchLimit')
+    (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (hlp : mvcc.leaseParams d.P) (hcm : d.cm = true)
+    (K : backend.BNames → IProp GF) (D : backend.Data)
+    (hk : ∀ k, backend.dget D mvcc.keyName k = none)
+    (hsch : backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName mvcc.schedKeyBytes = none)
+    (hfin : backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName mvcc.finKeyBytes = none)
+    (γl : GName) (f : GoFunc) (rd0 : GoFunc) (hcfg : mvcc.batchLimitOk cfg.CompactionBatchLimit')
     (hrb : receiptBound GF ≤ 2 ^ 48) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗
-        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
-        backend.isBackendNH d.γB d.P (mvcc.lateWB d.gx d.γB) (batchLockInv γA (metaTM d.γB d.P)) d.be
-          (storage.hooksIface bh) ∗
-        storage.isBackendHooks bh
-          ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty,
-            #ci⟩ lgh ∗
-        isCI ci γA.ci ∗ inv applyN (consInv γA) ∗ regdOrLink γA d.γB ∗ backend.plHookRO d.γB f ∗
-        mvcc.keySized d.γB d.P d.be ∗
-        -- (the backend-compaction stage) the deletable-keys registration, unfixed: the store fixes it
-        -- where its compaction mode is chosen (today's stores never compact: `dlNoDel`)
-        backend.dlInit d.γB ∗
-        mvcc.bkView d.γB 1 (∅ : mvcc.Bucket) ∗ mvcc.bkNoCmp d.γB ∗ mvcc.lateReg d.gx ∗
-        ownToks d.γB.wb (N + 2) ∗
-        ([∗list] _x ∈ List.replicate backend.rdStockN (),
-          mvcc.bkRTx d.γB d.P d.be) ∗
-        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
-        lease.lessorInv lp γl ∗ lease.lessorRdOf γl ∗ lease.rdOwn γl rd0 }}
+        zapLoggerOrNil lg ∗
+        backend.plHookRO d.γB f ∗
+        backend.newPostKP d.γB d.P (fun _ => mvcc.api.mvccW d.gx) (fun γB => batchLockInv γA (metaTM γB d.P)) K d.be D ∗
+        mvcc.api.mvccWReg d.gx ∗ backend.wbTok d.γB ∗ backend.wbTok d.γB ∗
+        □ (⧗ 1 ={⊤}=∗ backend.wbTok d.γB) ∗
+        ([∗list] _x ∈ List.replicate (backend.rdStockN - 2) (), backend.bOpen d.γB backend.rdOpen) ∗
+        lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 ∗ lease.leaseOwn γl [] ∅ }}
       (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.NewStore)) (Val #lg))
         (Val #(interface.mkOk
           (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be)))
-        (Val #(lease.lessorIface lp))) (Val #cfg))
-    {{ (s : Loc), RET #s; ∃ γ : mvcc.StoreNames,
-        ⌜γ.bucket = γb ∧ γ.leases = γl ∧ γ.kb = some d⌝ ∗
-        txn.isKV (interface.mkOk (go.GoType.PointerType
-          go_etcd_io.etcd.server.v3.storage.mvcc.store.ty) #s) s γ ∗
-        mvcc.hookIs γ (batchLockInv γA (metaTM d.γB d.P)) #f ∗
-        ghostMapAuth γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗
-        ([∗list] _x ∈ List.replicate backend.rdStockN (),
-          mvcc.storeReader s γ) ∗
-        txn.soleWriter γ [[], []] ∗ txn.storeWTs γ N ∗ mvcc.storeCloser s γ }} := by
-  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hspkg, #Hcpkg, #Hnh, #Hh, #Hci, #Hinv, #Hrl, #Hhk, #Hsz, Hdl, Hv,
-    Hncmp, Hrg, Hw, Hrts, #Hlpkg, #Hlinv, Hlrd, Hro⟩ HΦ
-  ihave #Hb := backend_server_hooks γA ci d.γB d.P (mvcc.lateWB d.gx d.γB) d.be bh lgh hci hH $$
-    [$Hspkg $Hbpkg $Hsch $Hcpkg $Hh $Hnh $Hci $Hinv $Hrl]
-  ihave #Hle := lease.isLessor_of_lessorInv lease.lessor.wp_GetLease lease.lessor.wp_Attach
-    lease.lessor.wp_Detach lease.lessor.wp_SetRangeDeleter lp γl $$ [$Hlpkg $Hlinv]
-  iapply (server_kv_backend lg (lease.lessorIface lp) cfg d hP hcm hs γb γl
-    (batchLockInv γA (metaTM d.γB d.P)) f hf rd0 N hcfg hrb) $$ [Hdl Hv Hncmp Hrg Hw Hrts Hlrd Hro] HΦ
-  iframe #
-  iframe Hdl Hv Hncmp Hrg Hw Hrts Hlrd Hro
+        (Val #le)) (Val #cfg))
+    {{ (s : Loc), RET #s;
+        ∃ γ : mvcc.api.MvccName, ⌜mvcc.api.mvccLeases γ = γl⌝ ∗
+          mvcc.api.isMvcc (interface.mkOk (go.GoType.PointerType
+            go_etcd_io.etcd.server.v3.storage.mvcc.store.ty) #s) γ ∗
+          mvcc.api.mvccState γ mvcc.api.mvccStart ∗ mvcc.api.mvccOpen γ ∗
+          mvcc.api.mvccBackend γ 1 (mvcc.api.etcdStorage d) (batchLockInv γA (metaTM d.γB d.P)) ∗
+          mvcc.api.hookIs (mvcc.api.etcdStorage d) f ∗
+          mvcc.api.mvccReaders γ mvcc.api.mvccReaderN ∗
+          (∃ rd : GoFunc, lease.rdOwn γl rd ∗ mvcc.api.mvccDeleter rd γ) ∗
+          mvcc.api.backendRest d.γB d.P K d.be D ∗
+          backend.rdTok d.γB d.P d.be ∗ backend.rdTok d.γB d.P d.be ∗
+          lease.leaseOwn γl [] ∅ }} :=
+  server_kv_backend lg le cfg d hP hlp hcm (fun γB => batchLockInv γA (metaTM γB d.P)) K D hk hsch hfin
+    γl f rd0 hcfg hrb
 
 /-- **The lessor's contracts, of the real lessor** (unit 8, 2026-10-13): the lessor at `lp`
 (`lease.lessorInv`) is the txn package's `isTxnLessor` (mvcc's `isLessor`, and `Lookup` for the
@@ -1179,7 +1187,7 @@ lease-grant plan's D1) meets `lessorOk`: `ExpiredLeasesC` proved,
 theorem lessor_server_contract (lp : Loc) (γl : GName) (lg on : Bool) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ lease.lessorInv lp γl ∗
       lease.lessorCfg lp ∗ lease.lessorExpiredC lp (srvGrantGuard lg on) ⊢
-      lessorOk (lease.lessorIface lp) :=
+      lessorOk lg on (lease.lessorIface lp) :=
   lessorOk_of_lessorInv lease.lessor.wp_Promote lease.lessor.wp_Demote
     lease.lessor.wp_ExpiredLeasesC lp γl lg on
 
@@ -1190,32 +1198,29 @@ at `lp` (`lease.lessorInv`, its configuration, its backend's contract for the `L
 hook's facts, and the rest resource `RO` lending the store's right to the tracked buckets and the
 lessor's half of `le.b` (given back at buckets agreeing with `rs.bk` off `lease`: 2026-11-02, the
 backend-auth-split stage); its `Lookup` clause is the premise (`apply.isApplyLessor_of_lessorInv`). -/
-theorem lessor_apply_contract (lp s : Loc) (γ : mvcc.StoreNames) (P : IProp GF) (f : val)
-    (RO : EtcdGrove.apply.RestM → IProp GF)
+theorem lessor_apply_contract (lp : Loc) (γ : mvcc.api.MvccName) (Pk : mvcc.KBReal → IProp GF)
+    (f : GoFunc) (BT : mvcc.KBReal → IProp GF) (RO : EtcdGrove.apply.RestM → IProp GF)
     (RW : IProp GF) :
-    ⌜γ.watchQ = true⌝ ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.hookOk γ P f ∗
-      □ (∀ rs : EtcdGrove.apply.RestM, RO rs -∗ ∃ d : mvcc.KBReal, ⌜γ.kb = some d⌝ ∗
-          mvcc.storeRb γ rs.bk ∗ lease.lessorBeOn lp d.be ∗
-          (∀ bk, ⌜∀ n, n ≠ mvcc.leaseName → bk.lookup n = rs.bk.lookup n⌝ -∗
-            ⌜(rs.bk.lookup mvcc.leaseName).isSome → (bk.lookup mvcc.leaseName).isSome⌝ -∗
-            mvcc.storeRb γ bk ∗ lease.lessorBeOn lp d.be -∗ RO { rs with bk := bk })) ∗
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
-      lease.lessorInv lp γ.leases ∗ lease.lessorCfg lp ∗
-      □ (∀ d : mvcc.KBReal, ⌜γ.kb = some d⌝ →
-        lease.lessorBackend lp P f (mvcc.storeWT γ) (lease.lessorBeOn lp d.be) (mvcc.storeRT γ)
-          (backend.rbPart d.γB (· = mvcc.leaseName))) ∗
-      □ (RW -∗ ∃ d : mvcc.KBReal, ⌜γ.kb = some d⌝ ∗ lease.lessorBeOn lp d.be ∗
-        ∃ r, backend.rbPart d.γB (· = mvcc.leaseName) r) ∗
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      EtcdGrove.apply.revokeLens lp BT RO ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
+      lease.lessorInv lp (mvcc.api.mvccLeases γ) ∗ lease.lessorCfg lp ∗
+      □ (∀ B : mvcc.KBReal, BT B -∗ BT B ∗
+        lease.lessorBackend lp (Pk B) #f (EtcdGrove.apply.bkWT B) (lease.lessorBeOn lp B.be)
+          (EtcdGrove.apply.bkRT B) (backend.rbPart B.γB (· = mvcc.leaseName))) ∗
+      □ (∀ B : mvcc.KBReal, BT B -∗ RW -∗ BT B ∗ lease.lessorBeOn lp B.be ∗
+        ∃ r, backend.rbPart B.γB (· = mvcc.leaseName) r ∗
+          (∀ r', ⌜(r.lookup mvcc.leaseName).isSome → (r'.lookup mvcc.leaseName).isSome⌝ -∗
+            lease.lessorBeOn lp B.be -∗ backend.rbPart B.γB (· = mvcc.leaseName) r' -∗ RW)) ∗
       □ (∀ id : w64,
         {{ True }} (App (Val (lp @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty
           @!! go!"Lookup")) (Val #id))
         {{ (l : Loc), RET #l; ⌜l = null⌝ ∨ EtcdGrove.apply.leaseIs l id }}) ⊢
-      EtcdGrove.apply.isApplyLessor (lease.lessorIface lp) s γ P f RO RW :=
+      EtcdGrove.apply.isApplyLessor (lease.lessorIface lp) γ Pk f BT RO RW :=
   EtcdGrove.apply.isApplyLessor_of_lessorInv lease.lessor.wp_GetLease lease.lessor.wp_Attach
     lease.lessor.wp_Detach lease.lessor.wp_SetRangeDeleter lease.lessor.wp_Lookup
     lease.lessor.wp_Grant lease.lessor.wp_Checkpoint lease.Lease.wp_TTL lease.lessor.wp_Revoke
-    lp s γ P f RO RW
+    lp γ Pk f BT RO RW
 
 /-- **The auth store's admin side as model steps, of the real store** (the auth plan's S4, its
 apply part, 2026-10-24; `apply/AuthSteps.lean`): the store at `st` (`auth.authInv st R M`) has
@@ -1224,7 +1229,7 @@ the token provider `auth.tpAdmin st M` (S5d), from S4's proofs of
 `AuthEnable`, `AuthDisable`, `UserAdd`, `UserDelete`, `UserChangePassword`, `RoleAdd`, and S4b's of
 `UserRevokeRole`, `RoleRevokePermission`, `RoleDelete`, S4c's of `UserGrantRole` and S4d's of
 `RoleGrantPermission`. -/
-theorem auth_apply_steps (st : Loc) (R : IProp GF) (M : auth.AuthMode) (P : IProp GF) (f : val)
+theorem auth_apply_steps (st : Loc) (R : IProp GF) (M : auth.AuthMode) (P : IProp GF) (f : GoFunc)
     (T : IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R M ⊢
       EtcdGrove.apply.isAuthSteps (auth.authIface st) P f M
@@ -1572,7 +1577,7 @@ theorem auth_role_revoke_permission_tie :
 /-- **The real store's five `SetUp` admin steps with the tie** (the auth plan's E2v,
 `apply/AuthStepsX.lean`): `isAuthStepsX` with the halves tied to the history (`auth.tieRes`),
 from E2s's tie-keeping specs. -/
-theorem apply_auth_steps_tie (st : Loc) (R : IProp GF) (M : auth.AuthMode) (P : IProp GF) (f : val)
+theorem apply_auth_steps_tie (st : Loc) (R : IProp GF) (M : auth.AuthMode) (P : IProp GF) (f : GoFunc)
     (T : IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R M ⊢
       EtcdGrove.apply.isAuthStepsX (auth.authIface st) P f M (auth.tieRes st M)
@@ -1585,33 +1590,33 @@ theorem apply_auth_steps_tie (st : Loc) (R : IProp GF) (M : auth.AuthMode) (P : 
     (auth.authStore.Authenticate.wp_tieB auth.authStore.wp_IsAuthEnabled auth.authStore.wp_Revision
       auth.wp_redactToken zap.wp_String zap.Logger.wp_Check zapcore.CheckedEntry.wp_Write) st R M P f T
 
-theorem apply_UserAdd_fuelX :
+theorem apply_UserAdd_fuelX [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.applierV3backend.UserAdd.fuelSpecX (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.UserAdd.wp_fuelX
     (EtcdGrove.apply.applierV3backend.UserAdd.wp_stepX EtcdGrove.apply.applierV3backend.wp_newHeader)
 
-theorem apply_RoleAdd_fuelX :
+theorem apply_RoleAdd_fuelX [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.applierV3backend.RoleAdd.fuelSpecX (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.RoleAdd.wp_fuelX
     (EtcdGrove.apply.applierV3backend.RoleAdd.wp_stepX EtcdGrove.apply.applierV3backend.wp_newHeader)
 
-theorem apply_UserGrantRole_fuelX :
+theorem apply_UserGrantRole_fuelX [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.applierV3backend.UserGrantRole.fuelSpecX (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.UserGrantRole.wp_fuelX
     (EtcdGrove.apply.applierV3backend.UserGrantRole.wp_stepX EtcdGrove.apply.applierV3backend.wp_newHeader)
 
-theorem apply_RoleGrantPermission_fuelX :
+theorem apply_RoleGrantPermission_fuelX [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.applierV3backend.RoleGrantPermission.fuelSpecX (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.RoleGrantPermission.wp_fuelX
     (EtcdGrove.apply.applierV3backend.RoleGrantPermission.wp_stepX EtcdGrove.apply.applierV3backend.wp_newHeader)
 
-theorem apply_AuthEnable_fuelX :
+theorem apply_AuthEnable_fuelX [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.applierV3backend.AuthEnable.fuelSpecX (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.AuthEnable.wp_fuelX
     (EtcdGrove.apply.applierV3backend.AuthEnable.wp_stepX EtcdGrove.apply.applierV3backend.wp_newHeader)
 
 /-- **The backend applier's `Authenticate` with auth on** (C1's A2, `apply/AuthStepsX.lean`). -/
-theorem apply_Authenticate_specX :
+theorem apply_Authenticate_specX [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.applierV3backend.Authenticate.specX (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.Authenticate.wp_specX context.wp_WithValue
     EtcdGrove.apply.applierV3backend.wp_newHeader
@@ -1619,7 +1624,7 @@ theorem apply_Authenticate_specX :
 /-- **The backend applier's admin triples carrying the history's resource `X`** (the auth plan's
 E2v, `apply/AdminChain.lean`): the authority with its fuel and `X` (the tie, `auth.tieRes`, for
 the real store) through the five `SetUp` admin requests. -/
-theorem apply_admin_backendX (E : EtcdGrove.apply.AEnv GF) (X : List auth.AuthState → IProp GF)
+theorem apply_admin_backendX [go_etcd_io.etcd.cache.v3.Assumptions] (E : EtcdGrove.apply.AEnv GF) (X : List auth.AuthState → IProp GF)
     (W : IProp GF) (p : Loc) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       EtcdGrove.apply.backendIs E p ∗ EtcdGrove.apply.backendAuthStepsX E p X W ⊢
@@ -1727,13 +1732,14 @@ theorem server_uber_kvl_on (s : Loc) (ua : GoInterface) (E : EtcdGrove.apply.AEn
 plan's E3n, `UberOn.lean`), every callee linked: of the built part's store fact and the apply
 thread's auth row, at the admin steps' resource `adminWC` (blocker 1's row; at the current
 backend's names `γc` since the auth-on snapshot plan's Prove step). -/
-theorem server_uber_auth_steps_on (s : Loc) (ua : GoInterface) (E : EtcdGrove.apply.AEnv GF)
+theorem server_uber_auth_steps_on [go_etcd_io.etcd.cache.v3.Assumptions] (s : Loc) (ua : GoInterface) (E : EtcdGrove.apply.AEnv GF)
     (γa : auth.AuthNames) (st : auth.AuthState) (hM : E.authMode = .on γa) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       srvUberBase s ua E ∗ srvAuthApplyResB s E st ⊢
-      srvAuthApplyResB s E st ∗ ∃ (stl bel : Loc) (γc : auth.AuthBkNames),
+      srvAuthApplyResB s E st ∗ ∃ (stl bel : Loc) (γc : auth.AuthBkNames) (Pk : IProp GF),
+        ⌜E.Pk = fun _ => Pk⌝ ∗
         srvAuthStoreAddr s ↦□ auth.authIface stl ∗
-        EtcdGrove.apply.uberAuthStepsL ua E (adminWC stl bel γa E.P E.f γc)
+        EtcdGrove.apply.uberAuthStepsL ua E (adminWC stl bel γa Pk E.f γc)
           (fun γa' h => iprop(auth.authOwnFu γa' h ∗ auth.tieRes stl (.on γa) h))
           (auth.latestResC stl (.on γa) γc) :=
   srv_uberAuthStepsL_on apply_UserAdd_fuelX apply_RoleAdd_fuelX apply_UserGrantRole_fuelX
@@ -1848,9 +1854,11 @@ outcome the model's admin step, the row back at the history after it. -/
 theorem server_admin_entry_on : adminEntryOn.spec (GF := GF) (hG := hG) :=
   apply_admin_entry_on apply_apply_admin_latest
 
-/-- **`applyAll` on a snapshot payload in the server's auth mode** (P6.3,
-`ApplyAllSnapOn.lean`): off, the linked `applyAll`'s snapshot case; on, over the install in the
-mode (the linked `applySnapshot`'s `specSnapM`). (The auth component's stage 2, 2026-11-04) The linked `applyAll`'s snapshot half. -/
+/-- **`applyAll` on a snapshot payload in the server's auth mode** (P6.3, `ApplyAllSnap.lean`):
+over the install in the mode (the linked `applySnapshot`'s `specSnapM`). (The auth component's stage
+2, 2026-11-04) The linked `applyAll`'s snapshot half. (R2d'a swap batch 2, 2026-11-06) In restart
+form: Go's applied index at most the ghost one, the rest buckets at an image with the model's ids;
+at a first start (the ghost index Go's, the image the model) the statement before the swap. -/
 theorem server_apply_all_snap_m [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG) :=
   EtcdServer.wp_applyAll.2
@@ -1916,7 +1924,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 `auth/TokenKeeperRun.lean`): the provider's facts, its index waiter, the admin side's share and the
 authority over the rights to issue tokens, under fresh names. -/
 theorem token_simple_new (lg : Loc) (iw : GoFunc) (ttl : time.Duration) (hpos : 0 < sint.Z ttl) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ zapLoggerOrNil lg ∗
         □ (∀ idx : w64, {{ True }} (App (Val #iw) (Val #idx)) {{ (ch : Loc), RET #ch; auth.anyRecv ch }}) }}
       (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.newTokenProviderSimple)) (Val #lg)) (Val #iw))
         (Val #ttl))
@@ -1942,16 +1950,16 @@ first revision committed if the backend's state had none) and the readers' slots
 snapshot plan's Prove step, 2026-11-03, the user's approval: at the backend's names `γc`, with the
 lock's half of the current backend and its whole currency.) -/
 theorem auth_store_new_on (lg : Loc) (ab tp : GoInterface) (cost : w64) (bi : GoInterfaceOk)
-    (γa : auth.AuthNames) (γc : auth.AuthBkNames) (R P : IProp GF) (f : val) (T A Pre Q Post : IProp GF)
+    (γa : auth.AuthNames) (γc : auth.AuthBkNames) (R P : IProp GF) (f : GoFunc) (T A Pre Q Post : IProp GF)
     (hs : List auth.AuthState) (stl : auth.AuthState) (hlast : hs.getLast? = some stl)
     (hfit : auth.permsFit stl) (hempty : ∃ s ∈ hs, s.users = ∅) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ ⌜lg ≠ null⌝ ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ zapLoggerOk lg ∗
         ⌜ab = GoInterface.ok bi⌝ ∗ auth.authBackendOk ab R (.on γa) γc ∗
         auth.authBkCur γa (1 : Qp).half γc ∗ auth.authCur γc 1 ∗
         auth.authWBackendOkR ab (.on γa) P f T ∗
         □ ({{ T }} (App (Val #(methods bi.ty go!"CreateAuthBuckets" bi.v)) (Val #()))
           {{ RET #(); T }}) ∗
-        T ∗ mvcc.csContract P f Pre Q Post ∗ auth.tokenProviderOkA tp (.on γa) A ∗ A ∗
+        T ∗ srvApi.csContractA P f Pre Q Post ∗ auth.tokenProviderOkA tp (.on γa) A ∗ A ∗
         auth.authOwn (.on γa) hs ∗ auth.authStoreInit γa hs stl ∗
         auth.capNext (.on γa) hs (auth.bump stl) }}
       (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.NewAuthStore)) (Val #lg))
@@ -1982,10 +1990,10 @@ handed to the backend, whose contracts for the new names are the named premise D
 share, the admin side's authority at `[bootState, bump bootState]` and the cap of the history at it
 (H5). -/
 theorem auth_store_boot_on (lg : Loc) (ab tp : GoInterface) (cost : w64) (bi : GoInterfaceOk)
-    (γt γf : GName) (R P : IProp GF) (f : val) (T A Pre Q Post : IProp GF) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ ⌜lg ≠ null⌝ ∗
+    (γt γf : GName) (R P : IProp GF) (f : GoFunc) (T A Pre Q Post : IProp GF) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ zapLoggerOk lg ∗
         ⌜ab = GoInterface.ok bi⌝ ∗ auth.authSchemaBoot ab bi γt γf R P f T ∗
-        T ∗ mvcc.csContract P f Pre Q Post ∗ auth.tokenProviderBoot tp γt γf A ∗ A }}
+        T ∗ srvApi.csContractA P f Pre Q Post ∗ auth.tokenProviderBoot tp γt γf A ∗ A }}
       (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.NewAuthStore)) (Val #lg))
         (Val #ab)) (Val #tp)) (Val #cost))
     {{ (st : GoInterface), RET #st; ∃ (γa : auth.AuthNames) (stp : Loc),
@@ -2077,29 +2085,35 @@ invariant is the mode's (`kvInvM true`, `kvInvOn`), allocatable at the bootstrap
 took `kvInv`, whose start chain is mode-`off`, so its precondition was unsatisfiable
 (`kvInv_ch0_on_false`, E2p). -/
 theorem server_new_auth_on [go_etcd_io.etcd.cache.v3.Assumptions]
-    [EtcdGrove.Float64ToInt64Semantics]
+   
     (hValid : auth.ValidSpec (GF := GF) (hG := hG))
     (hD22 : ⊢ authSchemaSrv (GF := GF)) : NewServer.specM (GF := GF) (hG := hG) true :=
   NewServer.wp_proofM true zap.Logger.wp_Error zap.wp_Error zap.Logger.wp_Info zap.Logger.wp_Warn
     v2stats.wp_NewServerStats membership.RaftCluster.wp_String v2stats.wp_NewLeaderStats
     types.ID.wp_String_ptr bootstrappedRaft.wp_newRaftNode srvApi_wp_Ready srvApi_wp_Advance
     srvApi_wp_Stop srvApi_wp_Tick srvApi_wp_ReadIndex types.URLs.wp_StringSlice
-    idutil.wp_NewGenerator
-    notify.wp_NewNotifier wp_addFeatureGateMetrics prometheus.GaugeVec.wp_With
-    membership.RaftCluster.wp_SetVersionChangedNotifier EtcdServer.wp_Logger
-    config.ServerConfig.wp_ReqTimeout EtcdServer.wp_FeatureEnabled time.Duration.wp_Seconds_ptr
-    math.wp_Ceil lease.wp_NewLessor (srv_auth_tp_on hValid hD22)
+    idutil.wp_NewGenerator notify.wp_NewNotifier wp_addFeatureGateMetrics
+    prometheus.GaugeVec.wp_With membership.RaftCluster.wp_SetVersionChangedNotifier
+    EtcdServer.wp_Logger config.ServerConfig.wp_ReqTimeout EtcdServer.wp_FeatureEnabled
+    time.Duration.wp_Seconds_ptr math.wp_Ceil lease.wp_NewLessor (srv_auth_tp_on hValid hD22)
     ⟨apply_uber_apply_kv_latest, apply_uber_apply_admin_latest, apply_range_latest,
-      apply_delete_range_latest, apply_put_latest, apply_txn_latest, apply_UserAdd_fuelX,
-      apply_RoleAdd_fuelX, apply_UserGrantRole_fuelX, apply_RoleGrantPermission_fuelX,
-      apply_AuthEnable_fuelX, apply_Authenticate_specX,
-      EtcdGrove.apply.authApplierV3.Apply.wp_latest Perennial.EtcdGrove.apply.wp_needAdminPermission,
-      Perennial.EtcdGrove.apply.applierV3backend.wp_Apply⟩ mvcc.wp_New wp_newCorruptionChecker
-    mvcc.store.wp_HashStorage schema.wp_NewAuthBackend v3compactor.wp_New
+    apply_delete_range_latest, apply_put_latest, apply_txn_latest, apply_UserAdd_fuelX,
+    apply_RoleAdd_fuelX, apply_UserGrantRole_fuelX, apply_RoleGrantPermission_fuelX,
+    apply_AuthEnable_fuelX, apply_Authenticate_specX,
+    EtcdGrove.apply.authApplierV3.Apply.wp_latest
+    Perennial.EtcdGrove.apply.wp_needAdminPermission,
+    Perennial.EtcdGrove.apply.applierV3backend.wp_Apply⟩ mvcc.api.mvccApi_New_wp_proof
+    mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds
+    mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_mvccImage_fresh_law_holds
+    mvcc.api.mvccApi_etcdStorage_open_law_holds mvcc.api.mvccApi_backendRest_open_law_holds
+    mvcc.api.mvccApi_mvccReaders_split_law_holds mvcc.api.mvccApi_mvccClosed_rest_law_holds
+    mvcc.api.mvccApi_mvccStorageFor_rest_law_holds wp_newCorruptionChecker
+    mvcc.api.mvccApi_watchableStore_HashStorage_wp_api schema.wp_NewAuthBackend v3compactor.wp_New
     EtcdServer.wp_restoreAlarms EtcdServer.wp_NewUberApplier
     EtcdServer.wp_getTxPostLockInsideApplyHook backend.backend.wp_SetTxPostLockInsideApplyHook
-    config.ServerConfig.wp_PeerDialTimeout membership.RaftCluster.wp_ID rafthttp.Transport.wp_Start
-    rafthttp.Transport.wp_AddRemote rafthttp.Transport.wp_AddPeer mvcc.watchableStore.wp_Close
+    config.ServerConfig.wp_PeerDialTimeout membership.RaftCluster.wp_ID
+    rafthttp.Transport.wp_Start rafthttp.Transport.wp_AddRemote rafthttp.Transport.wp_AddPeer
+    rafthttp.peer.wp_stop rafthttp.remote.wp_stop mvcc.api.mvccApi_watchableStore_Close_wp_api
     schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket
     lease.lessor.wp_GetLease lease.lessor.wp_Attach lease.lessor.wp_Detach
     lease.lessor.wp_SetRangeDeleter lease.lessor.wp_Lookup lease.lessor.wp_Grant
@@ -2116,10 +2130,11 @@ theorem server_new_auth_on [go_etcd_io.etcd.cache.v3.Assumptions]
     EtcdServer.wp_ForceSnapshot consistentIndex.wp_ConsistentIndex EtcdServer.wp_ClusterVersion
     srvApi_wp_MemSnapshot srvApi_wp_ApplyConfChange srvApi_wp_MemInitialState
     srvApi_wp_MemLastIndex srvApi_wp_MemFirstIndex srvApi_wp_MemTerm srvApi_wp_MemEntries
-    srvApi_wp_Step
-    srvApi_wp_ReportUnreachable srvApi_wp_ReportSnapshot EtcdServer.wp_Process EtcdServer.wp_IsIDRemoved
-    EtcdServer.wp_ReportUnreachable EtcdServer.wp_ReportSnapshot
-    backend.batchTxBuffered.wp_UnsafeDelete lease.lessor.wp_Revoke v3alarm.AlarmStore.wp_Get
+    srvApi_wp_Step srvApi_wp_ReportUnreachable srvApi_wp_ReportSnapshot EtcdServer.wp_Process
+    EtcdServer.wp_IsIDRemoved EtcdServer.wp_ReportUnreachable EtcdServer.wp_ReportSnapshot
+    backend.batchTxBuffered.wp_UnsafeDelete 
+    
+    lease.lessor.wp_Revoke v3alarm.AlarmStore.wp_Get
     bootstrappedServer.wp_Close
 
 end serverAuth
@@ -2138,16 +2153,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **A new cluster's resources with auth on** (the auth plan's E2z, `NewServerAllocOn.lean`):
 `srvClusterBoot_alloc`'s, with the mode-`on` KV invariant `kvInvOn _ _ srvAuthSt0` (and, 5b, the client's
 view of the auth history, `authHistView`) at the start
-chain with auth on; with `server_member_alloc_on`, what `server_new_auth_on`'s caller allocates. -/
+chain with auth on; with `server_member_alloc_on`, what `server_new_auth_on`'s caller allocates.
+(2026-11-09, raft-entsize [r3a]/[r3a']: the boot premises as one `BootCore`, which adds the bound
+on the boot entries, `bootDataOk`, from which (2026-11-10) the allocation passes `maxData = some 2^30`.) -/
 theorem server_cluster_alloc_on (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (xs : w64 → mvcc.IdxNames) (reg : GName)
+    (xs : w64 → GName) (reg : GName)
     (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (Hrb2 : receiptBound GF + boot.length ≤ 2 ^ 61)
-    (HB : BootLog ps ctxs boot) (Hnd : ps.Nodup) (Hne : ps ≠ []) (Hnz : W64 0 ∉ ps)
-    (hcc : ∀ e ∈ LogEntry.toEntries boot 0,
-      ccIdOf e.Data' = W64 0 ∧ ccBootOk (GMap.listToSet ps) e.Data')
-    (Hurl : bootURLsOk (LogEntry.toEntries boot 0))
-    (Hpd : (ps.map (fun id => uint.Z id % 2 ^ 16)).Nodup)
-    (Hp0 : ∀ id ∈ ps, uint.Z id % 2 ^ 16 ≠ 0) :
+    (Hbc : BootCore ps ctxs boot) (Hnd : ps.Nodup) (Hne : ps ≠ []) (Hnz : W64 0 ∉ ps) :
     ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) ={⊤}=∗
       ∃ (γ : SrvRaft) (issued cnt wn fs : GName) (γk : KVNames),
         ⌜γ.vs = ps ∧ γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧ γ.boot = LogEntry.toEntries boot 0 ∧ γ.reg = reg ∧
@@ -2171,7 +2183,7 @@ theorem server_cluster_alloc_on (ps : List w64) (ctxs : List (List w8)) (boot : 
           ∃ γd : GName, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 (∅ : GMap w64 Unit))) ∗
         -- (linkv-txn stage B1, 2026-10-20) each member's entry of the registries' map
         [∗list] id ∈ ps, idWaitTokAt wn (idPfxOf (W16 (uint.Z id)), 0) :=
-  srvClusterBootOn_alloc ps ctxs boot xs reg Hrb Hrb2 HB Hnd Hne Hnz hcc Hurl Hpd Hp0
+  srvClusterBootOn_alloc ps ctxs boot xs reg Hrb Hrb2 Hbc Hnd Hne Hnz
 
 /-- **A member's names with auth on** (`srvMemberBootOn_alloc`): the mode-`on` KV invariant at
 its names, as `NewServer.specM true`'s `kvInvM true`. -/
@@ -2185,7 +2197,7 @@ theorem server_member_alloc_on (γ : SrvRaft) (cnt : GName) (γk : KVNames) (id 
           ρ.rd.kv.ch0 = γk.ch0 ∧ ρ.rd.kv.log0 = γk.log0 ∧
           ρ.rd.kv.cok = cok ∧ ρ.ids.issued = γk.ids.issued ∧ ρ.ids.cnt = cnt ∧
           ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧ ρ.rd.kv.hist = γk.hist ∧ ρ.rd.kv.cmp = γk.cmp ∧
-          ρ.rd.kv.lg = γk.lg ∧
+          ρ.rd.kv.lm = γk.lm ∧
           ρ.ids.wn = γk.ids.wn ∧ ρ.ids.fs = γk.ids.fs ∧ ρ.ids.inc = 0⌝ ∗
         kvInvM true ⟨γ, [], W64 0⟩ ρ.rd.kv srvAuthSt0 ∗ idShare ρ.ids ∗
         srvReadNamesFreshNK ρ.rd ∗ idWaitTok ρ.ids :=
@@ -2215,7 +2227,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **The server's apply loop** (`run`, the request path's unit 4c; `Spec/go_etcd_io/etcd/server/
-v3/etcdserver/EtcdServer__run.lean`): from `isServerRun` (`start`'s), it applies every batch raft
+v3/etcdserver/EtcdServer__run.lean`): from `isServerRunC` (`start`'s), it applies every batch raft
 commits through the FIFO scheduler, the apply thread's resources chained from job to job, and
 shuts down. (The auth component's stage 2, 2026-11-04) In both auth modes: over the component `C`
 (`isServer…C`). -/
@@ -2234,28 +2246,33 @@ theorem server_Start [go_etcd_io.etcd.cache.v3.Assumptions] : EtcdServer.Start.s
 /-- **`start` gives the request path's views** (the request path's unit 4c): from the construction
 premise, `start` returns the views `range_linearizable`, `txn_applied` and the v3rpc results take
 (`isServerReq`, `isServerRead`), the read loop's `server` contract over them (`read_server`), and
-the read loop's lock's reader slots (`srvRdCall`'s `srvReadReader`): those results are conditional
-on `isServerBuilt` alone (and each call's own resources). -/
+the read loop's lock's reader slots that `start` hands on (`srvRdCall`'s `srvReadReader`;
+`srvStartReadN`: revoke-open, 2026-11-06, `actualMaxReaders` less those `start` keeps for the
+revocation's outer goroutine, `srvRevokeCtx`): those results are conditional
+on `isServerBuilt` and the stop's slot (`srvStop.slot`, R2c-3) alone (and each call's own
+resources). The slot is what `NewServer` keeps for the stop (`NewServer.specG`'s post, the sealed
+`srvStop.keep`), at the raft environment `Er` whose transport stop right is that slot's
+(`srvEr`'s `ST`, `srvTrStopK γk`; `srvStop.slot_intro`). -/
 theorem start_gives_views [go_etcd_io.etcd.cache.v3.Assumptions] (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
     (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat)
-    (Hrb : receiptBound GF ≤ N + 1) (Hai0 : ai₀ = W64 0) :
+    (Hrb : receiptBound GF ≤ N + 1) (Hrb48 : receiptBound GF ≤ 2 ^ 48) (Hai0 : ai₀ = W64 0) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-        isServerBuilt s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N }}
+        isServerBuilt s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N ∗ srvStop.slot s E γn Er }}
       (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"start")) (Val #()))
     {{ RET #(); ∃ γw : GName, isServerReq s E { ρ with wait := γw } ∗ isServerRead s E γr ∗
         isReadServer (interface.mkOk (go.GoType.PointerType EtcdServer.ty) #s) γr (srvReadLR s)
           (idCred ρ.ids 1) ∗
-        [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
-          srvReadReader s γr }} := by
-  iintro %Φ ⟨#Hpkg, Hb⟩ HΦ
+        [∗list] _x ∈ List.replicate srvStartReadN (), srvReadReader s γr }} := by
+  iintro %Φ ⟨#Hpkg, Hb, Hsk⟩ HΦ
   -- `start.spec` at the slot's `off`
-  imod isServerBuilt_offC s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N $$ Hb with ⟨%hm, Hb, Hl⟩
+  imod isServerBuilt_offC s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N $$ [Hb Hsk] with ⟨%hm, Hb, Hl⟩
+  · iframe Hb Hsk
   have h' := server_start s γ ci TM .off E ρ γr Er γn b ai₀ at₀ c₀ x₀ N
   simp only [AuthC.isOn, isServerReqM_false, isServerReadM_false, kvStM_false] at h'
   iapply h' $$ [Hb Hl]
   · iframe Hpkg Hb Hl
-    ipureintro; exact ⟨hm, trivial, Hrb, Hai0⟩
+    ipureintro; exact ⟨hm, Hrb48, Hrb, Hai0⟩
   inext
   iintro ⟨%γw, #Hreq, #Hrd, -, Hst, -⟩
   iunfold srvStarted at Hst

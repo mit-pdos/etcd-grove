@@ -3,7 +3,7 @@ The watchable store (`watchable_store.go`, `watchable_store_txn.go`): its lock i
 stream channels' protocol and the watchers' ghost state. Lean-first; `notes/decisions.md`, "The
 watchable store's concurrency (unit 3)".
 
-**The model** (pure). The events the watchers see of a revision `r` (`evsOfRevM`) are the
+**The model** (pure; `WatchModel.lean`). The events the watchers see of a revision `r` (`evsOfRevM`) are the
 key-values its changes wrote (`changeKv`), made events as `End` does (`evOfKv`: a create
 revision `0`, the key alone of a delete, is a `DELETE` at mod revision `r`); `watchEvents log r lo
 hi` are the events of the revisions `[lo, hi)` of `log` whose key the range `r` holds, in
@@ -35,8 +35,8 @@ out), and whether it is live (an open channel) or cancelled (a closed channel ha
 watcher).
 
 **The lock invariant** (`watchStoreInv s st γ q`, the resource of `s.mu`, at the fraction `q`
-of the read side): the notified log `Lmu` (its certificate; half of `γ.wlog`, whose other half
-is the sole writer's, `watchWriter`), the two groups, the victim batches, every watcher's state
+of the read side): the notified log `Lmu` (its certificate; `γ.wlog`, the lock's alone since
+2026-11-06, until then half, the sole writer's the other), the two groups, the victim batches, every watcher's state
 (the cancelled ones included: `cancelWatcher` reads `wa.ch`) and half of the states of the
 victims out with the mover, the meta map's authority with the watcher budget (`watchBudget`:
 the watchers with names and the unspent watch tokens below `2 ^ 63 - 3`), and per live watcher
@@ -45,6 +45,9 @@ its ghosts and the facts of its population (`memberRes`).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.WatchModel
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.WatchPos
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.StreamSteps
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchBatch
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchStream
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.CompactNoDup
@@ -67,124 +70,6 @@ namespace mvcc
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.mvcc
 
-/-! ## The watchers' events of the log (pure) -/
-
-/-- The event `End` makes of a change's key-value at revision `r`: a create revision `0` (the
-key alone, a delete's `changeKv`) is a `DELETE` with `ModRevision := r`, else a `PUT`; no
-previous key-value. -/
-def evOfKv (r : Nat) (kv : EtcdKv) : EvM :=
-  if kv.createRev = W64 0 then ⟨true, { kv with modRev := W64 r }, none⟩ else ⟨false, kv, none⟩
-
-/-- The events of revision `r` (changes `cs`, the state `before` before them), in order. -/
-def evsOfRevM (r : Nat) (before : List EtcdKv) (cs : List Change) : List EvM :=
-  (List.range cs.length).filterMap fun i => (changeKv (W64 r) before cs i).map (evOfKv r)
-
-/-- The events of the revisions `[lo, hi)` of `log`, in revision order. -/
-def logEvents (log : Log) (lo hi : Nat) : List EvM :=
-  ((List.range' lo (hi - lo)).map fun m =>
-    evsOfRevM m (stateAt log (m - 1)) (log.getD m [])).flatten
-
-/-- The range's events of `log` at the revisions `[lo, hi)`, in revision order. -/
-def watchEvents (log : Log) (r : WatchRange) (lo hi : Nat) : List EvM :=
-  (logEvents log lo hi).filter fun ev => r.covers ev.kv.key
-
-/-- The events no filter predicate of `fs` drops (`watcher.send`'s loop). -/
-def filtered (fs : List (EvM → Bool)) (evs : List EvM) : List EvM :=
-  evs.filter fun ev => fs.all fun p => !(p ev)
-
-theorem logEvents_empty (log : Log) {lo hi : Nat} (h : hi ≤ lo) : logEvents log lo hi = [] := by
-  unfold logEvents; rw [show hi - lo = 0 by omega]; rfl
-
-theorem watchEvents_empty (log : Log) (r : WatchRange) {lo hi : Nat} (h : hi ≤ lo) :
-    watchEvents log r lo hi = [] := by
-  unfold watchEvents; rw [logEvents_empty log h]; rfl
-
-theorem logEvents_append (log : Log) {lo mid hi : Nat} (h1 : lo ≤ mid) (h2 : mid ≤ hi) :
-    logEvents log lo hi = logEvents log lo mid ++ logEvents log mid hi := by
-  unfold logEvents
-  rw [← List.flatten_append, ← List.map_append]
-  congr 2
-  rw [show hi - lo = (mid - lo) + (hi - mid) by omega, ← List.range'_append_1,
-    show lo + (mid - lo) = mid by omega]
-
-theorem watchEvents_append (log : Log) (r : WatchRange) {lo mid hi : Nat} (h1 : lo ≤ mid)
-    (h2 : mid ≤ hi) :
-    watchEvents log r lo hi = watchEvents log r lo mid ++ watchEvents log r mid hi := by
-  unfold watchEvents; rw [logEvents_append log h1 h2, List.filter_append]
-
-theorem logEvents_succ (log : Log) (m : Nat) :
-    logEvents log m (m + 1) = evsOfRevM m (stateAt log (m - 1)) (log.getD m []) := by
-  unfold logEvents
-  rw [show m + 1 - m = 1 by omega]
-  simp
-
-/-- The events of a log at revisions below a prefix's length are the prefix's. -/
-theorem logEvents_prefix {L L' : Log} (hp : L <+: L') {lo hi : Nat} (hhi : hi ≤ L.length) :
-    logEvents L lo hi = logEvents L' lo hi := by
-  unfold logEvents
-  congr 1
-  apply List.map_congr_left
-  intro m hm
-  rw [List.mem_range'] at hm
-  have hm' : m < L.length := by omega
-  obtain ⟨T, rfl⟩ := hp
-  have hs : stateAt (L ++ T) (m - 1) = stateAt L (m - 1) := by
-    unfold stateAt
-    rw [List.take_append_of_le_length (by omega)]
-  rw [hs]
-  congr 1
-  simp only [List.getD_eq_getElem?_getD]
-  rw [List.getElem?_append_left hm']
-
-theorem watchEvents_prefix {L L' : Log} (hp : L <+: L') (r : WatchRange) {lo hi : Nat}
-    (hhi : hi ≤ L.length) : watchEvents L r lo hi = watchEvents L' r lo hi := by
-  unfold watchEvents; rw [logEvents_prefix hp hhi]
-
-/-- Two comparable logs agree on the events of the revisions both have. -/
-theorem watchEvents_cmp {L L' : Log} (hc : L <+: L' ∨ L' <+: L) (r : WatchRange) {lo hi : Nat}
-    (h : hi ≤ L.length ∨ hi ≤ lo) (h' : hi ≤ L'.length ∨ hi ≤ lo) :
-    watchEvents L r lo hi = watchEvents L' r lo hi := by
-  by_cases hlo : hi ≤ lo
-  · rw [watchEvents_empty _ _ hlo, watchEvents_empty _ _ hlo]
-  · have h1 : hi ≤ L.length := h.resolve_right hlo
-    have h2 : hi ≤ L'.length := h'.resolve_right hlo
-    rcases hc with hc | hc
-    · exact watchEvents_prefix hc r h1
-    · exact (watchEvents_prefix hc r h2).symm
-
-/-! ## Countability (for the ghost state) -/
-
-instance etcdKvCountableW : Pos.Countable EtcdKv :=
-  .ofInjective (fun k => Pos.Countable.encode (k.key, k.createRev, k.modRev, k.version, k.value, k.lease))
-    (by rintro ⟨a, b, c, d, e, f⟩ ⟨a', b', c', d', e', f'⟩ h; have h := Pos.encode_inj h; simp_all)
-
-instance EvM.countable : Pos.Countable EvM :=
-  .ofInjective (fun e => Pos.Countable.encode (e.del, e.kv, e.prevKv))
-    (by rintro ⟨a, b, c⟩ ⟨a', b', c'⟩ h; have h := Pos.encode_inj h; simp_all)
-
-/-- A response the store sent on a stream's channel: the watcher it was sent for (ghost), its
-`WatchID`, events and `Revision`; and (ghost, unit W-K) the watchers a progress response covers
-(`cov`: `respCov`; empty for any other response) and, for one of id `-1`, the watchers registered
-on the channel when it was sent (`regs`); and its position in the sent list (`idx`). -/
-structure RespM where
-  w : Loc
-  id : w64
-  evs : List EvM
-  rev : w64
-  cov : List Loc
-  regs : List Loc
-  /-- its position in the channel's sent list (ghost, K1b): so the responses sent are distinct -/
-  idx : Nat
-  /-- (watches across a compaction, 2026-11-01) its `CompactRevision`: `0`, or the store's
-  compaction revision when the watcher's next revision was compacted (`chooseAll`'s response) -/
-  compactRev : w64 := W64 0
-
-instance RespM.countable : Pos.Countable RespM :=
-  .ofInjective (fun r => Pos.Countable.encode (r.w, r.id, r.evs, r.rev, r.cov, r.regs, r.idx,
-      r.compactRev))
-    (by rintro ⟨a, b, c, d, e, f, g, i⟩ ⟨a', b', c', d', e', f', g', i'⟩ h; have h := Pos.encode_inj h;
-        simp_all)
-
 instance watchResponseCountable [GooseExts] : Pos.Countable WatchResponse :=
   .ofInjective (fun r => Pos.Countable.encode (r.WatchID', r.Events', r.Revision', r.CompactRevision'))
     (by rintro ⟨a, b, c, d⟩ ⟨a', b', c', d'⟩ h; have h := Pos.encode_inj h; simp_all)
@@ -202,15 +87,21 @@ structure WatcherNames where
   on (`WsState.srBelow`). Any other watcher's first revision is its start revision, which
   `progressIfSync`'s guard bounds (no progress notification below a watcher's start). -/
   now : Bool
+  /-- (stage 2 of the mvcc API, 2026-11-05) the saved name of its filters' predicates
+  (`api.savedFilters`, allocated at the registration): one predicate list per watcher, the
+  stream's history's (`watcherFilters`) -/
+  fg : GName
 
 instance WatcherNames.countable : Pos.Countable WatcherNames :=
   .ofInjective (fun g => Pos.Countable.encode (g.evs, g.live, g.wc.ch.stateName, g.wc.ch.offerLockName,
       g.wc.ch.offerParkedPropName, g.wc.ch.offerParkedPredName, g.wc.ch.offerContinuationName,
       g.wc.ch.chanCap, g.wc.recv, g.wc.regl, g.wc.reg, g.wc.ids, g.wc.prog, g.wc.sentl, g.wc.regi,
-      g.wc.rsn, g.lo, g.now))
+      g.wc.rsn, g.wc.aev, g.wc.ans, g.wc.arcv, g.wc.arx, g.wc.acl, g.lo, g.now, g.fg))
     (by
-      rintro ⟨a, b, ⟨⟨c1, c2, c3, c4, c5, c6⟩, d, e, f, i, j, k, k2, k3⟩, g, g2⟩
-        ⟨a', b', ⟨⟨c1', c2', c3', c4', c5', c6'⟩, d', e', f', i', j', k', k2', k3'⟩, g', g2'⟩ h
+      rintro ⟨a, b, ⟨⟨c1, c2, c3, c4, c5, c6⟩, d, e, f, i, j, k, k2, k3, a1, a2, a3, a4, a5⟩, g, g2,
+          g3⟩
+        ⟨a', b', ⟨⟨c1', c2', c3', c4', c5', c6'⟩, d', e', f', i', j', k', k2', k3', a1', a2', a3',
+          a4', a5'⟩, g', g2', g3'⟩ h
       have h := Pos.encode_inj h
       simp_all)
 
@@ -279,7 +170,7 @@ abbrev victimsAddr (s : Loc) : Loc := structFieldRef watchableStore go!"victims"
 end addrs
 
 /-- The channel invariants' namespace. -/
-def watchN : Namespace := nroot.@"mvccwatch"
+def watchN : Namespace := (nroot .@ "mvcc") .@ "watch"
 
 /-! ## The store's state record -/
 
@@ -298,10 +189,6 @@ structure WsState where
   vs : GoSlice
   vbs : List GoMap
   VB : List (GMap Loc EventBatch)
-
-instance WatchRange.countable : Pos.Countable WatchRange :=
-  .ofInjective (fun r => Pos.Countable.encode (r.key, r.end?, r.startRev, r.id))
-    (by rintro ⟨a, b, c, d⟩ ⟨a', b', c', d'⟩ h; have h := Pos.encode_inj h; simp_all)
 
 instance WatcherSt.countable : Pos.Countable WatcherSt :=
   .ofInjective (fun r => Pos.Countable.encode (r.minRev, r.victim, r.compacted, r.restore, r.ch))
@@ -457,6 +344,22 @@ def filtersOk (fcs : GoSlice) : IProp GF := iprop(∃ fs, filtersImpl fcs fs)
 instance filtersOk_persistent (fcs : GoSlice) : Persistent (filtersOk (GF := GF) fcs) := by
   unfold filtersOk; infer_instance
 
+/-- **A registered watcher's filters** (persistent; stage 2 of the mvcc API, 2026-11-05): the
+filters `fcs` implement the predicates saved under the watcher's name `γw.fg` (the registration's
+choice), so that every delivery to it is filtered by the same predicates. -/
+def watcherFilters (γw : WatcherNames) (fcs : GoSlice) : IProp GF :=
+  iprop(∃ fs, filtersImpl fcs fs ∗ api.savedFilters γw.fg fs)
+
+instance watcherFilters_persistent (γw : WatcherNames) (fcs : GoSlice) :
+    Persistent (watcherFilters (GF := GF) γw fcs) := by
+  unfold watcherFilters; infer_instance
+
+theorem watcherFilters_ok (γw : WatcherNames) (fcs : GoSlice) :
+    watcherFilters (GF := GF) γw fcs ⊢ filtersOk fcs := by
+  unfold watcherFilters filtersOk
+  iintro ⟨%fs, #H, -⟩
+  iexists fs; iexact H
+
 /-! ## Responses -/
 
 /-- The `WatchResponse` value `v` is the response `r`: its id, revision and compaction revision,
@@ -520,8 +423,14 @@ instance cancelled_persistent (γw : WatcherNames) : Persistent (cancelled (GF :
 and it is well formed) and certified by the store's caller (`certOk`: the writer's `End` takes the
 certificate of the log it commits before it notifies, `certOkNext`, and the store keeps the
 committed log's, `revMuInv`). The certificate is what makes a watch event's revision reached in
-the server's model (`etcdReached`: a certified log is the KV model of a committed raft log). -/
-def evLog (γ : StoreNames) (L : Log) : IProp GF := iprop(idxSealed γ.idx L ∗ certOk γ L)
+the server's model (`etcdReached`: a certified log is the KV model of a committed raft log).
+(Stage 2 of the mvcc API, 2026-11-05) its changes fewer than `2 ^ 48` (the receipt against a
+store's bound on the receipts, `isStore`'s `Hrb`), so its events are positive (`evLog_pos`); and
+a lower bound of the API's notified log (`api.nlLb`: the history the API's client was told of has
+it), so that every send's bounds and every watcher's delivery are over one history
+(`evLog_nlLb`). -/
+def evLog (γ : StoreNames) (L : Log) : IProp GF :=
+  iprop(idxSealed γ.idx L ∗ certOk γ L ∗ ⌜logCh L < 2 ^ 48⌝ ∗ api.nlLb γ.api L)
 
 instance evLog_persistent (γ : StoreNames) (L : Log) : Persistent (evLog (GF := GF) γ L) := by
   unfold evLog; infer_instance
@@ -550,15 +459,37 @@ theorem evLog_sealed (γ : StoreNames) (L : Log) : evLog (GF := GF) γ L ⊢ idx
   unfold evLog; iintro ⟨#H, -⟩; iexact H
 
 theorem evLog_certOk (γ : StoreNames) (L : Log) : evLog (GF := GF) γ L ⊢ certOk γ L := by
-  unfold evLog; iintro ⟨-, #H⟩; iexact H
+  unfold evLog; iintro ⟨-, #H, -⟩; iexact H
 
-/-- A committed log the caller certified is watched. -/
-theorem evLog_of_cert (γ : StoreNames) (L : Log) :
-    idxCert (GF := GF) γ.idx L ∗ certOk γ L ⊢ evLog γ L := by
+/-- A sealed, certified log the API notified is watched (the receipts' bound at most `2 ^ 48`). -/
+theorem evLog_of_sealed (γ : StoreNames) (L : Log) (hrb : receiptBound GF ≤ 2 ^ 48) :
+    idxSealed (GF := GF) γ.idx L ∗ certOk γ L ∗ api.nlLb γ.api L ⊢ evLog γ L := by
   unfold evLog
-  iintro ⟨#Hc, #Hok⟩
+  iintro ⟨#Hs, #Hok, #Hn⟩
+  ihave %h := idxSealed_small _ _ $$ Hs
+  iframe Hs Hok Hn
+  ipureintro; omega
+
+/-- A committed log the caller certified and the API notified is watched (the receipts' bound at
+most `2 ^ 48`). -/
+theorem evLog_of_cert (γ : StoreNames) (L : Log) (hrb : receiptBound GF ≤ 2 ^ 48) :
+    idxCert (GF := GF) γ.idx L ∗ certOk γ L ∗ api.nlLb γ.api L ⊢ evLog γ L := by
+  iintro ⟨#Hc, #Hok, #Hn⟩
   ihave #Hs := idxCert_sealed _ _ $$ Hc
-  iframe Hs Hok
+  iapply evLog_of_sealed γ L hrb $$ [$Hs $Hok $Hn]
+
+/-- **A watched log is a lower bound of the API's notified log.** -/
+theorem evLog_nlLb (γ : StoreNames) (L : Log) : evLog (GF := GF) γ L ⊢ api.nlLb γ.api L := by
+  unfold evLog; iintro ⟨-, -, -, #H⟩; iexact H
+
+/-- **A watched log's events are positive** (`WatchPos.lean`). -/
+theorem evLog_pos (γ : StoreNames) (L : Log) :
+    evLog (GF := GF) γ L ⊢ ⌜∀ (r : WatchRange) (lo hi : Nat), ∀ ev ∈ watchEvents L r lo hi, evPos ev⌝ := by
+  unfold evLog idxSealed
+  iintro ⟨⟨-, %h, -⟩, -, %hc, -⟩
+  ipureintro
+  intro r lo hi
+  exact watchEvents_pos L h.1.getD_zero h.2.1 (by omega) r lo hi
 
 /-- Two watched logs are in prefix order. -/
 theorem evLog_cmp (γ : StoreNames) (L L' : Log) :
@@ -571,10 +502,13 @@ theorem evLog_cmp (γ : StoreNames) (L L' : Log) :
 /-- The empty log is watched. -/
 theorem evLog_nil (γ : StoreNames) : ⊢ |==> evLog (GF := GF) γ [] := by
   imod idxSealed_nil (GF := GF) γ.idx with #H
+  imod monoListLbOwn_nil (GF := GF) (A := List Change) γ.api.nl with #Hn
   imodintro
-  unfold evLog certOk
-  iframe H
-  ileft; ipureintro; simp
+  unfold evLog certOk api.nlLb
+  iframe H Hn
+  isplitl
+  · ileft; ipureintro; simp
+  · ipureintro; simp [logCh]
 
 /-- **The store had released `n` revisions** (persistent; D25): a lower bound of `γ.rel`, the
 notified log's length under `s.mu`, which `End` bumps before it notifies a revision's events. A
@@ -584,15 +518,96 @@ def relLb (γ : WsNames) (n : Nat) : IProp GF := monoNatLbOwn γ.rel n
 instance relLb_persistent (γ : WsNames) (n : Nat) : Persistent (relLb (GF := GF) γ n) := by
   unfold relLb; infer_instance
 
+/-- **A watcher from `lo` is past its exactness condition** (persistent; per watcher, 2026-11-05:
+`notes/mvcc-api-invariants.md` §4.4): a notified log `N` (a lower bound of the API's notified
+log) and a compaction revision `c` (the API's lower bound) such that `N`'s revisions `[lo, c]`
+change a key twice (`¬ onceUpTo N lo c`). Both only grow, so it holds for good: the watch
+guarantee (`wsRecvOk`) states nothing more of the watcher's events. Made by `syncWatchers` when
+it reads a watcher's events from the compaction revision `c` and revision `c` changes a key twice
+(the backend kept only its last change, `nonissues/etcd-mvcc-watch-compact-rev-subrev-lost.md`). -/
+def doomed (γ : WsNames) (lo : Nat) : IProp GF :=
+  iprop(∃ (N : Log) (c : Int), api.nlLb γ.st.api N ∗ api.crevAtLeast γ.st.api c ∗
+    ⌜¬ api.onceUpTo N lo c⌝)
+
+instance doomed_persistent (γ : WsNames) (lo : Nat) : Persistent (doomed (GF := GF) γ lo) := by
+  unfold doomed; infer_instance
+
 /-- The events `evs` are the range's of the revisions `[lo, d)` of a watched log (`evLog`:
-sealed and certified; persistent; `d` past the log only for an empty range). -/
+sealed and certified; persistent; `d` past the log only for an empty range), or the watcher is
+past its exactness condition (`doomed`; per watcher, 2026-11-05: until then exact under the
+create token's `watchNoDup`), its events then of revisions from `lo` on (none unless `lo < d`)
+and positive (`evPos`: a sub-list of a watched log's, `WatchPos.lean`). -/
 def evsWf (γ : WsNames) (r : WatchRange) (lo : Nat) (evs : List EvM) (d : Nat) : IProp GF :=
-  iprop(∃ L : Log, evLog γ.st L ∗ relLb γ L.length ∗
-    ⌜evs = watchEvents L r lo d ∧ (d ≤ L.length ∨ d ≤ lo)⌝)
+  iprop(∃ L : Log, evLog γ.st L ∗ relLb γ L.length ∗ ⌜d ≤ L.length ∨ d ≤ lo⌝ ∗
+    (⌜evs = watchEvents L r lo d⌝ ∨
+      (doomed γ lo ∗ ⌜(evs ≠ [] → lo < d) ∧ ∀ ev ∈ evs, evPos ev⌝)))
 
 instance evsWf_persistent (γ : WsNames) (r : WatchRange) (lo : Nat) (evs : List EvM) (d : Nat) :
     Persistent (evsWf (GF := GF) γ r lo evs d) := by
   unfold evsWf; infer_instance
+
+/-- An exact `evsWf`. -/
+theorem evsWf_exact (γ : WsNames) (r : WatchRange) (lo : Nat) (evs : List EvM) (d : Nat) (L : Log)
+    (h : evs = watchEvents L r lo d ∧ (d ≤ L.length ∨ d ≤ lo)) :
+    evLog (GF := GF) γ.st L ∗ relLb γ L.length ⊢ evsWf γ r lo evs d := by
+  iintro ⟨#HL, #Hr⟩
+  unfold evsWf
+  iexists L
+  iframe HL Hr
+  isplitr
+  · ipureintro; exact h.2
+  · ileft; ipureintro; exact h.1
+
+/-- A doomed `evsWf` (any events of revisions from `lo` on). -/
+theorem evsWf_doomed (γ : WsNames) (r : WatchRange) (lo : Nat) (evs : List EvM) (d : Nat) (L : Log)
+    (h : d ≤ L.length ∨ d ≤ lo) (hne : evs ≠ [] → lo < d) (hpos : ∀ ev ∈ evs, evPos ev) :
+    evLog (GF := GF) γ.st L ∗ relLb γ L.length ∗ doomed γ lo ⊢ evsWf γ r lo evs d := by
+  iintro ⟨#HL, #Hr, #Hd⟩
+  unfold evsWf
+  iexists L
+  iframe HL Hr
+  isplitr
+  · ipureintro; exact h
+  · iright; iframe Hd; ipureintro; exact ⟨hne, hpos⟩
+
+/-- An exactness disjunct carried along an implication. -/
+theorem exactOr_mono (γ : WsNames) (lo : Nat) {P Q : Prop} (h : P → Q) :
+    (⌜P⌝ ∨ doomed (GF := GF) γ lo) ⊢ ⌜Q⌝ ∨ doomed γ lo := by
+  iintro (%hp | #Hd)
+  · ileft; ipureintro; exact h hp
+  · iright; iexact Hd
+
+/-- `evsWf`'s exactness disjunct carried along an implication (the doomed side's revisions). -/
+theorem evsExactOr_mono (γ : WsNames) (lo : Nat) {P Q : Prop} {e e' : List EvM} {d d' : Nat}
+    (h : P → Q) (hd : (e ≠ [] → lo < d) ∧ (∀ ev ∈ e, evPos ev) →
+      (e' ≠ [] → lo < d') ∧ ∀ ev ∈ e', evPos ev) :
+    (⌜P⌝ ∨ (doomed (GF := GF) γ lo ∗ ⌜(e ≠ [] → lo < d) ∧ ∀ ev ∈ e, evPos ev⌝)) ⊢
+      ⌜Q⌝ ∨ (doomed γ lo ∗ ⌜(e' ≠ [] → lo < d') ∧ ∀ ev ∈ e', evPos ev⌝) := by
+  iintro (%hp | ⟨#Hd, %hn⟩)
+  · ileft; ipureintro; exact h hp
+  · iright; iframe Hd; ipureintro; exact hd hn
+
+/-- A watched log's events from `lo` are of revisions from `lo` on. -/
+theorem watchEvents_ne_lo (L : Log) (r : WatchRange) (lo d : Nat) (h : watchEvents L r lo d ≠ []) :
+    lo < d := by
+  refine Classical.byContradiction fun hc => h (watchEvents_empty L r (by omega))
+
+/-- An `evsWf`'s events are of revisions from `lo` on (exact or doomed). -/
+theorem evsWf_ne_lo (γ : WsNames) (r : WatchRange) (lo : Nat) (evs : List EvM) (d : Nat) :
+    evsWf (GF := GF) γ r lo evs d ⊢ ⌜evs ≠ [] → lo < d⌝ := by
+  unfold evsWf
+  iintro ⟨%L, -, -, -, (%he | ⟨-, %hn⟩)⟩
+  · ipureintro; intro hne; rw [he] at hne; exact watchEvents_ne_lo L r lo d hne
+  · ipureintro; exact hn.1
+
+/-- **An `evsWf`'s events are positive** (exact: a watched log's, `evLog_pos`; doomed: recorded). -/
+theorem evsWf_pos (γ : WsNames) (r : WatchRange) (lo : Nat) (evs : List EvM) (d : Nat) :
+    evsWf (GF := GF) γ r lo evs d ⊢ ⌜∀ ev ∈ evs, evPos ev⌝ := by
+  unfold evsWf
+  iintro ⟨%L, #HL, -, -, (%he | ⟨-, %hn⟩)⟩
+  · ihave %hp := evLog_pos γ.st L $$ HL
+    ipureintro; rw [he]; exact hp r lo d
+  · ipureintro; exact hn.2
 
 /-- Every prefix of the deliveries `D` ends at a revision (persistent): its events, concatenated,
 are the range's of the revisions `[lo, d')` of a log the index's history has, for some `d'` (a
@@ -621,7 +636,8 @@ def chanWatcher (γ : WsNames) (γc : WatchChanNames) (closed : Bool) (sent : Li
     monoListAuthOwn γw.evs (1 : Qp).half evsw ∗
     ⌜(D.map Prod.fst).flatten = evsw ∧
       (sent.filter (fun x => decide (x.w = w))).map RespM.evs = (D.filter Deliv.sent).map Prod.snd⌝ ∗
-    □ (([∗list] dl ∈ D, ∃ fs, filtersImpl fcs fs ∗ ⌜dl.2 = filtered fs dl.1⌝) ∗
+    □ (([∗list] dl ∈ D, ∃ fs, filtersImpl fcs fs ∗ api.savedFilters γw.fg fs ∗
+        ⌜dl.2 = filtered fs dl.1⌝) ∗
       delivsCut γ r γw.lo D) ∗
     evsWf γ r γw.lo evsw d ∗
     ((⌜closed = false⌝ ∗ dghostVar γw.live (DFrac.own (1 : Qp).half) true) ∨ cancelled γw))
@@ -637,6 +653,18 @@ instance chanRegFact_persistent (γc : WatchChanNames) (w : Loc) :
     Persistent (chanRegFact (GF := GF) γc w) := by
   unfold chanRegFact; infer_instance
 
+/-- **A watcher registered on the channel is in the stream's history** (persistent; 2026-11-05,
+the sends' premises): its names, its fixed range, and the registration of its range's id with its
+range, filters' name and first revision (`chanRegTok`, minted by `watch_register` right after the
+registration callback appended it). What a sender of its responses needs for `factAgree`. -/
+def chanRegW (γ : WsNames) (γc : WatchChanNames) (w : Loc) : IProp GF :=
+  iprop(∃ (γw : WatcherNames) (r : WatchRange) (fcs : GoSlice), watcherMeta γ w γw ∗
+    watcherFixed w r fcs ∗ chanRegTok γc r.id r γw.fg γw.lo)
+
+instance chanRegW_persistent (γ : WsNames) (γc : WatchChanNames) (w : Loc) :
+    Persistent (chanRegW (GF := GF) γ γc w) := by
+  unfold chanRegW; infer_instance
+
 /-- **What a response covers** (persistent; unit W-K, K1b): for every watcher `w'` it covers
 (`x.cov`), on this channel, the responses sent for `w'` before it (`pre`, the sent list before
 `x`) are its deliveries `D`'s sent ones, and `D`'s events are the range's of the revisions
@@ -646,9 +674,11 @@ def covFact (γ : WsNames) (γc : WatchChanNames) (pre : List RespM) (w' : Loc) 
     IProp GF :=
   iprop(∃ (γw : WatcherNames) (r : WatchRange) (fcs : GoSlice) (D : List Deliv) (L : Log) (d : Nat),
     watcherMeta γ w' γw ∗ ⌜γw.wc = γc⌝ ∗ watcherFixed w' r fcs ∗ evLog γ.st L ∗
-    □ (∀ dl : Deliv, ⌜dl ∈ D⌝ -∗ ∃ fs, filtersImpl fcs fs ∗ ⌜dl.2 = filtered fs dl.1⌝) ∗
+    □ (∀ dl : Deliv, ⌜dl ∈ D⌝ -∗ ∃ fs, filtersImpl fcs fs ∗ api.savedFilters γw.fg fs ∗
+      ⌜dl.2 = filtered fs dl.1⌝) ∗
+    (⌜(D.map Prod.fst).flatten = watchEvents L r γw.lo d⌝ ∨ doomed γ γw.lo) ∗
     ⌜(pre.filter (fun y => decide (y.w = w'))).map RespM.evs = (D.filter Deliv.sent).map Prod.snd ∧
-      (D.map Prod.fst).flatten = watchEvents L r γw.lo d ∧ (d ≤ L.length ∨ d ≤ γw.lo) ∧
+      (d ≤ L.length ∨ d ≤ γw.lo) ∧
       sint.Z rev + 1 ≤ (d : Int) ∧ ((d : Int) ≤ sint.Z rev + 1 ∨ d ≤ γw.lo) ∧
       startLo r γw.lo ∧ (γw.lo : Int) ≤ sint.Z rev + 1⌝)
 
@@ -656,10 +686,10 @@ instance covFact_persistent (γ : WsNames) (γc : WatchChanNames) (pre : List Re
     (rev : w64) : Persistent (covFact (GF := GF) γ γc pre w' rev) := by
   unfold covFact; infer_instance
 
-/-- **A watcher cancelled for its reason** (persistent; K1b): its fixed range's id has the
-channel's cancellation reason (`rsnFor`). -/
+/-- **A watcher cancelled by its stream's client** (persistent; K1b; 2026-11-05, the stream's
+history): its fixed range's id was cancelled in the stream's history (`chanCancelTok`). -/
 def rsnW (γc : WatchChanNames) (w : Loc) : IProp GF :=
-  iprop(∃ (r : WatchRange) (fcs : GoSlice), watcherFixed w r fcs ∗ rsnFor γc.rsn r.id)
+  iprop(∃ (r : WatchRange) (fcs : GoSlice), watcherFixed w r fcs ∗ chanCancelTok γc r.id)
 
 /-- The completeness of a response of id `-1` (K1b): every watcher registered on the channel when
 it was sent (`x.regs`) is covered, or cancelled for its reason; and it has no events and its
@@ -689,27 +719,47 @@ def notifiedLent (γ : WsNames) : Option (Qp × Log) → IProp GF
 theorem notifiedLent_none (γ : WsNames) : ⊢ notifiedLent (GF := GF) γ none := by
   unfold notifiedLent; itrivial
 
+/-- **A compaction revision `c` the store permits** (persistent): its compaction permit
+(`crevPermAt`, C3's store law) and (stage 2 of the mvcc API, 2026-11-05) a lower bound of the
+API's compaction revision (`api.crevAtLeast`: a compaction response's revision at most the
+store's, §4.5; `syncWatchers` reads both under `s.revMu`). -/
+def cmpPerm (γ : WsNames) (c : Int) : IProp GF :=
+  iprop(crevPermAt γ.st c ∗ api.crevAtLeast γ.st.api c)
+
+instance cmpPerm_persistent (γ : WsNames) (c : Int) : Persistent (cmpPerm (GF := GF) γ c) := by
+  unfold cmpPerm; infer_instance
+
 /-- **A compaction response's revision is permitted** (C3's store law, 2026-11-02): none, or a
 positive revision the store's compaction permit holds of (`crevPermAt`; `syncWatchers` reads it
 with the revision under `s.revMu`). -/
 def cmpPermOf (γ : WsNames) (x : RespM) : IProp GF :=
-  iprop(⌜x.compactRev = W64 0⌝ ∨
-    (⌜0 < sint.Z x.compactRev⌝ ∗ crevPermAt γ.st (sint.Z x.compactRev)))
+  iprop(⌜x.compactRev = W64 0⌝ ∨ (⌜0 < sint.Z x.compactRev⌝ ∗ cmpPerm γ (sint.Z x.compactRev)))
 
 instance cmpPermOf_persistent (γ : WsNames) (x : RespM) :
     Persistent (cmpPermOf (GF := GF) γ x) := by
   unfold cmpPermOf; infer_instance
+
+/-- **The revision `rev` is one of the API's notified log** (persistent; stage 2 of the mvcc API,
+2026-11-05): a lower bound of it (`api.nlLb`) past `rev`. What every response but a compaction
+response is sent with (`respRev`): its watch guarantee's `rev < |σ.notifiedLog|`. -/
+def revApi (γ : WsNames) (rev : w64) : IProp GF :=
+  iprop(∃ N : Log, api.nlLb γ.st.api N ∗ ⌜sint.nat rev < N.length⌝)
+
+instance revApi_persistent (γ : WsNames) (rev : w64) : Persistent (revApi (GF := GF) γ rev) := by
+  unfold revApi; infer_instance
 
 /-- **An event-less response's revision** (K2e-5): the notified log's last when it was sent, so
 at least every earlier event-less response's on the channel (`pre`). (Only `progressIfSync` sends
 one: a victim's batch has events.) A compaction response (watches across a compaction,
 2026-11-01) claims no revision: its own (`0`, unset) is at or below every other's. Every response's
 compaction revision is permitted (`cmpPermOf`, C3's store law: outside the disjunction, which a
-compaction response may satisfy by its second disjunct). -/
+compaction response may satisfy by its second disjunct). (Stage 2 of the mvcc API, 2026-11-05)
+a response's revision but a compaction response's is one of the API's notified log (`revApi`). -/
 def respRev (γ : WsNames) (pre : List RespM) (x : RespM) : IProp GF :=
   iprop((⌜x.evs ≠ []⌝ ∨ (∃ L : Log, notifiedLb γ L ∗
     ⌜sint.Z x.rev + 1 = (L.length : Int) ∧ ∀ y ∈ pre, y.evs = [] → sint.Z y.rev ≤ sint.Z x.rev⌝) ∨
-    ⌜x.compactRev ≠ W64 0 ∧ x.rev = W64 0⌝) ∗ cmpPermOf γ x)
+    ⌜x.compactRev ≠ W64 0 ∧ x.rev = W64 0⌝) ∗ cmpPermOf γ x ∗
+    (⌜x.compactRev ≠ W64 0⌝ ∨ revApi γ x.rev))
 
 instance respRev_persistent (γ : WsNames) (pre : List RespM) (x : RespM) :
     Persistent (respRev (GF := GF) γ pre x) := by
@@ -736,7 +786,8 @@ theorem revLbOf_of (γ : WsNames) (pre : List RespM) (y : RespM) :
 theorem respRev_cmpPerm (γ : WsNames) (pre : List RespM) (y : RespM) :
     respRev (GF := GF) γ pre y ⊢ cmpPermOf γ y := by
   unfold respRev
-  iintro ⟨-, $⟩
+  iintro ⟨-, #H, -⟩
+  iexact H
 
 /-- **Below the notified log** (K2e-5): with a fraction of its authority at `Lx`, every event-less
 response whose revision is the last of a notified log is at most `Lx`'s last. -/
@@ -814,9 +865,149 @@ def sentAuth (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) (L : List
       regsOk RI sent ∧ idxOk sent⌝ ∗
     □ ([∗list] k ↦ x ∈ sent, respCov γ γc (sent.take k) x))
 
+/-- **The events the client received for an id are those sent for its watcher** (pure): when every
+response of the id is the watcher's, and every response of the watcher carries the id or no event
+(a `-1` progress response), `recvEvs` by id is the watcher's sent events. (The channel invariant
+gives the premises: `respOk` and `chanRegFact`, an id the stream assigned names one watcher.) -/
+theorem recvEvs_toW (sent : List RespM) (id : w64) (w : Loc)
+    (h1 : ∀ x ∈ sent, x.id = id → x.w = w) (h2 : ∀ x ∈ sent, x.w = w → x.id = id ∨ x.evs = []) :
+    api.recvEvs (sent.map RespM.toW) id =
+      ((sent.filter (fun x => decide (x.w = w))).map RespM.evs).flatten := by
+  induction sent with
+  | nil => rfl
+  | cons x sent ih =>
+    have ih' := ih (fun y hy => h1 y (List.mem_cons_of_mem _ hy))
+      (fun y hy => h2 y (List.mem_cons_of_mem _ hy))
+    unfold api.recvEvs at ih' ⊢
+    simp only [List.map_cons, List.filter_cons]
+    by_cases hi : x.id = id
+    · have hw : x.w = w := h1 x (List.mem_cons_self ..) hi
+      simp [RespM.toW, hi, hw, ih']
+    · by_cases hw : x.w = w
+      · have he : x.evs = [] := (h2 x (List.mem_cons_self ..) hw).resolve_left hi
+        simp [RespM.toW, hi, hw, he, ih']
+      · simp [RespM.toW, hi, hw, ih']
+
+/-- **The stream's API names** (`api.WsAbs`) of the channel `ch` (names `γc`) of a stream of the
+watchable store `γ`. -/
+abbrev wsAbsOf (γ : WsNames) (ch : Loc) (γc : WatchChanNames) : api.WsAbs :=
+  ⟨γ.st.api, γc.aev, γc.ans, γc.arcv, γc.arx, ch, γc.ch, γc.recv, γc.acl⟩
+
+/-- **Every registration of the stream's history is a watcher registered on the channel**
+(persistent; 2026-11-05, the sends' premises): for each `.reg id rg _ _` of the history `l`, a
+watcher of the channel's registered set (`γc.reg`) with the fixed range `rg`, whose id is `id`.
+What a `-1` response's sender needs for `stampsAt`: every watcher of the stream's state is one of
+the channel's, so covered by the response or cancelled (`respCompl`). Only a registration adds to
+it (`regWit_app`). -/
+def regWit (γc : WatchChanNames) (l : List api.sent.SEv) : IProp GF :=
+  iprop(□ ∀ (id : w64) (rg : WatchRange) (fg : GName) (lo : Nat),
+    ⌜api.sent.SEv.reg id rg fg lo ∈ l⌝ -∗
+    ∃ (w : Loc) (fcs : GoSlice), ghostMapElem γc.reg w DFrac.discard () ∗ watcherFixed w rg fcs ∗
+      ⌜id = rg.id⌝)
+
+instance regWit_persistent (γc : WatchChanNames) (l : List api.sent.SEv) :
+    Persistent (regWit (GF := GF) γc l) := by
+  unfold regWit; infer_instance
+
+theorem regWit_nil (γc : WatchChanNames) : ⊢ regWit (GF := GF) γc [] := by
+  unfold regWit
+  iintro !> %id %rg %fg %lo %h
+  simp at h
+
+/-- An event other than a registration appended: the witnesses stay. -/
+theorem regWit_app (γc : WatchChanNames) (l : List api.sent.SEv) (e : api.sent.SEv)
+    (he : ∀ id rg fg lo, e ≠ .reg id rg fg lo) : regWit (GF := GF) γc l ⊢ regWit γc (l ++ [e]) := by
+  unfold regWit
+  iintro #H
+  iintro !> %id %rg %fg %lo %h
+  rcases List.mem_append.1 h with h | h
+  · iapply H $$ %id %rg %fg %lo %h
+  · rw [List.mem_singleton] at h; exact absurd h.symm (he id rg fg lo)
+
+/-- A registration appended, with its watcher's witness. -/
+theorem regWit_reg (γc : WatchChanNames) (l : List api.sent.SEv) (w : Loc) (rg : WatchRange)
+    (fcs : GoSlice) (fg : GName) (lo : Nat) :
+    regWit (GF := GF) γc l ∗ ghostMapElem γc.reg w DFrac.discard () ∗ watcherFixed w rg fcs ⊢
+      regWit γc (l ++ [.reg rg.id rg fg lo]) := by
+  unfold regWit
+  iintro ⟨#H, #Hr, #Hf⟩
+  iintro !> %id %rg' %fg' %lo' %h
+  rcases List.mem_append.1 h with h | h
+  · iapply H $$ %id %rg' %fg' %lo' %h
+  · rw [List.mem_singleton] at h
+    cases h
+    iexists w, fcs
+    iframe Hr Hf
+    ipureintro; rfl
+
+/-- **The channel invariant's API part** (stage 2 of the mvcc API, the watch chain, 2026-11-05):
+the stream's history (`api.chanApiAt`, `Api/StreamSteps.lean`), its sends the responses sent on
+the channel (`sent`, as the client sees them), the consumer's view (the invariant's half of
+`γc.arcv`) the channel's received prefix (`recv`, as the client sees it); every registration of
+the history a watcher registered on the channel (`regWit`, for the `-1` sends' `stampsAt`). -/
+def chanApi (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (sent recv : List RespM) : IProp GF :=
+  iprop(∃ (l : List api.sent.SEv) (dec : GName → List (EvM → Bool)),
+    api.chanApiAt (wsAbsOf γ ch γc) l dec (recv.map RespM.toW) ∗
+    ⌜api.sent.sendsOf l = sent.map RespM.toW⌝ ∗ regWit γc l)
+
+/-- **What a receiver knows of the stream's history** (persistent): a well-formed lower bound of
+it, with a lower bound of the client's count at it, whose sends extend the responses received
+(as the client sees them): what `wsRecv` keeps. -/
+def apiRecvLb (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (rs : List RespM) : IProp GF :=
+  iprop(∃ (l : List api.sent.SEv) (dec : GName → List (EvM → Bool)),
+    api.logTok (wsAbsOf γ ch γc) l dec ∗ monoNatLbOwn (wsAbsOf γ ch γc).ns (api.sent.nsCount l) ∗
+    ⌜rs.map RespM.toW <+: api.sent.sendsOf l⌝)
+
+instance apiRecvLb_persistent (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (rs : List RespM) :
+    Persistent (apiRecvLb (GF := GF) γ ch γc rs) := by
+  unfold apiRecvLb; infer_instance
+
+/-- **A receive's API step**: the next response sent received, the consumer's view (its half of
+`γc.arcv`) and the invariant's moved together, the receiver's lower bound minted. -/
+theorem chanApi_recv (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (sent recv : List RespM)
+    (r : RespM) (hp : recv ++ [r] <+: sent) :
+    chanApi (GF := GF) γ ch γc sent recv ∗ ghostVar γc.arcv (1 : Qp).half (recv.map RespM.toW) ==∗
+      chanApi γ ch γc sent (recv ++ [r]) ∗
+      ghostVar γc.arcv (1 : Qp).half ((recv ++ [r]).map RespM.toW) ∗ apiRecvLb γ ch γc (recv ++ [r]) := by
+  unfold chanApi api.chanApiAt apiRecvLb
+  rw [show (wsAbsOf γ ch γc).rcv = γc.arcv from rfl]
+  iintro ⟨⟨%l, %dec, ⟨Ha, %hw, #Hf, #He, Hr, #Hn⟩, %hs, #Hwit⟩, Hc⟩
+  have hp' : (recv ++ [r]).map RespM.toW <+: api.sent.sendsOf l := by
+    rw [hs]; exact hp.map _
+  imod ghostVar_update_2 ((recv ++ [r]).map RespM.toW) γc.arcv _ (1 : Qp).half _ (1 : Qp).half
+    (Qp.half_add_half 1) $$ Hr Hc with ⟨Hr, Hc⟩
+  ihave #Hlb := monoListLbOwn_get _ 1 l $$ Ha
+  imodintro
+  isplitl [Ha Hr]
+  · iexists l, dec
+    iframe Ha Hr Hf He Hn Hwit
+    ipureintro; exact ⟨⟨hw.1, hp'⟩, hs⟩
+  isplitl [Hc]
+  · iexact Hc
+  iexists l, dec
+  iframe Hn
+  isplitr
+  · unfold api.logTok; iframe Hlb Hf He; ipureintro; exact hw.1
+  ipureintro; exact hp'
+
+/-- **The channel's sends bound a lower bound's** (the non-blocking receive's empty case): a
+`wsSentLb` of the stream is at most the responses sent. -/
+theorem chanApi_sentLb (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (sent recv : List RespM)
+    (n : Nat) :
+    chanApi (GF := GF) γ ch γc sent recv ∗ api.wsSentLbI (wsAbsOf γ ch γc) n ⊢
+      chanApi γ ch γc sent recv ∗ ⌜n ≤ sent.length⌝ := by
+  unfold chanApi
+  iintro ⟨⟨%l, %dec, Ha, %hs, #Hwit⟩, #Hlb⟩
+  icases api.chanApiAt_sentLb _ l dec _ n $$ [$Ha $Hlb] with ⟨Ha, %hn⟩
+  rw [hs, List.length_map] at hn
+  isplitl
+  · iexists l, dec; iframe Ha Hwit; ipureintro; exact hs
+  ipureintro; exact hn
+
 /-- **The stream channel `ch`'s invariant** (see the module docstring); unit W-M2: every
 registered watcher's `chanRegFact`, and every response of id `-1` sent carries the channel's
-progress fact. -/
+progress fact; stage 2 of the mvcc API: its API part (`chanApi`), and every registered watcher's
+registration in the stream's history (`chanRegW`, for the sends' `factAgree`). -/
 def watchChanInv (γ : WsNames) (ch : Loc) (γc : WatchChanNames) : IProp GF :=
   iprop(∃ (s : ChanState WatchResponse) (sent recv : List RespM) (vs : List WatchResponse)
       (L : List Loc),
@@ -831,9 +1022,63 @@ def watchChanInv (γ : WsNames) (ch : Loc) (γc : WatchChanNames) : IProp GF :=
     "Hreg" ∷ ghostMapAuth γc.reg 1 (regMap L) ∗
     "%Hnd" ∷ ⌜L.Nodup ∧ ∀ x ∈ sent, x.w ∈ L⌝ ∗
     "#Hrf" ∷ □ ([∗list] w ∈ L, chanRegFact γc w) ∗
+    "#Hrt" ∷ □ ([∗list] w ∈ L, chanRegW γ γc w) ∗
     "#Hpf" ∷ □ ([∗list] r ∈ sent, ⌜r.id = W64 (-1)⌝ → progFact γc.prog) ∗
     "Hsentl" ∷ sentAuth γ γc sent L ∗
-    "Hws" ∷ [∗list] w ∈ L, chanWatcher γ γc (chanIsClosed s) sent w)
+    "Hws" ∷ ([∗list] w ∈ L, chanWatcher γ γc (chanIsClosed s) sent w) ∗
+    "Hapi" ∷ chanApi γ ch γc sent recv)
+
+/-- **What the client received for a watcher's id is what was sent for the watcher** (from the
+channel invariant's persistent facts: every response's `respOk`, every registered watcher's
+`chanRegFact`): the premises of `recvEvs_toW` at a registered watcher's own id. -/
+theorem chan_recvEvs (γc : WatchChanNames) (sent : List RespM) (L : List Loc) (w : Loc)
+    (r : WatchRange) (fcs : GoSlice) (hL : ∀ x ∈ sent, x.w ∈ L) (hw : w ∈ L)
+    (hid : r.id ≠ W64 (-1)) :
+    □ ([∗list] x ∈ sent, respOk (GF := GF) x) ∗ □ ([∗list] w' ∈ L, chanRegFact γc w') ∗
+      watcherFixed w r fcs ⊢
+      ⌜api.recvEvs (sent.map RespM.toW) r.id =
+        ((sent.filter (fun x => decide (x.w = w))).map RespM.evs).flatten⌝ := by
+  iintro ⟨#Hok, #Hrf, #Hfix⟩
+  icases BigSepL.bigSepL_mem_acc hw $$ Hrf with ⟨Hrw, -⟩
+  iunfold chanRegFact at Hrw
+  icases Hrw with ⟨%rw, %fw, #Hfw, #Hidw, -⟩
+  ihave %Hagw := watcherFixed_agree w r rw fcs fw $$ [$Hfix $Hfw]
+  obtain ⟨rfl, -⟩ := Hagw
+  ihave %h1 : ⌜∀ x ∈ sent, x.id = r.id → x.w = w⌝ $$ []
+  · iapply pure_forall.2; iintro %x
+    iapply pure_forall.2; iintro %hx
+    iapply pure_forall.2; iintro %hi
+    icases BigSepL.bigSepL_mem_acc hx $$ Hok with ⟨Hx, -⟩
+    iunfold respOk at Hx
+    icases Hx with ⟨-, %rr, %fr, #Hfr, %hrr⟩
+    icases BigSepL.bigSepL_mem_acc (hL x hx) $$ Hrf with ⟨Hrx, -⟩
+    iunfold chanRegFact at Hrx
+    icases Hrx with ⟨%rx, %fx, #Hfx, #Hidx, -⟩
+    ihave %Hagx := watcherFixed_agree x.w rr rx fr fx $$ [$Hfr $Hfx]
+    obtain ⟨rfl, -⟩ := Hagx
+    have hxid : rr.id = r.id := by
+      rcases hrr.2.1 with h | h
+      · rw [← h, hi]
+      · exact absurd (hi ▸ h) hid
+    rw [hxid]
+    iunfold chanIdAssigned at Hidx Hidw
+    iapply ghostMapElem_agree $$ Hidx Hidw
+  ihave %h2 : ⌜∀ x ∈ sent, x.w = w → x.id = r.id ∨ x.evs = []⌝ $$ []
+  · iapply pure_forall.2; iintro %x
+    iapply pure_forall.2; iintro %hx
+    iapply pure_forall.2; iintro %hxw
+    icases BigSepL.bigSepL_mem_acc hx $$ Hok with ⟨Hx, -⟩
+    iunfold respOk at Hx
+    icases Hx with ⟨-, %rr, %fr, #Hfr, %hrr⟩
+    rw [hxw]
+    ihave %Hagx := watcherFixed_agree w rr r fr fcs $$ [$Hfr $Hfix]
+    ipureintro
+    obtain ⟨rfl, -⟩ := Hagx
+    by_cases he : x.evs = []
+    · exact Or.inr he
+    · exact Or.inl (hrr.1 he)
+  ipureintro
+  exact recvEvs_toW sent r.id w h1 h2
 
 /-- **The channel had sent `l` (at least)** (persistent; unit W-K): a snapshot of the channel's
 sent list (`sentl`). -/
@@ -1142,7 +1387,7 @@ theorem cov_one (γ : WsNames) (γc : WatchChanNames) (closed : Bool) (sent : Li
   ihave %Hag := monoListAuthOwn_agree _ _ _ _ _ $$ Ha' Hq
   ihave #Hcov : covFact γ γc sent c.w rev $$ []
   · iunfold evsWf at Hwf
-    icases Hwf with ⟨%L0, #HL0, -, %Hev0⟩
+    icases Hwf with ⟨%L0, #HL0, -, %Hb0, #Hev0⟩
     iunfold covFact
     iexists c.γw, c.r, c.fcs, D, L0, c.d
     iframe Hm Hf HL0
@@ -1153,8 +1398,12 @@ theorem cov_one (γ : WsNames) (γc : WatchChanNames) (closed : Bool) (sent : Li
       iintro !> %dl %hdl
       icases BigSepL.bigSepL_mem_acc hdl $$ HDs with ⟨H, -⟩
       iexact H
+    isplitr
+    · icases Hev0 with (%Hev0 | ⟨#Hd0, -⟩)
+      · ileft; ipureintro; exact HD.1.trans (Hag.2.trans Hev0)
+      · iright; iexact Hd0
     ipureintro
-    exact ⟨HD.2, HD.1.trans (Hag.2.trans Hev0.1), Hev0.2, Hrev.1, Hrev.2.1, Hslo, Hrev.2.2⟩
+    exact ⟨HD.2, Hb0, Hrev.1, Hrev.2.1, Hslo, Hrev.2.2⟩
   iframe Hq Hreg Hcov
   iapply Hback
   iunfold chanWatcher
@@ -1238,12 +1487,12 @@ theorem respRev_new (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) (L
     (nl : Option (Qp × Log)) (x : RespM)
     (hnl : x.evs = [] → ∃ q Lx, nl = some (q, Lx) ∧ sint.Z x.rev + 1 = (Lx.length : Int))
     (hc : x.compactRev = W64 0) :
-    sentAuth (GF := GF) γ γc sent L ∗ notifiedLent γ nl ⊢
+    sentAuth (GF := GF) γ γc sent L ∗ notifiedLent γ nl ∗ revApi γ x.rev ⊢
       sentAuth γ γc sent L ∗ notifiedLent γ nl ∗ respRev γ sent x := by
   by_cases he : x.evs = []
   · obtain ⟨q, Lx, rfl, hx⟩ := hnl he
     unfold notifiedLent
-    iintro ⟨Hs, Ha, %hLx⟩
+    iintro ⟨Hs, ⟨Ha, %hLx⟩, #Hra⟩
     icases sentAuth_revs γ γc sent L q Lx hLx $$ [$Hs $Ha] with ⟨Hs, Ha, %H⟩
     ihave #Hlb := monoListLbOwn_get _ _ _ $$ Ha
     isplitl [Hs]
@@ -1261,13 +1510,17 @@ theorem respRev_new (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) (L
       iframe Hlb
       ipureintro
       exact ⟨hx, fun y hy hye => by have := H y hy hye; omega⟩
-    iunfold cmpPermOf; ileft; ipureintro; exact hc
-  · iintro ⟨Hs, Ha⟩
+    isplitl
+    · iunfold cmpPermOf; ileft; ipureintro; exact hc
+    · iright; iexact Hra
+  · iintro ⟨Hs, Ha, #Hra⟩
     iframe Hs Ha
     iunfold respRev
     isplitl []
     · ileft; ipureintro; exact he
-    iunfold cmpPermOf; ileft; ipureintro; exact hc
+    isplitl
+    · iunfold cmpPermOf; ileft; ipureintro; exact hc
+    · iright; iexact Hra
 
 /-- **What a sent response covers** (persistent; K1b): the coverage of the response at index `k`. -/
 theorem sentAuth_cov (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) (L : List Loc)
@@ -1299,9 +1552,11 @@ theorem chanSentLb_stream (γo : WsStreamNames) (γc : WatchChanNames) (l : List
     (h : γo.sentl = γc.sentl) : chanSentLb (GF := GF) γc l ⊣⊢ streamSentLb γo l := by
   unfold chanSentLb streamSentLb; rw [h]; exact .rfl
 
-/-- The consumer's view: it has received `received`. -/
+/-- The consumer's view: it has received `received` (and, the stream's API view, the same as the
+client sees them). -/
 def watchConsumer (γc : WatchChanNames) (received : List RespM) : IProp GF :=
-  ghostVar γc.recv (1 : Qp).half received
+  iprop(ghostVar γc.recv (1 : Qp).half received ∗
+    ghostVar γc.arcv (1 : Qp).half (received.map RespM.toW))
 
 /-- The watcher `w` (names `γw`) is registered on the channel `ch` (persistent): the channel, its
 invariant, and `w` in its set of registered watchers. -/
@@ -1366,7 +1621,7 @@ def memberRes (γ : WsNames) (q : Qp) (σ : WsState) (w : Loc) (st : WatcherSt) 
   iprop(∃ (γw : WatcherNames) (r : WatchRange) (fcs : GoSlice),
     ⌜σ.M !! w = some γw⌝ ∗ watcherMeta γ w γw ∗ watcherFixed w r fcs ∗
     if σ.live w then
-      watcherChan γ w γw st.ch ∗ filtersOk fcs ∗ ⌜sint.Z r.startRev ≤ (γw.lo : Int)⌝ ∗
+      watcherChan γ w γw st.ch ∗ watcherFilters γw fcs ∗ ⌜sint.Z r.startRev ≤ (γw.lo : Int)⌝ ∗
       ∃ (evsw : List EvM) (d : Nat), ⌜σ.E !! w = some (evsw, d)⌝ ∗
         monoListAuthOwn γw.evs q.half evsw ∗ dghostVar γw.live (DFrac.own q.half) true ∗
         popFacts γ σ w r γw.lo st evsw d
@@ -1450,7 +1705,10 @@ theorem watchBudget_spend (γ : WsNames) (M : GMap Loc WatcherNames) (w : Loc)
 
 /-! ### The watch tokens backed by time receipts (D19b's method, 2026-10-18) -/
 
-def watchTokN : Namespace := nroot .@ "mvcc.watchTok"
+def watchTokN : Namespace := (nroot .@ "mvcc") .@ "watchTok"
+
+/-- The namespace of the readers' pool a stream's calls of its store draw on (`watchReader`). -/
+def watchRdPoolN : Namespace := (nroot .@ "mvcc") .@ "watchRdPool"
 
 /-- **The watch-token pool** (persistent): an invariant holding, for the `a` tokens taken so
 far, `a` time receipts, and the `n` tokens left, with `receiptBound GF ≤ a + n + 1`. A token
@@ -1494,12 +1752,14 @@ theorem watchTokPool_take (γ : WsNames) :
   unfold watchTok
   iexact Ht
 
-/-- **The notified log's ghosts** at the lock's fraction `q`: half of `γ.wlog` at it (the sole
-writer holds the other half) and `s.mu`'s quarter of the committed log's authority at it (the
-outer quarter, `logQ`; unit W-K: the commit happens under `s.mu` after the notify, so a reader
-under `s.mu` finds every certified log a prefix of the notified one, `wlogQ_cert_prefix`). -/
+/-- **The notified log's ghosts** at the lock's fraction `q`: `γ.wlog` at it (the lock's alone,
+2026-11-06: until then half, the sole writer holding the other half; under `s.mu` the writer's log
+is the lock's by the committed log's authority, `wlogQ_auth_agree`) and `s.mu`'s quarter of the
+committed log's authority at it (the outer quarter, `logQ`; unit W-K: the commit happens under
+`s.mu` after the notify, so a reader under `s.mu` finds every certified log a prefix of the notified
+one, `wlogQ_cert_prefix`). -/
 def wlogQ (γ : WsNames) (q : Qp) (L : Log) : IProp GF :=
-  iprop(monoListAuthOwn γ.wlog q.half L ∗ idxLogAuth γ.st.idx q.half.half L)
+  iprop(monoListAuthOwn γ.wlog q L ∗ idxLogAuth γ.st.idx q.half.half L)
 
 /-- **Every certified log is a prefix of the notified one** (unit W-K): under `s.mu`, from the
 lock's quarter of the committed log's authority. -/
@@ -1516,16 +1776,12 @@ theorem monoList_halves (g : GName) (L : Log) :
   rw [Qp.half_add_half] at h
   exact h
 
-/-- The two halves of the notified log, updated to a longer log. -/
-theorem wlog_update_halves (γ : WsNames) (L L' : Log) (h : L <+: L') :
-    ⊢ monoListAuthOwn (GF := GF) γ.wlog (1 : Qp).half L -∗ monoListAuthOwn γ.wlog (1 : Qp).half L ==∗
-      monoListAuthOwn γ.wlog (1 : Qp).half L' ∗ monoListAuthOwn γ.wlog (1 : Qp).half L' := by
-  iintro H1 H2
-  ihave Hf : monoListAuthOwn (GF := GF) γ.wlog 1 L $$ [H1 H2]
-  · iapply (monoList_halves γ.wlog L).2
-    iframe H1 H2
+/-- The notified log (the lock's, whole), updated to a longer log. -/
+theorem wlog_update (γ : WsNames) (L L' : Log) (h : L <+: L') :
+    ⊢ monoListAuthOwn (GF := GF) γ.wlog 1 L ==∗ monoListAuthOwn γ.wlog 1 L' := by
+  iintro Hf
   imod monoListAuthOwn_update L' h $$ Hf with ⟨Hf, -⟩
-  iapply (monoList_halves γ.wlog L').1 $$ Hf
+  imodintro; iexact Hf
 
 /-- **Under `s.mu`, the committed log is the notified one** (unit W-K): another fraction of the
 committed log's authority agrees with the lock's. -/
@@ -1536,15 +1792,12 @@ theorem wlogQ_auth_agree (γ : WsNames) (q q' : Qp) (L C : Log) :
   ihave %H := monoListAuthOwn_agree _ _ _ _ _ $$ Hc Ha
   ipureintro; exact H.2
 
-/-- **No watcher, or no compactor** (M2, the storage side, 2026-10-30: review round 1's F1, the
-user's: no watchers in compaction mode; a conjunct of the lock's body, `watchStoreBody`): no
-watcher is registered, or the inner store is frozen or (watches across a compaction, 2026-11-01)
-without duplicate keys (`watchNoDup`). `watch` (registration) has the fact from the create token
-(`storeWatchParams`'s `T`); `syncWatchers`' non-empty
-branch (`Wu ≠ ∅`, so `M ≠ ∅`: `wsOk_M_ne_of_Wu`) takes it here; every other step keeps `M` empty or
-the fact. -/
-def wsWatchFrozen (γ : WsNames) (σ : WsState) : IProp GF :=
-  iprop(⌜σ.M = ∅⌝ ∨ watchNoDup γ.st)
+/-- **Vestigial** (per watcher, 2026-11-05): was "no watcher, or no compactor or no duplicate keys"
+(`watchNoDup`, M2's F1 and watches across a compaction), which `syncWatchers` took to read exactly;
+now each watcher's delivery is exact or `doomed` (`evsWf`), so nothing is needed and the
+registration takes no such fact (the frozen `Watch` contract gives none). Kept as `True` in the
+lock's body until a cleanup removes the conjunct from its users. -/
+def wsWatchFrozen (_γ : WsNames) (_σ : WsState) : IProp GF := iprop(True)
 
 instance wsWatchFrozen_persistent (γ : WsNames) (σ : WsState) :
     Persistent (wsWatchFrozen (GF := GF) γ σ) := by
@@ -1554,23 +1807,18 @@ omit package_sem in
 /-- With the frozen fact, any state. -/
 theorem wsWatchFrozen_of_frozen (γ : WsNames) (σ : WsState) :
     crevFrozen (GF := GF) γ.st ⊢ wsWatchFrozen γ σ := by
-  iintro #H; iunfold wsWatchFrozen; iright; iunfold watchNoDup; ileft
-  iapply noCompactor_of_frozen $$ H
+  iintro -; iunfold wsWatchFrozen; itrivial
 
 omit package_sem in
-/-- With the registration's fact, any state. -/
-theorem wsWatchFrozen_of_noDup (γ : WsNames) (σ : WsState) :
-    watchNoDup (GF := GF) γ.st ⊢ wsWatchFrozen γ σ := by
-  iintro #H; iunfold wsWatchFrozen; iright; iexact H
+/-- Any state. -/
+theorem wsWatchFrozen_any (γ : WsNames) (σ : WsState) : ⊢ wsWatchFrozen (GF := GF) γ σ := by
+  iunfold wsWatchFrozen; itrivial
 
 omit package_sem in
-/-- A step that registers no watcher keeps it (the new names empty if the old ones were). -/
-theorem wsWatchFrozen_mono (γ : WsNames) (σ σ' : WsState) (h : σ.M = ∅ → σ'.M = ∅) :
+/-- A step keeps it. -/
+theorem wsWatchFrozen_mono (γ : WsNames) (σ σ' : WsState) (_h : σ.M = ∅ → σ'.M = ∅) :
     wsWatchFrozen (GF := GF) γ σ ⊢ wsWatchFrozen γ σ' := by
-  iunfold wsWatchFrozen
-  iintro (%Hm | #H)
-  · ileft; ipureintro; exact h Hm
-  · iright; iexact H
+  iintro -; iunfold wsWatchFrozen; itrivial
 
 omit package_sem in
 /-- **An unsynced watcher has names** (review round 1's open check, `WsOk`): `Wu ≠ ∅` gives `M ≠ ∅`
@@ -1584,18 +1832,6 @@ theorem wsOk_M_ne_of_Wu (σ : WsState) (h : WsOk σ) (w : Loc)
   rw [hM] at this
   simp at this
 
-omit package_sem in
-/-- **`syncWatchers`' frozen fact** (M2, the storage side): with an unsynced watcher, the store is
-frozen (`wsWatchFrozen`'s second arm: the first, no watcher, is excluded by `wsOk_M_ne_of_Wu`). -/
-theorem wsWatchFrozen_of_Wu (γ : WsNames) (σ : WsState) (h : WsOk σ) (hsz : GMap.size σ.Wu ≠ 0) :
-    wsWatchFrozen (GF := GF) γ σ ⊢ watchNoDup γ.st := by
-  obtain ⟨w, v, hw⟩ := (GMap.map_size_ne_0_lookup σ.Wu).mp hsz
-  have hM := wsOk_M_ne_of_Wu σ h w (by rw [hw]; rfl)
-  iintro H
-  iunfold wsWatchFrozen at H
-  icases H with (%Hm | #H)
-  · exact absurd Hm hM
-  · iexact H
 
 /-- The lock invariant at the state `σ` and the fraction `q`. -/
 def watchStoreBody (s : Loc) (γ : WsNames) (q : Qp) (σ : WsState) : IProp GF :=
@@ -1619,10 +1855,36 @@ def watchStoreBody (s : Loc) (γ : WsNames) (q : Qp) (σ : WsState) : IProp GF :
     "#Hout" ∷ ([∗map] w ↦ st ∈ σ.Wo, outRes γ σ w st) ∗
     "%Hok" ∷ ⌜WsOk σ⌝)
 
-/-- The released length's authority at a log of the same length (`watchStoreInv`'s, re-established
-after a step that keeps the notified log). -/
+/-- **The watchable store's lock's part of the API's ghost state** (the mvcc API, stage 1, strict
+M1; `notes/mvcc-api-invariants.md` §1) at fraction `q`: a quarter of `q` of the pending revision,
+at `none` (2026-11-05: the watchable `End` notifies and commits under `s.mu`, so no revision is
+pending while the lock is free; what `Watch`'s update needs at the registration); and a lower bound of the API's notified log at `Lmu`
+(stage 2, per watcher, 2026-11-05: what a doomed watcher's witness and a send's bound take; minted
+with the client's authority where the notified log grows, `New`'s and `End`'s notify step). -/
+def wsSlot (γ : WsNames) (q : Qp) (Lmu : Log) : IProp GF :=
+  iprop(api.pndPart γ.st.api q.half.half none ∗ api.nlLb γ.st.api Lmu)
+
+/-- `s.revMu`'s slot gives a lower bound of the API's compaction revision. -/
+theorem slotX_crevLb (γ : StoreNames) (q : Qp) (L : Log) (c : Int) :
+    slotX (GF := GF) γ q L c ⊢ slotX γ q L c ∗ api.crevAtLeast γ.api c := by
+  unfold slotX; exact api.revMuAbs_crevLb γ.api q L c
+
+/-- The slot's lower bound of the API's notified log. -/
+theorem wsSlot_nlLb (γ : WsNames) (q : Qp) (Lmu : Log) :
+    wsSlot (GF := GF) γ q Lmu ⊢ wsSlot γ q Lmu ∗ api.nlLb γ.st.api Lmu := by
+  unfold wsSlot
+  iintro ⟨Hp, #Hn⟩
+  iframe Hp Hn
+
+/-- **The lock's parts at the notified log `Lmu`** (D25; the mvcc API, stage 1): the released
+length's authority at `Lmu`'s length, and the API's slot (`wsSlot`). -/
+def relAuth (γ : WsNames) (q : Qp) (Lmu : Log) : IProp GF :=
+  iprop(monoNatAuthOwn γ.rel q Lmu.length ∗ wsSlot γ q Lmu)
+
+/-- The lock's parts at a log equal to the notified log (`watchStoreInv`'s, re-established after a
+step that keeps the notified log). -/
 theorem relAuth_of_eq (γ : WsNames) (q : Qp) (L1 L2 : Log) (h : L1 = L2) :
-    monoNatAuthOwn (GF := GF) γ.rel q L1.length ⊢ monoNatAuthOwn γ.rel q L2.length := by
+    relAuth (GF := GF) γ q L1 ⊢ relAuth γ q L2 := by
   subst h; exact .rfl
 
 /-- **The watchable store's share of its inner store's fields** (D22 receiver epochs, S3,
@@ -1664,7 +1926,7 @@ instance wsFields_fractional (s : Loc) (γ : WsNames) : Fractional (wsFields (GF
 authority at the notified log's length (`End` bumps it before notifying, inside its critical
 section); D22 receiver epochs, S3: with the share of the inner store's fields (`wsFields`). -/
 def watchStoreInv (s : Loc) (γ : WsNames) (q : Qp) : IProp GF :=
-  iprop(∃ σ : WsState, watchStoreBody s γ q σ ∗ monoNatAuthOwn γ.rel q σ.Lmu.length ∗
+  iprop(∃ σ : WsState, watchStoreBody s γ q σ ∗ relAuth γ q σ.Lmu ∗
     wsFields s γ q ∗ ⌜σ.settled ∧ σ.srBelow σ.Lmu.length ∧ σ.unsRst⌝)
 
 /-! ## The store -/
@@ -1677,7 +1939,8 @@ def watchReader (s st : Loc) (γ : WsNames) : IProp GF :=
 -- `isStopChan`: `InvStore.lean` (2026-10-13: the store's stop channel uses it too).
 
 /-- **The watchable store** `s` over the store `st` (persistent): the inner store and its read
-view (`newWatchableStore` points it at `s`: unit 3b; `rev()` reads through it), the lock's guard, the victims' wake-up
+view (`newWatchableStore` points it at `s`: unit 3b; `rev()` reads through it) and write view (at
+`s` too: `Put`/`DeleteRange`), the lock's guard, the victims' wake-up
 channel (a bag channel, never closed), the stop channel, and the meta map's facts; the inner
 store is a watchable store's (`γ.st.watchQ`, unit W-K: `s.mu` holds the outer quarter). -/
 def isWatchableStore (s st : Loc) (γ : WsNames) : IProp GF :=
@@ -1688,6 +1951,11 @@ def isWatchableStore (s st : Loc) (γ : WsNames) : IProp GF :=
       (interface.mkOk (go.GoType.PointerType readView.ty) #rv : GoInterface) ∗
     "#Hrvkv" ∷ rv.[readView, go!"kv"] ↦□
       (interface.mkOk (go.GoType.PointerType watchableStore.ty) #s : GoInterface) ∗
+    -- (M4, track B, 2026-11-06) the inner store's write view, over `s` (`KV.Put`/`DeleteRange`)
+    "#HwvW" ∷ (∃ wv : Loc, st.[store, go!"WriteView"] ↦□
+        (interface.mkOk (go.GoType.PointerType writeView.ty) #wv : GoInterface) ∗
+      wv.[writeView, go!"kv"] ↦□
+        (interface.mkOk (go.GoType.PointerType watchableStore.ty) #s : GoInterface)) ∗
     "#Hmu" ∷ sync.isRWMutexGuard (wsMuAddr s) (watchStoreInv s γ) ∗
     "#Hvc" ∷ s.[watchableStore, go!"victimc"] ↦□ vc ∗
     "#Hvcb" ∷ isChanBag (V := Unit) γv vc (fun _ => iprop(True)) ∗
@@ -1756,6 +2024,20 @@ theorem isWatchableStore_isStore (s st : Loc) (γ : WsNames) :
   iNamed H
   iexact Hs
 
+/-- A store's bound on the time receipts (`isStore`'s `Hrb`). -/
+theorem isStore_rb (s : Loc) (γ : StoreNames) : isStore (GF := GF) s γ ⊢ ⌜receiptBound GF ≤ 2 ^ 48⌝ := by
+  unfold isStore
+  iintro ⟨%le, %lg, %scfg, %shs, H⟩
+  iNamed H
+  ipureintro; exact Hrb
+
+/-- A watchable store's bound on the time receipts. -/
+theorem isWatchableStore_rb (s st : Loc) (γ : WsNames) :
+    isWatchableStore (GF := GF) s st γ ⊢ ⌜receiptBound GF ≤ 2 ^ 48⌝ := by
+  iintro #H
+  ihave #Hs := isWatchableStore_isStore s st γ $$ H
+  iapply isStore_rb st γ.st $$ Hs
+
 omit package_sem in
 /-- **The inner store's read view, over the watchable store** (a law, so the server's glue does not
 unfold the predicate). -/
@@ -1792,7 +2074,6 @@ theorem noCompactor_of_new (s st : Loc) (γ : WsNames) (E : CoPset) :
   by_cases h : γ.st.cm = true
   · unfold crevRightM
     simp only [h, ↓reduceIte]
-    icases Hcr with ⟨Hcr, -⟩
     imod crevFrozen_alloc γ.st E $$ Hcr with #Hf
     imodintro
     iapply noCompactor_of_frozen $$ Hf
@@ -1813,6 +2094,24 @@ instance watcherIs_persistent (γ : WsNames) (w : Loc) (r : WatchRange) (fcs : G
     (lo : Nat) : Persistent (watcherIs (GF := GF) γ w r fcs lo) := by
   unfold watcherIs; infer_instance
 
+/-- **The store's registration callback** (2026-11-05; the stream's `Watch` gives it, `watch`
+runs it at the registration): for the new watcher `w` of the range `rg` and the filters' predicates
+`fs` (saved under `fg`), from the first revision `lo` (its start revision, or for `0` the length
+of the committed log `C`), run with the stream's channel invariant open (its history `l`) and the
+store's state in hand (`s.revMu`'s part of the API's view at `C`, the watch lock's pending
+revision at `none`): it appends the registration to the history, records `rg.id` for `w` in the
+channel's id map and makes `Back w`, giving the store's parts back. -/
+def regCb (γ : WsNames) (ch : GoChan) (γc : WatchChanNames) (rg : WatchRange)
+    (fs : List (EvM → Bool)) (Back : Loc → IProp GF) : IProp GF :=
+  iprop(∀ (w : Loc) (fg : GName) (lo : Nat) (l : List api.sent.SEv)
+      (dec : GName → List (EvM → Bool)) (recv : List api.WResp) (C : Log) (c : Int) (q q2 : Qp),
+    ⌜w ≠ null ∧ lo = (if rg.startRev = W64 0 then C.length else (sint.Z rg.startRev).toNat)⌝ -∗
+    api.savedFilters fg fs -∗ api.chanApiAt (wsAbsOf γ ch γc) l dec recv -∗
+    api.revMuAbs γ.st.api q C c -∗ api.pndPart γ.st.api q2 none -∗
+    |={⊤ \ ↑watchN}=> ∃ dec' : GName → List (EvM → Bool), chanIdAssigned γc rg.id w ∗ Back w ∗
+      api.chanApiAt (wsAbsOf γ ch γc) (l ++ [.reg rg.id rg fg lo]) dec' recv ∗
+      api.revMuAbs γ.st.api q C c ∗ api.pndPart γ.st.api q2 none)
+
 /-- The store's choices for the stream's contract (`isWatchable`): a watcher of the store
 (`IW`), cancelled (`WC`), nothing of the channel (`C`: the close right has its invariant),
 filters deciding predicates (`F`), the close right (`CR`: the channel, its invariant, the
@@ -1827,37 +2126,33 @@ def storeWatchParams (s st : Loc) (γ : WsNames) : WatchParams GF where
     ⌜γw.now = false → (γw.lo : Int) ≤ sint.Z r.startRev⌝)
   WC w := iprop(∃ γw : WatcherNames, watcherMeta γ w γw ∗ cancelled γw)
   C _ := iprop(True)
-  F f := iprop(∃ p : EvM → Bool, filterSpec f p)
+  FI := filtersImpl
+  RegCb := regCb γ
+  RevCb := readCb γ.st
   CR ch γc L := iprop(isChan ch γc.ch WatchResponse ∗
     inv watchN (watchChanInv γ ch γc) ∗ ghostVar γc.regl (1 : Qp).half L)
   R := watchReader s st γ
-  T := iprop(watchTok γ ∗ watchNoDup γ.st)
+  T := watchTok γ
   IWF := watcherIs γ
   OC w γc := iprop(∃ γw : WatcherNames, watcherMeta γ w γw ∗ ⌜γw.wc = γc⌝)
   WS w := iprop(∃ γw : WatcherNames, watcherMeta γ w γw)
   IW_pers _ := by infer_instance
   WC_pers _ := by infer_instance
   C_pers _ := by infer_instance
-  F_pers _ := by infer_instance
+  FI_pers _ _ := by infer_instance
   IWF_pers _ _ _ _ := by infer_instance
   OC_pers _ _ := by infer_instance
   WS_pers _ := by infer_instance
 
 /-! ## The write transaction -/
 
-/-- The revision tokens the sole writer at the committed log `L` holds (every one not spent). -/
+/-- The revision tokens a writer at the committed log `L` finds (every one not spent). -/
 def wBudget (L : Log) : Nat := 2 ^ 63 - 3 - L.length
 
-/-- **The sole writer** of the watchable store at the committed (and notified) log `L`: its
-certificate, every revision token not spent, its half of the notified log, and the inner store's
-writer's pin at `L` (`writerPin`, M2's item 37, 2026-11-02). -/
-def watchWriter (γ : WsNames) (L : Log) : IProp GF :=
-  iprop(idxCert γ.st.idx L ∗ ownToks γ.st.revs (wBudget L) ∗ monoListAuthOwn γ.wlog (1 : Qp).half L ∗
-    writerPin γ.st L)
-
 /-- The write transaction `s.Write` returns (`tw`, a `watchableStoreTxnWrite`): its fields, the
-inner transaction (`isTxnWrite` of `metricsTxnWrite` `mw`) over the inner store `st`, and the
-sole writer's certificate, tokens but the transaction's and notified-log half. The struct is
+inner transaction (`isTxnWrite` of `metricsTxnWrite` `mw`) over the inner store `st`, and its
+log's certificate (2026-11-06: no sole writer's tokens or notified-log half; the inner store's
+writer state keeps the tokens, the lock the notified log). The struct is
 read-only (Go never writes it after `Write`; unit N4, D14a: the txn package's functions take the
 wrapper as an interface value over `mw`, `KVView.lean`'s `twWrap`). -/
 def isWatchTxnWrite (tw s st : Loc) (γ : WsNames) (trace : Loc) (ilog : Log) (pend : List Change)
@@ -1867,9 +2162,7 @@ def isWatchTxnWrite (tw s st : Loc) (γ : WsNames) (trace : Loc) (ilog : Log) (p
                       s' := s } : watchableStoreTxnWrite) ∗
     "#Hws" ∷ isWatchableStore s st γ ∗
     "Htx" ∷ isTxnWrite mw st γ.st trace ilog pend puts deletes putSize crev (ld := ld) ∗
-    "#Hcert" ∷ idxCert γ.st.idx ilog ∗
-    "Htoks" ∷ ownToks γ.st.revs (wBudget ilog - 1) ∗
-    "Hwlog" ∷ monoListAuthOwn γ.wlog (1 : Qp).half ilog)
+    "#Hcert" ∷ idxCert γ.st.idx ilog)
 
 /-- **The lessor's delete under the watchable write transaction's lock** (leases T3, 2026-10-25;
 `storeTxnWriteIs_leaseDel`): the transaction's batch transaction `bt` deletes a key of the
@@ -1897,11 +2190,11 @@ theorem isWatchTxnWrite_leaseDel (tw s st : Loc) (γ : WsNames) (trace : Loc) (i
   iapply Hd $$ %b %key %k %dq %r %Φ HL Hkey Hrb
   inext
   iintro Htx Hkey Hrb
-  iapply HΦ $$ [Htx Htoks Hwlog] Hkey Hrb
+  iapply HΦ $$ [Htx] Hkey Hrb
   iunfold isWatchTxnWrite
   iexists mw
   simp only [named]
-  iframe Htx Htoks Hwlog
+  iframe Htx
   iframe #
 
 /-- **The watchable write transaction's batch transaction is the backend's** (`storeBt`),
@@ -1915,7 +2208,6 @@ theorem isWatchTxnWrite_bt (tw s st : Loc) (γ : WsNames) (trace : Loc) (ilog : 
   iunfold isWatchTxnWrite at H
   iNamed H
   irename Htw => Hwtw
-  irename Htoks => Hwtoks
   irename Hcert => Hwcert
   iunfold isTxnWrite at Htx
   icases Htx with ⟨%tw', %ranges, Hmw, Htw', Htrc⟩
@@ -1926,7 +2218,7 @@ theorem isWatchTxnWrite_bt (tw s st : Loc) (γ : WsNames) (trace : Loc) (ilog : 
   · iunfold isWatchTxnWrite
     iexists mw
     simp only [named]
-    iframe Hwtw Hws Hwcert Hwtoks Hwlog
+    iframe Hwtw Hws Hwcert
     iunfold isTxnWrite
     iexists tw', ranges
     iframe Hmw Htrc
@@ -1940,23 +2232,47 @@ theorem isWatchTxnWrite_bt (tw s st : Loc) (γ : WsNames) (trace : Loc) (ilog : 
 
 /-- **The range deleter `rd`** of the watchable store `s` (inner store `st`, names `γ`;
 persistent; leases T3, L2d (iii), 2026-10-25): `newWatchableStore` gives the lessor the closure
-`func() lease.TxnDelete { return s.Write(traceutil.TODO()) }`, which, called by the store's sole
-writer at its committed log `L` (what `watchableStore.Write` takes: a reader's slot, the write
-token, `watchWriter`, the post-lock hook run on the caller's `Pre`), opens a watchable write
-transaction on a fresh trace and returns it as a `lease.TxnDelete` (the lessor's `Revoke`
-deletes the lease's keys through it); not `nil` (`Revoke` tests it). -/
+`func() lease.TxnDelete { return s.Write(traceutil.TODO()) }`, which, called with what
+`watchableStore.Write` takes (a reader's slot, the write token, the post-lock hook run on the
+caller's `Pre`), opens a watchable write transaction on a fresh trace at the store's committed log
+and returns it as a `lease.TxnDelete` (the lessor's `Revoke` deletes the lease's keys through it);
+not `nil` (`Revoke` tests it). -/
 def rdIs (rd : GoFunc) (s st : Loc) (γ : WsNames) : IProp GF :=
-  iprop(⌜rd ≠ func.nil⌝ ∗ □ (∀ (L : Log) (P Pre Q : IProp GF) (f : val),
-    {{ storeReader st γ.st ∗ storeWT γ.st ∗ watchWriter γ L ∗ ⌜L.length + 4 ≤ 2 ^ 63⌝ ∗
-        hookIs γ.st P f ∗ Pre ∗ □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) }}
+  iprop(⌜rd ≠ func.nil⌝ ∗ □ (∀ (P Pre Q : IProp GF) (f : val) (G : IProp GF),
+    {{ storeReader st γ.st ∗ storeWT γ.st ∗
+        hookIs γ.st P f ∗ Pre ∗ □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) ∗
+        G ∗ □ (slotF γ.st ∗ G -∗ False) }}
       (App (Val #rd) (Val #()))
     {{ (tw trace : Loc), RET #(interface.mkOk (go.GoType.PointerType watchableStoreTxnWrite.ty) #tw);
-        (∃ crev : Int, isWatchTxnWrite tw s st γ trace L [] (W64 0) (W64 0) (W64 0) crev) ∗ Q ∗
-        hookIs γ.st P f }}))
+        (∃ (L : Log) (crev : Int), isWatchTxnWrite tw s st γ trace L [] (W64 0) (W64 0) (W64 0) crev) ∗
+        Q ∗ hookIs γ.st P f ∗ G }}))
 
 instance rdIs_persistent (rd : GoFunc) (s st : Loc) (γ : WsNames) :
     Persistent (rdIs (GF := GF) rd s st γ) := by
   unfold rdIs; infer_instance
+
+open Iris.ProofMode in
+/-- **Two watchable stores over one inner store are one** (persistent facts only): the inner store's
+`ReadView` field names one read view, whose `kv` names its watchable store. (2026-11-04, the lease-expiry plan's step 2: moved from
+`etcdserver/SnapApplyOpen.lean`, for `newWatchableStore`'s range deleter at any names.) -/
+theorem isWatchableStore_agree
+    (s1 s2 st : Loc) (γ1 γ2 : mvcc.WsNames) :
+    mvcc.isWatchableStore (GF := GF) s1 st γ1 ∗ mvcc.isWatchableStore s2 st γ2 ⊢ ⌜s1 = s2⌝ := by
+  iintro ⟨H1, H2⟩
+  iunfold mvcc.isWatchableStore at H1 H2
+  icases H1 with ⟨%vc1, %stc1, %rv1, %γv1, H1⟩
+  icases H2 with ⟨%vc2, %stc2, %rv2, %γv2, H2⟩
+  iNamed H1
+  icases H2 with ⟨-, -, #Hrv', #Hrvkv', -⟩
+  icombine Hrv Hrv' gives %Heq
+  have h1 : rv1 = rv2 := by
+    simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq, true_and] at Heq
+    exact GoGlobalContext.intoVal_inj_loc Heq
+  subst h1
+  icombine Hrvkv Hrvkv' gives %Heq2
+  ipureintro
+  simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq, true_and] at Heq2
+  exact GoGlobalContext.intoVal_inj_loc Heq2
 
 end reprs
 

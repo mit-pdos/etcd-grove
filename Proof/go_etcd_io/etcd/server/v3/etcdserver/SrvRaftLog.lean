@@ -495,6 +495,33 @@ def bootURLsOk (bootLog : List EntryM) : Prop :=
   (∀ mm ∈ bootMembers bootLog, ∀ u ∈ mm.peerURLs, utf8Valid u) ∧
   (bootMembers bootLog).Pairwise fun a b => ∀ u ∈ a.peerURLs, u ∉ b.peerURLs
 
+/-- **The bound on a boot entry's data** (raft-entsize, [r3a'], 2026-11-09): `2 ^ 27` bytes, under
+the cluster's `maxData` (`2 ^ 30`) with room to spare. -/
+@[word_unfold] def bootCtxMax : Nat := 2 ^ 27
+
+/-- **The boot log's entries are small** (raft-entsize, the user's decision of 2026-11-09, [r3a']):
+every entry of the bootstrap log `bl` has data of at most `bootCtxMax - 64` bytes. It bounds the
+boot entries themselves, not their contexts: an entry's data is tied to its context only through
+`MarshalsConfChange`, an opaque encoding that bounds no length. True of every real deployment (a
+boot entry is `ConfChange{0, id, ctx, 0}` with `ctx` a member's JSON, 81 bytes by default, H6). -/
+def bootDataOk (bl : List LogEntry) : Prop := ∀ e ∈ bl, e.data.length + 64 ≤ bootCtxMax
+
+/-- **A bootstrap's results, as Go computes them**, for the peers `ps` with the contexts `ctxs`
+and the bootstrap log `bl` (raft-entsize, [r3a], 2026-11-09): the log is the node API's `BootLog`,
+each entry a conf change of id `0` that the server's `applyConfChange` takes (`ccBootOk`), the boot
+members' peer URLs valid UTF-8 and pairwise disjoint (`bootURLsOk`), the peers' 16 low bits
+distinct and not `0` (D21e (A)), and the entries small (`bootDataOk`). What every example's
+`BootFacts` and the server's cluster allocation take. -/
+structure BootCore (ps : List w64) (ctxs : List (List w8)) (bl : List LogEntry) : Prop where
+  boot : BootLog ps ctxs bl
+  cc : ∀ e ∈ LogEntry.toEntries bl 0,
+    ccIdOf e.Data' = W64 0 ∧ ccBootOk (GMap.listToSet ps) e.Data'
+  urls : bootURLsOk (LogEntry.toEntries bl 0)
+  lowNodup : (ps.map (fun id => uint.Z id % 2 ^ 16)).Nodup
+  lowNz : ∀ id ∈ ps, uint.Z id % 2 ^ 16 ≠ 0
+  /-- the one bound on the boot log (`bootDataOk`) -/
+  data : bootDataOk bl
+
 /-- **The bytes `d` of a conf-change entry decode to a change `applyConfChange` takes** (D43 M5d). -/
 def ccPolOk (γ : SrvRaft) (d : List w8) : Prop :=
   ∀ m, ccDecodeV1 d = some m → ccApplyOkR γ m
@@ -591,12 +618,15 @@ instance srvIsProp_persistent (γ : ServerRaftNames) (d : List w8)
 
 /-- **The proposer's update for `d`, fired at most once** (the server's; unchanged since D21 M6):
 fired at the requested entry `e` holding `d` (normal, at the next index of the server's log), its
-result persistent and of the log before the entry. -/
+result persistent and of the log before the entry. (2026-11-05, H-rr1) The commit also tells the
+log with the entry, past the start log, shorter than `2 ^ 61` (a committed log's bound,
+`isCommittedLogLb_small`): what keeps the KV invariant's size facts (`kvLogSmall`). -/
 def srvPropAu1 (γ : ServerRaftNames) (d : List w8) (Q : List EntryModel → IProp GF) :
     IProp GF :=
   iprop(AU <{ ∃∃ (L : List EntryModel), srvRLog γ L }> @ ⊤ \ ↑srvRaftN, ∅
           <{ ∀∀ (e : EntryModel),
-               ⌜e.typ = W32 0 ∧ e.data = d ∧ uint.Z e.index = uint.Z γ.ai0 + 1 + L.length⌝ ∗
+               ⌜e.typ = W32 0 ∧ e.data = d ∧ uint.Z e.index = uint.Z γ.ai0 + 1 + L.length ∧
+                 γ.pre.length + L.length + 1 < 2 ^ 61⌝ ∗
                srvRLog γ (L ++ [e]), COMM □ Q L }>)
 
 /-- What `Propose` takes for `d`: its fresh token, its update, fired at most once, and its result
@@ -701,6 +731,40 @@ def srvLogInv (γ : ServerRaftNames) : IProp GF :=
 instance srvLogInv_persistent (γ : ServerRaftNames) : Persistent (srvLogInv (GF := GF) γ) := by
   unfold srvLogInv; infer_instance
 
+/-- (R2d, Q14 caveat (i), 2026-11-06; DRAFT) **The cluster's snapshot registry** (`srvClusterOk`'s
+invariant): the snapshots made (`ownSnapsMade`), every one of `nil` data. Go: the server's raft
+snapshots carry no data (`CreateSnapshot(ep.appliedi, ep.confState, nil)`, `server.go:2137` at the pin
+`673da07c8`, and the merged snapshot's `Data` unset, `createMergedSnapshotMessage`, `snapshot_merge.go:43-50`); the image travels
+as `srvImage`. So a received snapshot's data is `nil` too (`srv_snapshotValid_dataNil`), and a WAL
+record's snapshot (`walSaveSnap`'s, of no data) is as valid as the snapshot it records. -/
+def srvSnapsReg (cl : Cluster) : IProp GF :=
+  iprop(∃ S : List SnapRec, ownSnapsMade cl S ∗ ⌜∀ r ∈ S, r.data = []⌝)
+
+instance srvSnapsReg_timeless (cl : Cluster) : Timeless (srvSnapsReg (GF := GF) cl) := by
+  unfold srvSnapsReg; infer_instance
+
+/-- The registry at its allocation: no snapshot made. -/
+theorem srvSnapsReg_nil (cl : Cluster) : ownSnapsMade cl [] ⊢ srvSnapsReg (GF := GF) cl := by
+  unfold srvSnapsReg
+  iintro H; iexists []; iframe H; ipureintro; simp
+
+/-- The registry opened: the snapshots made, every one of `nil` data. -/
+theorem srvSnapsReg_elim (cl : Cluster) :
+    srvSnapsReg (GF := GF) cl ⊢ ∃ S : List SnapRec, ownSnapsMade cl S ∗ ⌜∀ r ∈ S, r.data = []⌝ := by
+  unfold srvSnapsReg
+  iintro H; iexact H
+
+/-- A snapshot of `nil` data registered: the registry again. -/
+theorem srvSnapsReg_insert (cl : Cluster) (S : List SnapRec) (r : SnapRec)
+    (hS : ∀ r ∈ S, r.data = []) (hr : r.data = []) :
+    ownSnapsMade cl (S ++ [r]) ⊢ srvSnapsReg (GF := GF) cl := by
+  unfold srvSnapsReg
+  iintro H; iexists S ++ [r]; iframe H; ipureintro
+  intro r' hr'
+  rcases List.mem_append.1 hr' with h | h
+  · exact hS r' h
+  · simp only [List.mem_singleton] at h; subst h; exact hr
+
 /-- **The cluster** (persistent; 2026-10-30, the repair: one kind of cluster, raft's unified API):
 the node API's cluster at the server's storage model (`srvStor`); its conf entries decided by the
 server's rule (`confPolicy` at `γ.raft.rule`; `rnEnvOk` ties it to `srvRule`); the voters it started
@@ -715,7 +779,9 @@ def srvClusterOk (γ : ServerRaftNames) : IProp GF :=
   letI := srvStor (GF := GF) γ.raft
   iprop(isCluster γ.raft.cl srvClusterN ∗ confPolicy γ.raft.cl srvConfN γ.raft.rule ∗
     confAt γ.raft.cl 0 (Membership.simple γ.raft.cfg) ∗ readyFits γ.raft.cl srvClusterN ∗
-    ⌜γ.raft.cl.dup = false⌝ ∗ inv srvSnapsN (∃ S, ownSnapsMade γ.raft.cl S) ∗
+    ⌜γ.raft.cl.dup = false⌝ ∗
+    -- (R2d, Q14 caveat (i), DRAFT) every snapshot registered of `nil` data (`srvSnapsReg`)
+    inv srvSnapsN (srvSnapsReg γ.raft.cl) ∗
     ⌜srvRuleKeeps γ.raft.rule γ.raft.cfg⌝ ∗
     -- (2026-11-01, J8a) the cluster's snapshot directories the members' (`snapLoc`)
     ⌜γ.raft.cl.snapLoc = γ.raft.snapLoc⌝ ∗
@@ -723,7 +789,12 @@ def srvClusterOk (γ : ServerRaftNames) : IProp GF :=
     -- what puts a snapshot `Ready` past `boot` (`readySnap_bootLen`)
     ⌜γ.raft.cl.bootLen = γ.raft.boot.length⌝ ∗
     -- (2026-11-04, the restart plan's R2b-3d gap 3) the boot members' peer URLs (`bootURLsOk`)
-    ⌜bootURLsOk γ.raft.boot⌝)
+    ⌜bootURLsOk γ.raft.boot⌝ ∗
+    -- (raft-entsize §2, 2026-11-10) the cluster's bound on proposed data, `2^30` (`cluster_alloc`'s
+    -- `md`): what the node API's size premises (`Propose`'s data, `ReadIndex`'s context,
+    -- `stepIn_intro`'s received message) are checked against; until then (2026-11-09, interim)
+    -- `maxData = none`
+    ⌜γ.raft.cl.maxData = some (2 ^ 30)⌝)
 
 instance srvClusterOk_persistent (γ : ServerRaftNames) : Persistent (srvClusterOk (GF := GF) γ) := by
   unfold srvClusterOk; infer_instance
@@ -732,22 +803,73 @@ instance srvClusterOk_persistent (γ : ServerRaftNames) : Persistent (srvCluster
 server's log invariant, the cluster, the start log committed and the start index its length; and
 (2026-10-30, the repair: one mode, the old dynamic mode's fresh start) the start log empty, so the
 start index `0`. (2026-10-27: until then raft's commit invariant and the conf-change policy.)
-(2026-10-31, the snapshot track's S5) And the bootstrap log committed first, of some peers' (`srvBootLogOk`):
-the applied log's first entry is the first peer's `AddNode` (`srv_first_boot`). -/
+(2026-10-31, the snapshot track's S5) And the bootstrap log committed first, of the cluster's voters
+(`srvBootLogOk`): the applied log's first entry is the first voter's `AddNode` (`srv_first_boot`).
+(2026-11-05, R2c-1) The bootstrap log is the voters' own (`γ.raft.vs`, distinct; until then of
+some peers `ps`), which the stop's image needs (`stop_imageConf`); `srvClusterBoot_alloc` has both. -/
 def srvRaftLogInv (γ : ServerRaftNames) : IProp GF :=
   iprop(srvLogInv γ ∗ srvClusterOk γ ∗ srvRLogLb γ [] ∗ ⌜uint.Z γ.ai0 = γ.pre.length⌝ ∗
     ⌜γ.pre = []⌝ ∗ srvRLogLb γ (γ.raft.boot.map EntryModel.ofM) ∗
-    ⌜∃ ps : List w64, ps ≠ [] ∧ srvBootLogOk ps γ.raft.boot⌝)
+    ⌜γ.raft.vs ≠ [] ∧ γ.raft.vs.Nodup ∧ srvBootLogOk γ.raft.vs γ.raft.boot⌝)
 
 instance srvRaftLogInv_persistent (γ : ServerRaftNames) :
     Persistent (srvRaftLogInv (GF := GF) γ) := by
   unfold srvRaftLogInv; infer_instance
+
+/-- (raft-entsize §2, 2026-11-10) The server's cluster bounds proposed data at `2^30`. -/
+theorem srvRaftLogInv_maxData (γ : ServerRaftNames) :
+    srvRaftLogInv (GF := GF) γ ⊢ ⌜γ.raft.cl.maxData = some (2 ^ 30)⌝ := by
+  unfold srvRaftLogInv srvClusterOk
+  iintro ⟨-, ⟨-, -, -, -, -, -, -, -, -, -, %H⟩, -⟩
+  ipureintro; exact H
 
 theorem srvRaftLogInv_facts (γ : ServerRaftNames) :
     srvRaftLogInv (GF := GF) γ ⊢ ⌜uint.Z γ.ai0 = γ.pre.length⌝ := by
   unfold srvRaftLogInv
   iintro ⟨-, -, -, %H, -⟩
   ipureintro; exact H
+
+/-- (R2d, Q14 caveat (i), 2026-11-06) **A valid snapshot of the server's cluster has `nil` data**:
+the registry holds only the server's own snapshots, of no data (`srvSnapsReg`). So a received
+snapshot (a `Ready`'s, valid by raft's storage contract, `rnReadySnap`) is the snapshot its WAL
+record makes (`walSaveSnap`'s `SnapshotM.mk [] m`, `srv_snapshotValid_record`). -/
+theorem srv_snapshotValid_dataNil (γ : ServerRaftNames) (cl : Cluster) (hcl : γ.raft.cl = cl)
+    (sv : SnapshotM) :
+    letI := srvStor (GF := GF) γ.raft
+    srvRaftLogInv (GF := GF) γ ∗ snapshotValid cl sv ⊢ |={⊤}=> ⌜sv.Data' = []⌝ := by
+  letI := srvStor (GF := GF) γ.raft
+  subst hcl
+  iintro ⟨#Hinv, #Hsv⟩
+  iunfold srvRaftLogInv at Hinv
+  icases Hinv with ⟨-, #Hcl, -⟩
+  iunfold srvClusterOk at Hcl
+  icases Hcl with ⟨-, -, -, -, -, #Hreg, -⟩
+  iinv Hreg with >Hb Hclose
+  iunfold srvSnapsReg at Hb
+  icases Hb with ⟨%S, Hown, %HSd⟩
+  ihave %Hin := ownSnapsMade_snapshotValid_data γ.raft.cl S sv $$ [$Hown $Hsv]
+  imod Hclose $$ [Hown] with -
+  · inext; iunfold srvSnapsReg; iexists S; iframe Hown; ipureintro; exact HSd
+  imodintro
+  ipureintro
+  obtain ⟨r, hr, hd⟩ := Hin
+  rw [← hd]; exact HSd r hr
+
+/-- (R2d, Q14 caveat (i)) **A valid snapshot's WAL record is valid**: the snapshot of no data at its
+metadata (`walSaveSnap`'s) is the snapshot itself (`srv_snapshotValid_dataNil`). -/
+theorem srv_snapshotValid_record (γ : ServerRaftNames) (cl : Cluster) (hcl : γ.raft.cl = cl)
+    (sv : SnapshotM) :
+    letI := srvStor (GF := GF) γ.raft
+    srvRaftLogInv (GF := GF) γ ∗ snapshotValid cl sv ⊢
+      |={⊤}=> snapshotValid cl (SnapshotM.mk [] sv.Metadata') := by
+  letI := srvStor (GF := GF) γ.raft
+  iintro ⟨#Hinv, #Hsv⟩
+  imod srv_snapshotValid_dataNil γ cl hcl sv $$ [$Hinv $Hsv] with %Hd
+  imodintro
+  cases sv
+  simp only at Hd
+  subst Hd
+  iexact Hsv
 
 /-- **The server's raft names are the fresh start's** (2026-11-02, `merged_image`): the start log
 empty and the start index its length. -/
@@ -772,10 +894,10 @@ theorem srv_first_boot (γ : ServerRaftNames) (L : List EntryModel) (m : EntryMo
   ihave %Hp := srvRLogLb_prefix γ (γ.raft.boot.map EntryModel.ofM) L $$ [Hb HL]
   · iframe Hb HL
   ipureintro
-  obtain ⟨ps, hps, hlen, -, hk⟩ := Hok
+  obtain ⟨hps, -, hlen, -, hk⟩ := Hok
   have hpos : 0 < γ.raft.boot.length := by
-    rw [hlen]; cases ps with
-    | nil => exact absurd rfl hps
+    rw [hlen]; cases h : γ.raft.vs with
+    | nil => exact absurd h hps
     | cons _ _ => simp
   obtain ⟨e, he⟩ : ∃ e, γ.raft.boot[0]? = some e := ⟨_, List.getElem?_eq_getElem hpos⟩
   obtain ⟨-, -, hty, cm, hcm, hct, -⟩ := hk 0 e he
@@ -1368,6 +1490,8 @@ theorem srvPropAu_api (γ : ServerRaftNames) (d : List w8) (Q : List EntryModel 
     icases Hcl' with ⟨-, -, -, #Hfits, -⟩
     ihave %Hllen := isCommittedLogLb_length γ.raft.cl srvClusterN l $$ [Hfits Hl]
     · iframe Hfits Hl
+    ihave %Hlsm := isCommittedLogLb_small γ.raft.cl srvClusterN l $$ [Hfits Hl]
+    · iframe Hfits Hl
     iunfold srvRLogLb at Hlb0
     icases Hlb0 with ⟨#Hl0, -⟩
     ihave %Hag0 := isCommittedLogLb_agree γ.raft.cl (srvLE γ []) l $$ [Hl0 Hl]
@@ -1398,7 +1522,7 @@ theorem srvPropAu_api (γ : ServerRaftNames) (d : List w8) (Q : List EntryModel 
     icases Hcl with ⟨-, Hcommit⟩
     imod Hcommit $$ %e [HL] with #HQL
     · isplitr
-      · ipureintro; exact ⟨rfl, rfl, He⟩
+      · ipureintro; exact ⟨rfl, rfl, He, by omega⟩
       iunfold srvRLog; iexact HL
     -- the registered reads, again
     imod srvFireReads γ Lf e R $$ Hlog HRr with ⟨Hlog, HRr⟩

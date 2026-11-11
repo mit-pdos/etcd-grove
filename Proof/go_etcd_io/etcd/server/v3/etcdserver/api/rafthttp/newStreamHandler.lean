@@ -23,8 +23,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assump
 
 theorem rafthttp.newStreamHandler.wp_proof :
     rafthttp.newStreamHandler.spec (GF := GF) (hG := hG) := by
-  intro Rh a γd Rs t gi r id cid lg Hlg Hown
-  wp_start as ⟨#Hlgf, #Hid, #Hraft, #HGet, #HAddR, #HPfx⟩
+  intro Rh a γd Rs t gi r id cid lg Hown
+  wp_start as ⟨#Hlgf, #Hlgz, #Hid, #Hraft, #HGet, #HAddR, #HPfx⟩
+  ihave %Hlg := zapLoggerOk_ne_null _ $$ Hlgz
   wp_auto
   rw [_root_.decide_eq_false Hlg]
   ipersist «$r0»
@@ -36,7 +37,7 @@ theorem rafthttp.newStreamHandler.wp_proof :
   iunfold streamHandlerOk
   iexists _, gi
   iframe #
-  ipureintro; exact ⟨Hlg, Hown, rfl⟩
+  ipureintro; exact ⟨Hown, rfl⟩
 
 end proof
 

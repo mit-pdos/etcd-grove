@@ -27,7 +27,7 @@ variable [sem : go.Semantics]
 pipe's `done` channel and returns nil: the reader's later reads return that error after the bytes
 already written, so its complete stream is the bytes written, of which the closer promised `Φ`
 when `err` is nil, and, once a `Write` has returned, the hand-over `T`, which the reader's holder
-gave up before its first read or close (see `Proof/io/Pipe.lean`). What would discharge it: the pipe's model of
+gave up before the reader's first read or close (`readerStreams`, `rcCloseOk`) (see `Proof/io/Pipe.lean`). What would discharge it: the pipe's model of
 `Proof/io/Pipe.lean`'s docstring. -/
 axiom io.PipeWriter.CloseWithError.wp_proof :
   io.PipeWriter.CloseWithError.spec (GF := GF) (hG := hG)
