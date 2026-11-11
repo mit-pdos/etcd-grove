@@ -16,6 +16,7 @@ module
 public import Spec.go_etcd_io.raft.v3.StartNode
 public import Proof.go_etcd_io.raft.v3.TraceSimGhost
 public import Proof.go_etcd_io.raft.v3.TracedCap
+public import Proof.go_etcd_io.raft.v3.TraceSimEnd
 import Proof.go_etcd_io.raft.v3.TracedNodeBoot
 import all Proof.go_etcd_io.raft.v3.InvNode
 import all Proof.go_etcd_io.raft.v3.InvNodeRule
@@ -52,8 +53,9 @@ this file). -/
 /-- **The simulation's invariant of a traced cluster `γ`**, the voters `vs`, the trace's names `tn`
 (amendment A4, Q20 (a)): the invariant the capability holds (`trCapB`), shared by the cluster's nodes,
 inside the cluster's namespace. Sealed (a4-r1's S1: its body is raft's internals, the simulation's
-namespace and the specification state's facts `simFx`); a client has its laws: persistent, allocated
-at the start (`Cluster.traceSimInv_alloc`). -/
+namespace and the specification state's facts `simFx`); its laws: persistent, opened at the end of
+the run (`Cluster.traceSimInv_end`); `Cluster.traceSimInv_alloc` is the check that `Main` can allocate
+it (on `TraceSimGhost`'s raw ghost maps: the names' allocation law is S7's). -/
 @[no_expose] def Cluster.traceSimInv (γ : Cluster) (vs : List w64) (tn : TraceNames) : IProp GF :=
   inv (simNS γ.raftNames) (simInv vs tn (simFx γ.raftNames vs))
 
@@ -67,8 +69,9 @@ one, the configuration's premise, the voters the trace's names record and fewer 
 that is not nil with the logger's contract for the trace, the simulation's invariant
 (`Cluster.traceSimInv`), the node's share at the bootstrap state (`simInit`, nothing pending) and its
 `booted` flag unset with no event yet (`simBoot`). (Amendment A4, Q20 (a).) With `nodeBoot` and
-`newRaft`'s logger field, these are what `trCapB_intro` makes the capability of
-(`startTrace_trCapB`). -/
+`newRaft`'s logger field, the names, the logger, the invariant, the share and the flag make the
+capability (`startTrace_trCapB`); the bound is for the bootstrap lines' gates (`TraceEv.OkBoot`), the
+configuration's premise for the node's later lines. -/
 def startTrace (γ : Cluster) (vs : List w64) (cv : Config) : IProp GF :=
   match Cluster.trace γ with
   | none => iprop(⌜cv.TraceLogger' = interface.nil⌝)
@@ -197,6 +200,31 @@ theorem Cluster.traceSimInv_alloc (γ : Cluster) (N : Namespace) (vs : List w64)
     refine ⟨false, none, hBt i hi, ?_, ?_, fun h => by simp at h⟩
     · simp [booted]
     · simp [LastOf]
+
+/-- **The simulation's invariant at the end of a run** (a4-r2's S1: the sealed invariant's opening law
+for `Main`, `simInv_end`'s): with the recorder's half of the trace `L` and any voter's `nodeBoot` (the
+invariant's namespace inside the cluster's `N`), the trace the simulation ran is `L`, from `simInit vs`,
+and its events have `Main`'s facts (`SimEvents`, for `simInv_main`'s `mainPure`). -/
+theorem Cluster.traceSimInv_end (γ : Cluster) (N : Namespace) (vs : List w64) (ctxs : List (List w8))
+    (id : w64) (tn : TraceNames) (L : List TraceEv) (E : CoPset) (hE : ↑N ⊆ E) :
+    (nodeBoot γ N vs ctxs id ∗ Cluster.traceSimInv γ vs tn ∗ traceAuth tn.tr L : IProp GF) ={E}=∗
+      traceAuth tn.tr L ∗ ⌜∃ σ, SimRun vs L σ ∧ σ.server = confAbs vs ∧ SimEvents vs.length L⌝ := by
+  unfold nodeBoot ApiImpl.nodeBootU ApiImpl.isClusterU ApiImpl.clusterInv
+    Cluster.traceSimInv Cluster.raftNames
+  iintro ⟨Hb, #Hinv, Ha⟩
+  icases Hb with ⟨⟨-, ⟨%HNs, -⟩, -⟩, -⟩
+  have hsub : ↑(simNS (ApiImpl.Cluster.raft γ)) ⊆ E := by
+    intro p hp
+    unfold simNS raftN at hp; rw [HNs] at hp
+    exact hE p (nclose_subseteq N "raft" p (nclose_subseteq (N .@ "raft") "tracesim" p hp))
+  iinv Hinv with >Hi Hclose
+  icases simInv_end vs tn _ L $$ [Ha Hi] with ⟨Ha, Hi, %Hp⟩
+  · iframe Ha Hi
+  imod Hclose $$ [Hi] with -
+  · inext; iexact Hi
+  imodintro
+  iframe Ha
+  ipureintro; exact Hp
 
 end spec
 

@@ -1247,7 +1247,9 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   node: the cluster needs one shared). **Recommended: (a)**, with the next amendment (A3's review
   round, or its own) (`notes/decisions.md`, "Q8 stage 1 (slice 21)").
   **Taken by the coordinator (the freeze being delegated to it), pending the user's veto: (a)**, as
-  amendment A4 (its own review round, then the re-freeze `trace-check-frozen-a4`).
+  amendment A4 (its own review round, then the re-freeze `trace-check-frozen-a4`). **Done** on branch
+  `trace-check-a4` (also `tn.voters = vs`, a non-nil logger and fewer than `2^40` voters, found missing;
+  `notes/decisions.md`, "Amendment A4 (Q20) and Q18").
 - **Q19 (2026-11-10, Q8 stage 1 slice 21): an unbooted node's `Step` and ticks.** `stepBundle_traced.on`
   (`TracedRaftStep.lean`) and the ticks' traced corollaries (`raft.tickElection.tracedTriple`,
   `raft.tickHeartbeat.traced`) take the capability with its `booted` flag set (`trCapB … true …`), but
@@ -1278,6 +1280,7 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   arms (client-visible, ungated). **Recommended: (b)**: gated, and on the path the traced numbers
   already take (`notes/decisions.md`, "Q8 stage 1 (slice 21)").
   **Taken by the coordinator, pending the user's veto: (b)** (gated: vacuous for every untraced client).
+  **Done** on branch `trace-check-a4` (`isRaftMsg_trRecv` gives `TrRecvShape` in a traced cluster).
 - **Q17 (2026-11-10, Q8 stage 1 slice 19b): a candidate's vote responses, a voter's first only.**
   Raft's tally records a voter's first response of a term only (`recordVote`); the specification's
   `HandleRequestVoteResponse` adds a voter to `votesGranted` on every granting response, so a voter that
@@ -2321,3 +2324,18 @@ pending, won, lost); for the won branch, `tallyGranted_quorum`'s `hc` (every vot
 configured: nothing in `SimServerR` or `msgAbs` gives it; from the message's origin, `isMessageC` or the
 ghost state), which raft's `VoteWon` needs anyway (`TallyVotes` counts configured voters only).
 Reviews `a3-r1.md`, `a3-r2.md` (no first-tier finding left).
+
+**Amendment A4 and Q18 (2026-11-11, branch `trace-check-a4`; Q20 (a), Q18 (b), pending the user's veto).**
+(A4) `startTrace` (`TracedApiDraft.lean`) now hands `StartNode` the capability's pieces: the sealed
+`Cluster.traceSimInv γ vs tn` (`inv (simNS γ.raft) (simInv vs tn (simFx γ.raft vs))`, the one invariant
+`trCapB` holds), `simBoot tn cv.ID' false none`, and the pure `tn.voters = vs`, `vs.length < 2^40`, a
+non-nil logger (the first two and the last found missing by the check, the bound by review a4-r1); its
+namespace argument and `simN` are gone. Checked first that the invariant's other users (`simInv_end`,
+`simRun_runAccepted`, `simInv_main`) take any `Fx` and that `Main` can allocate it: the trace's names
+before the traced cluster, the invariant after it from any voter's `nodeBoot`. Sufficiency proved:
+`startTrace_trCapB` (the capability `newRaft` starts with) and `Cluster.traceSimInv_alloc` (the invariant
+at `simInit`); and `Cluster.traceSimInv_end`, the sealed invariant's opening for `Main`'s end of run
+(`simInv_end`'s facts). Left to S7: the traced `cluster_alloc` and the names' allocation (Q6 item 8). (Q18) `Msg.TrOk` gains a heartbeat's
+empty entries and a heartbeat response's non-rejection, established at raft's send sites (in slice 20b's
+path files, forced and minimal); `isRaftMsg_trRecv` now gives `TrRecvShape` in a traced cluster.
+Client-visible: `Protocol/Model`'s interface only. Reviews `a4-r1.md`, `a4-r2.md`.
