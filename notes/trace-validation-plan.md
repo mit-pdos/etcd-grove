@@ -1147,6 +1147,40 @@ acknowledgements' close), the rest as slice 25n listed.
   (b) the capability framed around `raft.Step` with vacuous gates, and a new `Step` postcondition clause
   for `MsgUnreachable`. Recommended: (a).
   **Taken by the coordinator (raft-internal): (a)** (`MsgUnreachable` in `StepEndTy`/`StepEnd`).
+**Q8 stage 1 (slice 27d), 2026-11-11 (branch `trace-check-q8s27d`): a higher-term accepted `MsgApp`
+done; the coverage check of `raft.Step`'s traced paths; two paths it found added; one premise left.**
+Decided by the agent under the user's delegation (`notes/decisions.md`, "Q8 stage 1 (slice 27d)"); all
+raft-internal, nothing frozen or client-visible changed. `ownRaftGhost_appAccFacts` (and
+`ownStepGhost_appAccFacts`) take `s.term ≤ m.term` and state the new log's certificate at `m.term` (the
+old log's moved up by `commitIn_move`); the follower's and candidate's callers pass `m.term = s.term`.
+New: `TracedRaftStepRecvAppAccUT.lean` (`stepBundle_traced_utAppAcc`, `.onRB`, and
+`stepBundle_traced_utAppAcc_on`: `UpdateTerm` then the accepted handling at `utSrv`, the facts
+`simFx_ut` then `simFx_appAccMid`/`End`, the close by `accEnd_simIdle` at the step-down's state);
+`TracedRaftStepRecvUTVoteResp.lean` (`stepBundle_traced_utVoteResp`: a vote response of a higher term,
+as `utResp`'s, `respSrv` at a follower); `TracedRaftStepRecvLeadReq.lean` (`stepBundle_traced_leadReq`:
+a `MsgApp` or `MsgHeartbeat` of a leader's own term, refuted in the receive gate by `isLeader_unique`).
+**Coverage** (paths of `stepBundle_traced.on`'s premises: `StepEndTy`, pre-vote and check-quorum off, no
+pre-candidate, a local message at term 0, `MsgHup` not at a leader): every path has a proved lemma but
+(i) slice 27b's won vote, (ii) slice 27c's leader's `MsgAppResp`/`MsgHeartbeatResp` of its term, (iii)
+`MsgProp` at a leader outside `PropLead` (an empty batch, a non-normal entry, no bootstrap log: slice
+24a's premises for the assembly) and (iv) a traced message of term `0` at a node of a positive term
+(raft handles it as of the node's term, no lemma; the node API knows `m.Term ≠ 0`, `InvRawnode`'s
+`NetMsgOk`, so the assembly needs it as a premise of `stepBundle_traced.on`, a frozen statement: Q28).
+The table is the decisions entry's.
+
+- **Q28 (2026-11-11, slice 27d): a traced message of term `0`.** `stepBundle_traced.on` admits a traced
+  message with `m.Term' = 0` at a node of term `≥ 1`: not `StaleMsg` (which needs `m.Term' ≠ 0`), not of
+  the node's term, so no path lemma covers it; raft (`m.Term == 0`: no term check) would handle it as of
+  the node's term while the specification drops it as stale, so it cannot be proved, only excluded.
+  Options: (a) a premise of `stepBundle_traced.on` (and `.onC`/`.onG`/`.onRB`), `∀ ty, mtypeOf m.Type' =
+  some ty → ty.traced = true → m.Term' ≠ W64 0`, which the node API has (`NetMsgOk`'s `Term' ≠ 0` for
+  every traced type, `InvRawnode.lean`); every proved path ignores it (mechanical: one more `intro` binder); (b) derive it
+  from `isMessageC` (needs a per-type raft fact that a sent message's term is positive: present for
+  `MsgApp`/`MsgHeartbeat` through `isLeader` and the bootstrap log, absent for the responses and votes);
+  (c) put it in `TrRecvShape` (already a premise; its definition is in the same frozen file). Recommended:
+  (c) if `TrRecvShape` may grow (no new binder, every path's destructuring unchanged but where it reads
+  `hsh.2.2`), else (a). Frozen-statement change: for the coordinator.
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its

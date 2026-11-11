@@ -36095,3 +36095,73 @@ capability's lemmas destructure and rebuild the clause (`TracedHooksGlobal.lean`
 `trCapB_cfg`, `TracedFamilies.lean`'s `trCapB_pinMem`); `trCapB_intro`'s premise; `startTrace_trCapB`.
 `trCapB_bootFit` puts the clause into the phase, and with slice 24c's `stepBundle_traced.on_of_onRB`
 gives `stepBundle_traced_folAppAcc_on` and `stepBundle_traced_candAppAcc_on` (`.on`, every capability).
+
+## Q8 stage 1 (slice 27d): a higher-term accepted `MsgApp`; the coverage of `raft.Step`'s traced paths, two paths it found added (a higher-term vote response, a leader's own-term request refuted); a term-`0` traced message (Q28) (2026-11-11 · trace-check, Q8 stage 1 slice 27d; decided by the agent under the user's delegation · branch `trace-check-q8s27d`; DRAFT until trace-check's Freeze)
+
+**Done** (new modules, none on `etc/api/raft.txt`; no axiom, no `sorry`, no frozen or client-visible
+statement changed; `#print axioms` of each bundle: the same set as `stepBundle_traced_folAppAcc_on`'s, no
+`sorryAx`):
+- **`ownRaftGhost_appAccFacts` generalized in place** (`TracedRaftStepRecvAppAcc.lean`, and
+  `ownStepGhost_appAccFacts` in `TracedRaftStepRecvAppAccFol.lean`): `Hterm` was `m.term = s.term`, now
+  `uint.Z s.term ≤ uint.Z m.term`; the new log's certificate is at `m.term` (was `s.term`): from the request's
+  leader's full log at `m.term` as before, or the old log's certificate moved up `s.term → m.term` by
+  `commitIn_move`. The old log's facts stay at `s.term`. Callers (the follower's and the candidate's accepted
+  paths) pass `Int.le_of_eq` of their `hterm` and read the certificate at the request's term (`hW2`).
+- **`TracedRaftStepRecvAppAccUT.lean`**: `phaseStepR_utAppAcc` (`lineEffect_appRecvU` with
+  `firstRound_updateTerm`, `becomeFollowerOfTerm` being `withNode … utSrv` by `rfl`; the intermediate
+  servers `utSrv` or `AccMid` at it), `fxPresR_utAppAcc` (`simFx_ut` from the old log's facts,
+  `ownRaftGhost_logFacts`, then the candidate's pattern at the step-down's state: `simFx_appAccMid` drawn with
+  the vote table over `accLogs`, `simFx_appAccEnd` with the certificate at the new term), the bundle
+  `stepBundle_traced_utAppAcc` (`.onRB`; `UTAppSR`'s preamble and `BecomeFollower` skip, the follower's
+  `"Hgapp"` at `{ becomeFollower s m.Term m.From with prvals } with lead`, the close by `accEnd_simIdle` at
+  `{ becomeFollower s m.Term 0 with prvals }` and `simServerR_ut`, which unifies with raft's end state as the
+  stale exit's does) and `stepBundle_traced_utAppAcc_on` (`trCapB_bootFit`).
+- **`TracedRaftStepRecvUTVoteResp.lean`**, `stepBundle_traced_utVoteResp` (path `UTVoteResp`: `MsgVoteResp`
+  above the node's term): `utResp`'s proof with the vote response's pieces (`recvAt_resp`'s and
+  `recvPhantoms_resp`'s other disjunct, `simFx_resp`/`simServerR_respSrv` at a follower that is not a
+  candidate, `FollowerStepResultC`'s `MsgVoteResp` arm `s' = s`). Rejected: generalizing `UTResp` in place
+  (its file is imported by the accepted-append chain, so its `.olean` change would rebuild it for no gain).
+- **`TracedRaftStepRecvLeadReq.lean`**, `stepBundle_traced_leadReq` (path `LeadReq`: `MsgApp` or
+  `MsgHeartbeat` of a leader's own term): raft ignores it (`LeaderNonpropResultC`), the specification has no
+  such step, and it cannot happen: the receive gate takes `isLeader γ m.From m.Term` from the message's raft
+  facts (`isMessage_app_inv`, `isMessage_hb_inv`) and `isLeader γ id s.term` from raft's ghost state
+  (`ownRaftGhost_isLeader`), so `id = m.From` (`isLeader_unique`), against `TrRecvShape`. Every resource after
+  the receive gate is `False` (`refR`); the close is vacuous.
+
+**The coverage of `stepBundle_traced.on`'s paths** (after its premises: `StepEndTy` — `MsgApp`, `MsgAppResp`,
+`MsgHeartbeat`, `MsgHeartbeatResp`, `MsgVote`, `MsgVoteResp`, `MsgHup`, `MsgBeat`, `MsgProp` —, pre-vote and
+check-quorum off, no pre-candidate, a local message at term `0`, `MsgHup` not at a leader; `T = m.Term`,
+`t = s.term`):
+
+| path set | lemma |
+|---|---|
+| `MsgHup` (not a leader) | `stepBundle_traced_hup` (`LocalHup`) |
+| `MsgBeat` at a leader | `stepBundle_traced_beat` (`LocalBeat`) |
+| `MsgBeat`, `MsgProp` at a non-leader | `stepBundle_traced_localNoLine` (`LocalNoLine`) |
+| `MsgProp` at a leader, a non-empty batch of normal entries, a bootstrap log | `stepBundle_traced_prop` (`.onG`, `PropLead`) |
+| `MsgProp` at a leader otherwise | none: `PropLead`'s premises, for the assembly (slice 24a) |
+| traced, `0 < T < t` | `stepBundle_traced_staleRecv` (`StaleRecv`) |
+| traced, `T = 0 < t` | none (Q28) |
+| `MsgApp`, `T = t`, follower | `_folAppStale` (below commit), `_folAppRej` (no match), `_folAppAcc_on` (match) |
+| `MsgApp`, `T = t`, candidate | `_candAppSR true`/`false`, `_candAppAcc_on` |
+| `MsgApp`/`MsgHeartbeat`, `T = t`, leader | `_leadReq` (refuted; new) |
+| `MsgHeartbeat`, `T = t`, follower / candidate | `_folHb` / `_candHb` |
+| `MsgVote`, `T = t`, any role | `_voteReq` (`VoteReq`) |
+| `MsgAppResp`/`MsgHeartbeatResp`, `T = t`, follower or candidate | `_ignResp` |
+| `MsgAppResp`/`MsgHeartbeatResp`, `T = t`, leader | none: slice 27c |
+| `MsgVoteResp`, `T = t`, follower or leader | `_ignResp` |
+| `MsgVoteResp`, `T = t`, candidate, pending / lost / won | `_candVoteRespPending` / `_candVoteRespLost` (`.onC`) / none: slice 27b |
+| `MsgApp`, `T > t` | `_utAppSR true`/`false`, `_utAppAcc_on` (new) |
+| `MsgHeartbeat` / `MsgVote`, `T > t` | `_utHb` / `_utVote` |
+| `MsgAppResp`/`MsgHeartbeatResp`, `T > t` | `_utResp` |
+| `MsgVoteResp`, `T > t` | `_utVoteResp` (new) |
+
+(Every `_x` is `stepBundle_traced_x`; `.onRB` ones through `_on`; `.onC`/`.onG` give `.on` by
+`on_of_onC`/`on_of_onG` at the assembly.) `T < t` with `T = 0` at `t = 0` is the `T = t` rows. If Q27 (a)
+adds `MsgUnreachable` to `StepEndTy`, its path needs a lemma too.
+
+**Q28, the term-`0` traced message** (recorded in the plan with options): the only path neither proved nor
+another slice's; it cannot be proved (raft treats `m.Term = 0` as local and handles the message at its
+term, the specification drops it as stale), only excluded by a premise the node API has (`NetMsgOk`). A
+frozen-statement change (`stepBundle_traced.on`, `TracedRaftStep.lean`), so left to the coordinator;
+recommended: the clause in `TrRecvShape`.
