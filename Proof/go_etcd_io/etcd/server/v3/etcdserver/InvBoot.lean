@@ -279,7 +279,11 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- (2026-11-05: until then `rnStartCfg`'s conjuncts spelled out) the configuration and the
     -- peers (`rnStartCfg`), this node's id, the peers distinct, non-zero, this node among them,
     -- the cluster's voters, and the bootstrap log theirs
+    -- (premise-fixes-6) the wrapper's logger the configuration's (`bootstrapRaft`'s
+    -- `lg: cfg.Logger`, `bootstrap.go:546,557`), so a zap logger by the contracts' precondition
+    -- (`newRaftNode` logs through it; until then only `rnStartCfg`'s `bv.lg' ≠ null`)
     "%Hraft" ∷ ⌜rnStartCfg bv cv lok pv ps ∧ bv.heartbeat' = cfg.TickMs' * W64 1000000 ∧
+      bv.lg' = cfg.Logger' ∧
       cv.ID' = id ∧ ps.Nodup ∧ W64 0 ∉ ps ∧
       cv.ID' ∈ ps ∧ γ.vs = ps ∧ srvBootLogOk ps γ.boot⌝ ∗
     "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗

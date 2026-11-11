@@ -515,7 +515,10 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- (`NodeStartSpec`, `raftNode_of_StartNode`)
   have hNS := raftNode_of_StartNode (GF := GF) h8 h86d h85 h86e h86f h86g h86h h9 h10 h11 h10d h12 h87 h88
     h89 h78 h86
-  obtain ⟨Hrcfg, Hrhb, Hrid, Hrnodup, Hr0, Hrmem, Hrvs, Hrbok⟩ := Hraft
+  obtain ⟨Hrcfg, Hrhb, Hrlg, Hrid, Hrnodup, Hr0, Hrmem, Hrvs, Hrbok⟩ := Hraft
+  -- (premise-fixes-6) the wrapper's logger the configuration's (`bootOk`'s `Hraft`), a zap logger
+  ihave #Hrzl : zapLoggerOk bv.lg' $$ []
+  · rw [Hrlg]; iexact Hzlg
   -- (2026-11-03, the whole-`bootOk` review, K) from the directory's bound (`Hdirps`); until then a
   -- conjunct of `bootOk`'s `Hraft`
   -- (2026-11-03, the final whole-`bootOk` review's M2) the directory's facts, from the
