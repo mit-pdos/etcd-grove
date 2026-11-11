@@ -27,7 +27,7 @@ open Fs
 
 /-- The `OsMeta` after `init` (as `DB.init.spec`'s): the size at least four pages, all of it
 durable and known, one version of each sector, durable zeros past its last page. -/
-def initDoneMeta [GooseExts] (m : OsMeta) (xs : List (w8 × Bool)) : OsMeta :=
+def initDoneMeta [GooseExts] (m : OsMeta) (xs : List ByteG) : OsMeta :=
   { m with size := max m.size 16384, lo := max m.size 16384, hi := max m.size 16384,
            dur := durOf 0 (initFile xs), vk := some [], dz := some (pageUp (max m.size 16384)) }
 
@@ -42,8 +42,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Ass
 /-- See the file header. -/
 abbrev DB.init.specCrash : Prop :=
   ∀ (db f : Loc) (fd : w64) (p : GoString) (dqf dq : DFrac) (N : Namespace) (P : GoString)
-    (R : Roots) (γ : GName) (i : Ino) (m : OsMeta) (xs : List (w8 × Bool)),
-  m.ok = true → m.maps = ∅ → m.size ≤ 2 ^ 30 → initIdle m xs → ↑osN ⊆ (⊤ : CoPset) \ ↑N →
+    (R : Roots) (γ : GName) (i : Ino) (m : OsMeta) (xs : List ByteG),
+  True → m.maps = ∅ → m.size ≤ 2 ^ 30 → initIdle m xs → ↑osN ⊆ (⊤ : CoPset) \ ↑N →
   {{ osInv (GF := GF) ∗ csInv (GF := GF) N P R γ Good dbOk ∗
       db.[DB, go!"file"] ↦□ f ∗ db.[DB, go!"filesz"] ↦ W64 m.size ∗
       os.ownFile (GF := GF) f fd p dqf ∗ osFd (GF := GF) fd dq ⟨i, true, true⟩ ∗

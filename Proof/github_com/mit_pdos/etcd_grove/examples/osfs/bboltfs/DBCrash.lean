@@ -48,13 +48,13 @@ section pure
 variable [GooseExts]
 
 /-- `commitClean` does not look at the mappings or `ok`. -/
-theorem commitClean_meta {m m' : OsMeta} {bs : List (w8 × Bool)} (h : commitClean m bs)
+theorem commitClean_meta {m m' : OsMeta} {bs : List ByteG} (h : commitClean m bs)
     (hhi : m'.hi = m.hi) (hlo : m'.lo = m.lo) : commitClean m' bs :=
   ⟨hhi ▸ h.hi, hlo ▸ h.lo, h.ok, h.slot, hlo ▸ h.pg, h.boot, h.metas, h.root, h.tx⟩
 
 /-- The writer's idle states while not failed are `dbOk`, whatever the mappings (`Mmap`'s and
 `Munmap`'s obligations). -/
-theorem writer_okS {i : Ino} {m : OsMeta} {bs : List (w8 × Bool)} (fa fb : Nat)
+theorem writer_okS {i : Ino} {m : OsMeta} {bs : List ByteG} (fa fb : Nat)
     (hl : bs.length = m.size) (hfab : fa ≤ fb) (hfb : fb ≤ m.size) (h : commitClean m bs)
     (M : GMap Loc Nat) :
     dbOk (some (i, ⟨{ m with maps := M }, bs, fa, fb, .idle⟩)) :=
@@ -62,7 +62,7 @@ theorem writer_okS {i : Ino} {m : OsMeta} {bs : List (w8 × Bool)} (fa fb : Nat)
     (commitClean_meta h rfl rfl)
 
 /-- After `init` (`DB.init.specCrash`'s post), a commit may start: the writer's invariant. -/
-theorem init_commitClean {m : OsMeta} {xs : List (w8 × Bool)}
+theorem init_commitClean {m : OsMeta} {xs : List ByteG}
     (hsz : m.size ≤ 2 ^ 30) :
     commitClean (initDoneMeta m xs) (initFile xs) := by
   have hil := initBytes_length
@@ -130,7 +130,7 @@ invariant `γc` (see the file header): `writerFile`'s, with `csOwn` for the `OsM
 and the state `dbOk` whatever the mappings (for `munmap` once failed, when `commitClean` may no
 longer hold). -/
 def writerFileC (γc : GName) (i : Ino) (db f : Loc) (fd : w64) (p : GoString) (mp : List w8) (fl : Bool)
-    (hwm : Nat) (st : MapSt) (m : OsMeta) (bs : List (w8 × Bool)) : IProp GF :=
+    (hwm : Nat) (st : MapSt) (m : OsMeta) (bs : List ByteG) : IProp GF :=
   iprop(∃ fsz : Nat,
     db.[DB, go!"filesz"] ↦ W64 fsz ∗ db.[DB, go!"datasz"] ↦ W64 (mapLen st) ∗
     os.ownFile (GF := GF) f fd p (DFrac.own (1 : Qp).half) ∗
@@ -159,11 +159,11 @@ def metaRC (γ : DBNames) (db : Loc) (p : GoString) : IProp GF :=
 
 /-- `rwlock`'s resource over the crash invariant `γc`: `rwR`'s, with `writerFileC`. -/
 def rwRC (γ : DBNames) (γc : GName) (db f : Loc) (fd : w64) (p : GoString) : IProp GF :=
-  iprop((∃ (mp : List w8) (fl : Bool) (hwm : Nat) (st : MapSt) (m : OsMeta) (bs : List (w8 × Bool)),
+  iprop((∃ (mp : List w8) (fl : Bool) (hwm : Nat) (st : MapSt) (m : OsMeta) (bs : List ByteG),
     ghostVar γ.cur (1 : Qp).half.half (mp, fl, hwm) ∗ ghostVar γ.map (1 : Qp).half st ∗
     ghostVar γ.out (1 : Qp).half.half false ∗ mapFields (GF := GF) db (DFrac.own (1 : Qp).half) st ∗
     writerFileC (GF := GF) γc γ.ino db f fd p mp fl hwm st m bs ∗ ghostVar γ.cls (1 : Qp).half false ∗
-    ⌜fl = false → m.ok = true⌝ ∗
+    ⌜fl = false → True⌝ ∗
     match st with
     | some (base, len, γm) =>
       ⌜m.maps = {[base := len]} ∧ m.size ≤ len ∧ 0 < base.addr ∧ len ≤ 2 ^ 41⌝ ∗

@@ -27,7 +27,7 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Assumptions]
 
 /-- The writer's half of its idle state's bytes (`writerFileC`): the meta pages and the tail. -/
-theorem writer_thrBytes (p : Ino) (m : OsMeta) (bs : List (w8 × Bool)) (hwm : Nat)
+theorem writer_thrBytes (p : Ino) (m : OsMeta) (bs : List ByteG) (hwm : Nat)
     (h2 : 2 ≤ hwm) (hl : 4096 * hwm ≤ bs.length) :
     thrBytes (GF := GF) p ⟨m, bs, 8192, 4096 * hwm, .idle⟩ ⊣⊢
       osBytes (GF := GF) p 0 (DFrac.own (1 : Qp).half) (bs.take 8192) ∗
@@ -43,14 +43,14 @@ theorem writer_thrBytes (p : Ino) (m : OsMeta) (bs : List (w8 × Bool)) (hwm : N
   exact h
 
 /-- What `munmap` leaves the writer besides `mappingResC`, in the state `st`. -/
-def unmapRestC (i : Ino) (γc : GName) (m : OsMeta) (bs : List (w8 × Bool)) (fa fb : Nat) :
+def unmapRestC (i : Ino) (γc : GName) (m : OsMeta) (bs : List ByteG) (fa fb : Nat) :
     MapSt → IProp GF
   | some (base, len, _) => iprop(⌜m.maps = {[base := len]} ∧ 0 < base.addr⌝)
   | none => iprop(csOwnF (GF := GF) γc (some (i, ⟨m, bs, fa, fb, .idle⟩)) ∗ ⌜m.maps = ∅⌝)
 
 /-- `mmap_prep` over the crash invariant. -/
 theorem mmap_prepC (γ : DBNames) (f : Loc) (fd : w64) (p : GoString) (R : Roots) (mp : List w8) (fl : Bool)
-    (hwm : Nat) (γc : GName) (m : OsMeta) (bs : List (w8 × Bool)) (fa fb : Nat) (st : MapSt)
+    (hwm : Nat) (γc : GName) (m : OsMeta) (bs : List ByteG) (fa fb : Nat) (st : MapSt)
     (h2 : 2 ≤ hwm) (hl : bs.length = m.size) (hfab : fa ≤ fb) (hfb : fb ≤ m.size)
     (hcc : commitClean m bs) :
     osInv (GF := GF) ∗ csInv (GF := GF) dbCrashN p R γc Good dbOk ∗
@@ -118,7 +118,7 @@ theorem mmap_prepC (γ : DBNames) (f : Loc) (fd : w64) (p : GoString) (R : Roots
 
 /-- `mmap_unmapped` over the crash invariant: the writer's state, with other mappings, none if
 `munmap` succeeded. -/
-theorem mmap_unmappedC (p : GoString) (R : Roots) (i : Ino) (γc : GName) (m : OsMeta) (bs : List (w8 × Bool))
+theorem mmap_unmappedC (p : GoString) (R : Roots) (i : Ino) (γc : GName) (m : OsMeta) (bs : List ByteG)
     (fa fb : Nat) (st : MapSt) (err : GoInterface) :
     unmappedResC (GF := GF) p R i γc m bs fa fb (mapSlice st) err ∗
       unmapRestC (GF := GF) i γc m bs fa fb st ⊢

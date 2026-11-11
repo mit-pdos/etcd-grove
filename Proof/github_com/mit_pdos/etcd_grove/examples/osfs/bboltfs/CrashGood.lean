@@ -67,9 +67,9 @@ def goodImg (img : List w8) : Prop :=
         (pageVal ((img.drop (4096 * curRoot (imgMetas img))).take 4096)) ∧
       curInSlot (imgMetas img) ∧ txOk (imgMetas img)))
 
-/-- The 64 bytes of meta slot `i` as sector `8 i` of `f` holds them, past the size included. -/
+/-- The 64 bytes of meta slot `i` as `f`'s page cache holds them, past the size included. -/
 def rawSlot (f : OsFile) (i : Nat) : List w8 :=
-  (List.range 64).map fun k => (f.secs (8 * i)).last.toList.getD (16 + k) 0
+  (List.range 64).map fun k => f.cache (4096 * i + 16 + k)
 
 /-- A file shorter than four pages has no valid meta in a slot whose page holds a byte of it, as
 its sectors hold the slot (past the size included: a crash that grows the file over the slot may
@@ -85,10 +85,10 @@ def Good : Option OsFile → Prop
   | some f => goodImg f.contents ∧ RawOk f ∧ ∃ vs sz, f = OsFile.ofDisk vs sz
 
 theorem goodImg_fileOk (img : List w8) (h : goodImg img) :
-    fileOk (img.map (·, true)) := by
-  have hfst : (img.map (·, true)).map Prod.fst = img := by
+    fileOk (img.map durB) := by
+  have hfst : (img.map durB).map Prod.fst = img := by
     simp [List.map_map, Function.comp_def]
-  have hcl : ∀ x ∈ img.map (·, true), x.2 = true := by simp
+  have hcl : ∀ x ∈ img.map durB, x = durB x.1 := by simp
   obtain ⟨-, h | ⟨h4, h0, h1⟩ | ⟨h4, hok, hpg, -⟩⟩ := h
   · exact Or.inl (by simpa using h.1)
   · refine Or.inr ⟨hcl, ?_⟩
@@ -99,8 +99,8 @@ theorem goodImg_fileOk (img : List w8) (h : goodImg img) :
     exact Or.inr ⟨hok, hpg⟩
 
 theorem goodImg_freshTx (img : List w8) (h : goodImg img) :
-    bootOk (freshTx (img.map (·, true))).1 (freshTx (img.map (·, true))).2.1 := by
-  have hfst : (img.map (·, true)).map Prod.fst = img := by
+    bootOk (freshTx (img.map durB)).1 (freshTx (img.map durB)).2.1 := by
+  have hfst : (img.map durB).map Prod.fst = img := by
     simp [List.map_map, Function.comp_def]
   unfold freshTx
   simp only [hfst, List.length_map]
@@ -119,10 +119,10 @@ theorem goodImg_freshTx (img : List w8) (h : goodImg img) :
 /-- The transaction `t` and high water mark `n` `Open` finds in a good image: `1 ≤ t < n`, and
 `n` leaves room for its page below 1 GiB (`(n + 1) * 4096 ≤ 2 ^ 30`). -/
 theorem goodImg_freshTx_tx (img : List w8) (h : goodImg img) :
-    1 ≤ (freshTx (img.map (·, true))).1 ∧
-      (freshTx (img.map (·, true))).1 < (freshTx (img.map (·, true))).2.2 ∧
-      ((freshTx (img.map (·, true))).2.2 + 1) * 4096 ≤ 2 ^ 30 := by
-  have hfst : (img.map (·, true)).map Prod.fst = img := by
+    1 ≤ (freshTx (img.map durB)).1 ∧
+      (freshTx (img.map durB)).1 < (freshTx (img.map durB)).2.2 ∧
+      ((freshTx (img.map durB)).2.2 + 1) * 4096 ≤ 2 ^ 30 := by
+  have hfst : (img.map durB).map Prod.fst = img := by
     simp [List.map_map, Function.comp_def]
   unfold freshTx
   simp only [hfst, List.length_map]

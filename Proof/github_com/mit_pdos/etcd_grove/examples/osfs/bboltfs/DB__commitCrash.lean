@@ -76,7 +76,7 @@ theorem split3_length {α : Type} (l X : List α) (a b : Nat) (hab : a ≤ b) (h
     (l.take a ++ ((l.drop a).take (b - a) ++ X)).length = b + X.length := by
   simp only [List.length_append, List.length_take, List.length_drop]; omega
 
-theorem syncedBytes_length (m : OsMeta) (xs : List (w8 × Bool)) :
+theorem syncedBytes_length (m : OsMeta) (xs : List ByteG) :
     (syncedBytes m xs).length = xs.length := by
   unfold syncedBytes; split <;> simp
 
@@ -92,7 +92,7 @@ theorem durOverlay_of_some : ∀ {a b : List (Option w8)} {i : Nat} {d : w8},
       exact durOverlay_of_some h
 
 /-- A sync keeping the bytes `H` from 0 knows them as durable. -/
-theorem syncedKeep_dur (m : OsMeta) (lo : Nat) (xs H : List (w8 × Bool)) (k : Nat)
+theorem syncedKeep_dur (m : OsMeta) (lo : Nat) (xs H : List ByteG) (k : Nat)
     (hk : k < H.length) : (m.syncedKeep lo xs 0 H).dur[k]? = some (some H[k].1) := by
   apply durOverlay_of_some
   simp [durOf, List.getElem?_eq_getElem hk]
@@ -100,7 +100,7 @@ theorem syncedKeep_dur (m : OsMeta) (lo : Nat) (xs H : List (w8 × Bool)) (k : N
 /-! ### `commitClean` -/
 
 /-- `commitClean` of a state whose bytes below the high water mark are the same. -/
-theorem commitClean_of_prefix {m m' : OsMeta} {bs bs' : List (w8 × Bool)} (h : commitClean m bs)
+theorem commitClean_of_prefix {m m' : OsMeta} {bs bs' : List ByteG} (h : commitClean m bs)
     (hpre : ∀ k < 4096 * curPgid ((bs.map Prod.fst).take 8192), bs'[k]? = bs[k]?)
     (hhi : m'.hi ≤ 2 ^ 30) (hlo : 4 * 4096 ≤ m'.lo)
     (hpg : 4096 * curPgid ((bs.map Prod.fst).take 8192) ≤ m'.lo) : commitClean m' bs' := by
@@ -116,13 +116,13 @@ theorem commitClean_of_prefix {m m' : OsMeta} {bs bs' : List (w8 × Bool)} (h : 
   · rw [ht, take_drop_congr hpre' (by omega)]; exact h.boot
   · rw [ht, hpre _ (by omega)]; exact h.root k hk
 
-theorem commitClean_hwm {m : OsMeta} {bs : List (w8 × Bool)} (h : commitClean m bs) :
+theorem commitClean_hwm {m : OsMeta} {bs : List ByteG} (h : commitClean m bs) :
     2 ≤ curRoot ((bs.map Prod.fst).take 8192) ∧
       curRoot ((bs.map Prod.fst).take 8192) < curPgid ((bs.map Prod.fst).take 8192) :=
   ⟨h.ok.2.2.1, h.ok.2.2.2.1⟩
 
 /-- The states a growing `Truncate` reaches keep `commitClean`. -/
-theorem treach_commitClean {m m' : OsMeta} {bs bs' : List (w8 × Bool)} {sz : Nat}
+theorem treach_commitClean {m m' : OsMeta} {bs bs' : List ByteG} {sz : Nat}
     (h : commitClean m bs) (hl : bs.length = m.size) (hsz : sz ≤ 2 ^ 30) (hg : m.size ≤ sz)
     (hpg : 4096 * curPgid ((bs.map Prod.fst).take 8192) ≤ bs.length)
     (hR : TReach m bs sz m' bs') :
@@ -141,7 +141,7 @@ theorem treach_commitClean {m m' : OsMeta} {bs bs' : List (w8 × Bool)} {sz : Na
     omega
 
 /-- **`Truncate`'s obligation** (`os.File.Truncate.specCrashS`). -/
-theorem trunc_obl {i : Ino} {m : OsMeta} {bs : List (w8 × Bool)} {sz : Nat}
+theorem trunc_obl {i : Ino} {m : OsMeta} {bs : List ByteG} {sz : Nat}
     (h : commitClean m bs) (hl : bs.length = m.size) (hsz : sz ≤ 2 ^ 30) (hg : m.size ≤ sz)
     (hpg : 4096 * curPgid ((bs.map Prod.fst).take 8192) ≤ bs.length) (fa fb : Nat)
     (hfa : fa ≤ fb) (hfb : fb ≤ m.size) :
@@ -165,7 +165,7 @@ theorem keep_prefix {α : Type} (H F T X : List α) (k : Nat) (hk : k < H.length
 
 /-- **A successful sync keeping the meta pages** (`csSynced false`, `H` the meta pages, `F` the
 frozen pages, `T` the rest) keeps `commitClean`, with the size since the last sync the size. -/
-theorem synced_commitClean {m : OsMeta} {H F T : List (w8 × Bool)} {hwm : Nat}
+theorem synced_commitClean {m : OsMeta} {H F T : List ByteG} {hwm : Nat}
     (h : commitClean m (H ++ (F ++ T))) (hl : (H ++ (F ++ T)).length = m.size)
     (hpg : curPgid (((H ++ (F ++ T)).map Prod.fst).take 8192) = hwm)
     (hHF : H.length + F.length = 4096 * hwm) (h30 : m.size ≤ 2 ^ 30) (h16 : 4 * 4096 ≤ m.size) :
@@ -199,7 +199,7 @@ theorem fileMeta_of_window {L D : List w8} {i : Nat}
   · rw [List.getElem?_eq_none (by rw [metaSlot_length]; omega), List.getElem?_take, if_neg hk]
 
 /-- The meta write, retried (at slot `1 - s`), keeps `commitMetaSt`. -/
-theorem commitMetaSt_wreach {m m' : OsMeta} {bs bs' : List (w8 × Bool)} {mp : List w8} {N : Meta}
+theorem commitMetaSt_wreach {m m' : OsMeta} {bs bs' : List ByteG} {mp : List w8} {N : Meta}
     {s : Nat} {D : List w8} {nn : Nat} (h : commitMetaSt m bs mp N s) (hl : bs.length = m.size)
     (hD : D.length = 4096) (h8 : 8192 ≤ m.size)
     (hR : WReach NoTearCut m bs (4096 * (1 - s)) D nn m' bs') : commitMetaSt m' bs' mp N s := by
@@ -224,7 +224,7 @@ theorem commitMetaSt_wreach {m m' : OsMeta} {bs bs' : List (w8 × Bool)} {mp : L
     fun k hk => by rw [hout _ (.inr (by omega))]; exact h.nPage k hk⟩
 
 /-- `commitMetaSt` does not look at the mappings or `ok`. -/
-theorem commitMetaSt_meta {m m' : OsMeta} {bs : List (w8 × Bool)} {mp : List w8} {N : Meta}
+theorem commitMetaSt_meta {m m' : OsMeta} {bs : List ByteG} {mp : List w8} {N : Meta}
     {s : Nat} (h : commitMetaSt m bs mp N s) (hhi : m'.hi = m.hi) (hlo : m'.lo = m.lo) :
     commitMetaSt m' bs mp N s :=
   ⟨h.s2, h.sTx, hhi ▸ h.hi, hlo ▸ h.lo, h.ok, h.slot, hlo ▸ h.pg, h.boot, h.root, h.metaS, h.tx,
@@ -234,7 +234,7 @@ theorem commitMetaSt_meta {m m' : OsMeta} {bs : List (w8 × Bool)} {mp : List w8
 whose versions are known with one each and whose meta pages are `mp`: `commitMetaSt`, the page
 cache's slot `1 - s` the old or the new meta, the versions known, nothing of the page or all of it
 written, and the durable bytes known kept. -/
-theorem metaW_reach {m m' : OsMeta} {bs bs' : List (w8 × Bool)} {mp : List w8} {N : Meta}
+theorem metaW_reach {m m' : OsMeta} {bs bs' : List ByteG} {mp : List w8} {N : Meta}
     {s : Nat} {D : List w8} {nn : Nat} (h : commitMetaSt m bs mp N s) (hl : bs.length = m.size)
     (hD : D.length = 4096) (h8 : 8192 ≤ m.size) (hmp : (bs.map Prod.fst).take 8192 = mp)
     (hw : pageMeta D = N) (hvk : m.vk = some [])
@@ -282,7 +282,7 @@ theorem metaW_reach {m m' : OsMeta} {bs bs' : List (w8 × Bool)} {mp : List w8} 
 
 /-- **The meta write's obligation** (`os.File.WriteAt.specCrashS`): from a state whose versions are
 known with one each, whose meta pages are `mp`, and whose durable slot `1 - s` is the old meta. -/
-theorem metaW_obl {i : Ino} {m : OsMeta} {bs : List (w8 × Bool)} {mp : List w8} {N : Meta}
+theorem metaW_obl {i : Ino} {m : OsMeta} {bs : List ByteG} {mp : List w8} {N : Meta}
     {s : Nat} {D : List w8} (h : commitMetaSt m bs mp N s) (hl : bs.length = m.size)
     (hD : D.length = 4096) (h8 : 4 * 4096 ≤ m.size) (hmp : (bs.map Prod.fst).take 8192 = mp)
     (hw : pageMeta D = N) (hvk : m.vk = some [])
@@ -318,7 +318,7 @@ theorem metaW_obl {i : Ino} {m : OsMeta} {bs : List (w8 × Bool)} {mp : List w8}
 
 /-- What the data page's write (at the high water mark or past it, inside the file) reaches:
 `commitClean`. -/
-theorem dataW_reach {m m' : OsMeta} {bs bs' : List (w8 × Bool)} {off : Nat} {D : List w8}
+theorem dataW_reach {m m' : OsMeta} {bs bs' : List ByteG} {off : Nat} {D : List w8}
     {nn : Nat} (h : commitClean m bs) (hl : bs.length = m.size)
     (hoff : 4096 * curPgid ((bs.map Prod.fst).take 8192) ≤ off) (hoffs : off ≤ m.size)
     (hD : off + D.length ≤ 2 ^ 30) (hR : WReach NoTearCut m bs off D nn m' bs') :
@@ -331,7 +331,7 @@ theorem dataW_reach {m m' : OsMeta} {bs bs' : List (w8 × Bool)} {off : Nat} {D 
 
 /-- **The data page's write's obligation** (`os.File.WriteAt.specCrashS`): it misses the meta
 pages and the current root page. -/
-theorem dataW_obl {i : Ino} {m : OsMeta} {bs : List (w8 × Bool)} {off : Nat} {D : List w8}
+theorem dataW_obl {i : Ino} {m : OsMeta} {bs : List ByteG} {off : Nat} {D : List w8}
     (h : commitClean m bs) (hl : bs.length = m.size)
     (hoff : 4096 * curPgid ((bs.map Prod.fst).take 8192) ≤ off) (hoffs : off ≤ m.size)
     (hD : off + D.length ≤ 2 ^ 30) (fa fb : Nat) (hfab : fa ≤ fb) (hfb : fb ≤ m.size)
@@ -364,12 +364,12 @@ theorem dataW_obl {i : Ino} {m : OsMeta} {bs : List (w8 × Bool)} {off : Nat} {D
 
 /-- **A successful sync of the meta pages** (`csSynced true`) after the meta write: `commitClean`
 at the new meta pages `mp'`, whose root page `B` (clean) is `bootOk`. -/
-theorem metaSynced_commitClean {m : OsMeta} {H F T : List (w8 × Bool)} {mp' B : List w8}
-    (hok : m.ok = true) (hl : (H ++ (F ++ T)).length = m.size) (hH : H.length = 8192)
+theorem metaSynced_commitClean {m : OsMeta} {H F T : List ByteG} {mp' B : List w8}
+    (hok : True) (hl : (H ++ (F ++ T)).length = m.size) (hH : H.length = 8192)
     (hmp : H.map Prod.fst = mp') (hmpok : metaPagesOk mp') (hslot : curInSlot mp')
     (hpg : 4096 * curPgid mp' ≤ m.size) (h30 : m.size ≤ 2 ^ 30) (h16 : 4 * 4096 ≤ m.size)
     (hB : B.length = 4096)
-    (hpage : ∀ k < 4096, (H ++ (F ++ T))[4096 * curRoot mp' + k]? = B[k]?.map (·, true))
+    (hpage : ∀ k < 4096, (H ++ (F ++ T))[4096 * curRoot mp' + k]? = B[k]?.map durB)
     (hboot : bootOk (curMeta mp').txid'.toNat (pageVal B)) (htx : txOk mp') :
     commitClean (m.synced 0 H) (syncedBytes m H ++ (F ++ T)) ∧
       (syncedBytes m H ++ (F ++ T)).length = (m.synced 0 H).size := by
@@ -404,26 +404,26 @@ theorem metaSynced_commitClean {m : OsMeta} {H F T : List (w8 × Bool)} {mp' B :
     exact ⟨_, rfl⟩
 
 /-- The meta pages of a state whose bytes below `N ≥ 8192` are the same. -/
-theorem csSynced_false_eq (m : OsMeta) (H F T : List (w8 × Bool)) (fa fb : Nat) :
+theorem csSynced_false_eq (m : OsMeta) (H F T : List ByteG) (fa fb : Nat) :
     csSynced false m H F T fa fb = ⟨m.syncedKeep fb T 0 H, H ++ (F ++ syncedBytes m T), fa, fb, .idle⟩ :=
   rfl
 
-theorem csSynced_true_eq (m : OsMeta) (H F T : List (w8 × Bool)) (fa fb : Nat) :
+theorem csSynced_true_eq (m : OsMeta) (H F T : List ByteG) (fa fb : Nat) :
     csSynced true m H F T fa fb = ⟨m.synced 0 H, syncedBytes m H ++ (F ++ T), fa, fb, .idle⟩ :=
   rfl
 
-theorem take8192_congr {l l' : List (w8 × Bool)} {N : Nat} (h : ∀ k < N, l'[k]? = l[k]?)
+theorem take8192_congr {l l' : List ByteG} {N : Nat} (h : ∀ k < N, l'[k]? = l[k]?)
     (hN : 8192 ≤ N) : (l'.map Prod.fst).take 8192 = (l.map Prod.fst).take 8192 :=
   take_congr' (fun k hk => by rw [List.getElem?_map, List.getElem?_map, h k hk]) hN
 
 /-- **A sync keeping the meta pages** (`csSynced false`) of a `commitClean` state: its premises
 and the state it leaves. -/
-theorem syncK_facts {m : OsMeta} {bs : List (w8 × Bool)} {hwm : Nat} (h : commitClean m bs)
+theorem syncK_facts {m : OsMeta} {bs : List ByteG} {hwm : Nat} (h : commitClean m bs)
     (hl : bs.length = m.size) (hpg : curPgid ((bs.map Prod.fst).take 8192) = hwm) (h2 : 2 ≤ hwm)
     (hsz : 4096 * hwm ≤ m.size) (h30 : m.size ≤ 2 ^ 30) (h16 : 4 * 4096 ≤ m.size) :
     (bs.take 8192).length = 8192 ∧
     8192 + ((bs.drop 8192).take (4096 * hwm - 8192)).length = 4096 * hwm ∧
-    (∀ y ∈ bs.take 8192, y.2 = true) ∧
+    (∀ y ∈ bs.take 8192, y = durB y.1) ∧
     commitClean (m.syncedKeep (4096 * hwm) (bs.drop (4096 * hwm)) 0 (bs.take 8192))
       (bs.take 8192 ++ ((bs.drop 8192).take (4096 * hwm - 8192) ++
         syncedBytes m (bs.drop (4096 * hwm)))) ∧
@@ -453,7 +453,7 @@ theorem syncK_facts {m : OsMeta} {bs : List (w8 × Bool)} {hwm : Nat} (h : commi
   rw [hb]
 
 /-- The grown state's sync (`Truncate` then `Sync` in `commit`): `syncK_facts` of it. -/
-theorem grow_sync_facts {m : OsMeta} {bs : List (w8 × Bool)} {hwm len : Nat} (h : commitClean m bs)
+theorem grow_sync_facts {m : OsMeta} {bs : List ByteG} {hwm len : Nat} (h : commitClean m bs)
     (hl : bs.length = m.size) (hpg : curPgid ((bs.map Prod.fst).take 8192) = hwm) (h2 : 2 ≤ hwm)
     (h4 : 4096 * hwm ≤ m.size) (hsz : m.size ≤ len) (h30 : len ≤ 2 ^ 30) (h16 : 4 * 4096 ≤ m.size) :
     commitClean (m.grown len) (bs ++ List.replicate (len - m.size) ((0 : w8), false)) ∧
@@ -461,7 +461,7 @@ theorem grow_sync_facts {m : OsMeta} {bs : List (w8 × Bool)} {hwm len : Nat} (h
     ((bs ++ List.replicate (len - m.size) ((0 : w8), false)).take 8192).length = 8192 ∧
     8192 + (((bs ++ List.replicate (len - m.size) ((0 : w8), false)).drop 8192).take
       (4096 * hwm - 8192)).length = 4096 * hwm ∧
-    (∀ y ∈ (bs ++ List.replicate (len - m.size) ((0 : w8), false)).take 8192, y.2 = true) ∧
+    (∀ y ∈ (bs ++ List.replicate (len - m.size) ((0 : w8), false)).take 8192, y = durB y.1) ∧
     commitClean ((m.grown len).syncedKeep (4096 * hwm)
         ((bs ++ List.replicate (len - m.size) ((0 : w8), false)).drop (4096 * hwm)) 0
         ((bs ++ List.replicate (len - m.size) ((0 : w8), false)).take 8192))
@@ -491,15 +491,15 @@ theorem grow_sync_facts {m : OsMeta} {bs : List (w8 × Bool)} {hwm len : Nat} (h
 
 /-- `commit`'s growth (`Truncate` to `len`, then `Sync`), as obligations and the states it leaves,
 named. -/
-theorem grow_facts {i : Ino} {m : OsMeta} {bs : List (w8 × Bool)} {hwm len : Nat}
+theorem grow_facts {i : Ino} {m : OsMeta} {bs : List ByteG} {hwm len : Nat}
     (h : commitClean m bs) (hl : bs.length = m.size)
     (hpg : curPgid ((bs.map Prod.fst).take 8192) = hwm) (h2 : 2 ≤ hwm)
     (h4 : 4096 * hwm ≤ m.size) (hsz : m.size ≤ len) (h30 : len ≤ 2 ^ 30) (h16 : 4 * 4096 ≤ m.size) :
-    ∃ (M3 : OsMeta) (B3 H F T : List (w8 × Bool)),
+    ∃ (M3 : OsMeta) (B3 H F T : List ByteG),
       bs ++ List.replicate (len - m.size) ((0 : w8), false) = H ++ (F ++ T) ∧ H.length = 8192 ∧
-      8192 + F.length = 4096 * hwm ∧ (∀ y ∈ H, y.2 = true) ∧
+      8192 + F.length = 4096 * hwm ∧ (∀ y ∈ H, y = durB y.1) ∧
       csSynced false (m.grown len) H F T 8192 (4096 * hwm) = ⟨M3, B3, 8192, 4096 * hwm, .idle⟩ ∧
-      commitClean M3 B3 ∧ M3.size = len ∧ M3.maps = m.maps ∧ M3.ok = m.ok ∧
+      commitClean M3 B3 ∧ M3.size = len ∧ M3.maps = m.maps ∧ True ∧
       (B3.map Prod.fst).take 8192 = (bs.map Prod.fst).take 8192 ∧
       (∀ M : GMap Loc Nat, dbOk (some (i, ⟨{ M3 with maps := M }, B3, 8192, 4096 * hwm, .idle⟩))) ∧
       dbOk (some (i, ⟨M3, B3, 8192, 4096 * hwm, .idle⟩)) ∧
@@ -540,13 +540,13 @@ theorem arith_sub4096 (a b : Nat) (h : a + 4096 ≤ b) : b - a = 4096 + (b - a -
   omega
 
 /-- What the data page's write reaches, as the writer's state. -/
-theorem dataW_after {i : Ino} {m2 m4 : OsMeta} {bs2 bs4 : List (w8 × Bool)} {hwm : Nat}
+theorem dataW_after {i : Ino} {m2 m4 : OsMeta} {bs2 bs4 : List ByteG} {hwm : Nat}
     {mp D : List w8} (hcc : commitClean m2 bs2) (hbl : bs2.length = m2.size)
     (hmp : (bs2.map Prod.fst).take 8192 = mp) (hpg : curPgid mp = hwm) (h2 : 2 ≤ hwm)
     (h4 : 4096 * hwm + 4096 ≤ m2.size) (hD : D.length = 4096) (h30 : m2.size ≤ 2 ^ 30)
     {nn : Nat} (hR : WReach NoTearCut m2 bs2 (4096 * hwm) D nn m4 bs4) :
     commitClean m4 bs4 ∧ bs4.length = m4.size ∧ (bs4.map Prod.fst).take 8192 = mp ∧
-      m4.size = m2.size ∧ m4.maps = m2.maps ∧ m4.ok = m2.ok ∧
+      m4.size = m2.size ∧ m4.maps = m2.maps ∧ True ∧
       (∀ M : GMap Loc Nat, dbOk (some (i, ⟨{ m4 with maps := M }, bs4, 8192, 4096 * hwm, .idle⟩))) := by
   obtain ⟨hc, hN⟩ := dataW_reach hcc hbl (by rw [hmp, hpg]; exact Nat.le_refl _) (by omega)
     (by rw [hD]; omega) hR
@@ -565,7 +565,7 @@ theorem slot_next (t : w64) :
   omega
 
 /-- What the meta write reaches, as the writer's state. -/
-theorem metaW_after {i : Ino} {m m' : OsMeta} {bs bs' : List (w8 × Bool)} {mp : List w8}
+theorem metaW_after {i : Ino} {m m' : OsMeta} {bs bs' : List ByteG} {mp : List w8}
     {N : Meta} {s hwm : Nat} {D : List w8} {nn : Nat} (h : commitMetaSt m bs mp N s)
     (hl : bs.length = m.size) (hD : D.length = 4096) (h8 : 4 * 4096 ≤ m.size)
     (hmp : (bs.map Prod.fst).take 8192 = mp) (hw : pageMeta D = N) (hvk : m.vk = some [])
@@ -573,12 +573,12 @@ theorem metaW_after {i : Ino} {m m' : OsMeta} {bs bs' : List (w8 × Bool)} {mp :
     (h2 : 2 ≤ hwm) (hR : WReach NoTearCut m bs (4096 * (1 - s)) D nn m' bs') :
     commitMetaSt m' bs' mp N s ∧
       cacheSlot bs' (1 - s) (fun X => X = fileMeta mp (1 - s) ∨ X = N) ∧ bs'.length = m'.size ∧
-      m'.maps = m.maps ∧ m'.size = m.size ∧ m'.ok = m.ok ∧
+      m'.maps = m.maps ∧ m'.size = m.size ∧ True ∧
       (∀ k, (k < 4096 * (1 - s) ∨ 4096 * (1 - s) + 4096 ≤ k) → bs'[k]? = bs[k]?) ∧
       (∀ M : GMap Loc Nat, dbOk (some (i, ⟨{ m' with maps := M }, bs', 8192, 4096 * hwm, .idle⟩))) ∧
-      (∀ M : GMap Loc Nat, dbOk (some (i, ⟨{ { m' with ok := false } with maps := M }, bs', 8192,
+      (∀ M : GMap Loc Nat, dbOk (some (i, ⟨{ m' with maps := M }, bs', 8192,
         4096 * hwm, .idle⟩))) ∧
-      dbOk (some (i, ⟨{ m' with ok := false }, bs', 8192, 4096 * hwm, .idle⟩)) := by
+      dbOk (some (i, ⟨m', bs', 8192, 4096 * hwm, .idle⟩)) := by
   have hs2 := h.s2
   obtain ⟨hM, hc, hl', hsz', hvk', -, hdu, -⟩ := metaW_reach h hl hD (by omega) hmp hw hvk hR
   have hN := hR.narrow hl (by omega)
@@ -593,10 +593,10 @@ theorem metaW_after {i : Ino} {m m' : OsMeta} {bs bs' : List (w8 × Bool)} {mp :
   refine ⟨hM, hc, hl', hN.maps, by rw [hD] at hs2'; omega, hN.ok, ?_,
     fun M => commitMetaIdle_okS ⟨{ m' with maps := M }, bs', 8192, 4096 * hwm, .idle⟩
       ⟨hl', hab, hfb, trivial⟩ rfl (commitMetaSt_meta (m := m') hM rfl rfl) hvk' h8' hd' hc,
-    fun M => commitMetaIdle_okS ⟨{ { m' with ok := false } with maps := M }, bs', 8192, 4096 * hwm,
+    fun M => commitMetaIdle_okS ⟨{ m' with maps := M }, bs', 8192, 4096 * hwm,
       .idle⟩ ⟨hl', hab, hfb, trivial⟩ rfl (commitMetaSt_meta (m := m') hM rfl rfl) hvk'
       h8' hd' hc,
-    commitMetaIdle_okS ⟨{ m' with ok := false }, bs', 8192, 4096 * hwm, .idle⟩
+    commitMetaIdle_okS ⟨m', bs', 8192, 4096 * hwm, .idle⟩
       ⟨hl', hab, hfb, trivial⟩ rfl (commitMetaSt_meta (m := m') hM rfl rfl) hvk' h8' hd' hc⟩
   rintro k (hk | hk)
   · exact hN.pre k (by unfold cfLo; omega)
@@ -630,12 +630,12 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Ass
 
 /-- After the data page's sync: what the meta write needs (`commitMetaSt`), from `commitClean`,
 the data page at the high water mark (clean), and the meta pages durable. -/
-theorem commitMetaSt_of {m : OsMeta} {bs : List (w8 × Bool)} {v : w64} (h : commitClean m bs)
+theorem commitMetaSt_of {m : OsMeta} {bs : List ByteG} {v : w64} (h : commitClean m bs)
     (ht : (curMeta ((bs.map Prod.fst).take 8192)).txid'.toNat + 1 < 2 ^ 64)
     (hb : (curPgid ((bs.map Prod.fst).take 8192) + 2) * 4096 ≤ 2 ^ 30)
     (hlo : 4096 * (curPgid ((bs.map Prod.fst).take 8192) + 1) ≤ m.lo)
     (hpage : ∀ k < 4096, bs[4096 * curPgid ((bs.map Prod.fst).take 8192) + k]? =
-      (dataPage (curMeta ((bs.map Prod.fst).take 8192)).pgid' v)[k]?.map (·, true))
+      (dataPage (curMeta ((bs.map Prod.fst).take 8192)).pgid' v)[k]?.map durB)
     (hboot : bootOk ((curMeta ((bs.map Prod.fst).take 8192)).txid'.toNat + 1) (some v))
     (hdur : ∀ k < 8192, ∃ b, bs[k]? = some (b, true) ∧ m.dur[k]? = some (some b)) :
     commitMetaSt m bs ((bs.map Prod.fst).take 8192)
@@ -692,7 +692,7 @@ theorem commitMetaSt_of {m : OsMeta} {bs : List (w8 × Bool)} {v : w64} (h : com
 
 /-- The durable copy of meta slot `1 - sl` is the old meta pages' (`mp`), when `m.dur` knows the
 meta pages. -/
-theorem durSlot_of {m : OsMeta} {bs : List (w8 × Bool)} {mp : List w8} {N : Meta} {sl : Nat}
+theorem durSlot_of {m : OsMeta} {bs : List ByteG} {mp : List w8} {N : Meta} {sl : Nat}
     (hmp : (bs.map Prod.fst).take 8192 = mp) (hs : sl < 2)
     (hdur : ∀ k < 8192, ∃ b, bs[k]? = some (b, true) ∧ m.dur[k]? = some (some b)) :
     durSlot m (1 - sl) (fun X => X = fileMeta mp (1 - sl) ∨ X = N) := by
@@ -702,33 +702,33 @@ theorem durSlot_of {m : OsMeta} {bs : List (w8 × Bool)} {mp : List w8} {N : Met
 
 /-- The data page's sync (`Fdatasync`, keeping the meta pages): obligations, and what the meta
 write needs of the state it leaves. -/
-theorem dataS_facts {i : Ino} {m4 : OsMeta} {bs4 : List (w8 × Bool)} {hwm : Nat} {mp : List w8}
+theorem dataS_facts {i : Ino} {m4 : OsMeta} {bs4 : List ByteG} {hwm : Nat} {mp : List w8}
     {mv : Meta} {v : w64} (hc : commitClean m4 bs4) (hl : bs4.length = m4.size)
     (hmp : (bs4.map Prod.fst).take 8192 = mp) (hmv : curMeta mp = mv) (hpg : curPgid mp = hwm)
-    (h2 : 2 ≤ hwm) (hok : m4.ok = true) (hsz : (hwm + 2) * 4096 ≤ m4.size) (h30 : m4.size ≤ 2 ^ 30)
+    (h2 : 2 ≤ hwm) (hok : True) (hsz : (hwm + 2) * 4096 ≤ m4.size) (h30 : m4.size ≤ 2 ^ 30)
     (hd : ∀ i < 4096, (bs4[4096 * hwm + i]?).map Prod.fst = (dataPage mv.pgid' v)[i]?)
     (ht : mv.txid'.toNat + 1 < 2 ^ 64) (hb : (hwm + 2) * 4096 ≤ 2 ^ 30)
     (hboot : bootOk (mv.txid'.toNat + 1) (some v)) :
-    ∃ (M5 : OsMeta) (B5 H F T : List (w8 × Bool)),
-      bs4 = H ++ (F ++ T) ∧ H.length = 8192 ∧ 8192 + F.length = 4096 * hwm ∧ (∀ y ∈ H, y.2 = true) ∧
+    ∃ (M5 : OsMeta) (B5 H F T : List ByteG),
+      bs4 = H ++ (F ++ T) ∧ H.length = 8192 ∧ 8192 + F.length = 4096 * hwm ∧ (∀ y ∈ H, y = durB y.1) ∧
       csSynced false m4 H F T 8192 (4096 * hwm) = ⟨M5, B5, 8192, 4096 * hwm, .idle⟩ ∧
       dbOk (some (i, ⟨M5, B5, 8192, 4096 * hwm, .idle⟩)) ∧
-      dbOk (some (i, ⟨{ m4 with ok := false }, H ++ (F ++ T), 8192, 4096 * hwm, .idle⟩)) ∧
-      (∀ M : GMap Loc Nat, dbOk (some (i, ⟨{ { m4 with ok := false } with maps := M }, H ++ (F ++ T),
+      dbOk (some (i, ⟨m4, H ++ (F ++ T), 8192, 4096 * hwm, .idle⟩)) ∧
+      (∀ M : GMap Loc Nat, dbOk (some (i, ⟨{ m4 with maps := M }, H ++ (F ++ T),
         8192, 4096 * hwm, .idle⟩))) ∧
       commitMetaSt M5 B5 mp (commitOf mv) (mv.txid'.toNat % 2) ∧
       durSlot M5 (1 - mv.txid'.toNat % 2) (fun X => X = fileMeta mp (1 - mv.txid'.toNat % 2) ∨
         X = commitOf mv) ∧ M5.vk = some [] ∧
       (∀ k < 8192, ∃ b, B5[k]? = some (b, true)) ∧ B5.length = M5.size ∧
-      (∀ k < 4096, B5[4096 * hwm + k]? = (dataPage mv.pgid' v)[k]?.map (·, true)) ∧
-      M5.maps = m4.maps ∧ M5.size = m4.size ∧ M5.ok = true ∧ (B5.map Prod.fst).take 8192 = mp := by
+      (∀ k < 4096, B5[4096 * hwm + k]? = (dataPage mv.pgid' v)[k]?.map durB) ∧
+      M5.maps = m4.maps ∧ M5.size = m4.size ∧ True ∧ (B5.map Prod.fst).take 8192 = mp := by
   obtain ⟨h16, h4, h5, h8, -⟩ := arith_hwm hwm m4.size h2 hsz
   obtain ⟨hH, hF, hHc, hccS, hblS, htkS, -⟩ :=
     syncK_facts hc hl (by rw [hmp, hpg]) h2 h4 h30 h16
   have e := split3_eq bs4 8192 (4096 * hwm) h8
   have hsk : ∀ k < 4096, (bs4.take 8192 ++ ((bs4.drop 8192).take (4096 * hwm - 8192) ++
       syncedBytes m4 (bs4.drop (4096 * hwm))))[4096 * hwm + k]? =
-        (dataPage mv.pgid' v)[k]?.map (·, true) := by
+        (dataPage mv.pgid' v)[k]?.map durB := by
     intro k hk
     have hl1 : (bs4.take 8192 ++ (bs4.drop 8192).take (4096 * hwm - 8192)).length = 4096 * hwm := by
       simp only [List.length_append, List.length_take, List.length_drop]; clear hpg ht hboot hd hb hmv; omega
@@ -762,34 +762,34 @@ theorem dataS_facts {i : Ino} {m4 : OsMeta} {bs4 : List (w8 × Bool)} {hwm : Nat
     commitClean_okS _ ⟨hblS, hab, hbs, trivial⟩ rfl hccS,
     commitClean_okS _ ⟨by rw [e]; exact hl, hab, hbs, trivial⟩ rfl
       (commitClean_meta (m := m4) (by rw [e]; exact hc) rfl rfl),
-    fun M => writer_okS (m := { m4 with ok := false }) 8192 (4096 * hwm) (by rw [e]; exact hl) hab hbs
+    fun M => writer_okS (m := m4 8192 (4096 * hwm) (by rw [e]; exact hl) hab hbs
       (commitClean_meta (m := m4) (by rw [e]; exact hc) rfl rfl) M,
     hc5, hds, by simp [OsMeta.syncedKeep, OsMeta.synced, hok], fun k hk => (hdur k hk).imp fun _ h => h.1,
     hblS, hsk, rfl, rfl, hok, by rw [htkS, hmp]⟩
 
 /-- The meta write succeeded: the meta pages are the new ones `mp'`; its sync (`Fdatasync`,
 `csSynced true`) leaves `commitClean` at `mp'`, whose root page is the data page. -/
-theorem metaS_facts {ino : Ino} {M5 m6 : OsMeta} {B5 bs6 : List (w8 × Bool)} {hwm i : Nat}
+theorem metaS_facts {ino : Ino} {M5 m6 : OsMeta} {B5 bs6 : List ByteG} {hwm i : Nat}
     {mp mp' : List w8} {mv : Meta} {v : w64}
-    (hl6 : bs6.length = m6.size) (hs6 : m6.size = M5.size) (hok6 : m6.ok = true)
+    (hl6 : bs6.length = m6.size) (hs6 : m6.size = M5.size) (hok6 : True)
     (h2 : 2 ≤ hwm) (hsz : (hwm + 2) * 4096 ≤ M5.size) (h30 : M5.size ≤ 2 ^ 30)
     (hi : i = 1 - mv.txid'.toNat % 2)
     (hout : ∀ k, (k < 4096 * i ∨ 4096 * i + 4096 ≤ k) → bs6[k]? = B5[k]?)
     (hd : ∀ j < 4096, (bs6[4096 * i + j]?).map Prod.fst = (metaPageOf mv)[j]?)
     (ht5 : (B5.map Prod.fst).take 8192 = mp) (hml : mp.length = 8192)
-    (hpg5 : ∀ k < 4096, B5[4096 * hwm + k]? = (dataPage mv.pgid' v)[k]?.map (·, true))
+    (hpg5 : ∀ k < 4096, B5[4096 * hwm + k]? = (dataPage mv.pgid' v)[k]?.map durB)
     (hmp' : mp' = setPage mp i (metaPageOf mv))
     (hok' : metaPagesOk mp') (hcur' : curMeta mp' = commitOf mv) (hcr' : curRoot mp' = hwm)
     (hcp' : curPgid mp' = hwm + 1) (hct' : (curMeta mp').txid'.toNat = mv.txid'.toNat + 1)
     (hboot : bootOk (mv.txid'.toNat + 1) (some v)) (htxm : mv.txid'.toNat < hwm) :
-    ∃ (M7 : OsMeta) (B7 H F T : List (w8 × Bool)),
+    ∃ (M7 : OsMeta) (B7 H F T : List ByteG),
       bs6 = H ++ (F ++ T) ∧ H.length = 8192 ∧ 8192 + F.length = 4096 * hwm ∧
       csSynced true m6 H F T 8192 (4096 * hwm) = ⟨M7, B7, 8192, 4096 * hwm, .idle⟩ ∧
       dbOk (some (ino, ⟨M7, B7, 8192, 4096 * hwm, .idle⟩)) ∧
       commitClean M7 B7 ∧ B7.length = M7.size ∧ (B7.map Prod.fst).take 8192 = mp' ∧
       (B7.drop (4096 * hwm)).take (4096 * (hwm + 1) - 4096 * hwm) =
-        (dataPage mv.pgid' v).map (·, true) ∧
-      M7.maps = m6.maps ∧ M7.size = m6.size ∧ M7.ok = true ∧
+        (dataPage mv.pgid' v).map durB ∧
+      M7.maps = m6.maps ∧ M7.size = m6.size ∧ True ∧
       dbOk (some (ino, ⟨M7, B7, 8192, 4096 * (hwm + 1), .idle⟩)) ∧
       (∀ M : GMap Loc Nat, dbOk (some (ino, ⟨{ M7 with maps := M }, B7, 8192, 4096 * (hwm + 1), .idle⟩))) ∧
       (bs6.take 8192).map Prod.fst = mp' := by
@@ -815,7 +815,7 @@ theorem metaS_facts {ino : Ino} {M5 m6 : OsMeta} {B5 bs6 : List (w8 × Bool)} {h
     · rw [if_neg hk, if_neg (by omega), List.getElem?_eq_none (by omega)]; rfl
   -- the data page
   have hpg6 : ∀ k < 4096, (bs6.take 8192 ++ ((bs6.drop 8192).take (4096 * hwm - 8192) ++
-      bs6.drop (4096 * hwm)))[4096 * hwm + k]? = (dataPage mv.pgid' v)[k]?.map (·, true) := by
+      bs6.drop (4096 * hwm)))[4096 * hwm + k]? = (dataPage mv.pgid' v)[k]?.map durB := by
     intro k hk
     rw [e, hout _ (.inr (by omega)), hpg5 k hk]
   obtain ⟨hcc7, hbl7⟩ := metaSynced_commitClean (m := m6) (B := dataPage mv.pgid' v) hok6
@@ -835,7 +835,7 @@ theorem metaS_facts {ino : Ino} {M5 m6 : OsMeta} {B5 bs6 : List (w8 × Bool)} {h
       List.take_of_length_le (by simp [hsl]), hsH, List.map_map, ← hX]; rfl
   have hpg7 : ((syncedBytes m6 (bs6.take 8192) ++ ((bs6.drop 8192).take (4096 * hwm - 8192) ++
       bs6.drop (4096 * hwm))).drop (4096 * hwm)).take (4096 * (hwm + 1) - 4096 * hwm) =
-        (dataPage mv.pgid' v).map (·, true) := by
+        (dataPage mv.pgid' v).map durB := by
     apply List.ext_getElem?; intro k
     rw [List.getElem?_take, List.getElem?_drop, List.getElem?_map]
     by_cases hk : k < 4096 * (hwm + 1) - 4096 * hwm
@@ -869,7 +869,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Ass
 
 /-- The writer's idle state, its bytes in three segments: the meta pages, the frozen pages, the
 rest (for `Sync`/`Fdatasync`). -/
-theorem csOwn_split3 (i : Ino) (γc : GName) (m : OsMeta) (bs : List (w8 × Bool)) (hwm : Nat)
+theorem csOwn_split3 (i : Ino) (γc : GName) (m : OsMeta) (bs : List ByteG) (hwm : Nat)
     (h2 : 2 ≤ hwm) :
     csOwnF (GF := GF) γc (some (i, ⟨m, bs, 8192, 4096 * hwm, .idle⟩)) ⊣⊢
       csOwnF (GF := GF) γc (some (i, ⟨m, bs.take 8192 ++ ((bs.drop 8192).take (4096 * hwm - 8192) ++
@@ -885,13 +885,13 @@ theorem csOwnF_congr (γc : GName) (s s' : CState) (h : s = s') :
 def commitErrC (γ : DBNames) (γc : GName) (db f : Loc) (fd : w64) (p : GoString) (t : Nat) :
     IProp GF :=
   iprop((∃ n', dbOwner (GF := GF) γ t n') ∗
-    ∃ (mp' : List w8) (fl : Bool) (hwm : Nat) (st' : MapSt) (m' : OsMeta) (bs' : List (w8 × Bool)),
+    ∃ (mp' : List w8) (fl : Bool) (hwm : Nat) (st' : MapSt) (m' : OsMeta) (bs' : List ByteG),
       writerStFC (GF := GF) γ γc db f fd p mp' fl hwm st' m' bs' ∗
       (⌜fl = false⌝ ∨ (⌜fl = true⌝ ∗ dbFailed (GF := GF) γ)))
 
 /-- `writerFileC` once failed asks less. -/
 theorem writerFileC_fail (γc : GName) (i : Ino) (db f : Loc) (fd : w64) (p : GoString) (mp : List w8)
-    (fl : Bool) (hwm : Nat) (st : MapSt) (m : OsMeta) (bs : List (w8 × Bool)) :
+    (fl : Bool) (hwm : Nat) (st : MapSt) (m : OsMeta) (bs : List ByteG) :
     writerFileC (GF := GF) γc i db f fd p mp fl hwm st m bs ⊢
       writerFileC (GF := GF) γc i db f fd p mp true hwm st m bs := by
   unfold writerFileC
@@ -901,7 +901,7 @@ theorem writerFileC_fail (γc : GName) (i : Ino) (db f : Loc) (fd : w64) (p : Go
 
 /-- An error exit of `commit` while the handle is not yet failed. -/
 theorem commitErrC_of (γ : DBNames) (γc : GName) (db f : Loc) (fd : w64) (p : GoString)
-    (mp : List w8) (hwm : Nat) (st : MapSt) (m : OsMeta) (bs : List (w8 × Bool)) (t n : Nat) :
+    (mp : List w8) (hwm : Nat) (st : MapSt) (m : OsMeta) (bs : List ByteG) (t n : Nat) :
     dbOwner (GF := GF) γ t n ∗ writerStC (GF := GF) γ γc db f fd p mp false hwm st m bs ⊢
       commitErrC (GF := GF) γ γc db f fd p t := by
   iintro ⟨Hown, Hws⟩
@@ -966,7 +966,7 @@ theorem meta_failC (γ : DBNames) (db : Loc) (p : GoString) (base : Loc) (len : 
 
 /-- An error exit of `commit` once it failed the handle, with a mapping. -/
 theorem dataErrTC (γ : DBNames) (γc : GName) (db f : Loc) (fd : w64) (p : GoString) (mp : List w8)
-    (hwm : Nat) (base : Loc) (len : Nat) (γm : GName) (m : OsMeta) (bs : List (w8 × Bool))
+    (hwm : Nat) (base : Loc) (len : Nat) (γm : GName) (m : OsMeta) (bs : List ByteG)
     (fsz t n : Nat)
     (h : m.maps = {[base := len]} ∧ m.size ≤ len ∧ 0 < base.addr ∧ len ≤ 2 ^ 41 ∧ 2 ≤ hwm ∧
       4096 * hwm + 4096 ≤ m.size ∧
@@ -1008,7 +1008,7 @@ theorem dataErrTC (γ : DBNames) (γc : GName) (db f : Loc) (fd : w64) (p : GoSt
 /-- `writerStC` with a mapping, from its parts. -/
 theorem writerStC_mk (γ : DBNames) (γc : GName) (db f : Loc) (fd : w64) (p : GoString)
     (mp : List w8) (fl : Bool) (hwm : Nat) (base : Loc) (len : Nat) (γm : GName) (m : OsMeta)
-    (bs : List (w8 × Bool)) (fsz : Nat)
+    (bs : List ByteG) (fsz : Nat)
     (h : (2 ≤ hwm ∧ 4096 * hwm ≤ m.size ∧
       (∀ M : GMap Loc Nat, dbOk (some (γ.ino, ⟨{ m with maps := M }, bs, 8192, 4096 * hwm, .idle⟩))) ∧
       (fl = false → (bs.map Prod.fst).take 8192 = mp ∧ commitClean m bs ∧ fsz = m.size ∧
@@ -1038,7 +1038,7 @@ theorem writerStC_mk (γ : DBNames) (γc : GName) (db f : Loc) (fd : w64) (p : G
 size since the file size field was set may differ: `writerFileC` once failed). -/
 theorem commitErrC_mk (γ : DBNames) (γc : GName) (db f : Loc) (fd : w64) (p : GoString)
     (mp : List w8) (hwm : Nat) (base : Loc) (len : Nat) (γm : GName) (m : OsMeta)
-    (bs : List (w8 × Bool)) (fsz t n : Nat)
+    (bs : List ByteG) (fsz t n : Nat)
     (h : m.maps = {[base := len]} ∧ m.size ≤ len ∧ 0 < base.addr ∧ len ≤ 2 ^ 41 ∧ 2 ≤ hwm ∧
       4096 * hwm ≤ m.size ∧
       ∀ M : GMap Loc Nat, dbOk (some (γ.ino, ⟨{ m with maps := M }, bs, 8192, 4096 * hwm, .idle⟩))) :
@@ -1073,7 +1073,7 @@ theorem commitErrC_mk (γ : DBNames) (γc : GName) (db f : Loc) (fd : w64) (p : 
 the writer's. -/
 theorem dataErrC (γ : DBNames) (γc : GName) (db f : Loc) (fd : w64) (p : GoString)
     (mp : List w8) (hwm : Nat) (base : Loc) (len : Nat) (γm : GName) (m : OsMeta)
-    (bs : List (w8 × Bool)) (fsz t n : Nat)
+    (bs : List ByteG) (fsz t n : Nat)
     (h : m.maps = {[base := len]} ∧ m.size ≤ len ∧ 0 < base.addr ∧ len ≤ 2 ^ 41 ∧ 2 ≤ hwm ∧
       4096 * hwm + 4096 ≤ m.size ∧
       ∀ M : GMap Loc Nat, dbOk (some (γ.ino, ⟨{ m with maps := M }, bs, 8192, 4096 * hwm, .idle⟩))) :
@@ -1099,7 +1099,7 @@ theorem dataErrC (γ : DBNames) (γc : GName) (db f : Loc) (fd : w64) (p : GoStr
   iframe; iframe #
 
 /-- The data page out of the frozen pages up to the new high water mark. -/
-theorem frozen_page (p : Ino) (B : List (w8 × Bool)) (hwm : Nat) (h2 : 2 ≤ hwm)
+theorem frozen_page (p : Ino) (B : List ByteG) (hwm : Nat) (h2 : 2 ≤ hwm)
     (hl : 4096 * (hwm + 1) ≤ B.length) :
     osBytes (GF := GF) p 8192 DFrac.discard ((B.drop 8192).take (4096 * (hwm + 1) - 8192)) ⊢
       osBytes (GF := GF) p (4096 * hwm) DFrac.discard
@@ -1117,8 +1117,8 @@ theorem frozen_page (p : Ino) (B : List (w8 × Bool)) (hwm : Nat) (h2 : 2 ≤ hw
 
 /-- `rwRC` from the writer's state with a mapping, not failed. -/
 theorem rwRC_of (γ : DBNames) (γc : GName) (db f : Loc) (fd : w64) (p : GoString) (mp : List w8)
-    (hwm : Nat) (base : Loc) (len : Nat) (γm : GName) (m : OsMeta) (bs : List (w8 × Bool))
-    (hok : m.ok = true) :
+    (hwm : Nat) (base : Loc) (len : Nat) (γm : GName) (m : OsMeta) (bs : List ByteG)
+    (hok : True) :
     writerStC (GF := GF) γ γc db f fd p mp false hwm (some (base, len, γm)) m bs ⊢
       rwRC (GF := GF) γ γc db f fd p := by
   unfold writerStC rwRC
@@ -1218,7 +1218,7 @@ theorem DB.commit.wp_proof_crash (wp_mmap : DB.mmap.specCrash (GF := GF) (hG := 
   -- remap if the next high water mark passes the mapping
   wp_join (Q := fun bv => iprop((⌜bv = executeVal⌝ ∗ ∃ (base' : Loc) (len' : Nat) (γm' : GName) (m' : OsMeta),
       writerStC (GF := GF) γ γc db f fd p mp false hwm (some (base', len', γm')) m' bs ∗
-      ⌜m'.ok = true ∧ (hwm + 2) * 4096 ≤ len'⌝ ∗
+      ⌜True ∧ (hwm + 2) * 4096 ≤ len'⌝ ∗
       dbOwner (GF := GF) γ mv.txid'.toNat hwm ∗
       db_ptr ↦ db ∗ minsz_ptr ↦ minsz ∗ «$res0_ptr» ↦ GoInterface.nil ∗
       v_ptr ↦ v ∗ pg_ptr ↦ mv.pgid' ∗ m_ptr ↦ nextMeta mv) ∨
@@ -1309,9 +1309,9 @@ theorem DB.commit.wp_proof_crash (wp_mmap : DB.mmap.specCrash (GF := GF) (hG := 
   (try wp_auto)
   simp only [hsZ, hmZ]
   -- grow: Truncate and Sync
-  wp_join (Q := fun bv => iprop((⌜bv = executeVal⌝ ∗ ∃ (m2 : OsMeta) (bs2 : List (w8 × Bool)),
+  wp_join (Q := fun bv => iprop((⌜bv = executeVal⌝ ∗ ∃ (m2 : OsMeta) (bs2 : List ByteG),
       writerStC (GF := GF) γ γc db f fd p mp false hwm (some (base, len, γm)) m2 bs2 ∗
-      ⌜m2.ok = true ∧ (hwm + 2) * 4096 ≤ m2.size⌝ ∗
+      ⌜True ∧ (hwm + 2) * 4096 ≤ m2.size⌝ ∗
       db_ptr ↦ db ∗ «$res0_ptr» ↦ GoInterface.nil ∗
       v_ptr ↦ v ∗ pg_ptr ↦ mv.pgid' ∗ m_ptr ↦ nextMeta mv ∗
       dbOwner (GF := GF) γ mv.txid'.toNat hwm) ∨
@@ -1402,7 +1402,7 @@ theorem DB.commit.wp_proof_crash (wp_mmap : DB.mmap.specCrash (GF := GF) (hG := 
         have hD : (B3.map Prod.fst).take 8192 = mp := by rw [ht3, hmp]
         have hE : M3.maps = {[base := len]} := by rw [hm3]; exact Hmaps
         have hF' : M3.size ≤ len := by rw [hs3]; exact Nat.le_refl _
-        have hG : M3.ok = true := by rw [ho3]; exact Hok'
+        have hG : True := by rw [ho3]; exact Hok'
         have hH' : (hwm + 2) * 4096 ≤ M3.size := by rw [hs3]; exact Hlen
         ihave Hws := writerStC_mk γ γc db f fd p mp false hwm base len γm M3 B3 len
             ⟨⟨h2, hA, hok3, fun _ => ⟨hD, hcc3, hs3.symm, hfd, hB, hC, hl30⟩⟩, hE, hF', Hbase, Hl41⟩
@@ -1614,7 +1614,7 @@ theorem DB.commit.wp_proof_crash (wp_mmap : DB.mmap.specCrash (GF := GF) (hG := 
     iright
     isplitr
     · ipureintro; simp
-    ihave Herr := dataErrC γ γc db f fd p mp hwm base len γm { m4 with ok := false } (H ++ (F ++ T))
+    ihave Herr := dataErrC γ γc db f fd p mp hwm base len γm m4 (H ++ (F ++ T))
       m2.size _ hwm ⟨by rw [← hm4] at Hmaps; exact Hmaps, by rw [← hs4] at Hsz; exact Hsz, Hbase,
         Hl41, h2, by rw [← hs4] at hin; exact hin, hokF5'⟩
       $$ [Hown Hcur Hmap Hout Hflds Hfsz Hdsz Hf Hfd Hcs Hcls Htok Hwc4 Hpc Htop]
@@ -1849,7 +1849,7 @@ theorem DB.commit.wp_proof_crash (wp_mmap : DB.mmap.specCrash (GF := GF) (hG := 
     iright
     isplitr
     · ipureintro; simp
-    ihave Herr := dataErrTC γ γc db f fd p mp hwm base len γm { m6 with ok := false } (H6 ++ (F6 ++ T6))
+    ihave Herr := dataErrTC γ γc db f fd p mp hwm base len γm m6 (H6 ++ (F6 ++ T6))
       m2.size _ _
       ⟨by show m6.maps = _; rw [hm6]; exact hm5', by show m6.size ≤ len; rw [hs6, hs5']; exact Hsz,
         Hbase, Hl41, h2, by show _ ≤ m6.size; rw [hs6, hs5']; exact hin, hok6F⟩
@@ -1879,13 +1879,13 @@ theorem DB.commit.wp_proof_crash (wp_mmap : DB.mmap.specCrash (GF := GF) (hG := 
   icases HBp with ⟨-, #Hpg⟩
   iunfold cellsAny at Hpc
   icases Hpc with ⟨%vf, Hpc⟩
-  have hplen : 4096 * hwm + ((dataPage mv.pgid' v).map (·, true)).length ≤ len := by
+  have hplen : 4096 * hwm + ((dataPage mv.pgid' v).map durB).length ≤ len := by
     rw [List.length_map, dataPage_length]; exact Nat.le_trans hin Hsz
   iapply cellsR_agree _ rfl γ.ino _ M7 base len hb7 DFrac.discard (by simp) _
-    ((dataPage mv.pgid' v).map (·, true)) (4096 * hwm) vf hplen $$ Hos Hm7 Hpg [Hpc]
+    ((dataPage mv.pgid' v).map durB) (4096 * hwm) vf hplen $$ Hos Hm7 Hpg [Hpc]
   · rw [List.length_map, dataPage_length]; iexact Hpc
   iintro Hm7 - Hpc
-  rw [show ((dataPage mv.pgid' v).map (·, true)).map Prod.fst = dataPage mv.pgid' v by
+  rw [show ((dataPage mv.pgid' v).map durB).map Prod.fst = dataPage mv.pgid' v by
     rw [List.map_map]; exact List.map_id _]
   ihave Hcs := (csOwnF_idle (GF := GF) γ.ino γc ⟨M7, B7, 8192, 4096 * (hwm + 1), .idle⟩ rfl).2
     $$ [Hv Hm7 Hb7]

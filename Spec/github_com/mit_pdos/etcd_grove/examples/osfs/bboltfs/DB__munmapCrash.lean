@@ -32,7 +32,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Ass
 
 /-- The mapping `sl` of the file `p` (`mappingRes`), over the crash invariant `γc`: the writer's
 idle state `⟨m, bs, fa, fb⟩`, `dbOk` whatever the mappings. -/
-def mappingResC (p : GoString) (R : Roots) (i : Ino) (γc : GName) (m : OsMeta) (bs : List (w8 × Bool)) (fa fb : Nat)
+def mappingResC (p : GoString) (R : Roots) (i : Ino) (γc : GName) (m : OsMeta) (bs : List ByteG) (fa fb : Nat)
     (sl : GoSlice) : IProp GF :=
   iprop(⌜sl = slice.nil⌝ ∨
     ∃ (base : Loc) (len : w64) (vf : Nat → val),
@@ -43,7 +43,7 @@ def mappingResC (p : GoString) (R : Roots) (i : Ino) (γc : GName) (m : OsMeta) 
       cellsR (GF := GF) base 0 len.toNat vf)
 
 /-- What is left of a mapping (`mappingResC`) after `munmap` returns `err`. -/
-def unmappedResC (p : GoString) (R : Roots) (i : Ino) (γc : GName) (m : OsMeta) (bs : List (w8 × Bool)) (fa fb : Nat)
+def unmappedResC (p : GoString) (R : Roots) (i : Ino) (γc : GName) (m : OsMeta) (bs : List ByteG) (fa fb : Nat)
     (sl : GoSlice) (err : GoInterface) : IProp GF :=
   iprop(⌜sl = slice.nil ∧ err = interface.nil⌝ ∨
     ∃ (base : Loc) (len : w64) (vf : Nat → val) (e : w64),
@@ -58,7 +58,7 @@ def unmappedResC (p : GoString) (R : Roots) (i : Ino) (γc : GName) (m : OsMeta)
 /-- See the file header. -/
 abbrev DB.munmap.specCrash : Prop :=
   ∀ (db : Loc) (dq : DFrac) (sl : GoSlice) (dsz : w64) (m0 m1 : Loc) (p : GoString) (R : Roots) (i : Ino) (γc : GName)
-    (m : OsMeta) (bs : List (w8 × Bool)) (fa fb : Nat),
+    (m : OsMeta) (bs : List ByteG) (fa fb : Nat),
   (sl ≠ slice.nil → dq = DFrac.own 1) →
   {{ db.[DB, go!"dataref"] ↦{dq} sl ∗ db.[DB, go!"datasz"] ↦{dq} dsz ∗ db.[DB, go!"meta0"] ↦{dq} m0 ∗
       db.[DB, go!"meta1"] ↦{dq} m1 ∗ mappingResC (GF := GF) p R i γc m bs fa fb sl }}

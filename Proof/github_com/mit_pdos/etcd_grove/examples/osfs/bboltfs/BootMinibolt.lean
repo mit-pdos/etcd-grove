@@ -97,7 +97,7 @@ theorem wp_BootMinibolt [ThreadBoundLe GF (2 ^ 30)]
       (App (Val (@! github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.BootMinibolt)) (Val #dir))
     {{ RET #(); True }} := by
   wp_start as ⟨#Hpkg, #Hos, #Hci, Hown, Htok⟩
-  obtain ⟨t, vo, n, hfresh⟩ : ∃ t vo n, freshTx ((startImg s).map (·, true)) = (t, vo, n) :=
+  obtain ⟨t, vo, n, hfresh⟩ : ∃ t vo n, freshTx ((startImg s).map durB) = (t, vo, n) :=
     ⟨_, _, _, rfl⟩
   have hgi : goodImg (startImg s) := startSt_good hs
   have hvp : bootOk t vo := by

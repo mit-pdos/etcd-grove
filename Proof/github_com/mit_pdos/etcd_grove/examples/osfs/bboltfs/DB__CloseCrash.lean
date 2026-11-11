@@ -25,7 +25,7 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Assumptions]
 
 /-- What is left after unmapping a mapping: some state of the file. -/
-theorem unmappedC_own (p : GoString) (R : Roots) (i : Ino) (γc : GName) (m : OsMeta) (bs : List (w8 × Bool)) (fa fb : Nat)
+theorem unmappedC_own (p : GoString) (R : Roots) (i : Ino) (γc : GName) (m : OsMeta) (bs : List ByteG) (fa fb : Nat)
     (sl : GoSlice) (err : GoInterface) (hne : sl ≠ slice.nil) :
     unmappedResC (GF := GF) p R i γc m bs fa fb sl err ⊢ ∃ s : CState, csOwnF (GF := GF) γc s := by
   unfold unmappedResC

@@ -28,7 +28,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Ass
 /-- See the file header. -/
 abbrev DB.mmap.specCrash : Prop :=
   ∀ (γ : DBNames) (γc : GName) (db f : Loc) (fd : w64) (p : GoString) (R : Roots) (minsz : w64) (mp : List w8)
-    (fl : Bool) (hwm : Nat) (st : MapSt) (m : OsMeta) (bs : List (w8 × Bool)),
+    (fl : Bool) (hwm : Nat) (st : MapSt) (m : OsMeta) (bs : List ByteG),
   fl = false → 0 ≤ sint.Z minsz → sint.Z minsz ≤ 2 ^ 30 →
   {{ pkgFacts (GF := GF) ∗
       osInv (GF := GF) ∗ csInv (GF := GF) dbCrashN p R γc Good dbOk ∗ db.[DB, go!"file"] ↦□ f ∗
@@ -41,7 +41,7 @@ abbrev DB.mmap.specCrash : Prop :=
       ghostVar γ.cur (1 : Qp).half.half (mp, fl, hwm) ∗ ghostVar γ.map (1 : Qp).half st' ∗
       ghostVar γ.out (1 : Qp).half.half false ∗ mapFields (GF := GF) db (DFrac.own (1 : Qp).half) st' ∗
       writerFileC (GF := GF) γc γ.ino db f fd p mp fl hwm st' m' bs ∗
-      ⌜m'.size = m.size ∧ m'.ok = m.ok ∧ m'.hi = m.hi ∧ m'.lo = m.lo⌝ ∗
+      ⌜m'.size = m.size ∧ True ∧ m'.hi = m.hi ∧ m'.lo = m.lo⌝ ∗
       ((⌜err = interface.nil⌝ ∗ ∃ (base : Loc) (len : Nat) (γm : GName),
           ⌜st' = some (base, len, γm) ∧ m'.maps = {[base := len]} ∧ m.size ≤ len ∧
             sint.Z minsz ≤ len ∧ 0 < base.addr ∧ len ≤ 2 ^ 41⌝ ∗

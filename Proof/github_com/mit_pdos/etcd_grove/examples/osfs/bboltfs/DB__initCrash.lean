@@ -29,7 +29,7 @@ variable [GooseExts]
 
 /-- A write at 0 that succeeded: the size is the old one or the data's end, and the bytes are the
 data, then the old ones past it. -/
-theorem narrow_full0 {m m' : OsMeta} {bs bs' : List (w8 × Bool)} {D : List w8}
+theorem narrow_full0 {m m' : OsMeta} {bs bs' : List ByteG} {D : List w8}
     (hN : Narrow m bs 0 D m' bs') (hl : bs.length = m.size) (hD : D.length ≤ m'.size)
     (hd : ∀ i < D.length, (bs'[0 + i]?).map Prod.fst = D[i]?) :
     m'.size = max m.size D.length ∧ bs'.map Prod.fst = D ++ (bs.map Prod.fst).drop D.length := by
@@ -46,7 +46,7 @@ theorem narrow_full0 {m m' : OsMeta} {bs bs' : List (w8 × Bool)} {D : List w8}
         List.getElem?_eq_none (show bs.length ≤ D.length + (i - D.length) by omega)]
 
 /-- A write inside the file that succeeded: the bytes before it, the data, the bytes after it. -/
-theorem narrow_mid {m m' : OsMeta} {bs bs' : List (w8 × Bool)} {off : Nat} {D : List w8}
+theorem narrow_mid {m m' : OsMeta} {bs bs' : List ByteG} {off : Nat} {D : List w8}
     (hN : Narrow m bs off D m' bs') (hl : bs.length = m.size) (hin : off + D.length ≤ m.size)
     (hd : ∀ i < D.length, (bs'[off + i]?).map Prod.fst = D[i]?) :
     m'.size = m.size ∧
@@ -70,7 +70,7 @@ theorem narrow_mid {m m' : OsMeta} {bs bs' : List (w8 × Bool)} {off : Nat} {D :
         hN.suf hin _ (by omega)]
 
 /-- `map Prod.fst` of a byte read back, clean. -/
-theorem map_clean_getElem {bs : List (w8 × Bool)} {j : Nat} {b : w8}
+theorem map_clean_getElem {bs : List ByteG} {j : Nat} {b : w8}
     (h : (bs.map Prod.fst)[j]? = some b) : (bs.map fun x => (x.1, true))[j]? = some (b, true) := by
   rw [List.getElem?_map] at h ⊢
   cases hx : bs[j]? with
@@ -78,15 +78,15 @@ theorem map_clean_getElem {bs : List (w8 × Bool)} {j : Nat} {b : w8}
   | some x => rw [hx] at h; simp only [Option.map_some, Option.some.injEq] at h ⊢; rw [h]
 
 /-- A synced state whose `ok` and mappings are `m`'s. -/
-theorem synced_eq {m m' : OsMeta} (h2 : m'.ok = m.ok) (h3 : m'.maps = m.maps) (hok : m.ok = true)
-    (bs : List (w8 × Bool)) :
+theorem synced_eq {m m' : OsMeta} (h2 : True) (h3 : m'.maps = m.maps) (hok : True)
+    (bs : List ByteG) :
     m'.synced 0 bs =
       { m with size := m'.size, lo := m'.size, hi := m'.size, dur := durOf 0 bs,
                vk := some [], dz := some (pageUp m'.size) } := by
   cases m; cases m'; simp_all [OsMeta.synced]
 
 /-- After a successful sync with nothing kept or frozen. -/
-theorem csSynced_nil (m : OsMeta) (bs : List (w8 × Bool)) (hok : m.ok = true) :
+theorem csSynced_nil (m : OsMeta) (bs : List ByteG) (hok : True) :
     csSynced false m [] [] bs 0 0 = ⟨m.synced 0 bs, bs.map (fun x => (x.1, true)), 0, 0, .idle⟩ := by
   have e : m.syncedKeep 0 bs 0 [] = m.synced 0 bs := by
     simp only [OsMeta.syncedKeep, durOf, List.replicate_zero, List.nil_append, List.map_nil]
@@ -107,17 +107,17 @@ theorem initBytes_page3 (k : Nat) (hk : k < 4096) :
   rfl
 
 /-- The state of a write's attempt, as the obligation of `os.File.WriteAt.specCrashS` sees it. -/
-theorem wf_idle00 (m : OsMeta) (bs : List (w8 × Bool)) (hl : bs.length = m.size) :
+theorem wf_idle00 (m : OsMeta) (bs : List ByteG) (hl : bs.length = m.size) :
     (⟨m, bs, 0, 0, .idle⟩ : CSt).Wf :=
   ⟨hl, Nat.le_refl _, Nat.zero_le _, trivial⟩
 
-theorem wf_write00 (m : OsMeta) (bs : List (w8 × Bool)) (t off : Nat) (data : List w8)
+theorem wf_write00 (m : OsMeta) (bs : List ByteG) (t off : Nat) (data : List w8)
     (hl : bs.length = m.size) : (⟨m, bs, 0, 0, .write t off data⟩ : CSt).Wf :=
   ⟨hl, Nat.le_refl _, Nat.zero_le _, .inr (Nat.zero_le _)⟩
 
 /-- `init`'s meta write of phase `ph`'s obligation: every state it reaches from a synced
 `initMid ph` state. -/
-theorem initW_obl {ph : Bool} {i : Ino} {m : OsMeta} {bs : List (w8 × Bool)} {D : List w8}
+theorem initW_obl {ph : Bool} {i : Ino} {m : OsMeta} {bs : List ByteG} {D : List w8}
     (h : initMid ph m bs) (hvk : m.vk = some []) (hD : initWData ph D) :
     ∀ nn m' bs', WReach NoTearCut m bs (4096 * initSlot ph) D nn m' bs' →
       dbOk (some (i, ⟨m', bs', 0, 0, .idle⟩)) ∧ (nn < D.length → ∀ t,
@@ -267,7 +267,7 @@ theorem DB.init.wp_proof_crash (wp_initPages : initPages.spec (GF := GF) (hG := 
   wp_apply wp_Fd f fd p dqf $$ [Hf] as Hf
   · iexact Hf
   (try wp_auto)
-  have hok1' : m1.ok = true := by rw [hok1]; exact hok
+  have hok1' : True := by rw [hok1]; exact hok
   have hb1i : ∀ j : Nat, (bs1.map Prod.fst)[j]? = (F ++ (xs.map Prod.fst).drop 16384)[j]? := by
     intro j; rw [hb1]
   have hord1 : initOrd false (bs1.map fun x => (x.1, true)) := by
@@ -284,7 +284,7 @@ theorem DB.init.wp_proof_crash (wp_initPages : initPages.spec (GF := GF) (hG := 
   have hS1 : dbOk (some (i, csSynced false m1 [] [] bs1 0 0)) := by
     rw [csSynced_nil m1 bs1 hok1']
     exact initMid_okS _ (wf_idle00 _ _ hsy1.1.len) rfl hsy1.1
-  have hF1 : dbOk (some (i, ⟨{ m1 with ok := false }, [] ++ ([] ++ bs1), 0, 0, .idle⟩)) :=
+  have hF1 : dbOk (some (i, ⟨m1, [] ++ ([] ++ bs1), 0, 0, .idle⟩)) :=
     initW1_okS _ (wf_idle00 _ _ hl1) hI hF hFz' hst1.notOk rfl rfl (.inl rfl)
   ihave Hown := (show csOwnF (GF := GF) γ (some (i, ⟨m1, bs1, 0, 0, .idle⟩)) ⊢
       csOwnF (GF := GF) γ (some (i, ⟨m1, [] ++ ([] ++ bs1), 0, 0, .idle⟩)) from .rfl) $$ Hown
@@ -310,7 +310,7 @@ theorem DB.init.wp_proof_crash (wp_initPages : initPages.spec (GF := GF) (hG := 
   generalize hA : bs1.map (fun x => (x.1, true)) = A at hM1 ⊢
   have hM1s : M1.size = max m.size 16384 := by rw [← hM1d]; simp [OsMeta.synced, hs1]
   have hM1m : M1.maps = ∅ := by rw [← hM1d]; simp [OsMeta.synced, hmaps1, hmaps]
-  have hM1ok : M1.ok = true := by rw [← hM1d]; exact hok1'
+  have hM1ok : True := by rw [← hM1d]; exact hok1'
   have hAl : A.length = M1.size := by rw [← hA, List.length_map, hl1, ← hM1d]; rfl
   have hAfst : A.map Prod.fst = F ++ (xs.map Prod.fst).drop 16384 := by
     rw [← hA, List.map_map, ← hb1]; rfl
@@ -377,7 +377,7 @@ theorem DB.init.wp_proof_crash (wp_initPages : initPages.spec (GF := GF) (hG := 
   wp_apply wp_Fd f fd p dqf $$ [Hf] as Hf
   · iexact Hf
   (try wp_auto)
-  have hok2' : m2.ok = true := by rw [hok2]; exact hM1ok
+  have hok2' : True := by rw [hok2]; exact hM1ok
   -- the bytes after the second write: `D1` over page 1
   have hb2i : ∀ j : Nat, (bs2.map Prod.fst)[j]? =
       ((A.map Prod.fst).take 4096 ++ D1 ++ (A.map Prod.fst).drop (4096 + D1.length))[j]? := by
@@ -418,7 +418,7 @@ theorem DB.init.wp_proof_crash (wp_initPages : initPages.spec (GF := GF) (hG := 
   have hS2 : dbOk (some (i, csSynced false m2 [] [] bs2 0 0)) := by
     rw [csSynced_nil m2 bs2 hok2']
     exact initMid_okS _ (wf_idle00 _ _ hsy2.1.len) rfl hsy2.1
-  have hF2 : dbOk (some (i, ⟨{ m2 with ok := false }, [] ++ ([] ++ bs2), 0, 0, .idle⟩)) :=
+  have hF2 : dbOk (some (i, ⟨m2, [] ++ ([] ++ bs2), 0, 0, .idle⟩)) :=
     initMid_okS _ (wf_idle00 _ _ hl2) rfl hM2.notOk
   ihave Hown := (show csOwnF (GF := GF) γ (some (i, ⟨m2, bs2, 0, 0, .idle⟩)) ⊢
       csOwnF (GF := GF) γ (some (i, ⟨m2, [] ++ ([] ++ bs2), 0, 0, .idle⟩)) from .rfl) $$ Hown
@@ -445,7 +445,7 @@ theorem DB.init.wp_proof_crash (wp_initPages : initPages.spec (GF := GF) (hG := 
   have hM2s : M2.size = max m.size 16384 := by
     rw [← hM2d]; simp only [OsMeta.synced]; omega
   have hM2m : M2.maps = ∅ := by rw [← hM2d]; simp [OsMeta.synced, hmaps2, hM1m]
-  have hM2ok : M2.ok = true := by rw [← hM2d]; exact hok2'
+  have hM2ok : True := by rw [← hM2d]; exact hok2'
   have hBl : B.length = M2.size := by rw [← hB, List.length_map, hl2, ← hM2d]; rfl
   have hBfst : B.map Prod.fst = bs2.map Prod.fst := by rw [← hB, List.map_map]; rfl
   -- the third write: meta 0 (`buf[:4096]`) at 0, phase `true`
@@ -492,7 +492,7 @@ theorem DB.init.wp_proof_crash (wp_initPages : initPages.spec (GF := GF) (hG := 
   wp_apply wp_Fd f fd p dqf $$ [Hf] as Hf
   · iexact Hf
   (try wp_auto)
-  have hok3' : m3.ok = true := by rw [hok3]; exact hM2ok
+  have hok3' : True := by rw [hok3]; exact hM2ok
   have hfin : bs3.map (fun x => (x.1, true)) = initFile xs := by
     have key : bs3.map Prod.fst = I ++ (xs.map Prod.fst).drop 16384 := by
       have hAd : (A.map Prod.fst).drop 8192 = I.drop 8192 ++ (xs.map Prod.fst).drop 16384 := by
@@ -534,7 +534,7 @@ theorem DB.init.wp_proof_crash (wp_initPages : initPages.spec (GF := GF) (hG := 
           List.getElem?_eq_getElem (by omega)]
         rfl))
     exact initMid_okS _ (wf_idle00 _ _ hsy3.1.len) rfl hsy3.1
-  have hF3' : dbOk (some (i, ⟨{ m3 with ok := false }, [] ++ ([] ++ bs3), 0, 0, .idle⟩)) :=
+  have hF3' : dbOk (some (i, ⟨m3, [] ++ ([] ++ bs3), 0, 0, .idle⟩)) :=
     initMid_okS _ (wf_idle00 _ _ hl3) rfl hM3.notOk
   ihave Hown := (show csOwnF (GF := GF) γ (some (i, ⟨m3, bs3, 0, 0, .idle⟩)) ⊢
       csOwnF (GF := GF) γ (some (i, ⟨m3, [] ++ ([] ++ bs3), 0, 0, .idle⟩)) from .rfl) $$ Hown

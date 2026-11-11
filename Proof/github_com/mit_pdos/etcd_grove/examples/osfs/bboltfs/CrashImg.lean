@@ -99,11 +99,11 @@ def durSlot (m : OsMeta) (i : Nat) (P : Meta → Prop) : Prop :=
     (metaValid (fileMeta B i) → P (fileMeta B i))
 
 /-- The page cache's slot `i` satisfies `P` if valid. -/
-def cacheSlot (bs : List (w8 × Bool)) (i : Nat) (P : Meta → Prop) : Prop :=
+def cacheSlot (bs : List ByteG) (i : Nat) (P : Meta → Prop) : Prop :=
   metaValid (fileMeta (bs.map Prod.fst) i) → P (fileMeta (bs.map Prod.fst) i)
 
 /-- The slot `i` with the write of `data` at `off` over the page cache's satisfies `P` if valid. -/
-def writeSlot (bs : List (w8 × Bool)) (off : Nat) (data : List w8) (i : Nat) (P : Meta → Prop) :
+def writeSlot (bs : List ByteG) (off : Nat) (data : List w8) (i : Nat) (P : Meta → Prop) :
     Prop :=
   ∀ L : List w8, (∀ k < 64, L[4096 * i + 16 + k]? =
       some (wByte off data (4096 * i + 16 + k) (bs.getD (4096 * i + 16 + k) (0, false)).1)) →
@@ -294,7 +294,7 @@ theorem durSlot_list {m : OsMeta} {i : Nat} {P : Meta → Prop} (hd : durSlot m 
 
 /-- The file as `Open` hands it to `init`: its size and crash bounds at most 1 GiB, one version of
 each sector known, durable zeros known from at most its last page on, and the meta slot of every page that holds a byte of it invalid on disk, as `m.dur` knows it. -/
-structure initIdle (m : OsMeta) (bs : List (w8 × Bool)) : Prop where
+structure initIdle (m : OsMeta) (bs : List ByteG) : Prop where
   len : bs.length = m.size
   hi : m.hi ≤ 2 ^ 30
   vk : m.vk = some []
@@ -304,7 +304,7 @@ structure initIdle (m : OsMeta) (bs : List (w8 × Bool)) : Prop where
 
 /-- A state of `init`'s first write (`F` at 0, zero over the meta pages) from `m0`, `nn` bytes of
 it written: what a crash of it needs. -/
-structure initW1St (m0 : OsMeta) (F : List w8) (nn : Nat) (m : OsMeta) (bs : List (w8 × Bool)) :
+structure initW1St (m0 : OsMeta) (F : List w8) (nn : Nat) (m : OsMeta) (bs : List ByteG) :
     Prop where
   len : bs.length = m.size
   nnle : nn ≤ 16384
@@ -317,8 +317,8 @@ structure initW1St (m0 : OsMeta) (F : List w8) (nn : Nat) (m : OsMeta) (bs : Lis
   cut : nn = 16384 ∨ nn % 4096 = 0
   lo : m.lo = m0.lo
 
-theorem initW1St.notOk {m0 : OsMeta} {F : List w8} {nn : Nat} {m : OsMeta} {bs : List (w8 × Bool)}
-    (h : initW1St m0 F nn m bs) : initW1St m0 F nn { m with ok := false } bs :=
+theorem initW1St.notOk {m0 : OsMeta} {F : List w8} {nn : Nat} {m : OsMeta} {bs : List ByteG}
+    (h : initW1St m0 F nn m bs) : initW1St m0 F nn m bs :=
   ⟨h.len, h.nnle, h.size, h.bytes, h.dur, h.dz, h.vk, h.hi, h.cut, h.lo⟩
 
 /-- The page `pageUp x` is at most a page boundary at or past `x`. -/
@@ -328,7 +328,7 @@ theorem pageUp_le {x q : Nat} (h : x ≤ 4096 * q) : pageUp x ≤ 4096 * q := by
 /-- **Every meta slot a crash of a state of `init`'s first write may leave is invalid** (under a
 size that reaches its page): on disk, as `initIdle` knows it, or durable zeros past the old last
 page; else the write's zeros. -/
-theorem initW1_dead {m0 : OsMeta} {xs : List (w8 × Bool)} {F : List w8} {nn : Nat} {s : CSt}
+theorem initW1_dead {m0 : OsMeta} {xs : List ByteG} {F : List w8} {nn : Nat} {s : CSt}
     (h0 : initIdle m0 xs) (hF : F.length = 16384) (hFz : ∀ k < 8192, F.getD k 0 = 0)
     (h : initW1St m0 F nn s.m s.bs)
     (hb : s.busy = .idle ∨ ∃ t, s.busy = .write t nn (F.drop nn)) :
@@ -414,9 +414,9 @@ theorem fileOkS_slotsDead {i : Ino} (s : CSt) (hwf : s.Wf) (hbz : BusyOk s)
     · exact hraw 1 (by omega) (by omega)
 
 /-- **`init`'s first write, retried**: every state it reaches from `initIdle` is an `initW1St`. -/
-theorem initW1St_of_wreach {m0 : OsMeta} {xs : List (w8 × Bool)} {F : List w8}
+theorem initW1St_of_wreach {m0 : OsMeta} {xs : List ByteG} {F : List w8}
     (h0 : initIdle m0 xs) (hF : F.length = 16384) {nn : Nat} {m' : OsMeta}
-    {bs' : List (w8 × Bool)} (hR : WReach NoTearCut m0 xs 0 F nn m' bs') :
+    {bs' : List ByteG} (hR : WReach NoTearCut m0 xs 0 F nn m' bs') :
     initW1St m0 F nn m' bs' := by
   have h64 : F.length < 2 ^ 64 := by rw [hF]; decide
   have hN := hR.narrow h0.len (Nat.zero_le _)
@@ -450,7 +450,7 @@ def initOrdByte : Bool → Nat → w8
   | true, j => initBytes.getD j 0
 
 /-- In phase `ph`, the slot `init` does not write is clean in the page cache, with `initOrdByte`. -/
-def initOrd (ph : Bool) (bs : List (w8 × Bool)) : Prop :=
+def initOrd (ph : Bool) (bs : List ByteG) : Prop :=
   ∀ k < 64, bs[4096 * (1 - initSlot ph) + 16 + k]? =
     some (initOrdByte ph (4096 * (1 - initSlot ph) + 16 + k), true)
 
@@ -484,7 +484,7 @@ theorem initOrd_img {ph : Bool} {img : List w8}
 /-- After the first sync, in phase `ph`: the size at least four pages since the sync, the
 versions known, `m.dur` and the page cache's slots invalid or `init`'s metas, `init`'s page 3 and
 the slot not being written (`initOrd`) clean in the page cache. -/
-structure initMid (ph : Bool) (m : OsMeta) (bs : List (w8 × Bool)) : Prop where
+structure initMid (ph : Bool) (m : OsMeta) (bs : List ByteG) : Prop where
   len : bs.length = m.size
   hi : m.hi ≤ 2 ^ 30
   lo : 4 * 4096 ≤ m.lo
@@ -496,12 +496,12 @@ structure initMid (ph : Bool) (m : OsMeta) (bs : List (w8 × Bool)) : Prop where
     some ((emptyPageBytes (W64 3) (W16 2))[k]?.getD 0, true)
   ord : initOrd ph bs
 
-theorem initMid.notOk {ph : Bool} {m : OsMeta} {bs : List (w8 × Bool)} (h : initMid ph m bs) :
-    initMid ph { m with ok := false } bs :=
+theorem initMid.notOk {ph : Bool} {m : OsMeta} {bs : List ByteG} (h : initMid ph m bs) :
+    initMid ph m bs :=
   ⟨h.len, h.hi, h.lo, h.sz, h.vk, h.dur, h.cache, h.page3, h.ord⟩
 
 /-- Page 3 of an image whose page-3 bytes are the page cache's clean ones. -/
-theorem initMid_page3 {ph : Bool} {m : OsMeta} {bs : List (w8 × Bool)} (h : initMid ph m bs)
+theorem initMid_page3 {ph : Bool} {m : OsMeta} {bs : List ByteG} (h : initMid ph m bs)
     {img : List w8}
     (himg : ∀ k < 4096, bs[4096 * 3 + k]? = some ((emptyPageBytes (W64 3) (W16 2))[k]?.getD 0, true) →
       img[4096 * 3 + k]? = some ((emptyPageBytes (W64 3) (W16 2))[k]?.getD 0)) :
@@ -539,7 +539,7 @@ theorem initWData_meta {ph : Bool} {D : List w8} (hD : initWData ph D) {L : List
 
 /-- A meta write of phase `ph` (page `initSlot ph`, retried) keeps the bytes of the other slot
 and of page 3. -/
-theorem initW_keeps {ph : Bool} {m m' : OsMeta} {bs bs' : List (w8 × Bool)} {D : List w8} {nn : Nat}
+theorem initW_keeps {ph : Bool} {m m' : OsMeta} {bs bs' : List ByteG} {D : List w8} {nn : Nat}
     (hl : bs.length = m.size) (hR : WReach NoTearCut m bs (4096 * initSlot ph) D nn m' bs')
     (hdl : D.length = 4096) (hsz : 4 * 4096 ≤ m.size) :
     (∀ k < 64, bs'[4096 * (1 - initSlot ph) + 16 + k]? = bs[4096 * (1 - initSlot ph) + 16 + k]?) ∧
@@ -554,7 +554,7 @@ theorem initW_keeps {ph : Bool} {m m' : OsMeta} {bs bs' : List (w8 × Bool)} {D 
 /-- **`init`'s meta write of phase `ph`, retried**, from a synced `initMid ph` state (the versions
 known with one each): every state it reaches is `initMid ph`, and lands nothing or the whole page;
 with the whole page, the slot written is `init`'s meta. -/
-theorem initMid_wreach {ph : Bool} {m m' : OsMeta} {bs bs' : List (w8 × Bool)} {D : List w8}
+theorem initMid_wreach {ph : Bool} {m m' : OsMeta} {bs bs' : List ByteG} {D : List w8}
     {nn : Nat} (h : initMid ph m bs) (hvk : m.vk = some []) (hD : initWData ph D)
     (hR : WReach NoTearCut m bs (4096 * initSlot ph) D nn m' bs') :
     initMid ph m' bs' ∧ (nn = 0 ∨ nn = 4096) ∧
@@ -620,7 +620,7 @@ theorem initMid_wreach {ph : Bool} {m m' : OsMeta} {bs bs' : List (w8 × Bool)} 
 /-- A successful sync of the whole file, with `init`'s page 3, slots invalid or `init`'s metas,
 and the other slot of phase `ph` as `initOrd` says, leaves an `initMid ph` state, all clean, the
 versions known with one each. -/
-theorem initMid_synced {ph : Bool} {m : OsMeta} {bs : List (w8 × Bool)} (hok : m.ok = true)
+theorem initMid_synced {ph : Bool} {m : OsMeta} {bs : List ByteG} (hok : True)
     (hl : bs.length = m.size) (hlo : 4 * 4096 ≤ m.size) (hhi : m.size ≤ 2 ^ 30)
     (hs : ∀ i < 2, metaValid (fileMeta (bs.map Prod.fst) i) →
       fileMeta (bs.map Prod.fst) i = bInitMeta i)
@@ -652,7 +652,7 @@ theorem initMid_synced {ph : Bool} {m : OsMeta} {bs : List (w8 × Bool)} (hok : 
 clean (every step before the meta write): `bs`'s meta pages `mp` are an open database's, whose
 current meta's root page holds what `BootMinibolt` checks, and the size since the last sync covers
 the high water mark. -/
-structure commitClean (m : OsMeta) (bs : List (w8 × Bool)) : Prop where
+structure commitClean (m : OsMeta) (bs : List ByteG) : Prop where
   hi : m.hi ≤ 2 ^ 30
   lo : 4 * 4096 ≤ m.lo
   ok : metaPagesOk ((bs.map Prod.fst).take 8192)
@@ -664,7 +664,7 @@ structure commitClean (m : OsMeta) (bs : List (w8 × Bool)) : Prop where
   root : ∀ k < 4096, ∃ b, bs[4096 * curRoot ((bs.map Prod.fst).take 8192) + k]? = some (b, true)
   tx : txOk ((bs.map Prod.fst).take 8192)
 
-theorem commit_clean_img {m : OsMeta} {bs : List (w8 × Bool)} (h : commitClean m bs)
+theorem commit_clean_img {m : OsMeta} {bs : List ByteG} (h : commitClean m bs)
     {img : List w8} (hlo : m.lo ≤ img.length) (hhi : img.length ≤ 2 ^ 30)
     (hcl : ∀ k b, bs[k]? = some (b, true) →
       (k < 8192 ∨ (4096 * curRoot ((bs.map Prod.fst).take 8192) ≤ k ∧
@@ -750,7 +750,7 @@ theorem commit_cur {img mp : List w8} {M N : Meta} {s : Nat} (hs : s < 2)
 the old meta pages `mp`, whose current meta `M` is in slot `s`, to the new meta `N`): slot `s`,
 `M`'s root page and `N`'s root page (synced, holding `N`'s txid) clean, and the durable copy of slot
 `1 - s` the old or the new meta. -/
-structure commitMetaSt (m : OsMeta) (bs : List (w8 × Bool)) (mp : List w8) (N : Meta)
+structure commitMetaSt (m : OsMeta) (bs : List ByteG) (mp : List w8) (N : Meta)
     (s : Nat) : Prop where
   s2 : s < 2
   sTx : s = (curMeta mp).txid'.toNat % 2
@@ -776,7 +776,7 @@ structure commitMetaSt (m : OsMeta) (bs : List (w8 × Bool)) (mp : List w8) (N :
     (pageVal (((bs.map Prod.fst).drop (4096 * N.root'.root'.toNat)).take 4096))
   nPage : ∀ k < 4096, ∃ b, bs[4096 * N.root'.root'.toNat + k]? = some (b, true)
 
-theorem commitMeta_good {m : OsMeta} {bs : List (w8 × Bool)} {mp : List w8} {N : Meta} {s : Nat}
+theorem commitMeta_good {m : OsMeta} {bs : List ByteG} {mp : List w8} {N : Meta} {s : Nat}
     (h : commitMetaSt m bs mp N s) {img : List w8} (hlo : m.lo ≤ img.length)
     (hhi : img.length ≤ 2 ^ 30)
     (hcl : ∀ k b, bs[k]? = some (b, true) → (4096 * s + 16 ≤ k ∧ k < 4096 * s + 80 ∨
@@ -849,7 +849,7 @@ include hwf
 
 /-- **`init`'s first write's obligation**: a state of it, idle or with its next attempt in flight
 (the data's rest), nothing frozen. -/
-theorem initW1_okS {m0 : OsMeta} {xs : List (w8 × Bool)} {F : List w8} {nn : Nat}
+theorem initW1_okS {m0 : OsMeta} {xs : List ByteG} {F : List w8} {nn : Nat}
     (h0 : initIdle m0 xs) (hF : F.length = 16384) (hFz : ∀ k < 8192, F.getD k 0 = 0)
     (hst : initW1St m0 F nn s.m s.bs) (hfa : s.fa = 0) (hfb : s.fb = 0)
     (hb : s.busy = .idle ∨ ∃ t, s.busy = .write t nn (F.drop nn) ∧ nn < 16384) :

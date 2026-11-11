@@ -57,11 +57,11 @@ theorem goodImg_cases {F : List w8} (h : goodImg F) : noValid F ∨ committedImg
     · exact h1 (by rw [fileMeta_take _ _ _ (by omega)]; exact hv)
   · exact Or.inr h
 
-theorem fst_clean' (F : List w8) : (F.map (·, true)).map Prod.fst = F := by
+theorem fst_clean' (F : List w8) : (F.map durB).map Prod.fst = F := by
   rw [List.map_map]; exact List.map_id _
 
-theorem clean_of' (xs : List (w8 × Bool)) (h : ∀ x ∈ xs, x.2 = true) :
-    xs = (xs.map Prod.fst).map (·, true) := by
+theorem clean_of' (xs : List ByteG) (h : ∀ x ∈ xs, x = durB x.1) :
+    xs = (xs.map Prod.fst).map durB := by
   rw [List.map_map]
   conv => lhs; rw [← List.map_id xs]
   refine List.map_congr_left fun x hx => ?_
@@ -70,7 +70,7 @@ theorem clean_of' (xs : List (w8 × Bool)) (h : ∀ x ∈ xs, x.2 = true) :
   rw [show b = true from h _ hx]
 
 theorem clean_get (F : List w8) (k : Nat) (hk : k < F.length) :
-    ∃ b, (F.map (·, true))[k]? = some (b, true) :=
+    ∃ b, (F.map durB)[k]? = some (b, true) :=
   ⟨F[k], by rw [List.getElem?_map, List.getElem?_eq_getElem hk]; rfl⟩
 
 /-- The file `Open` opened, of `OsMeta` `m` and bytes `F`, all clean and durable, one version of
@@ -78,7 +78,7 @@ each sector, fresh sectors known from its last page on if short, its meta slots 
 `init` must lay it out. -/
 structure openStart (m : OsMeta) (F : List w8) : Prop where
   len : F.length = m.size
-  ok : m.ok = true
+  ok : True
   maps : m.maps = ∅
   lo : m.lo = m.size
   hi : m.hi = m.size
@@ -127,7 +127,7 @@ theorem openStart_disk (vs : Nat → SecBytes) (sz : Nat)
 
 theorem startSt_open {j : Ino} {b : GoString} {V : Hist} {i : Ino} {s : CState}
     (hs : StartSt s) (hi : s = none ∨ sIno s = some i) :
-    ∃ m0, (csOpenSt j b V i s).1 = some (i, ⟨m0, (startImg s).map (·, true), 0, 0, .idle⟩) ∧
+    ∃ m0, (csOpenSt j b V i s).1 = some (i, ⟨m0, (startImg s).map durB, 0, 0, .idle⟩) ∧
       openStart m0 (startImg s) := by
   rcases hs with rfl | ⟨i', vs, sz, rfl, hg⟩
   · exact ⟨newMeta, rfl, openStart_new⟩
@@ -140,13 +140,13 @@ theorem startSt_open {j : Ino} {b : GoString} {V : Hist} {i : Ino} {s : CState}
         exact openStart_disk vs sz hg
 
 theorem start_initIdle {m : OsMeta} {F : List w8} (hs : openStart m F) (hn : noValid F) :
-    initIdle m (F.map (·, true)) := by
+    initIdle m (F.map durB) := by
   have hg := hs.good.1
   refine ⟨by rw [List.length_map, hs.len], by rw [hs.hi, ← hs.len]; exact hg, hs.vk, hs.dz,
     by rw [hs.lo]; omega, hs.dur hn⟩
 
 theorem start_commitClean {m : OsMeta} {F : List w8} (hs : openStart m F) (hc : committedImg F) :
-    commitClean m (F.map (·, true)) := by
+    commitClean m (F.map durB) := by
   obtain ⟨h4, hmp, hpg, hboot, hslot, htx⟩ := hc
   have hg := hs.good.1
   have hr1 := hmp.2.2.1
@@ -165,9 +165,9 @@ theorem start_commitClean {m : OsMeta} {F : List w8} (hs : openStart m F) (hc : 
 
 /-- The starting state is `dbOk`: `init`'s idle state, or a commit's. -/
 theorem start_okS {i : Ino} {m : OsMeta} {F : List w8} (hs : openStart m F) :
-    dbOk (some (i, ⟨m, F.map (·, true), 0, 0, .idle⟩)) := by
-  have hl : (F.map (·, true)).length = m.size := by rw [List.length_map, hs.len]
-  have hwf : (⟨m, F.map (·, true), 0, 0, .idle⟩ : CSt).Wf := ⟨hl, Nat.le_refl _, Nat.zero_le _, trivial⟩
+    dbOk (some (i, ⟨m, F.map durB, 0, 0, .idle⟩)) := by
+  have hl : (F.map durB).length = m.size := by rw [List.length_map, hs.len]
+  have hwf : (⟨m, F.map durB, 0, 0, .idle⟩ : CSt).Wf := ⟨hl, Nat.le_refl _, Nat.zero_le _, trivial⟩
   rcases goodImg_cases hs.good with hn | hc
   · have h0 := start_initIdle hs hn
     have hz : ∀ k < 8192, (List.replicate 16384 (0 : w8)).getD k 0 = 0 := fun k _ => by
@@ -177,9 +177,9 @@ theorem start_okS {i : Ino} {m : OsMeta} {F : List w8} (hs : openStart m F) :
         fun b hb => absurd hb (Nat.not_lt_zero _), rfl, rfl,
         ⟨[], hs.vk, fun _ _ h => by simp at h⟩, Nat.le_max_left _ _, .inr rfl, rfl⟩
       rfl rfl (.inl rfl)
-  · exact commitClean_okS ⟨m, F.map (·, true), 0, 0, .idle⟩ hwf rfl (start_commitClean hs hc)
+  · exact commitClean_okS ⟨m, F.map durB, 0, 0, .idle⟩ hwf rfl (start_commitClean hs hc)
 
-theorem freshTx_noValid {F : List w8} (hn : noValid F) : freshTx (F.map (·, true)) = (1, none, 4) := by
+theorem freshTx_noValid {F : List w8} (hn : noValid F) : freshTx (F.map durB) = (1, none, 4) := by
   unfold freshTx
   simp only [fst_clean', List.length_map]
   rw [if_neg]
@@ -188,14 +188,14 @@ theorem freshTx_noValid {F : List w8} (hn : noValid F) : freshTx (F.map (·, tru
   · exact hn 1 (by omega) (by omega) (by rw [fileMeta_take _ _ _ (by omega)] at h1; exact h1)
 
 theorem freshTx_committed {F : List w8} (hc : committedImg F) :
-    freshTx (F.map (·, true)) = ((curMeta (F.take 8192)).txid'.toNat,
+    freshTx (F.map durB) = ((curMeta (F.take 8192)).txid'.toNat,
       pageVal ((F.drop (4096 * curRoot (F.take 8192))).take 4096), curPgid (F.take 8192)) := by
   unfold freshTx
   simp only [fst_clean', List.length_map]
   rw [if_pos ⟨hc.1, hc.2.1.2.1⟩]
 
 theorem take_fst_clean (F : List w8) (k : Nat) :
-    ((F.map (·, true)).take k).map Prod.fst = F.take k := by
+    ((F.map durB).take k).map Prod.fst = F.take k := by
   rw [List.map_take, fst_clean']
 
 /-- `readPageSize` found no valid meta. -/
@@ -225,12 +225,12 @@ theorem noValid_of_short {F : List w8} (hg : goodImg F) (h : F.length < 4 * 4096
 
 /-- The file after `Open`'s `init` step: one a commit may start from, all clean, at transaction
 `t` holding `vo`, high water mark `n`. -/
-structure openReady (m : OsMeta) (bs : List (w8 × Bool)) (t : Nat) (vo : Option w64) (n : Nat) :
+structure openReady (m : OsMeta) (bs : List ByteG) (t : Nat) (vo : Option w64) (n : Nat) :
     Prop where
   cc : commitClean m bs
   len : bs.length = m.size
-  clean : ∀ x ∈ bs, x.2 = true
-  ok : m.ok = true
+  clean : ∀ x ∈ bs, x = durB x.1
+  ok : True
   maps : m.maps = ∅
   lo : m.lo = m.size
   h16 : 4 * 4096 ≤ m.size
@@ -240,8 +240,8 @@ structure openReady (m : OsMeta) (bs : List (w8 × Bool)) (t : Nat) (vo : Option
   pg : curPgid ((bs.map Prod.fst).take 8192) = n
 
 theorem ready_committed {m : OsMeta} {F : List w8} {t : Nat} {vo : Option w64} {n : Nat}
-    (hs : openStart m F) (hc : committedImg F) (hf : freshTx (F.map (·, true)) = (t, vo, n)) :
-    openReady m (F.map (·, true)) t vo n := by
+    (hs : openStart m F) (hc : committedImg F) (hf : freshTx (F.map durB) = (t, vo, n)) :
+    openReady m (F.map durB) t vo n := by
   rw [freshTx_committed hc] at hf
   simp only [Prod.mk.injEq] at hf
   obtain ⟨ht, hv, hn⟩ := hf
@@ -255,14 +255,14 @@ theorem ready_committed {m : OsMeta} {F : List w8} {t : Nat} {vo : Option w64} {
 
 theorem ready_init {m : OsMeta} {F : List w8} {t : Nat} {vo : Option w64} {n : Nat}
     (hs : openStart m F) (hn : noValid F)
-    (hf : freshTx (F.map (·, true)) = (t, vo, n)) :
-    openReady (initDoneMeta m (F.map (·, true))) (initFile (F.map (·, true))) t vo n := by
+    (hf : freshTx (F.map durB) = (t, vo, n)) :
+    openReady (initDoneMeta m (F.map durB)) (initFile (F.map durB)) t vo n := by
   rw [freshTx_noValid hn] at hf
   simp only [Prod.mk.injEq] at hf
   obtain ⟨rfl, rfl, rfl⟩ := hf
   have hsz : m.size ≤ 2 ^ 30 := by rw [← hs.len]; exact hs.good.1
-  have hl : (F.map (·, true)).length = m.size := by rw [List.length_map, hs.len]
-  generalize F.map (·, true) = xs at hl
+  have hl : (F.map durB).length = m.size := by rw [List.length_map, hs.len]
+  generalize F.map durB = xs at hl
   have hc := curMeta_init _ (by rw [List.take_take, Nat.min_self])
   refine ⟨init_commitClean hsz, ?_, ?_, hs.ok, hs.maps, rfl, ?_, ?_, ?_, ?_, ?_⟩
   · rw [initFile_length, hl]; rfl
@@ -285,7 +285,7 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Assumptions]
 
 /-- An idle state with nothing frozen: the client's halves of its `OsMeta` and bytes. -/
-theorem csOwn_idle00 (p : Ino) (γ : GName) (m : OsMeta) (bs : List (w8 × Bool)) :
+theorem csOwn_idle00 (p : Ino) (γ : GName) (m : OsMeta) (bs : List ByteG) :
     csOwnF (GF := GF) γ (some (p, ⟨m, bs, 0, 0, .idle⟩)) ⊣⊢
       ghostVar γ (1 : Qp).half (some (p, ⟨m, bs, 0, 0, .idle⟩) : CState) ∗
       osMeta (GF := GF) p (DFrac.own (1 : Qp).half) m ∗
@@ -309,11 +309,11 @@ theorem csOwn_idle00 (p : Ino) (γ : GName) (m : OsMeta) (bs : List (w8 × Bool)
     · ipureintro; exact ⟨Hl, Nat.le_refl _, Nat.zero_le _, trivial⟩
 
 /-- The committed pages of a clean file, frozen (`cs_freeze`), as pages. -/
-theorem ready_pages (p : Ino) (bs : List (w8 × Bool)) (n : Nat)
-    (hcl : ∀ x ∈ bs, x.2 = true) (h : 4096 * n ≤ bs.length) (h2 : 2 ≤ n) :
+theorem ready_pages (p : Ino) (bs : List ByteG) (n : Nat)
+    (hcl : ∀ x ∈ bs, x = durB x.1) (h : 4096 * n ≤ bs.length) (h2 : 2 ≤ n) :
     osBytes (GF := GF) p 8192 DFrac.discard ((bs.drop 8192).take (4096 * n - 8192)) ⊢
       |==> [∗list] r ∈ List.range' 2 (n - 2), pageIs (GF := GF) p r (pageOf (bs.map Prod.fst) r) := by
-  obtain ⟨G, rfl⟩ : ∃ G : List w8, bs = G.map (·, true) := ⟨_, clean_of' bs hcl⟩
+  obtain ⟨G, rfl⟩ : ∃ G : List w8, bs = G.map durB := ⟨_, clean_of' bs hcl⟩
   rw [fst_clean', ← List.map_drop, ← List.map_take, show 8192 = 4096 * 2 by rfl,
     show 4096 * n - 4096 * 2 = 4096 * (n - 2) by omega]
   rw [List.length_map] at h
@@ -448,11 +448,11 @@ theorem Open.wp_proof_crash (wp_OpenFile : os.OpenFile.specCrashS (GF := GF) (hG
     · iexists _; iexact Hown
   | nil =>
   (try wp_auto)
-  icases (csOwn_idle00 i γc m0 (F.map (·, true))).1 $$ Hown with ⟨Hv, Hm, Hb, %Hl⟩
+  icases (csOwn_idle00 i γc m0 (F.map durB)).1 $$ Hown with ⟨Hv, Hm, Hb, %Hl⟩
   wp_apply wp_Stat f fd path (DFrac.own 1) (DFrac.own 1) (DFrac.own (1 : Qp).half) _ m0
       $$ [Hf Hfdo Hm] as %fi %err2 ⟨Hf, Hfdo, Hm, Hfi⟩
   · iframe; iframe #; iexact Hm
-  ihave Hown := (csOwn_idle00 i γc m0 (F.map (·, true))).2 $$ [Hv Hm Hb]
+  ihave Hown := (csOwn_idle00 i γc m0 (F.map durB)).2 $$ [Hv Hm Hb]
   · iframe; ipureintro; exact Hl
   icases Hfi with (⟨%fs, %Hfi, Hfs⟩ | %Hfi)
   rotate_left
@@ -489,25 +489,25 @@ theorem Open.wp_proof_crash (wp_OpenFile : os.OpenFile.specCrashS (GF := GF) (hG
       ⌜(b = true → committedImg F) ∧ (b = false → noValid F)⌝ ∗ db_ptr ↦ db ∗
       os.ownFile (GF := GF) f fd path (DFrac.own 1) ∗
       osFd (GF := GF) fd (DFrac.own 1) ⟨i, true, true⟩ ∗
-      csOwnF (GF := GF) γc (some (i, ⟨m0, F.map (·, true), 0, 0, .idle⟩)) ∗
+      csOwnF (GF := GF) γc (some (i, ⟨m0, F.map durB, 0, 0, .idle⟩)) ∗
       db.[DB, go!"dataref"] ↦ (zero_val DB).dataref' ∗ db.[DB, go!"datasz"] ↦ (zero_val DB).datasz' ∗
       db.[DB, go!"meta0"] ↦ (zero_val DB).meta0' ∗ db.[DB, go!"meta1"] ↦ (zero_val DB).meta1' ∗
       «$res0_ptr» ↦ zero_val Loc ∗ «$res1_ptr» ↦ GoInterface.nil) ∨
     (∃ e : GoInterface, ⌜v = returnVal #() ∧ e ≠ interface.nil⌝ ∗ db_ptr ↦ db ∗
       «$res0_ptr» ↦ null ∗ «$res1_ptr» ↦ e ∗ ∃ s' : CState, csOwnF (GF := GF) γc s')))
     with [valid db Hf Hfdo Hown dataref datasz meta0 meta1 «$res0» «$res1»]
-  · icases (csOwn_idle00 i γc m0 (F.map (·, true))).1 $$ Hown with ⟨Hv, Hm, Hb, %Hl⟩
-    icases (osBytes_take_drop i _ (F.map (·, true)) 8192 (by omega)).1 $$ Hb with ⟨HX, HXr⟩
+  · icases (csOwn_idle00 i γc m0 (F.map durB)).1 $$ Hown with ⟨Hv, Hm, Hb, %Hl⟩
+    icases (osBytes_take_drop i _ (F.map durB) 8192 (by omega)).1 $$ Hb with ⟨HX, HXr⟩
     wp_apply wp_readPageSize db f DFrac.discard fd path (DFrac.own 1) (DFrac.own 1)
         (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half) ⟨i, true, true⟩ m0
-        ((F.map (·, true)).take 8192) rfl (by rw [List.length_take]; omega) (by omega)
+        ((F.map durB).take 8192) rfl (by rw [List.length_take]; omega) (by omega)
         $$ [Hf Hfdo Hm HX]
       as %ps %ok %err3 ⟨-, Hf, Hfdo, Hm, HX, %Hrd⟩
     · iframe; iframe #
-    ihave Hown := (csOwn_idle00 i γc m0 (F.map (·, true))).2 $$ [Hv Hm HX HXr]
+    ihave Hown := (csOwn_idle00 i γc m0 (F.map durB)).2 $$ [Hv Hm HX HXr]
     · iframe Hv Hm
       isplitl
-      · iapply (osBytes_take_drop i _ (F.map (·, true)) 8192 (by omega)).2; iframe
+      · iapply (osBytes_take_drop i _ (F.map durB) 8192 (by omega)).2; iframe
       · ipureintro; exact Hl
     rw [take_fst_clean] at Hrd
     have hF16 : 4 * 4096 ≤ F.length := by rw [hs.len]; omega
@@ -582,7 +582,7 @@ theorem Open.wp_proof_crash (wp_OpenFile : os.OpenFile.specCrashS (GF := GF) (hG
   subst Hv
   (try wp_auto)
   -- `init` when no meta is valid
-  wp_join (Q := fun v => iprop((⌜v = executeVal⌝ ∗ ∃ (m' : OsMeta) (bs : List (w8 × Bool)),
+  wp_join (Q := fun v => iprop((⌜v = executeVal⌝ ∗ ∃ (m' : OsMeta) (bs : List ByteG),
       db.[DB, go!"filesz"] ↦ W64 (m'.size : Int) ∗
       csOwnF (GF := GF) γc (some (i, ⟨m', bs, 0, 0, .idle⟩)) ∗ ⌜openReady m' bs t vo n⌝ ∗
       db_ptr ↦ db ∗ os.ownFile (GF := GF) f fd path (DFrac.own 1) ∗
@@ -599,13 +599,13 @@ theorem Open.wp_proof_crash (wp_OpenFile : os.OpenFile.specCrashS (GF := GF) (hG
       ileft
       isplitr
       · ipureintro; trivial
-      iexists m0, F.map (·, true)
+      iexists m0, F.map durB
       iframe
       ipureintro; exact ready_committed hs (Hb.1 rfl) hfresh
     | false =>
       have hn := Hb.2 rfl
       (try wp_auto)
-      wp_apply wp_init db f fd path (DFrac.own 1) (DFrac.own 1) dbCrashN path R γc i m0 (F.map (·, true))
+      wp_apply wp_init db f fd path (DFrac.own 1) (DFrac.own 1) dbCrashN path R γc i m0 (F.map durB)
           hs.ok hs.maps hsz30 (start_initIdle hs hn) dbCrashN_disj
           $$ [filesz Hf Hfdo Hown] as %err4 ⟨Hf, Hfdo, Hres⟩
       · iframe; iframe #
@@ -615,7 +615,7 @@ theorem Open.wp_proof_crash (wp_OpenFile : os.OpenFile.specCrashS (GF := GF) (hG
         ileft
         isplitr
         · ipureintro; trivial
-        iexists initDoneMeta m0 (F.map (·, true)), initFile (F.map (·, true))
+        iexists initDoneMeta m0 (F.map durB), initFile (F.map durB)
         rw [show (max (m0.size : Int) 16384) = ((max m0.size 16384 : Nat) : Int) by omega]
         iframe
         ipureintro; exact ready_init hs hn hfresh

@@ -27,8 +27,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Ass
 
 /-- `rwRC`'s open branch, from the writer's part. -/
 theorem rwRC_of_writerStC (γ : DBNames) (γc : GName) (db f : Loc) (fd : w64) (p : GoString)
-    (mp : List w8) (fl : Bool) (hwm : Nat) (st : MapSt) (m : OsMeta) (bs : List (w8 × Bool))
-    (hok : fl = false → m.ok = true) :
+    (mp : List w8) (fl : Bool) (hwm : Nat) (st : MapSt) (m : OsMeta) (bs : List ByteG)
+    (hok : fl = false → True) :
     writerStC (GF := GF) γ γc db f fd p mp fl hwm st m bs ∗
       (match st with | none => dbFailed (GF := GF) γ | some _ => emp) ⊢
       rwRC (GF := GF) γ γc db f fd p := by
@@ -46,7 +46,7 @@ theorem rwRC_of_writerStC (γ : DBNames) (γc : GName) (db f : Loc) (fd : w64) (
 /-- Failing the handle under `metalock`, after a failed `commit`: `metaRC` failed, `rwRC`, and the
 committer's token at high water mark 0. -/
 theorem fail_handleC (γ : DBNames) (γc : GName) (db f : Loc) (fd : w64) (p : GoString) (t n : Nat)
-    (mp' : List w8) (fl : Bool) (hwm : Nat) (st : MapSt) (m : OsMeta) (bs : List (w8 × Bool)) :
+    (mp' : List w8) (fl : Bool) (hwm : Nat) (st : MapSt) (m : OsMeta) (bs : List ByteG) :
     dbOwner (GF := GF) γ t n ∗ writerStFC (GF := GF) γ γc db f fd p mp' fl hwm st m bs ∗
       (⌜fl = false⌝ ∨ (⌜fl = true⌝ ∗ dbFailed (GF := GF) γ)) ∗ metaRC (GF := GF) γ db p ⊢
       |={⊤}=> ∃ b : Bool, db.[DB, go!"failed"] ↦ b ∗

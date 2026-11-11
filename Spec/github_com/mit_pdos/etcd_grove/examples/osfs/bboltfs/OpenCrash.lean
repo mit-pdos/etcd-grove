@@ -45,7 +45,7 @@ abbrev Open.specCrash : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 30)] (d b : GoString) (R : Roots) (V : Hist) (j : Ino) (γc : GName)
     (s : CState) (t : Nat) (vo : Option w64) (n : Nat) (vp : Nat → Option w64 → Prop),
   NameOk b → lookupH R V d = some (.dir j) → StartSt s →
-  freshTx ((startImg s).map (·, true)) = (t, vo, n) → vp t vo →
+  freshTx ((startImg s).map durB) = (t, vo, n) → vp t vo →
   (∀ t vo, vp t vo → bootOk t vo) →
   {{ pkgFacts (GF := GF) ∗ osInv (GF := GF) ∗ csInv (GF := GF) dbCrashN (child d b) R γc Good dbOk ∗
       csOwn (GF := GF) (child d b) R γc s V }}

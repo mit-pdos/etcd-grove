@@ -44,7 +44,7 @@ each meta slot inside the file whole: the bytes `m.dur` knows there, the client'
 with its write in flight over them. -/
 def crashImg (s : CSt) (img : List w8) : Prop :=
   s.vmeta.lo ≤ img.length ∧ img.length ≤ s.vmeta.hi ∧
-  (∀ k x, s.bs[k]? = some x → x.2 = true → s.taken k = false → img[k]? = some x.1) ∧
+  (∀ k x, s.bs[k]? = some x → x = durB x.1 → s.taken k = false → img[k]? = some x.1) ∧
   ((∃ ns, s.m.vk = some ns) → ∀ i < 2, 4096 * i + 512 ≤ s.m.size → 4096 * i + 80 ≤ img.length →
     (∀ k < 64, ∀ d, s.m.dur[4096 * i + 16 + k]? = some (some d) → img[4096 * i + 16 + k]? = some d) ∨
     (∀ k < 64, img[4096 * i + 16 + k]? = some (s.bs.getD (4096 * i + 16 + k) (0, false)).1) ∨
