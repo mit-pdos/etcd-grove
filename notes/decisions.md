@@ -36095,3 +36095,69 @@ capability's lemmas destructure and rebuild the clause (`TracedHooksGlobal.lean`
 `trCapB_cfg`, `TracedFamilies.lean`'s `trCapB_pinMem`); `trCapB_intro`'s premise; `startTrace_trCapB`.
 `trCapB_bootFit` puts the clause into the phase, and with slice 24c's `stepBundle_traced.on_of_onRB`
 gives `stepBundle_traced_folAppAcc_on` and `stepBundle_traced_candAppAcc_on` (`.on`, every capability).
+
+## Q8 stage 1 (slice 27b): a candidate's won election, its path proved (`stepBundle_traced_candVoteRespWon`); `winLend` lends the node's own `Progress` membership (2026-11-11 · trace-check, Q8 stage 1 slice 27b; slice 25b's remaining list taken by the coordinator, its form the agent's under the user's delegation · branch `trace-check-q8s27b`; DRAFT until trace-check's Freeze)
+
+Raft-internal; no axiom, no `sorry`, nothing frozen (`TracedCap.lean`, `TracedHooksDraft.lean`,
+`TracedApiDraft.lean` untouched), no client-visible statement changed. New modules
+`TracedRaftStepRecvVoteRespWon{Phase,Fx,}.lean`.
+
+**The quorum, from the receive line to the `BecomeLeader` line** (A6's open item). The receive line's
+phase step is the only place the receive law's new premises (the response's source and the candidate's
+responded voters configured) are available; `phaseStepR_voteRespWon` strengthens
+`phaseStepR_voteRespCand`'s result phase to `WonRecvPin` (the pinned idle phase of the tally's state and
+`isQuorum cs.votesGranted (confAbs C)`), from `votesIn_of_responded`, `votesIn_recordVote`,
+`wonVote_quorum` and a new conversion `isQuorum_of_jquorum` (raft's `JQuorum c (granted votes)` at a
+configuration whose incoming voters are `C` is the specification's `isQuorum` of their abstraction, given
+them configured). The `BecomeLeader` line's phase step reads it off the phase (`PhaseStepB` has no
+message premise, as A6 noted). `jquorum_not_jlost` refutes `"Hglost"` on the won path, so the path is
+just `JQuorum` (`CandVoteRespWon`), the lost path's `¬ JQuorum ∧ JLost` and the pending path's
+`¬ JQuorum ∧ ¬ JLost` covering the rest.
+
+**The leader's phase** (slice 25b's item 1): the phases name a `Progress` map with `reset`'s `Match`
+values, `wonPvs id li pvs` (every peer's `Match` `0`, the node's own `li`, the node inserted whether or
+not it was in `pvs`), and the leader's states `wonL` (`becomeLeaderPre` at `wonPvs`) and `wonLg`
+(`becomeLeaderLog` at `wonPvs`). Node and send events read no `Progress` (`nodeEvOf_prvals`, and
+`SendEvOf` likewise, by `rfl`), so the lines' events at `becomeLeaderPre`/`becomeLeaderLog` are those at
+`wonL`/`wonLg`. `wonPvs` has a `LeaderMatchOk` whatever `pvs` holds (so `sim_becomeLeader` applies at the
+`BecomeLeader` line, before anything is known of the node's own `Progress`), and is `reset`'s
+(`resetMatched id li pvs`, which `CloseMid` and the ghost's win need) once `id ∈ domSet pvs`
+(`wonPvs_reset`). A pin quantified over the `Progress` map was the other option; a fixed map keeps
+slice 24a's `RepPin`/`PinAt` machinery unchanged.
+
+**`winLend` lends `⌜id ∈ domSet s.prvals⌝`** (a change to slice 25b's loan, `LemmasStepGates.lean`, not
+importable, not frozen): the win's last ghost phase (`ghost_stepWin_entry`) and `CloseMid` need the node
+in its own `Progress` map, which only `Step` knows (from the tracker, `ownTrackerC_prvals_dom`,
+`ownRaftPhysC_voter`; it already computed it for its own `Hid`). `winLend γ id s` is now traced
+`⌜id ∈ domSet s.prvals⌝ ∗ ⧖ (…)`; `wp_Step_MsgVoteResp`'s `"HTw"` takes the fact
+(`⌜id ∈ domSet s.prvals⌝ -∗ ⧖ (k0 + 1) -∗ R.Tw`) and its candidate case passes its `Hid`; `raft.Step`'s
+proof builds the loan with it; `TracedUntracedRaftStep` mechanically (`winLend γ id s`). `raft.Step.spec`'s
+text is unchanged (`ghostIn`'s body moved).
+
+**The new leader's server facts** (`srvFacts_newLeader`): built from raft's own facts of its log
+(`ownRaftGhost_logFacts` before the registration: records, committed prefix, commit certificate), its
+registration (`isLeader`, `isCamp` at its log, `fp = []` uncompacted) and its full log (`leadFull`, from
+the registration's wand), with recorded log raft's log and the pending entries none (at the `BecomeLeader`
+line) or the empty entry (at its `Replicate` line), the campaign clause's `F0` the log itself. Not from the
+specification state's facts of the candidate: `logAbs` forgets entry data, so their recorded log is not
+raft's. Slice 24a's `srvFacts_rep` does not apply (it reads a last entry of the leader's term).
+
+**The lines' facts.** `simFx_becomeLeaderW`/`fxPresU_becomeLeader`: `specInv_becomeLeader` from
+`becomeLeader_hyps` (kept the vote table and the term authority by `persistent_entails_right`), the term log
+allocated after, inside the line's update (the registration's wand), `QuorumKept` by `quorumKept_mono`,
+`AckHists` by A6's `ackHists_becomeLeader`, `AppSlices` by `appSlices_becomeLeader` (`CandS`), `γ.reBoot ≠
+[]` from the capability's `C.length ≤ γ.reBoot.length` (A6's Q24, `trCapB_bootFit`) and `id ∈ C`.
+`simFx_replicate_of`/`fxPres_replicateW`: slice 24a's `simFx_replicate` with the leader's facts given;
+`phaseStepB_replicateB`: `phaseStepB_replicate` with the log past the bootstrap entries given (`|C| ≤
+|γ.reBoot| ≤` the campaign log's length, `isCamp_boot`). The self-acknowledgement and the appends reuse
+`phaseStepB_selfAck`, `fxPres_selfAck`, `phaseStepB_msgApp_pin`, `fxPres_app`, `app_lead`,
+`msgFacts_app_of_log` at `wonLg` (a peer's `Match` in `wonPvs` is `0`, the gate's `to ≠ id`).
+
+**The close**: the family after the self-acknowledgement (`wonGE`) records the outbox's growth, so
+`StepEnd`'s won outcome follows without the close's log (`wonEnd`: a pending or lost tally queues
+nothing; `raft__Step/VoteWin.lean`'s `voteWin_end` is not importable here); the ghost state is given back
+at `wonStateW … wonPvs` (`CloseMid`'s second case, `wonPvs_reset`), the capability idle at the end state
+(`simIdleS_wonEnd`: `simIdleS_prvals`, both maps `reset`'s).
+
+Not done: the paths' assembly into `stepBundle_traced.on` (`.onC` for this path, as the lost and pending
+ones).
