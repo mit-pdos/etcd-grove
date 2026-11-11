@@ -36925,6 +36925,8 @@ premise). Reviews `notes/trace-validation-reviews/a7-r1.md`, `a7-r2.md`: no firs
 
 ## Design pass (node API, harness): the chain from `raft_tracecheck_safe` to the proved pieces, as text; the tokens at `Advance` through a claim; the messages' types at the receiver (found); A8's statements (2026-11-11 · trace-check, the design pass the user approved under `notes/spec-first-plan.md`'s "Design before plumbing"; decided by the agent under the user's delegation, but §1 of the document (the closed statements), which is the user's · branch `trace-check-design`; DRAFT, for review)
 
+*Superseded in part (2026-11-11) by "Design pass, revision 1" below: the tokens' protocol at `Advance` ("both halves back" made untraced `node.Advance.spec` unprovable at a traced node), "the current spec is the untraced instance" for `Step`/`Advance` (false for `Step`), the step bound, and L4.*
+
 **What.** `notes/trace-check-design.md`: the closed statements (the user's: `raft_tracecheck_safe` with
 Q32's premise bundle `tracecheck.premises boot := bootMarshal [1,2,3] [[],[],[]] (toEntries boot)` and
 `tracecheck.BootFacts boot := BootLog …`, as `etcd_putget.premises`/`BootFacts`; the corollary
@@ -36982,5 +36984,55 @@ from A1), L3 (the refused calls' client call sites, uncounted), L4 (`threadBound
 `Advance` → `node.Step.tracedSpec` → `Cluster.traceSim_bootEnd` → `runOver_intro`); Probe B, chosen by its
 invariant, the node's claim and deposit through `readyc`, `advancec` (both orders) and the receiver's
 `recvc` arm. The order is the Go's: `Advance` before `send`.
+
+No axiom, no `sorry`, no Lean file changed.
+
+---
+
+## Design pass, revision 1: the review round `design-r1` answered; Q38 (a) in the closed statements; the tokens through a per-node escrow; one `node.Step.spec` (2026-11-11 · trace-check, decided by the agent under the user's delegation, but Q38, which the user decided · branch `trace-check-design2`; DRAFT, for review)
+
+**What.** `notes/trace-check-design.md` revised against `notes/trace-validation-reviews/design-r1.md`
+(F1-F3, S1-S12); its "Revision 1" header lists each finding and the change. Nothing threaded, no Lean
+run.
+
+**Decided by the user (Q38, 2026-11-11):** `raft_tracecheck_safe`'s step bound `n + 2 ≤ 2^31` (the
+harness's network `WaitGroup` gets one `Add(1)` per message and Go panics past `2^31`; the proof bounds
+the counter by the threads, `threadBound = n + 2` at adequacy), `[ThreadBoundLe GF (2^31)]` in the
+corollary, whose form is approved. The chain from `init_adequate`'s `HT` to `WaitGroup.Add.spec`'s
+`< 2^31` is checked in the document's §6.
+
+**Decided by the agent:**
+- *F3, the tokens at `Advance`*: of the two options (a fresh claim per `Ready`, `run` needing nothing
+  back; or `Cluster.trace γ = none →` on `node.Advance.spec` with "both halves back"), the first, since it
+  changes no client (the second: 5 call sites). The review's sketch was not sound as written: a fresh
+  ghost name in the claim agrees with nothing the deposit names, and a driver can keep a stale claim.
+  Made exact as a per-node escrow (`rtkInv`: a ghost map of the `Ready`s' keys with fixed per-node names
+  `rtk`, `np`, `dep`; `run` allocates a key at the `readyc` commit and deposits `acceptReady`'s tokens
+  before arming `advancec`; it lends its exclusive `np` at the rendezvous, which shows the claimant that
+  no deposit is pending, in both rendezvous orders). `run` gets back only its own `np`, so
+  `node.Advance.spec` holds for every `γ`; a stale claim still finds its tokens. Argued against
+  `node.go`'s `run` (`advancec` set only after `acceptReady`, `readyc` re-armed only after the
+  `advancec` case). Probe B checks it, including a driver without a claim.
+- *F2*: one proved `node.Step.spec`; the gate in `stepIn`'s sealed body (through `stepP`'s `netP`/`fwdP`);
+  `stepIn_intro` takes `trTok γ st` (`trTok` moves to `InvNode.lean`), discharged by `trTok_untraced` at
+  its four call sites, each holding the untraced fact but kv's (`kvPeerOk` gains it). Found:
+  `node.ProposeConfChange` builds `stepIn` itself, so its refusal premise is used (the review's S10
+  thought it redundant).
+- *Order of work* (S5, S9): every gate's `none` arm is today's body, untraced proofs re-proved by
+  rewriting it; the traced `node.run` is `node.run.gated_of` with the unproved arms as hypotheses;
+  `node.run.spec`'s premise is dropped only after.
+- *S1*: the harness clones messages with the existing `proto.ClonePb.wp_proof` at rafthttp's
+  `pbMessage` (not "as kvreconf", which copies by hand); `time.Now` is called once. The closed theorem
+  will rest on raft's node-API path's fifteen existing axioms (`etc/tcb-collections/raft.txt`), `ClonePb`,
+  Perennial's `time.Now` and the initializers' axioms: none new.
+- *S12*: the harness's invariants `tcOpsInv` (the AU for `Propose`), raft's `confPolicy` with kv's rule
+  (shared decisions), `tcSnapsInv` (the snapshot branch refuted by `snapshotCert_made`/`snapMade_elem`).
+- *S2-S4, S6-S8, S11*: as the review proposed (`bootEvAt_unique` reused; the end law over the sealed
+  `startDone`; §5.2 at `cC` with `Φvs`; the leader obstacle restated; `BootLogFacts`; `trCapB_perm` in
+  A8.2's list).
+
+**Found:** G3 (no conf entry past the bootstrap log at a traced cluster), needed by the leader exclusion;
+L5 (`rnTrace`'s `TrNoSnap` comes from Q6 item 8's gated `storBnd`, not yet in Lean). **Not argued in
+full:** L1, L2 (lemma (ii)'s step and G3), L5.
 
 No axiom, no `sorry`, no Lean file changed.
