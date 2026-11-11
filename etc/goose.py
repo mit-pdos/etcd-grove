@@ -164,13 +164,15 @@ PROJECTS = [
         # leave no valid meta), `%v` for errors in logger calls (27b1412, upstream main's change)
         # and a no-op default logger (b3e06648); then `Open` maps the file through `mmapUnlocked`, closes
         # under the locks after its transaction began, and `loadFreelist` publishes the freelist
-        # under `metalock` (743299d8, verification only). With bodies (bbolt.toml, bbolt/**.toml; notes/bbolt-v2-infra.md). Its `os`,
+        # under `metalock` (743299d8, verification only); then a writable `Open` fdatasyncs the file
+        # before its first commit (c5a6065d, issues/bbolt-open-unsynced-meta-kill-then-power-loss.md;
+        # 004c930 its robustness test). With bodies (bbolt.toml, bbolt/**.toml; notes/bbolt-v2-infra.md). Its `os`,
         # `io/fs`, `syscall` and `golang.org/x/sys/unix` (project bboltfs: the models of the Linux
         # file extension osFsExt), `hash` and `encoding/hex` (project etcd) are this repository's
         # translations. Modules
         # Code.go_etcd_io.bbolt*, GeneratedProof.go_etcd_io.bbolt*.
         repo="https://github.com/upamanyus/bbolt",
-        rev="743299d8cec897535160dbd82723f3cb1873f312",
+        rev="c5a6065d2380bebef744b1aab4631f99d7d7e79e",
         lean_roots=["go.etcd.io/bbolt=", "golang.org/x/sys=", "syscall=", "hash=",
                     "encoding/hex=", "os=", "io/fs="],
         packages=[
