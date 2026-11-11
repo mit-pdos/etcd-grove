@@ -79,13 +79,19 @@ For W4/C3: the enter-at-durability pitfall below goes into the W4 brief (the coo
   `srvFrozenTerms_restart`, `restart_lastTerm`. Premises and post: `questions.md`, the fourth agent's
   item 8 entry. `NodeStartSpec`, `NewServer.lean` untouched.
 
+- Checks at `48cae3aba6` (all items): full build under the lock and the 64G cap passed (14021 jobs,
+  first try); `etc/tcb-report.py --check` matches the baseline (865 axioms, 5 sorries; no axiom or
+  `sorry` added); every `etc/tcb-collections/*.txt` `--check` passes; `etc/gen-interface.py --check`
+  for backend, bbolt, etcdstart, mvcc, raft: up to date (nothing moved since `b42a686306`);
+  `etc/api-check.py etc/api/raft.txt --check` passes; `etc/gen-init.py --check` (225 up to date);
+  `etc/goose.py --check --project etcd --src etcd=/shared/tmp/restart-s3/etcd-src` up to date.
+  `Scratch/S3Probe.lean` deleted (copy in `/shared/tmp/restart-s3/`).
+
 ## Next, in order
 
 1. STOP before `etc/land.sh` with the changed frozen/exported statements and the tcb diff (the
    coordinator's go; merge `lean` first, then rerun the checks the merge touches).
-2. Before landing: delete the untracked `Scratch/S3Probe.lean` (the first S3 session's probe; the copy
-   stays in `/shared/tmp/restart-s3/`).
-3. After S3: W4 rebases on S3 (the restart's `walRecs σ` for `rnDur_alloc_view`, `walRead_wf`); S6
+2. After S3: W4 rebases on S3 (the restart's `walRecs σ` for `rnDur_alloc_view`, `walRead_wf`); S6
    instantiates `NodeStartSpecR` from the restart image (`srvDiskImage`, `bootOkR`) and discharges
    `hcs`/`hcsb`/`hterm`, `W64 0 ∉ cfg`, and the installer's `rnSnapTermAbove` (row 4, until batch 8).
 
