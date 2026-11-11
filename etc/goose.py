@@ -264,11 +264,16 @@ PROJECTS = [
         # it (161796636, nonissues/etcd-wal-create-dir-entry-unsynced.md), and `TouchDirAll` fsyncs
         # the parent of each directory it creates (71f99a4bf,
         # nonissues/etcd-fileutil-touchdirall-parent-unsynced.md).
+        # Then (W3b, 2026-11-11) b18c2d500 on `goose-lean` (F-N4, for a kill, a restart without a
+        # reboot, then a power loss): `TouchDirAll` fsyncs the parent of an existing directory too
+        # (055b2f69a, nonissues/etcd-fileutil-touchdirall-existing-after-kill.md), and `ReadAll` in
+        # write mode fsyncs the WAL directory and its parent (b18c2d500,
+        # nonissues/etcd-wal-dir-names-after-kill.md).
         # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="71f99a4bf417cccffec491dbb540586e26c3468b",
+        rev="b18c2d50067b9e203ecc15f93cd70fed7b20a797",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
