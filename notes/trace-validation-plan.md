@@ -1147,6 +1147,19 @@ acknowledgements' close), the rest as slice 25n listed.
   (b) the capability framed around `raft.Step` with vacuous gates, and a new `Step` postcondition clause
   for `MsgUnreachable`. Recommended: (a).
   **Taken by the coordinator (raft-internal): (a)** (`MsgUnreachable` in `StepEndTy`/`StepEnd`).
+
+**Q8 stage 1 (slice 27n), 2026-11-11 (branch `trace-check-q8s27n`): Q27 (a) done; the report's bundle
+path and the traced `RawNode.ReportUnreachable` done; a `Ready` line's tokens over the queues done;
+`acceptReady`/`Ready`, `Advance`, `ApplyConfChange`, `node.run`, `newRaft`/`Bootstrap` not done.**
+Decided by the coordinator (Q27 (a)) and the agent (its form) (`notes/decisions.md`, "Q8 stage 1 (slice
+27n)"); all raft-internal. `StepEndTy` gains `MsgUnreachable`; `StepEnd` keeps its shape (the fourth
+clause covers it), made exact by `LeaderNonpropResultC`'s report case gaining `m.Type' = MsgUnreachable
+→ lt' = s.lt ∧ ms = []` (`stepLeader/Rest.lean`) and `wp_Step_MsgLocal` returning `StepEnd`
+(`StepEnd.localRep`). Other slices' new path files add nothing (they build `StepEndTy` by `simp`; only a
+full pattern on the report case of `LeaderNonpropResultC` gains a `-`). `stepBundle_traced_unreach`
+(`TracedRaftStepUnreach.lean`), `RawNode.ReportUnreachable.traced` (`TracedRawNodeRep.lean`),
+`readyToks_queues` (`TracedReadyToks.lean`: `trCap_fire_ready`'s tokens as one `recvTokOf` per queued
+message, `outboxRelP`). Remaining, with designs, in the decisions entry.
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its

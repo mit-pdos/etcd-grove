@@ -36095,3 +36095,64 @@ capability's lemmas destructure and rebuild the clause (`TracedHooksGlobal.lean`
 `trCapB_cfg`, `TracedFamilies.lean`'s `trCapB_pinMem`); `trCapB_intro`'s premise; `startTrace_trCapB`.
 `trCapB_bootFit` puts the clause into the phase, and with slice 24c's `stepBundle_traced.on_of_onRB`
 gives `stepBundle_traced_folAppAcc_on` and `stepBundle_traced_candAppAcc_on` (`.on`, every capability).
+
+## Q8 stage 1 (slice 27n): Q27 (a), `MsgUnreachable` in `StepEndTy`; the report's bundle path and the traced `RawNode.ReportUnreachable`; a `Ready` line's tokens over the queues; the rest of the node API not done (2026-11-11 · trace-check, Q8 stage 1 slice 27n; Q27 (a) taken by the coordinator, its form the agent's · branch `trace-check-q8s27n`; DRAFT until trace-check's Freeze)
+
+All raft-internal: no module on `etc/api/raft.txt` changed; nothing frozen (`TracedCap.lean`,
+`TracedHooksDraft.lean`, `TracedApiDraft.lean` untouched); no axiom, no `sorry`; every untraced and
+client-visible statement unchanged.
+
+**Q27 (a), its form.** `StepEndTy` gains `MsgUnreachable` (`LemmasStepGates.lean`). `StepEnd` keeps its
+shape: its fourth clause (the step function's result at the state after the preamble, `StepFnEnd`)
+already covers a non-stale type that is neither `MsgHup` nor `MsgVote`, and `MsgUnreachable` has term
+zero (no preamble). What it lacked was precision at a leader: `LeaderNonpropResultC`'s report case
+(`MsgForgetLeader`/`MsgTimeoutNow`/`MsgUnreachable`/`MsgSnapStatus`/`MsgTransferLeader` together) let a
+leader queue `ReplSends` and move the transferee. That case gains a last conjunct
+`m.Type' = MsgUnreachable → lt' = s.lt ∧ ms = []` (`Spec/stepLeader.lean`; proved in
+`stepLeader/Rest.lean`, where `rest_res` takes it: `pr.BecomeProbe()` only). `wp_Step_MsgLocal`
+(`raft__Step/MsgRest.lean`) now returns `"%Hend" ∷ ⌜StepEnd …⌝` (`StepEnd.localRep`: the role's result
+for `MsgUnreachable`, vacuous for the other two local reports), which `raft.Step`'s local arm passes to
+`gate_close` in place of `end_ty`. Rejected: a new fifth `StepEnd` clause for `MsgUnreachable` (every
+path file reads the fourth clause as `.2.2.2`: a fifth would shift the projections).
+
+**What other slices' new files must add: nothing**, unless they (1) destructure `StepEndTy` itself
+(only `raft__Step.lean`'s `end_ty` macro did: now ten alternatives) or (2) destructure
+`LeaderNonpropResultC`'s report case with a full anonymous pattern (`⟨-, lt', ms, pvs, rfl, Hms, Hpm⟩`
+becomes `⟨-, lt', ms, pvs, rfl, Hms, Hpm, -⟩`; a trailing `-` or `⟨Hc, -⟩` is unaffected) or construct it
+(one more component). The path files build `StepEndTy` by `unfold StepEndTy; simp [h]`, which still
+works. No path file gains a case.
+
+**The report's bundle path** (`TracedRaftStepUnreach.lean`, new): `UnreachPath s m := m.Type' =
+MsgUnreachable ∧ m.Term' = W64 0`, `stepBundle_traced_unreach : stepBundle_traced.on UnreachPath`, over
+`TracedRaftStepPaths.lean`'s `localR` (no line at any role: the receive gate is `none`, the preamble an
+update, every step-function gate guarded by another type); the close reads `unreach_end` (the end state
+`{ sendMsgs s [] with prvals := pvs }`, `Match` unchanged) and `simIdleS_prvals`.
+
+**`RawNode.ReportUnreachable.traced`** (`TracedRawNodeRep.lean`, new): the untraced triple at
+`γ.reTrace = some γd`, with `uint.Z rs.tc + 1 < traceNumBound` and `receiptBound GF + γ.reBoot.length ≤
+traceNumBound`; hypotheses `raft.Step.spec`, `MessageType.Enum.spec`, `stepBundle_traced.on
+UnreachPath`. Note: the harness's `node.ReportUnreachable` reaches `raft.Step` through `node.run`'s
+`recvc` arm, not `RawNode.ReportUnreachable`; the gated `node.run` uses the same bundle path.
+
+**A `Ready` line's tokens** (`TracedReadyToks.lean`, new): `readyToks_queues` turns
+`trCap_fire_ready`'s `[∗map] k ↦ m ∈ Bn, inFlight tn k m` (`Bn`'s values a permutation of `P = pendAbs
+tn.voters o`) into one `recvTokOf` per message of the queues `ms1 ++ ms2` (`outboxRelP o ms1 ms2`), by a
+permutation-of-filter-map split (`bigSepL_pairs_split`, no `MsgsUniq`), the queues' contributions
+(`pendAbs_outboxRelP`) and `optTok_recvTok`.
+
+**Not done, exact** (designs as slice 26n's, refined):
+- `RawNode.acceptReady.spec` unified: drop `γ.reTrace = none`; postcondition gains `[∗list] q ∈ ms,
+  rdTok γ q.st` (`True` untraced, `recvTokOf` traced). Proof at `traceReady`: `rnTrace` of
+  `ownRawNodeReady` (at the cut state `s0`) gives `∃ b, trCapB … b (SimIdle C s0)` = `trCap`; fire
+  `trCap_fire_ready` with `E := NodeEvOf (W64 8) id s c`, `PhaseStepReady` from `SimIdle C s0` to
+  `SimIdle C s` (`toPState_ready`; `SimServerR` does not read `durable`), `TraceEv.Ok` of the event;
+  then `readyToks_queues` (its `P` from the fired `⌜∃ cs, SimIdle tn.voters s0 cs P⌝`, `tn.voters = C`
+  from the capability) split into `selfmsgs` (to `self_pending`, whose `selfTok` reads `[] []`: a self
+  response's `AAMsgOk` empty entries and context) and the handed-out `ms`. Callers (`RawNode.Ready`,
+  `node.run`) drop the premise and the tokens untraced.
+- `RawNode.Advance` traced (`wp_step_pending`'s `.self` over `stepBundle_traced.on` of the response
+  types with `selfTok`; the storage acknowledgements need a close: they are not `StepEndTy`).
+- `RawNode.ApplyConfChange` (a booted node's line under `AccIdle`, `lineEffect_applyCC`;
+  `switchToConfig`'s hook), gated `node.run` and the node API's statements (`recvTokOf` from
+  `node.Ready` to `node.Step`; the `recvc` arm's `MsgUnreachable` over `UnreachPath`), traced
+  `newRaft`/`Bootstrap` (`startTrace_trCapB`, a unified `traceConfChangeEvent.spec`).

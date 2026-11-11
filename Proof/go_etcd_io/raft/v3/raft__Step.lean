@@ -80,11 +80,9 @@ local macro "end_ty" : tactic =>
   `(tactic| exact fun _ => Perennial.EtcdGrove.StepEnd.of_ty (fun h => by
     unfold Perennial.EtcdGrove.StepEndTy at h
     first
-    | (rcases h with h | h | h | h | h | h | h | h | h <;>
+    | (rcases h with h | h | h | h | h | h | h | h | h | h <;>
         (first | rw [Hty] at h | rw [HtyA] at h | rw [HtyB] at h | rw [HtyX] at h) <;>
-        exact absurd h (by w32_ne))
-    | (rcases HtyL with HtyL | HtyL | HtyL <;> rcases h with h | h | h | h | h | h | h | h | h <;>
-        rw [HtyL] at h <;> exact absurd h (by w32_ne))))
+        exact absurd h (by w32_ne))))
 
 section dispatch
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -1460,9 +1458,10 @@ theorem raft.Step.wp_proof
     have Hfv : s.role = .follower → s.votes = ∅ := followerVotesOk_phys s Hfv0
     ihave HG := gate_open γ md c id s R $$ Hghost Hrest HG
     wp_apply (wp_Step_MsgLocal P PB c r id s ml m ents sn ctx rs (ghostIn γ md c id s R) HtyL (Hloc HtyL) Hwf Hfv) $$ [$Hphys $Hmi $HG $Hgates]
-      as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm, HGo⟩
+      as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm, %Hend, HGo⟩
     obtain ⟨recv, Hrecv, Hstep⟩ := Hst
-    imod gate_close γ md c id m ents ctx s R Gout s' (plogLastIndexZ (toPState s).base (toPState s).log) recv (fun _ => Hstep) (by end_ty) (by first | (rw [Hty]; w32_ne) | exact Hty | exact HnP) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne)) $$ Hclose HGo
+    -- (slice 27n, Q27 (a)) the end state from the branch (`MsgUnreachable`'s)
+    imod gate_close γ md c id m ents ctx s R Gout s' (plogLastIndexZ (toPState s).base (toPState s).log) recv (fun _ => Hstep) (fun _ => Hend) (by first | (rw [Hty]; w32_ne) | exact Hty | exact HnP) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne)) $$ Hclose HGo
       with ⟨Hghost, Hrest, HGq, %Hot⟩
     have Hn : m.Type' ≠ MsgVoteResp ∧ m.Type' ≠ MsgAppResp ∧ m.Type' ≠ MsgPreVoteResp := by
       rcases HtyL with h | h | h <;> rw [h] <;> exact ⟨by w32_ne, by w32_ne, by w32_ne⟩

@@ -274,7 +274,11 @@ def LeaderNonpropResultC (c : CfgM) (id : w64) (s : NState) (m : MessageM)
    ∃ (lt' : w64) (ms : List Msg) (pvs : GMap w64 Progress),
      s' = { sendMsgs { s with lt := lt' } ms with prvals := pvs } ∧
      ReplSends id s ms ∧
-     prvalsMatch pvs = prvalsMatch s.prvals) ∨
+     prvalsMatch pvs = prvalsMatch s.prvals ∧
+     -- (2026-11-11, trace-check Q8 stage 1 slice 27n, Q27 (a)) a report of an unreachable peer
+     -- queues nothing and keeps the transferee (`pr.BecomeProbe()` only): `Step`'s end state for it
+     -- (`StepEnd`) is `s` but for `Progress` values of the same `Match`
+     (m.Type' = MsgUnreachable → lt' = s.lt ∧ ms = [])) ∨
   -- (2026-10-17, `CheckQuorum` on) the quorum check: the leader stays, or steps down at its
   -- term with no leader known (`becomeFollower(r.Term, None)`, when the voters it heard from
   -- recently are no quorum); then every other peer's `RecentActive` is cleared, which no record
