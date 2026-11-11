@@ -1,14 +1,57 @@
 # Restart S3 handoff (2026-11-11, branch `restart-s3`, from `lean` `47d7b2f2cd`)
 
-Phase: **probe accepted; decisions made (2026-11-11, etcd-grove-81, recorded in `questions.md`):
-D1 deferred to rung 2's Scope (S3 graceful-only), D2 (b), D3 later (C3/rung 2), D4 accepted, D5 yes.
-The graceful Lean (the plan below) is NOT started**: the session stopped at its context budget
-right after the decisions. A fresh agent starts at "Next, in order". Nothing in the trust base or any
-frozen statement was changed.
+Phase: **implementation, steps 1-2 done (and item 1, `memStorRestarted` defined); next: items 6, 5,
+7, 8, then the build and checks** (the second agent stopped at its context budget, 2026-11-11). The
+decisions D1-D5 are in `questions.md`; the forms this agent decided are there too ("Restart S3
+implementation").
 
 For W4/C3: the enter-at-durability pitfall below goes into the W4 brief (the coordinator's decision).
 
-## Done
+## Done (implementation, 2026-11-11)
+
+- `b17934556f` step 1' (D2 (b)): `bootstrappedWAL.MemoryStorage` translated (goose config, regenerated
+  from the pin **`a4d2bb172`**, see pitfalls); `Proof/.../etcdserver/BaseRestartStor.lean`
+  (`walSnapCS`, `memStorRestarted`, the body below); spec and proof
+  `bootstrappedWAL__MemoryStorage.lean` (its post is `memStorLock ∗ memStorRestarted`), linked in the
+  server's `Link.lean` (`etc/link-lean-first-server.txt`); item 1: `InvRestart.lean`'s opaque removed
+  (it imports `BaseRestartStor`). **Raft spec change** (form, recorded): `MemoryStorage.ApplySnapshot.
+  spec` is now `(old triple) ∧ (index-0 triple)`, callers use `.1` (kv `KVStorageInstance`, kvreconf
+  `KvrStorageApi`, kvdurable `openStorage` x2 and `Replica__run`, `raftNode__start`). The index-0
+  triple is what base `0` (a WAL with no later snapshot record) needs.
+- `02fd510023` step 2: `srvMem_restartStorage` (`NodeStart.lean`): `memStorReg ∗ memStorLock ∗
+  memStorRestarted ∗ (⌜σ.b = 0⌝ ∨ snapshotValid γr.cl (walSnapCS σ cs)) ∗ F-maker ⊢ restartStorage
+  γr.cl (memStorIface ms) σ cs A F`, premise `σ.b ≤ σ.commit`, freeze point `σ.b`.
+- `591b31a388` step 2: `srv_confAt_eq_simple` (Q39 at every committed index) and `walSnapCS_valid`
+  (`srvRaftLogInv ∗ walSnapCert cl σ ⊢ |={E}=> ⌜σ.b = 0⌝ ∨ snapshotValid cl (walSnapCS σ cs)`, given
+  `hterm`, `hcs`, `hcsb`), both in `NodeStart.lean`.
+- Checked with `etc/lean-check.py -a` (kernel included): `MemoryStorage__ApplySnapshot`,
+  `bootstrappedWAL__MemoryStorage` (spec, proof), `InvRestart`, `NodeStart`. **Not yet built**: the
+  six `.1` call sites, the server's `Link.lean`, raft's `Link`/`Linked`/`Results`, and every
+  importer (the raft spec change and the `Code` change rebuild most of the tree): the next build
+  must cover them (`etc/importers.py --leaves`).
+
+## Next, in order
+
+1. Targeted build of the changed callers first (cheap check of the `.1` edits):
+   `Proof/github_com/mit_pdos/etcd_grove/examples/raft/{kv/KVStorageInstance,kvreconf/KvrStorageApi,
+   kvdurable/openStorage,kvdurable/Replica__run}.lean`, `raftNode__start.lean`, the server's and raft's
+   `Link.lean` (under the 64G cap; it rebuilds raft's importers up to them).
+2. Item 6: `newRaftNode`'s binders `a0 t0 L₀ commit0 snap0` (review 4, frozen form).
+3. Item 5: `bootstrappedRaft.newRaftNode`'s `RestartNode` branch (Q35 (a), the boot sum), using
+   `srvMem_restartStorage` (its `snapshotValid` disjunct from `walSnapCS_valid`; `hterm`, the base
+   term and the entries' numbering from W4's `walRead_wf`; `σ.b ≤ σ.commit` from `StorageHolds`).
+4. Item 4 (InvWal restart AU, minimal: W4 rebases on S3), item 7 (`rnRestartOk` into `isRaftNode`;
+   start/stop at `P`), item 8 (`NodeStartSpecR`, separate; `NewServer.lean` untouched; exported
+   `server_raft_node_start` restated in Link/Results).
+5. Full build under the lock and the 64G cap; `etc/tcb-report.py --check` (the opaque
+   `memStorRestarted` is gone: trusted text change allowed by D2 (b)), collections,
+   `etc/gen-interface.py etc/api/raft.txt` (the `ApplySnapshot` spec: interface diff), `etc/gen-init.py
+   --check`, `etc/goose.py --check --project etcd` (needs the pin's source, see pitfalls); STATUS; STOP
+   before `etc/land.sh` with the changed frozen and exported statements and the tcb diff.
+6. Before landing: delete the untracked `Scratch/S3Probe.lean` (the first S3 session's probe; the copy
+   stays in `/shared/tmp/restart-s3/`).
+
+## Done (probe, the first session)
 
 - **Probe (scratch, never lands)**: `Scratch/S3Probe.lean`, which is untracked. It holds the
   proposed `walSnapCS`, `memStorRestarted` body, `rsPartial`, `PendBatchM`,
@@ -165,26 +208,22 @@ Total about 1200-1350 lines. Two targeted builds per round; one full build at th
 - **D5**: the restart arm as a separate `NodeStartSpecR`, so that `NewServer.lean` (stage B, S6)
   is untouched in S3. Recommend yes.
 
-## Next, in order (decided)
-
-1. Item 1' first (D2 (b)): remove `bootstrappedWAL.MemoryStorage` from the names-only list in
-   `Code/go_etcd_io/etcd/server/v3/etcdserver.toml` (it sits with the `bootstrappedWAL` type, line
-   ~81), regenerate (`etc/goose.py --project etcd`, `GOTOOLCHAIN` per the script), then the spec and
-   proof of `bootstrappedWAL.MemoryStorage` whose post is `memStorRestarted` (copy the probe's body).
-2. Items 2, 3 (`srv_confAt_eq_simple`, `walSnapCS_valid`, `srvMem_restartStorage`).
-3. Item 1: `memStorRestarted` defined in `InvRestart.lean` (minimal edit; W4 rebases on S3).
-4. Items 6, 5, 7, 8 (`NodeStartSpecR` separate; `NewServer.lean` untouched).
-5. Full build under the lock and the 64G cap; `etc/tcb-report.py --check`, collections,
-   `etc/gen-interface.py` for the changed APIs, `etc/gen-init.py --check`; update STATUS; then STOP
-   before `etc/land.sh` with the changed frozen and exported statements listed.
-6. Before landing: delete the untracked `Scratch/S3Probe.lean` (this session's own probe; the copy
-   stays in `/shared/tmp/restart-s3/`). Build
-with:
-`flock /shared/tmp/etcd-grove-build.lock systemd-run --scope -q -p MemoryMax=64G lake --packages=/shared/tmp/manifest-ddc.json build <targets>`.
-
 ## Pitfalls
 
 - `.lake/go-src/etcd` lacks `673da07c8f`; read Go from `/shared/etcd-goose-lean-walsnap`.
 - `Scratch/` is untracked and must never be committed or landed.
 - A name `RaftState.foo` declared inside a nested namespace is not reachable by dot notation (the
   probe uses `rsPartial`).
+- **The etcd pin of the Goose translation is `a4d2bb172`** (`etc/goose.py`, branch
+  `goose-lean-purgesnap`), not `673da07c8f` (the Go-test pin of the common rules). Regenerate with a
+  clone at it: `git clone --shared --no-checkout /shared/etcd-goose-lean-walsnap X; git -C X fetch
+  /shared/etcd-goose-lean-purgesnap a4d2bb172...; git -C X checkout a4d2bb172...`, then
+  `etc/goose.py --project etcd --src etcd=X` (one is at `/shared/tmp/restart-s3/etcd-src`). From
+  `673da07c8f` the diff also shifts line numbers in `server.go`.
+- Iris proof mode: `rw … at H` does not reach an Iris hypothesis (Unknown identifier); `rw` on the
+  goal rewrites the whole Iris context, or restate with `ihave H' : … $$ [H]`. Two `match`es from
+  different files are different auxiliary functions: `cases o` before `iexact`. A `wp_join … with
+  [hyps]` sees only the listed hypotheses: include the pointer cells the branches load.
+- Build: `flock /shared/tmp/etcd-grove-build.lock systemd-run --scope -q -p MemoryMax=64G lake
+  --packages=/shared/tmp/manifest-ddc.json build <targets>`.
+
