@@ -255,8 +255,8 @@ theorem fxPres_timeout (γ : RaftNames) (id : w64) (E : TraceEv → Prop)
       Bool.true_and, Bool.not_false, ↓reduceIte] <;> rfl
   ihave #Hfx0 := Hfx
   iunfold simFx at Hfx0
-  icases Hfx0 with ⟨#Hal, #Hmf, %Hp⟩
-  obtain ⟨hsi, hq, hu, hsh, has⟩ := Hp
+  icases Hfx0 with ⟨#Hal, #Hmf, #Hq, %Hp⟩
+  obtain ⟨hsi, hu, hsh, has⟩ := Hp
   icases allFacts_commitOk γ C σ hsrv $$ Hal with %hco
   icases persistent_entails_right (allFacts_leaderCompleteness (GF := GF) γ C σ hsrv hsi.commitWithinLeader)
     $$ [$Htbl $Hal] with ⟨%hlc0, Htbl, -⟩
@@ -286,18 +286,24 @@ theorem fxPres_timeout (γ : RaftNames) (id : w64) (E : TraceEv → Prop)
       iintro %x %hx
       iapply Hmf
       ipureintro; exact hx
+    isplitl
+    · iapply quorumLogF_congr γ C σ (σ.upd (idAbs id) (candOf (idAbs id))) rfl ?_ ?_ ?_ ?_
+        (fun m hm _ => hm) $$ Hq
+      · intro k; by_cases hk : k = idAbs id
+        · subst hk; rw [TraceSpecInv.upd_s_self]; rfl
+        · rw [TraceSpecInv.upd_s_ne _ _ _ _ hk]
+      · intro k; by_cases hk : k = idAbs id
+        · subst hk; rw [TraceSpecInv.upd_s_self]; rfl
+        · rw [TraceSpecInv.upd_s_ne _ _ _ _ hk]
+      · intro k; by_cases hk : k = idAbs id
+        · subst hk; rw [TraceSpecInv.upd_s_self]; simp only [candOf]; omega
+        · rw [TraceSpecInv.upd_s_ne _ _ _ _ hk]; exact Int.le_refl _
+      · intro k hl; by_cases hk : k = idAbs id
+        · subst hk; rw [TraceSpecInv.upd_s_self] at hl
+          exact absurd hl (show Etcdraft.candidate ≠ Etcdraft.leader by decide)
+        · rw [TraceSpecInv.upd_s_ne _ _ _ _ hk] at hl ⊢; exact ⟨hl, rfl⟩
     ipureintro
-    refine ⟨hsi', ?_, hu, hsh, ?_⟩
-    · refine quorumLogF_congr σ (σ.upd (idAbs id) (candOf (idAbs id))) rfl ?_ ?_ ?_ hq
-      · intro k; by_cases hk : k = idAbs id
-        · subst hk; rw [TraceSpecInv.upd_s_self]; rfl
-        · rw [TraceSpecInv.upd_s_ne _ _ _ _ hk]
-      · intro k; by_cases hk : k = idAbs id
-        · subst hk; rw [TraceSpecInv.upd_s_self]; rfl
-        · rw [TraceSpecInv.upd_s_ne _ _ _ _ hk]
-      · intro k; by_cases hk : k = idAbs id
-        · subst hk; rw [TraceSpecInv.upd_s_self]; rfl
-        · rw [TraceSpecInv.upd_s_ne _ _ _ _ hk]
+    refine ⟨hsi', hu, hsh, ?_⟩
     · refine appSlices_mono σ (σ.upd (idAbs id) (candOf (idAbs id))) has rfl (fun m hm => hm) ?_
       intro j _ hl
       by_cases hk : j = idAbs id
@@ -338,7 +344,8 @@ theorem fxPres_plain (γ : RaftNames) (id : w64) (E : TraceEv → Prop)
   subst hP'
   ihave #Hpf := msgFacts_plain (GF := GF) γ C p hpt hpe
   ihave #H2 := simFx_send γ C σ p (hok C cs P hΦ σ (by rw [hσa]; exact hcs) hsrv)
-    hp0 (fun y _ => ContentLogged.pinned (fun h => absurd h hpt) y) (appSliceOf_nil σ p hpe) $$ [$Hfx $Hpf]
+    hp0 (fun y _ => ContentLogged.pinned (fun h => absurd h hpt) y) (appSliceOf_nil σ p hpe) (.inl hpe)
+    $$ [$Hfx $Hpf]
   have hs : ∀ j, toC (σ.send p).server
       ((withNode σ (idAbs id) a' _root_.id (fun b => [p].foldl Etcdraft.Bag.with b)).s j) =
       toC (σ.send p).server ((σ.send p).s j) := by

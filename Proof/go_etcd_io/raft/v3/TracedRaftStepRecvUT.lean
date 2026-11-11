@@ -221,8 +221,8 @@ theorem simFx_ut (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (k : w64)
   have hfl : Etcdraft.follower ≠ Etcdraft.leader := by decide
   iintro ⟨Htbl, Hfx, #HL, #Hcm, #Hci⟩
   iunfold simFx at Hfx
-  icases Hfx with ⟨#Hal, #Hmf, %Hp⟩
-  obtain ⟨hsi, hq, hu, hsh, has⟩ := Hp
+  icases Hfx with ⟨#Hal, #Hmf, #Hq, %Hp⟩
+  obtain ⟨hsi, hu, hsh, has⟩ := Hp
   icases leaderComplete_of γ C σ (idAbs k) T hsrv hi hT hsi.commitWithinLeader $$ [$Htbl $Hal]
     with ⟨Htbl, %Hlc⟩
   have hsi' : TraceSpecInv.SpecInv W := by
@@ -271,9 +271,17 @@ theorem simFx_ut (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (k : w64)
   · imodintro
     iintro %x %hx
     iapply Hmf; ipureintro; rw [hW] at hx; exact hx
+  isplitl
+  · iapply quorumLogF_congr γ C σ W (by rw [hW]; rfl) (fun j => (hF j).1) (fun j => (hF j).2.1) ?_ ?_
+      (fun m hm _ => by rw [hW] at hm; exact hm) $$ Hq
+    · intro j; rw [hWs]; split
+      · rename_i hj; subst hj; simp only [utSrv]; omega
+      · exact Int.le_refl _
+    · intro j hl; rw [hWs] at hl ⊢; split at hl
+      · simp [utSrv] at hl; exact absurd hl hfl
+      · rename_i hjk; simp only [hjk, ↓reduceIte]; exact ⟨hl, rfl⟩
   ipureintro
-  refine ⟨hsi', quorumLogF_congr σ W (by rw [hW]; rfl) (fun j => (hF j).1) (fun j => (hF j).2.1)
-    (fun j => (hF j).2.2) hq, by rw [hW]; exact hu, by rw [hW]; exact hsh, ?_⟩
+  refine ⟨hsi', by rw [hW]; exact hu, by rw [hW]; exact hsh, ?_⟩
   intro m hm hty j hj hlj htj hs j' e he
   have hm' : m ∈ σ.messages.domain ++ σ.pendingMessages.domain := by rw [hW] at hm; exact hm
   have hj' : j ∈ σ.server := by rw [hW] at hj; exact hj

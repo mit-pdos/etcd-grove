@@ -204,8 +204,8 @@ theorem simFx_rtf (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (i j : E
     · simp
   iintro Hfx
   iunfold simFx at Hfx
-  icases Hfx with ⟨#Hal, #Hmf, %Hp⟩
-  obtain ⟨hsi, hq, hu, hsh, has⟩ := Hp
+  icases Hfx with ⟨#Hal, #Hmf, #Hq, %Hp⟩
+  obtain ⟨hsi, hu, hsh, has⟩ := Hp
   iunfold simFx
   isplitl
   · iunfold allFacts at Hal
@@ -226,9 +226,15 @@ theorem simFx_rtf (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (i j : E
   · imodintro
     iintro %x %hx
     iapply Hmf; ipureintro; exact hx
+  isplitl
+  · iapply quorumLogF_congr γ C σ (withNode σ i (rtfSrv (σ.s i) j) _root_.id _root_.id) rfl
+      (fun k => (hF k).1) (fun k => (hF k).2.1) (fun k => by rw [(hF k).2.2.1]; exact Int.le_refl _) ?_
+      (fun m hm _ => hm) $$ Hq
+    intro k hl; rw [hWs] at hl ⊢; split at hl
+    · simp [rtfSrv] at hl; exact absurd hl hfl
+    · rename_i hki; rw [if_neg hki]; exact ⟨hl, rfl⟩
   ipureintro
-  refine ⟨specInv_rtf hsi hi, quorumLogF_congr σ _ rfl (fun k => (hF k).1) (fun k => (hF k).2.1)
-    (fun k => (hF k).2.2.2) hq, hu, hsh, ?_⟩
+  refine ⟨specInv_rtf hsi hi, hu, hsh, ?_⟩
   intro m hm hty k hk hlk htk hs k' e he
   rw [hWs] at hlk htk ⊢
   split at hlk

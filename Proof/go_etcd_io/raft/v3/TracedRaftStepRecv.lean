@@ -461,8 +461,8 @@ theorem simFx_resp (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (i : Et
   iintro Hfx
   iunfold simFx at Hfx
   iunfold simFx
-  icases Hfx with ⟨#Hal, #Hmf, %Hp⟩
-  obtain ⟨hsi, hq, hu, hsh, has⟩ := Hp
+  icases Hfx with ⟨#Hal, #Hmf, #Hq, %Hp⟩
+  obtain ⟨hsi, hu, hsh, has⟩ := Hp
   isplitl
   · iunfold allFacts at Hal
     iunfold allFacts
@@ -477,9 +477,12 @@ theorem simFx_resp (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (i : Et
     iapply Hmf
     ipureintro
     exact hsub x hx
+  isplitl
+  · iapply quorumLogF_congr γ C σ (withNode σ i (respSrv (σ.s i) ma) (fun b => b.without ma) _root_.id) rfl
+      (fun k => (hF k).1) (fun k => (hF k).2.1) (fun k => by rw [(hF k).2.2.1]; exact Int.le_refl _)
+      (fun k h => ⟨by rw [← (hF k).2.2.2.1]; exact h, (hF k).2.2.1⟩) (fun x hx _ => hsub x hx) $$ Hq
   ipureintro
   refine ⟨specInv_respSrv σ i ma hsi hc hl,
-    quorumLogF_congr σ _ rfl (fun k => (hF k).1) (fun k => (hF k).2.1) (fun k => (hF k).2.2.2.2) hq,
     msgsUniq_mono hsub hu, fun x hx => hsh x (hsub x hx), ?_⟩
   intro m hm hty j hj hlj htj hs k e he
   rw [(hF j).1]
@@ -687,8 +690,8 @@ theorem simFx_voteReq (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (i j
     · right; rfl
   iintro Hfx
   iunfold simFx at Hfx
-  icases Hfx with ⟨#Hal, #Hmf, %Hp⟩
-  obtain ⟨hsi, hq, hu, hsh, has⟩ := Hp
+  icases Hfx with ⟨#Hal, #Hmf, #Hq, %Hp⟩
+  obtain ⟨hsi, hu, hsh, has⟩ := Hp
   have hsi' : TraceSpecInv.SpecInv σ1 := by
     rw [hσ1, ← heq]
     exact TraceSpecInv.specInv_handleRequestVoteRequest hsi hmem hsrc (handleRV_some σ i j ma hle)
@@ -718,9 +721,16 @@ theorem simFx_voteReq (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (i j
     rcases hsub x hx with hx | rfl
     · iapply Hmf; ipureintro; exact hx
     · iapply msgFacts_plain γ C _ hxq hxe
+  isplitl
+  · iapply quorumLogF_congr γ C σ σ1 (by rw [hσ1]; rfl) (fun k => (hF k).1) (fun k => (hF k).2.1)
+      (fun k => by rw [(hF k).2.2.1]; exact Int.le_refl _)
+      (fun k h => ⟨by rw [← (hF k).2.2.2.1]; exact h, (hF k).2.2.1⟩) ?_ $$ Hq
+    intro x hx hty
+    rcases hsub x hx with hx | rfl
+    · exact hx
+    · exact absurd hty hxq
   ipureintro
-  refine ⟨hsi', quorumLogF_congr σ σ1 (by rw [hσ1]; rfl) (fun k => (hF k).1) (fun k => (hF k).2.1)
-    (fun k => (hF k).2.2.2.2) hq, by rw [hσ1]; exact hu', by rw [hσ1]; exact hsh', ?_⟩
+  refine ⟨hsi', by rw [hσ1]; exact hu', by rw [hσ1]; exact hsh', ?_⟩
   intro m hm hty k hk hlk htk hs k' e he
   have hk' : k ∈ σ.server := by rw [hσ1] at hk; exact hk
   rcases hsub m hm with hm | rfl

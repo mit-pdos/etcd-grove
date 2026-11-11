@@ -9,7 +9,8 @@ Lean-first (no Rocq counterpart). **A traced node's bootstrap** (2026-11-10, tra
    its committed prefix, `boot_facts` of `Protocol/Enter.lean`; its commit certificate the
    bootstrap arm of `commitJ`, the configuration witnesses vacuous below the bootstrap log), the
    specification invariant `SpecInv` (no leader, no candidate, no message; the entries of term `1`),
-   `QuorumLogF` (every server's log is the whole committed log), and the bags' clauses (both empty:
+   `QuorumLogF` (every server's log is the whole committed log, kept from term `0`, its certificate
+   `commitJ`'s bootstrap arm: amendment A5), and the bags' clauses (both empty:
    amendment A2's `MsgsShape` and `AppSlices` included).
 2. **The bootstrap lines' gates**: an `InitState` event (`newRaft`'s `traceInitState`) and an
    `ApplyConfChange` event (`switchToConfig`'s `traceConfChangeEvent`) parse to bootstrap-named lines
@@ -65,20 +66,24 @@ theorem specInv_simInit (C : List w64) : TraceSpecInv.SpecInv (simInit C) := by
   obtain ⟨_, _, rfl⟩ := he
   exact Int.le_refl _
 
-/-- **`QuorumLogF` at the bootstrap state**: every server's committed prefix is its whole log, the
-same for all, so no server's log misses it. -/
-theorem quorumLogF_simInit (C : List w64) : QuorumLogF (simInit C) := by
-  intro i _
-  have hf : ((simInit C).getConfig i).filter (fun j =>
-      or (!(simInit C).server.contains j) (!Etcdraft.isPrefix (committedL (simInit C) i) ((simInit C).s j).log)) = [] := by
+/-- Every server's committed prefix at the bootstrap state is its whole log. -/
+theorem committedL_simInit (C : List w64) (i : Etcdraft.ID) :
+    committedL (simInit C) i = ((simInit C).s i).log := by
+  simp only [committedL, simInit]
+  rw [Int.toNat_natCast]
+  exact List.take_of_length_le (by simp)
+
+/-- **`QuorumLogF`'s `KeptFrom` at the bootstrap state** (amendment A5), from term `0`: every server
+holds every server's committed prefix, its whole log, the same for all; no leader, no message. -/
+theorem keptFrom_simInit (C : List w64) (i : Etcdraft.ID) : KeptFrom (simInit C) (committedL (simInit C) i) 0 := by
+  refine ⟨?_, fun m hm => by simp [msgs_simInit] at hm, fun l _ h => by
+    rw [simInit_state] at h; exact absurd h (by decide)⟩
+  have hf : lackingAt (simInit C) (committedL (simInit C) i) 0 = [] := by
     apply List.filter_eq_nil_iff.2
-    intro j hj
-    have hj' : (simInit C).server.contains j = true := by
-      simp only [Etcdraft.State.getConfig, simInit] at hj ⊢
-      exact List.elem_iff.2 hj
-    rw [hj']
-    simp only [committedL, simInit, Etcdraft.isPrefix]
-    simp
+    intro j _
+    rw [committedL_simInit]
+    simp only [simInit, Etcdraft.isPrefix]
+    simp [List.take_of_length_le]
   rw [hf]
   simp [Etcdraft.isQuorum]
 
@@ -222,9 +227,33 @@ theorem simFx_simInit (E : CoPset) (γ : RaftNames) (C : List w64) (hE : ↑(raf
     exfalso
     rw [msgs_simInit] at hm
     cases hm
+  isplitr
+  · -- (amendment A5) every committed prefix kept from term `0`, its certificate the bootstrap log's
+    iunfold QuorumLogF
+    imodintro
+    iintro %i %_
+    iexists 0
+    isplitr
+    · ipureintro; exact keptFrom_simInit C i
+    iunfold CommitCert
+    iexists γ.reBoot, W64 (C.length : Int)
+    have hW : uint.Z (W64 (C.length : Int)) = (C.length : Int) := uint_Z_W64 _ (by omega) (by omega)
+    have hWn : uint.nat (W64 (C.length : Int)) = C.length := by
+      have : uint.nat (W64 (C.length : Int)) = (uint.Z (W64 (C.length : Int))).toNat := rfl
+      rw [this, hW, Int.toNat_natCast]
+    isplitr
+    · ipureintro
+      refine ⟨?_, hwf, by rw [hW, hlen]; exact Int.le_refl _, by rw [hlen]; omega, Int.le_refl _, by decide⟩
+      rw [hWn, List.take_of_length_le (Nat.le_of_eq hlen), committedL_simInit, simInit_log C γ.reBoot hlen]
+      exact List.prefix_refl _
+    isplitr
+    · iexact Hr
+    iunfold commitJ
+    ileft
+    ipureintro
+    exact ⟨by rw [hW, hlen]; exact Int.le_refl _, rfl⟩
   ipureintro
-  exact ⟨specInv_simInit C, quorumLogF_simInit C, msgsUniq_simInit C, msgsShape_simInit C,
-    appSlices_simInit C⟩
+  exact ⟨specInv_simInit C, msgsUniq_simInit C, msgsShape_simInit C, appSlices_simInit C⟩
 
 end facts
 

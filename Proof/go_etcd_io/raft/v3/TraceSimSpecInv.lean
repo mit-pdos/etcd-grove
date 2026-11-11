@@ -41,7 +41,9 @@ The hypotheses the simulation supplies:
 `AppendEntriesAlreadyDone` needs none: the acknowledged commit index is within the leader's durable
 log by `CommitInDurable` (review round 3's B6(b)).
 
-`QuorumLogS` restates `TracedHooksDraft`'s `QuorumLogF` (equal by `rfl`: `QuorumLogF_eq` there);
+`QuorumLogS` is `QuorumLogInv`'s fact over `σ` alone, which `TracedCap`'s `QuorumLogF` gives
+(`quorumLogF_quorumLogS`; until amendment A5 it was that clause, not inductive under a truncation at a
+lower term than the commit's: `notes/decisions.md`, "Amendment A5 (Q21)");
 `quorumLog_appendEntriesAlreadyDone` re-establishes it when a follower's commit index rises (review
 round 3's B6(a)), from `ReqCommitC`, `CfgFixed` (the sender's quorum condition is over the
 receiver's configuration) and the post-state's committed prefixes (`allFacts_logInv`).
@@ -1907,8 +1909,8 @@ theorem specInv_handleAppendEntriesRequest {σ : State} {i j : ID} {m : Etcdraft
 
 /-! ## `QuorumLogInv`'s fact at a follower's raised commit index (review round 3's B6(a)) -/
 
-/-- **`QuorumLogInv`'s fact**: `TracedHooksDraft`'s `QuorumLogF`, restated here (which that file
-imports; `QuorumLogF_eq` there says they are equal). -/
+/-- **`QuorumLogInv`'s fact** over `σ` (`InvFacts.quorumLog`), which `TracedCap`'s `QuorumLogF` (amendment
+A5) gives (`quorumLogF_quorumLogS`). -/
 def QuorumLogS (σ : State) : Prop :=
   ∀ i ∈ σ.server, isQuorum ((σ.getConfig i).filter (fun j =>
     or (!σ.server.contains j) (!isPrefix (TraceSim.committedL σ i) (σ.s j).log))) (σ.getConfig i) = false

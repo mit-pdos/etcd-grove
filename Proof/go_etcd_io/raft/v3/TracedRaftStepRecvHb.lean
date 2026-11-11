@@ -262,8 +262,8 @@ theorem simFx_hb (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (ma : Etc
   have hWsrv : W.server = σ.server := by rw [hW]; rfl
   iintro ⟨Hfx, #HL, #Hcert⟩
   iunfold simFx at Hfx
-  icases Hfx with ⟨#Hal, #Hmf, %Hp⟩
-  obtain ⟨hsi, hq, hu, hsh, has⟩ := Hp
+  icases Hfx with ⟨#Hal, #Hmf, #Hq, %Hp⟩
+  obtain ⟨hsi, hu, hsh, has⟩ := Hp
   -- the receiver's facts
   ihave #Hal1 : allFacts γ C W $$ []
   · iunfold allFacts at Hal
@@ -305,37 +305,28 @@ theorem simFx_hb (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (ma : Etc
       iapply Hal $$ %k %hk
   -- the pure facts
   have hmmem : ma ∈ σ.messages.domain ++ σ.pendingMessages.domain := List.mem_append_left _ hmem
-  obtain ⟨hsrcS, -⟩ := hsi.reqCommitC ma hmmem hty
+  obtain ⟨hsrcS, hcS⟩ := hsi.reqCommitC ma hmmem hty
   have hsi' : TraceSpecInv.SpecInv W := by
     rw [hW, ← heq]
     exact TraceSpecInv.specInv_handleAppendEntriesRequest hsi (by rw [hdst, hsrv, mem_confAbs]; exact hiC) hmem rfl
       hty (by rw [hsub]; decide) hpv hcq (handleAER_hb σ ma hf hterm hsub hprev hents hc1) _ (List.mem_singleton_self _)
   icases allFacts_logInv γ C W (by rw [hWsrv, hsrv]) $$ Hal1 with %HlogInv
   icases allFacts_commitOk γ C σ hsrv $$ Hal with %Hco
-  -- `QuorumLogInv`'s fact, at the specification's intermediate state (before `withLead`)
-  obtain ⟨σ2, hσ2⟩ : ∃ σ2, σ2 = (σ.commitTo ma.dest ma.commitIndex).reply
-      (hbResp (σ.s ma.dest) ma.dest ma.source) ma := ⟨_, rfl⟩
-  have h2s : ∀ k, (σ2.s k).log = (W.s k).log ∧ (σ2.s k).commitIndex = (W.s k).commitIndex ∧
-      (σ2.s k).config = (W.s k).config := by
-    intro k
-    have : σ2.s k = if k = ma.dest then { σ.s ma.dest with commitIndex := max (σ.s ma.dest).commitIndex ma.commitIndex }
-        else σ.s k := by
-      rw [hσ2]; unfold Etcdraft.State.reply Etcdraft.State.commitTo Etcdraft.State.upd; simp only
-    rw [this, hWs]
-    split <;> simp [hbSrv]
-  have hcmp : TraceSpecInv.CommittedCmp σ2 ma.dest ma.source := by
-    have := HlogInv ma.dest (by rw [hWsrv, hdst, hsrv, mem_confAbs]; exact hiC) ma.source (by rw [hWsrv]; exact hsrcS)
-    unfold TraceSpecInv.CommittedCmp
-    have hcl : ∀ k, TraceSim.committedL σ2 k = TraceSim.committedL W k := by
-      intro k; unfold TraceSim.committedL; rw [(h2s k).1, (h2s k).2.1]
-    rw [hcl, hcl]; exact this
-  have hq2 : TraceSpecInv.QuorumLogS σ2 := by
-    have hstep : σ.appendEntriesAlreadyDone ma.dest ma.source (ma.prevLogIndex + 1) ma = some σ2 := by
-      rw [hσ2]; exact alreadyDone_heartbeat σ ma.dest ma.source ma hc1 hsub hprev hents
-    exact TraceSpecInv.quorumLog_appendEntriesAlreadyDone hsi hq hmem hty Hco hstep hcmp
-  have hqW : QuorumLogF W :=
-    quorumLogF_congr σ2 W (by rw [hWsrv, hσ2]; rfl) (fun k => (h2s k).1.symm) (fun k => (h2s k).2.1.symm)
-      (fun k => (h2s k).2.2.symm) hq2
+  -- `QuorumLogInv`'s fact (amendment A5): the receiver's raised committed prefix is a prefix of the
+  -- sender's, whose witness it takes (`committedL_raise_prefix`)
+  have hcmp := HlogInv ma.dest (by rw [hWsrv, hdst, hsrv, mem_confAbs]; exact hiC) ma.source
+    (by rw [hWsrv]; exact hsrcS)
+  have hPW : ∀ k ∈ σ.server, ∃ k' ∈ σ.server, committedL W k <+: committedL σ k' := by
+    intro k hk
+    by_cases hkd : k = ma.dest
+    · subst hkd
+      rcases committedL_raise_prefix (σ := σ) (W := W) (src := ma.source) (c := ma.commitIndex)
+          (hF _).1 (by rw [(hF _).2.2.2.2, if_pos rfl])
+          (fun k hk => by unfold committedL; rw [(hF k).1, (hF k).2.2.2.2, if_neg hk])
+          hcS (Hco ma.source hsrcS).2 hcmp with h | h
+      · exact ⟨_, hk, h⟩
+      · exact ⟨ma.source, hsrcS, h⟩
+    · exact ⟨k, hk, by unfold committedL; rw [(hF k).1, (hF k).2.2.2.2, if_neg hkd]; exact List.prefix_refl _⟩
   -- uniqueness and shape: after the discard, the response sent
   have hxq : (hbResp (σ.s ma.dest) ma.dest ma.source).type ≠ .appendEntriesRequest := by simp [hbResp]
   have hx0 : canonMsg (hbResp (σ.s ma.dest) ma.dest ma.source) = hbResp (σ.s ma.dest) ma.dest ma.source := by
@@ -358,8 +349,17 @@ theorem simFx_hb (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (ma : Etc
     rcases hsub' x hx with hx | rfl
     · iapply Hmf; ipureintro; exact hx
     · iapply msgFacts_plain γ C _ hxq rfl
+  isplitl
+  · iapply quorumLogF_mono γ C σ W hWsrv hPW ?_ $$ Hq
+    intro P t h
+    refine keptFrom_congr hWsrv (fun k => (hF k).1) (fun k => by rw [(hF k).2.1]; exact Int.le_refl _)
+      (fun k h => ⟨by rw [← (hF k).2.2.1]; exact h, (hF k).2.1⟩) ?_ h
+    intro x hx hty'
+    rcases hsub' x hx with hx | rfl
+    · exact hx
+    · exact absurd hty' hxq
   ipureintro
-  refine ⟨hsi', hqW, by rw [hW]; exact hu', by rw [hW]; exact hsh', ?_⟩
+  refine ⟨hsi', by rw [hW]; exact hu', by rw [hW]; exact hsh', ?_⟩
   intro m hm hty' k hk hlk htk hs k' e he
   have hk' : k ∈ σ.server := by rw [hWsrv] at hk; exact hk
   rcases hsub' m hm with hm | rfl
