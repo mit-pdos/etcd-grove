@@ -967,6 +967,21 @@ unchanged) and all 53 collections `--reuse --check`, none updated; `interface/` 
 listed module's interface); `--check --layout` 0 new; `etc/api-check.py` 0 errors; `etc/gen-link.py
 --raft` unchanged.
 
+**Q8 stage 1 (slice 22a), 2026-11-11 (branch `trace-check-q8s22a`): Q19 (a) done; `MsgProp` at a
+leader begun, the close's relaxation found to need more than slice 19a recorded.** Decided by the
+coordinator (Q19 (a)) and the agent (the rest) (`notes/decisions.md`, "Q8 stage 1 (slice 22a)").
+`stepBundle_traced.on` and both ticks' traced triples take the capability with any `booted` flag `bt`
+and give it back with some flag (`∃ bt'`); every path's first line already takes any flag; the path
+files changed mechanically (`lineF` carries `∃ b`, the path resources take the flag, the receive paths
+close through `stepClose_anyB`). `MsgProp`: the self-acknowledgement's phase step
+(`phaseStepB_selfAck`, `TracedRaftStepProp.lean`). Found (raft-internal): the protocol's propose state
+has the self-acknowledgement queued (`proposed …`, not `propAppended`), the propose ghost update
+consumes the proposal's tickets and a receipt `Step` holds (to pass through `"Hgprep"`), and `Step`'s
+ghost step splits into a propose part (no later credit needed, a new `ghost_stepProp`) and the
+broadcast. Left: those statement changes (`raft.appendEntry.spec`, `stepLeader.spec`, `leaderGates`,
+`stepClose`, `gate_close`, `Step`'s `MsgProp` arm, every bundle mechanically), the `Replicate` lines'
+phase steps and facts, the self-acknowledgement's facts, the appends' gates, the bundle.
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its
