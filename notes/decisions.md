@@ -36829,7 +36829,7 @@ new; `etc/api-check.py` 0 errors; `etc/gen-link.py --raft` and `--tracecheck` un
   word over `Cluster.traceSim`; `startTraceC_eq` in the internal `TracedNodeApiBridge.lean`), and the
   three traced statements the harness takes as hypotheses until the node-API slices prove them:
   `StartNode.tracedSpec D` (`StartNode.gatedSpec` over `startTraceC`, its post giving `startDone γ D
-  cv.ID'`: A7's per-voter completion fact, Q31, as a parameter; `StartNode.tracedSpec_of_gated`
+  cv.ID'`: A7's per-voter completion fact, Q37, as a parameter; `StartNode.tracedSpec_of_gated`
   gives it at `D := True` from the Draft's), `isReadyChan_recvAu.tracedSpec` (the law with
   `readyGotT`: `readyGot` plus each handed-out message's token `trTok`), `node.Step.tracedSpec`
   (`node.Step.spec` at `stepIn_intro`'s premises plus `trTok`). `trTok γ st` (`@[no_expose]`): `True`
@@ -36843,7 +36843,7 @@ new; `etc/api-check.py` 0 errors; `etc/gen-link.py --raft` and `--tracecheck` un
   `Cluster.traceSim_alloc` from the first voter's `nodeBoot`; each voter's `voterStart`), and
   `startTraceC_intro`.
 - *The end* (`tracecheck/HarnessEnd.lean`): `BootEnd D` (A7's bootstrap facts at the end, from every
-  voter's `D tn i`, a hypothesis until A7 lands; with Q30 (a) `BootFacts` keeps its statement),
+  voter's `D tn i`, a hypothesis until A7 lands; with Q36 (a) `BootFacts` keeps its statement),
   `runOk_at_end` (`Cluster.traceSim_end`, `BootEnd`, `runOk_of_sim`), `runOver_intro` (the post).
 - *Two harness functions*: `below` (`0 < n`: `% 0` panics) and `(*Cluster).replica` (over
   `replicasRO`), specified and proved.

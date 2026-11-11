@@ -7,7 +7,7 @@ invariant and the voters' bootstrap facts.
 events' facts from `Cluster.traceSim_end`, the bootstrap facts (`BootFacts`) from amendment A7, which is
 in progress: its form is the hypothesis `BootEnd D` (the simulation's invariant, every voter's
 completion fact `D tn i` that `StartNode` returns, `StartNode.tracedSpec D`, and the trace's half give
-`BootFacts`). Q30 (A7: `BootFacts` false as `simInit` stands) and Q31 (no anchor for the completion fact)
+`BootFacts`). Q36 (A7: `BootFacts` false as `simInit` stands) and Q37 (no anchor for the completion fact)
 decide `D` and whether `BootFacts` keeps its statement; the harness's proof uses only `BootEnd D`.
 -/
 module

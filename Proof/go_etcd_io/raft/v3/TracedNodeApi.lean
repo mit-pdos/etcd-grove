@@ -12,7 +12,7 @@ and the statements of the traced node API that are not proved yet, as `Prop`s th
 hypotheses:
 
 - `StartNode.tracedSpec D`: `StartNode.gatedSpec` over `startTraceC`, its post also giving the voter's
-  `D tn id` (`startDone`): the per-voter "bootstrap complete" fact amendment A7 is to provide (Q31;
+  `D tn id` (`startDone`): the per-voter "bootstrap complete" fact amendment A7 is to provide (Q37;
   `D := fun _ _ => True` is today's gated statement, `StartNode.tracedSpec_of_gated`,
   `TracedNodeApiBridge.lean`);
 - `isReadyChan_recvAu.tracedSpec`: the law `isReadyChan_recvAu` with each of the `Ready`'s messages
@@ -75,7 +75,7 @@ def startTraceC (γ : Cluster) (vs : List w64) (cv : Config) : IProp GF :=
       simNode tn cv.ID' (toC (confAbs vs) ((simInit vs).s (idAbs cv.ID'))) [] ∗
       simBoot tn cv.ID' false none)
 
-/-- **What `StartNode` returns of the trace** (the per-voter fact `D`, amendment A7's Q31): nothing
+/-- **What `StartNode` returns of the trace** (the per-voter fact `D`, amendment A7's Q37): nothing
 untraced; traced, `D` at the cluster's names. -/
 def startDone (γ : Cluster) (D : TraceNames → w64 → IProp GF) (id : w64) : IProp GF :=
   match Cluster.trace γ with
