@@ -169,7 +169,7 @@ theorem node.run.wp_proof
       wp_apply wp_RawNode_HasReady γ.raft nv.rn' id rs $$ [$Hrn] as %b Hb
       icases Hb with (⟨%Hb, Hrn⟩ | ⟨%Hb, Hrn⟩) <;> subst Hb
       · wp_auto
-        wp_apply wp_RawNode_readyWithoutAccept γ.raft nv.rn' id rs Hsteps Hunp HtrG $$ [$Hrn]
+        wp_apply wp_RawNode_readyWithoutAccept γ.raft nv.rn' id rs Hsteps Hunp $$ [$Hrn]
           as %rd' %ce %es %ms %sts %hrd %L H
         iNamed H
         -- (D22 S-d4) with its snapshot, if any (`rdSnapOut`, the loan `L`)
@@ -1076,7 +1076,7 @@ theorem node.run.wp_proof
     iintro -
     wp_auto
     wp_apply wp_RawNode_acceptReady γ.raft nv.rn' id { rs with bw := W } rdv' ce es ms h L
-      HtrG $$ [$Hrn $Hhh] as %steps %ss2 ⟨#Hss2, %Hssn2, Hrn⟩
+      (fun h => absurd HtrG h) $$ [$Hrn $Hhh] as %steps %ss2 ⟨#Hss2, %Hssn2, Hrn, -⟩
     ihave %Hsse := softStateIs_agree rdv'.SoftState' ss ss2 Hssn1 Hssn2 $$ [$Hss1 $Hss2]
     subst Hsse
     icases ownRawNode_async γ.raft nv.rn' id _ $$ Hrn with ⟨%rnv, Hrnown, %Hasync, Hrnback⟩

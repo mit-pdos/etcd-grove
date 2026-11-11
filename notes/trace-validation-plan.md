@@ -1274,6 +1274,19 @@ full pattern on the report case of `LeaderNonpropResultC` gains a `-`). `stepBun
 (`TracedRaftStepUnreach.lean`), `RawNode.ReportUnreachable.traced` (`TracedRawNodeRep.lean`),
 `readyToks_queues` (`TracedReadyToks.lean`: `trCap_fire_ready`'s tokens as one `recvTokOf` per queued
 message, `outboxRelP`). Remaining, with designs, in the decisions entry.
+
+**Q8 stage 1 (slice 28n), 2026-11-11 (branch `trace-check-q8s28n`): `acceptReady` one spec for both
+modes and the traced `RawNode.Ready` done; `Advance` designed, not done; `ApplyConfChange`, `node.run`
+not started.** Slice 27n's designs taken by the coordinator, their form the agent's (`notes/decisions.md`,
+"Q8 stage 1 (slice 28n)"); all raft-internal, nothing frozen or client-visible changed. Found: a traced
+node could not reach `ownRawNodeReady` (its logger clause said nil); now `TraceLoggerOkS`, and
+`readyWithoutAccept.spec` drops `γ.reTrace = none`. `ownRawNodeReady` gains `MsSub` (the handed-out and
+self-addressed messages among the queues) and `OutTr` of the cut state. `acceptReady.spec`: the traced
+bounds as a gated premise, post `[∗list] q ∈ ms, readyTok γ q.st`; the `Ready` line fired by
+`rnTrace_fireReady` (`TracedReady.lean`, over `trCap_fire_ready`), the tokens split by
+`readyToks_selfSplit`. `RawNode.Ready.traced` (`TracedRawNodeReady.lean`). `Advance`: its storage
+acknowledgements need a close that knows the end state; decided: `stepClose` gains an `AckEnd` premise
+(details in the decisions entry).
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its

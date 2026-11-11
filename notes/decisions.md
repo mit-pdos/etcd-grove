@@ -36479,3 +36479,55 @@ permutation-of-filter-map split (`bigSepL_pairs_split`, no `MsgsUniq`), the queu
   `switchToConfig`'s hook), gated `node.run` and the node API's statements (`recvTokOf` from
   `node.Ready` to `node.Step`; the `recvc` arm's `MsgUnreachable` over `UnreachPath`), traced
   `newRaft`/`Bootstrap` (`startTrace_trCapB`, a unified `traceConfChangeEvent.spec`).
+
+## Q8 stage 1 (slice 28n): `acceptReady` one spec for both modes, the `Ready` line fired; traced `RawNode.Ready`; `Advance`'s storage acknowledgements need a close (designed, not done) (2026-11-11 · trace-check, Q8 stage 1 slice 28n; slice 27n's designs taken by the coordinator, their form the agent's · branch `trace-check-q8s28n`; DRAFT until trace-check's Freeze)
+
+All raft-internal: no module on `etc/api/raft.txt` changed; nothing frozen (`TracedCap.lean`,
+`TracedHooksDraft.lean`, `TracedApiDraft.lean` untouched); no axiom, no `sorry`. Untraced
+client-visible statements unchanged: `RawNode.Ready.spec` keeps its premise `γ.reTrace = none` and its
+statement; the traced triple is a separate theorem.
+
+**Found: a traced node could not reach `ownRawNodeReady`.** `ownRaftPhysReady`'s `Hf_traceLogger` said
+`TraceLoggerOk tl` (a nil logger), which a traced node's capability contradicts (`tl ≠ nil`). Now
+`TraceLoggerOkS s.gh.tr tl` (the mode's contract), built by `ownRaftPhysC_traceLoggerS`
+(`InvRawnodeReady.lean`: the struct's field untraced, the capability's traced, from `rnTrace`).
+`RawNode.readyWithoutAccept.spec` drops its premise `γ.reTrace = none` (it logs nothing). Two more
+facts `acceptReady` needs traced, now in `ownRawNodeReady`: `Hmslen` strengthened from a length bound to
+`MsSub id ms ms1 ms2` (the handed-out messages and the self-addressed ones are, up to order, among the
+queues: `readyWithoutAccept`'s `ms1 ++ nonself id ms2`, a stale `Ready`'s `[]`), so the `Ready` line's
+tokens split between them; and `"%Houttr" ∷ ⌜OutTr γ s⌝` (the outbox's numbers at the cut state, which
+`self_pending`'s `MsgTrOk` premise needs once the ghost state is at the drained outbox; from `NsLink`).
+
+**`RawNode.acceptReady.spec`, one spec for both modes**: premise `γ.reTrace ≠ none → uint.Z rs.tc + 1 <
+traceNumBound ∧ receiptBound GF + γ.reBoot.length ≤ traceNumBound` (in place of `γ.reTrace = none`;
+untraced callers pass `absurd`), post gains `"Htoks" ∷ [∗list] q ∈ ms, readyTok γ q.st` (`readyTok`:
+`True` untraced, `recvTokOf` traced; `InvRawnodeReady.lean`). Proof: the struct is closed before
+`traceReady` (ghost steps only in between) and lent to its gate (`trOwn_split`); the gate is
+`rnTrace_fireReady` (`TracedReady.lean`): untraced the nil logger; traced `trCap_fire_ready` with
+`PhaseStepReady` from `SimIdle C s` (the cut state) to `SimIdle C s'` (`phaseStepReady_idle`:
+`toPState s' = {toPState s with outbox := [], rd}`, `SimServerR` not reading `durable`), the event's
+`TraceEv.Ok` by `nodeEvOf_ok` (the commit and last index from `ownRaftGhost_traceBoundIf`, the term from
+the ceiling), its tokens by `readyToks_queues`; then `readyToks_selfSplit` gives the self-addressed
+ones to `self_pending` (as `selfTok`, no entries or context by `AAMsgOk`) and the handed-out ones to the
+post. The node closes with `ownRawNode_intro_tr` and the capability at `s'`. The proof's heartbeats
+raised to 400000. Callers (`RawNode.Ready`, `node.run`) unchanged but the premise and a dropped `-`.
+
+**`RawNode.Ready.traced`** (`TracedRawNodeReady.lean`): `RawNode.Ready.tracedTriple`, the untraced
+triple at `γ.reTrace = some γd` with the two bounds, post gaining `[∗list] q ∈ ms, recvTokOf γd q.st.msg
+q.st.ents q.st.ctx`; hypotheses `readyWithoutAccept.spec`, `acceptReady.spec` (no bundle).
+
+**`Advance`: decided, not done.** The self-addressed responses step over `stepBundle_traced.on` of the
+response types with `pendingRel`'s `selfTok` (as `RawNode.Step.traced`). The storage acknowledgements
+(`MsgStorageAppendResp`/`MsgStorageApplyResp`) cannot use a close that ignores the end state: every close
+must prove `OutTrStep s s'`, which needs the end state's outbox, and `StepEnd` says nothing of these
+types; a fifth `StepEnd` clause shifts the path files' `.2.2.2`, and a guard inside the fourth breaks
+every reader. Decided: `stepClose`/`stepCloseAt` gain a premise `⌜s.gh.tr.isSome → AckEnd m s s'⌝`
+(`AckEnd`: for an acknowledgement type, raft.Step's `LocalFrame`-like end state, outbox and protocol
+reading unchanged; vacuous for other types), which `raft.Step`'s gate-close sites supply (its two
+acknowledgement arms prove it, the others `AckEnd.of_ty`); every path file's close intro gains one `%_`
+(mechanical). Then a bundle `stepBundle_traced_storAck` over `localR` (close at `s`, `SimIdle` by
+`simIdle_congr`), and the traced `Advance` (its loop invariant carrying `rnTrace` at the current state;
+the snapshot-acknowledgement arm vacuous traced by `TrNoSnap`).
+Not done, exact: the above; `RawNode.ApplyConfChange` (the booted node's line under `AccIdle`,
+`lineEffect_applyCC`, `switchToConfig`'s hook); gated `node.run` and the node API's statements
+(`recvTokOf` from `node.Ready` to `node.Step`, over `RawNode.Ready.traced`'s and `acceptReady`'s tokens).
