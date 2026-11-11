@@ -984,6 +984,7 @@ theorem raft.becomeLeader.traced (h : raft.becomeLeader.spec (GF := GF) (hG := h
   iintro %Ψ ⟨#Hpkg, Hphys, Hcap, Hfx1, Hfx2, Hfx3⟩ HΨ
   icases trCapB_logger0 c c.voters r id s γ b Φ Λ $$ [$Hphys $Hcap]
     with ⟨%tl0, #Htl0, %Hok0, Hphys, Hcap⟩
+  imod (preceipt_zero (GF := GF)) with #Hrc0
   iapply h c r id s
     iprop(trCapB s.gh.tr γ r id c b Φ Λ ∗
       FxPresUT s.gh.tr γ id (NodeEvOf (W64 3) id (becomeLeaderPre id s) c) Φ Φ1 R1 ∗
@@ -997,9 +998,9 @@ theorem raft.becomeLeader.traced (h : raft.becomeLeader.spec (GF := GF) (hG := h
     iprop((trCapB s.gh.tr γ r id c true Φ2 Λ2 ∗ R2) ∗
       (R2 -∗ FxPresUT s.gh.tr γ id (SendEvOf (W64 11) id (becomeLeaderLog id s) c
         (selfAck id (becomeLeaderLog id s))) Φ2 Φ' R'))
-    iprop(trCapB s.gh.tr γ r id c true Φ' Λ' ∗ R')
+    iprop(trCapB s.gh.tr γ r id c true Φ' Λ' ∗ R') 0
     hrole hnl hterm $$ [Hphys Hcap Hfx1 Hfx2 Hfx3]
-  · iframe Hpkg Hphys
+  · iframe Hpkg Hphys Hrc0
     isplitl [Hcap Hfx1 Hfx2 Hfx3]
     · iapply to_named
       iframe Hcap Hfx1 Hfx2 Hfx3
@@ -1013,7 +1014,7 @@ theorem raft.becomeLeader.traced (h : raft.becomeLeader.spec (GF := GF) (hG := h
         (fun _ e he => nodeEvOf_notBoot he (by decide) (by decide) (by decide)) hΛ1 hOk1 Hok0
       iframe Htl0 Hcap Hfx1
     isplitr
-    · iintro ⟨⟨Hcap, HR1⟩, Hfx2, Hfx3⟩
+    · iintro - ⟨⟨Hcap, HR1⟩, Hfx2, Hfx3⟩
       ihave Hfx2 := Hfx2 $$ HR1
       iapply hookGateN_mono s.gh.tr r _ 1 iprop(trCapB s.gh.tr γ r id c true Φ2 Λ2 ∗ R2)
       isplitl [Hfx3]

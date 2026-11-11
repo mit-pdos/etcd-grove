@@ -55,7 +55,7 @@ theorem raft.becomeLeader.wp_proof
     (wp_raft_appendEntry : raft.appendEntry.spec (GF := GF) (hG := hG))
     (wp_Progress_BecomeReplicate : tracker.Progress.BecomeReplicate.spec (GF := GF) (hG := hG)) :
     raft.becomeLeader.spec (GF := GF) (hG := hG) := by
-  intro c r id s G G1 G2 G3 Hrole Hnl Hnz
+  intro c r id s G G1 G2 G3 k0 Hrole Hnl Hnz
   wp_start as Hpre
   iNamed Hpre
   -- (2026-10-19, D21 M3) in the no-snapshot mode the log is not empty (it holds the bootstrap
@@ -183,9 +183,8 @@ theorem raft.becomeLeader.wp_proof
   -- dropped; the entry's `Data` is nil, so `accepted = true` and the `Panic` on the
   -- `false` branch below is dead code. It also queues a self-addressed `MsgAppResp`, the
   -- self-acknowledgement: the state is `becomeLeader`. One entry is not `2^61`.
-  -- (2026-10-18, D19b stage 5) `appendEntry`'s time receipt: `raft.Step`, which runs the ghost
-  -- step that creates the leader's entry, takes its own; here the least one serves
-  imod (preceipt_zero (GF := GF)) with #Hrc0
+  -- (2026-10-18, D19b stage 5) `appendEntry`'s time receipt; (2026-11-11, slice 24b) the caller's,
+  -- raised by `appendEntry` and handed to the `Replicate` gate
   -- (Q8 stage 1, slice 6) `appendEntry`'s gates are the caller's, at the states named
   have E2 : NodeEvOf (W64 5) id s2 c = NodeEvOf (W64 5) id (becomeLeaderPre id s) c := by
     subst hs1; rfl
@@ -197,12 +196,12 @@ theorem raft.becomeLeader.wp_proof
         { s2 with logst := logAppend s2.logst ([zero_val EntryM].mapIdx (stamp s2.term (logLast s2.logst))) }] =
       sendOutGate id (becomeLeaderLog id s) c MsgAppResp [selfAck id (becomeLeaderLog id s)] := by
     subst hs1; rfl
-  wp_apply wp_raft_appendEntry c r id s2 _ [zero_val EntryM] (DFrac.own 1) 0 G1 G2 G3
-      (by simp) (by subst hs1; exact Hnz) $$ [$Hphys $Hes $Hrc0 HG1 Hgrep Hgack]
+  wp_apply wp_raft_appendEntry c r id s2 _ [zero_val EntryM] (DFrac.own 1) k0 G1 G2 G3
+      (by simp) (by subst hs1; exact Hnz) $$ [$Hphys $Hes $Hrc HG1 Hgrep Hgack]
     as %accepted ⟨-, %Hacc, Hes, Hphys⟩
   · rw [Hgh, E2, E3, E4]
     iframe HG1 Hgack
-    iintro - HG; iapply Hgrep $$ HG
+    iintro #Hr HG; iapply Hgrep $$ Hr HG
   -- empty payload, so accepted; the `false` branch is gone before any `WP` is stepped on it
   have Hacc' : accepted = true := Hacc (by intro e He; simp at He; subst He; rfl)
   subst Hacc'

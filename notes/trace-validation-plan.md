@@ -1013,6 +1013,21 @@ self-acknowledgement's facts, the appends' gates (unblocked now by the `RejectHi
 the vote's loss (a guarded `stepOut` for the close) and win (the win's ghost update split, its receipt
 through `becomeLeader`), each recorded with its design in the decisions entry. Checked (branch at `trace-check` `98618b5dfa` plus this slice): full `lake build` green (13813 jobs); `etc/tcb-report.py --check` (806 axioms, 4 `sorry`s, unchanged) and all 53 collections `--reuse --check`, none updated; `interface/` differs in six function proof interfaces (`raft__appendEntry`, `stepLeader`: the receipt in the `Replicate` gate; those, `raft__maybeSendAppend`, `raft__sendAppend`, `raft__bcastAppend`, `stepCandidate`: `mm.rejecthint = W64 0`); `--check --layout` 0 new; `etc/api-check.py` 0 errors; `etc/gen-link.py --raft` unchanged.
 
+**Q8 stage 1 (slice 24b), 2026-11-11 (branch `trace-check-q8s24b`): a candidate's lost vote done; the
+won vote's receipt through `becomeLeader`; the win's ghost split found to need three phases, and `hc`
+not derivable.** Slice 23a's designs taken by the coordinator, their form and the findings the agent's
+(`notes/decisions.md`, "Q8 stage 1 (slice 24b)"); all raft-internal. Done: `stepOutG` (the close's guarded
+result: `G0` and `G1` under `¬ CandHooked`), `gate_close` off the vote response, `wp_Step_MsgVoteResp`
+tagged, `CandVoteRespResultC`'s loss exact; `stepBundle_traced_candVoteRespLost`
+(`TracedRaftStepRecvVoteRespLost.lean`: the receive line, then the `BecomeFollower` line as the
+specification's `StepDownToFollower`, `phaseStepBF_lost`, `fxPresBF_cand`); `raft.becomeLeader.spec`
+passing the caller's receipt to `"Hgrep"`. Not done (each with its form in the decisions entry): the win's
+ghost update in three phases (registration before the `BecomeLeader` line, the term log inside its
+`FxPresU`, a basic update, the entry's record at `"Hgrep"`: `Protocol/Refinement.lean` additions), the
+receipt through `stepCandidate.spec` and `candidateGates` (a `StepG` loan), `ghostRest` at the won state
+and `Step`'s `MsgVoteResp` arm split, and `tallyGranted_quorum`'s `hc` (a new question: no fact scopes a
+vote response's sender; recommended an amendment typing the bag's sources).
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its
@@ -1278,6 +1293,18 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   (`TracedMsgType.lean`) gives `msgTypeStr ty` for the six traced types, for the send and receive
   hooks; the Go test `examples/raft/tracecheck/msgtype_string_test.go`. Trust base: the axiom out,
   the model in, the server's results on `strconv.Itoa`'s axiom (`notes/decisions.md`, "Q9").
+- **Q23 (2026-11-11, Q8 stage 1 slice 24b): a won vote's quorum and the voters' sources.**
+  `tallyGranted_quorum` (A3) needs every voter raft heard from to be in the configuration (`hc`), but
+  nothing gives it where the `BecomeLeader` guard is checked: a refusal's `isMessageC` is `True`,
+  `Msg.TrOk`/`MsgTrOk` bound numbers only, `TraceEv.InScope` restricts event names, `SpecInv` types
+  only append requests' sources, and raft's `recordVote` records any sender (`notes/decisions.md`, "Q8
+  stage 1 (slice 24b)"). Options: (a) a `SpecInv` clause that every in-flight message's source (and
+  destination) is a server, preserved by the specification's sends (servers only send as themselves,
+  phantoms come from the receiver), given to the receive law so its phase records raft's voters in the
+  configuration: a frozen-statement change; (b) a traced message's source scoped in `MsgTrOk`
+  (`Protocol/Model.lean`, client-visible body, gated). **Taken by the coordinator (the freeze being
+  delegated to it), pending the user's veto: (a)**, folded into amendment A6 (checked against the
+  specification first, one review round with Q22).
 - **Q21 (2026-11-11, Q8 stage 1 slice 22b): an accepted append's truncation and the frozen
   `QuorumLogF`.** A receiver at the request's term may hold, by coincidence, a prefix a quorum
   committed at a higher term, and truncate it; `QuorumLogF` (a clause of the frozen `simFx`) stays

@@ -109,6 +109,19 @@ def StepEndTy (ty : w32) : Prop :=
   ty = MsgApp ∨ ty = MsgAppResp ∨ ty = MsgHeartbeat ∨ ty = MsgHeartbeatResp ∨ ty = MsgVote ∨
     ty = MsgVoteResp ∨ ty = MsgHup ∨ ty = MsgBeat ∨ ty = MsgProp
 
+/-- (2026-11-11, slice 24b) **A candidate's vote response that decides its election**: a `MsgVoteResp`
+of the candidate's term whose recorded tally is won (`JQuorum`) or lost (`JLost`) at `c`, so that
+`stepCandidate` runs a gate past the preamble's resource (`"Hgbl"` or `"Hglost"`); its spec returns this
+tag. The closing wand reads it (`stepOutG`): the resources before the decision are then not the
+step's end (`notes/decisions.md`, "Q8 stage 1 (slice 24b)"). -/
+def CandHooked (c : CfgM) (m : MessageM) (s : NState) : Prop :=
+  m.Type' = MsgVoteResp ∧ m.Term' = s.term ∧ s.role = .candidate ∧
+    (JQuorum c (granted (recordVote s.votes m.From' (!m.Reject'))) ∨
+      JLost c (recordVote s.votes m.From' (!m.Reject')))
+
+theorem CandHooked.of_ne {c : CfgM} {m : MessageM} {s : NState} (h : m.Type' ≠ MsgVoteResp) :
+    ¬ CandHooked c m s := fun h' => h h'.1
+
 /-- A stale message (`Step`'s `m.Term < r.Term` arm). -/
 def StaleMsg (s : NState) (m : MessageM) : Prop := m.Term' ≠ W64 0 ∧ uint.Z m.Term' < uint.Z s.term
 
@@ -234,6 +247,15 @@ structure StepG (GF : BundledGFunctors) where
 /-- What `Step` gives back of the caller's resources, at the outbox `o` it ended with. -/
 def stepOut (R : StepG GF) (o : List Msg) : IProp GF :=
   iprop(R.G0 o ∨ R.G1 o ∨ R.GE o ∨ R.Gp2 o ∨ ∃ (b : Bool) (N : w64), R.Gc b N o)
+
+/-- (2026-11-11, slice 24b) **What `Step` gives back, to the closing wand** (`stepClose`): `stepOut`
+with the resources before the type switch's last gate (`G0`, `G1`) guarded by `¬ CandHooked`, the
+outcome `stepCandidate` tags them with: on a candidate's deciding vote response the step ends past
+`"Hgbl"` or `"Hglost"`, never at `G0` or `G1`. Only the close reads it; every other user has `stepOut`
+(`stepOutG_stepOut`, `stepOutG_of_ne`). -/
+def stepOutG (c : CfgM) (m : MessageM) (s : NState) (R : StepG GF) (o : List Msg) : IProp GF :=
+  iprop((⌜¬ CandHooked c m s⌝ ∗ R.G0 o) ∨ (⌜¬ CandHooked c m s⌝ ∗ R.G1 o) ∨ R.GE o ∨ R.Gp2 o ∨
+    ∃ (b : Bool) (N : w64), R.Gc b N o)
 
 /-- (2026-11-10, slice 14) **What the callees ask of the indexed resources**: untraced, those reaching
 `maybeSendAppend` ignore the outbox (`IdxFree`: its snapshot fallback queues through no gate); after a
@@ -470,6 +492,37 @@ def stepGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ents 
 
 end gates
 
+section outg
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] {GF : BundledGFunctors}
+
+/-- (slice 24b) The guarded result is one. -/
+theorem stepOutG_stepOut (c : CfgM) (m : MessageM) (s : NState) (R : StepG GF) {o : List Msg} :
+    stepOutG c m s R o ⊢ stepOut R o := by
+  unfold stepOutG
+  iintro (⟨-, H⟩ | ⟨-, H⟩ | H | H | ⟨%b, %N, H⟩)
+  · unfold stepOut; ileft; iexact H
+  · unfold stepOut; iright; ileft; iexact H
+  · unfold stepOut; iright; iright; ileft; iexact H
+  · unfold stepOut; iright; iright; iright; ileft; iexact H
+  · unfold stepOut; iright; iright; iright; iright; iexists b, N; iexact H
+
+/-- (slice 24b) A result off a deciding vote response is a guarded one. -/
+theorem stepOutG_of_not (c : CfgM) (m : MessageM) (s : NState) (R : StepG GF) {o : List Msg}
+    (h : ¬ CandHooked c m s) : stepOut R o ⊢ stepOutG c m s R o := by
+  unfold stepOut stepOutG
+  iintro (H | H | H | H | ⟨%b, %N, H⟩)
+  · ileft; iframe H; ipureintro; exact h
+  · iright; ileft; iframe H; ipureintro; exact h
+  · iright; iright; ileft; iexact H
+  · iright; iright; iright; ileft; iexact H
+  · iright; iright; iright; iright; iexists b, N; iexact H
+
+theorem stepOutG_of_ne (c : CfgM) (m : MessageM) (s : NState) (R : StepG GF) {o : List Msg}
+    (h : m.Type' ≠ MsgVoteResp) : stepOut R o ⊢ stepOutG c m s R o :=
+  stepOutG_of_not c m s R (CandHooked.of_ne h)
+
+end outg
+
 section close
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -549,7 +602,7 @@ def stepClose (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : MessageM)
     (ctx : List w8) (s : NState) (R : StepG GF) (Gout : NState → IProp GF) : IProp GF :=
   iprop(∀ (s' : NState) (B : Int) (recv : List Msg),
     ⌜s.gh.tr.isSome → StepCD c id B m s recv s'⌝ -∗ ⌜s.gh.tr.isSome → StepEnd c id m ents ctx s s'⌝ -∗
-    stepOut R s'.outbox -∗
+    stepOutG c m s R s'.outbox -∗
     |={⊤}=> ((⌜CloseAt id m ents s s'⌝ ∗ ownStepGhost γ md c id s) ∨
         ∃ s1, ⌜CloseMid id m ents s s1 s'⌝ ∗ ownStepGhost γ md c id s1) ∗
       Gout s' ∗ ⌜OutTrStep s s'⌝)
@@ -572,6 +625,7 @@ theorem stepClose_of_at (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m :
   iintro H
   unfold stepClose stepCloseAt
   iintro %s' %B %recv %h1 %h2 Hout
+  ihave Hout := stepOutG_stepOut c m s R $$ Hout
   imod H $$ %s' %B %recv %h1 %h2 Hout with ⟨Hg, HG, %Hot⟩
   imodintro
   iframe HG
