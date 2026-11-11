@@ -290,8 +290,10 @@ theorem confchange.Changer.apply.wp_proof
       iintro %sl' ⟨Hsl', -⟩
       wp_auto
       -- a `ConfChangeType` argument: etcd-grove's `fmt.Errorf` (Perennial's admits basic types
-      -- only), with the enum's `String()` at the trust boundary
-      ihave #HS := wp_ConfChangeType_String cc.Type'
+      -- only); under `%d` Go prints it as an integer, calling no method (`fmt.argOkAt`'s integer
+      -- disjunct, premise fixes 6, D), so the enum's `String()` spec is no longer used (to drop
+      -- from the hypotheses, with the links regenerated)
+      have _hS := wp_ConfChangeType_String
       wp_apply wp_fmt_Errorf $$ [$Hsl'] as %e -
       · fmt_args_ok
       wp_for_post

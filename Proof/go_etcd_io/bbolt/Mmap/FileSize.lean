@@ -128,9 +128,9 @@ theorem DB.fileSize.wp_proof (hStat : os.File.Stat.spec (GF := GF) (hG := hG))
       iintro %sl ⟨Hsl, -⟩
       wp_apply hErrorf _ _ _ _ $$ [$Hsl] as %e ⟨-, #HeS0, %Hty0, %Hptr0⟩
       · iframe
-        simp only [fmt.argsOk]
+        fmt_args_intro
         isplitl
-        · iapply fmtErrorOk_argOk $$ Hek
+        · fmt_arg_method; iapply fmtErrorOk_argOk $$ Hek
         · itrivial
       try wp_auto
       iapply HΦ

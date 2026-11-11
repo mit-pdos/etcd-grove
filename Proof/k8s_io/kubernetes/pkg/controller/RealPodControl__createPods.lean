@@ -72,7 +72,7 @@ theorem RealPodControl.createPods.wp_proof
       [Hsl] as %e ⟨-, -⟩
     · isplitr
       · iexact Hsl
-      unfold fmt.argsOk; itrivial
+      fmt_args_intro; itrivial
     iapply HΦ
     isplitl [Hm Hmd Hpback]
     · iapply Hpback $$ Hm Hmd
@@ -96,7 +96,7 @@ theorem RealPodControl.createPods.wp_proof
         [Hsl] as %e ⟨-, -⟩
       · isplitr
         · iexact Hsl
-        unfold fmt.argsOk; itrivial
+        fmt_args_intro; itrivial
       iapply HΦ
       isplitl [Hm Hmd Hpback]
       · iapply Hpback $$ Hm

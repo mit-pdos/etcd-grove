@@ -273,9 +273,9 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     iintro %sl2 ⟨Hsl2, -⟩
     wp_apply hErrorf _ _ _ _ $$ [$Hsl2] as %ei ⟨-, #HiS, %Hty, %Hptr⟩
     · iframe
-      simp only [fmt.argsOk]
+      fmt_args_intro
       isplitl
-      · iapply fmtErrorOk_argOk $$ HeS
+      · fmt_arg_method; iapply fmtErrorOk_argOk $$ HeS
       · itrivial
     try wp_auto
     iapply HΦ
@@ -320,9 +320,9 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     iintro %sl2 ⟨Hsl2, -⟩
     wp_apply hErrorf _ _ _ _ $$ [$Hsl2] as %ei ⟨-, #HiS, %Hty, %Hptr⟩
     · iframe
-      simp only [fmt.argsOk]
+      fmt_args_intro
       isplitl
-      · iapply fmtErrorOk_argOk $$ HeS
+      · fmt_arg_method; iapply fmtErrorOk_argOk $$ HeS
       · itrivial
     try wp_auto
     iapply HΦ

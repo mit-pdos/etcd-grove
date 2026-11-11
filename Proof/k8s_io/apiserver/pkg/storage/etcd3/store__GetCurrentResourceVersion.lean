@@ -106,7 +106,7 @@ theorem store.GetCurrentResourceVersion.wp_proof
       · iframe #
         isplitl
         · iapply ownSlice_nil
-        unfold fmt.argsOk; itrivial
+        fmt_args_intro; itrivial
       (try wp_auto)
       iapply HΦ
       ileft

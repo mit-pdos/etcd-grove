@@ -172,7 +172,7 @@ theorem rafthttp.checkPostResponse.wp_proof
     iintro %asl ⟨Hasl, -⟩
     wp_apply hErrorf _ _ _ _ (by decide) $$ [Hasl] as %x ⟨-, %msg, #Hc, %Hpre, #HE⟩
     · iframe #; iframe Hasl
-      simp only [fmt.argsOk, fmt.argOk]
+      fmt_args_intro; simp only [fmt.argOkAt]
       isplitr
       · ileft; ipureintro
         apply fmt.argWf_of_argsWf
@@ -221,8 +221,8 @@ theorem rafthttp.checkPostResponse.wp_proof
   iintro %asl ⟨Hasl, -⟩
   wp_apply hErrorf _ _ _ _ (by decide) $$ [Hasl] as %x ⟨-, %msg, #Hc, %Hpre, #HE⟩
   · iframe #; iframe Hasl
-    simp only [show sint.nat (W64 (0 + 1)) = 1 by rfl, List.set_cons_succ, List.set_cons_zero,
-      fmt.argsOk, fmt.argOk]
+    simp only [show sint.nat (W64 (0 + 1)) = 1 by rfl, List.set_cons_succ, List.set_cons_zero]
+    fmt_args_intro; simp only [fmt.argOkAt]
     isplitr
     · ileft; ipureintro
       apply fmt.argWf_of_argsWf

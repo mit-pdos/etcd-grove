@@ -119,15 +119,6 @@ theorem argOk_of_errStrOk [_root_.Perennial.fmt.Assumptions] (e : GoInterface) :
     · unfold fmt.stringMethodSpec; iexact HE
     · ipureintro; exact hF
 
-/-- One error whose `Error()` returns is a formatting argument list (`fmt.argsOk`). -/
-theorem argsOk_of_errStrOk [_root_.Perennial.fmt.Assumptions] (e : GoInterface) :
-    http.errStrOk (GF := GF) e ⊢ fmt.argsOk [e] := by
-  iintro #He
-  unfold fmt.argsOk fmt.argsOk
-  isplitr
-  · iapply argOk_of_errStrOk $$ He
-  itrivial
-
 /-- An application to a panic is that panic. -/
 theorem wp_app_panic (e : Expr) (q : val) (Φ : val → IProp GF) :
     Φ (PanicV q) ⊢ WP (App e (Val (PanicV q))) {{ Φ }} :=
@@ -220,7 +211,10 @@ local macro "sprintf_err" e:term:max : tactic => `(tactic| (
   (try wp_auto)
   wp_apply hSprintf _ _ _ (DFrac.own 1) $$ [Hasl] as %msg -
   · iframe
-    iapply argsOk_of_errStrOk $$ He))
+    fmt_args_intro
+    isplitl
+    · fmt_arg_method; iapply argOk_of_errStrOk $$ He
+    · itrivial))
 
 set_option hygiene false in
 /-- The deferred `snapshotReceiveInflights.WithLabelValues(from).Dec()`. -/

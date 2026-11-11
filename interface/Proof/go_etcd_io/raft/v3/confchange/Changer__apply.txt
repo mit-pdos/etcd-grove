@@ -10,9 +10,6 @@ theorem wp_remove_work [package_sem : Assumptions] (wp_Changer_remove :
     ((((intoVal (methods confchange.Changer.ty.PointerType go!"remove" (intoVal p))) (intoVal cfgp))
     (intoVal trk)) (intoVal id)) {{ Φ }}
 
-theorem fmt.argsOk.eq_def (x✝ : List GoInterface) : fmt.argsOk x✝ = match x✝ with | [] =>
-    iprop(True) | a :: xs => iprop(fmt.argOk a ∗ fmt.argsOk xs)
-
 theorem confchange.Changer.apply.wp_proof [package_sem : Assumptions] (wp_Changer_makeVoter :
     confchange.Changer.makeVoter.spec) (wp_Changer_makeLearner :
     confchange.Changer.makeLearner.spec) (wp_Changer_remove : confchange.Changer.remove.spec)

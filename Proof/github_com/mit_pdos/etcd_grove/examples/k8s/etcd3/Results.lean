@@ -50,12 +50,11 @@ trust base of each printed in the build log (`#print axioms`). Lean-first (no Ro
 `clientErrPlain` a lemma (`clientErrPlain_holds`).
 
 **Resting on refuted axioms (axiom sweep batch 1, 2026-11-07; checked 2026-11-10).** The `_safe`
-theorems rest on two of the batch's refuted families that sweep repairs 1 left unrepaired:
-`zap.Logger.{Debug,Error,Fatal,Info,Warn}` (still `⌜l ≠ null⌝`, which a zero `&zap.Logger{}` meets
-and panics on; R1-2 gave `zapLoggerOk` to `bootstrap`'s contract and to `Check`/`Write` only, the
-loggers' own specs deferred to LG-2..LG-5, `notes/decisions.md`) and `errors.IsCtxErr` (premise
-`context.isTypedErr`, `notes/axiom-review/isctxerr.md`). The batch's other ones this header listed
-were repaired (`http.Handle`, B3; the default feature gate's and `DefaultFeatureSupportChecker`'s
+theorems rest on `errors.IsCtxErr` (premise `context.isTypedErr`, `notes/axiom-review/isctxerr.md`),
+one of the batch's refuted families that sweep repairs 1 left unrepaired. Another,
+`zap.Logger.{Debug,Error,Fatal,Info,Warn}`, took `⌜l ≠ null⌝`, which a zero `&zap.Logger{}` meets and
+panics on; they take `zapLoggerOk l` since premise fixes 6 (`Panic` keeps `l ≠ null`). The
+batch's other ones this header listed were repaired (`http.Handle`, B3; the default feature gate's and `DefaultFeatureSupportChecker`'s
 initializers, B5; `context.ValueStartTime`, a theorem since B2), and the `pbEnc_ok` axiom and grpc's
 refuted `ProtoMsg` axioms are gone (per-type protobuf models, stage A).
 -/

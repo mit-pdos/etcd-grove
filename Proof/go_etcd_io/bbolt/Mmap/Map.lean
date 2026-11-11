@@ -150,9 +150,9 @@ theorem mmapF.wp_proof (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
         iintro %sl ⟨Hsl, -⟩
         wp_apply hErrorf _ _ _ _ $$ [$Hsl] as %ii ⟨-, #HiS⟩
         · iframe
-          simp only [fmt.argsOk, fmt.argOk]
+          fmt_args_intro; simp only [fmt.argOkAt, fmt.argOk]
           isplitl
-          · iright; ileft; isplitr
+          · fmt_arg_method; iright; ileft; isplitr
             · iapply HeS; iempintro
             · ipureintro; fmt_method_none
           · itrivial

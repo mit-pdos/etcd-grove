@@ -98,7 +98,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
       $$ [] as %eNR -
   · isplitl
     · iapply ownSlice_nil
-    unfold EtcdGrove.fmt.argsOk; itrivial
+    fmt_args_intro; itrivial
   ipersist HErrUnsupportedRequest
   ipersist HErrKeyRangeInvalid
   ipersist HErrCacheTimeout
