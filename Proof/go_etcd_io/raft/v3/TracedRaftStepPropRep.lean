@@ -26,6 +26,7 @@ module
 
 public import Proof.go_etcd_io.raft.v3.TracedRaftStepProp
 public import Proof.go_etcd_io.raft.v3.TracedQuorumLog
+public import Proof.go_etcd_io.raft.v3.Protocol.Enter
 
 @[expose] public section
 
@@ -586,6 +587,66 @@ theorem fxPres_selfAck (γ : RaftNames) (id : w64) (E : TraceEv → Prop) (s1 : 
     rfl rfl rfl hs' $$ H2
   iframe Htbl
   iexact H3
+
+/-- **The records of a prefix, at any base** (`logRecs_take`'s, which is at `base0`). -/
+theorem logRecs_take_gen (γ : RaftNames) (b : entryID) (F : List EntryM) (n : Nat) :
+    logRecs (GF := GF) γ b F ⊢ logRecs γ b (F.take n) := by
+  unfold logRecs
+  refine (BigSepL.bigSepL_take_drop (n := n)).1.trans (sep_elim_left.trans ?_)
+  apply BigSepL.bigSepL_mono
+  intro k e hk
+  have hkn : k < n := by
+    have := (List.getElem?_eq_some_iff.1 hk).1; simp only [List.length_take] at this; omega
+  rcases Int.lt_or_le (uint.Z b.index' + (k : Int) + 1) (2 ^ 64) with hc | hc
+  · rw [if_pos hc, if_pos hc]
+    iintro ⟨%pt, %hpt, #H⟩
+    iexists pt
+    iframe H
+    ipureintro
+    rw [plogTermAt_take]
+    · exact hpt
+    · have := uint_Z_nonneg b.index'
+      unfold pidx
+      have : uint.Z (W64 (uint.Z b.index' + (k : Int)) : w64) = uint.Z b.index' + (k : Int) := by word
+      omega
+  · rw [if_neg (Int.not_lt.2 hc), if_neg (Int.not_lt.2 hc)]
+
+/-- **An `"app"` request's facts from raft's ghost state** (`msgFacts`: its sender's leadership of its
+term, its entries' records after its previous entry): at an uncompacted leader's log with its records
+(`ownRaftGhost_logFacts`), the request's entries a slice of the log after its index (`appOk_slice`,
+`logRecs_drop` from the full log's prefix, `FullOk_take`, then `logRecs_take_gen`). -/
+theorem msgFacts_app_of_log (γ : RaftNames) (C : List w64) (id : w64) (ps : PState) (mm : Msg)
+    (ma : Etcdraft.Msg) (hma : TraceSim.msgAbs C C.length mm = some ma) (happ : AppOk id ps mm)
+    (hb : ps.base = base0) (hwf : PlogWf base0 ps.log) (hlen : (ps.log.length : Int) < 2 ^ 63) :
+    isLeader (GF := GF) γ id ps.term ∗ logRecs γ base0 ps.log ⊢ msgFacts γ C ma := by
+  iintro ⟨#Hl, #Hr⟩
+  have hty : mm.ty = .app := happ.1
+  obtain ⟨hpk, hents⟩ := appOk_slice id ps mm happ (by rw [hb]; rfl) hlen
+  simp only [TraceSim.msgAbs, hty] at hma
+  cases hma
+  unfold msgFacts
+  simp only [↓reduceIte]
+  iexists id, mm.entries
+  have hn : (uint.Z mm.index).toNat = uint.nat mm.index := by word
+  isplitr
+  · ipureintro
+    refine ⟨by rw [happ.2.1], by rw [hn], ?_⟩
+    simp only [logAbs_length]
+    have : (uint.nat mm.index : Int) = uint.Z mm.index := by word
+    omega
+  have hW1 : (W64 (uint.Z mm.term) : w64) = ps.term := by rw [← happ.2.2.1]; simp
+  have hW2 : (W64 (uint.Z mm.logterm) : w64) = mm.logterm := by simp
+  have hW3 : (W64 (uint.Z mm.index) : w64) = mm.index := by simp
+  rw [hW1, hW2, hW3]
+  iframe Hl
+  have hlt : plogTermAt base0 ps.log mm.index = some mm.logterm := by rw [← hb]; exact happ.2.2.2.2.1
+  have hfo := FullOk_take ps.log mm.logterm mm.index hwf hlt
+  rw [hn] at hfo
+  ihave #Hd := logRecs_drop γ ps.log (entryID.mk mm.logterm mm.index) (uint.nat mm.index) hfo
+    (by simp only) $$ Hr
+  ihave #Ht := logRecs_take_gen γ _ (ps.log.drop (uint.nat mm.index)) mm.entries.length $$ Hd
+  rw [← hents]
+  iexact Ht
 
 end facts
 
