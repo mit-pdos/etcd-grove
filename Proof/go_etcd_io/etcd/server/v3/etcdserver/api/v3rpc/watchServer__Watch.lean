@@ -283,10 +283,9 @@ theorem v3rpc.watchServer.Watch.wp_proof
       iframe Htt; try (ipureintro; rfl)
   iunfold v3rpc.ctxCanceledPtr at Hcanc
   icases Hcanc with ⟨%eC, #HeC, %HeCp⟩
-  iunfold v3rpc.msgErrVar at HmWC
-  icases HmWC with ⟨%eWC, #HeWC, #HeWCm⟩
-  ihave #HsvW : go_etcd_io.etcd.cache.v3.srvErrOk (GF := GF) (GoInterface.ok eWC) $$ []
-  · sorry
+  iunfold v3rpc.statusMsgErrVar at HmWC
+  icases HmWC with ⟨%eWC, #HeWC, #HeWCm, #HeWCs⟩
+  ihave #HsvW := go_etcd_io.etcd.cache.v3.srvErrOk_of_statusErrOk (GF := GF) _ $$ HeWCs
   ihave #Pes : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
   · iPkgInit
   ihave #HCtxE := applyErrIs_of_isCtxErr $$ Pes

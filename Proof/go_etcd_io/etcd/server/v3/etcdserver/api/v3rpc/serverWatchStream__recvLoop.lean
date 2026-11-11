@@ -236,7 +236,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
   icases HeOld with ⟨%aOld, #HaOldg, %HaOldL, -⟩
   icases HeEmpty with ⟨%aEmp, #HaEmpg, %HaEmpL, -⟩
   icases HeDenied with ⟨%aDen, #HaDeng, %HaDenL, -⟩
-  iunfold v3rpc.msgErrVar at HmCompacted HmInv HmOld HmEmpty HmDenied HmWC
+  iunfold v3rpc.msgErrVar at HmCompacted HmInv HmOld HmEmpty HmDenied
   icases HmCompacted with ⟨%eC, #HeCg, #HeCm⟩
   icases HmInv with ⟨%eInv, #HeInvg, #HeInvm⟩
   icases HmOld with ⟨%eOld, #HeOldg, #HeOldm⟩

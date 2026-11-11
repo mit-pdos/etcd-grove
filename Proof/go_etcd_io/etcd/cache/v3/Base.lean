@@ -478,8 +478,10 @@ abbrev rpctypesInit : IProp GF :=
       errorStringSpec e) ∗
     (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCPermissionDenied ↦□ GoInterface.ok e ∗
       errorStringSpec e) ∗
+    -- (premise-fixes-7, Q1) `ErrGRPCWatchCanceled`, which `watchServer.Watch` returns, also one
+    -- grpc's `status.FromError` accepts
     (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCWatchCanceled ↦□ GoInterface.ok e ∗
-      errorStringSpec e) ∗
+      errorStringSpec e ∗ statusErrOk (GoInterface.ok e)) ∗
     -- (item 1, the client lease, 2026-10-18) `ErrNoLeader`, an `EtcdError` (the client's lease
     -- keep-alive loop compares a stream's error with it)
     (∃ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError,

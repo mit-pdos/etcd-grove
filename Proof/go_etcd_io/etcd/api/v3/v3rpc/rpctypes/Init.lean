@@ -301,10 +301,10 @@ axiom ErrGRPCPermissionDenied_init :
     {{ (True : IProp GF) }} (App (Val ErrGRPCPermissionDenied.init) (Val #()))
     {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCPermissionDenied ↦ GoInterface.ok e ∗ go_etcd_io.etcd.cache.v3.errorStringSpec e }}
 
-/-- `ErrGRPCWatchCanceled = status.Error(codes.Canceled, "etcdserver: watch canceled")` (`error.go`): a `*status.Error`, whose `Error()` returns. -/
+/-- `ErrGRPCWatchCanceled = status.Error(codes.Canceled, "etcdserver: watch canceled")` (`error.go`): a `*status.Error`, whose `Error()` returns, which grpc's `status.FromError` accepts (`statusErrOk`; premise-fixes-7: `watchServer.Watch` returns it). -/
 axiom ErrGRPCWatchCanceled_init :
     {{ (True : IProp GF) }} (App (Val ErrGRPCWatchCanceled.init) (Val #()))
-    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCWatchCanceled ↦ GoInterface.ok e ∗ go_etcd_io.etcd.cache.v3.errorStringSpec e }}
+    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCWatchCanceled ↦ GoInterface.ok e ∗ go_etcd_io.etcd.cache.v3.errorStringSpec e ∗ go_etcd_io.etcd.cache.v3.statusErrOk (GoInterface.ok e) }}
 
 end go_etcd_io.etcd.api.v3.v3rpc.rpctypes
 end opaqueInits
@@ -373,7 +373,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk ErrGRPCLeaseNotFound.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCLeaseExist.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCLeaseTTLTooLarge.init (by mem_tac))
-  wp_apply ErrGRPCWatchCanceled_init as ⟨%eErrGRPCWatchCanceled, HErrGRPCWatchCanceled, #SErrGRPCWatchCanceled⟩
+  wp_apply ErrGRPCWatchCanceled_init as ⟨%eErrGRPCWatchCanceled, HErrGRPCWatchCanceled, #SErrGRPCWatchCanceled, #TErrGRPCWatchCanceled⟩
   wp_apply (opaqueInitsOk ErrGRPCMemberExist.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCPeerURLExist.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCMemberNotEnoughStarted.init (by mem_tac))

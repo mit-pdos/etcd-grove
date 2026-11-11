@@ -1513,6 +1513,14 @@ _RWERRS = {'ErrGRPCInvalidAuthToken': ('Unauthenticated', 'etcdserver: invalid a
            'ErrGRPCPermissionDenied': ('PermissionDenied', 'etcdserver: permission denied'),
            'ErrGRPCWatchCanceled': ('Canceled', 'etcdserver: watch canceled')}
 for x, (c, m) in _RWERRS.items():
+    if x == 'ErrGRPCWatchCanceled':
+        # (premise-fixes-7, Q1) the watch server returns it from `Watch`, a stream handler's
+        # error, which grpc and the prometheus interceptor pass to `status.FromError`
+        _R['custom'][x] = dict(
+            doc=f'/-- `{x} = status.Error(codes.{c}, "{m}")` (`error.go`): a `*status.Error`, whose `Error()` returns, which grpc\'s `status.FromError` accepts (`statusErrOk`; premise-fixes-7: `watchServer.Watch` returns it). -/',
+            post=f'∃ e : GoInterfaceOk, globalAddr {x} ↦ GoInterface.ok e ∗ {CV3}.errorStringSpec e ∗ {CV3}.statusErrOk (GoInterface.ok e)',
+            pat='⟨%e@, H@, #S@, #T@⟩')
+        continue
     _R['custom'][x] = dict(
         doc=f'/-- `{x} = status.Error(codes.{c}, "{m}")` (`error.go`): a `*status.Error`, whose `Error()` returns. -/',
         post=f'∃ e : GoInterfaceOk, globalAddr {x} ↦ GoInterface.ok e ∗ {CV3}.errorStringSpec e',
@@ -1945,7 +1953,7 @@ names) and the four
              '    go_etcd_io.etcd.cache.v3.errorStringSpec e) $$ []',
              '· iexists eRCP; iframe #',
              'ihave #MCP := EtcdGrove.v3rpc.msgErrVar_of_spec _ $$ RCP'] +
-            [f'ihave #MRW{i} := EtcdGrove.v3rpc.msgErrVar_of_spec _ $$ RW{i}' for i in range(len(_V_WERRS))] +
+            [f'ihave #MRW{i} := EtcdGrove.v3rpc.{"statusMsgErrVar" if x == "ErrGRPCWatchCanceled" else "msgErrVar"}_of_spec _ $$ RW{i}' for i, x in enumerate(_V_WERRS)] +
             ['-- the metrics',
              'ipersist HstreamFailures'] +
             [f'ipersist H{x}' for x in _V_HIST] +

@@ -342,7 +342,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   ihave #MRW1 := EtcdGrove.v3rpc.msgErrVar_of_spec _ $$ RW1
   ihave #MRW2 := EtcdGrove.v3rpc.msgErrVar_of_spec _ $$ RW2
   ihave #MRW3 := EtcdGrove.v3rpc.msgErrVar_of_spec _ $$ RW3
-  ihave #MRW4 := EtcdGrove.v3rpc.msgErrVar_of_spec _ $$ RW4
+  ihave #MRW4 := EtcdGrove.v3rpc.statusMsgErrVar_of_spec _ $$ RW4
   -- the metrics
   ipersist HstreamFailures
   ipersist HwatchSendLoopWatchStreamDuration

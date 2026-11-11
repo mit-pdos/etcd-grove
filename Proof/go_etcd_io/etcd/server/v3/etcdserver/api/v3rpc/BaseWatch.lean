@@ -53,6 +53,17 @@ def v3rpc.msgErrVar (g : GoString) : IProp GF :=
 instance v3rpc.msgErrVar_persistent (g : GoString) : Persistent (v3rpc.msgErrVar (GF := GF) g) := by
   unfold v3rpc.msgErrVar; infer_instance
 
+/-- The package variable `g` holds a fixed error whose `Error()` returns and which grpc's
+`status.FromError` accepts (persistent; premise-fixes-7: `ErrGRPCWatchCanceled`, which
+`watchServer.Watch` returns as a stream handler's error, `srvErrOk`). -/
+def v3rpc.statusMsgErrVar (g : GoString) : IProp GF :=
+  iprop(∃ e : GoInterfaceOk, globalAddr g ↦□ GoInterface.ok e ∗
+    go_etcd_io.etcd.cache.v3.errorStringSpec e ∗ go_etcd_io.etcd.cache.v3.statusErrOk (GoInterface.ok e))
+
+instance v3rpc.statusMsgErrVar_persistent (g : GoString) :
+    Persistent (v3rpc.statusMsgErrVar (GF := GF) g) := by
+  unfold v3rpc.statusMsgErrVar; infer_instance
+
 /-- The package variable `g` holds a fixed histogram whose `Observe` returns (persistent). -/
 def v3rpc.histVar (g : GoString) : IProp GF :=
   iprop(∃ h : GoInterfaceOk, globalAddr g ↦□ GoInterface.ok h ∗
@@ -158,6 +169,15 @@ theorem v3rpc.msgErrVar_of_spec (g : GoString) :
   unfold v3rpc.msgErrVar
   iexists e
   iframe He Hs
+
+theorem v3rpc.statusMsgErrVar_of_spec (g : GoString) :
+    (∃ e : GoInterfaceOk, globalAddr g ↦□ GoInterface.ok e ∗
+        go_etcd_io.etcd.cache.v3.errorStringSpec (GF := GF) e ∗
+        go_etcd_io.etcd.cache.v3.statusErrOk (GoInterface.ok e)) ⊢ v3rpc.statusMsgErrVar g := by
+  iintro ⟨%e, #He, #Hs, #Ht⟩
+  unfold v3rpc.statusMsgErrVar
+  iexists e
+  iframe He Hs Ht
 
 end defs
 
