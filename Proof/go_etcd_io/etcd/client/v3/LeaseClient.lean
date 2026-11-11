@@ -62,7 +62,7 @@ theorem isEtcdLease_of_lessor
   icases Hl' with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, -, -, -, -, -, -, -, #Hrem, -, -⟩
   unfold isEtcdLease
   isplitl
-  · iintro !> %ctx %cs %ttl %Φ !> #Hctx HΦ
+  · iintro !> %ctx %cs %ttl %Φ !> ⟨#Hctx, -⟩ HΦ
     ihave #Hok := ctxOk_of_isContext ctx cs $$ Hctx
     iunfold client.ctxErrClientAll at Hall
     ihave #Hce := Hall $$ %ctx %cs Hctx
@@ -88,14 +88,14 @@ theorem isEtcdLease_of_lessor
       ipureintro; exact ⟨Hidnn, Hhnn⟩
     · ileft; ipureintro; exact Herr.1
   isplitl
-  · iintro !> %ctx %cs %id %Φ !> #Hctx HΦ
+  · iintro !> %ctx %cs %id %Φ !> ⟨#Hctx, -⟩ HΦ
     iapply (wp_KeepAlive l addr ctx cs id) $$ []
     · iframe #
     inext
     iintro %ch %err Hres
     iapply HΦ
     iexact Hres
-  · iintro !> %ctx %cs %id %Φ !> #Hctx HΦ
+  · iintro !> %ctx %cs %id %Φ !> ⟨#Hctx, -⟩ HΦ
     ihave #Hok := ctxOk_of_isContext ctx cs $$ Hctx
     iunfold client.ctxErrClientAll at Hall
     ihave #Hce := Hall $$ %ctx %cs Hctx
