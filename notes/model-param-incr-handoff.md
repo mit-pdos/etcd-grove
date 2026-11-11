@@ -27,9 +27,12 @@ of plan, 2026-11-11) profile and optimize `etc/ModelParamCheck.lean`, a fine-gra
 
 ## Next
 
-- Report to etcd-grove-81 (done at e8631aac6f+1); wait for the landing slot.
-- The fine-grained (per-statement) cache: recommended against now that the whole run is minutes
-  (report to etcd-grove-81 for a decision).
+- Accepted by etcd-grove-81 (2026-11-11); the fine-grained (per-statement) cache is NOT to be built
+  (decided by etcd-grove-81: soundness risk for little gain).
+- Land next, after premise-fixes-5, when etcd-grove-81 says so: merge lean, STATUS "Last updated"
+  entry (status-history.md append-only), full build under the lock and 64G cap, then
+  `LAKE_PACKAGES=/shared/tmp/manifest-ddc.json PERENNIAL_CHECKOUT=/shared/perennial-ddc0f0acc
+  etc/land.sh > /shared/tmp/model-param-incr/land.log 2>&1`. Never push.
 
 ## Pitfalls
 
