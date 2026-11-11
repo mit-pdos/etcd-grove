@@ -34597,3 +34597,72 @@ crash before it was). The tester gained `crashsim.Compose`/`KillInodes` and `-ki
 the base when an entry at or below it was read; `ReadAll` truncates the log there (`ents[:0]`),
 as W0's `walref.ReadEnt` and the Scope's reader say. It explains W1.5's unanalyzed ordered
 violation (chain 2145), which was not a garbage effect.
+
+## WAL W4a: the abstract-disk extension, the WAL's trust-boundary specs, durableExt's crash interpretation (2026-11-11 · the W4 Draft's §9 decisions 1-8 approved by etcd-grove-81; Q-W4a-1 option B decided by etcd-grove-81 under the user's delegation; the trusted texts await the Freeze review, `/shared/tmp/wal-spec/w4/freeze-w4a.md` · branch `wal-w4`)
+
+**What W4a adds** (the approved Draft, `/shared/tmp/wal-spec/w4/draft.md`, §1, §5):
+
+- `GooseLang/Ext/AbsDisk/Impl.lean` [trusted]: the extension `absDiskExt` (name: the WAL's Go
+  package path), its state (`WalDur` per WAL directory: the history `H` of `Save`/`SaveSnapshot`
+  operations over raw entries, the synced mark, the purge positions `unl`/`pur`/`cut`, the metadata,
+  `named`, `sized`; the durable directories), its steps (`AbsDiskStep`) and its crash relation
+  (`walCrash`, `walImg`), with the world assumptions in the module docstring (WAL W3).
+- `Proof/.../storage/WalHist.lean` [trusted meaning]: what a restart reads (`walRead`,
+  `walReadFrom`, `readEnt`, `walReadCut`, `walReadR`).
+- `GooseLang/Ext/AbsDisk/Specs.lean` (proved): the ghost state, the interpretation, one spec per
+  step, the crash interpretation, `walDiskAt_crash` (the Draft's `walDisk_crash`).
+- `GooseLang/Ext/Durable/Crash.lean` (proved): durableExt's crash interpretation (the identity: the
+  new generation keeps the ghost variable, as Perennial's `fs_crash_interp`).
+- `Proof/.../storage/WalDisk.lean` (proved): `walDisk` over `WalHist`, the read path's vocabulary
+  (`walValidSnaps`, `walNewestPair`, `walLastSnapPos`, `walSnapAt`, `walSnapIdTerm`, `walSnapsAt`),
+  and the purge law `walPurge_step`, proved over the extension's purge step (the tester's
+  `purgeRound`, whose trusted model performs that step, comes with W4c).
+- 12 axioms (`Proof/.../storage/wal/*.lean`, `Proof/.../client/pkg/v3/fileutil/TouchDirAll.lean`):
+  `Exist`, `Create`, `Save`, `SaveSnapshot`, `Sync`, `Close` (both modes, one conjunction),
+  `ReleaseLockTo`, `ValidSnapshotEntries`, `Open`, `ReadAll`, `Repair`, `fileutil.TouchDirAll`.
+- walpb (`Snapshot`'s type) and `client/pkg/v3/fileutil` names-only in the etcd goose project.
+
+**Option B** (Q-W4a-1): the server's `walRecs`/`walFiles`/`isWalStorage`/`wal.bootOk` are unchanged;
+until C6 the WAL has two models with nothing linking them (the server's `walRecs`, the extension's
+`walDiskAt`), and no closed etcd theorem uses the new axioms (they are unlinked: no `Link.lean`
+reaches them). Option A's design for C6 is in `notes/wal-w4-handoff.md`.
+
+**Decided in W4a, beyond the Draft's text** (each in the Freeze package, old → new):
+
+1. **The steps take their argument as a value** (a soundness repair of W4a's own earlier form, not
+   of the Draft). `"WalAppend"`, `"WalSync"`, `"WalUnlock"` had chosen their operation, mark and
+   position nondeterministically; a step's successors are demonic, so no body performing them could
+   satisfy `Save`, `Sync`, `ReleaseLockTo` or `ReadAll`'s axioms, and the Draft's §1.6 consistency
+   argument ("a body that performs the steps exists") failed. They now take `PairV #dir
+   #(walCode a)`, `walCode` an injective code (the Draft's text: `"WalAppend" dir op`).
+2. **The ghost state owns the whole WAL map** (`walOwn M`, half of a ghost variable plus a token),
+   and `walDirIs`/`walDiskAt`/`walAbsent` each hold it: the map has no fragments for the infinitely
+   many directories without a WAL, and `Create` needs `walAbsent` of one, so per-directory
+   ownership would need a claim operation. Two of these predicates are exclusive even for two
+   directories: enough for the tester and the server, which have one WAL directory each.
+3. **Facts are past states** (`absPast s`, persistent; the state only grows, `absLe`):
+   `walSyncedLb`, `walNamed`, `dirDurable`, `walLenLb` are facts about a past state. Handles
+   (`walOpenW`, `walOpening`) are exclusive ghost-map elements keyed by the `*wal.WAL`, whose
+   authority is in the interpretation; `walLenLb w n` names `w`'s directory (a persistent element).
+4. **`Create`'s error arm** (the Draft left it open, believing an error after the rename leaves the
+   fresh WAL): an error after the rename runs `cleanupWAL`, which renames the WAL away (not durably),
+   so neither "fresh WAL" nor "absent" is right. Errors before the rename leave the update not
+   committed (the AU returned); after it, `¬ storage.walCreateOk` (the server's environment premise:
+   `Create`'s file operations do not fail).
+5. **`Create`'s and `TouchDirAll`'s `name`** is one path element (non-empty, no `/`, not `.`/`..`),
+   so that the fsynced parent is `parent`.
+6. **`ReadAll`'s post** raises the synced mark (`m := max m |H|`): the Draft's `{ d with unl := … }`
+   kept `m` and contradicted its own `walSyncedLb dir |H|`. Its `⌜walLastHS I = σ.hs ∨ …⌝` (an
+   unfinished conjunct) is omitted: W4b's `walReadCut_hs` lemma states it.
+7. **`walpb.Snapshot` pointers are persistent** (`walSnapAt sp md cs`: frozen; `cs` the conf
+   state's non-nilness, so the Draft's `⌜md.Index' = 0 ∨ walSnapHasCS sp⌝` is
+   `⌜md.Index' = 0 ∨ cs = true⌝`); the read result's entries are `walSaveEnts false` (the Draft's
+   `entriesAtM`).
+8. **`TouchDirAll` takes no package-initialization premise**: `fileutil` is outside `etc/gen-init.py`'s
+   closure (adding it fails on its imports' instance modules); its initializer sets only lock
+   functions and `ErrLocked`, which `TouchDirAll` does not read. W4c brings the package in.
+9. **The purge law is proved over the step** (`walPurge_step`), not an axiom: 12 axioms, not 13.
+
+**Caveats for the review**: `Exist` assumes `ReadDir` does not fail (it returns `false` on an
+error); the handles' allocation is done by the axiomatized bodies (no step allocates them; a model
+body allocates `w` fresh). Go tests per axiom: the Freeze package's table.
