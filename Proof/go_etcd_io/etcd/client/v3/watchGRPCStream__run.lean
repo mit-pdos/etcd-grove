@@ -88,7 +88,7 @@ theorem watchGRPCStream.run.wp_proof
     Had, Htt, Hwsa⟩
   ihave #HG' := HG0
   iunfold isWGS at HG'
-  icases HG' with ⟨%Hwgs, -, #Hsf0, %Hlg0, #Fowner, #Fremote0, #FcallOpts, #Fctx, #FctxKey, #Fcancel,
+  icases HG' with ⟨%Hwgs, -, #Hsf0, #Hlg0, #Fowner, #Fremote0, #FcallOpts, #Fctx, #FctxKey, #Fcancel,
     #Freqc, #Frespc, #Fdonec, #Ferrc, #Fclosingc, #Flg0, #HGctx, #HGcancel, #Hreqb0, #Herrb, #Hclb0,
     #HGdone, #Hrspsc0⟩
   ihave #Hsf0' := Hsf0
@@ -197,7 +197,7 @@ theorem watchGRPCStream.run.wp_proof
     try simp only [eq_self_iff_true, _root_.decide_true, ↓reduceIte]
     ihave #HG2 := HG
     iunfold isWGS at HG2
-    icases HG2 with ⟨-, -, #Hsf, %Hlg, -, #Fremote, -, -, -, -, -, -, -, -, -, #Flg, -, -, #Hreqb, -, #Hclb, -,
+    icases HG2 with ⟨-, -, #Hsf, #Hlg, -, #Fremote, -, -, -, -, -, -, -, -, -, #Flg, -, -, #Hreqb, -, #Hclb, -,
       #Hrspsc⟩
     ihave #Hsf' := Hsf
     iunfold watchSrvFacts at Hsf'
@@ -293,7 +293,7 @@ theorem watchGRPCStream.run.wp_proof
             iintro %fsl ⟨-, -⟩
             wp_auto
             wp_apply wp_Debug V.lg _ _ $$ []
-            · ipureintro; exact Hlg
+            · iexact Hlg
             (try wp_auto)
             wp_join_done
         wp_for_post
@@ -343,7 +343,7 @@ theorem watchGRPCStream.run.wp_proof
             wp_apply time.wp_Now as %t1 -
             iapply HΦ'
           wp_apply wp_bufLogger G.wgs «$r0_ptr» V.lg P0.key P0.ed _ $$ [] as %bl #Hbl
-          · iframe Hnf end' key Flg; ipureintro; exact Hlg
+          · iframe Hnf end' key Flg Hlg
           isplitr
           · ipureintro; rfl
           iframe
@@ -580,7 +580,7 @@ theorem watchGRPCStream.run.wp_proof
             iintro %fsl ⟨-, -⟩
             wp_auto
             wp_apply wp_Debug V.lg _ _ $$ []
-            · ipureintro; exact Hlg
+            · iexact Hlg
             (try wp_auto)
             wp_join_done
         wp_for_post
@@ -1722,7 +1722,7 @@ theorem watchGRPCStream.run.wp_proof
               iintro %fsl ⟨-, -⟩
               wp_auto
               wp_apply wp_Debug V.lg _ _ $$ []
-              · ipureintro; exact Hlg
+              · iexact Hlg
               (try wp_auto)
               wp_join_done
           wp_for_post
@@ -2176,7 +2176,7 @@ theorem watchGRPCStream.run.wp_proof
           iintro %fsl ⟨-, -⟩
           wp_auto
           wp_apply wp_Debug V.lg _ _ $$ []
-          · ipureintro; exact Hlg
+          · iexact Hlg
           wp_apply HSend $$ %S.L %«$r0_ptr» %(.cancel ρ.id) [Hstok Hsend] as %err ⟨-, Hres'⟩
           · iframe
             isplitl []; rotate_left
@@ -2205,7 +2205,7 @@ theorem watchGRPCStream.run.wp_proof
               iintro %fsl ⟨-, -⟩
               wp_auto
               wp_apply wp_Debug V.lg _ _ $$ []
-              · ipureintro; exact Hlg
+              · iexact Hlg
               (try wp_auto)
               wp_join_done
           wp_for_post
@@ -2429,7 +2429,7 @@ theorem watchGRPCStream.run.wp_proof
             iintro %fsl ⟨-, -⟩
             wp_auto
             wp_apply wp_Debug V.lg _ _ $$ []
-            · ipureintro; exact Hlg
+            · iexact Hlg
             wp_apply HSend $$ %S.L %«$r0_ptr» %(.cancel ρ.id) [Hstok Hsend] as %err ⟨-, Hres'⟩
             · iframe
               isplitl []; rotate_left
@@ -2458,7 +2458,7 @@ theorem watchGRPCStream.run.wp_proof
                 iintro %fsl ⟨-, -⟩
                 wp_auto
                 wp_apply wp_Debug V.lg _ _ $$ []
-                · ipureintro; exact Hlg
+                · iexact Hlg
                 (try wp_auto)
                 wp_join_done
             wp_for_post
@@ -2636,7 +2636,7 @@ theorem watchGRPCStream.run.wp_proof
         ihave #HG := HGn
         ihave #HG2 := HG
         iunfold isWGS at HG2
-        icases HG2 with ⟨-, -, #Hsf, %Hlg, -, #Fremote, -, -, -, -, -, -, -, -, -, #Flg, -, -, #Hreqb, -, #Hclb, -,
+        icases HG2 with ⟨-, -, #Hsf, #Hlg, -, #Fremote, -, -, -, -, -, -, -, -, -, #Flg, -, -, #Hreqb, -, #Hclb, -,
         #Hrspsc⟩
         ihave #Hsf' := Hsf
         iunfold watchSrvFacts at Hsf'
@@ -2847,7 +2847,7 @@ theorem watchGRPCStream.run.wp_proof
             iintro %fsl ⟨-, -⟩
             wp_auto
             wp_apply wp_Debug V.lg _ _ $$ []
-            · ipureintro; exact Hlg
+            · iexact Hlg
             (try wp_auto)
             wp_join_done
         wp_apply (wp_map_make1 (K := w64) (V := Unit) go.int64 (go.GoType.StructType [])) as %csm' Hcsm'
@@ -3014,7 +3014,7 @@ theorem watchGRPCStream.run.wp_proof
       iintro %fsl ⟨-, -⟩
       wp_auto
       wp_apply wp_Debug V.lg _ _ $$ []
-      · ipureintro; exact Hlg
+      · iexact Hlg
       wp_apply HSend $$ %S.L %«$r0_ptr» %(.cancel ph.id) [Hstok Hsend] as %err ⟨-, Hres⟩
       · iframe
         isplitl []; rotate_left
@@ -3043,7 +3043,7 @@ theorem watchGRPCStream.run.wp_proof
           iintro %fsl ⟨-, -⟩
           wp_auto
           wp_apply wp_Debug V.lg _ _ $$ []
-          · ipureintro; exact Hlg
+          · iexact Hlg
           (try wp_auto)
           wp_join_done
       wp_for_post
@@ -3102,7 +3102,7 @@ theorem watchGRPCStream.run.wp_proof
   generalize hV : V0.atIdx mi = V at *
   ihave #HG2 := HG
   iunfold isWGS at HG2
-  icases HG2 with ⟨-, -, #Hsf, %Hlg, -, #Fremote, -, -, -, -, -, -, -, -, -, #Flg, -, -, #Hreqb, -, #Hclb, -,
+  icases HG2 with ⟨-, -, #Hsf, #Hlg, -, #Fremote, -, -, -, -, -, -, -, -, -, #Flg, -, -, #Hreqb, -, #Hclb, -,
     #Hrspsc⟩
   iunfold client.runExit at Hexit
   icases Hexit with ⟨%γs, %S, %U, %ce, %e, %mref, %s, %ng, HcE, #Hce, Hclm, Hsub, Hm, Hres, Hs, HcF,

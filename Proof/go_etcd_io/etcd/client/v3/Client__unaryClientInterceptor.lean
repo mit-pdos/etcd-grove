@@ -246,9 +246,9 @@ theorem Client.unaryClientInterceptor.wp_proof
       · ipureintro; rfl
       iintro %fsl ⟨-, -⟩
       (try wp_auto)
-      wp_apply wp_GetLogger c $$ [$Hlg] as %lg %Hlgn
+      wp_apply wp_GetLogger c $$ [$Hlg] as %lg #Hlgn
       wp_apply wp_Debug lg _ _ $$ []
-      · ipureintro; exact Hlgn
+      · iexact Hlgn
       -- the attempt: (D29) with an ordinary precondition (a write), the first and only one
       have Hlt1 : once = true → a = W64 0 := fun h => by
         subst hon
@@ -308,9 +308,9 @@ theorem Client.unaryClientInterceptor.wp_proof
       · ipureintro; rfl
       iintro %fsl2 ⟨-, -⟩
       (try wp_auto)
-      wp_apply wp_GetLogger c $$ [$Hlg] as %lg2 %Hlgn2
+      wp_apply wp_GetLogger c $$ [$Hlg] as %lg2 #Hlgn2
       wp_apply wp_Warn lg2 _ _ $$ []
-      · ipureintro; exact Hlgn2
+      · iexact Hlgn2
       wp_apply wp_isContextError (GoInterface.ok ei) $$ [$Hse] as %b1 -
       cases b1
       rotate_left
@@ -457,9 +457,9 @@ theorem Client.unaryClientInterceptor.wp_proof
           · ipureintro; rfl
           iintro %fsl3 ⟨-, -⟩
           (try wp_auto)
-          wp_apply wp_GetLogger c $$ [$Hlg] as %lg3 %Hlgn3
+          wp_apply wp_GetLogger c $$ [$Hlg] as %lg3 #Hlgn3
           wp_apply wp_Warn lg3 _ _ $$ []
-          · ipureintro; exact Hlgn3
+          · iexact Hlgn3
           wp_for_post
           iapply HΨ
           iframe

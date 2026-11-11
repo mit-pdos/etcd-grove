@@ -35,7 +35,7 @@ theorem lessor.keepAliveCtxCloser.wp_proof
   intro l addr ctx cd id kd γkd
   wp_start as ⟨#Hl, #Hctx, #Hka, #Hkd⟩
   iunfold lessorAt at Hl
-  icases Hl with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, #Hdc, #Hdcu, #Hsc, #Hscc, #Hlg, %Hlgnn, #Hd,
+  icases Hl with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, #Hdc, #Hdcu, #Hsc, #Hscc, #Hlg, #Hlgok, #Hd,
     #Hrem, #Hmu, #Honce⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

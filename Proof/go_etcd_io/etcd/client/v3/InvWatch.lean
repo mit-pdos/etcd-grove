@@ -1293,7 +1293,7 @@ context and `cancel` (callable from anywhere), its channels (`reqc`, `errc`, `cl
 `donec` publishing `closeErrPub`). -/
 def isWGS (V : WEnv GF) (G : WgsPrm GF) (callSl : GoSlice) : IProp GF :=
   iprop(⌜G.wgs ≠ null⌝ ∗ (∃ vs : List GoInterface, callSl ↦*□ vs ∗ callOptsOk vs) ∗
-    watchSrvFacts V ∗ ⌜V.lg ≠ null⌝ ∗
+    watchSrvFacts V ∗ zapLoggerOk V.lg ∗
     wgsF G.wgs go!"owner" ↦□ G.w ∗ wgsF G.wgs go!"remote" ↦□ wcIface V.wc ∗
     wgsF G.wgs go!"callOpts" ↦□ callSl ∗
     wgsF G.wgs go!"ctx" ↦□ (interface.ok G.ctx : GoInterface) ∗
@@ -1330,7 +1330,7 @@ def isClientWatcher (V : WEnv GF) (w : Loc) : IProp GF :=
     watcherF w go!"remote" ↦□ wcIface V.wc ∗ watcherF w go!"callOpts" ↦□ callSl ∗
     callSl ↦*□ vs ∗ callOptsOk vs ∗ watcherF w go!"lg" ↦□ V.lg ∗
     sync.isMutex (watcherF w go!"mu") (watcherMu V w callSl) ∗
-    watchSrvFacts V ∗ ⌜V.lg ≠ null ∧ threadBound GF ≤ 2 ^ 31⌝)
+    watchSrvFacts V ∗ zapLoggerOk V.lg ∗ ⌜threadBound GF ≤ 2 ^ 31⌝)
 
 instance isClientWatcher_persistent (V : WEnv GF) (w : Loc) : Persistent (isClientWatcher V w) := by
   unfold isClientWatcher; infer_instance

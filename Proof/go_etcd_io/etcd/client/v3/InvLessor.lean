@@ -232,7 +232,7 @@ def lessorAt (l : Loc) (addr : List GoString) : IProp GF :=
       (scd : context.ContextDesc (IProp GF)) (lg : Loc) (d : time.Duration) (γr : GName),
     lsF go!"donec" l ↦□ dc ∗ ownBroadcastChan dc γd (iprop(True) : IProp GF) .Unknown ∗
     lsF go!"stopCtx" l ↦□ GoInterface.ok sc ∗ context.isContext sc scd ∗
-    lsF go!"lg" l ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
+    lsF go!"lg" l ↦□ lg ∗ zapLoggerOk lg ∗
     lsF go!"firstKeepAliveTimeout" l ↦□ d ∗
     lessorRemoteAt l addr ∗
     sync.isMutex (lsF go!"mu" l) (lessorInv l γr) ∗

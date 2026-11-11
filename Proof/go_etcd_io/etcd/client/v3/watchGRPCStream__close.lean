@@ -35,7 +35,7 @@ theorem watchGRPCStream.close.wp_proof
   intro V G callSl
   wp_start as #Hg
   iunfold isWGS at Hg
-  icases Hg with ⟨%Hgnn, #Hcv, #Hsf, %Hlg', #Howner, #Hremote, #Hcallo, #Hctx, #Hckey, #Hcancel,
+  icases Hg with ⟨%Hgnn, #Hcv, #Hsf, #Hlg', #Howner, #Hremote, #Hcallo, #Hctx, #Hckey, #Hcancel,
     #Hreqc, #Hrespc, #Hdonec, #Herrc, #Hclosingc, #Hglg, #HisCtx, #Hcspec, #Hbreq, #Hberr, #Hbcl,
     #Hbdone, -⟩
   iunfold watchSrvFacts at Hsf

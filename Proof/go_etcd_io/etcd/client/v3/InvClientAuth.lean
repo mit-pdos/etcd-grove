@@ -235,7 +235,7 @@ def lessorAtS (l conn : Loc) : IProp GF :=
       (rlc : Loc) (sl : GoSlice),
     lsF go!"donec" l ↦□ dc ∗ ownBroadcastChan dc γd (iprop(True) : IProp GF) .Unknown ∗
     lsF go!"stopCtx" l ↦□ GoInterface.ok sc ∗ context.isContext sc scd ∗
-    lsF go!"lg" l ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
+    lsF go!"lg" l ↦□ lg ∗ zapLoggerOk lg ∗
     lsF go!"firstKeepAliveTimeout" l ↦□ d ∗
     structFieldRef go_etcd_io.etcd.client.v3.lessor go!"remote" l ↦□
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.retryLeaseClient.ty) #rlc :
@@ -252,12 +252,10 @@ instance lessorAtS_persistent (l conn : Loc) : Persistent (lessorAtS (GF := GF) 
 theorem lessorAt_of (l conn : Loc) (addr : List GoString) :
     lessorAtS (GF := GF) l conn ∗ isEtcdConn conn addr ⊢ lessorAt l addr := by
   unfold lessorAtS lessorAt lessorRemoteAt
-  iintro ⟨⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, %rlc, %sl, #H1, #H2, #H3, #H4, #H5, %H6, #H7, #H8,
+  iintro ⟨⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, %rlc, %sl, #H1, #H2, #H3, #H4, #H5, #H6, #H7, #H8,
     #H9, #H10, #H11, #H12, #H13⟩, #He⟩
   iexists dc, γd, sc, scd, lg, d, γr
-  iframe H1 H2 H3 H4 H5 H7 H12 H13
-  isplitr
-  · ipureintro; exact H6
+  iframe H1 H2 H3 H4 H5 H6 H7 H12 H13
   iexists rlc, conn, sl
   iframe #
 

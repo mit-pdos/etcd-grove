@@ -43,7 +43,7 @@ theorem NewWatchFromWatchClient.wp_proof
   wp_auto
   ipersist callOpts
   iapply wp_fupd
-  wp_apply wp_GetLogger c $$ [] as %lg %Hlg0
+  wp_apply wp_GetLogger c $$ [] as %lg #Hlg0
   · iframe #
   ipersist lg
   imod sync.init_Mutex (watcherMu { V with lg := lg } «$r0_ptr» callSl) ⊤
@@ -67,7 +67,9 @@ theorem NewWatchFromWatchClient.wp_proof
   iframe #
   isplitr
   · ipureintro; exact Hwnn
-  ipureintro; exact ⟨Hlg0, Hbd⟩
+  first
+    | (ipureintro; exact Hbd)
+    | (isplitr; iexact Hlg0; ipureintro; exact Hbd)
 
 end proof
 

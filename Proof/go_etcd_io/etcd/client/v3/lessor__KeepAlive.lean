@@ -42,7 +42,7 @@ theorem lessor.KeepAlive.wp_proof
   wp_start as ⟨#Hl, #Hstr, #Heof, #Hall, #Htg, #Hctx⟩
   ihave #Hl' := Hl
   iunfold lessorAt at Hl'
-  icases Hl' with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, #Hdc, #Hdcu, #Hsc, #Hscc, #Hlg, %Hlgnn, #Hd,
+  icases Hl' with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, #Hdc, #Hdcu, #Hsc, #Hscc, #Hlg, #Hlgok, #Hd,
     #Hrem, #Hmu, #Honce⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

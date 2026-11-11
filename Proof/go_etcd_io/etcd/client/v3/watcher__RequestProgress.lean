@@ -41,8 +41,7 @@ theorem watcher.RequestProgress.wp_proof
   wp_start as ⟨#Hw, #Hctx⟩
   ihave #Hw' := Hw
   iunfold isClientWatcher at Hw'
-  icases Hw' with ⟨%callSl, %vs, %Hwnn, #Hrem, #Hco, #Hvs, #Hok, #Hlg, #Hmu, #Hf, %Hlgb⟩
-  obtain ⟨Hlgnn, -⟩ := Hlgb
+  icases Hw' with ⟨%callSl, %vs, %Hwnn, #Hrem, #Hco, #Hvs, #Hok, #Hlg, #Hmu, #Hf, #Hlgok, %Hlgb⟩
   ihave #Hf' := Hf
   iunfold watchSrvFacts at Hf'
   icases Hf' with ⟨-, Hcf⟩
@@ -119,7 +118,7 @@ theorem watcher.RequestProgress.wp_proof
       iframe #
       ipureintro; exact HGx.2.1
   iunfold isWGS at HG
-  icases HG with ⟨%Hgnn, #Hcv, #Hsf, %Hlg', #Howner, #Hremote, #Hcallo, #Hgctx, #Hckey, #Hcancel,
+  icases HG with ⟨%Hgnn, #Hcv, #Hsf, #Hlg', #Howner, #Hremote, #Hcallo, #Hgctx, #Hckey, #Hcancel,
     #Hreqc, #Hrespc, #Hdonec, #Herrc, #Hclosingc, #Hglg, #HisCtx, #Hcspec, #Hbreq, #Hberr, #Hbcl,
     #Hbdone, -⟩
   wp_auto

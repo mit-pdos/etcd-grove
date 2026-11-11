@@ -133,7 +133,7 @@ theorem NewSession.wp_proof (hGL : Client.GetLogger.spec (GF := GF) (hG := hG))
   iunfold isEtcdSessionClient at Hcl'
   icases Hcl' with ⟨#Hcf, #Hlease, #Hlg⟩
   (try wp_auto)
-  wp_apply hGL client $$ [$Hlg] as %lg %Hlg0
+  wp_apply hGL client $$ [$Hlg] as %lg #Hlg0
   (try wp_auto)
   wp_apply hCtx client cctx $$ [$Hcf]
   (try wp_auto)
@@ -163,7 +163,7 @@ theorem NewSession.wp_proof (hGL : Client.GetLogger.spec (GF := GF) (hG := hG))
     ihave #Hg := Hf $$ %(sint.nat n) %f %g %Hfi %Hgi
     unfold sessionOptSpec
     wp_apply Hg $$ [$Hop] as Hop
-    · ipureintro; exact Hlg0
+    · iexact Hlg0
     wp_for_post
     iframe
     iexists n + W64 1, f

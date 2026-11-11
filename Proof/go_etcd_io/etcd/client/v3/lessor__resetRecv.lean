@@ -39,7 +39,7 @@ theorem lessor.resetRecv.wp_proof
   wp_start as ⟨#Hl, #Hstr⟩
   ihave #Hl' := Hl
   iunfold lessorAt at Hl'
-  icases Hl' with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, #Hdc, #Hdcu, #Hsc, #Hscc, #Hlg, %Hlgnn, #Hd,
+  icases Hl' with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, #Hdc, #Hdcu, #Hsc, #Hscc, #Hlg, #Hlgok, #Hd,
     #Hrem, #Hmu, #Honce⟩
   iunfold lessorRemoteAt at Hrem
   icases Hrem with ⟨%rlc, %conn, %sl, #Hremote, #Hrlc, #Hconn, #Hcopts, #Hco⟩

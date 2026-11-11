@@ -49,7 +49,7 @@ theorem NewLeaseFromLeaseClient.wp_proof
     (try wp_auto)
     rw [decide_eq_false Hcnn]
     (try wp_auto)
-    wp_apply wp_GetLogger c $$ [] as %lg %Hlgnn
+    wp_apply wp_GetLogger c $$ [] as %lg #Hlgok
     · iframe #
     (try wp_auto)
     wp_apply context.wp_Background
@@ -88,11 +88,10 @@ theorem NewLeaseFromLeaseClient.wp_proof
     unfold lessorAtS
     iexists dc, γd, sctx, _, lg, _, γr, rlc, sl
     iframe #
-    ipureintro; exact Hlgnn
   · (try wp_auto)
     rw [decide_eq_false Hcnn]
     (try wp_auto)
-    wp_apply wp_GetLogger c $$ [] as %lg %Hlgnn
+    wp_apply wp_GetLogger c $$ [] as %lg #Hlgok
     · iframe #
     (try wp_auto)
     wp_apply context.wp_Background
@@ -131,7 +130,6 @@ theorem NewLeaseFromLeaseClient.wp_proof
     unfold lessorAtS
     iexists dc, γd, sctx, _, lg, _, γr, rlc, sl
     iframe #
-    ipureintro; exact Hlgnn
 
 end proof
 

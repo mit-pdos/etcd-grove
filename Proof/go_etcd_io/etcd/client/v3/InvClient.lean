@@ -5,7 +5,8 @@ What a caller assumes of a `*clientv3.Client`'s own fields, beyond its embedded 
 
 **The logger.** `Client.lg` is an `atomic.Pointer[zap.Logger]`, set by `newClient` and replaced
 only by `WithLogger` (with a caller's logger); `isClientLogger cl` is an invariant holding it,
-whatever it is, non-nil. `GetLogger()` (`c.lg.Load()`) returns some non-nil logger.
+whatever it is, a zap logger (`zapLoggerOk`; premise fixes 6: until then only non-nil).
+`GetLogger()` (`c.lg.Load()`) returns a zap logger.
 -/
 module
 

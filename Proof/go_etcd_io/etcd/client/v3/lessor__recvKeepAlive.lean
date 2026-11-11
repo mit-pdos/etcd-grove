@@ -42,7 +42,7 @@ theorem lessor.recvKeepAlive.wp_proof
   iunfold keepAliveRespMsg at Hresp
   icases Hresp with ⟨%Hnn, %h, #Hh, #Hid, #Httl⟩
   iunfold lessorAt at Hl
-  icases Hl with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, #Hdc, #Hdcu, #Hsc, #Hscc, #Hlg, %Hlgnn, #Hd,
+  icases Hl with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, #Hdc, #Hdcu, #Hsc, #Hscc, #Hlg, #Hlgok, #Hd,
     #Hrem, #Hmu, #Honce⟩
   ihave #Hpb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb $$ []
   · iPkgInit
@@ -147,6 +147,7 @@ theorem lessor.recvKeepAlive.wp_proof
             · itrivial
           · iapply BigAndL.bigAndL_nil.2; itrivial
         · (try wp_auto)
+          ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgok
           rw [decide_eq_false Hlgnn]
           (try wp_auto)
           ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
@@ -163,7 +164,7 @@ theorem lessor.recvKeepAlive.wp_proof
           iintro %fsl ⟨-, -⟩
           (try wp_auto)
           wp_apply wp_Warn lg _ _ $$ []
-          · iframe #; ipureintro; exact Hlgnn
+          · iframe #
           (try wp_auto)
           wp_for_post
           iframe

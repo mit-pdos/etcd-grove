@@ -42,8 +42,7 @@ theorem watcher.newWatcherGRPCStream.wp_proof
   wp_start as ⟨#Hw, #Hin⟩
   ihave #Hw' := Hw
   iunfold isClientWatcher at Hw'
-  icases Hw' with ⟨%callSl, %vs, %Hwnn, #Hrem, #Hco, #Hvs, #Hok, #Hlg, #Hmu, #Hf, %Hlgb⟩
-  obtain ⟨Hlgnn, Hb⟩ := Hlgb
+  icases Hw' with ⟨%callSl, %vs, %Hwnn, #Hrem, #Hco, #Hvs, #Hok, #Hlg, #Hmu, #Hf, #Hlgok, %Hlgb⟩
   wp_auto
   wp_alloc vcp as Hvc
   ipersist Hvc
@@ -73,7 +72,7 @@ theorem watcher.newWatcherGRPCStream.wp_proof
   ipersist errc
   ipersist closingc
   ipersist lg
-  imod wgsWg_init _ Hb $$ wg with Hadder
+  imod wgsWg_init _ Hlgb $$ wg with Hadder
   imod start_bag (reqP V (streamKeyOf (metadata.outgoingOf (GoInterface.ok cx)))) _ reqc γreq
     (by trivial) $$ Hreqc Hreqo with #Hbreq
   imod ghost_map_alloc_empty (GF := GF) (K := Loc) (V := Unit) with ⟨%γws, Hws⟩
@@ -92,7 +91,7 @@ theorem watcher.newWatcherGRPCStream.wp_proof
   ihave #HG : isWGS V G callSl $$ []
   · unfold isWGS
     iframe #
-    ipureintro; exact ⟨Hgnn, Hlgnn⟩
+    ipureintro; exact Hgnn
   wp_apply wp_fork_tok_body $$ [Hm0 Hprod Hcons Hep substreams resuming resumec closeErr Hadder Hdb Hrcb Hws
     Hgen]
   · iintro Htok

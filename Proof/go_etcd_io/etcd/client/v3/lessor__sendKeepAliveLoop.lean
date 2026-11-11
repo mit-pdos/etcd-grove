@@ -36,7 +36,7 @@ theorem lessor.sendKeepAliveLoop.wp_proof
   intro l addr st γ Up Dn cd L
   wp_start as ⟨#Hl, #Hst, #Hz, Htok⟩
   iunfold lessorAt at Hl
-  icases Hl with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, #Hdc, #Hdcu, #Hsc, #Hscc, #Hlg, %Hlgnn, #Hd,
+  icases Hl with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, #Hdc, #Hdcu, #Hsc, #Hscc, #Hlg, #Hlgok, #Hd,
     #Hrem, #Hmu, #Honce⟩
   iunfold cliBidiStreamIs at Hst
   icases Hst with ⟨%ci, %Hci, #HSend, -, -, #HCtx⟩
@@ -174,7 +174,7 @@ theorem lessor.sendKeepAliveLoop.wp_proof
         iintro %fsl ⟨-, -⟩
         (try wp_auto)
         wp_apply wp_Warn lg _ _ $$ []
-        · iframe #; ipureintro; exact Hlgnn
+        · iframe #
         (try wp_auto)
         wp_for_post
         wp_for_post

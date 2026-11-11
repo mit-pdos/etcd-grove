@@ -114,8 +114,8 @@ theorem newClient.wp_proof
   imod Hmask with -
   imod (inv_alloc clientLgN ⊤ iprop(∃ lg : Loc,
       sync.atomic.ownPointer (hG := hG) (T' := go_uber_org.zap.Logger) (clientLgAddr «$r0_ptr»)
-        (DFrac.own 1) lg ∗ ⌜lg ≠ null⌝)) $$ [Hlgown] with #HcLg
-  · inext; iexists _; iframe; ipureintro; exact Hlg
+        (DFrac.own 1) lg ∗ zapLoggerOk lg)) $$ [Hlgown] with #HcLg
+  · inext; iexists _; iframe Hlgown; iexact Hzlg
   ihave #HcLg' : isClientLogger (GF := GF) «$r0_ptr» $$ []
   · iunfold isClientLogger; iexact HcLg
   imodintro

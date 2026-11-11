@@ -68,8 +68,7 @@ theorem watcher.Watch.wp_proof
   · unfold startOk; itrivial
   ihave #Hw' := Hw
   iunfold isClientWatcher at Hw'
-  icases Hw' with ⟨%callSl, %vs, %Hwnn, #Hrem, #Hco, #Hvs, #Hok, #Hlg, #Hmu, #Hf, %Hlgb⟩
-  obtain ⟨Hlgnn, -⟩ := Hlgb
+  icases Hw' with ⟨%callSl, %vs, %Hwnn, #Hrem, #Hco, #Hvs, #Hok, #Hlg, #Hmu, #Hf, #Hlgok, %Hlgb⟩
   wp_auto
   wp_apply wp_OpWatch key sl gs $$ [] as %op #Hop
   · iframe #; ipureintro; exact Hnp
@@ -245,7 +244,7 @@ theorem watcher.Watch.wp_proof
       #«$r0_ptr») $$ []
   · rw [HGk]; iexact HreqP
   iunfold isWGS at HG
-  icases HG with ⟨%Hgnn, #Hcv, #Hsf, %Hlg', #Howner, #Hremote, #Hcallo, #Hgctx, #Hckey, #Hcancel,
+  icases HG with ⟨%Hgnn, #Hcv, #Hsf, #Hlg', #Howner, #Hremote, #Hcallo, #Hgctx, #Hckey, #Hcancel,
     #Hreqc, #Hrespc, #Hdonec, #Herrc, #Hclosingc, #Hglg, #HisCtx, #Hcspec, #Hbreq, #Hberr, #Hbcl,
     #Hbdone, -⟩
   wp_auto
