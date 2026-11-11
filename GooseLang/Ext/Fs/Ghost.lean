@@ -707,6 +707,25 @@ theorem bytesG_lookup (i : Ino) (off : Nat) (dq : DFrac) (xs : List (ByteG))
     (List.getElem?_eq_getElem hk) $$ Hbs with Hb
   iapply gAuth_lookup $$ HA Hb
 
+theorem bytesG_lookup_runs (i : Ino) (Γb : GMap (Ino × Nat) ByteG) :
+    ∀ rs : List (Nat × DFrac × List ByteG),
+    ⊢ gAuth hL hL.γb Γb -∗ ([∗list] r ∈ rs, bytesG hL i r.1 r.2.1 r.2.2) -∗
+      ⌜∀ r ∈ rs, ∀ k (hk : k < r.2.2.length), Γb !! (i, r.1 + k) = some r.2.2[k]⌝
+  | [] => by
+    iintro _ _
+    ipureintro
+    intro r hr; cases hr
+  | r :: rs => by
+    iintro HA Hrs
+    icases BigSepL.bigSepL_cons.1 $$ Hrs with ⟨Hr, Hrs⟩
+    icases bytesG_lookup hL i r.1 r.2.1 r.2.2 Γb $$ HA Hr with %h1
+    icases bytesG_lookup_runs i Γb rs $$ HA Hrs with %h2
+    ipureintro
+    intro r' hr'
+    rcases List.mem_cons.1 hr' with rfl | h
+    · exact h1
+    · exact h2 r' h
+
 end bytes
 
 /-! ## The start -/

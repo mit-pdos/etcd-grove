@@ -18,15 +18,15 @@ as minibolt needs three things more:
   and the others at a half each, the invariant's and the caller's. A write never touches the frozen
   bytes (`CSt.Wf`), and `cs_freeze` freezes more of them.
 * **A truncate in flight** (`CBusy.trunc`), besides a `pwrite` (`CBusy.write`): the token holds the
-  whole `OsMeta`.
+  whole `OsMeta` (and, for a `pwrite`, the bytes it announced, which a crash sees through it).
 
 Mappings are allowed (the state's `OsMeta` may have any): the specs pass the client's halves of the
 mapped cells through (`mcellsAny`).
 
 A state is the file's inode and `CSt` (or none at `p`). The caller's part is `csOwnF` of the file
 (which the operations of `CrashStOps.lean` move) and its half of the history (`csOwn`). A crash
-sees the file through `CSt.vmeta`, `CSt.runs` (one run per byte, empty for a byte a write in flight
-took) and `CSt.toks`; `FileOkS` is `FileOkQ` (`CrashFileQ.lean`) of that view, and
+sees the file through `CSt.vmeta`, `CSt.vruns` (`CSt.runs`, one run per byte, empty for a byte a
+write in flight took, and the token's bytes) and `CSt.toks`; `FileOkS` is `FileOkQ` (`CrashFileQ.lean`) of that view, and
 `fileOkS_idle`/`fileOkS_write` reduce it to `FileOkQ` of the corresponding `CFile` file (the same
 bytes at other fractions: what a crash sees does not depend on fractions, `RunsSub`).
 -/
@@ -46,18 +46,18 @@ open Fs
 
 /-! ## The states -/
 
-/-- The change in flight on a file: none, a `pwrite` of `data` at `off` (token `t`), or a
-growing truncate to `sz` (token `t`). -/
+/-- The change in flight on a file: none, a `pwrite` of `data` at `off` (token `t`, change number
+`n`), or a growing truncate to `sz` (token `t`, change number `n`). -/
 inductive CBusy where
   | idle
-  | write (t off : Nat) (data : List w8)
-  | trunc (t sz : Nat)
+  | write (t off : Nat) (data : List w8) (n : Nat)
+  | trunc (t sz n : Nat)
 
 /-- A file's state: its `OsMeta` `m` (as the token holds it, while a change is in flight), all its
 bytes `bs`, the frozen bytes `[fa, fb)`, and the change in flight. -/
 structure CSt where
   m : OsMeta
-  bs : List (w8 × Bool)
+  bs : List ByteG
   fa : Nat
   fb : Nat
   busy : CBusy
@@ -76,10 +76,10 @@ def SPathOk (p : GoString) (R : Roots) (s : CState) (V : Hist) : Prop :=
   | none => lookupH R V p = none
   | some (i, _) => lookupH R V p = some (.file i)
 
-def CBusy.enc : CBusy → Option ((Nat × Nat × List w8) ⊕ (Nat × Nat))
+def CBusy.enc : CBusy → Option ((Nat × Nat × List w8 × Nat) ⊕ (Nat × Nat × Nat))
   | .idle => none
-  | .write t off data => some (.inl (t, off, data))
-  | .trunc t sz => some (.inr (t, sz))
+  | .write t off data n => some (.inl (t, off, data, n))
+  | .trunc t sz n => some (.inr (t, sz, n))
 
 instance CBusy.countable : Pos.Countable CBusy :=
   Pos.Countable.ofInjective (fun b => Pos.Countable.encode b.enc)
@@ -102,7 +102,7 @@ def frozen (s : CSt) (k : Nat) : Bool := decide (s.fa ≤ k ∧ k < s.fb)
 /-- Byte `k` is one a write in flight took. -/
 def taken (s : CSt) (k : Nat) : Bool :=
   match s.busy with
-  | .write _ off data => decide (cfLo s.m off ≤ k ∧ k < cfHi s.m off data.length)
+  | .write _ off data _ => decide (cfLo s.m off ≤ k ∧ k < cfHi s.m off data.length)
   | _ => false
 
 /-- The invariant's fraction of byte `k`. -/
@@ -113,21 +113,29 @@ def frac (s : CSt) (k : Nat) : DFrac :=
 def vmeta (s : CSt) : OsMeta :=
   match s.busy with
   | .idle => s.m
-  | .write _ off data => pwMeta s.m off data.length
-  | .trunc _ sz => ftMeta s.m sz
+  | .write _ off data _ => cfMeta s.m off data.length
+  | .trunc _ sz _ => s.m.announce (min s.m.size sz) (max s.m.size sz) sz
 
 /-- The runs of bytes a crash sees: one per byte, empty for a byte a write in flight took. -/
-def runs (s : CSt) : List (Nat × DFrac × List (w8 × Bool)) :=
+def runs (s : CSt) : List (Nat × DFrac × List ByteG) :=
   s.bs.zipIdx.map fun y => (y.2, s.frac y.2, if s.taken y.2 then [] else [y.1])
+
+/-- The runs a crash sees: the bytes' own (`runs`), and the bytes a write in flight took, as its
+token holds them (their candidates with the write's announced). -/
+def vruns (s : CSt) : List (Nat × DFrac × List ByteG) :=
+  match s.busy with
+  | .write _ off data n =>
+      (cfLo s.m off, DFrac.own 1, pwAnn data n (cfRange s.m s.bs off data.length)) :: s.runs
+  | .trunc _ sz _ => (min s.m.size sz, DFrac.own 1, []) :: s.runs
+  | .idle => s.runs
 
 /-- The change in flight, as its token records it. -/
 def toks (p : Ino) (s : CSt) : List (Nat × TokInfo) :=
   match s.busy with
   | .idle => []
-  | .write t off data => [(t, ⟨⟨p, .write off data⟩, 1,
-      (cfRange s.m s.bs off data.length).map Prod.fst, pwMeta s.m off data.length,
-        (cfRange s.m s.bs off data.length).map Prod.snd⟩)]
-  | .trunc t sz => [(t, ⟨⟨p, .truncate sz⟩, 1, [], ftMeta s.m sz, []⟩)]
+  | .write t off data n => [(t, ⟨p, .write off data, n, s.m,
+      pwAnn data n (cfRange s.m s.bs off data.length)⟩)]
+  | .trunc t sz n => [(t, ⟨p, .truncate sz, n, s.m, rsAnn n []⟩)]
 
 /-- What the specs keep of a state: all the bytes, the frozen ones inside, a write in flight
 misses them (and so does what it appends, which starts at the size), a truncate grows. -/
@@ -135,8 +143,8 @@ def Wf (s : CSt) : Prop :=
   s.bs.length = s.m.size ∧ s.fa ≤ s.fb ∧ s.fb ≤ s.m.size ∧
   match s.busy with
   | .idle => True
-  | .write _ off data => off + data.length ≤ s.fa ∨ s.fb ≤ off
-  | .trunc _ sz => s.m.size ≤ sz
+  | .write _ off data _ => off + data.length ≤ s.fa ∨ s.fb ≤ off
+  | .trunc _ sz _ => s.m.size ≤ sz
 
 theorem frozen_out (s : CSt) (k : Nat) (h : k < s.fa ∨ s.fb ≤ k) : s.frozen k = false := by
   simp only [frozen, decide_eq_false_iff_not]; omega
@@ -152,14 +160,14 @@ theorem frac_in (s : CSt) (k : Nat) (h1 : s.fa ≤ k) (h2 : k < s.fb) : s.frac k
   simp only [frac, frozen_in s k h1 h2, if_true]
 
 theorem taken_out (s : CSt) (k : Nat)
-    (h : ∀ t off data, s.busy = .write t off data → k < cfLo s.m off ∨ cfHi s.m off data.length ≤ k) :
+    (h : ∀ t off data n, s.busy = .write t off data n → k < cfLo s.m off ∨ cfHi s.m off data.length ≤ k) :
     s.taken k = false := by
   unfold taken
-  rcases hb : s.busy with _ | ⟨t, off, data⟩ | _ <;> dsimp only
-  have := h t off data hb
+  rcases hb : s.busy with _ | ⟨t, off, data, n⟩ | _ <;> dsimp only
+  have := h t off data n hb
   simp only [decide_eq_false_iff_not]; omega
 
-theorem taken_in (s : CSt) (k t off : Nat) (data : List w8) (hb : s.busy = .write t off data)
+theorem taken_in (s : CSt) (k t off : Nat) (data : List w8) (n : Nat) (hb : s.busy = .write t off data n)
     (h1 : cfLo s.m off ≤ k) (h2 : k < cfHi s.m off data.length) : s.taken k = true := by
   unfold taken; rw [hb]; simp only [decide_eq_true_eq]; omega
 
@@ -169,41 +177,42 @@ end CSt
 is `Good`, given the crash's facts. -/
 def FileOkS (Q : OsState → OsState → Prop) (Good : Option OsFile → Prop) (i : Ino) (s : CSt) :
     Prop :=
-  ∀ f, FileCrashedR s.vmeta s.runs (some f) → CrashSeenR Q i s.vmeta s.runs (s.toks i) (some f) →
+  ∀ f, FileCrashedR s.vmeta s.vruns (some f) → CrashSeenR Q i s.vmeta s.vruns (s.toks i) (some f) →
     Good (some f)
 
 /-! ## What a crash sees does not depend on fractions -/
 
 /-- Every byte of the runs `rs'` is one of `rs`. -/
-def RunsSub (rs' rs : List (Nat × DFrac × List (w8 × Bool))) : Prop :=
+def RunsSub (rs' rs : List (Nat × DFrac × List ByteG)) : Prop :=
   ∀ r' ∈ rs', ∀ k (hk : k < r'.2.2.length), ∃ r ∈ rs, ∃ k', ∃ hk' : k' < r.2.2.length,
     r.2.2[k'] = r'.2.2[k] ∧ r.1 + k' = r'.1 + k
 
-theorem fileCrashedR_sub {m : OsMeta} {rs rs' : List (Nat × DFrac × List (w8 × Bool))}
+theorem fileCrashedR_sub {m : OsMeta} {rs rs' : List (Nat × DFrac × List ByteG)}
     {fo : Option OsFile} (hs : RunsSub rs' rs) (h : FileCrashedR m rs fo) :
     FileCrashedR m rs' fo := by
   intro f hf
-  obtain ⟨h1, h2, h3⟩ := h f hf
-  refine ⟨h1, h2, fun r' hr' k x hk hc => ?_⟩
-  obtain ⟨hkl, rfl⟩ := List.getElem?_eq_some_iff.1 hk
-  obtain ⟨r, hr, k', hk', he, hpos⟩ := hs r' hr' k hkl
-  rw [← hpos]
-  exact h3 r hr k' _ (by rw [List.getElem?_eq_getElem hk', he]) hc
+  obtain ⟨h0, h1, h2, h3, h4⟩ := h f hf
+  refine ⟨h0, h1, h2, fun r' hr' k hk hkf => ?_, h4⟩
+  obtain ⟨r, hr, k', hk', he, hpos⟩ := hs r' hr' k hk
+  have := h3 r hr k' hk' (by rw [hpos]; exact hkf)
+  rw [hpos, he] at this; exact this
 
 theorem crashSeenR_sub {Q : OsState → OsState → Prop} {i : Ino} {m : OsMeta}
-    {rs rs' : List (Nat × DFrac × List (w8 × Bool))} {ts : List (Nat × TokInfo)}
+    {rs rs' : List (Nat × DFrac × List ByteG)} {ts : List (Nat × TokInfo)}
     {fo : Option OsFile} (hs : RunsSub rs' rs) (h : CrashSeenR Q i m rs ts fo) :
     CrashSeenR Q i m rs' ts fo := by
-  obtain ⟨st, st', Γb, Γm, Γf, Γt, hcoh, hcr, hQ, hst', hm, hxs, hts, hoth, hwfs⟩ := h
-  refine ⟨st, st', Γb, Γm, Γf, Γt, hcoh, hcr, hQ, hst', hm, fun r' hr' k hk => ?_, hts,
-    fun t ti hti hp => ?_, hwfs⟩
-  · obtain ⟨r, hr, k', hk', he, hpos⟩ := hs r' hr' k hk
-    rw [← hpos, ← he]; exact hxs r hr k' hk'
-  · rcases hoth t ti hti hp with h | ⟨hq, h⟩
-    · exact Or.inl h
-    · refine Or.inr ⟨hq, fun r' hr' k hk => ?_⟩
-      obtain ⟨r, hr, k', hk', -, hpos⟩ := hs r' hr' k hk
-      rw [← hpos]; exact h r hr k' hk'
+  obtain ⟨st, st', Γb, Γm, Γf, Γt, hwfs, hcoh, hcr, hQ, hst', hm, hxs, hoth, hts⟩ := h
+  refine ⟨st, st', Γb, Γm, Γf, Γt, hwfs, hcoh, hcr, hQ, hst', hm, fun r' hr' k hk => ?_, hoth, hts⟩
+  obtain ⟨r, hr, k', hk', he, hpos⟩ := hs r' hr' k hk
+  rw [← hpos, ← he]; exact hxs r hr k' hk'
+
+theorem RunsSub.cons {rs' rs : List (Nat × DFrac × List ByteG)} (r : Nat × DFrac × List ByteG)
+    (h : RunsSub rs' rs) : RunsSub (r :: rs') (r :: rs) := by
+  intro r' hr' k hk
+  rcases List.mem_cons.1 hr' with rfl | hr'
+  · exact ⟨r', List.mem_cons_self, k, hk, rfl, rfl⟩
+  · obtain ⟨r0, hr0, k', hk', he, hp⟩ := h r' hr' k hk
+    exact ⟨r0, List.mem_cons_of_mem _ hr0, k', hk', he, hp⟩
 
 theorem CSt.runs_getElem (s : CSt) (j : Nat) (hj : j < s.bs.length) :
     ∃ r ∈ s.runs, r = (j, s.frac j, if s.taken j then [] else [s.bs[j]]) := by
@@ -211,7 +220,7 @@ theorem CSt.runs_getElem (s : CSt) (j : Nat) (hj : j < s.bs.length) :
   simp [CSt.runs, List.getElem_zipIdx]
 
 /-- A byte a crash sees in a state's runs is one of its bytes, not taken. -/
-theorem CSt.runsSub_of (s : CSt) (rs' : List (Nat × DFrac × List (w8 × Bool)))
+theorem CSt.runsSub_of (s : CSt) (rs' : List (Nat × DFrac × List ByteG))
     (h : ∀ r' ∈ rs', ∀ k (hk : k < r'.2.2.length), ∃ hj : r'.1 + k < s.bs.length,
       s.bs[r'.1 + k] = r'.2.2[k] ∧ s.taken (r'.1 + k) = false) : RunsSub rs' s.runs := by
   intro r' hr' k hk
@@ -230,7 +239,8 @@ theorem CSt.runsSub_whole (s : CSt) (dq : DFrac) (ht : ∀ k, s.taken k = false)
 theorem fileOkS_idle {Q : OsState → OsState → Prop} {Good : Option OsFile → Prop} {i : Ino}
     (s : CSt) (hb : s.busy = .idle) (h : FileOkQ Q Good i (s.m, s.bs, none)) :
     FileOkS Q Good i s := by
-  have hsub : RunsSub [(0, DFrac.own (1 : Qp).half, s.bs)] s.runs := by
+  have hsub : RunsSub [(0, DFrac.own (1 : Qp).half, s.bs)] s.vruns := by
+    rw [show s.vruns = s.runs by simp [CSt.vruns, hb]]
     refine s.runsSub_of _ fun r' hr' k hk => ?_
     simp only [List.mem_singleton] at hr'; subst hr'
     refine ⟨by simpa using hk, by simp, ?_⟩
@@ -243,12 +253,14 @@ theorem fileOkS_idle {Q : OsState → OsState → Prop} {Good : Option OsFile �
 
 /-- **A writing state's crash obligation is the `CFile`'s.** -/
 theorem fileOkS_write {Q : OsState → OsState → Prop} {Good : Option OsFile → Prop} {i : Ino}
-    (s : CSt) {t off : Nat} {data : List w8} (hb : s.busy = .write t off data)
-    (hl : s.bs.length = s.m.size) (h : FileOkQ Q Good i (s.m, s.bs, some (t, off, data))) :
+    (s : CSt) {t off : Nat} {data : List w8} {n : Nat} (hb : s.busy = .write t off data n)
+    (hl : s.bs.length = s.m.size) (h : FileOkQ Q Good i (s.m, s.bs, some (t, off, data, n))) :
     FileOkS Q Good i s := by
-  have hsub : RunsSub (fRuns (s.m, s.bs, some (t, off, data))) s.runs := by
-    refine s.runsSub_of _ fun r' hr' k hk => ?_
-    simp only [fRuns, List.mem_cons, List.not_mem_nil, or_false] at hr'
+  have hsub : RunsSub (fRuns (s.m, s.bs, some (t, off, data, n))) s.vruns := by
+    rw [show s.vruns = (cfLo s.m off, DFrac.own 1, pwAnn data n (cfRange s.m s.bs off data.length))
+      :: s.runs by simp [CSt.vruns, hb]]
+    refine RunsSub.cons _ (s.runsSub_of _ fun r' hr' k hk => ?_)
+    simp only [List.mem_cons, List.not_mem_nil, or_false] at hr'
     rcases hr' with rfl | rfl
     · simp only [List.length_take] at hk
       refine ⟨by simp only; omega, by simp, ?_⟩
@@ -256,8 +268,8 @@ theorem fileOkS_write {Q : OsState → OsState → Prop} {Good : Option OsFile �
     · simp only [List.length_drop] at hk
       refine ⟨by simp only; omega, by simp, ?_⟩
       simp only [CSt.taken, hb, decide_eq_false_iff_not]; omega
-  have hm : s.vmeta = pwMeta s.m off data.length := by simp [CSt.vmeta, hb]
-  have ht : s.toks i = cToks i (s.m, s.bs, some (t, off, data)) := by
+  have hm : s.vmeta = cfMeta s.m off data.length := by simp [CSt.vmeta, hb]
+  have ht : s.toks i = cToks i (s.m, s.bs, some (t, off, data, n)) := by
     simp [CSt.toks, cToks, hb]
   intro f hc hs
   rw [hm] at hc hs; rw [ht] at hs
@@ -269,23 +281,23 @@ section res
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] [GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
 /-- Byte `k` of the file `p` at the fraction `d k`, if `c k`. -/
-def cByte (p : Ino) (d : Nat → DFrac) (c : Nat → Bool) (k : Nat) (x : w8 × Bool) : IProp GF :=
+def cByte (p : Ino) (d : Nat → DFrac) (c : Nat → Bool) (k : Nat) (x : ByteG) : IProp GF :=
   if c k then osByte (L := L) p k (d k) x else emp
 
 /-- The bytes `l` from `off`, each as `cByte`. -/
-def cBytes (p : Ino) (d : Nat → DFrac) (c : Nat → Bool) (off : Nat) (l : List (w8 × Bool)) :
+def cBytes (p : Ino) (d : Nat → DFrac) (c : Nat → Bool) (off : Nat) (l : List ByteG) :
     IProp GF :=
   [∗list] k ↦ x ∈ l, cByte (L := L) p d c (off + k) x
 
 instance cBytes_timeless (p : Ino) (d : Nat → DFrac) (c : Nat → Bool) (off : Nat)
-    (l : List (w8 × Bool)) : Timeless (cBytes (L := L) p d c off l) := by
+    (l : List ByteG) : Timeless (cBytes (L := L) p d c off l) := by
   unfold cBytes cByte
   refine BigSepL.bigSepL_timeless ?_
   intro k x _
   split <;> infer_instance
 
 theorem cBytes_append (p : Ino) (d : Nat → DFrac) (c : Nat → Bool) (off : Nat)
-    (l1 l2 : List (w8 × Bool)) :
+    (l1 l2 : List ByteG) :
     cBytes (L := L) p d c off (l1 ++ l2) ⊣⊢
       cBytes (L := L) p d c off l1 ∗ cBytes (L := L) p d c (off + l1.length) l2 := by
   unfold cBytes
@@ -299,7 +311,7 @@ theorem cBytes_nil (p : Ino) (d : Nat → DFrac) (c : Nat → Bool) (off : Nat) 
 
 /-- Bytes all present at one fraction are a run. -/
 theorem cBytes_full (p : Ino) (d : Nat → DFrac) (c : Nat → Bool) (dq : DFrac) :
-    ∀ (off : Nat) (l : List (w8 × Bool)), (∀ k < l.length, c (off + k) = true ∧ d (off + k) = dq) →
+    ∀ (off : Nat) (l : List ByteG), (∀ k < l.length, c (off + k) = true ∧ d (off + k) = dq) →
     cBytes (L := L) p d c off l ⊣⊢ osBytes (L := L) p off dq l
   | off, [], _ => by
     refine (cBytes_nil p d c off).trans (osBytes_nil' p off dq).symm
@@ -320,7 +332,7 @@ theorem cBytes_full (p : Ino) (d : Nat → DFrac) (c : Nat → Bool) (dq : DFrac
 
 /-- Bytes all absent are nothing. -/
 theorem cBytes_none (p : Ino) (d : Nat → DFrac) (c : Nat → Bool) :
-    ∀ (off : Nat) (l : List (w8 × Bool)), (∀ k < l.length, c (off + k) = false) →
+    ∀ (off : Nat) (l : List ByteG), (∀ k < l.length, c (off + k) = false) →
     cBytes (L := L) p d c off l ⊣⊢ emp
   | off, [], _ => .rfl
   | off, x :: l, h => by
@@ -338,7 +350,7 @@ theorem cBytes_none (p : Ino) (d : Nat → DFrac) (c : Nat → Bool) :
 
 /-- Bytes whose fractions and presence agree where they are. -/
 theorem cBytes_congr (p : Ino) (d d' : Nat → DFrac) (c c' : Nat → Bool) :
-    ∀ (off : Nat) (l : List (w8 × Bool)),
+    ∀ (off : Nat) (l : List ByteG),
     (∀ k < l.length, c (off + k) = c' (off + k) ∧ (c (off + k) = true → d (off + k) = d' (off + k))) →
     cBytes (L := L) p d c off l ⊣⊢ cBytes (L := L) p d' c' off l
   | off, [], _ => .rfl
@@ -362,7 +374,7 @@ theorem cBytes_congr (p : Ino) (d d' : Nat → DFrac) (c c' : Nat → Bool) :
 
 /-- Bytes as two sets, pointwise. -/
 theorem cBytes_sep (p : Ino) (d d1 d2 : Nat → DFrac) (c c1 c2 : Nat → Bool) (off : Nat)
-    (l : List (w8 × Bool))
+    (l : List ByteG)
     (h : ∀ k x, l[k]? = some x →
       (cByte (L := L) p d c (off + k) x ⊣⊢ cByte (L := L) p d1 c1 (off + k) x ∗
         cByte (L := L) p d2 c2 (off + k) x)) :
@@ -374,7 +386,7 @@ theorem cBytes_sep (p : Ino) (d d1 d2 : Nat → DFrac) (c c1 c2 : Nat → Bool) 
   · exact BigSepL.bigSepL_mono fun {k x} hk => (h k x hk).2
 
 /-- One byte at two halves is the byte whole. -/
-theorem osByte_halves (p : Ino) (k : Nat) (x : w8 × Bool) :
+theorem osByte_halves (p : Ino) (k : Nat) (x : ByteG) :
     osByte (L := L) p k (DFrac.own 1) x ⊣⊢
       osByte (L := L) p k (DFrac.own (1 : Qp).half) x ∗ osByte (L := L) p k (DFrac.own (1 : Qp).half) x := by
   have h := gElem_split (gooseOsGS (L := L)) (gooseOsGS (L := L)).γb (p, k) (1 : Qp).half (1 : Qp).half x
@@ -419,8 +431,8 @@ flight. -/
 def metaRes (p : Ino) (s : CSt) : IProp GF :=
   match s.busy with
   | .idle => osMeta (L := L) p (DFrac.own (1 : Qp).half) s.m
-  | .write t off data => pwTok (L := L) t p off data 1 s.m (cfRange s.m s.bs off data.length)
-  | .trunc t sz => ftTok (L := L) t p sz s.m
+  | .write t off data n => pwTok (L := L) t p off data s.m (cfRange s.m s.bs off data.length) n
+  | .trunc t sz n => rsTok (L := L) t p sz s.m [] n
 
 /-- What the invariant holds of a state. -/
 def invResS : CState → IProp GF
@@ -438,11 +450,11 @@ def thrResS : CState → IProp GF
 instance invResS_timeless (s : CState) : Timeless (invResS (L := L) s) := by
   rcases s with _ | ⟨i, s⟩
   · unfold invResS; infer_instance
-  · rcases s with ⟨m, bs, fa, fb, _ | ⟨t, off, data⟩ | ⟨t, sz⟩⟩ <;>
+  · rcases s with ⟨m, bs, fa, fb, _ | ⟨t, off, data, n⟩ | ⟨t, sz, n⟩⟩ <;>
       unfold invResS invBytes metaRes <;> dsimp only
     · infer_instance
     · unfold pwTok osTok; infer_instance
-    · unfold ftTok osTok; infer_instance
+    · unfold rsTok osTok; infer_instance
 
 /-- The crash invariant of the file at `p` (the roots `R`): its state `s` (named by `γ`), the
 invariant's part of it, half of the tree's history `V`, `Ok s`, and that every crash of the
@@ -469,12 +481,13 @@ def csOwnF (γ : GName) (s : CState) : IProp GF :=
 def csOwn (p : GoString) (R : Roots) (γ : GName) (s : CState) (V : Hist) : IProp GF :=
   iprop(csOwnF (L := L) γ s ∗ osTree (L := L) (DFrac.own (1 : Qp).half) R V ∗ ⌜SPathOk p R s V⌝)
 
-/-- The state of the file `i` a generation starts with, as `osFileStartG` gives it, nothing
+/-- The state of the file `i` a generation starts with, as `osFileStart` gives it, nothing
 frozen. -/
-def csStart (i : Ino) (f : OsFile) : CState := some (i, ⟨metaOf f, bytesOf f, 0, 0, .idle⟩)
+def csStart (i : Ino) (f : OsFile) : CState :=
+  some (i, ⟨initMeta f, f.contents.map durB, 0, 0, .idle⟩)
 
 theorem csStart_wf (i : Ino) (f : OsFile) : CsWf (csStart i f) :=
-  ⟨by simp [bytesOf_length, metaOf], Nat.le_refl _, Nat.zero_le _, trivial⟩
+  ⟨by simp [initMeta, contents_length], Nat.le_refl _, Nat.zero_le _, trivial⟩
 
 /-- What a generation's start gives of an idle state with nothing frozen: nothing, or its file
 whole. -/
@@ -544,12 +557,12 @@ theorem metaRes_take (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF)
     (V' : Hist) (i : Ino) (hi : i ∉ D) (x : CSt) :
     ⊢ crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D true V' -∗ metaRes (L := L) i x -∗
       ([∗list] r ∈ x.runs, osBytes (L := L) i r.1 r.2.1 r.2.2) -∗
-      ∃ fo, ⌜FileCrashedR x.vmeta x.runs fo ∧ (Named V'.now i → fo.isSome) ∧
-          CrashSeenR Q i x.vmeta x.runs (x.toks i) fo⌝ ∗ osFileStartO (L := L') i fo ∗
+      ∃ fo, ⌜FileCrashedR x.vmeta x.vruns fo ∧ (Named V'.now i → fo.isSome) ∧
+          CrashSeenR Q i x.vmeta x.vruns (x.toks i) fo⌝ ∗ osFileStartO (L := L') i fo ∗
         crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) (i :: D) true V' ∗
         metaRes (L := L) i x ∗ ([∗list] r ∈ x.runs, osBytes (L := L) i r.1 r.2.1 r.2.2) := by
   iintro Hr Hm Hb
-  rcases x with ⟨m, bs, fa, fb, _ | ⟨t, off, data⟩ | ⟨t, sz⟩⟩
+  rcases x with ⟨m, bs, fa, fb, _ | ⟨t, off, data, n⟩ | ⟨t, sz, n⟩⟩
   · dsimp only [metaRes]
     icases osCrash_take_runs_keep Q L L' D true V' i hi _ m _ $$ Hr Hm Hb
       with ⟨%fo, %h, Hf, Hr, Hm, Hb⟩
@@ -561,10 +574,13 @@ theorem metaRes_take (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF)
     iexists fo; iframe; isplitr
     · ipureintro; exact h
     ipureintro; exact hgap
-  · dsimp only [metaRes, ftTok]
-    icases osCrash_take_tok_keep Q L L' D true V' t _ hi _ $$ Hr Hm Hb
-      with ⟨%fo, %h, Hf, Hr, Hm, Hb⟩
-    iexists fo; iframe; ipureintro; exact h
+  · dsimp only [metaRes, rsTok]
+    icases Hm with ⟨Ht, %hlen⟩
+    icases osCrash_take_tok_keep Q L L' D true V' t _ hi _ $$ Hr Ht Hb
+      with ⟨%fo, %h, Hf, Hr, Ht, Hb⟩
+    iexists fo; iframe; isplitr
+    · ipureintro; exact h
+    ipureintro; exact hlen
 
 /-- **The tree and the file after a crash under the premise `Q`**, from the invariant's part of
 the old generation's state `s` and its half of the history `V`: the new generation's history,
@@ -616,10 +632,7 @@ theorem csInv_crash_keep (Q : OsState → OsState → Prop) (L L' : GooseLocalGS
     isplitl [Hf]
     · unfold startAt; rw [hl]; iexists f; isplitr
       · ipureintro; rfl
-      obtain ⟨vs, sz, rfl⟩ := crashSeen_ofDisk hseen
-      iapply (osFileStartG_ofDisk (L := L') _ vs sz).1
-      iapply (show osFileStartO (L := L') _ (some (OsFile.ofDisk vs sz)) ⊢
-          osFileStartG (L := L') _ (OsFile.ofDisk vs sz) from BIBase.Entails.rfl) $$ Hf
+      unfold osFileStartO; iexact Hf
     iexists (i :: D); iexact Hr
 
 end crash
