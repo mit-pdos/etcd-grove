@@ -36418,3 +36418,68 @@ amendment.
    unique) give `n = X.logst.committed`, so `CloseMid`'s third case and `lineF_close` at `X`
    (`SimIdleS` of the end state: `simIdleS_rd`, `simIdleS_readRespondAll`, the `Progress` values at the
    same `Match`); from `G0`/`G1`, the close at `s`.
+
+## Q8 stage 1 (slice 29c): a leader's accepted `MsgAppResp`: the `Commit` line, the sends after it, the close past `maybeCommit`, the bundle on a non-committing outcome; a guard found missing for the committing one (Q30) (2026-11-11 · trace-check, Q8 stage 1 slice 29c; slice 28c's remaining list taken by the coordinator, its form the agent's under the user's delegation · branch `trace-check-q8s29c`; DRAFT until trace-check's Freeze)
+
+**Done** (new modules `TracedRaftStepRecvLeadAcc{Commit,Gates,Bundle}.lean`, none on `etc/api/raft.txt`; no
+axiom, no `sorry`, no frozen or client-visible statement changed):
+- *The bridge from `maybeCommitOut` to `AdvancesTo`* (`advancesTo_of_out`): with no outgoing half
+  (`MajIdx ∅` the top) `Committed()` is the voters' `IsQuorumIndex` (`isQuorumIndex_of_out`, the voters'
+  set `listToSet C` by `gset_eq_listToSet`); a committing outcome is `advanceCommitIndex_eq`'s
+  (`isQuorumIndex_acked'` for `ackedBy`, `IsQuorumIndex`'s third clause for maximality,
+  `isQuorum_filter_of_acked`); a non-committing one `advanceCommitIndex_noop`'s, which needs the quorum
+  index within the log, so every `Match` within the log (`hm`).
+- *Every `Match` within the log* (`appRespMatch_le`): the old ones by raft's `PrvalsOk` (a pure conjunct of
+  `ownRaftPhys`, not of raft's ghost state: `matchedOk` gives `isAcked`, not `ackIn`), the raised one by the
+  response's `ackIn` (`ownRaftGhost_ackIn_le`). So **the path premise** (`LeadAcc`) is `MsgAppResp`
+  accepted, of the leader's term, `m.From' ∈ domSet s.progress` (for `CloseMid`), `m.From' ∈ domSet
+  s.prvals` (for `phaseStepR_leadAcc`'s `hdom`) and `PrvalsOk s`: all read off before the call by the node
+  API (`RawNode.Step`'s `Progress` lookup, `ownTrackerC_prvals_dom`, `ownRaftPhysC_prvals_ok`), as slice
+  18a's `domSet` premise. Rejected: the bound from the specification's `SpecInv` (the leader's match
+  indices within its durable log): it is a fact of the state `σ`, read only in the line's facts, and the
+  phase (`AdvancesTo`) is pure, before `σ`.
+- *The `Commit` line* (`TracedRaftStepRecvLeadAccCommit.lean`): its pinned phases (`CommitSrc`,
+  `CommitTgt`, `phaseStepB_commitPin`: `phaseStepB_commit` with the share's server named, so that the
+  facts know the result up to `toC`); its facts (`fxPres_commit`): `AdvancesTo` gives `σ.advanceCommitIndex
+  i = some (σ.commitTo i n)`; `quorumLogF_commit` (A6) with the new state's `allFacts`, the leader's
+  `srvFacts` rebuilt from raft's ghost state after the commit (`srvFacts_leaderOf`: `logRecs`,
+  `isCommitted`, `commitIn` from `ownRaftGhost_logFacts`, `isLeader`, `leadFull` of its log from
+  `ownLogGhost_lead_full`, `ownRaftGhost_leadFull`; no pending entry, so the campaign clause's left
+  disjunct), the others' unchanged; `specInv_advanceCommitIndex` (`moreThanOneLeaderInv` by
+  `allFacts_oneLeader`); bags, `MsgsShape`, `AppSlices` (no log moves); `simFx_congr` to the line's result.
+- *`"Hgcommit"`* (`leadAccGate_commit`): the response's index within the log and the leader's term non-zero
+  (`ownRaftGhost_term_nz`) read at `s`; `ghost_stepAppCommit` (slice 28c) with `"Hgcommit"`'s credit; raft's
+  facts at the state after the commit; the source phase from the receive line's result (`AccPin`: its
+  witness `pvsA` has `appRespMatch`'s `Match` values, so the same `toPState` as the outcome's map,
+  `toPState_prvalsEq`), `simServerR_commitAt`; `trCapB_hookGate` at `NodeEvOf rsmCommit` of the committed
+  state (`nodeEvOf_prvals`, `commitAt_prvals`); into **`leadAccGc b N o`** (the outcome's map and witness,
+  `AppRespRan`, no outgoing half, and `lineF` at `commitAt { s with prvals := pvs } b N`).
+- *The sends after it*: `leadAccGate_app` (`lineF_app` at the committed state: `sendOutGate_hdr`,
+  `appOk_hdr`, the gates' `commitAt s b N` agreeing in the header, `commitAt_hdr`), `leadAccGate_hb`
+  (`lineF_heartbeat`), `leadAccGate_resp` (`lineF_untraced`), `leadAccGate_tnow` (`lineF_none`, new: a gate
+  at no event).
+- *The close past `maybeCommit`*: `leadAcc_end` (`AppRespAcceptedC` unfolded: the end state's log at the
+  commit index `n`, its idle server the one of `s` at `n` and `appRespMatch`'s `Match` values, through the
+  release's and the single voter's read states); `maybeCommitOut_unique` (`JCommittedIdx` functional:
+  `isQuorumIndex_unique`, `majIdx_unique`) gives `n` the family's outcome's; `CloseMid`'s third case and
+  `lineF_close` at the committed state.
+- *The bundle* `stepBundle_traced_leadAccNC` over `.onC LeadAccNC` (`LeadAcc` and no committing outcome).
+
+**Found: the close given `G0`/`G1` on a committing outcome cannot be proved** (Q30 in the plan). `Step`'s
+result at `G1` does not say that `maybeCommit` did not run: `stepLeader.spec`'s `G` arm is not guarded by
+`¬ AppRespRan` (it holds: the code reaches `maybeCommit`, hence `"Hgcommit"`, exactly when `AppRespRan`),
+and `stepOutG` guards `G0`/`G1` by `CandHooked` only. Given `G1`, the close must give the idle capability
+at an end state whose commit index is the outcome's, past the recorded server's, with no `Commit` line
+logged; nothing the close holds refutes it (the outbox may be unchanged: a single voter, or every peer
+paused). On a non-committing outcome (`b = false`, or `maybeCommit` not run) the end state's commit index
+is the node's (`leadAccNC_committed`), so `G1`'s close at `s` holds (`leadAcc_closeAt`); hence the path
+`LeadAccNC`. Rejected: carrying a pure fact in `G1` (the family cannot know at the receive line that the
+step will not commit, and `"Hgcommit"` consumes `G1`); a later credit in the close to step the ghost and
+the capability (no line can be logged there).
+
+**Left** (after Q30): with a guard `¬ (m.Type' = MsgAppResp ∧ m.Reject' = false ∧ AppRespRan s m.From'
+m.Index')` on `G0`/`G1` (`stepLeader.spec`'s `G` arm, `stepOutG`, `Step`'s `MsgAppResp` arm), the bundle on
+`.on LeadAcc`: the same family and gates, `G1`'s close then at `¬ AppRespRan` only (`n = committed` by
+`AppRespAcceptedC`), the committing outcome closed past `maybeCommit` as now. Then the assembly of the
+paths (`LeadAcc` among them; its premises `m.From' ∈ domSet s.prvals` and `PrvalsOk s` added to the
+assembly's list).
