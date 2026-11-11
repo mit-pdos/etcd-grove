@@ -20,8 +20,10 @@ Decisions and forms: `questions.md` (worktree root, untracked).
 
 ## Next, in order
 
-1. C1 review answer; then gates (tcb --check --update for the trusted-text change if needed,
-   collections, interfaces, gen-init --check), STOP before land.sh.
+1. C1 is built and gated at 9c032948fa (full build clean; tcb --check: 865 axioms, 5 sorries,
+   unchanged; all 54 collections --check; the 5 interfaces --check; gen-init --check). Waiting on
+   the coordinator's review of the trusted text (`/shared/tmp/premise-fixes-8c/c1-trusted.diff`)
+   and its go for land.sh (merge lean first).
 2. C2: the cascade (Scope C.3, list `/shared/tmp/premise-fixes-8/client-cascade.txt`).
 3. C3: flip `ctxOk`/`ctxQuiet`/`ctxErrs` (N1-N3; STOP on the "no AfterFunc" text), `FromOutgoingContext`,
    `watchCtx`, `WithCancelValCtx`'s post (moved here from C1), `kaCtxOk`.
